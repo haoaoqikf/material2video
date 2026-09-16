@@ -8,8 +8,11 @@ skill bundle 需要可移植，因此脚本自行把同级目录加入 sys.path�
 
     uv run python .agents/skills/article2video/scripts/render.py \
         --page examples/why-effort-fails/index.html \
-        --storyboard examples/why-effort-fails/storyboard.json \
-        --out outputs/why-effort-fails.mp4
+        --storyboard examples/why-effort-fails/storyboard.json
+
+省略 --out 时按文章归属推导：无声写入 outputs/<slug>/silent.mp4，提供 --media 时写入
+outputs/<slug>/voiced.mp4，配合 --limit-frames 时写入 outputs/<slug>/previews/。
+规则见 references/paths-and-outputs.md。
 """
 
 from __future__ import annotations

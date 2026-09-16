@@ -3,13 +3,16 @@
 ## 工作流
 
 1. 源分镜保持 version 1，每幕可写字符串 `narration`；省略或空字符串表示静音。
-2. `prepare.py --storyboard <json> --out-dir outputs/<slug>-media` 生成媒体。
+2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
+   `outputs/<slug>/media/`（示例为 `outputs/examples/<slug>/media/`）。
 3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。
 4. `preview.py <网页目录> --media <media.json>` 预览；分镜默认取网页同目录 `storyboard.json`，可用 `--storyboard` 指定校验源。
-5. `render.py --page <html> --storyboard <json> --media <media.json> --out outputs/<slug>.mp4` 输出有声 MP4 和同名 SRT。
+5. `render.py --page <html> --storyboard <json> --media <media.json>` 输出
+   `outputs/<slug>/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
 
-省略 `--media` 时保留原无声模式；已有 narration 不会自动触发联网或配音。
-网页始终通过 `A2V.fetchStoryboard()` 读取它实际使用的分镜，不由命令行替换其内容。
+省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；已有 narration 不会自动触发联网或配音，
+但会在日志中提示本次按无声导出。网页始终通过 `A2V.fetchStoryboard()` 读取它实际使用的分镜，
+不由命令行替换其内容。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
 
 ## 语音与字幕
 
@@ -57,6 +60,8 @@
 
 准备过程在输出目录内写临时文件；统一音轨和 SRT 使用新资源名，最后原子替换 `media.json`。
 失败保留上次可用清单。旧资源为避免破坏已打开的预览不自动删除；不再使用后可清理整个输出目录。
+清单与音轨属于哪篇文章，由它所在的 `outputs/<slug>/media/` 目录决定：渲染时若 `--media`
+不在当前文章的媒体目录内，直接报错而不是跨文章合成。
 请将产物放在已忽略的 `outputs/`，生成媒体、清单和缓存均不提交 Git。
 
 ## 渲染与验收
@@ -64,5 +69,6 @@
 字幕由共享网页层绘制，正文留出 180px；预览支持播放、暂停、重播和拖动，音轨为播放时钟。
 渲染按帧 seek，不播放音频；先编码画面，再复制视频流合入 AAC 配音，无二次视频编码。
 最终 MP4 检查视频解码帧数、实际尺寸、帧率、时长及音轨解码长度，时长容差 100ms。
-`--limit-frames` 同步裁切音轨和导出 SRT；`--no-probe` 仅跳过最终成片验收，不跳过媒体校验。
+`--limit-frames` 同步裁切音轨和导出 SRT；省略 `--out` 时写入 `previews/`，不覆盖正式成片。
+`--no-probe` 仅跳过最终成片验收，不跳过媒体校验。
 背景音乐、自动选曲及音乐混音当前未实现。

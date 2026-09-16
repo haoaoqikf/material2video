@@ -20,14 +20,15 @@ from typing import Iterator
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
+from . import paths
+from .audio import mux
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
-from .media import Media, media_url
-from .audio import mux
-from .subtitles import srt
 from .errors import A2VError
+from .media import Media, media_url
 from .static_server import LocalServer
 from .storyboard import Storyboard
+from .subtitles import srt
 
 logger = logging.getLogger(__name__)
 
@@ -178,13 +179,14 @@ def _default_serve_root(page_file: Path) -> Path:
     """选择静态根目录。
 
     网页通常既引用同目录的 storyboard.json，也引用仓库内共享的 skill 资产
-    （base.css / timeline.js），因此默认向上取最近的 Git 仓库根，让两者都
-    可以通过相对路径访问；不在仓库内时退回网页所在目录。
+    （base.css / timeline.js），因此默认取项目根目录（含
+    `.agents/skills/article2video/SKILL.md` 的那一层），让两者都能通过相对
+    路径访问；不在 article2video 项目内时退回网页所在目录。
     """
-    for candidate in (page_file.parent, *page_file.parents):
-        if (candidate / ".git").exists():
-            return candidate
-    return page_file.parent
+    try:
+        return paths.project_root(page_file)
+    except A2VError:
+        return page_file.parent
 
 
 def _resolve_fps(page: AnimatedPage, storyboard: Storyboard | None, fps: int | None) -> int:

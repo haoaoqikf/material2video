@@ -35,17 +35,23 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 | --- | --- |
 | `.agents/skills/article2video/assets/` | 共享基础样式 `base.css` 与时间轴运行时 `timeline.js` |
 | `.agents/skills/article2video/scripts/` | 渲染、校验、配音准备、预览四个命令行工具 |
-| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
-| `outputs/` | 渲染产物，已被 `.gitignore` 忽略 |
+| `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
+| `outputs/examples/<slug>/` | 示例产物，独立一层避免与同名实际文章冲突 |
+
+每篇文章的目录名（slug）稳定且唯一，标题变化不改目录名；源文件纳入 Git，产物统一放
+`outputs/`。完整结构与推导规则见 [目录约定与输出路径](references/paths-and-outputs.md)。
 
 `.agents/skills/` 是 Codex 与 DSH 都能识别的项目级 skill 位置；
 Claude Code 需要该目录时可用软链接映射到 `.claude/skills/`。
 
 ## 标准流程
 
-所有命令都在**仓库根目录**执行。
+所有命令都在**仓库根目录**执行。输出路径可以省略：脚本从输入文件位置向上找到项目根，
+再按 `videos/<slug>/` 或 `examples/<slug>/` 推导出 `outputs/<slug>/`，
+推导结果与执行命令时的工作目录无关。无法推导时脚本直接报错，不会猜测归属。
 
 ### 0. 准备环境
 
@@ -74,6 +80,9 @@ uv run playwright install chromium                   # 首次执行，安装浏�
 cp -r examples/why-effort-fails videos/<slug>
 ```
 
+目录名保持稳定：文章标题后来变了也只改 `article.md` 与分镜里的 `title`，不改目录名，
+否则产物会分裂到两个 `outputs/` 目录下。
+
 然后改写 `videos/<slug>/index.html`：
 
 - 保留 `<link>` 引入的 `base.css` 与 `<script>` 引入的 `timeline.js`
@@ -100,9 +109,10 @@ uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/sto
 
 ```bash
 uv run python .agents/skills/article2video/scripts/prepare.py \
-  --storyboard videos/<slug>/storyboard.json --out-dir outputs/<slug>-media
+  --storyboard videos/<slug>/storyboard.json
 ```
 
+省略 `--out-dir` 时媒体写入该文章的 `outputs/<slug>/media/`。
 默认 edge-tts 中文晓晓音色，支持 `--voice`、`--rate=-10%`、`--force`。
 生成 `media.json`、统一 WAV 和 SRT；音频较长的场景自动延长。无口播场景静音。
 修改分镜后重新 prepare，缓存复用不变的配音。流程、缓存与失败处理见
@@ -114,7 +124,7 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 uv run python .agents/skills/article2video/scripts/preview.py videos/<slug>
 ```
 
-有声预览追加 `--media outputs/<slug>-media/media.json`。网页须使用 `A2V.fetchStoryboard()`
+有声预览追加 `--media outputs/<slug>/media/media.json`。网页须使用 `A2V.fetchStoryboard()`
 加载分镜，并在 mount 后等待 `__A2V__.ready()`；它会加载统一媒体时间轴和字幕。
 
 浏览器打开后检查：中文无裁切、正文在安全区内、场景切换自然、重播结果一致。
@@ -125,11 +135,14 @@ uv run python .agents/skills/article2video/scripts/preview.py videos/<slug>
 ```bash
 uv run python .agents/skills/article2video/scripts/render.py \
   --page videos/<slug>/index.html \
-  --storyboard videos/<slug>/storyboard.json \
-  --out outputs/<slug>.mp4
+  --storyboard videos/<slug>/storyboard.json
 ```
 
-有声导出追加 `--media outputs/<slug>-media/media.json`，同时保留 `--storyboard`。
+省略 `--out` 时无声导出为 `outputs/<slug>/silent.mp4`；
+有声导出追加 `--media outputs/<slug>/media/media.json`，输出 `outputs/<slug>/voiced.mp4`
+和同名 SRT。加 `--limit-frames` 时写入 `outputs/<slug>/previews/`，使用相同的成片文件名，
+不会覆盖正式成片。显式 `--out` 仍然优先。
+
 输出包含 AAC 配音和烧录字幕，并生成同名 SRT；限帧会同步裁切音轨和字幕。
 
 先用 `--limit-frames 30` 快速跑通链路再全量渲染。渲染脚本会：
@@ -158,9 +171,13 @@ uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json>
 # 本地预览
 uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000] [--media <media.json>] [--storyboard <json>]
 
-# 渲染
+# 配音准备（省略 --out-dir 时写入 outputs/<slug>/media）
+uv run python .agents/skills/article2video/scripts/prepare.py \
+  --storyboard <json> [--out-dir <目录>] [--voice <音色>] [--rate=±N%] [--force] [-v]
+
+# 渲染（省略 --out 时按文章归属推导，限帧时写入 previews/）
 uv run python .agents/skills/article2video/scripts/render.py \
-  --page <网页> --out <输出.mp4> [--storyboard <json>] [--limit-frames N] \
+  --page <网页> [--storyboard <json>] [--out <输出.mp4>] [--limit-frames N] \
   [--media <media.json>] [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
 ```
 
@@ -176,21 +193,26 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 导出画面被裁切 | 文档尺寸超出 1080 × 1920，检查是否有元素溢出或页面出现滚动条 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
 | 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
+| `无法推导文章归属` | 网页或分镜不在 `videos/<slug>/`、`examples/<slug>/` 内，移入规范目录或显式指定输出路径 |
+| `无法推导默认输出路径` | 省略 `--out` 但没有 `--storyboard`，补上分镜或显式指定 `--out` |
+| 提示 narration 却按无声导出 | 没传 `--media`；先执行 `prepare.py`，再带 `--media` 渲染 |
 
 ## 当前边界
 
-已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收。
+已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收、
+按文章目录推导输出路径。
 
 尚未实现，不要当作已有能力使用：
 
 - **背景音乐**：尚未实现；目前仅支持配音音轨；
 - **AI 自动分镜**：文章到分镜目前由人（或 AI 工具）直接编写，没有内置的生成服务；
-- **发布**：没有对接抖音或任何平台的上传接口。
+- **发布**：没有对接抖音或任何平台的上传接口；
+- **批处理与历史版本**：没有多篇批量渲染，也不保留成片历史版本。
 
 ## 参考文档
 
+- [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
-
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、字号、动效与节奏

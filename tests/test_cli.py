@@ -75,9 +75,11 @@ class TestFfmpegStatsParsing:
 
 
 class TestServeRootResolution:
-    def test_prefers_nearest_git_root(self, tmp_path, valid_script):
+    def test_prefers_project_root_marker(self, tmp_path):
         # 网页需要同时引用同目录的 storyboard.json 和仓库内的共享 skill 资产
-        (tmp_path / ".git").mkdir()
+        marker = tmp_path / ".agents" / "skills" / "article2video"
+        marker.mkdir(parents=True)
+        (marker / "SKILL.md").write_text("# skill", encoding="utf-8")
         page_dir = tmp_path / "videos" / "demo"
         page_dir.mkdir(parents=True)
         page = page_dir / "index.html"

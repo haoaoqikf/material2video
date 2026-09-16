@@ -19,7 +19,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 ## 当前状态
 
-已完成**可选自动配音与字幕的视频端到端链路**：
+已完成**支持多篇文章目录规范的可选配音视频端到端链路**：
 
 - 分镜 JSON 的结构校验（版本、帧率、尺寸、场景 ID、时长、组件字段、关系图节点引用）；
 - 网页与渲染脚本之间的确定性渲染契约 `window.__A2V__`，并提供时间轴运行时
@@ -30,10 +30,13 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 一个可直接运行的完整示例：`examples/why-effort-fails/`（5 幕，1350 帧，45 秒）；
 - edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
-- 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步和有声/无声渲染。
+- 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `outputs/<slug>/`，
+  示例产物独立在 `outputs/examples/<slug>/`；`--out` 与 `--out-dir` 可省略，
+  显式参数继续优先；
+- 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、有声/无声渲染与路径推导。
 
 尚未实现、请勿当作已有能力使用：**背景音乐**、
-**AI 自动分镜**（分镜目前由人或 AI 工具直接编写）、**平台发布**。
+**AI 自动分镜**（分镜目前由人或 AI 工具直接编写）、**平台发布**、批量渲染与成片历史版本。
 
 ## 快速开始
 
@@ -48,11 +51,10 @@ uv run python .agents/skills/article2video/scripts/validate.py examples/why-effo
 # 3. 本地预览（浏览器中确认节奏与排版）
 uv run python .agents/skills/article2video/scripts/preview.py examples/why-effort-fails
 
-# 4. 渲染
+# 4. 渲染（省略 --out 时输出到 outputs/examples/why-effort-fails/silent.mp4）
 uv run python .agents/skills/article2video/scripts/render.py \
   --page examples/why-effort-fails/index.html \
-  --storyboard examples/why-effort-fails/storyboard.json \
-  --out outputs/why-effort-fails.mp4
+  --storyboard examples/why-effort-fails/storyboard.json
 
 # 5. 测试
 uv run pytest
@@ -71,18 +73,21 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright uv run pl
 
 ```bash
 uv run python .agents/skills/article2video/scripts/prepare.py \
-  --storyboard examples/why-effort-fails/storyboard.json \
-  --out-dir outputs/why-effort-fails-media
+  --storyboard examples/why-effort-fails/storyboard.json
 
 uv run python .agents/skills/article2video/scripts/preview.py examples/why-effort-fails \
-  --media outputs/why-effort-fails-media/media.json
+  --media outputs/examples/why-effort-fails/media/media.json
 
 uv run python .agents/skills/article2video/scripts/render.py \
   --page examples/why-effort-fails/index.html \
   --storyboard examples/why-effort-fails/storyboard.json \
-  --media outputs/why-effort-fails-media/media.json \
-  --out outputs/why-effort-fails-voiced.mp4
+  --media outputs/examples/why-effort-fails/media/media.json
 ```
+
+省略 `--out-dir` 时媒体写入 `outputs/examples/why-effort-fails/media/`；省略 `--out` 时
+无声导出为 `silent.mp4`，带 `--media` 则导出 `voiced.mp4` 和同名 `voiced.srt`。
+加 `--limit-frames` 默认写入 `previews/`，不会覆盖正式成片。显式 `--out`、`--out-dir`
+始终优先，原有调用方式继续可用。
 
 默认音色 `zh-CN-XiaoxiaoNeural`、语速 `+0%`；可用 `--voice`、`--rate=-10%` 调整，
 `--force` 强制重新合成。首次合成需要联网，无需 API key；已有缓存可离线重新准备与导出。
@@ -95,11 +100,13 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ## 制作一支新视频
 
-1. 在 `videos/<slug>/` 下新建目录，写入 `article.md` 与 `storyboard.json`；
+1. 在 `videos/<slug>/` 下新建目录（slug 稳定、唯一，标题变化不改名），写入 `article.md` 与 `storyboard.json`；
 2. 复制 `examples/why-effort-fails/index.html` 作为模板，改写视觉与场景；
-3. 依次执行上面的校验、预览、渲染命令。
+3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导，无需手动创建。
 
-分镜字段、网页契约与排版规范见 Skill 内的
+目录结构与归属推导规则见
+[目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；
+分镜字段、网页契约与排版规范见
 [渲染契约](.agents/skills/article2video/references/render-contract.md)、
 [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)、
 [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)。
@@ -109,6 +116,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - **单一真源**：文案与原始时长写在 `storyboard.json`；启用配音时，网页和脚本共用媒体清单中的派生时长；
 - **帧驱动**：画面只由帧号推导。禁止 CSS `animation`/`transition`、`Date.now()`、
   `Math.random()`，否则逐帧截图会闪烁且不可复现；
+- **产物归属**：一篇文章一个目录，产物只写进它自己的 `outputs/<slug>/`；
+  推导不出归属时脚本报错并要求显式指定路径，不猜测；
 - **性能取舍**：中间帧默认用 JPEG q98 采集（1080 × 1920 实测约 66ms/帧，PNG 约 225ms），
   需要逐像素比对时用 `--capture-format png`。
 
@@ -117,5 +126,6 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [项目规划](docs/PROJECT_PLAN.md)：处理链路、组件清单与阶段路线（未来方向的权威来源）
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则
 - [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
+- [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
 本仓库未配置远端，不含账号系统、云端任务队列或自动发布能力。

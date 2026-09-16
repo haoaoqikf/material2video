@@ -21,18 +21,6 @@ from conftest import EXAMPLES_DIR
 PAGE = EXAMPLES_DIR / "index.html"
 
 
-@pytest.fixture(scope="module")
-def chromium_ready():
-    """浏览器不可用时跳过，而不是让整个测试套件失败。"""
-    try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as playwright:
-            playwright.chromium.launch(headless=True).close()
-    except Exception as exc:  # noqa: BLE001 - 任何启动失败都应降级为跳过
-        pytest.skip(f"未安装可用的 Playwright Chromium: {exc}")
-
-
 @pytest.fixture
 def page_session():
     """打开示例网页并进入渲染模式，退出时释放浏览器。"""

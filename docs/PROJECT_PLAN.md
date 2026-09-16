@@ -27,7 +27,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | 部分 | 职责 |
 | --- | --- |
 | `SKILL.md` | 工作流主文档：从文章到成片的步骤与排查手册 |
-| `references/` | 渲染契约、分镜结构、竖屏视觉规范 |
+| `references/` | 渲染契约、分镜结构、竖屏视觉规范、目录与输出路径 |
 | `assets/` | 共享基础样式与时间轴运行时（AI 生成网页时复用） |
 | `scripts/` | 校验、配音准备、预览、渲染四个命令行工具 |
 
@@ -119,10 +119,33 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 验收：示例文章能生成有效脚本；使用受支持的组件；保留原文核心判断；
 字段缺失或类型不支持时给出明确错误，并允许修正后重试。
 
+## 多篇文章的目录与产物
+
+项目要长期维护多篇文章，因此目录与产物位置是稳定约定而非临时安排：
+
+```text
+videos/<slug>/{article.md, storyboard.json, index.html}   # 源文件入 Git
+outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
+outputs/examples/<slug>/                                   # 示例产物独立一层
+```
+
+`prepare.py`、`render.py` 的输出参数改为可选：从输入文件位置向上定位含
+`.agents/skills/article2video/SKILL.md` 的项目根，再识别 `videos/<slug>/` 或
+`examples/<slug>/`，推导出对应产物路径；渲染以本地网页确定归属，配音以分镜确定归属，
+结果与执行命令时的工作目录无关。非规范目录、远程网页或无法识别项目时直接报错并要求
+显式指定路径，不猜测归属。显式 `--out`、`--out-dir` 始终优先，原有调用保持兼容；
+同类重复导出覆盖固定的 `silent.mp4` / `voiced.mp4`，限帧试渲染只写 `previews/`。
+
+已实现并验证：两篇文章输出相互隔离、示例与实际文章同名时产物分离、不同工作目录下推导一致、
+显式路径兼容、限帧输出不覆盖正式成片，以及无法推导时给出明确错误。
+规则以 [目录约定与输出路径](../.agents/skills/article2video/references/paths-and-outputs.md)
+为权威来源。示例产物已迁入 `outputs/examples/why-effort-fails/`，媒体目录整体移动后清单与
+资源引用保持有效。
+
 ## 当前边界与后续决策
 
 已实现的部分见 README。明确不在当前范围内：账号系统、云端任务队列、多用户管理、
-自动发布到抖音、配乐与音效库。
+自动发布到抖音、配乐与音效库、成片历史版本管理、批处理与缓存清理。
 
 待决策：背景音乐方案、webfont 的引入方式（当前用系统字体栈，
 换机器可能影响换行位置）、批量渲染的并行策略（当前单进程串行，实测约 11–16 帧/秒）。

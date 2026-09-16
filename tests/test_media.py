@@ -147,7 +147,8 @@ def test_long_sentence_and_clipped_srt():
 
 def test_prepare_cli_invalid_input(tmp_path):
     assert cli.main_prepare(["--storyboard", str(tmp_path / "absent"), "--out-dir", str(tmp_path)]) == 1
-    assert cli.main_render(["--page", "none", "--out", "none.mp4", "--media", "none.json"]) == 1
+    # 只给 --media 属于参数组合非法，按「输入无效」退出，而不是渲染失败
+    assert cli.main_render(["--page", "none", "--out", "none.mp4", "--media", "none.json"]) == 2
 
 
 @pytest.fixture
