@@ -1,0 +1,273 @@
+"""分镜脚本校验与时间换算的单元测试。"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from a2v import storyboard as sb
+
+
+def error_paths(report: sb.Report) -> list[str]:
+    return [issue.path for issue in report.errors]
+
+
+def warning_paths(report: sb.Report) -> list[str]:
+    return [issue.path for issue in report.warnings]
+
+
+class TestStructuralValidation:
+    def test_accepts_valid_script(self, valid_script):
+        report = sb.validate(valid_script)
+        assert report.ok, report.issues
+        assert report.errors == []
+
+    def test_rejects_non_object_root(self):
+        report = sb.validate(["not", "an", "object"])
+        assert error_paths(report) == ["$"]
+
+    def test_requires_supported_version(self, valid_script):
+        valid_script["version"] = 99
+        report = sb.validate(valid_script)
+        assert "version" in error_paths(report)
+
+    def test_rejects_missing_version(self, valid_script):
+        del valid_script["version"]
+        assert "version" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_non_integer_fps(self, valid_script):
+        valid_script["fps"] = 30.5
+        assert "fps" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_out_of_range_fps(self, valid_script):
+        valid_script["fps"] = 0
+        assert "fps" in error_paths(sb.validate(valid_script))
+
+    def test_warns_uncommon_fps(self, valid_script):
+        valid_script["fps"] = 29
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "fps" in warning_paths(report)
+
+    @pytest.mark.parametrize("key", ["width", "height"])
+    def test_rejects_odd_dimension(self, valid_script, key):
+        # H.264 yuv420p 要求宽高为偶数，奇数必须在开渲前拦下
+        valid_script[key] = 1081
+        assert key in error_paths(sb.validate(valid_script))
+
+    def test_rejects_empty_scenes(self, valid_script):
+        valid_script["scenes"] = []
+        assert "scenes" in error_paths(sb.validate(valid_script))
+
+    def test_warns_landscape_orientation(self, valid_script):
+        valid_script["width"] = 1920
+        valid_script["height"] = 1080
+        assert "width" in warning_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("value", ["1080", None, [], {}, True])
+    def test_rejects_non_integer_width_without_crashing(self, valid_script, value):
+        # 校验器本身不能因为字段类型异常而抛 TypeError，
+        # 否则用户看到的是一堆栈而不是可修正的错误清单。
+        valid_script["width"] = value
+        report = sb.validate(valid_script)
+        assert "width" in error_paths(report)
+
+    @pytest.mark.parametrize("value", ["30", "abc", None, [], {}, True])
+    def test_rejects_non_integer_fps_without_crashing(self, valid_script, value):
+        # fps 非法时仍要继续统计总时长，不能因 int() 转换失败而中断
+        valid_script["fps"] = value
+        report = sb.validate(valid_script)
+        assert "fps" in error_paths(report)
+
+
+class TestSceneValidation:
+    def test_rejects_duplicate_ids(self, valid_script):
+        valid_script["scenes"][1]["id"] = "opening"
+        report = sb.validate(valid_script)
+        assert "scenes[1].id" in error_paths(report)
+
+    @pytest.mark.parametrize("scene_id", ["", "有 空格", "斜杠/", "点.号"])
+    def test_rejects_invalid_ids(self, valid_script, scene_id):
+        valid_script["scenes"][0]["id"] = scene_id
+        assert "scenes[0].id" in error_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("duration", [0, -5, "30", 1.5, None])
+    def test_rejects_invalid_duration(self, valid_script, duration):
+        valid_script["scenes"][0]["durationInFrames"] = duration
+        assert "scenes[0].durationInFrames" in error_paths(sb.validate(valid_script))
+
+    def test_warns_unknown_type_but_passes(self, valid_script):
+        valid_script["scenes"][0]["type"] = "hologram"
+        valid_script["scenes"][0]["data"] = {"anything": 1}
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].type" in warning_paths(report)
+
+    def test_errors_when_known_type_lacks_data(self, valid_script):
+        del valid_script["scenes"][0]["data"]
+        assert "scenes[0].data" in error_paths(sb.validate(valid_script))
+
+    def test_errors_on_missing_required_field(self, valid_script):
+        del valid_script["scenes"][0]["data"]["text"]
+        assert "scenes[0].data.text" in error_paths(sb.validate(valid_script))
+
+    def test_warns_on_undefined_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["color"] = "#fff"
+        assert "scenes[0].data.color" in warning_paths(sb.validate(valid_script))
+
+    def test_rejects_empty_items(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "steps",
+            "type": "list",
+            "durationInFrames": 30,
+            "data": {"items": []},
+        }
+        assert "scenes[0].data.items" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_blank_item_text(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "steps",
+            "type": "list",
+            "durationInFrames": 30,
+            "data": {"items": ["有效", "   "]},
+        }
+        assert "scenes[0].data.items[1]" in error_paths(sb.validate(valid_script))
+
+    def test_warns_when_total_duration_is_long(self, valid_script):
+        valid_script["scenes"][0]["durationInFrames"] = 30 * 200
+        assert "scenes" in warning_paths(sb.validate(valid_script))
+
+
+class TestEmphasisValidation:
+    def test_accepts_emphasis_phrases(self, valid_script):
+        valid_script["scenes"][0]["data"]["emphasis"] = ["努力"]
+        assert sb.validate(valid_script).ok
+
+    def test_rejects_empty_emphasis(self, valid_script):
+        valid_script["scenes"][0]["data"]["emphasis"] = []
+        assert "scenes[0].data.emphasis" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_non_array_emphasis(self, valid_script):
+        valid_script["scenes"][0]["data"]["emphasis"] = "努力"
+        assert "scenes[0].data.emphasis" in error_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("phrase", ["", "   ", 42, None])
+    def test_rejects_invalid_emphasis_item(self, valid_script, phrase):
+        valid_script["scenes"][0]["data"]["emphasis"] = ["方向", phrase]
+        assert "scenes[0].data.emphasis[1]" in error_paths(sb.validate(valid_script))
+
+    def test_emphasis_is_not_flagged_as_undefined_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["emphasis"] = ["努力"]
+        assert warning_paths(sb.validate(valid_script)) == []
+
+
+class TestDiagramValidation:
+    def make_diagram(self, valid_script, nodes, edges=None):
+        data = {"nodes": nodes}
+        if edges is not None:
+            data["edges"] = edges
+        valid_script["scenes"][0] = {
+            "id": "loop",
+            "type": "diagram",
+            "durationInFrames": 30,
+            "data": data,
+        }
+
+    def test_accepts_string_nodes(self, valid_script):
+        self.make_diagram(valid_script, ["问题", "约束"], [["问题", "约束"]])
+        assert sb.validate(valid_script).ok
+
+    def test_accepts_object_edges(self, valid_script):
+        self.make_diagram(valid_script, ["A", "B"], [{"from": "A", "to": "B"}])
+        assert sb.validate(valid_script).ok
+
+    def test_accepts_object_nodes(self, valid_script):
+        self.make_diagram(valid_script, [{"id": "a", "label": "A"}, "b"], [["a", "b"]])
+        assert sb.validate(valid_script).ok
+
+    def test_rejects_empty_nodes(self, valid_script):
+        self.make_diagram(valid_script, [])
+        assert "scenes[0].data.nodes" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_edge_with_unknown_node(self, valid_script):
+        self.make_diagram(valid_script, ["A", "B"], [["A", "不存在"]])
+        assert "scenes[0].data.edges[0]" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_malformed_edge(self, valid_script):
+        self.make_diagram(valid_script, ["A", "B"], [["A"]])
+        assert "scenes[0].data.edges[0]" in error_paths(sb.validate(valid_script))
+
+
+class TestLoadingAndTimeline:
+    def write(self, tmp_path: Path, data) -> Path:
+        path = tmp_path / "storyboard.json"
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_load_accumulates_start_frames(self, tmp_path, valid_script):
+        model, report = sb.load(self.write(tmp_path, valid_script))
+        assert report.ok
+        assert model is not None
+        assert [scene.start_frame for scene in model.scenes] == [0, 30]
+        assert [scene.end_frame for scene in model.scenes] == [30, 90]
+        assert model.total_frames == 90
+
+    def test_load_reports_missing_file(self, tmp_path):
+        model, report = sb.load(tmp_path / "absent.json")
+        assert model is None
+        assert not report.ok
+
+    def test_load_reports_invalid_json(self, tmp_path):
+        path = tmp_path / "broken.json"
+        path.write_text("{ not json", encoding="utf-8")
+        model, report = sb.load(path)
+        assert model is None
+        assert not report.ok
+        assert "JSON" in report.errors[0].message
+
+    def test_load_returns_none_when_validation_fails(self, tmp_path, valid_script):
+        valid_script["scenes"] = []
+        model, report = sb.load(self.write(tmp_path, valid_script))
+        assert model is None
+        assert not report.ok
+
+    def test_scene_at_covers_boundaries(self, tmp_path, valid_script):
+        model, _ = sb.load(self.write(tmp_path, valid_script))
+        assert model is not None
+        # 首帧属于第一个场景，末帧属于最后一个场景，边界不重叠
+        assert model.scene_at(0).id == "opening"
+        assert model.scene_at(29).id == "opening"
+        assert model.scene_at(30).id == "closing"
+        assert model.scene_at(89).id == "closing"
+
+    def test_scene_at_clamps_out_of_range(self, tmp_path, valid_script):
+        model, _ = sb.load(self.write(tmp_path, valid_script))
+        assert model is not None
+        # 越界时钳制到首末场景，保证 seek 结果稳定而不是抛错
+        assert model.scene_at(-10).id == "opening"
+        assert model.scene_at(9999).id == "closing"
+
+    def test_narration_is_optional_and_preserved(self, tmp_path, valid_script):
+        valid_script["scenes"][0]["narration"] = "口播文案"
+        model, _ = sb.load(self.write(tmp_path, valid_script))
+        assert model is not None
+        assert model.scenes[0].narration == "口播文案"
+        assert model.scenes[1].narration is None
+
+    def test_example_storyboard_is_valid(self):
+        """仓库自带示例必须始终通过校验，避免文档与实现漂移。"""
+        from conftest import EXAMPLES_DIR
+
+        model, report = sb.load(EXAMPLES_DIR / "storyboard.json")
+        assert report.ok, [issue.format() for issue in report.issues]
+        assert model is not None
+        assert model.total_frames == 1350  # 45 秒 @ 30fps
+        assert [scene.id for scene in model.scenes] == [
+            "opening",
+            "thesis",
+            "choice",
+            "loop",
+            "closing",
+        ]

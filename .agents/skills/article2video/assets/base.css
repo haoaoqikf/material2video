@@ -1,0 +1,130 @@
+/*
+ * article2video 竖屏基础样式
+ *
+ * 只提供「所有视频都必须一致」的部分：画布尺寸、安全区、字体栈与控件条。
+ * 视觉风格（配色、字号、构图）由每个视频的网页自行决定。
+ */
+
+:root {
+  /* 画布逻辑尺寸。渲染脚本会把视口设为同样大小，因此这里是唯一真源。 */
+  --a2v-width: 1080px;
+  --a2v-height: 1920px;
+
+  /*
+   * 中文优先字体栈。系统字体不随仓库分发，换机器可能轻微影响字宽；
+   * 对字宽敏感的项目应改用随仓库分发的 webfont 并在网页中 @font-face 声明。
+   */
+  --a2v-font: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC",
+    "Hiragino Sans GB", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* 安全区：抖音等竖屏平台上下 UI 会遮挡画面，正文不进入该区域。 */
+  --a2v-safe-top: 220px;
+  --a2v-safe-bottom: 320px;
+  --a2v-safe-x: 96px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #07090f;
+  color: #f4f7fb;
+  font-family: var(--a2v-font);
+  /* 视频是逐帧截图，滚动条会污染画面，因此禁止页面滚动 */
+  overflow: hidden;
+}
+
+/*
+ * 舞台：1080 × 1920 的逻辑画布。
+ * 预览时由时间轴运行时按窗口大小整体 transform 缩放，不改动内部布局，
+ * 保证预览与导出使用同一套坐标。
+ */
+[data-a2v-stage] {
+  position: relative;
+  width: var(--a2v-width);
+  height: var(--a2v-height);
+  overflow: hidden;
+  transform-origin: top left;
+  background: #07090f;
+}
+
+/* 单个场景的容器，运行时只显示当前场景 */
+[data-a2v-scene] {
+  position: absolute;
+  inset: 0;
+}
+
+/* 内容安全区：所有正文都应放在这个容器内 */
+.a2v-safe {
+  position: absolute;
+  top: var(--a2v-safe-top);
+  right: var(--a2v-safe-x);
+  bottom: var(--a2v-safe-bottom);
+  left: var(--a2v-safe-x);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 48px;
+}
+
+/* 导出时控件必须完全移出画面；预览时由运行时恢复显示 */
+[data-a2v-controls] {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(16, 20, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 20px;
+  z-index: 10;
+}
+
+[data-a2v-controls] button {
+  font: inherit;
+  color: inherit;
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+[data-a2v-controls] button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+[data-a2v-seek] {
+  width: 320px;
+  accent-color: #35e0c8;
+}
+
+[data-a2v-time] {
+  min-width: 132px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/*
+ * 渲染模式：渲染脚本会在截图前给 <html> 加上 a2v-rendering。
+ * 这里做两件事，保证导出画面不受预览环境干扰：
+ *   1. 隐藏所有预览专用元素（控件条等）；
+ *   2. 取消预览缩放，让舞台严格等于 1080 × 1920。
+ */
+html.a2v-rendering [data-a2v-controls],
+html.a2v-rendering .a2v-preview-only {
+  display: none !important;
+}
+
+html.a2v-rendering [data-a2v-stage] {
+  transform: none !important;
+}

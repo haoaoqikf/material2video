@@ -1,0 +1,279 @@
+"""逐帧渲染编排：驱动网页 seek → 截图 → 送入编码器。
+
+这里集中处理三件事：
+1. 契约一致性检查（网页声明的 fps/尺寸必须与渲染请求一致）；
+2. 帧循环与进度日志；
+3. 编码完成后的成片验收（帧数、分辨率、可解码性）。
+"""
+
+from __future__ import annotations
+
+import contextlib
+import logging
+import re
+import subprocess
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterator
+
+from imageio_ffmpeg import get_ffmpeg_exe
+
+from .browser import AnimatedPage, open_animated_page
+from .encoder import VideoEncoder
+from .errors import A2VError
+from .static_server import LocalServer
+from .storyboard import Storyboard
+
+logger = logging.getLogger(__name__)
+
+
+class RenderError(A2VError):
+    """渲染前置条件不满足或成片验收失败。"""
+
+
+@dataclass(frozen=True)
+class RenderResult:
+    """一次成功渲染的统计信息，用于 CLI 汇报。"""
+
+    output: Path
+    frames: int
+    fps: int
+    width: int
+    height: int
+    duration_seconds: float
+    capture_seconds: float
+    total_seconds: float
+    size_bytes: int
+
+    def summary(self) -> str:
+        rate = self.frames / self.capture_seconds if self.capture_seconds else 0
+        return (
+            f"输出 {self.output}：{self.frames} 帧 / {self.duration_seconds:.1f}s，"
+            f"{self.width}x{self.height} @{self.fps}fps，"
+            f"截图 {self.capture_seconds:.1f}s（约 {rate:.1f} 帧/秒），"
+            f"总耗时 {self.total_seconds:.1f}s，"
+            f"文件 {self.size_bytes / 1024 / 1024:.1f} MiB"
+        )
+
+
+def render(
+    page_path: str | Path,
+    output: str | Path,
+    storyboard: Storyboard | None = None,
+    fps: int | None = None,
+    crf: int = 18,
+    preset: str = "medium",
+    limit_frames: int | None = None,
+    timeout_ms: int = 30000,
+    probe: bool = True,
+    serve_root: str | Path | None = None,
+    capture_format: str = "jpeg",
+) -> RenderResult:
+    """把动画网页逐帧渲染为 MP4。
+
+    storyboard 提供时，以其 fps/尺寸为准并与网页契约交叉校验，用于尽早
+    发现「改了脚本没改网页」这类不一致。
+    """
+    started = time.monotonic()
+    output_path = Path(output)
+
+    with _resolve_page_url(page_path, serve_root) as url:
+        with open_animated_page(
+            url,
+            timeout_ms=timeout_ms,
+            width=storyboard.width if storyboard else None,
+            height=storyboard.height if storyboard else None,
+        ) as page:
+            effective_fps = _resolve_fps(page, storyboard, fps)
+            total_frames = _resolve_total_frames(page, storyboard)
+            width, height = page.contract.width, page.contract.height
+
+            if limit_frames is not None:
+                total_frames = min(total_frames, max(limit_frames, 1))
+                logger.warning("调试模式：仅渲染前 %d 帧", total_frames)
+
+            # 进入渲染模式：隐藏预览控件并取消预览缩放，保证画面严格等于设计尺寸
+            page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+            _precheck_dimensions(page)
+
+            capture_started = time.monotonic()
+            _encode(page, output_path, total_frames, effective_fps, crf, preset, capture_format)
+            capture_seconds = time.monotonic() - capture_started
+
+    if probe:
+        _verify_output(output_path, total_frames, width, height, effective_fps)
+
+    return RenderResult(
+        output=output_path,
+        frames=total_frames,
+        fps=effective_fps,
+        width=width,
+        height=height,
+        duration_seconds=total_frames / effective_fps,
+        capture_seconds=capture_seconds,
+        total_seconds=time.monotonic() - started,
+        size_bytes=output_path.stat().st_size,
+    )
+
+
+@contextlib.contextmanager
+def _resolve_page_url(
+    page_path: str | Path, serve_root: str | Path | None
+) -> Iterator[str]:
+    """把本地网页路径转成可用的 URL。
+
+    远程 URL 原样透传；本地文件通过临时静态服务器暴露，因为网页需要
+    fetch 同目录的分镜 JSON，而 file:// 下会被同源策略拒绝。
+    """
+    text = str(page_path)
+    if text.startswith(("http://", "https://")):
+        yield text
+        return
+
+    page_file = Path(text).resolve()
+    if not page_file.is_file():
+        raise RenderError(f"动画网页不存在: {page_file}")
+
+    root = Path(serve_root).resolve() if serve_root else _default_serve_root(page_file)
+    with LocalServer(root) as server:
+        try:
+            relative = page_file.relative_to(server.root)
+        except ValueError as exc:
+            raise RenderError(f"网页 {page_file} 不在静态根目录 {server.root} 之内") from exc
+        yield f"{server.base_url}/{relative.as_posix()}"
+
+
+def _default_serve_root(page_file: Path) -> Path:
+    """选择静态根目录。
+
+    网页通常既引用同目录的 storyboard.json，也引用仓库内共享的 skill 资产
+    （base.css / timeline.js），因此默认向上取最近的 Git 仓库根，让两者都
+    可以通过相对路径访问；不在仓库内时退回网页所在目录。
+    """
+    for candidate in (page_file.parent, *page_file.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return page_file.parent
+
+
+def _resolve_fps(page: AnimatedPage, storyboard: Storyboard | None, fps: int | None) -> int:
+    contract_fps = page.contract.fps
+    if storyboard and contract_fps != storyboard.fps:
+        raise RenderError(
+            f"帧率不一致：网页声明 {contract_fps}fps，分镜脚本声明 {storyboard.fps}fps"
+        )
+    if fps and contract_fps != fps:
+        raise RenderError(f"帧率不一致：网页声明 {contract_fps}fps，命令行指定 {fps}fps")
+    return contract_fps
+
+
+def _resolve_total_frames(page: AnimatedPage, storyboard: Storyboard | None) -> int:
+    contract_frames = page.contract.duration_in_frames
+    if storyboard and contract_frames != storyboard.total_frames:
+        raise RenderError(
+            f"总帧数不一致：网页声明 {contract_frames} 帧，"
+            f"分镜脚本累计 {storyboard.total_frames} 帧"
+        )
+    if contract_frames <= 0:
+        raise RenderError("网页声明的 durationInFrames 必须为正整数")
+    return contract_frames
+
+
+def _precheck_dimensions(page: AnimatedPage) -> None:
+    """在开渲前确认网页画面恰好填满视口，失败信息直接指向具体 CSS 问题。"""
+    actual = page.evaluate(
+        "() => ({w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight,"
+        "vw: window.innerWidth, vh: window.innerHeight,"
+        "root: (() => {const el=document.querySelector('[data-a2v-stage]')||document.body;"
+        "const r=el.getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height)};})()})"
+    )
+    if actual["w"] > actual["vw"] or actual["h"] > actual["vh"]:
+        logger.warning(
+            "文档尺寸 %sx%s 超出视口 %sx%s，可能存在溢出内容被裁切",
+            actual["w"],
+            actual["h"],
+            actual["vw"],
+            actual["vh"],
+        )
+    if actual["root"]["w"] != page.contract.width or actual["root"]["h"] != page.contract.height:
+        logger.warning(
+            "舞台元素实际尺寸 %sx%s 与契约 %dx%d 不一致，请检查缩放设置",
+            actual["root"]["w"],
+            actual["root"]["h"],
+            page.contract.width,
+            page.contract.height,
+        )
+
+
+def _encode(
+    page: AnimatedPage,
+    output: Path,
+    total_frames: int,
+    fps: int,
+    crf: int,
+    preset: str,
+    capture_format: str,
+) -> None:
+    """帧循环：seek 到第 n 帧后立刻截图，图片通过管道交给 ffmpeg。"""
+    progress_every = max(fps, 1)
+    input_codec = "png" if capture_format == "png" else "mjpeg"
+    with VideoEncoder(
+        output, fps=fps, crf=crf, preset=preset, input_codec=input_codec
+    ) as encoder:
+        for frame in range(total_frames):
+            page.seek(frame)
+            encoder.write(page.capture(capture_format))
+            if frame % progress_every == 0 or frame == total_frames - 1:
+                logger.info(
+                    "已渲染 %d/%d 帧（%.1fs / %.1fs）",
+                    frame + 1,
+                    total_frames,
+                    (frame + 1) / fps,
+                    total_frames / fps,
+                )
+
+
+def _verify_output(output: Path, expected_frames: int, width: int, height: int, fps: int) -> None:
+    """完整解码一遍成片，核对帧数、分辨率与帧率，避免「文件存在但不可播」。"""
+    if not output.exists():
+        raise RenderError("ffmpeg 没有生成输出文件")
+    command = [
+        get_ffmpeg_exe(),
+        "-v",
+        "error",
+        "-i",
+        str(output),
+        "-map",
+        "0:v:0",
+        "-f",
+        "null",
+        "-",
+        "-stats",
+    ]
+    completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if completed.returncode != 0:
+        raise RenderError(f"成片解码失败:\n{completed.stderr[-1500:]}")
+
+    # image2pipe 的取整策略可能导致 ±1 帧，帧率用同一份取整逻辑比较
+    reported = _last_int(completed.stderr, "frame=")
+    if reported is not None and abs(reported - expected_frames) > 1:
+        raise RenderError(f"成片帧数校验失败：期望 {expected_frames}，实际解码 {reported}")
+
+    logger.info(
+        "成片验收通过: %dx%d @ %dfps, 解码 %s 帧",
+        width,
+        height,
+        fps,
+        reported if reported is not None else "?",
+    )
+
+
+def _last_int(text: str, key: str) -> int | None:
+    """从 ffmpeg 统计文本中提取 `key=<整数>` 的最后一个匹配。
+
+    ffmpeg 的行内统计形如 `frame=  120 fps=...`，等号与数字之间可能有空格，
+    因此不能按空白切分后直接取等号后的片段。
+    """
+    matches = re.findall(rf"{re.escape(key)}\s*(\d+)", text)
+    return int(matches[-1]) if matches else None

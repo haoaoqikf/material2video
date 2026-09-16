@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "为什么努力没结果",
+  "scenes": [
+    {
+      "id": "opening",
+      "type": "title",
+      "durationInFrames": 150,
+      "narration": "你有没有遇到过这种情况：明明比以前更努力，结果却几乎没变？",
+      "data": {
+        "text": "为什么努力\n没结果？",
+        "subtitle": "问题不在努力的程度",
+        "emphasis": ["努力"]
+      }
+    },
+    {
+      "id": "thesis",
+      "type": "quote",
+      "durationInFrames": 240,
+      "narration": "很多时候，努力没有结果，不是因为不够努力，而是因为方向错了。",
+      "data": {
+        "text": "努力没有结果，往往不是因为不够努力，而是因为方向错了。",
+        "emphasis": ["方向"]
+      }
+    },
+    {
+      "id": "choice",
+      "type": "comparison",
+      "durationInFrames": 270,
+      "narration": "面对停滞，人有两种反应：继续加大投入，或者先找出限制结果的那一环。",
+      "data": {
+        "title": "面对停滞，两种反应",
+        "left": "不断增加努力",
+        "right": "寻找当前约束"
+      }
+    },
+    {
+      "id": "loop",
+      "type": "diagram",
+      "durationInFrames": 390,
+      "narration": "约束会移动。解决问题、找到约束、采取行动、获得反馈，这是一个持续循环。",
+      "data": {
+        "title": "约束会移动",
+        "nodes": ["问题", "约束", "行动", "反馈"],
+        "edges": [
+          ["问题", "约束"],
+          ["约束", "行动"],
+          ["行动", "反馈"],
+          ["反馈", "约束"]
+        ]
+      }
+    },
+    {
+      "id": "closing",
+      "type": "conclusion",
+      "durationInFrames": 300,
+      "narration": "先找到限制结果的那个环节，再决定把努力放在哪里。",
+      "data": {
+        "text": "先找到限制结果的环节，\n再决定把努力放在哪里。",
+        "action": "复盘一次最近没有结果的努力"
+      }
+    }
+  ]
+}

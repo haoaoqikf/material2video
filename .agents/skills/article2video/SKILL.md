@@ -1,0 +1,177 @@
+---
+name: article2video
+description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 编程工具（Codex / Claude Code / DSH 等）生成动画网页，再用确定性脚本逐帧渲染为 MP4。用于把文章拆成分镜、编写或修改动画网页、校验分镜 JSON、预览、渲染与验收视频，以及排查渲染不一致问题。
+---
+
+# article2video
+
+**文章是内容层，网页是表现层，视频是最终发布格式。**
+
+这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并编写动画网页，
+脚本负责把它确定性地渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
+
+## 何时使用
+
+- 要把一篇观点型文章做成竖屏短视频；
+- 要修改已有视频的画面、节奏或文案；
+- 要渲染、验收视频，或排查「预览正常但导出异常」的问题。
+
+如果只是写文章或做图文，不需要这个 skill。
+
+## 核心原则
+
+1. **单一真源**：文案与时长只写在 `storyboard.json`，网页读它绘制，渲染脚本读它推导总帧数。
+   不要在 HTML 里再写一遍文案。
+2. **帧驱动**：画面只由帧号推导得出。禁止 CSS `animation`/`transition`、`Date.now()`、
+   `Math.random()`，否则逐帧截图会闪烁、不可复现。详见
+   [渲染契约](references/render-contract.md)。
+3. **先校验再渲染**：分镜脚本先过 `validate.py`，网页契约先过渲染脚本的前置检查，
+   错误在开渲前暴露，而不是产出一段坏视频。
+4. **预览与导出同源**：预览和渲染使用同一份 storyboard、同一套坐标，只缩放不改布局。
+
+## 目录职责
+
+| 路径 | 职责 |
+| --- | --- |
+| `.agents/skills/article2video/assets/` | 共享基础样式 `base.css` 与时间轴运行时 `timeline.js` |
+| `.agents/skills/article2video/scripts/` | 渲染、校验、预览三个命令行工具 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范 |
+| `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
+| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
+| `outputs/` | 渲染产物，已被 `.gitignore` 忽略 |
+
+`.agents/skills/` 是 Codex 与 DSH 都能识别的项目级 skill 位置；
+Claude Code 需要该目录时可用软链接映射到 `.claude/skills/`。
+
+## 标准流程
+
+所有命令都在**仓库根目录**执行。
+
+### 0. 准备环境
+
+```bash
+uv sync                                              # 安装 Python 依赖
+uv run playwright install chromium                   # 首次执行，安装浏览器
+```
+
+### 1. 文章 → 分镜 JSON
+
+读文章，按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆成若干场景，
+写入 `videos/<slug>/storyboard.json`。字段与校验规则见
+[分镜脚本结构](references/storyboard-schema.md)。
+
+要点：
+
+- 场景时长由**口播所需时间**决定，不要先定时长再塞文案（30fps 下 1 秒 = 30 帧）；
+- 长句拆成多个场景，而不是缩小字号；
+- 不虚构论据或数据；无来源的数值必须在画面中标明为示意。
+
+### 2. 分镜 → 动画网页
+
+复制示例作为起点：
+
+```bash
+cp -r examples/why-effort-fails videos/<slug>
+```
+
+然后改写 `videos/<slug>/index.html`：
+
+- 保留 `<link>` 引入的 `base.css` 与 `<script>` 引入的 `timeline.js`
+  （相对路径按所在层级调整），它们提供画布、安全区与 `__A2V__` 契约；
+- 每个场景一个 `<section data-a2v-scene data-scene-id="<场景 id>">`，
+  `data-scene-id` 必须与 storyboard 中的 `id` 一致；
+- 所有正文放进 `.a2v-safe` 安全区；
+- 在 `renderFrame(state, api)` 中按 `state.scene.type` 分派渲染，用
+  `api.progress()` / `api.enter()` 按帧计算动效，不要使用 CSS 动画；
+- 播放控件放在 `[data-a2v-controls]` 或加 `a2v-preview-only` 类，导出时会被隐藏。
+
+排版与动效数值参考 [竖屏视觉规范](references/visual-spec.md)。
+
+### 3. 校验分镜
+
+```bash
+uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json
+```
+
+有错误时终止并列出 `scenes[2].data.items` 这类可定位的路径，修正后重跑。
+加 `--json` 可得到机器可读输出，便于批量修正。
+
+### 4. 预览（人工确认节奏与排版）
+
+```bash
+uv run python .agents/skills/article2video/scripts/preview.py videos/<slug>
+```
+
+浏览器打开后检查：中文无裁切、正文在安全区内、场景切换自然、重播结果一致。
+**不要双击 HTML 预览**——`file://` 下取不到 storyboard.json，页面会报错。
+
+### 5. 渲染
+
+```bash
+uv run python .agents/skills/article2video/scripts/render.py \
+  --page videos/<slug>/index.html \
+  --storyboard videos/<slug>/storyboard.json \
+  --out outputs/<slug>.mp4
+```
+
+先用 `--limit-frames 30` 快速跑通链路再全量渲染。渲染脚本会：
+
+1. 在 127.0.0.1 起临时静态服务（网页需要 fetch 分镜 JSON）；
+2. 校验网页契约与分镜的 fps、总帧数是否一致，不一致直接报错；
+3. 加 `a2v-rendering` 类隐藏预览控件、取消预览缩放；
+4. 逐帧 `seekToFrame(frame)` → 截图 → 送入 ffmpeg 管道；
+5. 完整解码一遍成片，核对帧数与分辨率。
+
+耗时参考：1080 × 1920、30fps 下实测约 11–16 帧/秒，45 秒视频（1350 帧）约 1.5–2 分钟；
+成片验收会额外完整解码一遍，约增加 2 秒。
+
+### 6. 验收
+
+- 渲染脚本最后一行输出帧数、时长、分辨率、实测帧率与文件大小；
+- 抽看首帧、每幕切换点、末帧，确认无空白帧、无文字裁切；
+- 需要逐像素比对时用 `--capture-format png` 重渲一次。
+
+## 命令速查
+
+```bash
+# 校验分镜（有 --strict 把警告也视为失败）
+uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json> [--strict] [--json]
+
+# 本地预览
+uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000]
+
+# 渲染
+uv run python .agents/skills/article2video/scripts/render.py \
+  --page <网页> --out <输出.mp4> [--storyboard <json>] [--limit-frames N] \
+  [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
+```
+
+## 排查常见问题
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| `window.__A2V__ 未定义` | 网页没有引入 `timeline.js`，或 `A2V.mount()` 抛错（看控制台） |
+| `分镜脚本加载失败: HTTP 404` | 网页里 `fetchStoryboard('storyboard.json')` 的相对路径不对，或预览时用了 `file://` |
+| `总帧数不一致` | 改了 storyboard 的时长但没重新加载页面，或网页里硬编码了总帧数 |
+| 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`，改为由帧号推导 |
+| 预览正常但导出缺字 | 用了系统字体而渲染机器上没有该字体，改为随仓库分发 webfont |
+| 导出画面被裁切 | 文档尺寸超出 1080 × 1920，检查是否有元素溢出或页面出现滚动条 |
+| 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
+| 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
+
+## 当前边界
+
+已实现：分镜校验、动画网页契约、本地预览、逐帧渲染与成片验收。
+
+尚未实现，不要当作已有能力使用：
+
+- **配音与字幕**：`narration` 字段会被校验但渲染时被忽略，没有 TTS 与字幕对齐；
+- **背景音乐**：无音轨，输出为无声视频；
+- **AI 自动分镜**：文章到分镜目前由人（或 AI 工具）直接编写，没有内置的生成服务；
+- **发布**：没有对接抖音或任何平台的上传接口。
+
+## 参考文档
+
+- [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
+- [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
+- [竖屏视觉规范](references/visual-spec.md)：画布、安全区、字号、动效与节奏

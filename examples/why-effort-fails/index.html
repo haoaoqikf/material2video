@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么努力没结果｜article2video 示例</title>
+
+<!-- 共享基础样式与时间轴运行时都由 skill 提供，示例只负责视觉表达 -->
+<link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
+
+<style>
+  /*
+   * 本视频专属的视觉语言。
+   * 深色背景 + 青色强调；所有数值固定，不用 CSS animation/transition，
+   * 画面完全由 JS 按帧号写入内联样式。
+   */
+  :root {
+    --ink: #f4f7fb;
+    --ink-dim: #7d8798;
+    --accent: #35e0c8;
+    --panel: rgba(255, 255, 255, 0.045);
+    --panel-line: rgba(255, 255, 255, 0.12);
+  }
+
+  [data-a2v-stage] {
+    background: radial-gradient(circle at 50% 12%, #12202a 0%, #07090f 62%);
+  }
+
+  .eyebrow {
+    font-size: 30px;
+    letter-spacing: 0.32em;
+    color: var(--accent);
+  }
+
+  /* ---------- 开场命题 ---------- */
+  .title-text {
+    font-size: 128px;
+    line-height: 1.22;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+    /* 断行位置由分镜里的换行符决定，避免自动折行把重点词拆开 */
+    white-space: pre-line;
+  }
+
+  .key {
+    color: var(--accent);
+    /* 强调短语不允许跨行断开 */
+    white-space: nowrap;
+  }
+
+  .title-sub {
+    font-size: 46px;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+
+  /* ---------- 金句 ---------- */
+  .quote-mark {
+    font-size: 200px;
+    line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.35;
+    font-weight: 800;
+  }
+
+  .quote-text {
+    font-size: 84px;
+    line-height: 1.52;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  /* ---------- 双栏对比 ---------- */
+  .section-title {
+    font-size: 52px;
+    color: var(--ink-dim);
+    margin: 0 0 24px;
+    letter-spacing: 0.08em;
+  }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: stretch;
+  }
+
+  .compare-card {
+    border: 1px solid var(--panel-line);
+    border-radius: 36px;
+    background: var(--panel);
+    padding: 72px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 32px;
+    min-height: 620px;
+  }
+
+  .compare-card.is-right {
+    border-color: rgba(53, 224, 200, 0.55);
+  }
+
+  .compare-tag {
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+  }
+
+  .compare-card.is-right .compare-tag {
+    color: var(--accent);
+  }
+
+  .compare-label {
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1.32;
+    text-wrap: balance;
+  }
+
+  .compare-card.is-right .compare-label {
+    color: var(--accent);
+  }
+
+  /* ---------- 关系图 ---------- */
+  .flow {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* 回环曲线会画到节点列右侧，需要允许溢出显示 */
+    overflow: visible;
+  }
+
+  .flow-node {
+    width: 460px;
+    padding: 34px 0;
+    text-align: center;
+    font-size: 62px;
+    font-weight: 700;
+    border-radius: 28px;
+    border: 1px solid var(--panel-line);
+    background: var(--panel);
+  }
+
+  .flow-arrow {
+    font-size: 56px;
+    line-height: 1;
+    color: var(--accent);
+    padding: 26px 0;
+  }
+
+  .flow-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  /* ---------- 结论 ---------- */
+  .closing-text {
+    font-size: 96px;
+    line-height: 1.42;
+    font-weight: 800;
+    margin: 0;
+    /* 分镜里的换行符直接生效，避免在页面里重新拼文案 */
+    white-space: pre-line;
+  }
+
+  .closing-action {
+    margin-top: 72px;
+    align-self: flex-start;
+    font-size: 38px;
+    color: var(--accent);
+    border-left: 6px solid var(--accent);
+    padding-left: 28px;
+  }
+</style>
+</head>
+<body>
+
+<!--
+  场景容器只保留结构，所有文案都从 storyboard.json 注入。
+  页面里不重复写一份文案，避免与分镜漂移。
+-->
+<div data-a2v-stage>
+
+  <section data-a2v-scene data-scene-id="opening">
+    <div class="a2v-safe">
+      <p class="eyebrow" data-el="eyebrow">观点短视频</p>
+      <h1 class="title-text" data-el="text"></h1>
+      <p class="title-sub" data-el="subtitle"></p>
+    </div>
+  </section>
+
+  <section data-a2v-scene data-scene-id="thesis">
+    <div class="a2v-safe">
+      <div class="quote-mark" data-el="mark">“</div>
+      <p class="quote-text" data-el="text"></p>
+    </div>
+  </section>
+
+  <section data-a2v-scene data-scene-id="choice">
+    <div class="a2v-safe">
+      <h2 class="section-title" data-el="title"></h2>
+      <div class="compare">
+        <div class="compare-card is-left" data-el="left">
+          <span class="compare-tag">A</span>
+          <span class="compare-label" data-el="leftLabel"></span>
+        </div>
+        <div class="compare-card is-right" data-el="right">
+          <span class="compare-tag">B</span>
+          <span class="compare-label" data-el="rightLabel"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-a2v-scene data-scene-id="loop">
+    <div class="a2v-safe">
+      <h2 class="section-title" data-el="title"></h2>
+      <!-- 节点与连线由 renderDiagram 依据分镜动态生成 -->
+      <div class="flow" data-el="flow"></div>
+    </div>
+  </section>
+
+  <section data-a2v-scene data-scene-id="closing">
+    <div class="a2v-safe">
+      <p class="closing-text" data-el="text"></p>
+      <p class="closing-action" data-el="action"></p>
+    </div>
+  </section>
+
+</div>
+
+<div data-a2v-controls class="a2v-preview-only">
+  <button type="button" data-a2v-play>播放</button>
+  <button type="button" data-a2v-replay>重播</button>
+  <input type="range" data-a2v-seek min="0" max="1" value="0" aria-label="进度">
+  <span data-a2v-time>0:00 / 0:00</span>
+</div>
+
+<script src="../../.agents/skills/article2video/assets/timeline.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  // 回环曲线向右鼓出的距离，决定它在节点列外侧的弧度
+  var BACK_EDGE_BULGE = 130;
+
+  /** 在当前场景容器内按 data-el 名称取元素。 */
+  function pick(state, name) {
+    var scene = document.querySelector('[data-a2v-scene][data-scene-id="' + state.scene.id + '"]');
+    return scene ? scene.querySelector('[data-el="' + name + '"]') : null;
+  }
+
+  function escapeHtml(text) {
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /**
+   * 把分镜里的重点短语包成强调样式。
+   * 只替换第一处出现，避免同一短语在句中多处被点亮而分散注意力。
+   */
+  function emphasize(text, phrases) {
+    var html = escapeHtml(text);
+    (phrases || []).forEach(function (phrase) {
+      var safe = escapeHtml(phrase);
+      if (safe && html.indexOf(safe) !== -1) {
+        html = html.replace(safe, '<span class="key">' + safe + '</span>');
+      }
+    });
+    return html;
+  }
+
+  /** 文本类场景的统一写法：内容来自分镜，样式类由页面决定。 */
+  function setText(node, value, emphasis) {
+    if (!node) {
+      return;
+    }
+    var next = emphasize(value, emphasis);
+    if (node.innerHTML !== next) {
+      node.innerHTML = next;
+    }
+  }
+
+  /** 开场：标题上浮，副标题随后出现，末段轻微收束。 */
+  function renderTitle(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var eyebrow = pick(state, 'eyebrow');
+    var text = pick(state, 'text');
+    var subtitle = pick(state, 'subtitle');
+
+    setText(text, data.text, data.emphasis);
+    if (subtitle) {
+      subtitle.textContent = data.subtitle || '';
+      subtitle.style.display = data.subtitle ? '' : 'none';
+    }
+
+    api.enter(eyebrow, api.progress(f, 0, 14, 'outCubic'), { distance: 24 });
+    api.enter(text, api.progress(f, 6, 22, 'outQuint'), { distance: 70 });
+    api.enter(subtitle, api.progress(f, 34, 20, 'outCubic'), { distance: 36 });
+
+    var settle = api.progress(f, 110, 40, 'inOutCubic');
+    text.style.letterSpacing = (-0.02 + settle * 0.01).toFixed(4) + 'em';
+  }
+
+  /** 金句：整句浮现后，重点短语再被点亮。 */
+  function renderQuote(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var mark = pick(state, 'mark');
+    var text = pick(state, 'text');
+
+    setText(text, data.text, data.emphasis);
+
+    api.enter(mark, api.progress(f, 0, 16, 'outCubic'), { distance: 0, scale: 0.7 });
+    api.enter(text, api.progress(f, 10, 30, 'outQuint'), { distance: 56 });
+
+    var key = text.querySelector('.key');
+    if (key) {
+      var highlight = api.progress(f, 96, 26, 'inOutCubic');
+      key.style.color = highlight > 0.5 ? 'var(--accent)' : '';
+      key.style.textShadow =
+        '0 0 ' + (highlight * 42).toFixed(1) + 'px rgba(53, 224, 200, ' + (highlight * 0.55).toFixed(3) + ')';
+    }
+  }
+
+  /** 双栏对比：左栏先出现并逐渐退到背景，右栏后出现并高亮。 */
+  function renderComparison(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var title = pick(state, 'title');
+    var left = pick(state, 'left');
+    var right = pick(state, 'right');
+
+    if (title) {
+      title.textContent = data.title || '';
+      title.style.display = data.title ? '' : 'none';
+    }
+    setText(pick(state, 'leftLabel'), data.left);
+    setText(pick(state, 'rightLabel'), data.right);
+
+    api.enter(title, api.progress(f, 0, 16, 'outCubic'), { distance: 30 });
+    api.enter(left, api.progress(f, 14, 22, 'outQuint'), { distance: 60, axis: 'x' });
+    api.enter(right, api.progress(f, 70, 24, 'outQuint'), { distance: -60, axis: 'x' });
+
+    var dim = api.progress(f, 96, 24, 'inOutCubic');
+    left.style.opacity = String(1 - dim * 0.62);
+    right.style.boxShadow =
+      '0 0 ' + (dim * 64).toFixed(1) + 'px rgba(53, 224, 200, ' + (dim * 0.28).toFixed(3) + ')';
+  }
+
+  /**
+   * 依据分镜的 nodes / edges 构建关系图 DOM。
+   * 只构建一次并缓存在元素上：每帧重建会丢失动画状态，也没有必要。
+   */
+  function buildFlow(flow, data) {
+    if (flow.dataset.built === '1') {
+      return;
+    }
+    flow.dataset.built = '1';
+
+    var nodes = data.nodes || [];
+    var edges = data.edges || [];
+    var indexOf = {};
+    nodes.forEach(function (name, i) {
+      indexOf[typeof name === 'string' ? name : name.id] = i;
+    });
+
+    var elements = nodes.map(function (name) {
+      var label = typeof name === 'string' ? name : name.label || name.id;
+      var node = document.createElement('div');
+      node.className = 'flow-node';
+      node.textContent = label;
+      flow.appendChild(node);
+      return node;
+    });
+
+    // 相邻的正向边用向下箭头表达
+    for (var i = 0; i < nodes.length - 1; i += 1) {
+      var arrow = document.createElement('div');
+      arrow.className = 'flow-arrow';
+      arrow.textContent = '↓';
+      arrow.dataset.arrow = String(i);
+      flow.insertBefore(arrow, elements[i + 1]);
+    }
+
+    // 非相邻边（例如「反馈 → 约束」）用右侧回环曲线表达
+    var backEdges = [];
+    edges.forEach(function (edge) {
+      var pair = Array.isArray(edge) ? edge : [edge.from, edge.to];
+      var from = indexOf[pair[0]];
+      var to = indexOf[pair[1]];
+      if (from === undefined || to === undefined || to === from + 1) {
+        return;
+      }
+      backEdges.push({ from: from, to: to });
+    });
+    if (!backEdges.length) {
+      return;
+    }
+
+    // 位置在布局完成后才有意义，因此在这里同步测量一次。
+    // 注意 .flow 会被 .a2v-safe 的 align-items: stretch 拉满整行宽度，
+    // 所以曲线的起点必须取节点自身的右边缘，不能用 flow 的宽度。
+    var flowRect = flow.getBoundingClientRect();
+    var nodeRect = elements[0].getBoundingClientRect();
+    var x = Math.round(nodeRect.right - flowRect.left);
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'flow-back');
+    svg.setAttribute('width', String(Math.round(flowRect.width)));
+    svg.setAttribute('height', String(Math.round(flowRect.height)));
+
+    backEdges.forEach(function (edge) {
+      var fromRect = elements[edge.from].getBoundingClientRect();
+      var toRect = elements[edge.to].getBoundingClientRect();
+      var yFrom = Math.round(fromRect.top - flowRect.top + fromRect.height / 2);
+      var yTo = Math.round(toRect.top - flowRect.top + toRect.height / 2);
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute(
+        'd',
+        'M ' + x + ' ' + yFrom + ' C ' + (x + BACK_EDGE_BULGE) + ' ' + yFrom +
+          ', ' + (x + BACK_EDGE_BULGE) + ' ' + yTo + ', ' + x + ' ' + yTo
+      );
+      path.setAttribute('pathLength', '1');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--accent)');
+      path.setAttribute('stroke-width', '5');
+      path.setAttribute('stroke-linecap', 'round');
+      path.dataset.back = '1';
+      svg.appendChild(path);
+    });
+    flow.appendChild(svg);
+  }
+
+  /** 关系图：节点依次出现，连线跟随其后，回环边最后画出。 */
+  function renderDiagram(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var title = pick(state, 'title');
+    var flow = pick(state, 'flow');
+
+    if (title) {
+      title.textContent = data.title || '';
+      title.style.display = data.title ? '' : 'none';
+    }
+    buildFlow(flow, data);
+
+    var NODE_START = 20;
+    var NODE_STEP = 44;
+    var NODE_FADE = 24;
+
+    var nodes = flow.querySelectorAll('.flow-node');
+    Array.prototype.forEach.call(nodes, function (node, index) {
+      var start = NODE_START + index * NODE_STEP;
+      api.enter(node, api.progress(f, start, NODE_FADE, 'outQuint'), { distance: 44 });
+    });
+
+    // 箭头与它下方的节点几乎同时出现，避免「只有箭头没有节点」的中间画面
+    var arrows = flow.querySelectorAll('[data-arrow]');
+    Array.prototype.forEach.call(arrows, function (arrow, index) {
+      var start = NODE_START + (index + 1) * NODE_STEP - 8;
+      var p = api.progress(f, start, 16, 'outCubic');
+      arrow.style.opacity = String(p * 0.85);
+    });
+
+    var backPaths = flow.querySelectorAll('[data-back]');
+    var backStart = NODE_START + nodes.length * NODE_STEP + 30;
+    Array.prototype.forEach.call(backPaths, function (path) {
+      var p = api.progress(f, backStart, 70, 'inOutCubic');
+      path.style.strokeDasharray = '1';
+      path.style.strokeDashoffset = String(1 - p);
+      path.style.opacity = String(p);
+    });
+  }
+
+  /** 结论：主体上浮，行动提示最后从左滑入。 */
+  function renderConclusion(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var text = pick(state, 'text');
+    var action = pick(state, 'action');
+
+    setText(text, data.text);
+    if (action) {
+      action.textContent = data.action || '';
+      action.style.display = data.action ? '' : 'none';
+    }
+
+    api.enter(text, api.progress(f, 0, 26, 'outQuint'), { distance: 64 });
+    var actionProgress = api.progress(f, 90, 26, 'outQuint');
+    api.enter(action, actionProgress, { distance: 40, axis: 'x' });
+    action.style.opacity = String(actionProgress * 0.95);
+  }
+
+  var renderers = {
+    title: renderTitle,
+    quote: renderQuote,
+    comparison: renderComparison,
+    diagram: renderDiagram,
+    conclusion: renderConclusion
+  };
+
+  /** 单帧渲染入口：由时间轴运行时按帧号调用，必须保持纯函数式。 */
+  function renderFrame(state, api) {
+    var renderer = renderers[state.scene.type];
+    if (!renderer) {
+      throw new Error('网页未实现场景类型: ' + state.scene.type);
+    }
+    renderer(state, api);
+  }
+
+  A2V.fetchStoryboard('storyboard.json')
+    .then(function (storyboard) {
+      A2V.mount({ storyboard: storyboard, render: renderFrame });
+    })
+    .catch(function (error) {
+      // 出错时把原因写进画面，避免渲染出「全黑但成功」的视频
+      document.body.innerHTML =
+        '<pre style="font:28px/1.6 monospace;padding:80px;color:#ff8a8a">' +
+        '示例网页启动失败：\n' + String(error && error.message ? error.message : error) +
+        '\n\n如果是直接双击打开的 HTML，请改用本地服务器预览：\n' +
+        'uv run python .agents/skills/article2video/scripts/preview.py examples/why-effort-fails' +
+        '</pre>';
+      throw error;
+    });
+})();
+</script>
+</body>
+</html>

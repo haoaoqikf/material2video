@@ -8,6 +8,7 @@ dist/
 build/
 .cache/
 .next/
+.pytest_cache/
 __pycache__/
 *.py[cod]
 *.tsbuildinfo
@@ -31,6 +32,7 @@ credentials/
 outputs/
 renders/
 recordings/
+work/
 *.mp4
 *.webm
 *.mov
