@@ -522,6 +522,7 @@
   A2V.fetchStoryboard('storyboard.json')
     .then(function (storyboard) {
       A2V.mount({ storyboard: storyboard, render: renderFrame });
+      return window.__A2V__.ready();
     })
     .catch(function (error) {
       // 出错时把原因写进画面，避免渲染出「全黑但成功」的视频

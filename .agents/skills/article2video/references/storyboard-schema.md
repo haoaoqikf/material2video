@@ -23,7 +23,7 @@
 | `id` | `string` | 是 | 场景唯一标识，只允许字母、数字、`_`、`-`；同时作为网页中 `data-scene-id` 的值 |
 | `type` | `string` | 是 | 场景类型，决定网页使用哪个渲染分支 |
 | `durationInFrames` | `number` | 是 | 该场景持续帧数，正整数 |
-| `narration` | `string` | 否 | 口播文案。**当前版本不渲染口播**，为配音阶段预留 |
+| `narration` | `string` | 否 | 口播文案，供 prepare.py 合成配音；省略或空字符串表示静音。未传 --media 时不渲染口播 |
 | `data` | `object` | 是 | 该场景的内容，字段由 `type` 决定 |
 
 场景在时间轴上的起点由其前面所有场景的 `durationInFrames` 累加得到，
@@ -130,3 +130,10 @@ uv run python .agents/skills/article2video/scripts/validate.py examples/why-effo
 ```
 
 `--json` 输出 `{ok, errors[], warnings[], summary{}}`，便于自动修正循环。
+
+## 配音派生时间轴
+
+分镜版本仍为 1。`durationInFrames` 在有声模式中是最短时长；实际时长来自独立媒体清单。
+不向源分镜写入音频路径、字幕时间戳或派生时长。
+`validate.py <storyboard.json> --media <media.json>` 可同时检查清单是否过期及音轨时长。
+详见 [配音与字幕](media-contract.md)。

@@ -172,6 +172,8 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
             seen_ids[scene_id] = index
 
         _validate_duration(scene, f"{path}.durationInFrames", report)
+        if "narration" in scene and not isinstance(scene["narration"], str):
+            report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
         _validate_scene_payload(scene, path, report)
 
         duration = scene.get("durationInFrames")

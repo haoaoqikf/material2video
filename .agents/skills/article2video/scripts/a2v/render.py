@@ -13,6 +13,7 @@ import logging
 import re
 import subprocess
 import time
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
@@ -21,6 +22,9 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
+from .media import Media, media_url
+from .audio import mux
+from .subtitles import srt
 from .errors import A2VError
 from .static_server import LocalServer
 from .storyboard import Storyboard
@@ -69,6 +73,7 @@ def render(
     probe: bool = True,
     serve_root: str | Path | None = None,
     capture_format: str = "jpeg",
+    media: Media | None = None,
 ) -> RenderResult:
     """把动画网页逐帧渲染为 MP4。
 
@@ -78,14 +83,31 @@ def render(
     started = time.monotonic()
     output_path = Path(output)
 
-    with _resolve_page_url(page_path, serve_root) as url:
+    if media:
+        from . import storyboard as sb
+        source_model = sb._build(media.data["source"], sb.Report())
+        if storyboard != source_model:
+            raise RenderError("媒体与分镜不匹配，请重新 prepare")
+        storyboard = media.storyboard
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with contextlib.ExitStack() as stack:
+        temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
+        video_path = temp / "video.mp4"
+        url = stack.enter_context(_resolve_page_url(page_path, serve_root))
+        if media:
+            media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
+            url = media_url(url, media_server.base_url, media)
         with open_animated_page(
             url,
             timeout_ms=timeout_ms,
             width=storyboard.width if storyboard else None,
             height=storyboard.height if storyboard else None,
         ) as page:
+            if media and page.evaluate("() => window.__A2V__.mediaFingerprint") != media.data["sourceFingerprint"]:
+                raise RenderError("网页未加载媒体清单，请使用 A2V.fetchStoryboard")
             effective_fps = _resolve_fps(page, storyboard, fps)
+            if storyboard and (page.contract.width, page.contract.height) != (storyboard.width, storyboard.height):
+                raise RenderError("网页与分镜的画面尺寸不一致")
             total_frames = _resolve_total_frames(page, storyboard)
             width, height = page.contract.width, page.contract.height
 
@@ -98,11 +120,19 @@ def render(
             _precheck_dimensions(page)
 
             capture_started = time.monotonic()
-            _encode(page, output_path, total_frames, effective_fps, crf, preset, capture_format)
+            _encode(page, video_path, total_frames, effective_fps, crf, preset, capture_format)
             capture_seconds = time.monotonic() - capture_started
 
-    if probe:
-        _verify_output(output_path, total_frames, width, height, effective_fps)
+        final_path = video_path
+        if media:
+            final_path = temp / "final.mp4"
+            mux(video_path, media.audio, final_path, total_frames / effective_fps)
+            (temp / "subtitles.srt").write_text(srt(media.data["cues"], total_frames / effective_fps), encoding="utf-8")
+        if probe:
+            _verify_output(final_path, total_frames, width, height, effective_fps, expect_audio=media is not None)
+        final_path.replace(output_path)
+        if media:
+            (temp / "subtitles.srt").replace(output_path.with_suffix(".srt"))
 
     return RenderResult(
         output=output_path,
@@ -234,7 +264,7 @@ def _encode(
                 )
 
 
-def _verify_output(output: Path, expected_frames: int, width: int, height: int, fps: int) -> None:
+def _verify_output(output: Path, expected_frames: int, width: int, height: int, fps: int, expect_audio: bool = False) -> None:
     """完整解码一遍成片，核对帧数、分辨率与帧率，避免「文件存在但不可播」。"""
     if not output.exists():
         raise RenderError("ffmpeg 没有生成输出文件")
@@ -260,6 +290,27 @@ def _verify_output(output: Path, expected_frames: int, width: int, height: int, 
     if reported is not None and abs(reported - expected_frames) > 1:
         raise RenderError(f"成片帧数校验失败：期望 {expected_frames}，实际解码 {reported}")
 
+    from imageio_ffmpeg import read_frames
+    reader = read_frames(str(output))
+    try:
+        metadata = next(reader)
+    finally:
+        reader.close()
+    if tuple(metadata["size"]) != (width, height) or abs(metadata["fps"] - fps) > 0.01:
+        raise RenderError("成片尺寸或帧率不匹配")
+    if abs(metadata["duration"] - expected_frames / fps) > max(0.1, 1 / fps):
+        raise RenderError("成片时长不匹配")
+    if expect_audio:
+        # 解码到临时文件，长视频的 PCM 不常驻内存。
+        with tempfile.TemporaryFile() as pcm:
+            try:
+                decoded = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(output),
+                    "-map", "0:a:0", "-ac", "1", "-ar", "24000", "-f", "s16le", "-"],
+                    stdout=pcm, stderr=subprocess.PIPE, timeout=300)
+            except subprocess.TimeoutExpired as exc:
+                raise RenderError("成片音轨验收超时") from exc
+            if decoded.returncode or abs(pcm.tell() / 48000 - expected_frames / fps) > 0.1:
+                raise RenderError("成片音轨缺失、不可解码或音画时长不一致")
     logger.info(
         "成片验收通过: %dx%d @ %dfps, 解码 %s 帧",
         width,

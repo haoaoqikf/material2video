@@ -55,6 +55,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--page", required=True, help="动画网页路径或 http(s) URL")
     parser.add_argument("--out", required=True, help="输出 MP4 路径")
+    parser.add_argument("--media", help="prepare.py 生成的媒体清单；需要 --storyboard")
     parser.add_argument(
         "--storyboard",
         help="分镜 JSON 路径；提供后与网页契约交叉校验帧率、总帧数与画面尺寸",
@@ -90,6 +91,7 @@ def _build_validate_parser() -> argparse.ArgumentParser:
         description="校验分镜 JSON 的结构与时长，输出可定位的问题清单",
     )
     parser.add_argument("path", help="分镜 JSON 路径")
+    parser.add_argument("--media", help="同时校验配音清单、字幕与音轨时长")
     parser.add_argument("--strict", action="store_true", help="把警告视为错误")
     parser.add_argument("--json", action="store_true", help="以 JSON 输出，便于程序化处理")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
@@ -105,6 +107,8 @@ def _build_preview_parser() -> argparse.ArgumentParser:
     parser.add_argument("--page", default="index.html", help="相对根目录的页面路径")
     parser.add_argument("--port", type=int, default=0, help="监听端口，默认自动分配")
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
+    parser.add_argument("--media", help="prepare.py 生成的媒体清单")
+    parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -126,6 +130,10 @@ def main_render(argv: list[str] | None = None) -> int:
             logging.warning("%s", issue.format())
 
     try:
+        from .media import load_media
+        if args.media and not args.storyboard:
+            raise A2VError("--media 需要同时提供 --storyboard")
+        media = load_media(args.media, args.storyboard) if args.media else None
         result = render(
             page_path=args.page,
             output=args.out,
@@ -138,6 +146,7 @@ def main_render(argv: list[str] | None = None) -> int:
             probe=not args.no_probe,
             serve_root=args.serve_root,
             capture_format=args.capture_format,
+            media=media,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
@@ -166,6 +175,13 @@ def main_validate(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     model, report = sb.load(path)
+    if args.media and model is not None:
+        from .media import load_media
+        try:
+            model = load_media(args.media, path).storyboard
+        except (A2VError, OSError) as exc:
+            report.error("media", str(exc))
+            model = None
     if args.json:
         payload = report.to_json()
         if model is not None:
@@ -212,10 +228,26 @@ def main_preview(argv: list[str] | None = None) -> int:
         logging.error("页面不存在: %s", page)
         return _EXIT_INVALID_INPUT
 
-    server = LocalServer(root, port=args.port)
+    from .media import load_media, media_url
+    from .render import _default_serve_root
+    media_server = None
     try:
-        url = f"{server.start()}/{args.page.lstrip('/')}"
+        media = load_media(args.media, args.storyboard or page.parent / "storyboard.json") if args.media else None
+        if media:
+            media_server = LocalServer(media.path.parent, cors=True)
+    except (A2VError, OSError) as exc:
+        logging.error("预览失败: %s", exc)
+        return _EXIT_INVALID_INPUT
+    server = LocalServer(_default_serve_root(page), port=args.port)
+    try:
+        from urllib.parse import quote
+        url = f"{server.start()}/{quote(page.relative_to(server.root).as_posix())}"
+        if media_server:
+            url = media_url(url, media_server.start(), media)
     except OSError as exc:
+        server.close()
+        if media_server:
+            media_server.close()
         logging.error("无法监听端口: %s", exc)
         return _EXIT_FAILED
 
@@ -231,4 +263,29 @@ def main_preview(argv: list[str] | None = None) -> int:
         print()
     finally:
         server.close()
+        if media_server:
+            media_server.close()
+    return _EXIT_OK
+
+
+def main_prepare(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="按 narration 生成配音与逐句字幕")
+    parser.add_argument("--storyboard", required=True)
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
+    parser.add_argument("--rate", default="+0%", help="语速，例如 --rate=-10%")
+    parser.add_argument("--force", action="store_true", help="强制重新合成所有非空口播")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args(argv)
+    _force_utf8_output()
+    _configure_logging(args.verbose)
+    from .prepare import prepare
+    try:
+        print(prepare(args.storyboard, args.out_dir, args.voice, args.rate, args.force))
+    except (A2VError, OSError, ValueError) as exc:
+        logging.error("配音准备失败: %s", exc)
+        return _EXIT_FAILED
+    except KeyboardInterrupt:
+        logging.error("配音准备被用户中断")
+        return _EXIT_FAILED
     return _EXIT_OK

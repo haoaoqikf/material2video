@@ -113,7 +113,39 @@
         throw new Error('分镜脚本加载失败: HTTP ' + response.status + ' ' + url);
       }
       return response.json();
+    }).then(function (storyboard) {
+      var mediaUrl = new URLSearchParams(location.search).get('a2v-media');
+      if (!mediaUrl) return storyboard;
+      return fetch(mediaUrl, { cache: 'no-store' }).then(function (response) {
+        if (!response.ok) throw new Error('媒体清单加载失败: ' + response.status);
+        return response.json();
+      }).then(function (media) {
+        if (media.version !== 1 || stableJSON(media.source) !== stableJSON(storyboard)) {
+          throw new Error('媒体与分镜不匹配，请重新 prepare');
+        }
+        if (!Array.isArray(media.scenes) || media.scenes.length !== storyboard.scenes.length || !Array.isArray(media.cues)) {
+          throw new Error('媒体场景或字幕非法');
+        }
+        storyboard.scenes.forEach(function (scene, index) {
+          var prepared = media.scenes[index];
+          if (prepared.id !== scene.id || !Number.isInteger(prepared.durationInFrames) || prepared.durationInFrames < scene.durationInFrames) {
+            throw new Error('媒体场景时长非法');
+          }
+          scene.durationInFrames = prepared.durationInFrames;
+        });
+        media.audioUrl = new URL(media.audio, mediaUrl).href;
+        Object.defineProperty(storyboard, '_a2vMedia', { value: media });
+        return storyboard;
+      });
     });
+  }
+
+  function stableJSON(value) {
+    if (Array.isArray(value)) return '[' + value.map(stableJSON).join(',') + ']';
+    if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(function (key) {
+      return JSON.stringify(key) + ':' + stableJSON(value[key]);
+    }).join(',') + '}';
+    return JSON.stringify(value);
   }
 
   /** 把分镜展开为带起始帧的场景列表，并算出总帧数。 */
@@ -249,6 +281,41 @@
 
     var timeline = layoutStoryboard(opts.storyboard);
     var root = opts.root || document.querySelector('[data-a2v-stage]') || document.body;
+    var media = opts.storyboard._a2vMedia;
+    var audio = media ? new Audio(media.audioUrl) : null;
+    var audioReady = Promise.resolve();
+    var audioLoaded = !media;
+    var subtitle = null;
+    if (media) {
+      root.classList.add('a2v-with-subtitles');
+      subtitle = document.createElement('div');
+      subtitle.className = 'a2v-subtitle';
+      subtitle.setAttribute('data-a2v-subtitle', '');
+      root.appendChild(subtitle);
+      audio.preload = 'auto';
+      audio.hidden = true;
+      audio.setAttribute('data-a2v-audio', '');
+      root.appendChild(audio);
+      audioReady = new Promise(function (resolve, reject) {
+        var timer = setTimeout(function () { reject(new Error('配音加载超时')); }, 30000);
+        audio.addEventListener('canplaythrough', function () {
+          clearTimeout(timer);
+          audioLoaded = true;
+          resolve();
+        }, { once: true });
+        audio.addEventListener('error', function () { clearTimeout(timer); reject(new Error('配音加载失败')); }, { once: true });
+        audio.load();
+      });
+      audio.addEventListener('ended', function () {
+        currentFrame = timeline.totalFrames - 1;
+        renderAt(currentFrame);
+        pause();
+      });
+      audio.addEventListener('error', function () {
+        pause();
+        console.error('配音加载失败，请重新 prepare');
+      });
+    }
     var isolate = opts.isolateScenes !== false;
     var useControls = opts.controls !== false;
     var sceneNodes = isolate ? collectSceneNodes(root, timeline) : [];
@@ -312,12 +379,21 @@
       var state = buildState(timeline, frame);
       applySceneVisibility(state.sceneIndex);
       opts.render(state, api);
+      if (subtitle) {
+        var seconds = frame / timeline.fps;
+        var cue = media.cues.find(function (item) { return seconds >= item.start && seconds < item.end; });
+        subtitle.textContent = cue ? cue.text : '';
+        subtitle.hidden = !cue;
+      }
       updateReadout(state);
     }
 
     function seek(frame) {
       currentFrame = clamp(Math.round(frame), 0, timeline.totalFrames - 1);
       elapsedMs = (currentFrame / timeline.fps) * 1000;
+      if (audio && !document.documentElement.classList.contains('a2v-rendering')) {
+        audio.currentTime = currentFrame / timeline.fps;
+      }
       renderAt(currentFrame);
       return nextPaint().then(function () {
         return currentFrame;
@@ -325,6 +401,8 @@
     }
 
     function play() {
+      if (!audioLoaded) return;
+      if (audio && document.documentElement.classList.contains('a2v-rendering')) return;
       if (playing) {
         return;
       }
@@ -336,12 +414,17 @@
         renderAt(0);
       }
       playing = true;
+      if (audio) {
+        audio.currentTime = currentFrame / timeline.fps;
+        audio.play().catch(function (error) { pause(); console.error('配音播放失败: ' + error.message); });
+      }
       lastTimestamp = 0;
       setPlayButtonState(true);
       rafId = requestAnimationFrame(tick);
     }
 
     function pause() {
+      if (audio) audio.pause();
       if (!playing) {
         return;
       }
@@ -361,10 +444,12 @@
         elapsedMs += timestamp - lastTimestamp;
       }
       lastTimestamp = timestamp;
+      if (audio) elapsedMs = audio.currentTime * 1000;
       var frame = Math.floor((elapsedMs / 1000) * timeline.fps);
-      if (frame >= timeline.totalFrames - 1) {
+      if (frame >= timeline.totalFrames) {
         // 播放结束停在末帧，重播由用户触发
-        renderAt(timeline.totalFrames - 1);
+        currentFrame = timeline.totalFrames - 1;
+        renderAt(currentFrame);
         pause();
         return;
       }
@@ -475,8 +560,9 @@
       width: timeline.width,
       height: timeline.height,
       durationInFrames: timeline.totalFrames,
+      mediaFingerprint: media ? media.sourceFingerprint : null,
       ready: function () {
-        return waitForAssets().then(function () {
+        return Promise.all([waitForAssets(), audioReady]).then(function () {
           return seek(0);
         });
       },

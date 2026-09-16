@@ -115,3 +115,18 @@ A2V.timeline.scenes;             // 场景起止帧
 
 渲染脚本只依赖上表的 `__A2V__` 契约，不使用 `A2V.controller`，
 因此自建网页可以不实现它。
+
+## 可选配音与字幕
+
+使用 `--media` 时，命令为页面 URL 添加 `a2v-media` 查询参数。共享运行时通过
+`A2V.fetchStoryboard()` 读取清单、比对原分镜并在 mount 前应用派生时长，返回值仍为分镜对象。
+页面 mount 后等待 `__A2V__.ready()`，包括字体、音频就绪与首帧。
+
+契约增加可选 `mediaFingerprint`（源分镜 SHA-256，无媒体时为 null）；有声渲染必须匹配。
+`durationInFrames` 声明派生后的总帧数。`seekToFrame` 始终暂停播放，字幕只由指定帧确定。
+预览播放使用音轨 currentTime 驱动画面；导出模式不播放音频，合成由 FFmpeg 完成。
+
+正文预留字幕区域，字幕在同一网页绘制，禁止另用 FFmpeg 字幕滤镜产生不同排版。
+内联分镜或自建运行时的无声契约继续兼容；有声功能要求采用上述加载流程。
+媒体服务器只绑定回环地址，支持 CORS 和字节 Range，允许素材在仓库外并支持音频跳转。
+清单字段与校验见 [配音与字幕](media-contract.md)。

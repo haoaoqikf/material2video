@@ -37,6 +37,8 @@ work/
 *.webm
 *.mov
 *.avi
+*.wav
+*.mp3
 
 # Local editor and OS metadata
 .vscode/

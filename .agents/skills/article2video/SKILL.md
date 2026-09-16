@@ -8,7 +8,7 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 **文章是内容层，网页是表现层，视频是最终发布格式。**
 
 这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并编写动画网页，
-脚本负责把它确定性地渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
+脚本负责准备可选配音与字幕，并把网页确定性地渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 ## 何时使用
 
@@ -21,7 +21,7 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 ## 核心原则
 
 1. **单一真源**：文案与时长只写在 `storyboard.json`，网页读它绘制，渲染脚本读它推导总帧数。
-   不要在 HTML 里再写一遍文案。
+   不要在 HTML 里再写一遍文案。启用配音后，实际时长由独立媒体清单派生，网页和渲染脚本共用它，不覆盖原分镜。
 2. **帧驱动**：画面只由帧号推导得出。禁止 CSS `animation`/`transition`、`Date.now()`、
    `Math.random()`，否则逐帧截图会闪烁、不可复现。详见
    [渲染契约](references/render-contract.md)。
@@ -34,7 +34,7 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 | 路径 | 职责 |
 | --- | --- |
 | `.agents/skills/article2video/assets/` | 共享基础样式 `base.css` 与时间轴运行时 `timeline.js` |
-| `.agents/skills/article2video/scripts/` | 渲染、校验、预览三个命令行工具 |
+| `.agents/skills/article2video/scripts/` | 渲染、校验、配音准备、预览四个命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
@@ -96,11 +96,26 @@ uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/sto
 有错误时终止并列出 `scenes[2].data.items` 这类可定位的路径，修正后重跑。
 加 `--json` 可得到机器可读输出，便于批量修正。
 
+### 3.1 配音与字幕准备（可选）
+
+```bash
+uv run python .agents/skills/article2video/scripts/prepare.py \
+  --storyboard videos/<slug>/storyboard.json --out-dir outputs/<slug>-media
+```
+
+默认 edge-tts 中文晓晓音色，支持 `--voice`、`--rate=-10%`、`--force`。
+生成 `media.json`、统一 WAV 和 SRT；音频较长的场景自动延长。无口播场景静音。
+修改分镜后重新 prepare，缓存复用不变的配音。流程、缓存与失败处理见
+[配音与字幕](references/media-contract.md)。无需将生成媒体加入 Git。
+
 ### 4. 预览（人工确认节奏与排版）
 
 ```bash
 uv run python .agents/skills/article2video/scripts/preview.py videos/<slug>
 ```
+
+有声预览追加 `--media outputs/<slug>-media/media.json`。网页须使用 `A2V.fetchStoryboard()`
+加载分镜，并在 mount 后等待 `__A2V__.ready()`；它会加载统一媒体时间轴和字幕。
 
 浏览器打开后检查：中文无裁切、正文在安全区内、场景切换自然、重播结果一致。
 **不要双击 HTML 预览**——`file://` 下取不到 storyboard.json，页面会报错。
@@ -113,6 +128,9 @@ uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard videos/<slug>/storyboard.json \
   --out outputs/<slug>.mp4
 ```
+
+有声导出追加 `--media outputs/<slug>-media/media.json`，同时保留 `--storyboard`。
+输出包含 AAC 配音和烧录字幕，并生成同名 SRT；限帧会同步裁切音轨和字幕。
 
 先用 `--limit-frames 30` 快速跑通链路再全量渲染。渲染脚本会：
 
@@ -135,15 +153,15 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ```bash
 # 校验分镜（有 --strict 把警告也视为失败）
-uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json> [--strict] [--json]
+uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json> [--strict] [--json] [--media <media.json>]
 
 # 本地预览
-uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000]
+uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000] [--media <media.json>] [--storyboard <json>]
 
 # 渲染
 uv run python .agents/skills/article2video/scripts/render.py \
   --page <网页> --out <输出.mp4> [--storyboard <json>] [--limit-frames N] \
-  [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
+  [--media <media.json>] [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
 ```
 
 ## 排查常见问题
@@ -161,16 +179,17 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ## 当前边界
 
-已实现：分镜校验、动画网页契约、本地预览、逐帧渲染与成片验收。
+已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收。
 
 尚未实现，不要当作已有能力使用：
 
-- **配音与字幕**：`narration` 字段会被校验但渲染时被忽略，没有 TTS 与字幕对齐；
-- **背景音乐**：无音轨，输出为无声视频；
+- **背景音乐**：尚未实现；目前仅支持配音音轨；
 - **AI 自动分镜**：文章到分镜目前由人（或 AI 工具）直接编写，没有内置的生成服务；
 - **发布**：没有对接抖音或任何平台的上传接口。
 
 ## 参考文档
+
+- [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
 
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
