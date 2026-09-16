@@ -5,178 +5,316 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>为什么努力没结果｜article2video 示例</title>
 
-<!-- 共享基础样式与时间轴运行时都由 skill 提供，示例只负责视觉表达 -->
+<!--
+  共享资源由 skill 提供，示例只负责视觉表达。
+  引入顺序：base.css（画布与安全区）→ theme.css（设计令牌）→ 页面样式，
+  这样页面永远拥有最终覆盖权。
+-->
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
+<link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
 
 <style>
   /*
-   * 本视频专属的视觉语言。
-   * 深色背景 + 青色强调；所有数值固定，不用 CSS animation/transition，
-   * 画面完全由 JS 按帧号写入内联样式。
+   * 本视频的视觉语言：深色底 + 单一青色强调 + 三层背景（光晕 / 网格 / 细点阵）。
+   * 所有动效数值都由 JS 按帧号写入内联样式，不使用 CSS animation/transition。
+   * 排版层级、动效配方与这套风格的取值理由见 references/visual-spec.md。
    */
   :root {
-    --ink: #f4f7fb;
-    --ink-dim: #7d8798;
-    --accent: #35e0c8;
-    --panel: rgba(255, 255, 255, 0.045);
-    --panel-line: rgba(255, 255, 255, 0.12);
+    /* 页面级微调：只覆盖主题令牌，不改画布与安全区 */
+    --a2v-grid-size: 120px;
+    --a2v-glow-1: rgba(53, 224, 200, 0.2);
+    --a2v-glow-2: rgba(96, 132, 255, 0.16);
   }
 
   [data-a2v-stage] {
-    background: radial-gradient(circle at 50% 12%, #12202a 0%, #07090f 62%);
+    background: var(--a2v-bg-0);
+  }
+
+  /*
+   * 层叠顺序：常驻背景（0）→ 场景（1）。
+   * 场景容器由运行时逐个显示/隐藏，必须显式抬到背景之上。
+   */
+  .stage-bg {
+    z-index: 0;
+  }
+
+  [data-a2v-scene] {
+    z-index: 1;
+  }
+
+  .a2v-safe {
+    gap: 40px;
+  }
+
+  /* 场景元素的入场统一由 JS 按帧写入，这里只声明「静止时」的样子 */
+  .eyebrow-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
   }
 
   .eyebrow {
     font-size: 30px;
-    letter-spacing: 0.32em;
-    color: var(--accent);
+    letter-spacing: var(--a2v-tracking-label);
+    color: var(--a2v-accent);
+    white-space: nowrap;
+  }
+
+  /* hairline 横线：用 1px 渐变而不是实色，亮端自然收束，比实线更精致 */
+  .eyebrow-rule {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--a2v-hairline-strong) 0%, rgba(255, 255, 255, 0) 100%);
   }
 
   /* ---------- 开场命题 ---------- */
   .title-text {
-    font-size: 128px;
-    line-height: 1.22;
+    font-size: 132px;
+    line-height: var(--a2v-line-title);
     font-weight: 800;
     margin: 0;
-    letter-spacing: -0.02em;
+    letter-spacing: var(--a2v-tracking-title);
     /* 断行位置由分镜里的换行符决定，避免自动折行把重点词拆开 */
     white-space: pre-line;
+    /* 上亮下暗的垂直渐变：给大字一点金属感，比纯白更有层次 */
+    background: linear-gradient(180deg, #ffffff 0%, #cfd8e6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .key {
-    color: var(--accent);
+    color: var(--a2v-accent);
     /* 强调短语不允许跨行断开 */
     white-space: nowrap;
   }
 
   .title-sub {
-    font-size: 46px;
-    color: var(--ink-dim);
+    font-size: 44px;
+    color: var(--a2v-text-2);
     margin: 0;
+    letter-spacing: 0.02em;
   }
 
   /* ---------- 金句 ---------- */
-  .quote-mark {
-    font-size: 200px;
-    line-height: 0.6;
-    color: var(--accent);
-    opacity: 0.35;
-    font-weight: 800;
+  .quote-block {
+    position: relative;
+    padding-left: 68px;
   }
 
+  /* 引号退到文字之后，作为装饰而不是内容 */
+  .quote-mark {
+    position: absolute;
+    top: -96px;
+    left: -4px;
+    font-size: 220px;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--a2v-accent);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 左侧强调竖线：先于文字画出，给整句一个「引文」的框架 */
+  .quote-rule {
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 6px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--a2v-accent) 0%, rgba(53, 224, 200, 0.15) 100%);
+    transform-origin: top center;
+  }
+
+  /*
+   * 字号按硬换行反推：文字可用宽度 = 1080 - 2 × 96 = 888px。
+   * 实测中文单字宽约为字号的 1.14 倍，因此每行 12 个汉字需 888/12/1.14 ≈ 65px。
+   * 宁可缩小字号，也不要让浏览器把分镜里的硬换行再折成第四行。
+   */
   .quote-text {
-    font-size: 84px;
-    line-height: 1.52;
+    font-size: 64px;
+    line-height: 1.6;
     font-weight: 600;
     margin: 0;
-    text-wrap: balance;
+    color: var(--a2v-text-1);
+    white-space: pre-line;
   }
 
   /* ---------- 双栏对比 ---------- */
   .section-title {
-    font-size: 52px;
-    color: var(--ink-dim);
-    margin: 0 0 24px;
-    letter-spacing: 0.08em;
+    font-size: 50px;
+    color: var(--a2v-text-2);
+    margin: 0 0 8px;
+    letter-spacing: 0.06em;
   }
 
   .compare {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: 36px;
     align-items: stretch;
   }
 
   .compare-card {
-    border: 1px solid var(--panel-line);
-    border-radius: 36px;
-    background: var(--panel);
-    padding: 72px 48px;
+    position: relative;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: var(--a2v-radius-lg);
+    background: var(--a2v-surface), var(--a2v-bg-1);
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
+    padding: 64px 44px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 32px;
-    min-height: 620px;
+    gap: 28px;
+    min-height: 600px;
   }
 
+  /* 强调卡片：边框、内发光与一个右上角光斑同时收拢视线 */
   .compare-card.is-right {
-    border-color: rgba(53, 224, 200, 0.55);
+    border-color: rgba(var(--a2v-accent-rgb), 0.5);
+    background: var(--a2v-surface-strong), var(--a2v-bg-2);
+  }
+
+  .compare-card.is-right::before {
+    content: "";
+    position: absolute;
+    top: -70px;
+    right: -70px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--a2v-accent-rgb), 0.16) 0%, rgba(0, 0, 0, 0) 70%);
+    pointer-events: none;
   }
 
   .compare-tag {
-    font-size: 32px;
-    letter-spacing: 0.2em;
-    color: var(--ink-dim);
+    font-size: 30px;
+    letter-spacing: 0.24em;
+    color: var(--a2v-text-3);
   }
 
   .compare-card.is-right .compare-tag {
-    color: var(--accent);
+    color: var(--a2v-accent);
   }
 
   .compare-label {
-    font-size: 72px;
+    font-size: 58px;
     font-weight: 700;
-    line-height: 1.32;
+    line-height: 1.36;
+    color: var(--a2v-text-1);
     text-wrap: balance;
   }
 
   .compare-card.is-right .compare-label {
-    color: var(--accent);
+    color: var(--a2v-accent);
   }
 
   /* ---------- 关系图 ---------- */
+  /*
+   * 节点用绝对定位排在固定尺寸的 stage 上，不用 flex 流式布局：
+   * 位置在渲染时由常量算出，因此不依赖布局测量，逐帧结果稳定。
+   */
   .flow {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* 回环曲线会画到节点列右侧，需要允许溢出显示 */
     overflow: visible;
   }
 
-  .flow-node {
-    width: 460px;
-    padding: 34px 0;
-    text-align: center;
-    font-size: 62px;
-    font-weight: 700;
-    border-radius: 28px;
-    border: 1px solid var(--panel-line);
-    background: var(--panel);
+  .flow-stage {
+    position: relative;
+    overflow: visible;
   }
 
-  .flow-arrow {
-    font-size: 56px;
-    line-height: 1;
-    color: var(--accent);
-    padding: 26px 0;
-  }
-
+  .flow-links,
   .flow-back {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     overflow: visible;
     pointer-events: none;
   }
 
+  .flow-links path {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.42);
+    stroke-width: 4;
+    stroke-linecap: round;
+  }
+
+  .flow-back {
+    z-index: 0;
+  }
+
+  .flow-back path {
+    fill: none;
+    stroke: var(--a2v-accent);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-opacity: 0.75;
+  }
+
+  .flow-node {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    /* 尺寸由 JS 里的同名常量决定，CSS 只负责外观 */
+    width: 520px;
+    height: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    font-size: 60px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--a2v-text-2);
+    border-radius: var(--a2v-radius-md);
+    border: 1px solid var(--a2v-hairline);
+    background: var(--a2v-surface), var(--a2v-bg-1);
+    /* 光晕由 JS 每帧写入 --flow-halo / --flow-halo-rgb，避免逐帧改写整条阴影 */
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2), 0 0 var(--flow-halo, 0px)
+      rgba(53, 224, 200, var(--flow-halo-rgb, 0));
+  }
+
+  /* 当前节点：边框与文字转成强调色，给观众一个「读到这里」的锚点 */
+  .flow-node.is-active {
+    border-color: rgba(var(--a2v-accent-rgb), 0.62);
+    color: var(--a2v-accent);
+  }
+
   /* ---------- 结论 ---------- */
+  /* 逐字揭示产生的单字节点；换行符单独成块，跟随父元素的 pre-line 语义 */
+  .reveal-char {
+    display: inline-block;
+    white-space: pre;
+  }
+
+  .reveal-char.is-break {
+    display: block;
+    height: 0;
+  }
+
+  /*
+   * 结论字号同样由硬换行反推：最长一行 11 个汉字，实测单字宽约 1.1 × 字号，
+   * 因此 11 × 1.1 × 78 ≈ 944px 会略微超宽，故取 74px 并让两行都留有余量。
+   */
   .closing-text {
-    font-size: 96px;
-    line-height: 1.42;
+    font-size: 74px;
+    line-height: 1.46;
     font-weight: 800;
     margin: 0;
+    color: var(--a2v-text-1);
     /* 分镜里的换行符直接生效，避免在页面里重新拼文案 */
     white-space: pre-line;
   }
 
   .closing-action {
-    margin-top: 72px;
+    margin-top: 56px;
     align-self: flex-start;
-    font-size: 38px;
-    color: var(--accent);
-    border-left: 6px solid var(--accent);
-    padding-left: 28px;
+    font-size: 36px;
+    color: var(--a2v-text-2);
+    border-left: 4px solid var(--a2v-accent);
+    padding-left: 26px;
+    letter-spacing: 0.02em;
   }
 </style>
 </head>
@@ -188,9 +326,17 @@
 -->
 <div data-a2v-stage>
 
+  <!-- 常驻背景：三个纯 CSS 渐变层，切换场景时保持不动 -->
+  <div class="a2v-bg-glow stage-bg" aria-hidden="true"></div>
+  <div class="a2v-bg-grid stage-bg" aria-hidden="true"></div>
+  <div class="a2v-bg-grain stage-bg" aria-hidden="true"></div>
+
   <section data-a2v-scene data-scene-id="opening">
     <div class="a2v-safe">
-      <p class="eyebrow" data-el="eyebrow">观点短视频</p>
+      <div class="eyebrow-row">
+        <span class="eyebrow" data-el="eyebrow">观点短视频</span>
+        <span class="eyebrow-rule" data-el="rule"></span>
+      </div>
       <h1 class="title-text" data-el="text"></h1>
       <p class="title-sub" data-el="subtitle"></p>
     </div>
@@ -198,8 +344,11 @@
 
   <section data-a2v-scene data-scene-id="thesis">
     <div class="a2v-safe">
-      <div class="quote-mark" data-el="mark">“</div>
-      <p class="quote-text" data-el="text"></p>
+      <div class="quote-block">
+        <span class="quote-mark" data-el="mark">&ldquo;</span>
+        <span class="quote-rule" data-el="rule"></span>
+        <p class="quote-text" data-el="text"></p>
+      </div>
     </div>
   </section>
 
@@ -222,7 +371,7 @@
   <section data-a2v-scene data-scene-id="loop">
     <div class="a2v-safe">
       <h2 class="section-title" data-el="title"></h2>
-      <!-- 节点与连线由 renderDiagram 依据分镜动态生成 -->
+      <!-- 节点与连线由 renderDiagram 依据分镜的 nodes / edges 动态生成 -->
       <div class="flow" data-el="flow"></div>
     </div>
   </section>
@@ -249,8 +398,18 @@
   'use strict';
 
   var SVG_NS = 'http://www.w3.org/2000/svg';
-  // 回环曲线向右鼓出的距离，决定它在节点列外侧的弧度
-  var BACK_EDGE_BULGE = 130;
+
+  /* 关系图的几何常量：位置全部由常量算出，不读取布局，保证逐帧稳定 */
+  var NODE_W = 520;
+  var NODE_H = 132;
+  var NODE_GAP = 92;
+  var ARROW_LEN = 48;
+  var BACK_BULGE = 220; // 回环曲线向右鼓出的距离，必须大于节点半宽才能露在节点列之外
+
+  /* 动效节奏（30fps 帧数）：与 references/visual-spec.md 的配方一致 */
+  var EASE_OUT = 'outQuint';
+  var EASE_SOFT = 'outCubic';
+  var EASE_SYMMETRIC = 'inOutCubic';
 
   /** 在当前场景容器内按 data-el 名称取元素。 */
   function pick(state, name) {
@@ -291,11 +450,41 @@
     }
   }
 
-  /** 开场：标题上浮，副标题随后出现，末段轻微收束。 */
+  /**
+   * 入场进度与常驻微动的混合。
+   *
+   * 配音会把场景拉长，入场动画结束后画面若完全静止，成片会显得卡住；
+   * 这里在末段用 api.breath 叠一点极小位移，并用同一个 settle 值把缩放钉在 1，
+   * 避免 enter() 写死的 scale 把呼吸位移覆盖掉。
+   */
+  function enterAlive(state, api, el, p, options) {
+    if (!el) {
+      return;
+    }
+    var o = options || {};
+    var from = api.spring(p, { damping: 6, frequency: 1.1 });
+    var settle = api.progress(state.localFrame, 70, 40, EASE_SYMMETRIC);
+    var shift = (1 - from) * (o.distance === undefined ? 48 : o.distance);
+    var axis = o.axis || 'y';
+    var drift = api.breath(state.localFrame, {
+      periodFrames: o.periodFrames || 120,
+      amplitude: o.amplitude === undefined ? 4 : o.amplitude,
+      phase: o.phase || 0
+    }) * settle;
+    var x = (axis === 'x' ? shift : 0);
+    var y = (axis === 'y' ? shift : 0) + drift;
+    var scale = api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false });
+    el.style.transform =
+      'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0) scale(' + scale.toFixed(4) + ')';
+    el.style.opacity = String(api.clamp(from, 0, 1) * (o.opacity === undefined ? 1 : o.opacity));
+  }
+
+  /** 开场：标签拉出横线，主标题带极小过冲落位，副标题随后出现。 */
   function renderTitle(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
     var eyebrow = pick(state, 'eyebrow');
+    var rule = pick(state, 'rule');
     var text = pick(state, 'text');
     var subtitle = pick(state, 'subtitle');
 
@@ -305,36 +494,62 @@
       subtitle.style.display = data.subtitle ? '' : 'none';
     }
 
-    api.enter(eyebrow, api.progress(f, 0, 14, 'outCubic'), { distance: 24 });
-    api.enter(text, api.progress(f, 6, 22, 'outQuint'), { distance: 70 });
-    api.enter(subtitle, api.progress(f, 34, 20, 'outCubic'), { distance: 36 });
+    api.enter(eyebrow, api.progress(f, 0, 14, EASE_SOFT), { distance: 20 });
+    var ruleProgress = api.progress(f, 8, 22, EASE_OUT);
+    if (rule) {
+      rule.style.transform = 'scaleX(' + ruleProgress.toFixed(4) + ')';
+      rule.style.transformOrigin = 'left center';
+      rule.style.opacity = String(ruleProgress);
+    }
 
-    var settle = api.progress(f, 110, 40, 'inOutCubic');
-    text.style.letterSpacing = (-0.02 + settle * 0.01).toFixed(4) + 'em';
+    enterAlive(state, api, text, api.progress(f, 10, 26, EASE_OUT), { distance: 64, amplitude: 5 });
+    enterAlive(state, api, subtitle, api.progress(f, 40, 22, EASE_SOFT), {
+      distance: 30,
+      amplitude: 3,
+      periodFrames: 150,
+      phase: 40
+    });
+
+    // 末段轻微收字距：给大字一个「落定」的收束感
+    var settle = api.progress(f, 96, 44, EASE_SYMMETRIC);
+    text.style.letterSpacing = api.range(settle, -0.028, -0.016).toFixed(4) + 'em';
   }
 
-  /** 金句：整句浮现后，重点短语再被点亮。 */
+  /** 金句：竖线先画出，整句浮现，最后点亮重点短语。 */
   function renderQuote(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
     var mark = pick(state, 'mark');
+    var rule = pick(state, 'rule');
     var text = pick(state, 'text');
 
     setText(text, data.text, data.emphasis);
 
-    api.enter(mark, api.progress(f, 0, 16, 'outCubic'), { distance: 0, scale: 0.7 });
-    api.enter(text, api.progress(f, 10, 30, 'outQuint'), { distance: 56 });
+    if (rule) {
+      var ruleProgress = api.progress(f, 0, 20, EASE_OUT);
+      rule.style.transform = 'scaleY(' + ruleProgress.toFixed(4) + ')';
+      rule.style.opacity = String(ruleProgress);
+    }
 
+    if (mark) {
+      var markProgress = api.progress(f, 4, 24, EASE_OUT);
+      mark.style.opacity = String(markProgress * 0.16);
+      mark.style.transform = 'translateY(' + api.range(markProgress, -24, 0).toFixed(1) + 'px)';
+    }
+
+    enterAlive(state, api, text, api.progress(f, 14, 30, EASE_OUT), { distance: 52, amplitude: 4 });
+
+    // 关键短语：颜色与光晕一起走，光晕峰值出现在句子读完之后
     var key = text.querySelector('.key');
     if (key) {
-      var highlight = api.progress(f, 96, 26, 'inOutCubic');
-      key.style.color = highlight > 0.5 ? 'var(--accent)' : '';
+      var highlight = api.progress(f, 92, 30, EASE_SYMMETRIC);
       key.style.textShadow =
-        '0 0 ' + (highlight * 42).toFixed(1) + 'px rgba(53, 224, 200, ' + (highlight * 0.55).toFixed(3) + ')';
+        '0 0 ' + api.range(highlight, 0, 46).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+        api.range(highlight, 0, 0.5).toFixed(3) + ')';
     }
   }
 
-  /** 双栏对比：左栏先出现并逐渐退到背景，右栏后出现并高亮。 */
+  /** 双栏对比：左栏先出现并退到背景，右栏随后出现并被强调。 */
   function renderComparison(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
@@ -349,19 +564,34 @@
     setText(pick(state, 'leftLabel'), data.left);
     setText(pick(state, 'rightLabel'), data.right);
 
-    api.enter(title, api.progress(f, 0, 16, 'outCubic'), { distance: 30 });
-    api.enter(left, api.progress(f, 14, 22, 'outQuint'), { distance: 60, axis: 'x' });
-    api.enter(right, api.progress(f, 70, 24, 'outQuint'), { distance: -60, axis: 'x' });
+    api.enter(title, api.progress(f, 0, 16, EASE_SOFT), { distance: 26 });
+    enterAlive(state, api, left, api.progress(f, 12, 24, EASE_OUT), {
+      distance: 56,
+      axis: 'x',
+      amplitude: 3
+    });
+    enterAlive(state, api, right, api.progress(f, 58, 26, EASE_OUT), {
+      distance: -56,
+      axis: 'x',
+      amplitude: 5,
+      phase: 60
+    });
 
-    var dim = api.progress(f, 96, 24, 'inOutCubic');
-    left.style.opacity = String(1 - dim * 0.62);
+    // 左栏退到背景：降不透明度而不是换颜色，避免出现第三种「中间色」
+    var dim = api.progress(f, 96, 26, EASE_SYMMETRIC);
+    left.style.opacity = String(api.range(dim, 1, 0.42));
+
+    // 右栏光环：由内发光 + 外发光两层叠出景深
+    var glow = api.progress(f, 92, 30, EASE_SYMMETRIC);
     right.style.boxShadow =
-      '0 0 ' + (dim * 64).toFixed(1) + 'px rgba(53, 224, 200, ' + (dim * 0.28).toFixed(3) + ')';
+      'var(--a2v-inset-highlight), var(--a2v-shadow-2), 0 0 ' +
+      api.range(glow, 0, 72).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+      api.range(glow, 0, 0.3).toFixed(3) + ')';
   }
 
   /**
-   * 依据分镜的 nodes / edges 构建关系图 DOM。
-   * 只构建一次并缓存在元素上：每帧重建会丢失动画状态，也没有必要。
+   * 依据分镜的 nodes / edges 构建关系图。
+   * 只构建一次：每帧重建既丢动画状态，也让逐帧渲染变慢。
    */
   function buildFlow(flow, data) {
     if (flow.dataset.built === '1') {
@@ -376,25 +606,54 @@
       indexOf[typeof name === 'string' ? name : name.id] = i;
     });
 
-    var elements = nodes.map(function (name) {
+    var step = NODE_H + NODE_GAP;
+    var column = nodes.length * step - NODE_GAP;
+    var stageH = column + ARROW_LEN + 12;
+    var centerX = NODE_W / 2;
+
+    var stage = document.createElement('div');
+    stage.className = 'flow-stage';
+    stage.style.width = NODE_W + 'px';
+    stage.style.height = stageH + 'px';
+    stage.style.margin = '0 auto';
+
+    // 回环边画在最底层，避免视觉上压住节点
+    var backSvg = document.createElementNS(SVG_NS, 'svg');
+    backSvg.setAttribute('class', 'flow-back');
+    backSvg.setAttribute('viewBox', '0 0 ' + (NODE_W + BACK_BULGE) + ' ' + stageH);
+    backSvg.setAttribute('width', String(NODE_W + BACK_BULGE));
+    backSvg.setAttribute('height', String(stageH));
+
+    var elements = [];
+    nodes.forEach(function (name, i) {
       var label = typeof name === 'string' ? name : name.label || name.id;
       var node = document.createElement('div');
       node.className = 'flow-node';
       node.textContent = label;
-      flow.appendChild(node);
-      return node;
+      node.style.top = String(i * step) + 'px';
+      node.dataset.node = String(i);
+      stage.appendChild(node);
+      elements.push(node);
     });
 
-    // 相邻的正向边用向下箭头表达
+    // 相邻正向边用短箭头表示，箭头本身按帧描画
+    var linkSvg = document.createElementNS(SVG_NS, 'svg');
+    linkSvg.setAttribute('class', 'flow-links');
+    linkSvg.setAttribute('viewBox', '0 0 ' + NODE_W + ' ' + stageH);
+    linkSvg.setAttribute('width', String(NODE_W));
+    linkSvg.setAttribute('height', String(stageH));
+
     for (var i = 0; i < nodes.length - 1; i += 1) {
-      var arrow = document.createElement('div');
-      arrow.className = 'flow-arrow';
-      arrow.textContent = '↓';
-      arrow.dataset.arrow = String(i);
-      flow.insertBefore(arrow, elements[i + 1]);
+      var yFrom = i * step + NODE_H + 6;
+      var yTo = yFrom + ARROW_LEN;
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', 'M ' + centerX + ' ' + yFrom + ' L ' + centerX + ' ' + yTo);
+      path.setAttribute('stroke-dasharray', String(ARROW_LEN));
+      path.dataset.link = String(i);
+      linkSvg.appendChild(path);
     }
 
-    // 非相邻边（例如「反馈 → 约束」）用右侧回环曲线表达
+    // 非相邻边（例如「反馈 → 约束」）用右侧回环曲线表示
     var backEdges = [];
     edges.forEach(function (edge) {
       var pair = Array.isArray(edge) ? edge : [edge.from, edge.to];
@@ -405,44 +664,26 @@
       }
       backEdges.push({ from: from, to: to });
     });
-    if (!backEdges.length) {
-      return;
-    }
-
-    // 位置在布局完成后才有意义，因此在这里同步测量一次。
-    // 注意 .flow 会被 .a2v-safe 的 align-items: stretch 拉满整行宽度，
-    // 所以曲线的起点必须取节点自身的右边缘，不能用 flow 的宽度。
-    var flowRect = flow.getBoundingClientRect();
-    var nodeRect = elements[0].getBoundingClientRect();
-    var x = Math.round(nodeRect.right - flowRect.left);
-    var svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('class', 'flow-back');
-    svg.setAttribute('width', String(Math.round(flowRect.width)));
-    svg.setAttribute('height', String(Math.round(flowRect.height)));
 
     backEdges.forEach(function (edge) {
-      var fromRect = elements[edge.from].getBoundingClientRect();
-      var toRect = elements[edge.to].getBoundingClientRect();
-      var yFrom = Math.round(fromRect.top - flowRect.top + fromRect.height / 2);
-      var yTo = Math.round(toRect.top - flowRect.top + toRect.height / 2);
+      var yFrom = edge.from * step + NODE_H / 2;
+      var yTo = edge.to * step + NODE_H / 2;
       var path = document.createElementNS(SVG_NS, 'path');
       path.setAttribute(
         'd',
-        'M ' + x + ' ' + yFrom + ' C ' + (x + BACK_EDGE_BULGE) + ' ' + yFrom +
-          ', ' + (x + BACK_EDGE_BULGE) + ' ' + yTo + ', ' + x + ' ' + yTo
+        'M ' + NODE_W + ' ' + yFrom + ' C ' + (NODE_W + BACK_BULGE) + ' ' + yFrom +
+          ', ' + (NODE_W + BACK_BULGE) + ' ' + yTo + ', ' + NODE_W + ' ' + yTo
       );
-      path.setAttribute('pathLength', '1');
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', 'var(--accent)');
-      path.setAttribute('stroke-width', '5');
-      path.setAttribute('stroke-linecap', 'round');
       path.dataset.back = '1';
-      svg.appendChild(path);
+      backSvg.appendChild(path);
     });
-    flow.appendChild(svg);
+
+    stage.appendChild(backSvg);
+    stage.appendChild(linkSvg);
+    flow.appendChild(stage);
   }
 
-  /** 关系图：节点依次出现，连线跟随其后，回环边最后画出。 */
+  /** 关系图：节点依次点亮，箭头随后描出，回环边最后闭合。 */
   function renderDiagram(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
@@ -455,51 +696,86 @@
     }
     buildFlow(flow, data);
 
-    var NODE_START = 20;
-    var NODE_STEP = 44;
-    var NODE_FADE = 24;
+    var NODE_START = 18;
+    var NODE_STEP = 34;
+    var NODE_FADE = 22;
 
     var nodes = flow.querySelectorAll('.flow-node');
     Array.prototype.forEach.call(nodes, function (node, index) {
       var start = NODE_START + index * NODE_STEP;
-      api.enter(node, api.progress(f, start, NODE_FADE, 'outQuint'), { distance: 44 });
+      var p = api.progress(f, start, NODE_FADE, EASE_OUT);
+      var springP = api.spring(p, { damping: 5.5, frequency: 1.1 });
+      var settle = api.progress(f, start + 40, 40, EASE_SYMMETRIC);
+      var drift = api.breath(f, { periodFrames: 130, amplitude: 3, phase: index * 24 }) * settle;
+      node.style.transform =
+        'translateX(-50%) translateY(' +
+        (api.range(springP, 34, 0, { clamp: false }) + drift).toFixed(2) +
+        'px) scale(' + api.range(springP, 0.97, 1, { clamp: false }).toFixed(4) + ')';
+      node.style.opacity = String(api.clamp(springP, 0, 1));
+
+      // 当前节点常亮：给观众一个「现在读到这里」的锚点
+      var active = index === nodes.length - 1 || f >= NODE_START + (index + 1) * NODE_STEP;
+      node.classList.toggle('is-active', active);
+      var halo = api.progress(f, start, NODE_FADE, EASE_SYMMETRIC);
+      node.style.setProperty('--flow-halo', api.range(halo, 0, 46).toFixed(1) + 'px');
+      node.style.setProperty(
+        '--flow-halo-rgb',
+        active ? api.range(halo, 0, 0.24).toFixed(3) : '0'
+      );
     });
 
-    // 箭头与它下方的节点几乎同时出现，避免「只有箭头没有节点」的中间画面
-    var arrows = flow.querySelectorAll('[data-arrow]');
-    Array.prototype.forEach.call(arrows, function (arrow, index) {
-      var start = NODE_START + (index + 1) * NODE_STEP - 8;
-      var p = api.progress(f, start, 16, 'outCubic');
-      arrow.style.opacity = String(p * 0.85);
+    // 箭头紧跟它上方的节点出现，避免「只有节点没有连线」的中间画面
+    var links = flow.querySelectorAll('[data-link]');
+    Array.prototype.forEach.call(links, function (path, index) {
+      var start = NODE_START + (index + 1) * NODE_STEP - 6;
+      api.drawPath(path, api.progress(f, start, 14, EASE_SOFT), { length: ARROW_LEN });
     });
 
+    var backStart = NODE_START + nodes.length * NODE_STEP + 20;
     var backPaths = flow.querySelectorAll('[data-back]');
-    var backStart = NODE_START + nodes.length * NODE_STEP + 30;
-    Array.prototype.forEach.call(backPaths, function (path) {
-      var p = api.progress(f, backStart, 70, 'inOutCubic');
-      path.style.strokeDasharray = '1';
-      path.style.strokeDashoffset = String(1 - p);
-      path.style.opacity = String(p);
+    Array.prototype.forEach.call(backPaths, function (path, index) {
+      // 曲线长度在渲染开始时量一次并缓存到 data 属性上，之后每帧直接复用
+      if (!path.dataset.length) {
+        path.dataset.length = String(path.getTotalLength());
+      }
+      var start = backStart + index * 16;
+      api.drawPath(path, api.progress(f, start, 60, EASE_SYMMETRIC), {
+        length: Number(path.dataset.length)
+      });
     });
   }
 
-  /** 结论：主体上浮，行动提示最后从左滑入。 */
+  /** 结论：主句逐字读出，行动提示最后滑入。 */
   function renderConclusion(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
     var text = pick(state, 'text');
     var action = pick(state, 'action');
 
-    setText(text, data.text);
     if (action) {
       action.textContent = data.action || '';
       action.style.display = data.action ? '' : 'none';
     }
 
-    api.enter(text, api.progress(f, 0, 26, 'outQuint'), { distance: 64 });
-    var actionProgress = api.progress(f, 90, 26, 'outQuint');
-    api.enter(action, actionProgress, { distance: 40, axis: 'x' });
-    action.style.opacity = String(actionProgress * 0.95);
+    // 逐字揭示：按帧号计算每个字的不透明度，比整句淡入更有被读出的感觉
+    if (text) {
+      api.revealChars(text, data.text || '', 0, {
+        frame: f,
+        startFrame: 8,
+        staggerFrames: 2
+      });
+    }
+
+    var actionProgress = api.progress(f, 96, 28, EASE_OUT);
+    if (action) {
+      var shift = api.range(api.spring(actionProgress, { damping: 6, frequency: 1.1 }), 36, 0, {
+        clamp: false
+      });
+      var drift = api.breath(f, { periodFrames: 140, amplitude: 3 }) *
+        api.progress(f, 96, 40, EASE_SYMMETRIC);
+      action.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + drift.toFixed(2) + 'px,0)';
+      action.style.opacity = String(api.clamp(actionProgress, 0, 1));
+    }
   }
 
   var renderers = {

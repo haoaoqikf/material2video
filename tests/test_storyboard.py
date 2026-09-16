@@ -159,6 +159,42 @@ class TestEmphasisValidation:
         assert "scenes[0].data.emphasis[1]" in error_paths(sb.validate(valid_script))
 
     def test_emphasis_is_not_flagged_as_undefined_field(self, valid_script):
+        # 短语必须在画面文本里原样出现，否则会被「强调色不生效」的警告拦下
+        valid_script["scenes"][0]["data"]["text"] = "开场命题"
+        valid_script["scenes"][0]["data"]["emphasis"] = ["命题"]
+        assert warning_paths(sb.validate(valid_script)) == []
+
+
+class TestVisualWarnings:
+    """排版与动效相关的警告：默认放行，--strict 时视为失败。"""
+
+    def test_warns_on_overlong_line(self, valid_script):
+        valid_script["scenes"][0]["data"]["text"] = "这一行故意写得很长很长很长很长很长很长的文案"
+        assert "scenes[0].data.text" in warning_paths(sb.validate(valid_script))
+
+    def test_accepts_manual_line_breaks(self, valid_script):
+        valid_script["scenes"][0]["data"]["text"] = "第一行不足二十字\n第二行也不超限"
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    def test_warns_on_long_list_item(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "steps",
+            "type": "list",
+            "durationInFrames": 30,
+            "data": {"items": ["这一条要点写得实在太长了会超出单行上限"]},
+        }
+        assert "scenes[0].data.items[0]" in warning_paths(sb.validate(valid_script))
+
+    def test_warns_on_short_scene(self, valid_script):
+        valid_script["scenes"][0]["durationInFrames"] = 12
+        assert "scenes[0].durationInFrames" in warning_paths(sb.validate(valid_script))
+
+    def test_warns_on_unmatched_emphasis(self, valid_script):
+        valid_script["scenes"][0]["data"]["emphasis"] = ["方向"]
+        assert "scenes[0].data.emphasis[0]" in warning_paths(sb.validate(valid_script))
+
+    def test_emphasis_may_appear_in_any_checked_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["subtitle"] = "问题不在努力"
         valid_script["scenes"][0]["data"]["emphasis"] = ["努力"]
         assert warning_paths(sb.validate(valid_script)) == []
 

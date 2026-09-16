@@ -12,6 +12,12 @@
  *     依赖 CSS animation/transition 的播放时间；
  *   - 同一帧重复渲染必须得到同一画面。
  *
+ * 动效原语（全部是纯函数，不保存任何跨帧状态）：
+ *   progress / stagger / enter    基础：进度、逐项起始帧、透明度 + 位移 + 缩放
+ *   spring / range / breath       进阶：微过冲、数值映射、常驻呼吸位移
+ *   drawPath / revealChars        专项：SVG 描边动画、逐字揭示
+ * 配方与推荐帧数见 references/visual-spec.md。
+ *
  * 为什么不用 CSS 动画：渲染脚本按帧号截图，CSS 动画由浏览器时钟驱动，
  * 截图时刻与动画时间无法对齐，导出的视频会出现随机闪烁。
  */
@@ -92,6 +98,175 @@
       'px,0) scale(' +
       lerp(fromScale, 1, p) +
       ')';
+  }
+
+  /**
+   * 解析式阻尼振子：把 0..1 的线性进度映射为带微过冲的位移/缩放进度。
+   *
+   * 为什么用解析公式而不是迭代积分：逐帧渲染要求「同一帧永远同一结果」，
+   * 解析式只依赖入参，不保存速度、不依赖调用顺序，天然满足契约。
+   *
+   * 默认参数在 30fps 下约 0.6 秒收敛，峰值过冲约 1.5%——刚好让画面「有弹性」
+   * 而不显得晃。想要更明显的回弹可降低 damping（4–5），想要更稳可用 8–10。
+   *
+   * @param {number} t 进度，通常来自 progress()
+   * @param {Object} [options]
+   * @param {number} [options.damping=6] 阻尼系数，越小回弹越明显
+   * @param {number} [options.frequency=1.2] 振动频率，越大越快到位
+   * @returns {number} 进度值，峰值可能略大于 1
+   */
+  function spring(t, options) {
+    var o = options || {};
+    var x = clamp(t, 0, 1);
+    if (x <= 0) {
+      return 0;
+    }
+    if (x >= 1) {
+      return 1;
+    }
+    var damping = o.damping === undefined ? 6 : o.damping;
+    var frequency = o.frequency === undefined ? 1.2 : o.frequency;
+    return 1 - Math.exp(-damping * x) * Math.cos(frequency * Math.PI * x);
+  }
+
+  /**
+   * 把 0..1 的进度线性映射到任意数值区间，作为位移、缩放、透明度、光晕强度的
+   * 统一驱动。默认把结果钳制在区间内，避免 spring 的过冲把数值推出合理范围。
+   *
+   * @param {number} t 进度
+   * @param {number} from 起点值
+   * @param {number} to 终点值
+   * @param {Object} [options]
+   * @param {boolean} [options.clamp=true] 是否把 t 钳制到 0..1
+   * @returns {number}
+   */
+  function range(t, from, to, options) {
+    var o = options || {};
+    var x = o.clamp === false ? t : clamp(t, 0, 1);
+    return from + (to - from) * x;
+  }
+
+  /**
+   * 常驻微动：让画面在「入场动画已经结束」的后半段仍有一点活性。
+   * 配音会把场景拉长，如果后段完全静止，成片会显得卡住。
+   *
+   * 只依赖帧号与常量，因此逐帧可复现；振幅建议 ≤ 6px，周期建议 90–150 帧。
+   *
+   * @param {number} localFrame 场景内帧号
+   * @param {Object} [options]
+   * @param {number} [options.periodFrames=120] 一个完整呼吸的帧数
+   * @param {number} [options.amplitude=4] 振幅（px）
+   * @param {number} [options.phase=0] 相位偏移，用于错开多个元素
+   * @returns {number} 当帧的位移量（px），正负交替
+   */
+  function breath(localFrame, options) {
+    var o = options || {};
+    var period = o.periodFrames === undefined ? 120 : o.periodFrames;
+    var amplitude = o.amplitude === undefined ? 4 : o.amplitude;
+    if (!period) {
+      return 0;
+    }
+    return Math.sin(((localFrame + (o.phase || 0)) / period) * Math.PI * 2) * amplitude;
+  }
+
+  /**
+   * 描边动画：按进度画出 SVG 路径（箭头、连线、回环）。
+   *
+   * length 由调用方测量一次（path.getTotalLength()）后传入，运行时不测量：
+   * 每帧测量既慢，又会把布局抖动带进画面。
+   *
+   * @param {SVGPathElement} path SVG 路径元素
+   * @param {number} p 进度 0..1
+   * @param {Object} [options]
+   * @param {number} options.length 路径总长度，省略时读取 data-a2v-length
+   */
+  function drawPath(path, p, options) {
+    if (!path) {
+      return;
+    }
+    var o = options || {};
+    var length = o.length;
+    if (length === undefined) {
+      var declared = parseFloat(path.getAttribute('data-a2v-length'));
+      length = isFinite(declared) && declared > 0 ? declared : 1;
+    }
+    var x = clamp(p, 0, 1);
+    if (!path.hasAttribute('data-a2v-length')) {
+      path.setAttribute('data-a2v-length', String(length));
+    }
+    path.setAttribute('stroke-dasharray', String(length));
+    path.setAttribute('stroke-dashoffset', String(length * (1 - x)));
+    path.style.opacity = String(x);
+  }
+
+  /**
+   * 逐字揭示：中文长句按帧号逐字点亮，比整句淡入更有「被读出来」的感觉。
+   *
+   * 文本节点结构只在内容变化时重建，之后每帧只改写各字的不透明度，
+   * 因此同一帧永远得到同一画面；文本内容保持完整，不影响读屏与选取。
+   *
+   * 页面需要为单字节点提供基础样式（示例见 examples/why-effort-fails/index.html）：
+   *
+   *   .reveal-char { display: inline-block; white-space: pre; }
+   *   .reveal-char.is-break { display: block; height: 0; }
+   *
+   * 两种用法（二选一）：
+   *   revealChars(el, text, p);                                  // 按整体进度均分
+   *   revealChars(el, text, 0, { frame: f, staggerFrames: 3 });  // 按帧号逐字
+   *
+   * @param {Element} el 目标元素
+   * @param {string} text 文案
+   * @param {number} p 进度 0..1（帧号模式可传 0，该值被忽略）
+   * @param {Object} [options]
+   * @param {number} [options.staggerFrames] 每字间隔帧数，与 frame 搭配启用帧号模式
+   * @param {number} [options.frame] 场景内帧号
+   * @param {number} [options.startFrame=0] 逐字起点帧
+   * @param {number} [options.tailFade=0.35] 进度模式下每字自身淡入所占比例
+   */
+  function revealChars(el, text, p, options) {
+    if (!el) {
+      return;
+    }
+    var o = options || {};
+    var value = text == null ? '' : String(text);
+    var chars = Array.prototype.slice.call(value);
+
+    if (el.getAttribute('data-a2v-text') !== value) {
+      var frag = document.createDocumentFragment();
+      chars.forEach(function (ch) {
+        var span = document.createElement('span');
+        span.className = ch === '\n' ? 'reveal-char is-break' : 'reveal-char';
+        span.textContent = ch;
+        // 换行符用块级占位，保持与父元素 white-space: pre-line 相同的断行语义
+        frag.appendChild(span);
+      });
+      el.textContent = '';
+      el.appendChild(frag);
+      el.setAttribute('data-a2v-text', value);
+    }
+
+    el.style.opacity = '1';
+    var spans = el.children;
+    if (!chars.length) {
+      return;
+    }
+
+    if (typeof o.staggerFrames === 'number' && typeof o.frame === 'number') {
+      var step = Math.max(o.staggerFrames, 1);
+      var base = o.startFrame || 0;
+      for (var i = 0; i < spans.length; i += 1) {
+        spans[i].style.opacity = String(clamp((o.frame - base - i * step) / step, 0, 1));
+      }
+      return;
+    }
+
+    var tailFade = o.tailFade === undefined ? 0.35 : o.tailFade;
+    var span = chars.length > 1 ? (1 + tailFade) / chars.length : 1;
+    var last = Math.max(1 - span, 0);
+    for (var j = 0; j < spans.length; j += 1) {
+      var start = chars.length > 1 ? (j / (chars.length - 1)) * last : 0;
+      spans[j].style.opacity = String(clamp((p - start) / span, 0, 1));
+    }
   }
 
   /** 读取内联分镜：<script type="application/json" data-a2v-storyboard> */
@@ -331,6 +506,11 @@
       progress: progress,
       stagger: stagger,
       enter: enter,
+      spring: spring,
+      range: range,
+      breath: breath,
+      drawPath: drawPath,
+      revealChars: revealChars,
       clamp: clamp,
       lerp: lerp,
       formatTime: formatTime,
@@ -614,6 +794,11 @@
     progress: progress,
     stagger: stagger,
     enter: enter,
+    spring: spring,
+    range: range,
+    breath: breath,
+    drawPath: drawPath,
+    revealChars: revealChars,
     clamp: clamp,
     lerp: lerp,
     formatTime: formatTime

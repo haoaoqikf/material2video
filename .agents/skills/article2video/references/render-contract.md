@@ -58,6 +58,39 @@
 
 > 判断标准：把第 300 帧连续渲染两次，两次截图应该完全一致。
 
+### 开渲前的静态扫描
+
+`render.py` 在进入渲染模式后会读取本地网页（含同目录的 `<link>` 样式表），
+命中 `@keyframes`、`animation:`、`transition:` 时输出警告并指出行号。
+只提示不阻断——是否真的闪烁由上面的确定性验收决定，但这类写法几乎必然出问题。
+
+远程 URL（`http://` / `https://`）与网页目录之外的样式不参与扫描。
+
+## 可复用的动效原语
+
+`assets/timeline.js` 提供一组**纯函数**原语，全部只依赖入参，不保存跨帧状态。
+配方与推荐帧数见 [竖屏视觉规范](visual-spec.md)。
+
+| 原语 | 用途 |
+| --- | --- |
+| `progress(localFrame, start, duration, easing)` | 计算片段进度 0..1 |
+| `stagger(index, stepFrames, baseFrame)` | 逐项呈现时第 i 项的起始帧 |
+| `enter(el, p, { distance, axis, scale, opacity })` | 透明度 + 位移 + 缩放 |
+| `spring(p, { damping, frequency })` | 解析式阻尼振子，给入场一点微过冲 |
+| `range(p, from, to, { clamp })` | 把进度映射为任意数值（位移、光晕强度等） |
+| `breath(localFrame, { periodFrames, amplitude })` | 常驻微动，避免后段完全静止 |
+| `drawPath(svgPath, p, { length })` | SVG 描边动画；长度由调用方测一次后传入 |
+| `revealChars(el, text, p, { frame, staggerFrames })` | 逐字揭示，文本结构不变 |
+
+`spring` 与 `breath` 都是闭式表达式（不迭代积分），因此同一帧永远得到同一结果。
+`drawPath` 不每帧测量路径：调用方用 `getTotalLength()` 量一次并缓存。
+`revealChars` 会重建单字节点，页面需提供基础样式：
+
+```css
+.reveal-char { display: inline-block; white-space: pre; }
+.reveal-char.is-break { display: block; height: 0; }
+```
+
 ## 中间帧格式
 
 渲染脚本默认用 JPEG（q98）截取中间帧，再交给 x264 编码。原因是有实测依据的：
@@ -101,6 +134,7 @@
 | 网页与分镜的 fps 或总帧数不一致 | 报错终止，并列出两边的值 |
 | 舞台尺寸与契约不一致 | 警告，继续渲染 |
 | 文档尺寸超出视口 | 警告，提示可能存在溢出裁切 |
+| 样式里出现 `animation` / `transition` / `@keyframes` | 警告并指出行号，继续渲染（是否闪烁由确定性验收决定） |
 
 ## 调试
 

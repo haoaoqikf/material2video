@@ -79,6 +79,93 @@ class TestDeterminism:
         assert capture_frame(45) == capture_frame(45)
 
 
+class TestMotionPrimitives:
+    """新增动效原语必须是纯函数：同一入参永远同一结果，且不越过数值范围。"""
+
+    PROBE = """() => {
+      const s = A2V.spring(1, {});
+      const r = A2V.range(0.5, 10, 20);
+      const b = A2V.breath(30, { periodFrames: 120, amplitude: 4 });
+      return {
+        springRepeat: [A2V.spring(0.35, {}), A2V.spring(0.35, {})],
+        springEnds: [A2V.spring(0, {}), A2V.spring(1, {})],
+        springOvershoot: A2V.spring(0.52, {}) > 1,
+        springFinite: Number.isFinite(s),
+        rangeRepeat: [A2V.range(0.5, 10, 20), A2V.range(0.5, 10, 20)],
+        rangeClamped: [A2V.range(-5, 0, 100), A2V.range(5, 0, 100)],
+        rangeUnclamped: A2V.range(-5, 0, 100, { clamp: false }),
+        breathRepeat: [A2V.breath(30, { periodFrames: 120, amplitude: 4 }), A2V.breath(30, { periodFrames: 120, amplitude: 4 })],
+        breathMidPeriod: A2V.breath(60, { periodFrames: 120, amplitude: 4 }),
+        breathZeroPeriod: A2V.breath(30, { periodFrames: 0, amplitude: 4 }),
+        breathIsNumber: Number.isFinite(b)
+      };
+    }"""
+
+    def test_primitives_are_pure_and_bounded(self, chromium_ready, page_session):
+        probe = page_session.evaluate(self.PROBE)
+        assert probe["springRepeat"][0] == probe["springRepeat"][1]
+        assert probe["springEnds"] == [0, 1]
+        assert probe["springOvershoot"] is True
+        assert probe["springFinite"] is True
+        assert probe["rangeRepeat"][0] == probe["rangeRepeat"][1] == 15
+        assert probe["rangeClamped"] == [0, 100]
+        assert probe["rangeUnclamped"] == -500
+        assert probe["breathRepeat"][0] == probe["breathRepeat"][1]
+        assert probe["breathMidPeriod"] == pytest.approx(0, abs=1e-9)
+        assert probe["breathZeroPeriod"] == 0
+        assert probe["breathIsNumber"] is True
+
+    def test_reveal_chars_is_frame_driven(self, chromium_ready, page_session):
+        """逐字揭示必须只由帧号决定：同一帧的每个字透明度完全一致。"""
+        script = """
+        () => {
+          const el = document.createElement('p');
+          el.style.whiteSpace = 'pre-line';
+          document.querySelector('[data-a2v-stage]').appendChild(el);
+          const opacity = (text, frame) => {
+            A2V.revealChars(el, text, 0, { frame: frame, startFrame: 0, staggerFrames: 2 });
+            return Array.prototype.map.call(el.children, (c) => c.style.opacity).join(',');
+          };
+          return {
+            first: opacity('努力没有结果\\n而是方向错了。', 6),
+            second: opacity('努力没有结果\\n而是方向错了。', 6),
+            later: opacity('努力没有结果\\n而是方向错了。', 60),
+            count: el.children.length,
+            breakClass: el.children[6].className
+          };
+        }
+        """
+        result = page_session.evaluate(script)
+        assert result["first"] == result["second"]
+        assert result["first"] != result["later"]
+        assert result["count"] == 14  # 13 个字 + 1 个换行占位
+        assert result["breakClass"] == "reveal-char is-break"
+
+    def test_reveal_chars_keeps_frames_deterministic(self, chromium_ready, page_session):
+        page_session.seek(44)
+        first = page_session.capture("png")
+        page_session.seek(1200)
+        page_session.seek(44)
+        assert first == page_session.capture("png")
+
+    def test_shape_primitives_are_pure(self, chromium_ready, page_session):
+        probe = """() => {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', 'M 0 0 L 10 0');
+          path.getTotalLength = () => 10;
+          A2V.drawPath(path, 0.4, { length: 10 });
+          const first = [path.getAttribute('stroke-dasharray'), path.getAttribute('stroke-dashoffset'), path.style.opacity];
+          A2V.drawPath(path, 0.4, { length: 10 });
+          const second = [path.getAttribute('stroke-dasharray'), path.getAttribute('stroke-dashoffset'), path.style.opacity];
+          A2V.drawPath(path, 2, { length: 10 });
+          const clamped = [path.getAttribute('stroke-dashoffset'), path.style.opacity];
+          return { first: first, second: second, clamped: clamped };
+        }"""
+        probe_result = page_session.evaluate(probe)
+        assert probe_result["first"] == probe_result["second"]
+        assert probe_result["first"] == ["10", "6", "0.4"]
+        assert probe_result["clamped"] == ["0", "1"]
+
 class TestPlaybackControl:
     def test_play_after_end_restarts_and_keeps_playing(self, chromium_ready, page_session):
         """播放结束后再点播放必须从头继续。

@@ -119,6 +119,7 @@ def render(
             # 进入渲染模式：隐藏预览控件并取消预览缩放，保证画面严格等于设计尺寸
             page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
             _precheck_dimensions(page)
+            _warn_on_time_driven_motion(page_path)
 
             capture_started = time.monotonic()
             _encode(page, video_path, total_frames, effective_fps, crf, preset, capture_format)
@@ -236,6 +237,57 @@ def _precheck_dimensions(page: AnimatedPage) -> None:
             page.contract.width,
             page.contract.height,
         )
+
+
+# 由浏览器时钟驱动、与帧号脱钩的动效声明。命中时画面在逐帧截图下可能闪烁。
+_TIME_DRIVEN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"@keyframes\b"), "@keyframes"),
+    (re.compile(r"(?<![\w-])animation(?:-[\w-]+)?\s*:"), "animation"),
+    (re.compile(r"(?<![\w-])transition(?:-[\w-]+)?\s*:"), "transition"),
+)
+
+
+def _warn_on_time_driven_motion(page_path: str | Path) -> None:
+    """渲染前静态扫描样式，提示 CSS 动画/过渡。
+
+    网页契约由「同一帧重复渲染一致」的运行时测试保证，这里只做一次廉价的
+    静态提示：CSS animation/transition 由浏览器时钟驱动，与逐帧截图无法对齐，
+    典型表现是视频里出现随机闪烁。只提示不阻断——是否闪烁最终由确定性验收决定。
+    """
+    page = Path(str(page_path))
+    if not page.is_file():
+        return
+    try:
+        html = page.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
+
+    targets = [(page.name, html)]
+    for href in re.findall(r"""<link[^>]+href=["']([^"']+\.css)["']""", html, re.IGNORECASE):
+        if href.startswith(("http://", "https://", "//")):
+            continue
+        candidate = (page.parent / href.split("?")[0].split("#")[0]).resolve()
+        # 只读网页所在目录内的样式，避免顺着相对路径读到仓库外的文件
+        if not candidate.is_file() or page.parent.resolve() not in candidate.parents:
+            continue
+        try:
+            targets.append((href, candidate.read_text(encoding="utf-8", errors="replace")))
+        except OSError:
+            continue
+
+    for name, text in targets:
+        for pattern, label in _TIME_DRIVEN_PATTERNS:
+            match = pattern.search(text)
+            if not match:
+                continue
+            line = text.count("\n", 0, match.start()) + 1
+            logger.warning(
+                "%s:%d 使用了 CSS %s：它由浏览器时钟驱动，逐帧截图可能闪烁，"
+                "请改为在 render() 中按帧号计算（见 references/render-contract.md）",
+                name,
+                line,
+                label,
+            )
 
 
 def _encode(

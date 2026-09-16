@@ -28,12 +28,14 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 3. **先校验再渲染**：分镜脚本先过 `validate.py`，网页契约先过渲染脚本的前置检查，
    错误在开渲前暴露，而不是产出一段坏视频。
 4. **预览与导出同源**：预览和渲染使用同一份 storyboard、同一套坐标，只缩放不改布局。
+5. **层级先于装饰**：先做出背景 / 表面 / 焦点三层与统一的动效曲线，再考虑细节；
+   「高级感」来自克制的层级与一致的节奏，而不是更多的颜色和更大的动效。
 
 ## 目录职责
 
 | 路径 | 职责 |
 | --- | --- |
-| `.agents/skills/article2video/assets/` | 共享基础样式 `base.css` 与时间轴运行时 `timeline.js` |
+| `.agents/skills/article2video/assets/` | 共享基础样式 `base.css`、设计令牌 `theme.css` 与时间轴运行时 `timeline.js` |
 | `.agents/skills/article2video/scripts/` | 渲染、校验、配音准备、预览四个命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
@@ -87,14 +89,19 @@ cp -r examples/why-effort-fails videos/<slug>
 
 - 保留 `<link>` 引入的 `base.css` 与 `<script>` 引入的 `timeline.js`
   （相对路径按所在层级调整），它们提供画布、安全区与 `__A2V__` 契约；
+- 再引入 `theme.css`（设计令牌 + 光晕/网格/细点阵背景层）；顺序必须是
+  `base.css` → `theme.css` → 页面自身样式，让页面拥有最终覆盖权；
 - 每个场景一个 `<section data-a2v-scene data-scene-id="<场景 id>">`，
   `data-scene-id` 必须与 storyboard 中的 `id` 一致；
-- 所有正文放进 `.a2v-safe` 安全区；
+- 所有正文放进 `.a2v-safe` 安全区；背景层放在舞台内、场景容器之外并置 `z-index: 0`，
+  场景容器置 `z-index: 1`；
 - 在 `renderFrame(state, api)` 中按 `state.scene.type` 分派渲染，用
-  `api.progress()` / `api.enter()` 按帧计算动效，不要使用 CSS 动画；
+  `api.progress()` / `api.enter()` / `api.spring()` / `api.range()` / `api.breath()` /
+  `api.drawPath()` / `api.revealChars()` 按帧计算动效，不要使用 CSS 动画；
 - 播放控件放在 `[data-a2v-controls]` 或加 `a2v-preview-only` 类，导出时会被隐藏。
 
-排版与动效数值参考 [竖屏视觉规范](references/visual-spec.md)。
+排版层级、景深、动效配方与三套风格方向见 [竖屏视觉规范](references/visual-spec.md)；
+`examples/why-effort-fails/index.html` 已按该规范实现，可直接对照抄用。
 
 ### 3. 校验分镜
 
@@ -104,6 +111,8 @@ uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/sto
 
 有错误时终止并列出 `scenes[2].data.items` 这类可定位的路径，修正后重跑。
 加 `--json` 可得到机器可读输出，便于批量修正。
+校验器还会按视觉规范给出**警告**（不阻止渲染）：单行字数超限、场景短于 24 帧、
+`emphasis` 短语没有出现在文本里。定稿前用 `--strict` 把它们也当作失败。
 
 ### 3.1 配音与字幕准备（可选）
 
@@ -188,8 +197,11 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `window.__A2V__ 未定义` | 网页没有引入 `timeline.js`，或 `A2V.mount()` 抛错（看控制台） |
 | `分镜脚本加载失败: HTTP 404` | 网页里 `fetchStoryboard('storyboard.json')` 的相对路径不对，或预览时用了 `file://` |
 | `总帧数不一致` | 改了 storyboard 的时长但没重新加载页面，或网页里硬编码了总帧数 |
-| 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`，改为由帧号推导 |
+| 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`，改为由帧号推导；渲染前会静态提示 `animation:` / `transition:` / `@keyframes` |
 | 预览正常但导出缺字 | 用了系统字体而渲染机器上没有该字体，改为随仓库分发 webfont |
+| 动画后段像卡住 | 场景被配音拉长后画面完全静止，入场结束后叠 `api.breath()` 级别的常驻微动 |
+| 画面扁平没有层次 | 缺少背景/表面/焦点三层：先加背景层与卡片内高光、双层投影（见视觉规范） |
+| 强调色加在文案上却不生效 | `emphasis` 的短语没有原样出现在该场景文本里，`validate.py` 会给出警告 |
 | 导出画面被裁切 | 文档尺寸超出 1080 × 1920，检查是否有元素溢出或页面出现滚动条 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
 | 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
@@ -215,4 +227,4 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
-- [竖屏视觉规范](references/visual-spec.md)：画布、安全区、字号、动效与节奏
+- [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向

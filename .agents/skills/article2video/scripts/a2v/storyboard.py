@@ -35,6 +35,31 @@ _SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
     "conclusion": {"required": {"text"}, "optional": {"action", "emphasis"}},
 }
 
+# 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
+# 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
+# 而不是缩小字号。标题类允许更长，因为短标题强行折行反而破坏构图。
+_MAX_LINE_CHARS = 14
+_TEXT_LINE_LIMITS: dict[str, int] = {
+    "text": 20,
+    "title": 16,
+    "left": 8,
+    "right": 8,
+    "subtitle": 20,
+    "action": 16,
+    "label": 16,
+    "caption": 20,
+}
+
+# 低于该帧数的场景来不及完成一次入场动效（30fps 下 0.8 秒）。
+_MIN_SCENE_FRAMES = 24
+
+# 场景内会被强调短语覆盖的文本字段，用于检查 emphasis 是否真的能命中。
+_EMPHASIS_TEXT_FIELDS: dict[str, tuple[str, ...]] = {
+    "title": ("text", "subtitle"),
+    "quote": ("text", "attribution"),
+    "conclusion": ("text", "action"),
+}
+
 
 @dataclass(frozen=True)
 class Issue:
@@ -171,7 +196,7 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
         else:
             seen_ids[scene_id] = index
 
-        _validate_duration(scene, f"{path}.durationInFrames", report)
+        _validate_duration(scene, f"{path}.durationInFrames", report, fps)
         if "narration" in scene and not isinstance(scene["narration"], str):
             report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
         _validate_scene_payload(scene, path, report)
@@ -189,12 +214,19 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
             )
 
 
-def _validate_duration(scene: dict[str, Any], path: str, report: Report) -> None:
+def _validate_duration(scene: dict[str, Any], path: str, report: Report, fps: int) -> None:
     duration = scene.get("durationInFrames")
     if not isinstance(duration, int) or isinstance(duration, bool):
         report.error(path, "durationInFrames 必须是整数帧数")
     elif duration <= 0:
         report.error(path, f"durationInFrames={duration} 必须大于 0")
+    elif duration < _MIN_SCENE_FRAMES:
+        # 短于此长度的场景，入场动效会被压缩到看不清，通常意味着应该并入相邻场景。
+        report.warn(
+            path,
+            f"仅 {duration} 帧（{duration / fps:.1f} 秒 @{fps}fps），"
+            f"入场动效会被压缩到看不清，建议并入相邻场景",
+        )
 
 
 def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) -> None:
@@ -229,12 +261,74 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
             for i, item in enumerate(items):
                 if isinstance(item, str) and not item.strip():
                     report.error(f"{path}.data.items[{i}]", "文本项不能是空白字符串")
+                elif isinstance(item, str):
+                    _warn_on_long_line(item, f"{path}.data.items[{i}]", report)
 
     if "emphasis" in data_field:
         _validate_emphasis(data_field["emphasis"], f"{path}.data.emphasis", report)
+        _warn_on_unmatched_emphasis(scene_type, data_field, f"{path}.data.emphasis", report)
 
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
+
+    _warn_on_long_text(data_field, f"{path}.data", report)
+
+
+def _warn_on_long_text(data_field: dict[str, Any], path: str, report: Report) -> None:
+    """按视觉规范检查单行字数：超出上限时应拆场景，而不是缩小字号。
+
+    这些是**警告**：文案长度属于表达取舍，校验器只负责在开渲前提醒，
+    由作者决定是否拆分；`--strict` 可以把它们提升为失败。
+    分镜里的换行符是硬换行，因此逐行判断而不是判断整段长度。
+    """
+    for field, limit in _TEXT_LINE_LIMITS.items():
+        value = data_field.get(field)
+        if not isinstance(value, str):
+            continue
+        _warn_on_long_line(value, f"{path}.{field}", report, limit)
+
+
+def _warn_on_long_line(text: str, path: str, report: Report, limit: int = _MAX_LINE_CHARS) -> None:
+    lines = text.split("\n")
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if len(stripped) <= limit:
+            continue
+        where = f"{path} 第 {index + 1} 行" if len(lines) > 1 else path
+        report.warn(
+            where,
+            f"单行 {len(stripped)} 个字符，超过 {limit} 字的上限，建议拆成多个场景或手动换行",
+        )
+
+
+def _warn_on_unmatched_emphasis(
+    scene_type: str, data_field: dict[str, Any], path: str, report: Report
+) -> None:
+    """强调短语必须能在画面文本里原样命中，否则网页标不出重点色。
+
+    网页按「第一处出现」替换，因此短语里多一个空格或标点就会静默失效；
+    这里提前把这类不可见的失效暴露出来。
+    """
+    phrases = data_field.get("emphasis")
+    if not isinstance(phrases, list):
+        return
+    fields = _EMPHASIS_TEXT_FIELDS.get(scene_type)
+    if not fields:
+        # 其他类型的文案字段不在本模块的检查范围内，避免误报。
+        return
+    haystack = "\n".join(
+        value for value in (data_field.get(name) for name in fields) if isinstance(value, str)
+    )
+    if not haystack:
+        return
+    for index, phrase in enumerate(phrases):
+        if not isinstance(phrase, str) or not phrase.strip():
+            continue
+        if phrase not in haystack:
+            report.warn(
+                f"{path}[{index}]",
+                f"强调短语 '{phrase}' 未出现在该场景的文本中，画面上不会生效",
+            )
 
 
 def _validate_emphasis(value: Any, path: str, report: Report) -> None:
