@@ -1,0 +1,43 @@
+# Dependencies and environments
+node_modules/
+.venv/
+venv/
+
+# Build output and caches
+dist/
+build/
+.cache/
+.next/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+coverage/
+*.log
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.local
+*.local.*
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Generated renders and media
+outputs/
+renders/
+recordings/
+*.mp4
+*.webm
+*.mov
+*.avi
+
+# Local editor and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
