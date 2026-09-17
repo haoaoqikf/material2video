@@ -13,9 +13,21 @@
 | `height` | `number` | 否 | 画面高度，默认 `1920`，必须是偶数 |
 | `title` | `string` | 否 | 视频标题，用于日志与文件命名，不参与画面 |
 | `scenes` | `array` | 是 | 非空场景数组 |
-| `visual` | `object` | 否 | 共享页面的主题：`{"theme":"dark"}` 或 `{"theme":"light"}`，默认 `dark` |
+| `visual` | `object` | 否 | 共享页面的主题与可选预设：`{"theme":"dark","preset":"keynote"}`，`theme` 默认 `dark`，`preset` 省略即不启用 |
 
 宽高必须是偶数：H.264 的 `yuv420p` 像素格式要求宽高可被 2 整除，奇数会导致编码失败。
+
+`visual` 的子字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `theme` | 否 | `dark` 或 `light`，默认 `dark` |
+| `preset` | 否 | 设计语言预设，目前唯一取值 `"keynote"`（发布会级设计语言，见[发布会级设计语言](keynote-design-system.md)） |
+
+`preset` 是可选字段：**省略时行为逐帧不变**。共享页面仍会引入设计语言层的样式与
+脚本，但它们全部受 `[data-a2v-preset="keynote"]` 作用域约束，排版引擎也不会被调用，
+因此画面与不引入该层时完全一致。
+未知取值报错，并指出 `visual.preset` 字段路径。
 
 ## 场景字段
 
@@ -91,7 +103,7 @@
 路径仍可用。完整示例见 [declarative-number](../../../../examples/declarative-number/storyboard.json)。
 
 声明式模式使用 `data.figure.kind`、`labels` 和 `motion`，未写 `kind` 时按场景类型
-取目录默认值。未知组件、布局、主题、动效、额外字段和未实现的 `figure.params` 均为错误，
+取目录默认值。未知组件、布局、主题、预设、动效、额外字段和未实现的 `figure.params` 均为错误，
 错误包含分镜字段路径。当前 `params` 没有可用键；分镜不能声明 HTML、CSS、JS 或第三方包。
 `number` 的基础组件读 `value`、`label`、`caption`；数值型 `value` 按帧递增显示。
 

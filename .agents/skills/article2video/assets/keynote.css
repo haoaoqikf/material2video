@@ -253,6 +253,21 @@
   --a2v-line-title: var(--a2v-leading-title);
   --a2v-line-body: var(--a2v-leading-body);
 
+  /* ---------- 组件墨色字号：把插画里的字号也收进字阶 ----------
+   *
+   * figures.css 里原本散着一批裸字号（30 / 32 / 36 / 38 / 46 / 124px…）。
+   * 页面的字号阶管不到组件内部的文字，于是这些字号既不在阶上、
+   * 又有几个低于正文下限（30–38px 在竖屏上读不出来）。
+   * 这里给同一个字阶再起一套**别名**，让组件引用语义名而不是裸数字：
+   * 数值仍来自上面那张表，改字阶时组件会跟着走，不会再各写各的。 */
+  --a2v-ink-caption: var(--a2v-size-caption); /* 28px：图形角标、来源 */
+  --a2v-ink-label: var(--a2v-size-label); /* 34px：轴名、次要标注 */
+  --a2v-ink-body: var(--a2v-size-body); /* 40px：组件内正文 */
+  --a2v-ink-value: 44px; /* 与 K3 的统计下限对齐，不再另立一档 */
+  --a2v-ink-lead: var(--a2v-size-lead); /* 60px：引文 */
+  --a2v-ink-title: var(--a2v-size-title); /* 76px：图形小标题 */
+  --a2v-ink-display: var(--a2v-size-display); /* 120px：图形主数值 */
+
   /* ---------- 间距：8pt 网格 ---------- */
   --a2v-space-1: 4px;
   --a2v-space-2: 8px;
@@ -307,17 +322,26 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* 内容列对齐到栅格：所有正文默认左对齐到安全区左边线，
- * 需要居中的场景由 data-layout="center" 显式声明。 */
+/* 版面：对齐方式由分镜的 `visual.layout` 决定，而**共享页面的默认值是 center**
+ * （`declarative.js` 里 `(scene.visual || {}).layout || 'center'`）。
+ * 也就是说 `data-layout` 属性总是存在的，预设无法从它区分「显式声明居中」
+ * 与「没声明所以居中」。因此这里不去推翻页面的默认值——那需要改共享页面，
+ * 会波及所有未启用预设的视频——只补齐页面尚未定义的 `left` 一档，
+ * 让「居中 / 下置 / 左对齐」三种版面都有确定的落点。 */
 [data-a2v-preset="keynote"] .a2v-safe {
   gap: var(--a2v-space-6);
-  text-align: left;
 }
 
-[data-a2v-preset="keynote"] .a2v-safe.a2v-safe-center,
-[data-a2v-preset="keynote"] [data-layout="center"] .a2v-safe {
+[data-a2v-preset="keynote"] [data-layout="center"] .a2v-safe,
+[data-a2v-preset="keynote"] .a2v-safe.a2v-safe-center {
   align-items: center;
   text-align: center;
+}
+
+[data-a2v-preset="keynote"] [data-layout="left"] .a2v-safe,
+[data-a2v-preset="keynote"] .a2v-safe.a2v-safe-left {
+  align-items: flex-start;
+  text-align: left;
 }
 
 [data-a2v-preset="keynote"] [data-layout="lower"] .a2v-safe {
@@ -574,6 +598,44 @@
 [data-a2v-preset="keynote"] [data-a2v-fit] {
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+/* 引文块：组件给 `.quote-block` 留了 62px 左内边距给那条强调竖线。
+ * 这段内边距会被一起居中，导致文字实际落在中心右侧——实测偏差 31px，
+ * 看起来就是「没居中」。预设里改成用 flex 的 gap 定位竖线：
+ * 竖线成为一个独立的 flex 项，不再把文字单独往右推。 */
+[data-a2v-preset="keynote"] .quote-block {
+  padding-left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--a2v-space-4);
+}
+
+[data-a2v-preset="keynote"] .quote-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+[data-a2v-preset="keynote"] .quote-rule {
+  position: static;
+  flex: 0 0 auto;
+  align-self: stretch;
+  top: auto;
+  bottom: auto;
+}
+
+[data-a2v-preset="keynote"] .quote-mark {
+  left: calc(-1 * var(--a2v-space-6));
+}
+
+/* 居中布局下干脆不画引文装饰：竖线与引号都是「给左边缘一个视觉锚点」用的，
+ * 而居中构图本身没有左边缘。留着它们只会继续把文字块推离中心
+ * （竖线 6px + 间距 24px，文字中心因此偏右 15px）。 */
+[data-a2v-preset="keynote"] [data-layout="center"] .quote-rule,
+[data-a2v-preset="keynote"] [data-layout="center"] .quote-mark,
+[data-a2v-preset="keynote"] .a2v-safe-center .quote-rule,
+[data-a2v-preset="keynote"] .a2v-safe-center .quote-mark {
+  display: none;
 }
 
 /* 主角数字：组件自带的 240px 不在字号阶上，会绕过 K3（同帧字号种类）。

@@ -334,3 +334,68 @@ class TestNoRawValues:
         # 写死的暖红不跟主题走，换主题时会留下一抹属于旧主题的颜色
         assert "194, 53, 42" not in FIGURES_CSS
         assert "#c2352a" not in FIGURES_CSS
+
+
+class TestComponentInkScale:
+    """组件内部字号也必须落在字号阶上。
+
+    页面的字号阶管不到 `figures.css` 里的文字：组件原本散着一批裸字号
+    （30 / 32 / 36 / 38 / 46px…），既不在阶上、又有几个低于正文下限，
+    K3（同帧字号种类）根本数不到它们，层级统计就成了一张漏网的表。
+    这里守住三件事：裸字号不许再出现、引用的 `--a2v-ink-*` 必须有定义、
+    每个引用都必须带原值兜底（未启用预设的页面靠兜底保持逐字节不变）。
+    """
+
+    #: 与 K3 的统计下限同值：这一档不落在 --a2v-size-* 里，由 --a2v-ink-value 承载
+    INK_VALUE = 44
+
+    def _used_ink_tokens(self) -> set[str]:
+        return set(re.findall(r"var\((--a2v-ink-[\w-]+)", FIGURES_CSS))
+
+    def test_bare_font_size_must_be_on_the_scale(self) -> None:
+        """允许裸字号，但必须落在字号阶上。
+
+        要求「一律写令牌」是过度的：40 / 96 / 44px 本来就是阶上的值，
+        再包一层 `var()` 只会增加噪音。真正要挡住的是**阶外**裸值——
+        它们既不在层级里，也数不进 K3。
+        """
+        on_scale = set(re.findall(r"--a2v-size-[\w-]+:\s*(\d+)px", scale_block()))
+        allowed = {int(size) for size in on_scale} | {self.INK_VALUE}
+        bare = [value.strip() for value in re.findall(r"font-size:\s*([^;{}]+)", FIGURES_CSS)]
+        bare = [value for value in bare if not value.startswith("var(")]
+        assert bare, "figures.css 里一个裸字号都没有？这一步大概白做了"
+        offenders = []
+        for value in bare:
+            match = re.fullmatch(r"(\d+)px", value)
+            if not match or int(match.group(1)) not in allowed:
+                offenders.append(value)
+        assert not offenders, f"figures.css 出现阶外裸字号：{offenders}（允许：{sorted(allowed)}）"
+
+    def test_every_ink_token_is_defined_in_the_preset(self) -> None:
+        used = self._used_ink_tokens()
+        assert used, "figures.css 没有引用任何 --a2v-ink-* 令牌，这一步大概白做了"
+        defined = set(re.findall(r"(--a2v-ink-[\w-]+)\s*:", _strip_comments(KEYNOTE_CSS)))
+        missing = sorted(used - defined)
+        assert not missing, f"keynote.css 缺少组件字号令牌：{missing}（缺了会静默回落到原值）"
+
+    def test_every_ink_token_has_a_fallback(self) -> None:
+        # 没有兜底的话，未启用预设的页面取不到令牌 → font-size 整条声明失效 → 字号变成继承值
+        offenders = re.findall(r"var\(--a2v-ink-[\w-]+\)", FIGURES_CSS)
+        assert not offenders, f"这些引用没有原值兜底，未启用预设的页面会掉字号：{offenders}"
+
+    def test_ink_tokens_resolve_to_scale_values(self) -> None:
+        """每个别名要么指向字号阶里的某一档，要么就是与 K3 下限同值的 44px。"""
+        block = theme_block(':root[data-a2v-preset="keynote"]', needle="--a2v-ink-")
+        declared = declarations(block, "a2v-ink-")
+        assert declared, "没有解析到 --a2v-ink-* 声明"
+        scale_text = scale_block()
+        for token, value in declared.items():
+            reference = re.fullmatch(r"var\((--a2v-size-[\w-]+)\)", value.strip())
+            if reference:
+                assert re.search(rf"{reference.group(1)}:\s*\d+px", scale_text), (
+                    f"{token} 指向了不在字号阶里的 {reference.group(1)}"
+                )
+                continue
+            assert value.strip() == f"{self.INK_VALUE}px", (
+                f"{token} 既没指向字号阶，也不是与 K3 下限同值的 {self.INK_VALUE}px：{value}"
+            )

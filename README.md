@@ -71,6 +71,22 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   八幕全部以帧驱动的比喻画面表达道理（天平 / 落差尺 / 冰山 / 飞轮 / 冰山 / 阶梯 /
   双栏对照 / 双向选择），实现了 `list` 与 `timeline` 两个示例里没有的场景分支；
   页面另有常驻进度轨（幕号 / 章节 / 全片进度）为下半幅收口；
+- **发布会级设计语言层**（可选）：分镜根级声明 `visual.preset: "keynote"` 时启用
+  `assets/keynote.css`——模块化字号阶（8 档，正文下限 36px，每档配对行高与字距）、
+  8pt 间距阶（4–192px）、五个圆角档 + pill、三级阴影、12 列网格（内容宽 888px、
+  槽宽 24px），以及 `keynote-dark`（bg `#08090c`、强调 `#32d6ff`）与
+  `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）两套主题，对比度预算正文 7:1、
+  大字与图形 4.5:1；Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）
+  随仓库分发、不走 CDN；`assets/typography.js` 提供可选排版引擎 `A2V.type`
+  （实测取档、均衡断行、行首标点悬挂，不属于渲染契约）。不声明 `preset` 时它不生效
+  （样式受预设作用域约束、排版引擎不被调用），画面逐帧不变（有逐字节回归证据）；
+  参考实现见
+  [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)（8 幕 / 2040 帧 / 68 秒）；
+- **观感闸门 K1–K6**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
+  对齐基线、正文对比度、卡片纪律量成数值结论，与回答「是不是废片」的 C 系列
+  **分开计分**；`review.py --declarative` 时随体检一起输出，取不到样本的条目跳过并写明原因。
+  阈值与设计取舍见
+  [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
 
@@ -78,6 +94,12 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 [规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
 模型调用或批量生成）、**背景音乐**、
 **平台发布**、批量渲染与成片历史版本。
+
+设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
+最终判断仍要人按
+[评审量表](.agents/skills/article2video/references/visual-review-rubric.md) 完成）、
+**webfont 子集化**（Noto Sans SC Variable 约 17MB）、**按内容自动选预设**
+（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」。
 
 ## 快速开始
 
@@ -228,6 +250,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
 - [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)：有哪些现成组件、怎么选、怎么新增
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
+- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎与 K1–K6 观感闸门
 - [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 

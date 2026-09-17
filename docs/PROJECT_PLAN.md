@@ -28,8 +28,8 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | --- | --- |
 | `SKILL.md` | 工作流主文档：从文章到成片的步骤与排查手册 |
 | `references/` | 渲染契约、分镜结构、竖屏视觉规范、目录与输出路径 |
-| `assets/` | 共享基础样式、设计令牌（`base.css` / `theme.css`）与时间轴运行时 |
-| `scripts/` | 校验、配音准备、预览、渲染四个命令行工具 |
+| `assets/` | 共享基础样式、设计令牌（`base.css` / `theme.css`）、可选的设计语言层（`keynote.css` / `typography.js` / 随仓库分发的字体）与时间轴运行时 |
+| `scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
 
 因此「可复用的视觉语言」不再体现为固定的 Scene 组件类，而体现为
 **共享的运行时 + 契约 + 视觉规范 + 设计令牌**；常规构图由分镜选择受控组件与布局，
@@ -133,7 +133,8 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 
 验收：示例 5 幕 1350 帧按新规范渲染，逐帧确定性测试（同帧与跨会话逐字节一致）
 继续通过；新增原语与校验规则的测试全部落地。
-尚未实现：AI 自动选择视觉风格；webfont 分发（当前仍用系统字体栈）。
+尚未实现：AI 自动选择视觉风格。webfont 分发与系统字体栈的取舍在第七阶段落地
+（启用 `visual.preset` 时改用随仓库分发的可变字体，默认路径仍是系统字体栈）。
 
 ### 第五阶段：视觉组件库与设计系统 —— 已实现
 
@@ -180,6 +181,41 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 生成质量仍按下限交给机检、按「值不值得看完」交给人评。
 
 尚未实现（本阶段之外的遗留项）：生成器程序与模型调用、批量生成、AI 自动选择视觉风格。
+
+### 第七阶段：发布会级设计语言与观感闸门 —— 设计语言层已实现，自动评审仍待做
+
+目标：把「发布会级别的画面」从手感变成可机检的约束，并让它与「是不是废片」分开判定。
+
+- `assets/keynote.css`：设计语言层，由分镜根级 `visual.preset: "keynote"` 显式启用。
+  模块化字号阶 8 档（caption 28 / label 34 / body 40 / lead 60 / title 76 /
+  headline 96 / display 120 / hero 140，单位 px；正文下限 36px；每档配对行高与字距）、
+  8pt 间距阶（4 / 8 / 16 / 24 / 32 / 48 / 64 / 96 / 128 / 192）、五个圆角档 + pill、
+  三级阴影、12 列网格（内容宽 888px、槽宽 24px），以及 `keynote-dark`
+  （bg `#08090c`、强调 `#32d6ff`）与 `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）
+  两套主题；对比度预算为正文 7:1、大字与图形 4.5:1；
+- `assets/fonts/`：Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）随仓库分发，
+  不走 CDN；字体栈只在预设作用域里覆盖 `--a2v-font`，因此未启用预设的页面仍用系统字体栈；
+- `assets/typography.js`：可选排版引擎 `A2V.type`（实测取档、均衡断行、行首标点悬挂），
+  不属于 `window.__A2V__` 渲染契约，未启用预设时不会被调用；
+- `scripts/a2v/keynote.py`：观感闸门 K1–K6 的计算与结果结构（`Gate` / `KeynoteResult`），
+  与废片类 C 系列**分开计分**；`inspect.py` 的帧量测扩到 540 × 960 的探针画面，
+  并收集字号、文本样张与卡片特征；
+- `examples/keynote-baseline/`：8 幕 / 2040 帧 / 68 秒 / 1080 × 1920 @30fps 的参考实现；
+- 测试：`tests/test_keynote_assets.py`（令牌自检、对比度、`--fig-*` 覆盖、预设作用域）、
+  `tests/test_offline_assets.py`（资产不许引外部 URL、`url()` 必须指向仓库内真实文件、
+  限帧导出可跑通）与 `tests/test_review.py` 的 K 系列指标与闸门用例。
+
+验收：`examples/keynote-baseline` 上 `validate.py --declarative --strict` 零错误；
+`review.py --declarative` 的 C 系列 24 帧抽检 0 错误 0 提醒，K 系列 30 通过 / 7 提醒 /
+0 失败 / 11 跳过（跳过项均写明原因，主要是「这一幕没有卡片表面」与「正文级文本块不足两个」）；
+未启用预设的 `examples/declarative-number` 限帧 12 帧成片与改动前逐字节一致。
+
+尚未实现：视觉模型自动评审（K 系列只给数值，最终判断仍要人看
+[视觉评审量表](../.agents/skills/article2video/references/visual-review-rubric.md)）、
+webfont 子集化（Noto Sans SC Variable 约 17MB）、按内容自动选预设（必须显式声明），
+以及 K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」。
+完整说明见
+[发布会级设计语言](../.agents/skills/article2video/references/keynote-design-system.md)。
 
 ## 已完成的实际文章
 
@@ -234,5 +270,6 @@ outputs/examples/<slug>/                                   # 示例产物独立�
 已实现的部分见 README。明确不在当前范围内：账号系统、云端任务队列、多用户管理、
 自动发布到抖音、配乐与音效库、成片历史版本管理、批处理与缓存清理。
 
-待决策：背景音乐方案、webfont 的引入方式（当前用系统字体栈，
-换机器可能影响换行位置）、批量渲染的并行策略（当前单进程串行，实测约 11–16 帧/秒）。
+待决策：背景音乐方案、webfont 子集化（可变字体已随仓库分发，并在启用
+`visual.preset` 时使用；默认路径仍是系统字体栈，换机器可能影响换行位置）、
+批量渲染的并行策略（当前单进程串行，实测约 11–16 帧/秒）。

@@ -67,7 +67,13 @@
   正文保持 0，字距是区分「标题感」和「正文感」最廉价的手段；
 - 每个场景最多 3 行正文，每行不超过 14 个汉字，用分镜里的换行符手动断行，
   不要让浏览器自动折行决定重点词的位置；
-- 关键短语用强调色 + 光晕标出，**不要**整句加粗或变色。
+- 关键短语用强调色 + 光晕标出，**不要**整句加粗或变色；
+- 字号取自**模块化字号阶**：启用预设后，不在阶上的字号会绕过
+  [K3 闸门](keynote-design-system.md)（同帧字号种类），层级也就无法被机检。
+  八档取值与配对的行高、字距见[发布会级设计语言](keynote-design-system.md)。
+  组件内部的文字同样受这条约束——`figures.css` 里的字号一律写成
+  `var(--a2v-ink-*, 原值)`：预设生效时落到阶上，未启用预设时落回原值，
+  两种情况都不会出现「页面上是阶上字号、组件里却是 30px」的漏网。
 
 ## 图形标注
 
@@ -249,25 +255,56 @@ api.motion.tempo('impact');                                       // 节奏名 �
 [data-a2v-scene] { z-index: 1; }
 ```
 
+## 设计语言预设（可选）
+
+分镜根级的 `visual.preset` 决定是否启用一层「发布会级」设计语言。字段可选，
+目前唯一取值是 `"keynote"`；未知值由校验器报错并指出 `visual.preset` 字段路径。
+
+**缺省时行为逐帧不变。** 共享页面照常引入 `assets/keynote.css` 与
+`assets/typography.js`，但 `<html>` 上不出现 `data-a2v-preset`：前者的全部规则
+（字体栈、主题块、字号阶、工具类）都带 `[data-a2v-preset="keynote"]` 作用域，
+一条也不会生效；后者只注册 `A2V.type` 而不被调用（`declarative.js` 仅在预设存在时
+才做拟合）。画面、字体与版式因此与引入该层之前完全一致，
+`examples/declarative-number` 限帧 12 帧的成片与改动前逐字节相同。这不是口头承诺——
+`tests/test_keynote_assets.py::TestPresetScoping` 守住作用域，
+`tests/test_offline_assets.py` 守住离线资产。
+
+启用后多出来的约束：模块化字号阶（正文下限 36px，组件内部字号通过
+`--a2v-ink-*` 别名一并收进阶上）、8pt 间距阶、两套主题
+（`keynote-dark` / `keynote-light`）、对比度预算（正文 7:1、大字与图形 4.5:1）、
+随仓库分发的 webfont，以及观感闸门 K1–K6；预设另外把 `--a2v-safe-top` 从
+220px 提到 240px，并提供 `--a2v-safe-bottom-with-subtitles: 520px`。
+版面仍由分镜的 `visual.layout` 选择，**未声明时共享页面兜底为居中**——
+预设不推翻这个兜底，只补齐页面原本缺的 `left` 一档。
+完整的启用方式、令牌表与闸门阈值见[发布会级设计语言](keynote-design-system.md)，
+三种版面的几何由 `tests/test_keynote_layout.py` 实测复核。
+
 ## 字体
 
-`base.css` 使用系统中文字体栈（苹方 / 微软雅黑 / Noto Sans SC 等）。
+默认（未启用预设）用 `base.css` 的系统中文字体栈（苹方 / 微软雅黑 / Noto Sans SC 等）。
 好处是零体积、无需网络；代价是**不同机器字宽略有差异**，可能影响换行位置。
 
-对换行位置敏感、或需要在没有中文字体的环境（如 Linux CI）出片时，
-可改为随仓库分发 webfont 并在网页中声明 `@font-face`：
+启用设计语言预设后改用**随仓库分发**的两套可变字体，不再依赖渲染机器的系统字体：
 
-```css
-@font-face {
-  font-family: "A2V Sans";
-  src: url("assets/fonts/noto-sans-sc.woff2") format("woff2");
-  font-weight: 100 900; /* 可变字体需声明区间 */
-  font-display: block;  /* 避免回退字体先渲染 */
-}
-```
+| 字体 | 家族名 | 文件 | 用途 |
+| --- | --- | --- | --- |
+| Inter Variable | `"A2V Inter"` | `assets/fonts/Inter-Variable.ttf` | 拉丁与数字（图表数值列的对齐依赖它） |
+| Noto Sans SC Variable | `"A2V Sans"` | `assets/fonts/NotoSansSC-Variable.ttf` | 中文 |
 
-使用 webfont 时必须同时分发其许可证文件（Noto Sans SC 为 SIL OFL 1.1），
-并把 `--a2v-font` 覆盖为新字体。当前仓库尚未分发字体，本条属于可选增强。
+两者均为 SIL OFL 1.1，许可证原文（`OFL-Inter.txt` / `OFL-NotoSansSC.txt`）随字体
+一同分发，**不走 CDN**：渲染是逐帧截图，CDN 断网或限流时会静默回退到系统字体，
+成片照样出得来，只是换了一副字。`@font-face` 声明 `font-weight: 100 900`
+（可变字体必须写完整区间，否则粗细档会被合成）与 `font-display: block`
+（避免回退字体先渲染的那一帧被拍进成片），字体栈只写在
+`:root[data-a2v-preset="keynote"]` 作用域内。
+
+`@font-face` 天生是全局注册的，所以字体栈一旦写进裸 `:root`，未启用预设的既有视频
+会整体换字体而**不报错**；这条由 `TestPresetScoping` 守住。字体路径也有人守：
+`tests/test_offline_assets.py` 要求资产层不出现外部 URL，且每一处 `url()` 都指向
+仓库内真实存在的文件——指向 CDN 或拼错的路径都会直接测试失败。
+
+体积与许可见 `assets/fonts/README.md`；字体层的取舍理由见
+[发布会级设计语言](keynote-design-system.md)。
 
 ## 排版自查
 

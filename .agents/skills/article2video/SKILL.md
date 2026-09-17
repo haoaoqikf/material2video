@@ -90,7 +90,9 @@ uv run playwright install chromium                   # 首次执行，安装浏�
 
 优先考虑声明式路径：若现有组件足以表达，分镜以 `data.figure.kind` 选择组件，
 可选 `visual.theme`（`dark` / `light`）和场景 `visual.layout`（`center` / `lower`），
-无需新建 `index.html`。运行：
+无需新建 `index.html`。在分镜根级声明 `visual.preset`（目前唯一取值 `"keynote"`）
+即可启用发布会级设计语言：设计语言层、排版引擎与观感闸门一起生效；
+不声明时画面逐帧不变。说明见 [发布会级设计语言](references/keynote-design-system.md)。运行：
 
 ```bash
 uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json --declarative --strict
@@ -235,6 +237,15 @@ uv run python .agents/skills/article2video/scripts/review.py \
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
 评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
 
+体检结论分两串，**分开计数、不要混成一个总分**：
+
+- **C 系列**（废片类）：结构、曲线纪律、挂载点、文案单一真源、安全区与墨迹覆盖率，
+  回答「这是不是废片」；
+- **K 系列**（观感类 K1–K6）：留白预算、强调色占比、同帧字号种类、对齐基线、
+  正文对比度、卡片纪律，回答「这像不像发布会级别的画面」。它只对声明了
+  `visual.preset` 的视频运行，跳过项都会写明原因——**跳过不等于通过**。
+  阈值与设计取舍见 [发布会级设计语言](references/keynote-design-system.md)。
+
 ### 7. 渲染验收
 
 - 渲染脚本最后一行输出帧数、时长、分辨率、实测帧率与文件大小；
@@ -290,10 +301,15 @@ uv run python .agents/skills/article2video/scripts/render.py \
 ## 当前边界
 
 已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收、
-按文章目录推导输出路径。
+按文章目录推导输出路径，以及可选的设计语言预设（分镜声明 `visual.preset: "keynote"`
+后启用令牌层、排版引擎与 K1–K6 观感闸门；未声明时画面逐帧不变）。
 
 尚未实现，不要当作已有能力使用：
 
+- **视觉模型自动评审**：K 系列只给出数值，最终判断仍要人（或视觉模型）按
+  [视觉评审量表](references/visual-review-rubric.md) 完成；
+- **webfont 子集化**：随仓库分发的 Noto Sans SC Variable 约 17MB，尚未做子集化；
+- **按内容自动选预设**：预设必须由分镜显式声明；
 - **背景音乐**：尚未实现；目前仅支持配音音轨；
 - **分镜生成器**：文章到分镜已可按 [文章生成分镜](references/article-to-storyboard.md) 的规范生成，
   但由 AI 工具执行，没有内置的生成器程序、模型调用或批量生成；
@@ -308,3 +324,4 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向
+- [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、`A2V.type` 排版引擎、K1–K6 观感闸门与静默失效清单

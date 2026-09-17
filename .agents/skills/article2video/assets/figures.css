@@ -63,7 +63,7 @@
 
   .section-title {
     font-family: var(--a2v-font-sans);
-    font-size: 36px;
+    font-size: var(--a2v-ink-body, 36px);
     font-weight: 500;
     letter-spacing: 0.14em;
     color: var(--a2v-text-3);
@@ -77,7 +77,7 @@
   }
 
   .title-text {
-    font-size: 124px;
+    font-size: var(--a2v-ink-display, 124px);
     line-height: 1.16;
     font-weight: 700;
     margin: 0;
@@ -146,7 +146,7 @@
   }
 
   .load-text {
-    font-size: 36px;
+    font-size: var(--a2v-ink-body, 36px);
     text-anchor: middle;
     letter-spacing: 0.06em;
     fill: var(--fig-on-ink);
@@ -181,7 +181,7 @@
     position: absolute;
     top: -104px;
     left: -8px;
-    font-size: 220px;
+    font-size: var(--a2v-ink-display, 220px);
     line-height: 1;
     color: var(--a2v-accent);
     opacity: 0;
@@ -208,7 +208,7 @@
    * 也不要让浏览器把分镜里的硬换行再折成第四行。
    */
   .quote-text {
-    font-size: 62px;
+    font-size: var(--a2v-ink-lead, 62px);
     line-height: 1.55;
     font-weight: 600;
     margin: 0;
@@ -268,7 +268,7 @@
 
   .drop-cap {
     font-family: var(--a2v-font-sans);
-    font-size: 32px;
+    font-size: var(--a2v-ink-label, 32px);
     letter-spacing: 0.08em;
     color: var(--a2v-text-3);
     text-align: center;
@@ -378,7 +378,7 @@
     left: 60px;
     width: 124px;
     font-family: var(--a2v-font-sans);
-    font-size: 30px;
+    font-size: var(--a2v-ink-caption, 30px);
     line-height: 1.25;
     /* 标注一律单行：换行会把「无可失去」挤成两截，读起来像两个词 */
     white-space: nowrap;
@@ -445,7 +445,7 @@
 
   .berg-callout-desc {
     font-family: var(--a2v-font-sans);
-    font-size: 30px;
+    font-size: var(--a2v-ink-caption, 30px);
     fill: var(--a2v-text-2);
   }
 
@@ -466,7 +466,7 @@
 
   .berg-surface-note {
     font-family: var(--a2v-font-sans);
-    font-size: 30px;
+    font-size: var(--a2v-ink-caption, 30px);
     fill: var(--fig-water-text);
     letter-spacing: 0.14em;
   }
@@ -508,7 +508,7 @@
   }
 
   .loop-node-text {
-    font-size: 48px;
+    font-size: var(--a2v-ink-value, 48px);
     font-weight: 600;
     text-anchor: middle;
     fill: var(--a2v-text-1);
@@ -532,7 +532,7 @@
 
   .gauge-label {
     font-family: var(--a2v-font-sans);
-    font-size: 32px;
+    font-size: var(--a2v-ink-label, 32px);
     letter-spacing: 0.14em;
     color: var(--a2v-text-3);
     white-space: nowrap;
@@ -592,7 +592,7 @@
 
   .stair-note {
     font-family: var(--a2v-font-sans);
-    font-size: 32px;
+    font-size: var(--a2v-ink-label, 32px);
     text-anchor: middle;
     fill: var(--a2v-text-3);
     letter-spacing: 0.1em;
@@ -603,7 +603,7 @@
   }
 
   .stair-label {
-    font-size: 38px;
+    font-size: var(--a2v-ink-body, 38px);
     font-weight: 600;
     text-anchor: middle;
     fill: var(--a2v-text-1);
@@ -611,7 +611,7 @@
 
   .stair-axis-label {
     font-family: var(--a2v-font-sans);
-    font-size: 30px;
+    font-size: var(--a2v-ink-caption, 30px);
     fill: var(--a2v-text-3);
     letter-spacing: 0.12em;
   }
@@ -643,7 +643,7 @@
     background: var(--a2v-surface), var(--a2v-bg-2);
     box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-1);
     font-family: var(--a2v-font-sans);
-    font-size: 32px;
+    font-size: var(--a2v-ink-label, 32px);
     letter-spacing: 0.08em;
     color: var(--a2v-text-2);
   }
@@ -713,7 +713,7 @@
   }
 
   .ex-node-text {
-    font-size: 46px;
+    font-size: var(--a2v-ink-value, 46px);
     font-weight: 600;
     text-anchor: middle;
     fill: var(--a2v-text-1);
@@ -742,7 +742,7 @@
     margin-top: 10px;
     align-self: flex-start;
     font-family: var(--a2v-font-sans);
-    font-size: 38px;
+    font-size: var(--a2v-ink-body, 38px);
     color: var(--a2v-text-2);
     border-left: 4px solid var(--a2v-accent);
     padding-left: 26px;
@@ -795,7 +795,7 @@
 
   .vs-text {
     font-family: var(--a2v-font);
-    font-size: 46px;
+    font-size: var(--a2v-ink-value, 46px);
     line-height: 1.42;
     text-align: center;
     letter-spacing: 0.01em;
@@ -833,15 +833,15 @@
   .vs-note {
     margin-top: 30px;
     font-family: var(--a2v-font-sans);
-    font-size: 30px;
+    font-size: var(--a2v-ink-caption, 30px);
     letter-spacing: 0.06em;
     color: var(--a2v-text-3);
     text-align: center;
     opacity: 0;
   }
 /* 基础数字幕：数值、标签、解释均由分镜提供。 */
-.fig-number { font-size: 240px; font-weight: 800; line-height: 1; letter-spacing: -0.07em; color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
-.fig-number-label { font-size: 56px; font-weight: 700; color: var(--a2v-text-1); }
+.fig-number { font-size: var(--a2v-ink-display, 240px); font-weight: 800; line-height: 1; letter-spacing: -0.07em; color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
+.fig-number-label { font-size: var(--a2v-ink-lead, 56px); font-weight: 700; color: var(--a2v-text-1); }
 .fig-number-caption { max-width: 760px; font-size: 40px; line-height: 1.4; color: var(--a2v-text-2); }
 
 /*

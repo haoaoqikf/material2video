@@ -184,12 +184,18 @@
     return null;
   }
 
-  /** 不小于给定字号的最近档（向上取档，例如下限 36px 会落到 body 40px） */
+  /**
+   * 不小于给定字号的最近档（向上取档，例如下限 36px 会落到 body 40px）。
+   *
+   * SCALE 按**从大到小**排列，所以两个兜底方向不要写反：
+   * 请求的字号比最大档还大时，返回最大档（下标 0），
+   * 而不是最小档——后者会让 hero 级的标题突然变成角标大小。
+   */
   function levelAtLeast(px) {
     for (var i = SCALE.length - 1; i >= 0; i -= 1) {
       if (SCALE[i].size >= px) return SCALE[i];
     }
-    return SCALE[SCALE.length - 1];
+    return SCALE[0];
   }
 
   function estimateLines(text, fontSize, tracking, availableWidth) {

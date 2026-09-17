@@ -110,3 +110,10 @@ A2V.figures.register(kind, {
 
 新增后要做三件事：在 `figures.js` 里 `register`、在 `figures.css` 里补样式、
 在本文档的表格里加一行，并确认 `tests/test_figures_assets.py` 仍然通过。
+
+启用设计语言预设后，`figures.css` 引用的全部 `--fig-*` 令牌由 `keynote.css` 的
+两套主题（`keynote-dark` / `keynote-light`）提供；缺一个令牌**不会报错**，
+浏览器只会安静地画出透明图形，成片之后才会发现。因此
+`tests/test_keynote_assets.py::TestFigureTokenCoverage` 会逐个核对
+`figures.css` 用到的每个 `--fig-*` 令牌在两套主题里都有定义。默认（未启用预设）时
+这些令牌来自 `theme.css`（深色默认值），预设层不参与。
