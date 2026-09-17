@@ -9,12 +9,15 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import json
 import logging
 import re
 import subprocess
 import time
 import tempfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
@@ -25,7 +28,7 @@ from .audio import mux
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
 from .errors import A2VError
-from .media import Media, media_url
+from .media import Media, asset_fingerprint, media_url
 from .static_server import LocalServer
 from .storyboard import Storyboard
 from .subtitles import srt
@@ -60,6 +63,68 @@ class RenderResult:
             f"总耗时 {self.total_seconds:.1f}s，"
             f"文件 {self.size_bytes / 1024 / 1024:.1f} MiB"
         )
+
+
+def _storyboard_beside(page_file: Path, storyboard_url: str | None) -> Path | None:
+    """成片溯源里要记的分镜文件。先看网页同目录，再看渲染时传入的地址。"""
+    candidate = page_file.parent / "storyboard.json"
+    if not candidate.is_file() and storyboard_url:
+        probe = Path(storyboard_url.split("?")[0].split("#")[0])
+        candidate = probe if probe.is_absolute() else page_file.parent / probe
+    return candidate if candidate.is_file() else None
+
+
+def _write_provenance(
+    output_path: Path,
+    *,
+    page_file: Path,
+    storyboard_url: str | None,
+    frames: int,
+    fps: int,
+    width: int,
+    height: int,
+    capture_format: str,
+    media_fingerprint: str | None,
+) -> Path:
+    """落一份成片溯源，让验收能回答「这个成片是不是旧资产渲的」。
+
+    没有它的时候，改了动效资产而没重渲的成片只能靠人比对文件时间戳发现——
+    实测发生过：两支实际作品的成片比动效重写早了几个小时，仍然带着被修掉的
+    3 帧弹跳，而它们看上去仍然是「上次验收通过」的样子。
+    写失败不回滚成片：成片已经通过验收，溯源是附加信息。
+    """
+    root = assets.project_root(page_file.parent) or page_file.parent
+
+    def relative(path: Path | None) -> str:
+        if path is None:
+            return ""
+        try:
+            return path.resolve().relative_to(root).as_posix()
+        except ValueError:  # 项目根之外：只记文件名，溯源里不写绝对路径
+            return path.name
+
+    storyboard_path = _storyboard_beside(page_file, storyboard_url)
+    extra: dict[str, str] = {}
+    if storyboard_path is not None:
+        extra[relative(storyboard_path)] = hashlib.sha256(storyboard_path.read_bytes()).hexdigest()
+    if media_fingerprint:
+        extra["media.sourceFingerprint"] = media_fingerprint
+    html = page_file.read_text(encoding="utf-8", errors="replace")
+    payload = {
+        "version": 1,
+        "renderedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "page": relative(page_file),
+        "storyboard": relative(storyboard_path),
+        "frames": frames,
+        "fps": fps,
+        "width": width,
+        "height": height,
+        "captureFormat": capture_format,
+        "assets": asset_fingerprint(page_file, html, extra),
+    }
+    target = output_path.with_suffix(".provenance.json")
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target
 
 
 def render(
@@ -144,6 +209,18 @@ def render(
         _grant_access(output_path)
         if media:
             _grant_access(output_path.with_suffix(".srt"))
+
+    _write_provenance(
+        output_path,
+        page_file=Path(page_path),
+        storyboard_url=storyboard_url,
+        frames=total_frames,
+        fps=effective_fps,
+        width=width,
+        height=height,
+        capture_format=capture_format,
+        media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
+    )
 
     return RenderResult(
         output=output_path,
