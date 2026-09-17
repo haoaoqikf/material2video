@@ -11,6 +11,13 @@
 - `README.md`：项目定位、当前状态与文档导航。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/article2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
+- `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
+
+## OpenSpec 工作流
+
+- 涉及新能力或现有行为变化时，先在 `openspec/changes/` 记录提案、规格与任务，再实施并验证；完成后归档，使 `openspec/specs/` 反映已实现行为。
+- OpenSpec 规格描述可验证的产品行为；README 记录当前状态，`docs/PROJECT_PLAN.md` 记录未来路线，article2video Skill 的参考文档记录制作与渲染契约。修改时同步维护相关权威文档。
+- 小型文档修正或不改变行为的维护工作可直接处理，无需为形式创建变更。
 
 ## 修改规则
 
