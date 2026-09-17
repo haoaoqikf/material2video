@@ -7,3 +7,5 @@ context: |
   视频制作流程及渲染、分镜、视觉契约以 .agents/skills/article2video/ 中的文档为准。
   始终使用中文编写面向本项目的变更文档。
   不把规划中的能力写成已实现；变更渲染契约、分镜结构或视觉规范时，同步更新对应参考文档、校验器和示例。
+  实施完成后自动归档：apply 的任务全部完成、验证与提交通过后，直接同步 openspec/specs/ 主规格并把变更移入
+  openspec/changes/archive/，不再单独征求确认；约定细节见 AGENTS.md 的「OpenSpec 工作流」。
