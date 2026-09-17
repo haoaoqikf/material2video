@@ -18,8 +18,20 @@ import pytest
 from a2v import keynote
 
 ASSETS = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "assets"
-KEYNOTE_CSS = (ASSETS / "keynote.css").read_text(encoding="utf-8")
-FIGURES_CSS = (ASSETS / "figures.css").read_text(encoding="utf-8")
+
+
+def _strip_comments(css: str) -> str:
+    """去掉注释再解析。
+
+    注释里为了说明用法会写 `"visual": { "preset": "keynote" }` 这类示例，
+    大括号会打乱配对；不先剥掉，选择器就会解析到注释正文上。
+    """
+    return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+
+_RAW_CSS = (ASSETS / "keynote.css").read_text(encoding="utf-8")
+KEYNOTE_CSS = _strip_comments(_RAW_CSS)
+FIGURES_CSS = _strip_comments((ASSETS / "figures.css").read_text(encoding="utf-8"))
 KEYNOTE_JS = (ASSETS / "typography.js").read_text(encoding="utf-8")
 
 #: 界面上要落的字体资产（包含许可证与说明），名字写错就等于静默回退系统字体
@@ -51,21 +63,25 @@ def _blocks(css: str, selector: str) -> list[str]:
     return blocks
 
 
-def theme_block(selector: str) -> str:
-    """截出某个选择器的声明块。"""
+def theme_block(selector: str, needle: str = "") -> str:
+    """截出某个选择器的声明块；同一选择器出现多次时用 needle 指明是哪一块。"""
     blocks = _blocks(KEYNOTE_CSS, selector)
     assert blocks, f"keynote.css 里找不到选择器 {selector}"
+    if needle:
+        matched = [block for block in blocks if needle in block]
+        assert matched, f"{selector} 的块里没有 {needle}"
+        return matched[0]
     return blocks[0]
 
 
 def root_block() -> str:
-    """`:root` 共享块：两套主题共用的尺度令牌都在这里。"""
+    """`:root` 共享块：默认主题的三个兜底令牌都在这里。"""
     return theme_block(":root")
 
 
 def scale_block() -> str:
     """字号阶与间距阶：两套主题共用，挂在预设选择器上。"""
-    return theme_block(':root[data-a2v-preset="keynote"]')
+    return theme_block(':root[data-a2v-preset="keynote"]', needle="--a2v-size-")
 
 
 def declarations(block: str, prefix: str) -> dict[str, str]:
@@ -246,12 +262,71 @@ class TestFigureTokenCoverage:
         return keynote.contrast_ratio(parsed, keynote.parse_color(background) or (0, 0, 0))
 
 
+class TestPresetScoping:
+    """设计语言层不能泄漏到未启用预设的页面。
+
+    这里守住的是一类「不报错的破坏」：`@font-face` 是全局注册的，`:root` 也是
+    全局的，任何一条漏掉 `[data-a2v-preset="keynote"]` 的令牌规则都会静默改写
+    既有视频的画面——校验通过、渲染通过，只有成片变了。曾经就发生过：
+    字体栈写在裸 `:root` 上，浅色主题的既有示例整体换了字体；
+    深色主题块写成 `:root, :root[data-a2v-preset…]`，把浅色页面整片刷黑。
+    """
+
+    def _selectors(self) -> list[str]:
+        return [match.group(1).strip() for match in re.finditer(r"(?:^|\n)([^\n{}]*)\{", KEYNOTE_CSS)]
+
+    def test_no_bare_root_carries_visual_tokens(self) -> None:
+        bare_root = [text for text in self._selectors() if text == ":root"]
+        assert len(bare_root) <= 1, "keynote.css 里有多个裸 :root 块，容易漏掉作用域"
+        # 唯一的裸 :root 只允许放「默认主题的补充令牌」，且必须是旧值兜底
+        block = theme_block(":root")
+        assert "--a2v-font" not in block, "字体栈写在裸 :root 上会泄漏给所有页面"
+        assert "--a2v-bg-0" not in block, "表面令牌写在裸 :root 上会泄漏给所有页面"
+        assert "--a2v-size-" not in block, "字号阶写在裸 :root 上会泄漏给所有页面"
+        # 允许的三个兜底令牌必须存在，且必须是旧主题的取值
+        assert declarations(block, "a2v-accent-deep")["--a2v-accent-deep"] == "#c2352a"
+        assert declarations(block, "a2v-accent-soft-solid")["--a2v-accent-soft-solid"] == "#7d1c16"
+        assert declarations(block, "a2v-emphasis-fade")["--a2v-emphasis-fade"] == "#23262d"
+
+    def test_theme_block_selector_is_preset_only(self) -> None:
+        for theme in ("dark", "light"):
+            selector = f':root[data-a2v-preset="keynote"][data-a2v-theme="{theme}"]'
+            assert _blocks(KEYNOTE_CSS, selector), f"找不到 {theme} 主题块"
+        # `:root,` 这种并列选择器一旦出现，就等于把主题送给了所有页面
+        assert ":root,\n" not in KEYNOTE_CSS, "主题块与裸 :root 并列，会泄漏给所有页面"
+
+    def test_every_visual_rule_is_scoped(self) -> None:
+        # 允许出现的选择器：预设作用域、字体定义、以及裸 :root
+        # （裸 :root 只准放默认主题的兜底令牌，由下一条测试盯着）
+        allowed = (
+            ":root[data-a2v-preset=",
+            ":root",
+            "[data-a2v-preset=",
+            "@font-face",
+            "@media",
+        )
+        for selector in self._selectors():
+            if not selector.startswith((":", "[", "@", "*")):
+                continue
+            assert selector.startswith(allowed), f"未加预设作用域的规则：{selector}"
+
+    def test_no_selector_mixes_preset_and_root(self) -> None:
+        # `:root, :root[data-a2v-preset…]` 这种并列就是泄漏的来源
+        for selector in self._selectors():
+            assert not ("," in selector and ":root" in selector), f"并列选择器里混了 :root：{selector}"
+
+    def test_font_face_is_global_but_stack_is_not(self) -> None:
+        # 字体文件本身全局注册无害（没人引用就不会下载），但引用必须作用域化
+        assert KEYNOTE_CSS.count("@font-face {") == 2
+        assert "--a2v-font:" not in theme_block(":root")
+
+
 class TestNoRawValues:
     """新增样式里不该出现裸色值与裸字号：它们会绕过令牌与字号阶。"""
 
     def test_no_raw_hex_in_figure_section_of_keynote(self) -> None:
-        # 令牌定义本身允许写色值，用法段不允许
-        usage = KEYNOTE_CSS.split("六、排版工具类")[1]
+        # 令牌定义本身允许写色值，用法段不允许（分节标题写在注释里，用原文）
+        usage = _RAW_CSS.split("六、排版工具类")[1]
         offenders = re.findall(r"#[0-9a-fA-F]{3,8}\b", usage)
         assert not offenders, f"用法段出现裸色值：{offenders}"
 
