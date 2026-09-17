@@ -27,5 +27,5 @@
 
 - [x] 5.1 用启用预设的示例走通「校验 → 预览 → 限帧导出 → 视觉评审」：`validate.py --declarative --strict` 零错误、`review.py` 的 C 系列零错误、溢出判定零错误；以命令输出与 `report.json` 为交付物。（`review.py --declarative`：24 帧抽检 0 错误 0 提醒；K1–K7 共 38 通过 / 7 提醒 / 0 失败 / 11 跳过；`report.json` 的 `errors` 为空。）
 - [x] 5.2 用一段**明显过长**的文案做负例：导出一幕，确认溢出被闸门判错且报出越界方向；以闸门输出为交付物。（350 字副标题 → `[opening] K7 文字溢出：实测 1；硬判定：越出安全区：「title-text」上越界 285.2px`，同时 `[error] opening: 文字溢出：…`、错误数 1、退出码 2。负例夹具建在 `examples/_neg-overflow/` 且已删除，未入库。）
-- [ ] 5.3 运行 `uv run pytest` 与 `openspec validate apply-measured-typesetting --strict`，确认全部通过；以命令输出为交付物。
-- [ ] 5.4 检查暂存内容不含生成媒体、缓存与密钥，提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。
+- [x] 5.3 运行 `uv run pytest` 与 `openspec validate apply-measured-typesetting --strict`，确认全部通过；以命令输出为交付物。（`uv run pytest` 467 项全绿；`openspec validate apply-measured-typesetting --strict` 报 `Change 'apply-measured-typesetting' is valid`，`--specs --strict` 三个主规格全通过。）
+- [x] 5.4 检查暂存内容不含生成媒体、缓存与密钥，提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。（两次提交：`eff7753` 溢出闸门与文档同步、`348cdec` README 与项目规划同步；暂存前逐项检查，无 `outputs/`、无 `.mp4`、无缓存、无负例夹具。负例夹具 `examples/_neg-overflow/` 用完即删。）
