@@ -285,6 +285,11 @@ K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡�
   （而不是「因为没量到而通过」）。
   **仍然开放**：扫描只覆盖参考实现，专属网页（`examples/why-effort-fails`、
   `videos/never-fear-interviews`）里自己写的入场只有抽帧复核，没有轨迹机检。
+  更要紧的是**判据的位置不对**：这套判据现在只在 `tests/test_motion_trajectory.py` 里，
+  只有开发者跑 pytest 才会执行；`review.py`（做视频的人真正会跑的验收命令）
+  里一行动效判据都没有，`report.json` 也没有动效段落。
+  下一步是把它抽成可复用模块并在验收时对**任意**页面+分镜跑一遍，
+  顺带覆盖那两支专属网页。
   另外那次扫描踩过两个坑，都写进了测试注释：在 seek 之前取元素集合会拿到空列表
   （第一版只覆盖第 0 幕却报「全部通过」）；SVG 的 `className` 是
   `SVGAnimatedString`，`String()` 之后所有 SVG 元素塌成同一个 key
