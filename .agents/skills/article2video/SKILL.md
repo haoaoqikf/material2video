@@ -245,7 +245,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
 评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
 
-体检结论分两串，**分开计数、不要混成一个总分**：
+体检结论分三串，**分开计数、不要混成一个总分**：
 
 - **C 系列**（废片类）：结构、曲线纪律、挂载点、文案单一真源、安全区与墨迹覆盖率，
   回答「这是不是废片」；
@@ -256,6 +256,11 @@ uv run python .agents/skills/article2video/scripts/review.py \
   「缩到正文下限仍放不下」，都会并入错误数与退出码，并写明是哪个文本块、
   往哪个方向越了多少像素——而不是只给一个数字。
   阈值与设计取舍见 [发布会级设计语言](references/keynote-design-system.md)。
+- **M 系列**（动效类 M0–M4）：扫描覆盖、入场不弹跳、入场够慢、入场在幕内落地、
+  入场不闪烁，回答「动作对不对」。它对任意作品都跑（不需要 `visual.preset`）：
+  逐帧走完整个片子，量每一个入场元素。它**只提示、不拦人**，不改错误数与退出码——
+  入场快一点是判断问题，不是「画面坏了」。判据与实测值见
+  [视觉规范](references/visual-spec.md) 的动效章节。
 
 ### 7. 渲染验收
 

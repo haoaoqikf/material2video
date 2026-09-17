@@ -28,7 +28,7 @@ from typing import Any
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import catalog, constitution, keynote
+from . import catalog, constitution, keynote, motion
 from .storyboard import Report
 
 #: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
@@ -646,10 +646,14 @@ def run_inspect(
         )
 
     contact_sheet(shots, report_dir / "contact-sheet.png")
+    # 动效量测放在抽帧之后：它要逐帧把页面再走一遍，量的是入场轨迹，
+    # 与上面「抽若干帧看画面」互补——抽帧看不出「入场在幕内来不及落地」。
+    motion_result = motion.audit(page, scenes)
     return report, {
         "contract": probes,
         "frames": metrics,
         "frameCount": len(shots),
         "usedComponentLibrary": probing,
         "keynote": keynote_result.to_json(),
+        "motion": motion_result.to_json(),
     }

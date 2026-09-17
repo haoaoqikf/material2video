@@ -48,6 +48,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `tests/test_motion_trajectory.py` 会逐帧量真实轨迹并覆盖参考实现的每一个入场元素
   （90 个：落地距幕尾 ≥ 12 帧、不透明度不回退；其中有位移的 9 个还要首帧 ≤ 25%、
   到 0.9 ≥ 6 帧），并带一个「把入场加速 8 倍就必须报错」的反例；
+  量测实现只有一份（`scripts/a2v/motion.py`），验收命令 `review.py` 会对
+  **任意**页面与分镜给出同一套结论（`report.json` 的 `motion` 段，终端 M0–M4 一栏），
+  动效结论与「不是废片」类错误分开计、不改退出码；
   `tests/test_vendor_spring.py` 对 vendored 求解器核对解析解自身的性质；
 - 开渲前静态扫描 `animation:` / `transition:` / `@keyframes` 与
   `Date.now(` / `performance.now(` / `Math.random(` 并给出警告，
@@ -254,6 +257,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
   只写在 `timeline.js` 的 `A2V.motion` 配方表里，组件用 `api.motion.enter(...)`、
   `api.motion.spring(api.since(f, start), 'lively')` 这样的名字调用，不写裸数字；
   `tests/test_motion_trajectory.py` 会按帧量真实轨迹，防止配方改着改着变成弹跳；
+  验收命令 `review.py` 对任意作品都会跑同一套量测（终端 M0–M4 一栏），
+  但它只提示、不拦人——「入场快了一点」不是「画面坏了」；
 - **产物归属**：一篇文章一个目录，产物只写进它自己的 `outputs/<slug>/`；
   推导不出归属时脚本报错并要求显式指定路径，不猜测；
 - **性能取舍**：中间帧默认用 JPEG q98 采集（1080 × 1920 实测约 66ms/帧，PNG 约 225ms），

@@ -533,6 +533,10 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     if keynote is not None:
         lines.extend(_keynote_lines(keynote))
 
+    motion_result = payload.get("motion")
+    if motion_result is not None:
+        lines.extend(_motion_lines(motion_result))
+
     lines.append("接下来需要人（或视觉模型）看的：见 references/visual-review-rubric.md")
     return "\n".join(lines)
 
@@ -580,6 +584,31 @@ def _keynote_lines(keynote: dict) -> list[str]:
             # 只给一个数字，人无法据此改分镜。
             if gate.get("status") == "fail" and gate.get("detail"):
                 shown += f"；{gate.get('detail')}"
+        lines.append(f"  {scope}{gate.get('id')} {gate.get('title')}：{shown}")
+    return lines
+
+
+def _motion_lines(motion_result: dict) -> list[str]:
+    """动效闸门摘要 M0–M4。
+
+    与「不是废片」类检查分开列，也不并入观感闸门：那两栏回答「画面对不对」，
+    这一栏回答「动作对不对」。
+    """
+    if not motion_result.get("enabled"):
+        return [f"动效量测 M0–M4：不适用——{motion_result.get('reason') or '未启用逐帧量测'}"]
+    summary = motion_result.get("summary") or {}
+    lines = [
+        "动效量测 M0–M4（逐帧扫过全片；只提示、不拦人）："
+        f"{summary.get('pass', 0)} 条通过 / {summary.get('warn', 0)} 条提醒 / "
+        f"{summary.get('fail', 0)} 条失败 / {summary.get('skipped', 0)} 条跳过"
+    ]
+    for gate in motion_result.get("gates") or []:
+        if gate.get("status") == "pass":
+            scope = f"[{gate.get('scene')}] " if gate.get("scene") else ""
+            lines.append(f"  {scope}{gate.get('id')} {gate.get('title')}：{gate.get('value')}")
+            continue
+        scope = f"[{gate.get('scene')}] " if gate.get("scene") else ""
+        shown = gate.get("detail") or gate.get("value") or "无法实测"
         lines.append(f"  {scope}{gate.get('id')} {gate.get('title')}：{shown}")
     return lines
 

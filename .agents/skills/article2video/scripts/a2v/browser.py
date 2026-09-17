@@ -78,9 +78,11 @@ class AnimatedPage:
             return self._page.screenshot(type="png")
         return self._page.screenshot(type="jpeg", quality=quality)
 
-    def evaluate(self, expression: str) -> Any:
-        """在页面上下文中求值，供渲染前的布局体检使用。"""
-        return self._page.evaluate(expression)
+    def evaluate(self, expression: str, arg: Any = None) -> Any:
+        """在页面上下文中求值，供渲染前的布局体检与动效量测使用。"""
+        if arg is None:
+            return self._page.evaluate(expression)
+        return self._page.evaluate(expression, arg)
 
     def close(self) -> None:
         """按页面 → 浏览器 → 驱动的顺序释放。
