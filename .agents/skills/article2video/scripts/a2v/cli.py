@@ -134,12 +134,18 @@ def _build_review_parser() -> argparse.ArgumentParser:
         prog="review.py",
         description="视觉体检：抽帧量测 + 组件契约探针 + 设计宪法静态检查，并给出人工评审清单",
     )
-    parser.add_argument("--page", required=True, help="动画网页路径或 http(s) URL")
+    parser.add_argument(
+        "--page",
+        help="动画网页路径或 http(s) URL；省略时用共享页面读取 --storyboard",
+    )
     parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定场景与声明")
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
     parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
     parser.add_argument("--serve-root", help="本地网页的静态根目录，默认取项目根")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
+    parser.add_argument(
+        "--declarative", action="store_true", help="按共享页面的受控字段规则体检"
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -223,6 +229,19 @@ def _shared_page(storyboard: str | Path) -> Path:
 def _storyboard_url(storyboard: str | Path) -> str:
     article = paths_mod.for_storyboard(storyboard)
     return "/" + Path(storyboard).resolve().relative_to(article.root).as_posix()
+
+
+def _with_storyboard_query(url: str, storyboard: str | Path) -> str:
+    """给共享页面 URL 补上 `a2v-storyboard` 查询参数。
+
+    共享页面（`assets/declarative.html`）从该参数指定的路径加载分镜，渲染入口在
+    起服务前就拼好了它；体检走的是通用的「本地页面 → URL」转换，因此在这里补上，
+    否则页面会因缺少参数直接报错，探针拿不到任何场景。
+    """
+    from urllib.parse import quote
+
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}a2v-storyboard={quote(_storyboard_url(storyboard), safe='')}"
 
 
 def _resolve_render_output(
@@ -396,7 +415,15 @@ def main_review(argv: list[str] | None = None) -> int:
     from .media import load_media, media_url
     from .render import _default_serve_root, _resolve_page_url
 
-    model, report = sb.load(args.storyboard)
+    declarative = args.page is None
+    if declarative:
+        try:
+            args.page = str(_shared_page(args.storyboard))
+        except A2VError as exc:
+            logging.error("声明式体检需要有效的 --storyboard：%s", exc)
+            return _EXIT_INVALID_INPUT
+
+    model, report = sb.load(args.storyboard, declarative=declarative)
     if model is None or not report.ok:
         for issue in report.issues:
             logging.error("%s", issue.format())
@@ -411,15 +438,24 @@ def main_review(argv: list[str] | None = None) -> int:
         return _EXIT_FAILED
 
     page_file = Path(args.page)
+    if not declarative and not page_file.is_file():
+        logging.error(
+            "网页文件不存在: %s；共享页面请改用 --declarative（省略 --page）", page_file
+        )
+        return _EXIT_INVALID_INPUT
     out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args.page, args.storyboard)
     # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭
     combined = Report()
-    for issue in inspect_mod.check_page_with_storyboard(page_file, scenes).issues:
+    for issue in inspect_mod.check_page_with_storyboard(
+        page_file, scenes, runtime_scenes=declarative
+    ).issues:
         combined.add(issue.level, issue.path, issue.message)
 
     try:
         with contextlib.ExitStack() as stack:
             url = stack.enter_context(_resolve_page_url(page_file, args.serve_root))
+            if declarative:
+                url = _with_storyboard_query(url, args.storyboard)
             if media:
                 media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
                 url = media_url(url, media_server.base_url, media)
@@ -455,8 +491,15 @@ def main_review(argv: list[str] | None = None) -> int:
 
 
 def _default_review_dir(page: str | Path, storyboard: str | Path) -> Path:
-    """体检产物目录：`outputs/<slug>/inspect`，与渲染产物放在一起。"""
-    article = paths_mod.for_page(page) if not str(page).startswith("http") else paths_mod.for_storyboard(storyboard)
+    """体检产物目录：`outputs/<slug>/inspect`，与渲染产物放在一起。
+
+    专属网页优先按网页归属；共享页面不在 `videos/`、`examples/` 下，
+    此时回退到分镜归属，与渲染入口的推导保持一致。
+    """
+    try:
+        article = paths_mod.for_page(page)
+    except A2VError:
+        article = paths_mod.for_storyboard(storyboard)
     target = article.output_dir / "inspect"
     logging.info("未指定 --out-dir，体检产物写入 %s", target)
     return target

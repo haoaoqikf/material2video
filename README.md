@@ -47,6 +47,11 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   范围覆盖网页引用的本地样式表与脚本（含 skill 的共享资产），
   把「预览正常、导出闪烁」提前暴露；
 - 本地 HTTP 预览（网页需 fetch 分镜 JSON，`file://` 下会被同源策略拒绝）；
+- **文章生成分镜**：从文章产出分镜的步骤、拆幕与时长规则、内容与排版约束、组件目录不足时
+  的新增组件流程，以及生成后必须走完的校验闭环，统一写在
+  [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)；
+  由 AI 工具按规范执行，仓库不含生成器程序。`review.py` 支持声明式入口
+  （`--declarative --storyboard <分镜>`），共享页面也能跑组件契约探针；
 - Playwright 逐帧截图 + ffmpeg 管道编码，输出 1080 × 1920 / 30fps / H.264 `yuv420p` MP4，
   渲染后自动解码验收帧数与分辨率；
 - 码流按「各播放器都能播」的参数固定：画面 `yuv420p(tv, bt709)`、配音 AAC-LC
@@ -69,8 +74,10 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
 
-尚未实现、请勿当作已有能力使用：**背景音乐**、
-**AI 自动分镜**（分镜目前由人或 AI 工具直接编写）、**平台发布**、批量渲染与成片历史版本。
+尚未实现、请勿当作已有能力使用：**分镜生成器程序**（生成由 AI 工具按
+[规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
+模型调用或批量生成）、**背景音乐**、
+**平台发布**、批量渲染与成片历史版本。
 
 ## 快速开始
 
@@ -215,6 +222,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [声明式示例](examples/declarative-number/storyboard.json)：无需专属网页的分镜与共享页面入口
 
 - [项目规划](docs/PROJECT_PLAN.md)：处理链路、组件清单与阶段路线（未来方向的权威来源）
+- [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)：从文章产出分镜的步骤、约束与校验闭环
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则
 - [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向

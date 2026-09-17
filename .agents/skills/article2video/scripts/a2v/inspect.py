@@ -243,10 +243,16 @@ def write_report(report: Report, extra: dict[str, Any], target: Path) -> dict[st
     return payload
 
 
-def check_page_with_storyboard(page_path: Path, scenes: list[dict[str, Any]]) -> Report:
-    """设计宪法的静态部分，并把分镜文案一起用于「单一真源」检查。"""
+def check_page_with_storyboard(
+    page_path: Path, scenes: list[dict[str, Any]], *, runtime_scenes: bool = False
+) -> Report:
+    """设计宪法的静态部分，并把分镜文案一起用于「单一真源」检查。
+
+    `runtime_scenes` 表示这是共享页面，场景由它在运行时按分镜生成，
+    依赖源码的检查项交给上面的运行时探针。
+    """
     texts = constitution.storyboard_texts(scenes)
-    return constitution.check_page(page_path, texts)
+    return constitution.check_page(page_path, texts, runtime_scenes=runtime_scenes)
 
 
 def scene_windows(scenes: list[dict[str, Any]]) -> list[tuple[str, int, int]]:

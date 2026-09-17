@@ -53,13 +53,21 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def check_structure(page_text: str, path: str, report: Report) -> None:
-    """C1 三层：舞台 / 背景层 / 场景层都必须存在，且场景在舞台之内。"""
+def check_structure(
+    page_text: str, path: str, report: Report, *, runtime_scenes: bool = False
+) -> None:
+    """C1 三层：舞台 / 背景层 / 场景层都必须存在，且场景在舞台之内。
+
+    `runtime_scenes` 用于共享页面：场景层由它按分镜在运行时创建，源文件里本来就没有
+    `[data-a2v-scene]`，因此跳过这一项，而不是把「按分镜生成」误报成「缺少场景」。
+    """
     body = _strip_comments(page_text, "html")
     if "data-a2v-stage" not in body:
         report.error(f"{path}#C1", "页面缺少 [data-a2v-stage]：没有舞台就没有统一的层级与安全区")
     if not re.search(r"class=\"[^\"]*\b(?:stage-bg|a2v-bg-[\w-]+)", body):
         report.warn(f"{path}#C1", "页面没有背景层：高级感来自「背景 / 表面 / 焦点」三层，缺一层会显得平")
+    if runtime_scenes:
+        return
     if "data-a2v-scene" not in body:
         report.error(f"{path}#C1", "页面没有任何 [data-a2v-scene]：运行时按场景切帧，缺了就无法逐帧渲染")
 
@@ -155,8 +163,19 @@ def check_safe_area(styles: list[tuple[str, str]], page_text: str, report: Repor
         )
 
 
-def check_page(page_path: str | Path, storyboard_texts: list[str] | None = None) -> Report:
-    """对网页做一遍静态体检。storyboard_texts 提供时同时检查文案单一真源。"""
+def check_page(
+    page_path: str | Path,
+    storyboard_texts: list[str] | None = None,
+    *,
+    runtime_scenes: bool = False,
+) -> Report:
+    """对网页做一遍静态体检。storyboard_texts 提供时同时检查文案单一真源。
+
+    `runtime_scenes` 表示网页在运行时按分镜生成场景（共享页面）。这类页面的
+    场景层、组件挂载点和画面文案都不在源文件里，依赖源码的三项检查（C1 场景层、
+    C4 挂载点、C5 文案单一真源）在这里没有意义，跳过并把结论交给运行时探针；
+    曲线纪律、模糊与安全区仍然照常检查。
+    """
     report = Report()
     page = Path(str(page_path))
     if not page.is_file():
@@ -174,12 +193,13 @@ def check_page(page_path: str | Path, storyboard_texts: list[str] | None = None)
         (scripts if candidate.suffix == ".js" else styles).append((reference, text))
 
     scene_count = count_elements(_strip_comments(html, "html"), "data-a2v-scene")
-    check_structure(html, page.name, report)
+    check_structure(html, page.name, report, runtime_scenes=runtime_scenes)
     check_curves(scripts, report)
     check_blur(styles, report)
-    check_mounts(html, ["scene"] * scene_count, report, page.name)
+    if not runtime_scenes:
+        check_mounts(html, ["scene"] * scene_count, report, page.name)
     check_safe_area(styles, html, report, page.name)
-    if storyboard_texts:
+    if storyboard_texts and not runtime_scenes:
         check_single_source(html, storyboard_texts, report, page.name)
     return report
 

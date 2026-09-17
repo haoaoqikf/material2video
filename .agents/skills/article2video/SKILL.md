@@ -71,15 +71,20 @@ uv run playwright install chromium                   # 首次执行，安装浏�
 
 ### 1. 文章 → 分镜 JSON
 
-读文章，按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆成若干场景，
-写入 `videos/<slug>/storyboard.json`。字段与校验规则见
+**按规范生成**：读 [文章生成分镜](references/article-to-storyboard.md)，它规定这一步的输入输出、
+拆幕与时长规则、内容与排版约束、组件不足时的处理，以及生成后必须走完的校验闭环。
+产物是 `videos/<slug>/storyboard.json`，字段与校验规则见
 [分镜脚本结构](references/storyboard-schema.md)。
 
-要点：
+这一步由 AI 工具按规范执行；项目不含生成器程序，也不调用模型服务。
 
-- 场景时长由**口播所需时间**决定，不要先定时长再塞文案（30fps 下 1 秒 = 30 帧）；
+要点（完整清单见规范）：
+
+- 先定位文章的核心判断，再按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆幕；
+- 场景时长由**口播所需时间**反推（30fps 下 1 秒 = 30 帧，中文口播每秒约 4–5 字）；
 - 长句拆成多个场景，而不是缩小字号；
-- 不虚构论据或数据；无来源的数值必须在画面中标明为示意。
+- 不虚构论据或数据；无来源的数值必须在画面中标明为示意；
+- 生成后先过 `validate.py --declarative --strict --json`，按字段路径修正到通过再交付。
 
 ### 2. 分镜 → 动画网页
 
@@ -207,6 +212,16 @@ uv run python .agents/skills/article2video/scripts/review.py \
   --media outputs/<slug>/media/media.json
 ```
 
+声明式视频（没有专属网页）省掉 `--page`，改用 `--declarative`：
+
+```bash
+uv run python .agents/skills/article2video/scripts/review.py \
+  --declarative --storyboard videos/<slug>/storyboard.json
+```
+
+此时场景由共享页面在运行时生成，依赖源码的三项静态检查（场景层、挂载点、文案单一真源）
+会被跳过，改由运行时探针给出结论；产物仍写入 `outputs/<slug>/inspect/`。
+
 它一次跑完三件事，产物在 `outputs/<slug>/inspect/`：
 
 1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前挂载点里每个元素的实际文本，
@@ -280,12 +295,14 @@ uv run python .agents/skills/article2video/scripts/render.py \
 尚未实现，不要当作已有能力使用：
 
 - **背景音乐**：尚未实现；目前仅支持配音音轨；
-- **AI 自动分镜**：文章到分镜目前由人（或 AI 工具）直接编写，没有内置的生成服务；
+- **分镜生成器**：文章到分镜已可按 [文章生成分镜](references/article-to-storyboard.md) 的规范生成，
+  但由 AI 工具执行，没有内置的生成器程序、模型调用或批量生成；
 - **发布**：没有对接抖音或任何平台的上传接口；
 - **批处理与历史版本**：没有多篇批量渲染，也不保留成片历史版本。
 
 ## 参考文档
 
+- [文章生成分镜](references/article-to-storyboard.md)：从文章产出分镜的步骤、约束、校验闭环与组件缺口处理
 - [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
