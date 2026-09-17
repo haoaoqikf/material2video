@@ -1,0 +1,31 @@
+## 1. 让取档不再破坏标记
+
+- [ ] 1.1 改 `assets/typography.js` 的 `applyFit`：均衡断行时按文本节点重排，保留 `.key`、`.key-underline` 等元素子节点结构；结构无法安全映射时退回「只取字号、不改文案」，并在结果里记 `balanced: false`；以「取档后去掉换行符的字符序列与取档前完全相同」为验证。
+- [ ] 1.2 为 `applyFit` 补退化路径单测：空串、纯空白、单字符、含 `\n` 硬换行、含强调元素的混合文案；以 `uv run pytest tests/test_typography.py` 全绿为证。
+- [ ] 1.3 加「同一帧重复取档不产生写入」的测试：对同一元素连续取档两次，第二次不得改动 `style` 与 `textContent`；以测试通过为证。
+
+## 2. 组件接入引擎
+
+- [ ] 2.1 为承载任意文案的组件文本元素声明 `data-a2v-fit="<档位>"`（至少 `.quote-text`、`.title-text`、`.closing-text`、列表与时间线的条目文字、对比场景的左右文字），档位取该元素在预设下的现有字号档；以「声明前后同一文案的取档结果等于样式表字号」为验证。
+- [ ] 2.2 用 `tests/test_keynote_layout.py` 的实测探针加一条一致性测试：在真实页面里取每个声明了档位的元素，断言引擎取到的字号等于其预设计算字号，且取档只发生在预设页面；以测试通过为证。
+- [ ] 2.3 逐字节回归：`examples/keynote-baseline`（预设页面）与 `examples/declarative-number`（非预设页面）各做一次限帧 PNG 导出，SHA256 必须与接线前相同；以两次哈希比对为证。
+
+## 3. 溢出闸门
+
+- [ ] 3.1 扩展 `scripts/a2v/inspect.py`：记录每个正文级文本块的墨迹边界（左右上下）与容器边界，供溢出判定使用；以产物 `report.json` 中出现该字段为证。
+- [ ] 3.2 在 `scripts/a2v/keynote.py` 增加溢出判定：正文级文本块墨迹越出安全区时按**错误**报告，给出文案、越界方向与实测像素值；引擎报告 `fits: false` 时报「需要拆场景」；以构造的越界合成帧报错、正常示例不报错为证。
+- [ ] 3.3 在 `scripts/a2v/constitution.py` 与 `scripts/review.py` 中把溢出判定与既有的「可放行提醒」区分开报告，终端与 `report.json` 都要能看出它是硬判定；以 `review.py --declarative` 在 `examples/keynote-baseline` 上的输出为证。
+- [ ] 3.4 为溢出闸门补测试：构造文字越出安全区的合成画面，断言报错条目包含越界方向与实测值；以 `uv run pytest tests/test_review.py` 全绿为证。
+
+## 4. 文档同步
+
+- [ ] 4.1 更新 `references/keynote-design-system.md`：把排版引擎一节改成「引擎由组件声明接入」，列出哪些元素必须声明档位，并写清「未声明的元素不会被改动」。
+- [ ] 4.2 更新 `references/visual-spec.md` 与 `references/design-constitution.md`：补上溢出闸门及其硬判定性质，并说明它与「观感提醒」的分工。
+- [ ] 4.3 更新 `SKILL.md`：在制作流程里写明「新增组件文本元素时要声明档位」，把这一次修掉的三处失效（引擎空转、取档抹掉强调、引擎与 CSS 双真源）写进静默失效清单。
+
+## 5. 验收
+
+- [ ] 5.1 用启用预设的示例走通「校验 → 预览 → 限帧导出 → 视觉评审」：`validate.py --declarative --strict` 零错误、`review.py` 的 C 系列零错误、溢出判定零错误；以命令输出与 `report.json` 为交付物。
+- [ ] 5.2 用一段**明显过长**的文案做负例：导出一幕，确认溢出被闸门判错且报出越界方向；以闸门输出为交付物。
+- [ ] 5.3 运行 `uv run pytest` 与 `openspec validate apply-measured-typesetting --strict`，确认全部通过；以命令输出为交付物。
+- [ ] 5.4 检查暂存内容不含生成媒体、缓存与密钥，提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。
