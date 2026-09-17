@@ -65,8 +65,16 @@ class RenderResult:
         )
 
 
-def _storyboard_beside(page_file: Path, storyboard_url: str | None) -> Path | None:
-    """成片溯源里要记的分镜文件。先看网页同目录，再看渲染时传入的地址。"""
+def _storyboard_beside(
+    page_file: Path, storyboard_url: str | None, origin: str | Path | None = None
+) -> Path | None:
+    """成片溯源里要记的分镜文件。
+
+    `origin` 是渲染入口拿到的分镜路径（共享页面的分镜由命令行传入，
+    网页旁边并没有 storyboard.json）；没有时才退回按地址猜。
+    """
+    if origin is not None and Path(origin).is_file():
+        return Path(origin)
     candidate = page_file.parent / "storyboard.json"
     if not candidate.is_file() and storyboard_url:
         probe = Path(storyboard_url.split("?")[0].split("#")[0])
@@ -79,6 +87,7 @@ def _write_provenance(
     *,
     page_file: Path,
     storyboard_url: str | None,
+    storyboard_origin: str | Path | None = None,
     frames: int,
     fps: int,
     width: int,
@@ -103,7 +112,7 @@ def _write_provenance(
         except ValueError:  # 项目根之外：只记文件名，溯源里不写绝对路径
             return path.name
 
-    storyboard_path = _storyboard_beside(page_file, storyboard_url)
+    storyboard_path = _storyboard_beside(page_file, storyboard_url, storyboard_origin)
     extra: dict[str, str] = {}
     if storyboard_path is not None:
         extra[relative(storyboard_path)] = hashlib.sha256(storyboard_path.read_bytes()).hexdigest()
@@ -141,6 +150,7 @@ def render(
     capture_format: str = "jpeg",
     media: Media | None = None,
     storyboard_url: str | None = None,
+    storyboard_origin: str | Path | None = None,
 ) -> RenderResult:
     """把动画网页逐帧渲染为 MP4。
 
@@ -214,6 +224,7 @@ def render(
         output_path,
         page_file=Path(page_path),
         storyboard_url=storyboard_url,
+        storyboard_origin=storyboard_origin,
         frames=total_frames,
         fps=effective_fps,
         width=width,

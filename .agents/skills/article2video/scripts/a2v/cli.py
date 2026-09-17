@@ -188,6 +188,7 @@ def main_render(argv: list[str] | None = None) -> int:
             capture_format=args.capture_format,
             media=media,
             storyboard_url=source_url,
+            storyboard_origin=args.storyboard,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
