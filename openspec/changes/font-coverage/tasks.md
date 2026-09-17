@@ -20,6 +20,6 @@
 
 ## 4. 文档与验收
 
-- [ ] 4.1 `render-contract.md` 或制作流程文档写明这条机检存在与扫描范围。
-- [ ] 4.2 `PROJECT_PLAN.md` 把 webfont 子集化的前置条件标记为已具备。
-- [ ] 4.3 全量 `uv run pytest` 通过；三支作品体检无缺字。
+- [x] 4.1 `render-contract.md` 或制作流程文档写明这条机检存在与扫描范围。
+- [x] 4.2 `PROJECT_PLAN.md` 把 webfont 子集化的前置条件标记为已具备。
+- [x] 4.3 全量 `uv run pytest` 通过；三支作品体检无缺字。
