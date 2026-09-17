@@ -24,11 +24,18 @@ TIMELINE = ASSETS / "timeline.js"
 
 _HARNESS = r"""
 const fs = require('fs');
+const path = require('path');
 const vm = require('vm');
 
 const sandbox = { console: console };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
+// 弹簧求解器是 timeline.js 的依赖，必须先加载——缺了它运行时取曲线时会直接抛错
+vm.runInContext(
+  fs.readFileSync(path.join(path.dirname(process.argv[2]), 'vendor', 'spring.js'), 'utf8'),
+  sandbox,
+  { filename: 'vendor/spring.js' }
+);
 vm.runInContext(fs.readFileSync(process.argv[2], 'utf8'), sandbox, { filename: 'timeline.js' });
 
 const A2V = sandbox.A2V;
@@ -48,11 +55,12 @@ function stateOf(motionName, localFrame, duration) {
   };
 }
 
-const out = { recipes: {}, springs: {}, surface: {}, figure: {}, tempo: {}, beat: {}, flat: {} };
+const out = { recipes: {}, springs: {}, surface: {}, figure: {}, tempo: {}, beat: {}, flat: {}, since: {} };
 
 const s = stateOf('normal', 30, 240);
 
-// p=0.25 的签名最有信息量：p=0 与 p=1 是两端，看不出中段的曲线形状
+// 入场签名取三个时刻：起点、中段、已收敛。
+// 中段最有信息量：两端看不出曲线的形状。
 function sample(target, fn, p) {
   const node = el();
   fn(s, node, p, {});
@@ -60,21 +68,27 @@ function sample(target, fn, p) {
   target.opacity = node.style.opacity === undefined ? node.attrs.opacity : node.style.opacity;
 }
 
-sample((out.surface.p25 = {}), motion.enter, 0.25);
-sample((out.surface.p0 = {}), motion.enter, 0);
-sample((out.surface.p1 = {}), motion.enter, 1);
-sample((out.figure.p25 = {}), motion.enterSvg, 0.25);
-sample((out.figure.p0 = {}), motion.enterSvg, 0);
-sample((out.figure.p1 = {}), motion.enterSvg, 1);
+sample((out.surface.at0 = {}), motion.enter, 0);
+sample((out.surface.mid = {}), motion.enter, 0.15);
+sample((out.surface.settled = {}), motion.enter, 2);
+sample((out.figure.at0 = {}), motion.enterSvg, 0);
+sample((out.figure.mid = {}), motion.enterSvg, 0.15);
+sample((out.figure.settled = {}), motion.enterSvg, 2);
 
 out.recipes = motion.recipes();
 out.springs = motion.springs();
 
-// 具名弹性：与手写同样的阻尼/频率必须完全一致
+// 具名弹性：与手写同样的物理参数必须完全一致
 out.springs.sameAsLiteral =
-  motion.spring(0.37, 'lively') === sandbox.A2V.spring(0.37, { damping: 5.5, frequency: 1.3 });
+  motion.spring(0.37, 'lively') === sandbox.A2V.spring(0.37, { response: 0.4, dampingFraction: 0.62 });
 out.springs.unknownFallsBackToFirm =
-  motion.spring(0.37, '不存在') === sandbox.A2V.spring(0.37, { damping: 6, frequency: 1.2 });
+  motion.spring(0.37, '不存在') === sandbox.A2V.spring(0.37, { response: 0.44, dampingFraction: 0.9 });
+
+// 秒数换算是弹簧的时间基准：帧号按 fps 换成秒，起点之前夹到 0
+out.since.atStart = A2V.since(30, 30);
+out.since.oneFrameAt30 = A2V.since(31, 30);
+out.since.beforeStart = A2V.since(20, 30);
+out.since.oneSecondAt30 = A2V.since(60, 30);
 
 ['calm', 'normal', 'impact', 'unknown'].forEach(function (name) {
   out.tempo[name] = motion.tempo(name);
@@ -117,8 +131,8 @@ class TestRecipes:
     def test_two_recipes_with_the_same_curve(self, runtime):
         """两档配方只差「移动多远、呼吸多快」，弹性必须一致，否则同屏两种手感。"""
         surface, figure = runtime["recipes"]["surface"], runtime["recipes"]["figure"]
-        assert surface["springDamping"] == figure["springDamping"]
-        assert surface["springFrequency"] == figure["springFrequency"]
+        assert surface["springResponse"] == figure["springResponse"]
+        assert surface["springDampingFraction"] == figure["springDampingFraction"]
         assert surface["settleAt"] == figure["settleAt"]
         assert surface["settleFrames"] == figure["settleFrames"]
 
@@ -141,42 +155,57 @@ class TestEntrances:
 
     def test_starts_fully_shifted_and_transparent(self, runtime):
         for side, distance in (("surface", 44), ("figure", 40)):
-            sample = runtime[side]["p0"]
+            sample = runtime[side]["at0"]
             assert float(sample["opacity"]) == 0
             assert f"{distance}.00" in sample["transform"].replace("-", "")
 
-    def test_ends_settled_and_opaque(self, runtime):
+    def test_settles_opaque_and_in_place(self, runtime):
         for side in ("surface", "figure"):
-            assert float(runtime[side]["p1"]["opacity"]) == 1
-            assert "scale(1.0000)" in runtime[side]["p1"]["transform"]
+            assert float(runtime[side]["settled"]["opacity"]) == 1
+            assert "scale(1.0000)" in runtime[side]["settled"]["transform"]
 
     def test_midway_signature(self, runtime):
-        """中段签名：曲线形状、默认距离、呼吸相位任何一处变了都会在这里现形。"""
-        assert runtime["surface"]["p25"]["transform"] == "translate3d(0.00px,6.38px,0) scale(1.0000)"
-        assert float(runtime["surface"]["p25"]["opacity"]) == pytest.approx(0.8551, abs=1e-3)
-        assert runtime["figure"]["p25"]["transform"] == "translate(0.00 5.80) scale(1.0000)"
+        """中段签名：曲线形状、默认距离、呼吸相位任何一处变了都会在这里现形。
+
+        0.15 秒（30fps 的第 4.5 帧）上进度是 0.672：一半多一点的位移已经走完。
+        改回「喂缓动过的进度」会让这个数跳到 0.85 以上——那正是弹跳的来源。
+        """
+        assert runtime["surface"]["mid"]["transform"] == "translate3d(0.00px,14.43px,0) scale(1.0000)"
+        assert float(runtime["surface"]["mid"]["opacity"]) == pytest.approx(0.6720, abs=1e-3)
+        assert runtime["figure"]["mid"]["transform"] == "translate(0.00 13.12) scale(1.0000)"
 
     def test_the_two_entrances_differ_only_by_recipe(self, runtime):
-        """同一进度下透明度相同：差别只在默认距离与呼吸周期，不在曲线。"""
-        assert runtime["surface"]["p25"]["opacity"] == runtime["figure"]["p25"]["opacity"]
+        """同一时刻透明度相同：差别只在默认距离与呼吸周期，不在曲线。"""
+        assert runtime["surface"]["mid"]["opacity"] == runtime["figure"]["mid"]["opacity"]
+
+
+class TestSince:
+    """秒数是弹簧的时间基准，换算错了整条曲线的时间尺度就错了。"""
+
+    def test_converts_frames_to_seconds(self, runtime):
+        assert runtime["since"]["atStart"] == 0
+        assert runtime["since"]["oneSecondAt30"] == pytest.approx(1.0)
+        assert runtime["since"]["oneFrameAt30"] == pytest.approx(1 / 30)
+
+    def test_clamps_before_the_start(self, runtime):
+        # 起点之前必须是 0，否则弹簧会拿到负数时间（负半周期会先往回弹一下）
+        assert runtime["since"]["beforeStart"] == 0
 
 
 class TestSprings:
     """弹性预设只是给数字起名，取值必须与手写完全一致。"""
 
-    def test_all_presets_are_named_and_ordered(self, runtime):
+    NAMED = ("enter", "firm", "lively", "snap")
+
+    def test_all_presets_are_named_and_physically_ordered(self, runtime):
         springs = runtime["springs"]
-        assert set(springs) == {"enter", "firm", "lively", "snap"} or set(springs) == {
-            "enter",
-            "firm",
-            "lively",
-            "snap",
-            "sameAsLiteral",
-            "unknownFallsBackToFirm",
-        }
-        # 阻尼越小回弹越明显：snap 最干脆，lively 最弹
-        damping = {name: value["damping"] for name, value in springs.items() if name in {"enter", "firm", "lively", "snap"}}
-        assert damping["snap"] <= damping["lively"] <= damping["firm"]
+        assert set(springs) == set(self.NAMED) | {"sameAsLiteral", "unknownFallsBackToFirm"}
+        named = {name: springs[name] for name in self.NAMED}
+        # 阻尼比只决定过冲：越小越弹。lively 最弹，enter 临界（一点不过冲）
+        assert named["enter"]["dampingFraction"] >= 1
+        assert named["lively"]["dampingFraction"] < named["firm"]["dampingFraction"] <= 1
+        # response 是自然周期，只决定快慢
+        assert named["snap"]["response"] == min(v["response"] for v in named.values())
 
     def test_preset_equals_hand_written_numbers(self, runtime):
         assert runtime["springs"]["sameAsLiteral"] is True
@@ -215,13 +244,26 @@ class TestLibraryDelegates:
         assert "currentTempo" not in text
 
     def test_library_has_no_spring_numbers(self):
-        """阻尼与频率只应出现在运行时的预设表里。"""
+        """物理参数只应出现在运行时的预设表里。"""
         body = self._figures()
-        assert not re.search(r"damping:\s*[\d.]+", body)
-        assert not re.search(r"frequency:\s*[\d.]+", body)
+        assert not re.search(r"\bresponse:\s*[\d.]+", body)
+        assert not re.search(r"dampingFraction:\s*[\d.]+", body)
+        assert "frequency:" not in body
 
     def test_library_uses_named_presets(self):
         assert re.search(r"motion\.spring\([^,]+, '(enter|firm|lively|snap)'\)", self._figures())
+
+    def test_library_feeds_the_spring_seconds_not_progress(self):
+        """组件喂给弹簧的必须是秒数（api.since），不是缓动过的进度。
+
+        曾经喂的是 `api.progress(f, beat(...), 26, EASE_OUT)`：两条曲线串起来，
+        弹簧的自然周期失去意义，实测 3 帧走完 58px。这条断言把它钉住。
+        """
+        body = self._figures()
+        assert "api.since(" in body
+        assert not re.search(r"motion\.spring\(\s*api\.progress\(", body)
+        assert not re.search(r"enterAlive\([^;]*api\.progress\(", body)
+        assert not re.search(r"enterFig\([^;]*api\.progress\(", body)
 
     def test_library_drift_period_comes_from_the_runtime(self):
         """幕内微动的周期统一由运行时给，组件只给振幅与相位。"""
@@ -230,8 +272,8 @@ class TestLibraryDelegates:
 
     def test_library_entrances_delegate(self):
         text = self._figures()
-        assert "motion.enter(state, el, p, options)" in text
-        assert "motion.enterSvg(state, node, p, options)" in text
+        assert "motion.enter(state, el, seconds, options)" in text
+        assert "motion.enterSvg(state, node, seconds, options)" in text
 
     def test_library_beat_delegates(self):
         assert "return motion.beat(state, fraction);" in self._figures()
@@ -246,7 +288,7 @@ class TestLibraryDelegates:
 
 def test_motion_api_is_exposed_on_the_runtime():
     text = TIMELINE.read_text(encoding="utf-8")
-    for name in ("enter:", "enterSvg:", "beat:", "settle:", "tempo:", "recipes:"):
+    for name in ("enter:", "enterSvg:", "beat:", "settle:", "tempo:", "recipes:", "since:"):
         assert name in text, f"运行时没有导出 motion.{name.rstrip(':')}"
 
     # 既挂在全局（组件库加载时用），也挂在传给 render 的 api 上

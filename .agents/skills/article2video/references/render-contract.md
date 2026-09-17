@@ -92,15 +92,25 @@ JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影�
 | 原语 | 用途 |
 | --- | --- |
 | `progress(localFrame, start, duration, easing)` | 计算片段进度 0..1 |
+| `since(localFrame, startFrame)` | 距起点已经过去的秒数——弹簧与所有物理量的输入 |
 | `stagger(index, stepFrames, baseFrame)` | 逐项呈现时第 i 项的起始帧 |
-| `enter(el, p, { distance, axis, scale, opacity })` | 透明度 + 位移 + 缩放 |
-| `spring(p, { damping, frequency })` | 解析式阻尼振子，给入场一点微过冲 |
+| `enter(el, seconds, { distance, axis, scale, opacity })` | 透明度 + 位移 + 缩放 |
+| `spring(seconds, { response, dampingFraction })` | 物理弹簧：阻尼谐振子的闭式解 |
 | `range(p, from, to, { clamp })` | 把进度映射为任意数值（位移、光晕强度等） |
 | `breath(localFrame, { periodFrames, amplitude })` | 常驻微动，避免后段完全静止 |
 | `drawPath(svgPath, p, { length })` | SVG 描边动画；长度由调用方测一次后传入 |
 | `revealChars(el, text, p, { frame, staggerFrames })` | 逐字揭示，文本结构不变 |
 
-`spring` 与 `breath` 都是闭式表达式（不迭代积分），因此同一帧永远得到同一结果。
+**`enter` 与 `spring` 收的是秒数，不是 0..1 的进度。** 弹簧本身就是曲线，
+喂给它一条缓动过的进度会让它的自然周期失去意义（犯过：3 帧走完位移）。
+`response` 是自然周期（秒，只决定快慢），`dampingFraction` 是阻尼比 ζ
+（只决定过冲：峰值 ≈ `e^(-πζ/√(1-ζ²))`）。曲线来自
+`assets/vendor/spring.js`（wobble 1.5.1 · MIT 的解析解，改动记在文件头），
+**页面必须在 `timeline.js` 之前引入该脚本**，否则运行时取曲线时会直接报错
+（故意不做静默回落：缺依赖应当表现为报错，而不是「动效有点怪」）。
+
+`spring` 与 `breath` 都是闭式表达式（不迭代积分），因此同一帧永远得到同一结果——
+这也是选闭式解而不是逐帧积分的原因：随机访问第 900 帧时，积分型必须重放全过程。
 `drawPath` 不每帧测量路径：调用方用 `getTotalLength()` 量一次并缓存。
 `revealChars` 会重建单字节点，页面需提供基础样式：
 

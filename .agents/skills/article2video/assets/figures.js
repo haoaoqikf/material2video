@@ -135,14 +135,17 @@
    *
    * 具体配方（弹性、收敛时机、呼吸幅度）由运行时的 A2V.motion 决定；
    * 这里只保留组件侧的调用形状，五个组件都走同一条路径，手感才不会各自漂移。
+   *
+   * `seconds` 是距入场起点的秒数（api.since），不是 0..1 的进度：
+   * 弹簧本身就是曲线，喂给它一条已经缓动过的进度，它的自然周期就失去意义。
    */
-  function enterAlive(state, api, el, p, options) {
-    motion.enter(state, el, p, options);
+  function enterAlive(state, api, el, seconds, options) {
+    motion.enter(state, el, seconds, options);
   }
 
   /** SVG 分组的入场（同上，但写的是 SVG transform 属性）。 */
-  function enterFig(state, api, node, p, options) {
-    motion.enterSvg(state, node, p, options);
+  function enterFig(state, api, node, seconds, options) {
+    motion.enterSvg(state, node, seconds, options);
   }
 
   /** 与运行时语义一致的钳制，避免为一个小工具再暴露一层接口。 */
@@ -246,17 +249,17 @@
     setPlainText(pick('loadLeftTextHollow'), ann.leftPan);
     setPlainText(pick('loadRightText'), ann.rightPan);
 
-    enterAlive(state, api, title, api.progress(f, beat(state, 0.03), 28, EASE_OUT), {
+    enterAlive(state, api, title,api.since(f, beat(state, 0.03)), {
       distance: 58,
       amplitude: 4
     });
-    enterAlive(state, api, sub1, api.progress(f, beat(state, 0.46), 24, EASE_OUT), {
+    enterAlive(state, api, sub1,api.since(f, beat(state, 0.46)), {
       distance: 24,
       amplitude: 3,
       periodFrames: 150,
       phase: 20
     });
-    enterAlive(state, api, sub2, api.progress(f, beat(state, 0.7), 24, EASE_OUT), {
+    enterAlive(state, api, sub2,api.since(f, beat(state, 0.7)), {
       distance: 24,
       amplitude: 3,
       periodFrames: 150,
@@ -272,11 +275,14 @@
 
     // 倾角：恐惧压下左盘 → 看穿空壳 → 弹回水平
     var press = api.progress(f, beat(state, 0.42), beat(state, 0.14), EASE_SYMMETRIC);
-    var relief = motion.spring(api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC), 'snap');
+    var relief = motion.spring(api.since(f, beat(state, 0.62)), 'snap');
     var theta = SCALE.TILT * press * (1 - relief);
     var anchors = panAnchors(theta);
 
     var beamP = api.progress(f, beat(state, 0.25), 26, EASE_OUT);
+    // 弹簧要的是线性秒数，透明度要的是 0..1 进度：同一个起点、两种输入，各自取用。
+    // beamP 还要当透明度用，所以不能就地改掉它。
+    var beamSeconds = api.since(f, beat(state, 0.25));
     var beamSettle = api.progress(f, beat(state, 0.7), 40, EASE_SYMMETRIC);
     var beamDrift = motion.idle(f, { amplitude: 2 }) * beamSettle;
     svgT(
@@ -284,12 +290,12 @@
       SCALE.PIVOT_X,
       SCALE.PIVOT_Y + beamDrift,
       theta,
-      api.range(motion.spring(beamP, 'firm'), 0.55, 1, { clamp: false })
+      api.range(motion.spring(beamSeconds, 'firm'), 0.55, 1, { clamp: false })
     );
     svgO(pick('beam'), beamP);
 
     // 吊盘：跟着横梁端点平移，落位后保持垂直
-    var panP = motion.spring(api.progress(f, beat(state, 0.28), 24, EASE_OUT), 'firm');
+    var panP = motion.spring(api.since(f, beat(state, 0.28)), 'firm');
     var panSettle = api.progress(f, beat(state, 0.28), 40, EASE_SYMMETRIC);
     var dropIn = (1 - panP) * 60;
     var driftL = motion.idle(f, { amplitude: 2.4 }) * panSettle;
@@ -300,7 +306,7 @@
     svgO(pick('panRight'), api.clamp(panP * 1.5, 0, 1));
 
     // 左盘的重物落下
-    var loadP = motion.spring(api.progress(f, beat(state, 0.34), 26, EASE_OUT), 'lively');
+    var loadP = motion.spring(api.since(f, beat(state, 0.34)), 'lively');
     var loadDrop = (1 - loadP) * -170;
     var reveal = api.progress(f, beat(state, 0.54), beat(state, 0.16), EASE_SYMMETRIC);
     svgO(pick('loadLeft'), api.clamp(loadP, 0, 1));
@@ -309,7 +315,7 @@
     svgO(pick('loadLeftHollow'), reveal);
 
     // 右盘的「一次上场」：轻，但它是最后亮起来的那一个
-    var tokenP = motion.spring(api.progress(f, beat(state, 0.3), 24, EASE_OUT), 'lively');
+    var tokenP = motion.spring(api.since(f, beat(state, 0.3)), 'lively');
     svgO(pick('loadRight'), api.clamp(tokenP, 0, 1));
     svgT(pick('loadRight'), 0, (1 - tokenP) * -120, 0, api.range(tokenP, 0.9, 1, { clamp: false }));
 
@@ -438,16 +444,16 @@
       mark.style.transform = 'translateY(' + api.range(markP, -26, 0).toFixed(1) + 'px)';
     }
 
-    enterAlive(state, api, text, api.progress(f, beat(state, 0.04), 28, EASE_OUT), {
+    enterAlive(state, api, text,api.since(f, beat(state, 0.04)), {
       distance: 50,
       amplitude: 3
     });
-    enterAlive(state, api, pick('panelA'), api.progress(f, beat(state, 0.16), 24, EASE_OUT), {
+    enterAlive(state, api, pick('panelA'),api.since(f, beat(state, 0.16)), {
       distance: 40,
       amplitude: 2.5,
       phase: 0
     });
-    enterAlive(state, api, pick('panelB'), api.progress(f, beat(state, 0.22), 24, EASE_OUT), {
+    enterAlive(state, api, pick('panelB'),api.since(f, beat(state, 0.22)), {
       distance: 40,
       amplitude: 2.5,
       phase: 40
@@ -610,20 +616,20 @@
       lead.style.display = data.text ? '' : 'none';
     }
 
-    enterAlive(state, api, lead, api.progress(f, beat(state, 0.02), 28, EASE_OUT), {
+    enterAlive(state, api, lead,api.since(f, beat(state, 0.02)), {
       distance: 48,
       amplitude: 3
     });
-    enterAlive(state, api, pick('title'), api.progress(f, beat(state, 0.03), 26, EASE_OUT), {
+    enterAlive(state, api, pick('title'),api.since(f, beat(state, 0.03)), {
       distance: 44,
       amplitude: 3
     });
-    enterAlive(state, api, pick('leftSide'), api.progress(f, beat(state, 0.16), 24, EASE_OUT), {
+    enterAlive(state, api, pick('leftSide'),api.since(f, beat(state, 0.16)), {
       distance: -46,
       axis: 'x',
       amplitude: 2.2
     });
-    enterAlive(state, api, pick('rightSide'), api.progress(f, beat(state, 0.24), 26, EASE_OUT), {
+    enterAlive(state, api, pick('rightSide'),api.since(f, beat(state, 0.24)), {
       distance: 46,
       axis: 'x',
       amplitude: 2.2,
@@ -769,13 +775,13 @@
     svgO(pick('waterBody'), api.progress(f, beat(state, 0.06), beat(state, 0.14), EASE_SYMMETRIC));
     svgO(pick('surfaceNote'), api.progress(f, beat(state, 0.1), beat(state, 0.08), EASE_SOFT));
 
-    enterFig(state, api, pick('tip'), api.progress(f, beat(state, 0.1), beat(state, 0.14), EASE_OUT), {
+    enterFig(state, api, pick('tip'),api.since(f, beat(state, 0.1)), {
       distance: 34,
       amplitude: 2
     });
 
     // 水下那一大团：从深处升上来，这是本幕的转折
-    var massP = motion.spring(api.progress(f, beat(state, 0.3), beat(state, 0.18), EASE_OUT), 'enter');
+    var massP = motion.spring(api.since(f, beat(state, 0.3)), 'enter');
     svgT(pick('massGroup'), 0, (1 - massP) * 150, 0, api.range(massP, 0.94, 1, { clamp: false }));
     svgO(pick('massGroup'), api.clamp(massP, 0, 1));
 
@@ -784,7 +790,7 @@
     var starts = [0.2, 0.5, 0.72];
     Array.prototype.forEach.call(callouts, function (group, index) {
       var start = beat(state, starts[index] === undefined ? 0.72 : starts[index]);
-      var p = motion.spring(api.progress(f, start, 24, EASE_OUT), 'firm');
+      var p = motion.spring(api.since(f, start), 'firm');
       var link = group.firstChild;
       if (link) {
         if (!link.dataset.length) {
@@ -948,7 +954,7 @@
     var nodeGroups = pick('nodes') ? pick('nodes').children : [];
     var nodeStart = beat(state, 0.12);
     Array.prototype.forEach.call(nodeGroups, function (group, index) {
-      var enterP = motion.spring(api.progress(f, nodeStart + index * 8, 22, EASE_OUT), 'enter');
+      var enterP = motion.spring(api.since(f, nodeStart + index * 8), 'enter');
       var nodePoint = loopPoint(index);
       var pulse = index === arrived % nodeGroups.length ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
       var scale = api.range(enterP, 0.94, 1, { clamp: false }) * (1 + pulse * 0.09);
@@ -1082,7 +1088,7 @@
     var groups = pick('bars') ? pick('bars').children : [];
     Array.prototype.forEach.call(groups, function (group, index) {
       var start = beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index]);
-      var p = motion.spring(api.progress(f, start, 26, EASE_OUT), 'firm');
+      var p = motion.spring(api.since(f, start), 'firm');
 
       var bar = group.children[0];
       var note = group.children[1];
@@ -1234,13 +1240,13 @@
       });
     }
 
-    enterFig(state, api, pick('nodeLeft'), api.progress(f, beat(state, 0.2), 24, EASE_OUT), {
+    enterFig(state, api, pick('nodeLeft'),api.since(f, beat(state, 0.2)), {
       distance: 34,
       amplitude: 2.5,
       axis: 'x',
       scale: 0.94
     });
-    enterFig(state, api, pick('nodeRight'), api.progress(f, beat(state, 0.26), 24, EASE_OUT), {
+    enterFig(state, api, pick('nodeRight'),api.since(f, beat(state, 0.26)), {
       distance: -34,
       amplitude: 2.5,
       axis: 'x',
@@ -1270,7 +1276,8 @@
 
     var actionP = api.progress(f, beat(state, 0.64), 28, EASE_OUT);
     if (action) {
-      var shift = api.range(motion.spring(actionP, 'enter'), 34, 0, { clamp: false });
+      var actionSeconds = api.since(f, beat(state, 0.64));
+      var shift = api.range(motion.spring(actionSeconds, 'enter'), 34, 0, { clamp: false });
       var drift = motion.idle(f, { amplitude: 3 }) *
         api.progress(f, beat(state, 0.64), 40, EASE_SYMMETRIC);
       action.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + drift.toFixed(2) + 'px,0)';
@@ -1390,16 +1397,18 @@
     var label = pick('label');
     var caption = pick('caption');
     var progress = api.progress(state.localFrame, beat(state, 0.1), beat(state, 0.36), EASE_OUT);
+    // 数字滚动要的是缓动过的进度，入场位移要的是线性秒数，同一个起点各取所需
+    var rise = api.since(state.localFrame, beat(state, 0.1));
     if (value) {
       var raw = data.value;
       value.textContent = typeof raw === 'number' && Number.isFinite(raw)
         ? String(Math.round(raw * progress)) : String(raw == null ? '' : raw);
-      enterAlive(state, api, value, progress, { distance: 42, scale: 0.92 });
+      enterAlive(state, api, value, rise, { distance: 42, scale: 0.92 });
     }
     setPlainText(label, data.label);
     setPlainText(caption, data.caption);
-    enterAlive(state, api, label, api.progress(state.localFrame, beat(state, 0.22), 22, EASE_OUT));
-    enterAlive(state, api, caption, api.progress(state.localFrame, beat(state, 0.38), 22, EASE_OUT));
+    enterAlive(state, api, label, api.since(state.localFrame, beat(state, 0.22)));
+    enterAlive(state, api, caption, api.since(state.localFrame, beat(state, 0.38)));
   }
 
   var MARKUP_NUMBER = `<div class="fig-number" data-el="value"></div>

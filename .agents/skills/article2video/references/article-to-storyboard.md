@@ -169,8 +169,8 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
 新增组件还必须满足：
 
 - **纯函数**：`update` 的结果只由帧号、场景与时长决定，不用 `Date.now` / `performance.now` / `Math.random`；
-- **动效走配方层**：用 `api.motion.enter` / `api.motion.spring(p, 'firm')` / `api.motion.idle`
-  这类具名预设，组件里不写阻尼、频率、周期这些数字；
+- **动效走配方层**：用 `api.motion.enter` / `api.motion.spring(api.since(f, start), 'firm')` /
+  `api.motion.idle` 这类具名预设（弹簧收秒数，不收进度），组件里不写自然周期、阻尼比、周期这些数字；
 - **文案全部来自分镜**：组件可以决定排版，不能决定写什么，也不保存默认文案；
 - **容量自适应**：条目数量变化时收缩间距与半径，而不是溢出；
 - **不读实时布局**：几何由常量推导；确需测量时只在首次更新做一次并缓存。

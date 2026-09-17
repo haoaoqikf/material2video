@@ -99,8 +99,9 @@ A2V.figures.register(kind, {
   禁止 `Date.now`、`performance.now`、`Math.random`，禁止 CSS `animation`/`transition`。
   开渲前的静态扫描会连共享资产一起检查。
 - **动效走配方层**：入场用 `api.motion.enter` / `api.motion.enterSvg`，弹性用
-  `api.motion.spring(p, 'firm')` 这类**具名预设**，幕内微动用 `api.motion.idle`。
-  组件里不写阻尼、频率、呼吸周期这些数字——它们决定整支片子的手感，
+  `api.motion.spring(api.since(f, start), 'firm')` 这类**具名预设**
+  （弹簧收的是秒数，不是进度），幕内微动用 `api.motion.idle`。
+  组件里不写自然周期、阻尼比、呼吸周期这些数字——它们决定整支片子的手感，
   只写在 `timeline.js`，见[动效配方层](visual-spec.md#动效配方层-azvmotion)。
 - **不读实时布局**：几何由常量与 `params` 推导。确需测量（如 `getTotalLength`）
   只在首次更新时做一次并缓存，不能每帧测。

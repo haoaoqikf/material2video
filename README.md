@@ -38,10 +38,15 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   目录与新增组件的契约见
   [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)；
 - **动效配方层** `A2V.motion`：入场、弹性、收敛、常驻微动与节奏换算都写在
-  `timeline.js` 一处，组件用名字调用（`api.motion.spring(p, 'lively')`），
-  手感参数不会随组件漂移；
-- 动效原语全部为纯函数：`progress` / `enter` / `spring`（微过冲）/
+  `timeline.js` 一处，组件用名字调用（`api.motion.spring(api.since(f, start), 'lively')`，
+  弹簧收的是秒数而不是缓存动过的进度），手感参数不会随组件漂移；
+  Spring 曲线是 vendored 的阻尼谐振子闭式解（`assets/vendor/spring.js`，wobble 1.5.1 · MIT），
+  参数是物理量：`response`（自然周期，秒）与 `dampingFraction`（阻尼比 ζ）；
+- 动效原语全部为纯函数：`progress` / `since` / `enter` / `spring`（物理弹簧）/
   `breath`（常驻微动）/ `drawPath`（SVG 描边）/ `revealChars`（逐字揭示）；
+  曲线必须能按帧独立求值（渲染是随机访问帧，闭式解而非逐帧积分），
+  `tests/test_motion_trajectory.py` 会逐帧量真实轨迹，拦住「入场退化成硬切」；
+  `tests/test_vendor_spring.py` 对 vendored 求解器核对解析解自身的性质；
 - 开渲前静态扫描 `animation:` / `transition:` / `@keyframes` 与
   `Date.now(` / `performance.now(` / `Math.random(` 并给出警告，
   范围覆盖网页引用的本地样式表与脚本（含 skill 的共享资产），
@@ -86,7 +91,11 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （不属于渲染契约）：组件用 `data-a2v-fit="<档位>"` 声明字号上限档位，共享页面在预设
   生效时按**实测可用宽度**取档、按宽度均衡断行，到 36px 正文下限即停；行高、字距、
   字重仍归组件，字号归字阶。未声明的元素不会被改动；不声明 `preset` 时它不生效
-  （样式受预设作用域约束、排版引擎不被调用），画面逐帧不变（有逐字节回归证据）；
+  （样式受预设作用域约束、排版引擎不被调用）——新增预设层时用逐字节回归验证过
+  「加预设不改非预设画面」，那份非预设成片的哈希后来在**动效升级**那一轮被刻意重新记录
+  （改动在动效曲线，不在样式），所以样式隔离现在由
+  `tests/test_typesetting_wiring.py` 的「非预设页面零取档」与
+  `tests/test_keynote_assets.py` 的「视觉规则必须限定在预设作用域内、每个令牌都带原值兜底」守住；
   参考实现见
   [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)（8 幕 / 2040 帧 / 68 秒）；
 - **观感闸门 K1–K7**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
@@ -241,7 +250,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
   `Math.random()`，否则逐帧截图会闪烁且不可复现；渲染前会静态提示这类写法；
 - **手感只有一处**：入场、弹性、收敛、常驻微动这些决定「整支片子什么手感」的数字
   只写在 `timeline.js` 的 `A2V.motion` 配方表里，组件用 `api.motion.enter(...)`、
-  `api.motion.spring(p, 'lively')` 这样的名字调用，不写裸数字；
+  `api.motion.spring(api.since(f, start), 'lively')` 这样的名字调用，不写裸数字；
+  `tests/test_motion_trajectory.py` 会按帧量真实轨迹，防止配方改着改着变成弹跳；
 - **产物归属**：一篇文章一个目录，产物只写进它自己的 `outputs/<slug>/`；
   推导不出归属时脚本报错并要求显式指定路径，不猜测；
 - **性能取舍**：中间帧默认用 JPEG q98 采集（1080 × 1920 实测约 66ms/帧，PNG 约 225ms），

@@ -24,6 +24,13 @@
 (function (global) {
   'use strict';
 
+  /*
+   * 弹簧求解器：vendored 的阻尼谐振子闭式解，由 assets/vendor/spring.js 提供。
+   * 故意不做「找不到就用备用公式」的回落——静默回落会让缺文件这件事
+   * 表现成「动效有点怪」，而不是「页面少了依赖」。
+   */
+  var solver = global.A2VSpring || null;
+
   //: 只走这三条曲线，混用更多会让整支片子的手感不一致（见设计宪法 C4）。
   var EASE = { enter: 'outQuint', gate: 'outCubic', both: 'inOutCubic' };
 
@@ -79,6 +86,19 @@
   }
 
   /**
+   * 距某个起始帧已经过去的秒数——弹簧与所有物理量动效的输入。
+   *
+   * 为什么要有这个而不是继续用 progress()：弹簧的时间尺度是秒，
+   * 而 progress() 返回的是**已经缓动过**的 0..1 进度。把缓动后的进度
+   * 喂给弹簧等于把两条曲线串起来，response（自然周期）就失去了意义
+   * （曾经如此：3 帧走完 58px，而注释写着「0.6 秒收敛」）。
+   */
+  function since(frame, startFrame, fpsValue) {
+    var rate = fpsValue > 0 ? fpsValue : 30;
+    return Math.max(0, frame - (startFrame || 0)) / rate;
+  }
+
+  /**
    * 统一的入场动效：按进度设置透明度与位移。
    * 直接写内联样式而不是切换 class，确保同一帧得到同一结果。
    */
@@ -104,32 +124,43 @@
   }
 
   /**
-   * 解析式阻尼振子：把 0..1 的线性进度映射为带微过冲的位移/缩放进度。
+   * 物理弹簧：把「距入场起点已经过去的秒数」映射为 0→1 的位移/缩放/透明度进度。
    *
-   * 为什么用解析公式而不是迭代积分：逐帧渲染要求「同一帧永远同一结果」，
-   * 解析式只依赖入参，不保存速度、不依赖调用顺序，天然满足契约。
+   * 曲线本体是阻尼谐振子的闭式解，vendored 在 assets/vendor/spring.js
+   * （wobble 1.5.1 · MIT）。用闭式解而不是逐帧积分，是因为逐帧渲染要求
+   * 「同一帧永远同一结果」且能随机访问：积分型实现必须从第 0 帧重放才能
+   * 求出第 900 帧的值，闭式解只依赖入参，天然满足契约。
    *
-   * 默认参数在 30fps 下约 0.6 秒收敛，峰值过冲约 1.5%——刚好让画面「有弹性」
-   * 而不显得晃。想要更明显的回弹可降低 damping（4–5），想要更稳可用 8–10。
+   * **必须喂线性的时间。** 这里曾经是 `1 - e^(-damping·x)·cos(frequency·π·x)`，
+   * x 取的是调用方已经缓动过的进度——两条曲线串起来，弹簧自己的时间尺度就没了意义。
+   * 后果实测过：第 1 幕标题的 58px 位移在**第 1 帧就走完 36px、第 3 帧完成 97%**，
+   * 之后只剩 0.76px 的过冲；而注释还写着「30fps 下约 0.6 秒收敛」。
+   * 看起来不是「有弹性的入场」，是一次带残影的硬切。
    *
-   * @param {number} t 进度，通常来自 progress()
+   * @param {number} seconds 距入场起点的秒数（用 api.since 取）
    * @param {Object} [options]
-   * @param {number} [options.damping=6] 阻尼系数，越小回弹越明显
-   * @param {number} [options.frequency=1.2] 振动频率，越大越快到位
+   * @param {number} [options.response=0.44] 自然周期（秒）。越小越快
+   * @param {number} [options.dampingFraction=0.9] 阻尼比 ζ。<1 会过冲，=1 临界
    * @returns {number} 进度值，峰值可能略大于 1
    */
-  function spring(t, options) {
+  function spring(seconds, options) {
     var o = options || {};
-    var x = clamp(t, 0, 1);
-    if (x <= 0) {
+    var response = o.response === undefined ? 0.44 : o.response;
+    var dampingFraction = o.dampingFraction === undefined ? 0.9 : o.dampingFraction;
+    if (!(seconds > 0)) {
       return 0;
     }
-    if (x >= 1) {
+    if (!solver) {
+      throw new Error(
+        '缺少 assets/vendor/spring.js：动效曲线由它提供。请确认页面在 timeline.js 之前引入了该文件。'
+      );
+    }
+    // 弹簧只会无限逼近 1，这条让「到位」有确切时刻：包络进 0.1% 带内就返回 1。
+    // 不用「位移小于阈值」判断——那会在 lively 回弹的半途把它截掉。
+    if (seconds >= solver.restSeconds(response, dampingFraction)) {
       return 1;
     }
-    var damping = o.damping === undefined ? 6 : o.damping;
-    var frequency = o.frequency === undefined ? 1.2 : o.frequency;
-    return 1 - Math.exp(-damping * x) * Math.cos(frequency * Math.PI * x);
+    return solver.position(seconds, response, dampingFraction);
   }
 
   /**
@@ -191,8 +222,8 @@
       scale: 1,
       periodFrames: 130,
       amplitude: 3,
-      springDamping: 6,
-      springFrequency: 1.1,
+      springResponse: 0.44,
+      springDampingFraction: 0.9,
       settleAt: 0.24,
       settleFrames: 36
     },
@@ -201,8 +232,8 @@
       scale: 1,
       periodFrames: 140,
       amplitude: 2.5,
-      springDamping: 6,
-      springFrequency: 1.1,
+      springResponse: 0.44,
+      springDampingFraction: 0.9,
       settleAt: 0.24,
       settleFrames: 36
     }
@@ -212,15 +243,21 @@
   var TEMPO_SPEED = { calm: 0.82, normal: 1, impact: 1.24 };
 
   /*
-   * 弹性预设。组件里写 `{ damping: 5.5, frequency: 1.3 }` 这种数字时，
-   * 读者看不出它和别处的 `{ damping: 6, frequency: 1.2 }` 有什么意图差别，
+   * 弹性预设。组件里写一串数字时，读者看不出它和别处的数字有什么意图差别，
    * 改一处也想不到别处还有几处。给它们起名之后，「这个元素该有多弹」就成了可讨论的事。
+   *
+   * 两个参数都是物理量，不是手感凑出来的系数：
+   *   response        自然周期（秒）。越小越快，直接决定「多久到位」。
+   *   dampingFraction 阻尼比 ζ。过冲量只由它决定，与快慢无关：
+   *                   ζ=1 临界不过冲；过冲峰值 ≈ e^(-πζ/√(1-ζ²))。
+   * 收敛时间（进 2% 带内）≈ 3.91/(ζω₀) 秒，ω₀ = 2π/response。
+   * 这些数不是估的，tests/test_motion_trajectory.py 会按曲线实测核对。
    */
   var SPRINGS = {
-    enter: { damping: 6, frequency: 1.1 }, // 温和入场，几乎看不出回弹
-    firm: { damping: 6, frequency: 1.2 }, // 图形主体到位（默认）
-    lively: { damping: 5.5, frequency: 1.3 }, // 有分量的落点，回弹看得出来
-    snap: { damping: 5, frequency: 1.5 } // 小元素快速归位
+    enter: { response: 0.5, dampingFraction: 1 }, // 温和入场，临界阻尼，一点不过冲；约 0.46s 收敛
+    firm: { response: 0.44, dampingFraction: 0.9 }, // 图形主体到位（默认）：过冲约 0.2%，约 0.31s 收敛
+    lively: { response: 0.4, dampingFraction: 0.62 }, // 有分量的落点：过冲约 8.4%，约 0.40s 收敛
+    snap: { response: 0.28, dampingFraction: 0.8 } // 小元素快速归位：过冲约 1.5%，约 0.22s 收敛
   };
 
   //: 幕内常驻微动的周期。振幅按元素分档，周期统一，否则同屏各晃各的。
@@ -230,9 +267,9 @@
     return RECIPES[name] || RECIPES.surface;
   }
 
-  /** 按预设名取弹性值；未知名字用 firm，不抛错。 */
-  function springBy(p, name) {
-    return spring(p, SPRINGS[name] || SPRINGS.firm);
+  /** 按预设名取弹性值；未知名字用 firm，不抛错。入参是秒数。 */
+  function springBy(seconds, name) {
+    return spring(seconds, SPRINGS[name] || SPRINGS.firm);
   }
 
   /** 幕内常驻微动：周期统一，只按元素给振幅与相位。 */
@@ -326,13 +363,16 @@
    *
    * @param {Object} state 运行时状态，用于取节奏与场景内帧号
    * @param {string} name 默认配方名（surface / figure）
-   * @param {number} p 入场进度 0..1，通常来自 progress()
+   * @param {number} seconds 距入场起点的秒数，通常来自 api.since()
    * @param {Object} [options] distance / axis / scale / amplitude / periodFrames / phase / opacity / recipe
    */
-  function enterRecipe(state, name, p, options) {
+  function enterRecipe(state, name, seconds, options) {
     var o = options || {};
     var base = recipe(o.recipe || name);
-    var from = spring(p, { damping: base.springDamping, frequency: base.springFrequency });
+    var from = spring(seconds, {
+      response: base.springResponse,
+      dampingFraction: base.springDampingFraction
+    });
     var pin = settleWith(state, base, o);
     return {
       from: from,
@@ -353,15 +393,15 @@
    *
    * @param {Object} state 运行时状态
    * @param {HTMLElement} el 目标元素
-   * @param {number} p 入场进度 0..1
+   * @param {number} seconds 距入场起点的秒数，来自 api.since()
    * @param {Object} [options] 见 enterRecipe
    */
-  function enterAlive(state, el, p, options) {
+  function enterAlive(state, el, seconds, options) {
     if (!el) {
       return;
     }
     var o = options || {};
-    var r = enterRecipe(state, 'surface', p, o);
+    var r = enterRecipe(state, 'surface', seconds, o);
     el.style.transform =
       'translate3d(' +
       (r.axis === 'x' ? r.shift : 0).toFixed(2) +
@@ -374,11 +414,11 @@
   }
 
   /** SVG 分组的入场：同上，写的是 SVG 的 transform 属性。 */
-  function enterSvg(state, node, p, options) {
+  function enterSvg(state, node, seconds, options) {
     if (!node) {
       return;
     }
-    var r = enterRecipe(state, 'figure', p, options);
+    var r = enterRecipe(state, 'figure', seconds, options);
     svgTransform(
       node,
       r.axis === 'x' ? r.shift : 0,
@@ -421,7 +461,10 @@
     springs: function () {
       var out = {};
       Object.keys(SPRINGS).forEach(function (name) {
-        out[name] = { damping: SPRINGS[name].damping, frequency: SPRINGS[name].frequency };
+        out[name] = {
+          response: SPRINGS[name].response,
+          dampingFraction: SPRINGS[name].dampingFraction
+        };
       });
       return out;
     }
@@ -763,6 +806,7 @@
       easing: easing,
       progress: progress,
       stagger: stagger,
+      since: since,
       enter: enter,
       spring: spring,
       range: range,
@@ -1053,6 +1097,7 @@
     easing: easing,
     progress: progress,
     stagger: stagger,
+    since: since,
     enter: enter,
     spring: spring,
     range: range,
