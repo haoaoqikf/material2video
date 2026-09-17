@@ -130,15 +130,32 @@
   --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
   --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 48px rgba(var(--a2v-accent-rgb), 0.28);
 
-  /* ---------- 图形墨色：figures.css 的每条线都取这几个值 ---------- */
-  --fig-line: rgba(255, 255, 255, 0.52);
-  --fig-line-soft: rgba(255, 255, 255, 0.18);
+  /* ---------- 图形墨色：figures.css 的每条线都取这几个值 ----------
+     分类与对比度预算见 references/keynote-design-system.md，
+     由 tests/test_figure_contrast.py 按表守住。取值不是凭感觉调的：
+     这里每一个都在预算内，改动前先跑那个测试。 */
+  --fig-line: rgba(255, 255, 255, 0.52); /* 数据描边 5.69:1 */
+  --fig-line-data: rgba(255, 255, 255, 0.62); /* 数据描边 7.75:1 */
+  --fig-line-soft: rgba(255, 255, 255, 0.18); /* 装饰描边 1.63:1 */
   --fig-ink: #e9eef6;
   --fig-on-ink: #0f131a;
-  --fig-surface: #171e2b;
-  --fig-water: rgba(92, 152, 220, 0.22);
-  --fig-water-line: rgba(122, 174, 230, 0.55);
-  --fig-water-text: rgba(146, 190, 238, 0.88);
+  --fig-surface: #171e2b; /* 面填充：不设下限，形状由 --fig-line 描边界定 */
+  --fig-water: rgba(92, 152, 220, 0.22); /* 面填充 */
+  --fig-hollow: rgba(255, 255, 255, 0.05); /* 面填充：深色底下的「空壳」要提亮，不能沿用浅色页面的深灰 */
+  --fig-node-shadow: rgba(0, 0, 0, 0.35); /* 面填充：深色底下的投影 */
+  --fig-title-grad-from: #e9eef6; /* 图形内文本：标题渐变，预设层会整体替换标题背景 */
+  --fig-title-grad-to: #aab6c8;
+  /* 槽是「容量」的刻度参照，不是一个装满的柱：浅色页面里它只有 1.05:1，
+     深色这边同样只给耳语级的一层白。给重了会让「从未拥有」那栏看着是满的——
+     那一栏按设计就该是空的（applyDrop(fillB, 0)）。 */
+  --fig-drop-track: rgba(255, 255, 255, 0.03); /* 面填充：竖尺的槽 */
+  --fig-drop-fill-from: #6d7d95; /* 面填充：竖尺的柱，只在「还拥有」的那段出现 */
+  --fig-drop-fill-to: #3c4759;
+  --fig-drop-fact-from: #cc4a3f; /* 面填充：事实那一侧的柱，红色在深浅底上都成立 */
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(255, 255, 255, 0.04); /* 面填充：进度槽，同样只是刻度参照 */
+  --fig-water-line: rgba(122, 174, 230, 0.72); /* 数据描边 4.82:1 */
+  --fig-water-text: rgba(146, 190, 238, 0.88); /* 图形内文本 8.06:1 */
 
   /* ---------- 背景层：几乎不可见的秩序感，不参与叙事 ---------- */
   --a2v-glow-1: rgba(50, 214, 255, 0.13);
@@ -193,14 +210,27 @@
   --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 40px rgba(var(--a2v-accent-rgb), 0.20);
 
-  --fig-line: rgba(12, 14, 19, 0.48);
-  --fig-line-soft: rgba(12, 14, 19, 0.14);
+  /* 分类与预算同深色主题；浅色背景下同样的视觉重量需要更深的取值，
+     因此两套主题各自取值，不取公共下限。 */
+  --fig-line: rgba(12, 14, 19, 0.62); /* 数据描边 5.22:1 */
+  --fig-line-data: rgba(12, 14, 19, 0.72); /* 数据描边 7.42:1 */
+  --fig-line-soft: rgba(12, 14, 19, 0.22); /* 装饰描边 1.63:1 */
   --fig-ink: #1b202b;
   --fig-on-ink: #ffffff;
-  --fig-surface: #ffffff;
-  --fig-water: rgba(64, 92, 132, 0.13);
-  --fig-water-line: rgba(64, 92, 132, 0.42);
-  --fig-water-text: rgba(64, 92, 132, 0.78);
+  --fig-surface: #ffffff; /* 面填充：跟着这套主题的面阶走，不设下限 */
+  --fig-water: rgba(64, 92, 132, 0.13); /* 面填充 */
+  --fig-hollow: rgba(22, 24, 29, 0.035); /* 面填充：与未启用预设时的取值一致 */
+  --fig-node-shadow: rgba(30, 26, 22, 0.07); /* 面填充：与未启用预设时的取值一致 */
+  --fig-title-grad-from: #23262d; /* 图形内文本：与未启用预设时的取值一致 */
+  --fig-title-grad-to: #3d434e;
+  --fig-drop-track: rgba(22, 24, 29, 0.025); /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fill-from: #3a3f4a; /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fill-to: #23262d;
+  --fig-drop-fact-from: #cc4a3f; /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(22, 24, 29, 0.07); /* 面填充：与未启用预设时的取值一致 */
+  --fig-water-line: rgba(44, 66, 100, 0.80); /* 数据描边 5.23:1 */
+  --fig-water-text: rgba(44, 66, 100, 0.92); /* 图形内文本 7.22:1 */
 
   --a2v-glow-1: rgba(10, 106, 217, 0.07);
   --a2v-glow-2: rgba(120, 90, 220, 0.05);

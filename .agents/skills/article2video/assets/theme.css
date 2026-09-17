@@ -86,12 +86,29 @@
    */
   --fig-line: rgba(244, 247, 251, 0.44);
   --fig-line-soft: rgba(244, 247, 251, 0.16);
+  /* 承载结构的线（循环轨道、阶梯轴线）。未启用预设时与软线同值，
+     因为这里的取值就是这套主题原本的样子；预设层会把它抬到数据描边的预算内。 */
+  --fig-line-data: var(--fig-line-soft);
   --fig-ink: #e8eef6;
   --fig-on-ink: #0d111a;
   --fig-surface: var(--a2v-bg-2);
   --fig-water: rgba(56, 132, 210, 0.22);
   --fig-water-line: rgba(96, 165, 235, 0.6);
   --fig-water-text: rgba(130, 190, 245, 0.85);
+  /* 下面这几个原本写死在 figures.css 里。列在这里是为了让「组件库用到的每个墨色
+     令牌都由主题层提供」这条契约继续成立（缺令牌时图形会安静地变透明），
+     取值等于原来的字面值，因此未启用预设的画面逐字节不变。
+     深浅两套预设各自有更适合主题的取值，见 keynote.css。 */
+  --fig-hollow: rgba(22, 24, 29, 0.035);
+  --fig-node-shadow: rgba(30, 26, 22, 0.07);
+  --fig-title-grad-from: #23262d;
+  --fig-title-grad-to: #3d434e;
+  --fig-drop-track: rgba(22, 24, 29, 0.025);
+  --fig-drop-fill-from: #3a3f4a;
+  --fig-drop-fill-to: #23262d;
+  --fig-drop-fact-from: #cc4a3f;
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(22, 24, 29, 0.07);
 }
 
 /*

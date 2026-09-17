@@ -192,7 +192,9 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
   8pt 间距阶（4 / 8 / 16 / 24 / 32 / 48 / 64 / 96 / 128 / 192）、五个圆角档 + pill、
   三级阴影、12 列网格（内容宽 888px、槽宽 24px），以及 `keynote-dark`
   （bg `#08090c`、强调 `#32d6ff`）与 `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）
-  两套主题；对比度预算为正文 7:1、大字与图形 4.5:1；
+  两套主题；对比度预算为正文 7:1、大字与图形 4.5:1，图形再按四类细分
+（数据描边 / 图形内文本 / 装饰描边 / 面填充，见
+`tests/test_figure_contrast.py` 的分类表）；
 - `assets/fonts/`：Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）随仓库分发，
   不走 CDN；字体栈只在预设作用域里覆盖 `--a2v-font`，因此未启用预设的页面仍用系统字体栈；
 - `assets/typography.js`：可选排版引擎 `A2V.type`，不属于 `window.__A2V__` 渲染契约，
@@ -205,7 +207,9 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
   并收集字号、文本样张、卡片特征、文本块四边墨迹边界与安全区几何；
 - `examples/keynote-baseline/`：8 幕 / 2040 帧 / 68 秒 / 1080 × 1920 @30fps 的参考实现；
 - 测试：`tests/test_keynote_assets.py`（令牌自检、对比度、`--fig-*` 覆盖、预设作用域、
-  组件墨色字号收进字阶）、`tests/test_offline_assets.py`（资产不许引外部 URL、
+  组件墨色字号收进字阶）、`tests/test_figure_contrast.py`（图形颜色分类表、每类的对比度
+  预算、两套主题分别核对、`fill`/`stroke`/`background` 不许写字面色值）、
+  `tests/test_offline_assets.py`（资产不许引外部 URL、
   `url()` 必须指向仓库内真实文件、断网渲染可跑通）、`tests/test_keynote_layout.py`
   （浏览器里实测安全区、字号阶与四种版面的几何）、`tests/test_typesetting_apply.py`
   （取档不破坏强调标记、退化输入、重复取档零写入）、`tests/test_typesetting_wiring.py`
@@ -217,8 +221,22 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 0 失败 / 11 跳过（跳过项均写明原因，主要是「这一幕没有卡片表面」与「正文级文本块不足两个」）；
 K7 的负例（注入 350 字副标题）报「越出安全区：「title-text」上越界 285.2px」、
 错误数 1、退出码 2；
-未启用预设的 `examples/declarative-number` 限帧 12 帧成片与改动前逐字节一致，
+未启用预设的 `examples/declarative-number` 限帧 12 帧成片与改动前逐字节一致
+（`--capture-format png` → `DAFDD423…`／默认 → `DF1DB75D…`，命令要连哈希一起记，
+否则复现不出来），
 预设页面的 8 幕共 24 帧在「剥掉档位声明」的加载下逐像素一致。
+
+图形颜色的预算与实测（见
+[发布会级设计语言](../.agents/skills/article2video/references/keynote-design-system.md)
+的分类表）：深色／浅色两套主题下，数据描边 5.69 / 5.22（`--fig-line`）与
+7.75 / 7.42（`--fig-line-data`），水体描边 4.82 / 5.23，图形内文本 8.06 / 7.22，
+装饰描边 1.63 / 1.63；面填充不设数值下限。改动前浅色主描边只有 3.31:1、
+水体描边 1.89:1、图形内文本 3.73:1，深色水体描边 3.23:1，全部低于 README 承诺的
+图形 4.5:1；更隐蔽的是 `figures.css` 里写死的浅色页取值（`.load-hollow` 的填充、
+`.drop-track` 与 `.drop-fill` 的槽和柱），在深色预设下与底色同色，
+「看着很大其实没有重量」的空壳只剩虚线、一幕「差量」只剩虚线框。
+两者现在都由 `tests/test_figure_contrast.py` 守住，并且是**逐帧打开确认过**的：
+35% 处左栏出现清晰的实心柱，96% 处抽干后只剩底下一线 + 虚线幽灵框 + 差额括号。
 
 尚未实现：视觉模型自动评审（K 系列只给数值，最终判断仍要人看
 [视觉评审量表](../.agents/skills/article2video/references/visual-review-rubric.md)）、

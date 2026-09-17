@@ -84,8 +84,13 @@
     letter-spacing: -0.03em;
     /* 断行位置由分镜里的换行符决定，避免自动折行把重点词拆开 */
     white-space: pre-line;
-    /* 上深下浅的墨色渐变：比纯黑多一点纸面呼吸感 */
-    background: linear-gradient(180deg, #23262d 0%, #3d434e 100%);
+    /* 上深下浅的墨色渐变：比纯黑多一点纸面呼吸感。
+       预设层会用整套替换这段背景，这里的取值只是未启用预设时的默认。 */
+    background: linear-gradient(
+      180deg,
+      var(--fig-title-grad-from, #23262d) 0%,
+      var(--fig-title-grad-to, #3d434e) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -131,9 +136,12 @@
     fill: var(--fig-ink);
   }
 
-  /* 空壳：虚线 + 极浅填充，表示「看着很大，其实没有重量」 */
+  /* 空壳：虚线 + 极浅填充，表示「看着很大，其实没有重量」。
+     填充值必须走令牌：写死 rgba(22,24,29,0.035) 在浅色页面上是极淡的灰，
+     换到深色预设下就变成与底色同色——空壳只剩下虚线，看着像没画完。
+     回落值等于原来的字面值，未启用预设时逐字节不变。 */
   .load-hollow {
-    fill: rgba(22, 24, 29, 0.035);
+    fill: var(--fig-hollow, rgba(22, 24, 29, 0.035));
     stroke: var(--fig-line);
     stroke-width: 4;
     stroke-dasharray: 16 13;
@@ -286,14 +294,18 @@
     height: 300px;
   }
 
-  /* 竖尺：底边是「0」，高度是「你手里有的东西」 */
+  /* 竖尺：底边是「0」，高度是「你手里有的东西」。
+     槽与柱必须走令牌：写死的 rgba(22,24,29,0.025) 与 #3a3f4a→#23262d 是浅色页面
+     上的取值，压到深色预设的近黑底上就与底色同色——「容量」的刻度参照消失，
+     这一幕只剩下飘着的虚线框。（柱在结尾归零是设计，见 updateGap 的
+     `aFill = ownP * (1 - dropP)`：拥有 → 被拿走 → 落差拉满。） */
   .drop-track {
     position: relative;
     width: 104px;
     height: 268px;
     border: 1px solid var(--a2v-hairline);
     border-radius: var(--a2v-radius-sm);
-    background: rgba(22, 24, 29, 0.025);
+    background: var(--fig-drop-track, rgba(22, 24, 29, 0.025));
   }
 
   .drop-fill {
@@ -303,11 +315,19 @@
     bottom: 0;
     height: 0;
     border-radius: 0 0 19px 19px;
-    background: linear-gradient(180deg, #3a3f4a 0%, #23262d 100%);
+    background: linear-gradient(
+      180deg,
+      var(--fig-drop-fill-from, #3a3f4a) 0%,
+      var(--fig-drop-fill-to, #23262d) 100%
+    );
   }
 
   .drop-panel.is-fact .drop-fill {
-    background: linear-gradient(180deg, #cc4a3f 0%, #a92c22 100%);
+    background: linear-gradient(
+      180deg,
+      var(--fig-drop-fact-from, #cc4a3f) 0%,
+      var(--fig-drop-fact-to, #a92c22) 100%
+    );
   }
 
   /* 虚线：被拒绝之前的高度。它留在原地，差值就是「失去」 */
@@ -484,7 +504,9 @@
 
   .loop-track {
     fill: none;
-    stroke: var(--fig-line-soft);
+    /* 轨道承载结构，不是装饰：预设层用 --fig-line-data 把它抬到数据描边的预算内，
+       未启用预设时回落到原来的软线取值，画面逐字节不变。 */
+    stroke: var(--fig-line-data, var(--fig-line-soft));
     stroke-width: 4;
     stroke-dasharray: 4 18;
     stroke-linecap: round;
@@ -504,7 +526,8 @@
   }
 
   .loop-node-shadow {
-    fill: rgba(30, 26, 22, 0.07);
+    /* 同样的道理：阴影也要跟主题走，浅色页面上的暖灰阴影压在深色底上等于没有。 */
+    fill: var(--fig-node-shadow, rgba(30, 26, 22, 0.07));
   }
 
   .loop-node-text {
@@ -543,7 +566,8 @@
     flex: 1 1 auto;
     height: 16px;
     border-radius: 999px;
-    background: rgba(22, 24, 29, 0.07);
+    /* 同理：槽是图形的一部分，不能写死浅色页面上的深灰 */
+    background: var(--fig-gauge-track, rgba(22, 24, 29, 0.07));
     overflow: hidden;
   }
 
@@ -586,7 +610,8 @@
   }
 
   .stair-axis {
-    stroke: var(--fig-line-soft);
+    /* 轴线是数据的一部分，不是装饰线；预设层抬到数据描边预算，未启用预设时回落。 */
+    stroke: var(--fig-line-data, var(--fig-line-soft));
     stroke-width: 3;
   }
 

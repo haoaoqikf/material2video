@@ -1,0 +1,297 @@
+"""图形颜色令牌的对比度预算。
+
+这一组测试守的是一类以前完全没有守卫的静默失效：
+
+- `TestFigureTokenCoverage` 只查 `figures.css` 引用的每个 `--fig-*` 令牌在两套主题里
+  **有定义**；
+- K5 正文对比度只量 DOM 里的**文本样张**，SVG 的 `fill` / `stroke` 不在量程内；
+- K1 留白预算量的是背景像素占比——图形越淡，背景占比越高，**越容易通过**。
+
+三者叠起来的结果是：预设层的 `--fig-line-soft` 只有 1.63:1、浅色主题的主描边只有
+3.31:1，而所有检查全绿。这里把「图形看不看得见」变成可验证契约。
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+KEYNOTE_CSS = ROOT / ".agents" / "skills" / "article2video" / "assets" / "keynote.css"
+
+#: 图形颜色令牌的分类表。新增令牌必须先进这张表，否则
+#: `test_every_token_is_classified` 会失败——「没有对应规则」不等于「可以放行」。
+#: 取值：`(类, 判定参照)`，参照为 `bg`（对 `--a2v-bg-0`）或 `ink`（对 `--fig-ink` 成对判定）。
+CLASSES: dict[str, tuple[str, str]] = {
+    "--fig-line": ("数据描边", "bg"),
+    "--fig-line-data": ("数据描边", "bg"),
+    "--fig-water-line": ("数据描边", "bg"),
+    "--fig-water-text": ("图形内文本", "bg"),
+    "--fig-line-soft": ("装饰描边", "bg"),
+    "--fig-ink": ("面填充", "-"),
+    "--fig-on-ink": ("图形内文本", "ink"),
+    "--fig-surface": ("面填充", "-"),
+    "--fig-water": ("面填充", "-"),
+    "--fig-hollow": ("面填充", "-"),
+    "--fig-node-shadow": ("面填充", "-"),
+    "--fig-drop-track": ("面填充", "-"),
+    "--fig-drop-fill-from": ("面填充", "-"),
+    "--fig-drop-fill-to": ("面填充", "-"),
+    "--fig-drop-fact-from": ("面填充", "-"),
+    "--fig-drop-fact-to": ("面填充", "-"),
+    "--fig-gauge-track": ("面填充", "-"),
+    "--fig-title-grad-from": ("图形内文本", "bg"),
+    "--fig-title-grad-to": ("图形内文本", "bg"),
+}
+
+#: SVG 表现属性里允许出现的取值。「空壳」的填充曾经写死成 `rgba(22,24,29,0.035)`：
+#: 在浅色页面上是很淡的灰，换到深色预设下就与底色同色——组件里写死的颜色
+#: 不跟主题走，正是设计宪法里点名的那条静默失效。下面这条规则把它变成机检。
+PAINT_KEYWORDS = {
+    "none",
+    "transparent",
+    "currentcolor",
+    "inherit",
+    "context-fill",
+    "context-stroke",
+}
+LITERAL_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(")
+
+#: 每类的对比度下限。面填充**没有**下限：形状的可读性由数据描边负责，
+#: 而浅色主题自己的面阶（`--a2v-bg-0` → `--a2v-surface-1`）就只有 1.13:1，
+#: 给面填充设下限会把正确的做法判成缺陷。
+BUDGETS: dict[str, float] = {
+    "数据描边": 4.5,
+    "图形内文本": 4.5,
+    "装饰描边": 1.5,
+}
+
+THEMES = {"keynote-dark": "dark", "keynote-light": "light"}
+
+#: 主题块里用来做判定基准的画布色。
+CANVAS = {"dark": "#08090c", "light": "#eff1f4"}
+
+
+def _rgb(value: str) -> tuple[int, int, int, float]:
+    value = value.strip()
+    hex_match = re.fullmatch(r"#([0-9a-fA-F]{6})", value)
+    if hex_match:
+        raw = int(hex_match.group(1), 16)
+        return ((raw >> 16) & 255, (raw >> 8) & 255, raw & 255, 1.0)
+    fn_match = re.fullmatch(r"rgba?\(([^)]+)\)", value)
+    if not fn_match:
+        raise AssertionError(f"无法解析的颜色取值：{value}")
+    parts = [part.strip() for part in fn_match.group(1).split(",")]
+    red, green, blue = (int(round(float(part))) for part in parts[:3])
+    alpha = float(parts[3]) if len(parts) > 3 else 1.0
+    return (red, green, blue, alpha)
+
+
+def _composite(
+    foreground: tuple[int, int, int, float], background: tuple[int, int, int, float]
+) -> tuple[float, float, float]:
+    red, green, blue, alpha = foreground
+    return (
+        red * alpha + background[0] * (1 - alpha),
+        green * alpha + background[1] * (1 - alpha),
+        blue * alpha + background[2] * (1 - alpha),
+    )
+
+
+def _luminance(color: tuple[float, float, float]) -> float:
+    def channel(value: float) -> float:
+        value /= 255
+        return value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+
+    return 0.2126 * channel(color[0]) + 0.7152 * channel(color[1]) + 0.0722 * channel(color[2])
+
+
+def _contrast(
+    foreground: tuple[float, float, float], background: tuple[float, float, float]
+) -> float:
+    one, two = _luminance(foreground), _luminance(background)
+    return (max(one, two) + 0.05) / (min(one, two) + 0.05)
+
+
+def _theme_blocks() -> dict[str, dict[str, str]]:
+    """从 `keynote.css` 里按主题抽出图形颜色令牌的取值。
+
+    用**带主题名的完整选择器**切块：只写 `[data-a2v-preset="keynote"]` 会先命中
+    `:root[data-a2v-preset="keynote"]` 那个基础块，只写 `[data-a2v-theme` 会先命中
+    深色块——两种都会让测试安静地量错东西（曾经如此）。
+    """
+    source = KEYNOTE_CSS.read_text(encoding="utf-8")
+    blocks: dict[str, dict[str, str]] = {}
+    for theme in ("dark", "light"):
+        selector = f':root[data-a2v-preset="keynote"][data-a2v-theme="{theme}"]'
+        start = source.find(selector)
+        assert start != -1, f"`keynote.css` 里找不到 {theme} 主题块（选择器 {selector}）"
+        depth, index, end = 0, source.find("{", start), -1
+        while index < len(source):
+            if source[index] == "{":
+                depth += 1
+            elif source[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = index
+                    break
+            index += 1
+        assert end != -1, f"{theme} 主题块没有闭合"
+        segment = source[source.find("{", start) : end]
+        tokens: dict[str, str] = {}
+        for match in re.finditer(r"(--fig-[a-z-]+):\s*([^;]+);", segment):
+            tokens[match.group(1)] = match.group(2).strip()
+        assert tokens, f"{theme} 主题块里没有抽出任何图形颜色令牌，选择器可能又错了"
+        blocks[theme] = tokens
+    return blocks
+
+
+BLOCKS = _theme_blocks()
+
+
+def _ratio(theme: str, value: str) -> float:
+    canvas = _rgb(CANVAS[theme])
+    return _contrast(_composite(_rgb(value), canvas), _composite(canvas, canvas))
+
+
+@pytest.fixture(scope="module")
+def over_budget() -> list[tuple[str, str, str, str, float, float]]:
+    """返回所有不达标的条目，供逐类断言与失败信息共用。"""
+    failures = []
+    for theme, tokens in BLOCKS.items():
+        for token, (klass, reference) in CLASSES.items():
+            budget = BUDGETS.get(klass)
+            if budget is None or reference == "-":
+                continue
+            value = tokens.get(token)
+            if value is None:
+                continue
+            if reference == "ink":
+                ink = tokens.get("--fig-ink")
+                ratio = _contrast(_rgb(value)[:3], _rgb(ink)[:3])
+            else:
+                ratio = _ratio(theme, value)
+            if ratio < budget:
+                failures.append((theme, token, klass, value, ratio, budget))
+    return failures
+
+
+class TestClassification:
+    def test_every_token_is_classified(self):
+        # 「没有对应规则」不等于「可以放行」：新令牌必须先归类
+        known = set(CLASSES)
+        for theme, tokens in BLOCKS.items():
+            unknown = sorted(set(tokens) - known)
+            assert not unknown, (
+                f"{theme} 主题里有未归类的图形颜色令牌：{unknown}；"
+                "请先在 tests/test_figure_contrast.py 的 CLASSES 里归类"
+            )
+
+    def test_both_themes_define_the_same_tokens(self):
+        # 两套主题必须提供同一组令牌名，否则换主题就会掉回未定义的颜色
+        dark, light = set(BLOCKS["dark"]), set(BLOCKS["light"])
+        assert dark == light, f"两套主题令牌不一致：{sorted(dark ^ light)}"
+
+    def test_budgets_cover_every_class_that_needs_one(self):
+        classes = {klass for klass, reference in CLASSES.values() if reference != "-"}
+        assert classes == set(BUDGETS), f"分类与预算表不对应：{sorted(classes ^ set(BUDGETS))}"
+
+    def test_fills_have_no_numeric_budget(self):
+        # 面填充不设下限是刻意的：浅色主题自己的面阶（bg-0 → surface-1）就只有 1.13:1，
+        # 设下限等于要求把正确的白色面阶改成灰色。
+        fills = {token for token, (klass, ref) in CLASSES.items() if klass == "面填充"}
+        assert fills == {
+            "--fig-ink",
+            "--fig-surface",
+            "--fig-water",
+            "--fig-hollow",
+            "--fig-node-shadow",
+            "--fig-drop-track",
+            "--fig-drop-fill-from",
+            "--fig-drop-fill-to",
+            "--fig-drop-fact-from",
+            "--fig-drop-fact-to",
+            "--fig-gauge-track",
+        }
+        assert "面填充" not in BUDGETS
+
+    def test_svg_paint_never_hardcodes_a_color(self):
+        """`fill` / `stroke` / `background` 只允许引用令牌。
+
+        写死的颜色不跟主题走。实测过两处：`.load-hollow` 的 `rgba(22,24,29,0.035)`
+        在深色预设下与底色同色，「看着很大其实没有重量」的空壳只剩虚线；
+        `.drop-track` 的 `rgba(22,24,29,0.025)` 与 `.drop-fill` 的
+        `#3a3f4a→#23262d` 压在近黑底上，一幕「差量」只剩虚线框——
+        运行时的计算值就是这两个浅色页面上的字面值。
+        `test_classes_cover_the_tokens_figures_css_actually_uses`
+        抓不到它们：那条只看 `var(--fig-*)` 引用，字面值是隐形的。
+        """
+        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+            encoding="utf-8"
+        )
+        offenders = []
+        for match in re.finditer(r"\b(fill|stroke|background)\s*:\s*([^;]+);", figures):
+            prop, value = match.group(1), match.group(2).strip()
+            # 令牌的回落位置允许写字面值——那正是「未启用预设时保持原样」的手段
+            stripped = re.sub(r"var\(--[a-z0-9-]+,\s*[^()]*(?:\([^()]*\))?[^()]*\)", "var()", value)
+            if stripped.lower() in PAINT_KEYWORDS or stripped.startswith("url("):
+                continue
+            # `rgba(var(--a2v-accent-rgb), 0.5)` 是合法的令牌用法：色值来自令牌，
+            # 只有 alpha 是就地写的。所以「含 var() 且不含十六进制字面值」放行。
+            if "var(--" in stripped and not re.search(r"#[0-9a-fA-F]{3,8}\b", stripped):
+                continue
+            if LITERAL_COLOR.search(stripped):
+                offenders.append(f"{prop}: {value}")
+        assert not offenders, (
+            "figures.css 的 fill/stroke/background 里写死了颜色，换主题就会原地留一抹旧主题的颜色：\n  "
+            + "\n  ".join(offenders)
+        )
+
+
+class TestBudgetsHold:
+    def test_no_token_is_below_budget(self, over_budget):
+        detail = "\n".join(
+            f"  {theme} {token}（{klass}）{value} 实测 {ratio:.2f}:1，需 ≥ {budget}"
+            for theme, token, klass, value, ratio, budget in over_budget
+        )
+        assert not over_budget, f"图形令牌低于对比度预算：\n{detail}"
+
+    def test_data_strokes_are_measured_in_both_themes(self):
+        # 浅色主题曾经全面不达标（主描边 3.31:1、水体描边 1.89:1），
+        # 这条防止只修深色主题。
+        for theme, tokens in BLOCKS.items():
+            for token in ("--fig-line", "--fig-line-data", "--fig-water-line"):
+                ratio = _ratio(theme, tokens[token])
+                assert ratio >= 4.5, f"{theme} 的 {token} 只有 {ratio:.2f}:1"
+
+    def test_the_new_data_stroke_is_actually_stronger_than_the_soft_one(self):
+        # `--fig-line-data` 的存在意义就是比软线强；两者相等说明回落写法白加了
+        for theme, tokens in BLOCKS.items():
+            strong = _ratio(theme, tokens["--fig-line-data"])
+            soft = _ratio(theme, tokens["--fig-line-soft"])
+            assert strong > soft, f"{theme} 的 --fig-line-data 没有比 --fig-line-soft 更强"
+
+
+class TestContrastMath:
+    def test_known_ratios(self):
+        white = _composite(_rgb("#ffffff"), _rgb("#ffffff"))
+        black = _composite(_rgb("#000000"), _rgb("#000000"))
+        assert _contrast(white, black) == pytest.approx(21.0, abs=0.01)
+
+    def test_alpha_is_composited_before_measuring(self):
+        # 半透明令牌必须先合成到底色：直接拿 alpha 前的取值算会高估对比度
+        canvas = _rgb("#08090c")
+        faint = _contrast(_composite(_rgb("rgba(255,255,255,0.18)"), canvas), _composite(canvas, canvas))
+        opaque = _contrast(_rgb("#ffffff")[:3], _composite(canvas, canvas))
+        assert faint < opaque
+        assert faint == pytest.approx(1.63, abs=0.05)
+
+    def test_classes_cover_the_tokens_figures_css_actually_uses(self):
+        # 分类表要覆盖组件真正引用的令牌，否则规则会漏掉正在用的东西
+        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+            encoding="utf-8"
+        )
+        used = set(re.findall(r"var\((--fig-[a-z-]+)", figures))
+        assert used <= set(CLASSES), f"figures.css 引用了未归类的令牌：{sorted(used - set(CLASSES))}"
