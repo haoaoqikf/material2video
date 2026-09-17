@@ -16,6 +16,9 @@
 ## OpenSpec 工作流
 
 - 涉及新能力或现有行为变化时，先在 `openspec/changes/` 记录提案、规格与任务，再实施并验证；完成后归档，使 `openspec/specs/` 反映已实现行为。
+- 实施完成后自动归档：`openspec-apply-change` 的任务全部完成（tasks 全为 `- [x]`）、验证与提交通过后，
+  直接按 `openspec-archive-change` 流程同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`，
+  随后提交归档结果，无需再次征求确认；仅当验证失败、任务未完成或流程被暂停时才停下并说明原因。
 - OpenSpec 规格描述可验证的产品行为；README 记录当前状态，`docs/PROJECT_PLAN.md` 记录未来路线，article2video Skill 的参考文档记录制作与渲染契约。修改时同步维护相关权威文档。
 - 小型文档修正或不改变行为的维护工作可直接处理，无需为形式创建变更。
 
