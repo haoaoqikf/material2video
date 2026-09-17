@@ -1,8 +1,11 @@
 """资产自足性与预设校验。
 
-分三层：
+分四层：
 - 静态层：资产层里不许出现外部 URL，且每处 `url()` 都要指到仓库内真实文件；
 - 真实层：限帧导出必须跑得通（资产缺失会在这里暴露）；
+- 断网层：拦掉浏览器发出的每一个非本地请求，页面仍要渲染，且两套 webfont
+  的 `FontFace.status` 都是 `loaded`（字体静默回退成系统字体在成片里几乎看不出来，
+  但会改变字宽与换行）；
 - 契约层：分镜的 `visual.preset` 可选，但写了就必须是登记过的预设。
 
 如果哪一天有人把字体或样式改回 CDN，这里会立刻失败，
@@ -160,3 +163,87 @@ class TestOfflineRender:
         )
         assert result.returncode == 0, f"限帧导出失败：{result.stdout}\n{result.stderr}"
         assert (tmp_path / "offline.mp4").stat().st_size > 0
+
+    def test_page_loads_with_every_non_local_request_blocked(self) -> None:
+        """真正的断网检查：拦掉浏览器发出的**每一个非本地请求**，页面仍要正常渲染。
+
+        静态扫 URL 只能证明「资产层里没有外链」，证明不了「浏览器真的只用本地
+        资产」。这里在 Playwright 层拦截请求：凡是 `127.0.0.1` 之外的一律
+        `abort`，然后要求
+
+        1. 没有任何请求被拦下（有的话说明真的有东西在往外要）；
+        2. 两套 webfont 的 `FontFace.status` 都是 `loaded`——
+           字体回退成系统字体在成片里几乎看不出来，但会悄悄改变字宽与换行；
+        3. 字体文件确实是从本地路径取回的。
+        """
+        playwright = pytest.importorskip("playwright.sync_api")
+        import functools
+        import http.server
+        import socketserver
+        import threading
+        from urllib.parse import quote
+
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def log_message(self, *args):  # noqa: D102 - 测试里不需要访问日志
+                pass
+
+        with socketserver.ThreadingTCPServer(
+            ("127.0.0.1", 0), functools.partial(Handler, directory=str(ROOT))
+        ) as httpd:
+            httpd.daemon_threads = True
+            port = httpd.server_address[1]
+            threading.Thread(target=httpd.serve_forever, daemon=True).start()
+            try:
+                allowed = f"http://127.0.0.1:{port}/"
+                page_url = (
+                    f"{allowed}{ASSETS.relative_to(ROOT).as_posix()}/declarative.html"
+                    f"?a2v-storyboard={quote('/' + STORYBOARD.relative_to(ROOT).as_posix(), safe='')}"
+                )
+                with playwright.sync_playwright() as p:
+                    browser = p.chromium.launch()
+                    page = browser.new_page(viewport={"width": 1080, "height": 1920})
+                    blocked: list[str] = []
+                    requested: list[str] = []
+
+                    def _guard(route, request):
+                        url = request.url
+                        requested.append(url)
+                        if url.startswith(allowed) or url.startswith("data:"):
+                            route.continue_()
+                        else:
+                            blocked.append(url)
+                            route.abort()
+
+                    page.route("**/*", _guard)
+                    page.goto(page_url)
+                    page.wait_for_function(
+                        "() => document.querySelectorAll('[data-a2v-scene]').length > 0",
+                        timeout=20000,
+                    )
+                    page.evaluate("() => document.fonts.ready")
+                    facts = page.evaluate(
+                        """() => {
+                          const faces = [];
+                          document.fonts.forEach((f) => faces.push({
+                            family: f.family, status: f.status, weight: f.weight
+                          }));
+                          const el = document.querySelector('[data-a2v-preset] [data-a2v-stage]')
+                                  || document.querySelector('[data-a2v-stage]');
+                          return { faces, stack: getComputedStyle(el).fontFamily };
+                        }"""
+                    )
+                    browser.close()
+                    assert not blocked, f"有请求被拦下，说明页面在依赖外部资源：{blocked}"
+
+                    webfonts = {f["family"]: f["status"] for f in facts["faces"]}
+                    assert webfonts, "页面没有注册任何 @font-face，字体大概没被引用"
+                    for family in ("A2V Inter", "A2V Sans"):
+                        assert webfonts.get(family) == "loaded", (
+                            f"{family} 未加载（status={webfonts.get(family)}），"
+                            "画面会静默回退成系统字体"
+                        )
+                    assert "A2V Inter" in facts["stack"], facts["stack"]
+                    fonts = [url for url in requested if url.endswith(".ttf")]
+                    assert len(fonts) >= 2, f"没有从本地取回字体文件：{requested}"
+            finally:
+                httpd.shutdown()

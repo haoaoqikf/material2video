@@ -43,6 +43,6 @@
 
 - [x] 7.1 用启用预设的分镜走通「校验 → 预览 → 限帧导出 → 视觉评审」全链路，`validate.py --declarative --strict` 零错误零警告、`review.py` 的 C 系列零错误、K 系列给出实测数值；以命令输出与 `report.json` 为交付物。
 - [x] 7.2 逐帧不变性回归：对未启用预设的既有示例，在本次变更前后各取同一帧做逐像素比对，要求完全一致；以比对结论为交付物。
-- [x] 7.3 断网渲染验证：在无网络条件下完成一次限帧导出，确认字体不回退、画面与联网时一致；以命令输出为交付物。
+- [x] 7.3 断网渲染验证：`tests/test_offline_assets.py::TestOfflineRender::test_page_loads_with_every_non_local_request_blocked` 在 Playwright 层拦掉浏览器发出的每一个非本地请求（非 `127.0.0.1` 一律 `abort`），断言「没有任何请求被拦下」「两套 webfont 的 `FontFace.status` 都是 `loaded`」「两个 `.ttf` 确实从本地路径取回」。静态扫 URL 只能证明资产层没有外链，证明不了浏览器真的只用本地资产。
 - [x] 7.4 运行 `uv run pytest` 与 `openspec validate adopt-keynote-design-system --strict`，确认既有测试与规格校验全部通过。
-- [ ] 7.5 检查暂存内容不包含生成媒体、缓存或密钥（字体资产与许可证必须包含），按仓库约定提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。
+- [x] 7.5 检查暂存内容不包含生成媒体、缓存或密钥（字体资产与许可证必须包含），按仓库约定提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。以 `520b9c0` 提交；暂存内容经扫描无 `outputs/`、`*.mp4`、缓存与凭据，字体资产与两套 OFL 许可证均已跟踪。
