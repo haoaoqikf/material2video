@@ -20,7 +20,7 @@ from typing import Iterator
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import paths
+from . import paths, security
 from .audio import mux
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
@@ -135,6 +135,11 @@ def render(
         final_path.replace(output_path)
         if media:
             (temp / "subtitles.srt").replace(output_path.with_suffix(".srt"))
+        # 成片经由临时目录中转，Windows 下会把临时目录那份「关闭继承」的 ACL 带过来；
+        # 不修的话标准权限的播放器（Windows 11 新版媒体播放器）会报 0x80070005。
+        _grant_access(output_path)
+        if media:
+            _grant_access(output_path.with_suffix(".srt"))
 
     return RenderResult(
         output=output_path,
@@ -373,6 +378,17 @@ def _verify_output(output: Path, expected_frames: int, width: int, height: int, 
         fps,
         reported if reported is not None else "?",
     )
+
+
+def _grant_access(path: Path) -> None:
+    """把交付文件交回父目录的继承权限。
+
+    成片、字幕都经临时目录中转，Windows 下会带上临时目录那份「关闭继承」的 ACL，
+    标准权限的播放器（Windows 11 新版媒体播放器）因此报 0x80070005。修复失败只记
+    日志，不影响已经渲染好的成片。
+    """
+    if not security.grant_inherited_access(path):
+        logger.warning("未能修复 %s 的访问权限，打包应用可能无法打开该文件", path)
 
 
 def _verify_playback_compatibility(output: Path) -> None:

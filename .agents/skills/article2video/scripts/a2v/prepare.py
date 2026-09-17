@@ -14,7 +14,7 @@ from pathlib import Path
 
 import edge_tts
 
-from . import audio, storyboard as sb
+from . import audio, security, storyboard as sb
 from .errors import A2VError
 from .media import fingerprint
 from .subtitles import cues_from_words, srt
@@ -72,6 +72,9 @@ def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool) -> 
             "sha256": hashlib.sha256((root / "speech.wav").read_bytes()).hexdigest()}, ensure_ascii=False), encoding="utf-8")
         (root / "speech.wav").replace(wav)
         (root / "words.json").replace(metadata)
+        # 经临时目录转手的文件会带上「关闭继承」的 ACL，交回父目录的继承规则
+        security.grant_inherited_access(wav)
+        security.grant_inherited_access(metadata)
     return wav, cues, duration, False
 
 
@@ -114,6 +117,8 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
         (work / "audio.wav").replace(root / manifest["audio"])
         (work / "subtitles.srt").replace(root / manifest["subtitles"])
         (work / "media.json").replace(root / "media.json")
+    for name in (manifest["audio"], manifest["subtitles"], "media.json"):
+        security.grant_inherited_access(root / name)
     logger.info("配音准备完成：%d 幕，缓存命中 %d，%.2fs，耗时 %.1fs", len(scenes), hits,
                 cursor / source["fps"], time.monotonic() - started)
     return root / "media.json"
