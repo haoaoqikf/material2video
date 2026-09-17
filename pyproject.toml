@@ -21,3 +21,8 @@ addopts = "-q"
 markers = [
     "slow: 需要起浏览器或跑真实渲染的用例，用 -m 'not slow' 可跳过",
 ]
+
+# 子集化用的可选依赖：默认渲染完全离线可跑，装了并显式开启才会切字体。
+# 没装的机器不会因此少任何能力，只是不能切子集。
+[project.optional-dependencies]
+fonts = ["fonttools>=4.50,<5"]

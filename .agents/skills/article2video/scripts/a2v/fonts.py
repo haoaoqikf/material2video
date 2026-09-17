@@ -228,3 +228,50 @@ def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
     return findings
 
 
+
+
+def charset_for(storyboard: dict, extra_texts: dict[str, str] | None = None) -> str:
+    """该作品会被渲染的全部字符（去重、排序稳定）。
+
+    复用 `rendered_strings`：切子集用的字符集必须与体检检查的范围**同一口径**，
+    否则会出现「切的时候没带上、体检说缺字」或者反过来的错位。
+    """
+    chars: set[str] = set()
+    for _where, text in [*rendered_strings(storyboard), *(extra_texts or {}).items()]:
+        chars.update(char for char in text if not char.isspace())
+    return "".join(sorted(chars))
+
+
+class SubsetUnavailable(RuntimeError):
+    """没装可选依赖（fonttools）。"""
+
+
+def subset_font(source: str | Path, text: str, target: str | Path) -> Path:
+    """切出只含 `text` 里字符的字体，写到 `target`。
+
+    源文件**不动**——共享字体要渲染将来的任意文章，按今天的文本切共享资产
+    明天就会缺字。切出来的子集只服务这一支作品。
+    需要可选依赖 `fonttools`（`uv sync --extra fonts`）；没装时抛
+    `SubsetUnavailable`，由调用方给出清楚的提示而不是崩掉。
+    """
+    try:
+        from fontTools import subset as fonttools_subset
+    except ImportError as exc:  # pragma: no cover - 取决于环境
+        raise SubsetUnavailable(
+            "切字体子集需要可选依赖：uv sync --extra fonts（默认渲染不需要它）"
+        ) from exc
+
+    source_path, target_path = Path(source), Path(target)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    options = fonttools_subset.Options()
+    options.layout_features = ["*"]          # 保留排版特性（连字、字距）
+    options.name_IDs = ["*"]                 # 保留字体名，避免调试时认不出
+    options.notdef_outline = True
+    options.recalc_bounds = True
+    font = fonttools_subset.load_font(str(source_path), options)
+    subsetter = fonttools_subset.Subsetter(options=options)
+    subsetter.populate(text=text)
+    subsetter.subset(font)
+    fonttools_subset.save_font(font, str(target_path), options)
+    font.close()
+    return target_path
