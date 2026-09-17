@@ -178,6 +178,18 @@ def _ratio(theme: str, value: str, base: str = "--a2v-bg-0") -> float:
     return _contrast(_composite(_rgb(value), canvas), _composite(canvas, canvas))
 
 
+def _resolved(theme: str, token: str) -> str:
+    """跟着 `var()` 取值，最多五层。令牌互相引用时不至于量成一个字符串。"""
+    value = BLOCKS[theme].get(token)
+    assert value is not None, f"{theme} 主题块里没有 {token}"
+    for _ in range(5):
+        match = re.fullmatch(r"var\(\s*(--[a-z0-9-]+)\s*\)", value.strip())
+        if not match:
+            return value.strip()
+        value = BLOCKS[theme][match.group(1)]
+    raise AssertionError(f"{token} 的 var() 链条超过五层，可能有环")
+
+
 @pytest.fixture(scope="module")
 def over_budget() -> list[tuple[str, str, str, str, float, float]]:
     """返回所有不达标的条目，供逐类断言与失败信息共用。"""
@@ -354,6 +366,65 @@ class TestBudgetsHold:
             strong = _ratio(theme, tokens["--fig-line-data"])
             soft = _ratio(theme, tokens["--fig-line-soft"])
             assert strong > soft, f"{theme} 的 --fig-line-data 没有比 --fig-line-soft 更强"
+
+
+class TestFaceTiersStayDistinct:
+    """三档面填充按**性质**区分，不能塌成同一个取值。
+
+    这一条是「面填充不设数值下限」的另一半。看过基准示例的实测帧之后确认：
+    实心物体（台阶柱、圆盘、块体）读作「细描边 + 耳语填充」，形状毫无歧义；
+    冰山图里水上尖端是耳语填充、水下主体是冷色实心——**这个差就是那张图的语义**
+    （看得见的一角与看不见的主体不是一回事）。所以给实心物体加重填充不是
+    「变得更实」，而是把刻意做出来的层级抹平。
+
+    数值大小不作判据（浅色主题自己的面阶只有 1.13:1，`--fig-surface` 取白色
+    正是跟着它走），但**同不同**可以判：
+
+      * 实心面 SHALL NOT 等于画布，否则实心物体在背景上没有面、只剩描边；
+      * 实心面、次级面（水体）、空壳 SHALL NOT 塌成同一个取值。
+
+    已知边界：浅色主题的 `--fig-surface` 就等于抬升面 `--a2v-bg-2`（都是 `#ffffff`），
+    深色主题两者只差 1.01:1——所以画在面板**上**的实心物体没有面阶，识别只能靠描边。
+    这是接受的取舍，不是缺陷：面板本身已经与画布分开了。
+    """
+
+    TIERS = ("--fig-surface", "--fig-water", "--fig-hollow")
+
+    def test_solid_face_is_visible_against_the_canvas(self):
+        for theme in THEMES.values():
+            surface = _resolved(theme, "--fig-surface")
+            canvas = _resolved(theme, "--a2v-bg-0")
+            assert _rgb(surface) != _rgb(canvas), (
+                f"{theme} 主题的 --fig-surface 与画布同色，实心物体在背景上没有面"
+            )
+            assert _ratio(theme, surface, "--a2v-bg-0") > 1.0
+
+    def test_the_three_face_tiers_do_not_collapse(self):
+        for theme in THEMES.values():
+            values = {}
+            for token in self.TIERS:
+                values[token] = _rgb(_resolved(theme, token))
+            collapsed = [
+                (one, other)
+                for index, one in enumerate(self.TIERS)
+                for other in self.TIERS[index + 1 :]
+                if values[one] == values[other]
+            ]
+            assert not collapsed, (
+                f"{theme} 主题里这几档面填充塌成了同一个取值：{collapsed}——"
+                "层级会消失，水体、实心物体与空壳只剩线型之差"
+            )
+
+    def test_the_secondary_face_carries_a_tint(self):
+        """次级面（水体）是唯一的冷色面：它靠色相与水下的语义绑定，不能退成中性灰。"""
+        for theme in THEMES.values():
+            water = _rgb(_resolved(theme, "--fig-water"))
+            assert water[3] < 1.0, f"{theme} 主题的 --fig-water 不再是与底叠合的透明面"
+            spread = max(water[:3]) - min(water[:3])
+            assert spread >= 20, (
+                f"{theme} 主题的 --fig-water（{water[:3]}）色相跨度只有 {spread}，"
+                "已经接近中性灰——水下的「另一回事」会看不出来"
+            )
 
 
 class TestContrastMath:
