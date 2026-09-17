@@ -35,7 +35,7 @@ def _provenance(tmp_path: Path, page: Path, video: Path, extra: dict | None = No
 
     html = page.read_text(encoding="utf-8")
     payload = {
-        "version": 1,
+        "version": 2,
         "page": page.relative_to(tmp_path).as_posix(),
         "storyboard": "",
         "frames": 12,
@@ -111,6 +111,41 @@ class TestStalenessVerdicts:
         assert result["status"] == "current"
         assert result["unverifiable"] == ["media.sourceFingerprint"]
         assert "无法复核" in result["detail"]
+
+
+class TestLineEndingsDoNotFakeStaleness:
+    """git 的换行归一化会在工作区静默翻转行尾：只差行尾不得判落后。"""
+
+    def test_crlf_round_trip_stays_current(self, tmp_path):
+        page = _work(tmp_path)
+        video = tmp_path / "outputs" / "demo" / "silent.mp4"
+        _provenance(tmp_path, page, video)
+        theme = tmp_path / "assets" / "theme.css"
+        theme.write_bytes(theme.read_bytes().replace(b"\n", b"\r\n"))
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "current", result["detail"]
+
+    def test_binary_assets_are_hashed_raw(self, tmp_path):
+        """字体、图片不归一化：二进制里出现 0x0D0A 也不能被改写。"""
+        from a2v import media as media_mod
+
+        blob = tmp_path / "assets" / "font.ttf"
+        blob.parent.mkdir(parents=True, exist_ok=True)
+        blob.write_bytes(b"\x00\r\n\x01")
+        assert media_mod.file_digest(blob) == __import__("hashlib").sha256(b"\x00\r\n\x01").hexdigest()
+
+    def test_old_version_sidecar_is_unknown_not_stale(self, tmp_path):
+        """旧口径写的溯源不能判成落后——那是格式变了，不是资产变了。"""
+        page = _work(tmp_path)
+        video = tmp_path / "outputs" / "demo" / "silent.mp4"
+        _provenance(tmp_path, page, video)
+        sidecar = video.with_suffix(".provenance.json")
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+        data["version"] = 1
+        sidecar.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "unknown"
+        assert "旧格式" in result["detail"]
 
 
 class TestUnknownIsNotAPass:

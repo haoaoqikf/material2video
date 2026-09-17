@@ -19,7 +19,7 @@ from . import paths as paths_mod
 from . import storyboard as sb
 from .errors import A2VError
 from .media import Media, load_media
-from .render import render
+from .render import provenance_status, render
 from .static_server import LocalServer
 from .storyboard import Report
 
@@ -488,6 +488,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "page": str(page_file),
             "storyboard": str(args.storyboard),
             "source": "media" if media else "storyboard",
+            "provenance": _rendered_provenance(out_dir),
         },
         out_dir / "report.json",
     )
@@ -511,6 +512,46 @@ def _default_review_dir(page: str | Path, storyboard: str | Path) -> Path:
     target = article.output_dir / "inspect"
     logging.info("未指定 --out-dir，体检产物写入 %s", target)
     return target
+
+
+def _rendered_provenance(out_dir: Path) -> dict:
+    """这个作品的成片是不是旧资产渲的。
+
+    成片与体检产物同属一个作品目录（`outputs/<slug>/voiced.mp4` 对
+    `outputs/<slug>/inspect/`），所以从体检目录往上一级找成片。
+    它只回答「产物是不是旧的」，**不参与错误数与退出码**——
+    「不够发布会级」和「这些片子不是最新资产渲的」都不是「画面坏了」。
+    没有成片时返回空表，不报「无法判断」：还没渲过不是问题。
+    """
+    work_dir = out_dir.parent
+    found: dict[str, dict] = {}
+    for name in ("voiced", "silent"):
+        video = work_dir / f"{name}.mp4"
+        if video.is_file():
+            found[name] = provenance_status(video)
+    return found
+
+
+def _provenance_lines(provenance: dict | None) -> list[str]:
+    """成片溯源一行话：这个成片是不是旧资产渲的。
+
+    这份结论**不改错误数、不改退出码**——它是提示，不是废片判定。
+    `unknown` 要写得像 `unknown`：安静地什么都不说，和「对得上」长得一样，
+    而那正是这套机检一直在消灭的失败模式。
+    """
+    if not provenance:
+        return []
+    marks = {"current": "✓", "stale": "!", "unknown": "?"}
+    labels = {
+        "current": "对得上",
+        "stale": "落后：不是当前资产渲的，要重渲",
+        "unknown": "无法判断",
+    }
+    lines = ["成片溯源（只提示、不拦人）："]
+    for name, result in provenance.items():
+        status = result.get("status", "unknown")
+        lines.append(f"  {marks.get(status, '?')} {name}.mp4：{labels.get(status, status)}——{result.get('detail', '')}")
+    return lines
 
 
 def _review_summary(payload: dict, out_dir: Path) -> str:
@@ -537,6 +578,8 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     motion_result = payload.get("motion")
     if motion_result is not None:
         lines.extend(_motion_lines(motion_result))
+
+    lines.extend(_provenance_lines(payload.get("provenance")))
 
     lines.append("接下来需要人（或视觉模型）看的：见 references/visual-review-rubric.md")
     return "\n".join(lines)

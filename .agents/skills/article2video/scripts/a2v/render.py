@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import json
 import logging
 import re
@@ -28,7 +27,7 @@ from .audio import mux
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
 from .errors import A2VError
-from .media import Media, asset_fingerprint, media_url
+from .media import Media, asset_fingerprint, file_digest, media_url
 from .static_server import LocalServer
 from .storyboard import Storyboard
 from .subtitles import srt
@@ -115,12 +114,13 @@ def _write_provenance(
     storyboard_path = _storyboard_beside(page_file, storyboard_url, storyboard_origin)
     extra: dict[str, str] = {}
     if storyboard_path is not None:
-        extra[relative(storyboard_path)] = hashlib.sha256(storyboard_path.read_bytes()).hexdigest()
+        extra[relative(storyboard_path)] = file_digest(storyboard_path)
     if media_fingerprint:
         extra["media.sourceFingerprint"] = media_fingerprint
     html = page_file.read_text(encoding="utf-8", errors="replace")
     payload = {
-        "version": 1,
+        #: 2：资产指纹改为「文本按 LF 归一化」，见 media.file_digest
+        "version": 2,
         "renderedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "page": relative(page_file),
         "storyboard": relative(storyboard_path),
@@ -160,6 +160,14 @@ def provenance_status(video: str | Path) -> dict:
     except (OSError, ValueError) as exc:
         return {"status": "unknown", "detail": f"溯源文件读不出来（{exc}），无法判断", **empty}
 
+    if recorded.get("version") != 2:
+        return {
+            "status": "unknown",
+            "detail": f"溯源是旧格式（version={recorded.get('version')!r}），"
+                      "指纹口径已改为按 LF 归一化，请重渲一次再看",
+            **empty,
+        }
+
     root = assets.project_root(video_path.parent)
     page_rel = str(recorded.get("page") or "")
     page_file = (root / page_rel) if root else Path(page_rel)
@@ -177,7 +185,7 @@ def provenance_status(video: str | Path) -> dict:
         path = root / key
         if not path.is_file():
             (missing if key.endswith(asset_suffixes) else unverifiable).append(key)
-        elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+        elif file_digest(path) != digest:
             changed.append(key)
     added = [key for key in current if key not in old]
 

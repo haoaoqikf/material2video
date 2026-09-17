@@ -20,6 +20,26 @@ def fingerprint(source: dict) -> str:
                                     separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
 
+#: 按文本处理、需要归一化换行后再哈希的后缀
+_TEXT_SUFFIXES = frozenset(
+    {".css", ".js", ".mjs", ".cjs", ".json", ".html", ".htm", ".svg", ".txt", ".md"}
+)
+
+
+def file_digest(path: Path) -> str:
+    """资产内容摘要。文本类资产**先归一化换行**再哈希。
+
+    实测踩到的坑：git 的换行归一化会在工作区把 LF 静默换成 CRLF，
+    于是「内容没变、只差行尾」的文件会让成片被判成「落后」——
+    而人怎么重渲都消不掉这个结论（重渲记下 CRLF，下次 checkout 又翻回 LF），
+    闸门立刻沦为噪音。二进制资产（字体、图片）按原字节哈希。
+    """
+    data = path.read_bytes()
+    if path.suffix.lower() in _TEXT_SUFFIXES:
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 def asset_fingerprint(page: Path, html: str, extra: dict | None = None) -> dict:
     """成片溯源用的资产指纹：网页**真正引用**的本地资源，加上页面自身。
 
@@ -36,7 +56,7 @@ def asset_fingerprint(page: Path, html: str, extra: dict | None = None) -> dict:
             key = path.relative_to(root).as_posix()
         except ValueError:  # 项目根之外的路径：用文件名，不把绝对路径写进产物
             key = path.name
-        files[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+        files[key] = file_digest(path)
     for key, value in (extra or {}).items():
         files[key] = value
     return {"files": files, "digest": fingerprint(files)}
