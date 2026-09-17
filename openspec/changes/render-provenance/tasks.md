@@ -23,7 +23,7 @@
 
 ## 4. 文档与验收
 
-- [ ] 4.1 `references/render-contract.md` 补上溯源伴随文件的位置与字段。
-- [ ] 4.2 `SKILL.md` 的渲染验收把「靠人比对时间戳」改成查溯源。
-- [ ] 4.3 `docs/PROJECT_PLAN.md` 把这条从缺口移入已实现。
-- [ ] 4.4 全量 `uv run pytest` 通过；重渲一次基准示例确认成片字节不变、只多出伴随文件。
+- [x] 4.1 `references/render-contract.md` 补上溯源伴随文件的位置、字段表与两条口径（只指纹被引用资源、文本按 LF 归一化）。
+- [x] 4.2 `SKILL.md` 的渲染验收把「靠人比对时间戳」改成查溯源。
+- [x] 4.3 `docs/PROJECT_PLAN.md` 把这条从缺口移入已实现。
+- [x] 4.4 全量 `uv run pytest` 通过（全绿）；基准示例重渲 12 帧，哈希 `CBEBD8BF…` 与记录一致——画面逐字节不变。
