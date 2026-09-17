@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit, parse_qsl
 
+from . import assets as asset_refs
 from . import storyboard as sb
 from .audio import wav_duration
 from .errors import A2VError
@@ -17,6 +18,28 @@ from .errors import A2VError
 def fingerprint(source: dict) -> str:
     return hashlib.sha256(json.dumps(source, sort_keys=True, ensure_ascii=False,
                                     separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def asset_fingerprint(page: Path, html: str, extra: dict | None = None) -> dict:
+    """成片溯源用的资产指纹：网页**真正引用**的本地资源，加上页面自身。
+
+    只指纹被引用的文件，不指纹整个 `assets/` 目录：否则改一个用不到的图形
+    会让所有成片报「落后」，闸门沦为噪音，人开始忽略它——那等于没有闸门。
+    口径与媒体清单一致（同一个 `fingerprint` 的规范化 JSON），
+    两处算法不同就会出现「清单说一致、成片说落后」这种没人能判断的状态。
+    """
+    root = asset_refs.project_root(page.parent) or page.parent
+    files: dict[str, str] = {}
+    targets = [page.resolve(), *(candidate for _, candidate in asset_refs.local_assets(page, html))]
+    for path in targets:
+        try:
+            key = path.relative_to(root).as_posix()
+        except ValueError:  # 项目根之外的路径：用文件名，不把绝对路径写进产物
+            key = path.name
+        files[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+    for key, value in (extra or {}).items():
+        files[key] = value
+    return {"files": files, "digest": fingerprint(files)}
 
 
 @dataclass(frozen=True)
