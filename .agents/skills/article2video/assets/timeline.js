@@ -8,8 +8,8 @@
  *
  * 它不决定任何视觉表达。画面全部由调用方传入的 render(state, api) 决定，
  * 只要遵守两条规则：
- *   - 画面只由 state.frame 推导，禁止读取 Date.now()、Math.random() 或
- *     依赖 CSS animation/transition 的播放时间；
+ *   - 画面只由 state.frame 推导，禁止读取 Date.now、performance.now、
+ *     Math.random，也不要依赖 CSS animation/transition 的播放时间；
  *   - 同一帧重复渲染必须得到同一画面。
  *
  * 动效原语（全部是纯函数，不保存任何跨帧状态）：

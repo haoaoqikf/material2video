@@ -35,14 +35,14 @@
 
 | `type` | 必填字段 | 可选字段 | 适用内容 |
 | --- | --- | --- | --- |
-| `title` | `text` | `subtitle`, `emphasis`, `annotations` | 开场命题、主题 |
-| `quote` | `text` | `attribution`, `emphasis`, `annotations` | 核心判断、金句 |
-| `comparison` | `left`, `right` | `title`, `annotations` | 两种选择、前后对照 |
-| `timeline` | `items`（非空数组） | `title`, `annotations` | 事件顺序、尝试过程 |
-| `diagram` | `nodes`（非空数组） | `edges`, `title`, `annotations` | 因果、约束、反馈模型 |
-| `number` | `value` | `label`, `caption`, `annotations` | 数量、频次、收益变化 |
-| `list` | `items`（非空数组） | `title`, `annotations` | 要点、行动步骤 |
-| `conclusion` | `text` | `action`, `emphasis`, `annotations` | 收束、行动建议 |
+| `title` | `text` | `subtitle`, `emphasis`, `annotations`, `figure` | 开场命题、主题 |
+| `quote` | `text` | `attribution`, `emphasis`, `annotations`, `figure` | 核心判断、金句 |
+| `comparison` | `left`, `right` | `title`, `annotations`, `figure` | 两种选择、前后对照 |
+| `timeline` | `items`（非空数组） | `title`, `annotations`, `figure` | 事件顺序、尝试过程 |
+| `diagram` | `nodes`（非空数组） | `edges`, `title`, `annotations`, `figure` | 因果、约束、反馈模型 |
+| `number` | `value` | `label`, `caption`, `annotations`, `figure` | 数量、频次、收益变化 |
+| `list` | `items`（非空数组） | `title`, `annotations`, `figure` | 要点、行动步骤 |
+| `conclusion` | `text` | `action`, `emphasis`, `annotations`, `figure` | 收束、行动建议 |
 
 `emphasis` 是要在画面中强调的短语列表（非空数组，元素为非空字符串）。
 网页负责把它渲染成强调样式，例如把第一处出现的短语包进 `<span class="key">`。
@@ -55,6 +55,31 @@
 例如天平两侧托盘的名字、落差尺两端的写法。键的取值由网页实现决定，
 当前各场景类型的约定键见 [竖屏视觉规范](visual-spec.md) 的「图形标注」一节。
 文案仍然只存在于分镜里，网页不得为标注写默认文案。
+
+## 选择视觉组件
+
+`figure` 是可选的对象，声明这一幕**用哪个视觉组件来画**。不写时用网页给出的
+「场景类型 → 默认组件」映射，因此旧分镜不需要改动：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `kind` | 是 | 组件名，取值见 [视觉组件目录](figure-catalog.md) |
+| `labels` | 否 | 画在图上的短标签，规则与 `annotations` 完全相同 |
+| `motion` | 否 | 动效节奏：`calm` / `normal` / `impact`，默认 `normal` |
+| `params` | 否 | 覆盖组件的几何常量，键由组件自己声明 |
+
+```json
+"figure": {
+  "kind": "iceberg",
+  "motion": "impact",
+  "labels": { "tip": "失去", "mass": "被看见的不足", "surface": "水面" }
+}
+```
+
+`figure.labels` 与顶层的 `annotations` 是同一件事：前者是新写法，后者是过渡期兼容写法，
+两者同时存在时以 `figure.labels` 为准。校验器负责结构与取值合法性（`kind` 非空、
+`motion` 在三者之内、`labels` 每项非空且不过长），**组件是否存在**由组件目录决定，
+网页在挂载时发现未注册的 `kind` 会立即报错，而不是画出空白。
 
 分镜里的换行符是硬换行：把长句按语义手动断成每行不超过 14 个汉字，
 比让浏览器自动折行更可控，也避免重点词被拆开。校验器会对超长行给出警告，

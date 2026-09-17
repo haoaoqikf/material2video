@@ -1,0 +1,750 @@
+/*
+ * 视觉组件库样式。
+ *
+ * 只使用 theme.css 的设计令牌，不写死颜色；组件自带几何与描边，
+ * 页面换一套令牌就能换一套观感，不必改组件。
+ * 与 figures.js 一一对应：每个 .fig-* 前缀对应一个组件。
+ */
+
+  .key {
+    color: var(--a2v-accent);
+    white-space: nowrap;
+  }
+
+  /* 逐字揭示产生的单字节点（结论幕使用） */
+  .reveal-char {
+    display: inline-block;
+    white-space: pre;
+  }
+
+  .reveal-char.is-break {
+    display: block;
+    height: 0;
+  }
+
+  /* ---------- 图形通用：六幕共用同一套线宽与圆角，看起来才像一套画 ---------- */
+  .fig {
+    display: block;
+    width: 888px;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .fig text {
+    font-family: var(--a2v-font);
+    dominant-baseline: middle;
+  }
+
+  .fig .ln {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fig .ln-soft {
+    stroke: var(--fig-line-soft);
+  }
+
+  .fig .ln-accent {
+    stroke: var(--a2v-accent);
+  }
+
+  .fig .dashed {
+    stroke-dasharray: 16 14;
+  }
+
+  .fig .paper {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .section-title {
+    font-family: var(--a2v-font-sans);
+    font-size: 36px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--a2v-text-3);
+    margin: 0;
+  }
+
+  /* ---------- 01 开场：天平 ---------- */
+  [data-scene-id="opening"] .a2v-safe {
+    justify-content: center;
+    gap: 30px;
+  }
+
+  .title-text {
+    font-size: 124px;
+    line-height: 1.16;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.03em;
+    /* 断行位置由分镜里的换行符决定，避免自动折行把重点词拆开 */
+    white-space: pre-line;
+    /* 上深下浅的墨色渐变：比纯黑多一点纸面呼吸感 */
+    background: linear-gradient(180deg, #23262d 0%, #3d434e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .title-sub {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .title-sub-line {
+    font-size: 44px;
+    line-height: 1.45;
+    color: var(--a2v-text-2);
+  }
+
+  .fig-scale {
+    width: 888px;
+    height: 430px;
+    overflow: visible;
+  }
+
+  .scale-pivot {
+    fill: var(--fig-line);
+  }
+
+  .scale-plate {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
+
+  .scale-rope {
+    fill: none;
+    stroke: var(--fig-line-soft);
+    stroke-width: 4;
+  }
+
+  .load-solid {
+    fill: var(--fig-ink);
+  }
+
+  /* 空壳：虚线 + 极浅填充，表示「看着很大，其实没有重量」 */
+  .load-hollow {
+    fill: rgba(22, 24, 29, 0.035);
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-dasharray: 16 13;
+  }
+
+  .load-token {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .load-text {
+    font-size: 36px;
+    text-anchor: middle;
+    letter-spacing: 0.06em;
+    fill: #ffffff;
+  }
+
+  .load-text.is-ink {
+    fill: var(--a2v-text-2);
+  }
+
+  /*
+   * 光晕必须引用本幕自己的渐变：跨场景引用另一个 <defs> 里的 id 在
+   * 目标场景被 display:none 时不会解析，光晕会静默消失。
+   */
+  .scale-halo {
+    fill: url(#scale-halo);
+  }
+
+  /* ---------- 02 金句：落差尺 ---------- */
+  [data-scene-id="real-loss"] .a2v-safe {
+    justify-content: center;
+    gap: 46px;
+  }
+
+  .quote-block {
+    position: relative;
+    padding-left: 62px;
+    color: var(--a2v-text-1);
+  }
+
+  /* 引号退到文字之后，作为装饰而不是内容 */
+  .quote-mark {
+    position: absolute;
+    top: -104px;
+    left: -8px;
+    font-size: 220px;
+    line-height: 1;
+    color: var(--a2v-accent);
+    opacity: 0;
+    pointer-events: none;
+    font-family: var(--a2v-font);
+  }
+
+  /* 左侧强调竖线：先于文字画出，给整句一个「引文」的框架 */
+  .quote-rule {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 6px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--a2v-accent) 0%, rgba(194, 53, 42, 0.1) 100%);
+    transform-origin: top center;
+  }
+
+  /*
+   * 字号按硬换行反推：文字可用宽度 = 1080 - 2 × 96 = 888px。
+   * 最长一行是「不过就是这家公司不要你。」共 14 字（含标点），衬线单字宽约为
+   * 字号的 1.02 倍，因此取 62px 并让每行都留有余量——宁可缩小字号，
+   * 也不要让浏览器把分镜里的硬换行再折成第四行。
+   */
+  .quote-text {
+    font-size: 62px;
+    line-height: 1.55;
+    font-weight: 600;
+    margin: 0;
+    max-width: 888px;
+    overflow-wrap: normal;
+    white-space: pre-line;
+  }
+
+  /*
+   * 强调短语：颜色 + 底部一条短横线，比加粗更克制。
+   * 底横线用单独的元素而不是 ::after —— 伪元素无法按帧改样式，
+   * 逐帧渲染下只能靠 JS 写内联值，因此这里是真实节点。
+   */
+  .quote-text .key {
+    position: relative;
+    display: inline-block;
+  }
+
+  .key-underline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--a2v-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    pointer-events: none;
+  }
+
+  .drop-board {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+  }
+
+  .drop-panel {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 26px 20px 24px;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: var(--a2v-radius-lg);
+    background: var(--a2v-surface), var(--a2v-bg-2);
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
+  }
+
+  /* 只有「事实」那一栏拿强调色：它在画面里是焦点 */
+  .drop-panel.is-fact {
+    border-color: rgba(var(--a2v-accent-rgb), 0.42);
+    background: var(--a2v-surface-strong);
+  }
+
+  .drop-cap {
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    letter-spacing: 0.08em;
+    color: var(--a2v-text-3);
+    text-align: center;
+  }
+
+  .drop-panel.is-fact .drop-cap {
+    color: var(--a2v-accent);
+  }
+
+  .drop-stage {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 44px;
+    height: 300px;
+  }
+
+  /* 竖尺：底边是「0」，高度是「你手里有的东西」 */
+  .drop-track {
+    position: relative;
+    width: 104px;
+    height: 268px;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: var(--a2v-radius-sm);
+    background: rgba(22, 24, 29, 0.025);
+  }
+
+  .drop-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    border-radius: 0 0 19px 19px;
+    background: linear-gradient(180deg, #3a3f4a 0%, #23262d 100%);
+  }
+
+  .drop-panel.is-fact .drop-fill {
+    background: linear-gradient(180deg, #cc4a3f 0%, #a92c22 100%);
+  }
+
+  /* 虚线：被拒绝之前的高度。它留在原地，差值就是「失去」 */
+  .drop-ghost {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    height: 0;
+    border: 2px dashed var(--fig-line);
+    border-bottom: 0;
+    border-radius: 19px 19px 0 0;
+  }
+
+  .drop-zero {
+    position: absolute;
+    left: -14px;
+    right: -14px;
+    bottom: -3px;
+    height: 3px;
+    background: var(--fig-line);
+  }
+
+  /* 落差括号：从「现在」量到「曾经」，长度就是真正的损失 */
+  .drop-bracket-wrap {
+    position: relative;
+    width: 148px;
+    height: 268px;
+  }
+
+  .drop-bracket {
+    position: absolute;
+    left: 34px;
+    width: 22px;
+    height: 0;
+    border-left: 4px solid var(--a2v-accent);
+  }
+
+  .drop-bracket::before,
+  .drop-bracket::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 22px;
+    height: 4px;
+    background: var(--a2v-accent);
+  }
+
+  .drop-bracket::before {
+    top: 0;
+  }
+
+  .drop-bracket::after {
+    bottom: 0;
+  }
+
+  .drop-bracket.is-flat {
+    border-left-color: var(--a2v-text-3);
+  }
+
+  .drop-bracket.is-flat::before,
+  .drop-bracket.is-flat::after {
+    background: var(--a2v-text-3);
+  }
+
+  .drop-label {
+    position: absolute;
+    left: 60px;
+    width: 124px;
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    line-height: 1.25;
+    /* 标注一律单行：换行会把「无可失去」挤成两截，读起来像两个词 */
+    white-space: nowrap;
+    color: var(--a2v-accent);
+  }
+
+  .drop-label.is-flat {
+    color: var(--a2v-text-2);
+  }
+
+  /* ---------- 03 恐惧来源：冰山 ---------- */
+  [data-scene-id="fear-source"] .a2v-safe {
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .fig-berg {
+    width: 888px;
+    height: 760px;
+    overflow: visible;
+  }
+
+  .berg-water {
+    /* 越深越淡：让水体下缘自然消失，而不是切出一条硬边 */
+    fill: url(#berg-depth);
+  }
+
+  .berg-tip {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
+
+  /* 水下部分用冷色 + 虚线：它是被藏起来的那一半 */
+  .berg-mass {
+    fill: rgba(45, 78, 120, 0.16);
+    stroke: rgba(45, 78, 120, 0.55);
+    stroke-width: 4;
+    stroke-linejoin: round;
+    stroke-dasharray: 18 14;
+  }
+
+  .berg-callout {
+    fill: #ffffff;
+    stroke: var(--a2v-hairline);
+    stroke-width: 2;
+  }
+
+  .berg-callout.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.5);
+  }
+
+  .berg-callout-label {
+    font-size: 44px;
+    font-weight: 700;
+    fill: var(--a2v-text-1);
+    letter-spacing: 0.02em;
+  }
+
+  .berg-callout-label.is-accent {
+    fill: var(--a2v-accent);
+  }
+
+  .berg-callout-desc {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: var(--a2v-text-2);
+  }
+
+  .berg-link {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 3;
+    stroke-dasharray: 10 10;
+  }
+
+  .berg-link.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.7);
+  }
+
+  .berg-spark {
+    fill: var(--a2v-accent);
+  }
+
+  .berg-surface-note {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: rgba(45, 78, 120, 0.75);
+    letter-spacing: 0.14em;
+  }
+
+  /* ---------- 04 反馈循环：飞轮 ---------- */
+  [data-scene-id="feedback-loop"] .a2v-safe {
+    gap: 22px;
+  }
+
+  .fig-loop {
+    width: 888px;
+    height: 560px;
+    overflow: visible;
+  }
+
+  .loop-track {
+    fill: none;
+    stroke: var(--fig-line-soft);
+    stroke-width: 4;
+    stroke-dasharray: 4 18;
+    stroke-linecap: round;
+  }
+
+  .loop-arc {
+    fill: none;
+    stroke: var(--a2v-accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+  }
+
+  .loop-node-disc {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .loop-node-shadow {
+    fill: rgba(30, 26, 22, 0.07);
+  }
+
+  .loop-node-text {
+    font-size: 48px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+    letter-spacing: 0.04em;
+  }
+
+  .loop-token {
+    fill: var(--a2v-accent);
+  }
+
+  .loop-token-halo {
+    fill: url(#loop-halo);
+  }
+
+  .gauge {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 6px;
+  }
+
+  .gauge-label {
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    letter-spacing: 0.14em;
+    color: var(--a2v-text-3);
+    white-space: nowrap;
+  }
+
+  .gauge-track {
+    position: relative;
+    flex: 1 1 auto;
+    height: 16px;
+    border-radius: 999px;
+    background: rgba(22, 24, 29, 0.07);
+    overflow: hidden;
+  }
+
+  .gauge-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(194, 53, 42, 0.55) 0%, #c2352a 100%);
+  }
+
+  /* ---------- 05 上场复利：阶梯 ---------- */
+  [data-scene-id="upgrade"] .a2v-safe {
+    justify-content: center;
+    gap: 30px;
+  }
+
+  .fig-stairs {
+    width: 888px;
+    height: 640px;
+    overflow: visible;
+  }
+
+  .stair-bar {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .stair-bar.is-focus {
+    fill: rgba(194, 53, 42, 0.09);
+    stroke: var(--a2v-accent);
+  }
+
+  .stair-base {
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .stair-axis {
+    stroke: var(--fig-line-soft);
+    stroke-width: 3;
+  }
+
+  .stair-note {
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    text-anchor: middle;
+    fill: var(--a2v-text-3);
+    letter-spacing: 0.1em;
+  }
+
+  .stair-note.is-focus {
+    fill: var(--a2v-accent);
+  }
+
+  .stair-label {
+    font-size: 38px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+  }
+
+  .stair-axis-label {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: var(--a2v-text-3);
+    letter-spacing: 0.12em;
+  }
+
+  .stair-marker {
+    fill: var(--a2v-accent);
+  }
+
+  .stair-marker-halo {
+    fill: url(#stair-halo);
+  }
+
+  .stair-caption {
+    font-size: 40px;
+    line-height: 1.3;
+    color: var(--a2v-text-1);
+    text-align: center;
+    min-height: 52px;
+  }
+
+  .stair-flip {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 34px;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: 999px;
+    background: var(--a2v-surface), var(--a2v-bg-2);
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-1);
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    letter-spacing: 0.08em;
+    color: var(--a2v-text-2);
+  }
+
+  .stair-flip.is-after {
+    border-color: rgba(var(--a2v-accent-rgb), 0.45);
+    color: var(--a2v-accent);
+  }
+
+  .stair-flip .flip-arrow {
+    width: 46px;
+    height: 2px;
+    background: currentColor;
+    position: relative;
+  }
+
+  .stair-flip .flip-arrow::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    width: 16px;
+    height: 16px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+  }
+
+  .stair-flip .flip-arrow.is-right::after {
+    right: 0;
+    transform: rotate(45deg);
+  }
+
+  .stair-flip .flip-arrow.is-left::after {
+    left: 0;
+    transform: rotate(-135deg);
+  }
+
+  /* ---------- 06 收束：双向选择 ---------- */
+  [data-scene-id="closing"] .a2v-safe {
+    gap: 34px;
+  }
+
+  .closing-text {
+    margin: 0;
+    font-size: 96px;
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--a2v-text-1);
+    /* 分镜里的换行符直接生效，避免在页面里重新拼文案 */
+    white-space: pre-line;
+  }
+
+  .fig-exchange {
+    width: 888px;
+    height: 300px;
+    overflow: visible;
+  }
+
+  .ex-node-disc {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .ex-node-disc.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.55);
+  }
+
+  .ex-node-text {
+    font-size: 46px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+  }
+
+  .ex-arc {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 5;
+    stroke-linecap: round;
+  }
+
+  .ex-arc.is-accent {
+    stroke: var(--a2v-accent);
+  }
+
+  .ex-arrow {
+    fill: var(--fig-line);
+  }
+
+  .ex-arrow.is-accent {
+    fill: var(--a2v-accent);
+  }
+
+  .closing-action {
+    margin-top: 10px;
+    align-self: flex-start;
+    font-family: var(--a2v-font-sans);
+    font-size: 38px;
+    color: var(--a2v-text-2);
+    border-left: 4px solid var(--a2v-accent);
+    padding-left: 26px;
+    letter-spacing: 0.02em;
+  }

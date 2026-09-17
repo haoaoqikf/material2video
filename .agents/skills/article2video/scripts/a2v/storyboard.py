@@ -29,15 +29,19 @@ _SCENE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 # 「命运的考试 / 一次上场」）。它属于内容层，因此和文案一样写在分镜里，由网页
 # 决定画在哪个位置；键名由每支视频的构图约定，校验器只保证它是短字符串映射。
 _SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
-    "title": {"required": {"text"}, "optional": {"subtitle", "emphasis", "annotations"}},
-    "quote": {"required": {"text"}, "optional": {"attribution", "emphasis", "annotations"}},
-    "comparison": {"required": {"left", "right"}, "optional": {"title", "annotations"}},
-    "timeline": {"required": {"items"}, "optional": {"title", "annotations"}},
-    "diagram": {"required": {"nodes"}, "optional": {"edges", "title", "annotations"}},
-    "number": {"required": {"value"}, "optional": {"label", "caption", "annotations"}},
-    "list": {"required": {"items"}, "optional": {"title", "annotations"}},
-    "conclusion": {"required": {"text"}, "optional": {"action", "emphasis", "annotations"}},
+    "title": {"required": {"text"}, "optional": {"subtitle", "emphasis", "annotations", "figure"}},
+    "quote": {"required": {"text"}, "optional": {"attribution", "emphasis", "annotations", "figure"}},
+    "comparison": {"required": {"left", "right"}, "optional": {"title", "annotations", "figure"}},
+    "timeline": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
+    "diagram": {"required": {"nodes"}, "optional": {"edges", "title", "annotations", "figure"}},
+    "number": {"required": {"value"}, "optional": {"label", "caption", "annotations", "figure"}},
+    "list": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
+    "conclusion": {"required": {"text"}, "optional": {"action", "emphasis", "annotations", "figure"}},
 }
+
+# 声明用哪个视觉组件画这一幕。详见 references/figure-catalog.md。
+_FIGURE_FIELDS = {"kind", "labels", "motion", "params"}
+_FIGURE_MOTIONS = ("calm", "normal", "impact")
 
 # 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
 # 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
@@ -278,10 +282,40 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
     if "annotations" in data_field:
         _validate_annotations(data_field["annotations"], f"{path}.data.annotations", report)
 
+    if "figure" in data_field:
+        _validate_figure(data_field["figure"], f"{path}.data.figure", report)
+
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
 
     _warn_on_long_text(data_field, f"{path}.data", report)
+
+
+def _validate_figure(value: Any, path: str, report: Report) -> None:
+    """校验选组件的那一小段声明。
+
+    这一层只保证结构可用（kind 是字符串、motion 是三个节奏之一、labels/params 是对象）；
+    「这个 kind 存不存在、它认识哪些标注键」由组件目录决定，见 references/figure-catalog.md。
+    """
+    if not isinstance(value, dict):
+        report.error(path, "figure 必须是对象，形如 {\"kind\": \"iceberg\"}")
+        return
+    kind = value.get("kind")
+    if not isinstance(kind, str) or not kind.strip():
+        report.error(f"{path}.kind", "figure.kind 必须是非空字符串")
+    for name in sorted(set(value) - _FIGURE_FIELDS):
+        report.warn(f"{path}.{name}", f"figure 未定义字段 '{name}'，组件将忽略它")
+    motion = value.get("motion")
+    if motion is not None and motion not in _FIGURE_MOTIONS:
+        report.error(
+            f"{path}.motion",
+            f"motion 必须是 {'/'.join(_FIGURE_MOTIONS)} 之一，实际为 {motion!r}",
+        )
+    for name in ("labels", "params"):
+        if name in value and not isinstance(value[name], dict):
+            report.error(f"{path}.{name}", f"figure.{name} 必须是对象")
+    if isinstance(value.get("labels"), dict):
+        _validate_annotations(value["labels"], f"{path}.labels", report)
 
 
 def _validate_annotations(value: Any, path: str, report: Report) -> None:

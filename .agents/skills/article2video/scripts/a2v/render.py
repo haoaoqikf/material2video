@@ -251,13 +251,61 @@ _TIME_DRIVEN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?<![\w-])transition(?:-[\w-]+)?\s*:"), "transition"),
 )
 
+# 让画面脱离帧号的时间源与随机源。命中时同一帧会渲染出不同结果。
+_NON_DETERMINISTIC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bDate\.now\s*\("), "Date.now()"),
+    (re.compile(r"\bperformance\.now\s*\("), "performance.now()"),
+    (re.compile(r"\bMath\.random\s*\("), "Math.random()"),
+)
+
+_PROJECT_MARKERS = (".git", "pyproject.toml")
+
+
+def _project_root(start: Path) -> Path | None:
+    """从网页所在目录向上找项目根，用来界定「可以扫描的本地资源」。
+
+    共享资产（如 skill 的 assets/）通常不在网页目录内，只按网页目录判断会漏扫；
+    但也不能顺着相对路径读到仓库外的任意文件，因此以项目标记为界。
+    """
+    current = start.resolve()
+    for candidate in (current, *current.parents):
+        if any((candidate / marker).exists() for marker in _PROJECT_MARKERS):
+            return candidate
+    return None
+
+
+def _local_assets(page: Path, html: str) -> list[tuple[str, Path]]:
+    """收集网页引用到的本地样式表与脚本，跳过远程与范围外的路径。"""
+    root = _project_root(page.parent)
+    found: list[tuple[str, Path]] = []
+    pattern = re.compile(
+        r"""<(?:link[^>]+href|script[^>]+src)=["']([^"']+\.(?:css|js))["']""",
+        re.IGNORECASE,
+    )
+    for reference in pattern.findall(html):
+        if reference.startswith(("http://", "https://", "//")):
+            continue
+        candidate = (page.parent / reference.split("?")[0].split("#")[0]).resolve()
+        if not candidate.is_file():
+            continue
+        inside_page_dir = page.parent.resolve() in candidate.parents
+        inside_project = root is not None and root in candidate.parents
+        if not (inside_page_dir or inside_project):
+            continue
+        found.append((reference, candidate))
+    return found
+
 
 def _warn_on_time_driven_motion(page_path: str | Path) -> None:
-    """渲染前静态扫描样式，提示 CSS 动画/过渡。
+    """渲染前静态扫描样式与脚本，提示与帧号脱钩的写法。
 
     网页契约由「同一帧重复渲染一致」的运行时测试保证，这里只做一次廉价的
-    静态提示：CSS animation/transition 由浏览器时钟驱动，与逐帧截图无法对齐，
-    典型表现是视频里出现随机闪烁。只提示不阻断——是否闪烁最终由确定性验收决定。
+    静态提示：CSS animation/transition 由浏览器时钟驱动，Date.now/Math.random
+    让同一帧在不同时刻得到不同结果，典型表现是视频里出现随机闪烁。
+    只提示不阻断——是否闪烁最终由确定性验收决定。
+
+    扫描范围包含网页引用的本地样式表与脚本（含 skill 的共享资产），
+    否则把动效写进共享组件库就能绕过这道检查。
     """
     page = Path(str(page_path))
     if not page.is_file():
@@ -267,31 +315,33 @@ def _warn_on_time_driven_motion(page_path: str | Path) -> None:
     except OSError:
         return
 
-    targets = [(page.name, html)]
-    for href in re.findall(r"""<link[^>]+href=["']([^"']+\.css)["']""", html, re.IGNORECASE):
-        if href.startswith(("http://", "https://", "//")):
-            continue
-        candidate = (page.parent / href.split("?")[0].split("#")[0]).resolve()
-        # 只读网页所在目录内的样式，避免顺着相对路径读到仓库外的文件
-        if not candidate.is_file() or page.parent.resolve() not in candidate.parents:
-            continue
+    targets: list[tuple[str, str]] = [(page.name, html)]
+    for reference, candidate in _local_assets(page, html):
         try:
-            targets.append((href, candidate.read_text(encoding="utf-8", errors="replace")))
+            targets.append((reference, candidate.read_text(encoding="utf-8", errors="replace")))
         except OSError:
             continue
 
     for name, text in targets:
-        for pattern, label in _TIME_DRIVEN_PATTERNS:
+        # 脚本只查时间与随机源：rAF 与 CSS transform 的静态写法本身是允许的
+        patterns = (
+            _NON_DETERMINISTIC_PATTERNS if name.endswith(".js") else _TIME_DRIVEN_PATTERNS
+        )
+        for pattern, label in patterns:
             match = pattern.search(text)
             if not match:
                 continue
             line = text.count("\n", 0, match.start()) + 1
+            if label in ("Date.now()", "performance.now()", "Math.random()"):
+                hint = f"它让同一帧在不同时刻渲染出不同结果，请改为从 state.frame 推导"
+            else:
+                hint = "它由浏览器时钟驱动，逐帧截图可能闪烁"
             logger.warning(
-                "%s:%d 使用了 CSS %s：它由浏览器时钟驱动，逐帧截图可能闪烁，"
-                "请改为在 render() 中按帧号计算（见 references/render-contract.md）",
+                "%s:%d 使用了 %s：%s（见 references/render-contract.md）",
                 name,
                 line,
                 label,
+                hint,
             )
 
 

@@ -174,10 +174,18 @@ api.revealChars(el, text, p, { frame, staggerFrames });           // 逐字揭�
 ```html
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
+<link rel="stylesheet" href="../../.agents/skills/article2video/assets/figures.css">
+...
+<script src="../../.agents/skills/article2video/assets/timeline.js"></script>
+<script src="../../.agents/skills/article2video/assets/figures.js"></script>
 ```
 
 顺序不能颠倒：`base.css` 负责画布与安全区，`theme.css` 提供令牌，
-页面自身样式放在最后，保证页面永远拥有最终覆盖权。
+`figures.css` 是组件自己的样式，页面自身样式放在最后，保证页面永远拥有最终覆盖权。
+`figures.js` 必须在 `timeline.js` 之后加载：它复用运行时的动效原语。
+
+组件库承担「一幕画面怎么画」，页面只负责舞台、背景与挂载点；
+要不要用组件、用哪一个，见 [视觉组件目录](figure-catalog.md)。
 
 背景层是常驻元素，放在 `[data-a2v-stage]` 内、`[data-a2v-scene]` 之外，
 并把场景容器抬到背景之上：

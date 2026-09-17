@@ -67,11 +67,22 @@ JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影�
 
 ### 开渲前的静态扫描
 
-`render.py` 在进入渲染模式后会读取本地网页（含同目录的 `<link>` 样式表），
-命中 `@keyframes`、`animation:`、`transition:` 时输出警告并指出行号。
-只提示不阻断——是否真的闪烁由上面的确定性验收决定，但这类写法几乎必然出问题。
+`render.py` 在进入渲染模式后会读取本地网页，以及它引用的本地样式表与脚本
+（含 skill 的共享资产），命中以下写法时输出警告并指出行号：
 
-远程 URL（`http://` / `https://`）与网页目录之外的样式不参与扫描。
+- 样式：`@keyframes`、`animation:`、`transition:`；
+- 脚本：`Date.now(`、`performance.now(`、`Math.random(`。
+
+只提示不阻断——是否真的闪烁由上面的确定性验收决定，但这类写法几乎必然出问题。
+脚本里不查 `requestAnimationFrame`，因为预览播放本身需要它；渲染时 `seekToFrame`
+会暂停播放，画面只由帧号决定。
+
+扫描范围以**项目根**为界（含 `.git` 或 `pyproject.toml` 的最近上层目录）：
+网页目录内的资源始终扫描，项目内其他位置的资源也扫描，项目外的路径不读，
+避免顺着相对路径读到仓库外的任意文件。远程 URL（`http://` / `https://`）不参与扫描。
+
+> 只扫网页目录是不够的：共享组件库在 skill 的 `assets/` 下，把动效写进组件库
+> 曾经可以完全绕过这道检查。
 
 ## 可复用的动效原语
 
@@ -97,6 +108,39 @@ JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影�
 .reveal-char { display: inline-block; white-space: pre; }
 .reveal-char.is-break { display: block; height: 0; }
 ```
+
+## 视觉组件库
+
+`assets/figures.js` + `assets/figures.css` 提供一组**由帧驱动的画面组件**，
+让网页只声明「这一幕用哪个组件」，而不是每次重画一遍几何。
+组件目录与选择方式见 [视觉组件目录](figure-catalog.md)。
+
+```html
+<section data-a2v-scene data-scene-id="fear-source">
+  <div class="a2v-safe" data-a2v-figure></div>
+</section>
+```
+
+```js
+A2V.figures.renderScene(state, api, { defaults: { list: 'iceberg' } });
+```
+
+`renderScene` 取当前场景的挂载点，按分镜的 `data.figure.kind`（没有则用 `defaults`
+里该场景类型的默认组件）构建 DOM 并逐帧更新。切换场景时按「kind + labels + params」
+的签名判断是否需要重建，签名不变就复用现有 DOM。
+
+对契约的影响只有一条：**组件也是画面的一部分，因此组件的 `update` 必须满足
+与 `render` 完全相同的确定性要求**。具体地说：
+
+| 要求 | 原因 |
+| --- | --- |
+| `update` 只由 `state` 与组件常量推导 | 同帧重复渲染必须一致 |
+| 禁止 `Date.now` / `performance.now` / `Math.random` | 同上；开渲前的静态扫描会连共享资产一起检查 |
+| 几何不读实时布局，测量只做一次并缓存 | 每帧测量会随排版抖动，也会拖慢截图 |
+| 组件不保存默认文案 | 文案只存在于分镜，避免两处漂移 |
+
+组件在 `window.A2V.figures` 上暴露 `register` / `known` / `mount` / `renderScene` / `describe`。
+`describe()` 返回 `kind -> { labels }`，供文档与测试对照。
 
 ## 中间帧格式
 

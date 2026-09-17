@@ -194,6 +194,55 @@ class TestAnnotationValidation:
         assert "scenes[0].data.annotations.leftPan" in warning_paths(report)
 
 
+class TestFigureDeclaration:
+    """选组件的声明：figure.kind 决定这一幕用哪个视觉组件。"""
+
+    def test_accepts_minimal_figure(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance"}
+        assert sb.validate(valid_script).ok
+
+    def test_is_not_flagged_as_undefined_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance"}
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    def test_accepts_labels_motion_and_params(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {
+            "kind": "balance",
+            "motion": "impact",
+            "labels": {"leftPan": "命运的考试"},
+            "params": {"arm": 320},
+        }
+        assert sb.validate(valid_script).ok
+
+    @pytest.mark.parametrize("value", [[], "balance", None])
+    def test_rejects_non_object(self, valid_script, value):
+        valid_script["scenes"][0]["data"]["figure"] = value
+        assert "scenes[0].data.figure" in error_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("kind", ["", "   ", 42, None])
+    def test_rejects_invalid_kind(self, valid_script, kind):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": kind}
+        assert "scenes[0].data.figure.kind" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_unknown_motion(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance", "motion": "dramatic"}
+        assert "scenes[0].data.figure.motion" in error_paths(sb.validate(valid_script))
+
+    def test_rejects_non_object_labels(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance", "labels": ["左侧"]}
+        assert "scenes[0].data.figure.labels" in error_paths(sb.validate(valid_script))
+
+    def test_labels_follow_the_annotation_rules(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance", "labels": {"leftPan": ""}}
+        assert "scenes[0].data.figure.labels.leftPan" in error_paths(sb.validate(valid_script))
+
+    def test_warns_on_unknown_figure_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance", "tempo": "fast"}
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.figure.tempo" in warning_paths(report)
+
+
 class TestVisualWarnings:
     """排版与动效相关的警告：默认放行，--strict 时视为失败。"""
 

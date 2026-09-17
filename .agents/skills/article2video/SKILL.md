@@ -30,14 +30,17 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 4. **预览与导出同源**：预览和渲染使用同一份 storyboard、同一套坐标，只缩放不改布局。
 5. **层级先于装饰**：先做出背景 / 表面 / 焦点三层与统一的动效曲线，再考虑细节；
    「高级感」来自克制的层级与一致的节奏，而不是更多的颜色和更大的动效。
+6. **AI 做导演，不做设计师**：先看 [视觉组件目录](references/figure-catalog.md) 里有没有
+   合适的组件，选一个、给几段短标注、指定节奏；只有目录里确实没有，才按组件契约新写一个
+   并沉淀回目录。每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
 
 ## 目录职责
 
 | 路径 | 职责 |
 | --- | --- |
-| `.agents/skills/article2video/assets/` | 共享基础样式 `base.css`、设计令牌 `theme.css` 与时间轴运行时 `timeline.js` |
+| `.agents/skills/article2video/assets/` | 基础样式 `base.css`、设计令牌 `theme.css`、时间轴运行时 `timeline.js`、视觉组件库 `figures.css` + `figures.js` |
 | `.agents/skills/article2video/scripts/` | 渲染、校验、配音准备、预览四个命令行工具 |
-| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、目录与输出路径 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
