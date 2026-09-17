@@ -35,17 +35,15 @@
   var EASE_SYMMETRIC = 'inOutCubic';
 
   /*
-   * 节奏：分镜只写 calm / normal / impact，具体节拍由这里算。
-   *
-   * 组件的入场时机几乎都写成「场景内的某个比例点」，所以把比例点的绝对帧号
-   * 整体前移或后移，就能一次改变整幕的节奏：impact 更早进入、后半段留出更长的
-   * 停留，calm 相反。组件本身不需要各自调参。
+   * 动效配方由运行时提供（timeline.js 的 A2V.motion）：入场用哪条曲线、
+   * 弹性多大、什么时候收敛、常驻微动多快，都写在那一处。
+   * 组件只声明「这是什么元素、移动多远」——手感参数散在六个组件里就没法整体调。
    */
-  var TEMPO_SPEED = { calm: 0.82, normal: 1, impact: 1.24 };
-  var currentTempo = 'normal';
+  var motion = A2V.motion;
 
-  function tempoSpeed(name) {
-    return TEMPO_SPEED[name] || TEMPO_SPEED.normal;
+  /** 按帧号取「场景内的某个进度点」：比例而非绝对帧，且随该幕节奏缩放。 */
+  function beat(state, fraction) {
+    return motion.beat(state, fraction);
   }
 
   /* ---------------- 文字与 DOM 工具 ---------------- */
@@ -84,11 +82,6 @@
     if (node.innerHTML !== next) {
       node.innerHTML = next;
     }
-  }
-
-  /** 按帧号取「场景内的某个进度点」：用比例而不是绝对帧，场景被配音拉长后节奏不变。 */
-  function beat(state, fraction) {
-    return (fraction * state.sceneDurationFrames) / tempoSpeed(currentTempo);
   }
 
   /** 给 SVG 元素写 transform 属性（SVG 用属性而不是 CSS 变量，避免布局抖动）。 */
@@ -140,53 +133,16 @@
   /**
    * HTML 元素的入场 + 常驻微动。
    *
-   * 配音会把场景拉长，入场动画结束后画面若完全静止，成片会显得卡住；
-   * 这里在末段用 api.breath 叠一点极小位移，并用同一个 settle 值把缩放钉在 1。
+   * 具体配方（弹性、收敛时机、呼吸幅度）由运行时的 A2V.motion 决定；
+   * 这里只保留组件侧的调用形状，五个组件都走同一条路径，手感才不会各自漂移。
    */
   function enterAlive(state, api, el, p, options) {
-    if (!el) {
-      return;
-    }
-    var o = options || {};
-    var from = api.spring(p, { damping: 6, frequency: 1.1 });
-    var settle = api.progress(state.localFrame, beat(state, 0.24), 36, EASE_SYMMETRIC);
-    var shift = (1 - from) * (o.distance === undefined ? 44 : o.distance);
-    var axis = o.axis || 'y';
-    var drift = api.breath(state.localFrame, {
-      periodFrames: o.periodFrames || 130,
-      amplitude: o.amplitude === undefined ? 3 : o.amplitude,
-      phase: o.phase || 0
-    }) * settle;
-    el.style.transform =
-      'translate3d(' + (axis === 'x' ? shift : 0).toFixed(2) + 'px,' +
-      ((axis === 'y' ? shift : 0) + drift).toFixed(2) + 'px,0) scale(' +
-      api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false }).toFixed(4) + ')';
-    el.style.opacity = String(api.clamp(from, 0, 1) * (o.opacity === undefined ? 1 : o.opacity));
+    motion.enter(state, el, p, options);
   }
 
   /** SVG 分组的入场（同上，但写的是 SVG transform 属性）。 */
   function enterFig(state, api, node, p, options) {
-    if (!node) {
-      return;
-    }
-    var o = options || {};
-    var from = api.spring(p, { damping: 6, frequency: 1.1 });
-    var settle = api.progress(state.localFrame, beat(state, 0.24), 36, EASE_SYMMETRIC);
-    var shift = (1 - from) * (o.distance === undefined ? 40 : o.distance);
-    var axis = o.axis || 'y';
-    var drift = api.breath(state.localFrame, {
-      periodFrames: o.periodFrames || 140,
-      amplitude: o.amplitude === undefined ? 2.5 : o.amplitude,
-      phase: o.phase || 0
-    }) * settle;
-    svgT(
-      node,
-      axis === 'x' ? shift : 0,
-      (axis === 'y' ? shift : 0) + drift,
-      0,
-      api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false })
-    );
-    svgO(node, api.clamp(from, 0, 1));
+    motion.enterSvg(state, node, p, options);
   }
 
   /** 与运行时语义一致的钳制，避免为一个小工具再暴露一层接口。 */
@@ -316,38 +272,35 @@
 
     // 倾角：恐惧压下左盘 → 看穿空壳 → 弹回水平
     var press = api.progress(f, beat(state, 0.42), beat(state, 0.14), EASE_SYMMETRIC);
-    var relief = api.spring(api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC), {
-      damping: 5,
-      frequency: 1.5
-    });
+    var relief = motion.spring(api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC), 'snap');
     var theta = SCALE.TILT * press * (1 - relief);
     var anchors = panAnchors(theta);
 
     var beamP = api.progress(f, beat(state, 0.25), 26, EASE_OUT);
     var beamSettle = api.progress(f, beat(state, 0.7), 40, EASE_SYMMETRIC);
-    var beamDrift = api.breath(f, { periodFrames: 150, amplitude: 2 }) * beamSettle;
+    var beamDrift = motion.idle(f, { amplitude: 2 }) * beamSettle;
     svgT(
       pick('beam'),
       SCALE.PIVOT_X,
       SCALE.PIVOT_Y + beamDrift,
       theta,
-      api.range(api.spring(beamP, { damping: 6, frequency: 1.2 }), 0.55, 1, { clamp: false })
+      api.range(motion.spring(beamP, 'firm'), 0.55, 1, { clamp: false })
     );
     svgO(pick('beam'), beamP);
 
     // 吊盘：跟着横梁端点平移，落位后保持垂直
-    var panP = api.spring(api.progress(f, beat(state, 0.28), 24, EASE_OUT), { damping: 6, frequency: 1.2 });
+    var panP = motion.spring(api.progress(f, beat(state, 0.28), 24, EASE_OUT), 'firm');
     var panSettle = api.progress(f, beat(state, 0.28), 40, EASE_SYMMETRIC);
     var dropIn = (1 - panP) * 60;
-    var driftL = api.breath(f, { periodFrames: 150, amplitude: 2.4 }) * panSettle;
-    var driftR = api.breath(f, { periodFrames: 150, amplitude: 2.4, phase: 50 }) * panSettle;
+    var driftL = motion.idle(f, { amplitude: 2.4 }) * panSettle;
+    var driftR = motion.idle(f, { amplitude: 2.4, phase: 50 }) * panSettle;
     svgT(pick('panLeft'), anchors.left.x, anchors.left.y + dropIn + driftL);
     svgO(pick('panLeft'), api.clamp(panP * 1.5, 0, 1));
     svgT(pick('panRight'), anchors.right.x, anchors.right.y + dropIn + driftR);
     svgO(pick('panRight'), api.clamp(panP * 1.5, 0, 1));
 
     // 左盘的重物落下
-    var loadP = api.spring(api.progress(f, beat(state, 0.34), 26, EASE_OUT), { damping: 5.5, frequency: 1.3 });
+    var loadP = motion.spring(api.progress(f, beat(state, 0.34), 26, EASE_OUT), 'lively');
     var loadDrop = (1 - loadP) * -170;
     var reveal = api.progress(f, beat(state, 0.54), beat(state, 0.16), EASE_SYMMETRIC);
     svgO(pick('loadLeft'), api.clamp(loadP, 0, 1));
@@ -356,7 +309,7 @@
     svgO(pick('loadLeftHollow'), reveal);
 
     // 右盘的「一次上场」：轻，但它是最后亮起来的那一个
-    var tokenP = api.spring(api.progress(f, beat(state, 0.3), 24, EASE_OUT), { damping: 5.5, frequency: 1.3 });
+    var tokenP = motion.spring(api.progress(f, beat(state, 0.3), 24, EASE_OUT), 'lively');
     svgO(pick('loadRight'), api.clamp(tokenP, 0, 1));
     svgT(pick('loadRight'), 0, (1 - tokenP) * -120, 0, api.range(tokenP, 0.9, 1, { clamp: false }));
 
@@ -708,10 +661,7 @@
     });
 
     // 水下那一大团：从深处升上来，这是本幕的转折
-    var massP = api.spring(api.progress(f, beat(state, 0.3), beat(state, 0.18), EASE_OUT), {
-      damping: 6,
-      frequency: 1.1
-    });
+    var massP = motion.spring(api.progress(f, beat(state, 0.3), beat(state, 0.18), EASE_OUT), 'enter');
     svgT(pick('massGroup'), 0, (1 - massP) * 150, 0, api.range(massP, 0.94, 1, { clamp: false }));
     svgO(pick('massGroup'), api.clamp(massP, 0, 1));
 
@@ -720,7 +670,7 @@
     var starts = [0.2, 0.5, 0.72];
     Array.prototype.forEach.call(callouts, function (group, index) {
       var start = beat(state, starts[index] === undefined ? 0.72 : starts[index]);
-      var p = api.spring(api.progress(f, start, 24, EASE_OUT), { damping: 6, frequency: 1.2 });
+      var p = motion.spring(api.progress(f, start, 24, EASE_OUT), 'firm');
       var link = group.firstChild;
       if (link) {
         if (!link.dataset.length) {
@@ -884,10 +834,7 @@
     var nodeGroups = pick('nodes') ? pick('nodes').children : [];
     var nodeStart = beat(state, 0.12);
     Array.prototype.forEach.call(nodeGroups, function (group, index) {
-      var enterP = api.spring(api.progress(f, nodeStart + index * 8, 22, EASE_OUT), {
-        damping: 6,
-        frequency: 1.1
-      });
+      var enterP = motion.spring(api.progress(f, nodeStart + index * 8, 22, EASE_OUT), 'enter');
       var nodePoint = loopPoint(index);
       var pulse = index === arrived % nodeGroups.length ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
       var scale = api.range(enterP, 0.94, 1, { clamp: false }) * (1 + pulse * 0.09);
@@ -1021,7 +968,7 @@
     var groups = pick('bars') ? pick('bars').children : [];
     Array.prototype.forEach.call(groups, function (group, index) {
       var start = beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index]);
-      var p = api.spring(api.progress(f, start, 26, EASE_OUT), { damping: 6, frequency: 1.2 });
+      var p = motion.spring(api.progress(f, start, 26, EASE_OUT), 'firm');
 
       var bar = group.children[0];
       var note = group.children[1];
@@ -1186,8 +1133,8 @@
 
     var actionP = api.progress(f, beat(state, 0.64), 28, EASE_OUT);
     if (action) {
-      var shift = api.range(api.spring(actionP, { damping: 6, frequency: 1.1 }), 34, 0, { clamp: false });
-      var drift = api.breath(f, { periodFrames: 150, amplitude: 3 }) *
+      var shift = api.range(motion.spring(actionP, 'enter'), 34, 0, { clamp: false });
+      var drift = motion.idle(f, { amplitude: 3 }) *
         api.progress(f, beat(state, 0.64), 40, EASE_SYMMETRIC);
       action.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + drift.toFixed(2) + 'px,0)';
       action.style.opacity = String(api.clamp(actionP, 0, 1));
@@ -1315,8 +1262,6 @@
       throw new Error('视觉组件未注册: ' + kind + '（已注册：' + known().join('、') + '）');
     }
     var sig = signature(kind, spec || {});
-    // 节奏在每次挂载时刷新，因此由分镜声明的 motion 决定，与调用次数无关
-    currentTempo = (spec && spec.motion) || 'normal';
     if (host.__a2vFigure && host.getAttribute('data-fig-signature') === sig) {
       return host.__a2vFigure;
     }
@@ -1382,7 +1327,7 @@
     mount: mount,
     renderScene: renderScene,
     describe: describe,
-    /** 节奏名 -> 速度倍率，供文档与调试对照。 */
-    tempo: tempoSpeed
+    /** 节奏名 -> 速度倍率。配方本体在运行时的 A2V.motion，这里只是转发。 */
+    tempo: motion.tempo
   };
 })(window);

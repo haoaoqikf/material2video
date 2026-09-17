@@ -131,7 +131,52 @@ api.revealChars(el, text, p, { frame, staggerFrames });           // 逐字揭�
 时间只走三条曲线：出场用 `outQuint`、双向变化用 `inOutCubic`、
 逐项门控用 `outCubic`；混用更多曲线会让画面显得杂。
 
-### 动效配方
+### 动效配方层（`A2V.motion`）
+
+上面那些是**原语**，配方层是**做法**：入场怎么组合、弹性多大、什么时候收敛、
+常驻微动多快。它存在的唯一理由是——
+
+> 这些数字决定整支片子的手感。写在六个组件里就没人能整体调，
+> 新写的组件也会慢慢长成另一种手感。
+
+所以数字只写在 `timeline.js`，组件用名字调用：
+
+```js
+api.motion.enter(state, el, p, { distance: 24, amplitude: 3 });   // HTML 元素入场
+api.motion.enterSvg(state, node, p, { distance: 34, axis: 'x' }); // SVG 分组入场
+api.motion.spring(p, 'lively');                                   // 具名弹性
+api.motion.idle(f, { amplitude: 2.4, phase: 50 });                // 幕内常驻微动
+api.motion.beat(state, 0.42);                                     // 幕内比例点（自动按节奏缩放）
+api.motion.tempo('impact');                                       // 节奏名 → 速度倍率
+```
+
+两档入场配方，区别只在「移动多远、呼吸多快」，曲线完全相同：
+
+| 配方 | 用于 | 默认位移 | 呼吸周期 | 呼吸振幅 |
+| --- | --- | --- | --- | --- |
+| `surface` | 卡片、文字块等画面表面 | 44px | 130 帧 | 3px |
+| `figure` | SVG 图形本体 | 40px | 140 帧 | 2.5px |
+
+两者共用同一条弹性（阻尼 6 / 频率 1.1）与同一个收敛点（幕内 24% 处起 36 帧
+`inOutCubic` 把缩放钉回 1，同时让常驻微动渐入）。
+
+具名弹性，避免在组件里写裸数字：
+
+| 预设 | 阻尼 / 频率 | 感觉 |
+| --- | --- | --- |
+| `enter` | 6 / 1.1 | 温和入场，几乎看不出回弹 |
+| `firm` | 6 / 1.2 | 图形主体到位（默认） |
+| `lively` | 5.5 / 1.3 | 有分量的落点，回弹看得出来 |
+| `snap` | 5 / 1.5 | 小元素快速归位 |
+
+`A2V.motion.recipes()` 与 `A2V.motion.springs()` 返回当前取值的快照，
+供文档与调试对照；`tests/test_motion_runtime.py` 会把它们钉住——
+改配方是可以的（那正是它存在的意义），但改动必须是有意的。
+
+**节奏**由分镜的 `figure.motion` 决定（`calm` 0.82 / `normal` 1 / `impact` 1.24），
+运行时从 `state` 里读，组件不持有任何节奏状态。
+
+### 动效时长参考
 
 下面的帧数是 30fps 下的实测推荐值，可直接照抄，再按成片观感微调：
 

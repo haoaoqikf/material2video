@@ -24,6 +24,9 @@
 (function (global) {
   'use strict';
 
+  //: 只走这三条曲线，混用更多会让整支片子的手感不一致（见设计宪法 C4）。
+  var EASE = { enter: 'outQuint', gate: 'outCubic', both: 'inOutCubic' };
+
   /** 缓动函数集合。只在帧位置已知时使用，因此结果可复现。 */
   var easing = {
     linear: function (t) {
@@ -168,6 +171,261 @@
     }
     return Math.sin(((localFrame + (o.phase || 0)) / period) * Math.PI * 2) * amplitude;
   }
+
+  /* ==================== 动效配方 ==================== */
+
+  /*
+   * 配方层解决的问题：入场动效由「弹性曲线 + 收敛时机 + 常驻微动」三件事组成，
+   * 这三件事决定整支片子的手感。如果每个组件自己写阻尼、频率、收敛帧数，
+   * 手感就会随组件漂移，而且没有一处可以整体调整。
+   *
+   * 所以：**数字只写在这里，组件只说「这是什么元素、移动多远」**。
+   *
+   * 两档配方按元素的落点分：
+   *   surface —— 画面上的表面（卡片、文字块），位移略大、呼吸略快；
+   *   figure  —— 图形本体（SVG 分组），位移略小，避免与几何线条打架。
+   */
+  var RECIPES = {
+    surface: {
+      distance: 44,
+      scale: 1,
+      periodFrames: 130,
+      amplitude: 3,
+      springDamping: 6,
+      springFrequency: 1.1,
+      settleAt: 0.24,
+      settleFrames: 36
+    },
+    figure: {
+      distance: 40,
+      scale: 1,
+      periodFrames: 140,
+      amplitude: 2.5,
+      springDamping: 6,
+      springFrequency: 1.1,
+      settleAt: 0.24,
+      settleFrames: 36
+    }
+  };
+
+  //: 节奏名 → 速度倍率。分镜只写名字，节拍由运行时算。
+  var TEMPO_SPEED = { calm: 0.82, normal: 1, impact: 1.24 };
+
+  /*
+   * 弹性预设。组件里写 `{ damping: 5.5, frequency: 1.3 }` 这种数字时，
+   * 读者看不出它和别处的 `{ damping: 6, frequency: 1.2 }` 有什么意图差别，
+   * 改一处也想不到别处还有几处。给它们起名之后，「这个元素该有多弹」就成了可讨论的事。
+   */
+  var SPRINGS = {
+    enter: { damping: 6, frequency: 1.1 }, // 温和入场，几乎看不出回弹
+    firm: { damping: 6, frequency: 1.2 }, // 图形主体到位（默认）
+    lively: { damping: 5.5, frequency: 1.3 }, // 有分量的落点，回弹看得出来
+    snap: { damping: 5, frequency: 1.5 } // 小元素快速归位
+  };
+
+  //: 幕内常驻微动的周期。振幅按元素分档，周期统一，否则同屏各晃各的。
+  var DRIFT_PERIOD = 150;
+
+  function recipe(name) {
+    return RECIPES[name] || RECIPES.surface;
+  }
+
+  /** 按预设名取弹性值；未知名字用 firm，不抛错。 */
+  function springBy(p, name) {
+    return spring(p, SPRINGS[name] || SPRINGS.firm);
+  }
+
+  /** 幕内常驻微动：周期统一，只按元素给振幅与相位。 */
+  function idle(localFrame, options) {
+    var o = options || {};
+    return breath(localFrame, {
+      periodFrames: o.periodFrames === undefined ? DRIFT_PERIOD : o.periodFrames,
+      amplitude: o.amplitude === undefined ? 3 : o.amplitude,
+      phase: o.phase || 0
+    });
+  }
+
+  /** 节奏名对应的速度倍率；未知名字按正常速度处理，不抛错。 */
+  function tempo(name) {
+    return TEMPO_SPEED[name] || TEMPO_SPEED.normal;
+  }
+
+  /**
+   * 当前场景的组件声明（kind / labels / motion）。
+   *
+   * `state.scene` 是场景对象本身，声明写在它的 `data` 里；
+   * 兼容直接传 data 的写法，避免运行时的两种状态形状各自踩一次。
+   */
+  function sceneFigure(state) {
+    var scene = (state && state.scene) || {};
+    var data = scene.data || scene;
+    return data.figure || {};
+  }
+
+  /**
+   * 当前场景的节奏倍率。
+   *
+   * 从 state 里读，而不是模块级变量：节奏是这一幕的属性，
+   * 用隐藏状态会让「同一帧同一结果」依赖于调用顺序。
+   */
+  function tempoOf(state) {
+    return tempo(sceneFigure(state).motion);
+  }
+
+  /**
+   * 场景内的比例点换算成绝对帧号，并按该幕的节奏缩放。
+   *
+   * 用比例而不是绝对帧：配音把场景拉长后，入场节奏保持不变。
+   * 节奏越快，同一个比例点越早到达，后半段自然留出更长的停留。
+   */
+  function motionBeat(state, fraction) {
+    if (!state || !state.sceneDurationFrames) {
+      return 0;
+    }
+    return (fraction * state.sceneDurationFrames) / tempoOf(state);
+  }
+
+  /**
+   * 入场收敛度：入场结束后把缩放钉在 1，并让常驻微动淡入。
+   *
+   * 没有这一步，弹性曲线的过冲会把元素长期留在一个略大的尺寸上，
+   * 常驻微动也会在入场阶段就开始晃。
+   */
+  function settle(state, options) {
+    var o = options || {};
+    return settleWith(state, recipe(o.recipe), o);
+  }
+
+  function settleWith(state, base, options) {
+    var o = options || {};
+    var at = o.at === undefined ? base.settleAt : o.at;
+    var frames = o.frames === undefined ? base.settleFrames : o.frames;
+    return progress(state.localFrame, motionBeat(state, at), frames, EASE.both);
+  }
+
+  /** 给 SVG 元素写 transform 属性（SVG 用属性而不是 CSS，避免布局抖动）。 */
+  function svgTransform(node, tx, ty, rotate, scale) {
+    if (!node) {
+      return;
+    }
+    var value = 'translate(' + tx.toFixed(2) + ' ' + ty.toFixed(2) + ')';
+    if (rotate) {
+      value += ' rotate(' + rotate.toFixed(4) + ')';
+    }
+    if (scale !== undefined && scale !== null) {
+      value += ' scale(' + scale.toFixed(4) + ')';
+    }
+    node.setAttribute('transform', value);
+  }
+
+  /**
+   * 入场配方的实现：弹性曲线 + 收敛 + 常驻微动，算完交给调用方去写属性。
+   *
+   * HTML 与 SVG 只有「最后怎么写」不同，因此参数解析只在这里写一次——
+   * 两处各写一遍必然会慢慢走偏（曾经 SVG 一侧就漏掉了自己的呼吸周期）。
+   *
+   * @param {Object} state 运行时状态，用于取节奏与场景内帧号
+   * @param {string} name 默认配方名（surface / figure）
+   * @param {number} p 入场进度 0..1，通常来自 progress()
+   * @param {Object} [options] distance / axis / scale / amplitude / periodFrames / phase / opacity / recipe
+   */
+  function enterRecipe(state, name, p, options) {
+    var o = options || {};
+    var base = recipe(o.recipe || name);
+    var from = spring(p, { damping: base.springDamping, frequency: base.springFrequency });
+    var pin = settleWith(state, base, o);
+    return {
+      from: from,
+      axis: o.axis || 'y',
+      shift: (1 - from) * (o.distance === undefined ? base.distance : o.distance),
+      drift:
+        breath(state.localFrame, {
+          periodFrames: o.periodFrames === undefined ? base.periodFrames : o.periodFrames,
+          amplitude: o.amplitude === undefined ? base.amplitude : o.amplitude,
+          phase: o.phase || 0
+        }) * pin,
+      scale: o.scale === undefined ? base.scale : o.scale
+    };
+  }
+
+  /**
+   * HTML 元素的入场 + 常驻微动。
+   *
+   * @param {Object} state 运行时状态
+   * @param {HTMLElement} el 目标元素
+   * @param {number} p 入场进度 0..1
+   * @param {Object} [options] 见 enterRecipe
+   */
+  function enterAlive(state, el, p, options) {
+    if (!el) {
+      return;
+    }
+    var o = options || {};
+    var r = enterRecipe(state, 'surface', p, o);
+    el.style.transform =
+      'translate3d(' +
+      (r.axis === 'x' ? r.shift : 0).toFixed(2) +
+      'px,' +
+      ((r.axis === 'y' ? r.shift : 0) + r.drift).toFixed(2) +
+      'px,0) scale(' +
+      range(r.from, r.scale, 1, { clamp: false }).toFixed(4) +
+      ')';
+    el.style.opacity = String(clamp(r.from, 0, 1) * (o.opacity === undefined ? 1 : o.opacity));
+  }
+
+  /** SVG 分组的入场：同上，写的是 SVG 的 transform 属性。 */
+  function enterSvg(state, node, p, options) {
+    if (!node) {
+      return;
+    }
+    var r = enterRecipe(state, 'figure', p, options);
+    svgTransform(
+      node,
+      r.axis === 'x' ? r.shift : 0,
+      (r.axis === 'y' ? r.shift : 0) + r.drift,
+      0,
+      range(r.from, r.scale, 1, { clamp: false })
+    );
+    node.setAttribute('opacity', String(clamp(r.from, 0, 1)));
+  }
+
+  /** 配方表：只读快照，供文档与调试对照。 */
+  function motionRecipes() {
+    var out = {};
+    Object.keys(RECIPES).forEach(function (name) {
+      var entry = RECIPES[name];
+      out[name] = {};
+      Object.keys(entry).forEach(function (key) {
+        out[name][key] = entry[key];
+      });
+    });
+    return out;
+  }
+
+  /**
+   * 动效配方层。
+   *
+   * 组件从这里取「入场怎么做」，而不是各自写阻尼、频率与收敛帧数：
+   * 那些数字决定整支片子的手感，散落在各组件里就没人能整体调，
+   * 新写的组件也会慢慢长成另一种手感。
+   */
+  var motion = {
+    tempo: tempo,
+    beat: motionBeat,
+    settle: settle,
+    spring: springBy,
+    idle: idle,
+    enter: enterAlive,
+    enterSvg: enterSvg,
+    recipes: motionRecipes,
+    springs: function () {
+      var out = {};
+      Object.keys(SPRINGS).forEach(function (name) {
+        out[name] = { damping: SPRINGS[name].damping, frequency: SPRINGS[name].frequency };
+      });
+      return out;
+    }
+  };
 
   /**
    * 描边动画：按进度画出 SVG 路径（箭头、连线、回环）。
@@ -514,7 +772,9 @@
       clamp: clamp,
       lerp: lerp,
       formatTime: formatTime,
-      timeline: timeline
+      timeline: timeline,
+      // 动效配方：入场 + 过冲 + 常驻微动，组件只说「移动多远」，不写手感参数
+      motion: motion
     };
 
     function collectSceneNodes(container, tl) {
@@ -801,6 +1061,8 @@
     revealChars: revealChars,
     clamp: clamp,
     lerp: lerp,
-    formatTime: formatTime
+    formatTime: formatTime,
+    // 与传给 render 的 api.motion 是同一份：组件库直接取用，不必等 mount
+    motion: motion
   };
 })(window);

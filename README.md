@@ -188,6 +188,9 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - **单一真源**：文案与原始时长写在 `storyboard.json`；启用配音时，网页和脚本共用媒体清单中的派生时长；
 - **帧驱动**：画面只由帧号推导。禁止 CSS `animation`/`transition`、`Date.now()`、
   `Math.random()`，否则逐帧截图会闪烁且不可复现；渲染前会静态提示这类写法；
+- **手感只有一处**：入场、弹性、收敛、常驻微动这些决定「整支片子什么手感」的数字
+  只写在 `timeline.js` 的 `A2V.motion` 配方表里，组件用 `api.motion.enter(...)`、
+  `api.motion.spring(p, 'lively')` 这样的名字调用，不写裸数字；
 - **产物归属**：一篇文章一个目录，产物只写进它自己的 `outputs/<slug>/`；
   推导不出归属时脚本报错并要求显式指定路径，不猜测；
 - **性能取舍**：中间帧默认用 JPEG q98 采集（1080 × 1920 实测约 66ms/帧，PNG 约 225ms），

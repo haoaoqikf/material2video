@@ -96,6 +96,10 @@ A2V.figures.register(kind, {
 - **纯函数**：`update` 的结果只由 `state`（帧号、场景、时长）与组件自己的常量决定；
   禁止 `Date.now`、`performance.now`、`Math.random`，禁止 CSS `animation`/`transition`。
   开渲前的静态扫描会连共享资产一起检查。
+- **动效走配方层**：入场用 `api.motion.enter` / `api.motion.enterSvg`，弹性用
+  `api.motion.spring(p, 'firm')` 这类**具名预设**，幕内微动用 `api.motion.idle`。
+  组件里不写阻尼、频率、呼吸周期这些数字——它们决定整支片子的手感，
+  只写在 `timeline.js`，见[动效配方层](visual-spec.md#动效配方层-azvmotion)。
 - **不读实时布局**：几何由常量与 `params` 推导。确需测量（如 `getTotalLength`）
   只在首次更新时做一次并缓存，不能每帧测。
 - **文案全部来自分镜**：组件可以决定排版，不能决定写什么。
