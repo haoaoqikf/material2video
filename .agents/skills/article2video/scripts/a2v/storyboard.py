@@ -24,15 +24,19 @@ _SCENE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 # 已知场景类型及其 data 中的必填/可选字段。新增类型时同步更新
 # docs/PROJECT_PLAN.md 的组件清单与 SKILL.md 中的说明。
+#
+# annotations 是「图形标注」：写在图形上、用来点明图示含义的短词（例如天平的
+# 「命运的考试 / 一次上场」）。它属于内容层，因此和文案一样写在分镜里，由网页
+# 决定画在哪个位置；键名由每支视频的构图约定，校验器只保证它是短字符串映射。
 _SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
-    "title": {"required": {"text"}, "optional": {"subtitle", "emphasis"}},
-    "quote": {"required": {"text"}, "optional": {"attribution", "emphasis"}},
-    "comparison": {"required": {"left", "right"}, "optional": {"title"}},
-    "timeline": {"required": {"items"}, "optional": {"title"}},
-    "diagram": {"required": {"nodes"}, "optional": {"edges", "title"}},
-    "number": {"required": {"value"}, "optional": {"label", "caption"}},
-    "list": {"required": {"items"}, "optional": {"title"}},
-    "conclusion": {"required": {"text"}, "optional": {"action", "emphasis"}},
+    "title": {"required": {"text"}, "optional": {"subtitle", "emphasis", "annotations"}},
+    "quote": {"required": {"text"}, "optional": {"attribution", "emphasis", "annotations"}},
+    "comparison": {"required": {"left", "right"}, "optional": {"title", "annotations"}},
+    "timeline": {"required": {"items"}, "optional": {"title", "annotations"}},
+    "diagram": {"required": {"nodes"}, "optional": {"edges", "title", "annotations"}},
+    "number": {"required": {"value"}, "optional": {"label", "caption", "annotations"}},
+    "list": {"required": {"items"}, "optional": {"title", "annotations"}},
+    "conclusion": {"required": {"text"}, "optional": {"action", "emphasis", "annotations"}},
 }
 
 # 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
@@ -52,6 +56,9 @@ _TEXT_LINE_LIMITS: dict[str, int] = {
 
 # 低于该帧数的场景来不及完成一次入场动效（30fps 下 0.8 秒）。
 _MIN_SCENE_FRAMES = 24
+
+# 图形标注是画在图上的词，必须短到能塞进图形旁边；过长会挤掉图形本身。
+_ANNOTATION_MAX_CHARS = 12
 
 # 场景内会被强调短语覆盖的文本字段，用于检查 emphasis 是否真的能命中。
 _EMPHASIS_TEXT_FIELDS: dict[str, tuple[str, ...]] = {
@@ -268,10 +275,39 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
         _validate_emphasis(data_field["emphasis"], f"{path}.data.emphasis", report)
         _warn_on_unmatched_emphasis(scene_type, data_field, f"{path}.data.emphasis", report)
 
+    if "annotations" in data_field:
+        _validate_annotations(data_field["annotations"], f"{path}.data.annotations", report)
+
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
 
     _warn_on_long_text(data_field, f"{path}.data", report)
+
+
+def _validate_annotations(value: Any, path: str, report: Report) -> None:
+    """校验图形标注：非空的「短词 -> 短词」映射。
+
+    键名（如 left / right / gauge）由每支视频的构图约定，校验器不预设枚举，
+    只保证网页拿到的是一组能安全画进图形的短字符串，并提醒过长的标注。
+    """
+    if not isinstance(value, dict) or not value:
+        report.error(path, "annotations 必须是非空对象，形如 {\"left\": \"命运的考试\"}")
+        return
+    for key in sorted(value.keys()):
+        key_path = f"{path}.{key}"
+        if not isinstance(key, str) or not key.strip():
+            report.error(path, "annotations 的键必须是非空字符串")
+            continue
+        item = value[key]
+        if not isinstance(item, str) or not item.strip():
+            report.error(key_path, "图形标注必须是非空字符串")
+            continue
+        if len(item.strip()) > _ANNOTATION_MAX_CHARS:
+            report.warn(
+                key_path,
+                f"图形标注 {len(item.strip())} 个字符，超过 {_ANNOTATION_MAX_CHARS} 字，"
+                "画在图形旁边会挤压构图",
+            )
 
 
 def _warn_on_long_text(data_field: dict[str, Any], path: str, report: Report) -> None:

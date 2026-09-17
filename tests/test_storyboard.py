@@ -165,6 +165,35 @@ class TestEmphasisValidation:
         assert warning_paths(sb.validate(valid_script)) == []
 
 
+class TestAnnotationValidation:
+    """图形标注：比喻画面上的短标签，键名由各视频的构图约定。"""
+
+    def test_accepts_annotations(self, valid_script):
+        valid_script["scenes"][0]["data"]["annotations"] = {"leftPan": "命运的考试"}
+        assert sb.validate(valid_script).ok
+
+    def test_is_not_flagged_as_undefined_field(self, valid_script):
+        valid_script["scenes"][0]["data"]["annotations"] = {"leftPan": "命运的考试"}
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    @pytest.mark.parametrize("value", [[], "命运的考试", {}, None])
+    def test_rejects_non_mapping_or_empty(self, valid_script, value):
+        valid_script["scenes"][0]["data"]["annotations"] = value
+        assert "scenes[0].data.annotations" in error_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("label", ["", "   ", 42, None])
+    def test_rejects_invalid_label(self, valid_script, label):
+        valid_script["scenes"][0]["data"]["annotations"] = {"leftPan": label}
+        assert "scenes[0].data.annotations.leftPan" in error_paths(sb.validate(valid_script))
+
+    def test_warns_on_overlong_label(self, valid_script):
+        # 标注是要挤在图形旁边的，太长会挤压构图，因此只警告不阻断
+        valid_script["scenes"][0]["data"]["annotations"] = {"leftPan": "这一条图形标注写得实在太长了"}
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.annotations.leftPan" in warning_paths(report)
+
+
 class TestVisualWarnings:
     """排版与动效相关的警告：默认放行，--strict 时视为失败。"""
 

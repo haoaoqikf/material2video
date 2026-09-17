@@ -35,20 +35,26 @@
 
 | `type` | 必填字段 | 可选字段 | 适用内容 |
 | --- | --- | --- | --- |
-| `title` | `text` | `subtitle`, `emphasis` | 开场命题、主题 |
-| `quote` | `text` | `attribution`, `emphasis` | 核心判断、金句 |
-| `comparison` | `left`, `right` | `title` | 两种选择、前后对照 |
-| `timeline` | `items`（非空数组） | `title` | 事件顺序、尝试过程 |
-| `diagram` | `nodes`（非空数组） | `edges`, `title` | 因果、约束、反馈模型 |
-| `number` | `value` | `label`, `caption` | 数量、频次、收益变化 |
-| `list` | `items`（非空数组） | `title` | 要点、行动步骤 |
-| `conclusion` | `text` | `action`, `emphasis` | 收束、行动建议 |
+| `title` | `text` | `subtitle`, `emphasis`, `annotations` | 开场命题、主题 |
+| `quote` | `text` | `attribution`, `emphasis`, `annotations` | 核心判断、金句 |
+| `comparison` | `left`, `right` | `title`, `annotations` | 两种选择、前后对照 |
+| `timeline` | `items`（非空数组） | `title`, `annotations` | 事件顺序、尝试过程 |
+| `diagram` | `nodes`（非空数组） | `edges`, `title`, `annotations` | 因果、约束、反馈模型 |
+| `number` | `value` | `label`, `caption`, `annotations` | 数量、频次、收益变化 |
+| `list` | `items`（非空数组） | `title`, `annotations` | 要点、行动步骤 |
+| `conclusion` | `text` | `action`, `emphasis`, `annotations` | 收束、行动建议 |
 
 `emphasis` 是要在画面中强调的短语列表（非空数组，元素为非空字符串）。
 网页负责把它渲染成强调样式，例如把第一处出现的短语包进 `<span class="key">`。
 把重点放在数据里而不是硬编码进网页，可以避免同一条文案在分镜与页面两处维护。
 短语必须能在该场景的文本字段里**原样命中**（网页只替换第一处出现），
 否则校验器会警告「强调色不会生效」。
+
+`annotations` 是可选的对象，给网页的图形组件提供**短标注**：键与值都必须是非空字符串，
+值建议不超过 12 个汉字（超长只警告）。它回答的是「这幅图里的标签分别写什么」，
+例如天平两侧托盘的名字、落差尺两端的写法。键的取值由网页实现决定，
+当前各场景类型的约定键见 [竖屏视觉规范](visual-spec.md) 的「图形标注」一节。
+文案仍然只存在于分镜里，网页不得为标注写默认文案。
 
 分镜里的换行符是硬换行：把长句按语义手动断成每行不超过 14 个汉字，
 比让浏览器自动折行更可控，也避免重点词被拆开。校验器会对超长行给出警告，

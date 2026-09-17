@@ -16,9 +16,11 @@
 <style>
   /*
    * 本视频的视觉语言：浅色纸张底 + 墨黑文字 + 单一朱红强调。
-   * 风格方向取自 references/visual-spec.md 的「编辑杂志」：
-   * 底色不是纯白而是暖灰白，卡片用收敛的投影，正文比深色方案更松。
-   * 所有动效数值都由 JS 按帧号写入内联样式，不使用 CSS animation/transition。
+   * 风格方向取自 references/visual-spec.md 的「编辑杂志」。
+   *
+   * 与上一版的区别是「以形表意」：每一幕都先给出一个会动的图形（天平、落差尺、
+   * 冰山、飞轮、阶梯、双向箭头），文字只做图形的注脚。图形与动效配方见
+   * references/visual-metaphor.md；所有数值都由 JS 按帧号写入，不使用 CSS 动画。
    */
   :root {
     /* 页面级令牌覆盖：只改颜色与表面，不改画布与安全区 */
@@ -46,6 +48,12 @@
 
     --a2v-font: "Songti SC", "SimSun", "Noto Serif SC", "Source Han Serif SC", serif;
     --a2v-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+
+    /* 图形语言：所有插画共用三种线宽与两种填充，保证六幕看起来是一套画 */
+    --fig-line: rgba(22, 24, 29, 0.4);
+    --fig-line-soft: rgba(22, 24, 29, 0.16);
+    --fig-ink: #2b2f38;
+    --fig-water: rgba(45, 78, 120, 0.1);
   }
 
   /*
@@ -104,7 +112,7 @@
     background: radial-gradient(125% 88% at 50% 42%, rgba(22, 24, 29, 0) 52%, rgba(22, 24, 29, 0.09) 100%);
   }
 
-  /* ---------- 通用：场景角标与强调短语 ---------- */
+  /* ---------- 通用：场景角标、强调短语、图形基线 ---------- */
   .scene-tag {
     position: absolute;
     top: 140px;
@@ -144,15 +152,63 @@
     height: 0;
   }
 
-  /* ---------- 开场命题 ---------- */
-  #s-opening .a2v-safe {
+  /* ---------- 图形通用：六幕共用同一套线宽与圆角，看起来才像一套画 ---------- */
+  .fig {
+    display: block;
+    width: 888px;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .fig text {
+    font-family: var(--a2v-font);
+    dominant-baseline: middle;
+  }
+
+  .fig .ln {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .fig .ln-soft {
+    stroke: var(--fig-line-soft);
+  }
+
+  .fig .ln-accent {
+    stroke: var(--a2v-accent);
+  }
+
+  .fig .dashed {
+    stroke-dasharray: 16 14;
+  }
+
+  .fig .paper {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .section-title {
+    font-family: var(--a2v-font-sans);
+    font-size: 36px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--a2v-text-3);
+    margin: 0;
+  }
+
+  /* ---------- 01 开场：天平 ---------- */
+  [data-scene-id="opening"] .a2v-safe {
     justify-content: center;
-    gap: 44px;
+    gap: 30px;
   }
 
   .title-text {
-    font-size: 138px;
-    line-height: 1.2;
+    font-size: 124px;
+    line-height: 1.16;
     font-weight: 700;
     margin: 0;
     letter-spacing: -0.03em;
@@ -167,13 +223,83 @@
 
   .title-sub {
     margin: 0;
-    font-size: 46px;
-    line-height: 1.6;
-    color: var(--a2v-text-2);
-    white-space: pre-line;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
-  /* ---------- 金句 ---------- */
+  .title-sub-line {
+    font-size: 44px;
+    line-height: 1.45;
+    color: var(--a2v-text-2);
+  }
+
+  .fig-scale {
+    width: 888px;
+    height: 430px;
+    overflow: visible;
+  }
+
+  .scale-pivot {
+    fill: var(--fig-line);
+  }
+
+  .scale-plate {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
+
+  .scale-rope {
+    fill: none;
+    stroke: var(--fig-line-soft);
+    stroke-width: 4;
+  }
+
+  .load-solid {
+    fill: var(--fig-ink);
+  }
+
+  /* 空壳：虚线 + 极浅填充，表示「看着很大，其实没有重量」 */
+  .load-hollow {
+    fill: rgba(22, 24, 29, 0.035);
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-dasharray: 16 13;
+  }
+
+  .load-token {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .load-text {
+    font-size: 36px;
+    text-anchor: middle;
+    letter-spacing: 0.06em;
+    fill: #ffffff;
+  }
+
+  .load-text.is-ink {
+    fill: var(--a2v-text-2);
+  }
+
+  /*
+   * 光晕必须引用本幕自己的渐变：跨场景引用另一个 <defs> 里的 id 在
+   * 目标场景被 display:none 时不会解析，光晕会静默消失。
+   */
+  .scale-halo {
+    fill: url(#scale-halo);
+  }
+
+  /* ---------- 02 金句：落差尺 ---------- */
+  [data-scene-id="real-loss"] .a2v-safe {
+    justify-content: center;
+    gap: 46px;
+  }
+
   .quote-block {
     position: relative;
     padding-left: 62px;
@@ -183,9 +309,9 @@
   /* 引号退到文字之后，作为装饰而不是内容 */
   .quote-mark {
     position: absolute;
-    top: -110px;
+    top: -104px;
     left: -8px;
-    font-size: 230px;
+    font-size: 220px;
     line-height: 1;
     color: var(--a2v-accent);
     opacity: 0;
@@ -207,14 +333,13 @@
 
   /*
    * 字号按硬换行反推：文字可用宽度 = 1080 - 2 × 96 = 888px。
-   * 最长一行是「不过就是这家公司不要你。」共 14 字（含标点），
-   * 实测中文单字宽约为字号的 1.02 倍（衬线字体），14 × 1.02 × 66 ≈ 942px
-   * 仍会略微超宽，所以这里取 66px 并让每行都留有余量——宁可缩小字号，
+   * 最长一行是「不过就是这家公司不要你。」共 14 字（含标点），衬线单字宽约为
+   * 字号的 1.02 倍，因此取 62px 并让每行都留有余量——宁可缩小字号，
    * 也不要让浏览器把分镜里的硬换行再折成第四行。
    */
   .quote-text {
-    font-size: 66px;
-    line-height: 1.6;
+    font-size: 62px;
+    line-height: 1.55;
     font-weight: 600;
     margin: 0;
     max-width: 888px;
@@ -245,296 +370,455 @@
     pointer-events: none;
   }
 
-  /* ---------- 列表（真正害怕的是什么） ---------- */
-  #s-fear-source .a2v-safe {
-    justify-content: center;
-    gap: 32px;
+  .drop-board {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
   }
 
-  .list-head {
-    font-family: var(--a2v-font-sans);
-    font-size: 34px;
-    letter-spacing: 0.16em;
-    color: var(--a2v-text-3);
-    margin: 0 0 12px;
-  }
-
-  .list-rows {
+  .drop-panel {
+    position: relative;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
-    gap: 30px;
-  }
-
-  .row {
-    position: relative;
-    display: flex;
     align-items: center;
-    gap: 36px;
-    min-height: 170px;
-    padding: 34px 44px;
+    gap: 18px;
+    padding: 26px 20px 24px;
     border: 1px solid var(--a2v-hairline);
     border-radius: var(--a2v-radius-lg);
     background: var(--a2v-surface), var(--a2v-bg-2);
     box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
   }
 
-  /* 最后一行是「出路」：唯一拿到强调色边框与光斑的行 */
-  .row.is-accent {
+  /* 只有「事实」那一栏拿强调色：它在画面里是焦点 */
+  .drop-panel.is-fact {
     border-color: rgba(var(--a2v-accent-rgb), 0.42);
     background: var(--a2v-surface-strong);
   }
 
-  .row.is-accent::before {
-    content: "";
-    position: absolute;
-    top: -60px;
-    right: -50px;
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--a2v-accent-rgb), 0.13) 0%, rgba(0, 0, 0, 0) 70%);
-    pointer-events: none;
-  }
-
-  .row-index {
-    font-family: var(--a2v-font-sans);
-    font-size: 30px;
-    letter-spacing: 0.06em;
-    color: var(--a2v-text-3);
-    min-width: 64px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .row.is-accent .row-index {
-    color: var(--a2v-accent);
-  }
-
-  .row-body {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .row-label {
-    font-size: 60px;
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--a2v-text-1);
-  }
-
-  .row.is-accent .row-label {
-    color: var(--a2v-accent);
-  }
-
-  .row-desc {
-    font-family: var(--a2v-font-sans);
-    font-size: 34px;
-    line-height: 1.4;
-    color: var(--a2v-text-2);
-  }
-
-  /* ---------- 关系图（面试的反馈循环） ---------- */
-  #s-feedback-loop .a2v-safe {
-    gap: 28px;
-  }
-
-  .section-title {
-    font-family: var(--a2v-font-sans);
-    font-size: 36px;
-    font-weight: 500;
-    letter-spacing: 0.14em;
-    color: var(--a2v-text-3);
-    margin: 0;
-  }
-
-  /*
-   * 节点用绝对定位排在固定尺寸的 stage 上，不用流式布局：
-   * 位置由常量算出，不依赖布局测量，因此逐帧结果稳定。
-   */
-  .flow {
-    position: relative;
-    overflow: visible;
-  }
-
-  .flow-stage {
-    position: relative;
-    overflow: visible;
-  }
-
-  .flow-links,
-  .flow-back {
-    position: absolute;
-    left: 0;
-    top: 0;
-    overflow: visible;
-    pointer-events: none;
-  }
-
-  .flow-links path {
-    fill: none;
-    stroke: rgba(22, 24, 29, 0.34);
-    stroke-width: 4;
-    stroke-linecap: round;
-  }
-
-  .flow-back {
-    z-index: 0;
-  }
-
-  .flow-back path {
-    fill: none;
-    stroke: var(--a2v-accent);
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-opacity: 0.7;
-  }
-
-  .flow-node {
-    position: absolute;
-    left: 0;
-    /* 尺寸由 JS 里的同名常量决定，CSS 只负责外观 */
-    width: 420px;
-    height: 132px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-    /* 节点是「结构标签」而不是正文：走无衬线，与卡片标签保持同一层级 */
-    font-family: var(--a2v-font-sans);
-    font-size: 54px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--a2v-text-2);
-    border-radius: var(--a2v-radius-md);
-    border: 1px solid var(--a2v-hairline);
-    background: var(--a2v-surface), var(--a2v-bg-2);
-    /* 光晕由 JS 每帧写入 --flow-halo / --flow-halo-rgb，避免逐帧改写整条阴影 */
-    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2), 0 0 var(--flow-halo, 0px)
-      rgba(var(--a2v-accent-rgb), var(--flow-halo-rgb, 0));
-  }
-
-  /* 当前节点：边框与文字转成强调色，给观众一个「读到这里」的锚点 */
-  .flow-node.is-active {
-    border-color: rgba(var(--a2v-accent-rgb), 0.55);
-    color: var(--a2v-text-1);
-  }
-
-  /* 回环说明：贴在曲线鼓出的一侧，解释「反馈」为什么回到「上场」 */
-  .flow-loop-note {
-    position: absolute;
+  .drop-cap {
     font-family: var(--a2v-font-sans);
     font-size: 32px;
-    line-height: 1.4;
+    letter-spacing: 0.08em;
+    color: var(--a2v-text-3);
+    text-align: center;
+  }
+
+  .drop-panel.is-fact .drop-cap {
     color: var(--a2v-accent);
-    opacity: 0;
+  }
+
+  .drop-stage {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 44px;
+    height: 300px;
+  }
+
+  /* 竖尺：底边是「0」，高度是「你手里有的东西」 */
+  .drop-track {
+    position: relative;
+    width: 104px;
+    height: 268px;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: var(--a2v-radius-sm);
+    background: rgba(22, 24, 29, 0.025);
+  }
+
+  .drop-fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    border-radius: 0 0 19px 19px;
+    background: linear-gradient(180deg, #3a3f4a 0%, #23262d 100%);
+  }
+
+  .drop-panel.is-fact .drop-fill {
+    background: linear-gradient(180deg, #cc4a3f 0%, #a92c22 100%);
+  }
+
+  /* 虚线：被拒绝之前的高度。它留在原地，差值就是「失去」 */
+  .drop-ghost {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    height: 0;
+    border: 2px dashed var(--fig-line);
+    border-bottom: 0;
+    border-radius: 19px 19px 0 0;
+  }
+
+  .drop-zero {
+    position: absolute;
+    left: -14px;
+    right: -14px;
+    bottom: -3px;
+    height: 3px;
+    background: var(--fig-line);
+  }
+
+  /* 落差括号：从「现在」量到「曾经」，长度就是真正的损失 */
+  .drop-bracket-wrap {
+    position: relative;
+    width: 148px;
+    height: 268px;
+  }
+
+  .drop-bracket {
+    position: absolute;
+    left: 34px;
+    width: 22px;
+    height: 0;
+    border-left: 4px solid var(--a2v-accent);
+  }
+
+  .drop-bracket::before,
+  .drop-bracket::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 22px;
+    height: 4px;
+    background: var(--a2v-accent);
+  }
+
+  .drop-bracket::before {
+    top: 0;
+  }
+
+  .drop-bracket::after {
+    bottom: 0;
+  }
+
+  .drop-bracket.is-flat {
+    border-left-color: var(--a2v-text-3);
+  }
+
+  .drop-bracket.is-flat::before,
+  .drop-bracket.is-flat::after {
+    background: var(--a2v-text-3);
+  }
+
+  .drop-label {
+    position: absolute;
+    left: 60px;
+    width: 124px;
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    line-height: 1.25;
+    /* 标注一律单行：换行会把「无可失去」挤成两截，读起来像两个词 */
+    white-space: nowrap;
+    color: var(--a2v-accent);
+  }
+
+  .drop-label.is-flat {
+    color: var(--a2v-text-2);
+  }
+
+  /* ---------- 03 恐惧来源：冰山 ---------- */
+  [data-scene-id="fear-source"] .a2v-safe {
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .fig-berg {
+    width: 888px;
+    height: 760px;
+    overflow: visible;
+  }
+
+  .berg-water {
+    /* 越深越淡：让水体下缘自然消失，而不是切出一条硬边 */
+    fill: url(#berg-depth);
+  }
+
+  .berg-tip {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
+
+  /* 水下部分用冷色 + 虚线：它是被藏起来的那一半 */
+  .berg-mass {
+    fill: rgba(45, 78, 120, 0.16);
+    stroke: rgba(45, 78, 120, 0.55);
+    stroke-width: 4;
+    stroke-linejoin: round;
+    stroke-dasharray: 18 14;
+  }
+
+  .berg-callout {
+    fill: #ffffff;
+    stroke: var(--a2v-hairline);
+    stroke-width: 2;
+  }
+
+  .berg-callout.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.5);
+  }
+
+  .berg-callout-label {
+    font-size: 44px;
+    font-weight: 700;
+    fill: var(--a2v-text-1);
+    letter-spacing: 0.02em;
+  }
+
+  .berg-callout-label.is-accent {
+    fill: var(--a2v-accent);
+  }
+
+  .berg-callout-desc {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: var(--a2v-text-2);
+  }
+
+  .berg-link {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 3;
+    stroke-dasharray: 10 10;
+  }
+
+  .berg-link.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.7);
+  }
+
+  .berg-spark {
+    fill: var(--a2v-accent);
+  }
+
+  .berg-surface-note {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: rgba(45, 78, 120, 0.75);
+    letter-spacing: 0.14em;
+  }
+
+  /* ---------- 04 反馈循环：飞轮 ---------- */
+  [data-scene-id="feedback-loop"] .a2v-safe {
+    gap: 22px;
+  }
+
+  .fig-loop {
+    width: 888px;
+    height: 560px;
+    overflow: visible;
+  }
+
+  .loop-track {
+    fill: none;
+    stroke: var(--fig-line-soft);
+    stroke-width: 4;
+    stroke-dasharray: 4 18;
+    stroke-linecap: round;
+  }
+
+  .loop-arc {
+    fill: none;
+    stroke: var(--a2v-accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+  }
+
+  .loop-node-disc {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .loop-node-shadow {
+    fill: rgba(30, 26, 22, 0.07);
+  }
+
+  .loop-node-text {
+    font-size: 48px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+    letter-spacing: 0.04em;
+  }
+
+  .loop-token {
+    fill: var(--a2v-accent);
+  }
+
+  .loop-token-halo {
+    fill: url(#loop-halo);
+  }
+
+  .gauge {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 6px;
+  }
+
+  .gauge-label {
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    letter-spacing: 0.14em;
+    color: var(--a2v-text-3);
     white-space: nowrap;
   }
 
-  /* ---------- 时间线（上场次数决定你的位置） ---------- */
-  #s-upgrade .a2v-safe {
-    justify-content: center;
-    gap: 46px;
-  }
-
-  .steps {
+  .gauge-track {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 34px;
-    padding-left: 78px;
-  }
-
-  /* 轨道：一条 2px 竖线，被四个红点穿过，比每条各画一段更整洁 */
-  .steps-rail {
-    position: absolute;
-    left: 15px;
-    top: 24px;
-    width: 2px;
+    flex: 1 1 auto;
+    height: 16px;
     border-radius: 999px;
-    background: linear-gradient(
-      180deg,
-      rgba(var(--a2v-accent-rgb), 0.55) 0%,
-      rgba(var(--a2v-accent-rgb), 0.12) 100%
-    );
-    transform-origin: top center;
+    background: rgba(22, 24, 29, 0.07);
+    overflow: hidden;
   }
 
-  .step {
-    position: relative;
+  .gauge-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(194, 53, 42, 0.55) 0%, #c2352a 100%);
+  }
+
+  /* ---------- 05 上场复利：阶梯 ---------- */
+  [data-scene-id="upgrade"] .a2v-safe {
+    justify-content: center;
+    gap: 30px;
+  }
+
+  .fig-stairs {
+    width: 888px;
+    height: 640px;
+    overflow: visible;
+  }
+
+  .stair-bar {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .stair-bar.is-focus {
+    fill: rgba(194, 53, 42, 0.09);
+    stroke: var(--a2v-accent);
+  }
+
+  .stair-base {
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .stair-axis {
+    stroke: var(--fig-line-soft);
+    stroke-width: 3;
+  }
+
+  .stair-note {
+    font-family: var(--a2v-font-sans);
+    font-size: 32px;
+    text-anchor: middle;
+    fill: var(--a2v-text-3);
+    letter-spacing: 0.1em;
+  }
+
+  .stair-note.is-focus {
+    fill: var(--a2v-accent);
+  }
+
+  .stair-label {
+    font-size: 38px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+  }
+
+  .stair-axis-label {
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    fill: var(--a2v-text-3);
+    letter-spacing: 0.12em;
+  }
+
+  .stair-marker {
+    fill: var(--a2v-accent);
+  }
+
+  .stair-marker-halo {
+    fill: url(#stair-halo);
+  }
+
+  .stair-caption {
+    font-size: 40px;
+    line-height: 1.3;
+    color: var(--a2v-text-1);
+    text-align: center;
+    min-height: 52px;
+  }
+
+  .stair-flip {
+    align-self: center;
     display: flex;
     align-items: center;
-    min-height: 192px;
-    padding: 30px 40px;
+    gap: 18px;
+    padding: 14px 34px;
     border: 1px solid var(--a2v-hairline);
-    border-radius: var(--a2v-radius-md);
+    border-radius: 999px;
     background: var(--a2v-surface), var(--a2v-bg-2);
-    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
-  }
-
-  /* 红点压在轨道上：外层做底圈，内层是实心点 */
-  .step-dot {
-    position: absolute;
-    left: -71px;
-    top: 50%;
-    width: 20px;
-    height: 20px;
-    margin-top: -10px;
-    border-radius: 50%;
-    background: var(--a2v-accent);
-    box-shadow: 0 0 0 6px rgba(var(--a2v-accent-rgb), 0.14);
-  }
-
-  .step-body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .step-label {
-    font-size: 62px;
-    font-weight: 700;
-    line-height: 1.18;
-    letter-spacing: -0.01em;
-    color: var(--a2v-text-1);
-  }
-
-  .step-desc {
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-1);
     font-family: var(--a2v-font-sans);
-    font-size: 34px;
-    line-height: 1.4;
+    font-size: 32px;
+    letter-spacing: 0.08em;
     color: var(--a2v-text-2);
   }
 
-  .step-note {
-    position: absolute;
-    right: 40px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-family: var(--a2v-font-sans);
-    font-size: 32px;
-    letter-spacing: 0.18em;
-    color: var(--a2v-text-3);
-  }
-
-  /* 最后一级才是「选择权」：边框与文字转成强调色 */
-  .step.is-accent {
-    border-color: rgba(var(--a2v-accent-rgb), 0.42);
-  }
-
-  .step.is-accent .step-label,
-  .step.is-accent .step-note {
+  .stair-flip.is-after {
+    border-color: rgba(var(--a2v-accent-rgb), 0.45);
     color: var(--a2v-accent);
   }
 
-  /* ---------- 结论 ---------- */
-  #s-closing .a2v-safe {
-    gap: 40px;
+  .stair-flip .flip-arrow {
+    width: 46px;
+    height: 2px;
+    background: currentColor;
+    position: relative;
+  }
+
+  .stair-flip .flip-arrow::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    width: 16px;
+    height: 16px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+  }
+
+  .stair-flip .flip-arrow.is-right::after {
+    right: 0;
+    transform: rotate(45deg);
+  }
+
+  .stair-flip .flip-arrow.is-left::after {
+    left: 0;
+    transform: rotate(-135deg);
+  }
+
+  /* ---------- 06 收束：双向选择 ---------- */
+  [data-scene-id="closing"] .a2v-safe {
+    gap: 34px;
   }
 
   .closing-text {
     margin: 0;
-    font-size: 100px;
-    line-height: 1.4;
+    font-size: 96px;
+    line-height: 1.35;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--a2v-text-1);
@@ -542,8 +826,50 @@
     white-space: pre-line;
   }
 
+  .fig-exchange {
+    width: 888px;
+    height: 300px;
+    overflow: visible;
+  }
+
+  .ex-node-disc {
+    fill: #ffffff;
+    stroke: var(--fig-line);
+    stroke-width: 4;
+  }
+
+  .ex-node-disc.is-accent {
+    stroke: rgba(var(--a2v-accent-rgb), 0.55);
+  }
+
+  .ex-node-text {
+    font-size: 46px;
+    font-weight: 600;
+    text-anchor: middle;
+    fill: var(--a2v-text-1);
+  }
+
+  .ex-arc {
+    fill: none;
+    stroke: var(--fig-line);
+    stroke-width: 5;
+    stroke-linecap: round;
+  }
+
+  .ex-arc.is-accent {
+    stroke: var(--a2v-accent);
+  }
+
+  .ex-arrow {
+    fill: var(--fig-line);
+  }
+
+  .ex-arrow.is-accent {
+    fill: var(--a2v-accent);
+  }
+
   .closing-action {
-    margin-top: 40px;
+    margin-top: 10px;
     align-self: flex-start;
     font-family: var(--a2v-font-sans);
     font-size: 38px;
@@ -557,8 +883,9 @@
 <body>
 
 <!--
-  场景容器只保留结构，所有文案都从 storyboard.json 注入。
-  页面里不重复写一份文案，避免与分镜漂移。
+  场景容器只保留结构，所有文案与图形标注都从 storyboard.json 注入。
+  页面里不重复写一份文案，避免与分镜漂移；图形的几何常量写在脚本的
+  常量区，位置由常量算出而不是读取布局，保证逐帧结果稳定。
 -->
 <div data-a2v-stage>
 
@@ -575,7 +902,50 @@
     </div>
     <div class="a2v-safe">
       <h1 class="title-text" data-el="text"></h1>
-      <p class="title-sub" data-el="subtitle"></p>
+      <p class="title-sub">
+        <span class="title-sub-line" data-el="sub1"></span>
+        <span class="title-sub-line" data-el="sub2"></span>
+      </p>
+      <!-- 天平：恐惧把「命运的考试」压下去，随后证明它只是个空壳 -->
+      <svg class="fig fig-scale" viewBox="0 0 888 430" aria-hidden="true">
+        <defs>
+          <radialGradient id="scale-halo">
+            <stop offset="0" stop-color="rgba(194, 53, 42, 0.45)"></stop>
+            <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+          </radialGradient>
+        </defs>
+        <path class="ln" data-el="pillar" d="M444 372 L444 96"></path>
+        <path class="ln" data-el="legL" d="M444 368 L364 404"></path>
+        <path class="ln" data-el="legR" d="M444 368 L524 404"></path>
+        <path class="ln" data-el="base" d="M364 404 L524 404"></path>
+        <circle class="scale-pivot" data-el="pivot" cx="444" cy="96" r="13"></circle>
+        <g data-el="beam">
+          <path class="ln" d="M-300 0 L300 0"></path>
+        </g>
+        <g data-el="panLeft">
+          <path class="scale-rope" d="M0 0 L0 168"></path>
+          <path class="scale-plate" d="M-130 168 L130 168 L110 198 L-110 198 Z"></path>
+          <g data-el="loadLeft">
+            <g data-el="loadLeftSolid">
+              <rect class="load-solid" x="-116" y="52" width="232" height="116" rx="16"></rect>
+              <text class="load-text" data-el="loadLeftText" x="0" y="112"></text>
+            </g>
+            <g data-el="loadLeftHollow">
+              <rect class="load-hollow" x="-116" y="52" width="232" height="116" rx="16"></rect>
+              <text class="load-text is-ink" data-el="loadLeftTextHollow" x="0" y="112"></text>
+            </g>
+          </g>
+        </g>
+        <g data-el="panRight">
+          <circle class="scale-halo" data-el="rightHalo" cx="0" cy="127" r="118"></circle>
+          <path class="scale-rope" d="M0 0 L0 168"></path>
+          <path class="scale-plate" d="M-130 168 L130 168 L110 198 L-110 198 Z"></path>
+          <g data-el="loadRight">
+            <rect class="load-token" data-el="loadRightRect" x="-84" y="86" width="168" height="82" rx="14"></rect>
+            <text class="load-text is-ink" data-el="loadRightText" x="0" y="128"></text>
+          </g>
+        </g>
+      </svg>
     </div>
   </section>
 
@@ -591,6 +961,37 @@
         <span class="quote-rule" data-el="rule"></span>
         <p class="quote-text" data-el="text"></p>
       </div>
+      <!-- 落差尺：左边是「先拥有再被拿走」，右边是「本来就没有」 -->
+      <div class="drop-board">
+        <div class="drop-panel" data-el="panelA">
+          <div class="drop-cap" data-el="capA"></div>
+          <div class="drop-stage">
+            <div class="drop-track">
+              <span class="drop-ghost" data-el="ghostA"></span>
+              <span class="drop-fill" data-el="fillA"></span>
+              <span class="drop-zero"></span>
+            </div>
+            <div class="drop-bracket-wrap">
+              <span class="drop-bracket" data-el="bracketA"></span>
+              <span class="drop-label" data-el="labelA"></span>
+            </div>
+          </div>
+        </div>
+        <div class="drop-panel is-fact" data-el="panelB">
+          <div class="drop-cap" data-el="capB"></div>
+          <div class="drop-stage">
+            <div class="drop-track">
+              <span class="drop-ghost" data-el="ghostB"></span>
+              <span class="drop-fill" data-el="fillB"></span>
+              <span class="drop-zero"></span>
+            </div>
+            <div class="drop-bracket-wrap">
+              <span class="drop-bracket is-flat" data-el="bracketB"></span>
+              <span class="drop-label is-flat" data-el="labelB"></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -601,9 +1002,37 @@
       <span>恐惧的来源</span>
     </div>
     <div class="a2v-safe">
-      <h2 class="list-head" data-el="title"></h2>
-      <!-- 行结构由 renderList 依据分镜的 items 动态生成 -->
-      <div class="list-rows" data-el="rows"></div>
+      <h2 class="section-title" data-el="title"></h2>
+      <!-- 冰山：看得见的「失去」只是一角，水面下那团才是本体 -->
+      <svg class="fig fig-berg" viewBox="0 0 888 760" aria-hidden="true">
+        <defs>
+          <clipPath id="berg-clip">
+            <path d="M138 300 L296 300 L392 452 L348 632 L150 692 L34 500 Z"></path>
+          </clipPath>
+          <linearGradient id="berg-light" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="rgba(194, 53, 42, 0)"></stop>
+            <stop offset="0.5" stop-color="rgba(194, 53, 42, 0.55)"></stop>
+            <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+          </linearGradient>
+          <linearGradient id="berg-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(45, 78, 120, 0.17)"></stop>
+            <stop offset="0.75" stop-color="rgba(45, 78, 120, 0.06)"></stop>
+            <stop offset="1" stop-color="rgba(45, 78, 120, 0)"></stop>
+          </linearGradient>
+        </defs>
+        <rect class="berg-water" data-el="waterBody" x="0" y="300" width="888" height="460"></rect>
+        <path class="ln" data-el="waterLine" d="M0 300 L888 300"></path>
+        <text class="berg-surface-note" data-el="surfaceNote" x="24" y="274"></text>
+        <path class="berg-tip" data-el="tip" d="M215 64 L138 300 L296 300 Z"></path>
+        <g data-el="massGroup">
+          <path class="berg-mass" d="M138 300 L296 300 L392 452 L348 632 L150 692 L34 500 Z"></path>
+          <g clip-path="url(#berg-clip)">
+            <rect data-el="lightBand" x="-320" y="260" width="320" height="480" fill="url(#berg-light)"></rect>
+          </g>
+        </g>
+        <g data-el="sparks"></g>
+        <g data-el="callouts"></g>
+      </svg>
     </div>
   </section>
 
@@ -615,8 +1044,24 @@
     </div>
     <div class="a2v-safe">
       <h2 class="section-title" data-el="title"></h2>
-      <!-- 节点与连线由 renderDiagram 依据分镜的 nodes / edges 动态生成 -->
-      <div class="flow" data-el="flow"></div>
+      <!-- 飞轮：一个小球沿着「上场→暴露→反馈」转圈，每转一格准备度就抬高一截 -->
+      <svg class="fig fig-loop" viewBox="0 0 888 560" aria-hidden="true">
+        <defs>
+          <radialGradient id="loop-halo">
+            <stop offset="0" stop-color="rgba(194, 53, 42, 0.35)"></stop>
+            <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+          </radialGradient>
+        </defs>
+        <circle class="loop-track" data-el="track" cx="444" cy="290" r="200"></circle>
+        <g data-el="arcs"></g>
+        <circle class="loop-token-halo" data-el="tokenHalo" cx="444" cy="90" r="86"></circle>
+        <circle class="loop-token" data-el="token" cx="444" cy="90" r="20"></circle>
+        <g data-el="nodes"></g>
+      </svg>
+      <div class="gauge">
+        <span class="gauge-label" data-el="gaugeLabel"></span>
+        <span class="gauge-track"><span class="gauge-fill" data-el="gaugeFill"></span></span>
+      </div>
     </div>
   </section>
 
@@ -628,8 +1073,26 @@
     </div>
     <div class="a2v-safe">
       <h2 class="section-title" data-el="title"></h2>
-      <!-- 步骤条由 renderTimeline 依据分镜的 items 动态生成 -->
-      <div class="steps" data-el="steps"></div>
+      <!-- 阶梯：每一根柱子是一次上场之后的「位置」，小球沿着柱顶往上跳 -->
+      <div class="stair-caption" data-el="caption"></div>
+      <svg class="fig fig-stairs" viewBox="0 0 888 640" aria-hidden="true">
+        <defs>
+          <radialGradient id="stair-halo">
+            <stop offset="0" stop-color="rgba(194, 53, 42, 0.32)"></stop>
+            <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+          </radialGradient>
+        </defs>
+        <text class="stair-axis-label" data-el="axisLabel" x="24" y="44"></text>
+        <path class="stair-axis" data-el="axis" d="M26 545 L26 78"></path>
+        <path class="stair-base" data-el="baseline" d="M26 545 L868 545"></path>
+        <g data-el="bars"></g>
+        <circle class="stair-marker-halo" data-el="markerHalo" cx="0" cy="0" r="64"></circle>
+        <circle class="stair-marker" data-el="marker" cx="0" cy="0" r="22"></circle>
+      </svg>
+      <div class="stair-flip" data-el="flip">
+        <span class="flip-arrow is-left" data-el="flipArrow"></span>
+        <span data-el="flipText"></span>
+      </div>
     </div>
   </section>
 
@@ -641,6 +1104,21 @@
     </div>
     <div class="a2v-safe">
       <p class="closing-text" data-el="text"></p>
+      <!-- 双向箭头：挑人不是单向的 -->
+      <svg class="fig fig-exchange" viewBox="0 0 888 300" aria-hidden="true">
+        <g data-el="nodeLeft">
+          <circle class="ex-node-disc" cx="150" cy="150" r="88"></circle>
+          <text class="ex-node-text" data-el="nodeLeftText" x="150" y="150"></text>
+        </g>
+        <g data-el="nodeRight">
+          <circle class="ex-node-disc is-accent" cx="738" cy="150" r="88"></circle>
+          <text class="ex-node-text" data-el="nodeRightText" x="738" y="150"></text>
+        </g>
+        <path class="ex-arc" data-el="arcTo" d="M262 118 Q445 66 628 118"></path>
+        <path class="ex-arrow" data-el="arrowTo" d="M0 0 L0 0"></path>
+        <path class="ex-arc is-accent" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
+        <path class="ex-arrow is-accent" data-el="arrowBack" d="M0 0 L0 0"></path>
+      </svg>
       <p class="closing-action" data-el="action"></p>
     </div>
   </section>
@@ -661,18 +1139,13 @@
 
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
-  /* 几何常量：所有位置由常量算出，不读取布局，保证逐帧稳定 */
-  var NODE_W = 420;
-  var NODE_H = 132;
-  var NODE_GAP = 92;
-  var ARROW_LEN = 52;
-  var DIAGRAM_W = 720;   // 含回环曲线鼓出的宽度
-  var BACK_BULGE = 248;  // 回环向右鼓出的距离，必须大于节点半宽才能露在节点列之外
-
-  /* 动效节奏（30fps 帧数）：与 references/visual-spec.md 的配方一致 */
+  /* 时间只走三条曲线：出场 outQuint、双向变化 inOutCubic、逐项门控 outCubic。
+     混用更多曲线会让画面显得杂，详见 references/visual-spec.md。 */
   var EASE_OUT = 'outQuint';
   var EASE_SOFT = 'outCubic';
   var EASE_SYMMETRIC = 'inOutCubic';
+
+  /* ---------------- 通用工具 ---------------- */
 
   /** 在当前场景容器内按 data-el 名称取元素。 */
   function pick(state, name) {
@@ -688,17 +1161,18 @@
   }
 
   /**
-   * 把分镜里的重点短语包成强调样式，并附上一条按帧画出的底横线。
+   * 把分镜里的重点短语包成强调样式。
    * 只替换第一处出现，避免同一短语在句中多处被点亮而分散注意力。
+   * underline 为 true 时额外挂一条按帧画出的底横线（金句幕用）。
    */
-  function emphasize(text, phrases) {
+  function emphasize(text, phrases, underline) {
     var html = escapeHtml(text);
     (phrases || []).forEach(function (phrase) {
       var safe = escapeHtml(phrase);
       if (safe && html.indexOf(safe) !== -1) {
         html = html.replace(
           safe,
-          '<span class="key">' + safe + '<span class="key-underline"></span></span>'
+          '<span class="key">' + safe + (underline ? '<span class="key-underline"></span>' : '') + '</span>'
         );
       }
     });
@@ -706,22 +1180,72 @@
   }
 
   /** 文本类场景的统一写法：内容来自分镜，样式类由页面决定。 */
-  function setText(node, value, emphasis) {
+  function setText(node, value, emphasis, underline) {
     if (!node) {
       return;
     }
-    var next = emphasize(value, emphasis);
+    var next = emphasize(value, emphasis, underline);
     if (node.innerHTML !== next) {
       node.innerHTML = next;
     }
   }
 
+  /** 按帧号取「场景内的某个进度点」：用比例而不是绝对帧，场景被配音拉长后节奏不变。 */
+  function beat(state, fraction) {
+    return fraction * state.sceneDurationFrames;
+  }
+
+  /** 给 SVG 元素写 transform 属性（SVG 用属性而不是 CSS 变量，避免布局抖动）。 */
+  function svgT(node, tx, ty, rotate, scale) {
+    if (!node) {
+      return;
+    }
+    var value = 'translate(' + tx.toFixed(2) + ' ' + ty.toFixed(2) + ')';
+    if (rotate) {
+      value += ' rotate(' + rotate.toFixed(4) + ')';
+    }
+    if (scale !== undefined && scale !== null) {
+      value += ' scale(' + scale.toFixed(4) + ')';
+    }
+    node.setAttribute('transform', value);
+  }
+
+  function svgO(node, value) {
+    if (node) {
+      node.setAttribute('opacity', String(value < 0 ? 0 : value > 1 ? 1 : value));
+    }
+  }
+
+  function svgEl(name, attrs) {
+    var node = document.createElementNS(SVG_NS, name);
+    Object.keys(attrs || {}).forEach(function (key) {
+      node.setAttribute(key, attrs[key]);
+    });
+    return node;
+  }
+
+  function clearNode(node) {
+    while (node && node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
+  }
+
+  /** 只在内容变化时重建结构：签名一致就跳过，保证同一帧永远得到同一棵 DOM。 */
+  function buildOnce(host, signature, build) {
+    if (!host || host.dataset.built === signature) {
+      return false;
+    }
+    host.dataset.built = signature;
+    clearNode(host);
+    build(host);
+    return true;
+  }
+
   /**
-   * 入场进度与常驻微动的混合。
+   * HTML 元素的入场 + 常驻微动。
    *
    * 配音会把场景拉长，入场动画结束后画面若完全静止，成片会显得卡住；
-   * 这里在末段用 api.breath 叠一点极小位移，并用同一个 settle 值把缩放钉在 1，
-   * 避免 enter() 写死的 scale 把呼吸位移覆盖掉。
+   * 这里在末段用 api.breath 叠一点极小位移，并用同一个 settle 值把缩放钉在 1。
    */
   function enterAlive(state, api, el, p, options) {
     if (!el) {
@@ -729,79 +1253,299 @@
     }
     var o = options || {};
     var from = api.spring(p, { damping: 6, frequency: 1.1 });
-    var settle = api.progress(state.localFrame, 60, 36, EASE_SYMMETRIC);
+    var settle = api.progress(state.localFrame, beat(state, 0.24), 36, EASE_SYMMETRIC);
     var shift = (1 - from) * (o.distance === undefined ? 44 : o.distance);
     var axis = o.axis || 'y';
     var drift = api.breath(state.localFrame, {
-      periodFrames: o.periodFrames || 120,
+      periodFrames: o.periodFrames || 130,
       amplitude: o.amplitude === undefined ? 3 : o.amplitude,
       phase: o.phase || 0
     }) * settle;
-    var x = (axis === 'x' ? shift : 0);
-    var y = (axis === 'y' ? shift : 0) + drift;
-    var scale = api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false });
     el.style.transform =
-      'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,0) scale(' + scale.toFixed(4) + ')';
+      'translate3d(' + (axis === 'x' ? shift : 0).toFixed(2) + 'px,' +
+      ((axis === 'y' ? shift : 0) + drift).toFixed(2) + 'px,0) scale(' +
+      api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false }).toFixed(4) + ')';
     el.style.opacity = String(api.clamp(from, 0, 1) * (o.opacity === undefined ? 1 : o.opacity));
   }
 
-  /** 开场：主标题带极小过冲落位，副标题随后两行出现，末段收一点字距。 */
-  function renderTitle(state, api) {
+  /** SVG 分组的入场（同上，但写的是 SVG transform 属性）。 */
+  function enterFig(state, api, node, p, options) {
+    if (!node) {
+      return;
+    }
+    var o = options || {};
+    var from = api.spring(p, { damping: 6, frequency: 1.1 });
+    var settle = api.progress(state.localFrame, beat(state, 0.24), 36, EASE_SYMMETRIC);
+    var shift = (1 - from) * (o.distance === undefined ? 40 : o.distance);
+    var axis = o.axis || 'y';
+    var drift = api.breath(state.localFrame, {
+      periodFrames: o.periodFrames || 140,
+      amplitude: o.amplitude === undefined ? 2.5 : o.amplitude,
+      phase: o.phase || 0
+    }) * settle;
+    svgT(
+      node,
+      axis === 'x' ? shift : 0,
+      (axis === 'y' ? shift : 0) + drift,
+      0,
+      api.range(from, o.scale === undefined ? 1 : o.scale, 1, { clamp: false })
+    );
+    svgO(node, api.clamp(from, 0, 1));
+  }
+
+  /** 与运行时语义一致的钳制，避免为一个小工具再暴露一层接口。 */
+  function clampStatic(value, min, max) {
+    return value < min ? min : value > max ? max : value;
+  }
+
+  /* ---------------- 01 天平 ---------------- */
+
+  /* 几何常量：位置全部由常量算出，不读取布局，因此逐帧稳定。 */
+  var SCALE = {
+    PIVOT_X: 444,
+    PIVOT_Y: 96,
+    ARM: 300,
+    TILT: -9
+  };
+
+  /** 横梁倾角 → 两个吊盘挂点的坐标（吊盘始终垂直，靠平移跟随横梁端点）。 */
+  function panAnchors(theta) {
+    var rad = (theta * Math.PI) / 180;
+    var cos = Math.cos(rad);
+    var sin = Math.sin(rad);
+    return {
+      left: {
+        x: SCALE.PIVOT_X - SCALE.ARM * cos,
+        y: SCALE.PIVOT_Y - SCALE.ARM * sin
+      },
+      right: {
+        x: SCALE.PIVOT_X + SCALE.ARM * cos,
+        y: SCALE.PIVOT_Y + SCALE.ARM * sin
+      }
+    };
+  }
+
+  /**
+   * 开场：先把「害怕」压下去，再证明它只是个空壳。
+   *
+   * 天平的左盘放上「命运的考试」时明显下沉（恐惧的重量），随后那块重物变成虚线
+   * 空壳、横梁弹回水平；右盘「一次上场」亮起强调色，同时标题里的「害怕」褪回墨色。
+   * 颜色本身就是叙事：恐惧退场，动作上场。
+   */
+  function renderOpening(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var text = pick(state, 'text');
-    var subtitle = pick(state, 'subtitle');
+    var ann = data.annotations || {};
 
-    setText(text, data.text, data.emphasis);
-    if (subtitle) {
-      subtitle.textContent = data.subtitle || '';
-      subtitle.style.display = data.subtitle ? '' : 'none';
+    var title = pick(state, 'text');
+    var sub1 = pick(state, 'sub1');
+    var sub2 = pick(state, 'sub2');
+    var lines = String(data.subtitle || '').split('\n');
+
+    setText(title, data.text, data.emphasis, false);
+    if (sub1) {
+      sub1.textContent = lines[0] || '';
     }
+    if (sub2) {
+      sub2.textContent = lines[1] || '';
+    }
+    setPlainText(pick(state, 'loadLeftText'), ann.leftPan);
+    setPlainText(pick(state, 'loadLeftTextHollow'), ann.leftPan);
+    setPlainText(pick(state, 'loadRightText'), ann.rightPan);
 
-    enterAlive(state, api, text, api.progress(f, 8, 28, EASE_OUT), { distance: 58, amplitude: 4 });
-    enterAlive(state, api, subtitle, api.progress(f, 40, 24, EASE_SOFT), {
-      distance: 28,
+    enterAlive(state, api, title, api.progress(f, beat(state, 0.03), 28, EASE_OUT), {
+      distance: 58,
+      amplitude: 4
+    });
+    enterAlive(state, api, sub1, api.progress(f, beat(state, 0.46), 24, EASE_OUT), {
+      distance: 24,
       amplitude: 3,
       periodFrames: 150,
-      phase: 40
+      phase: 20
+    });
+    enterAlive(state, api, sub2, api.progress(f, beat(state, 0.7), 24, EASE_OUT), {
+      distance: 24,
+      amplitude: 3,
+      periodFrames: 150,
+      phase: 60
     });
 
-    // 末段轻微收字距：给大字一个「落定」的收束感
-    var settle = api.progress(f, 92, 40, EASE_SYMMETRIC);
-    if (text) {
-      text.style.letterSpacing = api.range(settle, -0.04, -0.03).toFixed(4) + 'em';
+    // 支架：立柱自下而上画出，底座与斜撑随后
+    api.drawPath(pick(state, 'pillar'), api.progress(f, beat(state, 0.15), 26, EASE_OUT), { length: 276 });
+    api.drawPath(pick(state, 'legL'), api.progress(f, beat(state, 0.22), 20, EASE_OUT), { length: 88 });
+    api.drawPath(pick(state, 'legR'), api.progress(f, beat(state, 0.22), 20, EASE_OUT), { length: 88 });
+    api.drawPath(pick(state, 'base'), api.progress(f, beat(state, 0.24), 20, EASE_OUT), { length: 160 });
+    svgO(pick(state, 'pivot'), api.progress(f, beat(state, 0.24), 18, EASE_OUT));
+
+    // 倾角：恐惧压下左盘 → 看穿空壳 → 弹回水平
+    var press = api.progress(f, beat(state, 0.42), beat(state, 0.14), EASE_SYMMETRIC);
+    var relief = api.spring(api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC), {
+      damping: 5,
+      frequency: 1.5
+    });
+    var theta = SCALE.TILT * press * (1 - relief);
+    var anchors = panAnchors(theta);
+
+    var beamP = api.progress(f, beat(state, 0.25), 26, EASE_OUT);
+    var beamSettle = api.progress(f, beat(state, 0.7), 40, EASE_SYMMETRIC);
+    var beamDrift = api.breath(f, { periodFrames: 150, amplitude: 2 }) * beamSettle;
+    svgT(
+      pick(state, 'beam'),
+      SCALE.PIVOT_X,
+      SCALE.PIVOT_Y + beamDrift,
+      theta,
+      api.range(api.spring(beamP, { damping: 6, frequency: 1.2 }), 0.55, 1, { clamp: false })
+    );
+    svgO(pick(state, 'beam'), beamP);
+
+    // 吊盘：跟着横梁端点平移，落位后保持垂直
+    var panP = api.spring(api.progress(f, beat(state, 0.28), 24, EASE_OUT), { damping: 6, frequency: 1.2 });
+    var panSettle = api.progress(f, beat(state, 0.28), 40, EASE_SYMMETRIC);
+    var dropIn = (1 - panP) * 60;
+    var driftL = api.breath(f, { periodFrames: 150, amplitude: 2.4 }) * panSettle;
+    var driftR = api.breath(f, { periodFrames: 150, amplitude: 2.4, phase: 50 }) * panSettle;
+    svgT(pick(state, 'panLeft'), anchors.left.x, anchors.left.y + dropIn + driftL);
+    svgO(pick(state, 'panLeft'), api.clamp(panP * 1.5, 0, 1));
+    svgT(pick(state, 'panRight'), anchors.right.x, anchors.right.y + dropIn + driftR);
+    svgO(pick(state, 'panRight'), api.clamp(panP * 1.5, 0, 1));
+
+    // 左盘的重物落下
+    var loadP = api.spring(api.progress(f, beat(state, 0.34), 26, EASE_OUT), { damping: 5.5, frequency: 1.3 });
+    var loadDrop = (1 - loadP) * -170;
+    var reveal = api.progress(f, beat(state, 0.54), beat(state, 0.16), EASE_SYMMETRIC);
+    svgO(pick(state, 'loadLeft'), api.clamp(loadP, 0, 1));
+    svgT(pick(state, 'loadLeft'), 0, loadDrop, 0, 1 - reveal * 0.06);
+    svgO(pick(state, 'loadLeftSolid'), 1 - reveal);
+    svgO(pick(state, 'loadLeftHollow'), reveal);
+
+    // 右盘的「一次上场」：轻，但它是最后亮起来的那一个
+    var tokenP = api.spring(api.progress(f, beat(state, 0.3), 24, EASE_OUT), { damping: 5.5, frequency: 1.3 });
+    svgO(pick(state, 'loadRight'), api.clamp(tokenP, 0, 1));
+    svgT(pick(state, 'loadRight'), 0, (1 - tokenP) * -120, 0, api.range(tokenP, 0.9, 1, { clamp: false }));
+
+    var glow = api.progress(f, beat(state, 0.66), beat(state, 0.16), EASE_SYMMETRIC);
+    var halo = pick(state, 'rightHalo');
+    var haloScale = api.range(glow, 0.6, 1.1, { clamp: false });
+    // 光晕以自身圆心缩放，否则缩放会把圆心一起拖走
+    svgT(halo, 0, 127 * (1 - haloScale), 0, haloScale);
+    svgO(halo, glow * 0.85);
+    var rect = pick(state, 'loadRightRect');
+    if (rect) {
+      rect.setAttribute('stroke', 'rgba(194, 53, 42, ' + (0.28 + 0.62 * glow).toFixed(3) + ')');
+    }
+    // 文字用内联 style 而不是 SVG 属性：CSS 类会盖过表现属性，属性写不进去
+    var tokenText = pick(state, 'loadRightText');
+    if (tokenText) {
+      tokenText.style.fill =
+        'rgb(' + Math.round(api.range(glow, 64, 194)) + ',' +
+        Math.round(api.range(glow, 68, 53)) + ',' +
+        Math.round(api.range(glow, 74, 42)) + ')';
+    }
+
+    // 标题里的「害怕」随空壳一起褪色：恐惧退场，动作上场
+    var key = title ? title.querySelector('.key') : null;
+    if (key) {
+      var cool = api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC);
+      key.style.color =
+        'rgb(' + Math.round(api.range(cool, 194, 35)) + ',' +
+        Math.round(api.range(cool, 53, 38)) + ',' +
+        Math.round(api.range(cool, 42, 45)) + ')';
     }
   }
 
-  /** 金句：竖线先画出，整句浮现，最后给重点短语画上底横线。 */
-  function renderQuote(state, api) {
+  function setPlainText(node, value) {
+    if (node) {
+      node.textContent = value == null ? '' : String(value);
+    }
+  }
+
+  /* ---------------- 02 落差尺 ---------------- */
+
+  var TRACK_H = 268;
+
+  /**
+   * 金句：把「失去」画成一截可测量的落差。
+   *
+   * 左边先演一遍恐惧的剧本——拥有、被拿走、落差拉满；右边才是事实：柱子里本来就
+   * 没有东西，括号塌成一条贴着 0 的短线。两栏共用同一把竖尺，观众可以自己比。
+   */
+  function renderLoss(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var mark = pick(state, 'mark');
-    var rule = pick(state, 'rule');
+    var ann = data.annotations || {};
     var text = pick(state, 'text');
+    var rule = pick(state, 'rule');
+    var mark = pick(state, 'mark');
 
-    setText(text, data.text, data.emphasis);
+    setText(text, data.text, data.emphasis, true);
+    setPlainText(pick(state, 'capA'), ann.assumption);
+    setPlainText(pick(state, 'capB'), ann.fact);
+    setPlainText(pick(state, 'labelA'), ann.dropLabel);
+    setPlainText(pick(state, 'labelB'), ann.noDropLabel);
 
     if (rule) {
-      var ruleProgress = api.progress(f, 0, 20, EASE_OUT);
-      rule.style.transform = 'scaleY(' + ruleProgress.toFixed(4) + ')';
-      rule.style.opacity = String(ruleProgress);
+      var ruleP = api.progress(f, 0, 20, EASE_OUT);
+      rule.style.transform = 'scaleY(' + ruleP.toFixed(4) + ')';
+      rule.style.opacity = String(ruleP);
     }
-
     if (mark) {
-      var markProgress = api.progress(f, 6, 24, EASE_OUT);
-      mark.style.opacity = String(markProgress * 0.14);
-      mark.style.transform = 'translateY(' + api.range(markProgress, -26, 0).toFixed(1) + 'px)';
+      var markP = api.progress(f, beat(state, 0.02), 24, EASE_OUT);
+      mark.style.opacity = String(markP * 0.14);
+      mark.style.transform = 'translateY(' + api.range(markP, -26, 0).toFixed(1) + 'px)';
     }
 
-    enterAlive(state, api, text, api.progress(f, 14, 28, EASE_OUT), { distance: 50, amplitude: 3 });
+    enterAlive(state, api, text, api.progress(f, beat(state, 0.04), 28, EASE_OUT), {
+      distance: 50,
+      amplitude: 3
+    });
+    enterAlive(state, api, pick(state, 'panelA'), api.progress(f, beat(state, 0.16), 24, EASE_OUT), {
+      distance: 40,
+      amplitude: 2.5,
+      phase: 0
+    });
+    enterAlive(state, api, pick(state, 'panelB'), api.progress(f, beat(state, 0.22), 24, EASE_OUT), {
+      distance: 40,
+      amplitude: 2.5,
+      phase: 40
+    });
+
+    // 左边：拥有 → 被拿走 → 落差拉满
+    var ownP = api.progress(f, beat(state, 0.26), beat(state, 0.09), EASE_OUT);
+    var dropP = api.progress(f, beat(state, 0.38), beat(state, 0.08), EASE_SYMMETRIC);
+    var aFill = ownP * (1 - dropP);
+    var aGhost = ownP;
+    applyDrop(pick(state, 'fillA'), aFill);
+    applyDrop(pick(state, 'ghostA'), aGhost);
+
+    var gapP = api.progress(f, beat(state, 0.48), beat(state, 0.1), EASE_SYMMETRIC);
+    placeBracket(pick(state, 'bracketA'), pick(state, 'labelA'), aFill, (aGhost - aFill) * gapP, false);
+
+    // 右边：本来就没有，所以没有可失去的
+    applyDrop(pick(state, 'fillB'), 0);
+    applyDrop(pick(state, 'ghostB'), 0);
+    var flatP = api.progress(f, beat(state, 0.56), beat(state, 0.1), EASE_SYMMETRIC);
+    var bracketB = pick(state, 'bracketB');
+    var labelB = pick(state, 'labelB');
+    placeBracket(bracketB, labelB, 0, flatP * 0.012, true);
+    if (bracketB) {
+      bracketB.style.opacity = String(flatP);
+    }
+    if (labelB) {
+      labelB.style.opacity = String(flatP);
+    }
+
+    // 左边淡出为「假设」：它只是观众脑内的剧本，不是事实
+    var panelA = pick(state, 'panelA');
+    if (panelA) {
+      var fade = api.progress(f, beat(state, 0.54), beat(state, 0.14), EASE_SYMMETRIC);
+      panelA.style.opacity = String(1 - fade * 0.55);
+    }
 
     // 关键短语：底横线在句子读完后画出，颜色同步加深
     var key = text ? text.querySelector('.key') : null;
     if (key) {
-      var highlight = api.progress(f, 110, 28, EASE_SYMMETRIC);
-      var underline = key.querySelector('.key-underline') || null;
+      var highlight = api.progress(f, beat(state, 0.7), beat(state, 0.1), EASE_SYMMETRIC);
+      var underline = key.querySelector('.key-underline');
       if (underline) {
         underline.style.transform = 'scaleX(' + highlight.toFixed(4) + ')';
       }
@@ -811,371 +1555,553 @@
     }
   }
 
-  /** 列表：行从左侧依次滑入，最后一行（出路）拿强调色。 */
-  function renderList(state, api) {
+  /** 竖尺填充：高度按比例写，圆角底部保持贴地。 */
+  function applyDrop(node, ratio) {
+    if (node) {
+      node.style.height = (clampStatic(ratio, 0, 1) * TRACK_H).toFixed(1) + 'px';
+    }
+  }
+
+  /**
+   * 落差括号：从「现在还剩多少」量到「曾经有多少」。
+   * flat 为真时（本来就没有）把括号压成贴着 0 线的一小段，标签跟在它右边，
+   * 这样「失去全部」和「无可失去」在同一把尺上可以直接比长度。
+   */
+  function placeBracket(bracket, label, fillRatio, gapRatio, flat) {
+    var top = clampStatic(fillRatio, 0, 1) * TRACK_H;
+    var height = clampStatic(gapRatio, 0, 1) * TRACK_H;
+    if (flat) {
+      top = TRACK_H - 6;
+      height = 6;
+    }
+    if (bracket) {
+      bracket.style.top = top.toFixed(1) + 'px';
+      bracket.style.height = height.toFixed(1) + 'px';
+    }
+    if (label) {
+      var center = flat ? TRACK_H : top + height / 2;
+      label.style.top = (clampStatic(center, 44, TRACK_H - 16) - 20).toFixed(1) + 'px';
+    }
+  }
+
+  /* ---------------- 03 冰山 ---------------- */
+
+  var BERG = {
+    CALLOUT_X: 452,
+    CALLOUT_W: 428,
+    CALLOUT_H: 132,
+    CALLOUT_Y: [84, 316, 548],
+    TARGETS: [
+      { x: 300, y: 172 },
+      { x: 300, y: 384 },
+      { x: 344, y: 566 }
+    ]
+  };
+
+  /**
+   * 恐惧来源：把「失去」和「被看见的不足」放进同一座冰山。
+   *
+   * 水面之上那个小三角是能被说出口的那部分恐惧；真正压着人的那一大团在水下，
+   * 直到一束光扫过去才显形——而光扫过之后，从水里升起的东西才是「变强」。
+   */
+  function renderBerg(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var title = pick(state, 'title');
-    var host = pick(state, 'rows');
+    var ann = data.annotations || {};
     var items = data.items || [];
 
-    if (title) {
-      title.textContent = data.title || '';
-      title.style.display = data.title ? '' : 'none';
-    }
+    setPlainText(pick(state, 'title'), data.title);
+    setPlainText(pick(state, 'surfaceNote'), ann.surface);
 
-    if (host) {
-      buildRows(host, items);
-      var rows = host.querySelectorAll('.row');
-      Array.prototype.forEach.call(rows, function (row, index) {
-        var start = 10 + index * 34;
-        enterAlive(state, api, row, api.progress(f, start, 22, EASE_OUT), {
-          distance: 46,
-          axis: 'x',
-          amplitude: 2.5,
-          periodFrames: 140,
-          phase: index * 30
+    buildOnce(pick(state, 'callouts'), JSON.stringify([items, ann]), function (host) {
+      items.forEach(function (item, index) {
+        var entry = typeof item === 'string' ? { label: item } : item;
+        var isAccent = index === items.length - 1;
+        var y = BERG.CALLOUT_Y[index];
+        var target = BERG.TARGETS[index];
+        var group = svgEl('g', { 'data-callout': String(index) });
+
+        var link = svgEl('path', {
+          class: 'berg-link' + (isAccent ? ' is-accent' : ''),
+          d:
+            'M' + BERG.CALLOUT_X + ' ' + (y + BERG.CALLOUT_H / 2) +
+            ' C ' + (BERG.CALLOUT_X - 44) + ' ' + (y + BERG.CALLOUT_H / 2) +
+            ', ' + (target.x + 70) + ' ' + target.y +
+            ', ' + target.x + ' ' + target.y
         });
+        group.appendChild(link);
+
+        group.appendChild(
+          svgEl('rect', {
+            class: 'berg-callout' + (isAccent ? ' is-accent' : ''),
+            x: BERG.CALLOUT_X,
+            y: y,
+            width: BERG.CALLOUT_W,
+            height: BERG.CALLOUT_H,
+            rx: 28
+          })
+        );
+
+        var label = svgEl('text', {
+          class: 'berg-callout-label' + (isAccent ? ' is-accent' : ''),
+          x: BERG.CALLOUT_X + 32,
+          y: y + 50
+        });
+        label.textContent = entry.label || '';
+        group.appendChild(label);
+
+        var desc = svgEl('text', {
+          class: 'berg-callout-desc',
+          x: BERG.CALLOUT_X + 32,
+          y: y + 96
+        });
+        desc.textContent = entry.desc || '';
+        group.appendChild(desc);
+
+        host.appendChild(group);
       });
-    }
-  }
+    });
 
-  /** 依据分镜 items 生成列表行，只重建一次。 */
-  function buildRows(host, items) {
-    var signature = JSON.stringify(items);
-    if (host.dataset.built === signature) {
-      return;
-    }
-    host.dataset.built = signature;
-    host.innerHTML = '';
-    items.forEach(function (item, index) {
-      var entry = typeof item === 'string' ? { label: item } : item;
-      var row = document.createElement('div');
-      row.className = 'row' + (index === items.length - 1 ? ' is-accent' : '');
-
-      var badge = document.createElement('span');
-      badge.className = 'row-index';
-      badge.textContent = ('0' + (index + 1)).slice(-2);
-
-      var body = document.createElement('div');
-      body.className = 'row-body';
-
-      var label = document.createElement('span');
-      label.className = 'row-label';
-      label.textContent = entry.label || '';
-
-      body.appendChild(label);
-      if (entry.desc) {
-        var desc = document.createElement('span');
-        desc.className = 'row-desc';
-        desc.textContent = entry.desc;
-        body.appendChild(desc);
+    buildOnce(pick(state, 'sparks'), 'sparks', function (host) {
+      // 5 颗上浮粒子：一致的小半径 + 收窄的横向抖动，读起来才是「一股上升」而不是噪点
+      for (var i = 0; i < 5; i += 1) {
+        host.appendChild(svgEl('circle', { class: 'berg-spark', r: 8, cx: 0, cy: 0 }));
       }
+    });
 
-      row.appendChild(badge);
-      row.appendChild(body);
-      host.appendChild(row);
+    // 水面先画出来，再露出水上的一角
+    api.drawPath(pick(state, 'waterLine'), api.progress(f, beat(state, 0.02), beat(state, 0.1), EASE_OUT), {
+      length: 888
+    });
+    svgO(pick(state, 'waterBody'), api.progress(f, beat(state, 0.06), beat(state, 0.14), EASE_SYMMETRIC));
+    svgO(pick(state, 'surfaceNote'), api.progress(f, beat(state, 0.1), beat(state, 0.08), EASE_SOFT));
+
+    enterFig(state, api, pick(state, 'tip'), api.progress(f, beat(state, 0.1), beat(state, 0.14), EASE_OUT), {
+      distance: 34,
+      amplitude: 2
+    });
+
+    // 水下那一大团：从深处升上来，这是本幕的转折
+    var massP = api.spring(api.progress(f, beat(state, 0.3), beat(state, 0.18), EASE_OUT), {
+      damping: 6,
+      frequency: 1.1
+    });
+    svgT(pick(state, 'massGroup'), 0, (1 - massP) * 150, 0, api.range(massP, 0.94, 1, { clamp: false }));
+    svgO(pick(state, 'massGroup'), api.clamp(massP, 0, 1));
+
+    // 三条标注按「先水上、再水下、最后出路」的顺序出现
+    var callouts = pick(state, 'callouts') ? pick(state, 'callouts').children : [];
+    var starts = [0.2, 0.5, 0.72];
+    Array.prototype.forEach.call(callouts, function (group, index) {
+      var start = beat(state, starts[index] === undefined ? 0.72 : starts[index]);
+      var p = api.spring(api.progress(f, start, 24, EASE_OUT), { damping: 6, frequency: 1.2 });
+      var link = group.firstChild;
+      if (link) {
+        if (!link.dataset.length) {
+          link.dataset.length = String(link.getTotalLength());
+        }
+        api.drawPath(link, api.progress(f, start - 8, 22, EASE_SOFT), { length: Number(link.dataset.length) });
+      }
+      var body = group.children[1];
+      var label = group.children[2];
+      var desc = group.children[3];
+      svgT(body, (1 - p) * 34, 0);
+      svgO(body, api.clamp(p, 0, 1));
+      svgT(label, (1 - p) * 34, 0);
+      svgO(label, api.clamp(p, 0, 1));
+      svgT(desc, (1 - p) * 34, 0);
+      svgO(desc, api.clamp(p * 1.1, 0, 1));
+    });
+
+    // 光照：一束光扫过水下那团，被藏起来的部分显形
+    var band = pick(state, 'lightBand');
+    if (band) {
+      var sweep = api.progress(f, beat(state, 0.56), beat(state, 0.2), EASE_SYMMETRIC);
+      band.setAttribute('x', String(api.range(sweep, -320, 900)));
+      svgO(band, api.progress(f, beat(state, 0.56), 20, EASE_SOFT) * (1 - api.progress(f, beat(state, 0.78), 24, EASE_SOFT) * 0.35));
+    }
+
+    // 光扫过之后浮出水面的一股上升：位置固定在冰山右侧的空白水域，不压到山体与标注
+    var sparks = pick(state, 'sparks') ? pick(state, 'sparks').children : [];
+    Array.prototype.forEach.call(sparks, function (spark, index) {
+      var start = beat(state, 0.62) + index * 9;
+      var life = api.progress(f, start, beat(state, 0.28), 'linear');
+      var y = api.range(life, 620, 168);
+      var x = 344 + ((index % 3) - 1) * 30 + Math.sin(life * Math.PI) * 10;
+      spark.setAttribute('cx', x.toFixed(1));
+      spark.setAttribute('cy', y.toFixed(1));
+      svgO(spark, Math.sin(clampStatic(life, 0, 1) * Math.PI) * 0.9);
     });
   }
 
-  /** 时间线：轨道先长出来，红点与卡片逐级点亮，最后一级转成强调色。 */
-  function renderTimeline(state, api) {
+  /* ---------------- 04 飞轮 ---------------- */
+
+  var LOOP = {
+    CX: 444,
+    CY: 290,
+    R: 200,
+    NODE_R: 76,
+    SEGMENTS: 6,
+    LAPS: 2
+  };
+
+  function loopPoint(travel) {
+    var angle = ((-90 + travel * 120) * Math.PI) / 180;
+    return {
+      x: LOOP.CX + LOOP.R * Math.cos(angle),
+      y: LOOP.CY + LOOP.R * Math.sin(angle)
+    };
+  }
+
+  /**
+   * 反馈循环：不做三个静止的方块加箭头，而是让一个点真的转起来。
+   *
+   * 每转一格，下面的「准备度」就抬高一截；两次完整循环之后条满。运动本身
+   * 就是论点——上场不是一个动作，而是一个会自己加速的轮子。
+   */
+  function renderLoop(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var title = pick(state, 'title');
-    var host = pick(state, 'steps');
-    var items = data.items || [];
-
-    if (title) {
-      title.textContent = data.title || '';
-      title.style.display = data.title ? '' : 'none';
-    }
-    if (!host) {
-      return;
-    }
-
-    buildSteps(host, items);
-    var steps = host.querySelectorAll('.step');
-    var rail = host.querySelector('.steps-rail');
-
-    if (rail && steps.length) {
-      var railProgress = api.progress(f, 8, 40, EASE_SYMMETRIC);
-      rail.style.height = String(host.offsetHeight - 48) + 'px';
-      rail.style.transform = 'scaleY(' + railProgress.toFixed(4) + ')';
-      rail.style.opacity = String(railProgress);
-    }
-
-    Array.prototype.forEach.call(steps, function (step, index) {
-      var start = 26 + index * 38;
-      enterAlive(state, api, step, api.progress(f, start, 24, EASE_OUT), {
-        distance: 52,
-        axis: 'x',
-        amplitude: 3,
-        periodFrames: 150,
-        phase: index * 34
-      });
-      var dot = step.querySelector('.step-dot');
-      if (dot) {
-        var dotProgress = api.progress(f, start + 6, 16, EASE_OUT);
-        dot.style.transform = 'scale(' + dotProgress.toFixed(4) + ')';
-        dot.style.opacity = String(dotProgress);
-      }
-    });
-  }
-
-  /** 依据分镜 items 生成时间线步骤，只重建一次。 */
-  function buildSteps(host, items) {
-    var signature = JSON.stringify(items);
-    if (host.dataset.built === signature) {
-      return;
-    }
-    host.dataset.built = signature;
-    host.innerHTML = '';
-
-    var rail = document.createElement('span');
-    rail.className = 'steps-rail';
-    host.appendChild(rail);
-
-    items.forEach(function (item, index) {
-      var entry = typeof item === 'string' ? { label: item } : item;
-      var step = document.createElement('div');
-      // 最后一级是「选择权」，只有它拿强调色
-      step.className = 'step' + (index === items.length - 1 ? ' is-accent' : '');
-
-      var dot = document.createElement('span');
-      dot.className = 'step-dot';
-
-      var body = document.createElement('div');
-      body.className = 'step-body';
-
-      var label = document.createElement('span');
-      label.className = 'step-label';
-      label.textContent = entry.label || '';
-
-      body.appendChild(label);
-      if (entry.desc) {
-        var desc = document.createElement('span');
-        desc.className = 'step-desc';
-        desc.textContent = entry.desc;
-        body.appendChild(desc);
-      }
-
-      step.appendChild(dot);
-      step.appendChild(body);
-      if (entry.note) {
-        var note = document.createElement('span');
-        note.className = 'step-note';
-        note.textContent = entry.note;
-        step.appendChild(note);
-      }
-      host.appendChild(step);
-    });
-  }
-
-  /** 依据分镜的 nodes / edges 构建关系图，只构建一次。 */
-  function buildFlow(flow, data) {
-    if (!flow || flow.dataset.built === '1') {
-      return;
-    }
-    flow.dataset.built = '1';
-
+    var ann = data.annotations || {};
     var nodes = data.nodes || [];
-    var edges = data.edges || [];
-    var indexOf = {};
-    nodes.forEach(function (name, i) {
-      indexOf[typeof name === 'string' ? name : name.id] = i;
+
+    setPlainText(pick(state, 'title'), data.title);
+    setPlainText(pick(state, 'gaugeLabel'), ann.gauge);
+
+    buildOnce(pick(state, 'arcs'), JSON.stringify(nodes), function (host) {
+      nodes.forEach(function (name, index) {
+        var from = loopPoint(index + 0);
+        var to = loopPoint(index + 1);
+        host.appendChild(
+          svgEl('path', {
+            class: 'loop-arc',
+            'data-arc': String(index),
+            d:
+              'M' + from.x.toFixed(2) + ' ' + from.y.toFixed(2) +
+              ' A ' + LOOP.R + ' ' + LOOP.R + ' 0 0 1 ' + to.x.toFixed(2) + ' ' + to.y.toFixed(2)
+          })
+        );
+      });
     });
 
-    var step = NODE_H + NODE_GAP;
-    var column = nodes.length * step - NODE_GAP;
-    var stageH = column + ARROW_LEN + 12;
-
-    var stage = document.createElement('div');
-    stage.className = 'flow-stage';
-    stage.style.width = DIAGRAM_W + 'px';
-    stage.style.height = stageH + 'px';
-    stage.style.margin = '0 auto';
-
-    // 回环边画在最底层，避免视觉上压住节点
-    var backSvg = document.createElementNS(SVG_NS, 'svg');
-    backSvg.setAttribute('class', 'flow-back');
-    backSvg.setAttribute('viewBox', '0 0 ' + DIAGRAM_W + ' ' + stageH);
-    backSvg.setAttribute('width', String(DIAGRAM_W));
-    backSvg.setAttribute('height', String(stageH));
-
-    nodes.forEach(function (name, i) {
-      var label = typeof name === 'string' ? name : name.label || name.id;
-      var node = document.createElement('div');
-      node.className = 'flow-node';
-      node.textContent = label;
-      node.style.top = String(i * step) + 'px';
-      node.dataset.node = String(i);
-      stage.appendChild(node);
+    buildOnce(pick(state, 'nodes'), JSON.stringify(nodes), function (host) {
+      nodes.forEach(function (name, index) {
+        var label = typeof name === 'string' ? name : name.label || name.id;
+        var point = loopPoint(index);
+        var group = svgEl('g', { 'data-node': String(index) });
+        group.appendChild(
+          svgEl('circle', { class: 'loop-node-shadow', cx: point.x, cy: point.y + 12, r: LOOP.NODE_R })
+        );
+        group.appendChild(
+          svgEl('circle', { class: 'loop-node-disc', cx: point.x, cy: point.y, r: LOOP.NODE_R })
+        );
+        var text = svgEl('text', { class: 'loop-node-text', x: point.x, y: point.y });
+        text.textContent = label;
+        group.appendChild(text);
+        host.appendChild(group);
+      });
     });
 
-    // 相邻正向边用短箭头表示，箭头本身按帧描画
-    var linkSvg = document.createElementNS(SVG_NS, 'svg');
-    linkSvg.setAttribute('class', 'flow-links');
-    linkSvg.setAttribute('viewBox', '0 0 ' + DIAGRAM_W + ' ' + stageH);
-    linkSvg.setAttribute('width', String(DIAGRAM_W));
-    linkSvg.setAttribute('height', String(stageH));
-
-    for (var i = 0; i < nodes.length - 1; i += 1) {
-      var yFrom = i * step + NODE_H + 6;
-      var yTo = yFrom + ARROW_LEN;
-      var path = document.createElementNS(SVG_NS, 'path');
-      path.setAttribute('d', 'M ' + NODE_W / 2 + ' ' + yFrom + ' L ' + NODE_W / 2 + ' ' + yTo);
-      path.dataset.link = String(i);
-      linkSvg.appendChild(path);
+    // 轨道先淡入
+    var track = pick(state, 'track');
+    if (track) {
+      track.style.opacity = String(api.progress(f, beat(state, 0.06), beat(state, 0.08), EASE_OUT));
     }
 
-    // 非相邻边（「反馈 → 上场」）用右侧回环曲线表示
-    var backEdges = [];
-    edges.forEach(function (edge) {
-      var pair = Array.isArray(edge) ? edge : [edge.from, edge.to];
-      var from = indexOf[pair[0]];
-      var to = indexOf[pair[1]];
-      if (from === undefined || to === undefined || to === from + 1) {
-        return;
-      }
-      backEdges.push({ from: from, to: to });
-    });
+    // 小球：每格 SEG 帧，走满 6 格正好把「准备度」填满
+    var travelStart = beat(state, 0.2);
+    var segFrames = Math.max((state.sceneDurationFrames - travelStart) / LOOP.SEGMENTS, 1);
+    var travel = clampStatic((f - travelStart) / segFrames, 0, LOOP.SEGMENTS);
+    var point = loopPoint(travel);
+    var arrived = Math.floor(travel);
+    var frac = travel - arrived;
 
-    backEdges.forEach(function (edge) {
-      var yFrom = edge.from * step + NODE_H / 2;
-      var yTo = edge.to * step + NODE_H / 2;
-      var path = document.createElementNS(SVG_NS, 'path');
-      path.setAttribute(
-        'd',
-        'M ' + NODE_W + ' ' + yFrom + ' C ' + (NODE_W + BACK_BULGE) + ' ' + yFrom +
-          ', ' + (NODE_W + BACK_BULGE) + ' ' + yTo + ', ' + NODE_W + ' ' + yTo
+    /*
+     * 节点只有一个 transform 写入点：入场位移、缩放入场与「到达时鼓一下」
+     * 必须合成同一条 transform，否则后写的那条会把先写的覆盖掉。
+     */
+    var nodeGroups = pick(state, 'nodes') ? pick(state, 'nodes').children : [];
+    var nodeStart = beat(state, 0.12);
+    Array.prototype.forEach.call(nodeGroups, function (group, index) {
+      var enterP = api.spring(api.progress(f, nodeStart + index * 8, 22, EASE_OUT), {
+        damping: 6,
+        frequency: 1.1
+      });
+      var nodePoint = loopPoint(index);
+      var pulse = index === arrived % nodeGroups.length ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
+      var scale = api.range(enterP, 0.94, 1, { clamp: false }) * (1 + pulse * 0.09);
+      svgT(
+        group,
+        nodePoint.x * (1 - scale),
+        nodePoint.y * (1 - scale) + (1 - clampStatic(enterP, 0, 1)) * 26,
+        0,
+        scale
       );
-      path.dataset.back = '1';
-      backSvg.appendChild(path);
+      svgO(group, api.clamp(enterP, 0, 1));
     });
 
-    stage.appendChild(backSvg);
-    stage.appendChild(linkSvg);
-
-    // 回环说明文字：只回环边存在时出现，说明这条线的含义
-    if (backEdges.length) {
-      var first = backEdges[0];
-      var middle = (first.from + first.to) / 2 * step + NODE_H / 2;
-      var note = document.createElement('span');
-      note.className = 'flow-loop-note';
-      note.dataset.loopNote = '1';
-      note.textContent = '带着反馈再上场';
-      note.style.left = String(NODE_W + BACK_BULGE - 22) + 'px';
-      note.style.top = String(Math.max(0, middle - 22)) + 'px';
-      stage.appendChild(note);
-    }
-
-    flow.appendChild(stage);
-  }
-
-  /** 关系图：节点依次点亮，箭头随后描出，回环边最后闭合。 */
-  function renderDiagram(state, api) {
-    var f = state.localFrame;
-    var data = state.scene.data;
-    var title = pick(state, 'title');
-    var flow = pick(state, 'flow');
-
-    if (title) {
-      title.textContent = data.title || '';
-      title.style.display = data.title ? '' : 'none';
-    }
-    buildFlow(flow, data);
-
-    var NODE_START = 16;
-    var NODE_STEP = 40;
-    var NODE_FADE = 22;
-
-    var nodes = flow.querySelectorAll('.flow-node');
-    Array.prototype.forEach.call(nodes, function (node, index) {
-      var start = NODE_START + index * NODE_STEP;
-      var p = api.progress(f, start, NODE_FADE, EASE_OUT);
-      var springP = api.spring(p, { damping: 5.5, frequency: 1.1 });
-      var settle = api.progress(f, start + 40, 40, EASE_SYMMETRIC);
-      var drift = api.breath(f, { periodFrames: 140, amplitude: 3, phase: index * 24 }) * settle;
-      node.style.transform =
-        'translateY(' + (api.range(springP, 32, 0, { clamp: false }) + drift).toFixed(2) +
-        'px) scale(' + api.range(springP, 0.97, 1, { clamp: false }).toFixed(4) + ')';
-      node.style.opacity = String(api.clamp(springP, 0, 1));
-
-      // 当前节点常亮：给观众一个「现在读到这里」的锚点
-      var active = f < start + NODE_STEP * 2;
-      node.classList.toggle('is-active', active);
-      var halo = api.progress(f, start, NODE_FADE, EASE_SYMMETRIC);
-      node.style.setProperty('--flow-halo', api.range(halo, 0, 34).toFixed(1) + 'px');
-      node.style.setProperty('--flow-halo-rgb', active ? api.range(halo, 0, 0.18).toFixed(3) : '0');
-    });
-
-    // 箭头紧跟它上方的节点出现，避免「只有节点没有连线」的中间画面
-    var links = flow.querySelectorAll('[data-link]');
-    Array.prototype.forEach.call(links, function (path, index) {
-      var start = NODE_START + (index + 1) * NODE_STEP - 8;
-      api.drawPath(path, api.progress(f, start, 16, EASE_SOFT), { length: ARROW_LEN });
-    });
-
-    var backStart = NODE_START + nodes.length * NODE_STEP + 14;
-    var backPaths = flow.querySelectorAll('[data-back]');
-    Array.prototype.forEach.call(backPaths, function (path, index) {
-      // 曲线长度在渲染开始时量一次并缓存到 data 属性上，之后每帧直接复用
+    var arcs = pick(state, 'arcs') ? pick(state, 'arcs').children : [];
+    Array.prototype.forEach.call(arcs, function (path, index) {
       if (!path.dataset.length) {
         path.dataset.length = String(path.getTotalLength());
       }
-      api.drawPath(path, api.progress(f, backStart + index * 16, 56, EASE_SYMMETRIC), {
-        length: Number(path.dataset.length)
-      });
+      api.drawPath(path, clampStatic(travel - index, 0, 1), { length: Number(path.dataset.length) });
     });
 
-    var note = flow.querySelector('[data-loop-note]');
-    if (note) {
-      var noteProgress = api.progress(f, backStart + 34, 26, EASE_SOFT);
-      note.style.opacity = String(noteProgress);
-      note.style.transform = 'translateY(' + api.range(noteProgress, 16, 0).toFixed(1) + 'px)';
+    var token = pick(state, 'token');
+    var halo = pick(state, 'tokenHalo');
+    var tokenIn = api.progress(f, travelStart - 6, 18, EASE_OUT);
+    svgO(token, tokenIn);
+    svgO(halo, tokenIn * 0.55);
+    if (token) {
+      token.setAttribute('cx', point.x.toFixed(2));
+      token.setAttribute('cy', point.y.toFixed(2));
+    }
+    if (halo) {
+      halo.setAttribute('cx', point.x.toFixed(2));
+      halo.setAttribute('cy', point.y.toFixed(2));
+    }
+
+    // 到达节点时节点鼓一下，让「一圈」有落点（与入场 transform 已在上方合成）
+    var gaugeFill = pick(state, 'gaugeFill');
+    if (gaugeFill) {
+      gaugeFill.style.width = (clampStatic(travel / LOOP.SEGMENTS, 0, 1) * 100).toFixed(2) + '%';
     }
   }
 
-  /** 结论：主句逐字读出，行动提示最后滑入。 */
-  function renderConclusion(state, api) {
+  /* ---------------- 05 阶梯 ---------------- */
+
+  var STAIRS = {
+    BASE: 545,
+    BAR_W: 152,
+    GAP: 64,
+    HEIGHTS: [100, 210, 330, 460],
+    START: [0.07, 0.24, 0.48, 0.73]
+  };
+
+  function stairCenter(index) {
+    var total = STAIRS.HEIGHTS.length * STAIRS.BAR_W + (STAIRS.HEIGHTS.length - 1) * STAIRS.GAP;
+    return (888 - total) / 2 + index * (STAIRS.BAR_W + STAIRS.GAP) + STAIRS.BAR_W / 2;
+  }
+
+  /**
+   * 上场的复利：把四个阶段画成四根越站越高的柱子。
+   *
+   * 柱子高度是「你在面试里的位置」，小球一跳一格；最后一格柱子转成强调色，
+   * 顶部的标签从「公司在挑你」翻成「你在挑公司」——主动权换手，是本片的落点。
+   */
+  function renderStairs(state, api) {
     var f = state.localFrame;
     var data = state.scene.data;
+    var ann = data.annotations || {};
+    var items = data.items || [];
+
+    setPlainText(pick(state, 'title'), data.title);
+    setPlainText(pick(state, 'axisLabel'), ann.axis);
+
+    buildOnce(pick(state, 'bars'), JSON.stringify(items), function (host) {
+      items.forEach(function (item, index) {
+        var entry = typeof item === 'string' ? { label: item } : item;
+        var cx = stairCenter(index);
+        var group = svgEl('g', { 'data-bar': String(index) });
+
+        var bar = svgEl('rect', {
+          class: 'stair-bar',
+          x: cx - STAIRS.BAR_W / 2,
+          y: STAIRS.BASE,
+          width: STAIRS.BAR_W,
+          height: 0,
+          rx: 20
+        });
+        group.appendChild(bar);
+
+        var note = svgEl('text', { class: 'stair-note', x: cx, y: STAIRS.BASE - STAIRS.HEIGHTS[index] - 44 });
+        note.textContent = entry.note || '';
+        group.appendChild(note);
+
+        var label = svgEl('text', { class: 'stair-label', x: cx, y: STAIRS.BASE + 52 });
+        label.textContent = entry.label || '';
+        group.appendChild(label);
+
+        host.appendChild(group);
+      });
+    });
+
+    api.drawPath(pick(state, 'baseline'), api.progress(f, beat(state, 0.04), beat(state, 0.12), EASE_OUT), {
+      length: 842
+    });
+    api.drawPath(pick(state, 'axis'), api.progress(f, beat(state, 0.05), beat(state, 0.14), EASE_OUT), {
+      length: 467
+    });
+
+    var groups = pick(state, 'bars') ? pick(state, 'bars').children : [];
+    Array.prototype.forEach.call(groups, function (group, index) {
+      var start = beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index]);
+      var p = api.spring(api.progress(f, start, 26, EASE_OUT), { damping: 6, frequency: 1.2 });
+
+      var bar = group.children[0];
+      var note = group.children[1];
+      var label = group.children[2];
+      var height = (STAIRS.HEIGHTS[index] || 120) * clampStatic(p, 0, 1);
+      bar.setAttribute('y', String(STAIRS.BASE - height));
+      bar.setAttribute('height', String(height));
+      var isFocus = index === groups.length - 1 && p > 0.95;
+      bar.setAttribute('class', 'stair-bar' + (isFocus ? ' is-focus' : ''));
+      note.setAttribute('class', 'stair-note' + (isFocus ? ' is-focus' : ''));
+      note.setAttribute('y', String(STAIRS.BASE - height - 44));
+      svgO(note, clampStatic((p - 0.55) * 2.2, 0, 1));
+      svgO(label, clampStatic((p - 0.3) * 2, 0, 1));
+    });
+
+    // 说明文字跟着小球走：口播念到哪一句，屏幕上就是哪一句
+    var caption = pick(state, 'caption');
+    if (caption) {
+      var active = 0;
+      items.forEach(function (item, index) {
+        if (f >= beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index])) {
+          active = index;
+        }
+      });
+      var entry = typeof items[active] === 'string' ? { desc: items[active] } : items[active] || {};
+      setPlainText(caption, entry.desc);
+      var captionP = api.progress(f, beat(state, 0.03), 22, EASE_OUT);
+      caption.style.opacity = String(api.clamp(captionP, 0, 1) * 0.94);
+    }
+
+    // 小球：逐格跳，落点就是那一格的柱顶
+    var marker = pick(state, 'marker');
+    var halo = pick(state, 'markerHalo');
+    var firstStart = beat(state, STAIRS.START[0]);
+    var markerIn = api.progress(f, firstStart, 20, EASE_OUT);
+    var pos = { x: stairCenter(0), y: STAIRS.BASE - STAIRS.HEIGHTS[0] };
+    for (var i = 1; i < groups.length; i += 1) {
+      var hopStart = beat(state, STAIRS.START[i]) - beat(state, 0.05);
+      var hop = api.progress(f, hopStart, beat(state, 0.05), EASE_SYMMETRIC);
+      if (f >= hopStart) {
+        var prev = { x: stairCenter(i - 1), y: STAIRS.BASE - STAIRS.HEIGHTS[i - 1] };
+        var next = { x: stairCenter(i), y: STAIRS.BASE - STAIRS.HEIGHTS[i] };
+        pos = {
+          x: api.lerp(prev.x, next.x, hop),
+          y: api.lerp(prev.y, next.y, hop) - Math.sin(hop * Math.PI) * 96
+        };
+      }
+    }
+    if (marker) {
+      marker.setAttribute('cx', pos.x.toFixed(1));
+      marker.setAttribute('cy', pos.y.toFixed(1));
+    }
+    if (halo) {
+      halo.setAttribute('cx', pos.x.toFixed(1));
+      halo.setAttribute('cy', pos.y.toFixed(1));
+      svgO(halo, markerIn * 0.9);
+    }
+    svgO(marker, markerIn);
+
+    // 主动权换手
+    var flip = pick(state, 'flip');
+    var flipP = api.progress(f, beat(state, 0.84), beat(state, 0.1), EASE_SYMMETRIC);
+    if (flip) {
+      flip.classList.toggle('is-after', flipP > 0.5);
+      flip.style.opacity = String(api.progress(f, beat(state, 0.8), 20, EASE_OUT));
+    }
+    var arrow = pick(state, 'flipArrow');
+    if (arrow) {
+      arrow.className = 'flip-arrow ' + (flipP > 0.5 ? 'is-right' : 'is-left');
+    }
+    setPlainText(pick(state, 'flipText'), flipP > 0.5 ? ann.after : ann.before);
+  }
+
+  /* ---------------- 06 双向选择 ---------------- */
+
+  /**
+   * 收束：两支箭头同时存在，才叫「互相挑」。
+   *
+   * 先用逐字揭示把结论读出来，再让两端的节点和两条反向箭头成立；最后一条
+   * 强调色箭头是「你也在挑公司」，与开场的天平形成同一支片子的呼应。
+   */
+  function renderChoice(state, api) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var ann = data.annotations || {};
     var text = pick(state, 'text');
     var action = pick(state, 'action');
+
+    setPlainText(pick(state, 'nodeLeftText'), ann.leftNode);
+    setPlainText(pick(state, 'nodeRightText'), ann.rightNode);
 
     if (action) {
       action.textContent = data.action || '';
       action.style.display = data.action ? '' : 'none';
     }
 
-    // 逐字揭示：按帧号计算每个字的不透明度，比整句淡入更有被读出的感觉
     if (text) {
       revealKeyChars(text, data.text || '', f, data.emphasis || [], {
-        startFrame: 8,
+        startFrame: beat(state, 0.02),
         staggerFrames: 2
       });
     }
 
-    var actionProgress = api.progress(f, 100, 28, EASE_OUT);
+    enterFig(state, api, pick(state, 'nodeLeft'), api.progress(f, beat(state, 0.2), 24, EASE_OUT), {
+      distance: 34,
+      amplitude: 2.5,
+      axis: 'x',
+      scale: 0.94
+    });
+    enterFig(state, api, pick(state, 'nodeRight'), api.progress(f, beat(state, 0.26), 24, EASE_OUT), {
+      distance: -34,
+      amplitude: 2.5,
+      axis: 'x',
+      scale: 0.94
+    });
+
+    var arcTo = pick(state, 'arcTo');
+    var arcBack = pick(state, 'arcBack');
+    api.drawPath(arcTo, api.progress(f, beat(state, 0.36), beat(state, 0.1), EASE_SOFT), { length: 392 });
+    api.drawPath(arcBack, api.progress(f, beat(state, 0.44), beat(state, 0.1), EASE_SOFT), { length: 392 });
+    /*
+     * 箭头朝向取曲线末端的切线方向：二次贝塞尔在终点的切向是「终点 − 控制点」。
+     * 硬编码角度会在改曲线端点时静默错位，所以这里由同一组常量算出来。
+     */
+    placeArrow(pick(state, 'arrowTo'), 628, 118, Math.atan2(118 - 66, 628 - 445) * 180 / Math.PI,
+      api.progress(f, beat(state, 0.46), 14, EASE_OUT));
+    placeArrow(pick(state, 'arrowBack'), 264, 182, Math.atan2(182 - 234, 264 - 445) * 180 / Math.PI,
+      api.progress(f, beat(state, 0.54), 14, EASE_OUT));
+
+    var key = text ? text.querySelector('.key') : null;
+    if (key) {
+      var highlight = api.progress(f, beat(state, 0.56), beat(state, 0.1), EASE_SYMMETRIC);
+      key.style.textShadow =
+        '0 0 ' + api.range(highlight, 0, 30).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+        api.range(highlight, 0, 0.24).toFixed(3) + ')';
+    }
+
+    var actionP = api.progress(f, beat(state, 0.64), 28, EASE_OUT);
     if (action) {
-      var shift = api.range(api.spring(actionProgress, { damping: 6, frequency: 1.1 }), 34, 0, {
-        clamp: false
-      });
+      var shift = api.range(api.spring(actionP, { damping: 6, frequency: 1.1 }), 34, 0, { clamp: false });
       var drift = api.breath(f, { periodFrames: 150, amplitude: 3 }) *
-        api.progress(f, 100, 40, EASE_SYMMETRIC);
+        api.progress(f, beat(state, 0.64), 40, EASE_SYMMETRIC);
       action.style.transform = 'translate3d(' + shift.toFixed(2) + 'px,' + drift.toFixed(2) + 'px,0)';
-      action.style.opacity = String(api.clamp(actionProgress, 0, 1));
+      action.style.opacity = String(api.clamp(actionP, 0, 1));
     }
   }
+
+  /** 箭头头部：一个按切线方向旋转的三角形，位置与朝向都由常量算出。 */
+  function placeArrow(node, x, y, angleDeg, opacity) {
+    if (!node) {
+      return;
+    }
+    svgT(node, x, y, angleDeg);
+    node.setAttribute('d', 'M0 0 L-34 -16 L-34 16 Z');
+    svgO(node, opacity);
+  }
+
+  /* ---------------- 结论幕的逐字揭示 ---------------- */
 
   /**
    * 逐字揭示 + 强调短语。
    *
-   * 为什么不用 api.revealChars：它只负责单字透明度，不会给短语加类名；
-   * 结论幕既要逐字读出来，又要点亮一个短语，所以这里在同一个文本节点里
-   * 一次生成结构（普通单字 / 强调单字 / 换行占位），之后每帧只改透明度。
-   * 文本结构只在内容变化时重建，因此同一帧永远得到同一画面。
+   * 文本结构只在内容变化时重建，之后每帧只改各字的不透明度，因此同一帧永远
+   * 得到同一画面；强调短语整体比正文晚 6 帧出现，读起来有轻重。
    */
   function revealKeyChars(el, text, frame, phrases, options) {
     var o = options || {};
@@ -1193,8 +2119,7 @@
       units.forEach(function (unit) {
         var holder = document.createElement('span');
         holder.className = unit.key ? 'key' : 'plain';
-        var chars = Array.prototype.slice.call(unit.text);
-        chars.forEach(function (ch) {
+        Array.prototype.slice.call(unit.text).forEach(function (ch) {
           var span = document.createElement('span');
           span.className = ch === '\n' ? 'reveal-char is-break' : 'reveal-char';
           span.textContent = ch;
@@ -1206,7 +2131,6 @@
       el.setAttribute('data-a2v-emphasis-text', signature);
     }
 
-    // 逐字透明度：强调短语整体比正文晚 6 帧出现，读起来有轻重
     var spans = el.querySelectorAll('.reveal-char');
     var index = 0;
     Array.prototype.forEach.call(spans, function (span) {
@@ -1243,18 +2167,15 @@
     return [{ text: text, key: false }];
   }
 
-  /** 与运行时同义的钳制，避免为一个小工具函数再暴露一层接口。 */
-  function clampStatic(value, min, max) {
-    return value < min ? min : value > max ? max : value;
-  }
+  /* ---------------- 分派 ---------------- */
 
   var renderers = {
-    title: renderTitle,
-    quote: renderQuote,
-    list: renderList,
-    timeline: renderTimeline,
-    diagram: renderDiagram,
-    conclusion: renderConclusion
+    title: renderOpening,
+    quote: renderLoss,
+    list: renderBerg,
+    diagram: renderLoop,
+    timeline: renderStairs,
+    conclusion: renderChoice
   };
 
   /** 单帧渲染入口：由时间轴运行时按帧号调用，必须保持纯函数式。 */
