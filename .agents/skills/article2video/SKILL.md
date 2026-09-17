@@ -101,13 +101,23 @@ cp -r examples/why-effort-fails videos/<slug>
   `data-scene-id` 必须与 storyboard 中的 `id` 一致；
 - 所有正文放进 `.a2v-safe` 安全区；背景层放在舞台内、场景容器之外并置 `z-index: 0`，
   场景容器置 `z-index: 1`；
-- 在 `renderFrame(state, api)` 中按 `state.scene.type` 分派渲染，用
-  `api.progress()` / `api.enter()` / `api.spring()` / `api.range()` / `api.breath()` /
-  `api.drawPath()` / `api.revealChars()` 按帧计算动效，不要使用 CSS 动画；
+- **不画图形**：每幕放一个 `<div class="a2v-safe" data-a2v-figure></div>` 挂载点，
+  画面交给组件库；在 `renderFrame` 里只写一句
+  `A2V.figures.renderScene(state, api, { defaults: DEFAULT_FIGURES })`，
+  `DEFAULT_FIGURES` 把场景类型映射到组件（`comparison` → `versus` 等）；
+- 要新画图形时先查 [视觉组件目录](references/figure-catalog.md)：有合适的就选它、
+  给几段短标注；确实没有才按组件契约新写一个，并沉淀回目录；
+- 页面自己只保留「舞台 + 常驻背景 + 每幕的挂载点 + 场景角标」这四件事；
 - 播放控件放在 `[data-a2v-controls]` 或加 `a2v-preview-only` 类，导出时会被隐藏。
 
-排版层级、景深、动效配方与三套风格方向见 [竖屏视觉规范](references/visual-spec.md)；
-`examples/why-effort-fails/index.html` 已按该规范实现，可直接对照抄用。
+排版层级、动效配方与三套风格方向见 [竖屏视觉规范](references/visual-spec.md)；
+`examples/why-effort-fails/index.html` 是**只声明挂载点**的完整范例（深色主题），
+`videos/never-fear-interviews/index.html` 是同一套组件换成浅色主题的范例，
+两者可以直接对照抄用。
+
+引入 `figures.css` 时注意：组件库的墨色由 `--fig-line` / `--fig-ink` /
+`--fig-surface` 等令牌决定（`theme.css` 已给深色默认值）。页面若换主题，
+必须一并覆盖这几个令牌，否则图形不报错、只是安静地变成透明。
 
 ### 3. 校验分镜
 

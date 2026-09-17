@@ -27,12 +27,15 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （帧状态推导、入场与常驻微动原语、预览播放控制）；
 - 共享设计令牌 `assets/theme.css`：颜色 / 表面 / 阴影 / 圆角 / 节奏令牌，
   以及光晕、网格、细点阵三种可复用背景层，供网页按需引用；
-- **视觉组件库** `assets/figures.js` + `assets/figures.css`：六个由帧驱动的画面组件
-  （天平 / 落差尺 / 冰山 / 飞轮 / 阶梯 / 双向选择），网页只声明
+- **视觉组件库** `assets/figures.js` + `assets/figures.css`：七个由帧驱动的画面组件
+  （天平 / 落差尺 / 双栏对照 / 冰山 / 飞轮 / 阶梯 / 双向选择），网页只声明
   `<div data-a2v-figure></div>` 挂载点，分镜用 `data.figure.kind` 选组件、
   用 `labels` 给短标签、用 `motion` 指定节奏；组件自带 DOM 与样式，文案全部来自分镜。
   目录与新增组件的契约见
   [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)；
+- **动效配方层** `A2V.motion`：入场、弹性、收敛、常驻微动与节奏换算都写在
+  `timeline.js` 一处，组件用名字调用（`api.motion.spring(p, 'lively')`），
+  手感参数不会随组件漂移；
 - 动效原语全部为纯函数：`progress` / `enter` / `spring`（微过冲）/
   `breath`（常驻微动）/ `drawPath`（SVG 描边）/ `revealChars`（逐字揭示）；
 - 开渲前静态扫描 `animation:` / `transition:` / `@keyframes` 与
@@ -156,10 +159,13 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 05 上场的复利 | `timeline` | 阶梯：四根逐级升高的柱子，标记随之跳动，末段翻转为「你在挑公司」 |
 | 06 收束 | `conclusion` | 双向选择：两条相反方向的箭头对流，「多上场」落在下方 |
 
-比喻里的短标签（托盘名、水面、纵轴名等）全部来自分镜的 `annotations` / `figure.labels`，
-网页不保存任何默认文案；六个比喻本身由视觉组件库提供，网页只声明挂载点。
-除示例已有的 `title` / `quote` / `diagram` / `conclusion` 外，
-还实现了 `list` 与 `timeline` 两个场景分支，两者的行/步骤结构都由分镜的 `items` 动态生成。
+比喻里的短标签（托盘名、水面、纵轴名等）全部来自分镜的 `figure.labels`，
+网页不保存任何默认文案；七个比喻本身由视觉组件库提供，网页只声明挂载点。
+
+`examples/why-effort-fails`（《为什么努力没结果》）已经用同一套组件、换一套设计令牌
+重做：深色底、青色强调，五幕分别是 `balance` / `versus` / `versus` / `loop` / `exchange`。
+两份页面都不含任何图形代码——同一套组件在浅色与深色两套主题下都成立，
+这正是「AI 做导演，不做设计师」想达到的效果：换内容只需要改分镜。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；

@@ -59,18 +59,21 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 ## 视觉组件候选
 
 下表是**内容到视觉的映射建议**，供 AI 规划分镜时参考，不是必须遵守的枚举。
-当前示例已实现前五类中的五幕；其余类型在示例网页中没有对应实现。
 
-| 组件 | 脚本类型 | 适用内容 | 视觉表达示例 |
+现已实现的组件与它们的适用场景，以
+[视觉组件目录](../.agents/skills/article2video/references/figure-catalog.md) 为权威来源，
+本文不重复维护一份可能漂移的副本。下表只保留尚未实现的方向：
+
+| 组件 | 脚本类型 | 适用内容 | 状态 |
 | --- | --- | --- | --- |
-| TitleScene | title | 开场命题、主题 | 中央大字出现，关键词强调 |
-| QuoteScene | quote | 核心判断、金句 | 分段呈现，关键短语高亮 |
-| ComparisonScene | comparison | 两种选择、前后对照 | 双栏对照或两条路径展开 |
-| TimelineScene | timeline | 事件顺序、尝试过程 | 节点依次出现，当前步骤突出 |
-| DiagramScene | diagram | 因果、约束、反馈模型 | 节点连线逐步展开 |
-| NumberScene | number | 数量、频次、收益变化 | 数字增长或曲线变化 |
-| ListScene | list | 要点、行动步骤 | 逐项出现，当前项高亮 |
-| ConclusionScene | conclusion | 收束、行动建议 | 全屏结论与简短行动提示 |
+| TitleScene | title | 开场命题、主题 | 已实现（`balance`） |
+| QuoteScene | quote | 核心判断、金句 | 已实现（`gap`） |
+| ComparisonScene | comparison | 两种选择、前后对照 | 已实现（`versus`） |
+| TimelineScene | timeline | 事件顺序、尝试过程 | 已实现（`stairs`） |
+| DiagramScene | diagram | 因果、约束、反馈模型 | 已实现（`loop`） |
+| ConclusionScene | conclusion | 收束、行动建议 | 已实现（`exchange`） |
+| ListScene | list | 要点、行动步骤 | 已实现（`iceberg`） |
+| NumberScene | number | 数量、频次、收益变化 | **未实现**，暂由 `stairs` 或 `balance` 顶替 |
 
 校验器认识这八种类型并对必填字段做检查；出现新类型时给出警告而非错误，
 以便扩展，但对应网页必须实现该类型的渲染分支。
@@ -131,7 +134,34 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 继续通过；新增原语与校验规则的测试全部落地。
 尚未实现：AI 自动选择视觉风格；webfont 分发（当前仍用系统字体栈）。
 
-### 第五阶段：AI 分镜生成 —— 规划中
+### 第五阶段：视觉组件库与设计系统 —— 已实现
+
+目标：把「AI 做导演，不做设计师」变成结构上成立的事——AI 从现成组件里挑、
+给标注、指定节奏，而不是每次从零画一遍。
+
+- `assets/figures.js` + `figures.css`：七个视觉组件（`balance` / `gap` / `versus` /
+  `iceberg` / `loop` / `stairs` / `exchange`），每个自带 DOM 与样式，
+  只从分镜读文案与标注，页面只声明挂载点；
+- `A2V.motion` 动效配方层：入场配方（`surface` / `figure`）、具名弹性
+  （`enter` / `firm` / `lively` / `snap`）、常驻微动周期、节奏换算，
+  手感参数只写在 `timeline.js` 一处；
+- 节奏系统：分镜写 `calm` / `normal` / `impact`，运行时把幕内比例点整体缩放；
+- `scripts/a2v/catalog.py` + `references/figure-catalog.md`：组件目录与它的服务端镜像，
+  校验器据此判断 kind 是否存在、标注键是否认识、条目数是否超容量；
+- `references/design-constitution.md`：十四条规则，每条标注**能不能机检**；
+- `scripts/review.py`：视觉评审工具——组件契约探针（声明的标注是否真的画出来）、
+  帧量测（墨迹覆盖率与安全区）、宪法静态检查，产物为联系表与 `report.json`；
+- `references/visual-review-rubric.md`：六项 60 分制量表，机检保证「不是废片」，
+  人工（或视觉模型）判断「值不值得看完」。
+
+验收：`uv run pytest` 319 项通过；《永远不要害怕面试》与示例
+`examples/why-effort-fails` 都只声明挂载点，同一套组件在浅色与深色两套主题下
+都能成立；`review.py` 在两者上均 0 错误。
+
+尚未实现：AI 自动生成分镜（见第六阶段）；组件库的完整换肤
+（仍有若干装饰性渐变写死在 `figures.css` 里）；`number` 场景尚无对应组件。
+
+### 第六阶段：AI 分镜生成 —— 规划中
 
 把「文章 → 分镜」这一步从手工编写变为可调用的生成流程，输出先校验，再供人工预览和修订。
 

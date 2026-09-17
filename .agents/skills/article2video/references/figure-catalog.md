@@ -15,6 +15,7 @@
 | --- | --- | --- | --- | --- |
 | `balance` | 一边重一边轻，随后证明重的那个是空壳 | `title` | `leftPan`, `rightPan` | 2 侧 |
 | `gap` | 量出「真正失去了多少」：一侧从满到空，另一侧从头就没有 | `quote` | `assumption`, `fact`, `dropLabel`, `noDropLabel` | 2 栏 |
+| `versus` | 两种反应并排，箭头指出该从哪边转向哪边 | `comparison` | `left`, `right`, `note` | 2 栏 |
 | `iceberg` | 看得见的一角与看不见的主体不是一回事 | `list` | `surface` | 1–3 条条目 |
 | `loop` | 循环往复、每转一圈积累一点 | `diagram` | `gauge` | 3–6 节点 |
 | `stairs` | 次数累积带来的位置变化，并在末段翻转视角 | `timeline` | `axis`, `before`, `after` | 2–5 级 |

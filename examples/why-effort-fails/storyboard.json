@@ -11,6 +11,14 @@
       "durationInFrames": 150,
       "narration": "你有没有遇到过这种情况：明明比以前更努力，结果却几乎没变？",
       "data": {
+        "figure": {
+          "kind": "balance",
+          "motion": "normal",
+          "labels": {
+            "leftPan": "只顾加努力",
+            "rightPan": "先找对环节"
+          }
+        },
         "text": "为什么\n努力没结果？",
         "subtitle": "问题不在努力的程度",
         "emphasis": ["努力"]
@@ -22,6 +30,15 @@
       "durationInFrames": 240,
       "narration": "很多时候，努力没有结果，不是因为不够努力，而是因为方向错了。",
       "data": {
+        "figure": {
+          "kind": "versus",
+          "motion": "normal",
+          "labels": {
+            "left": "不够努力",
+            "right": "方向错了",
+            "note": "越使劲，越偏离"
+          }
+        },
         "text": "努力没有结果，\n往往不是因为不够努力，\n而是因为方向错了。",
         "emphasis": ["方向"]
       }
@@ -43,6 +60,13 @@
       "durationInFrames": 390,
       "narration": "约束会移动。解决问题、找到约束、采取行动、获得反馈，这是一个持续循环。",
       "data": {
+        "figure": {
+          "kind": "loop",
+          "motion": "normal",
+          "labels": {
+            "gauge": "进展"
+          }
+        },
         "title": "约束会移动",
         "nodes": ["问题", "约束", "行动", "反馈"],
         "edges": [
@@ -59,7 +83,16 @@
       "durationInFrames": 300,
       "narration": "先找到限制结果的那个环节，再决定把努力放在哪里。",
       "data": {
-        "text": "先找到限制结果的环节，\n再决定把努力放在哪里。",        "action": "复盘一次最近没有结果的努力"
+        "figure": {
+          "kind": "exchange",
+          "motion": "calm",
+          "labels": {
+            "leftNode": "限制环节",
+            "rightNode": "努力落点"
+          }
+        },
+        "text": "先找到限制结果的环节，\n再决定把努力放在哪里。",
+        "action": "复盘一次最近没有结果的努力"
       }
     }
   ]

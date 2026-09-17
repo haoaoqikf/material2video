@@ -56,7 +56,7 @@
   }
 
   .fig .paper {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
   }
@@ -115,7 +115,7 @@
   }
 
   .scale-plate {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
     stroke-linejoin: round;
@@ -140,7 +140,7 @@
   }
 
   .load-token {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
   }
@@ -149,7 +149,7 @@
     font-size: 36px;
     text-anchor: middle;
     letter-spacing: 0.06em;
-    fill: #ffffff;
+    fill: var(--fig-on-ink);
   }
 
   .load-text.is-ink {
@@ -407,7 +407,7 @@
   }
 
   .berg-tip {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
     stroke-linejoin: round;
@@ -415,15 +415,15 @@
 
   /* 水下部分用冷色 + 虚线：它是被藏起来的那一半 */
   .berg-mass {
-    fill: rgba(45, 78, 120, 0.16);
-    stroke: rgba(45, 78, 120, 0.55);
+    fill: var(--fig-water);
+    stroke: var(--fig-water-line);
     stroke-width: 4;
     stroke-linejoin: round;
     stroke-dasharray: 18 14;
   }
 
   .berg-callout {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--a2v-hairline);
     stroke-width: 2;
   }
@@ -467,7 +467,7 @@
   .berg-surface-note {
     font-family: var(--a2v-font-sans);
     font-size: 30px;
-    fill: rgba(45, 78, 120, 0.75);
+    fill: var(--fig-water-text);
     letter-spacing: 0.14em;
   }
 
@@ -498,7 +498,7 @@
   }
 
   .loop-node-disc {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
   }
@@ -570,7 +570,7 @@
   }
 
   .stair-bar {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
   }
@@ -703,7 +703,7 @@
   }
 
   .ex-node-disc {
-    fill: #ffffff;
+    fill: var(--fig-surface);
     stroke: var(--fig-line);
     stroke-width: 4;
   }
@@ -747,4 +747,95 @@
     border-left: 4px solid var(--a2v-accent);
     padding-left: 26px;
     letter-spacing: 0.02em;
+  }
+
+  /* ---------- 双栏对照：左栏现状 → 右栏该转去的方向 ---------- */
+
+  .vs-board {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 26px;
+    margin-top: 84px;
+  }
+
+  .vs-side {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 268px;
+    padding: 34px 26px;
+    border: 1px solid var(--a2v-hairline);
+    border-radius: var(--a2v-radius-lg);
+    background: var(--a2v-surface), var(--a2v-bg-2);
+    box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
+  }
+
+  .vs-side.is-left .vs-text {
+    color: var(--a2v-text-3);
+  }
+
+  /*
+   * 右栏的强调程度由帧驱动：--vs-heat 从 0 到 1，
+   * 边框、底色与光晕一起升温，比单纯的透明度变化更像「被选中」。
+   */
+  .vs-side.is-right {
+    border-color: rgba(var(--a2v-accent-rgb), calc(0.24 + 0.5 * var(--vs-heat, 0)));
+    background: var(--a2v-surface-strong);
+    box-shadow:
+      var(--a2v-inset-highlight),
+      var(--a2v-shadow-2),
+      0 0 calc(46px * var(--vs-heat, 0)) rgba(var(--a2v-accent-rgb), calc(0.3 * var(--vs-heat, 0)));
+  }
+
+  .vs-side.is-right .vs-text {
+    color: var(--a2v-accent);
+  }
+
+  .vs-text {
+    font-family: var(--a2v-font);
+    font-size: 46px;
+    line-height: 1.42;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+
+  .vs-link {
+    position: relative;
+    flex: 0 0 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vs-line {
+    width: 96px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--a2v-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  /* 箭头头部用两个边框拼出来，不额外引资源 */
+  .vs-head {
+    position: absolute;
+    right: 2px;
+    width: 0;
+    height: 0;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 16px solid var(--a2v-accent);
+    opacity: 0;
+  }
+
+  .vs-note {
+    margin-top: 30px;
+    font-family: var(--a2v-font-sans);
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    color: var(--a2v-text-3);
+    text-align: center;
+    opacity: 0;
   }

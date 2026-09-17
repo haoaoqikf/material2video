@@ -63,6 +63,11 @@ FIGURE_CATALOG: dict[str, Component] = {
         labels=frozenset({"leftNode", "rightNode"}),
         summary="双向关系，两个端点互相选择",
     ),
+    "versus": Component(
+        kind="versus",
+        labels=frozenset({"left", "right", "note"}),
+        summary="两种反应并排，箭头指出该从哪边转向哪边",
+    ),
 }
 
 #: 分镜没有声明 figure.kind 时，按场景类型取用的默认组件。
@@ -70,6 +75,7 @@ FIGURE_CATALOG: dict[str, Component] = {
 DEFAULT_KINDS: dict[str, str] = {
     "title": "balance",
     "quote": "gap",
+    "comparison": "versus",
     "list": "iceberg",
     "diagram": "loop",
     "timeline": "stairs",

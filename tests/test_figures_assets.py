@@ -17,6 +17,7 @@ import pytest
 SKILL = Path(__file__).resolve().parents[1] / ".agents/skills/article2video"
 FIGURES_JS = SKILL / "assets/figures.js"
 FIGURES_CSS = SKILL / "assets/figures.css"
+THEME_CSS = SKILL / "assets/theme.css"
 PAGE = SKILL.parents[2] / "videos/never-fear-interviews/index.html"
 
 # 每注册一个组件：define('kind', [...labels], MARKUP_X, updateX)
@@ -49,7 +50,7 @@ def _figures() -> list[tuple[str, list[str], str, str, str]]:
 
 def test_library_registers_the_expected_kinds():
     kinds = [kind for kind, *_ in _figures()]
-    assert kinds == ["balance", "gap", "iceberg", "loop", "stairs", "exchange"]
+    assert kinds == ["balance", "gap", "versus", "iceberg", "loop", "stairs", "exchange"]
 
 
 def test_catalog_mirror_matches_the_library():
@@ -164,6 +165,40 @@ def test_stylesheet_has_no_clock_driven_motion():
     text = FIGURES_CSS.read_text(encoding="utf-8")
     for pattern in (r"@keyframes\b", r"(?<![\w-])animation(?:-[\w-]+)?\s*:", r"(?<![\w-])transition(?:-[\w-]+)?\s*:"):
         assert not re.search(pattern, text), pattern
+
+
+class TestThemeTokens:
+    """组件库的墨色令牌必须由主题提供。
+
+    这是实际踩过的坑：`--fig-*` 一度只在某一支视频的页面里定义，
+    换一个主题后组件照样挂载、照样不报错，只是所有线条与填充变成透明，
+    画面上只剩文字。视觉评审能看出来，但校验器不会——只能靠这条测试兜住。
+    """
+
+    TOKENS = ("--fig-line", "--fig-line-soft", "--fig-ink", "--fig-on-ink", "--fig-surface")
+
+    @staticmethod
+    def _used() -> set[str]:
+        text = FIGURES_CSS.read_text(encoding="utf-8")
+        return set(re.findall(r"var\((--fig-[\w-]+)", text))
+
+    @staticmethod
+    def _defined() -> set[str]:
+        text = THEME_CSS.read_text(encoding="utf-8")
+        return set(re.findall(r"^\s*(--fig-[\w-]+)\s*:", text, re.MULTILINE))
+
+    def test_theme_defines_every_figure_token_the_library_uses(self):
+        missing = self._used() - self._defined()
+        assert not missing, f"theme.css 缺少组件库用到的令牌：{sorted(missing)}"
+
+    def test_core_tokens_are_all_declared(self):
+        assert set(self.TOKENS) <= self._defined()
+
+    def test_token_defaults_are_not_hardcoded_whites(self):
+        """物体的表面要用令牌，不能写死白色——写死了在深色主题上就是白底白字。"""
+        text = FIGURES_CSS.read_text(encoding="utf-8")
+        assert "fill: #ffffff" not in text
+        assert "fill: #fff;" not in text
 
 
 def test_page_defaults_point_at_registered_kinds():

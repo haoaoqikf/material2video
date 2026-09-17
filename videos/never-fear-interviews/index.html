@@ -50,11 +50,15 @@
     --a2v-font: "Songti SC", "SimSun", "Noto Serif SC", "Source Han Serif SC", serif;
     --a2v-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
 
-    /* 图形语言：所有插画共用三种线宽与两种填充，保证六幕看起来是一套画 */
+    /* 图形语言：所有插画共用三种线宽与两种填充，保证六幕看起来是一套画。
+       浅底上墨色要暗、画在实心块上的文字要亮，两者成对翻转 */
     --fig-line: rgba(22, 24, 29, 0.4);
     --fig-line-soft: rgba(22, 24, 29, 0.16);
     --fig-ink: #2b2f38;
-    --fig-water: rgba(45, 78, 120, 0.1);
+    --fig-on-ink: #ffffff;
+    --fig-water: rgba(45, 78, 120, 0.16);
+    --fig-water-line: rgba(45, 78, 120, 0.55);
+    --fig-water-text: rgba(45, 78, 120, 0.75);
   }
 
   /*
@@ -230,6 +234,7 @@
   var DEFAULT_FIGURES = {
     title: 'balance',
     quote: 'gap',
+    comparison: 'versus',
     list: 'iceberg',
     diagram: 'loop',
     timeline: 'stairs',

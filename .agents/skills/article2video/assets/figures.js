@@ -481,17 +481,31 @@
     }
 
     // 关键短语：底横线在句子读完后画出，颜色同步加深
-    var key = text ? text.querySelector('.key') : null;
-    if (key) {
-      var highlight = api.progress(f, beat(state, 0.7), beat(state, 0.1), EASE_SYMMETRIC);
-      var underline = key.querySelector('.key-underline');
-      if (underline) {
-        underline.style.transform = 'scaleX(' + highlight.toFixed(4) + ')';
-      }
-      key.style.textShadow =
-        '0 0 ' + api.range(highlight, 0, 26).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
-        api.range(highlight, 0, 0.22).toFixed(3) + ')';
+    emphasizeKey(state, api, text);
+  }
+
+  /**
+   * 关键短语的强调：底横线在句子读完后画出，同步加深颜色与光晕。
+   *
+   * 抽出来是因为「正文 + 图形」这类组件都要它，各写一份必然会有一处忘记
+   * 把底横线一起画出来——那种缺失在成片里只是一条线没出现，很难被发现。
+   */
+  function emphasizeKey(state, api, node, options) {
+    var o = options || {};
+    var key = node ? node.querySelector('.key') : null;
+    if (!key) {
+      return;
     }
+    var at = o.at === undefined ? 0.7 : o.at;
+    var span = o.span === undefined ? 0.1 : o.span;
+    var p = api.progress(state.localFrame, beat(state, at), beat(state, span), EASE_SYMMETRIC);
+    var underline = key.querySelector('.key-underline');
+    if (underline) {
+      underline.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+    }
+    key.style.textShadow =
+      '0 0 ' + api.range(p, 0, o.glow === undefined ? 26 : o.glow).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+      api.range(p, 0, o.alpha === undefined ? 0.22 : o.alpha).toFixed(3) + ')';
   }
 
   /** 竖尺填充：高度按比例写，圆角底部保持贴地。 */
@@ -562,6 +576,101 @@
 </div>`;
 
   define('gap', ["assumption", "fact", "dropLabel", "noDropLabel"], MARKUP_GAP, updateGap);
+
+  /* ---------------- 双栏对照 ---------------- */
+
+  /**
+   * 两种反应 / 两条路：左栏是现状，右栏是该转去的方向，中间用箭头连起来。
+   *
+   * 为什么不做成「左右对称」：对称只说明「有两个选项」，而这类内容想说的是
+   * 「从左边转向右边」。箭头承担了这句话，右栏的强调色只是把落点标出来。
+   */
+  function updateVersus(state, api, pick, labels) {
+    var f = state.localFrame;
+    var data = state.scene.data;
+    var ann = labels || {};
+
+    setPlainText(pick('title'), data.title);
+    // 对照的两句话优先取分镜的 left / right（comparison 场景的正式字段），
+    // 其他场景类型（例如 quote + versus）没有这两个字段，就退回标注
+    setPlainText(pick('leftText'), data.left || ann.left);
+    setPlainText(pick('rightText'), data.right || ann.right);
+    setPlainText(pick('note'), ann.note);
+
+    // 引子：论点是「不是 A，而是 B」时，正文先立起来，两栏才是它的注解。
+    // comparison 场景没有 text，这一段整个不占位。
+    var lead = pick('lead');
+    if (lead) {
+      setText(pick('leadText'), data.text, data.emphasis, true);
+      lead.style.display = data.text ? '' : 'none';
+    }
+
+    enterAlive(state, api, lead, api.progress(f, beat(state, 0.02), 28, EASE_OUT), {
+      distance: 48,
+      amplitude: 3
+    });
+    enterAlive(state, api, pick('title'), api.progress(f, beat(state, 0.03), 26, EASE_OUT), {
+      distance: 44,
+      amplitude: 3
+    });
+    enterAlive(state, api, pick('leftSide'), api.progress(f, beat(state, 0.16), 24, EASE_OUT), {
+      distance: -46,
+      axis: 'x',
+      amplitude: 2.2
+    });
+    enterAlive(state, api, pick('rightSide'), api.progress(f, beat(state, 0.24), 26, EASE_OUT), {
+      distance: 46,
+      axis: 'x',
+      amplitude: 2.2,
+      phase: 40
+    });
+
+    // 箭头：先长出来，再点亮右栏
+    var line = pick('line');
+    if (line) {
+      var lineP = api.progress(f, beat(state, 0.4), beat(state, 0.1), EASE_SYMMETRIC);
+      line.style.transform = 'scaleX(' + lineP.toFixed(4) + ')';
+    }
+    var head = pick('head');
+    if (head) {
+      head.style.opacity = String(api.progress(f, beat(state, 0.46), 12, EASE_OUT));
+    }
+
+    var heat = api.progress(f, beat(state, 0.52), beat(state, 0.14), EASE_SYMMETRIC);
+    var rightSide = pick('rightSide');
+    if (rightSide) {
+      // 用自定义属性而不是再写一次 opacity：入场动画刚写过 opacity，
+      // 覆盖它会让入场在末段跳一下
+      rightSide.style.setProperty('--vs-heat', heat.toFixed(3));
+    }
+    var note = pick('note');
+    if (note) {
+      note.style.opacity = String(api.progress(f, beat(state, 0.62), 20, EASE_OUT) * 0.9);
+    }
+    emphasizeKey(state, api, lead, { at: 0.72, glow: 22, alpha: 0.18 });
+  }
+
+  var MARKUP_VERSUS = `<div class="quote-block" data-el="lead">
+  <span class="quote-mark" data-el="mark">&ldquo;</span>
+  <span class="quote-rule" data-el="rule"></span>
+  <p class="quote-text" data-el="leadText"></p>
+</div>
+<h2 class="section-title" data-el="title"></h2>
+<div class="vs-board">
+  <div class="vs-side is-left" data-el="leftSide">
+    <p class="vs-text" data-el="leftText"></p>
+  </div>
+  <div class="vs-link" aria-hidden="true">
+    <span class="vs-line" data-el="line"></span>
+    <span class="vs-head" data-el="head"></span>
+  </div>
+  <div class="vs-side is-right" data-el="rightSide">
+    <p class="vs-text" data-el="rightText"></p>
+  </div>
+</div>
+<p class="vs-note" data-el="note"></p>`;
+
+  define('versus', ["left", "right", "note"], MARKUP_VERSUS, updateVersus);
 
   /* ---------------- 03 冰山 ---------------- */
 
@@ -1075,6 +1184,26 @@
    * 先用逐字揭示把结论读出来，再让两端的节点和两条反向箭头成立；最后一条
    * 强调色箭头是「你也在挑公司」，与开场的天平形成同一支片子的呼应。
    */
+  //: 结论句的排版边界。宽度与 .fig / .a2v-safe 一致（1080 − 96 × 2）。
+  var EXCHANGE = { WIDTH: 888, MAX: 96, MIN: 54 };
+
+  /**
+   * 按最长一行算出能放下的字号。
+   *
+   * 中日韩字形宽度≈字号，因此「一行能放几个字」约等于 `宽度 / 字号`；
+   * 用字符数而不是测量：测量既拖慢逐帧渲染，也会把布局抖动带进画面。
+   * 短句原样保持设计字号，只有放不下时才缩。
+   */
+  function fitFontSize(text, spec) {
+    var lines = String(text || '').split('\n');
+    var longest = 1;
+    lines.forEach(function (line) {
+      if (line.length > longest) {
+        longest = line.length;
+      }
+    });
+    return Math.max(spec.MIN, Math.min(spec.MAX, Math.floor(spec.WIDTH / longest)));
+  }
   function updateExchange(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
@@ -1091,6 +1220,9 @@
     }
 
     if (text) {
+      // 结论句长短差别很大（六字的金句与十几字的行动句都常见），
+      // 字号跟着最长一行收缩，否则长句会在中间断开成「…的环 / 节，」
+      text.style.fontSize = fitFontSize(data.text, EXCHANGE) + 'px';
       revealKeyChars(text, data.text || '', f, data.emphasis || [], {
         startFrame: beat(state, 0.02),
         staggerFrames: 2
