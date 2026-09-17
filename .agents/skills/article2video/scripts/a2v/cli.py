@@ -487,6 +487,10 @@ def main_review(argv: list[str] | None = None) -> int:
     # 字宽字重基线全变，而上面的对齐（K4）与溢出（K7）量的都是元素框、照过。
     # 它和 K7 同性质（画面坏了），所以进错误数与退出码。
     for finding in _font_findings(page_file, args):
+        if finding.get("skip"):
+            # 空转的检查与通过的检查在报告里长得一样——所以要把「不适用」写出来。
+            combined.warn(finding["where"], finding["skip"])
+            continue
         combined.error(finding["where"], "字体缺字：" + "".join(finding["missing"]))
     payload = inspect_mod.write_report(
         combined,
@@ -532,6 +536,11 @@ def _font_findings(page_file: Path, args) -> list[dict]:
         storyboard = _json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
+    if not fonts_mod.page_fonts(page_file):
+        return [{
+            "where": "字体覆盖",
+            "skip": "本页未声明 webfont（不启用预设时走系统字体），字体覆盖检查不适用",
+        }]
     try:
         return fonts_mod.audit_page(page_file, storyboard)
     except (OSError, ValueError) as exc:
