@@ -126,9 +126,12 @@
     stroke-linejoin: round;
   }
 
+  /* 吊绳：它吊着两个秤盘，是横梁与秤盘之间唯一的联系。
+     曾经按取值把它归成「装饰描边」（深色 1.63:1），逐帧看时横梁像浮在空中。
+     分类要跟着用途走：绳子消失了这张天平就读不懂，所以它是结构描边。 */
   .scale-rope {
     fill: none;
-    stroke: var(--fig-line-soft);
+    stroke: var(--fig-line-data, var(--fig-line-soft));
     stroke-width: 4;
   }
 
@@ -303,7 +306,10 @@
     position: relative;
     width: 104px;
     height: 268px;
-    border: 1px solid var(--a2v-hairline);
+    /* 槽的填充只是耳语级的一层白，边框是这根竖尺唯一能被看见的边界，
+       所以用边界描边（对抬升面 ≥3:1）而不是装饰级的分隔线。
+       未启用预设时回落到分隔线，画面逐字节不变。 */
+    border: 1px solid var(--a2v-hairline-strong, var(--a2v-hairline));
     border-radius: var(--a2v-radius-sm);
     background: var(--fig-drop-track, rgba(22, 24, 29, 0.025));
   }

@@ -44,6 +44,10 @@ CLASSES: dict[str, tuple[str, str]] = {
     "--fig-gauge-track": ("面填充", "-"),
     "--fig-title-grad-from": ("图形内文本", "bg"),
     "--fig-title-grad-to": ("图形内文本", "bg"),
+    # 边界描边：判据基座是它落座的面（抬升面 `--a2v-bg-2`），不是画布。
+    # 同一个颜色在两层的比值不同（深色分隔线对画布 1.52:1、对抬升面 1.64:1），
+    # 拿画布去量一个压在面板上的边框，只会得到一个乐观的数字。
+    "--a2v-hairline-strong": ("边界描边", "bg2"),
 }
 
 #: SVG 表现属性里允许出现的取值。「空壳」的填充曾经写死成 `rgba(22,24,29,0.035)`：
@@ -65,8 +69,17 @@ LITERAL_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(")
 BUDGETS: dict[str, float] = {
     "数据描边": 4.5,
     "图形内文本": 4.5,
+    "边界描边": 3.0,
     "装饰描边": 1.5,
 }
+
+#: 判定基座：`bg` → `--a2v-bg-0`，`bg2` → `--a2v-bg-2`，`ink` → 对 `--fig-ink` 成对判定。
+BASES = {"bg": "--a2v-bg-0", "bg2": "--a2v-bg-2"}
+
+#: 纯分隔线：刻意保持耳语。WCAG 1.4.11 管的是「理解内容所必需的图形对象」，
+#: 纯分隔线本来就在豁免范围内；每条都提到 3:1 会让画面整体变重、层次变平。
+#: 单独列出来，是为了让「不抬高它」也成为一条被守住的决定，而不是一句注释。
+DECORATIVE_SEPARATORS = {"--a2v-hairline": "--a2v-bg-2"}
 
 THEMES = {"keynote-dark": "dark", "keynote-light": "light"}
 
@@ -141,9 +154,14 @@ def _theme_blocks() -> dict[str, dict[str, str]]:
         assert end != -1, f"{theme} 主题块没有闭合"
         segment = source[source.find("{", start) : end]
         tokens: dict[str, str] = {}
-        for match in re.finditer(r"(--fig-[a-z-]+):\s*([^;]+);", segment):
+        # 连 `--a2v-*` 一起抽：边界描边的判据基座是抬升面 `--a2v-bg-2`，
+        # 只抽 `--fig-*` 就拿不到基座。
+        for match in re.finditer(r"(--[a-z0-9-]+):\s*([^;]+);", segment):
             tokens[match.group(1)] = match.group(2).strip()
-        assert tokens, f"{theme} 主题块里没有抽出任何图形颜色令牌，选择器可能又错了"
+        figure_tokens = {k: v for k, v in tokens.items() if k.startswith("--fig-")}
+        assert figure_tokens, f"{theme} 主题块里没有抽出任何图形颜色令牌，选择器可能又错了"
+        for base in ("--a2v-bg-0", "--a2v-bg-2"):
+            assert base in tokens, f"{theme} 主题块里没有 {base}，无法做判定基座"
         blocks[theme] = tokens
     return blocks
 
@@ -151,8 +169,12 @@ def _theme_blocks() -> dict[str, dict[str, str]]:
 BLOCKS = _theme_blocks()
 
 
-def _ratio(theme: str, value: str) -> float:
-    canvas = _rgb(CANVAS[theme])
+def _figure_tokens(theme: str) -> dict[str, str]:
+    return {k: v for k, v in BLOCKS[theme].items() if k.startswith("--fig-")}
+
+
+def _ratio(theme: str, value: str, base: str = "--a2v-bg-0") -> float:
+    canvas = _rgb(BLOCKS[theme][base])
     return _contrast(_composite(_rgb(value), canvas), _composite(canvas, canvas))
 
 
@@ -172,7 +194,7 @@ def over_budget() -> list[tuple[str, str, str, str, float, float]]:
                 ink = tokens.get("--fig-ink")
                 ratio = _contrast(_rgb(value)[:3], _rgb(ink)[:3])
             else:
-                ratio = _ratio(theme, value)
+                ratio = _ratio(theme, value, BASES[reference])
             if ratio < budget:
                 failures.append((theme, token, klass, value, ratio, budget))
     return failures
@@ -182,8 +204,8 @@ class TestClassification:
     def test_every_token_is_classified(self):
         # 「没有对应规则」不等于「可以放行」：新令牌必须先归类
         known = set(CLASSES)
-        for theme, tokens in BLOCKS.items():
-            unknown = sorted(set(tokens) - known)
+        for theme in BLOCKS:
+            unknown = sorted(set(_figure_tokens(theme)) - known)
             assert not unknown, (
                 f"{theme} 主题里有未归类的图形颜色令牌：{unknown}；"
                 "请先在 tests/test_figure_contrast.py 的 CLASSES 里归类"
@@ -191,12 +213,19 @@ class TestClassification:
 
     def test_both_themes_define_the_same_tokens(self):
         # 两套主题必须提供同一组令牌名，否则换主题就会掉回未定义的颜色
-        dark, light = set(BLOCKS["dark"]), set(BLOCKS["light"])
+        dark, light = set(_figure_tokens("dark")), set(_figure_tokens("light"))
         assert dark == light, f"两套主题令牌不一致：{sorted(dark ^ light)}"
 
     def test_budgets_cover_every_class_that_needs_one(self):
         classes = {klass for klass, reference in CLASSES.values() if reference != "-"}
         assert classes == set(BUDGETS), f"分类与预算表不对应：{sorted(classes ^ set(BUDGETS))}"
+
+    def test_every_class_has_a_declared_base(self):
+        # 判据基座写进表里，规则才没有解释空间
+        for klass, reference in CLASSES.values():
+            if reference == "-":
+                continue
+            assert reference in BASES or reference == "ink", f"{klass} 的判定基座没定义"
 
     def test_fills_have_no_numeric_budget(self):
         # 面填充不设下限是刻意的：浅色主题自己的面阶（bg-0 → surface-1）就只有 1.13:1，
@@ -248,6 +277,59 @@ class TestClassification:
             "figures.css 的 fill/stroke/background 里写死了颜色，换主题就会原地留一抹旧主题的颜色：\n  "
             + "\n  ".join(offenders)
         )
+
+
+class TestBoundaryStrokes:
+    """边界描边：一个物体唯一可见的边界。
+
+    这一组守的是「承重的线躲在装饰类里」和「令牌定义了却没人用」两种失效。
+    `--a2v-hairline-strong` 曾经就是后者：令牌表里有它、注释里写着 2.99:1，
+    实际一处都没引用，按新基座量也只有 2.49:1。
+    """
+
+    def test_boundary_tokens_are_actually_used(self):
+        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+            encoding="utf-8"
+        )
+        declarations = re.findall(r"\bborder(?:-color|-top|-right|-bottom|-left)?\s*:\s*([^;]+);", figures)
+        declarations += re.findall(r"\bstroke\s*:\s*([^;]+);", figures)
+        text = " ".join(declarations)
+        boundaries = [t for t, (klass, _) in CLASSES.items() if klass == "边界描边"]
+        assert boundaries, "分类表里没有边界描边"
+        for token in boundaries:
+            assert f"var({token}" in text, (
+                f"{token} 被归为边界描边，但组件里没有任何边界声明引用它——"
+                "定义了却没人用的令牌看似成体系，实际不承担任何东西"
+            )
+
+    def test_the_object_defining_border_uses_the_boundary_token(self):
+        # 竖尺的槽填充只是耳语级的一层白，边框是它唯一能被看见的边界
+        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+            encoding="utf-8"
+        )
+        track = re.search(r"\.drop-track\s*\{([^}]*)\}", figures)
+        assert track, "找不到 .drop-track 规则"
+        assert "--a2v-hairline-strong" in track.group(1), (
+            ".drop-track 的边框回到了装饰级分隔线：槽的填充是耳语级的，"
+            "边框一淡这根竖尺就没有边界了"
+        )
+
+    def test_decorative_separators_stay_a_whisper(self):
+        """纯分隔线刻意保持耳语，并且这件事要被守住而不是被「顺手统一」。
+
+        WCAG 1.4.11 管的是「理解内容所必需的图形对象」，纯分隔线在豁免范围内。
+        把每条分隔线都提到 3:1 会让画面整体变重、层次变平——
+        这和 K2 早期「强调色占比低就判失败」是同一类误判：规则惩罚了正确的做法。
+        """
+        for token, base in DECORATIVE_SEPARATORS.items():
+            for theme in BLOCKS:
+                value = BLOCKS[theme].get(token)
+                assert value is not None, f"{theme} 缺少分隔线令牌 {token}"
+                ratio = _ratio(theme, value, base)
+                assert ratio < 3.0, (
+                    f"{theme} 的 {token} 达到了 {ratio:.2f}:1，已经不像分隔线了；"
+                    "要抬的是界定物体边界的那条描边，不是所有线"
+                )
 
 
 class TestBudgetsHold:

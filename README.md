@@ -76,10 +76,11 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   8pt 间距阶（4–192px）、五个圆角档 + pill、三级阴影、12 列网格（内容宽 888px、
   槽宽 24px），以及 `keynote-dark`（bg `#08090c`、强调 `#32d6ff`）与
   `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）两套主题，对比度预算正文 7:1、
-  大字与图形 4.5:1；**图形颜色按四类分别守预算**（数据描边与图形内文本对画布 ≥ 4.5:1、
-  装饰描边 ≥ 1.5:1、面填充不设数值下限——形状由描边界定），
+  大字与图形 4.5:1；**图形颜色按五类分别守预算**（数据描边与图形内文本对画布 ≥ 4.5:1、
+  边界描边对抬升面 ≥ 3:1、装饰描边 ≥ 1.5:1、面填充不设数值下限——形状由描边界定），
   `figures.css` 的 `fill`/`stroke`/`background` 里不许出现字面色值，均由
   `tests/test_figure_contrast.py` 按分类表断言，新增 `--fig-*` 必须先归类；
+  纯分隔线刻意保持耳语并豁免于 WCAG 1.4.11；
   Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）
   随仓库分发、不走 CDN；`assets/typography.js` 提供可选排版引擎 `A2V.type`
   （不属于渲染契约）：组件用 `data-a2v-fit="<档位>"` 声明字号上限档位，共享页面在预设
