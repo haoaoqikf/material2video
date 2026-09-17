@@ -195,25 +195,36 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
   两套主题；对比度预算为正文 7:1、大字与图形 4.5:1；
 - `assets/fonts/`：Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）随仓库分发，
   不走 CDN；字体栈只在预设作用域里覆盖 `--a2v-font`，因此未启用预设的页面仍用系统字体栈；
-- `assets/typography.js`：可选排版引擎 `A2V.type`（实测取档、均衡断行、行首标点悬挂），
-  不属于 `window.__A2V__` 渲染契约，未启用预设时不会被调用；
-- `scripts/a2v/keynote.py`：观感闸门 K1–K6 的计算与结果结构（`Gate` / `KeynoteResult`），
-  与废片类 C 系列**分开计分**；`inspect.py` 的帧量测扩到 540 × 960 的探针画面，
-  并收集字号、文本样张与卡片特征；
+- `assets/typography.js`：可选排版引擎 `A2V.type`，不属于 `window.__A2V__` 渲染契约，
+  未启用预设时不会被调用。组件用 `data-a2v-fit="<档位>"` 声明字号上限档位，
+  共享页面在预设生效时按实测可用宽度取档、按宽度均衡断行、到 36px 正文下限即停；
+  行高、字距、字重仍归组件，字号归字阶；未声明的元素不会被改动；
+- `scripts/a2v/keynote.py`：观感闸门 K1–K7 的计算与结果结构（`Gate` / `KeynoteResult`），
+  与废片类 C 系列**分开计分**；其中 K7 文字溢出是**硬判定**，失败会并入体检错误数与
+  退出码。`inspect.py` 的帧量测扩到 540 × 960 的探针画面，
+  并收集字号、文本样张、卡片特征、文本块四边墨迹边界与安全区几何；
 - `examples/keynote-baseline/`：8 幕 / 2040 帧 / 68 秒 / 1080 × 1920 @30fps 的参考实现；
-- 测试：`tests/test_keynote_assets.py`（令牌自检、对比度、`--fig-*` 覆盖、预设作用域）、
-  `tests/test_offline_assets.py`（资产不许引外部 URL、`url()` 必须指向仓库内真实文件、
-  限帧导出可跑通）与 `tests/test_review.py` 的 K 系列指标与闸门用例。
+- 测试：`tests/test_keynote_assets.py`（令牌自检、对比度、`--fig-*` 覆盖、预设作用域、
+  组件墨色字号收进字阶）、`tests/test_offline_assets.py`（资产不许引外部 URL、
+  `url()` 必须指向仓库内真实文件、断网渲染可跑通）、`tests/test_keynote_layout.py`
+  （浏览器里实测安全区、字号阶与四种版面的几何）、`tests/test_typesetting_apply.py`
+  （取档不破坏强调标记、退化输入、重复取档零写入）、`tests/test_typesetting_wiring.py`
+  （引擎真的接上了、取到的档位与字阶一致、非预设页面零取档）
+  与 `tests/test_review.py` 的 K 系列指标与闸门用例。
 
 验收：`examples/keynote-baseline` 上 `validate.py --declarative --strict` 零错误；
-`review.py --declarative` 的 C 系列 24 帧抽检 0 错误 0 提醒，K 系列 30 通过 / 7 提醒 /
+`review.py --declarative` 的 C 系列 24 帧抽检 0 错误 0 提醒，K 系列 38 通过 / 7 提醒 /
 0 失败 / 11 跳过（跳过项均写明原因，主要是「这一幕没有卡片表面」与「正文级文本块不足两个」）；
-未启用预设的 `examples/declarative-number` 限帧 12 帧成片与改动前逐字节一致。
+K7 的负例（注入 350 字副标题）报「越出安全区：「title-text」上越界 285.2px」、
+错误数 1、退出码 2；
+未启用预设的 `examples/declarative-number` 限帧 12 帧成片与改动前逐字节一致，
+预设页面的 8 幕共 24 帧在「剥掉档位声明」的加载下逐像素一致。
 
 尚未实现：视觉模型自动评审（K 系列只给数值，最终判断仍要人看
 [视觉评审量表](../.agents/skills/article2video/references/visual-review-rubric.md)）、
-webfont 子集化（Noto Sans SC Variable 约 17MB）、按内容自动选预设（必须显式声明），
-以及 K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」。
+webfont 子集化（Noto Sans SC Variable 约 17MB）、按内容自动选预设（必须显式声明）、
+K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」，
+以及自动拆场景（引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，但拆幕仍由人决定）。
 完整说明见
 [发布会级设计语言](../.agents/skills/article2video/references/keynote-design-system.md)。
 

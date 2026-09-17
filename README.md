@@ -78,14 +78,18 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）两套主题，对比度预算正文 7:1、
   大字与图形 4.5:1；Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）
   随仓库分发、不走 CDN；`assets/typography.js` 提供可选排版引擎 `A2V.type`
-  （实测取档、均衡断行、行首标点悬挂，不属于渲染契约）。不声明 `preset` 时它不生效
+  （不属于渲染契约）：组件用 `data-a2v-fit="<档位>"` 声明字号上限档位，共享页面在预设
+  生效时按**实测可用宽度**取档、按宽度均衡断行，到 36px 正文下限即停；行高、字距、
+  字重仍归组件，字号归字阶。未声明的元素不会被改动；不声明 `preset` 时它不生效
   （样式受预设作用域约束、排版引擎不被调用），画面逐帧不变（有逐字节回归证据）；
   参考实现见
   [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)（8 幕 / 2040 帧 / 68 秒）；
-- **观感闸门 K1–K6**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
+- **观感闸门 K1–K7**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
   对齐基线、正文对比度、卡片纪律量成数值结论，与回答「是不是废片」的 C 系列
   **分开计分**；`review.py --declarative` 时随体检一起输出，取不到样本的条目跳过并写明原因。
-  阈值与设计取舍见
+  其中 **K7 文字溢出是硬判定**：文本块越出安全区（容差 8px）或排版引擎报
+  「缩到正文下限仍放不下」时，会并入体检的错误数与退出码，并报出是哪个文本块、
+  往哪个方向越了多少像素。阈值与设计取舍见
   [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
@@ -250,7 +254,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
 - [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)：有哪些现成组件、怎么选、怎么新增
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
-- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎与 K1–K6 观感闸门
+- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎与 K1–K7 观感闸门
 - [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
