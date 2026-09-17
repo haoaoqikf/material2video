@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from a2v import cli
 from a2v import inspect as review
 from a2v import keynote
 from a2v.storyboard import Report
@@ -273,6 +274,137 @@ class TestKeynoteGates:
         result.render("s1", 20, [keynote.gate_accent("s1", 0.001)])
         assert result.gates[0].status == "warn"
         assert result.summary()["pass"] == 0
+
+
+SAFE = {"left": 96.0, "right": 984.0, "top": 240.0, "bottom": 1600.0}
+
+
+def _block(role, left, right, top, bottom):
+    return {
+        "role": role,
+        "block": role,
+        "left": left,
+        "right": right,
+        "top": top,
+        "bottom": bottom,
+    }
+
+
+class TestOverflowGate:
+    """K7 是硬判定：文字被裁掉或压出安全区不是审美问题，是画面坏了。"""
+
+    def test_passes_when_everything_is_inside(self):
+        gate = keynote.gate_overflow("s", [_block("title-text", 200, 800, 400, 700)], SAFE)
+        assert gate.status == "pass"
+        assert gate.value == 0
+
+    def test_tolerates_subpixel_and_entrance_offsets(self):
+        # 入场动画会把文字整体位移，7px 的越界不该报错
+        gate = keynote.gate_overflow("s", [_block("t", 96 - 7, 984 + 7, 240 - 7, 1600 + 7)], SAFE)
+        assert gate.status == "pass"
+
+    def test_fails_and_names_the_direction(self):
+        gate = keynote.gate_overflow("s", [_block("title-text", 200, 800, 100, 700)], SAFE)
+        assert gate.status == "fail"
+        assert "上越界" in gate.detail
+        assert "title-text" in gate.detail
+        # 实测像素值必须写出来，否则人无法据此改分镜
+        assert "140.0px" in gate.detail
+        assert "硬判定" in gate.detail
+
+    def test_merges_text_nodes_of_the_same_block(self):
+        # 一段话会被拆成多个文本节点（强调词、逐字揭示），只该报一条
+        texts = [
+            _block("quote-text", 200, 800, 100, 700),
+            _block("quote-text", 210, 810, 105, 705),
+            _block("quote-text", 220, 820, 110, 710),
+        ]
+        gate = keynote.gate_overflow("s", texts, SAFE)
+        assert gate.status == "fail"
+        assert gate.value == 1
+        assert gate.detail.count("quote-text") == 1
+        # 取该方向上最大的越界量，而不是最后一条
+        assert "140.0px" in gate.detail
+
+    def test_reports_both_directions_of_one_block(self):
+        gate = keynote.gate_overflow("s", [_block("t", 20, 1100, 400, 700)], SAFE)
+        assert "左越界" in gate.detail and "右越界" in gate.detail
+
+    def test_fails_when_the_engine_cannot_fit_the_copy(self):
+        # 缩到正文下限仍放不下：比像素越界更早的预警，同样要报，并要求拆场景
+        gate = keynote.gate_overflow(
+            "s",
+            [_block("quote-text", 200, 800, 400, 700)],
+            SAFE,
+            no_fit=[{"role": "quote-text", "text": "一段怎么缩都放不下的长文案"}],
+        )
+        assert gate.status == "fail"
+        assert "拆场景" in gate.detail
+
+    def test_skips_without_safe_geometry(self):
+        assert keynote.gate_overflow("s", [], None).status == "skipped"
+
+    def test_the_gate_is_wired_into_the_frame_verdict(self):
+        # 接上闸门与「写了一个没人调用的函数」是两回事：这里从帧结论入口验一次
+        gates = review.keynote_gate(
+            "frame-0001",
+            "opening",
+            "title",
+            b"\x00" * (review._PROBE_W * review._PROBE_H * 3),
+            {
+                "sizes": [120.0],
+                "texts": [_block("title-text", 200, 800, 100, 700)],
+                "cards": [],
+                "noFit": [],
+                "safe": SAFE,
+                "background": "#08090c",
+            },
+            (50, 214, 255),
+        )
+        ids = [gate.id for gate in gates]
+        assert "K7" in ids
+        overflow = next(gate for gate in gates if gate.id == "K7")
+        assert overflow.status == "fail"
+
+
+class TestHardGateReachesTheVerdict:
+    """硬判定必须影响错误数与退出码。
+
+    「打印一条失败」而结论仍是 0 个错误，等于把硬判定降级成了建议：
+    流水线只看退出码，看不到那行字。
+    """
+
+    def _keynote(self, status: str, gate_id: str = "K7"):
+        return {
+            "gates": [
+                {"id": gate_id, "title": "文字溢出", "status": status, "scene": "opening",
+                 "detail": "硬判定：越出安全区：「title-text」上越界 285.2px"}
+            ]
+        }
+
+    def test_overflow_failure_becomes_an_error(self):
+        report = Report()
+        cli._apply_hard_gates(report, self._keynote("fail"))
+        assert len(report.errors) == 1
+        assert not report.ok
+        message = report.errors[0].message
+        assert "文字溢出" in message and "上越界 285.2px" in message
+
+    def test_passing_hard_gate_adds_nothing(self):
+        report = Report()
+        cli._apply_hard_gates(report, self._keynote("pass"))
+        assert report.ok and not report.issues
+
+    def test_soft_gates_still_do_not_block(self):
+        # K2「强调色偏少」这类只提示：它不该让体检失败
+        report = Report()
+        cli._apply_hard_gates(report, self._keynote("fail", gate_id="K2"))
+        assert report.ok and not report.issues
+
+    def test_missing_keynote_section_is_tolerated(self):
+        report = Report()
+        cli._apply_hard_gates(report, {})
+        assert report.ok
 
 
 class TestJudgement:

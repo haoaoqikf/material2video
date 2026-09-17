@@ -476,6 +476,10 @@ def main_review(argv: list[str] | None = None) -> int:
 
     for issue in page_report.issues:
         combined.add(issue.level, issue.path, issue.message)
+    # 观感闸门默认只提示、不拦：画面能用但不够发布会级，最终判断归人。
+    # 但**溢出**是例外——文字被裁掉或压出安全区属于画面坏了，与「不是废片」
+    # 同类。它必须影响错误数与退出码，否则闸门报了失败而 CI 看到的是 0 个错误。
+    _apply_hard_gates(combined, extra.get("keynote") or {})
     payload = inspect_mod.write_report(
         combined,
         {
@@ -533,13 +537,33 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     return "\n".join(lines)
 
 
+#: 观感闸门里的硬判定。它们与「不是废片」类检查同性质：不通过就不该出片。
+#: 其余观感闸门只提示——「不够发布会级」和「画面坏了」不是一回事。
+_HARD_GATES = ("K7",)
+
+
+def _apply_hard_gates(report: Report, keynote: dict) -> None:
+    """把硬判定闸门的失败并入错误列表，让错误数与退出码如实反映它们。
+
+    「观感」这层默认不拦人：留白少了、强调色淡了都是主观判断。但文字溢出不是
+    主观判断——它意味着有人会看到被裁掉的半行字。只打印一条「失败」而不影响
+    结论，等于把硬判定降级成了建议。
+    """
+    for gate in keynote.get("gates") or []:
+        if gate.get("id") in _HARD_GATES and gate.get("status") == "fail":
+            report.error(
+                str(gate.get("scene") or "keynote"),
+                f"{gate.get('title')}：{gate.get('detail')}",
+            )
+
+
 def _keynote_lines(keynote: dict) -> list[str]:
     """观感闸门摘要。与「不是废片」类检查分开列，不混成一个总分。"""
     if not keynote.get("enabled"):
-        return [f"观感闸门 K1–K6：不适用——{keynote.get('reason') or '未启用设计语言预设'}"]
+        return [f"观感闸门 K1–K7：不适用——{keynote.get('reason') or '未启用设计语言预设'}"]
     summary = keynote.get("summary") or {}
     lines = [
-        "观感闸门 K1–K6（与上面的废片类检查分开计）："
+        "观感闸门 K1–K7（与上面的废片类检查分开计）："
         f"{summary.get('pass', 0)} 条通过 / {summary.get('warn', 0)} 条提醒 / "
         f"{summary.get('fail', 0)} 条失败 / {summary.get('skipped', 0)} 条跳过"
     ]
@@ -552,6 +576,10 @@ def _keynote_lines(keynote: dict) -> list[str]:
             shown = gate.get("detail") or "无法实测"
         else:
             shown = f"实测 {gate.get('value')} / 阈值 {gate.get('threshold')}"
+            # 硬判定（例如文字越界）必须说清是哪段文字、往哪个方向越了多少：
+            # 只给一个数字，人无法据此改分镜。
+            if gate.get("status") == "fail" and gate.get("detail"):
+                shown += f"；{gate.get('detail')}"
         lines.append(f"  {scope}{gate.get('id')} {gate.get('title')}：{shown}")
     return lines
 

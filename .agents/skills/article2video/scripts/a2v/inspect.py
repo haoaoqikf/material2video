@@ -9,7 +9,7 @@
 2. **帧量测**（启发式）：逐帧统计墨迹覆盖率与上下安全区的墨迹，
    用于发现空幕、黑屏、内容压到边缘。
 3. **设计宪法**（静态）：结构、曲线、模糊、挂载点、文案真源、安全区。
-4. **观感闸门 K1–K6**（量测，可选）：启用设计语言预设时，量出留白预算、
+4. **观感闸门 K1–K7**（量测，可选）：启用设计语言预设时，量出留白预算、
    强调色占比、字号种类、对齐基线、正文对比度与卡片纪律。它与前三项**分开报告、
    分开计数**——前三项回答「这是不是废片」，K 系列回答「这像不像发布会级别的画面」。
 
@@ -387,6 +387,22 @@ _AESTHETIC_SCRIPT = """
   var isChrome = function (el) {
     return !!(el.closest && el.closest('.a2v-scene-index'));
   };
+  // 行内容器：它们与所属文本块同进同退。越界要算在文本块上，否则一段话会被
+  // 按文本节点重复计数，同一个问题报出三条。
+  var INLINE_WRAPPERS = { key: 1, 'key-underline': 1, plain: 1 };
+  var blockRole = function (el) {
+    var node = el;
+    while (node && node !== active && node.parentElement) {
+      var names = className(node).split(/\s+/).filter(Boolean);
+      var wrapper = names.length > 0;
+      for (var k = 0; k < names.length; k++) {
+        if (!INLINE_WRAPPERS[names[k]]) { wrapper = false; break; }
+      }
+      if (!wrapper) break;
+      node = node.parentElement;
+    }
+    return className(node) || String(node.tagName).toLowerCase();
+  };
 
   var stage = document.querySelector('[data-a2v-preset] [data-a2v-stage]');
   var stageRect = stage ? stage.getBoundingClientRect() : { left: 0, width: 0 };
@@ -415,8 +431,12 @@ _AESTHETIC_SCRIPT = """
           }
           texts.push({
             role: className(parent) || String(parent.tagName).toLowerCase(),
+            block: blockRole(parent),
             fontSize: parseFloat(style.fontSize) || 0,
             left: Math.round(rect.left * 10) / 10,
+            right: Math.round(rect.right * 10) / 10,
+            top: Math.round(rect.top * 10) / 10,
+            bottom: Math.round(rect.bottom * 10) / 10,
             center: Math.round((rect.left + rect.width / 2 - stageRect.left) * 10) / 10,
             color: style.color,
             // 标题常用「渐变裁切」绘制：文字自身的 color 是透明的，
@@ -448,13 +468,25 @@ _AESTHETIC_SCRIPT = """
   }
 
   var rootStyle = window.getComputedStyle(document.documentElement);
+  // 缩到正文下限仍放不下的文本块：引擎已经算过，这里只把它捞出来
+  var noFit = [];
+  var fitNodes = active.querySelectorAll('[data-a2v-fit-fits="false"]');
+  for (var n = 0; n < fitNodes.length; n++) {
+    var node = fitNodes[n];
+    var value = (node.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (value) noFit.push({ role: className(node) || String(node.tagName).toLowerCase(), text: value });
+  }
   return {
     sizes: sizes,
     texts: texts,
     cards: cards,
+    noFit: noFit,
     accent: rootStyle.getPropertyValue('--a2v-accent').trim(),
     background: rootStyle.getPropertyValue('--a2v-bg-0').trim(),
     center: safeBox ? safeBox.left + safeBox.width / 2 - stageRect.left : 0,
+    safe: safeBox
+      ? { left: safeBox.left, right: safeBox.right, top: safeBox.top, bottom: safeBox.bottom }
+      : null,
     stage: { width: stageRect.width, height: stageRect.height }
   };
 }
@@ -495,6 +527,7 @@ def keynote_gate(
             ("K4", "对齐基线"),
             ("K5", "正文对比度"),
             ("K6", "卡片与描边纪律"),
+            ("K7", "文字溢出"),
         ):
             gates.append(
                 keynote.Gate(
@@ -515,6 +548,9 @@ def keynote_gate(
     )
     gates.append(keynote.gate_contrast(scene_id, texts, page_background))
     gates.append(keynote.gate_card_discipline(scene_id, list(facts.get("cards") or [])))
+    gates.append(
+        keynote.gate_overflow(scene_id, texts, facts.get("safe"), list(facts.get("noFit") or []))
+    )
     return gates
 
 

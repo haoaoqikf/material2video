@@ -565,6 +565,9 @@
     el.dataset.a2vFitLevel = fitted.level;
     el.dataset.a2vFitMeasured = fitted.measured ? 'true' : 'false';
     el.dataset.a2vFitBalanced = balanced ? 'true' : 'false';
+    /* 把「缩到正文下限仍放不下」这一结论落到元素上：溢出闸门据此判断
+     * 需要拆场景，而不是只看像素越界。 */
+    el.dataset.a2vFitFits = fitted.fits ? 'true' : 'false';
     return fitted;
   }
 

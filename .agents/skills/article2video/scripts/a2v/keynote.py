@@ -548,3 +548,98 @@ def gate_card_discipline(scene_id: str, cards: list[dict[str, Any]]) -> Gate:
         scene=scene_id,
     )
 
+
+#: 溢出判定允许的越界余量（px）。
+#:
+#: 入场动画会把文字整体位移，字幕级元素还有亚像素舍入，因此不能一有越界就报错；
+#: 但也不能给太大——8px 在 1080 宽的画面里已经能看出来了，再多就不是舍入了。
+_OVERFLOW_TOLERANCE = 8.0
+
+
+def gate_overflow(
+    scene_id: str,
+    texts: list[dict[str, Any]],
+    safe: dict[str, Any] | None,
+    no_fit: list[dict[str, Any]] | None = None,
+) -> Gate:
+    """K7 文字溢出：文字不许越出安全区，缩到下限仍放不下就要拆场景。
+
+    这是**硬判定**：文字被裁掉或压出安全区不是审美问题，是画面坏了。
+    因此它和 K1–K6 那些「可以放行的提醒」不同，越界即 `fail`。
+
+    两种情况一起看：像素/几何上真的越出了安全区，以及排版引擎已经算出
+    「缩到正文下限仍放不下」——后者往往发生在越界之前，是更早的预警，
+    但它同样意味着这一幕的文案必须拆开重写。
+    """
+    blocked = list(no_fit or [])
+    if not safe:
+        return Gate(
+            id="K7",
+            title="文字溢出",
+            status="skipped",
+            detail="取不到安全区几何，无法判定文字是否越界",
+            scene=scene_id,
+        )
+
+    def overrun(text: dict[str, Any]) -> list[str]:
+        parts = []
+        if text.get("left", 0.0) < safe["left"] - _OVERFLOW_TOLERANCE:
+            parts.append(("左", safe["left"] - text["left"]))
+        if text.get("right", 0.0) > safe["right"] + _OVERFLOW_TOLERANCE:
+            parts.append(("右", text["right"] - safe["right"]))
+        if text.get("top", 0.0) < safe["top"] - _OVERFLOW_TOLERANCE:
+            parts.append(("上", safe["top"] - text["top"]))
+        if text.get("bottom", 0.0) > safe["bottom"] + _OVERFLOW_TOLERANCE:
+            parts.append(("下", text["bottom"] - safe["bottom"]))
+        return parts
+
+    # 同一段落会被拆成多个文本节点（强调词、逐字揭示），按文本块归并：
+    # 一段话越界只报一条，取该方向上最大的越界量。
+    blocks: dict[str, dict[str, float]] = {}
+    for text in texts:
+        parts = overrun(text)
+        if not parts:
+            continue
+        name = str(text.get("block") or text.get("role") or "文字")
+        slot = blocks.setdefault(name, {})
+        for side, amount in parts:
+            slot[side] = max(slot.get(side, 0.0), amount)
+
+    offenders = [
+        f"「{_clip(name)}」" + "、".join(f"{side}越界 {amount:.1f}px" for side, amount in slot.items())
+        for name, slot in blocks.items()
+    ]
+
+    if not offenders and not blocked:
+        return Gate(
+            id="K7",
+            title="文字溢出",
+            status="pass",
+            value=0,
+            threshold=f"越界 ≤ {_OVERFLOW_TOLERANCE:.0f}px",
+            detail=f"量了 {len(texts)} 个文本块，都在安全区内",
+            scene=scene_id,
+        )
+
+    detail_parts = []
+    if offenders:
+        detail_parts.append("越出安全区：" + "；".join(offenders[:4]))
+    if blocked:
+        names = "；".join(f"「{_clip(item.get('text') or '')}」" for item in blocked[:3])
+        detail_parts.append(f"{len(blocked)} 段文案缩到正文下限仍放不下，需要拆场景：{names}")
+
+    return Gate(
+        id="K7",
+        title="文字溢出",
+        status="fail",
+        value=len(offenders) + len(blocked),
+        threshold=f"越界 ≤ {_OVERFLOW_TOLERANCE:.0f}px",
+        detail="硬判定：" + "；".join(detail_parts),
+        scene=scene_id,
+    )
+
+
+def _clip(value: Any, limit: int = 18) -> str:
+    text = str(value or "")
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+

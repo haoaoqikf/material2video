@@ -12,20 +12,20 @@
 
 ## 3. 溢出闸门
 
-- [ ] 3.1 扩展 `scripts/a2v/inspect.py`：记录每个正文级文本块的墨迹边界（左右上下）与容器边界，供溢出判定使用；以产物 `report.json` 中出现该字段为证。
-- [ ] 3.2 在 `scripts/a2v/keynote.py` 增加溢出判定：正文级文本块墨迹越出安全区时按**错误**报告，给出文案、越界方向与实测像素值；引擎报告 `fits: false` 时报「需要拆场景」；以构造的越界合成帧报错、正常示例不报错为证。
-- [ ] 3.3 在 `scripts/a2v/constitution.py` 与 `scripts/review.py` 中把溢出判定与既有的「可放行提醒」区分开报告，终端与 `report.json` 都要能看出它是硬判定；以 `review.py --declarative` 在 `examples/keynote-baseline` 上的输出为证。
-- [ ] 3.4 为溢出闸门补测试：构造文字越出安全区的合成画面，断言报错条目包含越界方向与实测值；以 `uv run pytest tests/test_review.py` 全绿为证。
+- [x] 3.1 扩展 `scripts/a2v/inspect.py`：记录每个正文级文本块的墨迹边界（左右上下）与容器边界，供溢出判定使用；以产物 `report.json` 中出现该字段为证。（`texts[]` 增加 `right`/`top`/`bottom` 与 `block`——向上找到第一个非行内容器；`facts.safe` 给出安全区四边；`facts.noFit` 收集 `data-a2v-fit-fits="false"` 的元素。）
+- [x] 3.2 在 `scripts/a2v/keynote.py` 增加溢出判定：正文级文本块墨迹越出安全区时按**错误**报告，给出文案、越界方向与实测像素值；引擎报告 `fits: false` 时报「需要拆场景」；以构造的越界合成帧报错、正常示例不报错为证。（新增 `gate_overflow`（K7）与 `_OVERFLOW_TOLERANCE = 8.0`；`applyFit` 把 `data-a2v-fit-fits` 写到元素上。负例：给开场幕注入 350 字副标题后报「硬判定：越出安全区：「title-text」上越界 285.2px」；`examples/keynote-baseline` 8 幕全通过，`report.json` 里 K7 共 8 条、汇总 0 失败。）
+- [x] 3.3 在 `scripts/a2v/constitution.py` 与 `scripts/review.py` 中把溢出判定与既有的「可放行提醒」区分开报告，终端与 `report.json` 都要能看出它是硬判定；以 `review.py --declarative` 在 `examples/keynote-baseline` 上的输出为证。（新增 `cli._HARD_GATES = ("K7",)` 与 `cli._apply_hard_gates`：K7 失败并入错误列表，负例的「体检完成」从 0 个错误变成 1 个、退出码从 0 变成 2；顺带修掉 CLI 只对「跳过」显示 detail 的问题——硬判定失败原本看不到是哪段文字往哪个方向越界。设计宪法补上「K7 是 K 系列里的例外」。）
+- [x] 3.4 为溢出闸门补测试：构造文字越出安全区的合成画面，断言报错条目包含越界方向与实测值；以 `uv run pytest tests/test_review.py` 全绿为证。（`TestOverflowGate` 8 项 + `TestHardGateReachesTheVerdict` 4 项：8px 容差、方向与像素值、按文本块归并取最大越界量、`fits: false` 判「需要拆场景」、无安全区几何时跳过、K7 已接入逐帧结论、K7 失败进错误数而 K2 不进。）
 
 ## 4. 文档同步
 
-- [ ] 4.1 更新 `references/keynote-design-system.md`：把排版引擎一节改成「引擎由组件声明接入」，列出哪些元素必须声明档位，并写清「未声明的元素不会被改动」。
-- [ ] 4.2 更新 `references/visual-spec.md` 与 `references/design-constitution.md`：补上溢出闸门及其硬判定性质，并说明它与「观感提醒」的分工。
-- [ ] 4.3 更新 `SKILL.md`：在制作流程里写明「新增组件文本元素时要声明档位」，把这一次修掉的三处失效（引擎空转、取档抹掉强调、引擎与 CSS 双真源）写进静默失效清单。
+- [x] 4.1 更新 `references/keynote-design-system.md`：把排版引擎一节改成「引擎由组件声明接入」，列出哪些元素必须声明档位，并写清「未声明的元素不会被改动」。
+- [x] 4.2 更新 `references/visual-spec.md` 与 `references/design-constitution.md`：补上溢出闸门及其硬判定性质，并说明它与「观感提醒」的分工。
+- [x] 4.3 更新 `SKILL.md`：在制作流程里写明「新增组件文本元素时要声明档位」，把这一次修掉的三处失效（引擎空转、取档抹掉强调、引擎与 CSS 双真源）写进静默失效清单。（静默失效清单从 6 条扩到 11 条，新增的 5 条是本次实测出来的：引擎空转、取档抹掉强调标记、引擎与 CSS 双真源、可用宽度量的是自己、溢出无人管。）
 
 ## 5. 验收
 
-- [ ] 5.1 用启用预设的示例走通「校验 → 预览 → 限帧导出 → 视觉评审」：`validate.py --declarative --strict` 零错误、`review.py` 的 C 系列零错误、溢出判定零错误；以命令输出与 `report.json` 为交付物。
-- [ ] 5.2 用一段**明显过长**的文案做负例：导出一幕，确认溢出被闸门判错且报出越界方向；以闸门输出为交付物。
+- [x] 5.1 用启用预设的示例走通「校验 → 预览 → 限帧导出 → 视觉评审」：`validate.py --declarative --strict` 零错误、`review.py` 的 C 系列零错误、溢出判定零错误；以命令输出与 `report.json` 为交付物。（`review.py --declarative`：24 帧抽检 0 错误 0 提醒；K1–K7 共 38 通过 / 7 提醒 / 0 失败 / 11 跳过；`report.json` 的 `errors` 为空。）
+- [x] 5.2 用一段**明显过长**的文案做负例：导出一幕，确认溢出被闸门判错且报出越界方向；以闸门输出为交付物。（350 字副标题 → `[opening] K7 文字溢出：实测 1；硬判定：越出安全区：「title-text」上越界 285.2px`，同时 `[error] opening: 文字溢出：…`、错误数 1、退出码 2。负例夹具建在 `examples/_neg-overflow/` 且已删除，未入库。）
 - [ ] 5.3 运行 `uv run pytest` 与 `openspec validate apply-measured-typesetting --strict`，确认全部通过；以命令输出为交付物。
 - [ ] 5.4 检查暂存内容不含生成媒体、缓存与密钥，提交本变更与配套文档，并在交付时报告 commit 标识与验证结果。

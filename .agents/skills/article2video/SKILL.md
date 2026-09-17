@@ -104,6 +104,14 @@ uv run python .agents/skills/article2video/scripts/render.py --storyboard videos
 完整字段见 [分镜脚本结构](references/storyboard-schema.md)，仅含文章与分镜的示例在
 `examples/declarative-number/`。需要目录外的特殊构图时，继续使用下述专属网页路径。
 
+**新增组件时，给承载任意文案的元素声明字号档位。** 排版引擎不猜哪些元素该取档：
+元素带上 `data-a2v-fit="<档位>"`（档位取它在预设下的现有字号档），
+共享页面才会在预设生效时按实测可用宽度为它取档；没有声明的元素不会被改动。
+长文案、可长可短的标签、图注都要声明；`44px` 之类不在字号阶上的固定小字、
+以及逐字揭示这类动画结构**不要**声明。声明前跑一次
+`uv run pytest tests/test_typesetting_wiring.py`：它断言「取到的档位 == 声明的档位」
+且「实测字号 == `--a2v-size-*`」，档位选错会在这里报出来，而不是在成片里。
+
 复制示例作为起点：
 
 ```bash
@@ -241,9 +249,12 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 - **C 系列**（废片类）：结构、曲线纪律、挂载点、文案单一真源、安全区与墨迹覆盖率，
   回答「这是不是废片」；
-- **K 系列**（观感类 K1–K6）：留白预算、强调色占比、同帧字号种类、对齐基线、
+- **K 系列**（观感类 K1–K7）：留白预算、强调色占比、同帧字号种类、对齐基线、
   正文对比度、卡片纪律，回答「这像不像发布会级别的画面」。它只对声明了
   `visual.preset` 的视频运行，跳过项都会写明原因——**跳过不等于通过**。
+  其中 **K7 文字溢出是硬判定**：文本块越出安全区（容差 8px），或排版引擎报
+  「缩到正文下限仍放不下」，都会并入错误数与退出码，并写明是哪个文本块、
+  往哪个方向越了多少像素——而不是只给一个数字。
   阈值与设计取舍见 [发布会级设计语言](references/keynote-design-system.md)。
 
 ### 7. 渲染验收
@@ -302,7 +313,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收、
 按文章目录推导输出路径，以及可选的设计语言预设（分镜声明 `visual.preset: "keynote"`
-后启用令牌层、排版引擎与 K1–K6 观感闸门；未声明时画面逐帧不变）。
+后启用令牌层、排版引擎与 K1–K7 观感闸门；未声明时画面逐帧不变）。
 
 尚未实现，不要当作已有能力使用：
 
@@ -310,6 +321,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
   [视觉评审量表](references/visual-review-rubric.md) 完成；
 - **webfont 子集化**：随仓库分发的 Noto Sans SC Variable 约 17MB，尚未做子集化；
 - **按内容自动选预设**：预设必须由分镜显式声明；
+- **自动拆场景**：引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，
+  但把一幕拆成两幕仍由人（或上游 AI）决定，脚本不代劳；
 - **背景音乐**：尚未实现；目前仅支持配音音轨；
 - **分镜生成器**：文章到分镜已可按 [文章生成分镜](references/article-to-storyboard.md) 的规范生成，
   但由 AI 工具执行，没有内置的生成器程序、模型调用或批量生成；
@@ -324,4 +337,4 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向
-- [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、`A2V.type` 排版引擎、K1–K6 观感闸门与静默失效清单
+- [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、`A2V.type` 排版引擎、K1–K7 观感闸门与静默失效清单
