@@ -153,6 +153,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 不会覆盖正式成片。显式 `--out` 仍然优先。
 
 输出包含 AAC 配音和烧录字幕，并生成同名 SRT；限帧会同步裁切音轨和字幕。
+成片的画面固定为 `yuv420p(tv, bt709)`、配音固定为 AAC-LC 44.1kHz 立体声，
+由编码器统一保证，网页不需要也不应该干预。
 
 先用 `--limit-frames 30` 快速跑通链路再全量渲染。渲染脚本会：
 
@@ -160,7 +162,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 2. 校验网页契约与分镜的 fps、总帧数是否一致，不一致直接报错；
 3. 加 `a2v-rendering` 类隐藏预览控件、取消预览缩放；
 4. 逐帧 `seekToFrame(frame)` → 截图 → 送入 ffmpeg 管道；
-5. 完整解码一遍成片，核对帧数与分辨率。
+5. 完整解码一遍成片，核对帧数与分辨率，并检查码流是否为播放器友好的格式。
 
 耗时参考：1080 × 1920、30fps 下实测约 11–16 帧/秒，45 秒视频（1350 帧）约 1.5–2 分钟；
 成片验收会额外完整解码一遍，约增加 2 秒。
@@ -169,6 +171,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 - 渲染脚本最后一行输出帧数、时长、分辨率、实测帧率与文件大小；
 - 抽看首帧、每幕切换点、末帧，确认无空白帧、无文字裁切；
+- 用系统默认播放器打开一次成片：全范围像素格式（`yuvj420p`）ffmpeg 能解码，
+  但 Windows 播放器会报 `0xc00d36c4`；验收已会自动拦下，人工再确认一次最稳妥；
 - 需要逐像素比对时用 `--capture-format png` 重渲一次。
 
 ## 命令速查
@@ -204,6 +208,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 强调色加在文案上却不生效 | `emphasis` 的短语没有原样出现在该场景文本里，`validate.py` 会给出警告 |
 | 导出画面被裁切 | 文档尺寸超出 1080 × 1920，检查是否有元素溢出或页面出现滚动条 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
+| 成片能解码但播放器打不开 | 码流是全范围像素格式（`yuvj420p`/`pc`）或 24kHz 单声道 AAC；验收阶段现已报错拦下，参数见 [渲染契约](references/render-contract.md) 的「码流兼容性」 |
 | 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
 | `无法推导文章归属` | 网页或分镜不在 `videos/<slug>/`、`examples/<slug>/` 内，移入规范目录或显式指定输出路径 |
 | `无法推导默认输出路径` | 省略 `--out` 但没有 `--storyboard`，补上分镜或显式指定 `--out` |

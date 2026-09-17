@@ -80,6 +80,22 @@ class VideoEncoder:
             str(self.fps),
             "-i",
             "-",
+            # JPEG 帧带的是全范围（full range）色彩，直接被 libx264 编码会得到
+            # yuvj420p(pc) 的流；部分播放器（例如 Windows 的 Media Foundation）
+            # 会因此拒绝打开文件。这里统一转换成电视范围 + BT.709 的标准 4:2:0，
+            # 并把色彩元数据显式写进码流，保证在手机、剪辑软件与各平台都能播。
+            "-vf",
+            "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+            "-pix_fmt",
+            "yuv420p",
+            "-color_range",
+            "tv",
+            "-colorspace",
+            "bt709",
+            "-color_primaries",
+            "bt709",
+            "-color_trc",
+            "bt709",
             "-an",
             "-c:v",
             "libx264",
@@ -87,8 +103,6 @@ class VideoEncoder:
             self.preset,
             "-crf",
             str(self.crf),
-            "-pix_fmt",
-            "yuv420p",
             "-movflags",
             "+faststart",
             str(self.output),

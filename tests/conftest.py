@@ -68,6 +68,35 @@ def write_tone(path: Path, duration: float = 1.0) -> None:
         stream.writeframes(b"".join(frames))
 
 
+def make_jpeg(width: int = 64, height: int = 96, color: str = "gray") -> bytes:
+    """用 ffmpeg 生成一张 JPEG，用来在没有浏览器的前提下驱动编码器。"""
+    import subprocess
+
+    from imageio_ffmpeg import get_ffmpeg_exe
+
+    completed = subprocess.run(
+        [
+            get_ffmpeg_exe(),
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=c={color}:s={width}x{height}",
+            "-frames:v",
+            "1",
+            "-f",
+            "image2pipe",
+            "-c:v",
+            "mjpeg",
+            "-",
+        ],
+        capture_output=True,
+    )
+    assert completed.returncode == 0 and completed.stdout, "生成测试 JPEG 失败"
+    return completed.stdout
+
+
 @pytest.fixture
 def speech(monkeypatch):
     """替换 edge-tts，让需要真实媒体清单的用例不访问网络。"""

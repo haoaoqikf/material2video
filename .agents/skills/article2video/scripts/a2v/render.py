@@ -354,6 +354,7 @@ def _verify_output(output: Path, expected_frames: int, width: int, height: int, 
         raise RenderError("成片尺寸或帧率不匹配")
     if abs(metadata["duration"] - expected_frames / fps) > max(0.1, 1 / fps):
         raise RenderError("成片时长不匹配")
+    _verify_playback_compatibility(output)
     if expect_audio:
         # 解码到临时文件，长视频的 PCM 不常驻内存。
         with tempfile.TemporaryFile() as pcm:
@@ -372,6 +373,45 @@ def _verify_output(output: Path, expected_frames: int, width: int, height: int, 
         fps,
         reported if reported is not None else "?",
     )
+
+
+def _verify_playback_compatibility(output: Path) -> None:
+    """核对码流参数是否落在「各播放器都认」的范围内。
+
+    背景：JPEG 中间帧是全范围色彩，直接交给 libx264 会产出 yuvj420p(pc) 的流，
+    Windows 的 Media Foundation 会以 0xc00d36c4 拒绝打开整个文件；而 ffmpeg
+    自己解码一切正常，所以只做解码验收根本发现不了。这里从 ffmpeg 的输入信息里
+    读回像素格式，把这类「能解码但播不了」的问题挡在交付之前。
+    """
+    completed = subprocess.run(
+        [get_ffmpeg_exe(), "-hide_banner", "-i", str(output)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    stream_line = next(
+        (
+            line
+            for line in completed.stderr.splitlines()
+            if "Video:" in line and "Stream #" in line
+        ),
+        None,
+    )
+    if stream_line is None:
+        logger.warning("无法读取成片码流信息，跳过播放兼容性检查")
+        return
+    # 先判全范围：yuvj420p 也包含 "yuv420p" 子串，顺序反过来会报错报错原因
+    if "yuvj420p" in stream_line or "(pc," in stream_line:
+        raise RenderError(
+            "成片使用了全范围像素格式（yuvj420p/pc），Windows 播放器会报 0xc00d36c4：\n"
+            + stream_line.strip()
+        )
+    if "yuv420p(" not in stream_line:
+        raise RenderError(
+            "成片像素格式不是标准 4:2:0，部分播放器会拒绝打开：\n" + stream_line.strip()
+        )
+    logger.info("码流兼容性检查通过: %s", stream_line.split("Video:")[-1].split(",")[0].strip())
 
 
 def _last_int(text: str, key: str) -> int | None:

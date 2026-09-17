@@ -34,6 +34,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 本地 HTTP 预览（网页需 fetch 分镜 JSON，`file://` 下会被同源策略拒绝）；
 - Playwright 逐帧截图 + ffmpeg 管道编码，输出 1080 × 1920 / 30fps / H.264 `yuv420p` MP4，
   渲染后自动解码验收帧数与分辨率；
+- 码流按「各播放器都能播」的参数固定：画面 `yuv420p(tv, bt709)`、配音 AAC-LC
+  44.1kHz 立体声；验收阶段会读回码流，命中全范围像素格式（`yuvj420p`）直接报错
+  ——这类流 ffmpeg 能解码，但 Windows 的 Media Foundation 会以 `0xc00d36c4` 拒绝打开；
 - 一个可直接运行的完整示例：`examples/why-effort-fails/`（5 幕，1350 帧，45 秒），
   已按「排版层级 + 三层景深 + 统一动效曲线」重做，作为新视频的观感基线；
 - edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
