@@ -193,6 +193,11 @@ uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard videos/<slug>/storyboard.json
 ```
 
+- 想给一支作品配更小的字体：`prepare.py --subset-fonts <源字体>` 会切出只含
+  本作品用字的子集（落在 `outputs/<slug>/`，源字体只读），**切完立刻用缺字机检判它**
+  ——漏字的子集会静默回退到系统字体，那正是要防的。这一步需要可选依赖
+  （`uv sync --extra fonts`）：不装、不开这个开关时，默认链路完全离线可跑。
+  页面引用哪份字体由生成流程决定，工具只负责切与校验。
 省略 `--out` 时无声导出为 `outputs/<slug>/silent.mp4`；
 有声导出追加 `--media outputs/<slug>/media/media.json`，输出 `outputs/<slug>/voiced.mp4`
 和同名 SRT。加 `--limit-frames` 时写入 `outputs/<slug>/previews/`，使用相同的成片文件名，

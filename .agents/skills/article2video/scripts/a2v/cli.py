@@ -701,6 +701,12 @@ def main_prepare(argv: list[str] | None = None) -> int:
     parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
     parser.add_argument("--rate", default="+0%", help="语速，例如 --rate=-10%%")
     parser.add_argument("--force", action="store_true", help="强制重新合成所有非空口播")
+    parser.add_argument(
+        "--subset-fonts",
+        metavar="FONT",
+        help="额外切一份只含本作品用字的字体子集（需要可选依赖 uv sync --extra fonts）；"
+             "源字体只读，子集落在作品目录",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
     _force_utf8_output()
@@ -712,12 +718,49 @@ def main_prepare(argv: list[str] | None = None) -> int:
         out_dir = Path(args.out_dir).resolve() if args.out_dir else _default_media_dir(article)
         _reject_foreign_media_dir(article, out_dir)
         print(prepare(args.storyboard, out_dir, args.voice, args.rate, args.force))
+        if args.subset_fonts:
+            return _subset_fonts(args.storyboard, out_dir, Path(args.subset_fonts))
     except (A2VError, OSError, ValueError) as exc:
         logging.error("配音准备失败: %s", exc)
         return _EXIT_FAILED
     except KeyboardInterrupt:
         logging.error("配音准备被用户中断")
         return _EXIT_FAILED
+    return _EXIT_OK
+
+
+def _subset_fonts(storyboard_path: str | Path, out_dir: Path, source: Path) -> int:
+    """按本作品的用字切一份字体子集，并立刻用缺字机检判它覆盖不覆盖。
+
+    切与判必须成对：漏字的子集会静默回退到系统字体（字宽字重基线全变），
+    那正是这条能力存在的意义。源字体**只读**——共享字体要渲染将来的任意文章。
+    页面引用哪份字体由生成流程决定（工具只负责切与校验）。
+    """
+    import json as _json
+
+    from . import fonts as fonts_mod
+
+    if not source.is_file():
+        logging.error("源字体不存在：%s", source)
+        return _EXIT_FAILED
+    try:
+        storyboard = _json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        logging.error("分镜读不出来，无法确定字符集：%s", exc)
+        return _EXIT_FAILED
+    charset = fonts_mod.charset_for(storyboard)
+    target = out_dir.parent / f"subset-{source.stem}.ttf"
+    try:
+        fonts_mod.subset_font(source, charset, target)
+    except fonts_mod.SubsetUnavailable as exc:
+        logging.error("切字体子集失败: %s", exc)
+        return _EXIT_FAILED
+    findings = fonts_mod.audit(storyboard, target)
+    if findings:
+        for finding in findings:
+            logging.error("子集缺字：%s 缺 %s", finding["where"], "".join(finding["missing"]))
+        return _EXIT_FAILED
+    print(f"字体子集 {target}：{len(charset)} 个字符，{target.stat().st_size / 1024:.0f} KB；缺字检查通过")
     return _EXIT_OK
 
 

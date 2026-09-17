@@ -253,7 +253,7 @@ webfont 子集化（**已量清楚，暂不做静态子集**，见下）、
 K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」，
 以及自动拆场景（引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，但拆幕仍由人决定）。
 
-**webfont 子集化：量清楚了，结论是「不做静态子集」。**
+**webfont 子集化：按作品切，已实现（静态子集仍然不做）。**
 字体 `NotoSansSC-Variable.ttf` 16.9MB（Inter 856KB），**单份共享在 skill 资产里**，
 不是每支视频一份。实测三支作品（`why-effort-fails` / `never-fear-interviews` /
 `keynote-baseline`）的全部文本合计只有 **249 个去重字符（241 个汉字）**；
@@ -277,7 +277,11 @@ K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡�
 **那条前置闸门已经具备**：缺字机检（`a2v/fonts.py` ＋ 体检里的字体覆盖检查）
 逐个字符查字体自己的 `cmap`，缺了就报错并指到 `sceneId.字段`，进错误数与退出码。
 所以现在按作品子集化这件事可以做了：切完之后缺字会被机检抓住，而不是悄悄回退。
-尚未做的是「切」本身。实现手段本轮探清了：**子集化需要字形子集工具**
+「切」本身已实现：`prepare.py --subset-fonts <源字体>` 走可选依赖（`uv sync --extra fonts`），
+按 `fonts.charset_for` 取本作品用字切出子集落在 `outputs/<slug>/`，源字体只读，
+切完立刻用缺字机检判覆盖；实测 `never-fear-interviews` 86 个字符 → **39KB**（源 16.9MB，
+约 1/440），三支作品都切过且都不缺字，默认链路重渲 12 帧哈希仍是 `CBEBD8BF…`。
+实现手段当初是这样探清的：**子集化需要字形子集工具**
 （从头手写 TTF 子集器要重建 glyf/loca/cmap/hmtx，不现实），
 `fontTools` **不是**项目现有依赖，但 `uv run --with fonttools python -c "from fontTools import subset"`
 可以按需装起来用（实测「subset 可用」，需要网络）。
