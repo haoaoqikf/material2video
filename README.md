@@ -45,7 +45,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 动效原语全部为纯函数：`progress` / `since` / `enter` / `spring`（物理弹簧）/
   `breath`（常驻微动）/ `drawPath`（SVG 描边）/ `revealChars`（逐字揭示）；
   曲线必须能按帧独立求值（渲染是随机访问帧，闭式解而非逐帧积分），
-  `tests/test_motion_trajectory.py` 会逐帧量真实轨迹，拦住「入场退化成硬切」；
+  `tests/test_motion_trajectory.py` 会逐帧量真实轨迹并覆盖参考实现的每一个入场元素
+  （90 个：落地距幕尾 ≥ 12 帧、不透明度不回退；其中有位移的 9 个还要首帧 ≤ 25%、
+  到 0.9 ≥ 6 帧），并带一个「把入场加速 8 倍就必须报错」的反例；
   `tests/test_vendor_spring.py` 对 vendored 求解器核对解析解自身的性质；
 - 开渲前静态扫描 `animation:` / `transition:` / `@keyframes` 与
   `Date.now(` / `performance.now(` / `Math.random(` 并给出警告，
