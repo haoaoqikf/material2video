@@ -7,24 +7,15 @@
 
 <!--
   共享资源由 skill 提供，本页只负责视觉表达。
-  引入顺序：base.css（画布与安全区）→ theme.css（设计令牌）→ 页面样式，
-  这样页面永远拥有最终覆盖权。
+  引入顺序：base.css（画布与安全区）→ theme.css（设计令牌）→ figures.css（组件样式）
+  → 页面样式，这样页面永远拥有最终覆盖权。
 -->
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/figures.css">
 
 <style>
-  /*
-   * 本视频的视觉语言：浅色纸张底 + 墨黑文字 + 单一朱红强调。
-   * 风格方向取自 references/visual-spec.md 的「编辑杂志」。
-   *
-   * 与上一版的区别是「以形表意」：每一幕都先给出一个会动的图形（天平、落差尺、
-   * 冰山、飞轮、阶梯、双向箭头），文字只做图形的注脚。图形与动效配方见
-   * references/visual-metaphor.md；所有数值都由 JS 按帧号写入，不使用 CSS 动画。
-   */
   :root {
-    /* 页面级令牌覆盖：只改颜色与表面，不改画布与安全区 */
     --a2v-bg-0: #f1efea;
     --a2v-bg-1: #fbfaf7;
     --a2v-bg-2: #ffffff;
@@ -43,15 +34,13 @@
     --a2v-hairline-strong: rgba(22, 24, 29, 0.28);
     --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
-    /* 浅底上的投影要收敛：近处细、远处软，避免出现灰蒙蒙的一团 */
     --a2v-shadow-1: 0 1px 2px rgba(30, 26, 22, 0.06);
     --a2v-shadow-2: 0 1px 2px rgba(30, 26, 22, 0.06), 0 18px 40px -28px rgba(30, 26, 22, 0.45);
 
     --a2v-font: "Songti SC", "SimSun", "Noto Serif SC", "Source Han Serif SC", serif;
     --a2v-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
 
-    /* 图形语言：所有插画共用三种线宽与两种填充，保证六幕看起来是一套画。
-       浅底上墨色要暗、画在实心块上的文字要亮，两者成对翻转 */
+    /* 图形语言：八幕共用同一套线宽与填充，浅底上用墨色、实心块上用亮色 */
     --fig-line: rgba(22, 24, 29, 0.4);
     --fig-line-soft: rgba(22, 24, 29, 0.16);
     --fig-ink: #2b2f38;
@@ -59,6 +48,9 @@
     --fig-water: rgba(45, 78, 120, 0.16);
     --fig-water-line: rgba(45, 78, 120, 0.55);
     --fig-water-text: rgba(45, 78, 120, 0.75);
+
+    /* 本片的进度轨：常驻在字幕之下，给纵向构图一个收口 */
+    --rail-top: 1700px;
   }
 
   /*
@@ -75,7 +67,7 @@
     background: var(--a2v-bg-0);
   }
 
-  /* 层叠顺序：常驻背景（0）→ 场景（1）。场景容器必须显式抬到背景之上。 */
+  /* 层叠顺序：常驻背景（0）→ 场景与进度轨（1）。场景必须显式抬到背景之上。 */
   .stage-bg {
     z-index: 0;
   }
@@ -117,7 +109,7 @@
     background: radial-gradient(125% 88% at 50% 42%, rgba(22, 24, 29, 0) 52%, rgba(22, 24, 29, 0.09) 100%);
   }
 
-  /* ---------- 通用：场景角标、强调短语、图形基线 ---------- */
+  /* ---------- 场景角标：幕号 + 章节，让八幕读起来是一条线 ---------- */
   .scene-tag {
     position: absolute;
     top: 140px;
@@ -141,14 +133,115 @@
     background: var(--a2v-hairline-strong);
   }
 
+  /*
+   * 正文区域比默认安全区略高：八幕里图形高度不一，
+   * 给一点额外的纵向余量，避免长文案挤到字幕带上。
+   */
+  [data-a2v-scene] .a2v-safe {
+    top: calc(var(--a2v-safe-top) + 20px);
+    justify-content: center;
+    gap: 56px;
+  }
+
+  /*
+   * 双栏对照（第 07 幕）是本片最轻的一幕：组件默认的 1px 淡边框与白底
+   * 在浅色主题里几乎看不见，整帧墨迹只有 0.24%，review 会判为「近似空幕」。
+   * 这里给纸面加深、边框加实，让两栏成为真正的两个「选项」，
+   * 而不是浮在浅底上的两块白。
+   */
+  [data-scene-id="danger"] {
+    --a2v-bg-2: #f6f3ed;
+    --vs-ink: #1d2026;
+  }
+
+  [data-scene-id="danger"] .vs-side {
+    border: 2px solid rgba(22, 24, 29, 0.34);
+    background: var(--a2v-surface-strong);
+    box-shadow:
+      var(--a2v-inset-highlight),
+      0 2px 4px rgba(30, 26, 22, 0.1),
+      0 26px 52px -30px rgba(30, 26, 22, 0.5);
+  }
+
+  [data-scene-id="danger"] .vs-side.is-left {
+    background: linear-gradient(180deg, #ece7de 0%, #f4f1ea 100%);
+  }
+
+  [data-scene-id="danger"] .vs-side.is-left .vs-text {
+    color: var(--vs-ink);
+  }
+
+  [data-scene-id="danger"] .vs-side.is-right {
+    border-color: rgba(var(--a2v-accent-rgb), calc(0.5 + 0.45 * var(--vs-heat, 0)));
+  }
+
+  /* 浅底主题下 base.css 的白字字幕不可读，换成墨色 + 纸面底衬 */
+  .a2v-subtitle {
+    color: #ffffff;
+    background: rgba(22, 24, 29, 0.82);
+    border-radius: 20px;
+    padding: 10px 26px;
+    min-height: 0;
+    text-shadow: none;
+    font-family: var(--a2v-font-sans);
+    font-weight: 500;
+  }
+
+  /* ---------- 进度轨：由帧号推导，常驻在字幕之下 ---------- */
+  .progress-rail {
+    position: absolute;
+    top: var(--rail-top);
+    left: var(--a2v-safe-x);
+    right: var(--a2v-safe-x);
+    z-index: 4;
+    pointer-events: none;
+    font-family: var(--a2v-font-sans);
+  }
+
+  .rail-track {
+    position: relative;
+    height: 2px;
+    background: var(--a2v-hairline);
+  }
+
+  .rail-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--a2v-accent);
+    transform-origin: left center;
+  }
+
+  .rail-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 22px;
+    font-size: 30px;
+    letter-spacing: 0.16em;
+    color: var(--a2v-text-3);
+  }
+
+  .rail-meta .rail-step {
+    color: var(--a2v-text-2);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
+  }
+
+  /* 导出时预览控件由 base.css 隐藏；这里再兜一层，防止漏放类名 */
+  html.a2v-rendering [data-a2v-controls] {
+    display: none !important;
+  }
 </style>
 </head>
 <body>
 
 <!--
   场景容器只保留结构，所有文案与图形标注都从 storyboard.json 注入。
-  页面里不重复写一份文案，避免与分镜漂移；图形的几何常量写在脚本的
-  常量区，位置由常量算出而不是读取布局，保证逐帧结果稳定。
+  页面里不重复写一份文案，避免与分镜漂移；进度轨与角标由帧号算出，
+  不使用 CSS 动画或时间函数，保证逐帧渲染可复现。
 -->
 <div data-a2v-stage>
 
@@ -184,7 +277,7 @@
     <div class="a2v-safe" data-a2v-figure></div>
   </section>
 
-  <section data-a2v-scene data-scene-id="feedback-loop">
+  <section data-a2v-scene data-scene-id="scene-loop">
     <div class="scene-tag">
       <span class="tag-index">04</span>
       <span class="tag-rule"></span>
@@ -193,23 +286,52 @@
     <div class="a2v-safe" data-a2v-figure></div>
   </section>
 
-  <section data-a2v-scene data-scene-id="upgrade">
+  <section data-a2v-scene data-scene-id="feedback-gain">
     <div class="scene-tag">
       <span class="tag-index">05</span>
+      <span class="tag-rule"></span>
+      <span>一份新信息</span>
+    </div>
+    <div class="a2v-safe" data-a2v-figure></div>
+  </section>
+
+  <section data-a2v-scene data-scene-id="upgrade">
+    <div class="scene-tag">
+      <span class="tag-index">06</span>
       <span class="tag-rule"></span>
       <span>上场的复利</span>
     </div>
     <div class="a2v-safe" data-a2v-figure></div>
   </section>
 
+  <section data-a2v-scene data-scene-id="danger">
+    <div class="scene-tag">
+      <span class="tag-index">07</span>
+      <span class="tag-rule"></span>
+      <span>真正的危险</span>
+    </div>
+    <div class="a2v-safe" data-a2v-figure></div>
+  </section>
+
   <section data-a2v-scene data-scene-id="closing">
     <div class="scene-tag">
-      <span class="tag-index">06</span>
+      <span class="tag-index">08</span>
       <span class="tag-rule"></span>
       <span>收束</span>
     </div>
     <div class="a2v-safe" data-a2v-figure></div>
   </section>
+
+  <!-- 进度轨：给下半幅一个稳定的收口，也是全片的时间坐标 -->
+  <div class="progress-rail" aria-hidden="true">
+    <div class="rail-track">
+      <div class="rail-fill" data-rail-fill></div>
+    </div>
+    <div class="rail-meta">
+      <span class="rail-step" data-rail-step>01 / 08</span>
+      <span data-rail-label>开场命题</span>
+    </div>
+  </div>
 
 </div>
 
@@ -227,7 +349,7 @@
   'use strict';
 
   /*
-   * 页面只负责「舞台 + 背景 + 每幕的挂载点」，画面本身交给组件库。
+   * 页面只负责「舞台 + 背景 + 每幕的挂载点 + 进度轨」，画面本身交给组件库。
    * 这里的映射是导演选择：一种内容形态默认用哪个组件。分镜在
    * data.figure.kind 里显式指定时以分镜为准，页面不参与二次判断。
    */
@@ -241,13 +363,55 @@
     conclusion: 'exchange'
   };
 
+  /** 章节名是画面的常驻标注，与分镜的场景一一对应，保持顺序即可。 */
+  var CHAPTERS = {
+    opening: '开场命题',
+    'real-loss': '真正的损失',
+    'fear-source': '恐惧的来源',
+    'scene-loop': '反馈循环',
+    'feedback-gain': '一份新信息',
+    upgrade: '上场的复利',
+    danger: '真正的危险',
+    closing: '收束'
+  };
+
+  var rail = null;
+
+  function pad2(value) {
+    return value < 10 ? '0' + value : String(value);
+  }
+
+  /** 进度轨：当前幕号、章节名与全片进度，全部由帧号推导。 */
+  function renderRail(state) {
+    if (!rail) return;
+    var scene = state.scene || {};
+    var id = scene.id;
+    var index = state.sceneIndex + 1;
+    var total = state.sceneCount || 0;
+    rail.step.textContent = pad2(index) + ' / ' + pad2(total);
+    rail.label.textContent = CHAPTERS[id] || scene.type || '';
+    var p = state.frame / Math.max(1, state.totalFrames - 1);
+    rail.fill.style.transform = 'scaleX(' + p.toFixed(4) + ')';
+  }
+
   /** 单帧渲染入口：由时间轴运行时按帧号调用，必须保持纯函数式。 */
   function renderFrame(state, api) {
     A2V.figures.renderScene(state, api, { defaults: DEFAULT_FIGURES });
+    renderRail(state);
+  }
+
+  function collectRail() {
+    rail = {
+      fill: document.querySelector('[data-rail-fill]'),
+      step: document.querySelector('[data-rail-step]'),
+      label: document.querySelector('[data-rail-label]')
+    };
+    if (!rail.fill || !rail.step || !rail.label) rail = null;
   }
 
   A2V.fetchStoryboard('storyboard.json')
     .then(function (storyboard) {
+      collectRail();
       A2V.mount({ storyboard: storyboard, render: renderFrame });
       return window.__A2V__.ready();
     })

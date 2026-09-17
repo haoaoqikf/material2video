@@ -8,8 +8,8 @@
     {
       "id": "opening",
       "type": "title",
-      "durationInFrames": 195,
-      "narration": "永远不要害怕面试，因为面试根本不是一场决定你命运的考试，而是一次低成本的上场。",
+      "durationInFrames": 230,
+      "narration": "永远不要害怕面试，它不是决定命运的考试，而是一次低成本的上场。",
       "data": {
         "figure": {
           "kind": "balance",
@@ -20,7 +20,7 @@
           }
         },
         "text": "永远不要\n害怕面试",
-        "subtitle": "它不是决定命运的考试\n而是一次低成本的上场",
+        "subtitle": "不是决定命运的考试\n而是一次低成本的上场",
         "emphasis": [
           "害怕"
         ]
@@ -29,15 +29,15 @@
     {
       "id": "real-loss",
       "type": "quote",
-      "durationInFrames": 300,
-      "narration": "面试失败真正能让你失去什么？最坏的结果，不过就是这家公司不要你，可你本来就没有这份工作。",
+      "durationInFrames": 224,
+      "narration": "面试失败能让你失去什么？最坏不过这家公司不要你，可你本来就没有这份工作。",
       "data": {
         "figure": {
           "kind": "gap",
           "motion": "normal",
           "labels": {
             "assumption": "假设已经拥有",
-            "fact": "事实是本来就没有",
+            "fact": "本来就是没有",
             "dropLabel": "失去全部",
             "noDropLabel": "无可失去"
           }
@@ -51,7 +51,7 @@
     {
       "id": "fear-source",
       "type": "list",
-      "durationInFrames": 240,
+      "durationInFrames": 224,
       "narration": "我们害怕的，往往不是失去，而是自己的不足被别人看见。",
       "data": {
         "figure": {
@@ -79,10 +79,10 @@
       }
     },
     {
-      "id": "feedback-loop",
+      "id": "scene-loop",
       "type": "diagram",
-      "durationInFrames": 240,
-      "narration": "每次上场，都会带来一份只属于你的反馈，再推动你调整下一次的准备。",
+      "durationInFrames": 220,
+      "narration": "每次上场，都会带来一份只属于你的反馈。",
       "data": {
         "figure": {
           "kind": "loop",
@@ -114,10 +114,40 @@
       }
     },
     {
+      "id": "feedback-gain",
+      "type": "list",
+      "durationInFrames": 256,
+      "narration": "简历的问题、技术的欠缺、表达的模糊，都会在面试现场暴露出来。",
+      "data": {
+        "figure": {
+          "kind": "iceberg",
+          "motion": "normal",
+          "labels": {
+            "surface": "现场反馈"
+          }
+        },
+        "title": "一次面试，一份新信息",
+        "items": [
+          {
+            "label": "简历",
+            "desc": "哪里有问题，面试官会说"
+          },
+          {
+            "label": "技术",
+            "desc": "哪里不扎实，问题会暴露"
+          },
+          {
+            "label": "表达",
+            "desc": "哪里不清楚，现场会反馈"
+          }
+        ]
+      }
+    },
+    {
       "id": "upgrade",
       "type": "timeline",
-      "durationInFrames": 450,
-      "narration": "第一次，你可能连自我介绍都说不顺；第五次，你已经知道面试官最常问什么；第十次，你懂得怎么表达自己的优势；第二十次以后，你反过来开始判断这家公司值不值得去。",
+      "durationInFrames": 420,
+      "narration": "第一次，你可能连自我介绍都说不顺；第五次，你知道面试官最常问什么；第十次，你懂得怎么表达优势；第二十次以后，你反过来判断公司值不值得去。",
       "data": {
         "figure": {
           "kind": "stairs",
@@ -154,9 +184,27 @@
       }
     },
     {
+      "id": "danger",
+      "type": "comparison",
+      "durationInFrames": 256,
+      "narration": "真正危险的从来不是面试失败，而是因为害怕失败，长期不敢进入真实的竞争。",
+      "data": {
+        "figure": {
+          "kind": "versus",
+          "motion": "normal",
+          "labels": {
+            "note": "一次上场换一份信息"
+          }
+        },
+        "title": "真正的危险在哪一边",
+        "left": "面试失败",
+        "right": "不敢进场"
+      }
+    },
+    {
       "id": "closing",
       "type": "conclusion",
-      "durationInFrames": 360,
+      "durationInFrames": 330,
       "narration": "公司在挑你，你同样也在挑公司。多上场，多被拒绝，多拿反馈。",
       "data": {
         "figure": {
