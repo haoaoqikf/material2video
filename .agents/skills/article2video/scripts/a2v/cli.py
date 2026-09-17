@@ -15,6 +15,7 @@ import logging
 import sys
 from pathlib import Path
 
+from . import fonts as fonts_mod
 from . import paths as paths_mod
 from . import storyboard as sb
 from .errors import A2VError
@@ -481,6 +482,12 @@ def main_review(argv: list[str] | None = None) -> int:
     # 但**溢出**是例外——文字被裁掉或压出安全区属于画面坏了，与「不是废片」
     # 同类。它必须影响错误数与退出码，否则闸门报了失败而 CI 看到的是 0 个错误。
     _apply_hard_gates(combined, extra.get("keynote") or {})
+
+    # 缺字是唯一一种静默失败：浏览器不报错、不警告，直接用系统字体顶上，
+    # 字宽字重基线全变，而上面的对齐（K4）与溢出（K7）量的都是元素框、照过。
+    # 它和 K7 同性质（画面坏了），所以进错误数与退出码。
+    for finding in _font_findings(page_file, args):
+        combined.error(finding["where"], "字体缺字：" + "".join(finding["missing"]))
     payload = inspect_mod.write_report(
         combined,
         {
@@ -512,6 +519,24 @@ def _default_review_dir(page: str | Path, storyboard: str | Path) -> Path:
     target = article.output_dir / "inspect"
     logging.info("未指定 --out-dir，体检产物写入 %s", target)
     return target
+
+
+def _font_findings(page_file: Path, args) -> list[dict]:
+    """按网页实际声明的字体查缺字（`narration` 等不渲染的字段不进扫描）。"""
+    import json as _json
+
+    path = Path(args.storyboard) if args.storyboard else None
+    if path is None or not path.is_file():
+        return []
+    try:
+        storyboard = _json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    try:
+        return fonts_mod.audit_page(page_file, storyboard)
+    except (OSError, ValueError) as exc:
+        logging.warning("字体覆盖检查跳过：%s", exc)
+        return []
 
 
 def _rendered_provenance(out_dir: Path) -> dict:

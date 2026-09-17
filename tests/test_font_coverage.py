@@ -85,3 +85,49 @@ class TestShippedWorksAreCovered:
         coverage = fonts.codepoint_coverage(NOTO)
         missing = fonts.missing_glyphs(NOTO, self._texts(self.ROOT / storyboard), coverage)
         assert missing == [], f"{storyboard} 缺字：{''.join(missing)}"
+
+
+class TestAuditTellsYouWhereItHurts:
+    """光说「缺字」没用，要说是哪一段缺——否则这条结论不可修。"""
+
+    ROOT = Path(__file__).resolve().parents[1]
+    PAGE = ROOT / ".agents/skills/article2video/assets/declarative.html"
+    BASELINE = ROOT / "examples/keynote-baseline/storyboard.json"
+
+    def _storyboard(self) -> dict:
+        import json
+
+        return json.loads(self.BASELINE.read_text(encoding="utf-8"))
+
+    def test_a_clean_work_reports_nothing(self):
+        assert fonts.audit_page(self.PAGE, self._storyboard()) == [], "全覆盖时必须一声不吭"
+
+    def test_missing_glyph_is_reported_with_its_scene_and_field(self):
+        data = self._storyboard()
+        scene = data["scenes"][0]
+        scene["text"] = "正常\U0001F600"  # 字体没有的字符，注入到一个会被渲染的字段
+        findings = fonts.audit_page(self.PAGE, data)
+        assert findings, "插入了字体没有的字符，必须报出来"
+        assert "\U0001F600" in findings[0]["missing"]
+        assert scene["id"] in findings[0]["where"], "结论要指到具体的幕与字段"
+
+    def test_narration_is_not_scanned(self):
+        """`narration` 当前不渲染：它里面的缺字不得让体检报错。"""
+        data = self._storyboard()
+        data.setdefault("narration", "")
+        data["narration"] = "\U0001F600\U0001F601"
+        assert fonts.audit_page(self.PAGE, data) == []
+
+
+class TestPageFontDiscovery:
+    def test_the_shared_page_declares_the_shipped_fonts(self):
+        page = Path(__file__).resolve().parents[1] / ".agents/skills/article2video/assets/declarative.html"
+        names = {p.name for p in fonts.page_fonts(page)}
+        assert "NotoSansSC-Variable.ttf" in names
+
+    def test_a_page_without_fonts_reports_nothing(self, tmp_path):
+        """网页没声明字体文件时无从判断，不该凭空拦人。"""
+        page = tmp_path / "index.html"
+        page.write_text("<html><body>汉字</body></html>", encoding="utf-8")
+        assert fonts.audit_page(page, {"scenes": [{"id": "a", "text": "\U0001F600"}]}) == []
+

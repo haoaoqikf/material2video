@@ -13,8 +13,14 @@ BMP 之外）；同一字符出现在多个子表时取「有字形」的那个�
 
 from __future__ import annotations
 
+import re
 import struct
 from pathlib import Path
+
+from . import assets
+
+_FONT_URL = re.compile(r"""url\(\s*["']?([^"')]+\.(?:ttf|otf|woff2?))["']?\s*\)""", re.IGNORECASE)
+_CONTENT_STRING = re.compile(r"""content\s*:\s*["']([^"']+)["']""")
 
 
 def _cmap_offsets(data: bytes) -> list[tuple[int, int, int]]:
@@ -110,3 +116,115 @@ def missing_glyphs(font: str | Path, text: str, coverage: set[int] | None = None
         if ord(char) not in known:
             seen.setdefault(char, None)
     return list(seen)
+
+
+#: 分镜里**会被渲染**的文本字段。`narration` 当前不渲染，因此不在其中——
+#: 把不渲染的文本算进来会让闸门报出人看不见的缺字，那是噪音。
+RENDERED_FIELDS = (
+    "text", "title", "subtitle", "lead", "label", "labels", "quote", "caption",
+    "value", "unit", "name", "note", "footnote", "legend", "tick", "item", "items",
+)
+
+
+def rendered_strings(storyboard: dict) -> list[tuple[str, str]]:
+    """分镜里会渲染的文本，逐段返回 (定位, 文本)。
+
+    定位尽量具体（`sceneId.字段路径`），因为「缺字」这个结论只有配上
+    「缺在哪儿」才可修。
+    """
+    found: list[tuple[str, str]] = []
+
+    def walk(node, where: str) -> None:
+        if isinstance(node, dict):
+            scene = node.get("id") if isinstance(node.get("id"), str) else None
+            for key, value in node.items():
+                spot = f"{scene or where}.{key}" if scene else f"{where}.{key}"
+                if isinstance(value, str) and key in RENDERED_FIELDS:
+                    found.append((spot, value))
+                elif isinstance(value, (dict, list)):
+                    walk(value, spot)
+        elif isinstance(node, list):
+            for index, item in enumerate(node):
+                walk(item, f"{where}[{index}]")
+
+    walk(storyboard, "storyboard")
+    return found
+
+
+def audit(
+    storyboard: dict,
+    font: str | Path,
+    extra_texts: dict[str, str] | None = None,
+) -> list[dict]:
+    """逐段查缺字，返回 [{where, missing}]（缺字为空则不出现）。
+
+    `extra_texts` 收预设层里会被渲染的固定字串（如 CSS `content:` 里的符号）：
+    它们不属于分镜，但缺了同样会静默回退。
+    """
+    coverage = codepoint_coverage(font)
+    findings: list[dict] = []
+    for where, text in [*rendered_strings(storyboard), *(extra_texts or {}).items()]:
+        missing = missing_glyphs(font, text, coverage)
+        if missing:
+            findings.append({"where": where, "missing": missing})
+    return findings
+
+
+def page_fonts(page_file: Path) -> list[Path]:
+    """网页实际声明的字体文件：页面自身与它引用的样式表里的 @font-face。"""
+    html = page_file.read_text(encoding="utf-8", errors="replace")
+    sources = [(page_file, html)]
+    for _reference, candidate in assets.local_assets(page_file, html):
+        if candidate.suffix.lower() == ".css":
+            sources.append((candidate, candidate.read_text(encoding="utf-8", errors="replace")))
+    fonts: list[Path] = []
+    for owner, text in sources:
+        for reference in _FONT_URL.findall(text):
+            if reference.startswith(("http://", "https://", "//", "data:")):
+                continue
+            path = (owner.parent / reference.split("?")[0].split("#")[0]).resolve()
+            if path.is_file() and path not in fonts:
+                fonts.append(path)
+    return fonts
+
+
+def preset_strings(page_file: Path) -> dict[str, str]:
+    """样式表里会被渲染但不在分镜里的固定字串（CSS `content:`）。"""
+    html = page_file.read_text(encoding="utf-8", errors="replace")
+    found: dict[str, str] = {}
+    for _reference, candidate in assets.local_assets(page_file, html):
+        if candidate.suffix.lower() != ".css":
+            continue
+        text = candidate.read_text(encoding="utf-8", errors="replace")
+        for literal in _CONTENT_STRING.findall(text):
+            if literal and literal not in ("", "none", "normal"):
+                found[f"{candidate.name} content:{literal}"] = literal
+    return found
+
+
+def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
+    """按网页**实际声明**的字体查缺字。
+
+    判据是「所有声明过的字体加起来有没有这个字形」——只有当每个声明字体都
+    没有时，浏览器才真的会回退到系统字体，那才是这条闸门要抓的东西。
+    网页没声明任何字体文件时不报（无从判断，也不该凭空拦人）。
+    """
+    fonts = page_fonts(page_file)
+    if not fonts:
+        return []
+    shared = set()
+    for font in fonts:
+        try:
+            shared |= codepoint_coverage(font)
+        except ValueError:  # 认不出的字体文件：跳过，不因此拦人
+            continue
+    if not shared:
+        return []
+    findings: list[dict] = []
+    for where, text in [*rendered_strings(storyboard), *preset_strings(page_file).items()]:
+        missing = missing_glyphs(fonts[0], text, shared)
+        if missing:
+            findings.append({"where": where, "missing": missing})
+    return findings
+
+
