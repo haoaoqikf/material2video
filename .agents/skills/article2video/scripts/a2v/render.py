@@ -20,7 +20,7 @@ from typing import Iterator
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import paths, security
+from . import assets, paths, security
 from .audio import mux
 from .browser import AnimatedPage, open_animated_page
 from .encoder import VideoEncoder
@@ -258,43 +258,6 @@ _NON_DETERMINISTIC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bMath\.random\s*\("), "Math.random()"),
 )
 
-_PROJECT_MARKERS = (".git", "pyproject.toml")
-
-
-def _project_root(start: Path) -> Path | None:
-    """从网页所在目录向上找项目根，用来界定「可以扫描的本地资源」。
-
-    共享资产（如 skill 的 assets/）通常不在网页目录内，只按网页目录判断会漏扫；
-    但也不能顺着相对路径读到仓库外的任意文件，因此以项目标记为界。
-    """
-    current = start.resolve()
-    for candidate in (current, *current.parents):
-        if any((candidate / marker).exists() for marker in _PROJECT_MARKERS):
-            return candidate
-    return None
-
-
-def _local_assets(page: Path, html: str) -> list[tuple[str, Path]]:
-    """收集网页引用到的本地样式表与脚本，跳过远程与范围外的路径。"""
-    root = _project_root(page.parent)
-    found: list[tuple[str, Path]] = []
-    pattern = re.compile(
-        r"""<(?:link[^>]+href|script[^>]+src)=["']([^"']+\.(?:css|js))["']""",
-        re.IGNORECASE,
-    )
-    for reference in pattern.findall(html):
-        if reference.startswith(("http://", "https://", "//")):
-            continue
-        candidate = (page.parent / reference.split("?")[0].split("#")[0]).resolve()
-        if not candidate.is_file():
-            continue
-        inside_page_dir = page.parent.resolve() in candidate.parents
-        inside_project = root is not None and root in candidate.parents
-        if not (inside_page_dir or inside_project):
-            continue
-        found.append((reference, candidate))
-    return found
-
 
 def _warn_on_time_driven_motion(page_path: str | Path) -> None:
     """渲染前静态扫描样式与脚本，提示与帧号脱钩的写法。
@@ -316,7 +279,7 @@ def _warn_on_time_driven_motion(page_path: str | Path) -> None:
         return
 
     targets: list[tuple[str, str]] = [(page.name, html)]
-    for reference, candidate in _local_assets(page, html):
+    for reference, candidate in assets.local_assets(page, html):
         try:
             targets.append((reference, candidate.read_text(encoding="utf-8", errors="replace")))
         except OSError:

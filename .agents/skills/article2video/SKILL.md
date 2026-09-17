@@ -33,14 +33,17 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 6. **AI 做导演，不做设计师**：先看 [视觉组件目录](references/figure-catalog.md) 里有没有
    合适的组件，选一个、给几段短标注、指定节奏；只有目录里确实没有，才按组件契约新写一个
    并沉淀回目录。每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
+7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹），
+   人（或视觉模型）按 [评审量表](references/visual-review-rubric.md) 负责「值得看完」。
+   把审美也交给脚本，等于放弃质量；反过来只靠眼睛，又会漏掉标签全空这类静默缺陷。
 
 ## 目录职责
 
 | 路径 | 职责 |
 | --- | --- |
 | `.agents/skills/article2video/assets/` | 基础样式 `base.css`、设计令牌 `theme.css`、时间轴运行时 `timeline.js`、视觉组件库 `figures.css` + `figures.js` |
-| `.agents/skills/article2video/scripts/` | 渲染、校验、配音准备、预览四个命令行工具 |
-| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、目录与输出路径 |
+| `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
@@ -170,7 +173,29 @@ uv run python .agents/skills/article2video/scripts/render.py \
 耗时参考：1080 × 1920、30fps 下实测约 11–16 帧/秒，45 秒视频（1350 帧）约 1.5–2 分钟；
 成片验收会额外完整解码一遍，约增加 2 秒。
 
-### 6. 验收
+### 6. 视觉评审（渲染前后都该做）
+
+```bash
+uv run python .agents/skills/article2video/scripts/review.py \
+  --page videos/<slug>/index.html \
+  --storyboard videos/<slug>/storyboard.json \
+  --media outputs/<slug>/media/media.json
+```
+
+它一次跑完三件事，产物在 `outputs/<slug>/inspect/`：
+
+1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前挂载点里每个元素的实际文本，
+   再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
+   这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省；
+2. **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
+3. **设计宪法静态检查**：结构、曲线纪律、模糊、挂载点、文案单一真源、安全区。
+
+终端会打印错误与提醒，以及**需要人工判断的清单**。
+机检只保证「这不是废片」；「值不值得看完」按
+[视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
+评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
+
+### 7. 渲染验收
 
 - 渲染脚本最后一行输出帧数、时长、分辨率、实测帧率与文件大小；
 - 抽看首帧、每幕切换点、末帧，确认无空白帧、无文字裁切；
@@ -190,6 +215,10 @@ uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page i
 # 配音准备（省略 --out-dir 时写入 outputs/<slug>/media）
 uv run python .agents/skills/article2video/scripts/prepare.py \
   --storyboard <json> [--out-dir <目录>] [--voice <音色>] [--rate=±N%] [--force] [-v]
+
+# 视觉评审（省略 --out-dir 时写入 outputs/<slug>/inspect）
+uv run python .agents/skills/article2video/scripts/review.py \
+  --page <网页> --storyboard <json> [--media <media.json>] [--out-dir <目录>] [-v]
 
 # 渲染（省略 --out 时按文章归属推导，限帧时写入 previews/）
 uv run python .agents/skills/article2video/scripts/render.py \

@@ -1,0 +1,399 @@
+"""视觉体检：把「这条片子做对了没有」里能自动判定的部分跑一遍。
+
+三件事，按可靠程度排序：
+
+1. **契约探针**（确定性，最有力）：逐幕把帧停在收尾处，读出当前挂载点里
+   每个 `data-el` 的文本，然后比对分镜声明的标注是否真的画出来了。
+   这一条能抓住「画面照出、标签全空」这类静默缺陷——它不会报错，
+   只有真的去读 DOM 才会发现。
+2. **帧量测**（启发式）：逐帧统计墨迹覆盖率与上下安全区的墨迹，
+   用于发现空幕、黑屏、内容压到边缘。
+3. **设计宪法**（静态）：结构、曲线、模糊、挂载点、文案真源、安全区。
+
+评分与审美判断不在这里假装能做：`references/visual-review-rubric.md`
+给出人工评审清单，本模块只负责把「需要人看的东西」都摆出来。
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from imageio_ffmpeg import get_ffmpeg_exe
+
+from . import catalog, constitution
+from .storyboard import Report
+
+#: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
+SAMPLES = (0.35, 0.68, 0.96)
+
+#: 量测用的缩略尺寸：够看出「哪里有多少墨」，又不至于在纯 Python 里逐像素太慢
+_PROBE_W = 108
+_PROBE_H = 192
+
+#: 与画面主色调偏离多少灰度级才算「有墨」（渐变背景的浮动在 10 级以内）
+_INK_DELTA = 40
+
+#: 安全区：base.css 约定上 220px、下 320px（有字幕时再加 180px）
+_SAFE_TOP_RATIO = 220 / 1920
+_SAFE_BOTTOM_RATIO = 320 / 1920
+
+#: 判定阈值：留得宽松，只抓明显问题，避免把正常画面判成失败
+_MIN_INK = 0.004
+_BAND_WARN = 0.05
+
+
+@dataclass
+class SceneProbe:
+    """一幕的契约探针结果。"""
+
+    scene_id: str
+    frame: int
+    kind: str
+    declared_kind: str
+    missing_labels: list[str] = field(default_factory=list)
+    has_any_text: bool = True
+
+    @property
+    def ok(self) -> bool:
+        return not self.missing_labels and self.has_any_text
+
+
+#: 读出当前可见场景的组件结构：kind 与每个 data-el 的文本
+_PROBE_SCRIPT = """
+() => {
+  var scenes = document.querySelectorAll('[data-a2v-scene]');
+  var active = null;
+  for (var i = 0; i < scenes.length; i++) {
+    var style = window.getComputedStyle(scenes[i]);
+    if (style.display !== 'none' && style.visibility !== 'hidden') { active = scenes[i]; break; }
+  }
+  if (!active) { return null; }
+  var host = active.querySelector('[data-a2v-figure]');
+  if (!host) { return { sceneId: active.getAttribute('data-scene-id'), kind: null, els: {} }; }
+  var els = {};
+  var nodes = host.querySelectorAll('[data-el]');
+  for (var j = 0; j < nodes.length; j++) {
+    var el = nodes[j];
+    els[el.getAttribute('data-el')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+  }
+  return {
+    sceneId: active.getAttribute('data-scene-id'),
+    kind: host.getAttribute('data-fig-kind'),
+    els: els
+  };
+}
+"""
+
+#: 组件里表示「这里应该有字」的元素名后缀。读不到内容就值得看一眼。
+#: 只用于文档说明：判定用的是「声明过的标注有没有出现」与「整幕是否全无文字」，
+#: 逐个元素判空会误伤装饰性元素（例如用 CSS 画的箭头）。
+_TEXT_SLOT = re.compile(r"(Text|Note|Label|Title|title|caption|action)$")
+
+
+def decode_gray(png: bytes) -> bytes:
+    """把一帧缩到 108x192 的灰度图，用于逐像素统计。
+
+    纯 Python 处理 2 万个字节是瞬时的，处理 200 万像素则不可接受；
+    判断「哪里有多少墨」不需要原始分辨率。
+    """
+    completed = subprocess.run(
+        [
+            get_ffmpeg_exe(), "-v", "error", "-i", "pipe:0",
+            "-vf", f"scale={_PROBE_W}:{_PROBE_H}",
+            "-f", "rawvideo", "-pix_fmt", "gray", "pipe:1",
+        ],
+        input=png,
+        capture_output=True,
+    )
+    if completed.returncode != 0 or len(completed.stdout) != _PROBE_W * _PROBE_H:
+        raise ValueError("无法解码这一帧用于量测")
+    return completed.stdout
+
+
+def frame_metrics(gray: bytes) -> dict[str, float]:
+    """统计墨迹覆盖率与上下安全区的墨迹。"""
+    total = len(gray)
+    values = sorted(gray)
+    median = values[total // 2]
+    top_rows = max(1, round(_SAFE_TOP_RATIO * _PROBE_H))
+    bottom_start = _PROBE_H - max(1, round(_SAFE_BOTTOM_RATIO * _PROBE_H))
+
+    ink = 0
+    top_ink = 0
+    bottom_ink = 0
+    for index, value in enumerate(gray):
+        if abs(value - median) <= _INK_DELTA:
+            continue
+        ink += 1
+        row = index // _PROBE_W
+        if row < top_rows:
+            top_ink += 1
+        elif row >= bottom_start:
+            bottom_ink += 1
+    return {
+        "ink": ink / total,
+        "band_top": top_ink / (top_rows * _PROBE_W),
+        "band_bottom": bottom_ink / ((_PROBE_H - bottom_start) * _PROBE_W),
+    }
+
+
+def judge_frame(name: str, metrics: dict[str, float], report: Report) -> None:
+    """按量测结果给出提示。阈值偏宽松，只抓明显问题。"""
+    if metrics["ink"] < _MIN_INK:
+        report.error(
+            f"{name}#画面",
+            f"整帧几乎没有内容（墨迹 {metrics['ink']:.2%}）：可能是组件没挂上、"
+            "文案为空，或者画面全黑",
+        )
+    if metrics["band_top"] > _BAND_WARN:
+        report.warn(
+            f"{name}#安全区",
+            f"顶部安全区内墨迹偏多（{metrics['band_top']:.1%}）："
+            "顶部会被平台界面覆盖，重要内容请放低一些",
+        )
+    if metrics["band_bottom"] > _BAND_WARN:
+        report.warn(
+            f"{name}#安全区",
+            f"底部安全区内墨迹偏多（{metrics['band_bottom']:.1%}）："
+            "底部会被平台界面覆盖，重要内容请抬高一些",
+        )
+
+
+def judge_scene(probe: SceneProbe, labels: dict[str, str], report: Report) -> None:
+    """契约探针的判定：声明了就必须真的画出来。"""
+    where = f"场景 {probe.scene_id}#契约"
+    if probe.declared_kind and probe.kind and probe.kind != probe.declared_kind:
+        report.error(
+            f"{where}",
+            f"实际挂载的组件是 {probe.kind}，分镜声明的是 {probe.declared_kind}",
+        )
+    if not probe.kind:
+        report.error(f"{where}", "这一幕没有挂载到任何组件，成片里会是一块空白")
+        return
+    if probe.missing_labels:
+        report.error(
+            f"{where}",
+            "这些标注在整幕里都没有出现：「" + "」「".join(probe.missing_labels) + "」"
+            "——组件挂上了但标签没画出来",
+        )
+    if not probe.has_any_text:
+        report.error(f"{where}", "组件挂上了但整幕没有任何文字，确认不是漏了文案")
+    if labels and not probe.kind:
+        report.warn(f"{where}", "这一幕没有挂载点，声明了组件也不会画出来")
+
+
+def probe_scene(page: Any, frame: int) -> dict[str, Any] | None:
+    """把帧停住并读回当前场景的组件结构。"""
+    page.seek(frame)
+    return page.evaluate(_PROBE_SCRIPT)
+
+
+def collect_labels(declared: dict[str, Any], seen_texts: set[str]) -> list[str]:
+    """找出声明了但整幕都没出现在任何元素文本里的标注。
+
+    比对的是「整幕所有采样帧里出现过的文本」，而不是某个元素最终的内容：
+    翻转牌这类互换文案始终写进同一个元素，只看元素最后的值会漏判。
+    """
+    haystack = " ".join(sorted(seen_texts))
+    missing: list[str] = []
+    for key, value in declared.items():
+        if not isinstance(value, str) or not value:
+            continue
+        if value not in haystack:
+            missing.append(f"{key}={value}")
+    return missing
+
+
+def scene_labels(scene: dict[str, Any]) -> dict[str, str]:
+    """分镜里这一幕声明的标注（figure.labels 优先，兼容旧的 annotations）。"""
+    data = scene.get("data") or {}
+    figure = data.get("figure") or {}
+    labels = figure.get("labels") or data.get("annotations") or {}
+    return {str(k): str(v) for k, v in labels.items() if isinstance(v, str)} if isinstance(labels, dict) else {}
+
+
+def declared_kind(scene: dict[str, Any]) -> str:
+    data = scene.get("data") or {}
+    figure = data.get("figure") or {}
+    kind = figure.get("kind") if isinstance(figure, dict) else None
+    if isinstance(kind, str) and kind.strip():
+        return kind.strip()
+    return catalog.DEFAULT_KINDS.get(str(scene.get("type")), "")
+
+
+def write_report(report: Report, extra: dict[str, Any], target: Path) -> dict[str, Any]:
+    """把体检结果落成 report.json：给人和给下游自动修复用同一份。"""
+    payload: dict[str, Any] = {
+        "ok": report.ok,
+        "errors": [issue.format() for issue in report.errors],
+        "warnings": [issue.format() for issue in report.warnings],
+        "summary": {
+            "errors": len(report.errors),
+            "warnings": len(report.warnings),
+        },
+    }
+    payload.update(extra)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def check_page_with_storyboard(page_path: Path, scenes: list[dict[str, Any]]) -> Report:
+    """设计宪法的静态部分，并把分镜文案一起用于「单一真源」检查。"""
+    texts = constitution.storyboard_texts(scenes)
+    return constitution.check_page(page_path, texts)
+
+
+def scene_windows(scenes: list[dict[str, Any]]) -> list[tuple[str, int, int]]:
+    """逐幕的绝对起止帧。
+
+    分镜模型已经算好每幕的起始帧（启用配音后由媒体清单改写时长），
+    因此优先用它；只有拿到裸 dict 时才自行累加。
+    """
+    cursor = 0
+    windows: list[tuple[str, int, int]] = []
+    for scene in scenes:
+        length = int(scene.get("durationInFrames") or 0)
+        start = int(scene.get("startFrame", cursor))
+        windows.append((str(scene.get("id")), start, start + length))
+        cursor = start + length
+    return windows
+
+
+def scenes_as_dicts(model: Any) -> list[dict[str, Any]]:
+    """把分镜模型摊成体检需要的字段，避免这里再依赖模型内部结构。"""
+    return [
+        {
+            "id": scene.id,
+            "type": scene.type,
+            "startFrame": scene.start_frame,
+            "durationInFrames": scene.duration_in_frames,
+            "data": scene.data,
+        }
+        for scene in model.scenes
+    ]
+
+
+def sample_frames(start: int, end: int) -> list[int]:
+    """一幕内的采样帧：入场后 / 中段 / 收尾。"""
+    span = max(end - start, 1)
+    return [min(start + max(int(span * ratio), 1), end - 1) for ratio in SAMPLES]
+
+
+def contact_sheet(frames: list[Path], target: Path, columns: int = 3) -> None:
+    """把抽帧拼成一张联系表，便于一眼看完整支片子的节奏。"""
+    if not frames:
+        return
+    listing = target.with_suffix(".txt")
+    listing.write_text("\n".join(f"file '{path.as_posix()}'" for path in frames), encoding="utf-8")
+    rows = (len(frames) + columns - 1) // columns
+    try:
+        subprocess.run(
+            [
+                get_ffmpeg_exe(), "-v", "error", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(listing),
+                "-vf", f"scale=360:640,tile={columns}x{rows}",
+                "-frames:v", "1", str(target),
+            ],
+            check=True,
+        )
+    finally:
+        listing.unlink(missing_ok=True)
+
+
+def uses_component_library(page: Any) -> bool:
+    """网页是否使用视觉组件库。
+
+    不用组件库的网页（自己画图形）没有挂载点，契约探针无从谈起，
+    此时应当明确跳过并说明，而不是逐幕报「未挂载」——那会把一个
+    「没采用这套体系」误报成「画面是空白」。
+    """
+    return bool(page.evaluate("() => document.querySelectorAll('[data-a2v-figure]').length"))
+
+
+def run_inspect(
+    page: Any,
+    scenes: list[dict[str, Any]],
+    frames_dir: Path,
+    report_dir: Path,
+) -> tuple[Report, dict[str, Any]]:
+    """在已打开的页面上跑完契约探针与帧量测，并落盘。"""
+    report = Report()
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    by_id = {str(scene.get("id")): scene for scene in scenes}
+    probes: list[dict[str, Any]] = []
+    metrics: list[dict[str, Any]] = []
+    shots: list[Path] = []
+    probing = uses_component_library(page)
+    if not probing:
+        report.warn(
+            "页面#契约",
+            "网页没有使用视觉组件库，已跳过组件契约探针；"
+            "这一步是「标注是否真的画出来」的唯一检查手段",
+        )
+
+    for scene_id, start, end in scene_windows(scenes):
+        scene = by_id.get(scene_id, {})
+        expected_kind = declared_kind(scene)
+        labels = scene_labels(scene)
+        frames = sample_frames(start, end)
+        seen_texts: set[str] = set()
+        last_els: dict[str, str] = {}
+        mounted_kind = ""
+        for index, frame in enumerate(frames):
+            page.seek(frame)
+            png = page.capture("png")
+            target = frames_dir / f"{scene_id}-{int(SAMPLES[index] * 100):02d}-f{frame:04d}.png"
+            target.write_bytes(png)
+            shots.append(target)
+            measured = frame_metrics(decode_gray(png))
+            measured.update({"scene": scene_id, "frame": frame})
+            metrics.append(measured)
+            judge_frame(target.name, measured, report)
+
+            # 顺带读一次组件结构：标注可能在幕内被替换（例如翻转牌），
+            # 因此判定用的是整幕出现过的全部文本，而不是某一帧的瞬时状态
+            if not probing:
+                continue
+            raw = page.evaluate(_PROBE_SCRIPT)
+            if raw is None:
+                continue
+            mounted_kind = raw.get("kind") or mounted_kind
+            last_els = raw.get("els") or last_els
+            seen_texts.update(text for text in (raw.get("els") or {}).values() if text)
+
+        probe = SceneProbe(
+            scene_id=scene_id,
+            frame=frames[-1],
+            kind=mounted_kind,
+            declared_kind=expected_kind,
+            missing_labels=collect_labels(labels, seen_texts) if probing else [],
+            has_any_text=bool(seen_texts) if probing else True,
+        )
+        judge_scene(probe, labels, report) if probing else None
+        probes.append(
+            {
+                "scene": probe.scene_id,
+                "frame": probe.frame,
+                "kind": probe.kind,
+                "declaredKind": probe.declared_kind,
+                "labels": labels,
+                "seenText": sorted(seen_texts),
+                "lastFrameText": last_els,
+                "missingLabels": probe.missing_labels,
+                "ok": probe.ok,
+            }
+        )
+
+    contact_sheet(shots, report_dir / "contact-sheet.png")
+    return report, {
+        "contract": probes,
+        "frames": metrics,
+        "frameCount": len(shots),
+        "usedComponentLibrary": probing,
+    }

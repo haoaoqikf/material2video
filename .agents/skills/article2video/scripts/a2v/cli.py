@@ -9,6 +9,7 @@ references/paths-and-outputs.md。
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import sys
@@ -20,6 +21,7 @@ from .errors import A2VError
 from .media import Media, load_media
 from .render import render
 from .static_server import LocalServer
+from .storyboard import Report
 
 _EXIT_OK = 0
 _EXIT_FAILED = 1
@@ -121,6 +123,21 @@ def _build_preview_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
     parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
+    parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
+    return parser
+
+
+def _build_review_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="review.py",
+        description="视觉体检：抽帧量测 + 组件契约探针 + 设计宪法静态检查，并给出人工评审清单",
+    )
+    parser.add_argument("--page", required=True, help="动画网页路径或 http(s) URL")
+    parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定场景与声明")
+    parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
+    parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
+    parser.add_argument("--serve-root", help="本地网页的静态根目录，默认取项目根")
+    parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -328,6 +345,104 @@ def main_preview(argv: list[str] | None = None) -> int:
         if media_server:
             media_server.close()
     return _EXIT_OK
+
+
+def main_review(argv: list[str] | None = None) -> int:
+    """视觉评审：一次跑完静态宪法、帧量测与组件契约探针。"""
+    args = _build_review_parser().parse_args(argv)
+    _force_utf8_output()
+    _configure_logging(args.verbose)
+
+    from . import inspect as inspect_mod
+    from . import storyboard as sb
+    from .browser import open_animated_page
+    from .media import load_media, media_url
+    from .render import _default_serve_root, _resolve_page_url
+
+    model, report = sb.load(args.storyboard)
+    if model is None or not report.ok:
+        for issue in report.issues:
+            logging.error("%s", issue.format())
+        logging.error("分镜脚本校验未通过，无法体检")
+        return _EXIT_INVALID_INPUT
+
+    try:
+        media = load_media(args.media, args.storyboard) if args.media else None
+        scenes = inspect_mod.scenes_as_dicts(media.storyboard if media else model)
+    except (A2VError, OSError) as exc:
+        logging.error("体检失败: %s", exc)
+        return _EXIT_FAILED
+
+    page_file = Path(args.page)
+    out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args.page, args.storyboard)
+    # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭
+    combined = Report()
+    for issue in inspect_mod.check_page_with_storyboard(page_file, scenes).issues:
+        combined.add(issue.level, issue.path, issue.message)
+
+    try:
+        with contextlib.ExitStack() as stack:
+            url = stack.enter_context(_resolve_page_url(page_file, args.serve_root))
+            if media:
+                media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
+                url = media_url(url, media_server.base_url, media)
+            with open_animated_page(
+                url, timeout_ms=args.timeout, width=model.width, height=model.height
+            ) as page:
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                page_report, extra = inspect_mod.run_inspect(page, scenes, out_dir / "frames", out_dir)
+    except (A2VError, OSError, ValueError) as exc:
+        logging.error("体检失败: %s", exc)
+        return _EXIT_FAILED
+    except KeyboardInterrupt:
+        logging.error("体检被用户中断")
+        return _EXIT_FAILED
+
+    for issue in page_report.issues:
+        combined.add(issue.level, issue.path, issue.message)
+    payload = inspect_mod.write_report(
+        combined,
+        {
+            **extra,
+            "page": str(page_file),
+            "storyboard": str(args.storyboard),
+            "source": "media" if media else "storyboard",
+        },
+        out_dir / "report.json",
+    )
+
+    for issue in combined.issues:
+        print(issue.format(), file=sys.stderr)
+    print(_review_summary(payload, out_dir))
+    return _EXIT_OK if combined.ok else _EXIT_INVALID_INPUT
+
+
+def _default_review_dir(page: str | Path, storyboard: str | Path) -> Path:
+    """体检产物目录：`outputs/<slug>/inspect`，与渲染产物放在一起。"""
+    article = paths_mod.for_page(page) if not str(page).startswith("http") else paths_mod.for_storyboard(storyboard)
+    target = article.output_dir / "inspect"
+    logging.info("未指定 --out-dir，体检产物写入 %s", target)
+    return target
+
+
+def _review_summary(payload: dict, out_dir: Path) -> str:
+    """终端摘要 + 人工评审清单。分数不给自动结论，只把该看的摆出来。"""
+    lines = [
+        f"体检完成：{payload['frameCount']} 帧抽检，"
+        f"{payload['summary']['errors']} 个错误，{payload['summary']['warnings']} 个提醒",
+        f"产物：{out_dir / 'report.json'}",
+        f"联系表：{out_dir / 'contact-sheet.png'}",
+    ]
+    probes = payload.get("contract") or []
+    if probes:
+        using = payload.get("usedComponentLibrary", True)
+        lines.append("组件契约：" + ("" if using else "（网页未使用组件库，已跳过）"))
+        for probe in probes:
+            mark = "✓" if probe["ok"] else "✗"
+            kind = probe["kind"] or "（未挂载）"
+            lines.append(f"  {mark} {probe['scene']}: {kind}" if using else f"  - {probe['scene']}")
+    lines.append("接下来需要人（或视觉模型）看的：见 references/visual-review-rubric.md")
+    return "\n".join(lines)
 
 
 def main_prepare(argv: list[str] | None = None) -> int:

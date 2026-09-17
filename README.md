@@ -77,12 +77,17 @@ uv run python .agents/skills/article2video/scripts/validate.py examples/why-effo
 # 3. 本地预览（浏览器中确认节奏与排版）
 uv run python .agents/skills/article2video/scripts/preview.py examples/why-effort-fails
 
-# 4. 渲染（省略 --out 时输出到 outputs/examples/why-effort-fails/silent.mp4）
+# 4. 视觉评审（抽帧量测 + 组件契约探针 + 设计宪法，产出联系表与 report.json）
+uv run python .agents/skills/article2video/scripts/review.py \
+  --page examples/why-effort-fails/index.html \
+  --storyboard examples/why-effort-fails/storyboard.json
+
+# 5. 渲染（省略 --out 时输出到 outputs/examples/why-effort-fails/silent.mp4）
 uv run python .agents/skills/article2video/scripts/render.py \
   --page examples/why-effort-fails/index.html \
   --storyboard examples/why-effort-fails/storyboard.json
 
-# 5. 测试
+# 6. 测试
 uv run pytest
 ```
 
@@ -163,6 +168,21 @@ uv run python .agents/skills/article2video/scripts/render.py \
 [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)、
 [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)。
 
+## 视觉评审
+
+`review.py` 一次跑完三层检查，产物落在 `outputs/<slug>/inspect/`：
+
+- **组件契约探针**：逐幕多处采样，读出挂载点里每个元素的实际文本，比对分镜声明的标注
+  是否真的画了出来。「组件挂上了、画面也出来了，只是图上没有一个字」这类缺陷不会报错，
+  只能靠读 DOM 发现——这正是它存在的理由；
+- **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
+- **设计宪法静态检查**：结构、曲线纪律、模糊、挂载点、文案单一真源、安全区。
+
+机检只保证「这不是废片」。**值不值得看完**按
+[视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)
+六项 60 分制打分，≥ 40 才发布：[设计宪法](.agents/skills/article2video/references/design-constitution.md)
+标明每条规则能不能机检——把审美也交给脚本，等于放弃质量。
+
 ## 关键约束
 
 - **单一真源**：文案与原始时长写在 `storyboard.json`；启用配音时，网页和脚本共用媒体清单中的派生时长；
@@ -180,6 +200,9 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则
 - [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
+- [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)：有哪些现成组件、怎么选、怎么新增
+- [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
+- [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
 本仓库未配置远端，不含账号系统、云端任务队列或自动发布能力。
