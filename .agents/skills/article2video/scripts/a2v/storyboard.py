@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from . import catalog
+
 # 当前支持的脚本版本。字段结构变化时必须递增，并在校验时给出明确提示。
 SUPPORTED_VERSION = 1
 
@@ -288,14 +290,16 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
 
+    _warn_on_component_capacity(scene_type, data_field, f"{path}.data", report)
     _warn_on_long_text(data_field, f"{path}.data", report)
 
 
 def _validate_figure(value: Any, path: str, report: Report) -> None:
     """校验选组件的那一小段声明。
 
-    这一层只保证结构可用（kind 是字符串、motion 是三个节奏之一、labels/params 是对象）；
-    「这个 kind 存不存在、它认识哪些标注键」由组件目录决定，见 references/figure-catalog.md。
+    结构层保证 kind 是字符串、motion 是三个节奏之一、labels/params 是对象；
+    「这个 kind 存不存在、它认识哪些标注键、能吃下多少条目」由组件目录说了算
+    （见 references/figure-catalog.md 与 a2v/catalog.py）。
     """
     if not isinstance(value, dict):
         report.error(path, "figure 必须是对象，形如 {\"kind\": \"iceberg\"}")
@@ -303,6 +307,7 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
     kind = value.get("kind")
     if not isinstance(kind, str) or not kind.strip():
         report.error(f"{path}.kind", "figure.kind 必须是非空字符串")
+        return
     for name in sorted(set(value) - _FIGURE_FIELDS):
         report.warn(f"{path}.{name}", f"figure 未定义字段 '{name}'，组件将忽略它")
     motion = value.get("motion")
@@ -316,6 +321,56 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
             report.error(f"{path}.{name}", f"figure.{name} 必须是对象")
     if isinstance(value.get("labels"), dict):
         _validate_annotations(value["labels"], f"{path}.labels", report)
+    if value.get("params"):
+        # 机制已经接通（会带进组件），但当前没有组件读取任何键，
+        # 与其让人以为写了就生效，不如在开渲前说清楚
+        report.warn(
+            f"{path}.params",
+            "当前没有组件读取 params，写了不会改变画面；需要可调几何时先在组件里实现",
+        )
+
+    entry = catalog.component(kind.strip())
+    if entry is None:
+        # 未知组件只警告：目录允许扩展，网页挂载时会立刻抛出更明确的错误
+        report.warn(
+            f"{path}.kind",
+            f"组件 '{kind}' 不在目录中（已知：{'、'.join(catalog.known_kinds())}），"
+            "渲染前请确认网页已注册该组件",
+        )
+        return
+    labels = value.get("labels")
+    if isinstance(labels, dict):
+        unknown = sorted(set(labels) - entry.labels)
+        if unknown:
+            report.warn(
+                f"{path}.labels.{unknown[0]}",
+                f"组件 '{kind}' 不认识标注键 {('、'.join(unknown))}，"
+                f"它认识的是 {('、'.join(sorted(entry.labels)))}；写错的标签不会显示",
+            )
+
+
+def _warn_on_component_capacity(
+    scene_type: str, data_field: dict[str, Any], path: str, report: Report
+) -> None:
+    """按组件声明的容量检查条目数。
+
+    组件会按数量收缩几何，但超出舒适区后标签会挤在一起，读不出来。
+    默认组件也参与检查：分镜没写 figure 时它照样会挂载。
+    """
+    entry = catalog.component(catalog.resolve_kind(scene_type, data_field.get("figure")) or "")
+    if entry is None or entry.items is None:
+        return
+    for field in ("items", "nodes"):
+        value = data_field.get(field)
+        if not isinstance(value, list):
+            continue
+        low, high = entry.items
+        if not low <= len(value) <= high:
+            report.warn(
+                f"{path}.{field}",
+                f"组件 '{entry.kind}' 适合 {low}–{high} 项，当前 {len(value)} 项，"
+                "再多会挤在一起读不出来",
+            )
 
 
 def _validate_annotations(value: Any, path: str, report: Report) -> None:

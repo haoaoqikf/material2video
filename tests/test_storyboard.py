@@ -242,6 +242,72 @@ class TestFigureDeclaration:
         assert report.ok
         assert "scenes[0].data.figure.tempo" in warning_paths(report)
 
+    def test_warns_that_params_is_not_consumed_yet(self, valid_script):
+        # 机制接通了但还没有组件读它，与其让人以为写了就生效，不如明说
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "balance", "params": {"arm": 320}}
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.figure.params" in warning_paths(report)
+
+    def test_warns_on_kind_outside_the_catalog(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {"kind": "hourglass"}
+        report = sb.validate(valid_script)
+        assert report.ok
+        warnings = warning_paths(report)
+        assert "scenes[0].data.figure.kind" in warnings
+
+    def test_warns_on_label_key_the_component_does_not_know(self, valid_script):
+        # 拼错的标签不会报错，只会让画面上的标签空着，因此在开渲前提醒
+        valid_script["scenes"][0]["data"]["figure"] = {
+            "kind": "balance",
+            "labels": {"leftPan": "命运的考试", "middlePan": "写错了"},
+        }
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.figure.labels.middlePan" in warning_paths(report)
+
+    def test_accepts_labels_the_component_knows(self, valid_script):
+        valid_script["scenes"][0]["data"]["figure"] = {
+            "kind": "balance",
+            "labels": {"leftPan": "命运的考试", "rightPan": "一次上场"},
+        }
+        assert warning_paths(sb.validate(valid_script)) == []
+
+
+class TestComponentCapacity:
+    """组件能吃下多少条目：超了不会崩，但会挤在一起读不出来。"""
+
+    def test_warns_when_nodes_exceed_the_component(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "loop",
+            "type": "diagram",
+            "durationInFrames": 120,
+            "data": {"nodes": ["一", "二", "三", "四", "五", "六", "七"]},
+        }
+        assert "scenes[0].data.nodes" in warning_paths(sb.validate(valid_script))
+
+    def test_accepts_nodes_within_capacity(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "loop",
+            "type": "diagram",
+            "durationInFrames": 120,
+            "data": {"nodes": ["一", "二", "三"]},
+        }
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    def test_capacity_follows_the_declared_kind(self, valid_script):
+        # 台阶适合 2–5 级；声明成 stairs 后，6 项就应该被提醒
+        valid_script["scenes"][0] = {
+            "id": "steps",
+            "type": "timeline",
+            "durationInFrames": 120,
+            "data": {
+                "figure": {"kind": "stairs"},
+                "items": ["一", "二", "三", "四", "五", "六"],
+            },
+        }
+        assert "scenes[0].data.items" in warning_paths(sb.validate(valid_script))
+
 
 class TestVisualWarnings:
     """排版与动效相关的警告：默认放行，--strict 时视为失败。"""

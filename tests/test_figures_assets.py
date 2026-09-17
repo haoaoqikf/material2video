@@ -52,6 +52,44 @@ def test_library_registers_the_expected_kinds():
     assert kinds == ["balance", "gap", "iceberg", "loop", "stairs", "exchange"]
 
 
+def test_catalog_mirror_matches_the_library():
+    """catalog.py 是校验器用的镜像，必须与浏览器端的注册表逐项一致。
+
+    目录一旦漂移，校验器就会放行一个网页根本不认识的 kind，
+    或反过来把合法标注判成错的——两种都只在渲染时才暴露。
+    """
+    from a2v import catalog
+
+    mirrored = {kind: set(labels) for kind, labels, *_ in _figures()}
+    declared = {kind: set(entry.labels) for kind, entry in catalog.FIGURE_CATALOG.items()}
+    assert mirrored == declared
+
+
+def test_catalog_defaults_match_the_page():
+    from a2v import catalog
+
+    page = PAGE.read_text(encoding="utf-8")
+    block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page, re.DOTALL)
+    assert block, "页面不再声明 DEFAULT_FIGURES"
+    mapping = dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1)))
+    assert mapping == catalog.DEFAULT_KINDS
+
+
+def test_catalog_covers_every_registered_kind():
+    from a2v import catalog
+
+    assert set(catalog.FIGURE_CATALOG) == {kind for kind, *_ in _figures()}
+
+
+def test_catalog_entries_are_documented():
+    """目录条目必须在参考文档里出现，避免「代码有、文档查不到」。"""
+    from a2v import catalog
+
+    doc = (SKILL / "references/figure-catalog.md").read_text(encoding="utf-8")
+    for kind in catalog.FIGURE_CATALOG:
+        assert f"`{kind}`" in doc, kind
+
+
 def test_exposes_the_public_api():
     text = _source()
     assert "A2V.figures = {" in text
@@ -74,6 +112,43 @@ def test_every_picked_element_exists_in_its_markup(kind):
         # markup 常量本身与 define 行不属于函数体，排除后再找 pick
         for picked in sorted(set(re.findall(r"pick\('([^']+)'\)", body))):
             assert picked in available, f"{kind} 取了 markup 里不存在的 data-el: {picked}"
+
+
+@pytest.mark.parametrize("kind", [kind for kind, *_ in _figures()])
+def test_every_declared_label_is_actually_drawn(kind):
+    """声明了却没人画的标注键是隐形陷阱。
+
+    分镜写上去、校验器放行、画面上什么都没有——这类「支持但其实没实现」
+    比直接报错更糟，所以在这里要求声明与使用严格相等。
+    """
+    for name, labels, _markup, _source, body in _figures():
+        if name != kind:
+            continue
+        drawn = set(re.findall(r"\bann\.(\w+)", body))
+        assert drawn == set(labels), f"{kind}: 声明 {sorted(labels)}，实际画 {sorted(drawn)}"
+
+
+@pytest.mark.parametrize("kind", [kind for kind, *_ in _figures()])
+def test_component_reads_labels_from_the_injected_argument(kind):
+    """组件只能读注入的标签，不能自己去翻分镜字段。
+
+    两种写法（figure.labels 与旧的 annotations）在 renderScene 合流成一份再注入；
+    组件若自己解析字段，迁移写法时就会只有一部分组件跟着变，且不报错。
+    """
+    for name, _labels, _markup, _source, body in _figures():
+        if name != kind:
+            continue
+        assert re.search(r"var ann = labels \|\| \{\};", body), f"{kind} 没有使用注入的 labels"
+        assert "data.annotations" not in body, f"{kind} 直接读了分镜字段"
+
+
+def test_define_wrapper_forwards_the_labels():
+    """define 的包装层必须把 labels 传下去。
+
+    它一度只转发三个参数，结果是所有标注静默消失——画面照常出，只是标签全空。
+    """
+    text = _source()
+    assert re.search(r"update: function \(state, api\) \{\s*update\(state, api, pick, ann\);", text)
 
 
 @pytest.mark.parametrize("kind", [kind for kind, *_ in _figures()])

@@ -11,7 +11,7 @@
  * 组件契约（与 references/render-contract.md 一致）：
  *   - `update(state, api)` 必须是 (帧, 组件) 的纯函数：同一帧永远给出同一棵 DOM；
  *   - 组件自带 DOM（markup），页面不写任何图形元素；
- *   - 所有文案来自分镜的 data 与 annotations，组件不保存默认文案；
+ *   - 所有文案来自分镜的 data 与 labels（由 renderScene 解析后传入），组件不保存默认文案；
  *   - 几何由常量与 params 推导，不读实时布局；测量只在构建后做一次并缓存；
  *   - 禁止 Date.now / performance.now / Math.random，禁止 CSS animation / transition。
  *
@@ -33,6 +33,20 @@
   var EASE_OUT = 'outQuint';
   var EASE_SOFT = 'outCubic';
   var EASE_SYMMETRIC = 'inOutCubic';
+
+  /*
+   * 节奏：分镜只写 calm / normal / impact，具体节拍由这里算。
+   *
+   * 组件的入场时机几乎都写成「场景内的某个比例点」，所以把比例点的绝对帧号
+   * 整体前移或后移，就能一次改变整幕的节奏：impact 更早进入、后半段留出更长的
+   * 停留，calm 相反。组件本身不需要各自调参。
+   */
+  var TEMPO_SPEED = { calm: 0.82, normal: 1, impact: 1.24 };
+  var currentTempo = 'normal';
+
+  function tempoSpeed(name) {
+    return TEMPO_SPEED[name] || TEMPO_SPEED.normal;
+  }
 
   /* ---------------- 文字与 DOM 工具 ---------------- */
   function escapeHtml(text) {
@@ -74,7 +88,7 @@
 
   /** 按帧号取「场景内的某个进度点」：用比例而不是绝对帧，场景被配音拉长后节奏不变。 */
   function beat(state, fraction) {
-    return fraction * state.sceneDurationFrames;
+    return (fraction * state.sceneDurationFrames) / tempoSpeed(currentTempo);
   }
 
   /** 给 SVG 元素写 transform 属性（SVG 用属性而不是 CSS 变量，避免布局抖动）。 */
@@ -201,15 +215,20 @@
       /*
        * pick 收窄到组件自己的挂载点：组件只认识自己画的元素，
        * 即使同一页面上有多个同类组件也不会互相取错。
+       *
+       * 标注也从这里注入：分镜的 figure.labels 与旧的 annotations 在 renderScene
+       * 合流后进 spec，组件只认这一份，不直接读分镜字段——组件自己解析字段，
+       * 就会出现「换了写法但只有一部分组件跟着变」的静默错位。
        */
       create: function (ctx) {
         var host = ctx.host;
+        var ann = (ctx.spec && ctx.spec.labels) || {};
         function pick(name) {
           return host.querySelector('[data-el="' + name + '"]');
         }
         return {
           update: function (state, api) {
-            update(state, api, pick);
+            update(state, api, pick, ann);
           }
         };
       }
@@ -250,10 +269,10 @@
    * 空壳、横梁弹回水平；右盘「一次上场」亮起强调色，同时标题里的「害怕」褪回墨色。
    * 颜色本身就是叙事：恐惧退场，动作上场。
    */
-  function updateBalance(state, api, pick) {
+  function updateBalance(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
 
     var title = pick('text');
     var sub1 = pick('sub1');
@@ -436,10 +455,10 @@
    * 左边先演一遍恐惧的剧本——拥有、被拿走、落差拉满；右边才是事实：柱子里本来就
    * 没有东西，括号塌成一条贴着 0 的短线。两栏共用同一把竖尺，观众可以自己比。
    */
-  function updateGap(state, api, pick) {
+  function updateGap(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
     var text = pick('text');
     var rule = pick('rule');
     var mark = pick('mark');
@@ -611,10 +630,10 @@
    * 水面之上那个小三角是能被说出口的那部分恐惧；真正压着人的那一大团在水下，
    * 直到一束光扫过去才显形——而光扫过之后，从水里升起的东西才是「变强」。
    */
-  function updateIceberg(state, api, pick) {
+  function updateIceberg(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
     var items = data.items || [];
 
     setPlainText(pick('title'), data.title);
@@ -774,7 +793,7 @@
   <g data-el="callouts"></g>
 </svg>`;
 
-  define('iceberg', ["tip", "mass", "surface"], MARKUP_ICEBERG, updateIceberg);
+  define('iceberg', ["surface"], MARKUP_ICEBERG, updateIceberg);
 
   /* ---------------- 04 飞轮 ---------------- */
 
@@ -801,10 +820,10 @@
    * 每转一格，下面的「准备度」就抬高一截；两次完整循环之后条满。运动本身
    * 就是论点——上场不是一个动作，而是一个会自己加速的轮子。
    */
-  function updateLoop(state, api, pick) {
+  function updateLoop(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
     var nodes = data.nodes || [];
 
     setPlainText(pick('title'), data.title);
@@ -932,7 +951,7 @@
   <span class="gauge-track"><span class="gauge-fill" data-el="gaugeFill"></span></span>
 </div>`;
 
-  define('loop', ["gauge", "once"], MARKUP_LOOP, updateLoop);
+  define('loop', ["gauge"], MARKUP_LOOP, updateLoop);
 
   /* ---------------- 05 阶梯 ---------------- */
 
@@ -955,10 +974,10 @@
    * 柱子高度是「你在面试里的位置」，小球一跳一格；最后一格柱子转成强调色，
    * 顶部的标签从「公司在挑你」翻成「你在挑公司」——主动权换手，是本片的落点。
    */
-  function updateStairs(state, api, pick) {
+  function updateStairs(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
     var items = data.items || [];
 
     setPlainText(pick('title'), data.title);
@@ -1109,10 +1128,10 @@
    * 先用逐字揭示把结论读出来，再让两端的节点和两条反向箭头成立；最后一条
    * 强调色箭头是「你也在挑公司」，与开场的天平形成同一支片子的呼应。
    */
-  function updateExchange(state, api, pick) {
+  function updateExchange(state, api, pick, labels) {
     var f = state.localFrame;
     var data = state.scene.data;
-    var ann = data.annotations || {};
+    var ann = labels || {};
     var text = pick('text');
     var action = pick('action');
 
@@ -1296,6 +1315,8 @@
       throw new Error('视觉组件未注册: ' + kind + '（已注册：' + known().join('、') + '）');
     }
     var sig = signature(kind, spec || {});
+    // 节奏在每次挂载时刷新，因此由分镜声明的 motion 决定，与调用次数无关
+    currentTempo = (spec && spec.motion) || 'normal';
     if (host.__a2vFigure && host.getAttribute('data-fig-signature') === sig) {
       return host.__a2vFigure;
     }
@@ -1333,7 +1354,8 @@
     }
     /*
      * labels 优先取 data.figure.labels；过渡期兼容 P0 的 data.annotations，
-     * 两种写法都指向同一件事：这幅图上的短标签写什么。
+     * 两种写法都指向同一件事：这幅图上的短标签写什么。两者在这里合流成一份，
+     * 由 define 的包装注入给组件。
      */
     var labels = declared.labels || data.annotations || {};
     var instance = mount(kind, host, {
@@ -1359,6 +1381,8 @@
     known: known,
     mount: mount,
     renderScene: renderScene,
-    describe: describe
+    describe: describe,
+    /** 节奏名 -> 速度倍率，供文档与调试对照。 */
+    tempo: tempoSpeed
   };
 })(window);

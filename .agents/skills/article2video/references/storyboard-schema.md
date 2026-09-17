@@ -66,7 +66,7 @@
 | `kind` | 是 | 组件名，取值见 [视觉组件目录](figure-catalog.md) |
 | `labels` | 否 | 画在图上的短标签，规则与 `annotations` 完全相同 |
 | `motion` | 否 | 动效节奏：`calm` / `normal` / `impact`，默认 `normal` |
-| `params` | 否 | 覆盖组件的几何常量，键由组件自己声明 |
+| `params` | 否 | 预留的几何覆盖：**当前没有组件读取它**，写了不会改变画面，校验器会提醒 |
 
 ```json
 "figure": {
