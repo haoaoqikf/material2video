@@ -321,25 +321,30 @@
     svgO(halo, glow * 0.85);
     var rect = pick('loadRightRect');
     if (rect) {
-      rect.setAttribute('stroke', 'rgba(194, 53, 42, ' + (0.28 + 0.62 * glow).toFixed(3) + ')');
+      // 描边颜色取主题令牌而不是写死暖红：写死的颜色不跟主题走，
+      // 只换主题时会原地留一抹红。alpha 逐帧来自 glow，仍由本帧决定。
+      rect.setAttribute(
+        'stroke',
+        'color-mix(in srgb, var(--a2v-accent-deep) ' + Math.round((0.28 + 0.62 * glow) * 100) + '%, transparent)'
+      );
     }
     // 文字用内联 style 而不是 SVG 属性：CSS 类会盖过表现属性，属性写不进去
     var tokenText = pick('loadRightText');
     if (tokenText) {
       tokenText.style.fill =
-        'rgb(' + Math.round(api.range(glow, 64, 194)) + ',' +
-        Math.round(api.range(glow, 68, 53)) + ',' +
-        Math.round(api.range(glow, 74, 42)) + ')';
+        'color-mix(in srgb, var(--a2v-accent-deep) ' + Math.round(api.range(glow, 28, 100)) + '%, #4a4a4a)';
     }
 
-    // 标题里的「害怕」随空壳一起褪色：恐惧退场，动作上场
+    // 标题里的「害怕」随空壳一起褪色：恐惧退场，动作上场。
+    //
+    // 颜色写成**自定义属性**而不是 `color`：行内样式的优先级高于任何样式表规则，
+    // 直接写 `style.color` 会让设计语言层永远覆盖不了这个元素（表现是
+    // 「预设改了强调色，只有这一处不变」）。自定义属性最后由样式表决定怎么用，
+    // 组件仍然掌握「什么时候褪、褪到哪一档」。两套主题各自的落点见 keynote.css。
     var key = title ? title.querySelector('.key') : null;
     if (key) {
       var cool = api.progress(f, beat(state, 0.62), beat(state, 0.16), EASE_SYMMETRIC);
-      key.style.color =
-        'rgb(' + Math.round(api.range(cool, 194, 35)) + ',' +
-        Math.round(api.range(cool, 53, 38)) + ',' +
-        Math.round(api.range(cool, 42, 45)) + ')';
+      key.style.setProperty('--a2v-emphasis-mix', api.range(cool, 0, 1).toFixed(4));
     }
   }
 
@@ -359,8 +364,8 @@
 <svg class="fig fig-scale" viewBox="0 0 888 430" aria-hidden="true">
   <defs>
     <radialGradient id="scale-halo">
-      <stop offset="0" stop-color="rgba(194, 53, 42, 0.45)"></stop>
-      <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+      <stop offset="0" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 45%, transparent)"></stop>
+      <stop offset="1" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
     </radialGradient>
   </defs>
   <path class="ln" data-el="pillar" d="M444 372 L444 96"></path>
@@ -828,9 +833,9 @@
       <path d="M138 300 L296 300 L392 452 L348 632 L150 692 L34 500 Z"></path>
     </clipPath>
     <linearGradient id="berg-light" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="rgba(194, 53, 42, 0)"></stop>
-      <stop offset="0.5" stop-color="rgba(194, 53, 42, 0.55)"></stop>
-      <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+      <stop offset="0" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
+      <stop offset="0.5" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 55%, transparent)"></stop>
+      <stop offset="1" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
     </linearGradient>
     <linearGradient id="berg-depth" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="rgba(45, 78, 120, 0.17)"></stop>
@@ -992,8 +997,8 @@
 <svg class="fig fig-loop" viewBox="0 0 888 560" aria-hidden="true">
   <defs>
     <radialGradient id="loop-halo">
-      <stop offset="0" stop-color="rgba(194, 53, 42, 0.35)"></stop>
-      <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+      <stop offset="0" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 35%, transparent)"></stop>
+      <stop offset="1" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
     </radialGradient>
   </defs>
   <circle class="loop-track" data-el="track" cx="444" cy="290" r="200"></circle>
@@ -1158,8 +1163,8 @@
 <svg class="fig fig-stairs" viewBox="0 0 888 640" aria-hidden="true">
   <defs>
     <radialGradient id="stair-halo">
-      <stop offset="0" stop-color="rgba(194, 53, 42, 0.32)"></stop>
-      <stop offset="1" stop-color="rgba(194, 53, 42, 0)"></stop>
+      <stop offset="0" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 32%, transparent)"></stop>
+      <stop offset="1" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
     </radialGradient>
   </defs>
   <text class="stair-axis-label" data-el="axisLabel" x="24" y="44"></text>

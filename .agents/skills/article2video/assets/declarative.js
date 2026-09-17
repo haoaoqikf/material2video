@@ -13,11 +13,21 @@
   }
 
   A2V.fetchStoryboard(source).then(function (storyboard) {
-    document.documentElement.dataset.a2vTheme = (storyboard.visual || {}).theme || 'dark';
+    var visual = storyboard.visual || {};
+    document.documentElement.dataset.a2vTheme = visual.theme || 'dark';
+    /*
+     * 设计语言预设：只有分镜显式声明 visual.preset 时才启用。
+     * 未声明时不加 data-a2v-preset，keynote.css 里的主题块与版式规则都不生效，
+     * 页面结构与样式与引入预设之前完全一致，既有视频逐帧不变。
+     */
+    var preset = visual.preset || '';
+    if (preset) document.documentElement.dataset.a2vPreset = preset;
+
     document.documentElement.style.setProperty('--a2v-width', (storyboard.width || 1080) + 'px');
     document.documentElement.style.setProperty('--a2v-height', (storyboard.height || 1920) + 'px');
+
     var stage = document.querySelector('[data-a2v-stage]');
-    storyboard.scenes.forEach(function (scene) {
+    storyboard.scenes.forEach(function (scene, index) {
       var section = document.createElement('section');
       section.setAttribute('data-a2v-scene', '');
       section.dataset.sceneId = scene.id;
@@ -26,14 +36,49 @@
       host.className = 'a2v-safe';
       host.setAttribute('data-a2v-figure', '');
       section.appendChild(host);
+      if (preset) section.appendChild(sceneIndexBar(storyboard, index));
       stage.appendChild(section);
     });
+
     A2V.mount({ storyboard: storyboard, render: function (state, api) {
       A2V.figures.renderScene(state, api, { defaults: DEFAULT_FIGURES });
+      if (preset && A2V.type) {
+        /*
+         * 组件画完之后按字号阶取档。排在组件之后是必须的：文本内容与元素尺寸
+         * 都由组件决定，先量就会量到空元素。autofit 只在内容签名变化时重算，
+         * 因此逐帧调用不会带来抖动，也不会重复触发重排。
+         */
+        A2V.type.autofit(state.scene.id ? sceneById(state.scene.id) : null);
+      }
     } });
     return window.__A2V__.ready();
   }).catch(function (error) {
     document.body.textContent = '页面初始化失败：' + error.message;
     throw error;
   });
+
+  /** 幕角标：场景类型 + 幕号/总幕数。给画面一个稳定锚点，不参与构图。 */
+  function sceneIndexBar(storyboard, index) {
+    var scene = storyboard.scenes[index];
+    var bar = document.createElement('div');
+    bar.className = 'a2v-scene-index';
+
+    var kind = document.createElement('span');
+    kind.textContent = scene.type || '';
+    var number = document.createElement('span');
+    number.className = 'a2v-scene-number';
+    number.textContent = pad(index + 1) + ' / ' + pad(storyboard.scenes.length);
+
+    bar.appendChild(kind);
+    bar.appendChild(number);
+    return bar;
+  }
+
+  function sceneById(id) {
+    return document.querySelector('[data-scene-id="' + id + '"]');
+  }
+
+  function pad(value) {
+    return (value < 10 ? '0' : '') + value;
+  }
 })();

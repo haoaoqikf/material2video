@@ -463,7 +463,10 @@ def main_review(argv: list[str] | None = None) -> int:
                 url, timeout_ms=args.timeout, width=model.width, height=model.height
             ) as page:
                 page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
-                page_report, extra = inspect_mod.run_inspect(page, scenes, out_dir / "frames", out_dir)
+                preset = str(((media.storyboard if media else model).visual or {}).get("preset") or "")
+                page_report, extra = inspect_mod.run_inspect(
+                    page, scenes, out_dir / "frames", out_dir, preset=preset
+                )
     except (A2VError, OSError, ValueError) as exc:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
@@ -521,8 +524,36 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
             mark = "✓" if probe["ok"] else "✗"
             kind = probe["kind"] or "（未挂载）"
             lines.append(f"  {mark} {probe['scene']}: {kind}" if using else f"  - {probe['scene']}")
+
+    keynote = payload.get("keynote")
+    if keynote is not None:
+        lines.extend(_keynote_lines(keynote))
+
     lines.append("接下来需要人（或视觉模型）看的：见 references/visual-review-rubric.md")
     return "\n".join(lines)
+
+
+def _keynote_lines(keynote: dict) -> list[str]:
+    """观感闸门摘要。与「不是废片」类检查分开列，不混成一个总分。"""
+    if not keynote.get("enabled"):
+        return [f"观感闸门 K1–K6：不适用——{keynote.get('reason') or '未启用设计语言预设'}"]
+    summary = keynote.get("summary") or {}
+    lines = [
+        "观感闸门 K1–K6（与上面的废片类检查分开计）："
+        f"{summary.get('pass', 0)} 条通过 / {summary.get('warn', 0)} 条提醒 / "
+        f"{summary.get('fail', 0)} 条失败 / {summary.get('skipped', 0)} 条跳过"
+    ]
+    # 只列「不通过」与「跳过」的条目：通过项已在 report.json 里留有实测值
+    for gate in keynote.get("gates") or []:
+        if gate.get("status") == "pass":
+            continue
+        scope = f"[{gate.get('scene')}] " if gate.get("scene") else ""
+        if gate.get("status") == "skipped":
+            shown = gate.get("detail") or "无法实测"
+        else:
+            shown = f"实测 {gate.get('value')} / 阈值 {gate.get('threshold')}"
+        lines.append(f"  {scope}{gate.get('id')} {gate.get('title')}：{shown}")
+    return lines
 
 
 def main_prepare(argv: list[str] | None = None) -> int:

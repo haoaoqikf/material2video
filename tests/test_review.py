@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from a2v import inspect as review
+from a2v import keynote
 from a2v.storyboard import Report
 
 W, H = review._PROBE_W, review._PROBE_H
@@ -89,8 +90,10 @@ class TestFrameMetrics:
         assert metrics["ink"] == 0
 
     def test_detects_content(self):
-        # 中部画一条深色横带，顶部与底部保持背景
-        metrics = review.frame_metrics(_gray({row: 20 for row in range(80, 100)}))
+        # 中部画一条深色横带，顶部与底部保持背景。
+        # 带宽按量测分辨率折算，避免把「测试用的行数」当成契约。
+        band = range(H // 2 - H // 10, H // 2 + H // 10)
+        metrics = review.frame_metrics(_gray({row: 20 for row in band}))
         assert metrics["ink"] > 0.05
         assert metrics["band_top"] == 0
         assert metrics["band_bottom"] == 0
@@ -109,6 +112,167 @@ class TestFrameMetrics:
         for row in range(H):
             data.extend([200 - (row % 12)] * W)
         assert review.frame_metrics(bytes(data))["ink"] == 0
+
+
+class TestKeynoteMetrics:
+    """观感闸门的量测口径：与「不是废片」的墨迹量测分开验证。"""
+
+    def _rgb(self, accent_pixels: int = 0, size: int = 100) -> bytes:
+        """构造一张纯背景图，并在开头写入指定数量的强调色像素。"""
+        data = bytearray()
+        for index in range(size):
+            if index < accent_pixels:
+                data.extend([50, 214, 255])
+            else:
+                data.extend([8, 9, 12])
+        return bytes(data)
+
+    def test_empty_ratio_counts_background(self):
+        assert keynote.rgb_metrics(self._rgb())["empty"] == 1.0
+
+    def test_accent_ratio_is_measured(self):
+        assert keynote.accent_metrics(self._rgb(accent_pixels=10), (50, 214, 255))["accent"] == 0.1
+
+    def test_accent_tolerance_accepts_blended_pixels(self):
+        # 抗锯齿叠加后的强调色比纯色暗一截（约八成亮度），仍应被算作强调色
+        data = bytearray()
+        for index in range(100):
+            data.extend([34, 186, 224] if index < 10 else [8, 9, 12])
+        assert keynote.accent_metrics(bytes(data), (50, 214, 255))["accent"] == 0.1
+
+    def test_accent_rejects_unrelated_colors(self):
+        # 红与青在任一通道上都差得很远，不该被算成强调色
+        data = bytearray()
+        for index in range(100):
+            data.extend([220, 60, 60] if index < 10 else [8, 9, 12])
+        assert keynote.accent_metrics(bytes(data), (50, 214, 255))["accent"] == 0.0
+
+    def test_contrast_ratio_matches_wcag_reference(self):
+        # 白 / 黑 = 21:1，是 WCAG 的已知端点
+        assert round(keynote.contrast_ratio((255, 255, 255), (0, 0, 0)), 1) == 21.0
+
+    def test_parse_color_accepts_hex_and_rgb(self):
+        assert keynote.parse_color("#32d6ff") == (50, 214, 255)
+        assert keynote.parse_color("rgb(50, 214, 255)") == (50, 214, 255)
+        assert keynote.parse_color("transparent") is None
+
+
+class TestKeynoteGates:
+    def test_whitespace_fails_below_budget(self):
+        gate = keynote.gate_whitespace("s", "list", 0.12)
+        assert gate.status == "fail"
+        assert gate.value == 0.12
+
+    def test_whitespace_passes_for_hero_scene(self):
+        assert keynote.gate_whitespace("s", "title", 0.62).status == "pass"
+
+    def test_accent_flags_both_extremes(self):
+        # 用滥是硬错误：画面失去唯一焦点
+        assert keynote.gate_accent("s", 0.4).status == "fail"
+        assert keynote.gate_accent("s", 0.06).status == "pass"
+        # 偏少只提醒：单个强调元素本来就只有千分之几
+        assert keynote.gate_accent("s", 0.0015).status == "warn"
+        assert keynote.gate_accent("s", 0.0).status == "warn"
+        assert keynote.gate_accent("s", 0.2).status == "warn"
+
+    def test_type_sizes_ignores_small_labels(self):
+        # 图形标注与角标是小字，不该把图形画面判成层级失控
+        gate = keynote.gate_type_sizes("s", [28, 30, 32, 36, 96, 140])
+        assert gate.status == "pass"
+        assert gate.value == [96.0, 140.0]
+
+    def test_type_sizes_fails_when_too_many_levels(self):
+        assert keynote.gate_type_sizes("s", [44, 52, 60, 70, 80, 90]).status == "fail"
+
+    def test_alignment_accepts_centered_layout(self):
+        texts = [
+            {"fontSize": 96, "left": 400, "center": 540},
+            {"fontSize": 60, "left": 460, "center": 540},
+        ]
+        assert keynote.gate_alignment("s", texts, center=540).status == "pass"
+
+    def test_alignment_accepts_center_plus_left_column(self):
+        # 居中标题 + 一条左对齐注释是常见的合法组合
+        texts = [
+            {"fontSize": 96, "left": 400, "center": 540},
+            {"fontSize": 60, "left": 96, "center": 300},
+        ]
+        assert keynote.gate_alignment("s", texts, center=540).status == "pass"
+
+    def test_alignment_fails_on_scattered_blocks(self):
+        texts = [
+            {"fontSize": 96, "left": 96, "center": 300},
+            {"fontSize": 60, "left": 400, "center": 700},
+            {"fontSize": 60, "left": 700, "center": 900},
+            {"fontSize": 60, "left": 200, "center": 500},
+        ]
+        gate = keynote.gate_alignment("s", texts, center=540)
+        assert gate.status == "fail"
+        assert "对齐线" in gate.detail
+
+    def test_alignment_ignores_small_labels(self):
+        # 幕角标与图形标注字号小，不参与对齐判定
+        texts = [{"fontSize": 28, "left": 96, "center": 143}]
+        assert keynote.gate_alignment("s", texts, center=540).status == "skipped"
+
+    def test_alignment_skips_without_enough_blocks(self):
+        assert keynote.gate_alignment("s", [], center=540).status == "skipped"
+
+    def test_contrast_reports_skipped_without_colors(self):
+        assert keynote.gate_contrast("s", [{"color": "transparent"}]).status == "skipped"
+
+    def test_contrast_skips_gradient_text(self):
+        # 渐变裁切的标题前景色是透明的，不能当成「对比度 1.0」
+        gate = keynote.gate_contrast(
+            "s",
+            [{"color": "rgba(0, 0, 0, 0)", "gradient": True, "fontSize": 124}],
+        )
+        assert gate.status == "skipped"
+
+    def test_contrast_falls_back_to_page_background(self):
+        gate = keynote.gate_contrast(
+            "s",
+            [{"color": "rgba(255, 255, 255, 0.72)", "background": "rgba(0, 0, 0, 0)", "fontSize": 40}],
+            page_background=(8, 9, 12),
+        )
+        assert gate.status == "pass"
+        assert gate.value > 7
+
+    def test_contrast_fails_on_low_ratio(self):
+        gate = keynote.gate_contrast(
+            "s",
+            [{"color": "rgba(255,255,255,0.10)", "background": "rgb(8,9,12)", "fontSize": 40}],
+        )
+        assert gate.status == "fail"
+
+    def test_card_discipline_flags_flat_blocks(self):
+        # 单个表面缺特征算提醒，多个才判失败
+        assert keynote.gate_card_discipline("s", [{"traits": ["radius"]}]).status == "warn"
+        assert (
+            keynote.gate_card_discipline("s", [{"traits": ["radius"]}, {"traits": ["radius", "border"]}]).status
+            == "fail"
+        )
+        assert (
+            keynote.gate_card_discipline("s", [{"traits": ["radius", "border", "shadow"]}]).status == "pass"
+        )
+
+    def test_result_aggregates_by_gate_and_scene(self):
+        result = keynote.KeynoteResult()
+        result.render("s1", 10, [keynote.gate_accent("s1", 0.06)])
+        result.render("s1", 20, [keynote.gate_accent("s1", 0.4)])
+        assert len(result.gates) == 1
+        assert result.gates[0].status == "fail"
+        assert result.gates[0].value == 0.4
+        assert len(result.frames) == 2
+        assert result.summary()["fail"] == 1
+
+    def test_result_takes_the_worst_status_per_scene(self):
+        # 同一幕逐帧采样：取最严重的一条，避免把同一问题按帧重复计数
+        result = keynote.KeynoteResult()
+        result.render("s1", 10, [keynote.gate_accent("s1", 0.06)])
+        result.render("s1", 20, [keynote.gate_accent("s1", 0.001)])
+        assert result.gates[0].status == "warn"
+        assert result.summary()["pass"] == 0
 
 
 class TestJudgement:

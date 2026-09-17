@@ -197,7 +197,7 @@
     bottom: 10px;
     width: 6px;
     border-radius: 999px;
-    background: linear-gradient(180deg, var(--a2v-accent) 0%, rgba(194, 53, 42, 0.1) 100%);
+    background: linear-gradient(180deg, var(--a2v-accent) 0%, color-mix(in srgb, var(--a2v-accent-soft-solid) 10%, transparent) 100%);
     transform-origin: top center;
   }
 
@@ -554,7 +554,7 @@
     bottom: 0;
     width: 0;
     border-radius: 999px;
-    background: linear-gradient(90deg, rgba(194, 53, 42, 0.55) 0%, #c2352a 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--a2v-accent-soft-solid) 55%, transparent) 0%, var(--a2v-accent-deep) 100%);
   }
 
   /* ---------- 05 上场复利：阶梯 ---------- */
@@ -576,7 +576,7 @@
   }
 
   .stair-bar.is-focus {
-    fill: rgba(194, 53, 42, 0.09);
+    fill: color-mix(in srgb, var(--a2v-accent-soft-solid) 9%, transparent);
     stroke: var(--a2v-accent);
   }
 
@@ -843,3 +843,20 @@
 .fig-number { font-size: 240px; font-weight: 800; line-height: 1; letter-spacing: -0.07em; color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
 .fig-number-label { font-size: 56px; font-weight: 700; color: var(--a2v-text-1); }
 .fig-number-caption { max-width: 760px; font-size: 40px; line-height: 1.4; color: var(--a2v-text-2); }
+
+/*
+ * 强调词的褪色落点。
+ *
+ * 组件不写 `color` 行内样式（行内优先级最高，会让设计语言层覆盖不了），
+ * 改成用 `--a2v-emphasis-mix` 报告「褪到哪一档」。这条规则就是默认的落点：
+ * 混合右侧的 #23262d 与组件原来的目标色一致，因此不启用设计语言预设时，
+ * 既有视频逐帧不变；预设生效时由 keynote.css 换成主题的强调色与褪色档。
+ */
+.key {
+  --a2v-emphasis-mix: 0;
+  color: color-mix(
+    in srgb,
+    #23262d calc(var(--a2v-emphasis-mix) * 100%),
+    var(--a2v-accent)
+  );
+}

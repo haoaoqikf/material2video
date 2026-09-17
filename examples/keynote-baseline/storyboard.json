@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "少一个选项",
+  "visual": { "theme": "dark", "preset": "keynote" },
+  "scenes": [
+    {
+      "id": "opening",
+      "type": "title",
+      "durationInFrames": 150,
+      "visual": { "layout": "center" },
+      "data": {
+        "text": "选项越多\n决定越慢",
+        "subtitle": "多一个选项，并不是多一份自由",
+        "emphasis": ["越多"],
+        "figure": {
+          "kind": "balance",
+          "labels": { "leftPan": "十个选项", "rightPan": "一个决定" },
+          "motion": "calm"
+        }
+      }
+    },
+    {
+      "id": "compare",
+      "type": "comparison",
+      "durationInFrames": 240,
+      "visual": { "layout": "center" },
+      "data": {
+        "title": "多出来的那部分是什么",
+        "left": "更多自由",
+        "right": "更长比较",
+        "figure": {
+          "kind": "versus",
+          "labels": { "note": "差额是犹豫" },
+          "motion": "normal"
+        }
+      }
+    },
+    {
+      "id": "cost",
+      "type": "quote",
+      "durationInFrames": 240,
+      "visual": { "layout": "center" },
+      "data": {
+        "text": "选择消耗的\n是做决定的力气",
+        "emphasis": ["力气"],
+        "figure": {
+          "kind": "gap",
+          "labels": {
+            "assumption": "以为需要",
+            "fact": "真正需要",
+            "dropLabel": "比较用掉",
+            "noDropLabel": "从未拥有"
+          },
+          "motion": "normal"
+        }
+      }
+    },
+    {
+      "id": "attention",
+      "type": "list",
+      "durationInFrames": 270,
+      "visual": { "layout": "center" },
+      "data": {
+        "title": "注意力去了哪里",
+        "items": [
+          { "label": "我要什么", "desc": "决定只需要这一个问题" },
+          { "label": "哪个更好", "desc": "比较把问题换成了它" },
+          { "label": "评估本身", "desc": "消耗的正是做决定的力气" }
+        ],
+        "figure": {
+          "kind": "iceberg",
+          "labels": { "surface": "水面" },
+          "motion": "normal"
+        }
+      }
+    },
+    {
+      "id": "loop",
+      "type": "diagram",
+      "durationInFrames": 330,
+      "visual": { "layout": "center" },
+      "data": {
+        "title": "推迟的决定没有消失",
+        "nodes": [
+          { "id": "open", "label": "打开选项" },
+          { "id": "compare", "label": "逐个比较" },
+          { "id": "tired", "label": "力气耗尽" },
+          { "id": "later", "label": "推到明天" }
+        ],
+        "edges": [
+          { "from": "open", "to": "compare" },
+          { "from": "compare", "to": "tired" },
+          { "from": "tired", "to": "later" },
+          { "from": "later", "to": "open" }
+        ],
+        "figure": {
+          "kind": "loop",
+          "labels": { "gauge": "犹豫累积" },
+          "motion": "normal"
+        }
+      }
+    },
+    {
+      "id": "freedom",
+      "type": "timeline",
+      "durationInFrames": 270,
+      "visual": { "layout": "center" },
+      "data": {
+        "title": "自由不是拥有全部",
+        "items": [
+          { "label": "十个", "desc": "每个都要评估一遍" },
+          { "label": "五个", "desc": "比较变短，仍未决断" },
+          { "label": "一个", "desc": "几秒之内就能决定" }
+        ],
+        "figure": {
+          "kind": "stairs",
+          "labels": { "axis": "选项数", "before": "被选择", "after": "在选择" },
+          "motion": "normal"
+        }
+      }
+    },
+    {
+      "id": "one",
+      "type": "number",
+      "durationInFrames": 180,
+      "visual": { "layout": "center" },
+      "data": {
+        "value": 1,
+        "label": "需要保留的选项（示意）",
+        "caption": "决定在几秒内做完",
+        "figure": { "kind": "number", "motion": "impact" }
+      }
+    },
+    {
+      "id": "closing",
+      "type": "conclusion",
+      "durationInFrames": 360,
+      "visual": { "layout": "lower" },
+      "data": {
+        "text": "缺的不是更好的选项\n而是一把砍掉选项的刀",
+        "action": "先砍到一个，再开始做",
+        "emphasis": ["砍掉选项"],
+        "figure": {
+          "kind": "exchange",
+          "labels": { "leftNode": "更多选项", "rightNode": "更快决定" },
+          "motion": "calm"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,587 @@
+/*
+ * article2video 设计语言层：发布会级排版与画面纪律（可选）
+ *
+ * 这一层回答的问题和 theme.css 不同：
+ *   theme.css  → 「有哪些颜色、什么手感」（通用令牌，任何风格都能用）
+ *   keynote.css → 「排版尺度、间距网格、层级与对比度必须落在哪一档」（一套具体的设计语言）
+ *
+ * 启用方式：分镜写 "visual": { "preset": "keynote" }，共享页面会给 <html> 加
+ * data-a2v-preset="keynote"。不启用时本文件的 @font-face 与主题块都不生效，
+ * 既有视频逐帧不变。
+ *
+ * 引入顺序（页面拥有最终覆盖权）：
+ *   base.css → theme.css → keynote.css → figures.css → 页面自身样式
+ *
+ * 全部数值都是「可以被判定的」：字号来自固定字号阶、间距落在 8pt 网格、
+ * 对比度按 WCAG 计算写入注释。判定由 scripts/a2v/review.py 的 K 系列闸门执行，
+ * 规则与阈值见 references/keynote-design-system.md。
+ */
+
+/* ============================================================
+ * 一、字体资产
+ *
+ * 随仓库分发，不走 CDN：逐帧截图必须离线可复现，CDN 断网时会静默回退到
+ * 系统字体（不报错，只是换一副字）。体积与许可见 assets/fonts/README.md。
+ * font-display: block —— 避免回退字体先渲染一帧而被拍进成片。
+ * ============================================================ */
+@font-face {
+  font-family: "A2V Inter";
+  src: url("fonts/Inter-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "A2V Sans";
+  src: url("fonts/NotoSansSC-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+/* 两套主题共用的字体栈：拉丁与数字走 Inter，汉字回落到 Noto Sans SC，
+ * 最后才是系统栈（字体文件缺失时的兜底，校验器会先一步报错）。 */
+:root {
+  --a2v-font: "A2V Inter", "A2V Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  /* 只给拉丁与数字用，图表里的数值列对齐依赖它 */
+  --a2v-font-latin: "A2V Inter", system-ui, sans-serif;
+
+  /* ---------- 强调色的两个派生色（两套主题共用） ----------
+   * 组件里原本有几处直接写死暖红（`rgba(194, 53, 42, α)`）。写死的颜色不会
+   * 跟着主题走：不改令牌、只换主题时，这些地方会原地留一抹红，看起来像打印偏色。
+   * 这里抽出两个派生令牌，两套主题各自赋值（都是实心色，逐帧渲染里颜色可预测）。
+   * 默认值保持原来的暖红，保证「不启用预设」的既有视频逐帧不变。 */
+  --a2v-accent-deep: #c2352a;
+  --a2v-accent-soft-solid: #7d1c16;
+  /* 强调褪色后的落点。默认值与组件原来的目标色一致（#23262d），
+   * 保证不启用预设的既有视频逐帧不变；两套预设各自覆盖成可读的一档。 */
+  --a2v-emphasis-fade: #23262d;
+}
+
+/* ============================================================
+ * 二、深色预设 keynote-dark
+ *
+ * 表面按「亮度序」排列：d0 < d1 < d2 < d3，越靠前的表面越暗。
+ * 组件只引用语义令牌，不自己发明颜色；切主题时组件代码不动。
+ * 括号内是相对 d0 的 WCAG 对比度实测值（scripts 的令牌自检会复核）。
+ * ============================================================ */
+:root,
+:root[data-a2v-preset="keynote"][data-a2v-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---------- 表面：三级背景 + 两级抬升表面 ---------- */
+  --a2v-bg-0: #08090c; /* 画布最底层 */
+  --a2v-bg-1: #0f131a;
+  --a2v-bg-2: #161c26;
+  --a2v-surface-1: #101520; /* 卡片 */
+  --a2v-surface-2: #171e2b; /* 焦点卡片 */
+  --a2v-surface-1-top: rgba(255, 255, 255, 0.045);
+  --a2v-surface-2-top: rgba(255, 255, 255, 0.075);
+
+  /* ---------- 文字：三级 + 一级仅用于图形与装饰 ---------- */
+  --a2v-ink-1: rgba(255, 255, 255, 0.96); /* 18.26:1 */
+  --a2v-ink-2: rgba(255, 255, 255, 0.72); /* 10.27:1 */
+  --a2v-ink-3: rgba(255, 255, 255, 0.62); /*  7.79:1 */
+  --a2v-ink-4: rgba(255, 255, 255, 0.46); /*  4.54:1 —— 不进正文 */
+  /* 兼容既有令牌名：theme.css 的 text-1/2/3 语义与这里一一对应 */
+  --a2v-text-1: var(--a2v-ink-1);
+  --a2v-text-2: var(--a2v-ink-2);
+  --a2v-text-3: var(--a2v-ink-3);
+
+  /* ---------- 描边：hairline 的对比度按图形元素 3:1 下限选值 ---------- */
+  --a2v-hairline: rgba(255, 255, 255, 0.16); /* 1.64:1，纯装饰分隔 */
+  --a2v-hairline-strong: rgba(255, 255, 255, 0.30); /* 2.99:1 */
+  --a2v-line: rgba(255, 255, 255, 0.46); /* 4.54:1，图形描边下限 */
+
+  /* ---------- 强调色：一套预设只允许一个 ---------- */
+  --a2v-accent: #32d6ff; /* 11.57:1 */
+  --a2v-accent-rgb: 50, 214, 255;
+  --a2v-accent-soft: rgba(50, 214, 255, 0.14);
+  --a2v-accent-line: rgba(50, 214, 255, 0.55);
+  --a2v-accent-deep: #2f7fa8; /* 4.48:1 —— 图形着重色 */
+  --a2v-accent-soft-solid: #16465f; /* 渐变末端，只作收尾 */
+  /* 强调褪色后的落点：开场幕的强调词会从强调色退到这一档。
+   * 组件原来退到 #23262d（旧主题的标题渐变末端），在深色画布上只有 1.31:1，
+   * 等于让强调词凭空消失。这里改成二级墨色，褪色但始终可读。 */
+  --a2v-emphasis-fade: #d5dce8; /* 13.2:1 —— 褪到这一档仍远高于大字下限 */
+
+  /* ---------- 层级：小阴影定形，大阴影造景深 ---------- */
+  --a2v-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --a2v-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 18px 40px -20px rgba(0, 0, 0, 0.75);
+  --a2v-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.40), 0 48px 96px -32px rgba(0, 0, 0, 0.90);
+  --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 48px rgba(var(--a2v-accent-rgb), 0.28);
+
+  /* ---------- 图形墨色：figures.css 的每条线都取这几个值 ---------- */
+  --fig-line: rgba(255, 255, 255, 0.52);
+  --fig-line-soft: rgba(255, 255, 255, 0.18);
+  --fig-ink: #e9eef6;
+  --fig-on-ink: #0f131a;
+  --fig-surface: #171e2b;
+  --fig-water: rgba(92, 152, 220, 0.22);
+  --fig-water-line: rgba(122, 174, 230, 0.55);
+  --fig-water-text: rgba(146, 190, 238, 0.88);
+
+  /* ---------- 背景层：几乎不可见的秩序感，不参与叙事 ---------- */
+  --a2v-glow-1: rgba(50, 214, 255, 0.13);
+  --a2v-glow-2: rgba(96, 132, 255, 0.10);
+  --a2v-grid-color: rgba(255, 255, 255, 0.035);
+  --a2v-grid-size: 120px;
+  --a2v-grain-opacity: 0.035;
+}
+
+/* ============================================================
+ * 三、浅色预设 keynote-light
+ *
+ * 浅色主题最容易踩的坑是「字幕与图形墨色还是照抄深色主题」——
+ * 不报错，只是安静地看不清。因此这里把 --fig-* 与字幕一并覆盖。
+ * 水面是唯一的冷色，压低饱和度以免抢走强调色。
+ * ============================================================ */
+:root[data-a2v-preset="keynote"][data-a2v-theme="light"] {
+  color-scheme: light;
+
+  --a2v-bg-0: #eff1f4;
+  --a2v-bg-1: #f8f9fb;
+  --a2v-bg-2: #ffffff;
+  --a2v-surface-1: #ffffff;
+  --a2v-surface-2: #ffffff;
+  --a2v-surface-1-top: rgba(255, 255, 255, 0.9);
+  --a2v-surface-2-top: rgba(255, 255, 255, 1);
+
+  --a2v-ink-1: #0c0e13; /* 17.06:1 */
+  --a2v-ink-2: #3c4152; /*  8.94:1 */
+  --a2v-ink-3: #565c6e; /*  6.05:1 */
+  --a2v-ink-4: #7c8194; /*  3.42:1 —— 不进正文 */
+  --a2v-text-1: var(--a2v-ink-1);
+  --a2v-text-2: var(--a2v-ink-2);
+  --a2v-text-3: var(--a2v-ink-3);
+
+  --a2v-hairline: rgba(12, 14, 19, 0.10);
+  --a2v-hairline-strong: rgba(12, 14, 19, 0.20);
+  --a2v-line: rgba(12, 14, 19, 0.42); /* 5.30:1 */
+
+  --a2v-accent: #0a6ad9; /* 4.55:1 */
+  --a2v-accent-rgb: 10, 106, 217;
+  --a2v-accent-soft: rgba(10, 106, 217, 0.10);
+  --a2v-accent-line: rgba(10, 106, 217, 0.45);
+  --a2v-accent-deep: #0b4f9e; /* 6.9:1 —— 图形着重色，浅底上要压深 */
+  --a2v-accent-soft-solid: #0d3f7d;
+  --a2v-emphasis-fade: #565c6e; /* 5.15:1 —— 褪色但仍可读 */
+
+  /* 浅底上的阴影要更收敛：深阴影会变成脏边 */
+  --a2v-shadow-1: 0 1px 2px rgba(12, 14, 19, 0.06);
+  --a2v-shadow-2: 0 2px 6px rgba(12, 14, 19, 0.06), 0 16px 32px -18px rgba(12, 14, 19, 0.18);
+  --a2v-shadow-3: 0 8px 20px rgba(12, 14, 19, 0.08), 0 40px 72px -28px rgba(12, 14, 19, 0.22);
+  --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 40px rgba(var(--a2v-accent-rgb), 0.20);
+
+  --fig-line: rgba(12, 14, 19, 0.48);
+  --fig-line-soft: rgba(12, 14, 19, 0.14);
+  --fig-ink: #1b202b;
+  --fig-on-ink: #ffffff;
+  --fig-surface: #ffffff;
+  --fig-water: rgba(64, 92, 132, 0.13);
+  --fig-water-line: rgba(64, 92, 132, 0.42);
+  --fig-water-text: rgba(64, 92, 132, 0.78);
+
+  --a2v-glow-1: rgba(10, 106, 217, 0.07);
+  --a2v-glow-2: rgba(120, 90, 220, 0.05);
+  --a2v-grid-color: rgba(12, 14, 19, 0.035);
+  --a2v-grid-size: 120px;
+  --a2v-grain-opacity: 0.02;
+}
+
+/* ============================================================
+ * 四、排版尺度（两套主题共用）
+ *
+ * 字号阶：相邻档位在 1.25–1.33 之间，顶部刻意拉大——发布会画面上
+ * 「大标题 vs 说明文字」的对比本身就是层级，而不是靠加粗。
+ * 规范要求单帧出现的字号种类不超过 4 种（K3 闸门）。
+ * 正文下限 36px：低于此值在竖屏不可读，应拆场景而不是缩字号。
+ * ============================================================ */
+:root[data-a2v-preset="keynote"] {
+  --a2v-size-caption: 28px; /* 角标、来源、页码 */
+  --a2v-size-label: 34px; /* 组件标签、轴名 */
+  --a2v-size-body: 40px; /* 正文、条目标题 */
+  --a2v-size-lead: 60px; /* 引文、结论正文 */
+  --a2v-size-title: 76px; /* 小节标题、大号说明 */
+  --a2v-size-headline: 96px; /* 金句、主命题 */
+  --a2v-size-display: 120px; /* 主角数字与极短命题 */
+  --a2v-size-hero: 140px; /* 开场与收束，一个画面只用一次 */
+
+  /* 行高：字号越大越紧。显式指定，不依赖字体自带度量，
+   * 这是跨字体跨机器保持版式一致的前提。 */
+  --a2v-leading-hero: 1.06;
+  --a2v-leading-display: 1.1;
+  --a2v-leading-headline: 1.14;
+  --a2v-leading-title: 1.2;
+  --a2v-leading-lead: 1.32;
+  --a2v-leading-body: 1.47;
+  --a2v-leading-label: 1.4;
+  --a2v-leading-caption: 1.45;
+
+  /* 字距：标题收紧、标签放开。这是「标题感 / 正文感」最廉价的分界。 */
+  --a2v-tracking-hero: -0.03em;
+  --a2v-tracking-display: -0.025em;
+  --a2v-tracking-headline: -0.02em;
+  --a2v-tracking-title: -0.015em;
+  --a2v-tracking-lead: -0.005em;
+  --a2v-tracking-body: 0em;
+  --a2v-tracking-label: 0.14em;
+  --a2v-tracking-caption: 0.06em;
+
+  --a2v-tracking-title-legacy: -0.02em;
+  --a2v-tracking-label-legacy: 0.22em;
+  --a2v-line-title: var(--a2v-leading-title);
+  --a2v-line-body: var(--a2v-leading-body);
+
+  /* ---------- 间距：8pt 网格 ---------- */
+  --a2v-space-1: 4px;
+  --a2v-space-2: 8px;
+  --a2v-space-3: 16px;
+  --a2v-space-4: 24px;
+  --a2v-space-5: 32px;
+  --a2v-space-6: 48px;
+  --a2v-space-7: 64px;
+  --a2v-space-8: 96px;
+  --a2v-space-9: 128px;
+  --a2v-space-10: 192px;
+
+  /* ---------- 圆角与层级成对：越大的表面用越大的圆角 ---------- */
+  --a2v-radius-xs: 8px;
+  --a2v-radius-sm: 16px;
+  --a2v-radius-md: 24px;
+  --a2v-radius-lg: 32px;
+  --a2v-radius-xl: 48px;
+  --a2v-radius-pill: 999px;
+
+  /* ---------- 安全区与栅格 ---------- */
+  --a2v-safe-top: 240px;
+  --a2v-safe-bottom: 320px;
+  --a2v-safe-x: 96px;
+  --a2v-safe-bottom-with-subtitles: 520px;
+  --a2v-content-width: 888px;
+  --a2v-grid-columns: 12;
+  --a2v-grid-gutter: 24px;
+  --a2v-grid-column: calc(
+    (var(--a2v-content-width) - (var(--a2v-grid-columns) - 1) * var(--a2v-grid-gutter)) /
+      var(--a2v-grid-columns)
+  );
+
+  /* ---------- 动效时长：换算成 30fps 的帧数写在注释里，
+   * 画面仍然只由帧驱动（禁止 CSS animation/transition） ---------- */
+  --a2v-dur-fast: 240ms; /* ≈ 7 帧 */
+  --a2v-dur-base: 360ms; /* ≈ 11 帧 */
+  --a2v-dur-slow: 560ms; /* ≈ 17 帧 */
+}
+
+/* ============================================================
+ * 五、基础版式：预设生效时的页面骨架
+ *
+ * 只改「共享页面自己画出来的东西」（舞台、安全区、角标、字幕、进度轨），
+ * 组件内部样式仍由 figures.css 负责。
+ * ============================================================ */
+
+[data-a2v-preset="keynote"] [data-a2v-stage] {
+  background: var(--a2v-bg-0);
+  font-family: var(--a2v-font);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 内容列对齐到栅格：所有正文默认左对齐到安全区左边线，
+ * 需要居中的场景由 data-layout="center" 显式声明。 */
+[data-a2v-preset="keynote"] .a2v-safe {
+  gap: var(--a2v-space-6);
+  text-align: left;
+}
+
+[data-a2v-preset="keynote"] .a2v-safe.a2v-safe-center,
+[data-a2v-preset="keynote"] [data-layout="center"] .a2v-safe {
+  align-items: center;
+  text-align: center;
+}
+
+[data-a2v-preset="keynote"] [data-layout="lower"] .a2v-safe {
+  justify-content: flex-end;
+}
+
+/* 字幕：base.css 的默认字幕是「白字深描边」，压在浅色底上几乎读不出来。
+ * 浅色预设必须换一套：深字 + 浅色光晕。 */
+[data-a2v-preset="keynote"][data-a2v-theme="dark"] .a2v-subtitle {
+  color: rgba(255, 255, 255, 0.97);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+[data-a2v-preset="keynote"][data-a2v-theme="light"] .a2v-subtitle {
+  color: var(--a2v-ink-1);
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95), 0 1px 3px rgba(255, 255, 255, 1),
+    0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* 幕角标：只放「场景类型 / 幕号」，给画面一个稳定的锚点。
+ * 位置必须落在安全区**以内**：基线的默认顶部安全区是 220px，
+ * 角标贴着它下沿放，既不会顶到画面边缘，也不会被平台的状态栏盖住。 */
+[data-a2v-preset="keynote"] .a2v-scene-index {
+  position: absolute;
+  top: calc(var(--a2v-safe-top) + var(--a2v-space-3));
+  left: var(--a2v-safe-x);
+  right: var(--a2v-safe-x);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--a2v-space-4);
+  font-size: var(--a2v-size-caption);
+  font-weight: 500;
+  letter-spacing: var(--a2v-tracking-label);
+  text-transform: uppercase;
+  color: var(--a2v-ink-3);
+}
+
+[data-a2v-preset="keynote"] .a2v-scene-index .a2v-scene-number {
+  font-family: var(--a2v-font-latin);
+  font-variant-numeric: tabular-nums;
+  color: var(--a2v-ink-2);
+}
+
+/* 焦点线：一条 4px 的强调竖线，用于把视线钉在结论上。
+ * 它是「唯一焦点」的载体，不应与其它强调元素同帧出现。 */
+[data-a2v-preset="keynote"] .a2v-focus-rule {
+  width: 4px;
+  border-radius: var(--a2v-radius-pill);
+  background: var(--a2v-accent);
+  box-shadow: 0 0 24px rgba(var(--a2v-accent-rgb), 0.5);
+}
+
+/* 强调短语：由组件渲染成 <span class="key">。开场幕的强调词由组件用
+ * `--a2v-emphasis-mix` 报告「褪到哪一档」（0 = 强调色，1 = 褪色落点），
+ * 颜色本身由这里决定：组件不写死颜色，换主题、换强调色都只改令牌。
+ * 组件刻意不写 `color` 行内样式——行内优先级最高，会让设计语言层永远
+ * 覆盖不了这一处（表现是「预设改了强调色，只有强调词不变」）。 */
+[data-a2v-preset="keynote"] .key {
+  --a2v-emphasis-mix: 0;
+  color: color-mix(
+    in srgb,
+    var(--a2v-emphasis-fade) calc(var(--a2v-emphasis-mix) * 100%),
+    var(--a2v-accent)
+  );
+  /* 组件写的是 rgba(var(--a2v-accent-rgb), α)，强调色令牌是青色，
+   * 但组件自带的兜底值是暖红——在深灰标题里会显得像「打印偏色」。
+   * 这里把局部令牌钉回预设的强调色。 */
+  --a2v-accent-rgb: 50, 214, 255;
+}
+
+/* 组件自带的标题渐变是「深灰 → 更浅的灰」（#23262d → #3d434e），
+ * 那是为浅色页面写的：放在深色画布上，标题与背景的对比度不足 2:1，
+ * 整行字几乎读不出来——这是最典型的静默观感缺陷（不报错，只是看不清）。
+ * 预设生效时换成主题墨色渐变：深色主题由亮到稍暗，浅色主题由深到稍浅，
+ * 两端都落在令牌的对比度预算内，方向与背景相反。 */
+[data-a2v-preset="keynote"][data-a2v-theme="dark"] .title-text {
+  background-image: linear-gradient(180deg, #ffffff 0%, #c3cddd 100%);
+}
+
+[data-a2v-preset="keynote"][data-a2v-theme="light"] .title-text {
+  background-image: linear-gradient(180deg, #12141b 0%, #444b5e 100%);
+}
+
+[data-a2v-preset="keynote"] .key-underline {
+  background: linear-gradient(to top, var(--a2v-accent-soft) 38%, transparent 38%);
+}
+
+/* ============================================================
+ * 六、排版工具类：字号档的唯一入口
+ *
+ * 页面与组件直接给元素加类，而不是写 font-size: 62px 这种裸数字。
+ * 裸字号会绕过 K3 闸门的前提（字号种类可枚举），也会让层级失控。
+ * ============================================================ */
+[data-a2v-preset="keynote"] .a2v-hero {
+  font-size: var(--a2v-size-hero);
+  line-height: var(--a2v-leading-hero);
+  letter-spacing: var(--a2v-tracking-hero);
+  font-weight: 700;
+  color: var(--a2v-ink-1);
+}
+
+[data-a2v-preset="keynote"] .a2v-display {
+  font-size: var(--a2v-size-display);
+  line-height: var(--a2v-leading-display);
+  letter-spacing: var(--a2v-tracking-display);
+  font-weight: 700;
+  color: var(--a2v-ink-1);
+}
+
+[data-a2v-preset="keynote"] .a2v-headline {
+  font-size: var(--a2v-size-headline);
+  line-height: var(--a2v-leading-headline);
+  letter-spacing: var(--a2v-tracking-headline);
+  font-weight: 650;
+  color: var(--a2v-ink-1);
+}
+
+[data-a2v-preset="keynote"] .a2v-title {
+  font-size: var(--a2v-size-title);
+  line-height: var(--a2v-leading-title);
+  letter-spacing: var(--a2v-tracking-title);
+  font-weight: 600;
+  color: var(--a2v-ink-1);
+}
+
+[data-a2v-preset="keynote"] .a2v-lead {
+  font-size: var(--a2v-size-lead);
+  line-height: var(--a2v-leading-lead);
+  letter-spacing: var(--a2v-tracking-lead);
+  font-weight: 500;
+  color: var(--a2v-ink-1);
+}
+
+[data-a2v-preset="keynote"] .a2v-body {
+  font-size: var(--a2v-size-body);
+  line-height: var(--a2v-leading-body);
+  letter-spacing: var(--a2v-tracking-body);
+  font-weight: 450;
+  color: var(--a2v-ink-2);
+}
+
+[data-a2v-preset="keynote"] .a2v-label {
+  font-size: var(--a2v-size-label);
+  line-height: var(--a2v-leading-label);
+  letter-spacing: var(--a2v-tracking-label);
+  font-weight: 500;
+  color: var(--a2v-ink-3);
+  text-transform: uppercase;
+}
+
+[data-a2v-preset="keynote"] .a2v-caption {
+  font-size: var(--a2v-size-caption);
+  line-height: var(--a2v-leading-caption);
+  letter-spacing: var(--a2v-tracking-caption);
+  font-weight: 450;
+  color: var(--a2v-ink-3);
+}
+
+/* 数值：定宽数字保证多帧之间不抖动；这是「数字滚动」类画面的前提。 */
+[data-a2v-preset="keynote"] .a2v-numeric {
+  font-family: var(--a2v-font-latin);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: -0.02em;
+}
+
+/* 卡片：表面 + 1px 描边 + 顶部内高光 + 双层阴影，四件套缺一就会显平。 */
+[data-a2v-preset="keynote"] .a2v-card {
+  background: linear-gradient(180deg, var(--a2v-surface-1-top) 0%, transparent 100%),
+    var(--a2v-surface-1);
+  border: 1px solid var(--a2v-hairline);
+  border-radius: var(--a2v-radius-md);
+  box-shadow: var(--a2v-shadow-2), var(--a2v-inset-highlight);
+  padding: var(--a2v-space-5) var(--a2v-space-6);
+}
+
+[data-a2v-preset="keynote"] .a2v-card-focus {
+  border-color: var(--a2v-accent-line);
+  box-shadow: var(--a2v-shadow-3), var(--a2v-inset-highlight), var(--a2v-focus-halo);
+}
+
+/* 网格辅助：需要对齐到 12 列的页面用这个容器，不要自己算宽度。 */
+[data-a2v-preset="keynote"] .a2v-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--a2v-grid-columns), minmax(0, 1fr));
+  gap: var(--a2v-grid-gutter);
+  width: var(--a2v-content-width);
+}
+
+[data-a2v-preset="keynote"] .a2v-safe-bottom-offset {
+  bottom: var(--a2v-safe-bottom-with-subtitles);
+}
+
+/* ============================================================
+ * 七、字号档的 CSS 预置（拟合前也要有正确的度量）
+ *
+ * 排版引擎是「先量后定」：它需要在一个已知字号下量出字宽比例，再换算到目标档。
+ * 若元素此刻还是组件自带的字号，量出来的行高与字距就不是该档的，拟合会被带偏。
+ * 因此这里把每个档位的字号、行高、字距**先按档位预置**，引擎再在同一个基准上取档；
+ * 取档结果仍以内联样式写回，保证与 token 完全一致。
+ * ============================================================ */
+[data-a2v-preset="keynote"] [data-a2v-fit="hero"] {
+  font-size: var(--a2v-size-hero);
+  line-height: var(--a2v-leading-hero);
+  letter-spacing: var(--a2v-tracking-hero);
+  font-weight: 700;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="display"] {
+  font-size: var(--a2v-size-display);
+  line-height: var(--a2v-leading-display);
+  letter-spacing: var(--a2v-tracking-display);
+  font-weight: 700;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="headline"] {
+  font-size: var(--a2v-size-headline);
+  line-height: var(--a2v-leading-headline);
+  letter-spacing: var(--a2v-tracking-headline);
+  font-weight: 650;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="title"] {
+  font-size: var(--a2v-size-title);
+  line-height: var(--a2v-leading-title);
+  letter-spacing: var(--a2v-tracking-title);
+  font-weight: 600;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="lead"] {
+  font-size: var(--a2v-size-lead);
+  line-height: var(--a2v-leading-lead);
+  letter-spacing: var(--a2v-tracking-lead);
+  font-weight: 500;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="body"] {
+  font-size: var(--a2v-size-body);
+  line-height: var(--a2v-leading-body);
+  letter-spacing: var(--a2v-tracking-body);
+  font-weight: 450;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="label"] {
+  font-size: var(--a2v-size-label);
+  line-height: var(--a2v-leading-label);
+  letter-spacing: var(--a2v-tracking-label);
+  font-weight: 500;
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="caption"] {
+  font-size: var(--a2v-size-caption);
+  line-height: var(--a2v-leading-caption);
+  letter-spacing: var(--a2v-tracking-caption);
+  font-weight: 450;
+}
+
+/* 拟合引擎写回的内联样式优先于上面的预置；这里只负责「还没拟合时」不至于崩版。
+ * 文案只用普通文本，避免把 figcaption 说明文字也拉成卡片标签的字距。 */
+[data-a2v-preset="keynote"] [data-a2v-fit] {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* 组件库的插画标签（figures.css 引用的 --a2v-font-sans 在当前介质里没有定义，
+ * 而 var() 未定义会让 font-family 回退到「继承值」——结果是无害的，
+ * 但会让组件标签落到 body 的字体栈上。这里显式定义，让组件标签与正文同源。） */
+[data-a2v-preset="keynote"] {
+  --a2v-font-sans: var(--a2v-font);
+}
+
+/* 主角数字：组件自带的 240px 不在字号阶上，会绕过 K3（同帧字号种类）。
+ * 预设生效时把它收到字号阶的顶档，层级仍然最强，但成为**可枚举**的一档。 */
+[data-a2v-preset="keynote"] .fig-number {
+  font-size: var(--a2v-size-hero);
+  line-height: var(--a2v-leading-hero);
+  letter-spacing: var(--a2v-tracking-hero);
+}
+
+[data-a2v-preset="keynote"] .fig-number-label {
+  font-size: var(--a2v-size-title);
+  line-height: var(--a2v-leading-title);
+  letter-spacing: var(--a2v-tracking-title);
+}
+
+[data-a2v-preset="keynote"] .fig-number-caption {
+  font-size: var(--a2v-size-body);
+  line-height: var(--a2v-leading-body);
+  letter-spacing: var(--a2v-tracking-body);
+}

@@ -9,6 +9,9 @@
 2. **帧量测**（启发式）：逐帧统计墨迹覆盖率与上下安全区的墨迹，
    用于发现空幕、黑屏、内容压到边缘。
 3. **设计宪法**（静态）：结构、曲线、模糊、挂载点、文案真源、安全区。
+4. **观感闸门 K1–K6**（量测，可选）：启用设计语言预设时，量出留白预算、
+   强调色占比、字号种类、对齐基线、正文对比度与卡片纪律。它与前三项**分开报告、
+   分开计数**——前三项回答「这是不是废片」，K 系列回答「这像不像发布会级别的画面」。
 
 评分与审美判断不在这里假装能做：`references/visual-review-rubric.md`
 给出人工评审清单，本模块只负责把「需要人看的东西」都摆出来。
@@ -25,15 +28,18 @@ from typing import Any
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import catalog, constitution
+from . import catalog, constitution, keynote
 from .storyboard import Report
 
 #: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
 SAMPLES = (0.35, 0.68, 0.96)
 
-#: 量测用的缩略尺寸：够看出「哪里有多少墨」，又不至于在纯 Python 里逐像素太慢
-_PROBE_W = 108
-_PROBE_H = 192
+#: 量测用的缩略尺寸：够看出「哪里有多少墨」，又不至于在纯 Python 里逐像素太慢。
+#: 强调色量测对分辨率敏感——108px 宽时一条 4px 的强调竖线会被混成接近背景的颜色，
+#: 于是「画面里明明有强调色」被量成 0。540×960 是这条链路上的折中：
+#: 细线不再被抹平，单帧解码仍在 0.3 秒量级。
+_PROBE_W = 540
+_PROBE_H = 960
 
 #: 与画面主色调偏离多少灰度级才算「有墨」（渐变背景的浮动在 10 级以内）
 _INK_DELTA = 40
@@ -95,24 +101,35 @@ _PROBE_SCRIPT = """
 _TEXT_SLOT = re.compile(r"(Text|Note|Label|Title|title|caption|action)$")
 
 
-def decode_gray(png: bytes) -> bytes:
-    """把一帧缩到 108x192 的灰度图，用于逐像素统计。
+def decode_raw(png: bytes, pix_fmt: str) -> bytes:
+    """把一帧缩到 108x192 的原始像素，用于逐像素统计。
 
-    纯 Python 处理 2 万个字节是瞬时的，处理 200 万像素则不可接受；
-    判断「哪里有多少墨」不需要原始分辨率。
+    纯 Python 处理 2 万个像素是瞬时的，处理 200 万像素则不可接受；
+    判断「哪里有多少墨、有多少强调色」不需要原始分辨率。
     """
+    channels = 3 if pix_fmt == "rgb24" else 1
     completed = subprocess.run(
         [
             get_ffmpeg_exe(), "-v", "error", "-i", "pipe:0",
             "-vf", f"scale={_PROBE_W}:{_PROBE_H}",
-            "-f", "rawvideo", "-pix_fmt", "gray", "pipe:1",
+            "-f", "rawvideo", "-pix_fmt", pix_fmt, "pipe:1",
         ],
         input=png,
         capture_output=True,
     )
-    if completed.returncode != 0 or len(completed.stdout) != _PROBE_W * _PROBE_H:
+    if completed.returncode != 0 or len(completed.stdout) != _PROBE_W * _PROBE_H * channels:
         raise ValueError("无法解码这一帧用于量测")
     return completed.stdout
+
+
+def decode_gray(png: bytes) -> bytes:
+    """灰度缩略图，用于墨迹覆盖率与安全区量测。"""
+    return decode_raw(png, "gray")
+
+
+def decode_rgb(png: bytes) -> bytes:
+    """RGB 缩略图，用于留白率与强调色占比量测。"""
+    return decode_raw(png, "rgb24")
 
 
 def frame_metrics(gray: bytes) -> dict[str, float]:
@@ -140,6 +157,21 @@ def frame_metrics(gray: bytes) -> dict[str, float]:
         "band_top": top_ink / (top_rows * _PROBE_W),
         "band_bottom": bottom_ink / ((_PROBE_H - bottom_start) * _PROBE_W),
     }
+
+
+def rgb_metrics(rgb: bytes) -> dict[str, float]:
+    """留白率：与画面角落像素接近的像素占比，用于 K1 留白预算。"""
+    return keynote.rgb_metrics(rgb)
+
+
+def accent_metrics(rgb: bytes, accent: tuple[int, int, int]) -> dict[str, float]:
+    """强调色面积占比，用于 K2。"""
+    return keynote.accent_metrics(rgb, accent)
+
+
+def ink_metrics(rgb: bytes) -> dict[str, float]:
+    """亮到能读的墨迹占比，用于 K1 的「文字是否可见」自检。"""
+    return keynote.ink_metrics(rgb)
 
 
 def judge_frame(name: str, metrics: dict[str, float], report: Report) -> None:
@@ -322,11 +354,177 @@ def uses_component_library(page: Any) -> bool:
     return bool(page.evaluate("() => document.querySelectorAll('[data-a2v-figure]').length"))
 
 
+#: 观感闸门要用的元素事实：每一帧在当前场景里读一次。
+#: 只读计算样式与布局矩形，不做任何写操作，因此不会影响截图的确定性。
+#:
+#: 三类元素必须排除，否则闸门会误报：
+#: 1. SVG 内的文字——它们画在各自的几何位置上，不是版式层级；`getComputedStyle`
+#:    对 SVG 文本还会返回 `font-size: 36px` 这类祖先值，量出来没有意义。
+#: 2. 装饰性字形（引号、下划线、逐字拆分的 span）——不是可读文本。
+#: 3. 幕角标——它是画面 chrome，不参与构图对齐，字号也只有 caption 档。
+_AESTHETIC_SCRIPT = """
+() => {
+  var scenes = document.querySelectorAll('[data-a2v-preset] [data-a2v-scene]');
+  var active = null;
+  for (var i = 0; i < scenes.length; i++) {
+    var sceneStyle = window.getComputedStyle(scenes[i]);
+    if (sceneStyle.display !== 'none' && sceneStyle.visibility !== 'hidden') { active = scenes[i]; break; }
+  }
+  if (!active) return null;
+
+  var DECORATIVE = ['quote-mark', 'key-underline', 'reveal-char', 'a2v-scene-index', 'a2v-scene-number', 'a2v-scene-type'];
+  var className = function (el) {
+    if (!el || !el.className) return '';
+    return String(el.className.baseVal !== undefined ? el.className.baseVal : el.className);
+  };
+  var isDecorative = function (el) {
+    var cls = className(el);
+    for (var d = 0; d < DECORATIVE.length; d++) {
+      if (cls.indexOf(DECORATIVE[d]) >= 0) return true;
+    }
+    return false;
+  };
+  var isChrome = function (el) {
+    return !!(el.closest && el.closest('.a2v-scene-index'));
+  };
+
+  var stage = document.querySelector('[data-a2v-preset] [data-a2v-stage]');
+  var stageRect = stage ? stage.getBoundingClientRect() : { left: 0, width: 0 };
+  var safeRect = active.querySelector('.a2v-safe');
+  var safeBox = safeRect ? safeRect.getBoundingClientRect() : null;
+
+  var sizes = [];
+  var texts = [];
+  var walker = document.createTreeWalker(active, NodeFilter.SHOW_TEXT, null);
+  var text = walker.nextNode();
+  while (text) {
+    var parent = text.parentElement;
+    if (parent && (text.textContent || '').trim()) {
+      var isSvg = !!(parent.ownerSVGElement || String(parent.tagName).toLowerCase() === 'svg');
+      var rect = parent.getBoundingClientRect();
+      var style = window.getComputedStyle(parent);
+      var visible = rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      if (visible && !isSvg && !isChrome(parent)) {
+        sizes.push(parseFloat(style.fontSize) || 0);
+        if (!isDecorative(parent)) {
+          var alpha = 1;
+          var match = String(style.color).match(/rgba?\\(([^)]+)\\)/);
+          if (match) {
+            var parts = match[1].split(',');
+            if (parts.length > 3) alpha = parseFloat(parts[3]);
+          }
+          texts.push({
+            role: className(parent) || String(parent.tagName).toLowerCase(),
+            fontSize: parseFloat(style.fontSize) || 0,
+            left: Math.round(rect.left * 10) / 10,
+            center: Math.round((rect.left + rect.width / 2 - stageRect.left) * 10) / 10,
+            color: style.color,
+            // 标题常用「渐变裁切」绘制：文字自身的 color 是透明的，
+            // 真正显色的是背景裁切。这类文本无法用前景色算对比度，
+            // 标记出来让对比度闸门跳过，而不是量出 1.0 的假失败。
+            gradient: (style.webkitBackgroundClip || style.backgroundClip) === 'text',
+            alpha: isNaN(alpha) ? 1 : alpha,
+            background: style.backgroundColor
+          });
+        }
+      }
+    }
+    text = walker.nextNode();
+  }
+
+  var cards = [];
+  var surfaces = active.querySelectorAll('[data-a2v-figure] > *');
+  for (var j = 0; j < surfaces.length; j++) {
+    var el = surfaces[j];
+    var s = window.getComputedStyle(el);
+    var radius = parseFloat(s.borderTopLeftRadius) || 0;
+    if (radius <= 8) continue;
+    var traits = ['radius'];
+    if ((parseFloat(s.borderTopWidth) || 0) > 0) traits.push('border');
+    var shadowText = s.boxShadow || '';
+    if (shadowText && shadowText !== 'none') traits.push('shadow');
+    if (shadowText.indexOf('inset') >= 0) traits.push('inset');
+    cards.push({ traits: traits });
+  }
+
+  var rootStyle = window.getComputedStyle(document.documentElement);
+  return {
+    sizes: sizes,
+    texts: texts,
+    cards: cards,
+    accent: rootStyle.getPropertyValue('--a2v-accent').trim(),
+    background: rootStyle.getPropertyValue('--a2v-bg-0').trim(),
+    center: safeBox ? safeBox.left + safeBox.width / 2 - stageRect.left : 0,
+    stage: { width: stageRect.width, height: stageRect.height }
+  };
+}
+"""
+
+#: 观感闸门的场景类型分组：主体幕（开场 / 金句 / 收束）有更高的留白门槛。
+_HERO_SCENE_TYPES = ("title", "quote", "conclusion")
+
+
+def keynote_gate(
+    frame_name: str,
+    scene_id: str,
+    scene_type: str,
+    rgb: bytes,
+    facts: dict[str, Any] | None,
+    accent: tuple[int, int, int] | None,
+) -> list[keynote.Gate]:
+    """把一帧的像素量测与元素事实转成一条条观感闸门结论。"""
+    gates: list[keynote.Gate] = []
+    background = rgb_metrics(rgb)
+    gates.append(keynote.gate_whitespace(scene_id, scene_type, background["empty"], ink_metrics(rgb)["bright"]))
+    if accent is None:
+        gates.append(
+            keynote.Gate(
+                id="K2",
+                title="强调色占比",
+                status="skipped",
+                detail="取不到主题的强调色令牌，无法量测强调色面积",
+                scene=scene_id,
+            )
+        )
+    else:
+        gates.append(keynote.gate_accent(scene_id, accent_metrics(rgb, accent)["accent"]))
+
+    if not facts:
+        for gate_id, title in (
+            ("K3", "同帧字号种类"),
+            ("K4", "对齐基线"),
+            ("K5", "正文对比度"),
+            ("K6", "卡片与描边纪律"),
+        ):
+            gates.append(
+                keynote.Gate(
+                    id=gate_id,
+                    title=title,
+                    status="skipped",
+                    detail="页面未启用设计语言预设，元素事实不可用",
+                    scene=scene_id,
+                )
+            )
+        return gates
+
+    texts = facts.get("texts") or []
+    page_background = keynote.parse_color(facts.get("background") or "")
+    gates.append(keynote.gate_type_sizes(scene_id, list(facts.get("sizes") or [])))
+    gates.append(
+        keynote.gate_alignment(scene_id, texts, center=float(facts.get("center") or 0) or None)
+    )
+    gates.append(keynote.gate_contrast(scene_id, texts, page_background))
+    gates.append(keynote.gate_card_discipline(scene_id, list(facts.get("cards") or [])))
+    return gates
+
+
 def run_inspect(
     page: Any,
     scenes: list[dict[str, Any]],
     frames_dir: Path,
     report_dir: Path,
+    *,
+    preset: str = "",
 ) -> tuple[Report, dict[str, Any]]:
     """在已打开的页面上跑完契约探针与帧量测，并落盘。"""
     report = Report()
@@ -335,6 +533,10 @@ def run_inspect(
     probes: list[dict[str, Any]] = []
     metrics: list[dict[str, Any]] = []
     shots: list[Path] = []
+    keynote_result = keynote.KeynoteResult(
+        enabled=bool(preset),
+        reason="" if preset else "该作品未启用设计语言预设（visual.preset），观感闸门不适用",
+    )
     probing = uses_component_library(page)
     if not probing:
         report.warn(
@@ -347,6 +549,7 @@ def run_inspect(
         scene = by_id.get(scene_id, {})
         expected_kind = declared_kind(scene)
         labels = scene_labels(scene)
+        scene_type = str(scene.get("type") or "")
         frames = sample_frames(start, end)
         seen_texts: set[str] = set()
         last_els: dict[str, str] = {}
@@ -361,6 +564,16 @@ def run_inspect(
             measured.update({"scene": scene_id, "frame": frame})
             metrics.append(measured)
             judge_frame(target.name, measured, report)
+
+            if keynote_result.enabled:
+                facts = page.evaluate(_AESTHETIC_SCRIPT)
+                accent_text = (facts or {}).get("accent") or ""
+                accent = keynote.parse_color(accent_text)
+                keynote_result.render(
+                    scene_id,
+                    frame,
+                    keynote_gate(target.name, scene_id, scene_type, decode_rgb(png), facts, accent),
+                )
 
             # 顺带读一次组件结构：标注可能在幕内被替换（例如翻转牌），
             # 因此判定用的是整幕出现过的全部文本，而不是某一帧的瞬时状态
@@ -402,4 +615,5 @@ def run_inspect(
         "frames": metrics,
         "frameCount": len(shots),
         "usedComponentLibrary": probing,
+        "keynote": keynote_result.to_json(),
     }

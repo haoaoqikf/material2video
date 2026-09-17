@@ -47,6 +47,11 @@ _FIGURE_MOTIONS = ("calm", "normal", "impact")
 _VISUAL_THEMES = ("dark", "light")
 _VISUAL_LAYOUTS = ("center", "lower")
 
+# 设计语言预设：在既有令牌之外启用一套完整的版式系统（字号阶、间距网格、
+# 对比度下限、观感闸门）。未声明时画面与既有作品逐帧一致，详见
+# references/keynote-design-system.md。
+_VISUAL_PRESETS = ("keynote",)
+
 # 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
 # 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
 # 而不是缩小字号。标题类允许更长，因为短标题强行折行反而破坏构图。
@@ -134,7 +139,12 @@ def validate(data: Any, *, declarative: bool = False) -> Report:
     _validate_framerate(data, report)
     _validate_dimensions(data, report)
     if "visual" in data:
-        _validate_visual(data["visual"], "visual", {"theme": _VISUAL_THEMES}, report)
+        _validate_visual(
+            data["visual"],
+            "visual",
+            {"theme": _VISUAL_THEMES, "preset": _VISUAL_PRESETS},
+            report,
+        )
     if declarative:
         _reject_unknown(data, {"version", "fps", "width", "height", "title", "scenes", "visual"}, "", report)
     # 后续换算必须用可信的 fps；非法值已在校验中报错，这里只是避免算术崩溃
@@ -558,6 +568,9 @@ class Storyboard:
     height: int
     title: str | None
     scenes: tuple[Scene, ...]
+    #: 根级视觉声明（主题 / 设计语言预设）。原样保留，便于体检与渲染判断
+    #: 这支片子用的是哪套版式，而不必回头再读一遍 JSON。
+    visual: dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_frames(self) -> int:
@@ -623,4 +636,5 @@ def _build(data: dict[str, Any], report: Report) -> Storyboard:
         height=data.get("height", 1920),
         title=data.get("title"),
         scenes=tuple(scenes),
+        visual=dict(data.get("visual") or {}),
     )

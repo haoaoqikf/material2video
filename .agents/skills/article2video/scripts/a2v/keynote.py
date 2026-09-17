@@ -1,0 +1,550 @@
+"""观感闸门：把「发布会级别的画面」里能被量出来的部分跑一遍。
+
+和 `constitution.py` 的分工：
+
+| 模块 | 回答的问题 | 判据性质 |
+| --- | --- | --- |
+| `constitution.py` | 这是不是一段**废片** | 结构、曲线、挂载点、文案真源 |
+| 本模块 | 这像不像**发布会级别的画面** | 留白、强调色、层级、对比度、对齐 |
+
+两者**分开报告、分开计数**。混在一个总分里，会让「画面很空但结构齐全」看起来及格。
+
+每条闸门给出实测数值与阈值，**不能实测时报告 skipped 并写明原因**，
+绝不计为通过——假自动判定比没有判定更危险。阈值与理由见
+`references/keynote-design-system.md`。
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+#: 与角落像素相差多少灰度级以内算「背景」。
+#: 深色主题的背景带光晕与点阵，缩略图上的浮动比纯色底大，因此给到 16。
+#: 文字与图形与背景的差距远大于这个值。
+_BACKGROUND_TOLERANCE = 16
+
+#: 强调色判定容差（每通道）。按帧渲染的强调色带抗锯齿、光晕与半透明叠加，
+#: 容差太小会只认「纯色像素」，把真实的强调元素全漏掉。
+_ACCENT_TOLERANCE = 46
+
+#: 留白预算：按帧量测的「背景像素占比」。
+#: 信息幕 ≥40%、hero/quote 幕 ≥60% 是设计研究里的可编码结论（见参考文档）。
+#: 警告带宽 0.18：低于门槛一截才判失败，避免把「留白略紧」误报成「画面糊满了」。
+_EMPTY_MIN_QUOTE = 0.60
+_EMPTY_MIN_DEFAULT = 0.40
+_EMPTY_WARN_MARGIN = 0.18
+
+#: 一帧里「亮到能读的墨迹」的下限。低于它就只剩背景与暗色图形了，
+#: 说明文字要么没画出来，要么被压暗到读不出。540×960 下 0.004 约等于 2000 像素，
+#: 一排 40px 的正文就超过这个量。
+_READABLE_MIN = 0.004
+
+#: 强调色面积占比：60-30-10 结构里强调色占 10%。
+#: 下限取 0.2%：一个强调短语、一条焦点线或一个主角数字在整帧里就是千分之几的量级，
+#: 门槛定高了会把「只有一个焦点」误判成「没有焦点」。
+_ACCENT_MIN = 0.002
+_ACCENT_MAX = 0.15
+_ACCENT_FAIL = 0.25
+
+#: 单帧字号种类上限：层级靠字号阶，不靠「稍微大一点」。
+#: 只统计不小于该字号的元素：图形标注、轴名、角标这类小字是辅助信息，
+#: 与「主体层级」不是一回事；把它们算进来会把所有含图形的画面判成失败。
+_MAX_TYPE_SIZES = 4
+_TYPE_COUNT_FLOOR = 44
+
+#: 对齐基线：正文块左边界之间的最大允许离散（px）。
+_ALIGN_TOLERANCE = 12
+
+#: 一帧里允许出现的对齐线数量：一条居中 + 一条左对齐是常见的合法组合。
+_MAX_ALIGN_LINES = 2
+
+#: 居中判据：文本块中心与安全区中心相差不超过该值即视为居中
+_ALIGN_CENTER_TOLERANCE = 6
+
+#: 对齐判定至少要几个文本块才有意义
+_ALIGN_MIN_SAMPLES = 2
+
+#: 对齐判定用的最小字号：比它小的元素（图形标注、角标）不参与
+_ALIGN_MIN_FONT = 44
+
+#: 对比度下限：正文 7:1（AAA），大字与图形 4.5:1
+_CONTRAST_BODY = 7.0
+_CONTRAST_LARGE = 4.5
+_LARGE_TEXT_PX = 44
+
+
+@dataclass
+class Gate:
+    """一条观感闸门的实测结论。"""
+
+    id: str
+    title: str
+    status: str  # pass / warn / fail / skipped
+    value: Any = None
+    threshold: Any = None
+    detail: str = ""
+    scene: str = ""
+
+    def format(self) -> str:
+        scope = f"[{self.scene}] " if self.scene else ""
+        if self.status == "skipped":
+            return f"[{self.id}] {scope}{self.title}：跳过——{self.detail}"
+        measured = f"实测 {_fmt(self.value)} / 阈值 {_fmt(self.threshold)}"
+        tail = f"；{self.detail}" if self.detail else ""
+        return f"[{self.id}] {scope}{self.title}：{_fmt_status(self.status)}，{measured}{tail}"
+
+    @property
+    def failed(self) -> bool:
+        return self.status == "fail"
+
+    @property
+    def warned(self) -> bool:
+        return self.status == "warn"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "status": self.status,
+            "scene": self.scene,
+            "value": self.value,
+            "threshold": self.threshold,
+            "detail": self.detail,
+        }
+
+
+def _fmt(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.3f}"
+    return str(value)
+
+
+def _fmt_status(status: str) -> str:
+    return {"pass": "通过", "warn": "提醒", "fail": "失败", "skipped": "跳过"}.get(status, status)
+
+
+#: 状态严重程度：同一幕多帧采样时取最严重的一条，避免把同一问题按帧重复计数。
+_SEVERITY = {"pass": 0, "skipped": 1, "warn": 2, "fail": 3}
+
+
+@dataclass
+class KeynoteResult:
+    """全部闸门的结论集合。
+
+    按「闸门 × 幕」聚合：逐帧采样会把同一个问题重复报好几遍，
+    而按帧计数会让人误以为有很多问题。真实数值仍逐帧留在 `frames` 里，
+    聚合条目保留最严重的那一份实测值与出现次数。
+    """
+
+    gates: list[Gate] = field(default_factory=list)
+    frames: list[dict[str, Any]] = field(default_factory=list)
+    enabled: bool = True
+    reason: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return not any(gate.failed for gate in self.gates)
+
+    def render(self, scene_id: str, frame: int, gates: list[Gate]) -> None:
+        """记入一帧的逐条结论，并同步更新聚合条目。"""
+        for gate in gates:
+            gate.scene = gate.scene or scene_id
+            self.frames.append({**gate.to_json(), "frame": frame})
+            existing = next(
+                (item for item in self.gates if item.id == gate.id and item.scene == gate.scene), None
+            )
+            if existing is None:
+                aggregate = Gate(
+                    id=gate.id,
+                    title=gate.title,
+                    status=gate.status,
+                    value=gate.value,
+                    threshold=gate.threshold,
+                    detail=gate.detail,
+                    scene=gate.scene,
+                )
+                aggregate.samples = 1  # type: ignore[attr-defined]
+                self.gates.append(aggregate)
+                continue
+            existing.samples = getattr(existing, "samples", 1) + 1  # type: ignore[attr-defined]
+            if _SEVERITY.get(gate.status, 0) > _SEVERITY.get(existing.status, 0):
+                existing.status = gate.status
+                existing.value = gate.value
+                existing.threshold = gate.threshold
+                existing.detail = gate.detail
+
+    def summary(self) -> dict[str, int]:
+        counts = {"pass": 0, "warn": 0, "fail": 0, "skipped": 0}
+        for gate in self.gates:
+            counts[gate.status] = counts.get(gate.status, 0) + 1
+        return counts
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "reason": self.reason,
+            "ok": self.ok,
+            "summary": self.summary(),
+            "gates": [
+                {**gate.to_json(), "samples": getattr(gate, "samples", 1)} for gate in self.gates
+            ],
+            "frames": self.frames,
+        }
+
+
+# ---------------------------------------------------------------- 图像量测
+
+
+def luminance(rgb: tuple[int, int, int]) -> float:
+    """WCAG 相对亮度。"""
+    channels = []
+    for value in rgb:
+        c = value / 255
+        channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def contrast_ratio(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    """WCAG 对比度，1.0–21.0。"""
+    la, lb = luminance(a), luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def parse_color(value: str) -> tuple[int, int, int] | None:
+    """解析 `rgb()` / `rgba()` / `#rrggbb`，解析不了返回 None。"""
+    text = (value or "").strip().lower()
+    if text.startswith("#"):
+        digits = text[1:]
+        if len(digits) == 3:
+            digits = "".join(ch * 2 for ch in digits)
+        if len(digits) != 6:
+            return None
+        try:
+            return tuple(int(digits[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+        except ValueError:
+            return None
+    if text.startswith("rgb"):
+        body = text[text.find("(") + 1 : text.rfind(")")]
+        parts = [p.strip() for p in body.split(",")]
+        if len(parts) < 3:
+            return None
+        try:
+            return tuple(max(0, min(255, round(float(p)))) for p in parts[:3])  # type: ignore[return-value]
+        except ValueError:
+            return None
+    return None
+
+
+def parse_alpha(value: str) -> float:
+    """取出颜色里的透明度；非 rgba 或解析不了按 1.0 处理。"""
+    text = (value or "").strip().lower()
+    if not text.startswith("rgb"):
+        return 1.0
+    body = text[text.find("(") + 1 : text.rfind(")")]
+    parts = [p.strip() for p in body.split(",")]
+    if len(parts) < 4:
+        return 1.0
+    try:
+        return max(0.0, min(1.0, float(parts[3])))
+    except ValueError:
+        return 1.0
+
+
+def composite(fg: tuple[int, int, int], alpha: float, bg: tuple[int, int, int]) -> tuple[int, int, int]:
+    """把带透明度的前景压到背景上，得到实际显示出来的颜色。
+
+    文字颜色常写成 `rgba(255,255,255,0.62)` 这种半透明值。直接拿它跟背景比
+    会把「实际对比度」算高一大截，因此必须先合成再算。
+    """
+    return tuple(round(fg[i] * alpha + bg[i] * (1 - alpha)) for i in range(3))  # type: ignore[return-value]
+
+
+def rgb_metrics(rgb: bytes) -> dict[str, float]:
+    """统计背景占比与强调色占比（需传入 108x192 的 RGB 原始数据）。"""
+    total = len(rgb) // 3
+    if not total:
+        return {"empty": 0.0, "mean": 0.0}
+    corner = (rgb[0], rgb[1], rgb[2])
+    background = 0
+    for index in range(0, len(rgb), 3):
+        if (
+            abs(rgb[index] - corner[0]) <= _BACKGROUND_TOLERANCE
+            and abs(rgb[index + 1] - corner[1]) <= _BACKGROUND_TOLERANCE
+            and abs(rgb[index + 2] - corner[2]) <= _BACKGROUND_TOLERANCE
+        ):
+            background += 1
+    return {"empty": background / total}
+
+
+def accent_metrics(rgb: bytes, accent: tuple[int, int, int]) -> dict[str, float]:
+    """统计强调色像素占整帧的比例。"""
+    total = len(rgb) // 3
+    if not total:
+        return {"accent": 0.0}
+    hits = 0
+    for index in range(0, len(rgb), 3):
+        if (
+            abs(rgb[index] - accent[0]) <= _ACCENT_TOLERANCE
+            and abs(rgb[index + 1] - accent[1]) <= _ACCENT_TOLERANCE
+            and abs(rgb[index + 2] - accent[2]) <= _ACCENT_TOLERANCE
+        ):
+            hits += 1
+    return {"accent": hits / total}
+
+
+#: 可读墨迹的灰度下限。低于它的像素算背景（含渐变、光晕、点阵）。
+_READABLE_LUMA = 120
+
+
+def ink_metrics(rgb: bytes) -> dict[str, float]:
+    """统计「足够亮、能读出来」的墨迹占比。
+
+    作用与 `empty` 互补：`empty` 只看「有没有东西」，这一项看「东西读不读得出来」。
+    标题常用渐变裁切绘制，计算样式的文字颜色是透明的，对比度闸门量不到它；
+    用像素亮度补上这一格，避免「标题被调暗到几乎看不见」这类缺陷静默通过。
+    """
+    total = len(rgb) // 3
+    if not total:
+        return {"bright": 0.0}
+    bright = 0
+    for index in range(0, len(rgb), 3):
+        luma = 0.2126 * rgb[index] + 0.7152 * rgb[index + 1] + 0.0722 * rgb[index + 2]
+        if luma >= _READABLE_LUMA:
+            bright += 1
+    return {"bright": bright / total}
+
+
+# ---------------------------------------------------------------- 闸门判定
+
+
+def gate_whitespace(
+    scene_id: str, scene_type: str, empty: float, bright: float | None = None
+) -> Gate:
+    """K1 留白预算：画面里有多少是「没有被内容占用」的像素。
+
+    留白够但「亮到能读的墨迹」几乎为零，说明这一帧的文字被调暗到了看不见——
+    这是渐变裁切标题最容易出的静默缺陷（对比度闸门量不到它）。
+    """
+    is_hero = scene_type in ("title", "quote", "conclusion")
+    threshold = _EMPTY_MIN_QUOTE if is_hero else _EMPTY_MIN_DEFAULT
+    if empty >= threshold:
+        status = "pass"
+    elif empty >= threshold - _EMPTY_WARN_MARGIN:
+        status = "warn"
+    else:
+        status = "fail"
+    hint = "留白不足会让画面显得拥挤，把它读成「层级不够」而不是「内容太多」"
+    detail = f"{'主体' if is_hero else '信息'}幕门槛；{hint}" if status != "pass" else ""
+    if status == "pass" and bright is not None and bright < _READABLE_MIN:
+        status = "warn"
+        detail = f"画面里亮到能读的墨迹只有 {bright:.4f}，文字可能被调暗到看不见"
+    return Gate(
+        id="K1",
+        title="留白预算",
+        status=status,
+        value=round(empty, 4),
+        threshold=threshold,
+        detail=detail,
+        scene=scene_id,
+    )
+
+
+def gate_accent(scene_id: str, accent: float) -> Gate:
+    """K2 强调色占比：一个画面一个焦点，强调色用滥就等于没有焦点。
+
+    判定是不对称的：强调色用滥是硬错误（焦点丢失），强调色偏少只是提醒。
+    单个强调元素——一个重点词、一条焦点线、一个主角数字——本来就只有千分之几，
+    把它判成失败会把大量正确画面拦下来。
+    """
+    if accent > _ACCENT_FAIL:
+        status = "fail"
+        detail = "强调色面积过大，视线失去了唯一落点"
+    elif accent > _ACCENT_MAX:
+        status = "warn"
+        detail = "强调色面积偏大，检查是否出现了第二个焦点"
+    elif accent >= _ACCENT_MIN:
+        status = "pass"
+        detail = ""
+    elif accent >= _ACCENT_MIN / 2:
+        status = "warn"
+        detail = "强调色偏少，焦点不够明确"
+    else:
+        status = "warn"
+        detail = "几乎没有强调色，画面缺一个焦点"
+    return Gate(
+        id="K2",
+        title="强调色占比",
+        status=status,
+        value=round(accent, 4),
+        threshold=[_ACCENT_MIN, _ACCENT_MAX],
+        detail=detail,
+        scene=scene_id,
+    )
+
+
+def gate_type_sizes(scene_id: str, sizes: list[float]) -> Gate:
+    """K3 同帧字号种类：层级靠字号阶，不靠「稍微大一点」。"""
+    distinct = sorted({round(size, 1) for size in sizes if size >= _TYPE_COUNT_FLOOR})
+    if len(distinct) <= _MAX_TYPE_SIZES:
+        status = "pass"
+    elif len(distinct) <= _MAX_TYPE_SIZES + 1:
+        status = "warn"
+    else:
+        status = "fail"
+    return Gate(
+        id="K3",
+        title="同帧字号种类",
+        status=status,
+        value=distinct,
+        threshold=f"≤{_MAX_TYPE_SIZES} 种（≥{_TYPE_COUNT_FLOOR}px 的层级字号）",
+        detail="" if status == "pass" else "层级字号过多；应取自字号阶档位，而不是微调字号",
+        scene=scene_id,
+    )
+
+
+def gate_alignment(scene_id: str, texts: list[dict[str, Any]], center: float | None = None) -> Gate:
+    """K4 对齐基线：正文块应当落在少数几条对齐线上。
+
+    只看「正文级」的文本块（字号 ≥ 44px）：图形里的标注、轴名、幕角标本来就
+    画在各自的几何位置上，把它们算进来会把所有含图形的画面判成不对齐。
+
+    判定用「对齐线数量」而不是「左边界极差」：居中构图与左对齐构图都是合法构图，
+    居中构图下各块的左边界天然不同，用极差会把它误报成对不齐。做法是把每个文本块
+    归到一条对齐线上——与安全区中心对齐的算「居中」这条线，其余按左边界聚类——
+    线数超过两条才说明排布是散的。
+    """
+    blocks = [
+        item
+        for item in texts
+        if float(item.get("fontSize") or 0) >= _ALIGN_MIN_FONT and item.get("left") is not None
+    ]
+    if len(blocks) < _ALIGN_MIN_SAMPLES:
+        return Gate(
+            id="K4",
+            title="对齐基线",
+            status="skipped",
+            value=len(blocks),
+            threshold=f"≤{_MAX_ALIGN_LINES} 条对齐线",
+            detail="正文级文本块不足两个，无法判断对齐",
+            scene=scene_id,
+        )
+
+    lines: list[str] = []
+    left_lines: list[float] = []
+    for item in blocks:
+        left = float(item["left"])
+        if center and abs(float(item.get("center") or 0) - center) <= _ALIGN_CENTER_TOLERANCE:
+            if "居中" not in lines:
+                lines.append("居中")
+            continue
+        if not any(abs(left - existing) <= _ALIGN_TOLERANCE for existing in left_lines):
+            left_lines.append(left)
+    lines.extend(f"左 {round(value)}" for value in sorted(left_lines))
+    count = len(lines)
+    status = "pass" if count <= _MAX_ALIGN_LINES else ("warn" if count == _MAX_ALIGN_LINES + 1 else "fail")
+    return Gate(
+        id="K4",
+        title="对齐基线",
+        status=status,
+        value=count,
+        threshold=f"≤{_MAX_ALIGN_LINES} 条对齐线",
+        detail="" if status == "pass" else "正文块分散在多条对齐线上：" + "、".join(lines),
+        scene=scene_id,
+    )
+
+
+def gate_contrast(
+    scene_id: str,
+    samples: list[dict[str, Any]],
+    page_background: tuple[int, int, int] | None = None,
+) -> Gate:
+    """K5 正文对比度：令牌层面算出来的对比度，不含渐变与图形叠加。
+
+    两类样本必须排除，否则会量出「假失败」：
+    1. 渐变裁切绘制的标题——文字自身的颜色是透明的，真正显色的是背景裁切，
+       前景色算出来是 `rgba(0,0,0,0)`，与背景的对比度恒为 1.0。
+    2. 完全透明的文本节点（逐字动画拆出来的 span）——同理。
+    背景为透明时回落到页面底色，因为画面里没有独立卡片底板。
+    """
+    worst_ratio: float | None = None
+    worst_threshold = _CONTRAST_BODY
+    worst_detail = ""
+    for sample in samples:
+        if sample.get("gradient"):
+            continue
+        alpha = parse_alpha(sample.get("color", ""))
+        if alpha <= 0.02:
+            continue
+        fg = parse_color(sample.get("color", ""))
+        bg = parse_color(sample.get("background", ""))
+        if bg is None or parse_alpha(sample.get("background", "")) <= 0.02:
+            bg = page_background
+        if fg is None or bg is None:
+            continue
+        # 半透明文字要压到背景上再算，否则会把对比度算高一大截
+        fg = composite(fg, alpha, bg)
+        ratio = contrast_ratio(fg, bg)
+        threshold = _CONTRAST_LARGE if sample.get("fontSize", 0) >= _LARGE_TEXT_PX else _CONTRAST_BODY
+        if worst_ratio is None or ratio < worst_ratio:
+            worst_ratio = ratio
+            worst_threshold = threshold
+            worst_detail = str(sample.get("role", "正文"))
+    if worst_ratio is None:
+        return Gate(
+            id="K5",
+            title="正文对比度",
+            status="skipped",
+            value=None,
+            threshold={"正文": _CONTRAST_BODY, "大字": _CONTRAST_LARGE},
+            detail="没有取到可计算的前景/背景色（文字可能压在渐变色或图形上）",
+            scene=scene_id,
+        )
+    if worst_ratio >= worst_threshold:
+        status = "pass"
+    elif worst_ratio >= worst_threshold * 0.85:
+        status = "warn"
+    else:
+        status = "fail"
+    return Gate(
+        id="K5",
+        title="正文对比度",
+        status=status,
+        value=round(worst_ratio, 2),
+        threshold=worst_threshold,
+        detail="" if status == "pass" else f"{worst_detail} 的对比度低于下限",
+        scene=scene_id,
+    )
+
+
+#: 卡片纪律：有卡片外观（圆角 > 8px 且有描边或阴影）时，必须同时具备
+#: 圆角 + 1px 描边 + 阴影 + 顶部内高光中的至少三件，缺了就会显平。
+_CARD_MIN_TRAITS = 3
+_CARD_TRAITS = ("radius", "border", "shadow", "inset")
+
+
+def gate_card_discipline(scene_id: str, cards: list[dict[str, Any]]) -> Gate:
+    """K6 卡片纪律：卡片不能只画一个纯色块。"""
+    if not cards:
+        return Gate(
+            id="K6",
+            title="卡片与描边纪律",
+            status="skipped",
+            value=0,
+            threshold=_CARD_MIN_TRAITS,
+            detail="这一幕没有可识别的卡片表面",
+            scene=scene_id,
+        )
+    incomplete = [card for card in cards if len(card.get("traits") or []) < _CARD_MIN_TRAITS]
+    status = "pass" if not incomplete else ("warn" if len(incomplete) == 1 else "fail")
+    return Gate(
+        id="K6",
+        title="卡片与描边纪律",
+        status=status,
+        value=len(cards) - len(incomplete),
+        threshold=f"{_CARD_MIN_TRAITS}/{len(_CARD_TRAITS)} 特征",
+        detail="" if status == "pass" else f"{len(incomplete)} 个表面缺少描边或阴影，会显得扁平",
+        scene=scene_id,
+    )
+
