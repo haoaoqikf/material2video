@@ -41,6 +41,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `outputs/<slug>/`，
   示例产物独立在 `outputs/examples/<slug>/`；`--out` 与 `--out-dir` 可省略，
   显式参数继续优先；
+- 一篇实际视频：`videos/never-fear-interviews/`（《永远不要害怕面试》，6 幕，
+  1887 帧 / 62.9 秒有声），采用「编辑杂志」风格方向（浅底 + 墨黑文字 + 单一朱红强调），
+  实现了 `list` 与 `timeline` 两个示例里没有的场景分支；
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
 
@@ -113,6 +116,17 @@ uv run python .agents/skills/article2video/scripts/render.py \
 2. 复制 `examples/why-effort-fails/index.html` 作为模板，按
    [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md) 的层级与动效配方改写场景；
 3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导，无需手动创建。
+
+已完成的文章：
+
+| 目录 | 内容 | 分镜 | 成片 |
+| --- | --- | --- | --- |
+| `videos/never-fear-interviews/` | 《永远不要害怕面试》 | 6 幕 / 1887 帧（62.9 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
+| `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
+
+`videos/never-fear-interviews/` 采用「编辑杂志」方向（浅底 + 墨黑衬线 + 单一朱红强调），
+除示例已有的 `title` / `quote` / `diagram` / `conclusion` 外，还实现了 `list` 与
+`timeline` 两个场景分支，两者的行/步骤结构都由分镜的 `items` 动态生成。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；

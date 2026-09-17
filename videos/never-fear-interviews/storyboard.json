@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "永远不要害怕面试",
+  "scenes": [
+    {
+      "id": "opening",
+      "type": "title",
+      "durationInFrames": 195,
+      "narration": "永远不要害怕面试，因为面试根本不是一场决定你命运的考试，而是一次低成本的上场。",
+      "data": {
+        "text": "永远不要\n害怕面试",
+        "subtitle": "它不是决定命运的考试\n而是一次低成本的上场",
+        "emphasis": ["害怕"]
+      }
+    },
+    {
+      "id": "real-loss",
+      "type": "quote",
+      "durationInFrames": 300,
+      "narration": "面试失败真正能让你失去什么？最坏的结果，不过就是这家公司不要你，可你本来就没有这份工作。",
+      "data": {
+        "text": "最坏的结果，\n不过就是这家公司不要你。\n而你本来就没有这份工作。",
+        "emphasis": ["这家公司"]
+      }
+    },
+    {
+      "id": "fear-source",
+      "type": "list",
+      "durationInFrames": 240,
+      "narration": "我们害怕的，往往不是失去，而是自己的不足被别人看见。",
+      "data": {
+        "title": "真正害怕的是什么",
+        "items": [
+          { "label": "不是失去", "desc": "这份工作本来也不属于你" },
+          { "label": "是暴露", "desc": "自己的不足被别人看见" },
+          { "label": "而变强", "desc": "恰恰来自不断暴露不足" }
+        ]
+      }
+    },
+    {
+      "id": "feedback-loop",
+      "type": "diagram",
+      "durationInFrames": 240,
+      "narration": "每次上场，都会带来一份只属于你的反馈，再推动你调整下一次的准备。",
+      "data": {
+        "title": "面试的反馈循环",
+        "nodes": ["上场", "暴露", "反馈"],
+        "edges": [
+          ["上场", "暴露"],
+          ["暴露", "反馈"],
+          ["反馈", "上场"]
+        ]
+      }
+    },
+    {
+      "id": "upgrade",
+      "type": "timeline",
+      "durationInFrames": 450,
+      "narration": "第一次，你可能连自我介绍都说不顺；第五次，你已经知道面试官最常问什么；第十次，你懂得怎么表达自己的优势；第二十次以后，你反过来开始判断这家公司值不值得去。",
+      "data": {
+        "title": "上场次数决定你的位置",
+        "items": [
+          { "label": "第一次", "desc": "自我介绍都说不顺", "note": "起步" },
+          { "label": "第五次", "desc": "知道面试官最常问什么", "note": "套路" },
+          { "label": "第十次", "desc": "知道优势该怎么表达", "note": "表达" },
+          { "label": "第二十次", "desc": "反过来判断公司值不值得去", "note": "选择" }
+        ]
+      }
+    },
+    {
+      "id": "closing",
+      "type": "conclusion",
+      "durationInFrames": 360,
+      "narration": "公司在挑你，你同样也在挑公司。多上场，多被拒绝，多拿反馈。",
+      "data": {
+        "text": "公司在挑你，\n你也在挑公司。",
+        "action": "多上场，多被拒绝，多拿反馈",
+        "emphasis": ["你也在挑公司"]
+      }
+    }
+  ]
+}
