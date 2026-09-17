@@ -17,7 +17,16 @@ import pytest
 
 from a2v import fonts
 
-fonttools_subset = pytest.importorskip("fontTools.subset", reason="需要可选依赖：uv sync --extra fonts")
+try:  # 用 skipif 而不是模块级 importorskip：后者会让默认环境「一个用例都没收集到」
+    import fontTools.subset  # noqa: F401
+
+    HAVE_FONTTOOLS = True
+except ImportError:  # pragma: no cover - 取决于环境
+    HAVE_FONTTOOLS = False
+
+needs_fonttools = pytest.mark.skipif(
+    not HAVE_FONTTOOLS, reason="需要可选依赖：uv sync --extra fonts"
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTO = ROOT / ".agents/skills/article2video/assets/fonts/NotoSansSC-Variable.ttf"
@@ -43,6 +52,7 @@ class TestCharsetMatchesWhatTheCheckLooksAt:
         assert charset == "甲"
 
 
+@needs_fonttools
 class TestSubsetting:
     def test_source_font_is_left_alone(self, tmp_path):
         before = NOTO.read_bytes()
