@@ -136,6 +136,68 @@ def _write_provenance(
     return target
 
 
+def provenance_status(video: str | Path) -> dict:
+    """这个成片是不是旧资产渲的。
+
+    三种结论，缺一不可：
+
+    * `current`：溯源里的资产指纹与现在逐个对得上；
+    * `stale`：有文件变了、少了，或网页新引用了当时没有的东西；
+    * `unknown`：没有溯源、读不出来，或溯源里的网页已经不在了——
+      **如实说「无法判断」，不默认放行**。一个安静返回「通过」的检查
+      和一个真的通过的检查在报告里长得一模一样，正是要避免的失败模式。
+
+    判定只回答「产物是不是旧的」，不回答「画面是不是废的」，
+    因此调用方不得据此改变错误数与退出码。
+    """
+    video_path = Path(video)
+    sidecar = video_path.with_suffix(".provenance.json")
+    empty: dict[str, list[str]] = {"changed": [], "missing": [], "unverifiable": []}
+    if not sidecar.is_file():
+        return {"status": "unknown", "detail": f"没有溯源文件 {sidecar.name}，无法判断该成片是否落后", **empty}
+    try:
+        recorded = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {"status": "unknown", "detail": f"溯源文件读不出来（{exc}），无法判断", **empty}
+
+    root = assets.project_root(video_path.parent)
+    page_rel = str(recorded.get("page") or "")
+    page_file = (root / page_rel) if root else Path(page_rel)
+    if root is None or not page_file.is_file():
+        return {"status": "unknown", "detail": f"溯源里的网页 {page_rel or '(未记录)'} 找不到了，无法判断", **empty}
+
+    html = page_file.read_text(encoding="utf-8", errors="replace")
+    current = asset_fingerprint(page_file, html)["files"]
+    old = (recorded.get("assets") or {}).get("files") or {}
+    changed: list[str] = []
+    missing: list[str] = []
+    unverifiable: list[str] = []
+    asset_suffixes = (".css", ".js", ".json", ".html", ".htm")
+    for key, digest in old.items():
+        path = root / key
+        if not path.is_file():
+            (missing if key.endswith(asset_suffixes) else unverifiable).append(key)
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            changed.append(key)
+    added = [key for key in current if key not in old]
+
+    status = "stale" if (changed or missing or added) else "current"
+    if status == "stale":
+        parts = []
+        if changed:
+            parts.append("改了：" + "、".join(sorted(changed)))
+        if added:
+            parts.append("新引用：" + "、".join(sorted(added)))
+        if missing:
+            parts.append("不见了：" + "、".join(sorted(missing)))
+        detail = "；".join(parts)
+    else:
+        detail = "溯源里的资产指纹逐个对得上" + (
+            f"（{len(unverifiable)} 项无法复核：{'、'.join(sorted(unverifiable))}）" if unverifiable else ""
+        )
+    return {"status": status, "detail": detail, "changed": sorted(changed), "missing": sorted(missing), "unverifiable": sorted(unverifiable)}
+
+
 def render(
     page_path: str | Path,
     output: str | Path,
