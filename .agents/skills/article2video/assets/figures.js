@@ -355,7 +355,7 @@
   }
 
   /** balance 的画面结构：文案元素留空，由分镜注入。 */
-  var MARKUP_BALANCE = `<h1 class="title-text" data-el="text"></h1>
+  var MARKUP_BALANCE = `<h1 class="title-text" data-el="text" data-a2v-fit="display"></h1>
 <p class="title-sub">
   <span class="title-sub-line" data-el="sub1"></span>
   <span class="title-sub-line" data-el="sub2"></span>
@@ -546,7 +546,7 @@
   var MARKUP_GAP = `<div class="quote-block">
   <span class="quote-mark" data-el="mark">&ldquo;</span>
   <span class="quote-rule" data-el="rule"></span>
-  <p class="quote-text" data-el="text"></p>
+  <p class="quote-text" data-el="text" data-a2v-fit="lead"></p>
 </div>
 <!-- 落差尺：左边是「先拥有再被拿走」，右边是「本来就没有」 -->
 <div class="drop-board">
@@ -658,9 +658,9 @@
   var MARKUP_VERSUS = `<div class="quote-block" data-el="lead">
   <span class="quote-mark" data-el="mark">&ldquo;</span>
   <span class="quote-rule" data-el="rule"></span>
-  <p class="quote-text" data-el="leadText"></p>
+  <p class="quote-text" data-el="leadText" data-a2v-fit="lead"></p>
 </div>
-<h2 class="section-title" data-el="title"></h2>
+<h2 class="section-title" data-el="title" data-a2v-fit="body"></h2>
 <div class="vs-board">
   <div class="vs-side is-left" data-el="leftSide">
     <p class="vs-text" data-el="leftText"></p>
@@ -673,7 +673,7 @@
     <p class="vs-text" data-el="rightText"></p>
   </div>
 </div>
-<p class="vs-note" data-el="note"></p>`;
+<p class="vs-note" data-el="note" data-a2v-fit="caption"></p>`;
 
   define('versus', ["left", "right", "note"], MARKUP_VERSUS, updateVersus);
 
@@ -825,7 +825,7 @@
   }
 
   /** iceberg 的画面结构：文案元素留空，由分镜注入。 */
-  var MARKUP_ICEBERG = `<h2 class="section-title" data-el="title"></h2>
+  var MARKUP_ICEBERG = `<h2 class="section-title" data-el="title" data-a2v-fit="body"></h2>
 <!-- 冰山：看得见的「失去」只是一角，水面下那团才是本体 -->
 <svg class="fig fig-berg" viewBox="0 0 888 760" aria-hidden="true">
   <defs>
@@ -992,7 +992,7 @@
   }
 
   /** loop 的画面结构：文案元素留空，由分镜注入。 */
-  var MARKUP_LOOP = `<h2 class="section-title" data-el="title"></h2>
+  var MARKUP_LOOP = `<h2 class="section-title" data-el="title" data-a2v-fit="body"></h2>
 <!-- 飞轮：一个小球沿着「上场→暴露→反馈」转圈，每转一格准备度就抬高一截 -->
 <svg class="fig fig-loop" viewBox="0 0 888 560" aria-hidden="true">
   <defs>
@@ -1157,9 +1157,9 @@
   }
 
   /** stairs 的画面结构：文案元素留空，由分镜注入。 */
-  var MARKUP_STAIRS = `<h2 class="section-title" data-el="title"></h2>
+  var MARKUP_STAIRS = `<h2 class="section-title" data-el="title" data-a2v-fit="body"></h2>
 <!-- 阶梯：每一根柱子是一次上场之后的「位置」，小球沿着柱顶往上跳 -->
-<div class="stair-caption" data-el="caption"></div>
+<div class="stair-caption" data-el="caption" data-a2v-fit="body"></div>
 <svg class="fig fig-stairs" viewBox="0 0 888 640" aria-hidden="true">
   <defs>
     <radialGradient id="stair-halo">
@@ -1305,7 +1305,7 @@
   <path class="ex-arc is-accent" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
   <path class="ex-arrow is-accent" data-el="arrowBack" d="M0 0 L0 0"></path>
 </svg>
-<p class="closing-action" data-el="action"></p>`;
+<p class="closing-action" data-el="action" data-a2v-fit="body"></p>`;
 
   define('exchange', ["leftNode", "rightNode"], MARKUP_EXCHANGE, updateExchange);
 
@@ -1403,8 +1403,8 @@
   }
 
   var MARKUP_NUMBER = `<div class="fig-number" data-el="value"></div>
-<div class="fig-number-label" data-el="label"></div>
-<p class="fig-number-caption" data-el="caption"></p>`;
+<div class="fig-number-label" data-el="label" data-a2v-fit="title"></div>
+<p class="fig-number-caption" data-el="caption" data-a2v-fit="body"></p>`;
 
   define('number', [], MARKUP_NUMBER, updateNumber);
 

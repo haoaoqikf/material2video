@@ -1,14 +1,14 @@
 ## 1. 让取档不再破坏标记
 
-- [ ] 1.1 改 `assets/typography.js` 的 `applyFit`：均衡断行时按文本节点重排，保留 `.key`、`.key-underline` 等元素子节点结构；结构无法安全映射时退回「只取字号、不改文案」，并在结果里记 `balanced: false`；以「取档后去掉换行符的字符序列与取档前完全相同」为验证。
-- [ ] 1.2 为 `applyFit` 补退化路径单测：空串、纯空白、单字符、含 `\n` 硬换行、含强调元素的混合文案；以 `uv run pytest tests/test_typography.py` 全绿为证。
-- [ ] 1.3 加「同一帧重复取档不产生写入」的测试：对同一元素连续取档两次，第二次不得改动 `style` 与 `textContent`；以测试通过为证。
+- [x] 1.1 改 `assets/typography.js` 的 `applyFit`：均衡断行时按文本节点重排，保留 `.key`、`.key-underline` 等元素子节点结构；结构无法安全映射时退回「只取字号、不改文案」，并在结果里记 `balanced: false`；以「取档后去掉换行符的字符序列与取档前完全相同」为验证。（新增 `reflow` / `canReflow` / `significant`，并导出以便直接测试；重排按代码点映射回原文本节点，换行追加在「前一个字符所属节点」末尾。）
+- [x] 1.2 为 `applyFit` 补退化路径单测：空串、纯空白、单字符、含 `\n` 硬换行、含强调元素的混合文案；以 `uv run pytest tests/test_typography.py` 全绿为证。（`tests/test_typesetting_apply.py`，15 项通过。）
+- [x] 1.3 加「同一帧重复取档不产生写入」的测试：对同一元素连续取档两次，第二次不得改动 `style` 与 `textContent`；以测试通过为证。（根因是签名用 `textContent`，重排会移动换行位置导致每帧重判为「内容变了」；改用有效字符做签名。）
 
 ## 2. 组件接入引擎
 
-- [ ] 2.1 为承载任意文案的组件文本元素声明 `data-a2v-fit="<档位>"`（至少 `.quote-text`、`.title-text`、`.closing-text`、列表与时间线的条目文字、对比场景的左右文字），档位取该元素在预设下的现有字号档；以「声明前后同一文案的取档结果等于样式表字号」为验证。
-- [ ] 2.2 用 `tests/test_keynote_layout.py` 的实测探针加一条一致性测试：在真实页面里取每个声明了档位的元素，断言引擎取到的字号等于其预设计算字号，且取档只发生在预设页面；以测试通过为证。
-- [ ] 2.3 逐字节回归：`examples/keynote-baseline`（预设页面）与 `examples/declarative-number`（非预设页面）各做一次限帧 PNG 导出，SHA256 必须与接线前相同；以两次哈希比对为证。
+- [x] 2.1 为承载任意文案的组件文本元素声明 `data-a2v-fit="<档位>"`（至少 `.quote-text`、`.title-text`、`.closing-text`、列表与时间线的条目文字、对比场景的左右文字），档位取该元素在预设下的现有字号档；以「声明前后同一文案的取档结果等于样式表字号」为验证。（落点是 `.title-text`=display、`.quote-text`=lead、`.fig-number-label`=title、`.section-title`/`.stair-caption`/`.fig-number-caption`/`.closing-action`=body、`.vs-note`=caption；`.closing-text` 是逐字揭示结构，按安全判定不重排，故不声明；44px 的 `.title-sub-line`/`.vs-text` 不是字阶档位，不声明。同时把 `keynote.css` 的档位规则收成只声明字号——原先它连同档位的行高、字距、字重一起接管，会把 `.section-title` 的 0.14em 标签字距静默换掉。）
+- [x] 2.2 用 `tests/test_keynote_layout.py` 的实测探针加一条一致性测试：在真实页面里取每个声明了档位的元素，断言引擎取到的字号等于其预设计算字号，且取档只发生在预设页面；以测试通过为证。（新增 `tests/test_typesetting_wiring.py`，走遍 8 幕；预设页面 11 个声明元素全部 `level == declared` 且实测字号 == `--a2v-size-*`，非预设页面零取档痕迹。）
+- [x] 2.3 逐字节回归：`examples/keynote-baseline`（预设页面）与 `examples/declarative-number`（非预设页面）各做一次限帧 PNG 导出，SHA256 必须与接线前相同；以两次哈希比对为证。（非预设：`DAFDD423…208D31`，与接线前逐字节相同。预设：接线前 `7A0AC1EB…`／接线后一度 `CF0CF621…`，差异定位到 `keynote.css` 的档位规则把 display 档的行高字距一并接管；收成只声明字号后，8 幕各取 3 帧共 **24 帧逐像素一致**。）
 
 ## 3. 溢出闸门
 

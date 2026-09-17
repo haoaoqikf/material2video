@@ -537,60 +537,40 @@
 }
 
 /* ============================================================
- * 七、字号档的 CSS 预置（拟合前也要有正确的度量）
+ * 七、字号档的 CSS 声明
  *
- * 排版引擎是「先量后定」：它需要在一个已知字号下量出字宽比例，再换算到目标档。
- * 若元素此刻还是组件自带的字号，量出来的行高与字距就不是该档的，拟合会被带偏。
- * 因此这里把每个档位的字号、行高、字距**先按档位预置**，引擎再在同一个基准上取档；
- * 取档结果仍以内联样式写回，保证与 token 完全一致。
+ * 组件用 `data-a2v-fit="<档位>"` 声明「这个元素的字号上限是哪一档」，这里把它
+ * 落成字号；引擎随后按实测可用宽度往下取档，并把结果以内联字号写回。
+ *
+ * 只声明**字号**，不接管行高、字距与字重。字号是量出来的，行高字距字重是组件的
+ * 设计值：`.section-title` 靠 0.14em 的字距做成一枚小标签，`.quote-text` 的
+ * 1.55 行高是引文的呼吸，`.vs-note` 另有 0.06em。把这些一并换成字号阶的默认值，
+ * 等于在声明档位的同时把组件的排版设计静默换掉——那正是「一个属性两处真源」的
+ * 老问题，只是从字号搬到了行距上。行的疏密归组件，字的宽窄归字阶。
  * ============================================================ */
 [data-a2v-preset="keynote"] [data-a2v-fit="hero"] {
   font-size: var(--a2v-size-hero);
-  line-height: var(--a2v-leading-hero);
-  letter-spacing: var(--a2v-tracking-hero);
-  font-weight: 700;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="display"] {
   font-size: var(--a2v-size-display);
-  line-height: var(--a2v-leading-display);
-  letter-spacing: var(--a2v-tracking-display);
-  font-weight: 700;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="headline"] {
   font-size: var(--a2v-size-headline);
-  line-height: var(--a2v-leading-headline);
-  letter-spacing: var(--a2v-tracking-headline);
-  font-weight: 650;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="title"] {
   font-size: var(--a2v-size-title);
-  line-height: var(--a2v-leading-title);
-  letter-spacing: var(--a2v-tracking-title);
-  font-weight: 600;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="lead"] {
   font-size: var(--a2v-size-lead);
-  line-height: var(--a2v-leading-lead);
-  letter-spacing: var(--a2v-tracking-lead);
-  font-weight: 500;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="body"] {
   font-size: var(--a2v-size-body);
-  line-height: var(--a2v-leading-body);
-  letter-spacing: var(--a2v-tracking-body);
-  font-weight: 450;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="label"] {
   font-size: var(--a2v-size-label);
-  line-height: var(--a2v-leading-label);
-  letter-spacing: var(--a2v-tracking-label);
-  font-weight: 500;
 }
 [data-a2v-preset="keynote"] [data-a2v-fit="caption"] {
   font-size: var(--a2v-size-caption);
-  line-height: var(--a2v-leading-caption);
-  letter-spacing: var(--a2v-tracking-caption);
-  font-weight: 450;
 }
 
 /* 拟合引擎写回的内联样式优先于上面的预置；这里只负责「还没拟合时」不至于崩版。

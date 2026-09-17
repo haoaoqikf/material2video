@@ -47,8 +47,15 @@
          * 组件画完之后按字号阶取档。排在组件之后是必须的：文本内容与元素尺寸
          * 都由组件决定，先量就会量到空元素。autofit 只在内容签名变化时重算，
          * 因此逐帧调用不会带来抖动，也不会重复触发重排。
+         *
+         * 可用宽度必须显式传容器（`.a2v-safe`）：要回答的是「这一行放得进画面吗」，
+         * 而画面宽度由容器决定。让引擎退回元素自身的宽度是循环论证——收缩适应的
+         * 元素宽度就等于自己那行文字，永远除得尽。
          */
-        A2V.type.autofit(state.scene.id ? sceneById(state.scene.id) : null);
+        var section = state.scene.id ? sceneById(state.scene.id) : null;
+        A2V.type.autofit(section, {
+          availableWidth: section ? section.querySelector('.a2v-safe') : 0
+        });
       }
     } });
     return window.__A2V__.ready();

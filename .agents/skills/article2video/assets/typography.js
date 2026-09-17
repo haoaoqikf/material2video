@@ -154,23 +154,40 @@
   /**
    * 解析可用宽度。
    *
-   * 不能用 el.getBoundingClientRect().width 当默认值：元素此刻可能是空的、
-   * 且处在 align-items: center 的 flex 列里，宽度会是 0 —— 那会让取档一路
-   * 掉到最小档，而且不报错。因此向上找第一个有确定宽度的祖先（通常是 .a2v-safe），
-   * 再减去元素自身的水平内边距与边框。
+   * 正确做法是把**容器**传进来（共享页面传 `.a2v-safe`）：要回答的问题是
+   * 「这一行放得进画面吗」，而画面宽度由容器决定。
+   *
+   * 兜底路径不能从元素自己的 clientWidth 取。收缩适应（shrink-to-fit）的
+   * 元素——例如 `align-items: center` 的弹性列里的 `.quote-text`——它的
+   * clientWidth 就等于自己那行文字的宽度：拿它当上限再去除自己的宽度，永远
+   * 除得尽，结论恒为「放得下」。这是个循环论证，而且不报错。所以兜底从
+   * **父元素**开始向上找第一个有确定宽度的祖先，元素自身只贡献内边距与边框。
    */
   function resolveAvailableWidth(el, override) {
-    if (override) return override;
+    if (typeof override === 'number' && override > 0) return override;
+    if (override && override.nodeType === 1) {
+      var box = global.getComputedStyle(override);
+      var pad = parseFloat(box.paddingLeft || 0) + parseFloat(box.paddingRight || 0);
+      var border = parseFloat(box.borderLeftWidth || 0) + parseFloat(box.borderRightWidth || 0);
+      var outer = override.clientWidth || 0;
+      if (outer > 0) {
+        var inner = (isFinite(pad) ? pad : 0) + (isFinite(border) ? border : 0);
+        return Math.max(1, outer - inner);
+      }
+    }
     var horizontal = 0;
     var node = el;
     var guard = 0;
     while (node && guard < 12) {
       var cs = global.getComputedStyle(node);
       var padding = parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
-      var border = parseFloat(cs.borderLeftWidth || 0) + parseFloat(cs.borderRightWidth || 0);
-      horizontal += (isFinite(padding) ? padding : 0) + (isFinite(border) ? border : 0);
-      var width = node.clientWidth || 0;
-      if (width > 0) return Math.max(1, width - horizontal);
+      var borderWidth = parseFloat(cs.borderLeftWidth || 0) + parseFloat(cs.borderRightWidth || 0);
+      horizontal += (isFinite(padding) ? padding : 0) + (isFinite(borderWidth) ? borderWidth : 0);
+      /* 元素自身只算内边距，宽度交给祖先：见上面的循环论证 */
+      if (node !== el) {
+        var width = node.clientWidth || 0;
+        if (width > 0) return Math.max(1, width - horizontal);
+      }
       node = node.parentElement;
       guard += 1;
     }
@@ -247,19 +264,47 @@
       var anyUnknown = false;
       for (var p = 0; p < hardLines.length; p += 1) {
         var piece = emWidths(hardLines[p], fontSpec);
-        if (!piece) anyUnknown = true;
+        /* 空段落不算「量不到」：组件里有些可选文本位平时是空的，
+         * 把空串记成量测失败会让整个元素被标成未实测，属于误报。 */
+        if (!piece && Array.from(hardLines[p]).length) anyUnknown = true;
         advance = Math.max(advance, piece);
       }
       if (anyUnknown) measured = false;
       var width = advance * candidate.size;
       var longest = 0;
+      var longestIndex = 0;
       for (var q = 0; q < hardLines.length; q += 1) {
-        longest = Math.max(longest, Array.from(hardLines[q]).length);
+        var length = Array.from(hardLines[q]).length;
+        if (length > longest) {
+          longest = length;
+          longestIndex = q;
+        }
       }
       width += Math.max(0, longest - 1) * candidate.tracking * candidate.size;
-      if (width <= availableWidth || candidate.size <= minPx) {
+      /*
+       * 断行上限按**可用宽度**算，不再直接用「原文最长行的字数」。
+       *
+       * 用原文最长行当上限时，作者没手动断行的长段落会原样留下一整行，而下面的
+       * fits 又正是拿这些行去量的：一段其实断成两行就放得下的文案会被判成
+       * 「缩到下限仍放不下」。按宽度算则两头兼顾——已断好的段落每行都不超过
+       * 这个上限（取档正是因为它们放得下才被接受），因此保持原样；没断行的
+       * 长段落才会在这里被均衡地断开。
+       */
+      var limit = charsPerLine(el, candidate.size, availableWidth, hardLines[longestIndex]);
+      if (width <= availableWidth) {
         level = candidate;
-        lines = balance(raw, longest);
+        lines = balance(raw, limit);
+        break;
+      }
+      if (i >= minIndex) {
+        /*
+         * 已经到正文下限：不再往下缩。
+         * 旧实现的条件是 `candidate.size <= minPx`，而 SCALE 往下第一个满足它的是
+         * label(34px) —— 于是溢出的文案会被缩到 34px，比规范写死的 36px 下限还小，
+         * 而且 fits 的判断又挂在同一个条件上，结果连「放不下」都不报。
+         */
+        level = candidate;
+        lines = balance(raw, limit);
         break;
       }
     }
@@ -268,15 +313,15 @@
       lines = balance(raw, Array.from(raw).length);
     }
 
-    /* 取到的档放不下，说明文案本身就超了：如实报告，由调用方决定拆场景。 */
-    var fits = true;
-    if (level.size <= minPx) {
-      var widest = 0;
-      for (var r = 0; r < lines.length; r += 1) {
-        widest = Math.max(widest, emWidths(lines[r], fontSpec) * level.size);
-      }
-      fits = widest <= availableWidth;
+    /*
+     * fits 一律按**断行之后的实际行宽**判定，不挂在「是否触到下限」上：
+     * 触到下限不等于放不下（断行之后可能正好放得下），没触到下限也不等于放得下。
+     */
+    var widest = 0;
+    for (var r = 0; r < lines.length; r += 1) {
+      widest = Math.max(widest, emWidths(lines[r], fontSpec) * level.size);
     }
+    var fits = widest <= availableWidth;
 
     return result(level, lines, lines.length, measured, fits, fits ? null : 'overflows-at-min-size');
   }
@@ -366,30 +411,160 @@
     return out;
   }
 
-  /** 按可用宽度换算「单行最多几个字」，供 balance 使用。 */
-  function charsPerLine(el, fontSize, availableWidth) {
+  /**
+   * 按可用宽度换算「单行最多几个字」，供 balance 使用。
+   *
+   * 用**待排文本自身**的平均字宽，而不是固定按全角汉字估：拉丁文的字宽只有
+   * 汉字的六成，按汉字算会把「一行放得下 20 个字母」当成只放得下 12 个，
+   * 凭空多断出一行。测不到字宽时退回按汉字估算。
+   *
+   * @param {string} [sample] 用来标定平均字宽的样本文本（通常取最长的一段）
+   */
+  function charsPerLine(el, fontSize, availableWidth, sample) {
     var fontSpec = fontSignature(el).split('|')[0];
-    var em = emWidths('汉', fontSpec) || 1;
-    return Math.max(2, Math.floor(availableWidth / (em * fontSize)));
+    var text = sample == null || sample === '' ? '汉' : String(sample);
+    var count = Math.max(1, Array.from(text).length);
+    var average = emWidths(text, fontSpec) / count;
+    if (!isFinite(average) || average <= 0) average = isEmWidthFallback(text);
+    return Math.max(2, Math.floor(availableWidth / (average * fontSize)));
+  }
+
+  /** 量不到字宽时的经验平均字宽：全角汉字算 1，其余按拉丁估算。 */
+  function isEmWidthFallback(text) {
+    var chars = Array.from(String(text));
+    var wide = 0;
+    for (var i = 0; i < chars.length; i += 1) {
+      if (isCJK(chars[i])) wide += 1;
+    }
+    return chars.length ? (wide + (chars.length - wide) * 0.55) / chars.length : 1;
+  }
+
+  /** 去掉换行符后的代码点序列：用于「字符不丢不增」的比对与稳定签名。 */
+  function significant(text) {
+    return Array.from(String(text == null ? '' : text)).filter(function (ch) {
+      return ch !== '\n';
+    }).join('');
+  }
+
+  /*
+   * 哪些元素可以安全地重排？
+   *
+   * 组件会往文字里塞元素：强调词是 <span class="key">，逐字揭示是每字一个
+   * <span class="reveal-char">。旧实现直接写 el.textContent，把这些元素连同
+   * 强调色一起抹掉 —— 强调色是「单一焦点」的载体，静默消失等于画面失去焦点。
+   *
+   * 这里只放行已知可以安全重排的行内容器：强调词（重排后仍在原字符上）与
+   * 它的下划线、以及普通文本段的包装。出现任何其它元素（尤其是逐字揭示的
+   * 单字节点）就放弃重排，只取字号。
+   */
+  var REFLOW_SAFE_CLASSES = { key: 1, 'key-underline': 1, plain: 1 };
+
+  function canReflow(el) {
+    var descendants = el.querySelectorAll('*');
+    for (var i = 0; i < descendants.length; i += 1) {
+      var node = descendants[i];
+      if (node.tagName === 'BR') return false;
+      var names = String(node.className || '').split(/\s+/);
+      var safe = false;
+      for (var j = 0; j < names.length; j += 1) {
+        if (REFLOW_SAFE_CLASSES[names[j]]) safe = true;
+      }
+      if (!safe) return false;
+    }
+    return true;
+  }
+
+  /**
+   * 把均衡后的行写回元素，**保留所有子元素**。
+   *
+   * 做法：按代码点逐个映射回原有的文本节点。非换行字符回到它原来所属的节点，
+   * 换行追加在「前一个字符所在节点」的末尾（`white-space: pre-line` 下等价于
+   * 在两者之间断行）。字符集合因此只增不减，元素结构一个都不动。
+   *
+   * @returns {boolean} 是否成功重排；失败时元素保持原样，由调用方记 balanced: false
+   */
+  function reflow(el, lines) {
+    var target = String(lines.join('\n'));
+    var walker = global.document.createTreeWalker(el, global.NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    var current = walker.nextNode();
+    while (current) {
+      nodes.push(current);
+      current = walker.nextNode();
+    }
+    if (!nodes.length) return false;
+
+    var source = nodes.map(function (node) { return node.nodeValue; }).join('');
+    var sourceSig = significant(source);
+    if (sourceSig !== significant(target)) {
+      /* 断行结果动了字符，宁可不动版式也不动文案 */
+      return false;
+    }
+
+    /* 记录每个有效字符原来属于哪个文本节点 */
+    var owner = [];
+    for (var n = 0; n < nodes.length; n += 1) {
+      var chars = Array.from(nodes[n].nodeValue);
+      for (var c = 0; c < chars.length; c += 1) {
+        if (chars[c] !== '\n') owner.push(n);
+      }
+    }
+
+    var buffers = nodes.map(function () { return []; });
+    var cursor = 0;
+    var targetChars = Array.from(target);
+    for (var t = 0; t < targetChars.length; t += 1) {
+      var ch = targetChars[t];
+      if (ch === '\n') {
+        var at = cursor === 0 ? 0 : owner[cursor - 1];
+        buffers[at].push('\n');
+        continue;
+      }
+      var nodeIndex = owner[cursor];
+      if (nodeIndex === undefined) return false;
+      buffers[nodeIndex].push(ch);
+      cursor += 1;
+    }
+    if (cursor !== owner.length) return false;
+
+    for (var w = 0; w < nodes.length; w += 1) {
+      var value = buffers[w].join('');
+      if (nodes[w].nodeValue !== value) nodes[w].nodeValue = value;
+    }
+    return true;
   }
 
   /**
    * 把 fit 的结果写到元素上。
    * 用内联样式而不是类名，是因为字号是按幕计算的，无法预先枚举成 CSS 类。
+   *
+   * 默认**只写字号**。行高与字距是组件的设计值，不是测量出来的东西：
+   * 主文案元素的行高都是无单位比值（1.16 / 1.45 / 1.55 …），字号一变它自己
+   * 就会跟着缩放；而字距各元素并不相同（`.section-title` 是 0.14em，
+   * 字号阶里的 body 是另一个值）。把字号阶的行高字距写进去，等于把「双真源」
+   * 从字号搬到行高上，只是换了个地方出问题。真要让字阶接管，显式传
+   * `leading: true` / `tracking: true`。
+   *
    * @returns {Object} fit 的结果（含 lines / lineCount / fits / measured）
    */
   function applyFit(el, options) {
     var spec = Object.assign({}, options, { el: el });
     var fitted = fit(spec);
     el.style.fontSize = fitted.fontSize + 'px';
-    el.style.lineHeight = String(fitted.lineHeight);
-    el.style.letterSpacing = fitted.letterSpacing + 'em';
-    if (options && options.balance !== false) {
-      el.textContent = fitted.lines.join('\n');
-      el.style.whiteSpace = 'pre-line';
+    if (options && options.leading === true) el.style.lineHeight = String(fitted.lineHeight);
+    if (options && options.tracking === true) el.style.letterSpacing = fitted.letterSpacing + 'em';
+
+    var wantBalance = !(options && options.balance === false) && canReflow(el);
+    var balanced = false;
+    if (wantBalance && fitted.lines.join('\n').indexOf('\n') >= 0) {
+      balanced = reflow(el, fitted.lines);
+      if (balanced) el.style.whiteSpace = 'pre-line';
     }
+
+    fitted.balanced = balanced;
     el.dataset.a2vFitLevel = fitted.level;
     el.dataset.a2vFitMeasured = fitted.measured ? 'true' : 'false';
+    el.dataset.a2vFitBalanced = balanced ? 'true' : 'false';
     return fitted;
   }
 
@@ -441,8 +616,16 @@
     for (var i = 0; i < nodes.length; i += 1) {
       var el = nodes[i];
       var text = el.textContent || '';
-      var signature = text + '\u0000' + el.dataset.a2vFit;
+      /*
+       * 签名用「有效字符」而不是原文：重排会移动换行符的位置，
+       * 用 textContent 做签名会让每一帧都判定为「内容变了」，
+       * 于是逐帧重写样式与文本节点。换行位置的调整恰恰是取档自己的产物，
+       * 不该被当成新输入。
+       */
+      var signature = significant(text) + '\u0000' + el.dataset.a2vFit;
       if (el.dataset.a2vFitFor === signature) continue;
+      /* 空文本位不取档：没有可排的字，取档只会给元素贴上一堆无意义的标记 */
+      if (!significant(text).trim()) continue;
       var fitted = applyFit(el, {
         text: text,
         maxLevel: maxLevelIndex(el.dataset.a2vFit),
@@ -487,6 +670,11 @@
     applyFit: applyFit,
     autofit: autofit,
     balance: balance,
+    /* 重排与它的安全判定单独导出：这是「取档不许破坏标记」这条契约的落点，
+     * 测试要能直接打到它，而不是靠构造恰好触发的文案去间接覆盖。 */
+    reflow: reflow,
+    canReflow: canReflow,
+    significant: significant,
     optical: optical,
     reset: reset
   };
