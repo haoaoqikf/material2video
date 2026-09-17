@@ -68,6 +68,11 @@ FIGURE_CATALOG: dict[str, Component] = {
         labels=frozenset({"left", "right", "note"}),
         summary="两种反应并排，箭头指出该从哪边转向哪边",
     ),
+    "number": Component(
+        kind="number",
+        labels=frozenset(),
+        summary="按帧递增显示数值，并展示标签与说明",
+    ),
 }
 
 #: 分镜没有声明 figure.kind 时，按场景类型取用的默认组件。
@@ -80,6 +85,7 @@ DEFAULT_KINDS: dict[str, str] = {
     "diagram": "loop",
     "timeline": "stairs",
     "conclusion": "exchange",
+    "number": "number",
 }
 
 

@@ -1377,6 +1377,32 @@
     return [{ text: text, key: false }];
   }
 
+  /* ---------------- 数字幕 ---------------- */
+  function updateNumber(state, api, pick, labels) {
+    var ann = labels || {};
+    var data = state.scene.data || {};
+    var value = pick('value');
+    var label = pick('label');
+    var caption = pick('caption');
+    var progress = api.progress(state.localFrame, beat(state, 0.1), beat(state, 0.36), EASE_OUT);
+    if (value) {
+      var raw = data.value;
+      value.textContent = typeof raw === 'number' && Number.isFinite(raw)
+        ? String(Math.round(raw * progress)) : String(raw == null ? '' : raw);
+      enterAlive(state, api, value, progress, { distance: 42, scale: 0.92 });
+    }
+    setPlainText(label, data.label);
+    setPlainText(caption, data.caption);
+    enterAlive(state, api, label, api.progress(state.localFrame, beat(state, 0.22), 22, EASE_OUT));
+    enterAlive(state, api, caption, api.progress(state.localFrame, beat(state, 0.38), 22, EASE_OUT));
+  }
+
+  var MARKUP_NUMBER = `<div class="fig-number" data-el="value"></div>
+<div class="fig-number-label" data-el="label"></div>
+<p class="fig-number-caption" data-el="caption"></p>`;
+
+  define('number', [], MARKUP_NUMBER, updateNumber);
+
   /* ---------------- 挂载与渲染 ---------------- */
 
   /** 稳定的签名：只有标注或参数变了才重建 DOM。 */

@@ -59,7 +59,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
         prog="render.py",
         description="把实现 __A2V__ 契约的动画网页逐帧渲染为 MP4",
     )
-    parser.add_argument("--page", required=True, help="动画网页路径或 http(s) URL")
+    parser.add_argument("--page", help="动画网页路径或 http(s) URL；省略时用共享页面读取 --storyboard")
     parser.add_argument(
         "--out",
         help="输出 MP4 路径；省略时按文章归属推导为 outputs/<slug>/silent.mp4，"
@@ -107,6 +107,7 @@ def _build_validate_parser() -> argparse.ArgumentParser:
     parser.add_argument("path", help="分镜 JSON 路径")
     parser.add_argument("--media", help="同时校验配音清单、字幕与音轨时长")
     parser.add_argument("--strict", action="store_true", help="把警告视为错误")
+    parser.add_argument("--declarative", action="store_true", help="按共享页面的受控字段规则校验")
     parser.add_argument("--json", action="store_true", help="以 JSON 输出，便于程序化处理")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
@@ -123,6 +124,7 @@ def _build_preview_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
     parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
+    parser.add_argument("--declarative", action="store_true", help="用共享页面预览 --storyboard")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -146,11 +148,15 @@ def main_render(argv: list[str] | None = None) -> int:
     args = _build_render_parser().parse_args(argv)
     _force_utf8_output()
     _configure_logging(args.verbose)
+    declarative = args.page is None
+    if declarative and not args.storyboard:
+        logging.error("省略 --page 时必须提供 --storyboard")
+        return _EXIT_INVALID_INPUT
 
     # 分镜校验先于路径推导：脚本无效时不必先建出输出目录
     model: sb.Storyboard | None = None
     if args.storyboard:
-        model = _validated_storyboard(args.storyboard)
+        model = _validated_storyboard(args.storyboard, declarative=declarative)
         if model is None:
             return _EXIT_INVALID_INPUT
     elif args.media:
@@ -158,10 +164,12 @@ def main_render(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     try:
+        page = _shared_page(args.storyboard) if declarative else args.page
+        source_url = _storyboard_url(args.storyboard) if declarative else None
         media = load_media(args.media, args.storyboard) if args.media else None
         output = _resolve_render_output(args, model, media)
         result = render(
-            page_path=args.page,
+            page_path=page,
             output=output,
             storyboard=model,
             fps=args.fps,
@@ -173,6 +181,7 @@ def main_render(argv: list[str] | None = None) -> int:
             serve_root=args.serve_root,
             capture_format=args.capture_format,
             media=media,
+            storyboard_url=source_url,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
@@ -190,9 +199,9 @@ def main_render(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _validated_storyboard(path: str | Path) -> sb.Storyboard | None:
+def _validated_storyboard(path: str | Path, *, declarative: bool = False) -> sb.Storyboard | None:
     """加载并校验分镜；有错误时打印问题并返回 None。"""
-    model, report = sb.load(path)
+    model, report = sb.load(path, declarative=declarative)
     if model is None:
         for issue in report.errors:
             logging.error("%s", issue.format())
@@ -201,6 +210,19 @@ def _validated_storyboard(path: str | Path) -> sb.Storyboard | None:
     for issue in report.warnings:
         logging.warning("%s", issue.format())
     return model
+
+
+def _shared_page(storyboard: str | Path) -> Path:
+    article = paths_mod.for_storyboard(storyboard)
+    page = article.root / ".agents/skills/article2video/assets/declarative.html"
+    if not page.is_file():
+        raise A2VError(f"共享页面不存在: {page}")
+    return page
+
+
+def _storyboard_url(storyboard: str | Path) -> str:
+    article = paths_mod.for_storyboard(storyboard)
+    return "/" + Path(storyboard).resolve().relative_to(article.root).as_posix()
 
 
 def _resolve_render_output(
@@ -214,7 +236,8 @@ def _resolve_render_output(
     if args.out:
         return Path(args.out)
     try:
-        article = paths_mod.for_page(args.page)
+        article = (paths_mod.for_storyboard(args.storyboard) if args.page is None
+                   else paths_mod.for_page(args.page))
     except A2VError as exc:
         raise A2VError(f"无法推导默认输出路径，请显式指定 --out：{exc}") from exc
     if model is None:
@@ -254,7 +277,7 @@ def main_validate(argv: list[str] | None = None) -> int:
         logging.error("文件不存在: %s", path)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(path)
+    model, report = sb.load(path, declarative=args.declarative)
     if args.media and model is not None:
         try:
             model = load_media(args.media, path).storyboard
@@ -297,15 +320,26 @@ def main_preview(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     _configure_logging(args.verbose)
 
-    root = Path(args.directory).resolve()
-    if not root.is_dir():
-        logging.error("目录不存在: %s", root)
-        return _EXIT_INVALID_INPUT
-
-    page = root / args.page
-    if not page.is_file():
-        logging.error("页面不存在: %s", page)
-        return _EXIT_INVALID_INPUT
+    if args.declarative:
+        if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
+            logging.error("声明式预览需要有效的 --storyboard")
+            return _EXIT_INVALID_INPUT
+        try:
+            page = _shared_page(args.storyboard)
+            source_url = _storyboard_url(args.storyboard)
+        except A2VError as exc:
+            logging.error("预览失败: %s", exc)
+            return _EXIT_INVALID_INPUT
+    else:
+        root = Path(args.directory).resolve()
+        if not root.is_dir():
+            logging.error("目录不存在: %s", root)
+            return _EXIT_INVALID_INPUT
+        page = root / args.page
+        if not page.is_file():
+            logging.error("页面不存在: %s", page)
+            return _EXIT_INVALID_INPUT
+        source_url = None
 
     from .media import media_url
     from .render import _default_serve_root
@@ -321,6 +355,9 @@ def main_preview(argv: list[str] | None = None) -> int:
     try:
         from urllib.parse import quote
         url = f"{server.start()}/{quote(page.relative_to(server.root).as_posix())}"
+        if source_url:
+            from urllib.parse import urlencode
+            url += "?" + urlencode({"a2v-storyboard": source_url})
         if media_server:
             url = media_url(url, media_server.start(), media)
     except OSError as exc:

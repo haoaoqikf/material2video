@@ -50,7 +50,7 @@ def _figures() -> list[tuple[str, list[str], str, str, str]]:
 
 def test_library_registers_the_expected_kinds():
     kinds = [kind for kind, *_ in _figures()]
-    assert kinds == ["balance", "gap", "versus", "iceberg", "loop", "stairs", "exchange"]
+    assert kinds == ["balance", "gap", "versus", "iceberg", "loop", "stairs", "exchange", "number"]
 
 
 def test_catalog_mirror_matches_the_library():
@@ -73,7 +73,11 @@ def test_catalog_defaults_match_the_page():
     block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page, re.DOTALL)
     assert block, "页面不再声明 DEFAULT_FIGURES"
     mapping = dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1)))
-    assert mapping == catalog.DEFAULT_KINDS
+    assert mapping == {kind: value for kind, value in catalog.DEFAULT_KINDS.items() if kind != "number"}
+    shared = (SKILL / "assets/declarative.js").read_text(encoding="utf-8")
+    block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", shared, re.DOTALL)
+    assert block
+    assert dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1))) == catalog.DEFAULT_KINDS
 
 
 def test_catalog_covers_every_registered_kind():

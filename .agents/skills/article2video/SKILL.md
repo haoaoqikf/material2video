@@ -1,13 +1,13 @@
 ---
 name: article2video
-description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 编程工具（Codex / Claude Code / DSH 等）生成动画网页，再用确定性脚本逐帧渲染为 MP4。用于把文章拆成分镜、编写或修改动画网页、校验分镜 JSON、预览、渲染与验收视频，以及排查渲染不一致问题。
+description: 把观点型文章制作成竖屏信息可视化短视频。AI 选择受控视觉组件并编写分镜，使用共享页面或专属动画网页，再用确定性脚本逐帧渲染为 MP4。用于拆分镜、预览、渲染、验收与排查不一致问题。
 ---
 
 # article2video
 
 **文章是内容层，网页是表现层，视频是最终发布格式。**
 
-这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并编写动画网页，
+这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并选择组件，必要时编写专属动画网页，
 脚本负责准备可选配音与字幕，并把网页确定性地渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 ## 何时使用
@@ -45,7 +45,8 @@ description: 把观点型文章制作成竖屏信息可视化短视频。由 AI 
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
-| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜、网页 |
+| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜；专属网页按需添加 |
+| `.agents/skills/article2video/assets/declarative.html` | 声明式路径的共享页面；新视频可只保留文章与分镜 |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
 | `outputs/examples/<slug>/` | 示例产物，独立一层避免与同名实际文章冲突 |
 
@@ -81,6 +82,20 @@ uv run playwright install chromium                   # 首次执行，安装浏�
 - 不虚构论据或数据；无来源的数值必须在画面中标明为示意。
 
 ### 2. 分镜 → 动画网页
+
+优先考虑声明式路径：若现有组件足以表达，分镜以 `data.figure.kind` 选择组件，
+可选 `visual.theme`（`dark` / `light`）和场景 `visual.layout`（`center` / `lower`），
+无需新建 `index.html`。运行：
+
+```bash
+uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json --declarative --strict
+uv run python .agents/skills/article2video/scripts/preview.py --declarative --storyboard videos/<slug>/storyboard.json
+uv run python .agents/skills/article2video/scripts/render.py --storyboard videos/<slug>/storyboard.json
+```
+
+当前有八个组件，包含基础 `number`。声明式模式拒绝未知组件与未支持的参数；
+完整字段见 [分镜脚本结构](references/storyboard-schema.md)，仅含文章与分镜的示例在
+`examples/declarative-number/`。需要目录外的特殊构图时，继续使用下述专属网页路径。
 
 复制示例作为起点：
 

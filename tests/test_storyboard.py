@@ -18,6 +18,33 @@ def warning_paths(report: sb.Report) -> list[str]:
     return [issue.path for issue in report.warnings]
 
 
+class TestDeclarativeValidation:
+    def test_optional_visual_fields_keep_legacy_valid(self, valid_script):
+        assert sb.validate(valid_script).ok
+        assert sb.validate(valid_script, declarative=True).ok
+        valid_script["visual"] = {"theme": "light"}
+        valid_script["scenes"][0]["visual"] = {"layout": "lower"}
+        assert sb.validate(valid_script, declarative=True).ok
+
+    def test_visual_errors_have_field_paths(self, valid_script):
+        valid_script["visual"] = {"theme": "neon"}
+        valid_script["scenes"][0]["visual"] = {"layout": "floating"}
+        assert {"visual.theme", "scenes[0].visual.layout"} <= set(
+            error_paths(sb.validate(valid_script, declarative=True))
+        )
+
+    @pytest.mark.parametrize("key,value,path", [
+        ("figure", {"kind": "not-registered"}, "scenes[0].data.figure.kind"),
+        ("figure", {"kind": "balance", "params": {"size": 4}}, "scenes[0].data.figure.params"),
+        ("figure", {"kind": "balance", "motion": "spin"}, "scenes[0].data.figure.motion"),
+        ("html", "<script>alert(1)</script>", "scenes[0].data.html"),
+        ("package", "gsap", "scenes[0].data.package"),
+    ])
+    def test_rejects_uncontrolled_fields(self, valid_script, key, value, path):
+        valid_script["scenes"][0]["data"][key] = value
+        assert path in error_paths(sb.validate(valid_script, declarative=True))
+
+
 class TestStructuralValidation:
     def test_accepts_valid_script(self, valid_script):
         report = sb.validate(valid_script)

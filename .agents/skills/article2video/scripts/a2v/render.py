@@ -75,6 +75,7 @@ def render(
     serve_root: str | Path | None = None,
     capture_format: str = "jpeg",
     media: Media | None = None,
+    storyboard_url: str | None = None,
 ) -> RenderResult:
     """把动画网页逐帧渲染为 MP4。
 
@@ -95,6 +96,9 @@ def render(
         temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
         video_path = temp / "video.mp4"
         url = stack.enter_context(_resolve_page_url(page_path, serve_root))
+        if storyboard_url:
+            from urllib.parse import urlencode
+            url += "?" + urlencode({"a2v-storyboard": storyboard_url})
         if media:
             media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
             url = media_url(url, media_server.base_url, media)

@@ -44,6 +44,8 @@ _SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
 # 声明用哪个视觉组件画这一幕。详见 references/figure-catalog.md。
 _FIGURE_FIELDS = {"kind", "labels", "motion", "params"}
 _FIGURE_MOTIONS = ("calm", "normal", "impact")
+_VISUAL_THEMES = ("dark", "light")
+_VISUAL_LAYOUTS = ("center", "lower")
 
 # 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
 # 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
@@ -121,7 +123,7 @@ class Report:
         }
 
 
-def validate(data: Any) -> Report:
+def validate(data: Any, *, declarative: bool = False) -> Report:
     """校验分镜脚本 dict，返回结构化报告。data 不是 dict 时直接判错。"""
     report = Report()
     if not isinstance(data, dict):
@@ -131,9 +133,28 @@ def validate(data: Any) -> Report:
     _validate_version(data, report)
     _validate_framerate(data, report)
     _validate_dimensions(data, report)
+    if "visual" in data:
+        _validate_visual(data["visual"], "visual", {"theme": _VISUAL_THEMES}, report)
+    if declarative:
+        _reject_unknown(data, {"version", "fps", "width", "height", "title", "scenes", "visual"}, "", report)
     # 后续换算必须用可信的 fps；非法值已在校验中报错，这里只是避免算术崩溃
-    _validate_scenes(data, report, _safe_fps(data))
+    _validate_scenes(data, report, _safe_fps(data), declarative)
     return report
+
+
+def _reject_unknown(value: dict[str, Any], allowed: set[str], path: str, report: Report) -> None:
+    for key in sorted(set(value) - allowed):
+        report.error(f"{path}.{key}" if path else key, "声明式路径不支持此字段")
+
+
+def _validate_visual(value: Any, path: str, fields: dict[str, tuple[str, ...]], report: Report) -> None:
+    if not isinstance(value, dict):
+        report.error(path, "visual 必须是对象")
+        return
+    _reject_unknown(value, set(fields), path, report)
+    for name, choices in fields.items():
+        if name in value and value[name] not in choices:
+            report.error(f"{path}.{name}", f"必须是 {'/'.join(choices)} 之一")
 
 
 def _safe_fps(data: dict[str, Any]) -> int:
@@ -185,7 +206,7 @@ def _validate_dimensions(data: dict[str, Any], report: Report) -> None:
         report.warn("width", "宽度大于高度，与竖屏短视频的定位不符")
 
 
-def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
+def _validate_scenes(data: dict[str, Any], report: Report, fps: int, declarative: bool = False) -> None:
     scenes = data.get("scenes")
     if not isinstance(scenes, list) or not scenes:
         report.error("scenes", "scenes 必须是非空数组")
@@ -198,6 +219,10 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
         if not isinstance(scene, dict):
             report.error(path, "场景必须是 JSON 对象")
             continue
+        if "visual" in scene:
+            _validate_visual(scene["visual"], f"{path}.visual", {"layout": _VISUAL_LAYOUTS}, report)
+        if declarative:
+            _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visual"}, path, report)
 
         scene_id = scene.get("id")
         if not isinstance(scene_id, str) or not scene_id:
@@ -212,7 +237,7 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int) -> None:
         _validate_duration(scene, f"{path}.durationInFrames", report, fps)
         if "narration" in scene and not isinstance(scene["narration"], str):
             report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
-        _validate_scene_payload(scene, path, report)
+        _validate_scene_payload(scene, path, report, declarative)
 
         duration = scene.get("durationInFrames")
         if isinstance(duration, int) and not isinstance(duration, bool) and duration > 0:
@@ -242,13 +267,13 @@ def _validate_duration(scene: dict[str, Any], path: str, report: Report, fps: in
         )
 
 
-def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) -> None:
+def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report, declarative: bool = False) -> None:
     scene_type = scene.get("type")
     if not isinstance(scene_type, str) or not scene_type:
         report.error(f"{path}.type", "场景缺少非空字符串 type")
         return
     if scene_type not in _SCENE_FIELDS:
-        report.warn(
+        (report.error if declarative else report.warn)(
             f"{path}.type",
             f"类型 '{scene_type}' 不在已知组件清单中，渲染前请确认网页已实现该类型",
         )
@@ -264,7 +289,9 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
         if name not in data_field:
             report.error(f"{path}.data.{name}", f"类型 '{scene_type}' 缺少必填字段 '{name}'")
     for name in sorted(set(data_field) - spec["required"] - spec["optional"]):
-        report.warn(f"{path}.data.{name}", f"类型 '{scene_type}' 未定义字段 '{name}'，网页将忽略它")
+        (report.error if declarative else report.warn)(
+            f"{path}.data.{name}", f"类型 '{scene_type}' 未定义字段 '{name}'"
+        )
 
     if scene_type in ("timeline", "list"):
         items = data_field.get("items")
@@ -285,7 +312,9 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
         _validate_annotations(data_field["annotations"], f"{path}.data.annotations", report)
 
     if "figure" in data_field:
-        _validate_figure(data_field["figure"], f"{path}.data.figure", report)
+        _validate_figure(data_field["figure"], f"{path}.data.figure", report, declarative)
+    elif declarative and catalog.resolve_kind(scene_type, None) is None:
+        report.error(f"{path}.data.figure.kind", "此场景类型没有默认组件，请显式指定 kind")
 
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
@@ -294,7 +323,7 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report) ->
     _warn_on_long_text(data_field, f"{path}.data", report)
 
 
-def _validate_figure(value: Any, path: str, report: Report) -> None:
+def _validate_figure(value: Any, path: str, report: Report, declarative: bool = False) -> None:
     """校验选组件的那一小段声明。
 
     结构层保证 kind 是字符串、motion 是三个节奏之一、labels/params 是对象；
@@ -309,7 +338,7 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
         report.error(f"{path}.kind", "figure.kind 必须是非空字符串")
         return
     for name in sorted(set(value) - _FIGURE_FIELDS):
-        report.warn(f"{path}.{name}", f"figure 未定义字段 '{name}'，组件将忽略它")
+        (report.error if declarative else report.warn)(f"{path}.{name}", f"figure 未定义字段 '{name}'")
     motion = value.get("motion")
     if motion is not None and motion not in _FIGURE_MOTIONS:
         report.error(
@@ -324,7 +353,7 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
     if value.get("params"):
         # 机制已经接通（会带进组件），但当前没有组件读取任何键，
         # 与其让人以为写了就生效，不如在开渲前说清楚
-        report.warn(
+        (report.error if declarative else report.warn)(
             f"{path}.params",
             "当前没有组件读取 params，写了不会改变画面；需要可调几何时先在组件里实现",
         )
@@ -332,7 +361,7 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
     entry = catalog.component(kind.strip())
     if entry is None:
         # 未知组件只警告：目录允许扩展，网页挂载时会立刻抛出更明确的错误
-        report.warn(
+        (report.error if declarative else report.warn)(
             f"{path}.kind",
             f"组件 '{kind}' 不在目录中（已知：{'、'.join(catalog.known_kinds())}），"
             "渲染前请确认网页已注册该组件",
@@ -342,7 +371,7 @@ def _validate_figure(value: Any, path: str, report: Report) -> None:
     if isinstance(labels, dict):
         unknown = sorted(set(labels) - entry.labels)
         if unknown:
-            report.warn(
+            (report.error if declarative else report.warn)(
                 f"{path}.labels.{unknown[0]}",
                 f"组件 '{kind}' 不认识标注键 {('、'.join(unknown))}，"
                 f"它认识的是 {('、'.join(sorted(entry.labels)))}；写错的标签不会显示",
@@ -544,7 +573,7 @@ class Storyboard:
         return self.scenes[-1] if frame >= self.total_frames else self.scenes[0]
 
 
-def load(path: str | Path) -> tuple[Storyboard | None, Report]:
+def load(path: str | Path, *, declarative: bool = False) -> tuple[Storyboard | None, Report]:
     """从 JSON 文件加载并校验分镜脚本。
 
     返回 (storyboard, report)：解析失败或存在 error 时 storyboard 为 None，
@@ -564,7 +593,7 @@ def load(path: str | Path) -> tuple[Storyboard | None, Report]:
         report.error("$", f"JSON 解析失败（第 {exc.lineno} 行第 {exc.colno} 列）: {exc.msg}")
         return None, report
 
-    report = validate(data)
+    report = validate(data, declarative=declarative)
     if not report.ok:
         return None, report
     return _build(data, report), report

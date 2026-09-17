@@ -839,3 +839,7 @@
     text-align: center;
     opacity: 0;
   }
+/* 基础数字幕：数值、标签、解释均由分镜提供。 */
+.fig-number { font-size: 240px; font-weight: 800; line-height: 1; letter-spacing: -0.07em; color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
+.fig-number-label { font-size: 56px; font-weight: 700; color: var(--a2v-text-1); }
+.fig-number-caption { max-width: 760px; font-size: 40px; line-height: 1.4; color: var(--a2v-text-2); }

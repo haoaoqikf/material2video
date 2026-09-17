@@ -32,7 +32,8 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | `scripts/` | 校验、配音准备、预览、渲染四个命令行工具 |
 
 因此「可复用的视觉语言」不再体现为固定的 Scene 组件类，而体现为
-**共享的运行时 + 契约 + 视觉规范 + 设计令牌**；具体构图由每支视频的网页决定。
+**共享的运行时 + 契约 + 视觉规范 + 设计令牌**；常规构图由分镜选择受控组件与布局，
+特殊构图仍可由每支视频的专属网页决定。
 视觉方向的选择（深色科技 / 编辑杂志 / 极简高级）目前仍由人或 AI 工具判断，
 自动化属于规划中的能力。
 
@@ -43,7 +44,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
  → 内容理解与压缩          ← 由 AI 工具完成（规划中的自动化）
  → 分镜规划和视觉语言选择   ← 由 AI 工具完成（规划中的自动化）
  → 结构化脚本 JSON          ← 已实现：storyboard.json（校验规则已落地）
- → HTML / CSS / JS 场景渲染 ← 已实现：AI 生成网页 + 共享运行时
+ → HTML / CSS / JS 场景渲染 ← 已实现：共享声明式页面或专属网页 + 共享运行时
  → 时间轴动画编排           ← 已实现：帧驱动，禁止 CSS 动画
  → TTS 配音与字幕时间对齐   ← 已实现：edge-tts + 字词时间戳分句
  → 逐帧渲染与音视频合成     ← 已实现：可选 AAC 配音与字幕烧录
@@ -73,7 +74,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | DiagramScene | diagram | 因果、约束、反馈模型 | 已实现（`loop`） |
 | ConclusionScene | conclusion | 收束、行动建议 | 已实现（`exchange`） |
 | ListScene | list | 要点、行动步骤 | 已实现（`iceberg`） |
-| NumberScene | number | 数量、频次、收益变化 | **未实现**，暂由 `stairs` 或 `balance` 顶替 |
+| NumberScene | number | 数量、频次、收益变化 | 已实现基础数字组件 `number`；复杂数值图表仍待扩展 |
 
 校验器认识这八种类型并对必填字段做检查；出现新类型时给出警告而非错误，
 以便扩展，但对应网页必须实现该类型的渲染分支。
@@ -159,7 +160,11 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 都能成立；`review.py` 在两者上均 0 错误。
 
 尚未实现：AI 自动生成分镜（见第六阶段）；组件库的完整换肤
-（仍有若干装饰性渐变写死在 `figures.css` 里）；`number` 场景尚无对应组件。
+（仍有若干装饰性渐变写死在 `figures.css` 里）。
+
+声明式画面路径已补齐：新作品可由分镜从组件目录中挑选受控组件，并声明深浅主题与预设布局，
+由共享页面完成预览和渲染，不必为每篇文章编写 `index.html`。这一步复用现有
+帧驱动运行时和七个已有组件，并加入基础数字组件；自动生成分镜仍属下一阶段。
 
 ### 第六阶段：AI 分镜生成 —— 规划中
 
@@ -196,7 +201,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 项目要长期维护多篇文章，因此目录与产物位置是稳定约定而非临时安排：
 
 ```text
-videos/<slug>/{article.md, storyboard.json, index.html}   # 源文件入 Git
+videos/<slug>/{article.md, storyboard.json, [index.html]} # 专属网页可选，源文件入 Git
 outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
 outputs/examples/<slug>/                                   # 示例产物独立一层
 ```

@@ -7,7 +7,7 @@
 
 ## 这是什么
 
-一个**项目级 Skill**：由 AI 编程工具（Codex、Claude Code、DSH 等）读懂文章并生成动画网页，
+一个**项目级 Skill**：由 AI 编程工具（Codex、Claude Code、DSH 等）读懂文章并选择视觉组件；特殊构图可生成专属动画网页，
 再由确定性脚本把网页逐帧渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 ```text
@@ -23,14 +23,16 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 已完成**支持多篇文章目录规范的可选配音视频端到端链路**：
 
+- 新视频可只写 `article.md` 与 `storyboard.json`：共享页面按分镜声明的组件、主题和布局生成画面；`--page` 仍支持原有专属网页。声明式示例见 [`examples/declarative-number/`](examples/declarative-number/storyboard.json)，其数字组件为第八个组件；
+
 - 分镜 JSON 的结构校验（版本、帧率、尺寸、场景 ID、时长、组件字段、关系图节点引用、图形标注），
   并按视觉规范给出排版警告（单行字数、场景过短、强调短语不生效、标注过长）；
 - 网页与渲染脚本之间的确定性渲染契约 `window.__A2V__`，并提供时间轴运行时
   （帧状态推导、入场与常驻微动原语、预览播放控制）；
 - 共享设计令牌 `assets/theme.css`：颜色 / 表面 / 阴影 / 圆角 / 节奏令牌，
   以及光晕、网格、细点阵三种可复用背景层，供网页按需引用；
-- **视觉组件库** `assets/figures.js` + `assets/figures.css`：七个由帧驱动的画面组件
-  （天平 / 落差尺 / 双栏对照 / 冰山 / 飞轮 / 阶梯 / 双向选择），网页只声明
+- **视觉组件库** `assets/figures.js` + `assets/figures.css`：八个由帧驱动的画面组件
+  （天平 / 落差尺 / 双栏对照 / 冰山 / 飞轮 / 阶梯 / 双向选择 / 数字），专属网页只声明
   `<div data-a2v-figure></div>` 挂载点，分镜用 `data.figure.kind` 选组件、
   用 `labels` 给短标签、用 `motion` 指定节奏；组件自带 DOM 与样式，文案全部来自分镜。
   目录与新增组件的契约见
@@ -206,6 +208,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
   光晕用 `radial-gradient` 或 `box-shadow` 实现。
 
 ## 文档导航
+
+- [声明式示例](examples/declarative-number/storyboard.json)：无需专属网页的分镜与共享页面入口
 
 - [项目规划](docs/PROJECT_PLAN.md)：处理链路、组件清单与阶段路线（未来方向的权威来源）
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则

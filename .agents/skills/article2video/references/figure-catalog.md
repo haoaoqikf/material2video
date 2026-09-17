@@ -20,6 +20,7 @@
 | `loop` | 循环往复、每转一圈积累一点 | `diagram` | `gauge` | 3–6 节点 |
 | `stairs` | 次数累积带来的位置变化，并在末段翻转视角 | `timeline` | `axis`, `before`, `after` | 2–5 级 |
 | `exchange` | 双向关系，两个端点互相选择 | `conclusion` | `leftNode`, `rightNode` | 2 端 |
+| `number` | 数值递增、标签和说明 | `number`（共享页面） | 无 | 1 个数值 |
 
 标注键是**组件真正会画出来的那几个**：`figures.js` 声明什么，就必须用 `ann.<键>`
 真正写进画面对应元素，测试要求两者严格相等。声明了却没人画的键会造成

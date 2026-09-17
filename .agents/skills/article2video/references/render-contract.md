@@ -111,6 +111,12 @@ JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影�
 
 ## 视觉组件库
 
+共享页面 `assets/declarative.html` 从 `a2v-storyboard` 查询参数读取仓库内分镜，
+按场景建立 `[data-a2v-scene]` 与 `[data-a2v-figure]`，并沿用下面的 `A2V.mount`
+和 `A2V.figures.renderScene` 契约。`render.py --storyboard <json>` 选择此路径；
+显式 `--page` 仍使用视频自己的网页。共享页面的 `dark` / `light` 主题和
+`center` / `lower` 布局是受控预设，具体组件继续由分镜 `data.figure.kind` 选择。
+
 `assets/figures.js` + `assets/figures.css` 提供一组**由帧驱动的画面组件**，
 让网页只声明「这一幕用哪个组件」，而不是每次重画一遍几何。
 组件目录与选择方式见 [视觉组件目录](figure-catalog.md)。

@@ -13,6 +13,7 @@
 | `height` | `number` | 否 | 画面高度，默认 `1920`，必须是偶数 |
 | `title` | `string` | 否 | 视频标题，用于日志与文件命名，不参与画面 |
 | `scenes` | `array` | 是 | 非空场景数组 |
+| `visual` | `object` | 否 | 共享页面的主题：`{"theme":"dark"}` 或 `{"theme":"light"}`，默认 `dark` |
 
 宽高必须是偶数：H.264 的 `yuv420p` 像素格式要求宽高可被 2 整除，奇数会导致编码失败。
 
@@ -25,6 +26,7 @@
 | `durationInFrames` | `number` | 是 | 该场景持续帧数，正整数 |
 | `narration` | `string` | 否 | 口播文案，供 prepare.py 合成配音；省略或空字符串表示静音。未传 --media 时不渲染口播 |
 | `data` | `object` | 是 | 该场景的内容，字段由 `type` 决定 |
+| `visual` | `object` | 否 | 共享页面布局：`{"layout":"center"}` 或 `{"layout":"lower"}`，默认 `center` |
 
 场景在时间轴上的起点由其前面所有场景的 `durationInFrames` 累加得到，
 **不需要也不应该手写起始帧**，避免两处数据不一致。
@@ -80,6 +82,18 @@
 两者同时存在时以 `figure.labels` 为准。校验器负责结构与取值合法性（`kind` 非空、
 `motion` 在三者之内、`labels` 每项非空且不过长），**组件是否存在**由组件目录决定，
 网页在挂载时发现未注册的 `kind` 会立即报错，而不是画出空白。
+
+## 声明式画面模式
+
+新视频可以只提交 `article.md` 和 `storyboard.json`，由共享页面创建场景。使用
+`validate.py <分镜> --declarative --strict` 预校验；`render.py --storyboard <分镜>`
+或 `preview.py --declarative --storyboard <分镜>` 使用共享页面。旧的专属 `index.html`
+路径仍可用。完整示例见 [declarative-number](../../../../examples/declarative-number/storyboard.json)。
+
+声明式模式使用 `data.figure.kind`、`labels` 和 `motion`，未写 `kind` 时按场景类型
+取目录默认值。未知组件、布局、主题、动效、额外字段和未实现的 `figure.params` 均为错误，
+错误包含分镜字段路径。当前 `params` 没有可用键；分镜不能声明 HTML、CSS、JS 或第三方包。
+`number` 的基础组件读 `value`、`label`、`caption`；数值型 `value` 按帧递增显示。
 
 分镜里的换行符是硬换行：把长句按语义手动断成每行不超过 14 个汉字，
 比让浏览器自动折行更可控，也避免重点词被拆开。校验器会对超长行给出警告，

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "每一次尝试都留下反馈",
+  "visual": { "theme": "light" },
+  "scenes": [
+    {
+      "id": "count",
+      "type": "number",
+      "durationInFrames": 90,
+      "visual": { "layout": "center" },
+      "data": {
+        "value": 73,
+        "label": "次尝试（示意）",
+        "caption": "每一次都会留下反馈",
+        "figure": { "kind": "number", "motion": "impact" }
+      }
+    },
+    {
+      "id": "closing",
+      "type": "conclusion",
+      "durationInFrames": 90,
+      "visual": { "layout": "lower" },
+      "data": {
+        "text": "反馈，让下一次更有方向",
+        "action": "继续上场"
+      }
+    }
+  ]
+}

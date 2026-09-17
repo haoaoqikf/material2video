@@ -9,7 +9,7 @@
 videos/<slug>/
 ├── article.md
 ├── storyboard.json
-├── index.html
+├── index.html              # 专属网页路径需要；声明式路径可省略
 └── assets/                 # 本篇专用素材，按需创建
 
 outputs/<slug>/
@@ -33,7 +33,7 @@ outputs/<slug>/
 
 1. 以输入文件位置向上查找含 `.agents/skills/article2video/SKILL.md` 的目录，作为项目根；
 2. 在该根下识别直属的 `videos/<slug>/` 或 `examples/<slug>/`，slug 即目录名；
-3. 渲染与预览以**本地网页**确定归属，配音准备以**分镜**确定归属；
+3. 专属网页路径以**本地网页**确定归属；声明式渲染、预览与配音准备以**分镜**确定归属；
 4. 全程使用绝对路径，与执行命令时的工作目录无关。
 
 推导失败时不猜归属，直接报错并要求显式指定输出路径：
@@ -53,6 +53,7 @@ outputs/<slug>/
 | --- | --- |
 | `prepare.py --storyboard <json>` | `outputs/<slug>/media/media.json`（含音轨与缓存） |
 | `render.py --page <html> --storyboard <json>` | `outputs/<slug>/silent.mp4` |
+| `render.py --storyboard <json>` | `outputs/<slug>/silent.mp4`（共享页面） |
 | `render.py … --media <media.json>` | `outputs/<slug>/voiced.mp4` 与同名 `.srt` |
 | 上述渲染命令加 `--limit-frames N` | `outputs/<slug>/previews/<同名成片>` |
 
