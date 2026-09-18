@@ -25,9 +25,34 @@ from typing import Any
 #: 文字与图形与背景的差距远大于这个值。
 _BACKGROUND_TOLERANCE = 16
 
-#: 强调色判定容差（每通道）。按帧渲染的强调色带抗锯齿、光晕与半透明叠加，
-#: 容差太小会只认「纯色像素」，把真实的强调元素全漏掉。
+#: 强调色判定容差（每通道）。只用于统计「纯色」子集的诊断值，不再作判据。
 _ACCENT_TOLERANCE = 46
+
+#: 强调色**族**的判据：色度下限（max−min）与色相容差（度）。
+#:
+#: 原先的判据是「与纯强调色逐通道相差 ≤ 46」的色盒，它看不见设计系统自己
+#: 登记的另外三个强调色成员——实测距离：
+#:   `--a2v-accent-line`（alpha 0.55）合成 RGB(32,122,146)  通道差 87/102
+#:   `--a2v-accent-deep`（#2f7fa8，文档写的是「图形着重色」） 通道差 87/87
+#:   `--a2v-accent-soft-solid`（#16465f，焦点面的填充）     通道差 160
+#: 于是「用强调色着重色画的焦点」被 K2 判成「没有强调色」。逐通道色盒本来
+#: 也不是感知量：它同时排斥变暗与变亮的同色。
+#:
+#: 换成感知量：**色度**（离中性轴的距离）+ **色相**。各族成员实测色度：
+#:   背景梯度 4 / `--fig-surface` 20 / `--a2v-accent-soft`(0.14) 合成 32
+#:   `--a2v-accent-soft-solid` 73 / `--a2v-accent-line` 合成 114
+#:   `--a2v-accent-deep` 121 / 纯强调色 205
+#: 取 50 干净地切开：背景与中性面（色度 4–20）被排除，
+#: 四个强调色成员（73–205）全部纳入。
+#:
+#: 为什么把 `--a2v-accent-soft`（0.14）也排除在外：14% 透明度的染色只是**暗示**，
+#: 在近黑底上合成出 RGB(15,39,47)，读者不会把它读成"这里有一个焦点"。
+#: 焦点要有可辨识的色块，色度下限就是这条线。
+_ACCENT_CHROMA_MIN = 50
+
+#: 色相容差。强调色 #32d6ff 是 192°，四个成员落在 192–200°；
+#: 放宽到 ±30° 会覆盖 219° 的 `--fig-surface`，但它色度只有 20，已被色度下限挡掉。
+_ACCENT_HUE_TOLERANCE = 30.0
 
 #: 留白预算：按帧量测的「背景像素占比」。
 #: 信息幕 ≥40%、hero/quote 幕 ≥60% 是设计研究里的可编码结论（见参考文档）。
@@ -298,20 +323,49 @@ def rgb_metrics(rgb: bytes) -> dict[str, float]:
     return {"empty": background / total}
 
 
+def _hue(r: int, g: int, b: int) -> float:
+    """返回 0–360 的色相（度）。三段线性，不引第三方色彩库。"""
+    high = max(r, g, b)
+    low = min(r, g, b)
+    delta = high - low
+    if delta == 0:
+        return 0.0
+    if high == r:
+        return (60.0 * (((g - b) / delta) % 6)) % 360.0
+    if high == g:
+        return 60.0 * ((b - r) / delta + 2)
+    return 60.0 * ((r - g) / delta + 4)
+
+
 def accent_metrics(rgb: bytes, accent: tuple[int, int, int]) -> dict[str, float]:
-    """统计强调色像素占整帧的比例。"""
+    """统计强调色**族**的像素占比。
+
+    判据是色度 + 色相，不是与某一个色值的逐通道差——理由见
+    `_ACCENT_CHROMA_MIN`：色盒看不见设计系统登记的另外三个强调色成员。
+    另附 `accent_pure` 作为诊断值（只含与纯强调色逐通道相差 ≤ 容差的像素），
+    便于分辨「焦点是纯强调色画的」还是「用的是族里的暗档」。
+    """
     total = len(rgb) // 3
     if not total:
-        return {"accent": 0.0}
+        return {"accent": 0.0, "accent_pure": 0.0}
+    accent_hue = _hue(*accent)
     hits = 0
+    pure = 0
     for index in range(0, len(rgb), 3):
+        r, g, b = rgb[index], rgb[index + 1], rgb[index + 2]
+        if max(r, g, b) - min(r, g, b) < _ACCENT_CHROMA_MIN:
+            continue
+        delta = abs(_hue(r, g, b) - accent_hue)
+        if min(delta, 360.0 - delta) > _ACCENT_HUE_TOLERANCE:
+            continue
+        hits += 1
         if (
-            abs(rgb[index] - accent[0]) <= _ACCENT_TOLERANCE
-            and abs(rgb[index + 1] - accent[1]) <= _ACCENT_TOLERANCE
-            and abs(rgb[index + 2] - accent[2]) <= _ACCENT_TOLERANCE
+            abs(r - accent[0]) <= _ACCENT_TOLERANCE
+            and abs(g - accent[1]) <= _ACCENT_TOLERANCE
+            and abs(b - accent[2]) <= _ACCENT_TOLERANCE
         ):
-            hits += 1
-    return {"accent": hits / total}
+            pure += 1
+    return {"accent": hits / total, "accent_pure": pure / total}
 
 
 #: 可读墨迹的灰度下限。低于它的像素算背景（含渐变、光晕、点阵）。

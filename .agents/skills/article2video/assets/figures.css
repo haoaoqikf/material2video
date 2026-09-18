@@ -455,14 +455,12 @@
     stroke-dasharray: 18 14;
   }
 
+  /* 填充与描边归 `a2v-surface` 的状态（rest / focus），组件只管形状与线宽。
+     原先这里写死 `fill: --fig-surface` + 发丝描边，`.is-accent` 再把描边换成
+     2px、50% 透明的强调色——那是临场的状态表达，与设计语言层的状态定义两处真源，
+     而且细到量不出来。`rest` 态给出的填充与描边与这里原来的取值完全一致。 */
   .berg-callout {
-    fill: var(--fig-surface);
-    stroke: var(--a2v-hairline);
     stroke-width: var(--a2v-stroke-2, 2);
-  }
-
-  .berg-callout.is-accent {
-    stroke: rgba(var(--a2v-accent-rgb), 0.5);
   }
 
   .berg-callout-label {

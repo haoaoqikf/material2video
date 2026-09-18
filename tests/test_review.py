@@ -148,6 +148,52 @@ class TestKeynoteMetrics:
             data.extend([220, 60, 60] if index < 10 else [8, 9, 12])
         assert keynote.accent_metrics(bytes(data), (50, 214, 255))["accent"] == 0.0
 
+    def _rgb_of(self, color: tuple[int, int, int], hits: int = 10) -> bytes:
+        data = bytearray()
+        for index in range(100):
+            data.extend(color if index < hits else (8, 9, 12))
+        return bytes(data)
+
+    def test_accent_family_members_are_all_visible(self):
+        """设计系统登记的四个强调色成员都必须量得到。
+
+        原先的判据是「与纯强调色逐通道相差 ≤ 46」的色盒，它只认最亮的那一个；
+        另外三个成员（着重色、描边色、焦点面的填充）全被判成「没有强调色」，
+        于是「用强调色着重色画的焦点」在闸门里等于不存在。
+        """
+        members = {
+            "纯强调色 #32d6ff": (50, 214, 255),
+            "着重色 #2f7fa8": (47, 127, 168),
+            "焦点面填充 #16465f": (22, 70, 95),
+            "描边色合成(alpha 0.55)": (32, 122, 146),
+        }
+        for name, color in members.items():
+            share = keynote.accent_metrics(self._rgb_of(color), (50, 214, 255))["accent"]
+            assert share == 0.1, f"{name} 应当被算作强调色，实际 {share}"
+
+    def test_accent_family_excludes_neutral_surfaces_and_background(self):
+        """反向断言：中性面与背景不能被算进族里，否则闸门等于失效。
+
+        背景是一层青绿光晕，色相与强调色很近，所以判据必须有**色度下限**：
+        这几位的色度只有 4–32，离中性轴太近，读者不会读成"焦点"。
+        """
+        neutrals = {
+            "背景梯度": (11, 12, 15),
+            "背景暗端": (8, 9, 12),
+            "中性表面 --fig-surface": (23, 30, 43),
+            "14% 染色 --a2v-accent-soft": (15, 39, 47),
+            "白字": (244, 247, 251),
+        }
+        for name, color in neutrals.items():
+            share = keynote.accent_metrics(self._rgb_of(color), (50, 214, 255))["accent"]
+            assert share == 0.0, f"{name} 不该被算作强调色，实际 {share}"
+
+    def test_pure_share_is_reported_alongside_the_family(self):
+        """诊断值：能分辨焦点是用纯强调色画的，还是用族里的暗档画的。"""
+        family = keynote.accent_metrics(self._rgb_of((22, 70, 95)), (50, 214, 255))
+        assert family["accent"] == 0.1, "暗档属于族"
+        assert family["accent_pure"] == 0.0, "但它不是纯色"
+
     def test_contrast_ratio_matches_wcag_reference(self):
         # 白 / 黑 = 21:1，是 WCAG 的已知端点
         assert round(keynote.contrast_ratio((255, 255, 255), (0, 0, 0)), 1) == 21.0

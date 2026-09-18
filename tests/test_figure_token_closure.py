@@ -229,7 +229,29 @@ class TestPrimitivesAndStates:
             r'\.a2v-surface\[data-a2v-state="focus"\]\s*\{([^}]*)\}', KEYNOTE_CSS
         )
         assert block, "找不到焦点态的规则"
-        assert "var(--a2v-accent)" in block.group(1), "焦点态应当把描边换成强调色"
+        body = block.group(1)
+        assert "var(--a2v-accent)" in body, "焦点态应当把描边换成强调色"
+
+    def test_focus_state_carries_accent_mass_not_just_a_stroke(self) -> None:
+        """焦点态要有**块面**，不能只改描边。
+
+        只改描边的表达量不出焦点：一帧 1080×1920 折算到判据图上只有约 540×960，
+        细描边缩完只剩 1px 左右，抗锯齿一糊就量不到。实测结论是八幕里七幕
+        报「几乎没有强调色」，而逐色直方图确认画面上确实没有任何强调色块面——
+        唯一的蓝色面是中性表面 RGB(23,30,43)，暗到只会被读成"一块暗面板"。
+        """
+        block = re.search(
+            r'\.a2v-surface\[data-a2v-state="focus"\]\s*\{([^}]*)\}', KEYNOTE_CSS
+        )
+        assert block, "找不到焦点态的规则"
+        body = block.group(1)
+        fill = re.search(r"fill:\s*([^;]+);", body)
+        assert fill, "焦点态缺少填充声明（只有描边的焦点等于没有焦点）"
+        assert "accent" in fill.group(1), f"焦点态的填充应当来自强调色族，实际 {fill.group(1)!r}"
+        assert "var(--a2v-accent-soft-solid)" in fill.group(1), (
+            "焦点面的填充取 `--a2v-accent-soft-solid`：它是被压暗的强调色，"
+            "在深底上读得出「这块被选中了」，又远不到霓虹的程度"
+        )
 
 
 class TestContainerOverflowGate:
