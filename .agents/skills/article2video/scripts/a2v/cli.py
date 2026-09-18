@@ -621,7 +621,11 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
 
 #: 观感闸门里的硬判定。它们与「不是废片」类检查同性质：不通过就不该出片。
 #: 其余观感闸门只提示——「不够发布会级」和「画面坏了」不是一回事。
-_HARD_GATES = ("K7",)
+#:
+#: K7 是「文字越出安全区」，K8 是「图形内文字穿出自己的容器」。两者都是
+#: 有人会看到半行字的画面损坏；K8 的存在还因为 K7 的参照只有安全区，
+#: 图形内部按几何位置绘制的文字完全不在它的量程内。
+_HARD_GATES = ("K7", "K8")
 
 
 def _apply_hard_gates(report: Report, keynote: dict) -> None:
@@ -642,10 +646,10 @@ def _apply_hard_gates(report: Report, keynote: dict) -> None:
 def _keynote_lines(keynote: dict) -> list[str]:
     """观感闸门摘要。与「不是废片」类检查分开列，不混成一个总分。"""
     if not keynote.get("enabled"):
-        return [f"观感闸门 K1–K7：不适用——{keynote.get('reason') or '未启用设计语言预设'}"]
+        return [f"观感闸门 K1–K9：不适用——{keynote.get('reason') or '未启用设计语言预设'}"]
     summary = keynote.get("summary") or {}
     lines = [
-        "观感闸门 K1–K7（与上面的废片类检查分开计）："
+        "观感闸门 K1–K9（与上面的废片类检查分开计）："
         f"{summary.get('pass', 0)} 条通过 / {summary.get('warn', 0)} 条提醒 / "
         f"{summary.get('fail', 0)} 条失败 / {summary.get('skipped', 0)} 条跳过"
     ]

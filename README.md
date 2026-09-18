@@ -109,13 +109,27 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `tests/test_keynote_assets.py` 的「视觉规则必须限定在预设作用域内、每个令牌都带原值兜底」守住；
   参考实现见
   [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)（8 幕 / 2040 帧 / 68 秒）；
-- **观感闸门 K1–K7**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
-  对齐基线、正文对比度、卡片纪律量成数值结论，与回答「是不是废片」的 C 系列
-  **分开计分**；`review.py --declarative` 时随体检一起输出，取不到样本的条目跳过并写明原因。
-  其中 **K7 文字溢出是硬判定**：文本块越出安全区（容差 8px）或排版引擎报
-  「缩到正文下限仍放不下」时，会并入体检的错误数与退出码，并报出是哪个文本块、
-  往哪个方向越了多少像素。阈值与设计取舍见
+- **观感闸门 K1–K9**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
+  对齐基线、正文对比度、卡片纪律、图形描边一致性量成数值结论，与回答「是不是废片」的
+  C 系列**分开计分**；`review.py --declarative` 时随体检一起输出，取不到样本的条目
+  跳过并写明原因。
+  其中 **K7 文字溢出与 K8 容器内溢出是硬判定**：文本块越出安全区（容差 8px）、
+  图形内的文字穿出它所属的容器（容差 2px，容器由组件用 `data-a2v-inside` 声明）、
+  或排版引擎报「缩到正文下限仍放不下」时，会并入体检的错误数与退出码，
+  并报出是哪个文本块/哪段文字、往哪个方向越了多少像素。
+  K8 补的是 K7 量不到的那一格：K7 的参照只有安全区，而图形内按几何位置绘制的文字
+  （飞轮节点、冰山标注、天平载物…）既不受安全区判定也不受容器判定。
+  阈值与设计取舍见
   [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
+- **组件级令牌与状态（进行中）**：`figures.css` 的描边宽度、字重、字距、圆角与
+  1px 边框已经全部走令牌（新增 56 处引用，字面值清零），
+  `keynote.css` 另外定义了四个图形基元（`a2v-surface` / `a2v-label` /
+  `a2v-connector` / `a2v-frame`）与四个状态（`rest` / `focus` / `muted` / `done`）；
+  **间距与内边距尚未迁移，基元与状态目前只落在飞轮一个组件上**——
+  这两项是进行中的工作，不要当成已完成的能力；
+- **容器内文字由内容测量决定几何**：装文字的容器（节点圆等）按实测文字宽度定形，
+  而不是先写死尺寸再把字塞进去。参考示例的飞轮节点原先半径 76px 配 44px 的四字标签
+  （约 183px，比直径还宽 31px），文字穿出圆而所有机检全绿，现在由 K8 守住；
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
 
@@ -282,7 +296,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
 - [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)：有哪些现成组件、怎么选、怎么新增
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
-- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎与 K1–K7 观感闸门
+- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌（含组件级的描边 / 字重 / 字距 / 几何四族）、图形基元与状态、排版引擎与 K1–K9 观感闸门
 - [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 

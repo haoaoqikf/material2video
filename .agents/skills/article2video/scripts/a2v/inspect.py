@@ -9,7 +9,7 @@
 2. **帧量测**（启发式）：逐帧统计墨迹覆盖率与上下安全区的墨迹，
    用于发现空幕、黑屏、内容压到边缘。
 3. **设计宪法**（静态）：结构、曲线、模糊、挂载点、文案真源、安全区。
-4. **观感闸门 K1–K7**（量测，可选）：启用设计语言预设时，量出留白预算、
+4. **观感闸门 K1–K9**（量测，可选）：启用设计语言预设时，量出留白预算、
    强调色占比、字号种类、对齐基线、正文对比度与卡片纪律。它与前三项**分开报告、
    分开计数**——前三项回答「这是不是废片」，K 系列回答「这像不像发布会级别的画面」。
 
@@ -393,7 +393,7 @@ _AESTHETIC_SCRIPT = """
   var blockRole = function (el) {
     var node = el;
     while (node && node !== active && node.parentElement) {
-      var names = className(node).split(/\s+/).filter(Boolean);
+      var names = className(node).split(/\\s+/).filter(Boolean);
       var wrapper = names.length > 0;
       for (var k = 0; k < names.length; k++) {
         if (!INLINE_WRAPPERS[names[k]]) { wrapper = false; break; }
@@ -476,11 +476,69 @@ _AESTHETIC_SCRIPT = """
     var value = (node.textContent || '').replace(/\\s+/g, ' ').trim();
     if (value) noFit.push({ role: className(node) || String(node.tagName).toLowerCase(), text: value });
   }
+
+  // 图形内部的文字：由组件显式声明「我装在哪个容器里」。
+  // 「这段文字是不是装在某个形状里」无法由几何自动判断——阶梯的注写在柱子上方，
+  // 同样是近邻，却一点不装在里面，所以只能由组件声明（data-a2v-inside 指向容器选择器）。
+  // 坐标一律用 SVG 用户坐标（getBBox）：文字与容器同为同一个 <g> 的子节点，
+  // 分组的入场变换对两者一致，相对关系不受影响。
+  var inside = [];
+  var insideNodes = active.querySelectorAll('[data-a2v-inside]');
+  for (var q = 0; q < insideNodes.length; q++) {
+    var label = insideNodes[q];
+    var labelText = (label.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!labelText) continue;
+    var selector = label.getAttribute('data-a2v-inside');
+    var scope = label.parentNode;
+    var shape = scope && selector ? scope.querySelector(selector) : null;
+    if (!shape) continue;
+    try {
+      var textBox = label.getBBox();
+      var shapeBox = shape.getBBox();
+    } catch (error) {
+      continue;
+    }
+    if (!textBox.width || !shapeBox.width) continue;
+    var shapeTag = String(shape.tagName).toLowerCase();
+    inside.push({
+      role: className(label) || String(label.tagName).toLowerCase(),
+      text: labelText,
+      container: selector,
+      kind: shapeTag === 'circle' || shapeTag === 'ellipse' ? 'circle' : 'rect',
+      box: {
+        left: textBox.x,
+        top: textBox.y,
+        right: textBox.x + textBox.width,
+        bottom: textBox.y + textBox.height
+      },
+      shape: {
+        left: shapeBox.x,
+        top: shapeBox.y,
+        right: shapeBox.x + shapeBox.width,
+        bottom: shapeBox.y + shapeBox.height
+      }
+    });
+  }
+
+  // 描边：同帧出现了几档线宽、取值在不在描边阶上。
+  var strokes = [];
+  var paintedNodes = active.querySelectorAll('svg *');
+  for (var w = 0; w < paintedNodes.length; w++) {
+    var painted = paintedNodes[w];
+    var paintedStyle = window.getComputedStyle(painted);
+    var strokeWidth = parseFloat(paintedStyle.strokeWidth) || 0;
+    if (strokeWidth <= 0) continue;
+    if (!paintedStyle.stroke || paintedStyle.stroke === 'none') continue;
+    strokes.push(Math.round(strokeWidth * 10) / 10);
+  }
+
   return {
     sizes: sizes,
     texts: texts,
     cards: cards,
     noFit: noFit,
+    inside: inside,
+    strokes: strokes,
     accent: rootStyle.getPropertyValue('--a2v-accent').trim(),
     background: rootStyle.getPropertyValue('--a2v-bg-0').trim(),
     center: safeBox ? safeBox.left + safeBox.width / 2 - stageRect.left : 0,
@@ -528,6 +586,8 @@ def keynote_gate(
             ("K5", "正文对比度"),
             ("K6", "卡片与描边纪律"),
             ("K7", "文字溢出"),
+            ("K8", "容器内溢出"),
+            ("K9", "图形描边一致性"),
         ):
             gates.append(
                 keynote.Gate(
@@ -550,6 +610,12 @@ def keynote_gate(
     gates.append(keynote.gate_card_discipline(scene_id, list(facts.get("cards") or [])))
     gates.append(
         keynote.gate_overflow(scene_id, texts, facts.get("safe"), list(facts.get("noFit") or []))
+    )
+    gates.append(keynote.gate_container_overflow(scene_id, list(facts.get("inside") or [])))
+    gates.append(
+        keynote.gate_stroke_consistency(
+            scene_id, [float(width) for width in (facts.get("strokes") or [])]
+        )
     )
     return gates
 

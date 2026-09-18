@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -642,4 +643,157 @@ def gate_overflow(
 def _clip(value: Any, limit: int = 18) -> str:
     text = str(value or "")
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+#: K8 容器内溢出的容差。比 K7 的 8px 小得多：入场动效会把整个图形分组一起
+#: 平移与等比缩放，文字与容器的**相对**位置在这种变换下不变，
+#: 剩下的只有亚像素舍入。留 2px 足够，再多就会把真正穿出去的文字放过去。
+_CONTAINER_TOLERANCE = 2.0
+
+#: 描边阶（与 keynote.css 的 `--a2v-stroke-*` 一致）。
+_STROKE_LADDER = (1.0, 2.0, 3.0, 4.0, 6.0)
+
+#: 同一帧允许出现的描边档数。超过就说明图形语言不成体系。
+_MAX_STROKE_TIERS = 3
+
+
+def gate_container_overflow(scene_id: str, inside: list[dict[str, Any]]) -> Gate:
+    """K8 容器内溢出：图形内部的文字不许穿出它所属的容器。
+
+    为什么需要单独一条，而不是靠 K7：K7 唯一的参照是 `.a2v-safe`，
+    而图形内部的文字（飞轮节点、双向选择节点、冰山标注、天平载物、阶梯柱顶注）
+    画在各自的几何位置上，`getComputedStyle` 量不到它们的排版盒，
+    实测下来它们**既不受安全区判定、也不受容器判定**——完全在量程之外。
+
+    后果是可见的：飞轮节点半径 76px（直径 152px），而节点标签在预设下是 44px，
+    四个汉字带字距约 183px，比直径还宽 31px，文字必然穿出圆，
+    而 K7 那时报的是「量了 2 个文本块，都在安全区内」。
+
+    只检查**组件显式声明过容器**的文字（`data-a2v-inside` 指向容器选择器）：
+    「这段文字是不是装在某个形状里」无法由几何自动判断——阶梯的注写在柱子**上方**，
+    同样是近邻，却一点不装在里面。未声明的文字不在这里判定，
+    但跳过要写明原因，不得算作通过。
+    """
+    threshold = f"越界 ≤ {_CONTAINER_TOLERANCE:.0f}px"
+    if not inside:
+        return Gate(
+            id="K8",
+            title="容器内溢出",
+            status="skipped",
+            threshold=threshold,
+            detail="这一幕没有声明所属容器的图形文字，无法判定",
+            scene=scene_id,
+        )
+
+    offenders: list[str] = []
+    measured = 0
+    worst = 0.0
+    for item in inside:
+        box = item.get("box") or {}
+        shape = item.get("shape") or {}
+        if not box or not shape:
+            continue
+        measured += 1
+        if item.get("kind") == "circle":
+            center_x = (float(shape["left"]) + float(shape["right"])) / 2
+            center_y = (float(shape["top"]) + float(shape["bottom"])) / 2
+            radius = (float(shape["right"]) - float(shape["left"])) / 2
+            corners = (
+                (float(box["left"]), float(box["top"])),
+                (float(box["right"]), float(box["top"])),
+                (float(box["left"]), float(box["bottom"])),
+                (float(box["right"]), float(box["bottom"])),
+            )
+            amount = max(
+                math.hypot(x - center_x, y - center_y) - radius for x, y in corners
+            )
+            where = "圆周"
+        else:
+            amount = max(
+                float(shape["left"]) - float(box["left"]),
+                float(box["right"]) - float(shape["right"]),
+                float(shape["top"]) - float(box["top"]),
+                float(box["bottom"]) - float(shape["bottom"]),
+            )
+            where = "容器边界"
+        if amount <= _CONTAINER_TOLERANCE:
+            continue
+        worst = max(worst, amount)
+        offenders.append(
+            f"「{_clip(item.get('text'))}」穿出 {item.get('container') or '容器'}"
+            f"（{where}）{amount:.1f}px"
+        )
+
+    if not offenders:
+        return Gate(
+            id="K8",
+            title="容器内溢出",
+            status="pass",
+            value=0,
+            threshold=threshold,
+            detail=f"量了 {measured} 个声明了容器的图形文字，都在容器内",
+            scene=scene_id,
+        )
+
+    return Gate(
+        id="K8",
+        title="容器内溢出",
+        status="fail",
+        value=round(worst, 1),
+        threshold=threshold,
+        detail="硬判定：" + "；".join(offenders[:4]),
+        scene=scene_id,
+    )
+
+
+def gate_stroke_consistency(scene_id: str, widths: list[float]) -> Gate:
+    """K9 图形描边一致性：同一帧的线宽要落在描边阶上，档数也要收敛。
+
+    组件层原先散着 2 / 3 / 4 / 5 / 6 五种线宽，没有令牌、没有语义。
+    苹果的图形语言是**少数几档线宽**；一屏里出现四五种线宽，
+    观众说不出哪里不对，只会觉得「不够精致」——这正是最难自查的一类缺陷。
+
+    只提示、不拦人：线宽不一致是观感问题，不是画面损坏。
+    """
+    if not widths:
+        return Gate(
+            id="K9",
+            title="图形描边一致性",
+            status="skipped",
+            threshold=f"档数 ≤ {_MAX_STROKE_TIERS}，取值在描边阶上",
+            detail="这一幕没有可量的描边",
+            scene=scene_id,
+        )
+    rounded = sorted({round(width, 1) for width in widths if width > 0})
+    off_ladder = [width for width in rounded if width not in _STROKE_LADDER]
+    if off_ladder:
+        return Gate(
+            id="K9",
+            title="图形描边一致性",
+            status="warn",
+            value=rounded,
+            threshold=f"档数 ≤ {_MAX_STROKE_TIERS}，取值在描边阶上",
+            detail=f"线宽 {off_ladder} 不在描边阶 "
+            f"{[int(v) for v in _STROKE_LADDER]} 上；改用对应档位的令牌",
+            scene=scene_id,
+        )
+    if len(rounded) > _MAX_STROKE_TIERS:
+        return Gate(
+            id="K9",
+            title="图形描边一致性",
+            status="warn",
+            value=rounded,
+            threshold=f"档数 ≤ {_MAX_STROKE_TIERS}，取值在描边阶上",
+            detail=f"同一帧用了 {len(rounded)} 档线宽，图形语言不成体系",
+            scene=scene_id,
+        )
+    return Gate(
+        id="K9",
+        title="图形描边一致性",
+        status="pass",
+        value=rounded,
+        threshold=f"档数 ≤ {_MAX_STROKE_TIERS}，取值在描边阶上",
+        detail="",
+        scene=scene_id,
+    )
 

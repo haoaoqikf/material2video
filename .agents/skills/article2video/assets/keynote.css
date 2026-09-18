@@ -322,6 +322,58 @@
   --a2v-radius-xl: 48px;
   --a2v-radius-pill: 999px;
 
+  /* ---------- 描边阶：按**用途**分档，不按观感 ----------
+   *
+   * 组件层原先散着 2 / 3 / 4 / 5 / 6 五种线宽，没有令牌、没有语义，
+   * 等于每张图各自决定线多粗。分档问的是同一个问题：
+   * 「这条线消失了，观众还看得懂吗」。
+   *
+   * 为什么不是「一条 2px 走天下」：竖屏 1080 宽在手机上实际显示约 400–500
+   * 逻辑像素，1px 缩过之后接近消失；但把所有线抬到 4px 又会让次级结构
+   * （虚线轨道、刻度）与数据描边一样重，层级反而塌掉。
+   * 原先的 5px 只出现在阶梯的跳跃弧上，语义与 .loop-arc 的 6px 完全相同
+   * （都是「运动轨迹」），留两个只差 1px 的档位等于给后人一个随手可选的理由，
+   * 因此合并进 stroke-5。 */
+  --a2v-stroke-1: 1px; /* 发丝边界：卡片、面板的边框 */
+  --a2v-stroke-2: 2px; /* 次级结构：虚线辅助、坐标刻度 */
+  --a2v-stroke-3: 3px; /* 数据描边：承载数据形状的轮廓 */
+  --a2v-stroke-4: 4px; /* 图形主体：构件、轨道、节点边界 */
+  --a2v-stroke-5: 6px; /* 焦点与运动轨迹：强调弧、进度 */
+
+  /* ---------- 字重阶：上限收到 700 ----------
+   *
+   * Inter 与 Noto Sans SC 都是可变字体，800 在中文上会让笔画粘连
+   * （汉字的笔画密度远高于拉丁）。而「更大的数字」这个诉求已经由字号阶的
+   * display / hero 档承担了——层级靠字号拉开，不靠加粗。 */
+  --a2v-weight-regular: 400;
+  --a2v-weight-medium: 500;
+  --a2v-weight-semibold: 600;
+  --a2v-weight-bold: 700;
+
+  /* ---------- 组件字距：给组件用的语义槽 ----------
+   *
+   * 组件层原有 16 处字面字距，取值从 -0.07em 一路到 0.14em 近似连续分布
+   * （0.01 / 0.02 / 0.04 / 0.06 / 0.08 / 0.10 / 0.12 / 0.14）。
+   * 那不是一个刻度，而是一串近似值——同一个语义「小标签要松开」有五个取值，
+   * 于是「为什么这两个标签的字距不一样」永远没有答案。
+   * 这里按语义收成五槽，逐值映射到最近的一槽；字距无关量级只关语义。 */
+  --a2v-track-numeral: -0.07em; /* 主角数字：>120px 的数值需要更强的光学收紧 */
+  --a2v-track-display: var(--a2v-tracking-hero); /* -0.03em：大标题 */
+  --a2v-track-body: var(--a2v-tracking-body); /* 0em：正文 */
+  --a2v-track-caption: var(--a2v-tracking-caption); /* 0.06em：角标、来源 */
+  --a2v-track-label: var(--a2v-tracking-label); /* 0.14em：标签、轴名 */
+
+  /* ---------- 图形几何档 ----------
+   *
+   * 只收「八个组件应当一起变」的那几个几何量。一张图的**坐标**
+   * （立柱位置、圆上节点的角度、柱高数组）是内容而不是令牌，
+   * 刻意留在组件里，不做令牌化。 */
+  --fig-node-r-min: 76px; /* 节点圆的最小半径，实际半径由内容测量决定 */
+  --fig-surface-pad: var(--a2v-space-3); /* 表面内边距 */
+  --fig-connector-w: var(--a2v-stroke-4); /* 连线与轴线宽度 */
+  --fig-arrow-len: 34px; /* 箭镞长度 */
+  --fig-arrow-half: 16px; /* 箭镞半高 */
+
   /* ---------- 安全区与栅格 ---------- */
   --a2v-safe-top: 240px;
   --a2v-safe-bottom: 320px;
@@ -670,4 +722,96 @@
   font-size: var(--a2v-size-body);
   line-height: var(--a2v-leading-body);
   letter-spacing: var(--a2v-tracking-body);
+}
+
+/* ============================================================
+ * 八、图形基元与状态
+ *
+ * 组件原先各自发明表面、标签与连线的长相：「强调/焦点」在冰山与双向选择里是
+ * 静态的 `is-accent`、在阶梯里是逐帧改的 `is-focus`、在双栏对照里是一条
+ * `--vs-heat` 连续量。同一个语义三种写法，「主次分明」就只能靠每个画面临场发挥。
+ *
+ * 这一节把共同的部分提出来：组件只声明「我是什么基元」「我现在是什么状态」，
+ * 长相由这里一处决定。基元类挂在组件**已有的**元素上，不新增 DOM 层级。
+ *
+ * 作用域是硬约束：这些规则只在预设生效时存在，未启用预设的页面里
+ * 基元类匹配不到任何声明，画面因此逐字节不变。
+ * ============================================================ */
+
+/* 表面：卡片、节点圆盘、托盘 */
+[data-a2v-preset="keynote"] .a2v-surface {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4);
+}
+
+/* 图形内的文字 */
+[data-a2v-preset="keynote"] .a2v-label {
+  fill: var(--a2v-text-1);
+  font-weight: var(--a2v-weight-semibold);
+  letter-spacing: var(--a2v-track-body);
+}
+
+/* 连线、箭头、轨道、轴线 */
+[data-a2v-preset="keynote"] .a2v-connector {
+  fill: none;
+  stroke: var(--fig-line-data, var(--fig-line));
+  stroke-width: var(--fig-connector-w, 4);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 边界框：一个物体唯一可见的边界 */
+[data-a2v-preset="keynote"] .a2v-frame {
+  fill: none;
+  stroke: var(--a2v-hairline-strong);
+  stroke-width: var(--a2v-stroke-2);
+}
+
+/* ---------- 四个状态 ----------
+ *
+ * 只表达语义：表面 / 描边 / 文字三样颜色。
+ * **不写 opacity 与 transform**——不透明度与位移属于动效配方层，
+ * 一旦写进状态定义，时序就有两个真源，而配方层存在的全部理由就是「手感只有一处」。
+ *
+ * SVG 的焦点**光晕由组件自绘**（例如 `.loop-token-halo` 那种径向渐变圆），
+ * 不在这里用 `filter`：仓库禁用 `filter: blur()` 一类的写法，
+ * 逐帧截图的性能与可复现性都靠这条守住。 */
+[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="rest"] {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+}
+[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="focus"] {
+  fill: var(--fig-surface);
+  stroke: var(--a2v-accent);
+}
+[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="muted"] {
+  fill: var(--a2v-bg-0);
+  stroke: var(--a2v-hairline);
+}
+[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="done"] {
+  fill: var(--a2v-accent-deep);
+  stroke: var(--a2v-accent);
+}
+
+[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {
+  fill: var(--a2v-text-1);
+}
+[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="muted"] {
+  fill: var(--a2v-text-3);
+}
+[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="done"] {
+  fill: var(--fig-on-ink);
+}
+
+/* ---------- 圆形容器里的标签 ----------
+ *
+ * 飞轮节点的文字原先以 `y = 圆心` 作基线，也就是**基线压在圆心上**，
+ * 视觉上比圆心低约 0.35em；多行时更明显。这里改成按行盒中心对齐，
+ * 让「一行」与「两行」两种情况都以圆心为中心。
+ * 行高显式写出来，因为 `fitLabelToCircle` 要读它算所需半径。 */
+[data-a2v-preset="keynote"] .loop-node-text {
+  line-height: 1.15;
+  dominant-baseline: central;
+  font-size: var(--a2v-ink-value);
 }

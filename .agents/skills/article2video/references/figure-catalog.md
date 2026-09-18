@@ -103,14 +103,28 @@ A2V.figures.register(kind, {
   （弹簧收的是秒数，不是进度），幕内微动用 `api.motion.idle`。
   组件里不写自然周期、阻尼比、呼吸周期这些数字——它们决定整支片子的手感，
   只写在 `timeline.js`，见[动效配方层](visual-spec.md#动效配方层-azvmotion)。
-- **不读实时布局**：几何由常量与 `params` 推导。确需测量（如 `getTotalLength`）
-  只在首次更新时做一次并缓存，不能每帧测。
+- **不读实时布局**：几何由常量与 `params` 推导。确需测量（如 `getTotalLength`、
+  `getComputedTextLength`）只在 `buildOnce` 的构建回调里做一次并缓存，
+  **不能每帧测**。例外是**容器内文字**：装文字的容器（节点圆、托盘、卡片）
+  必须按实测文字宽度定形，不能先写死尺寸再把字塞进去——
+  飞轮节点就是反例：半径 76px（直径 152px）配 44px 的四字标签约 183px，文字必然穿出圆。
+  测量只在构建时做，运行时的每帧仍只读缓存结果。详见
+  [发布会级设计语言](keynote-design-system.md) 的「容器内文字」一节。
 - **文案全部来自分镜**：组件可以决定排版，不能决定写什么。
 - **容量自适应**：节点/条目数量变化时按数量收缩间距与半径，而不是溢出。
-- **自带样式**：样式写在 `figures.css`，只使用 `theme.css` 的令牌，不写死颜色。
+- **自带样式**：样式写在 `figures.css`；颜色、间距、线宽、字重、字距、圆角一律引用令牌
+  （`var(--令牌, 原值)`），不写死数值——见设计宪法的 C17。样式要随预设变化时，
+  优先挂**基元类**（`.a2v-surface` / `.a2v-label` / `.a2v-connector` / `.a2v-frame`）
+  并声明状态（`data-a2v-state="rest|focus|muted|done"`），不要在组件里另发明一套强调写法。
+- **容器内文字必须声明容器**：装在某个形状里的文字要写
+  `data-a2v-inside="<容器选择器>"`（例如飞轮节点的 `".loop-node-disc"`）。
+  观感闸门 K8 据此判定文字有没有穿出容器，而且是**硬判定**。
+  只能由组件声明——阶梯的注写在柱子**上方**，同为近邻却不装在容器里，
+  几何上无法自动区分。未声明的文字不参与 K8 判定（该幕跳过并写明原因）。
 
-新增后要做三件事：在 `figures.js` 里 `register`、在 `figures.css` 里补样式、
-在本文档的表格里加一行，并确认 `tests/test_figures_assets.py` 仍然通过。
+新增后要做四件事：在 `figures.js` 里 `register`（含基元与状态、必要的 `data-a2v-inside`）、
+在 `figures.css` 里补样式、在本文档的表格里加一行，
+并在 `tests/test_figures_assets.py` 的 kind 列表里登记，确认测试仍然通过。
 
 启用设计语言预设后，`figures.css` 引用的全部 `--fig-*` 令牌由 `keynote.css` 的
 两套主题（`keynote-dark` / `keynote-light`）提供；缺一个令牌**不会报错**，

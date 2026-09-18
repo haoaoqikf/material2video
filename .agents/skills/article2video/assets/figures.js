@@ -153,6 +153,130 @@
     return value < min ? min : value > max ? max : value;
   }
 
+  /**
+   * 设计语言预设是否生效。
+   *
+   * CSS 侧用 `[data-a2v-preset="keynote"]` 作用域，JS 侧必须读同一个开关：
+   * 「内容驱动几何」会改变画面的排版结果，如果无条件生效，就会改到
+   * **未启用预设的既有作品**——而那是一条硬承诺（逐帧不变，有成片哈希与逐像素
+   * 比对守着）。因此这类改动一律挂在预设上。
+   */
+  function presetActive() {
+    var root = document.documentElement;
+    return !!(root && root.getAttribute('data-a2v-preset') === 'keynote');
+  }
+
+  /** 把 chars 均衡切成 count 行：行数固定，各行的字数差不超过 1。 */
+  function balanceChars(chars, count) {
+    var lines = [];
+    var size = Math.ceil(chars.length / count);
+    for (var i = 0; i < chars.length; i += size) {
+      lines.push(chars.slice(i, i + size).join(''));
+    }
+    return lines;
+  }
+
+  /**
+   * 把一段标签装进圆形节点：**几何由内容测量结果决定**，而不是先写死半径再塞字。
+   *
+   * 飞轮节点原先半径 76px（直径 152px），而 `.loop-node-text` 在预设下取
+   * `--a2v-ink-value` = 44px，四个汉字带字距约 183px——比直径还宽 31px，
+   * 文字必然穿出圆。K7 只比安全区、且显式排除 SVG 宿主文本，所以没有任何检查
+   * 会发现它；先写死容器、再放文字这个顺序本身就是缺陷。
+   *
+   * 判据取「矩形内接于圆」：宽 w、高 h 的文字块居中放进半径 r 的圆，
+   * 需要 r ≥ sqrt((w/2)² + (h/2)²)。逐行数试算，取所需半径最小的一种装法
+   * （行数相同则取行数更少的），再与最小半径取大。
+   *
+   * 宽度用 `getComputedTextLength()` **实测**。运行时在首次 seek 之前
+   * await 过 `document.fonts.ready`，因此量到的一定是最终字体，
+   * 结果逐帧可复现，不依赖时钟或随机数。
+   *
+   * 量不出来时（无布局、字体未就绪）返回 `measured: false` 并保留单行原文，
+   * 由调用方按原样绘制——降级路径要让画面仍然成立，而不是抛错。
+   */
+  function fitLabelToCircle(textEl, label, minRadius, pad) {
+    var text = String(label == null ? '' : label);
+    var chars = Array.prototype.slice.call(text);
+    if (!textEl || !chars.length) {
+      return { lines: [], radius: minRadius, measured: false };
+    }
+    var style = window.getComputedStyle(textEl);
+    var fontPx = parseFloat(style.fontSize) || 44;
+    var linePx = parseFloat(style.lineHeight);
+    if (!isFinite(linePx) || linePx <= 0) {
+      linePx = fontPx * 1.15;
+    }
+    function widthOf(candidate) {
+      textEl.textContent = candidate;
+      try {
+        return textEl.getComputedTextLength();
+      } catch (error) {
+        return 0;
+      }
+    }
+    var widest = 0;
+    var best = null;
+    for (var count = 1; count <= chars.length; count += 1) {
+      var lines = balanceChars(chars, count);
+      var maxWidth = 0;
+      for (var i = 0; i < lines.length; i += 1) {
+        maxWidth = Math.max(maxWidth, widthOf(lines[i]));
+      }
+      if (!maxWidth) {
+        textEl.textContent = text;
+        return { lines: [text], radius: minRadius, measured: false };
+      }
+      widest = Math.max(widest, maxWidth);
+      var blockH = lines.length * linePx;
+      var needed =
+        Math.sqrt(Math.pow(maxWidth / 2, 2) + Math.pow(blockH / 2, 2)) + pad;
+      if (
+        best === null ||
+        needed < best.radius - 0.5 ||
+        (Math.abs(needed - best.radius) <= 0.5 && lines.length < best.lines.length)
+      ) {
+        best = { lines: lines, radius: needed };
+      }
+      if (lines.length === 1) {
+        break;
+      }
+    }
+    textEl.textContent = text;
+    return {
+      lines: best.lines,
+      radius: Math.max(minRadius, best.radius),
+      lineHeight: linePx,
+      measured: true
+    };
+  }
+
+  /** 读一个自定义属性的像素值；取不到或不是正数就用兜底值。 */
+  function tokenPx(el, name, fallback) {
+    if (!el || !window.getComputedStyle) {
+      return fallback;
+    }
+    var parsed = parseFloat(window.getComputedStyle(el).getPropertyValue(name));
+    return isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  /** 按测量结果把标签写成单行或多行 tspan，并让整块在 (cx, cy) 上垂直居中。 */
+  function paintLabelLines(textEl, layout, cx, cy) {
+    clearNode(textEl);
+    var lines = layout.lines || [];
+    var linePx = layout.lineHeight || 0;
+    lines.forEach(function (line, index) {
+      var node = svgEl('tspan', { x: cx });
+      if (lines.length > 1) {
+        node.setAttribute('y', cy + (index - (lines.length - 1) / 2) * linePx);
+      } else {
+        node.setAttribute('y', cy);
+      }
+      node.textContent = line;
+      textEl.appendChild(node);
+    });
+  }
+
   /* ---------------- 组件注册表 ---------------- */
 
   var KINDS = {};
@@ -920,16 +1044,49 @@
         var label = typeof name === 'string' ? name : name.label || name.id;
         var point = loopPoint(index);
         var group = svgEl('g', { 'data-node': String(index) });
-        group.appendChild(
-          svgEl('circle', { class: 'loop-node-shadow', cx: point.x, cy: point.y + 12, r: LOOP.NODE_R })
-        );
-        group.appendChild(
-          svgEl('circle', { class: 'loop-node-disc', cx: point.x, cy: point.y, r: LOOP.NODE_R })
-        );
-        var text = svgEl('text', { class: 'loop-node-text', x: point.x, y: point.y });
+        var text = svgEl('text', {
+          class: 'loop-node-text a2v-label',
+          'data-a2v-state': 'rest',
+          /* 声明这段文字装在哪个容器里：观感闸门 K8 据此判定「有没有穿出圆」。
+           * 只能由组件声明——阶梯的注写在柱子上方，同为近邻却不装在容器里，
+           * 几何上无法自动区分。 */
+          'data-a2v-inside': '.loop-node-disc',
+          x: point.x,
+          y: point.y
+        });
         text.textContent = label;
         group.appendChild(text);
+        /* 先挂进文档再测量：getComputedTextLength 需要一个已排版的环境。
+         * 运行时在首次 seek 之前 await 过 document.fonts.ready，
+         * 因此这里量到的就是最终字体。 */
         host.appendChild(group);
+        var radius = LOOP.NODE_R;
+        if (presetActive()) {
+          /* 半径与内边距都取自令牌（`--fig-node-r-min` / `--fig-surface-pad`），
+           * 不在 JS 里另立一份数值——否则「几何只有一处真源」又变成空话。 */
+          var layout = fitLabelToCircle(
+            text,
+            label,
+            tokenPx(text, '--fig-node-r-min', LOOP.NODE_R),
+            tokenPx(text, '--fig-surface-pad', 16)
+          );
+          radius = layout.radius;
+          paintLabelLines(text, layout, point.x, point.y);
+        }
+        group.insertBefore(
+          svgEl('circle', { class: 'loop-node-shadow', cx: point.x, cy: point.y + 12, r: radius }),
+          text
+        );
+        group.insertBefore(
+          svgEl('circle', {
+            class: 'loop-node-disc a2v-surface',
+            'data-a2v-state': 'rest',
+            cx: point.x,
+            cy: point.y,
+            r: radius
+          }),
+          text
+        );
       });
     });
 
