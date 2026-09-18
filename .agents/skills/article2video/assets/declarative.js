@@ -64,14 +64,24 @@
     throw error;
   });
 
-  /** 幕角标：场景类型 + 幕号/总幕数。给画面一个稳定锚点，不参与构图。 */
+  /** 幕角标：**作者写的定位词** + 幕号/总幕数。给画面一个稳定锚点，不参与构图。
+   *
+   * 这里原先直接写 `scene.type`，于是画面左上角显示的是分镜的**内部类型名**：
+   * TITLE / LIST / TIMELINE / NUMBER / CONCLUSION。那是 schema 字段名，
+   * 不是给读者看的字——既没有信息量（读者不需要知道"这是一条时间线"），
+   * 也和整屏中文格格不入。现在角标只能来自 `visual.kicker`。
+   *
+   * 没写 `kicker` 时把这一格留空，而**不回落到类型名**：
+   * 一个内部标识符永远不该出现在画面上。留空而不是删掉整个 span，
+   * 是因为这一行是 `justify-content: space-between`——少一个子元素会把幕号
+   * 从右边甩到左边，那是版式变化，不是"少了一个角标"。 */
   function sceneIndexBar(storyboard, index) {
     var scene = storyboard.scenes[index];
     var bar = document.createElement('div');
     bar.className = 'a2v-scene-index';
 
     var kind = document.createElement('span');
-    kind.textContent = scene.type || '';
+    kind.textContent = String((scene.visual || {}).kicker || '').trim();
     var number = document.createElement('span');
     number.className = 'a2v-scene-number';
     number.textContent = pad(index + 1) + ' / ' + pad(storyboard.scenes.length);

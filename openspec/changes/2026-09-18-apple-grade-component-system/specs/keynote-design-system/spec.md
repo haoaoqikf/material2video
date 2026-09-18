@@ -250,3 +250,30 @@ SHALL NOT 引入时钟或随机数。
 #### Scenario: 同帧重复求值一致
 - **WHEN** 对同一帧重复执行容器测量与取档
 - **THEN** 得到相同的容器几何与字号
+
+### Requirement: 画面上的文字都是给读者看的文案
+
+分镜里的 `type`、`id`、组件名等标识符 SHALL NOT 出现在渲染结果中。
+幕角标 SHALL 只来自作者显式声明的 `visual.kicker`，SHALL NOT 回落到场景类型名。
+
+`visual.kicker` SHALL 是读者用的定位词：非空、单行、最多 8 个字。
+校验失败时 SHALL 指出字段路径 `scenes[i].visual.kicker`，并说明「角标是一个词，
+不是一句话」。
+
+未声明 `kicker` 时角标 SHALL 留空，SHALL NOT 以其它字段代替。
+角标只在启用设计语言预设时挂载，因此该约束 SHALL NOT 改变
+未声明预设的既有作品的画面。
+
+#### Scenario: 场景类型名出现在画面上
+- **WHEN** 某幕没有声明 `visual.kicker`
+- **THEN** 角标位置留空，画面不出现该幕的 `type` 或 `id`
+
+#### Scenario: 把类型名当文案填进角标
+- **WHEN** 某幕的 `visual.kicker` 与它的 `type` 相同
+- **THEN** 构建期检查报错并指出该幕，提示角标要写读者用的话题词而不是格式名
+
+#### Scenario: 角标写成一句话
+- **WHEN** `visual.kicker` 超过 8 个字、为空或含换行
+- **THEN** 校验报错并指出 `scenes[i].visual.kicker`，提示把更多内容放进
+  `title` 或 `subtitle`
+

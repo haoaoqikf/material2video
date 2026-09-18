@@ -325,6 +325,32 @@ api.motion.tempo('impact');                                             // 节�
 完整的启用方式、令牌表与闸门阈值见[发布会级设计语言](keynote-design-system.md)，
 三种版面的几何由 `tests/test_keynote_layout.py` 实测复核。
 
+### 幕角标 `visual.kicker`
+
+每幕的 `visual` 可以写一个可选字段 `kicker`：画面左上角的**定位词**，与右上角的
+`04 / 08` 幕号合成一条角标。
+
+```json
+{ "id": "attention", "type": "list", "visual": { "layout": "center", "kicker": "注意力" } }
+```
+
+规则（由校验器守住，错误路径为 `scenes[i].visual.kicker`）：
+
+- 一个词，**最多 8 个字**；要说得更多请放进 `title` 或 `subtitle`
+- 非空、单行
+- 只允许写在**幕**的 `visual` 上，顶层 `visual`（主题、预设）不接受
+
+**没写 `kicker` 时角标留空**，不回落到 `type`。这一条是有来历的：角标原先直接渲染
+`scene.type`，于是画面上出现的是分镜的内部类型标识符——`TITLE`、`LIST`、
+`TIMELINE`、`NUMBER`、`CONCLUSION`。那是 schema 字段名，不是给读者看的字：
+既没有信息量（读者不需要知道"这是一条时间线"），也和整屏中文格格不入。
+一个内部标识符永远不该出现在画面上，所以兜底是"不显示"，而不是"显示类型名"。
+`tests/test_figures_assets.py::test_scene_kicker_is_authored_copy_not_the_scene_type`
+是挡住回退的源码级棘轮。
+
+角标只在启用预设时挂载（`declarative.js` 里的 `if (preset)`），
+因此它**不影响未声明预设的既有作品**。
+
 ## 字体
 
 默认（未启用预设）用 `base.css` 的系统中文字体栈（苹方 / 微软雅黑 / Noto Sans SC 等）。

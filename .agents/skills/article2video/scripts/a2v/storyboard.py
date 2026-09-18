@@ -52,6 +52,10 @@ _VISUAL_LAYOUTS = ("center", "lower")
 # references/keynote-design-system.md。
 _VISUAL_PRESETS = ("keynote",)
 
+#: 幕角标（`visual.kicker`）的字数上限。角标是一个词，不是一个句子；
+#: 它是读者第一眼看到的定位词，长了就变成第二行副标题。
+_KICKER_MAX_CHARS = 8
+
 # 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
 # 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
 # 而不是缩小字号。标题类允许更长，因为短标题强行折行反而破坏构图。
@@ -157,14 +161,68 @@ def _reject_unknown(value: dict[str, Any], allowed: set[str], path: str, report:
         report.error(f"{path}.{key}" if path else key, "声明式路径不支持此字段")
 
 
-def _validate_visual(value: Any, path: str, fields: dict[str, tuple[str, ...]], report: Report) -> None:
+def _validate_visual(
+    value: Any,
+    path: str,
+    fields: dict[str, tuple[str, ...]],
+    report: Report,
+    *,
+    allow_kicker: bool = False,
+    scene_type: Any = None,
+) -> None:
     if not isinstance(value, dict):
         report.error(path, "visual 必须是对象")
         return
-    _reject_unknown(value, set(fields), path, report)
+    allowed = set(fields) | ({"kicker"} if allow_kicker else set())
+    _reject_unknown(value, allowed, path, report)
     for name, choices in fields.items():
         if name in value and value[name] not in choices:
             report.error(f"{path}.{name}", f"必须是 {'/'.join(choices)} 之一")
+    if allow_kicker and "kicker" in value:
+        _validate_kicker(value["kicker"], f"{path}.kicker", report)
+        _reject_kicker_that_is_just_the_scene_type(value["kicker"], scene_type, f"{path}.kicker", report)
+
+
+def _reject_kicker_that_is_just_the_scene_type(value: Any, scene_type: Any, path: str, report: Report) -> None:
+    """角标不能就是场景类型名。
+
+    这条直接编码了被修掉的那个缺陷：角标原先渲染 `scene.type`，画面上于是出现
+    `TITLE` / `LIST` / `TIMELINE`。用类型名当角标等于把 schema 字段当文案，
+    所以它是错误而不是提醒——`TITLE` 告诉读者"这一屏是标题卡"，
+    读者需要的是"这一段谈的是什么"。
+    """
+    if not isinstance(value, str) or not scene_type:
+        return
+    if value.strip().lower() == str(scene_type).strip().lower():
+        report.error(
+            path,
+            f"角标不能就是场景类型名（{scene_type}）——那是 schema 字段，不是给读者看的文案；"
+            "请写读者用的话题词（例如「比较」而不是 COMPARISON）",
+        )
+
+
+def _validate_kicker(value: Any, path: str, report: Report) -> None:
+    """幕角标是**读者可见的文案**，所以它有文案的规则：短、单行、非空。
+
+    这一条是补出来的。角标原先直接写场景的 `type`，于是画面左上角显示的是
+    分镜的**内部类型标识符**（TITLE / LIST / TIMELINE / NUMBER / CONCLUSION）——
+    那是 schema 字段名，不是给读者看的字：既没有信息量，也和整屏中文格格不入。
+    角标现在只能来自作者写的 `visual.kicker`，没写就不显示。
+    """
+    if not isinstance(value, str):
+        report.error(path, "角标必须是字符串")
+        return
+    text = value.strip()
+    if not text:
+        report.error(path, "角标不能是空白")
+    elif "\n" in text:
+        report.error(path, "角标必须单行")
+    elif len(text) > _KICKER_MAX_CHARS:
+        report.error(
+            path,
+            f"角标最多 {_KICKER_MAX_CHARS} 个字——角标是一个词，不是一句话；"
+            f"要说的更多请放进 title 或 subtitle",
+        )
 
 
 def _safe_fps(data: dict[str, Any]) -> int:
@@ -230,7 +288,14 @@ def _validate_scenes(data: dict[str, Any], report: Report, fps: int, declarative
             report.error(path, "场景必须是 JSON 对象")
             continue
         if "visual" in scene:
-            _validate_visual(scene["visual"], f"{path}.visual", {"layout": _VISUAL_LAYOUTS}, report)
+            _validate_visual(
+                scene["visual"],
+                f"{path}.visual",
+                {"layout": _VISUAL_LAYOUTS},
+                report,
+                allow_kicker=True,
+                scene_type=scene.get("type"),
+            )
         if declarative:
             _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visual"}, path, report)
 

@@ -38,10 +38,22 @@
 | `durationInFrames` | `number` | 是 | 该场景持续帧数，正整数 |
 | `narration` | `string` | 否 | 口播文案，供 prepare.py 合成配音；省略或空字符串表示静音。未传 --media 时不渲染口播 |
 | `data` | `object` | 是 | 该场景的内容，字段由 `type` 决定 |
-| `visual` | `object` | 否 | 共享页面布局：`{"layout":"center"}` 或 `{"layout":"lower"}`，默认 `center` |
+| `visual` | `object` | 否 | 共享页面布局与幕角标：`{"layout":"center"}` 或 `{"layout":"lower"}`，默认 `center`；可选 `kicker`（读者用的定位词，最多 8 个字） |
 
 场景在时间轴上的起点由其前面所有场景的 `durationInFrames` 累加得到，
 **不需要也不应该手写起始帧**，避免两处数据不一致。
+
+### `visual.kicker`：幕角标是文案，不是类型名
+
+```json
+{ "id": "attention", "type": "list", "visual": { "layout": "center", "kicker": "注意力" } }
+```
+
+`kicker` 是画面左上角的**定位词**（右上角是 `04 / 08` 幕号）。规则：非空、单行、
+最多 8 个字、不能等于该幕的 `type`。**没写就留空**，不会回落到 `type`——
+分镜的类型标识符（`TITLE`、`LIST`、`TIMELINE`）是 schema 字段名，
+不是给读者看的字，不该出现在画面上。详见
+[视觉规范](visual-spec.md#幕角标-visualkicker)。
 
 秒数与帧数的换算：`帧数 = 秒数 × fps`。30fps 下 5 秒 = 150 帧。
 

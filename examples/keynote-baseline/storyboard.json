@@ -10,7 +10,7 @@
       "id": "opening",
       "type": "title",
       "durationInFrames": 150,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "问题", "layout": "center" },
       "data": {
         "text": "选项越多\n决定越慢",
         "subtitle": "多一个选项，并不是多一份自由",
@@ -26,7 +26,7 @@
       "id": "compare",
       "type": "comparison",
       "durationInFrames": 240,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "比较", "layout": "center" },
       "data": {
         "title": "多出来的那部分是什么",
         "left": "更多自由",
@@ -42,7 +42,7 @@
       "id": "cost",
       "type": "quote",
       "durationInFrames": 240,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "代价", "layout": "center" },
       "data": {
         "text": "选择消耗的\n是做决定的力气",
         "emphasis": ["力气"],
@@ -62,7 +62,7 @@
       "id": "attention",
       "type": "list",
       "durationInFrames": 270,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "注意力", "layout": "center" },
       "data": {
         "title": "注意力去了哪里",
         "items": [
@@ -81,7 +81,7 @@
       "id": "loop",
       "type": "diagram",
       "durationInFrames": 330,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "循环", "layout": "center" },
       "data": {
         "title": "推迟的决定没有消失",
         "nodes": [
@@ -107,7 +107,7 @@
       "id": "freedom",
       "type": "timeline",
       "durationInFrames": 270,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "自由", "layout": "center" },
       "data": {
         "title": "自由不是拥有全部",
         "items": [
@@ -126,7 +126,7 @@
       "id": "one",
       "type": "number",
       "durationInFrames": 180,
-      "visual": { "layout": "center" },
+      "visual": { "kicker": "取舍", "layout": "center" },
       "data": {
         "value": 1,
         "label": "需要保留的选项（示意）",
@@ -138,7 +138,7 @@
       "id": "closing",
       "type": "conclusion",
       "durationInFrames": 360,
-      "visual": { "layout": "lower" },
+      "visual": { "kicker": "答案", "layout": "lower" },
       "data": {
         "text": "缺的不是更好的选项\n而是一把砍掉选项的刀",
         "action": "先砍到一个，再开始做",

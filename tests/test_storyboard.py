@@ -33,6 +33,60 @@ class TestDeclarativeValidation:
             error_paths(sb.validate(valid_script, declarative=True))
         )
 
+    def test_kicker_is_accepted_on_a_scene(self, valid_script):
+        valid_script["scenes"][0]["visual"] = {"layout": "center", "kicker": "问题"}
+        assert sb.validate(valid_script, declarative=True).ok
+
+    def test_kicker_is_rejected_at_the_top_level(self, valid_script):
+        """角标是**幕**的定位词，顶层 visual 描述整片（主题、预设）。
+
+        顶层没有"第几幕"可言，所以那里不该有角标。
+        """
+        valid_script["visual"] = {"theme": "dark", "kicker": "问题"}
+        assert "visual.kicker" in error_paths(sb.validate(valid_script, declarative=True))
+
+    @pytest.mark.parametrize("value", ["", "   ", "两\n行", 5, "这是一个很长的角标句子不该出现在画面上"])
+    def test_kicker_must_be_a_short_single_line_word(self, valid_script, value):
+        """角标是读者第一眼看到的定位词：一个词、单行、非空。
+
+        它原先直接取 `scene.type`，所以这条校验顺带挡住了"把类型名当文案"，
+        也挡住了"把一句话塞进角标"——要说得更多请放进 title 或 subtitle。
+        """
+        valid_script["scenes"][0]["visual"] = {"kicker": value}
+        assert "scenes[0].visual.kicker" in error_paths(sb.validate(valid_script, declarative=True))
+
+    def test_kicker_equal_to_the_scene_type_is_rejected(self, valid_script):
+        """用类型名当角标就是被修掉的那个缺陷本身，所以它是错误而不是提醒。"""
+        scene_type = valid_script["scenes"][0]["type"]
+        valid_script["scenes"][0]["visual"] = {"kicker": scene_type.upper()}
+        errors = sb.validate(valid_script, declarative=True)
+        assert "scenes[0].visual.kicker" in error_paths(errors)
+        assert any("schema 字段" in issue.message for issue in errors.issues)
+
+    def test_every_example_scene_authors_its_own_kicker(self):
+        """示例分镜的每一幕都自己写了角标，且没有一个角标就是它的类型名。
+
+        角标是给读者看的文案，不是 schema 字段的回显——`TITLE`、`LIST`、
+        `TIMELINE` 这类内部类型名出现在画面上就是这个缺陷本身。
+        """
+        from conftest import EXAMPLES_DIR
+
+        data = json.loads(
+            (EXAMPLES_DIR.parent / "keynote-baseline" / "storyboard.json").read_text(encoding="utf-8")
+        )
+        assert len(data["scenes"]) >= 8
+        for scene in data["scenes"]:
+            kicker = (scene.get("visual") or {}).get("kicker")
+            assert kicker, f"{scene['id']} 缺 visual.kicker"
+            assert kicker.strip(), f"{scene['id']} 的角标是空白"
+            assert len(kicker) <= 8, f"{scene['id']} 的角标太长：{kicker}"
+            assert kicker.lower() != scene["type"], (
+                f"{scene['id']} 的角标就是它的类型名 {scene['type']!r}——"
+                "那是 schema 字段，不是文案"
+            )
+        kickers = [(scene.get("visual") or {}).get("kicker") for scene in data["scenes"]]
+        assert len(set(kickers)) == len(kickers), f"角标重复：{kickers}"
+
     @pytest.mark.parametrize("key,value,path", [
         ("figure", {"kind": "not-registered"}, "scenes[0].data.figure.kind"),
         ("figure", {"kind": "balance", "params": {"size": 4}}, "scenes[0].data.figure.params"),

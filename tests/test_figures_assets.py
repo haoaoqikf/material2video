@@ -86,6 +86,27 @@ def test_catalog_covers_every_registered_kind():
     assert set(catalog.FIGURE_CATALOG) == {kind for kind, *_ in _figures()}
 
 
+def test_scene_kicker_is_authored_copy_not_the_scene_type():
+    """幕角标只能来自 `visual.kicker`，不能回落到 `scene.type`。
+
+    角标原先写的是 `kind.textContent = scene.type`，于是画面左上角显示的是
+    分镜的内部类型标识符：TITLE / LIST / TIMELINE / NUMBER / CONCLUSION。
+    那是 schema 字段名，不是给读者看的字——既没有信息量（读者不需要知道
+    "这是一条时间线"），也和整屏中文格格不入。
+
+    这条测试是源码级棘轮：它挡住"哪天顺手把类型名接回去"的回归。
+    """
+    shared = (SKILL / "assets/declarative.js").read_text(encoding="utf-8")
+    block = re.search(r"function sceneIndexBar\(storyboard, index\)\s*\{(.*?)\n  \}", shared, re.DOTALL)
+    assert block, "找不到 sceneIndexBar"
+    body = block.group(1)
+    assert "scene.visual" in body and "kicker" in body, "角标应当取自 scene.visual.kicker"
+    assert "scene.type" not in body, "角标不能回落到 scene.type——那是 schema 字段名"
+
+    # 角标只在启用预设时挂载，所以这一条不会动到非预设画面。
+    assert "if (preset) section.appendChild(sceneIndexBar(" in shared
+
+
 def test_catalog_entries_are_documented():
     """目录条目必须在参考文档里出现，避免「代码有、文档查不到」。"""
     from a2v import catalog
