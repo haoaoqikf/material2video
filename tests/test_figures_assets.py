@@ -284,7 +284,7 @@ class TestFocusStateMigration:
     #: 尚未迁移，逐项登记（见 tasks.md 第 5 组）。
     #: `berg-link` / `berg-callout-label` 是**文字与连接线**的角色色，不是表面状态；
     #: `ex-*` 是交换幕，整组迁移还没做。
-    PENDING = ("berg-link", "berg-callout-label", "ex-node-disc", "ex-arc", "ex-arrow")
+    PENDING = ("berg-link", "ex-node-disc", "ex-arc", "ex-arrow")
 
     def test_ad_hoc_focus_classes_are_confined_to_the_tracked_pending_list(self) -> None:
         """这是一条棘轮：迁完一个组件就要把它从 PENDING 里删掉。

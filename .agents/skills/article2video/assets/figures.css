@@ -473,8 +473,15 @@
     fill: var(--a2v-text-1);
     letter-spacing: var(--a2v-track-body, 0.02em);
   }
-
-  .berg-callout-label.is-accent {
+  /* 焦点色由标签基元的 `focus` 态给
+   * （`[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"]`）。
+   * 原先那条 `.berg-callout-label.is-accent { fill: accent }` 绕过了基元——
+   * 组件各写一份，下一个组件就会再漂一次。
+   *
+   * 但基元只在预设作用域内定义，所以下面这条按**状态属性**（而不是临场类名）
+   * 补回未启用预设时的表现：那条路径上焦点标签仍然是强调色，逐帧不变。
+   * 预设下基元的选择器多一层属性，优先级更高，两边取值也一致。 */
+  .berg-callout-label[data-a2v-state="focus"] {
     fill: var(--a2v-accent);
   }
 

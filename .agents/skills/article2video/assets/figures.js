@@ -878,8 +878,8 @@
              * 原先 `.berg-callout.is-accent` 只把描边换成 2px、50% 透明的强调色——
              * 折算到判据图上细到几乎量不到，画面里也读不出"这一块是重点"。
              * 现在由 `focus` 态给表面一个克制的强调色填充（`--a2v-accent-soft-solid`），
-             * 描边同时换成不透明的强调色；标签仍是强调色（`.is-accent` 保留），
-             * 于是"填充定焦点、文字说清是什么"。 */
+             * 描边同时换成不透明的强调色；标签也走标签基元的 `focus` 态
+             * （`a2v-label`，焦点态给强调色），于是"填充定焦点、文字说清是什么"。 */
             class: 'berg-callout a2v-surface',
             'data-a2v-state': isAccent ? 'focus' : 'rest',
             x: BERG.CALLOUT_X,
@@ -891,7 +891,10 @@
         );
 
         var label = svgEl('text', {
-          class: 'berg-callout-label' + (isAccent ? ' is-accent' : ''),
+          /* 标签也走状态语汇：焦点态由基元给强调色，不再挂临场的 `.is-accent`。
+           * 这个组件原先正是靠 `.berg-callout-label.is-accent` 表达焦点的。 */
+          class: 'berg-callout-label a2v-label',
+          'data-a2v-state': isAccent ? 'focus' : 'rest',
           x: BERG.CALLOUT_X + 32,
           y: y + 50
         });

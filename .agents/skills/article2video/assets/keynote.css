@@ -949,7 +949,11 @@
 }
 
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {
-  fill: var(--a2v-text-1);
+  /* 原先这里写的是 `var(--a2v-text-1)`——与基元自己的取值一模一样，
+   * 于是「标签获得焦点」是个空操作：组件把 data-a2v-state="focus" 挂上去，
+   * 画面毫无变化。焦点态必须在两种媒介上都真的变。 */
+  fill: var(--a2v-accent);
+  color: var(--a2v-accent);
 }
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="muted"] {
   fill: var(--a2v-text-3);
