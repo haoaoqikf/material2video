@@ -320,7 +320,7 @@
   }
 
   .drop-panel.is-fact .drop-cap {
-    color: var(--a2v-accent);
+    color: var(--a2v-accent-ink, var(--a2v-accent));
   }
 
   .drop-stage {

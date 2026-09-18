@@ -117,6 +117,7 @@
 
   /* ---------- 强调色：一套预设只允许一个 ---------- */
   --a2v-accent: #32d6ff; /* 11.57:1 */
+  --a2v-accent-ink: var(--a2v-accent); /* 深色下强调色本身就够（11.57:1） */
   --a2v-accent-rgb: 50, 214, 255;
   --a2v-accent-soft: rgba(50, 214, 255, 0.14);
   --a2v-accent-line: rgba(50, 214, 255, 0.55);
@@ -221,6 +222,9 @@
   --a2v-accent-line: rgba(10, 106, 217, 0.45);
   --a2v-accent-deep: #0b4f9e; /* 6.9:1 —— 图形着重色，浅底上要压深 */
   --a2v-accent-soft-solid: #0d3f7d;
+  /* 小字号正文用的强调墨色：浅色主题的 --a2v-accent (#0a6ad9) 只有 4.55:1，
+     坐上面板更低，够不到正文线；深色主题下它就是 --a2v-accent 本身。 */
+  --a2v-accent-ink: #0b4fa8;
   /* 同上：这一档对 `#0d3f7d` 是 10.6:1。 */
   --a2v-on-focus: #ffffff;
   --a2v-emphasis-fade: #565c6e; /* 5.15:1 —— 褪色但仍可读 */
@@ -1074,4 +1078,11 @@
   line-height: 1.15;
   dominant-baseline: central;
   font-size: var(--a2v-ink-value);
+}
+
+/* 浅色主题的面板标签：浅色 ink-3 自带注释就是 6.05:1，坐上面板更低（实测 5.89），
+   够不到正文线；面板上的小字号改读 ink-2。深色主题 ink-3 是 7.79:1，不动。 */
+[data-a2v-preset="keynote"][data-a2v-theme="light"] .gauge-label,
+[data-a2v-preset="keynote"][data-a2v-theme="light"] .drop-label {
+  color: var(--a2v-ink-2);
 }
