@@ -109,7 +109,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `tests/test_keynote_assets.py` 的「视觉规则必须限定在预设作用域内、每个令牌都带原值兜底」守住；
   参考实现见
   [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)（8 幕 / 2040 帧 / 68 秒）；
-- **观感闸门 K1–K9**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
+- **观感闸门 K1–K10**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
   对齐基线、正文对比度、卡片纪律、图形描边一致性量成数值结论，与回答「是不是废片」的
   C 系列**分开计分**；`review.py --declarative` 时随体检一起输出，取不到样本的条目
   跳过并写明原因。
@@ -298,7 +298,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
 - [视觉组件目录](.agents/skills/article2video/references/figure-catalog.md)：有哪些现成组件、怎么选、怎么新增
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
-- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌（含组件级的描边 / 字重 / 字距 / 几何四族）、图形基元与状态、排版引擎与 K1–K9 观感闸门
+- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌（含组件级的描边 / 字重 / 字距 / 几何四族）、图形基元与状态、排版引擎与 K1–K10 观感闸门
 - [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
