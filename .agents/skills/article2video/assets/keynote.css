@@ -132,6 +132,12 @@
   --a2v-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 18px 40px -20px rgba(0, 0, 0, 0.75);
   --a2v-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.40), 0 48px 96px -32px rgba(0, 0, 0, 0.90);
   --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  /* 光晕（帧驱动的那一种）：模糊与浓度进设计层，组件只报告「亮到哪一档」。
+   * 两套主题先取同值——原先的行内写法没法按主题区分，要分化时这里是唯一入口。 */
+  --a2v-glow-emphasis-blur: 26px;
+  --a2v-glow-emphasis-alpha: 0.22;
+  --a2v-glow-heat-blur: 46px;
+  --a2v-glow-heat-alpha: 0.3;
   --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 48px rgba(var(--a2v-accent-rgb), 0.28);
 
   /* ---------- 图形墨色：figures.css 的每条线都取这几个值 ----------
@@ -217,6 +223,12 @@
   --a2v-shadow-2: 0 2px 6px rgba(12, 14, 19, 0.06), 0 16px 32px -18px rgba(12, 14, 19, 0.18);
   --a2v-shadow-3: 0 8px 20px rgba(12, 14, 19, 0.08), 0 40px 72px -28px rgba(12, 14, 19, 0.22);
   --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* 光晕（帧驱动的那一种）：模糊与浓度进设计层，组件只报告「亮到哪一档」。
+   * 两套主题先取同值——原先的行内写法没法按主题区分，要分化时这里是唯一入口。 */
+  --a2v-glow-emphasis-blur: 26px;
+  --a2v-glow-emphasis-alpha: 0.22;
+  --a2v-glow-heat-blur: 46px;
+  --a2v-glow-heat-alpha: 0.3;
   --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 40px rgba(var(--a2v-accent-rgb), 0.20);
 
   /* 分类与预算同深色主题；浅色背景下同样的视觉重量需要更深的取值，

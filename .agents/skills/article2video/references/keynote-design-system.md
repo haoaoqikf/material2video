@@ -1033,6 +1033,14 @@ loop 的四个节点标签、closing 的 `ex-node-text` ×2）。
 浏览器，报错还精确到行列。把那个反引号放回去时它报
 `SyntaxError: Unexpected identifier`。
 
+**帧驱动的光晕也有令牌。** 投影是 `--a2v-shadow-1/2/3`，焦点光环是
+`--a2v-focus-halo`；强调词的"重点光"与对侧卡片的热光晕现在分别是
+`--a2v-glow-emphasis-blur/alpha` 与 `--a2v-glow-heat-blur/alpha`
+（两套主题各一份，先取同值）。组件**不写行内 `text-shadow`**：
+行内优先级最高，会把设计层那一层整个盖掉——它只报告"亮到哪一档"
+（`--a2v-emphasis-glow`，0 到 1），模糊与浓度由设计层给。
+未启用预设时组件仍走原来的行内写法，因此既有视频逐帧不变。
+
 ## 七、状态语汇：四族基元
 
 画面上承载状态的元素，各按角色归到四族基元之一，靠 `data-a2v-state` 取状态：

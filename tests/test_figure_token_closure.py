@@ -60,6 +60,14 @@ TOKENISED_PROPERTIES = (
     "border-top-right-radius",
     "border-bottom-left-radius",
     "border-bottom-right-radius",
+    # 第 19 轮补进闭包：组件的投影必须由设计层给，不能自己拼一层。
+    #
+    # 这里刻意**不**收 font-size：它已由 test_keynote_assets.py 的
+    # test_bare_font_size_must_be_on_the_scale 管着（裸字号必须在字阶上），
+    # 而那条判据明确拒绝「一律包 var()」——阶上的裸值再包一层只是噪音。
+    # 本轮一度把三处裸字号包成了令牌，结果那条判据的"防空转"断言立刻报警：
+    # 说明改动是多余的。先找判据，再改代码。
+    "box-shadow",
 )
 
 #: 允许保留字面值的写法：归零与居中复位不是间距，令牌化它们没有语义。

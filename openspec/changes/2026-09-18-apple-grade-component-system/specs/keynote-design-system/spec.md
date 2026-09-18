@@ -381,6 +381,23 @@ SHALL NOT 依赖两套规则的选择器优先级先后。
 - **WHEN** 某个组件用 `.is-accent` 之类的临场类名表达焦点
 - **THEN** 机检报错：它 SHALL 改用基元 + `data-a2v-state`
 
+### Requirement: 帧驱动光晕的强度参数由设计层给
+
+组件 SHALL NOT 用行内样式直接写 `text-shadow` 来表达帧驱动的光晕：
+行内优先级最高，会让设计语言层无法覆盖。组件 SHALL 改为报告一个 0 到 1 的
+通道（`--a2v-emphasis-glow`），模糊半径与浓度 SHALL 由设计层的令牌
+（`--a2v-glow-emphasis-blur/alpha`、`--a2v-glow-heat-blur/alpha`）给出。
+未启用预设时组件 SHALL 保持原有行内写法，使既有作品逐帧不变。
+
+#### Scenario: 预设下光晕按进度亮起
+- **WHEN** 在预设下把某一幕推进到强调词完全点亮
+- **THEN** 计算出的 `text-shadow` 为 `0 0 26px rgba(accent, 0.22)`
+  （实测峰值，与迁移前一致）
+
+#### Scenario: 未启用预设的作品
+- **WHEN** 渲染未声明预设的既有分镜
+- **THEN** 令牌未定义、兜底值等于原字面量，成片逐字节不变
+
 ### Requirement: 声明了版式的幕必须真的落在那个版式上
 
 幕的 `layout` 声明 SHALL 与渲染结果一致：声明 `center` 的幕，其块栈中心与

@@ -650,9 +650,16 @@
     if (underline) {
       underline.style.transform = 'scaleX(' + p.toFixed(4) + ')';
     }
-    key.style.textShadow =
-      '0 0 ' + api.range(p, 0, o.glow === undefined ? 26 : o.glow).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
-      api.range(p, 0, o.alpha === undefined ? 0.22 : o.alpha).toFixed(3) + ')';
+    if (presetActive()) {
+      /* 预设下只报告「亮到哪一档」：光晕的模糊与浓度由设计语言层给
+       * （`--a2v-glow-emphasis-blur` / `-alpha`）。行内 text-shadow 的优先级
+       * 最高，会把那一层整个盖掉——与本文件里 `--a2v-emphasis-mix` 同一条理由。 */
+      key.style.setProperty('--a2v-emphasis-glow', p.toFixed(4));
+    } else {
+      key.style.textShadow =
+        '0 0 ' + api.range(p, 0, o.glow === undefined ? 26 : o.glow).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+        api.range(p, 0, o.alpha === undefined ? 0.22 : o.alpha).toFixed(3) + ')';
+    }
   }
 
   /** 竖尺填充：高度按比例写，圆角底部保持贴地。 */
@@ -1586,9 +1593,16 @@
     var key = text ? text.querySelector('.key') : null;
     if (key) {
       var highlight = api.progress(f, beat(state, 0.56), beat(state, 0.1), EASE_SYMMETRIC);
-      key.style.textShadow =
-        '0 0 ' + api.range(highlight, 0, 30).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
-        api.range(highlight, 0, 0.24).toFixed(3) + ')';
+      if (presetActive()) {
+        /* 与 quote 幕同一个落点：原先这里写的是 30px / 0.24，与那一幕的
+         * 26px / 0.22 是同一支片子里两档几乎看不出区别的「重点光」。
+         * 收成一档之后，光晕的两处参数只有设计语言层一处真源。 */
+        key.style.setProperty('--a2v-emphasis-glow', highlight.toFixed(4));
+      } else {
+        key.style.textShadow =
+          '0 0 ' + api.range(highlight, 0, 30).toFixed(1) + 'px rgba(var(--a2v-accent-rgb), ' +
+          api.range(highlight, 0, 0.24).toFixed(3) + ')';
+      }
     }
 
     var actionP = api.progress(f, beat(state, 0.64), 28, EASE_OUT);

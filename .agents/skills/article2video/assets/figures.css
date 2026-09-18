@@ -850,7 +850,7 @@
     box-shadow:
       var(--a2v-inset-highlight),
       var(--a2v-shadow-2),
-      0 0 calc(46px * var(--vs-heat, 0)) rgba(var(--a2v-accent-rgb), calc(0.3 * var(--vs-heat, 0)));
+      0 0 calc(var(--a2v-glow-heat-blur, 46px) * var(--vs-heat, 0)) rgba(var(--a2v-accent-rgb), calc(var(--a2v-glow-heat-alpha, 0.3) * var(--vs-heat, 0)));
   }
 
   .vs-side.is-right .vs-text {
@@ -950,4 +950,22 @@
     #23262d calc(var(--a2v-emphasis-mix) * 100%),
     var(--a2v-accent)
   );
+}
+
+/*
+ * 强调词的光晕落点。
+ *
+ * 同样的理由：组件**不写行内 `text-shadow`**（行内优先级最高，会把这一层
+ * 整个盖掉），改成用 `--a2v-emphasis-glow` 报告「亮到哪一档」。
+ * 模糊半径与浓度由设计语言层给（`--a2v-glow-emphasis-blur` / `-alpha`），
+ * 于是"光晕有多亮"只有一处真源，与投影、焦点光环放在同一节里。
+ *
+ * 兜底值是组件原先写死的两个数（26px / 0.22）。两个落点原先分别写
+ * 26/0.22 与 30/0.24——同一支片子里两档几乎看不出区别的"重点光"，收成一档。
+ */
+[data-a2v-preset="keynote"] .key {
+  text-shadow:
+    0 0 calc(var(--a2v-glow-emphasis-blur, 26px) * var(--a2v-emphasis-glow, 0))
+        rgba(var(--a2v-accent-rgb),
+            calc(var(--a2v-glow-emphasis-alpha, 0.22) * var(--a2v-emphasis-glow, 0)));
 }
