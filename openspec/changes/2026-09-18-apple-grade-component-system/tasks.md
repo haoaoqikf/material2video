@@ -3139,3 +3139,110 @@ var paintedNodes = active.querySelectorAll('svg *');
 
 - 本轮只改文档：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 79. 卡片是怎么被认出来的（第 69 轮，维度 9）
+
+§75.2 第二件事：6 幕报"没有可识别的 HTML 卡片表面"，要查是**确实用不着卡片**，
+还是**卡片换了实现方式而采集没认出来**。先把两处原文抓出来（含行号）：
+
+```js
+    484|   // 卡片表面的采集范围：整幕里所有**被画出来的 HTML 表面**，而不只是图形挂载点的直接子元素。
+    485|   //
+    486|   // 原先只取 `[data-a2v-figure] > *`，于是任何包在包装元素里的卡片都看不见：
+    487|   // 双栏对照的两张卡片在 host > .vs-board > .vs-side 的深度 2，
+    488|   // 花费对照的两张在深度 3，闸门于是报「这一幕没有可识别的卡片表面」——
+    489|   // 而画面上明明有两张。这是**采集范围**的问题，不是阈值的问题，
+    490|   // 所以修的是范围，阈值（≥ 3 项特征）一个字没动。
+    491|   //
+    492|   // 两条边界：
+    493|   // 1. **SVG 图形不算卡片。** 天平载物、冰山标注、阶梯立柱都是圆角矩形，
+    494|   //    但它们只有圆角与描边——SVG 没有投影与内高光这回事，
+    495|   //    拿 HTML 卡片的四项特征去量必然"缺项"。它们是图解对象，
+    496|   //    图形纪律由 K9（描边一致性）与图形颜色预算测试管，不在这里判。
+    497|   // 2. **只判被画出来的表面。** 只判圆角会把透明的定位包装层算成卡片；
+    498|   //    必须有填充、边框或投影之一。宽度或高度不足 40px 的也不算——
+    499|   //    那是小徽标，不是能读成"一块表面"的东西。
+    500|   var cards = [];
+    501|   var cardHosts = [];
+    502|   var cardNodes = active.querySelectorAll('[data-a2v-figure] *');
+    503|   for (var j = 0; j < cardNodes.length; j++) {
+    504|     var el = cardNodes[j];
+    505|     var tag = String(el.tagName).toLowerCase();
+    506|     if (tag === 'rect' || tag === 'circle' || tag === 'ellipse' ||
+    507|         tag === 'path' || tag === 'polygon') continue;
+    508|     var s = window.getComputedStyle(el);
+    509|     var radius = parseFloat(s.borderTopLeftRadius) || 0;
+    510|     if (radius <= 8) continue;
+    511|     var borderWidth = parseFloat(s.borderTopWidth) || 0;
+    512|     var shadowText = s.boxShadow || 'none';
+    513|     var background = s.backgroundColor || '';
+    514|     var backgroundAlpha = 1;
+    515|     var bgMatch = background.match(/rgba?\\(([^)]+)\\)/);
+    516|     if (bgMatch) {
+    517|       var bgParts = bgMatch[1].split(',');
+    518|       if (bgParts.length > 3) backgroundAlpha = parseFloat(bgParts[3]);
+    519|     }
+    520|     var painted = backgroundAlpha > 0.02 || borderWidth > 0 || shadowText !== 'none';
+    521|     if (!painted) continue;
+    522|     var cardRect = el.getBoundingClientRect();
+    523|     if (cardRect.width < 40 || cardRect.height < 40) continue;
+    524|     // 最外层优先：卡片里的圆角徽标不再重复计一遍，否则一张卡会被数成两张
+    525|     var nested = false;
+    526|     for (var p = 0; p < cardHosts.length; p++) {
+    527|       if (cardHosts[p].contains(el)) { nested = true; break; }
+    528|     }
+    529|     if (nested) continue;
+    530|     var traits = ['radius'];
+    531|     if (borderWidth > 0) traits.push('border');
+    532|     if (shadowText !== 'none') traits.push('shadow');
+    533|     if (shadowText.indexOf('inset') >= 0) traits.push('inset');
+    534|     cardHosts.push(el);
+    535|     cards.push({ role: className(el) || tag, traits: traits });
+    536|   }
+    537| 
+    538|   var rootStyle = window.getComputedStyle(document.documentElement);
+    539|   // 缩到正文下限仍放不下的文本块：引擎已经算过，这里只把它捞出来
+    540|   var noFit = [];
+```
+
+判据侧：
+
+```python
+    665| def gate_card_discipline(scene_id: str, cards: list[dict[str, Any]]) -> Gate:
+    673| if not cards:
+    680| detail="这一幕没有可识别的 HTML 卡片表面（SVG 里的圆角图形是图解对象，不算卡片）",
+    683| incomplete = [card for card in cards if len(card.get("traits") or []) < _CARD_MIN_TRAITS]
+    691| value=len(cards) - len(incomplete),
+```
+
+### 79.1 结论：按设计排除，不是采集漏了
+
+识别谓词（`inspect.py:500~536`）要求：**非 SVG 标签**（`rect`/`circle`/`ellipse`/`path`/
+`polygon` 直接跳过）+ `borderTopLeftRadius > 8` + **被画出来**（填充 alpha > 0.02，或有边框，
+或有投影）+ 宽高 **≥ 40px** + **最外层优先**（避免一张卡数成两张）。
+
+而 484~499 行的注释**已经记录过同类调查**：
+
+- 486~490 行：原先只取 `[data-a2v-figure] > *`，于是包在包装元素里的卡片看不见——
+  双栏对照的两张卡在深度 2、花费对照的两张在深度 3，闸门报"没有可识别的卡片表面"，
+  而画面上明明有两张。**"这是采集范围的问题，不是阈值的问题"**，已修（选择器放宽）
+- 492~499 行写明两条边界：**SVG 图形不算卡片**（天平载物、冰山标注、阶梯立柱都是圆角
+  矩形，但 SVG 没有投影与内高光，拿 HTML 卡片的四项特征去量必然缺项；它们是**图解对象**，
+  图形纪律由 K9 与图形颜色预算测试管），以及**只判被画出来的表面**
+
+所以那 6 幕的"没有可识别的 HTML 卡片表面"是**按设计排除**，属**能力边界**，
+与 §78 的记录方式一致，不需要补采集。
+
+### 79.2 但顺着这条线发现一个衔接问题
+
+注释说图解对象的纪律"由 K9 与图形颜色预算测试管"。而第 67 轮已经查明：**K9 恰恰在
+`compare` / `cost` / `one` 三幕被跳过**（那三幕的图形是纯填充、一个描边都没画）。
+也就是说这三幕的图解对象，K6 按设计不管、K9 又因无描边跳过——**闸门层面只剩图形颜色
+预算测试在守**。这条要记着：它是一个"两条判据各自都合理地让开"留下的空档。
+
+### 79.3 验证
+
+### 79.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
