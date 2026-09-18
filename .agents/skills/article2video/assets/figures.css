@@ -157,9 +157,13 @@
     stroke-dasharray: 16 13;
   }
 
+  /* 填充与描边归 `a2v-surface` 的状态。这一块是「一个决定」的令牌面，
+     整幕讲的就是它，所以焦点态是**静态**的：焦点早确定并保持，
+     连续升温交给里面的文字（`--a2v-emphasis-mix` / glow 那条线），
+     避免面板底色在升温中途硬切换出一次跳变。
+     顺带修掉上一轮的遗留缺陷：强调词按设计褪色（"恐惧退场，动作上场"）后，
+     接手焦点的只有角标文字，字形笔画只占整帧 0.09%，画面在收尾一帧等于没有焦点。 */
   .load-token {
-    fill: var(--fig-surface);
-    stroke: var(--fig-line);
     stroke-width: var(--a2v-stroke-4, 4);
   }
 
@@ -604,15 +608,12 @@
     overflow: visible;
   }
 
+  /* 填充与描边归 `a2v-surface` 的状态（rest / focus），组件只管形状与线宽。
+     原先这里写死填充与描边，`.is-focus` 再叠一层 `color-mix(... 9%, transparent)`
+     ——9% 的染色在近黑底上等于没画，而「哪一级是焦点」这个状态判断
+     也不该由组件用一套临场类名表达。`rest` 态给出的填充与描边与这里原来的取值一致。 */
   .stair-bar {
-    fill: var(--fig-surface);
-    stroke: var(--fig-line);
     stroke-width: var(--a2v-stroke-4, 4);
-  }
-
-  .stair-bar.is-focus {
-    fill: color-mix(in srgb, var(--a2v-accent-soft-solid) 9%, transparent);
-    stroke: var(--a2v-accent);
   }
 
   .stair-base {
@@ -626,16 +627,15 @@
     stroke-width: var(--a2v-stroke-3, 3);
   }
 
+  /* 焦点态的字色由 `a2v-label[data-a2v-state="focus"]` 给（最亮的一档），
+     而不是把角标也染成强调色：**强调色的块面由表面承载，文字负责读得清**。
+     一处焦点上叠两层强调色不增加信息，只让"克制"失守。 */
   .stair-note {
     font-family: var(--a2v-font-sans);
     font-size: var(--a2v-ink-label, 32px);
     text-anchor: middle;
     fill: var(--a2v-text-3);
     letter-spacing: var(--a2v-track-label, 0.1em);
-  }
-
-  .stair-note.is-focus {
-    fill: var(--a2v-accent);
   }
 
   .stair-label {

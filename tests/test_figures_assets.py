@@ -243,3 +243,83 @@ def test_storyboard_annotation_keys_are_declared_by_the_component():
         kind = (scene["data"].get("figure") or {}).get("kind") or mapping[scene["type"]]
         unknown = set(annotations) - set(declared[kind])
         assert not unknown, f"场景 {scene['id']} 给 {kind} 传了未声明的标注键: {sorted(unknown)}"
+
+
+class TestFocusStateMigration:
+    """「哪一块是焦点」是组件状态，不是组件各自的临场类名。
+
+    迁移之前，每个组件用一套自己的写法表达焦点：`.berg-callout.is-accent`、
+    `.stair-bar.is-focus`、以及飞轮那样**根本不表达**（四个节点永远 rest）。
+    后果是可测量的：24 帧抽检里 17 帧被 K2 判「几乎没有强调色」。
+    这些测试守住迁移后的契约。
+    """
+
+    #: 已迁到状态基元的表面：不许再有临场类名。
+    MIGRATED = ("berg-callout", "loop-node-disc", "stair-bar", "load-token")
+
+    #: 尚未迁移，逐项登记（见 tasks.md 第 5 组）。
+    #: `berg-link` / `berg-callout-label` 是**文字与连接线**的角色色，不是表面状态；
+    #: `ex-*` 是交换幕，整组迁移还没做。
+    PENDING = ("berg-link", "berg-callout-label", "ex-node-disc", "ex-arc", "ex-arrow")
+
+    def test_ad_hoc_focus_classes_are_confined_to_the_tracked_pending_list(self) -> None:
+        """这是一条棘轮：迁完一个组件就要把它从 PENDING 里删掉。
+
+        列表不会悄悄变长，也不会有组件在无人察觉时回到旧写法。
+        """
+        for line in _source().splitlines():
+            if "' is-focus'" not in line and "' is-accent'" not in line:
+                continue
+            classes = re.findall(r"class:\s*'([\w-]+)", line) + re.findall(r'class="([\w-]+)', line)
+            assert classes, f"认不出这一行在给谁加类名：{line.strip()}"
+            unknown = set(classes) - set(self.PENDING)
+            assert not unknown, (
+                f"{sorted(unknown)} 仍在用临场焦点类名。已迁移的表面必须用 "
+                f"a2v-surface + data-a2v-state；若确属未迁移，登记到 PENDING 并在 tasks.md 留痕。"
+            )
+
+    def test_migrated_surfaces_are_gone_from_the_stylesheet(self) -> None:
+        """迁移后的表面不该在样式表里留下 `.is-focus` / `.is-accent` 规则。
+
+        注释里提到旧写法不算——那些是留下迁移来由的说明，要能被搜到。
+        """
+        text = re.sub(r"/\*.*?\*/", "", FIGURES_CSS.read_text(encoding="utf-8"), flags=re.DOTALL)
+        for element in self.MIGRATED:
+            offenders = re.findall(re.escape(element) + r"\.is-(?:focus|accent)\b", text)
+            assert not offenders, f"{element} 的临场焦点规则还没删：{offenders}"
+        assert not re.search(r"\.is-focus\b", text), "样式表里还有 .is-focus 规则"
+
+    def test_focus_surfaces_declare_the_state(self) -> None:
+        """承载焦点的表面必须挂 `a2v-surface`，状态由 `data-a2v-state` 表达。"""
+        text = _source()
+        for element in self.MIGRATED:
+            pattern = r'class:\s*[\'"]' + element + r' a2v-surface[\'"]|class="' + element + r' a2v-surface"'
+            assert re.search(pattern, text), f"{element} 没有迁到 a2v-surface 基元"
+
+    def test_stairs_focus_follows_the_narration(self) -> None:
+        """阶梯的焦点跟着口播走，不是"等最后一根柱子长到 95%"。
+
+        原先的写法让前 73% 的帧整屏没有焦点（`STAIRS.START = [0.07, 0.24, 0.48, 0.73]`），
+        实测 K2 在 35% 帧只量到 0.0011。
+        """
+        for _kind, _labels, _markup, _source, body in _figures():
+            if "stair-bar" not in body:
+                continue
+            assert "index === activeStep" in body, "阶梯的焦点没有跟着口播走"
+            assert "groups.length - 1 && p > 0.95" not in body, "阶梯仍按「最后一根长到 95%」判焦点"
+            return
+        raise AssertionError("没有找到阶梯组件")
+
+    def test_loop_focus_follows_the_arrived_node(self) -> None:
+        """飞轮到达的那个节点就是焦点。
+
+        迁移前四个节点永远 `rest`，整幕没有任何强调色（实测 35% 帧 0.0015），
+        而"到达了哪个节点"这个信息组件本来就已算出来（脉冲用的就是它）。
+        """
+        for _kind, _labels, _markup, _source, body in _figures():
+            if "loop-node-disc" not in body:
+                continue
+            assert "arrived % nodeGroups.length" in body, "飞轮没有用到达的节点判焦点"
+            assert "data-a2v-state" in body, "飞轮没有写状态"
+            return
+        raise AssertionError("没有找到飞轮组件")

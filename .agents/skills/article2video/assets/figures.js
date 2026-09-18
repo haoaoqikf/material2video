@@ -525,7 +525,7 @@
     <path class="scale-rope" d="M0 0 L0 168"></path>
     <path class="scale-plate" d="M-130 168 L130 168 L110 198 L-110 198 Z"></path>
     <g data-el="loadRight">
-      <rect class="load-token" data-el="loadRightRect" x="-84" y="86" width="168" height="82" rx="14"></rect>
+      <rect class="load-token a2v-surface" data-a2v-state="focus" data-el="loadRightRect" x="-84" y="86" width="168" height="82" rx="14"></rect>
       <text class="load-text is-ink" data-el="loadRightText" x="0" y="128"></text>
     </g>
   </g>
@@ -1120,7 +1120,22 @@
     Array.prototype.forEach.call(nodeGroups, function (group, index) {
       var enterP = motion.spring(api.since(f, nodeStart + index * 8), 'enter');
       var nodePoint = loopPoint(index);
-      var pulse = index === arrived % nodeGroups.length ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
+      /* 小球到达的那个节点就是当前的环节——它已经有"鼓一下"的脉冲，
+       * 但状态一直是 rest，所以整幕没有任何强调色（实测 35% 帧只有 0.0015）。
+       * 把到达的节点设为 focus：一个画面仍然只有一个焦点，
+       * 但它随小球前进，而不是永不出现。
+       * 与阶梯同一条规则：**焦点跟着行进走**。 */
+      var isFocus = index === arrived % nodeGroups.length;
+      var disc = group.querySelector('.loop-node-disc');
+      var nodeLabel = group.querySelector('.loop-node-text');
+      var nextState = isFocus ? 'focus' : 'rest';
+      if (disc && disc.getAttribute('data-a2v-state') !== nextState) {
+        disc.setAttribute('data-a2v-state', nextState);
+      }
+      if (nodeLabel && nodeLabel.getAttribute('data-a2v-state') !== nextState) {
+        nodeLabel.setAttribute('data-a2v-state', nextState);
+      }
+      var pulse = isFocus ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
       var scale = api.range(enterP, 0.94, 1, { clamp: false }) * (1 + pulse * 0.09);
       svgT(
         group,
@@ -1221,7 +1236,7 @@
         var group = svgEl('g', { 'data-bar': String(index) });
 
         var bar = svgEl('rect', {
-          class: 'stair-bar',
+          class: 'stair-bar a2v-surface',
           x: cx - STAIRS.BAR_W / 2,
           y: STAIRS.BASE,
           width: STAIRS.BAR_W,
@@ -1230,7 +1245,7 @@
         });
         group.appendChild(bar);
 
-        var note = svgEl('text', { class: 'stair-note', x: cx, y: STAIRS.BASE - STAIRS.HEIGHTS[index] - 44 });
+        var note = svgEl('text', { class: 'stair-note a2v-label', x: cx, y: STAIRS.BASE - STAIRS.HEIGHTS[index] - 44 });
         note.textContent = entry.note || '';
         group.appendChild(note);
 
@@ -1249,6 +1264,20 @@
       length: 467
     });
 
+    /* 「口播念到哪一句，屏幕上就是哪一句」——这条规则原先只用在了说明文字上，
+     * 视觉焦点却是另一套：`index === 最后一根 && p > 0.95`，也就是要等最上面那一级
+     * 长到 95% 才点亮。时间轴是 STAIRS.START = [0.07, 0.24, 0.48, 0.73]，
+     * 所以前 73% 的帧整屏没有任何焦点——实测 K2 在 35% 帧量到 0.0011。
+     *
+     * 现在焦点跟着口播走：**当前这一级就是焦点**，走到最后一级时收尾结论仍是焦点。
+     * 一个画面仍然只有一个焦点，只是它随叙述前进，而不是只在结尾出现一次。 */
+    var activeStep = 0;
+    items.forEach(function (item, index) {
+      if (f >= beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index])) {
+        activeStep = index;
+      }
+    });
+
     var groups = pick('bars') ? pick('bars').children : [];
     Array.prototype.forEach.call(groups, function (group, index) {
       var start = beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index]);
@@ -1260,9 +1289,9 @@
       var height = (STAIRS.HEIGHTS[index] || 120) * clampStatic(p, 0, 1);
       bar.setAttribute('y', String(STAIRS.BASE - height));
       bar.setAttribute('height', String(height));
-      var isFocus = index === groups.length - 1 && p > 0.95;
-      bar.setAttribute('class', 'stair-bar' + (isFocus ? ' is-focus' : ''));
-      note.setAttribute('class', 'stair-note' + (isFocus ? ' is-focus' : ''));
+      var isFocus = index === activeStep;
+      bar.setAttribute('data-a2v-state', isFocus ? 'focus' : 'rest');
+      note.setAttribute('data-a2v-state', isFocus ? 'focus' : 'rest');
       note.setAttribute('y', String(STAIRS.BASE - height - 44));
       svgO(note, clampStatic((p - 0.55) * 2.2, 0, 1));
       svgO(label, clampStatic((p - 0.3) * 2, 0, 1));
@@ -1271,13 +1300,9 @@
     // 说明文字跟着小球走：口播念到哪一句，屏幕上就是哪一句
     var caption = pick('caption');
     if (caption) {
-      var active = 0;
-      items.forEach(function (item, index) {
-        if (f >= beat(state, STAIRS.START[index] === undefined ? 0.73 : STAIRS.START[index])) {
-          active = index;
-        }
-      });
-      var entry = typeof items[active] === 'string' ? { desc: items[active] } : items[active] || {};
+      var entry = typeof items[activeStep] === 'string'
+        ? { desc: items[activeStep] }
+        : items[activeStep] || {};
       setPlainText(caption, entry.desc);
       var captionP = api.progress(f, beat(state, 0.03), 22, EASE_OUT);
       caption.style.opacity = String(api.clamp(captionP, 0, 1) * 0.94);
