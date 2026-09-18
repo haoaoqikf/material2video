@@ -2900,3 +2900,56 @@ A/B 两条路都需要看一眼浅色 `attention` 幕的早期帧。这一轮确
 ### 73.5 验证
 
 - 本轮只设计不实现：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0、全量 exit 0
+
+## 74. 已查明：量基线要挂在哪（第 64 轮，维度 6）
+
+§73.4 说"阈值必须先量现状再定"。这一轮不猜接口名，直接让脚本从
+`scripts/a2v/inspect.py` 里把真实的采集点抓出来：
+
+- `inspect.py:6` [图形元素] `每个 'data-el' 的文本，然后比对分镜声明的标注是否真的画出来了。`
+- `inspect.py:72` [图形元素] `#: 读出当前可见场景的组件结构：kind 与每个 data-el 的文本`
+- `inspect.py:75` [选元素] `var scenes = document.querySelectorAll('[data-a2v-scene]');`
+- `inspect.py:82` [选元素] `var host = active.querySelector('[data-a2v-figure]');`
+- `inspect.py:85` [选元素] `var nodes = host.querySelectorAll('[data-el]');`
+- `inspect.py:88` [图形元素] `els[el.getAttribute('data-el')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();`
+- `inspect.py:104` [函数] `def decode_raw(png: bytes, pix_fmt: str) -> bytes:`
+- `inspect.py:125` [函数] `def decode_gray(png: bytes) -> bytes:`
+- `inspect.py:130` [函数] `def decode_rgb(png: bytes) -> bytes:`
+- `inspect.py:135` [函数] `def frame_metrics(gray: bytes) -> dict[str, float]:`
+- `inspect.py:162` [函数] `def rgb_metrics(rgb: bytes) -> dict[str, float]:`
+- `inspect.py:167` [函数] `def accent_metrics(rgb: bytes, accent: tuple[int, int, int]) -> dict[str, float]:`
+- `inspect.py:172` [函数] `def ink_metrics(rgb: bytes) -> dict[str, float]:`
+- `inspect.py:177` [函数] `def judge_frame(name: str, metrics: dict[str, float], report: Report) -> None:`
+- `inspect.py:199` [函数] `def judge_scene(probe: SceneProbe, labels: dict[str, str], report: Report) -> None:`
+- `inspect.py:222` [函数] `def probe_scene(page: Any, frame: int) -> dict[str, Any] | None:`
+- `inspect.py:228` [函数] `def collect_labels(declared: dict[str, Any], seen_texts: set[str]) -> list[str]:`
+- `inspect.py:244` [函数] `def scene_labels(scene: dict[str, Any]) -> dict[str, str]:`
+- `inspect.py:252` [函数] `def declared_kind(scene: dict[str, Any]) -> str:`
+- `inspect.py:261` [函数] `def write_report(report: Report, extra: dict[str, Any], target: Path) -> dict[str, Any]:`
+- `inspect.py:278` [函数] `def check_page_with_storyboard(`
+- `inspect.py:290` [函数] `def scene_windows(scenes: list[dict[str, Any]]) -> list[tuple[str, int, int]]:`
+- `inspect.py:306` [函数] `def scenes_as_dicts(model: Any) -> list[dict[str, Any]]:`
+- `inspect.py:320` [函数] `def sample_frames(start: int, end: int) -> list[int]:`
+- `inspect.py:326` [函数] `def contact_sheet(frames: list[Path], target: Path, columns: int = 3) -> None:`
+- `inspect.py:347` [函数] `def uses_component_library(page: Any) -> bool:`
+- `inspect.py:354` [选元素] `return bool(page.evaluate("() => document.querySelectorAll('[data-a2v-figure]').length"))`
+- `inspect.py:362` [取字号] `#:    对 SVG 文本还会返回 'font-size: 36px' 这类祖先值，量出来没有意义。`
+
+几何/字号的赋值行：
+
+- `inspect.py:408` `var stageRect = stage ? stage.getBoundingClientRect() : { left: 0, width: 0 };`
+- `inspect.py:443` `var rect = parent.getBoundingClientRect();`
+- `inspect.py:458` `fontSize: parseFloat(style.fontSize) || 0,`
+- `inspect.py:616` `stage: { width: stageRect.width, height: stageRect.height }`
+
+### 74.1 下一轮的动作
+
+1. 照上面的钩子写一个探针，逐帧打印**每幕**：
+   - 按 `area × size` 排序的第一名与第二名，以及它们的比值
+   - 整幕内"第一名换手"的次数
+2. 把实测范围记下来，再据此定 §73.2 的两个阈值（**不要先拍数**）
+3. 阈值定为**提示**后再谈是否升级为拦截；升级前必须先补 §73.3 的正向/反向两条测试
+
+### 74.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0、全量 exit 0
