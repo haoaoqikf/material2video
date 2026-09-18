@@ -1422,3 +1422,22 @@ loop 的四个节点标签、closing 的 `ex-node-text` ×2）。
 任务记录会归档，设计文档是**下一次动手前会读的那一份**。一条"已知偏差 + 机制 + 两侧分支"
 写在这里，下次才不会再花五轮重新追一遍——第 49~56 轮就是这么追过来的。
 
+## 十、动效量测 M0–M4：与 K1–K9 并列的第二族判据
+
+`review.py` 除了 K1–K9 观感闸门，还会逐帧扫过全片跑一族**动效量测**（M0–M4）：
+
+- 5 条，**只提示、不拦人**（与 K 系列的"失败即拦"不同）
+- 当前实测：5 通过 / 0 提醒 / 0 失败
+- 它覆盖的是维度 11「动效自然克制」，因此"动效只有风格约定、没有量测"是不成立的说法
+
+抓到的实现位置：
+
+- `.agents\skills\article2video\scripts\a2v\cli.py:680: return [f"动效量测 M0–M4：不适用——{motion_result.get('reason') or '未启用逐帧量测'}"]`
+- `.agents\skills\article2video\scripts\a2v\motion.py:285: id="M1",`
+- `.agents\skills\article2video\scripts\a2v\motion.py:296: id="M0",`
+- `.agents\skills\article2video\scripts\a2v\motion.py:319: id="M1",`
+- `.agents\skills\article2video\scripts\a2v\motion.py:336: id="M2",`
+- `.agents\skills\article2video\scripts\a2v\motion.py:351: id="M3",`
+- `.agents\skills\article2video\scripts\a2v\motion.py:366: id="M4",`
+
+（本节只登记"这一族存在、口径是什么、当前结果"，不代替各条自己的阈值说明。）
