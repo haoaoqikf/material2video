@@ -569,3 +569,169 @@ class TestSceneComposition:
         multi = [r for r in baseline_composition if r["blocks"] >= 2]
         assert len(multi) >= 5, f"多块幕只有 {len(multi)} 个，采样选择器可能失效了"
 
+
+#: 大字号（≥24px）的 WCAG 门槛。天平图那行文字实测 36–40px。
+_LARGE_TEXT_MIN = 3.0
+
+#: 采样点：未点亮（幕内 60%，光晕在 66% 才起跳）与点亮（99%）。
+_UNLIT_PCT = 0.60
+_LIT_PCT = 0.99
+
+_CONTRAST_JS = """(args) => {
+  const sc = document.querySelector('[data-scene-id="' + args.scene + '"]');
+  const el = sc ? sc.querySelector('[data-el="loadRightText"]') : null;
+  if (!el) return null;
+  const cs = getComputedStyle(el);
+  const root = getComputedStyle(document.documentElement);
+  return { fill: cs.fill, size: parseFloat(cs.fontSize),
+           surface: root.getPropertyValue('--fig-surface').trim(),
+           theme: document.documentElement.getAttribute('data-a2v-theme') };
+}"""
+
+
+def _srgb(value: str) -> tuple[float, float, float, float]:
+    """解析 `color(srgb …)` / `#rrggbb` / `rgba(…)` 三种写法。"""
+    text = (value or "").strip()
+    match = re.match(r"color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: / ([\d.]+))?\)", text)
+    if match:
+        groups = match.groups()
+        return (
+            float(groups[0]), float(groups[1]), float(groups[2]),
+            float(groups[3]) if groups[3] else 1.0,
+        )
+    match = re.fullmatch(r"#([0-9a-fA-F]{6})", text)
+    if match:
+        raw = match.group(1)
+        return tuple(int(raw[i:i + 2], 16) / 255 for i in (0, 2, 4)) + (1.0,)
+    match = re.match(r"rgba?\(([^)]+)\)", text)
+    if match:
+        parts = [p.strip() for p in match.group(1).replace("/", " ").split(",")]
+        values = [
+            (float(p[:-1]) / 100 if p.endswith("%") else float(p)) for p in parts
+        ]
+        while len(values) < 3:
+            values.append(0.0)
+        if len(values) == 3:
+            values.append(1.0)
+        return tuple(v / 255 for v in values[:3]) + (values[3],)
+    raise AssertionError(f"解析不了这个颜色：{value!r}")
+
+
+def _relative_luminance(rgb: tuple[float, float, float, float]) -> float:
+    def channel(c: float) -> float:
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (channel(c) for c in rgb[:3])
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast(foreground: tuple[float, float, float, float],
+              background: tuple[float, float, float, float]) -> float:
+    """把带 alpha 的前景压到背景上，再算 WCAG 对比度。"""
+    alpha = foreground[3]
+    flat = tuple(
+        foreground[i] * alpha + background[i] * (1 - alpha) for i in range(3)
+    )
+    first, second = _relative_luminance(flat), _relative_luminance(background)
+    high, low = max(first, second), min(first, second)
+    return (high + 0.05) / (low + 0.05)
+
+
+def _token_text_contrast(theme: str) -> dict[str, dict]:
+    """在指定主题下量天平图那行文字的填充与它所在面板的对比度。
+
+    这是**组件填充色**的对比度，不是令牌级的：令牌级的对比度早有
+    `test_keynote_assets.py::test_dark_ink_meets_wcag` 管着，但组件自己拼出来的
+    颜色它可以完全合规地违反——第 20 轮就是这样：深色主题未点亮的文字
+    对面板只有 2.26:1，因为组件把主题墨色混向了一个冻结的深灰端点。
+    """
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):  # noqa: D102 - 测试里不需要访问日志
+            pass
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        page_url = f"http://127.0.0.1:{port}/{PAGE.relative_to(ROOT).as_posix()}"
+        board_url = quote("/" + BASELINE.relative_to(ROOT).as_posix(), safe="")
+        storyboard = json.loads(BASELINE.read_text(encoding="utf-8"))
+        cursor, start, total = 0, {}, {}
+        for scene in storyboard["scenes"]:
+            start[scene["id"]] = cursor
+            total[scene["id"]] = scene["durationInFrames"]
+            cursor += scene["durationInFrames"]
+        out: dict[str, dict] = {}
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(f"{page_url}?a2v-storyboard={board_url}")
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0",
+                    timeout=20000,
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                page.evaluate(
+                    "(t) => document.documentElement.setAttribute('data-a2v-theme', t)", theme
+                )
+                for label, pct in (("unlit", _UNLIT_PCT), ("lit", _LIT_PCT)):
+                    page.evaluate(
+                        "(f) => window.__A2V__.seekToFrame(f)",
+                        start["opening"] + int(total["opening"] * pct),
+                    )
+                    row = page.evaluate(
+                        _CONTRAST_JS, {"scene": "opening"}
+                    )
+                    assert row, "opening 幕里没有天平图那行文字，选择器需要更新"
+                    surface = _srgb(row["surface"])
+                    out[label] = {
+                        "fill": row["fill"],
+                        "size": row["size"],
+                        "ratio": _contrast(_srgb(row["fill"]), surface),
+                        "surface": row["surface"],
+                    }
+                browser.close()
+        finally:
+            httpd.shutdown()
+    return out
+
+
+@pytest.fixture(scope="module", params=["dark", "light"])
+def token_text_contrast(request) -> dict[str, dict]:
+    return _token_text_contrast(request.param)
+
+
+class TestComponentContrast:
+    """组件自己拼出来的颜色也必须达标——令牌合规不等于画面合规。"""
+
+    def test_token_text_meets_large_text_contrast(
+        self, token_text_contrast: dict[str, dict]
+    ) -> None:
+        for label, row in token_text_contrast.items():
+            assert row["size"] >= 24, (
+                f"这行文字只有 {row['size']}px，不再算大字号，"
+                "门槛要按正文的 4.5:1 判"
+            )
+            assert row["ratio"] >= _LARGE_TEXT_MIN, (
+                f"{label} 状态下天平图文字对面板只有 {row['ratio']:.2f}:1"
+                f"（{row['fill']} 对 {row['surface']}）——"
+                f"{row['size']:.0f}px 的大字号门槛是 {_LARGE_TEXT_MIN}:1"
+            )
+
+    def test_the_two_states_really_differ(self, token_text_contrast: dict[str, dict]) -> None:
+        """两态必须是两个颜色：通道卡住时上一条会"两个状态都合规"地通过。"""
+        unlit = _srgb(token_text_contrast["unlit"]["fill"])
+        lit = _srgb(token_text_contrast["lit"]["fill"])
+        distance = sum(abs(a - b) for a, b in zip(unlit[:3], lit[:3]))
+        assert distance > 0.15, (
+            f"未点亮与点亮的填充几乎一样（差 {distance:.3f}）——"
+            "光晕没有在推，或者通道没接上"
+        )
+
+

@@ -470,11 +470,20 @@
         'color-mix(in srgb, var(--a2v-accent-deep) ' + Math.round((0.28 + 0.62 * glow) * 100) + '%, transparent)'
       );
     }
-    // 文字用内联 style 而不是 SVG 属性：CSS 类会盖过表现属性，属性写不进去
+    // 文字用内联 style 而不是 SVG 属性：CSS 类会盖过表现属性，属性写不进去。
+    //
+    // 预设下改成只报告「亮到哪一档」：那个 `#4a4a4a` 是冻结端点，不跟主题走，
+    // 深色主题下未点亮的文字对面板只有 2.26:1（40px 大字号门槛 3:1）——
+    // 深色主题的墨色是浅的，混向一个深灰就压暗了。落点见 figures.css 的
+    // `[data-a2v-preset="keynote"] .load-text.is-ink`。
     var tokenText = pick('loadRightText');
     if (tokenText) {
-      tokenText.style.fill =
-        'color-mix(in srgb, var(--a2v-accent-deep) ' + Math.round(api.range(glow, 28, 100)) + '%, #4a4a4a)';
+      if (presetActive()) {
+        tokenText.style.setProperty('--a2v-token-glow', glow.toFixed(4));
+      } else {
+        tokenText.style.fill =
+          'color-mix(in srgb, var(--a2v-accent-deep) ' + Math.round(api.range(glow, 28, 100)) + '%, #4a4a4a)';
+      }
     }
 
     // 标题里的「害怕」随空壳一起褪色：恐惧退场，动作上场。
