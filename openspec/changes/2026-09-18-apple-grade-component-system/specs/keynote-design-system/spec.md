@@ -381,6 +381,21 @@ SHALL NOT 依赖两套规则的选择器优先级先后。
 - **WHEN** 某个组件用 `.is-accent` 之类的临场类名表达焦点
 - **THEN** 机检报错：它 SHALL 改用基元 + `data-a2v-state`
 
+### Requirement: 动效语汇有上限
+
+共享动效路径（`figures.js`）里的缓动 SHALL 引用命名常量，SHALL NOT 写裸字符串。
+手挑时长的**去重数量** SHALL NOT 超过实测基线；新增取值前 SHALL 先复用已有取值，
+或接回设计层的时长阶梯（`--a2v-dur-fast/base/slow` = 7/11/17 帧）。
+时长阶梯令牌 SHALL 保留，它是统一的靶子。
+
+#### Scenario: 新组件要一档手感
+- **WHEN** 给一个组件加动效，写了一个此前没有的时长
+- **THEN** 判据失败并列出已有取值与阶梯令牌，提示先复用或接回阶梯
+
+#### Scenario: 缓动写成裸字符串
+- **WHEN** 某处 `api.progress` 的第 4 个实参是 `'outQuint'` 而不是 `EASE_OUT`
+- **THEN** 判据失败（第 22 轮实测有 1 处裸字符串 `'linear'`，已改成 `EASE_LINEAR`）
+
 ### Requirement: 重点面上的墨色由设计层给出
 
 `focus` 态的填充是强调色实体，该面在两套主题下都是深色。设计层 SHALL 定义

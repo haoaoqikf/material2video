@@ -33,6 +33,9 @@
   var EASE_OUT = 'outQuint';
   var EASE_SOFT = 'outCubic';
   var EASE_SYMMETRIC = 'inOutCubic';
+/* 等速。只给"进度条"这类本身就该匀速的量用；其余一律走上面三条，
+ * 免得多出一档没人认得的缓动。 */
+var EASE_LINEAR = 'linear';
 
   /* 数字滚动的最少步数。
    *
@@ -992,7 +995,7 @@
     var sparks = pick('sparks') ? pick('sparks').children : [];
     Array.prototype.forEach.call(sparks, function (spark, index) {
       var start = beat(state, 0.62) + index * 9;
-      var life = api.progress(f, start, beat(state, 0.28), 'linear');
+      var life = api.progress(f, start, beat(state, 0.28), EASE_LINEAR);
       var y = api.range(life, 620, 168);
       var x = 344 + ((index % 3) - 1) * 30 + Math.sin(life * Math.PI) * 10;
       spark.setAttribute('cx', x.toFixed(1));

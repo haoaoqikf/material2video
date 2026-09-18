@@ -704,6 +704,12 @@ outputs/examples/<slug>/                                   # 示例产物独立�
 为权威来源。示例产物已迁入 `outputs/examples/why-effort-fails/`，媒体目录整体移动后清单与
 资源引用保持有效。
 
+- **动效时长还没接回设计层**：`figures.js` 的 49 处 `api.progress` 里，
+  时长参数有 20 个取值、混用「帧数」与「场景占比」两种单位；设计层的
+  `--a2v-dur-fast/base/slow`（7/11/17 帧）零消费者。已有护栏防止取值继续增殖，
+  但统一要动共享动效路径，必须与冻结路径的逐字节约束一起设计（见
+  [设计语言第六章](../.agents/skills/article2video/references/keynote-design-system.md)）。
+
 ## 当前边界与后续决策
 
 已实现的部分见 README。明确不在当前范围内：账号系统、云端任务队列、多用户管理、
