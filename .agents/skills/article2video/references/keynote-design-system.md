@@ -731,6 +731,10 @@ K 系列内部还有一层区分：**K7 是硬判定，其余是提醒。** 文�
 第二十五轮把口径放大到**全部令牌**，并且换掉了判定方式。原先看的是"这个令牌
 有没有被 `var()` 引用过"，而网格那一串能骗过它：
 
+（这段公式现在只是**历史样例**：第 42 轮已经把整条链连同 `--a2v-grid-column`、
+`--a2v-columns`、`--a2v-gutter` 一起删掉了，账本从 26 条降到 19 条。留住它是因为
+它说明的是判定方式，不是当前令牌表。）
+
 ```
 --a2v-grid-column  =  calc((var(--a2v-content-width) - (var(--a2v-grid-columns) - 1)
                             * var(--a2v-grid-gutter)) / var(--a2v-grid-columns))
