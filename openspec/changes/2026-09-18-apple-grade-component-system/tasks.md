@@ -3333,3 +3333,40 @@ var paintedNodes = active.querySelectorAll('svg *');
 
 - 本轮只改文档：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 82. 已更正：`SceneProbe` 不带元素几何，§74 的前提错了（第 73 轮，维度 6）
+
+### 82.1 实测把前提推翻了
+
+第 74 轮说"复用 `probe_scene` / `judge_scene` 这两个入口就能逐帧算出 `area × size` 排序"。
+这一轮写了探针实测，结果：
+
+```
+SceneProbe attrs: ['declared_kind', 'frame', 'has_any_text', 'kind', 'missing_labels', 'ok', 'scene_id']
+```
+
+- `SceneProbe` **只有这七个属性**，**没有任何元素几何**（没有 rect / box / fontSize / texts）
+- 探针对 `probe_scene(page, frame)` 的返回值取 `texts`，**一条记录都没有**——
+  说明它返回的字典里没有元素几何
+
+所以 §74 的前提**错了**：元素几何（`texts` / `sizes` / `cards` / `strokes`）由
+`inspect.py:367~615` 那段 JS 采集，但**不经过** `probe_scene` / `judge_scene`，
+而是另一次 JS 调用的产物。`probe_scene` 返回的是"幕的状态"（`ok` / `kind` / `missing_labels`）。
+
+### 82.2 修正后的下一步
+
+1. 找出**承载 `inspect.py:367~615` 那段 JS 的函数名**（它就在那几行上方，本轮没查到）
+2. 量主次基线的探针应当挂在那次 JS 调用的返回处，而不是 `probe_scene` / `judge_scene`
+3. §73.1 的量（`area` / `size` / `contrast`）与 §73.2 的判据本身不受影响——
+   变的只是"从哪里取数"
+
+### 82.3 这一轮的意义
+
+这是本会话第 N 次"**量了才发现前提站不住**"（第 45、46、49、51、52、66~67、70 轮同类）。
+它的价值在于：如果按 §74 直接写判据，会在"取不到数"上白耗一轮，而这次只用一次探针
+就把它挡住了。**结论照旧：先量，再动手。**
+
+### 82.4 验证
+
+- 本轮只查只记（探针用完即弃，未入库）：守卫文件全过、非预设逐字节一致、
+  深色闸门 53/0/0（另有 19 跳过）、全量 exit 0
