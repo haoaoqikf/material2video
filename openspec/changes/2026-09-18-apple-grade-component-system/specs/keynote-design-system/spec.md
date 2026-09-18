@@ -381,6 +381,22 @@ SHALL NOT 依赖两套规则的选择器优先级先后。
 - **WHEN** 某个组件用 `.is-accent` 之类的临场类名表达焦点
 - **THEN** 机检报错：它 SHALL 改用基元 + `data-a2v-state`
 
+### Requirement: 四族基元 × 四个状态每一格都要落地
+
+四族基元（`a2v-surface` / `a2v-label` / `a2v-connector` / `a2v-frame`）在四个状态下
+SHALL 都画出颜色，SHALL NOT 出现空规则或整族缺失。每一格在**两种媒介**上都
+SHALL 与各自的 rest 不同——只声明一种媒介时，另一种媒介上的组件收不到这个状态。
+
+判据用**合成元素**量，不依赖基线是否恰好用到某一态。
+
+#### Scenario: 某一族缺状态规则
+- **WHEN** 边界框带着 `data-a2v-state="focus"` 渲染
+- **THEN** 描边相对 rest 有变化（迁移前整族没有状态规则，四态完全相同）
+
+#### Scenario: 状态只声明一种媒介
+- **WHEN** 一个 HTML 元素带 `class="a2v-label" data-a2v-state="muted"`
+- **THEN** 计算出的 `color` 与 rest 不同（迁移前两者都是 `--a2v-ink-3`，空操作）
+
 ### Requirement: 动效语汇有上限
 
 共享动效路径（`figures.js`）里的缓动 SHALL 引用命名常量，SHALL NOT 写裸字符串。

@@ -995,6 +995,33 @@
  * 有了这一族，`berg-link`（虚线）、`ex-arc`（弧）、`ex-arrow`（箭头头）
  * 才第一次能用同一套状态语汇表达"这条线在焦点上"。`border-color` 一并给出，
  * 让带边框的 HTML 盒子也能读同一个通道（只给颜色不建边框，无副作用）。 */
+/* 边界框也走同一套状态：**边界跟着面走**。
+ *
+ * 第 23 轮普查发现这一族**一条状态规则都没有**——四族基元里唯独它缺，
+ * 于是 `data-a2v-state` 写在边界框上是个静默空操作。补齐的方式与别的族一致：
+ * 取同一套阶梯的同一档位（rest 中性 / focus 强调 / muted 弱化 / done 收束），
+ * 强调档同时抬一档线宽，让"这块被选中"在细线上也读得出来。
+ *
+ * 边界框不画面，所以四态只声明描边，SVG 侧是 `stroke`，HTML 侧是 `border-color`。 */
+[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="rest"] {
+  stroke: var(--a2v-hairline-strong);
+  border-color: var(--a2v-hairline-strong);
+}
+[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="focus"] {
+  stroke: var(--a2v-accent);
+  stroke-width: var(--a2v-stroke-3);
+  border-color: var(--a2v-accent);
+}
+[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="muted"] {
+  stroke: var(--a2v-hairline);
+  border-color: var(--a2v-hairline);
+}
+[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="done"] {
+  stroke: var(--a2v-accent-deep);
+  stroke-width: var(--a2v-stroke-3);
+  border-color: var(--a2v-accent-deep);
+}
+
 [data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="rest"] {
   --a2v-connector-ink: var(--fig-line);
   border-color: var(--a2v-connector-ink);
@@ -1021,9 +1048,20 @@
 }
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="muted"] {
   fill: var(--a2v-text-3);
+  /* 两种媒介都要声明：只写 `fill` 的话，HTML 文字上这一态是空操作
+   * （第 23 轮的合成矩阵就是靠这一点查出缺口）。
+   *
+   * 两个媒介的**静止墨色不是同一档**——HTML 侧是 `--a2v-ink-3`（眉标），
+   * SVG 侧是 `--a2v-text-1`（图形内的字）。所以"褪一档"落到不同的档位：
+   * SVG 到 ink-3，HTML 到 ink-4（那一档的注释写着"不进正文"，正合 muted）。 */
+  color: var(--a2v-ink-4);
 }
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="done"] {
+  /* `done` 这一态是给**压在 done 面**（填充 `--a2v-accent-deep`）上的文字用的，
+   * 所以取 `--fig-on-ink`（强调面上的墨色）。单独压在画布上用会读不出来——
+   * 这是配对契约，不是颜色错，写在设计文档第七章。 */
   fill: var(--fig-on-ink);
+  color: var(--fig-on-ink);
 }
 
 /* ---------- 圆形容器里的标签 ----------

@@ -805,3 +805,122 @@ class TestComponentContrast:
 
 
 
+
+
+#: 四族基元 × 四个状态。合成元素直接插进页面，所以这张表不依赖基线用没用过某一态
+#: ——"语汇承诺了"和"画面上恰好用到了"是两件事（第 23 轮普查：基线只用到 6 种组合，
+#: 边界框连 rest 都没出现过）。
+_STATE_MATRIX_JS = """(args) => {
+  const host = document.querySelector('[data-scene-id="opening"]') || document.body;
+  const prims = ['a2v-surface', 'a2v-label', 'a2v-connector', 'a2v-frame'];
+  const states = ['rest', 'focus', 'muted', 'done'];
+  const made = [];
+  const read = (el, svg) => {
+    const cs = getComputedStyle(el);
+    return svg
+      ? [cs.fill, cs.stroke, cs.strokeWidth]
+      : [cs.color, cs.borderColor, cs.backgroundColor];
+  };
+  const out = {};
+  for (const prim of prims) {
+    for (const state of states) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      svg.setAttribute('class', prim);
+      svg.setAttribute('data-a2v-state', state);
+      host.appendChild(svg);
+      const html = document.createElement('div');
+      html.className = prim;
+      html.setAttribute('data-a2v-state', state);
+      host.appendChild(html);
+      made.push([svg, html]);
+      out[prim + '/' + state] = { svg: read(svg, true), html: read(html, false) };
+    }
+  }
+  for (const [svg, html] of made) {
+    svg.remove();
+    html.remove();
+  }
+  return out;
+}"""
+
+
+def _state_matrix() -> dict[str, dict]:
+    """量四族基元在四个状态下的计算样式（合成元素，与基线用没用过无关）。"""
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):  # noqa: D102 - 测试里不需要访问日志
+            pass
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        page_url = f"http://127.0.0.1:{port}/{PAGE.relative_to(ROOT).as_posix()}"
+        board_url = quote("/" + BASELINE.relative_to(ROOT).as_posix(), safe="")
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(f"{page_url}?a2v-storyboard={board_url}")
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0",
+                    timeout=20000,
+                )
+                page.wait_for_timeout(400)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                page.evaluate("() => window.__A2V__.seekToFrame(0)")
+                matrix = page.evaluate(_STATE_MATRIX_JS, {})
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert len(matrix) == 16, f"矩阵只量到 {len(matrix)} 格"
+    return matrix
+
+
+@pytest.fixture(scope="module")
+def state_matrix() -> dict[str, dict]:
+    return _state_matrix()
+
+
+class TestPrimitiveStateMatrix:
+    """语汇承诺了「四族基元 × 四个状态」，那就得每一格都真的不一样。
+
+    只查"规则写没写"不够：写了但两种媒介只声明一种（HTML 文字上的 no-op）、
+    或者整族一条都没有，静态检查都看不出来——第 23 轮就是这么查出
+    边界框四态全缺、label 的 muted/done 在 HTML 上是空操作的。
+    """
+
+    PRIMS = ("a2v-surface", "a2v-label", "a2v-connector", "a2v-frame")
+
+    def test_every_primitive_declares_a_paint_per_state(
+        self, state_matrix: dict[str, dict]
+    ) -> None:
+        """每一格都得有颜色——空字符串或 `none` 说明那一族/那一态没落地。"""
+        for prim in self.PRIMS:
+            for state in ("rest", "focus", "muted", "done"):
+                cell = state_matrix[f"{prim}/{state}"]
+                for media, values in (("SVG", cell["svg"]), ("HTML", cell["html"])):
+                    assert any(v and v != "none" for v in values), (
+                        f"{prim} 的 {state} 态在 {media} 侧没有画出任何东西：{values}"
+                    )
+
+    def test_every_state_differs_from_rest(self, state_matrix: dict[str, dict]) -> None:
+        """状态必须看得出区别，而且**两种媒介都要**。
+
+        只有一种媒介变了，另一种媒介上的组件就完全收不到这个状态——
+        这正是 label 的 muted/done 原先的毛病。
+        """
+        for prim in self.PRIMS:
+            rest = state_matrix[f"{prim}/rest"]
+            for state in ("focus", "muted", "done"):
+                cell = state_matrix[f"{prim}/{state}"]
+                for index, media in ((0, "SVG"), (1, "HTML")):
+                    assert cell["svg" if index == 0 else "html"] != rest[
+                        "svg" if index == 0 else "html"
+                    ], (
+                        f"{prim} 的 {state} 态在 {media} 侧与 rest 完全一样："
+                        f"{cell['svg' if index == 0 else 'html']}——这个状态是空操作"
+                    )
