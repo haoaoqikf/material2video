@@ -3285,14 +3285,31 @@ var paintedNodes = active.querySelectorAll('svg *');
 - `tests/test_keynote_assets.py`：`test_emphasis_mix_default_keeps_legacy_color`
 - `tests/test_review.py`：`test_accent_rejects_unrelated_colors`, `test_parse_color_accepts_hex_and_rgb`, `test_whitespace_fails_below_budget`, `test_contrast_reports_skipped_without_colors`
 
-### 80.1 下一轮据此做的事
+### 80.1 结论：是令牌级守卫，不是按幕的图形判据
 
-- 若这些测试**确实是按图形（figure）逐个断言颜色/色相/对比度**的 → §79.2 的说法成立，
-  空档是"闸门不管、测试管"，可以把它写成有意分工，而不必再补闸门
-- 若这些测试**只覆盖颜色令牌本身**（例如只断言两套主题的令牌取值合法），而不管哪一幕的
-  哪个图形实际用了什么色 → §79.2 的说法**过强**，需要改写，并考虑补一条按幕的图形判据
+`tests/test_figure_contrast.py` 是真实且不小的守卫（主张"图形颜色令牌的对比度预算"），
+它的四条断言是：
 
-判断依据仍是"测试断言了什么"，不靠注释里的措辞。
+- `test_budgets_cover_every_class_that_needs_one`——每个需要预算的类别都要有
+- `test_fills_have_no_numeric_budget`——纯填充不设数值预算
+- `test_svg_paint_never_hardcodes_a_color`——**SVG 涂色不许写死颜色**
+- `test_no_token_is_below_budget`——`--fig-*` 令牌不得低于预算（带分类表；另有
+  `--fig-water` 的色相跨度断言：次级冷色面不许退成中性灰）
+
+它的 docstring 还记着一个真实旧缺陷：**"图形越淡，背景占比越高，越容易通过"**——K1 因此
+抓不到图形看不见（曾有 3.31:1 却检查全绿）。
+
+**但这些都是"令牌级"断言**：它们保证"不许写死颜色、每个令牌都达标"，
+**不保证"某一幕的某个图形实际用了它、且在那个背景上看得见"**。
+
+所以 §79.2 的说法要**收窄**为：
+
+> 那三幕的图解对象由**令牌级**测试守着（不许写死颜色 + 令牌达标）与图形资产测试守着
+> （图形确实存在），**但没有按幕的"这个图形在这幕里看得见吗"判据**——
+> K6 按设计不管、K9 因无描边跳过、K1 天然抓不到。
+
+这个空档**比原话小，但确实存在**。要不要补一条按幕的图形可见性判据，留待后续判断；
+补之前必须先量现状（否则可能把现有画面全报红）。
 
 ### 80.2 验证
 
