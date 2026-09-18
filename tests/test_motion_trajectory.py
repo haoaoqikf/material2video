@@ -20,6 +20,7 @@ import functools
 import http.server
 import json
 import pathlib
+import re
 import socketserver
 import threading
 from dataclasses import dataclass
@@ -422,4 +423,135 @@ class TestNumberRoll:
         seen = {text for _, text, opacity in rows if opacity >= 0.5}
         assert len(seen) > 1, f"数值足够滚动却只出现过 {seen}，滚动分支没有生效"
         assert str(target["data"]["value"]) in seen, "滚动没有落到最终值上"
+
+
+#: 焦点交接的采样步长。一次交接跨半个格子（约 27 帧），
+#: 合法的一帧变化约 0.077，所以步长 3 的合法上限约 0.23。
+_FOCUS_STEP = 3
+#: 超过这个幅度就说明焦点是在帧边界上翻牌，而不是淡入淡出。
+_FOCUS_MAX_JUMP = 0.4
+#: rest / focus 两端的填充（`--fig-surface` / `--a2v-accent-soft-solid`）。
+_FOCUS_REST = (23 / 255, 30 / 255, 43 / 255)
+_FOCUS_FULL = (22 / 255, 70 / 255, 95 / 255)
+
+_FOCUS_SAMPLE = """(id) => {
+  const scene = document.querySelector('[data-scene-id="' + id + '"]');
+  if (!scene) return null;
+  const out = [];
+  scene.querySelectorAll('.loop-node-disc').forEach((d) => {
+    out.push([d.getAttribute('data-a2v-state') || 'none', getComputedStyle(d).fill]);
+  });
+  return out;
+}"""
+
+
+def _parse_color(text: str) -> tuple[float, float, float]:
+    """解析 `rgb(r, g, b)` 与 `color(srgb r g b)` 两种 Chromium 输出。"""
+    numbers = [float(n) for n in re.findall(r"-?\d*\.?\d+", text)]
+    if text.startswith("rgb("):
+        return (numbers[0] / 255, numbers[1] / 255, numbers[2] / 255)
+    return (numbers[0], numbers[1], numbers[2])
+
+
+def _focus_mix(rgb: tuple[float, float, float]) -> float:
+    """把填充色投影到 rest→focus 这条线上，得到 0..1 的焦点量。"""
+    axis = [f - r for f, r in zip(_FOCUS_FULL, _FOCUS_REST)]
+    delta = [c - r for c, r in zip(rgb, _FOCUS_REST)]
+    denom = sum(a * a for a in axis)
+    return sum(a * b for a, b in zip(delta, axis)) / denom
+
+
+def _loop_focus_track() -> list[list[tuple[str, float]]]:
+    """逐帧读飞轮幕各节点圆盘的状态与焦点量。"""
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+    storyboard = _storyboard()
+    scenes = storyboard["scenes"]
+    target = next(s for s in scenes if s["type"] == "diagram")
+    start = sum(s["durationInFrames"] for s in scenes[: scenes.index(target)])
+
+    page_url = ASSETS / "declarative.html"
+    rel = "/" + page_url.relative_to(ROOT).as_posix()
+    board = "/" + STORYBOARD.relative_to(ROOT).as_posix()
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(_Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{port}{rel}?a2v-storyboard={quote(board, safe='')}"
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(url)
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0", timeout=20000
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                track = []
+                for local in range(0, target["durationInFrames"], _FOCUS_STEP):
+                    page.evaluate("(f) => window.__A2V__.seekToFrame(f)", start + local)
+                    rows = page.evaluate(_FOCUS_SAMPLE, target["id"])
+                    if rows is None:
+                        continue
+                    track.append(
+                        [(state, _focus_mix(_parse_color(fill))) for state, fill in rows]
+                    )
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert track, "飞轮幕采不到节点圆盘，采样选择器需要更新"
+    return track
+
+
+class TestFocusHandover:
+    """焦点交接必须是连续的，而且任何一帧仍然只有一个焦点。
+
+    这两条要同时成立，靠的是交接顺序：旧节点以 mix 1→0 淡出，
+    **到 mix = 0 的那一帧**才把 `focus` 交给新节点（新节点从 mix 0 淡入）。
+    切换瞬间两侧外观都等于 rest，所以视觉上没有缝。
+    """
+
+    def test_at_most_one_focus_per_frame(self):
+        """规格里的硬约束：强调色只指向一个落点，两个焦点等于没有焦点。"""
+        track = _loop_focus_track()
+        offenders = [
+            (index * _FOCUS_STEP, sum(1 for state, _ in frame if state == "focus"))
+            for index, frame in enumerate(track)
+            if sum(1 for state, _ in frame if state == "focus") > 1
+        ]
+        assert not offenders, f"这些帧出现了多个焦点：{offenders[:6]}"
+
+    def test_the_focus_never_jumps_at_a_frame_boundary(self):
+        """焦点量逐帧最多变化 _FOCUS_MAX_JUMP——翻牌会一次跳掉整格。"""
+        track = _loop_focus_track()
+        jumps = []
+        for index in range(1, len(track)):
+            before = max(mix for _, mix in track[index - 1])
+            after = max(mix for _, mix in track[index])
+            if abs(after - before) > _FOCUS_MAX_JUMP:
+                jumps.append((index * _FOCUS_STEP, round(before, 3), round(after, 3)))
+        assert not jumps, (
+            f"这些帧之间焦点量发生了跳变（帧, 前, 后）：{jumps[:6]}——"
+            "焦点在帧边界上翻牌，而不是淡入淡出"
+        )
+
+    def test_a_disc_enters_focus_at_zero_mix(self):
+        """拿到 `focus` 的那一帧，它的焦点量必须接近 0。
+
+        否则"从 rest 换成 focus"本身就是一次可见的跳变——
+        这正是连续通道存在的理由。
+        """
+        track = _loop_focus_track()
+        offenders = []
+        for index in range(1, len(track)):
+            for node, (state, mix) in enumerate(track[index]):
+                was = track[index - 1][node][0]
+                if was == "rest" and state == "focus" and mix > 0.25:
+                    offenders.append((index * _FOCUS_STEP, node, round(mix, 3)))
+        assert not offenders, (
+            f"这些（帧, 节点, 焦点量）在拿到 focus 的瞬间就已经很亮：{offenders[:6]}"
+        )
 

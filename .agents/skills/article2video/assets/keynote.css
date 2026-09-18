@@ -878,10 +878,39 @@
  * 填充取 `--a2v-accent-soft-solid`——它是一个被压暗的强调色，
  * 在深底上读得出"这块被选中了"，又远不到霓虹的程度，符合"色彩克制"。
  * 与 `done` 态（`--a2v-accent-deep`）形成 rest（中性）→ focus（暗档）→ done（亮档）
- * 的三级强调色阶梯，而不是让两个状态都靠描边区分。 */
+ * 的三级强调色阶梯，而不是让两个状态都靠描边区分。
+ *
+ * ## `--a2v-focus-mix`：焦点也可以是连续量
+ *
+ * 四态是离散的，而确定性契约禁止 CSS `transition`——所以状态一换，
+ * 画面上就是一次瞬跳。实测飞轮幕的节点圆盘在相邻采样帧之间
+ * 填充从 `rgb(23,30,43)` 跳到 `rgb(22,70,95)`、描边从 `rgba(255,255,255,0.52)`
+ * 跳到 `rgb(50,214,255)`，**没有中间态**；圆盘不小，每约 2.7 秒就"啪"一下。
+ *
+ * 但"焦点在哪"本身可以是连续的（飞轮的小球位置 `travel` 就是连续量），
+ * 所以这一条不引入第五个状态——规格明确说连续量不该并进四态——
+ * 而是给 `focus` 态加一个**在状态之内**的连续通道：
+ * `--a2v-focus-mix`（0..1，默认 1）。
+ *
+ *   mix = 1 → 完整焦点外观（与从前逐像素一致，所以别的组件不受影响）
+ *   mix = 0 → 外观**等于 rest**，于是"从 rest 换到 focus"不再是一次跳变
+ *
+ * 交接因此可以做到既连续、又始终只有一个焦点：
+ * 旧节点以 mix 1→0 淡出，到 mix = 0 的那一帧才把 `focus` 交给新节点
+ * （新节点从 mix 0 开始淡入）。切换瞬间两侧都等于 rest 外观，视觉上没有缝。
+ * 同一帧里 `data-a2v-state="focus"` 的元素始终只有一个。 */
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="focus"] {
-  fill: var(--a2v-accent-soft-solid);
-  stroke: var(--a2v-accent);
+  --a2v-focus-mix: 1;
+  fill: color-mix(
+    in srgb,
+    var(--a2v-accent-soft-solid) calc(var(--a2v-focus-mix) * 100%),
+    var(--fig-surface)
+  );
+  stroke: color-mix(
+    in srgb,
+    var(--a2v-accent) calc(var(--a2v-focus-mix) * 100%),
+    var(--fig-line)
+  );
 }
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="muted"] {
   fill: var(--a2v-bg-0);

@@ -1129,25 +1129,51 @@
      */
     var nodeGroups = pick('nodes') ? pick('nodes').children : [];
     var nodeStart = beat(state, 0.12);
+    /* 焦点是**连续**的：小球一路走，焦点一路交。
+     *
+     * 离散写法（`index === arrived % n`）每换一个节点就翻一次牌——实测圆盘
+     * 填充在相邻采样帧之间从 rgb(23,30,43) 跳到 rgb(22,70,95)、描边从
+     * rgba(255,255,255,0.52) 跳到 rgb(50,214,255)，**没有中间态**；
+     * 圆盘不小，于是每约 2.7 秒"啪"一下。
+     *
+     * 交接拆成两段，任何一帧仍然只有一个 focus 元素：
+     *
+     *   frac ∈ [0, 0.5)   旧节点是 focus，mix 从 1 降到 0（淡出）
+     *   frac ∈ [0.5, 1)   新节点是 focus，mix 从 0 升到 1（淡入）
+     *
+     * 换手正好发生在 mix = 0 的那一帧，两侧外观都等于 rest，所以没有缝——
+     * 这也是"同帧最多一个焦点"和"视觉连续"能同时成立的原因。
+     * `pulse`（到达时鼓一下）跟着同一个权重，于是鼓包在到达时最大。 */
+    var nodeCount = nodeGroups.length;
+    var handingOver = frac < 0.5;
+    var focusIndex = nodeCount
+      ? (handingOver ? arrived % nodeCount : (arrived + 1) % nodeCount)
+      : -1;
+    var focusMix = clampStatic(handingOver ? 1 - frac * 2 : frac * 2 - 1, 0, 1);
     Array.prototype.forEach.call(nodeGroups, function (group, index) {
       var enterP = motion.spring(api.since(f, nodeStart + index * 8), 'enter');
       var nodePoint = loopPoint(index);
       /* 小球到达的那个节点就是当前的环节——它已经有"鼓一下"的脉冲，
-       * 但状态一直是 rest，所以整幕没有任何强调色（实测 35% 帧只有 0.0015）。
+       * 从前状态却一直是 rest，所以整幕没有任何强调色（实测 35% 帧只有 0.0015）。
        * 把到达的节点设为 focus：一个画面仍然只有一个焦点，
        * 但它随小球前进，而不是永不出现。
        * 与阶梯同一条规则：**焦点跟着行进走**。 */
-      var isFocus = index === arrived % nodeGroups.length;
+      var isFocus = index === focusIndex;
       var disc = group.querySelector('.loop-node-disc');
       var nodeLabel = group.querySelector('.loop-node-text');
       var nextState = isFocus ? 'focus' : 'rest';
       if (disc && disc.getAttribute('data-a2v-state') !== nextState) {
         disc.setAttribute('data-a2v-state', nextState);
       }
+      if (disc && isFocus) {
+        /* 焦点外观靠这条连续通道淡入淡出；只在 focus 时写，
+         * 所以回到 rest 的元素不会留下会突然生效的陈旧值。 */
+        disc.style.setProperty('--a2v-focus-mix', focusMix.toFixed(4));
+      }
       if (nodeLabel && nodeLabel.getAttribute('data-a2v-state') !== nextState) {
         nodeLabel.setAttribute('data-a2v-state', nextState);
       }
-      var pulse = isFocus ? clampStatic(1 - frac / 0.5, 0, 1) : 0;
+      var pulse = isFocus ? focusMix : 0;
       var scale = api.range(enterP, 0.94, 1, { clamp: false }) * (1 + pulse * 0.09);
       svgT(
         group,

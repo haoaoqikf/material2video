@@ -336,11 +336,17 @@ class TestFocusStateMigration:
 
         迁移前四个节点永远 `rest`，整幕没有任何强调色（实测 35% 帧 0.0015），
         而"到达了哪个节点"这个信息组件本来就已算出来（脉冲用的就是它）。
+
+        第十轮把判焦点从离散改成**连续交接**：焦点仍然跟着到达的节点走
+        （`focusIndex` 由 `arrived` 与 `frac` 推出），但换手发生在 `mix = 0`
+        那一帧，所以既没有翻牌的跳变，同一帧也仍然只有一个焦点。
         """
         for _kind, _labels, _markup, _source, body in _figures():
             if "loop-node-disc" not in body:
                 continue
-            assert "arrived % nodeGroups.length" in body, "飞轮没有用到达的节点判焦点"
+            assert "arrived" in body, "飞轮没有用到达的节点判焦点"
+            assert "focusIndex" in body, "飞轮没有把焦点算成一个下标"
             assert "data-a2v-state" in body, "飞轮没有写状态"
+            assert "--a2v-focus-mix" in body, "飞轮没有写连续焦点量"
             return
         raise AssertionError("没有找到飞轮组件")
