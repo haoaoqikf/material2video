@@ -409,6 +409,29 @@ _AESTHETIC_SCRIPT = """
   var safeRect = active.querySelector('.a2v-safe');
   var safeBox = safeRect ? safeRect.getBoundingClientRect() : null;
 
+  // 文字真正坐在哪块面上：从文字元素往上找第一个**不透明**的祖先。
+  //
+  // 只认 alpha ≥ 0.95 的实底：半透明祖先（例如 0.08 的白）压在深色画布上，
+  // 把它当成背景反而会量出新的假失败；找不到实底就交回空串，
+  // 由对比度闸门回落到画布——也就是修之前的行为。
+  function surfaceBackground(node) {
+    var current = node.parentElement;
+    while (current && current !== document.body && current !== document.documentElement) {
+      var bg = window.getComputedStyle(current).backgroundColor;
+      var match = String(bg).match(/rgba?\\(([^)]+)\\)/);
+      var alpha = 1;
+      if (match) {
+        var parts = match[1].split(',');
+        if (parts.length > 3) alpha = parseFloat(parts[3]);
+      }
+      if (bg && bg !== 'transparent' && !isNaN(alpha) && alpha >= 0.95) {
+        return bg;
+      }
+      current = current.parentElement;
+    }
+    return '';
+  }
+
   var sizes = [];
   var texts = [];
   var walker = document.createTreeWalker(active, NodeFilter.SHOW_TEXT, null);
@@ -444,7 +467,13 @@ _AESTHETIC_SCRIPT = """
             // 标记出来让对比度闸门跳过，而不是量出 1.0 的假失败。
             gradient: (style.webkitBackgroundClip || style.backgroundClip) === 'text',
             alpha: isNaN(alpha) ? 1 : alpha,
-            background: style.backgroundColor
+            background: style.backgroundColor,
+            // 文字自身没涂色时，真正的背景是**最近一个被涂色的祖先**（卡片、面板），
+            // 而不是画布。对照幕的答案卡就是例子：白字压在深蓝卡上（第 21 轮实测
+            // 10.37:1），只看画布会量出 1.13 的假失败。
+            // 第 21 轮我自己的判据犯过同样的错：拿画布级令牌当背景，量出 7.23:1，
+            // 换成量文字真正坐着的那块面才发现是 1.07:1。
+            surface: surfaceBackground(parent)
           });
         }
       }

@@ -586,8 +586,16 @@ def gate_contrast(
         if alpha <= 0.02:
             continue
         fg = parse_color(sample.get("color", ""))
-        bg = parse_color(sample.get("background", ""))
-        if bg is None or parse_alpha(sample.get("background", "")) <= 0.02:
+        # 背景归属：元素自己没涂色时，先看**最近一个被涂色的祖先**（卡片/面板），
+        # 最后才回落到画布。少了这一步，卡片上的字会拿画布当背景——
+        # 浅色主题下答案卡的白字因此量出 1.13:1 的假失败。
+        bg_text = sample.get("background", "")
+        if parse_color(bg_text) is None or parse_alpha(bg_text) <= 0.02:
+            surface = sample.get("surface", "")
+            if parse_color(surface) is not None and parse_alpha(surface) > 0.02:
+                bg_text = surface
+        bg = parse_color(bg_text)
+        if bg is None or parse_alpha(bg_text) <= 0.02:
             bg = page_background
         if fg is None or bg is None:
             continue
