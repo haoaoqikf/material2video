@@ -169,8 +169,23 @@ def test_subtitle_frames_layout_playback_and_determinism(example_media):
                 assert bounds["bottom"] <= 1600
                 assert bounds["height"] <= 128
                 page.evaluate("() => A2V.controller.play()")
-                page.evaluate("() => new Promise(r => setTimeout(r, 250))")
-                assert page.evaluate("() => A2V.controller.currentFrame()") > 4
+                # 这里原先是「等 250ms 再看帧号 > 4」。全量跑的时候进程可能被饿到
+                # rAF 推不动，于是断言在负载下偶发假失败（实测出现过两次），
+                # 而那是负载问题、不是播放问题。改成有界轮询：只要求
+                # **播起来之后帧号会推进**，不规定它在多少毫秒内推多少帧。
+                advanced = page.evaluate(
+                    """() => new Promise((resolve) => {
+                      const from = A2V.controller.currentFrame();
+                      const deadline = performance.now() + 5000;
+                      const tick = () => {
+                        if (A2V.controller.currentFrame() > from) return resolve(true);
+                        if (performance.now() > deadline) return resolve(false);
+                        requestAnimationFrame(tick);
+                      };
+                      requestAnimationFrame(tick);
+                    })"""
+                )
+                assert advanced, "播放后帧号没有推进——播放循环没有跑起来"
                 page.evaluate("() => A2V.controller.pause()")
                 paused = page.evaluate("() => A2V.controller.currentFrame()")
                 page.evaluate("() => new Promise(r => setTimeout(r, 100))")

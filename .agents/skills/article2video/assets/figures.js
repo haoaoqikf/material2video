@@ -811,14 +811,14 @@
        材质（--a2v-surface 那层白色光泽）仍由 figures.css 声明，与状态无关。
        注意：这段注释在模板字符串里，正文不能出现反引号。 -->
   <div class="vs-side is-left a2v-surface" data-a2v-state="rest" data-el="leftSide">
-    <p class="vs-text" data-el="leftText"></p>
+    <p class="vs-text" data-el="leftText" data-a2v-fit="lead"></p>
   </div>
   <div class="vs-link" aria-hidden="true">
     <span class="vs-line" data-el="line"></span>
     <span class="vs-head" data-el="head"></span>
   </div>
   <div class="vs-side is-right a2v-surface" data-a2v-state="focus" data-el="rightSide">
-    <p class="vs-text" data-el="rightText"></p>
+    <p class="vs-text" data-el="rightText" data-a2v-fit="lead"></p>
   </div>
 </div>
 <p class="vs-note" data-el="note" data-a2v-fit="caption"></p>`;

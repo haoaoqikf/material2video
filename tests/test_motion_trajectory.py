@@ -633,3 +633,98 @@ class TestLoopGeometry:
             "环的停位数没有跟着节点数走"
         )
 
+
+@functools.lru_cache(maxsize=1)
+def _versus_board() -> dict:
+    """读比较幕的板面、安全区宽度与选项文字字号。三次断言共用一次浏览器。"""
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+    storyboard = _storyboard()
+    scenes = storyboard["scenes"]
+    target = next(s for s in scenes if s["type"] == "comparison")
+    start = sum(s["durationInFrames"] for s in scenes[: scenes.index(target)])
+
+    page_url = ASSETS / "declarative.html"
+    rel = "/" + page_url.relative_to(ROOT).as_posix()
+    board = "/" + STORYBOARD.relative_to(ROOT).as_posix()
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(_Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{port}{rel}?a2v-storyboard={quote(board, safe='')}"
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(url)
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0", timeout=20000
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                # 取幕中段：入场已经结束，量到的是稳定版面
+                page.evaluate(
+                    "(f) => window.__A2V__.seekToFrame(f)",
+                    start + target["durationInFrames"] // 2,
+                )
+                facts = page.evaluate(
+                    """(id) => {
+                      const scene = document.querySelector('[data-scene-id="' + id + '"]');
+                      const safe = scene.querySelector('.a2v-safe') || scene;
+                      const rect = (e) => { const r = e.getBoundingClientRect();
+                        return {w: r.width, x: r.x}; };
+                      const texts = Array.from(scene.querySelectorAll('.vs-text'));
+                      return {
+                        safe: rect(safe),
+                        board: rect(scene.querySelector('.vs-board')),
+                        sides: Array.from(scene.querySelectorAll('.vs-side')).map(rect),
+                        fonts: texts.map((t) =>
+                          parseFloat(getComputedStyle(t).fontSize)),
+                        fit: texts.map((t) => t.getAttribute('data-a2v-fit'))
+                      };
+                    }""",
+                    target["id"],
+                )
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert facts and facts["fonts"], "比较幕采不到两栏文字，采样选择器需要更新"
+    return facts
+
+
+class TestVersusGeometry:
+    """比较幕的两栏是这一幕的**载荷**，不该缩成正文大小。
+
+    未启用预设时板面按内容收缩、文字固定在 46px 兜底值，于是实测板面只有
+    596px（安全区 888px 的 67%）、文字 44px，而幕标题 76px——
+    **要看的东西比问题还小**，层级是倒的（K3 量到的字号层级只有 [44, 76]）。
+    """
+
+    def test_the_two_columns_use_the_available_width(self):
+        facts = _versus_board()
+        share = facts["board"]["w"] / facts["safe"]["w"]
+        assert share >= 0.9, (
+            f"板面只占安全区宽度的 {share:.0%}（{facts['board']['w']:.0f}/"
+            f"{facts['safe']['w']:.0f}）——两栏按内容收缩，载荷被挤小了"
+        )
+
+    def test_the_two_columns_are_the_same_width(self):
+        widths = [side["w"] for side in _versus_board()["sides"]]
+        spread = max(widths) - min(widths)
+        assert spread <= 2, f"两栏宽度不一致（{widths}）——并排比较应当等宽，差 {spread:.0f}px"
+
+    def test_the_payload_text_is_not_at_the_fallback_size(self):
+        """选项文字必须落在排版阶上，而不是那个 46px 的兜底值。"""
+        facts = _versus_board()
+        assert all(fit for fit in facts["fit"]), (
+            f"两栏文字没有声明排版档位（data-a2v-fit）：{facts['fit']}——"
+            "于是它只能吃 --a2v-ink-value 的兜底值，永远不参与自适应"
+        )
+        smallest = min(facts["fonts"])
+        assert smallest >= 60, (
+            f"选项文字只有 {smallest:.0f}px，仍在正文那一档——"
+            "这一幕的载荷应当落在 lead（60px）及以上"
+        )
+

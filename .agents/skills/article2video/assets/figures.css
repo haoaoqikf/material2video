@@ -837,6 +837,30 @@
     letter-spacing: var(--a2v-track-body, 0.01em);
   }
 
+  /*
+   * 预设下：两栏是这一幕的**载荷**，不该比标题还小。
+   *
+   * 未启用预设时，板面按内容收缩（`min-width: auto`），文字固定 46px，
+   * 于是实测板面只有 596px（安全区 888px 的 67%）、每栏 226px、文字 44px——
+   * 而幕标题是 76px。对一幕「两种反应并排」来说，**要看的东西比问题还小**，
+   * 层级是倒的（K3 量到的字号层级只有 [44, 76]，选项就是正文那一档）。
+   *
+   * 所以预设下让两栏均分安全区宽度（`min-width: 0` 才允许 flex 压过内容宽度），
+   * 文字改由排版阶给上限（markup 里的 `data-a2v-fit="title"`），
+   * 放不下时 autofit 会自己往下走——提高上限本身不会溢出。
+   *
+   * 这一条挂在预设上：`figures.css` 是全局的，而非预设的 `why-effort-fails`
+   * 也有一幕 `comparison`，逐帧不变是硬承诺。
+   */
+  [data-a2v-preset="keynote"] .vs-board {
+    width: 100%;
+  }
+
+  [data-a2v-preset="keynote"] .vs-side {
+    min-width: 0;
+    min-height: 300px;
+  }
+
   .vs-link {
     position: relative;
     flex: 0 0 96px;
