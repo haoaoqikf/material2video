@@ -279,12 +279,31 @@ class TestFocusStateMigration:
     """
 
     #: 已迁到状态基元的表面：不许再有临场类名。
-    MIGRATED = ("berg-callout", "loop-node-disc", "stair-bar", "load-token")
+    MIGRATED = (
+        "berg-callout",
+        "loop-node-disc",
+        "stair-bar",
+        "load-token",
+        "berg-callout-label",
+        "berg-link",
+        "ex-node-disc",
+        "ex-arc",
+        "ex-arrow",
+    )
 
     #: 尚未迁移，逐项登记（见 tasks.md 第 5 组）。
-    #: `berg-link` / `berg-callout-label` 是**文字与连接线**的角色色，不是表面状态；
-    #: `ex-*` 是交换幕，整组迁移还没做。
-    PENDING = ("berg-link", "ex-node-disc", "ex-arc", "ex-arrow")
+    #: **空元组是终点**，不是还没写：第 16 轮把最后一组（exchange 幕的
+    #: 圆盘 / 弧 / 箭头头与 iceberg 的连线）也迁完了。线条族补齐之后，
+    #: 「文字 / 连线 / 弧 / 标记」都有了对应的基元，没有角色还需要临场类名。
+    #: 列表一旦再有东西进来，说明某个组件又自己造了一套焦点表达。
+    PENDING: tuple[str, ...] = ()
+
+    def test_the_pending_list_has_not_started_growing_again(self) -> None:
+        """棘轮的终点：`PENDING` 必须保持为空。"""
+        assert self.PENDING == (), (
+            f"又出现未迁移的临场焦点类名：{sorted(self.PENDING)}——"
+            "迁移时应当补进基元，而不是把名字登记进这张表"
+        )
 
     def test_ad_hoc_focus_classes_are_confined_to_the_tracked_pending_list(self) -> None:
         """这是一条棘轮：迁完一个组件就要把它从 PENDING 里删掉。
@@ -314,11 +333,33 @@ class TestFocusStateMigration:
         assert not re.search(r"\.is-focus\b", text), "样式表里还有 .is-focus 规则"
 
     def test_focus_surfaces_declare_the_state(self) -> None:
-        """承载焦点的表面必须挂 `a2v-surface`，状态由 `data-a2v-state` 表达。"""
+        """承载焦点的元素必须挂**某个基元**，状态由 `data-a2v-state` 表达。
+
+        基元到第 16 轮有三族：表面（`a2v-surface`，面怎么涂）、
+        标签（`a2v-label`，文字层）、线条（`a2v-stroke`，线用什么颜色）。
+        断言不写死哪一族——写死就要求每个元素都变成"面"，
+        而弧线是 `fill: none` 的描边、标签是文字，套表面族会画错。
+        """
         text = _source()
+        primitives = ("a2v-surface", "a2v-label", "a2v-stroke")
         for element in self.MIGRATED:
-            pattern = r'class:\s*[\'"]' + element + r' a2v-surface[\'"]|class="' + element + r' a2v-surface"'
-            assert re.search(pattern, text), f"{element} 没有迁到 a2v-surface 基元"
+            for primitive in primitives:
+                pattern = (
+                    r'class:\s*[\'"]' + element + r" " + primitive + r'[\'"]'
+                    r'|class="' + element + r" " + primitive + r'"'
+                )
+                if re.search(pattern, text):
+                    break
+            else:
+                raise AssertionError(
+                    f"{element} 没有迁到任何基元（{primitives}），仍在用临场类名"
+                )
+        # 挂了基元还不够：状态属性必须真的落在同一个元素上（同一行或紧邻两行），
+        # 否则基元拿不到状态，画面等于没迁。
+        # 状态属性本身不在静态层校验：一部分组件是**动态**设状态的
+        # （`bar.setAttribute('data-a2v-state', …)`，离类名声明五十多行），
+        # 静态窗口断言对它们不成立。那类由渲染期测试守：
+        # TestFocusHandover / TestLoopFocusHandover / TestVersusGeometry。
 
     def test_stairs_focus_follows_the_narration(self) -> None:
         """阶梯的焦点跟着口播走，不是"等最后一根柱子长到 95%"。

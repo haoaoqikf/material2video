@@ -863,7 +863,10 @@
         var group = svgEl('g', { 'data-callout': String(index) });
 
         var link = svgEl('path', {
-          class: 'berg-link' + (isAccent ? ' is-accent' : ''),
+          /* 连线也走状态语汇：线条族的通道变量按状态给色，
+           * 组件决定它落在 stroke 上（这里）还是 fill 上（箭头头）。 */
+          class: 'berg-link a2v-stroke',
+          'data-a2v-state': isAccent ? 'focus' : 'rest',
           d:
             'M' + BERG.CALLOUT_X + ' ' + (y + BERG.CALLOUT_H / 2) +
             ' C ' + (BERG.CALLOUT_X - 44) + ' ' + (y + BERG.CALLOUT_H / 2) +
@@ -1610,17 +1613,17 @@
 <!-- 双向箭头：挑人不是单向的 -->
 <svg class="fig fig-exchange" viewBox="0 0 888 300" aria-hidden="true">
   <g data-el="nodeLeft">
-    <circle class="ex-node-disc" cx="150" cy="150" r="88"></circle>
+    <circle class="ex-node-disc a2v-stroke" data-a2v-state="rest" cx="150" cy="150" r="88"></circle>
     <text class="ex-node-text" data-el="nodeLeftText" x="150" y="150"></text>
   </g>
   <g data-el="nodeRight">
-    <circle class="ex-node-disc is-accent" cx="738" cy="150" r="88"></circle>
+    <circle class="ex-node-disc a2v-stroke" data-a2v-state="focus" cx="738" cy="150" r="88"></circle>
     <text class="ex-node-text" data-el="nodeRightText" x="738" y="150"></text>
   </g>
-  <path class="ex-arc" data-el="arcTo" d="M262 118 Q445 66 628 118"></path>
-  <path class="ex-arrow" data-el="arrowTo" d="M0 0 L0 0"></path>
-  <path class="ex-arc is-accent" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
-  <path class="ex-arrow is-accent" data-el="arrowBack" d="M0 0 L0 0"></path>
+  <path class="ex-arc a2v-stroke" data-a2v-state="rest" data-el="arcTo" d="M262 118 Q445 66 628 118"></path>
+  <path class="ex-arrow a2v-stroke" data-a2v-state="rest" data-el="arrowTo" d="M0 0 L0 0"></path>
+  <path class="ex-arc a2v-stroke" data-a2v-state="focus" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
+  <path class="ex-arrow a2v-stroke" data-a2v-state="focus" data-el="arrowBack" d="M0 0 L0 0"></path>
 </svg>
 <p class="closing-action" data-el="action" data-a2v-fit="body"></p>`;
 

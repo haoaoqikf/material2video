@@ -493,14 +493,22 @@
 
   .berg-link {
     fill: none;
-    stroke: var(--fig-line);
+    /* 线条族的通道变量：预设下由 `data-a2v-state` 供给（rest → --fig-line，
+     * focus → 强调色），未启用预设时回落到原来的取值。 */
+    stroke: var(--a2v-stroke-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-3, 3);
     stroke-dasharray: 10 10;
   }
-
-  .berg-link.is-accent {
+  /* 未启用预设时的焦点表现（原 `.berg-link.is-accent` 的等价物）。
+   * 基元只在预设作用域内定义，所以按**状态属性**把它接住；预设下基元
+   * 多一层属性、优先级更高。 */
+  .berg-link[data-a2v-state="focus"] {
     stroke: rgba(var(--a2v-accent-rgb), 0.7);
   }
+
+  /* 原有的 `.berg-link.is-accent { stroke: rgba(accent, 0.7) }` 已删：
+   * 焦点色由线条族的通道变量给，未启用预设时的表现由上面那条按状态属性
+   * 书写的规则接住。 */
 
   .berg-spark {
     fill: var(--a2v-accent);
@@ -747,11 +755,12 @@
 
   .ex-node-disc {
     fill: var(--fig-surface);
-    stroke: var(--fig-line);
+    stroke: var(--a2v-stroke-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-4, 4);
   }
 
-  .ex-node-disc.is-accent {
+  /* 未启用预设时的焦点表现（原 `.ex-node-disc.is-accent` 的等价物） */
+  .ex-node-disc[data-a2v-state="focus"] {
     stroke: rgba(var(--a2v-accent-rgb), 0.55);
   }
 
@@ -764,20 +773,22 @@
 
   .ex-arc {
     fill: none;
-    stroke: var(--fig-line);
+    stroke: var(--a2v-stroke-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-5, 5);
     stroke-linecap: round;
   }
 
-  .ex-arc.is-accent {
+  /* 未启用预设时的焦点表现（原 `.ex-arc.is-accent` 的等价物） */
+  .ex-arc[data-a2v-state="focus"] {
     stroke: var(--a2v-accent);
   }
 
   .ex-arrow {
-    fill: var(--fig-line);
+    fill: var(--a2v-stroke-ink, var(--fig-line));
   }
 
-  .ex-arrow.is-accent {
+  /* 未启用预设时的焦点表现（原 `.ex-arrow.is-accent` 的等价物） */
+  .ex-arrow[data-a2v-state="focus"] {
     fill: var(--a2v-accent);
   }
 

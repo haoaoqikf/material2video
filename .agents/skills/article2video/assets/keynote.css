@@ -948,6 +948,35 @@
   background-color: var(--a2v-accent-deep);
 }
 
+/* ---------- 状态语汇（二）：线条族 ----------
+
+ * 表面族决定"面怎么涂"，线条族只回答"线用什么颜色"。**写法不同是故意的**：
+ * 同族的元素里既有描边路径（弧线、虚线，`fill: none`），也有纯填充标记
+ * （箭头头，只有 `fill`）。若线条族也去写 `stroke` / `fill` 属性，
+ * 三层选择器（属性 + 类 + 属性）就会盖掉组件自己的 `fill: none`，
+ * 把一条弧线填成一块实心。所以它只供给一个通道变量 `--a2v-stroke-ink`，
+ * 由组件决定把它落到 `stroke` 还是 `fill` 上。
+ *
+ * 有了这一族，`berg-link`（虚线）、`ex-arc`（弧）、`ex-arrow`（箭头头）
+ * 才第一次能用同一套状态语汇表达"这条线在焦点上"。`border-color` 一并给出，
+ * 让带边框的 HTML 盒子也能读同一个通道（只给颜色不建边框，无副作用）。 */
+[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="rest"] {
+  --a2v-stroke-ink: var(--fig-line);
+  border-color: var(--a2v-stroke-ink);
+}
+[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="focus"] {
+  --a2v-stroke-ink: var(--a2v-accent);
+  border-color: var(--a2v-stroke-ink);
+}
+[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="muted"] {
+  --a2v-stroke-ink: var(--a2v-hairline);
+  border-color: var(--a2v-stroke-ink);
+}
+[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="done"] {
+  --a2v-stroke-ink: var(--a2v-accent-deep);
+  border-color: var(--a2v-stroke-ink);
+}
+
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {
   /* 原先这里写的是 `var(--a2v-text-1)`——与基元自己的取值一模一样，
    * 于是「标签获得焦点」是个空操作：组件把 data-a2v-state="focus" 挂上去，
