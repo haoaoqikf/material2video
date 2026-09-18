@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -139,8 +140,12 @@ class TestScale:
         # 契约：SCALE 从大到小排列，fit() 与 levelAtLeast() 都依赖这个顺序
         sizes = [entry["size"] for entry in engine["scale"]]
         assert sizes == sorted(sizes, reverse=True)
-        assert sizes[0] == 140 and sizes[-1] == 28
-        assert len(sizes) == 8
+        # 两端是字阶的锚点：顶端是数字幕的主角数值（350px），底端是角标（28px）。
+        # 顶端在第七轮抬高过——组件的兜底一直是 240px，而预设层把它压到了 120px，
+        # 数字幕因此是八幕里最空的（内容只占安全区 29%）。
+        # 抬高时必须**补中间档**而不是直接跳：相邻档位比例要落在 1.1–1.6。
+        assert sizes[0] == 350 and sizes[-1] == 28
+        assert len(sizes) == 10
 
     def test_every_level_carries_leading_and_tracking(self, engine):
         for entry in engine["scale"]:
@@ -162,7 +167,22 @@ class TestLevelAtLeast:
 
     def test_request_beyond_top_returns_top(self, engine):
         # 越界时给最大档，不能返回 undefined（返回 undefined 会让字号变成 NaN）
-        assert engine["levels"]["atLeast1000"] == "hero"
+        assert engine["levels"]["atLeast1000"] == "numeral"
+
+    def test_unknown_fit_name_falls_back_to_hero_not_to_the_top(self) -> None:
+        """没写档名 / 写了不认识的档名时，落点是 hero，不是最大档。
+
+        兜底曾经写死为下标 0。字阶顶端是可以继续加档的（第七轮就加了
+        `numeral` 与 `mega`），写死下标会让兜底的含义随加档漂移——
+        从「按 hero 排版」悄悄变成「按最大档排版」，一个漏写档名的元素
+        会突然被排成 350px。按**名字**兜底，加档就不会改变兜底含义。
+        """
+        source = TYPOGRAPHY.read_text(encoding="utf-8")
+        block = re.search(r"function maxLevelIndex\(name\)\s*\{(.*?)\n  \}", source, re.DOTALL)
+        assert block, "找不到 maxLevelIndex"
+        body = block.group(1)
+        assert "levelIndex('hero')" in body, "兜底应当按名字找 hero"
+        assert "return 0" not in body, "兜底不能写死下标 0——字阶顶部还会加档"
 
 
 class TestBalance:

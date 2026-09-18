@@ -260,10 +260,28 @@
   --a2v-size-headline: 96px; /* 金句、主命题 */
   --a2v-size-display: 120px; /* 主角数字与极短命题 */
   --a2v-size-hero: 140px; /* 开场与收束，一个画面只用一次 */
+  /* 主角数值：数字幕里那个"主角"。
+   *
+   * 这一档是补出来的——组件的兜底一直是 `var(--a2v-ink-display, 240px)`，
+   * 而 `--a2v-ink-display` 是设计语言层专有的令牌，于是**预设把大数字
+   * 从组件自己的 240px 压到了 120px**：本意是"给它一个阶"，
+   * 实际是把它缩小了一半。实测数字幕的内容纵向只占安全区 29%
+   * （120px 的数字 + 91px 的标签 + 59px 的注），是八幕里最空的。
+   *
+   * 单个数位在 1080×1920、安全区宽 888px 的画布上可以到 350px；
+   * 更长的数值由拟合引擎按实测宽度自动往下取档，不会溢出。
+   *
+   * `mega` 存在只是因为**字阶是模块化的**：相邻档位的比例必须落在 1.1–1.6
+   * （测试守着这条），140 → 350 是 2.5 倍，中间必须有一档。
+   * 顺带让拟合引擎对大数值多一档落点，不会从 350 直接掉到 140。 */
+  --a2v-size-mega: 220px;
+  --a2v-size-numeral: 350px;
 
   /* 行高：字号越大越紧。显式指定，不依赖字体自带度量，
    * 这是跨字体跨机器保持版式一致的前提。 */
   --a2v-leading-hero: 1.06;
+  --a2v-leading-mega: 1;
+  --a2v-leading-numeral: 1;
   --a2v-leading-display: 1.1;
   --a2v-leading-headline: 1.14;
   --a2v-leading-title: 1.2;
@@ -274,6 +292,8 @@
 
   /* 字距：标题收紧、标签放开。这是「标题感 / 正文感」最廉价的分界。 */
   --a2v-tracking-hero: -0.03em;
+  --a2v-tracking-mega: -0.035em;
+  --a2v-tracking-numeral: -0.04em;
   --a2v-tracking-display: -0.025em;
   --a2v-tracking-headline: -0.02em;
   --a2v-tracking-title: -0.015em;
@@ -301,6 +321,7 @@
   --a2v-ink-lead: var(--a2v-size-lead); /* 60px：引文 */
   --a2v-ink-title: var(--a2v-size-title); /* 76px：图形小标题 */
   --a2v-ink-display: var(--a2v-size-display); /* 120px：图形主数值 */
+--a2v-ink-numeral: var(--a2v-size-numeral); /* 400px：数字幕的主角数值 */
 
   /* ---------- 幕标题的角色令牌 ----------
    *
@@ -692,6 +713,12 @@
  * 一起换掉。四幕的标题是 7–10 个汉字，最宽约 760px，仍在 888px 的安全区内；
  * 更长的标题由引擎按实测宽度自动往下取档，不需要另设规则。
  * ============================================================ */
+[data-a2v-preset="keynote"] [data-a2v-fit="numeral"] {
+  font-size: var(--a2v-size-numeral);
+}
+[data-a2v-preset="keynote"] [data-a2v-fit="mega"] {
+  font-size: var(--a2v-size-mega);
+}
 [data-a2v-preset="keynote"] [data-a2v-fit="hero"] {
   font-size: var(--a2v-size-hero);
 }

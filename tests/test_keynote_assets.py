@@ -143,7 +143,7 @@ class TestTypeScale:
         # 令牌与排版引擎的档位必须一一对应：对不上就会出现
         # 「引擎算出来 96px，样式表预置的却是 124px」这种静默错位
         sizes = declarations(dark, "a2v-size-")
-        assert len(sizes) == 8, f"字号阶档位数量变了：{sorted(sizes)}"
+        assert len(sizes) == 10, f"字号阶档位数量变了：{sorted(sizes)}"
         for level, token in sizes.items():
             px = int(re.match(r"(\d+)px", token).group(1))
             name = level.replace("--a2v-size-", "")

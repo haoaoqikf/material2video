@@ -25,6 +25,8 @@
 
   /* 与 keynote.css 的 --a2v-size-* 一一对应。测试会对照两处，漂移即失败。 */
   var SCALE = [
+    { name: 'numeral', size: 350, leading: 1, tracking: -0.04 },
+    { name: 'mega', size: 220, leading: 1, tracking: -0.035 },
     { name: 'hero', size: 140, leading: 1.06, tracking: -0.03 },
     { name: 'display', size: 120, leading: 1.1, tracking: -0.025 },
     { name: 'headline', size: 96, leading: 1.14, tracking: -0.02 },
@@ -604,12 +606,21 @@
    *   data-a2v-fit="headline"   可选上限档位（hero/display/headline/title/lead/body/label/caption）
    *   data-a2v-fit-min="40"     可选字号下限（px）
    * --------------------------------------------------------------- */
-  function maxLevelIndex(name) {
-    if (!name) return 0;
+  function levelIndex(name) {
     for (var i = 0; i < SCALE.length; i += 1) {
       if (SCALE[i].name === name) return i;
     }
-    return 0;
+    return -1;
+  }
+
+  function maxLevelIndex(name) {
+    /* 兜底按**名字**找，不写死下标 0：字阶顶部是可以继续加档的
+     * （数字幕的主角数值就加在 hero 之上），写死下标会让兜底的含义
+     * 随着"哪天又加了一档"而漂移——从"按 hero 排版"变成"按最大档排版"。 */
+    var fallback = levelIndex('hero');
+    if (!name) return fallback;
+    var found = levelIndex(name);
+    return found < 0 ? fallback : found;
   }
 
   function autofit(root, options) {

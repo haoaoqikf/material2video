@@ -1600,7 +1600,7 @@
     enterAlive(state, api, caption, api.since(state.localFrame, beat(state, 0.38)));
   }
 
-  var MARKUP_NUMBER = `<div class="fig-number" data-el="value"></div>
+  var MARKUP_NUMBER = `<div class="fig-number" data-el="value" data-a2v-fit="numeral"></div>
 <div class="fig-number-label" data-el="label" data-a2v-fit="title"></div>
 <p class="fig-number-caption" data-el="caption" data-a2v-fit="body"></p>`;
 

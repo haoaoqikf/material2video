@@ -876,7 +876,10 @@
     opacity: 0;
   }
 /* 基础数字幕：数值、标签、解释均由分镜提供。 */
-.fig-number { font-size: var(--a2v-ink-display, 240px); font-weight: var(--a2v-weight-bold, 800); line-height: 1; letter-spacing: var(--a2v-track-numeral, -0.07em); color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
+/* 兜底 240px 就是组件本来的取值：未启用预设时没有 `--a2v-ink-numeral`，
+   落回 240px，画面与从前逐帧一致。预设层把这一档定为 400px——
+   原先走的是 `--a2v-ink-display`（120px），等于把主角数字缩小了一半。 */
+.fig-number { font-size: var(--a2v-ink-numeral, 240px); font-weight: var(--a2v-weight-bold, 800); line-height: 1; letter-spacing: var(--a2v-track-numeral, -0.07em); color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
 .fig-number-label { font-size: var(--a2v-ink-lead, 56px); font-weight: var(--a2v-weight-bold, 700); color: var(--a2v-text-1); }
 .fig-number-caption { max-width: 760px; font-size: 40px; line-height: 1.4; color: var(--a2v-text-2); }
 
