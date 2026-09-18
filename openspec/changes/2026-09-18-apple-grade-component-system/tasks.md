@@ -3415,3 +3415,41 @@ commit）。教训：把"含引号序列的原文"写进记录时，外层引号
 
 - 本轮只查只记（探针用完即弃、未入库）：守卫文件全过、非预设逐字节一致、
   深色闸门 53/0/0（另有 19 跳过）、全量 exit 0
+
+## 84. 钩子确定：一个函数 `keynote_gate`（第 75 轮，维度 6）
+
+`inspect.py:739` 在 `run_inspect`（691 行起）的抽帧循环里，上下文把需要的量全摆在同一处：
+
+```python
+736|             judge_frame(target.name, measured, report)
+739|                 facts = page.evaluate(_AESTHETIC_SCRIPT)
+740|                 accent_text = (facts or {}).get("accent") or ""
+745|                     keynote_gate(target.name, scene_id, scene_type, decode_rgb(png), facts, accent),
+```
+
+也就是说 **`keynote_gate` 本身就收到 `facts`**（元素几何），而 `scene_id` / `frame` / `png`
+都在同一处作用域内。所以量主次基线**只需挂一个函数**：
+
+```python
+orig = inspect.keynote_gate
+def spy(name, scene_id, scene_type, rgb, facts, accent):
+    # 从 facts["texts"] 取 box 与 fontSize，算 area * size 的排序
+    return orig(name, scene_id, scene_type, rgb, facts, accent)
+```
+
+`facts` 的键在第 67 轮已经从 JS 的 return 里核对过（`texts` / `sizes` / `cards` / `strokes` /
+`center` / `safe` / `accent` / `background`），**不需要再猜接口**。
+
+### 84.1 下一轮照做的三件事
+
+1. 挂 `keynote_gate`，逐次调用打印：`scene_id`、按 `area × size` 排序的第一/第二名与比值
+2. 按幕分组，统计"第一名换手次数"（整幕内第一名换了几个元素）
+3. 先打印 `facts["texts"][0]` 的**真实结构**一次，确认 `box` / `fontSize` 的键名后再算——
+   第 73 轮的教训是"以为有 `texts` 却取不到"，所以**先看一行样例再写算式**
+
+拿到实测范围后再定 §73.2 的阈值（不先拍数）。
+
+### 84.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
