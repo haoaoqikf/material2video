@@ -3453,3 +3453,45 @@ def spy(name, scene_id, scene_type, rgb, facts, accent):
 
 - 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 85. `facts["texts"]` 的真实结构：扁平键，且有"看不见的"元素（第 76 轮，维度 6）
+
+按 §84.1 第 3 步，先打印一行样例再写算式。样例（深色、opening 幕、`texts[0]`）：
+
+```json
+{"role":"title-text","block":"title-text","fontSize":120,
+ "left":307.2,"right":772.8,"top":484.9,"bottom":763.3,
+ "center":540,"color":"rgba(0, 0, 0, 0)","gradient":true,
+ "alpha":0,"background":"rgba(0, 0, 0, 0)","surface":"rgb(8, 9, 12)"}
+```
+
+`facts` 的键：`accent / background / cards / center / inside / noFit / safe / sizes / stage /
+strokes / texts`（比第 67 轮多看到一个 `stage`）。
+
+### 85.1 两个会让人写错的地方
+
+1. **键是扁平的**：`left/right/top/bottom` 直接在元素上，**没有嵌套的 `box`**。
+   我原计划的 `box.get("left")` 会**静默取到 0**——面积算成 0、排序全乱，而且不报错。
+   这是本会话**第三次**被"先看一行样例"拦住（第 73 轮是 `SceneProbe` 没有几何，
+   第 74 轮是模块级常量不是函数）。
+2. **有"看不见的"元素**：`texts[0]` 是**渐变标题**，`alpha: 0`、`gradient: true`；
+   `texts[1]` 才是 `role: "key"` 的实色文字（`alpha: 1`）。
+   直接按 `area × size` 排序会**把不可见的标题当成主要素**——错得很隐蔽。
+   所以 §73.2 的排序必须先过滤 `alpha > 0`（或把 `gradient` 元素单独处理）。
+
+### 85.2 下一轮的算式（改这两处即可）
+
+```python
+for t in facts.get("texts") or []:
+    if float(t.get("alpha") or 0) <= 0:
+        continue                      # 85.1 第 2 点：跳过看不见的
+    area = (t["right"] - t["left"]) * (t["bottom"] - t["top"])   # 85.1 第 1 点：扁平键
+    key = area * float(t.get("fontSize") or 0)
+```
+
+其余按 §84.1：按幕分组、统计第一名换手次数、拿到范围再定阈值。
+
+### 85.3 验证
+
+- 本轮只查只记（探针用完即弃、未入库）：守卫文件全过、非预设逐字节一致、
+  深色闸门 53/0/0（另有 19 跳过）、全量 exit 0
