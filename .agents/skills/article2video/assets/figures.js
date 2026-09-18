@@ -1015,16 +1015,48 @@
     CY: 290,
     R: 200,
     NODE_R: 76,
-    SEGMENTS: 6,
+    /* 未启用预设时的**冻结几何**：一圈 3 个停位。
+     * 这一组值属于共享几何，而非预设的既有作品有自己的成片，
+     * 「逐帧不变」是硬承诺，所以新的按节点数取停位的规则挂在预设上。 */
+    FROZEN_STOPS: 3,
+    /* 小球要转满几圈。条满 = 转满 LAPS 圈，所以格数 = 停位数 × LAPS。 */
     LAPS: 2
   };
 
-  function loopPoint(travel) {
-    var angle = ((-90 + travel * 120) * Math.PI) / 180;
+  /**
+   * 环上的一个点。`travel` 以「一格」为单位，`stops` 是一圈有几个停位。
+   *
+   * `stops` 必须是**节点数**——这个函数同时给「小球走的环」和「节点摆在哪」用，
+   * 两者必须用同一个步长。早先这里把 120° 写死（= 一圈 3 个停位），而分镜
+   * 给的是 4 个节点，于是 index 3 落到 360° = index 0：
+   *
+   *   打开选项（index 0）  圆盘 x=424 y=644 w=233
+   *   推到明天（index 3）  圆盘 x=432 y=653 w=215
+   *
+   * 两个圆盘中心都是 ≈(540, 760)，**画在同一个位置**——屏幕上只看得到三个
+   * 圆盘，「打开选项」这一步被完全遮住；焦点走到 index 0 时被点亮的是那个
+   * 位置最上面可见的标签，读者读到的是「推到明天」。弧线也一样：
+   * 每个节点一段弧（index → index+1），4 个节点配 120° 步长会多画一段重叠弧。
+   */
+  function loopPoint(travel, stops) {
+    var angle = ((-90 + travel * (360 / Math.max(stops, 1))) * Math.PI) / 180;
     return {
       x: LOOP.CX + LOOP.R * Math.cos(angle),
       y: LOOP.CY + LOOP.R * Math.sin(angle)
     };
+  }
+
+  /**
+   * 飞轮的有效几何：一圈几个停位、小球走几格。
+   *
+   * 停位数取节点数，格数取 `停位数 × LAPS`——后者正是本组件注释里写的
+   * 「两次完整循环之后条满」，而 `LAPS: 2` 在此之前是个从未被用过的常量，
+   * 所以 4 个节点配上写死的 6 格时，小球转不满整圈、也回不到起点，
+   * 与「推迟的决定没有消失」这句论点正好相反。
+   */
+  function loopGeometry(nodeCount) {
+    var stops = presetActive() ? Math.max(nodeCount, 2) : LOOP.FROZEN_STOPS;
+    return { stops: stops, segments: stops * LOOP.LAPS };
   }
 
   /**
@@ -1038,14 +1070,15 @@
     var data = state.scene.data;
     var ann = labels || {};
     var nodes = data.nodes || [];
+    var geometry = loopGeometry(nodes.length);
 
     setPlainText(pick('title'), data.title);
     setPlainText(pick('gaugeLabel'), ann.gauge);
 
     buildOnce(pick('arcs'), JSON.stringify(nodes), function (host) {
       nodes.forEach(function (name, index) {
-        var from = loopPoint(index + 0);
-        var to = loopPoint(index + 1);
+        var from = loopPoint(index + 0, geometry.stops);
+        var to = loopPoint(index + 1, geometry.stops);
         host.appendChild(
           svgEl('path', {
             class: 'loop-arc',
@@ -1061,7 +1094,7 @@
     buildOnce(pick('nodes'), JSON.stringify(nodes), function (host) {
       nodes.forEach(function (name, index) {
         var label = typeof name === 'string' ? name : name.label || name.id;
-        var point = loopPoint(index);
+        var point = loopPoint(index, geometry.stops);
         var group = svgEl('g', { 'data-node': String(index) });
         var text = svgEl('text', {
           class: 'loop-node-text a2v-label',
@@ -1115,11 +1148,16 @@
       track.style.opacity = String(api.progress(f, beat(state, 0.06), beat(state, 0.08), EASE_OUT));
     }
 
-    // 小球：每格 SEG 帧，走满 6 格正好把「准备度」填满
+    /* 小球：每格若干帧，走满 geometry.segments 格正好把「准备度」填满。
+     * 格数 = 停位数 × LAPS，所以 4 个节点是 8 格（两整圈、回到起点），
+     * 而不是写死的 6 格（一圈半、停在半路）。 */
     var travelStart = beat(state, 0.2);
-    var segFrames = Math.max((state.sceneDurationFrames - travelStart) / LOOP.SEGMENTS, 1);
-    var travel = clampStatic((f - travelStart) / segFrames, 0, LOOP.SEGMENTS);
-    var point = loopPoint(travel);
+    var segFrames = Math.max(
+      (state.sceneDurationFrames - travelStart) / geometry.segments,
+      1
+    );
+    var travel = clampStatic((f - travelStart) / segFrames, 0, geometry.segments);
+    var point = loopPoint(travel, geometry.stops);
     var arrived = Math.floor(travel);
     var frac = travel - arrived;
 
@@ -1152,7 +1190,7 @@
     var focusMix = clampStatic(handingOver ? 1 - frac * 2 : frac * 2 - 1, 0, 1);
     Array.prototype.forEach.call(nodeGroups, function (group, index) {
       var enterP = motion.spring(api.since(f, nodeStart + index * 8), 'enter');
-      var nodePoint = loopPoint(index);
+      var nodePoint = loopPoint(index, geometry.stops);
       /* 小球到达的那个节点就是当前的环节——它已经有"鼓一下"的脉冲，
        * 从前状态却一直是 rest，所以整幕没有任何强调色（实测 35% 帧只有 0.0015）。
        * 把到达的节点设为 focus：一个画面仍然只有一个焦点，
@@ -1210,7 +1248,8 @@
     // 到达节点时节点鼓一下，让「一圈」有落点（与入场 transform 已在上方合成）
     var gaugeFill = pick('gaugeFill');
     if (gaugeFill) {
-      gaugeFill.style.width = (clampStatic(travel / LOOP.SEGMENTS, 0, 1) * 100).toFixed(2) + '%';
+      gaugeFill.style.width =
+        (clampStatic(travel / geometry.segments, 0, 1) * 100).toFixed(2) + '%';
     }
   }
 

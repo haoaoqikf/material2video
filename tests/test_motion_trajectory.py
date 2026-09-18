@@ -555,3 +555,81 @@ class TestFocusHandover:
             f"这些（帧, 节点, 焦点量）在拿到 focus 的瞬间就已经很亮：{offenders[:6]}"
         )
 
+
+def _loop_node_boxes() -> list[tuple[str, float, float]]:
+    """读飞轮幕每个节点圆盘的中心（页面坐标）。"""
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+    storyboard = _storyboard()
+    scenes = storyboard["scenes"]
+    target = next(s for s in scenes if s["type"] == "diagram")
+    start = sum(s["durationInFrames"] for s in scenes[: scenes.index(target)])
+
+    page_url = ASSETS / "declarative.html"
+    rel = "/" + page_url.relative_to(ROOT).as_posix()
+    board = "/" + STORYBOARD.relative_to(ROOT).as_posix()
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(_Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{port}{rel}?a2v-storyboard={quote(board, safe='')}"
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(url)
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0", timeout=20000
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                # 取幕中段：此时入场已经结束，几何稳定
+                page.evaluate(
+                    "(f) => window.__A2V__.seekToFrame(f)",
+                    start + target["durationInFrames"] // 2,
+                )
+                rows = page.evaluate(
+                    """(id) => {
+                      const scene = document.querySelector('[data-scene-id="' + id + '"]');
+                      return Array.from(scene.querySelectorAll('.loop-node-disc')).map((d) => {
+                        const box = d.getBoundingClientRect();
+                        const text = d.parentNode.querySelector('.loop-node-text');
+                        return [text ? text.textContent : '?',
+                                box.x + box.width / 2, box.y + box.height / 2];
+                      });
+                    }""",
+                    target["id"],
+                )
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert rows, "飞轮幕采不到节点圆盘，采样选择器需要更新"
+    return [(str(label), float(x), float(y)) for label, x, y in rows]
+
+
+class TestLoopGeometry:
+    """环的停位数必须等于节点数。
+
+    `loopPoint` 同时给「小球走的环」和「节点摆在哪」用。它原先把每格 120°
+    写死（= 一圈 3 个停位），而分镜给的是 4 个节点，于是 index 3 落到
+    360° = index 0——两个圆盘画在同一处，屏幕上只看得到三个圆盘，
+    「打开选项」这一步被完全遮住（实测两者中心都是 ≈(540, 760)）。
+    """
+
+    def test_every_node_gets_its_own_place_on_the_ring(self):
+        boxes = _loop_node_boxes()
+        assert len(boxes) >= 3, f"节点太少，测不出重合：{boxes}"
+        offenders = []
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                gap = ((boxes[i][1] - boxes[j][1]) ** 2 + (boxes[i][2] - boxes[j][2]) ** 2) ** 0.5
+                # 圆盘直径约 215px；中心距小于半个直径就一定叠在一起
+                if gap < 110:
+                    offenders.append((boxes[i][0], boxes[j][0], round(gap, 1)))
+        assert not offenders, (
+            f"这些节点画在了同一个位置（节点, 节点, 中心距 px）：{offenders}——"
+            "环的停位数没有跟着节点数走"
+        )
+
