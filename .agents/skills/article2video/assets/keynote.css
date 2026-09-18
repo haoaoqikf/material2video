@@ -442,6 +442,33 @@
   gap: var(--a2v-space-6);
 }
 
+/* 纵向节奏的唯一真源是安全区的 `gap`：**块自己不加纵向 margin**。
+ *
+ * 加这一条之前，实测八幕的块间距是 **29 / 32 / 48 / 80 / 88 / 147px 六个值**，
+ * 而阶上只用到了 `--a2v-space-6` 一档。多出来的量全是块自己叠上去的：
+ *   `.vs-board { margin-top: 96px }`     → 48 + 96 = 144px
+ *   `.vs-note  { margin-top: 32px }`     → 48 + 32 = 80px
+ *   `.fig-number-caption` 没写 `margin`，吃到 `<p>` 的浏览器默认外边距
+ *                                        → 48 + 40 = 88px
+ *   `.closing-action { margin-top: 8px }` → 32 + 8 = 40px
+ * 同一份设计里出现六个节奏值，读者读到的不是"这里有分组"，是"没对齐"。
+ *
+ * 分组交给字号与颜色表达（28px 的暗注 vs 76px 的标题已经说清了从属关系），
+ * 不交给间距——一张图里间距值越多，越像手调出来的，越不像设计系统。
+ *
+ * 选择器比幕级覆写（`[data-scene-id="…"] .a2v-safe`，同为 0,2,0 但源序在后）
+ * 多一个属性位，因此不依赖样式表顺序就能把 `gap` 收成同一档。
+ * 之前那六条幕级 `gap` 覆写保留：`declarative-number` 的收束幕命中其中一条，
+ * 未启用预设的既有作品要逐帧不变，这里只在预设作用域内收口。 */
+[data-a2v-preset="keynote"] [data-a2v-scene] .a2v-safe {
+  gap: var(--a2v-space-6);
+}
+
+[data-a2v-preset="keynote"] [data-a2v-scene] .a2v-safe > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 [data-a2v-preset="keynote"] [data-layout="center"] .a2v-safe,
 [data-a2v-preset="keynote"] .a2v-safe.a2v-safe-center {
   align-items: center;

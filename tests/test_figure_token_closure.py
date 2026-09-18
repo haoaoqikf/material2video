@@ -513,3 +513,35 @@ class TestAlignmentGate:
         )
         assert gate.status == "pass", gate.detail
         assert gate.value == 2
+
+
+class TestVerticalRhythm:
+    """纵向节奏的唯一真源是安全区的 `gap`：块自己不加纵向 margin。
+
+    收口前实测八幕的块间距是 29 / 32 / 48 / 80 / 88 / 147px 六个值，
+    而阶上只用到了 `--a2v-space-6` 一档。多出来的量全是块自己叠的：
+    `.vs-board` 的 `margin-top: 96px`、`.vs-note` 的 32px、
+    `.fig-number-caption` 吃到 `<p>` 的浏览器默认外边距（40px）、
+    `.closing-action` 的 8px。同一份设计里出现六个节奏值，
+    读者读到的不是「这里有分组」，是「没对齐」。
+    """
+
+    def test_the_preset_pins_one_gap_for_every_scene(self) -> None:
+        """收口规则必须比幕级覆写更具体，否则又要靠样式表顺序取胜。"""
+        block = re.search(
+            r'\[data-a2v-preset="keynote"\]\s*\[data-a2v-scene\]\s*\.a2v-safe\s*\{([^}]*)\}',
+            KEYNOTE_CSS,
+        )
+        assert block, "找不到把纵向节奏收成一档的规则"
+        assert "gap: var(--a2v-space-6)" in block.group(1), "收口后应当只有安全区 gap 一档"
+
+    def test_the_preset_zeroes_block_vertical_margins(self) -> None:
+        """块不许自己加纵向 margin——加了就是第二个节奏来源。"""
+        block = re.search(
+            r'\[data-a2v-preset="keynote"\]\s*\[data-a2v-scene\]\s*\.a2v-safe\s*>\s*\*\s*\{([^}]*)\}',
+            KEYNOTE_CSS,
+        )
+        assert block, "找不到「安全区子元素不加纵向 margin」的规则"
+        body = block.group(1)
+        assert "margin-top: 0" in body, "块的上外边距没有清零"
+        assert "margin-bottom: 0" in body, "块的下外边距没有清零"
