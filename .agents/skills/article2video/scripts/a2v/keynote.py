@@ -69,6 +69,18 @@ _ALIGN_MIN_SAMPLES = 2
 #: 对齐判定用的最小字号：比它小的元素（图形标注、角标）不参与
 _ALIGN_MIN_FONT = 44
 
+#: 镜像判据：两条左对齐线上的文本块，中心之和与画面中心的两倍相差不超过该值，
+#: 就认为它们是一对**关于画面中心镜像**的对称栏。
+#:
+#: 为什么需要这一条：左右两栏的正文块各自向自己所在栏的左边对齐（这是正确的做法），
+#: 它们的左边界必然不同，但中心关于画面中心镜像。
+#: 实测 compare 一幕的两张卡片标签：左 267 / 左 637，中心 355 / 725，
+#: 355 + 725 = 1080 = 2 × 540（画面中心）——是标准的两栏对称构图，
+#: 而按左边界聚类会数成两条线，于是「居中标题 + 对称两栏」被判成「散」。
+#: 取 12px 与左边界聚类同量级：足以容纳两栏文字宽度的细微差异，
+#: 又不至于把互不相干的文本块并到一起（散乱排布的左边界不会恰好成镜像对）。
+_ALIGN_MIRROR_TOLERANCE = 12
+
 #: 对比度下限：正文 7:1（AAA），大字与图形 4.5:1
 _CONTRAST_BODY = 7.0
 _CONTRAST_LARGE = 4.5
@@ -422,6 +434,9 @@ def gate_alignment(scene_id: str, texts: list[dict[str, Any]], center: float | N
     居中构图下各块的左边界天然不同，用极差会把它误报成对不齐。做法是把每个文本块
     归到一条对齐线上——与安全区中心对齐的算「居中」这条线，其余按左边界聚类——
     线数超过两条才说明排布是散的。
+
+    对称多栏构图同样合法：左右两栏的正文块各自向**本栏**的左边界对齐时，
+    左边界必然相差一栏，但中心关于画面中心镜像，所以这种成对的线也并为一条。
     """
     blocks = [
         item
@@ -439,18 +454,49 @@ def gate_alignment(scene_id: str, texts: list[dict[str, Any]], center: float | N
             scene=scene_id,
         )
 
-    lines: list[str] = []
-    left_lines: list[float] = []
+    # 先按左边界聚类成「对齐线」，每条线记下代表左边界与该线上各块的**中心**
+    centered = False
+    groups: list[dict[str, Any]] = []
     for item in blocks:
         left = float(item["left"])
-        if center and abs(float(item.get("center") or 0) - center) <= _ALIGN_CENTER_TOLERANCE:
-            if "居中" not in lines:
-                lines.append("居中")
+        item_center = float(item.get("center") or 0)
+        if center and abs(item_center - center) <= _ALIGN_CENTER_TOLERANCE:
+            centered = True
             continue
-        if not any(abs(left - existing) <= _ALIGN_TOLERANCE for existing in left_lines):
-            left_lines.append(left)
-    lines.extend(f"左 {round(value)}" for value in sorted(left_lines))
-    count = len(lines)
+        for group in groups:
+            if abs(left - group["left"]) <= _ALIGN_TOLERANCE:
+                group["centers"].append(item_center)
+                break
+        else:
+            groups.append({"left": left, "centers": [item_center]})
+
+    # 互为镜像的两条线并成一条：左右两栏各自向本栏左边界对齐是正确做法，
+    # 但左边界必然不同。判据是「两栏的块中心之和 ≈ 画面中心的两倍」。
+    pairs: list[tuple[int, int]] = []
+    paired: set[int] = set()
+    if center:
+        for i in range(len(groups)):
+            if i in paired:
+                continue
+            for j in range(i + 1, len(groups)):
+                if j in paired:
+                    continue
+                mirror = abs(groups[i]["centers"][0] + groups[j]["centers"][0] - 2 * center)
+                if mirror <= _ALIGN_MIRROR_TOLERANCE:
+                    pairs.append((i, j))
+                    paired.update((i, j))
+                    break
+
+    lines: list[str] = []
+    if centered:
+        lines.append("居中")
+    for index, group in enumerate(groups):
+        if index in paired:
+            continue
+        lines.append(f"左 {round(group['left'])}")
+    for i, j in pairs:
+        lines.append(f"镜像对称（左 {round(groups[i]['left'])} / 左 {round(groups[j]['left'])}）")
+    count = (1 if centered else 0) + (len(groups) - len(paired)) + len(pairs)
     status = "pass" if count <= _MAX_ALIGN_LINES else ("warn" if count == _MAX_ALIGN_LINES + 1 else "fail")
     return Gate(
         id="K4",

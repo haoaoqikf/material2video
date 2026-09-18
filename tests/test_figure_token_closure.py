@@ -392,3 +392,102 @@ class TestGateAggregation:
         assert self._aggregate(["pass", "warn"]) == "warn"
         assert self._aggregate(["warn", "fail"]) == "fail"
         assert self._aggregate(["fail", "pass"]) == "fail"
+
+
+def _text(left: float, center: float, size: float = 44.0) -> dict:
+    return {"left": left, "center": center, "fontSize": size}
+
+
+class TestAlignmentGate:
+    """K4 要能分开「对称多栏」与「散乱排布」。
+
+    这一条是被自己的改动逼出来的：幕标题从 40px 升到 76px 后进入了 K4 的采样
+    （门槛是 ≥ 44px），于是 `compare` 一幕从「通过」变成「提醒」——
+    但它的两条左线是**关于画面中心镜像**的（左 267 两张卡片各一栏）。
+    对称多栏是合法构图，不该被判成「散」；而真的散乱排布必须照样报出来。
+    """
+
+    CENTER = 540.0
+
+    def test_centered_heading_plus_mirrored_columns_passes(self) -> None:
+        """实测几何：标题居中，两张卡片各把自己的标签左对齐。
+
+        卡片标签中心 355 / 725，相加 1080 = 2 × 540——标准的两栏镜像。
+        """
+        gate = keynote.gate_alignment(
+            "compare",
+            [
+                _text(300, self.CENTER, 76.0),  # 居中的幕标题
+                _text(267, 355.0),
+                _text(637, 725.0),
+            ],
+            center=self.CENTER,
+        )
+        assert gate.status == "pass", gate.detail
+        assert gate.value == 2, "居中一条 + 镜像对称一条"
+
+    def test_mirrored_pair_is_named_when_the_frame_still_warns(self) -> None:
+        """镜像对要出现在明细里：否则人只看得到「左 267、左 637」，
+        会以为那是一处要修的对不齐，而不是一处成对的对称构图。"""
+        gate = keynote.gate_alignment(
+            "made-up",
+            [
+                _text(267, 355.0),
+                _text(637, 725.0),
+                _text(60, 150.0),
+                _text(140, 230.0),
+            ],
+            center=self.CENTER,
+        )
+        assert gate.status == "warn", gate.detail
+        assert "镜像对称（左 267 / 左 637）" in gate.detail
+        assert "左 60" in gate.detail and "左 140" in gate.detail
+
+    def test_scattered_lefts_still_warn(self) -> None:
+        """反向断言：不成镜像的三条左线必须照样报。
+
+        没有这一条，「合并镜像」就等于把闸门调松了。
+        """
+        gate = keynote.gate_alignment(
+            "made-up",
+            [_text(100, 190.0), _text(350, 440.0), _text(700, 790.0)],
+            center=self.CENTER,
+        )
+        assert gate.status == "warn", gate.detail
+        assert gate.value == 3
+
+    def test_nearly_mirrored_but_off_by_too_much_does_not_merge(self) -> None:
+        """镜像判据的容差是 12px：差 25px 的两条线不能并。
+
+        这组数据是刻意挑的——若判据松到 25px，它就会并成 2 条线（通过）；
+        正因为没并，才数出 3 条线。所以「提醒」这个结论本身就证明了容差在起作用。
+        """
+        gate = keynote.gate_alignment(
+            "made-up",
+            [
+                _text(300, self.CENTER, 76.0),  # 居中标题
+                _text(267, 355.0),
+                _text(637, 700.0),  # 355 + 700 = 1055，离 1080 差 25
+            ],
+            center=self.CENTER,
+        )
+        assert gate.status == "warn", gate.detail
+        assert gate.value == 3
+
+    def test_four_columns_pair_into_two_lines(self) -> None:
+        """四栏对称排布：两对镜像 → 两条线，仍在允许范围内。
+
+        中心两两关于 540 镜像：200+880 = 420+660 = 1080。
+        """
+        gate = keynote.gate_alignment(
+            "made-up",
+            [
+                _text(120, 200.0),
+                _text(340, 420.0),
+                _text(580, 660.0),
+                _text(800, 880.0),
+            ],
+            center=self.CENTER,
+        )
+        assert gate.status == "pass", gate.detail
+        assert gate.value == 2

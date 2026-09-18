@@ -61,12 +61,19 @@
     stroke-width: var(--a2v-stroke-4, 4);
   }
 
+  /* 幕标题。分镜的 `title` 是一句完整的话（「多出来的那部分是什么」），
+     所以它是**标题**而不是眉标——英文眉标由页面 chrome 提供（COMPARISON）。
+     原先这里按眉标排版：正文档字号（40px，比卡片标签的 44px 还小）、
+     字重 500、+0.14em 宽字距、颜色取最暗的 `--a2v-text-3`，
+     于是标题成了整屏最弱的元素，「层级清晰 / 主次分明」在四幕里同时失效。
+     预设层用角色令牌把四样一起换掉；未启用预设时取不到角色令牌，
+     逐层回落到原来的取值，画面因此逐字节不变。 */
   .section-title {
     font-family: var(--a2v-font-sans);
-    font-size: var(--a2v-ink-body, 36px);
-    font-weight: var(--a2v-weight-medium, 500);
-    letter-spacing: var(--a2v-track-label, 0.14em);
-    color: var(--a2v-text-3);
+    font-size: var(--a2v-heading-size, var(--a2v-ink-body, 36px));
+    font-weight: var(--a2v-heading-weight, var(--a2v-weight-medium, 500));
+    letter-spacing: var(--a2v-heading-track, var(--a2v-track-label, 0.14em));
+    color: var(--a2v-heading-color, var(--a2v-text-3));
     margin: 0;
   }
 
