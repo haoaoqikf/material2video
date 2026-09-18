@@ -257,9 +257,31 @@ def contrast_ratio(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
     return (hi + 0.05) / (lo + 0.05)
 
 
+def _normalize_srgb_color(text: str) -> str:
+    """把 `color(srgb r g b [/ a])` 折成 `rgb()` / `rgba()`。
+
+    浏览器会把 `color-mix()` 算出来的底色序列化成这个形式（答案卡就是这么来的），
+    而解析只认 `rgb()`/`rgba()`/`#hex`。不折的话解析失败会**静默退回画布**，
+    量出 1.13 的假失败——假的之所以假，就因为它和「真的没有背景」长得一样。
+    """
+    if not text.startswith("color("):
+        return text
+    body = text[text.find("(") + 1 : text.rfind(")")]
+    parts = body.replace("/", " ").split()
+    if len(parts) not in (4, 5) or parts[0] != "srgb":
+        return text
+    try:
+        channels = [round(float(part) * 255) for part in parts[1:4]]
+    except ValueError:
+        return text
+    if len(parts) == 5:
+        return f"rgba({channels[0]}, {channels[1]}, {channels[2]}, {parts[4]})"
+    return f"rgb({channels[0]}, {channels[1]}, {channels[2]})"
+
+
 def parse_color(value: str) -> tuple[int, int, int] | None:
-    """解析 `rgb()` / `rgba()` / `#rrggbb`，解析不了返回 None。"""
-    text = (value or "").strip().lower()
+    """解析 `rgb()` / `rgba()` / `#rrggbb` / `color(srgb …)`，解析不了返回 None。"""
+    text = _normalize_srgb_color((value or "").strip().lower())
     if text.startswith("#"):
         digits = text[1:]
         if len(digits) == 3:

@@ -224,7 +224,7 @@
   --a2v-accent-soft-solid: #0d3f7d;
   /* 小字号正文用的强调墨色：浅色主题的 --a2v-accent (#0a6ad9) 只有 4.55:1，
      坐上面板更低，够不到正文线；深色主题下它就是 --a2v-accent 本身。 */
-  --a2v-accent-ink: #0b4fa8;
+  --a2v-accent-ink: #0a49a8;
   /* 同上：这一档对 `#0d3f7d` 是 10.6:1。 */
   --a2v-on-focus: #ffffff;
   --a2v-emphasis-fade: #565c6e; /* 5.15:1 —— 褪色但仍可读 */
@@ -1085,4 +1085,10 @@
 [data-a2v-preset="keynote"][data-a2v-theme="light"] .gauge-label,
 [data-a2v-preset="keynote"][data-a2v-theme="light"] .drop-label {
   color: var(--a2v-ink-2);
+}
+
+/* 浅色主题时间线的正文直接用了强调色（文档值 4.55:1），34px 够不到正文线；
+   改读文字用的强调墨色。深色主题的强调色本身 11.57:1，一个字不动。 */
+[data-a2v-preset="keynote"][data-a2v-theme="light"] [data-scene-id="freedom"] span {
+  color: var(--a2v-accent-ink, var(--a2v-accent));
 }
