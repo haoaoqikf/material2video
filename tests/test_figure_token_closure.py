@@ -626,8 +626,11 @@ IDLE_TOKENS: dict[str, tuple[str, str]] = {
     "--a2v-ease-gate": ("unwired", "CSS 动画时代的遗留；逐帧契约下缓动由脚本常量承担"),
     "--a2v-ease-inout": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_SYMMETRIC"),
     "--a2v-ease-out": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_OUT"),
-        # 注意：它不是死令牌——tests/test_keynote_assets.py 的 TestFigureTokenCoverage::test_emphasis_fade_is_readable 按名字引用它。
-        # 第 36/37 轮的清理脚本正因为根集合漏了 tests/ 才把它误判成没人用。
+        # 第 39 轮我在这条上写过"测试按名字引用它"——那是错的，第 41 轮查清并撤回：
+        # tests/ 里根本没有 glow-soft 这个名字，它确实是运行时与测试都没人用。
+        # 真正被守卫测试引用的是 --a2v-bg-1：test_emphasis_fade_is_readable 拿它当
+        # 对比度的底色（declarations(dark, "a2v-bg-")["--a2v-bg-1"]）。第 36/37 轮删掉
+        # 它才导致该测试失败——根集合漏 tests/ 时它看起来"没人用"。
     "--a2v-glow-soft": ("unwired", "CSS 动画时代的遗留；光晕现在由帧驱动通道给"),
     "--a2v-bg-1": ("unwired", "调色板外侧档，目前没有组件用到"),
     "--a2v-surface-2": ("unwired", "焦点面改由 --a2v-accent-soft-solid 承担后的遗留"),
