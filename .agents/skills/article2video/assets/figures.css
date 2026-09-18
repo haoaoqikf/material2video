@@ -186,15 +186,18 @@
    * 所以未点亮的文字被混成 `srgb(0.26 0.35 0.39)`，对面板只有 **2.26:1**——
    * 40px 的大字号门槛是 3:1，实测不达标。
    *
-   * 落点用这个元素**本来就声明的** `--a2v-text-2`（见上面一条规则），
-   * 不新造角色。28% 与 72% 由 `--a2v-token-glow` 在 0 到 1 之间推，
-   * 与原来的 `api.range(glow, 28, 100)` 等价。
+   * 第 21 轮把落点定在 `--a2v-on-focus`：这行字压在的天平右盘是**重点面**
+   * （`.load-token` 带 `data-a2v-state="focus"`，填充是 `--a2v-accent-soft-solid`），
+   * 那个面在**两套主题里都是深色**，所以字必须是浅色——从 `--a2v-text-2` 混向
+   * `--a2v-accent-deep` 的写法在浅色主题下是"深蓝字压深蓝面"，实测 1.07:1。
+   * 现在改成同一支浅色墨的**亮度渐变**（72% → 100%），压在 `#16465f` /
+   * `#0d3f7d` 上分别是 9.2:1 与 10.6:1。
    */
   [data-a2v-preset="keynote"] .load-text.is-ink {
     fill: color-mix(
       in srgb,
-      var(--a2v-accent-deep) calc(28% + 72% * var(--a2v-token-glow, 0)),
-      var(--a2v-text-2)
+      var(--a2v-on-focus) calc(72% + 28% * var(--a2v-token-glow, 0)),
+      transparent
     );
   }
 
@@ -875,6 +878,16 @@
 
   .vs-side.is-right .vs-text {
     color: var(--a2v-accent);
+  }
+
+  /*
+   * 答案侧的卡片也是**重点面**：状态语汇把它的填充定为
+   * `--a2v-accent-soft-solid`，两套主题下都是深色。
+   * 原先这里给文字用强调色，于是浅色主题下是"深蓝卡 + 蓝字"，实测 2.01:1
+   * ——同一张画面里左边白卡上的深色字却很清楚。压在重点面上的字改用它该用的墨。
+   */
+  [data-a2v-preset="keynote"] .vs-side.is-right .vs-text {
+    color: var(--a2v-on-focus);
   }
 
   .vs-text {

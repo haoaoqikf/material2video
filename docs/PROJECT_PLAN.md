@@ -647,6 +647,12 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
   而天平图属于 `opening` 幕，我 seek 的是 `compare` 幕——`querySelector` 取到的
   元素停在局部第 0 帧，于是恒为 28%。光晕一直在动（78% → 92% 从 28% 跳到 80%）。
 
+- ~~「上一轮把天平图文字的对比度修好了（7.23:1）」~~：那个数是拿
+  `--fig-surface`（画布级的面令牌）当背景量的，而文字真正坐着的是
+  `.load-token`（`data-a2v-state="focus"`，填充 `--a2v-accent-soft-solid`）。
+  换成量真面之后，浅色主题下是 **1.07:1**——深蓝字压深蓝面，截图里肉眼可见。
+  量对了对象，才看出根因是设计层没定义"重点面上用什么墨色"。
+
 完整说明见
 [发布会级设计语言](../.agents/skills/article2video/references/keynote-design-system.md)。
 

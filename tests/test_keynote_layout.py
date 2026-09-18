@@ -573,9 +573,8 @@ class TestSceneComposition:
 #: 大字号（≥24px）的 WCAG 门槛。天平图那行文字实测 36–40px。
 _LARGE_TEXT_MIN = 3.0
 
-#: 采样点：未点亮（幕内 60%，光晕在 66% 才起跳）与点亮（99%）。
-_UNLIT_PCT = 0.60
-_LIT_PCT = 0.99
+#: 正文（<24px）的门槛。表里目前都是大字号，留着是为了字阶改动时不静默放宽。
+_BODY_TEXT_MIN = 4.5
 
 _CONTRAST_JS = """(args) => {
   const sc = document.querySelector('[data-scene-id="' + args.scene + '"]');
@@ -590,8 +589,13 @@ _CONTRAST_JS = """(args) => {
 
 
 def _srgb(value: str) -> tuple[float, float, float, float]:
-    """解析 `color(srgb …)` / `#rrggbb` / `rgba(…)` 三种写法。"""
+    """解析 `color(srgb …)` / `#rrggbb` / `rgba(…)` 三种写法。
+
+    `none` 与空串按**全透明**算：空心板上没有面，于是会落到画布上。
+    """
     text = (value or "").strip()
+    if text in ("", "none", "transparent"):
+        return (0.0, 0.0, 0.0, 0.0)
     match = re.match(r"color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: / ([\d.]+))?\)", text)
     if match:
         groups = match.groups()
@@ -625,22 +629,74 @@ def _relative_luminance(rgb: tuple[float, float, float, float]) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
+def _flatten(foreground: tuple[float, float, float, float],
+             background: tuple[float, float, float, float]
+             ) -> tuple[float, float, float, float]:
+    """把带 alpha 的颜色压到背景上。"""
+    alpha = foreground[3]
+    return tuple(
+        foreground[i] * alpha + background[i] * (1 - alpha) for i in range(3)
+    ) + (1.0,)
+
+
 def _contrast(foreground: tuple[float, float, float, float],
               background: tuple[float, float, float, float]) -> float:
     """把带 alpha 的前景压到背景上，再算 WCAG 对比度。"""
-    alpha = foreground[3]
-    flat = tuple(
-        foreground[i] * alpha + background[i] * (1 - alpha) for i in range(3)
-    )
+    flat = _flatten(foreground, background)
     first, second = _relative_luminance(flat), _relative_luminance(background)
     high, low = max(first, second), min(first, second)
     return (high + 0.05) / (low + 0.05)
 
 
-def _token_text_contrast(theme: str) -> dict[str, dict]:
-    """在指定主题下量天平图那行文字的填充与它所在面板的对比度。
+#: 文字落在**组件自有的面**上的情形：面与字都由组件决定，这两者配错时
+#: 令牌级判据看不出来。文字直接落在画布上的情形不在这里——那些由
+#: `test_keynote_assets.py` 的令牌级对比度测试覆盖。
+#:
+#: 每行：(键, 说明, 幕, 文字选择器, 承载它的面选择器, 采样点)
+#:
+#: 这些选择器不是照着手册写的，是先枚举了基线八幕里每一处带文字的元素
+#: 与它的取值（第 21 轮）再落表。任何一行选不中，判据会自己报出来。
+_SURFACE_TEXT: tuple[tuple[str, str, str, str, str, float], ...] = (
+    ("load-right-unlit", "天平·右盘文字（未点亮）", "opening",
+     '[data-el="loadRightText"]', '[data-el="loadRightRect"]', 0.60),
+    ("load-right-lit", "天平·右盘文字（点亮）", "opening",
+     '[data-el="loadRightText"]', '[data-el="loadRightRect"]', 0.99),
+    ("load-left", "天平·左盘文字（实心板）", "opening",
+     '[data-el="loadLeftText"]', ".load-solid", 0.99),
+    ("load-left-hollow", "天平·左盘文字（空心板）", "opening",
+     '[data-el="loadLeftTextHollow"]', ".load-hollow", 0.99),
+    ("vs-right", "取舍·对侧选项", "compare",
+     ".vs-side.is-right .vs-text", ".vs-side.is-right", 0.99),
+    ("berg-label", "冰山·标注名", "attention",
+     ".berg-callout-label", ".berg-callout", 0.60),
+    ("berg-desc", "冰山·标注说明", "attention",
+     ".berg-callout-desc", ".berg-callout", 0.60),
+    ("stair-label", "阶梯·刻度文字", "freedom",
+     ".stair-label", ".stair-bar", 0.60),
+)
 
-    这是**组件填充色**的对比度，不是令牌级的：令牌级的对比度早有
+_CONTRAST_JS = """(args) => {
+  const sc = document.querySelector('[data-scene-id="' + args.scene + '"]');
+  if (!sc) return { missing: '幕 ' + args.scene };
+  const inkEl = sc.querySelector(args.ink);
+  if (!inkEl) return { missing: '文字 ' + args.ink };
+  const bdEl = sc.querySelector(args.backdrop);
+  if (!bdEl) return { missing: '面 ' + args.backdrop };
+  const inkStyle = getComputedStyle(inkEl);
+  const bdStyle = getComputedStyle(bdEl);
+  return {
+    ink: inkEl.ownerSVGElement ? inkStyle.fill : inkStyle.color,
+    size: parseFloat(inkStyle.fontSize),
+    backdrop: bdEl.ownerSVGElement ? bdStyle.fill : bdStyle.backgroundColor,
+    canvas: getComputedStyle(document.body).backgroundColor
+  };
+}"""
+
+
+def _surface_text_contrast(theme: str) -> dict[str, dict]:
+    """在指定主题下量「组件面上的文字」对那个面的对比度。
+
+    这是**组件配色**的对比度，不是令牌级的：令牌级的对比度早有
     `test_keynote_assets.py::test_dark_ink_meets_wcag` 管着，但组件自己拼出来的
     颜色它可以完全合规地违反——第 20 轮就是这样：深色主题未点亮的文字
     对面板只有 2.26:1，因为组件把主题墨色混向了一个冻结的深灰端点。
@@ -680,58 +736,72 @@ def _token_text_contrast(theme: str) -> dict[str, dict]:
                 page.evaluate(
                     "(t) => document.documentElement.setAttribute('data-a2v-theme', t)", theme
                 )
-                for label, pct in (("unlit", _UNLIT_PCT), ("lit", _LIT_PCT)):
+                for key, label, scene, ink, backdrop, pct in _SURFACE_TEXT:
                     page.evaluate(
                         "(f) => window.__A2V__.seekToFrame(f)",
-                        start["opening"] + int(total["opening"] * pct),
+                        start[scene] + int(total[scene] * pct),
                     )
                     row = page.evaluate(
-                        _CONTRAST_JS, {"scene": "opening"}
+                        _CONTRAST_JS, {"scene": scene, "ink": ink, "backdrop": backdrop}
                     )
-                    assert row, "opening 幕里没有天平图那行文字，选择器需要更新"
-                    surface = _srgb(row["surface"])
-                    out[label] = {
-                        "fill": row["fill"],
+                    assert not row.get("missing"), (
+                        f"{label}（{theme}）的选择器已经没有对应元素：{row['missing']}"
+                        "——是组件改了标记，还是这张表过时了？"
+                    )
+                    canvas = _srgb(row["canvas"])
+                    surface = _flatten(_srgb(row["backdrop"]), canvas)
+                    out[key] = {
+                        "label": label,
+                        "ink": row["ink"],
                         "size": row["size"],
-                        "ratio": _contrast(_srgb(row["fill"]), surface),
-                        "surface": row["surface"],
+                        "surface": row["backdrop"],
+                        "ratio": _contrast(_srgb(row["ink"]), surface),
+                        # 压到面上的实际颜色：两态的比较要用它，只比 RGB 会漏掉
+                        # 「同一支墨、只推不透明度」这种渐变（第 21 轮的亮度渐变）。
+                        "flat": _flatten(_srgb(row["ink"]), surface)[:3],
                     }
                 browser.close()
         finally:
             httpd.shutdown()
+    assert out, "一行都没量到"
     return out
 
 
 @pytest.fixture(scope="module", params=["dark", "light"])
-def token_text_contrast(request) -> dict[str, dict]:
-    return _token_text_contrast(request.param)
+def surface_text_contrast(request) -> dict[str, dict]:
+    return _surface_text_contrast(request.param)
 
 
 class TestComponentContrast:
-    """组件自己拼出来的颜色也必须达标——令牌合规不等于画面合规。"""
+    """组件自己配出来的颜色也必须达标——令牌合规不等于画面合规。"""
 
-    def test_token_text_meets_large_text_contrast(
-        self, token_text_contrast: dict[str, dict]
+    def test_surface_text_meets_contrast(
+        self, surface_text_contrast: dict[str, dict]
     ) -> None:
-        for label, row in token_text_contrast.items():
-            assert row["size"] >= 24, (
-                f"这行文字只有 {row['size']}px，不再算大字号，"
-                "门槛要按正文的 4.5:1 判"
-            )
-            assert row["ratio"] >= _LARGE_TEXT_MIN, (
-                f"{label} 状态下天平图文字对面板只有 {row['ratio']:.2f}:1"
-                f"（{row['fill']} 对 {row['surface']}）——"
-                f"{row['size']:.0f}px 的大字号门槛是 {_LARGE_TEXT_MIN}:1"
+        for row in surface_text_contrast.values():
+            low = _LARGE_TEXT_MIN if row["size"] >= 24 else _BODY_TEXT_MIN
+            assert row["ratio"] >= low, (
+                f"{row['label']}只有 {row['ratio']:.2f}:1"
+                f"（{row['ink']} 对 {row['surface']}）——"
+                f"{row['size']:.0f}px 的门槛是 {low}:1"
             )
 
-    def test_the_two_states_really_differ(self, token_text_contrast: dict[str, dict]) -> None:
-        """两态必须是两个颜色：通道卡住时上一条会"两个状态都合规"地通过。"""
-        unlit = _srgb(token_text_contrast["unlit"]["fill"])
-        lit = _srgb(token_text_contrast["lit"]["fill"])
-        distance = sum(abs(a - b) for a, b in zip(unlit[:3], lit[:3]))
+    def test_the_glow_states_really_differ(
+        self, surface_text_contrast: dict[str, dict]
+    ) -> None:
+        """两态必须是两个颜色：通道卡住时上一条会"两个状态都合规"地通过。
+
+        比的是**压到面上的实际颜色**，不是 ink 的 RGB：被强调的元素完全可能
+        只推不透明度（第 21 轮把光晕改成同一支浅色墨的亮度渐变，
+        改的就是 alpha）。
+        """
+        unlit = surface_text_contrast["load-right-unlit"]["flat"]
+        lit = surface_text_contrast["load-right-lit"]["flat"]
+        distance = sum(abs(a - b) for a, b in zip(unlit, lit))
         assert distance > 0.15, (
             f"未点亮与点亮的填充几乎一样（差 {distance:.3f}）——"
             "光晕没有在推，或者通道没接上"
         )
+
 
 
