@@ -579,48 +579,116 @@ class TestVerticalRhythm:
         assert "margin-bottom: 0" in body, "块的下外边距没有清零"
 
 
-#: 设计层定义的、**故意**没有消费者的图形几何令牌：几何归组件自己声明。
-#: 这是第 16 轮的决定（见 keynote.css 里 `--fig-connector-w` 上方那段注释），
-#: 不是漏接。名单只许缩短。
-IDLE_GEOMETRY: dict[str, str] = {
-    "--fig-connector-w": "连线形态差异太大（虚线/弧/圆盘边界/纯填充箭头头），线宽归组件",
-    "--fig-node-r-min": "节点半径由内容测量决定，最小值暂时没有组件需要",
-    "--fig-surface-pad": "面的内边距目前由各组件按自己的密度声明",
+#: 没有人用到的令牌账本：**可达性分析**的产物，不是逐令牌看"有没有 var() 引用"。
+#:
+#: 为什么要可达性：网格那一串每一环都被下一环引用（`--a2v-grid-column` 是用
+#: `--a2v-grid-columns` / `--a2v-grid-gutter` 算出来的），整条链却没有任何组件
+#: 在用。只看单跳的话，链上每一环都"有消费者"，等于看不见这条死链。
+#:
+#: 分类：
+#:   ladder  整套刻度的一档——刻度就该是完整的，外侧档暂时没画面用是正常的
+#:   legacy  旧名字的别名，留着不破坏手写页面
+#:   unwired 设计层先给了、组件还没接；每条都要写清是"等着接"还是"时代遗留"
+#:
+#: 名单只许缩短：往里加一条，等于承认又欠了一笔，那得在变更记录里说清理由。
+IDLE_TOKENS: dict[str, tuple[str, str]] = {
+    # ---- 刻度档位 ----
+    "--a2v-space-9": ("ladder", "间距刻度的外侧档（128px）"),
+    "--a2v-space-10": ("ladder", "间距刻度的外侧档（192px）"),
+    "--a2v-radius-xs": ("ladder", "圆角刻度的外侧档"),
+    "--a2v-radius-xl": ("ladder", "圆角刻度的外侧档"),
+    "--a2v-leading-mega": ("ladder", "字阶配套行高，mega 那一档还没有画面用"),
+    "--a2v-leading-numeral": ("ladder", "字阶配套行高，numeral 那一档由组件自己定行高"),
+    "--a2v-tracking-mega": ("ladder", "字阶配套字距"),
+    "--a2v-tracking-numeral": ("ladder", "字阶配套字距"),
+    "--a2v-weight-regular": ("ladder", "字重刻度的一档"),
+    # ---- 旧名字 ----
+    "--a2v-line": ("legacy", "行高的旧名字"),
+    "--a2v-line-body": ("legacy", "行高的旧名字，现名 --a2v-leading-body"),
+    "--a2v-line-title": ("legacy", "行高的旧名字，现名 --a2v-leading-title"),
+    "--a2v-tracking-label-legacy": ("legacy", "名字里就写着 legacy：留给手写页面"),
+    "--a2v-tracking-title-legacy": ("legacy", "名字里就写着 legacy：留给手写页面"),
+    # ---- 给了档位但还没接 ----
+    "--a2v-dur-fast": ("unwired", "动效时长阶梯：统一的靶子，见第 22 轮与 PROJECT_PLAN"),
+    "--a2v-dur-base": ("unwired", "动效时长阶梯的中档；组件目前手挑时长（第 22 轮），接回去会动到共享动效路径"),
+    "--a2v-dur-slow": ("unwired", "动效时长阶梯的慢档，与另外两档是同一笔账"),
+    "--a2v-ease-gate": ("unwired", "CSS 动画时代的遗留；逐帧契约下缓动由脚本常量承担"),
+    "--a2v-ease-inout": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_SYMMETRIC"),
+    "--a2v-ease-out": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_OUT"),
+    "--a2v-glow-soft": ("unwired", "CSS 动画时代的遗留；光晕现在由帧驱动通道给"),
+    "--a2v-bg-1": ("unwired", "调色板外侧档，目前没有组件用到"),
+    "--a2v-surface-2": ("unwired", "焦点面改由 --a2v-accent-soft-solid 承担后的遗留"),
+    "--a2v-surface-2-top": ("unwired", "焦点面改由 --a2v-accent-soft-solid 承担后，那层白色光泽也没人用了"),
+    "--a2v-grid-column": ("unwired", "单列宽度；没有组件按 12 栅格排布（整条网格链因此闲置）"),
+    "--fig-connector-w": ("unwired", "几何归组件：同族连线形态差异太大（第 16 轮的决定）"),
 }
 
 
-class TestFigureGeometryTokens:
-    """`--fig-*` 是图形几何令牌——定义了就得有人用，不然就是设计层的空头承诺。
+def _token_graph() -> tuple[set[str], set[str]]:
+    """返回（定义过的令牌，从真实属性声明出发可达的令牌）。"""
+    files = ("base.css", "theme.css", "declarative.css", "keynote.css",
+             "figures.css", "declarative.js", "figures.js", "timeline.js")
+    texts = [_strip_comments((ASSETS / name).read_text(encoding="utf-8")) for name in files]
 
-    第 24 轮实测：`--fig-arrow-len` / `--fig-arrow-half` 定义了 34px / 16px，
-    而 `placeArrow` 里写死 `'M0 0 L-34 -16 L-34 16 Z'`——令牌是从这段代码里
-    提出来、却没接回去。这类"设计层给了档位、组件没接"的缺口前面已经出现过
-    四次（阴影、光晕、重点面墨色、动效时长），所以这里补一条专门的判据。
+    definitions: dict[str, set[str]] = {}
+    for text in texts:
+        for match in re.finditer(r"(--[a-z0-9-]+)\s*:([^;{}]+)[;}]", text):
+            refs = set(re.findall(r"var\(\s*(--[a-z0-9-]+)", match.group(2)))
+            definitions.setdefault(match.group(1), set()).update(refs)
+
+    roots: set[str] = set()
+    for text in texts:
+        # 去掉定义上下文后剩下的 var() 才是"真的在用"
+        without_defs = re.sub(r"--[a-z0-9-]+\s*:[^;{}]+[;}]", "", text)
+        roots |= set(re.findall(r"var\(\s*(--[a-z0-9-]+)", without_defs))
+        roots |= set(re.findall(r"['\"](--[a-z0-9-]+)['\"]", text))  # tokenPx(el, '--x', fb)
+
+    reachable = set(roots)
+    changed = True
+    while changed:
+        changed = False
+        for token in list(reachable):
+            for nxt in definitions.get(token, ()):
+                if nxt not in reachable:
+                    reachable.add(nxt)
+                    changed = True
+    return set(definitions), reachable
+
+
+class TestIdleTokenLedger:
+    """每个没人用的令牌都得在账本里，且写清是刻度、旧名还是"给了档位没接"。
+
+    第 24 轮先做的是窄口径版（只看 `--fig-*`、只看单跳引用）。第 25 轮放大到
+    全部令牌并改用可达性分析，一次列出 26 个——包括整条网格链。
     """
 
-    def test_every_geometry_token_has_a_consumer(self) -> None:
-        defined = set(re.findall(r"(--fig-[a-z0-9-]+)\s*:", KEYNOTE_CSS))
-        assert defined, "keynote.css 里一个 --fig-* 令牌都没有？判据大概失效了"
-
-        consumed = set()
-        for name in ("base.css", "theme.css", "declarative.css", "keynote.css",
-                     "figures.css", "declarative.js", "figures.js"):
-            stripped = _strip_comments((ASSETS / name).read_text(encoding="utf-8"))
-            # 两种消费方式都要认：CSS 里是 `var(--fig-x)`，脚本里是
-            # `tokenPx(el, '--fig-x', 兜底)`——只认前者时，判据会把刚接好的线
-            # 又报成"没人用"（第 24 轮第一版就是这个毛病）。
-            consumed |= set(re.findall(r"var\(\s*(--fig-[a-z0-9-]+)", stripped))
-            consumed |= set(re.findall(r"['\"](--fig-[a-z0-9-]+)['\"]", stripped))
-
-        idle = sorted(defined - consumed)
-        unexpected = [name for name in idle if name not in IDLE_GEOMETRY]
-        assert not unexpected, (
-            f"这些图形几何令牌定义了却没人用：{unexpected}——"
-            "要么接进组件，要么像 IDLE_GEOMETRY 那样写明为什么故意闲置"
+    def test_no_token_is_idle_without_an_entry(self) -> None:
+        defined, reachable = _token_graph()
+        assert len(defined) > 150, f"只解析出 {len(defined)} 个令牌，分析大概失效了"
+        idle = sorted(defined - reachable)
+        unlisted = [name for name in idle if name not in IDLE_TOKENS]
+        assert not unlisted, (
+            f"这些令牌定义了却从没有任何真实属性用到：{unlisted}——"
+            "接进组件，或者进 IDLE_TOKENS 写清是刻度/旧名/欠账"
         )
 
-    def test_idle_list_does_not_grow(self) -> None:
-        """故意闲置的令牌数只许缩短：这份名单是欠账，不是许可证。"""
-        assert len(IDLE_GEOMETRY) <= 3, (
-            f"闲置疑名单涨到 {len(IDLE_GEOMETRY)} 条了：{sorted(IDLE_GEOMETRY)}"
+    def test_no_stale_entries(self) -> None:
+        """账本里的每一条都必须是**真的**没人用——接了线就得把它删掉。
+
+        少了这一条，账本会变成"曾经闲置"的历史清单，越攒越不准。
+        """
+        _, reachable = _token_graph()
+        stale = sorted(name for name in IDLE_TOKENS if name in reachable)
+        assert not stale, f"这些令牌已经有人用了，把账本里的条目删掉：{stale}"
+
+    def test_the_ledger_does_not_grow(self) -> None:
+        assert len(IDLE_TOKENS) <= 26, (
+            f"闲置令牌账本涨到 {len(IDLE_TOKENS)} 条了——"
+            "加条目等于又欠一笔，要在变更记录里说清理由"
         )
+
+    def test_every_entry_has_a_category_and_a_reason(self) -> None:
+        for name, entry in IDLE_TOKENS.items():
+            category, reason = entry
+            assert category in ("ladder", "legacy", "unwired"), f"{name} 的分类不认识：{category}"
+            assert len(reason) >= 6, f"{name} 的理由太短：{reason!r}"

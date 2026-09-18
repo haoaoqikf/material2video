@@ -1570,6 +1570,46 @@ node.setAttribute('d', 'M0 0 L-34 -16 L-34 16 Z');   // -34 / -16 就是那两�
 - K 系列 53 通过 / 0 提醒 / 0 失败 / 19 跳过，review exit 0
 - 非预设回归：两个例子成片 SHA256 逐字节一致（同时证明 35.2.1 是取值等价）
 
+## 36. 已做到：从"逐令牌"升级到"可达性 + 账本"（第 25 轮，维度 14）
+
+### 36.1 逐令牌的判定会被死链骗过
+
+第 24 轮那条判据看的是"这个令牌有没有被 `var()` 引用过"。网格那一串正好骗过它：
+
+    --a2v-grid-column = calc((var(--a2v-content-width)
+                              - (var(--a2v-grid-columns) - 1) * var(--a2v-grid-gutter))
+                             / var(--a2v-grid-columns))
+
+链上每一环都被下一环"消费"，可**整条链没有任何组件在用**。改成从**真实属性值里的
+`var()`** 出发、顺着定义图走到不动点（别名之间的引用不算根），一次列出 26 个够不到
+的令牌。
+
+### 36.2 账本
+
+- [x] 36.2.1 `IDLE_TOKENS`：26 条，每条带分类与理由。分类三种——
+      `ladder`（刻度外侧档，整套刻度就该完整：space-9/10、radius-xs/xl、
+      leading/tracking 的 mega 与 numeral、weight-regular）、
+      `legacy`（旧名字的别名：line / line-body / line-title、tracking-*-legacy）、
+      `unwired`（设计层给了没接：dur-*、ease-*、glow-soft、bg-1、surface-2(-top)、
+      grid-column、fig-connector-w）。
+- [x] 36.2.2 四条判据：账本外不许有闲置令牌；账本里每条必须**真的**没人用
+      （接了线要删条目，否则账本退化成"曾经闲置"的历史清单）；名单不许增长；
+      每条都要有分类和写得清楚的理由。
+- [x] 36.2.3 第四条当场抓到我自己写的五处"同上"——理由是给未来的读者看的，
+      两字理由等于没写。
+
+### 36.3 反向验证
+
+- 给 `--a2v-glow-soft` 接线 → `test_no_stale_entries` 失败（要求删条目）✓
+- 新加一个没人用的令牌 → `test_no_token_is_idle_without_an_entry` 失败 ✓
+- 两个资产文件还原后 SHA256 逐字节一致 ✓
+
+### 36.4 验证
+
+- 全量测试 exit 0；`openspec validate --strict` 通过
+- 本轮只改测试与文档（`git status` 确认 `figures.css` / `keynote.css` 未改动），
+  渲染路径一行未动，因此不做逐字节回归
+
 
 
 
