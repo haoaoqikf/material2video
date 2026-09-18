@@ -2997,3 +2997,37 @@ A/B 两条路都需要看一眼浅色 `attention` 幕的早期帧。这一轮确
 
 - 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 76. 已查明：描边是从哪些元素上量的（第 66 轮，维度 9/10）
+
+§75.2 第一件事：`compare` / `cost` / `one` 三幕报"没有可量的描边"，要查是采集范围问题
+还是确实没画。本轮把采集侧原文抓出来：
+
+- `inspect.py:592` `var strokes = [];`
+- `inspect.py:597` `var strokeWidth = parseFloat(paintedStyle.strokeWidth) || 0;`
+- `inspect.py:598` `if (strokeWidth <= 0) continue;`
+- `inspect.py:599` `if (!paintedStyle.stroke || paintedStyle.stroke === 'none') continue;`
+- `inspect.py:600` `strokes.push(Math.round(strokeWidth * 10) / 10);`
+- `inspect.py:609` `strokes: strokes,`
+- `inspect.py:684` `keynote.gate_stroke_consistency(`
+- `inspect.py:685` `scene_id, [float(width) for width in (facts.get("strokes") or [])]`
+
+判据侧：
+
+- `keynote.py:894` `def gate_stroke_consistency(scene_id: str, widths: list[float]) -> Gate:`
+
+### 76.1 下一轮据此判断
+
+对着上面的采集选择器看这三幕的图形结构：
+
+- 若选择器**只覆盖某一类元素**（例如只量 HTML 边框中带 `--a2v-stroke-*` 的表面），
+  而这三幕的轮廓是 SVG 路径 → **采集范围问题**，补采集
+- 若选择器覆盖了它们本应命中的元素而仍然为空 → **确实没画**，属于能力边界，
+  写进设计文档而不是硬凑
+
+两条结论都要以"选择器 + 该幕实际 DOM"为准，不靠印象。
+
+### 76.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
