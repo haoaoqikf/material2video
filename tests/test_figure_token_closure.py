@@ -577,3 +577,50 @@ class TestVerticalRhythm:
         body = block.group(1)
         assert "margin-top: 0" in body, "块的上外边距没有清零"
         assert "margin-bottom: 0" in body, "块的下外边距没有清零"
+
+
+#: 设计层定义的、**故意**没有消费者的图形几何令牌：几何归组件自己声明。
+#: 这是第 16 轮的决定（见 keynote.css 里 `--fig-connector-w` 上方那段注释），
+#: 不是漏接。名单只许缩短。
+IDLE_GEOMETRY: dict[str, str] = {
+    "--fig-connector-w": "连线形态差异太大（虚线/弧/圆盘边界/纯填充箭头头），线宽归组件",
+    "--fig-node-r-min": "节点半径由内容测量决定，最小值暂时没有组件需要",
+    "--fig-surface-pad": "面的内边距目前由各组件按自己的密度声明",
+}
+
+
+class TestFigureGeometryTokens:
+    """`--fig-*` 是图形几何令牌——定义了就得有人用，不然就是设计层的空头承诺。
+
+    第 24 轮实测：`--fig-arrow-len` / `--fig-arrow-half` 定义了 34px / 16px，
+    而 `placeArrow` 里写死 `'M0 0 L-34 -16 L-34 16 Z'`——令牌是从这段代码里
+    提出来、却没接回去。这类"设计层给了档位、组件没接"的缺口前面已经出现过
+    四次（阴影、光晕、重点面墨色、动效时长），所以这里补一条专门的判据。
+    """
+
+    def test_every_geometry_token_has_a_consumer(self) -> None:
+        defined = set(re.findall(r"(--fig-[a-z0-9-]+)\s*:", KEYNOTE_CSS))
+        assert defined, "keynote.css 里一个 --fig-* 令牌都没有？判据大概失效了"
+
+        consumed = set()
+        for name in ("base.css", "theme.css", "declarative.css", "keynote.css",
+                     "figures.css", "declarative.js", "figures.js"):
+            stripped = _strip_comments((ASSETS / name).read_text(encoding="utf-8"))
+            # 两种消费方式都要认：CSS 里是 `var(--fig-x)`，脚本里是
+            # `tokenPx(el, '--fig-x', 兜底)`——只认前者时，判据会把刚接好的线
+            # 又报成"没人用"（第 24 轮第一版就是这个毛病）。
+            consumed |= set(re.findall(r"var\(\s*(--fig-[a-z0-9-]+)", stripped))
+            consumed |= set(re.findall(r"['\"](--fig-[a-z0-9-]+)['\"]", stripped))
+
+        idle = sorted(defined - consumed)
+        unexpected = [name for name in idle if name not in IDLE_GEOMETRY]
+        assert not unexpected, (
+            f"这些图形几何令牌定义了却没人用：{unexpected}——"
+            "要么接进组件，要么像 IDLE_GEOMETRY 那样写明为什么故意闲置"
+        )
+
+    def test_idle_list_does_not_grow(self) -> None:
+        """故意闲置的令牌数只许缩短：这份名单是欠账，不是许可证。"""
+        assert len(IDLE_GEOMETRY) <= 3, (
+            f"闲置疑名单涨到 {len(IDLE_GEOMETRY)} 条了：{sorted(IDLE_GEOMETRY)}"
+        )

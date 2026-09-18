@@ -1634,7 +1634,14 @@ var EASE_LINEAR = 'linear';
       return;
     }
     svgT(node, x, y, angleDeg);
-    node.setAttribute('d', 'M0 0 L-34 -16 L-34 16 Z');
+    /* 箭镞几何来自设计层：`--fig-arrow-len` / `--fig-arrow-half`。
+     * 兜底值就是这两个令牌原本的取值（34 / 16），所以未启用预设时逐字节不变；
+     * 设计层改档位时，画面不必改代码就跟着走。 */
+    var arrowLen = tokenPx(node, '--fig-arrow-len', 34);
+    var arrowHalf = tokenPx(node, '--fig-arrow-half', 16);
+    node.setAttribute(
+      'd', 'M0 0 L-' + arrowLen + ' -' + arrowHalf + ' L-' + arrowLen + ' ' + arrowHalf + ' Z'
+    );
     svgO(node, opacity);
   }
 

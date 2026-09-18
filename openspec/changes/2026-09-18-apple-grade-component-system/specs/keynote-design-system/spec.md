@@ -381,6 +381,20 @@ SHALL NOT 依赖两套规则的选择器优先级先后。
 - **WHEN** 某个组件用 `.is-accent` 之类的临场类名表达焦点
 - **THEN** 机检报错：它 SHALL 改用基元 + `data-a2v-state`
 
+### Requirement: 图形几何令牌必须有消费者
+
+设计层定义的 `--fig-*` 图形几何令牌 SHALL 至少有一个消费者：CSS 里的
+`var(--fig-x)` 或脚本里的 `tokenPx(el, '--fig-x', 兜底)`，两种写法都算。
+故意闲置的 SHALL 写进判据的 `IDLE_GEOMETRY` 名单并附理由，名单 SHALL NOT 增长。
+
+#### Scenario: 令牌没人用
+- **WHEN** 设计层定义了 `--fig-arrow-len`，而组件里写死 `'M0 0 L-34 -16 L-34 16 Z'`
+- **THEN** 判据失败并列出这些令牌（迁移前实测正是这两个）
+
+#### Scenario: 接线不改变既有画面
+- **WHEN** 把箭镞几何改从令牌读取，兜底值取令牌原本的取值
+- **THEN** 未启用预设的成片逐字节不变
+
 ### Requirement: 四族基元 × 四个状态每一格都要落地
 
 四族基元（`a2v-surface` / `a2v-label` / `a2v-connector` / `a2v-frame`）在四个状态下
