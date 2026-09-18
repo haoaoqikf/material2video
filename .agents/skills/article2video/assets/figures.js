@@ -34,6 +34,18 @@
   var EASE_SOFT = 'outCubic';
   var EASE_SYMMETRIC = 'inOutCubic';
 
+  /* 数字滚动的最少步数。
+   *
+   * 低于这个步数，滚动读不出"在滚动"，只读得出"跳了一下"——而跳的那一下
+   * 显示的是一个**不是最终值**的数字。实测数字幕（value: 1，180 帧）：
+   * 第 15–23 帧，350px 的强调色数字以最高 0.86 的不透明度显示 **"0"**，
+   * 第 24 帧跳成 "1"。那一幕讲的正是一"只保留 1 个"，先显示 0 是错的。
+   *
+   * 10 步是"读得出在数数"的下限：滚动时长约为幕长的 26%（1.5–2s），
+   * 10 步约合 5–7 步/秒。滚动**不足 10 步就不滚**，直接显示最终值，
+   * 位移与淡入交给弹簧入场——它本来就在做这件事，不需要数字再"帮忙"。 */
+  var ROLL_MIN = 10;
+
   /*
    * 动效配方由运行时提供（timeline.js 的 A2V.motion）：入场用哪条曲线、
    * 弹性多大、什么时候收敛、常驻微动多快，都写在那一处。
@@ -1590,8 +1602,12 @@
     var rise = api.since(state.localFrame, beat(state, 0.1));
     if (value) {
       var raw = data.value;
-      value.textContent = typeof raw === 'number' && Number.isFinite(raw)
-        ? String(Math.round(raw * progress)) : String(raw == null ? '' : raw);
+      /* 只有滚得动的数值才滚：步数不足 ROLL_MIN 时直接给最终值。
+       * 非数字（或不有限）一律原样显示，这一支与从前完全一致。 */
+      var rollable = typeof raw === 'number' && Number.isFinite(raw) && Math.abs(raw) >= ROLL_MIN;
+      value.textContent = rollable
+        ? String(Math.round(raw * progress))
+        : String(raw == null ? '' : raw);
       enterAlive(state, api, value, rise, { distance: 42, scale: 0.92 });
     }
     setPlainText(label, data.label);

@@ -325,3 +325,101 @@ class TestTheGateItself:
             e for e in entrances if e.moving and e.first_opacity > motion.MAX_FIRST_FRAME_OPACITY
         ]
         assert not popped
+
+
+#: 数字幕只看入场与滚动这一段就够：滚动时长约为幕长的 26%，之后是静止保持。
+_ROLL_SAMPLE_FRAMES = 72
+
+
+def _number_display(storyboard_path: pathlib.Path | None = None) -> tuple[object, list[tuple[int, str, float]]]:
+    """逐帧读数字幕的数字文本与不透明度。
+
+    `storyboard_path` 默认为发布会基线；传非预设示例可以覆盖"步数够、确实在滚动"
+    的那一支——基线示例的数值是 1，走的是"不滚动"分支。
+    """
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+    path = storyboard_path or STORYBOARD
+    storyboard = json.loads(path.read_text(encoding="utf-8"))
+    scenes = storyboard["scenes"]
+    target = next(
+        s
+        for s in scenes
+        if (s.get("data") or {}).get("figure", {}).get("kind") == "number"
+        or (s.get("data") or {}).get("value") is not None
+    )
+    start = sum(s["durationInFrames"] for s in scenes[: scenes.index(target)])
+
+    page_url = ASSETS / "declarative.html"
+    rel = "/" + page_url.relative_to(ROOT).as_posix()
+    board = "/" + path.relative_to(ROOT).as_posix()
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(_Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{port}{rel}?a2v-storyboard={quote(board, safe='')}"
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(url)
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0", timeout=20000
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                rows = []
+                for local in range(_ROLL_SAMPLE_FRAMES):
+                    page.evaluate("(f) => window.__A2V__.seekToFrame(f)", start + local)
+                    rows.append(
+                        page.evaluate(
+                            """(id) => {
+                              const el = document.querySelector(
+                                '[data-scene-id="' + id + '"] .fig-number');
+                              if (!el) return null;
+                              return [el.textContent, parseFloat(getComputedStyle(el).opacity)];
+                            }""",
+                            target["id"],
+                        )
+                    )
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert all(row is not None for row in rows), "数字幕找不到 .fig-number，采样选择器需要更新"
+    return target, [(i, str(text), float(opacity)) for i, (text, opacity) in enumerate(rows)]
+
+
+class TestNumberRoll:
+    """数字滚动是**动效**：步数不够就不该滚。
+
+    滚动原先是无条件的 `Math.round(raw * progress)`，`value: 1` 于是也"滚"——
+    而 1 只有一级，滚动退化成一次瞬跳。这与入场弹簧的闸门是两件事：
+    弹簧闸门量的是不透明度爬升，量不到"文本内容跳变"。
+    """
+
+    def test_a_legible_numeral_never_shows_a_value_other_than_the_final_one(self):
+        target, rows = _number_display()
+        want = str(target["data"]["value"])
+        legible = [(frame, text) for frame, text, opacity in rows if opacity >= 0.5]
+        assert legible, "数字幕没有任何一帧达到可读不透明度，采样范围需要更新"
+        wrong = [(frame, text) for frame, text in legible if text != want]
+        assert not wrong, (
+            f"数字在可读（不透明度 ≥ 0.5）时显示过非最终值 {want!r}："
+            f"{wrong[:6]}——滚动步数不足时它不该滚"
+        )
+
+    def test_the_numeral_still_rolls_when_it_has_enough_steps(self):
+        """反过来：步数够的数值必须仍旧滚动，否则这一条就变成了"禁止数字动效"。
+
+        用非预设示例（`value: 73`）来覆盖滚动分支——它同时也是那条
+        "未声明预设的既有作品逐帧不变"契约的载体。
+        """
+        path = ROOT / "examples" / "declarative-number" / "storyboard.json"
+        target, rows = _number_display(path)
+        assert abs(float(target["data"]["value"])) >= 10, "这个示例本该是够步数的数值"
+        seen = {text for _, text, opacity in rows if opacity >= 0.5}
+        assert len(seen) > 1, f"数值足够滚动却只出现过 {seen}，滚动分支没有生效"
+        assert str(target["data"]["value"]) in seen, "滚动没有落到最终值上"
+
