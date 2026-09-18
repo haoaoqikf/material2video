@@ -92,9 +92,7 @@
   --a2v-bg-1: #0f131a;
   --a2v-bg-2: #161c26;
   --a2v-surface-1: #101520; /* 卡片 */
-  --a2v-surface-2: #171e2b; /* 焦点卡片 */
   --a2v-surface-1-top: rgba(255, 255, 255, 0.045);
-  --a2v-surface-2-top: rgba(255, 255, 255, 0.075);
 
   /* ---------- 文字：三级 + 一级仅用于图形与装饰 ---------- */
   --a2v-ink-1: rgba(255, 255, 255, 0.96); /* 18.26:1 */
@@ -200,9 +198,7 @@
   --a2v-bg-1: #f8f9fb;
   --a2v-bg-2: #ffffff;
   --a2v-surface-1: #ffffff;
-  --a2v-surface-2: #ffffff;
   --a2v-surface-1-top: rgba(255, 255, 255, 0.9);
-  --a2v-surface-2-top: rgba(255, 255, 255, 1);
 
   --a2v-ink-1: #0c0e13; /* 17.06:1 */
   --a2v-ink-2: #3c4152; /*  8.94:1 */
@@ -459,7 +455,6 @@
   --a2v-content-width: 888px;
   --a2v-grid-columns: 12;
   --a2v-grid-gutter: 24px;
-  --a2v-grid-column: calc(
     (var(--a2v-content-width) - (var(--a2v-grid-columns) - 1) * var(--a2v-grid-gutter)) /
       var(--a2v-grid-columns)
   );

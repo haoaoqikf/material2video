@@ -623,19 +623,12 @@ IDLE_TOKENS: dict[str, tuple[str, str]] = {
     "--a2v-dur-fast": ("unwired", "动效时长阶梯：统一的靶子，见第 22 轮与 PROJECT_PLAN"),
     "--a2v-dur-base": ("unwired", "动效时长阶梯的中档；组件目前手挑时长（第 22 轮），接回去会动到共享动效路径"),
     "--a2v-dur-slow": ("unwired", "动效时长阶梯的慢档，与另外两档是同一笔账"),
-    "--a2v-ease-gate": ("unwired", "CSS 动画时代的遗留；逐帧契约下缓动由脚本常量承担"),
-    "--a2v-ease-inout": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_SYMMETRIC"),
-    "--a2v-ease-out": ("unwired", "CSS 动画时代的遗留；脚本侧对应 EASE_OUT"),
         # 第 39 轮我在这条上写过"测试按名字引用它"——那是错的，第 41 轮查清并撤回：
         # tests/ 里根本没有 glow-soft 这个名字，它确实是运行时与测试都没人用。
         # 真正被守卫测试引用的是 --a2v-bg-1：test_emphasis_fade_is_readable 拿它当
         # 对比度的底色（declarations(dark, "a2v-bg-")["--a2v-bg-1"]）。第 36/37 轮删掉
         # 它才导致该测试失败——根集合漏 tests/ 时它看起来"没人用"。
-    "--a2v-glow-soft": ("unwired", "CSS 动画时代的遗留；光晕现在由帧驱动通道给"),
     "--a2v-bg-1": ("unwired", "调色板外侧档，目前没有组件用到"),
-    "--a2v-surface-2": ("unwired", "焦点面改由 --a2v-accent-soft-solid 承担后的遗留"),
-    "--a2v-surface-2-top": ("unwired", "焦点面改由 --a2v-accent-soft-solid 承担后，那层白色光泽也没人用了"),
-    "--a2v-grid-column": ("unwired", "单列宽度；没有组件按 12 栅格排布（整条网格链因此闲置）"),
     "--fig-connector-w": ("unwired", "几何归组件：同族连线形态差异太大（第 16 轮的决定）"),
 }
 
@@ -698,7 +691,7 @@ class TestIdleTokenLedger:
         assert not stale, f"这些令牌已经有人用了，把账本里的条目删掉：{stale}"
 
     def test_the_ledger_does_not_grow(self) -> None:
-        assert len(IDLE_TOKENS) <= 26, (
+        assert len(IDLE_TOKENS) <= 19, (
             f"闲置令牌账本涨到 {len(IDLE_TOKENS)} 条了——"
             "加条目等于又欠一笔，要在变更记录里说清理由"
         )

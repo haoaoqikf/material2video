@@ -43,7 +43,6 @@
   /* ---------- 阴影：近处小阴影定形，远处大阴影造景深，两层叠加才不扁平 ---------- */
   --a2v-shadow-1: 0 2px 6px rgba(0, 0, 0, 0.45);
   --a2v-shadow-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 24px 64px -24px rgba(0, 0, 0, 0.8);
-  --a2v-glow-soft: 0 0 64px rgba(53, 224, 200, 0.18);
 
   /* ---------- 圆角：与层级成对使用，越大的表面用越大的圆角 ---------- */
   --a2v-radius-sm: 20px;
@@ -55,9 +54,6 @@
    * 时间只走三条曲线：出场、进出场对称、门控（用于逐项呈现）。
    * 括号内是 timeline.js 中同名的缓动，页面用哪一边都要保持一致。
    */
-  --a2v-ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* outQuint */
-  --a2v-ease-inout: cubic-bezier(0.65, 0, 0.35, 1); /* inOutCubic */
-  --a2v-ease-gate: cubic-bezier(0.33, 0, 0, 1); /* outCubic */
 
   /* ---------- 排版：数值区间与 visual-spec.md 的字号下限一致 ---------- */
   --a2v-tracking-title: -0.02em;

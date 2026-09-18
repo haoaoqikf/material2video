@@ -2203,3 +2203,35 @@ K2 数的是"色度 ≥ 50"的像素。把浅色的光晕色按合成算一下�
 
 - 本轮只改注释与记录：仓库无行为改动
 - 守卫文件全过；非预设逐字节一致；深色闸门 53/0/0；全量 exit 0
+
+## 53. 已做到：删掉 7 个死令牌（第 42 轮，维度 14）
+
+程序与口径都在第 40/41 轮修正完毕，这一轮直接执行：
+
+- 待删：`--a2v-ease-gate/inout/out`、`--a2v-glow-soft`、`--a2v-grid-column`、
+  `--a2v-surface-2(-top)`
+- 结果：删 7 个令牌 / 9 行定义（`keynote.css` 5 行、`theme.css` 4 行）
+- 账本：26 → 19 条，上限同步为 19
+- 删除后复核：够不到 15 个（按"资产 + tests（排除账本文件）"口径），
+  全部在账本里
+
+判据是**非预设逐帧一致**：删掉的确实是没人用的东西，成片一个字节都没变。
+
+### 53.1 前四轮买来的三件事
+
+1. 根集合要含 `tests/`（排除账本文件本身，否则自我引用）
+2. 顺序：先摘账本条目，再删定义
+3. **先干跑自检再落盘**——第 40、41 两轮都是干跑在写盘前拦下的（一次抓到自我引用，
+   一次抓到那条来自错注的保留断言），成本为零
+
+### 53.2 文档一致性
+
+文档扫描：3 处残留
+
+- `docs\PROJECT_PLAN.md:721: （`--a2v-grid-column` 等，目前没有组件按栅格排布）。`
+- `.agents\skills\article2video\references\keynote-design-system.md:735: --a2v-grid-column  =  calc((var(--a2v-content-width) - (var(--a2v-grid-columns) `
+- `.agents\skills\article2video\references\keynote-design-system.md:736: * var(--a2v-grid-gutter)) / var(--a2v-grid-columns))`
+
+### 53.3 验证
+
+- 守卫文件 90 项全过；非预设逐字节一致；深色闸门 53/0/0；全量 exit 0
