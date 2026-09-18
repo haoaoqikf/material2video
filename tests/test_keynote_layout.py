@@ -403,3 +403,169 @@ class TestBaselineTypeScale:
                 f"{big}px 与 {small}px 相差不到 10%——同一支片子里两个"
                 "看不出区别的字号不是一个层级，是失手"
             )
+
+
+#: 居中的容差：块栈中心与安全区中心偏离超过安全区高度的这个比例，
+#: 眼睛读得出"这一幕歪了"。
+#:
+#: 取值有实测依据：基线八幕里七幕声明 `center`，实测偏移都 ≤3px（≤0.19%），
+#: 也就是说版式引擎的居中几乎是精确的——留 1%（13.6px）已经是它实际误差的
+#: 四倍多，既不会误报，又能接住一次"某个块多了 14px 外边距"的失手。
+_CENTER_TOLERANCE = 0.01
+
+#: `lower` 版式贴底容差（px）。
+_FLUSH_TOLERANCE = 12
+
+_LAYOUT_JS = """(id) => {
+  const scene = document.querySelector('[data-scene-id="' + id + '"]');
+  const safe = scene.querySelector('.a2v-safe');
+  const owner = safe.closest('[data-layout]');
+  const sr = safe.getBoundingClientRect();
+  const blocks = [];
+  for (const el of safe.children) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const r = el.getBoundingClientRect();
+    if (r.height < 2) continue;
+    blocks.push({ cls: String(el.className || el.tagName).split(' ')[0],
+                  top: r.top, bottom: r.bottom });
+  }
+  return {
+    layout: owner ? owner.getAttribute('data-layout') : null,
+    safeTop: sr.top, safeBottom: sr.bottom,
+    stackTop: blocks.length ? Math.min.apply(null, blocks.map((b) => b.top)) : null,
+    stackBottom: blocks.length ? Math.max.apply(null, blocks.map((b) => b.bottom)) : null,
+    blocks: blocks.length
+  };
+}"""
+
+
+def _baseline_composition() -> list[dict]:
+    """量每一幕的**块栈**（`.a2v-safe` 的直接子块）与安全区的关系。
+
+    这里刻意不量"墨迹包围盒"：那个量会被两件事污染——图形容器自己的空白，
+    以及某一帧里还没淡入的元素。实测 `compare` 幕的墨迹看起来偏上 14%，
+    而它的块栈中心与安全区中心只差 1px，卡片里的文字上下留白是 107 / 108px。
+    所以判据必须落在**版式真正摆布的东西**上。
+    """
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):  # noqa: D102 - 测试里不需要访问日志
+            pass
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        page_url = f"http://127.0.0.1:{port}/{PAGE.relative_to(ROOT).as_posix()}"
+        board_url = quote("/" + BASELINE.relative_to(ROOT).as_posix(), safe="")
+        rows: list[dict] = []
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(f"{page_url}?a2v-storyboard={board_url}")
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0",
+                    timeout=20000,
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                storyboard = json.loads(BASELINE.read_text(encoding="utf-8"))
+                cursor = 0
+                for scene in storyboard["scenes"]:
+                    page.evaluate(
+                        "(f) => window.__A2V__.seekToFrame(f)",
+                        cursor + int(scene["durationInFrames"] * 0.6),
+                    )
+                    cursor += scene["durationInFrames"]
+                    row = page.evaluate(_LAYOUT_JS, scene["id"])
+                    row["scene"] = scene["id"]
+                    rows.append(row)
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert rows, "一幕都没读到"
+    return rows
+
+
+@pytest.fixture(scope="module")
+def baseline_composition() -> list[dict]:
+    return _baseline_composition()
+
+
+class TestSceneComposition:
+    """声明了居中的幕必须真的居中；声明了下沉的幕必须真的贴底。
+
+    这是「留白合理」的另一半。K1 只给下限（画面不能挤满），而它的上限
+    试过并放弃了：留白值量的是「与左上角像素接近的占比」，被背景纹理卡在
+    ~0.85，把文案从 11 字缩到 2 字也只动 0.01。所以上限换一个能表达"空"的量——
+    **块栈在安全区里的位置**。
+
+    **它查什么、不查什么**（反验过）：
+
+    - 查：版式的居中机制失效。把某一幕改成 `justify-content: flex-start`
+      会让这一条报出 `-374px`（容差 14px）；
+    - 不查：某个块自己长了外边距。给首块加 40px（甚至 160px）外边距时，
+      流的总高对称增长、`justify-content: center` 把包围盒中心留在原地——
+      实测 40px 扰动下偏移不到容差，所以那类改动**不该**由这条来抓。
+      它管的是"版式有没有居中"，不是"墨迹看着匀不匀"。
+
+    墨迹包围盒那个量试过，不能用：它会被图形容器自己的空白与某一帧里
+    还没淡入的元素污染（`compare` 幕的墨迹看着偏上 14%，而它的块栈中心与
+    安全区中心只差 1px、卡片内文字上下留白是 107 / 108px）。
+    """
+
+    def test_declared_centered_scenes_are_actually_centered(
+        self, baseline_composition: list[dict]
+    ) -> None:
+        for row in baseline_composition:
+            if row["layout"] != "center":
+                continue
+            height = row["safeBottom"] - row["safeTop"]
+            offset = (
+                (row["stackTop"] + row["stackBottom"]) / 2 - (row["safeTop"] + row["safeBottom"]) / 2
+            )
+            assert abs(offset) <= height * _CENTER_TOLERANCE, (
+                f"{row['scene']} 声明了 center，块栈中心却偏了 {offset:+.0f}px"
+                f"（安全区高 {height:.0f}px，容差 {height * _CENTER_TOLERANCE:.0f}px）——"
+                "居中是版式的承诺，不是建议"
+            )
+
+    def test_the_lower_layout_is_deliberately_bottom_weighted(
+        self, baseline_composition: list[dict]
+    ) -> None:
+        """`lower` 不是"没居中的漏网之鱼"，是刻意的版式：贴底、上重下轻。
+
+        这条是上面那条的反向保险：判据不能变成"所有幕都必须居中"，
+        否则下一幕想用 `lower` 表达"收束"就会被误报。
+        """
+        seen = 0
+        for row in baseline_composition:
+            if row["layout"] != "lower":
+                continue
+            seen += 1
+            gap_bottom = row["safeBottom"] - row["stackBottom"]
+            gap_top = row["stackTop"] - row["safeTop"]
+            assert gap_bottom <= _FLUSH_TOLERANCE, (
+                f"{row['scene']} 声明了 lower，块栈离安全区底部还有 {gap_bottom:.0f}px"
+            )
+            assert gap_top > gap_bottom, (
+                f"{row['scene']} 声明了 lower，上留白 {gap_top:.0f}px 却不比下留白 "
+                f"{gap_bottom:.0f}px 大——那它既不居中也不下沉"
+            )
+        assert seen, "没有一幕用 lower 版式，这条断言失去了样本"
+
+    def test_the_measurement_is_not_vacuous(self, baseline_composition: list[dict]) -> None:
+        """量空了的幕不许悄悄通过：块栈必须是量到的块算出来的。"""
+        for row in baseline_composition:
+            assert row["blocks"] >= 1, f"{row['scene']} 一个可见子块都没有"
+            assert row["stackTop"] is not None and row["stackBottom"] is not None, row["scene"]
+            assert row["stackBottom"] > row["stackTop"], row["scene"]
+            assert row["safeBottom"] > row["safeTop"], row["scene"]
+        multi = [r for r in baseline_composition if r["blocks"] >= 2]
+        assert len(multi) >= 5, f"多块幕只有 {len(multi)} 个，采样选择器可能失效了"
+
