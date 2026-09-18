@@ -730,6 +730,75 @@ value.textContent = String(Math.round(raw * progress));   // 无条件滚动
 两次回归都得到有效结论。
 教训：**未提交的工作不要用 `git checkout --` 还原**。
 
+## 23. 已做到：表面基元的 HTML 形态（第 12 轮，维度 6/14）
+
+### 23.1 靶子与首因判断的推翻
+
+第 21/22 节把 `compare` 剩下的那条 K2 提醒记为"连续量"这条线的下一站。
+实测推翻了首因：那一幕缺的**不是**连续量，而是**基元压根没有 HTML 形态**。
+
+`versus` 是 HTML 盒子，靠 `border` / `background` / `box-shadow` 成形；
+而表面基元当时只声明 `fill` / `stroke`——HTML 没有对应属性。所以那个组件
+用不了状态语汇，只能自己算一遍：
+
+```css
+.vs-side.is-right {
+  border-color: rgba(var(--a2v-accent-rgb), calc(0.24 + 0.5 * var(--vs-heat, 0)));
+  background: var(--a2v-surface-strong);   /* ← 永远不变 */
+}
+```
+
+于是"这一侧才是答案"这个焦点，只有一条 **1px、alpha 0.24** 的暖边框加一层光晕。
+实测整幕强调色占比 **0.0016**，门槛是 0.002。与第 4 轮 `focus` 态同源：
+细描边缩到判据图上只剩 1px，抗锯齿一糊就量不到。
+
+### 23.2 修法
+
+- [x] 23.2.1 每个状态规则同时声明两种媒介：SVG 的 `fill` / `stroke` 与
+      HTML 的 `background-color`，各属性对另一种媒介无副作用。
+- [x] 23.2.2 HTML 侧写 `background-color` 而不是 `background` 简写——
+      简写会重置 `background-image`，把组件的材质（`--a2v-surface` 那层白色光泽，
+      在 `theme.css` 里是 gradient）抹掉。
+- [x] 23.2.3 描边不并入：它属于**边界框**基元。`versus` 那套随 `--vs-heat`
+      升温的边框因此保留，作为"箭头到达"的强调。基元选择器是三层
+      （属性 + 类 + 属性），盖得住组件写的 `.vs-side { background: … }`，
+      组件不必让步，`figures.css` 一行未改。
+- [x] 23.2.4 `versus` 两侧迁移：左 `rest`、右 `focus`，底色由 `--a2v-focus-mix`
+      给出，材质仍留在组件里。
+
+### 23.3 实测
+
+```
+左侧 rgb(23,30,43)   ← --fig-surface（基准面）
+右侧 rgb(22,70,95)   ← --a2v-accent-soft-solid，色度 73 ≥ 50
+compare K2  0.0016 / 0.0027 / 0.0027  →  0.0289 / 0.0292 / 0.0292
+闸门        52 通过 / 1 提醒 / 0 失败  →  53 通过 / 0 提醒 / 0 失败
+```
+
+**这是闸门首次没有任何提醒。**
+
+### 23.4 验证
+
+- 新增 `test_every_state_declares_both_media`：每个状态都要有两种媒介的写法，
+  且不许用 `background` 简写
+- 非预设回归：`why-effort-fails` 也有 `comparison` 幕（正是 versus）。
+  用 HEAD 与工作区两个版本的 `figures.js` + `keynote.css`
+  （1775/1781 行、944/971 行）分别渲染两个例子，成片 SHA256 **逐字节一致**
+  （`A0A94CFC…` / `2B484027…`）
+- 全量测试 exit 0；`openspec validate --strict` 通过
+
+### 23.5 顺带补的一条护栏：脚本必须能解析
+
+往 `figures.js` 的组件模板字符串里写注释时带了反引号，模板字符串被提前终结，
+整个 `figures.js` 语法错误——**首页加载失败、所有图形消失**，体检直接报
+`Cannot read properties of undefined (reading 'renderScene')`。
+值得记的是：**纯静态的那批检查全都没拦住**，是跑到浏览器才发现的。
+
+- [x] 23.5.1 新增 `TestAssetSyntax`，用 `node --check` 逐个检查 `assets/*.js`；
+      未安装 node 时跳过并说明原因
+- [x] 23.5.2 反向验证：把那个反引号放回去，它报
+      `SyntaxError: Unexpected identifier` 并失败；还原后通过
+
 
 
 

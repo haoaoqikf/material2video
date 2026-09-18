@@ -10,14 +10,17 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
 SKILL = Path(__file__).resolve().parents[1] / ".agents/skills/article2video"
-FIGURES_JS = SKILL / "assets/figures.js"
-FIGURES_CSS = SKILL / "assets/figures.css"
-THEME_CSS = SKILL / "assets/theme.css"
+ASSETS = SKILL / "assets"
+FIGURES_JS = ASSETS / "figures.js"
+FIGURES_CSS = ASSETS / "figures.css"
+THEME_CSS = ASSETS / "theme.css"
 PAGE = SKILL.parents[2] / "videos/never-fear-interviews/index.html"
 
 # 每注册一个组件：define('kind', [...labels], MARKUP_X, updateX)
@@ -350,3 +353,33 @@ class TestFocusStateMigration:
             assert "--a2v-focus-mix" in body, "飞轮没有写连续焦点量"
             return
         raise AssertionError("没有找到飞轮组件")
+
+
+class TestAssetSyntax:
+    """页面脚本必须能解析。
+
+    这一条是补的：往 `figures.js` 的组件模板字符串里写注释时带了反引号，
+    模板字符串被提前终结，整个 `figures.js` 语法错误——首页加载失败、
+    所有图形消失。当时是跑到浏览器体检才发现的（体检直接报
+    `Cannot read properties of undefined (reading 'renderScene')`），
+    而纯静态的那批检查全都没拦住。
+
+    这类破坏不需要浏览器就能查出来，而且 `node --check` 的报错精确到行列，
+    所以放在这一层做快速拦截，别等浏览器。
+    """
+
+    @pytest.mark.parametrize("name", sorted(p.name for p in ASSETS.glob("*.js")))
+    def test_every_page_script_parses(self, name: str) -> None:
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("未安装 node，跳过脚本语法检查")
+        target = ASSETS / name
+        result = subprocess.run(
+            [node, "--check", str(target)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        assert result.returncode == 0, (
+            f"{name} 语法错误，页面会整片加载失败：\n{result.stderr.strip()}"
+        )

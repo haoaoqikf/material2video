@@ -865,6 +865,7 @@
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="rest"] {
   fill: var(--fig-surface);
   stroke: var(--fig-line);
+  background-color: var(--fig-surface);
 }
 /* `focus` 态**必须有块面**，不只是描边。
  *
@@ -898,7 +899,25 @@
  * 交接因此可以做到既连续、又始终只有一个焦点：
  * 旧节点以 mix 1→0 淡出，到 mix = 0 的那一帧才把 `focus` 交给新节点
  * （新节点从 mix 0 开始淡入）。切换瞬间两侧都等于 rest 外观，视觉上没有缝。
- * 同一帧里 `data-a2v-state="focus"` 的元素始终只有一个。 */
+ * 同一帧里 `data-a2v-state="focus"` 的元素始终只有一个。
+ *
+ * ## 两种媒介，一组状态：`fill` 与 `background-color`
+ *
+ * 基元原先只在 SVG 上落地（写 `fill`/`stroke`），所以 `versus` 幕那类
+ * **HTML 盒子**根本用不了状态语汇，只能自己算一遍：实测它的"答案侧"是
+ * 一条 1px、alpha 0.24 的暖边框加一层光晕，底色永远不变——整幕的强调色
+ * 占比只有 0.0016，而闸门要求 0.002。这不是闸门苛刻，是那个组件里
+ * **压根没有强调色块面**（与第 4 轮 `focus` 态查出的问题同源：
+ * 细描边缩到判据图上只剩 1px，抗锯齿一糊就量不到）。
+ *
+ * 所以每个状态同时声明两种媒介的写法：SVG 读 `fill`，HTML 读
+ * `background-color`——各自对另一种媒介无副作用。HTML 侧只声明
+ * `background-color` 而不是 `background` 简写，是为了不覆盖组件自己的
+ * `background-image`（那是"材质"：`--a2v-surface` 这层白色光泽，
+ * 它与状态无关）。描边属于**边界框**基元，仍由组件按自己的需求声明。
+ *
+ * 选择器是三层（属性 + 类 + 属性），所以它能盖住组件自己写的
+ * `.vs-side { background: … }`，不需要组件再让步。 */
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="focus"] {
   --a2v-focus-mix: 1;
   fill: color-mix(
@@ -911,14 +930,22 @@
     var(--a2v-accent) calc(var(--a2v-focus-mix) * 100%),
     var(--fig-line)
   );
+  /* HTML 形态：与上面的 fill 是同一个颜色表达式，只是落在另一种媒介上 */
+  background-color: color-mix(
+    in srgb,
+    var(--a2v-accent-soft-solid) calc(var(--a2v-focus-mix) * 100%),
+    var(--fig-surface)
+  );
 }
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="muted"] {
   fill: var(--a2v-bg-0);
   stroke: var(--a2v-hairline);
+  background-color: var(--a2v-bg-0);
 }
 [data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="done"] {
   fill: var(--a2v-accent-deep);
   stroke: var(--a2v-accent);
+  background-color: var(--a2v-accent-deep);
 }
 
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {

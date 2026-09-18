@@ -804,14 +804,20 @@
 </div>
 <h2 class="section-title" data-el="title" data-a2v-fit="title"></h2>
 <div class="vs-board">
-  <div class="vs-side is-left" data-el="leftSide">
+  <!-- 两侧都是表面基元：左是基准态，右是当前焦点。
+       原先右侧只用 1px 暖边框 + 光晕表达「这才是答案」，底色永远不变，
+       整幕的强调色占比只有 0.0016（闸门要求 0.002）——焦点没有块面。
+       现在改用与其它组件同一套状态语汇，底色由 --a2v-focus-mix 给出。
+       材质（--a2v-surface 那层白色光泽）仍由 figures.css 声明，与状态无关。
+       注意：这段注释在模板字符串里，正文不能出现反引号。 -->
+  <div class="vs-side is-left a2v-surface" data-a2v-state="rest" data-el="leftSide">
     <p class="vs-text" data-el="leftText"></p>
   </div>
   <div class="vs-link" aria-hidden="true">
     <span class="vs-line" data-el="line"></span>
     <span class="vs-head" data-el="head"></span>
   </div>
-  <div class="vs-side is-right" data-el="rightSide">
+  <div class="vs-side is-right a2v-surface" data-a2v-state="focus" data-el="rightSide">
     <p class="vs-text" data-el="rightText"></p>
   </div>
 </div>

@@ -208,6 +208,13 @@ SHALL NOT 各自重新声明表面、标签与连线的长相。
 结构性类名（左/右/翻转前后）与连续量（冷热程度、强调词褪色进度）
 SHALL NOT 被并入上述状态——四态表达不了连续量，硬塞进去会让状态失去语义。
 
+基元 SHALL 在**两种媒介**上落地：SVG 形状读 `fill` / `stroke`，
+HTML 盒子读 `background-color`。两种媒介 SHALL 由同一组状态规则声明，
+SHALL NOT 让某一种媒介的组件另行计算同一语义——否则同一套状态在两种媒介上
+会各长一样，HTML 盒子还会因为只能用细描边而量不出焦点。
+HTML 侧 SHALL 声明 `background-color` 而非 `background` 简写，
+以免覆盖组件自己的材质（`background-image`）。
+
 「当前焦点」态 SHALL 额外提供一个**状态之内**的连续通道 `--a2v-focus-mix`
 （0..1，默认 `1`）：`1` 是完整焦点外观，`0` SHALL 等于「基准」态的外观。
 组件 SHALL 用它表达焦点的淡入淡出，SHALL NOT 为此新增状态
@@ -220,6 +227,15 @@ SHALL NOT 被并入上述状态——四态表达不了连续量，硬塞进去�
 #### Scenario: 新增组件自带样式
 - **WHEN** 一个图形组件在自己的样式块里重新声明表面填充、描边与标签排版
 - **THEN** 机检报错：它 SHALL 改用基元类，否则下一个组件会再次漂移
+
+#### Scenario: HTML 盒子只能靠细描边表达焦点
+- **WHEN** 一个 HTML 盒子用 1px 边框加光晕表达「当前焦点」，而底色不随状态改变
+- **THEN** 视为缺陷：实测该幕的强调色占比会低于下限，
+  说明焦点只有描边没有块面——SHALL 挂上基元与状态，用 `background-color` 表达
+
+#### Scenario: HTML 形态用了 background 简写
+- **WHEN** 基元的状态规则用 `background` 简写而不是 `background-color`
+- **THEN** 机检报错：简写会重置 `background-image`，抹掉组件自己的材质
 
 #### Scenario: 同一语义两种写法
 - **WHEN** 某组件用私有修饰类或内联样式表达「当前焦点」，而其他组件用基元状态表达

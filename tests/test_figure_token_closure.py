@@ -232,6 +232,30 @@ class TestPrimitivesAndStates:
         body = block.group(1)
         assert "var(--a2v-accent)" in body, "焦点态应当把描边换成强调色"
 
+    def test_every_state_declares_both_media(self) -> None:
+        """每个状态都要声明两种媒介的写法：SVG 读 `fill`，HTML 读 `background-color`。
+
+        基元原先只在 SVG 上落地，于是 `versus` 幕那类 **HTML 盒子**用不了状态语汇，
+        只能自己算一遍：它的"答案侧"是一条 1px、alpha 0.24 的暖边框加一层光晕，
+        底色永远不变——整幕的强调色占比只有 0.0016，而闸门要求 0.002。
+        不是闸门苛刻，是那个组件里压根没有强调色块面。
+
+        HTML 侧必须是 `background-color` 而不是 `background` 简写：
+        简写会连 `background-image` 一起重置，把组件自己的材质（那层白色光泽）抹掉。
+        """
+        offenders = []
+        for match in re.finditer(
+            r'\.a2v-surface\[data-a2v-state="([a-z]+)"\]\s*\{([^}]*)\}', KEYNOTE_CSS
+        ):
+            state, body = match.group(1), match.group(2)
+            if not re.search(r"(^|[;\s])fill\s*:", body):
+                offenders.append((state, "SVG 侧缺 fill"))
+            if not re.search(r"(^|[;\s])background-color\s*:", body):
+                offenders.append((state, "HTML 侧缺 background-color"))
+            if re.search(r"(^|[;\s])background\s*:", body):
+                offenders.append((state, "用了 background 简写，会抹掉组件的材质"))
+        assert not offenders, f"状态规则没有覆盖两种媒介：{offenders}"
+
     def test_focus_state_carries_accent_mass_not_just_a_stroke(self) -> None:
         """焦点态要有**块面**，不能只改描边。
 
