@@ -73,7 +73,7 @@
   /* ---------- 01 开场：天平 ---------- */
   [data-scene-id="opening"] .a2v-safe {
     justify-content: center;
-    gap: 30px;
+    gap: var(--a2v-space-5, 30px);
   }
 
   .title-text {
@@ -100,7 +100,7 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--a2v-space-2, 8px);
   }
 
   .title-sub-line {
@@ -178,12 +178,12 @@
   /* ---------- 02 金句：落差尺 ---------- */
   [data-scene-id="real-loss"] .a2v-safe {
     justify-content: center;
-    gap: 46px;
+    gap: var(--a2v-space-6, 46px);
   }
 
   .quote-block {
     position: relative;
-    padding-left: 62px;
+    padding-left: var(--a2v-space-7, 62px);
     color: var(--a2v-text-1);
   }
 
@@ -254,7 +254,7 @@
   .drop-board {
     display: flex;
     justify-content: space-between;
-    gap: 40px;
+    gap: var(--a2v-space-6, 40px);
   }
 
   .drop-panel {
@@ -263,8 +263,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
-    padding: 26px 20px 24px;
+    gap: var(--a2v-space-3, 18px);
+    padding: var(--a2v-space-4, 26px) var(--a2v-space-3, 20px);
     border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
     border-radius: var(--a2v-radius-lg);
     background: var(--a2v-surface), var(--a2v-bg-2);
@@ -293,7 +293,7 @@
     position: relative;
     display: flex;
     align-items: flex-end;
-    gap: 44px;
+    gap: var(--a2v-space-6, 44px);
     height: 300px;
   }
 
@@ -345,7 +345,7 @@
     height: 0;
     border: 2px dashed var(--fig-line);
     border-bottom: 0;
-    border-radius: var(--a2v-radius-sm, 19px) 19px 0 0;
+    border-radius: var(--a2v-radius-sm, 19px) var(--a2v-radius-sm, 19px) 0 0;
   }
 
   .drop-zero {
@@ -418,7 +418,7 @@
   /* ---------- 03 恐惧来源：冰山 ---------- */
   [data-scene-id="fear-source"] .a2v-safe {
     justify-content: center;
-    gap: 24px;
+    gap: var(--a2v-space-4, 24px);
   }
 
   .fig-berg {
@@ -499,7 +499,7 @@
 
   /* ---------- 04 反馈循环：飞轮 ---------- */
   [data-scene-id="feedback-loop"] .a2v-safe {
-    gap: 22px;
+    gap: var(--a2v-space-4, 22px);
   }
 
   .fig-loop {
@@ -555,8 +555,8 @@
   .gauge {
     display: flex;
     align-items: center;
-    gap: 24px;
-    padding: 0 6px;
+    gap: var(--a2v-space-4, 24px);
+    padding: 0 var(--a2v-space-1, 6px);
   }
 
   .gauge-label {
@@ -590,7 +590,7 @@
   /* ---------- 05 上场复利：阶梯 ---------- */
   [data-scene-id="upgrade"] .a2v-safe {
     justify-content: center;
-    gap: 30px;
+    gap: var(--a2v-space-5, 30px);
   }
 
   .fig-stairs {
@@ -667,8 +667,8 @@
     align-self: center;
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 14px 34px;
+    gap: var(--a2v-space-3, 18px);
+    padding: var(--a2v-space-3, 14px) var(--a2v-space-5, 34px);
     border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
     border-radius: var(--a2v-radius-pill, 999px);
     background: var(--a2v-surface), var(--a2v-bg-2);
@@ -713,7 +713,7 @@
 
   /* ---------- 06 收束：双向选择 ---------- */
   [data-scene-id="closing"] .a2v-safe {
-    gap: 34px;
+    gap: var(--a2v-space-5, 34px);
   }
 
   .closing-text {
@@ -770,13 +770,13 @@
   }
 
   .closing-action {
-    margin-top: 10px;
+    margin-top: var(--a2v-space-2, 10px);
     align-self: flex-start;
     font-family: var(--a2v-font-sans);
     font-size: var(--a2v-ink-body, 38px);
     color: var(--a2v-text-2);
     border-left: 4px solid var(--a2v-accent);
-    padding-left: 26px;
+    padding-left: var(--a2v-space-4, 26px);
     letter-spacing: var(--a2v-track-body, 0.02em);
   }
 
@@ -786,8 +786,8 @@
     display: flex;
     align-items: stretch;
     justify-content: center;
-    gap: 26px;
-    margin-top: 84px;
+    gap: var(--a2v-space-4, 26px);
+    margin-top: var(--a2v-space-8, 84px);
   }
 
   .vs-side {
@@ -796,7 +796,7 @@
     align-items: center;
     justify-content: center;
     min-height: 268px;
-    padding: 34px 26px;
+    padding: var(--a2v-space-5, 34px) var(--a2v-space-4, 26px);
     border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
     border-radius: var(--a2v-radius-lg);
     background: var(--a2v-surface), var(--a2v-bg-2);
@@ -862,7 +862,7 @@
   }
 
   .vs-note {
-    margin-top: 30px;
+    margin-top: var(--a2v-space-5, 30px);
     font-family: var(--a2v-font-sans);
     font-size: var(--a2v-ink-caption, 30px);
     letter-spacing: var(--a2v-track-caption, 0.06em);

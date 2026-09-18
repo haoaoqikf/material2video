@@ -452,19 +452,58 @@ _AESTHETIC_SCRIPT = """
     text = walker.nextNode();
   }
 
+  // 卡片表面的采集范围：整幕里所有**被画出来的 HTML 表面**，而不只是图形挂载点的直接子元素。
+  //
+  // 原先只取 `[data-a2v-figure] > *`，于是任何包在包装元素里的卡片都看不见：
+  // 双栏对照的两张卡片在 host > .vs-board > .vs-side 的深度 2，
+  // 花费对照的两张在深度 3，闸门于是报「这一幕没有可识别的卡片表面」——
+  // 而画面上明明有两张。这是**采集范围**的问题，不是阈值的问题，
+  // 所以修的是范围，阈值（≥ 3 项特征）一个字没动。
+  //
+  // 两条边界：
+  // 1. **SVG 图形不算卡片。** 天平载物、冰山标注、阶梯立柱都是圆角矩形，
+  //    但它们只有圆角与描边——SVG 没有投影与内高光这回事，
+  //    拿 HTML 卡片的四项特征去量必然"缺项"。它们是图解对象，
+  //    图形纪律由 K9（描边一致性）与图形颜色预算测试管，不在这里判。
+  // 2. **只判被画出来的表面。** 只判圆角会把透明的定位包装层算成卡片；
+  //    必须有填充、边框或投影之一。宽度或高度不足 40px 的也不算——
+  //    那是小徽标，不是能读成"一块表面"的东西。
   var cards = [];
-  var surfaces = active.querySelectorAll('[data-a2v-figure] > *');
-  for (var j = 0; j < surfaces.length; j++) {
-    var el = surfaces[j];
+  var cardHosts = [];
+  var cardNodes = active.querySelectorAll('[data-a2v-figure] *');
+  for (var j = 0; j < cardNodes.length; j++) {
+    var el = cardNodes[j];
+    var tag = String(el.tagName).toLowerCase();
+    if (tag === 'rect' || tag === 'circle' || tag === 'ellipse' ||
+        tag === 'path' || tag === 'polygon') continue;
     var s = window.getComputedStyle(el);
     var radius = parseFloat(s.borderTopLeftRadius) || 0;
     if (radius <= 8) continue;
+    var borderWidth = parseFloat(s.borderTopWidth) || 0;
+    var shadowText = s.boxShadow || 'none';
+    var background = s.backgroundColor || '';
+    var backgroundAlpha = 1;
+    var bgMatch = background.match(/rgba?\\(([^)]+)\\)/);
+    if (bgMatch) {
+      var bgParts = bgMatch[1].split(',');
+      if (bgParts.length > 3) backgroundAlpha = parseFloat(bgParts[3]);
+    }
+    var painted = backgroundAlpha > 0.02 || borderWidth > 0 || shadowText !== 'none';
+    if (!painted) continue;
+    var cardRect = el.getBoundingClientRect();
+    if (cardRect.width < 40 || cardRect.height < 40) continue;
+    // 最外层优先：卡片里的圆角徽标不再重复计一遍，否则一张卡会被数成两张
+    var nested = false;
+    for (var p = 0; p < cardHosts.length; p++) {
+      if (cardHosts[p].contains(el)) { nested = true; break; }
+    }
+    if (nested) continue;
     var traits = ['radius'];
-    if ((parseFloat(s.borderTopWidth) || 0) > 0) traits.push('border');
-    var shadowText = s.boxShadow || '';
-    if (shadowText && shadowText !== 'none') traits.push('shadow');
+    if (borderWidth > 0) traits.push('border');
+    if (shadowText !== 'none') traits.push('shadow');
     if (shadowText.indexOf('inset') >= 0) traits.push('inset');
-    cards.push({ traits: traits });
+    cardHosts.push(el);
+    cards.push({ role: className(el) || tag, traits: traits });
   }
 
   var rootStyle = window.getComputedStyle(document.documentElement);

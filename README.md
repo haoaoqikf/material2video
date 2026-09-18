@@ -121,12 +121,14 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （飞轮节点、冰山标注、天平载物…）既不受安全区判定也不受容器判定。
   阈值与设计取舍见
   [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
-- **组件级令牌与状态（进行中）**：`figures.css` 的描边宽度、字重、字距、圆角与
-  1px 边框已经全部走令牌（新增 56 处引用，字面值清零），
-  `keynote.css` 另外定义了四个图形基元（`a2v-surface` / `a2v-label` /
-  `a2v-connector` / `a2v-frame`）与四个状态（`rest` / `focus` / `muted` / `done`）；
-  **间距与内边距尚未迁移，基元与状态目前只落在飞轮一个组件上**——
-  这两项是进行中的工作，不要当成已完成的能力；
+- **组件级令牌与状态（进行中）**：`figures.css` 的描边宽度、字重、字距、圆角、
+  1px 边框、间距、内边距与 `margin-top` 已经全部走令牌（86 处引用，字面值清零），
+  不在 8pt 阶上的取值一并改到阶上。`keynote.css` 另外定义了四个图形基元
+  （`a2v-surface` / `a2v-label` / `a2v-connector` / `a2v-frame`）与四个状态
+  （`rest` / `focus` / `muted` / `done`）。
+  这套约束由 `tests/test_figure_token_closure.py` 守住：以后往组件里写一个裸数值
+  （`stroke-width: 3px`、`gap: 18px`）会直接测试失败。
+  **基元与状态目前只落在飞轮一个组件上**——这是进行中的工作，不要当成已完成的能力；
 - **容器内文字由内容测量决定几何**：装文字的容器（节点圆等）按实测文字宽度定形，
   而不是先写死尺寸再把字塞进去。参考示例的飞轮节点原先半径 76px 配 44px 的四字标签
   （约 183px，比直径还宽 31px），文字穿出圆而所有机检全绿，现在由 K8 守住；

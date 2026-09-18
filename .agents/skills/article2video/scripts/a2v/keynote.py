@@ -126,7 +126,14 @@ def _fmt_status(status: str) -> str:
 
 
 #: 状态严重程度：同一幕多帧采样时取最严重的一条，避免把同一问题按帧重复计数。
-_SEVERITY = {"pass": 0, "skipped": 1, "warn": 2, "fail": 3}
+#:
+#: `skipped` 排在 `pass` **之下**（-1）：它不是一种严重程度，而是「这一帧没有可测的东西」。
+#: 一幕的卡片在入场时还没出现、一幕的正文在某几帧还没入场，
+#: 都不代表这一幕「没有卡片」「没有正文」。若把它排在任何实测结论之上，
+#: 就会把已经量到的结论降级成「无法判定」——双栏对照的两张卡片在入场帧量不到，
+#: 整幕于是报「没有可识别的卡片表面」，而画面上明明有卡片。
+#: 只有**所有**采样帧都跳过时，才如实报「跳过」。
+_SEVERITY = {"skipped": -1, "pass": 0, "warn": 2, "fail": 3}
 
 
 @dataclass
@@ -526,7 +533,13 @@ _CARD_TRAITS = ("radius", "border", "shadow", "inset")
 
 
 def gate_card_discipline(scene_id: str, cards: list[dict[str, Any]]) -> Gate:
-    """K6 卡片纪律：卡片不能只画一个纯色块。"""
+    """K6 卡片纪律：卡片不能只画一个纯色块。
+
+    采集范围是「整幕里所有被画出来的 HTML 表面」（见 `inspect._AESTHETIC_SCRIPT`），
+    不只是图形挂载点的直接子元素——原先那样写，任何包在包装元素里的卡片都看不见，
+    闸门会报「没有可识别的卡片表面」，而画面上明明有卡片。
+    SVG 里的圆角矩形是图解对象，不是卡片，不在这里判。
+    """
     if not cards:
         return Gate(
             id="K6",
@@ -534,18 +547,20 @@ def gate_card_discipline(scene_id: str, cards: list[dict[str, Any]]) -> Gate:
             status="skipped",
             value=0,
             threshold=_CARD_MIN_TRAITS,
-            detail="这一幕没有可识别的卡片表面",
+            detail="这一幕没有可识别的 HTML 卡片表面（SVG 里的圆角图形是图解对象，不算卡片）",
             scene=scene_id,
         )
     incomplete = [card for card in cards if len(card.get("traits") or []) < _CARD_MIN_TRAITS]
     status = "pass" if not incomplete else ("warn" if len(incomplete) == 1 else "fail")
+    # 点名是哪几块表面缺项：只说「3 个表面缺少描边或阴影」，人无从下手改
+    names = "、".join(f"「{_clip(card.get('role') or '表面')}」" for card in incomplete[:3])
     return Gate(
         id="K6",
         title="卡片与描边纪律",
         status=status,
         value=len(cards) - len(incomplete),
         threshold=f"{_CARD_MIN_TRAITS}/{len(_CARD_TRAITS)} 特征",
-        detail="" if status == "pass" else f"{len(incomplete)} 个表面缺少描边或阴影，会显得扁平",
+        detail="" if status == "pass" else f"{len(incomplete)} 个表面缺少描边或阴影，会显得扁平：{names}",
         scene=scene_id,
     )
 

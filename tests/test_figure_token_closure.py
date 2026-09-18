@@ -1,0 +1,394 @@
+"""组件层的令牌与状态契约。
+
+这个文件补的是一格空白：**「令牌有没有定义」已经有测试，「组件有没有真的用」没有。**
+
+规范写着「组件的间距取自 8pt 阶」，而实测 `figures.css` 的 13 处 `gap` 与
+4 处 `padding` 一个都没走阶，30 / 46 / 18 / 22 / 26 / 34 全不在阶上；
+`stroke-width` 散着 2 / 3 / 4 / 5 / 6 五种线宽，`font-weight` 10 处、
+`letter-spacing` 16 处全是字面值。这些都不报错、不影响出片，
+只是让画面在细节上不像一套东西——最难自查的一类缺陷。
+
+因此这里查两件事：
+
+1. **令牌闭包**：组件样式表里的间距、内边距、线宽、字重、字距、圆角必须引用令牌，
+   而且新族的引用必须带原值兜底（`var(--令牌, 原值)`），否则未启用预设的画面会变。
+2. **基元与状态**：四个基元类只在预设作用域内存在，状态取值只有四个，
+   状态规则里不出现不透明度与位移。
+
+只做静态解析，不起浏览器：CSS 文本里的数值本身就是契约。
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pytest
+
+from a2v import keynote
+
+ASSETS = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "assets"
+
+
+def _strip_comments(css: str) -> str:
+    return re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+
+FIGURES_CSS = _strip_comments((ASSETS / "figures.css").read_text(encoding="utf-8"))
+KEYNOTE_CSS = _strip_comments((ASSETS / "keynote.css").read_text(encoding="utf-8"))
+
+#: 必须走令牌的属性。判据是「这个数值改变时，八个组件是不是应该一起变」。
+#: 图稿坐标（`d` / `cx` / `width` 这类）不在其中——它们是内容，不是令牌。
+TOKENISED_PROPERTIES = (
+    "stroke-width",
+    "font-weight",
+    "letter-spacing",
+    "gap",
+    "row-gap",
+    "column-gap",
+    "padding",
+    "padding-top",
+    "padding-right",
+    "padding-bottom",
+    "padding-left",
+    "margin-top",
+    "margin-right",
+    "margin-bottom",
+    "margin-left",
+    "border-radius",
+    "border-top-left-radius",
+    "border-top-right-radius",
+    "border-bottom-left-radius",
+    "border-bottom-right-radius",
+)
+
+#: 允许保留字面值的写法：归零与居中复位不是间距，令牌化它们没有语义。
+_RESET_VALUES = {"0", "auto", "0 auto", "0px", "none"}
+
+#: 本轮新增的四个令牌族。它们在未启用预设时**完全不存在**，
+#: 所以组件里的引用必须带原值兜底，否则声明在计算值阶段失效，
+#: 元素会落到初始值（线宽 1px、字重 400、字距 normal、内边距 0），
+#: 既有非预设画面就变了。
+NEW_FAMILIES = ("a2v-stroke-", "a2v-weight-", "a2v-track-", "a2v-space-", "a2v-radius-pill")
+
+#: 页面级样式表：非预设页面也会加载，因此这里定义的令牌不需要兜底。
+#: `figures.css` 自己也定义了少量默认值（例如 `--a2v-emphasis-mix: 0`）。
+PAGE_LEVEL_CSS = " ".join(
+    _strip_comments((ASSETS / name).read_text(encoding="utf-8"))
+    for name in ("base.css", "theme.css", "figures.css")
+)
+PAGE_LEVEL_TOKENS = set(re.findall(r"(--a2v-[a-z0-9-]+)\s*:", PAGE_LEVEL_CSS))
+
+#: 这些令牌在未启用预设时**故意不存在**，而且不能给它们补兜底：
+#: 缺席会让整条声明在计算值阶段失效，元素于是落到继承值/初始值——
+#: 那正是既有非预设画面的样子（由逐字节回归守着）。
+#: 补上兜底会改变既有画面，所以它们不在「必须带兜底」的范围内。
+INTENTIONALLY_ABSENT_ON_LEGACY = (
+    "a2v-accent-deep",
+    "a2v-accent-soft-solid",
+    "a2v-font-sans",
+)
+
+#: 基元与状态
+PRIMITIVES = ("a2v-surface", "a2v-label", "a2v-connector", "a2v-frame")
+STATES = ("rest", "focus", "muted", "done")
+
+
+def _declarations(css: str) -> list[tuple[int, str, str]]:
+    """(行号, 属性, 值)。行号按去注释后的文本算，只用于报错定位。"""
+    found = []
+    for number, line in enumerate(css.split("\n"), 1):
+        match = re.match(r"^\s*([a-z-]+)\s*:\s*(.+?);\s*$", line)
+        if match:
+            found.append((number, match.group(1), match.group(2)))
+    return found
+
+
+class TestTokenClosure:
+    """组件里的样式属性一律走令牌。"""
+
+    @pytest.mark.parametrize("prop", TOKENISED_PROPERTIES)
+    def test_property_uses_tokens(self, prop: str) -> None:
+        offenders = [
+            (number, value)
+            for number, name, value in _declarations(FIGURES_CSS)
+            if name == prop and "var(" not in value and value not in _RESET_VALUES
+        ]
+        assert not offenders, (
+            f"figures.css 的 {prop} 还在写字面值：{offenders}；"
+            "改用对应令牌并带上原值兜底（var(--令牌, 原值)），"
+            "否则改一处观感要翻遍八个组件"
+        )
+
+    def test_new_families_always_carry_a_fallback(self) -> None:
+        """新族的引用必须带原值兜底，否则未启用预设的画面会变。
+
+        判据不是「哪个前缀看起来是新的」，而是**这个令牌非预设页面有没有**：
+        `--a2v-radius-lg` 由 `theme.css` 提供，可以不带兜底；
+        `--a2v-radius-pill` 只在预设里定义，就必须带。
+        """
+        offenders = []
+        for number, name, value in _declarations(FIGURES_CSS):
+            if name not in TOKENISED_PROPERTIES:
+                continue
+            for token, terminator in re.findall(r"var\(\s*--([a-z0-9-]+)\s*([,)])", value):
+                if not any(token.startswith(family) for family in NEW_FAMILIES):
+                    continue
+                if token in PAGE_LEVEL_TOKENS or token in INTENTIONALLY_ABSENT_ON_LEGACY:
+                    continue
+                if terminator == ")":
+                    offenders.append((number, name, value))
+        assert not offenders, (
+            f"这些引用没有原值兜底：{offenders}；"
+            "未启用预设的页面取不到令牌，声明会失效并落到初始值，画面因此改变"
+        )
+
+    def test_intentionally_absent_tokens_are_not_given_fallbacks(self) -> None:
+        """反向约束：故意缺席的令牌不许被补上兜底。
+
+        它们缺席时整条声明失效，元素落到继承值——这是既有非预设画面的样子。
+        补兜底会把画面改掉，而逐字节回归只在成片层面守得住，
+        静态这里先说清哪些是「故意的」。
+        """
+        offenders = []
+        for number, name, value in _declarations(FIGURES_CSS):
+            for token in re.findall(r"var\(\s*--([a-z0-9-]+)\s*,", value):
+                if token in INTENTIONALLY_ABSENT_ON_LEGACY:
+                    offenders.append((number, name, value))
+        assert not offenders, (
+            f"这些令牌在未启用预设时故意不存在，补兜底会改变既有画面：{offenders}"
+        )
+
+    def test_stroke_widths_land_on_the_ladder(self) -> None:
+        """线宽只能取描边阶上的档位，兜底值也要在阶上。"""
+        ladder = set(keynote._STROKE_LADDER)
+        offenders = []
+        for number, name, value in _declarations(FIGURES_CSS):
+            if name != "stroke-width":
+                continue
+            for literal in re.findall(r"([0-9.]+)px", value):
+                if float(literal) not in ladder:
+                    offenders.append((number, value))
+        assert not offenders, (
+            f"这些线宽不在描边阶 {sorted(ladder)} 上：{offenders}；"
+            "沿用一个阶外的线宽，观众说不出哪里不对，只会觉得不够精致"
+        )
+
+    def test_figure_number_weight_is_capped(self) -> None:
+        """字重上限 700：可变字体在中文上 800 会粘连。"""
+        weight_block = re.search(r"\.fig-number\s*\{[^}]*\}", FIGURES_CSS)
+        assert weight_block, "找不到 .fig-number 的样式块"
+        fallback = re.search(r"font-weight:\s*var\(--a2v-weight-bold,\s*([0-9]+)\)", weight_block.group())
+        assert fallback, "数字组件的字重应当引用 --a2v-weight-bold 并带原值兜底"
+        assert int(fallback.group(1)) <= 800, "兜底值不该超过 800"
+
+
+class TestPrimitivesAndStates:
+    """四个基元类与四个状态：只在预设作用域内、只表达颜色。"""
+
+    @pytest.mark.parametrize("name", PRIMITIVES)
+    def test_primitive_is_preset_scoped(self, name: str) -> None:
+        selectors = [
+            selector.strip()
+            for selector in re.findall(r"([^{}]+)\{", KEYNOTE_CSS)
+            if re.search(rf"\.{name}\b", selector)
+        ]
+        assert selectors, f"keynote.css 里没有 .{name} 的规则"
+        unscoped = [
+            selector
+            for selector in selectors
+            if "data-a2v-preset" not in selector
+        ]
+        assert not unscoped, (
+            f".{name} 有不带预设作用域的选择器：{unscoped}；"
+            "未启用预设的页面会因此改样"
+        )
+
+    def test_state_values_are_exactly_the_four(self) -> None:
+        used = set(re.findall(r'\[data-a2v-state="([a-z]+)"\]', KEYNOTE_CSS))
+        assert used <= set(STATES), f"出现了四态之外的状态：{sorted(used - set(STATES))}"
+        assert used == set(STATES), f"四态里还有没写样式的：{sorted(set(STATES) - used)}"
+
+    def test_state_rules_carry_no_motion_or_opacity(self) -> None:
+        """状态只表达语义；不透明度与位移属于动效配方层。
+
+        一旦写进状态定义，时序就有两个真源，而配方层存在的全部理由
+        就是「手感只有一处」。
+        """
+        offenders = []
+        for match in re.finditer(r'\[data-a2v-state="[a-z]+"\]\s*\{([^}]*)\}', KEYNOTE_CSS):
+            body = match.group(1)
+            for banned in ("opacity", "transform", "transition", "animation", "filter"):
+                if re.search(rf"(^|[;\s]){banned}\s*:", body):
+                    offenders.append((banned, match.group(0)[:60]))
+        assert not offenders, f"状态规则里出现了动效或透明度的写法：{offenders}"
+
+    def test_focus_state_uses_the_accent(self) -> None:
+        """焦点态必须用强调色——否则「主次分明」没有可依的视觉手段。"""
+        block = re.search(
+            r'\.a2v-surface\[data-a2v-state="focus"\]\s*\{([^}]*)\}', KEYNOTE_CSS
+        )
+        assert block, "找不到焦点态的规则"
+        assert "var(--a2v-accent)" in block.group(1), "焦点态应当把描边换成强调色"
+
+
+class TestContainerOverflowGate:
+    """K8：容器内溢出。图形里的文字不许穿出它所属的容器。"""
+
+    @staticmethod
+    def _circle(cx: float, cy: float, r: float) -> dict[str, float]:
+        return {"left": cx - r, "top": cy - r, "right": cx + r, "bottom": cy + r}
+
+    @staticmethod
+    def _box(cx: float, cy: float, width: float, height: float) -> dict[str, float]:
+        return {
+            "left": cx - width / 2,
+            "top": cy - height / 2,
+            "right": cx + width / 2,
+            "bottom": cy + height / 2,
+        }
+
+    def test_no_declared_container_is_skipped_with_a_reason(self) -> None:
+        gate = keynote.gate_container_overflow("loop", [])
+        assert gate.status == "skipped"
+        assert "无法判定" in gate.detail
+        assert "声明" in gate.detail, "跳过要说清为什么量不到，否则会被当成通过"
+
+    def test_text_inside_the_circle_passes(self) -> None:
+        # 文字 176×54、半径 108：最远角到圆心 92.05，装得下
+        gate = keynote.gate_container_overflow(
+            "loop",
+            [
+                {
+                    "text": "推到明天",
+                    "container": ".loop-node-disc",
+                    "kind": "circle",
+                    "box": self._box(444, 90, 176, 54),
+                    "shape": self._circle(444, 90, 108),
+                }
+            ],
+        )
+        assert gate.status == "pass", gate.detail
+        assert gate.value == 0
+
+    def test_text_wider_than_the_circle_fails_and_names_the_text(self) -> None:
+        """飞轮节点原先就是这一种：半径 76（直径 152）配 44px 的四字标签。
+
+        实测的文字盒是 176×54（四个汉字带字距），最远角到圆心
+        sqrt(88² + 27²) = 92.05，比半径 76 多出 16.05px——
+        文字穿出圆是必然的，而当时的 K7 报的是「都在安全区内」。
+        """
+        gate = keynote.gate_container_overflow(
+            "loop",
+            [
+                {
+                    "text": "推到明天",
+                    "container": ".loop-node-disc",
+                    "kind": "circle",
+                    "box": self._box(444, 90, 176, 54),
+                    "shape": self._circle(444, 90, 76),
+                }
+            ],
+        )
+        assert gate.status == "fail"
+        assert gate.value == pytest.approx(16.1, abs=0.2)
+        assert "推到明天" in gate.detail, "失败要说清是哪段文字，否则人无从下手改"
+        assert ".loop-node-disc" in gate.detail
+        assert "硬判定" in gate.detail
+
+    def test_tolerance_absorbs_subpixel_rounding(self) -> None:
+        """贴边但没穿出去的不算失败：入场变换对文字与容器一致，只余舍入。"""
+        gate = keynote.gate_container_overflow(
+            "rect",
+            [
+                {
+                    "text": "标签",
+                    "container": ".card",
+                    "kind": "rect",
+                    "box": {"left": 0.0, "top": 0.0, "right": 101.0, "bottom": 50.0},
+                    "shape": {"left": 0.0, "top": 0.0, "right": 100.0, "bottom": 50.0},
+                }
+            ],
+        )
+        assert gate.status == "pass", gate.detail
+
+    def test_rect_container_overflow_fails(self) -> None:
+        gate = keynote.gate_container_overflow(
+            "rect",
+            [
+                {
+                    "text": "标签",
+                    "container": ".card",
+                    "kind": "rect",
+                    "box": {"left": -12.0, "top": 0.0, "right": 100.0, "bottom": 50.0},
+                    "shape": {"left": 0.0, "top": 0.0, "right": 100.0, "bottom": 50.0},
+                }
+            ],
+        )
+        assert gate.status == "fail"
+        assert gate.value == pytest.approx(12.0)
+
+
+class TestStrokeConsistencyGate:
+    """K9：同一帧的线宽要落在描边阶上，档数也要收敛。"""
+
+    def test_no_stroke_is_skipped(self) -> None:
+        gate = keynote.gate_stroke_consistency("loop", [])
+        assert gate.status == "skipped"
+        assert "没有可量的描边" in gate.detail
+
+    def test_on_ladder_within_three_tiers_passes(self) -> None:
+        gate = keynote.gate_stroke_consistency("loop", [4.0, 4.0, 6.0, 2.0])
+        assert gate.status == "pass"
+        assert gate.value == [2.0, 4.0, 6.0]
+
+    def test_off_ladder_value_warns(self) -> None:
+        gate = keynote.gate_stroke_consistency("loop", [4.0, 5.0])
+        assert gate.status == "warn"
+        assert "5.0" in gate.detail
+
+    def test_too_many_tiers_warns(self) -> None:
+        gate = keynote.gate_stroke_consistency("loop", [1.0, 2.0, 3.0, 4.0, 6.0])
+        assert gate.status == "warn"
+        assert "档线宽" in gate.detail
+
+
+class TestGateAggregation:
+    """同一幕多帧采样时的聚合规则。"""
+
+    def _aggregate(self, statuses: list[str]) -> str:
+        result = keynote.KeynoteResult()
+        for index, status in enumerate(statuses):
+            result.render(
+                "loop",
+                index,
+                [
+                    keynote.Gate(
+                        id="K6",
+                        title="卡片与描边纪律",
+                        status=status,
+                        value=0,
+                        detail=f"{status}",
+                    )
+                ],
+            )
+        return result.gates[0].status
+
+    def test_measured_result_outranks_skipped(self) -> None:
+        """「跳过」不是严重程度，是「这一帧没东西可测」。
+
+        这一幕的卡片在入场帧还没出现，不代表这一幕没有卡片；
+        若让跳过压过实测结论，整幕就会报「没有可识别的卡片表面」，
+        而画面上明明有卡片——双栏对照正是这样被漏掉的。
+        """
+        assert self._aggregate(["skipped", "pass"]) == "pass"
+        assert self._aggregate(["pass", "skipped"]) == "pass"
+        assert self._aggregate(["skipped", "pass", "skipped"]) == "pass"
+
+    def test_all_skipped_stays_skipped(self) -> None:
+        assert self._aggregate(["skipped", "skipped"]) == "skipped"
+
+    def test_worse_status_wins(self) -> None:
+        assert self._aggregate(["pass", "warn"]) == "warn"
+        assert self._aggregate(["warn", "fail"]) == "fail"
+        assert self._aggregate(["fail", "pass"]) == "fail"
