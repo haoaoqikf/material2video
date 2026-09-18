@@ -3031,3 +3031,92 @@ A/B 两条路都需要看一眼浅色 `attention` 幕的早期帧。这一轮确
 
 - 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 77. 描边采集的迭代来源（第 67 轮，维度 9/10）
+
+§76 说"还差一步：看那段循环遍历的是哪些元素"。本轮把原文打出来（含上下文，逐行号）：
+
+```js
+    570|     var shapeTag = String(shape.tagName).toLowerCase();
+    571|     inside.push({
+    572|       role: className(label) || String(label.tagName).toLowerCase(),
+    573|       text: labelText,
+    574|       container: selector,
+    575|       kind: shapeTag === 'circle' || shapeTag === 'ellipse' ? 'circle' : 'rect',
+    576|       box: {
+    577|         left: textBox.x,
+    578|         top: textBox.y,
+    579|         right: textBox.x + textBox.width,
+    580|         bottom: textBox.y + textBox.height
+    581|       },
+    582|       shape: {
+    583|         left: shapeBox.x,
+    584|         top: shapeBox.y,
+    585|         right: shapeBox.x + shapeBox.width,
+    586|         bottom: shapeBox.y + shapeBox.height
+    587|       }
+    588|     });
+    589|   }
+    590| 
+    591|   // 描边：同帧出现了几档线宽、取值在不在描边阶上。
+    592|   var strokes = [];
+    593|   var paintedNodes = active.querySelectorAll('svg *');
+    594|   for (var w = 0; w < paintedNodes.length; w++) {
+    595|     var painted = paintedNodes[w];
+    596|     var paintedStyle = window.getComputedStyle(painted);
+    597|     var strokeWidth = parseFloat(paintedStyle.strokeWidth) || 0;
+    598|     if (strokeWidth <= 0) continue;
+    599|     if (!paintedStyle.stroke || paintedStyle.stroke === 'none') continue;
+    600|     strokes.push(Math.round(strokeWidth * 10) / 10);
+    601|   }
+    602| 
+    603|   return {
+    604|     sizes: sizes,
+    605|     texts: texts,
+    606|     cards: cards,
+    607|     noFit: noFit,
+    608|     inside: inside,
+    609|     strokes: strokes,
+    610|     accent: rootStyle.getPropertyValue('--a2v-accent').trim(),
+    611|     background: rootStyle.getPropertyValue('--a2v-bg-0').trim(),
+    612|     center: safeBox ? safeBox.left + safeBox.width / 2 - stageRect.left : 0,
+    613|     safe: safeBox
+    614|       ? { left: safeBox.left, right: safeBox.right, top: safeBox.top, bottom: safeBox.bottom }
+    615|       : null,
+```
+
+### 77.1 据此下的结论：不是采集范围问题，是确实没画
+
+决定性的是第 593 行：
+
+```js
+var paintedNodes = active.querySelectorAll('svg *');
+```
+
+采集遍历的是**当前幕 SVG 里的全部元素**（只跳过 `strokeWidth <= 0` 或 `stroke: none`），
+选择器**很宽**。所以 `compare` / `cost` / `one` 三幕报"没有可量的描边"，
+**不是采集范围问题，而是这三幕的图形确实一个描边都没画**（纯填充）。
+
+### 77.2 这暴露的是维度 9/10 的真问题
+
+- 设计层定义了一整套描边阶梯（`--a2v-stroke-1..5`）
+- 但 8 幕里有 **3 幕的图形完全不用描边**，其余几幕用
+- 于是"图形风格一致"这件事**在片内就不一致**：同样是图解对象，有的有轮廓、有的是平涂
+
+这属于本项目那类复发缺陷——**设计层给了阶梯，组件没接**（这是第九例）。
+
+### 77.3 两条路（都要看一眼再定，且都只动预设）
+
+1. **承认"图形可以平涂"**：把"这几幕是填色图解、不描边"写进设计文档的能力边界，
+   并把 K9 的跳过原因一并写清（跳过是诚实的，但必须被记着）
+2. **补齐图形语言**：给这三幕的图形按阶梯加描边，让所有图解对象都有轮廓
+
+选项 2 是**视觉改动**：只动预设路径（冻结路径必须逐字节不变）、要过两套主题闸门与
+动效判据，而且**不能说成"逐字节一致"**。
+
+### 77.4 验证
+
+### 77.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
