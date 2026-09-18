@@ -1033,29 +1033,56 @@ loop 的四个节点标签、closing 的 `ex-node-text` ×2）。
 浏览器，报错还精确到行列。把那个反引号放回去时它报
 `SyntaxError: Unexpected identifier`。
 
-## 七、状态语汇：三族基元
+## 七、状态语汇：四族基元
 
-画面上承载状态的元素，各按角色归到三族基元之一，靠 `data-a2v-state` 取状态：
+画面上承载状态的元素，各按角色归到四族基元之一，靠 `data-a2v-state` 取状态：
 
 | 族 | 类名 | 供给什么 | 用在哪些元素 |
 | --- | --- | --- | --- |
 | 面 | `a2v-surface` | `fill` + `stroke` + HTML 的 `background-color` | 圆盘、柱子、令牌、卡片、标注框 |
 | 文字层 | `a2v-label` | `fill`（SVG）/ `color`（HTML） | 组件标签、节点标签 |
-| 线条与标记 | `a2v-stroke` | **只给一个颜色通道** `--a2v-stroke-ink`（另给 `border-color`） | 连线、弧、箭头头 |
+| 连接件 | `a2v-connector` | 墨色通道 `--a2v-connector-ink` + 端点形状 | 连线、弧、箭头头 |
+| 边界框 | `a2v-frame` | `stroke` + 线宽 | （暂无消费者） |
 
 四态：`rest` / `focus` / `muted` / `done`。
 
-**线条族为什么不写属性。** 同族元素里既有 `fill: none` 的描边路径（弧线、虚线），
-也有只有 `fill` 的填充标记（箭头头）。基元的选择器是三层（属性 + 类 + 属性），
-**只要它写了 `fill`，就会盖掉组件自己的 `fill: none`**，一条弧线会变成一块实心。
-所以线条族只供给颜色通道，由组件决定落到 `stroke` 还是 `fill` 上：
+**连接件只给墨色与端点形状，几何归组件。** 同族元素的形态差得很远：
+虚线连线（3px + `dasharray`）、6px 的弧、圆盘的边界、纯填充的箭头头。
+基础规则里原本写死 `stroke-width: var(--fig-connector-w, 4)`——没有消费者时
+看不出问题，一旦有消费者就会把 3px / 5px 一起改成 4px。
+
+**墨色为什么走通道变量。** 同族里既有 `fill: none` 的描边路径，也有只有 `fill`
+的填充标记，而基元的选择器是三层（属性 + 类 + 属性）——只要它直接写 `fill`，
+就会盖掉组件的 `fill: none`，一条弧线会变成一块实心。所以基元把颜色写进
+`--a2v-connector-ink`，组件决定它落到 `stroke` 还是 `fill` 上：
 
 ```css
-.berg-link  { fill: none; stroke: var(--a2v-stroke-ink, var(--fig-line)); }
-.ex-arrow   {            fill:   var(--a2v-stroke-ink, var(--fig-line)); }
+.berg-link  { fill: none; stroke: var(--a2v-connector-ink, var(--fig-line)); }
+.ex-arrow   {            fill:   var(--a2v-connector-ink, var(--fig-line)); }
 ```
 
-兜底值让未启用预设的路径保持原样（通道变量只在预设作用域内被赋值）。
+反过来，**填充标记要显式盖回基元的 `fill: none` 并关掉 `stroke`**：
+
+```css
+.fig-exchange .ex-arrow[data-a2v-state] { fill: var(--a2v-connector-ink, …); stroke: none; }
+```
+
+三层选择器（父级 + 元素 + 状态属性）才盖得住三层的基元；`stroke: none`
+是因为基元的 `stroke` 会在三角外面描一圈 1px 的发丝边。
+
+**未启用预设时的表现显式限定作用域**，不靠优先级碰运气：
+
+```css
+:root:not([data-a2v-preset="keynote"]) .ex-node-disc[data-a2v-state="focus"] { … }
+```
+
+两套规则并列时谁赢取决于文件顺序，这是最容易在重构里悄悄翻车的一类。
+
+**一个概念只能有一个名字。** 第 16 轮曾给这一族新起名 `a2v-stroke`，
+而 `a2v-connector` 早就存在（注释写着"连线、箭头、轨道、轴线"），
+只是它当时**只有形状、没有状态规则**。重名的成因是**手抄的基元清单**：
+`test_figure_token_closure.py` 里一份、新写的断言里又一份，两份还不一致
+（后者漏了 `a2v-frame`），谁也没报错。现在基元清单从 `keynote.css` 推导。
 
 **迁完之后：** 八幕用到的组件里，承载状态的角色全部走基元 + `data-a2v-state`，
 "未迁移清单"归零并加了"不得再增长"的终点断言。

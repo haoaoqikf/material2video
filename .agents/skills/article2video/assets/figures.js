@@ -865,7 +865,7 @@
         var link = svgEl('path', {
           /* 连线也走状态语汇：线条族的通道变量按状态给色，
            * 组件决定它落在 stroke 上（这里）还是 fill 上（箭头头）。 */
-          class: 'berg-link a2v-stroke',
+          class: 'berg-link a2v-connector',
           'data-a2v-state': isAccent ? 'focus' : 'rest',
           d:
             'M' + BERG.CALLOUT_X + ' ' + (y + BERG.CALLOUT_H / 2) +
@@ -998,10 +998,14 @@
       <stop offset="0.5" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 55%, transparent)"></stop>
       <stop offset="1" stop-color="color-mix(in srgb, var(--a2v-accent-soft-solid) 0%, transparent)"></stop>
     </linearGradient>
+    <!-- 水深的三档：由调色板里"水"的颜色推导，而不是手挑一个蓝——
+         手挑的 rgba(45,78,120) 在四套调色板里都不存在（未启用设计语言预设的
+         那套主题是朱红强调色，配一块蓝洗是跑出调色板的）。
+         兜底值是原来的字面量：未启用预设时逐帧不变。 -->
     <linearGradient id="berg-depth" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="rgba(45, 78, 120, 0.17)"></stop>
-      <stop offset="0.75" stop-color="rgba(45, 78, 120, 0.06)"></stop>
-      <stop offset="1" stop-color="rgba(45, 78, 120, 0)"></stop>
+      <stop offset="0" stop-color="var(--a2v-berg-depth-1, rgba(45, 78, 120, 0.17))"></stop>
+      <stop offset="0.75" stop-color="var(--a2v-berg-depth-2, rgba(45, 78, 120, 0.06))"></stop>
+      <stop offset="1" stop-color="var(--a2v-berg-depth-3, rgba(45, 78, 120, 0))"></stop>
     </linearGradient>
   </defs>
   <rect class="berg-water" data-el="waterBody" x="0" y="300" width="888" height="460"></rect>
@@ -1613,17 +1617,17 @@
 <!-- 双向箭头：挑人不是单向的 -->
 <svg class="fig fig-exchange" viewBox="0 0 888 300" aria-hidden="true">
   <g data-el="nodeLeft">
-    <circle class="ex-node-disc a2v-stroke" data-a2v-state="rest" cx="150" cy="150" r="88"></circle>
+    <circle class="ex-node-disc a2v-connector" data-a2v-state="rest" cx="150" cy="150" r="88"></circle>
     <text class="ex-node-text" data-el="nodeLeftText" x="150" y="150"></text>
   </g>
   <g data-el="nodeRight">
-    <circle class="ex-node-disc a2v-stroke" data-a2v-state="focus" cx="738" cy="150" r="88"></circle>
+    <circle class="ex-node-disc a2v-connector" data-a2v-state="focus" cx="738" cy="150" r="88"></circle>
     <text class="ex-node-text" data-el="nodeRightText" x="738" y="150"></text>
   </g>
-  <path class="ex-arc a2v-stroke" data-a2v-state="rest" data-el="arcTo" d="M262 118 Q445 66 628 118"></path>
-  <path class="ex-arrow a2v-stroke" data-a2v-state="rest" data-el="arrowTo" d="M0 0 L0 0"></path>
-  <path class="ex-arc a2v-stroke" data-a2v-state="focus" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
-  <path class="ex-arrow a2v-stroke" data-a2v-state="focus" data-el="arrowBack" d="M0 0 L0 0"></path>
+  <path class="ex-arc a2v-connector" data-a2v-state="rest" data-el="arcTo" d="M262 118 Q445 66 628 118"></path>
+  <path class="ex-arrow a2v-connector" data-a2v-state="rest" data-el="arrowTo" d="M0 0 L0 0"></path>
+  <path class="ex-arc a2v-connector" data-a2v-state="focus" data-el="arcBack" d="M626 182 Q445 234 264 182"></path>
+  <path class="ex-arrow a2v-connector" data-a2v-state="focus" data-el="arrowBack" d="M0 0 L0 0"></path>
 </svg>
 <p class="closing-action" data-el="action" data-a2v-fit="body"></p>`;
 

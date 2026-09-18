@@ -352,12 +352,22 @@ SHALL NOT 让那条路径静默丢失焦点表达。
 ### Requirement: 状态语汇覆盖每一种角色
 
 状态语汇 SHALL 为画面里每一种承载状态的角色提供基元：**面**（`a2v-surface`）、
-**文字层**（`a2v-label`）、**线条与标记**（`a2v-stroke`）。
-组件 SHALL NOT 为同一种角色自造第二套表达（`.is-accent`、`.is-focus` 之类）。
+**文字层**（`a2v-label`）、**连接件**（`a2v-connector`）、**边界框**（`a2v-frame`）。
+组件 SHALL NOT 为同一种角色自造第二套表达（`.is-accent`、`.is-focus` 之类），
+SHALL NOT 为已有基元再起一个同义的新名字——一个概念只能有一个名字。
 
-线条族 SHALL NOT 直接声明 `stroke` / `fill` 属性，SHALL 只供给一个颜色通道，
+连接件基元 SHALL NOT 直接声明 `stroke` / `fill` 属性，SHALL 只供给颜色通道，
 由组件决定落到哪个属性上——同族元素里既有 `fill: none` 的描边路径，
 也有只有 `fill` 的填充标记；基元选择器层级更高，写属性会把弧线填成实心。
+填充标记 SHALL 用与基元同层级的选择器显式声明自己的 `fill` 并关掉 `stroke`。
+
+连接件基元 SHALL NOT 规定线宽与虚线：同族元素形态相差很远，
+几何归组件。未启用预设时的表现 SHALL 用
+`:root:not([data-a2v-preset="keynote"])` 显式限定作用域，
+SHALL NOT 依赖两套规则的选择器优先级先后。
+
+基元清单 SHALL 只有一处真源（从样式表推导），SHALL NOT 在测试里手抄——
+手抄的两份会不一致，且不一致时不报错。
 
 某个角色迁完之后 SHALL 从"未迁移清单"里删掉；清单 SHALL 提供一个"不得再增长"
 的终点断言，而不是一张可以随手追加的表。

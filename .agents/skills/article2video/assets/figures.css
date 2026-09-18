@@ -481,7 +481,7 @@
    * 但基元只在预设作用域内定义，所以下面这条按**状态属性**（而不是临场类名）
    * 补回未启用预设时的表现：那条路径上焦点标签仍然是强调色，逐帧不变。
    * 预设下基元的选择器多一层属性，优先级更高，两边取值也一致。 */
-  .berg-callout-label[data-a2v-state="focus"] {
+  :root:not([data-a2v-preset="keynote"]) .berg-callout-label[data-a2v-state="focus"] {
     fill: var(--a2v-accent);
   }
 
@@ -495,14 +495,14 @@
     fill: none;
     /* 线条族的通道变量：预设下由 `data-a2v-state` 供给（rest → --fig-line，
      * focus → 强调色），未启用预设时回落到原来的取值。 */
-    stroke: var(--a2v-stroke-ink, var(--fig-line));
+    stroke: var(--a2v-connector-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-3, 3);
     stroke-dasharray: 10 10;
   }
   /* 未启用预设时的焦点表现（原 `.berg-link.is-accent` 的等价物）。
    * 基元只在预设作用域内定义，所以按**状态属性**把它接住；预设下基元
    * 多一层属性、优先级更高。 */
-  .berg-link[data-a2v-state="focus"] {
+  :root:not([data-a2v-preset="keynote"]) .berg-link[data-a2v-state="focus"] {
     stroke: rgba(var(--a2v-accent-rgb), 0.7);
   }
 
@@ -755,12 +755,12 @@
 
   .ex-node-disc {
     fill: var(--fig-surface);
-    stroke: var(--a2v-stroke-ink, var(--fig-line));
+    stroke: var(--a2v-connector-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-4, 4);
   }
 
   /* 未启用预设时的焦点表现（原 `.ex-node-disc.is-accent` 的等价物） */
-  .ex-node-disc[data-a2v-state="focus"] {
+  :root:not([data-a2v-preset="keynote"]) .ex-node-disc[data-a2v-state="focus"] {
     stroke: rgba(var(--a2v-accent-rgb), 0.55);
   }
 
@@ -773,22 +773,32 @@
 
   .ex-arc {
     fill: none;
-    stroke: var(--a2v-stroke-ink, var(--fig-line));
+    stroke: var(--a2v-connector-ink, var(--fig-line));
     stroke-width: var(--a2v-stroke-5, 5);
     stroke-linecap: round;
   }
 
   /* 未启用预设时的焦点表现（原 `.ex-arc.is-accent` 的等价物） */
-  .ex-arc[data-a2v-state="focus"] {
+  :root:not([data-a2v-preset="keynote"]) .ex-arc[data-a2v-state="focus"] {
     stroke: var(--a2v-accent);
   }
 
   .ex-arrow {
-    fill: var(--a2v-stroke-ink, var(--fig-line));
+    fill: var(--a2v-connector-ink, var(--fig-line));
+  }
+
+  /* 箭头头是**填充标记**，不是描边路径；连接件基元给路径写 `fill: none`，
+   * 而且它是三层选择器（属性 + 类 + 属性）。所以这里也要三层
+   * （父级 + 元素 + 状态属性）才盖得住，否则预设下箭头头会整个消失。 */
+  .fig-exchange .ex-arrow[data-a2v-state] {
+    fill: var(--a2v-connector-ink, var(--fig-line));
+    /* 它是填充标记：基元给的 `stroke` 会在三角外面描一圈 1px 的发丝边，
+       把箭头头撑大一点点。这里显式关掉，两种模式下都与原来一致。 */
+    stroke: none;
   }
 
   /* 未启用预设时的焦点表现（原 `.ex-arrow.is-accent` 的等价物） */
-  .ex-arrow[data-a2v-state="focus"] {
+  :root:not([data-a2v-preset="keynote"]) .ex-arrow[data-a2v-state="focus"] {
     fill: var(--a2v-accent);
   }
 

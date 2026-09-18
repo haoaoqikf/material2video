@@ -145,6 +145,11 @@
   --fig-on-ink: #0f131a;
   --fig-surface: #171e2b; /* 面填充：不设下限，形状由 --fig-line 描边界定 */
   --fig-water: rgba(92, 152, 220, 0.22); /* 面填充 */
+  /* 冰山的水深三档：从"水"的颜色推导，而不是再手挑一个蓝。
+   * 第 1 档就是水面本身，往下逐档稀释——深度是明度差，不是另一个色相。 */
+  --a2v-berg-depth-1: var(--fig-water);
+  --a2v-berg-depth-2: color-mix(in srgb, var(--fig-water) 38%, transparent);
+  --a2v-berg-depth-3: color-mix(in srgb, var(--fig-water) 0%, transparent);
   --fig-hollow: rgba(255, 255, 255, 0.05); /* 面填充：深色底下的「空壳」要提亮，不能沿用浅色页面的深灰 */
   --fig-node-shadow: rgba(0, 0, 0, 0.35); /* 面填充：深色底下的投影 */
   --fig-title-grad-from: #e9eef6; /* 图形内文本：标题渐变，预设层会整体替换标题背景 */
@@ -223,6 +228,10 @@
   --fig-on-ink: #ffffff;
   --fig-surface: #ffffff; /* 面填充：跟着这套主题的面阶走，不设下限 */
   --fig-water: rgba(64, 92, 132, 0.13); /* 面填充 */
+  /* 冰山的水深三档：同深色主题，只是水的颜色跟着这套调色板走 */
+  --a2v-berg-depth-1: var(--fig-water);
+  --a2v-berg-depth-2: color-mix(in srgb, var(--fig-water) 38%, transparent);
+  --a2v-berg-depth-3: color-mix(in srgb, var(--fig-water) 0%, transparent);
   --fig-hollow: rgba(22, 24, 29, 0.035); /* 面填充：与未启用预设时的取值一致 */
   --fig-node-shadow: rgba(30, 26, 22, 0.07); /* 面填充：与未启用预设时的取值一致 */
   --fig-title-grad-from: #23262d; /* 图形内文本：与未启用预设时的取值一致 */
@@ -837,11 +846,18 @@
   letter-spacing: var(--a2v-track-body);
 }
 
-/* 连线、箭头、轨道、轴线 */
+/* 连线、箭头、轨道、轴线。
+ *
+ * 这一族**只供给墨色与端点形状**，几何（线宽、虚线、是描边路径还是填充标记）
+ * 由组件自己声明——同族元素的形态差得很远：虚线连线、5px 的弧、圆盘的边界、
+ * 纯填充的箭头头。这里早先写死了 `stroke-width: var(--fig-connector-w, 4)`，
+ * 在第 16 轮有消费者之后，它会把组件的 3px / 5px 一起改成 4px。
+ *
+ * 墨色走 `--a2v-connector-ink`：它只在预设作用域内被四个状态赋值，
+ * 未启用预设时组件各自的兜底值生效（既有画面不变）。 */
 [data-a2v-preset="keynote"] .a2v-connector {
   fill: none;
-  stroke: var(--fig-line-data, var(--fig-line));
-  stroke-width: var(--fig-connector-w, 4);
+  stroke: var(--a2v-connector-ink, var(--fig-line-data, var(--fig-line)));
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -954,27 +970,27 @@
  * 同族的元素里既有描边路径（弧线、虚线，`fill: none`），也有纯填充标记
  * （箭头头，只有 `fill`）。若线条族也去写 `stroke` / `fill` 属性，
  * 三层选择器（属性 + 类 + 属性）就会盖掉组件自己的 `fill: none`，
- * 把一条弧线填成一块实心。所以它只供给一个通道变量 `--a2v-stroke-ink`，
+ * 把一条弧线填成一块实心。所以它只供给一个通道变量 `--a2v-connector-ink`，
  * 由组件决定把它落到 `stroke` 还是 `fill` 上。
  *
  * 有了这一族，`berg-link`（虚线）、`ex-arc`（弧）、`ex-arrow`（箭头头）
  * 才第一次能用同一套状态语汇表达"这条线在焦点上"。`border-color` 一并给出，
  * 让带边框的 HTML 盒子也能读同一个通道（只给颜色不建边框，无副作用）。 */
-[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="rest"] {
-  --a2v-stroke-ink: var(--fig-line);
-  border-color: var(--a2v-stroke-ink);
+[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="rest"] {
+  --a2v-connector-ink: var(--fig-line);
+  border-color: var(--a2v-connector-ink);
 }
-[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="focus"] {
-  --a2v-stroke-ink: var(--a2v-accent);
-  border-color: var(--a2v-stroke-ink);
+[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="focus"] {
+  --a2v-connector-ink: var(--a2v-accent);
+  border-color: var(--a2v-connector-ink);
 }
-[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="muted"] {
-  --a2v-stroke-ink: var(--a2v-hairline);
-  border-color: var(--a2v-stroke-ink);
+[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="muted"] {
+  --a2v-connector-ink: var(--a2v-hairline);
+  border-color: var(--a2v-connector-ink);
 }
-[data-a2v-preset="keynote"] .a2v-stroke[data-a2v-state="done"] {
-  --a2v-stroke-ink: var(--a2v-accent-deep);
-  border-color: var(--a2v-stroke-ink);
+[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="done"] {
+  --a2v-connector-ink: var(--a2v-accent-deep);
+  border-color: var(--a2v-connector-ink);
 }
 
 [data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {

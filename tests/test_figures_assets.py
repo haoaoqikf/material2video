@@ -335,13 +335,24 @@ class TestFocusStateMigration:
     def test_focus_surfaces_declare_the_state(self) -> None:
         """承载焦点的元素必须挂**某个基元**，状态由 `data-a2v-state` 表达。
 
-        基元到第 16 轮有三族：表面（`a2v-surface`，面怎么涂）、
-        标签（`a2v-label`，文字层）、线条（`a2v-stroke`，线用什么颜色）。
+        基元是：表面（`a2v-surface`，面怎么涂）、标签（`a2v-label`，文字层）、
+        连接件（`a2v-connector`，线用什么颜色）、边界框（`a2v-frame`）。
         断言不写死哪一族——写死就要求每个元素都变成"面"，
         而弧线是 `fill: none` 的描边、标签是文字，套表面族会画错。
         """
         text = _source()
-        primitives = ("a2v-surface", "a2v-label", "a2v-stroke")
+        # 基元清单**从样式表推导**，不再手抄一份：手抄的那份漏了 `a2v-frame`，
+        # 也正是靠手抄，第 16 轮才会多造出一个与 `a2v-connector` 重名的族。
+        keynote = (
+            Path(__file__).resolve().parents[1]
+            / ".agents"
+            / "skills"
+            / "article2video"
+            / "assets"
+            / "keynote.css"
+        ).read_text(encoding="utf-8")
+        primitives = tuple(sorted(set(re.findall(r"\.(a2v-[a-z]+)\b", keynote))))
+        assert "a2v-connector" in primitives and "a2v-frame" in primitives, primitives
         for element in self.MIGRATED:
             for primitive in primitives:
                 pattern = (
