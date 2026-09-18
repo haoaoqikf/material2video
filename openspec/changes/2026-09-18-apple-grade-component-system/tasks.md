@@ -3246,3 +3246,55 @@ var paintedNodes = active.querySelectorAll('svg *');
 
 - 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
   全量 exit 0
+
+## 80. 已核实：图解对象的纪律到底落在哪些测试上（第 70 轮，维度 9/10）
+
+§79.2 说那三幕"闸门层面只剩图形颜色预算测试在守"。这句话当时依据的是**源码注释**，
+而注释说明的是意图，不等于测试真的覆盖。本轮把测试侧原文抓出来核实：
+
+- `tests/test_asset_fingerprint.py:11` `* **只指纹被引用的文件**：改一个用不到的图形不得触发「落后」——`
+- `tests/test_constitution.py:79` `"""一个挂载点都没有：只提醒（网页可能自己画图形），不判失败。"""`
+- `tests/test_constitution.py:151` `# 短标签（角标、图形上的短词）与网页上的固定词组重合是正常的`
+- `tests/test_figure_contrast.py:1` `"""图形颜色令牌的对比度预算。`
+- `tests/test_figure_contrast.py:8` `- K1 留白预算量的是背景像素占比——图形越淡，背景占比越高，**越容易通过**。`
+- `tests/test_figure_contrast.py:11` `3.31:1，而所有检查全绿。这里把「图形看不看得见」变成可验证契约。`
+- `tests/test_figure_contrast.py:24` `#: 图形颜色令牌的分类表。新增令牌必须先进这张表，否则`
+- `tests/test_figure_contrast.py:31` `"--fig-water-text": ("图形内文本", "bg"),`
+- `tests/test_figure_contrast.py:34` `"--fig-on-ink": ("图形内文本", "ink"),`
+- `tests/test_figure_contrast.py:45` `"--fig-title-grad-from": ("图形内文本", "bg"),`
+- `tests/test_figure_contrast.py:46` `"--fig-title-grad-to": ("图形内文本", "bg"),`
+- `tests/test_figure_contrast.py:71` `"图形内文本": 4.5,`
+- `tests/test_figure_contrast.py:79` `#: 纯分隔线：刻意保持耳语。WCAG 1.4.11 管的是「理解内容所必需的图形对象」，`
+- `tests/test_figure_contrast.py:132` `"""从 'keynote.css' 里按主题抽出图形颜色令牌的取值。`
+- `tests/test_figure_contrast.py:162` `assert figure_tokens, f"{theme} 主题块里没有抽出任何图形颜色令牌，选择器可能又错了"`
+- `tests/test_figure_contrast.py:222` `f"{theme} 主题里有未归类的图形颜色令牌：{unknown}；"`
+- `tests/test_figure_contrast.py:332` `WCAG 1.4.11 管的是「理解内容所必需的图形对象」，纯分隔线在豁免范围内。`
+- `tests/test_figure_contrast.py:353` `assert not over_budget, f"图形令牌低于对比度预算：\n{detail}"`
+- `tests/test_figure_contrast.py:419` `"""次级面（水体）是唯一的冷色面：它靠色相与水下的语义绑定，不能退成中性灰。"""`
+- `tests/test_figure_contrast.py:425` `f"{theme} 主题的 --fig-water（{water[:3]}）色相跨度只有 {spread}，"`
+- `tests/test_figure_token_closure.py:290` `"""K8：容器内溢出。图形里的文字不许穿出它所属的容器。"""`
+- `tests/test_figures_assets.py:415` `所有图形消失。当时是跑到浏览器体检才发现的（体检直接报`
+- `tests/test_keynote_assets.py:5` `缺一个令牌不会报错——浏览器会安静地画出透明图形，成片之后才会发现，`
+- `tests/test_keynote_assets.py:205` `# 三级以下只用于大字与图形，4.5:1 是可接受下限`
+- `tests/test_keynote_assets.py:237` `assert not missing, f"{label}缺少图形令牌：{missing}（缺了会安静地画出透明图形）"`
+- `tests/test_keynote_layout.py:281` `# 左对齐场景的正文块应当从同一条左边缘起排（组件自身的图形元素除外）`
+
+相关测试函数：
+
+- `tests/test_figure_contrast.py`：`test_budgets_cover_every_class_that_needs_one`, `test_fills_have_no_numeric_budget`, `test_svg_paint_never_hardcodes_a_color`, `test_no_token_is_below_budget`
+- `tests/test_keynote_assets.py`：`test_emphasis_mix_default_keeps_legacy_color`
+- `tests/test_review.py`：`test_accent_rejects_unrelated_colors`, `test_parse_color_accepts_hex_and_rgb`, `test_whitespace_fails_below_budget`, `test_contrast_reports_skipped_without_colors`
+
+### 80.1 下一轮据此做的事
+
+- 若这些测试**确实是按图形（figure）逐个断言颜色/色相/对比度**的 → §79.2 的说法成立，
+  空档是"闸门不管、测试管"，可以把它写成有意分工，而不必再补闸门
+- 若这些测试**只覆盖颜色令牌本身**（例如只断言两套主题的令牌取值合法），而不管哪一幕的
+  哪个图形实际用了什么色 → §79.2 的说法**过强**，需要改写，并考虑补一条按幕的图形判据
+
+判断依据仍是"测试断言了什么"，不靠注释里的措辞。
+
+### 80.2 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
