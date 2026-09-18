@@ -317,7 +317,7 @@
   --a2v-ink-caption: var(--a2v-size-caption); /* 28px：图形角标、来源 */
   --a2v-ink-label: var(--a2v-size-label); /* 34px：轴名、次要标注 */
   --a2v-ink-body: var(--a2v-size-body); /* 40px：组件内正文 */
-  --a2v-ink-value: 44px; /* 与 K3 的统计下限对齐，不再另立一档 */
+  --a2v-ink-value: var(--a2v-size-body); /* 40px：组件里的值，与字阶同一个真源 */
   --a2v-ink-lead: var(--a2v-size-lead); /* 60px：引文 */
   --a2v-ink-title: var(--a2v-size-title); /* 76px：图形小标题 */
   --a2v-ink-display: var(--a2v-size-display); /* 120px：图形主数值 */

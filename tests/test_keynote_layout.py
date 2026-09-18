@@ -13,6 +13,7 @@ import functools
 import http.server
 import json
 import pathlib
+import re
 import socketserver
 import threading
 from urllib.parse import quote
@@ -31,7 +32,22 @@ WIDTH, HEIGHT = 1080, 1920
 #: 字号阶（keynote.css 的 --a2v-size-*）+ 与 K3 统计下限对齐的 44px。
 #: 44px 是「组件墨色字号」里的 `--a2v-ink-value`：它刻意与 K3 的 44px 下限同值，
 #: 因此不再另立一档，但仍算「阶上」。
-SCALE = {28.0, 34.0, 40.0, 44.0, 60.0, 76.0, 96.0, 120.0, 140.0}
+def _declared_scale() -> set[float]:
+    """从设计语言层读字号阶，不在这里另抄一份。
+
+    这里原先硬写着 `{28, 34, 40, 44, 60, 76, 96, 120, 140}`：**44 并不在阶上**，
+    而真实阶里的 220 / 350 又没写进来。抄一份的代价是抄错的那一档恰好
+    放过了后来查出的缺陷——组件把 `font-size: 44px` 写死在 `figures.css` 里，
+    这一幕的"字号必须在阶上"就没有报错。真源是 `keynote.css` 的
+    `--a2v-size-*`；把它读出来，阶变了测试跟着变，抄错就不可能再发生。
+    """
+    css = (PAGE.parent / "keynote.css").read_text(encoding="utf-8")
+    sizes = re.findall(r"--a2v-size-[a-z]+:\s*([\d.]+)px", css)
+    assert len(sizes) >= 8, f"只从 keynote.css 读到 {len(sizes)} 档字号，正则或文件结构变了"
+    return {float(size) for size in sizes}
+
+
+SCALE = _declared_scale()
 
 #: 不参与字号阶的装饰字形：引号符号与逐字揭示产生的单字节点。
 #: 它们不是「一层信息」，量它们的字号只会把阶外数值混进来。
@@ -284,3 +300,106 @@ class TestLayouts:
             assert facts["safe"]["display"] == "flex", scene_id
             assert facts["safe"]["top"] <= SAFE_TOP + TOLERANCE, scene_id
             assert facts["safe"]["bottom"] >= HEIGHT - SAFE_BOTTOM - TOLERANCE, scene_id
+
+
+#: 真分镜：八幕，每幕都用了不同的组件。上面那套合成样张只有四种版面、
+#: 没有 `title` / `exchange` 这类组件，所以**量不到组件自己写死的字号**——
+#: 两个真实缺陷（`figures.css` 里写死 44px、结论句自算出 88px）都是从这里漏掉的。
+BASELINE = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
+
+_ALL_SIZES_JS = """(id) => {
+  const scene = document.querySelector('[data-scene-id="' + id + '"]');
+  const out = [];
+  scene.querySelectorAll('*').forEach((e) => {
+    if (!e.textContent || !e.textContent.trim()) return;
+    // 只取叶子节点：容器会把子元素的字号一起带进来
+    if (Array.from(e.childNodes).some((n) => n.nodeType === 1)) return;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+    if (parseFloat(cs.opacity) === 0) return;
+    const cls = (e.className && e.className.baseVal !== undefined)
+      ? e.className.baseVal : (e.className || e.tagName);
+    out.push({size: parseFloat(cs.fontSize), cls: String(cls).split(' ')[0],
+              text: e.textContent.trim().slice(0, 12)});
+  });
+  return out;
+}"""
+
+
+def _baseline_sizes() -> list[dict]:
+    """打开真分镜，读出每一幕每个文字节点的字号。"""
+    playwright = pytest.importorskip("playwright.sync_api", reason="未安装 playwright")
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):  # noqa: D102 - 测试里不需要访问日志
+            pass
+
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), functools.partial(Handler, directory=str(ROOT))
+    ) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        page_url = f"http://127.0.0.1:{port}/{PAGE.relative_to(ROOT).as_posix()}"
+        board_url = quote("/" + BASELINE.relative_to(ROOT).as_posix(), safe="")
+        try:
+            with playwright.sync_playwright() as p:
+                browser = p.chromium.launch()
+                page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT})
+                page.goto(f"{page_url}?a2v-storyboard={board_url}")
+                page.wait_for_function(
+                    "() => document.querySelectorAll('[data-a2v-scene]').length > 0",
+                    timeout=20000,
+                )
+                page.wait_for_timeout(600)
+                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                storyboard = json.loads(BASELINE.read_text(encoding="utf-8"))
+                cursor = 0
+                found: list[dict] = []
+                for scene in storyboard["scenes"]:
+                    # 采样点取每一幕的六成处：入场结束，量到稳定版面
+                    page.evaluate(
+                        "(f) => window.__A2V__.seekToFrame(f)",
+                        cursor + int(scene["durationInFrames"] * 0.6),
+                    )
+                    cursor += scene["durationInFrames"]
+                    for row in page.evaluate(_ALL_SIZES_JS, scene["id"]):
+                        row["scene"] = scene["id"]
+                        found.append(row)
+                browser.close()
+        finally:
+            httpd.shutdown()
+    assert found, "真分镜里一个文字节点都没读到，采样选择器需要更新"
+    return found
+
+
+class TestBaselineTypeScale:
+    """真分镜的每一个字号都必须在阶上。
+
+    这条在合成样张那边是量不到的（那边没有组件），所以之前两个阶外字号
+    ——`figures.css` 写死的 44px、结论句自算出来的 88px——都从检查里漏了过去。
+    """
+
+    @pytest.fixture(scope="class")
+    def baseline_sizes(self) -> list[dict]:
+        return _baseline_sizes()
+
+    def test_every_rendered_size_is_a_declared_rung(self, baseline_sizes):
+        offenders = [
+            (row["scene"], row["cls"], row["text"], row["size"])
+            for row in baseline_sizes
+            if not any(abs(row["size"] - rung) <= TOLERANCE for rung in SCALE)
+        ]
+        assert not offenders, (
+            f"真分镜里出现阶外字号（幕, 类, 文字, px）：{offenders}——"
+            f"字号阶是 {sorted(SCALE, reverse=True)}，组件不许自己另立一档"
+        )
+
+    def test_the_ladder_has_no_duplicate_neighbours(self, baseline_sizes):
+        """相邻两档至少要差 10%：差 4px 的两个字号看不出区别，只会像失手。"""
+        used = sorted({round(row["size"]) for row in baseline_sizes}, reverse=True)
+        for big, small in zip(used, used[1:]):
+            assert big - small >= big * 0.1, (
+                f"{big}px 与 {small}px 相差不到 10%——同一支片子里两个"
+                "看不出区别的字号不是一个层级，是失手"
+            )

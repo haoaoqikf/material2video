@@ -1468,14 +1468,23 @@
    * 强调色箭头是「你也在挑公司」，与开场的天平形成同一支片子的呼应。
    */
   //: 结论句的排版边界。宽度与 .fig / .a2v-safe 一致（1080 − 96 × 2）。
-  var EXCHANGE = { WIDTH: 888, MAX: 96, MIN: 54 };
+  //: MIN / MAX 是**未启用预设**时的逐像素夹取范围；启用预设时改从字号阶上挑
+  //: （`headline` 96 到 `body` 40），不再自算。
+  var EXCHANGE = { WIDTH: 888, MAX: 96, MIN: 54, TOP: 'headline', FLOOR: 'body' };
 
   /**
    * 按最长一行算出能放下的字号。
    *
    * 中日韩字形宽度≈字号，因此「一行能放几个字」约等于 `宽度 / 字号`；
-   * 用字符数而不是测量：测量既拖慢逐帧渲染，也会把布局抖动带进画面。
-   * 短句原样保持设计字号，只有放不下时才缩。
+   * 用字符数而不是测量：测量既拖慢逐帧渲染，也会把布局抖动带进画面
+   * （这就是这个组件不走 typography.js 那套实测自适应的原因）。
+   *
+   * 但**字号必须落在阶上**。原先直接返回 `floor(宽度 / 字数)` 的任意整数，
+   * 于是结论句实测 88px——全片八幕里唯一跑出字号阶的音级（其余七幕量到的
+   * 都是 44/60/76/96/120/350）。现在从共享字号阶上由大到小取第一个放得下的
+   * 档位（`A2V.type.levels`，不复制那份数字），仍然不测量。
+   *
+   * 未启用预设时保留原有自算：那条路径逐帧不变是硬承诺。
    */
   function fitFontSize(text, spec) {
     var lines = String(text || '').split('\n');
@@ -1485,7 +1494,33 @@
         longest = line.length;
       }
     });
-    return Math.max(spec.MIN, Math.min(spec.MAX, Math.floor(spec.WIDTH / longest)));
+    if (!presetActive()) {
+      return Math.max(spec.MIN, Math.min(spec.MAX, Math.floor(spec.WIDTH / longest)));
+    }
+    var type = window.A2V && window.A2V.type;
+    var levels = (type && type.levels) || [];
+    if (!levels.length) {
+      return Math.max(spec.MIN, Math.min(spec.MAX, Math.floor(spec.WIDTH / longest)));
+    }
+    // 阶按从大到小排列；取第一个「最长行乘字号仍放得下」的档位
+    var top = 0;
+    var floor = levels.length - 1;
+    var i;
+    for (i = 0; i < levels.length; i++) {
+      if (levels[i].name === spec.TOP) {
+        top = i;
+      }
+      if (levels[i].name === spec.FLOOR) {
+        floor = i;
+      }
+    }
+    for (i = top; i <= floor; i++) {
+      if (levels[i].size * longest <= spec.WIDTH) {
+        return levels[i].size;
+      }
+    }
+    // 连最下一档也放不下：仍取该档，溢出交给 K8 溢出闸门报出来
+    return levels[floor].size;
   }
   function updateExchange(state, api, pick, labels) {
     var f = state.localFrame;
