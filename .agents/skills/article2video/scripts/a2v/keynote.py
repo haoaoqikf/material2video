@@ -942,3 +942,62 @@ def gate_stroke_consistency(scene_id: str, widths: list[float]) -> Gate:
         scene=scene_id,
     )
 
+
+#: K10 主次分明：第一名要比第二名大出这么多倍，才叫"一眼看得出主次"。
+#: 阈值不是拍的——基线实测里能测的六幕最小是 3.12（opening），见设计文档第四章。
+_HIERARCHY_MIN_RATIO = 2.0
+
+
+def gate_hierarchy(scene_id: str, texts: list[dict[str, Any]]) -> Gate:
+    """K10 主次分明：同一幕里可见的正文级文本，要有一个一眼可辨的第一名。
+
+    口径与基线实测一致：
+    - 只看 `alpha > 0` 的文本——渐变标题的量测里 alpha 是 0，它"看不见"，不该当第一名
+    - 面积用扁平的 left/right/top/bottom 直接算（采集脚本给的就是扁平键）
+    - 权重取 `面积 x 字号`，兼顾"占位大小"和"字号层级"
+
+    样本不足（可见文本块不到两个）时跳过并写明原因，沿用 K4 / K6 的既有做法：
+    这种幕的主次由图形承担，用文本量不出来。
+    """
+    items: list[tuple[float, str]] = []
+    for item in texts or []:
+        try:
+            if float(item.get("alpha") or 0) <= 0:
+                continue
+            width = max(float(item["right"]) - float(item["left"]), 0.0)
+            height = max(float(item["bottom"]) - float(item["top"]), 0.0)
+            size = float(item.get("fontSize") or 0)
+        except (KeyError, TypeError, ValueError):
+            continue
+        if width > 0 and height > 0 and size > 0:
+            items.append((width * height * size, str(item.get("role") or "文本")))
+    items.sort(key=lambda row: row[0], reverse=True)
+
+    if len(items) < 2:
+        return Gate(
+            id="K10",
+            title="主次分明",
+            status="skipped",
+            value=0,
+            threshold=_HIERARCHY_MIN_RATIO,
+            detail="这一幕可见的正文级文本块不足两个，主次无法用文本判断",
+            scene=scene_id,
+        )
+
+    ratio = items[0][0] / items[1][0]
+    if ratio >= _HIERARCHY_MIN_RATIO:
+        status = "pass"
+    elif ratio >= _HIERARCHY_MIN_RATIO * 0.75:
+        status = "warn"
+    else:
+        status = "fail"
+    # 点名第一名是谁：只说一个比值，人无从下手改（学 K6 的做法）
+    return Gate(
+        id="K10",
+        title="主次分明",
+        status=status,
+        value=ratio,
+        threshold=_HIERARCHY_MIN_RATIO,
+        detail="第一名「{}」是第二名的 {:.2f} 倍".format(items[0][1], ratio),
+        scene=scene_id,
+    )

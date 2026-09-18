@@ -9,7 +9,7 @@
 2. **帧量测**（启发式）：逐帧统计墨迹覆盖率与上下安全区的墨迹，
    用于发现空幕、黑屏、内容压到边缘。
 3. **设计宪法**（静态）：结构、曲线、模糊、挂载点、文案真源、安全区。
-4. **观感闸门 K1–K9**（量测，可选）：启用设计语言预设时，量出留白预算、
+4. **观感闸门 K1–K10**（量测，可选）：启用设计语言预设时，量出留白预算、
    强调色占比、字号种类、对齐基线、正文对比度与卡片纪律。它与前三项**分开报告、
    分开计数**——前三项回答「这是不是废片」，K 系列回答「这像不像发布会级别的画面」。
 
@@ -674,6 +674,7 @@ def keynote_gate(
     gates.append(
         keynote.gate_alignment(scene_id, texts, center=float(facts.get("center") or 0) or None)
     )
+    gates.append(keynote.gate_hierarchy(scene_id, texts))
     gates.append(keynote.gate_contrast(scene_id, texts, page_background))
     gates.append(keynote.gate_card_discipline(scene_id, list(facts.get("cards") or [])))
     gates.append(
