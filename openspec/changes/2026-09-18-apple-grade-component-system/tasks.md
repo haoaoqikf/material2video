@@ -3758,3 +3758,62 @@ IndexError: tuple index out of range
 
 - 本轮只改文档：数字来自第 59 / 82 轮的实跑输出（浅色汇总行是**显式抓取**的）
 - 守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、全量 exit 0
+
+## 93. 改动点定死：一个纯函数加一行 append（第 84 轮，维度 6）
+
+前面 §73 设计口径、§74~§80 校准取数、§86 与 §89 量出阈值，这一轮把**实现落点**查清。
+
+### 93.1 现有闸门是怎么挂上去的
+
+`inspect.py:625 def keynote_gate(...)` 里逐条 `gates.append(...)`（636~684 行），
+每条闸门都是 `keynote.py` 里的**小纯函数**，返回
+
+```python
+Gate(id=..., title=..., status=..., value=..., threshold=..., detail=..., scene=...)
+```
+
+跳过形态有现成范式（`gate_card_discipline`，`keynote.py:673~682`）：
+
+```python
+if not cards:
+    return Gate(id="K6", title="卡片与描边纪律", status="skipped", value=0,
+                threshold=_CARD_MIN_TRAITS, detail="这一幕没有可识别的 HTML 卡片表面……",
+                scene=scene_id)
+```
+
+### 93.2 关键发现：需要的几何已经在作用域里
+
+`inspect.py:674~675` 就是
+
+```python
+gates.append(
+    keynote.gate_alignment(scene_id, texts, center=float(facts.get("center") or 0) or None)
+)
+```
+
+也就是说 **`texts` 已经在那儿**——新闸门只要在这附近再 append 一行即可，**不需要新管道**。
+
+### 93.3 于是实现只剩两处小编辑
+
+1. `keynote.py`：新增 `gate_hierarchy(scene_id, texts)`（照着 `gate_card_discipline` 的形状写）
+   - 过滤：`alpha > 0`（§85.1 第 2 点：`texts[0]` 可能是 `alpha=0` 的渐变标题）
+   - 面积：直接用**扁平键** `right-left` / `bottom-top`（§85.1 第 1 点：没有嵌套 `box`）
+   - 样本不足（可见文本块 < 2）→ `status="skipped"` + 写明原因（沿用 K4 的措辞形状）
+   - 否则按 `area × size` 排序，比值 ≥ **2.0** 通过（实测最小 3.12，§86.1）
+   - `detail` 要点名主要素与比值（学 K6 的"点名"做法，别只说数字）
+2. `inspect.py`：在 `gate_alignment` 那一行附近追加
+   `gates.append(keynote.gate_hierarchy(scene_id, texts))`
+
+### 93.4 成对测试不需要浏览器
+
+因为新闸门是**吃参数的纯函数**，§73.3 要求的正反两条测试可以直接喂数据：
+
+- **正向**：两块等大可见文本 → 必须报出来
+- **反向**：明显主次（如 1 : 5）→ 必须不报
+
+（这是第 37 轮"阴性审计"那条规矩的落地方式。）
+
+### 93.5 验证
+
+- 本轮只查只记：守卫文件全过、非预设逐字节一致、深色闸门 53/0/0（另有 19 跳过）、
+  全量 exit 0
