@@ -1,0 +1,97 @@
+/**
+ * 把随仓库分发的字体搬到两个打包器都能取到的位置，并登记字体清单。
+ *
+ * 为什么需要这一步（而不是直接把字体提交进 `web/public/`）：
+ *
+ * - 字体的**唯一真源**是 skill 资产目录（`assets/fonts/`），旧管线还在用它。
+ *   在迁移期复制一份进 `web/` 并提交，会让仓库里多出 18MB 永不消失的重复内容；
+ * - 但两个打包器都只认工程内的文件：Vite 从 `publicDir` 拷，Remotion 从 `public/` 拷。
+ *   因此这里在构建前把它们同步进 `web/public/fonts/`（已 gitignore），
+ *   Stage 6 迁移完成后改由 `web/` 直接持有。
+ *
+ * 关键约定：**源文件缺失必须让构建失败**。
+ * 「安静地画出系统字体」正是本项目最怕的一类静默失败——成片出来了，字全变了，没有任何报错。
+ */
+
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const webDir = path.resolve(scriptDir, '..');
+const manifestPath = path.join(webDir, 'src/assets/fonts.json');
+const targetDir = path.join(webDir, 'public/fonts');
+
+function fail(message) {
+  process.stderr.write(`sync-fonts: ${message}\n`);
+  process.exit(1);
+}
+
+if (!fs.existsSync(manifestPath)) {
+  fail(`找不到字体清单 ${path.relative(webDir, manifestPath)}`);
+}
+
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+const sourceDir = path.resolve(webDir, manifest.sourceDirFromWeb);
+
+if (!fs.existsSync(sourceDir)) {
+  fail(
+    `字体源目录不存在：${sourceDir}\n` +
+      `  （清单里的 sourceDirFromWeb 为 ${manifest.sourceDirFromWeb}，相对于 ${webDir}）`,
+  );
+}
+
+fs.mkdirSync(targetDir, { recursive: true });
+
+const entries = [];
+
+for (const font of manifest.files) {
+  const from = path.join(sourceDir, font.file);
+  if (!fs.existsSync(from)) {
+    fail(`字体文件缺失：${from}（清单声明了 ${font.family} 需要它）`);
+  }
+  const size = fs.statSync(from).size;
+  if (size === 0) {
+    fail(`字体文件是空的：${from}`);
+  }
+
+  const to = path.join(targetDir, font.file);
+  const sameAsTarget = fs.existsSync(to) && fs.statSync(to).size === size;
+  if (!sameAsTarget) {
+    fs.copyFileSync(from, to);
+  }
+
+  const digest = createHash('sha256').update(fs.readFileSync(to)).digest('hex');
+  entries.push({
+    family: font.family,
+    file: font.file,
+    url: `fonts/${font.file}`,
+    weight: font.weight,
+    usage: font.usage,
+    bytes: size,
+    sha256: digest,
+    license: font.license,
+    licenseSource: `${manifest.sourceDirFromWeb}/${font.license}`,
+  });
+
+  // 许可证必须一并就位：OFL 要求分发字体时随附许可证原文
+  const licenseFrom = path.join(sourceDir, font.license);
+  if (!fs.existsSync(licenseFrom)) {
+    fail(`许可证文件缺失：${licenseFrom}（${font.family} 采用 SIL OFL 1.1，必须随字体分发）`);
+  }
+  fs.copyFileSync(licenseFrom, path.join(targetDir, font.license));
+}
+
+// 清单落盘：缺字机检与溯源都读它，而不是去解析样式表里的 @font-face 文本
+fs.writeFileSync(
+  path.join(targetDir, 'manifest.json'),
+  `${JSON.stringify({ generatedBy: 'web/scripts/sync-fonts.mjs', fonts: entries }, null, 2)}\n`,
+  'utf8',
+);
+
+process.stdout.write(
+  `sync-fonts: ${entries.length} 套字体已就位（${entries
+    .map((entry) => `${entry.family} ${Math.round(entry.bytes / 1024)}KB`)
+    .join('，')}）\n`,
+);

@@ -1,0 +1,5 @@
+# pnpm 10 的构建脚本白名单（`pnpm.onlyBuiltDependencies` 在 pnpm 10 里读这个文件）。
+# esbuild 需要执行 postinstall 才能拿到平台二进制；Vite 的构建依赖它。
+# 这里不是 workspace 定义：本工程不含子包。
+onlyBuiltDependencies:
+  - esbuild

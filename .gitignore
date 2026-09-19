@@ -15,6 +15,17 @@ __pycache__/
 coverage/
 *.log
 
+# Frontend workspace (web/)
+# `dist/` 已在上面忽略，Remotion 的打包缓存与逐帧缓存也要忽略：
+# 它们不含源信息，重建即可，进版本控制只会制造噪音。
+.remotion/
+web/.remotion/
+# 作品专属画面模块的动态入口：由工具按工作区根生成，路径随内容根变化
+web/.gen/
+# 字体在构建前从 skill 资产目录同步到这里（唯一真源仍是 assets/fonts/），
+# 因此这是生成物：提交它等于让仓库里多出一份 18MB 的重复内容。
+web/public/fonts/
+
 # Secrets and local configuration
 .env
 .env.*

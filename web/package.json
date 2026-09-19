@@ -1,0 +1,44 @@
+{
+  "name": "article2video-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "article2video 的画面实现：React composition、帧驱动运行时与渲染契约页",
+  "scripts": {
+    "sync:fonts": "node scripts/sync-fonts.mjs",
+    "dev": "node scripts/sync-fonts.mjs && vite",
+    "build": "node scripts/sync-fonts.mjs && tsc --noEmit && vite build",
+    "studio": "node scripts/sync-fonts.mjs && remotion studio src/index.ts",
+    "render": "node scripts/sync-fonts.mjs && remotion render src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.526",
+    "@remotion/cli": "4.0.526",
+    "@remotion/fonts": "4.0.526",
+    "@remotion/player": "4.0.526",
+    "@remotion/renderer": "4.0.526",
+    "@remotion/tailwind-v4": "4.0.526",
+    "@tailwindcss/vite": "4.2.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.526",
+    "tailwindcss": "4.2.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^5.0.1"
+  }
+}

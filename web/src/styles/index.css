@@ -1,0 +1,54 @@
+/*
+ * 舞台与安全区。
+ *
+ * 与既有 `base.css` 同一套约束：
+ * - 舞台严格等于 `width × height`，外层不加 margin/padding，页面不出现滚动条；
+ * - 所有正文放进 `.a2v-safe`，避开平台界面遮挡。
+ *
+ * 契约页与 Remotion 渲染路径共用这一份样式，因此预览与导出用同一套坐标。
+ */
+
+@import 'tailwindcss';
+@import './tokens.css';
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  font-family: var(--a2v-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 舞台：逻辑尺寸固定，缩放只由外层 `transform: scale()` 完成，不改内部布局 */
+.a2v-stage {
+  position: relative;
+  width: var(--a2v-width);
+  height: var(--a2v-height);
+  overflow: hidden;
+  background: #08090c;
+  color: #f4f7fb;
+}
+
+/* 安全区：正文的可用范围 */
+.a2v-safe {
+  position: absolute;
+  left: var(--a2v-safe-x);
+  right: var(--a2v-safe-x);
+  top: var(--a2v-safe-top);
+  bottom: var(--a2v-safe-bottom);
+}
+
+/*
+ * 渲染模式：渲染脚本取消预览缩放并隐藏预览专用元素。
+ * 契约页会加上 `a2v-rendering` 类，因此同一份样式对两种用途都成立。
+ */
+html.a2v-rendering [data-a2v-controls],
+html.a2v-rendering .a2v-preview-only {
+  display: none !important;
+}
+
+html.a2v-rendering .a2v-scaler {
+  transform: none !important;
+}
