@@ -33,15 +33,15 @@ class TestProjectRoot:
         loose = tmp_path / "somewhere"
         loose.mkdir()
         (loose / "index.html").write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="未找到项目根目录"):
+        with pytest.raises(A2VError, match="未找到仓库根目录"):
             paths.project_root(loose / "index.html")
 
     def test_git_root_alone_is_not_enough(self, tmp_path):
-        # 只用 .git 判断会把任意仓库顶层误认为项目根，进而把产物写到错误位置
+        # 只用 .git 判断会把任意仓库顶层误认为仓库根，进而把产物写到错误位置
         (tmp_path / ".git").mkdir()
         page = tmp_path / "index.html"
         page.write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="未找到项目根目录"):
+        with pytest.raises(A2VError, match="未找到仓库根目录"):
             paths.project_root(page)
 
 

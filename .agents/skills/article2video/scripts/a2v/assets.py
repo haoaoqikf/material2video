@@ -2,6 +2,13 @@
 
 渲染前置扫描与设计宪法检查都要回答同一个问题：「这个网页实际加载了哪些
 本地样式与脚本」。放在这里共用，避免两处各写一遍路径推导而慢慢走偏。
+
+资源有两种写法：
+
+* **相对路径**：页面与共享资产同处一棵树时（仓库内的示例、共享页面）用它；
+* **别名路径**：`/__a2v__/<相对路径>`。内容根落在仓库之外时页面靠它引用
+  skill 的共享资产，位置换了也不用改页面。别名到目录的映射由这里给出，
+  服务器只负责按同一份映射把请求翻到挂载目录。
 """
 
 from __future__ import annotations
@@ -12,10 +19,30 @@ from pathlib import Path
 #: 项目根标记：用于界定「可以读的本地资源」范围
 PROJECT_MARKERS = (".git", "pyproject.toml")
 
+#: skill bundle 自身的位置。由本文件位置推出，与仓库放在哪里无关。
+BUNDLE_DIR = Path(__file__).resolve().parents[2]
+
+#: 共享资产的服务器别名前缀
+SKILL_MOUNT = "/__a2v__"
+
 _ASSET_REFERENCE = re.compile(
     r"""<(?:link[^>]+href|script[^>]+src)=["']([^"']+\.(?:css|js))["']""",
     re.IGNORECASE,
 )
+
+
+def skill_assets_dir() -> Path:
+    """skill 的共享资产目录（`assets/`）。"""
+    return BUNDLE_DIR / "assets"
+
+
+def default_mounts() -> dict[str, Path]:
+    """默认挂载表：别名前缀 → skill 资产目录。
+
+    服务器与扫描器共用这一份，避免「服务器映射到 A、扫描器按 B 找」这类
+    只在渲染时才暴露的漂移。
+    """
+    return {SKILL_MOUNT: skill_assets_dir()}
 
 
 def project_root(start: Path) -> Path | None:
@@ -23,6 +50,7 @@ def project_root(start: Path) -> Path | None:
 
     共享资产（如 skill 的 assets/）通常不在网页目录内，只按网页目录判断会漏扫；
     但也不能顺着相对路径读到仓库外的任意文件，因此以项目标记为界。
+    别名引用不走这条判断：它的目标目录由挂载表给定，是明确允许的范围。
     """
     current = start.resolve()
     for candidate in (current, *current.parents):
@@ -31,14 +59,99 @@ def project_root(start: Path) -> Path | None:
     return None
 
 
-def local_assets(page: Path, html: str) -> list[tuple[str, Path]]:
-    """收集网页引用到的本地样式表与脚本，跳过远程与项目范围外的路径。"""
+def _match_mount(reference: str, mounts: dict[str, Path]) -> tuple[str, Path] | None:
+    """别名引用 → (前缀, 挂载目录)；不是别名引用或越界时返回 None。"""
+    for prefix, directory in mounts.items():
+        base = prefix.rstrip("/")
+        if reference != base and not reference.startswith(base + "/"):
+            continue
+        resolved = Path(directory).resolve()
+        relative = reference[len(base) :].lstrip("/")
+        candidate = (resolved / relative).resolve()
+        if candidate != resolved and resolved not in candidate.parents:
+            return None  # 越界：不读挂载目录之外的文件
+        return prefix, resolved
+    return None
+
+
+def mount_key(path: Path, mounts: dict[str, Path] | None = None) -> str | None:
+    """文件落在挂载目录内时对应的别名键（`__a2v__/theme.css`）。
+
+    键按**文件位置**判定，而不是按引用写法：共享页面（`declarative.html`）
+    内部引用共享资产用的是相对路径，内容根渲染时这些文件仍在 bundle 里，
+    也仍然只能靠别名记——否则指纹里只剩一个文件名，工作区根下拼不出来，
+    复核会把每一份内容根成片都判成「资产不见了」。
+    """
+    for prefix, directory in (default_mounts() if mounts is None else mounts).items():
+        try:
+            relative = path.resolve().relative_to(Path(directory).resolve())
+        except ValueError:
+            continue
+        return f"{prefix.strip('/')}/{relative.as_posix()}"
+    return None
+
+
+def asset_key(
+    path: Path,
+    workspace_root: Path,
+    mounts: dict[str, Path] | None = None,
+) -> str:
+    """一个被引用的本地文件在指纹里的键。
+
+    别名目录里的文件记别名键（与内容根、仓库的位置都无关）；其余相对工作区根
+    记；工作区根之外退回文件名——产物里不写绝对路径。
+    """
+    key = mount_key(path, mounts)
+    if key is not None:
+        return key
+    try:
+        return path.resolve().relative_to(Path(workspace_root).resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+def key_path(key: str, workspace_root: Path, mounts: dict[str, Path] | None = None) -> Path | None:
+    """指纹键 → 真实路径，供陈旧判定复核。
+
+    别名键按**运行中的** skill 资产目录解析；越界的键（例如被人手改过的
+    溯源文件）返回 None，让调用方按「文件不见了」处理。
+    """
+    cleaned = key.lstrip("/")
+    for prefix, directory in (default_mounts() if mounts is None else mounts).items():
+        base = prefix.strip("/")  # 键里不带前导斜杠：`__a2v__/base.css`
+        if cleaned != base and not cleaned.startswith(base + "/"):
+            continue
+        resolved = Path(directory).resolve()
+        candidate = (resolved / cleaned[len(base) :].lstrip("/")).resolve()
+        if candidate != resolved and resolved not in candidate.parents:
+            return None
+        return candidate
+    return Path(workspace_root) / key
+
+
+def local_assets(
+    page: Path, html: str, mounts: dict[str, Path] | None = None
+) -> list[tuple[str, Path]]:
+    """收集网页引用到的本地样式表与脚本，跳过远程与项目范围外的路径。
+
+    别名引用按挂载表解析：内容根里的页面正是用别名引用共享资产，扫描若不
+    跟着走，把动效写进共享组件库就能绕过渲染前的静态检查。
+    """
+    resolved_mounts = default_mounts() if mounts is None else mounts
     root = project_root(page.parent)
     found: list[tuple[str, Path]] = []
     for reference in _ASSET_REFERENCE.findall(html):
         if reference.startswith(("http://", "https://", "//")):
             continue
-        candidate = (page.parent / reference.split("?")[0].split("#")[0]).resolve()
+        clean = reference.split("?")[0].split("#")[0]
+        match = _match_mount(clean, resolved_mounts)
+        if match is not None:
+            prefix, directory = match
+            candidate = (directory / clean[len(prefix.rstrip("/")) :].lstrip("/")).resolve()
+            if candidate.is_file():
+                found.append((reference, candidate))
+            continue
+        candidate = (page.parent / clean).resolve()
         if not candidate.is_file():
             continue
         inside_page_dir = page.parent.resolve() in candidate.parents

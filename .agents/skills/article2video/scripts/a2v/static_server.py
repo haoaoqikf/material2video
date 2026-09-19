@@ -4,25 +4,79 @@
 协议下会因同源策略拒绝这些请求，因此渲染与预览统一走本地 HTTP。
 
 服务器只绑定 127.0.0.1 的随机端口，随渲染进程生命周期创建与销毁。
+
+**挂载**（`mounts`）：文章落在仓库之外时，页面仍要能引用仓库里的共享资产。
+把「URL 前缀 → 目录」交给服务器，页面就能用稳定别名（`/__a2v__/base.css`）
+引用它们，不必知道内容根与仓库的相对位置；服务器也不会因此扩大静态根，
+只有声明过的前缀会被映射，越界的请求照旧 404。
 """
 
 from __future__ import annotations
 
 import logging
+import posixpath
 import re
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote
+
+from .errors import A2VError
 
 logger = logging.getLogger(__name__)
+
+#: 别名下请求目录时返回的占位路径：它不存在，于是照常 404，不列目录
+_NO_DIRECTORY_LISTING = "__a2v_directory_listing__"
+
+
+def _normalize_mounts(mounts: dict[str, str | Path] | None) -> dict[str, Path]:
+    """校验并归一化挂载表：前缀一律以 `/` 开头，目录必须存在。
+
+    目录不存在时直接报错，而不是让资产安静地 404——后者在成片里只剩
+    「画面没有样式」，很难从结果反推原因。
+    """
+    normalized: dict[str, Path] = {}
+    for prefix, directory in (mounts or {}).items():
+        if not prefix.startswith("/"):
+            raise ValueError(f"挂载前缀必须以 / 开头: {prefix!r}")
+        target = Path(directory).resolve()
+        if not target.is_dir():
+            raise NotADirectoryError(f"挂载目录不存在: {target}")
+        normalized[prefix.rstrip("/")] = target
+    return normalized
 
 
 class _QuietHandler(SimpleHTTPRequestHandler):
     """屏蔽逐请求日志；渲染上千帧时逐帧输出会淹没进度信息。"""
 
+    def __init__(self, *args, mounts: dict[str, Path] | None = None, **kwargs) -> None:
+        self.mounts = mounts or {}
+        super().__init__(*args, **kwargs)
+
     def log_message(self, format: str, *args) -> None:  # noqa: A002 (沿用基类签名)
         logger.debug("%s - %s", self.address_string(), format % args)
+
+    def translate_path(self, path: str) -> str:
+        """把 URL 路径翻译成本地文件；命中挂载前缀时改到挂载目录。
+
+        先按 URL 规则归一化（`/__a2v__/../x` 会先变成 `/x`），因此别名下的
+        `..` 不可能逃出挂载目录；归一化后再做一次解析校验，挡住目录符号链接
+        指向挂载目录之外的情况。别名只提供文件，不提供目录列表：挂载的是
+        共享资产，列出目录既没有用处又多一层暴露。
+        """
+        clean = posixpath.normpath(unquote(path.split("?", 1)[0].split("#", 1)[0]))
+        for prefix, base in self.mounts.items():
+            if clean != prefix and not clean.startswith(prefix + "/"):
+                continue
+            relative = clean[len(prefix) :].lstrip("/")
+            target = (base / relative).resolve()
+            if target != base and base not in target.parents:
+                break  # 越界：交给基类处理，最终 404
+            if target.is_dir():
+                return str(base / _NO_DIRECTORY_LISTING)
+            return str(target)
+        return super().translate_path(path)
 
 
 class _MediaHandler(_QuietHandler):
@@ -81,15 +135,26 @@ class _MediaHandler(_QuietHandler):
 
 
 class LocalServer:
-    """把某个目录以 HTTP 暴露在 127.0.0.1 的随机端口上。"""
+    """把某个目录以 HTTP 暴露在 127.0.0.1 的随机端口上。
 
-    def __init__(self, root: str | Path, port: int = 0, cors: bool = False) -> None:
+    `mounts` 可选：给出「URL 前缀 → 目录」，让静态根之外的共享资产也能被
+    页面按稳定别名取到（例如仓库里的 skill 资产，配仓库外的内容根）。
+    """
+
+    def __init__(
+        self,
+        root: str | Path,
+        port: int = 0,
+        cors: bool = False,
+        mounts: dict[str, str | Path] | None = None,
+    ) -> None:
         self.root = Path(root).resolve()
         if not self.root.is_dir():
             raise NotADirectoryError(f"静态根目录不存在: {self.root}")
         # 端口 0 表示由操作系统分配空闲端口，渲染时用默认值即可避免冲突。
         self.port = port
         self.cors = cors
+        self.mounts = _normalize_mounts(mounts)
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._base_url: str | None = None
@@ -101,9 +166,37 @@ class LocalServer:
             raise RuntimeError("静态服务器尚未启动")
         return self._base_url
 
+    def url_for(self, path: str | Path) -> str:
+        """某个本地文件在本服务上的 URL。
+
+        文件可以在静态根内（内容根里的文章页面），也可以在挂载目录内
+        （仓库里的共享页面配内容根里的文章）；两种都支持，因此「页面」与
+        「被引用的资产」不必同处一棵树。
+        """
+        base = self.base_url
+        target = Path(path).resolve()
+        try:
+            return f"{base}/{target.relative_to(self.root).as_posix()}"
+        except ValueError:
+            pass
+        for prefix, directory in self.mounts.items():
+            try:
+                relative = target.relative_to(directory)
+            except ValueError:
+                continue
+            return f"{base}{prefix}/{relative.as_posix()}"
+        raise A2VError(
+            f"{target} 既不在静态根 {self.root} 内，也不在挂载目录 "
+            f"{'、'.join(str(d) for d in self.mounts.values()) or '（无）'} 内"
+        )
+
     def start(self) -> str:
         """启动服务并返回基础 URL，例如 http://127.0.0.1:52341。"""
-        handler = partial(_MediaHandler if self.cors else _QuietHandler, directory=str(self.root))
+        handler = partial(
+            _MediaHandler if self.cors else _QuietHandler,
+            directory=str(self.root),
+            mounts=self.mounts,
+        )
         self._server = ThreadingHTTPServer(("127.0.0.1", self.port), handler)
         self._thread = threading.Thread(
             target=self._server.serve_forever, name="a2v-static-server", daemon=True

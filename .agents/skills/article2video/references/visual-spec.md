@@ -264,9 +264,8 @@ api.motion.tempo('impact');                                             // 节�
 
 ## 资产引用
 
-共享资产位于 `.agents/skills/article2video/assets/`，按层级调整相对路径。
-`theme.css` 提供设计令牌与背景层工具类，**不定义任何元素级样式**，
-因此引入与否都不会改变既有画面：
+共享资产位于 `.agents/skills/article2video/assets/`。页面在仓库内时按层级调整相对路径
+（`videos/<slug>/` 与 `examples/<slug>/` 都是两层，所以是 `../../`）：
 
 ```html
 <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
@@ -277,9 +276,23 @@ api.motion.tempo('impact');                                             // 节�
 <script src="../../.agents/skills/article2video/assets/figures.js"></script>
 ```
 
-顺序不能颠倒：`base.css` 负责画布与安全区，`theme.css` 提供令牌，
-`figures.css` 是组件自己的样式，页面自身样式放在最后，保证页面永远拥有最终覆盖权。
-`figures.js` 必须在 `timeline.js` 之后加载：它复用运行时的动效原语。
+文章放在**仓库之外的内容根**时相对路径不再成立（`../../` 落到内容根里，那里没有
+skill 副本），改用渲染脚本提供的别名——同一个文件、与内容根位置无关：
+
+```html
+<link rel="stylesheet" href="/__a2v__/base.css">
+<link rel="stylesheet" href="/__a2v__/theme.css">
+<link rel="stylesheet" href="/__a2v__/figures.css">
+...
+<script src="/__a2v__/timeline.js"></script>
+<script src="/__a2v__/figures.js"></script>
+```
+
+`theme.css` 提供设计令牌与背景层工具类，**不定义任何元素级样式**，
+因此引入与否都不会改变既有画面。顺序不能颠倒：`base.css` 负责画布与安全区，
+`theme.css` 提供令牌，`figures.css` 是组件自己的样式，页面自身样式放在最后，
+保证页面永远拥有最终覆盖权。`figures.js` 必须在 `timeline.js` 之后加载：
+它复用运行时的动效原语。
 
 组件库承担「一幕画面怎么画」，页面只负责舞台、背景与挂载点；
 要不要用组件、用哪一个，见 [视觉组件目录](figure-catalog.md)。

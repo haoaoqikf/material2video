@@ -658,9 +658,11 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
 
 ## 已完成的实际文章
 
-路线之外，用一篇完整的实际文章验证了整条链路与视觉方向的自由度：
+路线之外，用一篇完整的实际文章验证了整条链路与视觉方向的自由度。
+这篇内容**不入库**（`videos/` 已在 `.gitignore` 中忽略），只存在于作者本机的内容目录里；
+记录在这里是为了说明制作方法与验证结论，克隆仓库拿不到它的源文件：
 
-### `videos/never-fear-interviews/`（《永远不要害怕面试》）—— 已完成
+### `videos/never-fear-interviews/`（《永远不要害怕面试》）—— 已完成（内容不入库）
 
 目录规范落地后的第一支实际视频，八幕 2160 帧原长，按配音派生为 2189 帧 / 73.0 秒，
 1080 × 1920 / 30fps 有声导出。它验证了两件事：
@@ -686,13 +688,13 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
 项目要长期维护多篇文章，因此目录与产物位置是稳定约定而非临时安排：
 
 ```text
-videos/<slug>/{article.md, storyboard.json, [index.html]} # 专属网页可选，源文件入 Git
-outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
-outputs/examples/<slug>/                                   # 示例产物独立一层
+<工作区根>/videos/<slug>/{article.md, storyboard.json, [index.html]}  # 专属网页可选，内容不入库
+<工作区根>/outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
+<工作区根>/outputs/examples/<slug>/                                   # 示例产物独立一层
 ```
 
 `prepare.py`、`render.py` 的输出参数改为可选：从输入文件位置向上定位含
-`.agents/skills/article2video/SKILL.md` 的项目根，再识别 `videos/<slug>/` 或
+`.agents/skills/article2video/SKILL.md` 的仓库根，再识别 `videos/<slug>/` 或
 `examples/<slug>/`，推导出对应产物路径；渲染以本地网页确定归属，配音以分镜确定归属，
 结果与执行命令时的工作目录无关。非规范目录、远程网页或无法识别项目时直接报错并要求
 显式指定路径，不猜测归属。显式 `--out`、`--out-dir` 始终优先，原有调用保持兼容；
@@ -703,6 +705,27 @@ outputs/examples/<slug>/                                   # 示例产物独立�
 规则以 [目录约定与输出路径](../.agents/skills/article2video/references/paths-and-outputs.md)
 为权威来源。示例产物已迁入 `outputs/examples/why-effort-fails/`，媒体目录整体移动后清单与
 资源引用保持有效。
+
+### 内容根：文章与仓库解耦 —— 已实现
+
+多篇文章的下一步是让**内容**也离开仓库：文章是作品，制作方法才是代码。落地方案是两层根：
+
+- **仓库根**存放 skill 与共享资产；**工作区根**存放 `videos|examples/<slug>/` 与 `outputs/`。
+  不设内容根时两者重合，路径与产物位置与之前逐帧一致；
+- 内容根由 `--content-root <目录>` 或环境变量 `A2V_CONTENT_ROOT` 指定（命令行优先），
+  **不自动探测**：猜错的后果是把成片写到你没在看的地方，而人直到打开目录才发现；
+- 内容根里的页面与仓库不在一棵树上，共享资产改由静态服务器的 `/__a2v__/` 别名提供
+  （挂到仓库的 `assets/`，只服务文件、不列目录，`..` 穿不出去）。选别名而不是
+  「往上找到公共祖先再当静态根」，是因为后者会把仓库的兄弟目录一起暴露在回环地址上；
+- 溯源升到 `version: 3`，定位改为相对引用：`workspace` 指回工作区根，资产键相对它记，
+  别名目录里的文件（含共享页面 `declarative.html`）记 `/__a2v__/…` 键。键记「文件在哪」
+  而不是「引用怎么写」，因此共享页面内部的相对引用同样记别名键——否则内容根里的每一份
+  成片都会在复核时报「资产不见了」；
+- 已验证：内容根内的声明式与专属网页两条路都能端到端渲出成片、产物落在内容根的
+  `outputs/<slug>/` 下、溯源无需内容根参数即可复核、别名不得越界读取仓库其他目录。
+
+`videos/` 已从 Git 索引移除并加入 `.gitignore`：留在仓库里的文章不会被提交，
+放到内容根的文章同样不会。
 
 - **动效时长还没接回设计层**：`figures.js` 的 49 处 `api.progress` 里，
   时长参数有 20 个取值、混用「帧数」与「场景占比」两种单位；设计层的

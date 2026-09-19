@@ -54,7 +54,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `tests/test_vendor_spring.py` 对 vendored 求解器核对解析解自身的性质；
 - 开渲前静态扫描 `animation:` / `transition:` / `@keyframes` 与
   `Date.now(` / `performance.now(` / `Math.random(` 并给出警告，
-  范围覆盖网页引用的本地样式表与脚本（含 skill 的共享资产），
+  范围覆盖网页引用的本地样式表与脚本（含 skill 的共享资产与 `/__a2v__/` 别名），
   把「预览正常、导出闪烁」提前暴露；
 - 本地 HTTP 预览（网页需 fetch 分镜 JSON，`file://` 下会被同源策略拒绝）；
 - **文章生成分镜**：从文章产出分镜的步骤、拆幕与时长规则、内容与排版约束、组件目录不足时
@@ -74,7 +74,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   「这个成片是不是旧资产渲的」——`report.json` 的 `provenance` 段与终端一栏给出
   `对得上` / `落后（并指名是哪几个文件变了）` / `无法判断`。
   它是提示不拦人：不参与错误数，也不改退出码。为什么需要它：成片不入库，
-  以前改了动效资产而没重渲，旧成片看上去仍然是「上次验收通过」的样子；
+  以前改了动效资产而没重渲，旧成片看上去仍然是「上次验收通过」的样子。
+  溯源一律用相对引用（`workspace` + 工作区相对键，共享资产记 `/__a2v__/` 别名键），
+  因此文章与产物放在仓库之外也读得回来；
 - 一个可直接运行的完整示例：`examples/why-effort-fails/`（5 幕，1350 帧，45 秒），
   已按「排版层级 + 三层景深 + 统一动效曲线」重做，作为新视频的观感基线；
 - edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
@@ -82,11 +84,18 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `outputs/<slug>/`，
   示例产物独立在 `outputs/examples/<slug>/`；`--out` 与 `--out-dir` 可省略，
   显式参数继续优先；
+- **文章与仓库解耦**：`videos/` 是作品内容，已在 `.gitignore` 中忽略（文章内容不入库）；
+  文章与产物还可以整体放在仓库之外的**内容根**里，用 `--content-root` 或
+  `A2V_CONTENT_ROOT` 指定（命令行优先），命令与产物结构完全不变。内容根里的页面用
+  `/__a2v__/<文件>` 引用仓库中那一份共享资产——静态服务器按这个别名把请求接到 skill 的
+  `assets/`（只服务文件、不列目录，`..` 也穿不出去），所以内容根里不需要 skill 副本，
+  也不会把仓库其他目录暴露给页面。不设内容根时工作区根就是仓库根，行为与之前一致；
 - 一篇实际视频：`videos/never-fear-interviews/`（《永远不要害怕面试》，8 幕，
   2189 帧 / 73.0 秒有声），采用「编辑杂志」风格方向（浅底 + 墨黑文字 + 单一朱红强调），
   八幕全部以帧驱动的比喻画面表达道理（天平 / 落差尺 / 冰山 / 飞轮 / 冰山 / 阶梯 /
   双栏对照 / 双向选择），实现了 `list` 与 `timeline` 两个示例里没有的场景分支；
-  页面另有常驻进度轨（幕号 / 章节 / 全片进度）为下半幅收口；
+  页面另有常驻进度轨（幕号 / 章节 / 全片进度）为下半幅收口。**这篇内容不入库**：
+  它只存在于作者本机的内容目录里，克隆仓库看不到它，制作方法以 `examples/` 为准；
 - **发布会级设计语言层**（可选）：分镜根级声明 `visual.preset: "keynote"` 时启用
   `assets/keynote.css`——模块化字号阶（8 档，正文下限 36px，每档配对行高与字距）、
   8pt 间距阶（4–192px）、五个圆角档 + pill、三级阴影、12 列网格（内容宽 888px、
@@ -137,7 +146,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 尚未实现、请勿当作已有能力使用：**分镜生成器程序**（生成由 AI 工具按
 [规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
-模型调用或批量生成）、**背景音乐**、
+模型调用或批量生成）、**背景音乐**、**内容根的自动探测**（只能显式指定，脚本不去猜）、
 **平台发布**、批量渲染与成片历史版本。
 
 设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
@@ -213,16 +222,23 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ## 制作一支新视频
 
-1. 在 `videos/<slug>/` 下新建目录（slug 稳定、唯一，标题变化不改名），写入 `article.md` 与 `storyboard.json`；
-2. 复制 `examples/why-effort-fails/index.html` 作为模板，按
-   [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md) 的层级与动效配方改写场景；
-3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导，无需手动创建。
+1. 新建文章目录 `videos/<slug>/`（slug 稳定、唯一，标题变化不改名），写入 `article.md` 与
+   `storyboard.json`。目录留在仓库里即可——内容不入库，不会被提交；想放仓库外时把它放进
+   内容根（`--content-root <目录>` 或环境变量 `A2V_CONTENT_ROOT`），内容根下同样放
+   `videos/<slug>/`；
+2. 声明式路径到第 2 步就够（共享页面按分镜画画面）；需要专属网页时复制
+   `examples/why-effort-fails/index.html` 作为模板，按
+   [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md) 的层级与动效配方改写场景。
+   页面在仓库外时，把共享资产引用从 `../../.agents/skills/article2video/assets/…`
+   改成 `/__a2v__/…`；
+3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导
+   （内容根在仓库外时即 `<内容根>/outputs/<slug>/`），无需手动创建。
 
 已完成的文章：
 
 | 目录 | 内容 | 分镜 | 成片 |
 | --- | --- | --- | --- |
-| `videos/never-fear-interviews/` | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
+| `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
 
 `videos/never-fear-interviews/` 采用「编辑杂志」方向（浅底 + 墨黑衬线 + 单一朱红强调），
@@ -281,8 +297,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
   `tests/test_motion_trajectory.py` 会按帧量真实轨迹，防止配方改着改着变成弹跳；
   验收命令 `review.py` 对任意作品都会跑同一套量测（终端 M0–M4 一栏），
   但它只提示、不拦人——「入场快了一点」不是「画面坏了」；
-- **产物归属**：一篇文章一个目录，产物只写进它自己的 `outputs/<slug>/`；
-  推导不出归属时脚本报错并要求显式指定路径，不猜测；
+- **产物归属**：一篇文章一个目录，产物只写进它自己的工作区根下 `outputs/<slug>/`；
+  推导不出归属时脚本报错并要求显式指定路径或内容根，不猜测；
 - **性能取舍**：中间帧默认用 JPEG q98 采集（1080 × 1920 实测约 66ms/帧，PNG 约 225ms），
   需要逐像素比对时用 `--capture-format png`；画面避免大面积 `filter: blur()`，
   光晕用 `radial-gradient` 或 `box-shadow` 实现。

@@ -13,9 +13,18 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
+import pytest
+
 from a2v import render as render_mod
+
+
+def _digest(path: Path) -> str:
+    from a2v import media as media_mod
+
+    return media_mod.file_digest(path)
 
 
 def _work(tmp_path: Path) -> Path:
@@ -34,14 +43,16 @@ def _provenance(tmp_path: Path, page: Path, video: Path, extra: dict | None = No
     from a2v import media as media_mod
 
     html = page.read_text(encoding="utf-8")
+    workspace = tmp_path
     payload = {
-        "version": 2,
-        "page": page.relative_to(tmp_path).as_posix(),
+        "version": 3,
+        "workspace": os.path.relpath(workspace, video.parent).replace(os.sep, "/"),
+        "page": page.relative_to(workspace).as_posix(),
         "storyboard": "",
         "frames": 12,
         "fps": 30,
         "captureFormat": "jpeg",
-        "assets": media_mod.asset_fingerprint(page, html, extra),
+        "assets": media_mod.asset_fingerprint(page, html, extra, workspace_root=workspace),
     }
     video.parent.mkdir(parents=True, exist_ok=True)
     video.write_bytes(b"fake mp4")
@@ -49,6 +60,115 @@ def _provenance(tmp_path: Path, page: Path, video: Path, extra: dict | None = No
         json.dumps(payload, ensure_ascii=False), encoding="utf-8"
     )
     return payload
+
+
+class TestProvenanceAcrossRoots:
+    """文章与产物在仓库之外时，溯源仍要能判定。
+
+    v3 用相对引用定位（产物目录 → 工作区根 + 工作区根相对路径），因此不要求
+    产物上级有仓库标记；共享资产经 `/__a2v__/` 引用时记别名键，不因为它在
+    另一个根里就被漏掉——漏掉的话，改了组件库而没重渲的成片会显示「对得上」。
+    """
+
+    @staticmethod
+    def _workspace(tmp_path: Path) -> tuple[Path, Path]:
+        content = tmp_path / "content"
+        page = content / "videos" / "demo" / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text(
+            '<!doctype html><html><head>'
+            '<link rel="stylesheet" href="/__a2v__/figures.css"></head></html>',
+            encoding="utf-8",
+        )
+        return content, page
+
+    @staticmethod
+    def _render(tmp_path: Path, content: Path, page: Path) -> Path:
+        from a2v import media as media_mod
+
+        video = content / "outputs" / "demo" / "silent.mp4"
+        video.parent.mkdir(parents=True, exist_ok=True)
+        video.write_bytes(b"fake mp4")
+        payload = {
+            "version": 3,
+            "workspace": os.path.relpath(content, video.parent).replace(os.sep, "/"),
+            "page": "videos/demo/index.html",
+            "storyboard": "",
+            "frames": 12,
+            "fps": 30,
+            "captureFormat": "jpeg",
+            "assets": media_mod.asset_fingerprint(
+                page, page.read_text(encoding="utf-8"), workspace_root=content
+            ),
+        }
+        video.with_suffix(".provenance.json").write_text(
+            json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+        )
+        return video
+
+    @pytest.fixture
+    def mounted_assets(self, tmp_path, monkeypatch) -> Path:
+        """把 `/__a2v__/` 指到测试自己的资产目录，模拟仓库那一侧。"""
+        from a2v import assets as assets_mod
+
+        fake = tmp_path / "skill-assets"
+        fake.mkdir()
+        (fake / "figures.css").write_text(".fig{opacity:1}", encoding="utf-8")
+        monkeypatch.setattr(
+            assets_mod, "default_mounts", lambda: {assets_mod.SKILL_MOUNT: fake}
+        )
+        return fake
+
+    def test_external_workspace_round_trip(self, tmp_path, mounted_assets):
+        content, page = self._workspace(tmp_path)
+        video = self._render(tmp_path, content, page)
+        payload = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
+        assert payload["workspace"] == "../.."
+        assert payload["page"] == "videos/demo/index.html"
+        assert sorted(payload["assets"]["files"]) == ["__a2v__/figures.css", "videos/demo/index.html"]
+        assert render_mod.provenance_status(video)["status"] == "current"
+
+    def test_shared_asset_change_names_the_alias_key(self, tmp_path, mounted_assets):
+        content, page = self._workspace(tmp_path)
+        video = self._render(tmp_path, content, page)
+        (mounted_assets / "figures.css").write_text(".fig{opacity:.5}", encoding="utf-8")
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "stale"
+        assert result["changed"] == ["__a2v__/figures.css"]
+
+    def test_removed_shared_asset_is_reported_as_missing(self, tmp_path, mounted_assets):
+        content, page = self._workspace(tmp_path)
+        video = self._render(tmp_path, content, page)
+        (mounted_assets / "figures.css").unlink()
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "stale"
+        assert result["missing"] == ["__a2v__/figures.css"]
+
+    def test_alias_key_cannot_point_outside_the_mount(self, tmp_path, mounted_assets):
+        """被人改过的溯源键不得让判定去读挂载目录之外的文件。"""
+        content, page = self._workspace(tmp_path)
+        video = self._render(tmp_path, content, page)
+        sidecar = video.with_suffix(".provenance.json")
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+        (tmp_path / "outside.css").write_text(".a{opacity:1}", encoding="utf-8")
+        payload["assets"]["files"]["__a2v__/../outside.css"] = _digest(
+            tmp_path / "outside.css"
+        )
+        sidecar.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "stale"
+        assert result["missing"] == ["__a2v__/../outside.css"]
+
+    def test_missing_workspace_reference_is_unknown_not_guessed(self, tmp_path, mounted_assets):
+        content, page = self._workspace(tmp_path)
+        video = self._render(tmp_path, content, page)
+        sidecar = video.with_suffix(".provenance.json")
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+        payload.pop("workspace")
+        sidecar.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = render_mod.provenance_status(video)
+        assert result["status"] == "unknown"
+        assert "工作区引用" in result["detail"]
 
 
 class TestStalenessVerdicts:
@@ -141,7 +261,8 @@ class TestLineEndingsDoNotFakeStaleness:
         _provenance(tmp_path, page, video)
         sidecar = video.with_suffix(".provenance.json")
         data = json.loads(sidecar.read_text(encoding="utf-8"))
-        data["version"] = 1
+        data["version"] = 2  # 上一版口径：没有 workspace 字段，页面按仓库标记定位
+        data.pop("workspace", None)
         sidecar.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         result = render_mod.provenance_status(video)
         assert result["status"] == "unknown"

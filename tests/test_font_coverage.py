@@ -76,8 +76,8 @@ class TestShippedWorksAreCovered:
     @pytest.mark.parametrize(
         "storyboard",
         [
+            # 只取仓库自带的分镜：实际文章是内容、不入库，克隆后并不存在
             "examples/why-effort-fails/storyboard.json",
-            "videos/never-fear-interviews/storyboard.json",
             "examples/keynote-baseline/storyboard.json",
         ],
     )

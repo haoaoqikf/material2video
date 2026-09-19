@@ -122,3 +122,57 @@ class TestFingerprintChangesWithContent:
         page = _page(tmp_path)
         result = media_mod.asset_fingerprint(page, "")
         assert result["digest"] == media_mod.fingerprint(result["files"])
+
+
+class TestKeysSayWhereTheFileIs:
+    """指纹键就是复核时的定位方式，因此键记「文件在哪」，不记「引用怎么写」。
+
+    别名目录（skill bundle 的 `assets/`）里的文件一律记别名键。反过来说：
+    共享页面内部引用共享资产用的是相对路径，但那些文件仍在 bundle 里，键也
+    必须走别名——否则内容根里的产物会按工作区根去拼，每一次复核都报「不见了」。
+    """
+
+    @staticmethod
+    def _bundle(tmp_path: Path) -> tuple[Path, dict[str, Path]]:
+        from a2v import assets as assets_mod
+
+        directory = tmp_path / "bundle" / "assets"
+        directory.mkdir(parents=True)
+        return directory, {assets_mod.SKILL_MOUNT: directory}
+
+    def test_mounted_asset_gets_an_alias_key(self, tmp_path):
+        directory, mounts = self._bundle(tmp_path)
+        (directory / "theme.css").write_text(":root{--a:1}", encoding="utf-8")
+        page = _page(tmp_path, '<link rel="stylesheet" href="/__a2v__/theme.css">')
+        files = media_mod.asset_fingerprint(
+            page, page.read_text(encoding="utf-8"), mounts=mounts
+        )["files"]
+        assert sorted(files) == ["__a2v__/theme.css", "videos/demo/index.html"]
+
+    def test_shared_page_inside_the_mount_records_alias_keys(self, tmp_path):
+        """共享页面与它引用的资产都在 bundle 里：页面与资产都记别名键。"""
+        directory, mounts = self._bundle(tmp_path)
+        (directory / "figures.css").write_text(".a{opacity:1}", encoding="utf-8")
+        page = directory / "declarative.html"
+        page.write_text('<link rel="stylesheet" href="./figures.css">', encoding="utf-8")
+        content = tmp_path / "content"
+        content.mkdir()
+        files = media_mod.asset_fingerprint(
+            page, page.read_text(encoding="utf-8"), workspace_root=content, mounts=mounts
+        )["files"]
+        assert sorted(files) == ["__a2v__/declarative.html", "__a2v__/figures.css"]
+
+    def test_alias_key_resolves_back_for_verification(self, tmp_path):
+        from a2v import assets as assets_mod
+
+        directory, mounts = self._bundle(tmp_path)
+        target = directory / "figures.css"
+        target.write_text(".a{opacity:1}", encoding="utf-8")
+        assert assets_mod.key_path("__a2v__/figures.css", tmp_path, mounts) == target.resolve()
+
+    def test_workspace_relative_key_is_kept_for_article_assets(self, tmp_path):
+        """内容根里文章自己的资产仍记工作区相对键：换内容根时跟着一起走。"""
+        _asset(tmp_path, "videos/demo/style.css", ".a{opacity:1}")
+        page = _page(tmp_path, '<link rel="stylesheet" href="style.css">')
+        files = media_mod.asset_fingerprint(page, page.read_text(encoding="utf-8"))["files"]
+        assert sorted(files) == ["videos/demo/index.html", "videos/demo/style.css"]

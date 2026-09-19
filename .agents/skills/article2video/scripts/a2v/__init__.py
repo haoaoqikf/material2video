@@ -4,7 +4,7 @@
 ffmpeg 管道编码。模块划分：
 
 - storyboard: 分镜脚本模型与结构校验
-- paths:      项目根识别、文章归属推导与标准输出路径
+- paths:      仓库根与内容根、文章归属推导与标准输出路径
 - browser:    Playwright 会话与 __A2V__ 契约检查
 - encoder:    ffmpeg 子进程管道
 - render:     帧循环编排与成片验收

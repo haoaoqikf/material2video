@@ -1,13 +1,21 @@
 """文章归属推导与标准输出路径。
 
-每篇文章占一个稳定目录，源文件入 Git，产物写入 `outputs/`：
+文章是**内容**，仓库是**工具链**，两者可以分开放，因此这里区分两层根：
 
 ```text
-<root>/videos/<slug>/{article.md, storyboard.json, index.html}
-<root>/examples/<slug>/...              # 与 videos/ 同构的示例
-<root>/outputs/<slug>/{silent,voiced}.mp4, voiced.srt, media/, previews/
-<root>/outputs/examples/<slug>/...      # 示例产物独立一层，避免与实际文章同名冲突
+仓库根 repo_root        # .agents/skills/article2video/SKILL.md 所在处：脚本、共享资产、examples
+工作区根 workspace_root # 存放 videos|examples/<slug> 与 outputs/ 的目录
+
+<workspace>/videos/<slug>/{article.md, storyboard.json, index.html}
+<workspace>/examples/<slug>/...          # 与 videos/ 同构的示例（仓库自带，随仓库分发）
+<workspace>/outputs/<slug>/{silent,voiced}.mp4, voiced.srt, media/, previews/
+<workspace>/outputs/examples/<slug>/...  # 示例产物独立一层，避免与实际文章同名冲突
 ```
+
+工作区根按 `--content-root` > `A2V_CONTENT_ROOT` > 仓库根 解析：不设内容根时两层根重合，
+既有调用方式与画面逐帧不变；设了内容根，文章与产物就可以留在仓库之外。
+仓库根内规范目录（`videos|examples/<slug>`）里的输入文件始终按仓库根判定，
+以免示例的归属随内容根配置漂移。
 
 本模块集中实现推导规则，命令行只做参数默认值与报错，不再各自拼路径。
 所有推导都从输入文件的位置向上查找，与执行命令时的工作目录无关。
@@ -16,6 +24,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -25,10 +34,10 @@ from .errors import A2VError
 
 logger = logging.getLogger(__name__)
 
-# 项目根标记：skill 主文档的位置。它同时是「这个目录属于 article2video 项目」的证据。
+# 仓库根标记：skill 主文档的位置。它同时是「这个目录属于 article2video 仓库」的证据。
 PROJECT_MARKER = Path(".agents/skills/article2video/SKILL.md")
 
-# 源文件的两种归属目录，直接挂在项目根下。
+# 源文件的两种归属目录，直接挂在工作区根下。
 SOURCE_KINDS: dict[str, str] = {"videos": "article", "examples": "example"}
 
 # 产物根目录名（已被 .gitignore 忽略）。
@@ -40,6 +49,13 @@ VOICED_NAME = "voiced.mp4"
 PREVIEW_DIR = "previews"
 MEDIA_DIR = "media"
 
+#: 内容根环境变量：让文章与产物留在仓库之外的目录里。
+#: 命令行参数 `--content-root` 优先于它，两者都没有时工作区根就是仓库根。
+CONTENT_ROOT_ENV = "A2V_CONTENT_ROOT"
+
+#: 运行中的 skill bundle 位置：`<仓库根>/.agents/skills/article2video`
+BUNDLE_DIR = Path(__file__).resolve().parents[2]
+
 ArticleKind = Literal["article", "example"]
 
 
@@ -50,7 +66,8 @@ class ArticlePaths:
     字段都是绝对路径；`output_dir` 只表示位置，不保证已经存在。
     """
 
-    root: Path
+    repo_root: Path
+    workspace_root: Path
     kind: ArticleKind
     source_dir: Path
     output_dir: Path
@@ -78,11 +95,11 @@ class ArticlePaths:
 
 
 def project_root(path: str | Path) -> Path:
-    """从文件或目录位置向上查找项目根目录。
+    """从文件或目录位置向上查找仓库根目录。
 
     以 `.agents/skills/article2video/SKILL.md` 为标记，而不是 `.git`：
-    标记文件兼作「此处是 article2video 项目根」的判据，避免把任意 Git 仓库
-    的顶层目录误认为项目根。找不到时抛出 A2VError，由调用方补充上下文。
+    标记文件兼作「此处是 article2video 仓库根」的判据，避免把任意 Git 仓库
+    的顶层目录误认为仓库根。找不到时抛出 A2VError，由调用方补充上下文。
     """
     candidate = Path(path)
     if candidate.is_file():
@@ -95,13 +112,56 @@ def project_root(path: str | Path) -> Path:
         if (directory / PROJECT_MARKER).is_file():
             return directory
     raise A2VError(
-        f"未找到项目根目录：{start} 及其上级都没有 {PROJECT_MARKER.as_posix()}，"
-        "无法推导文章归属，请显式指定输出路径"
+        f"未找到仓库根目录：{start} 及其上级都没有 {PROJECT_MARKER.as_posix()}，"
+        f"无法推导文章归属，请显式指定输出路径，或用 --content-root / "
+        f"环境变量 {CONTENT_ROOT_ENV} 指定内容根"
     )
 
 
+def bundle_repo_root() -> Path | None:
+    """正在运行的 skill bundle 所在的仓库根。
+
+    文章落在仓库之外时，从输入文件向上是找不到标记的；而「哪份共享资产会被
+    挂载、哪份共享页面会被使用」由正在运行的脚本决定，因此这时仓库根取脚本
+    自身的位置。bundle 不在仓库里（被拷出去单独使用）时返回 None。
+    """
+    candidate = BUNDLE_DIR.parents[2]
+    return candidate if (candidate / PROJECT_MARKER).is_file() else None
+
+
+def repo_root_for(path: str | Path) -> Path:
+    """输入文件该归到哪个仓库根。
+
+    文件在仓库里时按标记向上找（这就是它所属的仓库）；找不到标记说明文章在
+    仓库之外，此时回退到运行中的 bundle 所在仓库——共享资产与共享页面都从
+    那里取，挂载的也是那一份。
+    """
+    try:
+        return project_root(path)
+    except A2VError:
+        bundle = bundle_repo_root()
+        if bundle is None:
+            raise
+        return bundle
+
+
+def content_root(explicit: str | Path | None = None) -> Path | None:
+    """解析内容根：`--content-root` 优先于环境变量 `A2V_CONTENT_ROOT`。
+
+    两者都没有时返回 None，表示「工作区根就是仓库根」——这与引入内容根之前
+    的行为完全一致，既有调用方式不需要改。相对路径按当前工作目录解析，
+    与其他命令行参数的口径一致。
+    """
+    if explicit is not None:
+        return Path(explicit).expanduser().resolve()
+    from_env = os.environ.get(CONTENT_ROOT_ENV, "").strip()
+    if from_env:
+        return Path(from_env).expanduser().resolve()
+    return None
+
+
 def locate_article(root: str | Path, path: str | Path) -> tuple[ArticleKind, str]:
-    """判定 `path` 属于哪个文章目录，返回 (类型, slug)。
+    """判定 `path` 属于工作区根下的哪个文章目录，返回 (类型, slug)。
 
     `path` 可以是文章目录本身，也可以是它内部的任意文件（例如
     `videos/<slug>/assets/page.html` 仍归属该文章）。判据是祖先中存在
@@ -125,7 +185,7 @@ def locate_article(root: str | Path, path: str | Path) -> tuple[ArticleKind, str
             return kind, directory.name  # type: ignore[return-value]
 
     raise A2VError(
-        f"无法推导文章归属：{start} 不是项目根下的 videos/<slug>/ 或 examples/<slug>/，"
+        f"无法推导文章归属：{start} 不是工作区根 {root} 下的 videos/<slug>/ 或 examples/<slug>/，"
         "请使用规范目录或显式指定输出路径"
     )
 
@@ -138,20 +198,76 @@ def _depth_under(root: Path, directory: Path) -> int:
         return -1
 
 
-def article_paths(root: str | Path, path: str | Path) -> ArticlePaths:
+def _belongs_to(root: Path, path: str | Path) -> bool:
+    """`path` 是否属于 `root` 这个工作区根下的某篇文章（不抛错的 locate）。"""
+    try:
+        locate_article(root, path)
+    except A2VError:
+        return False
+    return True
+
+
+def workspace_root_for(
+    repo_root: str | Path, path: str | Path, explicit: str | Path | None = None
+) -> Path:
+    """输入文件该归到哪个工作区根。
+
+    仓库根内规范目录里的输入文件始终按仓库根判定（示例与仓库内文章的行为
+    因此不随内容根配置漂移）；其余输入文件必须落在内容根内，否则报错并
+    说明两条设置方式，而不是猜一个位置。
+    """
+    repo = Path(repo_root).resolve()
+    if _belongs_to(repo, path):
+        return repo
+    external = content_root(explicit)
+    if external is not None and _belongs_to(external, path):
+        return external
+    raise A2VError(
+        f"无法推导文章归属：{_start_of(path)} 既不在仓库根 {repo} 的 "
+        "videos/<slug>/ 或 examples/<slug>/ 内，"
+        + (
+            f"也不在内容根 {external} 的同构目录内。"
+            if external is not None
+            else "也没有可用的内容根。"
+        )
+        + f"内容根用 --content-root 或环境变量 {CONTENT_ROOT_ENV} 指定，"
+        "指向存放 videos/<slug>/ 与 outputs/<slug>/ 的目录"
+    )
+
+
+def _start_of(path: str | Path) -> Path:
+    """报错里要显示的起点：文件取所在目录，目录取自身。"""
+    candidate = Path(path)
+    return candidate if candidate.is_dir() else candidate.parent
+
+
+def article_paths(
+    repo_root: str | Path, path: str | Path, content_root: str | Path | None = None
+) -> ArticlePaths:
     """组合出文章的源目录与产物目录。"""
-    root = Path(root).resolve()
-    kind, slug = locate_article(root, path)
-    output_dir = root / OUTPUTS_DIR
+    repo = Path(repo_root).resolve()
+    workspace = workspace_root_for(repo, path, content_root)
+    kind, slug = locate_article(workspace, path)
+    output_dir = workspace / OUTPUTS_DIR
     if kind == "example":
         # 示例产物独立一层，避免与同名实际文章的产物互相覆盖
         output_dir = output_dir / "examples"
     return ArticlePaths(
-        root=root,
+        repo_root=repo,
+        workspace_root=workspace,
         kind=kind,
-        source_dir=root / source_dir_name(kind) / slug,
+        source_dir=workspace / source_dir_name(kind) / slug,
         output_dir=output_dir / slug,
     )
+
+
+def workspace_outputs(article: ArticlePaths) -> Path:
+    """工作区根下的产物根目录（`outputs/` 或 `outputs/examples/`）。
+
+    `_reject_foreign_media_dir` 用它判断「这个媒体目录是不是别人的」，
+    因此必须从 `output_dir` 反推，而不是硬拼仓库根。
+    """
+    return article.output_dir.parent
 
 
 def source_dir_name(kind: ArticleKind) -> str:
@@ -162,7 +278,7 @@ def source_dir_name(kind: ArticleKind) -> str:
     raise A2VError(f"未知的文章归属类型: {kind}")  # pragma: no cover - 类型已收敛
 
 
-def for_page(page: str | Path) -> ArticlePaths:
+def for_page(page: str | Path, content_root: str | Path | None = None) -> ArticlePaths:
     """以动画网页确定文章归属（渲染与预览走这条路）。
 
     本地网页必须存在且位于规范目录内；远程网页无法确定归属，直接报错。
@@ -177,17 +293,19 @@ def for_page(page: str | Path) -> ArticlePaths:
         raise A2VError(f"--page 需要指向网页文件，而不是目录: {page_file}")
     if not page_file.is_file():
         raise A2VError(f"动画网页不存在: {page_file}")
-    root = project_root(page_file)
-    return article_paths(root, page_file)
+    repo = repo_root_for(page_file)
+    return article_paths(repo, page_file, content_root)
 
 
-def for_storyboard(storyboard: str | Path) -> ArticlePaths:
+def for_storyboard(
+    storyboard: str | Path, content_root: str | Path | None = None
+) -> ArticlePaths:
     """以分镜确定文章归属（配音准备走这条路）。"""
     source = Path(storyboard)
     if not source.is_file():
         raise A2VError(f"分镜脚本不存在: {source}")
-    root = project_root(source)
-    return article_paths(root, source)
+    repo = repo_root_for(source)
+    return article_paths(repo, source, content_root)
 
 
 def declares_narration(model: sb.Storyboard) -> bool:

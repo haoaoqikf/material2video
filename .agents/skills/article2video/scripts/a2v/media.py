@@ -40,23 +40,33 @@ def file_digest(path: Path) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def asset_fingerprint(page: Path, html: str, extra: dict | None = None) -> dict:
+def asset_fingerprint(
+    page: Path,
+    html: str,
+    extra: dict | None = None,
+    workspace_root: Path | None = None,
+    mounts: dict[str, Path] | None = None,
+) -> dict:
     """成片溯源用的资产指纹：网页**真正引用**的本地资源，加上页面自身。
 
     只指纹被引用的文件，不指纹整个 `assets/` 目录：否则改一个用不到的图形
     会让所有成片报「落后」，闸门沦为噪音，人开始忽略它——那等于没有闸门。
     口径与媒体清单一致（同一个 `fingerprint` 的规范化 JSON），
     两处算法不同就会出现「清单说一致、成片说落后」这种没人能判断的状态。
+
+    `workspace_root` 给出「相对哪个根记键」；省略时退回项目标记推导，
+    与引入内容根之前的行为一致。经 `/__a2v__/` 别名引用的共享资产一律记别名键，
+    因此页面与资产分处两个根时仍可复核。
     """
-    root = asset_refs.project_root(page.parent) or page.parent
+    root = (
+        Path(workspace_root).resolve()
+        if workspace_root is not None
+        else (asset_refs.project_root(page.parent) or page.parent)
+    )
     files: dict[str, str] = {}
-    targets = [page.resolve(), *(candidate for _, candidate in asset_refs.local_assets(page, html))]
-    for path in targets:
-        try:
-            key = path.relative_to(root).as_posix()
-        except ValueError:  # 项目根之外的路径：用文件名，不把绝对路径写进产物
-            key = path.name
-        files[key] = file_digest(path)
+    files[asset_refs.asset_key(page.resolve(), root, mounts)] = file_digest(page.resolve())
+    for _reference, candidate in asset_refs.local_assets(page, html, mounts):
+        files[asset_refs.asset_key(candidate, root, mounts)] = file_digest(candidate)
     for key, value in (extra or {}).items():
         files[key] = value
     return {"files": files, "digest": fingerprint(files)}

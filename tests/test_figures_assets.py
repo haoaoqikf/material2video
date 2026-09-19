@@ -17,11 +17,24 @@ from pathlib import Path
 import pytest
 
 SKILL = Path(__file__).resolve().parents[1] / ".agents/skills/article2video"
+ROOT = SKILL.parents[2]
 ASSETS = SKILL / "assets"
 FIGURES_JS = ASSETS / "figures.js"
 FIGURES_CSS = ASSETS / "figures.css"
 THEME_CSS = ASSETS / "theme.css"
-PAGE = SKILL.parents[2] / "videos/never-fear-interviews/index.html"
+
+#: 仓库内自带专属网页的示例页面。实际文章（`videos/<slug>/`）是内容、不入库，
+#: 因此不能作为这些静态契约的固定对象——内容不在时测试也必须跑得起来。
+PAGES = tuple(sorted((ROOT / "examples").glob("*/index.html")))
+_PAGE_IDS = [page.parent.name for page in PAGES]
+
+
+def _page_defaults(page: Path) -> dict[str, str]:
+    """页面声明的「场景类型 → 默认组件」映射。"""
+    match = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page.read_text(encoding="utf-8"), re.DOTALL)
+    assert match, f"{page} 不再声明 DEFAULT_FIGURES"
+    return dict(re.findall(r"(\w+):\s*'([\w-]+)'", match.group(1)))
+
 
 # 每注册一个组件：define('kind', [...labels], MARKUP_X, updateX)
 _DEFINE = re.compile(r"define\('([a-z0-9-]+)',\s*(\[[^\]]*\]),\s*([A-Z_]+),\s*(\w+)\);")
@@ -69,14 +82,19 @@ def test_catalog_mirror_matches_the_library():
     assert mirrored == declared
 
 
-def test_catalog_defaults_match_the_page():
+@pytest.mark.parametrize("page", PAGES, ids=_PAGE_IDS)
+def test_catalog_defaults_match_the_page(page):
     from a2v import catalog
 
-    page = PAGE.read_text(encoding="utf-8")
-    block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page, re.DOTALL)
-    assert block, "页面不再声明 DEFAULT_FIGURES"
-    mapping = dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1)))
-    assert mapping == {kind: value for kind, value in catalog.DEFAULT_KINDS.items() if kind != "number"}
+    mapping = _page_defaults(page)
+    assert mapping, f"{page} 的 DEFAULT_FIGURES 为空"
+    for scene_type, kind in mapping.items():
+        assert catalog.DEFAULT_KINDS.get(scene_type) == kind, (
+            f"{page} 把 {scene_type} 默认到 {kind}，目录里是 {catalog.DEFAULT_KINDS.get(scene_type)}"
+        )
+    storyboard = json.loads((page.parent / "storyboard.json").read_text(encoding="utf-8"))
+    used = {scene["type"] for scene in storyboard["scenes"]}
+    assert used <= set(mapping), f"页面没给这些场景类型默认组件：{sorted(used - set(mapping))}"
     shared = (SKILL / "assets/declarative.js").read_text(encoding="utf-8")
     block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", shared, re.DOTALL)
     assert block
@@ -229,35 +247,34 @@ class TestThemeTokens:
         assert "fill: #fff;" not in text
 
 
-def test_page_defaults_point_at_registered_kinds():
+@pytest.mark.parametrize("page", PAGES, ids=_PAGE_IDS)
+def test_page_defaults_point_at_registered_kinds(page):
     """页面给出的「类型 → 默认组件」必须都能挂载，否则渲染时才抛错。"""
-    page = PAGE.read_text(encoding="utf-8")
-    match = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page, re.DOTALL)
-    assert match, "页面不再声明 DEFAULT_FIGURES"
-    mapping = dict(re.findall(r"(\w+):\s*'([\w-]+)'", match.group(1)))
+    mapping = _page_defaults(page)
     assert mapping, "DEFAULT_FIGURES 为空"
     registered = {kind for kind, *_ in _figures()}
     for scene_type, kind in mapping.items():
         assert kind in registered, f"场景类型 {scene_type} 指向未注册的组件 {kind}"
 
 
-def test_page_mounts_a_figure_slot_in_every_scene():
-    page = PAGE.read_text(encoding="utf-8")
-    scenes = page.count("<section data-a2v-scene")
-    slots = page.count("data-a2v-figure")
+@pytest.mark.parametrize("page", PAGES, ids=_PAGE_IDS)
+def test_page_mounts_a_figure_slot_in_every_scene(page):
+    text = page.read_text(encoding="utf-8")
+    scenes = text.count("<section data-a2v-scene")
+    slots = text.count("data-a2v-figure")
     assert scenes > 0
-    assert slots == scenes, f"{scenes} 个场景只有 {slots} 个挂载点"
+    assert slots == scenes, f"{page}：{scenes} 个场景只有 {slots} 个挂载点"
 
 
-def test_storyboard_annotation_keys_are_declared_by_the_component():
+@pytest.mark.parametrize("page", PAGES, ids=_PAGE_IDS)
+def test_storyboard_annotation_keys_are_declared_by_the_component(page):
     """分镜写的标注键必须落在组件的 labels 声明里。
 
     拼错键名不会报错，只会让某个标签空着，因此在这里对照一次。
     """
     declared = {kind: labels for kind, labels, *_ in _figures()}
-    page = PAGE.read_text(encoding="utf-8")
-    mapping = dict(re.findall(r"(\w+):\s*'([\w-]+)'", re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", page, re.DOTALL).group(1)))
-    storyboard = json.loads((PAGE.parent / "storyboard.json").read_text(encoding="utf-8"))
+    mapping = _page_defaults(page)
+    storyboard = json.loads((page.parent / "storyboard.json").read_text(encoding="utf-8"))
     for scene in storyboard["scenes"]:
         annotations = (scene["data"].get("figure") or {}).get("labels")
         if annotations is None:

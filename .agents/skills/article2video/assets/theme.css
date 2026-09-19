@@ -12,6 +12,11 @@
  *   <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
  *   <link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
  *
+ * 页面在仓库之外的内容根里时，相对路径换成别名（同一个文件）：
+ *
+ *   <link rel="stylesheet" href="/__a2v__/base.css">
+ *   <link rel="stylesheet" href="/__a2v__/theme.css">
+ *
  * 令牌的取值理由、动效配方与三套风格方向见 references/visual-spec.md。
  */
 

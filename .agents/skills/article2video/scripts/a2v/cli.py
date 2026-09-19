@@ -71,6 +71,11 @@ def _build_render_parser() -> argparse.ArgumentParser:
         "--storyboard",
         help="分镜 JSON 路径；提供后与网页契约交叉校验帧率、总帧数与画面尺寸",
     )
+    parser.add_argument(
+        "--content-root",
+        help="文章与产物所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，"
+        "两者都没有则用仓库根（文章与仓库不分离时的默认行为）",
+    )
     parser.add_argument("--fps", type=int, help="期望帧率，用于与网页契约核对")
     parser.add_argument("--crf", type=int, default=18, help="H.264 质量，越小越清晰（默认 18）")
     parser.add_argument(
@@ -126,6 +131,10 @@ def _build_preview_parser() -> argparse.ArgumentParser:
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
     parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
     parser.add_argument("--declarative", action="store_true", help="用共享页面预览 --storyboard")
+    parser.add_argument(
+        "--content-root",
+        help="文章所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，都不设则为仓库根",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -140,9 +149,13 @@ def _build_review_parser() -> argparse.ArgumentParser:
         help="动画网页路径或 http(s) URL；省略时用共享页面读取 --storyboard",
     )
     parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定场景与声明")
+    parser.add_argument(
+        "--content-root",
+        help="文章所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，都不设则为仓库根",
+    )
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
     parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
-    parser.add_argument("--serve-root", help="本地网页的静态根目录，默认取项目根")
+    parser.add_argument("--serve-root", help="本地网页的静态根目录，默认取文章的工作区根")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument(
         "--declarative", action="store_true", help="按共享页面的受控字段规则体检"
@@ -171,10 +184,11 @@ def main_render(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     try:
-        page = _shared_page(args.storyboard) if declarative else args.page
-        source_url = _storyboard_url(args.storyboard) if declarative else None
+        article = _article_for(args, declarative=declarative, required=declarative)
+        page = _shared_page(article) if declarative else args.page
+        source_url = _storyboard_url(args.storyboard, article) if declarative else None
         media = load_media(args.media, args.storyboard) if args.media else None
-        output = _resolve_render_output(args, model, media)
+        output = _resolve_render_output(args, model, media, article)
         result = render(
             page_path=page,
             output=output,
@@ -185,11 +199,15 @@ def main_render(argv: list[str] | None = None) -> int:
             limit_frames=args.limit_frames,
             timeout_ms=args.timeout,
             probe=not args.no_probe,
-            serve_root=args.serve_root,
+            serve_root=(
+                args.serve_root
+                or (article.workspace_root if article is not None else None)
+            ),
             capture_format=args.capture_format,
             media=media,
             storyboard_url=source_url,
             storyboard_origin=args.storyboard,
+            workspace_root=article.workspace_root if article else None,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
@@ -220,20 +238,47 @@ def _validated_storyboard(path: str | Path, *, declarative: bool = False) -> sb.
     return model
 
 
-def _shared_page(storyboard: str | Path) -> Path:
-    article = paths_mod.for_storyboard(storyboard)
-    page = article.root / ".agents/skills/article2video/assets/declarative.html"
+def _article_for(
+    args: argparse.Namespace, *, declarative: bool, required: bool = False
+) -> paths_mod.ArticlePaths | None:
+    """本次调用涉及的文章归属。
+
+    推不出来时默认返回 None，而不是在这里抛错：显式给出 `--page`/`--out`/`--serve-root`
+    的调用方式（任意位置的页面、远程页面）本来就不需要归属，报错应当留给真正
+    需要归属的那一步（默认输出路径、媒体归属）。声明式路径例外（`required=True`）：
+    共享页面与分镜 URL 都按工作区根拼，没有归属就没有可用的 URL。
+    """
+    try:
+        if declarative:
+            return paths_mod.for_storyboard(args.storyboard, args.content_root)
+        return paths_mod.for_page(args.page, args.content_root)
+    except A2VError as exc:
+        if required:
+            raise
+        logging.debug("未能推导文章归属：%s", exc)
+        return None
+
+
+def _shared_page(article: paths_mod.ArticlePaths) -> Path:
+    """共享页面：skill bundle 里的 `assets/declarative.html`。
+
+    它跟着**仓库根**走，而不是工作区根——内容根外置时页面在仓库里、
+    分镜在内容根里，两者靠静态服务器的 `/__a2v__/` 别名接起来。
+    """
+    page = article.repo_root / ".agents/skills/article2video/assets/declarative.html"
     if not page.is_file():
         raise A2VError(f"共享页面不存在: {page}")
     return page
 
 
-def _storyboard_url(storyboard: str | Path) -> str:
-    article = paths_mod.for_storyboard(storyboard)
-    return "/" + Path(storyboard).resolve().relative_to(article.root).as_posix()
+def _storyboard_url(storyboard: str | Path, article: paths_mod.ArticlePaths) -> str:
+    """共享页面加载分镜的 URL 路径：相对**工作区根**，与服务静态根一致。"""
+    return "/" + Path(storyboard).resolve().relative_to(article.workspace_root).as_posix()
 
 
-def _with_storyboard_query(url: str, storyboard: str | Path) -> str:
+def _with_storyboard_query(
+    url: str, storyboard: str | Path, article: paths_mod.ArticlePaths
+) -> str:
     """给共享页面 URL 补上 `a2v-storyboard` 查询参数。
 
     共享页面（`assets/declarative.html`）从该参数指定的路径加载分镜，渲染入口在
@@ -243,11 +288,14 @@ def _with_storyboard_query(url: str, storyboard: str | Path) -> str:
     from urllib.parse import quote
 
     separator = "&" if "?" in url else "?"
-    return f"{url}{separator}a2v-storyboard={quote(_storyboard_url(storyboard), safe='')}"
+    return f"{url}{separator}a2v-storyboard={quote(_storyboard_url(storyboard, article), safe='')}"
 
 
 def _resolve_render_output(
-    args: argparse.Namespace, model: sb.Storyboard | None, media: Media | None
+    args: argparse.Namespace,
+    model: sb.Storyboard | None,
+    media: Media | None,
+    article: paths_mod.ArticlePaths | None = None,
 ) -> Path:
     """确定成片路径：显式 --out 优先，否则按文章归属推导。
 
@@ -256,11 +304,13 @@ def _resolve_render_output(
     """
     if args.out:
         return Path(args.out)
-    try:
-        article = (paths_mod.for_storyboard(args.storyboard) if args.page is None
-                   else paths_mod.for_page(args.page))
-    except A2VError as exc:
-        raise A2VError(f"无法推导默认输出路径，请显式指定 --out：{exc}") from exc
+    if article is None:
+        try:
+            article = (paths_mod.for_storyboard(args.storyboard, args.content_root)
+                       if args.page is None
+                       else paths_mod.for_page(args.page, args.content_root))
+        except A2VError as exc:
+            raise A2VError(f"无法推导默认输出路径，请显式指定 --out：{exc}") from exc
     if model is None:
         raise A2VError(
             "无法推导默认输出路径：省略 --out 时必须提供 --storyboard 以确定文件名，"
@@ -270,7 +320,7 @@ def _resolve_render_output(
     if media is not None:
         # 清单与音轨是同一篇文章的产物：--storyboard 决定归属，
         # --media 必须正是该文章 media/ 下的清单，否则拒绝跨文章合成。
-        media_article = paths_mod.for_storyboard(args.storyboard)
+        media_article = paths_mod.for_storyboard(args.storyboard, args.content_root)
         if media_article.source_dir != article.source_dir:
             raise A2VError(
                 f"分镜属于 {media_article.source_dir}，与网页所属的 {article.source_dir} "
@@ -341,13 +391,19 @@ def main_preview(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     _configure_logging(args.verbose)
 
+    from . import assets as assets_mod
+    from .media import media_url
+    from .render import _default_serve_root
+
     if args.declarative:
         if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
             logging.error("声明式预览需要有效的 --storyboard")
             return _EXIT_INVALID_INPUT
         try:
-            page = _shared_page(args.storyboard)
-            source_url = _storyboard_url(args.storyboard)
+            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+            page = _shared_page(article)
+            source_url = _storyboard_url(args.storyboard, article)
+            serve_root = article.workspace_root
         except A2VError as exc:
             logging.error("预览失败: %s", exc)
             return _EXIT_INVALID_INPUT
@@ -361,9 +417,8 @@ def main_preview(argv: list[str] | None = None) -> int:
             logging.error("页面不存在: %s", page)
             return _EXIT_INVALID_INPUT
         source_url = None
+        serve_root = _default_serve_root(page, args.content_root)
 
-    from .media import media_url
-    from .render import _default_serve_root
     media_server = None
     try:
         media = load_media(args.media, args.storyboard or page.parent / "storyboard.json") if args.media else None
@@ -372,12 +427,12 @@ def main_preview(argv: list[str] | None = None) -> int:
     except (A2VError, OSError) as exc:
         logging.error("预览失败: %s", exc)
         return _EXIT_INVALID_INPUT
-    server = LocalServer(_default_serve_root(page), port=args.port)
+    server = LocalServer(serve_root, port=args.port, mounts=assets_mod.default_mounts())
     try:
-        from urllib.parse import quote
-        url = f"{server.start()}/{quote(page.relative_to(server.root).as_posix())}"
+        from urllib.parse import urlencode
+        server.start()
+        url = server.url_for(page)
         if source_url:
-            from urllib.parse import urlencode
             url += "?" + urlencode({"a2v-storyboard": source_url})
         if media_server:
             url = media_url(url, media_server.start(), media)
@@ -418,12 +473,17 @@ def main_review(argv: list[str] | None = None) -> int:
     from .render import _default_serve_root, _resolve_page_url
 
     declarative = args.page is None
+    article: paths_mod.ArticlePaths | None = None
     if declarative:
         try:
-            args.page = str(_shared_page(args.storyboard))
+            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+            args.page = str(_shared_page(article))
         except A2VError as exc:
             logging.error("声明式体检需要有效的 --storyboard：%s", exc)
             return _EXIT_INVALID_INPUT
+    else:
+        # 非声明式也要归属：静态根与默认产物目录都按工作区根算
+        article = _article_for(args, declarative=False)
 
     model, report = sb.load(args.storyboard, declarative=declarative)
     if model is None or not report.ok:
@@ -445,7 +505,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "网页文件不存在: %s；共享页面请改用 --declarative（省略 --page）", page_file
         )
         return _EXIT_INVALID_INPUT
-    out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args.page, args.storyboard)
+    out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args, article)
     # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭
     combined = Report()
     for issue in inspect_mod.check_page_with_storyboard(
@@ -455,9 +515,14 @@ def main_review(argv: list[str] | None = None) -> int:
 
     try:
         with contextlib.ExitStack() as stack:
-            url = stack.enter_context(_resolve_page_url(page_file, args.serve_root))
-            if declarative:
-                url = _with_storyboard_query(url, args.storyboard)
+            # 声明式页面在仓库里、分镜在内容根里：静态根取文章的工作区根，
+            # 页面本身由 `/__a2v__/` 别名提供。
+            serve_root = (
+                args.serve_root or (article.workspace_root if article is not None else None)
+            )
+            url = stack.enter_context(_resolve_page_url(page_file, serve_root))
+            if declarative and article is not None:
+                url = _with_storyboard_query(url, args.storyboard, article)
             if media:
                 media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
                 url = media_url(url, media_server.base_url, media)
@@ -510,16 +575,18 @@ def main_review(argv: list[str] | None = None) -> int:
     return _EXIT_OK if combined.ok else _EXIT_INVALID_INPUT
 
 
-def _default_review_dir(page: str | Path, storyboard: str | Path) -> Path:
+def _default_review_dir(args, article: paths_mod.ArticlePaths | None) -> Path:
     """体检产物目录：`outputs/<slug>/inspect`，与渲染产物放在一起。
 
     专属网页优先按网页归属；共享页面不在 `videos/`、`examples/` 下，
-    此时回退到分镜归属，与渲染入口的推导保持一致。
+    此时回退到分镜归属，与渲染入口的推导保持一致。两者都推不出来时
+    由调用方显式给出的 `--out-dir` 兜底（本函数只在未给出时被调用）。
     """
-    try:
-        article = paths_mod.for_page(page)
-    except A2VError:
-        article = paths_mod.for_storyboard(storyboard)
+    if article is None:
+        try:
+            article = paths_mod.for_page(args.page, args.content_root)
+        except A2VError:
+            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
     target = article.output_dir / "inspect"
     logging.info("未指定 --out-dir，体检产物写入 %s", target)
     return target
@@ -699,6 +766,11 @@ def main_prepare(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="按 narration 生成配音与逐句字幕")
     parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定文章归属")
     parser.add_argument(
+        "--content-root",
+        help="文章与产物所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，"
+        "两者都没有则用仓库根",
+    )
+    parser.add_argument(
         "--out-dir",
         help="媒体输出目录；省略时按文章归属推导为 outputs/<slug>/media",
     )
@@ -717,7 +789,7 @@ def main_prepare(argv: list[str] | None = None) -> int:
     _configure_logging(args.verbose)
     from .prepare import prepare
     try:
-        article = paths_mod.for_storyboard(args.storyboard)
+        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
         # Path 会折叠 "./" 之类的写法，先归一化再和推导结果比较
         out_dir = Path(args.out_dir).resolve() if args.out_dir else _default_media_dir(article)
         _reject_foreign_media_dir(article, out_dir)
@@ -784,7 +856,7 @@ def _reject_foreign_media_dir(article: paths_mod.ArticlePaths, out_dir: str | Pa
     resolved = Path(out_dir).resolve()
     if resolved == article.media_dir:
         return
-    outputs_root = (article.root / paths_mod.OUTPUTS_DIR).resolve()
+    outputs_root = paths_mod.workspace_outputs(article).resolve()
     try:
         relative = resolved.relative_to(outputs_root)
     except ValueError:

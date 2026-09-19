@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlencode
 
-from a2v import cli, storyboard as sb
+from a2v import cli, paths, storyboard as sb
 from a2v.browser import open_animated_page
 from a2v.render import _resolve_page_url
 
@@ -24,15 +24,20 @@ def test_example_has_no_page_and_validates():
 
 def test_paths_do_not_depend_on_current_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert cli._storyboard_url(SOURCE) == "/examples/declarative-number/storyboard.json"
-    assert cli._shared_page(SOURCE).is_file()
+    article = paths.for_storyboard(SOURCE)
+    assert cli._storyboard_url(SOURCE, article) == "/examples/declarative-number/storyboard.json"
+    assert cli._shared_page(article).is_file()
     assert cli.main_validate([str(SOURCE), "--declarative", "--strict"]) == 0
 
 
 def test_shared_page_repeats_same_frame(chromium_ready):
-    page = cli._shared_page(SOURCE)
-    with _resolve_page_url(page, None) as base:
-        url = base + "?" + urlencode({"a2v-storyboard": cli._storyboard_url(SOURCE)})
+    # 共享页面在仓库里、分镜在工作区根下：静态根取工作区根，页面与分镜
+    # 因此同源。工作区根在仓库之外时，页面改由 `/__a2v__/` 别名提供
+    # （见 test_content_root.py），这里先守住仓库内这条路径。
+    article = paths.for_storyboard(SOURCE)
+    page = cli._shared_page(article)
+    with _resolve_page_url(page, article.workspace_root) as base:
+        url = base + "?" + urlencode({"a2v-storyboard": cli._storyboard_url(SOURCE, article)})
         with open_animated_page(url, width=1080, height=1920) as session:
             session.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
             assert session.contract.duration_in_frames == 180

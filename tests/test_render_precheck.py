@@ -132,3 +132,53 @@ class TestSharedAssets:
         with caplog.at_level(logging.WARNING):
             _warn_on_time_driven_motion(page)
         assert caplog.records == []
+
+
+class TestAliasAssets:
+    """内容根里的页面用 `/__a2v__/` 别名引用共享资产。
+
+    别名不只是「另一种写法」：解析不认它，静态扫描就看不见共享样式与脚本，
+    把 animation 写进组件库照样会在成片里闪烁——与相对引用那一路的漏扫是
+    同一个失败模式，因此这里单独守一遍。
+    """
+
+    @staticmethod
+    def _content_page(tmp_path, reference: str):
+        page = tmp_path / "content" / "videos" / "demo" / "index.html"
+        page.parent.mkdir(parents=True)
+        html = f'<!doctype html><html><head><link rel="stylesheet" href="{reference}"></head></html>'
+        page.write_text(html, encoding="utf-8")
+        return page, html
+
+    def test_alias_reference_resolves_to_the_running_bundle(self, tmp_path):
+        from a2v import assets as assets_mod
+
+        page, html = self._content_page(tmp_path, "/__a2v__/figures.css")
+        found = assets_mod.local_assets(page, html)
+        assert [candidate for _reference, candidate in found] == [
+            assets_mod.skill_assets_dir() / "figures.css"
+        ]
+
+    def test_alias_reference_is_scanned_for_time_driven_motion(self, caplog, tmp_path, monkeypatch):
+        from a2v import assets as assets_mod
+
+        fake = tmp_path / "skill-assets"
+        fake.mkdir()
+        (fake / "figures.css").write_text(".fig { animation: spin 1s linear; }", encoding="utf-8")
+        monkeypatch.setattr(
+            assets_mod, "default_mounts", lambda: {assets_mod.SKILL_MOUNT: fake}
+        )
+        page, _html = self._content_page(tmp_path, "/__a2v__/figures.css")
+        with caplog.at_level(logging.WARNING):
+            _warn_on_time_driven_motion(page)
+        assert any("figures.css" in record.getMessage() for record in caplog.records)
+
+    def test_alias_does_not_reach_outside_the_mount(self, tmp_path):
+        """别名下的 `..` 不得把挂载目录之外的样式读进来。"""
+        from a2v import assets as assets_mod
+
+        fake = tmp_path / "skill-assets"
+        fake.mkdir()
+        (tmp_path / "outside.css").write_text(".a { animation: x 1s; }", encoding="utf-8")
+        page, html = self._content_page(tmp_path, "/__a2v__/../outside.css")
+        assert assets_mod.local_assets(page, html, {assets_mod.SKILL_MOUNT: fake}) == []

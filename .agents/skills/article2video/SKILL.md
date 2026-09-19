@@ -45,22 +45,29 @@ description: 把观点型文章制作成竖屏信息可视化短视频。AI 选�
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
-| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜；专属网页按需添加 |
+| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜；专属网页按需添加。**内容不入库**，见 `.gitignore` |
 | `.agents/skills/article2video/assets/declarative.html` | 声明式路径的共享页面；新视频可只保留文章与分镜 |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
 | `outputs/examples/<slug>/` | 示例产物，独立一层避免与同名实际文章冲突 |
 
-每篇文章的目录名（slug）稳定且唯一，标题变化不改目录名；源文件纳入 Git，产物统一放
-`outputs/`。完整结构与推导规则见 [目录约定与输出路径](references/paths-and-outputs.md)。
+每篇文章的目录名（slug）稳定且唯一，标题变化不改目录名。
+
+仓库里有两层根：**仓库根**存放 skill 与共享资产，**工作区根**存放文章与产物。不设内容根时
+两者重合；设了 `A2V_CONTENT_ROOT`（或 `--content-root`）时工作区根是那个内容根，文章与产物
+一起在仓库之外，命令不变。引用共享资产用相对路径（页面在仓库内）或 `/__a2v__/`
+别名（页面在内容根内）。完整结构与推导规则见
+[目录约定与输出路径](references/paths-and-outputs.md)。
 
 `.agents/skills/` 是 Codex 与 DSH 都能识别的项目级 skill 位置；
 Claude Code 需要该目录时可用软链接映射到 `.claude/skills/`。
 
 ## 标准流程
 
-所有命令都在**仓库根目录**执行。输出路径可以省略：脚本从输入文件位置向上找到项目根，
-再按 `videos/<slug>/` 或 `examples/<slug>/` 推导出 `outputs/<slug>/`，
-推导结果与执行命令时的工作目录无关。无法推导时脚本直接报错，不会猜测归属。
+所有命令都可以在**任意工作目录**执行。输出路径可以省略：脚本按输入文件位置推导归属——
+文件在仓库内时向上找到含 skill 标记的仓库根，文件在内容根内时用内容根作工作区根——
+再落到 `outputs/<slug>/`。推导结果与执行命令时的工作目录无关；无法推导时脚本直接报错，
+不会猜测归属（文章在仓库之外又没设内容根时，报错会点名 `--content-root` 与
+`A2V_CONTENT_ROOT`）。
 
 ### 0. 准备环境
 
@@ -285,24 +292,27 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 ## 命令速查
 
+四个入口都接受 `--content-root <目录>`（文章与产物放在仓库之外的内容根时使用；
+也可以设环境变量 `A2V_CONTENT_ROOT`，命令行优先）。不设时工作区根就是仓库根。
+
 ```bash
 # 校验分镜（有 --strict 把警告也视为失败）
 uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json> [--strict] [--json] [--media <media.json>]
 
 # 本地预览
-uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000] [--media <media.json>] [--storyboard <json>]
+uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000] [--media <media.json>] [--storyboard <json>] [--content-root <目录>]
 
 # 配音准备（省略 --out-dir 时写入 outputs/<slug>/media）
 uv run python .agents/skills/article2video/scripts/prepare.py \
-  --storyboard <json> [--out-dir <目录>] [--voice <音色>] [--rate=±N%] [--force] [-v]
+  --storyboard <json> [--out-dir <目录>] [--voice <音色>] [--rate=±N%] [--force] [--content-root <目录>] [-v]
 
 # 视觉评审（省略 --out-dir 时写入 outputs/<slug>/inspect）
 uv run python .agents/skills/article2video/scripts/review.py \
-  --page <网页> --storyboard <json> [--media <media.json>] [--out-dir <目录>] [-v]
+  --page <网页> --storyboard <json> [--media <media.json>] [--out-dir <目录>] [--content-root <目录>] [-v]
 
 # 渲染（省略 --out 时按文章归属推导，限帧时写入 previews/）
 uv run python .agents/skills/article2video/scripts/render.py \
-  --page <网页> [--storyboard <json>] [--out <输出.mp4>] [--limit-frames N] \
+  --page <网页> [--storyboard <json>] [--out <输出.mp4>] [--limit-frames N] [--content-root <目录>] \
   [--media <media.json>] [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
 ```
 
@@ -323,15 +333,17 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 成片能解码但播放器打不开 | 码流是全范围像素格式（`yuvj420p`/`pc`）或 24kHz 单声道 AAC；验收阶段现已报错拦下，参数见 [渲染契约](references/render-contract.md) 的「码流兼容性」 |
 | 播放器报 `0x80070005 你没有访问该文件的权限` | 成片经临时目录中转时带走了「关闭继承」的 ACL，打包应用（Windows 11 新版媒体播放器）读不到；`render.py`/`prepare.py` 会自动 `icacls /reset` 修复，见 [渲染契约](references/render-contract.md) 的「交付文件的访问权限」 |
 | 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
-| `无法推导文章归属` | 网页或分镜不在 `videos/<slug>/`、`examples/<slug>/` 内，移入规范目录或显式指定输出路径 |
+| `无法推导文章归属` | 网页或分镜不在 `videos/<slug>/`、`examples/<slug>/` 内：移入规范目录，或用 `--content-root`/`A2V_CONTENT_ROOT` 指定内容根，或显式指定输出路径 |
+| 内容根里的页面样式或脚本 404 | 页面挪出仓库后共享资产不能用相对路径，改成 `/__a2v__/<文件名>`（如 `/__a2v__/figures.css`） |
 | `无法推导默认输出路径` | 省略 `--out` 但没有 `--storyboard`，补上分镜或显式指定 `--out` |
 | 提示 narration 却按无声导出 | 没传 `--media`；先执行 `prepare.py`，再带 `--media` 渲染 |
 
 ## 当前边界
 
 已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收、
-按文章目录推导输出路径，以及可选的设计语言预设（分镜声明 `visual.preset: "keynote"`
-后启用令牌层、排版引擎与 K1–K7 观感闸门；未声明时画面逐帧不变）。
+按文章目录推导输出路径、内容根（文章与产物可放在仓库之外、`videos/` 不入库），
+以及可选的设计语言预设（分镜声明 `visual.preset: "keynote"` 后启用令牌层、排版引擎与
+K1–K7 观感闸门；未声明时画面逐帧不变）。
 
 尚未实现，不要当作已有能力使用：
 
@@ -344,6 +356,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 - **背景音乐**：尚未实现；目前仅支持配音音轨；
 - **分镜生成器**：文章到分镜已可按 [文章生成分镜](references/article-to-storyboard.md) 的规范生成，
   但由 AI 工具执行，没有内置的生成器程序、模型调用或批量生成；
+- **内容根的自动探测**：内容根只能由 `--content-root` 或 `A2V_CONTENT_ROOT` 指定，
+  脚本不会去猜（猜错的后果是把成片写到你没在看的地方）；
 - **发布**：没有对接抖音或任何平台的上传接口；
 - **批处理与历史版本**：没有多篇批量渲染，也不保留成片历史版本。
 

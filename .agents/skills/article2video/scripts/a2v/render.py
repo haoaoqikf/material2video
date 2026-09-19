@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -87,6 +88,7 @@ def _write_provenance(
     page_file: Path,
     storyboard_url: str | None,
     storyboard_origin: str | Path | None = None,
+    workspace_root: str | Path | None = None,
     frames: int,
     fps: int,
     width: int,
@@ -100,15 +102,22 @@ def _write_provenance(
     实测发生过：两支实际作品的成片比动效重写早了几个小时，仍然带着被修掉的
     3 帧弹跳，而它们看上去仍然是「上次验收通过」的样子。
     写失败不回滚成片：成片已经通过验收，溯源是附加信息。
+
+    定位一律用**相对引用**（`workspace` 指回工作区根，资产键相对它或走别名），
+    因此文章与产物落在仓库之外时，这份溯源仍然读得懂。
     """
-    root = assets.project_root(page_file.parent) or page_file.parent
+    workspace = (
+        Path(workspace_root).resolve()
+        if workspace_root is not None
+        else (assets.project_root(page_file.parent) or page_file.parent)
+    )
 
     def relative(path: Path | None) -> str:
         if path is None:
             return ""
         try:
-            return path.resolve().relative_to(root).as_posix()
-        except ValueError:  # 项目根之外：只记文件名，溯源里不写绝对路径
+            return path.resolve().relative_to(workspace).as_posix()
+        except ValueError:  # 工作区根之外：只记文件名，溯源里不写绝对路径
             return path.name
 
     storyboard_path = _storyboard_beside(page_file, storyboard_url, storyboard_origin)
@@ -119,21 +128,31 @@ def _write_provenance(
         extra["media.sourceFingerprint"] = media_fingerprint
     html = page_file.read_text(encoding="utf-8", errors="replace")
     payload = {
-        #: 2：资产指纹改为「文本按 LF 归一化」，见 media.file_digest
-        "version": 2,
+        #: 3：定位改为相对引用（工作区根 + 别名资产键），支持文章落在仓库之外
+        "version": 3,
+        "workspace": _workspace_reference(output_path, workspace),
         "renderedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "page": relative(page_file),
+        # 共享页面在 bundle 里、工作区根之外：按同一套规则记成别名键
+        "page": assets.asset_key(page_file, workspace),
         "storyboard": relative(storyboard_path),
         "frames": frames,
         "fps": fps,
         "width": width,
         "height": height,
         "captureFormat": capture_format,
-        "assets": asset_fingerprint(page_file, html, extra),
+        "assets": asset_fingerprint(page_file, html, extra, workspace_root=workspace),
     }
     target = output_path.with_suffix(".provenance.json")
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return target
+
+
+def _workspace_reference(output_path: Path, workspace: Path) -> str:
+    """产物目录 → 工作区根的相对路径（如 `../..`）。
+
+    存相对引用而不是绝对路径：溯源文件跟着成片走，换机器或换目录之后仍能读。
+    """
+    return os.path.relpath(workspace, output_path.parent).replace(os.sep, "/")
 
 
 def provenance_status(video: str | Path) -> dict:
@@ -160,30 +179,36 @@ def provenance_status(video: str | Path) -> dict:
     except (OSError, ValueError) as exc:
         return {"status": "unknown", "detail": f"溯源文件读不出来（{exc}），无法判断", **empty}
 
-    if recorded.get("version") != 2:
+    if recorded.get("version") != 3:
         return {
             "status": "unknown",
             "detail": f"溯源是旧格式（version={recorded.get('version')!r}），"
-                      "指纹口径已改为按 LF 归一化，请重渲一次再看",
+                      "定位口径已改为相对引用，请重渲一次再看",
             **empty,
         }
 
-    root = assets.project_root(video_path.parent)
+    # 工作区根由溯源里的相对引用反解，不再依赖产物上级是否有仓库标记：
+    # 文章落在仓库之外时，那条路走不通。
+    workspace_ref = str(recorded.get("workspace") or "")
+    if not workspace_ref:
+        return {"status": "unknown", "detail": "溯源里没有工作区引用，无法判断页面在哪里", **empty}
+    workspace = (video_path.parent / workspace_ref).resolve()
     page_rel = str(recorded.get("page") or "")
-    page_file = (root / page_rel) if root else Path(page_rel)
-    if root is None or not page_file.is_file():
+    # 页面可能记的是别名键（共享页面在 bundle 里）：按挂载表解析，与资产同一套
+    page_file = assets.key_path(page_rel, workspace) if page_rel else None
+    if page_file is None or not page_file.is_file():
         return {"status": "unknown", "detail": f"溯源里的网页 {page_rel or '(未记录)'} 找不到了，无法判断", **empty}
 
     html = page_file.read_text(encoding="utf-8", errors="replace")
-    current = asset_fingerprint(page_file, html)["files"]
+    current = asset_fingerprint(page_file, html, workspace_root=workspace)["files"]
     old = (recorded.get("assets") or {}).get("files") or {}
     changed: list[str] = []
     missing: list[str] = []
     unverifiable: list[str] = []
     asset_suffixes = (".css", ".js", ".json", ".html", ".htm")
     for key, digest in old.items():
-        path = root / key
-        if not path.is_file():
+        path = assets.key_path(str(key), workspace)
+        if path is None or not path.is_file():
             (missing if key.endswith(asset_suffixes) else unverifiable).append(key)
         elif file_digest(path) != digest:
             changed.append(key)
@@ -221,6 +246,7 @@ def render(
     media: Media | None = None,
     storyboard_url: str | None = None,
     storyboard_origin: str | Path | None = None,
+    workspace_root: str | Path | None = None,
 ) -> RenderResult:
     """把动画网页逐帧渲染为 MP4。
 
@@ -295,6 +321,7 @@ def render(
         page_file=Path(page_path),
         storyboard_url=storyboard_url,
         storyboard_origin=storyboard_origin,
+        workspace_root=workspace_root,
         frames=total_frames,
         fps=effective_fps,
         width=width,
@@ -324,6 +351,9 @@ def _resolve_page_url(
 
     远程 URL 原样透传；本地文件通过临时静态服务器暴露，因为网页需要
     fetch 同目录的分镜 JSON，而 file:// 下会被同源策略拒绝。
+
+    服务器同时挂上 skill 资产别名（`/__a2v__/`）：内容根落在仓库之外时，
+    页面与共享资产不在一棵树里，靠别名而不是相对路径把两者接起来。
     """
     text = str(page_path)
     if text.startswith(("http://", "https://")):
@@ -335,24 +365,24 @@ def _resolve_page_url(
         raise RenderError(f"动画网页不存在: {page_file}")
 
     root = Path(serve_root).resolve() if serve_root else _default_serve_root(page_file)
-    with LocalServer(root) as server:
+    with LocalServer(root, mounts=assets.default_mounts()) as server:
         try:
-            relative = page_file.relative_to(server.root)
-        except ValueError as exc:
-            raise RenderError(f"网页 {page_file} 不在静态根目录 {server.root} 之内") from exc
-        yield f"{server.base_url}/{relative.as_posix()}"
+            url = server.url_for(page_file)
+        except A2VError as exc:  # 网页既不在静态根、也不在别名目录里
+            raise RenderError(str(exc)) from exc
+        yield url
 
 
-def _default_serve_root(page_file: Path) -> Path:
+def _default_serve_root(page_file: Path, content_root: str | Path | None = None) -> Path:
     """选择静态根目录。
 
-    网页通常既引用同目录的 storyboard.json，也引用仓库内共享的 skill 资产
-    （base.css / timeline.js），因此默认取项目根目录（含
-    `.agents/skills/article2video/SKILL.md` 的那一层），让两者都能通过相对
-    路径访问；不在 article2video 项目内时退回网页所在目录。
+    取文章所属的**工作区根**：仓库内的页面（示例、仓库内文章）拿到仓库根，
+    内容根里的页面拿到内容根，于是同目录的 storyboard.json 与页面内资产
+    都能通过相对路径访问；共享资产走 `/__a2v__/` 别名，与静态根在哪无关。
+    推导不出来时（任意位置的页面、远程页面）退回网页所在目录。
     """
     try:
-        return paths.project_root(page_file)
+        return paths.for_page(page_file, content_root).workspace_root
     except A2VError:
         return page_file.parent
 
