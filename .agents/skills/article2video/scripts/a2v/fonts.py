@@ -202,14 +202,20 @@ def preset_strings(page_file: Path) -> dict[str, str]:
     return found
 
 
-def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
-    """按网页**实际声明**的字体查缺字。
+def audit_fonts(
+    fonts: list[Path],
+    storyboard: dict,
+    extra_texts: dict[str, str] | None = None,
+) -> list[dict]:
+    """按一组**实际注册**的字体文件查缺字。
 
-    判据是「所有声明过的字体加起来有没有这个字形」——只有当每个声明字体都
-    没有时，浏览器才真的会回退到系统字体，那才是这条闸门要抓的东西。
-    网页没声明任何字体文件时不报（无从判断，也不该凭空拦人）。
+    判据是「所有注册过的字体加起来有没有这个字形」——只有当每个字体都没有时，
+    浏览器才真的会回退到系统字体，那才是这条闸门要抓的东西。
+    字体清单为空时返回空表：无从判断，也不该凭空拦人。
+
+    取字体文件的方式与画面实现有关（旧页面解析样式表里的 `@font-face`，
+    React 路径读字体清单），所以清单由调用方给，这里只管判定。
     """
-    fonts = page_fonts(page_file)
     if not fonts:
         return []
     shared = set()
@@ -221,11 +227,23 @@ def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
     if not shared:
         return []
     findings: list[dict] = []
-    for where, text in [*rendered_strings(storyboard), *preset_strings(page_file).items()]:
+    for where, text in [*rendered_strings(storyboard), *(extra_texts or {}).items()]:
         missing = missing_glyphs(fonts[0], text, shared)
         if missing:
             findings.append({"where": where, "missing": missing})
     return findings
+
+
+def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
+    """按网页**实际声明**的字体查缺字。
+
+    网页没声明任何字体文件时不报（无从判断，也不该凭空拦人）。
+    """
+    return audit_fonts(
+        page_fonts(page_file),
+        storyboard,
+        preset_strings(page_file),
+    )
 
 
 

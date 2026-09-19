@@ -1,9 +1,13 @@
 /*
  * 舞台与安全区。
  *
- * 与既有 `base.css` 同一套约束：
- * - 舞台严格等于 `width × height`，外层不加 margin/padding，页面不出现滚动条；
- * - 所有正文放进 `.a2v-safe`，避开平台界面遮挡。
+ * 与既有 `base.css` 同一套约束，数值也照抄（背景、安全区、柔性列布局）：
+ *
+ * - 舞台严格等于 `width × height`，外层不加 margin/padding，页面不出现滚动条。
+ *   `_precheck_dimensions` 会拿 `scrollWidth/scrollHeight` 与视口比对，多出
+ *   1px 就报错，因此这里不许有意外溢出；
+ * - 所有正文放进 `.a2v-safe`，避开平台界面遮挡；
+ * - 幕容器是绝对定位、叠在一起，由运行时逐帧决定显示哪一个。
  *
  * 契约页与 Remotion 渲染路径共用这一份样式，因此预览与导出用同一套坐标。
  */
@@ -11,33 +15,55 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #000;
+  background: #07090f;
+  color: #f4f7fb;
   font-family: var(--a2v-font);
-  -webkit-font-smoothing: antialiased;
 }
 
 /* 舞台：逻辑尺寸固定，缩放只由外层 `transform: scale()` 完成，不改内部布局 */
-.a2v-stage {
+[data-a2v-stage] {
   position: relative;
   width: var(--a2v-width);
   height: var(--a2v-height);
   overflow: hidden;
-  background: #08090c;
-  color: #f4f7fb;
+  transform-origin: top left;
+  background: #07090f;
 }
 
-/* 安全区：正文的可用范围 */
+/* 单幕容器：全部留在 DOM 里、叠在一起，运行时只显示当前幕（其余 display:none） */
+[data-a2v-scene] {
+  position: absolute;
+  inset: 0;
+}
+
+/* 内容安全区：所有正文都应放在这个容器内 */
 .a2v-safe {
   position: absolute;
-  left: var(--a2v-safe-x);
-  right: var(--a2v-safe-x);
   top: var(--a2v-safe-top);
+  right: var(--a2v-safe-x);
   bottom: var(--a2v-safe-bottom);
+  left: var(--a2v-safe-x);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 48px;
+}
+
+/*
+ * 字幕占掉安全区底部时，正文区域同步上移；预览与导出共用同一规则。
+ * 配音与字幕准备完成后由画面按媒体清单启用。
+ */
+.a2v-with-subtitles .a2v-safe {
+  bottom: calc(var(--a2v-safe-bottom) + 180px);
 }
 
 /*

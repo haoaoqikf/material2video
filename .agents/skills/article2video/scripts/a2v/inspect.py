@@ -324,11 +324,19 @@ def sample_frames(start: int, end: int) -> list[int]:
 
 
 def contact_sheet(frames: list[Path], target: Path, columns: int = 3) -> None:
-    """把抽帧拼成一张联系表，便于一眼看完整支片子的节奏。"""
+    """把抽帧拼成一张联系表，便于一眼看完整支片子的节奏。
+
+    清单里的路径一律写成**绝对路径**：ffmpeg 的 concat 分离器按**清单文件所在目录**
+    解析相对条目，不是按当前工作目录。抽帧路径是相对的（`--out-dir` 给相对路径时）
+    而清单本身也在那个目录里，于是每个条目会被解析两次，报「打不开」——
+    绝对路径是唯一与清单放哪儿都无关的写法。
+    """
     if not frames:
         return
     listing = target.with_suffix(".txt")
-    listing.write_text("\n".join(f"file '{path.as_posix()}'" for path in frames), encoding="utf-8")
+    listing.write_text(
+        "\n".join(f"file '{path.resolve().as_posix()}'" for path in frames), encoding="utf-8"
+    )
     rows = (len(frames) + columns - 1) // columns
     try:
         subprocess.run(

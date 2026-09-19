@@ -1,25 +1,28 @@
 ## 1. 前端工程骨架
 
-- [ ] 1.1 新建 `web/` 工程（React 19 + TypeScript + Vite + Tailwind v4 + Remotion 全家桶），
+- [x] 1.1 新建 `web/` 工程（React 19 + TypeScript + Vite + Tailwind v4 + Remotion 全家桶），
       提交 `package.json` 与 `pnpm-lock.yaml`；验证：`pnpm install` 与 `pnpm build` 均成功，
       `git status` 中不含 `node_modules/`
-- [ ] 1.2 在 `.gitignore` 中加入生成入口目录、Remotion 缓存与构建产物；验证：生成一个占位文件后
+- [x] 1.2 在 `.gitignore` 中加入生成入口目录、Remotion 缓存与构建产物；验证：生成一个占位文件后
       `git status` 仍干净
-- [ ] 1.3 把字体资产（Inter Variable、Noto Sans SC Variable、许可证文本）迁入 `web/` 并登记字体清单；
-      验证：`pnpm build` 通过，故意改名一个字体文件后构建**失败**并指出路径
-- [ ] 1.4 编写 `web/README.md`：Node 版本要求、安装与构建命令、Remotion 许可证类型与升级触发条件、
+- [x] 1.3 字体资产登记进 `web/`：清单 `web/src/assets/fonts.json` 是唯一真源，构建前由
+      `scripts/sync-fonts.mjs` 同步到 `public/fonts/`；验证：`pnpm build` 通过，
+      故意改名一个字体文件后构建**失败**并指出路径。
+      **说明**：物理位置仍在 skill 资产目录（旧路径还在用它），因此这里同步而不是搬迁；
+      搬迁到 `web/` 由 11.4 在删除旧资产时一并完成，期间仓库里不会多出一份 18MB 的重复内容。
+- [x] 1.4 编写 `web/README.md`：Node 版本要求、安装与构建命令、Remotion 许可证类型与升级触发条件、
       渲染期离线约束；验证：按文档在一台未安装依赖的机器上走通安装与构建
 
 ## 2. 渲染契约（`__A2V__` version 2）
 
-- [ ] 2.1 建立最小 composition（一个能显示帧号的画面）并在 Studio 中逐帧拖动；
+- [x] 2.1 建立最小 composition（一个能显示帧号的画面）并在 Studio 中逐帧拖动；
       验证：第 0、末帧与中间若干帧显示正确帧号
-- [ ] 2.2 实现契约页：挂载 Player 并暴露 `__A2V__` version 2 的 `ready()` 与
+- [x] 2.2 实现契约页：挂载 Player 并暴露 `__A2V__` version 2 的 `ready()` 与
       `seekToFrame(frame)`；验证：用 Playwright 打开契约页，`seekToFrame(42)` 后
       页面上的帧号等于 42，连续调用两次结果一致
-- [ ] 2.3 让渲染入口校验契约的 `version`、`fps`、`width`、`height`、`durationInFrames`
+- [x] 2.3 让渲染入口校验契约的 `version`、`fps`、`width`、`height`、`durationInFrames`
       与分镜一致；验证：分别构造版本错误、帧率不一致两个负例，命令均报错终止并列出两边的值
-- [ ] 2.4 把契约页接入体检管线（`review.py` 的量测与探针指向它）；
+- [x] 2.4 把契约页接入体检管线（`review.py` 的量测与探针指向它）；
       验证：对最小 composition 跑体检，报告里出现量测结论而不是「无法量测」
 
 ## 3. 渲染入口与确定性验收

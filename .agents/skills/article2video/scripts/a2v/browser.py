@@ -1,8 +1,14 @@
 """Playwright 浏览器会话封装。
 
-职责只有一件事：打开动画网页，等待它就绪，然后按帧号驱动画面并截取图片。
-所有与「确定性渲染契约」相关的检查（__A2V__ 接口存在、字段类型正确）都在
-这里落地。
+职责只有一件事：打开提供画面的页面，等待它就绪，然后按帧号驱动画面并截取图片。
+所有与「确定性渲染契约」相关的检查（`__A2V__` 接口存在、版本正确、字段类型正确）
+都在这里落地。
+
+画面有两个提供者，本模块不区分：
+
+* **契约页**（React + Remotion Player）：`web/dist/contract/contract.html`，
+  当前版本 2。它按 `a2v-storyboard` 查询参数加载任意作品的分镜；
+* 旧动画网页：不再受支持，版本检查会明确拒绝它。
 
 资源生命周期：Playwright 驱动进程与事件循环由本模块负责启动与关闭。
 ``sync_playwright()`` 的驱动循环会一直运行到 ``stop()`` 被调用为止，
@@ -18,6 +24,7 @@ from typing import Any
 from playwright.sync_api import Browser, Error as PlaywrightError
 from playwright.sync_api import Page, Playwright, sync_playwright
 
+from .contract_page import CONTRACT_VERSION
 from .errors import A2VError
 
 logger = logging.getLogger(__name__)
@@ -35,6 +42,7 @@ class PageContract:
     duration_in_frames: int
     width: int
     height: int
+    version: int = CONTRACT_VERSION
 
 
 class AnimatedPage:
@@ -109,11 +117,17 @@ def open_animated_page(
     timeout_ms: int = 30000,
     width: int | None = None,
     height: int | None = None,
+    expected_version: int | None = None,
 ) -> AnimatedPage:
-    """启动 Chromium 打开动画网页并验证 __A2V__ 契约。
+    """启动 Chromium 打开提供画面的页面并验证 __A2V__ 契约。
 
     width/height 显式传入时以渲染脚本的视口为准，避免网页尺寸与脚本
     声明不一致导致画面被裁切或留黑边。
+
+    `expected_version` 是**这条路径要求的契约版本**：React 路径要求 2，
+    旧页面路径不传（迁移期它仍声明 1，而它必须继续能渲）。
+    不校验版本会让「拿旧页面当新画面用」在首帧截图上以空白的形式暴露出来，
+    那时已经很难反推原因了。
     """
     playwright = sync_playwright().start()
     browser: Browser | None = None
@@ -137,19 +151,24 @@ def open_animated_page(
         logger.info("打开页面: %s", url)
         page.goto(url, wait_until="load", timeout=timeout_ms)
 
-        # __A2V__ 由网页异步挂载（通常要等分镜 JSON 加载完），
+        # __A2V__ 由页面异步挂载（通常要等分镜 JSON 加载完），
         # load 事件早于它出现，因此必须显式等待而不是立即读取。
         try:
             page.wait_for_function("() => !!window.__A2V__", timeout=timeout_ms)
         except PlaywrightError as exc:
             detail = "\n".join(diagnostics[-5:]) or "页面未输出错误信息"
+            expected = (
+                f"__A2V__ version {expected_version} 契约"
+                if expected_version is not None
+                else "__A2V__ 契约"
+            )
             raise BrowserError(
-                f"{url}: 等待 window.__A2V__ 定义超时。"
-                f"请确认网页引入了 timeline.js，且 A2V.mount() 已成功执行。\n{detail}"
+                f"{url}: 等待 window.__A2V__ 定义超时。请确认页面暴露了{expected}。\n{detail}"
             ) from exc
 
         raw: dict[str, Any] = page.evaluate(
             "() => ({"
+            "version: window.__A2V__.version ?? null, "
             "fps: window.__A2V__.fps, "
             "durationInFrames: window.__A2V__.durationInFrames, "
             "width: window.__A2V__.width, "
@@ -157,12 +176,13 @@ def open_animated_page(
             "ready: typeof window.__A2V__.ready, "
             "seek: typeof window.__A2V__.seekToFrame})"
         )
-        _validate_contract(raw, url)
+        _validate_contract(raw, url, expected_version)
         contract = PageContract(
             fps=raw["fps"],
             duration_in_frames=raw["durationInFrames"],
             width=raw["width"],
             height=raw["height"],
+            version=raw["version"],
         )
         logger.info(
             "契约就绪: %d fps, %d 帧, %dx%d",
@@ -199,12 +219,31 @@ def _teardown(browser: Browser | None, playwright: Playwright) -> None:
         logger.warning("停止 Playwright 驱动失败: %s", exc)
 
 
-def _validate_contract(raw: dict[str, Any], url: str) -> None:
+def _validate_contract(
+    raw: dict[str, Any], url: str, expected_version: int | None = None
+) -> None:
     """契约字段缺失或类型不对时给出可定位的错误信息。"""
     if raw["ready"] != "function":
         raise BrowserError(f"{url}: window.__A2V__.ready 不是函数")
     if raw["seek"] != "function":
         raise BrowserError(f"{url}: window.__A2V__.seekToFrame 不是函数")
+
+    # 版本先判：两个版本的 `ready` 与 `seekToFrame` 签名相同，差别在语义
+    # （version 1 不保证 Player 已挂载），因此版本不符时接下来会在首帧截图上
+    # 出现「画面还是空的」这类难以反推的现象。
+    version = raw["version"]
+    if version is None:
+        raise BrowserError(
+            f"{url}: window.__A2V__ 缺少 version 字段。"
+            f"本渲染入口的契约版本是 {CONTRACT_VERSION}。"
+        )
+    if not isinstance(version, int) or isinstance(version, bool) or version < 1:
+        raise BrowserError(f"{url}: window.__A2V__.version 必须是正整数，实际为 {version!r}")
+    if expected_version is not None and version != expected_version:
+        raise BrowserError(
+            f"{url}: 渲染契约版本为 {version}，这条渲染路径要求的是 {expected_version}"
+        )
+
     for key in ("fps", "durationInFrames", "width", "height"):
         value = raw[key]
         if not isinstance(value, int) or isinstance(value, bool) or value <= 0:

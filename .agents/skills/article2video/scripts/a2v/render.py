@@ -247,11 +247,16 @@ def render(
     storyboard_url: str | None = None,
     storyboard_origin: str | Path | None = None,
     workspace_root: str | Path | None = None,
+    mounts: dict[str, Path] | None = None,
+    expected_contract_version: int | None = None,
 ) -> RenderResult:
-    """把动画网页逐帧渲染为 MP4。
+    """把提供画面的页面逐帧渲染为 MP4。
 
-    storyboard 提供时，以其 fps/尺寸为准并与网页契约交叉校验，用于尽早
-    发现「改了脚本没改网页」这类不一致。
+    storyboard 提供时，以其 fps/尺寸为准并与页面契约交叉校验，用于尽早
+    发现「改了脚本没改画面」这类不一致。
+
+    `expected_contract_version` 由调用方按**画面来自哪条路径**给出：
+    契约页要求 2，旧页面路径不传（它仍声明 1）。
     """
     started = time.monotonic()
     output_path = Path(output)
@@ -266,7 +271,7 @@ def render(
     with contextlib.ExitStack() as stack:
         temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
         video_path = temp / "video.mp4"
-        url = stack.enter_context(_resolve_page_url(page_path, serve_root))
+        url = stack.enter_context(_resolve_page_url(page_path, serve_root, mounts))
         if storyboard_url:
             from urllib.parse import urlencode
             url += "?" + urlencode({"a2v-storyboard": storyboard_url})
@@ -278,14 +283,13 @@ def render(
             timeout_ms=timeout_ms,
             width=storyboard.width if storyboard else None,
             height=storyboard.height if storyboard else None,
+            expected_version=expected_contract_version,
         ) as page:
             if media and page.evaluate("() => window.__A2V__.mediaFingerprint") != media.data["sourceFingerprint"]:
                 raise RenderError("网页未加载媒体清单，请使用 A2V.fetchStoryboard")
             effective_fps = _resolve_fps(page, storyboard, fps)
-            if storyboard and (page.contract.width, page.contract.height) != (storyboard.width, storyboard.height):
-                raise RenderError("网页与分镜的画面尺寸不一致")
+            width, height = _resolve_dimensions(page, storyboard)
             total_frames = _resolve_total_frames(page, storyboard)
-            width, height = page.contract.width, page.contract.height
 
             if limit_frames is not None:
                 total_frames = min(total_frames, max(limit_frames, 1))
@@ -345,15 +349,17 @@ def render(
 
 @contextlib.contextmanager
 def _resolve_page_url(
-    page_path: str | Path, serve_root: str | Path | None
+    page_path: str | Path,
+    serve_root: str | Path | None,
+    mounts: dict[str, Path] | None = None,
 ) -> Iterator[str]:
     """把本地网页路径转成可用的 URL。
 
     远程 URL 原样透传；本地文件通过临时静态服务器暴露，因为网页需要
-    fetch 同目录的分镜 JSON，而 file:// 下会被同源策略拒绝。
+    fetch 分镜 JSON，而 file:// 下会被同源策略拒绝。
 
-    服务器同时挂上 skill 资产别名（`/__a2v__/`）：内容根落在仓库之外时，
-    页面与共享资产不在一棵树里，靠别名而不是相对路径把两者接起来。
+    mounts 由调用方给出（默认挂 skill 资产别名）：契约页在仓库的 `web/` 下、
+    分镜在工作区根下，两者不在同一棵树里，靠别名而不是相对路径接起来。
     """
     text = str(page_path)
     if text.startswith(("http://", "https://")):
@@ -365,7 +371,7 @@ def _resolve_page_url(
         raise RenderError(f"动画网页不存在: {page_file}")
 
     root = Path(serve_root).resolve() if serve_root else _default_serve_root(page_file)
-    with LocalServer(root, mounts=assets.default_mounts()) as server:
+    with LocalServer(root, mounts=assets.default_mounts() if mounts is None else mounts) as server:
         try:
             url = server.url_for(page_file)
         except A2VError as exc:  # 网页既不在静态根、也不在别名目录里
@@ -385,6 +391,21 @@ def _default_serve_root(page_file: Path, content_root: str | Path | None = None)
         return paths.for_page(page_file, content_root).workspace_root
     except A2VError:
         return page_file.parent
+
+
+def _resolve_dimensions(page: AnimatedPage, storyboard: Storyboard | None) -> tuple[int, int]:
+    """画面尺寸：以网页契约为准，与分镜不一致时报错并**列出两边的值**。
+
+    只写「尺寸不一致」是不够的：这句话既没说哪一边对，也没说差多少，
+    而两种可能（改错了分镜、改错了画面）需要完全相反的修法。
+    """
+    width, height = page.contract.width, page.contract.height
+    if storyboard and (width, height) != (storyboard.width, storyboard.height):
+        raise RenderError(
+            f"画面尺寸不一致：网页声明 {width}×{height}，"
+            f"分镜脚本声明 {storyboard.width}×{storyboard.height}"
+        )
+    return width, height
 
 
 def _resolve_fps(page: AnimatedPage, storyboard: Storyboard | None, fps: int | None) -> int:
