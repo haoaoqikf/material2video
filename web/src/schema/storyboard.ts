@@ -43,9 +43,18 @@ export const listItemSchema = z.union([
 ]);
 export type ListItem = z.infer<typeof listItemSchema>;
 
+/**
+ * 图节点：字符串，或 `{id, label}`。
+ *
+ * 节点在画面上显示的是 `label`（`figures.js` 的循环图就是 `name.label || name.id`），
+ * `id` 只用来被 `edges` 引用。曾经这里只允许 `{id}`，于是**既有示例直接解析失败**：
+ * `examples/keynote-baseline` 的循环图节点是 `{id, label}`，契约页整页画不出来，
+ * 而 Python 校验器一直认为它合法（那边只要求 `id` 非空，不禁止别的键）。
+ * 两个校验器的口径必须一致，否则「分镜通过了校验」在新旧两条路径上有两种含义。
+ */
 export const diagramNodeSchema = z.union([
   nonEmptyText,
-  z.object({ id: nonEmptyText }).strict(),
+  z.object({ id: nonEmptyText, label: z.string().optional() }).strict(),
 ]);
 
 export const diagramEdgeSchema = z.union([

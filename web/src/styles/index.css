@@ -14,6 +14,7 @@
 
 @import 'tailwindcss';
 @import './tokens.css';
+@import './primitives.css';
 
 * {
   box-sizing: border-box;
@@ -78,3 +79,4 @@ html.a2v-rendering .a2v-preview-only {
 html.a2v-rendering .a2v-scaler {
   transform: none !important;
 }
+

@@ -1,44 +1,530 @@
 /*
- * 设计令牌：画布、安全区与字体栈。
+ * 设计令牌真源。
  *
- * 这些数值**照抄旧的基础样式**（`assets/base.css`），不是重新设计：
- * 画布尺寸、安全区与字体栈是「所有视频都必须一致」的部分，改动它们等于
- * 让每一支既有作品重排一次。收敛到 Tailwind `@theme` 之前，这里就是唯一真源。
+ * 这里的名字就是运行时的 CSS 变量名：组件引用 `var(--a2v-space-3)`、
+ * 需要时用 Tailwind 的任意值语法，不额外造一层 `--color-*` 别名。
+ * 多一层别名意味着「改令牌」要改两处，而漏改一处不会报错——只会有一半画面不跟着变。
  *
- * 命名沿用 `--a2v-*`：体检的静态检查会按这些名字找安全区令牌
- * （`--a2v-safe-top` / `--a2v-safe-bottom` / `--a2v-safe`），改名会让它静默跳过。
+ * 用 `@theme static` 而不是 `@theme`：Tailwind 默认只输出「被工具类用到」的主题
+ * 变量，而这里的令牌多数是**组件直接引用**的。实测：`@theme` 下这些名字
+ * 一个都不会出现在产物里，组件会安静地落到兜底值或初始值——画面变了，
+ * 却没有任何报错。
+ *
+ * 只把**默认层**放进 `@theme`。预设层写在文件后半段的
+ * `[data-a2v-preset='keynote']` 里，原因是 `@theme` 只能输出到 `:root`，
+ * 而预设层必须限定在预设作用域内（理由写在那一节上方，那是一处真的踩过的坑）。
+ *
+ * 令牌数值不许在这里「顺手调一下」：它们被对比度预算、字阶模数、取档引擎
+ * 与抽帧对照守着，改一个值要连带复核那些判据。两层的取值还与冻结的旧资产
+ * 逐值比对（`tests/test_web_design_tokens.py`）。
  */
-:root {
-  /* 画布逻辑尺寸。渲染脚本把视口设成同样大小，因此这里是唯一真源。 */
+
+/*
+ * 默认层：不启用预设时的取值，逐值等于旧路径的 `base.css` + `theme.css`
+ * 加上预设层写在裸 `:root` 上的那三个派生色。
+ *
+ * 只有这一层进 `@theme`：`@theme` 只能把变量输出到 `:root`，
+ * 而**预设层必须限定在 `[data-a2v-preset]` 作用域内**——它改变的是同一个名字
+ * 在启用预设时的取值。把预设层也写进 `@theme` 会让它在**未启用预设**时
+ * 同样生效：logo 字体、安全区、画布底色会整体换掉，而且校验、渲染、成片
+ * 全部照常通过。这不是假设：本项目实测踩过一次同源的坑
+ * （默认主题被预设选择器漏给所有页面，浅色作品整片变黑）。
+ */
+@theme static {
+  /* 画布逻辑尺寸。渲染脚本会把视口设为同样大小，因此这里是唯一真源。 */
   --a2v-width: 1080px;
   --a2v-height: 1920px;
+
+  /*
+   * 中文优先字体栈。系统字体不随仓库分发，换机器可能轻微影响字宽；
+   * 对字宽敏感的项目应改用随仓库分发的 webfont 并在网页中 @font-face 声明。
+   */
+  --a2v-font: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC",
+    "Hiragino Sans GB", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* 安全区：抖音等竖屏平台上下 UI 会遮挡画面，正文不进入该区域。 */
   --a2v-safe-top: 220px;
   --a2v-safe-bottom: 320px;
   --a2v-safe-x: 96px;
 
+  /* ---------- 背景与表面：用亮度分层表达景深，而不是一张纯色底 ---------- */
+  --a2v-bg-0: #07090f; /* 画布最底层 */
+  --a2v-bg-1: #0d111a; /* 抬起的表面（卡片、节点） */
+  --a2v-bg-2: #151b26; /* 更高一层：悬停态、强调卡片 */
+  --a2v-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --a2v-surface-strong: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+
+  /* ---------- 文字三级色阶：主文案最亮，辅助信息逐级降透明度 ---------- */
+  --a2v-text-1: rgba(244, 247, 251, 0.96);
+  --a2v-text-2: rgba(244, 247, 251, 0.66);
+  --a2v-text-3: rgba(244, 247, 251, 0.38);
+
+  /* ---------- 强调色：同一个画面只应出现一个强调色 ---------- */
+  --a2v-accent: #35e0c8;
+  --a2v-accent-soft: rgba(53, 224, 200, 0.16);
+  /* 与 --a2v-accent 同色系的 RGB 分量，供按帧拼接 rgba() 光晕使用 */
+  --a2v-accent-rgb: 53, 224, 200;
+
+  /* ---------- 描边：1px hairline 比粗边框更精致，也更容易与深色背景共存 ---------- */
+  --a2v-hairline: rgba(255, 255, 255, 0.12);
+  --a2v-hairline-strong: rgba(255, 255, 255, 0.22);
+  /* 顶部内高光：模拟「光从上方来」，是深色界面廉价感与高级感的分水岭 */
+  --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* ---------- 阴影：近处小阴影定形，远处大阴影造景深，两层叠加才不扁平 ---------- */
+  --a2v-shadow-1: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --a2v-shadow-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+
+  /* ---------- 圆角：与层级成对使用，越大的表面用越大的圆角 ---------- */
+  --a2v-radius-sm: 20px;
+  --a2v-radius-md: 28px;
+  --a2v-radius-lg: 36px;
+
   /*
-   * 中文优先字体栈。系统字体不随仓库分发，换机器可能轻微影响字宽；
-   * 启用设计语言预设时改用随仓库分发的 webfont（见下面的预设作用域）。
+   * ---------- 节奏令牌 ----------
+   * 时间只走三条曲线：出场、进出场对称、门控（用于逐项呈现）。
+   * 括号内是 timeline.js 中同名的缓动，页面用哪一边都要保持一致。
    */
-  --a2v-font:
-    'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', 'Hiragino Sans GB',
-    system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* ---------- 排版：数值区间与 visual-spec.md 的字号下限一致 ---------- */
+  --a2v-tracking-title: -0.02em;
+  --a2v-tracking-label: 0.22em;
+  --a2v-line-title: 1.18;
+  --a2v-line-body: 1.5;
+
+  /* ---------- 背景层参数，页面可按风格覆盖 ---------- */
+  --a2v-glow-1: rgba(53, 224, 200, 0.16);
+  --a2v-glow-2: rgba(96, 132, 255, 0.12);
+  --a2v-grid-size: 120px;
+  --a2v-grid-color: rgba(255, 255, 255, 0.045);
+  --a2v-grain-opacity: 0.05;
+
+  /*
+   * ---------- 图形墨色 ----------
+   * 组件库的每一条线、每一块填充都取这几个令牌（figures.css 里有四十多处引用），
+   * 因此它们**必须由主题提供**：一旦缺失，图形不会报错，只会安静地变成透明，
+   * 页面上只剩文字——深色主题换成浅色主题时尤其容易踩到。
+   *
+   * 深色底用亮墨，浅色底用暗墨，页面覆盖这几个值就等于换了插画风格。
+   *   --fig-ink      实心块（重物、主体）
+   *   --fig-on-ink   画在实心块上的文字，必须与 --fig-ink 成对翻转
+   *   --fig-surface  被画出来的物体表面（圆盘、托盘、柱体、卡片）
+   *   --fig-water    冰山的水下部分与水面标注（唯一的冷色，也是最容易被主题吃掉的一处）
+   */
+  --fig-line: rgba(244, 247, 251, 0.44);
+  --fig-line-soft: rgba(244, 247, 251, 0.16);
+  /* 承载结构的线（循环轨道、阶梯轴线）。未启用预设时与软线同值，
+     因为这里的取值就是这套主题原本的样子；预设层会把它抬到数据描边的预算内。 */
+  --fig-line-data: var(--fig-line-soft);
+  --fig-ink: #e8eef6;
+  --fig-on-ink: #0d111a;
+  --fig-surface: var(--a2v-bg-2);
+  --fig-water: rgba(56, 132, 210, 0.22);
+  --fig-water-line: rgba(96, 165, 235, 0.6);
+  --fig-water-text: rgba(130, 190, 245, 0.85);
+  /* 下面这几个原本写死在 figures.css 里。列在这里是为了让「组件库用到的每个墨色
+     令牌都由主题层提供」这条契约继续成立（缺令牌时图形会安静地变透明），
+     取值等于原来的字面值，因此未启用预设的画面逐字节不变。
+     深浅两套预设各自有更适合主题的取值，见 keynote.css。 */
+  --fig-hollow: rgba(22, 24, 29, 0.035);
+  --fig-node-shadow: rgba(30, 26, 22, 0.07);
+  --fig-title-grad-from: #23262d;
+  --fig-title-grad-to: #3d434e;
+  --fig-drop-track: rgba(22, 24, 29, 0.025);
+  --fig-drop-fill-from: #3a3f4a;
+  --fig-drop-fill-to: #23262d;
+  --fig-drop-fact-from: #cc4a3f;
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(22, 24, 29, 0.07);
+
+  --a2v-accent-deep: #c2352a;
+  --a2v-accent-soft-solid: #7d1c16;
+  --a2v-emphasis-fade: #23262d;
 }
 
 /*
- * 字体栈的预设作用域。
+ * 预设层：只有启用预设时生效，作用域与旧路径一致（属性挂在舞台的祖先上，
+ * 自定义属性沿 DOM 树继承，因此不必挂在 `:root` 上）。
  *
- * 这一段**必须**限定在预设作用域里：字体栈一旦写在裸 `:root` 上，未启用预设的
- * 既有作品就会跟着换字体——成片整体变样，却不会有任何报错。
- * 字体的注册本身（`src/fonts.ts`）是全局的，浏览器没有作用域化的字体定义；
- * 受作用域约束的是**谁用它**。
+ * 两层是**叠加**关系，不是互斥关系：默认层始终存在，预设层只覆盖它定义的
+ * 那些名字。旧路径就是这样（裸 `:root` 与预设选择器同时命中），
+ * 因此 `--a2v-glow-1`、`--fig-water-line` 这类只由默认层给的令牌，
+ * 在启用预设时依然可用。
  */
 [data-a2v-preset='keynote'] {
-  --a2v-font: 'A2V Inter', 'A2V Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  color-scheme: dark;
+
+  --a2v-font: "A2V Inter", "A2V Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   /* 只给拉丁与数字用，图表里的数值列对齐依赖它 */
-  --a2v-font-latin: 'A2V Inter', system-ui, sans-serif;
-  /* 图形组件的插画标签用它；默认介质里没有定义，靠继承即可 */
+  --a2v-font-latin: "A2V Inter", system-ui, sans-serif;
+  /* figures.css 引用它给插画标签定字体；默认介质里没有定义，靠继承即可 */
   --a2v-font-sans: var(--a2v-font);
+
+  --a2v-size-caption: 28px; /* 角标、来源、页码 */
+  --a2v-size-label: 34px; /* 组件标签、轴名 */
+  --a2v-size-body: 40px; /* 正文、条目标题 */
+  --a2v-size-lead: 60px; /* 引文、结论正文 */
+  --a2v-size-title: 76px; /* 小节标题、大号说明 */
+  --a2v-size-headline: 96px; /* 金句、主命题 */
+  --a2v-size-display: 120px; /* 主角数字与极短命题 */
+  --a2v-size-hero: 140px; /* 开场与收束，一个画面只用一次 */
+  /* 主角数值：数字幕里那个"主角"。
+   *
+   * 这一档是补出来的——组件的兜底一直是 `var(--a2v-ink-display, 240px)`，
+   * 而 `--a2v-ink-display` 是设计语言层专有的令牌，于是**预设把大数字
+   * 从组件自己的 240px 压到了 120px**：本意是"给它一个阶"，
+   * 实际是把它缩小了一半。实测数字幕的内容纵向只占安全区 29%
+   * （120px 的数字 + 91px 的标签 + 59px 的注），是八幕里最空的。
+   *
+   * 单个数位在 1080×1920、安全区宽 888px 的画布上可以到 350px；
+   * 更长的数值由拟合引擎按实测宽度自动往下取档，不会溢出。
+   *
+   * `mega` 存在只是因为**字阶是模块化的**：相邻档位的比例必须落在 1.1–1.6
+   * （测试守着这条），140 → 350 是 2.5 倍，中间必须有一档。
+   * 顺带让拟合引擎对大数值多一档落点，不会从 350 直接掉到 140。 */
+  --a2v-size-mega: 220px;
+  --a2v-size-numeral: 350px;
+
+  /* 行高：字号越大越紧。显式指定，不依赖字体自带度量，
+   * 这是跨字体跨机器保持版式一致的前提。 */
+  --a2v-leading-hero: 1.06;
+  --a2v-leading-mega: 1;
+  --a2v-leading-numeral: 1;
+  --a2v-leading-display: 1.1;
+  --a2v-leading-headline: 1.14;
+  --a2v-leading-title: 1.2;
+  --a2v-leading-lead: 1.32;
+  --a2v-leading-body: 1.47;
+  --a2v-leading-label: 1.4;
+  --a2v-leading-caption: 1.45;
+
+  /* 字距：标题收紧、标签放开。这是「标题感 / 正文感」最廉价的分界。 */
+  --a2v-tracking-hero: -0.03em;
+  --a2v-tracking-mega: -0.035em;
+  --a2v-tracking-numeral: -0.04em;
+  --a2v-tracking-display: -0.025em;
+  --a2v-tracking-headline: -0.02em;
+  --a2v-tracking-title: -0.015em;
+  --a2v-tracking-lead: -0.005em;
+  --a2v-tracking-body: 0em;
+  --a2v-tracking-label: 0.14em;
+  --a2v-tracking-caption: 0.06em;
+
+  --a2v-tracking-title-legacy: -0.02em;
+  --a2v-tracking-label-legacy: 0.22em;
+  --a2v-line-title: var(--a2v-leading-title);
+  --a2v-line-body: var(--a2v-leading-body);
+
+  /* ---------- 组件墨色字号：把插画里的字号也收进字阶 ----------
+   *
+   * figures.css 里原本散着一批裸字号（30 / 32 / 36 / 38 / 46 / 124px…）。
+   * 页面的字号阶管不到组件内部的文字，于是这些字号既不在阶上、
+   * 又有几个低于正文下限（30–38px 在竖屏上读不出来）。
+   * 这里给同一个字阶再起一套**别名**，让组件引用语义名而不是裸数字：
+   * 数值仍来自上面那张表，改字阶时组件会跟着走，不会再各写各的。 */
+  --a2v-ink-caption: var(--a2v-size-caption); /* 28px：图形角标、来源 */
+  --a2v-ink-label: var(--a2v-size-label); /* 34px：轴名、次要标注 */
+  --a2v-ink-body: var(--a2v-size-body); /* 40px：组件内正文 */
+  --a2v-ink-value: var(--a2v-size-body); /* 40px：组件里的值，与字阶同一个真源 */
+  --a2v-ink-lead: var(--a2v-size-lead); /* 60px：引文 */
+  --a2v-ink-title: var(--a2v-size-title); /* 76px：图形小标题 */
+  --a2v-ink-display: var(--a2v-size-display); /* 120px：图形主数值 */
+  --a2v-ink-numeral: var(--a2v-size-numeral); /* 400px：数字幕的主角数值 */
+
+  /* ---------- 幕标题的角色令牌 ----------
+   *
+   * 实测四幕分节式作品（compare / attention / loop / freedom）的**幕标题**
+   * 全是同一套规格：40px、字重 500、字距 +0.14em、颜色 `--a2v-text-3`。
+   * 也就是说标题是整屏**最弱**的元素——比卡片标签（44px）还小、
+   * 比所有文字都暗、还按眉标的方式拉宽字距。同一幕里：
+   *
+   *   compare    标题 40px/w500/最暗   vs  卡片标签 44px/w400
+   *   attention  标题 40px/w500/最暗   vs  标注     44px/w700
+   *   loop       标题 40px/w500/最暗   vs  节点标签 44px/w600
+   *   freedom    标题 40px/w500/最暗   vs  阶梯标签 40px/w600（更亮）
+   *
+   * 层级不是"再调调数值"，而是**标题必须是尺度上占主导的那一个**：
+   * 分镜的 `title` 写的是一句完整的话（「多出来的那部分是什么」），
+   * 页面上方的英文眉标（COMPARISON）才是角标。文案是标题，排版却是角标，
+   * 这个错位就是「层级清晰 / 主次分明 / 对比明确」同时不成立的单一根因。
+   *
+   * 四幕的标题是 7–10 个汉字，76px 下最宽 760px，仍在 888px 的安全区内。
+   * 形态上换到阶上已有的标题档，不另立新字号。 */
+  --a2v-heading-size: var(--a2v-ink-title); /* 76px：与字阶同一个真源 */
+  --a2v-heading-weight: var(--a2v-weight-bold); /* 700 */
+  --a2v-heading-track: var(--a2v-track-display); /* -0.03em：标题收紧，不是眉标拉开 */
+  --a2v-heading-color: var(--a2v-text-1); /* 最亮的一档 */
+
+  /* ---------- 间距：8pt 网格 ---------- */
+  --a2v-space-1: 4px;
+  --a2v-space-2: 8px;
+  --a2v-space-3: 16px;
+  --a2v-space-4: 24px;
+  --a2v-space-5: 32px;
+  --a2v-space-6: 48px;
+  --a2v-space-7: 64px;
+  --a2v-space-8: 96px;
+  --a2v-space-9: 128px;
+  --a2v-space-10: 192px;
+
+  /* ---------- 圆角与层级成对：越大的表面用越大的圆角 ---------- */
+  --a2v-radius-xs: 8px;
+  --a2v-radius-sm: 16px;
+  --a2v-radius-md: 24px;
+  --a2v-radius-lg: 32px;
+  --a2v-radius-xl: 48px;
+  --a2v-radius-pill: 999px;
+
+  /* ---------- 描边阶：按**用途**分档，不按观感 ----------
+   *
+   * 组件层原先散着 2 / 3 / 4 / 5 / 6 五种线宽，没有令牌、没有语义，
+   * 等于每张图各自决定线多粗。分档问的是同一个问题：
+   * 「这条线消失了，观众还看得懂吗」。
+   *
+   * 为什么不是「一条 2px 走天下」：竖屏 1080 宽在手机上实际显示约 400–500
+   * 逻辑像素，1px 缩过之后接近消失；但把所有线抬到 4px 又会让次级结构
+   * （虚线轨道、刻度）与数据描边一样重，层级反而塌掉。
+   * 原先的 5px 只出现在阶梯的跳跃弧上，语义与 .loop-arc 的 6px 完全相同
+   * （都是「运动轨迹」），留两个只差 1px 的档位等于给后人一个随手可选的理由，
+   * 因此合并进 stroke-5。 */
+  --a2v-stroke-1: 1px; /* 发丝边界：卡片、面板的边框 */
+  --a2v-stroke-2: 2px; /* 次级结构：虚线辅助、坐标刻度 */
+  --a2v-stroke-3: 3px; /* 数据描边：承载数据形状的轮廓 */
+  --a2v-stroke-4: 4px; /* 图形主体：构件、轨道、节点边界 */
+  --a2v-stroke-5: 6px; /* 焦点与运动轨迹：强调弧、进度 */
+
+  /* ---------- 字重阶：上限收到 700 ----------
+   *
+   * Inter 与 Noto Sans SC 都是可变字体，800 在中文上会让笔画粘连
+   * （汉字的笔画密度远高于拉丁）。而「更大的数字」这个诉求已经由字号阶的
+   * display / hero 档承担了——层级靠字号拉开，不靠加粗。 */
+  --a2v-weight-regular: 400;
+  --a2v-weight-medium: 500;
+  --a2v-weight-semibold: 600;
+  --a2v-weight-bold: 700;
+
+  /* ---------- 组件字距：给组件用的语义槽 ----------
+   *
+   * 组件层原有 16 处字面字距，取值从 -0.07em 一路到 0.14em 近似连续分布
+   * （0.01 / 0.02 / 0.04 / 0.06 / 0.08 / 0.10 / 0.12 / 0.14）。
+   * 那不是一个刻度，而是一串近似值——同一个语义「小标签要松开」有五个取值，
+   * 于是「为什么这两个标签的字距不一样」永远没有答案。
+   * 这里按语义收成五槽，逐值映射到最近的一槽；字距无关量级只关语义。 */
+  --a2v-track-numeral: -0.07em; /* 主角数字：>120px 的数值需要更强的光学收紧 */
+  --a2v-track-display: var(--a2v-tracking-hero); /* -0.03em：大标题 */
+  --a2v-track-body: var(--a2v-tracking-body); /* 0em：正文 */
+  --a2v-track-caption: var(--a2v-tracking-caption); /* 0.06em：角标、来源 */
+  --a2v-track-label: var(--a2v-tracking-label); /* 0.14em：标签、轴名 */
+
+  /* ---------- 图形几何档 ----------
+   *
+   * 只收「八个组件应当一起变」的那几个几何量。一张图的**坐标**
+   * （立柱位置、圆上节点的角度、柱高数组）是内容而不是令牌，
+   * 刻意留在组件里，不做令牌化。 */
+  --fig-node-r-min: 76px; /* 节点圆的最小半径，实际半径由内容测量决定 */
+  --fig-surface-pad: var(--a2v-space-3); /* 表面内边距 */
+  --fig-connector-w: var(--a2v-stroke-4); /* 连线与轴线宽度 */
+  --fig-arrow-len: 34px; /* 箭镞长度 */
+  --fig-arrow-half: 16px; /* 箭镞半高 */
+
+  /* ---------- 安全区与栅格 ---------- */
+  --a2v-safe-top: 240px;
+  --a2v-safe-bottom: 320px;
+  --a2v-safe-x: 96px;
+  --a2v-safe-bottom-with-subtitles: 520px;
+  --a2v-content-width: 888px;
+  --a2v-grid-columns: 12;
+  --a2v-grid-gutter: 24px;
+
+  /* ---------- 动效时长：换算成 30fps 的帧数写在注释里，
+   * 画面仍然只由帧驱动（禁止 CSS animation/transition） ---------- */
+  --a2v-dur-fast: 240ms; /* ≈ 7 帧 */
+  --a2v-dur-base: 360ms; /* ≈ 11 帧 */
+  --a2v-dur-slow: 560ms; /* ≈ 17 帧 */
+
+
+  /* ---------- 表面：三级背景 + 两级抬升表面 ---------- */
+  --a2v-bg-0: #08090c; /* 画布最底层 */
+  --a2v-bg-1: #0f131a;
+  --a2v-bg-2: #161c26;
+  --a2v-surface-1: #101520; /* 卡片 */
+  --a2v-surface-1-top: rgba(255, 255, 255, 0.045);
+
+  /* ---------- 文字：三级 + 一级仅用于图形与装饰 ---------- */
+  --a2v-ink-1: rgba(255, 255, 255, 0.96); /* 18.26:1 */
+  --a2v-ink-2: rgba(255, 255, 255, 0.72); /* 10.27:1 */
+  --a2v-ink-3: rgba(255, 255, 255, 0.62); /*  7.79:1 */
+  --a2v-ink-4: rgba(255, 255, 255, 0.46); /*  4.54:1 —— 不进正文 */
+  /* 兼容既有令牌名：theme.css 的 text-1/2/3 语义与这里一一对应 */
+  --a2v-text-1: var(--a2v-ink-1);
+  --a2v-text-2: var(--a2v-ink-2);
+  --a2v-text-3: var(--a2v-ink-3);
+
+  /* ---------- 描边：hairline 的对比度按图形元素 3:1 下限选值 ---------- */
+  /* 分隔线：对抬升面 1.64:1，纯装饰，按 WCAG 1.4.11 属豁免范围，刻意保持耳语。
+     不要「顺手」把它抬到 3:1——卡片的身份由填充 + 圆角 + 投影共同界定，
+     每条分隔线都提亮只会让画面变重、层次变平。
+     真正界定物体边界的描边用下面那条：对抬升面 ≥ 3:1。 */
+  --a2v-hairline: rgba(255, 255, 255, 0.16);
+  --a2v-hairline-strong: rgba(255, 255, 255, 0.36); /* 边界描边，对 --a2v-bg-2 实测 3.1:1 */
+  --a2v-line: rgba(255, 255, 255, 0.46); /* 4.54:1，图形描边下限 */
+
+  /* ---------- 强调色：一套预设只允许一个 ---------- */
+  --a2v-accent: #32d6ff; /* 11.57:1 */
+  --a2v-accent-ink: var(--a2v-accent); /* 深色下强调色本身就够（11.57:1） */
+  --a2v-accent-rgb: 50, 214, 255;
+  --a2v-accent-soft: rgba(50, 214, 255, 0.14);
+  --a2v-accent-line: rgba(50, 214, 255, 0.55);
+  --a2v-accent-deep: #2f7fa8; /* 4.48:1 —— 图形着重色 */
+  --a2v-accent-soft-solid: #16465f; /* 渐变末端，只作收尾 */
+  /* 压在**重点面**（`--a2v-accent-soft-solid`）上的墨色。
+   * 那个面在两套主题里都是深色，所以压在它上面的字必须是浅色。
+   * 第 21 轮实测：组件各自选了强调色，于是"深蓝面 + 蓝字"只剩 1.07:1。
+   * 这一档对 `#16465f` 是 9.2:1。 */
+  --a2v-on-focus: rgba(255, 255, 255, 0.96);
+  /* 强调褪色后的落点：开场幕的强调词会从强调色退到这一档。
+   * 组件原来退到 #23262d（旧主题的标题渐变末端），在深色画布上只有 1.31:1，
+   * 等于让强调词凭空消失。这里改成二级墨色，褪色但始终可读。 */
+  --a2v-emphasis-fade: #d5dce8; /* 13.2:1 —— 褪到这一档仍远高于大字下限 */
+
+  /* ---------- 层级：小阴影定形，大阴影造景深 ---------- */
+  --a2v-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --a2v-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.35), 0 18px 40px -20px rgba(0, 0, 0, 0.75);
+  --a2v-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.40), 0 48px 96px -32px rgba(0, 0, 0, 0.90);
+  --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  /* 光晕（帧驱动的那一种）：模糊与浓度进设计层，组件只报告「亮到哪一档」。
+   * 两套主题先取同值——原先的行内写法没法按主题区分，要分化时这里是唯一入口。 */
+  --a2v-glow-emphasis-blur: 26px;
+  --a2v-glow-emphasis-alpha: 0.22;
+  --a2v-glow-heat-blur: 46px;
+  --a2v-glow-heat-alpha: 0.3;
+  --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 48px rgba(var(--a2v-accent-rgb), 0.28);
+
+  /* ---------- 图形墨色：figures.css 的每条线都取这几个值 ----------
+     分类与对比度预算见 references/keynote-design-system.md，
+     由 tests/test_figure_contrast.py 按表守住。取值不是凭感觉调的：
+     这里每一个都在预算内，改动前先跑那个测试。 */
+  --fig-line: rgba(255, 255, 255, 0.52); /* 数据描边 5.69:1 */
+  --fig-line-data: rgba(255, 255, 255, 0.62); /* 数据描边 7.75:1 */
+  --fig-line-soft: rgba(255, 255, 255, 0.18); /* 装饰描边 1.63:1 */
+  --fig-ink: #e9eef6;
+  --fig-on-ink: #0f131a;
+  --fig-surface: #171e2b; /* 面填充：不设下限，形状由 --fig-line 描边界定 */
+  --fig-water: rgba(92, 152, 220, 0.22); /* 面填充 */
+  /* 冰山的水深三档：从"水"的颜色推导，而不是再手挑一个蓝。
+   * 第 1 档就是水面本身，往下逐档稀释——深度是明度差，不是另一个色相。 */
+  --a2v-berg-depth-1: var(--fig-water);
+  --a2v-berg-depth-2: color-mix(in srgb, var(--fig-water) 38%, transparent);
+  --a2v-berg-depth-3: color-mix(in srgb, var(--fig-water) 0%, transparent);
+  --fig-hollow: rgba(255, 255, 255, 0.05); /* 面填充：深色底下的「空壳」要提亮，不能沿用浅色页面的深灰 */
+  --fig-node-shadow: rgba(0, 0, 0, 0.35); /* 面填充：深色底下的投影 */
+  --fig-title-grad-from: #e9eef6; /* 图形内文本：标题渐变，预设层会整体替换标题背景 */
+  --fig-title-grad-to: #aab6c8;
+  /* 槽是「容量」的刻度参照，不是一个装满的柱：浅色页面里它只有 1.05:1，
+     深色这边同样只给耳语级的一层白。给重了会让「从未拥有」那栏看着是满的——
+     那一栏按设计就该是空的（applyDrop(fillB, 0)）。 */
+  --fig-drop-track: rgba(255, 255, 255, 0.03); /* 面填充：竖尺的槽 */
+  --fig-drop-fill-from: #6d7d95; /* 面填充：竖尺的柱，只在「还拥有」的那段出现 */
+  --fig-drop-fill-to: #3c4759;
+  --fig-drop-fact-from: #cc4a3f; /* 面填充：事实那一侧的柱，红色在深浅底上都成立 */
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(255, 255, 255, 0.04); /* 面填充：进度槽，同样只是刻度参照 */
+  --fig-water-line: rgba(122, 174, 230, 0.72); /* 数据描边 4.82:1 */
+  --fig-water-text: rgba(146, 190, 238, 0.88); /* 图形内文本 8.06:1 */
+
+  /* ---------- 背景层：几乎不可见的秩序感，不参与叙事 ---------- */
+  --a2v-glow-1: rgba(50, 214, 255, 0.13);
+  --a2v-glow-2: rgba(96, 132, 255, 0.10);
+  --a2v-grid-color: rgba(255, 255, 255, 0.035);
+  --a2v-grid-size: 120px;
+  --a2v-grain-opacity: 0.035;
+}
+
+/* 浅色主题：只覆盖配色，字阶与几何与深色共用。
+ *
+ * 选择器写成两条，因为两级属性在新旧路径里挂在**不同层**上：
+ * 旧路径把 `data-a2v-preset` 与 `data-a2v-theme` 都挂在 `:root` 上（同一元素），
+ * React 路径把 `data-a2v-theme` 挂在舞台元素上、预设属性挂在其祖先上。
+ * 只写同一元素那一条，浅色作品会**静默地按深色渲染**——画面从头到尾都对，
+ * 只是配色全反了。 */
+[data-a2v-preset='keynote'][data-a2v-theme='light'],
+[data-a2v-preset='keynote'] [data-a2v-theme='light'] {
+  color-scheme: light;
+
+
+  --a2v-bg-0: #eff1f4;
+  --a2v-bg-1: #f8f9fb;
+  --a2v-bg-2: #ffffff;
+  --a2v-surface-1: #ffffff;
+  --a2v-surface-1-top: rgba(255, 255, 255, 0.9);
+
+  --a2v-ink-1: #0c0e13; /* 17.06:1 */
+  --a2v-ink-2: #3c4152; /*  8.94:1 */
+  --a2v-ink-3: #454b5b; /*  8.71:1 */
+  --a2v-ink-4: #7c8194; /*  3.42:1 —— 不进正文 */
+  --a2v-text-1: var(--a2v-ink-1);
+  --a2v-text-2: var(--a2v-ink-2);
+  --a2v-text-3: var(--a2v-ink-3);
+
+  --a2v-hairline: rgba(12, 14, 19, 0.10);
+  --a2v-hairline-strong: rgba(12, 14, 19, 0.45); /* 边界描边，对白色面 3:1 以上 */
+  --a2v-line: rgba(12, 14, 19, 0.42); /* 5.30:1 */
+
+  --a2v-accent: #0a6ad9; /* 4.55:1 */
+  --a2v-accent-rgb: 10, 106, 217;
+  --a2v-accent-soft: rgba(10, 106, 217, 0.10);
+  --a2v-accent-line: rgba(10, 106, 217, 0.45);
+  --a2v-accent-deep: #0b4f9e; /* 6.9:1 —— 图形着重色，浅底上要压深 */
+  --a2v-accent-soft-solid: #0d3f7d;
+  /* 小字号正文用的强调墨色：浅色主题的 --a2v-accent (#0a6ad9) 只有 4.55:1，
+     坐上面板更低，够不到正文线；深色主题下它就是 --a2v-accent 本身。 */
+  --a2v-accent-ink: #0a49a8;
+  /* 同上：这一档对 `#0d3f7d` 是 10.6:1。 */
+  --a2v-on-focus: #ffffff;
+  --a2v-emphasis-fade: #565c6e; /* 5.15:1 —— 褪色但仍可读 */
+
+  /* 浅底上的阴影要更收敛：深阴影会变成脏边 */
+  --a2v-shadow-1: 0 1px 2px rgba(12, 14, 19, 0.06);
+  --a2v-shadow-2: 0 2px 6px rgba(12, 14, 19, 0.06), 0 16px 32px -18px rgba(12, 14, 19, 0.18);
+  --a2v-shadow-3: 0 8px 20px rgba(12, 14, 19, 0.08), 0 40px 72px -28px rgba(12, 14, 19, 0.22);
+  --a2v-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* 光晕（帧驱动的那一种）：模糊与浓度进设计层，组件只报告「亮到哪一档」。
+   * 两套主题先取同值——原先的行内写法没法按主题区分，要分化时这里是唯一入口。 */
+  --a2v-glow-emphasis-blur: 26px;
+  --a2v-glow-emphasis-alpha: 0.22;
+  --a2v-glow-heat-blur: 46px;
+  --a2v-glow-heat-alpha: 0.3;
+  --a2v-focus-halo: 0 0 0 1px var(--a2v-accent-line), 0 0 40px rgba(var(--a2v-accent-rgb), 0.20);
+
+  /* 分类与预算同深色主题；浅色背景下同样的视觉重量需要更深的取值，
+     因此两套主题各自取值，不取公共下限。 */
+  --fig-line: rgba(12, 14, 19, 0.62); /* 数据描边 5.22:1 */
+  --fig-line-data: rgba(12, 14, 19, 0.72); /* 数据描边 7.42:1 */
+  --fig-line-soft: rgba(12, 14, 19, 0.22); /* 装饰描边 1.63:1 */
+  --fig-ink: #1b202b;
+  --fig-on-ink: #ffffff;
+  --fig-surface: #ffffff; /* 面填充：跟着这套主题的面阶走，不设下限 */
+  --fig-water: rgba(64, 92, 132, 0.13); /* 面填充 */
+  /* 冰山的水深三档：同深色主题，只是水的颜色跟着这套调色板走 */
+  --a2v-berg-depth-1: var(--fig-water);
+  --a2v-berg-depth-2: color-mix(in srgb, var(--fig-water) 38%, transparent);
+  --a2v-berg-depth-3: color-mix(in srgb, var(--fig-water) 0%, transparent);
+  --fig-hollow: rgba(22, 24, 29, 0.035); /* 面填充：与未启用预设时的取值一致 */
+  --fig-node-shadow: rgba(30, 26, 22, 0.07); /* 面填充：与未启用预设时的取值一致 */
+  --fig-title-grad-from: #23262d; /* 图形内文本：与未启用预设时的取值一致 */
+  --fig-title-grad-to: #3d434e;
+  --fig-drop-track: rgba(22, 24, 29, 0.025); /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fill-from: #3a3f4a; /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fill-to: #23262d;
+  --fig-drop-fact-from: #cc4a3f; /* 面填充：与未启用预设时的取值一致 */
+  --fig-drop-fact-to: #a92c22;
+  --fig-gauge-track: rgba(22, 24, 29, 0.07); /* 面填充：与未启用预设时的取值一致 */
+  --fig-water-line: rgba(44, 66, 100, 0.80); /* 数据描边 5.23:1 */
+  --fig-water-text: rgba(44, 66, 100, 0.92); /* 图形内文本 7.22:1 */
+
+  --a2v-glow-1: rgba(10, 106, 217, 0.07);
+  --a2v-glow-2: rgba(120, 90, 220, 0.05);
+  --a2v-grid-color: rgba(12, 14, 19, 0.035);
+  --a2v-grid-size: 120px;
+  --a2v-grain-opacity: 0.02;
 }
