@@ -142,9 +142,11 @@ A2V.figures.register(kind, {
   只能由组件声明——阶梯的注写在柱子**上方**，同为近邻却不装在容器里，
   几何上无法自动区分。未声明的文字不参与 K8 判定（该幕跳过并写明原因）。
 
-新增后要做四件事：在 `figures.js` 里 `register`（含基元与状态、必要的 `data-a2v-inside`）、
-在 `figures.css` 里补样式、在本文档的表格里加一行，
-并在 `tests/test_figures_assets.py` 的 kind 列表里登记，确认测试仍然通过。
+新增后要做五件事：在 `figures.js` 里 `register`（含基元与状态、必要的 `data-a2v-inside`）、
+在 `figures.css` 里补样式（一律走令牌，见 C17）、在本文档的表格里加一行、
+在 `tests/test_figures_assets.py` 的 kind 列表里登记，然后跑组件契约检查：
+`tests/test_figures_assets.py`（基元与状态覆盖、`PENDING` 棘轮）与
+`tests/test_figure_token_closure.py`（令牌闭包、基元作用域、四态与两种媒介）都要通过。
 
 启用设计语言预设后，`figures.css` 引用的全部 `--fig-*` 令牌由 `keynote.css` 的
 两套主题（`keynote-dark` / `keynote-light`）提供；缺一个令牌**不会报错**，

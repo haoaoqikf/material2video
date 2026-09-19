@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
-
-import pytest
 
 from a2v import cli
 from a2v.render import _default_serve_root, _last_int

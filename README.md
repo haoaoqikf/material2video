@@ -19,7 +19,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 ## 当前状态
 
-仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`（现有 8 项，含 `article-to-storyboard`、`declarative-video-scenes`、`render-provenance` 与本次新增的 `article-workspace`），已完成的变更连同其提案与设计留档在 `openspec/changes/archive/`。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
+仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`（现有 8 项：`article-to-storyboard`、`article-workspace`、`declarative-video-scenes`、`font-coverage`、`font-subsetting`、`frame-driven-motion`、`keynote-design-system`、`render-provenance`），已完成的变更连同其提案、设计与逐轮实施记录留档在 `openspec/changes/archive/`。当前没有进行中的变更——`keynote-design-system` 的设计语言收口（`2026-09-18-apple-grade-component-system`）已同步进主规格并归档。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
 
 已完成**支持多篇文章目录规范的可选配音视频端到端链路**：
 
@@ -97,7 +97,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   页面另有常驻进度轨（幕号 / 章节 / 全片进度）为下半幅收口。**这篇内容不入库**：
   它只存在于作者本机的内容目录里，克隆仓库看不到它，制作方法以 `examples/` 为准；
 - **发布会级设计语言层**（可选）：分镜根级声明 `visual.preset: "keynote"` 时启用
-  `assets/keynote.css`——模块化字号阶（8 档，正文下限 36px，每档配对行高与字距）、
+  `assets/keynote.css`——模块化字号阶（10 档：28 / 34 / 40 / 60 / 76 / 96 / 120 / 140 /
+  220 / 350px，每档配对行高与字距；排版引擎缩到 36px 正文下限即停）、
   8pt 间距阶（4–192px）、五个圆角档 + pill、三级阴影、12 列网格（内容宽 888px、
   槽宽 24px），以及 `keynote-dark`（bg `#08090c`、强调 `#32d6ff`）与
   `keynote-light`（bg `#eff1f4`、强调 `#0a6ad9`）两套主题，对比度预算正文 7:1、
@@ -130,17 +131,22 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （飞轮节点、冰山标注、天平载物…）既不受安全区判定也不受容器判定。
   阈值与设计取舍见
   [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
-- **组件级令牌与状态（进行中）**：`figures.css` 的描边宽度、字重、字距、圆角、
-  1px 边框、间距、内边距与 `margin-top` 已经全部走令牌（86 处引用，字面值清零），
+- **组件级令牌与状态**：`figures.css` 的描边宽度、字重、字距、圆角、
+  1px 边框、间距、内边距与 `margin-top` 全部走令牌（86 处引用，字面值清零），
   不在 8pt 阶上的取值一并改到阶上。`keynote.css` 另外定义了四个图形基元
   （`a2v-surface` / `a2v-label` / `a2v-connector` / `a2v-frame`）与四个状态
-  （`rest` / `focus` / `muted` / `done`）。
-  这套约束由 `tests/test_figure_token_closure.py` 守住：以后往组件里写一个裸数值
-  （`stroke-width: 3px`、`gap: 18px`）会直接测试失败。
-  **基元与状态目前只落在飞轮一个组件上**——这是进行中的工作，不要当成已完成的能力；
+  （`rest` / `focus` / `muted` / `done`）；八幕用到的组件里承载焦点与状态的元素
+  （表面族、标签族、连接件族、边界框族）**全部**走「基元 + `data-a2v-state`」，
+  临场焦点类名已清空，并由棘轮钉住不再增长。连续量（`--a2v-focus-mix`、`--vs-heat`）
+  与结构性类名（`is-left` / `is-right`）按设计**不进**四态。
+  这套约束由 `tests/test_figure_token_closure.py` 与 `tests/test_figures_assets.py` 守住：
+  以后往组件里写一个裸数值（`stroke-width: 3px`、`gap: 18px`）或一个临场焦点类名
+  会直接测试失败；
 - **容器内文字由内容测量决定几何**：装文字的容器（节点圆等）按实测文字宽度定形，
   而不是先写死尺寸再把字塞进去。参考示例的飞轮节点原先半径 76px 配 44px 的四字标签
   （约 183px，比直径还宽 31px），文字穿出圆而所有机检全绿，现在由 K8 守住；
+  其余四处容器（双向选择节点、冰山标注、天平载物、阶梯柱顶注）**尚未**按同一手法迁移，
+  是已知的下一步；
 - 自动化测试覆盖校验、缓存与失败恢复、字幕时间轴、预览同步、动效原语、
   渲染前置扫描、有声/无声渲染与路径推导。
 
@@ -152,8 +158,12 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
 最终判断仍要人按
 [评审量表](.agents/skills/article2video/references/visual-review-rubric.md) 完成）、
-**webfont 子集化**（Noto Sans SC Variable 约 17MB）、**按内容自动选预设**
-（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡片」。
+**按内容自动选预设**（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、
+不判断「这一幕本该有卡片」。
+**webfont 子集化按作品切已实现**：`--subset-fonts <源字体>` 用 `fonts.subset_font()`
+切出只含本作品用字的子集（需要可选依赖组 `fonts`），且只覆盖声明过的作品；
+对随仓库分发的共享字体**不做静态子集**——按今天的作品切出来的子集明天就会缺字，
+缺字会静默回退到系统字体。
 
 ## 快速开始
 
@@ -236,10 +246,14 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 已完成的文章：
 
-| 目录 | 内容 | 分镜 | 成片 |
+| 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
 | --- | --- | --- | --- |
 | `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
+
+上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
+随设计语言收口做的那次产物清理把本机已有的成片、配音与体检报告一并删掉了
+（它们随时可以按上面的命令重跑重建），因此那两行现在指的是「重渲后会在哪里」。
 
 `videos/never-fear-interviews/` 采用「编辑杂志」方向（浅底 + 墨黑衬线 + 单一朱红强调），
 八幕全部改为**以形表意**：每一幕先用一个由帧驱动的比喻把道理画出来，文字只做注解，

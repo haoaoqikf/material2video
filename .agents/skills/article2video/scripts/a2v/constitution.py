@@ -14,7 +14,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import catalog
 from .assets import local_assets
 from .storyboard import Report
 
@@ -230,8 +229,3 @@ def _walk_strings(value: object) -> list[str]:
     if isinstance(value, list):
         return [item for sub in value for item in _walk_strings(sub)]
     return []
-
-
-def known_kinds_hint() -> str:
-    """给错误信息用的一句话组件清单。"""
-    return "、".join(catalog.known_kinds())

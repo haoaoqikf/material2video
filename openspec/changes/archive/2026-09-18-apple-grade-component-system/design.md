@@ -39,7 +39,7 @@
 都是可变字体，800 在中文上会让笔画粘连（汉字比拉丁的笔画密度高得多），
 而「更大的数字」这个诉求已经由字号阶的 `display` 档承担了。
 主角数字改用 700 + 走 `display` 档，靠字号拉开层级——这正是
-[视觉规范](../../../../../.agents/skills/article2video/references/visual-spec.md)
+[视觉规范](../../../../.agents/skills/article2video/references/visual-spec.md)
 「层级靠字号拉开，不靠加粗」那句的落地。
 
 ### 字距阶 `--a2v-track-*`

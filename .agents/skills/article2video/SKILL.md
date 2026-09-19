@@ -252,6 +252,13 @@ uv run python .agents/skills/article2video/scripts/review.py \
 2. **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
 3. **设计宪法静态检查**：结构、曲线纪律、模糊、挂载点、文案单一真源、安全区。
 
+**动过 `figures.js` / `figures.css` 之后，除了体检还要跑组件契约检查**：
+`tests/test_figures_assets.py`（基元与状态覆盖、`PENDING` 棘轮、焦点跟着行进走）与
+`tests/test_figure_token_closure.py`（令牌闭包、四个基元只在预设作用域内、
+状态只有四个且同时声明 SVG 与 HTML 两种媒介、K8 / K9 与聚合规则）。
+裸数值与临场焦点类名都由这两支测试拦下，别指望体检——体检量的是画面，
+量不出「这个数值本该是令牌」。
+
 终端会打印错误与提醒，以及**需要人工判断的清单**。
 机检只保证「这不是废片」；「值不值得看完」按
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
