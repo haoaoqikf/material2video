@@ -56,7 +56,9 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     assert not (ROOT / "outputs" / "demo").exists(), "产物不得落回仓库"
 
     sidecar = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
-    assert sidecar["version"] == 3
+    # version 4 起区分画面来源；这条路径的画面来自网页
+    assert sidecar["version"] == 4
+    assert sidecar["renderer"] == "page"
     # 产物在 outputs/demo/previews/ 下：指回内容根要上三层
     assert sidecar["workspace"] == "../../.."
     assert sidecar["page"] == "__a2v__/declarative.html"

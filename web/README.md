@@ -48,10 +48,30 @@ pnpm test           # 单元测试
 真实渲染不走这里的手写命令——用仓库根的命令行入口：
 
 ```bash
-uv run python .agents/skills/article2video/scripts/render.py --storyboard <分镜>
+uv run python .agents/skills/article2video/scripts/render.py --storyboard <分镜> --engine remotion
 ```
 
-它负责路径归属推导、契约校验、编码参数与交付权限，再调用这里的 Remotion。
+它负责路径归属推导、契约校验、配音与字幕合成、成片验收与交付权限，再调用这里的
+`scripts/remotion-render.mjs` 逐帧渲染。两边的分工是硬边界：**Python 判定，Node 只执行**。
+中间靠 stdout 上带前缀的行通信（`__A2V_COMPOSITION__{…}` 报元数据、`__A2V_PROGRESS__<百分比>`
+报进度），不解析 Remotion 的日志文本——日志措辞随版本变化，把判定挂在它上面升级一次就会静默失效。
+
+`--engine remotion` 之前，默认引擎仍是旧动画网页路径；切换默认值由迁移最后一步完成。
+
+## 渲染脚本（`scripts/remotion-render.mjs`）
+
+```bash
+node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out <mp4>]
+  [--crf 18] [--preset medium] [--frames 0-29] [--metadata-only]
+```
+
+`--bundle` 由 `npx remotion bundle src/index.ts --out-dir <目录>` 产出。走 CLI 打包而不是
+`@remotion/bundler` 的 `bundle()`，是因为只有 CLI 会读 `remotion.config.ts`，
+`@/` 别名与 Tailwind 因此只在一处配置。每次渲染用一个**新的**打包目录：复用固定目录会在
+源码改动后渲出旧画面，而这种错误没有任何症状——成片看起来完全正常，只是它是上一版。
+
+`--metadata-only` 只报元数据不渲染，渲染入口用它把「画面声明的时长」与「分镜累计的时长」
+在开渲之前对齐。
 
 ## 两条构建路径，一份源码
 

@@ -133,13 +133,9 @@ def test_fonts_are_registered_and_loaded(opened):
     assert state["inter"] and state["sans"], state
 
 
-def _fake_page(fps: int = 30, frames: int = 180, width: int = 1080, height: int = 1920):
-    import types
-
-    return types.SimpleNamespace(
-        contract=browser.PageContract(
-            fps=fps, duration_in_frames=frames, width=width, height=height
-        )
+def _contract(fps: int = 30, frames: int = 180, width: int = 1080, height: int = 1920):
+    return browser.PageContract(
+        fps=fps, duration_in_frames=frames, width=width, height=height
     )
 
 
@@ -201,7 +197,7 @@ def test_legacy_version_is_accepted_where_it_is_not_required():
 
 def test_fps_mismatch_lists_both_values():
     with pytest.raises(render.RenderError) as excinfo:
-        render._resolve_fps(_fake_page(fps=25), _storyboard_like(fps=30), None)
+        render._resolve_fps(_contract(fps=25), _storyboard_like(fps=30), None)
     message = str(excinfo.value)
     assert "25" in message and "30" in message
 
@@ -209,7 +205,7 @@ def test_fps_mismatch_lists_both_values():
 def test_dimension_mismatch_lists_both_values():
     with pytest.raises(render.RenderError) as excinfo:
         render._resolve_dimensions(
-            _fake_page(width=720, height=1280), _storyboard_like(width=1080, height=1920)
+            _contract(width=720, height=1280), _storyboard_like(width=1080, height=1920)
         )
     message = str(excinfo.value)
     assert "720" in message and "1280" in message
@@ -218,7 +214,7 @@ def test_dimension_mismatch_lists_both_values():
 
 def test_frame_count_mismatch_lists_both_values():
     with pytest.raises(render.RenderError) as excinfo:
-        render._resolve_total_frames(_fake_page(frames=150), _storyboard_like(frames=180))
+        render._resolve_total_frames(_contract(frames=150), _storyboard_like(frames=180))
     message = str(excinfo.value)
     assert "150" in message and "180" in message
 

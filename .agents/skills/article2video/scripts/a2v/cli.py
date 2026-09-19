@@ -21,7 +21,7 @@ from . import paths as paths_mod
 from . import storyboard as sb
 from .errors import A2VError
 from .media import Media, load_media
-from .render import provenance_status, render
+from .render import provenance_status, render, render_with_remotion
 from .static_server import LocalServer
 from .storyboard import Report
 
@@ -199,6 +199,15 @@ def main_render(argv: list[str] | None = None) -> int:
     if declarative and not args.storyboard:
         logging.error("省略 --page 时必须提供 --storyboard")
         return _EXIT_INVALID_INPUT
+    if args.engine == ENGINE_REACT and args.page:
+        logging.error(
+            "--engine remotion 不接受 --page：画面由 React composition 提供，"
+            "作品专属画面请改写为 web 侧的 scenes 模块"
+        )
+        return _EXIT_INVALID_INPUT
+    if args.engine == ENGINE_REACT and not args.storyboard:
+        logging.error("--engine remotion 需要 --storyboard：它是 composition 的 props")
+        return _EXIT_INVALID_INPUT
 
     # 分镜校验先于路径推导：脚本无效时不必先建出输出目录
     model: sb.Storyboard | None = None
@@ -214,7 +223,6 @@ def main_render(argv: list[str] | None = None) -> int:
         article = _article_for(
             args, declarative=declarative, required=declarative or args.engine == ENGINE_REACT
         )
-        page, page_mounts = _page_source(args, article, engine=args.engine)
         # 契约页总是从查询参数读分镜（它就是为「一个页面服务任意作品」设计的）；
         # 旧共享页面只在声明式路径下需要这个参数。
         source_url = (
@@ -224,34 +232,51 @@ def main_render(argv: list[str] | None = None) -> int:
         )
         media = load_media(args.media, args.storyboard) if args.media else None
         output = _resolve_render_output(args, model, media, article)
-        result = render(
-            page_path=page,
-            output=output,
-            storyboard=model,
-            fps=args.fps,
-            crf=args.crf,
-            preset=args.preset,
-            limit_frames=args.limit_frames,
-            timeout_ms=args.timeout,
-            probe=not args.no_probe,
-            serve_root=(
-                args.serve_root
-                or (article.workspace_root if article is not None else None)
-            ),
-            capture_format=args.capture_format,
-            media=media,
-            storyboard_url=source_url,
-            storyboard_origin=args.storyboard,
-            workspace_root=article.workspace_root if article else None,
-            mounts=page_mounts,
-            # 契约页声明的版本必须与渲染入口认的一致：版本不符时 `ready()` 的
-            # 语义也不同，继续渲只会得到一叠空画面
-            expected_contract_version=(
-                contract_page.CONTRACT_VERSION
-                if args.engine == ENGINE_REACT
-                else contract_page.LEGACY_CONTRACT_VERSION
-            ),
-        )
+        if args.engine == ENGINE_REACT:
+            if model is None:
+                raise A2VError("--engine remotion 需要可用的 --storyboard")
+            # 这条路径不需要契约页：画面直接从 composition 的源码渲出来，
+            # 契约页只在体检（量测与探针）时用来驱动同一份画面
+            result = render_with_remotion(
+                output=output,
+                storyboard=model,
+                storyboard_path=args.storyboard,
+                crf=args.crf,
+                preset=args.preset,
+                limit_frames=args.limit_frames,
+                timeout_ms=args.timeout,
+                probe=not args.no_probe,
+                media=media,
+                storyboard_url=source_url,
+                storyboard_origin=args.storyboard,
+                workspace_root=article.workspace_root if article else None,
+            )
+        else:
+            page, page_mounts = _page_source(args, article, engine=args.engine)
+            result = render(
+                page_path=page,
+                output=output,
+                storyboard=model,
+                fps=args.fps,
+                crf=args.crf,
+                preset=args.preset,
+                limit_frames=args.limit_frames,
+                timeout_ms=args.timeout,
+                probe=not args.no_probe,
+                serve_root=(
+                    args.serve_root
+                    or (article.workspace_root if article is not None else None)
+                ),
+                capture_format=args.capture_format,
+                media=media,
+                storyboard_url=source_url,
+                storyboard_origin=args.storyboard,
+                workspace_root=article.workspace_root if article else None,
+                mounts=page_mounts,
+                # 旧页面声明的版本必须与渲染入口认的一致：版本不符时 `ready()` 的
+                # 语义也不同，继续渲只会得到一叠空画面
+                expected_contract_version=contract_page.LEGACY_CONTRACT_VERSION,
+            )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
         return _EXIT_FAILED

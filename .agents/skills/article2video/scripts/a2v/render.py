@@ -23,9 +23,9 @@ from typing import Iterator
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import assets, paths, security
+from . import assets, paths, remotion, security
 from .audio import mux
-from .browser import AnimatedPage, open_animated_page
+from .browser import AnimatedPage, PageContract, open_animated_page
 from .encoder import VideoEncoder
 from .errors import A2VError
 from .media import Media, asset_fingerprint, file_digest, media_url
@@ -34,6 +34,11 @@ from .storyboard import Storyboard
 from .subtitles import srt
 
 logger = logging.getLogger(__name__)
+
+#: 画面来源：网页（旧路径）与 React composition（Remotion 路径）。
+#: 写进溯源，让复核知道该用哪一套指纹口径——两者的「资产」根本不是一回事。
+RENDERER_PAGE = "page"
+RENDERER_REMOTION = "remotion"
 
 
 class RenderError(A2VError):
@@ -50,6 +55,8 @@ class RenderResult:
     width: int
     height: int
     duration_seconds: float
+    #: 画面产出耗时。网页路径是逐帧截图，Remotion 路径是逐帧渲染 + 编码；
+    #: 两条路径都会把这一段的耗时报出来，好比较换渲染器到底快了多少。
     capture_seconds: float
     total_seconds: float
     size_bytes: int
@@ -59,7 +66,7 @@ class RenderResult:
         return (
             f"输出 {self.output}：{self.frames} 帧 / {self.duration_seconds:.1f}s，"
             f"{self.width}x{self.height} @{self.fps}fps，"
-            f"截图 {self.capture_seconds:.1f}s（约 {rate:.1f} 帧/秒），"
+            f"画面产出 {self.capture_seconds:.1f}s（约 {rate:.1f} 帧/秒），"
             f"总耗时 {self.total_seconds:.1f}s，"
             f"文件 {self.size_bytes / 1024 / 1024:.1f} MiB"
         )
@@ -95,6 +102,8 @@ def _write_provenance(
     height: int,
     capture_format: str,
     media_fingerprint: str | None,
+    renderer: str = RENDERER_PAGE,
+    assets_override: dict | None = None,
 ) -> Path:
     """落一份成片溯源，让验收能回答「这个成片是不是旧资产渲的」。
 
@@ -105,6 +114,10 @@ def _write_provenance(
 
     定位一律用**相对引用**（`workspace` 指回工作区根，资产键相对它或走别名），
     因此文章与产物落在仓库之外时，这份溯源仍然读得懂。
+
+    `assets_override` 由画面来自 React composition 的路径给出：那时画面不由
+    某个 HTML 决定，而是由整个 `web/src` 的源码决定，因此指纹换成构建输入
+    （见 `remotion.build_input_fingerprint`）。两条路径都走同一个复核函数。
     """
     workspace = (
         Path(workspace_root).resolve()
@@ -126,10 +139,15 @@ def _write_provenance(
         extra[relative(storyboard_path)] = file_digest(storyboard_path)
     if media_fingerprint:
         extra["media.sourceFingerprint"] = media_fingerprint
-    html = page_file.read_text(encoding="utf-8", errors="replace")
+    if assets_override is not None:
+        asset_record = assets_override
+    else:
+        html = page_file.read_text(encoding="utf-8", errors="replace")
+        asset_record = asset_fingerprint(page_file, html, extra, workspace_root=workspace)
     payload = {
-        #: 3：定位改为相对引用（工作区根 + 别名资产键），支持文章落在仓库之外
-        "version": 3,
+        #: 4：画面来源区分为「网页」与「React composition」，后者指纹整个构建输入
+        "version": 4,
+        "renderer": renderer,
         "workspace": _workspace_reference(output_path, workspace),
         "renderedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         # 共享页面在 bundle 里、工作区根之外：按同一套规则记成别名键
@@ -140,7 +158,7 @@ def _write_provenance(
         "width": width,
         "height": height,
         "captureFormat": capture_format,
-        "assets": asset_fingerprint(page_file, html, extra, workspace_root=workspace),
+        "assets": asset_record,
     }
     target = output_path.with_suffix(".provenance.json")
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -179,13 +197,20 @@ def provenance_status(video: str | Path) -> dict:
     except (OSError, ValueError) as exc:
         return {"status": "unknown", "detail": f"溯源文件读不出来（{exc}），无法判断", **empty}
 
-    if recorded.get("version") != 3:
+    version = recorded.get("version")
+    if version not in (3, 4):
         return {
             "status": "unknown",
-            "detail": f"溯源是旧格式（version={recorded.get('version')!r}），"
+            "detail": f"溯源是旧格式（version={version!r}），"
                       "定位口径已改为相对引用，请重渲一次再看",
             **empty,
         }
+
+    # version 3 一律是网页路径渲的；version 4 起由 renderer 字段区分画面来源
+    renderer = str(recorded.get("renderer") or RENDERER_PAGE)
+    # 键可能记的是别名（构建输入在 `web/` 别名下、共享页面在 bundle 别名下）：
+    # 按挂载表解析，与写入时同一套
+    mounts = _fingerprint_mounts()
 
     # 工作区根由溯源里的相对引用反解，不再依赖产物上级是否有仓库标记：
     # 文章落在仓库之外时，那条路走不通。
@@ -193,21 +218,33 @@ def provenance_status(video: str | Path) -> dict:
     if not workspace_ref:
         return {"status": "unknown", "detail": "溯源里没有工作区引用，无法判断页面在哪里", **empty}
     workspace = (video_path.parent / workspace_ref).resolve()
+
+    if renderer == RENDERER_REMOTION:
+        current = remotion.build_input_fingerprint()["files"]
+        old = (recorded.get("assets") or {}).get("files") or {}
+        return _compare_fingerprint(old, current, workspace, mounts, label="构建输入")
+
     page_rel = str(recorded.get("page") or "")
-    # 页面可能记的是别名键（共享页面在 bundle 里）：按挂载表解析，与资产同一套
-    page_file = assets.key_path(page_rel, workspace) if page_rel else None
+    page_file = assets.key_path(page_rel, workspace, mounts) if page_rel else None
     if page_file is None or not page_file.is_file():
         return {"status": "unknown", "detail": f"溯源里的网页 {page_rel or '(未记录)'} 找不到了，无法判断", **empty}
 
     html = page_file.read_text(encoding="utf-8", errors="replace")
     current = asset_fingerprint(page_file, html, workspace_root=workspace)["files"]
     old = (recorded.get("assets") or {}).get("files") or {}
+    return _compare_fingerprint(old, current, workspace, mounts, label="资产")
+
+
+def _compare_fingerprint(
+    old: dict, current: dict, workspace: Path, mounts: dict[str, Path], *, label: str
+) -> dict:
+    """逐项复核指纹，并把差异说成人能照着修的一句话。"""
     changed: list[str] = []
     missing: list[str] = []
     unverifiable: list[str] = []
-    asset_suffixes = (".css", ".js", ".json", ".html", ".htm")
+    asset_suffixes = (".css", ".js", ".json", ".html", ".htm", ".ts", ".tsx")
     for key, digest in old.items():
-        path = assets.key_path(str(key), workspace)
+        path = assets.key_path(str(key), workspace, mounts)
         if path is None or not path.is_file():
             (missing if key.endswith(asset_suffixes) else unverifiable).append(key)
         elif file_digest(path) != digest:
@@ -225,10 +262,22 @@ def provenance_status(video: str | Path) -> dict:
             parts.append("不见了：" + "、".join(sorted(missing)))
         detail = "；".join(parts)
     else:
-        detail = "溯源里的资产指纹逐个对得上" + (
+        detail = f"溯源里的{label}指纹逐个对得上" + (
             f"（{len(unverifiable)} 项无法复核：{'、'.join(sorted(unverifiable))}）" if unverifiable else ""
         )
     return {"status": status, "detail": detail, "changed": sorted(changed), "missing": sorted(missing), "unverifiable": sorted(unverifiable)}
+
+
+def _fingerprint_mounts() -> dict[str, Path]:
+    """复核指纹时用的挂载表。
+
+    与写入时保持同一套别名，否则别名键会因为解析不到而被判成「不见了」——
+    那是最糟的一种错报：它让「资产真的改了」淹没在噪音里。
+    """
+    try:
+        return remotion.fingerprint_mounts()
+    except A2VError:  # `web/` 不存在（只留了旧页面的裁剪副本）：退回共享资产别名
+        return assets.default_mounts()
 
 
 def render(
@@ -287,9 +336,9 @@ def render(
         ) as page:
             if media and page.evaluate("() => window.__A2V__.mediaFingerprint") != media.data["sourceFingerprint"]:
                 raise RenderError("网页未加载媒体清单，请使用 A2V.fetchStoryboard")
-            effective_fps = _resolve_fps(page, storyboard, fps)
-            width, height = _resolve_dimensions(page, storyboard)
-            total_frames = _resolve_total_frames(page, storyboard)
+            effective_fps = _resolve_fps(page.contract, storyboard, fps)
+            width, height = _resolve_dimensions(page.contract, storyboard)
+            total_frames = _resolve_total_frames(page.contract, storyboard)
 
             if limit_frames is not None:
                 total_frames = min(total_frames, max(limit_frames, 1))
@@ -304,21 +353,18 @@ def render(
             _encode(page, video_path, total_frames, effective_fps, crf, preset, capture_format)
             capture_seconds = time.monotonic() - capture_started
 
-        final_path = video_path
-        if media:
-            final_path = temp / "final.mp4"
-            mux(video_path, media.audio, final_path, total_frames / effective_fps)
-            (temp / "subtitles.srt").write_text(srt(media.data["cues"], total_frames / effective_fps), encoding="utf-8")
-        if probe:
-            _verify_output(final_path, total_frames, width, height, effective_fps, expect_audio=media is not None)
-        final_path.replace(output_path)
-        if media:
-            (temp / "subtitles.srt").replace(output_path.with_suffix(".srt"))
-        # 成片经由临时目录中转，Windows 下会把临时目录那份「关闭继承」的 ACL 带过来；
-        # 不修的话标准权限的播放器（Windows 11 新版媒体播放器）会报 0x80070005。
-        _grant_access(output_path)
-        if media:
-            _grant_access(output_path.with_suffix(".srt"))
+        final_path = _finalize_output(
+            video_path=video_path,
+            temp=temp,
+            output_path=output_path,
+            total_frames=total_frames,
+            fps=effective_fps,
+            width=width,
+            height=height,
+            media=media,
+            probe=probe,
+        )
+        del final_path
 
     _write_provenance(
         output_path,
@@ -332,6 +378,167 @@ def render(
         height=height,
         capture_format=capture_format,
         media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
+    )
+
+    return RenderResult(
+        output=output_path,
+        frames=total_frames,
+        fps=effective_fps,
+        width=width,
+        height=height,
+        duration_seconds=total_frames / effective_fps,
+        capture_seconds=capture_seconds,
+        total_seconds=time.monotonic() - started,
+        size_bytes=output_path.stat().st_size,
+    )
+
+
+def _finalize_output(
+    *,
+    video_path: Path,
+    temp: Path,
+    output_path: Path,
+    total_frames: int,
+    fps: int,
+    width: int,
+    height: int,
+    media: Media | None,
+    probe: bool,
+) -> Path:
+    """两条渲染路径共用的收口：合音轨、验成片、搬到最终位置、修权限。
+
+    共用是刻意的：帧数、分辨率、帧率、音轨参数都是验收项，
+    两条路径各写一遍迟早会出现「一条路径的成片能过、另一条过不了」，
+    而那种差异只会在交付之后被人发现。
+    """
+    final_path = video_path
+    if media:
+        final_path = temp / "final.mp4"
+        mux(video_path, media.audio, final_path, total_frames / fps)
+        (temp / "subtitles.srt").write_text(
+            srt(media.data["cues"], total_frames / fps), encoding="utf-8"
+        )
+    if probe:
+        _verify_output(final_path, total_frames, width, height, fps, expect_audio=media is not None)
+    final_path.replace(output_path)
+    if media:
+        (temp / "subtitles.srt").replace(output_path.with_suffix(".srt"))
+    # 成片经由临时目录中转，Windows 下会把临时目录那份「关闭继承」的 ACL 带过来；
+    # 不修的话标准权限的播放器（Windows 11 新版媒体播放器）会报 0x80070005。
+    _grant_access(output_path)
+    if media:
+        _grant_access(output_path.with_suffix(".srt"))
+    return final_path
+
+
+def render_with_remotion(
+    output: str | Path,
+    storyboard: Storyboard,
+    storyboard_path: str | Path | None = None,
+    crf: int = 18,
+    preset: str = "medium",
+    limit_frames: int | None = None,
+    timeout_ms: int = 30000,
+    probe: bool = True,
+    media: Media | None = None,
+    storyboard_url: str | None = None,
+    storyboard_origin: str | Path | None = None,
+    workspace_root: str | Path | None = None,
+) -> RenderResult:
+    """用 React composition（Remotion）逐帧渲染并编码成片。
+
+    与网页路径的区别只有「画面从哪来」：这里画面由 composition 的源码决定，
+    因此不再有网页可查——取而代之的是渲染前先向 composition 要一份真实元数据
+    （fps / 尺寸 / 总帧数），并用**同一组判定函数**与分镜交叉校验。
+    合音轨、成片验收、交付权限与溯源与网页路径共用同一段代码。
+    """
+    started = time.monotonic()
+    output_path = Path(output)
+
+    if media:
+        from . import storyboard as sb
+
+        source_model = sb._build(media.data["source"], sb.Report())
+        if storyboard != source_model:
+            raise RenderError("媒体与分镜不匹配，请重新 prepare")
+        storyboard = media.storyboard
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if storyboard_path is None:
+        raise RenderError(
+            "Remotion 路径需要分镜文件：它是 composition 的 props，"
+            "画面里的每一幕都由它推导"
+        )
+    props = Path(storyboard_path).resolve()
+    if not props.is_file():
+        raise RenderError(f"分镜文件不存在: {props}")
+
+    directory = remotion.require_environment()
+    with contextlib.ExitStack() as stack:
+        temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
+        video_path = temp / "video.mp4"
+
+        bundle_started = time.monotonic()
+        bundle_dir = remotion.bundle(web_dir=directory, out_dir=temp / "bundle")
+        logger.info("打包 composition 用了 %.1f 秒", time.monotonic() - bundle_started)
+
+        # 渲染前就把画面参数与分镜对齐：composition 的时长由 props 推导，
+        # 两份数据不一致时渲出一支长度不对的片子，再去反推原因代价很大
+        contract = remotion.metadata(web_dir=directory, bundle_dir=bundle_dir, props=props)
+        declared = contract.contract
+        effective_fps = _resolve_fps(declared, storyboard, None)
+        width, height = _resolve_dimensions(declared, storyboard)
+        total_frames = _resolve_total_frames(declared, storyboard)
+        logger.info(
+            "composition 契约: %d fps, %d 帧, %dx%d", effective_fps, total_frames, width, height
+        )
+
+        if limit_frames is not None:
+            total_frames = min(total_frames, max(limit_frames, 1))
+            logger.warning("调试模式：仅渲染前 %d 帧", total_frames)
+
+        capture_started = time.monotonic()
+        remotion.render_frames(
+            web_dir=directory,
+            bundle_dir=bundle_dir,
+            props=props,
+            out=video_path,
+            total_frames=total_frames,
+            crf=crf,
+            preset=preset,
+            # 逐帧渲染按分钟计，命令行给的 timeout 是**页面**超时，
+            # 拿它当渲染超时会让正常的大项目渲染被误杀
+            timeout_s=max(timeout_ms / 1000 * 60, 3600.0),
+        )
+        capture_seconds = time.monotonic() - capture_started
+
+        _finalize_output(
+            video_path=video_path,
+            temp=temp,
+            output_path=output_path,
+            total_frames=total_frames,
+            fps=effective_fps,
+            width=width,
+            height=height,
+            media=media,
+            probe=probe,
+        )
+
+    entry = directory / remotion.ENTRY_POINT
+    _write_provenance(
+        output_path,
+        page_file=entry,
+        storyboard_url=storyboard_url,
+        storyboard_origin=storyboard_origin,
+        workspace_root=workspace_root,
+        frames=total_frames,
+        fps=effective_fps,
+        width=width,
+        height=height,
+        capture_format="remotion",
+        media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
+        renderer=RENDERER_REMOTION,
+        assets_override=remotion.build_input_fingerprint(),
     )
 
     return RenderResult(
@@ -393,41 +600,41 @@ def _default_serve_root(page_file: Path, content_root: str | Path | None = None)
         return page_file.parent
 
 
-def _resolve_dimensions(page: AnimatedPage, storyboard: Storyboard | None) -> tuple[int, int]:
-    """画面尺寸：以网页契约为准，与分镜不一致时报错并**列出两边的值**。
+def _resolve_dimensions(contract: PageContract, storyboard: Storyboard | None) -> tuple[int, int]:
+    """画面尺寸：以画面声明的契约为准，与分镜不一致时报错并**列出两边的值**。
 
     只写「尺寸不一致」是不够的：这句话既没说哪一边对，也没说差多少，
     而两种可能（改错了分镜、改错了画面）需要完全相反的修法。
     """
-    width, height = page.contract.width, page.contract.height
+    width, height = contract.width, contract.height
     if storyboard and (width, height) != (storyboard.width, storyboard.height):
         raise RenderError(
-            f"画面尺寸不一致：网页声明 {width}×{height}，"
+            f"画面尺寸不一致：画面声明 {width}×{height}，"
             f"分镜脚本声明 {storyboard.width}×{storyboard.height}"
         )
     return width, height
 
 
-def _resolve_fps(page: AnimatedPage, storyboard: Storyboard | None, fps: int | None) -> int:
-    contract_fps = page.contract.fps
+def _resolve_fps(contract: PageContract, storyboard: Storyboard | None, fps: int | None) -> int:
+    contract_fps = contract.fps
     if storyboard and contract_fps != storyboard.fps:
         raise RenderError(
-            f"帧率不一致：网页声明 {contract_fps}fps，分镜脚本声明 {storyboard.fps}fps"
+            f"帧率不一致：画面声明 {contract_fps}fps，分镜脚本声明 {storyboard.fps}fps"
         )
     if fps and contract_fps != fps:
-        raise RenderError(f"帧率不一致：网页声明 {contract_fps}fps，命令行指定 {fps}fps")
+        raise RenderError(f"帧率不一致：画面声明 {contract_fps}fps，命令行指定 {fps}fps")
     return contract_fps
 
 
-def _resolve_total_frames(page: AnimatedPage, storyboard: Storyboard | None) -> int:
-    contract_frames = page.contract.duration_in_frames
+def _resolve_total_frames(contract: PageContract, storyboard: Storyboard | None) -> int:
+    contract_frames = contract.duration_in_frames
     if storyboard and contract_frames != storyboard.total_frames:
         raise RenderError(
-            f"总帧数不一致：网页声明 {contract_frames} 帧，"
+            f"总帧数不一致：画面声明 {contract_frames} 帧，"
             f"分镜脚本累计 {storyboard.total_frames} 帧"
         )
     if contract_frames <= 0:
-        raise RenderError("网页声明的 durationInFrames 必须为正整数")
+        raise RenderError("画面声明的 durationInFrames 必须为正整数")
     return contract_frames
 
 
