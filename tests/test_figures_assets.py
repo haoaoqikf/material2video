@@ -33,7 +33,7 @@ _PAGE_IDS = [page.parent.name for page in PAGES]
 #: 硬要回移等于把 npm 生态重新发明一遍。
 #: catalog.py 的逐项对照在 React 一侧由 `tests/test_web_registry.py` 负责；
 #: 本文件只对照旧库仍然拥有的组件，直到旧路径整体退役。
-REACT_ONLY_KINDS = {"chart"}
+REACT_ONLY_KINDS = {"chart", "flow"}
 
 
 def _page_defaults(page: Path) -> dict[str, str]:

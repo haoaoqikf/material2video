@@ -79,6 +79,12 @@ FIGURE_CATALOG: dict[str, Component] = {
         items=(2, 6),
         summary="柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本",
     ),
+    "flow": Component(
+        kind="flow",
+        labels=frozenset(),
+        items=(2, 6),
+        summary="因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形",
+    ),
 }
 
 #: 分镜没有声明 figure.kind 时，按场景类型取用的默认组件。

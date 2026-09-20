@@ -851,6 +851,46 @@
   letter-spacing: var(--a2v-track-body, 0.02em);
 }
 
+/* ---------- 07 关系流程：因果链 / 流程步骤（React 独有，dagre 分层布局） ---------- */
+/* 旧组件库里没有这个组件的前身：布局由 web/src/flow/ 的纯函数给出，
+   样式与其它图形组件同一套令牌与基元（a2v-surface + data-a2v-state）。 */
+
+.fig-flow {
+  width: 888px;
+  height: 920px;
+  overflow: visible;
+}
+
+/* 连线：软线（装饰层）而不是数据描边——它承载的是「谁引向谁」的方向，
+   视觉上要让位给节点盒子；焦点色只出现在盒子上。 */
+.flow-edge {
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+/* 箭镞是实心三角形：填充跟连线同色，方向由几何（web/src/flow/edges.ts）给出 */
+.flow-arrow {
+  fill: var(--a2v-connector-ink, var(--fig-line));
+}
+
+.flow-node-box {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+/* 未启用预设时的焦点表现（与 exchange 的节点同一套回落） */
+:root:not([data-a2v-preset='keynote']) .flow-node-box[data-a2v-state='focus'] {
+  stroke: rgba(var(--a2v-accent-rgb), 0.55);
+}
+
+.flow-node-text {
+  font-size: var(--a2v-ink-value, 48px);
+  font-weight: var(--a2v-weight-semibold, 600);
+  text-anchor: middle;
+  fill: var(--a2v-text-1);
+  letter-spacing: var(--a2v-track-caption, 0.04em);
+}
+
 /* ---------- 双栏对照：左栏现状 → 右栏该转去的方向 ---------- */
 
 .vs-board {

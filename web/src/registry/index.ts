@@ -18,6 +18,7 @@ import type { FC } from 'react';
 import { BalanceFigure } from '@/components/Balance';
 import { ChartFigure } from '@/components/Chart';
 import { ExchangeFigure } from '@/components/Exchange';
+import { FlowFigure } from '@/components/Flow';
 import { GapFigure } from '@/components/Gap';
 import { IcebergFigure } from '@/components/Iceberg';
 import { LoopFigure } from '@/components/Loop';
@@ -103,6 +104,13 @@ export const FIGURES: Record<string, FigureDefinition> = {
     items: [2, 6],
     summary: '柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本',
     Component: ChartFigure,
+  },
+  flow: {
+    kind: 'flow',
+    labels: [],
+    items: [2, 6],
+    summary: '因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形',
+    Component: FlowFigure,
   },
 };
 
