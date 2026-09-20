@@ -112,16 +112,16 @@
 
 ## 10. 编排面与文档收口
 
-- [ ] 10.1 更新 `references/article-to-storyboard.md`：组件选择面扩到短视频组件 + 图表 + 流程图，
+- [x] 10.1 更新 `references/article-to-storyboard.md`：组件选择面扩到短视频组件 + 图表 + 流程图，
       写明示意标记与容量约束；验证：按该文档生成一篇新分镜并通过严格校验
-- [ ] 10.2 更新 `references/figure-catalog.md` 的组件表并标明当前已实现的组件；
+- [x] 10.2 更新 `references/figure-catalog.md` 的组件表并标明当前已实现的组件；
       验证：文档里的每个组件都能在注册表里找到，反之亦然（机检）
-- [ ] 10.3 更新 `render-contract.md`：`__A2V__` version 2、契约页提供者、PSNR 判据与放宽理由；
+- [x] 10.3 更新 `render-contract.md`：`__A2V__` version 2、契约页提供者、PSNR 判据与放宽理由；
       验证：文档与实际契约字段逐项对照一致
-- [ ] 10.4 更新 `visual-spec.md` 的动效章节：原语改为 TS、配方表数值不变；
+- [x] 10.4 更新 `visual-spec.md` 的动效章节：原语改为 TS、配方表数值不变；
       验证：文档里的配方表与 TS 常量逐值一致（机检）
-- [ ] 10.5 更新 `SKILL.md` 全流程与 `openspec/config.yaml` 的技术栈一行；
-      验证：按 `SKILL.md` 从零走通一篇新作品
+- [x] 10.5 更新 `SKILL.md` 全流程与 `openspec/config.yaml` 的技术栈一行；
+      验证：按 `SKILL.md` 从零走通一篇新作品（在 11.1 切换默认后执行，见该节验证记录）
 
 ## 11. 切换默认与清理
 

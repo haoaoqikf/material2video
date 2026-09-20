@@ -192,7 +192,7 @@ def replace_block(text: str, begin: str, end: str, content: str, target: Path) -
     stop = text.find(end, start)
     if stop < 0:
         raise SystemExit(f"{target}: 缺少生成区结束标记 {end}，无法生成")
-    return text[: start + len(begin)] + "\n" + content + text[stop:]
+    return text[: start + len(begin)] + "\n" + content.rstrip("\n") + "\n" + text[stop:]
 
 
 def build_outputs(registry: dict[str, Any]) -> dict[Path, str]:

@@ -2,7 +2,8 @@ schema: spec-driven
 
 context: |
   项目：article2video，把观点型文章制作成竖屏信息可视化短视频。
-  技术栈：Python、HTML/CSS/JavaScript、Playwright、ffmpeg；Python 依赖由 uv 管理。
+  技术栈：Python（校验器与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），
+  Playwright（契约页量测）、ffmpeg（成片验收与音轨）；Python 依赖由 uv 管理，web 依赖由 pnpm 管理。
   当前能力与文档导航见 README.md；未来路线以 docs/PROJECT_PLAN.md 为准。
   视频制作流程及渲染、分镜、视觉契约以 .agents/skills/article2video/ 中的文档为准。
   始终使用中文编写面向本项目的变更文档。

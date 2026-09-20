@@ -4,10 +4,12 @@
 给几段短标注、指定节奏——而不是每次都从零画一遍。目录里确实没有合适的时候，
 再按 [组件契约](#组件契约) 新写一个，并把这个组件沉淀回目录。
 
-- 组件代码：`assets/figures.js`（结构 + 逐帧逻辑）、`assets/figures.css`（样式）
-- 挂载方式：网页里写 `<div class="a2v-safe" data-a2v-figure></div>`，
-  由 `A2V.figures.renderScene(state, api, { defaults })` 按帧渲染
+- 组件代码：`web/src/components/<Kind>.tsx`（结构 + 逐帧逻辑），
+  样式在 `web/src/styles/figures.css`，共享几何与动效原语在 `web/src/runtime/figures.tsx`
+- 挂载方式：共享 React composition（`web/src/compositions/A2VComposition.tsx`）
+  按分镜逐幕挂载组件；组件从 `useFigure()` 取帧号与场景，作品不需要任何页面代码
 - 文案来源：分镜的 `data` 与 `data.figure.labels`，组件不保存任何默认文案
+- 组件集合的唯一真源：`web/src/registry/registry.json`（本目录的组件表由它生成）
 
 ## 现有组件
 
@@ -23,7 +25,8 @@
 | `versus` | 已实现 | 两种反应并排，箭头指出该从哪边转向哪边 | `comparison` | `left`, `right`, `note` | 2–2 栏 |
 | `number` | 已实现 | 按帧递增显示数值，并展示标签与说明 | `number` | 无 | 1–1 个数值 |
 | `chart` | 已实现 | 柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本 | `chart` | `unit`, `note` | 2–6 个数据点 |
-| `flow` | 已实现 | 因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形 | — | 无 | 2–6 节点 |<!-- <<< generated:figures-table <<< -->
+| `flow` | 已实现 | 因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形 | — | 无 | 2–6 节点 |
+<!-- <<< generated:figures-table <<< -->
 
 （这张表由 `web/src/registry/registry.json` 生成：`uv run python .agents/skills/article2video/scripts/sync_catalog.py`。手改会被 `--check` 判为落后。）
 
@@ -100,7 +103,7 @@ canvas 内部的文字探针量不到，因此组件把每个数值以**最终�
     ],
     "figure": {
       "kind": "iceberg",
-      "labels": { "tip": "失去", "mass": "被看见的不足", "surface": "水面" },
+      "labels": { "surface": "水面" },
       "motion": "normal"
     }
   }
@@ -108,7 +111,7 @@ canvas 内部的文字探针量不到，因此组件把每个数值以**最终�
 ```
 
 - `kind` 必填；`labels` 的键必须是该组件声明的标注键（拼错只会让标签空着，
-  `tests/test_figures_assets.py` 会静态对照一次）；
+  `tests/test_web_registry.py` 的标注键机检会拦下「声明了却不画」的键）；
 - `motion` 是整幕的节奏，见上一节；
 - `params` **当前不被任何组件读取**：字段与传递机制已经接通，但写了不会改变画面，
   校验器会明确提醒。需要可调几何时，先在组件里实现再放开；
@@ -116,63 +119,66 @@ canvas 内部的文字探针量不到，因此组件把每个数值以**最终�
 
 ## 组件契约
 
-```js
-A2V.figures.register(kind, {
-  labels: ['tip', 'mass', 'surface'],   // 该组件认识的标注键，供文档与测试对照
-  markup: '<svg ...>...</svg>',         // 组件自带的 DOM，页面不写任何图形元素
-  create: function (ctx) {              // ctx.host 是挂载点
-    return {
-      update: function (state, api) {   // 逐帧更新，必须是纯函数
-        var node = ctx.host.querySelector('[data-el="x"]');
-      }
-    };
-  }
-});
+一个组件是一个 React 函数组件：从 `useFigure()` 取帧号与场景声明，
+把「这一帧该长什么样」完整地算出来。分镜不需要写任何挂载代码——
+composition 按注册表把组件挂到对应场景上。
+
+```tsx
+export function LoopFigure() {
+  const { frame, fps, data, spec, active } = useFigure();
+  const sceneDuration = useVideoConfig().durationInFrames;
+  // …由 frame 推导每个元素的进度，再交给动效原语换算成样式
+  return (
+    <svg …>
+      <g className="a2v-connector" data-a2v-state={state}>…</g>
+    </svg>
+  );
+}
 ```
 
 新组件必须满足：
 
-- **纯函数**：`update` 的结果只由 `state`（帧号、场景、时长）与组件自己的常量决定；
-  禁止 `Date.now`、`performance.now`、`Math.random`，禁止 CSS `animation`/`transition`。
-  开渲前的静态扫描会连共享资产一起检查。
-- **动效走配方层**：入场用 `api.motion.enter` / `api.motion.enterSvg`，弹性用
-  `api.motion.spring(api.since(f, start), 'firm')` 这类**具名预设**
-  （弹簧收的是秒数，不是进度），幕内微动用 `api.motion.idle`。
-  组件里不写自然周期、阻尼比、呼吸周期这些数字——它们决定整支片子的手感，
-  只写在 `timeline.js`，见[动效配方层](visual-spec.md#动效配方层-azvmotion)。
+- **纯函数**：画面的每一项只由帧号、场景与时长决定。禁止 `Date.now`、
+  `performance.now`、`Math.random`，禁止 CSS `animation`/`transition`——
+  渲染前的静态扫描会拒绝。
+- **动效走配方层**：入场用 `enterStyle` / `drawPathStyle` 这类原语，弹性用
+  `spring(f, start, SPRINGS['enter'])` 这类**具名预设**（弹簧收的是秒数，不是进度），
+  节奏用 `beat(fig, fraction)` 换算比例点。组件里不写自然周期、阻尼比、
+  呼吸周期这些数字——它们决定整支片子的手感，只写在
+  `web/src/runtime/motion.ts`，见[动效配方层](visual-spec.md#动效配方层)。
 - **不拿阶跃量驱动显著元素**：曲线再自然，被驱动的量本身是阶跃的，画面上
-  就是一次瞬跳。数字幕的滚动因此有 `ROLL_MIN = 10` 的门槛——
-  步数不足就不滚，直接显示最终值（`value: 1` 原先会先清楚地显示一秒"0"，
-  既是硬阶跃，也是在断言错误的信息）。同理，画面上**可读**（不透明度 ≥ 0.5）的
-  文字必须等于它的最终值。
-- **不读实时布局**：几何由常量与 `params` 推导。确需测量（如 `getTotalLength`、
-  `getComputedTextLength`）只在 `buildOnce` 的构建回调里做一次并缓存，
-  **不能每帧测**。例外是**容器内文字**：装文字的容器（节点圆、托盘、卡片）
+  就是一次瞬跳。数字幕的滚动因此有最小步数门槛——步数不足就不滚，
+  直接显示最终值。同理，画面上**可读**（不透明度 ≥ 0.5）的文字必须等于它的最终值。
+- **不读实时布局**：几何由常量推导；确需测量（文字宽度、换行）只在挂载时做一次
+  并缓存（`useLayoutEffect` + 依赖签名），**不能每帧测**。
+  例外是**容器内文字**：装文字的容器（节点圆、托盘、卡片）
   必须按实测文字宽度定形，不能先写死尺寸再把字塞进去——
   飞轮节点就是反例：半径 76px（直径 152px）配 44px 的四字标签约 183px，文字必然穿出圆。
-  测量只在构建时做，运行时的每帧仍只读缓存结果。详见
+  测量只在挂载时做，运行时的每帧仍只读缓存结果。详见
   [发布会级设计语言](keynote-design-system.md) 的「容器内文字」一节。
 - **文案全部来自分镜**：组件可以决定排版，不能决定写什么。
 - **容量自适应**：节点/条目数量变化时按数量收缩间距与半径，而不是溢出。
-- **自带样式**：样式写在 `figures.css`；颜色、间距、线宽、字重、字距、圆角一律引用令牌
-  （`var(--令牌, 原值)`），不写死数值——见设计宪法的 C17。样式要随预设变化时，
-  优先挂**基元类**（`.a2v-surface` / `.a2v-label` / `.a2v-connector` / `.a2v-frame`）
-  并声明状态（`data-a2v-state="rest|focus|muted|done"`），不要在组件里另发明一套强调写法。
+- **自带样式**：样式写在 `web/src/styles/figures.css`；颜色、间距、线宽、字重、字距、
+  圆角一律引用令牌（`var(--令牌, 原值)`），不写死数值——见设计宪法的 C17。
+  样式要随状态变化时，优先挂**基元类**（`.a2v-surface` / `.a2v-label` /
+  `.a2v-connector` / `.a2v-frame`）并声明状态
+  （`data-a2v-state="rest|focus|muted|done"`），不要在组件里另发明一套强调写法。
 - **容器内文字必须声明容器**：装在某个形状里的文字要写
   `data-a2v-inside="<容器选择器>"`（例如飞轮节点的 `".loop-node-disc"`）。
   观感闸门 K8 据此判定文字有没有穿出容器，而且是**硬判定**。
   只能由组件声明——阶梯的注写在柱子**上方**，同为近邻却不装在容器里，
   几何上无法自动区分。未声明的文字不参与 K8 判定（该幕跳过并写明原因）。
 
-新增后要做五件事：在 `figures.js` 里 `register`（含基元与状态、必要的 `data-a2v-inside`）、
-在 `figures.css` 里补样式（一律走令牌，见 C17）、在本文档的表格里加一行、
-在 `tests/test_figures_assets.py` 的 kind 列表里登记，然后跑组件契约检查：
-`tests/test_figures_assets.py`（基元与状态覆盖、`PENDING` 棘轮）与
-`tests/test_figure_token_closure.py`（令牌闭包、基元作用域、四态与两种媒介）都要通过。
+新增组件的完整登记清单见
+[文章生成分镜](article-to-storyboard.md#组件不足时的处理)：
+在 `registry.json` 登记元数据、在 `web/src/registry/index.ts` 接上组件本体、
+写实现与样式，然后运行生成命令并让机检通过：
 
-启用设计语言预设后，`figures.css` 引用的全部 `--fig-*` 令牌由 `keynote.css` 的
-两套主题（`keynote-dark` / `keynote-light`）提供；缺一个令牌**不会报错**，
-浏览器只会安静地画出透明图形，成片之后才会发现。因此
-`tests/test_keynote_assets.py::TestFigureTokenCoverage` 会逐个核对
-`figures.css` 用到的每个 `--fig-*` 令牌在两套主题里都有定义。默认（未启用预设）时
-这些令牌来自 `theme.css`（深色默认值），预设层不参与。
+- `tests/test_web_registry.py`：注册表与生成物一致、标注键声明与绘制两向对照、
+  默认映射自洽；
+- `pnpm -C web test`：渲染层消费注册表的自洽性（`web/src/registry/registry.test.ts`）；
+- `tests/test_figures_assets.py`：旧资产与新目录的交集仍逐项一致；
+- `tests/test_keynote_assets.py::TestFigureTokenCoverage`：组件样式用到的每个
+  `--fig-*` 令牌在 `keynote.css` 的两套主题里都有定义——缺一个令牌**不会报错**，
+  浏览器只会安静地画出透明图形，成片之后才会发现。默认（未启用预设）时
+  这些令牌来自 `theme.css`（深色默认值），预设层不参与。

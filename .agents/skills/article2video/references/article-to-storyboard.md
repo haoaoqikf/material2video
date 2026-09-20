@@ -13,15 +13,16 @@
 | 输入 | 规范目录下的 `videos/<slug>/article.md`，一份观点型文章 |
 | 必读参考 | [分镜脚本结构](storyboard-schema.md)、[视觉组件目录](figure-catalog.md)、[竖屏视觉规范](visual-spec.md)、[设计宪法](design-constitution.md) |
 | 产物 | 该目录下的 `storyboard.json`，**唯一产物** |
-| 不产出 | 视频专属 `index.html`、图片、媒体文件、任何页面代码 |
+| 不产出 | 视频专属 `index.html` 或专属 `scenes.tsx`、图片、媒体文件、任何页面代码 |
 
 一篇文章只对应一份分镜，位置由 [目录约定与输出路径](paths-and-outputs.md) 决定。
 slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`，不改目录名。
 
 产物使用当前分镜结构版本（版本 `1`），只使用
 [分镜脚本结构](storyboard-schema.md) 里已有的字段表达内容。新视频默认走
-**声明式路径**：不写专属网页，画面由共享页面加组件库提供，因此分镜必须把「画面用什么表达」
-声明完整（`data.figure.kind`、`labels`、`motion`、`visual.theme`、`visual.layout`）。
+**声明式路径**：不写任何画面代码，画面由共享 React composition 加组件注册表提供，
+因此分镜必须把「画面用什么表达」声明完整
+（`data.figure.kind`、`labels`、`motion`、`visual.theme`、`visual.layout`）。
 
 ### 目录里已经有分镜时
 
@@ -54,8 +55,9 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
 | 紧随其后 | 核心判断、金句 | `quote` | `gap` |
 | 中段 | 对照、前后变化 | `comparison` | `versus` |
 | 中段 | 过程、次数的累积 | `timeline` | `stairs` |
-| 中段 | 因果、循环、反馈模型 | `diagram` | `loop` |
+| 中段 | 因果链、流程步骤、反馈模型 | `diagram` | `flow`（显式声明）或 `loop` |
 | 中段 | 要点清单、并列原因 | `list` | `iceberg` |
+| 可选 | 数据序列：占比、趋势、构成 | `chart` | `chart` |
 | 可选 | 数量、频次 | `number` | `number` |
 | 收束 | 结论、行动建议 | `conclusion` | `exchange` |
 
@@ -94,14 +96,33 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
 ### 第五步：为每一幕选视觉表达
 
 **先查组件目录，再动手。** 现有组件的适用内容与标注键见
-[视觉组件目录](figure-catalog.md)；该表是权威来源，本文不重复。
+[视觉组件目录](figure-catalog.md)；该表由组件注册表生成，是权威来源，本文不重复。
 
 选择顺序：
 
 1. **能在目录里找到贴切的比喻** → 声明 `data.figure.kind`、按该组件认识的键给 `labels`、
    用 `motion` 指定整幕节奏（`calm` / `normal` / `impact`）；
-2. **不知道该用哪个** → 不写 `kind`，由共享页面按场景类型取默认组件；
-3. **目录里确实没有合适的** → 走后面的「组件不足时的处理」，按契约新增，不要降级凑合。
+2. **不知道该用哪个** → 不写 `kind`，由共享 composition 按场景类型取默认组件；
+3. **目录里确实没有合适的** → 走后面的「组件不足时的处理」，按注册表流程新增，不要降级凑合。
+
+选择面的三类，按内容的**形状**挑：
+
+- **比喻组件**（balance / gap / versus / iceberg / loop / stairs / exchange）：一段论证有一个
+  可视化的「形状」——天平、落差、并排、冰山、循环、台阶、双向选择；
+- **数据图表**（`chart`，场景类型 `chart`）：内容的主干是一组**数值**（占比、趋势、构成）。
+  数据序列写在 `data.values`，`data.chart` 选柱状 / 折线 / 饼图；
+- **关系流程图**（`flow`，场景类型 `diagram`）：内容的主干是一条**因果链或步骤序列**。
+  节点写在 `data.nodes`，连线写在 `data.edges`；不写 `edges` 时按节点顺序连成链，
+  要画分支或反馈回路才显式声明边。
+
+容量与示意两条硬约束：
+
+- **容量**：`items` / `nodes` / `values` 的条目数要落在组件声明的容量区间内
+  （目录表里有列）。超出后几何会收缩、标签会挤在一起读不出来，校验器会警告；
+  `--strict` 会把它当失败。宁可拆幕，不要塞容量；
+- **示意标记**：画面上出现没有来源的数值时，声明 `figure.schematic: true`——
+  图表组件会自动画出「示意」标；其它组件则要求标签或说明里出现「示意」二字
+  （见「内容忠实与表达边界」）。
 
 `params` **当前没有任何组件读取**，写了不改变画面，校验器会提醒，因此不要写。
 
@@ -146,7 +167,7 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
 - 先在分镜里定一个时长，再往里面塞文案；
 - 把口播原文照抄进画面文案；
 - 用 `Date.now()` / `Math.random()` / CSS 动画这类不可复现的表达——它们在逐帧渲染时会闪烁；
-- 为一个视频新建专属网页——声明式路径就是为此存在的。
+- 为一个视频新建专属画面代码（专属 `index.html` 或 `scenes.tsx`）——声明式路径就是为此存在的。
 
 ## 组件不足时的处理
 
@@ -159,28 +180,36 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
    写不出差异说明，就说明该用的是现有组件。
 
 确认要新增后，按 [视觉组件目录](figure-catalog.md) 的「组件契约」一节完成全部登记——
-四处缺一不可：
+登记落在组件注册表（`web/src/registry/registry.json`，唯一真源）与渲染实现两处，
+其余清单由它生成，缺一不可：
 
 | 位置 | 要做的事 |
 | --- | --- |
-| `assets/figures.js` | 注册组件（标注键、自带 DOM、逐帧更新逻辑） |
-| `assets/figures.css` | 补组件样式，只用 `theme.css` 的设计令牌，不写死颜色 |
-| `scripts/a2v/catalog.py` | 登记 kind、标注键与条目容量，供校验器使用 |
-| `references/figure-catalog.md` | 在组件表里加一行：适合表达什么、默认给哪种场景、标注键、容量 |
+| `web/src/registry/registry.json` | 登记组件元数据：kind、标注键、容量、适用场景类型、实现源码位置 |
+| `web/src/components/<Kind>.tsx` | 实现组件本体（帧驱动，约束见下）与配套样式（走设计令牌） |
+| `web/src/registry/index.ts` | 把 kind 接到组件本体 |
+| 生成命令 | `uv run python .agents/skills/article2video/scripts/sync_catalog.py` 重新生成校验器镜像、组件目录文档与 kind 枚举 |
 
 新增组件还必须满足：
 
-- **纯函数**：`update` 的结果只由帧号、场景与时长决定，不用 `Date.now` / `performance.now` / `Math.random`；
-- **动效走配方层**：用 `api.motion.enter` / `api.motion.spring(api.since(f, start), 'firm')` /
-  `api.motion.idle` 这类具名预设（弹簧收秒数，不收进度），组件里不写自然周期、阻尼比、周期这些数字；
+- **纯函数**：画面的每一项只由帧号、场景与时长决定，不用 `Date.now` / `performance.now` / `Math.random`，
+  不用 CSS `animation` / `transition`（渲染前的静态扫描会拒绝）；
+- **动效走配方层**：入场与弹性用运行时的具名预设（弹簧收秒数，不收进度），
+  组件里不写自然周期、阻尼比、周期这些数字；
 - **文案全部来自分镜**：组件可以决定排版，不能决定写什么，也不保存默认文案；
 - **容量自适应**：条目数量变化时收缩间距与半径，而不是溢出；
-- **不读实时布局**：几何由常量推导；确需测量时只在首次更新做一次并缓存。
+- **不读实时布局**：几何由常量与实测文字宽度推导；测量只在挂载时做一次并缓存，不能每帧测。
 
-完成后必须让 **`uv run pytest tests/test_figures_assets.py` 通过**：该测试逐项对照
-`figures.js` 的注册表与 `catalog.py` 的镜像，两边不一致直接失败。测试不通过的组件不能被分镜使用。
+完成后必须让机检通过：
 
-新增组件之后，**渲染仍然走共享声明式路径**——不要为这篇文章创建专属网页。
+```bash
+uv run pytest tests/test_web_registry.py   # 注册表与生成物一致、声明了却没画的标注键会被拦下
+pnpm -C web test                            # 渲染层消费注册表的自洽性
+```
+
+测试不通过的组件不能被分镜使用。
+
+新增组件之后，**渲染仍然走共享声明式路径**——不要为这篇文章创建专属画面。
 
 ## 校验闭环
 
@@ -223,13 +252,14 @@ uv run python .agents/skills/article2video/scripts/validate.py \
 
 ```bash
 uv run python .agents/skills/article2video/scripts/review.py \
-  --declarative --storyboard videos/<slug>/storyboard.json
+  --storyboard videos/<slug>/storyboard.json
 ```
 
 它会逐幕采样挂载点，读出的文本应当与分镜声明的标注一致；终端的「组件契约」清单
 逐幕给出该幕实际使用的组件，`✓` 表示声明的标注确实画了出来。
-共享页面的场景是运行时生成的，因此 `--declarative` 会跳过依赖源码的三项静态检查
-（场景层、挂载点、文案单一真源），把结论交给这个运行时探针。
+共享 composition 的场景是运行时生成的，因此依赖源码的三项静态检查
+（场景层、挂载点、文案单一真源）由渲染入口的开渲静态检查承担，
+运行时结论交给这个探针。
 
 探针发现标注缺失时，先判断是分镜写错了键，还是组件没有画这个键——
 后者要回去改组件，不是改分镜。
@@ -246,16 +276,16 @@ uv run python .agents/skills/article2video/scripts/review.py \
 uv run python .agents/skills/article2video/scripts/validate.py \
   videos/<slug>/storyboard.json --declarative --strict
 
-# 声明式预览（不要双击 HTML，file:// 下取不到分镜）
+# 预览（画面由共享 React composition 提供；不要双击 HTML，file:// 下取不到分镜）
 uv run python .agents/skills/article2video/scripts/preview.py \
-  --declarative --storyboard videos/<slug>/storyboard.json
+  --storyboard videos/<slug>/storyboard.json
 
-# 组件契约探针 + 帧量测 + 宪法检查（共享页面用 --declarative）
+# 组件契约探针 + 帧量测 + 观感/动效闸门
 uv run python .agents/skills/article2video/scripts/review.py \
-  --declarative --storyboard videos/<slug>/storyboard.json
+  --storyboard videos/<slug>/storyboard.json
 
-# 新增组件后的一致性对照
-uv run pytest tests/test_figures_assets.py
+# 新增组件后的一致性对照（注册表生成物与标注键机检）
+uv run pytest tests/test_web_registry.py
 ```
 
 ## 参考

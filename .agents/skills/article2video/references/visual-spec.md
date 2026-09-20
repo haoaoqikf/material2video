@@ -122,40 +122,43 @@
 
 - 只使用**由帧号推导**的 `transform`、`opacity`、颜色变化；
 - 禁止 CSS `animation` / `transition`，原因见 [渲染契约](render-contract.md)；
-  `render.py` 会在开渲前静态扫描并提示这类写法；
+  渲染入口会在开渲前静态扫描并提示这类写法；
 - 单次入场动效建议 12–30 帧（30fps 下 0.4–1.0 秒）；
 - 逐项呈现的间隔建议 4–10 帧，过快会看不清，过慢会拖节奏；
-- 画面不要长时间完全静止：入场结束后用常驻微动（`api.breath`，振幅 3–5px、
+- 画面不要长时间完全静止：入场结束后用常驻微动（`breath`，振幅 3–5px、
   周期 120–150 帧）保持活性；配音会把场景拉长，后段静止在成片里像卡住。
 
-`timeline.js` 提供的原语（全部是纯函数）：
+共享运行时 `web/src/runtime/motion.ts` 提供的原语（全部是纯函数）：
 
-```js
-api.progress(localFrame, startFrame, durationFrames, 'outCubic'); // 0..1
-api.stagger(index, stepFrames, baseFrame);                        // 第 i 项的起始帧
-api.since(localFrame, startFrame);                                // 距起点几秒（弹簧的输入）
-api.enter(element, seconds, { distance: 56, axis: 'y' });         // 透明度 + 位移 + 缩放
-api.spring(seconds, { response: 0.44, dampingFraction: 0.9 });    // 物理弹簧
-api.range(p, from, to, { clamp: true });                          // 进度映射为任意数值
-api.breath(localFrame, { periodFrames: 120, amplitude: 4 });      // 常驻呼吸位移
-api.drawPath(svgPath, p, { length });                             // SVG 描边动画
-api.revealChars(el, text, p, { frame, staggerFrames });           // 逐字揭示
+```ts
+progress(localFrame, startFrame, durationFrames, 'outCubic'); // 0..1
+stagger(index, stepFrames, baseFrame);                        // 第 i 项的起始帧
+since(localFrame, startFrame);                                // 距起点几秒（弹簧的输入）
+spring(seconds, SPRINGS['firm']);                             // 物理弹簧（具名预设）
+range(p, from, to, { clamp: true });                          // 进度映射为任意数值
+breath(localFrame, { periodFrames: 120, amplitude: 4 });      // 常驻呼吸位移
+drawPathStyle(p, length);                                     // SVG 描边动画的样式
+revealCharOpacities(units, p, { frame, staggerFrames });      // 逐字揭示的不透明度
 ```
 
-**`enter` 与 `spring` 收的是秒数（`api.since`），不是 0..1 的进度。**
+组件侧再包一层 DOM 绑定（`web/src/runtime/figures.tsx`）：`enterStyle` /
+`enterSvgAttrs` 把入场配方换算成 React 的 `style` 与 SVG 属性串，
+`svgTransform` / `svgOpacity` 输出 SVG 安全的字符串，`beat(fig, fraction)`
+把幕内比例点换算成帧号。
+
+**`spring` 收的是秒数（`since`），不是 0..1 的进度。**
 弹簧本身就是曲线，喂给它一条已经缓动过的进度等于把两条曲线串起来，
 它的自然周期（`response`）就失去了意义——这条错犯过：位移在 3 帧内走完，
 而注释还写着「0.6 秒收敛」，观众看到的是一次带残影的硬切。
 `spring` 的两个参数都是物理量：`response` 是自然周期（秒，只决定快慢），
 `dampingFraction` 是阻尼比 ζ（只决定过冲，峰值 ≈ `e^(-πζ/√(1-ζ²))`）。
-曲线由 `assets/vendor/spring.js`（wobble 1.5.1 · MIT）的解析解给出，
-页面必须在 `timeline.js` 之前引入它。
+曲线由 wobble 1.5.1（MIT）的解析解给出，移植在 `web/src/runtime/spring.ts`。
 
 缓动名可选：`linear`、`outCubic`、`inOutCubic`、`outQuint`、`outBack`。
 时间只走三条曲线：出场用 `outQuint`、双向变化用 `inOutCubic`、
 逐项门控用 `outCubic`；混用更多曲线会让画面显得杂。
 
-### 动效配方层（`A2V.motion`）
+### 动效配方层
 
 上面那些是**原语**，配方层是**做法**：入场怎么组合、弹性多大、什么时候收敛、
 常驻微动多快。它存在的唯一理由是——
@@ -163,18 +166,18 @@ api.revealChars(el, text, p, { frame, staggerFrames });           // 逐字揭�
 > 这些数字决定整支片子的手感。写在六个组件里就没人能整体调，
 > 新写的组件也会慢慢长成另一种手感。
 
-所以数字只写在 `timeline.js`，组件用名字调用：
+所以数字只写在 `web/src/runtime/motion.ts`，组件用名字调用：
 
-```js
-api.motion.enter(state, el, seconds, { distance: 24, amplitude: 3 });   // HTML 元素入场
-api.motion.enterSvg(state, node, seconds, { distance: 34, axis: 'x' }); // SVG 分组入场
-api.motion.spring(seconds, 'lively');                                   // 具名弹性
-api.motion.idle(f, { amplitude: 2.4, phase: 50 });                      // 幕内常驻微动
-api.motion.beat(state, 0.42);                                           // 幕内比例点（自动按节奏缩放）
-api.motion.tempo('impact');                                             // 节奏名 → 速度倍率
+```ts
+enterStyle(fig, sinceBeat(fig, 0.1), { distance: 24, amplitude: 3 }); // HTML 元素入场（返回 style）
+enterSvgAttrs(fig, sinceBeat(fig, 0.1), { distance: 34, axis: 'x' }); // SVG 分组入场（返回属性串）
+spring(seconds, SPRINGS['lively']);                                   // 具名弹性
+idle(f, { amplitude: 2.4, phase: 50 });                               // 幕内常驻微动
+beat(fig, 0.42);                                                      // 幕内比例点（自动按节奏缩放）
+tempo('impact');                                                      // 节奏名 → 速度倍率
 ```
 
-`seconds` 一律由 `api.since(localFrame, startFrame)` 得到。
+`seconds` 一律由 `since(localFrame, startFrame)` 得到。
 
 两档入场配方，区别只在「移动多远、呼吸多快」，曲线完全相同：
 
@@ -199,14 +202,15 @@ api.motion.tempo('impact');                                             // 节�
 这正是换掉「阻尼 + 频率」那套凑出来的系数换来的好处：想更快只调 `response`，
 想更弹只调 `dampingFraction`。
 
-`A2V.motion.recipes()` 与 `A2V.motion.springs()` 返回当前取值的快照，
-供文档与调试对照；`tests/test_motion_runtime.py` 把它们钉住，
+`motionRecipes()` 与 `motionSprings()` 返回当前取值的快照，
+供文档与调试对照；`web/src/runtime/motionDoc.test.ts` 把本文档这两张表
+逐值钉在 TS 常量上（改了常量或改了表都会失败），
 `tests/test_motion_trajectory.py` 再按帧量一次真实轨迹——
 **改配方是可以的（那正是它存在的意义），但改完不能变成弹跳**：实测第一帧
 位移不得超过全程的 25%、走到 90% 至少要 6 帧、过冲不超过 10%、末尾必须正好停在终点。
 
 **节奏**由分镜的 `figure.motion` 决定（`calm` 0.82 / `normal` 1 / `impact` 1.24），
-运行时从 `state` 里读，组件不持有任何节奏状态。
+运行时从场景声明里读，组件不持有任何节奏状态。
 
 ### 动效时长参考
 
@@ -214,14 +218,14 @@ api.motion.tempo('impact');                                             // 节�
 
 | 场景 | 配方 |
 | --- | --- |
-| 卡片 / 节点入场 | 位移 56–64px + 缩放 0.96→1，`api.motion.spring(seconds, 'firm')`，20–24 帧窗口 |
+| 卡片 / 节点入场 | 位移 56–64px + 缩放 0.96→1，`spring(seconds, SPRINGS['firm'])`，20–24 帧窗口 |
 | 文字聚焦入场 | 位移 24px + 透明度 0→1，22 帧 `outQuint` |
 | 标签横线 / 强调竖线 | `scaleX` / `scaleY` 0→1，20 帧 `outQuint` |
 | 关键短语点亮 | 颜色 + 光晕 0→峰值，26–30 帧 `inOutCubic`，在句子读完后触发 |
-| 关系图连线 | `api.drawPath` 描出，正向 14 帧、回环 60 帧 `inOutCubic` |
+| 关系图连线 | `drawPathStyle` 描出，正向 14 帧、回环 60 帧 `inOutCubic` |
 | 对比双栏 | 左右各 24–26 帧，起点相差 45–60 帧；落选一栏降到 0.42 不透明度 |
-| 结论逐字 | `api.revealChars` 每字间隔 2 帧，起点在第 8 帧 |
-| 场景末段 | `api.breath` 振幅 3–5px，`settle` 从第 70 帧起 40 帧渐入 |
+| 结论逐字 | `revealCharOpacities` 每字间隔 2 帧，起点在第 8 帧 |
+| 场景末段 | `breath` 振幅 3–5px，`settle` 从第 70 帧起 40 帧渐入 |
 
 **改完配方要跑轨迹机检。** 量测实现是 `scripts/a2v/motion.py`，两处共用一份：
 `tests/test_motion_trajectory.py`（参考实现上的严格判定）与 `review.py`

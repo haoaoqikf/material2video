@@ -1,14 +1,16 @@
 ---
 name: article2video
-description: 把观点型文章制作成竖屏信息可视化短视频。AI 选择受控视觉组件并编写分镜，使用共享页面或专属动画网页，再用确定性脚本逐帧渲染为 MP4。用于拆分镜、预览、渲染、验收与排查不一致问题。
+description: 把观点型文章制作成竖屏信息可视化短视频。AI 选择受控视觉组件并编写分镜，画面由共享 React composition（Remotion）按帧渲染，用确定性脚本导出 MP4。用于拆分镜、预览、渲染、验收与排查不一致问题。
 ---
 
 # article2video
 
-**文章是内容层，网页是表现层，视频是最终发布格式。**
+**文章是内容层，composition 是表现层，视频是最终发布格式。**
 
-这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并选择组件，必要时编写专属动画网页，
-脚本负责准备可选配音与字幕，并把网页确定性地渲染成 MP4。AI 不直接生成视频，因此画面可控、可改、可重渲染。
+这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并选择组件、
+编写分镜（`storyboard.json`）；共享 React composition 读取分镜逐幕挂载视觉组件；
+脚本负责准备可选配音与字幕，并把 composition 确定性地渲染成 MP4。
+AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 ## 何时使用
 
@@ -20,19 +22,22 @@ description: 把观点型文章制作成竖屏信息可视化短视频。AI 选�
 
 ## 核心原则
 
-1. **单一真源**：文案与时长只写在 `storyboard.json`，网页读它绘制，渲染脚本读它推导总帧数。
-   不要在 HTML 里再写一遍文案。启用配音后，实际时长由独立媒体清单派生，网页和渲染脚本共用它，不覆盖原分镜。
+1. **单一真源**：文案与时长只写在 `storyboard.json`，composition 读它绘制，
+   渲染脚本读它推导总帧数。不要在任何画面代码里再写一遍文案。
+   启用配音后，实际时长由独立媒体清单派生，composition 和渲染脚本共用它，不覆盖原分镜。
+   组件集合同样只有一个真源：组件注册表 `web/src/registry/registry.json`。
 2. **帧驱动**：画面只由帧号推导得出。禁止 CSS `animation`/`transition`、`Date.now()`、
-   `Math.random()`，否则逐帧截图会闪烁、不可复现。详见
+   `Math.random()`，否则逐帧渲染会闪烁、不可复现。详见
    [渲染契约](references/render-contract.md)。
-3. **先校验再渲染**：分镜脚本先过 `validate.py`，网页契约先过渲染脚本的前置检查，
+3. **先校验再渲染**：分镜脚本先过 `validate.py`，画面契约先过渲染脚本的元数据交叉校验，
    错误在开渲前暴露，而不是产出一段坏视频。
-4. **预览与导出同源**：预览和渲染使用同一份 storyboard、同一套坐标，只缩放不改布局。
+4. **预览与导出同源**：预览、体检与渲染使用同一份 storyboard、同一份 composition，
+   只缩放不改布局。
 5. **层级先于装饰**：先做出背景 / 表面 / 焦点三层与统一的动效曲线，再考虑细节；
    「高级感」来自克制的层级与一致的节奏，而不是更多的颜色和更大的动效。
 6. **AI 做导演，不做设计师**：先看 [视觉组件目录](references/figure-catalog.md) 里有没有
-   合适的组件，选一个、给几段短标注、指定节奏；只有目录里确实没有，才按组件契约新写一个
-   并沉淀回目录。每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
+   合适的组件，选一个、给几段短标注、指定节奏；只有目录里确实没有，才按注册表流程
+   新写一个并沉淀回目录。每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
 7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹），
    人（或视觉模型）按 [评审量表](references/visual-review-rubric.md) 负责「值得看完」。
    把审美也交给脚本，等于放弃质量；反过来只靠眼睛，又会漏掉标签全空这类静默缺陷。
@@ -41,21 +46,24 @@ description: 把观点型文章制作成竖屏信息可视化短视频。AI 选�
 
 | 路径 | 职责 |
 | --- | --- |
-| `.agents/skills/article2video/assets/` | 基础样式 `base.css`、设计令牌 `theme.css`、时间轴运行时 `timeline.js`、视觉组件库 `figures.css` + `figures.js` |
+| `web/src/compositions/` | 共享 composition：读分镜、逐幕挂载组件 |
+| `web/src/components/` + `web/src/flow/`、`web/src/charts/` | 视觉组件本体（比喻组件、数据图表、关系流程图） |
+| `web/src/registry/registry.json` | 组件集合的唯一真源：kind、标注键、容量、场景类型、默认映射 |
+| `web/src/runtime/` | 帧驱动原语：动效配方、弹簧、排版、共享图形几何 |
+| `web/src/styles/` | 设计令牌与组件样式 |
+| `web/dist/contract/contract.html` | 渲染契约页（`pnpm -C web build` 的产物），体检用它驱动画面 |
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、设计宪法、评审量表、目录与输出路径 |
-| `examples/why-effort-fails/` | 可直接运行的端到端示例，作为新视频的起点 |
-| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜；专属网页按需添加。**内容不入库**，见 `.gitignore` |
-| `.agents/skills/article2video/assets/declarative.html` | 声明式路径的共享页面；新视频可只保留文章与分镜 |
+| `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
+| `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
 | `outputs/examples/<slug>/` | 示例产物，独立一层避免与同名实际文章冲突 |
 
 每篇文章的目录名（slug）稳定且唯一，标题变化不改目录名。
 
-仓库里有两层根：**仓库根**存放 skill 与共享资产，**工作区根**存放文章与产物。不设内容根时
+仓库里有两层根：**仓库根**存放 skill 与 web 工程，**工作区根**存放文章与产物。不设内容根时
 两者重合；设了 `A2V_CONTENT_ROOT`（或 `--content-root`）时工作区根是那个内容根，文章与产物
-一起在仓库之外，命令不变。引用共享资产用相对路径（页面在仓库内）或 `/__a2v__/`
-别名（页面在内容根内）。完整结构与推导规则见
+一起在仓库之外，命令不变。完整结构与推导规则见
 [目录约定与输出路径](references/paths-and-outputs.md)。
 
 `.agents/skills/` 是 Codex 与 DSH 都能识别的项目级 skill 位置；
@@ -72,8 +80,10 @@ Claude Code 需要该目录时可用软链接映射到 `.claude/skills/`。
 ### 0. 准备环境
 
 ```bash
-uv sync                                              # 安装 Python 依赖
-uv run playwright install chromium                   # 首次执行，安装浏览器
+uv sync                                # 安装 Python 依赖
+pnpm -C web install                    # 安装 web 依赖
+pnpm -C web build                      # 构建契约页（体检依赖 web/dist/contract/）
+uv run playwright install chromium     # 首次执行，安装浏览器（体检用）
 ```
 
 ### 1. 文章 → 分镜 JSON
@@ -90,71 +100,25 @@ uv run playwright install chromium                   # 首次执行，安装浏�
 - 先定位文章的核心判断，再按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆幕；
 - 场景时长由**口播所需时间**反推（30fps 下 1 秒 = 30 帧，中文口播每秒约 4–5 字）；
 - 长句拆成多个场景，而不是缩小字号；
-- 不虚构论据或数据；无来源的数值必须在画面中标明为示意；
+- 不虚构论据或数据；无来源的数值必须声明 `figure.schematic: true`；
 - 生成后先过 `validate.py --declarative --strict --json`，按字段路径修正到通过再交付。
 
-### 2. 分镜 → 动画网页
+### 2. 分镜即画面声明
 
-优先考虑声明式路径：若现有组件足以表达，分镜以 `data.figure.kind` 选择组件，
+画面全部由共享 composition 提供，**不需要写任何页面代码**。
+分镜以 `data.figure.kind` 选择组件（不写则按场景类型取注册表默认），
 可选 `visual.theme`（`dark` / `light`）和场景 `visual.layout`（`center` / `lower`），
-无需新建 `index.html`。在分镜根级声明 `visual.preset`（目前唯一取值 `"keynote"`）
-即可启用发布会级设计语言：设计语言层、排版引擎与观感闸门一起生效；
-不声明时画面逐帧不变。说明见 [发布会级设计语言](references/keynote-design-system.md)。运行：
+根级 `visual.preset`（目前唯一取值 `"keynote"`）启用发布会级设计语言：
+设计语言层、排版引擎与观感闸门一起生效。说明见
+[发布会级设计语言](references/keynote-design-system.md)。
 
-```bash
-uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json --declarative --strict
-uv run python .agents/skills/article2video/scripts/preview.py --declarative --storyboard videos/<slug>/storyboard.json
-uv run python .agents/skills/article2video/scripts/render.py --storyboard videos/<slug>/storyboard.json
-```
+当前有十个组件：八个比喻组件、数据图表 `chart`（柱状/折线/饼图）与关系流程图
+`flow`（dagre 分层布局）。组件的适用内容、标注键与容量见
+[视觉组件目录](references/figure-catalog.md)。
 
-当前有八个组件，包含基础 `number`。声明式模式拒绝未知组件与未支持的参数；
-完整字段见 [分镜脚本结构](references/storyboard-schema.md)，仅含文章与分镜的示例在
-`examples/declarative-number/`。需要目录外的特殊构图时，继续使用下述专属网页路径。
-
-**新增组件时，给承载任意文案的元素声明字号档位。** 排版引擎不猜哪些元素该取档：
-元素带上 `data-a2v-fit="<档位>"`（档位取它在预设下的现有字号档），
-共享页面才会在预设生效时按实测可用宽度为它取档；没有声明的元素不会被改动。
-长文案、可长可短的标签、图注都要声明；`44px` 之类不在字号阶上的固定小字、
-以及逐字揭示这类动画结构**不要**声明。声明前跑一次
-`uv run pytest tests/test_typesetting_wiring.py`：它断言「取到的档位 == 声明的档位」
-且「实测字号 == `--a2v-size-*`」，档位选错会在这里报出来，而不是在成片里。
-
-复制示例作为起点：
-
-```bash
-cp -r examples/why-effort-fails videos/<slug>
-```
-
-目录名保持稳定：文章标题后来变了也只改 `article.md` 与分镜里的 `title`，不改目录名，
-否则产物会分裂到两个 `outputs/` 目录下。
-
-然后改写 `videos/<slug>/index.html`：
-
-- 保留 `<link>` 引入的 `base.css` 与 `<script>` 引入的 `timeline.js`
-  （相对路径按所在层级调整），它们提供画布、安全区与 `__A2V__` 契约；
-- 再引入 `theme.css`（设计令牌 + 光晕/网格/细点阵背景层）；顺序必须是
-  `base.css` → `theme.css` → 页面自身样式，让页面拥有最终覆盖权；
-- 每个场景一个 `<section data-a2v-scene data-scene-id="<场景 id>">`，
-  `data-scene-id` 必须与 storyboard 中的 `id` 一致；
-- 所有正文放进 `.a2v-safe` 安全区；背景层放在舞台内、场景容器之外并置 `z-index: 0`，
-  场景容器置 `z-index: 1`；
-- **不画图形**：每幕放一个 `<div class="a2v-safe" data-a2v-figure></div>` 挂载点，
-  画面交给组件库；在 `renderFrame` 里只写一句
-  `A2V.figures.renderScene(state, api, { defaults: DEFAULT_FIGURES })`，
-  `DEFAULT_FIGURES` 把场景类型映射到组件（`comparison` → `versus` 等）；
-- 要新画图形时先查 [视觉组件目录](references/figure-catalog.md)：有合适的就选它、
-  给几段短标注；确实没有才按组件契约新写一个，并沉淀回目录；
-- 页面自己只保留「舞台 + 常驻背景 + 每幕的挂载点 + 场景角标」这四件事；
-- 播放控件放在 `[data-a2v-controls]` 或加 `a2v-preview-only` 类，导出时会被隐藏。
-
-排版层级、动效配方与三套风格方向见 [竖屏视觉规范](references/visual-spec.md)；
-`examples/why-effort-fails/index.html` 是**只声明挂载点**的完整范例（深色主题），
-`videos/never-fear-interviews/index.html` 是同一套组件换成浅色主题的范例，
-两者可以直接对照抄用。
-
-引入 `figures.css` 时注意：组件库的墨色由 `--fig-line` / `--fig-ink` /
-`--fig-surface` 等令牌决定（`theme.css` 已给深色默认值）。页面若换主题，
-必须一并覆盖这几个令牌，否则图形不报错、只是安静地变成透明。
+目录里确实没有合适的组件时，按 [组件契约](references/figure-catalog.md#组件契约)
+在注册表登记并实现新组件（`registry.json` + 组件本体 + 生成命令 + 机检），
+然后沉淀回目录——不要为某一支视频写专属画面代码。
 
 ### 3. 校验分镜
 
@@ -183,20 +147,20 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 ### 4. 预览（人工确认节奏与排版）
 
 ```bash
-uv run python .agents/skills/article2video/scripts/preview.py videos/<slug>
+uv run python .agents/skills/article2video/scripts/preview.py \
+  --storyboard videos/<slug>/storyboard.json
 ```
 
-有声预览追加 `--media outputs/<slug>/media/media.json`。网页须使用 `A2V.fetchStoryboard()`
-加载分镜，并在 mount 后等待 `__A2V__.ready()`；它会加载统一媒体时间轴和字幕。
+有声预览追加 `--media outputs/<slug>/media/media.json`。
+预览由契约页驱动同一份 composition，因此预览看到的就是渲染会画出的画面。
 
 浏览器打开后检查：中文无裁切、正文在安全区内、场景切换自然、重播结果一致。
-**不要双击 HTML 预览**——`file://` 下取不到 storyboard.json，页面会报错。
+**不要双击 HTML 预览**——契约页需要本地静态服务提供分镜与资源。
 
 ### 5. 渲染
 
 ```bash
 uv run python .agents/skills/article2video/scripts/render.py \
-  --page videos/<slug>/index.html \
   --storyboard videos/<slug>/storyboard.json
 ```
 
@@ -204,60 +168,43 @@ uv run python .agents/skills/article2video/scripts/render.py \
   本作品用字的子集（落在 `outputs/<slug>/`，源字体只读），**切完立刻用缺字机检判它**
   ——漏字的子集会静默回退到系统字体，那正是要防的。这一步需要可选依赖
   （`uv sync --extra fonts`）：不装、不开这个开关时，默认链路完全离线可跑。
-  页面引用哪份字体由生成流程决定，工具只负责切与校验。
 省略 `--out` 时无声导出为 `outputs/<slug>/silent.mp4`；
 有声导出追加 `--media outputs/<slug>/media/media.json`，输出 `outputs/<slug>/voiced.mp4`
 和同名 SRT。加 `--limit-frames` 时写入 `outputs/<slug>/previews/`，使用相同的成片文件名，
 不会覆盖正式成片。显式 `--out` 仍然优先。
 
-输出包含 AAC 配音和烧录字幕，并生成同名 SRT；限帧会同步裁切音轨和字幕。
+渲染脚本会：
+
+1. 校验分镜（无效分镜不开渲）；
+2. 把 composition 打包成可渲染 bundle，并先向 composition 要一份真实元数据
+   （fps / 尺寸 / 总帧数），与分镜逐项交叉校验，不一致直接报错；
+3. 用 Remotion 按帧号确定性渲染，输出 H.264；
+4. 合音轨（有声时）、完整解码一遍成片，核对帧数与分辨率，并检查码流是否为
+   播放器友好的格式；
+5. 写成片溯源（哪一版源码渲的，见下文「渲染验收」）。
+
+先用 `--limit-frames 30` 快速跑通链路再全量渲染。首次渲染前会先打包 composition，
+之后同一工程重复渲染无需重新安装依赖。
+
 成片的画面固定为 `yuv420p(tv, bt709)`、配音固定为 AAC-LC 44.1kHz 立体声，
-由编码器统一保证，网页不需要也不应该干预。
-
-先用 `--limit-frames 30` 快速跑通链路再全量渲染。渲染脚本会：
-
-1. 在 127.0.0.1 起临时静态服务（网页需要 fetch 分镜 JSON）；
-2. 校验网页契约与分镜的 fps、总帧数是否一致，不一致直接报错；
-3. 加 `a2v-rendering` 类隐藏预览控件、取消预览缩放；
-4. 逐帧 `seekToFrame(frame)` → 截图 → 送入 ffmpeg 管道；
-5. 完整解码一遍成片，核对帧数与分辨率，并检查码流是否为播放器友好的格式。
-
-耗时参考：1080 × 1920、30fps 下实测约 11–16 帧/秒，45 秒视频（1350 帧）约 1.5–2 分钟；
-成片验收会额外完整解码一遍，约增加 2 秒。
+由编码器统一保证，画面代码不需要也不应该干预。
 
 ### 6. 视觉评审（渲染前后都该做）
 
 ```bash
 uv run python .agents/skills/article2video/scripts/review.py \
-  --page videos/<slug>/index.html \
   --storyboard videos/<slug>/storyboard.json \
-  --media outputs/<slug>/media/media.json
+  [--media outputs/<slug>/media/media.json]
 ```
-
-声明式视频（没有专属网页）省掉 `--page`，改用 `--declarative`：
-
-```bash
-uv run python .agents/skills/article2video/scripts/review.py \
-  --declarative --storyboard videos/<slug>/storyboard.json
-```
-
-此时场景由共享页面在运行时生成，依赖源码的三项静态检查（场景层、挂载点、文案单一真源）
-会被跳过，改由运行时探针给出结论；产物仍写入 `outputs/<slug>/inspect/`。
 
 它一次跑完三件事，产物在 `outputs/<slug>/inspect/`：
 
-1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前挂载点里每个元素的实际文本，
+1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前画面里每个元素的实际文本，
    再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
    这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省；
 2. **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
-3. **设计宪法静态检查**：结构、曲线纪律、模糊、挂载点、文案单一真源、安全区。
-
-**动过 `figures.js` / `figures.css` 之后，除了体检还要跑组件契约检查**：
-`tests/test_figures_assets.py`（基元与状态覆盖、`PENDING` 棘轮、焦点跟着行进走）与
-`tests/test_figure_token_closure.py`（令牌闭包、四个基元只在预设作用域内、
-状态只有四个且同时声明 SVG 与 HTML 两种媒介、K8 / K9 与聚合规则）。
-裸数值与临场焦点类名都由这两支测试拦下，别指望体检——体检量的是画面，
-量不出「这个数值本该是令牌」。
+3. **观感与动效闸门**：声明了 `visual.preset` 时跑 K1–K10 观感闸门；
+   M0–M4 动效闸门对任意作品都跑。
 
 终端会打印错误与提醒，以及**需要人工判断的清单**。
 机检只保证「这不是废片」；「值不值得看完」按
@@ -266,14 +213,13 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 体检结论分三串，**分开计数、不要混成一个总分**：
 
-- **C 系列**（废片类）：结构、曲线纪律、挂载点、文案单一真源、安全区与墨迹覆盖率，
-  回答「这是不是废片」；
-- **K 系列**（观感类 K1–K7）：留白预算、强调色占比、同帧字号种类、对齐基线、
-  正文对比度、卡片纪律，回答「这像不像发布会级别的画面」。它只对声明了
-  `visual.preset` 的视频运行，跳过项都会写明原因——**跳过不等于通过**。
-  其中 **K7 文字溢出是硬判定**：文本块越出安全区（容差 8px），或排版引擎报
-  「缩到正文下限仍放不下」，都会并入错误数与退出码，并写明是哪个文本块、
-  往哪个方向越了多少像素——而不是只给一个数字。
+- **C 系列**（废片类）：安全区与墨迹覆盖率等结构性结论，回答「这是不是废片」；
+- **K 系列**（观感类 K1–K10）：留白预算、强调色占比、同帧字号种类、对齐基线、
+  正文对比度、卡片纪律、文字溢出、容器内溢出、图形文字标记，回答「这像不像发布会级别的画面」。
+  它只对声明了 `visual.preset` 的视频运行，跳过项都会写明原因——**跳过不等于通过**。
+  其中 **K7 文字溢出与 K8 容器内溢出是硬判定**：文本块越出安全区（容差 8px）、
+  或声明了 `data-a2v-inside` 的文字穿出它的容器（容差 2px），
+  都会并入错误数与退出码，并写明是哪个文本块、往哪个方向越了多少像素——而不是只给一个数字。
   阈值与设计取舍见 [发布会级设计语言](references/keynote-design-system.md)。
 - **M 系列**（动效类 M0–M4）：扫描覆盖、入场不弹跳、入场够慢、入场在幕内落地、
   入场不闪烁，回答「动作对不对」。它对任意作品都跑（不需要 `visual.preset`）：
@@ -283,7 +229,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 ### 7. 渲染验收
 
-- **改过动效或样式资产之后，已经渲过的成片会静默落后。** `outputs/` 不入库、
+- **改过组件或运行时之后，已经渲过的成片会静默落后。** `outputs/` 不入库、
   也没有任何东西会提醒你，所以旧成片看上去仍然是「上次验收通过」的样子——
   实测踩到过：两支实际作品的成片比动效重写早了好几个小时，带着旧的 3 帧弹跳。
   现在这件事可机检：成片旁边有溯源（见 [渲染契约](references/render-contract.md)
@@ -295,7 +241,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 - 抽看首帧、每幕切换点、末帧，确认无空白帧、无文字裁切；
 - 用系统默认播放器打开一次成片：全范围像素格式（`yuvj420p`）ffmpeg 能解码，
   但 Windows 播放器会报 `0xc00d36c4`；验收已会自动拦下，人工再确认一次最稳妥；
-- 需要逐像素比对时用 `--capture-format png` 重渲一次。
+- 需要逐像素比对时，用同一帧重复渲染两次比对。
 
 ## 命令速查
 
@@ -306,8 +252,8 @@ uv run python .agents/skills/article2video/scripts/review.py \
 # 校验分镜（有 --strict 把警告也视为失败）
 uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json> [--strict] [--json] [--media <media.json>]
 
-# 本地预览
-uv run python .agents/skills/article2video/scripts/preview.py <目录> [--page index.html] [--port 8000] [--media <media.json>] [--storyboard <json>] [--content-root <目录>]
+# 本地预览（契约页驱动同一份 composition）
+uv run python .agents/skills/article2video/scripts/preview.py --storyboard <json> [--port 8000] [--media <media.json>] [--content-root <目录>]
 
 # 配音准备（省略 --out-dir 时写入 outputs/<slug>/media）
 uv run python .agents/skills/article2video/scripts/prepare.py \
@@ -315,42 +261,45 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 
 # 视觉评审（省略 --out-dir 时写入 outputs/<slug>/inspect）
 uv run python .agents/skills/article2video/scripts/review.py \
-  --page <网页> --storyboard <json> [--media <media.json>] [--out-dir <目录>] [--content-root <目录>] [-v]
+  --storyboard <json> [--media <media.json>] [--out-dir <目录>] [--content-root <目录>] [-v]
 
 # 渲染（省略 --out 时按文章归属推导，限帧时写入 previews/）
 uv run python .agents/skills/article2video/scripts/render.py \
-  --page <网页> [--storyboard <json>] [--out <输出.mp4>] [--limit-frames N] [--content-root <目录>] \
-  [--media <media.json>] [--capture-format jpeg|png] [--crf 18] [--preset medium] [--no-probe] [-v]
+  --storyboard <json> [--out <输出.mp4>] [--limit-frames N] [--content-root <目录>] \
+  [--media <media.json>] [--crf 18] [--preset medium] [--no-probe] [-v]
 ```
 
 ## 排查常见问题
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| `window.__A2V__ 未定义` | 网页没有引入 `timeline.js`，或 `A2V.mount()` 抛错（看控制台） |
-| `分镜脚本加载失败: HTTP 404` | 网页里 `fetchStoryboard('storyboard.json')` 的相对路径不对，或预览时用了 `file://` |
-| `总帧数不一致` | 改了 storyboard 的时长但没重新加载页面，或网页里硬编码了总帧数 |
-| 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`，改为由帧号推导；渲染前会静态提示 `animation:` / `transition:` / `@keyframes` |
+| `找不到可用的 web 工程` / 打包失败 | `web/` 依赖没装：`pnpm -C web install` 后重试 |
+| 体检报「契约页不存在」 | 先 `pnpm -C web build` 构建 `web/dist/contract/contract.html` |
+| `缺少查询参数 a2v-storyboard` | 契约页必须由脚本经本地静态服务打开，不要双击 HTML |
+| `总帧数不一致` / `fps 不一致` | composition 元数据与分镜不一致：检查分镜是否保存、场景时长是否合法 |
+| `组件 <kind> 尚未实现` 或 kind 报错 | 注册表里没有这个组件：查 [视觉组件目录](references/figure-catalog.md) 的可选值，或按组件契约新增 |
+| `figure.kind 必须是注册表里的组件` | 分镜写了未知 kind：改成目录里已有的，或新增组件 |
+| 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`：组件必须由帧号推导（web 测试会拦） |
 | 预览正常但导出缺字 | 用了系统字体而渲染机器上没有该字体，改为随仓库分发 webfont |
-| 动画后段像卡住 | 场景被配音拉长后画面完全静止，入场结束后叠 `api.breath()` 级别的常驻微动 |
+| 动画后段像卡住 | 场景被配音拉长后画面完全静止，入场结束后加常驻微动（`breath` 级别） |
 | 画面扁平没有层次 | 缺少背景/表面/焦点三层：先加背景层与卡片内高光、双层投影（见视觉规范） |
 | 强调色加在文案上却不生效 | `emphasis` 的短语没有原样出现在该场景文本里，`validate.py` 会给出警告 |
-| 导出画面被裁切 | 文档尺寸超出 1080 × 1920，检查是否有元素溢出或页面出现滚动条 |
+| 导出画面被裁切 | 画面尺寸超出 1080 × 1920，检查是否有元素溢出 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
 | 成片能解码但播放器打不开 | 码流是全范围像素格式（`yuvj420p`/`pc`）或 24kHz 单声道 AAC；验收阶段现已报错拦下，参数见 [渲染契约](references/render-contract.md) 的「码流兼容性」 |
 | 播放器报 `0x80070005 你没有访问该文件的权限` | 成片经临时目录中转时带走了「关闭继承」的 ACL，打包应用（Windows 11 新版媒体播放器）读不到；`render.py`/`prepare.py` 会自动 `icacls /reset` 修复，见 [渲染契约](references/render-contract.md) 的「交付文件的访问权限」 |
-| 画面里出现播放控件 | 控件没放在 `[data-a2v-controls]` 内，也没加 `a2v-preview-only` 类 |
-| `无法推导文章归属` | 网页或分镜不在 `videos/<slug>/`、`examples/<slug>/` 内：移入规范目录，或用 `--content-root`/`A2V_CONTENT_ROOT` 指定内容根，或显式指定输出路径 |
-| 内容根里的页面样式或脚本 404 | 页面挪出仓库后共享资产不能用相对路径，改成 `/__a2v__/<文件名>`（如 `/__a2v__/figures.css`） |
+| `无法推导文章归属` | 分镜不在 `videos/<slug>/`、`examples/<slug>/` 内：移入规范目录，或用 `--content-root`/`A2V_CONTENT_ROOT` 指定内容根，或显式指定输出路径 |
 | `无法推导默认输出路径` | 省略 `--out` 但没有 `--storyboard`，补上分镜或显式指定 `--out` |
 | 提示 narration 却按无声导出 | 没传 `--media`；先执行 `prepare.py`，再带 `--media` 渲染 |
+| 体检溯源结论是 `stale` | web 源码在成片渲染之后改过：重新渲染一次成片 |
 
 ## 当前边界
 
-已实现：分镜校验、自动配音与逐句字幕、动画网页契约、有声/无声预览、逐帧渲染与成片验收、
-按文章目录推导输出路径、内容根（文章与产物可放在仓库之外、`videos/` 不入库），
-以及可选的设计语言预设（分镜声明 `visual.preset: "keynote"` 后启用令牌层、排版引擎与
-K1–K7 观感闸门；未声明时画面逐帧不变）。
+已实现：分镜校验、自动配音与逐句字幕、React composition 画面（比喻组件 + 数据图表 +
+关系流程图，组件注册表单源）、契约页体检（K/M 闸门与组件契约探针）、
+Remotion 确定性渲染与成片验收、按文章目录推导输出路径、内容根（文章与产物可放在
+仓库之外、`videos/` 不入库），以及设计语言预设（分镜声明 `visual.preset: "keynote"`
+后启用令牌层、排版引擎与观感闸门）。
 
 尚未实现，不要当作已有能力使用：
 
@@ -373,7 +322,7 @@ K1–K7 观感闸门；未声明时画面逐帧不变）。
 - [文章生成分镜](references/article-to-storyboard.md)：从文章产出分镜的步骤、约束、校验闭环与组件缺口处理
 - [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
-- [渲染契约](references/render-contract.md)：网页必须实现的 `__A2V__` 接口与确定性要求
+- [渲染契约](references/render-contract.md)：画面实现的 `__A2V__` 接口、渲染引擎与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向
-- [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、`A2V.type` 排版引擎、K1–K7 观感闸门与静默失效清单
+- [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎、K1–K10 观感闸门与静默失效清单
