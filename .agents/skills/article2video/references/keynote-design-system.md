@@ -636,29 +636,12 @@ K 系列内部还有一层区分：**K7 是硬判定，其余是提醒。** 文�
    `@font-face` 是全局注册的（浏览器没有作用域化的字体定义），`:root` 也是全局的。
    曾经有两处漏掉作用域：字体栈写在裸 `:root` 上，使未启用预设的既有视频整体换字体；
    深色主题块写成 `:root, :root[data-a2v-preset="keynote"]…`，把浅色主题的页面整片刷黑。
-   修复后 `examples/declarative-number` 限帧 12 帧的成片与改动前**逐字节一致**。
-   这个回归要连**命令一起记**，否则照着记下来的哈希复现不出来：
-
-   ```bash
-   uv run python .agents/skills/article2video/scripts/render.py \
-     --storyboard examples/declarative-number/storyboard.json \
-     --limit-frames 12 --capture-format png
-   # → SHA256 A0A94CFC…（67185 字节）
-
-   uv run python .agents/skills/article2video/scripts/render.py \
-     --storyboard examples/declarative-number/storyboard.json --limit-frames 12
-   # → SHA256 CBEBD8BF…（58802 字节）
-   ```
-
-   两者都对但互不相等，因为截图格式会进入编码结果；默认口径（JPEG q98）才是
-   流水线实际走的那条。**取值以本节为准**：动效升级那一轮把画面里每个入场元素的
-   位置都改了，哈希被刻意重新记录过一次（原值 `DAFDD423…` / `DF1DB75D…` 已作废，
-   记录见 [项目规划](../../../../docs/PROJECT_PLAN.md)）；
-   哈希是**机器与工具链相关**的，换 ffmpeg 或浏览器版本就会变，
-   因此它证明的是「本机同一条命令前后一致」，不是「任何机器上都等于这个值」。
-   现在由
-   `tests/test_react_design_tokens.py` 守住：预设与主题的属性挂在根元素上，
-   浏览器量计算值，「未启用预设的画面吃到预设令牌」会直接失败。
+   修复后 `examples/declarative-number` 限帧 12 帧的成片与改动前**逐字节一致**
+   （当时的回归记录连命令与哈希一起写：`--capture-format png` → `A0A94CFC…`，
+   默认 JPEG → `CBEBD8BF…`；这条逐字节口径已随引擎迁移作废，
+   现在的确定性判据见[渲染契约](render-contract.md)的「确定性」一节）。
+   现在这一层由 `tests/test_react_design_tokens.py` 守住：预设与主题的属性挂在
+   根元素上，浏览器量计算值，「未启用预设的画面吃到预设令牌」会直接失败。
 2. **组件里写死颜色。** 不跟主题走，换预设后会原地留一抹旧主题的颜色。
    组件只在必须写 SVG 表现属性（子元素写 `style` 会连入场变换一起盖掉）的位置
    使用 `color-mix()` 引用令牌，其余一律由样式表决定。

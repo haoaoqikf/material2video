@@ -112,8 +112,7 @@ def require_environment(web_dir: Path | None = None) -> Path:
     directory = web_dir if web_dir is not None else contract_page.web_dir()
     if not (directory / "package.json").is_file():
         raise RemotionError(
-            f"找不到前端工程：{directory / 'package.json'}。"
-            f"请确认仓库完整，或改用 --engine legacy 走旧页面渲染。"
+            f"找不到前端工程：{directory / 'package.json'}。请确认仓库完整。"
         )
     if not (directory / "node_modules").is_dir():
         raise RemotionError(
