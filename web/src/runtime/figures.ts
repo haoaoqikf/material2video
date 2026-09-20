@@ -80,12 +80,18 @@ export function pad(value: number): string {
   return (value < 10 ? '0' : '') + value;
 }
 
-/** 组件声明的规格：kind、标注、几何参数与节奏。 */
+/** 组件声明的规格：kind、标注、几何参数、节奏与示意标记。 */
 export interface FigureSpec {
   kind: string;
   labels: Record<string, string>;
   params: Record<string, unknown>;
   motion: string;
+  /**
+   * 示意标记（`figure.schematic`）：这组数值没有来源，画面上要出现「示意」标。
+   * 目前由图表组件消费（任务 7.5）；其它组件声明了它但不会自动画标，
+   * 校验器会在文案里也没有「示意」二字时给出提示。
+   */
+  schematic: boolean;
 }
 
 export interface FigureApi {

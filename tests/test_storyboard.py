@@ -532,3 +532,152 @@ class TestLoadingAndTimeline:
             "loop",
             "closing",
         ]
+
+
+def chart_scene(values=None, **extra) -> dict:
+    """构造一个最小的图表幕，测试中按需局部改动。"""
+    data: dict = {
+        "title": "每月投入",
+        "values": values if values is not None else [
+            {"label": "四月", "value": 12},
+            {"label": "五月", "value": 30},
+        ],
+    }
+    data.update(extra)
+    return {
+        "id": "chart",
+        "type": "chart",
+        "durationInFrames": 120,
+        "data": data,
+    }
+
+
+class TestChartScene:
+    """图表场景（任务 7.2）：数据必须全部来自分镜，且画不出来要报错。"""
+
+    def test_accepts_a_valid_chart_scene(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(
+            figure={"labels": {"unit": " 小时", "note": "数据来源：团队周报"}}
+        )
+        report = sb.validate(valid_script)
+        assert report.ok, [issue.format() for issue in report.issues]
+        assert warning_paths(report) == []
+
+    def test_values_are_required(self, valid_script):
+        valid_script["scenes"][0] = chart_scene()
+        del valid_script["scenes"][0]["data"]["values"]
+        assert "scenes[0].data.values" in error_paths(sb.validate(valid_script))
+
+    @pytest.mark.parametrize("values", [
+        [],
+        ["四月"],
+        [{"label": "", "value": 1}],
+        [{"label": "四月"}],
+        [{"label": "四月", "value": "12"}],
+        [{"label": "四月", "value": True}],
+        [{"label": "四月", "value": float("nan")}],
+    ])
+    def test_rejects_invalid_values(self, valid_script, values):
+        valid_script["scenes"][0] = chart_scene(values=values)
+        assert any(
+            path.startswith("scenes[0].data.values")
+            for path in error_paths(sb.validate(valid_script))
+        )
+
+    def test_rejects_unknown_chart_type(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(chart="area")
+        assert "scenes[0].data.chart" in error_paths(sb.validate(valid_script))
+
+    def test_accepts_declared_chart_types(self, valid_script):
+        for chart in ("bar", "line", "pie"):
+            valid_script["scenes"][0] = chart_scene(chart=chart)
+            assert sb.validate(valid_script).ok
+
+    def test_warns_when_points_exceed_capacity(self, valid_script):
+        # 图表条目上限是 6：7 个点会被提醒
+        valid_script["scenes"][0] = chart_scene(
+            values=[{"label": f"第{i}月", "value": i} for i in range(7)]
+        )
+        assert "scenes[0].data.values" in warning_paths(sb.validate(valid_script))
+
+    def test_warns_on_duplicate_labels(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(
+            values=[{"label": "四月", "value": 1}, {"label": "四月", "value": 2}]
+        )
+        assert "scenes[0].data.values[1].label" in warning_paths(sb.validate(valid_script))
+
+    def test_warns_on_overlong_labels(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(
+            values=[{"label": "这个数据点标签实在太长了一点", "value": 1}]
+        )
+        assert "scenes[0].data.values[0].label" in warning_paths(sb.validate(valid_script))
+
+    def test_rejects_unknown_data_point_field_when_declarative(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(
+            values=[{"label": "四月", "value": 1, "color": "red"}]
+        )
+        report = sb.validate(valid_script, declarative=True)
+        assert not report.ok
+        assert "scenes[0].data.values[0].color" in error_paths(report)
+
+
+class TestSchematicMarker:
+    """示意标记（任务 7.5）：标记被接受，且必须真的落到画面上。"""
+
+    def test_schematic_is_accepted_and_silent_for_charts(self, valid_script):
+        # 图表组件会自动画「示意」标：标记 + 文案双保险，不该有任何提醒
+        valid_script["scenes"][0] = chart_scene(figure={"schematic": True})
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert warning_paths(report) == []
+
+    def test_schematic_must_be_a_boolean(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(figure={"schematic": "yes"})
+        assert "scenes[0].data.figure.schematic" in error_paths(sb.validate(valid_script))
+
+    def test_marker_without_a_word_warns_for_kinds_that_cannot_draw_the_tag(self, valid_script):
+        # 冰山不会自动画「示意」标：声明了标记就得让「示意」二字出现在文案里
+        valid_script["scenes"][0] = {
+            "id": "list",
+            "type": "list",
+            "durationInFrames": 120,
+            "data": {
+                "figure": {"kind": "iceberg", "schematic": True},
+                "items": ["看得见的需求", "看不见的维护"],
+            },
+        }
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.figure.schematic" in warning_paths(report)
+
+    def test_marker_with_the_word_in_text_is_silent_for_other_kinds(self, valid_script):
+        valid_script["scenes"][0] = {
+            "id": "list",
+            "type": "list",
+            "durationInFrames": 120,
+            "data": {
+                "figure": {"kind": "iceberg", "schematic": True},
+                "items": ["看得见的需求", "看不见的维护（示意）"],
+            },
+        }
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    def test_chart_without_marker_or_word_gets_a_sourcing_reminder(self, valid_script):
+        # 既没标记也没写明来源：提醒作者对「这些数字哪来的」给出交代
+        valid_script["scenes"][0] = chart_scene()
+        report = sb.validate(valid_script)
+        assert report.ok
+        assert "scenes[0].data.values" in warning_paths(report)
+
+    def test_sourced_chart_note_silences_the_reminder(self, valid_script):
+        valid_script["scenes"][0] = chart_scene(
+            figure={"labels": {"unit": " 小时", "note": "数据来源：团队周报"}}
+        )
+        assert warning_paths(sb.validate(valid_script)) == []
+
+    def test_data_point_labels_count_as_visible_text(self, valid_script):
+        # 「示意」写进数据点标签同样算落到画面上
+        valid_script["scenes"][0] = chart_scene(
+            values=[{"label": "四月（示意）", "value": 12}, {"label": "五月", "value": 30}]
+        )
+        assert warning_paths(sb.validate(valid_script)) == []

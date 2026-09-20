@@ -16,6 +16,7 @@
 import type { FC } from 'react';
 
 import { BalanceFigure } from '@/components/Balance';
+import { ChartFigure } from '@/components/Chart';
 import { ExchangeFigure } from '@/components/Exchange';
 import { GapFigure } from '@/components/Gap';
 import { IcebergFigure } from '@/components/Iceberg';
@@ -96,6 +97,13 @@ export const FIGURES: Record<string, FigureDefinition> = {
     summary: '按帧递增显示数值，并展示标签与说明',
     Component: NumberFigure,
   },
+  chart: {
+    kind: 'chart',
+    labels: ['unit', 'note'],
+    items: [2, 6],
+    summary: '柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本',
+    Component: ChartFigure,
+  },
 };
 
 /** 分镜没有声明 `figure.kind` 时，按场景类型取用的默认组件。 */
@@ -108,6 +116,7 @@ export const DEFAULT_KIND_BY_SCENE: Record<string, string> = {
   timeline: 'stairs',
   conclusion: 'exchange',
   number: 'number',
+  chart: 'chart',
 };
 
 export function figureDefinition(kind: string): FigureDefinition | undefined {

@@ -26,6 +26,11 @@
  * 本文件**不再手写任何元素级规则**：`html/body`、`[data-a2v-stage]`、
  * `[data-a2v-scene]`、`.a2v-safe`、字幕与渲染模式全部由下面搬来的文件提供，
  * 免得同一件事有两个真源。
+ *
+ * 末尾两份是**新工程的追加层**（旧页面没有对应文件）：`third-party.css`
+ * 服务经分类接入的第三方组件，`charts.css` 服务数据图表组件。它们只能
+ * 整块地排在搬运层之后，不许插进旧五份中间——插进去会改变同权重
+ * 选择器的胜负（`tests/test_web_style_stack.py` 守着这条不变量）。
  */
 
 @import 'tailwindcss/theme.css' layer(theme);
@@ -38,3 +43,4 @@
 @import './figures.css';
 @import './declarative.css';
 @import '../third-party/third-party.css';
+@import './charts.css';

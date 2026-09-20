@@ -692,6 +692,11 @@ def test_import_order_matches_the_legacy_link_order() -> None:
 
     顺序是几何的一部分：`.a2v-safe` 的 `gap` 由 keynote.css 与 declarative.css
     各有一条同权重声明，谁在后谁赢。顺序对调不会报错，只会让版面差几十像素。
+
+    新工程可以在**两端**追加自己的层：旧五份之前（`NEW_LAYER_IMPORTS`，令牌与
+    Tailwind 产出）或旧五份之后（`third-party.css`、`charts.css` 这类按组件
+    归类的追加层）。追加必须**整块**进行：插进旧五份中间，同权重规则的胜负
+    就会变，而画面只会「看起来差一点」。
     """
     imports = _imports_of_index()
     legacy = _legacy_link_order()
@@ -707,18 +712,24 @@ def test_import_order_matches_the_legacy_link_order() -> None:
     assert imports[: len(NEW_LAYER_IMPORTS)] == list(NEW_LAYER_IMPORTS), (
         f"新工程专有的层必须排在最前（tailwindcss → tokens.css）：{imports}"
     )
-    ported_order = [
+    tail = [
         Path(item).name
         for item in imports[len(NEW_LAYER_IMPORTS) :]
         # primitives.css 是 keynote.css 尾部的分身，位置由下面那条专门的测试守；
         # 这里比的是「旧五份」的相对顺序。
         if Path(item).name != "primitives.css"
     ]
+    legacy_set = set(legacy)
+    ported_order = [name for name in tail if name in legacy_set]
+    appended = [name for name in tail if name not in legacy_set]
     assert ported_order == legacy, (
         "index.css 的 `@import` 顺序与 assets/declarative.html 的 `<link>` 顺序不一致：\n"
         f"  index.css：{ported_order}\n"
         f"  旧页面：  {legacy}\n"
         "  顺序不同，同权重选择器的胜负就不同——画面会变，却不会有任何报错。"
+    )
+    assert appended == tail[len(tail) - len(appended) :], (
+        f"追加层必须整块地排在搬运层之后，不许插进旧五份中间：{imports}"
     )
 
 

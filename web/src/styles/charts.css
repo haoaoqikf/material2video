@@ -1,0 +1,96 @@
+/*
+ * 图表组件（`web/src/components/Chart.tsx`）的样式。
+ *
+ * 与 `figures.css` 同一套纪律：颜色、间距、字号、字重全部引用令牌
+ * （`var(--令牌, 原值)`，原值是未启用预设时的落点），不写死数值。
+ * 这里**没有也不会有**任何 CSS 动画声明——canvas 内部的逐帧变化由
+ * `charts/options.ts` 的切片驱动，DOM 层的入场由 `runtime/motion.ts` 驱动，
+ * 样式层只负责把排版定下来（`a2v/source_policy.py` 与
+ * `tests/test_web_style_stack.py` 会拦截动效声明）。
+ *
+ * 纵向节奏遵循 `.a2v-safe` 的既有约定：块自己不加纵向 margin，
+ * 分组交给字号与颜色表达，间距只用间距阶上的一档。
+ */
+
+/* 图表本体：占满安全区，内部纵向分组 */
+.fig-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  gap: var(--a2v-space-5, 32px);
+}
+
+.fig-chart-title {
+  margin: 0;
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-lead, 60px);
+  font-weight: var(--a2v-weight-bold, 700);
+  line-height: 1.2;
+  color: var(--a2v-text-1);
+  text-align: center;
+}
+
+/* canvas 宿主：把剩余高度全部让给图，避免画布被文本挤扁 */
+.fig-chart-plot {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* 数值列：关键数值的 DOM 输出（组件契约探针与 K 系列读的是这一层） */
+.fig-chart-values {
+  display: flex;
+  flex-direction: column;
+  gap: var(--a2v-space-3, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  max-width: 760px;
+  align-self: center;
+}
+
+.fig-chart-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--a2v-space-4, 24px);
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-body, 40px);
+  color: var(--a2v-text-2);
+}
+
+.fig-chart-row-label {
+  color: var(--a2v-text-2);
+}
+
+.fig-chart-row-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--a2v-weight-semibold, 600);
+  color: var(--a2v-text-1);
+}
+
+/* 示意标：分镜声明 figure.schematic 时出现——无来源数值不许长得像实测结果 */
+.fig-chart-schematic {
+  align-self: center;
+  padding: 2px var(--a2v-space-3, 16px);
+  border: var(--a2v-stroke-2, 2px) solid var(--a2v-accent-line, var(--a2v-accent));
+  border-radius: var(--a2v-radius-pill, 999px);
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-label, 34px);
+  letter-spacing: var(--a2v-track-caption, 0.06em);
+  color: var(--a2v-accent);
+}
+
+/* 注写：来源说明或补充说明，来自 figure.labels.note */
+.fig-chart-note {
+  margin: 0;
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 28px);
+  letter-spacing: var(--a2v-track-caption, 0.06em);
+  color: var(--a2v-text-3);
+  text-align: center;
+}

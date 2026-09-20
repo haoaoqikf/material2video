@@ -28,6 +28,13 @@ THEME_CSS = ASSETS / "theme.css"
 PAGES = tuple(sorted((ROOT / "examples").glob("*/index.html")))
 _PAGE_IDS = [page.parent.name for page in PAGES]
 
+#: React 工程独有、**不会回移**到旧版 assets 的组件（迁移自 section 7 起）：
+#: `chart` 依赖 ECharts，`flow` 依赖 dagre——旧 vanilla 页面没有对应物，
+#: 硬要回移等于把 npm 生态重新发明一遍。
+#: catalog.py 的逐项对照在 React 一侧由 `tests/test_web_registry.py` 负责；
+#: 本文件只对照旧库仍然拥有的组件，直到旧路径整体退役。
+REACT_ONLY_KINDS = {"chart"}
+
 
 def _page_defaults(page: Path) -> dict[str, str]:
     """页面声明的「场景类型 → 默认组件」映射。"""
@@ -70,15 +77,20 @@ def test_library_registers_the_expected_kinds():
 
 
 def test_catalog_mirror_matches_the_library():
-    """catalog.py 是校验器用的镜像，必须与浏览器端的注册表逐项一致。
+    """catalog.py 与浏览器端注册表对**旧库仍拥有的组件**逐项一致。
 
     目录一旦漂移，校验器就会放行一个网页根本不认识的 kind，
     或反过来把合法标注判成错的——两种都只在渲染时才暴露。
+    React 独有的组件（见 REACT_ONLY_KINDS）不在旧库里，不参与这次对照。
     """
     from a2v import catalog
 
     mirrored = {kind: set(labels) for kind, labels, *_ in _figures()}
-    declared = {kind: set(entry.labels) for kind, entry in catalog.FIGURE_CATALOG.items()}
+    declared = {
+        kind: set(entry.labels)
+        for kind, entry in catalog.FIGURE_CATALOG.items()
+        if kind not in REACT_ONLY_KINDS
+    }
     assert mirrored == declared
 
 
@@ -98,13 +110,21 @@ def test_catalog_defaults_match_the_page(page):
     shared = (SKILL / "assets/declarative.js").read_text(encoding="utf-8")
     block = re.search(r"var DEFAULT_FIGURES = \{(.*?)\};", shared, re.DOTALL)
     assert block
-    assert dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1))) == catalog.DEFAULT_KINDS
+    # 旧共享页面没有 React 独有的组件，目录里那几条默认映射对它不生效
+    expected = {
+        scene_type: kind
+        for scene_type, kind in catalog.DEFAULT_KINDS.items()
+        if kind not in REACT_ONLY_KINDS
+    }
+    assert dict(re.findall(r"(\w+):\s*'([\w-]+)'", block.group(1))) == expected
 
 
 def test_catalog_covers_every_registered_kind():
     from a2v import catalog
 
-    assert set(catalog.FIGURE_CATALOG) == {kind for kind, *_ in _figures()}
+    # React 独有的组件注册在 web/src/registry/index.ts（test_web_registry.py 对照），
+    # 不要求出现在旧版 figures.js 里
+    assert set(catalog.FIGURE_CATALOG) - REACT_ONLY_KINDS == {kind for kind, *_ in _figures()}
 
 
 def test_scene_kicker_is_authored_copy_not_the_scene_type():

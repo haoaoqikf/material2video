@@ -23,7 +23,11 @@ export type MotionName = z.infer<typeof motionNameSchema>;
 
 export const figureSchema = z
   .object({
-    kind: nonEmptyText,
+    /**
+     * kind 可以缺省：缺省时按场景类型取默认组件（registry 的 DEFAULT_KIND_BY_SCENE），
+     * figure 也可以只带标注或示意标记。但写了就必须是非空字符串。
+     */
+    kind: nonEmptyText.optional(),
     labels: labelsSchema.optional(),
     motion: motionNameSchema.optional(),
     /**
@@ -31,6 +35,12 @@ export const figureSchema = z
      * 与 Python 校验器的口径一致（那边会给出提醒）。
      */
     params: z.record(z.string(), z.unknown()).optional(),
+    /**
+     * 示意标记（任务 7.5）：分镜声明这组数值没有来源时置 true。
+     * 图表组件会因此在画面上画出「示意」标；Python 校验器接受该标记，
+     * 并在标记缺失/无处落点时给出提示。
+     */
+    schematic: z.boolean().optional(),
   })
   .strict();
 
@@ -109,6 +119,20 @@ const numberData = z.object({
   ...sceneDataCommon,
 });
 
+/** 图表数据点：标签 + 数值。组件不保存任何默认数据，缺了就在渲染时报错。 */
+export const chartValueSchema = z
+  .object({ label: nonEmptyText, value: z.number() })
+  .strict();
+export type ChartValue = z.infer<typeof chartValueSchema>;
+
+const chartData = z.object({
+  values: z.array(chartValueSchema).nonempty(),
+  title: z.string().optional(),
+  /** 图表类型：柱状（默认）/ 折线 / 饼图。 */
+  chart: z.enum(['bar', 'line', 'pie']).optional(),
+  ...sceneDataCommon,
+});
+
 const listData = z.object({
   items: z.array(listItemSchema).nonempty(),
   title: z.string().optional(),
@@ -136,6 +160,7 @@ export const KNOWN_SCENE_DATA = {
   timeline: timelineData,
   diagram: diagramData,
   number: numberData,
+  chart: chartData,
   list: listData,
   conclusion: conclusionData,
 } as const;

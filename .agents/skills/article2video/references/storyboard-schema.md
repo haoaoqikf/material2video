@@ -67,6 +67,7 @@
 | `timeline` | `items`（非空数组） | `title`, `annotations`, `figure` | 事件顺序、尝试过程 |
 | `diagram` | `nodes`（非空数组） | `edges`, `title`, `annotations`, `figure` | 因果、约束、反馈模型 |
 | `number` | `value` | `label`, `caption`, `annotations`, `figure` | 数量、频次、收益变化 |
+| `chart` | `values`（非空数组） | `title`, `chart`, `annotations`, `figure` | 数据序列：占比、趋势、构成 |
 | `list` | `items`（非空数组） | `title`, `annotations`, `figure` | 要点、行动步骤 |
 | `conclusion` | `text` | `action`, `emphasis`, `annotations`, `figure` | 收束、行动建议 |
 
@@ -82,6 +83,14 @@
 当前各场景类型的约定键见 [竖屏视觉规范](visual-spec.md) 的「图形标注」一节。
 文案仍然只存在于分镜里，网页不得为标注写默认文案。
 
+`chart` 的 `data.values` 是图表的数据序列，每项形如 `{"label": "四月", "value": 12}`：
+标签非空（建议 ≤ 12 字，超长只警告；重复标签会警告），数值必须是有限数字。
+条目建议 2–6 个，超出组件舒适区会警告。可选的 `data.chart` 选择图表类型：
+`bar`（柱状，默认）/ `line`（折线）/ `pie`（饼图）。
+**组件里没有任何默认数据**：`values` 缺失或非法时渲染直接报错，不画示例值。
+图表内部的文字画在 canvas 上，探针量不到；组件会把每个数值以**最终值**同步
+输出为 DOM 文本（`data-el="value-<序号>"`），观感闸门据此判定。
+
 ## 选择视觉组件
 
 `figure` 是可选的对象，声明这一幕**用哪个视觉组件来画**。不写时用网页给出的
@@ -89,10 +98,11 @@
 
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
-| `kind` | 是 | 组件名，取值见 [视觉组件目录](figure-catalog.md) |
+| `kind` | 否 | 组件名（见 [视觉组件目录](figure-catalog.md)）；省略时按场景类型取默认组件，写了就必须是非空字符串 |
 | `labels` | 否 | 画在图上的短标签，规则与 `annotations` 完全相同 |
 | `motion` | 否 | 动效节奏：`calm` / `normal` / `impact`，默认 `normal` |
 | `params` | 否 | 预留的几何覆盖：**当前没有组件读取它**，写了不会改变画面，校验器会提醒 |
+| `schematic` | 否 | 示意标记：`true` 表示这组数值没有来源。图表组件会自动在画面画出「示意」标；其它组件要求文案里出现「示意」二字，否则校验器会提醒 |
 
 ```json
 "figure": {
@@ -103,8 +113,8 @@
 ```
 
 `figure.labels` 与顶层的 `annotations` 是同一件事：前者是新写法，后者是过渡期兼容写法，
-两者同时存在时以 `figure.labels` 为准。校验器负责结构与取值合法性（`kind` 非空、
-`motion` 在三者之内、`labels` 每项非空且不过长），**组件是否存在**由组件目录决定，
+两者同时存在时以 `figure.labels` 为准。校验器负责结构与取值合法性（`kind` 缺省允许、
+写了必须非空；`motion` 在三者之内；`labels` 每项非空且不过长），**组件是否存在**由组件目录决定，
 网页在挂载时发现未注册的 `kind` 会立即报错，而不是画出空白。
 
 ## 声明式画面模式

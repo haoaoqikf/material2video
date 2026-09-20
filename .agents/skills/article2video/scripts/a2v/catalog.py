@@ -73,6 +73,12 @@ FIGURE_CATALOG: dict[str, Component] = {
         labels=frozenset(),
         summary="按帧递增显示数值，并展示标签与说明",
     ),
+    "chart": Component(
+        kind="chart",
+        labels=frozenset({"unit", "note"}),
+        items=(2, 6),
+        summary="柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本",
+    ),
 }
 
 #: 分镜没有声明 figure.kind 时，按场景类型取用的默认组件。
@@ -86,7 +92,18 @@ DEFAULT_KINDS: dict[str, str] = {
     "timeline": "stairs",
     "conclusion": "exchange",
     "number": "number",
+    "chart": "chart",
 }
+
+#: 画面主体由 canvas 绘制的组件：它们内部的文字量不到，
+#: 观感闸门（K7 文字溢出 / K8 容器内溢出）对图形内部**不适用**，
+#: 体检报告必须写明这一判定范围并说明原因（见 inspect.py / keynote.py）。
+CANVAS_KINDS: frozenset[str] = frozenset({"chart"})
+
+#: 会把 figure.schematic 自动画成「示意」标的组件。
+#: 其它组件声明了该标记时，校验器要求文案里自己出现「示意」二字，
+#: 否则「标记为示意」只存在于数据里，观众看不到。
+SCHEMATIC_KINDS: frozenset[str] = frozenset({"chart"})
 
 
 def known_kinds() -> list[str]:

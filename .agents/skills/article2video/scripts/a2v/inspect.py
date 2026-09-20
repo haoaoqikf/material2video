@@ -637,8 +637,14 @@ def keynote_gate(
     rgb: bytes,
     facts: dict[str, Any] | None,
     accent: tuple[int, int, int] | None,
+    figure_kind: str = "",
 ) -> list[keynote.Gate]:
-    """把一帧的像素量测与元素事实转成一条条观感闸门结论。"""
+    """把一帧的像素量测与元素事实转成一条条观感闸门结论。
+
+    `figure_kind` 是这一幕解析出来的组件 kind：画面主体由 canvas 绘制的
+    组件（catalog.CANVAS_KINDS，当前是 chart）内部文字量不到，K7 / K8
+    对那一部分不适用——结论里必须写明这个判定范围，而不是装作量过了。
+    """
     gates: list[keynote.Gate] = []
     background = rgb_metrics(rgb)
     gates.append(keynote.gate_whitespace(scene_id, scene_type, background["empty"], ink_metrics(rgb)["bright"]))
@@ -678,6 +684,7 @@ def keynote_gate(
 
     texts = facts.get("texts") or []
     page_background = keynote.parse_color(facts.get("background") or "")
+    chart_interior = figure_kind in catalog.CANVAS_KINDS
     gates.append(keynote.gate_type_sizes(scene_id, list(facts.get("sizes") or [])))
     gates.append(
         keynote.gate_alignment(scene_id, texts, center=float(facts.get("center") or 0) or None)
@@ -686,9 +693,19 @@ def keynote_gate(
     gates.append(keynote.gate_contrast(scene_id, texts, page_background))
     gates.append(keynote.gate_card_discipline(scene_id, list(facts.get("cards") or [])))
     gates.append(
-        keynote.gate_overflow(scene_id, texts, facts.get("safe"), list(facts.get("noFit") or []))
+        keynote.gate_overflow(
+            scene_id,
+            texts,
+            facts.get("safe"),
+            list(facts.get("noFit") or []),
+            chart_interior=chart_interior,
+        )
     )
-    gates.append(keynote.gate_container_overflow(scene_id, list(facts.get("inside") or [])))
+    gates.append(
+        keynote.gate_container_overflow(
+            scene_id, list(facts.get("inside") or []), chart_interior=chart_interior
+        )
+    )
     gates.append(
         keynote.gate_stroke_consistency(
             scene_id, [float(width) for width in (facts.get("strokes") or [])]
@@ -751,7 +768,16 @@ def run_inspect(
                 keynote_result.render(
                     scene_id,
                     frame,
-                    keynote_gate(target.name, scene_id, scene_type, decode_rgb(png), facts, accent),
+                    keynote_gate(
+                        target.name,
+                        scene_id,
+                        scene_type,
+                        decode_rgb(png),
+                        facts,
+                        accent,
+                        # declared_kind 已含默认映射：画面实际挂的就是它
+                        figure_kind=expected_kind,
+                    ),
                 )
 
             # 顺带读一次组件结构：标注可能在幕内被替换（例如翻转牌），

@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,12 +38,15 @@ _SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
     "timeline": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
     "diagram": {"required": {"nodes"}, "optional": {"edges", "title", "annotations", "figure"}},
     "number": {"required": {"value"}, "optional": {"label", "caption", "annotations", "figure"}},
+    "chart": {"required": {"values"}, "optional": {"title", "chart", "annotations", "figure"}},
     "list": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
     "conclusion": {"required": {"text"}, "optional": {"action", "emphasis", "annotations", "figure"}},
 }
 
 # 声明用哪个视觉组件画这一幕。详见 references/figure-catalog.md。
-_FIGURE_FIELDS = {"kind", "labels", "motion", "params"}
+# schematic 是示意标记（任务 7.5）：声明这组数值没有来源，
+# 图表组件会自动在画面上画出「示意」标，校验器据此给出提示。
+_FIGURE_FIELDS = {"kind", "labels", "motion", "params", "schematic"}
 _FIGURE_MOTIONS = ("calm", "normal", "impact")
 _VISUAL_THEMES = ("dark", "light")
 _VISUAL_LAYOUTS = ("center", "lower")
@@ -387,31 +391,48 @@ def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report, de
         _validate_annotations(data_field["annotations"], f"{path}.data.annotations", report)
 
     if "figure" in data_field:
-        _validate_figure(data_field["figure"], f"{path}.data.figure", report, declarative)
+        _validate_figure(data_field["figure"], f"{path}.data.figure", report, declarative, scene_type)
     elif declarative and catalog.resolve_kind(scene_type, None) is None:
         report.error(f"{path}.data.figure.kind", "此场景类型没有默认组件，请显式指定 kind")
 
     if scene_type == "diagram":
         _validate_diagram(data_field, f"{path}.data", report)
+    if scene_type == "chart":
+        _validate_chart(data_field, f"{path}.data", report, declarative)
 
     _warn_on_component_capacity(scene_type, data_field, f"{path}.data", report)
     _warn_on_long_text(data_field, f"{path}.data", report)
+    _warn_on_schematic(scene_type, data_field, f"{path}.data", report)
 
 
-def _validate_figure(value: Any, path: str, report: Report, declarative: bool = False) -> None:
+def _validate_figure(
+    value: Any,
+    path: str,
+    report: Report,
+    declarative: bool = False,
+    scene_type: str = "",
+) -> None:
     """校验选组件的那一小段声明。
 
     结构层保证 kind 是字符串、motion 是三个节奏之一、labels/params 是对象；
     「这个 kind 存不存在、它认识哪些标注键、能吃下多少条目」由组件目录说了算
     （见 references/figure-catalog.md 与 a2v/catalog.py）。
+    kind 缺省时按场景类型取默认组件——标注检查跟着那个组件走，
+    否则「只带标注不带 kind」的写法会失去这层检查。
     """
     if not isinstance(value, dict):
         report.error(path, "figure 必须是对象，形如 {\"kind\": \"iceberg\"}")
         return
+    # kind 可以缺省（按场景类型取默认组件），figure 也可以只带标注或示意标记；
+    # 但写了 kind 就必须是非空字符串
     kind = value.get("kind")
-    if not isinstance(kind, str) or not kind.strip():
+    if "kind" in value and (not isinstance(kind, str) or not kind.strip()):
         report.error(f"{path}.kind", "figure.kind 必须是非空字符串")
         return
+    resolved_kind = (
+        kind.strip() if isinstance(kind, str) and kind.strip()
+        else catalog.DEFAULT_KINDS.get(scene_type, "")
+    )
     for name in sorted(set(value) - _FIGURE_FIELDS):
         (report.error if declarative else report.warn)(f"{path}.{name}", f"figure 未定义字段 '{name}'")
     motion = value.get("motion")
@@ -419,6 +440,11 @@ def _validate_figure(value: Any, path: str, report: Report, declarative: bool = 
         report.error(
             f"{path}.motion",
             f"motion 必须是 {'/'.join(_FIGURE_MOTIONS)} 之一，实际为 {motion!r}",
+        )
+    if "schematic" in value and not isinstance(value["schematic"], bool):
+        report.error(
+            f"{path}.schematic",
+            "figure.schematic 必须是布尔值：true 表示这组数值没有来源，画面要出现「示意」标",
         )
     for name in ("labels", "params"):
         if name in value and not isinstance(value[name], dict):
@@ -433,13 +459,13 @@ def _validate_figure(value: Any, path: str, report: Report, declarative: bool = 
             "当前没有组件读取 params，写了不会改变画面；需要可调几何时先在组件里实现",
         )
 
-    entry = catalog.component(kind.strip())
+    entry = catalog.component(resolved_kind)
     if entry is None:
         # 未知组件只警告：目录允许扩展，网页挂载时会立刻抛出更明确的错误
         (report.error if declarative else report.warn)(
             f"{path}.kind",
-            f"组件 '{kind}' 不在目录中（已知：{'、'.join(catalog.known_kinds())}），"
-            "渲染前请确认网页已注册该组件",
+            f"组件 '{kind if kind else resolved_kind or '（无法确定）'}' 不在目录中"
+            f"（已知：{'、'.join(catalog.known_kinds())}），渲染前请确认网页已注册该组件",
         )
         return
     labels = value.get("labels")
@@ -464,7 +490,7 @@ def _warn_on_component_capacity(
     entry = catalog.component(catalog.resolve_kind(scene_type, data_field.get("figure")) or "")
     if entry is None or entry.items is None:
         return
-    for field in ("items", "nodes"):
+    for field in ("items", "nodes", "values"):
         value = data_field.get(field)
         if not isinstance(value, list):
             continue
@@ -604,6 +630,128 @@ def _validate_diagram(data_field: dict[str, Any], path: str, report: Report) -> 
             report.error(f"{path}.edges[{i}]", "边必须是 [from, to] 数组或含 from/to 的对象")
         elif node_ids and (pair[0] not in node_ids or pair[1] not in node_ids):
             report.error(f"{path}.edges[{i}]", f"边 {pair[0]} -> {pair[1]} 引用了不存在的节点")
+
+
+#: 图表数据点标签的字数上限：与图形标注同一量级，过长会挤掉图形本身。
+_CHART_LABEL_MAX_CHARS = 12
+
+#: 图表类型（data.chart）的取值。与渲染层 `web/src/charts/series.ts` 的
+#: `CHART_TYPES` 一致——两侧各自声明、由测试对照，类型是画面语义，
+#: 不放进 catalog.py 的组件表里（它描述的是组件不是字段）。
+_CHART_TYPES = ("bar", "line", "pie")
+
+
+def _validate_chart(
+    data_field: dict[str, Any], path: str, report: Report, declarative: bool = False
+) -> None:
+    """校验图表场景的数据序列与图表类型（任务 7.2）。
+
+    数据必须全部来自分镜：values 缺失、空数组、条目缺标签或数值非法都直接报错
+    ——渲染层在挂载时会为同样的错误抛异常，「校验通过却画不出来」是双真源的缺陷。
+    """
+    values = data_field.get("values")
+    if not isinstance(values, list) or not values:
+        report.error(
+            f"{path}.values",
+            "values 必须是非空数组，每项形如 {\"label\": \"四月\", \"value\": 12}",
+        )
+        return
+
+    seen: dict[str, int] = {}
+    for index, item in enumerate(values):
+        item_path = f"{path}.values[{index}]"
+        if not isinstance(item, dict):
+            report.error(item_path, "数据点必须是 {\"label\", \"value\"} 对象")
+            continue
+        unknown = sorted(set(item) - {"label", "value"})
+        if unknown:
+            (report.error if declarative else report.warn)(
+                f"{item_path}.{unknown[0]}", f"数据点未定义字段 '{unknown[0]}'"
+            )
+        label = item.get("label")
+        if not isinstance(label, str) or not label.strip():
+            report.error(f"{item_path}.label", "数据点标签必须是非空字符串")
+        else:
+            previous = seen.get(label)
+            if previous is None:
+                seen[label] = index
+            else:
+                report.warn(
+                    f"{item_path}.label",
+                    f"标签「{label}」与第 {previous} 项重复：同一份序列里两根柱子同名，读不出谁是谁",
+                )
+            if len(label.strip()) > _CHART_LABEL_MAX_CHARS:
+                report.warn(
+                    f"{item_path}.label",
+                    f"数据点标签 {len(label.strip())} 个字符，超过 {_CHART_LABEL_MAX_CHARS} 字上限，"
+                    "会挤压图形本身",
+                )
+        value = item.get("value")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            report.error(f"{item_path}.value", "数据点数值必须是有限数字")
+
+    chart_type = data_field.get("chart")
+    if "chart" in data_field and chart_type not in _CHART_TYPES:
+        report.error(
+            f"{path}.chart",
+            f"chart 必须是 {'/'.join(_CHART_TYPES)} 之一，实际为 {chart_type!r}",
+        )
+
+
+def _visible_text(data_field: dict[str, Any]) -> str:
+    """把分镜数据里所有字符串值拼起来（含嵌套对象与数组）。
+
+    用于检查「示意」二字有没有落到画面上：它可能写在标签、说明、
+    数据点标签或图形标注里——写在哪儿都算数，观众看得到才算数。
+    """
+    parts: list[str] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, str):
+            parts.append(value)
+        elif isinstance(value, dict):
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    for value in data_field.values():
+        walk(value)
+    return "".join(parts)
+
+
+def _warn_on_schematic(
+    scene_type: str, data_field: dict[str, Any], path: str, report: Report
+) -> None:
+    """示意标记（figure.schematic）的提示（任务 7.5）。
+
+    「这个数值有没有来源」是内容判断，校验器做不了；这里只保证两件事：
+    标记被接受（不会当成未知字段拒绝），以及标记真的会落到画面上——
+    图表组件会自动画「示意」标（catalog.SCHEMATIC_KINDS），其它组件
+    只能靠文案里出现这两个字。两类提示都是 warning：定稿前用 --strict
+    收口时，作者必须对「这些数字哪来的」给出一个明确的交代——
+    要么声明示意标记，要么在文案里写明来源（出处 / 来源字样）。
+    """
+    figure = data_field.get("figure")
+    marked = isinstance(figure, dict) and figure.get("schematic") is True
+    visible = _visible_text(data_field)
+    has_word = "示意" in visible
+    has_source = "来源" in visible or "出处" in visible
+    if marked:
+        kind = catalog.resolve_kind(scene_type, figure)
+        if kind not in catalog.SCHEMATIC_KINDS and not has_word:
+            report.warn(
+                f"{path}.figure.schematic",
+                "已声明 schematic，但这一幕的组件不会自动画「示意」标，"
+                "文案里也没有「示意」二字——无来源数值会被观众当成实测结果",
+            )
+    elif scene_type == "chart" and not has_word and not has_source:
+        report.warn(
+            f"{path}.values",
+            "图表数值没有标记来源：确认每个数值都有出处，并在文案里写明来源；"
+            "确属示意数据时请声明 figure.schematic: true，画面会自动出现「示意」标",
+        )
 
 
 @dataclass(frozen=True)

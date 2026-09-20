@@ -156,6 +156,7 @@ const SceneFigure: React.FC<SceneFigureProps> = ({
     labels: labels ?? {},
     params: (declared['params'] ?? {}) as Record<string, unknown>,
     motion: typeof declared['motion'] === 'string' ? declared['motion'] : 'normal',
+    schematic: declared['schematic'] === true,
   };
   const state = {
     localFrame,

@@ -24,6 +24,24 @@ import {
   useFit,
 } from '@/runtime/figures';
 
+/**
+ * 数值幕的取值函数（任务 7.3：数值计数组件保留 ROLL_MIN 步门槛）。
+ *
+ * 抽成纯导出函数是为了让「`value: 1` 不出现先显示 0 再跳变的帧」可以
+ * **逐帧断言**（`Number.test.ts`），而不是靠一次实测记在心里：
+ * 门槛数值本身在 `runtime/figures.ts` 的 `ROLL_MIN`，这里只实现判据——
+ * |value| ≥ ROLL_MIN 才滚（缓动进度乘以最终值），否则直接给最终值；
+ * 非数字（或非有限数）一律原样显示，这一支与从前完全一致。
+ */
+export function rollValueText(raw: unknown, easedProgress: number): string {
+  const rollable =
+    typeof raw === 'number' && Number.isFinite(raw) && Math.abs(raw) >= ROLL_MIN;
+  if (rollable) {
+    return String(Math.round(raw * easedProgress));
+  }
+  return raw === null || raw === undefined ? '' : String(raw);
+}
+
 export const NumberFigure: FC = () => {
   const fig = useFigure();
   const { localFrame } = fig.state;
@@ -38,13 +56,7 @@ export const NumberFigure: FC = () => {
   );
   const rise = sinceBeat(fig, 0.1);
 
-  const rollable =
-    typeof raw === 'number' && Number.isFinite(raw) && Math.abs(raw) >= ROLL_MIN;
-  const valueText = rollable
-    ? String(Math.round(raw * progress))
-    : raw === null || raw === undefined
-      ? ''
-      : String(raw);
+  const valueText = rollValueText(raw, progress);
 
   const value = useFit({ level: 'numeral', text: valueText });
   const labelText = plainText(data['label']);
