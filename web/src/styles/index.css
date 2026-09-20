@@ -1,82 +1,39 @@
 /*
- * 舞台与安全区。
+ * 新画面工程的样式入口。
  *
- * 与既有 `base.css` 同一套约束，数值也照抄（背景、安全区、柔性列布局）：
+ * 这里的 `@import` 顺序是**画面几何的一部分**，不是排版偏好：同权重的选择器
+ * 谁赢由源序决定。旧页面 `assets/declarative.html` 的 `<link>` 顺序是
+ *   base → theme → keynote → figures → declarative
+ * 因此这里逐条照抄；任何一处对调都会让「同一个元素被两条规则声明」的那几处
+ * 悄悄换一个赢家——不报错，只是像素差。
  *
- * - 舞台严格等于 `width × height`，外层不加 margin/padding，页面不出现滚动条。
- *   `_precheck_dimensions` 会拿 `scrollWidth/scrollHeight` 与视口比对，多出
- *   1px 就报错，因此这里不许有意外溢出；
- * - 所有正文放进 `.a2v-safe`，避开平台界面遮挡；
- * - 幕容器是绝对定位、叠在一起，由运行时逐帧决定显示哪一个。
+ * 开头两条是新工程专有的层，旧页面没有对应文件：
+ *   - `tailwindcss/theme.css` + `utilities.css`：`@theme` 与工具类的产出层。
+ *     **刻意不引 `preflight.css`**：preflight 是「浏览器默认样式的重置」，
+ *     而旧页面 `declarative.html` 从来没有它。带上它，`line-height: 1.5`、
+ *     标题的 `margin`、`font-size` 继承等会整体换一套——不报错，只是每个字都
+ *     挪一点，跨路径比对会全帧崩掉（实测 PSNR 1.4 dB）。画面基线必须与旧页面
+ *     一致，因此这里只取 Tailwind 的令牌与工具类，不要它的重置。
+ *     `box-sizing: border-box` 由旧 `base.css` 的 `*` 规则提供，不依赖 preflight；
+ *   - `tokens.css`：设计令牌真源（旧路径的 `base.css` / `theme.css` / `keynote.css`
+ *     里那些 `:root { --a2v-* }` 声明都搬到了这里，只保留一处真源）。
+ *     令牌是变量，先声明后使用，放最前不影响层叠；
+ *   - `primitives.css`：四族基元（旧 `keynote.css` 的第 853–1064 行）。
+ *     **它必须紧跟 `keynote.css`**：这一段在旧文件里位于**尾部**，正是靠源序
+ *     压过同权重的设计语言层。搬到最前面会让源序反过来——实测 `.a2v-label`
+ *     的字距从 `normal` 变成 `0.14em`，冰山幕的标注宽 155px 而不是 136px。
  *
- * 契约页与 Remotion 渲染路径共用这一份样式，因此预览与导出用同一套坐标。
+ * 本文件**不再手写任何元素级规则**：`html/body`、`[data-a2v-stage]`、
+ * `[data-a2v-scene]`、`.a2v-safe`、字幕与渲染模式全部由下面搬来的文件提供，
+ * 免得同一件事有两个真源。
  */
 
-@import 'tailwindcss';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 @import './tokens.css';
+@import './base.css';
+@import './theme.css';
+@import './keynote.css';
 @import './primitives.css';
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: #07090f;
-  color: #f4f7fb;
-  font-family: var(--a2v-font);
-}
-
-/* 舞台：逻辑尺寸固定，缩放只由外层 `transform: scale()` 完成，不改内部布局 */
-[data-a2v-stage] {
-  position: relative;
-  width: var(--a2v-width);
-  height: var(--a2v-height);
-  overflow: hidden;
-  transform-origin: top left;
-  background: #07090f;
-}
-
-/* 单幕容器：全部留在 DOM 里、叠在一起，运行时只显示当前幕（其余 display:none） */
-[data-a2v-scene] {
-  position: absolute;
-  inset: 0;
-}
-
-/* 内容安全区：所有正文都应放在这个容器内 */
-.a2v-safe {
-  position: absolute;
-  top: var(--a2v-safe-top);
-  right: var(--a2v-safe-x);
-  bottom: var(--a2v-safe-bottom);
-  left: var(--a2v-safe-x);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 48px;
-}
-
-/*
- * 字幕占掉安全区底部时，正文区域同步上移；预览与导出共用同一规则。
- * 配音与字幕准备完成后由画面按媒体清单启用。
- */
-.a2v-with-subtitles .a2v-safe {
-  bottom: calc(var(--a2v-safe-bottom) + 180px);
-}
-
-/*
- * 渲染模式：渲染脚本取消预览缩放并隐藏预览专用元素。
- * 契约页会加上 `a2v-rendering` 类，因此同一份样式对两种用途都成立。
- */
-html.a2v-rendering [data-a2v-controls],
-html.a2v-rendering .a2v-preview-only {
-  display: none !important;
-}
-
-html.a2v-rendering .a2v-scaler {
-  transform: none !important;
-}
-
+@import './figures.css';
+@import './declarative.css';

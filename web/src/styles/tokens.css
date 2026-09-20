@@ -143,15 +143,18 @@
 }
 
 /*
- * 预设层：只有启用预设时生效，作用域与旧路径一致（属性挂在舞台的祖先上，
- * 自定义属性沿 DOM 树继承，因此不必挂在 `:root` 上）。
+ * 预设层：只有启用预设时生效，作用域与旧路径一致（`:root[data-a2v-preset="keynote"]`，
+ * 旧 `keynote.css` 第 48 行）。**` :root` 不能省**：这一层要盖掉默认层里同名的
+ * 令牌，而默认层（旧 `theme.css` / `base.css`，现在都搬进了本文件）用的是 `:root`；
+ * 去掉 `:root` 会让权重从 0,2,0 掉到 0,1,0，胜负改由源序决定，
+ * 于是「谁赢」变成一件要看文件顺序的事——那正是这一轮要消灭的隐性耦合。
  *
  * 两层是**叠加**关系，不是互斥关系：默认层始终存在，预设层只覆盖它定义的
  * 那些名字。旧路径就是这样（裸 `:root` 与预设选择器同时命中），
  * 因此 `--a2v-glow-1`、`--fig-water-line` 这类只由默认层给的令牌，
  * 在启用预设时依然可用。
  */
-[data-a2v-preset='keynote'] {
+:root[data-a2v-preset='keynote'] {
   color-scheme: dark;
 
   --a2v-font: "A2V Inter", "A2V Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -442,13 +445,17 @@
 
 /* 浅色主题：只覆盖配色，字阶与几何与深色共用。
  *
- * 选择器写成两条，因为两级属性在新旧路径里挂在**不同层**上：
- * 旧路径把 `data-a2v-preset` 与 `data-a2v-theme` 都挂在 `:root` 上（同一元素），
- * React 路径把 `data-a2v-theme` 挂在舞台元素上、预设属性挂在其祖先上。
- * 只写同一元素那一条，浅色作品会**静默地按深色渲染**——画面从头到尾都对，
- * 只是配色全反了。 */
-[data-a2v-preset='keynote'][data-a2v-theme='light'],
-[data-a2v-preset='keynote'] [data-a2v-theme='light'] {
+ * 选择器与旧 `keynote.css` 第 194 行**逐字相同**，` :root` 不能省：
+ * 预设的浅色层与 `declarative.css` 里的默认浅色层（`:root[data-a2v-theme="light"]`，
+ * 未启用预设那套暖白配色）在**同一个元素**上竞争，两者权重只差这一个 `:root`：
+ *   预设层（带 `:root`）= 0,3,0；默认层 = 0,2,0。
+ * 省掉 `:root` 就变成 0,2,0，而 `declarative.css` 排在后面 —— 浅色的预设作品会
+ * 静默地按**默认暖白**渲染（实测 `--a2v-bg-0` 是 `#f1efea` 而不是 `#eff1f4`，
+ * 强调色也退回砖红），不报错，只是整套配色不对。
+ *
+ * 旧路径把两个属性都挂在 `:root` 上，React 路径同样挂在 `document.documentElement`
+ * 上（见 `A2VComposition` 的 `useLayoutEffect`），因此这一条在两条路径上都命中。 */
+:root[data-a2v-preset='keynote'][data-a2v-theme='light'] {
   color-scheme: light;
 
 

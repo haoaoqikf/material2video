@@ -45,10 +45,15 @@ def _skip_if_unbuilt() -> None:
 
 
 def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]:
-    """打开页面读计算值；`flips` 里的主题会依次改写舞台属性后再读一次。
+    """打开页面读计算值；`flips` 里的主题会依次改写根元素属性后再读一次。
 
-    改属性而不是另开一个页面：浅色主题的选择器要匹配的正是「预设属性在祖先、
-    主题属性在舞台」这种形状，而手头的示例分镜只有深色预设。
+    改属性而不是另开一个页面：浅色主题的选择器要匹配的正是「预设与主题都挂在
+    根元素上、舞台只管画面」这种形状，而手头的示例分镜只有深色预设。
+
+    属性挂在哪里是**契约的一部分**：React 路径与旧页面 `assets/declarative.js`
+    一样，把 `data-a2v-preset` / `data-a2v-theme` / 尺寸变量写到
+    `document.documentElement` 上（见 `A2VComposition` 里的 `useLayoutEffect`），
+    自定义属性沿 DOM 继承到舞台，因此这里读与改都落在根元素上。
     """
     with browser.open_animated_page(url, width=1080, height=1920) as page:
         reads = [
@@ -64,14 +69,13 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                 "}"
                 "return {tokens: out, preset: !!document.querySelector('[data-a2v-preset]'),"
                 "scene: !!document.querySelector('[data-a2v-scene]'),"
-                "theme: stage ? stage.getAttribute('data-a2v-theme') : null};"
+                "theme: document.documentElement.getAttribute('data-a2v-theme')};"
                 "}"
             )
         ]
         for theme in flips:
             page.evaluate(
-                "(theme) => document.querySelector('.a2v-stage')"
-                ".setAttribute('data-a2v-theme', theme)",
+                "(theme) => document.documentElement.setAttribute('data-a2v-theme', theme)",
                 theme,
             )
             reads.append(
@@ -82,7 +86,8 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                     "const css = getComputedStyle(stage);"
                     "const out = {};"
                     "for (const name of names) out[name] = (css.getPropertyValue(name) || '').trim();"
-                    "return {tokens: out, theme: stage.getAttribute('data-a2v-theme')};"
+                    "return {tokens: out,"
+                    "theme: document.documentElement.getAttribute('data-a2v-theme')};"
                     "}"
                 )
             )
@@ -100,13 +105,21 @@ def test_preset_tokens_apply_only_where_the_preset_is_declared(chromium_ready):
     assert plain["preset"] is False, "这份分镜没有预设，页面上不该出现预设属性"
     # 默认层：与旧 base.css / theme.css 一致
     assert plain["tokens"]["--a2v-safe-top"] == "220px", plain["tokens"]
-    assert plain["tokens"]["--a2v-bg-0"].lower() == "#07090f", plain["tokens"]
+    # 这份分镜写的是 `visual.theme = "light"`，因此底色来自**默认浅色层**——
+    # 它不挂在预设上，住在 `declarative.css` 的 `:root[data-a2v-theme="light"]` 里
+    # （暖白 + 砖红强调）。这里断言的是旧页面在同一分镜上的实测值
+    # （`#f1efea` / `#c2352a`），不是深色默认值：把这一层搬到 tokens.css
+    # 会让 theme.css 的同名浅色层反过来压过它，整幅画面换色（实测 1.4 dB）。
+    assert plain["tokens"]["--a2v-bg-0"].lower() == "#f1efea", plain["tokens"]
+    assert plain["tokens"]["--a2v-accent"].lower() == "#c2352a", plain["tokens"]
+    assert plain["theme"] == "light", plain
     assert "PingFang SC" in plain["tokens"]["--a2v-font"], plain["tokens"]
     # 预设专有的字阶不存在——这也是「未启用预设就不取档」的令牌侧依据
     assert plain["tokens"]["--a2v-size-body"] == "", plain["tokens"]
 
     assert dark["preset"] is True, "启用预设的分镜必须在画面上挂出预设属性"
-    # 预设属性在祖先、主题属性在舞台——浅色主题的选择器必须匹配这种形状
+    # 预设与主题都挂在根元素上（与旧 declarative.js 同一形状）：
+    # 浅色主题的选择器 `[data-a2v-preset][data-a2v-theme="light"]` 必须匹配它
     assert dark["theme"] == "dark", dark
     assert dark["tokens"]["--a2v-safe-top"] == "240px", dark["tokens"]
     assert dark["tokens"]["--a2v-bg-0"].lower() == "#08090c", dark["tokens"]

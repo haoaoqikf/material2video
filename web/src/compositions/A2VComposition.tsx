@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo } from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
-import { parseSceneData, type Storyboard } from '@/schema/storyboard';
+import { parseSceneData, type Scene, type Storyboard } from '@/schema/storyboard';
+import { FigureProvider, createFigureApi, pad, type FigureSpec } from '@/runtime/figures';
+import { figureDefinition, knownKinds, resolveKind } from '@/registry';
 import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
 
 export type A2VProps = Storyboard;
@@ -26,8 +28,12 @@ export type A2VProps = Storyboard;
  * 2. **锚点名字照抄旧页面**：`data-a2v-scene` / `data-scene-id` / `.a2v-safe` /
  *    `data-a2v-figure` / `.a2v-scene-index`。改名不会报错，只会让闸门**静默跳过**——
  *    空转的检查与通过的检查在报告里长得一模一样；
- * 3. **`data-a2v-preset` 挂在舞台的祖先上**：探针用的是
- *    `[data-a2v-preset] [data-a2v-stage]`（后代选择器），挂在舞台自身上匹配不到；
+ * 3. **主题与预设挂在 `<html>` 上**，与旧页面（`assets/declarative.js`）逐字一致：
+ *    `data-a2v-theme` / `data-a2v-preset` / 行内的 `--a2v-width`、`--a2v-height`
+ *    都写在 `document.documentElement` 上。挂到舞台自身上会漏掉两类规则——
+ *    一类是 `:root[data-a2v-preset="keynote"]` 这种把根元素写进选择器的令牌块，
+ *    另一类是 `[data-a2v-preset] [data-a2v-stage]` 这类要求属性在祖先上的规则。
+ *    漏掉的症状是「预设的排版与令牌整片不生效」，而校验与渲染都照常通过。
  *    未声明预设时这个属性完全不出现，令牌与基元规则因此不命中任何元素；
  * 4. **画面只由帧号推导**：这里没有 CSS 动画、没有真实时钟，改动时也不许引入。
  */
@@ -39,8 +45,34 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const theme = storyboard.visual?.theme ?? 'dark';
   const preset = storyboard.visual?.preset;
 
+  /*
+   * 舞台尺寸与主题写在根元素上：契约页与 Remotion 渲染页都是真实浏览器页面，
+   * `documentElement` 就是旧页面里那个 `<html>`。这一步不参与逐帧计算
+   * （只在 props 变化时执行），因此不影响帧驱动的确定性。
+   */
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.a2vTheme = theme;
+    if (preset) {
+      root.dataset.a2vPreset = preset;
+    } else {
+      delete root.dataset.a2vPreset;
+    }
+    root.style.setProperty('--a2v-width', `${storyboard.width}px`);
+    root.style.setProperty('--a2v-height', `${storyboard.height}px`);
+  }, [theme, preset, storyboard.width, storyboard.height]);
+
   const stage = (
-    <div className="a2v-stage" data-a2v-stage="" data-a2v-theme={theme}>
+    <div className="a2v-stage" data-a2v-stage="">
+      {/*
+        舞台底纹三层，顺序与旧页面一致（`assets/declarative.html` 的
+        `glow → grid → grain`）：它们是**画面的一部分**，不是页面装饰——
+        底色、光晕与颗粒都会被抽帧对照算进像素差。少一层或换个顺序，
+        画面就只是「看起来差不多」。
+      */}
+      <div className="a2v-bg-glow stage-bg" aria-hidden="true" />
+      <div className="a2v-bg-grid stage-bg" aria-hidden="true" />
+      <div className="a2v-bg-grain stage-bg" aria-hidden="true" />
       {storyboard.scenes.map((scene, index) => {
         const isActive = index === activeIndex;
         const localFrame = isActive ? Math.min(Math.max(frame - starts[index]!, 0), Math.max(scene.durationInFrames - 1, 0)) : 0;
@@ -53,140 +85,111 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
             data-layout={scene.visual?.layout ?? 'center'}
             style={isActive ? undefined : { display: 'none' }}
           >
-            <ScenePlaceholder
-              sceneId={scene.id}
-              sceneType={scene.type}
+            <SceneFigure
+              scene={scene}
               sceneIndex={index}
               sceneCount={storyboard.scenes.length}
+              fps={storyboard.fps}
+              preset={preset}
+              active={isActive}
               localFrame={localFrame}
-              durationInFrames={scene.durationInFrames}
               data={data}
             />
+            {/*
+              幕角标只在预设生效时出现（旧页面同样如此）：它写着作者给的定位词与幕号。
+              没写 kicker 时留一个空 span 而**不回落到类型名**——`TITLE` 这种内部
+              标识符不是给读者看的字；也不能删掉整个 span，那一行是
+              `justify-content: space-between`，少一个子元素会把幕号从右边甩到左边。
+            */}
+            {preset ? (
+              <div className="a2v-scene-index">
+                <span>{String(scene.visual?.kicker ?? '').trim()}</span>
+                <span className="a2v-scene-number">{`${pad(index + 1)} / ${pad(storyboard.scenes.length)}`}</span>
+              </div>
+            ) : null}
           </section>
         );
       })}
     </div>
   );
 
-  if (!preset) {
-    return <AbsoluteFill>{stage}</AbsoluteFill>;
-  }
-
-  // `display: contents`：这一层只为承载 `data-a2v-preset` 而存在，
-  // 不生成盒子，因此舞台的尺寸与位置完全不受影响。
-  return (
-    <AbsoluteFill>
-      <div data-a2v-preset={preset} style={{ display: 'contents' }}>
-        {stage}
-      </div>
-    </AbsoluteFill>
-  );
+  return <AbsoluteFill>{stage}</AbsoluteFill>;
 };
 
-interface ScenePlaceholderProps {
-  sceneId: string;
-  sceneType: string;
+interface SceneFigureProps {
+  scene: Scene;
   sceneIndex: number;
   sceneCount: number;
+  fps: number;
+  preset: string | undefined;
+  /** 这一幕此刻是否可见；取档依赖它（`display: none` 的元素量出来是 0） */
+  active: boolean;
   localFrame: number;
-  durationInFrames: number;
   data: Record<string, unknown>;
 }
 
 /**
- * 阶段 1 的占位画面。
+ * 一幕的画面：按注册表取组件，把这一幕的状态交给它。
  *
- * 它存在的意义是让契约页、体检探针与渲染链路先跑通：探针要能从画面里读到文案，
- * 因此这里把分镜里的主文案画出来（而不是只印一个帧号），
- * 否则「探针读不到文案」会被误判成探针坏了。
+ * 组件拿到的是**只读的运行时**（帧号、幕长、节奏、分镜数据、标注、动效接口），
+ * 它自己不去查 DOM、不读全局变量、不碰计时器——画面因此只由帧号与分镜决定。
+ *
+ * 取不到组件时抛错而不是画空白：`kind` 写错、或场景类型没有默认组件，
+ * 都是「这条分镜画不出来」，静默空白会让它在成片里才被发现。
  */
-const ScenePlaceholder: React.FC<ScenePlaceholderProps> = ({
-  sceneId,
-  sceneType,
+const SceneFigure: React.FC<SceneFigureProps> = ({
+  scene,
   sceneIndex,
   sceneCount,
+  fps,
+  preset,
+  active,
   localFrame,
-  durationInFrames,
   data,
 }) => {
-  const primary = primaryTextOf(data);
-  const progress = durationInFrames > 0 ? localFrame / durationInFrames : 0;
+  const kind = resolveKind(scene.type, data);
+  const declared = (data['figure'] ?? {}) as Record<string, unknown>;
+  const annotations = (data['annotations'] ?? {}) as Record<string, string>;
+  const labels = (declared['labels'] ?? annotations) as Record<string, string>;
+  const spec: FigureSpec = {
+    kind: kind ?? '',
+    labels: labels ?? {},
+    params: (declared['params'] ?? {}) as Record<string, unknown>,
+    motion: typeof declared['motion'] === 'string' ? declared['motion'] : 'normal',
+  };
+  const state = {
+    localFrame,
+    sceneDurationFrames: scene.durationInFrames,
+    motion: spec.motion,
+  };
+  const definition = kind ? figureDefinition(kind) : undefined;
 
+  if (!kind || !definition) {
+    throw new Error(
+      `场景 ${scene.id} 画不出来：kind=${kind ?? '(未声明)'}，` +
+        `类型 ${scene.type} 也没有默认组件（已注册：${knownKinds().join('、')}）`,
+    );
+  }
+
+  const Figure = definition.Component;
   return (
-    <div className="a2v-safe" data-a2v-figure="">
-      <div
-        style={{
-          marginTop: 48,
-          fontSize: 96,
-          lineHeight: 1.2,
-          fontWeight: 700,
+    <div className="a2v-safe" data-a2v-figure="" data-fig-kind={kind}>
+      <FigureProvider
+        value={{
+          scene,
+          sceneIndex,
+          sceneCount,
+          data,
+          spec,
+          fps,
+          preset,
+          active,
+          state,
+          api: createFigureApi(fps),
         }}
       >
-        {primary}
-      </div>
-      <div
-        style={{
-          marginTop: 48,
-          fontSize: 40,
-          color: 'rgba(244,247,251,0.72)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {`第 ${sceneIndex + 1} / ${sceneCount} 幕 · ${sceneType} · ${sceneId}`}
-      </div>
-      <div
-        data-a2v-placeholder-frame=""
-        style={{
-          marginTop: 16,
-          fontSize: 40,
-          color: 'rgba(244,247,251,0.72)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {`幕内第 ${localFrame} 帧 · 进度 ${progress.toFixed(3)}`}
-      </div>
+        <Figure />
+      </FigureProvider>
     </div>
   );
 };
-
-/** 取该幕的主文案，供占位与探针使用。 */
-function primaryTextOf(data: Record<string, unknown>): string {
-  for (const key of ['text', 'title', 'label'] as const) {
-    const value = data[key];
-    if (typeof value === 'string' && value.length > 0) {
-      return value;
-    }
-  }
-  const left = data['left'];
-  const right = data['right'];
-  if (typeof left === 'string' && typeof right === 'string') {
-    return `${left} → ${right}`;
-  }
-  const items = data['items'];
-  if (Array.isArray(items) && items.length > 0) {
-    const first = items[0];
-    if (typeof first === 'string') {
-      return first;
-    }
-    if (first && typeof first === 'object' && 'label' in first) {
-      const label = (first as { label?: unknown }).label;
-      if (typeof label === 'string') {
-        return label;
-      }
-    }
-  }
-  const nodes = data['nodes'];
-  if (Array.isArray(nodes) && nodes.length > 0) {
-    const first = nodes[0];
-    if (typeof first === 'string') {
-      return first;
-    }
-    if (first && typeof first === 'object' && 'id' in first) {
-      const id = (first as { id?: unknown }).id;
-      if (typeof id === 'string') {
-        return id;
-      }
-    }
-  }
-  return '（这一幕没有可显示的主文案）';
-}

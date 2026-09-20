@@ -1,0 +1,1019 @@
+/*
+ * 视觉组件样式：逐字符照搬自冻结的 `assets/figures.css`。
+ *
+ * 为什么照搬而不是重写：这一份是**画面几何的唯一真源**——每个 `.fig-*` 的
+ * 宽容、描边宽度、圆角与位置都写在里面，抽帧对照会把这些差异算成像素差。
+ * 重写一遍就等于把画面重画一遍，而「看起来一样」在像素上从来站不住。
+ *
+ * 与旧工程的差异只有类型层面的两点：
+ * 1. 预设作用域的选择器是 `[data-a2v-preset='keynote']`（单引号统一），
+ *    属性挂在新舞台的祖先上，因此后代选择器照旧命中；
+ * 2. 文件头这段说明是新写的，其余原样。
+ *
+ * 不许在这里「顺手调一下」：调一个像素宽都要重新跑一遍抽帧对照。
+ */
+
+/*
+ * 视觉组件库样式。
+ *
+ * 只使用 theme.css 的设计令牌，不写死颜色；组件自带几何与描边，
+ * 页面换一套令牌就能换一套观感，不必改组件。
+ * 与 figures.js 一一对应：每个 .fig-* 前缀对应一个组件。
+ */
+
+.key {
+  color: var(--a2v-accent);
+  white-space: nowrap;
+}
+
+/* 逐字揭示产生的单字节点（结论幕使用） */
+.reveal-char {
+  display: inline-block;
+  white-space: pre;
+}
+
+.reveal-char.is-break {
+  display: block;
+  height: 0;
+}
+
+/* ---------- 图形通用：六幕共用同一套线宽与圆角，看起来才像一套画 ---------- */
+.fig {
+  display: block;
+  width: 888px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.fig text {
+  font-family: var(--a2v-font);
+  dominant-baseline: middle;
+}
+
+.fig .ln {
+  fill: none;
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fig .ln-soft {
+  stroke: var(--fig-line-soft);
+}
+
+.fig .ln-accent {
+  stroke: var(--a2v-accent);
+}
+
+.fig .dashed {
+  stroke-dasharray: 16 14;
+}
+
+.fig .paper {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+/* 幕标题。分镜的 `title` 是一句完整的话（「多出来的那部分是什么」），
+   所以它是**标题**而不是眉标——英文眉标由页面 chrome 提供（COMPARISON）。
+   原先这里按眉标排版：正文档字号（40px，比卡片标签的 44px 还小）、
+   字重 500、+0.14em 宽字距、颜色取最暗的 `--a2v-text-3`，
+   于是标题成了整屏最弱的元素，「层级清晰 / 主次分明」在四幕里同时失效。
+   预设层用角色令牌把四样一起换掉；未启用预设时取不到角色令牌，
+   逐层回落到原来的取值，画面因此逐字节不变。 */
+.section-title {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-heading-size, var(--a2v-ink-body, 36px));
+  font-weight: var(--a2v-heading-weight, var(--a2v-weight-medium, 500));
+  letter-spacing: var(--a2v-heading-track, var(--a2v-track-label, 0.14em));
+  color: var(--a2v-heading-color, var(--a2v-text-3));
+  margin: 0;
+}
+
+/* ---------- 01 开场：天平 ---------- */
+[data-scene-id="opening"] .a2v-safe {
+  justify-content: center;
+  gap: var(--a2v-space-5, 30px);
+}
+
+.title-text {
+  font-size: var(--a2v-ink-display, 124px);
+  line-height: 1.16;
+  font-weight: var(--a2v-weight-bold, 700);
+  margin: 0;
+  letter-spacing: var(--a2v-track-display, -0.03em);
+  /* 断行位置由分镜里的换行符决定，避免自动折行把重点词拆开 */
+  white-space: pre-line;
+  /* 上深下浅的墨色渐变：比纯黑多一点纸面呼吸感。
+     预设层会用整套替换这段背景，这里的取值只是未启用预设时的默认。 */
+  background: linear-gradient(
+    180deg,
+    var(--fig-title-grad-from, #23262d) 0%,
+    var(--fig-title-grad-to, #3d434e) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.title-sub {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--a2v-space-2, 8px);
+}
+
+.title-sub-line {
+  font-size: var(--a2v-ink-value, 44px);
+  line-height: 1.45;
+  color: var(--a2v-text-2);
+}
+
+.fig-scale {
+  width: 888px;
+  height: 430px;
+  overflow: visible;
+}
+
+.scale-pivot {
+  fill: var(--fig-line);
+}
+
+.scale-plate {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-linejoin: round;
+}
+
+/* 吊绳：它吊着两个秤盘，是横梁与秤盘之间唯一的联系。
+   曾经按取值把它归成「装饰描边」（深色 1.63:1），逐帧看时横梁像浮在空中。
+   分类要跟着用途走：绳子消失了这张天平就读不懂，所以它是结构描边。 */
+.scale-rope {
+  fill: none;
+  stroke: var(--fig-line-data, var(--fig-line-soft));
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+.load-solid {
+  fill: var(--fig-ink);
+}
+
+/* 空壳：虚线 + 极浅填充，表示「看着很大，其实没有重量」。
+   填充值必须走令牌：写死 rgba(22,24,29,0.035) 在浅色页面上是极淡的灰，
+   换到深色预设下就变成与底色同色——空壳只剩下虚线，看着像没画完。
+   回落值等于原来的字面值，未启用预设时逐字节不变。 */
+.load-hollow {
+  fill: var(--fig-hollow, rgba(22, 24, 29, 0.035));
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-dasharray: 16 13;
+}
+
+/* 填充与描边归 `a2v-surface` 的状态。这一块是「一个决定」的令牌面，
+   整幕讲的就是它，所以焦点态是**静态**的：焦点早确定并保持，
+   连续升温交给里面的文字（`--a2v-emphasis-mix` / glow 那条线），
+   避免面板底色在升温中途硬切换出一次跳变。
+   顺带修掉上一轮的遗留缺陷：强调词按设计褪色（"恐惧退场，动作上场"）后，
+   接手焦点的只有角标文字，字形笔画只占整帧 0.09%，画面在收尾一帧等于没有焦点。 */
+.load-token {
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+.load-text {
+  font-size: var(--a2v-ink-body, 36px);
+  text-anchor: middle;
+  letter-spacing: var(--a2v-track-caption, 0.06em);
+  fill: var(--fig-on-ink);
+}
+
+.load-text.is-ink {
+  fill: var(--a2v-text-2);
+}
+
+/*
+ * 天平图右侧那行文字的落点。
+ *
+ * 组件不再自己拼 color-mix：它原先写的端点是**冻结的 `#4a4a4a`**，
+ * 不跟主题走。深色主题的墨色是浅的（`rgba(255,255,255,0.72)`），
+ * 所以未点亮的文字被混成 `srgb(0.26 0.35 0.39)`，对面板只有 **2.26:1**——
+ * 40px 的大字号门槛是 3:1，实测不达标。
+ *
+ * 第 21 轮把落点定在 `--a2v-on-focus`：这行字压在的天平右盘是**重点面**
+ * （`.load-token` 带 `data-a2v-state="focus"`，填充是 `--a2v-accent-soft-solid`），
+ * 那个面在**两套主题里都是深色**，所以字必须是浅色——从 `--a2v-text-2` 混向
+ * `--a2v-accent-deep` 的写法在浅色主题下是"深蓝字压深蓝面"，实测 1.07:1。
+ * 现在改成同一支浅色墨的**亮度渐变**（72% → 100%），压在 `#16465f` /
+ * `#0d3f7d` 上分别是 9.2:1 与 10.6:1。
+ */
+[data-a2v-preset='keynote'] .load-text.is-ink {
+  fill: color-mix(
+    in srgb,
+    var(--a2v-on-focus) calc(72% + 28% * var(--a2v-token-glow, 0)),
+    transparent
+  );
+}
+
+/*
+ * 光晕必须引用本幕自己的渐变：跨场景引用另一个 <defs> 里的 id 在
+ * 目标场景被 display:none 时不会解析，光晕会静默消失。
+ */
+.scale-halo {
+  fill: url(#scale-halo);
+}
+
+/* ---------- 02 金句：落差尺 ---------- */
+[data-scene-id="real-loss"] .a2v-safe {
+  justify-content: center;
+  gap: var(--a2v-space-6, 46px);
+}
+
+.quote-block {
+  position: relative;
+  padding-left: var(--a2v-space-7, 62px);
+  color: var(--a2v-text-1);
+}
+
+/* 引号退到文字之后，作为装饰而不是内容 */
+.quote-mark {
+  position: absolute;
+  top: -104px;
+  left: -8px;
+  font-size: var(--a2v-ink-display, 220px);
+  line-height: 1;
+  color: var(--a2v-accent);
+  opacity: 0;
+  pointer-events: none;
+  font-family: var(--a2v-font);
+}
+
+/* 左侧强调竖线：先于文字画出，给整句一个「引文」的框架 */
+.quote-rule {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  border-radius: var(--a2v-radius-pill, 999px);
+  background: linear-gradient(180deg, var(--a2v-accent) 0%, color-mix(in srgb, var(--a2v-accent-soft-solid) 10%, transparent) 100%);
+  transform-origin: top center;
+}
+
+/*
+ * 字号按硬换行反推：文字可用宽度 = 1080 - 2 × 96 = 888px。
+ * 最长一行是「不过就是这家公司不要你。」共 14 字（含标点），衬线单字宽约为
+ * 字号的 1.02 倍，因此取 62px 并让每行都留有余量——宁可缩小字号，
+ * 也不要让浏览器把分镜里的硬换行再折成第四行。
+ */
+.quote-text {
+  font-size: var(--a2v-ink-lead, 62px);
+  line-height: 1.55;
+  font-weight: var(--a2v-weight-semibold, 600);
+  margin: 0;
+  max-width: 888px;
+  overflow-wrap: normal;
+  white-space: pre-line;
+}
+
+/*
+ * 强调短语：颜色 + 底部一条短横线，比加粗更克制。
+ * 底横线用单独的元素而不是 ::after —— 伪元素无法按帧改样式，
+ * 逐帧渲染下只能靠 JS 写内联值，因此这里是真实节点。
+ */
+.quote-text .key {
+  position: relative;
+  display: inline-block;
+}
+
+.key-underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 6px;
+  border-radius: var(--a2v-radius-pill, 999px);
+  background: var(--a2v-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.drop-board {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--a2v-space-6, 40px);
+}
+
+.drop-panel {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--a2v-space-3, 18px);
+  padding: var(--a2v-space-4, 26px) var(--a2v-space-3, 20px);
+  border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
+  border-radius: var(--a2v-radius-lg);
+  background: var(--a2v-surface), var(--a2v-bg-2);
+  box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
+}
+
+/* 只有「事实」那一栏拿强调色：它在画面里是焦点 */
+.drop-panel.is-fact {
+  border-color: rgba(var(--a2v-accent-rgb), 0.42);
+  background: var(--a2v-surface-strong);
+}
+
+.drop-cap {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-label, 32px);
+  letter-spacing: var(--a2v-track-caption, 0.08em);
+  color: var(--a2v-text-3);
+  text-align: center;
+}
+
+.drop-panel.is-fact .drop-cap {
+  color: var(--a2v-accent-ink, var(--a2v-accent));
+}
+
+.drop-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--a2v-space-6, 44px);
+  height: 300px;
+}
+
+/* 竖尺：底边是「0」，高度是「你手里有的东西」。
+   槽与柱必须走令牌：写死的 rgba(22,24,29,0.025) 与 #3a3f4a→#23262d 是浅色页面
+   上的取值，压到深色预设的近黑底上就与底色同色——「容量」的刻度参照消失，
+   这一幕只剩下飘着的虚线框。（柱在结尾归零是设计，见 updateGap 的
+   `aFill = ownP * (1 - dropP)`：拥有 → 被拿走 → 落差拉满。） */
+.drop-track {
+  position: relative;
+  width: 104px;
+  height: 268px;
+  /* 槽的填充只是耳语级的一层白，边框是这根竖尺唯一能被看见的边界，
+     所以用边界描边（对抬升面 ≥3:1）而不是装饰级的分隔线。
+     未启用预设时回落到分隔线，画面逐字节不变。 */
+  border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline-strong, var(--a2v-hairline));
+  border-radius: var(--a2v-radius-sm);
+  background: var(--fig-drop-track, rgba(22, 24, 29, 0.025));
+}
+
+.drop-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  border-radius: 0 0 var(--a2v-radius-sm, 19px) var(--a2v-radius-sm, 19px);
+  background: linear-gradient(
+    180deg,
+    var(--fig-drop-fill-from, #3a3f4a) 0%,
+    var(--fig-drop-fill-to, #23262d) 100%
+  );
+}
+
+.drop-panel.is-fact .drop-fill {
+  background: linear-gradient(
+    180deg,
+    var(--fig-drop-fact-from, #cc4a3f) 0%,
+    var(--fig-drop-fact-to, #a92c22) 100%
+  );
+}
+
+/* 虚线：被拒绝之前的高度。它留在原地，差值就是「失去」 */
+.drop-ghost {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  height: 0;
+  border: 2px dashed var(--fig-line);
+  border-bottom: 0;
+  border-radius: var(--a2v-radius-sm, 19px) var(--a2v-radius-sm, 19px) 0 0;
+}
+
+.drop-zero {
+  position: absolute;
+  left: -14px;
+  right: -14px;
+  bottom: -3px;
+  height: 3px;
+  background: var(--fig-line);
+}
+
+/* 落差括号：从「现在」量到「曾经」，长度就是真正的损失 */
+.drop-bracket-wrap {
+  position: relative;
+  width: 148px;
+  height: 268px;
+}
+
+.drop-bracket {
+  position: absolute;
+  left: 34px;
+  width: 22px;
+  height: 0;
+  border-left: 4px solid var(--a2v-accent);
+}
+
+.drop-bracket::before,
+.drop-bracket::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 22px;
+  height: 4px;
+  background: var(--a2v-accent);
+}
+
+.drop-bracket::before {
+  top: 0;
+}
+
+.drop-bracket::after {
+  bottom: 0;
+}
+
+.drop-bracket.is-flat {
+  border-left-color: var(--a2v-text-3);
+}
+
+.drop-bracket.is-flat::before,
+.drop-bracket.is-flat::after {
+  background: var(--a2v-text-3);
+}
+
+.drop-label {
+  position: absolute;
+  left: 60px;
+  width: 124px;
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 30px);
+  line-height: 1.25;
+  /* 标注一律单行：换行会把「无可失去」挤成两截，读起来像两个词 */
+  white-space: nowrap;
+  color: var(--a2v-accent);
+}
+
+.drop-label.is-flat {
+  color: var(--a2v-text-2);
+}
+
+/* ---------- 03 恐惧来源：冰山 ---------- */
+[data-scene-id="fear-source"] .a2v-safe {
+  justify-content: center;
+  gap: var(--a2v-space-4, 24px);
+}
+
+.fig-berg {
+  width: 888px;
+  height: 760px;
+  overflow: visible;
+}
+
+.berg-water {
+  /* 越深越淡：让水体下缘自然消失，而不是切出一条硬边 */
+  fill: url(#berg-depth);
+}
+
+.berg-tip {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-linejoin: round;
+}
+
+/* 水下部分用冷色 + 虚线：它是被藏起来的那一半 */
+.berg-mass {
+  fill: var(--fig-water);
+  stroke: var(--fig-water-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-linejoin: round;
+  stroke-dasharray: 18 14;
+}
+
+/* 填充与描边归 `a2v-surface` 的状态（rest / focus），组件只管形状与线宽。
+   原先这里写死 `fill: --fig-surface` + 发丝描边，`.is-accent` 再把描边换成
+   2px、50% 透明的强调色——那是临场的状态表达，与设计语言层的状态定义两处真源，
+   而且细到量不出来。`rest` 态给出的填充与描边与这里原来的取值完全一致。 */
+.berg-callout {
+  stroke-width: var(--a2v-stroke-2, 2);
+}
+
+.berg-callout-label {
+  font-size: var(--a2v-ink-value, 44px);
+  font-weight: var(--a2v-weight-bold, 700);
+  fill: var(--a2v-text-1);
+  letter-spacing: var(--a2v-track-body, 0.02em);
+}
+/* 焦点色由标签基元的 `focus` 态给
+ * （`[data-a2v-preset='keynote'] .a2v-label[data-a2v-state="focus"]`）。
+ * 原先那条 `.berg-callout-label.is-accent { fill: accent }` 绕过了基元——
+ * 组件各写一份，下一个组件就会再漂一次。
+ *
+ * 但基元只在预设作用域内定义，所以下面这条按**状态属性**（而不是临场类名）
+ * 补回未启用预设时的表现：那条路径上焦点标签仍然是强调色，逐帧不变。
+ * 预设下基元的选择器多一层属性，优先级更高，两边取值也一致。 */
+:root:not([data-a2v-preset='keynote']) .berg-callout-label[data-a2v-state="focus"] {
+  fill: var(--a2v-accent);
+}
+
+.berg-callout-desc {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 30px);
+  fill: var(--a2v-text-2);
+}
+
+.berg-link {
+  fill: none;
+  /* 线条族的通道变量：预设下由 `data-a2v-state` 供给（rest → --fig-line，
+   * focus → 强调色），未启用预设时回落到原来的取值。 */
+  stroke: var(--a2v-connector-ink, var(--fig-line));
+  stroke-width: var(--a2v-stroke-3, 3);
+  stroke-dasharray: 10 10;
+}
+/* 未启用预设时的焦点表现（原 `.berg-link.is-accent` 的等价物）。
+ * 基元只在预设作用域内定义，所以按**状态属性**把它接住；预设下基元
+ * 多一层属性、优先级更高。 */
+:root:not([data-a2v-preset='keynote']) .berg-link[data-a2v-state="focus"] {
+  stroke: rgba(var(--a2v-accent-rgb), 0.7);
+}
+
+/* 原有的 `.berg-link.is-accent { stroke: rgba(accent, 0.7) }` 已删：
+ * 焦点色由线条族的通道变量给，未启用预设时的表现由上面那条按状态属性
+ * 书写的规则接住。 */
+
+.berg-spark {
+  fill: var(--a2v-accent);
+}
+
+.berg-surface-note {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 30px);
+  fill: var(--fig-water-text);
+  letter-spacing: var(--a2v-track-label, 0.14em);
+}
+
+/* ---------- 04 反馈循环：飞轮 ---------- */
+[data-scene-id="feedback-loop"] .a2v-safe {
+  gap: var(--a2v-space-4, 22px);
+}
+
+.fig-loop {
+  width: 888px;
+  height: 560px;
+  overflow: visible;
+}
+
+.loop-track {
+  fill: none;
+  /* 轨道承载结构，不是装饰：预设层用 --fig-line-data 把它抬到数据描边的预算内，
+     未启用预设时回落到原来的软线取值，画面逐字节不变。 */
+  stroke: var(--fig-line-data, var(--fig-line-soft));
+  stroke-width: var(--a2v-stroke-4, 4);
+  stroke-dasharray: 4 18;
+  stroke-linecap: round;
+}
+
+.loop-arc {
+  fill: none;
+  stroke: var(--a2v-accent);
+  stroke-width: var(--a2v-stroke-5, 6);
+  stroke-linecap: round;
+}
+
+.loop-node-disc {
+  fill: var(--fig-surface);
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+.loop-node-shadow {
+  /* 同样的道理：阴影也要跟主题走，浅色页面上的暖灰阴影压在深色底上等于没有。 */
+  fill: var(--fig-node-shadow, rgba(30, 26, 22, 0.07));
+}
+
+.loop-node-text {
+  font-size: var(--a2v-ink-value, 48px);
+  font-weight: var(--a2v-weight-semibold, 600);
+  text-anchor: middle;
+  fill: var(--a2v-text-1);
+  letter-spacing: var(--a2v-track-caption, 0.04em);
+}
+
+.loop-token {
+  fill: var(--a2v-accent);
+}
+
+.loop-token-halo {
+  fill: url(#loop-halo);
+}
+
+.gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--a2v-space-4, 24px);
+  padding: 0 var(--a2v-space-1, 6px);
+}
+
+.gauge-label {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-label, 32px);
+  letter-spacing: var(--a2v-track-label, 0.14em);
+  color: var(--a2v-text-3);
+  white-space: nowrap;
+}
+
+.gauge-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 16px;
+  border-radius: var(--a2v-radius-pill, 999px);
+  /* 同理：槽是图形的一部分，不能写死浅色页面上的深灰 */
+  background: var(--fig-gauge-track, rgba(22, 24, 29, 0.07));
+  overflow: hidden;
+}
+
+.gauge-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: var(--a2v-radius-pill, 999px);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--a2v-accent-soft-solid) 55%, transparent) 0%, var(--a2v-accent-deep) 100%);
+}
+
+/* ---------- 05 上场复利：阶梯 ---------- */
+[data-scene-id="upgrade"] .a2v-safe {
+  justify-content: center;
+  gap: var(--a2v-space-5, 30px);
+}
+
+.fig-stairs {
+  width: 888px;
+  height: 640px;
+  overflow: visible;
+}
+
+/* 填充与描边归 `a2v-surface` 的状态（rest / focus），组件只管形状与线宽。
+   原先这里写死填充与描边，`.is-focus` 再叠一层 `color-mix(... 9%, transparent)`
+   ——9% 的染色在近黑底上等于没画，而「哪一级是焦点」这个状态判断
+   也不该由组件用一套临场类名表达。`rest` 态给出的填充与描边与这里原来的取值一致。 */
+.stair-bar {
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+.stair-base {
+  stroke: var(--fig-line);
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+.stair-axis {
+  /* 轴线是数据的一部分，不是装饰线；预设层抬到数据描边预算，未启用预设时回落。 */
+  stroke: var(--fig-line-data, var(--fig-line-soft));
+  stroke-width: var(--a2v-stroke-3, 3);
+}
+
+/* 焦点态的字色由 `a2v-label[data-a2v-state="focus"]` 给（最亮的一档），
+   而不是把角标也染成强调色：**强调色的块面由表面承载，文字负责读得清**。
+   一处焦点上叠两层强调色不增加信息，只让"克制"失守。 */
+.stair-note {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-label, 32px);
+  text-anchor: middle;
+  fill: var(--a2v-text-3);
+  letter-spacing: var(--a2v-track-label, 0.1em);
+}
+
+.stair-label {
+  font-size: var(--a2v-ink-body, 38px);
+  font-weight: var(--a2v-weight-semibold, 600);
+  text-anchor: middle;
+  fill: var(--a2v-text-1);
+}
+
+.stair-axis-label {
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 30px);
+  fill: var(--a2v-text-3);
+  letter-spacing: var(--a2v-track-label, 0.12em);
+}
+
+.stair-marker {
+  fill: var(--a2v-accent);
+}
+
+.stair-marker-halo {
+  fill: url(#stair-halo);
+}
+
+.stair-caption {
+  font-size: 40px;
+  line-height: 1.3;
+  color: var(--a2v-text-1);
+  text-align: center;
+  min-height: 52px;
+}
+
+.stair-flip {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--a2v-space-3, 18px);
+  padding: var(--a2v-space-3, 14px) var(--a2v-space-5, 34px);
+  border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
+  border-radius: var(--a2v-radius-pill, 999px);
+  background: var(--a2v-surface), var(--a2v-bg-2);
+  box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-1);
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-label, 32px);
+  letter-spacing: var(--a2v-track-caption, 0.08em);
+  color: var(--a2v-text-2);
+}
+
+.stair-flip.is-after {
+  border-color: rgba(var(--a2v-accent-rgb), 0.45);
+  color: var(--a2v-accent);
+}
+
+.stair-flip .flip-arrow {
+  width: 46px;
+  height: 2px;
+  background: currentColor;
+  position: relative;
+}
+
+.stair-flip .flip-arrow::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+
+.stair-flip .flip-arrow.is-right::after {
+  right: 0;
+  transform: rotate(45deg);
+}
+
+.stair-flip .flip-arrow.is-left::after {
+  left: 0;
+  transform: rotate(-135deg);
+}
+
+/* ---------- 06 收束：双向选择 ---------- */
+[data-scene-id="closing"] .a2v-safe {
+  gap: var(--a2v-space-5, 34px);
+}
+
+.closing-text {
+  margin: 0;
+  font-size: 96px;
+  line-height: 1.35;
+  font-weight: var(--a2v-weight-bold, 700);
+  letter-spacing: var(--a2v-track-display, -0.02em);
+  color: var(--a2v-text-1);
+  /* 分镜里的换行符直接生效，避免在页面里重新拼文案 */
+  white-space: pre-line;
+}
+
+.fig-exchange {
+  width: 888px;
+  height: 300px;
+  overflow: visible;
+}
+
+.ex-node-disc {
+  fill: var(--fig-surface);
+  stroke: var(--a2v-connector-ink, var(--fig-line));
+  stroke-width: var(--a2v-stroke-4, 4);
+}
+
+/* 未启用预设时的焦点表现（原 `.ex-node-disc.is-accent` 的等价物） */
+:root:not([data-a2v-preset='keynote']) .ex-node-disc[data-a2v-state="focus"] {
+  stroke: rgba(var(--a2v-accent-rgb), 0.55);
+}
+
+.ex-node-text {
+  font-size: var(--a2v-ink-value, 46px);
+  font-weight: var(--a2v-weight-semibold, 600);
+  text-anchor: middle;
+  fill: var(--a2v-text-1);
+}
+
+.ex-arc {
+  fill: none;
+  stroke: var(--a2v-connector-ink, var(--fig-line));
+  stroke-width: var(--a2v-stroke-5, 5);
+  stroke-linecap: round;
+}
+
+/* 未启用预设时的焦点表现（原 `.ex-arc.is-accent` 的等价物） */
+:root:not([data-a2v-preset='keynote']) .ex-arc[data-a2v-state="focus"] {
+  stroke: var(--a2v-accent);
+}
+
+.ex-arrow {
+  fill: var(--a2v-connector-ink, var(--fig-line));
+}
+
+/* 箭头头是**填充标记**，不是描边路径；连接件基元给路径写 `fill: none`，
+ * 而且它是三层选择器（属性 + 类 + 属性）。所以这里也要三层
+ * （父级 + 元素 + 状态属性）才盖得住，否则预设下箭头头会整个消失。 */
+.fig-exchange .ex-arrow[data-a2v-state] {
+  fill: var(--a2v-connector-ink, var(--fig-line));
+  /* 它是填充标记：基元给的 `stroke` 会在三角外面描一圈 1px 的发丝边，
+     把箭头头撑大一点点。这里显式关掉，两种模式下都与原来一致。 */
+  stroke: none;
+}
+
+/* 未启用预设时的焦点表现（原 `.ex-arrow.is-accent` 的等价物） */
+:root:not([data-a2v-preset='keynote']) .ex-arrow[data-a2v-state="focus"] {
+  fill: var(--a2v-accent);
+}
+
+.closing-action {
+  margin-top: var(--a2v-space-2, 10px);
+  align-self: flex-start;
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-body, 38px);
+  color: var(--a2v-text-2);
+  border-left: 4px solid var(--a2v-accent);
+  padding-left: var(--a2v-space-4, 26px);
+  letter-spacing: var(--a2v-track-body, 0.02em);
+}
+
+/* ---------- 双栏对照：左栏现状 → 右栏该转去的方向 ---------- */
+
+.vs-board {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--a2v-space-4, 26px);
+  margin-top: var(--a2v-space-8, 84px);
+}
+
+.vs-side {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 268px;
+  padding: var(--a2v-space-5, 34px) var(--a2v-space-4, 26px);
+  border: var(--a2v-stroke-1, 1px) solid var(--a2v-hairline);
+  border-radius: var(--a2v-radius-lg);
+  background: var(--a2v-surface), var(--a2v-bg-2);
+  box-shadow: var(--a2v-inset-highlight), var(--a2v-shadow-2);
+}
+
+.vs-side.is-left .vs-text {
+  color: var(--a2v-text-3);
+}
+
+/*
+ * 右栏的强调程度由帧驱动：--vs-heat 从 0 到 1，
+ * 边框、底色与光晕一起升温，比单纯的透明度变化更像「被选中」。
+ */
+.vs-side.is-right {
+  border-color: rgba(var(--a2v-accent-rgb), calc(0.24 + 0.5 * var(--vs-heat, 0)));
+  background: var(--a2v-surface-strong);
+  box-shadow:
+    var(--a2v-inset-highlight),
+    var(--a2v-shadow-2),
+    0 0 calc(var(--a2v-glow-heat-blur, 46px) * var(--vs-heat, 0)) rgba(var(--a2v-accent-rgb), calc(var(--a2v-glow-heat-alpha, 0.3) * var(--vs-heat, 0)));
+}
+
+.vs-side.is-right .vs-text {
+  color: var(--a2v-accent);
+}
+
+/*
+ * 答案侧的卡片也是**重点面**：状态语汇把它的填充定为
+ * `--a2v-accent-soft-solid`，两套主题下都是深色。
+ * 原先这里给文字用强调色，于是浅色主题下是"深蓝卡 + 蓝字"，实测 2.01:1
+ * ——同一张画面里左边白卡上的深色字却很清楚。压在重点面上的字改用它该用的墨。
+ */
+[data-a2v-preset='keynote'] .vs-side.is-right .vs-text {
+  color: var(--a2v-on-focus);
+}
+
+.vs-text {
+  font-family: var(--a2v-font);
+  font-size: var(--a2v-ink-value, 46px);
+  line-height: 1.42;
+  text-align: center;
+  letter-spacing: var(--a2v-track-body, 0.01em);
+}
+
+/*
+ * 预设下：两栏是这一幕的**载荷**，不该比标题还小。
+ *
+ * 未启用预设时，板面按内容收缩（`min-width: auto`），文字固定 46px，
+ * 于是实测板面只有 596px（安全区 888px 的 67%）、每栏 226px、文字 44px——
+ * 而幕标题是 76px。对一幕「两种反应并排」来说，**要看的东西比问题还小**，
+ * 层级是倒的（K3 量到的字号层级只有 [44, 76]，选项就是正文那一档）。
+ *
+ * 所以预设下让两栏均分安全区宽度（`min-width: 0` 才允许 flex 压过内容宽度），
+ * 文字改由排版阶给上限（markup 里的 `data-a2v-fit="title"`），
+ * 放不下时 autofit 会自己往下走——提高上限本身不会溢出。
+ *
+ * 这一条挂在预设上：`figures.css` 是全局的，而非预设的 `why-effort-fails`
+ * 也有一幕 `comparison`，逐帧不变是硬承诺。
+ */
+[data-a2v-preset='keynote'] .vs-board {
+  width: 100%;
+}
+
+[data-a2v-preset='keynote'] .vs-side {
+  min-width: 0;
+  min-height: 300px;
+}
+
+.vs-link {
+  position: relative;
+  flex: 0 0 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vs-line {
+  width: 96px;
+  height: 3px;
+  border-radius: var(--a2v-radius-pill, 999px);
+  background: var(--a2v-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* 箭头头部用两个边框拼出来，不额外引资源 */
+.vs-head {
+  position: absolute;
+  right: 2px;
+  width: 0;
+  height: 0;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 16px solid var(--a2v-accent);
+  opacity: 0;
+}
+
+.vs-note {
+  margin-top: var(--a2v-space-5, 30px);
+  font-family: var(--a2v-font-sans);
+  font-size: var(--a2v-ink-caption, 30px);
+  letter-spacing: var(--a2v-track-caption, 0.06em);
+  color: var(--a2v-text-3);
+  text-align: center;
+  opacity: 0;
+}
+/* 基础数字幕：数值、标签、解释均由分镜提供。 */
+/* 兜底 240px 就是组件本来的取值：未启用预设时没有 `--a2v-ink-numeral`，
+ 落回 240px，画面与从前逐帧一致。预设层把这一档定为 400px——
+ 原先走的是 `--a2v-ink-display`（120px），等于把主角数字缩小了一半。 */
+.fig-number { font-size: var(--a2v-ink-numeral, 240px); font-weight: var(--a2v-weight-bold, 800); line-height: 1; letter-spacing: var(--a2v-track-numeral, -0.07em); color: var(--a2v-accent); font-variant-numeric: tabular-nums; }
+.fig-number-label { font-size: var(--a2v-ink-lead, 56px); font-weight: var(--a2v-weight-bold, 700); color: var(--a2v-text-1); }
+.fig-number-caption { max-width: 760px; font-size: 40px; line-height: 1.4; color: var(--a2v-text-2); }
+
+/*
+ * 强调词的褪色落点。
+ *
+ * 组件不写 `color` 行内样式（行内优先级最高，会让设计语言层覆盖不了），
+ * 改成用 `--a2v-emphasis-mix` 报告「褪到哪一档」。这条规则就是默认的落点：
+ * 混合右侧的 #23262d 与组件原来的目标色一致，因此不启用设计语言预设时，
+ * 既有视频逐帧不变；预设生效时由 keynote.css 换成主题的强调色与褪色档。
+ */
+.key {
+--a2v-emphasis-mix: 0;
+color: color-mix(
+  in srgb,
+  #23262d calc(var(--a2v-emphasis-mix) * 100%),
+  var(--a2v-accent)
+);
+}
+
+/*
+ * 强调词的光晕落点。
+ *
+ * 同样的理由：组件**不写行内 `text-shadow`**（行内优先级最高，会把这一层
+ * 整个盖掉），改成用 `--a2v-emphasis-glow` 报告「亮到哪一档」。
+ * 模糊半径与浓度由设计语言层给（`--a2v-glow-emphasis-blur` / `-alpha`），
+ * 于是"光晕有多亮"只有一处真源，与投影、焦点光环放在同一节里。
+ *
+ * 兜底值是组件原先写死的两个数（26px / 0.22）。两个落点原先分别写
+ * 26/0.22 与 30/0.24——同一支片子里两档几乎看不出区别的"重点光"，收成一档。
+ */
+[data-a2v-preset='keynote'] .key {
+text-shadow:
+  0 0 calc(var(--a2v-glow-emphasis-blur, 26px) * var(--a2v-emphasis-glow, 0))
+      rgba(var(--a2v-accent-rgb),
+          calc(var(--a2v-glow-emphasis-alpha, 0.22) * var(--a2v-emphasis-glow, 0)));
+}

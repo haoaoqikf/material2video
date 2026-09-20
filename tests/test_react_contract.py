@@ -63,25 +63,50 @@ def test_contract_is_version_two(opened):
     assert (opened.contract.width, opened.contract.height) == (1080, 1920)
 
 
+def _visible_state(page) -> dict:
+    """当前可见那一幕的「帧号 + 画面签名」。
+
+    画面签名取可见幕第一个子元素的计算 `transform` / `opacity`：它们是**由帧号推出来**的
+    （入场位移与常驻微动），因此「seek 到了第 42 帧」不只是 Player 自报的数字，
+    而是画面真的按第 42 帧画了一遍。
+
+    不再依赖占位文案：这一版 composition 画的是真实图形组件
+    （`A2VComposition` → 注册表 → 组件），不再有「第 N 帧」这类调试文本。
+    """
+    return page.evaluate(
+        "() => {"
+        "const scenes = [...document.querySelectorAll('[data-a2v-scene]')];"
+        "const active = scenes.find((el) => getComputedStyle(el).display !== 'none');"
+        "const node = active ? active.querySelector('.a2v-safe > *') : null;"
+        "const style = node ? getComputedStyle(node) : null;"
+        "return {scene: active ? active.getAttribute('data-scene-id') : null,"
+        "frame: window.__A2V__.currentFrame(),"
+        "transform: style ? style.transform : '',"
+        "opacity: style ? style.opacity : ''};}"
+    )
+
+
 def test_seek_lands_on_the_requested_frame_and_repeats(opened):
-    """同一帧求值两次必须一致，且画面上报告的帧号就是请求的帧号。"""
-    index, local = _expected_span(42)
+    """seek 之后 Player 落在请求的帧上，同一帧求值两次给同一个画面。"""
+    index, _local = _expected_span(42)
+    scenes = json.loads(STORYBOARD.read_text(encoding="utf-8"))["scenes"]
+
     opened.seek(42)
-    first = opened.evaluate(
-        "() => document.querySelector('[data-a2v-placeholder-frame]').textContent"
-    )
-    assert f"第 {local} 帧" in first, first
-    assert f"第 {index + 1} /" in opened.evaluate(
-        "() => document.querySelector('.a2v-safe').textContent"
-    )
+    first = _visible_state(opened)
+    assert first["frame"] == 42, first
+    assert first["scene"] == scenes[index]["id"], first
 
     # 先去别的帧再回来：随机访问与顺序访问必须给同一个结果
     opened.seek(7)
+    assert _visible_state(opened)["frame"] == 7
     opened.seek(42)
-    second = opened.evaluate(
-        "() => document.querySelector('[data-a2v-placeholder-frame]').textContent"
-    )
-    assert first == second
+    assert _visible_state(opened) == first, "同一帧两次求值的结果不一致"
+
+    # 换一幕：可见的那一幕必须跟着帧号换（画面确实由帧号推导）
+    opened.seek(150)
+    later = _visible_state(opened)
+    assert later["frame"] == 150, later
+    assert later["scene"] == scenes[1]["id"], later
 
 
 def test_every_scene_stays_in_the_dom_with_exactly_one_visible(opened):

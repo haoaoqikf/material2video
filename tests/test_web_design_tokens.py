@@ -113,14 +113,14 @@ class TestTokenSource:
         assert "--a2v-safe-top: 240px" not in theme_block, (
             "预设层的 240px 混进了 `@theme`：它会在未启用预设的画面里生效"
         )
-        preset_block = _body(TOKENS_CSS, "[data-a2v-preset='keynote']")
+        preset_block = _body(TOKENS_CSS, ":root[data-a2v-preset='keynote']")
         assert "--a2v-safe-top: 240px" in preset_block
         assert "--a2v-size-body" in preset_block, "字阶是预设专有的令牌族，应当只在预设层"
 
     def test_the_two_layers_are_additive(self) -> None:
         """预设层只覆盖它定义的名字，默认层始终在——旧路径就是这样叠加的。"""
         default = self._default_layer()
-        preset = _values(_body(TOKENS_CSS, "[data-a2v-preset='keynote']"))
+        preset = _values(_body(TOKENS_CSS, ":root[data-a2v-preset='keynote']"))
         only_default = sorted(set(default) - set(preset))
         assert only_default, "默认层没有任何独有令牌：预设层大概把整层抄了一遍"
         for name in ("--a2v-width", "--a2v-height", "--a2v-surface"):
@@ -179,10 +179,10 @@ class TestTokenValuesMatchTheLegacySource:
         defaults = _values(_body(TOKENS_CSS, "@theme static"))
         if kind == "default":
             return defaults
-        preset = _body(TOKENS_CSS, "[data-a2v-preset='keynote']")
+        preset = _body(TOKENS_CSS, ":root[data-a2v-preset='keynote']")
         if kind == "light":
             preset += "\n" + _body(
-                TOKENS_CSS, "[data-a2v-preset='keynote'][data-a2v-theme='light']"
+                TOKENS_CSS, ":root[data-a2v-preset='keynote'][data-a2v-theme='light']"
             )
         return _effective(_body(TOKENS_CSS, "@theme static"), preset)
 
@@ -297,12 +297,24 @@ class TestTokenClosureOnTheNewStyles:
         ]
 
     def test_every_referenced_token_is_declared(self) -> None:
-        declared = set(_DECLARATION.findall(_strip_comments(TOKENS_CSS)))
-        declared = {name for name, _value in declared}
-        assert len(declared) >= 150, f"真源里只解析出 {len(declared)} 个令牌"
+        """引用处不需要兜底：每个被引用的令牌都要在工程里**有声明**。
 
+        判据是「声明」而不是「真源」：组件会把连续量写进行内自定义属性
+        （`'--vs-heat': …`），基元层会按状态声明局部变量（`--a2v-connector-ink`），
+        这些都不该进 `tokens.css`（它们不是设计令牌，而是运行期算出来的值）。
+        真正要挡住的是「引用了谁都没声明过的名字」——那会安静地落回初始值。
+        """
         sources = self._sources()
         assert len(sources) >= 10, f"只扫到 {len(sources)} 个源文件，扫描规则可能失效了"
+
+        # 先收集整个工程的声明：CSS 的 `--x: v` 与 TSX 行内样式对象的 `'--x': v`
+        declared = {name for name, _value in _DECLARATION.findall(_strip_comments(TOKENS_CSS))}
+        assert len(declared) >= 150, f"真源里只解析出 {len(declared)} 个令牌"
+        for path in sources:
+            if path.name == "tokens.css":
+                continue
+            text = _strip_comments(path.read_text(encoding="utf-8"))
+            declared.update(re.findall(r"['\"]?(--[a-z0-9-]+)['\"]?\s*:", text))
 
         offenders: list[tuple[str, str]] = []
         for path in sources:
@@ -310,13 +322,9 @@ class TestTokenClosureOnTheNewStyles:
                 continue
             text = _strip_comments(path.read_text(encoding="utf-8"))
             for name in set(re.findall(r"var\(\s*(--[a-z0-9-]+)", text)):
-                # 组件自己声明的局部变量（例如 `--vs-heat`）由组件负责，不算欠账
-                if name in declared:
-                    continue
-                if re.search(rf"{re.escape(name)}\s*:", text):
-                    continue
-                offenders.append((path.relative_to(ROOT).as_posix(), name))
+                if name not in declared:
+                    offenders.append((path.relative_to(ROOT).as_posix(), name))
         assert not offenders, (
-            f"这些令牌被引用却没有在令牌真源里声明：{sorted(set(offenders))}——"
-            "补进 tokens.css，或者删掉引用"
+            f"这些令牌被引用却在工程里找不到任何声明：{sorted(set(offenders))}——"
+            "补进 tokens.css（设计令牌）或补上组件的行内声明（连续量）"
         )

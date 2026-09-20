@@ -44,13 +44,18 @@ MAX_SAMPLES = 60
 
 #: 在页面里逐帧扫一幕，返回每个元素的变化序列（压缩过：只在数值变了才记一条）。
 #:
-#: 两个坑写在代码里，因为都真实发生过：
+#: 三个坑写在代码里，因为都真实发生过：
 #:   * 元素集合必须在**进入这一幕之后**收集——在 seek 之前 querySelectorAll
 #:     拿到的是空列表（这一幕还没渲染），扫描会只覆盖第 0 幕却报「全部通过」；
 #:   * 身份必须用元素引用本身，不能用 className——SVG 的 className 是
-#:     SVGAnimatedString 对象，String() 之后所有 SVG 元素塌成同一个 key。
+#:     SVGAnimatedString 对象，String() 之后所有 SVG 元素塌成同一个 key；
+#:   * `seekToFrame` 必须 **await**。version 2 的契约页（React/Remotion）里它是
+#:     异步的：它等 Player 的 `seeked` 事件、再等两帧绘制。不 await 就立刻读
+#:     `getComputedStyle`，读到的是**上一帧**的画面，整幕量出来「一个入场元素都没有」，
+#:     而 M1 只会给一句提醒（实测：旧路径 90 个入场元素，新路径 0 个）。
+#:     version 1 的旧页面返回 undefined，`await undefined` 同样成立，因此两条路径共用。
 SWEEP_SCRIPT = """
-(args) => {
+async (args) => {
   const scene = document.querySelectorAll('[data-a2v-scene]')[args.index];
   const duration = args.duration;
   const read = (el) => {
@@ -74,7 +79,7 @@ SWEEP_SCRIPT = """
   const tracks = new Map();
   const order = [];
   for (let f = 0; f < duration; f++) {
-    window.__A2V__.seekToFrame(args.start + f);
+    await window.__A2V__.seekToFrame(args.start + f);
     for (const el of scene.querySelectorAll('*')) {
       let track = tracks.get(el);
       if (track === undefined) {

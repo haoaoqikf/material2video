@@ -1,0 +1,51 @@
+/*
+ * 声明式画面的**页面自身样式**：它排在最后，因此对同一元素有最终覆盖权。
+ *
+ * 逐字符搬自冻结的共享资产 `assets/declarative.css`，一行不改——包括末尾那块
+ * `:root[data-a2v-theme="light"]`。
+ *
+ * 为什么那块浅色令牌必须留在这里（而不是「顺手搬进 tokens.css」）：
+ *
+ * - 它是**默认主题的浅色层**，与预设无关。`examples/declarative-number` 就是
+ *   「浅色 + 不用预设」：旧路径的暖白底（`--a2v-bg-0: #f1efea`）与砖红强调
+ *   全部来自这个块。把它删掉，这一路画面会整体落到深色默认值上——
+ *   校验与构建照常通过，只有跨路径比对会看到 1.4 dB 这种「两张图没关系」的数字；
+ * - 新工程里另有一层**预设浅色**（`tokens.css` 的
+ *   `[data-a2v-preset='keynote'][data-a2v-theme='light']`，冷白底 + 蓝强调）。
+ *   两者是**不同的层**：预设浅色只在声明了预设时生效，而这一块管的是
+ *   「没声明预设但要求浅色」——缺了它，那一类分镜就没有浅色可用；
+ * - 选择器写在 `:root` 上是对的：新路径与旧页面 `assets/declarative.js` 一样，
+ *   把 `data-a2v-theme` 写在 `document.documentElement` 上（见 `A2VComposition`
+ *   里的 `useLayoutEffect`），因此这个选择器在两条路径上都命中同一个元素。
+ *
+ * 除注释外，本文件的每一个字符都与旧文件相同——`tests/test_web_style_stack.py`
+ * 按「去掉注释、空白与 `:root` 令牌块后逐字符一致」这条判据守住它。
+ */
+
+[data-a2v-stage] { background: var(--a2v-bg-0); }
+.stage-bg { z-index: 0; }
+[data-a2v-scene] { z-index: 1; }
+[data-a2v-scene] .a2v-safe { align-items: center; text-align: center; }
+[data-a2v-scene][data-layout="lower"] .a2v-safe { justify-content: flex-end; }
+
+:root[data-a2v-theme="light"] {
+  --a2v-bg-0: #f1efea;
+  --a2v-bg-1: #fbfaf7;
+  --a2v-bg-2: #ffffff;
+  --a2v-text-1: #16181d;
+  --a2v-text-2: rgba(22, 24, 29, 0.7);
+  --a2v-text-3: rgba(22, 24, 29, 0.42);
+  --a2v-accent: #c2352a;
+  --a2v-accent-soft: rgba(194, 53, 42, 0.1);
+  --a2v-accent-rgb: 194, 53, 42;
+  --a2v-hairline: rgba(22, 24, 29, 0.12);
+  --a2v-hairline-strong: rgba(22, 24, 29, 0.28);
+  --fig-line: rgba(22, 24, 29, 0.4);
+  --fig-line-soft: rgba(22, 24, 29, 0.16);
+  --fig-ink: #2b2f38;
+  --fig-on-ink: #ffffff;
+  --fig-water: rgba(45, 78, 120, 0.16);
+  --fig-water-line: rgba(45, 78, 120, 0.55);
+  --fig-water-text: rgba(45, 78, 120, 0.75);
+  --a2v-grid-color: rgba(22, 24, 29, 0.045);
+}
