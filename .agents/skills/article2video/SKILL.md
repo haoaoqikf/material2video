@@ -35,9 +35,10 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    只缩放不改布局。
 5. **层级先于装饰**：先做出背景 / 表面 / 焦点三层与统一的动效曲线，再考虑细节；
    「高级感」来自克制的层级与一致的节奏，而不是更多的颜色和更大的动效。
-6. **AI 做导演，不做设计师**：先看 [视觉组件目录](references/figure-catalog.md) 里有没有
-   合适的组件，选一个、给几段短标注、指定节奏；只有目录里确实没有，才按注册表流程
-   新写一个并沉淀回目录。每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
+6. **AI 做导演，不做设计师**：先声明逐幕视觉意图（信息关系、焦点、构图、密度、情绪），
+   再按 [视觉原语目录](references/primitive-catalog.md) 把意图组合成受控场景树；
+   原语表达不了的基础视觉能力按注册表契约新增通用原语，不为某支视频写专属画面代码。
+   每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
 7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹），
    人（或视觉模型）按 [评审量表](references/visual-review-rubric.md) 负责「值得看完」。
    把审美也交给脚本，等于放弃质量；反过来只靠眼睛，又会漏掉标签全空这类静默缺陷。
@@ -46,14 +47,14 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 | 路径 | 职责 |
 | --- | --- |
-| `web/src/compositions/` | 共享 composition：读分镜、逐幕挂载组件 |
-| `web/src/components/` + `web/src/flow/`、`web/src/charts/` | 视觉组件本体（比喻组件、数据图表、关系流程图） |
-| `web/src/registry/registry.json` | 组件集合的唯一真源：kind、标注键、容量、场景类型、默认映射 |
-| `web/src/runtime/` | 帧驱动原语：动效配方、弹簧、排版、共享图形几何 |
-| `web/src/styles/` | 设计令牌与组件样式 |
+| `web/src/compositions/` | 共享 composition：读分镜、逐幕递归解释场景树 |
+| `web/src/primitives/` | 场景树递归解释器：布局、内容与图形原语的统一渲染 |
+| `web/src/registry/registry.json` | 视觉原语的唯一真源：类型、属性、子节点容量、动效配方 |
+| `web/src/runtime/` | 帧驱动共享运行时：时间轴解析 |
+| `web/src/styles/` | 设计令牌、预设与场景树原语样式 |
 | `web/dist/contract/contract.html` | 渲染契约页（`pnpm -C web build` 的产物），体检用它驱动画面 |
-| `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
-| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、组件目录、设计宪法、评审量表、目录与输出路径 |
+| `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审与迁移等命令行工具 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
@@ -100,24 +101,27 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 - 先定位文章的核心判断，再按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆幕；
 - 场景时长由**口播所需时间**反推（30fps 下 1 秒 = 30 帧，中文口播每秒约 4–5 字）；
 - 长句拆成多个场景，而不是缩小字号；
-- 不虚构论据或数据；无来源的数值必须声明 `figure.schematic: true`；
-- 生成后先过 `validate.py --declarative --strict --json`，按字段路径修正到通过再交付。
+- 不虚构论据或数据；无来源的数值必须把对应节点声明为 `schematic: true`；
+- 生成后先过 `validate.py --strict --json`，按字段路径修正到通过再交付。
 
 ### 2. 分镜即画面声明
 
-画面全部由共享 composition 提供，**不需要写任何页面代码**。
-分镜以 `data.figure.kind` 选择组件（不写则按场景类型取注册表默认），
-可选 `visual.theme`（`dark` / `light`）和场景 `visual.layout`（`center` / `lower`），
-根级 `visual.preset`（目前唯一取值 `"keynote"`）启用发布会级设计语言：
-设计语言层、排版引擎与观感闸门一起生效。说明见
+画面全部由共享 composition 递归解释场景树提供，**不需要写任何页面代码**。
+分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；
+每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪）、
+`sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`
+（按节点 id 绑定的具名动效）。可选 `visual.theme`（`dark` / `light`）与根级
+`visual.preset`（目前唯一取值 `"keynote"`）启用发布会级设计语言：
+设计语言层、字号取档与观感闸门一起生效。说明见
 [发布会级设计语言](references/keynote-design-system.md)。
 
-当前有十个组件：八个比喻组件、数据图表 `chart`（柱状/折线/饼图）与关系流程图
-`flow`（dagre 分层布局）。组件的适用内容、标注键与容量见
-[视觉组件目录](references/figure-catalog.md)。
+当前有 16 个原语：布局 7（`stack`/`row`/`column`/`split`/`grid`/`radial`/`overlay`）、
+内容 5（`text`/`number`/`image`/`icon`/`chart`）、图形 4（`shape`/`surface`/`connector`/`group`）。
+每个原语允许的属性、子节点容量与动效配方见
+[视觉原语目录](references/primitive-catalog.md)。
 
-目录里确实没有合适的组件时，按 [组件契约](references/figure-catalog.md#组件契约)
-在注册表登记并实现新组件（`registry.json` + 组件本体 + 生成命令 + 机检），
+原语组合表达不了的基础视觉能力时，按注册表契约登记并实现新原语
+（`registry.json` + `SceneTree.tsx` 实现 + `sync_catalog.py` 重新生成 + 机检），
 然后沉淀回目录——不要为某一支视频写专属画面代码。
 
 ### 3. 校验分镜
@@ -277,8 +281,10 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 体检报「契约页不存在」 | 先 `pnpm -C web build` 构建 `web/dist/contract/contract.html` |
 | `缺少查询参数 a2v-storyboard` | 契约页必须由脚本经本地静态服务打开，不要双击 HTML |
 | `总帧数不一致` / `fps 不一致` | composition 元数据与分镜不一致：检查分镜是否保存、场景时长是否合法 |
-| `组件 <kind> 尚未实现` 或 kind 报错 | 注册表里没有这个组件：查 [视觉组件目录](references/figure-catalog.md) 的可选值，或按组件契约新增 |
-| `figure.kind 必须是注册表里的组件` | 分镜写了未知 kind：改成目录里已有的，或新增组件 |
+| `旧版整页组件分镜不能进入新版入口` | 分镜还是 v1（`data.figure.kind`）：先运行 `scripts/migrate_storyboard.py` 显式迁移，迁移结果再走校验与评审 |
+| `未知视觉原语` / `原语 X 不支持属性 Y` | 场景树用了注册表之外的原语或属性：查 [视觉原语目录](references/primitive-catalog.md) 的可选值与容量 |
+| `动效目标 X 不存在` / `原语 X 不支持动效` | 动效绑定的节点 id 写错或配方超出该原语允许范围：按目录声明修正 |
+| `内容引用 data.x 指向不存在的字段` | `contentRef` 指向的分镜 data 字段缺失或拼写不一致 |
 | 成片有随机闪烁 | 画面里用了 CSS 动画或 `Date.now()`：组件必须由帧号推导（web 测试会拦） |
 | 预览正常但导出缺字 | 用了系统字体而渲染机器上没有该字体，改为随仓库分发 webfont |
 | 动画后段像卡住 | 场景被配音拉长后画面完全静止，入场结束后加常驻微动（`breath` 级别） |

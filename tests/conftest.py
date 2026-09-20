@@ -121,23 +121,31 @@ def speech(monkeypatch):
 def valid_script() -> dict:
     """一份结构完整的最小分镜脚本，测试中按需局部改动。"""
     return {
-        "version": 1,
+        "version": 2,
+        "schemaVersion": 2,
         "fps": 30,
         "width": 1080,
         "height": 1920,
         "title": "测试视频",
+        "visualDirection": {"motif": "测试", "compositionBias": "mixed", "density": "balanced", "rhythm": "steady", "avoid": []},
         "scenes": [
             {
                 "id": "opening",
                 "type": "title",
                 "durationInFrames": 30,
                 "data": {"text": "开场"},
+                "visualIntent": {"relation": "focus", "focus": "text", "composition": "offset", "density": "sparse", "tone": "neutral"},
+                "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text", "role": "headline"}]},
+                "motions": [{"target": "copy", "recipe": "reveal", "startFrame": 0, "durationFrames": 24}],
             },
             {
                 "id": "closing",
                 "type": "conclusion",
                 "durationInFrames": 60,
                 "data": {"text": "结论"},
+                "visualIntent": {"relation": "focus", "focus": "text", "composition": "full", "density": "sparse", "tone": "decisive"},
+                "sceneTree": {"id": "root", "type": "overlay", "children": [{"id": "copy", "type": "text", "contentRef": "data.text", "role": "headline"}]},
+                "motions": [{"target": "copy", "recipe": "fade", "startFrame": 0, "durationFrames": 24}],
             },
         ],
     }

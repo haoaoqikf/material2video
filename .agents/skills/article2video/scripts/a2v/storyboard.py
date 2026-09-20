@@ -1,11 +1,15 @@
 """分镜脚本（storyboard）的数据模型与校验。
 
-分镜脚本是「文章 → 动画网页 → 视频」链路中的内容真源：
-- AI 依据它编写动画网页（网页读取同一份 JSON 绘制画面）；
+分镜脚本是「文章 → 场景树画面 → 视频」链路中的内容真源：
+- 共享 React composition 读取同一份 JSON，按场景树逐节点绘制画面；
 - 渲染脚本依据它推导总帧数并驱动逐帧截图。
 
 本模块只负责解析与结构校验，不做任何 I/O 之外的事情，
 保证校验逻辑可以在纯 Python 单元测试中复用。
+
+当前只支持场景树 v2（version=2 + schemaVersion=2）。旧版整页组件分镜
+（version=1，data.figure.kind）必须先经 scripts/migrate_storyboard.py
+显式迁移，任何入口都不会静默回退到旧渲染路径。
 """
 
 from __future__ import annotations
@@ -19,73 +23,62 @@ from typing import Any
 
 from . import catalog
 
-# 当前支持的脚本版本。字段结构变化时必须递增，并在校验时给出明确提示。
-SUPPORTED_VERSION = 1
+# 当前支持的版本：场景树 v2。字段结构变化时必须递增，并在校验时给出明确提示。
+SCENE_TREE_VERSION = 2
 
-# 场景 ID 允许的字符：字母、数字、下划线、连字符。用于网页 DOM 与日志定位。
+# 动效配方全集。单个原语允许哪些配方由原语注册表（catalog.PRIMITIVE_CATALOG）声明，
+# 这里只负责拦截完全未知的配方名。
+_MOTION_RECIPES = frozenset({"reveal", "fade", "rise", "count", "draw"})
+
+# 场景树节点禁止的可执行/逃生口字段：自由坐标与样式脚本会让安全区、
+# 响应式布局和契约检查全部失效。
+_BLOCKED_NODE_FIELDS = frozenset({"html", "css", "script", "javascript", "style", "x", "y", "transform", "package"})
+
+# 结构性字段：按原语校验属性时豁免（属性清单见原语注册表）。
+_STRUCTURAL_NODE_FIELDS = frozenset({"id", "type", "children"})
+
+# 场景 ID / 节点 ID 允许的字符：字母、数字、下划线、连字符。用于网页 DOM 与日志定位。
 _SCENE_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
-
-# 已知场景类型及其 data 中的必填/可选字段。新增类型时同步更新
-# docs/PROJECT_PLAN.md 的组件清单与 SKILL.md 中的说明。
-#
-# annotations 是「图形标注」：写在图形上、用来点明图示含义的短词（例如天平的
-# 「命运的考试 / 一次上场」）。它属于内容层，因此和文案一样写在分镜里，由网页
-# 决定画在哪个位置；键名由每支视频的构图约定，校验器只保证它是短字符串映射。
-_SCENE_FIELDS: dict[str, dict[str, set[str]]] = {
-    "title": {"required": {"text"}, "optional": {"subtitle", "emphasis", "annotations", "figure"}},
-    "quote": {"required": {"text"}, "optional": {"attribution", "emphasis", "annotations", "figure"}},
-    "comparison": {"required": {"left", "right"}, "optional": {"title", "annotations", "figure"}},
-    "timeline": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
-    "diagram": {"required": {"nodes"}, "optional": {"edges", "title", "annotations", "figure"}},
-    "number": {"required": {"value"}, "optional": {"label", "caption", "annotations", "figure"}},
-    "chart": {"required": {"values"}, "optional": {"title", "chart", "annotations", "figure"}},
-    "list": {"required": {"items"}, "optional": {"title", "annotations", "figure"}},
-    "conclusion": {"required": {"text"}, "optional": {"action", "emphasis", "annotations", "figure"}},
-}
-
-# 声明用哪个视觉组件画这一幕。详见 references/figure-catalog.md。
-# schematic 是示意标记（任务 7.5）：声明这组数值没有来源，
-# 图表组件会自动在画面上画出「示意」标，校验器据此给出提示。
-_FIGURE_FIELDS = {"kind", "labels", "motion", "params", "schematic"}
-_FIGURE_MOTIONS = ("calm", "normal", "impact")
-_VISUAL_THEMES = ("dark", "light")
-_VISUAL_LAYOUTS = ("center", "lower")
 
 # 设计语言预设：在既有令牌之外启用一套完整的版式系统（字号阶、间距网格、
 # 对比度下限、观感闸门）。未声明时画面与既有作品逐帧一致，详见
 # references/keynote-design-system.md。
 _VISUAL_PRESETS = ("keynote",)
+_VISUAL_THEMES = ("dark", "light")
 
 #: 幕角标（`visual.kicker`）的字数上限。角标是一个词，不是一个句子；
 #: 它是读者第一眼看到的定位词，长了就变成第二行副标题。
 _KICKER_MAX_CHARS = 8
 
-# 参与「单行字数」检查的文本字段，以及各字段的推荐上限。
-# 依据 references/visual-spec.md 的字号下限与行数约定：超过上限时应拆场景，
-# 而不是缩小字号。标题类允许更长，因为短标题强行折行反而破坏构图。
-_MAX_LINE_CHARS = 14
-_TEXT_LINE_LIMITS: dict[str, int] = {
-    "text": 20,
-    "title": 16,
-    "left": 8,
-    "right": 8,
-    "subtitle": 20,
-    "action": 16,
-    "label": 16,
-    "caption": 20,
-}
+# 单行字数上限：依据 references/visual-spec.md 的字号下限与行数约定，
+# 超过上限时应拆场景，而不是缩小字号。分镜里的换行符是硬换行，因此逐行判断。
+_MAX_LINE_CHARS = 20
 
 # 低于该帧数的场景来不及完成一次入场动效（30fps 下 0.8 秒）。
 _MIN_SCENE_FRAMES = 24
 
-# 图形标注是画在图上的词，必须短到能塞进图形旁边；过长会挤掉图形本身。
-_ANNOTATION_MAX_CHARS = 12
+#: 图表数据点标签的字数上限：与图形标注同一量级，过长会挤掉图形本身。
+_CHART_LABEL_MAX_CHARS = 12
 
-# 场景内会被强调短语覆盖的文本字段，用于检查 emphasis 是否真的能命中。
-_EMPHASIS_TEXT_FIELDS: dict[str, tuple[str, ...]] = {
-    "title": ("text", "subtitle"),
-    "quote": ("text", "attribution"),
-    "conclusion": ("text", "action"),
+#: 单幕场景树的节点总数上限。与树深、单节点子数一起控制渲染成本，
+#: 并让「往一幕里塞整个故事」的构图在开渲前暴露。
+_MAX_NODES_PER_SCENE = 48
+
+#: 节点属性的受控枚举（与 web/src/schema/storyboard.ts 的 zod 声明一致）。
+#: direction 的取值按原语拆开：group 用横竖，connector 用箭头方向。
+_NODE_PROP_ENUMS: dict[str, set[str]] = {
+    "align": {"start", "center", "end", "stretch"},
+    "gap": {"none", "xs", "sm", "md", "lg", "xl"},
+    "role": {"hero", "headline", "title", "body", "label", "caption"},
+    "shape": {"circle", "rect", "line", "spotlight", "ring"},
+    "state": {"rest", "focus", "muted", "done"},
+    "icon": {"arrow", "check", "cross", "spark"},
+    "chart": {"bar", "line", "pie"},
+    "ratio": {"1:1", "1:2", "2:1", "2:3", "3:2"},
+}
+_NODE_DIRECTION_ENUMS: dict[str, set[str]] = {
+    "group": {"horizontal", "vertical"},
+    "connector": {"ltr", "rtl", "ttb", "btt"},
 }
 
 
@@ -94,7 +87,7 @@ class Issue:
     """一条校验结果。path 指向 JSON 内的层级位置，便于 AI 定位修正。"""
 
     level: str  # "error" 或 "warning"
-    path: str  # 例如 "scenes[2].durationInFrames"
+    path: str  # 例如 "scenes[2].sceneTree.children[0].contentRef"
     message: str
 
     def format(self) -> str:
@@ -136,538 +129,287 @@ class Report:
         }
 
 
-def validate(data: Any, *, declarative: bool = False) -> Report:
+def validate(data: Any) -> Report:
     """校验分镜脚本 dict，返回结构化报告。data 不是 dict 时直接判错。"""
     report = Report()
     if not isinstance(data, dict):
         report.error("$", "脚本根节点必须是 JSON 对象")
         return report
 
-    _validate_version(data, report)
-    _validate_framerate(data, report)
-    _validate_dimensions(data, report)
-    if "visual" in data:
-        _validate_visual(
-            data["visual"],
-            "visual",
-            {"theme": _VISUAL_THEMES, "preset": _VISUAL_PRESETS},
-            report,
+    if data.get("version") == SCENE_TREE_VERSION:
+        return _validate_v2(data)
+    if data.get("version") == 1:
+        report.error(
+            "version",
+            "旧版整页组件分镜不能进入新版入口；请先运行 migrate_storyboard.py 显式迁移到场景树 v2",
         )
-    if declarative:
-        _reject_unknown(data, {"version", "fps", "width", "height", "title", "scenes", "visual"}, "", report)
-    # 后续换算必须用可信的 fps；非法值已在校验中报错，这里只是避免算术崩溃
-    _validate_scenes(data, report, _safe_fps(data), declarative)
+        return report
+    report.error("version", f"不支持的脚本版本 {data.get('version')!r}，当前支持场景树 v2（version=2）")
     return report
 
 
-def _reject_unknown(value: dict[str, Any], allowed: set[str], path: str, report: Report) -> None:
-    for key in sorted(set(value) - allowed):
-        report.error(f"{path}.{key}" if path else key, "声明式路径不支持此字段")
-
-
-def _validate_visual(
-    value: Any,
-    path: str,
-    fields: dict[str, tuple[str, ...]],
-    report: Report,
-    *,
-    allow_kicker: bool = False,
-    scene_type: Any = None,
-) -> None:
-    if not isinstance(value, dict):
-        report.error(path, "visual 必须是对象")
-        return
-    allowed = set(fields) | ({"kicker"} if allow_kicker else set())
-    _reject_unknown(value, allowed, path, report)
-    for name, choices in fields.items():
-        if name in value and value[name] not in choices:
-            report.error(f"{path}.{name}", f"必须是 {'/'.join(choices)} 之一")
-    if allow_kicker and "kicker" in value:
-        _validate_kicker(value["kicker"], f"{path}.kicker", report)
-        _reject_kicker_that_is_just_the_scene_type(value["kicker"], scene_type, f"{path}.kicker", report)
-
-
-def _reject_kicker_that_is_just_the_scene_type(value: Any, scene_type: Any, path: str, report: Report) -> None:
-    """角标不能就是场景类型名。
-
-    这条直接编码了被修掉的那个缺陷：角标原先渲染 `scene.type`，画面上于是出现
-    `TITLE` / `LIST` / `TIMELINE`。用类型名当角标等于把 schema 字段当文案，
-    所以它是错误而不是提醒——`TITLE` 告诉读者"这一屏是标题卡"，
-    读者需要的是"这一段谈的是什么"。
-    """
-    if not isinstance(value, str) or not scene_type:
-        return
-    if value.strip().lower() == str(scene_type).strip().lower():
-        report.error(
-            path,
-            f"角标不能就是场景类型名（{scene_type}）——那是 schema 字段，不是给读者看的文案；"
-            "请写读者用的话题词（例如「比较」而不是 COMPARISON）",
-        )
-
-
-def _validate_kicker(value: Any, path: str, report: Report) -> None:
-    """幕角标是**读者可见的文案**，所以它有文案的规则：短、单行、非空。
-
-    这一条是补出来的。角标原先直接写场景的 `type`，于是画面左上角显示的是
-    分镜的**内部类型标识符**（TITLE / LIST / TIMELINE / NUMBER / CONCLUSION）——
-    那是 schema 字段名，不是给读者看的字：既没有信息量，也和整屏中文格格不入。
-    角标现在只能来自作者写的 `visual.kicker`，没写就不显示。
-    """
-    if not isinstance(value, str):
-        report.error(path, "角标必须是字符串")
-        return
-    text = value.strip()
-    if not text:
-        report.error(path, "角标不能是空白")
-    elif "\n" in text:
-        report.error(path, "角标必须单行")
-    elif len(text) > _KICKER_MAX_CHARS:
-        report.error(
-            path,
-            f"角标最多 {_KICKER_MAX_CHARS} 个字——角标是一个词，不是一句话；"
-            f"要说的更多请放进 title 或 subtitle",
-        )
-
-
-def _safe_fps(data: dict[str, Any]) -> int:
-    """取出可安全参与算术的 fps，非法时回退 30。
-
-    校验器的职责是「报告问题」而不是「自己抛异常」，因此所有用于计算的
-    字段都要先做类型收敛。
-    """
-    fps = data.get("fps")
-    if isinstance(fps, int) and not isinstance(fps, bool) and fps > 0:
-        return fps
-    return 30
-
-
-def _validate_version(data: dict[str, Any], report: Report) -> None:
-    version = data.get("version")
-    if not isinstance(version, int) or isinstance(version, bool):
-        report.error("version", "version 必须是整数")
-    elif version != SUPPORTED_VERSION:
-        report.error("version", f"不支持的脚本版本 {version}，当前支持 {SUPPORTED_VERSION}")
-
-
-def _validate_framerate(data: dict[str, Any], report: Report) -> None:
-    fps = data.get("fps")
-    if not isinstance(fps, int) or isinstance(fps, bool) or not 1 <= fps <= 120:
-        report.error("fps", "fps 必须是 1..120 之间的整数")
-        return
-    if fps not in (24, 25, 30, 60):
-        report.warn("fps", f"fps={fps} 不是常见值（24/25/30/60），请确认渲染目标")
-
-
-def _validate_dimensions(data: dict[str, Any], report: Report) -> None:
-    """校验画布尺寸。
-
-    字段类型不可信，先把非法值过滤掉再比较，否则 `"1080" > 1920`
-    这类比较会抛出 TypeError，让校验器本身崩溃。
-    """
-    resolved: dict[str, int] = {}
-    for key, default in (("width", 1080), ("height", 1920)):
-        value = data.get(key, default)
-        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-            report.error(key, f"{key} 必须是正整数")
-        elif value % 2 != 0:
-            # H.264 yuv420p 要求宽高为偶数，奇数会导致编码失败。
-            report.error(key, f"{key}={value} 是奇数，H.264 编码要求宽高为偶数")
-        else:
-            resolved[key] = value
-    if len(resolved) == 2 and resolved["width"] > resolved["height"]:
-        report.warn("width", "宽度大于高度，与竖屏短视频的定位不符")
-
-
-def _validate_scenes(data: dict[str, Any], report: Report, fps: int, declarative: bool = False) -> None:
+def _validate_v2(data: dict[str, Any]) -> Report:
+    report = Report()
+    _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "scenes", "visual"}, "", report)
+    if data.get("schemaVersion") != SCENE_TREE_VERSION:
+        report.error("schemaVersion", f"场景树版本必须是 {SCENE_TREE_VERSION}")
+    _validate_framerate(data, report)
+    _validate_dimensions(data, report)
+    _validate_root_visual(data.get("visual"), report)
+    direction = data.get("visualDirection")
+    if not isinstance(direction, dict):
+        report.error("visualDirection", "visualDirection 必须是对象")
+    else:
+        _validate_visual_direction(direction, report)
     scenes = data.get("scenes")
     if not isinstance(scenes, list) or not scenes:
         report.error("scenes", "scenes 必须是非空数组")
-        return
-
-    seen_ids: dict[str, int] = {}
+        return report
+    seen_scenes: set[str] = set()
     total_frames = 0
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
         if not isinstance(scene, dict):
-            report.error(path, "场景必须是 JSON 对象")
+            report.error(path, "场景必须是对象")
             continue
-        if "visual" in scene:
-            _validate_visual(
-                scene["visual"],
-                f"{path}.visual",
-                {"layout": _VISUAL_LAYOUTS},
-                report,
-                allow_kicker=True,
-                scene_type=scene.get("type"),
-            )
-        if declarative:
-            _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visual"}, path, report)
-
+        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visualIntent", "sceneTree", "motions", "visual"}, path, report)
         scene_id = scene.get("id")
-        if not isinstance(scene_id, str) or not scene_id:
-            report.error(f"{path}.id", "场景缺少非空字符串 id")
-        elif not _SCENE_ID_RE.match(scene_id):
-            report.error(f"{path}.id", f"id '{scene_id}' 只允许字母、数字、下划线和连字符")
-        elif scene_id in seen_ids:
-            report.error(f"{path}.id", f"id '{scene_id}' 与 scenes[{seen_ids[scene_id]}] 重复")
+        if not isinstance(scene_id, str) or not _SCENE_ID_RE.match(scene_id):
+            report.error(f"{path}.id", "场景 id 必须是非空安全标识符")
+        elif scene_id in seen_scenes:
+            report.error(f"{path}.id", f"场景 id {scene_id} 重复")
         else:
-            seen_ids[scene_id] = index
-
-        _validate_duration(scene, f"{path}.durationInFrames", report, fps)
+            seen_scenes.add(scene_id)
+        _validate_duration(scene, f"{path}.durationInFrames", report, _safe_fps(data))
         if "narration" in scene and not isinstance(scene["narration"], str):
             report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
-        _validate_scene_payload(scene, path, report, declarative)
-
+        if not isinstance(scene.get("data"), dict):
+            report.error(f"{path}.data", "data 必须是对象")
+        _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report)
+        _validate_scene_visual(scene.get("visual"), scene.get("type"), f"{path}.visual", report)
+        _validate_scene_tree(scene.get("sceneTree"), scene, path, report)
+        _validate_motions(scene.get("motions"), f"{path}.motions", report, scene, path)
+        _warn_on_scene_copy(scene, path, report)
         duration = scene.get("durationInFrames")
         if isinstance(duration, int) and not isinstance(duration, bool) and duration > 0:
             total_frames += duration
-
     if total_frames > 0:
-        seconds = total_frames / fps
+        seconds = total_frames / _safe_fps(data)
         if seconds > 180:
             report.warn(
                 "scenes",
                 f"总时长约 {seconds:.0f} 秒，超过竖屏短视频的常见上限，请确认是有意为之",
             )
+    return report
 
 
-def _validate_duration(scene: dict[str, Any], path: str, report: Report, fps: int) -> None:
-    duration = scene.get("durationInFrames")
-    if not isinstance(duration, int) or isinstance(duration, bool):
-        report.error(path, "durationInFrames 必须是整数帧数")
-    elif duration <= 0:
-        report.error(path, f"durationInFrames={duration} 必须大于 0")
-    elif duration < _MIN_SCENE_FRAMES:
-        # 短于此长度的场景，入场动效会被压缩到看不清，通常意味着应该并入相邻场景。
-        report.warn(
-            path,
-            f"仅 {duration} 帧（{duration / fps:.1f} 秒 @{fps}fps），"
-            f"入场动效会被压缩到看不清，建议并入相邻场景",
+def _validate_visual_direction(direction: dict[str, Any], report: Report) -> None:
+    """视频级视觉策略：字段齐全、取值受控。它是全片编排的约束输入。"""
+    required = {"motif", "compositionBias", "density", "rhythm", "avoid"}
+    _reject_unknown(direction, required, "visualDirection", report)
+    for key in required:
+        if key not in direction:
+            report.error(f"visualDirection.{key}", "缺少必填字段")
+    if "motif" in direction and (not isinstance(direction["motif"], str) or not direction["motif"].strip()):
+        report.error("visualDirection.motif", "motif 必须是非空字符串")
+    enums = {
+        "compositionBias": {"centered", "asymmetric", "mixed"},
+        "density": {"sparse", "balanced", "dense"},
+        "rhythm": {"restrained", "steady", "dynamic"},
+    }
+    for key, choices in enums.items():
+        if key in direction and direction[key] not in choices:
+            report.error(f"visualDirection.{key}", f"必须是 {'/'.join(sorted(choices))} 之一")
+    avoid = direction.get("avoid")
+    if "avoid" in direction and (not isinstance(avoid, list) or not all(isinstance(item, str) for item in avoid)):
+        report.error("visualDirection.avoid", "avoid 必须是字符串数组")
+
+
+def _validate_visual_intent(value: Any, path: str, report: Report) -> None:
+    fields = {
+        "relation": {"focus", "contrast", "sequence", "cause", "cycle", "collection"},
+        "focus": {"text", "number", "shape", "chart", "path"},
+        "composition": {"center", "offset", "split", "radial", "full"},
+        "density": {"sparse", "balanced", "dense"},
+        "tone": {"calm", "tense", "neutral", "uplifting", "decisive"},
+    }
+    if not isinstance(value, dict):
+        report.error(path, "visualIntent 必须是对象")
+        return
+    _reject_unknown(value, set(fields), path, report)
+    for key, choices in fields.items():
+        if value.get(key) not in choices:
+            report.error(f"{path}.{key}", f"必须是 {'/'.join(sorted(choices))} 之一")
+
+
+def _validate_root_visual(value: Any, report: Report) -> None:
+    """根级 visual 只允许主题与设计语言预设。"""
+    if value is None:
+        return
+    if not isinstance(value, dict):
+        report.error("visual", "visual 必须是对象")
+        return
+    _reject_unknown(value, {"theme", "preset"}, "visual", report)
+    if "theme" in value and value["theme"] not in _VISUAL_THEMES:
+        report.error("visual.theme", f"必须是 {'/'.join(_VISUAL_THEMES)} 之一")
+    if "preset" in value and value["preset"] not in _VISUAL_PRESETS:
+        report.error("visual.preset", f"必须是 {'/'.join(_VISUAL_PRESETS)} 之一")
+
+
+def _validate_scene_visual(value: Any, scene_type: Any, path: str, report: Report) -> None:
+    """幕级 visual 只允许角标；角标是读者可见的文案，必须短、单行、非空。"""
+    if value is None:
+        return
+    if not isinstance(value, dict):
+        report.error(path, "visual 必须是对象")
+        return
+    _reject_unknown(value, {"kicker"}, path, report)
+    if "kicker" not in value:
+        return
+    kicker = value["kicker"]
+    if not isinstance(kicker, str):
+        report.error(f"{path}.kicker", "角标必须是字符串")
+        return
+    text = kicker.strip()
+    if not text:
+        report.error(f"{path}.kicker", "角标不能是空白")
+    elif "\n" in text:
+        report.error(f"{path}.kicker", "角标必须单行")
+    elif len(text) > _KICKER_MAX_CHARS:
+        report.error(
+            f"{path}.kicker",
+            f"角标最多 {_KICKER_MAX_CHARS} 个字——角标是一个词，不是一句话；要说的更多请放进正文",
+        )
+    if isinstance(scene_type, str) and text and text.lower() == scene_type.strip().lower():
+        report.error(
+            f"{path}.kicker",
+            f"角标不能就是场景类型名（{scene_type}）——那是 schema 字段，不是给读者看的文案",
         )
 
 
-def _validate_scene_payload(scene: dict[str, Any], path: str, report: Report, declarative: bool = False) -> None:
-    scene_type = scene.get("type")
-    if not isinstance(scene_type, str) or not scene_type:
-        report.error(f"{path}.type", "场景缺少非空字符串 type")
+def _validate_scene_tree(root: Any, scene: dict[str, Any], scene_path: str, report: Report) -> None:
+    """校验单幕场景树：结构、容量、属性、内容引用与数据合法性。"""
+    path = f"{scene_path}.sceneTree"
+    if not isinstance(root, dict):
+        report.error(path, "每幕必须包含一棵场景树（sceneTree）")
         return
-    if scene_type not in _SCENE_FIELDS:
-        (report.error if declarative else report.warn)(
-            f"{path}.type",
-            f"类型 '{scene_type}' 不在已知组件清单中，渲染前请确认网页已实现该类型",
-        )
-        return
-
-    data_field = scene.get("data")
-    if not isinstance(data_field, dict):
-        report.error(f"{path}.data", "已知类型的场景必须提供 data 对象")
-        return
-
-    spec = _SCENE_FIELDS[scene_type]
-    for name in sorted(spec["required"]):
-        if name not in data_field:
-            report.error(f"{path}.data.{name}", f"类型 '{scene_type}' 缺少必填字段 '{name}'")
-    for name in sorted(set(data_field) - spec["required"] - spec["optional"]):
-        (report.error if declarative else report.warn)(
-            f"{path}.data.{name}", f"类型 '{scene_type}' 未定义字段 '{name}'"
-        )
-
-    if scene_type in ("timeline", "list"):
-        items = data_field.get("items")
-        if "items" in data_field and (not isinstance(items, list) or not items):
-            report.error(f"{path}.data.items", "items 必须是非空数组")
-        elif isinstance(items, list):
-            for i, item in enumerate(items):
-                if isinstance(item, str) and not item.strip():
-                    report.error(f"{path}.data.items[{i}]", "文本项不能是空白字符串")
-                elif isinstance(item, str):
-                    _warn_on_long_line(item, f"{path}.data.items[{i}]", report)
-
-    if "emphasis" in data_field:
-        _validate_emphasis(data_field["emphasis"], f"{path}.data.emphasis", report)
-        _warn_on_unmatched_emphasis(scene_type, data_field, f"{path}.data.emphasis", report)
-
-    if "annotations" in data_field:
-        _validate_annotations(data_field["annotations"], f"{path}.data.annotations", report)
-
-    if "figure" in data_field:
-        _validate_figure(data_field["figure"], f"{path}.data.figure", report, declarative, scene_type)
-    elif declarative and catalog.resolve_kind(scene_type, None) is None:
-        report.error(f"{path}.data.figure.kind", "此场景类型没有默认组件，请显式指定 kind")
-
-    if scene_type == "diagram":
-        _validate_diagram(data_field, f"{path}.data", report)
-    if scene_type == "chart":
-        _validate_chart(data_field, f"{path}.data", report, declarative)
-
-    _warn_on_component_capacity(scene_type, data_field, f"{path}.data", report)
-    _warn_on_long_text(data_field, f"{path}.data", report)
-    _warn_on_schematic(scene_type, data_field, f"{path}.data", report)
+    ids: dict[str, str] = {}
+    types: dict[str, str] = {}
+    counter = [0]
+    data_field = scene.get("data") if isinstance(scene.get("data"), dict) else {}
+    _validate_scene_node(root, path, report, ids, types, counter, data_field, depth=1)
+    if counter[0] > _MAX_NODES_PER_SCENE:
+        report.error(path, f"场景树最多 {_MAX_NODES_PER_SCENE} 个节点，当前 {counter[0]} 个")
 
 
-def _validate_figure(
-    value: Any,
+def _validate_scene_node(
+    value: dict[str, Any],
     path: str,
     report: Report,
-    declarative: bool = False,
-    scene_type: str = "",
+    ids: dict[str, str],
+    types: dict[str, str],
+    counter: list[int],
+    data_field: dict[str, Any],
+    *,
+    depth: int,
 ) -> None:
-    """校验选组件的那一小段声明。
-
-    结构层保证 kind 是字符串、motion 是三个节奏之一、labels/params 是对象；
-    「这个 kind 存不存在、它认识哪些标注键、能吃下多少条目」由组件目录说了算
-    （见 references/figure-catalog.md 与 a2v/catalog.py）。
-    kind 缺省时按场景类型取默认组件——标注检查跟着那个组件走，
-    否则「只带标注不带 kind」的写法会失去这层检查。
-    """
-    if not isinstance(value, dict):
-        report.error(path, "figure 必须是对象，形如 {\"kind\": \"iceberg\"}")
-        return
-    # kind 可以缺省（按场景类型取默认组件），figure 也可以只带标注或示意标记；
-    # 但写了 kind 就必须是非空字符串
-    kind = value.get("kind")
-    if "kind" in value and (not isinstance(kind, str) or not kind.strip()):
-        report.error(f"{path}.kind", "figure.kind 必须是非空字符串")
-        return
-    resolved_kind = (
-        kind.strip() if isinstance(kind, str) and kind.strip()
-        else catalog.DEFAULT_KINDS.get(scene_type, "")
-    )
-    for name in sorted(set(value) - _FIGURE_FIELDS):
-        (report.error if declarative else report.warn)(f"{path}.{name}", f"figure 未定义字段 '{name}'")
-    motion = value.get("motion")
-    if motion is not None and motion not in _FIGURE_MOTIONS:
-        report.error(
-            f"{path}.motion",
-            f"motion 必须是 {'/'.join(_FIGURE_MOTIONS)} 之一，实际为 {motion!r}",
-        )
-    if "schematic" in value and not isinstance(value["schematic"], bool):
-        report.error(
-            f"{path}.schematic",
-            "figure.schematic 必须是布尔值：true 表示这组数值没有来源，画面要出现「示意」标",
-        )
-    for name in ("labels", "params"):
-        if name in value and not isinstance(value[name], dict):
-            report.error(f"{path}.{name}", f"figure.{name} 必须是对象")
-    if isinstance(value.get("labels"), dict):
-        _validate_annotations(value["labels"], f"{path}.labels", report)
-    if value.get("params"):
-        # 机制已经接通（会带进组件），但当前没有组件读取任何键，
-        # 与其让人以为写了就生效，不如在开渲前说清楚
-        (report.error if declarative else report.warn)(
-            f"{path}.params",
-            "当前没有组件读取 params，写了不会改变画面；需要可调几何时先在组件里实现",
-        )
-
-    entry = catalog.component(resolved_kind)
+    counter[0] += 1
+    if depth > 8:
+        report.error(path, "场景树深度不能超过 8")
+    blocked = sorted(set(value) & _BLOCKED_NODE_FIELDS)
+    for key in blocked:
+        report.error(f"{path}.{key}", "场景树禁止可执行样式、自由坐标或第三方包字段")
+    node_id = value.get("id")
+    if not isinstance(node_id, str) or not _SCENE_ID_RE.match(node_id):
+        report.error(f"{path}.id", "节点 id 必须是非空安全标识符")
+    elif node_id in ids:
+        report.error(f"{path}.id", f"节点 id {node_id} 与 {ids[node_id]} 重复")
+    else:
+        ids[node_id] = f"{path}.id"
+    node_type = value.get("type")
+    entry = catalog.primitive(node_type) if isinstance(node_type, str) else None
     if entry is None:
-        # 未知组件只警告：目录允许扩展，网页挂载时会立刻抛出更明确的错误
-        (report.error if declarative else report.warn)(
-            f"{path}.kind",
-            f"组件 '{kind if kind else resolved_kind or '（无法确定）'}' 不在目录中"
-            f"（已知：{'、'.join(catalog.known_kinds())}），渲染前请确认网页已注册该组件",
-        )
+        report.error(f"{path}.type", f"未知视觉原语 {node_type!r}")
+    elif isinstance(node_id, str):
+        types[node_id] = node_type
+    if entry is not None:
+        _validate_node_props(value, entry, path, report)
+        _validate_node_content(node_type, value, f"{path}", data_field, report)
+    children = value.get("children", [])
+    if not isinstance(children, list):
+        report.error(f"{path}.children", "children 必须是数组")
         return
-    labels = value.get("labels")
-    if isinstance(labels, dict):
-        unknown = sorted(set(labels) - entry.labels)
-        if unknown:
-            (report.error if declarative else report.warn)(
-                f"{path}.labels.{unknown[0]}",
-                f"组件 '{kind}' 不认识标注键 {('、'.join(unknown))}，"
-                f"它认识的是 {('、'.join(sorted(entry.labels)))}；写错的标签不会显示",
+    if entry is not None:
+        low, high = entry.children
+        if len(children) < low or len(children) > high:
+            report.error(
+                f"{path}.children",
+                f"原语 {node_type} 允许 {low}–{high} 个子节点，当前 {len(children)} 个",
             )
-
-
-def _warn_on_component_capacity(
-    scene_type: str, data_field: dict[str, Any], path: str, report: Report
-) -> None:
-    """按组件声明的容量检查条目数。
-
-    组件会按数量收缩几何，但超出舒适区后标签会挤在一起，读不出来。
-    默认组件也参与检查：分镜没写 figure 时它照样会挂载。
-    """
-    entry = catalog.component(catalog.resolve_kind(scene_type, data_field.get("figure")) or "")
-    if entry is None or entry.items is None:
-        return
-    for field in ("items", "nodes", "values"):
-        value = data_field.get(field)
-        if not isinstance(value, list):
+    for index, child in enumerate(children):
+        if not isinstance(child, dict):
+            report.error(f"{path}.children[{index}]", "子节点必须是对象")
             continue
-        low, high = entry.items
-        if not low <= len(value) <= high:
-            report.warn(
-                f"{path}.{field}",
-                f"组件 '{entry.kind}' 适合 {low}–{high} 项，当前 {len(value)} 项，"
-                "再多会挤在一起读不出来",
-            )
+        _validate_scene_node(child, f"{path}.children[{index}]", report, ids, types, counter, data_field, depth=depth + 1)
 
 
-def _validate_annotations(value: Any, path: str, report: Report) -> None:
-    """校验图形标注：非空的「短词 -> 短词」映射。
-
-    键名（如 left / right / gauge）由每支视频的构图约定，校验器不预设枚举，
-    只保证网页拿到的是一组能安全画进图形的短字符串，并提醒过长的标注。
-    """
-    if not isinstance(value, dict) or not value:
-        report.error(path, "annotations 必须是非空对象，形如 {\"left\": \"命运的考试\"}")
-        return
-    for key in sorted(value.keys()):
-        key_path = f"{path}.{key}"
-        if not isinstance(key, str) or not key.strip():
-            report.error(path, "annotations 的键必须是非空字符串")
-            continue
-        item = value[key]
-        if not isinstance(item, str) or not item.strip():
-            report.error(key_path, "图形标注必须是非空字符串")
-            continue
-        if len(item.strip()) > _ANNOTATION_MAX_CHARS:
-            report.warn(
-                key_path,
-                f"图形标注 {len(item.strip())} 个字符，超过 {_ANNOTATION_MAX_CHARS} 字，"
-                "画在图形旁边会挤压构图",
-            )
-
-
-def _warn_on_long_text(data_field: dict[str, Any], path: str, report: Report) -> None:
-    """按视觉规范检查单行字数：超出上限时应拆场景，而不是缩小字号。
-
-    这些是**警告**：文案长度属于表达取舍，校验器只负责在开渲前提醒，
-    由作者决定是否拆分；`--strict` 可以把它们提升为失败。
-    分镜里的换行符是硬换行，因此逐行判断而不是判断整段长度。
-    """
-    for field, limit in _TEXT_LINE_LIMITS.items():
-        value = data_field.get(field)
-        if not isinstance(value, str):
-            continue
-        _warn_on_long_line(value, f"{path}.{field}", report, limit)
-
-
-def _warn_on_long_line(text: str, path: str, report: Report, limit: int = _MAX_LINE_CHARS) -> None:
-    lines = text.split("\n")
-    for index, line in enumerate(lines):
-        stripped = line.strip()
-        if len(stripped) <= limit:
-            continue
-        where = f"{path} 第 {index + 1} 行" if len(lines) > 1 else path
-        report.warn(
-            where,
-            f"单行 {len(stripped)} 个字符，超过 {limit} 字的上限，建议拆成多个场景或手动换行",
-        )
-
-
-def _warn_on_unmatched_emphasis(
-    scene_type: str, data_field: dict[str, Any], path: str, report: Report
-) -> None:
-    """强调短语必须能在画面文本里原样命中，否则网页标不出重点色。
-
-    网页按「第一处出现」替换，因此短语里多一个空格或标点就会静默失效；
-    这里提前把这类不可见的失效暴露出来。
-    """
-    phrases = data_field.get("emphasis")
-    if not isinstance(phrases, list):
-        return
-    fields = _EMPHASIS_TEXT_FIELDS.get(scene_type)
-    if not fields:
-        # 其他类型的文案字段不在本模块的检查范围内，避免误报。
-        return
-    haystack = "\n".join(
-        value for value in (data_field.get(name) for name in fields) if isinstance(value, str)
-    )
-    if not haystack:
-        return
-    for index, phrase in enumerate(phrases):
-        if not isinstance(phrase, str) or not phrase.strip():
-            continue
-        if phrase not in haystack:
-            report.warn(
-                f"{path}[{index}]",
-                f"强调短语 '{phrase}' 未出现在该场景的文本中，画面上不会生效",
-            )
-
-
-def _validate_emphasis(value: Any, path: str, report: Report) -> None:
-    """emphasis 是要高亮的短语列表，网页据此在文本中标记重点。"""
-    if not isinstance(value, list) or not value:
-        report.error(path, "emphasis 必须是非空数组")
-        return
-    for i, phrase in enumerate(value):
-        if not isinstance(phrase, str) or not phrase.strip():
-            report.error(f"{path}[{i}]", "emphasis 的每一项必须是非空字符串")
-
-
-def _validate_diagram(data_field: dict[str, Any], path: str, report: Report) -> None:
-    nodes = data_field.get("nodes")
-    if "nodes" in data_field and (not isinstance(nodes, list) or not nodes):
-        report.error(f"{path}.nodes", "nodes 必须是非空数组")
-        return
-    if not isinstance(nodes, list):
-        return
-
-    node_ids: set[str] = set()
-    for i, node in enumerate(nodes):
-        if isinstance(node, str):
-            if not node.strip():
-                report.error(f"{path}.nodes[{i}]", "节点文本不能是空白字符串")
-            else:
-                node_ids.add(node)
-        elif isinstance(node, dict) and isinstance(node.get("id"), str) and node["id"]:
-            node_ids.add(node["id"])
-        else:
-            report.error(f"{path}.nodes[{i}]", "节点必须是字符串或含 id 的对象")
-
-    edges = data_field.get("edges", [])
-    if not isinstance(edges, list):
-        report.error(f"{path}.edges", "edges 必须是数组")
-        return
-    for i, edge in enumerate(edges):
-        pair: list[Any] | None = None
-        if isinstance(edge, list) and len(edge) == 2:
-            pair = edge
-        elif isinstance(edge, dict):
-            pair = [edge.get("from"), edge.get("to")]
-        if not pair or not all(isinstance(v, str) and v for v in pair):
-            report.error(f"{path}.edges[{i}]", "边必须是 [from, to] 数组或含 from/to 的对象")
-        elif node_ids and (pair[0] not in node_ids or pair[1] not in node_ids):
-            report.error(f"{path}.edges[{i}]", f"边 {pair[0]} -> {pair[1]} 引用了不存在的节点")
-
-
-#: 图表数据点标签的字数上限：与图形标注同一量级，过长会挤掉图形本身。
-_CHART_LABEL_MAX_CHARS = 12
-
-#: 图表类型（data.chart）的取值。与渲染层 `web/src/charts/series.ts` 的
-#: `CHART_TYPES` 一致——两侧各自声明、由测试对照，类型是画面语义，
-#: 不放进 catalog.py 的组件表里（它描述的是组件不是字段）。
-_CHART_TYPES = ("bar", "line", "pie")
-
-
-def _validate_chart(
-    data_field: dict[str, Any], path: str, report: Report, declarative: bool = False
-) -> None:
-    """校验图表场景的数据序列与图表类型（任务 7.2）。
-
-    数据必须全部来自分镜：values 缺失、空数组、条目缺标签或数值非法都直接报错
-    ——渲染层在挂载时会为同样的错误抛异常，「校验通过却画不出来」是双真源的缺陷。
-    """
-    values = data_field.get("values")
-    if not isinstance(values, list) or not values:
+def _validate_node_props(value: dict[str, Any], entry: Any, path: str, report: Report) -> None:
+    """属性必须在该原语注册的清单内，且取值落在受控枚举里。"""
+    node_type = entry.type
+    unknown = sorted(set(value) - _STRUCTURAL_NODE_FIELDS - set(entry.props))
+    for key in unknown:
         report.error(
-            f"{path}.values",
-            "values 必须是非空数组，每项形如 {\"label\": \"四月\", \"value\": 12}",
+            f"{path}.{key}",
+            f"原语 {node_type} 不支持属性 {key!r}（允许：{'、'.join(sorted(entry.props)) or '无'}）",
         )
-        return
+    for key, choices in _NODE_PROP_ENUMS.items():
+        if key in value and key in entry.props and value[key] not in choices:
+            report.error(f"{path}.{key}", f"必须是 {'/'.join(sorted(choices))} 之一")
+    direction_choices = _NODE_DIRECTION_ENUMS.get(node_type)
+    if direction_choices is not None and "direction" in value and value["direction"] not in direction_choices:
+        report.error(f"{path}.direction", f"原语 {node_type} 的 direction 必须是 {'/'.join(sorted(direction_choices))} 之一")
+    if "schematic" in value and not isinstance(value["schematic"], bool):
+        report.error(f"{path}.schematic", "schematic 必须是布尔值：true 表示这组数值没有来源，画面要出现「示意」标")
 
+
+def _validate_node_content(node_type: Any, value: dict[str, Any], path: str, data_field: dict[str, Any], report: Report) -> None:
+    """内容引用必须解析到 data 中真实存在的字段，数值类内容还要合法。"""
+    if node_type == "image":
+        source_ref = value.get("sourceRef")
+        if not isinstance(source_ref, str) or not source_ref.startswith("data."):
+            report.error(f"{path}.sourceRef", "image 原语必须用 sourceRef 指向 data 中的媒体路径")
+        elif _resolve_ref(data_field, source_ref) is None:
+            report.error(f"{path}.sourceRef", f"媒体引用 {source_ref} 指向不存在的字段")
+        return
+    ref = value.get("contentRef")
+    if ref is None:
+        return
+    resolved = _resolve_ref(data_field, ref)
+    if resolved is None:
+        report.error(f"{path}.contentRef", f"内容引用 {ref} 指向不存在的字段")
+        return
+    if node_type == "text" and not isinstance(resolved, (str, int, float, list)):
+        report.error(f"{path}.contentRef", f"文字原语的内容必须是文本或列表，{ref} 指向 {type(resolved).__name__}")
+    if node_type == "number":
+        if isinstance(resolved, bool) or not isinstance(resolved, (int, float)):
+            report.error(f"{path}.contentRef", f"数字原语的内容必须是数值，{ref} 指向 {type(resolved).__name__}")
+        elif not math.isfinite(resolved):
+            report.error(f"{path}.contentRef", f"数字原语的内容必须是有限数值，{ref} 指向 {resolved!r}")
+    if node_type == "chart":
+        _validate_chart_values(resolved, f"{path}.contentRef", report)
+
+
+def _validate_chart_values(value: Any, path: str, report: Report) -> None:
+    """图表数据必须全部来自分镜：缺失、空数组、缺标签或数值非法都直接报错。"""
+    if not isinstance(value, list) or not value:
+        report.error(path, "图表内容必须是非空数组，每项形如 {\"label\": \"四月\", \"value\": 12}")
+        return
     seen: dict[str, int] = {}
-    for index, item in enumerate(values):
-        item_path = f"{path}.values[{index}]"
+    for index, item in enumerate(value):
+        item_path = f"{path}[{index}]"
         if not isinstance(item, dict):
             report.error(item_path, "数据点必须是 {\"label\", \"value\"} 对象")
             continue
-        unknown = sorted(set(item) - {"label", "value"})
-        if unknown:
-            (report.error if declarative else report.warn)(
-                f"{item_path}.{unknown[0]}", f"数据点未定义字段 '{unknown[0]}'"
-            )
         label = item.get("label")
         if not isinstance(label, str) or not label.strip():
             report.error(f"{item_path}.label", "数据点标签必须是非空字符串")
@@ -683,27 +425,155 @@ def _validate_chart(
             if len(label.strip()) > _CHART_LABEL_MAX_CHARS:
                 report.warn(
                     f"{item_path}.label",
-                    f"数据点标签 {len(label.strip())} 个字符，超过 {_CHART_LABEL_MAX_CHARS} 字上限，"
-                    "会挤压图形本身",
+                    f"数据点标签 {len(label.strip())} 个字符，超过 {_CHART_LABEL_MAX_CHARS} 字上限，会挤压图形本身",
                 )
-        value = item.get("value")
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        point_value = item.get("value")
+        if isinstance(point_value, bool) or not isinstance(point_value, (int, float)) or not math.isfinite(point_value):
             report.error(f"{item_path}.value", "数据点数值必须是有限数字")
 
-    chart_type = data_field.get("chart")
-    if "chart" in data_field and chart_type not in _CHART_TYPES:
-        report.error(
-            f"{path}.chart",
-            f"chart 必须是 {'/'.join(_CHART_TYPES)} 之一，实际为 {chart_type!r}",
+
+def _resolve_ref(data_field: dict[str, Any], ref: str) -> Any:
+    """把 "data.a.b"、"data.list[0]" 解析到分镜数据里；任何一段缺失都返回 None。"""
+    current: Any = data_field
+    for key in ref[len("data.") :].split("."):
+        match = re.fullmatch(r"([^\[\]]+)(?:\[(\d+)\])?", key)
+        if not match:
+            return None
+        name, index = match.group(1), match.group(2)
+        if not isinstance(current, dict) or name not in current:
+            return None
+        current = current[name]
+        if index is not None:
+            position = int(index)
+            if not isinstance(current, list) or position >= len(current):
+                return None
+            current = current[position]
+    return current
+
+
+def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, Any], scene_path: str) -> None:
+    """动效目标用稳定节点 id 定位；配方、时间范围与原语支持度都在开渲前确认。"""
+    if not isinstance(value, list):
+        report.error(path, "motions 必须是数组")
+        return
+    ids: dict[str, str] = {}
+    types: dict[str, str] = {}
+
+    def collect(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        node_id = node.get("id")
+        if isinstance(node_id, str):
+            ids[node_id] = f"{scene_path}.sceneTree"
+            if isinstance(node.get("type"), str):
+                types[node_id] = node["type"]
+        for child in node.get("children", []) or []:
+            collect(child)
+
+    collect(scene.get("sceneTree"))
+    duration = scene.get("durationInFrames")
+    for index, motion in enumerate(value):
+        item_path = f"{path}[{index}]"
+        if not isinstance(motion, dict):
+            report.error(item_path, "动效必须是对象")
+            continue
+        _reject_unknown(motion, {"target", "recipe", "startFrame", "durationFrames"}, item_path, report)
+        target, recipe = motion.get("target"), motion.get("recipe")
+        if target not in ids:
+            report.error(f"{item_path}.target", f"动效目标 {target!r} 不存在")
+        if recipe not in _MOTION_RECIPES:
+            report.error(f"{item_path}.recipe", f"未知动效配方 {recipe!r}")
+        elif target in ids:
+            entry = catalog.primitive(types.get(target, ""))
+            if entry is not None and recipe not in entry.motions:
+                report.error(
+                    f"{item_path}.recipe",
+                    f"原语 {types.get(target)} 不支持动效 {recipe!r}（允许：{'、'.join(sorted(entry.motions))}）",
+                )
+        start = motion.get("startFrame", 0); length = motion.get("durationFrames", 1)
+        if not isinstance(start, int) or isinstance(start, bool) or start < 0:
+            report.error(f"{item_path}.startFrame", "startFrame 必须是非负整数")
+        if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
+            report.error(f"{item_path}.durationFrames", "durationFrames 必须是正整数")
+        if isinstance(start, int) and isinstance(length, int) and isinstance(duration, int) and start + length > duration:
+            report.error(item_path, "动效时间范围超出场景")
+
+
+def _warn_on_scene_copy(scene: dict[str, Any], path: str, report: Report) -> None:
+    """场景级文案检查：单行上限、emphasis 命中与示意数值提醒。
+
+    v2 的 data 是自由字段，因此检查遍历整个 data：可见文案写在哪个键里，
+    规则都一样。硬换行是语义换行，所以逐行判断而不是判断整段长度。
+    """
+    data_field = scene.get("data")
+    if not isinstance(data_field, dict):
+        return
+    _warn_on_long_text(data_field, f"{path}.data", report)
+    if "emphasis" in data_field:
+        _validate_emphasis(data_field["emphasis"], f"{path}.data.emphasis", report)
+        _warn_on_unmatched_emphasis(data_field, f"{path}.data.emphasis", report)
+    _warn_on_unsourced_numbers(scene, path, report)
+
+
+def _warn_on_long_text(data_field: dict[str, Any], path: str, report: Report) -> None:
+    """对 data 里的每个字符串值做单行字数检查（含嵌套对象与数组）。"""
+    def walk(value: Any, item_path: str) -> None:
+        if isinstance(value, str):
+            _warn_on_long_line(value, item_path, report)
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{item_path}.{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                walk(item, f"{item_path}[{index}]")
+
+    for key, value in data_field.items():
+        walk(value, f"{path}.{key}")
+
+
+def _warn_on_long_line(text: str, path: str, report: Report, limit: int = _MAX_LINE_CHARS) -> None:
+    lines = text.split("\n")
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if len(stripped) <= limit:
+            continue
+        where = f"{path} 第 {index + 1} 行" if len(lines) > 1 else path
+        report.warn(
+            where,
+            f"单行 {len(stripped)} 个字符，超过 {limit} 字的上限，建议拆成多个场景或手动换行",
         )
 
 
-def _visible_text(data_field: dict[str, Any]) -> str:
-    """把分镜数据里所有字符串值拼起来（含嵌套对象与数组）。
+def _validate_emphasis(value: Any, path: str, report: Report) -> None:
+    """emphasis 是要高亮的短语列表，画面据此在文本中标记重点。"""
+    if not isinstance(value, list) or not value:
+        report.error(path, "emphasis 必须是非空数组")
+        return
+    for i, phrase in enumerate(value):
+        if not isinstance(phrase, str) or not phrase.strip():
+            report.error(f"{path}[{i}]", "emphasis 的每一项必须是非空字符串")
 
-    用于检查「示意」二字有没有落到画面上：它可能写在标签、说明、
-    数据点标签或图形标注里——写在哪儿都算数，观众看得到才算数。
-    """
+
+def _warn_on_unmatched_emphasis(data_field: dict[str, Any], path: str, report: Report) -> None:
+    """强调短语必须能在该场景的可见文本里原样命中，否则高亮会静默失效。"""
+    phrases = data_field.get("emphasis")
+    if not isinstance(phrases, list):
+        return
+    haystack = _visible_text(data_field)
+    if not haystack:
+        return
+    for index, phrase in enumerate(phrases):
+        if not isinstance(phrase, str) or not phrase.strip():
+            continue
+        if phrase not in haystack:
+            report.warn(
+                f"{path}[{index}]",
+                f"强调短语 '{phrase}' 未出现在该场景的文本中，画面上不会生效",
+            )
+
+
+def _visible_text(data_field: dict[str, Any]) -> str:
+    """把分镜数据里所有字符串值拼起来（含嵌套对象与数组）。"""
     parts: list[str] = []
 
     def walk(value: Any) -> None:
@@ -721,36 +591,87 @@ def _visible_text(data_field: dict[str, Any]) -> str:
     return "".join(parts)
 
 
-def _warn_on_schematic(
-    scene_type: str, data_field: dict[str, Any], path: str, report: Report
-) -> None:
-    """示意标记（figure.schematic）的提示（任务 7.5）。
+def _warn_on_unsourced_numbers(scene: dict[str, Any], path: str, report: Report) -> None:
+    """示意数值提醒：数字/图表原语没有声明 schematic 且文案无来源字样时提醒。
 
-    「这个数值有没有来源」是内容判断，校验器做不了；这里只保证两件事：
-    标记被接受（不会当成未知字段拒绝），以及标记真的会落到画面上——
-    图表组件会自动画「示意」标（catalog.SCHEMATIC_KINDS），其它组件
-    只能靠文案里出现这两个字。两类提示都是 warning：定稿前用 --strict
-    收口时，作者必须对「这些数字哪来的」给出一个明确的交代——
-    要么声明示意标记，要么在文案里写明来源（出处 / 来源字样）。
+    「这个数值有没有来源」是内容判断，校验器做不了；这里只保证无来源数值
+    不会无标记地混进画面——要么声明节点 schematic: true（画面自动出现
+    「示意」标），要么在文案里写明来源（出处 / 来源字样）。
     """
-    figure = data_field.get("figure")
-    marked = isinstance(figure, dict) and figure.get("schematic") is True
+    tree = scene.get("sceneTree")
+    marked = False
+    has_numbers = False
+
+    def walk(node: Any) -> None:
+        nonlocal marked, has_numbers
+        if not isinstance(node, dict):
+            return
+        if node.get("type") in {"number", "chart"}:
+            has_numbers = True
+            if node.get("schematic") is True:
+                marked = True
+        for child in node.get("children", []) or []:
+            walk(child)
+
+    walk(tree)
+    if not has_numbers or marked:
+        return
+    data_field = scene.get("data") if isinstance(scene.get("data"), dict) else {}
     visible = _visible_text(data_field)
-    has_word = "示意" in visible
-    has_source = "来源" in visible or "出处" in visible
-    if marked:
-        kind = catalog.resolve_kind(scene_type, figure)
-        if kind not in catalog.SCHEMATIC_KINDS and not has_word:
-            report.warn(
-                f"{path}.figure.schematic",
-                "已声明 schematic，但这一幕的组件不会自动画「示意」标，"
-                "文案里也没有「示意」二字——无来源数值会被观众当成实测结果",
-            )
-    elif scene_type == "chart" and not has_word and not has_source:
+    if "示意" not in visible and "来源" not in visible and "出处" not in visible:
         report.warn(
-            f"{path}.values",
-            "图表数值没有标记来源：确认每个数值都有出处，并在文案里写明来源；"
-            "确属示意数据时请声明 figure.schematic: true，画面会自动出现「示意」标",
+            f"{path}.sceneTree",
+            "数字/图表数值没有标记来源：确认每个数值都有出处，并在文案里写明来源；"
+            "确属示意数据时请把节点声明为 schematic: true，画面会自动出现「示意」标",
+        )
+
+
+def _reject_unknown(value: dict[str, Any], allowed: set[str], path: str, report: Report) -> None:
+    for key in sorted(set(value) - allowed):
+        report.error(f"{path}.{key}" if path else key, "声明式路径不支持此字段")
+
+
+def _safe_fps(data: dict[str, Any]) -> int:
+    """取出可安全参与算术的 fps，非法时回退 30。
+
+    校验器的职责是「报告问题」而不是「自己抛异常」，因此所有用于计算的
+    字段都要先做类型收敛。
+    """
+    fps = data.get("fps")
+    if isinstance(fps, int) and not isinstance(fps, bool) and fps > 0:
+        return fps
+    return 30
+
+
+def _validate_framerate(data: dict[str, Any], report: Report) -> None:
+    fps = data.get("fps")
+    if not isinstance(fps, int) or isinstance(fps, bool) or not 1 <= fps <= 120:
+        report.error("fps", "fps 必须是 1..120 之间的整数")
+        return
+    if fps not in (24, 25, 30, 60):
+        report.warn("fps", f"fps={fps} 不是常见值（24/25/30/60），请确认渲染目标")
+
+
+def _validate_dimensions(data: dict[str, Any], report: Report) -> None:
+    for key, default in (("width", 1080), ("height", 1920)):
+        value = data.get(key, default)
+        if not isinstance(value, int) or isinstance(value, bool):
+            report.error(key, f"{key} 必须是整数像素")
+        elif value <= 0:
+            report.error(key, f"{key}={value} 必须大于 0")
+
+
+def _validate_duration(scene: dict[str, Any], path: str, report: Report, fps: int) -> None:
+    duration = scene.get("durationInFrames")
+    if not isinstance(duration, int) or isinstance(duration, bool):
+        report.error(path, "durationInFrames 必须是整数帧数")
+    elif duration <= 0:
+        report.error(path, f"durationInFrames={duration} 必须大于 0")
+    elif duration < _MIN_SCENE_FRAMES:
+        # 短于此长度的场景，入场动效会被压缩到看不清，通常意味着应该并入相邻场景。
+        report.warn(
+            path,
+            f"仅 {duration} 帧（{duration / fps:.1f} 秒 @{fps}fps），入场动效会被压缩到看不清，建议并入相邻场景",
         )
 
 
@@ -799,7 +720,7 @@ class Storyboard:
         return self.scenes[-1] if frame >= self.total_frames else self.scenes[0]
 
 
-def load(path: str | Path, *, declarative: bool = False) -> tuple[Storyboard | None, Report]:
+def load(path: str | Path) -> tuple[Storyboard | None, Report]:
     """从 JSON 文件加载并校验分镜脚本。
 
     返回 (storyboard, report)：解析失败或存在 error 时 storyboard 为 None，
@@ -819,7 +740,7 @@ def load(path: str | Path, *, declarative: bool = False) -> tuple[Storyboard | N
         report.error("$", f"JSON 解析失败（第 {exc.lineno} 行第 {exc.colno} 列）: {exc.msg}")
         return None, report
 
-    report = validate(data, declarative=declarative)
+    report = validate(data)
     if not report.ok:
         return None, report
     return _build(data, report), report

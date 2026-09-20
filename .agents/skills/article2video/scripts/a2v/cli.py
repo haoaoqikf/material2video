@@ -127,8 +127,8 @@ def _build_validate_parser() -> argparse.ArgumentParser:
     parser.add_argument("path", help="分镜 JSON 路径")
     parser.add_argument("--media", help="同时校验配音清单、字幕与音轨时长")
     parser.add_argument("--strict", action="store_true", help="把警告视为错误")
-    parser.add_argument("--declarative", action="store_true", help="按共享页面的受控字段规则校验")
     parser.add_argument("--json", action="store_true", help="以 JSON 输出，便于程序化处理")
+    parser.add_argument("--reference", action="append", default=[], help="显式提供跨作品多样性比较的参考分镜，可重复")
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -178,12 +178,12 @@ def main_render(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     # 分镜校验先于路径推导：脚本无效时不必先建出输出目录
-    model = _validated_storyboard(args.storyboard, declarative=True)
+    model = _validated_storyboard(args.storyboard)
     if model is None:
         return _EXIT_INVALID_INPUT
 
     try:
-        article = _article_for(args, declarative=True, required=True)
+        article = _article_for(args, required=True)
         # 契约页总是从查询参数读分镜（它就是为「一个页面服务任意作品」设计的）
         source_url = (
             _storyboard_url(args.storyboard, article) if article is not None else None
@@ -217,9 +217,9 @@ def main_render(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _validated_storyboard(path: str | Path, *, declarative: bool = False) -> sb.Storyboard | None:
+def _validated_storyboard(path: str | Path) -> sb.Storyboard | None:
     """加载并校验分镜；有错误时打印问题并返回 None。"""
-    model, report = sb.load(path, declarative=declarative)
+    model, report = sb.load(path)
     if model is None:
         for issue in report.errors:
             logging.error("%s", issue.format())
@@ -231,7 +231,7 @@ def _validated_storyboard(path: str | Path, *, declarative: bool = False) -> sb.
 
 
 def _article_for(
-    args: argparse.Namespace, *, declarative: bool, required: bool = False
+    args: argparse.Namespace, *, required: bool = False
 ) -> paths_mod.ArticlePaths | None:
     """本次调用涉及的文章归属。
 
@@ -324,7 +324,19 @@ def main_validate(argv: list[str] | None = None) -> int:
         logging.error("文件不存在: %s", path)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(path, declarative=args.declarative)
+    model, report = sb.load(path)
+    diversity_result = None
+    if model is not None:
+        try:
+            from . import diversity
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            refs = diversity.load_references(args.reference) if args.reference else None
+            diversity_result = diversity.inspect(raw, refs)
+            for finding in diversity_result["findings"]:
+                report.warn("scenes", f"多样性规则 {finding['rule']}：涉及场景 {', '.join(finding['scenes'])}")
+        except (OSError, json.JSONDecodeError) as exc:
+            report.error("reference", f"参考分镜读取失败：{exc}")
+            model = None
     if args.media and model is not None:
         try:
             model = load_media(args.media, path).storyboard
@@ -333,6 +345,8 @@ def main_validate(argv: list[str] | None = None) -> int:
             model = None
     if args.json:
         payload = report.to_json()
+        if diversity_result is not None:
+            payload["diversity"] = diversity_result
         if model is not None:
             payload["summary"] = {
                 "title": model.title,
@@ -368,7 +382,7 @@ def main_preview(argv: list[str] | None = None) -> int:
     _configure_logging(args.verbose)
 
     from .media import media_url
-    if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
+    if not args.storyboard or _validated_storyboard(args.storyboard) is None:
         logging.error("Remotion 预览需要有效的 --storyboard")
         return _EXIT_INVALID_INPUT
     try:
@@ -450,8 +464,6 @@ def main_review(argv: list[str] | None = None) -> int:
     from .media import load_media, media_url
     from .render import _resolve_page_url
 
-    declarative = True
-
     article: paths_mod.ArticlePaths | None = None
     page_mounts: dict[str, Path] | None = None
     try:
@@ -463,7 +475,7 @@ def main_review(argv: list[str] | None = None) -> int:
         logging.error("找不到要体检的画面: %s", exc)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(args.storyboard, declarative=declarative)
+    model, report = sb.load(args.storyboard)
     if model is None or not report.ok:
         for issue in report.issues:
             logging.error("%s", issue.format())

@@ -1,0 +1,73 @@
+{
+  "sourceVersion": 1,
+  "targetVersion": 2,
+  "pixelEquivalent": false,
+  "accepted": false,
+  "scenes": [
+    {
+      "id": "opening",
+      "legacyKind": "balance",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "thesis",
+      "legacyKind": "versus",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "choice",
+      "legacyKind": "versus",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "loop",
+      "legacyKind": "loop",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "closing",
+      "legacyKind": "exchange",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    }
+  ]
+}

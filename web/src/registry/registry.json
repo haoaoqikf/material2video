@@ -1,157 +1,21 @@
 {
-  "$meta": {
-    "purpose": "视觉组件注册表：组件集合的唯一真源（openspec 能力 react-component-registry）。",
-    "consumers": [
-      "web/src/registry/index.ts（渲染层：kind → 组件本体）",
-      "web/src/schema/figureKinds.ts（生成物：分镜 kind 枚举）",
-      ".agents/skills/article2video/scripts/a2v/catalog.py（生成物：校验器镜像）",
-      ".agents/skills/article2video/references/figure-catalog.md（生成物：组件表）"
-    ],
-    "regenerate": "uv run python .agents/skills/article2video/scripts/sync_catalog.py（--check 只校验）",
-    "fields": {
-      "kind": "分镜 figure.kind 的取值",
-      "labels": "该组件认识的标注键；声明了就必须真的画出来（tests/test_web_registry.py 机检）",
-      "items": "容量 [低, 高]，作用于分镜的 items/nodes/values 字段；null 表示不限",
-      "capacityUnit": "容量在文档里的量词",
-      "sceneTypes": "适用场景类型（storyboard 的 scene.type）",
-      "summary": "适合表达什么，进错误信息与文档",
-      "implemented": "false = 规划中的组件：文档照登，渲染层没有它",
-      "source": "组件实现源码（相对 web/src/），标注键机检与溯源用它",
-      "canvasDrawn": "true = 画面主体画在 canvas 上，K7/K8 对图形内部不适用（catalog.CANVAS_KINDS）",
-      "schematicMark": "true = 会把 figure.schematic 自动画成「示意」标（catalog.SCHEMATIC_KINDS）"
-    }
-  },
-  "figures": [
-    {
-      "kind": "balance",
-      "labels": ["leftPan", "rightPan"],
-      "items": [2, 2],
-      "capacityUnit": "侧",
-      "sceneTypes": ["title"],
-      "summary": "一边重一边轻，随后证明重的那个是空壳",
-      "implemented": true,
-      "source": "components/Balance.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "gap",
-      "labels": ["assumption", "fact", "dropLabel", "noDropLabel"],
-      "items": [2, 2],
-      "capacityUnit": "栏",
-      "sceneTypes": ["quote"],
-      "summary": "量出真正失去了多少：一侧从满到空，另一侧从头就没有",
-      "implemented": true,
-      "source": "components/Gap.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "iceberg",
-      "labels": ["surface"],
-      "items": [1, 3],
-      "capacityUnit": "条条目",
-      "sceneTypes": ["list"],
-      "summary": "看得见的一角与看不见的主体不是一回事",
-      "implemented": true,
-      "source": "components/Iceberg.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "loop",
-      "labels": ["gauge"],
-      "items": [3, 6],
-      "capacityUnit": "节点",
-      "sceneTypes": ["diagram"],
-      "summary": "循环往复，每转一圈积累一点",
-      "implemented": true,
-      "source": "components/Loop.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "stairs",
-      "labels": ["axis", "before", "after"],
-      "items": [2, 5],
-      "capacityUnit": "级",
-      "sceneTypes": ["timeline"],
-      "summary": "次数累积带来的位置变化，并在末段翻转视角",
-      "implemented": true,
-      "source": "components/Stairs.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "exchange",
-      "labels": ["leftNode", "rightNode"],
-      "items": [2, 2],
-      "capacityUnit": "端",
-      "sceneTypes": ["conclusion"],
-      "summary": "双向关系，两个端点互相选择",
-      "implemented": true,
-      "source": "components/Exchange.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "versus",
-      "labels": ["left", "right", "note"],
-      "items": [2, 2],
-      "capacityUnit": "栏",
-      "sceneTypes": ["comparison"],
-      "summary": "两种反应并排，箭头指出该从哪边转向哪边",
-      "implemented": true,
-      "source": "components/Versus.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "number",
-      "labels": [],
-      "items": [1, 1],
-      "capacityUnit": "个数值",
-      "sceneTypes": ["number"],
-      "summary": "按帧递增显示数值，并展示标签与说明",
-      "implemented": true,
-      "source": "components/Number.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    },
-    {
-      "kind": "chart",
-      "labels": ["unit", "note"],
-      "items": [2, 6],
-      "capacityUnit": "个数据点",
-      "sceneTypes": ["chart"],
-      "summary": "柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本",
-      "implemented": true,
-      "source": "components/Chart.tsx",
-      "canvasDrawn": true,
-      "schematicMark": true
-    },
-    {
-      "kind": "flow",
-      "labels": [],
-      "items": [2, 6],
-      "capacityUnit": "节点",
-      "sceneTypes": ["diagram"],
-      "summary": "因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形",
-      "implemented": true,
-      "source": "components/Flow.tsx",
-      "canvasDrawn": false,
-      "schematicMark": false
-    }
-  ],
-  "defaultKindByScene": {
-    "title": "balance",
-    "quote": "gap",
-    "comparison": "versus",
-    "list": "iceberg",
-    "diagram": "loop",
-    "timeline": "stairs",
-    "conclusion": "exchange",
-    "number": "number",
-    "chart": "chart"
-  }
+  "$meta": {"purpose": "视觉原语注册表唯一真源", "version": 2},
+  "primitives": [
+    {"type":"stack","category":"layout","children":[1,12],"props":["align","gap"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"叠放内容并按统一对齐排列"},
+    {"type":"row","category":"layout","children":[1,6],"props":["align","gap"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"横向排列内容"},
+    {"type":"column","category":"layout","children":[1,8],"props":["align","gap"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"纵向排列内容"},
+    {"type":"split","category":"layout","children":[2,2],"props":["ratio","gap"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"按受控比例分成两栏"},
+    {"type":"grid","category":"layout","children":[1,6],"props":["columns","gap"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"二列或三列网格"},
+    {"type":"radial","category":"layout","children":[2,6],"props":[],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"围绕中心按确定性圆周布局排布子节点"},
+    {"type":"overlay","category":"layout","children":[1,6],"props":["align"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"在同一区域叠加图层"},
+    {"type":"text","category":"content","children":[0,0],"props":["contentRef","role","align","state"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"显示分镜文本内容"},
+    {"type":"number","category":"content","children":[0,0],"props":["contentRef","role","schematic","state"],"motions":["reveal","fade","rise","count"],"source":"primitives/SceneTree.tsx","summary":"显示或递增数值"},
+    {"type":"image","category":"content","children":[0,0],"props":["sourceRef","state"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"显示本地受控图片"},
+    {"type":"icon","category":"content","children":[0,0],"props":["icon","state"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"显示内置符号"},
+    {"type":"chart","category":"content","children":[0,0],"props":["contentRef","chart","schematic","state"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"显示柱状、折线或饼图"},
+    {"type":"shape","category":"graphic","children":[0,0],"props":["shape","state"],"motions":["reveal","fade","rise","draw"],"source":"primitives/SceneTree.tsx","summary":"显示受控基础形状"},
+    {"type":"surface","category":"graphic","children":[1,8],"props":["state","gap","align"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"承载内容的卡片或面板"},
+    {"type":"connector","category":"graphic","children":[0,0],"props":["direction","state"],"motions":["reveal","fade","draw"],"source":"primitives/SceneTree.tsx","summary":"按确定方向绘制连接箭头，表达相邻内容之间的推进关系"},
+    {"type":"group","category":"graphic","children":[1,12],"props":["direction","gap","align"],"motions":["reveal","fade","rise"],"source":"primitives/SceneTree.tsx","summary":"为一组节点提供语义分组"}
+  ]
 }

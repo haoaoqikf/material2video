@@ -33,7 +33,6 @@
 ├── videos/<slug>/                    # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md
 │   ├── storyboard.json
-│   ├── scenes.tsx                    # 本篇专属画面模块，按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
 └── outputs/<slug>/                   # 成片与中间产物（不入库）
     ├── silent.mp4                    # 最新无声成片
@@ -58,9 +57,9 @@
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion）。分镜默认即可渲染；需要本篇专属的画面时，
-在作品目录写 `scenes.tsx` 专属画面模块，渲染脚本按工作区根自动发现并接进
-composition（入口由工具生成到 `web/.gen/`，是 gitignore 的生成物）。
+React composition（Remotion），由场景树递归解释器按分镜逐幕绘制。
+作品专属画面模块（`scenes.tsx`）已随 v2 场景树架构移除，任何作品都不再接进
+专属入口；需要新表达时按原语注册表流程新增通用原语。
 
 本篇专用素材（`videos/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过

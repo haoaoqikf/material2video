@@ -51,11 +51,16 @@ def test_classified_css_requires_the_frame_wrapper(tmp_path):
     assert any(item.rule == "CSS 动画未经过帧同步包装" for item in found)
 
 
-def test_repository_representative_is_allowed_and_classified():
+def test_repository_has_no_third_party_representative_and_scan_passes():
+    """仓库内的第三方目录已随整页组件路径移除；策略对缺席目录要优雅放行。
+
+    v2 场景树不允许第三方组件参与画面，catalog.json 不再存在：
+    load_catalog 返回空表，composition 可达源码的扫描照常执行并通过。
+    """
     root = Path(__file__).resolve().parents[1]
     web = root / "web"
     from a2v import remotion
 
+    assert not (web / "src/third-party/catalog.json").is_file()
+    assert source_policy.load_catalog(web) == []
     assert source_policy.scan(web, remotion.build_inputs()) == []
-    catalog = source_policy.load_catalog(web)
-    assert {item["classification"] for item in catalog} == {"static", "css-keyframes", "clock"}

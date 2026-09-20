@@ -28,12 +28,12 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | --- | --- |
 | `SKILL.md` | 工作流主文档：从文章到成片的步骤与排查手册 |
 | `references/` | 渲染契约、分镜结构、竖屏视觉规范、目录与输出路径 |
-| `web/` | 共享画面工程：React composition、组件库、设计令牌（`src/styles/`）、动效与排版原语（`src/runtime/`）、随仓库分发的字体 |
+| `web/` | 共享画面工程：React composition、场景树原语解释器（`src/primitives/`）、视觉原语注册表（`src/registry/`）、设计令牌（`src/styles/`）、共享运行时（`src/runtime/`）、随仓库分发的字体 |
 | `scripts/` | 校验、配音准备、预览、渲染、视觉评审五个命令行工具 |
 
 因此「可复用的视觉语言」体现为
-**共享 composition + 组件注册表 + 契约 + 视觉规范 + 设计令牌**；常规构图由分镜选择受控组件与布局，
-特殊构图可由作品目录里的 `scenes.tsx` 专属画面模块决定。
+**共享 composition + 视觉原语注册表 + 契约 + 视觉规范 + 设计令牌**；构图由分镜先声明
+视觉意图、再用受控原语组合场景树表达，任何作品都不再有专属画面代码。
 视觉方向的选择（深色科技 / 编辑杂志 / 极简高级）目前仍由人或 AI 工具判断，
 自动化属于规划中的能力。
 
@@ -44,7 +44,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
  → 内容理解与压缩          ← 已实现：按文章生成分镜规范执行（由 AI 工具完成，无生成器程序）
  → 分镜规划和视觉语言选择   ← 已实现：同上，规范见 references/article-to-storyboard.md
  → 结构化脚本 JSON          ← 已实现：storyboard.json（校验规则已落地）
- → React composition 画面   ← 已实现：共享 composition + 组件注册表；专属构图走 scenes.tsx 模块
+ → React composition 画面   ← 已实现：共享 composition 递归解释场景树 v2 + 原语注册表
  → 帧驱动动画编排           ← 已实现：useCurrentFrame 求值，禁止时间驱动动画
  → TTS 配音与字幕时间对齐   ← 已实现：edge-tts + 字词时间戳分句
  → 逐帧渲染与音视频合成     ← 已实现：Remotion 渲染，可选 AAC 配音与字幕烧录
@@ -58,28 +58,26 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 示例输入约 500 字，示例输出为 9:16、1080 × 1920、30fps、45 秒。文章字数不是配音时长承诺：
 需根据目标时长压缩口播文案，或随配音调整总时长。
 
-## 视觉组件候选
+## 视觉表达候选
 
-下表是**内容到视觉的映射建议**，供 AI 规划分镜时参考，不是必须遵守的枚举。
+下表是**内容到视觉意图的映射建议**，供 AI 规划分镜时参考，不是必须遵守的枚举。
 
-现已实现的组件与它们的适用场景，以
-[视觉组件目录](../.agents/skills/article2video/references/figure-catalog.md) 为权威来源，
-本文不重复维护一份可能漂移的副本。下表只保留尚未实现的方向：
+现已实现的原语、属性、容量与动效，以
+[视觉原语目录](../.agents/skills/article2video/references/primitive-catalog.md) 为权威来源，
+本文不重复维护一份可能漂移的副本。常见信息关系与推荐的原语组合：
 
-| 组件 | 脚本类型 | 适用内容 | 状态 |
-| --- | --- | --- | --- |
-| TitleScene | title | 开场命题、主题 | 已实现（`balance`） |
-| QuoteScene | quote | 核心判断、金句 | 已实现（`gap`） |
-| ComparisonScene | comparison | 两种选择、前后对照 | 已实现（`versus`） |
-| TimelineScene | timeline | 事件顺序、尝试过程 | 已实现（`stairs`） |
-| DiagramScene | diagram | 因果、约束、反馈模型 | 已实现（`loop`、`flow` 流程图） |
-| ConclusionScene | conclusion | 收束、行动建议 | 已实现（`exchange`） |
-| ListScene | list | 要点、行动步骤 | 已实现（`iceberg`） |
-| NumberScene | number | 数量、频次、收益变化 | 已实现（`number`；数据图表见 `chart`） |
-| DataScene | chart | 示意数据对比 | 已实现（`chart`，柱向为主） |
+| 信息关系 | 推荐组合 | 状态 |
+| --- | --- | --- |
+| 开场命题、主题 | `stack` + `text`（headline）+ `shape`（spotlight） | 已实现 |
+| 核心判断、金句 | `stack` + `text` + `shape`（ring/line） | 已实现 |
+| 两种选择、前后对照 | `split` + 两个 `surface` + `text` | 已实现 |
+| 事件顺序、台阶推进 | `row`/`column` + `text` 序列 + `connector`（draw） | 已实现 |
+| 因果、约束、反馈模型 | `radial` + `surface` 节点 + `connector` | 已实现 |
+| 数量、频次、收益变化 | `number`（count 动效）或 `chart`（bar/line/pie） | 已实现 |
+| 收束、行动建议 | `column` + `text` + `row` 步骤链 | 已实现 |
 
-校验器认识这些类型并对必填字段做检查；出现新类型时给出警告而非错误，
-以便扩展，未注册的组件 kind 会直接报错。
+校验器按原语注册表检查场景树：未知原语、超容量子节点、未注册属性与
+不支持的动效都会在开渲前报错并给出字段路径。
 
 ## 分镜脚本
 
@@ -156,8 +154,9 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
   （`enter` / `firm` / `lively` / `snap`）、常驻微动周期、节奏换算，
   手感参数只写在 `timeline.js` 一处；
 - 节奏系统：分镜写 `calm` / `normal` / `impact`，运行时把幕内比例点整体缩放；
-- `scripts/a2v/catalog.py` + `references/figure-catalog.md`：组件目录与它的服务端镜像，
-  校验器据此判断 kind 是否存在、标注键是否认识、条目数是否超容量；
+- `web/src/registry/registry.json` + `scripts/sync_catalog.py` + `references/primitive-catalog.md`：
+  视觉原语注册表（唯一真源）与它的三个生成物——校验器镜像、TS 枚举/属性/动效映射、原语目录，
+  校验器据此判断原语是否存在、属性与容量是否越界、动效是否受支持；
 - `references/design-constitution.md`：十四条规则，每条标注**能不能机检**；
 - `scripts/review.py`：视觉评审工具——组件契约探针（声明的标注是否真的画出来）、
   帧量测（墨迹覆盖率与安全区）、宪法静态检查，产物为联系表与 `report.json`；
@@ -696,10 +695,11 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
 把画面从「作品自己的动画网页 + Playwright 逐帧截图」整体迁到**共享 React composition
 （Remotion）**。变更 `2026-09-20-react-remotion-renderer`（详见其 proposal 与 design）：
 
-- **画面工程化**：`web/` 成为唯一画面真源——组件（`src/components/`、`charts/`、`flow/`）、
-  设计令牌（`src/styles/`）、动效与排版原语（`src/runtime/`）、字体（`src/assets/fonts/`）
-  全部收进前端工程；组件注册表 `registry.json` 是组件元数据的唯一真源，
-  校验器目录、文档组件表与 `figureKinds.ts` 由它生成（`scripts/sync_catalog.py` 机检漂移）；
+- **画面工程化**：`web/` 是唯一画面真源——设计令牌（`src/styles/`）、共享运行时
+  （`src/runtime/`）、字体（`src/assets/fonts/`）全部收进前端工程；v2 起整页组件
+  （`src/components/`、`charts/`、`flow/`）由场景树原语取代，视觉原语注册表
+  `registry.json` 是原语契约的唯一真源，校验器镜像、TS 枚举与原语目录由它生成
+  （`scripts/sync_catalog.py` 机检漂移）；
 - **契约页（version 2）**：`web/dist/contract/contract.html` 把 composition 挂进
   `@remotion/player`，从查询参数读分镜，一个页面服务任意作品；
   `ready()` 增加「Player 已挂载」要求（version 1 → 2 的关键差别）；
@@ -709,8 +709,8 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
   旧资产与静态服务器一并删除；
 - **溯源 version 4**：新增 `renderer` 字段；Remotion 路径指纹**构建输入**
   （composition 可达源码、`package.json` 与锁文件、字体），而不是页面引用的资产；
-- **作品专属画面**：作品目录里的 `scenes.tsx` 模块由生成的动态入口接进 composition
-  （`web/.gen/`，gitignore 生成物）；
+- **作品专属画面（已移除）**：`scenes.tsx` 专属模块机制随 v2 场景树架构删除；
+  渲染入口只接共享 composition（`web/.gen/` 仅是它的生成入口，gitignore 生成物）；
 - **Playwright 用途收窄**：从「渲染器」变成「体检探针的驱动」——契约页抽帧量测、
   组件契约探针、K/M 结论全部保留，口径一行未改；
 - **回归基线重录**：成片哈希与工具链相关，逐字节一致的旧基线在新引擎上作废，
@@ -753,7 +753,7 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
 项目要长期维护多篇文章，因此目录与产物位置是稳定约定而非临时安排：
 
 ```text
-<工作区根>/videos/<slug>/{article.md, storyboard.json, [scenes.tsx]}  # 专属画面模块可选，内容不入库
+<工作区根>/videos/<slug>/{article.md, storyboard.json}  # 内容不入库
 <工作区根>/outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
 <工作区根>/outputs/examples/<slug>/                                   # 示例产物独立一层
 ```

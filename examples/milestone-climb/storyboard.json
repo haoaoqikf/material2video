@@ -1,0 +1,167 @@
+{
+  "version": 2,
+  "schemaVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "把目标切成台阶",
+  "visualDirection": {
+    "motif": "台阶",
+    "compositionBias": "centered",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": ["repeated-center"]
+  },
+  "visual": {
+    "theme": "dark"
+  },
+  "scenes": [
+    {
+      "id": "claim",
+      "type": "title",
+      "durationInFrames": 72,
+      "data": {
+        "text": "里程碑不是终点线",
+        "subtitle": "它是用来踩的，不是用来仰望的"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "text",
+        "composition": "center",
+        "density": "sparse",
+        "tone": "neutral"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "stack",
+        "gap": "lg",
+        "children": [
+          { "id": "claim-text", "type": "text", "contentRef": "data.text", "role": "headline" },
+          { "id": "claim-line", "type": "shape", "shape": "line", "state": "focus" },
+          { "id": "claim-sub", "type": "text", "contentRef": "data.subtitle", "role": "body", "state": "muted" }
+        ]
+      },
+      "motions": [
+        { "target": "claim-text", "recipe": "reveal", "startFrame": 0, "durationFrames": 20 },
+        { "target": "claim-line", "recipe": "draw", "startFrame": 16, "durationFrames": 18 },
+        { "target": "claim-sub", "recipe": "fade", "startFrame": 30, "durationFrames": 20 }
+      ]
+    },
+    {
+      "id": "climb",
+      "type": "chart",
+      "durationInFrames": 105,
+      "data": {
+        "title": "每周推进的台阶数（示意）",
+        "values": [
+          { "label": "第一周", "value": 2 },
+          { "label": "第二周", "value": 5 },
+          { "label": "第三周", "value": 4 },
+          { "label": "第四周", "value": 8 },
+          { "label": "第五周", "value": 11 }
+        ]
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "chart",
+        "composition": "full",
+        "density": "dense",
+        "tone": "uplifting"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "climb-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          { "id": "climb-chart", "type": "chart", "contentRef": "data.values", "chart": "bar", "schematic": true }
+        ]
+      },
+      "motions": [
+        { "target": "climb-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "climb-chart", "recipe": "reveal", "startFrame": 12, "durationFrames": 30 }
+      ]
+    },
+    {
+      "id": "one-step",
+      "type": "number",
+      "durationInFrames": 90,
+      "data": {
+        "value": 1,
+        "label": "阶",
+        "caption": "焦虑的解药是一次只看一级（示意）"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "number",
+        "composition": "split",
+        "density": "sparse",
+        "tone": "calm"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "split",
+        "ratio": "1:2",
+        "gap": "md",
+        "children": [
+          { "id": "step-number", "type": "number", "contentRef": "data.value", "role": "hero", "schematic": true },
+          {
+            "id": "step-note",
+            "type": "surface",
+            "children": [
+              { "id": "step-unit", "type": "text", "contentRef": "data.label", "role": "title" },
+              { "id": "step-caption", "type": "text", "contentRef": "data.caption", "role": "caption" }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "step-number", "recipe": "count", "startFrame": 6, "durationFrames": 30 },
+        { "target": "step-note", "recipe": "rise", "startFrame": 20, "durationFrames": 24 }
+      ]
+    },
+    {
+      "id": "recap",
+      "type": "list",
+      "durationInFrames": 100,
+      "data": {
+        "title": "可数的台阶长这样",
+        "cells": ["看得见", "够得着", "数得出", "可回退"]
+      },
+      "visualIntent": {
+        "relation": "collection",
+        "focus": "text",
+        "composition": "full",
+        "density": "balanced",
+        "tone": "decisive"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "recap-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "recap-grid",
+            "type": "grid",
+            "columns": 2,
+            "gap": "sm",
+            "children": [
+              { "id": "cell-1", "type": "surface", "children": [{ "id": "cell-1-text", "type": "text", "contentRef": "data.cells[0]", "role": "body" }] },
+              { "id": "cell-2", "type": "surface", "children": [{ "id": "cell-2-text", "type": "text", "contentRef": "data.cells[1]", "role": "body" }] },
+              { "id": "cell-3", "type": "surface", "children": [{ "id": "cell-3-text", "type": "text", "contentRef": "data.cells[2]", "role": "body" }] },
+              { "id": "cell-4", "type": "surface", "children": [{ "id": "cell-4-text", "type": "text", "contentRef": "data.cells[3]", "role": "body" }] }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "recap-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "cell-1", "recipe": "rise", "startFrame": 10, "durationFrames": 16 },
+        { "target": "cell-2", "recipe": "rise", "startFrame": 22, "durationFrames": 16 },
+        { "target": "cell-3", "recipe": "rise", "startFrame": 34, "durationFrames": 16 },
+        { "target": "cell-4", "recipe": "rise", "startFrame": 46, "durationFrames": 16 }
+      ]
+    }
+  ]
+}

@@ -129,8 +129,8 @@ class TestContentRootReachesTheEntryPoints:
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script)
         args = self._render_args(content, "--content-root", str(content))
-        article = cli._article_for(args, declarative=True, required=True)
-        model, report = sb.load(args.storyboard, declarative=True)
+        article = cli._article_for(args, required=True)
+        model, report = sb.load(args.storyboard)
         assert report.ok and model is not None
         output = cli._resolve_render_output(args, model, None, article)
         assert output == content / "outputs" / "demo" / "silent.mp4"
@@ -140,7 +140,7 @@ class TestContentRootReachesTheEntryPoints:
         content = make_content_root(tmp_path, script=valid_script)
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         args = self._render_args(content)
-        article = cli._article_for(args, declarative=True, required=True)
+        article = cli._article_for(args, required=True)
         assert article.output_dir == content / "outputs" / "demo"
 
     def test_cli_argument_beats_environment(self, tmp_path, valid_script, monkeypatch):
@@ -150,7 +150,7 @@ class TestContentRootReachesTheEntryPoints:
         elsewhere.mkdir()
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(elsewhere))
         args = self._render_args(content, "--content-root", str(content))
-        assert cli._article_for(args, declarative=True, required=True).workspace_root == (
+        assert cli._article_for(args, required=True).workspace_root == (
             content.resolve()
         )
 

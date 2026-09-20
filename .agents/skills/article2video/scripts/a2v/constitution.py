@@ -125,7 +125,7 @@ def check_mounts(page_text: str, scene_ids: list[str], report: Report, path: str
         report.warn(
             f"{path}#C4",
             "网页没有使用视觉组件库（没有 [data-a2v-figure] 挂载点）："
-            "先查 references/figure-catalog.md 有没有现成组件可用",
+            "先用受控原语组合画面（见 references/primitive-catalog.md）",
         )
         return
     if mounts != scenes:

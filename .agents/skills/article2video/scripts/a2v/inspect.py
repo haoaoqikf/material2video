@@ -28,7 +28,7 @@ from typing import Any
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import catalog, constitution, keynote, motion
+from . import constitution, keynote, motion
 from .storyboard import Report
 
 #: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
@@ -82,14 +82,14 @@ _PROBE_SCRIPT = """
   var host = active.querySelector('[data-a2v-figure]');
   if (!host) { return { sceneId: active.getAttribute('data-scene-id'), kind: null, els: {} }; }
   var els = {};
-  var nodes = host.querySelectorAll('[data-el]');
+  var nodes = host.querySelectorAll('[data-a2v-node-id]');
   for (var j = 0; j < nodes.length; j++) {
     var el = nodes[j];
-    els[el.getAttribute('data-el')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+    els[el.getAttribute('data-a2v-node-id')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();
   }
   return {
     sceneId: active.getAttribute('data-scene-id'),
-    kind: host.getAttribute('data-fig-kind'),
+    kind: host.getAttribute('data-scene-tree-version') ? 'scene-tree' : null,
     els: els
   };
 }
@@ -242,20 +242,27 @@ def collect_labels(declared: dict[str, Any], seen_texts: set[str]) -> list[str]:
 
 
 def scene_labels(scene: dict[str, Any]) -> dict[str, str]:
-    """分镜里这一幕声明的标注（figure.labels 优先，兼容旧的 annotations）。"""
+    """场景树实际引用的可见标量；契约探针确认它们进入了画面。"""
     data = scene.get("data") or {}
-    figure = data.get("figure") or {}
-    labels = figure.get("labels") or data.get("annotations") or {}
-    return {str(k): str(v) for k, v in labels.items() if isinstance(v, str)} if isinstance(labels, dict) else {}
+    labels: dict[str, str] = {}
+    def walk(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        ref = node.get("contentRef")
+        if isinstance(ref, str) and ref.startswith("data."):
+            value: Any = data
+            for part in ref[5:].split("."):
+                value = value.get(part) if isinstance(value, dict) else None
+            if isinstance(value, (str, int, float)):
+                labels[str(node.get("id") or ref)] = str(value)
+        for child in node.get("children", []):
+            walk(child)
+    walk(scene.get("sceneTree"))
+    return labels
 
 
 def declared_kind(scene: dict[str, Any]) -> str:
-    data = scene.get("data") or {}
-    figure = data.get("figure") or {}
-    kind = figure.get("kind") if isinstance(figure, dict) else None
-    if isinstance(kind, str) and kind.strip():
-        return kind.strip()
-    return catalog.DEFAULT_KINDS.get(str(scene.get("type")), "")
+    return "scene-tree" if isinstance(scene.get("sceneTree"), dict) else ""
 
 
 def write_report(report: Report, extra: dict[str, Any], target: Path) -> dict[str, Any]:
@@ -641,9 +648,8 @@ def keynote_gate(
 ) -> list[keynote.Gate]:
     """把一帧的像素量测与元素事实转成一条条观感闸门结论。
 
-    `figure_kind` 是这一幕解析出来的组件 kind：画面主体由 canvas 绘制的
-    组件（catalog.CANVAS_KINDS，当前是 chart）内部文字量不到，K7 / K8
-    对那一部分不适用——结论里必须写明这个判定范围，而不是装作量过了。
+    v2 场景树的所有原语（含图表）都是 DOM/SVG 实现，文字全部可量测，
+    K7 / K8 对整幕生效；`figure_kind` 仅用于诊断展示。
     """
     gates: list[keynote.Gate] = []
     background = rgb_metrics(rgb)
@@ -684,7 +690,6 @@ def keynote_gate(
 
     texts = facts.get("texts") or []
     page_background = keynote.parse_color(facts.get("background") or "")
-    chart_interior = figure_kind in catalog.CANVAS_KINDS
     gates.append(keynote.gate_type_sizes(scene_id, list(facts.get("sizes") or [])))
     gates.append(
         keynote.gate_alignment(scene_id, texts, center=float(facts.get("center") or 0) or None)
@@ -698,12 +703,11 @@ def keynote_gate(
             texts,
             facts.get("safe"),
             list(facts.get("noFit") or []),
-            chart_interior=chart_interior,
         )
     )
     gates.append(
         keynote.gate_container_overflow(
-            scene_id, list(facts.get("inside") or []), chart_interior=chart_interior
+            scene_id, list(facts.get("inside") or [])
         )
     )
     gates.append(

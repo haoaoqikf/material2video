@@ -1,36 +1,29 @@
 /*
- * 新画面工程的样式入口。
+ * 画面工程的样式入口。
  *
  * 这里的 `@import` 顺序是**画面几何的一部分**，不是排版偏好：同权重的选择器
- * 谁赢由源序决定。旧页面 `assets/declarative.html` 的 `<link>` 顺序是
- *   base → theme → keynote → figures → declarative
- * 因此这里逐条照抄；任何一处对调都会让「同一个元素被两条规则声明」的那几处
+ * 谁赢由源序决定。任何一处对调都会让「同一个元素被两条规则声明」的那几处
  * 悄悄换一个赢家——不报错，只是像素差。
  *
- * 开头两条是新工程专有的层，旧页面没有对应文件：
+ * 开头两条是新工程专有的层：
  *   - `tailwindcss/theme.css` + `utilities.css`：`@theme` 与工具类的产出层。
  *     **刻意不引 `preflight.css`**：preflight 是「浏览器默认样式的重置」，
- *     而旧页面 `declarative.html` 从来没有它。带上它，`line-height: 1.5`、
- *     标题的 `margin`、`font-size` 继承等会整体换一套——不报错，只是每个字都
- *     挪一点，跨路径比对会全帧崩掉（实测 PSNR 1.4 dB）。画面基线必须与旧页面
- *     一致，因此这里只取 Tailwind 的令牌与工具类，不要它的重置。
- *     `box-sizing: border-box` 由旧 `base.css` 的 `*` 规则提供，不依赖 preflight；
- *   - `tokens.css`：设计令牌真源（旧路径的 `base.css` / `theme.css` / `keynote.css`
- *     里那些 `:root { --a2v-* }` 声明都搬到了这里，只保留一处真源）。
+ *     带上它，`line-height: 1.5`、标题的 `margin`、`font-size` 继承等会整体
+ *     换一套——不报错，只是每个字都挪一点。`box-sizing: border-box` 由
+ *     `base.css` 的 `*` 规则提供，不依赖 preflight；
+ *   - `tokens.css`：设计令牌真源（`:root { --a2v-* }` 声明只保留这一处真源）。
  *     令牌是变量，先声明后使用，放最前不影响层叠；
- *   - `primitives.css`：四族基元（旧 `keynote.css` 的第 853–1064 行）。
+ *   - `primitives.css`：四族基元的层。
  *     **它必须紧跟 `keynote.css`**：这一段在旧文件里位于**尾部**，正是靠源序
  *     压过同权重的设计语言层。搬到最前面会让源序反过来——实测 `.a2v-label`
  *     的字距从 `normal` 变成 `0.14em`，冰山幕的标注宽 155px 而不是 136px。
  *
- * 本文件**不再手写任何元素级规则**：`html/body`、`[data-a2v-stage]`、
- * `[data-a2v-scene]`、`.a2v-safe`、字幕与渲染模式全部由下面搬来的文件提供，
+ * 本文件**不手写任何元素级规则**：`html/body`、`[data-a2v-stage]`、
+ * `[data-a2v-scene]`、`.a2v-safe` 由 `declarative.css` 提供，
  * 免得同一件事有两个真源。
  *
- * 末尾两份是**新工程的追加层**（旧页面没有对应文件）：`third-party.css`
- * 服务经分类接入的第三方组件，`charts.css` 服务数据图表组件。它们只能
- * 整块地排在搬运层之后，不许插进旧五份中间——插进去会改变同权重
- * 选择器的胜负（`tests/test_web_style_stack.py` 守着这条不变量）。
+ * 末尾的 `scene-tree.css` 是**场景树原语的追加层**（只能整块排在搬运层之后，
+ * 不许插进旧层中间——插进去会改变同权重选择器的胜负）。
  */
 
 @import 'tailwindcss/theme.css' layer(theme);
@@ -40,7 +33,5 @@
 @import './theme.css';
 @import './keynote.css';
 @import './primitives.css';
-@import './figures.css';
 @import './declarative.css';
-@import '../third-party/third-party.css';
-@import './charts.css';
+@import './scene-tree.css';

@@ -67,22 +67,15 @@ class TestLabelUnion:
 
 
 class TestSceneFields:
-    def test_kind_prefers_the_declaration(self):
-        scene = {"type": "list", "data": {"figure": {"kind": "gap"}}}
-        assert review.declared_kind(scene) == "gap"
-
-    def test_kind_falls_back_to_defaults(self):
-        assert review.declared_kind({"type": "list", "data": {}}) == "iceberg"
+    def test_scene_tree_is_the_declared_renderer(self):
+        assert review.declared_kind({"sceneTree": {"id": "root", "type": "stack"}}) == "scene-tree"
 
     def test_unknown_type_has_no_kind(self):
         assert review.declared_kind({"type": "unknown", "data": {}}) == ""
 
-    def test_labels_prefer_figure_over_annotations(self):
-        scene = {"data": {"figure": {"labels": {"a": "新"}}, "annotations": {"a": "旧"}}}
-        assert review.scene_labels(scene) == {"a": "新"}
-
-    def test_labels_fall_back_to_annotations(self):
-        assert review.scene_labels({"data": {"annotations": {"a": "旧"}}}) == {"a": "旧"}
+    def test_labels_follow_scene_tree_content_refs(self):
+        scene = {"data": {"text": "甲"}, "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]}}
+        assert review.scene_labels(scene) == {"copy": "甲"}
 
 
 class TestFrameMetrics:

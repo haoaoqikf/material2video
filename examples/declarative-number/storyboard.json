@@ -1,32 +1,133 @@
 {
-  "version": 1,
+  "version": 2,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "每一次尝试都留下反馈",
-  "visual": { "theme": "light" },
+  "visual": {
+    "theme": "light"
+  },
   "scenes": [
     {
       "id": "count",
       "type": "number",
       "durationInFrames": 90,
-      "visual": { "layout": "center" },
+      "visual": {},
       "data": {
         "value": 73,
         "label": "次尝试（示意）",
-        "caption": "每一次都会留下反馈",
-        "figure": { "kind": "number", "motion": "impact" }
-      }
+        "caption": "每一次都会留下反馈"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "number",
+        "composition": "offset",
+        "density": "balanced",
+        "tone": "neutral"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "stack",
+        "children": [
+          {
+            "id": "content-value",
+            "type": "number",
+            "contentRef": "data.value",
+            "role": "hero"
+          },
+          {
+            "id": "content-label",
+            "type": "text",
+            "contentRef": "data.label",
+            "role": "label"
+          },
+          {
+            "id": "content-caption",
+            "type": "text",
+            "contentRef": "data.caption",
+            "role": "caption"
+          }
+        ]
+      },
+      "motions": [
+        {
+          "target": "content-value",
+          "recipe": "count",
+          "startFrame": 12,
+          "durationFrames": 24
+        },
+        {
+          "target": "content-label",
+          "recipe": "reveal",
+          "startFrame": 20,
+          "durationFrames": 24
+        },
+        {
+          "target": "content-caption",
+          "recipe": "reveal",
+          "startFrame": 28,
+          "durationFrames": 24
+        }
+      ]
     },
     {
       "id": "closing",
       "type": "conclusion",
       "durationInFrames": 90,
-      "visual": { "layout": "lower" },
+      "visual": {},
       "data": {
         "text": "反馈，让下一次更有方向",
         "action": "继续上场"
-      }
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "text",
+        "composition": "split",
+        "density": "balanced",
+        "tone": "neutral"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "split",
+        "children": [
+          {
+            "id": "content-text",
+            "type": "text",
+            "contentRef": "data.text",
+            "role": "headline"
+          },
+          {
+            "id": "content-action",
+            "type": "text",
+            "contentRef": "data.action",
+            "role": "title"
+          }
+        ]
+      },
+      "motions": [
+        {
+          "target": "content-text",
+          "recipe": "reveal",
+          "startFrame": 12,
+          "durationFrames": 24
+        },
+        {
+          "target": "content-action",
+          "recipe": "reveal",
+          "startFrame": 20,
+          "durationFrames": 24
+        }
+      ]
     }
-  ]
+  ],
+  "schemaVersion": 2,
+  "visualDirection": {
+    "motif": "legacy-migration",
+    "compositionBias": "mixed",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "repeated-center"
+    ]
+  }
 }

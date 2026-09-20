@@ -43,7 +43,7 @@ requires_node = pytest.mark.skipif(
 
 # ---------------------------------------------------------------- 边界
 
-def test_prepare_composition_entry_selects_article_scenes(tmp_path):
+def test_prepare_composition_entry_ignores_article_scenes(tmp_path):
     web = tmp_path / "web"
     article = tmp_path / "examples" / "demo"
     article.mkdir(parents=True)
@@ -52,8 +52,8 @@ def test_prepare_composition_entry_selects_article_scenes(tmp_path):
     target = remotion.prepare_composition_entry(
         web_dir=web, storyboard_path=article / "storyboard.json"
     )
-    assert target == scenes
-    assert "../../examples/demo/scenes" in (web / remotion.GENERATED_ENTRY).read_text(encoding="utf-8")
+    assert target == web / remotion.GENERATED_ENTRY
+    assert "A2VComposition" in target.read_text(encoding="utf-8")
 
 
 def test_prepare_composition_entry_falls_back_to_shared_composition(tmp_path):
@@ -311,6 +311,6 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
 def _model():
     from a2v import storyboard as sb
 
-    model, report = sb.load(STORYBOARD, declarative=True)
+    model, report = sb.load(STORYBOARD)
     assert model is not None and report.ok, report.issues
     return model

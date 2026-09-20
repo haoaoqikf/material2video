@@ -707,7 +707,6 @@ def gate_overflow(
     texts: list[dict[str, Any]],
     safe: dict[str, Any] | None,
     no_fit: list[dict[str, Any]] | None = None,
-    chart_interior: bool = False,
 ) -> Gate:
     """K7 文字溢出：文字不许越出安全区，缩到下限仍放不下就要拆场景。
 
@@ -724,7 +723,7 @@ def gate_overflow(
             id="K7",
             title="文字溢出",
             status="skipped",
-            detail=_with_chart_scope("取不到安全区几何，无法判定文字是否越界", chart_interior),
+            detail="取不到安全区几何，无法判定文字是否越界",
             scene=scene_id,
         )
 
@@ -764,9 +763,7 @@ def gate_overflow(
             status="pass",
             value=0,
             threshold=f"越界 ≤ {_OVERFLOW_TOLERANCE:.0f}px",
-            detail=_with_chart_scope(
-                f"量了 {len(texts)} 个文本块，都在安全区内", chart_interior
-            ),
+            detail=f"量了 {len(texts)} 个文本块，都在安全区内",
             scene=scene_id,
         )
 
@@ -783,7 +780,7 @@ def gate_overflow(
         status="fail",
         value=len(offenders) + len(blocked),
         threshold=f"越界 ≤ {_OVERFLOW_TOLERANCE:.0f}px",
-        detail=_with_chart_scope("硬判定：" + "；".join(detail_parts), chart_interior),
+        detail="硬判定：" + "；".join(detail_parts),
         scene=scene_id,
     )
 
@@ -798,22 +795,8 @@ def _clip(value: Any, limit: int = 18) -> str:
 #: 剩下的只有亚像素舍入。留 2px 足够，再多就会把真正穿出去的文字放过去。
 _CONTAINER_TOLERANCE = 2.0
 
-#: 图表内部的判定范围说明（任务 7.4）：画面主体由 canvas 绘制的组件
-#: （catalog.CANVAS_KINDS，当前是 chart）内部文字量不到，K7 / K8 对那一部分
-#: **不适用**。这句话必须出现在报告里——图表不该装作被量过了，
-#: 而组件侧的对冲手段（关键数值同时输出为 DOM 文本）也要在报告里可见，
-#: 否则「跳过」与「没量」在读者眼里是同一件事。
-CHART_SCOPE_NOTE = (
-    "图表内部由 canvas 绘制，不在本判定的量程内；"
-    "关键数值已由组件同步输出为 DOM 文本，随本条一起受判定"
-)
-
-
-def _with_chart_scope(detail: str, chart_interior: bool) -> str:
-    if not chart_interior:
-        return detail
-    return f"{detail}；{CHART_SCOPE_NOTE}" if detail else CHART_SCOPE_NOTE
-
+#: （历史记录：v1 时代 canvas 绘制的图表内部量不到，K7 / K8 对那一部分不适用；
+#: v2 场景树的图表原语是 DOM/SVG，K7 / K8 对整幕生效，不再需要范围豁免。）
 #: 描边阶（与 web/src/styles/keynote.css 的 `--a2v-stroke-*` 一致）。
 _STROKE_LADDER = (1.0, 2.0, 3.0, 4.0, 6.0)
 
@@ -821,9 +804,7 @@ _STROKE_LADDER = (1.0, 2.0, 3.0, 4.0, 6.0)
 _MAX_STROKE_TIERS = 3
 
 
-def gate_container_overflow(
-    scene_id: str, inside: list[dict[str, Any]], chart_interior: bool = False
-) -> Gate:
+def gate_container_overflow(scene_id: str, inside: list[dict[str, Any]]) -> Gate:
     """K8 容器内溢出：图形内部的文字不许穿出它所属的容器。
 
     为什么需要单独一条，而不是靠 K7：K7 唯一的参照是 `.a2v-safe`，
@@ -847,7 +828,7 @@ def gate_container_overflow(
             title="容器内溢出",
             status="skipped",
             threshold=threshold,
-            detail=_with_chart_scope("这一幕没有声明所属容器的图形文字，无法判定", chart_interior),
+            detail="这一幕没有声明所属容器的图形文字，无法判定",
             scene=scene_id,
         )
 
@@ -897,9 +878,7 @@ def gate_container_overflow(
             status="pass",
             value=0,
             threshold=threshold,
-            detail=_with_chart_scope(
-                f"量了 {measured} 个声明了容器的图形文字，都在容器内", chart_interior
-            ),
+            detail=f"量了 {measured} 个声明了容器的图形文字，都在容器内",
             scene=scene_id,
         )
 
@@ -909,7 +888,7 @@ def gate_container_overflow(
         status="fail",
         value=round(worst, 1),
         threshold=threshold,
-        detail=_with_chart_scope("硬判定：" + "；".join(offenders[:4]), chart_interior),
+        detail="硬判定：" + "；".join(offenders[:4]),
         scene=scene_id,
     )
 

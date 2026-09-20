@@ -150,19 +150,19 @@ composition，体检看到的就是渲染会画出的画面。
 `drawPathStyle` 不每帧测量路径：连线长度在布局确定时用解析式算好并缓存
 （React 组件不调用 `getTotalLength()`）。
 
-## 视觉组件库
+## 场景树原语
 
 画面由共享 React composition（`web/src/compositions/A2VComposition.tsx`）按分镜逐幕
-挂载组件：组件集合、标注键、容量、适用场景类型与默认映射都声明在组件注册表
-`web/src/registry/registry.json`（唯一真源）；composition 按
-`data.figure.kind`（没有则按场景类型取注册表的默认）解析出组件并挂载，
-组件从 `useFigure()` 取帧号与场景。组件目录与选择方式见
-[视觉组件目录](figure-catalog.md)。
+递归解释场景树绘制：原语类型、允许属性、子节点容量与动效配方都声明在原语注册表
+`web/src/registry/registry.json`（唯一真源）；每幕的 `sceneTree` 由
+`web/src/primitives/SceneTree.tsx` 自根向下渲染，内容经 `contentRef` 引用场景 data，
+动效按稳定节点 id 绑定。原语目录与组合方式见
+[视觉原语目录](primitive-catalog.md)。
 
 ```
-分镜 ──▶ composition ──▶ registry 解析 kind ──▶ web/src/components/<Kind>.tsx
+分镜 ──▶ composition ──▶ SceneTree 递归解释 sceneTree ──▶ 布局/内容/图形原语
                 │                                        │
-                └──────────── useFigure()：帧号、场景、动效原语 ──┘
+                └────── useCurrentFrame()：帧号驱动可视状态 ──┘
 ```
 
 对契约的影响只有一条：**组件也是画面的一部分，因此组件的渲染必须满足与

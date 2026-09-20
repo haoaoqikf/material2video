@@ -1,0 +1,112 @@
+{
+  "sourceVersion": 1,
+  "targetVersion": 2,
+  "pixelEquivalent": false,
+  "accepted": false,
+  "scenes": [
+    {
+      "id": "opening",
+      "legacyKind": "balance",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "compare",
+      "legacyKind": "versus",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "cost",
+      "legacyKind": "gap",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "attention",
+      "legacyKind": "iceberg",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "loop",
+      "legacyKind": "loop",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "freedom",
+      "legacyKind": "stairs",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "one",
+      "legacyKind": "number",
+      "mapping": "direct",
+      "manualReview": false,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    },
+    {
+      "id": "closing",
+      "legacyKind": "exchange",
+      "mapping": "semantic-fallback",
+      "manualReview": true,
+      "preservedFields": [
+        "id",
+        "type",
+        "durationInFrames",
+        "narration",
+        "data"
+      ]
+    }
+  ]
+}

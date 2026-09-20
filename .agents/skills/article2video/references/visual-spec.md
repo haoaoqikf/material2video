@@ -276,12 +276,12 @@ tempo('impact');                                                      // 节奏�
 | --- | --- | --- |
 | 设计令牌与主题 | `web/src/styles/tokens.css`、`theme.css` | 颜色 / 表面 / 字号 / 间距 / 安全区变量 |
 | 设计语言预设 | `web/src/styles/keynote.css` | `visual.preset: "keynote"` 的字体栈、字号阶、主题块、工具类 |
-| 组件样式 | `web/src/styles/figures.css` | 各视觉组件自己的样式（`--fig-*` 令牌） |
+| 场景树原语样式 | `web/src/styles/scene-tree.css` | 布局 / 内容 / 图形原语的样式（形状变体、图表、状态） |
 | 版面与字幕 | `web/src/styles/declarative.css`、`primitives.css` | 场景版面、字幕条、四族动效基元 |
-| 动效原语 | `web/src/runtime/motion.ts`、`spring.ts`、`typography.ts` | 曲线、弹性、字号拟合 |
+| 原语实现 | `web/src/primitives/SceneTree.tsx` | 布局求解、内容引用、动效可视状态、字号取档 |
 
-组件库承担「一幕画面怎么画」，composition 只负责舞台、背景与挂载；
-要不要用组件、用哪一个，见 [视觉组件目录](figure-catalog.md)。
+场景树承担「一幕画面怎么画」，composition 只负责舞台、背景与逐幕挂载；
+可用原语与组合方式见 [视觉原语目录](primitive-catalog.md)。
 
 背景层是常驻元素，挂在舞台内、场景元素之外，场景容器抬到背景之上：
 
@@ -294,9 +294,8 @@ tempo('impact');                                                      // 节奏�
 </div>
 ```
 
-本篇专属画面与素材：需要超越共享组件的表达时，在作品目录写 `scenes.tsx`
-专属画面模块（渲染脚本按工作区根自动发现）；本篇素材放在 `videos/<slug>/assets/`，
-composition 里经相对 URL 引用。
+本篇素材放在 `videos/<slug>/assets/`，由 `image` 原语的 `sourceRef` 引用；
+不允许再写作品专属的画面代码，需要新表达时按原语注册表流程新增通用原语。
 
 ## 设计语言预设（可选）
 
@@ -306,8 +305,8 @@ composition 里经相对 URL 引用。
 **缺省时行为逐帧不变。** composition 始终引入 `web/src/styles/keynote.css`，
 但只有分镜声明了预设才会在根元素写 `data-a2v-preset="keynote"`（`A2VComposition`
 的 `useLayoutEffect`）：预设的全部规则（字体栈、主题块、字号阶、工具类）
-都带 `[data-a2v-preset="keynote"]` 作用域，一条也不会生效；排版引擎
-（`web/src/runtime/typography.ts`）只在预设存在时被调用。
+都带 `[data-a2v-preset="keynote"]` 作用域，一条也不会生效；字号取档
+（SceneTree 对声明了字号档的文字原语按实测宽度向下取档）只在预设存在时执行。
 画面、字体与版式因此与未启用预设的取值完全一致——这不是口头承诺，
 `tests/test_react_design_tokens.py` 在浏览器里量计算值守住作用域。
 

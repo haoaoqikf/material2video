@@ -1,0 +1,178 @@
+{
+  "version": 2,
+  "schemaVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "启动摩擦",
+  "visualDirection": {
+    "motif": "链条",
+    "compositionBias": "asymmetric",
+    "density": "sparse",
+    "rhythm": "dynamic",
+    "avoid": ["repeated-center"]
+  },
+  "visual": {
+    "theme": "dark"
+  },
+  "scenes": [
+    {
+      "id": "claim",
+      "type": "title",
+      "durationInFrames": 75,
+      "data": {
+        "text": "拖住你的\n往往不是事情本身"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "text",
+        "composition": "offset",
+        "density": "sparse",
+        "tone": "tense"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "stack",
+        "align": "start",
+        "gap": "lg",
+        "children": [
+          { "id": "halo", "type": "shape", "shape": "spotlight", "state": "rest" },
+          { "id": "claim-text", "type": "text", "contentRef": "data.text", "role": "headline" }
+        ]
+      },
+      "motions": [
+        { "target": "halo", "recipe": "fade", "startFrame": 0, "durationFrames": 20 },
+        { "target": "claim-text", "recipe": "rise", "startFrame": 10, "durationFrames": 24 }
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "diagram",
+      "durationInFrames": 100,
+      "data": {
+        "title": "同一个圈，转了很多年",
+        "steps": ["高估成本", "迟迟不启动", "没有反馈"]
+      },
+      "visualIntent": {
+        "relation": "cycle",
+        "focus": "shape",
+        "composition": "radial",
+        "density": "balanced",
+        "tone": "tense"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "loop-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "wheel-stage",
+            "type": "overlay",
+            "children": [
+              { "id": "loop-ring", "type": "shape", "shape": "ring", "state": "muted" },
+              {
+                "id": "wheel",
+                "type": "radial",
+                "children": [
+                  { "id": "step-a", "type": "surface", "children": [{ "id": "step-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
+                  { "id": "step-b", "type": "surface", "children": [{ "id": "step-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
+                  { "id": "step-c", "type": "surface", "children": [{ "id": "step-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "loop-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "step-a", "recipe": "rise", "startFrame": 12, "durationFrames": 20 },
+        { "target": "step-b", "recipe": "rise", "startFrame": 30, "durationFrames": 20 },
+        { "target": "step-c", "recipe": "rise", "startFrame": 48, "durationFrames": 20 }
+      ]
+    },
+    {
+      "id": "break",
+      "type": "comparison",
+      "durationInFrames": 105,
+      "data": {
+        "left": "等准备好",
+        "right": "先开一寸"
+      },
+      "visualIntent": {
+        "relation": "contrast",
+        "focus": "text",
+        "composition": "split",
+        "density": "balanced",
+        "tone": "decisive"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "split",
+        "ratio": "1:1",
+        "gap": "md",
+        "children": [
+          {
+            "id": "wait-side",
+            "type": "surface",
+            "children": [{ "id": "wait-text", "type": "text", "contentRef": "data.left", "role": "title", "state": "muted" }]
+          },
+          {
+            "id": "start-side",
+            "type": "surface",
+            "children": [{ "id": "start-text", "type": "text", "contentRef": "data.right", "role": "title", "state": "focus" }]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "wait-side", "recipe": "reveal", "startFrame": 0, "durationFrames": 24 },
+        { "target": "start-side", "recipe": "rise", "startFrame": 24, "durationFrames": 24 }
+      ]
+    },
+    {
+      "id": "takeoff",
+      "type": "conclusion",
+      "durationInFrames": 105,
+      "data": {
+        "text": "小启动换来快反馈",
+        "chain": ["动一下", "看到结果", "重新估计"]
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "text",
+        "composition": "full",
+        "density": "sparse",
+        "tone": "uplifting"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "xl",
+        "children": [
+          { "id": "takeoff-text", "type": "text", "contentRef": "data.text", "role": "headline" },
+          {
+            "id": "chain",
+            "type": "row",
+            "gap": "sm",
+            "align": "center",
+            "children": [
+              { "id": "chain-1", "type": "text", "contentRef": "data.chain[0]", "role": "body" },
+              { "id": "chain-arrow-1", "type": "connector", "direction": "ltr" },
+              { "id": "chain-2", "type": "text", "contentRef": "data.chain[1]", "role": "body" },
+              { "id": "chain-arrow-2", "type": "connector", "direction": "ltr" },
+              { "id": "chain-3", "type": "text", "contentRef": "data.chain[2]", "role": "body" }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "takeoff-text", "recipe": "rise", "startFrame": 0, "durationFrames": 24 },
+        { "target": "chain-1", "recipe": "reveal", "startFrame": 20, "durationFrames": 16 },
+        { "target": "chain-arrow-1", "recipe": "draw", "startFrame": 32, "durationFrames": 16 },
+        { "target": "chain-2", "recipe": "reveal", "startFrame": 44, "durationFrames": 16 },
+        { "target": "chain-arrow-2", "recipe": "draw", "startFrame": 56, "durationFrames": 16 },
+        { "target": "chain-3", "recipe": "reveal", "startFrame": 68, "durationFrames": 16 }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,25 @@ KEYNOTE_CSS = ROOT / "web" / "src" / "styles" / "tokens.css"
 #: 图形颜色令牌的分类表。新增令牌必须先进这张表，否则
 #: `test_every_token_is_classified` 会失败——「没有对应规则」不等于「可以放行」。
 #: 取值：`(类, 判定参照)`，参照为 `bg`（对 `--a2v-bg-0`）或 `ink`（对 `--fig-ink` 成对判定）。
+
+#: 参与画面绘制的活样式层：v1 的 figures.css 已随整页组件删除，
+#: 图形令牌的使用方是 keynote / primitives / scene-tree 这几层。
+#: 剥掉注释再扫描，避免把说明文字当成令牌引用。
+LIVE_STYLES = (
+    ROOT / "web" / "src" / "styles" / "keynote.css",
+    ROOT / "web" / "src" / "styles" / "primitives.css",
+    ROOT / "web" / "src" / "styles" / "scene-tree.css",
+)
+
+
+def _live_css() -> str:
+    parts = []
+    for path in LIVE_STYLES:
+        text = path.read_text(encoding="utf-8")
+        parts.append(re.sub(r"/\*.*?\*/", "", text, flags=re.S))
+    return "\n".join(parts)
+
+
 CLASSES: dict[str, tuple[str, str]] = {
     "--fig-line": ("数据描边", "bg"),
     "--fig-line-data": ("数据描边", "bg"),
@@ -275,9 +294,7 @@ class TestClassification:
         `test_classes_cover_the_tokens_figures_css_actually_uses`
         抓不到它们：那条只看 `var(--fig-*)` 引用，字面值是隐形的。
         """
-        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
-            encoding="utf-8"
-        )
+        figures = _live_css()
         offenders = []
         for match in re.finditer(r"\b(fill|stroke|background)\s*:\s*([^;]+);", figures):
             prop, value = match.group(1), match.group(2).strip()
@@ -292,7 +309,7 @@ class TestClassification:
             if LITERAL_COLOR.search(stripped):
                 offenders.append(f"{prop}: {value}")
         assert not offenders, (
-            "figures.css 的 fill/stroke/background 里写死了颜色，换主题就会原地留一抹旧主题的颜色：\n  "
+            "画面样式层的 fill/stroke/background 里写死了颜色，换主题就会原地留一抹旧主题的颜色：\n  "
             + "\n  ".join(offenders)
         )
 
@@ -306,9 +323,7 @@ class TestBoundaryStrokes:
     """
 
     def test_boundary_tokens_are_actually_used(self):
-        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
-            encoding="utf-8"
-        )
+        figures = _live_css()
         declarations = re.findall(r"\bborder(?:-color|-top|-right|-bottom|-left)?\s*:\s*([^;]+);", figures)
         declarations += re.findall(r"\bstroke\s*:\s*([^;]+);", figures)
         text = " ".join(declarations)
@@ -320,17 +335,16 @@ class TestBoundaryStrokes:
                 "定义了却没人用的令牌看似成体系，实际不承担任何东西"
             )
 
-    def test_the_object_defining_border_uses_the_boundary_token(self):
-        # 竖尺的槽填充只是耳语级的一层白，边框是它唯一能被看见的边界
-        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
-            encoding="utf-8"
-        )
-        track = re.search(r"\.drop-track\s*\{([^}]*)\}", figures)
-        assert track, "找不到 .drop-track 规则"
-        assert "--a2v-hairline-strong" in track.group(1), (
-            ".drop-track 的边框回到了装饰级分隔线：槽的填充是耳语级的，"
-            "边框一淡这根竖尺就没有边界了"
-        )
+    def test_shape_borders_use_a_token(self):
+        # 场景树的形状与面板靠边框获得边界；边框一但写死颜色，换主题就失明
+        figures = _live_css()
+        for match in re.finditer(r"\.(?:a2v-shape-[a-z]+|a2v-primitive-surface)\s*\{([^}]*)\}", figures):
+            body = match.group(1)
+            if "border" not in body:
+                continue
+            assert "var(--" in body, (
+                f"边框声明未引用令牌：{body.strip()[:80]}——写死的颜色不跟主题走"
+            )
 
     def test_decorative_separators_stay_a_whisper(self):
         """纯分隔线刻意保持耳语，并且这件事要被守住而不是被「顺手统一」。
@@ -447,10 +461,7 @@ class TestContrastMath:
         assert faint < opaque
         assert faint == pytest.approx(1.63, abs=0.05)
 
-    def test_classes_cover_the_tokens_figures_css_actually_uses(self):
-        # 分类表要覆盖组件真正引用的令牌，否则规则会漏掉正在用的东西
-        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
-            encoding="utf-8"
-        )
-        used = set(re.findall(r"var\((--fig-[a-z-]+)", figures))
-        assert used <= set(CLASSES), f"figures.css 引用了未归类的令牌：{sorted(used - set(CLASSES))}"
+    def test_classes_cover_the_tokens_the_live_styles_actually_use(self):
+        # 分类表要覆盖画面真正引用的令牌，否则规则会漏掉正在用的东西
+        used = set(re.findall(r"var\((--fig-[a-z-]+)", _live_css()))
+        assert used <= set(CLASSES), f"画面样式层引用了未归类的令牌：{sorted(used - set(CLASSES))}"
