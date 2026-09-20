@@ -139,5 +139,9 @@
       验证：README 不再描述已删除的资产或路径
 - [x] 11.6 更新 `docs/PROJECT_PLAN.md` 的链路图与技术栈，记录本次迁移的阶段结论与已证伪的猜想；
       验证：规划文档与 README 的当前状态不矛盾
-- [ ] 11.7 归档本变更：同步 delta 到 `openspec/specs/`、移入 `openspec/changes/archive/` 并提交；
+- [x] 11.7 归档本变更：同步 delta 到 `openspec/specs/`、移入 `openspec/changes/archive/` 并提交；
       验证：`openspec validate --strict` 与新主规格一致，`git status` 干净
+      （主规格同步 9 项：新建 remotion-renderer / react-component-registry /
+      deterministic-third-party-adapters，更新 article-workspace、declarative-video-scenes、
+      font-coverage、frame-driven-motion、keynote-design-system、render-provenance；
+      `openspec validate --specs --strict` 11 项全过）
