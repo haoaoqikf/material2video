@@ -2,8 +2,8 @@
 
 这一组测试守的是一类以前完全没有守卫的静默失效：
 
-- `TestFigureTokenCoverage` 只查 `figures.css` 引用的每个 `--fig-*` 令牌在两套主题里
-  **有定义**；
+- 令牌**有定义**由 `TestClassification.test_both_themes_define_the_same_tokens`
+  把关：`figures.css` 引用的每个 `--fig-*` 令牌在两套主题里都必须存在；
 - K5 正文对比度只量 DOM 里的**文本样张**，SVG 的 `fill` / `stroke` 不在量程内；
 - K1 留白预算量的是背景像素占比——图形越淡，背景占比越高，**越容易通过**。
 
@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-KEYNOTE_CSS = ROOT / ".agents" / "skills" / "article2video" / "assets" / "keynote.css"
+KEYNOTE_CSS = ROOT / "web" / "src" / "styles" / "tokens.css"
 
 #: 图形颜色令牌的分类表。新增令牌必须先进这张表，否则
 #: `test_every_token_is_classified` 会失败——「没有对应规则」不等于「可以放行」。
@@ -137,8 +137,9 @@ def _theme_blocks() -> dict[str, dict[str, str]]:
     """
     source = KEYNOTE_CSS.read_text(encoding="utf-8")
     blocks: dict[str, dict[str, str]] = {}
+    base_selector = ":root[data-a2v-preset='keynote']"
     for theme in ("dark", "light"):
-        selector = f':root[data-a2v-preset="keynote"][data-a2v-theme="{theme}"]'
+        selector = base_selector if theme == "dark" else ":root[data-a2v-preset='keynote'][data-a2v-theme='light']"
         start = source.find(selector)
         assert start != -1, f"`keynote.css` 里找不到 {theme} 主题块（选择器 {selector}）"
         depth, index, end = 0, source.find("{", start), -1
@@ -170,7 +171,12 @@ BLOCKS = _theme_blocks()
 
 
 def _figure_tokens(theme: str) -> dict[str, str]:
-    return {k: v for k, v in BLOCKS[theme].items() if k.startswith("--fig-")}
+    return {
+        k: v for k, v in BLOCKS[theme].items()
+        if k.startswith("--fig-")
+        and k not in {"--fig-surface-pad", "--fig-connector-w"}
+        and ("#" in v or "rgb" in v or v.startswith("var("))
+    }
 
 
 def _ratio(theme: str, value: str, base: str = "--a2v-bg-0") -> float:
@@ -269,7 +275,7 @@ class TestClassification:
         `test_classes_cover_the_tokens_figures_css_actually_uses`
         抓不到它们：那条只看 `var(--fig-*)` 引用，字面值是隐形的。
         """
-        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
             encoding="utf-8"
         )
         offenders = []
@@ -300,7 +306,7 @@ class TestBoundaryStrokes:
     """
 
     def test_boundary_tokens_are_actually_used(self):
-        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
             encoding="utf-8"
         )
         declarations = re.findall(r"\bborder(?:-color|-top|-right|-bottom|-left)?\s*:\s*([^;]+);", figures)
@@ -316,7 +322,7 @@ class TestBoundaryStrokes:
 
     def test_the_object_defining_border_uses_the_boundary_token(self):
         # 竖尺的槽填充只是耳语级的一层白，边框是它唯一能被看见的边界
-        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
             encoding="utf-8"
         )
         track = re.search(r"\.drop-track\s*\{([^}]*)\}", figures)
@@ -443,7 +449,7 @@ class TestContrastMath:
 
     def test_classes_cover_the_tokens_figures_css_actually_uses(self):
         # 分类表要覆盖组件真正引用的令牌，否则规则会漏掉正在用的东西
-        figures = (ROOT / ".agents" / "skills" / "article2video" / "assets" / "figures.css").read_text(
+        figures = (ROOT / "web" / "src" / "styles" / "figures.css").read_text(
             encoding="utf-8"
         )
         used = set(re.findall(r"var\((--fig-[a-z-]+)", figures))

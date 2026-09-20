@@ -85,12 +85,12 @@ C9「文字可读」管不到这里：它量的是文字，管不了 SVG 的线�
 可以保留为组件自身的常量，不强行令牌化。
 *理由*：规范写着「组件的间距取自 8pt 阶」，实测 13 处 `gap` 与 4 处 `padding`
 一个都没走阶，30 / 46 / 18 / 22 / 26 / 34 全不在阶上；`stroke-width` 散着
-2 / 3 / 4 / 5 / 6 五种线宽。`TestFigureTokenCoverage` 只查令牌**有定义**、
-不查组件**有没有用**，于是「看起来成体系」和「真的成体系」之间没有任何检查。
+2 / 3 / 4 / 5 / 6 五种线宽。只查令牌**有定义**的检查不查组件**有没有用**，
+「看起来成体系」和「真的成体系」之间就没有检查。
 *当前边界*：描边、字重、字距、圆角、间距、内边距与 `margin-top` 已经走令牌
-（`figures.css` 86 处引用，字面值清零），由
-`tests/test_figure_token_closure.py::TestTokenClosure` 守住；
-底层的字号兜底与字号阶仍未对齐（见「当前边界」）。
+（`figures.css` 86 处引用，字面值清零）；颜色一侧由
+`tests/test_figure_contrast.py` 的分类表守住（新增令牌必须先进表），
+间距与几何一侧靠组件单测与代码评审。
 
 **C18 状态语汇唯一，一个概念一个名字**（机检：静态 + 运行时探针）
 表达「当前焦点」的元素必须挂基元类 + `data-a2v-state="focus"`，
@@ -101,10 +101,9 @@ SHALL NOT 再用临场类名（`is-accent` / `is-focus`）另写一套；
 *理由*：焦点原先有三套并行写法（`is-accent`、逐帧切换的 `is-focus`、组件自算的
 色值），「主次分明」因此只能靠每个画面临场发挥；三个组件同一帧都亮着时，
 观感闸门量得到强调色，却量不出「谁是主」。
-*守卫*：`tests/test_figures_assets.py` 的 `PENDING` 棘轮（当前为空，
-并带一条「名单不再变长」的终点断言）与
-`tests/test_keynote_layout.py` 的合成 4 态矩阵；同一帧最多一个 `focus` 由
-`tests/test_motion_trajectory.py::test_at_most_one_focus_per_frame` 守住。
+*守卫*：`web/src` 的组件单测断言状态写法与基元类的对应关系，
+`review.py` 的运行时量测在同一帧的多处强调里量「谁是主」；
+同一帧最多一个 `focus` 由动效量测与组件测试共同守住。
 
 ## 四、内容
 
@@ -129,10 +128,10 @@ SHALL NOT 再用临场类名（`is-accent` / `is-focus`）另写一套；
 改写未启用预设的既有视频：字体栈泄漏会让整支片子换一副字，主题块写成
 `:root, :root[data-a2v-preset="keynote"]…` 会让浅色页面被整片刷黑——而
 `validate.py`、`render.py` 与成片验收全部照常通过。
-*守卫*：`tests/test_keynote_assets.py::TestPresetScoping` 只允许一个裸 `:root` 块，
-且它只放默认主题的三个兜底令牌（`--a2v-accent-deep` / `--a2v-accent-soft-solid` /
-`--a2v-emphasis-fade`，取引入预设前的旧值），主题块不得与裸 `:root` 并列；
-另有 `examples/declarative-number` 限帧 12 帧成片的逐字节回归（SHA256 `DAFDD423…`）。
+*守卫*：`tests/test_react_design_tokens.py` 在浏览器里量计算值——预设与主题
+的属性挂在根元素上，未启用预设的画面若吃到预设令牌会直接失败；
+裸 `:root` 只放默认主题的兜底令牌、主题块不得与裸 `:root` 并列，
+由 `keynote.css` 的结构约定与组件测试守住。
 *理由*：不报错的破坏最贵——它不拦渲染，只改成品。
 
 ## 六、观感闸门（K1–K10）
@@ -173,13 +172,13 @@ SHALL NOT 再用临场类名（`is-accent` / `is-focus`）另写一套；
 | C 系列：C5 / C6 / C13 | 校验器与前置扫描 | 成片闪烁或节奏失控 |
 | C 系列：C10 / C11 / C14 | `review.py` 帧量测与契约探针 | 出废片或标签全空 |
 | C 系列：C2 / C7 / C9 | **人（或视觉模型）** | 片子能播，但没人看完 |
-| C15（设计语言层作用域） | `tests/test_keynote_assets.py::TestPresetScoping` 与逐字节回归 | 未启用预设的既有视频静默改样 |
-| K 系列：K1–K6 / K9 / K10（仅启用 `visual.preset` 时） | `review.py --declarative` 的观感闸门（只给数值，跳过项写明原因） | 画面能用但不像发布会级，最终判断仍归人工 |
-| K7 文字溢出 | `review.py --declarative` 的观感闸门，失败并入错误数与退出码 | 文字被裁掉或压出安全区，且流水线能拦住 |
+| C15（设计语言层作用域） | `tests/test_react_design_tokens.py`（浏览器量计算值） | 未启用预设的既有视频静默改样 |
+| K 系列：K1–K6 / K9 / K10（仅启用 `visual.preset` 时） | `review.py` 的观感闸门（只给数值，跳过项写明原因） | 画面能用但不像发布会级，最终判断仍归人工 |
+| K7 文字溢出 | `review.py` 的观感闸门，失败并入错误数与退出码 | 文字被裁掉或压出安全区，且流水线能拦住 |
 | K8 容器内溢出 | 同上；容器由组件用 `data-a2v-inside` 声明，探针按 `getBBox()` 判圆周与容器边界 | 图形内的文字穿出容器（例如标签比圆还宽），而 K7 的参照只有安全区、量不到它 |
 | 图形颜色预算 | `tests/test_figure_contrast.py`（分类表 + 对比度 + 禁字面色值 + 边界令牌必须被引用） | 图形与底色同色：空壳只剩虚线、差量条只剩虚线框，看着像没画完 |
-| 组件走令牌（C17，见上） | `tests/test_figure_token_closure.py` | 间距、线宽、字重、字距、圆角在组件里各写各的，规范写了但没人执行 |
-| 状态语汇唯一（C18，见上） | `tests/test_figures_assets.py` 的 `PENDING` 棘轮 + `tests/test_keynote_layout.py` 的合成状态矩阵 + `tests/test_motion_trajectory.py::test_at_most_one_focus_per_frame` | 焦点又有第二套写法，同一帧几处都在强调，「谁是主」量不出来 |
+| 组件走令牌（C17，见上） | `tests/test_figure_contrast.py` 颜色侧 + 组件单测与代码评审 | 间距、线宽、字重、字距、圆角在组件里各写各的，规范写了但没人执行 |
+| 状态语汇唯一（C18，见上） | `web/src` 组件单测的状态断言 + `review.py` 运行时量测 | 焦点又有第二套写法，同一帧几处都在强调，「谁是主」量不出来 |
 
 C 系列里的 C2 / C7 / C9 才是真正决定播放量的部分。机检负责保证「不是废片」，
 人工评审负责保证「值得看完」——把后者也交给脚本，等于放弃质量。

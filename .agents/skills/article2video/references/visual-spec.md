@@ -16,13 +16,13 @@
 | 帧率 | 30fps | 与分镜的 `fps` 保持一致 |
 | 色彩 | sRGB | 不做 HDR |
 
-网页按逻辑尺寸写死布局，**不要**用 `vw`/`vh`/百分比做响应式适配。
-预览所需的自适应由 `timeline.js` 的整体缩放完成，不进入画面计算。
+画面按逻辑尺寸写死布局，**不要**用 `vw`/`vh`/百分比做响应式适配。
+composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一层。
 
 ## 安全区
 
-平台 UI 会遮挡画面上下缘，正文必须留在安全区内。`base.css` 已定义变量并提供
-`.a2v-safe` 容器：
+平台 UI 会遮挡画面上下缘，正文必须留在安全区内。令牌在 `web/src/styles/tokens.css`
+里定义，并提供 `.a2v-safe` 容器：
 
 | 变量 | 默认值 | 用途 |
 | --- | --- | --- |
@@ -204,8 +204,7 @@ tempo('impact');                                                      // 节奏�
 
 `motionRecipes()` 与 `motionSprings()` 返回当前取值的快照，
 供文档与调试对照；`web/src/runtime/motionDoc.test.ts` 把本文档这两张表
-逐值钉在 TS 常量上（改了常量或改了表都会失败），
-`tests/test_motion_trajectory.py` 再按帧量一次真实轨迹——
+逐值钉在 TS 常量上（改了常量或改了表都会失败）。
 **改配方是可以的（那正是它存在的意义），但改完不能变成弹跳**：实测第一帧
 位移不得超过全程的 25%、走到 90% 至少要 6 帧、过冲不超过 10%、末尾必须正好停在终点。
 
@@ -228,7 +227,7 @@ tempo('impact');                                                      // 节奏�
 | 场景末段 | `breath` 振幅 3–5px，`settle` 从第 70 帧起 40 帧渐入 |
 
 **改完配方要跑轨迹机检。** 量测实现是 `scripts/a2v/motion.py`，两处共用一份：
-`tests/test_motion_trajectory.py`（参考实现上的严格判定）与 `review.py`
+`tests/test_motion_review.py`（参考实现上的严格判定）与 `review.py`
 （验收命令，对任意作品都跑，结论进 `report.json` 的 `motion` 段、终端 M0–M4 一栏）。
 它按帧走完每一幕，逐个量到每一个「从不透明走向不透明」的元素（基准示例上共 90 个），
 判据：
@@ -267,81 +266,59 @@ tempo('impact');                                                      // 节奏�
   `validate.py` 会对过短的场景给出警告；
 - 总时长 30–60 秒较适合单条内容；超过 90 秒建议拆成多条。
 
-## 资产引用
+## 画面的组成
 
-共享资产位于 `.agents/skills/article2video/assets/`。页面在仓库内时按层级调整相对路径
-（`videos/<slug>/` 与 `examples/<slug>/` 都是两层，所以是 `../../`）：
+画面不再是一张作品自己的 HTML：composition（`web/src/compositions/A2VComposition.tsx`）
+按分镜把每一幕挂进舞台，样式与令牌集中在 `web/src/styles/`，动效原语在
+`web/src/runtime/`。分层如下：
 
-```html
-<link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
-<link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
-<link rel="stylesheet" href="../../.agents/skills/article2video/assets/figures.css">
-...
-<script src="../../.agents/skills/article2video/assets/timeline.js"></script>
-<script src="../../.agents/skills/article2video/assets/figures.js"></script>
-```
+| 层 | 位置 | 负责 |
+| --- | --- | --- |
+| 设计令牌与主题 | `web/src/styles/tokens.css`、`theme.css` | 颜色 / 表面 / 字号 / 间距 / 安全区变量 |
+| 设计语言预设 | `web/src/styles/keynote.css` | `visual.preset: "keynote"` 的字体栈、字号阶、主题块、工具类 |
+| 组件样式 | `web/src/styles/figures.css` | 各视觉组件自己的样式（`--fig-*` 令牌） |
+| 版面与字幕 | `web/src/styles/declarative.css`、`primitives.css` | 场景版面、字幕条、四族动效基元 |
+| 动效原语 | `web/src/runtime/motion.ts`、`spring.ts`、`typography.ts` | 曲线、弹性、字号拟合 |
 
-文章放在**仓库之外的内容根**时相对路径不再成立（`../../` 落到内容根里，那里没有
-skill 副本），改用渲染脚本提供的别名——同一个文件、与内容根位置无关：
-
-```html
-<link rel="stylesheet" href="/__a2v__/base.css">
-<link rel="stylesheet" href="/__a2v__/theme.css">
-<link rel="stylesheet" href="/__a2v__/figures.css">
-...
-<script src="/__a2v__/timeline.js"></script>
-<script src="/__a2v__/figures.js"></script>
-```
-
-`theme.css` 提供设计令牌与背景层工具类，**不定义任何元素级样式**，
-因此引入与否都不会改变既有画面。顺序不能颠倒：`base.css` 负责画布与安全区，
-`theme.css` 提供令牌，`figures.css` 是组件自己的样式，页面自身样式放在最后，
-保证页面永远拥有最终覆盖权。`figures.js` 必须在 `timeline.js` 之后加载：
-它复用运行时的动效原语。
-
-组件库承担「一幕画面怎么画」，页面只负责舞台、背景与挂载点；
+组件库承担「一幕画面怎么画」，composition 只负责舞台、背景与挂载；
 要不要用组件、用哪一个，见 [视觉组件目录](figure-catalog.md)。
 
-背景层是常驻元素，放在 `[data-a2v-stage]` 内、`[data-a2v-scene]` 之外，
-并把场景容器抬到背景之上：
+背景层是常驻元素，挂在舞台内、场景元素之外，场景容器抬到背景之上：
 
-```html
+```tsx
 <div data-a2v-stage>
-  <div class="a2v-bg-glow" aria-hidden="true"></div>
-  <div class="a2v-bg-grid" aria-hidden="true"></div>
-  <div class="a2v-bg-grain" aria-hidden="true"></div>
-  <section data-a2v-scene data-scene-id="opening">…</section>
+  <div className="a2v-bg-glow stage-bg" aria-hidden="true" />
+  <div className="a2v-bg-grid stage-bg" aria-hidden="true" />
+  <div className="a2v-bg-grain stage-bg" aria-hidden="true" />
+  {/* 场景由组件按帧渲染，z-index 高于背景层 */}
 </div>
 ```
 
-```css
-.stage-bg { z-index: 0; }
-[data-a2v-scene] { z-index: 1; }
-```
+本篇专属画面与素材：需要超越共享组件的表达时，在作品目录写 `scenes.tsx`
+专属画面模块（渲染脚本按工作区根自动发现）；本篇素材放在 `videos/<slug>/assets/`，
+composition 里经相对 URL 引用。
 
 ## 设计语言预设（可选）
 
 分镜根级的 `visual.preset` 决定是否启用一层「发布会级」设计语言。字段可选，
 目前唯一取值是 `"keynote"`；未知值由校验器报错并指出 `visual.preset` 字段路径。
 
-**缺省时行为逐帧不变。** 共享页面照常引入 `assets/keynote.css` 与
-`assets/typography.js`，但 `<html>` 上不出现 `data-a2v-preset`：前者的全部规则
-（字体栈、主题块、字号阶、工具类）都带 `[data-a2v-preset="keynote"]` 作用域，
-一条也不会生效；后者只注册 `A2V.type` 而不被调用（`declarative.js` 仅在预设存在时
-才做拟合）。画面、字体与版式因此与引入该层之前完全一致，
-`examples/declarative-number` 限帧 12 帧的成片与改动前逐字节相同。这不是口头承诺——
-`tests/test_keynote_assets.py::TestPresetScoping` 守住作用域，
-`tests/test_offline_assets.py` 守住离线资产。
+**缺省时行为逐帧不变。** composition 始终引入 `web/src/styles/keynote.css`，
+但只有分镜声明了预设才会在根元素写 `data-a2v-preset="keynote"`（`A2VComposition`
+的 `useLayoutEffect`）：预设的全部规则（字体栈、主题块、字号阶、工具类）
+都带 `[data-a2v-preset="keynote"]` 作用域，一条也不会生效；排版引擎
+（`web/src/runtime/typography.ts`）只在预设存在时被调用。
+画面、字体与版式因此与未启用预设的取值完全一致——这不是口头承诺，
+`tests/test_react_design_tokens.py` 在浏览器里量计算值守住作用域。
 
 启用后多出来的约束：模块化字号阶（正文下限 36px，组件内部字号通过
 `--a2v-ink-*` 别名一并收进阶上）、8pt 间距阶、两套主题
 （`keynote-dark` / `keynote-light`）、对比度预算（正文 7:1、大字与图形 4.5:1）、
 随仓库分发的 webfont，以及观感闸门 K1–K10；预设另外把 `--a2v-safe-top` 从
 220px 提到 240px，并提供 `--a2v-safe-bottom-with-subtitles: 520px`。
-版面仍由分镜的 `visual.layout` 选择，**未声明时共享页面兜底为居中**——
-预设不推翻这个兜底，只补齐页面原本缺的 `left` 一档。
-完整的启用方式、令牌表与闸门阈值见[发布会级设计语言](keynote-design-system.md)，
-三种版面的几何由 `tests/test_keynote_layout.py` 实测复核。
+版面仍由分镜的 `visual.layout` 选择，**未声明时 composition 兜底为居中**——
+预设不推翻这个兜底，只补齐原本缺的 `left` 一档。
+完整的启用方式、令牌表与闸门阈值见[发布会级设计语言](keynote-design-system.md)。
 
 ### 幕角标 `visual.kicker`
 
@@ -362,38 +339,35 @@ skill 副本），改用渲染脚本提供的别名——同一个文件、与�
 `scene.type`，于是画面上出现的是分镜的内部类型标识符——`TITLE`、`LIST`、
 `TIMELINE`、`NUMBER`、`CONCLUSION`。那是 schema 字段名，不是给读者看的字：
 既没有信息量（读者不需要知道"这是一条时间线"），也和整屏中文格格不入。
-一个内部标识符永远不该出现在画面上，所以兜底是"不显示"，而不是"显示类型名"。
-`tests/test_figures_assets.py::test_scene_kicker_is_authored_copy_not_the_scene_type`
-是挡住回退的源码级棘轮。
+一个内部标识符永远不该出现在画面上，所以兜底是"不显示"（`A2VComposition`
+里留一个空 span），而不是"显示类型名"。
 
-角标只在启用预设时挂载（`declarative.js` 里的 `if (preset)`），
-因此它**不影响未声明预设的既有作品**。
+角标只在启用预设时挂载，因此它**不影响未声明预设的既有作品**。
 
 ## 字体
 
-默认（未启用预设）用 `base.css` 的系统中文字体栈（苹方 / 微软雅黑 / Noto Sans SC 等）。
-好处是零体积、无需网络；代价是**不同机器字宽略有差异**，可能影响换行位置。
-
-启用设计语言预设后改用**随仓库分发**的两套可变字体，不再依赖渲染机器的系统字体：
+画面用**随仓库分发**的两套可变字体，不依赖渲染机器的系统字体，也不走 CDN：
 
 | 字体 | 家族名 | 文件 | 用途 |
 | --- | --- | --- | --- |
-| Inter Variable | `"A2V Inter"` | `assets/fonts/Inter-Variable.ttf` | 拉丁与数字（图表数值列的对齐依赖它） |
-| Noto Sans SC Variable | `"A2V Sans"` | `assets/fonts/NotoSansSC-Variable.ttf` | 中文 |
+| Inter Variable | `"A2V Inter"` | `web/src/assets/fonts/Inter-Variable.ttf` | 拉丁与数字（图表数值列的对齐依赖它） |
+| Noto Sans SC Variable | `"A2V Sans"` | `web/src/assets/fonts/NotoSansSC-Variable.ttf` | 中文 |
 
 两者均为 SIL OFL 1.1，许可证原文（`OFL-Inter.txt` / `OFL-NotoSansSC.txt`）随字体
-一同分发，**不走 CDN**：渲染是逐帧截图，CDN 断网或限流时会静默回退到系统字体，
-成片照样出得来，只是换了一副字。`@font-face` 声明 `font-weight: 100 900`
-（可变字体必须写完整区间，否则粗细档会被合成）与 `font-display: block`
-（避免回退字体先渲染的那一帧被拍进成片），字体栈只写在
-`:root[data-a2v-preset="keynote"]` 作用域内。
+一同分发。**不走 CDN**：渲染是逐帧确定性导出，CDN 断网或限流时会静默回退到
+系统字体，成片照样出得来，只是换了一副字。
 
-`@font-face` 天生是全局注册的，所以字体栈一旦写进裸 `:root`，未启用预设的既有视频
-会整体换字体而**不报错**；这条由 `TestPresetScoping` 守住。字体路径也有人守：
-`tests/test_offline_assets.py` 要求资产层不出现外部 URL，且每一处 `url()` 都指向
-仓库内真实存在的文件——指向 CDN 或拼错的路径都会直接测试失败。
+- 唯一真源是 `web/src/assets/fonts.json` + `web/src/assets/fonts/`；
+- `web/src/fonts.ts` 在首帧前用 CSS Font Loading API 注册（`font-display: block`，
+  避免回退字体先渲染的那一帧被拍进成片），并声明 `font-weight: 100 900`
+  （可变字体必须写完整区间，否则粗细档会被合成）；
+- 字体栈只写在 `:root[data-a2v-preset="keynote"]` 作用域内：预设一启用即生效，
+  未启用预设的画面继续用系统栈；`@font-face` 的 URL 注册是全局的，作用域由
+  `tests/test_react_design_tokens.py` 在浏览器里量出来；
+- 构建前 `web/scripts/sync-fonts.mjs` 把字体同步进 `public/fonts/`（gitignore 的
+  生成物），源文件缺失时**构建直接失败**。
 
-体积与许可见 `assets/fonts/README.md`；字体层的取舍理由见
+体积与许可见 `web/src/assets/fonts/README.md`；字体层的取舍理由见
 [发布会级设计语言](keynote-design-system.md)。
 
 ## 排版自查

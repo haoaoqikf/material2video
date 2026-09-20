@@ -1,14 +1,11 @@
 """网页引用的本地资源定位。
 
-渲染前置扫描与设计宪法检查都要回答同一个问题：「这个网页实际加载了哪些
+渲染前置扫描与指纹复核都要回答同一个问题：「这个页面实际加载了哪些
 本地样式与脚本」。放在这里共用，避免两处各写一遍路径推导而慢慢走偏。
 
-资源有两种写法：
-
-* **相对路径**：页面与共享资产同处一棵树时（仓库内的示例、共享页面）用它；
-* **别名路径**：`/__a2v__/<相对路径>`。内容根落在仓库之外时页面靠它引用
-  skill 的共享资产，位置换了也不用改页面。别名到目录的映射由这里给出，
-  服务器只负责按同一份映射把请求翻到挂载目录。
+React/Remotion 时代页面上只剩契约页（在仓库 `web/` 里），共享资产别名
+挂载已随旧资产一并移除；这里保留的引用扫描、项目根界定与指纹键推导
+供溯源复核与体检使用。
 """
 
 from __future__ import annotations
@@ -31,18 +28,13 @@ _ASSET_REFERENCE = re.compile(
 )
 
 
-def skill_assets_dir() -> Path:
-    """skill 的共享资产目录（`assets/`）。"""
-    return BUNDLE_DIR / "assets"
-
-
 def default_mounts() -> dict[str, Path]:
     """默认挂载表：别名前缀 → skill 资产目录。
 
     服务器与扫描器共用这一份，避免「服务器映射到 A、扫描器按 B 找」这类
     只在渲染时才暴露的漂移。
     """
-    return {SKILL_MOUNT: skill_assets_dir()}
+    return {}
 
 
 def project_root(start: Path) -> Path | None:

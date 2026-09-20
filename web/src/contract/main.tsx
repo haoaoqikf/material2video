@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Player, type PlayerRef } from '@remotion/player';
-import { A2VComposition } from '@/compositions/A2VComposition';
+import { ActiveComposition } from '../../.gen/active-composition';
 import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
 import { totalFrames } from '@/runtime/timeline';
@@ -96,7 +96,7 @@ function ContractApp(): React.ReactElement {
   return (
     <Player
       ref={playerRef}
-      component={A2VComposition}
+      component={ActiveComposition}
       inputProps={storyboard}
       durationInFrames={totalFrames(storyboard)}
       fps={storyboard.fps}

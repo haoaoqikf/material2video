@@ -1,6 +1,6 @@
 {
   "$comment": "画面实际注册的字体资产清单——唯一真源。渲染层按它注册字体，同步脚本按它把文件搬到打包器需要的位置，缺字机检按它找字形。sourceDirFromWeb 相对于 web/ 工程根。",
-  "sourceDirFromWeb": "../.agents/skills/article2video/assets/fonts",
+  "sourceDirFromWeb": "src/assets/fonts",
   "files": [
     {
       "family": "A2V Inter",

@@ -26,7 +26,7 @@ from urllib.parse import quote
 
 from . import assets
 from .errors import A2VError
-from .static_server import LocalServer
+from .http_server import LocalServer
 
 #: `web/` 目录的服务器别名前缀。页面在这里，分镜在工作区根里，靠它接起来。
 WEB_MOUNT = "/__a2v_web__"

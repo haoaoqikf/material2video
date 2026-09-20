@@ -195,74 +195,8 @@ def _capture_render(monkeypatch) -> list[dict]:
             size_bytes=1234,
         )
 
-    monkeypatch.setattr(cli, "render", fake_render)
+    monkeypatch.setattr(cli, "render_with_remotion", fake_render)
     return captured
-
-
-class TestRenderCommandDefaults:
-    """输出路径推导对两个引擎都成立；默认引擎的归属见 TestRemotionDefault。"""
-
-    def test_silent_render_defaults_to_slug_directory(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
-        captured = _capture_render(monkeypatch)
-        code = cli.main_render(
-            [
-                "--engine", "legacy",
-                "--page", str(article / "index.html"),
-                "--storyboard", str(article / "storyboard.json"),
-                "--no-probe",
-            ]
-        )
-        assert code == 0
-        assert captured[0]["output"] == tmp_path / "outputs" / "demo" / "silent.mp4"
-
-    def test_limit_frames_defaults_to_preview_directory(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
-        captured = _capture_render(monkeypatch)
-        assert cli.main_render(
-            [
-                "--engine", "legacy",
-                "--page", str(article / "index.html"),
-                "--storyboard", str(article / "storyboard.json"),
-                "--limit-frames", "3",
-                "--no-probe",
-            ]
-        ) == 0
-        assert captured[0]["output"] == tmp_path / "outputs" / "demo" / "previews" / "silent.mp4"
-
-    def test_explicit_out_still_wins(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
-        captured = _capture_render(monkeypatch)
-        explicit = tmp_path / "custom" / "clip.mp4"
-        assert cli.main_render(
-            [
-                "--engine", "legacy",
-                "--page", str(article / "index.html"),
-                "--storyboard", str(article / "storyboard.json"),
-                "--out", str(explicit),
-                "--limit-frames", "3",
-                "--no-probe",
-            ]
-        ) == 0
-        assert captured[0]["output"] == explicit
-
-    def test_missing_storyboard_without_out_fails(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
-        _capture_render(monkeypatch)
-        # 省略 --out 时无法确定文件名，必须报错而不是猜
-        assert cli.main_render(["--engine", "legacy", "--page", str(article / "index.html")]) == 1
-
-    def test_non_standard_page_without_out_fails(self, tmp_path, monkeypatch):
-        page = tmp_path / "loose.html"
-        page.write_text("<html></html>", encoding="utf-8")
-        _capture_render(monkeypatch)
-        assert cli.main_render(["--engine", "legacy", "--page", str(page), "--no-probe"]) == 1
-
-    def test_remote_page_without_out_fails(self, monkeypatch):
-        _capture_render(monkeypatch)
-        assert cli.main_render(
-            ["--engine", "legacy", "--page", "https://example.com/index.html", "--no-probe"]
-        ) == 1
 
 
 class TestVoicedRenderDefaults:
@@ -280,8 +214,6 @@ class TestVoicedRenderDefaults:
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
             [
-                "--engine", "legacy",
-                "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
                 "--media", str(media_path),
                 "--no-probe",
@@ -302,8 +234,6 @@ class TestVoicedRenderDefaults:
         # 媒体清单属于 demo，却拿 other 的网页来渲染：必须拒绝，避免音画串文章
         assert cli.main_render(
             [
-                "--engine", "legacy",
-                "--page", str(other / "index.html"),
                 "--storyboard", str(other / "storyboard.json"),
                 "--media", str(media_path),
                 "--no-probe",
@@ -344,15 +274,6 @@ class TestRemotionDefault:
         assert captured, "默认引擎应走 render_with_remotion"
         assert captured[0]["output"] == tmp_path / "out.mp4"
 
-    def test_page_with_default_engine_is_rejected(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
-        _capture_render(monkeypatch)
-        # 默认引擎不接受 --page：专属网页路径必须显式 --engine legacy
-        assert cli.main_render(
-            ["--page", str(article / "index.html"), "--storyboard", str(article / "storyboard.json")]
-        ) == 2
-
-
 class TestCrossArticleMediaGuard:
     """直接验证跨文章合成的拦截逻辑。
 
@@ -369,9 +290,7 @@ class TestCrossArticleMediaGuard:
         model = sb._build(valid_script, sb.Report())
         media = Media(manifest.resolve(), {}, model, media_dir / "audio.wav")
 
-        args = cli._build_render_parser().parse_args(
-            ["--page", str(article / "index.html"), "--storyboard", str(article / "storyboard.json")]
-        )
+        args = cli._build_render_parser().parse_args(["--storyboard", str(article / "storyboard.json")])
         output = cli._resolve_render_output(args, model, media)
         assert output == tmp_path / "outputs" / "demo" / "voiced.mp4"
 
@@ -385,30 +304,10 @@ class TestCrossArticleMediaGuard:
         manifest.write_text("{}", encoding="utf-8")
         model = sb._build(valid_script, sb.Report())
 
-        args = cli._build_render_parser().parse_args(
-            ["--page", str(other / "index.html"), "--storyboard", str(other / "storyboard.json")]
-        )
+        args = cli._build_render_parser().parse_args(["--storyboard", str(other / "storyboard.json")])
         with pytest.raises(A2VError, match="无法确认它与本篇文章同源"):
             cli._resolve_render_output(
                 args, model, Media(manifest.resolve(), {}, model, media_dir / "audio.wav")
-            )
-
-    def test_page_and_storyboard_from_different_articles_is_rejected(self, tmp_path, valid_script):
-        # 网页归 demo、分镜归 other：即使媒体与分镜一致也不能混用
-        demo = make_project(tmp_path, "videos", "demo", valid_script)
-        other = make_project(tmp_path, "videos", "other", valid_script)
-        other_media = tmp_path / "outputs" / "other" / "media"
-        other_media.mkdir(parents=True)
-        manifest = other_media / "media.json"
-        manifest.write_text("{}", encoding="utf-8")
-        model = sb._build(valid_script, sb.Report())
-
-        args = cli._build_render_parser().parse_args(
-            ["--page", str(demo / "index.html"), "--storyboard", str(other / "storyboard.json")]
-        )
-        with pytest.raises(A2VError, match="不是同一篇文章"):
-            cli._resolve_render_output(
-                args, model, Media(manifest.resolve(), {}, model, other_media / "audio.wav")
             )
 
     def test_media_outside_slug_media_dir_is_rejected(self, tmp_path, valid_script):
@@ -421,7 +320,6 @@ class TestCrossArticleMediaGuard:
 
         args = cli._build_render_parser().parse_args(
             [
-                "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
             ]
         )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from a2v import cli
-from a2v.render import _default_serve_root, _last_int
+from a2v.render import _last_int
 
 
 class TestValidateCommand:
@@ -49,14 +49,6 @@ class TestValidateCommand:
         assert cli.main_validate([str(path), "--strict"]) == 2
 
 
-class TestPreviewCommand:
-    def test_rejects_missing_directory(self, tmp_path):
-        assert cli.main_preview([str(tmp_path / "absent")]) == 2
-
-    def test_rejects_missing_page(self, tmp_path):
-        assert cli.main_preview([str(tmp_path)]) == 2
-
-
 class TestFfmpegStatsParsing:
     def test_parses_frame_count_with_padding(self):
         # ffmpeg 的行内统计在等号后有空格，按空白切分会解析失败
@@ -70,22 +62,3 @@ class TestFfmpegStatsParsing:
     def test_returns_none_when_absent(self):
         assert _last_int("no stats here", "frame=") is None
 
-
-class TestServeRootResolution:
-    def test_prefers_project_root_marker(self, tmp_path):
-        # 网页需要同时引用同目录的 storyboard.json 和仓库内的共享 skill 资产
-        marker = tmp_path / ".agents" / "skills" / "article2video"
-        marker.mkdir(parents=True)
-        (marker / "SKILL.md").write_text("# skill", encoding="utf-8")
-        page_dir = tmp_path / "videos" / "demo"
-        page_dir.mkdir(parents=True)
-        page = page_dir / "index.html"
-        page.write_text("<html></html>", encoding="utf-8")
-        assert _default_serve_root(page) == tmp_path
-
-    def test_falls_back_to_page_directory(self, tmp_path):
-        page_dir = tmp_path / "loose"
-        page_dir.mkdir()
-        page = page_dir / "index.html"
-        page.write_text("<html></html>", encoding="utf-8")
-        assert _default_serve_root(page) == page_dir

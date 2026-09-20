@@ -1,0 +1,8 @@
+:root {
+  --a2v-accent: #ff6b35;
+  --a2v-accent-rgb: 255, 107, 53;
+}
+
+[data-a2v-stage] {
+  background: radial-gradient(circle at 50% 8%, #162338 0%, #07101f 58%, #030711 100%);
+}

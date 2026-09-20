@@ -6,13 +6,13 @@
 2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
    `outputs/<slug>/media/`（示例为 `outputs/examples/<slug>/media/`）。
 3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。
-4. `preview.py <网页目录> --media <media.json>` 预览；分镜默认取网页同目录 `storyboard.json`，可用 `--storyboard` 指定校验源。
-5. `render.py --page <html> --storyboard <json> --media <media.json>` 输出
+4. `preview.py --storyboard <json> --media <media.json>` 预览。
+5. `render.py --storyboard <json> --media <media.json>` 输出
    `outputs/<slug>/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
 
 省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；已有 narration 不会自动触发联网或配音，
-但会在日志中提示本次按无声导出。网页始终通过 `A2V.fetchStoryboard()` 读取它实际使用的分镜，
-不由命令行替换其内容。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
+但会在日志中提示本次按无声导出。composition 读取的分镜在渲染前由媒体清单派生
+（时长按口播延长），不由命令行替换其内容。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
 
 ## 语音与字幕
 

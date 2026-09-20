@@ -70,7 +70,7 @@ describe('visual-spec.md 的动效配方表与 TS 常量逐值一致', () => {
   it('入场配方表（surface / figure）', () => {
     for (const row of docTable('| 配方 | 用于 | 默认位移 | 呼吸周期 | 呼吸振幅 |')) {
       const [rawName, , distance, period, amplitude] = cells(row);
-      const name = rawName!.replace(/`/g, '');
+      const name = rawName!.replace(/`/g, '') as keyof typeof RECIPES;
       const recipe = RECIPES[name];
       expect(recipe, `文档表里的配方 ${name} 在 RECIPES 里不存在`).toBeDefined();
       expect(distance, `${name}.distance`).toBe(`${recipe.distance}px`);

@@ -814,7 +814,7 @@ def _with_chart_scope(detail: str, chart_interior: bool) -> str:
         return detail
     return f"{detail}；{CHART_SCOPE_NOTE}" if detail else CHART_SCOPE_NOTE
 
-#: 描边阶（与 keynote.css 的 `--a2v-stroke-*` 一致）。
+#: 描边阶（与 web/src/styles/keynote.css 的 `--a2v-stroke-*` 一致）。
 _STROKE_LADDER = (1.0, 2.0, 3.0, 4.0, 6.0)
 
 #: 同一帧允许出现的描边档数。超过就说明图形语言不成体系。

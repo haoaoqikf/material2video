@@ -12,11 +12,9 @@ import pytest
 
 from a2v import audio, cli, prepare as prep, storyboard as sb
 from a2v.errors import A2VError
-from a2v.media import load_media, media_url
+from a2v.media import load_media
 from a2v.subtitles import cues_from_words, srt
-from a2v.static_server import LocalServer
-from a2v.browser import open_animated_page
-from a2v.render import render, _resolve_page_url, _verify_output
+from a2v.http_server import LocalServer
 from conftest import EXAMPLES_DIR
 
 
@@ -94,7 +92,7 @@ def test_stale_manifest_rejected(prepared):
     source.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(A2VError, match="重新 prepare"):
         load_media(path, source)
-    assert cli.main_render(["--page", "absent", "--out", "out.mp4", "--media", str(path), "--storyboard", str(source)]) == 1
+    assert cli.main_render(["--out", "out.mp4", "--media", str(path), "--storyboard", str(source)]) == 1
 
 
 @pytest.mark.parametrize("change", ["duration", "cues", "audio"])
@@ -148,77 +146,12 @@ def test_long_sentence_and_clipped_srt():
 def test_prepare_cli_invalid_input(tmp_path):
     assert cli.main_prepare(["--storyboard", str(tmp_path / "absent"), "--out-dir", str(tmp_path)]) == 1
     # 只给 --media 属于参数组合非法，按「输入无效」退出，而不是渲染失败
-    assert cli.main_render(["--page", "none", "--out", "none.mp4", "--media", "none.json"]) == 2
+    assert cli.main_render(["--out", "none.mp4", "--media", "none.json"]) == 2
 
 
 @pytest.fixture
 def example_media(tmp_path, speech):
     return load_media(prep.prepare(EXAMPLES_DIR / "storyboard.json", tmp_path / "media"))
-
-
-def test_subtitle_frames_layout_playback_and_determinism(example_media):
-    media = example_media
-    with LocalServer(media.path.parent, cors=True) as server:
-        with _resolve_page_url(EXAMPLES_DIR / "index.html", None) as url:
-            with open_animated_page(media_url(url, server.base_url, media), width=1080, height=1920) as page:
-                page.seek(0)
-                assert page.evaluate("() => document.querySelector('[data-a2v-subtitle]').hidden")
-                page.seek(4)
-                assert page.evaluate("() => document.querySelector('[data-a2v-subtitle]').textContent") == media.data["cues"][0]["text"]
-                bounds = page.evaluate("""() => {let el=document.querySelector('[data-a2v-subtitle]');let r=el.getBoundingClientRect();return {bottom:r.bottom,height:r.height,lines:el.scrollHeight/parseFloat(getComputedStyle(el).lineHeight)}}""")
-                assert bounds["bottom"] <= 1600
-                assert bounds["height"] <= 128
-                page.evaluate("() => A2V.controller.play()")
-                # 这里原先是「等 250ms 再看帧号 > 4」。全量跑的时候进程可能被饿到
-                # rAF 推不动，于是断言在负载下偶发假失败（实测出现过两次），
-                # 而那是负载问题、不是播放问题。改成有界轮询：只要求
-                # **播起来之后帧号会推进**，不规定它在多少毫秒内推多少帧。
-                advanced = page.evaluate(
-                    """() => new Promise((resolve) => {
-                      const from = A2V.controller.currentFrame();
-                      const deadline = performance.now() + 5000;
-                      const tick = () => {
-                        if (A2V.controller.currentFrame() > from) return resolve(true);
-                        if (performance.now() > deadline) return resolve(false);
-                        requestAnimationFrame(tick);
-                      };
-                      requestAnimationFrame(tick);
-                    })"""
-                )
-                assert advanced, "播放后帧号没有推进——播放循环没有跑起来"
-                page.evaluate("() => A2V.controller.pause()")
-                paused = page.evaluate("() => A2V.controller.currentFrame()")
-                page.evaluate("() => new Promise(r => setTimeout(r, 100))")
-                assert page.evaluate("() => A2V.controller.currentFrame()") == paused
-                page.seek(600)
-                assert page.evaluate("() => document.querySelector('[data-a2v-audio]').currentTime") == pytest.approx(20, abs=.04)
-                page.evaluate("() => A2V.controller.replay()")
-                page.evaluate("() => new Promise(r => setTimeout(r, 200))")
-                assert page.evaluate("() => A2V.controller.currentFrame()") < 30
-                page.evaluate("() => A2V.controller.pause()")
-                page.seek(60)
-                assert page.evaluate("() => document.querySelector('[data-a2v-subtitle]').hidden")
-                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
-                page.seek(4)
-                first = page.capture("png")
-                page.seek(60)
-                page.seek(4)
-                assert first == page.capture("png")
-                page.evaluate("() => A2V.controller.play()")
-                assert not page.evaluate("() => A2V.controller.isPlaying()")
-
-
-def test_voiced_render_and_short_clip(example_media, tmp_path):
-    output = tmp_path / "clip.mp4"
-    result = render(EXAMPLES_DIR / "index.html", output,
-                    storyboard=sb.load(EXAMPLES_DIR / "storyboard.json")[0], media=example_media, limit_frames=9)
-    assert result.frames == 9
-    assert output.with_suffix(".srt").is_file()
-    content = output.with_suffix(".srt").read_text(encoding="utf-8")
-    assert "00:00:00,300" in content
-    _verify_output(output, 9, 1080, 1920, 30, expect_audio=True)
-    with pytest.raises(A2VError, match="尺寸"):
-        _verify_output(output, 9, 720, 1280, 30, expect_audio=True)
 
 
 @pytest.mark.parametrize("narration", [None, 1, {}, []])
@@ -231,20 +164,6 @@ def test_narration_type_is_checked(valid_script, narration):
 def test_validate_media_command(prepared):
     source, media = prepared
     assert cli.main_validate([str(source), "--media", str(media)]) == 0
-
-
-def test_preview_media_starts_and_closes(prepared, monkeypatch):
-    import webbrowser
-    import time
-    source, media = prepared
-    (source.parent / "index.html").write_text("<html></html>", encoding="utf-8")
-    opened = []
-    monkeypatch.setattr(webbrowser, "open", opened.append)
-    def interrupt(_):
-        raise KeyboardInterrupt
-    monkeypatch.setattr(time, "sleep", interrupt)
-    assert cli.main_preview([str(source.parent), "--media", str(media)]) == 0
-    assert "a2v-media=" in opened[0]
 
 
 def test_media_range_requests(tmp_path):
@@ -282,10 +201,3 @@ def test_missing_timestamps_does_not_publish(prepared, monkeypatch):
     assert path.read_bytes() == before
 
 
-def test_render_rejects_mismatched_dimensions(example_media, tmp_path):
-    data = json.loads((EXAMPLES_DIR / "storyboard.json").read_text(encoding="utf-8"))
-    data["width"] = 720
-    source = tmp_path / "small.json"
-    source.write_text(json.dumps(data), encoding="utf-8")
-    with pytest.raises(A2VError, match="画面尺寸"):
-        render(EXAMPLES_DIR / "index.html", tmp_path / "none.mp4", storyboard=sb.load(source)[0], limit_frames=1)

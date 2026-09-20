@@ -43,6 +43,26 @@ requires_node = pytest.mark.skipif(
 
 # ---------------------------------------------------------------- 边界
 
+def test_prepare_composition_entry_selects_article_scenes(tmp_path):
+    web = tmp_path / "web"
+    article = tmp_path / "examples" / "demo"
+    article.mkdir(parents=True)
+    scenes = article / "scenes.tsx"
+    scenes.write_text("export default () => null;", encoding="utf-8")
+    target = remotion.prepare_composition_entry(
+        web_dir=web, storyboard_path=article / "storyboard.json"
+    )
+    assert target == scenes
+    assert "../../examples/demo/scenes" in (web / remotion.GENERATED_ENTRY).read_text(encoding="utf-8")
+
+
+def test_prepare_composition_entry_falls_back_to_shared_composition(tmp_path):
+    web = tmp_path / "web"
+    storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
+    target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    assert target == web / remotion.GENERATED_ENTRY
+    assert "A2VComposition" in target.read_text(encoding="utf-8")
+
 
 def test_missing_node_modules_reports_the_install_command(tmp_path):
     """依赖缺失必须报出**要跑哪条命令**：否则现场只看到一句「渲染失败」。"""
@@ -117,7 +137,7 @@ def test_build_input_fingerprint_covers_source_styles_fonts_and_lockfile():
     assert "__a2v_web__/pnpm-lock.yaml" in files
     assert "__a2v_web__/scripts/remotion-render.mjs" in files
     # 字体记的是源文件（别名键），不是构建出来的副本
-    assert any(key.startswith("__a2v__/fonts/") for key in files)
+    assert any(key.startswith("__a2v_web__/src/assets/fonts/") for key in files)
 
 
 def test_fingerprint_keys_survive_a_workspace_root_outside_the_repo():

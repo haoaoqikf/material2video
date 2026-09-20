@@ -1,7 +1,8 @@
 import type { FC } from 'react';
 import type { CalculateMetadataFunction } from 'remotion';
 import { Composition } from 'remotion';
-import { A2VComposition, type A2VProps } from './compositions/A2VComposition';
+import type { A2VProps } from './compositions/A2VComposition';
+import { ActiveComposition } from '../.gen/active-composition';
 import { EMPTY_STORYBOARD } from './schema/storyboard';
 import { totalFrames } from './runtime/timeline';
 import './styles/index.css';
@@ -26,7 +27,7 @@ export const RemotionRoot: FC = () => {
   return (
     <Composition
       id="A2V"
-      component={A2VComposition}
+      component={ActiveComposition}
       durationInFrames={totalFrames(EMPTY_STORYBOARD)}
       fps={EMPTY_STORYBOARD.fps}
       width={EMPTY_STORYBOARD.width}

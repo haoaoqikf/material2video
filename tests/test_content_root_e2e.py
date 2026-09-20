@@ -25,7 +25,6 @@ from a2v.render import provenance_status
 
 ROOT = Path(__file__).resolve().parents[1]
 DECLARATIVE = ROOT / "examples/declarative-number/storyboard.json"
-EXAMPLE_PAGE = ROOT / "examples/why-effort-fails/index.html"
 
 pytestmark = pytest.mark.slow
 
@@ -65,43 +64,6 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     assert sidecar["storyboard"] == "videos/demo/storyboard.json"
     assert "__a2v_web__/src/compositions/A2VComposition.tsx" in sidecar["assets"]["files"]
     # 下一页运行复核时不需要仓库标记、也不需要内容根参数
-    assert provenance_status(video)["status"] == "current"
-
-
-def test_page_render_writes_into_the_content_root(chromium_ready, content_root):
-    """专属页面 + 内容根分镜：页面在内容根里，静态根就是内容根。
-
-    页面挪出仓库后相对引用就断了，共享资产必须改走 `/__a2v__/` 别名——这正是
-    内容根里的文章页面的写法，因此这里按真实写法生成一份，别名那一侧也一起验。
-    """
-    article = content_root / "videos" / "demo"
-    page_html = EXAMPLE_PAGE.read_text(encoding="utf-8").replace(
-        "../../.agents/skills/article2video/assets/", "/__a2v__/"
-    )
-    assert "/__a2v__/timeline.js" in page_html
-    (article / "index.html").write_text(page_html, encoding="utf-8")
-    shutil.copyfile(
-        ROOT / "examples/why-effort-fails/storyboard.json", article / "storyboard.json"
-    )
-
-    assert cli.main_render(
-        [
-            "--page", str(article / "index.html"),
-            "--storyboard", str(article / "storyboard.json"),
-            "--content-root", str(content_root),
-            "--limit-frames", "2",
-            "--preset", "ultrafast",
-            "--no-probe",
-        ]
-    ) == 0
-
-    video = content_root / "outputs" / "demo" / "previews" / "silent.mp4"
-    assert video.is_file() and video.stat().st_size > 0
-    sidecar = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
-    assert sidecar["page"] == "videos/demo/index.html"
-    assert sidecar["assets"]["files"]["videos/demo/index.html"]
-    # 共享资产仍然记别名键：改组件库照样要能被发现
-    assert any(key.startswith("__a2v__/") for key in sidecar["assets"]["files"])
     assert provenance_status(video)["status"] == "current"
 
 

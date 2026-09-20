@@ -21,8 +21,8 @@ from . import paths as paths_mod
 from . import storyboard as sb
 from .errors import A2VError
 from .media import Media, load_media
-from .render import provenance_status, render, render_with_remotion
-from .static_server import LocalServer
+from .render import provenance_status, render_with_remotion
+from .http_server import LocalServer
 from .storyboard import Report
 
 _EXIT_OK = 0
@@ -30,7 +30,6 @@ _EXIT_FAILED = 1
 _EXIT_INVALID_INPUT = 2
 
 #: 画面引擎。迁移期两个并存，默认仍是旧页面；切换默认是迁移的最后一步。
-ENGINE_LEGACY = "legacy"
 ENGINE_REACT = "remotion"
 #: 默认引擎：React composition（Remotion）。迁移期的并存是刻意的：旧路径是量测基线，
 #: 切换默认是一件显式的事，由这一处控制（旧路径的删除见 openspec 变更 11.4）。
@@ -72,12 +71,10 @@ def _add_engine_argument(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument(
         "--engine",
-        choices=[ENGINE_LEGACY, ENGINE_REACT],
+        choices=[ENGINE_REACT],
         default=_DEFAULT_ENGINE,
         help=(
-            "画面引擎：legacy 用作品自己的动画网页（迁移期默认）；"
-            "remotion 用 React 契约页（web/dist/contract/contract.html），"
-            "画面由 composition 生成，作品不再需要 HTML"
+            "画面引擎：Remotion React composition（保留参数用于明确契约）"
         ),
     )
 
@@ -87,7 +84,6 @@ def _build_render_parser() -> argparse.ArgumentParser:
         prog="render.py",
         description="把实现 __A2V__ 契约的动画网页逐帧渲染为 MP4",
     )
-    parser.add_argument("--page", help="动画网页路径或 http(s) URL；省略时用共享页面读取 --storyboard")
     parser.add_argument(
         "--out",
         help="输出 MP4 路径；省略时按文章归属推导为 outputs/<slug>/silent.mp4，"
@@ -116,16 +112,6 @@ def _build_render_parser() -> argparse.ArgumentParser:
         type=int,
         help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 outputs/<slug>/previews/",
     )
-    parser.add_argument(
-        "--capture-format",
-        default="jpeg",
-        choices=["jpeg", "png"],
-        help="中间帧格式；jpeg 快约 3 倍，png 用于逐像素比对（默认 jpeg）",
-    )
-    parser.add_argument(
-        "--serve-root",
-        help="本地网页的静态根目录，默认取网页所在目录；资产在上一级时使用",
-    )
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument("--no-probe", action="store_true", help="跳过成片解码验收")
     _add_engine_argument(parser)
@@ -152,13 +138,10 @@ def _build_preview_parser() -> argparse.ArgumentParser:
         prog="preview.py",
         description="以本地 HTTP 服务预览动画网页（file:// 下无法加载分镜 JSON）",
     )
-    parser.add_argument("directory", nargs="?", default=".", help="静态根目录，默认当前目录")
-    parser.add_argument("--page", default=None, help="相对根目录的页面路径（旧引擎；默认 index.html）")
     parser.add_argument("--port", type=int, default=0, help="监听端口，默认自动分配")
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
     parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
-    parser.add_argument("--declarative", action="store_true", help="用共享页面预览 --storyboard（旧引擎）")
     _add_engine_argument(parser)
     parser.add_argument(
         "--content-root",
@@ -173,10 +156,6 @@ def _build_review_parser() -> argparse.ArgumentParser:
         prog="review.py",
         description="视觉体检：抽帧量测 + 组件契约探针 + 设计宪法静态检查，并给出人工评审清单",
     )
-    parser.add_argument(
-        "--page",
-        help="动画网页路径或 http(s) URL；省略时用共享页面读取 --storyboard",
-    )
     parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定场景与声明")
     parser.add_argument(
         "--content-root",
@@ -184,11 +163,7 @@ def _build_review_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
     parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
-    parser.add_argument("--serve-root", help="本地网页的静态根目录，默认取文章的工作区根")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
-    parser.add_argument(
-        "--declarative", action="store_true", help="按共享页面的受控字段规则体检"
-    )
     _add_engine_argument(parser)
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
@@ -198,49 +173,26 @@ def main_render(argv: list[str] | None = None) -> int:
     args = _build_render_parser().parse_args(argv)
     _force_utf8_output()
     _configure_logging(args.verbose)
-    declarative = args.page is None
-    if declarative and not args.storyboard:
-        logging.error("省略 --page 时必须提供 --storyboard")
-        return _EXIT_INVALID_INPUT
-    if args.engine == ENGINE_REACT and args.page:
-        logging.error(
-            "--engine remotion 不接受 --page：画面由 React composition 提供，"
-            "作品专属画面请改写为 web 侧的 scenes 模块"
-        )
-        return _EXIT_INVALID_INPUT
-    if args.engine == ENGINE_REACT and not args.storyboard:
-        logging.error("--engine remotion 需要 --storyboard：它是 composition 的 props")
+    if not args.storyboard:
+        logging.error("Remotion 渲染必须提供 --storyboard")
         return _EXIT_INVALID_INPUT
 
     # 分镜校验先于路径推导：脚本无效时不必先建出输出目录
-    model: sb.Storyboard | None = None
-    if args.storyboard:
-        model = _validated_storyboard(args.storyboard, declarative=declarative)
-        if model is None:
-            return _EXIT_INVALID_INPUT
-    elif args.media:
-        logging.error("--media 需要同时提供 --storyboard")
+    model = _validated_storyboard(args.storyboard, declarative=True)
+    if model is None:
         return _EXIT_INVALID_INPUT
 
     try:
-        article = _article_for(
-            args, declarative=declarative, required=declarative or args.engine == ENGINE_REACT
-        )
-        # 契约页总是从查询参数读分镜（它就是为「一个页面服务任意作品」设计的）；
-        # 旧共享页面只在声明式路径下需要这个参数。
+        article = _article_for(args, declarative=True, required=True)
+        # 契约页总是从查询参数读分镜（它就是为「一个页面服务任意作品」设计的）
         source_url = (
-            _storyboard_url(args.storyboard, article)
-            if article is not None and (declarative or args.engine == ENGINE_REACT)
-            else None
+            _storyboard_url(args.storyboard, article) if article is not None else None
         )
         media = load_media(args.media, args.storyboard) if args.media else None
         output = _resolve_render_output(args, model, media, article)
-        if args.engine == ENGINE_REACT:
-            if model is None:
-                raise A2VError("--engine remotion 需要可用的 --storyboard")
-            # 这条路径不需要契约页：画面直接从 composition 的源码渲出来，
-            # 契约页只在体检（量测与探针）时用来驱动同一份画面
-            result = render_with_remotion(
+        # 这条路径不需要契约页：画面直接从 composition 的源码渲出来，
+        # 契约页只在体检（量测与探针）时用来驱动同一份画面
+        result = render_with_remotion(
                 output=output,
                 storyboard=model,
                 storyboard_path=args.storyboard,
@@ -253,33 +205,7 @@ def main_render(argv: list[str] | None = None) -> int:
                 storyboard_url=source_url,
                 storyboard_origin=args.storyboard,
                 workspace_root=article.workspace_root if article else None,
-            )
-        else:
-            page, page_mounts = _page_source(args, article, engine=args.engine)
-            result = render(
-                page_path=page,
-                output=output,
-                storyboard=model,
-                fps=args.fps,
-                crf=args.crf,
-                preset=args.preset,
-                limit_frames=args.limit_frames,
-                timeout_ms=args.timeout,
-                probe=not args.no_probe,
-                serve_root=(
-                    args.serve_root
-                    or (article.workspace_root if article is not None else None)
-                ),
-                capture_format=args.capture_format,
-                media=media,
-                storyboard_url=source_url,
-                storyboard_origin=args.storyboard,
-                workspace_root=article.workspace_root if article else None,
-                mounts=page_mounts,
-                # 旧页面声明的版本必须与渲染入口认的一致：版本不符时 `ready()` 的
-                # 语义也不同，继续渲只会得到一叠空画面
-                expected_contract_version=contract_page.LEGACY_CONTRACT_VERSION,
-            )
+        )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
         return _EXIT_FAILED
@@ -287,11 +213,6 @@ def main_render(argv: list[str] | None = None) -> int:
         logging.error("渲染被用户中断")
         return _EXIT_FAILED
 
-    if model is None:
-        logging.info(
-            "未提供分镜脚本，按网页契约渲染；总时长 %.1fs",
-            result.duration_seconds,
-        )
     print(result.summary())
     return _EXIT_OK
 
@@ -314,15 +235,13 @@ def _article_for(
 ) -> paths_mod.ArticlePaths | None:
     """本次调用涉及的文章归属。
 
-    推不出来时默认返回 None，而不是在这里抛错：显式给出 `--page`/`--out`/`--serve-root`
-    的调用方式（任意位置的页面、远程页面）本来就不需要归属，报错应当留给真正
-    需要归属的那一步（默认输出路径、媒体归属）。声明式路径例外（`required=True`）：
-    共享页面与分镜 URL 都按工作区根拼，没有归属就没有可用的 URL。
+    推不出来时默认返回 None，而不是在这里抛错：显式给出 `--out` 的调用方式
+    本来就不需要归属，报错应当留给真正需要归属的那一步（默认输出路径、
+    媒体归属）。Remotion 路径例外（`required=True`）：分镜 URL 与默认输出
+    都按工作区根拼，没有归属就没有可用的输入。
     """
     try:
-        if declarative:
-            return paths_mod.for_storyboard(args.storyboard, args.content_root)
-        return paths_mod.for_page(args.page, args.content_root)
+        return paths_mod.for_storyboard(args.storyboard, args.content_root)
     except A2VError as exc:
         if required:
             raise
@@ -330,56 +249,19 @@ def _article_for(
         return None
 
 
-def _shared_page(article: paths_mod.ArticlePaths) -> Path:
-    """共享页面：skill bundle 里的 `assets/declarative.html`。
-
-    它跟着**仓库根**走，而不是工作区根——内容根外置时页面在仓库里、
-    分镜在内容根里，两者靠静态服务器的 `/__a2v__/` 别名接起来。
-    """
-    page = article.repo_root / ".agents/skills/article2video/assets/declarative.html"
-    if not page.is_file():
-        raise A2VError(f"共享页面不存在: {page}")
-    return page
-
-
 def _storyboard_url(storyboard: str | Path, article: paths_mod.ArticlePaths) -> str:
-    """共享页面加载分镜的 URL 路径：相对**工作区根**，与服务静态根一致。"""
+    """契约页加载分镜的 URL 路径：相对**工作区根**，与服务静态根一致。"""
     return contract_page.storyboard_url(storyboard, article.workspace_root)
-
-
-def _page_source(
-    args: argparse.Namespace,
-    article: paths_mod.ArticlePaths | None,
-    *,
-    engine: str,
-) -> tuple[Path, dict[str, Path] | None]:
-    """本次调用要打开的画面，以及需要的额外挂载。
-
-    两个引擎的画面对应两种「页面」：
-    legacy 是作品自己的动画网页（声明式时是共享页面），remotion 是仓库里的契约页。
-    契约页在仓库的 `web/` 下、分镜在工作区根下，因此要额外挂一个别名前缀，
-    否则内容根外置时服务器取不到页面。
-    """
-    if engine != ENGINE_REACT:
-        page = Path(args.page) if args.page else _shared_page(article)
-        return page, None
-    if args.page:
-        raise A2VError(
-            "--engine remotion 的画面由契约页提供（读取 --storyboard），不能再指定 --page；"
-            "作品专属画面请改写为 web 侧的 scenes 模块"
-        )
-    repo_root = article.repo_root if article is not None else contract_page.repository_root()
-    return contract_page.require_contract_page(repo_root), contract_page.web_mounts(repo_root)
 
 
 def _with_storyboard_query(
     url: str, storyboard: str | Path, article: paths_mod.ArticlePaths
 ) -> str:
-    """给共享页面 URL 补上 `a2v-storyboard` 查询参数。
+    """给契约页 URL 补上 `a2v-storyboard` 查询参数。
 
-    共享页面（`assets/declarative.html`）从该参数指定的路径加载分镜，渲染入口在
-    起服务前就拼好了它；体检走的是通用的「本地页面 → URL」转换，因此在这里补上，
-    否则页面会因缺少参数直接报错，探针拿不到任何场景。
+    契约页从该参数指定的路径加载分镜，服务在起服务前就拼好了它；体检走的是
+    通用的「本地页面 → URL」转换，因此在这里补上，否则页面会因缺少参数
+    直接报错，探针拿不到任何场景。
     """
     from urllib.parse import quote
 
@@ -402,9 +284,7 @@ def _resolve_render_output(
         return Path(args.out)
     if article is None:
         try:
-            article = (paths_mod.for_storyboard(args.storyboard, args.content_root)
-                       if args.page is None
-                       else paths_mod.for_page(args.page, args.content_root))
+            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
         except A2VError as exc:
             raise A2VError(f"无法推导默认输出路径，请显式指定 --out：{exc}") from exc
     if model is None:
@@ -487,49 +367,20 @@ def main_preview(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     _configure_logging(args.verbose)
 
-    from . import assets as assets_mod
     from .media import media_url
-    from .render import _default_serve_root
-
-    page_mounts: dict[str, Path] | None = None
-
-    if args.engine == ENGINE_REACT:
-        # 默认引擎：预览界面就是契约页——与体检、渲染同一份 composition，
-        # 预览看到的就是成片会画出的画面。预览需要本地服务提供分镜与页面资源。
-        if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
-            logging.error("Remotion 预览需要有效的 --storyboard：它是 composition 的 props")
-            return _EXIT_INVALID_INPUT
-        try:
-            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-            page, page_mounts = _page_source(args, article, engine=args.engine)
-            source_url = _storyboard_url(args.storyboard, article)
-            serve_root = article.workspace_root
-        except A2VError as exc:
-            logging.error("预览失败: %s", exc)
-            return _EXIT_INVALID_INPUT
-    elif args.declarative:
-        if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
-            logging.error("声明式预览需要有效的 --storyboard")
-            return _EXIT_INVALID_INPUT
-        try:
-            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-            page = _shared_page(article)
-            source_url = _storyboard_url(args.storyboard, article)
-            serve_root = article.workspace_root
-        except A2VError as exc:
-            logging.error("预览失败: %s", exc)
-            return _EXIT_INVALID_INPUT
-    else:
-        root = Path(args.directory).resolve()
-        if not root.is_dir():
-            logging.error("目录不存在: %s", root)
-            return _EXIT_INVALID_INPUT
-        page = root / (args.page or "index.html")
-        if not page.is_file():
-            logging.error("页面不存在: %s", page)
-            return _EXIT_INVALID_INPUT
-        source_url = None
-        serve_root = _default_serve_root(page, args.content_root)
+    if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
+        logging.error("Remotion 预览需要有效的 --storyboard")
+        return _EXIT_INVALID_INPUT
+    try:
+        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+        _build_contract_for(args.storyboard, article.repo_root)
+        page = contract_page.require_contract_page(article.repo_root)
+        page_mounts = contract_page.web_mounts(article.repo_root)
+        source_url = _storyboard_url(args.storyboard, article)
+        serve_root = article.workspace_root
+    except A2VError as exc:
+        logging.error("预览失败: %s", exc)
+        return _EXIT_INVALID_INPUT
 
     media_server = None
     try:
@@ -540,10 +391,7 @@ def main_preview(argv: list[str] | None = None) -> int:
         logging.error("预览失败: %s", exc)
         return _EXIT_INVALID_INPUT
     # 契约页在仓库的 web/ 下、分镜在工作区根下：靠别名挂载把两棵树接起来
-    mounts = dict(assets_mod.default_mounts())
-    if page_mounts:
-        mounts.update(page_mounts)
-    server = LocalServer(serve_root, port=args.port, mounts=mounts)
+    server = LocalServer(serve_root, port=args.port, mounts=page_mounts)
     try:
         from urllib.parse import urlencode
         server.start()
@@ -576,6 +424,20 @@ def main_preview(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
+def _build_contract_for(storyboard: str | Path, repo_root: Path) -> None:
+    """为当前作品生成入口并构建契约页，保证预览/体检与导出使用同一模块。"""
+    from . import remotion as remotion_mod
+
+    web = contract_page.web_dir(repo_root)
+    remotion_mod.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    remotion_mod._run(
+        [remotion_mod.program("pnpm"), "build"],
+        cwd=web,
+        timeout_s=600,
+        what="构建 Remotion 契约页",
+    )
+
+
 def main_review(argv: list[str] | None = None) -> int:
     """视觉评审：一次跑完静态宪法、帧量测与组件契约探针。"""
     args = _build_review_parser().parse_args(argv)
@@ -586,31 +448,17 @@ def main_review(argv: list[str] | None = None) -> int:
     from . import storyboard as sb
     from .browser import open_animated_page
     from .media import load_media, media_url
-    from .render import _default_serve_root, _resolve_page_url
+    from .render import _resolve_page_url
 
-    # 画面来自哪里：legacy 是作品自己的动画网页（声明式时为共享页面），
-    # remotion 是仓库里的契约页。先记住调用方到底给了什么，避免被下面的
-    # 「声明式就换成共享页面」的默认行为掩盖掉。
-    requested_page = args.page
-    declarative = requested_page is None
-    if args.engine == ENGINE_REACT:
-        if requested_page is not None:
-            logging.error(
-                "--engine remotion 的画面由契约页提供（读取 --storyboard），不能再指定 --page"
-            )
-            return _EXIT_INVALID_INPUT
-        # React 路径下场景仍按受控字段规则生成，校验依旧走声明式
-        declarative = True
+    declarative = True
 
     article: paths_mod.ArticlePaths | None = None
     page_mounts: dict[str, Path] | None = None
     try:
-        if declarative:
-            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-        else:
-            # 非声明式也要归属：静态根与默认产物目录都按工作区根算
-            article = _article_for(args, declarative=False)
-        args.page, page_mounts = _page_source(args, article, engine=args.engine)
+        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+        _build_contract_for(args.storyboard, article.repo_root)
+        page_file = contract_page.require_contract_page(article.repo_root)
+        page_mounts = contract_page.web_mounts(article.repo_root)
     except A2VError as exc:
         logging.error("找不到要体检的画面: %s", exc)
         return _EXIT_INVALID_INPUT
@@ -629,12 +477,6 @@ def main_review(argv: list[str] | None = None) -> int:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
 
-    page_file = Path(args.page)
-    if not declarative and not page_file.is_file():
-        logging.error(
-            "网页文件不存在: %s；共享页面请改用 --declarative（省略 --page）", page_file
-        )
-        return _EXIT_INVALID_INPUT
     out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args, article)
     # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭。
     #
@@ -643,28 +485,20 @@ def main_review(argv: list[str] | None = None) -> int:
     # 报出来的全是假问题。它该指向的新位置是 `web/src`（令牌真源与四族基元），
     # 那是运行时原语那一阶段的事——在那之前这里**明说跳过**而不是安静照过。
     combined = Report()
-    if args.engine == ENGINE_REACT:
-        combined.warn(
-            "设计宪法（静态部分）",
-            "React 路径的画面由 composition 源码决定，契约页 HTML 里没有可查的结构；"
-            "静态检查将在运行时原语阶段改为指向 web/src，本次只跑运行时量测与探针",
-        )
-    else:
-        for issue in inspect_mod.check_page_with_storyboard(
-            page_file, scenes, runtime_scenes=declarative
-        ).issues:
-            combined.add(issue.level, issue.path, issue.message)
+    combined.warn(
+        "设计宪法（静态部分）",
+        "React 画面由 composition 源码决定；静态确定性由 web/src 源码扫描负责，"
+        "本步骤运行 DOM 量测与组件探针",
+    )
 
     try:
         with contextlib.ExitStack() as stack:
             # 页面与分镜常常不在同一棵树里：静态根取文章的工作区根（分镜与作品
             # 资产在这里），页面本身由别名提供——契约页在仓库的 web/ 下，
             # 旧共享页面在 skill 资产下。
-            serve_root = (
-                args.serve_root or (article.workspace_root if article is not None else None)
-            )
+            serve_root = article.workspace_root if article is not None else None
             url = stack.enter_context(_resolve_page_url(page_file, serve_root, page_mounts))
-            if article is not None and (declarative or args.engine == ENGINE_REACT):
+            if article is not None:
                 url = _with_storyboard_query(url, args.storyboard, article)
             if media:
                 media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
@@ -674,11 +508,7 @@ def main_review(argv: list[str] | None = None) -> int:
                 timeout_ms=args.timeout,
                 width=model.width,
                 height=model.height,
-                expected_version=(
-                    contract_page.CONTRACT_VERSION
-                    if args.engine == ENGINE_REACT
-                    else contract_page.LEGACY_CONTRACT_VERSION
-                ),
+                expected_version=contract_page.CONTRACT_VERSION,
             ) as page:
                 page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
                 preset = str(((media.storyboard if media else model).visual or {}).get("preset") or "")
@@ -734,10 +564,7 @@ def _default_review_dir(args, article: paths_mod.ArticlePaths | None) -> Path:
     由调用方显式给出的 `--out-dir` 兜底（本函数只在未给出时被调用）。
     """
     if article is None:
-        try:
-            article = paths_mod.for_page(args.page, args.content_root)
-        except A2VError:
-            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
     target = article.output_dir / "inspect"
     logging.info("未指定 --out-dir，体检产物写入 %s", target)
     return target
@@ -759,32 +586,13 @@ def _font_findings(page_file: Path, args) -> list[dict]:
     except (OSError, ValueError):
         return []
 
-    if args.engine == ENGINE_REACT:
-        try:
-            repo_root = (
-                paths_mod.for_storyboard(args.storyboard, args.content_root).repo_root
-                if args.content_root
-                else contract_page.repository_root()
-            )
-            fonts = contract_page.font_files(repo_root)
-        except (A2VError, OSError, ValueError) as exc:
-            logging.warning("字体覆盖检查跳过：%s", exc)
-            return []
-        if not fonts:
-            return [{
-                "where": "字体覆盖",
-                "skip": "字体清单为空，无从判断用了哪些字体，字体覆盖检查不适用",
-            }]
-        return fonts_mod.audit_fonts(fonts, storyboard)
-
-    if not fonts_mod.page_fonts(page_file):
-        return [{
-            "where": "字体覆盖",
-            "skip": "本页未声明 webfont（不启用预设时走系统字体），字体覆盖检查不适用",
-        }]
     try:
-        return fonts_mod.audit_page(page_file, storyboard)
-    except (OSError, ValueError) as exc:
+        repo_root = paths_mod.for_storyboard(args.storyboard, args.content_root).repo_root
+        registered = contract_page.font_files(repo_root)
+        if not registered:
+            return [{"where": "字体覆盖", "skip": "字体清单为空，字体覆盖检查不适用"}]
+        return fonts_mod.audit_fonts(registered, storyboard)
+    except (A2VError, OSError, ValueError) as exc:
         logging.warning("字体覆盖检查跳过：%s", exc)
         return []
 

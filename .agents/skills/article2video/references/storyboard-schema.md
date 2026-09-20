@@ -13,7 +13,7 @@
 | `height` | `number` | 否 | 画面高度，默认 `1920`，必须是偶数 |
 | `title` | `string` | 否 | 视频标题，用于日志与文件命名，不参与画面 |
 | `scenes` | `array` | 是 | 非空场景数组 |
-| `visual` | `object` | 否 | 共享页面的主题与可选预设：`{"theme":"dark","preset":"keynote"}`，`theme` 默认 `dark`，`preset` 省略即不启用 |
+| `visual` | `object` | 否 | 画面的主题与可选预设：`{"theme":"dark","preset":"keynote"}`，`theme` 默认 `dark`，`preset` 省略即不启用 |
 
 宽高必须是偶数：H.264 的 `yuv420p` 像素格式要求宽高可被 2 整除，奇数会导致编码失败。
 
@@ -24,17 +24,18 @@
 | `theme` | 否 | `dark` 或 `light`，默认 `dark` |
 | `preset` | 否 | 设计语言预设，目前唯一取值 `"keynote"`（发布会级设计语言，见[发布会级设计语言](keynote-design-system.md)） |
 
-`preset` 是可选字段：**省略时行为逐帧不变**。共享页面仍会引入设计语言层的样式与
-脚本，但它们全部受 `[data-a2v-preset="keynote"]` 作用域约束，排版引擎也不会被调用，
-因此画面与不引入该层时完全一致。
+`preset` 是可选字段：**省略时行为逐帧不变**。composition 仍会引入设计语言层的
+样式与排版引擎，但它们全部受 `[data-a2v-preset="keynote"]` 作用域约束、
+排版引擎只在预设存在时被调用，
+因此画面与未启用该层时完全一致。
 未知取值报错，并指出 `visual.preset` 字段路径。
 
 ## 场景字段
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `id` | `string` | 是 | 场景唯一标识，只允许字母、数字、`_`、`-`；同时作为网页中 `data-scene-id` 的值 |
-| `type` | `string` | 是 | 场景类型，决定网页使用哪个渲染分支 |
+| `id` | `string` | 是 | 场景唯一标识，只允许字母、数字、`_`、`-`；同时作为场景在画面里的稳定键 |
+| `type` | `string` | 是 | 场景类型，决定使用哪个组件与版面 |
 | `durationInFrames` | `number` | 是 | 该场景持续帧数，正整数 |
 | `narration` | `string` | 否 | 口播文案，供 prepare.py 合成配音；省略或空字符串表示静音。未传 --media 时不渲染口播 |
 | `data` | `object` | 是 | 该场景的内容，字段由 `type` 决定 |
@@ -115,14 +116,16 @@
 `figure.labels` 与顶层的 `annotations` 是同一件事：前者是新写法，后者是过渡期兼容写法，
 两者同时存在时以 `figure.labels` 为准。校验器负责结构与取值合法性（`kind` 缺省允许、
 写了必须非空；`motion` 在三者之内；`labels` 每项非空且不过长），**组件是否存在**由组件目录决定，
-网页在挂载时发现未注册的 `kind` 会立即报错，而不是画出空白。
+composition 在挂载时发现未注册的 `kind` 会立即报错，而不是画出空白。
 
 ## 声明式画面模式
 
-新视频可以只提交 `article.md` 和 `storyboard.json`，由共享页面创建场景。使用
+新视频可以只提交 `article.md` 和 `storyboard.json`：画面由仓库 `web/` 里的共享
+React composition 按「组件目录 + 场景字段」生成，作品不再需要自己的 HTML。使用
 `validate.py <分镜> --declarative --strict` 预校验；`render.py --storyboard <分镜>`
-或 `preview.py --declarative --storyboard <分镜>` 使用共享页面。旧的专属 `index.html`
-路径仍可用。完整示例见 [declarative-number](../../../../examples/declarative-number/storyboard.json)。
+渲染成片，`preview.py --storyboard <分镜>` 起本地预览。需要共享组件表达不了的
+画面时，在作品目录写 `scenes.tsx` 专属画面模块。完整示例见
+[declarative-number](../../../../examples/declarative-number/storyboard.json)。
 
 声明式模式使用 `data.figure.kind`、`labels` 和 `motion`，未写 `kind` 时按场景类型
 取目录默认值。未知组件、布局、主题、预设、动效、额外字段和未实现的 `figure.params` 均为错误，
@@ -138,7 +141,7 @@
 `from` 与 `to` 必须引用 `nodes` 中已存在的节点，否则校验失败。
 
 类型不在上表内时校验会给出**警告**（不是错误），以便扩展新组件；
-但网页必须实现对应分支，否则渲染时 `render` 会抛错。
+但组件必须实现对应分支，否则渲染时会抛错。
 
 ## 完整示例
 

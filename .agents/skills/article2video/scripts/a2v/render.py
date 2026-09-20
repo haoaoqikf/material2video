@@ -1,9 +1,9 @@
-"""逐帧渲染编排：驱动网页 seek → 截图 → 送入编码器。
+"""逐帧渲染编排：把 React composition 确定性地渲染并编码为 MP4。
 
 这里集中处理三件事：
-1. 契约一致性检查（网页声明的 fps/尺寸必须与渲染请求一致）；
-2. 帧循环与进度日志；
-3. 编码完成后的成片验收（帧数、分辨率、可解码性）。
+1. 契约一致性检查（composition 声明的 fps/尺寸必须与分镜一致，渲染前交叉校验）；
+2. 逐帧渲染（Remotion 引擎按帧号求值）与进度日志；
+3. 编码完成后的成片验收（帧数、分辨率、可解码性、播放器兼容性）。
 """
 
 from __future__ import annotations
@@ -25,11 +25,10 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from . import assets, paths, remotion, security
 from .audio import mux
-from .browser import AnimatedPage, PageContract, open_animated_page
-from .encoder import VideoEncoder
+from .browser import PageContract
 from .errors import A2VError
-from .media import Media, asset_fingerprint, file_digest, media_url
-from .static_server import LocalServer
+from .media import Media, asset_fingerprint, file_digest
+from .http_server import LocalServer
 from .storyboard import Storyboard
 from .subtitles import srt
 
@@ -280,119 +279,6 @@ def _fingerprint_mounts() -> dict[str, Path]:
         return assets.default_mounts()
 
 
-def render(
-    page_path: str | Path,
-    output: str | Path,
-    storyboard: Storyboard | None = None,
-    fps: int | None = None,
-    crf: int = 18,
-    preset: str = "medium",
-    limit_frames: int | None = None,
-    timeout_ms: int = 30000,
-    probe: bool = True,
-    serve_root: str | Path | None = None,
-    capture_format: str = "jpeg",
-    media: Media | None = None,
-    storyboard_url: str | None = None,
-    storyboard_origin: str | Path | None = None,
-    workspace_root: str | Path | None = None,
-    mounts: dict[str, Path] | None = None,
-    expected_contract_version: int | None = None,
-) -> RenderResult:
-    """把提供画面的页面逐帧渲染为 MP4。
-
-    storyboard 提供时，以其 fps/尺寸为准并与页面契约交叉校验，用于尽早
-    发现「改了脚本没改画面」这类不一致。
-
-    `expected_contract_version` 由调用方按**画面来自哪条路径**给出：
-    契约页要求 2，旧页面路径不传（它仍声明 1）。
-    """
-    started = time.monotonic()
-    output_path = Path(output)
-
-    if media:
-        from . import storyboard as sb
-        source_model = sb._build(media.data["source"], sb.Report())
-        if storyboard != source_model:
-            raise RenderError("媒体与分镜不匹配，请重新 prepare")
-        storyboard = media.storyboard
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with contextlib.ExitStack() as stack:
-        temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
-        video_path = temp / "video.mp4"
-        url = stack.enter_context(_resolve_page_url(page_path, serve_root, mounts))
-        if storyboard_url:
-            from urllib.parse import urlencode
-            url += "?" + urlencode({"a2v-storyboard": storyboard_url})
-        if media:
-            media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
-            url = media_url(url, media_server.base_url, media)
-        with open_animated_page(
-            url,
-            timeout_ms=timeout_ms,
-            width=storyboard.width if storyboard else None,
-            height=storyboard.height if storyboard else None,
-            expected_version=expected_contract_version,
-        ) as page:
-            if media and page.evaluate("() => window.__A2V__.mediaFingerprint") != media.data["sourceFingerprint"]:
-                raise RenderError("网页未加载媒体清单，请使用 A2V.fetchStoryboard")
-            effective_fps = _resolve_fps(page.contract, storyboard, fps)
-            width, height = _resolve_dimensions(page.contract, storyboard)
-            total_frames = _resolve_total_frames(page.contract, storyboard)
-
-            if limit_frames is not None:
-                total_frames = min(total_frames, max(limit_frames, 1))
-                logger.warning("调试模式：仅渲染前 %d 帧", total_frames)
-
-            # 进入渲染模式：隐藏预览控件并取消预览缩放，保证画面严格等于设计尺寸
-            page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
-            _precheck_dimensions(page)
-            _warn_on_time_driven_motion(page_path)
-
-            capture_started = time.monotonic()
-            _encode(page, video_path, total_frames, effective_fps, crf, preset, capture_format)
-            capture_seconds = time.monotonic() - capture_started
-
-        final_path = _finalize_output(
-            video_path=video_path,
-            temp=temp,
-            output_path=output_path,
-            total_frames=total_frames,
-            fps=effective_fps,
-            width=width,
-            height=height,
-            media=media,
-            probe=probe,
-        )
-        del final_path
-
-    _write_provenance(
-        output_path,
-        page_file=Path(page_path),
-        storyboard_url=storyboard_url,
-        storyboard_origin=storyboard_origin,
-        workspace_root=workspace_root,
-        frames=total_frames,
-        fps=effective_fps,
-        width=width,
-        height=height,
-        capture_format=capture_format,
-        media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
-    )
-
-    return RenderResult(
-        output=output_path,
-        frames=total_frames,
-        fps=effective_fps,
-        width=width,
-        height=height,
-        duration_seconds=total_frames / effective_fps,
-        capture_seconds=capture_seconds,
-        total_seconds=time.monotonic() - started,
-        size_bytes=output_path.stat().st_size,
-    )
-
-
 def _finalize_output(
     *,
     video_path: Path,
@@ -479,7 +365,9 @@ def render_with_remotion(
         video_path = temp / "video.mp4"
 
         bundle_started = time.monotonic()
-        bundle_dir = remotion.bundle(web_dir=directory, out_dir=temp / "bundle")
+        bundle_dir = remotion.bundle(
+            web_dir=directory, out_dir=temp / "bundle", storyboard_path=storyboard_path
+        )
         logger.info("打包 composition 用了 %.1f 秒", time.monotonic() - bundle_started)
 
         # 渲染前就把画面参数与分镜对齐：composition 的时长由 props 推导，
@@ -636,124 +524,6 @@ def _resolve_total_frames(contract: PageContract, storyboard: Storyboard | None)
     if contract_frames <= 0:
         raise RenderError("画面声明的 durationInFrames 必须为正整数")
     return contract_frames
-
-
-def _precheck_dimensions(page: AnimatedPage) -> None:
-    """在开渲前确认网页画面恰好填满视口，失败信息直接指向具体 CSS 问题。"""
-    actual = page.evaluate(
-        "() => ({w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight,"
-        "vw: window.innerWidth, vh: window.innerHeight,"
-        "root: (() => {const el=document.querySelector('[data-a2v-stage]')||document.body;"
-        "const r=el.getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height)};})()})"
-    )
-    if actual["w"] > actual["vw"] or actual["h"] > actual["vh"]:
-        logger.warning(
-            "文档尺寸 %sx%s 超出视口 %sx%s，可能存在溢出内容被裁切",
-            actual["w"],
-            actual["h"],
-            actual["vw"],
-            actual["vh"],
-        )
-    if actual["root"]["w"] != page.contract.width or actual["root"]["h"] != page.contract.height:
-        logger.warning(
-            "舞台元素实际尺寸 %sx%s 与契约 %dx%d 不一致，请检查缩放设置",
-            actual["root"]["w"],
-            actual["root"]["h"],
-            page.contract.width,
-            page.contract.height,
-        )
-
-
-# 由浏览器时钟驱动、与帧号脱钩的动效声明。命中时画面在逐帧截图下可能闪烁。
-_TIME_DRIVEN_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"@keyframes\b"), "@keyframes"),
-    (re.compile(r"(?<![\w-])animation(?:-[\w-]+)?\s*:"), "animation"),
-    (re.compile(r"(?<![\w-])transition(?:-[\w-]+)?\s*:"), "transition"),
-)
-
-# 让画面脱离帧号的时间源与随机源。命中时同一帧会渲染出不同结果。
-_NON_DETERMINISTIC_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"\bDate\.now\s*\("), "Date.now()"),
-    (re.compile(r"\bperformance\.now\s*\("), "performance.now()"),
-    (re.compile(r"\bMath\.random\s*\("), "Math.random()"),
-)
-
-
-def _warn_on_time_driven_motion(page_path: str | Path) -> None:
-    """渲染前静态扫描样式与脚本，提示与帧号脱钩的写法。
-
-    网页契约由「同一帧重复渲染一致」的运行时测试保证，这里只做一次廉价的
-    静态提示：CSS animation/transition 由浏览器时钟驱动，Date.now/Math.random
-    让同一帧在不同时刻得到不同结果，典型表现是视频里出现随机闪烁。
-    只提示不阻断——是否闪烁最终由确定性验收决定。
-
-    扫描范围包含网页引用的本地样式表与脚本（含 skill 的共享资产），
-    否则把动效写进共享组件库就能绕过这道检查。
-    """
-    page = Path(str(page_path))
-    if not page.is_file():
-        return
-    try:
-        html = page.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return
-
-    targets: list[tuple[str, str]] = [(page.name, html)]
-    for reference, candidate in assets.local_assets(page, html):
-        try:
-            targets.append((reference, candidate.read_text(encoding="utf-8", errors="replace")))
-        except OSError:
-            continue
-
-    for name, text in targets:
-        # 脚本只查时间与随机源：rAF 与 CSS transform 的静态写法本身是允许的
-        patterns = (
-            _NON_DETERMINISTIC_PATTERNS if name.endswith(".js") else _TIME_DRIVEN_PATTERNS
-        )
-        for pattern, label in patterns:
-            match = pattern.search(text)
-            if not match:
-                continue
-            line = text.count("\n", 0, match.start()) + 1
-            if label in ("Date.now()", "performance.now()", "Math.random()"):
-                hint = f"它让同一帧在不同时刻渲染出不同结果，请改为从 state.frame 推导"
-            else:
-                hint = "它由浏览器时钟驱动，逐帧截图可能闪烁"
-            logger.warning(
-                "%s:%d 使用了 %s：%s（见 references/render-contract.md）",
-                name,
-                line,
-                label,
-                hint,
-            )
-
-
-def _encode(
-    page: AnimatedPage,
-    output: Path,
-    total_frames: int,
-    fps: int,
-    crf: int,
-    preset: str,
-    capture_format: str,
-) -> None:
-    """帧循环：seek 到第 n 帧后立刻截图，图片通过管道交给 ffmpeg。"""
-    progress_every = max(fps, 1)
-    input_codec = "png" if capture_format == "png" else "mjpeg"
-    with VideoEncoder(
-        output, fps=fps, crf=crf, preset=preset, input_codec=input_codec
-    ) as encoder:
-        for frame in range(total_frames):
-            page.seek(frame)
-            encoder.write(page.capture(capture_format))
-            if frame % progress_every == 0 or frame == total_frames - 1:
-                logger.info(
-                    "已渲染 %d/%d 帧（%.1fs / %.1fs）",
-                    frame + 1,
-                    total_frames,
-                    (frame + 1) / fps,
-                    total_frames / fps,
-                )
 
 
 def _verify_output(output: Path, expected_frames: int, width: int, height: int, fps: int, expect_audio: bool = False) -> None:

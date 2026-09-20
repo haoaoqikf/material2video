@@ -29,7 +29,7 @@ needs_fonttools = pytest.mark.skipif(
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTO = ROOT / ".agents/skills/article2video/assets/fonts/NotoSansSC-Variable.ttf"
+NOTO = ROOT / "web/src/assets/fonts/NotoSansSC-Variable.ttf"
 STORYBOARDS = (
     # 仓库自带的分镜：实际文章（`videos/<slug>/`）是内容、不入库
     "examples/why-effort-fails/storyboard.json",

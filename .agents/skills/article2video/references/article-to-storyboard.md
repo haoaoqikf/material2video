@@ -13,7 +13,7 @@
 | 输入 | 规范目录下的 `videos/<slug>/article.md`，一份观点型文章 |
 | 必读参考 | [分镜脚本结构](storyboard-schema.md)、[视觉组件目录](figure-catalog.md)、[竖屏视觉规范](visual-spec.md)、[设计宪法](design-constitution.md) |
 | 产物 | 该目录下的 `storyboard.json`，**唯一产物** |
-| 不产出 | 视频专属 `index.html` 或专属 `scenes.tsx`、图片、媒体文件、任何页面代码 |
+| 不产出 | 视频专属画面模块（`scenes.tsx`）、图片、媒体文件、任何画面代码 |
 
 一篇文章只对应一份分镜，位置由 [目录约定与输出路径](paths-and-outputs.md) 决定。
 slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`，不改目录名。
@@ -167,7 +167,7 @@ slug 稳定且唯一，标题变化只改 `article.md` 与分镜里的 `title`�
 - 先在分镜里定一个时长，再往里面塞文案；
 - 把口播原文照抄进画面文案；
 - 用 `Date.now()` / `Math.random()` / CSS 动画这类不可复现的表达——它们在逐帧渲染时会闪烁；
-- 为一个视频新建专属画面代码（专属 `index.html` 或 `scenes.tsx`）——声明式路径就是为此存在的。
+- 为一个视频新建专属画面代码（`scenes.tsx`）——声明式路径就是为此存在的。
 
 ## 组件不足时的处理
 

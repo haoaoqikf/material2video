@@ -177,8 +177,7 @@ export function LoopFigure() {
 - `tests/test_web_registry.py`：注册表与生成物一致、标注键声明与绘制两向对照、
   默认映射自洽；
 - `pnpm -C web test`：渲染层消费注册表的自洽性（`web/src/registry/registry.test.ts`）；
-- `tests/test_figures_assets.py`：旧资产与新目录的交集仍逐项一致；
-- `tests/test_keynote_assets.py::TestFigureTokenCoverage`：组件样式用到的每个
-  `--fig-*` 令牌在 `keynote.css` 的两套主题里都有定义——缺一个令牌**不会报错**，
+- `pnpm -C web test` 的令牌测试：组件样式用到的每个 `--fig-*` 令牌在
+  `web/src/styles/keynote.css` 的两套主题里都有定义——缺一个令牌**不会报错**，
   浏览器只会安静地画出透明图形，成片之后才会发现。默认（未启用预设）时
-  这些令牌来自 `theme.css`（深色默认值），预设层不参与。
+  这些令牌来自 `web/src/styles/theme.css`（深色默认值），预设层不参与。

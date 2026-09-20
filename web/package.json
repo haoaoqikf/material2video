@@ -7,10 +7,10 @@
   "scripts": {
     "sync:fonts": "node scripts/sync-fonts.mjs",
     "dev": "node scripts/sync-fonts.mjs && vite",
-    "build": "node scripts/sync-fonts.mjs && tsc --noEmit && vite build",
-    "studio": "node scripts/sync-fonts.mjs && remotion studio src/index.ts",
-    "render": "node scripts/sync-fonts.mjs && remotion render src/index.ts",
-    "typecheck": "tsc --noEmit",
+    "build": "node scripts/sync-fonts.mjs && node scripts/ensure-entry.mjs && tsc --noEmit && vite build",
+    "studio": "node scripts/sync-fonts.mjs && node scripts/ensure-entry.mjs && remotion studio src/index.ts",
+    "render": "node scripts/sync-fonts.mjs && node scripts/ensure-entry.mjs && remotion render src/index.ts",
+    "typecheck": "node scripts/ensure-entry.mjs && tsc --noEmit",
     "test": "vitest run"
   },
   "pnpm": {

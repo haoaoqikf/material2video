@@ -57,10 +57,14 @@ export const figureSchema = z
 
 export const emphasisSchema = z.array(nonEmptyText).nonempty();
 
-/** 列表项既可以是字符串，也可以是 `{label, desc}`。 */
+/** 列表项既可以是字符串，也可以是 `{label, desc, note}`。 */
 export const listItemSchema = z.union([
   nonEmptyText,
-  z.object({ label: nonEmptyText, desc: z.string().optional() }).strict(),
+  z.object({
+    label: nonEmptyText,
+    desc: z.string().optional(),
+    note: z.string().optional(),
+  }).strict(),
 ]);
 export type ListItem = z.infer<typeof listItemSchema>;
 
