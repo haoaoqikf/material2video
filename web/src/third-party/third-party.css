@@ -1,0 +1,25 @@
+/* Magic UI Shine Border adaptation; source and MIT license are recorded in catalog.json. */
+@keyframes a2v-third-party-shine {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+[data-a2v-css-sync],
+[data-a2v-css-sync] * {
+  animation-play-state: paused !important;
+  animation-delay: calc(var(--a2v-css-time) * -1s) !important;
+}
+
+.a2v-third-party-shine-border {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: var(--a2v-shine-border-width);
+  background-image: radial-gradient(transparent, transparent, var(--a2v-shine-colors), transparent, transparent);
+  background-size: 300% 300%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: a2v-third-party-shine var(--a2v-shine-duration) linear infinite;
+}

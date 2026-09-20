@@ -27,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import assets, contract_page
+from . import assets, contract_page, source_policy
 from .browser import PageContract
 from .errors import A2VError
 from .media import file_digest, fingerprint
@@ -184,6 +184,10 @@ def bundle(*, web_dir: Path, out_dir: Path, timeout_s: float = _BUNDLE_TIMEOUT_S
     每次渲染用一个**新的**打包目录：复用固定目录会在源码改动后渲出旧画面，
     而这种错误没有任何症状——成片看起来正常，只是它是上一版。
     """
+    violations = source_policy.scan(web_dir, build_inputs())
+    if violations:
+        detail = "\n".join(item.render(web_dir) for item in violations)
+        raise RemotionError(f"composition 源码违反确定性约束：\n{detail}")
     out_dir.parent.mkdir(parents=True, exist_ok=True)
     _run(
         [program("npx"), "remotion", "bundle", ENTRY_POINT, "--out-dir", str(out_dir)],

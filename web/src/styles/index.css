@@ -37,3 +37,4 @@
 @import './primitives.css';
 @import './figures.css';
 @import './declarative.css';
+@import '../third-party/third-party.css';
