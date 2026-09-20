@@ -1,206 +1,163 @@
-"""注册表与 `catalog.py` 的逐项对照。
+"""注册表生成物的一致性机检（能力：react-component-registry）。
 
-`web/src/registry/index.ts` 是渲染层的组件选择面，`scripts/a2v/catalog.py` 是校验器
-读的同一份目录。两边都描述「每个组件认识哪些标注键、能吃下多少条目、默认给哪种
-场景类型」，因此它们**必须逐项相同**——这正是旧实现漂移过一次的地方（图节点只
-允许 `{id}`），症状是整份分镜在一条路径上画不出来、另一条却判它合法。
+组件集合的唯一真源是 `web/src/registry/registry.json`；三份派生文件由
+`scripts/sync_catalog.py` 生成：
 
-这里把 TS 源码当文本解析，而不是跑一遍 TypeScript：注册表是**声明式**的常量，
-解析规则窄而显式（见 `_parse_registry`），一旦写法变了就会失败并提示改这里，
-不会静默漏检。对照的另一侧是权威真源 `FIGURE_CATALOG` / `DEFAULT_KINDS`。
+- `scripts/a2v/catalog.py` 的生成区（校验器镜像）；
+- `references/figure-catalog.md` 的组件表（给上游 AI 的文档）；
+- `web/src/schema/figureKinds.ts`（分镜 schema 的 kind 枚举）。
+
+这里检查四类性质：
+
+1. **重新生成无差异**——注册表改动而派生文件没有重新生成时，逐文件指名（任务 9.2）；
+2. **注册表自洽**——默认映射只指向已实现组件、默认组件声明了适用场景、
+   场景类型是分镜校验器认识的类型、实现源码真实存在；
+3. **声明了却不画的标注键**——labels 里的每个键必须出现在组件实现源码里；
+   反向（画了却没声明）同样失败，并指出键与文件（任务 9.3）；
+4. **渲染层真的消费了注册表**——渲染层一側（vitest）由
+   `web/src/registry/registry.test.ts` 承担，这里不重复。
+
+生成机制建立之前，catalog.py 与浏览器端注册表各抄一份、靠文本解析对照，
+漂移只能等测试失败才暴露；现在漂移在「重新生成无差异」上失败。
 """
 
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
-REGISTRY = ROOT / "web" / "src" / "registry" / "index.ts"
+ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / ".agents" / "skills" / "article2video" / "scripts"
-
-import sys
+REGISTRY = ROOT / "web" / "src" / "registry" / "registry.json"
+WEB_SRC = ROOT / "web" / "src"
 
 sys.path.insert(0, str(SCRIPTS))
 
-from a2v.catalog import DEFAULT_KINDS, FIGURE_CATALOG, known_kinds  # noqa: E402
+import sync_catalog  # noqa: E402
+
+from a2v import catalog  # noqa: E402
+from a2v import storyboard as storyboard_validator  # noqa: E402
 
 
-# ---------------------------------------------------------------------------
-# 解析 TS 注册表
-# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def registry() -> dict:
+    return sync_catalog.load_registry()
 
 
-def _block(text: str, start: int) -> tuple[str, int]:
-    """从 `{` 开始取到配对的 `}`，返回 (块正文, 结束位置)。"""
-    assert text[start] == "{", f"期望从 `{{` 开始，实际是 {text[start]!r}"
-    depth = 0
-    for index in range(start, len(text)):
-        char = text[index]
-        if char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start + 1 : index], index + 1
-    raise AssertionError("括号没有闭合")
+# ---------------------------------------------------------------- 重新生成无差异
 
 
-def _entries(body: str) -> dict[str, str]:
-    """顶层条目：`key: { ... },` → key → 块正文。"""
-    found: dict[str, str] = {}
-    pattern = re.compile(r"([A-Za-z_][\w-]*)\s*:\s*\{")
-    position = 0
-    while True:
-        match = pattern.search(body, position)
-        if match is None:
-            return found
-        inner, end = _block(body, match.end() - 1)
-        found[match.group(1)] = inner
-        position = end
-
-
-def _field(body: str, name: str) -> str | None:
-    """取一个字段的原始值文本（不含尾随逗号）。
-
-    值可能是字符串、数组或裸标识符，因此这里按括号/引号配对取，而不是切到第一个逗号
-    （`['a', 'b']` 里的逗号属于值）。
-    """
-    match = re.search(rf"(?:^|[\s,]){name}\s*:\s*", body)
-    if match is None:
-        return None
-    rest = body[match.end() :]
-    if rest.startswith("["):
-        depth = 0
-        for index, char in enumerate(rest):
-            if char == "[":
-                depth += 1
-            elif char == "]":
-                depth -= 1
-                if depth == 0:
-                    return rest[: index + 1]
-        raise AssertionError(f"{name} 的数组没有闭合：{rest[:40]!r}")
-    if rest[:1] in {"'", '"'}:
-        quote = rest[0]
-        end = rest.index(quote, 1)
-        return rest[: end + 1]
-    return re.split(r"[,\n]", rest, maxsplit=1)[0].strip()
-
-
-def _string_list(raw: str | None) -> list[str] | None:
-    if raw is None:
-        return None
-    assert raw.startswith("[") and raw.endswith("]"), f"不是数组字面量：{raw!r}"
-    inner = raw[1:-1].strip()
-    if not inner:
-        return []
-    return [item.strip().strip("'\"") for item in inner.split(",")]
-
-
-def _parse_registry() -> tuple[dict[str, dict[str, object]], dict[str, str], set[str]]:
-    """→ (kind → {labels, items, summary, component}, 默认映射, 被引用的组件名)。"""
-    text = REGISTRY.read_text(encoding="utf-8")
-
-    figures_start = text.index("export const FIGURES")
-    figures_body, after = _block(text, text.index("{", figures_start))
-
-    defaults_start = text.index("export const DEFAULT_KIND_BY_SCENE", after)
-    defaults_body, _ = _block(text, text.index("{", defaults_start))
-
-    figures: dict[str, dict[str, object]] = {}
-    for key, body in _entries(figures_body).items():
-        labels = _string_list(_field(body, "labels"))
-        assert labels is not None, f"{key} 没有 labels 字段"
-        raw_items = _field(body, "items")
-        if raw_items == "null":
-            items: tuple[int, int] | None = None
-        else:
-            numbers = _string_list(raw_items)
-            assert numbers is not None and len(numbers) == 2, f"{key} 的 items 不是二元组：{raw_items}"
-            items = (int(numbers[0]), int(numbers[1]))
-        summary = _field(body, "summary")
-        assert summary is not None, f"{key} 没有 summary 字段"
-        component = _field(body, "Component")
-        assert component is not None, f"{key} 没有 Component 字段"
-        figures[key] = {
-            "kind": (_field(body, "kind") or "").strip("'\""),
-            "labels": labels,
-            "items": items,
-            "summary": summary.strip("'\""),
-            "component": component,
-        }
-
-    defaults: dict[str, str] = {}
-    for match in re.finditer(r"([A-Za-z_][\w-]*)\s*:\s*'([^']*)'", defaults_body):
-        defaults[match.group(1)] = match.group(2)
-
-    imported = set(re.findall(r"import\s*\{\s*([A-Za-z_][\w]*)\s*\}\s*from\s*'@/components/", text))
-    return figures, defaults, imported
-
-
-REGISTRY_FIGURES, REGISTRY_DEFAULTS, IMPORTED_COMPONENTS = _parse_registry()
-
-
-# ---------------------------------------------------------------------------
-# 对照
-# ---------------------------------------------------------------------------
-
-
-def test_registry_is_parseable_and_non_trivial() -> None:
-    """解析规则一旦失效（写法变了），后面每条断言都会变成空转，这里先挡住。"""
-    assert len(REGISTRY_FIGURES) >= 8, f"只解析出 {len(REGISTRY_FIGURES)} 个组件，解析规则可能失效了"
-    assert len(REGISTRY_DEFAULTS) >= 8, f"只解析出 {len(REGISTRY_DEFAULTS)} 条默认映射"
-    assert len(IMPORTED_COMPONENTS) >= 8, f"只解析出 {len(IMPORTED_COMPONENTS)} 个组件导入"
-
-
-def test_kinds_match_the_server_catalog() -> None:
-    assert sorted(REGISTRY_FIGURES) == known_kinds(), (
-        "渲染层注册表的组件清单与 scripts/a2v/catalog.py 不一致：\n"
-        f"  渲染层：{sorted(REGISTRY_FIGURES)}\n"
-        f"  校验器：{known_kinds()}"
-    )
-    for key, entry in REGISTRY_FIGURES.items():
-        assert entry["kind"] == key, f"{key} 的 kind 字段写成了 {entry['kind']!r}，两边必须同名"
-
-
-@pytest.mark.parametrize("kind", sorted(FIGURE_CATALOG))
-def test_labels_match_the_server_catalog(kind: str) -> None:
-    """标注键不一致的后果是**静默**的：写了标签却没人画，或组件读一个没人认识的键。"""
-    expected = FIGURE_CATALOG[kind]
-    entry = REGISTRY_FIGURES[kind]
-    assert set(entry["labels"]) == set(expected.labels), (
-        f"{kind} 认识的标注键不一致：渲染层 {sorted(entry['labels'])}，"
-        f"校验器 {sorted(expected.labels)}"
+def test_regenerated_outputs_match_the_disk(registry: dict) -> None:
+    """注册表改了而派生文件没重新生成时，机检失败并逐个指名落后的文件。"""
+    expected = sync_catalog.build_outputs(registry)
+    drifted = []
+    for path, content in expected.items():
+        actual = path.read_text(encoding="utf-8") if path.is_file() else None
+        if actual != content:
+            drifted.append(str(path.relative_to(ROOT)))
+    assert not drifted, (
+        "以下派生文件与注册表不一致，重新生成后再提交"
+        "（uv run python .agents/skills/article2video/scripts/sync_catalog.py）：\n  "
+        + "\n  ".join(drifted)
     )
 
 
-@pytest.mark.parametrize("kind", sorted(FIGURE_CATALOG))
-def test_items_and_summary_match_the_server_catalog(kind: str) -> None:
-    expected = FIGURE_CATALOG[kind]
-    entry = REGISTRY_FIGURES[kind]
-    assert entry["items"] == expected.items, (
-        f"{kind} 的条目区间不一致：渲染层 {entry['items']}，校验器 {expected.items}"
-    )
-    assert entry["summary"] == expected.summary, (
-        f"{kind} 的说明文字不一致：\n  渲染层：{entry['summary']!r}\n  校验器：{expected.summary!r}"
-    )
+def test_catalog_generated_region_is_complete(registry: dict) -> None:
+    """校验器镜像必须覆盖注册表里的全部组件，一个不多一个不少。"""
+    kinds = set(registry["figures"] and [entry["kind"] for entry in registry["figures"]])
+    assert kinds == set(catalog.FIGURE_CATALOG)
+    assert catalog.DEFAULT_KINDS == registry["defaultKindByScene"]
 
 
-def test_default_kinds_match_the_server_catalog() -> None:
-    """默认映射不一致会让同一份分镜在两条路径上画出不同的组件。"""
-    assert REGISTRY_DEFAULTS == DEFAULT_KINDS, (
-        "按场景类型的默认组件与 catalog.py 的 DEFAULT_KINDS 不一致：\n"
-        f"  渲染层：{REGISTRY_DEFAULTS}\n"
-        f"  校验器：{DEFAULT_KINDS}"
-    )
+# ---------------------------------------------------------------- 注册表自洽
 
 
-def test_every_component_is_imported_and_every_kind_has_a_default() -> None:
-    for key, entry in REGISTRY_FIGURES.items():
-        assert entry["component"] in IMPORTED_COMPONENTS, (
-            f"{key} 用了 {entry['component']}，但它不在文件顶部的导入里"
+def test_defaults_point_to_implemented_components(registry: dict) -> None:
+    entries = {entry["kind"]: entry for entry in registry["figures"]}
+    for scene_type, kind in registry["defaultKindByScene"].items():
+        entry = entries.get(kind)
+        assert entry, f"{scene_type} 默认到不存在的组件 {kind}"
+        assert entry["implemented"], f"{kind} 还没实现，不能当 {scene_type} 的默认"
+
+
+def test_default_kind_declares_its_scene_type(registry: dict) -> None:
+    for scene_type, kind in registry["defaultKindByScene"].items():
+        entry = next(item for item in registry["figures"] if item["kind"] == kind)
+        assert scene_type in entry["sceneTypes"], (
+            f"{kind} 是 {scene_type} 的默认，但 registry.json 的 sceneTypes 没有声明它"
         )
-    unknown = {kind for kind in REGISTRY_DEFAULTS.values() if kind not in REGISTRY_FIGURES}
-    assert not unknown, f"默认映射指向了没有实现的组件：{sorted(unknown)}"
+
+
+def test_scene_types_are_known_scene_types(registry: dict) -> None:
+    known = set(storyboard_validator._SCENE_FIELDS)
+    for entry in registry["figures"]:
+        unknown = sorted(set(entry["sceneTypes"]) - known)
+        assert not unknown, (
+            f"{entry['kind']} 声明了不存在的场景类型：{unknown}（已知：{sorted(known)}）"
+        )
+
+
+def test_every_implemented_component_source_exists(registry: dict) -> None:
+    for entry in registry["figures"]:
+        if not entry["implemented"]:
+            continue
+        path = WEB_SRC / entry["source"]
+        assert path.is_file(), f"{entry['kind']} 的实现源码不存在：{path}"
+
+
+def test_canvas_and_schematic_flags_drive_the_validator_mirror(registry: dict) -> None:
+    """catalog 的两份清单是注册表布尔旗标的投影，不是第三份手抄。"""
+    canvas = {entry["kind"] for entry in registry["figures"] if entry.get("canvasDrawn")}
+    schematic = {entry["kind"] for entry in registry["figures"] if entry.get("schematicMark")}
+    assert canvas == set(catalog.CANVAS_KINDS)
+    assert schematic == set(catalog.SCHEMATIC_KINDS)
+
+
+# ---------------------------------------------------------------- 声明了却不画的标注键（任务 9.3）
+
+#: 组件读取标注键的唯一形态：`labels['键']` / `ann['键']` / `spec.labels['键']`。
+#: 出现新的接收名时把它加进来——机检跟着真实写法走。
+_LABEL_ACCESS = re.compile(
+    r"\b(?:fig\.spec\.labels|spec\.labels|labels|ann)\['([A-Za-z][\w-]*)'\]"
+)
+
+
+def test_declared_labels_are_actually_drawn(registry: dict) -> None:
+    """声明了却不画的键：分镜写了、校验器放行、画面上什么都没有——机检必须拦住。"""
+    offenders: list[str] = []
+    for entry in registry["figures"]:
+        if not entry["implemented"] or not entry["labels"]:
+            continue
+        source = (WEB_SRC / entry["source"]).read_text(encoding="utf-8")
+        for key in entry["labels"]:
+            if not re.search(rf"['\"]{re.escape(key)}['\"]", source):
+                offenders.append(
+                    f"{entry['kind']} 声明了标注键 {key}，但 {entry['source']} 里从来没有画它"
+                )
+    assert not offenders, "\n  ".join(offenders)
+
+
+def test_drawn_labels_are_declared(registry: dict) -> None:
+    """反向同样成立：组件画出来的键必须在注册表里声明过，否则校验器管不到它。"""
+    offenders: list[str] = []
+    for entry in registry["figures"]:
+        if not entry["implemented"]:
+            continue
+        source = (WEB_SRC / entry["source"]).read_text(encoding="utf-8")
+        declared = set(entry["labels"])
+        for key in _LABEL_ACCESS.findall(source):
+            if key not in declared:
+                offenders.append(
+                    f"{entry['kind']} 画了标注键 {key}，但 registry.json 没有声明它"
+                    f"（{entry['source']}）"
+                )
+    assert not offenders, "\n  ".join(offenders)
+
+
+def test_label_check_is_alive() -> None:
+    """机检自身的哨兵：正则一旦失效（比如组件换了读取写法），这里先失败。"""
+    sample = "const labels = fig.spec.labels;\nconst unit = labels['unit'];"
+    assert _LABEL_ACCESS.findall(sample) == ["unit"]

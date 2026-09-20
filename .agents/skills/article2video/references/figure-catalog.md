@@ -11,18 +11,21 @@
 
 ## 现有组件
 
-| `kind` | 适合表达 | 默认给 | 标注键 | 容量 |
-| --- | --- | --- | --- | --- |
-| `balance` | 一边重一边轻，随后证明重的那个是空壳 | `title` | `leftPan`, `rightPan` | 2 侧 |
-| `gap` | 量出「真正失去了多少」：一侧从满到空，另一侧从头就没有 | `quote` | `assumption`, `fact`, `dropLabel`, `noDropLabel` | 2 栏 |
-| `versus` | 两种反应并排，箭头指出该从哪边转向哪边 | `comparison` | `left`, `right`, `note` | 2 栏 |
-| `iceberg` | 看得见的一角与看不见的主体不是一回事 | `list` | `surface` | 1–3 条条目 |
-| `loop` | 循环往复、每转一圈积累一点 | `diagram` | `gauge` | 3–6 节点 |
-| `stairs` | 次数累积带来的位置变化，并在末段翻转视角 | `timeline` | `axis`, `before`, `after` | 2–5 级 |
-| `exchange` | 双向关系，两个端点互相选择 | `conclusion` | `leftNode`, `rightNode` | 2 端 |
-| `number` | 数值递增、标签和说明 | `number`（共享页面） | 无 | 1 个数值 |
-| `chart` | 数据序列：占比、趋势、构成（柱状/折线/饼图） | `chart`（声明式） | `unit`, `note` | 2–6 个数据点 |
-| `flow` | 因果链、流程步骤：节点按层铺开、连线指向结果 | 无（在分镜里显式声明） | 无 | 2–6 个节点 |
+<!-- >>> generated:figures-table >>> -->
+| `kind` | 状态 | 适合表达 | 默认给 | 标注键 | 容量 |
+| --- | --- | --- | --- | --- | --- |
+| `balance` | 已实现 | 一边重一边轻，随后证明重的那个是空壳 | `title` | `leftPan`, `rightPan` | 2–2 侧 |
+| `gap` | 已实现 | 量出真正失去了多少：一侧从满到空，另一侧从头就没有 | `quote` | `assumption`, `fact`, `dropLabel`, `noDropLabel` | 2–2 栏 |
+| `iceberg` | 已实现 | 看得见的一角与看不见的主体不是一回事 | `list` | `surface` | 1–3 条条目 |
+| `loop` | 已实现 | 循环往复，每转一圈积累一点 | `diagram` | `gauge` | 3–6 节点 |
+| `stairs` | 已实现 | 次数累积带来的位置变化，并在末段翻转视角 | `timeline` | `axis`, `before`, `after` | 2–5 级 |
+| `exchange` | 已实现 | 双向关系，两个端点互相选择 | `conclusion` | `leftNode`, `rightNode` | 2–2 端 |
+| `versus` | 已实现 | 两种反应并排，箭头指出该从哪边转向哪边 | `comparison` | `left`, `right`, `note` | 2–2 栏 |
+| `number` | 已实现 | 按帧递增显示数值，并展示标签与说明 | `number` | 无 | 1–1 个数值 |
+| `chart` | 已实现 | 柱状/折线/饼图：数据序列随帧显影，关键数值同步输出为 DOM 文本 | `chart` | `unit`, `note` | 2–6 个数据点 |
+| `flow` | 已实现 | 因果链/流程步骤：dagre 分层布局，自上而下逐步连线，节点文字按实测宽度定形 | — | 无 | 2–6 节点 |<!-- <<< generated:figures-table <<< -->
+
+（这张表由 `web/src/registry/registry.json` 生成：`uv run python .agents/skills/article2video/scripts/sync_catalog.py`。手改会被 `--check` 判为落后。）
 
 `chart` 的实现在 React 工程（`web/src/components/Chart.tsx` 与 `web/src/charts/`），
 用 ECharts 按需引入画在 **canvas** 上：轴与范围由完整数据一次算定、不参与动画，
@@ -39,9 +42,10 @@ canvas 内部的文字探针量不到，因此组件把每个数值以**最终�
 不调用 `getTotalLength()`。没有声明 `edges` 时按节点顺序连成链；
 声明了就以声明为准（空数组就是不要连线）。
 
-标注键是**组件真正会画出来的那几个**：`figures.js` 声明什么，就必须用 `ann.<键>`
-真正写进画面对应元素，测试要求两者严格相等。声明了却没人画的键会造成
-「分镜写了、校验器放行、画面上什么都没有」的静默错位，因此不允许存在。
+标注键是**组件真正会画出来的那几个**：组件声明什么，就必须把对应的键真正写进
+画面对应元素。声明了却没人画的键会造成「分镜写了、校验器放行、画面上什么都没有」
+的静默错位，因此不允许存在——`tests/test_web_registry.py` 会把注册表里声明的键
+与组件实现源码逐个对照，漂移直接失败。
 `iceberg` 的水下主体与 `loop` 的循环次数都没有单独标注，它们的信息由条目文案承担。
 
 `loop` 的环上**每个节点占一个位置**：一圈的停位数等于节点数，弧线按相邻节点
@@ -59,13 +63,14 @@ canvas 内部的文字探针量不到，因此组件把每个数值以**最终�
 的量级**，否则"要看的东西比问题还小"，层级是倒的。左栏是基准态、右栏是焦点，
 两栏等宽并排才读得出"从哪边转向哪边"。
 
-「默认给」是页面 `DEFAULT_FIGURES` 里的映射：分镜没有声明 `data.figure.kind` 时用它。
-分镜声明了就以分镜为准。容量由组件决定：超出后几何会收缩，但标签会挤在一起读不出来，
-因此校验器会提醒。
+「默认给」是注册表 `defaultKindByScene` 里的映射：分镜没有声明 `data.figure.kind`
+时用它。分镜声明了就以分镜为准。容量由组件决定：超出后几何会收缩，但标签会
+挤在一起读不出来，因此校验器会提醒。
 
 这份目录在服务端有一份镜像 `scripts/a2v/catalog.py`，校验器用它判断
-「这个 kind 存不存在、它认识哪些标注键、能吃下多少条目」。
-镜像与 `figures.js` 由测试逐项对照，漂移会直接失败。
+「这个 kind 存不存在、它认识哪些标注键、能吃下多少条目」。镜像由
+`web/src/registry/registry.json` 生成（`scripts/sync_catalog.py`），
+不是第二份手抄——手改派生文件会被机检判为落后。
 
 ## 节奏
 

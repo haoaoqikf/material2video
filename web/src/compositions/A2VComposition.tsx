@@ -173,6 +173,10 @@ const SceneFigure: React.FC<SceneFigureProps> = ({
   }
 
   const Figure = definition.Component;
+  if (!Figure) {
+    // 注册表里声明了但还没实现的组件（implemented: false）：画空白是静默失败
+    throw new Error(`组件 ${kind} 尚未实现，不能进渲染路径`);
+  }
   return (
     <div className="a2v-safe" data-a2v-figure="" data-fig-kind={kind}>
       <FigureProvider

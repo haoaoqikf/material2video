@@ -11,6 +11,8 @@
  */
 import { z } from 'zod';
 
+import { FIGURE_KINDS } from './figureKinds';
+
 export const STORYBOARD_VERSION = 1;
 
 const nonEmptyText = z.string().min(1);
@@ -21,13 +23,22 @@ export const labelsSchema = z.record(z.string(), nonEmptyText);
 export const motionNameSchema = z.enum(['calm', 'normal', 'impact']);
 export type MotionName = z.infer<typeof motionNameSchema>;
 
+/**
+ * `figure.kind` 的取值由注册表枚举（生成物 `figureKinds.ts`，任务 9.2）：
+ * 写了一个注册表里没有的 kind，解析直接报错并列出已知组件——
+ * 渲染层的 `SceneFigure` 本来也会在挂载时抛同样的错，提前到解析阶段
+ * 只是让报错更早、更可定位。kind 可以缺省：缺省时按场景类型取默认组件。
+ */
+const knownKind = nonEmptyText.refine(
+  (value) => (FIGURE_KINDS as readonly string[]).includes(value),
+  {
+    message: `figure.kind 必须是注册表里的组件（已知：${FIGURE_KINDS.join('、')}）`,
+  },
+);
+
 export const figureSchema = z
   .object({
-    /**
-     * kind 可以缺省：缺省时按场景类型取默认组件（registry 的 DEFAULT_KIND_BY_SCENE），
-     * figure 也可以只带标注或示意标记。但写了就必须是非空字符串。
-     */
-    kind: nonEmptyText.optional(),
+    kind: knownKind.optional(),
     labels: labelsSchema.optional(),
     motion: motionNameSchema.optional(),
     /**
