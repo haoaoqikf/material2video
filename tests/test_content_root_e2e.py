@@ -56,14 +56,14 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     assert not (ROOT / "outputs" / "demo").exists(), "产物不得落回仓库"
 
     sidecar = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
-    # version 4 起区分画面来源；这条路径的画面来自网页
+    # version 4 起区分画面来源；默认路径由 Remotion composition 渲染。
     assert sidecar["version"] == 4
-    assert sidecar["renderer"] == "page"
+    assert sidecar["renderer"] == "remotion"
     # 产物在 outputs/demo/previews/ 下：指回内容根要上三层
     assert sidecar["workspace"] == "../../.."
-    assert sidecar["page"] == "__a2v__/declarative.html"
+    assert sidecar["page"] == "index.ts"
     assert sidecar["storyboard"] == "videos/demo/storyboard.json"
-    assert "__a2v__/declarative.js" in sidecar["assets"]["files"]
+    assert "__a2v_web__/src/compositions/A2VComposition.tsx" in sidecar["assets"]["files"]
     # 下一页运行复核时不需要仓库标记、也不需要内容根参数
     assert provenance_status(video)["status"] == "current"
 

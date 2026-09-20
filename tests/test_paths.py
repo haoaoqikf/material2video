@@ -200,11 +200,14 @@ def _capture_render(monkeypatch) -> list[dict]:
 
 
 class TestRenderCommandDefaults:
+    """输出路径推导对两个引擎都成立；默认引擎的归属见 TestRemotionDefault。"""
+
     def test_silent_render_defaults_to_slug_directory(self, tmp_path, valid_script, monkeypatch):
         article = make_project(tmp_path, "videos", "demo", valid_script)
         captured = _capture_render(monkeypatch)
         code = cli.main_render(
             [
+                "--engine", "legacy",
                 "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
                 "--no-probe",
@@ -218,6 +221,7 @@ class TestRenderCommandDefaults:
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
             [
+                "--engine", "legacy",
                 "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
                 "--limit-frames", "3",
@@ -232,6 +236,7 @@ class TestRenderCommandDefaults:
         explicit = tmp_path / "custom" / "clip.mp4"
         assert cli.main_render(
             [
+                "--engine", "legacy",
                 "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
                 "--out", str(explicit),
@@ -245,18 +250,18 @@ class TestRenderCommandDefaults:
         article = make_project(tmp_path, "videos", "demo", valid_script)
         _capture_render(monkeypatch)
         # 省略 --out 时无法确定文件名，必须报错而不是猜
-        assert cli.main_render(["--page", str(article / "index.html")]) == 1
+        assert cli.main_render(["--engine", "legacy", "--page", str(article / "index.html")]) == 1
 
     def test_non_standard_page_without_out_fails(self, tmp_path, monkeypatch):
         page = tmp_path / "loose.html"
         page.write_text("<html></html>", encoding="utf-8")
         _capture_render(monkeypatch)
-        assert cli.main_render(["--page", str(page), "--no-probe"]) == 1
+        assert cli.main_render(["--engine", "legacy", "--page", str(page), "--no-probe"]) == 1
 
     def test_remote_page_without_out_fails(self, monkeypatch):
         _capture_render(monkeypatch)
         assert cli.main_render(
-            ["--page", "https://example.com/index.html", "--no-probe"]
+            ["--engine", "legacy", "--page", "https://example.com/index.html", "--no-probe"]
         ) == 1
 
 
@@ -275,6 +280,7 @@ class TestVoicedRenderDefaults:
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
             [
+                "--engine", "legacy",
                 "--page", str(article / "index.html"),
                 "--storyboard", str(article / "storyboard.json"),
                 "--media", str(media_path),
@@ -296,12 +302,55 @@ class TestVoicedRenderDefaults:
         # 媒体清单属于 demo，却拿 other 的网页来渲染：必须拒绝，避免音画串文章
         assert cli.main_render(
             [
+                "--engine", "legacy",
                 "--page", str(other / "index.html"),
                 "--storyboard", str(other / "storyboard.json"),
                 "--media", str(media_path),
                 "--no-probe",
             ]
         ) == 1
+
+
+class TestRemotionDefault:
+    """默认引擎是 Remotion：只给 --storyboard 的命令走 composition 渲染。"""
+
+    def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script)
+        captured: list[dict] = []
+
+        def fake_remotion(**kwargs):
+            captured.append(kwargs)
+            return RenderResult(
+                output=Path(kwargs["output"]),
+                frames=30,
+                fps=30,
+                width=1080,
+                height=1920,
+                duration_seconds=1.0,
+                capture_seconds=1.0,
+                total_seconds=2.0,
+                size_bytes=1234,
+            )
+
+        monkeypatch.setattr(cli, "render_with_remotion", fake_remotion)
+        code = cli.main_render(
+            [
+                "--storyboard", str(article / "storyboard.json"),
+                "--out", str(tmp_path / "out.mp4"),
+                "--no-probe",
+            ]
+        )
+        assert code == 0
+        assert captured, "默认引擎应走 render_with_remotion"
+        assert captured[0]["output"] == tmp_path / "out.mp4"
+
+    def test_page_with_default_engine_is_rejected(self, tmp_path, valid_script, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script)
+        _capture_render(monkeypatch)
+        # 默认引擎不接受 --page：专属网页路径必须显式 --engine legacy
+        assert cli.main_render(
+            ["--page", str(article / "index.html"), "--storyboard", str(article / "storyboard.json")]
+        ) == 2
 
 
 class TestCrossArticleMediaGuard:

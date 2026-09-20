@@ -32,7 +32,9 @@ _EXIT_INVALID_INPUT = 2
 #: 画面引擎。迁移期两个并存，默认仍是旧页面；切换默认是迁移的最后一步。
 ENGINE_LEGACY = "legacy"
 ENGINE_REACT = "remotion"
-_DEFAULT_ENGINE = ENGINE_LEGACY
+#: 默认引擎：React composition（Remotion）。迁移期的并存是刻意的：旧路径是量测基线，
+#: 切换默认是一件显式的事，由这一处控制（旧路径的删除见 openspec 变更 11.4）。
+_DEFAULT_ENGINE = ENGINE_REACT
 
 
 def _configure_logging(verbose: bool) -> None:
@@ -151,12 +153,13 @@ def _build_preview_parser() -> argparse.ArgumentParser:
         description="以本地 HTTP 服务预览动画网页（file:// 下无法加载分镜 JSON）",
     )
     parser.add_argument("directory", nargs="?", default=".", help="静态根目录，默认当前目录")
-    parser.add_argument("--page", default="index.html", help="相对根目录的页面路径")
+    parser.add_argument("--page", default=None, help="相对根目录的页面路径（旧引擎；默认 index.html）")
     parser.add_argument("--port", type=int, default=0, help="监听端口，默认自动分配")
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
     parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
-    parser.add_argument("--declarative", action="store_true", help="用共享页面预览 --storyboard")
+    parser.add_argument("--declarative", action="store_true", help="用共享页面预览 --storyboard（旧引擎）")
+    _add_engine_argument(parser)
     parser.add_argument(
         "--content-root",
         help="文章所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，都不设则为仓库根",
@@ -488,7 +491,23 @@ def main_preview(argv: list[str] | None = None) -> int:
     from .media import media_url
     from .render import _default_serve_root
 
-    if args.declarative:
+    page_mounts: dict[str, Path] | None = None
+
+    if args.engine == ENGINE_REACT:
+        # 默认引擎：预览界面就是契约页——与体检、渲染同一份 composition，
+        # 预览看到的就是成片会画出的画面。预览需要本地服务提供分镜与页面资源。
+        if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
+            logging.error("Remotion 预览需要有效的 --storyboard：它是 composition 的 props")
+            return _EXIT_INVALID_INPUT
+        try:
+            article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+            page, page_mounts = _page_source(args, article, engine=args.engine)
+            source_url = _storyboard_url(args.storyboard, article)
+            serve_root = article.workspace_root
+        except A2VError as exc:
+            logging.error("预览失败: %s", exc)
+            return _EXIT_INVALID_INPUT
+    elif args.declarative:
         if not args.storyboard or _validated_storyboard(args.storyboard, declarative=True) is None:
             logging.error("声明式预览需要有效的 --storyboard")
             return _EXIT_INVALID_INPUT
@@ -505,7 +524,7 @@ def main_preview(argv: list[str] | None = None) -> int:
         if not root.is_dir():
             logging.error("目录不存在: %s", root)
             return _EXIT_INVALID_INPUT
-        page = root / args.page
+        page = root / (args.page or "index.html")
         if not page.is_file():
             logging.error("页面不存在: %s", page)
             return _EXIT_INVALID_INPUT
@@ -520,7 +539,11 @@ def main_preview(argv: list[str] | None = None) -> int:
     except (A2VError, OSError) as exc:
         logging.error("预览失败: %s", exc)
         return _EXIT_INVALID_INPUT
-    server = LocalServer(serve_root, port=args.port, mounts=assets_mod.default_mounts())
+    # 契约页在仓库的 web/ 下、分镜在工作区根下：靠别名挂载把两棵树接起来
+    mounts = dict(assets_mod.default_mounts())
+    if page_mounts:
+        mounts.update(page_mounts)
+    server = LocalServer(serve_root, port=args.port, mounts=mounts)
     try:
         from urllib.parse import urlencode
         server.start()
