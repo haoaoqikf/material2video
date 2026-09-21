@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from . import catalog
+from . import code_scenes
 
 # 当前支持的版本：场景树 v2。字段结构变化时必须递增，并在校验时给出明确提示。
 SCENE_TREE_VERSION = 2
@@ -172,7 +173,7 @@ def _validate_v2(data: dict[str, Any]) -> Report:
         if not isinstance(scene, dict):
             report.error(path, "场景必须是对象")
             continue
-        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visualIntent", "sceneTree", "motions", "visual"}, path, report)
+        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visualIntent", "sceneTree", "motions", "visual", "renderer"}, path, report)
         scene_id = scene.get("id")
         if not isinstance(scene_id, str) or not _SCENE_ID_RE.match(scene_id):
             report.error(f"{path}.id", "场景 id 必须是非空安全标识符")
@@ -187,8 +188,10 @@ def _validate_v2(data: dict[str, Any]) -> Report:
             report.error(f"{path}.data", "data 必须是对象")
         _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report)
         _validate_scene_visual(scene.get("visual"), scene.get("type"), f"{path}.visual", report)
-        _validate_scene_tree(scene.get("sceneTree"), scene, path, report)
-        _validate_motions(scene.get("motions"), f"{path}.motions", report, scene, path)
+        kind = _validate_renderer(scene, path, report)
+        if kind == "tree":
+            _validate_scene_tree(scene.get("sceneTree"), scene, path, report)
+            _validate_motions(scene.get("motions"), f"{path}.motions", report, scene, path)
         _warn_on_scene_copy(scene, path, report)
         duration = scene.get("durationInFrames")
         if isinstance(duration, int) and not isinstance(duration, bool) and duration > 0:
@@ -285,6 +288,41 @@ def _validate_scene_visual(value: Any, scene_type: Any, path: str, report: Repor
             f"{path}.kicker",
             f"角标不能就是场景类型名（{scene_type}）——那是 schema 字段，不是给读者看的文案",
         )
+
+
+def _validate_renderer(scene: dict[str, Any], path: str, report: Report) -> str:
+    """校验每幕的渲染模式，返回生效的 kind（"tree" 或 "code"）。
+
+    缺省 ``renderer`` 的既有分镜按 ``tree`` 解释（向后兼容，不批量迁移）；
+    ``code`` 场景必须给模块标识且不能同时声明 ``sceneTree``——两条画面路径
+    每幕二选一，互斥字段在这里拦住，而不是让画面出现两套来源。
+    """
+    renderer = scene.get("renderer")
+    if renderer is None:
+        return "tree"
+    if not isinstance(renderer, dict):
+        report.error(f"{path}.renderer", "renderer 必须是对象：{kind: 'tree'} 或 {kind: 'code', module: '...'}")
+        return "tree"
+    kind = renderer.get("kind")
+    if kind not in ("tree", "code"):
+        report.error(f"{path}.renderer.kind", f"无效渲染模式 {kind!r}：必须是 'tree' 或 'code'")
+        return "tree"
+    allowed = {"kind", "module"} if kind == "code" else {"kind"}
+    for key in sorted(set(renderer) - allowed):
+        report.error(f"{path}.renderer.{key}", f"renderer.kind={kind} 不支持字段 {key!r}")
+    if kind == "code":
+        message = code_scenes.validate_module_id(renderer.get("module"))
+        if message:
+            report.error(f"{path}.renderer.module", message)
+        if "sceneTree" in scene:
+            report.error(
+                f"{path}.sceneTree",
+                "code 场景不能声明 sceneTree：渲染模式每幕二选一，画面代码写在模块里",
+            )
+        motions = scene.get("motions")
+        if isinstance(motions, list) and motions:
+            report.error(f"{path}.motions", "code 场景不支持 motions：动效由场景代码按帧号实现")
+    return kind
 
 
 def _validate_scene_tree(root: Any, scene: dict[str, Any], scene_path: str, report: Report) -> None:

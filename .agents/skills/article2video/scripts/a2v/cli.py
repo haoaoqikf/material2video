@@ -129,6 +129,11 @@ def _build_validate_parser() -> argparse.ArgumentParser:
     parser.add_argument("--strict", action="store_true", help="把警告视为错误")
     parser.add_argument("--json", action="store_true", help="以 JSON 输出，便于程序化处理")
     parser.add_argument("--reference", action="append", default=[], help="显式提供跨作品多样性比较的参考分镜，可重复")
+    parser.add_argument(
+        "--content-root",
+        help="文章所在的工作区根；分镜声明代码场景时用它解析 scenes/ 下的模块，"
+        "省略时读环境变量 A2V_CONTENT_ROOT，都不设则为仓库根",
+    )
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
 
@@ -178,7 +183,7 @@ def main_render(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     # 分镜校验先于路径推导：脚本无效时不必先建出输出目录
-    model = _validated_storyboard(args.storyboard)
+    model = _validated_storyboard(args.storyboard, args.content_root)
     if model is None:
         return _EXIT_INVALID_INPUT
 
@@ -217,9 +222,15 @@ def main_render(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _validated_storyboard(path: str | Path) -> sb.Storyboard | None:
-    """加载并校验分镜；有错误时打印问题并返回 None。"""
+def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | None:
+    """加载并校验分镜；有错误时打印问题并返回 None。
+
+    代码场景的模块检查也在这里完成：预览、评审与渲染都会先走这一步，
+    因此「模块不存在、没有默认导出」会在启动浏览器或打包之前失败，
+    而不是渲出一张空画面再让人反推原因。
+    """
     model, report = sb.load(path)
+    _check_code_scene_modules(Path(path), content_root, report)
     if model is None:
         for issue in report.errors:
             logging.error("%s", issue.format())
@@ -228,6 +239,33 @@ def _validated_storyboard(path: str | Path) -> sb.Storyboard | None:
     for issue in report.warnings:
         logging.warning("%s", issue.format())
     return model
+
+
+def _check_code_scene_modules(
+    path: Path, content_root: str | Path | None, report: Report
+) -> None:
+    """把代码场景的模块解析检查并入校验报告。
+
+    模块存在性与导出契约需要作品归属（``scenes/`` 在文章目录下）；
+    归属推不出来而分镜又声明了代码场景时，如实报错而不是静默跳过——
+    静默跳过等于让缺失的模块在渲染期才暴露。
+    """
+    from . import code_scenes as cs
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return  # 分镜读不出来时 sb.load 已经报过；这里不重复报
+    if not any(True for _ in cs.iter_code_scenes(data)):
+        return
+    try:
+        article = paths_mod.for_storyboard(path, content_root)
+    except A2VError as exc:
+        for scene_path, _scene, _module in cs.iter_code_scenes(data):
+            report.error(f"{scene_path}.renderer.module", f"无法推导作品归属，解析不了代码场景模块：{exc}")
+        return
+    for scene_path, message in cs.check(data, article.source_dir):
+        report.error(scene_path, message)
 
 
 def _article_for(
@@ -325,6 +363,7 @@ def main_validate(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
 
     model, report = sb.load(path)
+    _check_code_scene_modules(path, args.content_root, report)
     diversity_result = None
     if model is not None:
         try:
@@ -382,7 +421,7 @@ def main_preview(argv: list[str] | None = None) -> int:
     _configure_logging(args.verbose)
 
     from .media import media_url
-    if not args.storyboard or _validated_storyboard(args.storyboard) is None:
+    if not args.storyboard or _validated_storyboard(args.storyboard, args.content_root) is None:
         logging.error("Remotion 预览需要有效的 --storyboard")
         return _EXIT_INVALID_INPUT
     try:
@@ -480,6 +519,14 @@ def main_review(argv: list[str] | None = None) -> int:
         for issue in report.issues:
             logging.error("%s", issue.format())
         logging.error("分镜脚本校验未通过，无法体检")
+        return _EXIT_INVALID_INPUT
+    # 代码场景模块在起浏览器之前检查：缺失模块或错误导出在这里就失败
+    code_report = Report()
+    _check_code_scene_modules(Path(args.storyboard), args.content_root, code_report)
+    if not code_report.ok:
+        for issue in code_report.errors:
+            logging.error("%s", issue.format())
+        logging.error("代码场景模块校验未通过，无法体检")
         return _EXIT_INVALID_INPUT
 
     try:

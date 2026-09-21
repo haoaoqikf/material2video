@@ -11,6 +11,22 @@ const primitiveTypeSchema = nonEmptyText.refine((value) => (PRIMITIVE_TYPES as r
 /** 每幕场景树的节点总数上限：控制渲染成本，也让容量超限尽早暴露。 */
 export const MAX_NODES_PER_SCENE = 48;
 
+/**
+ * 代码场景模块标识：作品 `scenes/` 目录下的相对路径（不含扩展名）。
+ * 只允许字母、数字、`_`、`-` 与 `/` 分段——扩展名、盘符、绝对路径与 `..`
+ * 都在字符层面被拒绝，路径穿越没有入口。
+ */
+export const moduleSpecifierPattern = /^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/;
+export const moduleSpecifierSchema = z
+  .string()
+  .regex(moduleSpecifierPattern, '模块标识只允许字母、数字、_ 与 -（可用 / 分段）；不含扩展名或路径穿越');
+
+/** 渲染模式判别联合：`tree` 走场景树解释器，`code` 挂载作品级模块。 */
+export const treeRendererSchema = z.object({ kind: z.literal('tree') }).strict();
+export const codeRendererSchema = z.object({ kind: z.literal('code'), module: moduleSpecifierSchema }).strict();
+export const rendererSchema = z.discriminatedUnion('kind', [treeRendererSchema, codeRendererSchema]);
+export type Renderer = z.infer<typeof rendererSchema>;
+
 export interface SceneNode {
   id: string; type: string; children?: SceneNode[]; contentRef?: string;
   role?: 'hero' | 'headline' | 'title' | 'body' | 'label' | 'caption';
@@ -46,9 +62,19 @@ const STRUCTURAL_NODE_KEYS = ['id', 'type', 'children'] as const;
 export const sceneSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_-]+$/, 'id 只允许字母、数字、_ 与 -'), type: nonEmptyText,
   durationInFrames: z.number().int().positive(), narration: z.string().optional(), data: z.record(z.string(), z.unknown()),
-  visualIntent: visualIntentSchema, sceneTree: sceneNodeSchema, motions: z.array(motionSchema).default([]),
+  visualIntent: visualIntentSchema, renderer: rendererSchema.optional(), sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
   visual: z.object({ kicker: z.string().optional() }).strict().optional(),
 }).strict().superRefine((scene, ctx) => {
+  const isCode = scene.renderer?.kind === 'code';
+  if (isCode) {
+    // 互斥字段：代码场景的画面由模块实现，不能同时携带场景树
+    if (scene.sceneTree) ctx.addIssue({ code: 'custom', path: ['sceneTree'], message: 'code 场景不能声明 sceneTree：渲染模式每幕二选一' });
+    if (scene.motions.length > 0) ctx.addIssue({ code: 'custom', path: ['motions'], message: 'code 场景不支持 motions：动效由场景代码按帧号实现' });
+  } else if (!scene.sceneTree) {
+    ctx.addIssue({ code: 'custom', path: ['sceneTree'], message: 'tree 场景必须包含一棵场景树（sceneTree）' });
+  }
+  const tree = scene.sceneTree;
+  if (!tree) return;
   const ids = new Map<string, (string | number)[]>(); const types = new Map<string, string>();
   let nodeCount = 0;
   const walk = (node: SceneNode, path: (string | number)[], depth: number): void => {
@@ -68,7 +94,7 @@ export const sceneSchema = z.object({
     if (node.sourceRef && !node.sourceRef.startsWith('data.')) ctx.addIssue({ code: 'custom', path: [...path, 'sourceRef'], message: '媒体引用必须以 data. 开头' });
     node.children?.forEach((child, index) => walk(child, [...path, 'children', index], depth + 1));
   };
-  walk(scene.sceneTree, ['sceneTree'], 1);
+  walk(tree, ['sceneTree'], 1);
   scene.motions.forEach((motion, index) => {
     if (!ids.has(motion.target)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'target'], message: `动效目标 ${motion.target} 不存在` });
     if (motion.startFrame + (motion.durationFrames ?? 1) > scene.durationInFrames) ctx.addIssue({ code: 'custom', path: ['motions', index], message: '动效时间范围超出场景' });

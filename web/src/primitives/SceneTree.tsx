@@ -246,5 +246,9 @@ function Primitive({ node, scene, frame, preset, place, baseTransform = '' }: Pr
 }
 
 export function SceneTree({ scene, frame, preset = false }: { scene: Scene; frame: number; preset?: boolean }): React.ReactElement {
-  return <Primitive node={scene.sceneTree} scene={scene} frame={frame} preset={preset} />;
+  // code 场景由共享 composition 的代码包装器承载，不会走到这里；
+  // 缺少场景树说明分镜绕过了 schema 校验，这里直接报错而不是渲染 undefined。
+  const tree = scene.sceneTree;
+  if (!tree) throw new Error(`场景 ${scene.id} 缺少场景树：tree 场景必须声明 sceneTree`);
+  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} />;
 }
