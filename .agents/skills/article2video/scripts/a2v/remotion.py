@@ -410,14 +410,39 @@ _IMPORT_PATTERNS = (
 _RESOLVE_SUFFIXES = ("", ".ts", ".tsx", ".css", ".json", ".mjs", "/index.ts", "/index.tsx")
 
 
+#: 作品文件的指纹键前缀：读自场景清单的 workspaceRoot，让外部内容根的
+#: 作品文件也有**可复核**的键（而不是退化成只剩文件名）。
+WORK_MOUNT_PREFIX = "__a2v_workspace__"
+
+_MANIFEST_PATH = Path(".gen/scene-manifest.json")
+
+
+def _manifest_data(repo_root: Path | None = None) -> dict | None:
+    """读当前作品的场景清单；没有或损坏时返回 None。"""
+    manifest_path = contract_page.web_dir(repo_root) / _MANIFEST_PATH
+    if not manifest_path.is_file():
+        return None
+    try:
+        return json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def fingerprint_mounts(repo_root: Path | None = None) -> dict[str, Path]:
     """指纹键使用的挂载表：与契约页服务器同一套别名。
 
     构建输入全在 `web/` 下，而工作区根可能是仓库之外的内容根——那时
     `asset_key` 会退化成只记文件名，复核时拼不回去、每一份成片都被判成
-    「资产不见了」。挂上 `web/` 的别名之后，键与工作区根在哪无关。
+    「资产不见了」。挂上 `web/` 的别名之后，键与工作区根在哪无关；
+    作品文件再挂 `__a2v_workspace__`（根读自场景清单），记录与复核
+    两侧走同一份清单，键永远能拼回真实文件。
     """
-    return {**assets.default_mounts(), **contract_page.web_mounts(repo_root)}
+    mounts = {**assets.default_mounts(), **contract_page.web_mounts(repo_root)}
+    data = _manifest_data(repo_root)
+    workspace = data.get("workspaceRoot") if data else None
+    if workspace:
+        mounts[WORK_MOUNT_PREFIX] = Path(str(workspace))
+    return mounts
 
 
 def _imports_of(path: Path) -> list[str]:
@@ -476,6 +501,11 @@ def build_inputs(repo_root: Path | None = None) -> list[Path]:
         candidate = web / name
         if candidate.is_file():
             seen[candidate.resolve()] = None
+    # 当前作品的场景清单：它决定哪些作品模块进入构建（规范化后的静态
+    # 清单，包含作品目录归属）。清单变化 = 构建输入变化，必须进入指纹。
+    manifest_path = web / _MANIFEST_PATH
+    if manifest_path.is_file():
+        seen[manifest_path.resolve()] = None
     # 字体取**源文件**而不是 `public/fonts/` 里的构建副本：副本是派生物，
     # 没构建过就不存在，那会让每一次复核都报「不见了」
     for font in contract_page.font_files(repo_root):

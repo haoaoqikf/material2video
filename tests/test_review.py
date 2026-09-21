@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from a2v import cli
 from a2v import inspect as review
 from a2v import keynote
@@ -444,6 +446,105 @@ class TestHardGateReachesTheVerdict:
         report = Report()
         cli._apply_hard_gates(report, {})
         assert report.ok
+
+
+class TestDeterminismAcceptance:
+    """任务 6.4：同帧重复截图 + 随机寻帧验收进入评审结论。"""
+
+    def _png(self, tmp_path, name: str, value: int) -> bytes:
+        """用 ffmpeg 编码一张纯色灰度 PNG（逐像素可比较的真实图像）。"""
+        import subprocess
+
+        from imageio_ffmpeg import get_ffmpeg_exe
+
+        target = tmp_path / name
+        raw = bytes([value]) * (64 * 64)
+        completed = subprocess.run(
+            [
+                get_ffmpeg_exe(), "-v", "error", "-y",
+                "-f", "rawvideo", "-pix_fmt", "gray", "-s", "64x64",
+                "-i", "pipe:0", "-frames:v", "1", str(target),
+            ],
+            input=raw, capture_output=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+        return target.read_bytes()
+
+    class _FlakyPage:
+        """同帧两次求值给出不同画面的页面：非确定性失败夹具。"""
+
+        def __init__(self, images):
+            self._images = images
+            self._calls = 0
+
+        def evaluate(self, *args, **kwargs):
+            return None
+
+        def seek(self, frame):
+            pass
+
+        def capture(self, image_format="jpeg", quality=98):
+            image = self._images[self._calls % len(self._images)]
+            self._calls += 1
+            return image
+
+    def _scenes(self):
+        return [{"id": "s0", "durationInFrames": 30, "startFrame": 0}]
+
+    def test_画面漂移被判定为失败(self, tmp_path):
+        from a2v import determinism as determinism_mod
+
+        dark = self._png(tmp_path, "dark.png", 20)
+        light = self._png(tmp_path, "light.png", 220)
+        page = self._FlakyPage([dark, light])
+        verdicts = cli._determinism_acceptance(page, self._scenes())
+        assert verdicts, "验收没有产生任何判定"
+        assert any(not verdict.ok for verdict in verdicts)
+        assert any(verdict.psnr < determinism_mod.DEFAULT_PSNR_DB for verdict in verdicts)
+
+    def test_稳定页面通过验收(self, tmp_path):
+        stable = self._png(tmp_path, "stable.png", 90)
+        page = self._FlakyPage([stable, stable])
+        verdicts = cli._determinism_acceptance(page, self._scenes())
+        assert verdicts and all(verdict.ok for verdict in verdicts)
+
+    def test_失败结论进入错误并影响退出码(self):
+        from a2v.determinism import FrameVerdict
+
+        report = Report()
+        verdicts = [FrameVerdict(frame=29, psnr=18.4, threshold=60.0)]
+        payload = cli._apply_determinism_verdicts(report, verdicts)
+        assert len(report.errors) == 1
+        assert not report.ok
+        assert "第 29 帧" in report.errors[0].message and "PSNR" in report.errors[0].message.replace("dB", "PSNR") or "18.4" in report.errors[0].message
+        assert payload == [verdicts[0].describe()]
+
+    def test_未开启验收时不写字段也不报错(self):
+        report = Report()
+        assert cli._apply_determinism_verdicts(report, None) is None
+        assert report.ok
+
+
+class TestDeterminismEndToEnd:
+    """任务 6.4 端到端：真实作品上跑 `review.py --check-determinism`。"""
+
+    def test_review_with_determinism_check_passes_on_example(self, tmp_path):
+        import json
+
+        storyboard = Path(__file__).resolve().parents[1] / "examples" / "declarative-number" / "storyboard.json"
+        argv = [
+            "--storyboard", str(storyboard),
+            "--out-dir", str(tmp_path / "inspect"),
+            "--check-determinism",
+        ]
+        cli.main_review(argv)
+        payload = json.loads((tmp_path / "inspect" / "report.json").read_text(encoding="utf-8"))
+        # 确定性验收在真实作品上跑过并全部通过
+        assert payload.get("determinism"), "report.json 应记录确定性验收结论"
+        assert len(payload["determinism"]) == 2  # 两幕各取收尾帧
+        assert all("通过" in line or "一致" in line for line in payload["determinism"])
+        # 确定性层面零错误（示例里个别幕的墨迹提示与确定性无关）
+        assert not any(error.startswith("确定性") for error in payload["errors"])
 
 
 class TestJudgement:

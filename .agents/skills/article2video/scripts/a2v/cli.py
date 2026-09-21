@@ -14,6 +14,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 from . import contract_page
 from . import fonts as fonts_mod
@@ -169,6 +170,12 @@ def _build_review_parser() -> argparse.ArgumentParser:
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
     parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
+    parser.add_argument(
+        "--check-determinism",
+        action="store_true",
+        help="对每幕收尾帧做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB）；"
+        "失败计为错误，退出码非零",
+    )
     _add_engine_argument(parser)
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
@@ -582,6 +589,10 @@ def main_review(argv: list[str] | None = None) -> int:
                 # 运行期隔离（任务 3.3）：被阻断请求、页面异常、未处理 Promise
                 # 与控制台 error 都计为错误，而不是静默放行。
                 runtime_violations = page.drain_violations()
+                # 确定性验收（任务 6.4）：显式开启时对采样帧做重复求值判定
+                determinism_verdicts = (
+                    _determinism_acceptance(page, scenes) if args.check_determinism else None
+                )
     except (A2VError, OSError, ValueError) as exc:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
@@ -593,6 +604,7 @@ def main_review(argv: list[str] | None = None) -> int:
         combined.add(issue.level, issue.path, issue.message)
     for violation in runtime_violations:
         combined.error("运行期隔离", violation)
+    determinism_json = _apply_determinism_verdicts(combined, determinism_verdicts)
     # 观感闸门默认只提示、不拦：画面能用但不够发布会级，最终判断归人。
     # 但**溢出**是例外——文字被裁掉或压出安全区属于画面坏了，与「不是废片」
     # 同类。它必须影响错误数与退出码，否则闸门报了失败而 CI 看到的是 0 个错误。
@@ -615,6 +627,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "storyboard": str(args.storyboard),
             "source": "media" if media else "storyboard",
             "provenance": _rendered_provenance(out_dir),
+            **({"determinism": determinism_json} if determinism_json is not None else {}),
         },
         out_dir / "report.json",
     )
@@ -623,6 +636,43 @@ def main_review(argv: list[str] | None = None) -> int:
         print(issue.format(), file=sys.stderr)
     print(_review_summary(payload, out_dir))
     return _EXIT_OK if combined.ok else _EXIT_INVALID_INPUT
+
+
+def _determinism_acceptance(page: Any, scenes: list[dict]) -> list:
+    """同帧重复截图 + 随机寻帧的确定性验收（任务 6.4）。
+
+    每幕取收尾帧；`produce` 先跳到别的帧再回来——逼出「残留状态」类的
+    非确定性（图表实例的脏状态、累积的随机序列），同帧连拍两下抓不到它。
+    判据沿用现有相似度门槛（PSNR ≥ 60 dB）。
+    """
+    from . import determinism as determinism_mod
+    from . import inspect as inspect_mod
+
+    total = sum(int(scene.get("durationInFrames") or 0) for scene in scenes) or 1
+    frames = [window[-1] for _s, _start, _end in inspect_mod.scene_windows(scenes) for window in [inspect_mod.sample_frames(_start, _end)]]
+
+    def produce(frame: int) -> bytes:
+        page.evaluate(
+            "({frame, total}) => window.__A2V__.seekToFrame((frame + 13) % total)",
+            {"frame": frame, "total": total},
+        )
+        page.seek(frame)
+        return page.capture("png")
+
+    return determinism_mod.judge_frames(produce, frames, threshold=determinism_mod.DEFAULT_PSNR_DB)
+
+
+def _apply_determinism_verdicts(combined: Report, verdicts: list | None) -> list[str] | None:
+    """把确定性验收结论并入评审报告；失败是错误，影响退出码。
+
+    返回给 report.json 的描述列表（未开启验收时为 None，不写字段）。
+    """
+    if verdicts is None:
+        return None
+    for verdict in verdicts:
+        if not verdict.ok:
+            combined.error("确定性", verdict.describe())
+    return [verdict.describe() for verdict in verdicts]
 
 
 def _default_review_dir(args, article: paths_mod.ArticlePaths | None) -> Path:

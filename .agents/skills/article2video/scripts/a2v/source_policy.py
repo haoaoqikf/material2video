@@ -30,7 +30,25 @@ _RULES = (
     ("动画库入口", re.compile(r"(?:from\s*['\"](?:motion(?:/react)?|framer-motion|gsap)['\"]|\buseAnimate\s*\()")),
     ("无限动画工具类", re.compile(r"\banimate-[\w-]+[^\n'\"]*\binfinite\b|\banimate-infinite\b")),
 )
-_CSS_MOTION = re.compile(r"(?:^|[;{\s])(?:animation(?:-[\w-]+)?|transition(?:-[\w-]+)?)\s*:|@keyframes\b", re.MULTILINE)
+#: CSS/样式对象里的时间动效声明。**值为「关闭」形态的放行**：
+#: `animation: false`、`transition: none`、`animation-delay: 0` 是
+#: 「适配」本身（关掉第三方库的时钟），不是违规——ECharts 适配器
+#: 恰恰靠这一行把图表压成帧驱动。判定在 `_is_motion_off` 里做，
+#: 不塞进正则：值形态千变万化，负向先行断言漏一处就是假阴性。
+_CSS_MOTION = re.compile(
+    r"(?:^|[;{\s])(animation(?:-[\w-]+)?|transition(?:-[\w-]+)?)\s*:\s*([^;{}\n]*)|(@keyframes)\b",
+    re.MULTILINE,
+)
+
+_MOTION_OFF_VALUES = {"false", "undefined", "none", "'none'", '"none"'}
+
+
+def _is_motion_off(value: str) -> bool:
+    """动效声明的值是否为「完全关闭」：时长为零或显式 none/false。"""
+    text = value.strip().rstrip(",").strip()
+    if text in _MOTION_OFF_VALUES:
+        return True
+    return re.fullmatch(r"0+(?:\.0+)?(?:s|ms)?", text) is not None
 
 
 def load_catalog(web: Path) -> list[dict]:
@@ -64,6 +82,11 @@ def scan(web: Path, build_inputs: list[Path]) -> list[Violation]:
                 violations.append(_violation(path, text, match.start(), rule))
         if path not in allowed_css:
             for match in _CSS_MOTION.finditer(text):
+                if match.group(3):
+                    violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
+                    continue
+                if _is_motion_off(match.group(2) or ""):
+                    continue
                 violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
 
     # 允许 CSS keyframes 的唯一前提不是目录名，而是组件确实经过统一包装层。

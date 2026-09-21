@@ -31,6 +31,28 @@ def test_rejects_unclassified_css_motion(tmp_path):
     assert sum(item.rule == "未适配的 CSS 动画/过渡" for item in found) == 3
 
 
+def test_allows_motion_declarations_that_turn_it_off(tmp_path):
+    """「适配」本身（把动画关掉）不是违规：ECharts 适配器靠它压成帧驱动。"""
+    found = _scan(
+        tmp_path,
+        "off.ts",
+        "const option = {\n"
+        "  animation: false,\n"
+        "  animationDuration: 0,\n"
+        "  animationDelay: 0,\n"
+        "  transition: 'none',\n"
+        "  transition: none,\n"
+        "  animationDelayUpdate: 0,\n"
+        "};",
+    )
+    assert not [item for item in found if item.rule == "未适配的 CSS 动画/过渡"]
+    # 真正的时间动效仍然被抓：零值只对「整体关闭」成立，非零延迟/时长必须报
+    found = _scan(tmp_path, "bad.css", ".x { animation-delay: 0.3s; transition: opacity 0.3s; }")
+    assert sum(item.rule == "未适配的 CSS 动画/过渡" for item in found) == 2
+    found = _scan(tmp_path, "ok.css", ".x { animation-delay: 0; transition-duration: 0ms; }")
+    assert not [item for item in found if item.rule == "未适配的 CSS 动画/过渡"]
+
+
 def test_rejects_effect_timer(tmp_path):
     found = _scan(tmp_path, "Bad.tsx", "useEffect(() => { setInterval(step, 10); }, []);")
     assert any(item.rule == "计时器" for item in found)

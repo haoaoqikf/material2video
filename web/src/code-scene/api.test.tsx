@@ -71,7 +71,8 @@ describe('探针协议 helper', () => {
     });
     expect(probe({ node: 'chart', inside: 'panel', schematic: true })).toEqual({
       'data-a2v-node': 'chart',
-      'data-a2v-inside': 'panel',
+      // inside 输出为选择器：K8 容器归属量测用它做 querySelector
+      'data-a2v-inside': '[data-a2v-node="panel"]',
       'data-a2v-schematic': '',
     });
   });

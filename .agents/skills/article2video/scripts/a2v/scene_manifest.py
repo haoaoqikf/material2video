@@ -79,16 +79,20 @@ def generate(
 
     modules: list[SceneModule] = []
     article_dir: str | None = None
+    workspace_root: str | None = None
     if any(True for _ in code_scenes.iter_code_scenes(data)):
         article = paths.for_storyboard(storyboard_path, content_root)
         modules = collect(data, article.source_dir)
         article_dir = str(article.source_dir.resolve())
+        workspace_root = str(article.workspace_root.resolve())
 
     manifest = {
         "webDir": str(web.resolve()),
         "outFile": GENERATED_MANIFEST.as_posix(),
         # Tailwind source 索引用：指向当前作品目录（scenes/ 与 assets/）
         "articleDir": article_dir,
+        # 指纹挂载用：作品文件以 __a2v_workspace__ 前缀记录可复核键
+        "workspaceRoot": workspace_root,
         "modules": [{"id": item.id, "module": str(item.path.resolve())} for item in modules],
     }
     manifest_path = web / MANIFEST_INPUT

@@ -99,8 +99,8 @@ export default Broken;
 """
 
 # ECharts 图表模块（任务 5.2）：useFrameChart 逐帧 setOption，
-# 数值由 progress 驱动——用于同帧重复截图与跨帧重放的确定性验证。
-FLOW_MODULE = """import { probe, useFrameChart, type A2VCodeScene } from '@a2v/scene';
+# 数值由 progress 驱动；入场透明度由帧号驱动（供动效扫描量测）。
+FLOW_MODULE = """import { frameStyle, probe, useFrameChart, type A2VCodeScene } from '@a2v/scene';
 
 const Flow: A2VCodeScene<{ text: string }> = ({ progress }) => {
   const chart = useFrameChart(
@@ -114,7 +114,11 @@ const Flow: A2VCodeScene<{ text: string }> = ({ progress }) => {
   return (
     <div
       ref={chart.ref}
-      style={{ position: 'absolute', left: 120, top: 560, width: 840, height: 640 }}
+      style={{
+        position: 'absolute', left: 120, top: 560, width: 840, height: 640,
+        // 入场淡入由帧号驱动：动效扫描（M 系列）要能在代码场景里量到它
+        ...frameStyle(Math.min(1, progress * 3), { opacity: true }),
+      }}
       {...probe({ node: 'flow-chart', schematic: true })}
     />
   );
@@ -311,6 +315,82 @@ class TestChartDeterminism:
                 verdicts = judge_frames(produce, [126, 135, 147], threshold=DEFAULT_PSNR_DB)
                 failed = [item.describe() for item in failures(verdicts)]
                 assert not failed, failed
+
+
+class TestReviewCoverage:
+    """任务 6.1/6.2：探针协议与 C/K/M 闸门对代码场景的覆盖。"""
+
+    @pytest.mark.slow
+    def test契约探针与KM闸门覆盖代码场景(self, mixed_env, tmp_path):
+        from a2v import inspect as inspect_mod
+
+        root, storyboard_path, keynote_path, _ = mixed_env
+        scenes = json.loads(keynote_path.read_text(encoding="utf-8"))["scenes"]
+        with serve_contract_page(keynote_path, root) as url:
+            with open_animated_page(url, timeout_ms=60000, width=1080, height=1920) as page:
+                report, extra = inspect_mod.run_inspect(
+                    page, scenes, tmp_path / "frames", tmp_path, preset="keynote"
+                )
+        # 契约探针识别代码场景并读到它的文本（不是静默跳过）
+        by_scene = {item["scene"]: item for item in extra["contract"]}
+        assert by_scene["s1"]["kind"] == "code"
+        assert by_scene["s1"]["declaredKind"] == "code"
+        assert any("第1幕" in text for text in by_scene["s1"]["seenText"])
+        assert by_scene["s1"]["protocolViolations"] == []
+        # 场景树半边照常工作
+        assert by_scene["s0"]["kind"] == "scene-tree"
+
+        # 契约与探针协议层面零错误（夹具画面稀疏会触发墨迹提示，与覆盖无关）
+        contract_errors = [
+            issue.format()
+            for issue in report.errors
+            if "#契约" in issue.path or "#探针协议" in issue.path
+        ]
+        assert not contract_errors, contract_errors
+
+        # 动效扫描量到代码场景的入场（frameStyle 驱动的淡入）
+        entrances = extra["motion"]["entrances"]
+        assert any(record["scene"] == "s4" for record in entrances), extra["motion"]["summary"]
+
+        # K 闸门对代码场景有实测条目，而不是全部跳过
+        gates = [gate for gate in extra["keynote"]["gates"] if gate["scene"] == "s1"]
+        assert gates, "keynote 闸门没有覆盖代码场景"
+        assert any(gate["status"] != "skipped" for gate in gates)
+
+    @pytest.mark.slow
+    def test缺失探针标记的代码场景严格评审失败(self, mixed_env, tmp_path):
+        from a2v import inspect as inspect_mod
+
+        root, storyboard_path, _, article = mixed_env
+        module_file = article / "scenes" / "gauge.tsx"
+        original = module_file.read_text(encoding="utf-8")
+        try:
+            # 夹具：不声明任何探针节点，还留一个无法解析的容器引用
+            module_file.write_text(
+                "import type { A2VCodeScene } from '@a2v/scene';\n"
+                "\n"
+                "const Naked: A2VCodeScene<{ text: string }> = ({ scene }) => {\n"
+                "  return <div style={{ padding: 40 }}>{scene.data.text}</div>;\n"
+                "};\n"
+                "\n"
+                "export default Naked;\n",
+                encoding="utf-8",
+            )
+            scene_manifest.generate(web_dir=WEB_DIR, storyboard_path=storyboard_path, content_root=root)
+            _build_contract_page()
+            scenes = json.loads(storyboard_path.read_text(encoding="utf-8"))["scenes"]
+            with serve_contract_page(storyboard_path, root) as url:
+                with open_animated_page(url, timeout_ms=60000, width=1080, height=1920) as page:
+                    report, extra = inspect_mod.run_inspect(
+                        page, scenes, tmp_path / "frames", tmp_path, preset=""
+                    )
+            messages = [issue.format() for issue in report.errors]
+            assert not report.ok
+            assert any("探针协议" in message and ("没有声明任何探针节点" in message) for message in messages)
+            probe_entry = next(item for item in extra["contract"] if item["scene"] == "s1")
+            assert not probe_entry["ok"]
+        finally:
+            module_file.write_text(original, encoding="utf-8")
 
 
 class TestTailwindSources:

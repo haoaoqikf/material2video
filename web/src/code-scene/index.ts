@@ -117,6 +117,11 @@ export type A2VProbeRole = 'hero' | 'headline' | 'title' | 'body' | 'label' | 'c
  * - 文字要被内容探针读到时必须带 `node` + `role`。
  *
  * 用法：`<div {...probe({ node: 'headline', role: 'headline' })}>…</div>`
+ *
+ * `inside` 声明「这段文字装在哪个容器里」，值是**节点 id**：
+ * `probe({ node: 'note', inside: 'panel' })` 会输出
+ * `data-a2v-inside="[data-a2v-node=\"panel\"]"`——K8 的容器归属量测
+ * 拿它做选择器查询，因此必须是可解析的选择器而不是裸 id。
  */
 export function probe(options: { node: string; role?: A2VProbeRole; inside?: string; schematic?: boolean }): {
   'data-a2v-node': string;
@@ -127,7 +132,7 @@ export function probe(options: { node: string; role?: A2VProbeRole; inside?: str
   return {
     'data-a2v-node': options.node,
     ...(options.role ? { 'data-a2v-role': options.role } : {}),
-    ...(options.inside ? { 'data-a2v-inside': options.inside } : {}),
+    ...(options.inside ? { 'data-a2v-inside': `[data-a2v-node="${options.inside}"]` } : {}),
     ...(options.schematic ? { 'data-a2v-schematic': '' } : {}),
   };
 }

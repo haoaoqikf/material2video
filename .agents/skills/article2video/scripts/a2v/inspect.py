@@ -69,7 +69,9 @@ class SceneProbe:
         return not self.missing_labels and self.has_any_text
 
 
-#: 读出当前可见场景的组件结构：kind 与每个 data-el 的文本
+#: 读出当前可见场景的组件结构：kind 与每个 data-el 的文本。
+#: 场景树原语用 `data-a2v-node-id`，代码场景探针用 `data-a2v-node`——
+#: 两者都读，混合时间轴的契约探针才不会静默漏掉自由布局的半边。
 _PROBE_SCRIPT = """
 () => {
   var scenes = document.querySelectorAll('[data-a2v-scene]');
@@ -87,11 +89,63 @@ _PROBE_SCRIPT = """
     var el = nodes[j];
     els[el.getAttribute('data-a2v-node-id')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();
   }
+  var codeWrap = host.querySelector('[data-a2v-code-scene]');
+  var kind = codeWrap ? 'code' : (host.getAttribute('data-scene-tree-version') ? 'scene-tree' : null);
+  if (codeWrap) {
+    var probed = codeWrap.querySelectorAll('[data-a2v-node]');
+    for (var k = 0; k < probed.length; k++) {
+      var el = probed[k];
+      els[el.getAttribute('data-a2v-node')] = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+    }
+  }
   return {
     sceneId: active.getAttribute('data-scene-id'),
-    kind: host.getAttribute('data-scene-tree-version') ? 'scene-tree' : null,
+    kind: kind,
     els: els
   };
+}
+"""
+
+#: 代码场景的最低 DOM 探针协议（任务 6.1）。检查当前**代码场景**：
+#: - 至少声明一个探针节点（完全没有标记的自由场景无法被内容探针读取，
+#:   画面坏了也只会「看起来正常」）；
+#: - 每个声明语义角色的元素必须带稳定节点 id（`data-a2v-node`）；
+#: - `data-a2v-inside` 声明的容器选择器必须真的解析到元素。
+#: 返回 violations 列表（空列表 = 协议通过）。
+_CODE_PROTOCOL_SCRIPT = """
+() => {
+  var active = null;
+  var scenes = document.querySelectorAll('[data-a2v-scene]');
+  for (var i = 0; i < scenes.length; i++) {
+    var style = window.getComputedStyle(scenes[i]);
+    if (style.display !== 'none' && style.visibility !== 'hidden') { active = scenes[i]; break; }
+  }
+  if (!active) { return { code: false, violations: [] }; }
+  var wrap = active.querySelector('[data-a2v-code-scene]');
+  if (!wrap) { return { code: false, violations: [] }; }
+  var violations = [];
+  var nodes = wrap.querySelectorAll('[data-a2v-node]');
+  if (nodes.length === 0) {
+    violations.push('代码场景没有声明任何探针节点（probe({ node, role })）：内容探针与 C/K 闸门无法读取这一幕');
+  }
+  var roled = wrap.querySelectorAll('[data-a2v-role]');
+  for (var j = 0; j < roled.length; j++) {
+    if (!roled[j].getAttribute('data-a2v-node')) {
+      violations.push('元素声明了 data-a2v-role 但缺 data-a2v-node：语义角色必须挂在稳定节点 id 上');
+    }
+  }
+  var insides = wrap.querySelectorAll('[data-a2v-inside]');
+  for (var k = 0; k < insides.length; k++) {
+    var selector = insides[k].getAttribute('data-a2v-inside');
+    try {
+      if (selector && !wrap.querySelector(selector) && !active.querySelector(selector)) {
+        violations.push('data-a2v-inside 的容器选择器解析不到元素：' + selector);
+      }
+    } catch (error) {
+      violations.push('data-a2v-inside 不是合法选择器：' + selector);
+    }
+  }
+  return { code: true, violations: violations };
 }
 """
 
@@ -262,6 +316,9 @@ def scene_labels(scene: dict[str, Any]) -> dict[str, str]:
 
 
 def declared_kind(scene: dict[str, Any]) -> str:
+    renderer = scene.get("renderer") or {}
+    if isinstance(renderer, dict) and renderer.get("kind") == "code":
+        return "code"
     return "scene-tree" if isinstance(scene.get("sceneTree"), dict) else ""
 
 
@@ -804,6 +861,15 @@ def run_inspect(
             has_any_text=bool(seen_texts) if probing else True,
         )
         judge_scene(probe, labels, report) if probing else None
+        # 代码场景的最低探针协议（任务 6.1）：在收尾帧上检查标记纪律。
+        # 缺标记的场景在这里硬失败——否则内容探针会静默跳过，画面坏了
+        # 也只会「看起来正常」。
+        protocol_violations: list[str] = []
+        if probing and expected_kind == "code":
+            protocol = page.evaluate(_CODE_PROTOCOL_SCRIPT) or {}
+            protocol_violations = list(protocol.get("violations") or [])
+            for violation in protocol_violations:
+                report.error(f"场景 {scene_id}#探针协议", violation)
         probes.append(
             {
                 "scene": probe.scene_id,
@@ -814,7 +880,8 @@ def run_inspect(
                 "seenText": sorted(seen_texts),
                 "lastFrameText": last_els,
                 "missingLabels": probe.missing_labels,
-                "ok": probe.ok,
+                "protocolViolations": protocol_violations,
+                "ok": probe.ok and not protocol_violations,
             }
         )
 

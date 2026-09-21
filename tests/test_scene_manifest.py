@@ -75,6 +75,8 @@ def restore_manifest(web_dir: Path):
     tailwind = web_dir / ".gen" / "active-tailwind.css"
     before = target.read_text(encoding="utf-8") if target.is_file() else None
     tailwind_before = tailwind.read_text(encoding="utf-8") if tailwind.is_file() else None
+    manifest = web_dir / ".gen" / "scene-manifest.json"
+    manifest_before = manifest.read_text(encoding="utf-8") if manifest.is_file() else None
     yield
     if before is None:
         subprocess.run(["node", "scripts/ensure-entry.mjs"], cwd=web_dir, check=False)
@@ -82,6 +84,10 @@ def restore_manifest(web_dir: Path):
         target.write_text(before, encoding="utf-8")
     if tailwind_before is not None:
         tailwind.write_text(tailwind_before, encoding="utf-8")
+    if manifest_before is not None:
+        manifest.write_text(manifest_before, encoding="utf-8")
+    else:
+        manifest.unlink(missing_ok=True)
 
 
 class TestManifestGeneration:
@@ -267,6 +273,68 @@ def _storyboard_with_module(article: Path, module: Path) -> Path:
         encoding="utf-8",
     )
     return storyboard
+
+
+class TestFingerprintCoverage:
+    """任务 6.3：指纹覆盖作品可达源码、本地资产与规范化清单。"""
+
+    def _make_code_article(self, tmp_path: Path, slug: str = "fingerprint"):
+        root = tmp_path / "content"
+        article = root / "videos" / slug
+        (article / "scenes").mkdir(parents=True)
+        (article / "assets").mkdir()
+        # 模块引用本地资产：可达性沿 import 走，资产进指纹靠它
+        (article / "scenes" / "chart.tsx").write_text(
+            "import mark from '../assets/mark.svg';\n"
+            "export default function Scene() {\n"
+            "  return String(mark);\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (article / "assets" / "mark.svg").write_text(
+            "<svg xmlns='http://www.w3.org/2000/svg'/>", encoding="utf-8"
+        )
+        storyboard = article / "storyboard.json"
+        storyboard.write_text(
+            json.dumps(_storyboard([{"kind": "code", "module": "chart"}]), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return root, article, storyboard
+
+    def test指纹覆盖作品模块资产与清单(self, tmp_path, web_dir):
+        from a2v import remotion
+
+        root, article, storyboard = self._make_code_article(tmp_path)
+        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
+        files = remotion.build_input_fingerprint(repo_root=web_dir.parent)["files"]
+        keys = list(files)
+        # 作品模块与资产用可复核的工作区键（不是只剩文件名）
+        assert any("videos/fingerprint/scenes/chart.tsx" in key for key in keys), keys
+        assert any("videos/fingerprint/assets/mark.svg" in key for key in keys), keys
+        # 规范化清单本身在指纹里
+        assert any(".gen/scene-manifest.json" in key for key in keys), keys
+
+    def test修改可达输入改变指纹_无关作品不影响(self, tmp_path, web_dir):
+        from a2v import remotion
+
+        root, article, storyboard = self._make_code_article(tmp_path)
+        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
+        before = remotion.build_input_fingerprint(repo_root=web_dir.parent)
+        module = article / "scenes" / "chart.tsx"
+        original = module.read_text(encoding="utf-8")
+        # 修改可达的作品模块 → 指纹变化（旧成片必须判 stale）
+        module.write_text(original + "// 修改画面\n", encoding="utf-8")
+        after = remotion.build_input_fingerprint(repo_root=web_dir.parent)
+        assert after["digest"] != before["digest"]
+        module.write_text(original, encoding="utf-8")
+        # 恢复之后指纹回到原值
+        assert remotion.build_input_fingerprint(repo_root=web_dir.parent)["digest"] == before["digest"]
+
+        # 无关作品的文件不在可达集合里：改动不影响指纹
+        other = root / "videos" / "unrelated"
+        (other / "scenes").mkdir(parents=True)
+        (other / "scenes" / "noise.tsx").write_text(SCENE_MODULE + "// 无关改动\n", encoding="utf-8")
+        assert remotion.build_input_fingerprint(repo_root=web_dir.parent)["digest"] == before["digest"]
 
 
 class TestGitIgnore:
