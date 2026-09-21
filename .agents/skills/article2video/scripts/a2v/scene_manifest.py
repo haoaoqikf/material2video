@@ -78,13 +78,17 @@ def generate(
         raise A2VError(f"分镜读取失败，无法生成代码场景清单：{exc}") from exc
 
     modules: list[SceneModule] = []
+    article_dir: str | None = None
     if any(True for _ in code_scenes.iter_code_scenes(data)):
         article = paths.for_storyboard(storyboard_path, content_root)
         modules = collect(data, article.source_dir)
+        article_dir = str(article.source_dir.resolve())
 
     manifest = {
         "webDir": str(web.resolve()),
         "outFile": GENERATED_MANIFEST.as_posix(),
+        # Tailwind source 索引用：指向当前作品目录（scenes/ 与 assets/）
+        "articleDir": article_dir,
         "modules": [{"id": item.id, "module": str(item.path.resolve())} for item in modules],
     }
     manifest_path = web / MANIFEST_INPUT

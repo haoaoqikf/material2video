@@ -72,12 +72,16 @@ def web_dir() -> Path:
 def restore_manifest(web_dir: Path):
     """测试前后恢复空清单：生成产物不入库，也不影响后续真实渲染。"""
     target = web_dir / ".gen" / "active-scenes.ts"
+    tailwind = web_dir / ".gen" / "active-tailwind.css"
     before = target.read_text(encoding="utf-8") if target.is_file() else None
+    tailwind_before = tailwind.read_text(encoding="utf-8") if tailwind.is_file() else None
     yield
     if before is None:
         subprocess.run(["node", "scripts/ensure-entry.mjs"], cwd=web_dir, check=False)
     else:
         target.write_text(before, encoding="utf-8")
+    if tailwind_before is not None:
+        tailwind.write_text(tailwind_before, encoding="utf-8")
 
 
 class TestManifestGeneration:
@@ -87,7 +91,7 @@ class TestManifestGeneration:
         storyboard.write_text(json.dumps(_storyboard([None, None]), ensure_ascii=False), encoding="utf-8")
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
         text = _generated(web_dir)
-        assert "ACTIVE_CODE_SCENES: Record<string, A2VCodeScene> = {}" in text
+        assert "ACTIVE_CODE_SCENES: Record<string, A2VCodeScene<any>> = {}" in text
         assert "import s0" not in text
 
     def test纯code分镜生成全部模块(self, tmp_path, web_dir):

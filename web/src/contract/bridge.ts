@@ -35,6 +35,50 @@ declare global {
 /** 单次 seek 的等待上限。超时报错比静默截图更有用。 */
 const SEEK_TIMEOUT_MS = 10_000;
 
+/** 代码场景首批本地资源（字体之外：图片等）的就绪等待上限。 */
+const CODE_READY_TIMEOUT_MS = 10_000;
+
+/**
+ * 收集代码场景包装器的就绪状态。
+ *
+ * `0` 表示还没完成首次提交与首批资源加载；`error` 表示本地资源加载失败
+ * ——那是硬失败，必须显式报错，不能把未完成画面截成空白帧。
+ */
+function codeSceneState(): { pending: number; errors: string[] } {
+  const wrappers = Array.from(document.querySelectorAll<HTMLElement>('[data-a2v-code-scene]'));
+  const errors: string[] = [];
+  let pending = 0;
+  for (const element of wrappers) {
+    const state = element.dataset.a2vCodeReady;
+    if (state === 'error') errors.push(element.dataset.a2vCodeError ?? '(未知错误)');
+    else if (state !== '1') pending += 1;
+  }
+  return { pending, errors };
+}
+
+/**
+ * 等待全部代码场景就绪。
+ *
+ * 清单里的场景在首帧全部挂载（非当前幕只是隐藏），因此就绪是**一次性**
+ * 状态：等所有包装器翻位即可，不需要按幕区分。
+ */
+async function waitForCodeScenes(): Promise<void> {
+  const start = Date.now();
+  for (;;) {
+    const { pending, errors } = codeSceneState();
+    if (errors.length > 0) {
+      throw new Error(`代码场景本地资源加载失败：${errors.join('；')}`);
+    }
+    if (pending === 0) return;
+    if (Date.now() - start > CODE_READY_TIMEOUT_MS) {
+      throw new Error(
+        `代码场景未就绪：${pending} 个场景在 ${CODE_READY_TIMEOUT_MS}ms 内没有完成首批资源加载`,
+      );
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  }
+}
+
 /** 等两次 rAF：第一次进入下一帧，第二次确保那一帧已经画出来。 */
 function nextPaint(): Promise<void> {
   return new Promise((resolve) => {
@@ -139,6 +183,8 @@ export function createContract({ player, storyboard }: CreateContractOptions): A
       // 这一步与渲染入口的 `delayRender` 等的是**同一个** Promise。
       await ensureFonts();
       await document.fonts.ready;
+      // 代码场景与首批本地资源：未就绪时明确失败，不截空白帧
+      await waitForCodeScenes();
       const target = Math.min(Math.max(player.getCurrentFrame(), 0), durationInFrames - 1);
       await settleOnFrame(player, target);
       await document.fonts.ready;
@@ -150,6 +196,8 @@ export function createContract({ player, storyboard }: CreateContractOptions): A
       }
       const clamped = Math.min(Math.max(Math.floor(frame), 0), durationInFrames - 1);
       await settleOnFrame(player, clamped);
+      // 跨幕切换可能首次挂载新的代码场景：等它就绪再返回
+      await waitForCodeScenes();
       // 字体可能在首次取档时被替换，落到帧之后再确认一次
       await document.fonts.ready;
     },

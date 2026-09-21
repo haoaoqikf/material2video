@@ -28,6 +28,9 @@
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
+/* Tailwind source 索引：由清单生成器按当前作品整体覆盖（无规则，只有
+   @source 指令），只把当前作品的 scenes/ 与 assets/ 交给类名扫描。 */
+@import '../../.gen/active-tailwind.css';
 @import './tokens.css';
 @import './base.css';
 @import './theme.css';

@@ -24,6 +24,19 @@ export default defineConfig({
       '@': `${here}src`,
       // 作品代码场景可导入的唯一项目内部模块（依赖白名单的成员）
       '@a2v/scene': `${here}src/code-scene/index.ts`,
+      // 依赖白名单的裸包：作品模块在仓库外的内容根，node_modules
+      // 向上查找找不到 web/ 的依赖，这里固定指到本工程安装的版本，
+      // 与 tsconfig paths / remotion.config.ts 的别名保持同一口径。
+      // 具体路径排在包名前面，避免前缀匹配吃掉子路径。
+      'react/jsx-runtime': `${here}node_modules/react/jsx-runtime`,
+      'react-dom/client': `${here}node_modules/react-dom/client`,
+      react: `${here}node_modules/react`,
+      'react-dom': `${here}node_modules/react-dom`,
+      remotion: `${here}node_modules/remotion`,
+      echarts: `${here}node_modules/echarts`,
+      '@dagrejs/dagre': `${here}node_modules/@dagrejs/dagre`,
+      'lucide-react': `${here}node_modules/lucide-react`,
+      '@remotion/': `${here}node_modules/@remotion/`,
     },
   },
   build: {

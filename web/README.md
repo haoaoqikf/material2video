@@ -83,6 +83,20 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 两条路径编译**同一份** `src/` 与同一个样式入口 `src/styles/index.css`，
 所以体检量到的画面与成片描述的是同一套代码。这是「预览与导出同源」在构建层的落实。
 
+## Tailwind 与作品代码场景
+
+样式入口通过生成的 source 索引（`.gen/active-tailwind.css`，由
+`scripts/gen-active-scenes.mjs` 按当前作品整体覆盖）把**当前作品**的
+`scenes/` 与 `assets/` 交给 Tailwind 类名扫描；其他作品的文件不会被扫进来。
+
+作品代码场景里写 Tailwind 类名必须用**完整字符串**：
+
+- 直接写在 `className` 里的类名会进构建 CSS：`<div className="rounded-xl p-4">`；
+- 完整字符串映射也会进构建 CSS：`const cls = { box: 'gap-6 border-2' }`；
+- **运行时拼接的类名不保证生成**：`className={`rounded-${size}`}` 这种写法
+  扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
+  需要按状态切换时，把完整类名写进映射对象再取用。
+
 ## 渲染契约（`window.__A2V__` version 2）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
