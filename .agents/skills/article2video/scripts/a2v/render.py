@@ -330,6 +330,7 @@ def render_with_remotion(
     storyboard_url: str | None = None,
     storyboard_origin: str | Path | None = None,
     workspace_root: str | Path | None = None,
+    content_root: str | Path | None = None,
 ) -> RenderResult:
     """用 React composition（Remotion）逐帧渲染并编码成片。
 
@@ -366,7 +367,10 @@ def render_with_remotion(
 
         bundle_started = time.monotonic()
         bundle_dir = remotion.bundle(
-            web_dir=directory, out_dir=temp / "bundle", storyboard_path=storyboard_path
+            web_dir=directory,
+            out_dir=temp / "bundle",
+            storyboard_path=storyboard_path,
+            content_root=content_root,
         )
         logger.info("打包 composition 用了 %.1f 秒", time.monotonic() - bundle_started)
 

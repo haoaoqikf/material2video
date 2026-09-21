@@ -46,6 +46,8 @@ Config.overrideWebpackConfig((currentConfiguration) => {
       alias: {
         ...withTailwind.resolve?.alias,
         '@': srcDir,
+        // 作品代码场景可导入的唯一项目内部模块（与 vite/tsconfig 同一约定）
+        '@a2v/scene': path.resolve(srcDir, 'code-scene/index.ts'),
       },
     },
   };

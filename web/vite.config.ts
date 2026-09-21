@@ -20,7 +20,11 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { '@': `${here}src` },
+    alias: {
+      '@': `${here}src`,
+      // 作品代码场景可导入的唯一项目内部模块（依赖白名单的成员）
+      '@a2v/scene': `${here}src/code-scene/index.ts`,
+    },
   },
   build: {
     outDir: 'dist/contract',

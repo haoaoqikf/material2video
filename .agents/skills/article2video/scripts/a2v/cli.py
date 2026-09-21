@@ -210,6 +210,7 @@ def main_render(argv: list[str] | None = None) -> int:
                 storyboard_url=source_url,
                 storyboard_origin=args.storyboard,
                 workspace_root=article.workspace_root if article else None,
+                content_root=args.content_root,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
@@ -426,7 +427,7 @@ def main_preview(argv: list[str] | None = None) -> int:
         return _EXIT_INVALID_INPUT
     try:
         article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-        _build_contract_for(args.storyboard, article.repo_root)
+        _build_contract_for(args.storyboard, article.repo_root, args.content_root)
         page = contract_page.require_contract_page(article.repo_root)
         page_mounts = contract_page.web_mounts(article.repo_root)
         source_url = _storyboard_url(args.storyboard, article)
@@ -477,12 +478,16 @@ def main_preview(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _build_contract_for(storyboard: str | Path, repo_root: Path) -> None:
-    """为当前作品生成入口并构建契约页，保证预览/体检与导出使用同一模块。"""
+def _build_contract_for(
+    storyboard: str | Path, repo_root: Path, content_root: str | Path | None = None
+) -> None:
+    """为当前作品生成入口与代码场景清单并构建契约页，保证预览/体检与导出使用同一模块。"""
     from . import remotion as remotion_mod
 
     web = contract_page.web_dir(repo_root)
-    remotion_mod.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    remotion_mod.prepare_composition_entry(
+        web_dir=web, storyboard_path=storyboard, content_root=content_root
+    )
     remotion_mod._run(
         [remotion_mod.program("pnpm"), "build"],
         cwd=web,
@@ -507,7 +512,7 @@ def main_review(argv: list[str] | None = None) -> int:
     page_mounts: dict[str, Path] | None = None
     try:
         article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-        _build_contract_for(args.storyboard, article.repo_root)
+        _build_contract_for(args.storyboard, article.repo_root, args.content_root)
         page_file = contract_page.require_contract_page(article.repo_root)
         page_mounts = contract_page.web_mounts(article.repo_root)
     except A2VError as exc:

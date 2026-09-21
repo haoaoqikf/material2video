@@ -27,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import assets, contract_page, source_policy
+from . import assets, contract_page, scene_manifest, source_policy
 from .browser import PageContract
 from .errors import A2VError
 from .media import file_digest, fingerprint
@@ -174,9 +174,18 @@ def _run(
     return subprocess.CompletedProcess(command, returncode, "", "")
 
 
-def prepare_composition_entry(*, web_dir: Path, storyboard_path: str | Path) -> Path:
-    """生成共享场景树 composition 入口；作品专属模块不再进入运行时。"""
-    del storyboard_path
+def prepare_composition_entry(
+    *,
+    web_dir: Path,
+    storyboard_path: str | Path,
+    content_root: str | Path | None = None,
+) -> Path:
+    """生成共享 composition 入口与当前作品的代码场景静态清单。
+
+    清单在每次 preview / review / render 前整体覆盖：只包含当前作品分镜
+    引用的模块，切换作品不会残留上一个作品的引用。分镜声明了代码场景时，
+    模块在这里解析归属并确认存在——缺失会在打包/起浏览器之前失败。
+    """
     target = web_dir / GENERATED_ENTRY
     target.parent.mkdir(parents=True, exist_ok=True)
     source = (
@@ -186,10 +195,20 @@ def prepare_composition_entry(*, web_dir: Path, storyboard_path: str | Path) -> 
     )
     if not target.is_file() or target.read_text(encoding="utf-8") != source:
         target.write_text(source, encoding="utf-8")
+    scene_manifest.generate(
+        web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root
+    )
     return target
 
 
-def bundle(*, web_dir: Path, out_dir: Path, storyboard_path: str | Path, timeout_s: float = _BUNDLE_TIMEOUT_S) -> Path:
+def bundle(
+    *,
+    web_dir: Path,
+    out_dir: Path,
+    storyboard_path: str | Path,
+    content_root: str | Path | None = None,
+    timeout_s: float = _BUNDLE_TIMEOUT_S,
+) -> Path:
     """把 composition 打包成静态产物，交给后续的取元数据与渲染复用。
 
     走 CLI 而不是 `@remotion/bundler` 的 `bundle()`：CLI 会读 `remotion.config.ts`，
@@ -199,7 +218,7 @@ def bundle(*, web_dir: Path, out_dir: Path, storyboard_path: str | Path, timeout
     每次渲染用一个**新的**打包目录：复用固定目录会在源码改动后渲出旧画面，
     而这种错误没有任何症状——成片看起来正常，只是它是上一版。
     """
-    prepare_composition_entry(web_dir=web_dir, storyboard_path=storyboard_path)
+    prepare_composition_entry(web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root)
     violations = source_policy.scan(web_dir, build_inputs())
     if violations:
         detail = "\n".join(item.render(web_dir) for item in violations)

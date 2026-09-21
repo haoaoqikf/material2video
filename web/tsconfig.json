@@ -19,9 +19,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@a2v/scene": ["./src/code-scene/index.ts"]
     },
     "types": ["node"]
   },
-  "include": ["src", "scripts", "vite.config.ts", "remotion.config.ts"]
+  "include": ["src", "scripts", ".gen", "vite.config.ts", "remotion.config.ts"]
 }

@@ -6,10 +6,10 @@
 
 ## 2. 代码场景 API 与静态桥接
 
-- [ ] 2.1 新增公开的代码场景 TypeScript API，定义场景数据、全局帧、幕内帧、进度、fps、画布、主题、稳定随机与探针属性，并用类型测试验证作品组件能编译且不能声明自己的时间轴字段。
-- [ ] 2.2 实现当前作品静态场景清单生成器，生成规范化的 `web/.gen/active-scenes.ts` 并在每次 preview/review/render 前覆盖旧清单；用纯 tree、纯 code、混合及连续切换两支作品的测试验证无残留引用。
-- [ ] 2.3 让静态桥接支持显式外部内容根和 Windows/POSIX 路径转义，并用跨根夹具验证生成 import 可由 TypeScript 与 bundler 解析。
-- [ ] 2.4 把生成目录及作品代码产物保持在 Git 忽略范围，并用 `git status --ignored` 检查生成文件不会进入版本控制。
+- [x] 2.1 新增公开的代码场景 TypeScript API，定义场景数据、全局帧、幕内帧、进度、fps、画布、主题、稳定随机与探针属性，并用类型测试验证作品组件能编译且不能声明自己的时间轴字段。
+- [x] 2.2 实现当前作品静态场景清单生成器，生成规范化的 `web/.gen/active-scenes.ts` 并在每次 preview/review/render 前覆盖旧清单；用纯 tree、纯 code、混合及连续切换两支作品的测试验证无残留引用。
+- [x] 2.3 让静态桥接支持显式外部内容根和 Windows/POSIX 路径转义，并用跨根夹具验证生成 import 可由 TypeScript 与 bundler 解析。
+- [x] 2.4 把生成目录及作品代码产物保持在 Git 忽略范围，并用 `git status --ignored` 检查生成文件不会进入版本控制。
 
 ## 3. 依赖白名单与源码安全闸门
 
