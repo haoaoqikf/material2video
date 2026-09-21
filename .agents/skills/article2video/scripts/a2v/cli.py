@@ -579,6 +579,9 @@ def main_review(argv: list[str] | None = None) -> int:
                 page_report, extra = inspect_mod.run_inspect(
                     page, scenes, out_dir / "frames", out_dir, preset=preset
                 )
+                # 运行期隔离（任务 3.3）：被阻断请求、页面异常、未处理 Promise
+                # 与控制台 error 都计为错误，而不是静默放行。
+                runtime_violations = page.drain_violations()
     except (A2VError, OSError, ValueError) as exc:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
@@ -588,6 +591,8 @@ def main_review(argv: list[str] | None = None) -> int:
 
     for issue in page_report.issues:
         combined.add(issue.level, issue.path, issue.message)
+    for violation in runtime_violations:
+        combined.error("运行期隔离", violation)
     # 观感闸门默认只提示、不拦：画面能用但不够发布会级，最终判断归人。
     # 但**溢出**是例外——文字被裁掉或压出安全区属于画面坏了，与「不是废片」
     # 同类。它必须影响错误数与退出码，否则闸门报了失败而 CI 看到的是 0 个错误。

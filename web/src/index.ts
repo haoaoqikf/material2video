@@ -1,6 +1,11 @@
 import { cancelRender, continueRender, delayRender, registerRoot } from 'remotion';
 import { ensureFonts } from './fonts';
+import { installOfflineGuard } from './runtime/offline-guard';
 import { RemotionRoot } from './Root';
+
+// 运行期隔离：Remotion 的 Chromium 同样不许发出非本地请求；
+// 静态闸门管源码，这一层管运行期（拼接 URL 之类绕过静态检查的写法）。
+installOfflineGuard();
 
 /**
  * Remotion 的渲染入口。`remotion render src/index.ts A2V --props <分镜>` 从这里开始。

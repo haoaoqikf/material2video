@@ -6,10 +6,13 @@ import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
 import { totalFrames } from '@/runtime/timeline';
 import { createContract, type A2VContractV2 } from './bridge';
+import { installOfflineGuard } from '@/runtime/offline-guard';
 import '@/styles/index.css';
 
 // 尽早开始加载字体：`ready()` 会等它，但它不必等到那时才开始
 void ensureFonts();
+// 运行期隔离：契约页路径对非本地请求先阻断，违规由体检读出并计为失败
+installOfflineGuard();
 
 /**
  * 渲染契约页。

@@ -20,8 +20,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
-from playwright.sync_api import Browser, Error as PlaywrightError
+from playwright.sync_api import Browser, Error as PlaywrightError, Route
 from playwright.sync_api import Page, Playwright, sync_playwright
 
 from .contract_page import CONTRACT_VERSION
@@ -32,6 +33,21 @@ logger = logging.getLogger(__name__)
 
 class BrowserError(A2VError):
     """页面加载或契约检查失败。"""
+
+
+def is_local_url(url: str) -> bool:
+    """URL 是否指向本机或非网络资源；与运行期 offline guard 同一口径。
+
+    允许：相对路径、``data:``/``blob:``/``about:``、本机环回（localhost、
+    127.0.0.1、::1）。其余一律视为非本地——预览、评审与渲染都必须离线可跑。
+    """
+    if url.startswith(("data:", "blob:", "about:")):
+        return True
+    parsed = urlparse(url)
+    if parsed.scheme in ("http", "https"):
+        host = (parsed.hostname or "").lower()
+        return host in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+    return parsed.scheme in ("", "file")
 
 
 @dataclass
@@ -54,12 +70,29 @@ class AnimatedPage:
         contract: PageContract,
         browser: Browser,
         playwright: Playwright,
+        violations: list[str] | None = None,
     ) -> None:
         self._page = page
         self._browser = browser
         self._playwright = playwright
         self._closed = False
         self.contract = contract
+        #: 运行期隔离违规（被阻断请求、页面异常、控制台 error、未处理 Promise）。
+        self.violations = violations if violations is not None else []
+
+    def drain_violations(self) -> list[str]:
+        """取走已记录的运行期违规；调用方把它们并入失败而非警告。
+
+        静默跳过等于把「画面在乱来」当成「画面正常」；违规一律计为错误。
+        """
+        found, self.violations = self.violations, []
+        try:
+            unhandled = self._page.evaluate("() => window.__A2V_UNHANDLED__ || []")
+        except Exception:  # noqa: BLE001 - 页面已关闭时不阻塞清理
+            unhandled = []
+        for reason in unhandled or []:
+            found.append(f"未处理的 Promise: {reason}")
+        return found
 
     def __enter__(self) -> "AnimatedPage":
         return self
@@ -136,6 +169,35 @@ def open_animated_page(
         viewport = {"width": width, "height": height} if width and height else None
         page = browser.new_page(viewport=viewport, device_scale_factor=1)
 
+        # 运行期隔离（任务 3.3）：阻断非本地请求 + 收集失败信号。
+        # 四类信号都算违规：被阻断的请求、页面异常、未处理 Promise、控制台 error。
+        violations: list[str] = []
+
+        def _on_route(route: Route) -> None:
+            url = route.request.url
+            if is_local_url(url):
+                route.continue_()
+                return
+            violations.append(f"被阻断的非本地请求: {url}")
+            route.abort()
+
+        def _on_page_error(error: Exception) -> None:
+            violations.append(f"页面异常: {error}")
+
+        def _on_console(message: Any) -> None:
+            if message.type == "error":
+                violations.append(f"控制台 error: {message.text}")
+
+        page.route("**/*", _on_route)
+        page.on("pageerror", _on_page_error)
+        page.on("console", _on_console)
+        page.add_init_script(
+            "window.addEventListener('unhandledrejection', (event) => {"
+            "  window.__A2V_UNHANDLED__ = window.__A2V_UNHANDLED__ || [];"
+            "  window.__A2V_UNHANDLED__.push(String(event.reason));"
+            "});"
+        )
+
         # 收集页面侧报错，契约未就绪时把它一并抛出，避免只看到「未定义」
         diagnostics: list[str] = []
         page.on("pageerror", lambda error: diagnostics.append(f"页面异常: {error}"))
@@ -194,7 +256,7 @@ def open_animated_page(
 
         # 等待字体与首帧绘制完成；契约要求 ready() 在画面可用后 resolve。
         page.evaluate("() => window.__A2V__.ready()")
-        return AnimatedPage(page, contract, browser, playwright)
+        return AnimatedPage(page, contract, browser, playwright, violations)
     except PlaywrightError as exc:
         _teardown(browser, playwright)
         raise BrowserError(f"浏览器加载页面失败: {exc}") from exc

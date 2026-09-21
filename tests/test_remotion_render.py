@@ -23,8 +23,33 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "declarative-number" / "storyboard.json"
 
 from a2v import remotion, render  # noqa: E402
+from a2v import scene_manifest  # noqa: E402
+from a2v import storyboard as sb  # noqa: E402
 
 WEB = ROOT / "web"
+
+
+def _minimal_storyboard() -> dict:
+    """结构完整的最小分镜（tree 场景），供入口写入测试使用。"""
+    return {
+        "version": 2,
+        "schemaVersion": 2,
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
+        "scenes": [
+            {
+                "id": "opening",
+                "type": "title",
+                "durationInFrames": 30,
+                "data": {"text": "开场"},
+                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+                "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
+                "motions": [],
+            }
+        ],
+    }
 
 
 def _node_ready() -> bool:
@@ -43,25 +68,33 @@ requires_node = pytest.mark.skipif(
 
 # ---------------------------------------------------------------- 边界
 
-def test_prepare_composition_entry_ignores_article_scenes(tmp_path):
+def test_prepare_composition_entry_ignores_article_scenes(tmp_path, monkeypatch):
+    """旧布局的作品级 scenes.tsx 不影响共享入口；清单按分镜重建。"""
     web = tmp_path / "web"
     article = tmp_path / "examples" / "demo"
     article.mkdir(parents=True)
     scenes = article / "scenes.tsx"
     scenes.write_text("export default () => null;", encoding="utf-8")
-    target = remotion.prepare_composition_entry(
-        web_dir=web, storyboard_path=article / "storyboard.json"
-    )
-    assert target == web / remotion.GENERATED_ENTRY
-    assert "A2VComposition" in target.read_text(encoding="utf-8")
-
-
-def test_prepare_composition_entry_falls_back_to_shared_composition(tmp_path):
-    web = tmp_path / "web"
-    storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
+    storyboard = article / "storyboard.json"
+    storyboard.write_text(json.dumps(_minimal_storyboard(), ensure_ascii=False), encoding="utf-8")
+    # 清单生成需要前端工程环境；入口写入本身在这里单独验证（生成器
+    # 的行为由 tests/test_scene_manifest.py 用真实 web/ 覆盖）
+    monkeypatch.setattr(scene_manifest, "generate", lambda **_kwargs: None)
     target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
     assert target == web / remotion.GENERATED_ENTRY
     assert "A2VComposition" in target.read_text(encoding="utf-8")
+
+
+def test_prepare_composition_entry_requires_storyboard(tmp_path):
+    """分镜缺失时明确报错：清单不能悄悄沿用上一支作品的残留。"""
+    from a2v.errors import A2VError
+
+    web = tmp_path / "web"
+    storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
+    with pytest.raises(A2VError, match="分镜读取失败"):
+        remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    # 共享入口仍然先写好（它不依赖分镜内容）
+    assert "A2VComposition" in (web / remotion.GENERATED_ENTRY).read_text(encoding="utf-8")
 
 
 def test_missing_node_modules_reports_the_install_command(tmp_path):

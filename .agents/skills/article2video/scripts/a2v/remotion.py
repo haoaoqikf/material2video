@@ -27,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import assets, contract_page, scene_manifest, source_policy
+from . import assets, code_gate, code_scenes, contract_page, paths, scene_manifest, source_policy
 from .browser import PageContract
 from .errors import A2VError
 from .media import file_digest, fingerprint
@@ -184,7 +184,8 @@ def prepare_composition_entry(
 
     清单在每次 preview / review / render 前整体覆盖：只包含当前作品分镜
     引用的模块，切换作品不会残留上一个作品的引用。分镜声明了代码场景时，
-    模块在这里解析归属并确认存在——缺失会在打包/起浏览器之前失败。
+    模块在这里解析归属并确认存在——缺失会在打包/起浏览器之前失败；
+    依赖白名单与源码安全闸门也在这里执行，违规即终止，预览与导出都不会开始。
     """
     target = web_dir / GENERATED_ENTRY
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -198,7 +199,33 @@ def prepare_composition_entry(
     scene_manifest.generate(
         web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root
     )
+    _check_code_scene_boundaries(
+        web_dir=web_dir, storyboard_path=Path(storyboard_path), content_root=content_root
+    )
     return target
+
+
+def _check_code_scene_boundaries(
+    *, web_dir: Path, storyboard_path: Path, content_root: str | Path | None
+) -> None:
+    """对当前作品的代码场景执行依赖白名单与安全闸门。
+
+    只有分镜声明了代码场景时才解析归属；违规一次性全部列出，
+    让 AI 一次修完而不是改一个撞一个。
+    """
+    try:
+        data = json.loads(storyboard_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RemotionError(f"分镜读取失败，无法检查代码场景边界：{exc}") from exc
+    if not any(True for _ in code_scenes.iter_code_scenes(data)):
+        return
+    article = paths.for_storyboard(storyboard_path, content_root)
+    violations = code_gate.check_storyboard(
+        article_dir=article.source_dir, storyboard_data=data
+    )
+    if violations:
+        detail = "\n".join(v.render(web_dir) for v in violations)
+        raise RemotionError(f"代码场景违反依赖白名单或安全边界：\n{detail}")
 
 
 def bundle(
