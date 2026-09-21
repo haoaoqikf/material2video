@@ -266,11 +266,17 @@ def _storyboard_with_module(article: Path, module: Path) -> Path:
 
 
 class TestGitIgnore:
-    """任务 2.4：生成目录与作品代码产物不入库。"""
+    """任务 2.4：生成目录与作品代码产物不入库。
 
-    def test生成文件被git忽略(self, tmp_path, web_dir):
+    本用例在**真实仓库**里检查忽略规则（`videos/` 与 `web/.gen/` 的忽略
+    约定必须对仓库本身成立）。注意：绝不在仓库里创建或覆盖仓库标记等
+    共享文件；作品目录直接落在已被忽略的 `videos/` 下，归属解析用真实标记。
+    """
+
+    def test生成文件被git忽略(self, web_dir):
         repo_root = web_dir.parent
-        article = _make_project(repo_root, "ignored-slug")
+        article = repo_root / "videos" / "ignored-slug-manifest-test"
+        article.mkdir(parents=True, exist_ok=True)
         (article / "scenes").mkdir(exist_ok=True)
         (article / "scenes" / "intro.tsx").write_text(SCENE_MODULE, encoding="utf-8")
         storyboard = article / "storyboard.json"
@@ -278,23 +284,30 @@ class TestGitIgnore:
             json.dumps(_storyboard([{"kind": "code", "module": "intro"}]), ensure_ascii=False),
             encoding="utf-8",
         )
-        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
-        # git status --ignored 把生成文件列为忽略，而不是未跟踪
-        completed = subprocess.run(
-            ["git", "status", "--ignored", "--porcelain", "web/.gen", "videos"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-        )
-        assert completed.returncode == 0
-        lines = completed.stdout.splitlines()
-        # porcelain 把整个忽略目录折叠为一行：`!! web/.gen/`
-        assert any(line.startswith("!! web/.gen/") for line in lines)
-        assert any(line.startswith("!! videos/") for line in lines)
-        tracked = subprocess.run(
-            ["git", "ls-files", "web/.gen", "videos/ignored-slug"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-        )
-        assert tracked.stdout.strip() == ""
+        try:
+            scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
+            # git status --ignored 把生成文件列为忽略，而不是未跟踪
+            completed = subprocess.run(
+                ["git", "status", "--ignored", "--porcelain", "web/.gen", "videos"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            assert completed.returncode == 0
+            lines = completed.stdout.splitlines()
+            # porcelain 把整个忽略目录折叠为一行：`!! web/.gen/`
+            assert any(line.startswith("!! web/.gen/") for line in lines)
+            assert any(line.startswith("!! videos/") for line in lines)
+            tracked = subprocess.run(
+                ["git", "ls-files", "web/.gen", "videos/ignored-slug-manifest-test"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+            assert tracked.stdout.strip() == ""
+        finally:
+            shutil.rmtree(article, ignore_errors=True)
