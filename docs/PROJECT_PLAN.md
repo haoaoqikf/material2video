@@ -748,12 +748,43 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
 - ~~「契约页（Player）可以直接承担导出」~~——Player 服务于预览与体检，
   导出必须走 Remotion 渲染器；两者共用同一 composition 源码，而不是共用同一运行时进程。
 
+### 第九阶段：场景级代码双轨 —— 已实现
+
+受控原语表达不了的图表面板、关系图与定制 SVG，允许在**个别幕**上声明
+`renderer: { kind: "code", module: "…" }`，把整幕画面交给作品 `scenes/` 下的
+TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
+`openspec/changes/archive/` 归档）：
+
+- **模块契约**：默认导出 `A2VCodeScene<Data>`，注入字段封闭（`scene.data`、
+  `frame`、`localFrame`、`progress`、`fps`、`canvas`、`theme`、稳定种子 `random`）——
+  分镜仍是顺序、时长与内容的单一真源，代码模块无法形成第二套时间轴；
+- **能力白名单**：只允许 `react`/`react-dom`/`remotion`/`echarts`/`@dagrejs/dagre`/
+  `lucide-react`/`@a2v/scene`，版本由共享工程锁定；导入白名单外的裸包在构建前失败，
+  且不会尝试安装。作品模块经静态清单（`web/.gen/active-scenes.ts`）接入共享 composition，
+  切换作品不残留上一个作品的模块；
+- **确定性适配**：`@a2v/scene` 提供 ECharts（动画强制关闭、逐帧 `setOption`）、
+  Dagre（稳定排序 + 冻结布局）、Lucide（静态 SVG 组件）、`frameStroke`/`frameStyle`
+  与 `createSceneRandom`（mulberry32 稳定种子随机）；
+- **双层边界**：静态安全门（动态求值、网络、Node/进程/文件系统、外部 URL、
+  CSS 时间动效——「关闭」形态除外）+ 渲染期离线隔离（非本地请求一律阻断并计为错误）。
+  这是审查边界，不是操作系统级沙箱：模块是作者编写并入库审查的代码；
+- **统一体检**：代码场景输出最小 DOM 探针协议（`data-a2v-node`/`-role`/`-inside`/
+  `schematic`），与场景树共用契约页、C/K/M 量测；协议缺失在严格评审里计为错误；
+  `review.py --check-determinism` 做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB）；
+- **溯源扩展**：当前作品可达源码、本地资产与静态清单进入构建输入指纹
+  （作品文件记 `__a2v_workspace__/…` 键，内容根在仓库之外也可复核）；
+- **验证**：混合双轨端到端测试（跨渲染器寻帧、主题一致、图表逐帧判定、
+  运行期隔离、Tailwind 源码索引）、安全门规则级测试与
+  [`examples/code-scenes/`](../examples/code-scenes/storyboard.json)
+  （1 幕场景树 + 4 幕代码场景）全片渲染、评审与溯源复核全部通过；
+  契约细节见 [代码场景](../.agents/skills/article2video/references/code-scenes.md)。
+
 ## 多篇文章的目录与产物
 
 项目要长期维护多篇文章，因此目录与产物位置是稳定约定而非临时安排：
 
 ```text
-<工作区根>/videos/<slug>/{article.md, storyboard.json}  # 内容不入库
+<工作区根>/videos/<slug>/{article.md, storyboard.json, scenes/, assets/}  # 内容不入库；scenes/ 仅代码场景需要
 <工作区根>/outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
 <工作区根>/outputs/examples/<slug>/                                   # 示例产物独立一层
 ```

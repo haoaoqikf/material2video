@@ -33,6 +33,7 @@
 ├── videos/<slug>/                    # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md
 │   ├── storyboard.json
+│   ├── scenes/                       # 代码场景模块（renderer.code），按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
 └── outputs/<slug>/                   # 成片与中间产物（不入库）
     ├── silent.mp4                    # 最新无声成片
@@ -58,12 +59,16 @@
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
 React composition（Remotion），由场景树递归解释器按分镜逐幕绘制。
-作品专属画面模块（`scenes.tsx`）已随 v2 场景树架构移除，任何作品都不再接进
-专属入口；需要新表达时按原语注册表流程新增通用原语。
+需要新表达时按原语注册表流程新增通用原语；个别幕需要独特的图表面板、
+关系图或定制 SVG 时，可以在该幕声明 `renderer.code`，模块放在作品目录的
+`scenes/` 下（`videos/<slug>/scenes/` 或 `examples/<slug>/scenes/`，与分镜同目录），
+本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
 
 本篇专用素材（`videos/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过
 `/__a2v_web__/` 别名挂载，内容根在仓库之外时同样可达。
+代码场景的本地资产用打包器导入（`import markUrl from '../assets/mark.png'`），
+构建时随作品源码一起进入依赖白名单检查与指纹。
 
 ## 归属推导
 

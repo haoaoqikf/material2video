@@ -95,7 +95,7 @@ def generate(
         "workspaceRoot": workspace_root,
         "modules": [{"id": item.id, "module": str(item.path.resolve())} for item in modules],
     }
-    manifest_path = web / MANIFEST_INPUT
+    manifest_path = (web / MANIFEST_INPUT).resolve()
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

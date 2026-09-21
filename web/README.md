@@ -83,6 +83,24 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 两条路径编译**同一份** `src/` 与同一个样式入口 `src/styles/index.css`，
 所以体检量到的画面与成片描述的是同一套代码。这是「预览与导出同源」在构建层的落实。
 
+## 作品代码场景（`renderer.code`）
+
+个别幕可以声明 `renderer.code`，把画面交给作品 `scenes/` 下的 TSX 模块。模块契约、
+依赖白名单、探针协议与确定性纪律的**权威文档**在
+[代码场景](../.agents/skills/article2video/references/code-scenes.md)，
+这里只记 web 工程侧的接法：
+
+- 静态清单 `.gen/active-scenes.ts`（由 `scripts/gen-active-scenes.mjs` 按当前作品
+  整体重建）持有一个 `Record<string, A2VCodeScene<any>>` 映射；
+  `src/compositions/CodeSceneHost.tsx` 按模块标识取组件渲染，缺失模块直接抛错；
+- 作品模块通过别名 `@a2v/scene` 导入 `src/code-scene/index.ts`——这是作品可导入的
+  **唯一**项目内部 API；tsconfig paths、Vite 与 Remotion webpack 三处都对白名单
+  裸包与该别名配置了解析（仓库外的作品模块因此可以编译）；
+- 本地资产（图片/SVG）用打包器导入（`import markUrl from '../assets/mark.png'`），
+  不要写相对 URL 字符串——那会按页面地址解析成 404；
+- 依赖白名单（`react` / `remotion` / `echarts` / `@dagrejs/dagre` / `lucide-react`）
+  的版本锁定在本工程 `package.json`；作品不得自行安装或导入其他 npm 包。
+
 ## Tailwind 与作品代码场景
 
 样式入口通过生成的 source 索引（`.gen/active-tailwind.css`，由

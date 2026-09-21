@@ -19,6 +19,10 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
 - `visualIntent`：`relation`、`focus`、`composition`、`density`、`tone`。
 - `sceneTree`：唯一根节点；节点 `id` 在幕内唯一稳定。
 - `motions`：通过节点 id 绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`。
+- `renderer`：可选画面双轨开关，默认 `{ "kind": "tree" }`（走 `sceneTree`）；
+  声明 `{ "kind": "code", "module": "<稳定模块标识>" }` 时整幕交给作品的
+  `scenes/<module>.tsx` 模块渲染（契约、白名单与确定性纪律见
+  [代码场景](code-scenes.md)）。二者互斥；`narration` 当前不渲染（预留给配音）。
 - `visual.kicker`：可选读者角标。
 
 ## 场景树节点

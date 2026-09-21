@@ -54,7 +54,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 | `web/src/styles/` | 设计令牌、预设与场景树原语样式 |
 | `web/dist/contract/contract.html` | 渲染契约页（`pnpm -C web build` 的产物），体检用它驱动画面 |
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审与迁移等命令行工具 |
-| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
+| `.agents/skills/article2video/references/` | 渲染契约、分镜结构、代码场景、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
 | `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
@@ -106,7 +106,7 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 
 ### 2. 分镜即画面声明
 
-画面全部由共享 composition 递归解释场景树提供，**不需要写任何页面代码**。
+画面默认全部由共享 composition 递归解释场景树提供，**不需要写任何画面代码**。
 分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；
 每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪）、
 `sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`
@@ -120,9 +120,13 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 每个原语允许的属性、子节点容量与动效配方见
 [视觉原语目录](references/primitive-catalog.md)。
 
-原语组合表达不了的基础视觉能力时，按注册表契约登记并实现新原语
+原语组合表达不了的画面，按注册表契约登记并实现新原语
 （`registry.json` + `SceneTree.tsx` 实现 + `sync_catalog.py` 重新生成 + 机检），
-然后沉淀回目录——不要为某一支视频写专属画面代码。
+然后沉淀回目录——通用的视觉能力永远优先走这条路。**个别作品个别幕**确实需要
+独特的图表面板、关系图或定制 SVG 时，可以为该幕声明
+`renderer: { kind: "code", module: "…" }`，把画面交给作品 `scenes/` 下的 TSX 模块；
+依赖白名单、静态安全门、离线隔离与确定性纪律见
+[代码场景](references/code-scenes.md)——不要为能沉淀成原语的东西写代码场景。
 
 ### 3. 校验分镜
 
@@ -205,7 +209,10 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前画面里每个元素的实际文本，
    再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
-   这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省；
+   这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省。
+   代码场景（`renderer.code`）走最小 DOM 探针协议，协议缺失在严格评审里计为错误；
+   作品改过代码场景后，建议加 `--check-determinism` 对每幕收尾帧做同帧重复截图
+   与随机寻帧验收（PSNR ≥ 60 dB，失败计为错误），见 [代码场景](references/code-scenes.md)；
 2. **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
 3. **观感与动效闸门**：声明了 `visual.preset` 时跑 K1–K10 观感闸门；
    M0–M4 动效闸门对任意作品都跑。
@@ -326,6 +333,7 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 ## 参考文档
 
 - [文章生成分镜](references/article-to-storyboard.md)：从文章产出分镜的步骤、约束、校验闭环与组件缺口处理
+- [代码场景](references/code-scenes.md)：`renderer.code` 的模块契约、依赖白名单、探针协议、确定性适配与安全模型
 - [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
 - [渲染契约](references/render-contract.md)：画面实现的 `__A2V__` 接口、渲染引擎与确定性要求

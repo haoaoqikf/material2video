@@ -289,15 +289,18 @@ window.__A2V__.currentFrame();   // Player 当前实际落在哪一帧
 | `renderedAt` | 渲染时刻（UTC） |
 | `page` / `storyboard` | composition 入口与分镜，相对工作区根；落在仓库 `web/` 别名目录里的记 `/__a2v_web__/` 别名键；两者之外只记文件名（不写绝对路径） |
 | `frames` / `fps` / `width` / `height` / `captureFormat` | 成片参数；当前渲染路径的 `captureFormat` 为 `remotion` |
-| `assets.files` | 逐个的 sha256。当前路径是**构建输入**——composition 可达的全部源码文件、`package.json` 与锁文件、字体，外加分镜与媒体清单指纹；历史网页路径则指纹页面真正引用的本地资源 |
+| `assets.files` | 逐个的 sha256。当前路径是**构建输入**——composition 可达的全部源码文件、`package.json` 与锁文件、字体，外加分镜与媒体清单指纹；作品声明了代码场景时，还包含当前作品可达的 TS/TSX/CSS/SVG、本地资产与 `.gen/scene-manifest.json` 静态清单（作品文件记 `__a2v_workspace__/…` 键）；历史网页路径则指纹页面真正引用的本地资源 |
 | `assets.digest` | 上表的规范化 JSON 摘要，与媒体清单的 `sourceFingerprint` 同一套算法 |
 
 两条口径值得记住：
 
 - **只指纹真正影响画面的东西**：React 路径指纹从 composition 入口 import 可达的文件——
   改一个没被任何组件用到的文件不该让成片报落后，而改一个被引用的组件文件
-  就该报。裸包名导入的第三方依赖（如 dagre）由 `package.json` 与锁文件覆盖：
-  依赖版本变了，成片同样判落后。否则闸门会变成噪音，人开始忽略它——那等于没有闸门。
+  就该报。作品代码场景（`renderer.code`）的模块与其本地资产**正是从作品分镜与
+  静态清单出发沿 import 可达**的那部分，因此也在指纹里：改了任一可达输入，
+  旧成片判落后并指名文件；改无关作品不影响。裸包名导入的第三方依赖（如 dagre）
+  由 `package.json` 与锁文件覆盖：依赖版本变了，成片同样判落后。
+  否则闸门会变成噪音，人开始忽略它——那等于没有闸门。
 - **文本资产按 LF 归一化后哈希，二进制按原字节**：git 的换行归一化会在工作区
   静默翻转行尾，只差行尾的文件不该被判成落后（否则会出现人怎么重渲都消不掉的
   假落后）。

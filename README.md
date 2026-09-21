@@ -52,6 +52,17 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - **动效**：配方只有五种（`reveal` / `fade` / `rise` / `count` / `draw`），逐帧纯函数；
   目标用幕内唯一的节点 id 定位，配方与目标原语的匹配、时间范围是否落在场景内
   都在校验阶段确认，开渲前失败；
+- **场景级代码双轨（v2.1）**：默认每幕仍走场景树；受控原语表达不了的图表面板、
+  图形叙事可以在幕上声明 `renderer: { kind: "code", module: "…" }`，把整幕画面交给
+  `scenes/` 下工作级 TSX 模块——模块默认导出 `(props) => ReactNode`，逐帧接收
+  `progress`，用 `@a2v/scene` 的探针与适配层（ECharts/Dagre/Lucide/SVG 工具）保持
+  确定性。依赖白名单（`react` / `remotion` / `echarts` / `@dagrejs/dagre` /
+  `lucide-react`）、静态清单（构建前生成 `.gen/active-scenes.ts`）、安全门
+  （挂钟/随机/定时器/网络/动态 import 等静态禁令）与运行期离线隔离（非本地请求
+  一律阻断并计为错误）共同兜底；构建输入指纹覆盖当前作品可达源码与本地资产；
+  `review.py --check-determinism` 做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB）。
+  详见 [代码场景](.agents/skills/article2video/references/code-scenes.md) 与
+  [示例](examples/code-scenes/storyboard.json)；
 - **确定性渲染契约 `window.__A2V__`（version 2）**：由契约页
   `web/dist/contract/contract.html`（`pnpm -C web build` 产出）提供——它把 composition
   挂进 `@remotion/player`，从查询参数 `a2v-storyboard` 读分镜，因此一个页面服务任意作品。
@@ -91,7 +102,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （台阶与数据构图：column + chart + number + grid，4 幕）、
   [`examples/why-effort-fails/`](examples/why-effort-fails/storyboard.json)
   （5 幕）、[`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)
-  （8 幕，设计语言基线）、[`examples/declarative-number/`](examples/declarative-number/storyboard.json)；
+  （8 幕，设计语言基线）、[`examples/declarative-number/`](examples/declarative-number/storyboard.json)、
+  [`examples/code-scenes/`](examples/code-scenes/storyboard.json)
+  （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG）；
 - edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `outputs/<slug>/`，
@@ -218,7 +231,10 @@ uv run python .agents/skills/article2video/scripts/render.py \
 2. 按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)
    分阶段生成分镜：先内容分镜，再视觉策略与逐幕意图，最后按
    [原语目录](.agents/skills/article2video/references/primitive-catalog.md)
-   组合场景树并绑定动效；不需要也不允许为单支视频写画面代码；
+   组合场景树并绑定动效。默认**不写画面代码**——场景树够用时不需要它；
+   受控原语确实表达不了时，按
+   [代码场景](.agents/skills/article2video/references/code-scenes.md)
+   为个别幕声明 `renderer.code` 并把模块放进作品的 `scenes/`；
 3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导
    （内容根在仓库外时即 `<内容根>/outputs/<slug>/`），无需手动创建。
 
@@ -256,7 +272,10 @@ v2 示例可作为起点。
 
 - **场景树契约探针**：逐幕多处采样，按 `data-a2v-node-id` 读出画面里每个节点的实际文本，
   比对分镜声明的内容引用是否真的画了出来。「节点挂上了、画面也出来了，只是没有一个字」
-  这类缺陷不会报错，只能靠读 DOM 发现——这正是它存在的理由；
+  这类缺陷不会报错，只能靠读 DOM 发现——这正是它存在的理由；代码场景走**最小 DOM
+  探针协议**（`data-a2v-node` / `-role` / `-inside` / `schematic`），协议缺失在严格评审里
+  计为错误；加 `--check-determinism` 还会对每幕收尾帧做同帧重复截图与随机寻帧验收
+  （PSNR ≥ 60 dB），失败计为错误；
 - **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；动效量测（M0–M4）；
 - **观感闸门 K1–K10**（声明 `visual.preset` 时）与**设计宪法静态检查**的适用部分：
   React 路径上静态结构检查明说跳过（画面由 composition 源码决定），由 web 侧

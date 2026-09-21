@@ -1,0 +1,193 @@
+{
+  "version": 2,
+  "schemaVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "把增长讲清楚：一支混合双轨的示例短片",
+  "visual": {
+    "theme": "dark"
+  },
+  "visualDirection": {
+    "motif": "code-scenes-example",
+    "compositionBias": "mixed",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "repeated-center"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "opening",
+      "type": "title",
+      "durationInFrames": 60,
+      "data": {
+        "text": "增长不是一条直线",
+        "kicker": "示例短片"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "text",
+        "composition": "center",
+        "density": "sparse",
+        "tone": "neutral"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "stack",
+        "children": [
+          {
+            "id": "opening-headline",
+            "type": "text",
+            "contentRef": "data.text",
+            "role": "headline"
+          }
+        ]
+      },
+      "motions": []
+    },
+    {
+      "id": "icon-card",
+      "type": "title",
+      "durationInFrames": 60,
+      "data": {
+        "kicker": "复利效应",
+        "text": "每天进步 1%，一年 37.8 倍",
+        "tip": "1.01 ^ 365 ≈ 37.8"
+      },
+      "visualIntent": {
+        "relation": "cause",
+        "focus": "text",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "uplifting"
+      },
+      "renderer": {
+        "kind": "code",
+        "module": "lucide-card"
+      },
+      "motions": []
+    },
+    {
+      "id": "quarter-chart",
+      "type": "chart",
+      "durationInFrames": 60,
+      "data": {
+        "kicker": "季度营收（示意）",
+        "labels": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "values": [
+          32,
+          48,
+          61,
+          89
+        ],
+        "caption": "Q4 环比再增 46%"
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "chart",
+        "composition": "full",
+        "density": "balanced",
+        "tone": "neutral"
+      },
+      "renderer": {
+        "kind": "code",
+        "module": "progress-chart"
+      },
+      "motions": []
+    },
+    {
+      "id": "graph-flow",
+      "type": "chart",
+      "durationInFrames": 60,
+      "data": {
+        "kicker": "增长回路",
+        "caption": "反馈闭环让改进互相放大",
+        "nodes": [
+          {
+            "id": "attempt",
+            "label": "尝试",
+            "width": 168,
+            "height": 72
+          },
+          {
+            "id": "feedback",
+            "label": "反馈",
+            "width": 168,
+            "height": 72
+          },
+          {
+            "id": "adjust",
+            "label": "调整",
+            "width": 168,
+            "height": 72
+          },
+          {
+            "id": "growth",
+            "label": "增长",
+            "width": 168,
+            "height": 72
+          }
+        ],
+        "edges": [
+          {
+            "from": "attempt",
+            "to": "feedback"
+          },
+          {
+            "from": "feedback",
+            "to": "adjust"
+          },
+          {
+            "from": "adjust",
+            "to": "growth"
+          },
+          {
+            "from": "growth",
+            "to": "attempt"
+          }
+        ]
+      },
+      "visualIntent": {
+        "relation": "cycle",
+        "focus": "shape",
+        "composition": "full",
+        "density": "balanced",
+        "tone": "neutral"
+      },
+      "renderer": {
+        "kind": "code",
+        "module": "graph-flow"
+      },
+      "motions": []
+    },
+    {
+      "id": "arc-goal",
+      "type": "conclusion",
+      "durationInFrames": 60,
+      "data": {
+        "kicker": "年度目标",
+        "caption": "第 73 天，进度过半",
+        "percent": 0.52
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "path",
+        "composition": "center",
+        "density": "sparse",
+        "tone": "decisive"
+      },
+      "renderer": {
+        "kind": "code",
+        "module": "arc-goal"
+      },
+      "motions": []
+    }
+  ]
+}
