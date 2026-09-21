@@ -150,3 +150,22 @@ export function frameStyle(
   }
   return style;
 }
+
+/* ------------------------------------------------------------------ */
+/* 白名单视觉库适配器                                                    */
+/* ------------------------------------------------------------------ */
+
+export { freezeFrameOption, useFrameChart } from './adapters/echarts';
+export type { A2VFrameChart } from './adapters/echarts';
+export { layoutGraph } from './adapters/dagre';
+export type {
+  A2VGraphNode,
+  A2VGraphEdge,
+  A2VGraphConfig,
+  A2VGraphPoint,
+  A2VGraphLayout,
+  A2VGraphLayoutNode,
+  A2VGraphLayoutEdge,
+} from './adapters/dagre';
+export { FrameIcon, frameStroke } from './adapters/icons';
+export type { A2VFrameIconProps } from './adapters/icons';

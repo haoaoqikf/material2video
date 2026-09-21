@@ -98,6 +98,31 @@ const Broken: A2VCodeScene<{ text: string }> = ({ scene }) => {
 export default Broken;
 """
 
+# ECharts 图表模块（任务 5.2）：useFrameChart 逐帧 setOption，
+# 数值由 progress 驱动——用于同帧重复截图与跨帧重放的确定性验证。
+FLOW_MODULE = """import { probe, useFrameChart, type A2VCodeScene } from '@a2v/scene';
+
+const Flow: A2VCodeScene<{ text: string }> = ({ progress }) => {
+  const chart = useFrameChart(
+    () => ({
+      xAxis: { type: 'category', data: ['A', 'B', 'C', 'D'] },
+      yAxis: { type: 'value', max: 100 },
+      series: [{ type: 'bar', data: [20, Math.round(progress * 100), Math.round((1 - progress) * 100), 80] }],
+    }),
+    [progress],
+  );
+  return (
+    <div
+      ref={chart.ref}
+      style={{ position: 'absolute', left: 120, top: 560, width: 840, height: 640 }}
+      {...probe({ node: 'flow-chart', schematic: true })}
+    />
+  );
+};
+
+export default Flow;
+"""
+
 TREE_TREE = {
     "id": "root",
     "type": "stack",
@@ -135,6 +160,7 @@ def _storyboard(preset: bool) -> dict:
             _scene(1, "gauge"),
             _scene(2, None),
             _scene(3, "withimage"),
+            _scene(4, "flow"),
         ],
     }
 
@@ -148,6 +174,7 @@ def mixed_env(tmp_path_factory):
     (article / "assets").mkdir(exist_ok=True)
     (article / "scenes" / "gauge.tsx").write_text(GAUGE_MODULE, encoding="utf-8")
     (article / "scenes" / "withimage.tsx").write_text(IMAGE_MODULE, encoding="utf-8")
+    (article / "scenes" / "flow.tsx").write_text(FLOW_MODULE, encoding="utf-8")
     # 本地资源默认在位：混合时间轴与主题用例都要通过 ready()
     (article / "assets" / "mark.png").write_bytes(PNG_1X1)
 
@@ -254,6 +281,36 @@ class TestThemeConsistency:
         # 字体基础一致：代码场景通过共享令牌取得同一字体栈
         assert payload["codeFont"] == payload["treeFont"]
         assert payload["codeFont"]  # 非空：确实解析出了字体
+
+
+class TestChartDeterminism:
+    """任务 5.2：ECharts 适配器的同帧重复截图与跨帧重放确定性。"""
+
+    @pytest.mark.slow
+    def test图表逐帧更新满足PSNR阈值(self, mixed_env):
+        from a2v.determinism import DEFAULT_PSNR_DB, failures, judge_frames
+
+        root, storyboard_path, _, _ = mixed_env
+        with serve_contract_page(storyboard_path, root) as url:
+            with open_animated_page(url, timeout_ms=60000, width=1080, height=1920) as page:
+                total = page.contract.duration_in_frames  # 5 幕 × 30 帧
+
+                def produce(frame: int) -> bytes:
+                    # 先跳到别的帧再回来：逼图表从另一个状态重新 setOption，
+                    # 暴露「残留状态」类非确定性，而不是同帧连拍两下发。
+                    page.evaluate(
+                        """async ({ frame, total }) => {
+                            await window.__A2V__.seekToFrame((frame + 13) % total);
+                            await window.__A2V__.seekToFrame(frame);
+                        }""",
+                        {"frame": frame, "total": total},
+                    )
+                    return page.capture(image_format="png")
+
+                # 第 4 幕（s4=flow，120..149）内取三帧，图内数值随 progress 变化
+                verdicts = judge_frames(produce, [126, 135, 147], threshold=DEFAULT_PSNR_DB)
+                failed = [item.describe() for item in failures(verdicts)]
+                assert not failed, failed
 
 
 class TestTailwindSources:

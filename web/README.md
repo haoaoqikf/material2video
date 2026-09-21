@@ -146,7 +146,7 @@ Remotion 官方目前**没有** Framer Motion 集成，因此建在 `motion` 上
 | 依赖 | 许可 | 越界条件 |
 | --- | --- | --- |
 | Remotion | 个人与 ≤3 人公司**免费，可商用** | 4 人以上组织协作，或对外提供渲染服务（属「Remotion for Automators」，$0.01/render、$100/月下限）时须升级 |
-| React / Tailwind / Vite | MIT | — |
+| React / Tailwind / Vite / ECharts / Lucide | MIT / ISC | ECharts 为 Apache-2.0，Lucide 为 ISC：均可商用，随附许可证与版权声明即可 |
 | Inter、Noto Sans SC | SIL OFL 1.1 | 随附许可证、不得单独售卖字体、不得用保留字体名发布修改版；本项目不做修改 |
 
 Remotion 的免费额度按**组织规模与用途**判定，不按渲染量。个人内容生产落在免费范围内；
