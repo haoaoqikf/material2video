@@ -28,7 +28,12 @@
         "focus": "text",
         "composition": "offset",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "选项越多，决定越慢",
+        "showWithoutText": "上下两块文字错位排列、副标题退到后面；这一屏由文字直接说出命题",
+        "primaryObject": "主标题文字块与它的副标题",
+        "motionMeaning": "主标题先入场、副标题随后出现，把「多一个选项并不是多一份自由」压进同一屏"
       },
       "sceneTree": {
         "id": "root",
@@ -71,59 +76,66 @@
         "kicker": "比较"
       },
       "data": {
-        "title": "多出来的那部分是什么",
-        "left": "更多自由",
-        "right": "更长比较"
+        "title": "多一个选项，就多一段比较（示意）",
+        "values": [
+          {
+            "label": "1 个选项",
+            "value": 5
+          },
+          {
+            "label": "5 个选项",
+            "value": 25
+          },
+          {
+            "label": "10 个选项",
+            "value": 90
+          }
+        ]
       },
       "visualIntent": {
         "relation": "contrast",
-        "focus": "text",
+        "focus": "chart",
         "composition": "split",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "选项从 1 个增加到 10 个，决定用时被拉长十几倍",
+        "showWithoutText": "一条随选项数迅速抬头的折线，末端明显陡于前两段，斜率变化说明比较成本在涨",
+        "primaryObject": "比较用时折线与它末端的陡升",
+        "motionMeaning": "折线按选项数逐段画出，把「多一个选项就多一段比较」的增量演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "stack",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "compare-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-left",
-            "type": "text",
-            "contentRef": "data.left",
-            "role": "headline"
-          },
-          {
-            "id": "content-right",
-            "type": "text",
-            "contentRef": "data.right",
-            "role": "headline"
+            "id": "compare-chart",
+            "type": "chart",
+            "contentRef": "data.values",
+            "chart": "line",
+            "schematic": true
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "compare-title",
           "recipe": "reveal",
           "startFrame": 12,
           "durationFrames": 24
         },
         {
-          "target": "content-left",
-          "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
-        },
-        {
-          "target": "content-right",
+          "target": "compare-chart",
           "recipe": "reveal",
           "startFrame": 28,
-          "durationFrames": 24
+          "durationFrames": 30
         }
       ]
     },
@@ -145,7 +157,12 @@
         "focus": "text",
         "composition": "radial",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "选择消耗的是做决定的力气",
+        "showWithoutText": "整屏只有一块居中的文字，四周留白把它单独托住；这一屏靠文字成立",
+        "primaryObject": "居中的引文文字块",
+        "motionMeaning": "文字淡入，让这句判断在留白里停一下"
       },
       "sceneTree": {
         "id": "root",
@@ -177,6 +194,7 @@
       },
       "data": {
         "title": "注意力去了哪里",
+        "note": "比较换掉了问题，力气耗在评估上",
         "items": [
           {
             "label": "我要什么",
@@ -194,41 +212,98 @@
       },
       "visualIntent": {
         "relation": "focus",
-        "focus": "text",
-        "composition": "center",
+        "focus": "shape",
+        "composition": "radial",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "metaphor",
+        "claim": "注意力被「比较」与「评估」占住，最初的问题反而退到一边",
+        "showWithoutText": "三个节点绕着一圈排布，最后一块高亮，位置与明暗说明注意力已经挪到评估上",
+        "primaryObject": "圆周布局上的三个节点与高亮的评估节点",
+        "motionMeaning": "三个节点依次落位，高亮最后停在评估那一块，把注意力的转移演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "attention-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-items",
+            "id": "attention-stage",
+            "type": "overlay",
+            "children": [
+              {
+                "id": "attention-ring",
+                "type": "shape",
+                "shape": "ring",
+                "state": "muted"
+              },
+              {
+                "id": "attention-wheel",
+                "type": "radial",
+                "children": [
+                  {
+                    "id": "attention-want",
+                    "type": "text",
+                    "contentRef": "data.items[0].label",
+                    "role": "body",
+                    "state": "muted"
+                  },
+                  {
+                    "id": "attention-better",
+                    "type": "text",
+                    "contentRef": "data.items[1].label",
+                    "role": "body",
+                    "state": "muted"
+                  },
+                  {
+                    "id": "attention-judge",
+                    "type": "text",
+                    "contentRef": "data.items[2].label",
+                    "role": "body",
+                    "state": "focus"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "attention-note",
             "type": "text",
-            "contentRef": "data.items",
-            "role": "body"
+            "contentRef": "data.note",
+            "role": "caption"
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "attention-title",
           "recipe": "reveal",
           "startFrame": 12,
           "durationFrames": 24
         },
         {
-          "target": "content-items",
-          "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "target": "attention-want",
+          "recipe": "rise",
+          "startFrame": 36,
+          "durationFrames": 20
+        },
+        {
+          "target": "attention-better",
+          "recipe": "rise",
+          "startFrame": 56,
+          "durationFrames": 20
+        },
+        {
+          "target": "attention-judge",
+          "recipe": "rise",
+          "startFrame": 76,
+          "durationFrames": 20
         }
       ]
     },
@@ -258,63 +333,106 @@
             "id": "later",
             "label": "推到明天"
           }
-        ],
-        "edges": [
-          {
-            "from": "open",
-            "to": "compare"
-          },
-          {
-            "from": "compare",
-            "to": "tired"
-          },
-          {
-            "from": "tired",
-            "to": "later"
-          },
-          {
-            "from": "later",
-            "to": "open"
-          }
         ]
       },
       "visualIntent": {
         "relation": "cycle",
-        "focus": "text",
+        "focus": "shape",
         "composition": "full",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "cycle",
+        "claim": "打开选项、逐个比较、力气耗尽、推到明天，构成一个自我维持的循环",
+        "showWithoutText": "四个节点绕着圆环首尾相接，环上的顺序说明决定被一圈圈推回原点",
+        "primaryObject": "圆周布局与它背后的圆环",
+        "motionMeaning": "四个节点沿环依次入场，把「推到明天又回到打开选项」转完一圈"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "loop-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-nodes",
-            "type": "text",
-            "contentRef": "data.nodes",
-            "role": "body"
+            "id": "loop-stage",
+            "type": "overlay",
+            "children": [
+              {
+                "id": "loop-ring",
+                "type": "shape",
+                "shape": "ring",
+                "state": "muted"
+              },
+              {
+                "id": "loop-wheel",
+                "type": "radial",
+                "children": [
+                  {
+                    "id": "loop-open",
+                    "type": "text",
+                    "contentRef": "data.nodes[0].label",
+                    "role": "body"
+                  },
+                  {
+                    "id": "loop-compare",
+                    "type": "text",
+                    "contentRef": "data.nodes[1].label",
+                    "role": "body"
+                  },
+                  {
+                    "id": "loop-tired",
+                    "type": "text",
+                    "contentRef": "data.nodes[2].label",
+                    "role": "body"
+                  },
+                  {
+                    "id": "loop-later",
+                    "type": "text",
+                    "contentRef": "data.nodes[3].label",
+                    "role": "body",
+                    "state": "focus"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "loop-title",
           "recipe": "reveal",
           "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 20
         },
         {
-          "target": "content-nodes",
-          "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "target": "loop-open",
+          "recipe": "rise",
+          "startFrame": 32,
+          "durationFrames": 20
+        },
+        {
+          "target": "loop-compare",
+          "recipe": "rise",
+          "startFrame": 52,
+          "durationFrames": 20
+        },
+        {
+          "target": "loop-tired",
+          "recipe": "rise",
+          "startFrame": 72,
+          "durationFrames": 20
+        },
+        {
+          "target": "loop-later",
+          "recipe": "rise",
+          "startFrame": 92,
+          "durationFrames": 20
         }
       ]
     },
@@ -347,37 +465,88 @@
         "focus": "text",
         "composition": "offset",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "process",
+        "claim": "选项从十个减到一个，决定从推后变成几秒完成",
+        "showWithoutText": "三块选项被两支箭头串成一列，箭头方向与最后一块的高亮说明选项在被逐个砍掉",
+        "primaryObject": "三段选项链与高亮的最后一个选项",
+        "motionMeaning": "箭头逐段画出、选项逐块落下，把「砍到只剩一个」的过程演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "freedom-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-items",
-            "type": "text",
-            "contentRef": "data.items",
-            "role": "body"
+            "id": "freedom-track",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "freedom-ten",
+                "type": "text",
+                "contentRef": "data.items[0].label",
+                "role": "body",
+                "state": "muted"
+              },
+              {
+                "id": "freedom-arrow-1",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "freedom-five",
+                "type": "text",
+                "contentRef": "data.items[1].label",
+                "role": "body",
+                "state": "muted"
+              },
+              {
+                "id": "freedom-arrow-2",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "freedom-one",
+                "type": "text",
+                "contentRef": "data.items[2].label",
+                "role": "body",
+                "state": "focus"
+              }
+            ]
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "freedom-title",
           "recipe": "reveal",
           "startFrame": 12,
           "durationFrames": 24
         },
         {
-          "target": "content-items",
-          "recipe": "reveal",
-          "startFrame": 20,
+          "target": "freedom-arrow-1",
+          "recipe": "draw",
+          "startFrame": 40,
+          "durationFrames": 20
+        },
+        {
+          "target": "freedom-arrow-2",
+          "recipe": "draw",
+          "startFrame": 70,
+          "durationFrames": 20
+        },
+        {
+          "target": "freedom-one",
+          "recipe": "rise",
+          "startFrame": 90,
           "durationFrames": 24
         }
       ]
@@ -399,7 +568,12 @@
         "focus": "number",
         "composition": "split",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "真正需要保留的选项只有一个",
+        "showWithoutText": "一个大数字加两行说明，层级差别把「1」推到最前；信息由文字与数值承担",
+        "primaryObject": "巨大的数字 1 与它的标签",
+        "motionMeaning": "数字从 0 递增到 1，把「只需要一个」这个取舍落下来"
       },
       "sceneTree": {
         "id": "root",
@@ -458,24 +632,59 @@
         "action": "先砍到一个，再开始做",
         "emphasis": [
           "砍掉选项"
-        ]
+        ],
+        "before": "十个选项",
+        "after": "只留一个"
       },
       "visualIntent": {
         "relation": "focus",
         "focus": "text",
         "composition": "radial",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "process",
+        "claim": "缺的不是更好的选项，而是一把砍掉选项的刀",
+        "showWithoutText": "两块选项被一支箭头连起来，前面灰暗、后面高亮，明暗说明砍的动作与结果",
+        "primaryObject": "砍选项的箭头与高亮的唯一选项",
+        "motionMeaning": "箭头画出后高亮块升起，把「先砍到一个，再开始做」落成一个动作"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
             "id": "content-text",
             "type": "text",
             "contentRef": "data.text",
             "role": "headline"
+          },
+          {
+            "id": "closing-cut",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "closing-many",
+                "type": "text",
+                "contentRef": "data.before",
+                "role": "body",
+                "state": "muted"
+              },
+              {
+                "id": "closing-arrow",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "closing-one",
+                "type": "text",
+                "contentRef": "data.after",
+                "role": "body",
+                "state": "focus"
+              }
+            ]
           },
           {
             "id": "content-action",
@@ -493,9 +702,21 @@
           "durationFrames": 24
         },
         {
+          "target": "closing-arrow",
+          "recipe": "draw",
+          "startFrame": 40,
+          "durationFrames": 20
+        },
+        {
+          "target": "closing-one",
+          "recipe": "rise",
+          "startFrame": 60,
+          "durationFrames": 24
+        },
+        {
           "target": "content-action",
           "recipe": "reveal",
-          "startFrame": 20,
+          "startFrame": 90,
           "durationFrames": 24
         }
       ]

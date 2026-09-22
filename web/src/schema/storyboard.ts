@@ -49,10 +49,19 @@ export const sceneNodeSchema: z.ZodType<SceneNode> = z.lazy(() => z.object({
   chart: z.enum(['bar', 'line', 'pie']).optional(), sourceRef: nonEmptyText.optional(), schematic: z.boolean().optional(),
 }).strict());
 
+/**
+ * 逐幕视觉论证声明：导演意图字段，composition 不读取它们。
+ * 保留在 schema 里是为了让旧运行时也能解析新版分镜（渲染语义不变）；
+ * 校验语义由 Python 端 `a2v.visual_narrative` 负责。
+ */
+export const visualModeSchema = z.enum(['metaphor', 'process', 'comparison', 'cycle', 'chart', 'image', 'typography']);
+
 export const visualIntentSchema = z.object({
   relation: z.enum(['focus', 'contrast', 'sequence', 'cause', 'cycle', 'collection']),
   focus: z.enum(['text', 'number', 'shape', 'chart', 'path']), composition: z.enum(['center', 'offset', 'split', 'radial', 'full']),
   density: z.enum(['sparse', 'balanced', 'dense']), tone: z.enum(['calm', 'tense', 'neutral', 'uplifting', 'decisive']),
+  mode: visualModeSchema.optional(), claim: nonEmptyText.optional(), showWithoutText: nonEmptyText.optional(),
+  primaryObject: nonEmptyText.optional(), motionMeaning: nonEmptyText.optional(),
 }).strict();
 export const motionSchema = z.object({ target: nodeId, recipe: motionRecipeSchema, startFrame: z.number().int().min(0).default(0), durationFrames: z.number().int().positive().optional() }).strict();
 

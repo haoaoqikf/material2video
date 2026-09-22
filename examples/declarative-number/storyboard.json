@@ -16,36 +16,76 @@
       "data": {
         "value": 73,
         "label": "次尝试（示意）",
-        "caption": "每一次都会留下反馈"
+        "caption": "每一次都会留下反馈",
+        "feedback": [
+          {
+            "label": "第 1 周",
+            "value": 2
+          },
+          {
+            "label": "第 2 周",
+            "value": 5
+          },
+          {
+            "label": "第 3 周",
+            "value": 9
+          },
+          {
+            "label": "第 4 周",
+            "value": 14
+          }
+        ]
       },
       "visualIntent": {
         "relation": "focus",
         "focus": "number",
         "composition": "offset",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "尝试次数会积累反馈，反馈让下一次选择更有依据",
+        "showWithoutText": "一条从左下往右上抬升的折线，四段爬升说明反馈随尝试一起累积",
+        "primaryObject": "累计反馈折线与它的上升斜率",
+        "motionMeaning": "折线逐段画出，把「每试一次就多一点反馈」的积累过程演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "stack",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-value",
-            "type": "number",
-            "contentRef": "data.value",
-            "role": "hero"
-          },
-          {
-            "id": "content-label",
-            "type": "text",
-            "contentRef": "data.label",
-            "role": "label"
+            "id": "count-hero",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "content-value",
+                "type": "number",
+                "contentRef": "data.value",
+                "role": "hero",
+                "schematic": true
+              },
+              {
+                "id": "content-label",
+                "type": "text",
+                "contentRef": "data.label",
+                "role": "label"
+              }
+            ]
           },
           {
             "id": "content-caption",
             "type": "text",
             "contentRef": "data.caption",
             "role": "caption"
+          },
+          {
+            "id": "content-chart",
+            "type": "chart",
+            "contentRef": "data.feedback",
+            "chart": "line",
+            "schematic": true
           }
         ]
       },
@@ -67,6 +107,12 @@
           "recipe": "reveal",
           "startFrame": 28,
           "durationFrames": 24
+        },
+        {
+          "target": "content-chart",
+          "recipe": "reveal",
+          "startFrame": 36,
+          "durationFrames": 24
         }
       ]
     },
@@ -77,24 +123,90 @@
       "visual": {},
       "data": {
         "text": "反馈，让下一次更有方向",
-        "action": "继续上场"
+        "action": "继续上场",
+        "chain": [
+          "尝试",
+          "反馈",
+          "下一次"
+        ]
       },
       "visualIntent": {
         "relation": "focus",
         "focus": "text",
         "composition": "split",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "process",
+        "claim": "尝试产生反馈，反馈决定下一次怎么试",
+        "showWithoutText": "三块表面被两支箭头串成一条链，箭头方向说明反馈会回流到下一次尝试",
+        "primaryObject": "三段推进链与两支连接箭头",
+        "motionMeaning": "箭头逐段画出，把反馈送回下一次尝试的路径演一遍"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
             "id": "content-text",
             "type": "text",
             "contentRef": "data.text",
             "role": "headline"
+          },
+          {
+            "id": "closing-chain",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "chain-1",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "chain-1-text",
+                    "type": "text",
+                    "contentRef": "data.chain[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "chain-arrow-1",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "chain-2",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "chain-2-text",
+                    "type": "text",
+                    "contentRef": "data.chain[1]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "chain-arrow-2",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "chain-3",
+                "type": "surface",
+                "state": "focus",
+                "children": [
+                  {
+                    "id": "chain-3-text",
+                    "type": "text",
+                    "contentRef": "data.chain[2]",
+                    "role": "body"
+                  }
+                ]
+              }
+            ]
           },
           {
             "id": "content-action",
@@ -108,14 +220,38 @@
         {
           "target": "content-text",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "startFrame": 4,
+          "durationFrames": 12
+        },
+        {
+          "target": "chain-arrow-1",
+          "recipe": "draw",
+          "startFrame": 16,
+          "durationFrames": 10
+        },
+        {
+          "target": "chain-2",
+          "recipe": "reveal",
+          "startFrame": 26,
+          "durationFrames": 10
+        },
+        {
+          "target": "chain-arrow-2",
+          "recipe": "draw",
+          "startFrame": 36,
+          "durationFrames": 10
+        },
+        {
+          "target": "chain-3",
+          "recipe": "rise",
+          "startFrame": 46,
+          "durationFrames": 12
         },
         {
           "target": "content-action",
           "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "startFrame": 58,
+          "durationFrames": 12
         }
       ]
     }

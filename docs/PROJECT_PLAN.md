@@ -42,7 +42,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 ```text
 文章
  → 内容理解与压缩          ← 已实现：按文章生成分镜规范执行（由 AI 工具完成，无生成器程序）
- → 分镜规划和视觉语言选择   ← 已实现：同上，规范见 references/article-to-storyboard.md
+ → 分镜规划和视觉语言选择   ← 已实现：同上，含逐幕视觉论证与全片预算（严格校验）
  → 结构化脚本 JSON          ← 已实现：storyboard.json（校验规则已落地）
  → React composition 画面   ← 已实现：共享 composition 递归解释场景树 v2 + 原语注册表
  → 帧驱动动画编排           ← 已实现：useCurrentFrame 求值，禁止时间驱动动画
@@ -506,7 +506,8 @@ compare K2  0.0016 / 0.0027 / 0.0027  →  0.0289 / 0.0292 / 0.0292
 35% 处左栏出现清晰的实心柱，96% 处抽干后只剩底下一线 + 虚线幽灵框 + 差额括号；
 `opening` 一幕的天平吊绳改走结构描边后重新可见，横梁与秤盘之间的关系不再断。
 
-尚未实现：视觉模型自动评审（K 系列与 M 系列都只给数值，最终判断仍要人看
+尚未实现：视觉模型自动评审（K 系列与 M 系列都只给数值，V5 只列候选与结构证据，
+V6 的「图形承担论证」结论也由人填写，最终判断仍要人看
 [视觉评审量表](../.agents/skills/article2video/references/visual-review-rubric.md)）、
 webfont 的**静态**子集（按作品切已实现，见下）、
 按内容自动选预设（必须显式声明）、
@@ -778,6 +779,45 @@ TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
   [`examples/code-scenes/`](../examples/code-scenes/storyboard.json)
   （1 幕场景树 + 4 幕代码场景）全片渲染、评审与溯源复核全部通过；
   契约细节见 [代码场景](../.agents/skills/article2video/references/code-scenes.md)。
+
+### 第十阶段：视觉叙事与图形论证闸门 —— 已实现
+
+场景树解决了「画面由受控原语组合」，但没有回答「这一幕的图形到底有没有在论证」：
+把文字卡片换个布局包装、加两个图标，机检、观感闸门与渲染全部照常通过，而观众看到的是
+会动的幻灯片。变更 `enforce-visual-storytelling`（提案、设计与规格见
+`openspec/changes/archive/` 归档）补上这一层：
+
+- **逐幕视觉论证声明**：`visualIntent` 增加受控 `mode`（`metaphor`/`process`/
+  `comparison`/`cycle`/`chart`/`image`/`typography`）、`claim`、`showWithoutText`、
+  `primaryObject`、`motionMeaning`；`showWithoutText` 必须描述移除标题与正文后仍能看见的
+  关系或变化，与 `claim` 完全相同或写成「显示/呈现 + 论点」的机械复述由校验器拦截；
+- **声明 + 结构反证**：`a2v/visual_narrative.py` 只承认四类**结构证据**——图表承担数据关系、
+  受控图片承担画面信息、连接关系承担推进或因果、圆周布局（≥ 2 个内容子节点）承担循环；
+  布局原语、`surface`、`shape`、`icon` 与单个 `number` 都算包装或文字。脚本不做伪语义打分，
+  只对照声明与结构；代码场景结构上不可验证，只按声明分类并在 V4 写明跳过；
+- **版本化全片预算（严格校验）**：文字幕 ≤ `ceil(场景数 × 30%)`、相邻两幕不得都是文字幕、
+  八幕及以上 ≥ 3 种（少于八幕 ≥ 2 种）非文字模式、声明非 `typography` 却无证据即报错，
+  失败定位到 `scenes[N].visualIntent.mode`；阈值集中在 `RULE_VERSION` 并由单元测试固定；
+- **兼容与升级分开**：缺新字段的 schema v2 分镜在普通校验里只给兼容警告，
+  预览、渲染与既有示例照常；`--strict` 才把缺字段与预算问题当错误。系统不猜测旧场景语义；
+- **V 系列独立分栏**：`review.py` 的报告与终端新增视觉叙事章节——V1 文字幕预算、
+  V2 连续文字幕、V3 非文字模式覆盖、V4 声明与结构一致性（与严格校验同口径，
+  失败并入错误数与退出码）；V5 列出文字主导候选幕及判定证据（只呈现，由人逐条裁决）；
+  V6 读 `review.md` 里人工填写的「图形承担论证」结论，**没填写就是「待评审」**，
+  发布要求 V6 ≥ 4/5 且没有未裁决候选。语义结论不并入自动退出码；
+- **多样性指纹纳入视觉模式**：`diversity.RULE_VERSION` 升到 2，指纹增加
+  `visualIntent.mode`，避免「同一布局换模式」被当成同构；
+- **原语不足显式中止**：生成规范要求 `showWithoutText` 无法映射到目录原语时停在转译阶段
+  （重新构思、扩展通用原语，或确属作品特例时用代码场景），不得改写成文字卡片后
+  继续宣称原模式；Skill 指令、结构反证与文档正反例共同约束；
+- **验证**：`tests/test_visual_narrative.py` 钉住分类、预算边界、旧分镜兼容、V 系列闸门、
+  V6 解析、与 diversity 的一致性，以及 `rest-not-reward` 这类「全是文字卡片」的回归夹具；
+  `tests/test_doc_examples.py` 直接抽取
+  [文章生成分镜](../.agents/skills/article2video/references/article-to-storyboard.md)
+  里的正反例 JSON 重新校验，防止文档示例随契约演进失真；仓库内 6 个端到端示例全部补齐
+  论证字段与预算并**通过 `validate.py --strict`**；
+- **边界**：脚本只报告结构证据，语义判断仍归人（V5 裁决与 V6 结论）；
+  旧分镜迁移产物**不含**视觉论证字段，迁移成功只表示文件写出，仍需逐幕补齐后重新验收。
 
 ## 多篇文章的目录与产物
 

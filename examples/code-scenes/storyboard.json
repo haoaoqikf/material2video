@@ -24,28 +24,61 @@
       "durationInFrames": 60,
       "data": {
         "text": "增长不是一条直线",
-        "kicker": "示例短片"
+        "kicker": "示例短片",
+        "curve": [
+          { "label": "1 天", "value": 1.01 },
+          { "label": "30 天", "value": 1.35 },
+          { "label": "90 天", "value": 2.45 },
+          { "label": "180 天", "value": 5.99 },
+          { "label": "365 天", "value": 37.8 }
+        ]
       },
       "visualIntent": {
         "relation": "focus",
-        "focus": "text",
+        "focus": "chart",
         "composition": "center",
         "density": "sparse",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "复利增长不是一条直线，而是越走越陡的曲线",
+        "showWithoutText": "一条从左下缓慢爬升、到右端突然抬头的折线，斜率变化说明增长在加速",
+        "primaryObject": "复利累计折线与它末端的陡升",
+        "motionMeaning": "折线随入场逐段画出，把「越往后越陡」的加速度演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "stack",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
             "id": "opening-headline",
             "type": "text",
             "contentRef": "data.text",
             "role": "headline"
+          },
+          {
+            "id": "opening-chart",
+            "type": "chart",
+            "contentRef": "data.curve",
+            "chart": "line",
+            "schematic": true
           }
         ]
       },
-      "motions": []
+      "motions": [
+        {
+          "target": "opening-headline",
+          "recipe": "reveal",
+          "startFrame": 0,
+          "durationFrames": 20
+        },
+        {
+          "target": "opening-chart",
+          "recipe": "reveal",
+          "startFrame": 14,
+          "durationFrames": 26
+        }
+      ]
     },
     {
       "id": "icon-card",
@@ -61,7 +94,12 @@
         "focus": "text",
         "composition": "center",
         "density": "balanced",
-        "tone": "uplifting"
+        "tone": "uplifting",
+        "mode": "typography",
+        "claim": "每天 1% 的复利，一年会累积成 37.8 倍",
+        "showWithoutText": "一张卡片加一个灯泡图标，信息全部写在文字里；图标只提示这是「复利」的类比",
+        "primaryObject": "卡片上的算式文字与提示图标",
+        "motionMeaning": "卡片整体上浮入场，把这条算式单独推到视线中心"
       },
       "renderer": {
         "kind": "code",
@@ -94,7 +132,12 @@
         "focus": "chart",
         "composition": "full",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "季度营收逐季抬升，Q4 的跳升最明显",
+        "showWithoutText": "四根柱子逐季升高，最后一根明显高于前三根的连线",
+        "primaryObject": "四根季度柱与 Q4 的跳升",
+        "motionMeaning": "柱子逐根升起，把「一季比一季高」的节奏演出来"
       },
       "renderer": {
         "kind": "code",
@@ -159,7 +202,12 @@
         "focus": "shape",
         "composition": "full",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "cycle",
+        "claim": "尝试、反馈、调整、增长构成一个互相放大的闭环",
+        "showWithoutText": "四个节点被带箭头的边连成闭环，回路方向说明改进会互相放大",
+        "primaryObject": "四个节点与它们之间的有向边",
+        "motionMeaning": "边沿回路依次画出，把反馈闭环完整走一圈"
       },
       "renderer": {
         "kind": "code",
@@ -181,7 +229,12 @@
         "focus": "path",
         "composition": "center",
         "density": "sparse",
-        "tone": "decisive"
+        "tone": "decisive",
+        "mode": "chart",
+        "claim": "第 73 天，年度目标已经过半",
+        "showWithoutText": "一段圆弧填到一半略多，弧长直接表示进度走到哪",
+        "primaryObject": "进度弧与它的填充长度",
+        "motionMeaning": "弧线随入场增长到 52%，把「进度过半」变成可见的长度"
       },
       "renderer": {
         "kind": "code",

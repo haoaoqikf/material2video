@@ -16,7 +16,14 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
 ## 场景字段
 
 - `id`、`type`、`durationInFrames`、`narration`、`data`：内容层。
-- `visualIntent`：`relation`、`focus`、`composition`、`density`、`tone`。
+- `visualIntent`：`relation`、`focus`、`composition`、`density`、`tone`，
+  以及视觉论证字段 `mode`、`claim`、`showWithoutText`、`primaryObject`、`motionMeaning`。
+  `mode` 取 `metaphor`、`process`、`comparison`、`cycle`、`chart`、`image`、`typography`
+  之一（`typography` 表示主要论点依赖文字成立）；其余四个字段分别是该幕唯一核心论点、
+  无正文视觉表达（移除标题与正文后仍能看见的关系或变化）、承担论证的主要视觉对象，
+  以及主要动效推进了什么理解。判据与正反例见
+  [文章生成场景树分镜](article-to-storyboard.md)。
+  旧分镜缺这些字段时，普通校验只给兼容警告、预览与渲染照常，`--strict` 才报错。
 - `sceneTree`：唯一根节点；节点 `id` 在幕内唯一稳定。
 - `motions`：通过节点 id 绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`。
 - `renderer`：可选画面双轨开关，默认 `{ "kind": "tree" }`（走 `sceneTree`）；
@@ -52,7 +59,18 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
     "type": "quote",
     "durationInFrames": 150,
     "data": {"text": "真正害怕的是被否定"},
-    "visualIntent": {"relation": "focus", "focus": "text", "composition": "offset", "density": "sparse", "tone": "tense"},
+    "visualIntent": {
+      "relation": "focus",
+      "focus": "text",
+      "composition": "offset",
+      "density": "sparse",
+      "tone": "tense",
+      "mode": "typography",
+      "claim": "真正害怕的不是失败，而是被否定",
+      "showWithoutText": "整屏只有一块偏置的文字，四周留白把这句话单独托住",
+      "primaryObject": "偏置的标题文字块",
+      "motionMeaning": "标题上浮入场，把这句判断推到视线中心"
+    },
     "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text", "role": "headline"}]},
     "motions": [{"target": "copy", "recipe": "reveal", "startFrame": 18, "durationFrames": 36}]
   }]
@@ -65,4 +83,10 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
 uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --declarative --strict --json
 ```
 
-JSON 输出包含 `diversity`：片内检查总会运行；跨作品检查只在显式重复传入 `--reference <storyboard>` 时运行，绝不扫描内容根。
+上面是单幕示例，只演示字段形状。`--strict` 还会执行**全片**视觉叙事预算
+（文字幕占比、相邻文字幕、非文字模式覆盖、声明与结构一致性），单幕作品无法满足
+模式覆盖门槛，因此它不能作为交付物通过严格校验——完整可交付的例子见
+[文章生成场景树分镜](article-to-storyboard.md) 的正例与反例。
+
+JSON 输出包含 `diversity`：片内检查总会运行；跨作品检查只在显式重复传入 `--reference <storyboard>` 时运行，绝不扫描内容根。严格校验失败时逐条给出路径与原因，例如
+`scenes[2].visualIntent.mode`：声明为 `chart` 但场景树只有文字与包装节点。

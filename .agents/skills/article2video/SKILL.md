@@ -36,11 +36,16 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 5. **层级先于装饰**：先做出背景 / 表面 / 焦点三层与统一的动效曲线，再考虑细节；
    「高级感」来自克制的层级与一致的节奏，而不是更多的颜色和更大的动效。
 6. **AI 做导演，不做设计师**：先声明逐幕视觉意图（信息关系、焦点、构图、密度、情绪），
-   再按 [视觉原语目录](references/primitive-catalog.md) 把意图组合成受控场景树；
+   再声明**视觉论证**——受控视觉模式、核心论点、无正文视觉表达、主要视觉对象与动效语义，
+   最后按 [视觉原语目录](references/primitive-catalog.md) 把意图组合成受控场景树。
    原语表达不了的基础视觉能力按注册表契约新增通用原语，不为某支视频写专属画面代码。
+   **原语不足时停在视觉转译阶段**：重新构思隐喻、扩展通用原语，或确属作品特例时用代码场景；
+   不得改写成「标题 + 文字卡片 + 图标」后继续宣称原来的视觉模式。
    每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
-7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹），
-   人（或视觉模型）按 [评审量表](references/visual-review-rubric.md) 负责「值得看完」。
+7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹）
+   与「画面有没有在论证」（视觉叙事 V1–V4 是硬判定），人（或视觉模型）按
+   [评审量表](references/visual-review-rubric.md) 负责「值得看完」，并把
+   「图形承担论证」的结论（V6）写进 `review.md`。
    把审美也交给脚本，等于放弃质量；反过来只靠眼睛，又会漏掉标签全空这类静默缺陷。
 
 ## 目录职责
@@ -102,13 +107,15 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 - 场景时长由**口播所需时间**反推（30fps 下 1 秒 = 30 帧，中文口播每秒约 4–5 字）；
 - 长句拆成多个场景，而不是缩小字号；
 - 不虚构论据或数据；无来源的数值必须把对应节点声明为 `schematic: true`；
+- 逐幕先做视觉转译（受控视觉模式与论证字段），再选原语；文字卡片换布局包装不算图形论证；
 - 生成后先过 `validate.py --strict --json`，按字段路径修正到通过再交付。
 
 ### 2. 分镜即画面声明
 
 画面默认全部由共享 composition 递归解释场景树提供，**不需要写任何画面代码**。
 分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；
-每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪）、
+每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪，以及视觉论证字段
+`mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`）、
 `sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`
 （按节点 id 绑定的具名动效）。可选 `visual.theme`（`dark` / `light`）与根级
 `visual.preset`（目前唯一取值 `"keynote"`）启用发布会级设计语言：
@@ -138,6 +145,13 @@ uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/sto
 加 `--json` 可得到机器可读输出，便于批量修正。
 校验器还会按视觉规范给出**警告**（不阻止渲染）：单行字数超限、场景短于 24 帧、
 `emphasis` 短语没有出现在文本里。定稿前用 `--strict` 把它们也当作失败。
+
+`--strict` 还执行全片视觉叙事预算：文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是
+文字幕、八幕及以上至少 3 种非文字视觉模式（少于八幕至少 2 种）、声明非 `typography`
+模式的幕必须拿得出结构证据（图表 / 图片 / 连接关系 / 圆周布局），逐幕缺视觉论证字段也报错。
+失败会定位到 `scenes[2].visualIntent.mode` 这类路径；阈值版本化在
+`a2v/visual_narrative.py` 的 `RULE_VERSION`。判据与可粘贴的正反例见
+[文章生成分镜](references/article-to-storyboard.md)。
 
 ### 3.1 配音与字幕准备（可选）
 
@@ -221,8 +235,10 @@ uv run python .agents/skills/article2video/scripts/review.py \
 机检只保证「这不是废片」；「值不值得看完」按
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
 评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
+`report.json` 的 `visualNarrative` 给出 V 系列；评审结论写进同级的 `review.md`，
+其中「图形论证」评分与 `## 候选裁决` 小节会被下一次 `review.py` 读成 V6 结论。
 
-体检结论分三串，**分开计数、不要混成一个总分**：
+体检结论分四串，**分开计数、不要混成一个总分**：
 
 - **C 系列**（废片类）：安全区与墨迹覆盖率等结构性结论，回答「这是不是废片」；
 - **K 系列**（观感类 K1–K10）：留白预算、强调色占比、同帧字号种类、对齐基线、
@@ -237,6 +253,12 @@ uv run python .agents/skills/article2video/scripts/review.py \
   逐帧走完整个片子，量每一个入场元素。它**只提示、不拦人**，不改错误数与退出码——
   入场快一点是判断问题，不是「画面坏了」。判据与实测值见
   [视觉规范](references/visual-spec.md) 的动效章节。
+- **V 系列**（视觉叙事 V1–V6）：V1 文字幕预算、V2 连续文字幕、V3 非文字模式覆盖、
+  V4 声明与结构一致性——这四条与 `validate.py --strict` 同口径，失败**并入错误数与退出码**，
+  报告列出场景 id、实际值与阈值；V5 列出文字主导候选幕与判定证据，**只呈现**，由人逐条裁决；
+  V6 读 `review.md` 里人工填写的「图形承担论证」结论，**没填写就是「待评审」，不能显示通过**。
+  发布清单要求 V6 ≥ 4/5 且没有未裁决候选（`publishable`）。语义结论不并入自动退出码——
+  脚本只报告结构证据，语义判断归人。
 
 ### 7. 渲染验收
 
@@ -297,6 +319,12 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 动画后段像卡住 | 场景被配音拉长后画面完全静止，入场结束后加常驻微动（`breath` 级别） |
 | 画面扁平没有层次 | 缺少背景/表面/焦点三层：先加背景层与卡片内高光、双层投影（见视觉规范） |
 | 强调色加在文案上却不生效 | `emphasis` 的短语没有原样出现在该场景文本里，`validate.py` 会给出警告 |
+| `声明为 comparison，但场景树只有文字…` | 该幕声明了非 `typography` 模式却拿不出结构证据：改声明为 `typography`，或用 `chart`/`image`/`connector`/`radial` 真正承担论证，不要只加图标或换布局包装 |
+| `文字幕 N/M 幕，超过允许上限` | 全片文字卡片过多：把其中几幕改成图形论证，或把相邻文字幕合并成一幕 |
+| `相邻两幕均为文字幕` | 文字幕之间必须隔开论证型图形场景，调整幕序或改造其中一幕 |
+| `非文字视觉模式只有 N 种` | 模式过于单一：八幕及以上至少 3 种、少于八幕至少 2 种非文字模式（`metaphor`/`process`/`comparison`/`cycle`/`chart`/`image`） |
+| 严格校验要求补齐视觉论证字段 | 旧分镜缺 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`：逐幕补齐；脚本不会根据场景树自动推断语义 |
+| V6 显示「待评审」或 `publishable=否` | `outputs/<slug>/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
 | 导出画面被裁切 | 画面尺寸超出 1080 × 1920，检查是否有元素溢出 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
 | 成片能解码但播放器打不开 | 码流是全范围像素格式（`yuvj420p`/`pc`）或 24kHz 单声道 AAC；验收阶段现已报错拦下，参数见 [渲染契约](references/render-contract.md) 的「码流兼容性」 |
@@ -308,15 +336,17 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ## 当前边界
 
-已实现：分镜校验、自动配音与逐句字幕、React composition 画面（比喻组件 + 数据图表 +
-关系流程图，组件注册表单源）、契约页体检（K/M 闸门与组件契约探针）、
+已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、自动配音与逐句字幕、
+React composition 画面（比喻组件 + 数据图表 +
+关系流程图，组件注册表单源）、契约页体检（K/M 闸门、组件契约探针与视觉叙事 V 系列）、
 Remotion 确定性渲染与成片验收、按文章目录推导输出路径、内容根（文章与产物可放在
 仓库之外、`videos/` 不入库），以及设计语言预设（分镜声明 `visual.preset: "keynote"`
 后启用令牌层、排版引擎与观感闸门）。
 
 尚未实现，不要当作已有能力使用：
 
-- **视觉模型自动评审**：K 系列只给出数值，最终判断仍要人（或视觉模型）按
+- **视觉模型自动评审**：K 系列只给出数值，V5 只列出候选与结构证据，
+  「图形有没有真的承担论证」（V6）也由人填写，最终判断仍要按
   [视觉评审量表](references/visual-review-rubric.md) 完成；
 - **webfont 子集化**：随仓库分发的 Noto Sans SC Variable 约 17MB，尚未做子集化；
 - **按内容自动选预设**：预设必须由分镜显式声明；

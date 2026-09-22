@@ -22,7 +22,12 @@
         "focus": "text",
         "composition": "offset",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "更努力却没有结果，说明问题不在努力的程度",
+        "showWithoutText": "上下两块文字错位排列，留白把疑问推给观众；这一屏完全由文字承担",
+        "primaryObject": "标题文字块与它的副标题",
+        "motionMeaning": "标题先入场、副标题随后揭示，把「问题不在努力」这层转折说出来"
       },
       "sceneTree": {
         "id": "root",
@@ -66,6 +71,14 @@
         "text": "努力没有结果，\n往往不是因为不够努力，\n而是因为方向错了。",
         "emphasis": [
           "方向"
+        ],
+        "pathA": [
+          "只加投入",
+          "结果平平"
+        ],
+        "pathB": [
+          "先调方向",
+          "结果改变"
         ]
       },
       "visualIntent": {
@@ -73,25 +86,127 @@
         "focus": "text",
         "composition": "split",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "comparison",
+        "claim": "同样投入之下，改方向与不改方向通向两种结果",
+        "showWithoutText": "上下两条链并排：上面一条整体灰暗、箭头通向同样的结果块，下面一条箭头通向高亮的结果块",
+        "primaryObject": "两条推进链与它们的连接箭头",
+        "motionMeaning": "两条链的箭头先后画出，灰暗与高亮的差别说明差别不在投入而在方向"
       },
       "sceneTree": {
         "id": "root",
-        "type": "stack",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-text",
+            "id": "thesis-text",
             "type": "text",
             "contentRef": "data.text",
             "role": "headline"
+          },
+          {
+            "id": "path-a",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "path-a-start",
+                "type": "surface",
+                "state": "muted",
+                "children": [
+                  {
+                    "id": "path-a-start-text",
+                    "type": "text",
+                    "contentRef": "data.pathA[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "path-a-arrow",
+                "type": "connector",
+                "direction": "ltr",
+                "state": "muted"
+              },
+              {
+                "id": "path-a-end",
+                "type": "surface",
+                "state": "muted",
+                "children": [
+                  {
+                    "id": "path-a-end-text",
+                    "type": "text",
+                    "contentRef": "data.pathA[1]",
+                    "role": "body"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "path-b",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "path-b-start",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "path-b-start-text",
+                    "type": "text",
+                    "contentRef": "data.pathB[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "path-b-arrow",
+                "type": "connector",
+                "direction": "ltr"
+              },
+              {
+                "id": "path-b-end",
+                "type": "surface",
+                "state": "focus",
+                "children": [
+                  {
+                    "id": "path-b-end-text",
+                    "type": "text",
+                    "contentRef": "data.pathB[1]",
+                    "role": "body"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "motions": [
         {
-          "target": "content-text",
+          "target": "thesis-text",
           "recipe": "reveal",
           "startFrame": 12,
+          "durationFrames": 24
+        },
+        {
+          "target": "path-a-arrow",
+          "recipe": "draw",
+          "startFrame": 36,
+          "durationFrames": 20
+        },
+        {
+          "target": "path-b-arrow",
+          "recipe": "draw",
+          "startFrame": 72,
+          "durationFrames": 20
+        },
+        {
+          "target": "path-b-end",
+          "recipe": "rise",
+          "startFrame": 92,
           "durationFrames": 24
         }
       ]
@@ -102,59 +217,70 @@
       "durationInFrames": 270,
       "narration": "面对停滞，人有两种反应：继续加大投入，或者先找出限制结果的那一环。",
       "data": {
-        "title": "面对停滞，两种反应",
-        "left": "不断增加努力",
-        "right": "寻找当前约束"
+        "title": "继续加大投入，结果几乎不动（示意）",
+        "values": [
+          {
+            "label": "投入 1 份",
+            "value": 3
+          },
+          {
+            "label": "投入 2 份",
+            "value": 3.1
+          },
+          {
+            "label": "投入 3 份",
+            "value": 2.9
+          },
+          {
+            "label": "投入 4 份",
+            "value": 3.2
+          }
+        ]
       },
       "visualIntent": {
         "relation": "contrast",
-        "focus": "text",
+        "focus": "chart",
         "composition": "radial",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "投入继续增加时，结果并没有跟着涨——加大投入不是出路",
+        "showWithoutText": "四根柱子高度几乎齐平，无论投入那一栏怎么变大，结果那一栏都不动",
+        "primaryObject": "结果柱状图与它齐平的柱顶",
+        "motionMeaning": "柱子依次升起后停在几乎相同的高度，用「涨不上去」说明投入与结果脱钩"
       },
       "sceneTree": {
         "id": "root",
-        "type": "stack",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "choice-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-left",
-            "type": "text",
-            "contentRef": "data.left",
-            "role": "headline"
-          },
-          {
-            "id": "content-right",
-            "type": "text",
-            "contentRef": "data.right",
-            "role": "headline"
+            "id": "choice-chart",
+            "type": "chart",
+            "contentRef": "data.values",
+            "chart": "bar",
+            "schematic": true
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "choice-title",
           "recipe": "reveal",
           "startFrame": 12,
           "durationFrames": 24
         },
         {
-          "target": "content-left",
-          "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
-        },
-        {
-          "target": "content-right",
+          "target": "choice-chart",
           "recipe": "reveal",
           "startFrame": 28,
-          "durationFrames": 24
+          "durationFrames": 30
         }
       ]
     },
@@ -170,63 +296,130 @@
           "约束",
           "行动",
           "反馈"
-        ],
-        "edges": [
-          [
-            "问题",
-            "约束"
-          ],
-          [
-            "约束",
-            "行动"
-          ],
-          [
-            "行动",
-            "反馈"
-          ],
-          [
-            "反馈",
-            "约束"
-          ]
         ]
       },
       "visualIntent": {
         "relation": "cycle",
-        "focus": "text",
+        "focus": "shape",
         "composition": "center",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "cycle",
+        "claim": "问题、约束、行动、反馈首尾相接，约束在循环里不断移动",
+        "showWithoutText": "四个节点绕着一个圆环排布，首尾相连的顺序本身说明约束会挪位置",
+        "primaryObject": "圆周布局与它背后的圆环",
+        "motionMeaning": "四个节点沿圆周依次入场，把循环一圈一圈转起来的过程演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
+        "type": "column",
+        "gap": "lg",
         "children": [
           {
-            "id": "content-title",
+            "id": "loop-title",
             "type": "text",
             "contentRef": "data.title",
             "role": "title"
           },
           {
-            "id": "content-nodes",
-            "type": "text",
-            "contentRef": "data.nodes",
-            "role": "body"
+            "id": "wheel-stage",
+            "type": "overlay",
+            "children": [
+              {
+                "id": "loop-ring",
+                "type": "shape",
+                "shape": "ring",
+                "state": "muted"
+              },
+              {
+                "id": "wheel",
+                "type": "radial",
+                "children": [
+                  {
+                    "id": "node-problem",
+                    "type": "surface",
+                    "children": [
+                      {
+                        "id": "node-problem-text",
+                        "type": "text",
+                        "contentRef": "data.nodes[0]",
+                        "role": "body"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "node-constraint",
+                    "type": "surface",
+                    "state": "focus",
+                    "children": [
+                      {
+                        "id": "node-constraint-text",
+                        "type": "text",
+                        "contentRef": "data.nodes[1]",
+                        "role": "body"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "node-action",
+                    "type": "surface",
+                    "children": [
+                      {
+                        "id": "node-action-text",
+                        "type": "text",
+                        "contentRef": "data.nodes[2]",
+                        "role": "body"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "node-feedback",
+                    "type": "surface",
+                    "children": [
+                      {
+                        "id": "node-feedback-text",
+                        "type": "text",
+                        "contentRef": "data.nodes[3]",
+                        "role": "body"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "motions": [
         {
-          "target": "content-title",
+          "target": "loop-title",
           "recipe": "reveal",
           "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 18
         },
         {
-          "target": "content-nodes",
-          "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "target": "node-problem",
+          "recipe": "rise",
+          "startFrame": 30,
+          "durationFrames": 20
+        },
+        {
+          "target": "node-constraint",
+          "recipe": "rise",
+          "startFrame": 50,
+          "durationFrames": 20
+        },
+        {
+          "target": "node-action",
+          "recipe": "rise",
+          "startFrame": 70,
+          "durationFrames": 20
+        },
+        {
+          "target": "node-feedback",
+          "recipe": "rise",
+          "startFrame": 90,
+          "durationFrames": 20
         }
       ]
     },
@@ -244,7 +437,12 @@
         "focus": "text",
         "composition": "full",
         "density": "balanced",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "把努力放在限制结果的那一环上，而不是平均撒在所有环节",
+        "showWithoutText": "结论与行动两块文字一上一下，中间只留呼吸空间；这一屏靠文字收束",
+        "primaryObject": "结论文字块与行动提示块",
+        "motionMeaning": "结论先落地、行动提示随后出现，把「先找约束」变成可执行的一步"
       },
       "sceneTree": {
         "id": "root",

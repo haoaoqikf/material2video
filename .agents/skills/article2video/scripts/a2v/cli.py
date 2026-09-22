@@ -20,6 +20,7 @@ from . import contract_page
 from . import fonts as fonts_mod
 from . import paths as paths_mod
 from . import storyboard as sb
+from . import visual_narrative as vn
 from .errors import A2VError
 from .media import Media, load_media
 from .render import provenance_status, render_with_remotion
@@ -276,6 +277,87 @@ def _check_code_scene_modules(
         report.error(scene_path, message)
 
 
+def _v_gate_detail(gate: dict) -> str:
+    """V 闸门的终端一行值：实际值与阈值并排，失败时列出场景。"""
+    gate_id = gate.get("id")
+    if gate_id == "V1":
+        return f"文字幕 {gate.get('value')}/{gate.get('sceneCount')} 幕（上限 {gate.get('limit')}）"
+    if gate_id == "V2":
+        pairs = gate.get("pairs") or []
+        return "相邻文字幕：" + "、".join(f"{a}→{b}" for a, b in pairs) if pairs else "无相邻文字幕"
+    if gate_id == "V3":
+        modes = "、".join(gate.get("modes") or []) or "无"
+        return f"非文字模式 {gate.get('value')}/{gate.get('required')} 种（{modes}）"
+    if gate_id == "V4":
+        scenes = gate.get("scenes") or []
+        if not scenes:
+            return "声明与结构一致"
+        return "矛盾：" + "、".join(f"{item.get('id')}({item.get('declaredMode')})" for item in scenes)
+    return str(gate.get("status"))
+
+
+def _v_gate_error_message(gate: dict) -> str:
+    """V1–V4 失败进入错误列表时的完整描述：场景 id、实际值与阈值。"""
+    gate_id = gate.get("id")
+    if gate_id == "V1":
+        return (
+            f"文字幕 {gate.get('value')}/{gate.get('sceneCount')} 幕，超过允许上限 {gate.get('limit')}"
+            f"（场景数 × {vn.TEXT_SCENE_RATIO:.0%} 向上取整）：涉及 {'、'.join(gate.get('scenes') or [])}"
+        )
+    if gate_id == "V2":
+        pairs = "、".join(f"{a}→{b}" for a, b in gate.get("pairs") or [])
+        return f"相邻两幕均为文字幕：{pairs}"
+    if gate_id == "V3":
+        modes = "、".join(gate.get("modes") or []) or "无"
+        return (
+            f"非文字视觉模式只有 {gate.get('value')} 种（{modes}），"
+            f"少于 {gate.get('sceneCount', '')} 幕规模要求的 {gate.get('required')} 种"
+        )
+    scenes = gate.get("scenes") or []
+    return "声明与结构矛盾：" + "；".join(
+        f"{item.get('id')} 声明为 {item.get('declaredMode')} 但只有文字与包装节点（证据：{'、'.join(item.get('evidence') or []) or '无'}）"
+        for item in scenes
+    )
+
+
+def _visual_narrative_payload(storyboard_path: Path, out_dir: Path, combined: Report) -> dict:
+    """视觉叙事 V 系列：V1–V4 硬判定并入错误数，V5 证据与 V6 人工结论只呈现。
+
+    V1–V4 与严格校验同一口径（同一份 visual_narrative 分析）；V5 是
+    文字主导候选清单，V6 从 ``review.md`` 读人工结论，缺失即「待评审」，
+    低于 4/5 或存在未裁决候选时不可发布。语义结论不并入自动退出码。
+    """
+    raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    gates = vn.review_gates(vn.analyze(raw))
+    for gate in (gates["v1"], gates["v2"], gates["v3"], gates["v4"]):
+        if gate["status"] == "fail":
+            combined.error(f"视觉叙事 {gate['id']}", _v_gate_error_message(gate))
+    candidates = [item["id"] for item in gates["v5"]["scenes"]]
+    gates["v6"] = vn.review_v6(out_dir / "review.md", candidates)
+    return gates
+
+
+def _visual_narrative_lines(vn_result: dict | None) -> list[str]:
+    """V 系列的终端摘要。分开呈现机检结论与人工结论，不合成总分。"""
+    if not vn_result:
+        return []
+    lines = ["视觉叙事 V 系列（V1–V4 与严格校验同口径；V5/V6 语义结论只提示）："]
+    for key in ("v1", "v2", "v3", "v4"):
+        gate = vn_result.get(key) or {}
+        mark = "✓" if gate.get("status") == "pass" else "✗"
+        lines.append(f"  {mark} {gate.get('id')} {gate.get('title')}：{_v_gate_detail(gate)}")
+    v5 = vn_result.get("v5") or {}
+    ids = [str(item.get("id")) for item in v5.get("scenes") or []]
+    lines.append(f"  - V5 文字主导候选：{'、'.join(ids) if ids else '无'}（判定证据见 report.json，需逐条裁决）")
+    v6 = vn_result.get("v6") or {}
+    score = v6.get("score")
+    score_text = f"{score}/5" if isinstance(score, int) else "未填写"
+    lines.append(
+        f"  - V6 图形承担论证：{v6.get('status')}（{score_text}）——可发布={'是' if v6.get('publishable') else '否'}"
+    )
+    return lines
+
+
 def _article_for(
     args: argparse.Namespace, *, required: bool = False
 ) -> paths_mod.ArticlePaths | None:
@@ -378,7 +460,7 @@ def main_validate(argv: list[str] | None = None) -> int:
         logging.error("文件不存在: %s", path)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(path)
+    model, report = sb.load(path, strict=args.strict)
     _check_code_scene_modules(path, args.content_root, report)
     diversity_result = None
     if model is not None:
@@ -574,6 +656,9 @@ def main_review(argv: list[str] | None = None) -> int:
         "React 画面由 composition 源码决定；静态确定性由 web/src 源码扫描负责，"
         "本步骤运行 DOM 量测与组件探针",
     )
+    # 视觉叙事 V 系列是静态分析，放在浏览器工作之前：契约页构建失败时
+    # 它的结论也已经被写进错误列表，不会因为环境问题静默丢失。
+    visual_narrative = _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
 
     try:
         with contextlib.ExitStack() as stack:
@@ -648,6 +733,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "storyboard": str(args.storyboard),
             "source": "media" if media else "storyboard",
             "provenance": _rendered_provenance(out_dir),
+            "visualNarrative": visual_narrative,
             **({"determinism": determinism_json} if determinism_json is not None else {}),
         },
         out_dir / "report.json",
@@ -801,6 +887,8 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     motion_result = payload.get("motion")
     if motion_result is not None:
         lines.extend(_motion_lines(motion_result))
+
+    lines.extend(_visual_narrative_lines(payload.get("visualNarrative")))
 
     lines.extend(_provenance_lines(payload.get("provenance")))
 

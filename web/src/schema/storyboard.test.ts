@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_STORYBOARD, parseStoryboard, sceneSchema } from '@/schema/storyboard';
+import { EMPTY_STORYBOARD, parseStoryboard, sceneSchema, visualIntentSchema } from '@/schema/storyboard';
 
 describe('v2 分镜 schema', () => {
   it('接受最小有效场景树', () => expect(parseStoryboard(EMPTY_STORYBOARD).version).toBe(2));
@@ -43,6 +43,38 @@ describe('v2 分镜 schema', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.sceneTree!.children = Array.from({ length: 48 }, (_, i) => ({ id: `n${i}`, type: 'shape' as const }));
     expect(sceneSchema.safeParse(scene).success).toBe(false);
+  });
+});
+
+describe('视觉论证字段', () => {
+  const intent = (extra: Record<string, unknown>) => ({
+    ...structuredClone(EMPTY_STORYBOARD.scenes[0].visualIntent),
+    ...extra,
+  });
+
+  it('接受逐幕视觉论证声明（旧运行时按同一契约解析新版分镜）', () => {
+    const parsed = visualIntentSchema.parse(
+      intent({
+        mode: 'process',
+        claim: '先有反馈，才有下一次调整',
+        showWithoutText: '三段状态被两支箭头串起，方向说明前一步导致后一步',
+        primaryObject: '三段推进链与两支连接箭头',
+        motionMeaning: '箭头逐段画出，把推进过程演一遍',
+      }),
+    );
+    expect(parsed.mode).toBe('process');
+  });
+
+  it('缺少视觉论证字段的旧分镜仍然解析（兼容模式）', () => {
+    expect(visualIntentSchema.safeParse(intent({})).success).toBe(true);
+  });
+
+  it('拒绝受控枚举之外的视觉模式', () => {
+    expect(visualIntentSchema.safeParse(intent({ mode: 'slide' })).success).toBe(false);
+  });
+
+  it('拒绝空白的论证字段', () => {
+    expect(visualIntentSchema.safeParse(intent({ mode: 'chart', claim: '   ' })).success).toBe(false);
   });
 });
 

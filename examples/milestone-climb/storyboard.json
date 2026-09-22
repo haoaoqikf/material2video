@@ -29,7 +29,12 @@
         "focus": "text",
         "composition": "center",
         "density": "sparse",
-        "tone": "neutral"
+        "tone": "neutral",
+        "mode": "typography",
+        "claim": "里程碑不是终点线，而是把大目标切开的刻度",
+        "showWithoutText": "一条强调横线把上下两块文字分开，断句本身说明这是一句转折",
+        "primaryObject": "标题文字块与它下面的强调横线",
+        "motionMeaning": "横线用 draw 画出，把「终点线」与「用来踩的台阶」之间的转折划出来"
       },
       "sceneTree": {
         "id": "root",
@@ -66,7 +71,12 @@
         "focus": "chart",
         "composition": "full",
         "density": "dense",
-        "tone": "uplifting"
+        "tone": "uplifting",
+        "mode": "chart",
+        "claim": "每周推进的台阶数在上升，进度是可数的",
+        "showWithoutText": "五根柱子逐级升高，柱高的差别说明推进速度在加快",
+        "primaryObject": "五根进度柱与它们递增的高度",
+        "motionMeaning": "柱子依次升起，把「一级一级往上走」的过程演出来"
       },
       "sceneTree": {
         "id": "root",
@@ -89,35 +99,73 @@
       "data": {
         "value": 1,
         "label": "阶",
-        "caption": "焦虑的解药是一次只看一级（示意）"
+        "caption": "焦虑的解药是一次只看一级（示意）",
+        "steps": ["这一级", "下一级", "再下一级"]
       },
       "visualIntent": {
         "relation": "focus",
         "focus": "number",
         "composition": "split",
         "density": "sparse",
-        "tone": "calm"
+        "tone": "calm",
+        "mode": "process",
+        "claim": "一次只看一级：当前这一级高亮，其余级别退到后面",
+        "showWithoutText": "三块台阶被两支箭头串成一列，第一块高亮、后两块灰暗，明暗与顺序说明只走一步",
+        "primaryObject": "三段台阶链与高亮的当前级",
+        "motionMeaning": "箭头逐段画出、台阶依次落下，把「只看一级、再迈一级」的节奏演出来"
       },
       "sceneTree": {
         "id": "root",
-        "type": "split",
-        "ratio": "1:2",
-        "gap": "md",
+        "type": "column",
+        "gap": "lg",
         "children": [
-          { "id": "step-number", "type": "number", "contentRef": "data.value", "role": "hero", "schematic": true },
           {
-            "id": "step-note",
-            "type": "surface",
+            "id": "step-hero",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
             "children": [
-              { "id": "step-unit", "type": "text", "contentRef": "data.label", "role": "title" },
-              { "id": "step-caption", "type": "text", "contentRef": "data.caption", "role": "caption" }
+              { "id": "step-number", "type": "number", "contentRef": "data.value", "role": "hero", "schematic": true },
+              { "id": "step-unit", "type": "text", "contentRef": "data.label", "role": "title" }
+            ]
+          },
+          {
+            "id": "step-track",
+            "type": "row",
+            "align": "center",
+            "gap": "sm",
+            "children": [
+              {
+                "id": "step-now",
+                "type": "surface",
+                "state": "focus",
+                "children": [{ "id": "step-now-text", "type": "text", "contentRef": "data.steps[0]", "role": "title" }]
+              },
+              { "id": "step-arrow-1", "type": "connector", "direction": "ltr" },
+              {
+                "id": "step-next",
+                "type": "surface",
+                "state": "muted",
+                "children": [{ "id": "step-next-text", "type": "text", "contentRef": "data.steps[1]", "role": "title" }]
+              },
+              { "id": "step-arrow-2", "type": "connector", "direction": "ltr" },
+              {
+                "id": "step-later",
+                "type": "surface",
+                "state": "muted",
+                "children": [{ "id": "step-later-text", "type": "text", "contentRef": "data.steps[2]", "role": "title" }]
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "step-number", "recipe": "count", "startFrame": 6, "durationFrames": 30 },
-        { "target": "step-note", "recipe": "rise", "startFrame": 20, "durationFrames": 24 }
+        { "target": "step-number", "recipe": "count", "startFrame": 2, "durationFrames": 14 },
+        { "target": "step-unit", "recipe": "reveal", "startFrame": 4, "durationFrames": 12 },
+        { "target": "step-arrow-1", "recipe": "draw", "startFrame": 8, "durationFrames": 10 },
+        { "target": "step-next", "recipe": "reveal", "startFrame": 12, "durationFrames": 10 },
+        { "target": "step-arrow-2", "recipe": "draw", "startFrame": 16, "durationFrames": 10 },
+        { "target": "step-later", "recipe": "reveal", "startFrame": 20, "durationFrames": 10 }
       ]
     },
     {
@@ -133,7 +181,12 @@
         "focus": "text",
         "composition": "full",
         "density": "balanced",
-        "tone": "decisive"
+        "tone": "decisive",
+        "mode": "typography",
+        "claim": "可数的台阶要看得见、够得着、数得出、可回退",
+        "showWithoutText": "四张等大的卡片排成两行两列，整齐的格子说明它们并列同级",
+        "primaryObject": "四个并列卡片与它们的网格排布",
+        "motionMeaning": "四张卡片依次升起，把清单一项项落到台面上"
       },
       "sceneTree": {
         "id": "root",

@@ -23,6 +23,7 @@ from typing import Any
 
 from . import catalog
 from . import code_scenes
+from . import visual_narrative as vn
 
 # 当前支持的版本：场景树 v2。字段结构变化时必须递增，并在校验时给出明确提示。
 SCENE_TREE_VERSION = 2
@@ -130,15 +131,22 @@ class Report:
         }
 
 
-def validate(data: Any) -> Report:
-    """校验分镜脚本 dict，返回结构化报告。data 不是 dict 时直接判错。"""
+def validate(data: Any, strict: bool = False) -> Report:
+    """校验分镜脚本 dict，返回结构化报告。data 不是 dict 时直接判错。
+
+    ``strict``（对应 CLI 的 ``--strict``）额外执行视觉叙事契约：
+    逐幕缺少视觉论证字段时不再只是兼容警告，而是错误，并执行版本化的
+    全片视觉叙事预算（文字幕占比、连续文字幕、非文字模式覆盖与
+    声明/结构矛盾）。普通校验保持兼容：旧分镜只收到警告，预览与
+    渲染仍可继续。
+    """
     report = Report()
     if not isinstance(data, dict):
         report.error("$", "脚本根节点必须是 JSON 对象")
         return report
 
     if data.get("version") == SCENE_TREE_VERSION:
-        return _validate_v2(data)
+        return _validate_v2(data, strict=strict)
     if data.get("version") == 1:
         report.error(
             "version",
@@ -149,7 +157,7 @@ def validate(data: Any) -> Report:
     return report
 
 
-def _validate_v2(data: dict[str, Any]) -> Report:
+def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
     report = Report()
     _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "scenes", "visual"}, "", report)
     if data.get("schemaVersion") != SCENE_TREE_VERSION:
@@ -186,7 +194,7 @@ def _validate_v2(data: dict[str, Any]) -> Report:
             report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
         if not isinstance(scene.get("data"), dict):
             report.error(f"{path}.data", "data 必须是对象")
-        _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report)
+        _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report, strict=strict)
         _validate_scene_visual(scene.get("visual"), scene.get("type"), f"{path}.visual", report)
         kind = _validate_renderer(scene, path, report)
         if kind == "tree":
@@ -203,7 +211,55 @@ def _validate_v2(data: dict[str, Any]) -> Report:
                 "scenes",
                 f"总时长约 {seconds:.0f} 秒，超过竖屏短视频的常见上限，请确认是有意为之",
             )
+    _validate_visual_narrative(data, report, strict=strict)
     return report
+
+
+def _validate_visual_narrative(data: dict[str, Any], report: Report, *, strict: bool) -> None:
+    """全片视觉叙事预算（版本化规则，阈值见 visual_narrative.RULE_VERSION）。
+
+    预算规则只在严格校验执行：文字幕占比与连续文字幕是硬门槛，
+    报告始终列出场景 id、实际值与允许上限。普通校验保持沉默——
+    它的兼容契约是「旧分镜可预览、可渲染」，预算问题留给严格验收。
+    """
+    if not strict:
+        return
+    scenes = data.get("scenes")
+    if not isinstance(scenes, list) or not scenes:
+        return
+    analysis = vn.analyze(data)
+    scene_index = {
+        str(scene.get("id")): index for index, scene in enumerate(scenes) if isinstance(scene, dict)
+    }
+    for finding in analysis["findings"]:
+        rule = finding["rule"]
+        detail = finding["detail"]
+        scene_list = "、".join(str(scene_id) for scene_id in finding["scenes"]) or "（无）"
+        if rule == "text-scene-budget":
+            report.error(
+                "scenes",
+                f"文字幕 {detail['actual']}/{detail['sceneCount']} 幕，超过允许上限 "
+                f"{detail['limit']}（{vn.TEXT_SCENE_RATIO:.0%} 向上取整）：涉及 {scene_list}",
+            )
+        elif rule == "adjacent-text-scenes":
+            report.error(
+                "scenes",
+                f"相邻两幕均为文字幕：{scene_list}；文字幕之间必须隔开论证型图形场景",
+            )
+        elif rule == "non-text-mode-coverage":
+            report.error(
+                "scenes",
+                f"非文字视觉模式只有 {detail['actual']} 种（{'、'.join(detail['modes']) or '无'}），"
+                f"少于 {detail['sceneCount']} 幕作品要求的 {detail['required']} 种",
+            )
+        elif rule == "declaration-structure-conflict":
+            position = scene_index.get(str(finding["scenes"][0]), 0)
+            report.error(
+                f"scenes[{position}].visualIntent.mode",
+                f"声明为 {detail['declaredMode']}，但场景树只有文字、数值、符号图标、"
+                "装饰形状或包裹它们的表面，拿不出论证型结构证据；请改声明为 "
+                "typography，或用 chart/image/connector/radial 承担论证",
+            )
 
 
 def _validate_visual_direction(direction: dict[str, Any], report: Report) -> None:
@@ -228,7 +284,14 @@ def _validate_visual_direction(direction: dict[str, Any], report: Report) -> Non
         report.error("visualDirection.avoid", "avoid 必须是字符串数组")
 
 
-def _validate_visual_intent(value: Any, path: str, report: Report) -> None:
+#: 逐幕视觉论证字段：导演意图声明，不参与 React 渲染。
+#: ``mode`` 用受控枚举（见 visual_narrative.VISUAL_MODES）；
+#: 其余四项是非空文本，``showWithoutText`` 不得机械复述 ``claim``。
+_INTENT_MODE_FIELD = "mode"
+_INTENT_TEXT_FIELDS = ("claim", "showWithoutText", "primaryObject", "motionMeaning")
+
+
+def _validate_visual_intent(value: Any, path: str, report: Report, strict: bool = False) -> None:
     fields = {
         "relation": {"focus", "contrast", "sequence", "cause", "cycle", "collection"},
         "focus": {"text", "number", "shape", "chart", "path"},
@@ -239,10 +302,44 @@ def _validate_visual_intent(value: Any, path: str, report: Report) -> None:
     if not isinstance(value, dict):
         report.error(path, "visualIntent 必须是对象")
         return
-    _reject_unknown(value, set(fields), path, report)
+    _reject_unknown(value, set(fields) | {_INTENT_MODE_FIELD, *_INTENT_TEXT_FIELDS}, path, report)
     for key, choices in fields.items():
         if value.get(key) not in choices:
             report.error(f"{path}.{key}", f"必须是 {'/'.join(sorted(choices))} 之一")
+    mode = value.get(_INTENT_MODE_FIELD)
+    if _INTENT_MODE_FIELD in value and mode not in vn.VISUAL_MODES:
+        report.error(
+            f"{path}.{_INTENT_MODE_FIELD}",
+            f"必须是 {'/'.join(vn.VISUAL_MODES)} 之一",
+        )
+    for key in _INTENT_TEXT_FIELDS:
+        if key not in value:
+            continue
+        text = value[key]
+        if not isinstance(text, str) or not text.strip():
+            report.error(f"{path}.{key}", "必须是非空字符串：这是逐幕视觉论证的声明字段")
+    claim = value.get("claim")
+    show = value.get("showWithoutText")
+    if isinstance(claim, str) and claim.strip() and isinstance(show, str) and show.strip():
+        if vn.is_restatement(show, claim):
+            report.error(
+                f"{path}.showWithoutText",
+                "只是复述 claim（逐字重复或「显示/呈现 + 论点」式包装）："
+                "请描述移除标题与正文后仍能看见的关系或变化",
+            )
+    missing = [key for key in (_INTENT_MODE_FIELD, *_INTENT_TEXT_FIELDS) if key not in value]
+    if missing:
+        message = (
+            f"缺少视觉论证字段 {('、'.join(missing))}：逐幕须声明受控视觉模式、核心论点、"
+            "无正文视觉表达、主要视觉对象与动效语义"
+        )
+        if strict:
+            report.error(f"{path}", message)
+        else:
+            report.warn(
+                f"{path}",
+                message + "（旧版分镜兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
+            )
 
 
 def _validate_root_visual(value: Any, report: Report) -> None:
@@ -758,11 +855,13 @@ class Storyboard:
         return self.scenes[-1] if frame >= self.total_frames else self.scenes[0]
 
 
-def load(path: str | Path) -> tuple[Storyboard | None, Report]:
+def load(path: str | Path, strict: bool = False) -> tuple[Storyboard | None, Report]:
     """从 JSON 文件加载并校验分镜脚本。
 
     返回 (storyboard, report)：解析失败或存在 error 时 storyboard 为 None，
-    便于调用方在报告与模型之间二选一使用。
+    便于调用方在报告与模型之间二选一使用。``strict`` 透传给
+    :func:`validate`——只有交付闭环的校验入口（validate.py --strict）
+    传 True；预览、渲染、体检与配音准备保持兼容模式。
     """
     path = Path(path)
     report = Report()
@@ -778,7 +877,7 @@ def load(path: str | Path) -> tuple[Storyboard | None, Report]:
         report.error("$", f"JSON 解析失败（第 {exc.lineno} 行第 {exc.colno} 列）: {exc.msg}")
         return None, report
 
-    report = validate(data)
+    report = validate(data, strict=strict)
     if not report.ok:
         return None, report
     return _build(data, report), report

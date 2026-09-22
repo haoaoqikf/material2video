@@ -8,12 +8,12 @@
 ## 这是什么
 
 一个**项目级 Skill**：由 AI 编程工具（Codex、Claude Code、DSH 等）读懂文章，分阶段声明
-内容分镜、视觉策略、逐幕意图、场景树与动效，写成 v2 分镜 JSON；画面由仓库 `web/` 里的
-共享 React composition（Remotion）按场景树逐帧渲染成 MP4。
+内容分镜、视觉策略、逐幕意图与视觉论证、场景树与动效，写成 v2 分镜 JSON；画面由仓库
+`web/` 里的共享 React composition（Remotion）按场景树逐帧渲染成 MP4。
 AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
 ```text
-文章 → 内容分镜 → 视频级视觉策略 → 逐幕视觉意图 → 场景树与动效 → v2 分镜 JSON
+文章 → 内容分镜 → 视频级视觉策略 → 逐幕视觉意图与视觉论证 → 场景树与动效 → v2 分镜 JSON
      → 配音与字幕准备（可选）→ 共享 composition 逐帧渲染与音轨合成 → 竖屏 MP4
 ```
 
@@ -31,9 +31,18 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 - **分镜 v2 结构**：根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`
   （母题、构图偏置、密度、节奏、禁止复用项）；每幕声明 `visualIntent`（信息关系、视觉焦点、
-  构图、密度、情绪）、`sceneTree`（受控原语树）与 `motions`（按节点 id 绑定的具名动效）。
+  构图、密度、情绪，以及视觉论证字段 `mode` / `claim` / `showWithoutText` /
+  `primaryObject` / `motionMeaning`）、`sceneTree`（受控原语树）与 `motions`
+  （按节点 id 绑定的具名动效）。
   结构与约束见
   [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
+- **视觉论证与全片预算（严格校验）**：`a2v/visual_narrative.py` 把逐幕声明与场景树结构
+  对照分类——只承认图表、图片、连接关系、圆周布局（≥ 2 个内容子节点）四类**结构证据**，
+  布局原语、表面、形状、图标与单个数值都算包装或文字；`validate.py --strict` 因此执行
+  文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是文字幕、八幕及以上至少 3 种
+  （少于八幕至少 2 种）非文字模式、声明非 `typography` 模式必须拿得出证据，
+  失败定位到 `scenes[N].visualIntent.mode`。阈值版本化（`RULE_VERSION`）并由测试钉住；
+  缺少新字段的旧分镜在普通校验里只给兼容警告，预览与渲染照常；
 - **视觉原语注册表是唯一真源**：`web/src/registry/registry.json` 登记 16 个原语——
   布局 7（`stack` / `row` / `column` / `split` / `grid` / `radial` / `overlay`）、
   内容 5（`text` / `number` / `image` / `icon` / `chart`）、
@@ -68,12 +77,14 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   挂进 `@remotion/player`，从查询参数 `a2v-storyboard` 读分镜，因此一个页面服务任意作品。
   体检（帧量测、场景树契约探针）用 Playwright 驱动它；渲染不走它，而是直接从 composition
   源码打包渲染（Remotion）；
-- **文章生成分镜**：按「内容分镜 → 视频级视觉策略 → 逐幕视觉意图 → 场景树 → 动效 → 验收」
-  分阶段执行，每阶段以前一阶段和原文为输入，可局部返工；步骤、约束与校验闭环统一写在
+- **文章生成分镜**：按「内容分镜 → 视频级视觉策略 → 逐幕视觉转译 → 场景树 → 动效 → 验收」
+  分阶段执行，每阶段以前一阶段和原文为输入，可局部返工；视觉转译要求先声明受控视觉模式与
+  无正文视觉表达，原语不足以表达时**停在转译阶段**（重新构思、扩展通用原语或用代码场景），
+  不得改写成文字卡片后继续宣称原模式。步骤、约束、判据与正反例统一写在
   [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)；
   由 AI 工具按规范执行，仓库不含生成器程序，也不调用任何模型服务；
 - **多样性检查**：`a2v/diversity.py` 为每幕计算**不含正文**的归一化布局指纹
-  （树形、原语类别、分区比例、焦点象限、密度、意图关系与动效序列），
+  （树形、原语类别、分区比例、焦点象限、密度、意图关系、视觉模式与动效序列），
   在严格校验命令里报告相邻完全同构与片内过度复用；显式传 `--reference`
   提供参考分镜集合时才做跨作品比较，否则如实标记「未运行」；
 - **旧分镜迁移**：`scripts/migrate_storyboard.py` 接受一个旧分镜路径与显式输出路径，
@@ -140,7 +151,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - **契约锚点**：场景树每个可渲染节点输出稳定的 `data-a2v-node-id` 与
   `data-a2v-primitive` 类型标记，契约探针按节点 id 核对「声明的内容真的画了出来」，
   动效按节点 id 量测——原语内部 DOM 结构调整不影响验收目标；
-- 自动化测试：Python 侧覆盖 v2 校验、迁移、多样性指纹、缓存与失败恢复、字幕时间轴、
+- 自动化测试：Python 侧覆盖 v2 校验、迁移、多样性指纹、视觉叙事预算与 V 系列闸门、
+  缓存与失败恢复、字幕时间轴、
   路径推导、契约页、取档行为、动效量测、渲染溯源与 Remotion 打包；
   web 侧（`pnpm -C web test`）覆盖 schema 校验、注册表自洽与场景树运行时纯函数。
 
@@ -150,7 +162,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 **平台发布**、批量渲染与成片历史版本。
 
 设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
-最终判断仍要人按
+V5 只列候选与结构证据，V6 结论也由人填写，最终判断仍要人按
 [评审量表](.agents/skills/article2video/references/visual-review-rubric.md) 完成）、
 **按内容自动选预设**（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、
 不判断「这一幕本该有卡片」。
@@ -279,7 +291,12 @@ v2 示例可作为起点。
 - **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；动效量测（M0–M4）；
 - **观感闸门 K1–K10**（声明 `visual.preset` 时）与**设计宪法静态检查**的适用部分：
   React 路径上静态结构检查明说跳过（画面由 composition 源码决定），由 web 侧
-  源码扫描与运行时量测承担。
+  源码扫描与运行时量测承担；
+- **视觉叙事 V 系列**（`report.json` 的 `visualNarrative`）：V1 文字幕预算、V2 连续文字幕、
+  V3 非文字模式覆盖、V4 声明与结构一致性——这四条与 `validate.py --strict` 同口径，
+  失败并入错误数与退出码；V5 列出文字主导候选幕及判定证据（只呈现，由人逐条裁决）；
+  V6 读 `review.md` 里人工填写的「图形承担论证」结论，**没填写就是「待评审」**，
+  发布要求 V6 ≥ 4/5 且没有未裁决候选。语义结论不并入自动退出码。
 
 机检只保证「这不是废片」。**值不值得看完**按
 [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)

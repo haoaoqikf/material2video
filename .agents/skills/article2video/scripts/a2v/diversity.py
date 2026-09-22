@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-RULE_VERSION = 1
+# v2：指纹纳入受控视觉模式（visualIntent.mode）。它是导演声明的归一化枚举，
+# 不含文章原文；两个场景树相同但声明的视觉模式不同的幕，不再是同一布局。
+RULE_VERSION = 2
 
 def _node_shape(node: Any) -> Any:
     if not isinstance(node, dict): return "invalid"
@@ -12,7 +14,7 @@ def _node_shape(node: Any) -> Any:
 
 def fingerprint(scene: dict[str, Any]) -> str:
     intent=scene.get("visualIntent", {}); motions=scene.get("motions", [])
-    payload={"ruleVersion":RULE_VERSION,"tree":_node_shape(scene.get("sceneTree")),"relation":intent.get("relation"),"focus":intent.get("focus"),"composition":intent.get("composition"),"density":intent.get("density"),"motions":[item.get("recipe") for item in motions if isinstance(item,dict)]}
+    payload={"ruleVersion":RULE_VERSION,"tree":_node_shape(scene.get("sceneTree")),"relation":intent.get("relation"),"focus":intent.get("focus"),"composition":intent.get("composition"),"density":intent.get("density"),"mode":intent.get("mode"),"motions":[item.get("recipe") for item in motions if isinstance(item,dict)]}
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",",":"))
 
 def inspect(data: dict[str, Any], references: list[dict[str, Any]] | None = None) -> dict[str, Any]:

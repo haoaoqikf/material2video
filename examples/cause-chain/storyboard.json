@@ -28,7 +28,12 @@
         "focus": "text",
         "composition": "offset",
         "density": "sparse",
-        "tone": "tense"
+        "tone": "tense",
+        "mode": "typography",
+        "claim": "拖住你的不是事情本身的难度，而是对启动成本的高估",
+        "showWithoutText": "单侧聚光压在大片留白上，只有一个焦点区域；这一屏的信息完全依赖文字成立",
+        "primaryObject": "标题文字块与它背后的聚光光晕",
+        "motionMeaning": "标题上浮入场，把这条反直觉的判断推到视线中心"
       },
       "sceneTree": {
         "id": "root",
@@ -58,7 +63,12 @@
         "focus": "shape",
         "composition": "radial",
         "density": "balanced",
-        "tone": "tense"
+        "tone": "tense",
+        "mode": "cycle",
+        "claim": "高估成本、迟迟不启动、得不到反馈，三者构成一个自我维持的循环",
+        "showWithoutText": "三个节点绕着一个圆环首尾相接，位置本身说明它们互为因果",
+        "primaryObject": "圆周布局与它背后的圆环",
+        "motionMeaning": "三个节点依次入场，暗示循环是一圈一圈转出来的"
       },
       "sceneTree": {
         "id": "root",
@@ -104,7 +114,12 @@
         "focus": "text",
         "composition": "split",
         "density": "balanced",
-        "tone": "decisive"
+        "tone": "decisive",
+        "mode": "typography",
+        "claim": "打破循环的动作小得不成比例：不等准备好，先开一寸",
+        "showWithoutText": "左右两块并列表面一暗一亮，明暗对比说明该选哪一边；论点仍由文字说出",
+        "primaryObject": "高亮表面与灰暗表面的对照",
+        "motionMeaning": "高亮表面延后入场，把注意力从「等」推向「先开一寸」"
       },
       "sceneTree": {
         "id": "root",
@@ -142,7 +157,12 @@
         "focus": "text",
         "composition": "full",
         "density": "sparse",
-        "tone": "uplifting"
+        "tone": "uplifting",
+        "mode": "process",
+        "claim": "小启动换来快反馈，链条一旦反着转，阻力会自己松开",
+        "showWithoutText": "三段文字被两支箭头依次串起，方向说明这是一条推进链",
+        "primaryObject": "推进链与两支连接箭头",
+        "motionMeaning": "箭头逐段画出，把「动一下—看到结果—重新估计」的推进演一遍"
       },
       "sceneTree": {
         "id": "root",
