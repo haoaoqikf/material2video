@@ -27,7 +27,7 @@ from . import assets, paths, remotion, security
 from .audio import mux
 from .browser import PageContract
 from .errors import A2VError
-from .media import Media, asset_fingerprint, file_digest
+from .media import Media, asset_fingerprint, file_digest, write_effective_storyboard
 from .http_server import LocalServer
 from .storyboard import Storyboard
 from .subtitles import srt
@@ -364,6 +364,13 @@ def render_with_remotion(
     with contextlib.ExitStack() as stack:
         temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
         video_path = temp / "video.mp4"
+
+        if media is not None:
+            # composition 的时长由 props 推导：--media 时 props 必须换成
+            # 媒体派生的有效分镜，否则画面按声明时长走、音轨按派生时长合成，
+            # 总帧数交叉校验直接失败。打包仍用原始路径：代码场景清单与
+            # 作品归属按原分镜与文章目录解析。
+            props = write_effective_storyboard(media, temp)
 
         bundle_started = time.monotonic()
         bundle_dir = remotion.bundle(

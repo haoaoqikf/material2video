@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from a2v import media as media_mod
 from a2v import audio, cli, prepare as prep, storyboard as sb
 from a2v.errors import A2VError
 from a2v.media import load_media
@@ -199,5 +200,88 @@ def test_missing_timestamps_does_not_publish(prepared, monkeypatch):
     with pytest.raises(A2VError, match="时间戳"):
         prep.prepare(source, path.parent, force=True)
     assert path.read_bytes() == before
+
+
+def test_effective_storyboard_uses_extended_durations(prepared):
+    """有效分镜的时长必须来自媒体清单，源分镜保持声明时长不变。"""
+    source, path = prepared
+    media = load_media(path, source)
+    effective = media_mod.effective_storyboard(media)
+    source_data = json.loads(source.read_text(encoding="utf-8"))
+    assert source_data["scenes"][0]["durationInFrames"] == 30
+    assert effective["scenes"][0]["durationInFrames"] == 69
+    assert [s["durationInFrames"] for s in effective["scenes"]] == [
+        s["durationInFrames"] for s in media.data["scenes"]
+    ]
+
+
+def test_write_effective_storyboard_defaults_to_media_dir(prepared):
+    """默认落盘到媒体目录（预览/评审的媒体服务根），文件名自证派生身份。"""
+    source, path = prepared
+    media = load_media(path, source)
+    written = media_mod.write_effective_storyboard(media)
+    assert written.parent == path.parent
+    assert written.name == "storyboard.effective.json"
+    data = json.loads(written.read_text(encoding="utf-8"))
+    assert sum(s["durationInFrames"] for s in data["scenes"]) == media.storyboard.total_frames
+    custom = path.parent / "elsewhere"
+    assert media_mod.write_effective_storyboard(media, custom).parent == custom
+
+
+def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
+    """有声渲染的 props 必须是媒体派生分镜；打包仍用原始分镜路径。
+
+    回归背景：props 曾一直是原始分镜，composition 按声明时长注册，
+    总帧数交叉校验报「不一致」，有声渲染根本无法完成。
+    """
+    from a2v import remotion as remotion_mod
+    from a2v import render as render_mod
+    from a2v.remotion import CompositionMetadata
+
+    source, path = prepared
+    media = load_media(path, source)
+    output = tmp_path / "out" / "voiced.mp4"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    captured: dict = {}
+
+    def fake_bundle(**kwargs):
+        captured["bundle_storyboard"] = Path(kwargs["storyboard_path"])
+        return tmp_path / "bundle"
+
+    def fake_metadata(**kwargs):
+        props = Path(kwargs["props"])
+        captured["props"] = props
+        captured["props_scenes"] = json.loads(props.read_text(encoding="utf-8"))["scenes"]
+        return CompositionMetadata(
+            fps=30, width=1080, height=1920, duration_in_frames=media.storyboard.total_frames
+        )
+
+    def fake_render_frames(**kwargs):
+        # 渲染发生在临时目录存续期间：props 的内容只能在这里读
+        captured["render_props_scenes"] = json.loads(
+            Path(kwargs["props"]).read_text(encoding="utf-8")
+        )["scenes"]
+
+    def fake_finalize(**kwargs):
+        kwargs["output_path"].write_bytes(b"mp4")
+
+    monkeypatch.setattr(remotion_mod, "require_environment", lambda: tmp_path)
+    monkeypatch.setattr(remotion_mod, "bundle", fake_bundle)
+    monkeypatch.setattr(remotion_mod, "metadata", fake_metadata)
+    monkeypatch.setattr(remotion_mod, "render_frames", fake_render_frames)
+    monkeypatch.setattr(render_mod, "_finalize_output", fake_finalize)
+    monkeypatch.setattr(render_mod, "_write_provenance", lambda *args, **kwargs: None)
+
+    result = render_mod.render_with_remotion(
+        output=output,
+        storyboard=sb._build(media.data["source"], sb.Report()),
+        storyboard_path=source,
+        media=media,
+    )
+
+    assert result.frames == media.storyboard.total_frames
+    assert sum(s["durationInFrames"] for s in captured["props_scenes"]) == media.storyboard.total_frames
+    assert captured["render_props_scenes"] == captured["props_scenes"]
+    assert captured["bundle_storyboard"] == source
 
 

@@ -107,7 +107,7 @@ function segmentColor(index: number): string {
 function BarChart({ points, schematic }: { points: Array<{ label: string; value: number }>; schematic?: boolean }): ReactNode {
   const max = Math.max(...points.map((point) => Math.abs(point.value)), 1);
   return (
-    <div className="a2v-primitive-chart">
+    <div className="a2v-primitive-chart a2v-chart-bar">
       {points.map((point, index) => (
         <div key={index} className="a2v-primitive-bar" style={{ height: `${Math.max(8, (Math.abs(point.value) / max) * 100)}%` }}>
           <span>{point.label}</span>

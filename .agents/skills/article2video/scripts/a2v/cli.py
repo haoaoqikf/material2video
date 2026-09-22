@@ -315,6 +315,14 @@ def _with_storyboard_query(
     return f"{url}{separator}a2v-storyboard={quote(_storyboard_url(storyboard, article), safe='')}"
 
 
+def _with_query_param(url: str, name: str, value: str) -> str:
+    """给 URL 补上一个取值为绝对地址（或任意字符串）的查询参数。"""
+    from urllib.parse import quote
+
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}{name}={quote(value, safe='')}"
+
+
 def _resolve_render_output(
     args: argparse.Namespace,
     model: sb.Storyboard | None,
@@ -428,7 +436,7 @@ def main_preview(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     _configure_logging(args.verbose)
 
-    from .media import media_url
+    from .media import media_url, write_effective_storyboard
     if not args.storyboard or _validated_storyboard(args.storyboard, args.content_root) is None:
         logging.error("Remotion 预览需要有效的 --storyboard")
         return _EXIT_INVALID_INPUT
@@ -457,10 +465,15 @@ def main_preview(argv: list[str] | None = None) -> int:
         from urllib.parse import urlencode
         server.start()
         url = server.url_for(page)
-        if source_url:
+        if media is not None and media_server is not None:
+            # 画面时间轴必须与音轨一致：契约页的 props 用媒体派生的有效分镜
+            # （写入媒体目录、由媒体服务提供），而不是声明时长的原始分镜
+            media_base = media_server.start()
+            effective = write_effective_storyboard(media)
+            url += "?" + urlencode({"a2v-storyboard": f"{media_base}/{effective.name}"})
+            url = media_url(url, media_base, media)
+        elif source_url:
             url += "?" + urlencode({"a2v-storyboard": source_url})
-        if media_server:
-            url = media_url(url, media_server.start(), media)
     except OSError as exc:
         server.close()
         if media_server:
@@ -512,7 +525,7 @@ def main_review(argv: list[str] | None = None) -> int:
     from . import inspect as inspect_mod
     from . import storyboard as sb
     from .browser import open_animated_page
-    from .media import load_media, media_url
+    from .media import load_media, media_url, write_effective_storyboard
     from .render import _resolve_page_url
 
     article: paths_mod.ArticlePaths | None = None
@@ -569,11 +582,19 @@ def main_review(argv: list[str] | None = None) -> int:
             # 旧共享页面在 skill 资产下。
             serve_root = article.workspace_root if article is not None else None
             url = stack.enter_context(_resolve_page_url(page_file, serve_root, page_mounts))
-            if article is not None:
-                url = _with_storyboard_query(url, args.storyboard, article)
             if media:
+                # 画面时间轴必须与音轨一致：契约页的 props 用媒体派生的有效
+                # 分镜（写入媒体目录、由带 CORS 的媒体服务提供），而不是
+                # 声明时长的原始分镜——否则体检按派生时长抽帧，页面却按
+                # 声明时长解释帧号，采样帧会落进下一幕入场前的空窗。
                 media_server = stack.enter_context(LocalServer(media.path.parent, cors=True))
+                effective = write_effective_storyboard(media)
+                url = _with_query_param(
+                    url, "a2v-storyboard", f"{media_server.base_url}/{effective.name}"
+                )
                 url = media_url(url, media_server.base_url, media)
+            elif article is not None:
+                url = _with_storyboard_query(url, args.storyboard, article)
             with open_animated_page(
                 url,
                 timeout_ms=args.timeout,

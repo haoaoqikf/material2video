@@ -14,6 +14,13 @@
 但会在日志中提示本次按无声导出。composition 读取的分镜在渲染前由媒体清单派生
 （时长按口播延长），不由命令行替换其内容。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
 
+带 `--media` 的预览、评审与渲染会把派生分镜落盘为媒体目录里的
+`storyboard.effective.json`，契约页与 Remotion 的 props 都指向它——composition
+的时长由 props 推导，props 仍是原始分镜时画面按声明时长走，音轨却按派生时长合成：
+渲染的总帧数交叉校验直接失败，体检抽帧会落进下一幕入场前的空窗、被误判成空白帧。
+渲染用的是输出目录旁的临时副本，随渲染销毁；预览与评审写媒体目录里的固定文件，
+下次预览自动覆盖。代码场景清单与作品归属仍按原始分镜路径解析。
+
 ## 语音与字幕
 
 使用 [edge-tts](https://github.com/rany2/edge-tts) 7.2.x，默认 `zh-CN-XiaoxiaoNeural`、`+0%`；`--voice` 指定音色，

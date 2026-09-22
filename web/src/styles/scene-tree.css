@@ -2,6 +2,10 @@
 .a2v-primitive-stack, .a2v-primitive-column, .a2v-primitive-row, .a2v-primitive-split, .a2v-primitive-grid, .a2v-primitive-overlay, .a2v-primitive-radial, .a2v-primitive-group { min-height: 120px; }
 .a2v-primitive-overlay > * { grid-area: 1 / 1; }
 
+/* 分镜文案的换行符是硬换行：断行位置由分镜决定（见视觉规范「排版层级」）。
+   没有这一条，\n 会在 HTML 里折叠成空格，浏览器自动折行产生单字孤行。 */
+.a2v-primitive-text { white-space: pre-line; }
+
 /* 文字角色档位的基础版式：字阶与颜色来自令牌层的 :root 变量，任何主题可用。
    预设层的同档规则带 [data-a2v-preset] 作用域、特异性更高，启用预设时优先级不变。 */
 .a2v-hero { font-size: var(--a2v-size-hero, 140px); line-height: 1.15; color: var(--a2v-heading-color, var(--a2v-text-1, #f4f7fb)); }
@@ -30,9 +34,15 @@
 .a2v-primitive-connector { display: flex; align-items: center; justify-content: center; }
 .a2v-primitive-connector svg { display: block; }
 
+/* 图表：容器由「原语包装盒 + 内层图表」两层同名类组成。
+   包装盒不得另设高度或标签带——入场揭示动效会给它加 clip-path: inset(0)（终态），
+   内层一旦溢出包装盒（比如双份 padding 把内层顶出上边缘），溢出内容就被裁掉，
+   角标曾因此整块消失；包装盒必须随内容撑开。 */
 .a2v-primitive-chart { display: flex; align-items: end; gap: 18px; height: 360px; width: 100%; position: relative; }
+.a2v-primitive.a2v-primitive-chart { height: auto; }
+.a2v-chart-bar { padding-bottom: 72px; }
 .a2v-primitive-bar { flex: 1; min-height: 8%; border-radius: 14px 14px 4px 4px; background: var(--a2v-accent, #7aa2ff); display: flex; align-items: end; justify-content: center; }
-.a2v-primitive-bar span { transform: translateY(36px); white-space: nowrap; }
+.a2v-primitive-bar span { transform: translateY(36px); white-space: nowrap; font-size: var(--a2v-size-label, 34px); line-height: 1.2; }
 .a2v-schematic { position: absolute; top: 0; right: 0; font-size: 24px; color: var(--a2v-accent, #7aa2ff); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 55%, transparent); border-radius: 8px; padding: 2px 10px; }
 
 .a2v-chart-line, .a2v-chart-pie { display: block; height: auto; }

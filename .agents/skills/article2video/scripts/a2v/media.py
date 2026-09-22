@@ -72,12 +72,47 @@ def asset_fingerprint(
     return {"files": files, "digest": fingerprint(files)}
 
 
+#: 有效分镜的固定文件名：与 media.json 同目录，名字自证「派生自清单」
+_EFFECTIVE_STORYBOARD_NAME = "storyboard.effective.json"
+
+
 @dataclass(frozen=True)
 class Media:
     path: Path
     data: dict
     storyboard: sb.Storyboard
     audio: Path
+
+
+def effective_storyboard(media: Media) -> dict:
+    """媒体清单派生的有效分镜：源分镜快照 + 每幕实际时长。
+
+    composition 的时长由 props 推导；props 仍用声明分镜时，画面按声明时长走、
+    音轨按派生时长合成——渲染的总帧数交叉校验直接失败，预览与体检的采样帧
+    会落进下一幕入场动效前的空窗、被误判成空白帧。`load_media` 已经校验过
+    场景数量、ID 与「实际时长 ≥ 声明时长」，这里只做写回，不重复校验。
+    """
+    effective = copy.deepcopy(media.data["source"])
+    for item, scene in zip(effective["scenes"], media.data["scenes"]):
+        item["durationInFrames"] = scene["durationInFrames"]
+    return effective
+
+
+def write_effective_storyboard(media: Media, target_dir: str | Path | None = None) -> Path:
+    """把有效分镜落盘，供契约页与 Remotion 作为 props 加载。
+
+    省略 `target_dir` 时写入媒体清单所在目录（`storyboard.effective.json`），
+    该目录正是预览与评审的媒体服务根；渲染入口传入渲染输出旁的临时目录，
+    文件随临时目录销毁。返回写入路径。
+    """
+    target = Path(target_dir) if target_dir is not None else media.path.parent
+    target.mkdir(parents=True, exist_ok=True)
+    path = target / _EFFECTIVE_STORYBOARD_NAME
+    path.write_text(
+        json.dumps(effective_storyboard(media), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def load_media(path: str | Path, source_path: str | Path | None = None) -> Media:
