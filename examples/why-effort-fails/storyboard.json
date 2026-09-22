@@ -9,7 +9,14 @@
       "id": "opening",
       "type": "title",
       "durationInFrames": 150,
-      "narration": "你有没有遇到过这种情况：明明比以前更努力，结果却几乎没变？",
+      "narrationSegments": [
+        { "id": "n1", "text": "你有没有遇到过这种情况？", "beatId": "b1" },
+        { "id": "n2", "text": "明明比以前更努力，结果却几乎没变。", "beatId": "b2" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["content-text"], "meaning": "先把读者熟悉的处境摆出来" },
+        { "id": "b2", "action": "transform", "targets": ["content-subtitle"], "meaning": "把疑问推进到「努力没换来结果」" }
+      ],
       "data": {
         "text": "为什么\n努力没结果？",
         "subtitle": "问题不在努力的程度",
@@ -66,7 +73,16 @@
       "id": "thesis",
       "type": "quote",
       "durationInFrames": 240,
-      "narration": "很多时候，努力没有结果，不是因为不够努力，而是因为方向错了。",
+      "narrationSegments": [
+        { "id": "n1", "text": "很多时候，努力没有结果。", "beatId": "b1" },
+        { "id": "n2", "text": "原因往往不是不够努力。", "beatId": "b2" },
+        { "id": "n3", "text": "而是方向错了。", "beatId": "b3" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["path-a-start"], "meaning": "先给出「投入更多、结果不动」这一条链" },
+        { "id": "b2", "action": "connect", "targets": ["path-a-arrow"], "meaning": "把投入与结果连起来，说明瓶颈不在投入" },
+        { "id": "b3", "action": "connect", "targets": ["path-b-arrow"], "meaning": "把结果与方向连起来，指向真正的变量" }
+      ],
       "data": {
         "text": "努力没有结果，\n往往不是因为不够努力，\n而是因为方向错了。",
         "emphasis": [
@@ -215,7 +231,16 @@
       "id": "choice",
       "type": "comparison",
       "durationInFrames": 270,
-      "narration": "面对停滞，人有两种反应：继续加大投入，或者先找出限制结果的那一环。",
+      "narrationSegments": [
+        { "id": "n1", "text": "面对停滞，人有两种反应。", "beatId": "b1" },
+        { "id": "n2", "text": "一种是继续加大投入。", "beatId": "b2" },
+        { "id": "n3", "text": "另一种是先找出限制结果的那一环。", "beatId": "b3" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["choice-chart"], "meaning": "把两组柱子的读数摆出来" },
+        { "id": "b2", "action": "accumulate", "targets": ["choice-chart"], "meaning": "让投入那一栏继续涨，结果却不跟" },
+        { "id": "b3", "action": "compare", "targets": ["choice-chart"], "meaning": "并置两种反应，指出差别不在投入量" }
+      ],
       "data": {
         "title": "继续加大投入，结果几乎不动（示意）",
         "values": [
@@ -288,7 +313,18 @@
       "id": "loop",
       "type": "diagram",
       "durationInFrames": 390,
-      "narration": "约束会移动。解决问题、找到约束、采取行动、获得反馈，这是一个持续循环。",
+      "narrationSegments": [
+        { "id": "n1", "text": "约束会移动。", "beatId": "b1" },
+        { "id": "n2", "text": "解决问题、找到约束。", "beatId": "b2" },
+        { "id": "n3", "text": "采取行动、获得反馈。", "beatId": "b3" },
+        { "id": "n4", "text": "这是一个持续循环。", "beatId": "b4" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["node-problem"], "meaning": "先摆出循环的起点" },
+        { "id": "b2", "action": "transform", "targets": ["node-constraint"], "meaning": "把问题推进到约束这一步" },
+        { "id": "b3", "action": "transform", "targets": ["node-action"], "meaning": "把约束推进到行动这一步" },
+        { "id": "b4", "action": "transform", "targets": ["node-feedback"], "meaning": "让四步首尾相接，指出它会重来" }
+      ],
       "data": {
         "title": "约束会移动",
         "nodes": [
@@ -427,7 +463,14 @@
       "id": "closing",
       "type": "conclusion",
       "durationInFrames": 300,
-      "narration": "先找到限制结果的那个环节，再决定把努力放在哪里。",
+      "narrationSegments": [
+        { "id": "n1", "text": "先找到限制结果的那个环节。", "beatId": "b1" },
+        { "id": "n2", "text": "再决定把努力放在哪里。", "beatId": "b2" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["content-text"], "meaning": "把结论落在「先找限制」上" },
+        { "id": "b2", "action": "transform", "targets": ["content-action"], "meaning": "把结论变成一条可执行的动作" }
+      ],
       "data": {
         "text": "先找到限制结果的环节，\n再决定把努力放在哪里。",
         "action": "复盘一次最近没有结果的努力"

@@ -23,7 +23,9 @@ from typing import Any
 
 from . import catalog
 from . import code_scenes
+from . import beats as beat_mod
 from . import visual_narrative as vn
+from .errors import A2VError
 
 # 当前支持的版本：场景树 v2。字段结构变化时必须递增，并在校验时给出明确提示。
 SCENE_TREE_VERSION = 2
@@ -74,13 +76,17 @@ _NODE_PROP_ENUMS: dict[str, set[str]] = {
     "role": {"hero", "headline", "title", "body", "label", "caption"},
     "shape": {"circle", "rect", "line", "spotlight", "ring"},
     "state": {"rest", "focus", "muted", "done"},
-    "icon": {"arrow", "check", "cross", "spark"},
+    "icon": set(catalog.ICON_NAMES),
     "chart": {"bar", "line", "pie"},
     "ratio": {"1:1", "1:2", "2:1", "2:3", "3:2"},
 }
 _NODE_DIRECTION_ENUMS: dict[str, set[str]] = {
     "group": {"horizontal", "vertical"},
     "connector": {"ltr", "rtl", "ttb", "btt"},
+    # 中层原语用同一组方向：流程与时间轴按它排列，循环按它决定绕行方向。
+    "flow": {"ltr", "rtl", "ttb", "btt"},
+    "timeline": {"ltr", "rtl", "ttb", "btt"},
+    "cycle": {"cw", "ccw"},
 }
 
 
@@ -181,7 +187,7 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         if not isinstance(scene, dict):
             report.error(path, "场景必须是对象")
             continue
-        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "data", "visualIntent", "sceneTree", "motions", "visual", "renderer"}, path, report)
+        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "narrationSegments", "beats", "data", "visualIntent", "sceneTree", "motions", "visual", "renderer"}, path, report)
         scene_id = scene.get("id")
         if not isinstance(scene_id, str) or not _SCENE_ID_RE.match(scene_id):
             report.error(f"{path}.id", "场景 id 必须是非空安全标识符")
@@ -197,9 +203,12 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report, strict=strict)
         _validate_scene_visual(scene.get("visual"), scene.get("type"), f"{path}.visual", report)
         kind = _validate_renderer(scene, path, report)
+        node_types: dict[str, str] | None = None
         if kind == "tree":
             _validate_scene_tree(scene.get("sceneTree"), scene, path, report)
             _validate_motions(scene.get("motions"), f"{path}.motions", report, scene, path)
+            node_types = _scene_node_types(scene.get("sceneTree"))
+        _validate_beats(scene, path, report, node_types=node_types, strict=strict)
         _warn_on_scene_copy(scene, path, report)
         duration = scene.get("durationInFrames")
         if isinstance(duration, int) and not isinstance(duration, bool) and duration > 0:
@@ -518,6 +527,9 @@ def _validate_node_content(node_type: Any, value: dict[str, Any], path: str, dat
         return
     ref = value.get("contentRef")
     if ref is None:
+        # 量级类原语没有内容引用就只会画一个空盘：这是静默错误，直接报出来。
+        if node_type in {"gauge", "pictogram"}:
+            report.error(f"{path}.contentRef", f"{node_type} 必须用 contentRef 指向 data 中的数值（0–100）")
         return
     resolved = _resolve_ref(data_field, ref)
     if resolved is None:
@@ -532,6 +544,15 @@ def _validate_node_content(node_type: Any, value: dict[str, Any], path: str, dat
             report.error(f"{path}.contentRef", f"数字原语的内容必须是有限数值，{ref} 指向 {resolved!r}")
     if node_type == "chart":
         _validate_chart_values(resolved, f"{path}.contentRef", report)
+    if node_type in {"gauge", "pictogram"}:
+        # 量级类原语只显示比例：内容必须是一个 0–100 的数值，量纲由幕的文字说明。
+        if isinstance(resolved, bool) or not isinstance(resolved, (int, float)) or not math.isfinite(resolved):
+            report.error(
+                f"{path}.contentRef",
+                f"{node_type} 的内容必须是 0–100 的数值，{ref} 指向 {type(resolved).__name__}",
+            )
+        elif not 0 <= resolved <= 100:
+            report.error(f"{path}.contentRef", f"{node_type} 的内容必须落在 0–100，当前 {resolved!r}")
 
 
 def _validate_chart_values(value: Any, path: str, report: Report) -> None:
@@ -632,6 +653,228 @@ def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, An
             report.error(f"{item_path}.durationFrames", "durationFrames 必须是正整数")
         if isinstance(start, int) and isinstance(length, int) and isinstance(duration, int) and start + length > duration:
             report.error(item_path, "动效时间范围超出场景")
+
+
+def _scene_node_types(root: Any) -> dict[str, str]:
+    """场景树里「节点 id → 原语类型」的索引；非 dict 根返回空表。"""
+    types: dict[str, str] = {}
+
+    def walk(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        node_id, node_type = node.get("id"), node.get("type")
+        if isinstance(node_id, str) and isinstance(node_type, str):
+            types.setdefault(node_id, node_type)
+        for child in node.get("children", []) or []:
+            walk(child)
+
+    walk(root)
+    return types
+
+
+def _validate_beats(
+    scene: dict[str, Any],
+    path: str,
+    report: Report,
+    *,
+    node_types: dict[str, str] | None,
+    strict: bool,
+) -> None:
+    """校验分段口播与语义节拍。
+
+    结构问题（互斥字段、重复 id、未知动作、空 meaning、悬空引用、无效目标、
+    不连续引用）在**所有**校验模式下都是错误：它们让时间轴无法解析，
+    画面与字幕必然对不上。质量规则（非文字幕至少两个 beat 且包含状态/
+    关系动作）只在严格校验报错，普通校验给兼容提醒——旧字符串口播的
+    预览与渲染必须继续可用。
+
+    ``node_types`` 为 None 表示这一幕是代码场景：节点由作品模块在运行期
+    用探针 id 声明，静态核验不了，因此只校验目标的标识符形状。
+    """
+    if "resolvedBeats" in scene:
+        report.error(f"{path}.resolvedBeats", "resolvedBeats 是媒体准备派生的字段，源分镜不能声明")
+    has_segments = "narrationSegments" in scene
+    has_beats = "beats" in scene
+    if has_segments and "narration" in scene:
+        report.error(
+            f"{path}.narrationSegments",
+            "narration 与 narrationSegments 互斥：每幕二选一，分段口播的完整文本由各段按顺序拼接",
+        )
+    narration = scene.get("narration")
+    spoken = bool(isinstance(narration, str) and narration.strip())
+    if not has_segments and not has_beats:
+        _require_beats_for_new_work(scene, path, report, spoken=spoken, strict=strict)
+        return
+
+    beats_value = scene.get("beats")
+    if not isinstance(beats_value, list) or not beats_value:
+        report.error(f"{path}.beats", "beats 必须是非空数组：分段口播必须绑定语义节拍")
+        return
+    index_by_id: dict[str, int] = {}
+    for index, beat in enumerate(beats_value):
+        item_path = f"{path}.beats[{index}]"
+        if not isinstance(beat, dict):
+            report.error(item_path, "beat 必须是对象")
+            continue
+        _reject_unknown(beat, {"id", "action", "targets", "meaning"}, item_path, report)
+        beat_id = beat.get("id")
+        if not isinstance(beat_id, str) or not _SCENE_ID_RE.match(beat_id):
+            report.error(f"{item_path}.id", "beat id 必须是非空安全标识符")
+        elif beat_id in index_by_id:
+            report.error(f"{item_path}.id", f"beat id {beat_id} 与 beats[{index_by_id[beat_id]}] 重复")
+        else:
+            index_by_id[beat_id] = index
+        action = beat.get("action")
+        if action not in beat_mod.ACTIONS:
+            report.error(
+                f"{item_path}.action",
+                f"未知语义动作 {action!r}（受控动作：{'、'.join(beat_mod.ACTIONS)}）",
+            )
+        _validate_beat_targets(beat.get("targets"), f"{item_path}.targets", report, action, node_types)
+        meaning = beat.get("meaning")
+        if not isinstance(meaning, str) or not meaning.strip():
+            report.error(f"{item_path}.meaning", "meaning 必须是非空字符串：写清这一步让观众多看懂什么")
+
+    segments = scene.get("narrationSegments")
+    if not isinstance(segments, list) or not segments:
+        report.error(f"{path}.narrationSegments", "beats 必须由分段口播驱动：narrationSegments 必须是非空数组")
+        return
+    duration = scene.get("durationInFrames")
+    if isinstance(duration, int) and not isinstance(duration, bool) and len(segments) > duration:
+        report.error(
+            f"{path}.narrationSegments",
+            f"场景只有 {duration} 帧，装不下 {len(segments)} 段口播：每段至少需要 1 帧",
+        )
+    segment_ids: dict[str, int] = {}
+    referenced: list[str] = []
+    for index, segment in enumerate(segments):
+        item_path = f"{path}.narrationSegments[{index}]"
+        if not isinstance(segment, dict):
+            report.error(item_path, "口播段必须是对象")
+            continue
+        _reject_unknown(segment, {"id", "text", "beatId"}, item_path, report)
+        segment_id = segment.get("id")
+        if not isinstance(segment_id, str) or not _SCENE_ID_RE.match(segment_id):
+            report.error(f"{item_path}.id", "口播段 id 必须是非空安全标识符")
+        elif segment_id in segment_ids:
+            report.error(
+                f"{item_path}.id",
+                f"口播段 id {segment_id} 与 narrationSegments[{segment_ids[segment_id]}] 重复",
+            )
+        else:
+            segment_ids[segment_id] = index
+        text = segment.get("text")
+        if not isinstance(text, str) or not text.strip():
+            report.error(f"{item_path}.text", "口播段文本不能为空")
+        beat_id = segment.get("beatId")
+        if not isinstance(beat_id, str) or beat_id not in index_by_id:
+            report.error(f"{item_path}.beatId", f"口播段引用了不存在的 beat {beat_id!r}（悬空引用）")
+        else:
+            referenced.append(beat_id)
+    for beat_id, index in sorted(index_by_id.items(), key=lambda item: item[1]):
+        if beat_id not in referenced:
+            report.error(
+                f"{path}.beats[{index}]",
+                f"beat {beat_id} 没有被任何口播段引用：没有可解析的时间，画面不知道该在哪一帧动",
+            )
+    runs = [
+        beat_id
+        for position, beat_id in enumerate(referenced)
+        if position == 0 or referenced[position - 1] != beat_id
+    ]
+    for beat_id in sorted({item for item in runs if runs.count(item) > 1}):
+        report.error(
+            f"{path}.narrationSegments",
+            f"beat {beat_id} 的口播段不连续：同一 beat 的引用必须相邻，否则时间轴会倒退或重叠",
+        )
+    _check_beat_rules(scene, path, report, beats_value, strict=strict)
+
+
+def _validate_beat_targets(
+    targets: Any,
+    path: str,
+    report: Report,
+    action: Any,
+    node_types: dict[str, str] | None,
+) -> None:
+    """beat 目标必须是本幕可定位的节点，且目标原语支持该语义动作。"""
+    if not isinstance(targets, list) or not targets:
+        report.error(path, "beat 至少要有一个目标节点")
+        return
+    for position, target in enumerate(targets):
+        item_path = f"{path}[{position}]"
+        if not isinstance(target, str) or not _SCENE_ID_RE.match(target):
+            report.error(item_path, "目标必须是非空安全标识符")
+            continue
+        if node_types is None:
+            continue  # 代码场景：节点是运行期探针 id，静态核验不了
+        primitive_type = node_types.get(target)
+        if primitive_type is None:
+            report.error(item_path, f"beat 目标 {target} 不存在")
+            continue
+        entry = catalog.primitive(primitive_type)
+        if action in beat_mod.ACTIONS and entry is not None and action not in entry.actions:
+            allowed = "、".join(sorted(entry.actions)) or "无"
+            report.error(
+                item_path,
+                f"原语 {primitive_type} 不支持语义动作 {action!r}（允许：{allowed}）",
+            )
+
+
+def _require_beats_for_new_work(
+    scene: dict[str, Any], path: str, report: Report, *, spoken: bool, strict: bool
+) -> None:
+    """没有节拍的幕：非文字幕带口播时必须改用分段口播 + beats。
+
+    纯文字幕（``typography``）与静音场景豁免——它们本来就不靠画面变化
+    解释推理。旧字符串口播在普通校验下只收到兼容提醒，预览与渲染照常。
+    """
+    if not spoken or vn.analyze_scene(scene)["isTextScene"]:
+        return
+    message = (
+        f"非文字幕带口播却没有语义节拍：请改用 narrationSegments 绑定至少 "
+        f"{beat_mod.MIN_BEATS_PER_SCENE} 个 beat，并让其中至少一个改变对象状态或关系"
+        f"（{'、'.join(sorted(beat_mod.CHANGE_ACTIONS))}）；纯文字幕与静音场景可以不使用该结构"
+    )
+    if strict:
+        report.error(f"{path}.beats", message)
+    else:
+        report.warn(
+            f"{path}.beats",
+            message + "（旧版字符串口播兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
+        )
+
+
+def _check_beat_rules(
+    scene: dict[str, Any], path: str, report: Report, beats_value: list[Any], *, strict: bool
+) -> None:
+    """新作品的节拍质量规则：至少两个 beat，且至少一个改变状态或关系。
+
+    只有「非文字幕 + 有口播」的场景受约束；纯文字幕与静音场景豁免。
+    普通校验给提醒而不是错误，是为了让旧字符串口播继续可预览可渲染。
+    """
+    if vn.analyze_scene(scene)["isTextScene"]:
+        return
+    actions = [beat.get("action") for beat in beats_value if isinstance(beat, dict)]
+    problems: list[str] = []
+    if len(beats_value) < beat_mod.MIN_BEATS_PER_SCENE:
+        problems.append(f"至少需要 {beat_mod.MIN_BEATS_PER_SCENE} 个 beat，当前 {len(beats_value)} 个")
+    if not any(action in beat_mod.CHANGE_ACTIONS for action in actions):
+        shown = "、".join(sorted({str(action) for action in actions})) or "无"
+        problems.append(
+            f"至少一个 beat 要改变对象状态或关系（当前动作：{shown}）；"
+            "只有 establish/highlight 的画面是依次出现的卡片，不是一次推理"
+        )
+    if not problems:
+        return
+    message = "；".join(problems)
+    if strict:
+        report.error(f"{path}.beats", message)
+    else:
+        report.warn(
+            f"{path}.beats",
+            message + "（旧版字符串口播兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
+        )
 
 
 def _warn_on_scene_copy(scene: dict[str, Any], path: str, report: Report) -> None:
@@ -819,7 +1062,14 @@ class Scene:
     duration_in_frames: int
     start_frame: int
     data: dict[str, Any]
+    #: 完整口播文本：分段口播按段拼接，字符串口播原样保留；静音为 None。
     narration: str | None
+    #: 源声明的分段口播与语义节拍；字符串口播的幕里为空。
+    narration_segments: tuple[dict[str, Any], ...] = ()
+    beats: tuple[dict[str, Any], ...] = ()
+    #: 已解析到帧区间的 beat 时间轴：有效分镜携带 resolvedBeats 时来自媒体准备
+    #: （estimated=False），否则按声明时长等比例估算（estimated=True）。
+    beat_timeline: beat_mod.BeatTimeline = beat_mod.BeatTimeline()
 
     @property
     def end_frame(self) -> int:
@@ -883,12 +1133,33 @@ def load(path: str | Path, strict: bool = False) -> tuple[Storyboard | None, Rep
     return _build(data, report), report
 
 
+def _scene_timeline(item: dict[str, Any]) -> beat_mod.BeatTimeline:
+    """一幕的 beat 时间轴。
+
+    有效分镜（媒体清单派生）携带 ``resolvedBeats`` 时以它为准——那是 TTS
+    词边界解析出来的真实时间；源分镜没有该字段，按声明时长等比例估算，
+    并标记 ``estimated=True``，画面据此知道这是估算时间轴。
+    """
+    if "resolvedBeats" in item:
+        return beat_mod.BeatTimeline.from_json(item["resolvedBeats"], estimated=False)
+    if not item.get("narrationSegments"):
+        return beat_mod.BeatTimeline()
+    return beat_mod.resolve_silent(item)
+
+
 def _build(data: dict[str, Any], report: Report) -> Storyboard:
     """把已通过校验的 dict 构造为 Storyboard。"""
     scenes: list[Scene] = []
     cursor = 0
     for index, item in enumerate(data.get("scenes", [])):
         duration = item["durationInFrames"]
+        try:
+            timeline = _scene_timeline(item)
+        except A2VError:
+            # 走到这里说明校验漏了一处（例如手工构造的 dict）：时间轴退化为
+            # 空表，画面按静态分镜渲染，而不是让整个加载过程崩掉。
+            timeline = beat_mod.BeatTimeline()
+        narration = beat_mod.scene_narration(item)
         scenes.append(
             Scene(
                 id=item["id"],
@@ -896,7 +1167,16 @@ def _build(data: dict[str, Any], report: Report) -> Storyboard:
                 duration_in_frames=duration,
                 start_frame=cursor,
                 data=item.get("data", {}),
-                narration=item.get("narration"),
+                narration=narration or None,
+                narration_segments=tuple(
+                    segment
+                    for segment in (item.get("narrationSegments") or [])
+                    if isinstance(segment, dict)
+                ),
+                beats=tuple(
+                    beat for beat in (item.get("beats") or []) if isinstance(beat, dict)
+                ),
+                beat_timeline=timeline,
             )
         )
         cursor += duration

@@ -27,6 +27,39 @@ export interface A2VThemeInfo {
   preset?: 'keynote';
 }
 
+/** 一条已解析的语义节拍。时间来自分镜与媒体，作品只读，不自己算。 */
+export interface A2VBeatInfo {
+  id: string;
+  action: string;
+  targets: readonly string[];
+  meaning: string;
+  /** 幕内帧区间：`startFrame` 含、`endFrame` 不含。 */
+  startFrame: number;
+  endFrame: number;
+}
+
+/**
+ * 注入代码场景的节拍状态。
+ *
+ * `current` / `progress` / `completed` / `estimated` 与场景树解释器拿到的是
+ * 同一份值：都由共享 composition 按分镜、媒体与当前帧算出。作品不能解析
+ * 字幕、读音频时钟或按挂钟推进动画——那会形成第二套时间轴。
+ */
+export interface A2VBeatState {
+  /** 当前帧所属的 beat id；区间外（幕首、结尾阅读段）为 null。 */
+  current: string | null;
+  /** 当前 beat 的局部进度（0..1）；没有活动 beat 时为 0。 */
+  progress: number;
+  /** 已经结束的 beat id，按时间顺序。 */
+  completed: readonly string[];
+  /** true 表示这是无声等比例估算的时间轴，不是真实词边界。 */
+  estimated: boolean;
+  /** 当前 beat 的完整声明；没有活动 beat 时为 null。 */
+  active: A2VBeatInfo | null;
+  /** 整幕已解析的节拍计划（只读）：作品据此知道还有哪几步要走。 */
+  plan: readonly A2VBeatInfo[];
+}
+
 /** 注入给代码场景的幕级数据：内容仍以分镜为真源。 */
 export interface A2VSceneInfo<Data = unknown> {
   id: string;
@@ -56,6 +89,8 @@ export interface A2VCodeSceneProps<Data = unknown> {
   fps: number;
   canvas: A2VCanvas;
   theme: A2VThemeInfo;
+  /** 节拍状态：当前 beat、局部进度、已完成集合与是否为估算时间轴。 */
+  beats: A2VBeatState;
   /**
    * 稳定种子随机：`random(node)` 为节点标识派生独立序列；
    * 省略节点时使用场景级默认序列。同一输入永远返回同一序列。

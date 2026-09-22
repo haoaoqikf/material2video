@@ -36,23 +36,36 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （按节点 id 绑定的具名动效）。
   结构与约束见
   [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
+- **分段口播与语义节拍**：新作品用 `narrationSegments`（每段 `{id, text, beatId}`）
+  取代字符串 `narration`（二者互斥），并用 `beats`（`{id, action, targets, meaning}`）
+  声明这一步推理在画面上如何发生。动作取自 11 个受控动词（`establish` / `connect` /
+  `transfer` / `accumulate` / `deplete` / `transform` / `compare` / `highlight` /
+  `loop` / `break` / `restore`），其中 `establish` 与 `highlight` 是**中性**动作——
+  只让对象出现或更醒目，不算一次状态或关系变化。有声路径由真实 WordBoundary 解析出
+  逐幕 `resolvedBeats`（媒体清单 version 2），字幕、配音与画面因此共用同一批边界；
+  无声预览按声明时长等比例解析，并固定留出 12 帧稳定阅读时间。旧字符串口播继续可预览
+  可渲染，A 系列闸门对它们如实记为「跳过」；
 - **视觉论证与全片预算（严格校验）**：`a2v/visual_narrative.py` 把逐幕声明与场景树结构
-  对照分类——只承认图表、图片、连接关系、圆周布局（≥ 2 个内容子节点）四类**结构证据**，
+  对照分类——只承认九类**结构证据**：图表、图片、连接关系、圆周布局（≥ 2 个内容子节点），
+  以及五个中层原语 `flow` / `cycle` / `timeline` / `gauge` / `pictogram`；
   布局原语、表面、形状、图标与单个数值都算包装或文字；`validate.py --strict` 因此执行
   文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是文字幕、八幕及以上至少 3 种
   （少于八幕至少 2 种）非文字模式、声明非 `typography` 模式必须拿得出证据，
   失败定位到 `scenes[N].visualIntent.mode`。阈值版本化（`RULE_VERSION`）并由测试钉住；
   缺少新字段的旧分镜在普通校验里只给兼容警告，预览与渲染照常；
-- **视觉原语注册表是唯一真源**：`web/src/registry/registry.json` 登记 16 个原语——
+- **视觉原语注册表是唯一真源**：`web/src/registry/registry.json` 登记 21 个原语——
   布局 7（`stack` / `row` / `column` / `split` / `grid` / `radial` / `overlay`）、
   内容 5（`text` / `number` / `image` / `icon` / `chart`）、
-  图形 4（`shape` / `surface` / `connector` / `group`）——
-  以及各原语允许的属性、子节点容量与动效配方。`scripts/sync_catalog.py` 由它生成
+  图形 4（`shape` / `surface` / `connector` / `group`），
+  外加五个**中层原语**（`flow` / `cycle` / `timeline` / `gauge` / `pictogram`，
+  按绘制方式归入 layout 与 content 两类）——
+  以及各原语允许的属性、子节点容量、动效配方与支持的语义动作。
+  `scripts/sync_catalog.py` 由它生成
   Python 校验器镜像（`a2v/catalog.py`）、TypeScript 枚举与属性/动效映射
   （`web/src/schema/primitiveTypes.ts`）和
   [原语目录](.agents/skills/article2video/references/primitive-catalog.md)
   （`--check` 可机检漂移）；校验器按注册表拒绝未知原语、超容量子节点、
-  未注册属性与不支持的动效；
+  未注册属性、不支持的动效与不支持该动作的 beat 目标；
 - **确定性渲染**：布局由离散受控参数（对齐、间距档、分栏比例、列数）经 CSS 确定性求解，
   不允许任意坐标或 transform 逃生口；相同分镜、字体、画布与帧号重复求值，
   节点几何与可见画面一致（测试钉住）。设计语言预设启用时，对声明了字号档（`role`）的
@@ -77,8 +90,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   挂进 `@remotion/player`，从查询参数 `a2v-storyboard` 读分镜，因此一个页面服务任意作品。
   体检（帧量测、场景树契约探针）用 Playwright 驱动它；渲染不走它，而是直接从 composition
   源码打包渲染（Remotion）；
-- **文章生成分镜**：按「内容分镜 → 视频级视觉策略 → 逐幕视觉转译 → 场景树 → 动效 → 验收」
-  分阶段执行，每阶段以前一阶段和原文为输入，可局部返工；视觉转译要求先声明受控视觉模式与
+- **文章生成分镜**：按「内容分镜 → 视频级视觉策略 → 逐幕视觉转译 → 推理拆分与节拍编排
+  → 场景树 → 动效 → 验收」分阶段执行，每阶段以前一阶段和原文为输入，可局部返工；
+  视觉转译要求先声明受控视觉模式与
   无正文视觉表达，原语不足以表达时**停在转译阶段**（重新构思、扩展通用原语或用代码场景），
   不得改写成文字卡片后继续宣称原模式。步骤、约束、判据与正反例统一写在
   [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)；
@@ -107,6 +121,9 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   溯源一律用相对引用（`workspace` + 工作区相对键，`web/` 下的构建输入记
   `/__a2v_web__/` 别名键），因此文章与产物放在仓库之外也读得回来；
 - 可直接运行的完整示例（全部为 v2 场景树）：
+  [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
+  （分段口播 + 语义节拍：5 幕覆盖 `flow` / `cycle` / `timeline` / `gauge` / `pictogram`，
+  严格校验与 A1–A5、A7、A8 全部通过）、
   [`examples/cause-chain/`](examples/cause-chain/storyboard.json)
   （横向因果链构图：row + connector + radial，4 幕）、
   [`examples/milestone-climb/`](examples/milestone-climb/storyboard.json)
@@ -151,10 +168,12 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 - **契约锚点**：场景树每个可渲染节点输出稳定的 `data-a2v-node-id` 与
   `data-a2v-primitive` 类型标记，契约探针按节点 id 核对「声明的内容真的画了出来」，
   动效按节点 id 量测——原语内部 DOM 结构调整不影响验收目标；
-- 自动化测试：Python 侧覆盖 v2 校验、迁移、多样性指纹、视觉叙事预算与 V 系列闸门、
+- 自动化测试：Python 侧覆盖 v2 校验、分段口播与节拍时间轴、媒体清单 `resolvedBeats`、
+  A 系列动画论证闸门、迁移、多样性指纹、视觉叙事预算与 V 系列闸门、
   缓存与失败恢复、字幕时间轴、
   路径推导、契约页、取档行为、动效量测、渲染溯源与 Remotion 打包；
-  web 侧（`pnpm -C web test`）覆盖 schema 校验、注册表自洽与场景树运行时纯函数。
+  web 侧（`pnpm -C web test`）覆盖 schema 校验、注册表自洽、场景树运行时纯函数
+  与五个中层原语的 beat 状态。
 
 尚未实现、请勿当作已有能力使用：**分镜生成器程序**（生成由 AI 工具按
 [规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
@@ -162,7 +181,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 **平台发布**、批量渲染与成片历史版本。
 
 设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
-V5 只列候选与结构证据，V6 结论也由人填写，最终判断仍要人按
+V5 只列候选与结构证据，V6 与 A6 的结论也由人填写，最终判断仍要人按
 [评审量表](.agents/skills/article2video/references/visual-review-rubric.md) 完成）、
 **按内容自动选预设**（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、
 不判断「这一幕本该有卡片」。
@@ -206,7 +225,8 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright uv run pl
 
 ## 自动配音与字幕
 
-无声命令保持兼容。要输出有声视频，先按每幕 `narration` 准备媒体：
+无声命令保持兼容。要输出有声视频，先按每幕口播（`narrationSegments` 分段口播，
+或旧版的字符串 `narration`）准备媒体：
 
 ```bash
 uv run python .agents/skills/article2video/scripts/prepare.py \
@@ -231,7 +251,10 @@ uv run python .agents/skills/article2video/scripts/render.py \
 输出 MP4 内含字幕和 AAC 配音，同时生成同名 SRT。背景音乐尚未实现。
 
 原分镜不被覆盖；原场景时长作为最短时长，配音较长时自动延长并留 300ms 收尾。
-修改分镜后重新执行 prepare（未改变的口播命中缓存）。详细接口和错误处理见
+声明了分段口播的幕还会在媒体清单里得到逐幕 `resolvedBeats`——画面、字幕与配音共用
+这批边界，因此改过分段或时长后必须重新 prepare（旧清单里没有它时会被明确拒绝，
+而不是拿旧缓存凑一个时间轴）。修改分镜后重新执行 prepare（未改变的口播命中缓存）。
+详细接口和错误处理见
 [配音与字幕](.agents/skills/article2video/references/media-contract.md)。
 
 ## 制作一支新视频
@@ -241,7 +264,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
    内容根（`--content-root <目录>` 或环境变量 `A2V_CONTENT_ROOT`），内容根下同样放
    `videos/<slug>/`；
 2. 按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)
-   分阶段生成分镜：先内容分镜，再视觉策略与逐幕意图，最后按
+   分阶段生成分镜：先内容分镜，再视觉策略与逐幕意图，然后把口播切成语义段并绑定 beat，
+   最后按
    [原语目录](.agents/skills/article2video/references/primitive-catalog.md)
    组合场景树并绑定动效。默认**不写画面代码**——场景树够用时不需要它；
    受控原语确实表达不了时，按
@@ -268,8 +292,10 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py \
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
-两支文章均已随场景树架构更新为 v2 分镜；`examples/` 另有四支不同构图策略的
-v2 示例可作为起点。
+两支文章均已随场景树架构更新为 v2 分镜；`examples/` 另有五支不同构图策略的
+v2 示例可作为起点，其中
+[`examples/narration-beats/`](examples/narration-beats/storyboard.json)
+是分段口播与语义节拍的端到端参照。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；
@@ -296,7 +322,12 @@ v2 示例可作为起点。
   V3 非文字模式覆盖、V4 声明与结构一致性——这四条与 `validate.py --strict` 同口径，
   失败并入错误数与退出码；V5 列出文字主导候选幕及判定证据（只呈现，由人逐条裁决）；
   V6 读 `review.md` 里人工填写的「图形承担论证」结论，**没填写就是「待评审」**，
-  发布要求 V6 ≥ 4/5 且没有未裁决候选。语义结论不并入自动退出码。
+  发布要求 V6 ≥ 4/5 且没有未裁决候选。语义结论不并入自动退出码；
+- **动画论证 A 系列**（`report.json` 的 `animationReview`）：A1 节拍覆盖、A2 含义声明、
+  A3 状态或关系变化、A4 字幕同步、A5 结尾停留、A7 单一焦点、A8 稳定结束——这七条
+  只读分镜与媒体清单（不需要浏览器），失败并入错误数与退出码；A6 读 `review.md` 里
+  人工填写的装饰动画裁决，**没填写就是「待评审」**，只拦 `publishable` 而不伪造脚本错误。
+  只约束声明了 `narrationSegments` 的幕，旧字符串口播与无声预览下的 A4 如实记为「跳过」。
 
 机检只保证「这不是废片」。**值不值得看完**按
 [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)
@@ -308,8 +339,10 @@ Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约�
 
 ## 关键约束
 
-- **单一真源**：文案与原始时长写在 `storyboard.json`；启用配音时，composition 和脚本
-  共用媒体清单中的派生时长；原语类型、属性、容量与动效登记在 `registry.json`，
+- **单一真源**：文案与原始时长写在 `storyboard.json`；分段口播的完整文本就是各段按顺序
+  拼接，不另存一份；启用配音时，composition 和脚本
+  共用媒体清单中的派生时长与逐幕 `resolvedBeats`；原语类型、属性、容量、动效与
+  语义动作登记在 `registry.json`，
   生成物由 `sync_catalog.py` 同步（`--check` 机检漂移）；
 - **帧驱动**：画面只由帧号推导（Remotion 的 `useCurrentFrame()`）。禁止 CSS
   `animation`/`transition`、`Date.now()`、`Math.random()`，否则逐帧渲染会闪烁且不可复现；
@@ -328,11 +361,13 @@ Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约�
 - [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)：分阶段生成流程、约束与校验闭环
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则
 - [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
-- [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方与风格方向
-- [视觉原语目录](.agents/skills/article2video/references/primitive-catalog.md)：有哪些原语、允许哪些属性与动效、怎么组合
+- [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)：字段定义、分段口播与语义节拍、校验规则
+- [配音与字幕](.agents/skills/article2video/references/media-contract.md)：媒体清单 version 2、逐幕 `resolvedBeats`、TTS 缓存与音轨合成
+- [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方、语义动作与中层原语
+- [视觉原语目录](.agents/skills/article2video/references/primitive-catalog.md)：有哪些原语、允许哪些属性、动效与语义动作、怎么组合
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
 - [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、图形基元与状态、取档行为与 K1–K10 观感闸门
-- [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分与红线
+- [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分、V6/A6 人工裁决写法与红线
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
 本仓库未配置远端，不含账号系统、云端任务队列或自动发布能力。

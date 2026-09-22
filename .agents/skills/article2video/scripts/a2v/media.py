@@ -10,9 +10,14 @@ from pathlib import Path
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit, parse_qsl
 
 from . import assets as asset_refs
+from . import beats as beat_mod
 from . import storyboard as sb
 from .audio import wav_duration
 from .errors import A2VError
+
+#: 当前媒体清单版本。版本 2 起逐幕携带 `resolvedBeats`（分段口播的真实词边界
+#: 解析结果）；版本 1 的旧清单继续可读，但含分段口播的分镜必须重新 prepare。
+MANIFEST_VERSION = 2
 
 
 def fingerprint(source: dict) -> str:
@@ -85,16 +90,23 @@ class Media:
 
 
 def effective_storyboard(media: Media) -> dict:
-    """媒体清单派生的有效分镜：源分镜快照 + 每幕实际时长。
+    """媒体清单派生的有效分镜：源分镜快照 + 每幕实际时长与已解析节拍。
 
     composition 的时长由 props 推导；props 仍用声明分镜时，画面按声明时长走、
     音轨按派生时长合成——渲染的总帧数交叉校验直接失败，预览与体检的采样帧
     会落进下一幕入场动效前的空窗、被误判成空白帧。`load_media` 已经校验过
-    场景数量、ID 与「实际时长 ≥ 声明时长」，这里只做写回，不重复校验。
+    场景数量、ID、「实际时长 ≥ 声明时长」与 `resolvedBeats`，这里只做写回。
+
+    画面、字幕与配音共用同一批 beat 边界，因此有效分镜必须带上
+    `resolvedBeats`：少了它，composition 会退回无声等比例估算，
+    字幕却按真实词边界走——两者会在同一帧里各说各话。
     """
     effective = copy.deepcopy(media.data["source"])
     for item, scene in zip(effective["scenes"], media.data["scenes"]):
         item["durationInFrames"] = scene["durationInFrames"]
+        resolved = scene.get("resolvedBeats")
+        if isinstance(resolved, list) and resolved:
+            item["resolvedBeats"] = resolved
     return effective
 
 
@@ -115,12 +127,68 @@ def write_effective_storyboard(media: Media, target_dir: str | Path | None = Non
     return path
 
 
+def _scene_resolved_beats(
+    item: dict, scene: dict, frames: int, *, version: int
+) -> list[dict]:
+    """校验并返回一幕的 `resolvedBeats`；旧清单返回空表。
+
+    读取器同时支持旧清单和新版 beat 清单：版本 1 的清单只要不含分段口播就
+    照常可用，含分段口播则必须重新 prepare（旧缓存给不出词边界）。
+    版本 2 起逐幕要求该字段，并核对顺序、重叠、越界与源声明一致性。
+    """
+    segments = item.get("narrationSegments")
+    has_segments = isinstance(segments, list) and bool(segments)
+    raw = scene.get("resolvedBeats")
+    if version < MANIFEST_VERSION:
+        if has_segments:
+            raise ValueError("清单版本过旧（没有分段口播的节拍解析结果），请重新 prepare")
+        return []
+    if not isinstance(raw, list):
+        raise ValueError("场景缺少 resolvedBeats 数组")
+    if not has_segments:
+        if raw:
+            raise ValueError("字符串口播的场景不应携带 resolvedBeats")
+        return []
+    timeline = beat_mod.BeatTimeline.from_json(raw, estimated=False)
+    issues = beat_mod.validate_timeline(timeline.beats, frames)
+    if issues:
+        raise ValueError("；".join(issues))
+    declared = {
+        str(beat.get("id")): beat
+        for beat in (item.get("beats") or [])
+        if isinstance(beat, dict)
+    }
+    if not timeline.beats:
+        raise ValueError("分段口播的场景必须有已解析的节拍区间")
+    if [beat.id for beat in timeline.beats] != [
+        beat_id for beat_id in declared if beat_id in {item.id for item in timeline.beats}
+    ]:
+        raise ValueError("resolvedBeats 的顺序与源分镜的 beat 声明不一致")
+    for beat in timeline.beats:
+        source = declared.get(beat.id)
+        if source is None:
+            raise ValueError(f"resolvedBeats 的 {beat.id} 在源分镜里不存在")
+        if (
+            source.get("action") != beat.action
+            or [str(target) for target in source.get("targets") or []] != list(beat.targets)
+            or source.get("meaning") != beat.meaning
+        ):
+            raise ValueError(f"resolvedBeats 的 {beat.id} 与源分镜声明不一致")
+    if set(declared) != {beat.id for beat in timeline.beats}:
+        raise ValueError("源分镜里有 beat 没有解析出帧区间")
+    return raw
+
+
 def load_media(path: str | Path, source_path: str | Path | None = None) -> Media:
     path = Path(path).resolve()
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         source = data["source"]
-        if type(data["version"]) is not int or data["version"] != 1 or data["sourceFingerprint"] != fingerprint(source):
+        if (
+            type(data["version"]) is not int
+            or data["version"] not in (1, MANIFEST_VERSION)
+            or data["sourceFingerprint"] != fingerprint(source)
+        ):
             raise ValueError("版本或分镜指纹非法")
         if source_path and fingerprint(json.loads(Path(source_path).read_text(encoding="utf-8"))) != data["sourceFingerprint"]:
             raise ValueError("分镜已修改，请重新 prepare")
@@ -136,6 +204,9 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
                     or frames < item["durationInFrames"]):
                 raise ValueError("场景 ID 或时长非法")
             item["durationInFrames"] = frames
+            resolved = _scene_resolved_beats(item, scene, frames, version=data["version"])
+            if resolved:
+                item["resolvedBeats"] = resolved
         model = sb._build(effective, report)
         previous_end = 0
         if not isinstance(data["cues"], list):
@@ -153,7 +224,7 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
         if abs(wav_duration(audio) - model.total_frames / model.fps) > 1 / 24000:
             raise ValueError("音轨时长与时间轴不一致")
         return Media(path, data, model, audio)
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, A2VError) as exc:
         raise A2VError(f"媒体清单无效 {path}: {exc}") from exc
 
 

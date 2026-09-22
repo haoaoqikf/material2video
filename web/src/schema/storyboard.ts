@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PRIMITIVE_MOTIONS, PRIMITIVE_PROPS, PRIMITIVE_TYPES } from './primitiveTypes';
+import { ICON_NAMES, PRIMITIVE_ACTIONS, PRIMITIVE_MOTIONS, PRIMITIVE_PROPS, PRIMITIVE_TYPES, SEMANTIC_ACTIONS, type IconName } from './primitiveTypes';
 
 export const STORYBOARD_VERSION = 2;
 const nonEmptyText = z.string().trim().min(1);
@@ -31,13 +31,13 @@ export interface SceneNode {
   id: string; type: string; children?: SceneNode[]; contentRef?: string;
   role?: 'hero' | 'headline' | 'title' | 'body' | 'label' | 'caption';
   align?: 'start' | 'center' | 'end' | 'stretch'; gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  direction?: 'horizontal' | 'vertical' | 'ltr' | 'rtl' | 'ttb' | 'btt'; ratio?: '1:1' | '1:2' | '2:1' | '2:3' | '3:2'; columns?: 2 | 3;
+  direction?: 'horizontal' | 'vertical' | 'ltr' | 'rtl' | 'ttb' | 'btt' | 'cw' | 'ccw'; ratio?: '1:1' | '1:2' | '2:1' | '2:3' | '3:2'; columns?: 2 | 3;
   shape?: 'circle' | 'rect' | 'line' | 'spotlight' | 'ring'; state?: 'rest' | 'focus' | 'muted' | 'done';
-  icon?: 'arrow' | 'check' | 'cross' | 'spark'; chart?: 'bar' | 'line' | 'pie'; sourceRef?: string;
+  icon?: IconName; chart?: 'bar' | 'line' | 'pie'; sourceRef?: string;
   schematic?: boolean;
 }
 
-const directionSchema = z.enum(['horizontal', 'vertical', 'ltr', 'rtl', 'ttb', 'btt']);
+const directionSchema = z.enum(['horizontal', 'vertical', 'ltr', 'rtl', 'ttb', 'btt', 'cw', 'ccw']);
 
 export const sceneNodeSchema: z.ZodType<SceneNode> = z.lazy(() => z.object({
   id: nodeId, type: primitiveTypeSchema, children: z.array(sceneNodeSchema).max(12).optional(), contentRef: nonEmptyText.optional(),
@@ -45,7 +45,7 @@ export const sceneNodeSchema: z.ZodType<SceneNode> = z.lazy(() => z.object({
   align: z.enum(['start', 'center', 'end', 'stretch']).optional(), gap: z.enum(['none', 'xs', 'sm', 'md', 'lg', 'xl']).optional(),
   direction: directionSchema.optional(), ratio: z.enum(['1:1', '1:2', '2:1', '2:3', '3:2']).optional(),
   columns: z.union([z.literal(2), z.literal(3)]).optional(), shape: z.enum(['circle', 'rect', 'line', 'spotlight', 'ring']).optional(),
-  state: z.enum(['rest', 'focus', 'muted', 'done']).optional(), icon: z.enum(['arrow', 'check', 'cross', 'spark']).optional(),
+  state: z.enum(['rest', 'focus', 'muted', 'done']).optional(), icon: z.enum(ICON_NAMES).optional(),
   chart: z.enum(['bar', 'line', 'pie']).optional(), sourceRef: nonEmptyText.optional(), schematic: z.boolean().optional(),
 }).strict());
 
@@ -65,12 +65,46 @@ export const visualIntentSchema = z.object({
 }).strict();
 export const motionSchema = z.object({ target: nodeId, recipe: motionRecipeSchema, startFrame: z.number().int().min(0).default(0), durationFrames: z.number().int().positive().optional() }).strict();
 
+/* ------------------------------------------------------------------ */
+/* 语义节拍（beats）与分段口播                                          */
+/* ------------------------------------------------------------------ */
+
+/** 受控语义动作：与 `web/src/registry/registry.json` 同一份词汇表。 */
+export const semanticActionSchema = z.enum(SEMANTIC_ACTIONS);
+
+/**
+ * 分段口播：每段有唯一 id、非空文本和有效 beat 引用。
+ * 它与字符串 `narration` 互斥——完整口播由各段按顺序拼接，
+ * 不保存第二份完整文本，因此重复短语也能稳定引用。
+ */
+export const narrationSegmentSchema = z.object({ id: nodeId, text: nonEmptyText, beatId: nodeId }).strict();
+
+/** 语义节拍：受控动作 + 至少一个目标节点 + 非空 meaning（这一步让观众多看懂什么）。 */
+export const beatSchema = z.object({
+  id: nodeId, action: semanticActionSchema, targets: z.array(nodeId).min(1), meaning: nonEmptyText,
+}).strict();
+
+/**
+ * 已解析到帧区间的节拍：媒体准备按真实 TTS 词边界写入，
+ * `startFrame` 含、`endFrame` 不含，与字幕 cue 和场景区间同一约定。
+ * 它是派生字段：源分镜不能声明，只有 `storyboard.effective.json` 会带。
+ */
+export const resolvedBeatSchema = beatSchema.extend({
+  startFrame: z.number().int().min(0), endFrame: z.number().int().positive(),
+}).strict();
+
+export type NarrationSegment = z.infer<typeof narrationSegmentSchema>;
+export type Beat = z.infer<typeof beatSchema>;
+export type ResolvedBeat = z.infer<typeof resolvedBeatSchema>;
+
 /** 结构性字段不属于原语属性声明，按类型校验属性时豁免。 */
 const STRUCTURAL_NODE_KEYS = ['id', 'type', 'children'] as const;
 
 export const sceneSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_-]+$/, 'id 只允许字母、数字、_ 与 -'), type: nonEmptyText,
   durationInFrames: z.number().int().positive(), narration: z.string().optional(), data: z.record(z.string(), z.unknown()),
+  narrationSegments: z.array(narrationSegmentSchema).optional(), beats: z.array(beatSchema).optional(),
+  resolvedBeats: z.array(resolvedBeatSchema).optional(),
   visualIntent: visualIntentSchema, renderer: rendererSchema.optional(), sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
   visual: z.object({ kicker: z.string().optional() }).strict().optional(),
 }).strict().superRefine((scene, ctx) => {
@@ -83,7 +117,11 @@ export const sceneSchema = z.object({
     ctx.addIssue({ code: 'custom', path: ['sceneTree'], message: 'tree 场景必须包含一棵场景树（sceneTree）' });
   }
   const tree = scene.sceneTree;
-  if (!tree) return;
+  if (!tree) {
+    // 代码场景：节点是运行期探针 id，静态核验不了，只做跨字段规则
+    validateBeats(scene, ctx, null);
+    return;
+  }
   const ids = new Map<string, (string | number)[]>(); const types = new Map<string, string>();
   let nodeCount = 0;
   const walk = (node: SceneNode, path: (string | number)[], depth: number): void => {
@@ -100,6 +138,10 @@ export const sceneSchema = z.object({
     if (previous) ctx.addIssue({ code: 'custom', path: [...path, 'id'], message: `节点 id ${node.id} 与 ${previous.join('.')} 重复` });
     else { ids.set(node.id, [...path, 'id']); types.set(node.id, node.type); }
     if (node.contentRef && !node.contentRef.startsWith('data.')) ctx.addIssue({ code: 'custom', path: [...path, 'contentRef'], message: '内容引用必须以 data. 开头' });
+    // 量级类原语没有内容引用就只会画一个空盘：这是静默错误，直接报出来。
+    if ((node.type === 'gauge' || node.type === 'pictogram') && !node.contentRef) {
+      ctx.addIssue({ code: 'custom', path: [...path, 'contentRef'], message: `${node.type} 必须用 contentRef 指向 data 中的数值（0–100）` });
+    }
     if (node.sourceRef && !node.sourceRef.startsWith('data.')) ctx.addIssue({ code: 'custom', path: [...path, 'sourceRef'], message: '媒体引用必须以 data. 开头' });
     node.children?.forEach((child, index) => walk(child, [...path, 'children', index], depth + 1));
   };
@@ -110,7 +152,100 @@ export const sceneSchema = z.object({
     const supported = PRIMITIVE_MOTIONS[types.get(motion.target) ?? ''] ?? [];
     if (!supported.includes(motion.recipe)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'recipe'], message: `原语 ${types.get(motion.target) ?? '（未知）'} 不支持动效 ${motion.recipe}` });
   });
+  validateBeats(scene, ctx, types);
 });
+
+/**
+ * 语义节拍与分段口播的跨字段校验：与 Python 端 `a2v.storyboard` 同一口径。
+ *
+ * 单项形状（id 形状、动作枚举、目标非空、meaning 非空）由 zod 的字段声明
+ * 负责；这里只查引用完整性与顺序：重复 id、悬空 beat、孤立 beat、
+ * 不连续引用、目标原语是否支持该动作，以及派生 `resolvedBeats` 的
+ * 顺序/重叠/越界。
+ *
+ * `types` 为 null 表示这一幕是代码场景（没有场景树），节点由作品模块在
+ * 运行期用探针 id 声明，静态核验不了。
+ */
+function validateBeats(scene: Scene, ctx: z.RefinementCtx, types: Map<string, string> | null): void {
+  const segments = scene.narrationSegments;
+  const beats = scene.beats;
+  if (segments && scene.narration !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['narrationSegments'], message: 'narration 与 narrationSegments 互斥：每幕二选一，分段口播的完整文本由各段按顺序拼接' });
+  }
+  const indexById = new Map<string, number>();
+  beats?.forEach((beat, index) => {
+    const previous = indexById.get(beat.id);
+    if (previous !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['beats', index, 'id'], message: `beat id ${beat.id} 与 beats[${previous}] 重复` });
+    } else {
+      indexById.set(beat.id, index);
+    }
+    if (!types) return;
+    beat.targets.forEach((target, position) => {
+      const primitive = types.get(target);
+      if (primitive === undefined) {
+        ctx.addIssue({ code: 'custom', path: ['beats', index, 'targets', position], message: `beat 目标 ${target} 不存在` });
+        return;
+      }
+      const allowed = PRIMITIVE_ACTIONS[primitive] ?? [];
+      if (!allowed.includes(beat.action)) {
+        ctx.addIssue({ code: 'custom', path: ['beats', index, 'targets', position], message: `原语 ${primitive} 不支持语义动作 ${beat.action}（允许：${allowed.join('、') || '无'}）` });
+      }
+    });
+  });
+  if (!segments) {
+    if (beats) ctx.addIssue({ code: 'custom', path: ['narrationSegments'], message: 'beats 必须由分段口播驱动：narrationSegments 必须是非空数组' });
+    validateResolvedBeats(scene, ctx);
+    return;
+  }
+  if (segments.length > scene.durationInFrames) {
+    ctx.addIssue({ code: 'custom', path: ['narrationSegments'], message: `场景只有 ${scene.durationInFrames} 帧，装不下 ${segments.length} 段口播：每段至少需要 1 帧` });
+  }
+  const segmentIds = new Map<string, number>();
+  const referenced: string[] = [];
+  segments.forEach((segment, index) => {
+    const previous = segmentIds.get(segment.id);
+    if (previous !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['narrationSegments', index, 'id'], message: `口播段 id ${segment.id} 与 narrationSegments[${previous}] 重复` });
+    } else {
+      segmentIds.set(segment.id, index);
+    }
+    if (!indexById.has(segment.beatId)) {
+      ctx.addIssue({ code: 'custom', path: ['narrationSegments', index, 'beatId'], message: `口播段引用了不存在的 beat ${segment.beatId}（悬空引用）` });
+    } else {
+      referenced.push(segment.beatId);
+    }
+  });
+  beats?.forEach((beat, index) => {
+    if (!referenced.includes(beat.id)) {
+      ctx.addIssue({ code: 'custom', path: ['beats', index], message: `beat ${beat.id} 没有被任何口播段引用：没有可解析的时间，画面不知道该在哪一帧动` });
+    }
+  });
+  const runs = referenced.filter((id, position) => position === 0 || referenced[position - 1] !== id);
+  for (const id of new Set(runs.filter((item, index) => runs.indexOf(item) !== index))) {
+    ctx.addIssue({ code: 'custom', path: ['narrationSegments'], message: `beat ${id} 的口播段不连续：同一 beat 的引用必须相邻，否则时间轴会倒退或重叠` });
+  }
+  validateResolvedBeats(scene, ctx);
+}
+
+/** 派生时间轴的自检：倒退、重叠、越界都要在读取阶段失败。 */
+function validateResolvedBeats(scene: Scene, ctx: z.RefinementCtx): void {
+  const resolved = scene.resolvedBeats;
+  if (!resolved) return;
+  let previousEnd = 0;
+  resolved.forEach((beat, index) => {
+    if (beat.endFrame <= beat.startFrame) {
+      ctx.addIssue({ code: 'custom', path: ['resolvedBeats', index], message: `帧区间为空（${beat.startFrame}–${beat.endFrame}）` });
+    }
+    if (beat.startFrame < previousEnd) {
+      ctx.addIssue({ code: 'custom', path: ['resolvedBeats', index], message: `帧区间相对上一条倒退或重叠（起点 ${beat.startFrame} < ${previousEnd}）` });
+    }
+    if (beat.endFrame > scene.durationInFrames) {
+      ctx.addIssue({ code: 'custom', path: ['resolvedBeats', index], message: `帧区间超出场景（${beat.endFrame} > ${scene.durationInFrames}）` });
+    }
+    previousEnd = Math.max(previousEnd, beat.endFrame);
+  });
+}
 export type Scene = z.infer<typeof sceneSchema>;
 
 export const storyboardSchema = z.object({

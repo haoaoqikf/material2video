@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scene } from '@/schema/storyboard';
-import type { A2VCodeSceneProps, A2VThemeInfo } from '@/code-scene';
+import type { A2VBeatState, A2VCodeSceneProps, A2VThemeInfo } from '@/code-scene';
 import { createSceneRandom } from '@/code-scene';
+import type { BeatContext } from '@/runtime/beats';
+import { codeSceneBeatState } from '@/runtime/beats';
 import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
 
 /**
@@ -32,6 +34,7 @@ export function CodeSceneHost({
   preset,
   width,
   height,
+  beats,
 }: {
   scene: Scene;
   frame: number;
@@ -41,6 +44,7 @@ export function CodeSceneHost({
   preset?: 'keynote';
   width: number;
   height: number;
+  beats: BeatContext;
 }): React.ReactElement {
   const renderer = scene.renderer;
   const module_ = renderer?.kind === 'code' ? renderer.module : '';
@@ -93,6 +97,7 @@ export function CodeSceneHost({
 
   const themeInfo: A2VThemeInfo = { theme, ...(preset ? { preset } : {}) };
   const random = createSceneRandom(scene.id);
+  const beatState: A2VBeatState = codeSceneBeatState(beats);
   const props: A2VCodeSceneProps = {
     scene: {
       id: scene.id,
@@ -107,6 +112,7 @@ export function CodeSceneHost({
     fps,
     canvas: { width, height },
     theme: themeInfo,
+    beats: beatState,
     random,
   };
 

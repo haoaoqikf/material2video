@@ -1,16 +1,17 @@
 # 文章生成场景树分镜
 
-生成不是一次性套模板，而是七个可复核阶段。最终只有 `storyboard.json` 进入运行时，中间推理不构成渲染依赖。
+生成不是一次性套模板，而是八个可复核阶段。最终只有 `storyboard.json` 进入运行时，中间推理不构成渲染依赖。
 
 1. **内容分镜**：提炼核心判断，拆出口播与短硬的画面文案；时长由口播按中文每秒约 4–5 字反推。
 2. **视频级视觉策略**：确定母题、构图倾向、密度、节奏及禁止复用项，写入 `visualDirection`。
 3. **逐幕视觉转译**：为每幕先声明信息关系、焦点、构图、密度、情绪，以及**视觉论证**——受控视觉模式、核心论点、无正文视觉表达、主要视觉对象与动效语义。这一步必须在选原语之前完成，且无正文视觉表达要写「移除标题与正文后仍能看见的关系或变化」。
-4. **场景树编排**：查 [视觉原语目录](primitive-catalog.md)，用布局、内容和图形原语组合；没有整页组件，也不创建 `scenes.tsx`。
-5. **节点动效**：以稳定节点 id 绑定具名配方；动效不增删节点、不改变冻结布局。
-6. **全片视觉叙事自检**：严格校验会执行文字幕占比、连续文字幕与非文字模式覆盖的版本化预算（见下）。
-7. **闭环验收**：严格校验、布局指纹多样性检查、契约探针、K/M 闸门、V 系列报告和人工视觉量表。
+4. **推理拆分与节拍编排**：把该幕口播切成若干**语义段**（一段一个推理步骤），每段绑定一条 beat；beat 的 `action` 从受控动作里选真正改变状态或关系的那一个，`meaning` 写清这一步解释了什么。分段口播与字符串口播互斥，见[分镜脚本结构](storyboard-schema.md)。
+5. **场景树编排**：查 [视觉原语目录](primitive-catalog.md)，用布局、内容和图形原语组合；没有整页组件，也不创建 `scenes.tsx`。
+6. **节点动效**：以稳定节点 id 绑定具名配方；动效不增删节点、不改变冻结布局。
+7. **全片视觉叙事自检**：严格校验会执行文字幕占比、连续文字幕与非文字模式覆盖的版本化预算（见下），以及动画论证 A 系列（见下）。
+8. **闭环验收**：严格校验、布局指纹多样性检查、契约探针、K/M 闸门、V 系列与 A 系列报告和人工视觉量表。
 
-失败时从最晚且最局部的阶段返工：文字问题回内容分镜，构图雷同回视觉意图或场景树，动效问题只改 `motions`。不得为修复布局擅自改变文章判断。
+失败时从最晚且最局部的阶段返工：文字问题回内容分镜，构图雷同回视觉意图或场景树，动效问题只改 `motions`，节拍问题只改分段口播与 `beats`。不得为修复布局擅自改变文章判断。
 
 ## 视觉论证字段
 
@@ -28,16 +29,26 @@
 
 ## 论证型图形的判据
 
-确定性脚本只承认四类**结构证据**：
+确定性脚本只承认九类**结构证据**：
 
 - `chart`：图表承担数据关系；
 - `image`：受控图片承担画面信息；
 - `connector`：连接关系承担推进或因果；
-- `radial`：圆周关系布局（≥2 个内容子节点）承担循环或关系。
+- `radial`：圆周关系布局（≥2 个内容子节点）承担循环或关系；
+- `flow`：阶段推进顺序（≥2 个语义对象，画出方向连接与当前阶段）；
+- `cycle`：闭环阶段（≥2 个语义对象，画出轨道与当前阶段）；
+- `timeline`：阶段进度（≥2 个语义对象，画出进度轴与当前阶段）；
+- `gauge`：单一量级指针；
+- `pictogram`：单位化量级（用受控图标表示比例）。
 
-布局原语（`stack`/`row`/`column`/`split`/`grid`/`overlay`/`group`）、`surface`、`shape`、`icon` 与单个 `number` 都是包装或文字：把文字卡片换一层布局包装、加两个图标、套一层 `group`，都不会让它成为论证型图形。声明了非 `typography` 模式却拿不出上述证据的幕，严格校验会按「声明与结构矛盾」报错并定位到该幕。
+三个关系容器与 `radial` 一样要求**至少两个语义对象**：一根箭头加一个阶段只是加了个箭头，
+不构成关系。布局原语（`stack`/`row`/`column`/`split`/`grid`/`overlay`/`group`）、
+`surface`、`shape`、`icon` 与单个 `number` 都是包装或文字：把文字卡片换一层布局包装、
+加两个图标、套一层 `group`，都不会让它成为论证型图形。声明了非 `typography` 模式却拿不出
+上述证据的幕，严格校验会按「声明与结构矛盾」报错并定位到该幕。
 
-「移除文字后是否仍然成立」「图形是否真的承担论证」仍由人或视觉模型在联系表上判断（`review.py` 的 V6）；脚本只报告结构证据，不假装理解语义。
+「移除文字后是否仍然成立」「图形是否真的承担论证」仍由人或视觉模型在联系表上判断
+（`review.py` 的 V6）；脚本只报告结构证据，不假装理解语义。
 
 ## 原语不足时禁止退化
 
@@ -60,6 +71,27 @@
 - 逐幕缺少上述论证字段报错。
 
 普通校验（不带 `--strict`）对缺少新字段的旧分镜只给兼容警告，预览与渲染照常；交付闭环必须通过严格校验。
+
+## 动画论证（A 系列）
+
+结构证据只说明「画面里有没有论证型图形」，说不清「这些图形动起来有没有在解释论点」。
+声明了分段口播的幕还要过动画论证闸门（口径与 `a2v/animation_review.py` 的
+`RULE_VERSION` 一致，机检部分与 `review.py` 同源）：
+
+- **A1 节拍覆盖**：每个口播段绑定到存在的 beat，每条 beat 至少被一段引用，同一 beat 的引用相邻；
+- **A2 含义声明**：每条 beat 的 `meaning` 非空，且不是口播原文的复述、也不只是动作名；
+- **A3 状态或关系变化**：非文字幕至少两条 beat，且至少一条动作真正改变对象状态或关系
+  （`establish` / `highlight` 只是出现或更醒目，不算）；
+- **A4 字幕同步**：有声时字幕 cue 边界与画面 beat 边界共用同一份时间轴（逐帧允许 ±1 帧取整差）；
+- **A5 结尾停留**：最后一条 beat 完成后至少留 12 帧稳定阅读时间；
+- **A7 单一焦点**：任一帧最多一个焦点对象；
+- **A8 稳定结束**：所有入场配方在幕尾前 12 帧结束。
+
+A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，缺失即「待评审」，
+既不会伪造成脚本错误，也不会被当成默认合格。旧字符串口播的幕与无声预览下的 A4
+如实记为「跳过」——**跳过不等于通过**。判据、错误措辞与人工写法见
+[设计宪法](design-constitution.md)的「动画论证闸门（A1–A8）」与
+[视觉评审量表](visual-review-rubric.md)。
 
 ## 正反例
 
@@ -515,6 +547,76 @@
 - 同一幕节点 id 唯一；修改未变节点时保留 id，保证动效和探针稳定。
 - 连续页面不能只有文字不同；严格校验会把完全同构作为失败，近似复用交给人工复核。
 - 原语确有跨作品基础能力缺口时才扩展注册表；不要为一篇文章增加整页组件。
+- 分段口播的每一段都要绑定一条 beat，且**动作要真的改变状态或关系**；
+  一条 beat 的目标原语必须都支持该动作（支持清单见
+  [视觉原语目录](primitive-catalog.md)）。
+
+## 节拍反例：中性动作堆成的「动画」
+
+下面这一幕的字段、原语与分段都合规，但它过不了节拍质量规则：每一段口播配的都是
+`establish`（出现）或 `highlight`（更醒目）。观众看到的是元素依次入场，不是一次推理。
+严格校验会报：
+
+```
+[error] scenes[1].beats: 至少一个 beat 要改变对象状态或关系（当前动作：establish、highlight）；
+只有 establish/highlight 的画面是依次出现的卡片，不是一次推理
+```
+
+```json
+{
+  "id": "cards",
+  "type": "diagram",
+  "durationInFrames": 180,
+  "narrationSegments": [
+    { "id": "n1", "text": "先看第一张卡片。", "beatId": "b1" },
+    { "id": "n2", "text": "再看第二张卡片。", "beatId": "b2" },
+    { "id": "n3", "text": "最后把它们都强调一遍。", "beatId": "b3" }
+  ],
+  "beats": [
+    { "id": "b1", "action": "establish", "targets": ["card-a"], "meaning": "让第一张卡片出现" },
+    { "id": "b2", "action": "establish", "targets": ["card-b"], "meaning": "让第二张卡片出现" },
+    { "id": "b3", "action": "highlight", "targets": ["card-c"], "meaning": "把第三张卡片提亮" }
+  ],
+  "data": { "title": "三张卡片", "items": ["第一项", "第二项", "第三项"] },
+  "visualIntent": {
+    "relation": "collection",
+    "focus": "shape",
+    "composition": "center",
+    "density": "balanced",
+    "tone": "neutral",
+    "mode": "process",
+    "claim": "三件事按顺序出现",
+    "showWithoutText": "三张卡片排成一列依次出现，位置说明顺序",
+    "primaryObject": "三张卡片表面",
+    "motionMeaning": "卡片依次入场"
+  },
+  "sceneTree": {
+    "id": "root",
+    "type": "flow",
+    "direction": "ttb",
+    "gap": "md",
+    "children": [
+      { "id": "card-a", "type": "surface", "children": [{ "id": "card-a-text", "type": "text", "contentRef": "data.items[0]", "role": "body" }] },
+      { "id": "card-b", "type": "surface", "children": [{ "id": "card-b-text", "type": "text", "contentRef": "data.items[1]", "role": "body" }] },
+      { "id": "card-c", "type": "surface", "children": [{ "id": "card-c-text", "type": "text", "contentRef": "data.items[2]", "role": "body" }] }
+    ]
+  },
+  "motions": [
+    { "target": "card-a", "recipe": "rise", "startFrame": 0, "durationFrames": 20 },
+    { "target": "card-b", "recipe": "rise", "startFrame": 24, "durationFrames": 20 },
+    { "target": "card-c", "recipe": "rise", "startFrame": 48, "durationFrames": 20 }
+  ]
+}
+```
+
+修法只有两条：换成真正改变状态或关系的动作（`connect` 建立关系、`transform` 换形态、
+`accumulate` 让量级增长……），或者承认这一幕就是文字幕、把 `mode` 改成 `typography`。
+把「依次出现」当成「论证过程」，正是 A3 要拦的那一类退化。
+
+可运行的**正例**见 [`examples/narration-beats/`](../../../../examples/narration-beats/storyboard.json)：
+五幕覆盖 `flow`、`cycle`、`timeline`、`gauge`、`pictogram` 五个中层原语，
+每段口播都绑定一条会改变状态或关系的 beat，严格校验与 A1–A5、A7、A8 全部通过
+（A4 无声跳过、A6 待人工裁决）。
 
 ## 旧分镜
 

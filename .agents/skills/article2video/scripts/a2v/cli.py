@@ -320,6 +320,48 @@ def _v_gate_error_message(gate: dict) -> str:
     )
 
 
+def _animation_review_payload(
+    storyboard_path: Path, media: Any, out_dir: Path, combined: Report
+) -> dict:
+    """动画论证 A 系列：A1–A5、A7、A8 硬判定并入错误数，A6 由人工裁决。
+
+    与 V 系列同一口径：机检结论进错误数与退出码，人工结论只呈现。
+    有媒体时用清单里的派生时长与字幕边界，无声时按声明时长等比例估算，
+    并把 A4 如实写成「跳过」而不是通过。
+    """
+    from . import animation_review as ar
+
+    raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    analysis = ar.analyze(raw, media.data if media is not None else None)
+    gates = ar.review_gates(analysis)
+    for where, message in ar.gate_issues(gates):
+        combined.error(where, message)
+    gates["a6"] = ar.review_a6(out_dir / "review.md", analysis)
+    return gates
+
+
+def _animation_review_lines(result: dict | None) -> list[str]:
+    """A 系列的终端摘要：机检逐条给结论，人工结论单列一行。"""
+    if not result:
+        return []
+    from . import animation_review as ar
+
+    lines = ["动画论证 A 系列（A1–A5/A7/A8 机检并进错误数；A6 人工裁决）："]
+    for gate_id in ar.MACHINE_GATES:
+        gate = result.get(gate_id.lower()) or {}
+        status = str(gate.get("status"))
+        mark = {"pass": "✓", "fail": "✗"}.get(status, "-")
+        lines.append(f"  {mark} {gate_id} {gate.get('title')}：{gate.get('detail')}")
+    a6 = result.get("a6") or {}
+    score = a6.get("score")
+    score_text = f"{score}/5" if isinstance(score, int) else "未填写"
+    lines.append(
+        f"  - A6 装饰动画人工裁决：{a6.get('status')}（{score_text}）"
+        f"——可发布={'是' if a6.get('publishable') else '否'}"
+    )
+    return lines
+
+
 def _visual_narrative_payload(storyboard_path: Path, out_dir: Path, combined: Report) -> dict:
     """视觉叙事 V 系列：V1–V4 硬判定并入错误数，V5 证据与 V6 人工结论只呈现。
 
@@ -659,6 +701,9 @@ def main_review(argv: list[str] | None = None) -> int:
     # 视觉叙事 V 系列是静态分析，放在浏览器工作之前：契约页构建失败时
     # 它的结论也已经被写进错误列表，不会因为环境问题静默丢失。
     visual_narrative = _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
+    # 动画论证 A 系列同理：它读分镜与媒体清单，不需要浏览器。机检失败在这里
+    # 就进错误数，契约页起不来也不影响「动画有没有解释论点」的结论。
+    animation_review = _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
 
     try:
         with contextlib.ExitStack() as stack:
@@ -734,6 +779,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "source": "media" if media else "storyboard",
             "provenance": _rendered_provenance(out_dir),
             "visualNarrative": visual_narrative,
+            "animationReview": animation_review,
             **({"determinism": determinism_json} if determinism_json is not None else {}),
         },
         out_dir / "report.json",
@@ -889,6 +935,8 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
         lines.extend(_motion_lines(motion_result))
 
     lines.extend(_visual_narrative_lines(payload.get("visualNarrative")))
+
+    lines.extend(_animation_review_lines(payload.get("animationReview")))
 
     lines.extend(_provenance_lines(payload.get("provenance")))
 

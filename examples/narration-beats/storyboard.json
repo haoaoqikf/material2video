@@ -1,0 +1,288 @@
+{
+  "version": 2,
+  "schemaVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "进度为什么看不见",
+  "visualDirection": {
+    "motif": "刻度与阶段",
+    "compositionBias": "asymmetric",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": ["repeated-center"]
+  },
+  "visual": {
+    "theme": "dark"
+  },
+  "scenes": [
+    {
+      "id": "claim",
+      "type": "title",
+      "durationInFrames": 210,
+      "narrationSegments": [
+        { "id": "n1", "text": "很多人把拖延归因于任务太难。", "beatId": "b1" },
+        { "id": "n2", "text": "但真正让人放弃的，是看不见自己走到了哪一步。", "beatId": "b2" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["claim-text"], "meaning": "先把常见的归因摆出来" },
+        { "id": "b2", "action": "transform", "targets": ["claim-text"], "meaning": "把成因从难度换成进度不可见" }
+      ],
+      "data": {
+        "text": "慢不是问题\n看不见进度才是"
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "text",
+        "composition": "offset",
+        "density": "sparse",
+        "tone": "tense",
+        "mode": "typography",
+        "claim": "拖住进度的不是难度，而是进度不可见",
+        "showWithoutText": "单侧聚光压在大片留白上，只有一个焦点区域；这一屏的信息完全依赖文字成立",
+        "primaryObject": "标题文字块与它背后的聚光光晕",
+        "motionMeaning": "标题上浮入场，把这条反直觉的判断推到视线中心"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "stack",
+        "align": "start",
+        "gap": "lg",
+        "children": [
+          { "id": "claim-halo", "type": "shape", "shape": "spotlight", "state": "rest" },
+          { "id": "claim-text", "type": "text", "contentRef": "data.text", "role": "headline" }
+        ]
+      },
+      "motions": [
+        { "target": "claim-halo", "recipe": "fade", "startFrame": 0, "durationFrames": 20 },
+        { "target": "claim-text", "recipe": "rise", "startFrame": 10, "durationFrames": 24 }
+      ]
+    },
+    {
+      "id": "stages",
+      "type": "diagram",
+      "durationInFrames": 255,
+      "narrationSegments": [
+        { "id": "n1", "text": "第一步，先把工作摆到台面上。", "beatId": "b1" },
+        { "id": "n2", "text": "第二步，让每天的进度可以互相比较。", "beatId": "b2" },
+        { "id": "n3", "text": "第三步，才谈得上调整节奏。", "beatId": "b3" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["stages-a"], "meaning": "起点是让工作可见" },
+        { "id": "b2", "action": "transform", "targets": ["stages-b"], "meaning": "把可见推进到可比较" },
+        { "id": "b3", "action": "transform", "targets": ["stages-c"], "meaning": "最后一步才轮到调节奏" }
+      ],
+      "data": {
+        "title": "把工作拆成三步",
+        "steps": ["让工作可见", "让进度可比", "让节奏可调"]
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "shape",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "neutral",
+        "mode": "process",
+        "claim": "进度先要可见，然后可比较，最后才能调节奏，顺序不能颠倒",
+        "showWithoutText": "三个阶段被方向箭头串成一条向下推进的流程，当前阶段被点亮，位置与箭头说明先后",
+        "primaryObject": "流程容器与它串起的三个阶段",
+        "motionMeaning": "三个阶段依次入场，把「先可见、再可比、后调节奏」的推进演一遍"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "stages-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "stages-flow",
+            "type": "flow",
+            "direction": "ttb",
+            "gap": "md",
+            "children": [
+              { "id": "stages-a", "type": "surface", "children": [{ "id": "stages-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
+              { "id": "stages-b", "type": "surface", "children": [{ "id": "stages-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
+              { "id": "stages-c", "type": "surface", "children": [{ "id": "stages-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "stages-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "stages-a", "recipe": "rise", "startFrame": 12, "durationFrames": 20 },
+        { "target": "stages-b", "recipe": "rise", "startFrame": 46, "durationFrames": 20 },
+        { "target": "stages-c", "recipe": "rise", "startFrame": 80, "durationFrames": 20 }
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "diagram",
+      "durationInFrames": 300,
+      "narrationSegments": [
+        { "id": "n1", "text": "循环的第一格，是把耗时估得太乐观。", "beatId": "b1" },
+        { "id": "n2", "text": "第二格，验证被压缩成走过场。", "beatId": "b2" },
+        { "id": "n3", "text": "第三格，于是下一次估计更乐观。", "beatId": "b3" },
+        { "id": "n4", "text": "三格接上，就是转不出去的圈。", "beatId": "b4" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["loop-a"], "meaning": "交代循环的起点" },
+        { "id": "b2", "action": "transform", "targets": ["loop-b"], "meaning": "指出验证被压缩这一步" },
+        { "id": "b3", "action": "transform", "targets": ["loop-c"], "meaning": "说明低估如何自我强化" },
+        { "id": "b4", "action": "loop", "targets": ["loop-ring"], "meaning": "收束成闭环，指出它没有出口" }
+      ],
+      "data": {
+        "title": "为什么努力回到原点",
+        "steps": ["低估耗时", "压缩验证", "重新低估"]
+      },
+      "visualIntent": {
+        "relation": "cycle",
+        "focus": "shape",
+        "composition": "radial",
+        "density": "balanced",
+        "tone": "tense",
+        "mode": "cycle",
+        "claim": "低估耗时、压缩验证、重新低估，三者构成一个自我维持的闭环",
+        "showWithoutText": "三个阶段排在闭环轨道上，轨道上的高亮弧随口播推进，位置本身说明它们互为因果",
+        "primaryObject": "闭环轨道与它串起的三个阶段",
+        "motionMeaning": "三个阶段依次入场，轨道高亮弧最后接上，把「转不出去」演成一次闭合"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "loop-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "loop-ring",
+            "type": "cycle",
+            "direction": "cw",
+            "gap": "md",
+            "children": [
+              { "id": "loop-a", "type": "surface", "children": [{ "id": "loop-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
+              { "id": "loop-b", "type": "surface", "children": [{ "id": "loop-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
+              { "id": "loop-c", "type": "surface", "children": [{ "id": "loop-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "loop-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "loop-a", "recipe": "rise", "startFrame": 14, "durationFrames": 20 },
+        { "target": "loop-b", "recipe": "rise", "startFrame": 52, "durationFrames": 20 },
+        { "target": "loop-c", "recipe": "rise", "startFrame": 90, "durationFrames": 20 }
+      ]
+    },
+    {
+      "id": "milestones",
+      "type": "diagram",
+      "durationInFrames": 330,
+      "narrationSegments": [
+        { "id": "n1", "text": "把一年拆开，第一个节点只是起步。", "beatId": "b1" },
+        { "id": "n2", "text": "第二个节点，作品开始成形。", "beatId": "b2" },
+        { "id": "n3", "text": "第三个节点，速度才提上来。", "beatId": "b3" },
+        { "id": "n4", "text": "第四个节点，收束比冲刺重要。", "beatId": "b4" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["tl-a"], "meaning": "标出时间轴的起点" },
+        { "id": "b2", "action": "transform", "targets": ["tl-b"], "meaning": "推进到成形这个节点" },
+        { "id": "b3", "action": "transform", "targets": ["tl-c"], "meaning": "把加速放在第三个节点" },
+        { "id": "b4", "action": "transform", "targets": ["tl-d"], "meaning": "用收束结束这条时间轴" }
+      ],
+      "data": {
+        "title": "一年四个节点",
+        "steps": ["起步", "成形", "加速", "收束"]
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "shape",
+        "composition": "full",
+        "density": "balanced",
+        "tone": "neutral",
+        "mode": "process",
+        "claim": "把一年拆成起步、成形、加速、收束四个节点，收束决定下一年从哪里开始",
+        "showWithoutText": "四个节点排在一条推进轴上，轴的填充比例说明已经走到第几段",
+        "primaryObject": "推进轴与轴上的四个节点",
+        "motionMeaning": "四个节点沿轴依次入场，轴线随口播一段段填满"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "tl-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "tl-axis",
+            "type": "timeline",
+            "direction": "ltr",
+            "gap": "sm",
+            "children": [
+              { "id": "tl-a", "type": "surface", "children": [{ "id": "tl-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "label" }] },
+              { "id": "tl-b", "type": "surface", "children": [{ "id": "tl-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "label" }] },
+              { "id": "tl-c", "type": "surface", "children": [{ "id": "tl-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "label" }] },
+              { "id": "tl-d", "type": "surface", "children": [{ "id": "tl-d-text", "type": "text", "contentRef": "data.steps[3]", "role": "label" }] }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "tl-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "tl-a", "recipe": "rise", "startFrame": 12, "durationFrames": 20 },
+        { "target": "tl-b", "recipe": "rise", "startFrame": 50, "durationFrames": 20 },
+        { "target": "tl-c", "recipe": "rise", "startFrame": 88, "durationFrames": 20 },
+        { "target": "tl-d", "recipe": "rise", "startFrame": 126, "durationFrames": 20 }
+      ]
+    },
+    {
+      "id": "level",
+      "type": "chart",
+      "durationInFrames": 180,
+      "narrationSegments": [
+        { "id": "n1", "text": "先看指针：进度停在六成五。", "beatId": "b1" },
+        { "id": "n2", "text": "再用单位格数一遍，同一个数字更具体。", "beatId": "b2" }
+      ],
+      "beats": [
+        { "id": "b1", "action": "establish", "targets": ["level-gauge"], "meaning": "先用指针给出量级" },
+        { "id": "b2", "action": "accumulate", "targets": ["level-units"], "meaning": "再把同一个量级拆成可数的单位" }
+      ],
+      "data": {
+        "title": "同一个进度两种读法",
+        "ratio": 65
+      },
+      "visualIntent": {
+        "relation": "collection",
+        "focus": "shape",
+        "composition": "split",
+        "density": "balanced",
+        "tone": "neutral",
+        "mode": "chart",
+        "claim": "同一个进度，指针给出量级，单位格把它拆成可数的份数",
+        "showWithoutText": "指针停在六成五的刻度上，旁边的单位格按同一比例填满，两种编码指向同一个数值",
+        "primaryObject": "仪表指针与象形图单位格",
+        "motionMeaning": "单位格随口播逐格填充，把抽象比例落成可以数的份数"
+      },
+      "sceneTree": {
+        "id": "root",
+        "type": "column",
+        "gap": "lg",
+        "children": [
+          { "id": "level-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "level-row",
+            "type": "row",
+            "gap": "md",
+            "align": "center",
+            "children": [
+              { "id": "level-gauge", "type": "gauge", "contentRef": "data.ratio", "schematic": true },
+              { "id": "level-units", "type": "pictogram", "contentRef": "data.ratio", "icon": "check", "schematic": true }
+            ]
+          }
+        ]
+      },
+      "motions": [
+        { "target": "level-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
+        { "target": "level-gauge", "recipe": "reveal", "startFrame": 12, "durationFrames": 20 },
+        { "target": "level-units", "recipe": "rise", "startFrame": 44, "durationFrames": 20 }
+      ]
+    }
+  ]
+}

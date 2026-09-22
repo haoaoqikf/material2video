@@ -42,11 +42,16 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    **原语不足时停在视觉转译阶段**：重新构思隐喻、扩展通用原语，或确属作品特例时用代码场景；
    不得改写成「标题 + 文字卡片 + 图标」后继续宣称原来的视觉模式。
    每次从零画一遍既慢又容易失控，也难以保持一支视频内部的观感一致。
-7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹）
-   与「画面有没有在论证」（视觉叙事 V1–V4 是硬判定），人（或视觉模型）按
+7. **先机检再人评**：`review.py` 负责保证「不是废片」（结构、契约、安全区、墨迹）、
+   「画面有没有在论证」（视觉叙事 V1–V4 是硬判定）与「动画有没有解释论点」
+   （动画论证 A1–A5、A7、A8 是硬判定），人（或视觉模型）按
    [评审量表](references/visual-review-rubric.md) 负责「值得看完」，并把
-   「图形承担论证」的结论（V6）写进 `review.md`。
+   「图形承担论证」的结论（V6）与「装饰动效是否恰当」的结论（A6）写进 `review.md`。
    把审美也交给脚本，等于放弃质量；反过来只靠眼睛，又会漏掉标签全空这类静默缺陷。
+8. **画面变化跟着口播走**：新作品把口播切成语义段并绑定 beat，让字幕、配音和画面
+   共用同一批边界；动作从受控词汇表里选，`meaning` 说明这一步解释了什么。
+   入场配方只管「怎么出现」，说不清「正在解释哪一步推理」——两者都要，但不能互相替代。
+   见[分镜脚本结构](references/storyboard-schema.md)的「语义节拍与字幕同步」。
 
 ## 目录职责
 
@@ -108,6 +113,8 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 - 长句拆成多个场景，而不是缩小字号；
 - 不虚构论据或数据；无来源的数值必须把对应节点声明为 `schematic: true`；
 - 逐幕先做视觉转译（受控视觉模式与论证字段），再选原语；文字卡片换布局包装不算图形论证；
+- 新作品的每幕口播切成**语义段**并绑定 beat（一段一个推理步骤），让字幕、配音和画面共用
+  同一批边界；动作从受控词汇表里选真正改变状态或关系的那一个；
 - 生成后先过 `validate.py --strict --json`，按字段路径修正到通过再交付。
 
 ### 2. 分镜即画面声明
@@ -122,9 +129,17 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 设计语言层、字号取档与观感闸门一起生效。说明见
 [发布会级设计语言](references/keynote-design-system.md)。
 
-当前有 16 个原语：布局 7（`stack`/`row`/`column`/`split`/`grid`/`radial`/`overlay`）、
-内容 5（`text`/`number`/`image`/`icon`/`chart`）、图形 4（`shape`/`surface`/`connector`/`group`）。
-每个原语允许的属性、子节点容量与动效配方见
+新作品还要写**语义节拍**：`narrationSegments`（分段口播，每段 `{id, text, beatId}`）
+与 `beats`（`{id, action, targets, meaning}`），二者与字符串 `narration` 互斥。
+完整口播就是各段按顺序拼接，因此不存在第二份文本；动作取受控词汇表，
+`targets` 的每个原语都要支持该动作。字段与三条硬规则（严格验收、结尾留白、
+单一焦点）见[分镜脚本结构](references/storyboard-schema.md)。
+
+当前有 21 个原语：布局 7（`stack`/`row`/`column`/`split`/`grid`/`radial`/`overlay`）、
+内容 5（`text`/`number`/`image`/`icon`/`chart`）、图形 4（`shape`/`surface`/`connector`/`group`），
+外加五个**中层原语**（`flow`/`cycle`/`timeline`/`gauge`/`pictogram`；注册表里按绘制方式
+归入 layout 与 content 两类，目录表格的「类别」列是权威分类）。
+每个原语允许的属性、子节点容量、动效配方与语义动作见
 [视觉原语目录](references/primitive-catalog.md)。
 
 原语组合表达不了的画面，按注册表契约登记并实现新原语
@@ -148,7 +163,9 @@ uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/sto
 
 `--strict` 还执行全片视觉叙事预算：文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是
 文字幕、八幕及以上至少 3 种非文字视觉模式（少于八幕至少 2 种）、声明非 `typography`
-模式的幕必须拿得出结构证据（图表 / 图片 / 连接关系 / 圆周布局），逐幕缺视觉论证字段也报错。
+模式的幕必须拿得出结构证据（图表 / 图片 / 连接关系 / 圆周布局 / `flow` / `cycle` /
+`timeline` / `gauge` / `pictogram`），逐幕缺视觉论证字段也报错；
+声明分段口播的非文字幕还要至少两条 beat 且包含真正改变状态或关系的动作。
 失败会定位到 `scenes[2].visualIntent.mode` 这类路径；阈值版本化在
 `a2v/visual_narrative.py` 的 `RULE_VERSION`。判据与可粘贴的正反例见
 [文章生成分镜](references/article-to-storyboard.md)。
@@ -163,6 +180,9 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 省略 `--out-dir` 时媒体写入该文章的 `outputs/<slug>/media/`。
 默认 edge-tts 中文晓晓音色，支持 `--voice`、`--rate=-10%`、`--force`。
 生成 `media.json`、统一 WAV 和 SRT；音频较长的场景自动延长。无口播场景静音。
+声明了 `narrationSegments` 的幕还会在清单里得到逐幕 `resolvedBeats`
+（场景内开始包含、结束不包含的帧区间）——画面、字幕与配音共用这批边界，
+所以改过分段口播或时长后必须重新 prepare。
 修改分镜后重新 prepare，缓存复用不变的配音。流程、缓存与失败处理见
 [配音与字幕](references/media-contract.md)。无需将生成媒体加入 Git。
 
@@ -235,10 +255,11 @@ uv run python .agents/skills/article2video/scripts/review.py \
 机检只保证「这不是废片」；「值不值得看完」按
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
 评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
-`report.json` 的 `visualNarrative` 给出 V 系列；评审结论写进同级的 `review.md`，
-其中「图形论证」评分与 `## 候选裁决` 小节会被下一次 `review.py` 读成 V6 结论。
+`report.json` 的 `visualNarrative` 给出 V 系列、`animationReview` 给出 A 系列；
+评审结论写进同级的 `review.md`，其中「图形论证」评分与 `## 候选裁决` 小节会被下一次
+`review.py` 读成 V6 结论，「动效服务」评分与 `## A6 候选裁决` 小节会被读成 A6 结论。
 
-体检结论分四串，**分开计数、不要混成一个总分**：
+体检结论分五串，**分开计数、不要混成一个总分**：
 
 - **C 系列**（废片类）：安全区与墨迹覆盖率等结构性结论，回答「这是不是废片」；
 - **K 系列**（观感类 K1–K10）：留白预算、强调色占比、同帧字号种类、对齐基线、
@@ -259,6 +280,13 @@ uv run python .agents/skills/article2video/scripts/review.py \
   V6 读 `review.md` 里人工填写的「图形承担论证」结论，**没填写就是「待评审」，不能显示通过**。
   发布清单要求 V6 ≥ 4/5 且没有未裁决候选（`publishable`）。语义结论不并入自动退出码——
   脚本只报告结构证据，语义判断归人。
+- **A 系列**（动画论证 A1–A8）：A1 节拍覆盖、A2 含义声明、A3 状态或关系变化、
+  A4 字幕同步、A5 结尾停留、A7 单一焦点、A8 稳定结束——这七条是机检，失败
+  **并入错误数与退出码**，报告列出场景 id 与具体问题（哪条 beat 没被引用、
+  哪一帧有几个焦点、最后一条 beat 距幕尾还剩几帧）；A6 读 `review.md` 里人工填写的
+  装饰动画结论，**没填写就是「待评审」**，只拦「可发布」标记而不伪造脚本错误。
+  A 系列只约束声明了 `narrationSegments` 的幕，旧字符串口播的幕与无声预览下的 A4
+  如实记为「跳过」。判据见[设计宪法](references/design-constitution.md)的「动画论证闸门」。
 
 ### 7. 渲染验收
 
@@ -325,6 +353,11 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `非文字视觉模式只有 N 种` | 模式过于单一：八幕及以上至少 3 种、少于八幕至少 2 种非文字模式（`metaphor`/`process`/`comparison`/`cycle`/`chart`/`image`） |
 | 严格校验要求补齐视觉论证字段 | 旧分镜缺 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`：逐幕补齐；脚本不会根据场景树自动推断语义 |
 | V6 显示「待评审」或 `publishable=否` | `outputs/<slug>/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
+| A6 显示「待评审」或 `publishable=否` | 同一份 `review.md` 缺「动效服务」评分，或 `## A6 候选裁决` 没逐条裁决 `animationReview.a6.candidates` 列出的装饰配方：按[评审量表](references/visual-review-rubric.md)填写 |
+| A 系列报「没有任何 beat 改变对象状态或关系」 | 这一幕的 beat 全是 `establish`/`highlight`：换成 `connect`/`accumulate`/`transform` 这类真正改变状态或关系的动作，或承认它是文字幕并改 `visualIntent.mode` |
+| A 系列报「字幕 cue 与口播段切法不一致」 | 某个口播段切在一句话中间，字幕 cue 跨过了段边界：把段边界挪到句子标点处 |
+| A 系列报「最后一条 beat 距幕尾只有 N 帧」 | 幕尾稳定阅读时间不足 12 帧：加长 `durationInFrames`，或把最后一段口播缩短 |
+| A 系列报「第 N 帧有 M 个焦点」 | 同帧点亮了多处（显式 `state: "focus"` 或两个关系容器的当前阶段）：只留一个，其余改成 `muted` 或让它不参与 beat 目标 |
 | 导出画面被裁切 | 画面尺寸超出 1080 × 1920，检查是否有元素溢出 |
 | 渲染中途 ffmpeg 退出 | 尺寸为奇数（yuv420p 要求宽高为偶数），或磁盘空间不足 |
 | 成片能解码但播放器打不开 | 码流是全范围像素格式（`yuvj420p`/`pc`）或 24kHz 单声道 AAC；验收阶段现已报错拦下，参数见 [渲染契约](references/render-contract.md) 的「码流兼容性」 |
@@ -336,9 +369,12 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 ## 当前边界
 
-已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、自动配音与逐句字幕、
-React composition 画面（比喻组件 + 数据图表 +
-关系流程图，组件注册表单源）、契约页体检（K/M 闸门、组件契约探针与视觉叙事 V 系列）、
+已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、
+分段口播与语义节拍（`narrationSegments` + `beats`，媒体清单 version 2 携带逐幕
+`resolvedBeats`，画面 / 字幕 / 配音共用同一批边界）、自动配音与逐句字幕、
+React composition 画面（比喻组件 + 数据图表 + 关系流程图 + 五个中层原语
+`flow`/`cycle`/`timeline`/`gauge`/`pictogram`，组件注册表单源）、
+契约页体检（K/M 闸门、组件契约探针、视觉叙事 V 系列与动画论证 A 系列）、
 Remotion 确定性渲染与成片验收、按文章目录推导输出路径、内容根（文章与产物可放在
 仓库之外、`videos/` 不入库），以及设计语言预设（分镜声明 `visual.preset: "keynote"`
 后启用令牌层、排版引擎与观感闸门）。
@@ -346,8 +382,8 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 尚未实现，不要当作已有能力使用：
 
 - **视觉模型自动评审**：K 系列只给出数值，V5 只列出候选与结构证据，
-  「图形有没有真的承担论证」（V6）也由人填写，最终判断仍要按
-  [视觉评审量表](references/visual-review-rubric.md) 完成；
+  「图形有没有真的承担论证」（V6）与「装饰动效是否恰当」（A6）都由人填写，
+  最终判断仍要按 [视觉评审量表](references/visual-review-rubric.md) 完成；
 - **webfont 子集化**：随仓库分发的 Noto Sans SC Variable 约 17MB，尚未做子集化；
 - **按内容自动选预设**：预设必须由分镜显式声明；
 - **自动拆场景**：引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，

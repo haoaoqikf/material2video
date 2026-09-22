@@ -18,9 +18,27 @@ const GoodScene: A2VCodeScene<{ title: string }> = ({ scene, localFrame, progres
   return <div>ok</div>;
 };
 
+/** 读节拍状态的代码场景：四个必需字段 + 当前 beat 详情与整幕计划。 */
+const BeatAwareScene: A2VCodeScene = ({ beats }) => {
+  void beats.current;
+  void beats.progress;
+  void beats.completed;
+  void beats.estimated;
+  void beats.active?.action;
+  void beats.plan.length;
+  return <div>{beats.completed.length}</div>;
+};
+
 describe('代码场景 API 类型', () => {
   it('作品组件能以注入的 props 编译', () => {
     expectTypeOf(GoodScene).toMatchTypeOf<A2VCodeScene<{ title: string }>>();
+  });
+  it('节拍状态是注入的只读 props', () => {
+    expectTypeOf(BeatAwareScene).toMatchTypeOf<A2VCodeScene>();
+    expectTypeOf<A2VCodeSceneProps['beats']['current']>().toEqualTypeOf<string | null>();
+    expectTypeOf<A2VCodeSceneProps['beats']['progress']>().toEqualTypeOf<number>();
+    expectTypeOf<A2VCodeSceneProps['beats']['completed']>().toEqualTypeOf<readonly string[]>();
+    expectTypeOf<A2VCodeSceneProps['beats']['estimated']>().toEqualTypeOf<boolean>();
   });
   it('作品组件不能声明自己的时间轴字段', () => {
     // 分镜是顺序与时长的单一真源：想要 durationInFrames 或相邻幕的组件

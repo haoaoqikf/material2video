@@ -175,6 +175,48 @@ composition，体检看到的就是渲染会画出的画面。
 | 几何不读实时布局，测量只做一次并缓存 | 每帧测量会随排版抖动，也会拖慢渲染 |
 | 组件不保存默认文案 | 文案只存在于分镜，避免两处漂移 |
 
+## 语义节拍运行时
+
+声明了 `narrationSegments` 的幕有一条共享时间轴：composition 从
+`resolvedBeats`（有声，由媒体清单派生）或无声等比例解析（`web/src/runtime/beats.ts`
+复刻 Python 的同一套规则）得到逐幕 `BeatTimeline`，再按当前帧算出
+
+```ts
+{ current: string | null, progress: number, completed: string[], estimated: boolean }
+```
+
+这份状态原样传给场景树与代码场景（`web/src/code-scene` 的 `A2VCodeSceneProps.beats`）：
+场景树据此决定关系容器里哪个阶段是当前阶段、量级原语指示到什么程度；代码场景
+只读当前 beat、局部进度与已完成集合，**不自己解析字幕、不读音频时钟、不读挂钟**。
+同一帧永远得到同一份状态——`state_at(frame)` / `beatStateAt(timeline, frame)`
+是纯函数，没有缓存、没有时钟、没有随机。
+
+无声估算在两侧各有一份实现：Python 用它做闸门采样（A5/A7），TypeScript 用它渲染
+预览与无声成片。两边漂移的话，「验收过的边界」与「画面上跑的边界」就不是同一批，
+因此向量集中在 `tests/fixtures/beat-vectors.json`，两侧测试读同一份文件
+（`tests/test_beats.py` 与 `web/src/runtime/beats.test.ts`）。
+
+每幕的 `<section>` 上暴露四个量测锚点，供契约探针读取：
+
+| 锚点 | 含义 |
+| --- | --- |
+| `data-a2v-beat-current` | 当前 beat id；区间外（幕首或结尾阅读段）为空字符串 |
+| `data-a2v-beat-progress` | 当前 beat 的局部进度（4 位小数）；区间外为 0 |
+| `data-a2v-beat-completed` | 已完成的 beat id，逗号分隔，按时间顺序 |
+| `data-a2v-beat-estimated` | `1` 表示无声估算时间轴，`0` 表示来自真实词边界 |
+
+中层原语各自暴露自己的读数：`data-a2v-stage-state`（关系容器子节点的
+`active`/`done`/`pending`）、`data-a2v-relation="flow"` 与 `data-a2v-direction`
+（方向连接）、`data-a2v-value` / `data-a2v-shown`（仪表的目标值与当前显示值）、
+`data-a2v-units` / `data-a2v-filled`（象形图的单位数与已填充数）。
+`data-a2v-shown` 与 `data-a2v-filled` 按当前 beat 的局部进度求值，
+其余读数在帧间保持不变——**节点数量、内容与基础几何是冻结的**，
+变化只发生在已登记的视觉状态上（`data-a2v-state`）。
+
+> `data-a2v-stage`（没有 `-state` 后缀）是**舞台容器**的锚点，
+> 由 base.css 声明 1080 × 1920 与 `overflow: hidden`；场景树节点一律不用这个名字，
+> 否则节点会被撑成整块画布。
+
 ## 成片编码
 
 渲染路径不产生中间帧文件：Remotion 在引擎内逐帧渲染并直接交给 x264 编码，

@@ -55,3 +55,52 @@
 .a2v-chart-legend-item i { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
 
 .a2v-primitive-image img { display: block; width: 100%; max-height: 720px; object-fit: contain; }
+
+/* ---------- 中层原语：方向连接与当前阶段 ----------
+ *
+ * 这一族的存在理由是「不只是把标签排成行或圆周」：方向、连接与当前阶段都必须
+ * 是画面上看得见的东西。三条约束与基元层一致：
+ *
+ * 1. **几何冻结**：子节点数量、内容与基础几何只由同一份场景树决定。进度用
+ *    `transform: scale*` 表达而不是改宽高，就是为了不触发任何重排。
+ * 2. **颜色只在状态里**：当前阶段复用注册表的四态（`focus` / `done`），
+ *    不新造状态，也不在这里写 opacity/transform 之外的时序。
+ * 3. **无字体依赖**：方向箭头是内联 SVG 路径，不是字符，换字体不会走形。
+ */
+
+.a2v-primitive-icon { display: flex; align-items: center; justify-content: center; color: var(--a2v-accent, #7aa2ff); }
+.a2v-flow-arrow { display: inline-flex; align-items: center; justify-content: center; color: var(--a2v-accent, #7aa2ff); flex: 0 0 auto; }
+.a2v-flow-arrow svg { display: block; }
+.a2v-primitive-flow > .a2v-primitive, .a2v-primitive-timeline > .a2v-primitive { flex: 1 1 0; min-width: 0; }
+
+/* 时间轴的阶段标签坐在轴线上：轴从标签背后穿过，标签必须有实底，
+   否则轴线会像删除线一样划过文字。`--a2v-surface` 是渐变、不能 color-mix，
+   因此这里直接用抬升面的实色令牌。 */
+.a2v-primitive-timeline > .a2v-primitive-surface { background: var(--a2v-bg-1, #0d111a); }
+
+.a2v-cycle-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.a2v-cycle-track { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 22%, transparent); }
+.a2v-cycle-fill { stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
+.a2v-cycle-head { fill: var(--a2v-accent, #7aa2ff); }
+
+.a2v-timeline-axis { position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); background: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 18%, transparent); border-radius: 3px; overflow: hidden; }
+.a2v-timeline-fill { display: block; width: 100%; height: 100%; background: var(--a2v-accent, #7aa2ff); }
+.a2v-primitive-timeline { padding: 40px 0; }
+
+.a2v-gauge { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.a2v-gauge svg { width: 420px; max-width: 100%; height: auto; }
+.a2v-gauge-track { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 20%, transparent); }
+.a2v-gauge-tick { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 34%, transparent); }
+.a2v-gauge-fill { fill: none; stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
+.a2v-gauge-needle { stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
+.a2v-gauge-hub { fill: var(--a2v-accent, #7aa2ff); }
+/* 读数槽宽度固定：数值从 0 涨到 100 时容器不重排（tabular-nums 保证字宽一致） */
+.a2v-gauge-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
+.a2v-gauge-note { color: var(--a2v-accent, #7aa2ff); }
+
+.a2v-pictogram { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.a2v-pictogram-units { display: grid; grid-template-columns: repeat(5, auto); gap: 16px; justify-items: center; }
+.a2v-pictogram-unit { display: inline-flex; color: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 26%, transparent); }
+.a2v-pictogram-unit[data-a2v-state='focus'] { color: var(--a2v-accent, #7aa2ff); }
+.a2v-pictogram-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
+.a2v-pictogram-note { color: var(--a2v-accent, #7aa2ff); }

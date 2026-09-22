@@ -43,10 +43,11 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 文章
  → 内容理解与压缩          ← 已实现：按文章生成分镜规范执行（由 AI 工具完成，无生成器程序）
  → 分镜规划和视觉语言选择   ← 已实现：同上，含逐幕视觉论证与全片预算（严格校验）
+ → 推理拆分与节拍编排       ← 已实现：narrationSegments 绑定 beats，动作取自受控词汇表
  → 结构化脚本 JSON          ← 已实现：storyboard.json（校验规则已落地）
  → React composition 画面   ← 已实现：共享 composition 递归解释场景树 v2 + 原语注册表
  → 帧驱动动画编排           ← 已实现：useCurrentFrame 求值，禁止时间驱动动画
- → TTS 配音与字幕时间对齐   ← 已实现：edge-tts + 字词时间戳分句
+ → TTS 配音与字幕时间对齐   ← 已实现：edge-tts + 字词时间戳分句，逐幕 resolvedBeats 共用边界
  → 逐帧渲染与音视频合成     ← 已实现：Remotion 渲染，可选 AAC 配音与字幕烧录
  → 竖屏视频                ← 已实现：1080 × 1920 / 30fps / H.264
 ```
@@ -75,6 +76,11 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 | 因果、约束、反馈模型 | `radial` + `surface` 节点 + `connector` | 已实现 |
 | 数量、频次、收益变化 | `number`（count 动效）或 `chart`（bar/line/pie） | 已实现 |
 | 收束、行动建议 | `column` + `text` + `row` 步骤链 | 已实现 |
+| 阶段推进、流程 | `flow` + 阶段子节点（方向连接 + 当前阶段） | 已实现 |
+| 闭环、自我维持的循环 | `cycle` + 阶段子节点（轨道高亮弧 + 当前阶段） | 已实现 |
+| 里程碑、时间进度 | `timeline` + 阶段子节点（进度轴 + 当前阶段） | 已实现 |
+| 单一百分比量级 | `gauge`（受控指针与刻度） | 已实现 |
+| 比例、单位化量级 | `pictogram`（固定数量受控图标单位） | 已实现 |
 
 校验器按原语注册表检查场景树：未知原语、超容量子节点、未注册属性与
 不支持的动效都会在开渲前报错并给出字段路径。
@@ -89,7 +95,10 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 
 - 场景时长用帧数表达（`durationInFrames`），起始帧由累加推导，不手写；
 - 场景展示文案与口播文案允许不同：画面呈现关键结构，口播补充解释与例子；
-- `narration` 用于可选配音准备；有声预览与导出共用媒体清单中的时长和字幕，省略 `--media` 时不渲染口播。
+- 口播用 `narrationSegments`（每段绑定一条 beat）声明，完整文本就是各段拼接；
+  旧版字符串 `narration` 继续可预览可渲染，但新作品在严格验收中必须使用语义节拍。
+  有声预览与导出共用媒体清单中的时长、字幕和逐幕 `resolvedBeats`，省略 `--media`
+  时不渲染口播。
 
 ## 分阶段路线与验收目标
 
@@ -794,7 +803,8 @@ TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
 - **声明 + 结构反证**：`a2v/visual_narrative.py` 只承认四类**结构证据**——图表承担数据关系、
   受控图片承担画面信息、连接关系承担推进或因果、圆周布局（≥ 2 个内容子节点）承担循环；
   布局原语、`surface`、`shape`、`icon` 与单个 `number` 都算包装或文字。脚本不做伪语义打分，
-  只对照声明与结构；代码场景结构上不可验证，只按声明分类并在 V4 写明跳过；
+  只对照声明与结构；代码场景结构上不可验证，只按声明分类并在 V4 写明跳过
+  （第十一阶段把证据扩到九类，`RULE_VERSION` 随之升级）；
 - **版本化全片预算（严格校验）**：文字幕 ≤ `ceil(场景数 × 30%)`、相邻两幕不得都是文字幕、
   八幕及以上 ≥ 3 种（少于八幕 ≥ 2 种）非文字模式、声明非 `typography` 却无证据即报错，
   失败定位到 `scenes[N].visualIntent.mode`；阈值集中在 `RULE_VERSION` 并由单元测试固定；
@@ -818,6 +828,51 @@ TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
   论证字段与预算并**通过 `validate.py --strict`**；
 - **边界**：脚本只报告结构证据，语义判断仍归人（V5 裁决与 V6 结论）；
   旧分镜迁移产物**不含**视觉论证字段，迁移成功只表示文件写出，仍需逐幕补齐后重新验收。
+
+### 第十一阶段：语义节拍与动画论证闸门 —— 已实现
+
+V 系列回答了「有没有论证型图形」，但没有回答「这些图形动起来有没有在解释论点」：
+一幕可以既有图表又有满屏入场动效——结构证据齐全，观众看到的却只是元素依次出现，
+字幕说到第三句而画面还在演第一步。变更 `add-narration-synced-visual-beats`
+（提案、设计与规格见 `openspec/changes/archive/` 归档）补上这一层：
+
+- **分段口播与语义节拍**：分镜可用 `narrationSegments`（每段 `{id, text, beatId}`）
+  取代字符串 `narration`（互斥），并用 `beats`（`{id, action, targets, meaning}`）
+  声明这一步推理在画面上如何发生。完整口播就是各段拼接，不存在第二份文本；
+  动作取自 11 个受控动词，`targets` 的每个原语都必须支持该动作；
+  同一 beat 的引用必须相邻（否则时间轴会倒退或重叠）；
+- **共享时间轴**：媒体清单升到 version 2，声明分段口播的幕携带逐幕 `resolvedBeats`
+  （场景内开始包含、结束不包含的帧区间，按 fps 向外取整并钳到上一段终点）。
+  字幕 cue、配音、场景时长与画面动画因此共用同一批边界；无声预览按声明时长等比例
+  解析并固定留出 12 帧稳定阅读时间。version 1 的旧清单继续可读，含分段口播的旧清单
+  明确要求重新 prepare，而不是拿旧缓存凑一个时间轴；
+- **运行时状态**：composition 把 `{current, progress, completed, estimated}`
+  交给场景树与代码场景（`A2VCodeSceneProps.beats`），每幕的 `<section>` 暴露
+  `data-a2v-beat-current` / `-progress` / `-completed` / `-estimated` 供探针读取；
+  代码场景只读当前 beat 与局部进度，**不自己解析字幕、不读音频时钟、不读挂钟**；
+- **五个中层原语**：`flow`（推进顺序）、`cycle`（闭环阶段）、`timeline`（阶段进度）、
+  `gauge`（单一量级）、`pictogram`（单位化量级），全部由注册表声明容量、属性、
+  动效与支持的语义动作；节点数量、内容与基础几何在帧间冻结，变化只发生在已登记的
+  视觉状态上。`pictogram` 的图标取自 14 个受控 Lucide 图标，构建只打包白名单图标；
+- **视觉叙事证据扩到九类**：在图表、图片、连接关系、圆周布局之外，
+  三个关系容器（各要求 ≥ 2 个语义对象）与两个量级原语也成为结构证据；
+  `visual_narrative.RULE_VERSION` 升到 2；
+- **A 系列独立分栏**：`review.py` 的报告与终端新增动画论证章节——A1 节拍覆盖、
+  A2 含义声明、A3 状态或关系变化、A4 字幕同步、A5 结尾停留、A7 单一焦点、A8 稳定结束
+  这七条只读分镜与媒体清单（不需要浏览器），失败并入错误数与退出码；
+  A6 读 `review.md` 里人工填写的装饰动画裁决，**没填写就是「待评审」**，
+  只拦 `publishable` 而不伪造脚本错误。只约束声明了 `narrationSegments` 的幕；
+- **严格校验的新规则**：非文字幕带口播时必须用分段口播 + beats，且至少两个 beat、
+  至少一个动作真正改变对象状态或关系（`establish` 与 `highlight` 是中性动作，
+  不算一次推理）。旧字符串口播在普通校验下只给兼容提醒，预览与渲染照常；
+- **验证**：`tests/test_animation_review.py` 钉住七条机检闸门的边界与 A6 的四种结果，
+  `tests/test_beats.py` / `tests/test_beat_media.py` 覆盖解析、字幕同步与失败路径，
+  `tests/test_midlevel_primitives.py` / `tests/test_midlevel_probe.py` 覆盖五个原语的
+  冻结布局、方向关系与 DOM 量测，`tests/test_narration_example.py` 让端到端示例
+  通过严格校验与 A 系列，并验证「全中性动作的文字卡片」被拦下；仓库内 7 个示例
+  全部**通过 `validate.py --strict`**；
+- **边界**：A6 与 V6 一样只接受人工结论；旧字符串口播的作品继续可预览可渲染，
+  A 系列对它们如实记为「跳过」——跳过不等于通过。
 
 ## 多篇文章的目录与产物
 

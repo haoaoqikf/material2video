@@ -4,6 +4,7 @@ import type { Storyboard } from '@/schema/storyboard';
 import { SceneTree } from '@/primitives/SceneTree';
 import { CodeSceneHost } from './CodeSceneHost';
 import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
+import { beatStateAt, beatTimeline } from '@/runtime/beats';
 
 export type A2VProps = Storyboard;
 
@@ -12,12 +13,14 @@ export type A2VProps = Storyboard;
  *
  * 每幕按 `renderer` 选择画面路径：缺省与显式 `tree` 走场景树解释器，
  * `code` 走代码场景包装器（模块来自构建前生成的静态清单）。
- * 两条路径共用同一时间轴、同一安全区与同一主题令牌——
- * 作品不注册自己的 Remotion 根或 composition，也不实现预览页。
+ * 两条路径共用同一时间轴、同一安全区、同一主题令牌与**同一份节拍状态**——
+ * 作品不注册自己的 Remotion 根或 composition，也不实现预览页，
+ * 更不自己解析字幕或挂钟。
  */
 export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const frame = useCurrentFrame();
   const starts = useMemo(() => sceneStartFrames(storyboard), [storyboard]);
+  const timelines = useMemo(() => storyboard.scenes.map((scene) => beatTimeline(scene)), [storyboard]);
   const activeIndex = sceneAt(storyboard, frame).index;
   const theme = storyboard.visual?.theme ?? 'dark';
   const preset = storyboard.visual?.preset;
@@ -39,7 +42,16 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
       const active = index === activeIndex;
       const localFrame = active ? Math.min(Math.max(frame - starts[index]!, 0), scene.durationInFrames - 1) : 0;
       const isCode = scene.renderer?.kind === 'code';
-      return <section key={scene.id} data-a2v-scene="" data-scene-id={scene.id} data-layout={scene.visualIntent.composition} style={active ? undefined : { display: 'none' }}>
+      const timeline = timelines[index]!;
+      const beats = { timeline, state: beatStateAt(timeline, localFrame) };
+      return <section key={scene.id} data-a2v-scene="" data-scene-id={scene.id} data-layout={scene.visualIntent.composition}
+        // 节拍状态同时写到 DOM：契约探针（A 系列闸门）量的是页面上的真实值，
+        // 而不是再算一遍分镜——两处算法不同就会出现「报告说通过、画面不同步」。
+        data-a2v-beat-current={beats.state.current ?? ''}
+        data-a2v-beat-progress={beats.state.progress.toFixed(4)}
+        data-a2v-beat-completed={beats.state.completed.join(',')}
+        data-a2v-beat-estimated={beats.state.estimated ? '1' : '0'}
+        style={active ? undefined : { display: 'none' }}>
         {/* code 场景同样置于安全区内；它不经过场景树排版与取档逻辑 */}
         <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version={storyboard.schemaVersion}>
           {isCode ? (
@@ -52,9 +64,10 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
               preset={preset}
               width={storyboard.width}
               height={storyboard.height}
+              beats={beats}
             />
           ) : (
-            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} />
+            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} />
           )}
         </div>
         {preset ? <div className="a2v-scene-index"><span>{scene.visual?.kicker ?? ''}</span><span className="a2v-scene-number">{String(index + 1).padStart(2, '0')} / {String(storyboard.scenes.length).padStart(2, '0')}</span></div> : null}

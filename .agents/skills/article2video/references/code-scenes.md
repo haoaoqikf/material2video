@@ -5,7 +5,7 @@
 代码场景只用于原语确实画不出的画面。
 
 本文记录分镜声明、模块契约、确定性纪律与工具链行为。可运行的完整示例见
-[`examples/code-scenes/`](../../../examples/code-scenes/storyboard.json)
+[`examples/code-scenes/`](../../../../examples/code-scenes/storyboard.json)
 （1 幕场景树 + 4 幕代码场景）。
 
 ## 1. 分镜声明
@@ -39,7 +39,7 @@
 import { probe, type A2VCodeScene } from '@a2v/scene';
 
 const ProgressChart: A2VCodeScene<{ labels: string[]; values: number[] }> = ({
-  scene, frame, localFrame, progress, fps, canvas, theme, random,
+  scene, frame, localFrame, progress, fps, canvas, theme, random, beats,
 }) => {
   return <div {...probe({ node: 'canvas', schematic: true })}>{/* … */}</div>;
 };
@@ -61,6 +61,13 @@ props 字段集合是**封闭**的：
 | `canvas` | `{ width, height }`，与分镜输出尺寸一致 |
 | `theme` | `{ theme: 'dark' \| 'light', preset? }`，与设计令牌同源 |
 | `random` | 稳定种子随机函数（见 §4） |
+| `beats` | 语义节拍状态 `{ current, progress, completed, estimated, active, plan }`；声明分段口播的幕才有内容，其余幕为空时间轴（`current: null`、`completed: []`） |
+
+`beats` 只读：`current` 是当前 beat id（区间外为 `null`），`progress` 是它的局部进度，
+`completed` 是已完成的 beat id 列表，`estimated` 表示这是无声估算时间轴，
+`active` 是当前 beat 的声明（没有则为 `null`），`plan` 是本幕的完整解析时间轴。
+模块**不自己解析字幕、不读音频时钟、不读挂钟**——同一帧永远得到同一份状态。
+需要画面变化跟着口播走时用它，而不是拿 `progress` 自己切分幕内时间。
 
 没有相邻幕、没有总帧数、没有第二套时间 API：顺序与时长只由分镜决定。
 

@@ -723,3 +723,88 @@ class TestRestNotRewardRegression:
         raw = json.dumps(self._wrapper_storyboard(), ensure_ascii=False)
         for banned in ("机器", "疲劳", "产出"):
             assert banned not in raw
+
+
+# ---------------------------------------------------------------------------
+# 3.4 五个中层原语参与结构证据判定
+# ---------------------------------------------------------------------------
+
+
+def _stage(node_id: str) -> dict:
+    """一个承载内容的阶段：表面 + 一行文字。"""
+    return {
+        "id": node_id,
+        "type": "surface",
+        "children": [{"id": f"{node_id}-text", "type": "text", "contentRef": "data.text", "role": "body"}],
+    }
+
+
+def _relation_tree(scene_id: str, node_type: str, count: int, direction: str = "ltr") -> dict:
+    return {
+        "id": "root",
+        "type": node_type,
+        "direction": direction,
+        "children": [_stage(f"{scene_id}-s{index}") for index in range(count)],
+    }
+
+
+def _quantity_tree(scene_id: str, node_type: str) -> dict:
+    node = {"id": f"{scene_id}-meter", "type": node_type, "contentRef": "data.ratio"}
+    if node_type == "pictogram":
+        node["icon"] = "users"
+    return {"id": "root", "type": "stack", "children": [node]}
+
+
+class TestMidlevelStructureEvidence:
+    """五个中层原语要作为**结构证据**参与 V 系列，而不是被当成文字包装。"""
+
+    def _analysis(self, tree: dict, mode: str = "process") -> dict:
+        scene = _scene("mid", mode=mode, tree=tree, data={"text": "中层原语", "ratio": 42})
+        scene["motions"] = []
+        return vn.analyze_scene(scene)
+
+    @pytest.mark.parametrize("node_type", ["flow", "cycle", "timeline"])
+    def test_relation_container_with_two_stages_is_evidence(self, node_type):
+        analysis = self._analysis(_relation_tree("mid", node_type, 2))
+        assert analysis["structuralClass"] == "evidence"
+        assert analysis["evidence"] == [node_type]
+        assert analysis["isTextScene"] is False
+
+    @pytest.mark.parametrize("node_type", ["gauge", "pictogram"])
+    def test_quantity_primitive_is_evidence_on_its_own(self, node_type):
+        analysis = self._analysis(_quantity_tree("mid", node_type))
+        assert analysis["structuralClass"] == "evidence"
+        assert analysis["evidence"] == [node_type]
+
+    def test_evidence_order_is_fixed(self):
+        tree = _relation_tree("mid", "flow", 2)
+        tree["children"].append(_quantity_tree("mid", "gauge")["children"][0])
+        analysis = self._analysis(tree)
+        assert analysis["evidence"] == ["flow", "gauge"]
+
+    def test_single_stage_is_still_a_text_wrapper(self):
+        """文字包装反例：一根箭头加一个阶段不构成关系，仍算文字幕。"""
+        analysis = self._analysis(_relation_tree("mid", "flow", 1))
+        assert analysis["structuralClass"] == "text"
+        assert analysis["evidence"] == []
+        assert analysis["isTextScene"] is True
+
+    def test_stages_without_content_do_not_count(self):
+        """两个子节点里只有一个承载内容时，仍然不构成关系。"""
+        tree = _relation_tree("mid", "timeline", 1)
+        tree["children"].append({"id": "mid-deco", "type": "shape", "shape": "line", "state": "muted"})
+        assert self._analysis(tree)["evidence"] == []
+
+    def test_declaration_conflict_is_reported_for_wrappers_only(self):
+        wrapper = _scene("mid", mode="process", tree=_relation_tree("mid", "flow", 1), data={"text": "中层原语", "ratio": 42})
+        wrapper["motions"] = []
+        findings = vn.analyze(_storyboard(wrapper))["findings"]
+        assert any(item["rule"] == "declaration-structure-conflict" for item in findings)
+
+        real = _scene("mid", mode="process", tree=_relation_tree("mid", "flow", 2), data={"text": "中层原语", "ratio": 42})
+        real["motions"] = []
+        findings = vn.analyze(_storyboard(real))["findings"]
+        assert not any(item["rule"] == "declaration-structure-conflict" for item in findings)
+
+    def test_rule_version_bumped(self):
+        assert vn.RULE_VERSION == 2

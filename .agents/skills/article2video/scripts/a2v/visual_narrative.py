@@ -27,7 +27,9 @@ from pathlib import Path
 from typing import Any
 
 #: 规则版本：预算阈值或分类口径变化时递增，测试据此固定行为。
-RULE_VERSION = 1
+#: 版本 2：结构证据扩到五个中层原语（flow / cycle / timeline / gauge / pictogram），
+#: 关系容器要求至少两个语义对象。
+RULE_VERSION = 2
 
 #: 受控视觉模式。``typography`` 表示主要论点依赖文字成立，是唯一的文字模式。
 VISUAL_MODES: tuple[str, ...] = (
@@ -54,6 +56,30 @@ EVIDENCE_CHART = "chart"
 EVIDENCE_IMAGE = "image"
 EVIDENCE_CONNECTOR = "connector"
 EVIDENCE_RADIAL = "radial"
+EVIDENCE_FLOW = "flow"
+EVIDENCE_CYCLE = "cycle"
+EVIDENCE_TIMELINE = "timeline"
+EVIDENCE_GAUGE = "gauge"
+EVIDENCE_PICTOGRAM = "pictogram"
+
+#: 证据类别的固定输出顺序（由弱到强的关系结构）。报告与测试都按它比对。
+EVIDENCE_ORDER: tuple[str, ...] = (
+    EVIDENCE_CHART,
+    EVIDENCE_IMAGE,
+    EVIDENCE_CONNECTOR,
+    EVIDENCE_RADIAL,
+    EVIDENCE_FLOW,
+    EVIDENCE_CYCLE,
+    EVIDENCE_TIMELINE,
+    EVIDENCE_GAUGE,
+    EVIDENCE_PICTOGRAM,
+)
+
+#: 需要「至少两个语义对象」才算证据的关系容器：一个孤零零的阶段不成关系。
+_RELATION_CONTAINERS = frozenset({"radial", "flow", "cycle", "timeline"})
+
+#: 自带量级结构的原语：指针位置或填充单位本身就是结构，不依赖子节点。
+_QUANTITY_EVIDENCE = {"gauge": EVIDENCE_GAUGE, "pictogram": EVIDENCE_PICTOGRAM}
 
 #: 中性布局原语：只负责摆放，不构成论证关系。
 _NEUTRAL_LAYOUTS = frozenset({"stack", "row", "column", "split", "grid", "overlay", "group"})
@@ -86,9 +112,10 @@ def _children(node: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _has_content_descendant(node: dict[str, Any]) -> bool:
-    """子树里是否有承载内容的节点（文字、数值、图片、图表或内容表面）。"""
+    """子树里是否有承载内容的节点（文字、数值、图片、图表、量级或内容表面）。"""
+    carriers = {"text", "number", "image", "chart", "surface"} | set(_QUANTITY_EVIDENCE)
     return any(
-        child.get("type") in {"text", "number", "image", "chart", "surface"} or _has_content_descendant(child)
+        child.get("type") in carriers or _has_content_descendant(child)
         for child in _children(node)
     )
 
@@ -98,7 +125,9 @@ def _carries_content(node: dict[str, Any]) -> bool:
     node_type = node.get("type")
     if node_type in {"text", "number", "image", "chart", "surface"}:
         return True
-    if isinstance(node_type, str) and (node_type in _NEUTRAL_LAYOUTS or node_type == "radial"):
+    if node_type in _QUANTITY_EVIDENCE:
+        return True
+    if isinstance(node_type, str) and (node_type in _NEUTRAL_LAYOUTS or node_type in _RELATION_CONTAINERS):
         return _has_content_descendant(node)
     return False
 
@@ -112,7 +141,12 @@ def _is_plain_surface(node: dict[str, Any]) -> bool:
 
 
 def scene_evidence(scene: dict[str, Any]) -> list[str]:
-    """收集一幕的论证型结构证据类别（去重、按固定顺序）。"""
+    """收集一幕的论证型结构证据类别（去重、按固定顺序）。
+
+    关系容器（radial / flow / cycle / timeline）要**至少两个语义对象**才算证据：
+    只有一个子节点的「流程」只是加了个箭头，不构成关系。量级原语
+    （gauge / pictogram）自带结构，单独出现即为证据。
+    """
     evidence: set[str] = set()
     for node in iter_nodes(scene.get("sceneTree")):
         node_type = node.get("type")
@@ -122,11 +156,13 @@ def scene_evidence(scene: dict[str, Any]) -> list[str]:
             evidence.add(EVIDENCE_IMAGE)
         elif node_type == "connector":
             evidence.add(EVIDENCE_CONNECTOR)
-        elif node_type == "radial":
+        elif node_type in _QUANTITY_EVIDENCE:
+            evidence.add(_QUANTITY_EVIDENCE[node_type])
+        elif node_type in _RELATION_CONTAINERS:
             content_children = [child for child in _children(node) if _carries_content(child)]
             if len(content_children) >= 2:
-                evidence.add(EVIDENCE_RADIAL)
-    return [kind for kind in (EVIDENCE_CHART, EVIDENCE_IMAGE, EVIDENCE_CONNECTOR, EVIDENCE_RADIAL) if kind in evidence]
+                evidence.add(node_type)
+    return [kind for kind in EVIDENCE_ORDER if kind in evidence]
 
 
 def declared_mode(scene: dict[str, Any]) -> str | None:

@@ -1,0 +1,63 @@
+{
+  "note": "Python 与 TypeScript 共用的节拍解析向量：两侧测试读同一份，防止实现漂移。",
+  "spans": [
+    {
+      "why": "示例场景的真实切法：120 帧场景留 12 帧稳定阅读，预算 108 帧按 6/6/8 字分",
+      "duration": 108,
+      "texts": ["先看第一步。", "再看第二步。", "最后收束到结论。"],
+      "expected": [[0, 33], [33, 65], [65, 108]]
+    },
+    {
+      "why": "等长文本的余数按先后补齐：预算 37，五段各得 8/8/7/7/7",
+      "duration": 37,
+      "texts": ["甲", "乙", "丙", "丁", "戊"],
+      "expected": [[0, 8], [8, 16], [16, 23], [23, 30], [30, 37]]
+    },
+    {
+      "why": "预算小于段数：每段保底 1 帧，余数给小数部分最大的段",
+      "duration": 5,
+      "texts": ["甲乙", "丙", "丁丁丁"],
+      "expected": [[0, 2], [2, 3], [3, 5]]
+    },
+    {
+      "why": "预算恰好等于段数：每段 1 帧，不做任何额外分配",
+      "duration": 3,
+      "texts": ["甲", "乙", "丙"],
+      "expected": [[0, 1], [1, 2], [2, 3]]
+    }
+  ],
+  "scenes": [
+    {
+      "why": "常规场景：三条 beat 依次占用预算，最后一帧起是稳定阅读段",
+      "durationInFrames": 120,
+      "texts": ["先看第一步。", "再看第二步。", "最后收束到结论。"],
+      "beatIds": ["b1", "b2", "b3"],
+      "expected": [
+        {"id": "b1", "startFrame": 0, "endFrame": 33},
+        {"id": "b2", "startFrame": 33, "endFrame": 65},
+        {"id": "b3", "startFrame": 65, "endFrame": 108}
+      ]
+    },
+    {
+      "why": "场景装不下预算（14 - 12 < 3 段）时退化用整幕时长，A5 会如实报余量不足",
+      "durationInFrames": 14,
+      "texts": ["甲。", "乙。", "丙。"],
+      "beatIds": ["b1", "b2", "b3"],
+      "expected": [
+        {"id": "b1", "startFrame": 0, "endFrame": 5},
+        {"id": "b2", "startFrame": 5, "endFrame": 10},
+        {"id": "b3", "startFrame": 10, "endFrame": 14}
+      ]
+    },
+    {
+      "why": "连续两段引用同一 beat：合并成一个区间，且不越过下一拍的起点",
+      "durationInFrames": 120,
+      "texts": ["同一拍的第一句，", "还是同一拍。", "下一拍。"],
+      "beatIds": ["b1", "b1", "b2"],
+      "expected": [
+        {"id": "b1", "startFrame": 0, "endFrame": 84},
+        {"id": "b2", "startFrame": 84, "endFrame": 108}
+      ]
+    }
+  ]
+}
