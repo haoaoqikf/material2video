@@ -59,6 +59,11 @@ export interface A2VBeatState {
   /** 整幕已解析的节拍计划（只读）：作品据此知道还有哪几步要走。 */
   plan: readonly A2VBeatInfo[];
 }
+export interface A2VMotionContext {
+  phase: 'establish' | 'change' | 'result' | 'settle';
+  camera: { kind: string; progress: number; focus: string; x: number; y: number; scale: number; velocity: number };
+  continuity: { kind: string; phase: 'source'|'target'; progress: number; sources: readonly string[]; targets: readonly string[] } | null;
+}
 
 /** 注入给代码场景的幕级数据：内容仍以分镜为真源。 */
 export interface A2VSceneInfo<Data = unknown> {
@@ -91,6 +96,8 @@ export interface A2VCodeSceneProps<Data = unknown> {
   theme: A2VThemeInfo;
   /** 节拍状态：当前 beat、局部进度、已完成集合与是否为估算时间轴。 */
   beats: A2VBeatState;
+  /** 与场景树同源的导演运行时；作品只消费状态，不创建第二套时间轴。 */
+  motion: A2VMotionContext;
   /**
    * 稳定种子随机：`random(node)` 为节点标识派生独立序列；
    * 省略节点时使用场景级默认序列。同一输入永远返回同一序列。
@@ -158,17 +165,19 @@ export type A2VProbeRole = 'hero' | 'headline' | 'title' | 'body' | 'label' | 'c
  * `data-a2v-inside="[data-a2v-node=\"panel\"]"`——K8 的容器归属量测
  * 拿它做选择器查询，因此必须是可解析的选择器而不是裸 id。
  */
-export function probe(options: { node: string; role?: A2VProbeRole; inside?: string; schematic?: boolean }): {
+export function probe(options: { node: string; role?: A2VProbeRole; inside?: string; schematic?: boolean; geometry?: { x: number; y: number; width: number; height: number; radius?: number } }): {
   'data-a2v-node': string;
   'data-a2v-role'?: string;
   'data-a2v-inside'?: string;
   'data-a2v-schematic'?: string;
+  'data-a2v-geometry'?: string;
 } {
   return {
     'data-a2v-node': options.node,
     ...(options.role ? { 'data-a2v-role': options.role } : {}),
     ...(options.inside ? { 'data-a2v-inside': `[data-a2v-node="${options.inside}"]` } : {}),
     ...(options.schematic ? { 'data-a2v-schematic': '' } : {}),
+    ...(options.geometry ? { 'data-a2v-geometry': [options.geometry.x, options.geometry.y, options.geometry.width, options.geometry.height, options.geometry.radius ?? 0].join(',') } : {}),
   };
 }
 

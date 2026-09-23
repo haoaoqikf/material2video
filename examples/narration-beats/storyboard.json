@@ -70,7 +70,11 @@
     },
     {
       "id": "stages",
-      "camera": { "shot": "medium", "composition": "center", "depth": "layered", "focus": "stages-flow", "movement": "pan-right" },
+      "camera": { "shot": "medium", "composition": "center", "depth": "layered", "focus": "stages-flow", "movement": "pan-right", "segments": [
+        { "kind": "hold", "beatId": "b1", "focus": "stages-a", "intensity": 0 },
+        { "kind": "reframe", "beatId": "b2", "focus": "stages-b", "intensity": 0.45 },
+        { "kind": "settle", "phase": "settle", "focus": "stages-c", "intensity": 0 }
+      ] },
       "transition": { "kind": "transform", "source": "claim-text", "target": "stages-title", "meaning": "把反常识判断转成可执行的三步路径" },
       "type": "diagram",
       "durationInFrames": 255,
@@ -120,10 +124,8 @@
         ]
       },
       "motions": [
-        { "target": "stages-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "stages-a", "recipe": "rise", "startFrame": 12, "durationFrames": 20 },
-        { "target": "stages-b", "recipe": "rise", "startFrame": 46, "durationFrames": 20 },
-        { "target": "stages-c", "recipe": "rise", "startFrame": 80, "durationFrames": 20 }
+        { "target": "stages-title", "recipe": "reveal", "phase": "establish", "durationFrames": 18 },
+        { "targets": ["stages-a", "stages-b", "stages-c"], "recipe": "rise", "phase": "change", "durationFrames": 20, "stagger": { "kind": "forward", "intervalFrames": 6 } }
       ]
     },
     {

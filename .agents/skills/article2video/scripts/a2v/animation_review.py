@@ -261,17 +261,19 @@ def _decorations(
     for motion in scene.get("motions") or []:
         if not isinstance(motion, dict):
             continue
-        target = str(motion.get("target"))
-        if target in targets:
-            continue
-        decorations.append(
-            {
-                "id": f"{scene_id}:{target}",
-                "scene": scene_id,
-                "target": target,
-                "recipe": str(motion.get("recipe")),
-            }
-        )
+        motion_targets = motion.get("targets") if isinstance(motion.get("targets"), list) else [motion.get("target")]
+        for raw_target in motion_targets:
+            target = str(raw_target)
+            if target in targets:
+                continue
+            decorations.append(
+                {
+                    "id": f"{scene_id}:{target}",
+                    "scene": scene_id,
+                    "target": target,
+                    "recipe": str(motion.get("recipe")),
+                }
+            )
     return decorations
 
 
@@ -674,11 +676,18 @@ def review_a6(path: str | Path, analysis: dict[str, Any]) -> dict[str, Any]:
                 inline = re.search(r"(?:装饰动画|动效服务|A6)[^\n]*?([0-5])\s*/\s*5", text)
             if inline:
                 score = int(inline.group(1))
+        # 优先取显式 A6 小节；否则会误把前面的 V5「候选裁决」当成 A6。
         section = re.search(
-            r"^\s*#{2,6}\s*(?:A6[^\n]*?)?候选裁决[^\n]*\n(.*?)(?=^\s*#{2,6}\s|\Z)",
+            r"^\s*#{2,6}\s*A6[^\n]*?候选裁决[^\n]*\n(.*?)(?=^\s*#{2,6}\s|\Z)",
             text,
             re.MULTILINE | re.DOTALL,
         )
+        if not section:
+            section = re.search(
+                r"^\s*#{2,6}\s*候选裁决[^\n]*\n(.*?)(?=^\s*#{2,6}\s|\Z)",
+                text,
+                re.MULTILINE | re.DOTALL,
+            )
         if section:
             resolved = set(
                 re.findall(r"^\s*[-*]\s*([A-Za-z0-9_:-]+)\s*[:：]", section.group(1), re.MULTILINE)

@@ -20,6 +20,7 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
     camera_missing: list[str] = []
     motif_missing: list[str] = []
     continuity: list[dict[str, Any]] = []
+    motion_metrics: list[dict[str, Any]] = []
     for index, scene in enumerate(scenes):
         if not isinstance(scene, dict):
             continue
@@ -35,6 +36,14 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
             camera.get("shot"), camera.get("composition"), camera.get("depth"),
             camera.get("movement"), intent.get("relation"), intent.get("mode"),
         ))
+        segments = camera.get("segments") if isinstance(camera, dict) else None
+        kinds = [item.get("kind") for item in segments if isinstance(item, dict)] if isinstance(segments, list) else []
+        has_settle = "settle" in kinds or camera.get("movement") == "static"
+        groups = [item for item in scene.get("motions", []) if isinstance(item, dict) and isinstance(item.get("targets"), list)]
+        dense = [item for item in groups if isinstance(item.get("stagger"), dict) and item["stagger"].get("intervalFrames", 4) < 2]
+        motion_metrics.append({"id": scene_id, "cameraSegments": kinds, "hasSettle": has_settle, "groupMotionCount": len(groups), "denseStaggers": len(dense)})
+        if segments and not has_settle:
+            findings.append({"rule": "camera-settle", "status": "fail", "scenes": [scene_id], "detail": "多段镜头必须以 settle 收束，稳定阅读窗口内不得持续漂移"})
         if index > 0 and isinstance(scene.get("transition"), dict):
             transition = scene["transition"]
             continuity.append({
@@ -61,6 +70,7 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
         "sceneCount": len(scenes),
         "signatures": [list(item) for item in signatures],
         "continuity": continuity,
+        "motionRuntime": motion_metrics,
         "findings": findings,
         "publishable": not any(item["status"] == "fail" for item in findings),
     }

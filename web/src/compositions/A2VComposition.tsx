@@ -5,7 +5,7 @@ import { SceneTree } from '@/primitives/SceneTree';
 import { CodeSceneHost } from './CodeSceneHost';
 import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
 import { beatStateAt, beatTimeline } from '@/runtime/beats';
-import { cameraStyle } from '@/runtime/camera';
+import { cameraState, cameraStyle } from '@/runtime/camera';
 import { transitionStyle } from '@/runtime/transition';
 import { continuityFor, isContinuityActive, type ContinuityRenderState } from '@/runtime/continuity';
 
@@ -54,6 +54,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
       const timeline = timelines[index]!;
       const beats = { timeline, state: beatStateAt(timeline, localFrame) };
       const continuity = continuityFor(storyboard, index);
+      const currentCamera = cameraState(scene, localFrame);
       const continuityState: ContinuityRenderState | undefined = active && activeContinuity
         ? { relation: activeContinuity, phase: 'target', frame: activeLocalFrame }
         : outgoing && activeContinuity
@@ -65,6 +66,9 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         data-a2v-continuity-target={(active ? continuity : activeContinuity)?.targetIds.join(',') ?? ''}
         data-a2v-continuity-phase={continuityState?.phase ?? ''}
         data-a2v-camera-focus={scene.camera?.focus ?? ''}
+        data-a2v-camera-kind={currentCamera.kind}
+        data-a2v-camera-progress={currentCamera.progress.toFixed(4)}
+        data-a2v-camera-velocity={currentCamera.velocity.toFixed(6)}
         // 节拍状态同时写到 DOM：契约探针（A 系列闸门）量的是页面上的真实值，
         // 而不是再算一遍分镜——两处算法不同就会出现「报告说通过、画面不同步」。
         data-a2v-beat-current={beats.state.current ?? ''}
@@ -86,6 +90,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
               width={storyboard.width}
               height={storyboard.height}
               beats={beats}
+              continuity={continuityState}
             />
           ) : (
             <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} stylePack={stylePack} continuity={continuityState} />

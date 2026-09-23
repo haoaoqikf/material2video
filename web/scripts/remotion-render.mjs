@@ -110,6 +110,9 @@ if (!args.metadataOnly) {
     // 而 q98 对文字画面几乎无可感损失
     imageFormat: 'jpeg',
     jpegQuality: 98,
+    // 竖屏 1080×1920 + 大字库在 Windows Chromium 下并发页签会显著抬高峰值内存，
+    // 长片可能被系统关闭并报 Target closed。单并发牺牲吞吐，换取确定的资源上限。
+    concurrency: 1,
     frameRange: parseFrameRange(args.frames),
     overwrite: true,
     logLevel: 'error',

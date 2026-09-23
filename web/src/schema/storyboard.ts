@@ -7,6 +7,15 @@ const nonEmptyText = z.string().trim().min(1);
 const nodeId = z.string().regex(/^[A-Za-z0-9_-]+$/, '节点 id 只允许字母、数字、_ 与 -');
 export const motionRecipeSchema = z.enum(['reveal', 'fade', 'rise', 'count', 'draw']);
 export type MotionRecipe = z.infer<typeof motionRecipeSchema>;
+export const motionPhaseSchema = z.enum(['establish', 'change', 'result', 'settle']);
+export const staggerSchema = z.object({
+  kind: z.enum(['forward', 'reverse', 'center', 'path']),
+  intervalFrames: z.number().int().min(2).max(12).default(4),
+  path: z.array(nodeId).min(2).optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.kind === 'path' && !value.path) ctx.addIssue({ code: 'custom', path: ['path'], message: '路径传播必须声明 path' });
+  if (value.kind !== 'path' && value.path) ctx.addIssue({ code: 'custom', path: ['path'], message: '只有路径传播可以声明 path' });
+});
 const primitiveTypeSchema = nonEmptyText.refine((value) => (PRIMITIVE_TYPES as readonly string[]).includes(value), { message: `未知视觉原语（已知：${PRIMITIVE_TYPES.join('、')}）` });
 
 /** 每幕场景树的节点总数上限：控制渲染成本，也让容量超限尽早暴露。 */
@@ -64,11 +73,27 @@ export const visualIntentSchema = z.object({
   mode: visualModeSchema.optional(), claim: nonEmptyText.optional(), showWithoutText: nonEmptyText.optional(),
   primaryObject: nonEmptyText.optional(), motionMeaning: nonEmptyText.optional(),
 }).strict();
-export const motionSchema = z.object({ target: nodeId, recipe: motionRecipeSchema, startFrame: z.number().int().min(0).default(0), durationFrames: z.number().int().positive().optional() }).strict();
+export const motionSchema = z.object({
+  target: nodeId.optional(), targets: z.array(nodeId).min(1).optional(), recipe: motionRecipeSchema,
+  phase: motionPhaseSchema.optional(), beatId: nodeId.optional(), stagger: staggerSchema.optional(),
+  startFrame: z.number().int().min(0).optional(), durationFrames: z.number().int().positive().optional(),
+}).strict().superRefine((motion, ctx) => {
+  if (Boolean(motion.target) === Boolean(motion.targets)) ctx.addIssue({ code: 'custom', path: ['target'], message: 'target 与 targets 必须二选一' });
+  if (motion.beatId && motion.startFrame !== undefined) ctx.addIssue({ code: 'custom', path: ['startFrame'], message: '绑定 beatId 后不能声明绝对 startFrame' });
+  if (motion.stagger && !motion.targets) ctx.addIssue({ code: 'custom', path: ['stagger'], message: 'stagger 只适用于 targets 节点组' });
+}).transform((motion) => ({ ...motion, startFrame: motion.startFrame ?? 0 }));
 
 export const directingVersionSchema = z.literal(1);
 export const directingBriefSchema = z.object({ thesis: nonEmptyText, audienceShift: nonEmptyText, emotionalArc: z.array(nonEmptyText).min(2), visualMotif: nonEmptyText, stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']), avoid: z.array(nonEmptyText).default([]) }).strict();
-export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, movement: z.enum(['static', 'push-in', 'pull-out', 'pan-left', 'pan-right', 'orbit']) }).strict();
+export const cameraSegmentSchema = z.object({
+  kind: z.enum(['hold', 'push-in', 'pull-out', 'pan', 'reframe', 'settle']),
+  beatId: nodeId.optional(), phase: motionPhaseSchema.optional(), focus: nodeId.optional(),
+  direction: z.enum(['left', 'right', 'up', 'down']).optional(), intensity: z.number().min(0).max(1).default(0.5),
+}).strict().superRefine((segment, ctx) => {
+  if (Boolean(segment.beatId) === Boolean(segment.phase)) ctx.addIssue({ code: 'custom', path: ['beatId'], message: '镜头段必须在 beatId 与 phase 中二选一' });
+  if (segment.kind === 'pan' && !segment.direction) ctx.addIssue({ code: 'custom', path: ['direction'], message: 'pan 必须声明方向' });
+});
+export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, movement: z.enum(['static', 'push-in', 'pull-out', 'pan-left', 'pan-right', 'orbit']), segments: z.array(cameraSegmentSchema).min(1).optional() }).strict();
 export const transitionSchema = z.object({
   kind: z.enum(['inherit', 'transform', 'decompose', 'recompose', 'dissolve', 'break']),
   source: nodeId.optional(), target: nodeId.optional(),
@@ -158,10 +183,15 @@ export const sceneSchema = z.object({
   };
   walk(tree, ['sceneTree'], 1);
   scene.motions.forEach((motion, index) => {
-    if (!ids.has(motion.target)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'target'], message: `动效目标 ${motion.target} 不存在` });
+    const targets = motion.targets ?? (motion.target ? [motion.target] : []);
+    targets.forEach((target, position) => { if (!ids.has(target)) ctx.addIssue({ code: 'custom', path: ['motions', index, motion.targets ? 'targets' : 'target', ...(motion.targets ? [position] : [])], message: `动效目标 ${target} 不存在` }); });
+    if (motion.beatId && !scene.beats?.some((beat) => beat.id === motion.beatId)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'beatId'], message: `动效引用了不存在的 beat ${motion.beatId}` });
     if (motion.startFrame + (motion.durationFrames ?? 1) > scene.durationInFrames) ctx.addIssue({ code: 'custom', path: ['motions', index], message: '动效时间范围超出场景' });
-    const supported = PRIMITIVE_MOTIONS[types.get(motion.target) ?? ''] ?? [];
-    if (!supported.includes(motion.recipe)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'recipe'], message: `原语 ${types.get(motion.target) ?? '（未知）'} 不支持动效 ${motion.recipe}` });
+    targets.forEach((target) => { const supported = PRIMITIVE_MOTIONS[types.get(target) ?? ''] ?? []; if (!supported.includes(motion.recipe)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'recipe'], message: `原语 ${types.get(target) ?? '（未知）'} 不支持动效 ${motion.recipe}` }); });
+  });
+  scene.camera?.segments?.forEach((segment, index) => {
+    if (segment.beatId && !scene.beats?.some((beat) => beat.id === segment.beatId)) ctx.addIssue({ code: 'custom', path: ['camera', 'segments', index, 'beatId'], message: `镜头段引用了不存在的 beat ${segment.beatId}` });
+    const focus = segment.focus ?? scene.camera?.focus; if (focus && !ids.has(focus)) ctx.addIssue({ code: 'custom', path: ['camera', 'segments', index, 'focus'], message: `镜头焦点 ${focus} 不存在` });
   });
   validateBeats(scene, ctx, types);
 });

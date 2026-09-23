@@ -3,6 +3,7 @@ import type { Scene, SceneNode } from '@/schema/storyboard';
 import { stylePackDefinition } from '@/registry';
 import { EMPTY_BEAT_CONTEXT, nodeBeatState, type BeatContext, type BeatTimeline, type NodeBeatState } from '@/runtime/beats';
 import { continuityNodeStyle, continuityVisibleIds, type ContinuityRenderState } from '@/runtime/continuity';
+import { channelStyle, motionProgress, sceneMotionPlan, visualMix } from '@/runtime/motionPlan';
 import { IconGlyph } from './iconSet';
 
 const GAP = { none: 0, xs: 8, sm: 16, md: 28, lg: 44, xl: 64 } as const;
@@ -47,15 +48,13 @@ export function resolveContent(data: Record<string, unknown>, ref?: string): unk
   return current;
 }
 
-export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTransform = '', stylePack?: string): CSSProperties {
-  const motion = scene.motions.find((item) => item.target === nodeId);
+export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTransform = '', stylePack?: string, beats: BeatContext = EMPTY_BEAT_CONTEXT): CSSProperties {
+  const motion = sceneMotionPlan(scene, beats.timeline).motions.find((item) => item.target === nodeId);
   if (!motion) return baseTransform ? { transform: baseTransform } : {};
-  const duration = motion.durationFrames ?? 24;
-  const progress = Math.min(1, Math.max(0, (frame - motion.startFrame) / duration));
-  const eased = 1 - (1 - progress) ** 3;
+  const eased = motionProgress(motion, frame);
   const common: CSSProperties = { opacity: eased };
   const riseDistance = stylePackDefinition(stylePack).riseDistance;
-  if (motion.recipe === 'rise') return { ...common, transform: `${baseTransform} translateY(${(1 - eased) * riseDistance}px)`.trim() };
+  if (motion.recipe === 'rise') return { ...common, transform: `${baseTransform} translateY(${(1 - eased) * riseDistance}px) scale(${0.96 + eased * 0.04})`.trim() };
   if (motion.recipe === 'reveal') return baseTransform ? { ...common, transform: baseTransform, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` } : { ...common, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` };
   if (motion.recipe === 'draw') return { ...common, transform: `${baseTransform} scaleX(${eased})`.trim(), transformOrigin: 'left center' };
   if (baseTransform) return { ...common, transform: baseTransform };
@@ -469,22 +468,30 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
       stage={stages ? (stages.active === index ? 'active' : stages.done[index] ? 'done' : 'pending') : undefined}
     />
   ));
+  // 节点级节拍状态：视觉混合与探针必须读取同一份逐帧结果。
+  const beat = nodeBeatState(beats.timeline, frame, node.id);
+  const nodeMotion = motionStyle(scene, node.id, frame, baseTransform, stylePack, beats);
+  const continuityStyle = continuityNodeStyle(node.id, continuity);
+  const mix = visualMix(node.state ?? (stage === 'active' ? 'focus' : stage === 'done' ? 'done' : 'rest'), beat.active ? beat.progress : 1);
+  const layered = channelStyle({ base: typeof (place ?? layoutStyle(node)).transform === 'string' ? String((place ?? layoutStyle(node)).transform) : undefined, motion: typeof nodeMotion.transform === 'string' ? nodeMotion.transform : undefined, continuity: typeof continuityStyle.transform === 'string' ? continuityStyle.transform : undefined, opacity: Number(nodeMotion.opacity ?? 1) * Number(continuityStyle.opacity ?? 1), mix });
   const style = {
     ...(place ?? layoutStyle(node)),
-    ...motionStyle(scene, node.id, frame, baseTransform, stylePack),
+    ...nodeMotion,
     ...(continuityVisible && !continuityVisible.has(node.id) ? { visibility: 'hidden' as const } : {}),
     ...continuityNodeStyle(node.id, continuity),
+    ...layered,
   };
-  // 节点级节拍状态：写进 DOM 让契约探针量到「这一帧这个节点被哪一步推理驱动」，
-  // 同时交给原语决定自己该显示什么状态。
-  const beat = nodeBeatState(beats.timeline, frame, node.id);
+  // 同一状态写进 DOM，让契约探针量到真实画面而不是另算一遍分镜。
   const beatState = !beat.targeted ? undefined : beat.active ? 'active' : beat.done.length > 0 ? 'done' : 'pending';
   // 阶段容器把当前阶段映射到注册表已有的可视状态：不改注册表、不新造状态。
   const stageAttr = stage === 'active' ? 'focus' : stage === 'done' ? 'done' : undefined;
   const attrs = {
     'data-a2v-node-id': node.id, 'data-a2v-primitive': node.type,
     'data-a2v-inside': node.type === 'surface' ? '' : undefined,
-    'data-a2v-motion': scene.motions.some((item) => item.target === node.id) ? '' : undefined,
+    'data-a2v-motion': scene.motions.some((item) => item.target === node.id || item.targets?.includes(node.id)) ? '' : undefined,
+    'data-a2v-focus-mix': mix.focus.toFixed(4),
+    'data-a2v-muted-mix': mix.muted.toFixed(4),
+    'data-a2v-done-mix': mix.done.toFixed(4),
     'data-a2v-continuity-phase': continuity && (continuity.relation.sourceIds.includes(node.id) || continuity.relation.targetIds.includes(node.id)) ? continuity.phase : undefined,
     'data-a2v-beat-state': beatState,
     'data-a2v-beat-action': beat.active?.action,

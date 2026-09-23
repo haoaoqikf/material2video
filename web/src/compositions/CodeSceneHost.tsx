@@ -4,6 +4,9 @@ import type { A2VBeatState, A2VCodeSceneProps, A2VThemeInfo } from '@/code-scene
 import { createSceneRandom } from '@/code-scene';
 import type { BeatContext } from '@/runtime/beats';
 import { codeSceneBeatState } from '@/runtime/beats';
+import { cameraState } from '@/runtime/camera';
+import { sceneMotionPlan } from '@/runtime/motionPlan';
+import type { ContinuityRenderState } from '@/runtime/continuity';
 import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
 
 /**
@@ -35,6 +38,7 @@ export function CodeSceneHost({
   width,
   height,
   beats,
+  continuity,
 }: {
   scene: Scene;
   frame: number;
@@ -45,6 +49,7 @@ export function CodeSceneHost({
   width: number;
   height: number;
   beats: BeatContext;
+  continuity?: ContinuityRenderState;
 }): React.ReactElement {
   const renderer = scene.renderer;
   const module_ = renderer?.kind === 'code' ? renderer.module : '';
@@ -98,6 +103,8 @@ export function CodeSceneHost({
   const themeInfo: A2VThemeInfo = { theme, ...(preset ? { preset } : {}) };
   const random = createSceneRandom(scene.id);
   const beatState: A2VBeatState = codeSceneBeatState(beats);
+  const plan = sceneMotionPlan(scene, beats.timeline); const phase = (Object.entries(plan.phases).find(([, span]) => span.startFrame <= localFrame && localFrame < span.endFrame)?.[0] ?? 'settle') as 'establish'|'change'|'result'|'settle';
+  const relation = continuity?.relation; const continuityProgress = relation ? Math.min(1, Math.max(0, continuity.frame / relation.span)) : 0;
   const props: A2VCodeSceneProps = {
     scene: {
       id: scene.id,
@@ -113,6 +120,7 @@ export function CodeSceneHost({
     canvas: { width, height },
     theme: themeInfo,
     beats: beatState,
+    motion: { phase, camera: cameraState(scene, localFrame), continuity: continuity && relation ? { kind: relation.kind, phase: continuity.phase, progress: continuityProgress, sources: relation.sourceIds, targets: relation.targetIds } : null },
     random,
   };
 
@@ -123,6 +131,7 @@ export function CodeSceneHost({
       data-a2v-code-ready={error ? 'error' : ready ? '1' : '0'}
       {...(error ? { 'data-a2v-code-error': error } : {})}
       data-a2v-theme={theme}
+      data-a2v-continuity-mode={continuity ? 'probe-required' : 'none'}
       {...(preset ? { 'data-a2v-preset': preset } : {})}
     >
       <Component {...props} />

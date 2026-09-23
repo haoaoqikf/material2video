@@ -10,6 +10,7 @@ describe('scene continuity', () => {
     const storyboard = structuredClone(EMPTY_STORYBOARD);
     storyboard.scenes.push({ ...structuredClone(EMPTY_STORYBOARD.scenes[0]), id: 'next', transition: { kind: 'transform', source: 'text', target: 'text', meaning: '文字变成路径' } });
     expect(continuityFor(storyboard, 1)).toMatchObject({ kind: 'transform', previousSceneId: 'placeholder', sourceIds: ['text'], targetIds: ['text'] });
+    expect(continuityFor(storyboard, 1)!.sourceGeometry!.get('text')).toBeDefined();
   });
   it('builds explicit one-to-many and many-to-one mappings', () => {
     const storyboard = structuredClone(EMPTY_STORYBOARD);

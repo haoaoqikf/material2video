@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import type { Scene, SceneNode, Storyboard } from '@/schema/storyboard';
 import { stylePackDefinition } from '@/registry';
+import { sceneGeometry } from './geometry';
+import type { GeometryBox } from './motionPlan';
 
 export type ContinuityKind = 'inherit' | 'transform' | 'decompose' | 'recompose' | 'dissolve' | 'break';
 
@@ -12,6 +14,8 @@ export interface SceneContinuity {
   targetIds: readonly string[];
   meaning: string;
   span: number;
+  sourceGeometry?: ReadonlyMap<string, GeometryBox>;
+  targetGeometry?: ReadonlyMap<string, GeometryBox>;
 }
 
 export interface ContinuityRenderState {
@@ -37,6 +41,7 @@ export function continuityFor(storyboard: Storyboard, index: number): SceneConti
     targetIds,
     meaning: transition.meaning,
     span: Math.min(stylePackDefinition(storyboard.directingBrief?.stylePack).transitionSpan, Math.max(1, Math.floor(scene.durationInFrames / 5))),
+    sourceGeometry: sceneGeometry(previous.sceneTree), targetGeometry: sceneGeometry(scene.sceneTree),
   };
 }
 
@@ -74,9 +79,15 @@ export function continuityNodeStyle(nodeId: string, state?: ContinuityRenderStat
   const entering = state.phase === 'target';
   const amount = entering ? p : 1 - p;
   const index = selectedIds(state).indexOf(nodeId);
+  const sourceId = state.relation.sourceIds[Math.min(index, state.relation.sourceIds.length - 1)];
+  const targetId = state.relation.targetIds[Math.min(index, state.relation.targetIds.length - 1)];
+  const from = sourceId ? state.relation.sourceGeometry?.get(sourceId) : undefined; const to = targetId ? state.relation.targetGeometry?.get(targetId) : undefined;
+  const geometry = from && to ? { x: (to.x - from.x) * 1080, y: (to.y - from.y) * 1920, sx: to.width / Math.max(.001, from.width), sy: to.height / Math.max(.001, from.height), radius: from.radius + (to.radius - from.radius) * p } : null;
+  const geometricTransform = geometry ? `translate(${(entering ? 1 - p : p) * (entering ? -geometry.x : geometry.x)}px, ${(entering ? 1 - p : p) * (entering ? -geometry.y : geometry.y)}px) scale(${entering ? geometry.sx - (geometry.sx - 1) * p : 1 + (geometry.sx - 1) * p}, ${entering ? geometry.sy - (geometry.sy - 1) * p : 1 + (geometry.sy - 1) * p})` : '';
+  const appearance = geometry ? { borderRadius: `${geometry.radius * 100}%`, '--a2v-continuity-progress': String(p) } as CSSProperties : {};
   switch (state.relation.kind) {
-    case 'inherit': return { opacity: amount };
-    case 'transform': return { opacity: amount, transform: `scale(${entering ? 0.88 + p * 0.12 : 1 - p * 0.12})` };
+    case 'inherit': return { ...appearance, opacity: amount, ...(geometricTransform ? { transform: geometricTransform } : {}) };
+    case 'transform': return { ...appearance, opacity: amount, transform: `${geometricTransform} scale(${entering ? 0.88 + p * 0.12 : 1 - p * 0.12})`.trim() };
     case 'decompose': {
       if (!entering) return { opacity: amount, transform: `scale(${1 - p * 0.35})` };
       const offset = (index - (state.relation.targetIds.length - 1) / 2) * 28;

@@ -40,10 +40,10 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
   以及主要动效推进了什么理解。判据与正反例见
   [文章生成场景树分镜](article-to-storyboard.md)。
   旧分镜缺这些字段时，普通校验只给兼容警告、预览与渲染照常，`--strict` 才报错。
-- `camera`：启用导演契约时的镜头声明，包含 `shot`、`composition`、`depth`、`focus`、`movement`。其中 `composition`、`depth`、`movement` 按当前帧号推导并作用于画面（构图重心、景深透视与镜头运动），`shot` 与 `focus` 当前只参与校验、评审和契约探针，不改变布局；未声明 `camera` 时不改变任何逐帧行为。
+- `camera`：镜头声明包含 `shot`、`composition`、`depth`、`focus`、`movement`，可增加 `segments`。镜头段 kind 为 `hold` / `push-in` / `pull-out` / `pan` / `reframe` / `settle`，每段在 `beatId` 与 `phase` 中二选一；旧 `movement` 自动解析成含停留与收束的默认计划。
 - `transition`：可选跨幕关系声明。`inherit` / `transform` 使用 `source` + `target`，`decompose` 使用 `source` + 2–6 个 `targets`，`recompose` 使用 2–6 个 `sources` + `target`，`break` 使用 `source`，兼容的 `dissolve` 不建立节点身份；所有类型都必须写非空 `meaning`。第一幕不能声明转场。节点必须分别存在于相邻两幕，`inherit` 只允许同类原语，`transform` 只允许同类或注册表登记的有限类型对；不支持的映射在预览 / 渲染前失败，不会自动猜测或复制节点。
 - `sceneTree`：唯一根节点；节点 `id` 在幕内唯一稳定。
-- `motions`：通过节点 id 绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`。
+- `motions`：通过 `target` 或 `targets`（二选一）绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`；可声明 `phase`、`beatId` 和 `stagger`。错峰支持 `forward` / `reverse` / `center` / `path`，绑定 beat 后不得再写绝对 `startFrame`。
 - `renderer`：可选画面双轨开关，默认 `{ "kind": "tree" }`（走 `sceneTree`）；
   声明 `{ "kind": "code", "module": "<稳定模块标识>" }` 时整幕交给作品的
   `scenes/<module>.tsx` 模块渲染（契约、白名单与确定性纪律见

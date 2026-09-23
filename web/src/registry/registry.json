@@ -1,5 +1,12 @@
 {
-  "$meta": {"purpose": "视觉原语注册表唯一真源", "version": 4},
+  "$meta": {"purpose": "视觉原语注册表唯一真源", "version": 5},
+  "motionRuntime": {
+    "defaultStylePack": "editorial",
+    "stableReadingFrames": 12,
+    "phases": ["establish", "change", "result", "settle"],
+    "stagger": {"minIntervalFrames": 2, "maxIntervalFrames": 12, "defaultIntervalFrames": 4},
+    "cameraIntensity": {"min": 0, "max": 1, "default": 0.5}
+  },
   "actions": ["establish", "connect", "transfer", "accumulate", "deplete", "transform", "compare", "highlight", "loop", "break", "restore"],
   "stylePacks": {"editorial": {"riseDistance": 36, "transitionSpan": 18}, "cinematic": {"riseDistance": 48, "transitionSpan": 24}, "technical": {"riseDistance": 30, "transitionSpan": 12}, "poetic": {"riseDistance": 24, "transitionSpan": 20}},
   "continuityTransforms": [

@@ -177,6 +177,10 @@ composition，体检看到的就是渲染会画出的画面。
 
 ## 语义节拍运行时
 
+场景先解析为不可变动画计划，再按当前帧求值。共享元素的几何来自受控场景树布局，不调用 `getBoundingClientRect`，不栅格化源节点；代码场景通过公开 props 接收 phase、camera 与 continuity 状态，只有显式探针提供稳定几何时才参与节点级连续性，否则如实降级为场景级转场。
+
+Windows 正式渲染固定使用单 Chromium 并发：1080×1920 画布与随仓库字体在多并发下会抬高峰值内存，长片可能被系统关闭并报 `Target closed`。限帧和正式渲染走同一设置，以稳定资源上限换取可预测交付。
+
 声明了 `narrationSegments` 的幕有一条共享时间轴：composition 从
 `resolvedBeats`（有声，由媒体清单派生）或无声等比例解析（`web/src/runtime/beats.ts`
 复刻 Python 的同一套规则）得到逐幕 `BeatTimeline`，再按当前帧算出

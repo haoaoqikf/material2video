@@ -395,13 +395,41 @@ def _validate_directing_scene(scene: dict[str, Any], path: str, report: Report) 
         if not isinstance(camera, dict):
             report.error(f"{path}.camera", "camera 必须是对象")
         else:
-            _reject_unknown(camera, {"shot", "composition", "depth", "focus", "movement"}, f"{path}.camera", report)
+            _reject_unknown(camera, {"shot", "composition", "depth", "focus", "movement", "segments"}, f"{path}.camera", report)
             choices = {"shot": {"macro", "close", "medium", "wide"}, "composition": {"center", "left", "right", "split", "full"}, "depth": {"flat", "layered"}, "movement": {"static", "push-in", "pull-out", "pan-left", "pan-right", "orbit"}}
             for key, allowed in choices.items():
                 if camera.get(key) not in allowed:
                     report.error(f"{path}.camera.{key}", f"必须是 {'/'.join(sorted(allowed))} 之一")
             if not isinstance(camera.get("focus"), str) or not _SCENE_ID_RE.match(camera.get("focus", "")):
                 report.error(f"{path}.camera.focus", "必须是节点 id")
+            segments = camera.get("segments")
+            if segments is not None:
+                if not isinstance(segments, list) or not segments:
+                    report.error(f"{path}.camera.segments", "segments 必须是非空数组")
+                else:
+                    beat_ids = {item.get("id") for item in scene.get("beats", []) if isinstance(item, dict)}
+                    node_ids = set(_scene_node_types(scene.get("sceneTree")))
+                    for index, segment in enumerate(segments):
+                        segment_path = f"{path}.camera.segments[{index}]"
+                        if not isinstance(segment, dict):
+                            report.error(segment_path, "镜头段必须是对象"); continue
+                        _reject_unknown(segment, {"kind", "beatId", "phase", "focus", "direction", "intensity"}, segment_path, report)
+                        if segment.get("kind") not in {"hold", "push-in", "pull-out", "pan", "reframe", "settle"}:
+                            report.error(f"{segment_path}.kind", "必须是 hold/push-in/pull-out/pan/reframe/settle 之一")
+                        if ("beatId" in segment) == ("phase" in segment):
+                            report.error(f"{segment_path}.beatId", "beatId 与 phase 必须二选一")
+                        if "beatId" in segment and segment.get("beatId") not in beat_ids:
+                            report.error(f"{segment_path}.beatId", f"镜头段引用了不存在的 beat {segment.get('beatId')!r}")
+                        if "phase" in segment and segment.get("phase") not in {"establish", "change", "result", "settle"}:
+                            report.error(f"{segment_path}.phase", "未知动画阶段")
+                        focus = segment.get("focus", camera.get("focus"))
+                        if node_ids and focus not in node_ids:
+                            report.error(f"{segment_path}.focus", f"镜头焦点 {focus!r} 不存在")
+                        if segment.get("kind") == "pan" and segment.get("direction") not in {"left", "right", "up", "down"}:
+                            report.error(f"{segment_path}.direction", "pan 必须声明 left/right/up/down")
+                        intensity = segment.get("intensity", 0.5)
+                        if not isinstance(intensity, (int, float)) or isinstance(intensity, bool) or not 0 <= intensity <= 1:
+                            report.error(f"{segment_path}.intensity", "intensity 必须在 0..1")
     transition = scene.get("transition")
     if transition is not None:
         if not isinstance(transition, dict):
@@ -754,19 +782,47 @@ def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, An
         if not isinstance(motion, dict):
             report.error(item_path, "动效必须是对象")
             continue
-        _reject_unknown(motion, {"target", "recipe", "startFrame", "durationFrames"}, item_path, report)
-        target, recipe = motion.get("target"), motion.get("recipe")
-        if target not in ids:
-            report.error(f"{item_path}.target", f"动效目标 {target!r} 不存在")
+        _reject_unknown(motion, {"target", "targets", "recipe", "phase", "beatId", "stagger", "startFrame", "durationFrames"}, item_path, report)
+        target, targets, recipe = motion.get("target"), motion.get("targets"), motion.get("recipe")
+        if (target is None) == (targets is None):
+            report.error(f"{item_path}.target", "target 与 targets 必须二选一")
+        target_list = targets if isinstance(targets, list) else [target] if isinstance(target, str) else []
+        for position, target_id in enumerate(target_list):
+            target_path = f"{item_path}.targets[{position}]" if targets is not None else f"{item_path}.target"
+            if target_id not in ids:
+                report.error(target_path, f"动效目标 {target_id!r} 不存在")
         if recipe not in _MOTION_RECIPES:
             report.error(f"{item_path}.recipe", f"未知动效配方 {recipe!r}")
-        elif target in ids:
-            entry = catalog.primitive(types.get(target, ""))
-            if entry is not None and recipe not in entry.motions:
-                report.error(
-                    f"{item_path}.recipe",
-                    f"原语 {types.get(target)} 不支持动效 {recipe!r}（允许：{'、'.join(sorted(entry.motions))}）",
-                )
+        else:
+            for target_id in target_list:
+                entry = catalog.primitive(types.get(target_id, ""))
+                if target_id in ids and entry is not None and recipe not in entry.motions:
+                    report.error(
+                        f"{item_path}.recipe",
+                        f"原语 {types.get(target_id)} 不支持动效 {recipe!r}（允许：{'、'.join(sorted(entry.motions))}）",
+                    )
+        phase = motion.get("phase")
+        if phase is not None and phase not in {"establish", "change", "result", "settle"}:
+            report.error(f"{item_path}.phase", "未知动画阶段")
+        beat_id = motion.get("beatId")
+        beat_ids = {item.get("id") for item in scene.get("beats", []) if isinstance(item, dict)}
+        if beat_id is not None and beat_id not in beat_ids:
+            report.error(f"{item_path}.beatId", f"动效引用了不存在的 beat {beat_id!r}")
+        if beat_id is not None and "startFrame" in motion:
+            report.error(f"{item_path}.startFrame", "绑定 beatId 后不能声明绝对 startFrame")
+        stagger = motion.get("stagger")
+        if stagger is not None:
+            if not isinstance(targets, list): report.error(f"{item_path}.stagger", "stagger 只适用于 targets 节点组")
+            if not isinstance(stagger, dict): report.error(f"{item_path}.stagger", "stagger 必须是对象")
+            else:
+                _reject_unknown(stagger, {"kind", "intervalFrames", "path"}, f"{item_path}.stagger", report)
+                kind = stagger.get("kind")
+                if kind not in {"forward", "reverse", "center", "path"}: report.error(f"{item_path}.stagger.kind", "未知错峰策略")
+                interval = stagger.get("intervalFrames", 4)
+                if not isinstance(interval, int) or isinstance(interval, bool) or not 2 <= interval <= 12: report.error(f"{item_path}.stagger.intervalFrames", "必须是 2..12 的整数")
+                path_value = stagger.get("path")
+                if kind == "path" and (not isinstance(path_value, list) or len(path_value) < 2 or any(item not in target_list for item in path_value)): report.error(f"{item_path}.stagger.path", "路径传播必须声明覆盖目标的有效 path")
+                if kind != "path" and "path" in stagger: report.error(f"{item_path}.stagger.path", "只有路径传播可以声明 path")
         start = motion.get("startFrame", 0); length = motion.get("durationFrames", 1)
         if not isinstance(start, int) or isinstance(start, bool) or start < 0:
             report.error(f"{item_path}.startFrame", "startFrame 必须是非负整数")
