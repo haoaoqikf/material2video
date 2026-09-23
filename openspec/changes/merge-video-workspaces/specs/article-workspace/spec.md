@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### Requirement: 作品产物归属文章目录
+### Requirement: 产物归属作品目录
 
 默认产物 MUST 位于对应作品目录下的 `outputs/` 子目录，而不是工作区根下的独立产物树。
 
