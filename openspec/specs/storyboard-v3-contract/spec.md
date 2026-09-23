@@ -1,6 +1,9 @@
-# 分镜 v3 契约
+# storyboard-v3-contract Specification
 
-## ADDED Requirements
+## Purpose
+定义唯一可执行的分镜 v3 契约，使校验、预览、评审、媒体准备与渲染对导演结构、语义节拍时间轴和失败条件保持一致。
+
+## Requirements
 
 ### Requirement: 所有分镜执行入口仅接受完整 v3 契约
 分镜校验、预览、评审、配音准备及渲染 SHALL 只接受 `version: 3` 和 `schemaVersion: 3`。输入版本缺失或小于 3 时 SHALL 在处理前失败，并明确报告“不支持 v3 之前分镜”。根对象 SHALL 要求 `directingVersion: 1`、完整 `directingBrief`、完整 `visualDirection` 及 `visual.preset: "keynote"`。系统 SHALL 不提供迁移命令、legacy 开关或运行时回退。
