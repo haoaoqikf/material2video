@@ -289,13 +289,17 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py \
 | 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
 | --- | --- | --- | --- |
 | `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
+| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 3572 帧（119.1 秒） | `outputs/compound-interest-leverage/voiced.mp4` + `.srt` |
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
-两支文章均已随场景树架构更新为 v2 分镜；`examples/` 另有五支不同构图策略的
+三支文章均已随场景树架构更新为 v2 分镜；`examples/` 另有五支不同构图策略的
 v2 示例可作为起点，其中
 [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
 是分段口播与语义节拍的端到端参照。
+《复利，才是普通人最强的杠杆》另附一份作品网页
+（`videos/compound-interest-leverage/index.html`，不入库），把正文、成片、章节跳转与
+口播全文放在同一页里互相对应。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；
