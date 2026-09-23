@@ -134,7 +134,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （8 幕，设计语言基线）、[`examples/declarative-number/`](examples/declarative-number/storyboard.json)、
   [`examples/code-scenes/`](examples/code-scenes/storyboard.json)
   （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG）；
-- edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
+- edge-tts 中文自动配音、逐句字幕与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `videos/<slug>/outputs/`，
   示例产物独立在 `videos/examples/<slug>/outputs/`；`--out` 与 `--out-dir` 可省略，
@@ -249,7 +249,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 默认音色 `zh-CN-XiaoxiaoNeural`、语速 `+0%`；可用 `--voice`、`--rate=-10%` 调整，
 `--force` 强制重新合成。首次合成需要联网，无需 API key；已有缓存可离线重新准备与导出。
-输出 MP4 内含字幕和 AAC 配音，同时生成同名 SRT。背景音乐尚未实现。
+输出 MP4 含 AAC 配音并生成同名 SRT；字幕由共享页面层绘制（作品网页按媒体清单的
+`cues` 叠字幕），Remotion 成片路径**不把字幕烧录进画面**。背景音乐尚未实现。
 
 原分镜不被覆盖；原场景时长作为最短时长，配音较长时自动延长并留 300ms 收尾。
 声明了分段口播的幕还会在媒体清单里得到逐幕 `resolvedBeats`——画面、字幕与配音共用
@@ -290,7 +291,7 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py \
 | 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
 | --- | --- | --- | --- |
 | `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `videos/never-fear-interviews/outputs/voiced.mp4` + `.srt` |
-| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 3572 帧（119.1 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
+| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 2721 帧（90.7 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `videos/examples/why-effort-fails/outputs/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
@@ -300,7 +301,8 @@ v2 示例可作为起点，其中
 是分段口播与语义节拍的端到端参照。
 《复利，才是普通人最强的杠杆》另附一份作品网页
 （`videos/compound-interest-leverage/index.html`，不入库），把正文、成片、章节跳转与
-口播全文放在同一页里互相对应。
+口播全文放在同一页里互相对应：章节按钮按媒体清单的幕边界跳转，字幕由页面按同一份
+`cues` 叠在成片上（成片本身不含字幕），口播全文与画面逐幕对齐。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；
