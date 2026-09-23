@@ -36,6 +36,8 @@
 - **WHEN** `--storyboard` 属于一篇文章，而 `--media` 指向另一篇文章的媒体目录
 - **THEN** 命令报错并拒绝合成
 
+## ADDED Requirements
+
 ### Requirement: 迁移保护
 
 迁移已有产物时 MUST NOT 覆盖目标中的同名文件。
