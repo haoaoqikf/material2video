@@ -239,8 +239,48 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
                 "scenes",
                 f"总时长约 {seconds:.0f} 秒，超过竖屏短视频的常见上限，请确认是有意为之",
             )
+    _validate_continuity(data.get("scenes"), report)
     _validate_visual_narrative(data, report, strict=strict)
     return report
+
+
+def _validate_continuity(scenes: Any, report: Report) -> None:
+    """校验显式跨幕关系；不根据相似节点自动推断连续性。"""
+    if not isinstance(scenes, list):
+        return
+    for index, scene in enumerate(scenes):
+        if index == 0 or not isinstance(scene, dict) or not scene.get("transition"):
+            continue
+        transition = scene["transition"]
+        path = f"scenes[{index}].transition"
+        if not isinstance(transition, dict):
+            continue
+        previous = scenes[index - 1] if isinstance(scenes[index - 1], dict) else {}
+        previous_ids = _tree_node_ids(previous.get("sceneTree"))
+        current_ids = _tree_node_ids(scene.get("sceneTree"))
+        source = transition.get("source")
+        target = transition.get("target")
+        if transition.get("kind") in {"inherit", "transform"} and not source:
+            report.error(f"{path}.source", "inherit/transform 转场必须声明上一幕 source 节点")
+        if transition.get("kind") in {"inherit", "transform"} and not target:
+            report.error(f"{path}.target", "inherit/transform 转场必须声明本幕 target 节点")
+        if source and source not in previous_ids:
+            report.error(f"{path}.source", f"source 节点 {source} 不存在于上一幕 {previous.get('id')}")
+        if target and target not in current_ids:
+            report.error(f"{path}.target", f"target 节点 {target} 不存在于当前幕 {scene.get('id')}")
+
+
+def _tree_node_ids(tree: Any) -> set[str]:
+    ids: set[str] = set()
+    def walk(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        if isinstance(node.get("id"), str):
+            ids.add(node["id"])
+        for child in node.get("children") or []:
+            walk(child)
+    walk(tree)
+    return ids
 
 
 def _validate_visual_narrative(data: dict[str, Any], report: Report, *, strict: bool) -> None:

@@ -7,6 +7,7 @@ import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
 import { beatStateAt, beatTimeline } from '@/runtime/beats';
 import { cameraStyle } from '@/runtime/camera';
 import { transitionStyle } from '@/runtime/transition';
+import { continuityFor } from '@/runtime/continuity';
 
 export type A2VProps = Storyboard;
 
@@ -48,7 +49,11 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
       const isCode = scene.renderer?.kind === 'code';
       const timeline = timelines[index]!;
       const beats = { timeline, state: beatStateAt(timeline, localFrame) };
+      const continuity = continuityFor(storyboard, index);
       return <section key={scene.id} data-a2v-scene="" data-scene-id={scene.id} data-layout={scene.visualIntent.composition}
+        data-a2v-continuity-kind={continuity?.kind ?? ''}
+        data-a2v-continuity-source={continuity?.source ?? ''}
+        data-a2v-continuity-target={continuity?.target ?? ''}
         // 节拍状态同时写到 DOM：契约探针（A 系列闸门）量的是页面上的真实值，
         // 而不是再算一遍分镜——两处算法不同就会出现「报告说通过、画面不同步」。
         data-a2v-beat-current={beats.state.current ?? ''}

@@ -34,3 +34,13 @@ def test_directing_contract_accepts_camera_transition_and_beat_states(valid_scri
     first["transition"] = {"kind": "transform", "meaning": "把开场文字转为下一幕的路径"}
     report = storyboard.validate(valid_script)
     assert report.ok
+
+def test_transition_rejects_missing_cross_scene_nodes(valid_script):
+    valid_script["scenes"].append({
+        **valid_script["scenes"][0],
+        "id": "next",
+        "transition": {"kind": "transform", "source": "missing", "target": "missing", "meaning": "连续变化"},
+    })
+    report = storyboard.validate(valid_script)
+    assert not report.ok
+    assert any("source 节点 missing" in item.message for item in report.errors)
