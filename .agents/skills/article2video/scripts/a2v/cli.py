@@ -197,6 +197,10 @@ def main_render(argv: list[str] | None = None) -> int:
 
     try:
         article = _article_for(args, required=True)
+        gate_error = _aesthetic_render_gate(args.storyboard, model, article)
+        if gate_error:
+            logging.error("渲染前审美门禁：%s", gate_error)
+            return _EXIT_INVALID_INPUT
         # 契约页总是从查询参数读分镜（它就是为「一个页面服务任意作品」设计的）
         source_url = (
             _storyboard_url(args.storyboard, article) if article is not None else None
@@ -229,6 +233,33 @@ def main_render(argv: list[str] | None = None) -> int:
 
     print(result.summary())
     return _EXIT_OK
+
+
+def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None) -> str | None:
+    """导演契约作品必须先有通过的审美体检；旧作品维持兼容。"""
+    raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    if raw.get("directingVersion") != 1:
+        return None
+    if article is None:
+        return "无法定位作品输出目录，请提供有效内容根"
+    report_path = article.output_dir / "inspect" / "report.json"
+    review_path = article.output_dir / "inspect" / "review.md"
+    if not report_path.is_file():
+        return f"缺少 {report_path}，请先运行 review.py"
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return f"无法读取 {report_path}: {exc}"
+    aesthetic = report.get("aestheticReview") or {}
+    failures = [item for item in aesthetic.get("findings") or [] if item.get("status") == "fail"]
+    if failures:
+        return "；".join(str(item.get("detail") or item.get("rule")) for item in failures)
+    if not review_path.is_file():
+        return "缺少 review.md 人工审美结论"
+    review = review_path.read_text(encoding="utf-8")
+    if "- 是否值得发布：通过" not in review:
+        return "review.md 尚未填写“是否值得发布：通过”"
+    return None
 
 
 def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | None:

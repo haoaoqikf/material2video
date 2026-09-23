@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 from a2v import cli
 from a2v.render import _last_int
@@ -31,6 +32,18 @@ class TestValidateCommand:
         assert payload["ok"] is True
         assert payload["summary"]["totalFrames"] == 90
         assert payload["summary"]["sceneCount"] == 2
+
+    def test_directing_render_gate_requires_review_publish_conclusion(self, tmp_path, valid_script):
+        valid_script["directingVersion"] = 1
+        storyboard = tmp_path / "storyboard.json"
+        storyboard.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        inspect_dir = tmp_path / "inspect"
+        inspect_dir.mkdir()
+        (inspect_dir / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
+        (inspect_dir / "review.md").write_text("- 是否值得发布：待评审\n", encoding="utf-8")
+        model = SimpleNamespace()
+        article = SimpleNamespace(output_dir=tmp_path)
+        assert "尚未填写" in cli._aesthetic_render_gate(storyboard, model, article)
 
     def test_json_output_lists_errors(self, tmp_path, valid_script, capsys):
         valid_script["scenes"][0]["durationInFrames"] = 0
@@ -61,4 +74,3 @@ class TestFfmpegStatsParsing:
 
     def test_returns_none_when_absent(self):
         assert _last_int("no stats here", "frame=") is None
-
