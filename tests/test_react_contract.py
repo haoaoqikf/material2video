@@ -130,6 +130,19 @@ def test_every_scene_stays_in_the_dom_with_exactly_one_visible(opened):
         assert state["ids"] == ["count", "closing"]
 
 
+def test_scene_index_does_not_render_scene_numbers(opened):
+    """发布会预设保留作者角标，但不再渲染「01 / 10」幕序号。"""
+    opened.seek(0)
+    state = opened.evaluate(
+        "() => ({"
+        "indexCount: document.querySelectorAll('.a2v-scene-number').length,"
+        "indexText: [...document.querySelectorAll('.a2v-scene-index')].map((el) => el.textContent)"
+        "})"
+    )
+    assert state["indexCount"] == 0, state
+    assert all("/" not in text for text in state["indexText"]), state
+
+
 def test_scene_zero_has_no_entrance_but_frame_zero_is_readable(opened):
     """第 0 帧必须能读到内容：契约页的 `ready()` 承诺首帧已经画出来了。"""
     opened.seek(0)

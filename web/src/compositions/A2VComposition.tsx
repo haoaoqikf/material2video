@@ -70,7 +70,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
             <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} />
           )}
         </div>
-        {preset ? <div className="a2v-scene-index"><span>{scene.visual?.kicker ?? ''}</span><span className="a2v-scene-number">{String(index + 1).padStart(2, '0')} / {String(storyboard.scenes.length).padStart(2, '0')}</span></div> : null}
+        {preset ? <div className="a2v-scene-index"><span>{scene.visual?.kicker ?? ''}</span></div> : null}
       </section>;
     })}
   </div></AbsoluteFill>;

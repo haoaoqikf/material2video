@@ -179,7 +179,7 @@
     0 0 2px rgba(255, 255, 255, 0.9);
 }
 
-/* 幕角标：只放「场景类型 / 幕号」，给画面一个稳定的锚点。
+/* 幕角标：只放作者声明的定位词，给画面一个稳定的锚点。
  * 位置必须落在安全区**以内**：基线的默认顶部安全区是 220px，
  * 角标贴着它下沿放，既不会顶到画面边缘，也不会被平台的状态栏盖住。 */
 [data-a2v-preset="keynote"] .a2v-scene-index {
@@ -196,12 +196,6 @@
   letter-spacing: var(--a2v-tracking-label);
   text-transform: uppercase;
   color: var(--a2v-ink-3);
-}
-
-[data-a2v-preset="keynote"] .a2v-scene-index .a2v-scene-number {
-  font-family: var(--a2v-font-latin);
-  font-variant-numeric: tabular-nums;
-  color: var(--a2v-ink-2);
 }
 
 /* 焦点线：一条 4px 的强调竖线，用于把视线钉在结论上。
