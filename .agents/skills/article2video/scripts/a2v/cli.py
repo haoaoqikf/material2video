@@ -687,6 +687,7 @@ def main_review(argv: list[str] | None = None) -> int:
         return _EXIT_FAILED
 
     out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args, article)
+    _ensure_aesthetic_review_template(out_dir)
     # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭。
     #
     # React 路径上它暂时不适用：画面由 composition 源码决定，契约页的 HTML 里
@@ -796,6 +797,45 @@ def main_review(argv: list[str] | None = None) -> int:
         print(issue.format(), file=sys.stderr)
     print(_review_summary(payload, out_dir))
     return _EXIT_OK if combined.ok else _EXIT_INVALID_INPUT
+
+
+def _ensure_aesthetic_review_template(out_dir: Path) -> None:
+    """首次体检生成审美评审模板，已有人工结论绝不覆盖。"""
+    target = out_dir / "review.md"
+    if target.exists():
+        return
+    out_dir.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        """# 视觉评审
+
+> 本文件由 review.py 首次运行生成。请保留机检结果，并补齐人工裁决；再次运行不会覆盖本文件。
+
+## 审美检查
+
+| 维度 | 评分（1-5） | 依据 |
+|---|---:|---|
+| 核心论点清晰 |  |  |
+| 图形承担论证 |  |  |
+| 主次层级 |  |  |
+| 跨幕变化 |  |  |
+| 动效服务理解 |  |  |
+| 视觉记忆点 |  |  |
+| 结尾余韵 |  |  |
+
+## 候选裁决
+
+<!-- 按 report.json 中的 V5 候选逐条填写：- scene-id：通过 / 必改，理由…… -->
+
+## A6 候选裁决
+
+<!-- 按 report.json 中的 A6 候选逐条填写：- recipe / scene-id：通过 / 删除，理由…… -->
+
+## 发布结论
+
+- 是否值得发布：待评审
+""",
+        encoding="utf-8",
+    )
 
 
 def _determinism_acceptance(page: Any, scenes: list[dict]) -> list:
