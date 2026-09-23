@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Scene, SceneNode } from '@/schema/storyboard';
+import { stylePackDefinition } from '@/registry';
 import { EMPTY_BEAT_CONTEXT, nodeBeatState, type BeatContext, type BeatTimeline, type NodeBeatState } from '@/runtime/beats';
 import { IconGlyph } from './iconSet';
 
@@ -52,7 +53,7 @@ export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTra
   const progress = Math.min(1, Math.max(0, (frame - motion.startFrame) / duration));
   const eased = 1 - (1 - progress) ** 3;
   const common: CSSProperties = { opacity: eased };
-  const riseDistance = stylePack === 'cinematic' ? 48 : stylePack === 'poetic' ? 24 : 36;
+  const riseDistance = stylePackDefinition(stylePack).riseDistance;
   if (motion.recipe === 'rise') return { ...common, transform: `${baseTransform} translateY(${(1 - eased) * riseDistance}px)`.trim() };
   if (motion.recipe === 'reveal') return baseTransform ? { ...common, transform: baseTransform, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` } : { ...common, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` };
   if (motion.recipe === 'draw') return { ...common, transform: `${baseTransform} scaleX(${eased})`.trim(), transformOrigin: 'left center' };

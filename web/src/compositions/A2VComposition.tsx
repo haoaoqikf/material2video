@@ -61,7 +61,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         data-a2v-beat-progress={beats.state.progress.toFixed(4)}
         data-a2v-beat-completed={beats.state.completed.join(',')}
         data-a2v-beat-estimated={beats.state.estimated ? '1' : '0'}
-        style={active ? transitionStyle(scene, localFrame) : { display: 'none' }}>
+        style={active ? transitionStyle(scene, localFrame, stylePack) : { display: 'none' }}>
         {/* code 场景同样置于安全区内；它不经过场景树排版与取档逻辑 */}
         <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version={storyboard.schemaVersion}>
           <div className="a2v-camera" style={cameraStyle(scene, localFrame)} data-a2v-camera={scene.camera?.movement ?? 'none'}>

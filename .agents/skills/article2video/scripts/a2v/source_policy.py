@@ -82,6 +82,10 @@ def scan(web: Path, build_inputs: list[Path]) -> list[Violation]:
                 violations.append(_violation(path, text, match.start(), rule))
         if path not in allowed_css:
             for match in _CSS_MOTION.finditer(text):
+                # TypeScript schema 属性名（例如 `transition: transitionSchema.optional()`）
+                # 不是 CSS 声明，不能被源码策略误判为浏览器过渡。
+                if match.group(2) and ("Schema" in match.group(2) or ".optional(" in match.group(2)):
+                    continue
                 if match.group(3):
                     violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
                     continue

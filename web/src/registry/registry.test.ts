@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { knownPrimitiveTypes, primitiveDefinition, PRIMITIVES } from '@/registry';
+import { knownPrimitiveTypes, primitiveDefinition, PRIMITIVES, STYLE_PACKS } from '@/registry';
 
 describe('视觉原语注册表', () => {
+  it('为每种风格包登记确定性的动效配方', () => {
+    expect(Object.keys(STYLE_PACKS).sort()).toEqual(['cinematic', 'editorial', 'poetic', 'technical']);
+    for (const recipe of Object.values(STYLE_PACKS)) {
+      expect(recipe.riseDistance).toBeGreaterThan(0);
+      expect(recipe.transitionSpan).toBeGreaterThan(0);
+    }
+  });
   it('覆盖首批三类原语且类型唯一', () => {
     expect(knownPrimitiveTypes()).toContain('stack');
     expect(knownPrimitiveTypes()).toContain('text');
