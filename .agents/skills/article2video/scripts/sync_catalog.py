@@ -54,7 +54,12 @@ def _icons(registry: dict[str, Any]) -> str:
 
 
 def _catalog(registry: dict[str, Any]) -> str:
-    lines = [_vocabulary(registry), _icons(registry), "", "PRIMITIVE_CATALOG: dict[str, Primitive] = {"]
+    transforms = tuple(tuple(pair) for pair in registry["continuityTransforms"])
+    continuity = "\n".join([
+        "#: 注册表允许的有限跨幕原语变形；同类原语始终允许。",
+        f"CONTINUITY_TRANSFORMS: frozenset[tuple[str, str]] = frozenset({transforms!r})",
+    ])
+    lines = [_vocabulary(registry), _icons(registry), continuity, "", "PRIMITIVE_CATALOG: dict[str, Primitive] = {"]
     for entry in sorted(registry["primitives"], key=lambda item: item["type"]):
         lines += [f"    {entry['type']!r}: Primitive(", f"        type={entry['type']!r},", f"        category={entry['category']!r},", f"        children=({entry['children'][0]}, {entry['children'][1]}),", f"        props=frozenset({entry['props']!r}),", f"        motions=frozenset({entry['motions']!r}),", f"        actions=frozenset({entry['actions']!r}),", f"        summary={entry['summary']!r},", "    ),"]
     return "\n".join(lines + ["}"])
@@ -89,6 +94,8 @@ def _types(registry: dict[str, Any]) -> str:
         "export type IconName = (typeof ICON_NAMES)[number];\n"
         "export const PRIMITIVE_TYPES = [" + ", ".join(repr(kind) for kind in kinds) + "] as const;\n"
         "export type PrimitiveType = (typeof PRIMITIVE_TYPES)[number];\n"
+        "/** 注册表允许的有限跨幕原语变形；同类原语始终允许。 */\n"
+        "export const CONTINUITY_TRANSFORMS = " + repr(registry["continuityTransforms"]).replace("'", '"') + " as const;\n"
         "/** 每个原语允许声明的属性（结构性字段 id/type/children 不在此列）。 */\n"
         "export const PRIMITIVE_PROPS: Readonly<Record<string, readonly string[]>> = {\n" + mapping("props") + ",\n};\n"
         "/** 每个原语允许绑定的动效配方。 */\n"

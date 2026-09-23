@@ -25,3 +25,14 @@ def test_directing_review_reports_adjacent_reuse():
     }
     result = aesthetic_review.analyze(storyboard)
     assert any(item["rule"] == "adjacent-shot-reuse" for item in result["findings"])
+
+
+def test_directing_review_includes_explicit_continuity_summary():
+    storyboard = {
+        "scenes": [
+            {"id": "whole", "visualIntent": {}},
+            {"id": "parts", "visualIntent": {}, "transition": {"kind": "decompose", "source": "whole", "targets": ["a", "b"], "meaning": "拆解"}},
+        ],
+    }
+    result = aesthetic_review.analyze(storyboard)
+    assert result["continuity"] == [{"from": "whole", "to": "parts", "kind": "decompose", "sources": ["whole"], "targets": ["a", "b"], "meaning": "拆解"}]

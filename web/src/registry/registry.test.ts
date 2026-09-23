@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { knownPrimitiveTypes, primitiveDefinition, PRIMITIVES, STYLE_PACKS } from '@/registry';
+import { knownPrimitiveTypes, primitiveDefinition, PRIMITIVES, STYLE_PACKS, supportsContinuityTransform } from '@/registry';
 
 describe('视觉原语注册表', () => {
   it('为每种风格包登记确定性的动效配方', () => {
@@ -8,6 +8,11 @@ describe('视觉原语注册表', () => {
       expect(recipe.riseDistance).toBeGreaterThan(0);
       expect(recipe.transitionSpan).toBeGreaterThan(0);
     }
+  });
+  it('只允许同类或登记过的跨幕原语变形', () => {
+    expect(supportsContinuityTransform('shape', 'shape')).toBe(true);
+    expect(supportsContinuityTransform('flow', 'cycle')).toBe(true);
+    expect(supportsContinuityTransform('text', 'image')).toBe(false);
   });
   it('覆盖首批三类原语且类型唯一', () => {
     expect(knownPrimitiveTypes()).toContain('stack');

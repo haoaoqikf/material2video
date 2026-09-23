@@ -36,7 +36,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （按节点 id 绑定的具名动效）。
   结构与约束见
   [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
-- **导演层与审美闭环（进行中）**：可选 `directingVersion: 1` / `directingBrief` 声明核心命题、情绪曲线、视觉母题与风格包；场景可声明 `camera`、`transition` 和 beat 状态字段。运行时已支持受控镜头运动、根级转场、风格令牌、联系表与审美预检；跨幕节点的真实变形、完整风格包和全部示例迁移仍在 OpenSpec 变更 `elevate-animation-aesthetics` 中实施。
+- **导演层与审美闭环**：可选 `directingVersion: 1` / `directingBrief` 声明核心命题、情绪曲线、视觉母题与风格包；场景可声明 `camera`、`transition` 和 beat 状态字段。运行时已支持受控镜头运动、显式跨幕继承 / 有限变形 / 拆解 / 重组 / 断裂、注册表风格配方、联系表、审美预检与渲染前门禁；旧分镜未启用时保持原行为。
 - **分段口播与语义节拍**：新作品用 `narrationSegments`（每段 `{id, text, beatId}`）
   取代字符串 `narration`（二者互斥），并用 `beats`（`{id, action, targets, meaning}`）
   声明这一步推理在画面上如何发生。动作取自 11 个受控动词（`establish` / `connect` /

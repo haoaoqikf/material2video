@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ICON_NAMES, PRIMITIVE_ACTIONS, PRIMITIVE_MOTIONS, PRIMITIVE_PROPS, PRIMITIVE_TYPES, SEMANTIC_ACTIONS, type IconName } from './primitiveTypes';
+import { supportsContinuityTransform } from '@/registry';
 
 export const STORYBOARD_VERSION = 2;
 const nonEmptyText = z.string().trim().min(1);
@@ -68,7 +69,12 @@ export const motionSchema = z.object({ target: nodeId, recipe: motionRecipeSchem
 export const directingVersionSchema = z.literal(1);
 export const directingBriefSchema = z.object({ thesis: nonEmptyText, audienceShift: nonEmptyText, emotionalArc: z.array(nonEmptyText).min(2), visualMotif: nonEmptyText, stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']), avoid: z.array(nonEmptyText).default([]) }).strict();
 export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, movement: z.enum(['static', 'push-in', 'pull-out', 'pan-left', 'pan-right', 'orbit']) }).strict();
-export const transitionSchema = z.object({ kind: z.enum(['inherit', 'transform', 'dissolve', 'break']), source: nodeId.optional(), target: nodeId.optional(), meaning: nonEmptyText }).strict();
+export const transitionSchema = z.object({
+  kind: z.enum(['inherit', 'transform', 'decompose', 'recompose', 'dissolve', 'break']),
+  source: nodeId.optional(), target: nodeId.optional(),
+  sources: z.array(nodeId).min(2).max(6).optional(), targets: z.array(nodeId).min(2).max(6).optional(),
+  meaning: nonEmptyText,
+}).strict();
 
 /* ------------------------------------------------------------------ */
 /* 语义节拍（beats）与分段口播                                          */
@@ -263,7 +269,66 @@ export const storyboardSchema = z.object({
   if (storyboard.directingVersion === 1 && !storyboard.directingBrief) {
     ctx.addIssue({ code: 'custom', path: ['directingBrief'], message: 'directingVersion=1 必须同时提供 directingBrief' });
   }
+  validateContinuity(storyboard, ctx);
 });
+
+function nodeTypes(scene: Scene): Map<string, string> {
+  const result = new Map<string, string>();
+  const walk = (node?: SceneNode): void => { if (!node) return; result.set(node.id, node.type); node.children?.forEach(walk); };
+  walk(scene.sceneTree);
+  return result;
+}
+
+/** 跨幕映射只接受显式节点和注册表声明的有限变形，不做相似度猜测。 */
+function validateContinuity(storyboard: { scenes: Scene[] }, ctx: z.RefinementCtx): void {
+  storyboard.scenes.forEach((scene, index) => {
+    const transition = scene.transition;
+    if (!transition) return;
+    const path = ['scenes', index, 'transition'] as (string | number)[];
+    if (index === 0) { ctx.addIssue({ code: 'custom', path, message: '第一幕不能声明跨幕 transition' }); return; }
+    const previousTypes = nodeTypes(storyboard.scenes[index - 1]!);
+    const currentTypes = nodeTypes(scene);
+    const requireNode = (field: 'source' | 'target', value: string | undefined, types: Map<string, string>, owner: string): string | undefined => {
+      if (!value) { ctx.addIssue({ code: 'custom', path: [...path, field], message: `${transition.kind} 转场必须声明 ${field}` }); return undefined; }
+      const type = types.get(value);
+      if (!type) ctx.addIssue({ code: 'custom', path: [...path, field], message: `${field} 节点 ${value} 不存在于${owner}` });
+      return type;
+    };
+    const requireNodes = (field: 'sources' | 'targets', values: string[] | undefined, types: Map<string, string>, owner: string): string[] => {
+      if (!values) { ctx.addIssue({ code: 'custom', path: [...path, field], message: `${transition.kind} 转场必须声明至少两个 ${field}` }); return []; }
+      if (new Set(values).size !== values.length) ctx.addIssue({ code: 'custom', path: [...path, field], message: `${field} 不能包含重复节点` });
+      values.forEach((value, position) => { if (!types.has(value)) ctx.addIssue({ code: 'custom', path: [...path, field, position], message: `${field} 节点 ${value} 不存在于${owner}` }); });
+      return values;
+    };
+    const rejectFields = (...fields: Array<'source' | 'target' | 'sources' | 'targets'>): void => {
+      fields.forEach((field) => { if (transition[field] !== undefined) ctx.addIssue({ code: 'custom', path: [...path, field], message: `${transition.kind} 转场不接受 ${field}` }); });
+    };
+    if (transition.kind === 'inherit' || transition.kind === 'transform') {
+      rejectFields('sources', 'targets');
+      const sourceType = requireNode('source', transition.source, previousTypes, '上一幕');
+      const targetType = requireNode('target', transition.target, currentTypes, '当前幕');
+      if (sourceType && targetType && transition.kind === 'inherit' && sourceType !== targetType) {
+        ctx.addIssue({ code: 'custom', path: [...path, 'target'], message: `inherit 只能继承同类原语（${sourceType} → ${targetType}）` });
+      }
+      if (sourceType && targetType && transition.kind === 'transform' && !supportsContinuityTransform(sourceType, targetType)) {
+        ctx.addIssue({ code: 'custom', path: [...path, 'target'], message: `未登记的跨幕变形 ${sourceType} → ${targetType}` });
+      }
+    } else if (transition.kind === 'decompose') {
+      rejectFields('target', 'sources');
+      requireNode('source', transition.source, previousTypes, '上一幕');
+      requireNodes('targets', transition.targets, currentTypes, '当前幕');
+    } else if (transition.kind === 'recompose') {
+      rejectFields('source', 'targets');
+      requireNodes('sources', transition.sources, previousTypes, '上一幕');
+      requireNode('target', transition.target, currentTypes, '当前幕');
+    } else if (transition.kind === 'break') {
+      rejectFields('target', 'sources', 'targets');
+      requireNode('source', transition.source, previousTypes, '上一幕');
+    } else if (transition.kind === 'dissolve') {
+      rejectFields('source', 'target', 'sources', 'targets');
+    }
+  });
+}
 export type Storyboard = z.infer<typeof storyboardSchema>;
 export type StoryboardInput = z.input<typeof storyboardSchema>;
 export function parseStoryboard(input: unknown): Storyboard {

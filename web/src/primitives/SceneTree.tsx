@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode }
 import type { Scene, SceneNode } from '@/schema/storyboard';
 import { stylePackDefinition } from '@/registry';
 import { EMPTY_BEAT_CONTEXT, nodeBeatState, type BeatContext, type BeatTimeline, type NodeBeatState } from '@/runtime/beats';
+import { continuityNodeStyle, continuityVisibleIds, type ContinuityRenderState } from '@/runtime/continuity';
 import { IconGlyph } from './iconSet';
 
 const GAP = { none: 0, xs: 8, sm: 16, md: 28, lg: 44, xl: 64 } as const;
@@ -444,9 +445,9 @@ function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode;
   return null;
 }
 
-interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
+interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; continuityVisible?: ReadonlySet<string> | null; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
 
-function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
+function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, continuityVisible, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
   // 阶段容器自己算阶段：子节点的顺序就是阶段顺序，当前 beat 指向哪个就走哪一步。
   const stages = node.children && STAGE_CONTAINERS.has(node.type) ? stageState(node.children, beats.timeline, frame) : null;
   const total = node.children?.length ?? 0;
@@ -459,6 +460,8 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTr
       preset={preset}
       beats={beats}
       stylePack={stylePack}
+      continuity={continuity}
+      continuityVisible={continuityVisible}
       place={node.type === 'radial' ? radialChildStyle(index, total)
         : node.type === 'cycle' ? cycleChildStyle(index, total, node.direction)
         : undefined}
@@ -466,7 +469,12 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTr
       stage={stages ? (stages.active === index ? 'active' : stages.done[index] ? 'done' : 'pending') : undefined}
     />
   ));
-  const style = { ...(place ?? layoutStyle(node)), ...motionStyle(scene, node.id, frame, baseTransform, stylePack) };
+  const style = {
+    ...(place ?? layoutStyle(node)),
+    ...motionStyle(scene, node.id, frame, baseTransform, stylePack),
+    ...(continuityVisible && !continuityVisible.has(node.id) ? { visibility: 'hidden' as const } : {}),
+    ...continuityNodeStyle(node.id, continuity),
+  };
   // 节点级节拍状态：写进 DOM 让契约探针量到「这一帧这个节点被哪一步推理驱动」，
   // 同时交给原语决定自己该显示什么状态。
   const beat = nodeBeatState(beats.timeline, frame, node.id);
@@ -477,6 +485,7 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTr
     'data-a2v-node-id': node.id, 'data-a2v-primitive': node.type,
     'data-a2v-inside': node.type === 'surface' ? '' : undefined,
     'data-a2v-motion': scene.motions.some((item) => item.target === node.id) ? '' : undefined,
+    'data-a2v-continuity-phase': continuity && (continuity.relation.sourceIds.includes(node.id) || continuity.relation.targetIds.includes(node.id)) ? continuity.phase : undefined,
     'data-a2v-beat-state': beatState,
     'data-a2v-beat-action': beat.active?.action,
     'data-a2v-beat-progress': beat.active ? beat.progress.toFixed(4) : undefined,
@@ -496,10 +505,11 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTr
   return <div {...attrs} data-a2v-state={node.state ?? stageAttr ?? 'rest'} className={`a2v-primitive a2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
 }
 
-export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string }): React.ReactElement {
+export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState }): React.ReactElement {
   // code 场景由共享 composition 的代码包装器承载，不会走到这里；
   // 缺少场景树说明分镜绕过了 schema 校验，这里直接报错而不是渲染 undefined。
   const tree = scene.sceneTree;
   if (!tree) throw new Error(`场景 ${scene.id} 缺少场景树：tree 场景必须声明 sceneTree`);
-  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} />;
+  const continuityVisible = continuityVisibleIds(tree, continuity);
+  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} continuity={continuity} continuityVisible={continuityVisible} />;
 }

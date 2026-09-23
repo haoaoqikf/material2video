@@ -63,6 +63,8 @@ ICON_NAMES: tuple[str, ...] = (
     'database',
     'coin',
 )
+#: 注册表允许的有限跨幕原语变形；同类原语始终允许。
+CONTINUITY_TRANSFORMS: frozenset[tuple[str, str]] = frozenset((('flow', 'cycle'), ('cycle', 'timeline'), ('timeline', 'gauge')))
 
 PRIMITIVE_CATALOG: dict[str, Primitive] = {
     'chart': Primitive(

@@ -189,7 +189,7 @@
     {
       "id": "milestones",
       "camera": { "shot": "wide", "composition": "left", "depth": "layered", "focus": "tl-axis", "movement": "pan-right" },
-      "transition": { "kind": "transform", "source": "loop-ring", "target": "tl-axis", "meaning": "把循环拆成时间轴上的阶段节点" },
+      "transition": { "kind": "decompose", "source": "loop-ring", "targets": ["tl-a", "tl-b", "tl-c", "tl-d"], "meaning": "把循环拆成时间轴上的阶段节点" },
       "type": "diagram",
       "durationInFrames": 330,
       "narrationSegments": [
@@ -251,7 +251,7 @@
     {
       "id": "level",
       "camera": { "shot": "medium", "composition": "split", "depth": "layered", "focus": "level-gauge", "movement": "pull-out" },
-      "transition": { "kind": "transform", "source": "tl-axis", "target": "level-gauge", "meaning": "把阶段进度收束成一个可读的量级" },
+      "transition": { "kind": "recompose", "sources": ["tl-a", "tl-b", "tl-c", "tl-d"], "target": "level-gauge", "meaning": "把阶段进度收束成一个可读的量级" },
       "type": "chart",
       "durationInFrames": 180,
       "narrationSegments": [

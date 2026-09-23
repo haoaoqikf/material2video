@@ -40,8 +40,8 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
   以及主要动效推进了什么理解。判据与正反例见
   [文章生成场景树分镜](article-to-storyboard.md)。
   旧分镜缺这些字段时，普通校验只给兼容警告、预览与渲染照常，`--strict` 才报错。
-- `camera`：启用导演契约时的镜头声明，包含 `shot`、`composition`、`depth`、`focus`、`movement`；当前仅声明与校验，未声明时不改变布局。
-- `transition`：可选跨幕关系声明，包含 `kind`、可选 `source` / `target` 和 `meaning`；当前已支持确定性的 `dissolve`、`transform`、`break` 根级转场表现，但尚未自动执行节点身份继承或跨幕变形。
+- `camera`：启用导演契约时的镜头声明，包含 `shot`、`composition`、`depth`、`focus`、`movement`。其中 `composition`、`depth`、`movement` 按当前帧号推导并作用于画面（构图重心、景深透视与镜头运动），`shot` 与 `focus` 当前只参与校验、评审和契约探针，不改变布局；未声明 `camera` 时不改变任何逐帧行为。
+- `transition`：可选跨幕关系声明。`inherit` / `transform` 使用 `source` + `target`，`decompose` 使用 `source` + 2–6 个 `targets`，`recompose` 使用 2–6 个 `sources` + `target`，`break` 使用 `source`，兼容的 `dissolve` 不建立节点身份；所有类型都必须写非空 `meaning`。第一幕不能声明转场。节点必须分别存在于相邻两幕，`inherit` 只允许同类原语，`transform` 只允许同类或注册表登记的有限类型对；不支持的映射在预览 / 渲染前失败，不会自动猜测或复制节点。
 - `sceneTree`：唯一根节点；节点 `id` 在幕内唯一稳定。
 - `motions`：通过节点 id 绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`。
 - `renderer`：可选画面双轨开关，默认 `{ "kind": "tree" }`（走 `sceneTree`）；
@@ -80,6 +80,19 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
 旧字符串口播的作品继续按原样预览与渲染，A 系列闸门对它们如实记为「跳过」。
 逐条判据、错误措辞与人工裁决方式见[设计宪法](design-constitution.md)的
 「动画论证 A 系列」与[视觉评审量表](visual-review-rubric.md)。
+
+## 跨幕连续性
+
+连续性窗口的时长来自作品风格包。窗口内，上一幕只保留映射源节点及其布局祖先，当前幕渲染映射目标；两者都由当前帧号计算透明度、缩放和受控位移。声明示例：
+
+```json
+{"kind":"transform","source":"flow","target":"cycle","meaning":"把线性步骤折回成闭环"}
+{"kind":"decompose","source":"whole","targets":["part-a","part-b"],"meaning":"把整体拆成两个构成部分"}
+{"kind":"recompose","sources":["part-a","part-b"],"target":"whole","meaning":"把两个部分重新汇成整体"}
+{"kind":"break","source":"old-path","meaning":"有意中断原有路径"}
+```
+
+允许的异类 `transform` 类型对由 `web/src/registry/registry.json` 的 `continuityTransforms` 唯一声明；同类原语无需重复登记。代码场景没有可静态核对的场景树节点，因此不能作为连续性映射端点。
 
 
 ## 场景树节点

@@ -19,7 +19,8 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
     signatures: list[tuple[Any, ...]] = []
     camera_missing: list[str] = []
     motif_missing: list[str] = []
-    for scene in scenes:
+    continuity: list[dict[str, Any]] = []
+    for index, scene in enumerate(scenes):
         if not isinstance(scene, dict):
             continue
         scene_id = str(scene.get("id"))
@@ -34,6 +35,16 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
             camera.get("shot"), camera.get("composition"), camera.get("depth"),
             camera.get("movement"), intent.get("relation"), intent.get("mode"),
         ))
+        if index > 0 and isinstance(scene.get("transition"), dict):
+            transition = scene["transition"]
+            continuity.append({
+                "from": str(scenes[index - 1].get("id")),
+                "to": scene_id,
+                "kind": transition.get("kind"),
+                "sources": transition.get("sources") or ([transition["source"]] if transition.get("source") else []),
+                "targets": transition.get("targets") or ([transition["target"]] if transition.get("target") else []),
+                "meaning": transition.get("meaning"),
+            })
     if enabled and camera_missing:
         findings.append({"rule": "camera-declaration", "status": "fail", "scenes": camera_missing, "detail": "启用导演契约的场景必须声明 camera"})
     if enabled and motif_missing:
@@ -49,6 +60,7 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
         "motif": motif,
         "sceneCount": len(scenes),
         "signatures": [list(item) for item in signatures],
+        "continuity": continuity,
         "findings": findings,
         "publishable": not any(item["status"] == "fail" for item in findings),
     }

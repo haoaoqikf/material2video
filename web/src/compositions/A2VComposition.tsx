@@ -7,7 +7,7 @@ import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
 import { beatStateAt, beatTimeline } from '@/runtime/beats';
 import { cameraStyle } from '@/runtime/camera';
 import { transitionStyle } from '@/runtime/transition';
-import { continuityFor } from '@/runtime/continuity';
+import { continuityFor, isContinuityActive, type ContinuityRenderState } from '@/runtime/continuity';
 
 export type A2VProps = Storyboard;
 
@@ -29,6 +29,9 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const preset = storyboard.visual?.preset;
   const presetEnabled = preset === 'keynote';
   const stylePack = storyboard.directingBrief?.stylePack;
+  const activeLocalFrame = Math.min(Math.max(frame - starts[activeIndex]!, 0), storyboard.scenes[activeIndex]!.durationInFrames - 1);
+  const activeContinuity = continuityFor(storyboard, activeIndex);
+  const showOutgoing = isContinuityActive(activeContinuity, activeLocalFrame);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -45,15 +48,22 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
     <div className="a2v-bg-grain stage-bg" aria-hidden="true" />
     {storyboard.scenes.map((scene, index) => {
       const active = index === activeIndex;
-      const localFrame = active ? Math.min(Math.max(frame - starts[index]!, 0), scene.durationInFrames - 1) : 0;
+      const outgoing = showOutgoing && index === activeIndex - 1;
+      const localFrame = active ? activeLocalFrame : outgoing ? scene.durationInFrames - 1 : 0;
       const isCode = scene.renderer?.kind === 'code';
       const timeline = timelines[index]!;
       const beats = { timeline, state: beatStateAt(timeline, localFrame) };
       const continuity = continuityFor(storyboard, index);
+      const continuityState: ContinuityRenderState | undefined = active && activeContinuity
+        ? { relation: activeContinuity, phase: 'target', frame: activeLocalFrame }
+        : outgoing && activeContinuity
+          ? { relation: activeContinuity, phase: 'source', frame: activeLocalFrame }
+          : undefined;
       return <section key={scene.id} data-a2v-scene="" data-scene-id={scene.id} data-layout={scene.visualIntent.composition}
-        data-a2v-continuity-kind={continuity?.kind ?? ''}
-        data-a2v-continuity-source={continuity?.source ?? ''}
-        data-a2v-continuity-target={continuity?.target ?? ''}
+        data-a2v-continuity-kind={(active ? continuity : activeContinuity)?.kind ?? ''}
+        data-a2v-continuity-source={(active ? continuity : activeContinuity)?.sourceIds.join(',') ?? ''}
+        data-a2v-continuity-target={(active ? continuity : activeContinuity)?.targetIds.join(',') ?? ''}
+        data-a2v-continuity-phase={continuityState?.phase ?? ''}
         data-a2v-camera-focus={scene.camera?.focus ?? ''}
         // 节拍状态同时写到 DOM：契约探针（A 系列闸门）量的是页面上的真实值，
         // 而不是再算一遍分镜——两处算法不同就会出现「报告说通过、画面不同步」。
@@ -61,7 +71,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         data-a2v-beat-progress={beats.state.progress.toFixed(4)}
         data-a2v-beat-completed={beats.state.completed.join(',')}
         data-a2v-beat-estimated={beats.state.estimated ? '1' : '0'}
-        style={active ? transitionStyle(scene, localFrame, stylePack) : { display: 'none' }}>
+        style={active ? { ...transitionStyle(scene, localFrame, stylePack), zIndex: 1 } : outgoing ? { zIndex: 2 } : { display: 'none' }}>
         {/* code 场景同样置于安全区内；它不经过场景树排版与取档逻辑 */}
         <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version={storyboard.schemaVersion}>
           <div className="a2v-camera" style={cameraStyle(scene, localFrame)} data-a2v-camera={scene.camera?.movement ?? 'none'}>
@@ -78,7 +88,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
               beats={beats}
             />
           ) : (
-            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} stylePack={stylePack} />
+            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} stylePack={stylePack} continuity={continuityState} />
           )}
           </div>
         </div>

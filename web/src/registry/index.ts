@@ -14,3 +14,7 @@ export function primitiveDefinition(type: string): PrimitiveEntry | undefined { 
 export function knownPrimitiveTypes(): string[] { return Object.keys(PRIMITIVES).sort(); }
 export const STYLE_PACKS = registryData.stylePacks as Record<string, StylePackEntry>;
 export function stylePackDefinition(name?: string): StylePackEntry { return STYLE_PACKS[name ?? 'editorial'] ?? STYLE_PACKS.editorial; }
+export const CONTINUITY_TRANSFORMS = registryData.continuityTransforms as unknown as readonly (readonly [string, string])[];
+export function supportsContinuityTransform(sourceType: string, targetType: string): boolean {
+  return sourceType === targetType || CONTINUITY_TRANSFORMS.some(([source, target]) => source === sourceType && target === targetType);
+}

@@ -26,6 +26,8 @@ export const ICON_NAMES = ['arrow', 'check', 'cross', 'spark', 'up', 'down', 'us
 export type IconName = (typeof ICON_NAMES)[number];
 export const PRIMITIVE_TYPES = ['chart', 'column', 'connector', 'cycle', 'flow', 'gauge', 'grid', 'group', 'icon', 'image', 'number', 'overlay', 'pictogram', 'radial', 'row', 'shape', 'split', 'stack', 'surface', 'text', 'timeline'] as const;
 export type PrimitiveType = (typeof PRIMITIVE_TYPES)[number];
+/** 注册表允许的有限跨幕原语变形；同类原语始终允许。 */
+export const CONTINUITY_TRANSFORMS = [["flow", "cycle"], ["cycle", "timeline"], ["timeline", "gauge"]] as const;
 /** 每个原语允许声明的属性（结构性字段 id/type/children 不在此列）。 */
 export const PRIMITIVE_PROPS: Readonly<Record<string, readonly string[]>> = {
     'chart': ['contentRef', 'chart', 'schematic', 'state'],

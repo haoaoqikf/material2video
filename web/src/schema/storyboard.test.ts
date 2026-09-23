@@ -49,6 +49,35 @@ describe('v2 分镜 schema', () => {
     input.directingVersion = 1;
     expect(() => parseStoryboard(input)).toThrow(/directingBrief/);
   });
+  it('接受显式拆解与重组映射', () => {
+    const input = structuredClone(EMPTY_STORYBOARD) as any;
+    const decompose = structuredClone(input.scenes[0]);
+    decompose.id = 'parts';
+    decompose.sceneTree.children = [{ id: 'part-a', type: 'shape', shape: 'circle' }, { id: 'part-b', type: 'shape', shape: 'rect' }];
+    decompose.transition = { kind: 'decompose', source: 'text', targets: ['part-a', 'part-b'], meaning: '结论拆成两个构成部分' };
+    const recompose = structuredClone(input.scenes[0]);
+    recompose.id = 'whole';
+    recompose.sceneTree.children = [{ id: 'whole-shape', type: 'shape', shape: 'ring' }];
+    recompose.transition = { kind: 'recompose', sources: ['part-a', 'part-b'], target: 'whole-shape', meaning: '两个部分重新汇成整体' };
+    input.scenes.push(decompose, recompose);
+    expect(parseStoryboard(input).scenes).toHaveLength(3);
+  });
+  it('在渲染前拒绝缺失节点、错误继承和未登记变形', () => {
+    const board = (transition: Record<string, unknown>) => {
+      const input = structuredClone(EMPTY_STORYBOARD) as any;
+      const next = structuredClone(input.scenes[0]);
+      next.id = 'next';
+      next.sceneTree.children = [{ id: 'target', type: 'image', sourceRef: 'data.image' }];
+      next.data.image = 'local.png';
+      next.transition = transition;
+      input.scenes.push(next);
+      return input;
+    };
+    expect(() => parseStoryboard(board({ kind: 'transform', source: 'missing', target: 'target', meaning: '错误引用' }))).toThrow(/不存在于上一幕/);
+    expect(() => parseStoryboard(board({ kind: 'inherit', source: 'text', target: 'target', meaning: '错误继承' }))).toThrow(/只能继承同类原语/);
+    expect(() => parseStoryboard(board({ kind: 'transform', source: 'text', target: 'target', meaning: '未登记变形' }))).toThrow(/未登记的跨幕变形/);
+    expect(() => parseStoryboard(board({ kind: 'break', source: 'text', target: 'target', meaning: '歧义断裂' }))).toThrow(/break 转场不接受 target/);
+  });
 });
 
 describe('视觉论证字段', () => {

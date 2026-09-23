@@ -9,8 +9,9 @@
 - **配方**：层级、动效、风格方向，是可以直接照抄的数值，也是「高级感」的来源。
 
 启用导演契约的作品还可声明景别、构图重心、景深和镜头运动；运动必须由帧号推导，
-不得使用 CSS `animation` / `transition`。`dissolve`、`transform`、`break` 是根级转场配方，
-只表达场景进入方式；节点身份继承和跨幕变形需要额外的 `source` / `target` 连续性声明，
+不得使用 CSS `animation` / `transition`。兼容的 `dissolve` 只表达场景进入；`inherit`、
+`transform`、`decompose`、`recompose`、`break` 建立显式节点连续性，并在风格包规定的窗口内
+同时渲染上一幕源节点和当前幕目标节点。映射必须引用稳定 id，异类变形必须登记在原语注册表，
 不能根据相似外观自动猜测。
 
 ## 画布
