@@ -12,12 +12,22 @@
     "rhythm": "steady",
     "avoid": ["repeated-center"]
   },
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "进度只有被看见，才会形成有效反馈",
+    "audienceShift": "从责怪拖延转向理解反馈不可见",
+    "emotionalArc": ["困惑", "拆解", "理解", "释然"],
+    "visualMotif": "刻度与阶段",
+    "stylePack": "editorial",
+    "avoid": ["重复居中", "无意义粒子"]
+  },
   "visual": {
     "theme": "dark"
   },
   "scenes": [
     {
       "id": "claim",
+      "camera": { "shot": "close", "composition": "left", "depth": "layered", "focus": "claim-text", "movement": "push-in" },
       "type": "title",
       "durationInFrames": 210,
       "narrationSegments": [
@@ -60,6 +70,8 @@
     },
     {
       "id": "stages",
+      "camera": { "shot": "medium", "composition": "center", "depth": "layered", "focus": "stages-flow", "movement": "pan-right" },
+      "transition": { "kind": "transform", "source": "claim-text", "target": "stages-title", "meaning": "把反常识判断转成可执行的三步路径" },
       "type": "diagram",
       "durationInFrames": 255,
       "narrationSegments": [
@@ -116,6 +128,8 @@
     },
     {
       "id": "loop",
+      "camera": { "shot": "wide", "composition": "right", "depth": "layered", "focus": "loop-ring", "movement": "orbit" },
+      "transition": { "kind": "transform", "source": "stages-flow", "target": "loop-ring", "meaning": "把线性步骤折回成自我维持的闭环" },
       "type": "diagram",
       "durationInFrames": 300,
       "narrationSegments": [
@@ -174,6 +188,8 @@
     },
     {
       "id": "milestones",
+      "camera": { "shot": "wide", "composition": "left", "depth": "layered", "focus": "tl-axis", "movement": "pan-right" },
+      "transition": { "kind": "transform", "source": "loop-ring", "target": "tl-axis", "meaning": "把循环拆成时间轴上的阶段节点" },
       "type": "diagram",
       "durationInFrames": 330,
       "narrationSegments": [
@@ -234,6 +250,8 @@
     },
     {
       "id": "level",
+      "camera": { "shot": "medium", "composition": "split", "depth": "layered", "focus": "level-gauge", "movement": "pull-out" },
+      "transition": { "kind": "transform", "source": "tl-axis", "target": "level-gauge", "meaning": "把阶段进度收束成一个可读的量级" },
       "type": "chart",
       "durationInFrames": 180,
       "narrationSegments": [
