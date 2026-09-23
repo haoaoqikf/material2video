@@ -30,6 +30,7 @@ describe('场景树运行时', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.motions = [{ target: 'text', recipe: 'rise', startFrame: 0, durationFrames: 20 }];
     expect(motionStyle(scene, 'text', 7)).toEqual(motionStyle(scene, 'text', 7));
+    expect(motionStyle(scene, 'text', 7, '', 'cinematic').transform).not.toEqual(motionStyle(scene, 'text', 7).transform);
     expect(scene.sceneTree!.children).toHaveLength(1);
   });
 });

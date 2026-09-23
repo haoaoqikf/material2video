@@ -78,7 +78,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
               beats={beats}
             />
           ) : (
-            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} />
+            <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} stylePack={stylePack} />
           )}
           </div>
         </div>

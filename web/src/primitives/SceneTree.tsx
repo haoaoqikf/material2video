@@ -45,14 +45,15 @@ export function resolveContent(data: Record<string, unknown>, ref?: string): unk
   return current;
 }
 
-export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTransform = ''): CSSProperties {
+export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTransform = '', stylePack?: string): CSSProperties {
   const motion = scene.motions.find((item) => item.target === nodeId);
   if (!motion) return baseTransform ? { transform: baseTransform } : {};
   const duration = motion.durationFrames ?? 24;
   const progress = Math.min(1, Math.max(0, (frame - motion.startFrame) / duration));
   const eased = 1 - (1 - progress) ** 3;
   const common: CSSProperties = { opacity: eased };
-  if (motion.recipe === 'rise') return { ...common, transform: `${baseTransform} translateY(${(1 - eased) * 36}px)`.trim() };
+  const riseDistance = stylePack === 'cinematic' ? 48 : stylePack === 'poetic' ? 24 : 36;
+  if (motion.recipe === 'rise') return { ...common, transform: `${baseTransform} translateY(${(1 - eased) * riseDistance}px)`.trim() };
   if (motion.recipe === 'reveal') return baseTransform ? { ...common, transform: baseTransform, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` } : { ...common, clipPath: `inset(0 ${(1 - eased) * 100}% 0 0)` };
   if (motion.recipe === 'draw') return { ...common, transform: `${baseTransform} scaleX(${eased})`.trim(), transformOrigin: 'left center' };
   if (baseTransform) return { ...common, transform: baseTransform };
@@ -442,9 +443,9 @@ function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode;
   return null;
 }
 
-interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
+interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
 
-function Primitive({ node, scene, frame, preset, beats, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
+function Primitive({ node, scene, frame, preset, beats, stylePack, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
   // 阶段容器自己算阶段：子节点的顺序就是阶段顺序，当前 beat 指向哪个就走哪一步。
   const stages = node.children && STAGE_CONTAINERS.has(node.type) ? stageState(node.children, beats.timeline, frame) : null;
   const total = node.children?.length ?? 0;
@@ -456,6 +457,7 @@ function Primitive({ node, scene, frame, preset, beats, place, baseTransform = '
       frame={frame}
       preset={preset}
       beats={beats}
+      stylePack={stylePack}
       place={node.type === 'radial' ? radialChildStyle(index, total)
         : node.type === 'cycle' ? cycleChildStyle(index, total, node.direction)
         : undefined}
@@ -463,7 +465,7 @@ function Primitive({ node, scene, frame, preset, beats, place, baseTransform = '
       stage={stages ? (stages.active === index ? 'active' : stages.done[index] ? 'done' : 'pending') : undefined}
     />
   ));
-  const style = { ...(place ?? layoutStyle(node)), ...motionStyle(scene, node.id, frame, baseTransform) };
+  const style = { ...(place ?? layoutStyle(node)), ...motionStyle(scene, node.id, frame, baseTransform, stylePack) };
   // 节点级节拍状态：写进 DOM 让契约探针量到「这一帧这个节点被哪一步推理驱动」，
   // 同时交给原语决定自己该显示什么状态。
   const beat = nodeBeatState(beats.timeline, frame, node.id);
@@ -493,10 +495,10 @@ function Primitive({ node, scene, frame, preset, beats, place, baseTransform = '
   return <div {...attrs} data-a2v-state={node.state ?? stageAttr ?? 'rest'} className={`a2v-primitive a2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
 }
 
-export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext }): React.ReactElement {
+export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string }): React.ReactElement {
   // code 场景由共享 composition 的代码包装器承载，不会走到这里；
   // 缺少场景树说明分镜绕过了 schema 校验，这里直接报错而不是渲染 undefined。
   const tree = scene.sceneTree;
   if (!tree) throw new Error(`场景 ${scene.id} 缺少场景树：tree 场景必须声明 sceneTree`);
-  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} />;
+  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} />;
 }
