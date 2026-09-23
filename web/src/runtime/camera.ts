@@ -9,8 +9,10 @@ export function cameraStyle(scene: Scene, frame: number): CSSProperties {
   const eased = 1 - (1 - progress) ** 3;
   const scale = camera.movement === 'push-in' ? 1 + eased * 0.06 : camera.movement === 'pull-out' ? 1.06 - eased * 0.06 : 1;
   const offset = camera.movement === 'pan-left' ? -eased * 28 : camera.movement === 'pan-right' ? eased * 28 : 0;
+  const orbit = camera.movement === 'orbit' ? eased * 1.5 : 0;
   return {
-    transform: `translateX(${offset}px) scale(${scale})`,
+    transform: `translateX(${offset}px) scale(${scale}) rotate(${orbit}deg)`,
+    perspective: camera.depth === 'layered' ? '1200px' : undefined,
     transformOrigin: camera.composition === 'left' ? '30% 50%' : camera.composition === 'right' ? '70% 50%' : '50% 50%',
   };
 }

@@ -54,6 +54,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         data-a2v-continuity-kind={continuity?.kind ?? ''}
         data-a2v-continuity-source={continuity?.source ?? ''}
         data-a2v-continuity-target={continuity?.target ?? ''}
+        data-a2v-camera-focus={scene.camera?.focus ?? ''}
         // 节拍状态同时写到 DOM：契约探针（A 系列闸门）量的是页面上的真实值，
         // 而不是再算一遍分镜——两处算法不同就会出现「报告说通过、画面不同步」。
         data-a2v-beat-current={beats.state.current ?? ''}
