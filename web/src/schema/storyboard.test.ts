@@ -44,6 +44,11 @@ describe('v2 分镜 schema', () => {
     scene.sceneTree!.children = Array.from({ length: 48 }, (_, i) => ({ id: `n${i}`, type: 'shape' as const }));
     expect(sceneSchema.safeParse(scene).success).toBe(false);
   });
+  it('导演契约启用时必须提供创作简报', () => {
+    const input = structuredClone(EMPTY_STORYBOARD);
+    input.directingVersion = 1;
+    expect(() => parseStoryboard(input)).toThrow(/directingBrief/);
+  });
 });
 
 describe('视觉论证字段', () => {

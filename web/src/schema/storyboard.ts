@@ -65,6 +65,11 @@ export const visualIntentSchema = z.object({
 }).strict();
 export const motionSchema = z.object({ target: nodeId, recipe: motionRecipeSchema, startFrame: z.number().int().min(0).default(0), durationFrames: z.number().int().positive().optional() }).strict();
 
+export const directingVersionSchema = z.literal(1);
+export const directingBriefSchema = z.object({ thesis: nonEmptyText, audienceShift: nonEmptyText, emotionalArc: z.array(nonEmptyText).min(2), visualMotif: nonEmptyText, stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']), avoid: z.array(nonEmptyText).default([]) }).strict();
+export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, movement: z.enum(['static', 'push-in', 'pull-out', 'pan-left', 'pan-right', 'orbit']) }).strict();
+export const transitionSchema = z.object({ kind: z.enum(['inherit', 'transform', 'dissolve', 'break']), source: nodeId.optional(), target: nodeId.optional(), meaning: nonEmptyText }).strict();
+
 /* ------------------------------------------------------------------ */
 /* 语义节拍（beats）与分段口播                                          */
 /* ------------------------------------------------------------------ */
@@ -81,7 +86,7 @@ export const narrationSegmentSchema = z.object({ id: nodeId, text: nonEmptyText,
 
 /** 语义节拍：受控动作 + 至少一个目标节点 + 非空 meaning（这一步让观众多看懂什么）。 */
 export const beatSchema = z.object({
-  id: nodeId, action: semanticActionSchema, targets: z.array(nodeId).min(1), meaning: nonEmptyText,
+  id: nodeId, action: semanticActionSchema, targets: z.array(nodeId).min(1), meaning: nonEmptyText, before: nonEmptyText.optional(), after: nonEmptyText.optional(), relation: nonEmptyText.optional(),
 }).strict();
 
 /**
@@ -105,7 +110,7 @@ export const sceneSchema = z.object({
   durationInFrames: z.number().int().positive(), narration: z.string().optional(), data: z.record(z.string(), z.unknown()),
   narrationSegments: z.array(narrationSegmentSchema).optional(), beats: z.array(beatSchema).optional(),
   resolvedBeats: z.array(resolvedBeatSchema).optional(),
-  visualIntent: visualIntentSchema, renderer: rendererSchema.optional(), sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
+  visualIntent: visualIntentSchema, camera: cameraSchema.optional(), transition: transitionSchema.optional(), renderer: rendererSchema.optional(), sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
   visual: z.object({ kicker: z.string().optional() }).strict().optional(),
 }).strict().superRefine((scene, ctx) => {
   const isCode = scene.renderer?.kind === 'code';
@@ -251,9 +256,14 @@ export type Scene = z.infer<typeof sceneSchema>;
 export const storyboardSchema = z.object({
   version: z.literal(STORYBOARD_VERSION), schemaVersion: z.literal(2), fps: z.number().int().min(1).max(120),
   width: z.number().int().positive().default(1080), height: z.number().int().positive().default(1920), title: z.string().optional(),
-  visualDirection: z.object({ motif: nonEmptyText, compositionBias: z.enum(['centered', 'asymmetric', 'mixed']), density: z.enum(['sparse', 'balanced', 'dense']), rhythm: z.enum(['restrained', 'steady', 'dynamic']), avoid: z.array(nonEmptyText).default([]) }).strict(),
+  visualDirection: z.object({ motif: nonEmptyText, compositionBias: z.enum(['centered', 'asymmetric', 'mixed']), density: z.enum(['sparse', 'balanced', 'dense']), rhythm: z.enum(['restrained', 'steady', 'dynamic']), avoid: z.array(nonEmptyText).default([]), emotionalArc: z.array(nonEmptyText).min(2).optional(), stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']).optional() }).strict(),
+  directingVersion: directingVersionSchema.optional(), directingBrief: directingBriefSchema.optional(),
   scenes: z.array(sceneSchema).nonempty(), visual: z.object({ theme: z.enum(['dark', 'light']).default('dark'), preset: z.literal('keynote').optional() }).strict().optional(),
-}).strict();
+}).strict().superRefine((storyboard, ctx) => {
+  if (storyboard.directingVersion === 1 && !storyboard.directingBrief) {
+    ctx.addIssue({ code: 'custom', path: ['directingBrief'], message: 'directingVersion=1 必须同时提供 directingBrief' });
+  }
+});
 export type Storyboard = z.infer<typeof storyboardSchema>;
 export type StoryboardInput = z.input<typeof storyboardSchema>;
 export function parseStoryboard(input: unknown): Storyboard {

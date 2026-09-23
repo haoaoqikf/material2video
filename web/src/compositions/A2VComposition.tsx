@@ -5,6 +5,8 @@ import { SceneTree } from '@/primitives/SceneTree';
 import { CodeSceneHost } from './CodeSceneHost';
 import { sceneAt, sceneStartFrames } from '@/runtime/timeline';
 import { beatStateAt, beatTimeline } from '@/runtime/beats';
+import { cameraStyle } from '@/runtime/camera';
+import { transitionStyle } from '@/runtime/transition';
 
 export type A2VProps = Storyboard;
 
@@ -25,14 +27,16 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const theme = storyboard.visual?.theme ?? 'dark';
   const preset = storyboard.visual?.preset;
   const presetEnabled = preset === 'keynote';
+  const stylePack = storyboard.directingBrief?.stylePack;
 
   useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.a2vTheme = theme;
     if (preset) root.dataset.a2vPreset = preset; else delete root.dataset.a2vPreset;
+    if (stylePack) root.dataset.a2vStylePack = stylePack; else delete root.dataset.a2vStylePack;
     root.style.setProperty('--a2v-width', `${storyboard.width}px`);
     root.style.setProperty('--a2v-height', `${storyboard.height}px`);
-  }, [theme, preset, storyboard.width, storyboard.height]);
+  }, [theme, preset, stylePack, storyboard.width, storyboard.height]);
 
   return <AbsoluteFill><div className="a2v-stage" data-a2v-stage="">
     <div className="a2v-bg-glow stage-bg" aria-hidden="true" />
@@ -51,9 +55,10 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         data-a2v-beat-progress={beats.state.progress.toFixed(4)}
         data-a2v-beat-completed={beats.state.completed.join(',')}
         data-a2v-beat-estimated={beats.state.estimated ? '1' : '0'}
-        style={active ? undefined : { display: 'none' }}>
+        style={active ? transitionStyle(scene, localFrame) : { display: 'none' }}>
         {/* code 场景同样置于安全区内；它不经过场景树排版与取档逻辑 */}
         <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version={storyboard.schemaVersion}>
+          <div className="a2v-camera" style={cameraStyle(scene, localFrame)} data-a2v-camera={scene.camera?.movement ?? 'none'}>
           {isCode ? (
             <CodeSceneHost
               scene={scene}
@@ -69,6 +74,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
           ) : (
             <SceneTree scene={scene} frame={localFrame} preset={presetEnabled} beats={beats} />
           )}
+          </div>
         </div>
         {preset ? <div className="a2v-scene-index"><span>{scene.visual?.kicker ?? ''}</span></div> : null}
       </section>;

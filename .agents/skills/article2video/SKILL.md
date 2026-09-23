@@ -120,7 +120,9 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 ### 2. 分镜即画面声明
 
 画面默认全部由共享 composition 递归解释场景树提供，**不需要写任何画面代码**。
-分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；
+分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；启用导演契约时另声明
+`directingVersion: 1` 与 `directingBrief`，逐幕可声明 `camera`、`transition` 以及 beat 的
+`before` / `after` / `relation`。镜头运动与根级转场已按帧驱动渲染；跨幕节点身份继承和变形仍需显式声明并由后续连续性能力处理。
 每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪，以及视觉论证字段
 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`）、
 `sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`

@@ -11,6 +11,8 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
 - `version` / `schemaVersion`：固定为 `2`。
 - `fps`、`width`、`height`、`title`、`visual`：时间、画布和主题。
 - `visualDirection`：全片视觉策略，包含 `motif`、`compositionBias`、`density`、`rhythm`、`avoid`。
+- `directingVersion`：可选电影化导演契约版本，当前为 `1`；未声明时保持旧行为。
+- `directingBrief`：可选创作简报，包含 `thesis`、`audienceShift`、`emotionalArc`、`visualMotif`、`stylePack` 和 `avoid`。
 - `scenes`：非空场景数组。
 
 ## 场景字段
@@ -22,7 +24,7 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
   完整口播就是各段按顺序拼接，因此不存在第二份完整文本。每段的 `id` 在幕内唯一，
   `text` 非空，`beatId` 必须指向本幕声明的 beat；同一 beat 的引用必须**相邻**，
   否则时间轴会倒退或重叠。见[语义节拍与字幕同步](#语义节拍与字幕同步)。
-- `beats`：语义节拍，每项 `{id, action, targets, meaning}`。`action` 取受控动作
+- `beats`：语义节拍，每项 `{id, action, targets, meaning}`，可增加 `before`、`after`、`relation` 描述状态或关系变化。`action` 取受控动作
   （见[视觉原语目录](primitive-catalog.md)的语义动作表）；`targets` 至少一个本幕节点，
   且**每个**目标原语都要支持该动作；`meaning` 非空，说明这条节拍解释了什么。
   只有声明了 `narrationSegments` 的幕可以声明 `beats`。
@@ -38,6 +40,8 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py old.jso
   以及主要动效推进了什么理解。判据与正反例见
   [文章生成场景树分镜](article-to-storyboard.md)。
   旧分镜缺这些字段时，普通校验只给兼容警告、预览与渲染照常，`--strict` 才报错。
+- `camera`：启用导演契约时的镜头声明，包含 `shot`、`composition`、`depth`、`focus`、`movement`；当前仅声明与校验，未声明时不改变布局。
+- `transition`：可选跨幕关系声明，包含 `kind`、可选 `source` / `target` 和 `meaning`；当前已支持确定性的 `dissolve`、`transform`、`break` 根级转场表现，但尚未自动执行节点身份继承或跨幕变形。
 - `sceneTree`：唯一根节点；节点 `id` 在幕内唯一稳定。
 - `motions`：通过节点 id 绑定 `reveal`、`fade`、`rise`、`count` 或 `draw`。
 - `renderer`：可选画面双轨开关，默认 `{ "kind": "tree" }`（走 `sceneTree`）；

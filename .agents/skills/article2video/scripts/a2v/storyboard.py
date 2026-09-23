@@ -165,7 +165,7 @@ def validate(data: Any, strict: bool = False) -> Report:
 
 def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
     report = Report()
-    _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "scenes", "visual"}, "", report)
+    _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "directingVersion", "directingBrief", "scenes", "visual"}, "", report)
     if data.get("schemaVersion") != SCENE_TREE_VERSION:
         report.error("schemaVersion", f"场景树版本必须是 {SCENE_TREE_VERSION}")
     _validate_framerate(data, report)
@@ -176,6 +176,24 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         report.error("visualDirection", "visualDirection 必须是对象")
     else:
         _validate_visual_direction(direction, report)
+    directing_version = data.get("directingVersion")
+    if directing_version is not None and directing_version != 1:
+        report.error("directingVersion", "directingVersion 当前只支持 1")
+    brief = data.get("directingBrief")
+    if directing_version == 1 and brief is None:
+        report.error("directingBrief", "directingVersion=1 必须同时提供 directingBrief")
+    if brief is not None:
+        if not isinstance(brief, dict):
+            report.error("directingBrief", "directingBrief 必须是对象")
+        else:
+            _reject_unknown(brief, {"thesis", "audienceShift", "emotionalArc", "visualMotif", "stylePack", "avoid"}, "directingBrief", report)
+            for key in ("thesis", "audienceShift", "visualMotif"):
+                if not isinstance(brief.get(key), str) or not brief[key].strip():
+                    report.error(f"directingBrief.{key}", "必须是非空字符串")
+            if not isinstance(brief.get("emotionalArc"), list) or len(brief["emotionalArc"]) < 2:
+                report.error("directingBrief.emotionalArc", "必须是至少两个情绪阶段")
+            if brief.get("stylePack") not in {"editorial", "cinematic", "technical", "poetic"}:
+                report.error("directingBrief.stylePack", "必须是 editorial/cinematic/technical/poetic 之一")
     scenes = data.get("scenes")
     if not isinstance(scenes, list) or not scenes:
         report.error("scenes", "scenes 必须是非空数组")
@@ -187,7 +205,8 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         if not isinstance(scene, dict):
             report.error(path, "场景必须是对象")
             continue
-        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "narrationSegments", "beats", "data", "visualIntent", "sceneTree", "motions", "visual", "renderer"}, path, report)
+        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "narrationSegments", "beats", "data", "visualIntent", "camera", "transition", "sceneTree", "motions", "visual", "renderer"}, path, report)
+        _validate_directing_scene(scene, path, report)
         scene_id = scene.get("id")
         if not isinstance(scene_id, str) or not _SCENE_ID_RE.match(scene_id):
             report.error(f"{path}.id", "场景 id 必须是非空安全标识符")
@@ -291,6 +310,31 @@ def _validate_visual_direction(direction: dict[str, Any], report: Report) -> Non
     avoid = direction.get("avoid")
     if "avoid" in direction and (not isinstance(avoid, list) or not all(isinstance(item, str) for item in avoid)):
         report.error("visualDirection.avoid", "avoid 必须是字符串数组")
+
+
+def _validate_directing_scene(scene: dict[str, Any], path: str, report: Report) -> None:
+    camera = scene.get("camera")
+    if camera is not None:
+        if not isinstance(camera, dict):
+            report.error(f"{path}.camera", "camera 必须是对象")
+        else:
+            _reject_unknown(camera, {"shot", "composition", "depth", "focus", "movement"}, f"{path}.camera", report)
+            choices = {"shot": {"macro", "close", "medium", "wide"}, "composition": {"center", "left", "right", "split", "full"}, "depth": {"flat", "layered"}, "movement": {"static", "push-in", "pull-out", "pan-left", "pan-right", "orbit"}}
+            for key, allowed in choices.items():
+                if camera.get(key) not in allowed:
+                    report.error(f"{path}.camera.{key}", f"必须是 {'/'.join(sorted(allowed))} 之一")
+            if not isinstance(camera.get("focus"), str) or not _SCENE_ID_RE.match(camera.get("focus", "")):
+                report.error(f"{path}.camera.focus", "必须是节点 id")
+    transition = scene.get("transition")
+    if transition is not None:
+        if not isinstance(transition, dict):
+            report.error(f"{path}.transition", "transition 必须是对象")
+        else:
+            _reject_unknown(transition, {"kind", "source", "target", "meaning"}, f"{path}.transition", report)
+            if transition.get("kind") not in {"inherit", "transform", "dissolve", "break"}:
+                report.error(f"{path}.transition.kind", "必须是 inherit/transform/dissolve/break 之一")
+            if not isinstance(transition.get("meaning"), str) or not transition["meaning"].strip():
+                report.error(f"{path}.transition.meaning", "必须说明转场解释了什么")
 
 
 #: 逐幕视觉论证字段：导演意图声明，不参与 React 渲染。
@@ -716,7 +760,7 @@ def _validate_beats(
         if not isinstance(beat, dict):
             report.error(item_path, "beat 必须是对象")
             continue
-        _reject_unknown(beat, {"id", "action", "targets", "meaning"}, item_path, report)
+        _reject_unknown(beat, {"id", "action", "targets", "meaning", "before", "after", "relation"}, item_path, report)
         beat_id = beat.get("id")
         if not isinstance(beat_id, str) or not _SCENE_ID_RE.match(beat_id):
             report.error(f"{item_path}.id", "beat id 必须是非空安全标识符")
@@ -734,6 +778,9 @@ def _validate_beats(
         meaning = beat.get("meaning")
         if not isinstance(meaning, str) or not meaning.strip():
             report.error(f"{item_path}.meaning", "meaning 必须是非空字符串：写清这一步让观众多看懂什么")
+        for state_key in ("before", "after", "relation"):
+            if state_key in beat and (not isinstance(beat[state_key], str) or not beat[state_key].strip()):
+                report.error(f"{item_path}.{state_key}", "必须是非空字符串")
 
     segments = scene.get("narrationSegments")
     if not isinstance(segments, list) or not segments:

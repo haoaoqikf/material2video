@@ -647,6 +647,7 @@ def main_review(argv: list[str] | None = None) -> int:
     _configure_logging(args.verbose)
 
     from . import inspect as inspect_mod
+    from . import aesthetic_review
     from . import storyboard as sb
     from .browser import open_animated_page
     from .media import load_media, media_url, write_effective_storyboard
@@ -704,6 +705,11 @@ def main_review(argv: list[str] | None = None) -> int:
     # 动画论证 A 系列同理：它读分镜与媒体清单，不需要浏览器。机检失败在这里
     # 就进错误数，契约页起不来也不影响「动画有没有解释论点」的结论。
     animation_review = _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
+    raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
+    aesthetic_review_result = aesthetic_review.analyze(raw_storyboard)
+    for finding in aesthetic_review_result["findings"]:
+        if finding["status"] == "fail":
+            combined.error(f"导演预检 {finding['rule']}", finding["detail"] + "：" + "、".join(finding["scenes"]))
 
     try:
         with contextlib.ExitStack() as stack:
@@ -780,6 +786,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "provenance": _rendered_provenance(out_dir),
             "visualNarrative": visual_narrative,
             "animationReview": animation_review,
+            "aestheticReview": aesthetic_review_result,
             **({"determinism": determinism_json} if determinism_json is not None else {}),
         },
         out_dir / "report.json",
