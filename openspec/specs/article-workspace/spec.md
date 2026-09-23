@@ -50,17 +50,43 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 ### Requirement: 产物归属作品目录
 
-成片、字幕、媒体清单与缓存、限帧预览、体检产物 SHALL 落在**工作区根**的
-`videos/<slug>/outputs/` 下；示例产物 SHALL 保持独立的 `videos/examples/<slug>/outputs/` 层级。
-显式 `--out`、`--out-dir` SHALL 继续优先。
+默认产物 MUST 位于对应作品目录下的 `outputs/` 子目录，而不是工作区根下的独立产物树。
 
-媒体清单与音轨 SHALL 仍须属于同一篇文章：跨文章合成 SHALL 被拒绝，
-判据 SHALL 基于工作区根下的源目录与媒体目录。
+#### Scenario: 正式作品默认输出
+
+- **WHEN** 文章位于 `videos/demo/`
+- **THEN** 默认媒体、预览、检查报告、字幕、溯源和成片写入 `videos/demo/outputs/`
+
+#### Scenario: 示例作品默认输出
+
+- **WHEN** 示例文章归属为 `examples/demo/`
+- **THEN** 默认产物写入 `videos/examples/demo/outputs/`，并与正式作品隔离
+
+#### Scenario: 外部内容根
+
+- **WHEN** `--content-root` 或 `A2V_CONTENT_ROOT` 指向外部内容根
+- **THEN** 使用该内容根下的 `videos/<slug>/outputs/` 同构路径
+
+#### Scenario: 显式输出参数
+
+- **WHEN** 用户传入 `--out` 或 `--out-dir`
+- **THEN** 显式路径优先，继续保持原有兼容行为
 
 #### Scenario: 外置内容根的默认产物位置
+
 - **WHEN** 工作区根为仓库外目录，渲染或体检省略输出参数
 - **THEN** 产物写入 `<工作区根>/videos/<slug>/outputs/`，仓库内不新增产物
 
 #### Scenario: 跨文章合成仍被拒绝
+
 - **WHEN** `--storyboard` 属于一篇文章，而 `--media` 指向另一篇文章的媒体目录
 - **THEN** 命令报错并拒绝合成
+
+### Requirement: 迁移保护
+
+迁移已有产物时 MUST NOT 覆盖目标中的同名文件。
+
+#### Scenario: 迁移目标存在冲突
+
+- **WHEN** 目标路径中已有与源文件同名的文件
+- **THEN** 迁移停止并报告冲突，不修改冲突文件
