@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
@@ -10,15 +10,37 @@
       "type": "title",
       "durationInFrames": 150,
       "narrationSegments": [
-        { "id": "n1", "text": "你有没有遇到过这种情况？", "beatId": "b1" },
-        { "id": "n2", "text": "明明比以前更努力，结果却几乎没变。", "beatId": "b2" }
+        {
+          "id": "n1",
+          "text": "你有没有遇到过这种情况？",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "明明比以前更努力，结果却几乎没变。",
+          "beatId": "b2"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["content-text"], "meaning": "先把读者熟悉的处境摆出来" },
-        { "id": "b2", "action": "transform", "targets": ["content-subtitle"], "meaning": "把疑问推进到「努力没换来结果」" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "content-text"
+          ],
+          "meaning": "先把读者熟悉的处境摆出来"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "content-subtitle"
+          ],
+          "meaning": "把疑问推进到「努力没换来结果」"
+        }
       ],
       "data": {
-        "text": "为什么\n努力没结果？",
+        "text": "努力无果？",
         "subtitle": "问题不在努力的程度",
         "emphasis": [
           "努力"
@@ -44,7 +66,7 @@
             "id": "content-text",
             "type": "text",
             "contentRef": "data.text",
-            "role": "headline"
+            "role": "title"
           },
           {
             "id": "content-subtitle",
@@ -58,30 +80,92 @@
         {
           "target": "content-text",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b1"
         },
         {
           "target": "content-subtitle",
           "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b2"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "content-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "content-text",
+            "intensity": 0.08
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "content-subtitle",
+            "intensity": 0.12
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "content-text",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "thesis",
       "type": "quote",
       "durationInFrames": 240,
       "narrationSegments": [
-        { "id": "n1", "text": "很多时候，努力没有结果。", "beatId": "b1" },
-        { "id": "n2", "text": "原因往往不是不够努力。", "beatId": "b2" },
-        { "id": "n3", "text": "而是方向错了。", "beatId": "b3" }
+        {
+          "id": "n1",
+          "text": "很多时候，努力没有结果。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "原因往往不是不够努力。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "而是方向错了。",
+          "beatId": "b3"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["path-a-start"], "meaning": "先给出「投入更多、结果不动」这一条链" },
-        { "id": "b2", "action": "connect", "targets": ["path-a-arrow"], "meaning": "把投入与结果连起来，说明瓶颈不在投入" },
-        { "id": "b3", "action": "connect", "targets": ["path-b-arrow"], "meaning": "把结果与方向连起来，指向真正的变量" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "path-a-start"
+          ],
+          "meaning": "先给出「投入更多、结果不动」这一条链"
+        },
+        {
+          "id": "b2",
+          "action": "connect",
+          "targets": [
+            "path-a-arrow"
+          ],
+          "meaning": "把投入与结果连起来，说明瓶颈不在投入"
+        },
+        {
+          "id": "b3",
+          "action": "connect",
+          "targets": [
+            "path-b-arrow"
+          ],
+          "meaning": "把结果与方向连起来，指向真正的变量"
+        }
       ],
       "data": {
         "text": "努力没有结果，\n往往不是因为不够努力，\n而是因为方向错了。",
@@ -118,7 +202,7 @@
             "id": "thesis-text",
             "type": "text",
             "contentRef": "data.text",
-            "role": "headline"
+            "role": "title"
           },
           {
             "id": "path-a",
@@ -204,42 +288,116 @@
         {
           "target": "thesis-text",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b1"
         },
         {
           "target": "path-a-arrow",
           "recipe": "draw",
-          "startFrame": 36,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b2"
         },
         {
           "target": "path-b-arrow",
           "recipe": "draw",
-          "startFrame": 72,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b3"
         },
         {
           "target": "path-b-end",
           "recipe": "rise",
-          "startFrame": 92,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b3"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "medium",
+        "composition": "split",
+        "depth": "layered",
+        "focus": "thesis-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "path-a-start",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "path-a-arrow",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "path-b-arrow",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "thesis-text",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "transform",
+        "source": "content-text",
+        "target": "thesis-text",
+        "meaning": "熟悉的挫败问题转成努力方向错误的解释"
+      }
     },
     {
       "id": "choice",
       "type": "comparison",
       "durationInFrames": 270,
       "narrationSegments": [
-        { "id": "n1", "text": "面对停滞，人有两种反应。", "beatId": "b1" },
-        { "id": "n2", "text": "一种是继续加大投入。", "beatId": "b2" },
-        { "id": "n3", "text": "另一种是先找出限制结果的那一环。", "beatId": "b3" }
+        {
+          "id": "n1",
+          "text": "面对停滞，人有两种反应。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "一种是继续加大投入。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "另一种是先找出限制结果的那一环。",
+          "beatId": "b3"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["choice-chart"], "meaning": "把两组柱子的读数摆出来" },
-        { "id": "b2", "action": "accumulate", "targets": ["choice-chart"], "meaning": "让投入那一栏继续涨，结果却不跟" },
-        { "id": "b3", "action": "compare", "targets": ["choice-chart"], "meaning": "并置两种反应，指出差别不在投入量" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "choice-chart"
+          ],
+          "meaning": "把两组柱子的读数摆出来"
+        },
+        {
+          "id": "b2",
+          "action": "accumulate",
+          "targets": [
+            "choice-chart"
+          ],
+          "meaning": "让投入那一栏继续涨，结果却不跟"
+        },
+        {
+          "id": "b3",
+          "action": "compare",
+          "targets": [
+            "choice-chart"
+          ],
+          "meaning": "并置两种反应，指出差别不在投入量"
+        }
       ],
       "data": {
         "title": "继续加大投入，结果几乎不动（示意）",
@@ -298,32 +456,116 @@
         {
           "target": "choice-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b1"
         },
         {
           "target": "choice-chart",
           "recipe": "reveal",
-          "startFrame": 28,
-          "durationFrames": 30
+          "durationFrames": 30,
+          "beatId": "b2"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "close",
+        "composition": "right",
+        "depth": "layered",
+        "focus": "choice-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "choice-chart",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "choice-chart",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "choice-chart",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "choice-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "break",
+        "source": "path-b-arrow",
+        "meaning": "改变方向的路径暂停，转而检视投入增加却没有结果的证据"
+      }
     },
     {
       "id": "loop",
       "type": "diagram",
       "durationInFrames": 390,
       "narrationSegments": [
-        { "id": "n1", "text": "约束会移动。", "beatId": "b1" },
-        { "id": "n2", "text": "解决问题、找到约束。", "beatId": "b2" },
-        { "id": "n3", "text": "采取行动、获得反馈。", "beatId": "b3" },
-        { "id": "n4", "text": "这是一个持续循环。", "beatId": "b4" }
+        {
+          "id": "n1",
+          "text": "约束会移动。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "解决问题、找到约束。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "采取行动、获得反馈。",
+          "beatId": "b3"
+        },
+        {
+          "id": "n4",
+          "text": "这是一个持续循环。",
+          "beatId": "b4"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["node-problem"], "meaning": "先摆出循环的起点" },
-        { "id": "b2", "action": "transform", "targets": ["node-constraint"], "meaning": "把问题推进到约束这一步" },
-        { "id": "b3", "action": "transform", "targets": ["node-action"], "meaning": "把约束推进到行动这一步" },
-        { "id": "b4", "action": "transform", "targets": ["node-feedback"], "meaning": "让四步首尾相接，指出它会重来" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "node-problem"
+          ],
+          "meaning": "先摆出循环的起点"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "node-constraint"
+          ],
+          "meaning": "把问题推进到约束这一步"
+        },
+        {
+          "id": "b3",
+          "action": "transform",
+          "targets": [
+            "node-action"
+          ],
+          "meaning": "把约束推进到行动这一步"
+        },
+        {
+          "id": "b4",
+          "action": "transform",
+          "targets": [
+            "node-feedback"
+          ],
+          "meaning": "让四步首尾相接，指出它会重来"
+        }
       ],
       "data": {
         "title": "约束会移动",
@@ -430,49 +672,123 @@
         {
           "target": "loop-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 18
+          "durationFrames": 18,
+          "beatId": "b1"
         },
         {
           "target": "node-problem",
           "recipe": "rise",
-          "startFrame": 30,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b2"
         },
         {
           "target": "node-constraint",
           "recipe": "rise",
-          "startFrame": 50,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b3"
         },
         {
           "target": "node-action",
           "recipe": "rise",
-          "startFrame": 70,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b4"
         },
         {
           "target": "node-feedback",
           "recipe": "rise",
-          "startFrame": 90,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "beatId": "b4"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "macro",
+        "composition": "full",
+        "depth": "layered",
+        "focus": "loop-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "node-problem",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "node-constraint",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "node-action",
+            "intensity": 0.35
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b4",
+            "focus": "node-feedback",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "loop-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "decompose",
+        "source": "choice-chart",
+        "targets": [
+          "node-problem",
+          "node-constraint",
+          "node-action",
+          "node-feedback"
+        ],
+        "meaning": "投入与结果的对照拆成约束循环的四个环节"
+      }
     },
     {
       "id": "closing",
       "type": "conclusion",
       "durationInFrames": 300,
       "narrationSegments": [
-        { "id": "n1", "text": "先找到限制结果的那个环节。", "beatId": "b1" },
-        { "id": "n2", "text": "再决定把努力放在哪里。", "beatId": "b2" }
+        {
+          "id": "n1",
+          "text": "先找到限制结果的那个环节。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "再决定把努力放在哪里。",
+          "beatId": "b2"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["content-text"], "meaning": "把结论落在「先找限制」上" },
-        { "id": "b2", "action": "transform", "targets": ["content-action"], "meaning": "把结论变成一条可执行的动作" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "content-text"
+          ],
+          "meaning": "把结论落在「先找限制」上"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "content-action"
+          ],
+          "meaning": "把结论变成一条可执行的动作"
+        }
       ],
       "data": {
-        "text": "先找到限制结果的环节，\n再决定把努力放在哪里。",
+        "text": "找瓶颈，\n用对力。",
         "action": "复盘一次最近没有结果的努力"
       },
       "visualIntent": {
@@ -501,7 +817,7 @@
             "id": "content-action",
             "type": "text",
             "contentRef": "data.action",
-            "role": "title"
+            "role": "body"
           }
         ]
       },
@@ -509,26 +825,80 @@
         {
           "target": "content-text",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b1"
         },
         {
           "target": "content-action",
           "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "beatId": "b2"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "content-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "content-text",
+            "intensity": 0.08
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "content-action",
+            "intensity": 0.12
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "content-text",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "transform",
+        "source": "loop-title",
+        "target": "content-text",
+        "meaning": "约束循环收束为先找限制环节再调整行动的结论"
+      }
     }
   ],
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "visualDirection": {
-    "motif": "legacy-migration",
+    "motif": "反馈环",
     "compositionBias": "mixed",
     "density": "balanced",
     "rhythm": "steady",
     "avoid": [
       "repeated-center"
     ]
+  },
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "努力无效往往来自反馈和方向失灵",
+    "audienceShift": "从增加投入转向寻找真正约束",
+    "emotionalArc": [
+      "受挫",
+      "清醒"
+    ],
+    "visualMotif": "反馈环",
+    "stylePack": "editorial",
+    "avoid": [
+      "静态文字页连续复用",
+      "脱离语义的装饰动效"
+    ]
+  },
+  "visual": {
+    "preset": "keynote",
+    "theme": "dark"
   }
 }

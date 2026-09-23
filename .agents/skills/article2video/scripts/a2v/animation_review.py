@@ -23,9 +23,8 @@
   关系容器里被标为当前阶段），同时点亮多处等于没有焦点。
 * A8 稳定结束：所有入场配方在结尾稳定段之前结束，画面不会在最后一帧还在动。
 
-**适用范围。** A1–A5、A7、A8 只约束**声明了分段口播的幕**：旧字符串口播的
-作品继续按原样预览与渲染（见 ``openspec/changes/add-narration-synced-visual-beats``
-的兼容承诺），报告里如实写成「跳过（旧格式）」而不是悄悄记成通过。
+**适用范围。** A1–A5、A7、A8 只约束**声明了分段口播的幕**：
+没有分段口播的静音场景不适用口播同步闸门；所有含口播场景必须使用 narrationSegments 与 beats。
 """
 
 from __future__ import annotations
@@ -318,6 +317,11 @@ def analyze(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> 
     时长取**清单里的派生时长**——场景可能被 TTS 拉长，结尾余量要按实际
     长度算，否则 A5 会把「派生后其实很宽裕」的幕报成余量不足。
     """
+    if storyboard.get("version") != 3 or storyboard.get("schemaVersion") != 3 or (
+        isinstance(storyboard.get("scenes"), list)
+        and any(isinstance(scene, dict) and "narration" in scene for scene in storyboard["scenes"])
+    ):
+        raise ValueError("不支持 v3 之前分镜或字符串口播；请按分镜 v3 契约重新编排")
     scenes = storyboard.get("scenes")
     scenes = scenes if isinstance(scenes, list) else []
     fps = storyboard.get("fps")
@@ -362,6 +366,8 @@ def analyze(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> 
                 "declaredDurationInFrames": scene.get("durationInFrames"),
                 "cues": scene_cues(all_cues, cursor, duration, fps),
                 "motions": scene.get("motions") or [],
+                "narrationSegments": scene.get("narrationSegments") or [],
+                "beats": scene.get("beats") or [],
                 "decorations": _decorations(scene_id, scene, declared),
                 "focus": _focus_counts(scene, timeline, duration),
             }
@@ -391,8 +397,7 @@ def review_gates(analysis: dict[str, Any]) -> dict[str, Any]:
     """把全片分析整理成 A1–A5、A7、A8 的闸门结论。
 
     状态只有三种：``pass``（量测通过）、``fail``（机检失败，进错误数与
-    退出码）、``skipped``（不适用，例如旧字符串口播的幕，或无声时无法核对
-    字幕同步）。跳过永远不写成通过。
+    退出码）、``skipped``（不适用，例如无声时无法核对字幕同步）。跳过永远不写成通过。
     """
     storyboard = analysis["storyboard"]
     scenes_by_id = {
@@ -585,22 +590,22 @@ def review_gates(analysis: dict[str, Any]) -> dict[str, Any]:
         for motion in item.get("motions") or []:
             if not isinstance(motion, dict):
                 continue
-            start = motion.get("startFrame")
-            span = motion.get("durationFrames")
-            if isinstance(start, bool) or not isinstance(start, int):
-                continue
-            if isinstance(span, bool) or not isinstance(span, int) or span <= 0:
-                span = 1
-            end = start + span
+            phase = str(motion.get("phase") or "")
+            beat = next((resolved for resolved in item["resolved"] if resolved.get("id") == motion.get("beatId")), None)
+            if beat:
+                start = int(beat["startFrame"])
+                end = start + int(motion.get("durationFrames") or 1)
+            else:
+                from .motion_plan import phase_spans
+                phases = phase_spans({"durationInFrames": duration, "narrationSegments": item.get("narrationSegments"), "beats": item.get("beats")})
+                span = phases.get(phase)
+                if span is None:
+                    continue
+                start = span.start_frame
+                end = min(span.end_frame, start + int(motion.get("durationFrames") or span.end_frame - span.start_frame))
             if end > deadline:
-                a8_issues.append(
-                    f"{item['id']}: 配方 {motion.get('recipe')} 作用于 {motion.get('target')}，"
-                    f"到第 {end} 帧才结束，距幕尾不足 {STABLE_READING_FRAMES} 帧"
-                )
-                a8_scenes.append(
-                    {"id": item["id"], "target": motion.get("target"), "recipe": motion.get("recipe"),
-                     "endFrame": end, "deadlineFrame": deadline}
-                )
+                a8_issues.append(f"{item['id']}: 配方 {motion.get('recipe')} 作用于 {motion.get('target') or motion.get('targets')}，到第 {end} 帧才结束，距幕尾不足 {STABLE_READING_FRAMES} 帧")
+                a8_scenes.append({"id": item["id"], "target": motion.get("target") or motion.get("targets"), "recipe": motion.get("recipe"), "endFrame": end, "deadlineFrame": deadline})
     a8 = _gate(
         "A8",
         "skipped" if not new_work else ("fail" if a8_issues else "pass"),

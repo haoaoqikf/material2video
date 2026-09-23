@@ -28,7 +28,8 @@ describe('场景树运行时', () => {
   });
   it('同一帧的动效样式可复现且不改变布局声明', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
-    scene.motions = [{ target: 'text', recipe: 'rise', startFrame: 0, durationFrames: 20 }];
+    scene.durationInFrames = 60;
+    scene.motions = [{ target: 'text', recipe: 'rise', phase: 'establish', durationFrames: 20 }];
     expect(motionStyle(scene, 'text', 7)).toEqual(motionStyle(scene, 'text', 7));
     expect(motionStyle(scene, 'text', 7, '', 'cinematic').transform).not.toEqual(motionStyle(scene, 'text', 7).transform);
     expect(scene.sceneTree!.children).toHaveLength(1);

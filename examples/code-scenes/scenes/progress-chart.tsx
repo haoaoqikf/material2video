@@ -30,11 +30,11 @@ const ProgressChart: A2VCodeScene<{
   );
 
   return (
-    <div style={{ position: 'absolute', left: 0, top: 400, width: 1080, height: 1080 }}>
+    <div style={{ position: 'absolute', left: 0, top: 200, width: 888, height: 1240 }}>
       <div
         style={{
           position: 'absolute',
-          left: 96,
+          left: 48,
           top: 0,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-accent)',
@@ -47,14 +47,14 @@ const ProgressChart: A2VCodeScene<{
       </div>
       <div
         ref={chart.ref}
-        style={{ position: 'absolute', left: 0, top: 110, width: 1080, height: 800 }}
+        style={{ position: 'absolute', left: 0, top: 88, width: 888, height: 660 }}
         {...probe({ node: 'chart-canvas', schematic: true })}
       />
       <div
         style={{
           position: 'absolute',
-          left: 96,
-          top: 940,
+          left: 48,
+          top: 800,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-text-1)',
           fontSize: 56,

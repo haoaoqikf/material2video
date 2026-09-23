@@ -62,6 +62,19 @@ def test_chart_labels_stay_readable():
         if ".a2v-primitive-bar span" in [part.strip() for part in selectors.split(",")]
     )
     assert "--a2v-size-label" in bar_span, "柱状图标签应取标签档字号（--a2v-size-label）"
+    assert "top: calc(100% + 8px)" in bar_span, "类别标签应排在柱体外，避免压在强调色上降低对比度"
+    assert "--a2v-text-1" in bar_span, "类别标签应使用可读性正文墨色"
+
+
+def test_schematic_labels_use_accessible_accent_ink():
+    """浅色主题强调蓝只有 4.55:1；示意标记须切换到正文对比度墨色。"""
+    css = _strip_comments(CSS.read_text(encoding="utf-8"))
+    schematic = next(
+        body
+        for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)
+        if ".a2v-schematic" in [part.strip() for part in selectors.split(",")]
+    )
+    assert "--a2v-accent-ink" in schematic
     bar_chart = next(
         body
         for selectors, body in re.findall(r"([^{}]+)\{([^{}]*)\}", css)

@@ -10,14 +10,28 @@ from __future__ import annotations
 import pytest
 
 from a2v import catalog, storyboard
-from test_scene_tree_v2 import v2
-
 MIDLEVEL = {"flow", "cycle", "timeline", "gauge", "pictogram"}
+
+def v3() -> dict:
+    return {
+        "version": 3, "schemaVersion": 3, "directingVersion": 1,
+        "directingBrief": {"thesis": "阶段推进", "audienceShift": "理解关系", "emotionalArc": ["观察", "确认"], "visualMotif": "流程", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"}, "fps": 30, "width": 1080, "height": 1920,
+        "visualDirection": {"motif": "流程", "compositionBias": "mixed", "density": "balanced", "rhythm": "steady", "avoid": []},
+        "scenes": [{
+            "id": "example", "type": "process", "durationInFrames": 90, "data": {"text": "阶段"},
+            "renderer": {"kind": "tree"},
+            "visualIntent": {"relation": "sequence", "focus": "shape", "composition": "center", "density": "balanced", "tone": "neutral", "mode": "process", "claim": "阶段逐步变化", "showWithoutText": "不同阶段在路径上依次推进", "primaryObject": "阶段路径", "motionMeaning": "阶段随节拍逐步出现"},
+            "camera": {"shot": "medium", "composition": "center", "depth": "flat", "focus": "root", "segments": [{"phase": "establish", "kind": "hold"}]},
+            "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text", "role": "body"}]},
+            "motions": [],
+        }],
+    }
 
 
 def staged(count: int, node_type: str = "text") -> dict:
     """把 base 分镜的场景树换成 `node_type` 容器 + `count` 个阶段。"""
-    data = v2()
+    data = v3()
     data["scenes"][0]["sceneTree"] = {
         "id": "root",
         "type": node_type,
@@ -32,7 +46,7 @@ def staged(count: int, node_type: str = "text") -> dict:
 
 def quantity(node_type: str, value: object, **extra: object) -> dict:
     """量级类原语：data.ratio 是内容引用指向的数值。"""
-    data = v2()
+    data = v3()
     data["scenes"][0]["data"] = {"text": "占比", "ratio": value}
     data["scenes"][0]["sceneTree"] = {
         "id": "root",
@@ -67,7 +81,7 @@ def test_icon_whitelist_is_the_registry_list():
     assert set(catalog.ICON_NAMES) == set(
         __import__("sync_catalog").load_registry()["icons"]
     )
-    # 旧分镜用过的四个名字必须继续有效
+    # 示例中使用的四个名称必须继续有效
     assert {"arrow", "check", "cross", "spark"} <= set(catalog.ICON_NAMES)
 
 

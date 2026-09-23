@@ -2,12 +2,12 @@ import { z } from 'zod';
 import { ICON_NAMES, PRIMITIVE_ACTIONS, PRIMITIVE_MOTIONS, PRIMITIVE_PROPS, PRIMITIVE_TYPES, SEMANTIC_ACTIONS, type IconName } from './primitiveTypes';
 import { supportsContinuityTransform } from '@/registry';
 
-export const STORYBOARD_VERSION = 2;
+export const STORYBOARD_VERSION = 3;
 const nonEmptyText = z.string().trim().min(1);
 const nodeId = z.string().regex(/^[A-Za-z0-9_-]+$/, '节点 id 只允许字母、数字、_ 与 -');
 export const motionRecipeSchema = z.enum(['reveal', 'fade', 'rise', 'count', 'draw']);
 export type MotionRecipe = z.infer<typeof motionRecipeSchema>;
-export const motionPhaseSchema = z.enum(['establish', 'change', 'result', 'settle']);
+export const motionPhaseSchema = z.enum(['establish', 'change', 'result']);
 export const staggerSchema = z.object({
   kind: z.enum(['forward', 'reverse', 'center', 'path']),
   intervalFrames: z.number().int().min(2).max(12).default(4),
@@ -61,7 +61,7 @@ export const sceneNodeSchema: z.ZodType<SceneNode> = z.lazy(() => z.object({
 
 /**
  * 逐幕视觉论证声明：导演意图字段，composition 不读取它们。
- * 保留在 schema 里是为了让旧运行时也能解析新版分镜（渲染语义不变）；
+ * 保留在 schema 里供 v3 契约报告呈现导演意图；
  * 校验语义由 Python 端 `a2v.visual_narrative` 负责。
  */
 export const visualModeSchema = z.enum(['metaphor', 'process', 'comparison', 'cycle', 'chart', 'image', 'typography']);
@@ -70,30 +70,31 @@ export const visualIntentSchema = z.object({
   relation: z.enum(['focus', 'contrast', 'sequence', 'cause', 'cycle', 'collection']),
   focus: z.enum(['text', 'number', 'shape', 'chart', 'path']), composition: z.enum(['center', 'offset', 'split', 'radial', 'full']),
   density: z.enum(['sparse', 'balanced', 'dense']), tone: z.enum(['calm', 'tense', 'neutral', 'uplifting', 'decisive']),
-  mode: visualModeSchema.optional(), claim: nonEmptyText.optional(), showWithoutText: nonEmptyText.optional(),
-  primaryObject: nonEmptyText.optional(), motionMeaning: nonEmptyText.optional(),
+  mode: visualModeSchema, claim: nonEmptyText, showWithoutText: nonEmptyText,
+  primaryObject: nonEmptyText, motionMeaning: nonEmptyText,
 }).strict();
 export const motionSchema = z.object({
   target: nodeId.optional(), targets: z.array(nodeId).min(1).optional(), recipe: motionRecipeSchema,
   phase: motionPhaseSchema.optional(), beatId: nodeId.optional(), stagger: staggerSchema.optional(),
-  startFrame: z.number().int().min(0).optional(), durationFrames: z.number().int().positive().optional(),
+  durationFrames: z.number().int().positive().optional(),
 }).strict().superRefine((motion, ctx) => {
   if (Boolean(motion.target) === Boolean(motion.targets)) ctx.addIssue({ code: 'custom', path: ['target'], message: 'target 与 targets 必须二选一' });
-  if (motion.beatId && motion.startFrame !== undefined) ctx.addIssue({ code: 'custom', path: ['startFrame'], message: '绑定 beatId 后不能声明绝对 startFrame' });
+  if (Boolean(motion.phase) === Boolean(motion.beatId)) ctx.addIssue({ code: 'custom', path: ['phase'], message: 'motion 必须且只能绑定 phase 或 beatId' });
   if (motion.stagger && !motion.targets) ctx.addIssue({ code: 'custom', path: ['stagger'], message: 'stagger 只适用于 targets 节点组' });
-}).transform((motion) => ({ ...motion, startFrame: motion.startFrame ?? 0 }));
+  if (motion.targets && !motion.stagger) ctx.addIssue({ code: 'custom', path: ['stagger'], message: '编组 motion 必须声明错峰策略 stagger' });
+});
 
 export const directingVersionSchema = z.literal(1);
 export const directingBriefSchema = z.object({ thesis: nonEmptyText, audienceShift: nonEmptyText, emotionalArc: z.array(nonEmptyText).min(2), visualMotif: nonEmptyText, stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']), avoid: z.array(nonEmptyText).default([]) }).strict();
 export const cameraSegmentSchema = z.object({
   kind: z.enum(['hold', 'push-in', 'pull-out', 'pan', 'reframe', 'settle']),
-  beatId: nodeId.optional(), phase: motionPhaseSchema.optional(), focus: nodeId.optional(),
+  beatId: nodeId.optional(), phase: z.enum(['establish', 'change', 'result', 'settle']).optional(), focus: nodeId.optional(),
   direction: z.enum(['left', 'right', 'up', 'down']).optional(), intensity: z.number().min(0).max(1).default(0.5),
 }).strict().superRefine((segment, ctx) => {
   if (Boolean(segment.beatId) === Boolean(segment.phase)) ctx.addIssue({ code: 'custom', path: ['beatId'], message: '镜头段必须在 beatId 与 phase 中二选一' });
   if (segment.kind === 'pan' && !segment.direction) ctx.addIssue({ code: 'custom', path: ['direction'], message: 'pan 必须声明方向' });
 });
-export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, movement: z.enum(['static', 'push-in', 'pull-out', 'pan-left', 'pan-right', 'orbit']), segments: z.array(cameraSegmentSchema).min(1).optional() }).strict();
+export const cameraSchema = z.object({ shot: z.enum(['macro', 'close', 'medium', 'wide']), composition: z.enum(['center', 'left', 'right', 'split', 'full']), depth: z.enum(['flat', 'layered']), focus: nodeId, segments: z.array(cameraSegmentSchema).min(1) }).strict();
 export const transitionSchema = z.object({
   kind: z.enum(['inherit', 'transform', 'decompose', 'recompose', 'dissolve', 'break']),
   source: nodeId.optional(), target: nodeId.optional(),
@@ -138,10 +139,10 @@ const STRUCTURAL_NODE_KEYS = ['id', 'type', 'children'] as const;
 
 export const sceneSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_-]+$/, 'id 只允许字母、数字、_ 与 -'), type: nonEmptyText,
-  durationInFrames: z.number().int().positive(), narration: z.string().optional(), data: z.record(z.string(), z.unknown()),
+  durationInFrames: z.number().int().positive(), data: z.record(z.string(), z.unknown()),
   narrationSegments: z.array(narrationSegmentSchema).optional(), beats: z.array(beatSchema).optional(),
   resolvedBeats: z.array(resolvedBeatSchema).optional(),
-  visualIntent: visualIntentSchema, camera: cameraSchema.optional(), transition: transitionSchema.optional(), renderer: rendererSchema.optional(), sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
+  visualIntent: visualIntentSchema, camera: cameraSchema, transition: transitionSchema.optional(), renderer: rendererSchema, sceneTree: sceneNodeSchema.optional(), motions: z.array(motionSchema).default([]),
   visual: z.object({ kicker: z.string().optional() }).strict().optional(),
 }).strict().superRefine((scene, ctx) => {
   const isCode = scene.renderer?.kind === 'code';
@@ -152,6 +153,7 @@ export const sceneSchema = z.object({
   } else if (!scene.sceneTree) {
     ctx.addIssue({ code: 'custom', path: ['sceneTree'], message: 'tree 场景必须包含一棵场景树（sceneTree）' });
   }
+  if (scene.id !== '__first_scene__' && scene.transition === undefined) { /* root continuity is checked with storyboard order */ }
   const tree = scene.sceneTree;
   if (!tree) {
     // 代码场景：节点是运行期探针 id，静态核验不了，只做跨字段规则
@@ -186,8 +188,11 @@ export const sceneSchema = z.object({
     const targets = motion.targets ?? (motion.target ? [motion.target] : []);
     targets.forEach((target, position) => { if (!ids.has(target)) ctx.addIssue({ code: 'custom', path: ['motions', index, motion.targets ? 'targets' : 'target', ...(motion.targets ? [position] : [])], message: `动效目标 ${target} 不存在` }); });
     if (motion.beatId && !scene.beats?.some((beat) => beat.id === motion.beatId)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'beatId'], message: `动效引用了不存在的 beat ${motion.beatId}` });
-    if (motion.startFrame + (motion.durationFrames ?? 1) > scene.durationInFrames) ctx.addIssue({ code: 'custom', path: ['motions', index], message: '动效时间范围超出场景' });
+
     targets.forEach((target) => { const supported = PRIMITIVE_MOTIONS[types.get(target) ?? ''] ?? []; if (!supported.includes(motion.recipe)) ctx.addIssue({ code: 'custom', path: ['motions', index, 'recipe'], message: `原语 ${types.get(target) ?? '（未知）'} 不支持动效 ${motion.recipe}` }); });
+    if (motion.durationFrames !== undefined && motion.durationFrames > scene.durationInFrames) ctx.addIssue({ code: 'custom', path: ['motions', index, 'durationFrames'], message: '动效时长不能超过场景时长' });
+    const staggerOffset = motion.targets && motion.stagger ? (motion.targets.length - 1) * motion.stagger.intervalFrames : 0;
+    if ((motion.durationFrames ?? 1) + staggerOffset > scene.durationInFrames) ctx.addIssue({ code: 'custom', path: ['motions', index], message: '编组错峰动效超出场景时间轴' });
   });
   scene.camera?.segments?.forEach((segment, index) => {
     if (segment.beatId && !scene.beats?.some((beat) => beat.id === segment.beatId)) ctx.addIssue({ code: 'custom', path: ['camera', 'segments', index, 'beatId'], message: `镜头段引用了不存在的 beat ${segment.beatId}` });
@@ -210,9 +215,6 @@ export const sceneSchema = z.object({
 function validateBeats(scene: Scene, ctx: z.RefinementCtx, types: Map<string, string> | null): void {
   const segments = scene.narrationSegments;
   const beats = scene.beats;
-  if (segments && scene.narration !== undefined) {
-    ctx.addIssue({ code: 'custom', path: ['narrationSegments'], message: 'narration 与 narrationSegments 互斥：每幕二选一，分段口播的完整文本由各段按顺序拼接' });
-  }
   const indexById = new Map<string, number>();
   beats?.forEach((beat, index) => {
     const previous = indexById.get(beat.id);
@@ -290,11 +292,11 @@ function validateResolvedBeats(scene: Scene, ctx: z.RefinementCtx): void {
 export type Scene = z.infer<typeof sceneSchema>;
 
 export const storyboardSchema = z.object({
-  version: z.literal(STORYBOARD_VERSION), schemaVersion: z.literal(2), fps: z.number().int().min(1).max(120),
+  version: z.literal(STORYBOARD_VERSION), schemaVersion: z.literal(3), fps: z.number().int().min(1).max(120),
   width: z.number().int().positive().default(1080), height: z.number().int().positive().default(1920), title: z.string().optional(),
-  visualDirection: z.object({ motif: nonEmptyText, compositionBias: z.enum(['centered', 'asymmetric', 'mixed']), density: z.enum(['sparse', 'balanced', 'dense']), rhythm: z.enum(['restrained', 'steady', 'dynamic']), avoid: z.array(nonEmptyText).default([]), emotionalArc: z.array(nonEmptyText).min(2).optional(), stylePack: z.enum(['editorial', 'cinematic', 'technical', 'poetic']).optional() }).strict(),
-  directingVersion: directingVersionSchema.optional(), directingBrief: directingBriefSchema.optional(),
-  scenes: z.array(sceneSchema).nonempty(), visual: z.object({ theme: z.enum(['dark', 'light']).default('dark'), preset: z.literal('keynote').optional() }).strict().optional(),
+  visualDirection: z.object({ motif: nonEmptyText, compositionBias: z.enum(['centered', 'asymmetric', 'mixed']), density: z.enum(['sparse', 'balanced', 'dense']), rhythm: z.enum(['restrained', 'steady', 'dynamic']), avoid: z.array(nonEmptyText).default([]) }).strict(),
+  directingVersion: directingVersionSchema, directingBrief: directingBriefSchema,
+  scenes: z.array(sceneSchema).nonempty(), visual: z.object({ theme: z.enum(['dark', 'light']).default('dark'), preset: z.literal('keynote') }).strict(),
 }).strict().superRefine((storyboard, ctx) => {
   if (storyboard.directingVersion === 1 && !storyboard.directingBrief) {
     ctx.addIssue({ code: 'custom', path: ['directingBrief'], message: 'directingVersion=1 必须同时提供 directingBrief' });
@@ -313,6 +315,7 @@ function nodeTypes(scene: Scene): Map<string, string> {
 function validateContinuity(storyboard: { scenes: Scene[] }, ctx: z.RefinementCtx): void {
   storyboard.scenes.forEach((scene, index) => {
     const transition = scene.transition;
+    if (index > 0 && !transition) ctx.addIssue({ code: 'custom', path: ['scenes', index, 'transition'], message: 'v3 第二幕起必须显式声明跨幕 transition' });
     if (!transition) return;
     const path = ['scenes', index, 'transition'] as (string | number)[];
     if (index === 0) { ctx.addIssue({ code: 'custom', path, message: '第一幕不能声明跨幕 transition' }); return; }
@@ -363,11 +366,11 @@ export type Storyboard = z.infer<typeof storyboardSchema>;
 export type StoryboardInput = z.input<typeof storyboardSchema>;
 export function parseStoryboard(input: unknown): Storyboard {
   const result = storyboardSchema.safeParse(input); if (result.success) return result.data;
-  if (input && typeof input === 'object' && (input as Record<string, unknown>).version === 1) throw new Error('旧版分镜不能直接渲染；请先运行 migrate_storyboard.py 显式迁移到场景树 v2');
+  if (input && typeof input === 'object' && ((input as Record<string, unknown>).version === 1 || (input as Record<string, unknown>).version === 2)) throw new Error('不支持 v3 之前分镜；请按分镜 v3 契约重新编排');
   const detail = result.error.issues.map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`).join('; '); throw new Error(`分镜脚本结构校验失败 —— ${detail}`);
 }
 export const EMPTY_STORYBOARD: Storyboard = {
-  version: 2, schemaVersion: 2, fps: 30, width: 1080, height: 1920, title: '（未传入分镜）',
+  version: 3, schemaVersion: 3, directingVersion: 1, directingBrief: { thesis: 'placeholder', audienceShift: 'placeholder', emotionalArc: ['calm', 'clear'], visualMotif: 'line', stylePack: 'editorial', avoid: [] }, visual: { theme: 'dark', preset: 'keynote' }, fps: 30, width: 1080, height: 1920, title: '（未传入分镜）',
   visualDirection: { motif: 'placeholder', compositionBias: 'centered', density: 'sparse', rhythm: 'restrained', avoid: [] },
-  scenes: [{ id: 'placeholder', type: 'title', durationInFrames: 30, data: { text: '未传入分镜' }, visualIntent: { relation: 'focus', focus: 'text', composition: 'center', density: 'sparse', tone: 'neutral' }, sceneTree: { id: 'root', type: 'stack', children: [{ id: 'text', type: 'text', contentRef: 'data.text', role: 'headline' }] }, motions: [] }],
+  scenes: [{ id: 'placeholder', type: 'title', durationInFrames: 30, data: { text: '未传入分镜' }, visualIntent: { relation: 'focus', focus: 'text', composition: 'center', density: 'sparse', tone: 'neutral', mode: 'typography', claim: 'placeholder', showWithoutText: 'A single text anchor.', primaryObject: 'headline', motionMeaning: 'The headline enters.' }, camera: { shot: 'medium', composition: 'center', depth: 'flat', focus: 'text', segments: [{ kind: 'hold', phase: 'establish', intensity: 0 }] }, renderer: { kind: 'tree' }, sceneTree: { id: 'root', type: 'stack', children: [{ id: 'text', type: 'text', contentRef: 'data.text', role: 'headline' }] }, motions: [] }],
 };

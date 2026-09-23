@@ -286,8 +286,11 @@ class TestRenderTimeoutCleanup:
 
 def _minimal_storyboard() -> dict:
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试", "audienceShift": "理解", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -298,7 +301,9 @@ def _minimal_storyboard() -> dict:
                 "type": "title",
                 "durationInFrames": 30,
                 "data": {"text": "开场"},
-                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "开场", "showWithoutText": "单个开场文字", "primaryObject": "开场标题", "motionMeaning": "逐步显示"},
+                "renderer": {"kind": "tree"},
+                "camera": {"shot": "medium", "composition": "center", "depth": "flat", "focus": "copy", "segments": [{"phase": "establish", "kind": "hold", "focus": "copy"}]},
                 "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
                 "motions": [],
             }
@@ -315,7 +320,7 @@ class TestRuntimeIsolation:
 
         page_html = """<!doctype html><html><body><script>
 window.__A2V__ = {
-  version: 2, fps: 30, width: 1080, height: 1920, durationInFrames: 30,
+  version: 3, fps: 30, width: 1080, height: 1920, durationInFrames: 30,
   ready: () => Promise.resolve(),
   seekToFrame: () => Promise.resolve(),
   currentFrame: () => 0,

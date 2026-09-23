@@ -14,7 +14,7 @@ export interface SceneMotionPlan { motions: readonly PlannedMotion[]; phases: Re
 const clamp = (value: number, min = 0, max = 1): number => Math.min(max, Math.max(min, value));
 const ease = (value: number): number => 1 - (1 - clamp(value)) ** 3;
 
-function defaultPhases(duration: number, timeline: BeatTimeline): Record<MotionPhase, FrameSpan> {
+export function defaultPhases(duration: number, timeline: BeatTimeline): Record<MotionPhase, FrameSpan> {
   const settleStart = Math.max(0, duration - STABLE_READING_FRAMES);
   const beats = timeline.beats;
   if (beats.length) {
@@ -38,12 +38,12 @@ export function sceneMotionPlan(scene: Scene, timeline: BeatTimeline): SceneMoti
   const phases = defaultPhases(scene.durationInFrames, timeline); const settleStart = phases.settle.startFrame;
   const beats = new Map(timeline.beats.map((beat) => [beat.id, beat])); const motions: PlannedMotion[] = [];
   scene.motions.forEach((motion, sourceIndex) => {
-    const phase = motion.phase ?? (motion.beatId ? 'change' : 'establish');
+    const phase = motion.phase ?? 'change';
     const bound = motion.beatId ? beats.get(motion.beatId) : undefined;
-    const base = bound ?? phases[phase]; const duration = Math.max(1, Math.min(motion.durationFrames ?? Math.max(1, base.endFrame - base.startFrame), settleStart - base.startFrame));
-    const targets = motion.targets ?? (motion.target ? [motion.target] : []); const ordered = staggerOrder(targets, motion.stagger?.kind ?? 'forward', motion.stagger?.path);
+    const base = bound ?? phases[phase]; const duration = Math.max(1, Math.min(motion.durationFrames ?? Math.max(1, base.endFrame - base.startFrame), Math.max(1, base.endFrame - base.startFrame), settleStart - base.startFrame));
+    const targets = motion.targets ?? (motion.target ? [motion.target] : []); const ordered = motion.stagger ? staggerOrder(targets, motion.stagger.kind, motion.stagger.path) : targets;
     const interval = motion.stagger?.intervalFrames ?? 0;
-    ordered.forEach((target, index) => { const startFrame = Math.min(settleStart - 1, (motion.beatId || motion.phase ? base.startFrame : motion.startFrame) + index * interval); motions.push({ target, recipe: motion.recipe, phase, sourceIndex, startFrame, endFrame: Math.min(settleStart, startFrame + duration) }); });
+    ordered.forEach((target, index) => { const startFrame = Math.min(settleStart - 1, base.startFrame + index * interval); motions.push({ target, recipe: motion.recipe, phase, sourceIndex, startFrame, endFrame: Math.min(settleStart, startFrame + duration) }); });
   });
   return { motions, phases, settleStart };
 }

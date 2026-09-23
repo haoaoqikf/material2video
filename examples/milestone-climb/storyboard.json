@@ -1,19 +1,22 @@
 {
-  "version": 2,
-  "schemaVersion": 2,
+  "version": 3,
+  "schemaVersion": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "把目标切成台阶",
   "visualDirection": {
-    "motif": "台阶",
+    "motif": "山径",
     "compositionBias": "centered",
     "density": "balanced",
     "rhythm": "steady",
-    "avoid": ["repeated-center"]
+    "avoid": [
+      "repeated-center"
+    ]
   },
   "visual": {
-    "theme": "dark"
+    "theme": "dark",
+    "preset": "keynote"
   },
   "scenes": [
     {
@@ -41,16 +44,74 @@
         "type": "stack",
         "gap": "lg",
         "children": [
-          { "id": "claim-text", "type": "text", "contentRef": "data.text", "role": "headline" },
-          { "id": "claim-line", "type": "shape", "shape": "line", "state": "focus" },
-          { "id": "claim-sub", "type": "text", "contentRef": "data.subtitle", "role": "body", "state": "muted" }
+          {
+            "id": "claim-text",
+            "type": "text",
+            "contentRef": "data.text",
+            "role": "headline"
+          },
+          {
+            "id": "claim-line",
+            "type": "shape",
+            "shape": "line",
+            "state": "focus"
+          },
+          {
+            "id": "claim-sub",
+            "type": "text",
+            "contentRef": "data.subtitle",
+            "role": "body",
+            "state": "muted"
+          }
         ]
       },
       "motions": [
-        { "target": "claim-text", "recipe": "reveal", "startFrame": 0, "durationFrames": 20 },
-        { "target": "claim-line", "recipe": "draw", "startFrame": 16, "durationFrames": 18 },
-        { "target": "claim-sub", "recipe": "fade", "startFrame": 30, "durationFrames": 20 }
-      ]
+        {
+          "target": "claim-text",
+          "recipe": "reveal",
+          "durationFrames": 20,
+          "phase": "establish"
+        },
+        {
+          "target": "claim-line",
+          "recipe": "draw",
+          "durationFrames": 18,
+          "phase": "change"
+        },
+        {
+          "target": "claim-sub",
+          "recipe": "fade",
+          "durationFrames": 20,
+          "phase": "result"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "flat",
+        "focus": "claim-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "claim-text",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "climb",
@@ -59,11 +120,26 @@
       "data": {
         "title": "每周推进的台阶数（示意）",
         "values": [
-          { "label": "第一周", "value": 2 },
-          { "label": "第二周", "value": 5 },
-          { "label": "第三周", "value": 4 },
-          { "label": "第四周", "value": 8 },
-          { "label": "第五周", "value": 11 }
+          {
+            "label": "第一周",
+            "value": 2
+          },
+          {
+            "label": "第二周",
+            "value": 5
+          },
+          {
+            "label": "第三周",
+            "value": 4
+          },
+          {
+            "label": "第四周",
+            "value": 8
+          },
+          {
+            "label": "第五周",
+            "value": 11
+          }
         ]
       },
       "visualIntent": {
@@ -83,14 +159,68 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "climb-title", "type": "text", "contentRef": "data.title", "role": "title" },
-          { "id": "climb-chart", "type": "chart", "contentRef": "data.values", "chart": "bar", "schematic": true }
+          {
+            "id": "climb-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
+          {
+            "id": "climb-chart",
+            "type": "chart",
+            "contentRef": "data.values",
+            "chart": "bar",
+            "schematic": true
+          }
         ]
       },
       "motions": [
-        { "target": "climb-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "climb-chart", "recipe": "reveal", "startFrame": 12, "durationFrames": 30 }
-      ]
+        {
+          "target": "climb-title",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "phase": "establish"
+        },
+        {
+          "target": "climb-chart",
+          "recipe": "reveal",
+          "durationFrames": 30,
+          "phase": "change"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "medium",
+        "composition": "split",
+        "depth": "layered",
+        "focus": "climb-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "climb-title",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "transform",
+        "source": "claim-text",
+        "target": "climb-title",
+        "meaning": "目标太大转成逐步爬升的阶梯图"
+      }
     },
     {
       "id": "one-step",
@@ -99,8 +229,12 @@
       "data": {
         "value": 1,
         "label": "阶",
-        "caption": "焦虑的解药是一次只看一级（示意）",
-        "steps": ["这一级", "下一级", "再下一级"]
+        "caption": "先走一步。",
+        "steps": [
+          "这一级",
+          "下一级",
+          "再下一级"
+        ]
       },
       "visualIntent": {
         "relation": "focus",
@@ -119,18 +253,35 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          {
-            "id": "step-hero",
+        {
+          "id": "step-hero",
             "type": "row",
             "align": "center",
             "gap": "sm",
             "children": [
-              { "id": "step-number", "type": "number", "contentRef": "data.value", "role": "hero", "schematic": true },
-              { "id": "step-unit", "type": "text", "contentRef": "data.label", "role": "title" }
-            ]
-          },
-          {
-            "id": "step-track",
+              {
+                "id": "step-number",
+                "type": "number",
+                "contentRef": "data.value",
+                "role": "hero",
+                "schematic": true
+              },
+              {
+              "id": "step-unit",
+                "type": "text",
+                "contentRef": "data.label",
+              "role": "title"
+              }
+          ]
+        },
+        {
+          "id": "step-caption",
+          "type": "text",
+          "contentRef": "data.caption",
+          "role": "label"
+        },
+        {
+          "id": "step-track",
             "type": "row",
             "align": "center",
             "gap": "sm",
@@ -139,34 +290,131 @@
                 "id": "step-now",
                 "type": "surface",
                 "state": "focus",
-                "children": [{ "id": "step-now-text", "type": "text", "contentRef": "data.steps[0]", "role": "title" }]
+                "children": [
+                  {
+                "id": "step-now-text",
+                    "type": "text",
+                    "contentRef": "data.steps[0]",
+                "role": "body"
+                  }
+                ]
               },
-              { "id": "step-arrow-1", "type": "connector", "direction": "ltr" },
+              {
+                "id": "step-arrow-1",
+                "type": "connector",
+                "direction": "ltr"
+              },
               {
                 "id": "step-next",
                 "type": "surface",
                 "state": "muted",
-                "children": [{ "id": "step-next-text", "type": "text", "contentRef": "data.steps[1]", "role": "title" }]
+                "children": [
+                  {
+                "id": "step-next-text",
+                    "type": "text",
+                    "contentRef": "data.steps[1]",
+                "role": "body"
+                  }
+                ]
               },
-              { "id": "step-arrow-2", "type": "connector", "direction": "ltr" },
+              {
+                "id": "step-arrow-2",
+                "type": "connector",
+                "direction": "ltr"
+              },
               {
                 "id": "step-later",
                 "type": "surface",
                 "state": "muted",
-                "children": [{ "id": "step-later-text", "type": "text", "contentRef": "data.steps[2]", "role": "title" }]
+                "children": [
+                  {
+                "id": "step-later-text",
+                    "type": "text",
+                    "contentRef": "data.steps[2]",
+                "role": "body"
+                  }
+                ]
               }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "step-number", "recipe": "count", "startFrame": 2, "durationFrames": 14 },
-        { "target": "step-unit", "recipe": "reveal", "startFrame": 4, "durationFrames": 12 },
-        { "target": "step-arrow-1", "recipe": "draw", "startFrame": 8, "durationFrames": 10 },
-        { "target": "step-next", "recipe": "reveal", "startFrame": 12, "durationFrames": 10 },
-        { "target": "step-arrow-2", "recipe": "draw", "startFrame": 16, "durationFrames": 10 },
-        { "target": "step-later", "recipe": "reveal", "startFrame": 20, "durationFrames": 10 }
-      ]
+        {
+          "target": "step-number",
+          "recipe": "count",
+          "durationFrames": 14,
+          "phase": "establish"
+        },
+        {
+          "target": "step-unit",
+          "recipe": "reveal",
+          "durationFrames": 12,
+          "phase": "change"
+        },
+        {
+          "target": "step-caption",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "phase": "establish"
+        },
+        {
+          "target": "step-arrow-1",
+          "recipe": "draw",
+          "durationFrames": 10,
+          "phase": "change"
+        },
+        {
+          "target": "step-next",
+          "recipe": "reveal",
+          "durationFrames": 10,
+          "phase": "change"
+        },
+        {
+          "target": "step-arrow-2",
+          "recipe": "draw",
+          "durationFrames": 10,
+          "phase": "result"
+        },
+        {
+          "target": "step-later",
+          "recipe": "reveal",
+          "durationFrames": 10,
+          "phase": "result"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "close",
+        "composition": "right",
+        "depth": "layered",
+        "focus": "step-number",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "step-number",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "break",
+        "source": "climb-chart",
+        "meaning": "整体爬升视图停住，镜头落到眼前的一步"
+      }
     },
     {
       "id": "recap",
@@ -174,7 +422,12 @@
       "durationInFrames": 100,
       "data": {
         "title": "可数的台阶长这样",
-        "cells": ["看得见", "够得着", "数得出", "可回退"]
+        "cells": [
+          "看得见",
+          "够得着",
+          "数得出",
+          "可回退"
+        ]
       },
       "visualIntent": {
         "relation": "collection",
@@ -193,28 +446,155 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "recap-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "recap-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
           {
             "id": "recap-grid",
             "type": "grid",
             "columns": 2,
             "gap": "sm",
             "children": [
-              { "id": "cell-1", "type": "surface", "children": [{ "id": "cell-1-text", "type": "text", "contentRef": "data.cells[0]", "role": "body" }] },
-              { "id": "cell-2", "type": "surface", "children": [{ "id": "cell-2-text", "type": "text", "contentRef": "data.cells[1]", "role": "body" }] },
-              { "id": "cell-3", "type": "surface", "children": [{ "id": "cell-3-text", "type": "text", "contentRef": "data.cells[2]", "role": "body" }] },
-              { "id": "cell-4", "type": "surface", "children": [{ "id": "cell-4-text", "type": "text", "contentRef": "data.cells[3]", "role": "body" }] }
+              {
+                "id": "cell-1",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "cell-1-text",
+                    "type": "text",
+                    "contentRef": "data.cells[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "cell-2",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "cell-2-text",
+                    "type": "text",
+                    "contentRef": "data.cells[1]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "cell-3",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "cell-3-text",
+                    "type": "text",
+                    "contentRef": "data.cells[2]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "cell-4",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "cell-4-text",
+                    "type": "text",
+                    "contentRef": "data.cells[3]",
+                    "role": "body"
+                  }
+                ]
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "recap-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "cell-1", "recipe": "rise", "startFrame": 10, "durationFrames": 16 },
-        { "target": "cell-2", "recipe": "rise", "startFrame": 22, "durationFrames": 16 },
-        { "target": "cell-3", "recipe": "rise", "startFrame": 34, "durationFrames": 16 },
-        { "target": "cell-4", "recipe": "rise", "startFrame": 46, "durationFrames": 16 }
-      ]
+        {
+          "target": "recap-title",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "phase": "establish"
+        },
+        {
+          "target": "cell-1",
+          "recipe": "rise",
+          "durationFrames": 16,
+          "phase": "change"
+        },
+        {
+          "target": "cell-2",
+          "recipe": "rise",
+          "durationFrames": 16,
+          "phase": "result"
+        },
+        {
+          "target": "cell-3",
+          "recipe": "rise",
+          "durationFrames": 16,
+          "phase": "result"
+        },
+        {
+          "target": "cell-4",
+          "recipe": "rise",
+          "durationFrames": 16,
+          "phase": "result"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "macro",
+        "composition": "full",
+        "depth": "flat",
+        "focus": "recap-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "recap-title",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "decompose",
+        "source": "step-track",
+        "targets": [
+          "cell-1",
+          "cell-2",
+          "cell-3",
+          "cell-4"
+        ],
+        "meaning": "当前一步展开为四个可回顾的里程碑"
+      }
     }
-  ]
+  ],
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "长期目标由连续里程碑构成",
+    "audienceShift": "从遥远目标转向看见下一步",
+    "emotionalArc": [
+      "受阻",
+      "前进"
+    ],
+    "visualMotif": "山径",
+    "stylePack": "cinematic",
+    "avoid": [
+      "静态文字页连续复用",
+      "脱离语义的装饰动效"
+    ]
+  }
 }

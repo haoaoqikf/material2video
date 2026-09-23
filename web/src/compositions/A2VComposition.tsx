@@ -28,7 +28,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const theme = storyboard.visual?.theme ?? 'dark';
   const preset = storyboard.visual?.preset;
   const presetEnabled = preset === 'keynote';
-  const stylePack = storyboard.directingBrief?.stylePack;
+  const stylePack = storyboard.directingBrief.stylePack;
   const activeLocalFrame = Math.min(Math.max(frame - starts[activeIndex]!, 0), storyboard.scenes[activeIndex]!.durationInFrames - 1);
   const activeContinuity = continuityFor(storyboard, activeIndex);
   const showOutgoing = isContinuityActive(activeContinuity, activeLocalFrame);
@@ -78,7 +78,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         style={active ? { ...transitionStyle(scene, localFrame, stylePack), zIndex: 1 } : outgoing ? { zIndex: 2 } : { display: 'none' }}>
         {/* code 场景同样置于安全区内；它不经过场景树排版与取档逻辑 */}
         <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version={storyboard.schemaVersion}>
-          <div className="a2v-camera" style={cameraStyle(scene, localFrame)} data-a2v-camera={scene.camera?.movement ?? 'none'}>
+          <div className="a2v-camera" data-a2v-code-camera={isCode ? '' : undefined} style={cameraStyle(scene, localFrame)} data-a2v-camera={scene.camera.segments.map((segment) => segment.kind).join(',')}>
           {isCode ? (
             <CodeSceneHost
               scene={scene}

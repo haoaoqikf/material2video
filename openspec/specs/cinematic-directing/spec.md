@@ -28,9 +28,9 @@
 ### Requirement: 风格包统一作品级视觉语言
 一个作品 SHALL 只启用一个主风格包；色彩、表面、线条、排版、动效曲线和转场配方 SHALL 从该风格包取值。未显式声明风格包的分镜 SHALL 使用注册表规定的默认风格包和新版动画语言，而不是保留旧运行时行为。
 
-#### Scenario: 风格包兼容
-- **WHEN** 有效旧分镜未声明新风格包
-- **THEN** 预览和渲染使用默认风格包与新版动画语言，且无需改写源分镜
+#### Scenario: 分镜声明风格包
+- **WHEN** v3 分镜指定 `directingBrief.stylePack`
+- **THEN** 预览和渲染按该风格包选择视觉令牌与新版动画语言
 
 ### Requirement: 镜头由受控多段轨迹组成
 场景镜头 SHALL 可由 `hold`、`push-in`、`pull-out`、`pan`、`reframe`、`settle` 组成有序轨迹。每段 SHALL 绑定一个有效 beat 或结果阶段，且 SHALL 从上一段终态连续开始；场景不得以非零镜头速度进入稳定阅读窗口。

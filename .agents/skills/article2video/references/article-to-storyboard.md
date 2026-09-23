@@ -72,7 +72,7 @@
 - 声明非文字模式却无结构证据的幕报错；
 - 逐幕缺少上述论证字段报错。
 
-普通校验（不带 `--strict`）对缺少新字段的旧分镜只给兼容警告，预览与渲染照常；交付闭环必须通过严格校验。
+v1/v2 分镜和缺少 v3 必填字段的分镜在普通与严格校验、预览、配音准备、评审和渲染中统一拒绝。`--strict` 另外执行全片质量门槛。
 
 ## 动画论证（A 系列）
 
@@ -90,8 +90,7 @@
 - **A8 稳定结束**：所有入场配方在幕尾前 12 帧结束。
 
 A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，缺失即「待评审」，
-既不会伪造成脚本错误，也不会被当成默认合格。旧字符串口播的幕与无声预览下的 A4
-如实记为「跳过」——**跳过不等于通过**。判据、错误措辞与人工写法见
+既不会伪造成脚本错误，也不会被当成默认合格。无声幕与无媒体时的 A4 如实记为「跳过」——**跳过不等于通过**。判据、错误措辞与人工写法见
 [设计宪法](design-constitution.md)的「动画论证闸门（A1–A8）」与
 [视觉评审量表](visual-review-rubric.md)。
 
@@ -105,14 +104,14 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
 
 ```json
 {
-  "version": 2,
-  "schemaVersion": 2,
+  "version": 3,
+  "schemaVersion": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "视觉转译反例",
   "visualDirection": {
-    "motif": "疲劳与产出",
+    "motif": "结构关系逐步显形",
     "compositionBias": "mixed",
     "density": "balanced",
     "rhythm": "steady",
@@ -197,10 +196,33 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "machine-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "machine-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "machine-title",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "machine-title",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "fatigue",
@@ -244,10 +266,37 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "fatigue-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "fatigue-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "fatigue-title",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "fatigue-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "按文稿顺序进入下一步论证"
+      }
     },
     {
       "id": "output",
@@ -291,14 +340,56 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "output-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "output-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "output-title",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "output-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "按文稿顺序进入下一步论证"
+      }
     }
-  ]
-}
-```
+  ],
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "视觉转译反例",
+    "audienceShift": "从只看文字判断转向观察结构证据",
+    "emotionalArc": [
+      "提出问题",
+      "揭示关系"
+    ],
+    "visualMotif": "结构关系逐步显形",
+    "stylePack": "editorial",
+    "avoid": []
+  },
+  "visual": {
+    "theme": "dark",
+    "preset": "keynote"
+  }
+}```
 
 ### 正例：图形承担论证
 
@@ -306,14 +397,14 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
 
 ```json
 {
-  "version": 2,
-  "schemaVersion": 2,
+  "version": 3,
+  "schemaVersion": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "视觉转译正例",
   "visualDirection": {
-    "motif": "疲劳与产出",
+    "motif": "结构关系逐步显形",
     "compositionBias": "mixed",
     "density": "balanced",
     "rhythm": "steady",
@@ -355,10 +446,33 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "machine-text",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "machine-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "machine-text",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "machine-text",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "fatigue",
@@ -366,7 +480,11 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
       "durationInFrames": 120,
       "data": {
         "title": "疲劳怎么吃掉产出",
-        "steps": ["持续加班", "恢复不足", "产出下降"]
+        "steps": [
+          "持续加班",
+          "恢复不足",
+          "产出下降"
+        ]
       },
       "visualIntent": {
         "relation": "cause",
@@ -452,22 +570,49 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "fatigue-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "change"
         },
         {
           "target": "fatigue-arrow-1",
           "recipe": "draw",
-          "startFrame": 36,
-          "durationFrames": 16
+          "durationFrames": 16,
+          "phase": "change"
         },
         {
           "target": "fatigue-arrow-2",
           "recipe": "draw",
-          "startFrame": 64,
-          "durationFrames": 16
+          "durationFrames": 16,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "fatigue-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "fatigue-title",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "fatigue-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "按文稿顺序进入下一步论证"
+      }
     },
     {
       "id": "output",
@@ -526,20 +671,62 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
         {
           "target": "output-title",
           "recipe": "reveal",
-          "startFrame": 12,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "change"
         },
         {
           "target": "output-chart",
           "recipe": "reveal",
-          "startFrame": 28,
-          "durationFrames": 30
+          "durationFrames": 30,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "center",
+        "depth": "flat",
+        "focus": "output-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "focus": "output-title",
+            "intensity": 0
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "output-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "按文稿顺序进入下一步论证"
+      }
     }
-  ]
-}
-```
+  ],
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "视觉转译正例",
+    "audienceShift": "从只看文字判断转向观察结构证据",
+    "emotionalArc": [
+      "提出问题",
+      "揭示关系"
+    ],
+    "visualMotif": "结构关系逐步显形",
+    "stylePack": "editorial",
+    "avoid": []
+  },
+  "visual": {
+    "theme": "dark",
+    "preset": "keynote"
+  }
+}```
 
 ## 生成纪律
 
@@ -568,6 +755,7 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
 {
   "id": "cards",
   "type": "diagram",
+  "renderer": "tree",
   "durationInFrames": 180,
   "narrationSegments": [
     { "id": "n1", "text": "先看第一张卡片。", "beatId": "b1" },
@@ -604,9 +792,7 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
     ]
   },
   "motions": [
-    { "target": "card-a", "recipe": "rise", "startFrame": 0, "durationFrames": 20 },
-    { "target": "card-b", "recipe": "rise", "startFrame": 24, "durationFrames": 20 },
-    { "target": "card-c", "recipe": "rise", "startFrame": 48, "durationFrames": 20 }
+    { "targets": ["card-a", "card-b", "card-c"], "recipe": "rise", "beatId": "b1", "stagger": { "direction": "forward", "frames": 12 }, "durationFrames": 20 }
   ]
 }
 ```
@@ -620,6 +806,6 @@ A6（装饰动画裁决）由人或视觉模型在 `review.md` 里写结论，�
 每段口播都绑定一条会改变状态或关系的 beat，严格校验与 A1–A5、A7、A8 全部通过
 （A4 无声跳过、A6 待人工裁决）。
 
-## 旧分镜
+## v1/v2 分镜处理
 
-旧组件分镜不能进入新版预览或渲染。迁移命令默认写新文件并生成 `.migration.json` 报告；`semantic-fallback` 幕必须人工重编排。迁移成功只表示文件已写出，不代表视觉验收通过——迁移产物不含视觉论证字段，普通校验会报兼容警告，严格校验会要求逐幕补齐后重新验收。
+v1/v2 分镜不能进入预览或渲染。项目不提供迁移工具；请以文章内容为依据，按 v3 结构重新编排并完成严格校验与视觉评审。

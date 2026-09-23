@@ -40,7 +40,7 @@ export function continuityFor(storyboard: Storyboard, index: number): SceneConti
     sourceIds,
     targetIds,
     meaning: transition.meaning,
-    span: Math.min(stylePackDefinition(storyboard.directingBrief?.stylePack).transitionSpan, Math.max(1, Math.floor(scene.durationInFrames / 5))),
+    span: Math.min(stylePackDefinition(storyboard.directingBrief.stylePack).transitionSpan, Math.max(1, Math.floor(scene.durationInFrames / 5))),
     sourceGeometry: sceneGeometry(previous.sceneTree), targetGeometry: sceneGeometry(scene.sceneTree),
   };
 }

@@ -47,8 +47,8 @@ class TestCharsetMatchesWhatTheCheckLooksAt:
         assert set(charset) == {"甲", "乙"}, "重复的字只出现一次"
 
     def test_narration_is_not_in_the_charset(self):
-        """切子集与体检必须同一口径：narration 当前不渲染，两边都不算它。"""
-        charset = fonts.charset_for({"scenes": [{"id": "a", "text": "甲"}], "narration": "乙丙"})
+        """切子集与体检必须同一口径：口播段只用于音频，不作为可见文字。"""
+        charset = fonts.charset_for({"scenes": [{"id": "a", "text": "甲", "narrationSegments": [{"id": "n1", "text": "乙丙", "beatId": "b1"}]}]})
         assert charset == "甲"
 
 

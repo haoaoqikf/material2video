@@ -263,16 +263,8 @@ def segment_texts(scene: dict[str, Any]) -> list[str]:
 
 
 def scene_narration(scene: dict[str, Any]) -> str:
-    """一幕的完整口播文本：分段口播按段拼接，否则取字符串 ``narration``。
-
-    TTS 与字幕都以这份文本为输入——分段只是把同一段话切成可绑定 beat 的
-    若干段，不存在第二份完整口播。
-    """
-    segments = segment_texts(scene)
-    if segments:
-        return "".join(segments)
-    narration = scene.get("narration")
-    return narration if isinstance(narration, str) else ""
+    """一幕完整口播仅由分段文本按顺序拼接。"""
+    return "".join(segment_texts(scene))
 
 
 def beats_by_id(scene: dict[str, Any]) -> dict[str, dict[str, Any]]:

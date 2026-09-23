@@ -138,6 +138,8 @@ def rendered_strings(storyboard: dict) -> list[tuple[str, str]]:
         if isinstance(node, dict):
             scene = node.get("id") if isinstance(node.get("id"), str) else None
             for key, value in node.items():
+                if key == "narrationSegments":
+                    continue
                 spot = f"{scene or where}.{key}" if scene else f"{where}.{key}"
                 if isinstance(value, str) and key in RENDERED_FIELDS:
                     found.append((spot, value))

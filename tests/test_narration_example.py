@@ -114,8 +114,11 @@ class TestTextCardCounterexample:
     @staticmethod
     def _counterexample() -> dict:
         board = {
-            "version": 2,
-            "schemaVersion": 2,
+            "version": 3,
+            "schemaVersion": 3,
+            "directingVersion": 1,
+            "directingBrief": {"thesis": "卡片论证", "audienceShift": "看见顺序", "emotionalArc": ["观察", "确认"], "visualMotif": "卡片", "stylePack": "editorial", "avoid": []},
+            "visual": {"theme": "dark", "preset": "keynote"},
             "fps": 30,
             "width": 1080,
             "height": 1920,
@@ -177,9 +180,11 @@ class TestTextCardCounterexample:
                         ],
                     },
                     "motions": [
-                        {"target": f"card-{suffix}", "recipe": "rise", "startFrame": index * 24, "durationFrames": 20}
+                        {"target": f"card-{suffix}", "recipe": "rise", "beatId": f"b{index + 1}", "durationFrames": 20}
                         for index, suffix in enumerate("abc")
                     ],
+                    "renderer": {"kind": "tree"},
+                    "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "root", "segments": [{"beatId": "b1", "kind": "hold"}, {"beatId": "b2", "kind": "push-in"}, {"beatId": "b3", "kind": "settle"}]},
                 }
             ],
         }

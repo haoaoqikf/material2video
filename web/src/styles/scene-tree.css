@@ -1,4 +1,6 @@
 .a2v-primitive { position: relative; min-width: 0; }
+.a2v-camera[data-a2v-code-camera] { position: absolute; inset: 0; width: 100%; height: 100%; }
+.a2v-camera[data-a2v-code-camera] > .a2v-code-scene { position: relative; width: 100%; height: 100%; }
 .a2v-primitive-stack, .a2v-primitive-column, .a2v-primitive-row, .a2v-primitive-split, .a2v-primitive-grid, .a2v-primitive-overlay, .a2v-primitive-radial, .a2v-primitive-group { min-height: 120px; }
 .a2v-primitive-overlay > * { grid-area: 1 / 1; }
 
@@ -21,7 +23,7 @@
 .a2v-primitive[data-a2v-state='focus'] { filter: drop-shadow(0 0 32px color-mix(in srgb, var(--a2v-accent, #7aa2ff) 45%, transparent)); }
 .a2v-primitive[data-a2v-state='done'] { opacity: 0.8; }
 
-.a2v-primitive-surface { padding: var(--a2v-space-6, 32px); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 35%, transparent); border-radius: 28px; background: color-mix(in srgb, var(--a2v-surface, #171b24) 90%, transparent); }
+.a2v-primitive-surface { padding: var(--a2v-space-6, 32px); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 35%, transparent); border-radius: 28px; background: color-mix(in srgb, var(--a2v-surface, #171b24) 90%, transparent); box-shadow: 0 14px 36px rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 6%); }
 
 /* shape 变体：每个注册的 shape 值都有可观察且互不相同的渲染效果 */
 .a2v-primitive-shape { width: 220px; aspect-ratio: 1; }
@@ -41,9 +43,9 @@
 .a2v-primitive-chart { display: flex; align-items: end; gap: 18px; height: 360px; width: 100%; position: relative; }
 .a2v-primitive.a2v-primitive-chart { height: auto; }
 .a2v-chart-bar { padding-bottom: 72px; }
-.a2v-primitive-bar { flex: 1; min-height: 8%; border-radius: 14px 14px 4px 4px; background: var(--a2v-accent, #7aa2ff); display: flex; align-items: end; justify-content: center; }
-.a2v-primitive-bar span { transform: translateY(36px); white-space: nowrap; font-size: var(--a2v-size-label, 34px); line-height: 1.2; }
-.a2v-schematic { position: absolute; top: 0; right: 0; font-size: 24px; color: var(--a2v-accent, #7aa2ff); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 55%, transparent); border-radius: 8px; padding: 2px 10px; }
+.a2v-primitive-bar { position: relative; flex: 1; min-height: 8%; border-radius: 14px 14px 4px 4px; background: var(--a2v-accent, #7aa2ff); display: flex; align-items: end; justify-content: center; }
+.a2v-primitive-bar span { position: absolute; top: calc(100% + 8px); transform: none; color: var(--a2v-text-1, #f4f7fb); white-space: nowrap; font-size: var(--a2v-size-label, 34px); line-height: 1.2; }
+.a2v-schematic { position: absolute; top: 0; right: 0; font-size: 24px; color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 55%, transparent); border-radius: 8px; padding: 2px 10px; }
 
 .a2v-chart-line, .a2v-chart-pie { display: block; height: auto; }
 .a2v-chart-line svg { width: 100%; height: auto; }
@@ -96,11 +98,11 @@
 .a2v-gauge-hub { fill: var(--a2v-accent, #7aa2ff); }
 /* 读数槽宽度固定：数值从 0 涨到 100 时容器不重排（tabular-nums 保证字宽一致） */
 .a2v-gauge-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
-.a2v-gauge-note { color: var(--a2v-accent, #7aa2ff); }
+.a2v-gauge-note { color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); }
 
 .a2v-pictogram { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .a2v-pictogram-units { display: grid; grid-template-columns: repeat(5, auto); gap: 16px; justify-items: center; }
 .a2v-pictogram-unit { display: inline-flex; color: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 26%, transparent); }
 .a2v-pictogram-unit[data-a2v-state='focus'] { color: var(--a2v-accent, #7aa2ff); }
 .a2v-pictogram-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
-.a2v-pictogram-note { color: var(--a2v-accent, #7aa2ff); }
+.a2v-pictogram-note { color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); }

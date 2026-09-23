@@ -71,8 +71,10 @@ def _scene(
         },
         "sceneTree": tree if tree is not None else _tree(),
         "motions": motions if motions is not None else [
-            {"target": "flow", "recipe": "reveal", "startFrame": 0, "durationFrames": 24},
+            {"target": "flow", "recipe": "reveal", "beatId": "b1", "durationFrames": 24},
         ],
+        "renderer": {"kind": "tree"},
+        "camera": {"focus": "flow", "shot": "medium", "composition": "center", "depth": "flat", "segments": [{"beatId": "b1", "kind": "hold", "focus": "flow"}, {"beatId": "b2", "kind": "push-in", "focus": "flow"}, {"beatId": "b3", "kind": "settle", "focus": "flow"}]},
     }
     if segments:
         scene["narrationSegments"] = [
@@ -98,8 +100,11 @@ def _scene(
 
 def _storyboard(*scenes: dict) -> dict:
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试命题", "audienceShift": "测试转变", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": FPS,
         "width": 1080,
         "height": 1920,
@@ -110,7 +115,7 @@ def _storyboard(*scenes: dict) -> dict:
 
 
 def _media(scenes: list[dict], cues: list[dict] | None = None) -> dict:
-    return {"version": 2, "scenes": scenes, "cues": cues if cues is not None else []}
+    return {"version": 3, "scenes": scenes, "cues": cues if cues is not None else []}
 
 
 def _gates(storyboard: dict, media: dict | None = None) -> dict:
@@ -146,14 +151,11 @@ class TestBaseline:
         assert _status(gates, "A4") == "skipped"
         assert "无声" in str(gates["a4"]["detail"])
 
-    def test_old_string_narration_is_skipped_not_passed(self):
-        """旧字符串口播的幕：不适用就要如实写「跳过」，不能悄悄记成通过。"""
+    def test_string_narration_is_rejected_by_review_entry(self):
         scene = _scene(segments=False)
         scene["narration"] = "这是一段旧格式的口播。"
-        gates = _gates(_storyboard(scene))
-        for gate_id in ("A1", "A2", "A3", "A5", "A7", "A8"):
-            assert _status(gates, gate_id) == "skipped", gate_id
-        assert not ar.gate_issues(gates)
+        with pytest.raises(ValueError, match="字符串口播"):
+            ar.analyze(_storyboard(scene))
 
     def test_estimated_timeline_is_used_without_media(self):
         analysis = ar.analyze(_storyboard(_scene()))
@@ -329,7 +331,6 @@ class TestA4Sync:
 
     def test_media_without_segmented_scenes_skips(self):
         scene = _scene(segments=False)
-        scene["narration"] = "旧格式口播。"
         gates = _gates(_storyboard(scene), _media([{"id": scene["id"], "durationInFrames": 120}], _cues_for()))
         assert _status(gates, "A4") == "skipped"
 
@@ -456,18 +457,20 @@ class TestA7Focus:
 
 class TestA8StableEnding:
     def test_motion_running_into_the_ending_fails(self):
-        scene = _scene(motions=[{"target": "flow", "recipe": "reveal", "startFrame": 100, "durationFrames": 24}])
-        gates = _gates(_storyboard(scene))
+        scene = _scene(motions=[{"target": "flow", "recipe": "reveal", "beatId": "b3", "durationFrames": 24}], spans=(("b1", 0, 20), ("b2", 20, 40), ("b3", 100, 120)))
+        resolved = [{**beat, "startFrame": start, "endFrame": end} for beat, (_, start, end) in zip(scene["beats"], (("b1", 0, 20), ("b2", 20, 40), ("b3", 100, 120)))]
+        gates = _gates(_storyboard(scene), _media([{"id": scene["id"], "durationInFrames": 120, "resolvedBeats": resolved}]))
         assert _status(gates, "A8") == "fail"
         assert any("距幕尾不足" in issue for issue in _issues(gates, "A8"))
 
     def test_motion_ending_at_the_deadline_passes(self):
-        scene = _scene(motions=[{"target": "flow", "recipe": "reveal", "startFrame": 84, "durationFrames": 24}])
-        gates = _gates(_storyboard(scene))
+        scene = _scene(motions=[{"target": "flow", "recipe": "reveal", "beatId": "b3", "durationFrames": 24}], spans=(("b1", 0, 24), ("b2", 24, 48), ("b3", 72, 96)))
+        resolved = [{**beat, "startFrame": start, "endFrame": end} for beat, (_, start, end) in zip(scene["beats"], (("b1", 0, 24), ("b2", 24, 48), ("b3", 72, 96)))]
+        gates = _gates(_storyboard(scene), _media([{"id": scene["id"], "durationInFrames": 120, "resolvedBeats": resolved}]))
         assert _status(gates, "A8") == "pass"
 
     def test_motion_without_duration_counts_as_one_frame(self):
-        scene = _scene(motions=[{"target": "flow", "recipe": "fade", "startFrame": 119}])
+        scene = _scene(motions=[{"target": "flow", "recipe": "fade", "phase": "settle"}])
         gates = _gates(_storyboard(scene))
         assert _status(gates, "A8") == "fail"
 
@@ -478,8 +481,8 @@ class TestA8StableEnding:
 
 #: 不服务于任何 beat 的配方：纯装饰，需要人工裁决。
 DECORATIVE_MOTIONS = [
-    {"target": "flow", "recipe": "reveal", "startFrame": 0, "durationFrames": 24},
-    {"target": "flow-a-text", "recipe": "fade", "startFrame": 24, "durationFrames": 12},
+    {"target": "flow", "recipe": "reveal", "beatId": "b1", "durationFrames": 12},
+    {"target": "flow-a-text", "recipe": "fade", "phase": "establish", "durationFrames": 12},
 ]
 
 

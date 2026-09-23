@@ -22,17 +22,17 @@ const LucideCard: A2VCodeScene<{ kicker: string; text: string; tip: string }> = 
       className={`flex flex-col items-start gap-6 ${cardTone.highlight}`}
       style={{
         position: 'absolute',
-        left: 96,
-        top: 640,
-        width: 888,
-        padding: 48,
+        left: 48,
+        top: 360,
+        width: 792,
+        padding: 40,
         backgroundColor: theme.theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
         borderColor: 'var(--a2v-accent)',
         ...frameStyle(Math.min(1, progress * 4), { opacity: true, rise: 36 }),
       }}
       {...probe({ node: 'card', role: 'body' })}
     >
-      <FrameIcon icon={Lightbulb} size={96} color="var(--a2v-accent)" progress={Math.min(1, progress * 3)} aria-label="提示" />
+      <FrameIcon icon={Lightbulb} size={80} color="var(--a2v-accent)" progress={Math.min(1, progress * 3)} aria-label="提示" />
       <div
         style={{ fontFamily: 'var(--a2v-font)', color: 'var(--a2v-accent)', fontSize: 44, letterSpacing: '0.14em' }}
         {...probe({ node: 'card-kicker', role: 'label' })}
@@ -41,13 +41,13 @@ const LucideCard: A2VCodeScene<{ kicker: string; text: string; tip: string }> = 
       </div>
       <div
         className={cardTone.body}
-        style={{ fontFamily: 'var(--a2v-font)', color: 'var(--a2v-text-1)', fontSize: 72 }}
+        style={{ fontFamily: 'var(--a2v-font)', color: 'var(--a2v-text-1)', fontSize: 64 }}
         {...probe({ node: 'card-text', role: 'headline' })}
       >
         {scene.data.text}
       </div>
       <div
-        style={{ fontFamily: 'var(--a2v-font)', color: 'var(--a2v-line)', fontSize: 48 }}
+        style={{ fontFamily: 'var(--a2v-font)', color: 'var(--a2v-text-2)', fontSize: 40 }}
         {...probe({ node: 'card-tip', role: 'caption' })}
       >
         {scene.data.tip}

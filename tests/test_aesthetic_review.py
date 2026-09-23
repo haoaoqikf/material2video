@@ -14,7 +14,7 @@ def test_directing_review_requires_camera_and_motif():
 
 
 def test_directing_review_reports_adjacent_reuse():
-    camera = {"shot": "medium", "composition": "center", "depth": "flat", "focus": "x", "movement": "static"}
+    camera = {"shot": "medium", "composition": "center", "depth": "flat", "focus": "x", "segments": [{"kind": "settle", "phase": "settle"}]}
     storyboard = {
         "directingVersion": 1,
         "visualDirection": {"motif": "路径", "compositionBias": "mixed", "density": "balanced", "rhythm": "steady", "avoid": []},

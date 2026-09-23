@@ -34,11 +34,11 @@ def analyze(storyboard: dict[str, Any]) -> dict[str, Any]:
             motif_missing.append(scene_id)
         signatures.append((
             camera.get("shot"), camera.get("composition"), camera.get("depth"),
-            camera.get("movement"), intent.get("relation"), intent.get("mode"),
+            intent.get("relation"), intent.get("mode"),
         ))
         segments = camera.get("segments") if isinstance(camera, dict) else None
         kinds = [item.get("kind") for item in segments if isinstance(item, dict)] if isinstance(segments, list) else []
-        has_settle = "settle" in kinds or camera.get("movement") == "static"
+        has_settle = "settle" in kinds
         groups = [item for item in scene.get("motions", []) if isinstance(item, dict) and isinstance(item.get("targets"), list)]
         dense = [item for item in groups if isinstance(item.get("stagger"), dict) and item["stagger"].get("intervalFrames", 4) < 2]
         motion_metrics.append({"id": scene_id, "cameraSegments": kinds, "hasSettle": has_settle, "groupMotionCount": len(groups), "denseStaggers": len(dense)})

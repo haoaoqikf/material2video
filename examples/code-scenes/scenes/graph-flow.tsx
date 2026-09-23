@@ -25,18 +25,18 @@ const GraphFlow: A2VCodeScene<{
   const layout = layoutGraph(
     scene.data.nodes,
     scene.data.edges,
-    { rankdir: 'LR', nodesep: 72, ranksep: 120 },
+    { rankdir: 'TB', nodesep: 36, ranksep: 72 },
   );
 
-  const toSvg = (x: number, y: number) => ({ x: x + 540 - layout.width / 2, y: y + 900 - layout.height / 2 });
+  const toSvg = (x: number, y: number) => ({ x: x + 444 - layout.width / 2, y: y + 390 - layout.height / 2 });
   const fade = Math.min(1, Math.max(0, progress * 3));
 
   return (
-    <div style={{ position: 'absolute', left: 0, top: 380, width: 1080, height: 1160 }}>
+    <div style={{ position: 'absolute', left: 0, top: 200, width: 888, height: 1240 }}>
       <div
         style={{
           position: 'absolute',
-          left: 96,
+          left: 48,
           top: 0,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-accent)',
@@ -48,9 +48,9 @@ const GraphFlow: A2VCodeScene<{
         {scene.data.kicker}
       </div>
       <svg
-        width={1080}
-        height={900}
-        style={{ position: 'absolute', left: 0, top: 120, opacity: fade }}
+        width={888}
+        height={780}
+        style={{ position: 'absolute', left: 0, top: 88, opacity: fade }}
         {...probe({ node: 'graph-canvas', schematic: true })}
       >
         {layout.edges.map((edge) => {
@@ -103,8 +103,8 @@ const GraphFlow: A2VCodeScene<{
       <div
         style={{
           position: 'absolute',
-          left: 96,
-          top: 1020,
+          left: 48,
+          top: 900,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-text-1)',
           fontSize: 56,

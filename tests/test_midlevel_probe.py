@@ -51,8 +51,11 @@ def _stages(prefix: str) -> list[dict]:
 def _storyboard() -> dict:
     """一幕装下五个中层原语，逐帧状态由 resolvedBeats 直接给出（不经过 TTS）。"""
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "五个中层原语各司其职", "audienceShift": "从列表转向关系", "emotionalArc": ["观察", "理解"], "visualMotif": "方向关系", "stylePack": "technical", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -63,6 +66,7 @@ def _storyboard() -> dict:
                 "id": "midlevel",
                 "type": "process",
                 "durationInFrames": 120,
+                "renderer": {"kind": "tree"},
                 "data": {"stepA": "起点", "stepB": "下一步", "ratio": 80},
                 "visualIntent": {
                     "relation": "sequence", "focus": "shape", "composition": "center",
@@ -71,6 +75,7 @@ def _storyboard() -> dict:
                     "showWithoutText": "方向连接、闭环轨道、进度轴与两处量级指示",
                     "primaryObject": "流程与量级指示", "motionMeaning": "逐段推进",
                 },
+                "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "flow", "segments": [{"kind": "hold", "phase": "establish", "focus": "flow", "intensity": 0}, {"kind": "settle", "phase": "settle", "focus": "flow", "intensity": 0}]},
                 "narrationSegments": [
                     {"id": f"n{index + 1}", "text": text, "beatId": BEATS[index][0]}
                     for index, text in enumerate(SEGMENT_TEXTS)
@@ -97,8 +102,8 @@ def _storyboard() -> dict:
                     ],
                 },
                 "motions": [
-                    {"target": "flow", "recipe": "reveal", "startFrame": 0, "durationFrames": 12},
-                    {"target": "meter", "recipe": "reveal", "startFrame": 60, "durationFrames": 12},
+                    {"target": "flow", "recipe": "reveal", "phase": "establish", "durationFrames": 12},
+                    {"target": "meter", "recipe": "reveal", "phase": "change", "durationFrames": 12},
                 ],
             },
         ],

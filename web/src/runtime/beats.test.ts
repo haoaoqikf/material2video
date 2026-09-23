@@ -26,7 +26,10 @@ function beatScene(): Scene {
       composition: 'center',
       density: 'sparse',
       tone: 'neutral',
+      mode: 'chart', claim: '累积改变结果', showWithoutText: '柱形逐步升高', primaryObject: '柱形图', motionMeaning: '按拍推进柱高',
     },
+    renderer: { kind: 'tree' },
+    camera: { shot: 'medium', composition: 'center', depth: 'flat', focus: 'chart', segments: [{ kind: 'hold', beatId: 'b1', focus: 'chart' }] },
     sceneTree: {
       id: 'root',
       type: 'stack',

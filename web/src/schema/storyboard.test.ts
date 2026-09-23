@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_STORYBOARD, parseStoryboard, sceneSchema, visualIntentSchema } from '@/schema/storyboard';
 
-describe('v2 分镜 schema', () => {
-  it('接受最小有效场景树', () => expect(parseStoryboard(EMPTY_STORYBOARD).version).toBe(2));
-  it('拒绝旧分镜并给出迁移提示', () => expect(() => parseStoryboard({ version: 1 })).toThrow(/migrate_storyboard/));
+describe('v3 分镜 schema', () => {
+  it('接受最小有效场景树', () => expect(parseStoryboard(EMPTY_STORYBOARD).version).toBe(3));
+  it('拒绝旧分镜并提示按 v3 重编', () => expect(() => parseStoryboard({ version: 1 })).toThrow(/不支持 v3 之前分镜/));
   it('拒绝重复节点 id', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.sceneTree!.children!.push({ id: 'text', type: 'shape' });
@@ -11,7 +11,7 @@ describe('v2 分镜 schema', () => {
   });
   it('拒绝不存在的动效目标', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
-    scene.motions.push({ target: 'missing', recipe: 'fade', startFrame: 0 });
+    scene.motions.push({ target: 'missing', recipe: 'fade', phase: 'establish' });
     expect(sceneSchema.safeParse(scene).success).toBe(false);
   });
   it('拒绝自由样式字段', () => {
@@ -31,12 +31,12 @@ describe('v2 分镜 schema', () => {
   });
   it('拒绝原语不支持的动效配方', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
-    scene.motions = [{ target: 'text', recipe: 'count', startFrame: 0 }];
+    scene.motions = [{ target: 'text', recipe: 'count', phase: 'establish' }];
     expect(sceneSchema.safeParse(scene).success).toBe(false);
   });
   it('拒绝超出场景时长的动效', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
-    scene.motions = [{ target: 'text', recipe: 'reveal', startFrame: 29, durationFrames: 5 }];
+    scene.motions = [{ target: 'text', recipe: 'reveal', phase: 'establish', durationFrames: 100 }];
     expect(sceneSchema.safeParse(scene).success).toBe(false);
   });
   it('拒绝超出节点数上限的场景树', () => {
@@ -46,7 +46,7 @@ describe('v2 分镜 schema', () => {
   });
   it('导演契约启用时必须提供创作简报', () => {
     const input = structuredClone(EMPTY_STORYBOARD);
-    input.directingVersion = 1;
+    delete (input as { directingBrief?: unknown }).directingBrief;
     expect(() => parseStoryboard(input)).toThrow(/directingBrief/);
   });
   it('接受显式拆解与重组映射', () => {
@@ -54,10 +54,12 @@ describe('v2 分镜 schema', () => {
     const decompose = structuredClone(input.scenes[0]);
     decompose.id = 'parts';
     decompose.sceneTree.children = [{ id: 'part-a', type: 'shape', shape: 'circle' }, { id: 'part-b', type: 'shape', shape: 'rect' }];
+    decompose.camera.focus = 'part-a'; decompose.camera.segments = [{ kind: 'hold', phase: 'establish', focus: 'part-a', intensity: 0 }];
     decompose.transition = { kind: 'decompose', source: 'text', targets: ['part-a', 'part-b'], meaning: '结论拆成两个构成部分' };
     const recompose = structuredClone(input.scenes[0]);
     recompose.id = 'whole';
     recompose.sceneTree.children = [{ id: 'whole-shape', type: 'shape', shape: 'ring' }];
+    recompose.camera.focus = 'whole-shape'; recompose.camera.segments = [{ kind: 'hold', phase: 'establish', focus: 'whole-shape', intensity: 0 }];
     recompose.transition = { kind: 'recompose', sources: ['part-a', 'part-b'], target: 'whole-shape', meaning: '两个部分重新汇成整体' };
     input.scenes.push(decompose, recompose);
     expect(parseStoryboard(input).scenes).toHaveLength(3);
@@ -99,8 +101,10 @@ describe('视觉论证字段', () => {
     expect(parsed.mode).toBe('process');
   });
 
-  it('缺少视觉论证字段的旧分镜仍然解析（兼容模式）', () => {
-    expect(visualIntentSchema.safeParse(intent({})).success).toBe(true);
+  it('拒绝缺失视觉论证字段的分镜', () => {
+    const value = intent({});
+    delete (value as { mode?: unknown }).mode;
+    expect(visualIntentSchema.safeParse(value).success).toBe(false);
   });
 
   it('拒绝受控枚举之外的视觉模式', () => {
@@ -152,7 +156,9 @@ describe('语义节拍与分段口播', () => {
   });
 
   it('接受分段口播与受控节拍', () => {
-    expect(sceneSchema.safeParse(beatScene()).success).toBe(true);
+    const scene = beatScene();
+    Object.assign(scene, { renderer: { kind: 'tree' }, camera: { shot: 'medium', composition: 'center', depth: 'flat', focus: 'chart', segments: [{ kind: 'hold', beatId: 'b1', focus: 'chart' }] } });
+    expect(sceneSchema.safeParse(scene).success).toBe(true);
   });
 
   it('narration 与 narrationSegments 互斥', () => {
@@ -219,9 +225,10 @@ describe('语义节拍与分段口播', () => {
 });
 
 describe('renderer 判别联合', () => {
-  it('缺省 renderer 的旧分镜按 tree 解释（向后兼容）', () => {
-    const parsed = sceneSchema.parse(structuredClone(EMPTY_STORYBOARD.scenes[0]));
-    expect(parsed.renderer).toBeUndefined();
+  it('renderer 必须显式声明', () => {
+    const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
+    delete (scene as { renderer?: unknown }).renderer;
+    expect(sceneSchema.safeParse(scene).success).toBe(false);
   });
   it('显式 renderer.kind: tree 接受场景树场景', () => {
     const scene = { ...structuredClone(EMPTY_STORYBOARD.scenes[0]), renderer: { kind: 'tree' as const } };
@@ -245,7 +252,7 @@ describe('renderer 判别联合', () => {
     };
     delete (scene as { sceneTree?: unknown }).sceneTree;
     expect(sceneSchema.safeParse(scene).success).toBe(true);
-    expect(sceneSchema.safeParse({ ...scene, motions: [{ target: 'x', recipe: 'fade', startFrame: 0 }] }).success).toBe(false);
+    expect(sceneSchema.safeParse({ ...scene, motions: [{ target: 'x', recipe: 'fade', phase: 'establish' }] }).success).toBe(false);
   });
   it('拒绝未知渲染模式', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);

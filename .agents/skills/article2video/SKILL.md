@@ -52,7 +52,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    共用同一批边界；动作从受控词汇表里选，`meaning` 说明这一步解释了什么。
    入场配方只管「怎么出现」，说不清「正在解释哪一步推理」——两者都要，但不能互相替代。
    见[分镜脚本结构](references/storyboard-schema.md)的「语义节拍与字幕同步」。
-9. **默认使用电影化动画计划**：节点动作按建立、变化、结果、收束四阶段推进，编组错峰与镜头段优先绑定 beat；旧 schema v2 不用迁移，但重新渲染会采用新版观感，没有 legacy 开关。
+9. **默认使用电影化动画计划**：节点动作按建立、变化、结果、收束四阶段推进，编组错峰与镜头段优先绑定 beat；v1/v2 分镜在所有入口拒绝，必须按 v3 重新编排；没有迁移命令或兼容回退。
 
 ## 目录职责
 
@@ -64,7 +64,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 | `web/src/runtime/` | 帧驱动共享运行时：时间轴解析 |
 | `web/src/styles/` | 设计令牌、预设与场景树原语样式 |
 | `web/dist/contract/contract.html` | 渲染契约页（`pnpm -C web build` 的产物），体检用它驱动画面 |
-| `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审与迁移等命令行工具 |
+| `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审等命令行工具 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、代码场景、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
@@ -121,9 +121,9 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 ### 2. 分镜即画面声明
 
 画面默认全部由共享 composition 递归解释场景树提供，**不需要写任何画面代码**。
-分镜根级声明 `schemaVersion: 2` 与视频级视觉策略 `visualDirection`；启用导演契约时另声明
-`directingVersion: 1` 与 `directingBrief`，逐幕可声明 `camera`、`transition` 以及 beat 的
-`before` / `after` / `relation`。镜头运动与跨幕连续性均按帧驱动渲染；连续对象必须显式声明，支持同类继承、注册表内有限变形、一对多拆解、多对一重组和有意断裂，未登记映射在渲染前失败。
+分镜根级强制声明 `schemaVersion: 3`、`directingVersion: 1`、完整 `directingBrief`、
+`visualDirection` 与 `visual.preset: "keynote"`；每幕强制 `renderer`、完整视觉论证、
+分段镜头与第二幕起的显式 `transition`。镜头运动与跨幕连续性均按帧驱动渲染；连续对象必须显式声明，支持同类继承、注册表内有限变形、一对多拆解、多对一重组和有意断裂，未登记映射在渲染前失败。
 每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪，以及视觉论证字段
 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`）、
 `sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`
@@ -133,7 +133,7 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 [发布会级设计语言](references/keynote-design-system.md)。
 
 新作品还要写**语义节拍**：`narrationSegments`（分段口播，每段 `{id, text, beatId}`）
-与 `beats`（`{id, action, targets, meaning}`），二者与字符串 `narration` 互斥。
+与 `beats`（`{id, action, targets, meaning}`）；v3 不接受字符串 `narration`。
 完整口播就是各段按顺序拼接，因此不存在第二份文本；动作取受控词汇表，
 `targets` 的每个原语都要支持该动作。字段与三条硬规则（严格验收、结尾留白、
 单一焦点）见[分镜脚本结构](references/storyboard-schema.md)。
@@ -288,7 +288,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
   **并入错误数与退出码**，报告列出场景 id 与具体问题（哪条 beat 没被引用、
   哪一帧有几个焦点、最后一条 beat 距幕尾还剩几帧）；A6 读 `review.md` 里人工填写的
   装饰动画结论，**没填写就是「待评审」**，只拦「可发布」标记而不伪造脚本错误。
-  A 系列只约束声明了 `narrationSegments` 的幕，旧字符串口播的幕与无声预览下的 A4
+  A 系列只约束声明了 `narrationSegments` 的幕；字符串口播由 v3 校验拒绝，无声幕与无媒体下的 A4
   如实记为「跳过」。判据见[设计宪法](references/design-constitution.md)的「动画论证闸门」。
 
 ### 7. 渲染验收
@@ -341,7 +341,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 体检报「契约页不存在」 | 先 `pnpm -C web build` 构建 `web/dist/contract/contract.html` |
 | `缺少查询参数 a2v-storyboard` | 契约页必须由脚本经本地静态服务打开，不要双击 HTML |
 | `总帧数不一致` / `fps 不一致` | composition 元数据与分镜不一致：检查分镜是否保存、场景时长是否合法 |
-| `旧版整页组件分镜不能进入新版入口` | 分镜还是 v1（`data.figure.kind`）：先运行 `scripts/migrate_storyboard.py` 显式迁移，迁移结果再走校验与评审 |
+| `不支持 v3 之前分镜` | v1/v2 分镜不能进入任何入口；依据[分镜脚本结构](references/storyboard-schema.md)重新编排，并按要求补齐导演字段 |
 | `未知视觉原语` / `原语 X 不支持属性 Y` | 场景树用了注册表之外的原语或属性：查 [视觉原语目录](references/primitive-catalog.md) 的可选值与容量 |
 | `动效目标 X 不存在` / `原语 X 不支持动效` | 动效绑定的节点 id 写错或配方超出该原语允许范围：按目录声明修正 |
 | `内容引用 data.x 指向不存在的字段` | `contentRef` 指向的分镜 data 字段缺失或拼写不一致 |

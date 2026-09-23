@@ -346,7 +346,7 @@ function LineChart({ points, schematic }: { points: Array<{ label: string; value
         {coords.map((point, index) => (
           <g key={index}>
             <circle cx={point.x} cy={point.y} r="10" fill="var(--a2v-accent, #7aa2ff)" />
-            <text x={point.x} y={height - 18} textAnchor="middle" fontSize="22" fill="currentColor">{point.label}</text>
+            <text x={point.x} y={height - 18} textAnchor="middle" fontSize="22" fill="var(--a2v-text-1, currentColor)">{point.label}</text>
           </g>
         ))}
       </svg>
@@ -414,8 +414,8 @@ function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode;
   if (node.type === 'text') return <TextPrimitive node={node} scene={scene} preset={preset} />;
   if (node.type === 'number') {
     const raw = Number(resolveContent(scene.data, node.contentRef));
-    const motion = scene.motions.find((item) => item.target === node.id && item.recipe === 'count');
-    const p = motion ? Math.min(1, Math.max(0, (frame - motion.startFrame) / (motion.durationFrames ?? 30))) : 1;
+    const planned = sceneMotionPlan(scene, beats.timeline).motions.find((item) => item.target === node.id && item.recipe === 'count');
+    const p = planned ? motionProgress(planned, frame) : 1;
     return <><span className="a2v-numeric">{Number.isFinite(raw) ? Math.round(raw * p) : textValue(resolveContent(scene.data, node.contentRef))}</span>{node.schematic ? <span className="a2v-caption">示意</span> : null}</>;
   }
   if (node.type === 'image') return <img src={textValue(resolveContent(scene.data, node.sourceRef))} alt="" />;

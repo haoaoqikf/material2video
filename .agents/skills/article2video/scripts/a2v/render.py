@@ -209,17 +209,22 @@ def provenance_status(video: str | Path) -> dict:
     renderer = str(recorded.get("renderer") or RENDERER_PAGE)
     # 键可能记的是别名（构建输入在 `web/` 别名下、共享页面在 bundle 别名下）：
     # 按挂载表解析，与写入时同一套
-    mounts = _fingerprint_mounts()
-
     # 工作区根由溯源里的相对引用反解，不再依赖产物上级是否有仓库标记：
     # 文章落在仓库之外时，那条路走不通。
     workspace_ref = str(recorded.get("workspace") or "")
     if not workspace_ref:
         return {"status": "unknown", "detail": "溯源里没有工作区引用，无法判断页面在哪里", **empty}
     workspace = (video_path.parent / workspace_ref).resolve()
+    mounts = _fingerprint_mounts(workspace)
 
     if renderer == RENDERER_REMOTION:
-        current = remotion.build_input_fingerprint()["files"]
+        storyboard_rel = str(recorded.get("storyboard") or "")
+        storyboard_path = (workspace / storyboard_rel).resolve() if storyboard_rel else None
+        current = remotion.build_input_fingerprint(
+            storyboard_path=storyboard_path if storyboard_path and storyboard_path.is_file() else None,
+            content_root=workspace,
+            workspace_root=workspace,
+        )["files"]
         old = (recorded.get("assets") or {}).get("files") or {}
         return _compare_fingerprint(old, current, workspace, mounts, label="构建输入")
 
@@ -267,14 +272,14 @@ def _compare_fingerprint(
     return {"status": status, "detail": detail, "changed": sorted(changed), "missing": sorted(missing), "unverifiable": sorted(unverifiable)}
 
 
-def _fingerprint_mounts() -> dict[str, Path]:
+def _fingerprint_mounts(workspace_root: str | Path | None = None) -> dict[str, Path]:
     """复核指纹时用的挂载表。
 
     与写入时保持同一套别名，否则别名键会因为解析不到而被判成「不见了」——
     那是最糟的一种错报：它让「资产真的改了」淹没在噪音里。
     """
     try:
-        return remotion.fingerprint_mounts()
+        return remotion.fingerprint_mounts(workspace_root=workspace_root)
     except A2VError:  # `web/` 不存在（只留了旧页面的裁剪副本）：退回共享资产别名
         return assets.default_mounts()
 
@@ -437,7 +442,11 @@ def render_with_remotion(
         capture_format="remotion",
         media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
         renderer=RENDERER_REMOTION,
-        assets_override=remotion.build_input_fingerprint(),
+        assets_override=remotion.build_input_fingerprint(
+            storyboard_path=storyboard_path,
+            content_root=content_root or workspace_root,
+            workspace_root=workspace_root,
+        ),
     )
 
     return RenderResult(

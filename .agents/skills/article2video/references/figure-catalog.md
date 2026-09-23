@@ -1,3 +1,3 @@
-# 视觉组件目录（已废止）
+# 旧整页组件目录（历史）
 
-整页语义组件与 `data.figure.kind` 已由 v2 场景树取代。请使用 [视觉原语目录](primitive-catalog.md)。旧分镜使用 `scripts/migrate_storyboard.py` 显式迁移；新版运行时不会回退到本目录所描述的旧组件。
+整页语义组件与 `data.figure.kind` 已由 v2 场景树取代；分镜契约现为 v3。所有旧版分镜入口统一拒绝，项目不提供迁移工具或旧组件渲染回退。新作品请使用[视觉原语目录](primitive-catalog.md)。

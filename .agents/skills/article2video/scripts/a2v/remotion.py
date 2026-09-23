@@ -428,7 +428,7 @@ def _manifest_data(repo_root: Path | None = None) -> dict | None:
         return None
 
 
-def fingerprint_mounts(repo_root: Path | None = None) -> dict[str, Path]:
+def fingerprint_mounts(repo_root: Path | None = None, workspace_root: str | Path | None = None) -> dict[str, Path]:
     """指纹键使用的挂载表：与契约页服务器同一套别名。
 
     构建输入全在 `web/` 下，而工作区根可能是仓库之外的内容根——那时
@@ -439,7 +439,7 @@ def fingerprint_mounts(repo_root: Path | None = None) -> dict[str, Path]:
     """
     mounts = {**assets.default_mounts(), **contract_page.web_mounts(repo_root)}
     data = _manifest_data(repo_root)
-    workspace = data.get("workspaceRoot") if data else None
+    workspace = str(workspace_root) if workspace_root is not None else (data.get("workspaceRoot") if data else None)
     if workspace:
         mounts[WORK_MOUNT_PREFIX] = Path(str(workspace))
     return mounts
@@ -475,7 +475,35 @@ def _resolve_import(specifier: str, importer: Path, web: Path) -> Path | None:
     return None
 
 
-def build_inputs(repo_root: Path | None = None) -> list[Path]:
+def _storyboard_modules(storyboard_path: str | Path, content_root: str | Path | None = None) -> list[Path]:
+    """解析当前分镜真正引用的代码场景源文件，避免依赖全局生成清单的最后写入者。"""
+    data = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    article = paths.for_storyboard(storyboard_path, content_root)
+    found: dict[Path, None] = {}
+    for _scene_path, _scene, module in code_scenes.iter_code_scenes(data):
+        if module:
+            resolved = code_scenes.resolve_module(article.source_dir, module)
+            if resolved is not None:
+                found[resolved.resolve()] = None
+    return list(found)
+
+
+def _manifest_modules(repo_root: Path | None = None) -> list[Path]:
+    data = _manifest_data(repo_root)
+    result: dict[Path, None] = {}
+    for item in (data or {}).get("modules", []):
+        raw = item.get("module") if isinstance(item, dict) else None
+        if raw and Path(raw).is_file():
+            result[Path(raw).resolve()] = None
+    return list(result)
+
+
+def build_inputs(
+    repo_root: Path | None = None,
+    *,
+    storyboard_path: str | Path | None = None,
+    content_root: str | Path | None = None,
+) -> list[Path]:
     """画面与编码的全部构建输入：从入口出发**沿引用可达**的文件。
 
     刻意不做「扫描整个 `src/`」：那样改一个没有任何画面用到的文件也会让所有
@@ -486,9 +514,18 @@ def build_inputs(repo_root: Path | None = None) -> list[Path]:
     web = contract_page.web_dir(repo_root)
     seen: dict[Path, None] = {}
 
-    queue = [candidate for name in (*_ENTRY_ROOTS, str(GENERATED_ENTRY)) if (candidate := web / name).is_file()]
+    queue = [candidate for name in _ENTRY_ROOTS if (candidate := web / name).is_file()]
+    queue.extend(_storyboard_modules(storyboard_path, content_root) if storyboard_path else _manifest_modules(repo_root))
+    generated_indexes = {
+        (web / scene_manifest.GENERATED_MANIFEST).resolve(),
+        (web / ".gen" / "active-tailwind.css").resolve(),
+    }
     while queue:
         resolved = queue.pop().resolve()
+        # 全局生成索引与 active-tailwind.css 都是从当前作品派生的临时文件，
+        # 不同作品构建时会互相覆盖。真正的代码场景源文件与其导入会按分镜进入 queue。
+        if resolved in generated_indexes:
+            continue
         if resolved in seen:
             continue
         seen[resolved] = None
@@ -501,11 +538,6 @@ def build_inputs(repo_root: Path | None = None) -> list[Path]:
         candidate = web / name
         if candidate.is_file():
             seen[candidate.resolve()] = None
-    # 当前作品的场景清单：它决定哪些作品模块进入构建（规范化后的静态
-    # 清单，包含作品目录归属）。清单变化 = 构建输入变化，必须进入指纹。
-    manifest_path = web / _MANIFEST_PATH
-    if manifest_path.is_file():
-        seen[manifest_path.resolve()] = None
     # 字体取**源文件**而不是 `public/fonts/` 里的构建副本：副本是派生物，
     # 没构建过就不存在，那会让每一次复核都报「不见了」
     for font in contract_page.font_files(repo_root):
@@ -513,17 +545,23 @@ def build_inputs(repo_root: Path | None = None) -> list[Path]:
     return sorted(seen)
 
 
-def build_input_fingerprint(repo_root: Path | None = None) -> dict:
+def build_input_fingerprint(
+    repo_root: Path | None = None,
+    *,
+    storyboard_path: str | Path | None = None,
+    content_root: str | Path | None = None,
+    workspace_root: str | Path | None = None,
+) -> dict:
     """成片溯源用的构建输入指纹。
 
     口径与页面路径一致（同样是 `{"files": {...}, "digest": ...}`），
     因此 `provenance_status` 的复核逻辑两条路径共用一套。
     """
-    mounts = fingerprint_mounts(repo_root)
+    mounts = fingerprint_mounts(repo_root, workspace_root)
     root = contract_page.web_dir(repo_root)
     files = {
         assets.asset_key(path, root, mounts): file_digest(path)
-        for path in build_inputs(repo_root)
+        for path in build_inputs(repo_root, storyboard_path=storyboard_path, content_root=content_root)
     }
     ordered = dict(sorted(files.items()))
     return {"files": ordered, "digest": fingerprint(ordered)}

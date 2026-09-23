@@ -31,11 +31,7 @@ _EXIT_OK = 0
 _EXIT_FAILED = 1
 _EXIT_INVALID_INPUT = 2
 
-#: 画面引擎。迁移期两个并存，默认仍是旧页面；切换默认是迁移的最后一步。
 ENGINE_REACT = "remotion"
-#: 默认引擎：React composition（Remotion）。迁移期的并存是刻意的：旧路径是量测基线，
-#: 切换默认是一件显式的事，由这一处控制（旧路径的删除见 openspec 变更 11.4）。
-_DEFAULT_ENGINE = ENGINE_REACT
 
 
 def _configure_logging(verbose: bool) -> None:
@@ -65,16 +61,11 @@ def _force_utf8_output() -> None:
 
 
 def _add_engine_argument(parser: argparse.ArgumentParser) -> None:
-    """给渲染与体检加上引擎开关。
-
-    迁移期两个引擎并存是刻意的：旧路径是量测基线，只有它能跑出「改造前」
-    的数据，新路径的每一项结论才有对照物。因此默认值**在迁移完成前不变**，
-    由 `_DEFAULT_ENGINE` 一处控制，切换默认是一件显式的事。
-    """
+    """保留命令行显式引擎参数；当前唯一引擎为 Remotion composition。"""
     parser.add_argument(
         "--engine",
         choices=[ENGINE_REACT],
-        default=_DEFAULT_ENGINE,
+        default=ENGINE_REACT,
         help=(
             "画面引擎：Remotion React composition（保留参数用于明确契约）"
         ),
@@ -236,7 +227,7 @@ def main_render(argv: list[str] | None = None) -> int:
 
 
 def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None) -> str | None:
-    """导演契约作品必须先有通过的审美体检；旧作品维持兼容。"""
+    """所有 v3 分镜必须先有通过的审美体检。"""
     raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
     if raw.get("directingVersion") != 1:
         return None

@@ -40,8 +40,20 @@ def speech(monkeypatch):
 
 @pytest.fixture
 def prepared(tmp_path, valid_script, speech):
-    valid_script["scenes"][0]["narration"] = "你好，世界。"
-    source = tmp_path / "storyboard.json"
+    valid_script["scenes"][0]["durationInFrames"] = 30
+    valid_script["scenes"][1]["durationInFrames"] = 60
+    valid_script["scenes"][1].pop("narrationSegments", None)
+    valid_script["scenes"][1].pop("beats", None)
+    valid_script["scenes"][1]["motions"] = []
+    valid_script["scenes"][1]["camera"]["segments"] = [
+        {"kind": "hold", "phase": "establish", "focus": "copy", "intensity": 0}
+    ]
+    valid_script["scenes"][0]["narrationSegments"] = [
+        {"id": "n1", "text": "你好，", "beatId": "b1"},
+        {"id": "n2", "text": "世界。", "beatId": "b2"},
+    ]
+    source = tmp_path / "videos" / "demo" / "storyboard.json"
+    source.parent.mkdir(parents=True)
     source.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
     path = prep.prepare(source, tmp_path / "media")
     return source, path
@@ -66,7 +78,14 @@ def test_cache_reuse_text_voice_rate_and_force(prepared, speech):
     prep.prepare(source, path.parent)
     assert len(speech) == 1
     data = json.loads(source.read_text(encoding="utf-8"))
-    data["scenes"][1]["narration"] = "结束。"
+    data["scenes"][1]["beats"] = [
+        {"id": "b1", "action": "establish", "targets": ["copy"], "meaning": "重新进入主题"},
+        {"id": "b2", "action": "transform", "targets": ["copy"], "meaning": "完成结论转折"},
+    ]
+    data["scenes"][1]["narrationSegments"] = [
+        {"id": "n1", "text": "继续。", "beatId": "b1"},
+        {"id": "n2", "text": "结束。", "beatId": "b2"},
+    ]
     source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     prep.prepare(source, path.parent)
     assert len(speech) == 2
@@ -272,16 +291,17 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     monkeypatch.setattr(render_mod, "_finalize_output", fake_finalize)
     monkeypatch.setattr(render_mod, "_write_provenance", lambda *args, **kwargs: None)
 
+    bundle_storyboard = Path(__file__).resolve().parents[1] / "examples" / "declarative-number" / "storyboard.json"
     result = render_mod.render_with_remotion(
         output=output,
         storyboard=sb._build(media.data["source"], sb.Report()),
-        storyboard_path=source,
+        storyboard_path=bundle_storyboard,
         media=media,
     )
 
     assert result.frames == media.storyboard.total_frames
     assert sum(s["durationInFrames"] for s in captured["props_scenes"]) == media.storyboard.total_frames
     assert captured["render_props_scenes"] == captured["props_scenes"]
-    assert captured["bundle_storyboard"] == source
+    assert captured["bundle_storyboard"] == bundle_storyboard
 
 

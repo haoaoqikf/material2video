@@ -1,4 +1,4 @@
-"""React 契约页的渲染契约（`__A2V__` version 2）。
+"""React 契约页的渲染契约（`__A2V__` version 3）。
 
 分两层：
 
@@ -216,21 +216,7 @@ def test_rejects_a_page_with_the_wrong_version():
     with pytest.raises(browser.BrowserError) as excinfo:
         browser._validate_contract(raw, "http://example.invalid/page.html", browser.CONTRACT_VERSION)
     message = str(excinfo.value)
-    assert "1" in message and "2" in message
-
-
-def test_legacy_version_is_accepted_where_it_is_not_required():
-    """迁移期旧页面仍要能渲：不传 expected_version 时不因版本拦人。"""
-    raw = {
-        "ready": "function",
-        "seek": "function",
-        "version": contract_page.LEGACY_CONTRACT_VERSION,
-        "fps": 30,
-        "durationInFrames": 180,
-        "width": 1080,
-        "height": 1920,
-    }
-    browser._validate_contract(raw, "http://example.invalid/page.html")
+    assert "1" in message and str(browser.CONTRACT_VERSION) in message
 
 
 def test_fps_mismatch_lists_both_values():

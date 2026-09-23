@@ -17,10 +17,8 @@ function phaseSpan(scene: Scene, phase: MotionPhase): { startFrame: number; endF
 }
 
 export function cameraSegments(scene: Scene): readonly ResolvedSegment[] {
-  const camera = scene.camera; if (!camera) return []; const timeline = beatTimeline(scene);
-  if (camera.segments) return camera.segments.map((segment) => { const beat = segment.beatId ? timeline.beats.find((item) => item.id === segment.beatId) : undefined; const span = beat ?? phaseSpan(scene, segment.phase ?? 'change'); return { kind: segment.kind, startFrame: span.startFrame, endFrame: span.endFrame, focus: segment.focus ?? camera.focus, direction: segment.direction, intensity: segment.intensity }; });
-  const establish = phaseSpan(scene, 'establish'); const settle = phaseSpan(scene, 'settle'); const movement: CameraState['kind'] = camera.movement === 'static' ? 'hold' : camera.movement === 'orbit' ? 'reframe' : camera.movement === 'pan-left' || camera.movement === 'pan-right' ? 'pan' : camera.movement;
-  return [{ kind: 'hold', startFrame: 0, endFrame: establish.endFrame, focus: camera.focus, intensity: 0 }, { kind: movement, startFrame: establish.endFrame, endFrame: settle.startFrame, focus: camera.focus, direction: camera.movement === 'pan-left' ? 'left' : camera.movement === 'pan-right' ? 'right' : undefined, intensity: .5 }, { kind: 'settle', startFrame: settle.startFrame, endFrame: settle.endFrame, focus: camera.focus, intensity: 0 }];
+  const camera = scene.camera; const timeline = beatTimeline(scene);
+  return camera.segments.map((segment) => { const beat = segment.beatId ? timeline.beats.find((item) => item.id === segment.beatId) : undefined; const span = beat ?? phaseSpan(scene, segment.phase!); return { kind: segment.kind, startFrame: span.startFrame, endFrame: span.endFrame, focus: segment.focus ?? camera.focus, direction: segment.direction, intensity: segment.intensity }; });
 }
 
 export function cameraState(scene: Scene, frame: number): CameraState {
@@ -32,8 +30,8 @@ export function cameraState(scene: Scene, frame: number): CameraState {
   return { kind: segment.kind, progress: p, focus: segment.focus, x, y, scale, velocity };
 }
 
-/** 所有旧 movement 也解析成含 hold/settle 的新版计划，避免整幕持续漂移。 */
+/** 由显式镜头段与共享 beat 时间轴求值镜头状态。 */
 export function cameraStyle(scene: Scene, frame: number): CSSProperties {
-  const camera = scene.camera; if (!camera) return {}; const state = cameraState(scene, frame);
+  const camera = scene.camera; const state = cameraState(scene, frame);
   return { transform: `translate(${state.x}px, ${state.y}px) scale(${state.scale})`, perspective: camera.depth === 'layered' ? '1200px' : undefined, transformOrigin: camera.composition === 'left' ? '30% 50%' : camera.composition === 'right' ? '70% 50%' : '50% 50%' };
 }

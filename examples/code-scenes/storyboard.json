@@ -1,15 +1,16 @@
 {
-  "version": 2,
-  "schemaVersion": 2,
+  "version": 3,
+  "schemaVersion": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "把增长讲清楚：一支混合双轨的示例短片",
   "visual": {
-    "theme": "dark"
+    "theme": "dark",
+    "preset": "keynote"
   },
   "visualDirection": {
-    "motif": "code-scenes-example",
+    "motif": "探针",
     "compositionBias": "mixed",
     "density": "balanced",
     "rhythm": "steady",
@@ -26,11 +27,26 @@
         "text": "增长不是一条直线",
         "kicker": "示例短片",
         "curve": [
-          { "label": "1 天", "value": 1.01 },
-          { "label": "30 天", "value": 1.35 },
-          { "label": "90 天", "value": 2.45 },
-          { "label": "180 天", "value": 5.99 },
-          { "label": "365 天", "value": 37.8 }
+          {
+            "label": "1 天",
+            "value": 1.01
+          },
+          {
+            "label": "30 天",
+            "value": 1.35
+          },
+          {
+            "label": "90 天",
+            "value": 2.45
+          },
+          {
+            "label": "180 天",
+            "value": 5.99
+          },
+          {
+            "label": "365 天",
+            "value": 37.8
+          }
         ]
       },
       "visualIntent": {
@@ -69,16 +85,43 @@
         {
           "target": "opening-headline",
           "recipe": "reveal",
-          "startFrame": 0,
-          "durationFrames": 20
+          "durationFrames": 20,
+          "phase": "establish"
         },
         {
           "target": "opening-chart",
           "recipe": "reveal",
-          "startFrame": 14,
-          "durationFrames": 26
+          "durationFrames": 26,
+          "phase": "change"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "layered",
+        "focus": "opening-headline",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "opening-headline",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "icon-card",
@@ -105,7 +148,35 @@
         "kind": "code",
         "module": "lucide-card"
       },
-      "motions": []
+      "motions": [],
+      "camera": {
+        "shot": "medium",
+        "composition": "split",
+        "depth": "flat",
+        "focus": "root",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "root",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "從上一幕推理轉入「title」所承載的下一步"
+      }
     },
     {
       "id": "quarter-chart",
@@ -143,7 +214,35 @@
         "kind": "code",
         "module": "progress-chart"
       },
-      "motions": []
+      "motions": [],
+      "camera": {
+        "shot": "close",
+        "composition": "right",
+        "depth": "flat",
+        "focus": "root",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "root",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "從上一幕推理轉入「chart」所承載的下一步"
+      }
     },
     {
       "id": "graph-flow",
@@ -213,7 +312,35 @@
         "kind": "code",
         "module": "graph-flow"
       },
-      "motions": []
+      "motions": [],
+      "camera": {
+        "shot": "macro",
+        "composition": "full",
+        "depth": "flat",
+        "focus": "root",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "root",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "從上一幕推理轉入「chart」所承載的下一步"
+      }
     },
     {
       "id": "arc-goal",
@@ -240,7 +367,50 @@
         "kind": "code",
         "module": "arc-goal"
       },
-      "motions": []
+      "motions": [],
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "flat",
+        "focus": "root",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "root",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "從上一幕推理轉入「conclusion」所承載的下一步"
+      }
     }
-  ]
+  ],
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "代码场景是共享原语的可验证补充",
+    "audienceShift": "从静态声明转向按帧驱动画面",
+    "emotionalArc": [
+      "观察",
+      "验证"
+    ],
+    "visualMotif": "探针",
+    "stylePack": "technical",
+    "avoid": [
+      "静态文字页连续复用",
+      "脱离语义的装饰动效"
+    ]
+  }
 }

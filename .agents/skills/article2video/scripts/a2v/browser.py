@@ -7,7 +7,7 @@
 画面有两个提供者，本模块不区分：
 
 * **契约页**（React + Remotion Player）：`web/dist/contract/contract.html`，
-  当前版本 2。它按 `a2v-storyboard` 查询参数加载任意作品的分镜；
+  当前版本 3。它按 `a2v-storyboard` 查询参数加载任意作品的分镜；
 * 旧动画网页：不再受支持，版本检查会明确拒绝它。
 
 资源生命周期：Playwright 驱动进程与事件循环由本模块负责启动与关闭。
@@ -150,17 +150,15 @@ def open_animated_page(
     timeout_ms: int = 30000,
     width: int | None = None,
     height: int | None = None,
-    expected_version: int | None = None,
+    expected_version: int = CONTRACT_VERSION,
 ) -> AnimatedPage:
     """启动 Chromium 打开提供画面的页面并验证 __A2V__ 契约。
 
     width/height 显式传入时以渲染脚本的视口为准，避免网页尺寸与脚本
     声明不一致导致画面被裁切或留黑边。
 
-    `expected_version` 是**这条路径要求的契约版本**：React 路径要求 2，
-    旧页面路径不传（迁移期它仍声明 1，而它必须继续能渲）。
-    不校验版本会让「拿旧页面当新画面用」在首帧截图上以空白的形式暴露出来，
-    那时已经很难反推原因了。
+    `expected_version` 是**这条路径要求的契约版本**。分镜渲染只接受 v3 契约；
+    旧页面路径不再绕过版本检查。
     """
     playwright = sync_playwright().start()
     browser: Browser | None = None
@@ -282,7 +280,7 @@ def _teardown(browser: Browser | None, playwright: Playwright) -> None:
 
 
 def _validate_contract(
-    raw: dict[str, Any], url: str, expected_version: int | None = None
+    raw: dict[str, Any], url: str, expected_version: int = CONTRACT_VERSION
 ) -> None:
     """契约字段缺失或类型不对时给出可定位的错误信息。"""
     if raw["ready"] != "function":
@@ -301,7 +299,7 @@ def _validate_contract(
         )
     if not isinstance(version, int) or isinstance(version, bool) or version < 1:
         raise BrowserError(f"{url}: window.__A2V__.version 必须是正整数，实际为 {version!r}")
-    if expected_version is not None and version != expected_version:
+    if version != expected_version:
         raise BrowserError(
             f"{url}: 渲染契约版本为 {version}，这条渲染路径要求的是 {expected_version}"
         )

@@ -28,9 +28,11 @@ def _base_scene(renderer: dict | None = None) -> dict:
         "type": "title",
         "durationInFrames": 30,
         "data": {"text": "开场"},
-        "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+        "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "展示开场", "showWithoutText": "单个焦点文字块", "primaryObject": "开场文字", "motionMeaning": "逐步出现"},
         "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
         "motions": [],
+        "renderer": {"kind": "tree"},
+        "camera": {"shot": "medium", "composition": "center", "depth": "flat", "focus": "root", "segments": [{"phase": "establish", "kind": "hold", "focus": "root"}]},
     }
     if renderer is not None:
         scene["renderer"] = renderer
@@ -38,9 +40,15 @@ def _base_scene(renderer: dict | None = None) -> dict:
 
 
 def _storyboard(scenes: list[dict]) -> dict:
+    for index, scene in enumerate(scenes):
+        if index:
+            scene.setdefault("transition", {"kind": "dissolve", "meaning": "切换至下一幕"})
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试命题", "audienceShift": "理解场景", "emotionalArc": ["观察", "确认"], "visualMotif": "焦点", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -54,9 +62,15 @@ def _errors(report: sb.Report) -> dict[str, str]:
 
 
 class TestRendererStructure:
-    def test缺省renderer按tree解释(self):
+    def test显式tree_renderer按tree解释(self):
         report = sb.validate(_storyboard([_base_scene()]))
         assert report.ok, [i.format() for i in report.issues]
+
+    def test拒绝缺省renderer(self):
+        scene = _base_scene()
+        scene.pop("renderer")
+        report = sb.validate(_storyboard([scene]))
+        assert "scenes[0].renderer" in _errors(report)
 
     def test显式tree_renderer通过(self):
         report = sb.validate(_storyboard([_base_scene({"kind": "tree"})]))

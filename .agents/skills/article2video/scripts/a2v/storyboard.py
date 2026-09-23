@@ -7,9 +7,7 @@
 本模块只负责解析与结构校验，不做任何 I/O 之外的事情，
 保证校验逻辑可以在纯 Python 单元测试中复用。
 
-当前只支持场景树 v2（version=2 + schemaVersion=2）。旧版整页组件分镜
-（version=1，data.figure.kind）必须先经 scripts/migrate_storyboard.py
-显式迁移，任何入口都不会静默回退到旧渲染路径。
+当前只支持分镜 v3。v3 之前的分镜在所有入口统一拒绝。
 """
 
 from __future__ import annotations
@@ -27,8 +25,8 @@ from . import beats as beat_mod
 from . import visual_narrative as vn
 from .errors import A2VError
 
-# 当前支持的版本：场景树 v2。字段结构变化时必须递增，并在校验时给出明确提示。
-SCENE_TREE_VERSION = 2
+# 当前支持的版本：分镜 v3。字段结构变化时必须递增，并在校验时给出明确提示。
+SCENE_TREE_VERSION = 3
 
 # 动效配方全集。单个原语允许哪些配方由原语注册表（catalog.PRIMITIVE_CATALOG）声明，
 # 这里只负责拦截完全未知的配方名。
@@ -140,34 +138,28 @@ class Report:
 def validate(data: Any, strict: bool = False) -> Report:
     """校验分镜脚本 dict，返回结构化报告。data 不是 dict 时直接判错。
 
-    ``strict``（对应 CLI 的 ``--strict``）额外执行视觉叙事契约：
-    逐幕缺少视觉论证字段时不再只是兼容警告，而是错误，并执行版本化的
-    全片视觉叙事预算（文字幕占比、连续文字幕、非文字模式覆盖与
-    声明/结构矛盾）。普通校验保持兼容：旧分镜只收到警告，预览与
-    渲染仍可继续。
+    所有模式都校验 v3 结构。``strict`` 只额外执行作品质量门槛，
+    如全片文字幕预算、连续文字幕和非文字视觉模式覆盖。
     """
     report = Report()
     if not isinstance(data, dict):
         report.error("$", "脚本根节点必须是 JSON 对象")
         return report
 
-    if data.get("version") == SCENE_TREE_VERSION:
-        return _validate_v2(data, strict=strict)
-    if data.get("version") == 1:
-        report.error(
-            "version",
-            "旧版整页组件分镜不能进入新版入口；请先运行 migrate_storyboard.py 显式迁移到场景树 v2",
-        )
+    if data.get("version") == 3:
+        return _validate_v3(data, strict=strict)
+    if data.get("version") in {1, 2} or data.get("schemaVersion") in {1, 2}:
+        report.error("version", "不支持 v3 之前分镜；请按分镜 v3 契约重新编排")
         return report
-    report.error("version", f"不支持的脚本版本 {data.get('version')!r}，当前支持场景树 v2（version=2）")
+    report.error("version", f"仅支持 version: 3 和 schemaVersion: 3（收到 {data.get('version')!r}）")
     return report
 
 
-def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
+def _validate_v3(data: dict[str, Any], strict: bool = False) -> Report:
     report = Report()
     _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "directingVersion", "directingBrief", "scenes", "visual"}, "", report)
     if data.get("schemaVersion") != SCENE_TREE_VERSION:
-        report.error("schemaVersion", f"场景树版本必须是 {SCENE_TREE_VERSION}")
+        report.error("schemaVersion", "不支持 v3 之前分镜；version 与 schemaVersion 必须都是 3")
     _validate_framerate(data, report)
     _validate_dimensions(data, report)
     _validate_root_visual(data.get("visual"), report)
@@ -177,11 +169,14 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
     else:
         _validate_visual_direction(direction, report)
     directing_version = data.get("directingVersion")
-    if directing_version is not None and directing_version != 1:
-        report.error("directingVersion", "directingVersion 当前只支持 1")
+    if directing_version != 1:
+        report.error("directingVersion", "v3 必须声明 directingVersion: 1")
+    visual = data.get("visual")
+    if not isinstance(visual, dict) or visual.get("preset") != "keynote":
+        report.error("visual.preset", 'v3 必须声明 visual.preset: "keynote"')
     brief = data.get("directingBrief")
-    if directing_version == 1 and brief is None:
-        report.error("directingBrief", "directingVersion=1 必须同时提供 directingBrief")
+    if brief is None:
+        report.error("directingBrief", "v3 必须提供完整 directingBrief")
     if brief is not None:
         if not isinstance(brief, dict):
             report.error("directingBrief", "directingBrief 必须是对象")
@@ -190,10 +185,12 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
             for key in ("thesis", "audienceShift", "visualMotif"):
                 if not isinstance(brief.get(key), str) or not brief[key].strip():
                     report.error(f"directingBrief.{key}", "必须是非空字符串")
-            if not isinstance(brief.get("emotionalArc"), list) or len(brief["emotionalArc"]) < 2:
+            if not isinstance(brief.get("emotionalArc"), list) or len(brief["emotionalArc"]) < 2 or not all(isinstance(item, str) and item.strip() for item in brief.get("emotionalArc", [])):
                 report.error("directingBrief.emotionalArc", "必须是至少两个情绪阶段")
             if brief.get("stylePack") not in {"editorial", "cinematic", "technical", "poetic"}:
                 report.error("directingBrief.stylePack", "必须是 editorial/cinematic/technical/poetic 之一")
+            if not isinstance(brief.get("avoid"), list) or not all(isinstance(item, str) and item.strip() for item in brief.get("avoid", [])):
+                report.error("directingBrief.avoid", "avoid 必须是字符串数组")
     scenes = data.get("scenes")
     if not isinstance(scenes, list) or not scenes:
         report.error("scenes", "scenes 必须是非空数组")
@@ -205,7 +202,7 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         if not isinstance(scene, dict):
             report.error(path, "场景必须是对象")
             continue
-        _reject_unknown(scene, {"id", "type", "durationInFrames", "narration", "narrationSegments", "beats", "data", "visualIntent", "camera", "transition", "sceneTree", "motions", "visual", "renderer"}, path, report)
+        _reject_unknown(scene, {"id", "type", "durationInFrames", "narrationSegments", "beats", "data", "visualIntent", "camera", "transition", "sceneTree", "motions", "visual", "renderer"}, path, report)
         _validate_directing_scene(scene, path, report)
         scene_id = scene.get("id")
         if not isinstance(scene_id, str) or not _SCENE_ID_RE.match(scene_id):
@@ -215,8 +212,10 @@ def _validate_v2(data: dict[str, Any], strict: bool = False) -> Report:
         else:
             seen_scenes.add(scene_id)
         _validate_duration(scene, f"{path}.durationInFrames", report, _safe_fps(data))
-        if "narration" in scene and not isinstance(scene["narration"], str):
-            report.error(f"{path}.narration", "narration 必须是字符串；静音场景请省略或使用空字符串")
+        if "narration" in scene:
+            report.error(f"{path}.narration", "v3 不接受字符串 narration；请使用 narrationSegments + beats")
+        if index > 0 and not isinstance(scene.get("transition"), dict):
+            report.error(f"{path}.transition", "v3 第二幕起必须显式声明跨幕 transition")
         if not isinstance(scene.get("data"), dict):
             report.error(f"{path}.data", "data 必须是对象")
         _validate_visual_intent(scene.get("visualIntent"), f"{path}.visualIntent", report, strict=strict)
@@ -249,7 +248,12 @@ def _validate_continuity(scenes: Any, report: Report) -> None:
     if not isinstance(scenes, list):
         return
     for index, scene in enumerate(scenes):
-        if not isinstance(scene, dict) or not scene.get("transition"):
+        if not isinstance(scene, dict):
+            continue
+        if index > 0 and not scene.get("transition"):
+            report.error(f"scenes[{index}].transition", "v3 第二幕起必须显式声明跨幕 transition")
+            continue
+        if not scene.get("transition"):
             continue
         transition = scene["transition"]
         path = f"scenes[{index}].transition"
@@ -325,7 +329,7 @@ def _validate_visual_narrative(data: dict[str, Any], report: Report, *, strict: 
 
     预算规则只在严格校验执行：文字幕占比与连续文字幕是硬门槛，
     报告始终列出场景 id、实际值与允许上限。普通校验保持沉默——
-    它的兼容契约是「旧分镜可预览、可渲染」，预算问题留给严格验收。
+    预算问题留给严格验收。
     """
     if not strict:
         return
@@ -385,7 +389,7 @@ def _validate_visual_direction(direction: dict[str, Any], report: Report) -> Non
         if key in direction and direction[key] not in choices:
             report.error(f"visualDirection.{key}", f"必须是 {'/'.join(sorted(choices))} 之一")
     avoid = direction.get("avoid")
-    if "avoid" in direction and (not isinstance(avoid, list) or not all(isinstance(item, str) for item in avoid)):
+    if "avoid" in direction and (not isinstance(avoid, list) or not all(isinstance(item, str) and item.strip() for item in avoid)):
         report.error("visualDirection.avoid", "avoid 必须是字符串数组")
 
 
@@ -395,14 +399,16 @@ def _validate_directing_scene(scene: dict[str, Any], path: str, report: Report) 
         if not isinstance(camera, dict):
             report.error(f"{path}.camera", "camera 必须是对象")
         else:
-            _reject_unknown(camera, {"shot", "composition", "depth", "focus", "movement", "segments"}, f"{path}.camera", report)
-            choices = {"shot": {"macro", "close", "medium", "wide"}, "composition": {"center", "left", "right", "split", "full"}, "depth": {"flat", "layered"}, "movement": {"static", "push-in", "pull-out", "pan-left", "pan-right", "orbit"}}
+            _reject_unknown(camera, {"shot", "composition", "depth", "focus", "segments"}, f"{path}.camera", report)
+            choices = {"shot": {"macro", "close", "medium", "wide"}, "composition": {"center", "left", "right", "split", "full"}, "depth": {"flat", "layered"}}
             for key, allowed in choices.items():
                 if camera.get(key) not in allowed:
                     report.error(f"{path}.camera.{key}", f"必须是 {'/'.join(sorted(allowed))} 之一")
             if not isinstance(camera.get("focus"), str) or not _SCENE_ID_RE.match(camera.get("focus", "")):
                 report.error(f"{path}.camera.focus", "必须是节点 id")
             segments = camera.get("segments")
+            if segments is None:
+                report.error(f"{path}.camera.segments", "v3 必须声明非空镜头段")
             if segments is not None:
                 if not isinstance(segments, list) or not segments:
                     report.error(f"{path}.camera.segments", "segments 必须是非空数组")
@@ -418,6 +424,8 @@ def _validate_directing_scene(scene: dict[str, Any], path: str, report: Report) 
                             report.error(f"{segment_path}.kind", "必须是 hold/push-in/pull-out/pan/reframe/settle 之一")
                         if ("beatId" in segment) == ("phase" in segment):
                             report.error(f"{segment_path}.beatId", "beatId 与 phase 必须二选一")
+                        if "beatId" in segment and (not isinstance(segment.get("beatId"), str) or not segment["beatId"].strip()):
+                            report.error(f"{segment_path}.beatId", "beatId 必须是非空标识符")
                         if "beatId" in segment and segment.get("beatId") not in beat_ids:
                             report.error(f"{segment_path}.beatId", f"镜头段引用了不存在的 beat {segment.get('beatId')!r}")
                         if "phase" in segment and segment.get("phase") not in {"establish", "change", "result", "settle"}:
@@ -430,6 +438,10 @@ def _validate_directing_scene(scene: dict[str, Any], path: str, report: Report) 
                         intensity = segment.get("intensity", 0.5)
                         if not isinstance(intensity, (int, float)) or isinstance(intensity, bool) or not 0 <= intensity <= 1:
                             report.error(f"{segment_path}.intensity", "intensity 必须在 0..1")
+    else:
+        report.error(f"{path}.camera", "v3 每幕必须声明 camera.segments")
+    if isinstance(camera, dict) and not camera.get("segments"):
+        report.error(f"{path}.camera.segments", "v3 必须声明非空镜头段")
     transition = scene.get("transition")
     if transition is not None:
         if not isinstance(transition, dict):
@@ -491,18 +503,13 @@ def _validate_visual_intent(value: Any, path: str, report: Report, strict: bool 
             f"缺少视觉论证字段 {('、'.join(missing))}：逐幕须声明受控视觉模式、核心论点、"
             "无正文视觉表达、主要视觉对象与动效语义"
         )
-        if strict:
-            report.error(f"{path}", message)
-        else:
-            report.warn(
-                f"{path}",
-                message + "（旧版分镜兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
-            )
+        report.error(f"{path}", message)
 
 
 def _validate_root_visual(value: Any, report: Report) -> None:
     """根级 visual 只允许主题与设计语言预设。"""
     if value is None:
+        report.error("visual", 'visual 必须声明 preset: "keynote"')
         return
     if not isinstance(value, dict):
         report.error("visual", "visual 必须是对象")
@@ -548,12 +555,12 @@ def _validate_scene_visual(value: Any, scene_type: Any, path: str, report: Repor
 def _validate_renderer(scene: dict[str, Any], path: str, report: Report) -> str:
     """校验每幕的渲染模式，返回生效的 kind（"tree" 或 "code"）。
 
-    缺省 ``renderer`` 的既有分镜按 ``tree`` 解释（向后兼容，不批量迁移）；
     ``code`` 场景必须给模块标识且不能同时声明 ``sceneTree``——两条画面路径
     每幕二选一，互斥字段在这里拦住，而不是让画面出现两套来源。
     """
     renderer = scene.get("renderer")
     if renderer is None:
+        report.error(f"{path}.renderer", "v3 每幕必须显式声明 renderer")
         return "tree"
     if not isinstance(renderer, dict):
         report.error(f"{path}.renderer", "renderer 必须是对象：{kind: 'tree'} 或 {kind: 'code', module: '...'}")
@@ -782,7 +789,7 @@ def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, An
         if not isinstance(motion, dict):
             report.error(item_path, "动效必须是对象")
             continue
-        _reject_unknown(motion, {"target", "targets", "recipe", "phase", "beatId", "stagger", "startFrame", "durationFrames"}, item_path, report)
+        _reject_unknown(motion, {"target", "targets", "recipe", "phase", "beatId", "stagger", "durationFrames"}, item_path, report)
         target, targets, recipe = motion.get("target"), motion.get("targets"), motion.get("recipe")
         if (target is None) == (targets is None):
             report.error(f"{item_path}.target", "target 与 targets 必须二选一")
@@ -802,14 +809,16 @@ def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, An
                         f"原语 {types.get(target_id)} 不支持动效 {recipe!r}（允许：{'、'.join(sorted(entry.motions))}）",
                     )
         phase = motion.get("phase")
-        if phase is not None and phase not in {"establish", "change", "result", "settle"}:
+        if "phase" in motion and phase not in {"establish", "change", "result"}:
             report.error(f"{item_path}.phase", "未知动画阶段")
         beat_id = motion.get("beatId")
         beat_ids = {item.get("id") for item in scene.get("beats", []) if isinstance(item, dict)}
         if beat_id is not None and beat_id not in beat_ids:
             report.error(f"{item_path}.beatId", f"动效引用了不存在的 beat {beat_id!r}")
-        if beat_id is not None and "startFrame" in motion:
-            report.error(f"{item_path}.startFrame", "绑定 beatId 后不能声明绝对 startFrame")
+        if "startFrame" in motion:
+            report.error(f"{item_path}.startFrame", "v3 不接受绝对 startFrame；请绑定 phase 或 beatId")
+        if (phase is None) == (beat_id is None):
+            report.error(item_path, "每条 motion 必须且只能绑定 phase 或 beatId")
         stagger = motion.get("stagger")
         if stagger is not None:
             if not isinstance(targets, list): report.error(f"{item_path}.stagger", "stagger 只适用于 targets 节点组")
@@ -823,9 +832,7 @@ def _validate_motions(value: Any, path: str, report: Report, scene: dict[str, An
                 path_value = stagger.get("path")
                 if kind == "path" and (not isinstance(path_value, list) or len(path_value) < 2 or any(item not in target_list for item in path_value)): report.error(f"{item_path}.stagger.path", "路径传播必须声明覆盖目标的有效 path")
                 if kind != "path" and "path" in stagger: report.error(f"{item_path}.stagger.path", "只有路径传播可以声明 path")
-        start = motion.get("startFrame", 0); length = motion.get("durationFrames", 1)
-        if not isinstance(start, int) or isinstance(start, bool) or start < 0:
-            report.error(f"{item_path}.startFrame", "startFrame 必须是非负整数")
+        start = 0; length = motion.get("durationFrames", 1)
         if not isinstance(length, int) or isinstance(length, bool) or length <= 0:
             report.error(f"{item_path}.durationFrames", "durationFrames 必须是正整数")
         if isinstance(start, int) and isinstance(length, int) and isinstance(duration, int) and start + length > duration:
@@ -862,8 +869,7 @@ def _validate_beats(
     结构问题（互斥字段、重复 id、未知动作、空 meaning、悬空引用、无效目标、
     不连续引用）在**所有**校验模式下都是错误：它们让时间轴无法解析，
     画面与字幕必然对不上。质量规则（非文字幕至少两个 beat 且包含状态/
-    关系动作）只在严格校验报错，普通校验给兼容提醒——旧字符串口播的
-    预览与渲染必须继续可用。
+    关系动作）只在严格校验报错。
 
     ``node_types`` 为 None 表示这一幕是代码场景：节点由作品模块在运行期
     用探针 id 声明，静态核验不了，因此只校验目标的标识符形状。
@@ -877,10 +883,10 @@ def _validate_beats(
             f"{path}.narrationSegments",
             "narration 与 narrationSegments 互斥：每幕二选一，分段口播的完整文本由各段按顺序拼接",
         )
-    narration = scene.get("narration")
-    spoken = bool(isinstance(narration, str) and narration.strip())
+    spoken = False
     if not has_segments and not has_beats:
-        _require_beats_for_new_work(scene, path, report, spoken=spoken, strict=strict)
+        if spoken:
+            report.error(f"{path}.narrationSegments", "v3 有口播时必须使用 narrationSegments + beats")
         return
 
     beats_value = scene.get("beats")
@@ -1001,39 +1007,15 @@ def _validate_beat_targets(
             )
 
 
-def _require_beats_for_new_work(
-    scene: dict[str, Any], path: str, report: Report, *, spoken: bool, strict: bool
-) -> None:
-    """没有节拍的幕：非文字幕带口播时必须改用分段口播 + beats。
-
-    纯文字幕（``typography``）与静音场景豁免——它们本来就不靠画面变化
-    解释推理。旧字符串口播在普通校验下只收到兼容提醒，预览与渲染照常。
-    """
-    if not spoken or vn.analyze_scene(scene)["isTextScene"]:
-        return
-    message = (
-        f"非文字幕带口播却没有语义节拍：请改用 narrationSegments 绑定至少 "
-        f"{beat_mod.MIN_BEATS_PER_SCENE} 个 beat，并让其中至少一个改变对象状态或关系"
-        f"（{'、'.join(sorted(beat_mod.CHANGE_ACTIONS))}）；纯文字幕与静音场景可以不使用该结构"
-    )
-    if strict:
-        report.error(f"{path}.beats", message)
-    else:
-        report.warn(
-            f"{path}.beats",
-            message + "（旧版字符串口播兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
-        )
-
-
 def _check_beat_rules(
     scene: dict[str, Any], path: str, report: Report, beats_value: list[Any], *, strict: bool
 ) -> None:
     """新作品的节拍质量规则：至少两个 beat，且至少一个改变状态或关系。
 
     只有「非文字幕 + 有口播」的场景受约束；纯文字幕与静音场景豁免。
-    普通校验给提醒而不是错误，是为了让旧字符串口播继续可预览可渲染。
+    结构错误在普通与严格校验中都拒绝；严格模式另检查 beat 的教学质量。
     """
-    if vn.analyze_scene(scene)["isTextScene"]:
+    if vn.analyze_scene(scene)["isTextScene"] and not scene.get("narrationSegments"):
         return
     actions = [beat.get("action") for beat in beats_value if isinstance(beat, dict)]
     problems: list[str] = []
@@ -1053,14 +1035,14 @@ def _check_beat_rules(
     else:
         report.warn(
             f"{path}.beats",
-            message + "（旧版字符串口播兼容模式：可预览可渲染，--strict 校验与新的交付闭环会拒绝）",
+            message,
         )
 
 
 def _warn_on_scene_copy(scene: dict[str, Any], path: str, report: Report) -> None:
     """场景级文案检查：单行上限、emphasis 命中与示意数值提醒。
 
-    v2 的 data 是自由字段，因此检查遍历整个 data：可见文案写在哪个键里，
+    v3 的 data 是自由字段，因此检查遍历整个 data：可见文案写在哪个键里，
     规则都一样。硬换行是语义换行，所以逐行判断而不是判断整段长度。
     """
     data_field = scene.get("data")
@@ -1291,7 +1273,7 @@ def load(path: str | Path, strict: bool = False) -> tuple[Storyboard | None, Rep
     返回 (storyboard, report)：解析失败或存在 error 时 storyboard 为 None，
     便于调用方在报告与模型之间二选一使用。``strict`` 透传给
     :func:`validate`——只有交付闭环的校验入口（validate.py --strict）
-    传 True；预览、渲染、体检与配音准备保持兼容模式。
+    传 True；预览、渲染、体检与配音准备都执行相同的 v3 结构校验。
     """
     path = Path(path)
     report = Report()

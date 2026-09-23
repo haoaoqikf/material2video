@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,13 @@ from a2v.media import Media
 from a2v.render import RenderResult
 
 from conftest import SKILL_MARKER, make_project
+
+
+def _approve_render_gate(article: Path) -> None:
+    inspect = article / "outputs" / "inspect"
+    inspect.mkdir(parents=True, exist_ok=True)
+    (inspect / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
+    (inspect / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
 
 
 class TestProjectRoot:
@@ -166,12 +174,15 @@ class TestNaming:
         assert "prepare.py" in caplog.text
 
     @pytest.mark.parametrize(
-        "narration, expected", [("   ", False), ("有口播", True)]
+        "segments, expected", [([], False), ([{"id": "n1", "text": "有口播", "beatId": "b1"}, {"id": "n2", "text": "继续", "beatId": "b2"}], True)]
     )
-    def test_declares_narration_ignores_blank(self, valid_script, narration, expected):
+    def test_declares_narration_ignores_missing_segments(self, valid_script, segments, expected):
         from a2v import storyboard as sb
 
-        valid_script["scenes"][0]["narration"] = narration
+        for scene in valid_script["scenes"]:
+            scene["narrationSegments"] = segments
+            if not segments:
+                scene.pop("beats", None)
         model = sb._build(valid_script, sb.Report())
         assert paths.declares_narration(model) is expected
 
@@ -204,12 +215,13 @@ class TestVoicedRenderDefaults:
     def voiced_project(self, tmp_path, valid_script, speech):
         """带口播的项目：真实 prepare 生成媒体清单，再按推导路径加载。"""
         script = copy.deepcopy(valid_script)
-        script["scenes"][0]["narration"] = "你好，世界。"
+        script["scenes"][0]["narrationSegments"] = [{"id": "n1", "text": "你好，", "beatId": "b1"}, {"id": "n2", "text": "世界。", "beatId": "b2"}]
         article = make_project(tmp_path, "videos", "demo", script)
         return tmp_path, article
 
     def test_media_renders_to_voiced_name(self, voiced_project, monkeypatch):
         root, article = voiced_project
+        _approve_render_gate(article)
         media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
@@ -229,6 +241,7 @@ class TestVoicedRenderDefaults:
         (other / "storyboard.json").write_text(
             (article / "storyboard.json").read_text(encoding="utf-8"), encoding="utf-8"
         )
+        _approve_render_gate(other)
         media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
         _capture_render(monkeypatch)
         # 媒体清单属于 demo，却拿 other 的网页来渲染：必须拒绝，避免音画串文章
@@ -246,6 +259,7 @@ class TestRemotionDefault:
 
     def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script, monkeypatch):
         article = make_project(tmp_path, "videos", "demo", valid_script)
+        _approve_render_gate(article)
         captured: list[dict] = []
 
         def fake_remotion(**kwargs):
@@ -342,7 +356,7 @@ class TestPrepareCommandDefaults:
 
     def test_out_dir_defaults_to_media_directory(self, tmp_path, valid_script, monkeypatch):
         script = copy.deepcopy(valid_script)
-        script["scenes"][0]["narration"] = "你好。"
+        script["scenes"][0]["narrationSegments"] = [{"id": "n1", "text": "你", "beatId": "b1"}, {"id": "n2", "text": "好。", "beatId": "b2"}]
         article = make_project(tmp_path, "videos", "demo", script)
         calls: list[dict] = []
 

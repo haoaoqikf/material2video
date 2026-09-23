@@ -30,21 +30,28 @@ def _storyboard(renderers: list[dict | None]) -> dict:
             "type": "title",
             "durationInFrames": 30,
             "data": {"text": "开场"},
-            "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+            "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "测试画面", "showWithoutText": "一个标题承担本幕命题", "primaryObject": "标题文字", "motionMeaning": "标题清晰呈现"},
             "motions": [],
+            "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "copy" if renderer is None else "scene-focus", "segments": [{"kind": "hold", "phase": "establish", "intensity": 0}, {"kind": "settle", "phase": "settle", "intensity": 0}]},
         }
         if renderer is None:
+            scene["renderer"] = {"kind": "tree"}
             scene["sceneTree"] = {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]}
         else:
             scene["renderer"] = renderer
+        if index:
+            scene["transition"] = {"kind": "dissolve", "meaning": "进入下一幕测试"}
         scenes.append(scene)
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试场景清单", "audienceShift": "从配置转向画面", "emotionalArc": ["建立", "完成"], "visualMotif": "场景声明", "stylePack": "technical", "avoid": []},
         "fps": 30,
         "width": 1080,
         "height": 1920,
         "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "scenes": scenes,
     }
 
@@ -311,8 +318,8 @@ class TestFingerprintCoverage:
         # 作品模块与资产用可复核的工作区键（不是只剩文件名）
         assert any("videos/fingerprint/scenes/chart.tsx" in key for key in keys), keys
         assert any("videos/fingerprint/assets/mark.svg" in key for key in keys), keys
-        # 规范化清单本身在指纹里
-        assert any(".gen/scene-manifest.json" in key for key in keys), keys
+        # 规范化清单是易变的派生索引，不进入作品指纹；其实际源模块必须可达。
+        assert not any(".gen/scene-manifest.json" in key for key in keys), keys
 
     def test修改可达输入改变指纹_无关作品不影响(self, tmp_path, web_dir):
         from a2v import remotion

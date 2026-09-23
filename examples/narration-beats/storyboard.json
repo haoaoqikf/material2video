@@ -1,42 +1,98 @@
 {
-  "version": 2,
-  "schemaVersion": 2,
+  "version": 3,
+  "schemaVersion": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "进度为什么看不见",
   "visualDirection": {
-    "motif": "刻度与阶段",
+    "motif": "节拍线",
     "compositionBias": "asymmetric",
     "density": "balanced",
     "rhythm": "steady",
-    "avoid": ["repeated-center"]
+    "avoid": [
+      "repeated-center"
+    ]
   },
   "directingVersion": 1,
   "directingBrief": {
-    "thesis": "进度只有被看见，才会形成有效反馈",
-    "audienceShift": "从责怪拖延转向理解反馈不可见",
-    "emotionalArc": ["困惑", "拆解", "理解", "释然"],
-    "visualMotif": "刻度与阶段",
-    "stylePack": "editorial",
-    "avoid": ["重复居中", "无意义粒子"]
+    "thesis": "语义节拍让口播与画面同轴推进",
+    "audienceShift": "从听见句子转向看懂推理步骤",
+    "emotionalArc": [
+      "理解",
+      "确信"
+    ],
+    "visualMotif": "节拍线",
+    "stylePack": "technical",
+    "avoid": [
+      "静态文字页连续复用",
+      "脱离语义的装饰动效"
+    ]
   },
   "visual": {
-    "theme": "dark"
+    "theme": "dark",
+    "preset": "keynote"
   },
   "scenes": [
     {
       "id": "claim",
-      "camera": { "shot": "close", "composition": "left", "depth": "layered", "focus": "claim-text", "movement": "push-in" },
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "flat",
+        "focus": "claim-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "claim-text",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "claim-text",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "claim-text",
+            "intensity": 0
+          }
+        ]
+      },
       "type": "title",
       "durationInFrames": 210,
       "narrationSegments": [
-        { "id": "n1", "text": "很多人把拖延归因于任务太难。", "beatId": "b1" },
-        { "id": "n2", "text": "但真正让人放弃的，是看不见自己走到了哪一步。", "beatId": "b2" }
+        {
+          "id": "n1",
+          "text": "很多人把拖延归因于任务太难。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "但真正让人放弃的，是看不见自己走到了哪一步。",
+          "beatId": "b2"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["claim-text"], "meaning": "先把常见的归因摆出来" },
-        { "id": "b2", "action": "transform", "targets": ["claim-text"], "meaning": "把成因从难度换成进度不可见" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "claim-text"
+          ],
+          "meaning": "先把常见的归因摆出来"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "claim-text"
+          ],
+          "meaning": "把成因从难度换成进度不可见"
+        }
       ],
       "data": {
         "text": "慢不是问题\n看不见进度才是"
@@ -59,38 +115,130 @@
         "align": "start",
         "gap": "lg",
         "children": [
-          { "id": "claim-halo", "type": "shape", "shape": "spotlight", "state": "rest" },
-          { "id": "claim-text", "type": "text", "contentRef": "data.text", "role": "headline" }
+          {
+            "id": "claim-halo",
+            "type": "shape",
+            "shape": "spotlight",
+            "state": "rest"
+          },
+          {
+            "id": "claim-text",
+            "type": "text",
+            "contentRef": "data.text",
+            "role": "headline"
+          }
         ]
       },
       "motions": [
-        { "target": "claim-halo", "recipe": "fade", "startFrame": 0, "durationFrames": 20 },
-        { "target": "claim-text", "recipe": "rise", "startFrame": 10, "durationFrames": 24 }
-      ]
+        {
+          "target": "claim-halo",
+          "recipe": "fade",
+          "durationFrames": 20,
+          "beatId": "b1"
+        },
+        {
+          "target": "claim-text",
+          "recipe": "rise",
+          "durationFrames": 24,
+          "beatId": "b2"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      }
     },
     {
       "id": "stages",
-      "camera": { "shot": "medium", "composition": "center", "depth": "layered", "focus": "stages-flow", "movement": "pan-right", "segments": [
-        { "kind": "hold", "beatId": "b1", "focus": "stages-a", "intensity": 0 },
-        { "kind": "reframe", "beatId": "b2", "focus": "stages-b", "intensity": 0.45 },
-        { "kind": "settle", "phase": "settle", "focus": "stages-c", "intensity": 0 }
-      ] },
-      "transition": { "kind": "transform", "source": "claim-text", "target": "stages-title", "meaning": "把反常识判断转成可执行的三步路径" },
+      "camera": {
+        "shot": "medium",
+        "composition": "split",
+        "depth": "layered",
+        "focus": "stages-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "stages-a",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "stages-b",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "stages-c",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "stages-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "transform",
+        "source": "claim-text",
+        "target": "stages-title",
+        "meaning": "命題文字轉成逐步展開的階段鏈"
+      },
       "type": "diagram",
       "durationInFrames": 255,
       "narrationSegments": [
-        { "id": "n1", "text": "第一步，先把工作摆到台面上。", "beatId": "b1" },
-        { "id": "n2", "text": "第二步，让每天的进度可以互相比较。", "beatId": "b2" },
-        { "id": "n3", "text": "第三步，才谈得上调整节奏。", "beatId": "b3" }
+        {
+          "id": "n1",
+          "text": "第一步，先把工作摆到台面上。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "第二步，让每天的进度可以互相比较。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "第三步，才谈得上调整节奏。",
+          "beatId": "b3"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["stages-a"], "meaning": "起点是让工作可见" },
-        { "id": "b2", "action": "transform", "targets": ["stages-b"], "meaning": "把可见推进到可比较" },
-        { "id": "b3", "action": "transform", "targets": ["stages-c"], "meaning": "最后一步才轮到调节奏" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "stages-a"
+          ],
+          "meaning": "起点是让工作可见"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "stages-b"
+          ],
+          "meaning": "把可见推进到可比较"
+        },
+        {
+          "id": "b3",
+          "action": "transform",
+          "targets": [
+            "stages-c"
+          ],
+          "meaning": "最后一步才轮到调节奏"
+        }
       ],
       "data": {
         "title": "把工作拆成三步",
-        "steps": ["让工作可见", "让进度可比", "让节奏可调"]
+        "steps": [
+          "让工作可见",
+          "让进度可比",
+          "让节奏可调"
+        ]
       },
       "visualIntent": {
         "relation": "sequence",
@@ -109,46 +257,198 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "stages-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "stages-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
           {
             "id": "stages-flow",
             "type": "flow",
             "direction": "ttb",
             "gap": "md",
             "children": [
-              { "id": "stages-a", "type": "surface", "children": [{ "id": "stages-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
-              { "id": "stages-b", "type": "surface", "children": [{ "id": "stages-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
-              { "id": "stages-c", "type": "surface", "children": [{ "id": "stages-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] }
+              {
+                "id": "stages-a",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "stages-a-text",
+                    "type": "text",
+                    "contentRef": "data.steps[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "stages-b",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "stages-b-text",
+                    "type": "text",
+                    "contentRef": "data.steps[1]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "stages-c",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "stages-c-text",
+                    "type": "text",
+                    "contentRef": "data.steps[2]",
+                    "role": "body"
+                  }
+                ]
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "stages-title", "recipe": "reveal", "phase": "establish", "durationFrames": 18 },
-        { "targets": ["stages-a", "stages-b", "stages-c"], "recipe": "rise", "phase": "change", "durationFrames": 20, "stagger": { "kind": "forward", "intervalFrames": 6 } }
-      ]
+        {
+          "target": "stages-title",
+          "recipe": "reveal",
+          "phase": "establish",
+          "durationFrames": 18
+        },
+        {
+          "targets": [
+            "stages-a",
+            "stages-b",
+            "stages-c"
+          ],
+          "recipe": "rise",
+          "phase": "change",
+          "durationFrames": 20,
+          "stagger": {
+            "kind": "path",
+            "intervalFrames": 4,
+            "path": [
+              "stages-a",
+              "stages-b",
+              "stages-c"
+            ]
+          }
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      }
     },
     {
       "id": "loop",
-      "camera": { "shot": "wide", "composition": "right", "depth": "layered", "focus": "loop-ring", "movement": "orbit" },
-      "transition": { "kind": "transform", "source": "stages-flow", "target": "loop-ring", "meaning": "把线性步骤折回成自我维持的闭环" },
+      "camera": {
+        "shot": "close",
+        "composition": "right",
+        "depth": "layered",
+        "focus": "loop-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "loop-a",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "loop-b",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "loop-c",
+            "intensity": 0.35
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b4",
+            "focus": "loop-ring",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "loop-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "从阶段链切换到闭环示意"
+      },
       "type": "diagram",
       "durationInFrames": 300,
       "narrationSegments": [
-        { "id": "n1", "text": "循环的第一格，是把耗时估得太乐观。", "beatId": "b1" },
-        { "id": "n2", "text": "第二格，验证被压缩成走过场。", "beatId": "b2" },
-        { "id": "n3", "text": "第三格，于是下一次估计更乐观。", "beatId": "b3" },
-        { "id": "n4", "text": "三格接上，就是转不出去的圈。", "beatId": "b4" }
+        {
+          "id": "n1",
+          "text": "循环的第一格，是把耗时估得太乐观。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "第二格，验证被压缩成走过场。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "第三格，于是下一次估计更乐观。",
+          "beatId": "b3"
+        },
+        {
+          "id": "n4",
+          "text": "三格接上，就是转不出去的圈。",
+          "beatId": "b4"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["loop-a"], "meaning": "交代循环的起点" },
-        { "id": "b2", "action": "transform", "targets": ["loop-b"], "meaning": "指出验证被压缩这一步" },
-        { "id": "b3", "action": "transform", "targets": ["loop-c"], "meaning": "说明低估如何自我强化" },
-        { "id": "b4", "action": "loop", "targets": ["loop-ring"], "meaning": "收束成闭环，指出它没有出口" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "loop-a"
+          ],
+          "meaning": "交代循环的起点"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "loop-b"
+          ],
+          "meaning": "指出验证被压缩这一步"
+        },
+        {
+          "id": "b3",
+          "action": "transform",
+          "targets": [
+            "loop-c"
+          ],
+          "meaning": "说明低估如何自我强化"
+        },
+        {
+          "id": "b4",
+          "action": "loop",
+          "targets": [
+            "loop-ring"
+          ],
+          "meaning": "收束成闭环，指出它没有出口"
+        }
       ],
       "data": {
-        "title": "为什么努力回到原点",
-        "steps": ["低估耗时", "压缩验证", "重新低估"]
+        "title": "努力为何归零",
+        "steps": [
+          "低估耗时",
+          "压缩验证",
+          "重新低估"
+        ]
       },
       "visualIntent": {
         "relation": "cycle",
@@ -167,48 +467,200 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "loop-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "loop-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
           {
             "id": "loop-ring",
             "type": "cycle",
             "direction": "cw",
             "gap": "md",
             "children": [
-              { "id": "loop-a", "type": "surface", "children": [{ "id": "loop-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
-              { "id": "loop-b", "type": "surface", "children": [{ "id": "loop-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
-              { "id": "loop-c", "type": "surface", "children": [{ "id": "loop-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] }
+              {
+                "id": "loop-a",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "loop-a-text",
+                    "type": "text",
+                    "contentRef": "data.steps[0]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "loop-b",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "loop-b-text",
+                    "type": "text",
+                    "contentRef": "data.steps[1]",
+                    "role": "body"
+                  }
+                ]
+              },
+              {
+                "id": "loop-c",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "loop-c-text",
+                    "type": "text",
+                    "contentRef": "data.steps[2]",
+                    "role": "body"
+                  }
+                ]
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "loop-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "loop-a", "recipe": "rise", "startFrame": 14, "durationFrames": 20 },
-        { "target": "loop-b", "recipe": "rise", "startFrame": 52, "durationFrames": 20 },
-        { "target": "loop-c", "recipe": "rise", "startFrame": 90, "durationFrames": 20 }
-      ]
+        {
+          "target": "loop-title",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "beatId": "b1"
+        },
+        {
+          "target": "loop-a",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b2"
+        },
+        {
+          "target": "loop-b",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b3"
+        },
+        {
+          "target": "loop-c",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b4"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      }
     },
     {
       "id": "milestones",
-      "camera": { "shot": "wide", "composition": "left", "depth": "layered", "focus": "tl-axis", "movement": "pan-right" },
-      "transition": { "kind": "decompose", "source": "loop-ring", "targets": ["tl-a", "tl-b", "tl-c", "tl-d"], "meaning": "把循环拆成时间轴上的阶段节点" },
+      "camera": {
+        "shot": "macro",
+        "composition": "full",
+        "depth": "layered",
+        "focus": "tl-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "tl-a",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "tl-b",
+            "intensity": 0.35
+          },
+          {
+            "kind": "push-in",
+            "beatId": "b3",
+            "focus": "tl-c",
+            "intensity": 0.35
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b4",
+            "focus": "tl-d",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "tl-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "decompose",
+        "source": "loop-ring",
+        "targets": ["tl-a", "tl-b", "tl-c", "tl-d"],
+        "meaning": "循环闭环展开为时间轴上的四个里程碑"
+      },
       "type": "diagram",
       "durationInFrames": 330,
       "narrationSegments": [
-        { "id": "n1", "text": "把一年拆开，第一个节点只是起步。", "beatId": "b1" },
-        { "id": "n2", "text": "第二个节点，作品开始成形。", "beatId": "b2" },
-        { "id": "n3", "text": "第三个节点，速度才提上来。", "beatId": "b3" },
-        { "id": "n4", "text": "第四个节点，收束比冲刺重要。", "beatId": "b4" }
+        {
+          "id": "n1",
+          "text": "把一年拆开，第一个节点只是起步。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "第二个节点，作品开始成形。",
+          "beatId": "b2"
+        },
+        {
+          "id": "n3",
+          "text": "第三个节点，速度才提上来。",
+          "beatId": "b3"
+        },
+        {
+          "id": "n4",
+          "text": "第四个节点，收束比冲刺重要。",
+          "beatId": "b4"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["tl-a"], "meaning": "标出时间轴的起点" },
-        { "id": "b2", "action": "transform", "targets": ["tl-b"], "meaning": "推进到成形这个节点" },
-        { "id": "b3", "action": "transform", "targets": ["tl-c"], "meaning": "把加速放在第三个节点" },
-        { "id": "b4", "action": "transform", "targets": ["tl-d"], "meaning": "用收束结束这条时间轴" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "tl-a"
+          ],
+          "meaning": "标出时间轴的起点"
+        },
+        {
+          "id": "b2",
+          "action": "transform",
+          "targets": [
+            "tl-b"
+          ],
+          "meaning": "推进到成形这个节点"
+        },
+        {
+          "id": "b3",
+          "action": "transform",
+          "targets": [
+            "tl-c"
+          ],
+          "meaning": "把加速放在第三个节点"
+        },
+        {
+          "id": "b4",
+          "action": "transform",
+          "targets": [
+            "tl-d"
+          ],
+          "meaning": "用收束结束这条时间轴"
+        }
       ],
       "data": {
         "title": "一年四个节点",
-        "steps": ["起步", "成形", "加速", "收束"]
+        "steps": [
+          "起步",
+          "成形",
+          "加速",
+          "收束"
+        ]
       },
       "visualIntent": {
         "relation": "sequence",
@@ -227,42 +679,169 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "tl-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "tl-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
           {
             "id": "tl-axis",
             "type": "timeline",
             "direction": "ltr",
             "gap": "sm",
             "children": [
-              { "id": "tl-a", "type": "surface", "children": [{ "id": "tl-a-text", "type": "text", "contentRef": "data.steps[0]", "role": "label" }] },
-              { "id": "tl-b", "type": "surface", "children": [{ "id": "tl-b-text", "type": "text", "contentRef": "data.steps[1]", "role": "label" }] },
-              { "id": "tl-c", "type": "surface", "children": [{ "id": "tl-c-text", "type": "text", "contentRef": "data.steps[2]", "role": "label" }] },
-              { "id": "tl-d", "type": "surface", "children": [{ "id": "tl-d-text", "type": "text", "contentRef": "data.steps[3]", "role": "label" }] }
+              {
+                "id": "tl-a",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "tl-a-text",
+                    "type": "text",
+                    "contentRef": "data.steps[0]",
+                    "role": "label"
+                  }
+                ]
+              },
+              {
+                "id": "tl-b",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "tl-b-text",
+                    "type": "text",
+                    "contentRef": "data.steps[1]",
+                    "role": "label"
+                  }
+                ]
+              },
+              {
+                "id": "tl-c",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "tl-c-text",
+                    "type": "text",
+                    "contentRef": "data.steps[2]",
+                    "role": "label"
+                  }
+                ]
+              },
+              {
+                "id": "tl-d",
+                "type": "surface",
+                "children": [
+                  {
+                    "id": "tl-d-text",
+                    "type": "text",
+                    "contentRef": "data.steps[3]",
+                    "role": "label"
+                  }
+                ]
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "tl-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "tl-a", "recipe": "rise", "startFrame": 12, "durationFrames": 20 },
-        { "target": "tl-b", "recipe": "rise", "startFrame": 50, "durationFrames": 20 },
-        { "target": "tl-c", "recipe": "rise", "startFrame": 88, "durationFrames": 20 },
-        { "target": "tl-d", "recipe": "rise", "startFrame": 126, "durationFrames": 20 }
-      ]
+        {
+          "target": "tl-title",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "beatId": "b1"
+        },
+        {
+          "target": "tl-a",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b2"
+        },
+        {
+          "target": "tl-b",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b3"
+        },
+        {
+          "target": "tl-c",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b4"
+        },
+        {
+          "target": "tl-d",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b4"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      }
     },
     {
       "id": "level",
-      "camera": { "shot": "medium", "composition": "split", "depth": "layered", "focus": "level-gauge", "movement": "pull-out" },
-      "transition": { "kind": "recompose", "sources": ["tl-a", "tl-b", "tl-c", "tl-d"], "target": "level-gauge", "meaning": "把阶段进度收束成一个可读的量级" },
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "flat",
+        "focus": "level-title",
+        "segments": [
+          {
+            "kind": "hold",
+            "beatId": "b1",
+            "focus": "level-gauge",
+            "intensity": 0.18
+          },
+          {
+            "kind": "reframe",
+            "beatId": "b2",
+            "focus": "level-units",
+            "intensity": 0.35
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "focus": "level-title",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "dissolve",
+        "meaning": "從上一幕推理轉入「chart」所承載的下一步"
+      },
       "type": "chart",
       "durationInFrames": 180,
       "narrationSegments": [
-        { "id": "n1", "text": "先看指针：进度停在六成五。", "beatId": "b1" },
-        { "id": "n2", "text": "再用单位格数一遍，同一个数字更具体。", "beatId": "b2" }
+        {
+          "id": "n1",
+          "text": "先看指针：进度停在六成五。",
+          "beatId": "b1"
+        },
+        {
+          "id": "n2",
+          "text": "再用单位格数一遍，同一个数字更具体。",
+          "beatId": "b2"
+        }
       ],
       "beats": [
-        { "id": "b1", "action": "establish", "targets": ["level-gauge"], "meaning": "先用指针给出量级" },
-        { "id": "b2", "action": "accumulate", "targets": ["level-units"], "meaning": "再把同一个量级拆成可数的单位" }
+        {
+          "id": "b1",
+          "action": "establish",
+          "targets": [
+            "level-gauge"
+          ],
+          "meaning": "先用指针给出量级"
+        },
+        {
+          "id": "b2",
+          "action": "accumulate",
+          "targets": [
+            "level-units"
+          ],
+          "meaning": "再把同一个量级拆成可数的单位"
+        }
       ],
       "data": {
         "title": "同一个进度两种读法",
@@ -285,24 +864,58 @@
         "type": "column",
         "gap": "lg",
         "children": [
-          { "id": "level-title", "type": "text", "contentRef": "data.title", "role": "title" },
+          {
+            "id": "level-title",
+            "type": "text",
+            "contentRef": "data.title",
+            "role": "title"
+          },
           {
             "id": "level-row",
             "type": "row",
             "gap": "md",
             "align": "center",
             "children": [
-              { "id": "level-gauge", "type": "gauge", "contentRef": "data.ratio", "schematic": true },
-              { "id": "level-units", "type": "pictogram", "contentRef": "data.ratio", "icon": "check", "schematic": true }
+              {
+                "id": "level-gauge",
+                "type": "gauge",
+                "contentRef": "data.ratio",
+                "schematic": true
+              },
+              {
+                "id": "level-units",
+                "type": "pictogram",
+                "contentRef": "data.ratio",
+                "icon": "check",
+                "schematic": true
+              }
             ]
           }
         ]
       },
       "motions": [
-        { "target": "level-title", "recipe": "reveal", "startFrame": 0, "durationFrames": 18 },
-        { "target": "level-gauge", "recipe": "reveal", "startFrame": 12, "durationFrames": 20 },
-        { "target": "level-units", "recipe": "rise", "startFrame": 44, "durationFrames": 20 }
-      ]
+        {
+          "target": "level-title",
+          "recipe": "reveal",
+          "durationFrames": 18,
+          "beatId": "b1"
+        },
+        {
+          "target": "level-gauge",
+          "recipe": "reveal",
+          "durationFrames": 20,
+          "beatId": "b2"
+        },
+        {
+          "target": "level-units",
+          "recipe": "rise",
+          "durationFrames": 20,
+          "beatId": "b2"
+        }
+      ],
+      "renderer": {
+        "kind": "tree"
+      }
     }
   ]
 }

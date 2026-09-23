@@ -5,15 +5,15 @@
 ## Requirements
 
 ### Requirement: 分段口播绑定受控语义节拍
-每幕 SHALL 在字符串 `narration` 与 `narrationSegments` 中二选一；分段口播的每段 SHALL 具有唯一 id、非空文本和有效 beat 引用。每个 beat SHALL 具有唯一 id、受控 action、至少一个有效目标和非空 meaning。
+有口播的 v3 场景 SHALL 使用 `narrationSegments` 并由 `beats` 完整绑定；场景 SHALL NOT 使用字符串 `narration`。每个分段 SHALL 具有唯一 id、非空文本和有效 beat 引用。每个 beat SHALL 具有唯一 id、受控 action、至少一个有效目标和非空 meaning。
 
 #### Scenario: 分段口播有效
 - **WHEN** 各口播段依次绑定存在的 beat，且 beat 目标均为该幕可定位节点
 - **THEN** 完整口播按段顺序拼接，画面可按相同顺序推进语义动作
 
-#### Scenario: 两种口播并存
-- **WHEN** 同一幕同时声明 `narration` 与 `narrationSegments`
-- **THEN** 校验失败并指出互斥字段
+#### Scenario: 字符串口播
+- **WHEN** v3 场景声明字符串 `narration`
+- **THEN** schema 拒绝场景并要求改用 `narrationSegments` 与 `beats`
 
 ### Requirement: 媒体准备解析真实节拍时间
 有声准备 SHALL 以 TTS WordBoundary 为真源，把每个口播段解析为场景内开始包含、结束不包含的帧区间，并在媒体清单中保存逐幕 `resolvedBeats`。字幕、配音和画面 SHALL 共用这些边界；解析失败、倒退、重叠、越界或文本覆盖不完整时 SHALL 失败而不猜测。
@@ -63,7 +63,7 @@
 - **THEN** 时间轴记录变形关系，渲染器按声明执行或报告不支持该变形
 
 ### Requirement: 视觉阶段默认绑定语义节拍
-声明了分段口播的场景 SHALL 从已解析 beat 区间派生 `establish`、`change`、`result` 阶段；没有媒体时使用无声估算区间，有媒体时只使用已验证的真实区间。绝对帧声明只能作为无 beat 场景的兼容输入，不得覆盖真实字幕边界。
+声明了分段口播的场景 SHALL 从已解析 beat 区间派生 `establish`、`change`、`result` 阶段；没有媒体时使用无声估算区间，有媒体时只使用已验证的真实区间。分镜 v3 的每条动作与镜头 SHALL 绑定 beat 或阶段，绝对帧输入一律拒绝，不设置兼容路径。
 
 #### Scenario: 有声场景阶段同步
 - **WHEN** 媒体准备延长场景并生成新的 `resolvedBeats`

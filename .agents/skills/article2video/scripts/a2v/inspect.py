@@ -488,6 +488,7 @@ _AESTHETIC_SCRIPT = """
   // 由对比度闸门回落到画布——也就是修之前的行为。
   function surfaceBackground(node) {
     var current = node.parentElement;
+    var textRect = node.getBoundingClientRect();
     while (current && current !== document.body && current !== document.documentElement) {
       var bg = window.getComputedStyle(current).backgroundColor;
       var match = String(bg).match(/rgba?\\(([^)]+)\\)/);
@@ -496,7 +497,10 @@ _AESTHETIC_SCRIPT = """
         var parts = match[1].split(',');
         if (parts.length > 3) alpha = parseFloat(parts[3]);
       }
-      if (bg && bg !== 'transparent' && !isNaN(alpha) && alpha >= 0.95) {
+      var surfaceRect = current.getBoundingClientRect();
+      var containsText = surfaceRect.left <= textRect.left && surfaceRect.right >= textRect.right &&
+        surfaceRect.top <= textRect.top && surfaceRect.bottom >= textRect.bottom;
+      if (containsText && bg && bg !== 'transparent' && !isNaN(alpha) && alpha >= 0.95) {
         return bg;
       }
       current = current.parentElement;
@@ -566,7 +570,9 @@ _AESTHETIC_SCRIPT = """
   //    但它们只有圆角与描边——SVG 没有投影与内高光这回事，
   //    拿 HTML 卡片的四项特征去量必然"缺项"。它们是图解对象，
   //    图形纪律由 K9（描边一致性）与图形颜色预算测试管，不在这里判。
-  // 2. **只判被画出来的表面。** 只判圆角会把透明的定位包装层算成卡片；
+  // 2. **数据图形不是卡片。** HTML 柱形图标记虽然用圆角矩形绘制，
+  //    仍是数据编码的一部分；K6 不应要求每根柱子都具备卡片的描边和内高光。
+  // 3. **只判被画出来的表面。** 只判圆角会把透明的定位包装层算成卡片；
   //    必须有填充、边框或投影之一。宽度或高度不足 40px 的也不算——
   //    那是小徽标，不是能读成"一块表面"的东西。
   var cards = [];
@@ -574,6 +580,7 @@ _AESTHETIC_SCRIPT = """
   var cardNodes = active.querySelectorAll('[data-a2v-figure] *');
   for (var j = 0; j < cardNodes.length; j++) {
     var el = cardNodes[j];
+    if (el.closest && el.closest('.a2v-primitive-chart')) continue;
     var tag = String(el.tagName).toLowerCase();
     if (tag === 'rect' || tag === 'circle' || tag === 'ellipse' ||
         tag === 'path' || tag === 'polygon') continue;
@@ -705,7 +712,7 @@ def keynote_gate(
 ) -> list[keynote.Gate]:
     """把一帧的像素量测与元素事实转成一条条观感闸门结论。
 
-    v2 场景树的所有原语（含图表）都是 DOM/SVG 实现，文字全部可量测，
+    v3 场景树的所有原语（含图表）都是 DOM/SVG 实现，文字全部可量测，
     K7 / K8 对整幕生效；`figure_kind` 仅用于诊断展示。
     """
     gates: list[keynote.Gate] = []

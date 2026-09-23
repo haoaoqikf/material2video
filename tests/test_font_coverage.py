@@ -110,9 +110,9 @@ class TestAuditTellsYouWhereItHurts:
         assert "\U0001F600" in findings[0]["missing"]
         assert scene["id"] in findings[0]["where"], "结论要指到具体的幕与字段"
 
-    def test_narration_is_not_scanned(self):
-        """`narration` 当前不渲染：它里面的缺字不得让体检报错。"""
+    def test_spoken_segments_are_not_scanned_as_visual_text(self):
+        """口播段只供配音和字幕使用，不作为画面可见文字扫描。"""
         data = self._storyboard()
-        data.setdefault("narration", "")
-        data["narration"] = "\U0001F600\U0001F601"
+        scene = data["scenes"][0]
+        scene["narrationSegments"] = [{"id": "n1", "text": "\U0001F600\U0001F601", "beatId": "b1"}]
         assert fonts.audit_fonts([NOTO, INTER], data) == []

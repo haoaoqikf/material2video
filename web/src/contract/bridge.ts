@@ -4,18 +4,18 @@ import { totalFrames } from '@/runtime/timeline';
 import type { Storyboard } from '@/schema/storyboard';
 
 /**
- * 渲染契约（version 2）。
+ * 渲染契约（version 3）。
  *
  * 这是画面实现与渲染/体检脚本之间**唯一**的接口。它由本页实现，实现者是
  * `@remotion/player`：验收与量测（K 系列、M 系列、组件契约探针）继续用
  * Playwright 驱动这个页面，因此既有约 90KB 已实测的判定逻辑不需要重写。
  *
- * 与 version 1 的差别只有一处，但很关键：`ready()` 的语义扩大了
+ * v3 契约中的 `ready()` 保证 `Player` 与字体已经就绪
  * （除字体与首帧之外，还要保证 Player 已经挂载），因此版本号从 1 升到 2。
  * 渲染入口按版本号拒绝旧页面，避免「等超时之后报一句看不懂的话」。
  */
-export interface A2VContractV2 {
-  version: 2;
+export interface A2VContractV3 {
+  version: 3;
   fps: number;
   width: number;
   height: number;
@@ -28,7 +28,7 @@ export interface A2VContractV2 {
 
 declare global {
   interface Window {
-    __A2V__?: A2VContractV2;
+    __A2V__?: A2VContractV3;
   }
 }
 
@@ -168,11 +168,11 @@ export interface CreateContractOptions {
   storyboard: Storyboard;
 }
 
-export function createContract({ player, storyboard }: CreateContractOptions): A2VContractV2 {
+export function createContract({ player, storyboard }: CreateContractOptions): A2VContractV3 {
   const durationInFrames = totalFrames(storyboard);
 
   return {
-    version: 2,
+    version: 3,
     fps: storyboard.fps,
     width: storyboard.width,
     height: storyboard.height,

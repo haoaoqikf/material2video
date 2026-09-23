@@ -1,6 +1,6 @@
 # 第三方视觉组件接入（已废止）
 
-v2 场景树架构不允许第三方组件参与画面：分镜只能使用
+v3 场景树架构不允许第三方组件参与画面：分镜只能使用
 [视觉原语目录](primitive-catalog.md) 登记的受控原语，
 `web/src/third-party/` 目录与分类接入机制（catalog.json、`FrameSyncedCssAnimation` 等）
 已随整页组件路径一并移除。

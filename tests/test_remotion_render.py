@@ -32,19 +32,24 @@ WEB = ROOT / "web"
 def _minimal_storyboard() -> dict:
     """结构完整的最小分镜（tree 场景），供入口写入测试使用。"""
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试分镜", "audienceShift": "从输入转向画面", "emotionalArc": ["建立", "收束"], "visualMotif": "标题", "stylePack": "technical", "avoid": []},
         "fps": 30,
         "width": 1080,
         "height": 1920,
         "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "scenes": [
             {
                 "id": "opening",
                 "type": "title",
                 "durationInFrames": 30,
                 "data": {"text": "开场"},
-                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+                "renderer": {"kind": "tree"},
+                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "测试标题", "showWithoutText": "标题是本幕唯一主体", "primaryObject": "标题文字", "motionMeaning": "标题稳定呈现"},
+                "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "copy", "segments": [{"kind": "hold", "phase": "establish", "intensity": 0}, {"kind": "settle", "phase": "settle", "intensity": 0}]},
                 "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
                 "motions": [],
             }
@@ -187,6 +192,26 @@ def test_tests_and_build_artifacts_are_not_build_inputs():
     # 契约页只用于体检，不参与成片：改它不该让成片判成落后
     assert not any("/contract/" in key for key in keys)
     assert not any("vite.config" in key for key in keys)
+    assert not any(key.endswith("/.gen/active-scenes.ts") for key in keys)
+    assert not any(key.endswith("/.gen/scene-manifest.json") for key in keys)
+    assert not any(key.endswith("/.gen/active-tailwind.css") for key in keys)
+
+
+def test_build_fingerprint_uses_storyboard_code_scenes_not_global_generated_manifest():
+    """同一仓库的其它作品改写 active-scenes 生成清单，不应让本作品的指纹漂移。"""
+    tree = remotion.build_input_fingerprint(
+        storyboard_path=ROOT / "examples" / "declarative-number" / "storyboard.json",
+        content_root=ROOT,
+        workspace_root=ROOT,
+    )["files"]
+    code = remotion.build_input_fingerprint(
+        storyboard_path=ROOT / "examples" / "code-scenes" / "storyboard.json",
+        content_root=ROOT,
+        workspace_root=ROOT,
+    )["files"]
+    module_keys = [key for key in code if "/examples/code-scenes/scenes/" in key]
+    assert len(module_keys) == 4, module_keys
+    assert not any("/examples/code-scenes/scenes/" in key for key in tree)
 
 
 def test_an_unreferenced_file_change_does_not_mark_videos_stale(tmp_path):

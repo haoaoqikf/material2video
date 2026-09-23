@@ -42,7 +42,7 @@ def _text_tree(scene_id: str) -> dict:
 
 
 def _motion(scene_id: str) -> list[dict]:
-    return [{"target": f"{scene_id}-copy", "recipe": "reveal", "startFrame": 0, "durationFrames": 24}]
+    return [{"target": f"{scene_id}-copy", "recipe": "reveal", "phase": "establish", "durationFrames": 24}]
 
 
 def _intent(**overrides) -> dict:
@@ -72,6 +72,9 @@ def _scene(scene_id: str, *, mode: str | None = "typography", tree: dict | None 
         "visualIntent": _intent(**(intent_extra or {})),
         "sceneTree": tree if tree is not None else _text_tree(scene_id),
         "motions": [],
+        "renderer": {"kind": "tree"},
+        "camera": {"focus": "root", "shot": "medium", "composition": "center", "depth": "flat", "segments": [{"phase": "establish", "kind": "hold", "focus": "root"}]},
+        "visual": {"kicker": "测试"},
     }
     if mode is None:
         # 旧版分镜：没有 visualIntent 论证字段（relation 等既有字段仍在）
@@ -82,9 +85,15 @@ def _scene(scene_id: str, *, mode: str | None = "typography", tree: dict | None 
 
 
 def _storyboard(*scenes: dict) -> dict:
+    for index, scene in enumerate(scenes):
+        if index:
+            scene.setdefault("transition", {"kind": "dissolve", "meaning": "切换到下一段论证"})
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试命题", "audienceShift": "测试转变", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -163,11 +172,10 @@ def _surface_leaf(node_id: str) -> dict:
 
 
 class TestVisualIntentFields:
-    def test_missing_fields_warn_in_normal_mode(self):
+    def test_missing_fields_are_rejected_in_normal_mode(self):
         report = sb.validate(_storyboard(_scene("a", mode=None)))
-        assert report.ok
-        paths = {issue.path for issue in report.warnings}
-        assert any(path.endswith("visualIntent") for path in paths)
+        assert not report.ok
+        assert any(issue.path.endswith("visualIntent") for issue in report.errors)
 
     def test_missing_fields_are_strict_errors(self):
         report = sb.validate(_storyboard(_scene("a", mode=None)), strict=True)
@@ -414,37 +422,21 @@ class TestBudgetRules:
 
 
 # ---------------------------------------------------------------------------
-# 1.4 兼容策略：旧 schema v2 分镜
+# v3 一致接受集合：普通、严格与预览入口都拒绝缺失的导演论证
 # ---------------------------------------------------------------------------
 
 
-class TestLegacyCompatibility:
-    def test_normal_mode_only_warns_and_model_loads(self, tmp_path):
-        path = tmp_path / "legacy.json"
-        path.write_text(json.dumps(_storyboard(_scene("a", mode=None), _scene("b", mode=None)), ensure_ascii=False), encoding="utf-8")
-        model, report = sb.load(path)
-        assert report.ok and model is not None
-        assert report.warnings, "普通校验应给出兼容警告"
-
-    def test_strict_mode_fails_with_field_paths(self, tmp_path):
-        path = tmp_path / "legacy.json"
-        path.write_text(json.dumps(_storyboard(_scene("a", mode=None)), ensure_ascii=False), encoding="utf-8")
-        model, report = sb.load(path, strict=True)
-        assert model is None and not report.ok
-        assert any(issue.path.endswith("visualIntent") for issue in report.errors)
-
-    def test_cli_strict_exit_code(self, tmp_path):
-        path = tmp_path / "legacy.json"
-        path.write_text(json.dumps(_storyboard(_scene("a", mode=None)), ensure_ascii=False), encoding="utf-8")
-        assert cli.main_validate([str(path)]) == 0
-        assert cli.main_validate([str(path), "--strict"]) == 2
-
-    def test_preview_entry_still_accepts_legacy(self, tmp_path, monkeypatch):
-        # 预览/渲染走的 _validated_storyboard 是兼容模式：警告放行，模型可用
-        path = tmp_path / "legacy.json"
-        path.write_text(json.dumps(_storyboard(_scene("a", mode=None)), ensure_ascii=False), encoding="utf-8")
-        model, report = sb.load(path)
-        assert model is not None and report.ok
+class TestV3Contract:
+    def test_missing_visual_intent_evidence_fails_in_all_modes(self, tmp_path):
+        raw = _storyboard(_scene("a"))
+        for field in ("mode", "claim", "showWithoutText", "primaryObject", "motionMeaning"):
+            raw["scenes"][0]["visualIntent"].pop(field)
+        path = tmp_path / "incomplete-v3.json"
+        path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
+        ordinary = sb.validate(raw)
+        strict = sb.validate(raw, strict=True)
+        assert not ordinary.ok and not strict.ok
+        assert any(issue.path.endswith("visualIntent") for issue in ordinary.errors)
 
 
 # ---------------------------------------------------------------------------

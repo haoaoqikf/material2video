@@ -36,7 +36,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 `report.json` 的 `animationReview` 给出 A 系列：A1–A5、A7、A8 是机检硬判定
 （节拍覆盖、含义声明、状态或关系变化、字幕同步、结尾停留、单一焦点、稳定结束，
 失败同样并入错误数与退出码），A6 是你现在要写的**装饰动画**结论。
-A 系列只约束声明了 `narrationSegments` 的幕；旧字符串口播的幕如实记为「跳过」，
+A 系列只约束声明了 `narrationSegments` 的幕；字符串口播由 v3 校验拒绝，
 无声预览下 A4（字幕同步）也记为「跳过」——跳过不等于通过。
 A 系列与 V 系列分开计数、不合成总分：V 问「有没有论证型图形」，
 A 问「这些图形动起来有没有在解释论点」。

@@ -2,8 +2,8 @@
 
 ## 工作流
 
-1. 每幕可写字符串 `narration`，或写分段口播 `narrationSegments` + `beats`
-   （二者互斥）；省略或空字符串表示静音。
+1. 含口播的每幕必须写分段口播 `narrationSegments` + `beats`；静音幕省略两者。
+   分镜契约 v3 不接受字符串 `narration`。
 2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
    `videos/<slug>/outputs/media/`（示例为 `videos/examples/<slug>/outputs/media/`）。
 3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。

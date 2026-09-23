@@ -15,11 +15,11 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
   const percentText = `${Math.round(scene.data.percent * 100)}%`;
 
   return (
-    <div style={{ position: 'absolute', left: 0, top: 360, width: 1080, height: 1200 }}>
+    <div style={{ position: 'absolute', left: 0, top: 180, width: 888, height: 1240 }}>
       <div
         style={{
           position: 'absolute',
-          left: 96,
+          left: 48,
           top: 0,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-accent)',
@@ -31,13 +31,13 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
         {scene.data.kicker}
       </div>
       <svg
-        width={1080}
+        width={888}
         height={760}
-        style={{ position: 'absolute', left: 0, top: 160 }}
+        style={{ position: 'absolute', left: 0, top: 88 }}
         {...probe({ node: 'arc-canvas', schematic: true })}
       >
         <circle
-          cx={540}
+          cx={444}
           cy={380}
           r={radius}
           fill="none"
@@ -45,7 +45,7 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
           strokeWidth={36}
         />
         <circle
-          cx={540}
+          cx={444}
           cy={380}
           r={radius}
           fill="none"
@@ -56,10 +56,10 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
           pathLength={circumference}
           strokeDasharray={dash.dasharray}
           strokeDashoffset={dash.offset}
-          transform="rotate(-90 540 380)"
+          transform="rotate(-90 444 380)"
         />
         <text
-          x={540}
+          x={444}
           y={380 - 10}
           textAnchor="middle"
           fontFamily="var(--a2v-font)"
@@ -71,7 +71,7 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
           {percentText}
         </text>
         <text
-          x={540}
+          x={444}
           y={380 + 96}
           textAnchor="middle"
           fontFamily="var(--a2v-font)"
@@ -85,8 +85,8 @@ const ArcGoal: A2VCodeScene<{ kicker: string; caption: string; percent: number }
       <div
         style={{
           position: 'absolute',
-          left: 96,
-          top: 960,
+          left: 48,
+          top: 880,
           fontFamily: 'var(--a2v-font)',
           color: 'var(--a2v-text-1)',
           fontSize: 60,

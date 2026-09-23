@@ -30,7 +30,7 @@ class TestValidateCommand:
         assert cli.main_validate([str(path), "--json"]) == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["ok"] is True
-        assert payload["summary"]["totalFrames"] == 90
+        assert payload["summary"]["totalFrames"] == 180
         assert payload["summary"]["sceneCount"] == 2
 
     def test_directing_render_gate_requires_review_publish_conclusion(self, tmp_path, valid_script):

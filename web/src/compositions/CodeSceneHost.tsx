@@ -127,6 +127,7 @@ export function CodeSceneHost({
   return (
     <div
       ref={ref}
+      className="a2v-code-scene"
       data-a2v-code-scene={module_}
       data-a2v-code-ready={error ? 'error' : ready ? '1' : '0'}
       {...(error ? { 'data-a2v-code-error': error } : {})}

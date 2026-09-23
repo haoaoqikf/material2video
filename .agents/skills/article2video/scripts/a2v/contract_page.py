@@ -33,13 +33,8 @@ WEB_MOUNT = "/__a2v_web__"
 
 #: 契约页实现的渲染契约版本。
 #: **升级时必须同步改这里，并同步 `web/src/contract/bridge.ts`**：
-#: 两个版本的 `ready` 与 `seekToFrame` 签名相同、语义不同，版本号是唯一能在
-#: 早期把两者分开的信号（旧页面在首帧截图上表现为空白，很难反推原因）。
-CONTRACT_VERSION = 2
-
-#: 旧动画网页声明的契约版本。迁移期它仍是默认引擎，因此必须继续被接受；
-#: 默认引擎切到契约页之后，这个常量与旧页面一起消失。
-LEGACY_CONTRACT_VERSION = 1
+#: 版本号在页面启动早期区分契约实现，防止旧页面以空白首帧的形式混入评审。
+CONTRACT_VERSION = 3
 
 #: 契约页相对 `web/` 的位置：Vite 的构建产物
 CONTRACT_PAGE_RELATIVE = Path("dist/contract/contract.html")
@@ -96,8 +91,7 @@ def web_mounts(repo_root: Path | None = None) -> dict[str, Path]:
 def mounts_for_contract_page(repo_root: Path | None = None) -> dict[str, Path]:
     """契约页路径上的完整挂载表。
 
-    同时保留 skill 资产别名：迁移期两条渲染路径并存，同一台服务器要能
-    同时服务契约页与旧页面，否则体检与渲染会各起一台，端口与生命周期都要重来一遍。
+    同时挂载契约页与 skill 资产，体检与渲染共用一台静态服务器。
     """
     return {**assets.default_mounts(), **web_mounts(repo_root)}
 

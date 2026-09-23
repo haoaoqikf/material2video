@@ -140,32 +140,33 @@ def _scene(index: int, code_module: str | None) -> dict:
         "type": "title",
         "durationInFrames": 30,
         "data": {"text": f"第{index}幕"},
-        "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral"},
+        "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "场景渲染测试", "showWithoutText": "当前场景清楚占据画面", "primaryObject": "当前场景", "motionMeaning": "切换后呈现当前场景"},
         "motions": [],
+        "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "scene-focus" if code_module else "copy", "segments": [{"kind": "hold", "phase": "establish", "intensity": 0}, {"kind": "settle", "phase": "settle", "intensity": 0}]},
     }
     if code_module:
         base["renderer"] = {"kind": "code", "module": code_module}
     else:
+        base["renderer"] = {"kind": "tree"}
         base["sceneTree"] = TREE_TREE
     return base
 
 
-def _storyboard(preset: bool) -> dict:
+def _storyboard(preset: bool = True) -> dict:
+    scenes = [_scene(0, None), _scene(1, "gauge"), _scene(2, None), _scene(3, "withimage"), _scene(4, "flow")]
+    for scene in scenes[1:]:
+        scene["transition"] = {"kind": "dissolve", "meaning": "切换到下一场景实现"}
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "不同场景实现使用共享 composition", "audienceShift": "从树切换到代码场景", "emotionalArc": ["建立", "验证"], "visualMotif": "场景切换", "stylePack": "technical", "avoid": []},
         "fps": 30,
         "width": 1080,
         "height": 1920,
         "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
-        "visual": {"theme": "dark", **({"preset": "keynote"} if preset else {})},
-        "scenes": [
-            _scene(0, None),
-            _scene(1, "gauge"),
-            _scene(2, None),
-            _scene(3, "withimage"),
-            _scene(4, "flow"),
-        ],
+        "visual": {"theme": "dark", "preset": "keynote"},
+        "scenes": scenes,
     }
 
 
@@ -276,7 +277,7 @@ class TestThemeConsistency:
                     }"""
                 )
         assert payload["theme"] == "dark"
-        expected_preset = "keynote" if keynote else None
+        expected_preset = "keynote"
         assert payload["preset"] == expected_preset
         assert payload["codePreset"] == expected_preset
         assert payload["codeTheme"] == "dark"

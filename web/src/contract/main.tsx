@@ -5,7 +5,7 @@ import { ActiveComposition } from '../../.gen/active-composition';
 import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
 import { totalFrames } from '@/runtime/timeline';
-import { createContract, type A2VContractV2 } from './bridge';
+import { createContract, type A2VContractV3 } from './bridge';
 import { installOfflineGuard } from '@/runtime/offline-guard';
 import '@/styles/index.css';
 
@@ -18,7 +18,7 @@ installOfflineGuard();
  * 渲染契约页。
  *
  * 职责只有一件：把 composition 挂进一个**可被 Playwright 驱动的页面**，
- * 并暴露 `window.__A2V__`（version 2）。体检与量测全部通过它工作。
+ * 并暴露 `window.__A2V__`（version 3）。体检与量测全部通过它工作。
  *
  * 分镜的地址由查询参数 `a2v-storyboard` 给出（本地静态服务提供），
  * 因此这一个页面能服务任意作品——作品不需要自己的 HTML。
@@ -62,7 +62,7 @@ function ContractApp(): React.ReactElement {
     if (!storyboard || !player) {
       return;
     }
-    const contract: A2VContractV2 = createContract({ player, storyboard });
+    const contract: A2VContractV3 = createContract({ player, storyboard });
     window.__A2V__ = contract;
     return () => {
       if (window.__A2V__ === contract) {

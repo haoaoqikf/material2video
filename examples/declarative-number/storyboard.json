@@ -1,11 +1,12 @@
 {
-  "version": 2,
+  "version": 3,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "每一次尝试都留下反馈",
   "visual": {
-    "theme": "light"
+    "theme": "light",
+    "preset": "keynote"
   },
   "scenes": [
     {
@@ -93,28 +94,55 @@
         {
           "target": "content-value",
           "recipe": "count",
-          "startFrame": 12,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "phase": "establish"
         },
         {
           "target": "content-label",
           "recipe": "reveal",
-          "startFrame": 20,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "phase": "change"
         },
         {
           "target": "content-caption",
           "recipe": "reveal",
-          "startFrame": 28,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "phase": "result"
         },
         {
           "target": "content-chart",
           "recipe": "reveal",
-          "startFrame": 36,
-          "durationFrames": 24
+          "durationFrames": 24,
+          "phase": "establish"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "wide",
+        "composition": "left",
+        "depth": "layered",
+        "focus": "content-value",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "content-value",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      }
     },
     {
       "id": "closing",
@@ -220,50 +248,102 @@
         {
           "target": "content-text",
           "recipe": "reveal",
-          "startFrame": 4,
-          "durationFrames": 12
+          "durationFrames": 12,
+          "phase": "establish"
         },
         {
           "target": "chain-arrow-1",
           "recipe": "draw",
-          "startFrame": 16,
-          "durationFrames": 10
+          "durationFrames": 10,
+          "phase": "change"
         },
         {
           "target": "chain-2",
           "recipe": "reveal",
-          "startFrame": 26,
-          "durationFrames": 10
+          "durationFrames": 10,
+          "phase": "result"
         },
         {
           "target": "chain-arrow-2",
           "recipe": "draw",
-          "startFrame": 36,
-          "durationFrames": 10
+          "durationFrames": 10,
+          "phase": "result"
         },
         {
           "target": "chain-3",
           "recipe": "rise",
-          "startFrame": 46,
-          "durationFrames": 12
+          "durationFrames": 12,
+          "phase": "result"
         },
         {
           "target": "content-action",
           "recipe": "reveal",
-          "startFrame": 58,
-          "durationFrames": 12
+          "durationFrames": 12,
+          "phase": "result"
         }
-      ]
+      ],
+      "renderer": {
+        "kind": "tree"
+      },
+      "camera": {
+        "shot": "medium",
+        "composition": "split",
+        "depth": "layered",
+        "focus": "content-text",
+        "segments": [
+          {
+            "kind": "hold",
+            "phase": "establish",
+            "intensity": 0
+          },
+          {
+            "kind": "push-in",
+            "phase": "change",
+            "focus": "content-text",
+            "intensity": 0.25
+          },
+          {
+            "kind": "settle",
+            "phase": "settle",
+            "intensity": 0
+          }
+        ]
+      },
+      "transition": {
+        "kind": "decompose",
+        "source": "content-chart",
+        "targets": [
+          "chain-1",
+          "chain-2",
+          "chain-3"
+        ],
+        "meaning": "反馈累计曲线拆成尝试、反馈与下一次行动的回路"
+      }
     }
   ],
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "visualDirection": {
-    "motif": "legacy-migration",
+    "motif": "刻度",
     "compositionBias": "mixed",
     "density": "balanced",
     "rhythm": "steady",
     "avoid": [
       "repeated-center"
+    ]
+  },
+  "directingVersion": 1,
+  "directingBrief": {
+    "thesis": "数字变化只有具备明确过程才有说服力",
+    "audienceShift": "从孤立读数转向理解数量变化",
+    "emotionalArc": [
+      "好奇",
+      "确认"
+    ],
+    "visualMotif": "刻度",
+    "stylePack": "editorial",
+    "avoid": [
+      "静态文字页连续复用",
+      "脱离语义的装饰动效"
     ]
   }
 }

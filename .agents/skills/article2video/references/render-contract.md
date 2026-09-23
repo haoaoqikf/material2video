@@ -8,7 +8,7 @@
 画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
 从 `web/src/contract/` 构建。它把共享 React composition
 （`web/src/compositions/A2VComposition.tsx`）挂进 `@remotion/player`，
-暴露 `window.__A2V__`（**version 2**）。分镜地址由查询参数 `a2v-storyboard` 给出
+暴露 `window.__A2V__`（**version 3**）。分镜地址由查询参数 `a2v-storyboard` 给出
 （本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
 体检（K 系列、M 系列、组件契约探针）用 Playwright 驱动它；
 渲染（`render.py` 默认）不走它，而是直接从 composition 源码打包渲染
@@ -16,11 +16,11 @@
 
 ## 必需接口
 
-画面实现必须在 `window` 上暴露 `__A2V__` 对象。契约页（version 2）的字段：
+画面实现必须在 `window` 上暴露 `__A2V__` 对象。契约页（version 3）的字段：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `version` | `number` | 契约版本，当前为 `2` |
+| `version` | `number` | 契约版本，当前为 `3` |
 | `fps` | `number` | 帧率，必须与分镜 JSON 的 `fps` 一致 |
 | `width` | `number` | 画面宽度，必须与分镜 JSON 的 `width` 一致 |
 | `height` | `number` | 画面高度，必须与分镜 JSON 的 `height` 一致 |
@@ -34,10 +34,10 @@
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。
-version 2 的 `ready()` 必须保证：
+version 3 的 `ready()` 必须保证：
 
 - 字体已加载完成（否则首帧会用回退字体排版，且首帧与后续帧字宽不一致）；
-- **Player 已经挂载**（这是 version 2 相对早期版本补充的要求：挂载之前 seek
+- **Player 已经挂载**（契约页要求挂载之后才能 seek
   只会得到空画面）；
 - 画面已经绘制过至少一次。
 

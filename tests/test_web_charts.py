@@ -66,8 +66,11 @@ def test_chart_primitive_reads_data_from_the_storyboard() -> None:
 def _chart_storyboard() -> dict:
     """一幕图表的最小 v2 分镜：60 帧覆盖入场与收尾，schematic 打开示意标。"""
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试命题", "audienceShift": "测试转变", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -86,7 +89,9 @@ def _chart_storyboard() -> dict:
                         {"label": "六月", "value": 18},
                     ],
                 },
-                "visualIntent": {"relation": "focus", "focus": "chart", "composition": "center", "density": "balanced", "tone": "neutral"},
+                "renderer": {"kind": "tree"},
+                "camera": {"focus": "root", "shot": "medium", "composition": "center", "depth": "flat", "segments": [{"phase": "establish", "kind": "hold"}]},
+                "visualIntent": {"relation": "focus", "focus": "chart", "composition": "center", "density": "balanced", "tone": "neutral", "mode": "chart", "claim": "比较变化", "showWithoutText": "三根高度不同的柱", "primaryObject": "柱形图", "motionMeaning": "按顺序揭示数值"},
                 "sceneTree": {
                     "id": "root",
                     "type": "stack",
@@ -95,7 +100,7 @@ def _chart_storyboard() -> dict:
                         {"id": "bars", "type": "chart", "contentRef": "data.values", "chart": "bar", "schematic": True},
                     ],
                 },
-                "motions": [{"target": "bars", "recipe": "reveal", "startFrame": 6, "durationFrames": 24}],
+                "motions": [{"target": "bars", "recipe": "reveal", "phase": "establish", "durationFrames": 24}],
             },
         ],
     }
@@ -168,6 +173,15 @@ def test_chart_frame_is_deterministic(chart_page):
     assert all(verdict.psnr == float("inf") for verdict in verdicts), determinism.summarize(
         verdicts
     )
+
+
+def test_chart_marks_are_not_counted_as_cards_for_k6(chart_page):
+    """数据柱是图形标记，不应被卡片纪律闸门要求描边与内高光。"""
+    from a2v import inspect as a2v_inspect
+
+    facts = chart_page.evaluate(a2v_inspect._AESTHETIC_SCRIPT)
+    assert facts is not None
+    assert all("a2v-primitive-bar" not in card["role"] for card in facts["cards"])
 
 
 # ---------------------------------------------------------------- 观感闸门的判定范围（v2）

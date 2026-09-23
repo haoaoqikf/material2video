@@ -94,7 +94,7 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
         return reads
 
 
-def test_preset_tokens_apply_only_where_the_preset_is_declared(chromium_ready):
+def test_v3_preset_tokens_apply_to_all_contract_pages(chromium_ready):
     _skip_if_unbuilt()
     with contract_page.serve_contract_page(PLAIN, ROOT) as plain_url:
         plain = _tokens(plain_url, chromium_ready)[0]
@@ -102,20 +102,14 @@ def test_preset_tokens_apply_only_where_the_preset_is_declared(chromium_ready):
         dark, light = _tokens(preset_url, chromium_ready, flips=("light",))
 
     assert plain["scene"], "契约页没有画出画面，后面的令牌断言就没有意义"
-    assert plain["preset"] is False, "这份分镜没有预设，页面上不该出现预设属性"
-    # 默认层：与旧 base.css / theme.css 一致
-    assert plain["tokens"]["--a2v-safe-top"] == "220px", plain["tokens"]
-    # 这份分镜写的是 `visual.theme = "light"`，因此底色来自**默认浅色层**——
-    # 它不挂在预设上，住在 `declarative.css` 的 `:root[data-a2v-theme="light"]` 里
-    # （暖白 + 砖红强调）。这里断言的是旧页面在同一分镜上的实测值
-    # （`#f1efea` / `#c2352a`），不是深色默认值：把这一层搬到 tokens.css
-    # 会让 theme.css 的同名浅色层反过来压过它，整幅画面换色（实测 1.4 dB）。
-    assert plain["tokens"]["--a2v-bg-0"].lower() == "#f1efea", plain["tokens"]
-    assert plain["tokens"]["--a2v-accent"].lower() == "#c2352a", plain["tokens"]
+    assert plain["preset"] is True, "v3 分镜强制声明 keynote 预设"
+    assert plain["tokens"]["--a2v-safe-top"] == "240px", plain["tokens"]
+    # 这份分镜写的是浅色主题；预设令牌仍与主题令牌共同生效。
+    assert plain["tokens"]["--a2v-bg-0"].lower() == "#eff1f4", plain["tokens"]
+    assert plain["tokens"]["--a2v-accent"].lower() == "#0a6ad9", plain["tokens"]
     assert plain["theme"] == "light", plain
     assert "PingFang SC" in plain["tokens"]["--a2v-font"], plain["tokens"]
-    # 预设专有的字阶不存在——这也是「未启用预设就不取档」的令牌侧依据
-    assert plain["tokens"]["--a2v-size-body"] == "", plain["tokens"]
+    assert plain["tokens"]["--a2v-size-body"], plain["tokens"]
 
     assert dark["preset"] is True, "启用预设的分镜必须在画面上挂出预设属性"
     # 预设与主题都挂在根元素上（与旧 declarative.js 同一形状）：

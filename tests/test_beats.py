@@ -18,8 +18,11 @@ from a2v import beats, storyboard
 def beat_script() -> dict:
     """一幕带论证结构证据（chart + connector）的非文字幕，声明两个 beat。"""
     return {
-        "version": 2,
-        "schemaVersion": 2,
+        "version": 3,
+        "schemaVersion": 3,
+        "directingVersion": 1,
+        "directingBrief": {"thesis": "测试命题", "audienceShift": "测试转变", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
+        "visual": {"theme": "dark", "preset": "keynote"},
         "fps": 30,
         "width": 1080,
         "height": 1920,
@@ -62,6 +65,8 @@ def beat_script() -> dict:
                         {"id": "arrow", "type": "connector", "direction": "ltr"},
                     ],
                 },
+                "renderer": {"kind": "tree"},
+                "camera": {"focus": "chart", "shot": "medium", "composition": "center", "depth": "flat", "segments": [{"beatId": "b1", "kind": "hold", "focus": "chart"}, {"beatId": "b2", "kind": "push-in", "focus": "chart"}]},
                 "motions": [],
                 "beats": [
                     {"id": "b1", "action": "establish", "targets": ["chart"], "meaning": "先建立基线"},
@@ -101,10 +106,10 @@ def test_segmented_narration_is_valid():
     assert not [item for item in errors(data) if ".beats" in item or "narrationSegments" in item]
 
 
-def test_narration_and_segments_are_mutually_exclusive():
+def test_v3_rejects_string_narration():
     data = beat_script()
     scene(data)["narration"] = "整段口播"
-    assert "互斥" in messages(data)
+    assert "v3 不接受字符串 narration" in messages(data)
 
 
 def test_duplicate_beat_id_is_rejected():
@@ -200,21 +205,12 @@ def test_scene_too_short_for_segments_is_rejected():
 # ------------------------------------------------- 新作品严格规则（任务 1.3）
 
 
-def test_non_text_narrated_scene_needs_beats_in_strict_mode():
+def test_v3_rejects_string_narration_in_both_modes():
     data = beat_script()
     for key in ("beats", "narrationSegments"):
         scene(data).pop(key)
     scene(data)["narration"] = "整段口播"
-    assert "没有语义节拍" in messages(data, strict=True)
-
-
-def test_legacy_string_narration_only_warns_in_ordinary_mode():
-    data = beat_script()
-    for key in ("beats", "narrationSegments"):
-        scene(data).pop(key)
-    scene(data)["narration"] = "整段口播"
-    assert not [item for item in errors(data) if "beats" in item]
-    assert any("兼容模式" in item for item in warnings(data))
+    assert "v3 不接受字符串 narration" in messages(data, strict=True)
 
 
 def test_text_and_silent_scenes_are_exempt():
@@ -222,7 +218,6 @@ def test_text_and_silent_scenes_are_exempt():
     for key in ("beats", "narrationSegments"):
         scene(data).pop(key)
     scene(data)["visualIntent"]["mode"] = "typography"
-    scene(data)["narration"] = "纯文字幕口播"
     assert "没有语义节拍" not in messages(data, strict=True)
 
     silent = beat_script()
@@ -329,10 +324,6 @@ def test_timeline_json_roundtrip():
 def test_scene_narration_concatenates_segments_in_order():
     data = beat_script()
     assert beats.scene_narration(scene(data)) == "先看基线。再看累积到临界点。"
-    legacy = copy.deepcopy(scene(data))
-    legacy.pop("narrationSegments")
-    legacy["narration"] = "字符串口播"
-    assert beats.scene_narration(legacy) == "字符串口播"
 
 
 # ---------------------------------------------------------------------------

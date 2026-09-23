@@ -177,20 +177,15 @@ def test_manifest_records_version_two(tmp_path, speech):
     assert all("resolvedBeats" in scene for scene in data["scenes"])
 
 
-def test_legacy_string_narration_manifest_still_loads(tmp_path, speech):
-    speech()
+def test_v3_string_narration_is_rejected_before_speech(tmp_path):
     script = beat_script()
     scene = script["scenes"][0]
     for key in ("beats", "narrationSegments"):
         scene.pop(key)
     scene["narration"] = "整段口播。"
-    source, manifest = prepare(tmp_path, script)
-    data = json.loads(Path(manifest).read_text(encoding="utf-8"))
-    data["version"] = 1
-    Path(manifest).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    media = load_media(manifest, source)
-    assert media.storyboard.scenes[0].narration == "整段口播。"
-    assert media.storyboard.scenes[0].beat_timeline.empty
+    source = write(tmp_path, script)
+    with pytest.raises(A2VError, match="v3 不接受字符串 narration"):
+        prep.prepare(source, tmp_path / "media")
 
 
 def test_legacy_manifest_with_segments_asks_for_prepare_again(tmp_path, speech):
@@ -286,26 +281,30 @@ def test_effective_storyboard_aligns_cues_beats_and_scene_offsets(tmp_path, spee
         "type": "conclusion",
         "durationInFrames": 60,
         "data": {"text": "结论"},
+        "renderer": {"kind": "tree"},
         "visualIntent": {
             "relation": "focus", "focus": "text", "composition": "full",
             "density": "sparse", "tone": "decisive", "mode": "typography",
             "claim": "结论只有一句话", "showWithoutText": "整屏一句结论，四周留白",
             "primaryObject": "居中的结论文字", "motionMeaning": "结论淡入",
         },
+        "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "copy", "segments": [{"beatId": "b1", "kind": "hold", "focus": "copy"}, {"beatId": "b2", "kind": "settle", "focus": "copy"}]},
+        "transition": {"kind": "dissolve", "meaning": "切换到结论"},
+        "narrationSegments": [{"id": "cn1", "text": "最后", "beatId": "b1"}, {"id": "cn2", "text": "一句话。", "beatId": "b2"}],
+        "beats": [{"id": "b1", "action": "establish", "targets": ["copy"], "meaning": "出现结论"}, {"id": "b2", "action": "transform", "targets": ["copy"], "meaning": "把结论固定下来"}],
         "sceneTree": {"id": "root", "type": "overlay", "children": [
             {"id": "copy", "type": "text", "contentRef": "data.text", "role": "headline"},
         ]},
         "motions": [],
-        "narration": "最后一句话。",
     })
     source, manifest = prepare(tmp_path, script)
     media = load_media(manifest, source)
     fps = media.storyboard.fps
     effective = media_mod.effective_storyboard(media)
 
-    # 只有分段口播的幕携带派生时间轴
+    # 两幕分段口播都携带派生时间轴
     assert "resolvedBeats" in effective["scenes"][0]
-    assert "resolvedBeats" not in effective["scenes"][1]
+    assert "resolvedBeats" in effective["scenes"][1]
     # 场景偏移由时长累加得到，动画边界以绝对帧为准
     assert [scene.start_frame for scene in media.storyboard.scenes] == [0, 120]
 

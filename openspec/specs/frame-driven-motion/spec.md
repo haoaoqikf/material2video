@@ -256,9 +256,9 @@ SHALL 报出来，SHALL NOT 静默丢弃。跳过量测时 SHALL 给出理由，
 - **WHEN** 映射节点没有稳定几何描述或类型变换未登记
 - **THEN** 预览和渲染前失败并指出源节点、目标节点与缺失能力
 
-### Requirement: 新动画语言成为场景树默认行为
-所有有效 schema v2 场景树 SHALL 使用新版默认曲线、阶段节奏、连续状态和变换合成规则。系统 SHALL 继续接受旧动效字段，但 SHALL NOT 承诺重新渲染与旧成片像素级或观感一致，也 SHALL NOT 提供 legacy 回退模式。
+### Requirement: 动画只由 v3 语义时间绑定
+所有有效 v3 场景树 SHALL 将每条 motion 绑定到 `phase` 或 `beatId`，并使用 `targets + stagger` 表达编组错峰。绝对 `startFrame` SHALL 被拒绝。动作解析 SHALL 使用与口播 beat 和镜头段相同的时间轴，并在结尾稳定阅读区前结束。
 
-#### Scenario: 旧分镜重新渲染
-- **WHEN** 一个仅使用旧五种 recipe 的有效 schema v2 分镜重新预览或渲染
-- **THEN** 无需重写文件即可成功输出，并使用新版默认动画语言
+#### Scenario: 拒绝绝对帧动作
+- **WHEN** v3 motion 声明 `startFrame`
+- **THEN** 校验失败并要求绑定语义阶段或 beat
