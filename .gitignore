@@ -45,6 +45,8 @@ credentials/
 
 # Generated renders and media
 outputs/
+# 作品产物与源内容统一位于 videos/ 下，仍不纳入版本控制。
+/videos/**/outputs/
 renders/
 recordings/
 work/

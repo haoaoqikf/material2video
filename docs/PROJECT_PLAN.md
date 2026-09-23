@@ -555,7 +555,7 @@ K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡�
 逐个字符查字体自己的 `cmap`，缺了就报错并指到 `sceneId.字段`，进错误数与退出码。
 所以现在按作品子集化这件事可以做了：切完之后缺字会被机检抓住，而不是悄悄回退。
 「切」本身已实现：`prepare.py --subset-fonts <源字体>` 走可选依赖（`uv sync --extra fonts`），
-按 `fonts.charset_for` 取本作品用字切出子集落在 `outputs/<slug>/`，源字体只读，
+按 `fonts.charset_for` 取本作品用字切出子集落在 `videos/<slug>/outputs/`，源字体只读，
 切完立刻用缺字机检判覆盖；实测 `never-fear-interviews` 86 个字符 → **39KB**（源 16.9MB，
 约 1/440），三支作品都切过且都不缺字，默认链路重渲 12 帧哈希仍是 `CBEBD8BF…`。
 实现手段当初是这样探清的：**子集化需要字形子集工具**
@@ -887,8 +887,8 @@ V 系列回答了「有没有论证型图形」，但没有回答「这些图形
 
 ```text
 <工作区根>/videos/<slug>/{article.md, storyboard.json, scenes/, assets/}  # 内容不入库；scenes/ 仅代码场景需要
-<工作区根>/outputs/<slug>/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
-<工作区根>/outputs/examples/<slug>/                                   # 示例产物独立一层
+<工作区根>/videos/<slug>/outputs/{silent.mp4, voiced.mp4, voiced.srt, media/, previews/}
+<工作区根>/videos/examples/<slug>/outputs/                              # 示例产物独立一层
 ```
 
 `prepare.py`、`render.py` 的输出参数改为可选：从输入文件位置向上定位含
@@ -901,14 +901,14 @@ V 系列回答了「有没有论证型图形」，但没有回答「这些图形
 已实现并验证：两篇文章输出相互隔离、示例与实际文章同名时产物分离、不同工作目录下推导一致、
 显式路径兼容、限帧输出不覆盖正式成片，以及无法推导时给出明确错误。
 规则以 [目录约定与输出路径](../.agents/skills/article2video/references/paths-and-outputs.md)
-为权威来源。示例产物已迁入 `outputs/examples/why-effort-fails/`，媒体目录整体移动后清单与
+为权威来源。示例产物已迁入 `videos/examples/why-effort-fails/outputs/`，媒体目录整体移动后清单与
 资源引用保持有效。
 
 ### 内容根：文章与仓库解耦 —— 已实现
 
 多篇文章的下一步是让**内容**也离开仓库：文章是作品，制作方法才是代码。落地方案是两层根：
 
-- **仓库根**存放 skill 与共享资产；**工作区根**存放 `videos|examples/<slug>/` 与 `outputs/`。
+- **仓库根**存放 skill 与共享资产；**工作区根**存放 `videos|examples/<slug>/` 与作品目录下的 `outputs/`。
   不设内容根时两者重合，路径与产物位置与之前逐帧一致；
 - 内容根由 `--content-root <目录>` 或环境变量 `A2V_CONTENT_ROOT` 指定（命令行优先），
   **不自动探测**：猜错的后果是把成片写到你没在看的地方，而人直到打开目录才发现；
@@ -920,7 +920,7 @@ V 系列回答了「有没有论证型图形」，但没有回答「这些图形
   而不是「引用怎么写」，因此共享页面内部的相对引用同样记别名键——否则内容根里的每一份
   成片都会在复核时报「资产不见了」；
 - 已验证：内容根内的声明式与专属网页两条路都能端到端渲出成片、产物落在内容根的
-  `outputs/<slug>/` 下、溯源无需内容根参数即可复核、别名不得越界读取仓库其他目录。
+  `videos/<slug>/outputs/` 下、溯源无需内容根参数即可复核、别名不得越界读取仓库其他目录。
 
 `videos/` 已从 Git 索引移除并加入 `.gitignore`：留在仓库里的文章不会被提交，
 放到内容根的文章同样不会。

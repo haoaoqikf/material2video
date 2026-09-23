@@ -5,11 +5,11 @@
 1. 每幕可写字符串 `narration`，或写分段口播 `narrationSegments` + `beats`
    （二者互斥）；省略或空字符串表示静音。
 2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
-   `outputs/<slug>/media/`（示例为 `outputs/examples/<slug>/media/`）。
+   `videos/<slug>/outputs/media/`（示例为 `videos/examples/<slug>/outputs/media/`）。
 3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。
 4. `preview.py --storyboard <json> --media <media.json>` 预览。
 5. `render.py --storyboard <json> --media <media.json>` 输出
-   `outputs/<slug>/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
+   `videos/<slug>/outputs/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
 
 省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；已有 narration 不会自动触发联网或配音，
 但会在日志中提示本次按无声导出。composition 读取的分镜在渲染前由媒体清单派生
@@ -84,7 +84,7 @@ composition 会退回无声等比例估算，字幕却按真实词边界走，�
 
 准备过程在输出目录内写临时文件；统一音轨和 SRT 使用新资源名，最后原子替换 `media.json`。
 失败保留上次可用清单。旧资源为避免破坏已打开的预览不自动删除；不再使用后可清理整个输出目录。
-清单与音轨属于哪篇文章，由它所在的 `outputs/<slug>/media/` 目录决定：渲染时若 `--media`
+清单与音轨属于哪篇文章，由它所在的 `videos/<slug>/outputs/media/` 目录决定：渲染时若 `--media`
 不在当前文章的媒体目录内，直接报错而不是跨文章合成。
 请将产物放在已忽略的 `outputs/`，生成媒体、清单和缓存均不提交 Git。
 

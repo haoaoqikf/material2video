@@ -67,8 +67,8 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、代码场景、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
-| `outputs/<slug>/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
-| `outputs/examples/<slug>/` | 示例产物，独立一层避免与同名实际文章冲突 |
+| `videos/<slug>/outputs/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
+| `videos/examples/<slug>/outputs/` | 示例产物，独立一层避免与同名实际文章冲突 |
 
 每篇文章的目录名（slug）稳定且唯一，标题变化不改目录名。
 
@@ -84,7 +84,7 @@ Claude Code 需要该目录时可用软链接映射到 `.claude/skills/`。
 
 所有命令都可以在**任意工作目录**执行。输出路径可以省略：脚本按输入文件位置推导归属——
 文件在仓库内时向上找到含 skill 标记的仓库根，文件在内容根内时用内容根作工作区根——
-再落到 `outputs/<slug>/`。推导结果与执行命令时的工作目录无关；无法推导时脚本直接报错，
+再落到 `videos/<slug>/outputs/`。推导结果与执行命令时的工作目录无关；无法推导时脚本直接报错，
 不会猜测归属（文章在仓库之外又没设内容根时，报错会点名 `--content-root` 与
 `A2V_CONTENT_ROOT`）。
 
@@ -179,7 +179,7 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
   --storyboard videos/<slug>/storyboard.json
 ```
 
-省略 `--out-dir` 时媒体写入该文章的 `outputs/<slug>/media/`。
+省略 `--out-dir` 时媒体写入该文章的 `videos/<slug>/outputs/media/`。
 默认 edge-tts 中文晓晓音色，支持 `--voice`、`--rate=-10%`、`--force`。
 生成 `media.json`、统一 WAV 和 SRT；音频较长的场景自动延长。无口播场景静音。
 声明了 `narrationSegments` 的幕还会在清单里得到逐幕 `resolvedBeats`
@@ -195,7 +195,7 @@ uv run python .agents/skills/article2video/scripts/preview.py \
   --storyboard videos/<slug>/storyboard.json
 ```
 
-有声预览追加 `--media outputs/<slug>/media/media.json`。
+有声预览追加 `--media videos/<slug>/outputs/media/media.json`。
 预览由契约页驱动同一份 composition，因此预览看到的就是渲染会画出的画面。
 
 浏览器打开后检查：中文无裁切、正文在安全区内、场景切换自然、重播结果一致。
@@ -209,12 +209,12 @@ uv run python .agents/skills/article2video/scripts/render.py \
 ```
 
 - 想给一支作品配更小的字体：`prepare.py --subset-fonts <源字体>` 会切出只含
-  本作品用字的子集（落在 `outputs/<slug>/`，源字体只读），**切完立刻用缺字机检判它**
+本作品用字的子集（落在 `videos/<slug>/outputs/`，源字体只读），**切完立刻用缺字机检判它**
   ——漏字的子集会静默回退到系统字体，那正是要防的。这一步需要可选依赖
   （`uv sync --extra fonts`）：不装、不开这个开关时，默认链路完全离线可跑。
-省略 `--out` 时无声导出为 `outputs/<slug>/silent.mp4`；
-有声导出追加 `--media outputs/<slug>/media/media.json`，输出 `outputs/<slug>/voiced.mp4`
-和同名 SRT。加 `--limit-frames` 时写入 `outputs/<slug>/previews/`，使用相同的成片文件名，
+省略 `--out` 时无声导出为 `videos/<slug>/outputs/silent.mp4`；
+有声导出追加 `--media videos/<slug>/outputs/media/media.json`，输出 `videos/<slug>/outputs/voiced.mp4`
+和同名 SRT。加 `--limit-frames` 时写入 `videos/<slug>/outputs/previews/`，使用相同的成片文件名，
 不会覆盖正式成片。显式 `--out` 仍然优先。
 
 渲染脚本会：
@@ -238,10 +238,10 @@ uv run python .agents/skills/article2video/scripts/render.py \
 ```bash
 uv run python .agents/skills/article2video/scripts/review.py \
   --storyboard videos/<slug>/storyboard.json \
-  [--media outputs/<slug>/media/media.json]
+  [--media videos/<slug>/outputs/media/media.json]
 ```
 
-它一次跑完三件事，产物在 `outputs/<slug>/inspect/`：
+它一次跑完三件事，产物在 `videos/<slug>/outputs/inspect/`：
 
 1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前画面里每个元素的实际文本，
    再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
@@ -318,11 +318,11 @@ uv run python .agents/skills/article2video/scripts/validate.py <storyboard.json>
 # 本地预览（契约页驱动同一份 composition）
 uv run python .agents/skills/article2video/scripts/preview.py --storyboard <json> [--port 8000] [--media <media.json>] [--content-root <目录>]
 
-# 配音准备（省略 --out-dir 时写入 outputs/<slug>/media）
+# 配音准备（省略 --out-dir 时写入 videos/<slug>/outputs/media）
 uv run python .agents/skills/article2video/scripts/prepare.py \
   --storyboard <json> [--out-dir <目录>] [--voice <音色>] [--rate=±N%] [--force] [--content-root <目录>] [-v]
 
-# 视觉评审（省略 --out-dir 时写入 outputs/<slug>/inspect）
+# 视觉评审（省略 --out-dir 时写入 videos/<slug>/outputs/inspect）
 uv run python .agents/skills/article2video/scripts/review.py \
   --storyboard <json> [--media <media.json>] [--out-dir <目录>] [--content-root <目录>] [-v]
 
@@ -354,7 +354,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `相邻两幕均为文字幕` | 文字幕之间必须隔开论证型图形场景，调整幕序或改造其中一幕 |
 | `非文字视觉模式只有 N 种` | 模式过于单一：八幕及以上至少 3 种、少于八幕至少 2 种非文字模式（`metaphor`/`process`/`comparison`/`cycle`/`chart`/`image`） |
 | 严格校验要求补齐视觉论证字段 | 旧分镜缺 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`：逐幕补齐；脚本不会根据场景树自动推断语义 |
-| V6 显示「待评审」或 `publishable=否` | `outputs/<slug>/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
+| V6 显示「待评审」或 `publishable=否` | `videos/<slug>/outputs/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
 | A6 显示「待评审」或 `publishable=否` | 同一份 `review.md` 缺「动效服务」评分，或 `## A6 候选裁决` 没逐条裁决 `animationReview.a6.candidates` 列出的装饰配方：按[评审量表](references/visual-review-rubric.md)填写 |
 | A 系列报「没有任何 beat 改变对象状态或关系」 | 这一幕的 beat 全是 `establish`/`highlight`：换成 `connect`/`accumulate`/`transform` 这类真正改变状态或关系的动作，或承认它是文字幕并改 `visualIntent.mode` |
 | A 系列报「字幕 cue 与口播段切法不一致」 | 某个口播段切在一句话中间，字幕 cue 跨过了段边界：把段边界挪到句子标点处 |

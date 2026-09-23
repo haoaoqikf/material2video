@@ -219,7 +219,7 @@ CDN 会在断网、限流、版本漂移时静默回退到系统字体，而成�
 
 飞轮节点原先半径 76px（直径 152px），而节点标签在预设下取 `--a2v-ink-value` = 44px，
 四个汉字带字距约 183px——**比直径还宽 31px**，文字必然穿出圆。
-逐帧看图直接可见（`outputs/examples/keynote-baseline/inspect/frames/loop-68-f1124.png`），
+逐帧看图直接可见（`videos/examples/keynote-baseline/outputs/inspect/frames/loop-68-f1124.png`），
 而当时的 K7 报的是「量了 2 个文本块，都在安全区内」。
 
 根因不是「半径写小了」，而是**先写死容器几何、再把文字塞进去**这个顺序。

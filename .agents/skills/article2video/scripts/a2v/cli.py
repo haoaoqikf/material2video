@@ -88,7 +88,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--out",
-        help="输出 MP4 路径；省略时按文章归属推导为 outputs/<slug>/silent.mp4，"
+        help="输出 MP4 路径；省略时按文章归属推导为 videos/<slug>/outputs/silent.mp4，"
         "提供 --media 时为 voiced.mp4，配合 --limit-frames 时写入 previews/",
     )
     parser.add_argument("--media", help="prepare.py 生成的媒体清单；需要 --storyboard")
@@ -112,7 +112,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--limit-frames",
         type=int,
-        help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 outputs/<slug>/previews/",
+        help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 videos/<slug>/outputs/previews/",
     )
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument("--no-probe", action="store_true", help="跳过成片解码验收")
@@ -169,7 +169,7 @@ def _build_review_parser() -> argparse.ArgumentParser:
         help="文章所在的工作区根；省略时读环境变量 A2V_CONTENT_ROOT，都不设则为仓库根",
     )
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
-    parser.add_argument("--out-dir", help="体检产物目录；省略时写入 outputs/<slug>/inspect")
+    parser.add_argument("--out-dir", help="体检产物目录；省略时写入 videos/<slug>/outputs/inspect")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument(
         "--check-determinism",
@@ -907,7 +907,7 @@ def _apply_determinism_verdicts(combined: Report, verdicts: list | None) -> list
 
 
 def _default_review_dir(args, article: paths_mod.ArticlePaths | None) -> Path:
-    """体检产物目录：`outputs/<slug>/inspect`，与渲染产物放在一起。
+    """体检产物目录：作品目录下的 `outputs/inspect`，与渲染产物放在一起。
 
     专属网页优先按网页归属；共享页面不在 `videos/`、`examples/` 下，
     此时回退到分镜归属，与渲染入口的推导保持一致。两者都推不出来时
@@ -950,8 +950,8 @@ def _font_findings(page_file: Path, args) -> list[dict]:
 def _rendered_provenance(out_dir: Path) -> dict:
     """这个作品的成片是不是旧资产渲的。
 
-    成片与体检产物同属一个作品目录（`outputs/<slug>/voiced.mp4` 对
-    `outputs/<slug>/inspect/`），所以从体检目录往上一级找成片。
+    成片与体检产物同属一个作品目录（`videos/<slug>/outputs/voiced.mp4` 对
+    `videos/<slug>/outputs/inspect/`），所以从体检目录往上一级找成片。
     它只回答「产物是不是旧的」，**不参与错误数与退出码**——
     「不够发布会级」和「这些片子不是最新资产渲的」都不是「画面坏了」。
     没有成片时返回空表，不报「无法判断」：还没渲过不是问题。
@@ -1108,7 +1108,7 @@ def main_prepare(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--out-dir",
-        help="媒体输出目录；省略时按文章归属推导为 outputs/<slug>/media",
+        help="媒体输出目录；省略时按文章归属推导为 videos/<slug>/outputs/media",
     )
     parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
     parser.add_argument("--rate", default="+0%", help="语速，例如 --rate=-10%%")
@@ -1177,27 +1177,29 @@ def _subset_fonts(storyboard_path: str | Path, out_dir: Path, source: Path) -> i
 
 
 def _default_media_dir(article: paths_mod.ArticlePaths) -> Path:
-    """配音准备的默认输出目录：`outputs/<slug>/media`。"""
+    """配音准备的默认输出目录：作品目录下的 `outputs/media`。"""
     logging.info("未指定 --out-dir，写入 %s", article.media_dir)
     return article.media_dir
 
 
 def _reject_foreign_media_dir(article: paths_mod.ArticlePaths, out_dir: str | Path) -> None:
-    """拒绝把媒体写进 outputs/ 下另一篇文章的目录。
+    """拒绝把媒体写进另一篇文章的作品目录。
 
-    项目外的临时目录（测试、调试）仍然允许；只有明确落在 outputs/<别的 slug>/media
-    时才判为冲突，避免清单和音轨被写进别人的产物目录；当前文章自己的
-    outputs/<slug>/media 始终合法。
+    项目外的临时目录（测试、调试）仍然允许；只有明确落在工作区作品目录的
+    `outputs/media` 时才判为冲突，避免清单和音轨被写进别人的产物目录。
     """
     resolved = Path(out_dir).resolve()
     if resolved == article.media_dir:
         return
-    outputs_root = paths_mod.workspace_outputs(article).resolve()
+    if resolved == article.media_dir:
+        return
+    if resolved.name != paths_mod.MEDIA_DIR:
+        return
     try:
-        relative = resolved.relative_to(outputs_root)
+        workspace_relative = resolved.relative_to(article.workspace_root.resolve())
     except ValueError:
         return
-    if len(relative.parts) >= 2 and relative.parts[-1] == paths_mod.MEDIA_DIR:
+    if "outputs" in workspace_relative.parts and resolved.parent != article.output_dir.resolve():
         raise A2VError(
             f"--out-dir {resolved} 属于其他文章的媒体目录，本篇文章应使用 {article.media_dir}"
         )

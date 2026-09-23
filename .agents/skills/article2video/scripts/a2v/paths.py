@@ -4,12 +4,12 @@
 
 ```text
 仓库根 repo_root        # .agents/skills/article2video/SKILL.md 所在处：脚本、共享资产、examples
-工作区根 workspace_root # 存放 videos|examples/<slug> 与 outputs/ 的目录
+工作区根 workspace_root # 存放 videos|examples/<slug> 与作品产物的目录
 
 <workspace>/videos/<slug>/{article.md, storyboard.json, index.html}
 <workspace>/examples/<slug>/...          # 与 videos/ 同构的示例（仓库自带，随仓库分发）
-<workspace>/outputs/<slug>/{silent,voiced}.mp4, voiced.srt, media/, previews/
-<workspace>/outputs/examples/<slug>/...  # 示例产物独立一层，避免与实际文章同名冲突
+<workspace>/videos/<slug>/outputs/{silent,voiced}.mp4, voiced.srt, media/, previews/
+<workspace>/videos/examples/<slug>/outputs/...  # 示例产物独立一层
 ```
 
 工作区根按 `--content-root` > `A2V_CONTENT_ROOT` > 仓库根 解析：不设内容根时两层根重合，
@@ -40,7 +40,7 @@ PROJECT_MARKER = Path(".agents/skills/article2video/SKILL.md")
 # 源文件的两种归属目录，直接挂在工作区根下。
 SOURCE_KINDS: dict[str, str] = {"videos": "article", "examples": "example"}
 
-# 产物根目录名（已被 .gitignore 忽略）。
+# 作品目录下的产物目录名（已被 .gitignore 忽略）。
 OUTPUTS_DIR = "outputs"
 
 # 成片文件名固定，同类重复导出即覆盖同一个文件。
@@ -231,7 +231,7 @@ def workspace_root_for(
             else "也没有可用的内容根。"
         )
         + f"内容根用 --content-root 或环境变量 {CONTENT_ROOT_ENV} 指定，"
-        "指向存放 videos/<slug>/ 与 outputs/<slug>/ 的目录"
+        "指向存放 videos/<slug>/ 与其 outputs/ 子目录的目录"
     )
 
 
@@ -248,26 +248,28 @@ def article_paths(
     repo = Path(repo_root).resolve()
     workspace = workspace_root_for(repo, path, content_root)
     kind, slug = locate_article(workspace, path)
-    output_dir = workspace / OUTPUTS_DIR
     if kind == "example":
-        # 示例产物独立一层，避免与同名实际文章的产物互相覆盖
-        output_dir = output_dir / "examples"
+        # 示例源文件仍兼容 examples/<slug>/，但产物统一放到 videos/examples 下，
+        # 与正式作品的 videos/<slug>/outputs 结构保持一致且避免同名覆盖。
+        output_dir = workspace / "videos" / "examples" / slug / OUTPUTS_DIR
+    else:
+        output_dir = workspace / "videos" / slug / OUTPUTS_DIR
     return ArticlePaths(
         repo_root=repo,
         workspace_root=workspace,
         kind=kind,
         source_dir=workspace / source_dir_name(kind) / slug,
-        output_dir=output_dir / slug,
+        output_dir=output_dir,
     )
 
 
 def workspace_outputs(article: ArticlePaths) -> Path:
-    """工作区根下的产物根目录（`outputs/` 或 `outputs/examples/`）。
+    """当前作品的产物目录。
 
     `_reject_foreign_media_dir` 用它判断「这个媒体目录是不是别人的」，
-    因此必须从 `output_dir` 反推，而不是硬拼仓库根。
+    因此直接返回作品目录下的 `outputs/`，而不是硬拼工作区根。
     """
-    return article.output_dir.parent
+    return article.output_dir
 
 
 def source_dir_name(kind: ArticleKind) -> str:

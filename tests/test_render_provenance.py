@@ -86,7 +86,7 @@ class TestProvenanceAcrossRoots:
     def _render(tmp_path: Path, content: Path, page: Path) -> Path:
         from a2v import media as media_mod
 
-        video = content / "outputs" / "demo" / "silent.mp4"
+        video = content / "videos" / "demo" / "outputs" / "silent.mp4"
         video.parent.mkdir(parents=True, exist_ok=True)
         video.write_bytes(b"fake mp4")
         payload = {
@@ -123,7 +123,7 @@ class TestProvenanceAcrossRoots:
         content, page = self._workspace(tmp_path)
         video = self._render(tmp_path, content, page)
         payload = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
-        assert payload["workspace"] == "../.."
+        assert payload["workspace"] == "../../.."
         assert payload["page"] == "videos/demo/index.html"
         assert sorted(payload["assets"]["files"]) == ["__a2v__/figures.css", "videos/demo/index.html"]
         assert render_mod.provenance_status(video)["status"] == "current"

@@ -68,9 +68,9 @@ class TestContentRootResolution:
         assert found.kind == "article"
         assert found.slug == "demo"
         assert found.source_dir == content / "videos" / "demo"
-        assert found.output_dir == content / "outputs" / "demo"
-        assert found.media_dir == content / "outputs" / "demo" / "media"
-        assert found.render_output(voiced=True) == content / "outputs" / "demo" / "voiced.mp4"
+        assert found.output_dir == content / "videos" / "demo" / "outputs"
+        assert found.media_dir == content / "videos" / "demo" / "outputs" / "media"
+        assert found.render_output(voiced=True) == content / "videos" / "demo" / "outputs" / "voiced.mp4"
 
     def test_environment_variable_is_honoured(self, tmp_path, monkeypatch):
         make_repo(tmp_path)
@@ -78,7 +78,7 @@ class TestContentRootResolution:
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         found = paths.for_page(content / "videos" / "demo" / "index.html")
         assert found.workspace_root == content.resolve()
-        assert found.output_dir == content / "outputs" / "demo"
+        assert found.output_dir == content / "videos" / "demo" / "outputs"
 
     def test_explicit_argument_beats_environment(self, tmp_path, monkeypatch):
         make_repo(tmp_path)
@@ -97,13 +97,13 @@ class TestContentRootResolution:
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         found = paths.for_page(sample / "index.html")
         assert found.workspace_root == repo.resolve()
-        assert found.output_dir == repo / "outputs" / "examples" / "demo"
+        assert found.output_dir == repo / "videos" / "examples" / "demo" / "outputs"
 
     def test_storyboard_in_content_root_resolves_the_same_article(self, tmp_path, valid_script):
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script)
         source = content / "videos" / "demo" / "storyboard.json"
-        assert paths.for_storyboard(source, content).output_dir == content / "outputs" / "demo"
+        assert paths.for_storyboard(source, content).output_dir == content / "videos" / "demo" / "outputs"
         assert paths.for_page(
             content / "videos" / "demo" / "index.html", content
         ).source_dir == paths.for_storyboard(source, content).source_dir
@@ -133,7 +133,7 @@ class TestContentRootReachesTheEntryPoints:
         model, report = sb.load(args.storyboard)
         assert report.ok and model is not None
         output = cli._resolve_render_output(args, model, None, article)
-        assert output == content / "outputs" / "demo" / "silent.mp4"
+        assert output == content / "videos" / "demo" / "outputs" / "silent.mp4"
 
     def test_environment_variable_reaches_the_entry_point(self, tmp_path, valid_script, monkeypatch):
         make_repo(tmp_path)
@@ -141,7 +141,7 @@ class TestContentRootReachesTheEntryPoints:
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         args = self._render_args(content)
         article = cli._article_for(args, required=True)
-        assert article.output_dir == content / "outputs" / "demo"
+        assert article.output_dir == content / "videos" / "demo" / "outputs"
 
     def test_cli_argument_beats_environment(self, tmp_path, valid_script, monkeypatch):
         make_repo(tmp_path)

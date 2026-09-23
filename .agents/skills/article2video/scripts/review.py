@@ -6,7 +6,7 @@
     uv run python .agents/skills/article2video/scripts/review.py \
         --page videos/never-fear-interviews/index.html \
         --storyboard videos/never-fear-interviews/storyboard.json \
-        --media outputs/never-fear-interviews/media/media.json
+        --media videos/never-fear-interviews/outputs/media/media.json
 
 产出一张联系表、逐幕抽帧与 report.json，并在终端给出需要人工评审的清单。
 它只负责把该看的摆出来，不代替人做审美判断。

@@ -6,7 +6,7 @@
   两个根不同树，页面只能靠 `/__a2v__/` 别名提供；
 * **专属页面**：页面与分镜同在内容根，靠静态根相对路径取。
 
-产物必须落在内容根的 `outputs/<slug>/` 下，溯源要能读回来（版本 3 + 别名页键），
+    产物必须落在内容根的 `videos/<slug>/outputs/` 下，溯源要能读回来（版本 3 + 别名页键），
 否则「文章与仓库解耦」只是搬了个目录，验收时仍得回仓库里找。
 
 需要 Chromium 与 ffmpeg，属于慢用例。
@@ -50,7 +50,7 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
         ]
     ) == 0
 
-    video = content_root / "outputs" / "demo" / "previews" / "silent.mp4"
+    video = content_root / "videos" / "demo" / "outputs" / "previews" / "silent.mp4"
     assert video.is_file() and video.stat().st_size > 0
     assert not (ROOT / "outputs" / "demo").exists(), "产物不得落回仓库"
 
@@ -58,8 +58,8 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     # version 4 起区分画面来源；默认路径由 Remotion composition 渲染。
     assert sidecar["version"] == 4
     assert sidecar["renderer"] == "remotion"
-    # 产物在 outputs/demo/previews/ 下：指回内容根要上三层
-    assert sidecar["workspace"] == "../../.."
+    # 产物在 videos/demo/outputs/previews/ 下：指回内容根要上四层
+    assert sidecar["workspace"] == "../../../.."
     assert sidecar["page"] == "index.ts"
     assert sidecar["storyboard"] == "videos/demo/storyboard.json"
     assert "__a2v_web__/src/compositions/A2VComposition.tsx" in sidecar["assets"]["files"]
@@ -78,4 +78,4 @@ def test_environment_variable_alone_is_enough(chromium_ready, content_root, monk
             "--no-probe",
         ]
     ) == 0
-    assert (content_root / "outputs" / "demo" / "previews" / "silent.mp4").is_file()
+    assert (content_root / "videos" / "demo" / "outputs" / "previews" / "silent.mp4").is_file()

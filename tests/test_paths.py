@@ -1,6 +1,6 @@
 """目录约定与输出路径推导的回归测试。
 
-这些用例守住多篇文章的隔离边界：产物必须落在各自文章的 outputs/<slug>/ 下，
+这些用例守住多篇文章的隔离边界：产物必须落在各自文章目录的 outputs/ 下，
 示例产物再独立一层，且推导结果与执行命令时的工作目录无关。
 """
 
@@ -81,26 +81,26 @@ class TestOutputLayout:
         found = paths.for_page(article / "index.html")
         assert found.slug == "demo"
         assert found.kind == "article"
-        assert found.output_dir == tmp_path / "outputs" / "demo"
-        assert found.media_dir == tmp_path / "outputs" / "demo" / "media"
-        assert found.media_manifest == tmp_path / "outputs" / "demo" / "media" / "media.json"
-        assert found.render_output(voiced=False) == tmp_path / "outputs" / "demo" / "silent.mp4"
-        assert found.render_output(voiced=True) == tmp_path / "outputs" / "demo" / "voiced.mp4"
+        assert found.output_dir == tmp_path / "videos" / "demo" / "outputs"
+        assert found.media_dir == tmp_path / "videos" / "demo" / "outputs" / "media"
+        assert found.media_manifest == tmp_path / "videos" / "demo" / "outputs" / "media" / "media.json"
+        assert found.render_output(voiced=False) == tmp_path / "videos" / "demo" / "outputs" / "silent.mp4"
+        assert found.render_output(voiced=True) == tmp_path / "videos" / "demo" / "outputs" / "voiced.mp4"
 
     def test_example_outputs_get_their_own_layer(self, tmp_path, valid_script):
         # 示例与实际文章可能同名，产物必须分开放，避免互相覆盖
         article = make_project(tmp_path, "examples", "demo", valid_script)
         found = paths.for_page(article / "index.html")
-        assert found.output_dir == tmp_path / "outputs" / "examples" / "demo"
+        assert found.output_dir == tmp_path / "videos" / "examples" / "demo" / "outputs"
 
     def test_preview_output_keeps_final_name(self, tmp_path, valid_script):
         article = make_project(tmp_path, "videos", "demo", valid_script)
         found = paths.for_page(article / "index.html")
         assert found.render_output(voiced=False, preview=True) == (
-            tmp_path / "outputs" / "demo" / "previews" / "silent.mp4"
+            tmp_path / "videos" / "demo" / "outputs" / "previews" / "silent.mp4"
         )
         assert found.render_output(voiced=True, preview=True) == (
-            tmp_path / "outputs" / "demo" / "previews" / "voiced.mp4"
+            tmp_path / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4"
         )
 
     def test_same_slug_isolated_between_articles(self, tmp_path, valid_script):
@@ -210,7 +210,7 @@ class TestVoicedRenderDefaults:
 
     def test_media_renders_to_voiced_name(self, voiced_project, monkeypatch):
         root, article = voiced_project
-        media_path = prep.prepare(article / "storyboard.json", root / "outputs" / "demo" / "media")
+        media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
             [
@@ -219,7 +219,7 @@ class TestVoicedRenderDefaults:
                 "--no-probe",
             ]
         ) == 0
-        assert captured[0]["output"] == root / "outputs" / "demo" / "voiced.mp4"
+        assert captured[0]["output"] == root / "videos" / "demo" / "outputs" / "voiced.mp4"
 
     def test_media_from_another_article_is_rejected(self, voiced_project, monkeypatch):
         root, article = voiced_project
@@ -229,7 +229,7 @@ class TestVoicedRenderDefaults:
         (other / "storyboard.json").write_text(
             (article / "storyboard.json").read_text(encoding="utf-8"), encoding="utf-8"
         )
-        media_path = prep.prepare(article / "storyboard.json", root / "outputs" / "demo" / "media")
+        media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
         _capture_render(monkeypatch)
         # 媒体清单属于 demo，却拿 other 的网页来渲染：必须拒绝，避免音画串文章
         assert cli.main_render(
@@ -283,7 +283,7 @@ class TestCrossArticleMediaGuard:
 
     def test_same_article_media_is_accepted(self, tmp_path, valid_script):
         article = make_project(tmp_path, "videos", "demo", valid_script)
-        media_dir = tmp_path / "outputs" / "demo" / "media"
+        media_dir = tmp_path / "videos" / "demo" / "outputs" / "media"
         media_dir.mkdir(parents=True)
         manifest = media_dir / "media.json"
         manifest.write_text("{}", encoding="utf-8")
@@ -292,13 +292,13 @@ class TestCrossArticleMediaGuard:
 
         args = cli._build_render_parser().parse_args(["--storyboard", str(article / "storyboard.json")])
         output = cli._resolve_render_output(args, model, media)
-        assert output == tmp_path / "outputs" / "demo" / "voiced.mp4"
+        assert output == tmp_path / "videos" / "demo" / "outputs" / "voiced.mp4"
 
     def test_storyboard_and_media_of_other_article_is_rejected(self, tmp_path, valid_script):
         # 网页、分镜、媒体三者都属于 other，但网页必须与媒体同源：
         # 这里 other 的一对看似自洽，却与 demo 的媒体目录不一致，应被拦下
         other = make_project(tmp_path, "videos", "other", valid_script)
-        media_dir = tmp_path / "outputs" / "demo" / "media"
+        media_dir = tmp_path / "videos" / "demo" / "outputs" / "media"
         media_dir.mkdir(parents=True)
         manifest = media_dir / "media.json"
         manifest.write_text("{}", encoding="utf-8")
@@ -352,7 +352,7 @@ class TestPrepareCommandDefaults:
 
         monkeypatch.setattr(prep, "prepare", fake_prepare)
         assert cli.main_prepare(["--storyboard", str(article / "storyboard.json")]) == 0
-        assert calls[0]["out_dir"] == tmp_path / "outputs" / "demo" / "media"
+        assert calls[0]["out_dir"] == tmp_path / "videos" / "demo" / "outputs" / "media"
 
     def test_foreign_outputs_media_dir_is_rejected(self, tmp_path, valid_script, monkeypatch):
         article = make_project(tmp_path, "videos", "demo", valid_script)

@@ -11,7 +11,7 @@
 | 根 | 是什么 | 怎么确定 |
 | --- | --- | --- |
 | **仓库根**（repo root） | 存放 skill 与共享画面工程（`web/`）的仓库 | 输入文件向上查找 `.agents/skills/article2video/SKILL.md`；文件在仓库之外时取**正在运行的脚本**所在仓库 |
-| **工作区根**（workspace root） | 存放 `videos\|examples/<slug>/` 与 `outputs/` 的目录 | 默认就是仓库根；设置了内容根时是内容根 |
+| **工作区根**（workspace root） | 存放 `videos\|examples/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
 
 内容根按下面的优先级确定，**不自动探测、不猜**：
 
@@ -19,8 +19,8 @@
 2. 环境变量 `A2V_CONTENT_ROOT=<dir>`；
 3. 都没有 → 工作区根 = 仓库根。
 
-内容根要与仓库同构：它下面直接放 `videos/<slug>/` 与 `outputs/<slug>/`（示例放
-`examples/<slug>/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
+内容根要与仓库同构：它下面直接放 `videos/<slug>/`，产物位于文章目录下的 `outputs/`（示例源放
+`examples/<slug>/`，产物位于 `videos/examples/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
 `web/` 的共享 composition 提供，契约页在渲染与体检时按仓库根自动定位并挂载。
 
 ## 目录结构
@@ -35,7 +35,7 @@
 │   ├── storyboard.json
 │   ├── scenes/                       # 代码场景模块（renderer.code），按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
-└── outputs/<slug>/                   # 成片与中间产物（不入库）
+└── videos/<slug>/outputs/            # 成片与中间产物（不入库）
     ├── silent.mp4                    # 最新无声成片
     ├── voiced.mp4                    # 最新配音成片
     ├── voiced.srt                    # 配音成片字幕
@@ -44,15 +44,15 @@
     └── qa/                           # 验收截图等，按需创建
 ```
 
-内容根在仓库之外时，`videos/<slug>/` 与 `outputs/<slug>/` 一起搬到内容根下，其余不变：
+内容根在仓库之外时，`videos/<slug>/` 与其下的 `outputs/` 一起搬到内容根下，其余不变：
 
 ```text
 <内容根>/
 ├── videos/<slug>/…
-└── outputs/<slug>/…
+└── videos/<slug>/outputs/…
 ```
 
-`examples/<slug>/` 与 `videos/<slug>/` 同构，但产物放入 `outputs/examples/<slug>/`，
+`examples/<slug>/` 与 `videos/<slug>/` 同构，但产物放入 `videos/examples/<slug>/outputs/`，
 多一层 `examples/`，避免示例与实际文章同名时互相覆盖。
 
 ## 画面来自哪里
@@ -89,16 +89,16 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | 文件在仓库外、又没有内容根 | 报错，点名 `--content-root` 与 `A2V_CONTENT_ROOT` |
 | 内容根里也没有 `videos|examples/<slug>/` | 报错，列出实际路径与它检查过的位置 |
 | 省略 `--out` 且没有 `--storyboard` | 报错：无法确定成片文件名 |
-| 媒体清单不在本篇文章的 `outputs/<slug>/media/` 内 | 报错，拒绝跨文章合成 |
+| 媒体清单不在本篇文章的 `videos/<slug>/outputs/media/` 内 | 报错，拒绝跨文章合成 |
 
 ## 默认输出
 
 | 命令 | 省略输出参数时的位置 |
 | --- | --- |
-| `prepare.py --storyboard <json>` | `<工作区根>/outputs/<slug>/media/media.json`（含音轨与缓存） |
-| `render.py --storyboard <json>` | `<工作区根>/outputs/<slug>/silent.mp4` |
-| `render.py … --media <media.json>` | `<工作区根>/outputs/<slug>/voiced.mp4` 与同名 `.srt` |
-| 上述渲染命令加 `--limit-frames N` | `<工作区根>/outputs/<slug>/previews/<同名成片>` |
+| `prepare.py --storyboard <json>` | `<工作区根>/videos/<slug>/outputs/media/media.json`（含音轨与缓存） |
+| `render.py --storyboard <json>` | `<工作区根>/videos/<slug>/outputs/silent.mp4` |
+| `render.py … --media <media.json>` | `<工作区根>/videos/<slug>/outputs/voiced.mp4` 与同名 `.srt` |
+| 上述渲染命令加 `--limit-frames N` | `<工作区根>/videos/<slug>/outputs/previews/<同名成片>` |
 
 文件名只由「是否提供 `--media`」决定：提供则 `voiced.mp4`，否则 `silent.mp4`。
 分镜写了 `narration` 但没有传 `--media` 时保持 `silent.mp4`，并输出警告，

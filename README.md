@@ -136,8 +136,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG）；
 - edge-tts 中文自动配音、逐句字幕烧录与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
-- 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `outputs/<slug>/`，
-  示例产物独立在 `outputs/examples/<slug>/`；`--out` 与 `--out-dir` 可省略，
+- 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `videos/<slug>/outputs/`，
+  示例产物独立在 `videos/examples/<slug>/outputs/`；`--out` 与 `--out-dir` 可省略，
   显式参数继续优先；
 - **文章与仓库解耦**：`videos/` 是作品内容，已在 `.gitignore` 中忽略（文章内容不入库）；
   文章与产物还可以整体放在仓库之外的**内容根**里，用 `--content-root` 或
@@ -208,7 +208,7 @@ uv run python .agents/skills/article2video/scripts/preview.py \
 uv run python .agents/skills/article2video/scripts/review.py \
   --storyboard examples/cause-chain/storyboard.json
 
-# 5. 渲染（省略 --out 时输出到 outputs/examples/cause-chain/silent.mp4）
+# 5. 渲染（省略 --out 时输出到 videos/examples/cause-chain/outputs/silent.mp4）
 uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard examples/cause-chain/storyboard.json
 
@@ -235,14 +235,14 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 
 uv run python .agents/skills/article2video/scripts/preview.py \
   --storyboard examples/cause-chain/storyboard.json \
-  --media outputs/examples/cause-chain/media/media.json
+  --media videos/examples/cause-chain/outputs/media/media.json
 
 uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard examples/cause-chain/storyboard.json \
-  --media outputs/examples/cause-chain/media/media.json
+  --media videos/examples/cause-chain/outputs/media/media.json
 ```
 
-省略 `--out-dir` 时媒体写入 `outputs/examples/cause-chain/media/`；省略 `--out` 时
+省略 `--out-dir` 时媒体写入 `videos/examples/cause-chain/outputs/media/`；省略 `--out` 时
 无声导出为 `silent.mp4`，带 `--media` 则导出 `voiced.mp4` 和同名 `voiced.srt`。
 加 `--limit-frames` 默认写入 `previews/`，不会覆盖正式成片。显式 `--out`、`--out-dir`
 始终优先。
@@ -272,8 +272,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
    受控原语确实表达不了时，按
    [代码场景](.agents/skills/article2video/references/code-scenes.md)
    为个别幕声明 `renderer.code` 并把模块放进作品的 `scenes/`；
-3. 依次执行上面的校验、预览、渲染命令；`outputs/<slug>/` 由脚本自动推导
-   （内容根在仓库外时即 `<内容根>/outputs/<slug>/`），无需手动创建。
+3. 依次执行上面的校验、预览、渲染命令；`videos/<slug>/outputs/` 由脚本自动推导
+   （内容根在仓库外时即 `<内容根>/videos/<slug>/outputs/`），无需手动创建。
 
 手上只有旧版（`data.figure.kind`）分镜时，先显式迁移：
 
@@ -289,9 +289,9 @@ uv run python .agents/skills/article2video/scripts/migrate_storyboard.py \
 
 | 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
 | --- | --- | --- | --- |
-| `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `outputs/never-fear-interviews/voiced.mp4` + `.srt` |
-| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 3572 帧（119.1 秒） | `outputs/compound-interest-leverage/voiced.mp4` + `.srt` |
-| `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `outputs/examples/why-effort-fails/` |
+| `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `videos/never-fear-interviews/outputs/voiced.mp4` + `.srt` |
+| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 3572 帧（119.1 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
+| `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `videos/examples/why-effort-fails/outputs/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
 三支文章均已随场景树架构更新为 v2 分镜；`examples/` 另有五支不同构图策略的
@@ -311,7 +311,7 @@ v2 示例可作为起点，其中
 
 ## 视觉评审
 
-`review.py` 一次跑完三层检查，产物落在 `outputs/<slug>/inspect/`：
+`review.py` 一次跑完三层检查，产物落在 `videos/<slug>/outputs/inspect/`：
 
 - **场景树契约探针**：逐幕多处采样，按 `data-a2v-node-id` 读出画面里每个节点的实际文本，
   比对分镜声明的内容引用是否真的画了出来。「节点挂上了、画面也出来了，只是没有一个字」
@@ -355,7 +355,7 @@ Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约�
 - **受控表达**：分镜不携带 HTML、CSS、JavaScript、第三方包引用、任意表达式或
   任意坐标脚本；画面只能由原语注册表登记的节点类型与属性组合，校验器与
   契约探针双重把守；
-- **产物归属**：一篇文章一个目录，产物只写进它自己的工作区根下 `outputs/<slug>/`；
+- **产物归属**：一篇文章一个目录，产物只写进它自己的 `videos/<slug>/outputs/`；
   推导不出归属时脚本报错并要求显式指定路径或内容根，不猜测；
 - **画质取舍**：渲染不产生中间帧文件，成片画质由 `--crf` 控制（默认 18）；
   画面避免大面积 `filter: blur()`，光晕用 `radial-gradient` 或 `box-shadow` 实现。
