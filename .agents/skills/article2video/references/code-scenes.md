@@ -153,3 +153,14 @@ Lucide 纪律：静态 SVG 组件，颜色/透明度由帧号驱动。
 - **评审**：代码场景与场景树走同一契约页、同一 C/K/M 量测；加 `--check-determinism`
   对每幕收尾帧做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB），失败计为错误；
 - **模块缺失或导出错误**：校验在启动浏览器或打包前失败并指出场景字段与目标模块。
+
+## 对象动画工具
+
+`@a2v/scene` 导出四类纯函数：
+
+- `beatActionProgress(plan, id, localFrame, finishAt=1)`：真实 beat 区间的动作进度；finishAt 为 (0,1]，区间前 0、完成后 1，缺失 beat 报错。
+- `compilePath(points)`：固定 SVG 路径的预采样点数组，返回 `(progress, phase=0)=>{x,y}`。按弧长二分定位；phase 为 0 时钳制端点，非零相位循环。曲线须预采样为折线，精度由点密度决定。
+- `compileReservoir(capacity, initial, intervals)`：intervals 为 `{duration,inflow,outflow}` 分段常流量，返回时间查询函数及 level/overflow/drained/input；outflow 为最大处理能力，空箱不凭空出流。预计算积分，查询 O(log n)，保证容量与守恒。
+- `decomposeObjects(objects, progress, reverse=false)`：固定 `{id,from:{x,y},to:{x,y}}` 数组插值；reverse 用于复原，拒绝重复 ID。
+
+编译工具在模块初始化或 useMemo 中执行，不逐帧重建路径和积分。内容参数放分镜 data；这些工具不创建时钟、探针或场景树原语。完整示例见 [缓冲区](../../../../examples/buffer-smoothing/storyboard.json)。

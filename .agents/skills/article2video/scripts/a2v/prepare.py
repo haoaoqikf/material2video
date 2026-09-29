@@ -6,6 +6,8 @@ import hashlib
 import json
 import logging
 import math
+import os
+import shutil
 import tempfile
 import time
 import uuid
@@ -19,6 +21,7 @@ from . import beats as beat_mod
 from .errors import A2VError
 from .media import MANIFEST_VERSION, fingerprint
 from .subtitles import cues_from_words, segment_windows, srt
+from . import sound
 
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
@@ -95,6 +98,28 @@ def _resolved_beats(item: dict, words: list[dict], duration: float, fps: int, fr
     return timeline.to_json()
 
 
+def _segmented_audio(item: dict, voice: str, rate: str, cache: Path, force: bool, work: Path):
+    parts, cues, words, windows = [], [], [], []
+    cursor, hits = 0, 0
+    for segment in item["narrationSegments"]:
+        settings = segment.get("speech", {})
+        before = settings.get("pauseBeforeMs", 0) * audio.SAMPLE_RATE // 1000
+        after = settings.get("pauseAfterMs", 0) * audio.SAMPLE_RATE // 1000
+        start = cursor / audio.SAMPLE_RATE
+        parts.append((None, before)); cursor += before
+        path, local_cues, local_words, duration, hit = _scene_audio(segment["text"], voice, settings.get("rate", rate), cache, force)
+        hits += int(hit); offset = cursor / audio.SAMPLE_RATE
+        samples = round(duration * audio.SAMPLE_RATE)
+        parts.extend([(path, samples), (None, after)])
+        cues.extend({**cue, "start": cue["start"] + offset, "end": cue["end"] + offset} for cue in local_cues)
+        words.extend({**word, "start": word["start"] + offset, "end": word["end"] + offset} for word in local_words)
+        cursor += samples + after
+        windows.append((start, cursor / audio.SAMPLE_RATE))
+    target = work / (item["id"] + ".wav")
+    audio.concatenate_samples(parts, target)
+    return target, cues, words, cursor / audio.SAMPLE_RATE, hits, windows
+
+
 def prepare(storyboard_path: str | Path, out_dir: str | Path,
             voice: str = "zh-CN-XiaoxiaoNeural", rate: str = "+0%", force: bool = False) -> Path:
     started = time.monotonic()
@@ -103,8 +128,17 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
     report = sb.validate(source)
     if not report.ok:
         raise A2VError("\n".join(i.format() for i in report.errors))
+    if not sound.valid_rate(rate): raise A2VError("语速必须是 −50% 至 +50% 的有符号百分比")
+    assets = sound.sound_assets(source, source_path)
     cache = root / "cache"
     cache.mkdir(parents=True, exist_ok=True)
+    # 段级拼接文件必须存活到全片合成；异常清理和旧清单保护由外层临时目录承担。
+    with tempfile.TemporaryDirectory(dir=root) as segmented_temp:
+        return _prepare_validated(source_path, root, source, voice, rate, force, assets, Path(segmented_temp), started)
+
+
+def _prepare_validated(source_path, root, source, voice, rate, force, assets, segment_work, started):
+    cache = root / "cache"
     scenes, parts, cues = [], [], []
     cursor, hits = 0, 0
     for item in source["scenes"]:
@@ -112,30 +146,62 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
         frames, path, local_cues, words, duration = item["durationInFrames"], None, [], [], 0.0
         if text:
             logger.info("准备场景配音 %s", item["id"])
-            path, local_cues, words, duration, hit = _scene_audio(text, voice, rate, cache, force)
-            hits += int(hit)
-            frames = max(frames, math.ceil((duration + 0.3) * source["fps"]))
+            if any("speech" in segment for segment in item.get("narrationSegments", [])):
+                path, local_cues, words, duration, hit, windows = _segmented_audio(item, voice, rate, cache, force, segment_work)
+                hits += hit
+                frames = max(frames, math.ceil(duration * source["fps"]) + beat_mod.STABLE_READING_FRAMES)
+                resolved = beat_mod.resolve_from_windows(item, windows, source["fps"], frames).to_json()
+            else:
+                path, local_cues, words, duration, hit = _scene_audio(text, voice, rate, cache, force)
+                hits += int(hit)
+                frames = max(frames, math.ceil((duration + 0.3) * source["fps"]))
+                resolved = _resolved_beats(item, words, duration, source["fps"], frames)
+        else:
+            resolved = []
         offset = cursor / source["fps"]
         cues.extend({"start": c["start"] + offset, "end": c["end"] + offset, "text": c["text"]} for c in local_cues)
         scenes.append({"id": item["id"], "durationInFrames": frames,
                        "audio": path.relative_to(root).as_posix() if path else None,
-                       "resolvedBeats": _resolved_beats(item, words, duration, source["fps"], frames)})
+                       "resolvedBeats": resolved})
         parts.append((path, frames))
         cursor += frames
     # 每次准备写入新资源名，只有清单切换时新版本才对读者可见。
     generation = uuid.uuid4().hex
     with tempfile.TemporaryDirectory(dir=root) as temp:
         work = Path(temp)
-        audio.concatenate(parts, source["fps"], work / "audio.wav")
+        audio.concatenate(parts, source["fps"], work / "narration.wav")
+        track = source.get("soundtrack", {})
+        music = track.get("music")
+        effects = []; scene_cursor = 0
+        for scene in scenes:
+            for effect in track.get("effects", []):
+                if effect["sceneId"] != scene["id"]: continue
+                beat = next(b for b in scene["resolvedBeats"] if b["id"] == effect["beatId"])
+                start = beat["startFrame"] / source["fps"] + effect.get("offsetMs", 0) / 1000
+                if not 0 <= start < scene["durationInFrames"] / source["fps"]:
+                    raise A2VError(f"音效起点越出场景 {scene['id']}")
+                effects.append((assets[effect["sourceRef"]], scene_cursor / source["fps"] + start, effect.get("gainDb", -12)))
+            scene_cursor += scene["durationInFrames"]
+        audio.mix(work / "narration.wav", work / "audio.wav", cursor / source["fps"], cues,
+                  (assets[music["sourceRef"]], music) if music else None, effects, work)
         (work / "subtitles.srt").write_text(srt(cues), encoding="utf-8")
         manifest = {"version": MANIFEST_VERSION, "source": source, "sourceFingerprint": fingerprint(source),
                     "voice": voice, "rate": rate, "scenes": scenes, "cues": cues,
-                    "audio": f"{generation}.wav", "subtitles": f"{generation}.srt"}
+                    "audio": f"{generation}.wav", "narration": f"{generation}.narration.wav", "subtitles": f"{generation}.srt",
+                    "soundFingerprint": fingerprint(sound.configuration(source)),
+                    "soundAssets": {ref: {"path": os.path.relpath(path, root).replace('\\', '/'), "sha256": sound.asset_digest(path)} for ref, path in assets.items()}}
+        # 按段生成的音频存为版本化资源，不能留下已删除的临时路径。
+        for scene, (path, _) in zip(scenes, parts):
+            if path and path.parent == segment_work:
+                filename = f"{generation}.{scene['id']}.wav"
+                shutil.copyfile(path, root / filename)
+                scene["audio"] = filename
         (work / "media.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         (work / "audio.wav").replace(root / manifest["audio"])
+        (work / "narration.wav").replace(root / manifest["narration"])
         (work / "subtitles.srt").replace(root / manifest["subtitles"])
         (work / "media.json").replace(root / "media.json")
-    for name in (manifest["audio"], manifest["subtitles"], "media.json"):
+    for name in (manifest["audio"], manifest["narration"], manifest["subtitles"], "media.json"):
         security.grant_inherited_access(root / name)
     logger.info("配音准备完成：%d 幕，缓存命中 %d，%.2fs，耗时 %.1fs", len(scenes), hits,
                 cursor / source["fps"], time.monotonic() - started)

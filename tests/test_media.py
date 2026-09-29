@@ -73,6 +73,16 @@ def test_extension_silence_and_fingerprint(prepared):
     assert [c["text"] for c in media.data["cues"]] == ["你好，", "世界。"]
 
 
+def test_version_two_without_sound_settings_remains_readable(prepared):
+    source, path = prepared
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["version"] = 2
+    for key in ("soundFingerprint", "soundAssets", "narration"):
+        data.pop(key)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert load_media(path, source).storyboard.total_frames == 129
+
+
 def test_cache_reuse_text_voice_rate_and_force(prepared, speech):
     source, path = prepared
     prep.prepare(source, path.parent)

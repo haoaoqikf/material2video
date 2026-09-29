@@ -247,6 +247,10 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 它一次跑完三件事，产物在 `videos/<slug>/outputs/inspect/`：
 
+> 联系表按抽帧的时间轴命名：不带 `--media` 写 `contact-sheet.png`（分镜声明时间轴，
+> 也是 `production.json` 登记的静态材料），带 `--media` 写 `contact-sheet-media.png`
+> （配音派生时间轴）。两者是同一支片子在两条时间轴上的取帧，不要互相覆盖。
+
 1. **组件契约探针**（最有力）：逐幕在三处采样，读出当前画面里每个元素的实际文本，
    再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
    这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省。
@@ -365,6 +369,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `相邻两幕均为文字幕` | 文字幕之间必须隔开论证型图形场景，调整幕序或改造其中一幕 |
 | `非文字视觉模式只有 N 种` | 模式过于单一：八幕及以上至少 3 种、少于八幕至少 2 种非文字模式（`metaphor`/`process`/`comparison`/`cycle`/`chart`/`image`） |
 | 严格校验要求补齐视觉论证字段 | 旧分镜缺 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`：逐幕补齐；脚本不会根据场景树自动推断语义 |
+| `材料已缺失或摘要已变化`（keyframes） | 静态联系表被按另一条时间轴重画过：`production.py keyframes` 与不带 `--media` 的体检写 `contact-sheet.png`（分镜声明时间轴，登记的就是它），带 `--media` 的体检写 `contact-sheet-media.png`；重新执行 `production.py keyframes` 恢复登记材料 |
 | V6 显示「待评审」或 `publishable=否` | `videos/<slug>/outputs/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
 | A6 显示「待评审」或 `publishable=否` | 同一份 `review.md` 缺「动效服务」评分，或 `## A6 候选裁决` 没逐条裁决 `animationReview.a6.candidates` 列出的装饰配方：按[评审量表](references/visual-review-rubric.md)填写 |
 | A 系列报「没有任何 beat 改变对象状态或关系」 | 这一幕的 beat 全是 `establish`/`highlight`：换成 `connect`/`accumulate`/`transform` 这类真正改变状态或关系的动作，或承认它是文字幕并改 `visualIntent.mode` |
@@ -383,7 +388,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 ## 当前边界
 
 已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、
-分段口播与语义节拍（`narrationSegments` + `beats`，媒体清单 version 2 携带逐幕
+分段口播与语义节拍（`narrationSegments` + `beats`，媒体清单 version 3 携带逐幕
 `resolvedBeats`，画面 / 字幕 / 配音共用同一批边界）、自动配音与逐句字幕、
 React composition 画面（比喻组件 + 数据图表 + 关系流程图 + 五个中层原语
 `flow`/`cycle`/`timeline`/`gauge`/`pictogram`，组件注册表单源）、
@@ -401,7 +406,7 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 - **按内容自动选预设**：预设必须由分镜显式声明；
 - **自动拆场景**：引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，
   但把一幕拆成两幕仍由人（或上游 AI）决定，脚本不代劳；
-- **背景音乐**：尚未实现；目前仅支持配音音轨；
+- **自动选曲**：尚未实现；本地背景音乐、节拍音效及混音已支持，见媒体契约；
 - **分镜生成器**：文章到分镜已可按 [文章生成分镜](references/article-to-storyboard.md) 的规范生成，
   但由 AI 工具执行，没有内置的生成器程序、模型调用或批量生成；
 - **内容根的自动探测**：内容根只能由 `--content-root` 或 `A2V_CONTENT_ROOT` 指定，
@@ -421,3 +426,7 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向
 - [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎、K1–K10 观感闸门与静默失效清单
+
+## 精品科普 P0 制作
+
+先按 [文章生成分镜](references/article-to-storyboard.md) 重写口播，再制作对象变化。`script-design.md` 只记录段落目的与场景引用，口播仅存分镜。全片 `production.json` 增加五项口播内容评审，各至少 4/5，必须引用实际有声预演材料。声音参数与混音见 [媒体契约](references/media-contract.md)，对象动画共享工具见 [代码场景](references/code-scenes.md)。使用 [缓冲区示例](../../../examples/buffer-smoothing/storyboard.json) 作为六幕机制解释参考，不机械复用它的幕序或构图。

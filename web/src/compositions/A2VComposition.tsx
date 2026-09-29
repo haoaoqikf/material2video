@@ -32,6 +32,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
   const activeLocalFrame = Math.min(Math.max(frame - starts[activeIndex]!, 0), storyboard.scenes[activeIndex]!.durationInFrames - 1);
   const activeContinuity = continuityFor(storyboard, activeIndex);
   const showOutgoing = isContinuityActive(activeContinuity, activeLocalFrame);
+  const subtitle = storyboard.subtitleCues?.find((cue) => cue.start <= frame / storyboard.fps && frame / storyboard.fps < cue.end);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -42,7 +43,7 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
     root.style.setProperty('--a2v-height', `${storyboard.height}px`);
   }, [theme, preset, stylePack, storyboard.width, storyboard.height]);
 
-  return <AbsoluteFill><div className="a2v-stage" data-a2v-stage="">
+  return <AbsoluteFill><div className={`a2v-stage${storyboard.subtitleCues ? ' a2v-with-subtitles' : ''}`} data-a2v-stage="">
     <div className="a2v-bg-glow stage-bg" aria-hidden="true" />
     <div className="a2v-bg-grid stage-bg" aria-hidden="true" />
     <div className="a2v-bg-grain stage-bg" aria-hidden="true" />
@@ -100,5 +101,6 @@ export const A2VComposition: React.FC<A2VProps> = (storyboard) => {
         {preset ? <div className="a2v-scene-index"><span>{scene.visual?.kicker ?? ''}</span></div> : null}
       </section>;
     })}
+    {subtitle ? <div className="a2v-subtitle" data-a2v-subtitle="">{subtitle.text}</div> : null}
   </div></AbsoluteFill>;
 };

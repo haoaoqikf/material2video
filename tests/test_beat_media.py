@@ -173,7 +173,7 @@ def test_manifest_records_version_two(tmp_path, speech):
     speech()
     _, manifest = prepare(tmp_path, beat_script())
     data = json.loads(Path(manifest).read_text(encoding="utf-8"))
-    assert data["version"] == media_mod.MANIFEST_VERSION == 2
+    assert data["version"] == media_mod.MANIFEST_VERSION == 3
     assert all("resolvedBeats" in scene for scene in data["scenes"])
 
 

@@ -31,11 +31,11 @@ def _ready_record() -> dict:
 
 def _passing_review(full: bool = False) -> dict:
     reviews = {}
-    for kind in ("static", "dynamic"):
+    for kind in (("static", "dynamic", "content") if full else ("static", "dynamic")):
         material_name = "keyframes" if kind == "static" else ("rehearsal" if full else "samples")
         reviews[kind] = {
             "status": "pass",
-            "dimensions": {name: {"status": "pass", "evidence": "联系表/有声样片中可观察到对应结果"}
+            "dimensions": {name: {"status": "pass", "evidence": "联系表/有声样片中可观察到对应结果", **({"score": 4} if kind == "content" else {})}
                            for name in production.REVIEW_DIMENSIONS[kind]},
             "evidence": "逐幕核对，相关画面与口播一致",
             "assessment": {"reviewer": "ai", "model": "Codex current-session", "session": "test-session",
@@ -207,6 +207,26 @@ def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:
     assert rows[0]["stage"] == "导演规划"
     assert rows[0]["status"] == "pending"
     assert "AI 助手" in rows[0]["nextCommand"]
+
+
+def test_all_stages_pass_accepts_both_success_spellings() -> None:
+    """全片评审行的 `pass` 与关键幕/正式渲染行的 `passed` 都算通过。
+
+    两种写法同时出现在同一份状态里：只认其中一种会让「所有评审都填好了」
+    的命令仍然返回失败，调用方据此以为还有阻塞项。
+    """
+    storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
+    current = {"storyboard": "s", "assets": "a", "media": "m"}
+    rows = production.status_rows(_ready_record(), storyboard, current)
+    assert {row["status"] for row in rows} == {"passed", "pass", "not-required"}
+    assert production.all_stages_pass(rows) is True
+
+    blocked = [dict(row) for row in rows]
+    blocked[-1]["status"] = "blocked"
+    assert production.all_stages_pass(blocked) is False
+    stale = [dict(row) for row in rows]
+    stale[0]["status"] = "stale"
+    assert production.all_stages_pass(stale) is False
 
 
 def test_completed_review_requires_ai_source_and_visual_material_references() -> None:

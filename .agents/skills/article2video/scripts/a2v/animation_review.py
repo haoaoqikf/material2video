@@ -38,7 +38,7 @@ from . import visual_narrative as vn
 from .errors import A2VError
 
 #: 规则版本：口径变化时递增，测试据此固定行为。
-RULE_VERSION = 1
+RULE_VERSION = 2
 
 #: 结尾稳定阅读帧数：与无声解析、A5/A8 共用同一常量，避免两处口径漂移。
 STABLE_READING_FRAMES = beat_mod.STABLE_READING_FRAMES
@@ -232,6 +232,12 @@ def _a4_scene(
         ]
     issues: list[str] = []
     for expected, actual in zip(from_cues.beats, timeline.beats):
+        if any("speech" in item for item in _segments(scene)):
+            # 段级合成的 beat 包含前后停顿及 WAV 中的边界静音；字幕只覆盖讲话。
+            # 仍检查文本、顺序和讲话区间包含关系，不能用旧的边界相等判据。
+            if expected.start_frame < actual.start_frame - SYNC_TOLERANCE_FRAMES or expected.end_frame > actual.end_frame + SYNC_TOLERANCE_FRAMES:
+                issues.append(f"{scene_id}: beat {actual.id} 的字幕越出含停顿的画面区间")
+            continue
         if (
             abs(expected.start_frame - actual.start_frame) > SYNC_TOLERANCE_FRAMES
             or abs(expected.end_frame - actual.end_frame) > SYNC_TOLERANCE_FRAMES
@@ -530,7 +536,7 @@ def review_gates(analysis: dict[str, Any]) -> dict[str, Any]:
         a4 = _gate(
             "A4",
             "fail" if a4_issues else "pass",
-            detail="；".join(a4_issues) or f"{a4_checked} 幕的字幕边界与画面节拍一致（容差 {SYNC_TOLERANCE_FRAMES} 帧）",
+            detail="；".join(a4_issues) or f"{a4_checked} 幕字幕讲话区间与对应节拍匹配（段级含停顿；旧路径边界容差 {SYNC_TOLERANCE_FRAMES} 帧）",
             issues=a4_issues,
         )
 
@@ -672,7 +678,9 @@ def review_a6(path: str | Path, analysis: dict[str, Any]) -> dict[str, Any]:
     score: int | None = None
     resolved: set[str] = set()
     if text:
-        row = re.search(r"^\s*\|\s*(?:动效服务|装饰动画)\s*\|\s*([0-5])\s*\|", text, re.MULTILINE)
+        # 「装饰动画」「动效服务理解」都被接受：前者是量表里的别名，
+        # 后者是早期模板用的标签，旧记录不该因为措辞不同就退回「待评审」。
+        row = re.search(r"^\s*\|\s*(?:动效服务|动效服务理解|装饰动画)\s*\|\s*([0-5])\s*\|", text, re.MULTILINE)
         if row:
             score = int(row.group(1))
         else:

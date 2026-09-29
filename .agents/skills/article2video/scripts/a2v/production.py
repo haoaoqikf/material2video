@@ -16,6 +16,7 @@ RECORD_VERSION = 1
 RECORD_NAME = "production.json"
 STATUSES = {"pass", "fail", "pending"}
 REVIEW_DIMENSIONS = {
+    "content": ("opening_question", "explanation_chain", "spoken_naturalness", "closing_response", "boundary_accuracy"),
     "static": ("subject_scale", "composition_repetition", "information_density", "visual_motif", "climax_weight"),
     "dynamic": ("motion_meaning", "narration_sync", "rhythm", "result_hold"),
 }
@@ -57,6 +58,7 @@ def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None]) ->
         "reviews": {
             "keyScenes": {},
             "full": {
+                "content": {"status": "pending", "dimensions": _pending_dimensions("content"), "evidence": "", "assessment": None},
                 "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": "", "assessment": None},
                 "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": "", "assessment": None},
             },
@@ -81,7 +83,7 @@ def initialize_template(storyboard: dict[str, Any], fingerprints: dict[str, str 
 
 
 def _pending_dimensions(kind: str) -> dict[str, dict[str, str]]:
-    return {name: {"status": "pending", "evidence": ""} for name in REVIEW_DIMENSIONS[kind]}
+    return {name: {"status": "pending", "evidence": "", **({"score": None} if kind == "content" else {})} for name in REVIEW_DIMENSIONS[kind]}
 
 
 def key_scene_ranges(scenes: Iterable[Any], roles: dict[str, str], fps: int, total_frames: int) -> list[tuple[int, int, list[str], list[str]]]:
@@ -228,7 +230,8 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
 
 
 def _validate_review(review: dict[str, Any], where: str, fail: Any) -> None:
-    for kind in ("static", "dynamic"):
+    kinds = ("static", "dynamic", "content") if where == "reviews.full" and "content" in review else ("static", "dynamic")
+    for kind in kinds:
         result = review.get(kind)
         if not isinstance(result, dict):
             fail(f"{where}.{kind}", "缺少评审结论")
@@ -247,6 +250,12 @@ def _validate_review(review: dict[str, Any], where: str, fail: Any) -> None:
                 fail(f"{where}.{kind}.dimensions.{name}.evidence", "必须是字符串")
             if item["status"] != "pending" and not item["evidence"].strip():
                 fail(f"{where}.{kind}.dimensions.{name}.evidence", "通过或失败结论必须说明依据")
+            if kind == "content" and item["status"] != "pending":
+                score = item.get("score")
+                if type(score) is not int or not 1 <= score <= 5:
+                    fail(f"{where}.{kind}.dimensions.{name}.score", "完成评审必须填写 1–5 整数评分")
+                if (score >= 4) != (item["status"] == "pass"):
+                    fail(f"{where}.{kind}.dimensions.{name}.score", "至少 4/5 才能通过")
         expected = "pass" if all(dimensions[name]["status"] == "pass" for name in REVIEW_DIMENSIONS[kind]) else (
             "fail" if any(dimensions[name]["status"] == "fail" for name in REVIEW_DIMENSIONS[kind]) else "pending")
         if result["status"] != expected:
@@ -268,7 +277,7 @@ def _validate_review(review: dict[str, Any], where: str, fail: Any) -> None:
 
 
 def _assessment_has_required_materials(assessment: dict[str, Any], where: str, kind: str, fail: Any) -> bool:
-    required = {"static": {"keyframes"}, "dynamic": {"rehearsal" if where == "reviews.full" else "samples"}}[kind]
+    required = {"static": {"keyframes"}, "dynamic": {"rehearsal" if where == "reviews.full" else "samples"}, "content": {"rehearsal"}}[kind]
     used = assessment.get("materials", {})
     for material in required:
         digest = used.get(material)
@@ -306,7 +315,7 @@ def _material_issue(review: dict[str, Any], kind: str, materials: dict[str, Any]
         return f"{where}缺少 AI 评审来源；请检查当前画面并补充 assessment"
     used = assessment.get("materials", {})
     required = {"keyframes"} if kind == "static" else {"samples"}
-    if where == "全片有声动态评审":
+    if where in {"全片有声动态评审", "全片口播内容评审"}:
         required = {"rehearsal"}
     for name in required:
         entry = materials.get(name)
@@ -393,6 +402,14 @@ def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | 
     if changed:
         return f"制作评审已过期（输入变化：{'、'.join(changed)}）；请更新指纹、重新生成材料并复评"
     material_root = _material_root(record, record_file)
+    content = record["reviews"]["full"].get("content")
+    if not isinstance(content, dict) or content.get("status") != "pass":
+        return "全片口播内容评审缺失或未通过（五项均需至少 4/5）"
+    if not review_current(record, current, "content"):
+        return "全片口播内容评审已过期"
+    issue = _material_issue(content, "content", record.get("materials", {}), material_root, current, "全片口播内容评审")
+    if issue:
+        return issue
     roles = set(record["direction"]["keyScenes"].values())
     for scene_id in roles:
         review = record["reviews"]["keyScenes"][scene_id]
@@ -485,7 +502,7 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
                     break
         next_command = "已通过" if state == "passed" else "production.py samples --storyboard <分镜> --media <媒体清单>"
         rows.append({"stage": f"关键幕:{role}", "status": state, "detail": detail, "nextCommand": next_command})
-    for kind, label in (("static", "全片静态评审"), ("dynamic", "全片有声动态评审")):
+    for kind, label in (("content", "全片口播内容评审"), ("static", "全片静态评审"), ("dynamic", "全片有声动态评审")):
         review = record.get("reviews", {}).get("full", {}).get(kind, {})
         state = review.get("status", "pending")
         if state == "pass" and not review_current(record, current, kind):
@@ -493,12 +510,12 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
         detail = str(review.get("evidence", ""))
         if state == "pass":
             problem = _material_issue(review, kind, record.get("materials", {}), _material_root(record, record_file),
-                                      current, "全片有声动态评审" if kind == "dynamic" else "全片静态评审")
+                                      current, label)
             if problem:
                 state, detail = "stale", problem
         next_command = "已通过" if state == "pass" else (
             "production.py rehearsal --storyboard <分镜> --media <媒体清单>"
-            if kind == "dynamic" else "production.py keyframes --storyboard <分镜>")
+            if kind in {"dynamic", "content"} else "production.py keyframes --storyboard <分镜>")
         rows.append({"stage": label, "status": state, "detail": detail, "nextCommand": next_command})
     issues = record.get("rework", [])
     open_items = [item["id"] for item in issues if item.get("severity") == "required" and item.get("status") != "resolved"]
@@ -508,6 +525,17 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
     rows.append({"stage": "正式渲染", "status": "passed" if problem is None else "blocked", "detail": problem or "评审记录有效",
                  "nextCommand": "render.py --storyboard <分镜> --media <媒体清单>" if problem is None else "完成上述阻塞项后复查状态"})
     return rows
+
+
+#: 阶段状态里表示「这一步已经通过」的取值。关键幕与正式渲染行用 `passed`，
+#: 全片评审行直接沿用记录里的 `pass`（记录字段就是 pass/fail/pending）；
+#: 两者都是成功，退出码不能只认其中一个——否则填完所有评审的命令仍然报失败。
+SUCCESS_STATES = frozenset({"passed", "pass", "not-required"})
+
+
+def all_stages_pass(rows: list[dict[str, str]]) -> bool:
+    """所有阶段都通过时才算成功；`pending`/`stale`/`blocked` 一律算未完成。"""
+    return all(row.get("status") in SUCCESS_STATES for row in rows)
 
 
 def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current: dict[str, str | None],
@@ -543,4 +571,11 @@ def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current:
             return issue
     if any(item["severity"] == "required" and item["status"] != "resolved" for item in record["rework"]):
         return "存在未解决的必改项"
+    content = record["reviews"]["full"].get("content")
+    if not isinstance(content, dict) or content.get("status") != "pass":
+        return "全片口播内容评审缺失或未通过（五项均需至少 4/5）"
+    if not review_current(record, current, "content"):
+        return "全片口播内容评审已过期"
+    issue = _material_issue(content, "content", record.get("materials", {}), material_root, current, "全片口播内容评审")
+    if issue: return issue
     return None

@@ -73,7 +73,7 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
         material = "keyframes" if kind == "static" else ("rehearsal" if full else "samples")
         return {
             "status": "pass",
-            "dimensions": {name: {"status": "pass", "evidence": "渲染测试夹具"}
+            "dimensions": {name: {"status": "pass", "evidence": "渲染测试夹具", **({"score": 4} if kind == "content" else {})}
                            for name in production.REVIEW_DIMENSIONS[kind]},
             "evidence": "渲染测试夹具",
             "assessment": {"reviewer": "ai", "model": "test", "session": "test-session",
@@ -84,7 +84,7 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
         scene_id: {"static": passing("static"), "dynamic": passing("dynamic")}
         for scene_id in set(record["direction"]["keyScenes"].values())
     }
-    record["reviews"]["full"] = {kind: passing(kind, full=True) for kind in ("static", "dynamic")}
+    record["reviews"]["full"] = {kind: passing(kind, full=True) for kind in ("static", "dynamic", "content")}
     target = production.record_path(article)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

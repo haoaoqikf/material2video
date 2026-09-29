@@ -789,8 +789,14 @@ def run_inspect(
     report_dir: Path,
     *,
     preset: str = "",
+    sheet_name: str = "contact-sheet.png",
 ) -> tuple[Report, dict[str, Any]]:
-    """在已打开的页面上跑完契约探针与帧量测，并落盘。"""
+    """在已打开的页面上跑完契约探针与帧量测，并落盘。
+
+    ``sheet_name`` 决定联系表的文件名：**按分镜声明时间轴**抽帧时用默认的
+    ``contact-sheet.png``（它是 production.json 登记的静态材料），按配音派生
+    时间轴抽帧时用另一个名字，免得覆盖同一份材料、让登记摘要莫名失效。
+    """
     report = Report()
     frames_dir.mkdir(parents=True, exist_ok=True)
     by_id = {str(scene.get("id")): scene for scene in scenes}
@@ -892,7 +898,7 @@ def run_inspect(
             }
         )
 
-    contact_sheet(shots, report_dir / "contact-sheet.png")
+    contact_sheet(shots, report_dir / sheet_name)
     # 动效量测放在抽帧之后：它要逐帧把页面再走一遍，量的是入场轨迹，
     # 与上面「抽若干帧看画面」互补——抽帧看不出「入场在幕内来不及落地」。
     motion_result = motion.audit(page, scenes)

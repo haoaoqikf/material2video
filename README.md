@@ -22,6 +22,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 ## 当前状态
 
+已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。六幕标杆见 [缓冲区示例](examples/buffer-smoothing/storyboard.json)，其关键幕/全片/口播内容评审与 V6、A6、定制动画动态评审结论见[标杆验收记录](examples/buffer-smoothing/review.md)。
+
 仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`，已完成的变更连同其提案、设计与逐轮实施记录留档在 `openspec/changes/archive/`。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
 
 已完成**场景树架构切换**（v2）与导演契约升级（v3）：画面由每幕显式声明的**场景树**
@@ -46,7 +48,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   `transfer` / `accumulate` / `deplete` / `transform` / `compare` / `highlight` /
   `loop` / `break` / `restore`），其中 `establish` 与 `highlight` 是**中性**动作——
   只让对象出现或更醒目，不算一次状态或关系变化。有声路径由真实 WordBoundary 解析出
-  逐幕 `resolvedBeats`（媒体清单 version 2），字幕、配音与画面因此共用同一批边界；
+  逐幕 `resolvedBeats`（媒体清单 version 3），字幕、配音与画面因此共用同一批边界；
   无声预览按声明时长等比例解析，并固定留出 12 帧稳定阅读时间。v3 有口播时必须使用
   `narrationSegments + beats`，字符串 `narration` 一律拒绝；
 - **视觉论证与全片预算（严格校验）**：`a2v/visual_narrative.py` 把逐幕声明与场景树结构
@@ -179,7 +181,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 尚未实现、请勿当作已有能力使用：**分镜生成器程序**（生成由 AI 工具按
 [规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
-模型调用或批量生成）、**背景音乐**、**内容根的自动探测**（只能显式指定，脚本不去猜）、
+模型调用或批量生成）、**自动选曲**、**内容根的自动探测**（只能显式指定，脚本不去猜）、
 **平台发布**、批量渲染与成片历史版本。
 
 设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
@@ -260,8 +262,8 @@ uv run python .agents/skills/article2video/scripts/render.py \
 
 默认音色 `zh-CN-XiaoxiaoNeural`、语速 `+0%`；可用 `--voice`、`--rate=-10%` 调整，
 `--force` 强制重新合成。首次合成需要联网，无需 API key；已有缓存可离线重新准备与导出。
-输出 MP4 含 AAC 配音并生成同名 SRT；字幕由共享页面层绘制（作品网页按媒体清单的
-`cues` 叠字幕），Remotion 成片路径**不把字幕烧录进画面**。背景音乐尚未实现。
+输出 MP4 含 AAC 混音并生成同名 SRT；共享 composition 按媒体清单派生的
+`subtitleCues` 绘制字幕，预览和 Remotion 成片使用相同字幕与安全区。支持本地背景音乐及节拍音效。
 
 原分镜不被覆盖；原场景时长作为最短时长，配音较长时自动延长并留 300ms 收尾。
 声明了分段口播的幕还会在媒体清单里得到逐幕 `resolvedBeats`——画面、字幕与配音共用
@@ -371,7 +373,7 @@ Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约�
 - [协作约定](AGENTS.md)：中文协作、Git 与交付规则
 - [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
 - [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)：字段定义、分段口播与语义节拍、校验规则
-- [配音与字幕](.agents/skills/article2video/references/media-contract.md)：媒体清单 version 2、逐幕 `resolvedBeats`、TTS 缓存与音轨合成
+- [配音与字幕](.agents/skills/article2video/references/media-contract.md)：媒体清单 version 3、逐幕 `resolvedBeats`、TTS 缓存与音轨合成
 - [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方、语义动作与中层原语
 - [视觉原语目录](.agents/skills/article2video/references/primitive-catalog.md)：有哪些原语、允许哪些属性、动效与语义动作、怎么组合
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检

@@ -62,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "keyframes":
             from a2v.cli import main_review
+            # 静态联系表按**分镜声明的时间轴**生成、不读媒体（见视觉评审量表）：
+            # 它绑定的输入就是分镜与共享资产，配音变长只让动态评审过期。
+            # 因此这里绝不把 --media 转给体检，否则同一份材料会因为「生成时
+            # 带没带配音」得到两份不同的 PNG，登记摘要随之失效。
             review_args = ["--storyboard", args.storyboard, "--content-root", str(article.workspace_root)]
             result = main_review(review_args)
             if result == 0:
@@ -130,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         print(json.dumps({"record": str(record_file), "fingerprints": current,
                           "stages": rows}, ensure_ascii=False, indent=2))
-        return 0 if all(row["status"] in {"passed", "not-required"} for row in rows) else 1
+        return 0 if production.all_stages_pass(rows) else 1
     except (A2VError, OSError, ValueError) as exc:
         print(f"production.py: {exc}", file=sys.stderr)
         return 2

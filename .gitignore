@@ -56,6 +56,9 @@ work/
 *.avi
 *.wav
 *.mp3
+# 原创声音示例的可复用输入；配音、混音、成片与 videos/ 仍全部忽略。
+!examples/buffer-smoothing/assets/bed.wav
+!examples/buffer-smoothing/assets/drop.wav
 
 # Article content: 文章内容不入库
 # 文章目录（`videos/<slug>/`：原文、分镜、专属网页）是作品内容，不进版本控制。

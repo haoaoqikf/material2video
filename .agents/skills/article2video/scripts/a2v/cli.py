@@ -191,7 +191,8 @@ def main_render(argv: list[str] | None = None) -> int:
 
     try:
         article = _article_for(args, required=True)
-        frame_range = _parse_frame_range(args.frame_range, model.total_frames) if args.frame_range else None
+        media = load_media(args.media, args.storyboard) if args.media else None
+        frame_range = _parse_frame_range(args.frame_range, media.storyboard.total_frames if media else model.total_frames) if args.frame_range else None
         if not 0 < args.scale <= 1:
             raise A2VError("--scale 只接受大于 0 且不超过 1 的比例")
         if args.purpose == "review" and (article is None or not Path(args.out or "").resolve().is_relative_to(article.preview_dir.resolve())):
@@ -208,7 +209,6 @@ def main_render(argv: list[str] | None = None) -> int:
         source_url = (
             _storyboard_url(args.storyboard, article) if article is not None else None
         )
-        media = load_media(args.media, args.storyboard) if args.media else None
         output = _resolve_render_output(args, model, media, article)
         # 这条路径不需要契约页：画面直接从 composition 的源码渲出来，
         # 契约页只在体检（量测与探针）时用来驱动同一份画面
@@ -807,7 +807,8 @@ def main_review(argv: list[str] | None = None) -> int:
                 page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
                 preset = str(((media.storyboard if media else model).visual or {}).get("preset") or "")
                 page_report, extra = inspect_mod.run_inspect(
-                    page, scenes, out_dir / "frames", out_dir, preset=preset
+                    page, scenes, out_dir / "frames", out_dir, preset=preset,
+                    sheet_name=_contact_sheet_name("media" if media else "storyboard"),
                 )
                 # 运行期隔离（任务 3.3）：被阻断请求、页面异常、未处理 Promise
                 # 与控制台 error 都计为错误，而不是静默放行。
@@ -881,10 +882,10 @@ def _ensure_aesthetic_review_template(out_dir: Path, scene_ids: list[str] | None
 | 维度 | 评分（1-5） | 依据 |
 |---|---:|---|
 | 核心论点清晰 |  |  |
-| 图形承担论证 |  |  |
+| 图形论证 |  |  |
 | 主次层级 |  |  |
 | 跨幕变化 |  |  |
-| 动效服务理解 |  |  |
+| 动效服务 |  |  |
 | 视觉记忆点 |  |  |
 | 结尾余韵 |  |  |
 
@@ -1034,13 +1035,24 @@ def _provenance_lines(provenance: dict | None) -> list[str]:
     return lines
 
 
+def _contact_sheet_name(source: Any) -> str:
+    """联系表文件名由抽帧时间轴决定。
+
+    静态材料 `contact-sheet.png` 只按**分镜声明的时间轴**生成（视觉评审量表：
+    静态联系表不读媒体）。带 `--media` 的体检按配音派生的时长抽帧，画的其实是
+    另一批帧，必须写到另一个文件名，否则会覆盖 production.json 已登记的静态
+    材料，让门禁报「材料已缺失或摘要已变化」——而画面一个字都没变。
+    """
+    return "contact-sheet-media.png" if source == "media" else "contact-sheet.png"
+
+
 def _review_summary(payload: dict, out_dir: Path) -> str:
     """终端摘要与 AI 助手后续视觉评审指引。"""
     lines = [
         f"体检完成：{payload['frameCount']} 帧抽检，"
         f"{payload['summary']['errors']} 个错误，{payload['summary']['warnings']} 个提醒",
         f"产物：{out_dir / 'report.json'}",
-        f"联系表：{out_dir / 'contact-sheet.png'}",
+        f"联系表：{out_dir / _contact_sheet_name(payload.get('source'))}",
     ]
     probes = payload.get("contract") or []
     if probes:

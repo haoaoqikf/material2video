@@ -388,7 +388,8 @@ def review_v6(path: str | Path, candidates: list[str]) -> dict[str, Any]:
     score: int | None = None
     resolved: set[str] = set()
     if text:
-        row = re.search(r"^\s*\|\s*图形论证\s*\|\s*([0-5])\s*\|", text, re.MULTILINE)
+        # 「图形承担论证」是早期模板用的标签；旧记录继续可读，不因为措辞不同就退回「待评审」。
+        row = re.search(r"^\s*\|\s*(?:图形论证|图形承担论证)\s*\|\s*([0-5])\s*\|", text, re.MULTILINE)
         if row:
             score = int(row.group(1))
         else:

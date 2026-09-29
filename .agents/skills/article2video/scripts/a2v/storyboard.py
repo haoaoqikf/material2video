@@ -157,7 +157,7 @@ def validate(data: Any, strict: bool = False) -> Report:
 
 def _validate_v3(data: dict[str, Any], strict: bool = False) -> Report:
     report = Report()
-    _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "directingVersion", "directingBrief", "scenes", "visual"}, "", report)
+    _reject_unknown(data, {"version", "schemaVersion", "fps", "width", "height", "title", "visualDirection", "directingVersion", "directingBrief", "scenes", "visual", "soundtrack"}, "", report)
     if data.get("schemaVersion") != SCENE_TREE_VERSION:
         report.error("schemaVersion", "不支持 v3 之前分镜；version 与 schemaVersion 必须都是 3")
     _validate_framerate(data, report)
@@ -196,6 +196,8 @@ def _validate_v3(data: dict[str, Any], strict: bool = False) -> Report:
         report.error("scenes", "scenes 必须是非空数组")
         return report
     seen_scenes: set[str] = set()
+    from .sound import validate_sound
+    validate_sound(data, report)
     total_frames = 0
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
@@ -938,7 +940,7 @@ def _validate_beats(
         if not isinstance(segment, dict):
             report.error(item_path, "口播段必须是对象")
             continue
-        _reject_unknown(segment, {"id", "text", "beatId"}, item_path, report)
+        _reject_unknown(segment, {"id", "text", "beatId", "speech"}, item_path, report)
         segment_id = segment.get("id")
         if not isinstance(segment_id, str) or not _SCENE_ID_RE.match(segment_id):
             report.error(f"{item_path}.id", "口播段 id 必须是非空安全标识符")

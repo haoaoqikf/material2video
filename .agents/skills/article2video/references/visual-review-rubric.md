@@ -20,9 +20,13 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 | 文件 | 用途 |
 | --- | --- |
-| `contact-sheet.png` | 全片联系表：先独立看一遍，不要先读报告 |
+| `contact-sheet.png` | 全片联系表（按分镜声明的时间轴抽帧）：先独立看一遍，不要先读报告 |
 | `frames/*.png` | 每幕三帧原图，用于逐幕细看 |
 | `report.json` | 机检结果：契约探针、帧量测、静态宪法，以及视觉叙事 V 系列与动画论证 A 系列 |
+
+体检带 `--media` 时画面按配音派生的时长解释帧号，抽到的其实是另一批帧，
+因此那份联系表写成同级的 `contact-sheet-media.png`；`contact-sheet.png` 始终只按
+分镜声明的时间轴生成，它是 `production.json` 登记的静态材料，带不带配音都不变。
 
 **评审顺序很重要**：先看联系表形成整体印象，再读 `report.json`。
 反过来会让人只看机检过得去的地方，忽略机检根本管不到的问题。
@@ -58,7 +62,7 @@ article2video Skill 的 AI 助手负责自动填写导演计划和 `production.j
 
 AI 同时在 `review.md` 填写 V6 图形论证与 A6 装饰动画评分及候选裁决；这些字段仍是 `review.py` 的审美门禁输入，须按实际联系表与视频证据逐条作结论。AI 评审可满足发布门禁，但结论和来源会保存在作品本地记录中供复核。旧记录仍可读，无来源的历史通过不能用于新渲染。
 
-任一失败项都要在作品根的 `production.json` 增加返工项，填写 `id`、`sceneIds`（全片问题使用空数组）、`dimension`、`problem`、`direction`、`returnStage`、`severity` 与 `status`。必改项只能在修改版本复查通过并填写 `recheck.evidence` 和与记录当前值一致的 `recheck.fingerprints` 后设为 `resolved`。修改分镜或共享渲染资产会使所有评审过期；静态联系表按分镜声明时间轴生成，不读媒体，配音变化只使动态评审过期。重新生成材料不会自动通过。
+任一失败项都要在作品根的 `production.json` 增加返工项，填写 `id`、`sceneIds`（全片问题使用空数组）、`dimension`、`problem`、`direction`、`returnStage`、`severity` 与 `status`。必改项只能在修改版本复查通过并填写 `recheck.evidence` 和与记录当前值一致的 `recheck.fingerprints` 后设为 `resolved`。修改分镜或共享渲染资产会使所有评审过期；静态联系表按分镜声明时间轴生成，不读媒体（`production.py keyframes` 与不带 `--media` 的体检写同一份 `contact-sheet.png`，带 `--media` 的体检另写 `contact-sheet-media.png`），配音变化只使动态评审过期。重新生成材料不会自动通过。
 
 关键幕样片供导演验证局部表达，全片评审版供验证整体节奏。两者与正式 composition 同源；评审版可降低分辨率和编码质量，不改变帧序、动作、口播或字幕同步。正式渲染要求关键幕、全片静态和有声动态评审均通过，且无未解决必改项。
 A 系列与 V 系列分开计数、不合成总分：V 问「有没有论证型图形」，
@@ -226,3 +230,7 @@ A6 缺失时状态是「待评审」而不是通过——人工结论缺失既�
 
 「必改」必须具体到**哪一幕、改什么、改成什么**，不能写「整体再高级一点」——
 那种意见无法执行，也无法验证有没有改到位。
+
+## 口播内容门禁
+
+在实际全片有声观看后填写 `reviews.full.content` 五项：opening_question、explanation_chain、spoken_naturalness、closing_response、boundary_accuracy。每项记录 score（整数 1–5）、status 与场景/时间依据；至少 4 为 pass，否则 fail，未观看为 pending。整体状态由各项决定；assessment 引用当前 rehearsal 摘要。与静态/动态评审共享指纹、材料更新和返工规则。旧记录缺内容评审仍可读，但正式渲染阻断。

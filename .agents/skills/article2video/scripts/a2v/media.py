@@ -17,7 +17,7 @@ from .errors import A2VError
 
 #: 当前媒体清单版本。版本 2 起逐幕携带 `resolvedBeats`（分段口播的真实词边界
 #: 解析结果）；版本 1 的旧清单继续可读，但含分段口播的分镜必须重新 prepare。
-MANIFEST_VERSION = 2
+MANIFEST_VERSION = 3
 
 
 def fingerprint(source: dict) -> str:
@@ -102,6 +102,7 @@ def effective_storyboard(media: Media) -> dict:
     字幕却按真实词边界走——两者会在同一帧里各说各话。
     """
     effective = copy.deepcopy(media.data["source"])
+    effective["subtitleCues"] = copy.deepcopy(media.data["cues"])
     for item, scene in zip(effective["scenes"], media.data["scenes"]):
         item["durationInFrames"] = scene["durationInFrames"]
         resolved = scene.get("resolvedBeats")
@@ -139,7 +140,7 @@ def _scene_resolved_beats(
     segments = item.get("narrationSegments")
     has_segments = isinstance(segments, list) and bool(segments)
     raw = scene.get("resolvedBeats")
-    if version < MANIFEST_VERSION:
+    if version < 2:
         if has_segments:
             raise ValueError("清单版本过旧（没有分段口播的节拍解析结果），请重新 prepare")
         return []
@@ -186,7 +187,7 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
         source = data["source"]
         if (
             type(data["version"]) is not int
-            or data["version"] not in (1, MANIFEST_VERSION)
+            or data["version"] not in (1, 2, MANIFEST_VERSION)
             or data["sourceFingerprint"] != fingerprint(source)
         ):
             raise ValueError("版本或分镜指纹非法")
@@ -195,6 +196,21 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
         report = sb.validate(source)
         if not report.ok:
             raise ValueError("清单中的源分镜无效")
+        from . import sound
+        if data["version"] < 3 and ("soundtrack" in source or any("speech" in seg for scene in source["scenes"] for seg in scene.get("narrationSegments", []))):
+            raise ValueError("新声音参数需要 version 3 清单，请重新 prepare")
+        if data["version"] == 3:
+            if data.get("soundFingerprint") != fingerprint(sound.configuration(source)):
+                raise ValueError("声音配置指纹不一致，请重新 prepare")
+            expected_refs = {item["sourceRef"] for item in ([source["soundtrack"]["music"]] if source.get("soundtrack", {}).get("music") else []) + source.get("soundtrack", {}).get("effects", [])}
+            if set(data.get("soundAssets", {})) != expected_refs: raise ValueError("声音素材清单不完整")
+            for ref, entry in data["soundAssets"].items():
+                candidate = (path.parent / entry["path"]).resolve()
+                if source_path and candidate != (Path(source_path).resolve().parent / ref).resolve(): raise ValueError("声音素材路径不一致")
+                if not candidate.is_file() or sound.asset_digest(candidate) != entry["sha256"]:
+                    raise ValueError("声音素材已变化，请重新 prepare")
+            narration = (path.parent / data["narration"]).resolve()
+            if not narration.is_relative_to(path.parent): raise ValueError("旁白必须位于清单目录内")
         effective = copy.deepcopy(source)
         if len(data["scenes"]) != len(source["scenes"]):
             raise ValueError("场景数量不匹配")
@@ -223,6 +239,8 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
             raise ValueError("音轨必须位于清单目录内")
         if abs(wav_duration(audio) - model.total_frames / model.fps) > 1 / 24000:
             raise ValueError("音轨时长与时间轴不一致")
+        if data["version"] == 3 and abs(wav_duration(narration) - model.total_frames / model.fps) > 1 / 24000:
+            raise ValueError("旁白时长与时间轴不一致")
         return Media(path, data, model, audio)
     except (OSError, ValueError, KeyError, TypeError, A2VError) as exc:
         raise A2VError(f"媒体清单无效 {path}: {exc}") from exc

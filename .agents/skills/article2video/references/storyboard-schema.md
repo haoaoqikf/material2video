@@ -92,3 +92,7 @@ uv run python .agents/skills/article2video/scripts/validate.py storyboard.json -
 ```
 
 上例只演示字段结构；完整交付还要满足严格模式下的全片模式覆盖。可运行的完整样例见[文章生成场景树分镜](article-to-storyboard.md)。
+
+## P0 声音扩展
+
+保持分镜 v3。口播段可带可选 `speech: {rate, pauseBeforeMs, pauseAfterMs}`；根级可带 `soundtrack: {music, effects}`，均为封闭对象。参数范围、默认值、路径限制、混音和清单 v3 见 [媒体契约](media-contract.md)；完整有效示例见 [缓冲区分镜](../../../../examples/buffer-smoothing/storyboard.json)。字符串 narration、录音导入与逐字高亮仍不支持。

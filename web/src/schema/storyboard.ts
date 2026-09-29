@@ -114,7 +114,17 @@ export const semanticActionSchema = z.enum(SEMANTIC_ACTIONS);
  * 它与字符串 `narration` 互斥——完整口播由各段按顺序拼接，
  * 不保存第二份完整文本，因此重复短语也能稳定引用。
  */
-export const narrationSegmentSchema = z.object({ id: nodeId, text: nonEmptyText, beatId: nodeId }).strict();
+export const speechSchema = z.object({
+  rate: z.string().regex(/^[+-]\d+%$/).refine((v) => Math.abs(Number(v.slice(0, -1))) <= 50).optional(),
+  pauseBeforeMs: z.number().int().min(0).max(2000).optional(),
+  pauseAfterMs: z.number().int().min(0).max(2000).optional(),
+}).strict();
+export const narrationSegmentSchema = z.object({ id: nodeId, text: nonEmptyText, beatId: nodeId, speech: speechSchema.optional() }).strict();
+const localSoundRef = nonEmptyText.refine((v) => !/[\\:]/.test(v) && !v.startsWith('/') && v.split('/').every((p) => p && p !== '.' && p !== '..'), '声音必须是本地相对路径');
+export const soundtrackSchema = z.object({
+  music: z.object({ sourceRef: localSoundRef, gainDb: z.number().min(-60).max(0).optional(), loop: z.boolean().optional(), fadeInMs: z.number().int().min(0).max(60000).optional(), fadeOutMs: z.number().int().min(0).max(60000).optional() }).strict().optional(),
+  effects: z.array(z.object({ sourceRef: localSoundRef, sceneId: nodeId, beatId: nodeId, offsetMs: z.number().int().min(-60000).max(60000).optional(), gainDb: z.number().min(-60).max(0).optional() }).strict()).max(128).optional(),
+}).strict();
 
 /** 语义节拍：受控动作 + 至少一个目标节点 + 非空 meaning（这一步让观众多看懂什么）。 */
 export const beatSchema = z.object({
@@ -296,12 +306,19 @@ export const storyboardSchema = z.object({
   width: z.number().int().positive().default(1080), height: z.number().int().positive().default(1920), title: z.string().optional(),
   visualDirection: z.object({ motif: nonEmptyText, compositionBias: z.enum(['centered', 'asymmetric', 'mixed']), density: z.enum(['sparse', 'balanced', 'dense']), rhythm: z.enum(['restrained', 'steady', 'dynamic']), avoid: z.array(nonEmptyText).default([]) }).strict(),
   directingVersion: directingVersionSchema, directingBrief: directingBriefSchema,
+  soundtrack: soundtrackSchema.optional(),
+  // 仅媒体派生 props 携带；Python 源分镜校验拒绝此字段。
+  subtitleCues: z.array(z.object({ start: z.number().nonnegative(), end: z.number().positive(), text: nonEmptyText }).strict()).optional(),
   scenes: z.array(sceneSchema).nonempty(), visual: z.object({ theme: z.enum(['dark', 'light']).default('dark'), preset: z.literal('keynote') }).strict(),
 }).strict().superRefine((storyboard, ctx) => {
   if (storyboard.directingVersion === 1 && !storyboard.directingBrief) {
     ctx.addIssue({ code: 'custom', path: ['directingBrief'], message: 'directingVersion=1 必须同时提供 directingBrief' });
   }
   validateContinuity(storyboard, ctx);
+  storyboard.soundtrack?.effects?.forEach((effect, index) => {
+    const scene = storyboard.scenes.find((s) => s.id === effect.sceneId);
+    if (!scene?.beats?.some((b) => b.id === effect.beatId)) ctx.addIssue({ code: 'custom', path: ['soundtrack', 'effects', index], message: '音效场景或节拍不存在' });
+  });
 });
 
 function nodeTypes(scene: Scene): Map<string, string> {

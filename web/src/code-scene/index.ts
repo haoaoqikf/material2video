@@ -14,6 +14,8 @@
  *   让现有内容探针与 C/K/M 闸门继续量测自由场景。
  */
 import type { CSSProperties } from 'react';
+export { beatActionProgress, compilePath, compileReservoir, decomposeObjects } from './objectMotion';
+export type { Point, FlowInterval, ReservoirState, ObjectPose } from './objectMotion';
 
 /** 共享画布参数：与分镜声明的输出尺寸一致，场景不得假设其他尺寸。 */
 export interface A2VCanvas {
