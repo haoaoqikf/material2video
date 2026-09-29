@@ -245,6 +245,9 @@ def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, ar
     failures = [item for item in aesthetic.get("findings") or [] if item.get("status") == "fail"]
     if failures:
         return "；".join(str(item.get("detail") or item.get("rule")) for item in failures)
+    dynamic_review = report.get("bespokeAnimationReview") or {}
+    if dynamic_review.get("required") and not dynamic_review.get("publishable"):
+        return f"定制动画动态评审{dynamic_review.get('status', '待评审')}"
     if not review_path.is_file():
         return "缺少 review.md 人工审美结论"
     review = review_path.read_text(encoding="utf-8")
@@ -360,6 +363,13 @@ def _animation_review_payload(
         combined.error(where, message)
     gates["a6"] = ar.review_a6(out_dir / "review.md", analysis)
     return gates
+
+
+def _bespoke_animation_review_payload(storyboard_path: Path, out_dir: Path) -> dict:
+    from . import bespoke_review
+
+    raw = json.loads(storyboard_path.read_text(encoding="utf-8"))
+    return bespoke_review.review(out_dir / "review.md", raw)
 
 
 def _animation_review_lines(result: dict | None) -> list[str]:
@@ -709,7 +719,7 @@ def main_review(argv: list[str] | None = None) -> int:
         return _EXIT_FAILED
 
     out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args, article)
-    _ensure_aesthetic_review_template(out_dir)
+    _ensure_aesthetic_review_template(out_dir, [str(scene.get("id", "")) for scene in scenes])
     # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭。
     #
     # React 路径上它暂时不适用：画面由 composition 源码决定，契约页的 HTML 里
@@ -729,6 +739,7 @@ def main_review(argv: list[str] | None = None) -> int:
     # 就进错误数，契约页起不来也不影响「动画有没有解释论点」的结论。
     animation_review = _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
     raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
+    bespoke_animation_review = _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
     aesthetic_review_result = aesthetic_review.analyze(raw_storyboard)
     for finding in aesthetic_review_result["findings"]:
         if finding["status"] == "fail":
@@ -809,6 +820,7 @@ def main_review(argv: list[str] | None = None) -> int:
             "provenance": _rendered_provenance(out_dir),
             "visualNarrative": visual_narrative,
             "animationReview": animation_review,
+            "bespokeAnimationReview": bespoke_animation_review,
             "aestheticReview": aesthetic_review_result,
             **({"determinism": determinism_json} if determinism_json is not None else {}),
         },
@@ -821,7 +833,7 @@ def main_review(argv: list[str] | None = None) -> int:
     return _EXIT_OK if combined.ok else _EXIT_INVALID_INPUT
 
 
-def _ensure_aesthetic_review_template(out_dir: Path) -> None:
+def _ensure_aesthetic_review_template(out_dir: Path, scene_ids: list[str] | None = None) -> None:
     """首次体检生成审美评审模板，已有人工结论绝不覆盖。"""
     target = out_dir / "review.md"
     if target.exists():
@@ -855,8 +867,20 @@ def _ensure_aesthetic_review_template(out_dir: Path) -> None:
 ## 发布结论
 
 - 是否值得发布：待评审
-""",
+        """ + _dynamic_review_template(scene_ids or []),
         encoding="utf-8",
+    )
+
+
+def _dynamic_review_template(scene_ids: list[str]) -> str:
+    rows = "\n".join(f"| {scene_id} |  |  |  |  |  |  |" for scene_id in scene_ids)
+    return (
+        "\n\n## 定制动画动态评审\n\n"
+        "<!-- 使用代码场景时填写状态与每幕五项评分；依据须来自播放，标明时间或帧。 -->\n"
+        "状态：待评审\n\n"
+        "| 场景 | 焦点清晰度 | 动作解释力 | 节奏变化 | 转场连贯性 | 结果可读性 | 依据 |\n"
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- |\n"
+        f"{rows}\n"
     )
 
 
@@ -1006,6 +1030,10 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     lines.extend(_visual_narrative_lines(payload.get("visualNarrative")))
 
     lines.extend(_animation_review_lines(payload.get("animationReview")))
+
+    dynamic = payload.get("bespokeAnimationReview") or {}
+    if dynamic.get("required"):
+        lines.append(f"定制动画动态评审：{dynamic.get('status')}；可发布={'是' if dynamic.get('publishable') else '否'}")
 
     lines.extend(_provenance_lines(payload.get("provenance")))
 

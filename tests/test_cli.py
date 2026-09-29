@@ -45,6 +45,21 @@ class TestValidateCommand:
         article = SimpleNamespace(output_dir=tmp_path)
         assert "尚未填写" in cli._aesthetic_render_gate(storyboard, model, article)
 
+    def test_code_scene_render_gate_requires_dynamic_review(self, tmp_path, valid_script):
+        valid_script["directingVersion"] = 1
+        valid_script["scenes"][0]["renderer"] = {"kind": "code", "module": "example"}
+        storyboard = tmp_path / "storyboard.json"
+        storyboard.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        inspect_dir = tmp_path / "inspect"
+        inspect_dir.mkdir()
+        (inspect_dir / "report.json").write_text(json.dumps({
+            "aestheticReview": {"findings": []},
+            "bespokeAnimationReview": {"required": True, "status": "待评审", "publishable": False},
+        }), encoding="utf-8")
+        (inspect_dir / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
+        article = SimpleNamespace(output_dir=tmp_path)
+        assert cli._aesthetic_render_gate(storyboard, SimpleNamespace(), article) == "定制动画动态评审待评审"
+
     def test_json_output_lists_errors(self, tmp_path, valid_script, capsys):
         valid_script["scenes"][0]["durationInFrames"] = 0
         path = tmp_path / "storyboard.json"

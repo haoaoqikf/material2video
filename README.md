@@ -38,6 +38,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   结构与约束见
   [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
 - **导演层与审美闭环**：每幕强制声明完整 `visualIntent`、`renderer`、分段镜头与跨幕转场；运行时按语义阶段、组级错峰、连续状态混合、稳定收束与确定性共享元素几何渲染。
+- **定制动画动态评审**：含作品级代码场景的分镜必须逐幕提供焦点、动作解释、节奏、转场和结果可读性五项评分与播放依据，且每项达到 4/5 后才能进入正式渲染；静态联系表仍用于构图审阅。
 - **分段口播与语义节拍**：新作品用 `narrationSegments`（每段 `{id, text, beatId}`）
   取代字符串 `narration`；字符串 `narration` 不受支持，并用 `beats`（`{id, action, targets, meaning}`）
   声明这一步推理在画面上如何发生。动作取自 11 个受控动词（`establish` / `connect` /
@@ -119,7 +120,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   以前改了动效源码而没重渲，旧成片看上去仍然是「上次验收通过」的样子。
   溯源一律用相对引用（`workspace` + 工作区相对键，`web/` 下的构建输入记
   `/__a2v_web__/` 别名键），因此文章与产物放在仓库之外也读得回来；
-- 可直接运行的完整示例（全部为 v3 场景树）：
+- 可直接运行的完整示例（覆盖 v3 场景树与场景树/代码场景混合分镜）：
   [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
   （分段口播 + 语义节拍：5 幕覆盖 `flow` / `cycle` / `timeline` / `gauge` / `pictogram`，
   严格校验与 A1–A5、A7、A8 全部通过）、
@@ -131,7 +132,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （5 幕）、[`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)
   （8 幕，设计语言基线）、[`examples/declarative-number/`](examples/declarative-number/storyboard.json)、
   [`examples/code-scenes/`](examples/code-scenes/storyboard.json)
-  （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG）；
+  （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG；
+  动作脚本和动态评审格式见[示例说明](examples/code-scenes/motion-design.md)）；
 - edge-tts 中文自动配音、逐句字幕与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `videos/<slug>/outputs/`，
