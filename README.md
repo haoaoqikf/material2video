@@ -38,6 +38,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   结构与约束见
   [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
 - **导演层与审美闭环**：每幕强制声明完整 `visualIntent`、`renderer`、分段镜头与跨幕转场；运行时按语义阶段、组级错峰、连续状态混合、稳定收束与确定性共享元素几何渲染。
+- **关键幕先行与制作状态**：`production.py` 提供制作记录模板、阶段状态、静态关键帧、关键幕有声样片与全片评审版；评审项绑定分镜/媒体/渲染资产指纹，定向返工需要当前版本的人工复查依据。正式渲染要求关键幕和全片静态/动态结论通过且没有未解决必改项。
 - **定制动画动态评审**：含作品级代码场景的分镜必须逐幕提供焦点、动作解释、节奏、转场和结果可读性五项评分与播放依据，且每项达到 4/5 后才能进入正式渲染；静态联系表仍用于构图审阅。
 - **分段口播与语义节拍**：新作品用 `narrationSegments`（每段 `{id, text, beatId}`）
   取代字符串 `narration`；字符串 `narration` 不受支持，并用 `beats`（`{id, action, targets, meaning}`）
@@ -208,9 +209,19 @@ uv run python .agents/skills/article2video/scripts/preview.py \
 uv run python .agents/skills/article2video/scripts/review.py \
   --storyboard examples/cause-chain/storyboard.json
 
-# 5. 渲染（省略 --out 时输出到 videos/examples/cause-chain/outputs/silent.mp4）
-uv run python .agents/skills/article2video/scripts/render.py \
+# 5. 查看制作流程与可复制的制作记录模板；示例模板与步骤见 production-workflow.md
+uv run python .agents/skills/article2video/scripts/production.py status \
   --storyboard examples/cause-chain/storyboard.json
+
+# 有声作品在完成配音后生成关键幕样片与全片有声评审版，检查并填写评审记录后再正式渲染
+uv run python .agents/skills/article2video/scripts/production.py samples \
+  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
+uv run python .agents/skills/article2video/scripts/production.py rehearsal \
+  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
+
+# 正式渲染只接受当前版本评审通过且必改项已关闭的作品
+uv run python .agents/skills/article2video/scripts/render.py \
+  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
 
 # 6. 测试
 uv run pytest
@@ -366,6 +377,7 @@ Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约�
 - [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
 - [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、图形基元与状态、取档行为与 K1–K10 观感闸门
 - [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分、V6/A6 人工裁决写法与红线
+- [制作流程示例](examples/cause-chain/production-workflow.md)：制作记录、关键幕样片、全片预演、评审与返工闭环
 - [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
 
 本仓库未配置远端，不含账号系统、云端任务队列或自动发布能力。

@@ -33,6 +33,7 @@
 ├── videos/<slug>/                    # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md
 │   ├── storyboard.json
+│   ├── production.json                # 导演阶段、指纹、评审和返工记录（不入库）
 │   ├── scenes/                       # 代码场景模块（renderer.code），按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
 └── videos/<slug>/outputs/            # 成片与中间产物（不入库）
@@ -41,6 +42,7 @@
     ├── voiced.srt                    # 配音成片字幕
     ├── media/                        # 配音清单、音轨与缓存
     ├── previews/                     # 限帧试渲染，使用相同的成片文件名
+    │   └── production/                # 关键幕有声样片、全片评审版与输出清单
     └── qa/                           # 验收截图等，按需创建
 ```
 
@@ -54,6 +56,7 @@
 
 `examples/<slug>/` 与 `videos/<slug>/` 同构，但产物放入 `videos/examples/<slug>/outputs/`，
 多一层 `examples/`，避免示例与实际文章同名时互相覆盖。
+示例对应的 `production.json` 也放在 `videos/examples/<slug>/`，避免把运行记录写进版本化的 `examples/<slug>/`。
 
 ## 画面来自哪里
 

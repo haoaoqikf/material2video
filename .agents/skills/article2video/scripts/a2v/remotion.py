@@ -314,6 +314,8 @@ def render_frames(
     crf: int,
     preset: str,
     timeout_s: float,
+    frame_start: int = 0,
+    scale: float = 1,
 ) -> None:
     """把 composition 渲染并编码成无声 MP4。
 
@@ -349,7 +351,9 @@ def render_frames(
         # 显式给出帧区间：composition 自己也有时长，但**渲染的帧数**是验收项，
         # 让它由 Python 算出来并在命令行上写死，比隐含在画面里可核对
         "--frames",
-        f"0-{total_frames - 1}",
+        f"{frame_start}-{frame_start + total_frames - 1}",
+        "--scale",
+        str(scale),
     ]
     _run(
         command,

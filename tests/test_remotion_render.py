@@ -327,6 +327,24 @@ def test_renders_a_short_clip_with_the_expected_stream_parameters(tmp_path):
     assert len(provenance["assets"]["files"]) > 10
 
 
+@requires_node
+def test_renders_global_frame_range_at_review_scale(tmp_path):
+    output = tmp_path / "review-range.mp4"
+    result = render.render_with_remotion(
+        output=output,
+        storyboard=_model(),
+        storyboard_path=STORYBOARD,
+        frame_range=(30, 32),
+        scale=0.5,
+        probe=True,
+        workspace_root=ROOT,
+    )
+    assert (result.frames, result.width, result.height) == (3, 540, 960)
+    assert "540x960" in _stream_info(output)
+    provenance = json.loads(output.with_suffix(".provenance.json").read_text(encoding="utf-8"))
+    assert provenance["frames"] == 3
+
+
 def _stream_info(path: pathlib.Path) -> str:
     from imageio_ffmpeg import get_ffmpeg_exe
 

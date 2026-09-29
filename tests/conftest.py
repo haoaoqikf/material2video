@@ -41,6 +41,48 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
     return article
 
 
+def approve_production_record(storyboard_path: str | Path, media_path: str | Path | None = None,
+                             content_root: str | Path | None = None) -> Path:
+    """为渲染路径测试创建当前指纹绑定的通过记录，不运行人工评审工具。"""
+    from a2v import paths, production
+
+    source = Path(storyboard_path)
+    raw = json.loads(source.read_text(encoding="utf-8"))
+    article = paths.for_storyboard(source, content_root)
+    current = production.current_fingerprints(source, media_path, article)
+    record = production.initialize_template(raw, current)
+    scenes = raw.get("scenes", [])
+    ids = [str(scene.get("id", "")) for scene in scenes]
+    if not ids:
+        raise AssertionError("渲染路径测试需要至少一个场景")
+    record["direction"]["keyScenes"] = {
+        "opening": ids[0], "core": ids[min(1, len(ids) - 1)], "climax": ids[-1]
+    }
+    record["direction"]["pace"] = "测试用关键幕与全片节奏说明"
+    record["direction"]["scenePlans"] = {
+        scene_id: {"start": "测试起点", "change": "测试变化", "result": "测试结果"}
+        for scene_id in ids
+    }
+
+    def passing(kind: str) -> dict:
+        return {
+            "status": "pass",
+            "dimensions": {name: {"status": "pass", "evidence": "渲染测试夹具"}
+                           for name in production.REVIEW_DIMENSIONS[kind]},
+            "evidence": "渲染测试夹具",
+        }
+
+    record["reviews"]["keyScenes"] = {
+        scene_id: {"static": passing("static"), "dynamic": passing("dynamic")}
+        for scene_id in set(record["direction"]["keyScenes"].values())
+    }
+    record["reviews"]["full"] = {kind: passing(kind) for kind in ("static", "dynamic")}
+    target = production.record_path(article)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target
+
+
 @pytest.fixture(scope="session")
 def chromium_ready():
     """浏览器不可用时跳过，而不是让整个测试套件失败。"""

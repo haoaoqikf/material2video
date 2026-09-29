@@ -20,8 +20,9 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli
+from a2v import cli, prepare as prep
 from a2v.render import provenance_status
+from conftest import approve_production_record
 
 ROOT = Path(__file__).resolve().parents[1]
 DECLARATIVE = ROOT / "examples/declarative-number/storyboard.json"
@@ -35,6 +36,7 @@ def content_root(tmp_path: Path) -> Path:
     article = tmp_path / "content" / "videos" / "demo"
     article.mkdir(parents=True)
     shutil.copyfile(DECLARATIVE, article / "storyboard.json")
+    media_path = prep.prepare(article / "storyboard.json", article / "outputs" / "media")
     # 发布闸门要求每份作品存在评审报告；E2E 只测试内容根路径时写入可发布的静态报告。
     outputs = article / "outputs" / "inspect"
     outputs.mkdir(parents=True)
@@ -49,6 +51,8 @@ def content_root(tmp_path: Path) -> Path:
         "# 视觉评审\n\n- 是否值得发布：通过\n- V6：通过\n- A6：通过\n",
         encoding="utf-8",
     )
+    approve_production_record(article / "storyboard.json", media_path,
+                              content_root=tmp_path / "content")
     return tmp_path / "content"
 
 
@@ -58,13 +62,14 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
         [
             "--storyboard", str(content_root / "videos" / "demo" / "storyboard.json"),
             "--content-root", str(content_root),
+            "--media", str(content_root / "videos" / "demo" / "outputs" / "media" / "media.json"),
             "--limit-frames", "2",
             "--preset", "ultrafast",
             "--no-probe",
         ]
     ) == 0
 
-    video = content_root / "videos" / "demo" / "outputs" / "previews" / "silent.mp4"
+    video = content_root / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4"
     assert video.is_file() and video.stat().st_size > 0
     assert not (ROOT / "outputs" / "demo").exists(), "产物不得落回仓库"
 
@@ -87,9 +92,10 @@ def test_environment_variable_alone_is_enough(chromium_ready, content_root, monk
     assert cli.main_render(
         [
             "--storyboard", str(content_root / "videos" / "demo" / "storyboard.json"),
+            "--media", str(content_root / "videos" / "demo" / "outputs" / "media" / "media.json"),
             "--limit-frames", "2",
             "--preset", "ultrafast",
             "--no-probe",
         ]
     ) == 0
-    assert (content_root / "videos" / "demo" / "outputs" / "previews" / "silent.mp4").is_file()
+    assert (content_root / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4").is_file()

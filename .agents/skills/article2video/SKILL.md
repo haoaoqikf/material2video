@@ -54,6 +54,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    见[分镜脚本结构](references/storyboard-schema.md)的「语义节拍与字幕同步」。
 9. **默认使用电影化动画计划**：节点动作按建立、变化、结果、收束四阶段推进，编组错峰与镜头段优先绑定 beat；v1/v2 分镜在所有入口拒绝，必须按 v3 重新编排；没有迁移命令或兼容回退。
 10. **作品定制动画**：默认场景树；静态原语能够绘制对象但不能表达必要的状态变化、对象编排或镜头揭示时，可以基于明确的叙事理由使用作品级代码场景。先按 [文章生成分镜](references/article-to-storyboard.md) 编写逐幕动作脚本；代码场景必须使用解析后的 `beats.plan`、提供探针并通过[定制动画动态评审](references/visual-review-rubric.md)。存在代码场景时，缺失或未达标的动态评审会阻断正式渲染。
+11. **关键幕先行与制作记录**：按[文章生成分镜](references/article-to-storyboard.md)先验证开场、核心论证和高潮，再铺开全片；用 `production.py` 查询阶段、生成关键幕样片与全片有声评审版。制作记录保存在作品目录，手工写入逐维结论、证据和返工项；分镜、媒体或渲染资产变化会使相关评审过期。正式成片需要关键幕和全片静态/有声评审通过，且没有未解决必改项。制作流程与模板见[制作流程示例](../../../examples/cause-chain/production-workflow.md)。
 
 ## 目录职责
 
@@ -66,6 +67,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 | `web/src/styles/` | 设计令牌、预设与场景树原语样式 |
 | `web/dist/contract/contract.html` | 渲染契约页（`pnpm -C web build` 的产物），体检用它驱动画面 |
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审等命令行工具 |
+| `.agents/skills/article2video/scripts/production.py` | 制作记录模板、阶段状态、关键帧、关键幕有声样片与全片评审版 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、代码场景、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
 | `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
@@ -328,7 +330,14 @@ uv run python .agents/skills/article2video/scripts/prepare.py \
 uv run python .agents/skills/article2video/scripts/review.py \
   --storyboard <json> [--media <media.json>] [--out-dir <目录>] [--content-root <目录>] [-v]
 
-# 渲染（省略 --out 时按文章归属推导，限帧时写入 previews/）
+# 制作阶段查询、生成记录模板、关键幕样片与全片评审版
+uv run python .agents/skills/article2video/scripts/production.py status --storyboard <json> [--media <media.json>]
+uv run python .agents/skills/article2video/scripts/production.py template --storyboard <json> --out <作品目录>/production.json
+uv run python .agents/skills/article2video/scripts/production.py keyframes --storyboard <json>
+uv run python .agents/skills/article2video/scripts/production.py samples --storyboard <json> --media <media.json>
+uv run python .agents/skills/article2video/scripts/production.py rehearsal --storyboard <json> --media <media.json>
+
+# 正式渲染（必须已有当前分镜、媒体和资产版本的完整评审记录）
 uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard <json> [--out <输出.mp4>] [--limit-frames N] [--content-root <目录>] \
   [--media <media.json>] [--crf 18] [--preset medium] [--no-probe] [-v]
@@ -406,6 +415,8 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 - [代码场景](references/code-scenes.md)：`renderer.code` 的模块契约、依赖白名单、探针协议、确定性适配与安全模型
 - [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
+- [视觉评审量表](references/visual-review-rubric.md)：全片静态/动态维度、评审证据及返工要求
+- [制作流程示例](../../../examples/cause-chain/production-workflow.md)：阶段查询、关键幕样片、全片预演和版本化返工闭环
 - [渲染契约](references/render-contract.md)：画面实现的 `__A2V__` 接口、渲染引擎与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向

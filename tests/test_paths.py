@@ -18,14 +18,15 @@ from a2v.errors import A2VError
 from a2v.media import Media
 from a2v.render import RenderResult
 
-from conftest import SKILL_MARKER, make_project
+from conftest import SKILL_MARKER, approve_production_record, make_project
 
 
-def _approve_render_gate(article: Path) -> None:
+def _approve_render_gate(article: Path, media_path: Path | None = None) -> None:
     inspect = article / "outputs" / "inspect"
     inspect.mkdir(parents=True, exist_ok=True)
     (inspect / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
     (inspect / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
+    approve_production_record(article / "storyboard.json", media_path)
 
 
 class TestProjectRoot:
@@ -221,8 +222,8 @@ class TestVoicedRenderDefaults:
 
     def test_media_renders_to_voiced_name(self, voiced_project, monkeypatch):
         root, article = voiced_project
-        _approve_render_gate(article)
         media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
+        _approve_render_gate(article, media_path)
         captured = _capture_render(monkeypatch)
         assert cli.main_render(
             [
@@ -241,8 +242,8 @@ class TestVoicedRenderDefaults:
         (other / "storyboard.json").write_text(
             (article / "storyboard.json").read_text(encoding="utf-8"), encoding="utf-8"
         )
-        _approve_render_gate(other)
         media_path = prep.prepare(article / "storyboard.json", root / "videos" / "demo" / "outputs" / "media")
+        _approve_render_gate(other, media_path)
         _capture_render(monkeypatch)
         # 媒体清单属于 demo，却拿 other 的网页来渲染：必须拒绝，避免音画串文章
         assert cli.main_render(
@@ -257,9 +258,10 @@ class TestVoicedRenderDefaults:
 class TestRemotionDefault:
     """默认引擎是 Remotion：只给 --storyboard 的命令走 composition 渲染。"""
 
-    def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script, monkeypatch):
+    def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script, monkeypatch, speech):
         article = make_project(tmp_path, "videos", "demo", valid_script)
-        _approve_render_gate(article)
+        media_path = prep.prepare(article / "storyboard.json", tmp_path / "videos" / "demo" / "outputs" / "media")
+        _approve_render_gate(article, media_path)
         captured: list[dict] = []
 
         def fake_remotion(**kwargs):
@@ -280,6 +282,7 @@ class TestRemotionDefault:
         code = cli.main_render(
             [
                 "--storyboard", str(article / "storyboard.json"),
+                "--media", str(media_path),
                 "--out", str(tmp_path / "out.mp4"),
                 "--no-probe",
             ]

@@ -295,6 +295,8 @@ def _finalize_output(
     height: int,
     media: Media | None,
     probe: bool,
+    frame_start: int = 0,
+    subtitle_offset: float | None = None,
 ) -> Path:
     """两条渲染路径共用的收口：合音轨、验成片、搬到最终位置、修权限。
 
@@ -305,9 +307,15 @@ def _finalize_output(
     final_path = video_path
     if media:
         final_path = temp / "final.mp4"
-        mux(video_path, media.audio, final_path, total_frames / fps)
+        offset = frame_start / fps if subtitle_offset is None else subtitle_offset
+        mux(video_path, media.audio, final_path, total_frames / fps, start=offset)
+        cues = [
+            {**cue, "start": max(cue["start"] - offset, 0), "end": cue["end"] - offset}
+            for cue in media.data["cues"]
+            if cue["end"] > offset and cue["start"] < offset + total_frames / fps
+        ]
         (temp / "subtitles.srt").write_text(
-            srt(media.data["cues"], total_frames / fps), encoding="utf-8"
+            srt(cues, total_frames / fps), encoding="utf-8"
         )
     if probe:
         _verify_output(final_path, total_frames, width, height, fps, expect_audio=media is not None)
@@ -336,6 +344,8 @@ def render_with_remotion(
     storyboard_origin: str | Path | None = None,
     workspace_root: str | Path | None = None,
     content_root: str | Path | None = None,
+    frame_range: tuple[int, int] | None = None,
+    scale: float = 1,
 ) -> RenderResult:
     """用 React composition（Remotion）逐帧渲染并编码成片。
 
@@ -346,6 +356,8 @@ def render_with_remotion(
     """
     started = time.monotonic()
     output_path = Path(output)
+    if not 0 < scale <= 1:
+        raise RenderError("输出缩放比例必须大于 0 且不超过 1")
 
     if media:
         from . import storyboard as sb
@@ -392,14 +404,25 @@ def render_with_remotion(
         declared = contract.contract
         effective_fps = _resolve_fps(declared, storyboard, None)
         width, height = _resolve_dimensions(declared, storyboard)
+        output_width, output_height = round(width * scale), round(height * scale)
+        if output_width % 2 or output_height % 2:
+            raise RenderError(f"缩放后尺寸必须为偶数，当前为 {output_width}×{output_height}")
         total_frames = _resolve_total_frames(declared, storyboard)
         logger.info(
             "composition 契约: %d fps, %d 帧, %dx%d", effective_fps, total_frames, width, height
         )
 
+        if frame_range is not None:
+            start_frame, end_frame = frame_range
+            if start_frame < 0 or end_frame < start_frame or end_frame >= total_frames:
+                raise RenderError(f"全局帧范围无效：{start_frame}-{end_frame}，总帧数 {total_frames}")
+            rendered_frames = end_frame - start_frame + 1
+        else:
+            start_frame = 0
+            rendered_frames = total_frames
         if limit_frames is not None:
-            total_frames = min(total_frames, max(limit_frames, 1))
-            logger.warning("调试模式：仅渲染前 %d 帧", total_frames)
+            rendered_frames = min(rendered_frames, max(limit_frames, 1))
+            logger.warning("调试模式：仅渲染 %d 帧", rendered_frames)
 
         capture_started = time.monotonic()
         remotion.render_frames(
@@ -407,12 +430,14 @@ def render_with_remotion(
             bundle_dir=bundle_dir,
             props=props,
             out=video_path,
-            total_frames=total_frames,
+            total_frames=rendered_frames,
             crf=crf,
             preset=preset,
             # 逐帧渲染按分钟计，命令行给的 timeout 是**页面**超时，
             # 拿它当渲染超时会让正常的大项目渲染被误杀
             timeout_s=max(timeout_ms / 1000 * 60, 3600.0),
+            frame_start=start_frame,
+            scale=scale,
         )
         capture_seconds = time.monotonic() - capture_started
 
@@ -420,12 +445,14 @@ def render_with_remotion(
             video_path=video_path,
             temp=temp,
             output_path=output_path,
-            total_frames=total_frames,
+            total_frames=rendered_frames,
             fps=effective_fps,
-            width=width,
-            height=height,
+            width=output_width,
+            height=output_height,
             media=media,
             probe=probe,
+            frame_start=start_frame,
+            subtitle_offset=start_frame / effective_fps,
         )
 
     entry = directory / remotion.ENTRY_POINT
@@ -435,10 +462,10 @@ def render_with_remotion(
         storyboard_url=storyboard_url,
         storyboard_origin=storyboard_origin,
         workspace_root=workspace_root,
-        frames=total_frames,
+        frames=rendered_frames,
         fps=effective_fps,
-        width=width,
-        height=height,
+        width=output_width,
+        height=output_height,
         capture_format="remotion",
         media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
         renderer=RENDERER_REMOTION,
@@ -451,11 +478,11 @@ def render_with_remotion(
 
     return RenderResult(
         output=output_path,
-        frames=total_frames,
+        frames=rendered_frames,
         fps=effective_fps,
-        width=width,
-        height=height,
-        duration_seconds=total_frames / effective_fps,
+        width=output_width,
+        height=output_height,
+        duration_seconds=rendered_frames / effective_fps,
         capture_seconds=capture_seconds,
         total_seconds=time.monotonic() - started,
         size_bytes=output_path.stat().st_size,

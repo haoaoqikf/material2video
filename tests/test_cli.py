@@ -60,6 +60,22 @@ class TestValidateCommand:
         article = SimpleNamespace(output_dir=tmp_path)
         assert cli._aesthetic_render_gate(storyboard, SimpleNamespace(), article) == "定制动画动态评审待评审"
 
+    def test_final_render_rejects_partial_global_frame_range(self, tmp_path, monkeypatch):
+        cli._force_utf8_output = lambda: None
+        monkeypatch.setattr(cli, "_validated_storyboard", lambda *_args: SimpleNamespace(total_frames=90))
+        monkeypatch.setattr(cli, "_article_for", lambda *_args, **_kwargs: SimpleNamespace(preview_dir=tmp_path))
+        result = cli.main_render(["--storyboard", "storyboard.json", "--purpose", "final",
+                                  "--frame-range", "10-20", "--out", str(tmp_path / "out.mp4")])
+        assert result != 0
+
+    def test_review_render_requires_preview_directory(self, tmp_path, monkeypatch):
+        cli._force_utf8_output = lambda: None
+        monkeypatch.setattr(cli, "_validated_storyboard", lambda *_args: SimpleNamespace(total_frames=90))
+        monkeypatch.setattr(cli, "_article_for", lambda *_args, **_kwargs: SimpleNamespace(preview_dir=tmp_path / "previews"))
+        result = cli.main_render(["--storyboard", "storyboard.json", "--purpose", "review",
+                                  "--out", str(tmp_path / "final.mp4")])
+        assert result != 0
+
     def test_json_output_lists_errors(self, tmp_path, valid_script, capsys):
         valid_script["scenes"][0]["durationInFrames"] = 0
         path = tmp_path / "storyboard.json"

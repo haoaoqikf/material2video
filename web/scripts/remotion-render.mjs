@@ -62,6 +62,9 @@ function parseFrameRange(text) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+if (args.scale !== undefined && (!Number.isFinite(Number(args.scale)) || Number(args.scale) <= 0)) {
+  throw new Error(`--scale 必须是正数，收到 ${args.scale}`);
+}
 
 if (!args.bundle || !args.props) {
   process.stderr.write('remotion-render: 需要 --bundle 与 --props\n');
@@ -114,6 +117,7 @@ if (!args.metadataOnly) {
     // 长片可能被系统关闭并报 Target closed。单并发牺牲吞吐，换取确定的资源上限。
     concurrency: 1,
     frameRange: parseFrameRange(args.frames),
+    scale: args.scale ? Number(args.scale) : 1,
     overwrite: true,
     logLevel: 'error',
     onProgress: ({ progress }) => {

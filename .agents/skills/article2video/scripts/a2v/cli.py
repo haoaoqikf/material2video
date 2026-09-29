@@ -105,6 +105,9 @@ def _build_render_parser() -> argparse.ArgumentParser:
         type=int,
         help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 videos/<slug>/outputs/previews/",
     )
+    parser.add_argument("--frame-range", help="渲染 composition 的全局帧区间 start-end（审片输出）")
+    parser.add_argument("--scale", type=float, default=1, help="输出缩放比例；仅供审片输出降低分辨率")
+    parser.add_argument("--purpose", choices=("final", "review"), default="final", help="输出用途；正式成片执行完整制作闸门")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument("--no-probe", action="store_true", help="跳过成片解码验收")
     _add_engine_argument(parser)
@@ -188,7 +191,16 @@ def main_render(argv: list[str] | None = None) -> int:
 
     try:
         article = _article_for(args, required=True)
-        gate_error = _aesthetic_render_gate(args.storyboard, model, article)
+        frame_range = _parse_frame_range(args.frame_range, model.total_frames) if args.frame_range else None
+        if not 0 < args.scale <= 1:
+            raise A2VError("--scale 只接受大于 0 且不超过 1 的比例")
+        if args.purpose == "review" and (article is None or not Path(args.out or "").resolve().is_relative_to(article.preview_dir.resolve())):
+            raise A2VError("审片输出必须写入作品 outputs/previews/ 目录")
+        if args.purpose == "final" and args.scale != 1:
+            raise A2VError("正式成片固定使用分镜原始尺寸；--scale 仅用于 --purpose review")
+        if args.purpose == "final" and args.frame_range:
+            raise A2VError("局部帧区间只允许用于评审输出；正式成片必须渲染完整时间轴")
+        gate_error = None if args.purpose == "review" else _aesthetic_render_gate(args.storyboard, model, article, args.media)
         if gate_error:
             logging.error("渲染前审美门禁：%s", gate_error)
             return _EXIT_INVALID_INPUT
@@ -214,6 +226,8 @@ def main_render(argv: list[str] | None = None) -> int:
                 storyboard_origin=args.storyboard,
                 workspace_root=article.workspace_root if article else None,
                 content_root=args.content_root,
+                frame_range=frame_range,
+                scale=args.scale,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
@@ -226,13 +240,20 @@ def main_render(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None) -> str | None:
+def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None, media_path: str | Path | None = None) -> str | None:
     """所有 v3 分镜必须先有通过的审美体检。"""
     raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
-    if raw.get("directingVersion") != 1:
-        return None
     if article is None:
         return "无法定位作品输出目录，请提供有效内容根"
+    if isinstance(article, paths_mod.ArticlePaths):
+        from . import production
+        try:
+            current = production.current_fingerprints(storyboard_path, media_path, article)
+        except A2VError as exc:
+            return str(exc)
+        production_error = production.gate(production.record_path(article), json.loads(Path(storyboard_path).read_text(encoding="utf-8")), current)
+        if production_error:
+            return production_error
     report_path = article.output_dir / "inspect" / "report.json"
     review_path = article.output_dir / "inspect" / "review.md"
     if not report_path.is_file():
@@ -254,6 +275,17 @@ def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, ar
     if "- 是否值得发布：通过" not in review:
         return "review.md 尚未填写“是否值得发布：通过”"
     return None
+
+
+def _parse_frame_range(text: str, total_frames: int) -> tuple[int, int]:
+    import re
+    match = re.fullmatch(r"(\d+)-(\d+)", text)
+    if not match:
+        raise A2VError(f"--frame-range 需要 start-end 格式，收到 {text!r}")
+    start, end = map(int, match.groups())
+    if start > end or end >= total_frames:
+        raise A2VError(f"全局帧区间 {start}-{end} 超出分镜范围 0-{total_frames - 1}")
+    return start, end
 
 
 def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | None:

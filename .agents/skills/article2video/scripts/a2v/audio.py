@@ -65,7 +65,7 @@ def concatenate(parts: list[tuple[Path | None, int]], fps: int, output: Path) ->
                 written += size
 
 
-def mux(video: Path, audio: Path, output: Path, duration: float) -> None:
+def mux(video: Path, audio: Path, output: Path, duration: float, start: float = 0) -> None:
     """把无声画面与配音合成为最终成片。
 
     音频统一转成 44.1kHz 立体声 AAC-LC：配音本身是 24kHz 单声道，但 24kHz 单声道
@@ -73,7 +73,7 @@ def mux(video: Path, audio: Path, output: Path, duration: float) -> None:
     而 44.1kHz 立体声是兼容性最好、各平台都默认支持的组合。
     画面用 -c:v copy 原样复制，不做二次编码。
     """
-    ffmpeg(["-i", str(video), "-i", str(audio), "-map", "0:v:0", "-map", "1:a:0",
+    ffmpeg(["-i", str(video), "-ss", str(start), "-i", str(audio), "-map", "0:v:0", "-map", "1:a:0",
             "-c:v", "copy", "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "128k",
             "-ar", "44100", "-ac", "2",
             "-t", str(duration),

@@ -12,7 +12,7 @@
 
 ### 1. 制作记录与渲染分镜分离
 
-新增 `production.py` CLI，提供 `status`、`keyframes`、`samples`、`rehearsal` 子命令，共用 `--storyboard`、`--content-root`，有声输出使用 `--media`。记录写入作品根的 `production.json`，版本为 1；审美解释和既有评分继续保留在 `outputs/inspect/review.md`。JSON 保存阶段声明、关键幕角色映射、逐幕起始/变化/结果、快慢安排、材料路径及指纹、评审结论与返工项，作为正式闸门的结构化证据。两者的重复状态不各自维护：新流程状态以 JSON 为准，既有评分从现有评审解析器取得。
+新增 `production.py` CLI，提供 `status`、`template`、`keyframes`、`samples`、`rehearsal` 子命令，共用 `--storyboard`、`--content-root`，有声输出使用 `--media`。记录写入作品根的 `production.json`，版本为 1；示例作品的运行记录放在对应的忽略目录 `videos/examples/<slug>/`，不污染已入库示例源目录。审美解释和既有评分继续保留在 `outputs/inspect/review.md`。JSON 保存阶段声明、关键幕角色映射、逐幕起始/变化/结果、快慢安排、材料路径及指纹、评审结论与返工项，作为正式闸门的结构化证据。生成材料只更新 `materials` 的出处，不替评审者写入通过结论。两者的重复状态不各自维护：新流程状态以 JSON 为准，既有评分从现有评审解析器取得。
 
 关键幕草稿保持有效 v3：先完成内容幕序与口播，未试制场景可以采用有效临时画面并明确处于草稿阶段；只评审选定关键幕，不宣称其余幕已完成。没有记录时查询返回初始化模板和下一步说明，不修改分镜。模板由文档提供，评审者填写；未知字段、无效场景或材料缺失报告字段路径。采用独立记录而非升级分镜 schema，保持离线渲染契约稳定。
 
