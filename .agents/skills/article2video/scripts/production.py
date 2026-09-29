@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -46,7 +47,9 @@ def main(argv: list[str] | None = None) -> int:
             current = production.current_fingerprints(args.storyboard, None, article)
             current["media"] = "stale"
         if args.command == "template":
-            payload = json.dumps(production.initialize_template(raw, current), ensure_ascii=False, indent=2) + "\n"
+            record = production.initialize_template(raw, current)
+            record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
+            payload = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
             if args.out:
                 target = Path(args.out).resolve()
                 if target != record_file.resolve():
@@ -55,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"制作记录模板已写入：{target}")
             else:
                 print(payload, end="")
+            print("AI 助手请读取 motion-design.md 与实际评审画面，自动完成导演计划及带材料摘要的 AI 评审。")
             return 0
         if args.command == "keyframes":
             from a2v.cli import main_review
@@ -112,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             # Keep status useful while a creator is still filling the generated
             # template; render and sample commands continue to require a valid record.
             record = json.loads(record_file.read_text(encoding="utf-8"))
-        rows = production.status_rows(record, raw, current)
+        rows = production.status_rows(record, raw, current, record_file)
         from a2v.cli import _aesthetic_render_gate
         legacy_gate = None if rows and rows[0]["stage"] == "导演规划" else _aesthetic_render_gate(
             args.storyboard, model, article, args.media

@@ -1035,7 +1035,7 @@ def _provenance_lines(provenance: dict | None) -> list[str]:
 
 
 def _review_summary(payload: dict, out_dir: Path) -> str:
-    """终端摘要 + 人工评审清单。分数不给自动结论，只把该看的摆出来。"""
+    """终端摘要与 AI 助手后续视觉评审指引。"""
     lines = [
         f"体检完成：{payload['frameCount']} 帧抽检，"
         f"{payload['summary']['errors']} 个错误，{payload['summary']['warnings']} 个提醒",
@@ -1069,7 +1069,7 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
 
     lines.extend(_provenance_lines(payload.get("provenance")))
 
-    lines.append("接下来需要人（或视觉模型）看的：见 references/visual-review-rubric.md")
+    lines.append("接下来由 article2video AI 助手按 references/visual-review-rubric.md 查看画面并填写制作记录。")
     return "\n".join(lines)
 
 

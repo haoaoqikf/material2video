@@ -51,6 +51,11 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
     article = paths.for_storyboard(source, content_root)
     current = production.current_fingerprints(source, media_path, article)
     record = production.initialize_template(raw, current)
+    record["materials"] = {
+        name: {"path": f"outputs/{name}", "sha256": {"keyframes": "a", "samples": "b", "rehearsal": "c"}[name] * 64,
+               "fingerprints": current}
+        for name in ("keyframes", "samples", "rehearsal")
+    }
     scenes = raw.get("scenes", [])
     ids = [str(scene.get("id", "")) for scene in scenes]
     if not ids:
@@ -64,19 +69,22 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
         for scene_id in ids
     }
 
-    def passing(kind: str) -> dict:
+    def passing(kind: str, full: bool = False) -> dict:
+        material = "keyframes" if kind == "static" else ("rehearsal" if full else "samples")
         return {
             "status": "pass",
             "dimensions": {name: {"status": "pass", "evidence": "渲染测试夹具"}
                            for name in production.REVIEW_DIMENSIONS[kind]},
             "evidence": "渲染测试夹具",
+            "assessment": {"reviewer": "ai", "model": "test", "session": "test-session",
+                           "materials": {material: {"keyframes": "a", "samples": "b", "rehearsal": "c"}[material] * 64}},
         }
 
     record["reviews"]["keyScenes"] = {
         scene_id: {"static": passing("static"), "dynamic": passing("dynamic")}
         for scene_id in set(record["direction"]["keyScenes"].values())
     }
-    record["reviews"]["full"] = {kind: passing(kind) for kind in ("static", "dynamic")}
+    record["reviews"]["full"] = {kind: passing(kind, full=True) for kind in ("static", "dynamic")}
     target = production.record_path(article)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

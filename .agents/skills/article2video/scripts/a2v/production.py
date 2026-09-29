@@ -1,7 +1,9 @@
 """作品制作记录、版本依赖和正式渲染闸门。"""
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -55,8 +57,8 @@ def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None]) ->
         "reviews": {
             "keyScenes": {},
             "full": {
-                "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": ""},
-                "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": ""},
+                "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": "", "assessment": None},
+                "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": "", "assessment": None},
             },
         },
         "materials": {"keyframes": None, "samples": None, "rehearsal": None},
@@ -68,8 +70,8 @@ def initialize_template(storyboard: dict[str, Any], fingerprints: dict[str, str 
     result = template(storyboard, fingerprints)
     result["reviews"]["keyScenes"] = {
         scene_id: {
-            "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": ""},
-            "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": ""},
+            "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": "", "assessment": None},
+            "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": "", "assessment": None},
         }
         # Provide review slots for every scene so a creator can assign roles
         # after generating the template without making the record invalid.
@@ -173,6 +175,29 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
         if item is not None and (not isinstance(item, dict) or not isinstance(item.get("path"), str)
                                  or not isinstance(item.get("fingerprints"), dict)):
             fail(f"materials.{name}", "必须包含材料路径和生成时的指纹")
+        if item is not None:
+            digest = item.get("sha256")
+            if digest is not None and not _valid_sha256(digest):
+                fail(f"materials.{name}.sha256", "必须是 SHA-256 十六进制摘要")
+            files = item.get("files", {})
+            if not isinstance(files, dict) or any(not isinstance(key, str) or not _valid_sha256(value)
+                                                   for key, value in files.items()):
+                fail(f"materials.{name}.files", "必须是文件名到 SHA-256 摘要的映射")
+    for scope_name, scope in [(f"reviews.keyScenes.{scene}", reviews["keyScenes"][scene])
+                              for scene in set(roles.values())] + [("reviews.full", reviews["full"])]:
+        for kind in ("static", "dynamic"):
+            result = scope[kind]
+            assessment = result.get("assessment") if isinstance(result, dict) else None
+            if assessment is None:
+                continue  # 旧记录继续可读，门禁会拒绝其无来源的通过结论。
+            used = assessment.get("materials", {})
+            if isinstance(used, dict):
+                for material_name, digest in used.items():
+                    item = materials.get(material_name)
+                    if (material_name not in {"keyframes", "samples", "rehearsal"}
+                            or not isinstance(item, dict) or not _valid_sha256(digest)):
+                        fail(f"{scope_name}.{kind}.assessment.materials.{material_name}",
+                             "引用材料类别无效，摘要必须是 SHA-256 十六进制值")
     if not isinstance(issues, list):
         fail("rework", "必须是返工项数组")
     seen: set[str] = set()
@@ -228,6 +253,84 @@ def _validate_review(review: dict[str, Any], where: str, fail: Any) -> None:
             fail(f"{where}.{kind}.status", f"应根据逐维结论填写 {expected}")
         if result["status"] != "pending" and not result["evidence"].strip():
             fail(f"{where}.{kind}.evidence", "完成的评审必须有整体依据")
+        assessment = result.get("assessment")
+        if assessment is not None:
+            if not isinstance(assessment, dict) or assessment.get("reviewer") != "ai":
+                fail(f"{where}.{kind}.assessment.reviewer", "只接受带来源声明的 ai 评审")
+            for field in ("model", "session"):
+                if not isinstance(assessment.get(field), str) or not assessment[field].strip():
+                    fail(f"{where}.{kind}.assessment.{field}", "AI 评审来源必填")
+            used = assessment.get("materials")
+            if not isinstance(used, dict) or not used:
+                fail(f"{where}.{kind}.assessment.materials", "必须引用实际查看的评审材料摘要")
+            if result["status"] != "pending" and not _assessment_has_required_materials(assessment, where, kind, fail):
+                return
+
+
+def _assessment_has_required_materials(assessment: dict[str, Any], where: str, kind: str, fail: Any) -> bool:
+    required = {"static": {"keyframes"}, "dynamic": {"rehearsal" if where == "reviews.full" else "samples"}}[kind]
+    used = assessment.get("materials", {})
+    for material in required:
+        digest = used.get(material)
+        if not isinstance(digest, str) or not digest:
+            fail(f"{where}.{kind}.assessment.materials.{material}", "已完成 AI 评审必须引用该类画面材料")
+            return False
+    return True
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _valid_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value.lower())
+
+
+def _material_root(record: dict[str, Any], record_file: str | Path | None) -> Path | None:
+    relative = record.get("materialRoot")
+    if not isinstance(relative, str) or record_file is None:
+        return None
+    return (Path(record_file).resolve().parent / relative).resolve()
+
+
+def _material_issue(review: dict[str, Any], kind: str, materials: dict[str, Any],
+                    material_root: Path | None, current: dict[str, str | None], where: str) -> str | None:
+    assessment = review.get("assessment")
+    if review.get("status") != "pass":
+        return None
+    if not isinstance(assessment, dict) or assessment.get("reviewer") != "ai":
+        return f"{where}缺少 AI 评审来源；请检查当前画面并补充 assessment"
+    used = assessment.get("materials", {})
+    required = {"keyframes"} if kind == "static" else {"samples"}
+    if where == "全片有声动态评审":
+        required = {"rehearsal"}
+    for name in required:
+        entry = materials.get(name)
+        if not isinstance(entry, dict) or not isinstance(entry.get("sha256"), str):
+            return f"{where}缺少 {name} 评审材料摘要"
+        if used.get(name) != entry["sha256"]:
+            return f"{where}引用的 {name} 摘要与登记材料不一致"
+        if material_root is not None:
+            source = (material_root / str(entry.get("path", ""))).resolve()
+            if not source.is_relative_to(material_root.resolve()):
+                return f"{where}的 {name} 材料路径越出工作区"
+            if not source.is_file() or _file_sha256(source) != entry["sha256"]:
+                return f"{where}使用的 {name} 材料已缺失或摘要已变化"
+            for filename, digest in entry.get("files", {}).items():
+                member = (source.parent / filename).resolve()
+                if not member.is_relative_to(source.parent.resolve()):
+                    return f"{where}的 {name} 视频材料路径无效：{filename}"
+                if not member.is_file() or _file_sha256(member) != digest:
+                    return f"{where}引用的 {name} 视频材料已缺失或摘要已变化：{filename}"
+        bound = entry.get("fingerprints", {})
+        bound_keys = ("storyboard", "assets") if kind == "static" else ("storyboard", "assets", "media")
+        if any(bound.get(key) != current.get(key) for key in bound_keys):
+            return f"{where}的 {name} 材料输入版本已过期"
+    return None
 
 
 def review_current(record: dict[str, Any], current: dict[str, str | None], kind: str) -> bool:
@@ -251,7 +354,26 @@ def attach_material(record_file: str | Path, article: paths.ArticlePaths, name: 
         relative = target.relative_to(article.workspace_root.resolve()).as_posix()
     except ValueError as exc:
         raise A2VError(f"评审材料不在工作区内：{target}") from exc
-    record.setdefault("materials", {})[name] = {"path": relative, "fingerprints": fingerprints}
+    item: dict[str, Any] = {"path": relative, "fingerprints": fingerprints, "sha256": _file_sha256(target)}
+    if target.suffix.lower() == ".json":
+        try:
+            manifest = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            manifest = None
+        files: dict[str, str] = {}
+        outputs = manifest.get("outputs") if isinstance(manifest, dict) else None
+        if isinstance(outputs, list):
+            for output in outputs:
+                filename = output.get("file") if isinstance(output, dict) else None
+                candidate = target.parent / filename if isinstance(filename, str) else None
+                if (candidate is not None and candidate.resolve().is_relative_to(target.parent.resolve())
+                        and candidate.is_file()):
+                    files[filename] = _file_sha256(candidate)
+        if files:
+            item["files"] = files
+    record.setdefault("materials", {})[name] = item
+    if not record.get("materialRoot"):
+        record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), source.parent.resolve())
     temporary = source.with_suffix(source.suffix + ".tmp")
     temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(source)
@@ -270,6 +392,7 @@ def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | 
     changed = [key for key in ("storyboard", "assets") if current.get(key) is not None and stored.get(key) != current.get(key)]
     if changed:
         return f"制作评审已过期（输入变化：{'、'.join(changed)}）；请更新指纹、重新生成材料并复评"
+    material_root = _material_root(record, record_file)
     roles = set(record["direction"]["keyScenes"].values())
     for scene_id in roles:
         review = record["reviews"]["keyScenes"][scene_id]
@@ -277,22 +400,34 @@ def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | 
             return f"关键幕 {scene_id} 尚未通过静态和动态评审"
         if not review_current(record, current, "static") or not review_current(record, current, "dynamic"):
             return f"关键幕 {scene_id} 的评审已过期"
+        for kind in ("static", "dynamic"):
+            issue = _material_issue(review[kind], kind, record.get("materials", {}), material_root, current,
+                                    f"关键幕 {scene_id} {kind} 评审")
+            if issue:
+                return issue
     if not review_current(record, current, "static") or record["reviews"]["full"]["static"]["status"] != "pass":
         return "全片静态评审缺失、未通过或已过期"
     if not review_current(record, current, "dynamic") or record["reviews"]["full"]["dynamic"]["status"] != "pass":
         return "全片有声动态评审缺失、未通过或已过期"
+    for kind in ("static", "dynamic"):
+        issue = _material_issue(record["reviews"]["full"][kind], kind, record.get("materials", {}),
+                                material_root, current,
+                                "全片有声动态评审" if kind == "dynamic" else "全片静态评审")
+        if issue:
+            return issue
     open_required = [item["id"] for item in record["rework"] if item["severity"] == "required" and item["status"] != "resolved"]
     if open_required:
         return "存在未解决的必改项：" + "、".join(open_required)
     return None
 
 
-def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], current: dict[str, str | None]) -> list[dict[str, str]]:
+def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], current: dict[str, str | None],
+                record_file: str | Path | None = None) -> list[dict[str, str]]:
     if record is None:
         return [{"stage": "制作记录", "status": "blocked", "detail": "尚未创建 production.json",
                  "nextCommand": "production.py template --storyboard <分镜> [--media <媒体清单>] --out <作品目录>/production.json"},
                 {"stage": "关键幕试制", "status": "pending", "detail": "指定开场、核心论证与高潮场景",
-                 "nextCommand": "编辑 production.json 的 direction.keyScenes 与 direction.scenePlans"}]
+                 "nextCommand": "让 article2video AI 助手读取分镜与 motion-design.md 自动填写 direction"}]
     rows: list[dict[str, str]] = []
     if not isinstance(record, dict):
         return [{"stage": "制作记录", "status": "blocked", "detail": "production.json 必须是 JSON 对象",
@@ -309,11 +444,11 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
     if missing_roles:
         rows.append({"stage": "导演规划", "status": "pending",
                      "detail": "待指定有效场景：" + "、".join(missing_roles),
-                     "nextCommand": "编辑 production.json 的 direction.keyScenes"})
+                     "nextCommand": "让 article2video AI 助手根据分镜自动选择开场、核心与高潮场景"})
         return rows
     if not str(plan.get("pace", "")).strip():
         rows.append({"stage": "导演规划", "status": "pending", "detail": "缺少全片快慢安排",
-                     "nextCommand": "填写 production.json 的 direction.pace"})
+                     "nextCommand": "让 article2video AI 助手根据 visualDirection 与 beats 填写全片节奏"})
         return rows
     scene_plans = plan.get("scenePlans") if isinstance(plan.get("scenePlans"), dict) else {}
     missing_plans = [scene for scene in known if not isinstance(scene_plans.get(scene), dict)
@@ -322,7 +457,7 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
     if missing_plans:
         rows.append({"stage": "导演规划", "status": "pending",
                      "detail": "起始/变化/结果未完成：" + "、".join(sorted(missing_plans)),
-                     "nextCommand": "编辑 production.json 的 direction.scenePlans"})
+                     "nextCommand": "让 article2video AI 助手根据 beats 与 motion-design.md 补齐逐幕计划"})
         return rows
     roles = plan.get("keyScenes", {})
     for role, scene_id in roles.items():
@@ -339,28 +474,44 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
         ) else "pending"
         if state == "passed" and not all(review_current(record, current, kind) for kind in ("static", "dynamic")):
             state = "stale"
+        detail = str(scene_id)
+        if state == "passed":
+            for kind in ("static", "dynamic"):
+                problem = _material_issue(item[kind], kind, record.get("materials", {}),
+                                          _material_root(record, record_file), current,
+                                          f"关键幕 {scene_id} {kind} 评审")
+                if problem:
+                    state, detail = "stale", problem
+                    break
         next_command = "已通过" if state == "passed" else "production.py samples --storyboard <分镜> --media <媒体清单>"
-        rows.append({"stage": f"关键幕:{role}", "status": state, "detail": str(scene_id), "nextCommand": next_command})
+        rows.append({"stage": f"关键幕:{role}", "status": state, "detail": detail, "nextCommand": next_command})
     for kind, label in (("static", "全片静态评审"), ("dynamic", "全片有声动态评审")):
         review = record.get("reviews", {}).get("full", {}).get(kind, {})
         state = review.get("status", "pending")
         if state == "pass" and not review_current(record, current, kind):
             state = "stale"
+        detail = str(review.get("evidence", ""))
+        if state == "pass":
+            problem = _material_issue(review, kind, record.get("materials", {}), _material_root(record, record_file),
+                                      current, "全片有声动态评审" if kind == "dynamic" else "全片静态评审")
+            if problem:
+                state, detail = "stale", problem
         next_command = "已通过" if state == "pass" else (
             "production.py rehearsal --storyboard <分镜> --media <媒体清单>"
             if kind == "dynamic" else "production.py keyframes --storyboard <分镜>")
-        rows.append({"stage": label, "status": state, "detail": str(review.get("evidence", "")), "nextCommand": next_command})
+        rows.append({"stage": label, "status": state, "detail": detail, "nextCommand": next_command})
     issues = record.get("rework", [])
     open_items = [item["id"] for item in issues if item.get("severity") == "required" and item.get("status") != "resolved"]
     rows.append({"stage": "定向返工", "status": "blocked" if open_items else "not-required", "detail": "、".join(open_items) if open_items else "无未解决必改项",
                  "nextCommand": "处理并复查 production.json 中的必改项" if open_items else "无需返工"})
-    problem = gate_for_status(record, storyboard, current)
+    problem = gate_for_status(record, storyboard, current, record_file)
     rows.append({"stage": "正式渲染", "status": "passed" if problem is None else "blocked", "detail": problem or "评审记录有效",
                  "nextCommand": "render.py --storyboard <分镜> --media <媒体清单>" if problem is None else "完成上述阻塞项后复查状态"})
     return rows
 
 
-def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current: dict[str, str | None]) -> str | None:
+def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current: dict[str, str | None],
+                    record_file: str | Path | None = None) -> str | None:
     try:
         validate_record(record, {str(item.get("id", "")) for item in storyboard.get("scenes", [])})
     except A2VError as exc:
@@ -376,8 +527,20 @@ def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current:
             return f"关键幕 {scene_id} 尚未通过静态和动态评审"
         if not review_current(record, current, "static") or not review_current(record, current, "dynamic"):
             return f"关键幕 {scene_id} 的评审已过期"
+        material_root = _material_root(record, record_file)
+        for kind in ("static", "dynamic"):
+            issue = _material_issue(review[kind], kind, record.get("materials", {}), material_root, current,
+                                    f"关键幕 {scene_id} {kind} 评审")
+            if issue:
+                return issue
     if any(record["reviews"]["full"][kind]["status"] != "pass" or not review_current(record, current, kind) for kind in ("static", "dynamic")):
         return "全片静态和有声动态评审需通过且仍有效"
+    material_root = _material_root(record, record_file)
+    for kind in ("static", "dynamic"):
+        issue = _material_issue(record["reviews"]["full"][kind], kind, record.get("materials", {}), material_root,
+                                current, "全片有声动态评审" if kind == "dynamic" else "全片静态评审")
+        if issue:
+            return issue
     if any(item["severity"] == "required" and item["status"] != "resolved" for item in record["rework"]):
         return "存在未解决的必改项"
     return None

@@ -39,7 +39,24 @@ uv run python .agents/skills/article2video/scripts/review.py \
 A 系列只约束声明了 `narrationSegments` 的幕；字符串口播由 v3 校验拒绝，
 无声预览下 A4（字幕同步）也记为「跳过」——跳过不等于通过。
 
-使用 `production.py` 时，还要逐项记录全片与关键幕的静态、动态评审结论。静态维度为主体尺度、连续构图重复、信息密度、视觉母题和高潮分量；动态维度为动作解释力、口播同步、节奏变化和结果停留。每个维度选 `pass`、`fail` 或 `pending`，已判定的结论必须写可观察依据。脚本只核对字段、依据和输入指纹，不替人判断审美。
+article2video Skill 的 AI 助手负责自动填写导演计划和 `production.json` 评审。先读文章、分镜、`motion-design.md` 与 `report.json`，再亲自打开联系表、关键幕样片和全片有声评审版；必须查看实际画面，不能从分镜、脚本报告或文件存在推断画面通过。静态维度为主体尺度、连续构图重复、信息密度、视觉母题和高潮分量；动态维度为动作解释力、口播同步、节奏变化和结果停留。每维选 `pass`、`fail` 或 `pending`，已判定项的依据须定位到场景与帧号/时间。缺材料、打不开或证据不足时留为 `pending`。每条已完成评审均写 `assessment`：`reviewer: "ai"`、`model`、`session` 和材料类别摘要；静态引用 `keyframes`，关键幕动态引用 `samples`，全片动态引用 `rehearsal`。材料摘要由 `production.py` 登记，必须逐字引用对应 `materials.*.sha256`。脚本验证来源结构、材料摘要和输入指纹，但不替 AI 判断审美。
+
+来源字段形状示例；占位摘要须从当前记录的对应 `materials.*.sha256` 复制：
+
+```json
+{
+  "assessment": {
+    "reviewer": "ai",
+    "model": "Codex current-session model",
+    "session": "Codex session 2026-09-29",
+    "materials": {
+      "keyframes": "<materials.keyframes.sha256>"
+    }
+  }
+}
+```
+
+AI 同时在 `review.md` 填写 V6 图形论证与 A6 装饰动画评分及候选裁决；这些字段仍是 `review.py` 的审美门禁输入，须按实际联系表与视频证据逐条作结论。AI 评审可满足发布门禁，但结论和来源会保存在作品本地记录中供复核。旧记录仍可读，无来源的历史通过不能用于新渲染。
 
 任一失败项都要在作品根的 `production.json` 增加返工项，填写 `id`、`sceneIds`（全片问题使用空数组）、`dimension`、`problem`、`direction`、`returnStage`、`severity` 与 `status`。必改项只能在修改版本复查通过并填写 `recheck.evidence` 和与记录当前值一致的 `recheck.fingerprints` 后设为 `resolved`。修改分镜或共享渲染资产会使所有评审过期；静态联系表按分镜声明时间轴生成，不读媒体，配音变化只使动态评审过期。重新生成材料不会自动通过。
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pytest
 from types import SimpleNamespace
 from pathlib import Path
@@ -12,6 +13,11 @@ from conftest import make_project
 def _ready_record() -> dict:
     storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
     value = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": "m"})
+    value["materials"] = {
+        name: {"path": f"outputs/{name}", "sha256": {"keyframes": "a", "samples": "b", "rehearsal": "c"}[name] * 64,
+               "fingerprints": {"storyboard": "s", "assets": "a", "media": "m"}}
+        for name in ("keyframes", "samples", "rehearsal")
+    }
     value["direction"]["keyScenes"] = {"opening": "open", "core": "core", "climax": "close"}
     value["direction"]["pace"] = "开场慢、推理加速、高潮停留"
     for scene in storyboard["scenes"]:
@@ -19,25 +25,33 @@ def _ready_record() -> dict:
     value["reviews"]["keyScenes"] = {}
     for scene_id in {"open", "core", "close"}:
         value["reviews"]["keyScenes"][scene_id] = _passing_review()
-    value["reviews"]["full"] = _passing_review()
+    value["reviews"]["full"] = _passing_review(full=True)
     return value
 
 
-def _passing_review() -> dict:
-    return {
-        kind: {
+def _passing_review(full: bool = False) -> dict:
+    reviews = {}
+    for kind in ("static", "dynamic"):
+        material_name = "keyframes" if kind == "static" else ("rehearsal" if full else "samples")
+        reviews[kind] = {
             "status": "pass",
             "dimensions": {name: {"status": "pass", "evidence": "联系表/有声样片中可观察到对应结果"}
                            for name in production.REVIEW_DIMENSIONS[kind]},
             "evidence": "逐幕核对，相关画面与口播一致",
+            "assessment": {"reviewer": "ai", "model": "Codex current-session", "session": "test-session",
+                           "materials": {material_name: {"keyframes": "a", "samples": "b", "rehearsal": "c"}[material_name] * 64}},
         }
-        for kind in ("static", "dynamic")
-    }
+    return reviews
 
 
 def test_template_deduplicates_key_scene_review_slots() -> None:
     storyboard = {"scenes": [{"id": "one"}, {"id": "two"}, {"id": "three"}]}
     template = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": None})
+    template["materials"] = {
+        name: {"path": f"outputs/{name}", "sha256": {"keyframes": "a", "samples": "b", "rehearsal": "c"}[name] * 64,
+               "fingerprints": {"storyboard": "s", "assets": "a", "media": None}}
+        for name in ("keyframes", "samples", "rehearsal")
+    }
     template["direction"]["keyScenes"] = {"opening": "one", "core": "one", "climax": "two"}
     template["reviews"]["keyScenes"] = {scene: _passing_review() for scene in {"one", "two"}}
     template["direction"]["pace"] = "先慢后快"
@@ -172,6 +186,7 @@ def test_attaching_material_records_path_and_fingerprint_without_changing_review
     production.attach_material(record_file, article, "keyframes", material, {"storyboard": "s", "assets": "a", "media": None})
     stored = json.loads(record_file.read_text(encoding="utf-8"))
     assert stored["materials"]["keyframes"]["path"] == "outputs/keyframes.png"
+    assert len(stored["materials"]["keyframes"]["sha256"]) == 64
     assert stored["reviews"] == record["reviews"]
 
 
@@ -191,4 +206,84 @@ def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:
     rows = production.status_rows(record, storyboard, {"storyboard": "s", "assets": "a", "media": None})
     assert rows[0]["stage"] == "导演规划"
     assert rows[0]["status"] == "pending"
-    assert "direction.keyScenes" in rows[0]["nextCommand"]
+    assert "AI 助手" in rows[0]["nextCommand"]
+
+
+def test_completed_review_requires_ai_source_and_visual_material_references() -> None:
+    record = _ready_record()
+    record["reviews"]["full"]["static"].pop("assessment")
+    assert production.validate_record(record, {"open", "core", "close"}) is None
+    issue = production.gate_for_status(record, {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]},
+                                      {"storyboard": "s", "assets": "a", "media": "m"})
+    assert "缺少 AI 评审来源" in issue
+
+    record = _ready_record()
+    record["reviews"]["full"]["static"]["assessment"]["materials"].pop("keyframes")
+    with pytest.raises(A2VError, match=r"assessment\.materials"):
+        production.validate_record(record, {"open", "core", "close"})
+
+
+def test_gate_blocks_unregistered_or_stale_visual_material(tmp_path: Path) -> None:
+    storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
+    current = {"storyboard": "s", "assets": "a", "media": "m"}
+    record = _ready_record()
+    record["reviews"]["full"]["static"]["assessment"]["materials"]["keyframes"] = "wrong-digest"
+    assert "摘要" in production.gate_for_status(record, storyboard, current)
+
+    record = _ready_record()
+    record["materials"]["rehearsal"]["fingerprints"]["media"] = "old-media"
+    assert "材料输入版本已过期" in production.gate_for_status(record, storyboard, current)
+
+    root = tmp_path / "workspace"
+    record_dir = root / "videos" / "demo"
+    record_dir.mkdir(parents=True)
+    material = root / "outputs" / "keyframes.png"
+    material.parent.mkdir()
+    material.write_bytes(b"original")
+    import hashlib
+    digest = hashlib.sha256(b"original").hexdigest()
+    record["materialRoot"] = os.path.relpath(root, record_dir)
+    record["materials"]["keyframes"].update({"path": "outputs/keyframes.png", "sha256": digest})
+    record["reviews"]["full"]["static"]["assessment"]["materials"]["keyframes"] = digest
+    for scene_review in record["reviews"]["keyScenes"].values():
+        scene_review["static"]["assessment"]["materials"]["keyframes"] = digest
+    material.write_bytes(b"replaced")
+    assert "摘要已变化" in production.gate_for_status(record, storyboard, current, record_dir / "production.json")
+
+
+def test_sample_manifest_tracks_and_checks_video_file_digest(tmp_path: Path) -> None:
+    import json
+    import hashlib
+
+    root = tmp_path / "workspace"
+    record_dir = root / "videos" / "demo"
+    record_dir.mkdir(parents=True)
+    record_file = record_dir / "production.json"
+    video = root / "outputs" / "key-scene.mp4"
+    video.parent.mkdir(parents=True)
+    video.write_bytes(b"sample-frame-data")
+    manifest = video.parent / "samples.json"
+    manifest.write_text(json.dumps({"outputs": [{"file": video.name}]}), encoding="utf-8")
+    record = _ready_record()
+    keyframes = root / "outputs" / "keyframes.png"
+    keyframes.write_bytes(b"keyframe")
+    keyframes_digest = hashlib.sha256(b"keyframe").hexdigest()
+    record["materials"]["keyframes"].update({"path": "outputs/keyframes.png", "sha256": keyframes_digest})
+    record["reviews"]["full"]["static"]["assessment"]["materials"]["keyframes"] = keyframes_digest
+    for item in record["reviews"]["keyScenes"].values():
+        item["static"]["assessment"]["materials"]["keyframes"] = keyframes_digest
+    record_file.write_text(json.dumps(record), encoding="utf-8")
+    article = SimpleNamespace(workspace_root=root)
+
+    production.attach_material(record_file, article, "samples", manifest,
+                               {"storyboard": "s", "assets": "a", "media": "m"})
+    stored = json.loads(record_file.read_text(encoding="utf-8"))
+    assert stored["materials"]["samples"]["files"][video.name] == hashlib.sha256(b"sample-frame-data").hexdigest()
+
+    updated_digest = stored["materials"]["samples"]["sha256"]
+    for item in stored["reviews"]["keyScenes"].values():
+        item["dynamic"]["assessment"]["materials"]["samples"] = updated_digest
+    video.write_bytes(b"replaced-video")
+    issue = production.gate_for_status(stored, {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]},
+                                       {"storyboard": "s", "assets": "a", "media": "m"}, record_file)
+    assert "视频材料已缺失或摘要已变化" in issue
