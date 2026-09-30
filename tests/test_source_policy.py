@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from a2v import source_policy
@@ -11,9 +10,7 @@ def _scan(tmp_path: Path, name: str, source: str):
     target = web / "src" / name
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(source, encoding="utf-8")
-    (web / "src/third-party").mkdir(parents=True, exist_ok=True)
-    (web / "src/third-party/catalog.json").write_text("[]", encoding="utf-8")
-    return source_policy.scan(web, [target])
+    return source_policy.scan([target])
 
 
 def test_rejects_animation_library_entry(tmp_path):
@@ -58,31 +55,15 @@ def test_rejects_effect_timer(tmp_path):
     assert any(item.rule == "计时器" for item in found)
 
 
-def test_classified_css_requires_the_frame_wrapper(tmp_path):
-    third = tmp_path / "src/third-party"
-    third.mkdir(parents=True)
-    source = third / "Demo.tsx"
-    styles = third / "demo.css"
-    source.write_text("export const Demo = () => null;", encoding="utf-8")
-    styles.write_text("@keyframes x {} .x { animation: x 1s infinite; }", encoding="utf-8")
-    (third / "catalog.json").write_text(json.dumps([{
-        "id": "demo", "classification": "css-keyframes", "status": "representative",
-        "source": "src/third-party/Demo.tsx", "styles": "src/third-party/demo.css"
-    }]), encoding="utf-8")
-    found = source_policy.scan(tmp_path, [])
-    assert any(item.rule == "CSS 动画未经过帧同步包装" for item in found)
+def test_scan_passes_on_repository_composition_sources():
+    """仓库的可达源码整体通过闸门。
 
-
-def test_repository_has_no_third_party_representative_and_scan_passes():
-    """仓库内的第三方目录已随整页组件路径移除；策略对缺席目录要优雅放行。
-
-    v2 场景树不允许第三方组件参与画面，catalog.json 不再存在：
-    load_catalog 返回空表，composition 可达源码的扫描照常执行并通过。
+    第三方组件接入路径（`web/src/third-party/` 与分类表）已随场景树架构移除；
+    这里同时守住「它没有被重新引入」——闸门本身不再有读分类表的分支。
     """
     root = Path(__file__).resolve().parents[1]
     web = root / "web"
     from a2v import remotion
 
-    assert not (web / "src/third-party/catalog.json").is_file()
-    assert source_policy.load_catalog(web) == []
-    assert source_policy.scan(web, remotion.build_inputs()) == []
+    assert not (web / "src/third-party").exists()
+    assert source_policy.scan(remotion.build_inputs()) == []

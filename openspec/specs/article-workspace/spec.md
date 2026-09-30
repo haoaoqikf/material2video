@@ -21,8 +21,9 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 两条设置方式。
 
 作品的专属画面以工作区根下的 React 模块声明，系统 SHALL 据此生成前端工程的动态入口。
-该入口目录 SHALL 由工具生成、SHALL NOT 入库，其位置 SHALL 解析自工作区根，
-使内容根位于仓库之外时作品仍能被渲染。
+该入口文件 SHALL 由工具生成、SHALL NOT 入库，SHALL 落在前端工程所在目录（仓库
+`web/.gen/` 下）；入口 SHALL 记录工作区根，使内容根位于仓库之外时作品模块仍能被解析
+与打包。
 
 #### Scenario: 未设置内容根
 - **WHEN** 既没有 `--content-root` 也没有 `A2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/<slug>/`
@@ -42,7 +43,7 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 内容根里的作品带专属画面
 - **WHEN** 作品与它的专属画面模块位于仓库外的内容根下
-- **THEN** 生成的动态入口按工作区根解析并引入该模块，渲染正常完成
+- **THEN** 生成的动态入口记录该工作区根并引入该模块，渲染正常完成
 
 #### Scenario: 生成入口不入库
 - **WHEN** 生成动态入口之后检查版本控制状态
@@ -81,12 +82,3 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 - **WHEN** `--storyboard` 属于一篇文章，而 `--media` 指向另一篇文章的媒体目录
 - **THEN** 命令报错并拒绝合成
-
-### Requirement: 迁移保护
-
-迁移已有产物时 MUST NOT 覆盖目标中的同名文件。
-
-#### Scenario: 迁移目标存在冲突
-
-- **WHEN** 目标路径中已有与源文件同名的文件
-- **THEN** 迁移停止并报告冲突，不修改冲突文件

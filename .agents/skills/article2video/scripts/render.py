@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""渲染入口：把动画网页逐帧渲染成 MP4。
+"""渲染入口：把分镜逐帧渲染成 MP4。
 
 skill bundle 需要可移植，因此脚本自行把同级目录加入 sys.path，
 不依赖调用方的当前工作目录或已安装的包。
@@ -7,7 +7,6 @@ skill bundle 需要可移植，因此脚本自行把同级目录加入 sys.path�
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/render.py \
-        --page examples/why-effort-fails/index.html \
         --storyboard examples/why-effort-fails/storyboard.json
 
 省略 --out 时按文章归属推导：无声写入 videos/<slug>/outputs/silent.mp4，提供 --media 时写入

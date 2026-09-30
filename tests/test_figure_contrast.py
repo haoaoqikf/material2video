@@ -3,7 +3,7 @@
 这一组测试守的是一类以前完全没有守卫的静默失效：
 
 - 令牌**有定义**由 `TestClassification.test_both_themes_define_the_same_tokens`
-  把关：`figures.css` 引用的每个 `--fig-*` 令牌在两套主题里都必须存在；
+  把关：活样式层引用的每个 `--fig-*` 令牌在两套主题里都必须存在；
 - K5 正文对比度只量 DOM 里的**文本样张**，SVG 的 `fill` / `stroke` 不在量程内；
 - K1 留白预算量的是背景像素占比——图形越淡，背景占比越高，**越容易通过**。
 

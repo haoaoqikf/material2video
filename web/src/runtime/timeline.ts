@@ -68,17 +68,3 @@ export function sceneAt(storyboard: Storyboard, frame: number): SceneSpan {
     localFrame: clamped - startFrame,
   };
 }
-
-/**
- * 秒 → 帧的换算只走这一处。
- *
- * 既有的动效契约要求弹簧一类「需要时间」的动效以秒为单位表达，
- * 而帧率来自分镜（可能是 24/25/30/60）。组件不许自己拿帧号除以写死的帧率。
- */
-export function secondsToFrames(seconds: number, fps: number): number {
-  return Math.round(seconds * fps);
-}
-
-export function framesToSeconds(frames: number, fps: number): number {
-  return frames / fps;
-}

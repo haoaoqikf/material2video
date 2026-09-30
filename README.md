@@ -28,8 +28,10 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 已完成**场景树架构切换**（v2）与导演契约升级（v3）：画面由每幕显式声明的**场景树**
 经共享递归解释器（`web/src/primitives/SceneTree.tsx`）逐节点渲染。旧整页组件、
-`data.figure.kind`、场景类型默认映射与作品专属 `scenes.tsx` 画面模块已全部删除；
-旧版分镜（v1/v2）进入任何入口都会被拒绝并提示按 v3 重新编排；不提供迁移工具、兼容开关或运行时回退。
+`data.figure.kind`、场景类型默认映射与作品专属 `scenes.tsx` 画面模块已全部删除
+（今天的作品级画面走 `renderer.code`，模块放在作品的 `scenes/` 目录下——与已删除的
+`scenes.tsx` 不是一回事）；旧版分镜（v1/v2）进入任何入口都会被拒绝并提示按 v3
+重新编排；不提供迁移工具、兼容开关或运行时回退。
 
 - **分镜 v3 结构**：根级强制 `schemaVersion: 3`、`directingVersion: 1`、完整 `directingBrief`、
   `visual.preset: "keynote"` 与视频级视觉策略 `visualDirection`
@@ -76,11 +78,11 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   不允许任意坐标或 transform 逃生口；相同分镜、字体、画布与帧号重复求值，
   节点几何与可见画面一致（测试钉住）。设计语言预设启用时，对声明了字号档（`role`）的
   文字原语按**实测宽度**向下取档，档位与是否实测记录在节点的
-  `data-a2v-fit-role` / `data-a2v-fit-measured` 上，未启用预设不取档；
+  `data-a2v-fit-role` / `data-a2v-fit-measured` 上；
 - **动效**：配方只有五种（`reveal` / `fade` / `rise` / `count` / `draw`），逐帧纯函数；
   目标用幕内唯一的节点 id 定位，配方与目标原语的匹配、时间范围是否落在场景内
   都在校验阶段确认，开渲前失败；
-- **场景级代码双轨（v2.1）**：默认每幕仍走场景树；受控原语表达不了的图表面板、
+- **场景级代码双轨**：默认每幕走场景树；受控原语表达不了的图表面板、
   图形叙事可以在幕上声明 `renderer: { kind: "code", module: "…" }`，把整幕画面交给
   `scenes/` 下工作级 TSX 模块——模块默认导出 `(props) => ReactNode`，逐帧接收
   `progress`，用 `@a2v/scene` 的探针与适配层（ECharts/Dagre/Lucide/SVG 工具）保持
@@ -164,8 +166,12 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   C 系列**分开计分**；`review.py` 随体检一起输出，取不到样本的条目
   跳过并写明原因。
   其中 **K7 文字溢出与 K8 容器内溢出是硬判定**：文本块越出安全区（容差 8px）、
-  或图形内的文字穿出它所属的容器（容差 2px，容器由 `data-a2v-inside` 声明）时，
+  或图形内的文字穿出它所属的容器（容差 2px）时，
   会并入体检的错误数与退出码，并报出是哪个文本块、往哪个方向越了多少像素。
+  K8 只判定**文字自己声明了所属容器**的部分：文字用
+  `data-a2v-inside="<容器选择器>"` 指向容器，没声明的不判定、该项如实记「跳过」；
+  场景树里的 `surface` 节点会带上空的 `data-a2v-inside=""`，空选择器按假值处理，
+  不参与判定。
   图表原语是 DOM/SVG 实现，K7/K8 对整幕生效，不存在量不到的 canvas 内部。
   阈值与设计取舍见
   [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
@@ -239,8 +245,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright uv run pl
 
 ## 自动配音与字幕
 
-无声命令保持兼容。要输出有声视频，先按每幕口播（`narrationSegments` 分段口播，
-`narrationSegments` 分段口播）准备媒体：
+无声命令保持兼容。要输出有声视频，先按每幕口播（`narrationSegments` 分段口播）准备媒体：
 
 ```bash
 uv run python .agents/skills/article2video/scripts/prepare.py \
@@ -300,13 +305,13 @@ v1/v2 分镜无法预览或渲染；请依据分镜结构文档重新编排为 v
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `videos/examples/why-effort-fails/outputs/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
-目标作品与 7 个示例均采用 v3 契约与新版导演逻辑，其中
+目标作品与 8 个示例均采用 v3 契约与新版导演逻辑，其中
 [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
 是分段口播与语义节拍的端到端参照。
-《复利，才是普通人最强的杠杆》另附一份作品网页
-（`videos/compound-interest-leverage/index.html`，不入库），把正文、成片、章节跳转与
+个别作品在本地另附一份作品网页（不入库，也不是项目能力），把正文、成片、章节跳转与
 口播全文放在同一页里互相对应：章节按钮按媒体清单的幕边界跳转，字幕由页面按同一份
-`cues` 叠在成片上（成片本身不含字幕），口播全文与画面逐幕对齐。
+`cues` 叠在成片上（成片本身不含字幕），口播全文与画面逐幕对齐。这是作者本机的
+个人做法，不随仓库分发。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；

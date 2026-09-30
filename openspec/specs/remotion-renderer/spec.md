@@ -3,7 +3,7 @@
 ## Purpose
 
 把画面执行与成片渲染交给 React + Remotion，同时保持本项目唯一不可让渡的性质：
-**画面是帧号的纯函数**。本能力规定版本 2 渲染契约、确定性验收口径、
+**画面是帧号的纯函数**。本能力规定版本 3 渲染契约、确定性验收口径、
 以及 Python 入口与 Node 渲染器之间的职责边界。
 
 Remotion 的官方规则与本项目既有渲染契约是同一条要求（所有动画必须由帧号驱动，
@@ -41,40 +41,6 @@ composition SHALL 能按分镜选择共享场景树解释器或经过校验的�
 
 - **WHEN** 作品源码调用根注册或声明独立 Remotion composition
 - **THEN** 静态检查失败，作品必须由共享 composition 承载
-
-### Requirement: 版本 2 渲染契约
-
-系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把共享 composition 挂载为可寻址的帧序列，
-并在 `window.__A2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、
-`ready()` 与 `seekToFrame(frame)`。
-
-`version` SHALL 为 `2`。`ready()` SHALL 在字体、当前作品代码 bundle、首批本地资源就绪
-且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，
-并在场景树或代码场景的画面更新完成后 resolve；`frame` 从 `0` 开始，
-最大值为 `durationInFrames - 1`。
-
-契约 SHALL 由 Remotion 的 Player 实现，SHALL NOT 由每个作品自行实现。
-`seekToFrame` 返回后，所有场景组件观察到的当前帧 SHALL 等于 `frame`。
-
-#### Scenario: 契约可用
-
-- **WHEN** 浏览器打开契约页并调用 `ready()` 与 `seekToFrame(f)`
-- **THEN** 两者按上述语义 resolve，且场景树和代码场景观察到的帧号均等于 `f`
-
-#### Scenario: 声明与分镜不一致
-
-- **WHEN** 契约页报告的 `fps`、`width`、`height` 或 `durationInFrames` 与分镜不一致
-- **THEN** 渲染入口报错终止并列出两边的值
-
-#### Scenario: 作品代码或本地资源未就绪
-
-- **WHEN** 代码场景 bundle、字体或首批本地资源加载失败
-- **THEN** `ready()` 失败并给出原因，不截取未完成画面
-
-#### Scenario: 版本不匹配
-
-- **WHEN** 页面暴露的 `__A2V__` 版本不是 `2`
-- **THEN** 渲染入口报错终止并说明当前支持的契约版本
 
 ### Requirement: 确定性以画面等价为准
 
@@ -157,3 +123,40 @@ SHALL 读回码流参数并拒绝全范围像素格式的产物。
 
 - **WHEN** 不带 `--media` 渲染、预览或评审
 - **THEN** props 与页面 URL 仍指向原始分镜，行为与产物不变
+
+### Requirement: 版本 3 渲染契约
+
+系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把共享 composition 挂载为可寻址的帧序列，
+并在 `window.__A2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、
+`ready()` 与 `seekToFrame(frame)`。
+
+`version` SHALL 为 `3`。`ready()` SHALL 在字体、当前作品代码 bundle、首批本地资源就绪
+且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，
+并在场景树或代码场景的画面更新完成后 resolve；`frame` 从 `0` 开始，
+最大值为 `durationInFrames - 1`。
+
+契约 SHALL 由 Remotion 的 Player 实现，SHALL NOT 由每个作品自行实现。
+`seekToFrame` 返回后，所有场景组件观察到的当前帧 SHALL 等于 `frame`。
+
+契约页 SHALL 另外暴露当前帧的只读诊断读数，供验收流程在量测失败时判断画面停在何处；
+该读数 SHALL NOT 参与 `seekToFrame` 的语义。
+
+#### Scenario: 契约可用
+
+- **WHEN** 浏览器打开契约页并调用 `ready()` 与 `seekToFrame(f)`
+- **THEN** 两者按上述语义 resolve，且场景树和代码场景观察到的帧号均等于 `f`
+
+#### Scenario: 声明与分镜不一致
+
+- **WHEN** 契约页报告的 `fps`、`width`、`height` 或 `durationInFrames` 与分镜不一致
+- **THEN** 渲染入口报错终止并列出两边的值
+
+#### Scenario: 作品代码或本地资源未就绪
+
+- **WHEN** 代码场景 bundle、字体或首批本地资源加载失败
+- **THEN** `ready()` 失败并给出原因，不截取未完成画面
+
+#### Scenario: 版本不匹配
+
+- **WHEN** 页面暴露的 `__A2V__` 版本不是 `3`
+- **THEN** 渲染入口报错终止并说明当前支持的契约版本

@@ -84,8 +84,9 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 - 字号取自**模块化字号阶**：启用预设后，不在阶上的字号会绕过
   [K3 闸门](keynote-design-system.md)（同帧字号种类），层级也就无法被机检。
   八档取值与配对的行高、字距见[发布会级设计语言](keynote-design-system.md)。
-  组件内部的文字同样受这条约束——`figures.css` 里的字号一律写成
-  `var(--a2v-ink-*, 原值)`：预设生效时落到阶上，未启用预设时落回原值，
+  组件内部的文字同样受这条约束——样式表（`web/src/styles/primitives.css`、
+  `web/src/styles/keynote.css`）里的字号一律写成
+  `var(--a2v-*, 原值)`：令牌生效时落到阶上，令牌缺失时落回原值，
   两种情况都不会出现「页面上是阶上字号、组件里却是 30px」的漏网。
 
 ## 图形标注
@@ -126,113 +127,80 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 
 ## 动效
 
-新版默认动画按 `establish → change → result → settle` 编排，最后至少保留 12 帧稳定阅读。节点组可按顺序、反向、中心扩散或显式路径传播错峰；基础布局、beat 状态、节点动效、跨幕连续性与镜头轨迹使用独立通道并按该顺序组合。旧五种配方仍可读取，但会使用新版曲线与节奏，重新渲染不保证旧观感一致。
+新版默认动画按 `establish → change → result → settle` 编排，最后至少保留 12 帧稳定阅读（`STABLE_READING_FRAMES = 12`，见 `web/src/runtime/motionPlan.ts`）。节点组可按顺序、反向、中心扩散或显式路径传播错峰；基础布局、beat 状态、节点动效、跨幕连续性与镜头轨迹使用独立通道并按该顺序组合。
 
 - 只使用**由帧号推导**的 `transform`、`opacity`、颜色变化；
 - 禁止 CSS `animation` / `transition`，原因见 [渲染契约](render-contract.md)；
   渲染入口会在开渲前静态扫描并提示这类写法；
 - 单次入场动效建议 12–30 帧（30fps 下 0.4–1.0 秒）；
-- 逐项呈现的间隔建议 4–10 帧，过快会看不清，过慢会拖节奏；
-- 画面不要长时间完全静止：入场结束后用常驻微动（`breath`，振幅 3–5px、
-  周期 120–150 帧）保持活性；配音会把场景拉长，后段静止在成片里像卡住。
+- 逐项呈现的间隔建议 4–12 帧，过快会看不清，过慢会拖节奏
+  （注册表 `motionRuntime.stagger`：默认 4 帧，下限 2、上限 12）；
+- 画面不要长时间完全静止：把后续动效绑到更晚的 beat 上，让节奏铺满幕内时间。
+  配音会把场景拉长，后段静止在成片里像卡住。
 
-共享运行时 `web/src/runtime/motion.ts` 提供的原语（全部是纯函数）：
+**分镜只声明受控配方，不写曲线。** 幕的 `motions[]` 每条恰好给 `target`（单节点）或
+`targets`（节点组）之一，恰好给 `phase`（`establish` / `change` / `result`）或 `beatId`
+之一，外加具名 `recipe`，可选 `durationFrames`；`targets` 必须声明 `stagger`，
+`stagger` 只能用于 `targets`。
 
-```ts
-progress(localFrame, startFrame, durationFrames, 'outCubic'); // 0..1
-stagger(index, stepFrames, baseFrame);                        // 第 i 项的起始帧
-since(localFrame, startFrame);                                // 距起点几秒（弹簧的输入）
-spring(seconds, SPRINGS['firm']);                             // 物理弹簧（具名预设）
-range(p, from, to, { clamp: true });                          // 进度映射为任意数值
-breath(localFrame, { periodFrames: 120, amplitude: 4 });      // 常驻呼吸位移
-drawPathStyle(p, length);                                     // SVG 描边动画的样式
-revealCharOpacities(units, p, { frame, staggerFrames });      // 逐字揭示的不透明度
-```
+配方只有五个：`reveal`、`fade`、`rise`、`count`、`draw`。错峰只有四种：`forward`、
+`reverse`、`center`、`path`——`path` 必须给出覆盖全部目标的有效路径，否则校验失败。
+每个原语支持哪些配方由注册表 `primitive.motions` 决定，声明不支持的组合会在校验阶段报错。
 
-组件侧再包一层 DOM 绑定（`web/src/runtime/figures.tsx`）：`enterStyle` /
-`enterSvgAttrs` 把入场配方换算成 React 的 `style` 与 SVG 属性串，
-`svgTransform` / `svgOpacity` 输出 SVG 安全的字符串，`beat(fig, fraction)`
-把幕内比例点换算成帧号。
+时间来自节拍，不来自秒。运行时的纯函数在 `web/src/runtime/`：
 
-**`spring` 收的是秒数（`since`），不是 0..1 的进度。**
-弹簧本身就是曲线，喂给它一条已经缓动过的进度等于把两条曲线串起来，
-它的自然周期（`response`）就失去了意义——这条错犯过：位移在 3 帧内走完，
-而注释还写着「0.6 秒收敛」，观众看到的是一次带残影的硬切。
-`spring` 的两个参数都是物理量：`response` 是自然周期（秒，只决定快慢），
-`dampingFraction` 是阻尼比 ζ（只决定过冲，峰值 ≈ `e^(-πζ/√(1-ζ²))`）。
-曲线由 wobble 1.5.1（MIT）的解析解给出，移植在 `web/src/runtime/spring.ts`。
+| 模块 | 提供什么 |
+| --- | --- |
+| `motionPlan.ts` | `defaultPhases()` 把幕切成四个阶段；`sceneMotionPlan()` 把声明落到帧区间；`staggerOrder()` 算错峰次序；`motionProgress()` 给 0..1 进度；`visualMix()` / `channelStyle()` 把通道合成 `style` |
+| `beats.ts` | 分段口播与语义 beat 的时间轴（`BeatTimeline`） |
+| `camera.ts` / `continuity.ts` / `transition.ts` / `geometry.ts` | 镜头轨迹、跨幕连续性、转场与几何求解 |
+| `timeline.ts` | 幕边界与总帧数（`totalFrames()`） |
 
-缓动名可选：`linear`、`outCubic`、`inOutCubic`、`outQuint`、`outBack`。
-时间只走三条曲线：出场用 `outQuint`、双向变化用 `inOutCubic`、
-逐项门控用 `outCubic`；混用更多曲线会让画面显得杂。
+`sceneMotionPlan()` 会把每条动效的结束帧夹在 `settle` 起点之前，因此「最后一帧还在动」
+在计划层就不可能发生。所有配方共用同一条三次缓出曲线（`1 - (1 - p)^3`），
+不存在按配方各写一条曲线的入口。
 
-### 动效配方层
+**曲线不由分镜选。** 分镜里没有「缓动名」，也没有弹簧参数：曲线由运行时统一给出，
+换曲线就是改 `motionPlan.ts`，而不是散落在各幕的声明里。这样「整支片子的手感」
+只有一处可调，新写的幕也不会慢慢长成另一种手感。
 
-上面那些是**原语**，配方层是**做法**：入场怎么组合、弹性多大、什么时候收敛、
-常驻微动多快。它存在的唯一理由是——
+### 配方与节奏只有一处真源
 
-> 这些数字决定整支片子的手感。写在六个组件里就没人能整体调，
-> 新写的组件也会慢慢长成另一种手感。
+上面那些是运行时的**机制**，「移动多远、错峰多密、镜头推多快」是**做法**。
+它存在的唯一理由是——
 
-所以数字只写在 `web/src/runtime/motion.ts`，组件用名字调用：
+> 这些数字决定整支片子的手感。散在各幕声明里就没人能整体调，
+> 新写的幕也会慢慢长成另一种手感。
 
-```ts
-enterStyle(fig, sinceBeat(fig, 0.1), { distance: 24, amplitude: 3 }); // HTML 元素入场（返回 style）
-enterSvgAttrs(fig, sinceBeat(fig, 0.1), { distance: 34, axis: 'x' }); // SVG 分组入场（返回属性串）
-spring(seconds, SPRINGS['lively']);                                   // 具名弹性
-idle(f, { amplitude: 2.4, phase: 50 });                               // 幕内常驻微动
-beat(fig, 0.42);                                                      // 幕内比例点（自动按节奏缩放）
-tempo('impact');                                                      // 节奏名 → 速度倍率
-```
+所以做法只写在 `web/src/runtime/motionPlan.ts` 与注册表
+`web/src/registry/registry.json` 的 `motionRuntime` 段（阶段顺序、稳定阅读帧数 12、
+错峰间隔上下限 2–12、镜头强度上下限 0–1），分镜只按名字引用：`recipe`（五个）、
+`phase`（三个阶段）、`stagger.kind`（四种）。
 
-`seconds` 一律由 `since(localFrame, startFrame)` 得到。
+**节奏不是分镜字段。** 没有 `figure.motion` 这类「节奏档」，
+快慢由 `durationFrames`、错峰间隔与镜头强度表达；组件不持有任何节奏状态。
 
-两档入场配方，区别只在「移动多远、呼吸多快」，曲线完全相同：
-
-| 配方 | 用于 | 默认位移 | 呼吸周期 | 呼吸振幅 |
-| --- | --- | --- | --- | --- |
-| `surface` | 卡片、文字块等画面表面 | 44px | 130 帧 | 3px |
-| `figure` | SVG 图形本体 | 40px | 140 帧 | 2.5px |
-
-两者共用同一条弹性（`response` 0.44 秒 / ζ 0.9）与同一个收敛点（幕内 24% 处起 36 帧
-`inOutCubic` 把缩放钉回 1，同时让常驻微动渐入）。
-
-具名弹性，避免在组件里写裸数字：
-
-| 预设 | response | ζ | 过冲 | 收敛 | 感觉 |
-| --- | --- | --- | --- | --- | --- |
-| `enter` | 0.5s | 1 | 0 | ≈0.46s | 温和入场，一点不过冲 |
-| `firm` | 0.44s | 0.9 | ≈0.2% | ≈0.31s | 图形主体到位（默认） |
-| `lively` | 0.4s | 0.62 | ≈8.4% | ≈0.40s | 有分量的落点，回弹看得出来 |
-| `snap` | 0.28s | 0.8 | ≈1.5% | ≈0.22s | 小元素快速归位 |
-
-`response` 只决定快慢、`dampingFraction` 只决定过冲，两个参数互不干扰——
-这正是换掉「阻尼 + 频率」那套凑出来的系数换来的好处：想更快只调 `response`，
-想更弹只调 `dampingFraction`。
-
-`motionRecipes()` 与 `motionSprings()` 返回当前取值的快照，
-供文档与调试对照；`web/src/runtime/motionDoc.test.ts` 把本文档这两张表
-逐值钉在 TS 常量上（改了常量或改了表都会失败）。
-**改配方是可以的（那正是它存在的意义），但改完不能变成弹跳**：实测第一帧
-位移不得超过全程的 25%、走到 90% 至少要 6 帧、过冲不超过 10%、末尾必须正好停在终点。
-
-**节奏**由分镜的 `figure.motion` 决定（`calm` 0.82 / `normal` 1 / `impact` 1.24），
-运行时从场景声明里读，组件不持有任何节奏状态。
+**改配方可以（那正是它存在的意义），但改完不能变成弹跳**：实测第一帧位移不得超过
+全程的 25%、走到 90% 至少要 6 帧、过冲不超过 10%、末尾必须正好停在终点——
+这四条由动效量测（M0–M4）在任意作品上判。
 
 ### 动效时长参考
 
 下面的帧数是 30fps 下的实测推荐值，可直接照抄，再按成片观感微调：
 
-| 场景 | 配方 |
+| 场景 | 做法 |
 | --- | --- |
-| 卡片 / 节点入场 | 位移 56–64px + 缩放 0.96→1，`spring(seconds, SPRINGS['firm'])`，20–24 帧窗口 |
-| 文字聚焦入场 | 位移 24px + 透明度 0→1，22 帧 `outQuint` |
-| 标签横线 / 强调竖线 | `scaleX` / `scaleY` 0→1，20 帧 `outQuint` |
-| 关键短语点亮 | 颜色 + 光晕 0→峰值，26–30 帧 `inOutCubic`，在句子读完后触发 |
-| 关系图连线 | `drawPathStyle` 描出，正向 14 帧、回环 60 帧 `inOutCubic` |
-| 对比双栏 | 左右各 24–26 帧，起点相差 45–60 帧；落选一栏降到 0.42 不透明度 |
-| 结论逐字 | `revealCharOpacities` 每字间隔 2 帧，起点在第 8 帧 |
-| 场景末段 | `breath` 振幅 3–5px，`settle` 从第 70 帧起 40 帧渐入 |
+| 卡片 / 节点入场 | `rise`，位移 56–64px，20–24 帧，绑在所在 beat 上 |
+| 文字聚焦入场 | `reveal` 或 `fade`，位移 24px + 透明度 0→1，22 帧 |
+| 标签横线 / 强调竖线 | `draw` 或 `reveal`，20 帧 |
+| 关键短语点亮 | 颜色 + 光晕 0→峰值，26–30 帧，在句子读完后触发 |
+| 关系图连线 | `draw`，正向 14 帧、回环 60 帧 |
+| 对比双栏 | 两个目标各 24–26 帧，用 `stagger` 让起点相差 45–60 帧 |
+| 结论逐字 | `reveal`，每字间隔 2 帧，起点在第 8 帧 |
+| 数值滚动 | `count`，只在步数足够时执行（见 [发布会级设计语言](keynote-design-system.md) 的瞬跳约束） |
+
+`stagger.intervalFrames` 的范围是 2–12，因此「起点相差 45–60 帧」要靠多个目标编组
+累积出来，而不是把单个间隔值放大超过上限。
 
 **改完配方要跑轨迹机检。** 量测实现是 `scripts/a2v/motion.py`，两处共用一份：
 `tests/test_motion_review.py`（参考实现上的严格判定）与 `review.py`
@@ -436,13 +404,14 @@ tempo('impact');                                                      // 节奏�
 - [ ] 同一画面只有一个视觉焦点，强调色只出现在它身上；
 - [ ] 背景、表面、焦点三层都在，画面没有「贴在纯色底上」的扁平感；
 - [ ] 卡片 / 节点有 1px 边框、内高光与双层投影，而不是纯色块；
-- [ ] 入场动效都走 `outQuint` / `inOutCubic`，没有凭空多出的曲线；
-- [ ] 末帧不是完全静止（有 `api.breath` 级别的微动）；
+- [ ] 入场动效都绑定在声明过的 `phase` 或 `beatId` 上，没有凭空多出的曲线；
+- [ ] 末帧的画面已经落定（动效结束帧被夹在 `settle` 起点之前），
+      而不是靠常驻微动掩盖「还在动」；
 - [ ] 每帧重复渲染结果一致（可对同一帧截图两次比对）；
 - [ ] 声明了分段口播的幕：每条 beat 的 `meaning` 说明了它解释什么，动作里至少一个
       真正改变状态或关系（全是 `establish`/`highlight` 会被 A3 拦下）；
-- [ ] 最后一条 beat 完成后至少还有 12 帧稳定阅读时间（A5），所有入场配方在幕尾前
-      12 帧结束（A8）——末帧微动不算「还在入场」，它不影响阅读。
+- [ ] 最后一条 beat 完成后至少还有 12 帧稳定阅读时间（A5），所有动效的结束帧在幕尾前
+      12 帧结束（A8）——`sceneMotionPlan()` 已把结束帧夹在 `settle` 起点之前。
 
 ## 逐句字幕
 

@@ -6,7 +6,6 @@ export const STORYBOARD_VERSION = 3;
 const nonEmptyText = z.string().trim().min(1);
 const nodeId = z.string().regex(/^[A-Za-z0-9_-]+$/, '节点 id 只允许字母、数字、_ 与 -');
 export const motionRecipeSchema = z.enum(['reveal', 'fade', 'rise', 'count', 'draw']);
-export type MotionRecipe = z.infer<typeof motionRecipeSchema>;
 export const motionPhaseSchema = z.enum(['establish', 'change', 'result']);
 export const staggerSchema = z.object({
   kind: z.enum(['forward', 'reverse', 'center', 'path']),
@@ -35,7 +34,6 @@ export const moduleSpecifierSchema = z
 export const treeRendererSchema = z.object({ kind: z.literal('tree') }).strict();
 export const codeRendererSchema = z.object({ kind: z.literal('code'), module: moduleSpecifierSchema }).strict();
 export const rendererSchema = z.discriminatedUnion('kind', [treeRendererSchema, codeRendererSchema]);
-export type Renderer = z.infer<typeof rendererSchema>;
 
 export interface SceneNode {
   id: string; type: string; children?: SceneNode[]; contentRef?: string;
@@ -380,7 +378,6 @@ function validateContinuity(storyboard: { scenes: Scene[] }, ctx: z.RefinementCt
   });
 }
 export type Storyboard = z.infer<typeof storyboardSchema>;
-export type StoryboardInput = z.input<typeof storyboardSchema>;
 export function parseStoryboard(input: unknown): Storyboard {
   const result = storyboardSchema.safeParse(input); if (result.success) return result.data;
   if (input && typeof input === 'object' && ((input as Record<string, unknown>).version === 1 || (input as Record<string, unknown>).version === 2)) throw new Error('不支持 v3 之前分镜；请按分镜 v3 契约重新编排');

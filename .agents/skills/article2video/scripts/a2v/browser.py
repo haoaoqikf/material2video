@@ -62,7 +62,7 @@ class PageContract:
 
 
 class AnimatedPage:
-    """一个已就绪的动画网页。上下文管理器负责释放浏览器资源。"""
+    """一个已就绪的契约页。上下文管理器负责释放浏览器资源。"""
 
     def __init__(
         self,

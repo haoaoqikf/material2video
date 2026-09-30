@@ -88,7 +88,7 @@
 ```
 
 ```bash
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --declarative --strict --json
+uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --json
 ```
 
 上例只演示字段结构；完整交付还要满足严格模式下的全片模式覆盖。可运行的完整样例见[文章生成场景树分镜](article-to-storyboard.md)。

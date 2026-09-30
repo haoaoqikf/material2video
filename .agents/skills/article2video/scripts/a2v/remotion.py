@@ -246,7 +246,7 @@ def bundle(
     而这种错误没有任何症状——成片看起来正常，只是它是上一版。
     """
     prepare_composition_entry(web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root)
-    violations = source_policy.scan(web_dir, build_inputs())
+    violations = source_policy.scan(build_inputs())
     if violations:
         detail = "\n".join(item.render(web_dir) for item in violations)
         raise RemotionError(f"composition 源码违反确定性约束：\n{detail}")

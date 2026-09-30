@@ -5,7 +5,6 @@ from typing import Any
 from . import beats
 
 STABLE_READING_FRAMES = beats.STABLE_READING_FRAMES
-PHASES = ("establish", "change", "result", "settle")
 
 @dataclass(frozen=True)
 class Span:

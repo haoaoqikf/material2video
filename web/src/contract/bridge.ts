@@ -11,8 +11,8 @@ import type { Storyboard } from '@/schema/storyboard';
  * Playwright 驱动这个页面，因此既有约 90KB 已实测的判定逻辑不需要重写。
  *
  * v3 契约中的 `ready()` 保证 `Player` 与字体已经就绪
- * （除字体与首帧之外，还要保证 Player 已经挂载），因此版本号从 1 升到 2。
- * 渲染入口按版本号拒绝旧页面，避免「等超时之后报一句看不懂的话」。
+ * （除字体与首帧之外，还要保证 Player 已经挂载），因此版本号随语义变化递增
+ * （当前为 3）。渲染入口按版本号拒绝旧页面，避免「等超时之后报一句看不懂的话」。
  */
 export interface A2VContractV3 {
   version: 3;

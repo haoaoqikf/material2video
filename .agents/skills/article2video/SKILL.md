@@ -316,7 +316,8 @@ uv run python .agents/skills/article2video/scripts/review.py \
 
 ## 命令速查
 
-四个入口都接受 `--content-root <目录>`（文章与产物放在仓库之外的内容根时使用；
+validate / prepare / preview / review / render 五个命令与 `production.py`（共六个入口）
+都接受 `--content-root <目录>`（文章与产物放在仓库之外的内容根时使用；
 也可以设环境变量 `A2V_CONTENT_ROOT`，命令行优先）。不设时工作区根就是仓库根。
 
 ```bash
@@ -390,11 +391,13 @@ uv run python .agents/skills/article2video/scripts/render.py \
 已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、
 分段口播与语义节拍（`narrationSegments` + `beats`，媒体清单 version 3 携带逐幕
 `resolvedBeats`，画面 / 字幕 / 配音共用同一批边界）、自动配音与逐句字幕、
-React composition 画面（比喻组件 + 数据图表 + 关系流程图 + 五个中层原语
-`flow`/`cycle`/`timeline`/`gauge`/`pictogram`，组件注册表单源）、
-契约页体检（K/M 闸门、组件契约探针、视觉叙事 V 系列与动画论证 A 系列）、
+React composition 画面（场景树解释器 + 注册表登记的 21 个受控原语，含五个中层原语
+`flow`/`cycle`/`timeline`/`gauge`/`pictogram`，原语注册表单源；个别幕可用
+`renderer.code` 的作品级代码场景）、
+契约页体检（K/M 闸门、场景树契约探针、视觉叙事 V 系列与动画论证 A 系列）、
 Remotion 确定性渲染与成片验收、按文章目录推导输出路径、内容根（文章与产物可放在
-仓库之外、`videos/` 不入库），以及设计语言预设（分镜声明 `visual.preset: "keynote"`
+仓库之外、`videos/` 不入库）、按作品切 webfont 子集（`prepare.py --subset-fonts`，
+需要可选依赖 `uv sync --extra fonts`），以及设计语言预设（分镜声明 `visual.preset: "keynote"`
 后启用令牌层、排版引擎与观感闸门）。
 
 尚未实现，不要当作已有能力使用：
@@ -402,7 +405,6 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 - **视觉模型自动评审**：K 系列只给出数值，V5 只列出候选与结构证据，
   「图形有没有真的承担论证」（V6）与「装饰动效是否恰当」（A6）都由人填写，
   最终判断仍要按 [视觉评审量表](references/visual-review-rubric.md) 完成；
-- **webfont 子集化**：随仓库分发的 Noto Sans SC Variable 约 17MB，尚未做子集化；
 - **按内容自动选预设**：预设必须由分镜显式声明；
 - **自动拆场景**：引擎能算出「缩到正文下限仍放不下」并由 K7 报出来，
   但把一幕拆成两幕仍由人（或上游 AI）决定，脚本不代劳；
@@ -423,7 +425,7 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 - [视觉评审量表](references/visual-review-rubric.md)：全片静态/动态维度、评审证据及返工要求
 - [制作流程示例](../../../examples/cause-chain/production-workflow.md)：阶段查询、关键幕样片、全片预演和版本化返工闭环
 - [渲染契约](references/render-contract.md)：画面实现的 `__A2V__` 接口、渲染引擎与确定性要求
-- [分镜脚本结构](references/storyboard-schema.md)：字段定义、已知场景类型与校验规则
+- [分镜脚本结构](references/storyboard-schema.md)：字段定义、分段口播与语义节拍、校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向
 - [发布会级设计语言](references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、排版引擎、K1–K10 观感闸门与静默失效清单
 

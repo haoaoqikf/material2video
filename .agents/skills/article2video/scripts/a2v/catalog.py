@@ -261,6 +261,3 @@ PRIMITIVE_CATALOG: dict[str, Primitive] = {
 
 def primitive(node_type: str) -> Primitive | None:
     return PRIMITIVE_CATALOG.get(node_type)
-
-def known_types() -> list[str]:
-    return sorted(PRIMITIVE_CATALOG)

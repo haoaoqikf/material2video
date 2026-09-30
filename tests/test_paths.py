@@ -136,16 +136,16 @@ class TestOutputLayout:
 
 class TestUnsupportedTargets:
     def test_remote_page_requires_explicit_output(self):
-        with pytest.raises(A2VError, match="远程网页"):
+        with pytest.raises(A2VError, match="远程页面"):
             paths.for_page("https://example.com/index.html")
 
     def test_missing_page_reports_clearly(self, tmp_path):
-        with pytest.raises(A2VError, match="动画网页不存在"):
+        with pytest.raises(A2VError, match="页面文件不存在"):
             paths.for_page(tmp_path / "absent.html")
 
     def test_directory_as_page_is_rejected(self, tmp_path, valid_script):
         article = make_project(tmp_path, "videos", "demo", valid_script)
-        with pytest.raises(A2VError, match="需要指向网页文件"):
+        with pytest.raises(A2VError, match="需要一个页面文件"):
             paths.for_page(article)
 
     def test_page_outside_article_directories_is_rejected(self, tmp_path):

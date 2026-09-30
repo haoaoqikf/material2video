@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,7 +27,7 @@ from typing import Any
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import constitution, keynote, motion
+from . import keynote, motion
 from .storyboard import Report
 
 #: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
@@ -149,12 +148,6 @@ _CODE_PROTOCOL_SCRIPT = """
 }
 """
 
-#: 组件里表示「这里应该有字」的元素名后缀。读不到内容就值得看一眼。
-#: 只用于文档说明：判定用的是「声明过的标注有没有出现」与「整幕是否全无文字」，
-#: 逐个元素判空会误伤装饰性元素（例如用 CSS 画的箭头）。
-_TEXT_SLOT = re.compile(r"(Text|Note|Label|Title|title|caption|action)$")
-
-
 def decode_raw(png: bytes, pix_fmt: str) -> bytes:
     """把一帧缩到 108x192 的原始像素，用于逐像素统计。
 
@@ -273,12 +266,6 @@ def judge_scene(probe: SceneProbe, labels: dict[str, str], report: Report) -> No
         report.warn(f"{where}", "这一幕没有挂载点，声明了组件也不会画出来")
 
 
-def probe_scene(page: Any, frame: int) -> dict[str, Any] | None:
-    """把帧停住并读回当前场景的组件结构。"""
-    page.seek(frame)
-    return page.evaluate(_PROBE_SCRIPT)
-
-
 def collect_labels(declared: dict[str, Any], seen_texts: set[str]) -> list[str]:
     """找出声明了但整幕都没出现在任何元素文本里的标注。
 
@@ -337,18 +324,6 @@ def write_report(report: Report, extra: dict[str, Any], target: Path) -> dict[st
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
-
-
-def check_page_with_storyboard(
-    page_path: Path, scenes: list[dict[str, Any]], *, runtime_scenes: bool = False
-) -> Report:
-    """设计宪法的静态部分，并把分镜文案一起用于「单一真源」检查。
-
-    `runtime_scenes` 表示这是共享页面，场景由它在运行时按分镜生成，
-    依赖源码的检查项交给上面的运行时探针。
-    """
-    texts = constitution.storyboard_texts(scenes)
-    return constitution.check_page(page_path, texts, runtime_scenes=runtime_scenes)
 
 
 def scene_windows(scenes: list[dict[str, Any]]) -> list[tuple[str, int, int]]:
@@ -696,10 +671,6 @@ _AESTHETIC_SCRIPT = """
   };
 }
 """
-
-#: 观感闸门的场景类型分组：主体幕（开场 / 金句 / 收束）有更高的留白门槛。
-_HERO_SCENE_TYPES = ("title", "quote", "conclusion")
-
 
 def keynote_gate(
     frame_name: str,

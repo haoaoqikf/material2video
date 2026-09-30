@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,55 +50,33 @@ def _is_motion_off(value: str) -> bool:
     return re.fullmatch(r"0+(?:\.0+)?(?:s|ms)?", text) is not None
 
 
-def load_catalog(web: Path) -> list[dict]:
-    path = web / "src/third-party/catalog.json"
-    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
+def scan(build_inputs: list[Path]) -> list[Violation]:
+    """扫描 composition 的可达源码。
 
-
-def scan(web: Path, build_inputs: list[Path]) -> list[Violation]:
-    """扫描 composition 可达源码和分类表中实际接入的第三方源码。"""
-    catalog = load_catalog(web)
-    allowed_css: set[Path] = set()
-    extra: set[Path] = set()
-    for item in catalog:
-        if item.get("status") != "representative":
-            continue
-        for key in ("source", "styles"):
-            value = item.get(key)
-            if value:
-                path = (web / value).resolve()
-                extra.add(path)
-                if key == "styles" and item.get("classification") == "css-keyframes":
-                    allowed_css.add(path)
-
+    判据只有一条：这些文件是不是只按帧号决定画面。第三方组件的接入路径
+    （分类表、帧同步包装层）已随场景树架构移除，因此这里不再有「分类表里
+    额外接入的源码另算一遍」的分支——画面只能用受控原语或作品级代码场景
+    表达，而代码场景同样要过这道闸门。
+    """
     violations: list[Violation] = []
-    for path in sorted({p.resolve() for p in build_inputs} | extra):
+    for path in sorted({p.resolve() for p in build_inputs}):
         if path.suffix.lower() not in {".ts", ".tsx", ".css", ".mjs"} or not path.is_file():
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         for rule, pattern in _RULES:
             for match in pattern.finditer(text):
                 violations.append(_violation(path, text, match.start(), rule))
-        if path not in allowed_css:
-            for match in _CSS_MOTION.finditer(text):
-                # TypeScript schema 属性名（例如 `transition: transitionSchema.optional()`）
-                # 不是 CSS 声明，不能被源码策略误判为浏览器过渡。
-                if match.group(2) and ("Schema" in match.group(2) or ".optional(" in match.group(2)):
-                    continue
-                if match.group(3):
-                    violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
-                    continue
-                if _is_motion_off(match.group(2) or ""):
-                    continue
+        for match in _CSS_MOTION.finditer(text):
+            # TypeScript schema 属性名（例如 `transition: transitionSchema.optional()`）
+            # 不是 CSS 声明，不能被源码策略误判为浏览器过渡。
+            if match.group(2) and ("Schema" in match.group(2) or ".optional(" in match.group(2)):
+                continue
+            if match.group(3):
                 violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
-
-    # 允许 CSS keyframes 的唯一前提不是目录名，而是组件确实经过统一包装层。
-    for item in catalog:
-        if item.get("status") == "representative" and item.get("classification") == "css-keyframes":
-            source = web / str(item.get("source", ""))
-            content = source.read_text(encoding="utf-8", errors="replace") if source.is_file() else ""
-            if "FrameSyncedCssAnimation" not in content:
-                violations.append(Violation(source, 1, "CSS 动画未经过帧同步包装", item.get("id", "未知组件")))
+                continue
+            if _is_motion_off(match.group(2) or ""):
+                continue
+            violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
     return violations
 
 

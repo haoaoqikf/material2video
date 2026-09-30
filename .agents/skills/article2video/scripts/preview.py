@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-"""预览入口：用本地 HTTP 服务打开动画网页，便于人工检查节奏与排版。
+"""预览入口：用本地 HTTP 服务在契约页打开画面，便于人工检查节奏与排版。
 
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/preview.py \
-        examples/why-effort-fails
+        --storyboard examples/why-effort-fails/storyboard.json
 
-网页通过 fetch 读取同目录的 storyboard.json，file:// 协议下会被同源策略
-拒绝，因此预览必须走本地服务而不是双击 HTML。
+契约页通过查询参数读取分镜 JSON，file:// 协议下会被同源策略拒绝，
+因此预览必须走本地服务而不是双击 HTML。
 """
 
 from __future__ import annotations

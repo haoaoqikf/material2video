@@ -75,7 +75,7 @@ def _add_engine_argument(parser: argparse.ArgumentParser) -> None:
 def _build_render_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="render.py",
-        description="把实现 __A2V__ 契约的动画网页逐帧渲染为 MP4",
+        description="把分镜按契约页逐帧渲染为 MP4",
     )
     parser.add_argument(
         "--out",
@@ -137,12 +137,12 @@ def _build_validate_parser() -> argparse.ArgumentParser:
 def _build_preview_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="preview.py",
-        description="以本地 HTTP 服务预览动画网页（file:// 下无法加载分镜 JSON）",
+        description="以本地 HTTP 服务在契约页预览画面（file:// 下无法加载分镜 JSON）",
     )
     parser.add_argument("--port", type=int, default=0, help="监听端口，默认自动分配")
     parser.add_argument("--no-browser", action="store_true", help="只启动服务，不打开浏览器")
     parser.add_argument("--media", help="prepare.py 生成的媒体清单")
-    parser.add_argument("--storyboard", help="源分镜路径，默认网页同目录 storyboard.json")
+    parser.add_argument("--storyboard", help="源分镜路径（必需）")
     _add_engine_argument(parser)
     parser.add_argument(
         "--content-root",
@@ -155,7 +155,7 @@ def _build_preview_parser() -> argparse.ArgumentParser:
 def _build_review_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="review.py",
-        description="视觉体检：抽帧量测 + 组件契约探针 + 设计宪法静态检查，并给出人工评审清单",
+        description="视觉体检：抽帧量测 + 契约探针 + 观感闸门，并给出人工评审清单",
     )
     parser.add_argument("--storyboard", required=True, help="分镜 JSON 路径，决定场景与声明")
     parser.add_argument(
@@ -705,7 +705,7 @@ def _build_contract_for(
 
 
 def main_review(argv: list[str] | None = None) -> int:
-    """视觉评审：一次跑完静态宪法、帧量测与组件契约探针。"""
+    """视觉评审：一次跑完帧量测、契约探针与观感闸门。"""
     args = _build_review_parser().parse_args(argv)
     _force_utf8_output()
     _configure_logging(args.verbose)
@@ -752,17 +752,15 @@ def main_review(argv: list[str] | None = None) -> int:
 
     out_dir = Path(args.out_dir) if args.out_dir else _default_review_dir(args, article)
     _ensure_aesthetic_review_template(out_dir, [str(scene.get("id", "")) for scene in scenes])
-    # 静态宪法先跑：它最便宜，而且网页结构不对时抽帧也白搭。
-    #
-    # React 路径上它暂时不适用：画面由 composition 源码决定，契约页的 HTML 里
-    # 只有一个挂载点与一个入口脚本，照旧按 HTML 查会连「组件库」都找不到，
-    # 报出来的全是假问题。它该指向的新位置是 `web/src`（令牌真源与四族基元），
-    # 那是运行时原语那一阶段的事——在那之前这里**明说跳过**而不是安静照过。
+    # 静态确定性由 `source_policy.py` 对 composition 可达源码的扫描负责（打包时执行）。
+    # 这里**明说跳过**而不是安静照过：按契约页的 HTML 查结构只会报出一堆假问题
+    # （画面由 composition 源码决定，契约页 HTML 里只有一个挂载点与一个入口脚本），
+    # 而一声不吭的检查与通过的检查在报告里长得一样。
     combined = Report()
     combined.warn(
-        "设计宪法（静态部分）",
-        "React 画面由 composition 源码决定；静态确定性由 web/src 源码扫描负责，"
-        "本步骤运行 DOM 量测与组件探针",
+        "静态确定性",
+        "由 source_policy.py 在打包 composition 时对可达源码扫描；"
+        "本步骤运行 DOM 量测与契约探针",
     )
     # 视觉叙事 V 系列是静态分析，放在浏览器工作之前：契约页构建失败时
     # 它的结论也已经被写进错误列表，不会因为环境问题静默丢失。

@@ -11,7 +11,6 @@
 
 ```bash
 uv run python .agents/skills/article2video/scripts/review.py \
-    --page videos/<slug>/index.html \
     --storyboard videos/<slug>/storyboard.json \
     --media videos/<slug>/outputs/media/media.json
 ```

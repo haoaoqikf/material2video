@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-"""视觉评审入口：抽帧量测 + 组件契约探针 + 设计宪法静态检查。
+"""视觉评审入口：抽帧量测 + 契约探针 + 观感闸门。
 
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/review.py \
-        --page videos/never-fear-interviews/index.html \
         --storyboard videos/never-fear-interviews/storyboard.json \
         --media videos/never-fear-interviews/outputs/media/media.json
 

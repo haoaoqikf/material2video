@@ -497,11 +497,11 @@ def _resolve_page_url(
 ) -> Iterator[str]:
     """把本地网页路径转成可用的 URL。
 
-    远程 URL 原样透传；本地文件通过临时静态服务器暴露，因为网页需要
-    fetch 分镜 JSON，而 file:// 下会被同源策略拒绝。
+    远程 URL 原样透传；本地文件通过临时静态服务器暴露，因为契约页需要
+    读到分镜 JSON，而 file:// 下会被同源策略拒绝。
 
-    mounts 由调用方给出（默认挂 skill 资产别名）：契约页在仓库的 `web/` 下、
-    分镜在工作区根下，两者不在同一棵树里，靠别名而不是相对路径接起来。
+    mounts 由调用方给出：契约页在仓库的 `web/` 下、分镜在工作区根下，
+    两者不在同一棵树里，靠 `/__a2v_web__/` 别名而不是相对路径接起来。
     """
     text = str(page_path)
     if text.startswith(("http://", "https://")):
@@ -510,7 +510,7 @@ def _resolve_page_url(
 
     page_file = Path(text).resolve()
     if not page_file.is_file():
-        raise RenderError(f"动画网页不存在: {page_file}")
+        raise RenderError(f"页面文件不存在: {page_file}")
 
     root = Path(serve_root).resolve() if serve_root else _default_serve_root(page_file)
     with LocalServer(root, mounts=assets.default_mounts() if mounts is None else mounts) as server:
@@ -526,7 +526,8 @@ def _default_serve_root(page_file: Path, content_root: str | Path | None = None)
 
     取文章所属的**工作区根**：仓库内的页面（示例、仓库内文章）拿到仓库根，
     内容根里的页面拿到内容根，于是同目录的 storyboard.json 与页面内资产
-    都能通过相对路径访问；共享资产走 `/__a2v__/` 别名，与静态根在哪无关。
+    都能通过相对路径访问；契约页与前端工程资产走 `/__a2v_web__/` 别名，
+    与静态根在哪无关。
     推导不出来时（任意位置的页面、远程页面）退回网页所在目录。
     """
     try:

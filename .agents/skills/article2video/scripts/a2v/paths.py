@@ -263,15 +263,6 @@ def article_paths(
     )
 
 
-def workspace_outputs(article: ArticlePaths) -> Path:
-    """当前作品的产物目录。
-
-    `_reject_foreign_media_dir` 用它判断「这个媒体目录是不是别人的」，
-    因此直接返回作品目录下的 `outputs/`，而不是硬拼工作区根。
-    """
-    return article.output_dir
-
-
 def source_dir_name(kind: ArticleKind) -> str:
     """归属类型对应的源目录名。SOURCE_KINDS 是唯一权威定义，此处只做反查。"""
     for name, value in SOURCE_KINDS.items():
@@ -281,20 +272,20 @@ def source_dir_name(kind: ArticleKind) -> str:
 
 
 def for_page(page: str | Path, content_root: str | Path | None = None) -> ArticlePaths:
-    """以动画网页确定文章归属（渲染与预览走这条路）。
+    """以一个页面文件确定文章归属（用于推导静态服务根）。
 
-    本地网页必须存在且位于规范目录内；远程网页无法确定归属，直接报错。
+    本地页面必须存在且位于规范目录内；远程地址无法确定归属，直接报错。
     """
     text = str(page)
     if text.startswith(("http://", "https://")):
         raise A2VError(
-            f"无法为远程网页 {text} 推导输出路径，请显式指定输出路径"
+            f"无法为远程页面 {text} 推导输出路径，请显式指定输出路径"
         )
     page_file = Path(text)
     if page_file.is_dir():
-        raise A2VError(f"--page 需要指向网页文件，而不是目录: {page_file}")
+        raise A2VError(f"需要一个页面文件，而不是目录: {page_file}")
     if not page_file.is_file():
-        raise A2VError(f"动画网页不存在: {page_file}")
+        raise A2VError(f"页面文件不存在: {page_file}")
     repo = repo_root_for(page_file)
     return article_paths(repo, page_file, content_root)
 

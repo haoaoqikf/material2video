@@ -29,10 +29,12 @@ _ASSET_REFERENCE = re.compile(
 
 
 def default_mounts() -> dict[str, Path]:
-    """默认挂载表：别名前缀 → skill 资产目录。
+    """默认挂载表：别名前缀 → 挂载目录，当前为空表。
 
-    服务器与扫描器共用这一份，避免「服务器映射到 A、扫描器按 B 找」这类
-    只在渲染时才暴露的漂移。
+    共享资产别名已随整页组件路径移除：契约页与前端工程资产由
+    `contract_page.web_mounts()` 显式给出。这里保留空表作为扩展点——
+    服务器与扫描器读同一份表，避免「服务器映射到 A、扫描器按 B 找」
+    这类只在渲染时才暴露的漂移。
     """
     return {}
 
@@ -67,12 +69,12 @@ def _match_mount(reference: str, mounts: dict[str, Path]) -> tuple[str, Path] | 
 
 
 def mount_key(path: Path, mounts: dict[str, Path] | None = None) -> str | None:
-    """文件落在挂载目录内时对应的别名键（`__a2v__/theme.css`）。
+    """文件落在挂载目录内时对应的别名键（`__a2v_web__/styles/tokens.css`）。
 
-    键按**文件位置**判定，而不是按引用写法：共享页面（`declarative.html`）
-    内部引用共享资产用的是相对路径，内容根渲染时这些文件仍在 bundle 里，
-    也仍然只能靠别名记——否则指纹里只剩一个文件名，工作区根下拼不出来，
-    复核会把每一份内容根成片都判成「资产不见了」。
+    键按**文件位置**判定，而不是按引用写法：内容根里的页面用相对路径引用
+    共享资产，但这些文件仍在仓库 `web/` 里，因此只能靠别名记——否则指纹里
+    只剩一个文件名，工作区根下拼不出来，复核会把每一份内容根成片都判成
+    「资产不见了」。
     """
     for prefix, directory in (default_mounts() if mounts is None else mounts).items():
         try:

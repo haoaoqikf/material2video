@@ -125,34 +125,13 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 （约 90KB 已实测的判定逻辑）继续对着真实画面工作，而契约页挂的正是同一份
 composition，体检看到的就是渲染会画出的画面。
 
-## 可复用的动效原语
+## 动效运行时
 
-`web/src/runtime/motion.ts` 提供一组**纯函数**原语，全部只依赖入参，不保存跨帧状态。
-配方与推荐帧数见 [竖屏视觉规范](visual-spec.md)。
-
-| 原语 | 用途 |
-| --- | --- |
-| `progress(localFrame, start, duration, easing)` | 计算片段进度 0..1 |
-| `since(localFrame, startFrame)` | 距起点已经过去的秒数——弹簧与所有物理量的输入 |
-| `stagger(index, stepFrames, baseFrame)` | 逐项呈现时第 i 项的起始帧 |
-| `enterStyle(runtime, seconds, { distance, axis, … })` | HTML 元素入场：透明度 + 位移 + 缩放（返回 React style） |
-| `enterSvgAttrs(runtime, seconds, { distance, axis })` | SVG 分组入场（返回属性串） |
-| `spring(seconds, SPRINGS[name])` | 物理弹簧：阻尼谐振子的闭式解（具名预设） |
-| `range(p, from, to, { clamp })` | 把进度映射为任意数值（位移、光晕强度等） |
-| `breath(localFrame, { periodFrames, amplitude })` | 常驻微动，避免后段完全静止 |
-| `drawPathStyle(p, length)` | SVG 描边动画的样式；长度由调用方算一次后传入 |
-| `revealCharOpacities(units, p, { frame, staggerFrames })` | 逐字揭示的不透明度，文本结构不变 |
-
-**`spring` 收的是秒数，不是 0..1 的进度。** 弹簧本身就是曲线，
-喂给它一条缓动过的进度会让它的自然周期失去意义（犯过：3 帧走完位移）。
-`response` 是自然周期（秒，只决定快慢），`dampingFraction` 是阻尼比 ζ
-（只决定过冲：峰值 ≈ `e^(-πζ/√(1-ζ²))`）。曲线来自 wobble 1.5.1
-（MIT 的解析解），移植在 `web/src/runtime/spring.ts`。
-
-`spring` 与 `breath` 都是闭式表达式（不迭代积分），因此同一帧永远得到同一结果——
-这也是选闭式解而不是逐帧积分的原因：随机访问第 900 帧时，积分型必须重放全过程。
-`drawPathStyle` 不每帧测量路径：连线长度在布局确定时用解析式算好并缓存
-（React 组件不调用 `getTotalLength()`）。
+画面上的动效全部由**帧号推导**的纯函数给出，集中在 `web/src/runtime/`：
+`motionPlan.ts`（阶段切分、声明落到帧区间、错峰次序、进度与通道合成）、
+`beats.ts`（分段口播与语义 beat 时间轴）、`camera.ts` / `continuity.ts` /
+`transition.ts` / `geometry.ts` / `timeline.ts`。分镜不写曲线，只声明受控配方与节拍绑定；
+机制、配方清单与推荐帧数见[竖屏视觉规范](visual-spec.md)。
 
 ## 场景树原语
 
@@ -261,7 +240,8 @@ Windows 正式渲染固定使用单 Chromium 并发：1080×1920 画布与随仓
 
 `_verify_output()` 在解码验收之外会再读一次码流信息，命中全范围像素格式或非标准
 4:2:0 时**报错终止**，避免把「能解码但播不了」的成片交付出去。这条检查有独立的
-回归测试（`tests/test_output_compatibility.py`）。
+回归测试（`tests/test_remotion_render.py::test_renders_a_short_clip_with_the_expected_stream_parameters`，
+真渲一小段并断言码流参数）。
 
 ## 交付文件的访问权限
 

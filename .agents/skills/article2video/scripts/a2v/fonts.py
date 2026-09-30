@@ -13,14 +13,8 @@ BMP 之外）；同一字符出现在多个子表时取「有字形」的那个�
 
 from __future__ import annotations
 
-import re
 import struct
 from pathlib import Path
-
-from . import assets
-
-_FONT_URL = re.compile(r"""url\(\s*["']?([^"')]+\.(?:ttf|otf|woff2?))["']?\s*\)""", re.IGNORECASE)
-_CONTENT_STRING = re.compile(r"""content\s*:\s*["']([^"']+)["']""")
 
 
 def _cmap_offsets(data: bytes) -> list[tuple[int, int, int]]:
@@ -118,8 +112,8 @@ def missing_glyphs(font: str | Path, text: str, coverage: set[int] | None = None
     return list(seen)
 
 
-#: 分镜里**会被渲染**的文本字段。`narration` 当前不渲染，因此不在其中——
-#: 把不渲染的文本算进来会让闸门报出人看不见的缺字，那是噪音。
+#: 分镜里**会被渲染**的文本字段。`narrationSegments`（分段口播）不渲染，
+#: 因此不在其中——把不渲染的文本算进来会让闸门报出人看不见的缺字，那是噪音。
 RENDERED_FIELDS = (
     "text", "title", "subtitle", "lead", "label", "labels", "quote", "caption",
     "value", "unit", "name", "note", "footnote", "legend", "tick", "item", "items",
@@ -172,38 +166,6 @@ def audit(
     return findings
 
 
-def page_fonts(page_file: Path) -> list[Path]:
-    """网页实际声明的字体文件：页面自身与它引用的样式表里的 @font-face。"""
-    html = page_file.read_text(encoding="utf-8", errors="replace")
-    sources = [(page_file, html)]
-    for _reference, candidate in assets.local_assets(page_file, html):
-        if candidate.suffix.lower() == ".css":
-            sources.append((candidate, candidate.read_text(encoding="utf-8", errors="replace")))
-    fonts: list[Path] = []
-    for owner, text in sources:
-        for reference in _FONT_URL.findall(text):
-            if reference.startswith(("http://", "https://", "//", "data:")):
-                continue
-            path = (owner.parent / reference.split("?")[0].split("#")[0]).resolve()
-            if path.is_file() and path not in fonts:
-                fonts.append(path)
-    return fonts
-
-
-def preset_strings(page_file: Path) -> dict[str, str]:
-    """样式表里会被渲染但不在分镜里的固定字串（CSS `content:`）。"""
-    html = page_file.read_text(encoding="utf-8", errors="replace")
-    found: dict[str, str] = {}
-    for _reference, candidate in assets.local_assets(page_file, html):
-        if candidate.suffix.lower() != ".css":
-            continue
-        text = candidate.read_text(encoding="utf-8", errors="replace")
-        for literal in _CONTENT_STRING.findall(text):
-            if literal and literal not in ("", "none", "normal"):
-                found[f"{candidate.name} content:{literal}"] = literal
-    return found
-
-
 def audit_fonts(
     fonts: list[Path],
     storyboard: dict,
@@ -215,8 +177,8 @@ def audit_fonts(
     浏览器才真的会回退到系统字体，那才是这条闸门要抓的东西。
     字体清单为空时返回空表：无从判断，也不该凭空拦人。
 
-    取字体文件的方式与画面实现有关（旧页面解析样式表里的 `@font-face`，
-    React 路径读字体清单），所以清单由调用方给，这里只管判定。
+    取字体文件的方式与画面承载方式有关（场景树与代码场景共用同一份字体清单），
+    所以清单由调用方给，这里只管判定。
     """
     if not fonts:
         return []
@@ -234,20 +196,6 @@ def audit_fonts(
         if missing:
             findings.append({"where": where, "missing": missing})
     return findings
-
-
-def audit_page(page_file: Path, storyboard: dict) -> list[dict]:
-    """按网页**实际声明**的字体查缺字。
-
-    网页没声明任何字体文件时不报（无从判断，也不该凭空拦人）。
-    """
-    return audit_fonts(
-        page_fonts(page_file),
-        storyboard,
-        preset_strings(page_file),
-    )
-
-
 
 
 def charset_for(storyboard: dict, extra_texts: dict[str, str] | None = None) -> str:

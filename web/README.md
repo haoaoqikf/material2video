@@ -56,7 +56,7 @@ uv run python .agents/skills/article2video/scripts/render.py --storyboard <分�
 中间靠 stdout 上带前缀的行通信（`__A2V_COMPOSITION__{…}` 报元数据、`__A2V_PROGRESS__<百分比>`
 报进度），不解析 Remotion 的日志文本——日志措辞随版本变化，把判定挂在它上面升级一次就会静默失效。
 
-`--engine remotion` 之前，默认引擎仍是旧动画网页路径；切换默认值由迁移最后一步完成。
+`--engine` 当前只有一个取值 `remotion`（保留该参数用于显式声明契约）。
 
 ## 渲染脚本（`scripts/remotion-render.mjs`）
 
@@ -115,16 +115,17 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
   扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
   需要按状态切换时，把完整类名写进映射对象再取用。
 
-## 渲染契约（`window.__A2V__` version 2）
+## 渲染契约（`window.__A2V__` version 3）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | 固定 `2` |
+| `version` | 固定 `3` |
 | `fps` / `width` / `height` / `durationInFrames` | 必须与分镜一致，不一致时渲染入口报错终止 |
 | `ready()` | 字体就绪、Player 已挂载、首帧已绘制后 resolve |
 | `seekToFrame(frame)` | 把画面定位到第 `frame` 帧并暂停，画面更新完成后 resolve |
+| `currentFrame()` | 只读诊断读数：画面当前停在第几帧，供量测失败时定位，不参与 `seekToFrame` 语义 |
 
 分镜地址由查询参数给出：`contract.html?a2v-storyboard=<分镜的 URL>`，
 因此这一个页面服务任意作品，作品不需要自己的 HTML。
@@ -143,21 +144,21 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 成片出来了、字全变了、没有任何报错。
 
 字体栈只在 `[data-a2v-preset="keynote"]` 作用域内切换（见 `src/styles/tokens.css`），
-未启用预设的作品不受影响。
+作用域之外的元素不继承这套字体栈。
 
-## 第三方组件：先分类，再接入
+## 第三方依赖：只经代码场景白名单
 
-生态里最好用的那批组件（动态文字、数字滚动、粒子、光效）默认靠 CSS 动画或真实时钟驱动，
-与本站的渲染契约正面冲突。因此接入前必须分类：
+画面**不再**支持接入第三方视觉组件：整页组件接入路径（分类表、帧同步包装层
+`FrameSyncedCssAnimation`）已随场景树架构一并移除，`web/src/third-party/` 不再存在。
+需要第三方库能力时，只能按
+[代码场景](../.agents/skills/article2video/references/code-scenes.md)
+在作品的代码场景里声明，并使用共享白名单：React、React DOM、Remotion、ECharts、
+Dagre、Lucide 与 `@a2v/scene`。
 
-| 类别 | 判据 | 处理 |
-| --- | --- | --- |
-| 纯静态 | 只有样式与结构 | 可直接接入 |
-| CSS 动画 | 动画由 `animation` / `@keyframes` 表达 | 经帧同步包装后接入 |
-| 自带时钟 | 动画由 JS 时钟、动画库或布局测量循环驱动 | **必须改写**为帧驱动，不许直接接入 |
-
-Remotion 官方目前**没有** Framer Motion 集成，因此建在 `motion` 上的组件都属于第三类。
-分类清单与禁止项机检见 `src/adapters/`（随阶段 3 落地）。
+白名单外的裸模块引用会被源码闸门拒绝（`a2v/code_gate.py`）；可渲染源码里的挂钟时间、
+随机数、计时器与 CSS 动画/过渡同样会被拒绝（`a2v/source_policy.py`）。
+各白名单视觉库的确定性适配规则见
+[渲染契约](../.agents/skills/article2video/references/render-contract.md)。
 
 ## 许可证
 
