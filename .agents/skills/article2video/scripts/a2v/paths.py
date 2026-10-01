@@ -307,6 +307,8 @@ def declares_narration(model: sb.Storyboard) -> bool:
     只用于选择产物文件名与提示，不会自动触发联网配音：有声渲染仍须显式
     传入 `--media`。
     """
+    if hasattr(model, "stages"):
+        return bool(getattr(model, "has_narration", False))
     return any((scene.narration or "").strip() for scene in model.scenes)
 
 

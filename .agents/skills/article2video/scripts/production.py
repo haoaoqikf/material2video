@@ -43,7 +43,13 @@ def main(argv: list[str] | None = None) -> int:
             args.media = str(article.media_manifest)
         model = None
         if args.storyboard:
-            model, report = load_storyboard(args.storyboard)
+            if isinstance(raw, dict) and raw.get("version") == 4:
+                from a2v import storyboard_v4
+                from a2v.cli import _v4_model
+                report = storyboard_v4.validate(raw)
+                model = _v4_model(raw) if report.ok else None
+            else:
+                model, report = load_storyboard(args.storyboard)
             if model is None:
                 raise A2VError("分镜校验失败：" + "；".join(item.format() for item in report.errors))
         record_file = production.record_path(article)

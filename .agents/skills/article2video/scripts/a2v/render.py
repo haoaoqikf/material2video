@@ -358,21 +358,26 @@ def render_with_remotion(
     output_path = Path(output)
     if not 0 < scale <= 1:
         raise RenderError("输出缩放比例必须大于 0 且不超过 1")
+    if storyboard_path is None:
+        raise RenderError("Remotion 路径需要分镜文件：它是 composition 的 props")
 
     if media:
-        from . import storyboard as sb
-
-        source_model = sb._build(media.data["source"], sb.Report())
-        if storyboard != source_model:
-            raise RenderError("媒体与分镜不匹配，请重新 prepare")
+        if media.data.get("version") == 4:
+            from .media import fingerprint
+            try:
+                source_data = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise RenderError(f"读取 v4 源分镜失败：{exc}") from exc
+            if fingerprint(source_data) != media.data.get("sourceFingerprint"):
+                raise RenderError("媒体与分镜不匹配，请重新 prepare")
+        else:
+            from . import storyboard as sb
+            source_model = sb._build(media.data["source"], sb.Report())
+            if storyboard != source_model:
+                raise RenderError("媒体与分镜不匹配，请重新 prepare")
         storyboard = media.storyboard
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if storyboard_path is None:
-        raise RenderError(
-            "Remotion 路径需要分镜文件：它是 composition 的 props，"
-            "画面里的每一幕都由它推导"
-        )
     props = Path(storyboard_path).resolve()
     if not props.is_file():
         raise RenderError(f"分镜文件不存在: {props}")

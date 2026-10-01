@@ -174,12 +174,13 @@ _V4_WORLD_PROBE_SCRIPT = """
 """
 
 
-def verify_v4_world_probe(page: Any, storyboard: dict[str, Any], frame: int) -> list[str]:
+def verify_v4_world_probe(page: Any, storyboard: dict[str, Any], frame: int,
+                          media: dict[str, Any] | None = None) -> list[str]:
     """Verify observable v4 world context and every declared world-object probe."""
     raw = page.evaluate(_V4_WORLD_PROBE_SCRIPT)
     if not isinstance(raw, dict):
         return ["v4 world 探针未挂载"]
-    timeline = resolve_v4(storyboard)
+    timeline = resolve_v4(storyboard, media)
     stage = next((item for item in timeline.stages if item.start_frame <= frame < item.end_frame), None)
     issues: list[str] = []
     world = storyboard.get("world", {})
@@ -423,9 +424,9 @@ def scenes_as_dicts(model: Any) -> list[dict[str, Any]]:
     ]
 
 
-def v4_stages_as_dicts(storyboard: dict[str, Any]) -> list[dict[str, Any]]:
+def v4_stages_as_dicts(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Expose v4 stages as global-frame inspection windows without rebasing frames."""
-    timeline = resolve_v4(storyboard)
+    timeline = resolve_v4(storyboard, media)
     return [
         {"id": stage.id, "type": "world", "startFrame": stage.start_frame,
          "durationInFrames": stage.end_frame - stage.start_frame,
@@ -840,6 +841,7 @@ def run_inspect(
     preset: str = "",
     sheet_name: str = "contact-sheet.png",
     v4_storyboard: dict[str, Any] | None = None,
+    v4_media: dict[str, Any] | None = None,
 ) -> tuple[Report, dict[str, Any]]:
     """在已打开的页面上跑完契约探针与帧量测，并落盘。
 
@@ -851,14 +853,15 @@ def run_inspect(
     frames_dir.mkdir(parents=True, exist_ok=True)
     by_id = {str(scene.get("id")): scene for scene in scenes}
     probes: list[dict[str, Any]] = []
+    v4_probes: list[dict[str, Any]] = []
     metrics: list[dict[str, Any]] = []
     shots: list[Path] = []
     keynote_result = keynote.KeynoteResult(
         enabled=bool(preset),
         reason="" if preset else "该作品未启用设计语言预设（visual.preset），观感闸门不适用",
     )
-    probing = uses_component_library(page)
-    if not probing:
+    probing = uses_component_library(page) if v4_storyboard is None else False
+    if not probing and v4_storyboard is None:
         report.warn(
             "页面#契约",
             "网页没有使用视觉组件库，已跳过组件契约探针；"
@@ -867,8 +870,9 @@ def run_inspect(
 
     for scene_id, start, end in scene_windows(scenes):
         scene = by_id.get(scene_id, {})
-        expected_kind = declared_kind(scene)
-        labels = scene_labels(scene)
+        expected_kind = ((v4_storyboard.get("world", {}).get("renderer") or {}).get("kind")
+                         if v4_storyboard is not None else declared_kind(scene))
+        labels = [] if v4_storyboard is not None else scene_labels(scene)
         scene_type = str(scene.get("type") or "")
         frames = sample_frames(start, end)
         seen_texts: set[str] = set()
@@ -877,7 +881,9 @@ def run_inspect(
         for index, frame in enumerate(frames):
             page.seek(frame)
             if v4_storyboard is not None:
-                for issue in verify_v4_world_probe(page, v4_storyboard, frame):
+                issues = verify_v4_world_probe(page, v4_storyboard, frame, v4_media)
+                v4_probes.append({"stage": scene_id, "frame": frame, "issues": issues, "ok": not issues})
+                for issue in issues:
                     report.error(f"v4 world frame {frame}", issue)
             png = page.capture("png")
             target = frames_dir / f"{scene_id}-{int(SAMPLES[index] * 100):02d}-f{frame:04d}.png"
@@ -954,12 +960,13 @@ def run_inspect(
     contact_sheet(shots, report_dir / sheet_name)
     # 动效量测放在抽帧之后：它要逐帧把页面再走一遍，量的是入场轨迹，
     # 与上面「抽若干帧看画面」互补——抽帧看不出「入场在幕内来不及落地」。
-    motion_result = motion.audit(page, scenes)
+    motion_json = ({"status": "pending", "reason": "v4 连续性动态量测将在任务 5.4 实施"}
+                   if v4_storyboard is not None else motion.audit(page, scenes).to_json())
     return report, {
-        "contract": probes,
+        "contract": v4_probes if v4_storyboard is not None else probes,
         "frames": metrics,
         "frameCount": len(shots),
         "usedComponentLibrary": probing,
         "keynote": keynote_result.to_json(),
-        "motion": motion_result.to_json(),
+        "motion": motion_json,
     }

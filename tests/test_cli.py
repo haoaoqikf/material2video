@@ -15,6 +15,19 @@ class TestValidateCommand:
 
         assert cli.main_validate([str(EXAMPLES_DIR / "storyboard.json")]) == 0
 
+    def test_v4_validation_reports_global_stage_timeline(self, tmp_path, capsys):
+        from pathlib import Path
+        source = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-vectors.json").read_text(encoding="utf-8"))["valid"]
+        path = tmp_path / "storyboard-v4.json"
+        path.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+        assert cli.main_validate([str(path), "--json"]) == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["summary"]["sceneCount"] == len(source["stages"])
+        assert payload["summary"]["totalFrames"] == source["stages"][0]["durationInFrames"]
+        assert payload["warnings"][0]["path"] == "diversity"
+        model = cli._validated_storyboard(path)
+        assert model.total_frames == payload["summary"]["totalFrames"]
+
     def test_exit_failed_for_missing_file(self, tmp_path):
         assert cli.main_validate([str(tmp_path / "absent.json")]) == 2
 

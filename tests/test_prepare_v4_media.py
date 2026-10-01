@@ -34,7 +34,8 @@ def test_prepare_v4_writes_ordered_global_beats_and_standard_duration(tmp_path, 
         path = directory / f"stage-{len(calls)}.wav"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"mock audio")
-        return path, [{"start": 0, "end": 15, "text": "口播"}], [], 16.0, False
+        duration = 26.0 if len(calls) == 1 else 16.0
+        return path, [{"start": 0, "end": 15, "text": "口播"}], [], duration, False
 
     monkeypatch.setattr(prepare_mod, "_scene_audio", fake_scene_audio)
     monkeypatch.setattr(prepare_mod, "segment_windows", lambda text, segments, words, duration: [(0.0, duration)])
@@ -46,24 +47,25 @@ def test_prepare_v4_writes_ordered_global_beats_and_standard_duration(tmp_path, 
     manifest = json.loads(result.read_text(encoding="utf-8"))
     assert calls == [4, 4]
     assert manifest["version"] == 4
-    assert [(stage["id"], stage["durationInFrames"]) for stage in manifest["stages"]] == [("opening", 525), ("ending", 525)]
+    assert [(stage["id"], stage["durationInFrames"]) for stage in manifest["stages"]] == [("opening", 792), ("ending", 525)]
     assert [(beat["stageId"], beat["id"], beat["startFrame"], beat["endFrame"]) for beat in manifest["resolvedBeats"]] == [
-        ("opening", "throw-1", 0, 480), ("ending", "throw-ending", 525, 1005),
+        ("opening", "throw-1", 0, 780), ("ending", "throw-ending", 792, 1272),
     ]
-    assert manifest["standardCheck"]["actualDurationInFrames"] == 1050
+    assert manifest["standardCheck"]["actualDurationInFrames"] == 1317
     assert manifest["standardCheck"]["durationStatus"] == "pass"
+    assert [stage["durationInFrames"] for stage in json.loads(storyboard.read_text(encoding="utf-8"))["stages"]] == [525, 525]
     resolved = resolve_v4(source, manifest)
-    assert resolved.total_frames == 1050
-    assert resolved.stages[1].start_frame == 525
-    assert resolved.beats[1]["startFrame"] == 525
+    assert resolved.total_frames == 1317
+    assert resolved.stages[1].start_frame == 792
+    assert resolved.beats[1]["startFrame"] == 792
     assert resolved.estimated is False
 
     for reference in (manifest["audio"], manifest["narration"]):
         with wave.open(str(result.parent / reference), "wb") as stream:
             stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
-            stream.writeframes(b"\0\0" * (35 * 24000))
+            stream.writeframes(b"\0\0" * round(manifest["standardCheck"]["actualDurationSeconds"] * 24000))
     media = media_mod.load_media(result, storyboard)
-    assert media.storyboard.total_frames == 1050
+    assert media.storyboard.total_frames == 1317
     effective = media_mod.effective_storyboard(media)
     assert effective["mediaTimeline"]["resolvedBeats"] == manifest["resolvedBeats"]
     assert effective["subtitleCues"] == manifest["cues"]

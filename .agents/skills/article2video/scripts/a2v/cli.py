@@ -22,7 +22,7 @@ from . import paths as paths_mod
 from . import storyboard as sb
 from . import visual_narrative as vn
 from .errors import A2VError
-from .media import Media, load_media
+from .media import Media, V4Stage, V4Storyboard, load_media
 from .render import provenance_status, render_with_remotion
 from .http_server import LocalServer
 from .storyboard import Report
@@ -288,14 +288,34 @@ def _parse_frame_range(text: str, total_frames: int) -> tuple[int, int]:
     return start, end
 
 
-def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | None:
+def _v4_model(data: dict[str, Any]) -> V4Storyboard:
+    cursor = 0
+    stages = []
+    for stage in data["stages"]:
+        duration = stage["durationInFrames"]
+        stages.append(V4Stage(stage["id"], cursor, duration, stage.get("data", {})))
+        cursor += duration
+    return V4Storyboard(data["fps"], data["width"], data["height"], tuple(stages),
+                        any(stage.get("narrationSegments") for stage in data["stages"]), data.get("title", ""))
+
+
+def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | V4Storyboard | None:
     """加载并校验分镜；有错误时打印问题并返回 None。
 
     代码场景的模块检查也在这里完成：预览、评审与渲染都会先走这一步，
     因此「模块不存在、没有默认导出」会在启动浏览器或打包之前失败，
     而不是渲出一张空画面再让人反推原因。
     """
-    model, report = sb.load(path)
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = None
+    if isinstance(data, dict) and data.get("version") == 4:
+        from . import storyboard_v4
+        report = storyboard_v4.validate(data)
+        model = _v4_model(data) if report.ok else None
+    else:
+        model, report = sb.load(path)
     _check_code_scene_modules(Path(path), content_root, report)
     if model is None:
         for issue in report.errors:
@@ -566,17 +586,31 @@ def main_validate(argv: list[str] | None = None) -> int:
         logging.error("文件不存在: %s", path)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(path, strict=args.strict)
+    try:
+        raw_input = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raw_input = None
+    if isinstance(raw_input, dict) and raw_input.get("version") == 4:
+        from . import storyboard_v4
+        report = storyboard_v4.validate(raw_input)
+        model = _v4_model(raw_input) if report.ok else None
+        if model is not None:
+            report.warn("diversity", "v4 多样性规则适配尚未完成")
+    else:
+        model, report = sb.load(path, strict=args.strict)
     _check_code_scene_modules(path, args.content_root, report)
     diversity_result = None
     if model is not None:
         try:
             from . import diversity
-            raw = json.loads(path.read_text(encoding="utf-8"))
-            refs = diversity.load_references(args.reference) if args.reference else None
-            diversity_result = diversity.inspect(raw, refs)
-            for finding in diversity_result["findings"]:
-                report.warn("scenes", f"多样性规则 {finding['rule']}：涉及场景 {', '.join(finding['scenes'])}")
+            raw = raw_input if isinstance(raw_input, dict) else json.loads(path.read_text(encoding="utf-8"))
+            if raw.get("version") != 4:
+                refs = diversity.load_references(args.reference) if args.reference else None
+                diversity_result = diversity.inspect(raw, refs)
+                for finding in diversity_result["findings"]:
+                    report.warn("scenes", f"多样性规则 {finding['rule']}：涉及场景 {', '.join(finding['scenes'])}")
+            else:
+                diversity_result = {"status": "pending", "reason": "v4 多样性规则适配尚未完成"}
         except (OSError, json.JSONDecodeError) as exc:
             report.error("reference", f"参考分镜读取失败：{exc}")
             model = None
@@ -728,7 +762,14 @@ def main_review(argv: list[str] | None = None) -> int:
         logging.error("找不到要体检的画面: %s", exc)
         return _EXIT_INVALID_INPUT
 
-    model, report = sb.load(args.storyboard)
+    raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
+    is_v4 = isinstance(raw_storyboard, dict) and raw_storyboard.get("version") == 4
+    if is_v4:
+        from . import storyboard_v4
+        report = storyboard_v4.validate(raw_storyboard)
+        model = _v4_model(raw_storyboard) if report.ok else None
+    else:
+        model, report = sb.load(args.storyboard)
     if model is None or not report.ok:
         for issue in report.issues:
             logging.error("%s", issue.format())
@@ -745,7 +786,8 @@ def main_review(argv: list[str] | None = None) -> int:
 
     try:
         media = load_media(args.media, args.storyboard) if args.media else None
-        scenes = inspect_mod.scenes_as_dicts(media.storyboard if media else model)
+        scenes = (inspect_mod.v4_stages_as_dicts(raw_storyboard, media.data if media else None)
+                  if is_v4 else inspect_mod.scenes_as_dicts(media.storyboard if media else model))
     except (A2VError, OSError) as exc:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
@@ -764,14 +806,26 @@ def main_review(argv: list[str] | None = None) -> int:
     )
     # 视觉叙事 V 系列是静态分析，放在浏览器工作之前：契约页构建失败时
     # 它的结论也已经被写进错误列表，不会因为环境问题静默丢失。
-    visual_narrative = _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
+    visual_narrative = (
+        {"status": "pending", "message": "v4 单场景视觉叙事专项评审将在连续性评审任务中启用"}
+        if is_v4 else _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
+    )
     # 动画论证 A 系列同理：它读分镜与媒体清单，不需要浏览器。机检失败在这里
     # 就进错误数，契约页起不来也不影响「动画有没有解释论点」的结论。
-    animation_review = _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
-    raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
-    bespoke_animation_review = _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
-    aesthetic_review_result = aesthetic_review.analyze(raw_storyboard)
-    for finding in aesthetic_review_result["findings"]:
+    animation_review = (
+        {"status": "pending", "message": "v4 全片动画论证评审将在连续性评审任务中启用"}
+        if is_v4 else _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
+    )
+    bespoke_animation_review = (
+        {"required": raw_storyboard.get("world", {}).get("renderer", {}).get("kind") == "code",
+         "status": "pending", "publishable": False, "message": "v4 定制动画评审将在连续性评审任务中启用"}
+        if is_v4 else _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
+    )
+    aesthetic_review_result = (
+        {"status": "pending", "findings": [], "message": "v4 持续场景审美与连续性评审尚未完成"}
+        if is_v4 else aesthetic_review.analyze(raw_storyboard)
+    )
+    for finding in aesthetic_review_result.get("findings", []):
         if finding["status"] == "fail":
             combined.error(f"导演预检 {finding['rule']}", finding["detail"] + "：" + "、".join(finding["scenes"]))
 
@@ -800,13 +854,15 @@ def main_review(argv: list[str] | None = None) -> int:
                 timeout_ms=args.timeout,
                 width=model.width,
                 height=model.height,
-                expected_version=contract_page.CONTRACT_VERSION,
+                expected_version=4 if is_v4 else contract_page.CONTRACT_VERSION,
             ) as page:
                 page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
                 preset = str(((media.storyboard if media else model).visual or {}).get("preset") or "")
                 page_report, extra = inspect_mod.run_inspect(
                     page, scenes, out_dir / "frames", out_dir, preset=preset,
                     sheet_name=_contact_sheet_name("media" if media else "storyboard"),
+                    v4_storyboard=raw_storyboard if is_v4 else None,
+                    v4_media=media.data if is_v4 and media else None,
                 )
                 # 运行期隔离（任务 3.3）：被阻断请求、页面异常、未处理 Promise
                 # 与控制台 error 都计为错误，而不是静默放行。

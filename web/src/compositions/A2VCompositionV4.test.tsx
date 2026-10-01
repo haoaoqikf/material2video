@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { A2VCompositionV4 } from './A2VCompositionV4';
+import { resolveStoryboardV4 } from '@/runtime/timelineV4';
 
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
@@ -73,5 +74,27 @@ describe('v4 全片单一 composition', () => {
     expect(second).toContain('data-v4-player-state="focus"');
     expect(second).toContain('data-v4-objects="3"');
     expect(second).toContain('data-v4-camera="hold"');
+  });
+
+  it('实际媒体延长首阶段后，随机寻到的全局帧仍处于正确阶段与媒体 beat 轴', () => {
+    const storyboard = twoStages();
+    const declared = resolveStoryboardV4(storyboard);
+    const mediaTimeline = {
+      stages: [{ id: 'opening', durationInFrames: 600, audio: 'opening.wav' },
+        { id: 'ending', durationInFrames: 450, audio: 'ending.wav' }],
+      resolvedBeats: declared.beats.map((beat) => ({ ...beat,
+        startFrame: beat.startFrame + (beat.stageId === 'ending' ? 75 : 0),
+        endFrame: beat.endFrame + (beat.stageId === 'ending' ? 75 : 0),
+      })),
+    };
+    testFrame.value = 550;
+    const beforeBoundary = renderToStaticMarkup(<A2VCompositionV4 {...storyboard} mediaTimeline={mediaTimeline} />);
+    testFrame.value = 610;
+    const afterBoundary = renderToStaticMarkup(<A2VCompositionV4 {...storyboard} mediaTimeline={mediaTimeline} />);
+    expect(beforeBoundary).toContain('data-a2v-stage-id="opening"');
+    expect(beforeBoundary).toContain('data-a2v-stage-end="600"');
+    expect(afterBoundary).toContain('data-a2v-stage-id="ending"');
+    expect(afterBoundary).toContain('data-a2v-stage-start="600"');
+    expect(afterBoundary).toContain('data-a2v-beat-estimated="0"');
   });
 });

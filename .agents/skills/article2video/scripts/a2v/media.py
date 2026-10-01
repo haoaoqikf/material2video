@@ -95,6 +95,7 @@ class V4Stage:
     start_frame: int
     duration_in_frames: int
     data: dict
+    type: str = "world"
 
     @property
     def end_frame(self) -> int:
@@ -107,6 +108,8 @@ class V4Storyboard:
     width: int
     height: int
     stages: tuple[V4Stage, ...]
+    has_narration: bool = False
+    title: str = ""
 
     @property
     def scenes(self) -> tuple[V4Stage, ...]:
@@ -373,7 +376,8 @@ def _load_media_v4(path: Path, data: dict, source_path: str | Path | None) -> Me
     narration_path = _contained_media_file(path, data.get("narration"), "旁白")
     if abs(wav_duration(audio_path) - seconds) > 1 / 24000 or abs(wav_duration(narration_path) - seconds) > 1 / 24000:
         raise ValueError("媒体音轨时长与全局 stages 不一致")
-    model = V4Storyboard(source["fps"], source["width"], source["height"], tuple(stages))
+    model = V4Storyboard(source["fps"], source["width"], source["height"], tuple(stages),
+                         any(stage.get("narrationSegments") for stage in source["stages"]), source.get("title", ""))
     return Media(path, data, model, audio_path)
 
 
