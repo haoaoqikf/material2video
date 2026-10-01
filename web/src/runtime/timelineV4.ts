@@ -11,6 +11,21 @@ export interface V4Timeline {
   phases: V4PhaseRange[]; estimated: true;
 }
 
+function phaseSpans(start: number, duration: number, beats: V4BeatRange[]): Array<[number, number]> {
+  const settle = start + Math.max(0, duration - 12);
+  let firstEnd: number;
+  let changeEnd: number;
+  if (beats.length) {
+    firstEnd = Math.min(settle, beats[0]!.endFrame);
+    changeEnd = Math.min(settle, beats.at(-1)!.endFrame);
+  } else {
+    const active = settle - start;
+    firstEnd = start + Math.floor(active * .35);
+    changeEnd = start + Math.floor(active * .75);
+  }
+  return [[start, firstEnd], [firstEnd, changeEnd], [changeEnd, settle], [settle, start + duration]];
+}
+
 function proportionalSpans(duration: number, texts: string[]): Array<[number, number]> {
   if (!texts.length || duration < texts.length) return [];
   const weights = texts.map((text) => Math.max(Array.from(text.trim()).length, 1));
@@ -40,14 +55,8 @@ export function resolveStoryboardV4(storyboard: StoryboardV4): V4Timeline {
     const start = cursor;
     const end = start + stage.durationInFrames;
     stages.push({ id: stage.id, startFrame: start, endFrame: end });
-    const base = Math.floor(stage.durationInFrames / 4);
-    let phaseCursor = start;
-    phaseNames.forEach((phase, index) => {
-      const width = base + (index < stage.durationInFrames % 4 ? 1 : 0);
-      phases.push({ stageId: stage.id, phase, startFrame: phaseCursor, endFrame: phaseCursor + width });
-      phaseCursor += width;
-    });
     const segments = stage.narrationSegments ?? [];
+    const stageBeats: V4BeatRange[] = [];
     if (segments.length) {
       let budget = stage.durationInFrames - 12;
       if (budget < segments.length) budget = stage.durationInFrames;
@@ -59,11 +68,18 @@ export function resolveStoryboardV4(storyboard: StoryboardV4): V4Timeline {
         if (!span || !beat) return;
         const prior = beats.at(-1);
         if (prior?.id === segment.beatId && prior.stageId === stage.id) prior.endFrame = start + span[1];
-        else beats.push({ id: segment.beatId, stageId: stage.id, action: beat.action,
+        else {
+          const resolved = { id: segment.beatId, stageId: stage.id, action: beat.action,
           targets: [...beat.targets], meaning: beat.meaning,
-          startFrame: start + span[0], endFrame: start + span[1] });
+          startFrame: start + span[0], endFrame: start + span[1] };
+          beats.push(resolved);
+          stageBeats.push(resolved);
+        }
       });
     }
+    phaseSpans(start, stage.durationInFrames, stageBeats).forEach(([phaseStart, phaseEnd], index) => {
+      phases.push({ stageId: stage.id, phase: phaseNames[index]!, startFrame: phaseStart, endFrame: phaseEnd });
+    });
     cursor = end;
   }
   return { fps: storyboard.fps, totalFrames: cursor, stages, beats, phases, estimated: true };

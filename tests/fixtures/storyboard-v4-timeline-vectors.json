@@ -7,8 +7,8 @@
         "id": "opening",
         "durationInFrames": 101,
         "narrationSegments": [
-          { "id": "line-a", "text": "甲甲甲甲甲甲甲甲甲甲", "beatId": "beat-a" },
-          { "id": "line-b", "text": "乙乙乙乙乙乙乙乙乙乙", "beatId": "beat-b" }
+          { "id": "line-a", "text": "甲甲甲甲甲甲甲甲甲", "beatId": "beat-a" },
+          { "id": "line-b", "text": "乙乙乙乙乙乙乙乙乙乙乙", "beatId": "beat-b" }
         ],
         "beats": [
           { "id": "beat-a", "action": "reveal", "targets": ["dart"], "meaning": "第一次尝试" },
@@ -19,6 +19,29 @@
       { "id": "ending", "durationInFrames": 106, "beats": [] }
     ]
   },
+  "stateWorld": {
+    "renderer": { "kind": "tree" },
+    "data": { "values": { "dart": [0, 2] } },
+    "sceneTree": { "id": "root", "type": "group", "children": [
+      { "id": "player", "type": "shape", "shape": "circle", "state": "rest" },
+      { "id": "dart", "type": "number", "contentRef": "values.dart", "state": "rest" }
+    ] },
+    "stateTracks": [
+      { "id": "player-focus", "target": "player", "property": "state", "binding": { "stageId": "opening", "phase": "establish" }, "to": "focus", "interpolation": "step-end" },
+      { "id": "player-done", "target": "player", "property": "state", "binding": { "stageId": "opening", "phase": "change" }, "to": "done", "interpolation": "step-end" },
+      { "id": "dart-first", "target": "dart", "property": "value", "binding": { "beatId": "beat-a" }, "to": [10, 4], "interpolation": "ease-in-out" },
+      { "id": "dart-final", "target": "dart", "property": "value", "binding": { "stageId": "middle", "phase": "result" }, "to": [20, 8], "interpolation": "linear" }
+    ]
+  },
+  "stateSamples": {
+    "0": { "player": { "state": "rest" }, "dart": { "value": [0, 2] } },
+    "20": { "player": { "state": "rest" }, "dart": { "value": [5, 3] } },
+    "40": { "player": { "state": "focus" }, "dart": { "value": [10, 4] } },
+    "50": { "player": { "state": "focus" }, "dart": { "value": [10, 4] } },
+    "89": { "player": { "state": "done" }, "dart": { "value": [10, 4] } },
+    "181": { "player": { "state": "done" }, "dart": { "value": [15.217391304347826, 6.086956521739131] } },
+    "192": { "player": { "state": "done" }, "dart": { "value": [20, 8] } }
+  },
   "expected": {
     "fps": 30,
     "totalFrames": 310,
@@ -28,22 +51,22 @@
       { "id": "ending", "startFrame": 204, "endFrame": 310 }
     ],
     "beats": [
-      { "id": "beat-a", "stageId": "opening", "action": "reveal", "targets": ["dart"], "meaning": "第一次尝试", "startFrame": 0, "endFrame": 45 },
-      { "id": "beat-b", "stageId": "opening", "action": "connect", "targets": ["target"], "meaning": "得到反馈", "startFrame": 45, "endFrame": 89 }
+      { "id": "beat-a", "stageId": "opening", "action": "reveal", "targets": ["dart"], "meaning": "第一次尝试", "startFrame": 0, "endFrame": 40 },
+      { "id": "beat-b", "stageId": "opening", "action": "connect", "targets": ["target"], "meaning": "得到反馈", "startFrame": 40, "endFrame": 89 }
     ],
     "phases": [
-      { "stageId": "opening", "phase": "establish", "startFrame": 0, "endFrame": 26 },
-      { "stageId": "opening", "phase": "change", "startFrame": 26, "endFrame": 51 },
-      { "stageId": "opening", "phase": "result", "startFrame": 51, "endFrame": 76 },
-      { "stageId": "opening", "phase": "settle", "startFrame": 76, "endFrame": 101 },
-      { "stageId": "middle", "phase": "establish", "startFrame": 101, "endFrame": 127 },
-      { "stageId": "middle", "phase": "change", "startFrame": 127, "endFrame": 153 },
-      { "stageId": "middle", "phase": "result", "startFrame": 153, "endFrame": 179 },
-      { "stageId": "middle", "phase": "settle", "startFrame": 179, "endFrame": 204 },
-      { "stageId": "ending", "phase": "establish", "startFrame": 204, "endFrame": 231 },
-      { "stageId": "ending", "phase": "change", "startFrame": 231, "endFrame": 258 },
-      { "stageId": "ending", "phase": "result", "startFrame": 258, "endFrame": 284 },
-      { "stageId": "ending", "phase": "settle", "startFrame": 284, "endFrame": 310 }
+      { "stageId": "opening", "phase": "establish", "startFrame": 0, "endFrame": 40 },
+      { "stageId": "opening", "phase": "change", "startFrame": 40, "endFrame": 89 },
+      { "stageId": "opening", "phase": "result", "startFrame": 89, "endFrame": 89 },
+      { "stageId": "opening", "phase": "settle", "startFrame": 89, "endFrame": 101 },
+      { "stageId": "middle", "phase": "establish", "startFrame": 101, "endFrame": 132 },
+      { "stageId": "middle", "phase": "change", "startFrame": 132, "endFrame": 169 },
+      { "stageId": "middle", "phase": "result", "startFrame": 169, "endFrame": 192 },
+      { "stageId": "middle", "phase": "settle", "startFrame": 192, "endFrame": 204 },
+      { "stageId": "ending", "phase": "establish", "startFrame": 204, "endFrame": 236 },
+      { "stageId": "ending", "phase": "change", "startFrame": 236, "endFrame": 274 },
+      { "stageId": "ending", "phase": "result", "startFrame": 274, "endFrame": 298 },
+      { "stageId": "ending", "phase": "settle", "startFrame": 298, "endFrame": 310 }
     ],
     "estimated": true
   }

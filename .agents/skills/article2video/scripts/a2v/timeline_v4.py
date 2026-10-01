@@ -37,17 +37,16 @@ class V4Timeline:
                 "beats": list(self.beats), "phases": list(self.phases), "estimated": self.estimated}
 
 
-def _phase_spans(start: int, duration: int) -> list[tuple[int, int]]:
-    # Deterministic largest-remainder partition; the final phase ends exactly at the stage boundary.
-    widths = [duration // 4] * 4
-    for index in range(duration % 4):
-        widths[index] += 1
-    spans: list[tuple[int, int]] = []
-    cursor = start
-    for width in widths:
-        spans.append((cursor, cursor + width))
-        cursor += width
-    return spans
+def _phase_spans(start: int, duration: int, beats: list[dict[str, Any]]) -> list[tuple[int, int]]:
+    settle = start + max(0, duration - 12)
+    if beats:
+        first_end = min(settle, beats[0]["endFrame"])
+        change_end = min(settle, beats[-1]["endFrame"])
+    else:
+        active = settle - start
+        first_end = start + int(active * .35)
+        change_end = start + int(active * .75)
+    return [(start, first_end), (first_end, change_end), (change_end, settle), (settle, start + duration)]
 
 
 def resolve_v4(storyboard: dict[str, Any]) -> V4Timeline:
@@ -61,9 +60,8 @@ def resolve_v4(storyboard: dict[str, Any]) -> V4Timeline:
         duration = int(stage["durationInFrames"])
         stage_start, stage_end = cursor, cursor + duration
         stages.append(FrameRange(stage["id"], stage_start, stage_end))
-        for phase, (start, end) in zip(PHASES, _phase_spans(stage_start, duration)):
-            phases.append({"stageId": stage["id"], "phase": phase, "startFrame": start, "endFrame": end})
         segments = stage.get("narrationSegments") or []
+        stage_beats: list[dict[str, Any]] = []
         if segments:
             text = [str(segment.get("text", "")) for segment in segments]
             budget = duration - 12
@@ -82,5 +80,10 @@ def resolve_v4(storyboard: dict[str, Any]) -> V4Timeline:
                                 "targets": list(beat["targets"]), "meaning": beat["meaning"],
                                 "startFrame": stage_start + local_start, "endFrame": stage_start + local_end}
                     beats.append(previous)
+                    stage_beats.append(previous)
+                if previous and previous["id"] == beat_id and previous not in stage_beats:
+                    stage_beats.append(previous)
+        for phase, (phase_start, phase_end) in zip(PHASES, _phase_spans(stage_start, duration, stage_beats)):
+            phases.append({"stageId": stage["id"], "phase": phase, "startFrame": phase_start, "endFrame": phase_end})
         cursor = stage_end
     return V4Timeline(fps, cursor, tuple(stages), tuple(beats), tuple(phases))
