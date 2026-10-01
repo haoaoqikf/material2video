@@ -28,6 +28,18 @@ GENERATOR_VERSION = 1
 MEDIA_CONTRACT_VERSION = 4
 
 
+def _standard_duration_check(total_frames: int, fps: int) -> dict:
+    seconds = total_frames / fps
+    return {"actualDurationInFrames": total_frames, "actualDurationSeconds": seconds,
+            "durationStatus": "pass" if 35 * fps <= total_frames <= 45 * fps else "fail",
+            "durationLimitSeconds": [35, 45]}
+
+
+def _actual_speech_stage_frames(duration: float, fps: int) -> int:
+    """Round actual speech up to frames and preserve only the fixed reading tail."""
+    return math.ceil(duration * fps) + beat_mod.STABLE_READING_FRAMES
+
+
 async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dict]:
     words = []
     request = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary",
@@ -172,7 +184,9 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
                     text, voice, rate, cache, force, contract_version=MEDIA_CONTRACT_VERSION
                 )
                 hits += int(hit)
-                frames = max(frames, math.ceil(duration * source["fps"]) + beat_mod.STABLE_READING_FRAMES)
+                # Use speech-derived time plus the fixed reading tail. Keeping a longer
+                # declared stage here could silently pad short narration to 35 seconds.
+                frames = _actual_speech_stage_frames(duration, source["fps"])
                 segments = [segment["text"] for segment in stage["narrationSegments"]]
                 windows = segment_windows(text, segments, local_words, duration)
                 local = beat_mod.resolve_from_windows(stage, windows, source["fps"], frames).to_json()
@@ -187,8 +201,9 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
             parts.append((path, frames))
             cursor += frames
 
-        duration_seconds = cursor / source["fps"]
-        status = "pass" if 35 * source["fps"] <= cursor <= 45 * source["fps"] else "fail"
+        duration_check = _standard_duration_check(cursor, source["fps"])
+        duration_seconds = duration_check["actualDurationSeconds"]
+        status = duration_check["durationStatus"]
         generation = uuid.uuid4().hex
         audio.concatenate(parts, source["fps"], work / "narration.wav")
         track = source.get("soundtrack", {})
@@ -217,8 +232,7 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
                     "soundFingerprint": fingerprint(sound.configuration(source)),
                     "soundAssets": {ref: {"path": os.path.relpath(path, root).replace("\\", "/"),
                                            "sha256": sound.asset_digest(path)} for ref, path in assets.items()},
-                    "standardCheck": {"actualDurationInFrames": cursor, "actualDurationSeconds": duration_seconds,
-                                      "durationStatus": status, "durationLimitSeconds": [35, 45]}}
+                    "standardCheck": duration_check}
         (work / "audio.wav").replace(root / manifest["audio"])
         (work / "narration.wav").replace(root / manifest["narration"])
         (work / "subtitles.srt").replace(root / manifest["subtitles"])
@@ -228,6 +242,9 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
         security.grant_inherited_access(root / name)
     logger.info("v4 配音准备完成：%d stages，缓存命中 %d，%.2fs，时长状态 %s，耗时 %.1fs",
                 len(stages), hits, duration_seconds, status, time.monotonic() - started)
+    if status != "pass":
+        logger.warning("实际时长 %.2f 秒超出 35～45 秒；调整口播措辞、正常语速或有意义的停顿后重新 prepare；不会截断口播或补空白",
+                       duration_seconds)
     return root / "media.json"
 
 

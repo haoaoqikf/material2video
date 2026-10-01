@@ -319,8 +319,7 @@ def _load_media_v4(path: Path, data: dict, source_path: str | Path | None) -> Me
     previous_beat_end = 0
     for source_stage, media_stage in zip(source["stages"], raw_stages):
         frames = media_stage.get("durationInFrames")
-        if (media_stage.get("id") != source_stage["id"] or type(frames) is not int
-                or frames < source_stage["durationInFrames"]):
+        if (media_stage.get("id") != source_stage["id"] or type(frames) is not int or frames <= 0):
             raise ValueError("媒体 stage 顺序、ID 或实际时长非法，请重新 prepare")
         stages.append(V4Stage(source_stage["id"], cursor, frames, source_stage.get("data", {})))
         cursor += frames

@@ -243,6 +243,19 @@ def main_render(argv: list[str] | None = None) -> int:
 def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None, media_path: str | Path | None = None) -> str | None:
     """所有 v3 分镜必须先有通过的审美体检。"""
     raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    if isinstance(raw, dict) and raw.get("version") == 4:
+        if media_path is None:
+            return "v4 正式渲染必须先 prepare 实际媒体时间轴"
+        try:
+            media = load_media(media_path, storyboard_path)
+        except (A2VError, OSError) as exc:
+            return f"v4 正式渲染需要有效媒体清单：{exc}"
+        standard = media.data.get("standardCheck") or {}
+        if standard.get("durationStatus") != "pass":
+            actual = standard.get("actualDurationSeconds")
+            shown = f"{actual:.2f} 秒" if isinstance(actual, (int, float)) else "未知"
+            return (f"实际全片时长 {shown}，须在 35～45 秒；请调整口播措辞、正常语速或有意义的停顿，"
+                    "再重新 prepare 和评审；不会截断口播或补空白。")
     if article is None:
         return "无法定位作品输出目录，请提供有效内容根"
     if isinstance(article, paths_mod.ArticlePaths):

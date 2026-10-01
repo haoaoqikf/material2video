@@ -47,15 +47,15 @@ def test_prepare_v4_writes_ordered_global_beats_and_standard_duration(tmp_path, 
     manifest = json.loads(result.read_text(encoding="utf-8"))
     assert calls == [4, 4]
     assert manifest["version"] == 4
-    assert [(stage["id"], stage["durationInFrames"]) for stage in manifest["stages"]] == [("opening", 792), ("ending", 525)]
+    assert [(stage["id"], stage["durationInFrames"]) for stage in manifest["stages"]] == [("opening", 792), ("ending", 492)]
     assert [(beat["stageId"], beat["id"], beat["startFrame"], beat["endFrame"]) for beat in manifest["resolvedBeats"]] == [
         ("opening", "throw-1", 0, 780), ("ending", "throw-ending", 792, 1272),
     ]
-    assert manifest["standardCheck"]["actualDurationInFrames"] == 1317
+    assert manifest["standardCheck"]["actualDurationInFrames"] == 1284
     assert manifest["standardCheck"]["durationStatus"] == "pass"
     assert [stage["durationInFrames"] for stage in json.loads(storyboard.read_text(encoding="utf-8"))["stages"]] == [525, 525]
     resolved = resolve_v4(source, manifest)
-    assert resolved.total_frames == 1317
+    assert resolved.total_frames == 1284
     assert resolved.stages[1].start_frame == 792
     assert resolved.beats[1]["startFrame"] == 792
     assert resolved.estimated is False
@@ -65,7 +65,7 @@ def test_prepare_v4_writes_ordered_global_beats_and_standard_duration(tmp_path, 
             stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
             stream.writeframes(b"\0\0" * round(manifest["standardCheck"]["actualDurationSeconds"] * 24000))
     media = media_mod.load_media(result, storyboard)
-    assert media.storyboard.total_frames == 1317
+    assert media.storyboard.total_frames == 1284
     effective = media_mod.effective_storyboard(media)
     assert effective["mediaTimeline"]["resolvedBeats"] == manifest["resolvedBeats"]
     assert effective["subtitleCues"] == manifest["cues"]
@@ -82,3 +82,14 @@ def test_v4_manifest_generation_invalidates_legacy_media_and_cache_keys_are_vers
     else:
         raise AssertionError("v3 清单不得被当成 v4 媒体加载")
     assert prepare_mod._scene_cache_key("同一文本", "voice", "+0%", 3) != prepare_mod._scene_cache_key("同一文本", "voice", "+0%", 4)
+
+
+def test_actual_duration_gate_uses_inclusive_35_to_45_second_frame_boundaries():
+    fps = 30
+    assert prepare_mod._standard_duration_check(35 * fps, fps)["durationStatus"] == "pass"
+    assert prepare_mod._standard_duration_check(45 * fps, fps)["durationStatus"] == "pass"
+    assert prepare_mod._standard_duration_check(34 * fps, fps)["durationStatus"] == "fail"
+    assert prepare_mod._standard_duration_check(46 * fps, fps)["durationStatus"] == "fail"
+    short_tts_frames = prepare_mod._actual_speech_stage_frames(34.0, fps)
+    assert short_tts_frames == 34 * fps + 12
+    assert prepare_mod._standard_duration_check(short_tts_frames, fps)["durationStatus"] == "fail"

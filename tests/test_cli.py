@@ -28,6 +28,19 @@ class TestValidateCommand:
         model = cli._validated_storyboard(path)
         assert model.total_frames == payload["summary"]["totalFrames"]
 
+    def test_v4_actual_duration_blocks_final_output_with_actionable_message(self, tmp_path, monkeypatch):
+        from pathlib import Path
+        source = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-vectors.json").read_text(encoding="utf-8"))["valid"]
+        path = tmp_path / "storyboard-v4.json"
+        path.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+        monkeypatch.setattr(cli, "load_media", lambda *_args: SimpleNamespace(data={
+            "standardCheck": {"durationStatus": "fail", "actualDurationSeconds": 46.0},
+        }))
+        issue = cli._aesthetic_render_gate(path, SimpleNamespace(), None, tmp_path / "media.json")
+        assert "实际全片时长 46.00 秒" in issue
+        assert "重新 prepare 和评审" in issue
+        assert "截断口播或补空白" in issue
+
     def test_exit_failed_for_missing_file(self, tmp_path):
         assert cli.main_validate([str(tmp_path / "absent.json")]) == 2
 
