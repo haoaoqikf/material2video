@@ -1,0 +1,50 @@
+{
+  "name": "v4-multistage-silent-global-timeline",
+  "storyboard": {
+    "fps": 30,
+    "stages": [
+      {
+        "id": "opening",
+        "durationInFrames": 101,
+        "narrationSegments": [
+          { "id": "line-a", "text": "甲甲甲甲甲甲甲甲甲甲", "beatId": "beat-a" },
+          { "id": "line-b", "text": "乙乙乙乙乙乙乙乙乙乙", "beatId": "beat-b" }
+        ],
+        "beats": [
+          { "id": "beat-a", "action": "reveal", "targets": ["dart"], "meaning": "第一次尝试" },
+          { "id": "beat-b", "action": "connect", "targets": ["target"], "meaning": "得到反馈" }
+        ]
+      },
+      { "id": "middle", "durationInFrames": 103, "beats": [] },
+      { "id": "ending", "durationInFrames": 106, "beats": [] }
+    ]
+  },
+  "expected": {
+    "fps": 30,
+    "totalFrames": 310,
+    "stages": [
+      { "id": "opening", "startFrame": 0, "endFrame": 101 },
+      { "id": "middle", "startFrame": 101, "endFrame": 204 },
+      { "id": "ending", "startFrame": 204, "endFrame": 310 }
+    ],
+    "beats": [
+      { "id": "beat-a", "stageId": "opening", "action": "reveal", "targets": ["dart"], "meaning": "第一次尝试", "startFrame": 0, "endFrame": 45 },
+      { "id": "beat-b", "stageId": "opening", "action": "connect", "targets": ["target"], "meaning": "得到反馈", "startFrame": 45, "endFrame": 89 }
+    ],
+    "phases": [
+      { "stageId": "opening", "phase": "establish", "startFrame": 0, "endFrame": 26 },
+      { "stageId": "opening", "phase": "change", "startFrame": 26, "endFrame": 51 },
+      { "stageId": "opening", "phase": "result", "startFrame": 51, "endFrame": 76 },
+      { "stageId": "opening", "phase": "settle", "startFrame": 76, "endFrame": 101 },
+      { "stageId": "middle", "phase": "establish", "startFrame": 101, "endFrame": 127 },
+      { "stageId": "middle", "phase": "change", "startFrame": 127, "endFrame": 153 },
+      { "stageId": "middle", "phase": "result", "startFrame": 153, "endFrame": 179 },
+      { "stageId": "middle", "phase": "settle", "startFrame": 179, "endFrame": 204 },
+      { "stageId": "ending", "phase": "establish", "startFrame": 204, "endFrame": 231 },
+      { "stageId": "ending", "phase": "change", "startFrame": 231, "endFrame": 258 },
+      { "stageId": "ending", "phase": "result", "startFrame": 258, "endFrame": 284 },
+      { "stageId": "ending", "phase": "settle", "startFrame": 284, "endFrame": 310 }
+    ],
+    "estimated": true
+  }
+}
