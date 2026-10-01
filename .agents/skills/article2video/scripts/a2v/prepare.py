@@ -19,13 +19,13 @@ import edge_tts
 from . import audio, security, storyboard as sb
 from . import beats as beat_mod
 from .errors import A2VError
-from .media import MANIFEST_VERSION, fingerprint
+from .media import LEGACY_MANIFEST_VERSION, MANIFEST_VERSION, fingerprint
 from .subtitles import cues_from_words, segment_windows, srt
 from . import sound
 
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
-MEDIA_CONTRACT_VERSION = 4
+MEDIA_CONTRACT_VERSION = MANIFEST_VERSION
 
 
 def _standard_duration_check(total_frames: int, fps: int) -> dict:
@@ -296,7 +296,7 @@ def _prepare_validated(source_path, root, source, voice, rate, force, assets, se
         audio.mix(work / "narration.wav", work / "audio.wav", cursor / source["fps"], cues,
                   (assets[music["sourceRef"]], music) if music else None, effects, work)
         (work / "subtitles.srt").write_text(srt(cues), encoding="utf-8")
-        manifest = {"version": MANIFEST_VERSION, "source": source, "sourceFingerprint": fingerprint(source),
+        manifest = {"version": LEGACY_MANIFEST_VERSION, "source": source, "sourceFingerprint": fingerprint(source),
                     "voice": voice, "rate": rate, "scenes": scenes, "cues": cues,
                     "audio": f"{generation}.wav", "narration": f"{generation}.narration.wav", "subtitles": f"{generation}.srt",
                     "soundFingerprint": fingerprint(sound.configuration(source)),

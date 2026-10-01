@@ -15,9 +15,9 @@ from . import storyboard as sb
 from .audio import wav_duration
 from .errors import A2VError
 
-#: 当前媒体清单版本。版本 2 起逐幕携带 `resolvedBeats`（分段口播的真实词边界
-#: 解析结果）；版本 1 的旧清单继续可读，但含分段口播的分镜必须重新 prepare。
-MANIFEST_VERSION = 3
+#: 当前媒体契约为 v4；旧 v1–v3 清单只用于兼容历史 v3 分镜。
+MANIFEST_VERSION = 4
+LEGACY_MANIFEST_VERSION = 3
 
 
 def fingerprint(source: dict) -> str:
@@ -230,7 +230,7 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
             raise ValueError("v4 媒体清单必须对应 version: 4 分镜")
         if (
             type(data["version"]) is not int
-            or data["version"] not in (1, 2, MANIFEST_VERSION)
+            or data["version"] not in (1, 2, LEGACY_MANIFEST_VERSION)
             or data["sourceFingerprint"] != fingerprint(source)
         ):
             raise ValueError("版本或分镜指纹非法")
