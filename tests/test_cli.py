@@ -24,7 +24,8 @@ class TestValidateCommand:
         payload = json.loads(capsys.readouterr().out)
         assert payload["summary"]["sceneCount"] == len(source["stages"])
         assert payload["summary"]["totalFrames"] == source["stages"][0]["durationInFrames"]
-        assert payload["warnings"][0]["path"] == "diversity"
+        assert payload["diversity"]["ruleVersion"] == 3
+        assert payload["diversity"]["crossWork"]["status"] == "skipped"
         model = cli._validated_storyboard(path)
         assert model.total_frames == payload["summary"]["totalFrames"]
 

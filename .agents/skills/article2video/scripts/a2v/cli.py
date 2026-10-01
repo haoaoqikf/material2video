@@ -607,8 +607,6 @@ def main_validate(argv: list[str] | None = None) -> int:
         from . import storyboard_v4
         report = storyboard_v4.validate(raw_input)
         model = _v4_model(raw_input) if report.ok else None
-        if model is not None:
-            report.warn("diversity", "v4 多样性规则适配尚未完成")
     else:
         model, report = sb.load(path, strict=args.strict)
     _check_code_scene_modules(path, args.content_root, report)
@@ -617,13 +615,13 @@ def main_validate(argv: list[str] | None = None) -> int:
         try:
             from . import diversity
             raw = raw_input if isinstance(raw_input, dict) else json.loads(path.read_text(encoding="utf-8"))
-            if raw.get("version") != 4:
-                refs = diversity.load_references(args.reference) if args.reference else None
-                diversity_result = diversity.inspect(raw, refs)
-                for finding in diversity_result["findings"]:
-                    report.warn("scenes", f"多样性规则 {finding['rule']}：涉及场景 {', '.join(finding['scenes'])}")
-            else:
-                diversity_result = {"status": "pending", "reason": "v4 多样性规则适配尚未完成"}
+            refs = diversity.load_references(args.reference) if args.reference else None
+            diversity_result = diversity.inspect(raw, refs)
+            for finding in diversity_result["findings"]:
+                location = ", ".join(str(item) for item in finding["scenes"])
+                report.warn("diversity", f"多样性规则 {finding['rule']}：涉及阶段/场景 {location}")
+            if diversity_result.get("status") == "pending":
+                report.warn("diversity", diversity_result.get("progression", {}).get("reason", "动态状态推进证据待评审"))
         except (OSError, json.JSONDecodeError) as exc:
             report.error("reference", f"参考分镜读取失败：{exc}")
             model = None
