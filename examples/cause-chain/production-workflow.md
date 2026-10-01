@@ -1,6 +1,6 @@
 # 制作流程示例
 
-`production.template.json` 展示《启动摩擦》示例的导演场景分配与待评审结构。正式作品首次接入时按当前输入生成记录；已有记录不要直接重建模板，以免丢失返工和历史记录：
+`production.template.json` 展示《启动摩擦》示例（v4 单场景树世界，四个阶段 `claim`／`loop`／`turn`／`reverse`）的导演阶段分配与待评审结构。正式作品首次接入时按当前输入生成记录；已有记录不要直接重建模板，以免丢失返工和历史记录：
 
 ```powershell
 uv run python .agents/skills/article2video/scripts/production.py template `
@@ -8,7 +8,7 @@ uv run python .agents/skills/article2video/scripts/production.py template `
   --out videos/examples/cause-chain/production.json
 ```
 
-完成配音后，AI 助手读取文章、分镜与 `motion-design.md` 自动填写关键幕角色、全片节奏和逐幕起始/变化/结果。关键幕角色可以重合。
+完成配音后，AI 助手读取文章、分镜与 `review.md` 里的画面结论自动填写关键幕角色、全片节奏和逐阶段起始/变化/结果。关键幕角色可以重合；本示例的关键幕是 `claim`（opening）、`loop`（core）、`turn`（climax）。
 
 AI 助手必须生成并打开联系表、关键幕样片和全片有声评审版，查看实际画面后才能填写评审；缺少或打不开所需画面时保持 `pending`。每项完成的评审写入 `assessment`，标注 `reviewer: "ai"`、模型与会话标识，以及支持结论的材料 SHA-256。旧版 `review.md` 或历史成片不会自动迁移为当前版本的通过结论。修改输入后重新生成相应材料并复评：媒体变化只使动态评审过期，分镜或共享渲染资产变化使静态和动态评审都过期。
 
@@ -31,12 +31,12 @@ uv run python .agents/skills/article2video/scripts/production.py rehearsal `
 
 ```json
 {
-  "id": "R-TAKEOFF-01",
-  "sceneIds": ["takeoff"],
-  "dimension": "rhythm",
-  "problem": "高潮与前一幕推进速度接近，结果没有停留",
-  "direction": "延后最后一步进入，并保留稳定结果帧",
-  "returnStage": "motion",
+  "id": "R-LOOP-01",
+  "sceneIds": ["loop"],
+  "dimension": "静态构图",
+  "problem": "闭环箭头压住顶部卡片文字",
+  "direction": "改用 flow 链与 connector 回路箭头，避免几何重叠",
+  "returnStage": "loop",
   "severity": "required",
   "status": "open"
 }

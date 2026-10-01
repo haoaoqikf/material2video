@@ -1,37 +1,62 @@
 {
-  "version": 1,
+  "version": 4,
   "fingerprints": {
-    "storyboard": "0000000000000000000000000000000000000000000000000000000000000000",
-    "assets": "0000000000000000000000000000000000000000000000000000000000000000",
-    "media": null
+    "storyboard": "<当前分镜指纹>",
+    "assets": "<当前资产指纹>",
+    "media": null,
+    "input": "<当前输入指纹>"
   },
+  "inputReview": {
+    "countingVersion": 1,
+    "source": {
+      "path": "examples/cause-chain/article.md",
+      "sha256": "3ff1411e79d6e906b945410774f675ceebfafde720ab1260f261bb87e47af079"
+    },
+    "charCount": 149,
+    "lengthStatus": "pass",
+    "singleScene": {
+      "status": "pass",
+      "claim": "拖住人的不是事情本身的难度，而是对启动成本的高估；打破它的动作小得不成比例",
+      "metaphor": "三格首尾相接、会自己转满的因果圆周，旁边是启动成本读数",
+      "problemSpans": [],
+      "rationale": "全文只有一个视觉世界：同一个因果圆周（高估成本—迟迟不启动—得不到反馈）与同一个启动成本读数贯穿始终。四个段落分别给出「原因不是难度而是高估」「三者互相喂养」「打破的动作小得不成比例」与「链条反着转，阻力自己松开」，都能由同一组卡片状态、圆周进度与读数变化表达，不需要切换到独立的第二个视觉世界，因此判 pass。"
+    },
+    "status": "pass",
+    "assessment": {
+      "reviewer": "ai",
+      "model": "<模型名>",
+      "session": "<会话>",
+      "note": ""
+    }
+  },
+  "inputAdoption": null,
   "direction": {
     "keyScenes": {
       "opening": "claim",
       "core": "loop",
-      "climax": "takeoff"
+      "climax": "turn"
     },
-    "pace": "claim 先停留；loop 和 break 连续推进；takeoff 放慢并留出结果阅读时间。",
+    "pace": "先用一拍把「难度」与「高估」分开，再让圆周转满分两步，打断只用一拍，末幕用两拍把链条反过来并停留结果",
     "scenePlans": {
       "claim": {
-        "start": "观众认为事情难在任务本身",
-        "change": "提出启动成本的反直觉判断",
-        "result": "注意力转向启动前的心理阻力"
+        "start": "三张因果卡片围着圆周，圆周暗着，只有「高估启动成本」被点亮，成本读数停在高位",
+        "change": "beat-1 把「事情太难」与「高估启动成本」摆到一起对照，成本读数摆到台面上",
+        "result": "停下来的原因不是难度，而是对启动成本的估计"
       },
       "loop": {
-        "start": "等待行动形成闭环",
-        "change": "焦虑和自责加固等待",
-        "result": "看见拖延自我强化的循环"
+        "start": "圆周开始转，第一格仍是「高估启动成本」",
+        "change": "beat-2 把估计推到「迟迟不启动」，beat-3 让「得不到反馈」亮起、圆周转满（镜头推近）",
+        "result": "三者首尾相接，这个圈会自己转很多年"
       },
-      "break": {
-        "start": "等待侧压过启动侧",
-        "change": "注意力转向一次小行动",
-        "result": "启动入口变得可见"
+      "turn": {
+        "start": "圆周转满后变暗停住",
+        "change": "beat-4 点亮「先开一寸」，镜头向左平移，把注意力从「准备好」移到极小的启动动作",
+        "result": "打断循环不需要更大的力量，只需要先开一寸"
       },
-      "takeoff": {
-        "start": "行动起点很小",
-        "change": "链条由小动作逐步展开",
-        "result": "行动更容易延续"
+      "reverse": {
+        "start": "动作卡片亮着，圆周重新亮起，成本读数仍在高位",
+        "change": "beat-5 让反馈回到焦点、把读数改到低位，beat-6 让圆周朝反方向转、估计回到焦点（镜头拉回）",
+        "result": "估计被真实反馈修正，阻力自己松开"
       }
     }
   },
@@ -63,7 +88,13 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         },
         "dynamic": {
           "status": "pending",
@@ -86,7 +117,13 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         }
       },
       "loop": {
@@ -115,7 +152,13 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         },
         "dynamic": {
           "status": "pending",
@@ -138,10 +181,16 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         }
       },
-      "takeoff": {
+      "turn": {
         "static": {
           "status": "pending",
           "dimensions": {
@@ -167,7 +216,13 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         },
         "dynamic": {
           "status": "pending",
@@ -190,7 +245,13 @@
             }
           },
           "evidence": "",
-          "assessment": null
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
         }
       }
     },
@@ -220,7 +281,13 @@
           }
         },
         "evidence": "",
-        "assessment": null
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
       },
       "dynamic": {
         "status": "pending",
@@ -243,32 +310,191 @@
           }
         },
         "evidence": "",
-        "assessment": null
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
+      },
+      "content": {
+        "status": "pending",
+        "dimensions": {
+          "opening_question": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "explanation_chain": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "spoken_naturalness": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "closing_response": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "boundary_accuracy": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
+      }
+    }
+  },
+  "continuity": {
+    "worldConsistency": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "identity": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "stateCarry": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "cameraContinuity": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "resultReadability": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
       }
     }
   },
   "materials": {
-    "keyframes": null,
-    "samples": null,
-    "rehearsal": null
+    "keyframes": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "samples": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "rehearsal": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    }
   },
   "rework": [],
-  "inputReview": {
-    "countingVersion": 1,
-    "source": {
-      "path": "examples/cause-chain/article.md",
-      "sha256": "a231548d99d5aa2f88c5ef741adcf02d7a7181410ce380f45af93bbe12cbb7fa"
-    },
-    "charCount": 173,
-    "lengthStatus": "fail",
-    "singleScene": {
-      "status": "pending",
-      "claim": "",
-      "metaphor": "",
-      "problemSpans": [],
-      "rationale": ""
-    },
-    "status": "fail",
-    "assessment": null
-  }
+  "materialRoot": "..\\..\\.."
 }

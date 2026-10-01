@@ -378,15 +378,20 @@ def test_attaching_material_records_path_and_fingerprint_without_changing_review
     assert stored["reviews"] == record["reviews"]
 
 
-def test_shipped_production_template_matches_cause_chain_scenes() -> None:
+def test_shipped_production_template_stays_pending() -> None:
+    """仓库内的示例模板只保留方向与结构：结论全部回到 pending，不能当通过记录用。
+
+    改编为 v4 之后这条守卫改为按 `stages` 取阶段标识，并要求失败原因落在占位的
+    输入审查结论上，而不是「版本不对」——否则模板会随着示例改编而静默失去保护。
+    """
     import json
     from pathlib import Path
 
     example_dir = Path(__file__).resolve().parents[1] / "examples" / "cause-chain"
     storyboard = json.loads((example_dir / "storyboard.json").read_text(encoding="utf-8"))
     record = json.loads((example_dir / "production.template.json").read_text(encoding="utf-8"))
-    with pytest.raises(A2VError, match=r"version.*版本 4"):
-        production.validate_record(record, {scene["id"] for scene in storyboard["scenes"]})
+    with pytest.raises(A2VError, match=r"inputReview\.status"):
+        production.validate_record(record, production.storyboard_stage_ids(storyboard))
 
 
 def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:
