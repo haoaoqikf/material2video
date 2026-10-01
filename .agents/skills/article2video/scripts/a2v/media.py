@@ -305,7 +305,8 @@ def _manifest_asset_file(path: Path, source_path: str | Path | None, reference: 
 
 def _validate_v4_sound_assets(path: Path, source_path: str | Path | None, data: dict) -> None:
     from . import sound
-    track = data["source"].get("soundtrack", {})
+    # `soundtrack` 缺省或显式 null 都表示没有声音素材（校验器两种都接受）。
+    track = data["source"].get("soundtrack") or {}
     refs = {item["sourceRef"] for item in ([track["music"]] if track.get("music") else []) + track.get("effects", [])}
     if set(data.get("soundAssets", {})) != refs:
         raise ValueError("声音素材清单不完整")

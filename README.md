@@ -36,7 +36,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 ## 当前状态
 
-已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。已改编为 v4 单场景动态叙事的标杆见 [飞镖试错示例](examples/darts-trial-and-error/storyboard.json)（全片 code 世界）、[缓冲区示例](examples/buffer-smoothing/storyboard.json)（全片 code 世界）与 [因果链示例](examples/cause-chain/storyboard.json)（全片 tree 世界）；关键幕/全片/口播内容/连续性评审与 V6、A6 结论见各自的 `review.md`（[缓冲区验收记录](examples/buffer-smoothing/review.md)、[因果链验收记录](examples/cause-chain/review.md)）；其余示例仍在逐批改编。
+已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。已改编为 v4 单场景动态叙事的标杆见 [飞镖试错示例](examples/darts-trial-and-error/storyboard.json)（全片 code 世界）、[缓冲区示例](examples/buffer-smoothing/storyboard.json)（全片 code 世界）、[因果链示例](examples/cause-chain/storyboard.json)（全片 tree 世界）与 [代码场景示例](examples/code-scenes/storyboard.json)（全片 code 世界，一块系统面板覆盖 Tailwind/Lucide/ECharts/Dagre/自绘 SVG）；关键幕/全片/口播内容/连续性评审与 V6、A6 结论见各自的 `review.md`（[缓冲区验收记录](examples/buffer-smoothing/review.md)、[因果链验收记录](examples/cause-chain/review.md)、[代码场景验收记录](examples/code-scenes/review.md)）；其余示例仍在逐批改编。
 
 仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`，已完成的变更连同其提案、设计与逐轮实施记录留档在 `openspec/changes/archive/`。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
 
@@ -147,10 +147,8 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
   （台阶与数据构图：column + chart + number + grid，4 幕）、
   [`examples/why-effort-fails/`](examples/why-effort-fails/storyboard.json)
   （5 幕）、[`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)
-  （8 幕，设计语言基线）、[`examples/declarative-number/`](examples/declarative-number/storyboard.json)、
-  [`examples/code-scenes/`](examples/code-scenes/storyboard.json)
-  （混合双轨：1 幕场景树 + 4 幕代码场景，覆盖 Tailwind/Lucide/ECharts/Dagre/定制 SVG；
-  动作脚本和动态评审格式见[示例说明](examples/code-scenes/motion-design.md)）；
+  （8 幕，设计语言基线）与
+  [`examples/declarative-number/`](examples/declarative-number/storyboard.json)；
 - edge-tts 中文自动配音、逐句字幕与 SRT 导出；配音超时自动延长场景；
 - 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
 - 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `videos/<slug>/outputs/`，

@@ -224,7 +224,7 @@ def test_build_fingerprint_uses_storyboard_code_scenes_not_global_generated_mani
         workspace_root=ROOT,
     )["files"]
     module_keys = [key for key in code if "/examples/code-scenes/scenes/" in key]
-    assert len(module_keys) == 4, module_keys
+    assert len(module_keys) == 1, module_keys
     assert not any("/examples/code-scenes/scenes/" in key for key in tree)
 
 

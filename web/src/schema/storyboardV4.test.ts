@@ -56,6 +56,15 @@ describe('storyboard v4 world/stages contract', () => {
     expect(storyboardV4Schema.safeParse(mutate(mutation)).success).toBe(false);
   });
 
+  it('treats an explicit null soundtrack as no sound assets', () => {
+    // Python 校验器用 `is not None` 判定声音轨：显式 null 与缺省同义。
+    // 契约页必须接受同一种写法，否则「校验通过」的分镜会在解析时变成空白页。
+    const value = structuredClone(vectors.valid) as any;
+    value.soundtrack = null;
+    const parsed = storyboardV4Schema.safeParse(value);
+    expect(parsed.success, parsed.success ? '' : JSON.stringify(parsed.error.issues)).toBe(true);
+  });
+
   it('rejects per-segment speech instead of ignoring it', () => {
     const value = structuredClone(vectors.valid) as any;
     value.stages[0].narrationSegments[0].speech = { rate: '+10%' };

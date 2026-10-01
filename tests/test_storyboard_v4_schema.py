@@ -95,6 +95,19 @@ def test_soundtrack_keeps_the_v3_numeric_and_path_contract() -> None:
     assert _soundtrack_is_rejected({"music": {"sourceRef": "bed.wav", "unknown": 1}})
 
 
+def test_explicit_null_soundtrack_is_the_same_as_omitting_it() -> None:
+    """显式 `null` 表示没有声音素材：校验器、prepare、媒体清单与契约页必须一致。
+
+    这条曾经只在 Python 校验器里成立（`is not None` 判定），而 prepare 与契约页
+    会为此崩在 None 上或解析失败——同一份分镜「校验通过」却渲染不出画面。
+    """
+    value = copy.deepcopy(VECTORS["valid"])
+    value["soundtrack"] = None
+    assert validate(value).ok
+    value["soundtrack"] = "bed.wav"
+    assert not validate(value).ok  # 非对象、非 null 仍然拒绝
+
+
 def test_effects_keep_their_bounds_and_global_identity() -> None:
     stage = VECTORS["valid"]["stages"][0]["id"]
     beat = VECTORS["valid"]["stages"][0]["beats"][0]["id"]

@@ -840,7 +840,7 @@ TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
 - **验证**：混合双轨端到端测试（跨渲染器寻帧、主题一致、图表逐帧判定、
   运行期隔离、Tailwind 源码索引）、安全门规则级测试与
   [`examples/code-scenes/`](../examples/code-scenes/storyboard.json)
-  （1 幕场景树 + 4 幕代码场景）全片渲染、评审与溯源复核全部通过；
+  （已改编为 v4：全片 code 世界、四阶段统一系统面板）全片渲染、评审与溯源复核全部通过；
   契约细节见 [代码场景](../.agents/skills/article2video/references/code-scenes.md)。
 
 ### 第十阶段：视觉叙事与图形论证闸门 —— 已实现

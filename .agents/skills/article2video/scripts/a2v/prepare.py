@@ -158,7 +158,9 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
         status = duration_check["durationStatus"]
         generation = uuid.uuid4().hex
         audio.concatenate(parts, source["fps"], work / "narration.wav")
-        track = source.get("soundtrack", {})
+        # `soundtrack` 缺省、显式 null（校验器都接受）都表示没有声音素材，
+        # 这里统一收敛成空配置，避免后面按对象取键崩在 None 上。
+        track = source.get("soundtrack") or {}
         effects = []
         stage_ranges = {}
         stage_cursor = 0

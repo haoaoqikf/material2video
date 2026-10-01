@@ -120,7 +120,9 @@ export const storyboardV4Schema = z.object({
   }).strict(),
   directingBrief: directingBriefSchema,
   visual: z.object({ theme: z.enum(['dark', 'light']), preset: z.literal('keynote') }).strict(),
-  soundtrack: soundtrackSchema.optional(), world: worldSchema, stages: z.array(stageSchema).min(1),
+  // 显式 `null` 与缺省同义：Python 校验器按「不是对象就是没有声音素材」处理，
+  // 两边必须一致，否则同一份分镜会一边通过、一边在契约页解析失败。
+  soundtrack: soundtrackSchema.nullish(), world: worldSchema, stages: z.array(stageSchema).min(1),
 }).strict().superRefine((storyboard, ctx) => {
   const totalFrames = storyboard.stages.reduce((sum, stage) => sum + stage.durationInFrames, 0);
   if (totalFrames < 35 * storyboard.fps || totalFrames > 45 * storyboard.fps) {

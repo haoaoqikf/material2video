@@ -20,9 +20,8 @@ from a2v import cli
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
 
-#: 尚未改编为 v4 的示例（任务 6.2–6.9）。改编一个就删一个，不允许新增。
+#: 尚未改编为 v4 的示例（任务 6.5–6.9）。改编一个就删一个，不允许新增。
 LEGACY_EXAMPLES: set[str] = {
-    "code-scenes",
     "declarative-number",
     "keynote-baseline",
     "milestone-climb",
