@@ -1,3 +1,7 @@
+## Purpose
+
+定义输入审查、全片创作、媒体准备、连续性评审及正式渲染的可查询工作流。
+
 ## MODIFIED Requirements
 
 ### Requirement: 制作阶段必须可查询

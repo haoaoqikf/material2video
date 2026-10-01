@@ -1,3 +1,7 @@
+## Purpose
+
+评估持续视觉世界中的画面表达与动态连续性，作为正式输出门禁的实际证据。
+
 ## MODIFIED Requirements
 
 ### Requirement: 全片必须分开进行静态和动态评审

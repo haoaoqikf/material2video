@@ -1,3 +1,7 @@
+## Purpose
+
+将镜头作为全片连续轨迹编排，使焦点和运动在叙事阶段之间保持连续。
+
 ## MODIFIED Requirements
 
 ### Requirement: 每幕必须声明镜头语言

@@ -1,6 +1,10 @@
+## Purpose
+
+定义唯一可执行的分镜 v4 契约。规格目录名保留历史 capability 标识；当前版本使用全片 `world` 与叙事 `stages`。
+
 ## MODIFIED Requirements
 
-### Requirement: 所有分镜执行入口仅接受完整 v3 契约
+### Requirement: 所有分镜执行入口仅接受完整 v4 契约
 系统 SHALL 只接受 version: 4、schemaVersion: 4、directingVersion: 2 的完整分镜，包含导演简报、视觉策略、Keynote 预设、全片 world 和非空 stages。标题保留历史规格名称，当前执行版本为 v4。所有未知或缺失版本 SHALL 失败；v1–v3 SHALL 提示按 v4 重新编排，无迁移命令、兼容开关或运行时回退。
 
 #### Scenario: 旧版输入
@@ -19,7 +23,7 @@
 - **WHEN** v4 分镜缺少 directingBrief、visualDirection 或 keynote preset
 - **THEN** 严格 schema 校验按字段定位拒绝该输入
 
-### Requirement: 每幕明确声明画面、意图和镜头
+### Requirement: 全局画面与阶段意图分离
 v4 SHALL 在 world 声明唯一 renderer、全片对象与非空 camera.segments；每个 stage SHALL 提供唯一 id、正整数 durationInFrames 与完整 visualIntent。stage SHALL NOT 提供 renderer、sceneTree、camera 或 transition；系统 SHALL NOT 补默认画面。
 
 #### Scenario: 阶段重声明画面

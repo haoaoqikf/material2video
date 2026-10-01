@@ -1,3 +1,7 @@
+## Purpose
+
+以全片唯一画面根及全局对象契约驱动 tree/code 两种单一 renderer 路径。
+
 ## MODIFIED Requirements
 
 ### Requirement: 视觉声明校验

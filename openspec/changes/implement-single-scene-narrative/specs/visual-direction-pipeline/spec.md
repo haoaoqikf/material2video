@@ -1,3 +1,7 @@
+## Purpose
+
+把内容推理、视觉隐喻、持续对象状态和全片画面编排串成可验证的创作流程。
+
 ## MODIFIED Requirements
 
 ### Requirement: 生成按阶段形成单一最终分镜
@@ -61,7 +65,7 @@
 - **WHEN** 生成流程未显式提供参考分镜集合
 - **THEN** 系统仍执行片内检查，并明确把跨作品检查标记为未运行而不是通过
 
-### Requirement: 分镜入口只接受 v3 导演契约
+### Requirement: 分镜入口只接受 v4 导演契约
 所有执行入口 SHALL 只接受 version/schemaVersion 4、directingVersion 2，以及完整简报、策略、预设、world 与 stages。旧分镜和缺失字段 SHALL 明确失败，无默认补齐、迁移或兼容回退。
 
 #### Scenario: 旧输入
@@ -73,10 +77,10 @@
 - **THEN** 按字段报告结构错误
 
 #### Scenario: 旧版分镜进入任一入口
-- **WHEN** version 或 schemaVersion 小于 3 的分镜进入校验、配音准备、预览、评审或渲染
+- **WHEN** version 或 schemaVersion 不是 4 的分镜进入校验、配音准备、预览、评审或渲染
 - **THEN** 入口返回「不支持 v4 之前分镜；请按分镜 v4 契约重新编排」并停止处理
 
-#### Scenario: v3 缺少导演字段
+#### Scenario: v4 缺少导演字段
 - **WHEN** v4 缺少 world.renderer、world.camera 或阶段 visualIntent
 - **THEN** 按字段拒绝，不要求旧幕级 renderer 或 transition
 

@@ -1,3 +1,7 @@
+## Purpose
+
+让作品级代码模块贯穿全片，并接收共享的 world、stage、beat、镜头与对象状态上下文。
+
 ## MODIFIED Requirements
 
 ### Requirement: 作品可以声明代码场景

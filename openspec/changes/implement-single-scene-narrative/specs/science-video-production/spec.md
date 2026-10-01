@@ -1,3 +1,7 @@
+## Purpose
+
+确保标准科普短视频的输入与口播篇幅、实际时长及内容评审符合统一门槛。
+
 ## MODIFIED Requirements
 
 ### Requirement: 口播内容评审

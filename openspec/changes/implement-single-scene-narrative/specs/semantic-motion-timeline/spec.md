@@ -1,3 +1,7 @@
+## Purpose
+
+以全片唯一 beat 与状态时间轴同步口播、对象、镜头、字幕和媒体派生阶段。
+
 ## MODIFIED Requirements
 
 ### Requirement: 分段口播绑定受控语义节拍
@@ -61,7 +65,7 @@ prepare SHALL 生成媒体清单 version 4，保存同序 stages 的实际时长
 - **WHEN** 分镜有分段口播但未传媒体清单
 - **THEN** 画面仍按声明时长等比例播放全部 beats，并明确属于估算时间轴
 
-### Requirement: 时间轴必须支持跨幕连续对象
+### Requirement: 时间轴必须支持跨阶段连续对象
 时间轴 SHALL 使用全局对象身份与状态轨道表达阶段间连续性，不再使用跨幕节点映射或共享元素转场。已完成更新 SHALL 持续到下一次更新，任何帧可以直接求值。
 
 #### Scenario: 累计对象
