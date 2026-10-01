@@ -130,6 +130,10 @@ def test_input_review_blocks_missing_evidence_fail_and_changed_source() -> None:
     record = _ready_record()
     assert "过期" in production.gate_for_status(record, storyboard, {**current, "input": "e" * 64})
 
+    record = _ready_record()
+    record["inputReview"]["candidate"] = {"path": "article.candidate.md", "sha256": "f" * 64}
+    assert production.gate_for_status(record, storyboard, current) is None
+
 
 def test_input_review_requires_workspace_relative_source() -> None:
     record = _ready_record()
@@ -153,14 +157,36 @@ def test_adopted_candidate_authorization_is_invalidated_by_candidate_edit(tmp_pa
     review = article_text.review_for_file(accepted, tmp_path)
     review.update({"status": "pass", "singleScene": {"status": "pass", "claim": "集中观点",
         "metaphor": "持续流程", "problemSpans": [], "rationale": "同一视觉世界可承载必要推理"},
-        "assessment": {"reviewer": "ai", "model": "test", "session": "test"},
-        "authorization": {"path": candidate.name, "sha256": candidate_digest,
-                           "sourceSha256": source_digest}})
-    record = {"inputReview": review, "materialRoot": os.path.relpath(tmp_path, article_dir)}
+        "assessment": {"reviewer": "ai", "model": "test", "session": "test"}})
+    record = {
+        "inputReview": review,
+        "inputAdoption": {
+            "candidate": {"path": "videos/demo/article.candidate.md", "sha256": candidate_digest},
+            "accepted": {"path": "videos/demo/article.accepted.md", "sha256": accepted_digest},
+            "basedOn": source_digest,
+            "confirmation": {"source": "explicit-user-adoption", "evidence": "采用候选稿命令"},
+        },
+        "materialRoot": os.path.relpath(tmp_path, article_dir),
+    }
     record_file = article_dir / "production.json"
     assert production._input_review_issue(record, {"input": accepted_digest}, record_file) is None
     candidate.write_text("修改" * 70 + "\n", encoding="utf-8")
     assert "授权与审查失效" in production._input_review_issue(record, {"input": accepted_digest}, record_file)
+
+
+def test_production_v4_requires_independent_explicit_adoption_record():
+    record = _ready_record()
+    record["inputReview"]["source"]["path"] = "videos/demo/article.accepted.md"
+    record["inputAdoption"] = {
+        "candidate": {"path": "videos/demo/article.candidate.md", "sha256": "d" * 64},
+        "accepted": {"path": "videos/demo/article.accepted.md", "sha256": "d" * 64},
+        "basedOn": "e" * 64,
+        "confirmation": {"source": "explicit-user-adoption", "evidence": "用户明确采用"},
+    }
+    production.validate_record(record, {"open", "core", "close"})
+    record["inputAdoption"]["confirmation"] = None
+    with pytest.raises(A2VError, match=r"inputAdoption\.confirmation"):
+        production.validate_record(record, {"open", "core", "close"})
 
 
 def test_gate_blocks_failed_key_scene_and_full_review() -> None:
@@ -218,6 +244,7 @@ def test_v4_production_template_uses_stage_ids_and_continuity_dimensions():
     assert set(record["direction"]["scenePlans"]) == {"opening", "result"}
     assert set(record["continuity"]) == set(production.CONTINUITY_DIMENSIONS)
     assert record["version"] == 4
+    assert record["inputAdoption"] is None
 
 
 def test_continuity_completed_entry_requires_stage_and_global_evidence_range():

@@ -56,7 +56,17 @@ def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:
     record = json.loads(record_path.read_text(encoding="utf-8"))
     assert record["inputReview"]["source"]["path"] == "videos/demo/article.accepted.md"
     assert record["inputReview"]["status"] == "pending"
-    assert record["inputReview"]["authorization"]["path"] == "article.candidate.md"
+    assert record["inputAdoption"]["candidate"]["path"] == "videos/demo/article.candidate.md"
+    assert record["inputAdoption"]["accepted"]["path"] == "videos/demo/article.accepted.md"
+    assert record["inputAdoption"]["confirmation"]["source"] == "explicit-user-adoption"
+
+    candidate.write_text("再次采用的候选观点" * 16, encoding="utf-8")
+    result = _run("adopt-candidate", *args)
+    assert result.returncode == 0, result.stderr
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    assert (article_dir / "article.accepted.md").read_text(encoding="utf-8") == candidate.read_text(encoding="utf-8")
+    assert record["inputAdoption"]["candidate"]["sha256"] == record["inputAdoption"]["accepted"]["sha256"]
+    assert record["inputReview"]["status"] == "pending"
 
 
 def test_blank_article_cannot_receive_a_fabricated_candidate(tmp_path: Path) -> None:

@@ -75,6 +75,7 @@ def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None],
             "status": "fail",
             "assessment": None,
         },
+        "inputAdoption": None,
         "direction": {
             "keyScenes": {"opening": "", "core": "", "climax": ""},
             "pace": "",
@@ -227,6 +228,31 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
         fail("inputReview.status", "只接受 pass、fail 或 pending")
     if input_review["status"] != expected_review_status:
         fail("inputReview.status", f"与字数、语义结论或输入摘要不一致；应为 {expected_review_status}")
+    adoption = value.get("inputAdoption")
+    if adoption is not None:
+        if not isinstance(adoption, dict):
+            fail("inputAdoption", "必须是明确采用候选稿的对象或 null")
+        for key in ("candidate", "accepted"):
+            entry = adoption.get(key)
+            where = f"inputAdoption.{key}"
+            if (not isinstance(entry, dict) or not isinstance(entry.get("path"), str)
+                    or not entry["path"].strip() or not _valid_sha256(entry.get("sha256"))):
+                fail(where, "必须包含工作区相对路径和 SHA-256")
+            entry_path = Path(entry["path"])
+            if entry_path.is_absolute() or ".." in entry_path.parts:
+                fail(where + ".path", "必须是工作区内相对路径")
+        based_on = adoption.get("basedOn")
+        if not _valid_sha256(based_on):
+            fail("inputAdoption.basedOn", "必须绑定采用前的原文 SHA-256")
+        accepted = adoption["accepted"]
+        if input_review["source"].get("path") != accepted["path"] or input_review["source"].get("sha256") != accepted["sha256"]:
+            fail("inputAdoption.accepted", "必须与重新审查的采用稿来源一致")
+        if adoption["candidate"]["sha256"] != accepted["sha256"]:
+            fail("inputAdoption.candidate", "已采用稿必须与明确采用的候选版本完全一致")
+        confirmation = adoption.get("confirmation")
+        if (not isinstance(confirmation, dict) or confirmation.get("source") != "explicit-user-adoption"
+                or not isinstance(confirmation.get("evidence"), str) or not confirmation["evidence"].strip()):
+            fail("inputAdoption.confirmation", "必须记录明确采用候选稿的用户依据")
     direction = value.get("direction")
     if not isinstance(direction, dict):
         fail("direction", "必须是对象")
@@ -475,18 +501,33 @@ def _input_review_issue(record: dict[str, Any], current: dict[str, str | None],
         return "输入文章无法读取；请修复原文后重新审查"
     if digest != review["source"]["sha256"] or article_text.count_characters(article_text.extract_body(text)) != review["charCount"]:
         return "输入文章已变化，原审查失效；请重新审查"
-    authorization = review.get("authorization")
-    if authorization is not None:
-        if not isinstance(authorization, dict) or not isinstance(authorization.get("path"), str):
-            return "候选稿采用授权记录无效；请重新采用并审查"
-        candidate = (source.parent / authorization["path"]).resolve()
-        if not candidate.is_relative_to(source.parent.resolve()) or not candidate.is_file():
-            return "已采用候选稿或其授权来源缺失；请重新采用并审查"
+    adoption = record.get("inputAdoption")
+    accepted_path = Path(review["source"]["path"])
+    is_accepted_candidate = accepted_path.name == "article.accepted.md"
+    if is_accepted_candidate and not isinstance(adoption, dict):
+        return "采用稿缺少独立 inputAdoption 用户采用记录；请明确采用并重新审查"
+    if adoption is not None:
+        if not isinstance(adoption, dict):
+            return "候选稿采用记录结构无效；请重新采用并审查"
+        accepted = adoption.get("accepted")
+        candidate_entry = adoption.get("candidate")
+        if (not isinstance(accepted, dict) or not isinstance(candidate_entry, dict)
+                or accepted.get("path") != review["source"]["path"]):
+            return "候选稿采用记录与当前输入不一致；请重新采用并审查"
+        candidate_path = candidate_entry.get("path")
+        if not isinstance(candidate_path, str):
+            return "候选稿采用记录缺少候选来源路径；请重新采用并审查"
+        workspace_source = (root / candidate_path).resolve()
+        accepted_source = (root / accepted["path"]).resolve()
+        if (not workspace_source.is_relative_to(root) or workspace_source.parent != source.parent
+                or workspace_source.name != "article.candidate.md" or accepted_source != source
+                or accepted_source.name != "article.accepted.md" or not workspace_source.is_file()):
+            return "已采用候选稿来源缺失；请重新采用并审查"
         try:
-            _, candidate_digest = article_text.read_source(candidate)
+            _, candidate_digest = article_text.read_source(workspace_source)
         except (OSError, UnicodeError):
-            return "已采用候选稿授权来源不可读；请重新采用并审查"
-        if candidate_digest != authorization.get("sha256"):
+            return "已采用候选稿来源不可读；请重新采用并审查"
+        if candidate_digest != candidate_entry.get("sha256"):
             return "候选稿在采用后发生变化，授权与审查失效；请重新采用并审查"
         original = source.parent / "article.md"
         if not original.is_file():
@@ -495,7 +536,7 @@ def _input_review_issue(record: dict[str, Any], current: dict[str, str | None],
             _, original_digest = article_text.read_source(original)
         except (OSError, UnicodeError):
             return "采用候选稿所依据的原文不可读；请重新审查"
-        if original_digest != authorization.get("sourceSha256"):
+        if original_digest != adoption.get("basedOn"):
             return "候选稿依据的原文已变化，授权与审查失效；请重新审查"
     return None
 

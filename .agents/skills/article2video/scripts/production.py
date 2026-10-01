@@ -73,10 +73,6 @@ def main(argv: list[str] | None = None) -> int:
                 previous_source = previous_review.get("source") if isinstance(previous_review, dict) else None
                 if (isinstance(previous_source, dict)
                         and previous_source.get("sha256") == review["source"]["sha256"]
-                        and isinstance(previous_review.get("authorization"), dict)):
-                    review["authorization"] = previous_review["authorization"]
-                if (isinstance(previous_source, dict)
-                        and previous_source.get("sha256") == review["source"]["sha256"]
                         and isinstance(previous_review.get("candidate"), dict)):
                     previous_candidate = previous_review["candidate"]
                     candidate_file = article.source_dir / "article.candidate.md"
@@ -90,6 +86,15 @@ def main(argv: list[str] | None = None) -> int:
                 record = production.initialize_template(raw, {"input": review["source"]["sha256"]}, review)
                 record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
             record["inputReview"] = review
+            previous_adoption = record.get("inputAdoption")
+            adopted_source = previous_adoption.get("accepted") if isinstance(previous_adoption, dict) else None
+            if (review["source"]["path"].endswith("article.accepted.md")
+                    and isinstance(adopted_source, dict)
+                    and adopted_source.get("path") == review["source"]["path"]
+                    and adopted_source.get("sha256") == review["source"]["sha256"]):
+                record["inputAdoption"] = previous_adoption
+            elif not review["source"]["path"].endswith("article.accepted.md"):
+                record["inputAdoption"] = None
             record.setdefault("fingerprints", {})["input"] = review["source"]["sha256"]
             record_file.parent.mkdir(parents=True, exist_ok=True)
             temporary = record_file.with_suffix(record_file.suffix + ".tmp")
@@ -103,11 +108,17 @@ def main(argv: list[str] | None = None) -> int:
                 raise A2VError("尚无输入审查记录；请先运行 production.py input-review")
             record = json.loads(record_file.read_text(encoding="utf-8"))
             review = record.get("inputReview") if isinstance(record, dict) else None
-            if not isinstance(review, dict) or review.get("status") != "fail":
-                raise A2VError("只有审查未通过的原文可以生成或采用候选稿")
+            adoption = record.get("inputAdoption") if isinstance(record, dict) else None
+            if not isinstance(review, dict):
+                raise A2VError("缺少输入审查记录")
+            reviewed_source = review.get("source") if isinstance(review.get("source"), dict) else {}
+            re_adoption = (args.command == "adopt-candidate" and isinstance(adoption, dict)
+                           and str(reviewed_source.get("path", "")).endswith("article.accepted.md"))
+            if review.get("status") != "fail" and not re_adoption:
+                raise A2VError("只有未通过的原文或此前已采用候选的更新版本可以生成或采用候选稿")
             original = article.source_dir / "article.md"
             original_text, original_digest = article_text.read_source(original)
-            if review.get("source", {}).get("sha256") != original_digest:
+            if not re_adoption and review.get("source", {}).get("sha256") != original_digest:
                 raise A2VError("原文已变化，输入审查失效；请先重新审查")
             candidate = article.source_dir / "article.candidate.md"
             if args.command == "candidate":
@@ -123,19 +134,30 @@ def main(argv: list[str] | None = None) -> int:
                 temporary.replace(record_file)
                 print(json.dumps(info, ensure_ascii=False, indent=2))
             else:
-                info = review.get("candidate")
+                info = review.get("candidate") if not re_adoption else adoption.get("candidate")
                 if not isinstance(info, dict) or not candidate.is_file():
                     raise A2VError("没有已登记的候选稿")
                 candidate_text, candidate_digest = article_text.read_source(candidate)
-                if info.get("basedOn") != original_digest or info.get("sha256") != candidate_digest:
-                    raise A2VError("候选稿或原文已变化，采用授权失效；请重新生成候选稿")
+                expected_base = adoption.get("basedOn") if re_adoption else info.get("basedOn")
+                if expected_base != original_digest:
+                    raise A2VError("候选稿依据的原文已变化，采用授权失效；请重新审查原文")
+                if not re_adoption and info.get("sha256") != candidate_digest:
+                    raise A2VError("候选稿已变化，采用授权失效；请重新生成候选稿")
+                if not 130 <= article_text.count_characters(article_text.extract_body(candidate_text)) <= 170:
+                    raise A2VError("候选稿修改后不再满足130～170字；请重新整理候选稿")
                 accepted = article.source_dir / "article.accepted.md"
                 accepted.write_text(candidate_text, encoding="utf-8")
                 accepted_review = article_text.review_for_file(accepted, article.workspace_root)
-                accepted_review["authorization"] = {"path": candidate.name, "sha256": candidate_digest,
-                                                     "sourceSha256": original_digest}
                 record["inputReview"] = accepted_review
                 record.setdefault("fingerprints", {})["input"] = accepted_review["source"]["sha256"]
+                record["inputAdoption"] = {
+                    "candidate": {"path": candidate.relative_to(article.workspace_root).as_posix(),
+                                  "sha256": candidate_digest},
+                    "accepted": {"path": accepted.relative_to(article.workspace_root).as_posix(),
+                                 "sha256": accepted_review["source"]["sha256"]},
+                    "basedOn": original_digest,
+                    "confirmation": {"source": "explicit-user-adoption", "evidence": "采用候选稿命令"},
+                }
                 record_file.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
                 print(json.dumps({"adopted": str(accepted), "inputReview": accepted_review}, ensure_ascii=False, indent=2))
                 print("采用稿已作为独立制作输入；须重新完成长度与单场景语义审查后才能继续。")
@@ -155,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             source = article.source_dir / "article.md"
             active = article_text.active_source(article.source_dir)
             input_review = article_text.review_for_file(active, article.workspace_root) if active.is_file() else None
+            input_adoption = None
             if input_review is not None and record_file.is_file():
                 try:
                     previous = json.loads(record_file.read_text(encoding="utf-8"))
@@ -162,9 +185,11 @@ def main(argv: list[str] | None = None) -> int:
                     previous_source = previous_review.get("source") if isinstance(previous_review, dict) else None
                     if isinstance(previous_source, dict) and previous_source.get("sha256") == input_review["source"]["sha256"]:
                         input_review = previous_review
+                        input_adoption = previous.get("inputAdoption")
                 except (OSError, ValueError):
                     pass
             record = production.initialize_template(raw, current, input_review)
+            record["inputAdoption"] = input_adoption
             record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
             payload = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
             if args.out:
