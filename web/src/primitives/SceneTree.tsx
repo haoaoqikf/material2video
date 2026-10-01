@@ -444,9 +444,9 @@ function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode;
   return null;
 }
 
-interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; continuityVisible?: ReadonlySet<string> | null; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
+interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; continuityVisible?: ReadonlySet<string> | null; hiddenNodeIds?: ReadonlySet<string>; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
 
-function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, continuityVisible, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
+function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, continuityVisible, hiddenNodeIds, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
   // 阶段容器自己算阶段：子节点的顺序就是阶段顺序，当前 beat 指向哪个就走哪一步。
   const stages = node.children && STAGE_CONTAINERS.has(node.type) ? stageState(node.children, beats.timeline, frame) : null;
   const total = node.children?.length ?? 0;
@@ -461,6 +461,7 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
       stylePack={stylePack}
       continuity={continuity}
       continuityVisible={continuityVisible}
+      hiddenNodeIds={hiddenNodeIds}
       place={node.type === 'radial' ? radialChildStyle(index, total)
         : node.type === 'cycle' ? cycleChildStyle(index, total, node.direction)
         : undefined}
@@ -483,6 +484,7 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
     ...(place ?? layoutStyle(node)),
     ...nodeMotion,
     ...(continuityVisible && !continuityVisible.has(node.id) ? { visibility: 'hidden' as const } : {}),
+    ...(hiddenNodeIds?.has(node.id) ? { visibility: 'hidden' as const } : {}),
     ...continuityNodeStyle(node.id, continuity),
     ...layered,
   };
@@ -517,11 +519,11 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
   return <div {...attrs} data-a2v-state={node.state ?? stageAttr ?? 'rest'} className={`a2v-primitive a2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
 }
 
-export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState }): React.ReactElement {
+export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity, hiddenNodeIds }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; hiddenNodeIds?: ReadonlySet<string> }): React.ReactElement {
   // code 场景由共享 composition 的代码包装器承载，不会走到这里；
   // 缺少场景树说明分镜绕过了 schema 校验，这里直接报错而不是渲染 undefined。
   const tree = scene.sceneTree;
   if (!tree) throw new Error(`场景 ${scene.id} 缺少场景树：tree 场景必须声明 sceneTree`);
   const continuityVisible = continuityVisibleIds(tree, continuity);
-  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} continuity={continuity} continuityVisible={continuityVisible} />;
+  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} continuity={continuity} continuityVisible={continuityVisible} hiddenNodeIds={hiddenNodeIds} />;
 }

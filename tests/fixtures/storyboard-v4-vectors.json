@@ -198,6 +198,10 @@
     {
       "name": "silent-only",
       "mutation": "silent-only"
+      },
+      {
+        "name": "49-global-tree-nodes",
+        "mutation": "too-many-global-nodes"
     }
   ]
 }

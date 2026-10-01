@@ -49,6 +49,13 @@ def _mutate(name: str) -> dict:
     elif name == "silent-only":
         value["stages"][0].pop("narrationSegments")
         value["stages"][0].pop("beats")
+    elif name == "too-many-global-nodes":
+        root = value["world"]["sceneTree"]
+        for group_index in range(9):
+            root["children"].append({"id": f"extra-group-{group_index}", "type": "group", "children": [
+                {"id": f"extra-{group_index}-{node_index}", "type": "shape", "shape": "circle"}
+                for node_index in range(4)
+            ]})
     return value
 
 

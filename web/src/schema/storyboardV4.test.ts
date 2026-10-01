@@ -28,6 +28,13 @@ function mutate(name: string): Record<string, unknown> {
   else if (name === 'duration-short') value.stages[0].durationInFrames = 34 * value.fps;
   else if (name === 'duration-long') value.stages[0].durationInFrames = 46 * value.fps;
   else if (name === 'silent-only') { delete value.stages[0].narrationSegments; delete value.stages[0].beats; }
+  else if (name === 'too-many-global-nodes') {
+    for (let group = 0; group < 9; group += 1) value.world.sceneTree.children.push({
+      id: `extra-group-${group}`, type: 'group', children: Array.from({ length: 4 }, (_, node) => ({
+        id: `extra-${group}-${node}`, type: 'shape', shape: 'circle',
+      })),
+    });
+  }
   return value;
 }
 

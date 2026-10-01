@@ -26,6 +26,14 @@ describe('场景树运行时', () => {
     expect(resolveContent({ steps: ['甲'] }, 'data.steps[3]')).toBeUndefined();
     expect(resolveContent({ steps: ['甲'] }, 'data.steps[0]')).toBe('甲');
   });
+  it('隐藏全局树节点时保留稳定 id 与布局节点', () => {
+    const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
+    const hiddenId = scene.sceneTree!.children![0]!.id;
+    const html = renderToStaticMarkup(<div className="a2v-safe"><SceneTree scene={scene} frame={0} hiddenNodeIds={new Set([hiddenId])} /></div>);
+    expect(html).toContain('class="a2v-safe"');
+    expect(html).toContain(`data-a2v-node-id="${hiddenId}"`);
+    expect(html).toContain('visibility:hidden');
+  });
   it('同一帧的动效样式可复现且不改变布局声明', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.durationInFrames = 60;
