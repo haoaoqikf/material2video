@@ -1,678 +1,469 @@
 {
-  "version": 3,
-  "schemaVersion": 3,
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "缓冲区如何吸收波动",
+  "visualDirection": {
+    "motif": "水箱水位在脉冲输入下先升后降，超载时越过溢出口",
+    "compositionBias": "centered",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "切换成独立文字页",
+      "把示意流量写成真实容量数据"
+    ]
+  },
+  "directingBrief": {
+    "thesis": "缓冲用有限容量换取时间：吸收短期波动，不增加长期处理能力",
+    "audienceShift": "从「平均相同就等于每刻相同」转向理解波动与容量边界",
+    "emotionalArc": [
+      "困惑",
+      "理解",
+      "安心",
+      "警觉",
+      "清醒"
+    ],
+    "visualMotif": "同一套入口管道、水箱与限流出口在四种输入条件下持续运转",
+    "stylePack": "cinematic",
+    "avoid": [
+      "宣称缓冲可以无限吸收波动",
+      "把水位示意读成真实设备参数"
+    ]
+  },
   "visual": {
     "theme": "dark",
     "preset": "keynote"
   },
-  "visualDirection": {
-    "motif": "水箱",
-    "compositionBias": "centered",
-    "density": "sparse",
-    "rhythm": "dynamic",
-    "avoid": [
-      "无意义粒子背景"
-    ]
+  "world": {
+    "id": "buffer-world",
+    "claim": "有限容量的存储把短期波动与长期处理能力分开",
+    "metaphor": "入口管道、水箱与限流出口组成持续运转的缓冲系统",
+    "objects": [
+      {
+        "id": "inlet",
+        "role": "supporting",
+        "description": "忽快忽慢的入口水流与管道"
+      },
+      {
+        "id": "tank",
+        "role": "primary",
+        "description": "提供有限存储空间、水位可见的水箱"
+      },
+      {
+        "id": "outlet",
+        "role": "supporting",
+        "description": "受限流约束、输出稳定水流的出口"
+      },
+      {
+        "id": "overflow",
+        "role": "annotation",
+        "description": "容量上限处的溢出口与溢出水滴"
+      }
+    ],
+    "renderer": {
+      "kind": "code",
+      "module": "water-tank"
+    },
+    "data": {
+      "objects": {
+        "inlet": {
+          "state": "rest"
+        },
+        "tank": {
+          "state": "rest",
+          "value": 0
+        },
+        "outlet": {
+          "state": "rest"
+        },
+        "overflow": {
+          "visible": false
+        }
+      }
+    },
+    "stateTracks": [
+      {
+        "id": "tank-focus",
+        "target": "tank",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-2"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tank-fill",
+        "target": "tank",
+        "property": "value",
+        "binding": {
+          "beatId": "beat-2"
+        },
+        "to": 0.52,
+        "interpolation": "ease-out"
+      },
+      {
+        "id": "tank-rise",
+        "target": "tank",
+        "property": "value",
+        "binding": {
+          "beatId": "beat-3"
+        },
+        "to": 0.95,
+        "interpolation": "ease-out"
+      },
+      {
+        "id": "tank-fall",
+        "target": "tank",
+        "property": "value",
+        "binding": {
+          "beatId": "beat-4"
+        },
+        "to": 0.65,
+        "interpolation": "ease-in-out"
+      },
+      {
+        "id": "tank-surge",
+        "target": "tank",
+        "property": "value",
+        "binding": {
+          "beatId": "beat-5"
+        },
+        "to": 1,
+        "interpolation": "linear"
+      },
+      {
+        "id": "tank-settle",
+        "target": "tank",
+        "property": "value",
+        "binding": {
+          "beatId": "beat-6"
+        },
+        "to": 0.45,
+        "interpolation": "ease-in-out"
+      },
+      {
+        "id": "outlet-steady",
+        "target": "outlet",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-4"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "overflow-show",
+        "target": "overflow",
+        "property": "visible",
+        "binding": {
+          "beatId": "beat-5"
+        },
+        "to": true,
+        "interpolation": "step-end"
+      },
+      {
+        "id": "overflow-hide",
+        "target": "overflow",
+        "property": "visible",
+        "binding": {
+          "stageId": "overload",
+          "phase": "settle"
+        },
+        "to": false,
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tank-done",
+        "target": "tank",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-6"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      }
+    ],
+    "motions": [],
+    "camera": {
+      "shot": "medium",
+      "composition": "center",
+      "depth": "layered",
+      "focus": "tank",
+      "segments": [
+        {
+          "id": "hold-pulse",
+          "kind": "hold",
+          "binding": {
+            "beatId": "beat-1"
+          },
+          "focus": "inlet",
+          "intensity": 0
+        },
+        {
+          "id": "open-tank",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "beat-2"
+          },
+          "focus": "tank",
+          "intensity": 0.35
+        },
+        {
+          "id": "watch-fill",
+          "kind": "pan",
+          "direction": "right",
+          "binding": {
+            "beatId": "beat-3"
+          },
+          "focus": "tank",
+          "intensity": 0.4
+        },
+        {
+          "id": "watch-release",
+          "kind": "pan",
+          "direction": "left",
+          "binding": {
+            "beatId": "beat-4"
+          },
+          "focus": "outlet",
+          "intensity": 0.4
+        },
+        {
+          "id": "reveal-overflow",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "beat-5"
+          },
+          "focus": "tank",
+          "intensity": 0.65
+        },
+        {
+          "id": "settle-conclusion",
+          "kind": "pull-out",
+          "binding": {
+            "beatId": "beat-6"
+          },
+          "focus": "tank",
+          "intensity": 1
+        }
+      ]
+    }
   },
-  "scenes": [
+  "stages": [
     {
-      "id": "opening",
-      "type": "mechanism",
-      "durationInFrames": 210,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
+      "id": "pulse",
+      "durationInFrames": 240,
       "data": {
-        "title": "为什么忽快忽慢？",
-        "note": "平均相同 ≠ 每刻相同",
-        "mode": "opening",
-        "capacity": 10,
-        "initial": 0,
-        "intervals": [
-          {
-            "duration": 8,
-            "inflow": 4,
-            "outflow": 1
-          }
-        ]
+        "headline": "平均相同，不等于每刻相同",
+        "note": "没有缓冲：出口跟随入口波动",
+        "flow": "pulse"
       },
-      "motions": [],
       "visualIntent": {
         "relation": "contrast",
         "focus": "path",
         "composition": "center",
         "density": "sparse",
-        "tone": "neutral",
-        "mode": "comparison",
-        "claim": "平均相同 ≠ 每刻相同",
-        "showWithoutText": "阶梯管道上的虚线脉冲忽快忽慢，管口始终没有存水，末端流量跟着脉冲起伏",
-        "primaryObject": "阶梯管道与脉冲路径",
-        "motionMeaning": "脉冲的疏密与停顿演示输入的波动，说明平均相同不等于每刻相同"
+        "tone": "tense",
+        "mode": "metaphor",
+        "claim": "输入忽快忽慢时，无缓冲的出口跟着起伏",
+        "showWithoutText": "入口管道上的水滴忽快忽慢，出口管道的水滴同步起伏",
+        "primaryObject": "持续存在的入口管道、水箱与出口",
+        "motionMeaning": "用脉冲水滴把入口波动原样传到出口"
       },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "establish",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "transfer",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
       "narrationSegments": [
         {
-          "id": "n1",
-          "text": "平均输入相同，为什么输出还会忽快忽慢？",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
+          "id": "line-1",
+          "text": "平均输入相同，不代表每一刻都相同。水流一阵急、一阵停，直接连通时，出口只能跟着忽快忽慢。",
+          "beatId": "beat-1"
+        }
+      ],
+      "beats": [
         {
-          "id": "n2",
-          "text": "想象水流一阵急，一阵停。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
+          "id": "beat-1",
+          "action": "connect",
+          "targets": [
+            "inlet",
+            "outlet"
+          ],
+          "meaning": "把入口波动与出口起伏直接连起来"
         }
       ]
     },
     {
-      "id": "direct",
-      "type": "mechanism",
-      "durationInFrames": 240,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
+      "id": "buffer",
+      "durationInFrames": 255,
       "data": {
-        "title": "没有缓冲",
-        "note": "输入停，输出就停",
-        "mode": "direct",
-        "capacity": 10,
-        "initial": 0,
-        "intervals": [
-          {
-            "duration": 8,
-            "inflow": 4,
-            "outflow": 1
-          }
-        ]
+        "headline": "加一个水箱",
+        "note": "多出来的水先存起来",
+        "flow": "fill"
       },
-      "motions": [],
-      "visualIntent": {
-        "relation": "cause",
-        "focus": "path",
-        "composition": "center",
-        "density": "sparse",
-        "tone": "neutral",
-        "mode": "comparison",
-        "claim": "输入停，输出就停",
-        "showWithoutText": "入口脉冲停下后管道迅速排空，出口不再有点状流量经过",
-        "primaryObject": "无缓冲的直通管道",
-        "motionMeaning": "入口停摆后管道排空，演示没有存储时波动会原样传到出口"
-      },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "connect",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "break",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
-      "narrationSegments": [
-        {
-          "id": "n1",
-          "text": "没有水箱，水直接流向出口。",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n2",
-          "text": "入口一停，出口也停，波动原样传过去。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        }
-      ],
-      "transition": {
-        "kind": "dissolve",
-        "meaning": "同一水箱母题的下一阶段"
-      }
-    },
-    {
-      "id": "structure",
-      "type": "mechanism",
-      "durationInFrames": 240,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
-      "data": {
-        "title": "拆开一个缓冲区",
-        "note": "入口 · 存储 · 出口",
-        "mode": "structure",
-        "capacity": 10,
-        "initial": 0,
-        "intervals": [
-          {
-            "duration": 8,
-            "inflow": 4,
-            "outflow": 1
-          }
-        ]
-      },
-      "motions": [],
-      "visualIntent": {
-        "relation": "sequence",
-        "focus": "shape",
-        "composition": "center",
-        "density": "sparse",
-        "tone": "neutral",
-        "mode": "process",
-        "claim": "入口 · 存储 · 出口",
-        "showWithoutText": "水箱与两段管道依次出现，入口、箱体、出口三个部位被分别标注",
-        "primaryObject": "水箱与入口、出口两段管道",
-        "motionMeaning": "三部分依次点亮，把缓冲拆成入口、存储与出口"
-      },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "establish",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "transform",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
-      "narrationSegments": [
-        {
-          "id": "n1",
-          "text": "加一个水箱，事情就不同了。",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n2",
-          "text": "它有入口、存储空间，还有限制流量的出口。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        }
-      ],
-      "transition": {
-        "kind": "dissolve",
-        "meaning": "同一水箱母题的下一阶段"
-      }
-    },
-    {
-      "id": "smooth",
-      "type": "mechanism",
-      "durationInFrames": 300,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
-      "data": {
-        "title": "高峰存，低谷补",
-        "note": "存储换来平稳",
-        "mode": "smooth",
-        "capacity": 10,
-        "initial": 4,
-        "intervals": [
-          {
-            "duration": 4,
-            "inflow": 3,
-            "outflow": 2
-          },
-          {
-            "duration": 4,
-            "inflow": 1,
-            "outflow": 2
-          }
-        ]
-      },
-      "motions": [],
       "visualIntent": {
         "relation": "cause",
         "focus": "shape",
         "composition": "center",
         "density": "balanced",
         "tone": "neutral",
-        "mode": "process",
-        "claim": "存储换来平稳",
-        "showWithoutText": "水位先升到满再降到低谷，右侧出口的流量点保持均匀，另有一条基线标出稳定位置",
-        "primaryObject": "水箱水位与稳定基线",
-        "motionMeaning": "水位涨落演示高峰存、低谷补，出口流量因此保持平稳"
+        "mode": "metaphor",
+        "claim": "多出来的水先存进水箱，存储把输入与输出分开",
+        "showWithoutText": "水流改走水箱，水位从箱底缓慢上升",
+        "primaryObject": "持续存在的水箱与上升的水位",
+        "motionMeaning": "水位上升说明多出来的水被存住"
       },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "accumulate",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "deplete",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b3",
-          "action": "compare",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "对照稳定输出",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
       "narrationSegments": [
         {
-          "id": "n1",
-          "text": "水流突然变大，多出来的先存下。",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n2",
-          "text": "入口变小时，再用存水补上。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n3",
-          "text": "只要没有耗尽，出口就能保持平稳。",
-          "beatId": "b3",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
+          "id": "line-2",
+          "text": "加一个水箱，多出来的水先存起来；入口变小的时候，再用存水补上。",
+          "beatId": "beat-2"
         }
       ],
-      "transition": {
-        "kind": "dissolve",
-        "meaning": "同一水箱母题的下一阶段"
-      }
+      "beats": [
+        {
+          "id": "beat-2",
+          "action": "transform",
+          "targets": [
+            "inlet",
+            "tank",
+            "outlet"
+          ],
+          "meaning": "加入存储空间，改变输入到输出的传递方式"
+        }
+      ]
+    },
+    {
+      "id": "smooth",
+      "durationInFrames": 300,
+      "data": {
+        "headline": "高峰存储 · 低谷补充",
+        "note": "出口保持平稳",
+        "flow": "cycle"
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "shape",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "uplifting",
+        "mode": "metaphor",
+        "claim": "水位先升后降，出口水滴始终均匀",
+        "showWithoutText": "水位随输入升高再降低，出口水滴间隔始终一致",
+        "primaryObject": "持续存在的水箱水位与出口水流",
+        "motionMeaning": "水位的涨落与出口的均匀形成对照"
+      },
+      "narrationSegments": [
+        {
+          "id": "line-3",
+          "text": "高峰进来时，水箱把多出来的水存住。",
+          "beatId": "beat-3"
+        },
+        {
+          "id": "line-4",
+          "text": "低谷来临时，存水继续供应出口，短期波动就被抹平。",
+          "beatId": "beat-4"
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat-3",
+          "action": "accumulate",
+          "targets": [
+            "inlet",
+            "tank"
+          ],
+          "meaning": "高峰输入被水箱存下来"
+        },
+        {
+          "id": "beat-4",
+          "action": "deplete",
+          "targets": [
+            "tank",
+            "outlet"
+          ],
+          "meaning": "存水补充出口，输出保持稳定"
+        }
+      ]
     },
     {
       "id": "overload",
-      "type": "mechanism",
-      "durationInFrames": 270,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
+      "durationInFrames": 255,
       "data": {
-        "title": "容量不是无限的",
-        "note": "持续超载，最终溢出",
-        "mode": "overload",
-        "capacity": 10,
-        "initial": 0,
-        "intervals": [
-          {
-            "duration": 8,
-            "inflow": 4,
-            "outflow": 1
-          }
-        ]
+        "headline": "容量有限",
+        "note": "长期超载，水位一直上升",
+        "flow": "surge"
       },
-      "motions": [],
       "visualIntent": {
-        "relation": "contrast",
+        "relation": "cause",
         "focus": "shape",
         "composition": "center",
         "density": "sparse",
         "tone": "tense",
-        "mode": "process",
-        "claim": "持续超载，最终溢出",
-        "showWithoutText": "水位升到箱顶后越过溢出口，溢出的水珠沿弧线离开箱体",
-        "primaryObject": "水箱水位与溢出口弧线",
-        "motionMeaning": "水位越过箱顶后溢出口出水，演示流入长期大于流出的后果"
+        "mode": "metaphor",
+        "claim": "流入长期大于流出时，有限容量最终溢出",
+        "showWithoutText": "水位升到箱顶后越过溢出口，水珠沿弧线离开箱体",
+        "primaryObject": "持续存在的水箱水位与溢出口",
+        "motionMeaning": "溢出说明存储空间已经用尽"
       },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "accumulate",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "transfer",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
       "narrationSegments": [
         {
-          "id": "n1",
-          "text": "但水箱不是无限大。",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n2",
-          "text": "如果流入长期超过流出，水位会不断上升，最后溢出。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
+          "id": "line-5",
+          "text": "但容量有限。流入长期大于流出，水位一直上升，最后溢出。",
+          "beatId": "beat-5"
         }
       ],
-      "transition": {
-        "kind": "dissolve",
-        "meaning": "同一水箱母题的下一阶段"
-      }
+      "beats": [
+        {
+          "id": "beat-5",
+          "action": "break",
+          "targets": [
+            "tank",
+            "overflow"
+          ],
+          "meaning": "容量上限被突破，多余的水只能离开系统"
+        }
+      ]
     },
     {
       "id": "conclusion",
-      "type": "mechanism",
-      "durationInFrames": 270,
-      "renderer": {
-        "kind": "code",
-        "module": "water-tank"
-      },
+      "durationInFrames": 240,
       "data": {
-        "title": "缓冲换来的是时间",
-        "note": "处理能力决定长期结果",
-        "mode": "conclusion",
-        "capacity": 10,
-        "initial": 0,
-        "intervals": [
-          {
-            "duration": 8,
-            "inflow": 4,
-            "outflow": 1
-          }
-        ]
+        "headline": "缓冲换时间，不换能力",
+        "note": "吸收短期波动 · 不增加长期处理能力",
+        "flow": "settle"
       },
-      "motions": [],
       "visualIntent": {
         "relation": "collection",
         "focus": "shape",
         "composition": "center",
         "density": "sparse",
-        "tone": "neutral",
-        "mode": "comparison",
-        "claim": "处理能力决定长期结果",
-        "showWithoutText": "入口、箱体、出口三部分先分开再收拢，水位停在中间高度不再变化",
-        "primaryObject": "入口、存储与出口三部分的组合",
-        "motionMeaning": "三部分收拢成整体，说明长期结果由三者共同决定"
+        "tone": "decisive",
+        "mode": "metaphor",
+        "claim": "入口、水箱与出口再次同框，水位停在中段不再上涨",
+        "showWithoutText": "三个部位同时可见，水位停在中段，出水保持均匀",
+        "primaryObject": "持续存在的入口、水箱与出口",
+        "motionMeaning": "水位回落并停住，说明缓冲只换来时间"
       },
-      "camera": {
-        "shot": "medium",
-        "composition": "center",
-        "depth": "flat",
-        "focus": "tank",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "beats": [
-        {
-          "id": "b1",
-          "action": "restore",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "建立本幕条件",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        },
-        {
-          "id": "b2",
-          "action": "compare",
-          "targets": [
-            "tank"
-          ],
-          "meaning": "改变对象状态以解释因果",
-          "before": "上一阶段状态",
-          "after": "本阶段结果"
-        }
-      ],
       "narrationSegments": [
         {
-          "id": "n1",
-          "text": "所以，缓冲能吸收短期波动，也会带来等待。",
-          "beatId": "b1",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
-        },
-        {
-          "id": "n2",
-          "text": "它不会增加处理能力，长期超载还得解决出口。",
-          "beatId": "b2",
-          "speech": {
-            "rate": "+10%",
-            "pauseAfterMs": 100
-          }
+          "id": "line-6",
+          "text": "缓冲用存储换时间，也会带来等待；它吸收短期波动，不增加长期处理能力。",
+          "beatId": "beat-6"
         }
       ],
-      "transition": {
-        "kind": "dissolve",
-        "meaning": "同一水箱母题的下一阶段"
-      }
+      "beats": [
+        {
+          "id": "beat-6",
+          "action": "restore",
+          "targets": [
+            "inlet",
+            "tank",
+            "outlet"
+          ],
+          "meaning": "水位回落，三部分恢复同时可见的稳态"
+        }
+      ]
     }
-  ],
-  "directingVersion": 1,
-  "directingBrief": {
-    "thesis": "缓冲吸收短期波动，不能解决长期超载",
-    "audienceShift": "从平均流量相同就稳定，到理解存储换时间",
-    "emotionalArc": [
-      "疑问",
-      "理解",
-      "警觉",
-      "清晰"
-    ],
-    "visualMotif": "水箱与固定水滴",
-    "stylePack": "technical",
-    "avoid": [
-      "文字卡片讲原理",
-      "持续漂移"
-    ]
-  },
-  "soundtrack": {
-    "music": {
-      "sourceRef": "assets/bed.wav",
-      "loop": true
-    },
-    "effects": [
-      {
-        "sourceRef": "assets/drop.wav",
-        "sceneId": "structure",
-        "beatId": "b2"
-      },
-      {
-        "sourceRef": "assets/drop.wav",
-        "sceneId": "overload",
-        "beatId": "b2"
-      }
-    ]
-  }
+  ]
 }

@@ -36,7 +36,7 @@ Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKIL
 
 ## 当前状态
 
-已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。六幕标杆见 [缓冲区示例](examples/buffer-smoothing/storyboard.json)，其关键幕/全片/口播内容评审与 V6、A6、定制动画动态评审结论见[标杆验收记录](examples/buffer-smoothing/review.md)。
+已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。已改编为 v4 单场景动态叙事的标杆见 [飞镖试错示例](examples/darts-trial-and-error/storyboard.json) 与 [缓冲区示例](examples/buffer-smoothing/storyboard.json)（两者都是全片 code 世界），关键幕/全片/口播内容/连续性评审与 V6、A6、定制动画动态评审结论见各自的[标杆验收记录](examples/buffer-smoothing/review.md)；其余示例仍在逐批改编。
 
 仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`，已完成的变更连同其提案、设计与逐轮实施记录留档在 `openspec/changes/archive/`。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
 

@@ -22,7 +22,6 @@ STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
 
 #: 尚未改编为 v4 的示例（任务 6.2–6.9）。改编一个就删一个，不允许新增。
 LEGACY_EXAMPLES: set[str] = {
-    "buffer-smoothing",
     "cause-chain",
     "code-scenes",
     "declarative-number",
