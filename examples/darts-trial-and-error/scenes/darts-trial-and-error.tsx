@@ -26,6 +26,8 @@ const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canv
     ? Math.min(throws.length - 1, Math.floor((frame - repeat.startFrame) / 34)) : -1;
   const current = activeThrow >= 0 ? throws[activeThrow] : null;
   const isClosing = stage.id === 'learn';
+  // 犹豫只在手臂上表现：反复蓄力起手却始终不掷出，画面不会 10 秒完全静止
+  const idle = stage.id === 'hesitate' ? Math.sin(frame / 12) * 5 : 0;
   const flyingX = current ? 312 + (current.x - 312) * phase(repeat) : 0;
   const flyingY = current ? 468 + (current.y - 468) * phase(repeat) : 0;
   const headline = String(stage.data.headline ?? '每次行动都留下反馈');
@@ -49,8 +51,11 @@ const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canv
         </g>
         <g {...probe({ node: 'player', schematic: true })}>
           <circle cx="205" cy="318" r="54" fill="var(--a2v-bg-2)" stroke={textColor} strokeWidth="6" />
-          <path d="M205 374 L205 590 M205 430 L312 468 M205 590 L140 720 M205 590 L272 720" fill="none" stroke={textColor} strokeWidth="24" strokeLinecap="round" />
-          <path d="M292 450 L326 468 L292 486" fill="none" stroke={accent} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M205 374 L205 590 M205 590 L140 720 M205 590 L272 720" fill="none" stroke={textColor} strokeWidth="24" strokeLinecap="round" />
+          <g transform={`rotate(${idle} 205 430)`}>
+            <path d="M205 430 L312 468" fill="none" stroke={textColor} strokeWidth="24" strokeLinecap="round" />
+            <path d="M292 450 L326 468 L292 486" fill="none" stroke={accent} strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
         </g>
         <g {...probe({ node: 'dart', schematic: true })}>
           {throwsVisible.map((visible, index) => {
@@ -71,10 +76,10 @@ const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canv
       </svg>
     </div>
     <div {...probe({ node: 'throw-count', role: 'hero' })} style={{ position: 'absolute', top: 1250, left: 110, width: 860, textAlign: 'center', fontSize: 48, fontWeight: 700 }}>
-      {`已投 ${Math.max(visibleCount, 1)} 次 · 示意`}
+      {visibleCount === 0 ? '尚未投掷 · 示意' : `已投 ${visibleCount} 次 · 示意`}
     </div>
     <div {...probe({ node: 'feedback-label', role: 'body' })} style={{ position: 'absolute', top: 1340, left: 120, width: 840, textAlign: 'center', fontSize: 34, color: muted }}>
-      {isClosing ? '保留偏差，调整下一次方向' : stage.id === 'hesitate' ? '高估成本，迟迟没有行动' : stage.id === 'no-feedback' ? '没有落点，也就没有反馈' : stage.id === 'first-throw' ? `第一枚飞镖留下偏差 ${Math.round(first * 100)}%` : '同一张靶上，落点逐次累积'}
+      {isClosing ? '保留偏差，调整下一次方向' : stage.id === 'hesitate' ? '高估成本，迟迟没有行动' : stage.id === 'first-throw' ? '第一枚飞镖留下偏差' : '同一张靶上，落点逐次累积'}
     </div>
     <div {...probe({ node: 'target-note', role: 'caption' })} style={{ position: 'absolute', top: 1435, left: 120, width: 840, textAlign: 'center', fontSize: 28, color: muted }}>
       {`投掷者与目标保持不变${learned > 0 ? ' · 结果用于调整，不代表必然命中' : ''}`}

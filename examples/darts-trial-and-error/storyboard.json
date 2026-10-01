@@ -98,7 +98,7 @@
             "beatId": "beat-3"
           },
           "focus": "target",
-          "intensity": 0.18
+          "intensity": 0.65
         },
         {
           "id": "show-pattern",
@@ -107,7 +107,7 @@
             "beatId": "beat-4"
           },
           "focus": "target",
-          "intensity": 0.16
+          "intensity": 0.65
         },
         {
           "id": "settle-learning",

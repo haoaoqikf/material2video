@@ -946,7 +946,9 @@ def run_inspect(
     contact_sheet(shots, report_dir / sheet_name)
     # 动效量测放在抽帧之后：它要逐帧把页面再走一遍，量的是入场轨迹，
     # 与上面「抽若干帧看画面」互补——抽帧看不出「入场在幕内来不及落地」。
-    motion_json = ({"status": "pending", "reason": "v4 连续性动态量测将在任务 5.4 实施"}
+    # v4 的世界不按幕重挂载，v3 的入场量测没有对应对象；连续性结论改由
+    # 关键阶段样片、边界证据和定制动画动态评审给出，这里如实记为未量测。
+    motion_json = ({"status": "pending", "reason": "v4 世界不按幕重挂载，入场轨迹量测不适用；连续性由关键阶段样片与动态评审结论承担"}
                    if v4_storyboard is not None else motion.audit(page, scenes).to_json())
     return report, {
         "contract": v4_probes if v4_storyboard is not None else probes,

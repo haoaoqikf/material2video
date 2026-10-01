@@ -1,0 +1,564 @@
+{
+  "version": 4,
+  "fingerprints": {
+    "storyboard": "<当前分镜指纹>",
+    "assets": "<当前资产指纹>",
+    "media": null,
+    "input": "<当前输入指纹>"
+  },
+  "inputReview": {
+    "countingVersion": 1,
+    "source": {
+      "path": "examples/darts-trial-and-error/article.md",
+      "sha256": "e7508041adfe2a0eff45dd35cf4f3b7d886457cc14e93745b9aaaf844bff2fa6"
+    },
+    "charCount": 149,
+    "lengthStatus": "pass",
+    "singleScene": {
+      "status": "pass",
+      "claim": "面对不确定，等待和反复准备只能靠猜；先降低单次代价、再缩短反馈间隔，失败就从浪费变成可用的路径信息。",
+      "metaphor": "一个持续存在的投掷世界：投掷者、飞镖与靶不动，落点偏差随每次投掷变化并被读取，落点从散乱逐步收敛。",
+      "problemSpans": [],
+      "rationale": "原文的判断依据可逐句核查：等待没有反馈，判断只能靠猜，越靠猜下一步越难开始；飞镖落点直接告诉你偏差，下一次据此微调；记录偏差、调整方向后失败才成为路径信息。因此整篇推理都能在同一个投掷-落点-微调世界里走完，切换到第二个独立世界不会增加任何必要信息。"
+    },
+    "status": "pass",
+    "assessment": {
+      "reviewer": "ai",
+      "model": "<模型名>",
+      "session": "<会话>",
+      "note": ""
+    }
+  },
+  "inputAdoption": null,
+  "direction": {
+    "keyScenes": {
+      "opening": "hesitate",
+      "core": "repeat-adjust",
+      "climax": "learn"
+    },
+    "pace": "全片 40 秒四幕：前 10 秒停在无反馈的犹豫，接着 8 秒用第一次投掷建立可观察偏差，中段 12 秒靠落点累积表现高频调整，最后 10 秒拉回全局收束；镜头只在同一张靶面内推近与拉远，节奏由落点数量增长承担，不靠切换画面。",
+    "scenePlans": {
+      "first-throw": {
+        "start": "飞镖从人物手边离手，飞向靶面",
+        "change": "落点偏离靶心，靶面留下第一条示意落点",
+        "result": "偏差第一次成为可观察、可据以微调的信息"
+      },
+      "hesitate": {
+        "start": "人已在投掷线后，靶面空着，飞镖始终在手",
+        "change": "准备动作反复发生，但迟迟没有投掷，靶面不产生任何结果",
+        "result": "等待没有反馈，判断只能靠猜——为后面的偏差信息留出对照"
+      },
+      "learn": {
+        "start": "镜头拉回，人物与完整靶面同框",
+        "change": "落点连成一条可读的偏差路径，最后一次落点靠近靶心",
+        "result": "偏差变成下一次的方向：没中并非白费，它让下次少一点猜测"
+      },
+      "repeat-adjust": {
+        "start": "已有落点保留在靶面上，不被清除",
+        "change": "连续投掷新增落点，方向参考既有偏差逐步向靶心收拢",
+        "result": "落点分布显出调整方向，区别于盲目重复"
+      }
+    }
+  },
+  "reviews": {
+    "keyScenes": {
+      "first-throw": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        }
+      },
+      "hesitate": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        }
+      },
+      "learn": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        }
+      },
+      "repeat-adjust": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": {
+            "reviewer": "ai",
+            "model": "<模型名>",
+            "session": "<会话>",
+            "materials": {},
+            "note": ""
+          }
+        }
+      }
+    },
+    "full": {
+      "static": {
+        "status": "pending",
+        "dimensions": {
+          "subject_scale": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "composition_repetition": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "information_density": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "visual_motif": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "climax_weight": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
+      },
+      "dynamic": {
+        "status": "pending",
+        "dimensions": {
+          "motion_meaning": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "narration_sync": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "rhythm": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "result_hold": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
+      },
+      "content": {
+        "status": "pending",
+        "dimensions": {
+          "opening_question": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "explanation_chain": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "spoken_naturalness": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "closing_response": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "boundary_accuracy": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": {
+          "reviewer": "ai",
+          "model": "<模型名>",
+          "session": "<会话>",
+          "materials": {},
+          "note": ""
+        }
+      }
+    }
+  },
+  "continuity": {
+    "worldConsistency": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "identity": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "stateCarry": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "cameraContinuity": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    },
+    "resultReadability": {
+      "status": "pending",
+      "stageId": "<阶段 ID>",
+      "frameRange": [
+        0,
+        0
+      ],
+      "timeRange": [
+        0,
+        0
+      ],
+      "evidence": "",
+      "material": "samples",
+      "materialSha256": "<当前材料摘要>",
+      "assessment": {
+        "reviewer": "ai",
+        "model": "<模型名>",
+        "session": "<会话>",
+        "materials": {
+          "samples": "<当前材料摘要>"
+        },
+        "note": ""
+      }
+    }
+  },
+  "materials": {
+    "keyframes": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "samples": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "rehearsal": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    }
+  },
+  "rework": [],
+  "materialRoot": "..\\..\\.."
+}
