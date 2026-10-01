@@ -3,7 +3,7 @@ import { ensureFonts } from '@/fonts';
 import { totalFrames } from '@/runtime/timeline';
 import type { Storyboard } from '@/schema/storyboard';
 import type { StoryboardV4 } from '@/schema/storyboardV4';
-import { resolveStoryboardV4 } from '@/runtime/timelineV4';
+import { resolveStoryboardV4, type V4MediaTimeline } from '@/runtime/timelineV4';
 
 /**
  * 渲染契约（version 3）。
@@ -179,12 +179,14 @@ async function settleOnFrame(player: PlayerRef, frame: number): Promise<void> {
 
 export interface CreateContractOptions {
   player: PlayerRef;
-  storyboard: Storyboard | StoryboardV4;
+  storyboard: Storyboard | (StoryboardV4 & { mediaTimeline?: V4MediaTimeline });
 }
 
 export function createContract({ player, storyboard }: CreateContractOptions): A2VContract {
   const isV4 = storyboard.version === 4;
-  const durationInFrames = isV4 ? resolveStoryboardV4(storyboard).totalFrames : totalFrames(storyboard as Storyboard);
+  const durationInFrames = isV4
+    ? resolveStoryboardV4(storyboard as StoryboardV4, (storyboard as StoryboardV4 & { mediaTimeline?: V4MediaTimeline }).mediaTimeline).totalFrames
+    : totalFrames(storyboard as Storyboard);
   const common = {
     fps: storyboard.fps, width: storyboard.width, height: storyboard.height, durationInFrames,
     async ready(): Promise<void> {

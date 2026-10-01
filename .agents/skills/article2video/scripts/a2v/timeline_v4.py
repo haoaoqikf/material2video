@@ -49,20 +49,28 @@ def _phase_spans(start: int, duration: int, beats: list[dict[str, Any]]) -> list
     return [(start, first_end), (first_end, change_end), (change_end, settle), (settle, start + duration)]
 
 
-def resolve_v4(storyboard: dict[str, Any]) -> V4Timeline:
+def resolve_v4(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> V4Timeline:
     """Resolve all stage/beat/phase intervals to global half-open frame ranges."""
+    if media is not None:
+        media_stages = media.get("stages")
+        if (not isinstance(media_stages, list) or len(media_stages) != len(storyboard["stages"])
+                or any(item.get("id") != stage.get("id") for item, stage in zip(media_stages, storyboard["stages"]))):
+            raise ValueError("v4 media stage 顺序或 ID 与分镜不匹配")
     fps = int(storyboard["fps"])
     cursor = 0
     stages: list[FrameRange] = []
     beats: list[dict[str, Any]] = []
     phases: list[dict[str, Any]] = []
-    for stage in storyboard["stages"]:
-        duration = int(stage["durationInFrames"])
+    for stage_index, stage in enumerate(storyboard["stages"]):
+        duration = int(media["stages"][stage_index]["durationInFrames"] if media else stage["durationInFrames"])
         stage_start, stage_end = cursor, cursor + duration
         stages.append(FrameRange(stage["id"], stage_start, stage_end))
         segments = stage.get("narrationSegments") or []
         stage_beats: list[dict[str, Any]] = []
-        if segments:
+        if media is not None:
+            stage_beats = [dict(beat) for beat in media.get("resolvedBeats", []) if beat.get("stageId") == stage["id"]]
+            beats.extend(stage_beats)
+        elif segments:
             text = [str(segment.get("text", "")) for segment in segments]
             budget = duration - 12
             if budget < len(text):
@@ -86,4 +94,4 @@ def resolve_v4(storyboard: dict[str, Any]) -> V4Timeline:
         for phase, (phase_start, phase_end) in zip(PHASES, _phase_spans(stage_start, duration, stage_beats)):
             phases.append({"stageId": stage["id"], "phase": phase, "startFrame": phase_start, "endFrame": phase_end})
         cursor = stage_end
-    return V4Timeline(fps, cursor, tuple(stages), tuple(beats), tuple(phases))
+    return V4Timeline(fps, cursor, tuple(stages), tuple(beats), tuple(phases), estimated=media is None)

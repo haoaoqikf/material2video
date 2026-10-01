@@ -84,4 +84,6 @@ def sound_assets(source: dict, source_path: Path) -> dict[str, Path]:
     return result
 
 def configuration(source: dict) -> dict:
-    return {"soundtrack": source.get("soundtrack"), "speech": [[s.get("speech") for s in scene.get("narrationSegments", [])] for scene in source["scenes"]]}
+    units = source.get("stages", source.get("scenes", []))
+    return {"soundtrack": source.get("soundtrack"),
+            "speech": [[s.get("speech") for s in unit.get("narrationSegments", [])] for unit in units]}

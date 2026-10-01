@@ -36,4 +36,19 @@ describe('v4 window.__A2V__ 探针', () => {
     expect(() => contract.camera()).toThrow(/camera 探针缺失/);
     vi.unstubAllGlobals();
   });
+
+  it('契约时长采用媒体派生的全局 stage 轴', () => {
+    const stage = vectors.valid.stages[0]!;
+    const player = { getCurrentFrame: () => 0 } as any;
+    const contract = createContract({ player, storyboard: {
+      ...vectors.valid,
+      mediaTimeline: {
+        stages: [{ id: stage.id, durationInFrames: stage.durationInFrames + 15, audio: 'opening.wav' }],
+        resolvedBeats: [{ id: 'throw-1', stageId: stage.id, action: stage.beats![0]!.action,
+          targets: stage.beats![0]!.targets, meaning: stage.beats![0]!.meaning,
+          startFrame: 0, endFrame: stage.durationInFrames - 12 }],
+      },
+    } }) as A2VContractV4;
+    expect(contract.durationInFrames).toBe(stage.durationInFrames + 15);
+  });
 });

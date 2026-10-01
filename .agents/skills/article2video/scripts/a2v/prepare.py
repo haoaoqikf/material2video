@@ -25,6 +25,7 @@ from . import sound
 
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
+MEDIA_CONTRACT_VERSION = 4
 
 
 async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dict]:
@@ -42,10 +43,9 @@ async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dic
     return words
 
 
-def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool) -> tuple[Path, list[dict], list[dict], float, bool]:
+def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool, *, contract_version: int = 3) -> tuple[Path, list[dict], list[dict], float, bool]:
     """一幕的配音、字幕 cue 与**原始词边界**；后两者都从同一份缓存推导。"""
-    key = fingerprint({"text": text, "voice": voice, "rate": rate,
-                       "generator": GENERATOR_VERSION, "edgeTts": version("edge-tts")})
+    key = _scene_cache_key(text, voice, rate, contract_version)
     wav, metadata = cache / f"{key}.wav", cache / f"{key}.json"
     if not force and wav.is_file() and metadata.is_file():
         try:
@@ -81,6 +81,13 @@ def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool) -> 
         security.grant_inherited_access(wav)
         security.grant_inherited_access(metadata)
     return wav, cues, words, duration, False
+
+
+def _scene_cache_key(text: str, voice: str, rate: str, contract_version: int) -> str:
+    """Keep cached speech isolated across media contract generations."""
+    return fingerprint({"text": text, "voice": voice, "rate": rate,
+                       "contractVersion": contract_version, "generator": GENERATOR_VERSION,
+                       "edgeTts": version("edge-tts")})
 
 
 def _resolved_beats(item: dict, words: list[dict], duration: float, fps: int, frames: int) -> list[dict]:
@@ -125,6 +132,13 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
     started = time.monotonic()
     source_path, root = Path(storyboard_path), Path(out_dir)
     source = json.loads(source_path.read_text(encoding="utf-8"))
+    if source.get("version") == 4:
+        from . import storyboard_v4
+        report = storyboard_v4.validate(source)
+        if not report.ok:
+            raise A2VError("\n".join(i.format() for i in report.errors))
+        if not sound.valid_rate(rate): raise A2VError("语速必须是 −50% 至 +50% 的有符号百分比")
+        return _prepare_v4(source_path, root, source, voice, rate, force, sound.sound_assets(source, source_path), started)
     report = sb.validate(source)
     if not report.ok:
         raise A2VError("\n".join(i.format() for i in report.errors))
@@ -135,6 +149,86 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
     # 段级拼接文件必须存活到全片合成；异常清理和旧清单保护由外层临时目录承担。
     with tempfile.TemporaryDirectory(dir=root) as segmented_temp:
         return _prepare_validated(source_path, root, source, voice, rate, force, assets, Path(segmented_temp), started)
+
+
+def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: str,
+                force: bool, assets: dict[str, Path], started: float) -> Path:
+    """Prepare per-stage audio, then resolve all beats on one accumulated frame axis."""
+    cache = root / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    stages, cues, parts = [], [], []
+    resolved_beats, cursor, hits = [], 0, 0
+    with tempfile.TemporaryDirectory(dir=root) as temporary:
+        work = Path(temporary)
+        for stage in source["stages"]:
+            text = "".join(segment["text"] for segment in stage.get("narrationSegments", [])).strip()
+            path = None
+            local_cues: list[dict] = []
+            local_words: list[dict] = []
+            duration = 0.0
+            frames = stage["durationInFrames"]
+            if text:
+                path, local_cues, local_words, duration, hit = _scene_audio(
+                    text, voice, rate, cache, force, contract_version=MEDIA_CONTRACT_VERSION
+                )
+                hits += int(hit)
+                frames = max(frames, math.ceil(duration * source["fps"]) + beat_mod.STABLE_READING_FRAMES)
+                segments = [segment["text"] for segment in stage["narrationSegments"]]
+                windows = segment_windows(text, segments, local_words, duration)
+                local = beat_mod.resolve_from_windows(stage, windows, source["fps"], frames).to_json()
+                resolved_beats.extend({**beat, "stageId": stage["id"],
+                                       "startFrame": beat["startFrame"] + cursor,
+                                       "endFrame": beat["endFrame"] + cursor} for beat in local)
+            for cue in local_cues:
+                cues.append({"start": cue["start"] + cursor / source["fps"],
+                             "end": cue["end"] + cursor / source["fps"], "text": cue["text"]})
+            stage_audio = path.relative_to(root).as_posix() if path else None
+            stages.append({"id": stage["id"], "durationInFrames": frames, "audio": stage_audio})
+            parts.append((path, frames))
+            cursor += frames
+
+        duration_seconds = cursor / source["fps"]
+        status = "pass" if 35 * source["fps"] <= cursor <= 45 * source["fps"] else "fail"
+        generation = uuid.uuid4().hex
+        audio.concatenate(parts, source["fps"], work / "narration.wav")
+        track = source.get("soundtrack", {})
+        effects = []
+        stage_ranges = {}
+        stage_cursor = 0
+        for item in stages:
+            stage_ranges[item["id"]] = (stage_cursor, stage_cursor + item["durationInFrames"])
+            stage_cursor += item["durationInFrames"]
+        for effect in track.get("effects", []):
+            beat = next(item for item in resolved_beats if item["id"] == effect["beatId"] and item["stageId"] == effect["stageId"])
+            start = (beat["startFrame"] + effect.get("offsetMs", 0) * source["fps"] / 1000) / source["fps"]
+            stage_start, stage_end = stage_ranges[effect["stageId"]]
+            if not stage_start / source["fps"] <= start < stage_end / source["fps"]:
+                raise A2VError(f"音效起点越出 stage {effect['stageId']}")
+            effects.append((assets[effect["sourceRef"]], start, effect.get("gainDb", -12)))
+        music = track.get("music")
+        audio.mix(work / "narration.wav", work / "audio.wav", duration_seconds, cues,
+                  (assets[music["sourceRef"]], music) if music else None, effects, work)
+        (work / "subtitles.srt").write_text(srt(cues), encoding="utf-8")
+        manifest = {"version": MEDIA_CONTRACT_VERSION, "source": source,
+                    "sourceFingerprint": fingerprint(source), "voice": voice, "rate": rate,
+                    "stages": stages, "resolvedBeats": resolved_beats, "cues": cues,
+                    "audio": f"{generation}.wav", "narration": f"{generation}.narration.wav",
+                    "subtitles": f"{generation}.srt",
+                    "soundFingerprint": fingerprint(sound.configuration(source)),
+                    "soundAssets": {ref: {"path": os.path.relpath(path, root).replace("\\", "/"),
+                                           "sha256": sound.asset_digest(path)} for ref, path in assets.items()},
+                    "standardCheck": {"actualDurationInFrames": cursor, "actualDurationSeconds": duration_seconds,
+                                      "durationStatus": status, "durationLimitSeconds": [35, 45]}}
+        (work / "audio.wav").replace(root / manifest["audio"])
+        (work / "narration.wav").replace(root / manifest["narration"])
+        (work / "subtitles.srt").replace(root / manifest["subtitles"])
+        (work / "media.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        (work / "media.json").replace(root / "media.json")
+    for name in (manifest["audio"], manifest["narration"], manifest["subtitles"], "media.json"):
+        security.grant_inherited_access(root / name)
+    logger.info("v4 配音准备完成：%d stages，缓存命中 %d，%.2fs，时长状态 %s，耗时 %.1fs",
+                len(stages), hits, duration_seconds, status, time.monotonic() - started)
+    return root / "media.json"
 
 
 def _prepare_validated(source_path, root, source, voice, rate, force, assets, segment_work, started):

@@ -8,6 +8,7 @@ import { storyboardV4Schema, type StoryboardV4 } from '@/schema/storyboardV4';
 import { totalFrames } from '@/runtime/timeline';
 import { createContract } from './bridge';
 import { resolveStoryboardV4 } from '@/runtime/timelineV4';
+import type { V4MediaTimeline } from '@/runtime/timelineV4';
 import { installOfflineGuard } from '@/runtime/offline-guard';
 import '@/styles/index.css';
 
@@ -29,7 +30,7 @@ function ContractApp(): React.ReactElement {
   const params = new URLSearchParams(window.location.search);
   const storyboardUrl = params.get('a2v-storyboard');
   const playerRef = useRef<PlayerRef>(null);
-  const [storyboard, setStoryboard] = useState<Storyboard | StoryboardV4 | null>(null);
+  const [loaded, setLoaded] = useState<{ storyboard: Storyboard | StoryboardV4; mediaTimeline?: V4MediaTimeline; subtitleCues?: Array<{ start: number; end: number; text: string }> } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,11 +46,22 @@ function ContractApp(): React.ReactElement {
           throw new Error(`分镜脚本加载失败: HTTP ${response.status}（${storyboardUrl}）`);
         }
         const input: unknown = await response.json();
-        const parsed = input && typeof input === 'object' && (input as Record<string, unknown>).version === 4
-          ? storyboardV4Schema.parse(input)
-          : parseStoryboard(input);
+        let mediaTimeline: V4MediaTimeline | undefined;
+        let subtitleCues: Array<{ start: number; end: number; text: string }> | undefined;
+        let source = input;
+        if (input && typeof input === 'object' && (input as Record<string, unknown>).version === 4) {
+          const effective = { ...(input as Record<string, unknown>) };
+          mediaTimeline = effective.mediaTimeline as V4MediaTimeline | undefined;
+          subtitleCues = effective.subtitleCues as typeof subtitleCues;
+          delete effective.mediaTimeline;
+          delete effective.subtitleCues;
+          source = effective;
+        }
+        const parsed = source && typeof source === 'object' && (source as Record<string, unknown>).version === 4
+          ? storyboardV4Schema.parse(source)
+          : parseStoryboard(source);
         if (!cancelled) {
-          setStoryboard(parsed);
+          setLoaded({ storyboard: parsed, mediaTimeline, subtitleCues });
         }
       } catch (cause) {
         if (!cancelled) {
@@ -64,9 +76,12 @@ function ContractApp(): React.ReactElement {
 
   useEffect(() => {
     const player = playerRef.current;
-    if (!storyboard || !player) {
+    if (!loaded || !player) {
       return;
     }
+    const storyboard = loaded.mediaTimeline
+      ? { ...loaded.storyboard, mediaTimeline: loaded.mediaTimeline } as StoryboardV4 & { mediaTimeline: V4MediaTimeline }
+      : loaded.storyboard;
     const contract = createContract({ player, storyboard });
     window.__A2V__ = contract;
     return () => {
@@ -74,7 +89,7 @@ function ContractApp(): React.ReactElement {
         delete window.__A2V__;
       }
     };
-  }, [storyboard]);
+  }, [loaded]);
 
   if (error) {
     // 契约未建立时 `__A2V__` 保持未定义：渲染脚本会按「未定义」报错，
@@ -97,16 +112,20 @@ function ContractApp(): React.ReactElement {
     );
   }
 
-  if (!storyboard) {
+  if (!loaded) {
     return <div data-a2v-contract-loading="" style={{ color: '#888', padding: 40 }} />;
   }
+  const { storyboard, mediaTimeline, subtitleCues } = loaded;
+  const durationInFrames = storyboard.version === 4
+    ? resolveStoryboardV4(storyboard, mediaTimeline).totalFrames : totalFrames(storyboard);
+  const inputProps = { ...storyboard, ...(mediaTimeline ? { mediaTimeline } : {}), ...(subtitleCues ? { subtitleCues } : {}) };
 
   return (
     <Player
       ref={playerRef}
       component={ActiveComposition as React.ComponentType<Record<string, unknown>>}
-      inputProps={storyboard as unknown as Record<string, unknown>}
-      durationInFrames={storyboard.version === 4 ? resolveStoryboardV4(storyboard).totalFrames : totalFrames(storyboard)}
+      inputProps={inputProps as unknown as Record<string, unknown>}
+      durationInFrames={durationInFrames}
       fps={storyboard.fps}
       compositionWidth={storyboard.width}
       compositionHeight={storyboard.height}

@@ -85,8 +85,37 @@ _EFFECTIVE_STORYBOARD_NAME = "storyboard.effective.json"
 class Media:
     path: Path
     data: dict
-    storyboard: sb.Storyboard
+    storyboard: sb.Storyboard | V4Storyboard
     audio: Path
+
+
+@dataclass(frozen=True)
+class V4Stage:
+    id: str
+    start_frame: int
+    duration_in_frames: int
+    data: dict
+
+    @property
+    def end_frame(self) -> int:
+        return self.start_frame + self.duration_in_frames
+
+
+@dataclass(frozen=True)
+class V4Storyboard:
+    fps: int
+    width: int
+    height: int
+    stages: tuple[V4Stage, ...]
+
+    @property
+    def scenes(self) -> tuple[V4Stage, ...]:
+        """Shared inspection consumers call these timeline units scenes."""
+        return self.stages
+
+    @property
+    def total_frames(self) -> int:
+        return self.stages[-1].end_frame if self.stages else 0
 
 
 def effective_storyboard(media: Media) -> dict:
@@ -102,6 +131,13 @@ def effective_storyboard(media: Media) -> dict:
     字幕却按真实词边界走——两者会在同一帧里各说各话。
     """
     effective = copy.deepcopy(media.data["source"])
+    if media.data.get("version") == 4:
+        effective["mediaTimeline"] = {
+            "stages": copy.deepcopy(media.data["stages"]),
+            "resolvedBeats": copy.deepcopy(media.data["resolvedBeats"]),
+        }
+        effective["subtitleCues"] = copy.deepcopy(media.data["cues"])
+        return effective
     effective["subtitleCues"] = copy.deepcopy(media.data["cues"])
     for item, scene in zip(effective["scenes"], media.data["scenes"]):
         item["durationInFrames"] = scene["durationInFrames"]
@@ -185,6 +221,10 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         source = data["source"]
+        if isinstance(source, dict) and source.get("version") == 4:
+            return _load_media_v4(path, data, source_path)
+        if data.get("version") == 4:
+            raise ValueError("v4 媒体清单必须对应 version: 4 分镜")
         if (
             type(data["version"]) is not int
             or data["version"] not in (1, 2, MANIFEST_VERSION)
@@ -244,6 +284,125 @@ def load_media(path: str | Path, source_path: str | Path | None = None) -> Media
         return Media(path, data, model, audio)
     except (OSError, ValueError, KeyError, TypeError, A2VError) as exc:
         raise A2VError(f"媒体清单无效 {path}: {exc}") from exc
+
+
+def _load_media_v4(path: Path, data: dict, source_path: str | Path | None) -> Media:
+    """Validate v4 media against its immutable source and globally resolved stage timeline."""
+    from . import storyboard_v4
+
+    source = data["source"]
+    if data.get("version") != 4:
+        raise ValueError("v4 分镜的媒体清单版本过旧，请重新 prepare")
+    if data.get("sourceFingerprint") != fingerprint(source):
+        raise ValueError("分镜已修改，请重新 prepare")
+    if source_path:
+        current = json.loads(Path(source_path).read_text(encoding="utf-8"))
+        if fingerprint(current) != data["sourceFingerprint"]:
+            raise ValueError("分镜已修改，请重新 prepare")
+    report = storyboard_v4.validate(source)
+    if not report.ok:
+        raise ValueError("清单中的 v4 分镜无效")
+    if data.get("soundFingerprint") != fingerprint(sound_configuration(source)):
+        raise ValueError("声音配置指纹不一致，请重新 prepare")
+    _validate_v4_sound_assets(path, source_path, data)
+
+    raw_stages = data.get("stages")
+    if not isinstance(raw_stages, list) or len(raw_stages) != len(source["stages"]):
+        raise ValueError("媒体 stages 数量与源分镜不匹配，请重新 prepare")
+    cursor = 0
+    stages = []
+    source_beats = {(stage["id"], beat["id"]): beat for stage in source["stages"] for beat in stage.get("beats", [])}
+    seen_beats = set()
+    previous_beat_end = 0
+    for source_stage, media_stage in zip(source["stages"], raw_stages):
+        frames = media_stage.get("durationInFrames")
+        if (media_stage.get("id") != source_stage["id"] or type(frames) is not int
+                or frames < source_stage["durationInFrames"]):
+            raise ValueError("媒体 stage 顺序、ID 或实际时长非法，请重新 prepare")
+        stages.append(V4Stage(source_stage["id"], cursor, frames, source_stage.get("data", {})))
+        cursor += frames
+        audio_ref = media_stage.get("audio")
+        if audio_ref is not None:
+            candidate = (path.parent / audio_ref).resolve()
+            if not candidate.is_relative_to(path.parent) or not candidate.is_file():
+                raise ValueError("stage 音频缺失或路径越界")
+    beats = data.get("resolvedBeats")
+    if not isinstance(beats, list):
+        raise ValueError("媒体缺少全局 resolvedBeats，请重新 prepare")
+    stage_starts = {stage.id: stage.start_frame for stage in stages}
+    stage_ends = {stage.id: stage.end_frame for stage in stages}
+    for beat in beats:
+        if not isinstance(beat, dict):
+            raise ValueError("全局 resolvedBeats 项必须是对象")
+        key = (beat.get("stageId"), beat.get("id"))
+        source_beat = source_beats.get(key)
+        start, end = beat.get("startFrame"), beat.get("endFrame")
+        if (source_beat is None or key in seen_beats or type(start) is not int or type(end) is not int
+                or start < stage_starts.get(key[0], 0) or end <= start or end > stage_ends.get(key[0], -1)
+                or start < previous_beat_end
+                or beat.get("action") != source_beat.get("action")
+                or beat.get("targets") != source_beat.get("targets")
+                or beat.get("meaning") != source_beat.get("meaning")):
+            raise ValueError("全局 resolvedBeats 与源声明或累计时间轴不匹配，请重新 prepare")
+        seen_beats.add(key)
+        previous_beat_end = end
+    if seen_beats != set(source_beats):
+        raise ValueError("并非所有源 beat 都有全局 resolvedBeats，请重新 prepare")
+
+    standard = data.get("standardCheck")
+    seconds = cursor / source["fps"]
+    status = "pass" if 35 * source["fps"] <= cursor <= 45 * source["fps"] else "fail"
+    if (not isinstance(standard, dict) or standard.get("actualDurationInFrames") != cursor
+            or not isinstance(standard.get("actualDurationSeconds"), (int, float))
+            or abs(standard["actualDurationSeconds"] - seconds) > 1 / source["fps"]
+            or standard.get("durationLimitSeconds") != [35, 45]
+            or standard.get("durationStatus") != status):
+        raise ValueError("媒体实际时长状态与 stages 不一致")
+    if not isinstance(data.get("cues"), list):
+        raise ValueError("媒体字幕必须是数组")
+    previous_end = 0.0
+    for cue in data["cues"]:
+        start, end = cue.get("start"), cue.get("end")
+        if (type(start) not in (int, float) or type(end) not in (int, float)
+                or isinstance(start, bool) or isinstance(end, bool) or start < previous_end
+                or end <= start or end > seconds or not isinstance(cue.get("text"), str)
+                or not cue["text"].strip() or len(cue["text"]) > 28):
+            raise ValueError("字幕时间段非法")
+        previous_end = end
+    audio_path = _contained_media_file(path, data.get("audio"), "音轨")
+    narration_path = _contained_media_file(path, data.get("narration"), "旁白")
+    if abs(wav_duration(audio_path) - seconds) > 1 / 24000 or abs(wav_duration(narration_path) - seconds) > 1 / 24000:
+        raise ValueError("媒体音轨时长与全局 stages 不一致")
+    model = V4Storyboard(source["fps"], source["width"], source["height"], tuple(stages))
+    return Media(path, data, model, audio_path)
+
+
+def sound_configuration(source: dict) -> dict:
+    from . import sound
+    return sound.configuration(source)
+
+
+def _contained_media_file(path: Path, reference: Any, label: str) -> Path:
+    if not isinstance(reference, str) or not reference:
+        raise ValueError(f"{label}路径缺失")
+    candidate = (path.parent / reference).resolve()
+    if not candidate.is_relative_to(path.parent) or not candidate.is_file():
+        raise ValueError(f"{label}缺失或越界")
+    return candidate
+
+
+def _validate_v4_sound_assets(path: Path, source_path: str | Path | None, data: dict) -> None:
+    from . import sound
+    track = data["source"].get("soundtrack", {})
+    refs = {item["sourceRef"] for item in ([track["music"]] if track.get("music") else []) + track.get("effects", [])}
+    if set(data.get("soundAssets", {})) != refs:
+        raise ValueError("声音素材清单不完整")
+    for ref, entry in data["soundAssets"].items():
+        candidate = _contained_media_file(path, entry.get("path"), "声音素材")
+        if source_path and candidate != (Path(source_path).resolve().parent / ref).resolve():
+            raise ValueError("声音素材路径不一致")
+        if sound.asset_digest(candidate) != entry.get("sha256"):
+            raise ValueError("声音素材已变化，请重新 prepare")
 
 
 def media_url(page_url: str, server_url: str, media: Media) -> str:
