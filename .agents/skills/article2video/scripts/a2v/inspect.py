@@ -423,6 +423,17 @@ def scenes_as_dicts(model: Any) -> list[dict[str, Any]]:
     ]
 
 
+def v4_stages_as_dicts(storyboard: dict[str, Any]) -> list[dict[str, Any]]:
+    """Expose v4 stages as global-frame inspection windows without rebasing frames."""
+    timeline = resolve_v4(storyboard)
+    return [
+        {"id": stage.id, "type": "world", "startFrame": stage.start_frame,
+         "durationInFrames": stage.end_frame - stage.start_frame,
+         "data": storyboard["stages"][index].get("data", {})}
+        for index, stage in enumerate(timeline.stages)
+    ]
+
+
 def sample_frames(start: int, end: int) -> list[int]:
     """一幕内的采样帧：入场后 / 中段 / 收尾。"""
     span = max(end - start, 1)

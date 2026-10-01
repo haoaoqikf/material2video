@@ -2,7 +2,7 @@ import copy
 import json
 from pathlib import Path
 
-from a2v.inspect import verify_v4_world_probe
+from a2v.inspect import scene_windows, v4_stages_as_dicts, verify_v4_world_probe
 from a2v.timeline_v4 import resolve_v4
 
 STORYBOARD = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-vectors.json").read_text(encoding="utf-8"))["valid"]
@@ -54,3 +54,18 @@ def test_v4_probe_fails_stage_and_beat_state_drift():
     issues = verify_v4_world_probe(FakePage(probe), storyboard, 100)
     assert any("stage 探针不符" in issue for issue in issues)
     assert any("当前 beat" in issue for issue in issues)
+
+
+def test_v4_inspection_windows_keep_global_frame_offsets_for_later_stages():
+    storyboard = copy.deepcopy(STORYBOARD)
+    first = storyboard["stages"][0]
+    first["durationInFrames"] = 500
+    first["narrationSegments"][0]["text"] = first["narrationSegments"][0]["text"][:65]
+    second = copy.deepcopy(first)
+    second.update(id="ending", durationInFrames=550)
+    second["narrationSegments"][0].update(id="line-ending", beatId="throw-ending",
+                                           text=STORYBOARD["stages"][0]["narrationSegments"][0]["text"][65:])
+    second["beats"][0]["id"] = "throw-ending"
+    storyboard["stages"].append(second)
+    windows = scene_windows(v4_stages_as_dicts(storyboard))
+    assert windows == [("opening", 0, 500), ("ending", 500, 1050)]
