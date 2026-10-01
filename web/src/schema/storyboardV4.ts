@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { primitiveDefinition } from '@/registry';
 import {
   beatSchema, directingBriefSchema, moduleSpecifierSchema, motionRecipeSchema, narrationSegmentSchema,
-  sceneNodeSchema, staggerSchema, visualIntentSchema,
+  sceneNodeSchema, staggerSchema, visualIntentSchema, type SceneNode,
 } from './storyboard';
 
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
@@ -125,18 +126,36 @@ export const storyboardV4Schema = z.object({
     ctx.addIssue({ code: 'custom', path: ['world', 'camera', 'focus'], message: 'focus 必须引用已声明全局对象' });
   }
   const treeNodeIds = new Set<string>();
-  const collectNodeIds = (node: z.infer<typeof sceneNodeSchema>) => {
+  const treeNodes = new Map<string, SceneNode>();
+  let treeNodeCount = 0;
+  const collectNodeIds = (node: SceneNode, depth = 1) => {
+    treeNodeCount += 1;
+    if (depth > 8) ctx.addIssue({ code: 'custom', path: ['world', 'sceneTree'], message: '场景树深度不能超过 8' });
     if (treeNodeIds.has(node.id)) {
       ctx.addIssue({ code: 'custom', path: ['world', 'sceneTree'], message: `重复全局节点 id: ${node.id}` });
     }
     treeNodeIds.add(node.id);
-    node.children?.forEach(collectNodeIds);
+    treeNodes.set(node.id, node);
+    const primitive = primitiveDefinition(node.type);
+    const childCount = node.children?.length ?? 0;
+    if (primitive && (childCount < primitive.children[0] || childCount > primitive.children[1])) {
+      ctx.addIssue({ code: 'custom', path: ['world', 'sceneTree', node.id, 'children'], message: `原语 ${node.type} 子节点数量不符合注册表` });
+    }
+    if (primitive) {
+      for (const key of Object.keys(node)) {
+        if (!['id', 'type', 'children'].includes(key) && !primitive.props.includes(key)) {
+          ctx.addIssue({ code: 'custom', path: ['world', 'sceneTree', node.id, key], message: `原语 ${node.type} 不支持属性 ${key}` });
+        }
+      }
+    }
+    node.children?.forEach((child) => collectNodeIds(child, depth + 1));
   };
   if (storyboard.world.sceneTree) {
     collectNodeIds(storyboard.world.sceneTree);
     storyboard.world.objects.forEach((object, index) => {
       if (!treeNodeIds.has(object.id)) ctx.addIssue({ code: 'custom', path: ['world', 'objects', index, 'id'], message: 'tree renderer 的持续对象须映射到同 id 全局节点' });
     });
+    if (treeNodeCount > 48) ctx.addIssue({ code: 'custom', path: ['world', 'sceneTree'], message: `全片节点数 ${treeNodeCount} 超出上限 48` });
   }
   const stageIds = new Set<string>();
   const beatIds = new Set<string>();
@@ -177,6 +196,82 @@ export const storyboardV4Schema = z.object({
       ctx.addIssue({ code: 'custom', path: ['world', 'camera', 'segments', index, 'binding'], message: 'camera binding 引用了未知 stage' });
     }
   });
+  const beatTargets = new Map<string, Set<string>>();
+  storyboard.stages.forEach((stage) => stage.beats?.forEach((beat) => {
+    beatTargets.set(beat.id, new Set(beat.targets));
+  }));
+  const dataAt = (root: unknown, reference: string): unknown => reference.split('.').reduce<unknown>((current, key) =>
+    current && typeof current === 'object' && key in current ? (current as Record<string, unknown>)[key] : undefined, root);
+  const numericShape = (value: unknown): unknown => {
+    if (typeof value === 'number' && Number.isFinite(value)) return 'number';
+    if (Array.isArray(value)) {
+      const parts = value.map(numericShape);
+      return parts.every((part) => part !== undefined) ? parts : undefined;
+    }
+    if (value && typeof value === 'object') {
+      const parts = Object.fromEntries(Object.entries(value).map(([key, item]) => [key, numericShape(item)]));
+      return Object.values(parts).every((part) => part !== undefined) ? parts : undefined;
+    }
+    return undefined;
+  };
+  const bindings = new Set<string>();
+  storyboard.world.stateTracks.forEach((track, index) => {
+    const path = ['world', 'stateTracks', index] as (string | number)[];
+    const targetNode = treeNodes.get(track.target);
+    const targetType = targetNode?.type;
+    const primitive = targetType ? primitiveDefinition(targetType) : undefined;
+    if (storyboard.world.renderer.kind === 'tree' && track.property !== 'visible'
+      && (!primitive || !primitive.props.includes(track.property))) {
+      ctx.addIssue({ code: 'custom', path: [...path, 'property'], message: `${targetType ?? '目标'} 不支持属性 ${track.property}` });
+    }
+    const codeObjects = storyboard.world.data.objects;
+    const codeTarget = codeObjects && typeof codeObjects === 'object'
+      ? (codeObjects as Record<string, unknown>)[track.target] : undefined;
+    const baselineNode = storyboard.world.renderer.kind === 'tree' ? targetNode : codeTarget;
+    let baseline: unknown;
+    if (track.property === 'visible') baseline = baselineNode && typeof baselineNode === 'object'
+      && 'visible' in baselineNode ? (baselineNode as Record<string, unknown>).visible : true;
+    else if (baselineNode && typeof baselineNode === 'object') {
+      baseline = (baselineNode as Record<string, unknown>)[track.property];
+      if (track.property === 'value' && storyboard.world.renderer.kind === 'tree') {
+        const ref = (baselineNode as SceneNode).contentRef;
+        baseline = ref ? dataAt(storyboard.world.data, ref) : undefined;
+      }
+    }
+    if (baseline === undefined) {
+      ctx.addIssue({ code: 'custom', path: [...path, 'target'], message: `对象 ${track.target} 的 ${track.property} 缺少基础值` });
+    } else if (track.property === 'visible') {
+      if (typeof baseline !== 'boolean' || typeof track.to !== 'boolean') ctx.addIssue({ code: 'custom', path: [...path, 'to'], message: 'visible 轨道必须使用布尔值' });
+      if (track.interpolation !== 'step-end') ctx.addIssue({ code: 'custom', path: [...path, 'interpolation'], message: 'visible 是离散属性，只允许 step-end' });
+    } else if (track.property === 'state') {
+      const states = ['rest', 'focus', 'muted', 'done'];
+      if (!states.includes(String(baseline)) || !states.includes(String(track.to))) ctx.addIssue({ code: 'custom', path: [...path, 'to'], message: 'state 轨道值必须来自受控集合' });
+      if (track.interpolation !== 'step-end') ctx.addIssue({ code: 'custom', path: [...path, 'interpolation'], message: 'state 是离散属性，只允许 step-end' });
+    } else if (track.property === 'contentRef' || track.property === 'sourceRef') {
+      if (typeof baseline !== 'string' || typeof track.to !== 'string' || !track.to.trim()) ctx.addIssue({ code: 'custom', path: [...path, 'to'], message: `${track.property} 轨道必须使用非空引用` });
+      if (track.interpolation !== 'step-end') ctx.addIssue({ code: 'custom', path: [...path, 'interpolation'], message: `${track.property} 是离散属性，只允许 step-end` });
+    } else {
+      if (storyboard.world.renderer.kind === 'tree' && targetType && !['number', 'chart', 'gauge', 'pictogram'].includes(targetType)) {
+        ctx.addIssue({ code: 'custom', path: [...path, 'target'], message: `${targetType} 不支持 value 属性` });
+      }
+      const fromShape = numericShape(baseline);
+      const toShape = numericShape(track.to);
+      if (fromShape === undefined || toShape === undefined) ctx.addIssue({ code: 'custom', path: [...path, 'to'], message: 'value 轨道必须使用数值或同形数值结构' });
+      else if (JSON.stringify(fromShape) !== JSON.stringify(toShape) && track.interpolation !== 'step-end') {
+        ctx.addIssue({ code: 'custom', path: [...path, 'interpolation'], message: '数值结构改变时只允许 step-end' });
+      }
+    }
+    const bindingKey = 'beatId' in track.binding ? `beat:${track.binding.beatId}` : `stage:${track.binding.stageId}:${track.binding.phase}`;
+    const conflictKey = `${track.target}\0${track.property}\0${bindingKey}`;
+    if (bindings.has(conflictKey)) ctx.addIssue({ code: 'custom', path: [...path, 'binding'], message: '同一对象属性存在重叠轨道绑定' });
+    bindings.add(conflictKey);
+    if ('beatId' in track.binding && !beatIds.has(track.binding.beatId)) ctx.addIssue({ code: 'custom', path: [...path, 'binding'], message: '引用未知全局 beat' });
+    if ('beatId' in track.binding && beatIds.has(track.binding.beatId)
+      && !beatTargets.get(track.binding.beatId)?.has(track.target)) {
+      ctx.addIssue({ code: 'custom', path: [...path, 'target'], message: '轨道目标不在绑定 beat 的 targets 中' });
+    }
+    if ('stageId' in track.binding && !stageIds.has(track.binding.stageId)) ctx.addIssue({ code: 'custom', path: [...path, 'binding'], message: '引用未知 stage' });
+  });
   storyboard.world.motions.forEach((motion, index) => {
     const targets = motion.target ? [motion.target] : (motion.targets ?? []);
     targets.forEach((target, targetIndex) => {
@@ -185,6 +280,14 @@ export const storyboardV4Schema = z.object({
     });
     if ('beatId' in motion.binding && !beatIds.has(motion.binding.beatId)) {
       ctx.addIssue({ code: 'custom', path: ['world', 'motions', index, 'binding'], message: 'motion binding 引用了未知 beat' });
+    }
+    const motionBeatId = 'beatId' in motion.binding ? motion.binding.beatId : undefined;
+    if (motionBeatId && beatIds.has(motionBeatId)) {
+      targets.forEach((target, targetIndex) => {
+        if (!beatTargets.get(motionBeatId)?.has(target)) {
+          ctx.addIssue({ code: 'custom', path: ['world', 'motions', index, 'target', targetIndex], message: 'motion 目标不在绑定 beat 的 targets 中' });
+        }
+      });
     }
     if ('stageId' in motion.binding && !stageIds.has(motion.binding.stageId)) {
       ctx.addIssue({ code: 'custom', path: ['world', 'motions', index, 'binding'], message: 'motion binding 引用了未知 stage' });

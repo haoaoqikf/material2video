@@ -4,7 +4,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .storyboard import Report
+from . import catalog
+from .storyboard import Report, _validate_node_content, _validate_node_props
 
 _ID = re.compile(r"^[A-Za-z0-9_-]+$")
 _ROOT = {"version", "schemaVersion", "directingVersion", "fps", "width", "height", "title",
@@ -43,7 +44,12 @@ def _binding(value: Any, path: str, report: Report, stages: set[str], beats: set
         report.error(path, "必须是 {beatId} 或 {stageId, phase} 绑定")
 
 
-def _walk_tree(node: Any, path: str, ids: set[str], count: list[int], report: Report) -> None:
+_TREE_FIELDS = {"id", "type", "children", "contentRef", "role", "align", "gap", "direction", "ratio",
+                "columns", "shape", "state", "icon", "chart", "sourceRef", "schematic"}
+
+
+def _walk_tree(node: Any, path: str, ids: set[str], nodes: dict[str, dict[str, Any]], count: list[int],
+               data: dict[str, Any], report: Report, depth: int = 1) -> None:
     if not isinstance(node, dict):
         report.error(path, "sceneTree 节点必须是对象")
         return
@@ -55,12 +61,100 @@ def _walk_tree(node: Any, path: str, ids: set[str], count: list[int], report: Re
     else:
         ids.add(node_id)
     count[0] += 1
+    if depth > 8:
+        report.error(path, "场景树深度不能超过 8")
+    _fields(node, _TREE_FIELDS, path, report)
+    primitive_type = node.get("type")
+    entry = catalog.primitive(primitive_type) if isinstance(primitive_type, str) else None
+    if entry is None:
+        report.error(path + ".type", f"未知视觉原语 {primitive_type!r}")
+    else:
+        _validate_node_props(node, entry, path, report)
+        _validate_node_content(primitive_type, node, path, data, report)
+    if isinstance(node_id, str) and node_id not in nodes:
+        nodes[node_id] = node
     children = node.get("children", [])
     if not isinstance(children, list):
         report.error(path + ".children", "children 必须是数组")
         return
+    if entry is not None and not entry.children[0] <= len(children) <= entry.children[1]:
+        report.error(path + ".children", f"原语 {entry.type} 允许 {entry.children[0]}～{entry.children[1]} 个子节点")
     for index, child in enumerate(children):
-        _walk_tree(child, f"{path}.children[{index}]", ids, count, report)
+        _walk_tree(child, f"{path}.children[{index}]", ids, nodes, count, data, report, depth + 1)
+
+
+def _data_ref(data: dict[str, Any], reference: Any) -> tuple[bool, Any]:
+    if not isinstance(reference, str) or not reference:
+        return False, None
+    value: Any = data
+    for part in reference.split("."):
+        if not isinstance(value, dict) or part not in value:
+            return False, None
+        value = value[part]
+    return True, value
+
+
+def _numeric_shape(value: Any) -> Any:
+    """Return a shape with numeric leaves, or None for non-numeric data."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return "number"
+    if isinstance(value, list):
+        children = [_numeric_shape(item) for item in value]
+        return children if all(item is not None for item in children) else None
+    if isinstance(value, dict):
+        children = {key: _numeric_shape(item) for key, item in value.items()}
+        return children if all(item is not None for item in children.values()) else None
+    return None
+
+
+def _track_base_value(prop: Any, target: Any, data: Any, renderer_kind: Any) -> tuple[bool, Any]:
+    if prop == "visible":
+        return True, target.get("visible", True) if isinstance(target, dict) else True
+    if not isinstance(target, dict):
+        return False, None
+    if prop in {"state", "contentRef", "sourceRef"}:
+        return (prop in target, target.get(prop))
+    if prop == "value":
+        if renderer_kind == "tree":
+            exists, value = _data_ref(data if isinstance(data, dict) else {}, target.get("contentRef"))
+            return exists, value
+        return ("value" in target, target.get("value"))
+    return False, None
+
+
+def _validate_track_value(prop: Any, before: Any, after: Any, interpolation: Any,
+                          path: str, report: Report) -> None:
+    if prop == "visible":
+        if not isinstance(before, bool) or not isinstance(after, bool):
+            report.error(path + ".to", "visible 轨道只能使用布尔值")
+        if interpolation != "step-end":
+            report.error(path + ".interpolation", "visible 是离散属性，只允许 step-end")
+        return
+    if prop == "state":
+        states = {"rest", "focus", "muted", "done"}
+        if not _one(before, states) or not _one(after, states):
+            report.error(path + ".to", "state 轨道必须使用受控 state 值")
+        if interpolation != "step-end":
+            report.error(path + ".interpolation", "state 是离散属性，只允许 step-end")
+        return
+    if prop in {"contentRef", "sourceRef"}:
+        if not isinstance(before, str) or not isinstance(after, str) or not after.strip():
+            report.error(path + ".to", f"{prop} 轨道的目标必须是非空引用")
+        if interpolation != "step-end":
+            report.error(path + ".interpolation", f"{prop} 是离散属性，只允许 step-end")
+        return
+    if prop == "value":
+        before_shape, after_shape = _numeric_shape(before), _numeric_shape(after)
+        if before_shape is None or after_shape is None:
+            report.error(path + ".to", "value 轨道必须在既有数值或数值结构上变化")
+            return
+        if before_shape != after_shape:
+            if interpolation != "step-end":
+                report.error(path + ".interpolation", "数值结构改变时只允许 step-end")
+        elif interpolation == "step-end":
+            return
+        elif interpolation not in {"linear", "ease-in", "ease-out", "ease-in-out"}:
+            report.error(path + ".interpolation", "数值属性需要 linear 或受控 ease 插值")
 
 
 def validate(data: Any) -> Report:
@@ -164,12 +258,14 @@ def validate(data: Any) -> Report:
         report.error("world.objects", "至少需要一个 primary 对象")
 
     node_ids: set[str] = set()
+    tree_nodes: dict[str, dict[str, Any]] = {}
     if renderer_kind == "tree":
         if "sceneTree" not in world:
             report.error("world.sceneTree", "tree renderer 必须声明唯一全局 sceneTree")
         else:
             count = [0]
-            _walk_tree(world["sceneTree"], "world.sceneTree", node_ids, count, report)
+            world_data = world.get("data") if isinstance(world.get("data"), dict) else {}
+            _walk_tree(world["sceneTree"], "world.sceneTree", node_ids, tree_nodes, count, world_data, report)
             if count[0] > 48:
                 report.error("world.sceneTree", f"全片节点数 {count[0]} 超出上限 48")
     elif renderer_kind == "code" and "sceneTree" in world:
@@ -182,6 +278,7 @@ def validate(data: Any) -> Report:
     stages_value = data.get("stages")
     stages: set[str] = set()
     beats: set[str] = set()
+    beat_targets: dict[str, set[str]] = {}
     if not isinstance(stages_value, list) or not stages_value:
         report.error("stages", "必须声明非空叙事阶段数组")
         stages_value = []
@@ -225,6 +322,7 @@ def validate(data: Any) -> Report:
             else:
                 beats.add(beat_id)
                 local_beats.add(beat_id)
+                beat_targets[beat_id] = {target for target in beat.get("targets", []) if isinstance(target, str)} if isinstance(beat.get("targets"), list) else set()
             if not isinstance(beat.get("targets"), list) or not beat["targets"]:
                 report.error(beat_path + ".targets", "beat 必须有目标对象")
             else:
@@ -280,6 +378,7 @@ def validate(data: Any) -> Report:
         report.error("world.stateTracks", "必须是数组")
     else:
         track_ids: set[str] = set()
+        track_bindings: set[tuple[Any, Any, Any]] = set()
         for index, track in enumerate(tracks):
             path = f"world.stateTracks[{index}]"
             if not isinstance(track, dict):
@@ -297,6 +396,34 @@ def validate(data: Any) -> Report:
             if not _one(track.get("interpolation"), {"step-end", "linear", "ease-in", "ease-out", "ease-in-out"}):
                 report.error(path + ".interpolation", "插值方式无效")
             _binding(track.get("binding"), path + ".binding", report, stages, beats)
+            target_id, prop = track.get("target"), track.get("property")
+            target_node = tree_nodes.get(target_id) if isinstance(target_id, str) else None
+            target_type = target_node.get("type") if isinstance(target_node, dict) else None
+            entry = catalog.primitive(target_type) if isinstance(target_type, str) else None
+            if renderer_kind == "tree" and entry is not None:
+                if prop != "visible" and prop not in entry.props:
+                    report.error(path + ".property", f"原语 {entry.type} 不支持属性 {prop!r}")
+            if renderer_kind == "code":
+                code_objects = world.get("data", {}).get("objects", {}) if isinstance(world.get("data"), dict) else {}
+                target_node = code_objects.get(target_id) if isinstance(code_objects, dict) else None
+            base_found, base_value = _track_base_value(prop, target_node, world.get("data", {}), renderer_kind)
+            to_value = track.get("to")
+            if not base_found:
+                report.error(path + ".target", f"对象 {target_id!r} 的属性 {prop!r} 缺少基础值")
+            else:
+                _validate_track_value(prop, base_value, to_value, track.get("interpolation"), path, report)
+            binding = track.get("binding")
+            if isinstance(binding, dict):
+                bound_beat = binding.get("beatId")
+                if isinstance(bound_beat, str) and isinstance(target_id, str) and bound_beat in beat_targets and target_id not in beat_targets[bound_beat]:
+                    report.error(path + ".target", "轨道目标不在绑定 beat 的 targets 中")
+                token = (binding.get("beatId") if "beatId" in binding else
+                         f"{binding.get('stageId')}:{binding.get('phase')}")
+                if isinstance(target_id, str) and isinstance(prop, str):
+                    key = (target_id, prop, token)
+                    if key in track_bindings:
+                        report.error(path + ".binding", "同一对象属性存在重叠轨道绑定")
+                    track_bindings.add(key)
 
     motions = world.get("motions")
     if not isinstance(motions, list):

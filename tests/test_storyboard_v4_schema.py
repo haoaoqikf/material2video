@@ -24,6 +24,21 @@ def _mutate(name: str) -> dict:
         value["stages"][0]["transition"] = {"kind": "inherit"}
     elif name == "duplicate-beat":
         value["stages"][0]["beats"].append(copy.deepcopy(value["stages"][0]["beats"][0]))
+    elif name == "missing-track-baseline":
+        value["world"]["stateTracks"] = [{"id": "track-a", "target": "player", "property": "state",
+            "binding": {"beatId": "throw-1"}, "to": "focus", "interpolation": "step-end"}]
+    elif name == "track-target-type":
+        value["world"]["stateTracks"] = [{"id": "track-a", "target": "dart", "property": "value",
+            "binding": {"beatId": "throw-1"}, "to": 1, "interpolation": "linear"}]
+    elif name == "invalid-track-beat":
+        value["world"]["stateTracks"] = [{"id": "track-a", "target": "player", "property": "state",
+            "binding": {"beatId": "absent"}, "to": "focus", "interpolation": "step-end"}]
+    elif name in {"overlapping-track", "illegal-interpolation"}:
+        value["world"]["sceneTree"]["children"][0]["state"] = "rest"
+        track = {"id": "track-a", "target": "player", "property": "state",
+            "binding": {"beatId": "throw-1"}, "to": "focus", "interpolation": "step-end"}
+        if name == "overlapping-track": value["world"]["stateTracks"] = [track, {**track, "id": "track-b", "to": "done"}]
+        else: value["world"]["stateTracks"] = [{**track, "interpolation": "linear"}]
     return value
 
 

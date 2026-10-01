@@ -87,6 +87,11 @@
     { "name": "unknown-root-field", "mutation": "unknown-root" },
     { "name": "stage-renderer", "mutation": "stage-renderer" },
     { "name": "stage-transition", "mutation": "stage-transition" },
-    { "name": "duplicate-beat-id", "mutation": "duplicate-beat" }
+    { "name": "duplicate-beat-id", "mutation": "duplicate-beat" },
+    { "name": "missing-track-baseline", "mutation": "missing-track-baseline" },
+    { "name": "track-target-type-mismatch", "mutation": "track-target-type" },
+    { "name": "invalid-track-beat", "mutation": "invalid-track-beat" },
+    { "name": "overlapping-track-property", "mutation": "overlapping-track" },
+    { "name": "illegal-track-interpolation", "mutation": "illegal-interpolation" }
   ]
 }
