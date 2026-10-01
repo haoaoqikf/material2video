@@ -111,3 +111,23 @@ def review_for_file(path: str | Path, workspace_root: str | Path) -> dict[str, A
         raise ValueError(f"文章输入必须位于工作区内：{source}")
     text, digest = read_source(source)
     return review_template(text, source.relative_to(workspace).as_posix(), digest)
+
+
+def active_source(article_dir: str | Path) -> Path:
+    """采用稿存在时作为当前制作输入；原始 article.md 始终保留。"""
+    root = Path(article_dir)
+    adopted = root / "article.accepted.md"
+    return adopted if adopted.is_file() else root / "article.md"
+
+
+def save_candidate(article_dir: str | Path, text: str, source_sha256: str) -> dict[str, Any]:
+    """只保存合规候选；调用方负责证明其对应的审查原文仍有效。"""
+    count = count_characters(extract_body(text))
+    if not MIN_STANDARD_CHARS <= count <= MAX_STANDARD_CHARS:
+        raise ValueError(f"候选稿正文为 {count} 字，须在 {MIN_STANDARD_CHARS}～{MAX_STANDARD_CHARS} 字")
+    root = Path(article_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    target = root / "article.candidate.md"
+    target.write_text(text.rstrip() + "\n", encoding="utf-8")
+    _, digest = read_source(target)
+    return {"path": target.name, "sha256": digest, "basedOn": source_sha256, "charCount": count}

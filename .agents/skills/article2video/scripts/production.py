@@ -19,31 +19,43 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="production.py", description="查询制作阶段或输出 production.json 模板")
-    parser.add_argument("command", choices=("status", "template", "input-review", "keyframes", "samples", "rehearsal"))
-    parser.add_argument("--storyboard", required=True)
+    parser.add_argument("command", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal"))
+    parser.add_argument("--storyboard", help="分镜 JSON 路径")
+    parser.add_argument("--article", help="尚无分镜时指定文章文件，仅用于 input-review/candidate/adopt-candidate")
     parser.add_argument("--media")
     parser.add_argument("--content-root")
     parser.add_argument("--out", help="template 命令的 UTF-8 production.json 写入路径")
+    parser.add_argument("--text-file", help="candidate 命令读取 AI 给出的候选稿 UTF-8 文件")
     args = parser.parse_args(argv)
+    input_commands = {"input-review", "candidate", "adopt-candidate"}
+    if not args.storyboard and not args.article:
+        parser.error("必须提供 --storyboard；输入审查命令也可使用 --article")
+    if args.command in input_commands and not (args.storyboard or args.article):
+        parser.error("输入审查命令需要 --storyboard 或 --article")
+    if args.command not in input_commands and not args.storyboard:
+        parser.error(f"{args.command} 命令需要 --storyboard")
     _force_utf8_output()
     try:
-        article = paths.for_storyboard(args.storyboard, args.content_root)
-        raw = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
+        location = args.storyboard or args.article
+        article = paths.for_storyboard(location, args.content_root)
+        raw = json.loads(Path(args.storyboard).read_text(encoding="utf-8")) if args.storyboard else {"scenes": []}
         if args.media is None and args.command != "keyframes" and article.media_manifest.is_file():
             args.media = str(article.media_manifest)
-        model, report = load_storyboard(args.storyboard)
-        if model is None:
-            raise A2VError("分镜校验失败：" + "；".join(item.format() for item in report.errors))
+        model = None
+        if args.storyboard:
+            model, report = load_storyboard(args.storyboard)
+            if model is None:
+                raise A2VError("分镜校验失败：" + "；".join(item.format() for item in report.errors))
         record_file = production.record_path(article)
         if args.command == "input-review":
-            current = production.current_fingerprints(args.storyboard, None, article)
-            source = article.source_dir / "article.md"
+            source = article_text.active_source(article.source_dir)
             if not source.is_file():
                 raise A2VError(f"缺少输入文章：{source}")
             try:
                 review = article_text.review_for_file(source, article.workspace_root)
             except (OSError, UnicodeError, ValueError) as exc:
                 raise A2VError(f"无法审查输入文章：{exc}") from exc
+            previous_review = None
             if record_file.is_file():
                 try:
                     record = json.loads(record_file.read_text(encoding="utf-8"))
@@ -51,8 +63,25 @@ def main(argv: list[str] | None = None) -> int:
                     raise A2VError(f"无法读取制作记录 {record_file}: {exc}") from exc
                 if not isinstance(record, dict):
                     raise A2VError("制作记录必须是 JSON 对象")
+                previous_review = record.get("inputReview")
+                previous_source = previous_review.get("source") if isinstance(previous_review, dict) else None
+                if (isinstance(previous_source, dict)
+                        and previous_source.get("sha256") == review["source"]["sha256"]
+                        and isinstance(previous_review.get("authorization"), dict)):
+                    review["authorization"] = previous_review["authorization"]
+                if (isinstance(previous_source, dict)
+                        and previous_source.get("sha256") == review["source"]["sha256"]
+                        and isinstance(previous_review.get("candidate"), dict)):
+                    previous_candidate = previous_review["candidate"]
+                    candidate_file = article.source_dir / "article.candidate.md"
+                    if candidate_file.is_file():
+                        _, candidate_digest = article_text.read_source(candidate_file)
+                        if (previous_candidate.get("path") == candidate_file.name
+                                and candidate_digest == previous_candidate.get("sha256")
+                                and previous_candidate.get("basedOn") == review["source"]["sha256"]):
+                            review["candidate"] = previous_candidate
             else:
-                record = production.initialize_template(raw, current, review)
+                record = production.initialize_template(raw, {"input": review["source"]["sha256"]}, review)
                 record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
             record["inputReview"] = review
             record.setdefault("fingerprints", {})["input"] = review["source"]["sha256"]
@@ -62,6 +91,48 @@ def main(argv: list[str] | None = None) -> int:
             temporary.replace(record_file)
             print(json.dumps({"record": str(record_file), "inputReview": review}, ensure_ascii=False, indent=2))
             print("请 AI 阅读 article.md，在 production.json 中补全 singleScene 与 assessment；长度失败时先给出修改意见和候选稿，然后停止。")
+            return 0
+        if args.command in {"candidate", "adopt-candidate"}:
+            if not record_file.is_file():
+                raise A2VError("尚无输入审查记录；请先运行 production.py input-review")
+            record = json.loads(record_file.read_text(encoding="utf-8"))
+            review = record.get("inputReview") if isinstance(record, dict) else None
+            if not isinstance(review, dict) or review.get("status") != "fail":
+                raise A2VError("只有审查未通过的原文可以生成或采用候选稿")
+            original = article.source_dir / "article.md"
+            original_text, original_digest = article_text.read_source(original)
+            if review.get("source", {}).get("sha256") != original_digest:
+                raise A2VError("原文已变化，输入审查失效；请先重新审查")
+            candidate = article.source_dir / "article.candidate.md"
+            if args.command == "candidate":
+                if article_text.count_characters(article_text.extract_body(original_text)) == 0:
+                    raise A2VError("原文没有可审查正文；不得编造候选稿")
+                if not args.text_file:
+                    raise A2VError("candidate 命令需要 --text-file")
+                candidate_text = Path(args.text_file).read_text(encoding="utf-8")
+                info = article_text.save_candidate(article.source_dir, candidate_text, original_digest)
+                review["candidate"] = info
+                temporary = record_file.with_suffix(record_file.suffix + ".tmp")
+                temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                temporary.replace(record_file)
+                print(json.dumps(info, ensure_ascii=False, indent=2))
+            else:
+                info = review.get("candidate")
+                if not isinstance(info, dict) or not candidate.is_file():
+                    raise A2VError("没有已登记的候选稿")
+                candidate_text, candidate_digest = article_text.read_source(candidate)
+                if info.get("basedOn") != original_digest or info.get("sha256") != candidate_digest:
+                    raise A2VError("候选稿或原文已变化，采用授权失效；请重新生成候选稿")
+                accepted = article.source_dir / "article.accepted.md"
+                accepted.write_text(candidate_text, encoding="utf-8")
+                accepted_review = article_text.review_for_file(accepted, article.workspace_root)
+                accepted_review["authorization"] = {"path": candidate.name, "sha256": candidate_digest,
+                                                     "sourceSha256": original_digest}
+                record["inputReview"] = accepted_review
+                record.setdefault("fingerprints", {})["input"] = accepted_review["source"]["sha256"]
+                record_file.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                print(json.dumps({"adopted": str(accepted), "inputReview": accepted_review}, ensure_ascii=False, indent=2))
+                print("采用稿已作为独立制作输入；须重新完成长度与单场景语义审查后才能继续。")
             return 0
         stale_media = False
         try:
@@ -76,7 +147,17 @@ def main(argv: list[str] | None = None) -> int:
             current["media"] = "stale"
         if args.command == "template":
             source = article.source_dir / "article.md"
-            input_review = article_text.review_for_file(source, article.workspace_root) if source.is_file() else None
+            active = article_text.active_source(article.source_dir)
+            input_review = article_text.review_for_file(active, article.workspace_root) if active.is_file() else None
+            if input_review is not None and record_file.is_file():
+                try:
+                    previous = json.loads(record_file.read_text(encoding="utf-8"))
+                    previous_review = previous.get("inputReview") if isinstance(previous, dict) else None
+                    previous_source = previous_review.get("source") if isinstance(previous_review, dict) else None
+                    if isinstance(previous_source, dict) and previous_source.get("sha256") == input_review["source"]["sha256"]:
+                        input_review = previous_review
+                except (OSError, ValueError):
+                    pass
             record = production.initialize_template(raw, current, input_review)
             record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
             payload = json.dumps(record, ensure_ascii=False, indent=2) + "\n"

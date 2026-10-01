@@ -129,6 +129,31 @@ def test_input_review_requires_workspace_relative_source() -> None:
         production.validate_record(record, {"open", "core", "close"})
 
 
+def test_adopted_candidate_authorization_is_invalidated_by_candidate_edit(tmp_path: Path) -> None:
+    article_dir = tmp_path / "videos" / "demo"
+    article_dir.mkdir(parents=True)
+    original = article_dir / "article.md"
+    original.write_text("长文" * 200, encoding="utf-8")
+    candidate = article_dir / "article.candidate.md"
+    candidate.write_text("稿" * 140 + "\n", encoding="utf-8")
+    accepted = article_dir / "article.accepted.md"
+    accepted.write_text(candidate.read_text(encoding="utf-8"), encoding="utf-8")
+    _, source_digest = article_text.read_source(original)
+    _, candidate_digest = article_text.read_source(candidate)
+    _, accepted_digest = article_text.read_source(accepted)
+    review = article_text.review_for_file(accepted, tmp_path)
+    review.update({"status": "pass", "singleScene": {"status": "pass", "claim": "集中观点",
+        "metaphor": "持续流程", "problemSpans": [], "rationale": "同一视觉世界可承载必要推理"},
+        "assessment": {"reviewer": "ai", "model": "test", "session": "test"},
+        "authorization": {"path": candidate.name, "sha256": candidate_digest,
+                           "sourceSha256": source_digest}})
+    record = {"inputReview": review, "materialRoot": os.path.relpath(tmp_path, article_dir)}
+    record_file = article_dir / "production.json"
+    assert production._input_review_issue(record, {"input": accepted_digest}, record_file) is None
+    candidate.write_text("修改" * 70 + "\n", encoding="utf-8")
+    assert "授权与审查失效" in production._input_review_issue(record, {"input": accepted_digest}, record_file)
+
+
 def test_gate_blocks_failed_key_scene_and_full_review() -> None:
     storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
     current = {"storyboard": "s", "assets": "a", "media": "m"}

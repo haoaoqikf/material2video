@@ -7,6 +7,7 @@ a2v 包位于 skill bundle 内部（scripts/a2v），不随项目安装为可导
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -44,15 +45,30 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
 def approve_production_record(storyboard_path: str | Path, media_path: str | Path | None = None,
                              content_root: str | Path | None = None) -> Path:
     """为渲染路径测试创建当前指纹绑定的通过记录，不运行人工评审工具。"""
-    from a2v import paths, production
+    from a2v import article_text, paths, production
 
     source = Path(storyboard_path)
     raw = json.loads(source.read_text(encoding="utf-8"))
     article = paths.for_storyboard(source, content_root)
+    input_path = article.source_dir / "article.md"
+    input_path.write_text("测" * 140, encoding="utf-8")
+    input_review = article_text.review_for_file(input_path, article.workspace_root)
+    input_review.update({"status": "pass", "singleScene": {
+        "status": "pass", "claim": "测试观点", "metaphor": "持续系统",
+        "problemSpans": [], "rationale": "测试夹具使用持续视觉世界"},
+        "assessment": {"reviewer": "ai", "model": "test", "session": "test-session"}})
     current = production.current_fingerprints(source, media_path, article)
-    record = production.initialize_template(raw, current)
+    record = production.initialize_template(raw, current, input_review)
+    record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), production.record_path(article).parent.resolve())
+    material_digests = {}
+    for name in ("keyframes", "samples", "rehearsal"):
+        material = article.workspace_root / "outputs" / name
+        material.parent.mkdir(parents=True, exist_ok=True)
+        material.write_bytes(f"test {name}".encode())
+        import hashlib
+        material_digests[name] = hashlib.sha256(material.read_bytes()).hexdigest()
     record["materials"] = {
-        name: {"path": f"outputs/{name}", "sha256": {"keyframes": "a", "samples": "b", "rehearsal": "c"}[name] * 64,
+        name: {"path": f"outputs/{name}", "sha256": material_digests[name],
                "fingerprints": current}
         for name in ("keyframes", "samples", "rehearsal")
     }
@@ -77,7 +93,7 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
                            for name in production.REVIEW_DIMENSIONS[kind]},
             "evidence": "渲染测试夹具",
             "assessment": {"reviewer": "ai", "model": "test", "session": "test-session",
-                           "materials": {material: {"keyframes": "a", "samples": "b", "rehearsal": "c"}[material] * 64}},
+                           "materials": {material: material_digests[material]}},
         }
 
     record["reviews"]["keyScenes"] = {
@@ -85,6 +101,27 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
         for scene_id in set(record["direction"]["keyScenes"].values())
     }
     record["reviews"]["full"] = {kind: passing(kind, full=True) for kind in ("static", "dynamic", "content")}
+    target = production.record_path(article)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target
+
+
+def approve_input_review(storyboard_path: str | Path, content_root: str | Path | None = None) -> Path:
+    """准备通过的最小输入审查，供 prepare CLI 路径测试使用。"""
+    from a2v import article_text, paths, production
+
+    source = Path(storyboard_path)
+    article = paths.for_storyboard(source, content_root)
+    input_path = article.source_dir / "article.md"
+    input_path.write_text("测" * 140, encoding="utf-8")
+    review = article_text.review_for_file(input_path, article.workspace_root)
+    review.update({"status": "pass", "singleScene": {
+        "status": "pass", "claim": "测试观点", "metaphor": "持续系统",
+        "problemSpans": [], "rationale": "测试夹具使用持续视觉世界"},
+        "assessment": {"reviewer": "ai", "model": "test", "session": "test-session"}})
+    record = {"inputReview": review,
+              "materialRoot": os.path.relpath(article.workspace_root.resolve(), article.source_dir.resolve())}
     target = production.record_path(article)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

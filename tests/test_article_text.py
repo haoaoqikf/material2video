@@ -1,4 +1,4 @@
-from a2v.article_text import count_characters, extract_body, standard_length_result
+from a2v.article_text import count_characters, extract_body, save_candidate, standard_length_result
 
 
 def test_standard_boundaries():
@@ -21,3 +21,18 @@ def test_only_first_nonempty_markdown_h1_is_a_title():
 
 def test_python_whitespace_matches_unicode_white_space_property():
     assert count_characters("甲\u0085乙\u2007丙") == 3
+
+
+def test_candidate_is_saved_separately_and_must_meet_standard_length(tmp_path):
+    original = tmp_path / "article.md"
+    original.write_text("原始内容保持不变", encoding="utf-8")
+    candidate = save_candidate(tmp_path, "候" * 140, "a" * 64)
+    assert candidate["path"] == "article.candidate.md"
+    assert candidate["charCount"] == 140
+    assert original.read_text(encoding="utf-8") == "原始内容保持不变"
+    try:
+        save_candidate(tmp_path, "短" * 129, "a" * 64)
+    except ValueError as exc:
+        assert "130～170" in str(exc)
+    else:
+        raise AssertionError("不合规候选稿必须被拒绝")

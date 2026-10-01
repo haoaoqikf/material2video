@@ -1190,6 +1190,17 @@ def main_prepare(argv: list[str] | None = None) -> int:
         # Path 会折叠 "./" 之类的写法，先归一化再和推导结果比较
         out_dir = Path(args.out_dir).resolve() if args.out_dir else _default_media_dir(article)
         _reject_foreign_media_dir(article, out_dir)
+        from . import production
+        record_file = production.record_path(article)
+        if not record_file.is_file():
+            raise A2VError("缺少输入审查记录；请先运行 production.py input-review 并完成人工语义审查")
+        record = json.loads(record_file.read_text(encoding="utf-8"))
+        if not isinstance(record, dict):
+            raise A2VError("制作记录必须是 JSON 对象；当前不会请求语音服务或写入媒体")
+        current = production.current_fingerprints(args.storyboard, None, article)
+        issue = production._input_review_issue(record, current, record_file)
+        if issue:
+            raise A2VError(issue + "；当前不会请求语音服务或写入媒体")
         print(prepare(args.storyboard, out_dir, args.voice, args.rate, args.force))
         if args.subset_fonts:
             return _subset_fonts(args.storyboard, out_dir, Path(args.subset_fonts))

@@ -18,7 +18,7 @@ from a2v.errors import A2VError
 from a2v.media import Media
 from a2v.render import RenderResult
 
-from conftest import SKILL_MARKER, approve_production_record, make_project
+from conftest import SKILL_MARKER, approve_input_review, approve_production_record, make_project
 
 
 def _approve_render_gate(article: Path, media_path: Path | None = None) -> None:
@@ -361,6 +361,7 @@ class TestPrepareCommandDefaults:
         script = copy.deepcopy(valid_script)
         script["scenes"][0]["narrationSegments"] = [{"id": "n1", "text": "你", "beatId": "b1"}, {"id": "n2", "text": "好。", "beatId": "b2"}]
         article = make_project(tmp_path, "videos", "demo", script)
+        approve_input_review(article / "storyboard.json")
         calls: list[dict] = []
 
         def fake_prepare(storyboard, out_dir, voice, rate, force):
@@ -384,6 +385,7 @@ class TestPrepareCommandDefaults:
 
     def test_explicit_out_dir_outside_outputs_is_allowed(self, tmp_path, valid_script, monkeypatch):
         article = make_project(tmp_path, "videos", "demo", valid_script)
+        approve_input_review(article / "storyboard.json")
         target = tmp_path / "scratch-media"
         monkeypatch.setattr(prep, "prepare", lambda *a, **k: target / "media.json")
         assert cli.main_prepare(

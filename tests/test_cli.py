@@ -92,6 +92,21 @@ class TestValidateCommand:
         assert cli.main_validate([str(path)]) == 0
         assert cli.main_validate([str(path), "--strict"]) == 2
 
+    def test_prepare_stops_before_tts_when_input_review_is_missing(self, tmp_path, monkeypatch, caplog):
+        from a2v import prepare as prepare_module
+
+        article = SimpleNamespace(kind="article", source_dir=tmp_path, workspace_root=tmp_path,
+                                  output_dir=tmp_path / "outputs", media_dir=tmp_path / "outputs" / "media")
+        called = []
+        cli._force_utf8_output = lambda: None
+        monkeypatch.setattr(cli.paths_mod, "for_storyboard", lambda *_args, **_kwargs: article)
+        monkeypatch.setattr(cli, "_reject_foreign_media_dir", lambda *_args: None)
+        monkeypatch.setattr(prepare_module, "prepare", lambda *args: called.append(args))
+        result = cli.main_prepare(["--storyboard", str(tmp_path / "storyboard.json")])
+        assert result == 1
+        assert called == []
+        assert "缺少输入审查记录" in caplog.text
+
 
 class TestFfmpegStatsParsing:
     def test_parses_frame_count_with_padding(self):

@@ -44,7 +44,7 @@ def current_fingerprints(storyboard_path: str | Path, media_path: str | Path | N
         media_digest = fingerprint({"manifest": file_digest(manifest), "audio": file_digest(media.audio)})
     result: dict[str, str | None] = {"storyboard": raw_storyboard, "assets": assets, "media": media_digest}
     article_source_dir = getattr(article, "source_dir", None)
-    article_path = Path(article_source_dir) / "article.md" if article_source_dir is not None else None
+    article_path = article_text.active_source(article_source_dir) if article_source_dir is not None else None
     if article_path is not None and article_path.is_file():
         _, result["input"] = article_text.read_source(article_path)
     return result
@@ -365,6 +365,28 @@ def _input_review_issue(record: dict[str, Any], current: dict[str, str | None],
         return "输入文章无法读取；请修复原文后重新审查"
     if digest != review["source"]["sha256"] or article_text.count_characters(article_text.extract_body(text)) != review["charCount"]:
         return "输入文章已变化，原审查失效；请重新审查"
+    authorization = review.get("authorization")
+    if authorization is not None:
+        if not isinstance(authorization, dict) or not isinstance(authorization.get("path"), str):
+            return "候选稿采用授权记录无效；请重新采用并审查"
+        candidate = (source.parent / authorization["path"]).resolve()
+        if not candidate.is_relative_to(source.parent.resolve()) or not candidate.is_file():
+            return "已采用候选稿或其授权来源缺失；请重新采用并审查"
+        try:
+            _, candidate_digest = article_text.read_source(candidate)
+        except (OSError, UnicodeError):
+            return "已采用候选稿授权来源不可读；请重新采用并审查"
+        if candidate_digest != authorization.get("sha256"):
+            return "候选稿在采用后发生变化，授权与审查失效；请重新采用并审查"
+        original = source.parent / "article.md"
+        if not original.is_file():
+            return "采用候选稿所依据的原文已缺失；请重新审查"
+        try:
+            _, original_digest = article_text.read_source(original)
+        except (OSError, UnicodeError):
+            return "采用候选稿所依据的原文不可读；请重新审查"
+        if original_digest != authorization.get("sourceSha256"):
+            return "候选稿依据的原文已变化，授权与审查失效；请重新审查"
     return None
 
 
