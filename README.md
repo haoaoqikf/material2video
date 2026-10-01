@@ -301,7 +301,7 @@ v1/v2 分镜无法预览或渲染；请依据分镜结构文档重新编排为 v
 | 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
 | --- | --- | --- | --- |
 | `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `videos/never-fear-interviews/outputs/voiced.mp4` + `.srt` |
-| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 2721 帧（90.7 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
+| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 2982 帧（99.4 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
 | `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `videos/examples/why-effort-fails/outputs/` |
 
 上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
@@ -309,9 +309,9 @@ v1/v2 分镜无法预览或渲染；请依据分镜结构文档重新编排为 v
 [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
 是分段口播与语义节拍的端到端参照。
 个别作品在本地另附一份作品网页（不入库，也不是项目能力），把正文、成片、章节跳转与
-口播全文放在同一页里互相对应：章节按钮按媒体清单的幕边界跳转，字幕由页面按同一份
-`cues` 叠在成片上（成片本身不含字幕），口播全文与画面逐幕对齐。这是作者本机的
-个人做法，不随仓库分发。
+口播全文放在同一页里互相对应：章节按钮按媒体清单的幕边界跳转，页面按同一份 `cues`
+同步高亮当前口播行（成片已把字幕烧进画面，页面不再叠第二份字幕），口播全文与画面
+逐幕对齐。这是作者本机的个人做法，不随仓库分发。
 
 目录结构与归属推导规则见
 [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；

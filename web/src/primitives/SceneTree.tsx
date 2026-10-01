@@ -473,7 +473,12 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
   const nodeMotion = motionStyle(scene, node.id, frame, baseTransform, stylePack, beats);
   const continuityStyle = continuityNodeStyle(node.id, continuity);
   const mix = visualMix(node.state ?? (stage === 'active' ? 'focus' : stage === 'done' ? 'done' : 'rest'), beat.active ? beat.progress : 1);
-  const layered = channelStyle({ base: typeof (place ?? layoutStyle(node)).transform === 'string' ? String((place ?? layoutStyle(node)).transform) : undefined, motion: typeof nodeMotion.transform === 'string' ? nodeMotion.transform : undefined, continuity: typeof continuityStyle.transform === 'string' ? continuityStyle.transform : undefined, opacity: Number(nodeMotion.opacity ?? 1) * Number(continuityStyle.opacity ?? 1), mix });
+  // 变换通道只拼「动效 + 连续性」：基础变换已经由 motionStyle 带进 nodeMotion
+  // （它拿到 baseTransform 后会原样保留，再叠加位移动效）。这里不能再把
+  // place/layoutStyle 的 transform 作为 base 传一次——radial 与 cycle 的子节点
+  // 靠 `translate(-50%,-50%)` 居中，重复叠加会把它们整体再上移、左移半个身位，
+  // 表现为圆环上的卡片脱环、顶部卡片压住标题。
+  const layered = channelStyle({ motion: typeof nodeMotion.transform === 'string' ? nodeMotion.transform : undefined, continuity: typeof continuityStyle.transform === 'string' ? continuityStyle.transform : undefined, opacity: Number(nodeMotion.opacity ?? 1) * Number(continuityStyle.opacity ?? 1), mix });
   const style = {
     ...(place ?? layoutStyle(node)),
     ...nodeMotion,

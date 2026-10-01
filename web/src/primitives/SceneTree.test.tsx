@@ -161,6 +161,36 @@ describe('中层原语的方向关系', () => {
   });
 });
 
+describe('圆周布局的居中位移', () => {
+  // 回归：radial/cycle 的子节点靠 `translate(-50%,-50%)` 落在圆周点上，而
+  // motionStyle 返回的变换里**已经**含了这份基础位移。变换通道若再把布局声明的
+  // transform 拼一次，子节点会整体上移、左移半个身位：圆环上的卡片脱环，
+  // 顶部卡片压住上一行的标题。
+  const radialScene = (): Scene => {
+    const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]) as Scene;
+    scene.durationInFrames = 60;
+    scene.data = { text: '甲' };
+    scene.sceneTree = {
+      id: 'ring',
+      type: 'radial',
+      children: [
+        { id: 'cell-a', type: 'surface', children: [{ id: 'cell-a-text', type: 'text', contentRef: 'data.text' }] },
+        { id: 'cell-b', type: 'surface', children: [{ id: 'cell-b-text', type: 'text', contentRef: 'data.text' }] },
+      ],
+    } as SceneNode;
+    scene.motions = [{ target: 'cell-a', recipe: 'rise', phase: 'establish', durationFrames: 20 }];
+    return scene;
+  };
+
+  it('动效子节点与静止子节点都只居中一次', () => {
+    const markup = renderToStaticMarkup(<SceneTree scene={radialScene()} frame={5} />);
+    // 两个圆周子节点各一次；重复叠加时每个会带上两次
+    expect(markup.match(/translate\(-50%/g) ?? []).toHaveLength(2);
+    // 位移动效仍然叠加上去：居中本身没有被 motionStyle 吞掉
+    expect(markup).toMatch(/translate\(-50%, -50%\) translateY\(/);
+  });
+});
+
 describe('量级类原语的节拍驱动', () => {
   it('累积类从 0 推到满值，消耗类从满值退到 0', () => {
     expect(quantityFactor(beatState({ active: resolvedBeat('accumulate'), progress: 0.25 }))).toBeCloseTo(0.25);
