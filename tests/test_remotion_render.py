@@ -102,6 +102,16 @@ def test_prepare_composition_entry_requires_storyboard(tmp_path):
     assert "A2VComposition" in (web / remotion.GENERATED_ENTRY).read_text(encoding="utf-8")
 
 
+def test_prepare_composition_entry_selects_v4_world_root(tmp_path, monkeypatch):
+    web = tmp_path / "web"
+    storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
+    storyboard.parent.mkdir(parents=True)
+    storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4}), encoding="utf-8")
+    monkeypatch.setattr(scene_manifest, "generate", lambda **_kwargs: None)
+    target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    assert "A2VCompositionV4 as ActiveComposition" in target.read_text(encoding="utf-8")
+
+
 def test_missing_node_modules_reports_the_install_command(tmp_path):
     """依赖缺失必须报出**要跑哪条命令**：否则现场只看到一句「渲染失败」。"""
     (tmp_path / "package.json").write_text("{}", encoding="utf-8")

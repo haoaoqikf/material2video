@@ -98,6 +98,31 @@ def restore_manifest(web_dir: Path):
 
 
 class TestManifestGeneration:
+    def testv4全片code世界生成单一静态模块入口(self, tmp_path, web_dir):
+        article = _make_project(tmp_path, "v4-world")
+        (article / "scenes").mkdir()
+        (article / "scenes" / "world.tsx").write_text(SCENE_MODULE, encoding="utf-8")
+        storyboard = article / "storyboard.json"
+        storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4,
+            "world": {"renderer": {"kind": "code", "module": "world"}}}, ensure_ascii=False), encoding="utf-8")
+        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
+        text = _generated(web_dir)
+        assert "'world': s0," in text
+        assert "videos/v4-world/scenes/world" in text
+
+    def testv4全片code模块进入可达源码指纹(self, tmp_path, web_dir):
+        from a2v import remotion
+
+        article = _make_project(tmp_path, "v4-fingerprint")
+        (article / "scenes").mkdir()
+        (article / "scenes" / "world.tsx").write_text(SCENE_MODULE, encoding="utf-8")
+        storyboard = article / "storyboard.json"
+        storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4,
+            "world": {"renderer": {"kind": "code", "module": "world"}}}, ensure_ascii=False), encoding="utf-8")
+        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
+        files = remotion.build_input_fingerprint(repo_root=web_dir.parent)["files"]
+        assert any("videos/v4-fingerprint/scenes/world.tsx" in key for key in files), files
+
     def test纯tree分镜生成空清单(self, tmp_path, web_dir):
         article = _make_project(tmp_path, "tree-only")
         storyboard = article / "storyboard.json"

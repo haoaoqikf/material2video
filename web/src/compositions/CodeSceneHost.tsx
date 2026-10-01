@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scene } from '@/schema/storyboard';
-import type { A2VBeatState, A2VCodeSceneProps, A2VThemeInfo } from '@/code-scene';
+import type { A2VBeatState, A2VCodeSceneProps, A2VThemeInfo, A2VWorldInfo, A2VStageInfo, A2VObjectStates } from '@/code-scene';
 import { createSceneRandom } from '@/code-scene';
 import type { BeatContext } from '@/runtime/beats';
 import { codeSceneBeatState } from '@/runtime/beats';
@@ -41,6 +41,7 @@ export function CodeSceneHost({
   beats,
   continuity,
   cameraOverride,
+  v4Context,
 }: {
   scene: Scene;
   frame: number;
@@ -53,6 +54,7 @@ export function CodeSceneHost({
   beats: BeatContext;
   continuity?: ContinuityRenderState;
   cameraOverride?: CameraState;
+  v4Context?: { world: A2VWorldInfo; stage: A2VStageInfo; objectStates: A2VObjectStates; phase: A2VCodeSceneProps['motion']['phase'] };
 }): React.ReactElement {
   const renderer = scene.renderer;
   const module_ = renderer?.kind === 'code' ? renderer.module : '';
@@ -104,11 +106,15 @@ export function CodeSceneHost({
   }, []);
 
   const themeInfo: A2VThemeInfo = { theme, ...(preset ? { preset } : {}) };
-  const random = createSceneRandom(scene.id);
+  const random = createSceneRandom(v4Context?.world.id ?? scene.id);
   const beatState: A2VBeatState = codeSceneBeatState(beats);
   const plan = sceneMotionPlan(scene, beats.timeline); const phase = (Object.entries(plan.phases).find(([, span]) => span.startFrame <= localFrame && localFrame < span.endFrame)?.[0] ?? 'settle') as 'establish'|'change'|'result'|'settle';
   const relation = continuity?.relation; const continuityProgress = relation ? Math.min(1, Math.max(0, continuity.frame / relation.span)) : 0;
   const props: A2VCodeSceneProps = {
+    world: v4Context?.world ?? { id: scene.id, claim: '', metaphor: '', objects: [] },
+    stage: v4Context?.stage ?? { id: scene.id, data: scene.data, startFrame: 0, endFrame: scene.durationInFrames,
+      progress: scene.durationInFrames <= 1 ? 1 : Math.min(1, Math.max(0, localFrame / (scene.durationInFrames - 1))) },
+    objectStates: v4Context?.objectStates ?? {},
     scene: {
       id: scene.id,
       type: scene.type,
@@ -123,7 +129,7 @@ export function CodeSceneHost({
     canvas: { width, height },
     theme: themeInfo,
     beats: beatState,
-    motion: { phase, camera: cameraOverride ?? cameraState(scene, localFrame), continuity: continuity && relation ? { kind: relation.kind, phase: continuity.phase, progress: continuityProgress, sources: relation.sourceIds, targets: relation.targetIds } : null },
+    motion: { phase: v4Context?.phase ?? phase, camera: cameraOverride ?? cameraState(scene, localFrame), continuity: continuity && relation ? { kind: relation.kind, phase: continuity.phase, progress: continuityProgress, sources: relation.sourceIds, targets: relation.targetIds } : null },
     random,
   };
 

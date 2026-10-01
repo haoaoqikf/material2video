@@ -10,7 +10,7 @@ vi.mock('remotion', async (importOriginal) => {
   return { ...actual, AbsoluteFill: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, useCurrentFrame: () => testFrame.value };
 });
 vi.mock('./CodeSceneHost', () => ({
-  CodeSceneHost: ({ scene }: { scene: { renderer?: { module?: string } } }) => <div data-code-module={scene.renderer?.module ?? ''} data-a2v-code-ready="1" />,
+  CodeSceneHost: ({ scene, v4Context, cameraOverride }: { scene: { renderer?: { module?: string } }; v4Context?: { stage: { id: string; startFrame: number; endFrame: number; progress: number }; world: { objects: unknown[] }; objectStates?: Record<string, Record<string, unknown>> }; cameraOverride?: { kind: string } }) => <div data-code-module={scene.renderer?.module ?? ''} data-v4-stage={v4Context?.stage.id} data-v4-range={`${v4Context?.stage.startFrame}-${v4Context?.stage.endFrame}`} data-v4-progress={v4Context?.stage.progress} data-v4-objects={v4Context?.world.objects.length} data-v4-player-state={String(v4Context?.objectStates?.player?.state)} data-v4-camera={cameraOverride?.kind} data-a2v-code-ready="1" />,
 }));
 
 const vectors = JSON.parse(readFileSync(resolve(process.cwd(), '../tests/fixtures/storyboard-v4-vectors.json'), 'utf8')) as { valid: Record<string, any> };
@@ -54,6 +54,9 @@ describe('v4 全片单一 composition', () => {
     const storyboard = twoStages();
     storyboard.world.renderer = { kind: 'code', module: 'darts-trial' };
     delete storyboard.world.sceneTree;
+    storyboard.world.data.objects = { player: { state: 'rest' } };
+    storyboard.world.stateTracks = [{ id: 'player-focus', target: 'player', property: 'state',
+      binding: { stageId: 'opening', phase: 'establish' }, to: 'focus', interpolation: 'step-end' }];
     testFrame.value = 0;
     const first = renderToStaticMarkup(<A2VCompositionV4 {...storyboard} />);
     testFrame.value = 526;
@@ -63,5 +66,12 @@ describe('v4 全片单一 composition', () => {
       expect((markup.match(/data-code-module="darts-trial"/g) ?? [])).toHaveLength(1);
       expect(markup).toContain('class="a2v-safe"');
     }
+    expect(first).toContain('data-v4-stage="opening"');
+    expect(second).toContain('data-v4-stage="ending"');
+    expect(second).toContain('data-v4-range="525-1050"');
+    expect(first).toContain('data-v4-player-state="rest"');
+    expect(second).toContain('data-v4-player-state="focus"');
+    expect(second).toContain('data-v4-objects="3"');
+    expect(second).toContain('data-v4-camera="hold"');
   });
 });

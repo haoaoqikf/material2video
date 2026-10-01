@@ -41,6 +41,12 @@ def _rules(violations: list[code_gate.Violation]) -> list[str]:
 
 
 class TestDependencyWhitelist:
+    def testv4全片code世界运行同一依赖与确定性闸门(self, tmp_path):
+        article, _entry = _work(tmp_path, {"entry.tsx": "export default function Scene() { return Math.random(); }\n"})
+        violations = code_gate.check_storyboard(article_dir=article,
+            storyboard_data={"version": 4, "world": {"renderer": {"kind": "code", "module": "entry"}}})
+        assert any(item.rule == "A10 系统随机" for item in violations)
+
     def test白名单依赖放行(self, tmp_path):
         article, entry = _work(
             tmp_path,

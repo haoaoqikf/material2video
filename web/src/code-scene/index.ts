@@ -35,7 +35,7 @@ export interface A2VBeatInfo {
   action: string;
   targets: readonly string[];
   meaning: string;
-  /** 幕内帧区间：`startFrame` 含、`endFrame` 不含。 */
+  /** 全片全局帧区间：`startFrame` 含、`endFrame` 不含。 */
   startFrame: number;
   endFrame: number;
 }
@@ -48,17 +48,17 @@ export interface A2VBeatInfo {
  * 字幕、读音频时钟或按挂钟推进动画——那会形成第二套时间轴。
  */
 export interface A2VBeatState {
-  /** 当前帧所属的 beat id；区间外（幕首、结尾阅读段）为 null。 */
+  /** 当前帧所属的全局 beat id；区间外（片首、稳定阅读段）为 null。 */
   current: string | null;
   /** 当前 beat 的局部进度（0..1）；没有活动 beat 时为 0。 */
   progress: number;
-  /** 已经结束的 beat id，按时间顺序。 */
+  /** 全片已经结束的 beat id，按时间顺序。 */
   completed: readonly string[];
   /** true 表示这是无声等比例估算的时间轴，不是真实词边界。 */
   estimated: boolean;
-  /** 当前 beat 的完整声明；没有活动 beat 时为 null。 */
+  /** 当前全局 beat 的完整声明；没有活动 beat 时为 null。 */
   active: A2VBeatInfo | null;
-  /** 整幕已解析的节拍计划（只读）：作品据此知道还有哪几步要走。 */
+  /** 全片已解析的节拍计划（只读）：作品据此知道还有哪几步要走。 */
   plan: readonly A2VBeatInfo[];
 }
 export interface A2VMotionContext {
@@ -78,6 +78,27 @@ export interface A2VSceneInfo<Data = unknown> {
   kicker?: string;
 }
 
+/** 全片唯一世界的只读身份与对象目录。 */
+export interface A2VWorldObjectInfo { id: string; role: 'primary' | 'supporting' | 'annotation'; description: string }
+export interface A2VWorldInfo {
+  id: string;
+  claim: string;
+  metaphor: string;
+  objects: readonly A2VWorldObjectInfo[];
+}
+
+/** 当前阶段在全片时间轴上的上下文，不创建阶段独立渲染宿主。 */
+export interface A2VStageInfo<Data = unknown> {
+  id: string;
+  data: Data;
+  startFrame: number;
+  endFrame: number;
+  progress: number;
+}
+
+/** 当前全局帧的受控对象属性快照。 */
+export type A2VObjectStates = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+
 /**
  * 代码场景组件 props。
  *
@@ -86,12 +107,15 @@ export interface A2VSceneInfo<Data = unknown> {
  * 类型层面保证「第二套时间真源」无法产生。
  */
 export interface A2VCodeSceneProps<Data = unknown> {
+  world: A2VWorldInfo;
+  stage: A2VStageInfo;
+  objectStates: A2VObjectStates;
   scene: A2VSceneInfo<Data>;
   /** 全局帧号：整片时间轴上的绝对帧。 */
   frame: number;
-  /** 幕内帧号：本幕从 0 重新计数。 */
+  /** 兼容属性；v4 全片模式下与 frame 相同，阶段局部帧见 stage.progress。 */
   localFrame: number;
-  /** 幕内进度：`localFrame / (durationInFrames - 1)`，夹在 [0, 1]。 */
+  /** 全片进度；阶段局部进度单独见 stage.progress。 */
   progress: number;
   fps: number;
   canvas: A2VCanvas;

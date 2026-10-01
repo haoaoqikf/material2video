@@ -10,7 +10,11 @@ import {
 } from './index';
 
 /** 一个合法的作品代码场景：默认导出、props 全部来自注入。 */
-const GoodScene: A2VCodeScene<{ title: string }> = ({ scene, localFrame, progress, random }) => {
+const GoodScene: A2VCodeScene<{ title: string }> = ({ world, stage, objectStates, scene, localFrame, progress, random }) => {
+  void world.objects[0]?.id;
+  void stage.id;
+  void stage.progress;
+  void objectStates.player?.state;
   void scene.data.title;
   void localFrame;
   void progress;

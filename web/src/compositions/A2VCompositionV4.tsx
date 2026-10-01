@@ -9,6 +9,7 @@ import { compileStateTracks } from '@/runtime/stateTracksV4';
 import { worldTreeAtFrame } from '@/runtime/worldTreeV4';
 import { resolveStoryboardV4, stageAt } from '@/runtime/timelineV4';
 import { cameraStateV4, compileCameraV4 } from '@/runtime/cameraV4';
+import { stateAt } from '@/runtime/stateTracksV4';
 
 export type V4SubtitleCue = { start: number; end: number; text: string };
 export type A2VCompositionV4Props = StoryboardV4 & { subtitleCues?: V4SubtitleCue[] };
@@ -32,6 +33,10 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
   const worldFrame = storyboard.world.renderer.kind === 'tree'
     ? worldTreeAtFrame(storyboard.world, stateTracks, frame) : undefined;
   const cameraFrame = cameraStateV4(camera, frame);
+  const stageStart = timeline.stages.find(({ id }) => id === stage.id)!.startFrame;
+  const stageEnd = timeline.stages.find(({ id }) => id === stage.id)!.endFrame;
+  const stageProgress = stage.durationInFrames <= 1 ? 1 : Math.min(1, Math.max(0, (frame - stageStart) / (stage.durationInFrames - 1)));
+  const stagePhase = timeline.phases.find((phase) => phase.stageId === stage.id && phase.startFrame <= frame && frame < phase.endFrame)?.phase ?? 'settle';
   const beats: BeatTimeline = useMemo(() => ({
     beats: timeline.beats as unknown as BeatTimeline['beats'], estimated: true,
   }), [timeline]);
@@ -80,7 +85,11 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
           ) : (
             <CodeSceneHost scene={scene} frame={frame} localFrame={frame} fps={storyboard.fps} theme={theme}
               preset="keynote" width={storyboard.width} height={storyboard.height} beats={beatContext}
-              cameraOverride={cameraFrame} />
+              cameraOverride={cameraFrame} v4Context={{
+                world: storyboard.world, stage: { id: stage.id, data: stage.data,
+                  startFrame: stageStart, endFrame: stageEnd, progress: stageProgress },
+                objectStates: stateAt(stateTracks, frame), phase: stagePhase,
+              }} />
           )}
         </div>
       </div>
