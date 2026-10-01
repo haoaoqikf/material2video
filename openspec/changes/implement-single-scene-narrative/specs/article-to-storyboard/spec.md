@@ -1,10 +1,10 @@
 ## MODIFIED Requirements
 
 ### Requirement: 文章到分镜的生成输入与产物
-生成 SHALL 以文章和当前规范为输入，产出唯一 v4 storyboard.json；先提炼观点、选择隐喻、设计持续对象关系与状态演进，再编排 stages。全片选择 tree 或合规 code，不创建专属页面。已有 v4 更新 SHALL 保留未修改对象及阶段 id；旧版本 SHALL 要求重新编排。
+生成 SHALL 以已通过有效 inputReview 的实际输入和当前规范为输入，产出唯一 v4 storyboard.json；未通过时只给出问题、意见和候选并停止，不自动采用。先提炼观点、选择隐喻、设计持续对象关系与状态演进，再编排 stages。全片选择 tree 或合规 code，不创建专属页面。已有 v4 更新 SHALL 保留未修改对象及阶段 id；旧版本 SHALL 要求重新编排。
 
 #### Scenario: 新文章
-- **WHEN** 有效文章位于作品目录
+- **WHEN** 有效文章位于作品目录且有效输入审查已通过
 - **THEN** 生成全片 world 与 stages，内容忠于原文
 
 #### Scenario: 旧分镜
@@ -16,11 +16,11 @@
 - **THEN** 停止并报告路径
 
 #### Scenario: 新文章的生成
-- **WHEN** 一篇文章位于 `videos/<slug>/article.md` 且该目录尚无分镜
+- **WHEN** 一篇文章位于 `videos/<slug>/article.md`、通过有效输入审查且该目录尚无分镜
 - **THEN** 生成流程产出 `videos/<slug>/storyboard.json`，其中场景文案取自文章内容，画面由共享场景树解释器提供
 
 #### Scenario: 文章已有分镜
-- **WHEN** 规范目录下已存在该文章的新版 `storyboard.json`
+- **WHEN** 规范目录下已存在该文章的新版 `storyboard.json` 且当前实际输入审查有效通过
 - **THEN** 生成流程视为对该分镜的更新，保留未被修订阶段及全局对象的既有 `id`，并报告本次改动范围
 
 #### Scenario: 文章已有 v1/v2 分镜
@@ -32,7 +32,7 @@
 - **THEN** 生成流程停止并报告缺失的输入与期望路径，不产出分镜
 
 ### Requirement: 拆幕与时长规则
-分镜 SHALL 按推理组织叙事阶段，阶段在同一视觉世界内覆盖建立、核心变化与收束，不要求切换场景。时长 SHALL 从口播反推；画面和口播文案分别编排。静音阶段 SHALL 可用 beat 或 stageId/phase 驱动动作而不声明 narrationSegments。
+分镜 SHALL 按推理组织叙事阶段，阶段在同一视觉世界内覆盖建立、核心变化与收束，不要求切换场景。时长 SHALL 从口播反推并在全片满足35～45秒（含边界），最终拼接口播正文 SHALL 满足130～170字；画面和口播文案分别编排。不得为凑时长截断口播或添加无意义空白。静音阶段 SHALL 可用 beat 或 stageId/phase 驱动动作而不声明 narrationSegments。
 
 #### Scenario: 长句
 - **WHEN** 一段超过阶段承载量

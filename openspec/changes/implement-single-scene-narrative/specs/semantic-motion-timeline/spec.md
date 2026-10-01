@@ -20,7 +20,7 @@ v4 有口播阶段 SHALL 使用 narrationSegments 与 beats；stage、beat、口
 - **THEN** schema 拒绝场景并要求改用 `narrationSegments` 与 `beats`
 
 ### Requirement: 媒体准备解析真实节拍时间
-prepare SHALL 生成媒体清单 version 4，保存同序 stages 的实际时长与音频及全局 resolvedBeats，区间开始包含、结束不包含。解析 SHALL 以 WordBoundary 顺序消费文本，失败、倒退、重叠、越界或覆盖不完整则失败。旧清单 SHALL 要求重新 prepare；音效 SHALL 以 stageId、beatId 定位。
+prepare SHALL 生成媒体清单 version 4，保存同序 stages 的实际时长与音频及全局 resolvedBeats，区间开始包含、结束不包含。解析 SHALL 以 WordBoundary 顺序消费文本，失败、倒退、重叠、越界或覆盖不完整则失败。旧清单 SHALL 要求重新 prepare；TTS延长不豁免实际全片35～45秒要求。音效 SHALL 以 stageId、beatId 定位。
 
 #### Scenario: TTS 延长阶段
 - **WHEN** 实际音频长于声明
@@ -82,3 +82,20 @@ prepare SHALL 生成媒体清单 version 4，保存同序 stages 的实际时长
 #### Scenario: 有声场景阶段同步
 - **WHEN** 媒体准备延长场景并生成新的 `resolvedBeats`
 - **THEN** 节点动效和镜头段随真实区间重新解析，字幕、画面变化与稳定收尾仍使用同一时间轴
+
+## ADDED Requirements
+
+### Requirement: 媒体派生实际时长独立检查
+prepare 完成实际阶段时长解析后 SHALL 检查全片35～45秒，包含口播、停顿及稳定阅读。超出区间 SHALL 保存可诊断结果为不合格并阻断正式输出，报告实际时长、超限或不足量及文案/正常语速/有意义停顿建议；不截断口播，不填充无意义空白。调整后 SHALL 重新prepare并使相关评审失效。
+
+#### Scenario: 声明合格实际超时
+- **WHEN** 声明40秒而TTS与阶段停留合计46秒
+- **THEN** 报告实际46秒，不合格且不可正式渲染
+
+#### Scenario: 实际不足
+- **WHEN** 实际合计34秒
+- **THEN** 报告不足及调整建议，不自动补空白
+
+#### Scenario: 实际边界
+- **WHEN** 有效派生总时长恰为35或45秒
+- **THEN** 时长维度通过，其他门禁仍需通过
