@@ -2,6 +2,8 @@ import type { PlayerRef } from '@remotion/player';
 import { ensureFonts } from '@/fonts';
 import { totalFrames } from '@/runtime/timeline';
 import type { Storyboard } from '@/schema/storyboard';
+import type { StoryboardV4 } from '@/schema/storyboardV4';
+import { resolveStoryboardV4 } from '@/runtime/timelineV4';
 
 /**
  * 渲染契约（version 3）。
@@ -14,7 +16,7 @@ import type { Storyboard } from '@/schema/storyboard';
  * （除字体与首帧之外，还要保证 Player 已经挂载），因此版本号随语义变化递增
  * （当前为 3）。渲染入口按版本号拒绝旧页面，避免「等超时之后报一句看不懂的话」。
  */
-export interface A2VContractV3 {
+export interface A2VContractBase {
   version: 3;
   fps: number;
   width: number;
@@ -26,9 +28,21 @@ export interface A2VContractV3 {
   currentFrame: () => number;
 }
 
+export interface A2VContractV4 extends Omit<A2VContractBase, 'version'> {
+  version: 4;
+  world: () => { id: string; renderer: 'tree' | 'code'; objectIds: string[] };
+  stage: () => { id: string; startFrame: number; endFrame: number };
+  objectStates: () => Record<string, Record<string, unknown>>;
+  camera: () => { kind: string; focus: string; x: number; y: number; scale: number; velocity: number };
+  beats: () => { current: string | null; completed: string[]; plan: string[]; estimated: boolean };
+}
+
+export interface A2VContractV3 extends Omit<A2VContractBase, 'version'> { version: 3 }
+export type A2VContract = A2VContractV3 | A2VContractV4;
+
 declare global {
   interface Window {
-    __A2V__?: A2VContractV3;
+    __A2V__?: A2VContract;
   }
 }
 
@@ -165,43 +179,75 @@ async function settleOnFrame(player: PlayerRef, frame: number): Promise<void> {
 
 export interface CreateContractOptions {
   player: PlayerRef;
-  storyboard: Storyboard;
+  storyboard: Storyboard | StoryboardV4;
 }
 
-export function createContract({ player, storyboard }: CreateContractOptions): A2VContractV3 {
-  const durationInFrames = totalFrames(storyboard);
-
-  return {
-    version: 3,
-    fps: storyboard.fps,
-    width: storyboard.width,
-    height: storyboard.height,
-    durationInFrames,
-
+export function createContract({ player, storyboard }: CreateContractOptions): A2VContract {
+  const isV4 = storyboard.version === 4;
+  const durationInFrames = isV4 ? resolveStoryboardV4(storyboard).totalFrames : totalFrames(storyboard as Storyboard);
+  const common = {
+    fps: storyboard.fps, width: storyboard.width, height: storyboard.height, durationInFrames,
     async ready(): Promise<void> {
-      // 字体先行：否则首帧会用回退字体排版，且首帧与后续帧字宽不一致。
-      // 这一步与渲染入口的 `delayRender` 等的是**同一个** Promise。
       await ensureFonts();
       await document.fonts.ready;
-      // 代码场景与首批本地资源：未就绪时明确失败，不截空白帧
       await waitForCodeScenes();
       const target = Math.min(Math.max(player.getCurrentFrame(), 0), durationInFrames - 1);
       await settleOnFrame(player, target);
       await document.fonts.ready;
     },
-
     async seekToFrame(frame: number): Promise<void> {
-      if (!Number.isFinite(frame)) {
-        throw new Error(`seekToFrame 需要有限数值，收到 ${String(frame)}`);
-      }
+      if (!Number.isFinite(frame)) throw new Error(`seekToFrame 需要有限数值，收到 ${String(frame)}`);
       const clamped = Math.min(Math.max(Math.floor(frame), 0), durationInFrames - 1);
       await settleOnFrame(player, clamped);
-      // 跨幕切换可能首次挂载新的代码场景：等它就绪再返回
       await waitForCodeScenes();
-      // 字体可能在首次取档时被替换，落到帧之后再确认一次
       await document.fonts.ready;
     },
-
     currentFrame: () => player.getCurrentFrame(),
   };
+  if (isV4) {
+    const readWorld = () => {
+      const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+      if (!element) throw new Error('v4 world 探针未挂载');
+      const objects = JSON.parse(element.dataset.a2vWorldObjects ?? '[]') as Array<{ id: string }>;
+      return { id: element.dataset.a2vWorldId ?? '', renderer: (element.dataset.a2vWorldRenderer ?? '') as 'tree' | 'code', objectIds: objects.map(({ id }) => id) };
+    };
+    const readStage = () => {
+      const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+      if (!element) throw new Error('v4 stage 探针未挂载');
+      return { id: element.dataset.a2vStageId ?? '', startFrame: Number(element.dataset.a2vStageStart), endFrame: Number(element.dataset.a2vStageEnd) };
+    };
+    const readNumber = (element: HTMLElement, key: string): number => {
+      const value = Number(element.dataset[key]);
+      if (!Number.isFinite(value)) throw new Error(`v4 探针 ${key} 无效`);
+      return value;
+    };
+    const worldContract: A2VContractV4 = {
+      ...common, version: 4,
+      world: readWorld,
+      stage: readStage,
+      objectStates: () => {
+        const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+        if (!element?.dataset.a2vWorldObjectStates) throw new Error('v4 object state 探针缺失');
+        return JSON.parse(element.dataset.a2vWorldObjectStates) as Record<string, Record<string, unknown>>;
+      },
+      camera: () => {
+        const element = document.querySelector<HTMLElement>('[data-a2v-camera="global"]');
+        if (!element) throw new Error('v4 camera 探针缺失');
+        return { kind: element.dataset.a2vCameraKind ?? '', focus: element.dataset.a2vCameraFocus ?? '',
+          x: readNumber(element, 'a2vCameraX'), y: readNumber(element, 'a2vCameraY'),
+          scale: readNumber(element, 'a2vCameraScale'), velocity: readNumber(element, 'a2vCameraVelocity') };
+      },
+      beats: () => {
+        const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+        if (!element) throw new Error('v4 beat 探针缺失');
+        return { current: element.dataset.a2vBeatCurrent || null,
+          completed: (element.dataset.a2vBeatCompleted ?? '').split(',').filter(Boolean),
+          plan: (element.dataset.a2vBeatPlan ?? '').split(',').filter(Boolean),
+          estimated: element.dataset.a2vBeatEstimated === '1' };
+      },
+    };
+    return worldContract;
+  }
+
+  return { ...common, version: 3 };
 }

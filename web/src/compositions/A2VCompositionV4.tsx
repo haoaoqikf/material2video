@@ -68,13 +68,21 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
     <div className="a2v-bg-grid stage-bg" aria-hidden="true" />
     <div className="a2v-bg-grain stage-bg" aria-hidden="true" />
     <section key={storyboard.world.id} data-a2v-world="" data-a2v-world-id={storyboard.world.id} data-a2v-stage-id={stage.id}
+      data-a2v-world-renderer={storyboard.world.renderer.kind}
+      data-a2v-world-objects={JSON.stringify(storyboard.world.objects.map(({ id, role }) => ({ id, role })))}
+      data-a2v-world-object-states={JSON.stringify(stateAt(stateTracks, frame))}
       data-a2v-stage-index={timeline.stages.findIndex(({ id }) => id === stage.id)}
+      data-a2v-stage-start={stageStart} data-a2v-stage-end={stageEnd}
       data-a2v-beat-current={beatContext.state.current ?? ''}
       data-a2v-beat-progress={beatContext.state.progress.toFixed(4)}
       data-a2v-beat-completed={beatContext.state.completed.join(',')}
+      data-a2v-beat-plan={timeline.beats.map(({ id }) => id).join(',')}
       data-a2v-beat-estimated="1">
       <div className="a2v-safe" data-a2v-figure="" data-scene-tree-version="4">
-        <div className="a2v-camera" data-a2v-camera="global" style={{
+        <div className="a2v-camera" data-a2v-camera="global" data-a2v-camera-kind={cameraFrame.kind}
+          data-a2v-camera-focus={cameraFrame.focus} data-a2v-camera-x={cameraFrame.x}
+          data-a2v-camera-y={cameraFrame.y} data-a2v-camera-scale={cameraFrame.scale}
+          data-a2v-camera-velocity={cameraFrame.velocity} style={{
           transform: `translate(${cameraFrame.x}px, ${cameraFrame.y}px) scale(${cameraFrame.scale})`,
           perspective: storyboard.world.camera.depth === 'layered' ? '1200px' : undefined,
           transformOrigin: storyboard.world.camera.composition === 'left' ? '30% 50%' : storyboard.world.camera.composition === 'right' ? '70% 50%' : '50% 50%',

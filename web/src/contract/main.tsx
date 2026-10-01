@@ -4,8 +4,10 @@ import { Player, type PlayerRef } from '@remotion/player';
 import { ActiveComposition } from '../../.gen/active-composition';
 import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
+import { storyboardV4Schema, type StoryboardV4 } from '@/schema/storyboardV4';
 import { totalFrames } from '@/runtime/timeline';
-import { createContract, type A2VContractV3 } from './bridge';
+import { createContract } from './bridge';
+import { resolveStoryboardV4 } from '@/runtime/timelineV4';
 import { installOfflineGuard } from '@/runtime/offline-guard';
 import '@/styles/index.css';
 
@@ -27,7 +29,7 @@ function ContractApp(): React.ReactElement {
   const params = new URLSearchParams(window.location.search);
   const storyboardUrl = params.get('a2v-storyboard');
   const playerRef = useRef<PlayerRef>(null);
-  const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
+  const [storyboard, setStoryboard] = useState<Storyboard | StoryboardV4 | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,7 +44,10 @@ function ContractApp(): React.ReactElement {
         if (!response.ok) {
           throw new Error(`分镜脚本加载失败: HTTP ${response.status}（${storyboardUrl}）`);
         }
-        const parsed = parseStoryboard(await response.json());
+        const input: unknown = await response.json();
+        const parsed = input && typeof input === 'object' && (input as Record<string, unknown>).version === 4
+          ? storyboardV4Schema.parse(input)
+          : parseStoryboard(input);
         if (!cancelled) {
           setStoryboard(parsed);
         }
@@ -62,7 +67,7 @@ function ContractApp(): React.ReactElement {
     if (!storyboard || !player) {
       return;
     }
-    const contract: A2VContractV3 = createContract({ player, storyboard });
+    const contract = createContract({ player, storyboard });
     window.__A2V__ = contract;
     return () => {
       if (window.__A2V__ === contract) {
@@ -99,9 +104,9 @@ function ContractApp(): React.ReactElement {
   return (
     <Player
       ref={playerRef}
-      component={ActiveComposition}
-      inputProps={storyboard}
-      durationInFrames={totalFrames(storyboard)}
+      component={ActiveComposition as React.ComponentType<Record<string, unknown>>}
+      inputProps={storyboard as unknown as Record<string, unknown>}
+      durationInFrames={storyboard.version === 4 ? resolveStoryboardV4(storyboard).totalFrames : totalFrames(storyboard)}
       fps={storyboard.fps}
       compositionWidth={storyboard.width}
       compositionHeight={storyboard.height}

@@ -28,6 +28,7 @@ from typing import Any
 from imageio_ffmpeg import get_ffmpeg_exe
 
 from . import keynote, motion
+from .timeline_v4 import resolve_v4
 from .storyboard import Report
 
 #: 采样点：入场后 / 中段 / 收尾。收尾那一帧同时用于契约探针。
@@ -147,6 +148,72 @@ _CODE_PROTOCOL_SCRIPT = """
   return { code: true, violations: violations };
 }
 """
+
+_V4_WORLD_PROBE_SCRIPT = """
+() => {
+  const world = document.querySelector('[data-a2v-world]');
+  if (!world) return null;
+  const camera = world.querySelector('[data-a2v-camera="global"]');
+  const figure = world.querySelector('[data-a2v-figure]');
+  const treeIds = figure ? [...figure.querySelectorAll('[data-a2v-node-id]')].map((item) => item.getAttribute('data-a2v-node-id')) : [];
+  const codeIds = figure ? [...figure.querySelectorAll('[data-a2v-node]')].map((item) => item.getAttribute('data-a2v-node')) : [];
+  let objectStates = null;
+  try { objectStates = JSON.parse(world.dataset.a2vWorldObjectStates || 'null'); } catch (_) {}
+  return {
+    id: world.dataset.a2vWorldId || '', renderer: world.dataset.a2vWorldRenderer || '',
+    stage: { id: world.dataset.a2vStageId || '', startFrame: Number(world.dataset.a2vStageStart), endFrame: Number(world.dataset.a2vStageEnd) },
+    objectIds: (() => { try { return JSON.parse(world.dataset.a2vWorldObjects || '[]').map((item) => item.id); } catch (_) { return []; } })(),
+    objectStates, treeIds, codeIds,
+    camera: camera ? { kind: camera.dataset.a2vCameraKind || '', focus: camera.dataset.a2vCameraFocus || '',
+      x: Number(camera.dataset.a2vCameraX), y: Number(camera.dataset.a2vCameraY), scale: Number(camera.dataset.a2vCameraScale), velocity: Number(camera.dataset.a2vCameraVelocity) } : null,
+    beats: { current: world.dataset.a2vBeatCurrent || null,
+      completed: (world.dataset.a2vBeatCompleted || '').split(',').filter(Boolean),
+      plan: (world.dataset.a2vBeatPlan || '').split(',').filter(Boolean), estimated: world.dataset.a2vBeatEstimated === '1' },
+  };
+}
+"""
+
+
+def verify_v4_world_probe(page: Any, storyboard: dict[str, Any], frame: int) -> list[str]:
+    """Verify observable v4 world context and every declared world-object probe."""
+    raw = page.evaluate(_V4_WORLD_PROBE_SCRIPT)
+    if not isinstance(raw, dict):
+        return ["v4 world 探针未挂载"]
+    timeline = resolve_v4(storyboard)
+    stage = next((item for item in timeline.stages if item.start_frame <= frame < item.end_frame), None)
+    issues: list[str] = []
+    world = storyboard.get("world", {})
+    if raw.get("id") != world.get("id"):
+        issues.append(f"world id 不符：期望 {world.get('id')!r}，实际 {raw.get('id')!r}")
+    renderer = (world.get("renderer") or {}).get("kind")
+    if raw.get("renderer") != renderer:
+        issues.append(f"renderer 不符：期望 {renderer!r}，实际 {raw.get('renderer')!r}")
+    expected_range = {"id": stage.id, "startFrame": stage.start_frame, "endFrame": stage.end_frame} if stage else None
+    if raw.get("stage") != expected_range:
+        issues.append(f"当前 stage 探针不符：期望 {expected_range!r}，实际 {raw.get('stage')!r}")
+    if not isinstance(raw.get("objectStates"), dict):
+        issues.append("object state 探针缺失或不是对象")
+    camera = raw.get("camera")
+    if not isinstance(camera, dict) or not camera.get("kind") or not camera.get("focus") or any(
+        not isinstance(camera.get(key), (int, float)) for key in ("x", "y", "scale", "velocity")
+    ):
+        issues.append("camera kind/focus/pose 探针缺失或无效")
+    beats = raw.get("beats")
+    expected_plan = [beat["id"] for beat in timeline.beats]
+    if not isinstance(beats, dict) or beats.get("plan") != expected_plan or not isinstance(beats.get("completed"), list):
+        issues.append("全局 beats 探针缺失或与分镜解析计划不符")
+    else:
+        expected_current = next((beat["id"] for beat in timeline.beats if beat["startFrame"] <= frame < beat["endFrame"]), None)
+        expected_completed = [beat["id"] for beat in timeline.beats if beat["endFrame"] <= frame]
+        if beats.get("current") != expected_current or beats.get("completed") != expected_completed:
+            issues.append("当前 beat 或全片 completed 状态与全局帧不符")
+    available_key = "treeIds" if renderer == "tree" else "codeIds"
+    available = set(raw.get(available_key) or [])
+    required = {item.get("id") for item in world.get("objects", []) if isinstance(item, dict)}
+    missing = sorted(item for item in required if item not in available)
+    if missing:
+        issues.append("缺少 world object DOM 探针：" + "、".join(missing))
+    return issues
 
 def decode_raw(png: bytes, pix_fmt: str) -> bytes:
     """把一帧缩到 108x192 的原始像素，用于逐像素统计。
@@ -761,6 +828,7 @@ def run_inspect(
     *,
     preset: str = "",
     sheet_name: str = "contact-sheet.png",
+    v4_storyboard: dict[str, Any] | None = None,
 ) -> tuple[Report, dict[str, Any]]:
     """在已打开的页面上跑完契约探针与帧量测，并落盘。
 
@@ -797,6 +865,9 @@ def run_inspect(
         mounted_kind = ""
         for index, frame in enumerate(frames):
             page.seek(frame)
+            if v4_storyboard is not None:
+                for issue in verify_v4_world_probe(page, v4_storyboard, frame):
+                    report.error(f"v4 world frame {frame}", issue)
             png = page.capture("png")
             target = frames_dir / f"{scene_id}-{int(SAMPLES[index] * 100):02d}-f{frame:04d}.png"
             target.write_bytes(png)
