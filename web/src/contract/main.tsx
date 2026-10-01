@@ -1,7 +1,8 @@
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Player, type PlayerRef } from '@remotion/player';
-import { ActiveComposition } from '../../.gen/active-composition';
+import { A2VComposition } from '@/compositions/A2VComposition';
+import { A2VCompositionV4 } from '@/compositions/A2VCompositionV4';
 import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
 import { storyboardV4Schema, type StoryboardV4 } from '@/schema/storyboardV4';
@@ -21,10 +22,13 @@ installOfflineGuard();
  * 渲染契约页。
  *
  * 职责只有一件：把 composition 挂进一个**可被 Playwright 驱动的页面**，
- * 并暴露 `window.__A2V__`（version 3）。体检与量测全部通过它工作。
+ * 并暴露 `window.__A2V__`（v4 分镜为 version 4）。
+ * 体检与量测全部通过它工作。
  *
- * 分镜的地址由查询参数 `a2v-storyboard` 给出（本地静态服务提供），
- * 因此这一个页面能服务任意作品——作品不需要自己的 HTML。
+ * composition 按分镜声明的契约版本在**运行时**选择，而不是由构建期的
+ * 生成入口写死：契约页是共享的，一次构建要能服务任意作品；把版本绑到
+ * 构建产物上，会让「先构建了哪个版本」决定页面能渲染哪个契约，
+ * 换一个作品就要重建、并在构建失败时以空白首帧的形式混进评审。
  */
 function ContractApp(): React.ReactElement {
   const params = new URLSearchParams(window.location.search);
@@ -119,6 +123,7 @@ function ContractApp(): React.ReactElement {
   const durationInFrames = storyboard.version === 4
     ? resolveStoryboardV4(storyboard, mediaTimeline).totalFrames : totalFrames(storyboard);
   const inputProps = { ...storyboard, ...(mediaTimeline ? { mediaTimeline } : {}), ...(subtitleCues ? { subtitleCues } : {}) };
+  const ActiveComposition = storyboard.version === 4 ? A2VCompositionV4 : A2VComposition;
 
   return (
     <Player

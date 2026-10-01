@@ -362,19 +362,15 @@ def render_with_remotion(
         raise RenderError("Remotion 路径需要分镜文件：它是 composition 的 props")
 
     if media:
-        if media.data.get("version") == 4:
-            from .media import fingerprint
-            try:
-                source_data = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
-            except (OSError, ValueError) as exc:
-                raise RenderError(f"读取 v4 源分镜失败：{exc}") from exc
-            if fingerprint(source_data) != media.data.get("sourceFingerprint"):
-                raise RenderError("媒体与分镜不匹配，请重新 prepare")
-        else:
-            from . import storyboard as sb
-            source_model = sb._build(media.data["source"], sb.Report())
-            if storyboard != source_model:
-                raise RenderError("媒体与分镜不匹配，请重新 prepare")
+        if media.data.get("version") != 4:
+            raise RenderError("媒体清单版本过旧（v4 之前的幕级时间轴），请按 v4 契约重新 prepare")
+        from .media import fingerprint
+        try:
+            source_data = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise RenderError(f"读取 v4 源分镜失败：{exc}") from exc
+        if fingerprint(source_data) != media.data.get("sourceFingerprint"):
+            raise RenderError("媒体与分镜不匹配，请重新 prepare")
         storyboard = media.storyboard
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

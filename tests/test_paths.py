@@ -2,18 +2,19 @@
 
 这些用例守住多篇文章的隔离边界：产物必须落在各自文章目录的 outputs/ 下，
 示例产物再独立一层，且推导结果与执行命令时的工作目录无关。
+
+执行入口只接受分镜 v4，因此这里的分镜一律用 `valid_script_v4` 构造；
+v1–v3 分镜会被入口直接拒绝，不再覆盖本模块的路径推导行为。
 """
 
 from __future__ import annotations
 
-import copy
 import json
 from pathlib import Path
 
 import pytest
 
 from a2v import cli, paths, prepare as prep
-from a2v import storyboard as sb
 from a2v.errors import A2VError
 from a2v.media import Media
 from a2v.render import RenderResult
@@ -26,16 +27,17 @@ def _approve_render_gate(article: Path, media_path: Path | None = None) -> None:
     inspect.mkdir(parents=True, exist_ok=True)
     (inspect / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
     (inspect / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
+    # 生产记录（含 v4 正式渲染要求的五项全片连续性结论）由 conftest 统一补齐。
     approve_production_record(article / "storyboard.json", media_path)
 
 
 class TestProjectRoot:
-    def test_finds_root_from_nested_file(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_finds_root_from_nested_file(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         assert paths.project_root(article / "index.html") == tmp_path
 
-    def test_finds_root_from_directory(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_finds_root_from_directory(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         assert paths.project_root(article) == tmp_path
 
     def test_rejects_directory_without_marker(self, tmp_path):
@@ -55,38 +57,38 @@ class TestProjectRoot:
 
 
 class TestArticleLocation:
-    def test_locates_videos_article(self, tmp_path, valid_script):
-        make_project(tmp_path, "videos", "why-rest", valid_script)
+    def test_locates_videos_article(self, tmp_path, valid_script_v4):
+        make_project(tmp_path, "videos", "why-rest", valid_script_v4)
         root = tmp_path
         assert paths.locate_article(root, root / "videos" / "why-rest" / "index.html") == (
             "article",
             "why-rest",
         )
 
-    def test_locates_example(self, tmp_path, valid_script):
-        make_project(tmp_path, "examples", "why-rest", valid_script)
+    def test_locates_example(self, tmp_path, valid_script_v4):
+        make_project(tmp_path, "examples", "why-rest", valid_script_v4)
         root = tmp_path
         assert paths.locate_article(root, root / "examples" / "why-rest") == ("example", "why-rest")
 
-    def test_deep_file_still_belongs_to_its_article(self, tmp_path, valid_script):
+    def test_deep_file_still_belongs_to_its_article(self, tmp_path, valid_script_v4):
         # videos/<slug>/assets/page.html 仍在文章目录内，应归属该文章而不是更深的目录
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         nested = article / "assets"
         nested.mkdir()
         page = nested / "index.html"
         page.write_text("<html></html>", encoding="utf-8")
         assert paths.locate_article(tmp_path, page) == ("article", "demo")
 
-    def test_article_outside_root_is_rejected(self, tmp_path, valid_script):
+    def test_article_outside_root_is_rejected(self, tmp_path, valid_script_v4):
         other = tmp_path / "elsewhere"
-        make_project(other, "videos", "demo", valid_script)
+        make_project(other, "videos", "demo", valid_script_v4)
         with pytest.raises(A2VError, match="无法推导文章归属"):
             paths.locate_article(tmp_path, other / "videos" / "demo" / "index.html")
 
 
 class TestOutputLayout:
-    def test_article_outputs_use_slug_directory(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_article_outputs_use_slug_directory(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         found = paths.for_page(article / "index.html")
         assert found.slug == "demo"
         assert found.kind == "article"
@@ -96,14 +98,14 @@ class TestOutputLayout:
         assert found.render_output(voiced=False) == tmp_path / "videos" / "demo" / "outputs" / "silent.mp4"
         assert found.render_output(voiced=True) == tmp_path / "videos" / "demo" / "outputs" / "voiced.mp4"
 
-    def test_example_outputs_get_their_own_layer(self, tmp_path, valid_script):
+    def test_example_outputs_get_their_own_layer(self, tmp_path, valid_script_v4):
         # 示例与实际文章可能同名，产物必须分开放，避免互相覆盖
-        article = make_project(tmp_path, "examples", "demo", valid_script)
+        article = make_project(tmp_path, "examples", "demo", valid_script_v4)
         found = paths.for_page(article / "index.html")
         assert found.output_dir == tmp_path / "videos" / "examples" / "demo" / "outputs"
 
-    def test_preview_output_keeps_final_name(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_preview_output_keeps_final_name(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         found = paths.for_page(article / "index.html")
         assert found.render_output(voiced=False, preview=True) == (
             tmp_path / "videos" / "demo" / "outputs" / "previews" / "silent.mp4"
@@ -112,22 +114,22 @@ class TestOutputLayout:
             tmp_path / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4"
         )
 
-    def test_same_slug_isolated_between_articles(self, tmp_path, valid_script):
-        first = make_project(tmp_path, "videos", "alpha", valid_script)
-        second = make_project(tmp_path, "videos", "beta", valid_script)
+    def test_same_slug_isolated_between_articles(self, tmp_path, valid_script_v4):
+        first = make_project(tmp_path, "videos", "alpha", valid_script_v4)
+        second = make_project(tmp_path, "videos", "beta", valid_script_v4)
         assert paths.for_page(first / "index.html").output_dir != paths.for_page(
             second / "index.html"
         ).output_dir
 
-    def test_same_slug_isolated_between_article_and_example(self, tmp_path, valid_script):
-        real = make_project(tmp_path, "videos", "demo", valid_script)
-        sample = make_project(tmp_path, "examples", "demo", valid_script)
+    def test_same_slug_isolated_between_article_and_example(self, tmp_path, valid_script_v4):
+        real = make_project(tmp_path, "videos", "demo", valid_script_v4)
+        sample = make_project(tmp_path, "examples", "demo", valid_script_v4)
         assert paths.for_page(real / "index.html").output_dir != paths.for_page(
             sample / "index.html"
         ).output_dir
 
-    def test_result_is_independent_of_working_directory(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_result_is_independent_of_working_directory(self, tmp_path, valid_script_v4, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         page = article / "index.html"
         expected = paths.for_page(page).output_dir
         monkeypatch.chdir(tmp_path.parent)
@@ -143,8 +145,8 @@ class TestUnsupportedTargets:
         with pytest.raises(A2VError, match="页面文件不存在"):
             paths.for_page(tmp_path / "absent.html")
 
-    def test_directory_as_page_is_rejected(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_directory_as_page_is_rejected(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         with pytest.raises(A2VError, match="需要一个页面文件"):
             paths.for_page(article)
 
@@ -175,16 +177,26 @@ class TestNaming:
         assert "prepare.py" in caplog.text
 
     @pytest.mark.parametrize(
-        "segments, expected", [([], False), ([{"id": "n1", "text": "有口播", "beatId": "b1"}, {"id": "n2", "text": "继续", "beatId": "b2"}], True)]
+        "segments, expected",
+        [
+            ([], False),
+            (None, False),
+            ([{"id": "n1", "text": "有口播", "beatId": "beat-open"}], True),
+        ],
+        ids=["empty-segments", "missing-segments", "declared-narration"],
     )
-    def test_declares_narration_ignores_missing_segments(self, valid_script, segments, expected):
-        from a2v import storyboard as sb
+    def test_declares_narration_reads_v4_has_narration(self, valid_script_v4, segments, expected):
+        """v4 只在模型层读口播声明：整片没有或只有空的口播分段都算无声。
 
-        for scene in valid_script["scenes"]:
-            scene["narrationSegments"] = segments
-            if not segments:
-                scene.pop("beats", None)
-        model = sb._build(valid_script, sb.Report())
+        v3 的 `scene.narration` / 逐幕 `narrationSegments` 已无对应产品行为，
+        因此改为在 v4 模型上验证同一条判定。
+        """
+        for stage in valid_script_v4["stages"]:
+            if segments is None:
+                stage.pop("narrationSegments", None)
+            else:
+                stage["narrationSegments"] = [dict(item) for item in segments]
+        model = cli._v4_model(valid_script_v4)
         assert paths.declares_narration(model) is expected
 
 
@@ -213,11 +225,9 @@ def _capture_render(monkeypatch) -> list[dict]:
 
 class TestVoicedRenderDefaults:
     @pytest.fixture
-    def voiced_project(self, tmp_path, valid_script, speech):
-        """带口播的项目：真实 prepare 生成媒体清单，再按推导路径加载。"""
-        script = copy.deepcopy(valid_script)
-        script["scenes"][0]["narrationSegments"] = [{"id": "n1", "text": "你好，", "beatId": "b1"}, {"id": "n2", "text": "世界。", "beatId": "b2"}]
-        article = make_project(tmp_path, "videos", "demo", script)
+    def voiced_project(self, tmp_path, valid_script_v4, speech):
+        """带口播的项目：v4 分镜自身声明口播，真实 prepare 生成媒体清单，再按推导路径加载。"""
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         return tmp_path, article
 
     def test_media_renders_to_voiced_name(self, voiced_project, monkeypatch):
@@ -258,8 +268,8 @@ class TestVoicedRenderDefaults:
 class TestRemotionDefault:
     """默认引擎是 Remotion：只给 --storyboard 的命令走 composition 渲染。"""
 
-    def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script, monkeypatch, speech):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_bare_storyboard_routes_to_remotion(self, tmp_path, valid_script_v4, monkeypatch, speech):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         media_path = prep.prepare(article / "storyboard.json", tmp_path / "videos" / "demo" / "outputs" / "media")
         _approve_render_gate(article, media_path)
         captured: list[dict] = []
@@ -298,28 +308,28 @@ class TestCrossArticleMediaGuard:
     因而这里用最小替身单独覆盖归属判断本身。
     """
 
-    def test_same_article_media_is_accepted(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_same_article_media_is_accepted(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         media_dir = tmp_path / "videos" / "demo" / "outputs" / "media"
         media_dir.mkdir(parents=True)
         manifest = media_dir / "media.json"
         manifest.write_text("{}", encoding="utf-8")
-        model = sb._build(valid_script, sb.Report())
+        model = cli._v4_model(valid_script_v4)
         media = Media(manifest.resolve(), {}, model, media_dir / "audio.wav")
 
         args = cli._build_render_parser().parse_args(["--storyboard", str(article / "storyboard.json")])
         output = cli._resolve_render_output(args, model, media)
         assert output == tmp_path / "videos" / "demo" / "outputs" / "voiced.mp4"
 
-    def test_storyboard_and_media_of_other_article_is_rejected(self, tmp_path, valid_script):
+    def test_storyboard_and_media_of_other_article_is_rejected(self, tmp_path, valid_script_v4):
         # 网页、分镜、媒体三者都属于 other，但网页必须与媒体同源：
         # 这里 other 的一对看似自洽，却与 demo 的媒体目录不一致，应被拦下
-        other = make_project(tmp_path, "videos", "other", valid_script)
+        other = make_project(tmp_path, "videos", "other", valid_script_v4)
         media_dir = tmp_path / "videos" / "demo" / "outputs" / "media"
         media_dir.mkdir(parents=True)
         manifest = media_dir / "media.json"
         manifest.write_text("{}", encoding="utf-8")
-        model = sb._build(valid_script, sb.Report())
+        model = cli._v4_model(valid_script_v4)
 
         args = cli._build_render_parser().parse_args(["--storyboard", str(other / "storyboard.json")])
         with pytest.raises(A2VError, match="无法确认它与本篇文章同源"):
@@ -327,13 +337,13 @@ class TestCrossArticleMediaGuard:
                 args, model, Media(manifest.resolve(), {}, model, media_dir / "audio.wav")
             )
 
-    def test_media_outside_slug_media_dir_is_rejected(self, tmp_path, valid_script):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_media_outside_slug_media_dir_is_rejected(self, tmp_path, valid_script_v4):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         elsewhere = tmp_path / "scratch"
         elsewhere.mkdir()
         manifest = elsewhere / "media.json"
         manifest.write_text("{}", encoding="utf-8")
-        model = sb._build(valid_script, sb.Report())
+        model = cli._v4_model(valid_script_v4)
 
         args = cli._build_render_parser().parse_args(
             [
@@ -357,10 +367,8 @@ class TestPrepareCommandDefaults:
             command(["--help"])
         assert exit_info.value.code == 0
 
-    def test_out_dir_defaults_to_media_directory(self, tmp_path, valid_script, monkeypatch):
-        script = copy.deepcopy(valid_script)
-        script["scenes"][0]["narrationSegments"] = [{"id": "n1", "text": "你", "beatId": "b1"}, {"id": "n2", "text": "好。", "beatId": "b2"}]
-        article = make_project(tmp_path, "videos", "demo", script)
+    def test_out_dir_defaults_to_media_directory(self, tmp_path, valid_script_v4, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         approve_input_review(article / "storyboard.json")
         calls: list[dict] = []
 
@@ -372,8 +380,8 @@ class TestPrepareCommandDefaults:
         assert cli.main_prepare(["--storyboard", str(article / "storyboard.json")]) == 0
         assert calls[0]["out_dir"] == tmp_path / "videos" / "demo" / "outputs" / "media"
 
-    def test_foreign_outputs_media_dir_is_rejected(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_foreign_outputs_media_dir_is_rejected(self, tmp_path, valid_script_v4, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         monkeypatch.setattr(prep, "prepare", lambda *a, **k: Path("media.json"))
         # 显式写到另一篇文章的 media/ 属于冲突，必须保留原文件并报错
         assert cli.main_prepare(
@@ -383,8 +391,8 @@ class TestPrepareCommandDefaults:
             ]
         ) == 1
 
-    def test_explicit_out_dir_outside_outputs_is_allowed(self, tmp_path, valid_script, monkeypatch):
-        article = make_project(tmp_path, "videos", "demo", valid_script)
+    def test_explicit_out_dir_outside_outputs_is_allowed(self, tmp_path, valid_script_v4, monkeypatch):
+        article = make_project(tmp_path, "videos", "demo", valid_script_v4)
         approve_input_review(article / "storyboard.json")
         target = tmp_path / "scratch-media"
         monkeypatch.setattr(prep, "prepare", lambda *a, **k: target / "media.json")

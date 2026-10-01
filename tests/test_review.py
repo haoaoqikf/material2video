@@ -8,8 +8,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from a2v import cli
 from a2v import inspect as review
 from a2v import keynote
@@ -526,24 +524,38 @@ class TestDeterminismAcceptance:
 
 
 class TestDeterminismEndToEnd:
-    """任务 6.4 端到端：真实作品上跑 `review.py --check-determinism`。"""
+    """任务 6.4 端到端：真实作品上跑 `review.py --check-determinism`。
 
-    def test_review_with_determinism_check_passes_on_example(self, tmp_path):
+    入口只接受分镜 v4，仓库内的旧示例不再能被体检；这里用 ``valid_script_v4``
+    （tree renderer）在 tmp_path 搭一个内容根作品，驱动同一条检查。用例依赖
+    浏览器：没有可用的 Chromium 时按 ``conftest.chromium_ready`` 的约定跳过。
+    """
+
+    def test_review_with_determinism_check_passes_on_example(
+        self, tmp_path, valid_script_v4, chromium_ready
+    ):
         import json
 
-        storyboard = Path(__file__).resolve().parents[1] / "examples" / "declarative-number" / "storyboard.json"
+        # 分镜放在仓库外的内容根里：归属靠 --content-root，共享契约页仍在仓库中
+        content = tmp_path / "content"
+        article = content / "videos" / "demo"
+        article.mkdir(parents=True)
+        (article / "index.html").write_text("<!doctype html><html></html>", encoding="utf-8")
+        storyboard = article / "storyboard.json"
+        storyboard.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         argv = [
             "--storyboard", str(storyboard),
+            "--content-root", str(content),
             "--out-dir", str(tmp_path / "inspect"),
             "--check-determinism",
         ]
         cli.main_review(argv)
         payload = json.loads((tmp_path / "inspect" / "report.json").read_text(encoding="utf-8"))
-        # 确定性验收在真实作品上跑过并全部通过
+        # 确定性验收在真实作品上跑过并全部通过：三个阶段各取收尾帧
         assert payload.get("determinism"), "report.json 应记录确定性验收结论"
-        assert len(payload["determinism"]) == 2  # 两幕各取收尾帧
-        assert all("通过" in line or "一致" in line for line in payload["determinism"])
-        # 确定性层面零错误（示例里个别幕的墨迹提示与确定性无关）
+        assert len(payload["determinism"]) == 3
+        assert all("通过" in line and "未通过" not in line for line in payload["determinism"])
+        # 确定性层面零错误（画面本身的墨迹提示与确定性无关）
         assert not any(error.startswith("确定性") for error in payload["errors"])
 
 

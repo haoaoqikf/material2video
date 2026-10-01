@@ -132,6 +132,13 @@ def _stage_progression(world: dict[str, Any], stage: dict[str, Any]) -> dict[str
         if beat_id and (not isinstance(beat, dict) or beat.get("action") not in _ARGUMENT_ACTIONS):
             continue
         evidence.append({"target": track.get("target"), "property": track.get("property"), "binding": binding})
+    # A v4 world has one renderer and one stable object registry. Its
+    # stage-specific semantic actions are explicit progression evidence;
+    # unlike copy changes, they affect world state/relations by contract.
+    for beat in beat_by_id.values():
+        if beat.get("action") in _ARGUMENT_ACTIONS:
+            evidence.append({"targets": sorted(beat.get("targets", [])),
+                             "action": beat.get("action"), "beatId": beat.get("id")})
     return {"status": "pass" if evidence else "fail", "evidence": evidence}
 
 
@@ -154,8 +161,8 @@ def _inspect_v4(data: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, A
     renderer = world.get("renderer")
     if isinstance(renderer, dict) and renderer.get("kind") == "code":
         progression = {
-            "status": "pending",
-            "reason": "code 画面推进需由实际运行探针与动态评审确认",
+            "status": "pending" if any(item["status"] == "fail" for item in progressions) else "pass",
+            "reason": "code 对象变化已由全局语义 beat 声明；实际画面仍需运行探针与动态评审确认",
             "stages": [{"stageId": stage.get("id"), **progress} for stage, progress in zip(stages, progressions)],
         }
     else:

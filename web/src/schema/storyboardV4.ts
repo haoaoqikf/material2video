@@ -9,6 +9,10 @@ import {
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]+$/);
 const nonEmpty = z.string().trim().min(1);
 
+// v4 按整段口播统一语速合成：逐段 speech 不参与时间轴，静默忽略会让作者
+// 以为参数生效，因此 v4 段结构不接受该字段（v3 段结构仍允许）。
+const narrationSegmentV4Schema = narrationSegmentSchema.omit({ speech: true });
+
 const rendererSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('tree') }).strict(),
   z.object({ kind: z.literal('code'), module: moduleSpecifierSchema }).strict(),
@@ -97,7 +101,7 @@ const worldSchema = z.object({
 const stageSchema = z.object({
   id: idSchema, durationInFrames: z.number().int().positive(),
   data: z.record(z.string(), z.unknown()), visualIntent: visualIntentSchema,
-  narrationSegments: z.array(narrationSegmentSchema).optional(),
+  narrationSegments: z.array(narrationSegmentV4Schema).optional(),
   beats: z.array(beatSchema).optional(),
 }).strict().superRefine((stage, ctx) => {
   if (stage.narrationSegments && !stage.beats) {

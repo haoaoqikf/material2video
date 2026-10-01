@@ -10,10 +10,18 @@ from a2v.render import _last_int
 
 
 class TestValidateCommand:
-    def test_exit_ok_for_valid_example(self):
-        from conftest import EXAMPLES_DIR
+    def test_exit_ok_for_valid_v4_storyboard(self, tmp_path, valid_script_v4):
+        path = tmp_path / "storyboard.json"
+        path.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
+        assert cli.main_validate([str(path)]) == 0
 
-        assert cli.main_validate([str(EXAMPLES_DIR / "storyboard.json")]) == 0
+    def test_legacy_storyboards_are_rejected_with_one_actionable_diagnostic(self, tmp_path, valid_script, capsys):
+        """入口只接受 v4：旧幕级分镜给出单条重编排诊断，不逐字段刷屏。"""
+        path = tmp_path / "storyboard-v3.json"
+        path.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        assert cli.main_validate([str(path)]) == 2
+        errors = [line for line in capsys.readouterr().err.splitlines() if "[error]" in line]
+        assert errors == ["[error] version: 不支持 v4 之前分镜；请按分镜 v4 契约重新编排"]
 
     def test_v4_validation_reports_global_stage_timeline(self, tmp_path, capsys):
         from pathlib import Path
@@ -45,38 +53,43 @@ class TestValidateCommand:
     def test_exit_failed_for_missing_file(self, tmp_path):
         assert cli.main_validate([str(tmp_path / "absent.json")]) == 2
 
-    def test_exit_failed_for_invalid_script(self, tmp_path, valid_script, capsys):
-        valid_script["scenes"] = []
+    def test_exit_failed_for_invalid_script(self, tmp_path, valid_script_v4, capsys):
+        valid_script_v4["stages"] = []
         path = tmp_path / "storyboard.json"
-        path.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         assert cli.main_validate([str(path)]) == 2
 
-    def test_json_output_contains_summary(self, tmp_path, valid_script, capsys):
+    def test_json_output_contains_summary(self, tmp_path, valid_script_v4, capsys):
         path = tmp_path / "storyboard.json"
-        path.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         assert cli.main_validate([str(path), "--json"]) == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["ok"] is True
-        assert payload["summary"]["totalFrames"] == 180
-        assert payload["summary"]["sceneCount"] == 2
+        assert payload["summary"]["totalFrames"] == 1200
+        assert payload["summary"]["sceneCount"] == 3
 
-    def test_directing_render_gate_requires_review_publish_conclusion(self, tmp_path, valid_script):
-        valid_script["directingVersion"] = 1
+    @staticmethod
+    def _passing_media(monkeypatch):
+        """让门禁读到一份实际时长合格的有效媒体清单，不真的合成音频。"""
+        monkeypatch.setattr(cli, "load_media", lambda *_args, **_kwargs: SimpleNamespace(
+            data={"standardCheck": {"durationStatus": "pass"}},
+        ))
+
+    def test_directing_render_gate_requires_review_publish_conclusion(self, tmp_path, valid_script_v4, monkeypatch):
+        self._passing_media(monkeypatch)
         storyboard = tmp_path / "storyboard.json"
-        storyboard.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        storyboard.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         inspect_dir = tmp_path / "inspect"
         inspect_dir.mkdir()
         (inspect_dir / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
         (inspect_dir / "review.md").write_text("- 是否值得发布：待评审\n", encoding="utf-8")
-        model = SimpleNamespace()
         article = SimpleNamespace(output_dir=tmp_path)
-        assert "尚未填写" in cli._aesthetic_render_gate(storyboard, model, article)
+        assert "尚未填写" in cli._aesthetic_render_gate(storyboard, SimpleNamespace(), article, tmp_path / "media.json")
 
-    def test_code_scene_render_gate_requires_dynamic_review(self, tmp_path, valid_script):
-        valid_script["directingVersion"] = 1
-        valid_script["scenes"][0]["renderer"] = {"kind": "code", "module": "example"}
+    def test_code_scene_render_gate_requires_dynamic_review(self, tmp_path, valid_script_v4, monkeypatch):
+        self._passing_media(monkeypatch)
         storyboard = tmp_path / "storyboard.json"
-        storyboard.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        storyboard.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         inspect_dir = tmp_path / "inspect"
         inspect_dir.mkdir()
         (inspect_dir / "report.json").write_text(json.dumps({
@@ -85,7 +98,7 @@ class TestValidateCommand:
         }), encoding="utf-8")
         (inspect_dir / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
         article = SimpleNamespace(output_dir=tmp_path)
-        assert cli._aesthetic_render_gate(storyboard, SimpleNamespace(), article) == "定制动画动态评审待评审"
+        assert cli._aesthetic_render_gate(storyboard, SimpleNamespace(), article, tmp_path / "media.json") == "定制动画动态评审待评审"
 
     def test_final_render_rejects_partial_global_frame_range(self, tmp_path, monkeypatch):
         cli._force_utf8_output = lambda: None
@@ -103,19 +116,22 @@ class TestValidateCommand:
                                   "--out", str(tmp_path / "final.mp4")])
         assert result != 0
 
-    def test_json_output_lists_errors(self, tmp_path, valid_script, capsys):
-        valid_script["scenes"][0]["durationInFrames"] = 0
+    def test_json_output_lists_errors(self, tmp_path, valid_script_v4, capsys):
+        valid_script_v4["stages"][0]["durationInFrames"] = 0
         path = tmp_path / "storyboard.json"
-        path.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         assert cli.main_validate([str(path), "--json"]) == 2
         payload = json.loads(capsys.readouterr().out)
         assert payload["ok"] is False
         assert any("durationInFrames" in item["path"] for item in payload["errors"])
 
-    def test_strict_mode_promotes_warnings(self, tmp_path, valid_script):
-        valid_script["fps"] = 29
+    def test_strict_mode_promotes_warnings(self, tmp_path, valid_script_v4):
+        # 连续两个阶段只有中性动作、没有受控状态推进：普通校验只警告，--strict 升级为失败。
+        for stage in valid_script_v4["stages"][1:]:
+            for beat in stage["beats"]:
+                beat["action"] = "highlight"
         path = tmp_path / "storyboard.json"
-        path.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
         assert cli.main_validate([str(path)]) == 0
         assert cli.main_validate([str(path), "--strict"]) == 2
 

@@ -6,6 +6,10 @@
 
 反例在测试里就地构造、**不写入仓库**：把同一幕的 beat 全换成 `establish`/`highlight`
 后，严格校验与 A3 闸门都必须拦下它——「依次出现」不是「一次推理」。
+
+仓库里的 `examples/narration-beats/` 仍是 v3（尚未改编到 v4），而执行入口只接受
+v4，因此「有声路径共用同一批边界」的检查改由 `conftest` 的 v4 夹具在 `tmp_path`
+里驱动，见 `test_subtitle_boundaries_match_beats_with_media`。
 """
 
 from __future__ import annotations
@@ -90,18 +94,44 @@ class TestExample:
         assert "claim:claim-halo" in names
         assert any(name.endswith(":stages-title") for name in names)
 
-    def test_subtitle_boundaries_match_beats_with_media(self, example, tmp_path, speech):
-        """有声路径：字幕 cue 与画面 beat 必须落在同一批边界上（A4）。"""
+    def test_subtitle_boundaries_match_beats_with_media(self, valid_script_v4, tmp_path, speech):
+        """有声路径：字幕 cue 与画面 beat 必须落在同一批边界上（A4）。
+
+        仓库里的 ``examples/narration-beats/`` 仍是 v3，而入口只接受 v4，因此这里
+        在 tmp_path 里用 v4 夹具驱动同一类检查：把 cue 归回各段口播得到词边界区间，
+        再按 fps 解析成帧区间，必须与媒体清单里的画面 beat 对上（判据与 A4 闸门
+        一致，含 ``SYNC_TOLERANCE_FRAMES`` 的取整容差）。
+        """
+        from a2v import beats as beat_mod
         from a2v import media as media_mod
         from a2v import prepare as prep
 
-        path = prep.prepare(EXAMPLE, tmp_path / "media")
-        media = media_mod.load_media(path)
-        # 每段口播都在标点处断开，因此每段恰好对应一条 cue。
-        assert len(media.data["cues"]) >= len(example["scenes"])
-        gates = ar.review_gates(ar.analyze(example, media.data))
-        assert gates["a4"]["status"] == "pass", gates["a4"]["detail"]
-        assert ar.gate_issues(gates) == []
+        source = tmp_path / "storyboard.json"
+        source.write_text(json.dumps(valid_script_v4, ensure_ascii=False), encoding="utf-8")
+        path = prep.prepare(source, tmp_path / "media")
+        media = media_mod.load_media(path, source)
+        board = media.data["source"]
+        fps = board["fps"]
+        # 每段口播都在标点处断开，因此每条 stage 至少产出一条 cue。
+        assert len(media.data["cues"]) >= len(board["stages"])
+        cursor = 0
+        for stage, resolved in zip(board["stages"], media.data["stages"]):
+            frames = resolved["durationInFrames"]
+            cues = ar.scene_cues(media.data["cues"], cursor, frames, fps)
+            assert cues, f"{stage['id']} 必须有自己的字幕 cue"
+            texts = [segment["text"] for segment in stage["narrationSegments"]]
+            windows = ar._cue_windows("".join(texts), texts, cues)
+            assert windows is not None, f"{stage['id']} 的 cue 与口播段切法不一致"
+            from_cues = beat_mod.resolve_from_windows(stage, windows, fps, frames)
+            actual = [beat for beat in media.data["resolvedBeats"] if beat["stageId"] == stage["id"]]
+            assert len(from_cues.beats) == len(actual), f"{stage['id']} 的字幕与 beat 数量不一致"
+            for from_cue, beat in zip(from_cues.beats, actual):
+                for expected, got in ((from_cue.start_frame, beat["startFrame"] - cursor),
+                                      (from_cue.end_frame, beat["endFrame"] - cursor)):
+                    assert abs(expected - got) <= ar.SYNC_TOLERANCE_FRAMES, (
+                        f"{stage['id']} 的字幕边界 {expected} 与画面 beat 边界 {got} 不一致"
+                    )
+            cursor += frames
 
     def test_reference_doc_links_the_example(self):
         text = DOC.read_text(encoding="utf-8")

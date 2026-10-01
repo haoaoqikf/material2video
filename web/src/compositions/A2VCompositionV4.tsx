@@ -42,6 +42,12 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
     beats: timeline.beats as unknown as BeatTimeline['beats'], estimated: timeline.estimated,
   }), [timeline]);
   const beatContext: BeatContext = { timeline: beats, state: beatStateAt(beats, frame) };
+  // The v4 code renderer owns one persistent world; its beat API must therefore
+  // observe the same global plan regardless of which narration stage is active.
+  const worldBeats = storyboard.world.renderer.kind === 'code' ? beatContext : {
+    timeline: { beats: [], estimated: beatContext.timeline.estimated },
+    state: { current: null, progress: 0, completed: [], estimated: beatContext.timeline.estimated },
+  } as BeatContext;
   const scene = {
     id: storyboard.world.id, type: 'world', durationInFrames: timeline.totalFrames,
     data: { ...storyboard.world.data, ...stage.data, world: storyboard.world.data, stage: stage.data },
@@ -93,7 +99,7 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
               hiddenNodeIds={worldFrame.hiddenNodeIds} />
           ) : (
             <CodeSceneHost scene={scene} frame={frame} localFrame={frame} fps={storyboard.fps} theme={theme}
-              preset="keynote" width={storyboard.width} height={storyboard.height} beats={beatContext}
+              preset="keynote" width={storyboard.width} height={storyboard.height} beats={worldBeats}
               cameraOverride={cameraFrame} v4Context={{
                 world: storyboard.world, stage: { id: stage.id, data: stage.data,
                   startFrame: stageStart, endFrame: stageEnd, progress: stageProgress },

@@ -410,20 +410,6 @@ def scene_windows(scenes: list[dict[str, Any]]) -> list[tuple[str, int, int]]:
     return windows
 
 
-def scenes_as_dicts(model: Any) -> list[dict[str, Any]]:
-    """把分镜模型摊成体检需要的字段，避免这里再依赖模型内部结构。"""
-    return [
-        {
-            "id": scene.id,
-            "type": scene.type,
-            "startFrame": scene.start_frame,
-            "durationInFrames": scene.duration_in_frames,
-            "data": scene.data,
-        }
-        for scene in model.scenes
-    ]
-
-
 def v4_stages_as_dicts(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Expose v4 stages as global-frame inspection windows without rebasing frames."""
     timeline = resolve_v4(storyboard, media)

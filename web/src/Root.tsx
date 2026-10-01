@@ -2,9 +2,12 @@ import type { FC } from 'react';
 import type { CalculateMetadataFunction } from 'remotion';
 import { Composition } from 'remotion';
 import type { A2VProps } from './compositions/A2VComposition';
-import { ActiveComposition } from '../.gen/active-composition';
+import { A2VComposition } from './compositions/A2VComposition';
+import { A2VCompositionV4, type A2VCompositionV4Props } from './compositions/A2VCompositionV4';
 import { EMPTY_STORYBOARD } from './schema/storyboard';
 import { totalFrames } from './runtime/timeline';
+import { resolveStoryboardV4 } from './runtime/timelineV4';
+import type { StoryboardV4 } from './schema/storyboardV4';
 import './styles/index.css';
 
 /**
@@ -14,9 +17,21 @@ import './styles/index.css';
  * 不需要每次改 composition 的注册参数。分镜是内容层的单一真源，
  * 画面参数必须由它推导，而不是两处维护。
  */
-const calculateA2V: CalculateMetadataFunction<A2VProps> = ({ props }) => {
+type ActiveProps = A2VProps | A2VCompositionV4Props;
+
+const ActiveComposition: FC<ActiveProps> = (props) => {
+  const raw = props as unknown as { version: number };
+  return raw.version === 4
+    ? <A2VCompositionV4 {...(props as A2VCompositionV4Props)} />
+    : <A2VComposition {...(props as unknown as A2VProps)} />;
+};
+
+const calculateA2V: CalculateMetadataFunction<ActiveProps> = ({ props }) => {
+  const durationInFrames = props.version === 4
+    ? resolveStoryboardV4(props as StoryboardV4, props.mediaTimeline).totalFrames
+    : totalFrames(props as A2VProps);
   return {
-    durationInFrames: totalFrames(props),
+    durationInFrames,
     fps: props.fps,
     width: props.width,
     height: props.height,

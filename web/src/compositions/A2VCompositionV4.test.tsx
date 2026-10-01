@@ -11,7 +11,7 @@ vi.mock('remotion', async (importOriginal) => {
   return { ...actual, AbsoluteFill: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, useCurrentFrame: () => testFrame.value };
 });
 vi.mock('./CodeSceneHost', () => ({
-  CodeSceneHost: ({ scene, v4Context, cameraOverride }: { scene: { renderer?: { module?: string } }; v4Context?: { stage: { id: string; startFrame: number; endFrame: number; progress: number }; world: { objects: unknown[] }; objectStates?: Record<string, Record<string, unknown>> }; cameraOverride?: { kind: string } }) => <div data-code-module={scene.renderer?.module ?? ''} data-v4-stage={v4Context?.stage.id} data-v4-range={`${v4Context?.stage.startFrame}-${v4Context?.stage.endFrame}`} data-v4-progress={v4Context?.stage.progress} data-v4-objects={v4Context?.world.objects.length} data-v4-player-state={String(v4Context?.objectStates?.player?.state)} data-v4-camera={cameraOverride?.kind} data-a2v-code-ready="1" />,
+  CodeSceneHost: ({ scene, v4Context, cameraOverride, beats }: { scene: { renderer?: { module?: string } }; beats?: { timeline: { beats: Array<{ id: string; startFrame: number; endFrame: number }> } }; v4Context?: { stage: { id: string; startFrame: number; endFrame: number; progress: number }; world: { objects: unknown[] }; objectStates?: Record<string, Record<string, unknown>> }; cameraOverride?: { kind: string } }) => <div data-code-module={scene.renderer?.module ?? ''} data-v4-stage={v4Context?.stage.id} data-v4-range={`${v4Context?.stage.startFrame}-${v4Context?.stage.endFrame}`} data-v4-progress={v4Context?.stage.progress} data-v4-objects={v4Context?.world.objects.length} data-v4-player-state={String(v4Context?.objectStates?.player?.state)} data-v4-camera={cameraOverride?.kind} data-v4-beats={beats?.timeline.beats.map(({ id }) => id).join(',')} data-a2v-code-ready="1" />,
 }));
 
 const vectors = JSON.parse(readFileSync(resolve(process.cwd(), '../tests/fixtures/storyboard-v4-vectors.json'), 'utf8')) as { valid: Record<string, any> };
@@ -74,6 +74,7 @@ describe('v4 全片单一 composition', () => {
     expect(second).toContain('data-v4-player-state="focus"');
     expect(second).toContain('data-v4-objects="3"');
     expect(second).toContain('data-v4-camera="hold"');
+    expect(second).toContain('data-v4-beats="throw-1,throw-ending"');
   });
 
   it('实际媒体延长首阶段后，随机寻到的全局帧仍处于正确阶段与媒体 beat 轴', () => {

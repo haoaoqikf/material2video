@@ -19,13 +19,16 @@ from typing import Any
 from . import contract_page
 from . import fonts as fonts_mod
 from . import paths as paths_mod
-from . import storyboard as sb
+from . import storyboard_v4
 from . import visual_narrative as vn
 from .errors import A2VError
 from .media import Media, V4Stage, V4Storyboard, load_media
 from .render import provenance_status, render_with_remotion
 from .http_server import LocalServer
 from .storyboard import Report
+
+#: 旧分镜的统一拒绝口径：入口不提供迁移、兼容开关或运行时回退。
+LEGACY_STORYBOARD_ERROR = "不支持 v4 之前分镜；请按分镜 v4 契约重新编排"
 
 _EXIT_OK = 0
 _EXIT_FAILED = 1
@@ -240,22 +243,23 @@ def main_render(argv: list[str] | None = None) -> int:
     return _EXIT_OK
 
 
-def _aesthetic_render_gate(storyboard_path: str | Path, model: sb.Storyboard, article: paths_mod.ArticlePaths | None, media_path: str | Path | None = None) -> str | None:
-    """所有 v3 分镜必须先有通过的审美体检。"""
+def _aesthetic_render_gate(storyboard_path: str | Path, model: V4Storyboard, article: paths_mod.ArticlePaths | None, media_path: str | Path | None = None) -> str | None:
+    """正式渲染前的门禁：先确认 v4 媒体时间轴，再看审美与制作记录。"""
     raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
-    if isinstance(raw, dict) and raw.get("version") == 4:
-        if media_path is None:
-            return "v4 正式渲染必须先 prepare 实际媒体时间轴"
-        try:
-            media = load_media(media_path, storyboard_path)
-        except (A2VError, OSError) as exc:
-            return f"v4 正式渲染需要有效媒体清单：{exc}"
-        standard = media.data.get("standardCheck") or {}
-        if standard.get("durationStatus") != "pass":
-            actual = standard.get("actualDurationSeconds")
-            shown = f"{actual:.2f} 秒" if isinstance(actual, (int, float)) else "未知"
-            return (f"实际全片时长 {shown}，须在 35～45 秒；请调整口播措辞、正常语速或有意义的停顿，"
-                    "再重新 prepare 和评审；不会截断口播或补空白。")
+    if not (isinstance(raw, dict) and raw.get("version") == 4 and raw.get("schemaVersion") == 4):
+        return LEGACY_STORYBOARD_ERROR
+    if media_path is None:
+        return "v4 正式渲染必须先 prepare 实际媒体时间轴"
+    try:
+        media = load_media(media_path, storyboard_path)
+    except (A2VError, OSError) as exc:
+        return f"v4 正式渲染需要有效媒体清单：{exc}"
+    standard = media.data.get("standardCheck") or {}
+    if standard.get("durationStatus") != "pass":
+        actual = standard.get("actualDurationSeconds")
+        shown = f"{actual:.2f} 秒" if isinstance(actual, (int, float)) else "未知"
+        return (f"实际全片时长 {shown}，须在 35～45 秒；请调整口播措辞、正常语速或有意义的停顿，"
+                "再重新 prepare 和评审；不会截断口播或补空白。")
     if article is None:
         return "无法定位作品输出目录，请提供有效内容根"
     if isinstance(article, paths_mod.ArticlePaths):
@@ -312,9 +316,10 @@ def _v4_model(data: dict[str, Any]) -> V4Storyboard:
                         any(stage.get("narrationSegments") for stage in data["stages"]), data.get("title", ""))
 
 
-def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> sb.Storyboard | V4Storyboard | None:
-    """加载并校验分镜；有错误时打印问题并返回 None。
+def _validated_storyboard(path: str | Path, content_root: str | Path | None = None) -> V4Storyboard | None:
+    """加载并校验 v4 分镜；有错误时打印问题并返回 None。
 
+    v1–v3 与缺失版本在这里就被拒绝：入口不提供迁移、兼容开关或运行时回退。
     代码场景的模块检查也在这里完成：预览、评审与渲染都会先走这一步，
     因此「模块不存在、没有默认导出」会在启动浏览器或打包之前失败，
     而不是渲出一张空画面再让人反推原因。
@@ -323,12 +328,8 @@ def _validated_storyboard(path: str | Path, content_root: str | Path | None = No
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = None
-    if isinstance(data, dict) and data.get("version") == 4:
-        from . import storyboard_v4
-        report = storyboard_v4.validate(data)
-        model = _v4_model(data) if report.ok else None
-    else:
-        model, report = sb.load(path)
+    report = storyboard_v4.validate(data)
+    model = _v4_model(data) if report.ok else None
     _check_code_scene_modules(Path(path), content_root, report)
     if model is None:
         for issue in report.errors:
@@ -354,7 +355,7 @@ def _check_code_scene_modules(
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return  # 分镜读不出来时 sb.load 已经报过；这里不重复报
+        return  # 分镜读不出来时校验器已经报过；这里不重复报
     if not any(True for _ in cs.iter_code_scenes(data)):
         return
     try:
@@ -422,6 +423,8 @@ def _animation_review_payload(
     from . import animation_review as ar
 
     raw = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
+    if raw.get("version") == 4 and raw.get("schemaVersion") == 4:
+        return {"status": "pending", "message": "动画论证 A 系列尚未适配 v4 全片阶段时间轴；不以 v3 局部时间轴降级判定"}
     analysis = ar.analyze(raw, media.data if media is not None else None)
     gates = ar.review_gates(analysis)
     for where, message in ar.gate_issues(gates):
@@ -441,6 +444,8 @@ def _animation_review_lines(result: dict | None) -> list[str]:
     """A 系列的终端摘要：机检逐条给结论，人工结论单列一行。"""
     if not result:
         return []
+    if result.get("status") == "pending" and result.get("message"):
+        return [f"动画论证 A 系列：待评审——{result['message']}"]
     from . import animation_review as ar
 
     lines = ["动画论证 A 系列（A1–A5/A7/A8 机检并进错误数；A6 人工裁决）："]
@@ -546,7 +551,7 @@ def _with_query_param(url: str, name: str, value: str) -> str:
 
 def _resolve_render_output(
     args: argparse.Namespace,
-    model: sb.Storyboard | None,
+    model: V4Storyboard | None,
     media: Media | None,
     article: paths_mod.ArticlePaths | None = None,
 ) -> Path:
@@ -603,12 +608,8 @@ def main_validate(argv: list[str] | None = None) -> int:
         raw_input = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         raw_input = None
-    if isinstance(raw_input, dict) and raw_input.get("version") == 4:
-        from . import storyboard_v4
-        report = storyboard_v4.validate(raw_input)
-        model = _v4_model(raw_input) if report.ok else None
-    else:
-        model, report = sb.load(path, strict=args.strict)
+    report = storyboard_v4.validate(raw_input)
+    model = _v4_model(raw_input) if report.ok else None
     _check_code_scene_modules(path, args.content_root, report)
     diversity_result = None
     if model is not None:
@@ -621,7 +622,14 @@ def main_validate(argv: list[str] | None = None) -> int:
                 location = ", ".join(str(item) for item in finding["scenes"])
                 report.warn("diversity", f"多样性规则 {finding['rule']}：涉及阶段/场景 {location}")
             if diversity_result.get("status") == "pending":
-                report.warn("diversity", diversity_result.get("progression", {}).get("reason", "动态状态推进证据待评审"))
+                progression = diversity_result.get("progression", {})
+                message = progression.get("reason", "动态状态推进证据待评审")
+                # Code dynamics cannot be established by static inspection.
+                # Keep that result visible, but leave the actual fail-closed
+                # decision to the playback/probe review and production gate.
+                if not (raw.get("version") == 4
+                        and (raw.get("world", {}).get("renderer") or {}).get("kind") == "code"):
+                    report.warn("diversity", message)
         except (OSError, json.JSONDecodeError) as exc:
             report.error("reference", f"参考分镜读取失败：{exc}")
             model = None
@@ -641,7 +649,7 @@ def main_validate(argv: list[str] | None = None) -> int:
                 "fps": model.fps,
                 "width": model.width,
                 "height": model.height,
-                "sceneCount": len(model.scenes),
+                "sceneCount": len(model.stages),
                 "totalFrames": model.total_frames,
                 "durationSeconds": round(model.total_frames / model.fps, 2),
             }
@@ -651,7 +659,7 @@ def main_validate(argv: list[str] | None = None) -> int:
             print(issue.format(), file=sys.stderr)
         if model is not None:
             print(
-                f"校验通过：{len(model.scenes)} 个场景，"
+                f"校验通过：{len(model.stages)} 个叙事阶段，"
                 f"{model.total_frames} 帧（{model.total_frames / model.fps:.1f}s），"
                 f"{model.width}x{model.height} @{model.fps}fps"
             )
@@ -756,31 +764,19 @@ def main_review(argv: list[str] | None = None) -> int:
     _configure_logging(args.verbose)
 
     from . import inspect as inspect_mod
-    from . import aesthetic_review
-    from . import storyboard as sb
     from .browser import open_animated_page
     from .media import load_media, media_url, write_effective_storyboard
     from .render import _resolve_page_url
 
     article: paths_mod.ArticlePaths | None = None
     page_mounts: dict[str, Path] | None = None
+    # 分镜先校验：旧契约在这里就以单条诊断停下，不构建契约页、不写任何评审产物。
     try:
-        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
-        _build_contract_for(args.storyboard, article.repo_root, args.content_root)
-        page_file = contract_page.require_contract_page(article.repo_root)
-        page_mounts = contract_page.web_mounts(article.repo_root)
-    except A2VError as exc:
-        logging.error("找不到要体检的画面: %s", exc)
-        return _EXIT_INVALID_INPUT
-
-    raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
-    is_v4 = isinstance(raw_storyboard, dict) and raw_storyboard.get("version") == 4
-    if is_v4:
-        from . import storyboard_v4
-        report = storyboard_v4.validate(raw_storyboard)
-        model = _v4_model(raw_storyboard) if report.ok else None
-    else:
-        model, report = sb.load(args.storyboard)
+        raw_storyboard = json.loads(Path(args.storyboard).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raw_storyboard = None
+    report = storyboard_v4.validate(raw_storyboard)
+    model = _v4_model(raw_storyboard) if report.ok else None
     if model is None or not report.ok:
         for issue in report.issues:
             logging.error("%s", issue.format())
@@ -794,11 +790,18 @@ def main_review(argv: list[str] | None = None) -> int:
             logging.error("%s", issue.format())
         logging.error("代码场景模块校验未通过，无法体检")
         return _EXIT_INVALID_INPUT
+    try:
+        article = paths_mod.for_storyboard(args.storyboard, args.content_root)
+        _build_contract_for(args.storyboard, article.repo_root, args.content_root)
+        page_file = contract_page.require_contract_page(article.repo_root)
+        page_mounts = contract_page.web_mounts(article.repo_root)
+    except A2VError as exc:
+        logging.error("找不到要体检的画面: %s", exc)
+        return _EXIT_INVALID_INPUT
 
     try:
         media = load_media(args.media, args.storyboard) if args.media else None
-        scenes = (inspect_mod.v4_stages_as_dicts(raw_storyboard, media.data if media else None)
-                  if is_v4 else inspect_mod.scenes_as_dicts(media.storyboard if media else model))
+        scenes = inspect_mod.v4_stages_as_dicts(raw_storyboard, media.data if media else None)
     except (A2VError, OSError) as exc:
         logging.error("体检失败: %s", exc)
         return _EXIT_FAILED
@@ -817,21 +820,15 @@ def main_review(argv: list[str] | None = None) -> int:
     )
     # 视觉叙事 V 系列是静态分析，放在浏览器工作之前：契约页构建失败时
     # 它的结论也已经被写进错误列表，不会因为环境问题静默丢失。
-    visual_narrative = (
-        {"status": "pending", "message": "v4 单场景视觉叙事专项评审将在连续性评审任务中启用"}
-        if is_v4 else _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
-    )
+    visual_narrative = _visual_narrative_payload(Path(args.storyboard), out_dir, combined)
     # 动画论证 A 系列同理：它读分镜与媒体清单，不需要浏览器。机检失败在这里
     # 就进错误数，契约页起不来也不影响「动画有没有解释论点」的结论。
-    animation_review = (
-        {"status": "pending", "message": "v4 全片动画论证评审将在连续性评审任务中启用"}
-        if is_v4 else _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
-    )
+    animation_review = _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
     bespoke_animation_review = _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
-    aesthetic_review_result = (
-        {"status": "pending", "findings": [], "message": "v4 持续场景审美与连续性评审尚未完成"}
-        if is_v4 else aesthetic_review.analyze(raw_storyboard)
-    )
+    aesthetic_review_result = {
+        "status": "pending", "findings": [],
+        "message": "v4 持续场景审美与连续性评审尚未完成",
+    }
     for finding in aesthetic_review_result.get("findings", []):
         if finding["status"] == "fail":
             combined.error(f"导演预检 {finding['rule']}", finding["detail"] + "：" + "、".join(finding["scenes"]))
@@ -861,15 +858,16 @@ def main_review(argv: list[str] | None = None) -> int:
                 timeout_ms=args.timeout,
                 width=model.width,
                 height=model.height,
-                expected_version=4 if is_v4 else contract_page.CONTRACT_VERSION,
+                expected_version=4,
             ) as page:
                 page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
-                preset = str(((media.storyboard if media else model).visual or {}).get("preset") or "")
+                preset_source = raw_storyboard.get("visual", {})
+                preset = str((preset_source or {}).get("preset") or "")
                 page_report, extra = inspect_mod.run_inspect(
                     page, scenes, out_dir / "frames", out_dir, preset=preset,
                     sheet_name=_contact_sheet_name("media" if media else "storyboard"),
-                    v4_storyboard=raw_storyboard if is_v4 else None,
-                    v4_media=media.data if is_v4 and media else None,
+                    v4_storyboard=raw_storyboard,
+                    v4_media=media.data if media else None,
                 )
                 # 运行期隔离（任务 3.3）：被阻断请求、页面异常、未处理 Promise
                 # 与控制台 error 都计为错误，而不是静默放行。
@@ -1116,6 +1114,14 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
         f"联系表：{out_dir / _contact_sheet_name(payload.get('source'))}",
     ]
     probes = payload.get("contract") or []
+    if probes:
+        if "stage" in probes[0]:
+            lines.append("v4 全局世界探针：")
+            for probe in probes:
+                mark = "✓" if probe.get("ok") else "✗"
+                suffix = "；" + "、".join(probe.get("issues") or []) if probe.get("issues") else ""
+                lines.append(f"  {mark} {probe.get('stage', '（未知阶段）')} 帧 {probe.get('frame', '?')}{suffix}")
+            probes = []
     if probes:
         using = payload.get("usedComponentLibrary", True)
         lines.append("组件契约：" + ("" if using else "（网页未使用组件库，已跳过）"))

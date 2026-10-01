@@ -1,4 +1,9 @@
-"""配音和字幕回归：服务替身提供真实可解码音频，常规测试不访问网络。"""
+"""配音和字幕回归：服务替身提供真实可解码音频，常规测试不访问网络。
+
+入口只接受分镜 v4，因此本模块的夹具与清单断言都按 v4 契约构造与校验：
+顶层 ``stages`` / ``resolvedBeats`` / ``cues`` / ``standardCheck``，
+阶段帧数由 prepare 按**实际语音时长**派生。
+"""
 from __future__ import annotations
 
 import json
@@ -11,15 +16,21 @@ from pathlib import Path
 import pytest
 
 from a2v import media as media_mod
-from a2v import audio, cli, prepare as prep, storyboard as sb
+from a2v import audio, beats, cli, prepare as prep, storyboard_v4
 from a2v.errors import A2VError
 from a2v.media import load_media
 from a2v.subtitles import cues_from_words, srt
 from a2v.http_server import LocalServer
-from conftest import EXAMPLES_DIR
+from conftest import make_project, v4_storyboard
+
+#: v4 示例：conftest 里的 EXAMPLES_DIR（why-effort-fails）仍是 v3，入口已拒绝
+V4_EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "darts-trial-and-error" / "storyboard.json"
+
+#: v4 骨架里每个阶段声明的帧数；实际时长由 prepare 重新派生
+DECLARED_STAGE_FRAMES = 400
 
 
-def tone(path, duration=2):
+def tone(path, duration=2.0):
     with wave.open(str(path), "wb") as stream:
         stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
         samples = (int(2000 * math.sin(2 * math.pi * 440 * n / 24000)) for n in range(round(duration * 24000)))
@@ -28,83 +39,97 @@ def tone(path, duration=2):
 
 @pytest.fixture
 def speech(monkeypatch):
+    """替换 edge-tts：记录调用并生成可解码音轨，时长口径与 conftest 一致。
+
+    语速按中文标准口播的常见节奏（每字约 0.25 秒）折算：v4 的 prepare 用
+    **实际语音时长**派生每个阶段，太快会让合规的 130～170 字口播落进
+    35 秒以下的实际时长不合格。这里单独定义而不是直接用 conftest 的同名
+    夹具，是因为本模块还要按调用次数断言「哪种变化让缓存失效」。
+    """
     calls = []
     async def fake(text, voice, rate, output):
         calls.append((text, voice, rate))
-        tone(output)
         tokens = re.findall(r"[\w\u4e00-\u9fff]", text)
-        return [{"text": token, "start": .1 + i * .025, "end": .12 + i * .025} for i, token in enumerate(tokens)]
+        tone(output, 0.3 + len(tokens) * 0.25)
+        return [{"text": token, "start": .1 + i * .25, "end": .2 + i * .25} for i, token in enumerate(tokens)]
     monkeypatch.setattr(prep, "synthesize", fake)
     return calls
 
 
 @pytest.fixture
-def prepared(tmp_path, valid_script, speech):
-    valid_script["scenes"][0]["durationInFrames"] = 30
-    valid_script["scenes"][1]["durationInFrames"] = 60
-    valid_script["scenes"][1].pop("narrationSegments", None)
-    valid_script["scenes"][1].pop("beats", None)
-    valid_script["scenes"][1]["motions"] = []
-    valid_script["scenes"][1]["camera"]["segments"] = [
-        {"kind": "hold", "phase": "establish", "focus": "copy", "intensity": 0}
-    ]
-    valid_script["scenes"][0]["narrationSegments"] = [
-        {"id": "n1", "text": "你好，", "beatId": "b1"},
-        {"id": "n2", "text": "世界。", "beatId": "b2"},
-    ]
-    source = tmp_path / "videos" / "demo" / "storyboard.json"
-    source.parent.mkdir(parents=True)
-    source.write_text(json.dumps(valid_script, ensure_ascii=False), encoding="utf-8")
+def prepared(tmp_path, valid_script_v4, speech):
+    """规范项目结构里的 v4 分镜，prepare 一次后返回（源分镜, 媒体清单）。"""
+    article = make_project(tmp_path, "videos", "demo", valid_script_v4)
+    source = article / "storyboard.json"
     path = prep.prepare(source, tmp_path / "media")
     return source, path
 
 
-def test_extension_silence_and_fingerprint(prepared):
+def test_stage_frames_derive_from_actual_speech(prepared):
+    """阶段帧数按实际语音时长派生，源分镜声明的时长不被改写。"""
     source, path = prepared
     media = load_media(path, source)
-    assert media.storyboard.scenes[0].duration_in_frames == 69
-    assert media.storyboard.scenes[1].duration_in_frames == 60
-    assert media.data["scenes"][1]["audio"] is None
-    assert json.loads(source.read_text(encoding="utf-8"))["scenes"][0]["durationInFrames"] == 30
-    assert audio.wav_duration(media.audio) == 4.3
+    declared = json.loads(source.read_text(encoding="utf-8"))["stages"]
+    assert [stage["durationInFrames"] for stage in declared] == [DECLARED_STAGE_FRAMES] * 3
+    for stage_data, stage in zip(media.data["stages"], media.storyboard.stages):
+        # 实际时长 = ceil(语音秒数 × fps) + 固定阅读余量
+        speech_seconds = audio.wav_duration(path.parent / stage_data["audio"])
+        assert stage.duration_in_frames == math.ceil(speech_seconds * media.storyboard.fps) + beats.STABLE_READING_FRAMES
+    assert media.storyboard.total_frames == sum(s["durationInFrames"] for s in media.data["stages"])
+    assert media.data["standardCheck"]["actualDurationInFrames"] == media.storyboard.total_frames
+    assert media.data["standardCheck"]["durationStatus"] == "pass"
+    assert audio.wav_duration(media.audio) == pytest.approx(
+        media.storyboard.total_frames / media.storyboard.fps, abs=1 / 24000
+    )
+    # 阶段尾部多出的阅读余量是静音：全片音轨不得靠拉长口播凑时长
     with wave.open(str(media.audio), "rb") as stream:
-        stream.setpos(24000 * 3)
-        assert not any(stream.readframes(24000))
-    assert [c["text"] for c in media.data["cues"]] == ["你好，", "世界。"]
+        total = stream.getnframes()
+        stream.setpos(total - 4800)
+        assert not any(stream.readframes(4800))
+        stream.setpos(total - 12000)
+        assert any(stream.readframes(4000))
+    # 字幕文本与源分镜的分段口播逐字一致
+    assert "".join(cue["text"] for cue in media.data["cues"]) == "".join(
+        segment["text"] for stage in declared for segment in stage["narrationSegments"]
+    )
 
 
-def test_version_two_without_sound_settings_remains_readable(prepared):
+# 原用例「version 2 清单去掉声音字段后仍可读」描述的是已删除的 v3 兼容行为：
+# load_media 现在只接受 version 4，旧清单一律要求重新 prepare，因此该用例删除。
+
+
+@pytest.mark.parametrize("version", [1, 2, 3])
+def test_legacy_manifest_versions_are_rejected(prepared, version):
+    """v1–v3 清单不再读取：入口只认 v4，并要求按 v4 契约重新 prepare。"""
     source, path = prepared
-    data = json.loads(path.read_text(encoding="utf-8"))
-    data["version"] = 2
-    for key in ("soundFingerprint", "soundAssets", "narration"):
-        data.pop(key)
-    path.write_text(json.dumps(data), encoding="utf-8")
-    assert load_media(path, source).storyboard.total_frames == 129
+    original = json.loads(path.read_text(encoding="utf-8"))
+    for mutate in (
+        lambda data: data.update(version=version),
+        lambda data: data["source"].update(version=version, schemaVersion=version),
+    ):
+        data = json.loads(json.dumps(original))
+        mutate(data)
+        path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        with pytest.raises(A2VError, match="重新 prepare"):
+            load_media(path, source)
 
 
 def test_cache_reuse_text_voice_rate_and_force(prepared, speech):
     source, path = prepared
+    assert len(speech) == 3  # 三个阶段各合成一次
     prep.prepare(source, path.parent)
-    assert len(speech) == 1
+    assert len(speech) == 3  # 文本、音色、语速都没变：全部命中缓存
     data = json.loads(source.read_text(encoding="utf-8"))
-    data["scenes"][1]["beats"] = [
-        {"id": "b1", "action": "establish", "targets": ["copy"], "meaning": "重新进入主题"},
-        {"id": "b2", "action": "transform", "targets": ["copy"], "meaning": "完成结论转折"},
-    ]
-    data["scenes"][1]["narrationSegments"] = [
-        {"id": "n1", "text": "继续。", "beatId": "b1"},
-        {"id": "n2", "text": "结束。", "beatId": "b2"},
-    ]
+    data["stages"][1]["narrationSegments"][0]["text"] = "每次记录落点，也要顺便记下修正的方向。"
     source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     prep.prepare(source, path.parent)
-    assert len(speech) == 2
+    assert len(speech) == 4  # 只有改过口播的那个阶段重新合成
     prep.prepare(source, path.parent, voice="another-voice")
-    assert len(speech) == 4
+    assert len(speech) == 7
     prep.prepare(source, path.parent, rate="+10%")
-    assert len(speech) == 6
+    assert len(speech) == 10
     prep.prepare(source, path.parent, force=True)
-    assert len(speech) == 8
+    assert len(speech) == 13
 
 
 def test_corrupt_cache_regenerated(prepared, speech):
@@ -112,30 +137,35 @@ def test_corrupt_cache_regenerated(prepared, speech):
     cache = next((path.parent / "cache").glob("*.wav"))
     cache.write_bytes(b"broken")
     prep.prepare(source, path.parent)
-    assert len(speech) == 2
+    assert len(speech) == 4  # 只有校验和不符的那个阶段重新合成
 
 
 def test_stale_manifest_rejected(prepared):
     source, path = prepared
     data = json.loads(source.read_text(encoding="utf-8"))
     data["title"] = "changed"
-    source.write_text(json.dumps(data), encoding="utf-8")
+    source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(A2VError, match="重新 prepare"):
         load_media(path, source)
-    assert cli.main_render(["--out", "out.mp4", "--media", str(path), "--storyboard", str(source)]) == 1
+    assert cli.main_render(["--out", str(source.parent / "out.mp4"), "--media", str(path),
+                            "--storyboard", str(source)]) == 1
 
 
-@pytest.mark.parametrize("change", ["duration", "cues", "audio"])
+@pytest.mark.parametrize("change", ["duration", "cues", "audio", "standardCheck", "resolvedBeats"])
 def test_invalid_manifest(prepared, change):
     source, path = prepared
     data = json.loads(path.read_text(encoding="utf-8"))
     if change == "duration":
-        data["scenes"][0]["durationInFrames"] = -1
+        data["stages"][0]["durationInFrames"] = -1
     elif change == "cues":
         data["cues"][0]["end"] = 100
-    else:
+    elif change == "audio":
         data["audio"] = "../escape.wav"
-    path.write_text(json.dumps(data), encoding="utf-8")
+    elif change == "standardCheck":
+        data["standardCheck"]["durationStatus"] = "fail"
+    else:
+        data["resolvedBeats"][0]["targets"] = ["nowhere"]
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(A2VError):
         load_media(path, source)
 
@@ -181,14 +211,23 @@ def test_prepare_cli_invalid_input(tmp_path):
 
 @pytest.fixture
 def example_media(tmp_path, speech):
-    return load_media(prep.prepare(EXAMPLES_DIR / "storyboard.json", tmp_path / "media"))
+    return load_media(prep.prepare(V4_EXAMPLE, tmp_path / "media"))
 
 
 @pytest.mark.parametrize("narration", [None, 1, {}, []])
-def test_narration_type_is_checked(valid_script, narration):
-    valid_script["scenes"][0]["narration"] = narration
-    report = sb.validate(valid_script)
-    assert any(i.path == "scenes[0].narration" for i in report.errors)
+def test_narration_field_is_rejected_in_v4(valid_script_v4, narration):
+    """v4 用 narrationSegments 取代幕级 narration：声明该字段一律报错。"""
+    valid_script_v4["stages"][0]["narration"] = narration
+    report = storyboard_v4.validate(valid_script_v4)
+    assert any(i.path == "stages[0].narration" for i in report.errors)
+
+
+@pytest.mark.parametrize("narration", [None, 1, {}])
+def test_narration_segments_type_is_checked(narration):
+    script = v4_storyboard()
+    script["stages"][0]["narrationSegments"] = narration
+    report = storyboard_v4.validate(script)
+    assert any("narrationSegments 与 beats 必须是数组" in i.message for i in report.errors)
 
 
 def test_validate_media_command(prepared):
@@ -231,17 +270,20 @@ def test_missing_timestamps_does_not_publish(prepared, monkeypatch):
     assert path.read_bytes() == before
 
 
-def test_effective_storyboard_uses_extended_durations(prepared):
+def test_effective_storyboard_uses_media_timeline(prepared):
     """有效分镜的时长必须来自媒体清单，源分镜保持声明时长不变。"""
     source, path = prepared
     media = load_media(path, source)
     effective = media_mod.effective_storyboard(media)
     source_data = json.loads(source.read_text(encoding="utf-8"))
-    assert source_data["scenes"][0]["durationInFrames"] == 30
-    assert effective["scenes"][0]["durationInFrames"] == 69
-    assert [s["durationInFrames"] for s in effective["scenes"]] == [
-        s["durationInFrames"] for s in media.data["scenes"]
+    # v4 把派生时间轴收进 mediaTimeline：顶层仍是源分镜快照，时长不被改写
+    assert effective["stages"] == source_data["stages"]
+    assert [s["durationInFrames"] for s in effective["mediaTimeline"]["stages"]] == [
+        s["durationInFrames"] for s in media.data["stages"]
     ]
+    assert sum(s["durationInFrames"] for s in effective["mediaTimeline"]["stages"]) == media.storyboard.total_frames
+    assert effective["mediaTimeline"]["resolvedBeats"] == media.data["resolvedBeats"]
+    assert effective["subtitleCues"] == media.data["cues"]
 
 
 def test_write_effective_storyboard_defaults_to_media_dir(prepared):
@@ -252,7 +294,8 @@ def test_write_effective_storyboard_defaults_to_media_dir(prepared):
     assert written.parent == path.parent
     assert written.name == "storyboard.effective.json"
     data = json.loads(written.read_text(encoding="utf-8"))
-    assert sum(s["durationInFrames"] for s in data["scenes"]) == media.storyboard.total_frames
+    assert sum(s["durationInFrames"] for s in data["mediaTimeline"]["stages"]) == media.storyboard.total_frames
+    assert data["subtitleCues"] == media.data["cues"]
     custom = path.parent / "elsewhere"
     assert media_mod.write_effective_storyboard(media, custom).parent == custom
 
@@ -280,16 +323,16 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     def fake_metadata(**kwargs):
         props = Path(kwargs["props"])
         captured["props"] = props
-        captured["props_scenes"] = json.loads(props.read_text(encoding="utf-8"))["scenes"]
+        captured["props_timeline"] = json.loads(props.read_text(encoding="utf-8"))["mediaTimeline"]["stages"]
         return CompositionMetadata(
             fps=30, width=1080, height=1920, duration_in_frames=media.storyboard.total_frames
         )
 
     def fake_render_frames(**kwargs):
         # 渲染发生在临时目录存续期间：props 的内容只能在这里读
-        captured["render_props_scenes"] = json.loads(
+        captured["render_timeline"] = json.loads(
             Path(kwargs["props"]).read_text(encoding="utf-8")
-        )["scenes"]
+        )["mediaTimeline"]["stages"]
 
     def fake_finalize(**kwargs):
         kwargs["output_path"].write_bytes(b"mp4")
@@ -301,17 +344,16 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     monkeypatch.setattr(render_mod, "_finalize_output", fake_finalize)
     monkeypatch.setattr(render_mod, "_write_provenance", lambda *args, **kwargs: None)
 
-    bundle_storyboard = Path(__file__).resolve().parents[1] / "examples" / "declarative-number" / "storyboard.json"
     result = render_mod.render_with_remotion(
         output=output,
-        storyboard=sb._build(media.data["source"], sb.Report()),
-        storyboard_path=bundle_storyboard,
+        storyboard=media.storyboard,
+        storyboard_path=source,
         media=media,
     )
 
     assert result.frames == media.storyboard.total_frames
-    assert sum(s["durationInFrames"] for s in captured["props_scenes"]) == media.storyboard.total_frames
-    assert captured["render_props_scenes"] == captured["props_scenes"]
-    assert captured["bundle_storyboard"] == bundle_storyboard
-
-
+    # props 是临时目录里的派生分镜（带媒体时间轴），打包仍是原始分镜
+    assert captured["props"] != source
+    assert sum(s["durationInFrames"] for s in captured["props_timeline"]) == media.storyboard.total_frames
+    assert captured["render_timeline"] == captured["props_timeline"]
+    assert captured["bundle_storyboard"] == source

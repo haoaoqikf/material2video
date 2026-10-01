@@ -25,6 +25,27 @@ def test_review_summary_prints_the_sheet_it_wrote(tmp_path) -> None:
     assert "contact-sheet-media.png" not in cli._review_summary(payload, tmp_path)
 
 
+def test_v4_review_summary_prints_world_probe_rows_without_v3_fields(tmp_path) -> None:
+    payload = {
+        "frameCount": 2,
+        "summary": {"errors": 0, "warnings": 0},
+        "contract": [
+            {"stage": "opening", "frame": 12, "ok": True, "issues": []},
+            {"stage": "closing", "frame": 24, "ok": False, "issues": ["object probe missing"]},
+        ],
+    }
+    rendered = cli._review_summary(payload, tmp_path)
+    assert "opening 帧 12" in rendered
+    assert "✓" in rendered
+    assert "closing 帧 24；object probe missing" in rendered
+    assert "✗" in rendered
+
+
+def test_v4_animation_review_summary_reports_unsupported_as_pending() -> None:
+    rendered = cli._animation_review_lines({"status": "pending", "message": "尚未适配 v4"})
+    assert rendered == ["动画论证 A 系列：待评审——尚未适配 v4"]
+
+
 def test_run_inspect_accepts_an_explicit_sheet_name() -> None:
     """文件名是参数而不是写死的常量：否则两条时间轴必然互相覆盖。"""
     import inspect as inspect_lib

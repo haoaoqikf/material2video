@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli, paths, storyboard as sb
+from a2v import cli, paths, storyboard_v4
 from a2v.errors import A2VError
 
 from conftest import SKILL_MARKER, make_project
@@ -99,9 +99,9 @@ class TestContentRootResolution:
         assert found.workspace_root == repo.resolve()
         assert found.output_dir == repo / "videos" / "examples" / "demo" / "outputs"
 
-    def test_storyboard_in_content_root_resolves_the_same_article(self, tmp_path, valid_script):
+    def test_storyboard_in_content_root_resolves_the_same_article(self, tmp_path, valid_script_v4):
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         source = content / "videos" / "demo" / "storyboard.json"
         assert paths.for_storyboard(source, content).output_dir == content / "videos" / "demo" / "outputs"
         assert paths.for_page(
@@ -125,27 +125,29 @@ class TestContentRootReachesTheEntryPoints:
             ["--storyboard", str(content / "videos" / "demo" / "storyboard.json"), *extra]
         )
 
-    def test_cli_argument_selects_the_content_root(self, tmp_path, valid_script):
+    def test_cli_argument_selects_the_content_root(self, tmp_path, valid_script_v4):
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         args = self._render_args(content, "--content-root", str(content))
         article = cli._article_for(args, required=True)
-        model, report = sb.load(args.storyboard)
-        assert report.ok and model is not None
+        # 入口只接受 v4：这里按 v4 校验并建模，与 main_render 的第一步一致
+        report = storyboard_v4.validate(valid_script_v4)
+        assert report.ok, [issue.format() for issue in report.issues]
+        model = cli._v4_model(valid_script_v4)
         output = cli._resolve_render_output(args, model, None, article)
         assert output == content / "videos" / "demo" / "outputs" / "silent.mp4"
 
-    def test_environment_variable_reaches_the_entry_point(self, tmp_path, valid_script, monkeypatch):
+    def test_environment_variable_reaches_the_entry_point(self, tmp_path, valid_script_v4, monkeypatch):
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         args = self._render_args(content)
         article = cli._article_for(args, required=True)
         assert article.output_dir == content / "videos" / "demo" / "outputs"
 
-    def test_cli_argument_beats_environment(self, tmp_path, valid_script, monkeypatch):
+    def test_cli_argument_beats_environment(self, tmp_path, valid_script_v4, monkeypatch):
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         elsewhere = tmp_path / "elsewhere"
         elsewhere.mkdir()
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(elsewhere))
@@ -154,21 +156,28 @@ class TestContentRootReachesTheEntryPoints:
             content.resolve()
         )
 
-    def test_missing_content_root_is_reported_not_guessed(self, tmp_path, valid_script, caplog):
-        """声明式路径少了内容根：报错说明怎么设，不落到猜测的路径上。"""
+    def test_missing_content_root_is_reported_not_guessed(self, tmp_path, valid_script_v4, caplog):
+        """声明式路径少了内容根：报错说明怎么设，不落到猜测的路径上。
+
+        入口只接受 v4 分镜，因此这里用 v4 夹具——它必须走到路径推导那一步，
+        报出「没有内容根」而不是停在「不支持旧分镜」。
+        """
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         assert cli.main_render(["--storyboard", str(content / "videos" / "demo" / "storyboard.json")]) == 1
         assert paths.CONTENT_ROOT_ENV in caplog.text
         assert not (content / "outputs").exists()
         assert not (tmp_path / "repo" / "outputs").exists()
+        # 作品目录与仓库两侧都不许出现猜测出来的产物目录
+        assert not (content / "videos" / "demo" / "outputs").exists()
+        assert not (tmp_path / "repo" / "videos" / "demo" / "outputs").exists()
 
-    def test_declarative_serve_root_follows_the_workspace(self, tmp_path, valid_script):
+    def test_declarative_serve_root_follows_the_workspace(self, tmp_path, valid_script_v4):
         """共享页面在仓库里、分镜在内容根里：静态根必须是内容根。"""
         from a2v.render import _default_serve_root
 
         make_repo(tmp_path)
-        content = make_content_root(tmp_path, script=valid_script)
+        content = make_content_root(tmp_path, script=valid_script_v4)
         page = content / "videos" / "demo" / "index.html"
         assert _default_serve_root(page, content) == paths.for_page(page, content).workspace_root
         assert _default_serve_root(page, content) == content.resolve()

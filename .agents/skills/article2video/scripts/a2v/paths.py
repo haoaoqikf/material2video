@@ -29,8 +29,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from . import storyboard as sb
 from .errors import A2VError
+from .media import V4Storyboard
 
 logger = logging.getLogger(__name__)
 
@@ -301,15 +301,13 @@ def for_storyboard(
     return article_paths(repo, source, content_root)
 
 
-def declares_narration(model: sb.Storyboard) -> bool:
+def declares_narration(model: V4Storyboard) -> bool:
     """分镜是否声明了任何一段口播。
 
     只用于选择产物文件名与提示，不会自动触发联网配音：有声渲染仍须显式
     传入 `--media`。
     """
-    if hasattr(model, "stages"):
-        return bool(getattr(model, "has_narration", False))
-    return any((scene.narration or "").strip() for scene in model.scenes)
+    return bool(getattr(model, "has_narration", False))
 
 
 def use_voiced_name(declares_voice: bool, with_media: bool) -> bool:

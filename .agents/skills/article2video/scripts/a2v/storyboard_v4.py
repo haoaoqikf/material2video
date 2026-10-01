@@ -6,7 +6,7 @@ from typing import Any
 
 from . import catalog
 from .article_text import count_characters
-from .storyboard import Report, _validate_node_content, _validate_node_props
+from .storyboard import Report, _validate_node_content, _validate_node_props, _validate_visual_intent
 
 _ID = re.compile(r"^[A-Za-z0-9_-]+$")
 _ROOT = {"version", "schemaVersion", "directingVersion", "fps", "width", "height", "title",
@@ -28,6 +28,23 @@ def _id(value: Any) -> bool:
 
 def _one(value: Any, allowed: set[str]) -> bool:
     return isinstance(value, str) and value in allowed
+
+
+def _bounded_int(value: Any, low: int, high: int) -> bool:
+    return type(value) is int and low <= value <= high
+
+
+def _sound_asset(item: dict, path: str, allowed: set[str], report: Report) -> None:
+    """声音素材的路径与增益规则与 v3 契约一致：本地相对路径，增益 −60–0 dB。"""
+    from . import sound
+
+    _fields(item, allowed, path, report)
+    if not sound.local_ref(item.get("sourceRef")):
+        report.error(path + ".sourceRef", "必须是分镜目录内本地相对路径")
+    gain = item.get("gainDb")
+    if "gainDb" in item and (type(gain) not in (int, float) or isinstance(gain, bool)
+                             or not -60 <= gain <= 0):
+        report.error(path + ".gainDb", "增益必须为 −60 至 0 dB")
 
 
 def _binding(value: Any, path: str, report: Report, stages: set[str], beats: set[str]) -> None:
@@ -165,7 +182,9 @@ def validate(data: Any) -> Report:
         report.error("$", "脚本根节点必须是 JSON 对象")
         return report
     if data.get("version") != 4 or data.get("schemaVersion") != 4:
-        report.error("version", "v4 契约仅接受 version: 4 与 schemaVersion: 4；v1–v3 需重新编排")
+        # 旧分镜只回一条可执行的诊断：入口不迁移、不补齐，也不继续按 v4 逐字段报错。
+        report.error("version", "不支持 v4 之前分镜；请按分镜 v4 契约重新编排")
+        return report
     if data.get("directingVersion") != 2:
         report.error("directingVersion", "v4 必须声明 directingVersion: 2")
     _fields(data, _ROOT, "", report)
@@ -306,6 +325,10 @@ def validate(data: Any) -> Report:
             report.error(path + ".data", "必须是对象")
         if "visualIntent" not in stage or not isinstance(stage.get("visualIntent"), dict):
             report.error(path + ".visualIntent", "每个 stage 必须声明 visualIntent")
+        else:
+            # 与 v3 同一套受控词汇：Python 校验通过的分镜不能在契约页被 zod 拒绝，
+            # 否则预览、评审与渲染会在挂载前失败，且错误信息不指向分镜字段。
+            _validate_visual_intent(stage["visualIntent"], path + ".visualIntent", report)
         if "narration" in stage:
             report.error(path + ".narration", "v4 使用 narrationSegments")
         segments = stage.get("narrationSegments", [])
@@ -344,8 +367,16 @@ def validate(data: Any) -> Report:
             if not isinstance(segment, dict):
                 report.error(segment_path, "口播段必须是对象")
                 continue
+            _fields(segment, {"id", "text", "beatId", "speech"}, segment_path, report)
+            if "speech" in segment:
+                # 整段口播一次合成：逐段语速与停顿没有参与时间轴的计算，
+                # 静默忽略会让作者以为参数生效，这里直接拒绝。
+                report.error(segment_path + ".speech",
+                             "v4 按整段口播统一语速合成，不再支持逐段 speech")
             if not _id(segment.get("id")):
                 report.error(segment_path + ".id", "口播段 id 必须是安全标识符")
+            if not isinstance(segment.get("text"), str) or not segment["text"].strip():
+                report.error(segment_path + ".text", "口播段必须声明文本")
             beat_id = segment.get("beatId")
             if not isinstance(beat_id, str) or beat_id not in local_beats:
                 report.error(segment_path + ".beatId", "口播段必须引用本 stage 中存在的 beat")
@@ -469,17 +500,30 @@ def validate(data: Any) -> Report:
             report.error("soundtrack", "必须是对象")
         else:
             _fields(soundtrack, {"music", "effects"}, "soundtrack", report)
+            music = soundtrack.get("music")
+            if music is not None:
+                _sound_asset(music, "soundtrack.music",
+                             {"sourceRef", "gainDb", "loop", "fadeInMs", "fadeOutMs"}, report)
+                if "loop" in music and not isinstance(music["loop"], bool):
+                    report.error("soundtrack.music.loop", "必须是布尔值")
+                for key in ("fadeInMs", "fadeOutMs"):
+                    if key in music and not _bounded_int(music[key], 0, 60000):
+                        report.error("soundtrack.music." + key, "淡入淡出必须为 0–60000ms 整数")
             effects = soundtrack.get("effects", [])
             if not isinstance(effects, list):
                 report.error("soundtrack.effects", "必须是数组")
+            elif len(effects) > 128:
+                report.error("soundtrack.effects", "音效最多 128 项")
             else:
                 for index, effect in enumerate(effects):
                     path = f"soundtrack.effects[{index}]"
                     if not isinstance(effect, dict):
                         report.error(path, "效果声明必须是对象")
                         continue
-                    _fields(effect, {"sourceRef", "stageId", "beatId", "offsetMs", "gainDb"}, path, report)
+                    _sound_asset(effect, path, {"sourceRef", "stageId", "beatId", "offsetMs", "gainDb"}, report)
                     if (not isinstance(effect.get("stageId"), str) or effect.get("stageId") not in stages
                             or not isinstance(effect.get("beatId"), str) or effect.get("beatId") not in beats):
                         report.error(path, "必须引用有效的全局 stage 与 beat")
+                    if "offsetMs" in effect and not _bounded_int(effect["offsetMs"], -60000, 60000):
+                        report.error(path + ".offsetMs", "偏移必须为 ±60000ms 内整数")
     return report

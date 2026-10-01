@@ -55,4 +55,10 @@ describe('storyboard v4 world/stages contract', () => {
   it.each(vectors.invalid)('rejects $name', ({ mutation }) => {
     expect(storyboardV4Schema.safeParse(mutate(mutation)).success).toBe(false);
   });
+
+  it('rejects per-segment speech instead of ignoring it', () => {
+    const value = structuredClone(vectors.valid) as any;
+    value.stages[0].narrationSegments[0].speech = { rate: '+10%' };
+    expect(storyboardV4Schema.safeParse(value).success).toBe(false);
+  });
 });

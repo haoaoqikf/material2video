@@ -436,6 +436,26 @@ class TestV3Contract:
         assert any(issue.path.endswith("visualIntent") for issue in ordinary.errors)
 
 
+class TestV4Narrative:
+    def test_one_persistent_tree_world_is_not_counted_as_many_text_scenes(self):
+        raw = {
+            "version": 4, "schemaVersion": 4,
+            "world": {"id": "world", "renderer": {"kind": "tree"}, "sceneTree": _chart_tree("world")},
+            "stages": [
+                {"id": "a", "visualIntent": {"mode": "chart"}},
+                {"id": "b", "visualIntent": {"mode": "chart"}},
+                {"id": "c", "visualIntent": {"mode": "chart"}},
+            ],
+        }
+        result = vn.analyze(raw)
+        gates = vn.review_gates(result)
+        assert result["singleScene"] is True
+        assert result["stageCount"] == 3
+        assert result["sceneCount"] == 1
+        assert gates["v1"]["status"] == "pass"
+        assert gates["v3"]["required"] == 0
+
+
 # ---------------------------------------------------------------------------
 # 2.1 review 的 V1–V5 闸门结构
 # ---------------------------------------------------------------------------

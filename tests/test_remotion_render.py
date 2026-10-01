@@ -82,12 +82,15 @@ def test_prepare_composition_entry_ignores_article_scenes(tmp_path, monkeypatch)
     scenes.write_text("export default () => null;", encoding="utf-8")
     storyboard = article / "storyboard.json"
     storyboard.write_text(json.dumps(_minimal_storyboard(), ensure_ascii=False), encoding="utf-8")
-    # 清单生成需要前端工程环境；入口写入本身在这里单独验证（生成器
-    # 的行为由 tests/test_scene_manifest.py 用真实 web/ 覆盖）
-    monkeypatch.setattr(scene_manifest, "generate", lambda **_kwargs: None)
+    # 清单生成需要前端工程环境；入口本身不写任何 composition 代码，
+    # 生成器的行为由 tests/test_scene_manifest.py 用真实 web/ 覆盖。
+    calls = []
+    monkeypatch.setattr(scene_manifest, "generate", lambda **kwargs: calls.append(kwargs) or tmp_path / "scenes.ts")
     target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
-    assert target == web / remotion.GENERATED_ENTRY
-    assert "A2VComposition" in target.read_text(encoding="utf-8")
+    assert target == tmp_path / "scenes.ts"
+    assert calls and calls[0]["storyboard_path"] == storyboard
+    # 构建期不再写死 composition：页面按分镜声明的契约版本在运行时选择实现。
+    assert not (web / ".gen").exists()
 
 
 def test_prepare_composition_entry_requires_storyboard(tmp_path):
@@ -98,18 +101,19 @@ def test_prepare_composition_entry_requires_storyboard(tmp_path):
     storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
     with pytest.raises(A2VError, match="分镜读取失败"):
         remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
-    # 共享入口仍然先写好（它不依赖分镜内容）
-    assert "A2VComposition" in (web / remotion.GENERATED_ENTRY).read_text(encoding="utf-8")
+    assert not (web / ".gen").exists()
 
 
-def test_prepare_composition_entry_selects_v4_world_root(tmp_path, monkeypatch):
+def test_composition_selection_does_not_depend_on_the_build(tmp_path, monkeypatch):
+    """同一份构建产物要能服务任意作品：入口不再按分镜版本改写生成代码。"""
     web = tmp_path / "web"
-    storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
-    storyboard.parent.mkdir(parents=True)
-    storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4}), encoding="utf-8")
-    monkeypatch.setattr(scene_manifest, "generate", lambda **_kwargs: None)
-    target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
-    assert "A2VCompositionV4 as ActiveComposition" in target.read_text(encoding="utf-8")
+    monkeypatch.setattr(scene_manifest, "generate", lambda **_kwargs: tmp_path / "scenes.ts")
+    for version in (3, 4):
+        storyboard = tmp_path / f"examples/demo{version}" / "storyboard.json"
+        storyboard.parent.mkdir(parents=True)
+        storyboard.write_text(json.dumps({"version": version, "schemaVersion": version}), encoding="utf-8")
+        remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    assert not (web / ".gen").exists()
 
 
 def test_missing_node_modules_reports_the_install_command(tmp_path):

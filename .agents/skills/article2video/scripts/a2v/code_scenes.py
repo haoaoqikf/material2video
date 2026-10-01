@@ -106,13 +106,17 @@ def check_export(path: Path) -> tuple[int, str] | None:
 
 
 def iter_code_scenes(data: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any], str]]:
-    """遍历 v3 幕级或 v4 全片 code 模块，产出 (分镜路径, 声明, 模块标识)。"""
+    """遍历 v3 幕级或 v4 全片 code 模块，产出 (声明归属路径, 声明, 模块标识)。
+
+    归属路径是**声明所在的对象**（v4 是 `world`，v3 是 `scenes[i]`）：调用方
+    统一补 `.renderer.module`，避免 v4 出现 `world.renderer.renderer.module`。
+    """
     world = data.get("world")
     if isinstance(world, dict):
         renderer = world.get("renderer")
         if isinstance(renderer, dict) and renderer.get("kind") == "code":
             module = renderer.get("module")
-            yield "world.renderer", world, module if isinstance(module, str) else ""
+            yield "world", world, module if isinstance(module, str) else ""
     scenes = data.get("scenes")
     if not isinstance(scenes, list):
         return

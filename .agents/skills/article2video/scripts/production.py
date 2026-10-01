@@ -10,9 +10,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from a2v import article_text, paths, production  # noqa: E402
-from a2v.cli import _force_utf8_output  # noqa: E402
+from a2v import storyboard_v4  # noqa: E402
+from a2v.cli import _force_utf8_output, _v4_model  # noqa: E402
 from a2v.errors import A2VError  # noqa: E402
-from a2v.storyboard import load as load_storyboard  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,18 +38,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         location = args.storyboard or args.article
         article = paths.for_storyboard(location, args.content_root)
-        raw = json.loads(Path(args.storyboard).read_text(encoding="utf-8")) if args.storyboard else {"scenes": []}
+        raw = json.loads(Path(args.storyboard).read_text(encoding="utf-8")) if args.storyboard else {"stages": []}
         if args.media is None and args.command != "keyframes" and article.media_manifest.is_file():
             args.media = str(article.media_manifest)
         model = None
         if args.storyboard:
-            if isinstance(raw, dict) and raw.get("version") == 4:
-                from a2v import storyboard_v4
-                from a2v.cli import _v4_model
-                report = storyboard_v4.validate(raw)
-                model = _v4_model(raw) if report.ok else None
-            else:
-                model, report = load_storyboard(args.storyboard)
+            # 入口只接受 v4：旧分镜在这里就被拒绝，不迁移、不降级。
+            report = storyboard_v4.validate(raw)
+            model = _v4_model(raw) if report.ok else None
             if model is None:
                 raise A2VError("分镜校验失败：" + "；".join(item.format() for item in report.errors))
         record_file = production.record_path(article)

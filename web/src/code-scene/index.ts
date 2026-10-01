@@ -88,7 +88,7 @@ export interface A2VWorldInfo {
 }
 
 /** 当前阶段在全片时间轴上的上下文，不创建阶段独立渲染宿主。 */
-export interface A2VStageInfo<Data = unknown> {
+export interface A2VStageInfo<Data = Record<string, unknown>> {
   id: string;
   data: Data;
   startFrame: number;

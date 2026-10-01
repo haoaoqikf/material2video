@@ -323,6 +323,8 @@ def analyze(storyboard: dict[str, Any], media: dict[str, Any] | None = None) -> 
     时长取**清单里的派生时长**——场景可能被 TTS 拉长，结尾余量要按实际
     长度算，否则 A5 会把「派生后其实很宽裕」的幕报成余量不足。
     """
+    if storyboard.get("version") == 4 and storyboard.get("schemaVersion") == 4:
+        raise ValueError("动画论证 A 系列目前只支持 v3 幕级时间轴；v4 全片评审由调用入口明确标记 pending")
     if storyboard.get("version") != 3 or storyboard.get("schemaVersion") != 3 or (
         isinstance(storyboard.get("scenes"), list)
         and any(isinstance(scene, dict) and "narration" in scene for scene in storyboard["scenes"])

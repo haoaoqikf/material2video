@@ -228,6 +228,55 @@ def analyze(data: dict[str, Any]) -> dict[str, Any]:
     输出始终带 ``ruleVersion``；预算结论列出分子、分母、上限与场景 id，
     供严格校验与 review 的 V 系列共用同一口径。
     """
+    if data.get("version") == 4 and data.get("schemaVersion") == 4:
+        world = data.get("world") if isinstance(data.get("world"), dict) else {}
+        stages = [item for item in data.get("stages", []) if isinstance(item, dict)]
+        renderer = world.get("renderer") if isinstance(world.get("renderer"), dict) else {}
+        scene = {
+            "id": str(world.get("id", "world")),
+            "renderer": renderer,
+            "sceneTree": world.get("sceneTree"),
+            "visualIntent": {
+                "mode": next((item.get("visualIntent", {}).get("mode") for item in stages
+                               if isinstance(item.get("visualIntent"), dict)), None),
+            },
+        }
+        # One persistent world is one visual argument. Stages are time labels,
+        # not independent shots, and must not inflate text-scene diversity budgets.
+        analyses = [analyze_scene(scene)]
+        scene_count = 1
+        # A persistent tree with an argument-bearing structure (e.g. a graph
+        # or chart) is not a text slide merely because labels accompany it.
+        text_ids = ([analyses[0]["id"]] if analyses[0]["isTextScene"]
+                    and analyses[0]["structuralClass"] == "text" else [])
+        non_text_modes = sorted({
+            item.get("visualIntent", {}).get("mode") for item in stages
+            if isinstance(item.get("visualIntent"), dict)
+            and item.get("visualIntent", {}).get("mode") not in (None, TEXT_MODE)
+        })
+        adjacent_pairs: list[list[str]] = []
+        contradictions = [
+            {"id": analyses[0]["id"], "declaredMode": analyses[0]["declaredMode"],
+             "evidence": analyses[0]["evidence"]}
+        ] if analyses[0]["contradictsDeclaration"] else []
+        limit = math.ceil(scene_count * TEXT_SCENE_RATIO)
+        required_modes = 0
+        findings = []
+        if text_ids:
+            findings.append({"rule": "text-scene-budget", "scenes": text_ids,
+                             "detail": {"actual": 1, "limit": limit, "sceneCount": 1}})
+        for item in contradictions:
+            findings.append({"rule": "declaration-structure-conflict", "scenes": [item["id"]],
+                             "detail": {"declaredMode": item["declaredMode"], "evidence": item["evidence"]}})
+        return {
+            "ruleVersion": RULE_VERSION, "sceneCount": 1,
+            "scenes": [{**analyses[0], "reason": _text_scene_reason(scene, analyses[0])}],
+            "textScenes": text_ids, "budget": {"actual": len(text_ids), "limit": limit, "sceneCount": 1},
+            "adjacentTextPairs": adjacent_pairs, "nonTextModes": non_text_modes,
+            "modeCoverage": {"actual": len(non_text_modes), "required": 0, "modes": non_text_modes},
+            "contradictions": contradictions, "findings": findings,
+            "singleScene": True, "stageCount": len(stages),
+        }
     scenes = [scene for scene in data.get("scenes", []) if isinstance(scene, dict)]
     analyses = [analyze_scene(scene) for scene in scenes]
     scene_count = len(analyses)
