@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from a2v import paths, production  # noqa: E402
+from a2v import article_text, paths, production  # noqa: E402
 from a2v.cli import _force_utf8_output  # noqa: E402
 from a2v.errors import A2VError  # noqa: E402
 from a2v.storyboard import load as load_storyboard  # noqa: E402
@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="production.py", description="查询制作阶段或输出 production.json 模板")
-    parser.add_argument("command", choices=("status", "template", "keyframes", "samples", "rehearsal"))
+    parser.add_argument("command", choices=("status", "template", "input-review", "keyframes", "samples", "rehearsal"))
     parser.add_argument("--storyboard", required=True)
     parser.add_argument("--media")
     parser.add_argument("--content-root")
@@ -35,6 +35,34 @@ def main(argv: list[str] | None = None) -> int:
         if model is None:
             raise A2VError("分镜校验失败：" + "；".join(item.format() for item in report.errors))
         record_file = production.record_path(article)
+        if args.command == "input-review":
+            current = production.current_fingerprints(args.storyboard, None, article)
+            source = article.source_dir / "article.md"
+            if not source.is_file():
+                raise A2VError(f"缺少输入文章：{source}")
+            try:
+                review = article_text.review_for_file(source, article.workspace_root)
+            except (OSError, UnicodeError, ValueError) as exc:
+                raise A2VError(f"无法审查输入文章：{exc}") from exc
+            if record_file.is_file():
+                try:
+                    record = json.loads(record_file.read_text(encoding="utf-8"))
+                except (OSError, ValueError) as exc:
+                    raise A2VError(f"无法读取制作记录 {record_file}: {exc}") from exc
+                if not isinstance(record, dict):
+                    raise A2VError("制作记录必须是 JSON 对象")
+            else:
+                record = production.initialize_template(raw, current, review)
+                record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
+            record["inputReview"] = review
+            record.setdefault("fingerprints", {})["input"] = review["source"]["sha256"]
+            record_file.parent.mkdir(parents=True, exist_ok=True)
+            temporary = record_file.with_suffix(record_file.suffix + ".tmp")
+            temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            temporary.replace(record_file)
+            print(json.dumps({"record": str(record_file), "inputReview": review}, ensure_ascii=False, indent=2))
+            print("请 AI 阅读 article.md，在 production.json 中补全 singleScene 与 assessment；长度失败时先给出修改意见和候选稿，然后停止。")
+            return 0
         stale_media = False
         try:
             current = production.current_fingerprints(args.storyboard, args.media, article)
@@ -47,7 +75,9 @@ def main(argv: list[str] | None = None) -> int:
             current = production.current_fingerprints(args.storyboard, None, article)
             current["media"] = "stale"
         if args.command == "template":
-            record = production.initialize_template(raw, current)
+            source = article.source_dir / "article.md"
+            input_review = article_text.review_for_file(source, article.workspace_root) if source.is_file() else None
+            record = production.initialize_template(raw, current, input_review)
             record["materialRoot"] = os.path.relpath(article.workspace_root.resolve(), record_file.parent.resolve())
             payload = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
             if args.out:

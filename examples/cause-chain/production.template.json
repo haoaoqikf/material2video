@@ -252,5 +252,23 @@
     "samples": null,
     "rehearsal": null
   },
-  "rework": []
+  "rework": [],
+  "inputReview": {
+    "countingVersion": 1,
+    "source": {
+      "path": "examples/cause-chain/article.md",
+      "sha256": "a231548d99d5aa2f88c5ef741adcf02d7a7181410ce380f45af93bbe12cbb7fa"
+    },
+    "charCount": 173,
+    "lengthStatus": "fail",
+    "singleScene": {
+      "status": "pending",
+      "claim": "",
+      "metaphor": "",
+      "problemSpans": [],
+      "rationale": ""
+    },
+    "status": "fail",
+    "assessment": null
+  }
 }

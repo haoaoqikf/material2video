@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Iterable
 
-from . import paths, remotion
+from . import article_text, paths, remotion
 from .errors import A2VError
 from .media import file_digest, fingerprint
 from .media import load_media
@@ -42,14 +42,29 @@ def current_fingerprints(storyboard_path: str | Path, media_path: str | Path | N
             raise A2VError(f"媒体清单不存在：{manifest}")
         media = load_media(manifest, source)
         media_digest = fingerprint({"manifest": file_digest(manifest), "audio": file_digest(media.audio)})
-    return {"storyboard": raw_storyboard, "assets": assets, "media": media_digest}
+    result: dict[str, str | None] = {"storyboard": raw_storyboard, "assets": assets, "media": media_digest}
+    article_source_dir = getattr(article, "source_dir", None)
+    article_path = Path(article_source_dir) / "article.md" if article_source_dir is not None else None
+    if article_path is not None and article_path.is_file():
+        _, result["input"] = article_text.read_source(article_path)
+    return result
 
 
-def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None]) -> dict[str, Any]:
+def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None],
+             input_review: dict[str, Any] | None = None) -> dict[str, Any]:
     scene_ids = [str(item.get("id", "")) for item in storyboard.get("scenes", [])]
     return {
         "version": RECORD_VERSION,
         "fingerprints": fingerprints,
+        "inputReview": input_review or {
+            "countingVersion": article_text.COUNTING_VERSION,
+            "source": {"path": "article.md", "sha256": "0" * 64},
+            "charCount": 0,
+            "lengthStatus": "fail",
+            "singleScene": {"status": "pending", "claim": "", "metaphor": "", "problemSpans": [], "rationale": ""},
+            "status": "fail",
+            "assessment": None,
+        },
         "direction": {
             "keyScenes": {"opening": "", "core": "", "climax": ""},
             "pace": "",
@@ -68,8 +83,9 @@ def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None]) ->
     }
 
 
-def initialize_template(storyboard: dict[str, Any], fingerprints: dict[str, str | None]) -> dict[str, Any]:
-    result = template(storyboard, fingerprints)
+def initialize_template(storyboard: dict[str, Any], fingerprints: dict[str, str | None],
+                        input_review: dict[str, Any] | None = None) -> dict[str, Any]:
+    result = template(storyboard, fingerprints, input_review)
     result["reviews"]["keyScenes"] = {
         scene_id: {
             "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": "", "assessment": None},
@@ -132,6 +148,26 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
     if not isinstance(fingerprints, dict) or any(not isinstance(fingerprints.get(key), str) or not fingerprints[key]
                                                  for key in ("storyboard", "assets")):
         fail("fingerprints", "必须包含非空 storyboard 与 assets 指纹")
+    input_review = value.get("inputReview")
+    if not isinstance(input_review, dict):
+        fail("inputReview", "必须记录输入文章审查")
+    source = input_review.get("source")
+    if (not isinstance(source, dict) or not isinstance(source.get("path"), str) or not source["path"].strip()
+            or not isinstance(source.get("sha256"), str) or len(source["sha256"]) != 64
+            or any(char not in "0123456789abcdef" for char in source["sha256"].lower())):
+        fail("inputReview.source", "必须包含工作区相对路径及 SHA-256 摘要")
+    source_path = Path(source["path"])
+    if source_path.is_absolute() or ".." in source_path.parts:
+        fail("inputReview.source.path", "必须是工作区内的相对路径")
+    if type(input_review.get("charCount")) is not int or input_review["charCount"] < 0:
+        fail("inputReview.charCount", "必须是非负整数")
+    if input_review.get("countingVersion") != article_text.COUNTING_VERSION:
+        fail("inputReview.countingVersion", "字数规则版本不匹配，须重新审查")
+    expected_review_status = article_text.review_status(input_review, fingerprints.get("input"))
+    if input_review.get("status") not in {"pass", "fail", "pending"}:
+        fail("inputReview.status", "只接受 pass、fail 或 pending")
+    if input_review["status"] != expected_review_status:
+        fail("inputReview.status", f"与字数、语义结论或输入摘要不一致；应为 {expected_review_status}")
     direction = value.get("direction")
     if not isinstance(direction, dict):
         fail("direction", "必须是对象")
@@ -306,6 +342,32 @@ def _material_root(record: dict[str, Any], record_file: str | Path | None) -> Pa
     return (Path(record_file).resolve().parent / relative).resolve()
 
 
+def _input_review_issue(record: dict[str, Any], current: dict[str, str | None],
+                        record_file: str | Path | None) -> str | None:
+    review = record.get("inputReview")
+    status = article_text.review_status(review, current.get("input"))
+    if status == "fail":
+        return "输入文章审查未通过；请保留原文、提供修改意见与候选稿，明确采用后重新审查"
+    if status != "pass":
+        return "输入文章审查缺失、待评审或已过期；先完成长度与单场景适配审查"
+    if record_file is None:
+        return None
+    root = _material_root(record, record_file)
+    if root is None:
+        return "制作记录缺少 materialRoot，无法验证输入文章来源"
+    relative = Path(review["source"]["path"])
+    source = (root / relative).resolve()
+    if not source.is_relative_to(root) or not source.is_file():
+        return "输入文章来源路径无效或文件已缺失；请重新审查"
+    try:
+        text, digest = article_text.read_source(source)
+    except (OSError, UnicodeError):
+        return "输入文章无法读取；请修复原文后重新审查"
+    if digest != review["source"]["sha256"] or article_text.count_characters(article_text.extract_body(text)) != review["charCount"]:
+        return "输入文章已变化，原审查失效；请重新审查"
+    return None
+
+
 def _material_issue(review: dict[str, Any], kind: str, materials: dict[str, Any],
                     material_root: Path | None, current: dict[str, str | None], where: str) -> str | None:
     assessment = review.get("assessment")
@@ -398,9 +460,12 @@ def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | 
     except A2VError as exc:
         return str(exc)
     stored = record["fingerprints"]
-    changed = [key for key in ("storyboard", "assets") if current.get(key) is not None and stored.get(key) != current.get(key)]
+    changed = [key for key in ("storyboard", "assets", "input") if current.get(key) is not None and stored.get(key) != current.get(key)]
     if changed:
-        return f"制作评审已过期（输入变化：{'、'.join(changed)}）；请更新指纹、重新生成材料并复评"
+        return f"制作评审已过期（输入变化：{'、'.join(changed)}）；请重新审查输入、更新指纹并复评"
+    issue = _input_review_issue(record, current, record_file)
+    if issue:
+        return issue
     material_root = _material_root(record, record_file)
     content = record["reviews"]["full"].get("content")
     if not isinstance(content, dict) or content.get("status") != "pass":
@@ -449,11 +514,24 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
     if not isinstance(record, dict):
         return [{"stage": "制作记录", "status": "blocked", "detail": "production.json 必须是 JSON 对象",
                  "nextCommand": "重新生成 production.json 模板并恢复记录结构"}]
+    input_status = article_text.review_status(record.get("inputReview"), current.get("input"))
+    input_issue = _input_review_issue(record, current, record_file)
+    if input_issue and input_status == "pass":
+        input_status = "stale"
+    input_detail = {
+        "pass": "输入长度、语义审查与来源摘要有效",
+        "fail": "输入不符合标准；保留原文并提供修改意见及候选，待明确采用",
+        "pending": "待 AI 阅读原文并填写核心观点、视觉隐喻、依据和来源",
+        "stale": input_issue or "输入原文变化，须重新审查",
+    }[input_status]
+    rows.append({"stage": "输入文章审查", "status": input_status, "detail": input_detail,
+                 "nextCommand": "production.py input-review --storyboard <分镜>" if input_status != "pass" else "已通过"})
     plan = record.get("direction")
     known = {str(item.get("id", "")) for item in storyboard.get("scenes", [])}
     if not isinstance(plan, dict) or not isinstance(plan.get("keyScenes"), dict):
-        return [{"stage": "制作记录", "status": "blocked", "detail": "direction.keyScenes 缺失",
-                 "nextCommand": "重新生成 production.json 模板并填写导演规划"}]
+        rows.append({"stage": "制作记录", "status": "blocked", "detail": "direction.keyScenes 缺失",
+                     "nextCommand": "重新生成 production.json 模板并填写导演规划"})
+        return rows
     missing_roles = [role for role in ("opening", "core", "climax")
                      if not isinstance(plan["keyScenes"].get(role), str)
                      or not plan["keyScenes"].get(role)
@@ -546,9 +624,12 @@ def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current:
         return str(exc)
     # status uses the same checks as render without creating or mutating a file.
     stored = record.get("fingerprints", {})
-    changed = [key for key in ("storyboard", "assets") if current.get(key) is not None and stored.get(key) != current.get(key)]
+    changed = [key for key in ("storyboard", "assets", "input") if current.get(key) is not None and stored.get(key) != current.get(key)]
     if changed:
         return f"评审已过期：{'、'.join(changed)}"
+    issue = _input_review_issue(record, current, record_file)
+    if issue:
+        return issue
     for scene_id in set(record["direction"]["keyScenes"].values()):
         review = record["reviews"]["keyScenes"].get(scene_id, {})
         if any(review.get(kind, {}).get("status") != "pass" for kind in ("static", "dynamic")):

@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import pytest
 from types import SimpleNamespace
 from pathlib import Path
 
 from a2v import production
+from a2v import article_text
 from a2v.errors import A2VError
 from conftest import make_project
 
 
 def _ready_record() -> dict:
     storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
-    value = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": "m"})
+    digest = "d" * 64
+    input_review = {
+        "countingVersion": article_text.COUNTING_VERSION,
+        "source": {"path": "article.md", "sha256": digest}, "charCount": 140,
+        "lengthStatus": "pass",
+        "singleScene": {"status": "pass", "claim": "逐步试错", "metaphor": "飞镖靶",
+                        "problemSpans": [], "rationale": "人物、飞镖与靶可持续存在，状态推进论证"},
+        "status": "pass", "assessment": {"reviewer": "ai", "model": "test", "session": "test"},
+    }
+    value = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": "m"}, input_review)
     value["materials"] = {
         name: {"path": f"outputs/{name}", "sha256": {"keyframes": "a", "samples": "b", "rehearsal": "c"}[name] * 64,
                "fingerprints": {"storyboard": "s", "assets": "a", "media": "m"}}
@@ -42,6 +53,18 @@ def _passing_review(full: bool = False) -> dict:
                            "materials": {material_name: {"keyframes": "a", "samples": "b", "rehearsal": "c"}[material_name] * 64}},
         }
     return reviews
+
+
+def _bind_test_input(record: dict, root: Path) -> None:
+    article_dir = root / "videos" / "demo"
+    article_dir.mkdir(parents=True, exist_ok=True)
+    source = article_dir / "article.md"
+    body = "x" * 140
+    source.write_text(body, encoding="utf-8")
+    digest = hashlib.sha256(body.encode()).hexdigest()
+    record["inputReview"]["source"] = {"path": "videos/demo/article.md", "sha256": digest}
+    record["fingerprints"]["input"] = digest
+    record["materialRoot"] = os.path.relpath(root, article_dir)
 
 
 def test_template_deduplicates_key_scene_review_slots() -> None:
@@ -81,6 +104,29 @@ def test_gate_blocks_stale_inputs_and_open_required_rework() -> None:
     current = {"storyboard": "s", "assets": "a", "media": "m"}
     assert production.gate_for_status(record, storyboard, {**current, "assets": "changed"}) == "评审已过期：assets"
     assert production.gate_for_status(record, storyboard, current) == "存在未解决的必改项"
+
+
+def test_input_review_blocks_missing_evidence_fail_and_changed_source() -> None:
+    storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
+    record = _ready_record()
+    current = record["fingerprints"]
+    assert production.gate_for_status(record, storyboard, current) is None
+    record["inputReview"]["singleScene"]["status"] = "pending"
+    record["inputReview"]["status"] = "pending"
+    assert "待评审" in production.gate_for_status(record, storyboard, current)
+    record = _ready_record()
+    record["inputReview"]["singleScene"]["status"] = "fail"
+    record["inputReview"]["status"] = "fail"
+    assert "未通过" in production.gate_for_status(record, storyboard, current)
+    record = _ready_record()
+    assert "过期" in production.gate_for_status(record, storyboard, {**current, "input": "e" * 64})
+
+
+def test_input_review_requires_workspace_relative_source() -> None:
+    record = _ready_record()
+    record["inputReview"]["source"]["path"] = "../article.md"
+    with pytest.raises(A2VError, match=r"inputReview.source.path.*相对路径"):
+        production.validate_record(record, {"open", "core", "close"})
 
 
 def test_gate_blocks_failed_key_scene_and_full_review() -> None:
@@ -204,9 +250,9 @@ def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:
     storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
     record = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": None})
     rows = production.status_rows(record, storyboard, {"storyboard": "s", "assets": "a", "media": None})
-    assert rows[0]["stage"] == "导演规划"
-    assert rows[0]["status"] == "pending"
-    assert "AI 助手" in rows[0]["nextCommand"]
+    assert rows[0]["stage"] == "输入文章审查"
+    assert rows[0]["status"] == "fail"
+    assert any(row["stage"] == "导演规划" and "AI 助手" in row["nextCommand"] for row in rows)
 
 
 def test_all_stages_pass_accepts_both_success_spellings() -> None:
@@ -260,6 +306,7 @@ def test_gate_blocks_unregistered_or_stale_visual_material(tmp_path: Path) -> No
     material = root / "outputs" / "keyframes.png"
     material.parent.mkdir()
     material.write_bytes(b"original")
+    _bind_test_input(record, root)
     import hashlib
     digest = hashlib.sha256(b"original").hexdigest()
     record["materialRoot"] = os.path.relpath(root, record_dir)
@@ -285,6 +332,7 @@ def test_sample_manifest_tracks_and_checks_video_file_digest(tmp_path: Path) -> 
     manifest = video.parent / "samples.json"
     manifest.write_text(json.dumps({"outputs": [{"file": video.name}]}), encoding="utf-8")
     record = _ready_record()
+    _bind_test_input(record, root)
     keyframes = root / "outputs" / "keyframes.png"
     keyframes.write_bytes(b"keyframe")
     keyframes_digest = hashlib.sha256(b"keyframe").hexdigest()
