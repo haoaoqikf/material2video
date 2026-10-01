@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from . import catalog
+from .article_text import count_characters
 from .storyboard import Report, _validate_node_content, _validate_node_props
 
 _ID = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -282,6 +283,8 @@ def validate(data: Any) -> Report:
     if not isinstance(stages_value, list) or not stages_value:
         report.error("stages", "必须声明非空叙事阶段数组")
         stages_value = []
+    total_frames = 0
+    narration_parts: list[str] = []
     for index, stage in enumerate(stages_value):
         path = f"stages[{index}]"
         if not isinstance(stage, dict):
@@ -297,6 +300,8 @@ def validate(data: Any) -> Report:
             stages.add(stage_id)
         if type(stage.get("durationInFrames")) is not int or stage["durationInFrames"] <= 0:
             report.error(path + ".durationInFrames", "必须是正整数")
+        else:
+            total_frames += stage["durationInFrames"]
         if not isinstance(stage.get("data"), dict):
             report.error(path + ".data", "必须是对象")
         if "visualIntent" not in stage or not isinstance(stage.get("visualIntent"), dict):
@@ -308,6 +313,9 @@ def validate(data: Any) -> Report:
         if not isinstance(segments, list) or not isinstance(stage_beats, list):
             report.error(path, "narrationSegments 与 beats 必须是数组")
             continue
+        for segment in segments:
+            if isinstance(segment, dict) and isinstance(segment.get("text"), str):
+                narration_parts.append(segment["text"])
         local_beats: set[str] = set()
         for beat_index, beat in enumerate(stage_beats):
             beat_path = f"{path}.beats[{beat_index}]"
@@ -341,6 +349,15 @@ def validate(data: Any) -> Report:
             beat_id = segment.get("beatId")
             if not isinstance(beat_id, str) or beat_id not in local_beats:
                 report.error(segment_path + ".beatId", "口播段必须引用本 stage 中存在的 beat")
+
+    if isinstance(fps, int) and not isinstance(fps, bool) and fps > 0:
+        if total_frames < 35 * fps or total_frames > 45 * fps:
+            report.error("stages", f"声明全片时长 {total_frames / fps:.2f} 秒，必须在 35～45 秒（含边界）")
+    narration_count = count_characters("".join(narration_parts))
+    if narration_count == 0:
+        report.error("stages", "标准作品必须有完整口播，静音不能豁免篇幅要求")
+    elif not 130 <= narration_count <= 170:
+        report.error("stages", f"最终口播为 {narration_count} 字，必须在 130～170 字")
 
     camera = world.get("camera")
     if not isinstance(camera, dict):

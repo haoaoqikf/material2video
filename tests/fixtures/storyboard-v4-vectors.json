@@ -17,30 +17,64 @@
     "directingBrief": {
       "thesis": "低成本高频试错",
       "audienceShift": "从怕失败转向快速反馈",
-      "emotionalArc": ["hesitant", "clear"],
+      "emotionalArc": [
+        "hesitant",
+        "clear"
+      ],
       "visualMotif": "飞镖靶",
       "stylePack": "cinematic",
       "avoid": []
     },
-    "visual": { "theme": "dark", "preset": "keynote" },
+    "visual": {
+      "theme": "dark",
+      "preset": "keynote"
+    },
     "world": {
       "id": "dart-world",
       "claim": "低成本试错缩短反馈周期",
       "metaphor": "人物连续向靶投掷飞镖",
       "objects": [
-        { "id": "player", "role": "primary", "description": "持续投掷的人物" },
-        { "id": "dart", "role": "supporting", "description": "每次试验的飞镖" },
-        { "id": "target", "role": "supporting", "description": "接受反馈的靶" }
+        {
+          "id": "player",
+          "role": "primary",
+          "description": "持续投掷的人物"
+        },
+        {
+          "id": "dart",
+          "role": "supporting",
+          "description": "每次试验的飞镖"
+        },
+        {
+          "id": "target",
+          "role": "supporting",
+          "description": "接受反馈的靶"
+        }
       ],
-      "renderer": { "kind": "tree" },
-      "data": { "headline": "快速反馈" },
+      "renderer": {
+        "kind": "tree"
+      },
+      "data": {
+        "headline": "快速反馈"
+      },
       "sceneTree": {
         "id": "root",
         "type": "group",
         "children": [
-          { "id": "player", "type": "shape", "shape": "circle" },
-          { "id": "dart", "type": "shape", "shape": "line" },
-          { "id": "target", "type": "shape", "shape": "ring" }
+          {
+            "id": "player",
+            "type": "shape",
+            "shape": "circle"
+          },
+          {
+            "id": "dart",
+            "type": "shape",
+            "shape": "line"
+          },
+          {
+            "id": "target",
+            "type": "shape",
+            "shape": "ring"
+          }
         ]
       },
       "stateTracks": [],
@@ -51,15 +85,25 @@
         "depth": "layered",
         "focus": "target",
         "segments": [
-          { "id": "opening-hold", "kind": "hold", "binding": { "stageId": "opening", "phase": "establish" }, "focus": "player" }
+          {
+            "id": "opening-hold",
+            "kind": "hold",
+            "binding": {
+              "stageId": "opening",
+              "phase": "establish"
+            },
+            "focus": "player"
+          }
         ]
       }
     },
     "stages": [
       {
         "id": "opening",
-        "durationInFrames": 105,
-        "data": { "headline": "先投一次" },
+        "durationInFrames": 1050,
+        "data": {
+          "headline": "先投一次"
+        },
         "visualIntent": {
           "relation": "sequence",
           "focus": "shape",
@@ -73,25 +117,87 @@
           "motionMeaning": "投掷代表一次低成本试验"
         },
         "narrationSegments": [
-          { "id": "line-1", "text": "先用一次小尝试换来反馈。", "beatId": "throw-1" }
+          {
+            "id": "line-1",
+            "text": "反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。反馈。",
+            "beatId": "throw-1"
+          }
         ],
         "beats": [
-          { "id": "throw-1", "action": "connect", "targets": ["player", "dart", "target"], "meaning": "投掷产生反馈" }
+          {
+            "id": "throw-1",
+            "action": "connect",
+            "targets": [
+              "player",
+              "dart",
+              "target"
+            ],
+            "meaning": "投掷产生反馈"
+          }
         ]
       }
     ]
   },
   "invalid": [
-    { "name": "v3-root", "mutation": "version-v3" },
-    { "name": "duplicate-stage-id", "mutation": "duplicate-stage" },
-    { "name": "unknown-root-field", "mutation": "unknown-root" },
-    { "name": "stage-renderer", "mutation": "stage-renderer" },
-    { "name": "stage-transition", "mutation": "stage-transition" },
-    { "name": "duplicate-beat-id", "mutation": "duplicate-beat" },
-    { "name": "missing-track-baseline", "mutation": "missing-track-baseline" },
-    { "name": "track-target-type-mismatch", "mutation": "track-target-type" },
-    { "name": "invalid-track-beat", "mutation": "invalid-track-beat" },
-    { "name": "overlapping-track-property", "mutation": "overlapping-track" },
-    { "name": "illegal-track-interpolation", "mutation": "illegal-interpolation" }
+    {
+      "name": "v3-root",
+      "mutation": "version-v3"
+    },
+    {
+      "name": "duplicate-stage-id",
+      "mutation": "duplicate-stage"
+    },
+    {
+      "name": "unknown-root-field",
+      "mutation": "unknown-root"
+    },
+    {
+      "name": "stage-renderer",
+      "mutation": "stage-renderer"
+    },
+    {
+      "name": "stage-transition",
+      "mutation": "stage-transition"
+    },
+    {
+      "name": "duplicate-beat-id",
+      "mutation": "duplicate-beat"
+    },
+    {
+      "name": "missing-track-baseline",
+      "mutation": "missing-track-baseline"
+    },
+    {
+      "name": "track-target-type-mismatch",
+      "mutation": "track-target-type"
+    },
+    {
+      "name": "invalid-track-beat",
+      "mutation": "invalid-track-beat"
+    },
+    {
+      "name": "overlapping-track-property",
+      "mutation": "overlapping-track"
+    },
+    {
+      "name": "illegal-track-interpolation",
+      "mutation": "illegal-interpolation"
+    },
+    {
+      "name": "40-second-171-character-narration",
+      "mutation": "length-171"
+    },
+    {
+      "name": "under-35-seconds",
+      "mutation": "duration-short"
+    },
+    {
+      "name": "over-45-seconds",
+      "mutation": "duration-long"
+    },
+    {
+      "name": "silent-only",
+      "mutation": "silent-only"
+    }
   ]
 }

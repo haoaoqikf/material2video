@@ -24,6 +24,10 @@ function mutate(name: string): Record<string, unknown> {
     const track = { id: 'track-a', target: 'player', property: 'state', binding: { beatId: 'throw-1' }, to: 'focus', interpolation: 'step-end' };
     value.world.stateTracks = name === 'overlapping-track' ? [track, { ...track, id: 'track-b', to: 'done' }] : [{ ...track, interpolation: 'linear' }];
   }
+  else if (name === 'length-171') { value.stages[0].durationInFrames = 1200; value.stages[0].narrationSegments[0].text = '甲'.repeat(171); }
+  else if (name === 'duration-short') value.stages[0].durationInFrames = 34 * value.fps;
+  else if (name === 'duration-long') value.stages[0].durationInFrames = 46 * value.fps;
+  else if (name === 'silent-only') { delete value.stages[0].narrationSegments; delete value.stages[0].beats; }
   return value;
 }
 
@@ -31,6 +35,14 @@ describe('storyboard v4 world/stages contract', () => {
   it('accepts the shared valid vector', () => {
     const parsed = storyboardV4Schema.safeParse(vectors.valid);
     expect(parsed.success, parsed.success ? '' : JSON.stringify(parsed.error.issues)).toBe(true);
+  });
+
+  it('accepts both declared duration boundaries', () => {
+    for (const seconds of [35, 45]) {
+      const value = structuredClone(vectors.valid) as any;
+      value.stages[0].durationInFrames = seconds * value.fps;
+      expect(storyboardV4Schema.safeParse(value).success).toBe(true);
+    }
   });
 
   it.each(vectors.invalid)('rejects $name', ({ mutation }) => {

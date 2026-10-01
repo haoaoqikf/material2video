@@ -39,6 +39,16 @@ def _mutate(name: str) -> dict:
             "binding": {"beatId": "throw-1"}, "to": "focus", "interpolation": "step-end"}
         if name == "overlapping-track": value["world"]["stateTracks"] = [track, {**track, "id": "track-b", "to": "done"}]
         else: value["world"]["stateTracks"] = [{**track, "interpolation": "linear"}]
+    elif name == "length-171":
+        value["stages"][0]["durationInFrames"] = 1200
+        value["stages"][0]["narrationSegments"][0]["text"] = "甲" * 171
+    elif name == "duration-short":
+        value["stages"][0]["durationInFrames"] = 34 * value["fps"]
+    elif name == "duration-long":
+        value["stages"][0]["durationInFrames"] = 46 * value["fps"]
+    elif name == "silent-only":
+        value["stages"][0].pop("narrationSegments")
+        value["stages"][0].pop("beats")
     return value
 
 
@@ -46,3 +56,12 @@ def test_shared_v4_contract_vectors() -> None:
     assert validate(VECTORS["valid"]).ok
     for case in VECTORS["invalid"]:
         assert not validate(_mutate(case["mutation"])).ok, case["name"]
+
+
+def test_declared_duration_boundaries_and_40_seconds_with_171_chars() -> None:
+    for seconds in (35, 45):
+        value = copy.deepcopy(VECTORS["valid"])
+        value["stages"][0]["durationInFrames"] = seconds * value["fps"]
+        assert validate(value).ok, seconds
+    messages = [issue.message for issue in validate(_mutate("length-171")).errors]
+    assert any("171 字" in message for message in messages)

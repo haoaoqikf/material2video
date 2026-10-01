@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { primitiveDefinition } from '@/registry';
+import { countArticleCharacters } from './articleText';
 import {
   beatSchema, directingBriefSchema, moduleSpecifierSchema, motionRecipeSchema, narrationSegmentSchema,
   sceneNodeSchema, staggerSchema, visualIntentSchema, type SceneNode,
@@ -117,6 +118,17 @@ export const storyboardV4Schema = z.object({
   visual: z.object({ theme: z.enum(['dark', 'light']), preset: z.literal('keynote') }).strict(),
   soundtrack: soundtrackSchema.optional(), world: worldSchema, stages: z.array(stageSchema).min(1),
 }).strict().superRefine((storyboard, ctx) => {
+  const totalFrames = storyboard.stages.reduce((sum, stage) => sum + stage.durationInFrames, 0);
+  if (totalFrames < 35 * storyboard.fps || totalFrames > 45 * storyboard.fps) {
+    ctx.addIssue({ code: 'custom', path: ['stages'], message: `声明全片时长为 ${(totalFrames / storyboard.fps).toFixed(2)} 秒，必须在 35～45 秒（含边界）` });
+  }
+  const narration = storyboard.stages.flatMap((stage) => stage.narrationSegments ?? []).map((segment) => segment.text).join('');
+  const narrationCount = countArticleCharacters(narration);
+  if (narrationCount === 0) {
+    ctx.addIssue({ code: 'custom', path: ['stages'], message: '标准作品必须有完整口播，静音不能豁免篇幅要求' });
+  } else if (narrationCount < 130 || narrationCount > 170) {
+    ctx.addIssue({ code: 'custom', path: ['stages'], message: `最终口播为 ${narrationCount} 字，必须在 130～170 字` });
+  }
   const objectIds = new Set<string>();
   storyboard.world.objects.forEach((object, index) => {
     if (objectIds.has(object.id)) ctx.addIssue({ code: 'custom', path: ['world', 'objects', index, 'id'], message: `重复 world object id: ${object.id}` });
