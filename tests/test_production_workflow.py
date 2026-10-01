@@ -283,7 +283,39 @@ def test_key_scene_status_marks_passed_reviews_stale_after_input_change() -> Non
 def test_key_scene_ranges_preserve_roles_and_merge_neighbor_context() -> None:
     scenes = [SimpleNamespace(id=name, duration_in_frames=30) for name in ("a", "b", "c", "d", "e")]
     ranges = production.key_scene_ranges(scenes, {"opening": "a", "core": "a", "climax": "b", "extra": "e"}, 30, 150)
-    assert ranges == [(0, 74, ["a", "b"], ["opening", "core", "climax"]), (105, 149, ["e"], ["extra"])]
+    assert ranges == [(0, 71, ["a", "b"], ["opening", "core", "climax"]), (108, 149, ["e"], ["extra"])]
+
+
+def test_key_scene_boundary_material_lists_clamped_global_frames_once_per_stage():
+    scenes = [SimpleNamespace(id=name, duration_in_frames=30) for name in ("a", "b", "c", "d", "e")]
+    boundaries = production.key_scene_boundary_frames(
+        scenes, {"opening": "a", "core": "a", "climax": "b", "extra": "e"}, 150)
+    assert [item["stageId"] for item in boundaries] == ["a", "b", "e"]
+    assert boundaries[0]["frames"] == [
+        {"position": "start", "globalFrame": 0},
+        {"position": "endBefore", "globalFrame": 28},
+        {"position": "afterEnd", "globalFrame": 30},
+    ]
+    assert [item["position"] for item in boundaries[1]["frames"]] == [
+        "beforeStart", "start", "endBefore", "afterEnd",
+    ]
+    assert boundaries[2]["frames"][-1] == {"position": "endBefore", "globalFrame": 148}
+
+
+def test_boundary_frames_bind_to_clip_and_preserve_global_and_local_indices():
+    boundaries = [{"stageId": "core", "frames": [
+        {"position": "beforeStart", "globalFrame": 18},
+        {"position": "start", "globalFrame": 19},
+    ]}]
+    clips = [{"file": "key-scenes-01.mp4", "sceneIds": ["open", "core"],
+              "startFrame": 7, "endFrame": 35}]
+    evidence = production.bind_boundary_frames(boundaries, clips)
+    assert evidence == [
+        {"stageId": "core", "sampleFile": "key-scenes-01.mp4", "globalFrame": 18,
+         "sampleFrame": 11, "position": "beforeStart"},
+        {"stageId": "core", "sampleFile": "key-scenes-01.mp4", "globalFrame": 19,
+         "sampleFrame": 12, "position": "start"},
+    ]
 
 
 def test_storyboard_fingerprint_changes_when_bytes_change(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -18,6 +18,7 @@ STATUSES = {"pass", "fail", "pending"}
 CONTINUITY_DIMENSIONS = (
     "worldConsistency", "identity", "stateCarry", "cameraContinuity", "resultReadability",
 )
+REVIEW_CONTEXT_FRAMES = 12
 REVIEW_DIMENSIONS = {
     "content": ("opening_question", "explanation_chain", "spoken_naturalness", "closing_response", "boundary_accuracy"),
     "static": ("subject_scale", "composition_repetition", "information_density", "visual_motif", "climax_weight"),
@@ -119,11 +120,12 @@ def _pending_dimensions(kind: str) -> dict[str, dict[str, str]]:
 
 
 def key_scene_ranges(scenes: Iterable[Any], roles: dict[str, str], fps: int, total_frames: int) -> list[tuple[int, int, list[str], list[str]]]:
-    """按全局帧号生成带半秒相邻上下文的关键幕区间，并合并重叠片段。"""
+    """按全局帧号为关键阶段前后夹取最多 12 帧，并合并重叠片段。"""
+    del fps  # 上下文是稳定帧数契约，不随帧率换算成不同帧数。
     scene_roles: dict[str, list[str]] = {}
     for role, scene_id in roles.items():
         scene_roles.setdefault(scene_id, []).append(role)
-    margin = round(fps * 0.5)
+    margin = REVIEW_CONTEXT_FRAMES
     raw: list[tuple[int, int, str]] = []
     cursor = 0
     for scene in scenes:
@@ -140,6 +142,47 @@ def key_scene_ranges(scenes: Iterable[Any], roles: dict[str, str], fps: int, tot
         else:
             merged.append((first, last, [scene_id], list(scene_roles[scene_id])))
     return merged
+
+
+def key_scene_boundary_frames(scenes: Iterable[Any], roles: dict[str, str],
+                              total_frames: int) -> list[dict[str, Any]]:
+    """列出关键阶段边界证据帧；越界位置不填充，开头/结尾自然缺帧。"""
+    selected = set(roles.values())
+    output: list[dict[str, Any]] = []
+    cursor = 0
+    for scene in scenes:
+        start = cursor
+        end = start + scene.duration_in_frames - 1
+        cursor = end + 1
+        if scene.id not in selected:
+            continue
+        frames = []
+        for label, frame in (("beforeStart", start - 1), ("start", start),
+                              ("endBefore", end - 1), ("afterEnd", end + 1)):
+            if 0 <= frame < total_frames and (label != "endBefore" or frame >= start):
+                frames.append({"position": label, "globalFrame": frame})
+        output.append({"stageId": scene.id, "startFrame": start, "endFrame": end, "frames": frames})
+    return output
+
+
+def bind_boundary_frames(boundaries: Iterable[dict[str, Any]], clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """把全局边界帧绑定到包含它的关键阶段样片及样片局部帧号。"""
+    evidence = []
+    for boundary in boundaries:
+        stage_id = boundary.get("stageId")
+        clip = next((item for item in clips if stage_id in item.get("sceneIds", [])), None)
+        if clip is None:
+            raise A2VError(f"关键阶段 {stage_id} 缺少包含边界帧的样片")
+        for frame in boundary.get("frames", []):
+            global_frame = frame.get("globalFrame")
+            if type(global_frame) is not int or not clip.get("startFrame", 0) <= global_frame <= clip.get("endFrame", -1):
+                raise A2VError(f"关键阶段 {stage_id} 的边界帧不在样片范围内：{global_frame}")
+            evidence.append({
+                "stageId": stage_id, "sampleFile": clip.get("file"),
+                "globalFrame": global_frame, "sampleFrame": global_frame - clip["startFrame"],
+                "position": frame.get("position"),
+            })
+    return evidence
 
 
 def load_record(path: str | Path, scene_ids: set[str]) -> dict[str, Any]:

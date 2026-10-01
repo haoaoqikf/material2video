@@ -218,9 +218,15 @@ def main(argv: list[str] | None = None) -> int:
                     return code
                 manifests.append({"file": target.name, "startFrame": first, "endFrame": last,
                                   "sceneIds": scene_ids, "roles": scene_roles})
+            boundary_evidence = []
+            if args.command == "samples":
+                boundary_evidence = production.bind_boundary_frames(production.key_scene_boundary_frames(
+                        media.storyboard.scenes, record["direction"]["keyScenes"],
+                        media.storyboard.total_frames), manifests)
             manifest_path = preview_dir / f"{args.command}.json"
             manifest_path.write_text(json.dumps({"purpose": "review", "fps": model.fps,
-                "totalFrames": media.storyboard.total_frames, "fingerprints": current,
+                "totalFrames": media.storyboard.total_frames, "contextFrames": production.REVIEW_CONTEXT_FRAMES,
+                "boundaryEvidence": boundary_evidence, "fingerprints": current,
                 "outputs": manifests}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             production.attach_material(record_file, article, args.command, manifest_path, current)
             print(f"评审材料清单：{manifest_path}")

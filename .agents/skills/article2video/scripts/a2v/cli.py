@@ -827,11 +827,7 @@ def main_review(argv: list[str] | None = None) -> int:
         {"status": "pending", "message": "v4 全片动画论证评审将在连续性评审任务中启用"}
         if is_v4 else _animation_review_payload(Path(args.storyboard), media, out_dir, combined)
     )
-    bespoke_animation_review = (
-        {"required": raw_storyboard.get("world", {}).get("renderer", {}).get("kind") == "code",
-         "status": "pending", "publishable": False, "message": "v4 定制动画评审将在连续性评审任务中启用"}
-        if is_v4 else _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
-    )
+    bespoke_animation_review = _bespoke_animation_review_payload(Path(args.storyboard), out_dir)
     aesthetic_review_result = (
         {"status": "pending", "findings": [], "message": "v4 持续场景审美与连续性评审尚未完成"}
         if is_v4 else aesthetic_review.analyze(raw_storyboard)
@@ -974,9 +970,9 @@ def _dynamic_review_template(scene_ids: list[str]) -> str:
     rows = "\n".join(f"| {scene_id} |  |  |  |  |  |  |" for scene_id in scene_ids)
     return (
         "\n\n## 定制动画动态评审\n\n"
-        "<!-- 使用代码场景时填写状态与每幕五项评分；依据须来自播放，标明时间或帧。 -->\n"
+        "<!-- 使用全片代码画面时填写状态与每阶段五项评分；依据须来自播放，标明时间或帧。 -->\n"
         "状态：待评审\n\n"
-        "| 场景 | 焦点清晰度 | 动作解释力 | 节奏变化 | 转场连贯性 | 结果可读性 | 依据 |\n"
+        "| 阶段 | 焦点清晰度 | 动作解释力 | 节奏变化 | 阶段衔接连贯性 | 结果可读性 | 依据 |\n"
         "| --- | ---: | ---: | ---: | ---: | ---: | --- |\n"
         f"{rows}\n"
     )
