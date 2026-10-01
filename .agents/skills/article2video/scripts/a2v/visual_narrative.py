@@ -4,7 +4,7 @@
 
 - 逐幕分类：场景声明了什么视觉模式（``visualIntent.mode``），场景树里有没有
   能承担论证的结构证据（图表、图片、连接关系、圆周关系布局）；
-- 全片预算：文字幕占比、连续文字幕、非文字模式覆盖、声明与结构矛盾。
+- 全片预算：文字幕占比、连续文字幕、非文字模式分布报告、声明与结构矛盾。
 
 它只回答「结构上像不像文字幻灯片」：读场景树与导演声明，不读文章正文，
 不调用模型，不对语义质量下结论——「图形是否真的承担论证」由 review 的
@@ -27,9 +27,8 @@ from pathlib import Path
 from typing import Any
 
 #: 规则版本：预算阈值或分类口径变化时递增，测试据此固定行为。
-#: 版本 2：结构证据扩到五个中层原语（flow / cycle / timeline / gauge / pictogram），
-#: 关系容器要求至少两个语义对象。
-RULE_VERSION = 2
+#: 版本 3：取消非文字模式的数量下限，允许持续单一视觉隐喻贯穿全片。
+RULE_VERSION = 3
 
 #: 受控视觉模式。``typography`` 表示主要论点依赖文字成立，是唯一的文字模式。
 VISUAL_MODES: tuple[str, ...] = (
@@ -46,10 +45,7 @@ TEXT_MODE = "typography"
 #: 文字幕占比上限（对场景数 × 占比向上取整）。
 TEXT_SCENE_RATIO = 0.30
 
-#: 非文字模式覆盖下限：八幕及以上 3 种，少于八幕 2 种。
-LONG_FILM_MIN_MODES = 3
-SHORT_FILM_MIN_MODES = 2
-LONG_FILM_SCENE_COUNT = 8
+#: 单场景叙事可由单一隐喻持续推进；模式数量只用于报告，不设最低配额。
 
 #: 结构证据类别。
 EVIDENCE_CHART = "chart"
@@ -222,7 +218,8 @@ def _text_scene_reason(scene: dict[str, Any], analysis: dict[str, Any]) -> str:
 
 
 def _mode_coverage_required(scene_count: int) -> int:
-    return LONG_FILM_MIN_MODES if scene_count >= LONG_FILM_SCENE_COUNT else SHORT_FILM_MIN_MODES
+    del scene_count  # 保留函数接口，避免预算报告调用方分叉。
+    return 0
 
 
 def analyze(data: dict[str, Any]) -> dict[str, Any]:
@@ -308,7 +305,7 @@ def analyze(data: dict[str, Any]) -> dict[str, Any]:
 def review_gates(analysis: dict[str, Any]) -> dict[str, Any]:
     """把全片分析整理成体检报告的 V1–V5 闸门结构。
 
-    V1–V4 是可判定的预算/覆盖/矛盾结论（与严格校验同一口径）；
+    V1、V2、V4 是可判定的硬门槛；V3 报告模式分布但不设通过下限；
     V5 是证据清单：列出全部结构判定的文字幕与判定依据，供人工在
     联系表上裁决，不参与退出码。
     """

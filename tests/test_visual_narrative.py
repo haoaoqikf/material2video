@@ -372,24 +372,22 @@ class TestBudgetRules:
         messages = [issue.message for issue in report.errors]
         assert any("相邻两幕均为文字幕" in message and "c、d" in message for message in messages)
 
-    def test_short_film_needs_two_non_text_modes(self):
-        # 3 幕、两种非文字模式：通过
+    def test_short_film_accepts_single_continuous_non_text_mode(self):
+        # 单一隐喻可以跨多个阶段持续推进，不要求凑够不同模式。
         report = sb.validate(_storyboard(_scene("a"), _chart_scene("b"), _connector_scene("c")), strict=True)
         assert report.ok, [issue.format() for issue in report.errors]
-        # 换成同一模式两次：失败
+        # 同一模式重复仍然通过；比例与连续文字检查仍独立生效。
         report = sb.validate(_storyboard(_scene("a"), _chart_scene("b"), _chart_scene("c")), strict=True)
-        assert not report.ok
-        assert any("少于 3 幕作品要求的 2 种" in issue.message for issue in report.errors)
+        assert report.ok, [issue.format() for issue in report.errors]
 
-    def test_long_film_needs_three_non_text_modes(self):
-        # 8 幕只有 chart + process 两种 → 失败
+    def test_long_film_does_not_need_multiple_non_text_modes(self):
+        # 长片只有 chart + process 两种，且文字幕比例和相邻规则合格 → 通过
         scenes = [
             _scene("t0"), _chart_scene("c0"), _scene("t1"), _connector_scene("p0"),
             _scene("t2"), _chart_scene("c1"), _connector_scene("p1"), _chart_scene("c2"),
         ]
         report = sb.validate(_storyboard(*scenes), strict=True)
-        assert not report.ok
-        assert any("要求的 3 种" in issue.message for issue in report.errors)
+        assert report.ok, [issue.format() for issue in report.errors]
 
         # 补上 cycle（radial）→ 三种模式齐备，预算与相邻规则也满足
         scenes.append(_radial_scene("r0"))
@@ -409,11 +407,10 @@ class TestBudgetRules:
         assert report.ok
         assert report.warnings == []
 
-    def test_single_scene_cannot_satisfy_mode_coverage(self):
-        # 边界：单幕分镜不可能满足「少于八幕至少两种非文字模式」
+    def test_single_scene_can_satisfy_mode_coverage(self):
+        # 单一视觉隐喻即使只出现一种非文字模式也可通过。
         report = sb.validate(_storyboard(_chart_scene("solo")), strict=True)
-        assert not report.ok
-        assert any("要求的 2 种" in issue.message for issue in report.errors)
+        assert report.ok, [issue.format() for issue in report.errors]
 
     def test_rule_version_is_reported(self):
         analysis = vn.analyze(_storyboard(_scene("a")))
@@ -465,9 +462,9 @@ class TestReviewGates:
         # 文字幕被证据幕隔开 → 无相邻
         assert gates["v2"]["status"] == "pass"
         assert gates["v2"]["pairs"] == []
-        # 非文字模式 {comparison(a 声明), chart, process, cycle} = 4 ≥ 2
+        # 非文字模式覆盖只报告实际值，不再设最低配额。
         assert gates["v3"]["status"] == "pass"
-        assert gates["v3"]["value"] == 4 and gates["v3"]["required"] == 2
+        assert gates["v3"]["value"] == 4 and gates["v3"]["required"] == 0
         assert gates["v3"]["modes"] == ["chart", "comparison", "cycle", "process"]
         # 只有场景 a 拿不出结构证据却声明了图形模式
         assert gates["v4"]["status"] == "fail"
@@ -799,4 +796,4 @@ class TestMidlevelStructureEvidence:
         assert not any(item["rule"] == "declaration-structure-conflict" for item in findings)
 
     def test_rule_version_bumped(self):
-        assert vn.RULE_VERSION == 2
+        assert vn.RULE_VERSION == 3
