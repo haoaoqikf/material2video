@@ -11,7 +11,7 @@ export interface CompiledCameraSegment {
   intensity: number; from: CameraPose; to: CameraPose;
 }
 export interface CameraTimelineV4 { segments: CompiledCameraSegment[]; initial: CameraPose }
-export interface CameraFrameV4 extends CameraPose { id: string | null; kind: CompiledCameraSegment['kind'] | 'hold'; focus: string; progress: number }
+export interface CameraFrameV4 extends CameraPose { id: string | null; kind: CompiledCameraSegment['kind'] | 'hold'; focus: string; progress: number; velocity: number }
 
 function bindingRange(binding: { beatId: string } | { stageId: string; phase: 'establish' | 'change' | 'result' | 'settle' }, timeline: V4Timeline): [number, number, string] | undefined {
   if ('beatId' in binding) {
@@ -110,12 +110,14 @@ export function cameraStateV4(timeline: CameraTimelineV4, frame: number): Camera
   const active = timeline.segments.find(({ startFrame, endFrame }) => startFrame <= frame && frame < endFrame);
   if (active) {
     const progress = ease((frame - active.startFrame) / Math.max(1, active.endFrame - active.startFrame));
+    const raw = (frame - active.startFrame) / Math.max(1, active.endFrame - active.startFrame);
     return { id: active.id, kind: active.kind, focus: active.focus, progress,
       x: active.from.x + (active.to.x - active.from.x) * progress,
       y: active.from.y + (active.to.y - active.from.y) * progress,
-      scale: active.from.scale + (active.to.scale - active.from.scale) * progress };
+      scale: active.from.scale + (active.to.scale - active.from.scale) * progress,
+      velocity: active.kind === 'hold' || active.kind === 'settle' || raw >= 1 ? 0 : 3 * (1 - raw) ** 2 / Math.max(1, active.endFrame - active.startFrame) };
   }
   const prior = [...timeline.segments].reverse().find(({ endFrame }) => endFrame <= frame);
   const pose = prior?.to ?? timeline.initial;
-  return { ...pose, id: null, kind: 'hold', focus: prior?.focus ?? '', progress: 1 };
+  return { ...pose, id: null, kind: 'hold', focus: prior?.focus ?? '', progress: 1, velocity: 0 };
 }

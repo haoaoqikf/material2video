@@ -5,6 +5,7 @@ import { createSceneRandom } from '@/code-scene';
 import type { BeatContext } from '@/runtime/beats';
 import { codeSceneBeatState } from '@/runtime/beats';
 import { cameraState } from '@/runtime/camera';
+import type { CameraState } from '@/runtime/motionPlan';
 import { sceneMotionPlan } from '@/runtime/motionPlan';
 import type { ContinuityRenderState } from '@/runtime/continuity';
 import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
@@ -39,6 +40,7 @@ export function CodeSceneHost({
   height,
   beats,
   continuity,
+  cameraOverride,
 }: {
   scene: Scene;
   frame: number;
@@ -50,6 +52,7 @@ export function CodeSceneHost({
   height: number;
   beats: BeatContext;
   continuity?: ContinuityRenderState;
+  cameraOverride?: CameraState;
 }): React.ReactElement {
   const renderer = scene.renderer;
   const module_ = renderer?.kind === 'code' ? renderer.module : '';
@@ -120,7 +123,7 @@ export function CodeSceneHost({
     canvas: { width, height },
     theme: themeInfo,
     beats: beatState,
-    motion: { phase, camera: cameraState(scene, localFrame), continuity: continuity && relation ? { kind: relation.kind, phase: continuity.phase, progress: continuityProgress, sources: relation.sourceIds, targets: relation.targetIds } : null },
+    motion: { phase, camera: cameraOverride ?? cameraState(scene, localFrame), continuity: continuity && relation ? { kind: relation.kind, phase: continuity.phase, progress: continuityProgress, sources: relation.sourceIds, targets: relation.targetIds } : null },
     random,
   };
 
