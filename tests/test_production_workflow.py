@@ -37,6 +37,15 @@ def _ready_record() -> dict:
     for scene_id in {"open", "core", "close"}:
         value["reviews"]["keyScenes"][scene_id] = _passing_review()
     value["reviews"]["full"] = _passing_review(full=True)
+    value["continuity"] = {
+        name: {
+            "status": "pass", "stageId": stage_id, "frameRange": [0, 12], "timeRange": [0, 0.4],
+            "evidence": "全片样片可见主体与状态连续", "material": "samples",
+            "materialSha256": value["materials"]["samples"]["sha256"],
+            "assessment": {"reviewer": "ai", "model": "test", "session": "test"},
+        }
+        for name, stage_id in zip(production.CONTINUITY_DIMENSIONS, ("open", "core", "core", "close", "close"))
+    }
     return value
 
 
@@ -170,6 +179,55 @@ def test_gate_blocks_failed_key_scene_and_full_review() -> None:
     assert production.gate_for_status(record, storyboard, current) is not None
 
 
+def test_continuity_is_required_and_material_bound():
+    storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
+    current = {"storyboard": "s", "assets": "a", "media": "m"}
+    record = _ready_record()
+    record["continuity"]["stateCarry"]["status"] = "pending"
+    assert "stateCarry 为 pending" in production.gate_for_status(record, storyboard, current)
+
+    record = _ready_record()
+    record["continuity"]["cameraContinuity"]["materialSha256"] = "f" * 64
+    issue = production.gate_for_status(record, storyboard, current)
+    assert "continuity.cameraContinuity.materialSha256" in issue
+
+    record = _ready_record()
+    record["materials"]["samples"]["fingerprints"]["media"] = "old-media"
+    issue = production.gate_for_status(record, storyboard, current)
+    assert "连续性评审 worldConsistency" in issue and "材料输入版本已过期" in issue
+
+    record = _ready_record()
+    record["materials"]["samples"]["fingerprints"]["assets"] = "old-assets"
+    issue = production.gate_for_status(record, storyboard, current)
+    assert "连续性评审 worldConsistency" in issue and "材料输入版本已过期" in issue
+
+    record = _ready_record()
+    del record["materials"]["samples"]
+    issue = production.gate_for_status(record, storyboard, current)
+    assert "samples" in issue and "摘要" in issue
+
+    record = _ready_record()
+    record["continuity"]["identity"]["status"] = "fail"
+    issue = production.gate_for_status(record, storyboard, current)
+    assert "identity 为 fail" in issue
+
+
+def test_v4_production_template_uses_stage_ids_and_continuity_dimensions():
+    storyboard = {"version": 4, "stages": [{"id": "opening"}, {"id": "result"}]}
+    record = production.initialize_template(storyboard, {"storyboard": "s", "assets": "a", "media": "m"})
+    assert set(record["direction"]["scenePlans"]) == {"opening", "result"}
+    assert set(record["continuity"]) == set(production.CONTINUITY_DIMENSIONS)
+    assert record["version"] == 4
+
+
+def test_continuity_completed_entry_requires_stage_and_global_evidence_range():
+    record = _ready_record()
+    record["continuity"]["identity"].pop("frameRange")
+    record["continuity"]["identity"].pop("timeRange")
+    with pytest.raises(A2VError, match=r"continuity\.identity\.frameRange"):
+        production.validate_record(record, {"open", "core", "close"})
+
+
 def test_failed_review_rework_recheck_closes_only_on_current_version() -> None:
     storyboard = {"scenes": [{"id": "open"}, {"id": "core"}, {"id": "close"}]}
     current = {"storyboard": "s", "assets": "a", "media": "m"}
@@ -268,7 +326,8 @@ def test_shipped_production_template_matches_cause_chain_scenes() -> None:
     example_dir = Path(__file__).resolve().parents[1] / "examples" / "cause-chain"
     storyboard = json.loads((example_dir / "storyboard.json").read_text(encoding="utf-8"))
     record = json.loads((example_dir / "production.template.json").read_text(encoding="utf-8"))
-    production.validate_record(record, {scene["id"] for scene in storyboard["scenes"]})
+    with pytest.raises(A2VError, match=r"version.*版本 4"):
+        production.validate_record(record, {scene["id"] for scene in storyboard["scenes"]})
 
 
 def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:
@@ -374,6 +433,8 @@ def test_sample_manifest_tracks_and_checks_video_file_digest(tmp_path: Path) -> 
     assert stored["materials"]["samples"]["files"][video.name] == hashlib.sha256(b"sample-frame-data").hexdigest()
 
     updated_digest = stored["materials"]["samples"]["sha256"]
+    for continuity in stored["continuity"].values():
+        continuity["materialSha256"] = updated_digest
     for item in stored["reviews"]["keyScenes"].values():
         item["dynamic"]["assessment"]["materials"]["samples"] = updated_digest
     video.write_bytes(b"replaced-video")

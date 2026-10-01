@@ -12,9 +12,12 @@ from .errors import A2VError
 from .media import file_digest, fingerprint
 from .media import load_media
 
-RECORD_VERSION = 1
+RECORD_VERSION = 4
 RECORD_NAME = "production.json"
 STATUSES = {"pass", "fail", "pending"}
+CONTINUITY_DIMENSIONS = (
+    "worldConsistency", "identity", "stateCarry", "cameraContinuity", "resultReadability",
+)
 REVIEW_DIMENSIONS = {
     "content": ("opening_question", "explanation_chain", "spoken_naturalness", "closing_response", "boundary_accuracy"),
     "static": ("subject_scale", "composition_repetition", "information_density", "visual_motif", "climax_weight"),
@@ -25,6 +28,12 @@ REVIEW_DIMENSIONS = {
 def record_path(article: paths.ArticlePaths) -> Path:
     root = article.output_dir.parent if article.kind == "example" else article.source_dir
     return root / RECORD_NAME
+
+
+def storyboard_stage_ids(storyboard: dict[str, Any]) -> set[str]:
+    """返回制作记录所用的全局时间阶段标识。"""
+    entries = storyboard.get("stages") if isinstance(storyboard.get("stages"), list) else storyboard.get("scenes", [])
+    return {str(item.get("id", "")) for item in entries if isinstance(item, dict)}
 
 
 def current_fingerprints(storyboard_path: str | Path, media_path: str | Path | None,
@@ -52,7 +61,7 @@ def current_fingerprints(storyboard_path: str | Path, media_path: str | Path | N
 
 def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None],
              input_review: dict[str, Any] | None = None) -> dict[str, Any]:
-    scene_ids = [str(item.get("id", "")) for item in storyboard.get("scenes", [])]
+    scene_ids = sorted(storyboard_stage_ids(storyboard))
     return {
         "version": RECORD_VERSION,
         "fingerprints": fingerprints,
@@ -77,6 +86,13 @@ def template(storyboard: dict[str, Any], fingerprints: dict[str, str | None],
                 "static": {"status": "pending", "dimensions": _pending_dimensions("static"), "evidence": "", "assessment": None},
                 "dynamic": {"status": "pending", "dimensions": _pending_dimensions("dynamic"), "evidence": "", "assessment": None},
             },
+        },
+        "continuity": {
+            name: {
+                "status": "pending", "stageId": "", "frameRange": None, "timeRange": None,
+                "evidence": "", "assessment": None, "material": None, "materialSha256": None,
+            }
+            for name in CONTINUITY_DIMENSIONS
         },
         "materials": {"keyframes": None, "samples": None, "rehearsal": None},
         "rework": [],
@@ -197,6 +213,46 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
         fail("reviews.keyScenes", "必须记录关键幕静态与动态评审")
     if not isinstance(reviews.get("full"), dict):
         fail("reviews.full", "必须记录全片静态与动态评审")
+    continuity = value.get("continuity")
+    if not isinstance(continuity, dict):
+        fail("continuity", "必须记录全片连续性五项评审")
+    for name in CONTINUITY_DIMENSIONS:
+        item = continuity.get(name)
+        where = f"continuity.{name}"
+        if not isinstance(item, dict):
+            fail(where, "缺少连续性结论")
+        if item.get("status") not in STATUSES:
+            fail(f"{where}.status", "只接受 pass、fail 或 pending")
+        stage_id = item.get("stageId")
+        if item["status"] == "pending":
+            if stage_id and (not isinstance(stage_id, str) or stage_id not in scene_ids):
+                fail(f"{where}.stageId", "必须引用当前作品中的有效阶段")
+            continue
+        if not isinstance(stage_id, str) or stage_id not in scene_ids:
+            fail(f"{where}.stageId", "必须引用当前作品中的有效阶段")
+        frame_range, time_range = item.get("frameRange"), item.get("timeRange")
+        valid_frames = (isinstance(frame_range, list) and len(frame_range) == 2
+                        and all(type(frame) is int and frame >= 0 for frame in frame_range)
+                        and frame_range[0] <= frame_range[1])
+        valid_times = (isinstance(time_range, list) and len(time_range) == 2
+                       and all(type(seconds) in (int, float) and seconds >= 0 for seconds in time_range)
+                       and time_range[0] <= time_range[1])
+        if not (valid_frames or valid_times):
+            fail(f"{where}.frameRange", "必须提供有效的全局帧范围或 timeRange")
+        if item["status"] != "pending" and (
+                not isinstance(item.get("evidence"), str) or not item["evidence"].strip()):
+            fail(f"{where}.evidence", "通过或失败结论必须记录可观察依据")
+        material = item.get("material")
+        if material not in {"samples", "rehearsal"}:
+            fail(f"{where}.material", "必须引用 samples 或 rehearsal 动态材料")
+        if not _valid_sha256(item.get("materialSha256")):
+            fail(f"{where}.materialSha256", "必须记录动态材料 SHA-256")
+        assessment = item.get("assessment")
+        if not isinstance(assessment, dict) or assessment.get("reviewer") != "ai":
+            fail(f"{where}.assessment.reviewer", "必须声明 AI 实际查看材料")
+        for field in ("model", "session"):
+            if not isinstance(assessment.get(field), str) or not assessment[field].strip():
+                fail(f"{where}.assessment.{field}", "评审来源必填")
     for scene_id in set(roles.values()):
         item = reviews["keyScenes"].get(scene_id)
         if not isinstance(item, dict):
@@ -236,6 +292,17 @@ def validate_record(value: Any, scene_ids: set[str]) -> None:
                             or not isinstance(item, dict) or not _valid_sha256(digest)):
                         fail(f"{scope_name}.{kind}.assessment.materials.{material_name}",
                              "引用材料类别无效，摘要必须是 SHA-256 十六进制值")
+    if isinstance(continuity, dict):
+        for name in CONTINUITY_DIMENSIONS:
+            item = continuity.get(name)
+            if isinstance(item, dict) and item.get("status") != "pending":
+                material = materials.get(item.get("material"))
+                if not isinstance(material, dict):
+                    fail(f"continuity.{name}.material", "引用的动态材料尚未登记")
+                available = {material.get("sha256"), *(
+                    material.get("files", {}).values() if isinstance(material.get("files"), dict) else [])}
+                if item.get("materialSha256") not in available:
+                    fail(f"continuity.{name}.materialSha256", "必须匹配登记材料或其中一个实际样片摘要")
     if not isinstance(issues, list):
         fail("rework", "必须是返工项数组")
     seen: set[str] = set()
@@ -426,6 +493,35 @@ def _material_issue(review: dict[str, Any], kind: str, materials: dict[str, Any]
     return None
 
 
+def _continuity_issue(record: dict[str, Any], stage_ids: set[str], current: dict[str, str | None],
+                      material_root: Path | None) -> str | None:
+    """检查五项连续性结论及其实际动态材料是否仍绑定当前版本。"""
+    continuity = record.get("continuity")
+    if not isinstance(continuity, dict):
+        return "缺少全片连续性五项评审"
+    materials = record.get("materials", {})
+    for name in CONTINUITY_DIMENSIONS:
+        item = continuity.get(name)
+        if not isinstance(item, dict) or item.get("status") != "pass":
+            status = item.get("status", "pending") if isinstance(item, dict) else "pending"
+            return f"连续性评审 {name} 为 {status}；五项都必须通过"
+        if item.get("stageId") not in stage_ids:
+            return f"连续性评审 {name} 的阶段已失效"
+        material_name = item.get("material")
+        material = materials.get(material_name) if isinstance(materials, dict) else None
+        if not isinstance(material, dict) or material.get("sha256") != item.get("materialSha256"):
+            return f"连续性评审 {name} 引用的动态材料缺失或摘要不匹配"
+        synthetic = {
+            "status": "pass",
+            "assessment": {"reviewer": "ai", "materials": {material_name: item["materialSha256"]}},
+        }
+        issue = _material_issue(synthetic, "dynamic", materials, material_root, current,
+                                f"连续性评审 {name}")
+        if issue:
+            return issue
+    return None
+
+
 def review_current(record: dict[str, Any], current: dict[str, str | None], kind: str) -> bool:
     stored = record.get("fingerprints", {})
     required = ("storyboard", "assets") if kind == "static" else ("storyboard", "assets", "media")
@@ -473,7 +569,7 @@ def attach_material(record_file: str | Path, article: paths.ArticlePaths, name: 
 
 
 def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | None]) -> str | None:
-    scene_ids = {str(item.get("id", "")) for item in storyboard.get("scenes", [])}
+    scene_ids = storyboard_stage_ids(storyboard)
     record_file = Path(path)
     if not record_file.is_file():
         return f"缺少制作记录 {record_file}；请复制 production.template.json 并填写导演计划与评审结论"
@@ -489,6 +585,9 @@ def gate(path: str | Path, storyboard: dict[str, Any], current: dict[str, str | 
     if issue:
         return issue
     material_root = _material_root(record, record_file)
+    issue = _continuity_issue(record, scene_ids, current, material_root)
+    if issue:
+        return issue
     content = record["reviews"]["full"].get("content")
     if not isinstance(content, dict) or content.get("status") != "pass":
         return "全片口播内容评审缺失或未通过（五项均需至少 4/5）"
@@ -549,7 +648,7 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
     rows.append({"stage": "输入文章审查", "status": input_status, "detail": input_detail,
                  "nextCommand": "production.py input-review --storyboard <分镜>" if input_status != "pass" else "已通过"})
     plan = record.get("direction")
-    known = {str(item.get("id", "")) for item in storyboard.get("scenes", [])}
+    known = storyboard_stage_ids(storyboard)
     if not isinstance(plan, dict) or not isinstance(plan.get("keyScenes"), dict):
         rows.append({"stage": "制作记录", "status": "blocked", "detail": "direction.keyScenes 缺失",
                      "nextCommand": "重新生成 production.json 模板并填写导演规划"})
@@ -617,6 +716,11 @@ def status_rows(record: dict[str, Any] | None, storyboard: dict[str, Any], curre
             "production.py rehearsal --storyboard <分镜> --media <媒体清单>"
             if kind in {"dynamic", "content"} else "production.py keyframes --storyboard <分镜>")
         rows.append({"stage": label, "status": state, "detail": detail, "nextCommand": next_command})
+    continuity_issue = _continuity_issue(record, known, current, _material_root(record, record_file))
+    continuity_state = "pass" if continuity_issue is None else "blocked"
+    rows.append({"stage": "全片连续性评审", "status": continuity_state,
+                 "detail": continuity_issue or "五项连续性结论与动态材料有效",
+                 "nextCommand": "已通过" if continuity_issue is None else "查看全片连续性样片并补齐 production.json 五项依据"})
     issues = record.get("rework", [])
     open_items = [item["id"] for item in issues if item.get("severity") == "required" and item.get("status") != "resolved"]
     rows.append({"stage": "定向返工", "status": "blocked" if open_items else "not-required", "detail": "、".join(open_items) if open_items else "无未解决必改项",
@@ -641,7 +745,8 @@ def all_stages_pass(rows: list[dict[str, str]]) -> bool:
 def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current: dict[str, str | None],
                     record_file: str | Path | None = None) -> str | None:
     try:
-        validate_record(record, {str(item.get("id", "")) for item in storyboard.get("scenes", [])})
+        stage_ids = storyboard_stage_ids(storyboard)
+        validate_record(record, stage_ids)
     except A2VError as exc:
         return str(exc)
     # status uses the same checks as render without creating or mutating a file.
@@ -650,6 +755,9 @@ def gate_for_status(record: dict[str, Any], storyboard: dict[str, Any], current:
     if changed:
         return f"评审已过期：{'、'.join(changed)}"
     issue = _input_review_issue(record, current, record_file)
+    if issue:
+        return issue
+    issue = _continuity_issue(record, stage_ids, current, _material_root(record, record_file))
     if issue:
         return issue
     for scene_id in set(record["direction"]["keyScenes"].values()):
