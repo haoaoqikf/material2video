@@ -1,7 +1,12 @@
 schema: spec-driven
 
 context: |
-  项目：article2video，把观点型文章制作成竖屏信息可视化短视频。
+  项目：article2video，把观点型文章转化为竖屏单场景动态叙事短视频的个人内容生产项目。
+  产品表达：一个观点，一个场景，一段动态叙事。
+  单场景动态叙事（Single-Scene Visual Narrative）：围绕一个核心观点构建一个持续存在的视觉场景，
+  通过场景内动画、镜头运动、文字与状态变化完成完整表达，而不是依靠多场景切换。
+  产品场景指持续的视觉世界；技术上的幕与 scenes[] 是分镜或叙事阶段，不要求数组只有一项。
+  单场景制作规范、连续性评审、现有多样性校验适配与标杆作品仍在规划中，当前制作和校验契约不变。
   技术栈：Python（校验器与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），
   Playwright（契约页量测）、ffmpeg（成片验收与音轨）；Python 依赖由 uv 管理，web 依赖由 pnpm 管理。
   当前能力与文档导航见 README.md；未来路线以 docs/PROJECT_PLAN.md 为准。
