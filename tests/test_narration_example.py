@@ -1,4 +1,4 @@
-"""`narration-beats` 是符合当前标准的全片持续场景示例。"""
+"""水箱示例体现当前标准的全片持续场景与语义节拍。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from a2v import article_text, storyboard_v4
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / "examples/narration-beats/storyboard.json"
+EXAMPLE = ROOT / "examples/buffer-smoothing/storyboard.json"
 DOC = ROOT / ".agents/skills/article2video/references/article-to-storyboard.md"
 
 

@@ -4,7 +4,7 @@
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/preview.py \
-        --storyboard examples/why-effort-fails/storyboard.json
+        --storyboard examples/buffer-smoothing/storyboard.json
 
 契约页通过查询参数读取分镜 JSON，file:// 协议下会被同源策略拒绝，
 因此预览必须走本地服务而不是双击 HTML。

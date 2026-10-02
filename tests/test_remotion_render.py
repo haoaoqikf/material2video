@@ -20,7 +20,7 @@ import subprocess
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-STORYBOARD = ROOT / "examples" / "declarative-number" / "storyboard.json"
+STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
 from a2v import remotion, render  # noqa: E402
 from a2v import scene_manifest  # noqa: E402
@@ -31,7 +31,7 @@ WEB = ROOT / "web"
 
 def _minimal_storyboard() -> dict:
     """使用仓库中通过 v4 严格校验的全片世界分镜作为入口夹具。"""
-    return json.loads((ROOT / "examples" / "declarative-number" / "storyboard.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "examples" / "keynote-baseline" / "storyboard.json").read_text(encoding="utf-8"))
 
 
 def _node_ready() -> bool:
@@ -63,7 +63,9 @@ def test_prepare_composition_entry_ignores_article_scenes(tmp_path, monkeypatch)
     # 生成器的行为由 tests/test_scene_manifest.py 用真实 web/ 覆盖。
     calls = []
     monkeypatch.setattr(scene_manifest, "generate", lambda **kwargs: calls.append(kwargs) or tmp_path / "scenes.ts")
-    target = remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
+    target = remotion.prepare_composition_entry(
+        web_dir=web, storyboard_path=storyboard, content_root=tmp_path
+    )
     assert target == tmp_path / "scenes.ts"
     assert calls and calls[0]["storyboard_path"] == storyboard
     # 构建期不再写死 composition：页面按分镜声明的契约版本在运行时选择实现。
@@ -191,18 +193,18 @@ def test_tests_and_build_artifacts_are_not_build_inputs():
 def test_build_fingerprint_uses_storyboard_code_scenes_not_global_generated_manifest():
     """同一仓库的其它作品改写 active-scenes 生成清单，不应让本作品的指纹漂移。"""
     tree = remotion.build_input_fingerprint(
-        storyboard_path=ROOT / "examples" / "declarative-number" / "storyboard.json",
+        storyboard_path=ROOT / "examples" / "keynote-baseline" / "storyboard.json",
         content_root=ROOT,
         workspace_root=ROOT,
     )["files"]
     code = remotion.build_input_fingerprint(
-        storyboard_path=ROOT / "examples" / "code-scenes" / "storyboard.json",
+        storyboard_path=ROOT / "examples" / "darts-trial-and-error" / "storyboard.json",
         content_root=ROOT,
         workspace_root=ROOT,
     )["files"]
-    module_keys = [key for key in code if "/examples/code-scenes/scenes/" in key]
+    module_keys = [key for key in code if "/examples/darts-trial-and-error/scenes/" in key]
     assert len(module_keys) == 1, module_keys
-    assert not any("/examples/code-scenes/scenes/" in key for key in tree)
+    assert not any("/examples/darts-trial-and-error/scenes/" in key for key in tree)
 
 
 def test_an_unreferenced_file_change_does_not_mark_videos_stale(tmp_path):
@@ -356,9 +358,24 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
     让它渲完再看长度，等于把「两份数据不一致」变成一支看起来正常的片子。
     """
     model = _model()
-    squeezed = pathlib.Path(tmp_path / "storyboard.json")
+    article = tmp_path / "videos" / "frame-mismatch"
+    article.mkdir(parents=True)
+    squeezed = article / "storyboard.json"
+    scenes = article / "scenes"
+    scenes.mkdir()
+    shutil.copyfile(
+        ROOT / "examples" / "keynote-baseline" / "scenes" / "option-map.tsx",
+        scenes / "option-map.tsx",
+    )
     payload = json.loads(STORYBOARD.read_text(encoding="utf-8"))
     payload["stages"][0]["durationInFrames"] -= 10
+    expected_declared = sum(
+        stage["durationInFrames"] for stage in payload["stages"]
+    )
+    storyboard_total = sum(
+        stage["durationInFrames"]
+        for stage in json.loads(STORYBOARD.read_text(encoding="utf-8"))["stages"]
+    )
     squeezed.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     output = tmp_path / "clip.mp4"
@@ -369,9 +386,10 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
             storyboard_path=squeezed,
             probe=False,
             workspace_root=ROOT,
+            content_root=tmp_path,
         )
     message = str(excinfo.value)
-    assert "1110" in message and "1100" in message
+    assert str(expected_declared) in message and str(storyboard_total) in message
     assert not output.exists(), "校验失败时不应留下成片"
 
 

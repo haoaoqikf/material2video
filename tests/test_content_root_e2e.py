@@ -22,7 +22,7 @@ from a2v.render import provenance_status
 from conftest import approve_production_record
 
 ROOT = Path(__file__).resolve().parents[1]
-DECLARATIVE = ROOT / "examples/declarative-number/storyboard.json"
+DECLARATIVE = ROOT / "examples/keynote-baseline/storyboard.json"
 
 pytestmark = pytest.mark.slow
 
@@ -33,6 +33,12 @@ def content_root(tmp_path: Path) -> Path:
     article = tmp_path / "content" / "videos" / "demo"
     article.mkdir(parents=True)
     shutil.copyfile(DECLARATIVE, article / "storyboard.json")
+    scenes = article / "scenes"
+    scenes.mkdir()
+    shutil.copyfile(
+        ROOT / "examples" / "keynote-baseline" / "scenes" / "option-map.tsx",
+        scenes / "option-map.tsx",
+    )
     media_path = prep.prepare(article / "storyboard.json", article / "outputs" / "media")
     # 发布闸门要求每份作品存在评审报告；E2E 只测试内容根路径时写入可发布的静态报告。
     outputs = article / "outputs" / "inspect"

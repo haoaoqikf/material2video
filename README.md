@@ -27,7 +27,7 @@ pnpm -C web build
 uv run playwright install chromium
 
 # 严格校验示例
-uv run python .agents/skills/article2video/scripts/validate.py examples/darts-trial-and-error/storyboard.json --strict
+uv run python .agents/skills/article2video/scripts/validate.py examples/buffer-smoothing/storyboard.json --strict
 
 # 运行相关测试
 uv run pytest
@@ -41,7 +41,7 @@ pnpm -C web test
 → 实际时长检查 → 评审与渲染
 ```
 
-文章和产物放在 `videos/<slug>/`，该目录已忽略、不入库；也可通过 `--content-root` 或 `A2V_CONTENT_ROOT` 将内容放在仓库外。之后按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)、[制作流程](examples/cause-chain/production-workflow.md) 和 [目录约定](.agents/skills/article2video/references/paths-and-outputs.md) 操作。正式渲染示例：
+文章和产物放在 `videos/<slug>/`，该目录已忽略、不入库；也可通过 `--content-root` 或 `A2V_CONTENT_ROOT` 将内容放在仓库外。之后按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)、[制作流程](.agents/skills/article2video/references/production-workflow.md) 和 [目录约定](.agents/skills/article2video/references/paths-and-outputs.md) 操作。仓库固定分发 `buffer-smoothing`、`darts-trial-and-error`、`keynote-baseline` 三个示例，`examples/` 最多 3 个且后续只维护这三例。正式渲染示例：
 
 ```bash
 uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json --strict

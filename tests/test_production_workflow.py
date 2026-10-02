@@ -387,7 +387,7 @@ def test_shipped_production_template_stays_pending() -> None:
     import json
     from pathlib import Path
 
-    example_dir = Path(__file__).resolve().parents[1] / "examples" / "cause-chain"
+    example_dir = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
     storyboard = json.loads((example_dir / "storyboard.json").read_text(encoding="utf-8"))
     record = json.loads((example_dir / "production.template.json").read_text(encoding="utf-8"))
     with pytest.raises(A2VError, match=r"inputReview\.status"):

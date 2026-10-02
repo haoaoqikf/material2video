@@ -7,7 +7,7 @@ skill bundle 需要可移植，因此脚本自行把同级目录加入 sys.path�
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/render.py \
-        --storyboard examples/why-effort-fails/storyboard.json
+        --storyboard examples/buffer-smoothing/storyboard.json
 
 省略 --out 时按文章归属推导：无声写入 videos/<slug>/outputs/silent.mp4，提供 --media 时写入
 videos/<slug>/outputs/voiced.mp4，配合 --limit-frames 时写入 videos/<slug>/outputs/previews/。

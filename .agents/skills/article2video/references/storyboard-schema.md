@@ -41,7 +41,7 @@
 
 ## 最小字段形状
 
-可运行的完整双轨样例见 [代码场景示例](../../../../examples/code-scenes/storyboard.json)、[飞镖示例](../../../../examples/darts-trial-and-error/storyboard.json) 与 [少一个选项](../../../../examples/keynote-baseline/storyboard.json)。以下只展示字段形状，不能单独通过字数与语义节拍门禁：
+可运行的完整双轨样例见 [飞镖示例](../../../../examples/darts-trial-and-error/storyboard.json) 与 [发布会设计示例](../../../../examples/keynote-baseline/storyboard.json)。以下只展示字段形状，不能单独通过字数与语义节拍门禁：
 
 ```json
 {

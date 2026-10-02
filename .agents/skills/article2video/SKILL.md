@@ -61,7 +61,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    见[分镜脚本结构](references/storyboard-schema.md)的「语义节拍与字幕同步」。
 9. **默认使用电影化动画计划**：全片 world 的对象状态、动作与镜头段绑定全局 beat 或阶段 phase；v1–v3 分镜在所有入口拒绝，必须按 v4 重新编排；没有迁移命令或兼容回退。
 10. **作品定制动画**：默认场景树；静态原语能够绘制对象但不能表达必要的状态变化、对象编排或镜头揭示时，可以基于明确的叙事理由使用作品级代码场景。先按 [文章生成分镜](references/article-to-storyboard.md) 编写逐幕动作脚本；代码场景必须使用解析后的 `beats.plan`、提供探针并通过[定制动画动态评审](references/visual-review-rubric.md)。存在代码场景时，缺失或未达标的动态评审会阻断正式渲染。
-11. **关键幕先行与 AI 制作记录**：按[文章生成分镜](references/article-to-storyboard.md)先验证开场、核心论证和高潮，再铺开全片；AI 助手自动读取文章、分镜和 `motion-design.md` 填写导演计划，生成联系表、关键幕样片与全片有声评审版后，必须查看实际画面，逐项填写静态/动态评审、可观察证据和返工项。完成结论写入 `production.json` 时绑定评审来源及材料 SHA-256；缺材料或不能查看画面就保持待评审。分镜、媒体、渲染资产或引用材料变化会使相关评审失效。正式成片需要关键幕和全片静态/有声 AI 评审通过，且没有未解决必改项。详见[视觉评审量表](references/visual-review-rubric.md)。制作流程与模板见[制作流程示例](../../../examples/cause-chain/production-workflow.md)。
+11. **关键幕先行与 AI 制作记录**：按[文章生成分镜](references/article-to-storyboard.md)先验证开场、核心论证和高潮，再铺开全片；AI 助手自动读取文章、分镜和 `motion-design.md` 填写导演计划，生成联系表、关键幕样片与全片有声评审版后，必须查看实际画面，逐项填写静态/动态评审、可观察证据和返工项。完成结论写入 `production.json` 时绑定评审来源及材料 SHA-256；缺材料或不能查看画面就保持待评审。分镜、媒体、渲染资产或引用材料变化会使相关评审失效。正式成片需要关键幕和全片静态/有声 AI 评审通过，且没有未解决必改项。详见[视觉评审量表](references/visual-review-rubric.md)。完整命令流程见[制作流程](references/production-workflow.md)。
 
 ## 目录职责
 
@@ -76,7 +76,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 | `.agents/skills/article2video/scripts/` | 校验、配音准备、预览、渲染、视觉评审等命令行工具 |
 | `.agents/skills/article2video/scripts/production.py` | 制作记录模板、阶段状态、关键帧、关键幕有声样片与全片评审版 |
 | `.agents/skills/article2video/references/` | 渲染契约、分镜结构、代码场景、视觉规范、原语目录、设计宪法、评审量表、目录与输出路径 |
-| `examples/<slug>/` | 可直接运行的端到端示例（文章 + 分镜），作为新视频的起点 |
+| `examples/<slug>/` | 固定分发的三个端到端示例（文章 + 分镜），仅维护 `buffer-smoothing`、`darts-trial-and-error`、`keynote-baseline`；最多 3 个 |
 | `videos/<slug>/` | 每支实际视频一个目录：文章、分镜。**内容不入库**，见 `.gitignore` |
 | `videos/<slug>/outputs/` | 该文章的渲染产物，已被 `.gitignore` 忽略 |
 | `videos/examples/<slug>/outputs/` | 示例产物，独立一层避免与同名实际文章冲突 |
@@ -426,10 +426,10 @@ Remotion 确定性渲染与成片验收、按文章目录推导输出路径、�
 
 - [文章生成分镜](references/article-to-storyboard.md)：从文章产出分镜的步骤、约束、校验闭环与组件缺口处理
 - [代码场景](references/code-scenes.md)：`renderer.code` 的模块契约、依赖白名单、探针协议、确定性适配与安全模型
+- [制作流程](references/production-workflow.md)：阶段查询、关键幕样片、全片预演和版本化返工闭环
 - [目录约定与输出路径](references/paths-and-outputs.md)：文章目录、归属推导与默认产物位置
 - [配音与字幕](references/media-contract.md)：媒体清单、TTS 缓存、字幕与音轨合成
 - [视觉评审量表](references/visual-review-rubric.md)：全片静态/动态维度、评审证据及返工要求
-- [制作流程示例](../../../examples/cause-chain/production-workflow.md)：阶段查询、关键幕样片、全片预演和版本化返工闭环
 - [渲染契约](references/render-contract.md)：画面实现的 `__A2V__` 接口、渲染引擎与确定性要求
 - [分镜脚本结构](references/storyboard-schema.md)：字段定义、分段口播与语义节拍、校验规则
 - [竖屏视觉规范](references/visual-spec.md)：画布、安全区、排版层级、景深、动效配方与风格方向

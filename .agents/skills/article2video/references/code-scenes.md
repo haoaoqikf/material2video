@@ -2,7 +2,7 @@
 
 当受控原语无法表达持续视觉世界所需的几何、关系或状态变化时，可选择作品级 code renderer。`world.renderer` 只声明一次；模块贯穿整条视频，阶段只改变上下文，不得切换为互不相关的页面。能由原语清楚表达时优先使用 tree renderer。
 
-本文记录模块契约、确定性纪律和探针要求。完整示例见[代码场景示例](../../../../examples/code-scenes/storyboard.json)与[飞镖试错示例](../../../../examples/darts-trial-and-error/storyboard.json)，均是一个 world、多阶段叙事。
+本文记录模块契约、确定性纪律和探针要求。完整示例见[飞镖试错示例](../../../../examples/darts-trial-and-error/storyboard.json)，是一个 world、多阶段叙事。
 
 ## 分镜声明
 

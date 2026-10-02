@@ -16,7 +16,7 @@ import pytest
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples" / "why-effort-fails"
+EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
 
 # 项目根标记的相对路径，与 a2v.paths.PROJECT_MARKER 保持一致
 SKILL_MARKER = Path(".agents/skills/article2video/SKILL.md")

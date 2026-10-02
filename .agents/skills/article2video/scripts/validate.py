@@ -4,7 +4,7 @@
 用法示例::
 
     uv run python .agents/skills/article2video/scripts/validate.py \
-        examples/why-effort-fails/storyboard.json
+        examples/buffer-smoothing/storyboard.json
 """
 
 from __future__ import annotations

@@ -14,14 +14,22 @@ Playwright 的同步 API 不许一个进程里同时存在两个会话，因此�
 
 from __future__ import annotations
 
+import json
 import pathlib
 
 import pytest
 
 from a2v import browser, contract_page
+from conftest import v4_storyboard
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRESET = ROOT / "examples" / "milestone-climb" / "storyboard.json"
+def _preset_storyboard(tmp_path: pathlib.Path) -> pathlib.Path:
+    article = tmp_path / "examples" / "preset-check"
+    article.mkdir(parents=True)
+    data = v4_storyboard()
+    target = article / "storyboard.json"
+    target.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return target
 
 #: 分两类看：既看两层**不同**的取值（字体、安全区、底色、字阶），
 #: 也看只由默认层给出的令牌（`--a2v-surface` 这类）在预设下依然可用。
@@ -93,9 +101,10 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
         return reads
 
 
-def test_v4_preset_tokens_apply_to_dark_and_light_themes(chromium_ready):
+def test_v4_preset_tokens_apply_to_dark_and_light_themes(chromium_ready, tmp_path):
     _skip_if_unbuilt()
-    with contract_page.serve_contract_page(PRESET, ROOT) as preset_url:
+    storyboard = _preset_storyboard(tmp_path)
+    with contract_page.serve_contract_page(storyboard, tmp_path, repo_root=ROOT) as preset_url:
         dark, light = _tokens(preset_url, chromium_ready, flips=("light",))
 
     assert dark["preset"] is True, "启用预设的 V4 分镜必须在画面上挂出预设属性"

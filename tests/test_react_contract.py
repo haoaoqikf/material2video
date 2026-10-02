@@ -20,7 +20,7 @@ import pathlib
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-STORYBOARD = ROOT / "examples" / "declarative-number" / "storyboard.json"
+STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
 # These assertions target the retired v3 per-scene DOM protocol. v4 renderer behavior
 # is covered by A2VCompositionV4 integration tests and v4 probe/review tests.

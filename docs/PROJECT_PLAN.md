@@ -202,8 +202,8 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
 - `references/visual-review-rubric.md`：六项 60 分制量表，机检保证「不是废片」，
   人工（或视觉模型）判断「值不值得看完」。
 
-验收：`uv run pytest` 319 项通过；《永远不要害怕面试》与示例
-`examples/why-effort-fails` 都只声明挂载点，同一套组件在浅色与深色两套主题下
+验收：`uv run pytest` 319 项通过；《永远不要害怕面试》与历史示例
+`why-effort-fails` 都只声明挂载点，同一套组件在浅色与深色两套主题下
 都能成立；`review.py` 在两者上均 0 错误。
 
 尚未实现：生成器程序与模型调用（见第六阶段）；组件库的完整换肤
@@ -256,7 +256,7 @@ Skill 位于 `.agents/skills/article2video/`，被 Codex 与 DSH 识别为项目
   与废片类 C 系列**分开计分**；其中 K7 文字溢出与 K8 容器内溢出是**硬判定**，失败会并入体检错误数与
   退出码。`inspect.py` 的帧量测扩到 540 × 960 的探针画面，
   并收集字号、文本样张、卡片特征、文本块四边墨迹边界与安全区几何；
-- `examples/keynote-baseline/`：当前 V4 单场景代码标杆，使用一张固定锚点的分叉路线地图、4 个叙事阶段和双主题令牌验证；原 8 幕 / 2040 帧 / 68 秒记录属于历史 V3 基线，不代表当前标准；
+- `examples/keynote-baseline/`：当前 V4 单场景代码示例，使用一张固定锚点的分叉路线地图、4 个叙事阶段和双主题令牌验证；原 8 幕 / 2040 帧 / 68 秒记录属于历史 V3 基线，不代表当前标准；
 - 测试：`tests/test_keynote_assets.py`（已删除；令牌自检、对比度、`--fig-*` 覆盖、预设作用域、
   组件墨色字号收进字阶）、`tests/test_figure_contrast.py`（图形颜色分类表、每类的对比度
   预算与判定基座、两套主题分别核对、`fill`/`stroke`/`background` 不许写字面色值、
@@ -370,7 +370,7 @@ K2 也改成量强调色族）、以及**内容尺度**——这一项只解决�
 修法是让步长取 `360 / 节点数`，格数取 `停位数 × LAPS`（组件自己的注释
 就写着"两次完整循环之后条满"，而 `LAPS: 2` 从未被用过）。现在四个圆盘
 各占一角、环由四段 90° 弧闭合成整圆。`loopPoint` 是共享几何，
-非预设的 `why-effort-fails` 也有 `loop` 幕，所以未启用预设时仍用冻结的
+非预设的历史示例 `why-effort-fails` 也有 `loop` 幕，所以未启用预设时仍用冻结的
 3 个停位 / 6 格——用两个版本的 `figures.js`（已删除）分别渲染，成片 SHA256 逐字节一致。
 
 第十二轮把 `compare` 那条 K2 提醒也解决了，首因判断被实测推翻：那一幕缺的
@@ -562,7 +562,7 @@ K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡�
 
 **webfont 子集化：按作品切，已实现（静态子集仍然不做）。**
 字体 `NotoSansSC-Variable.ttf` 16.9MB（Inter 856KB），**单份共享在 skill 资产里**，
-不是每支视频一份。实测三支作品（`why-effort-fails` / `never-fear-interviews` /
+不是每支视频一份。历史量测涉及三支作品（`why-effort-fails` / `never-fear-interviews` /
 `keynote-baseline`）的全部文本合计只有 **249 个去重字符（241 个汉字）**；
 按字形均摊估算，只带这些字约 **66KB**，量级上是 1/260。
 所以收益是真的，但**对共享资产做静态子集不安全**：共享字体要渲染**将来**的任意
@@ -573,7 +573,7 @@ K6 对「整幕没有卡片」只报跳过、不判断「这一幕本该有卡�
 文本改过而子集没重切同样要被这条机检抓住。
 **缺字机检在「不启用预设」的页面上曾经是空转的（第 24 轮发现，第 25 轮已修）。**
 `@font-face` 声明都在 `keynote.css` 里，而它受档位门控；两支专属作品
-（`never-fear-interviews`、`why-effort-fails`）不启用预设，因此**不声明任何 webfont**，
+（`never-fear-interviews`、`why-effort-fails`）当时不启用预设，因此**不声明任何 webfont**，
 `fonts.page_fonts()` 返回空表，检查直接返回「没问题」。
 就语义而言这不算错（没有声明字体，也就无所谓回退），但它违反了本项目一直守的
 一条纪律：**一声不吭的检查与通过的检查在报告里长得一样**。
@@ -644,7 +644,7 @@ git 的换行归一化会静默翻转行尾，否则会出现人怎么重渲都�
   与 `review.py` 共用一份；`report.json` 多一个
   `motion` 段，终端多一栏 M0–M4。三支作品实测（全部 M0–M4 通过）：
   基准示例 90 个入场元素（9 个有位移）、`videos/never-fear-interviews` 99 个（6 个）、
-  `examples/why-effort-fails` 62 个（6 个）；最小落地余量分别是 25 / 55 / 48 帧。
+  历史示例 `why-effort-fails` 62 个（6 个）；最小落地余量分别是 25 / 55 / 48 帧。
   动效结论与「不是废片」类错误分开计，**不改退出码**——「入场快了一点」不是
   「画面坏了」；严格判定留在测试里。
   M0 会把「采样被上限截断」的入场报出来（轨迹不完整就不该算进覆盖），
@@ -832,8 +832,8 @@ TSX 模块。变更 `add-code-driven-scenes`（提案、设计与规格见
   （作品文件记 `__a2v_workspace__/…` 键，内容根在仓库之外也可复核）；
 - **验证**：混合双轨端到端测试（跨渲染器寻帧、主题一致、图表逐帧判定、
   运行期隔离、Tailwind 源码索引）、安全门规则级测试与
-  [`examples/code-scenes/`](../examples/code-scenes/storyboard.json)
-  （已改编为 v4：全片 code 世界、四阶段统一系统面板）全片渲染、评审与溯源复核全部通过；
+  [`examples/darts-trial-and-error/`](../examples/darts-trial-and-error/storyboard.json)
+  （全片 code 世界、持续飞镖场景）全片渲染、评审与溯源复核全部通过；
   契约细节见 [代码场景](../.agents/skills/article2video/references/code-scenes.md)。
 
 ### 第十阶段：视觉叙事与图形论证闸门 —— 已实现
@@ -940,7 +940,7 @@ V 系列回答了「有没有论证型图形」，但没有回答「这些图形
 已实现并验证：两篇文章输出相互隔离、示例与实际文章同名时产物分离、不同工作目录下推导一致、
 显式路径兼容、限帧输出不覆盖正式成片，以及无法推导时给出明确错误。
 规则以 [目录约定与输出路径](../.agents/skills/article2video/references/paths-and-outputs.md)
-为权威来源。示例产物已迁入 `videos/examples/why-effort-fails/outputs/`，媒体目录整体移动后清单与
+为权威来源。历史示例产物曾迁入独立的 `videos/examples/` 工作区，媒体目录整体移动后清单与
 资源引用保持有效。
 
 ### 内容根：文章与仓库解耦 —— 已实现

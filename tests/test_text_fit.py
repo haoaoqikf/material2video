@@ -10,14 +10,22 @@ jsdom 量不出来，只能在契约页上验。
 
 from __future__ import annotations
 
+import json
 import pathlib
 
 import pytest
 
 from a2v import browser, contract_page
+from conftest import v4_storyboard
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRESET = ROOT / "examples" / "milestone-climb" / "storyboard.json"
+def _preset_storyboard(tmp_path: pathlib.Path) -> pathlib.Path:
+    article = tmp_path / "examples" / "preset-fit"
+    article.mkdir(parents=True)
+    data = v4_storyboard()
+    target = article / "storyboard.json"
+    target.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return target
 
 
 def _skip_if_unbuilt() -> None:
@@ -39,10 +47,11 @@ _FIT_FACTS = """
 """
 
 
-def test_preset_fit_is_measured_and_recorded(chromium_ready):
+def test_preset_fit_is_measured_and_recorded(chromium_ready, tmp_path):
     """预设启用：声明了字号档的文字节点被实测，档位与是否实测记录在节点上。"""
     _skip_if_unbuilt()
-    with contract_page.serve_contract_page(PRESET, ROOT) as url:
+    storyboard = _preset_storyboard(tmp_path)
+    with contract_page.serve_contract_page(storyboard, tmp_path, repo_root=ROOT) as url:
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(30)
             facts = page.evaluate(_FIT_FACTS)
@@ -53,10 +62,11 @@ def test_preset_fit_is_measured_and_recorded(chromium_ready):
         assert item["fitRole"], "取档后必须记录最终档位"
 
 
-def test_repeat_fit_on_the_same_frame_writes_nothing_new(chromium_ready):
+def test_repeat_fit_on_the_same_frame_writes_nothing_new(chromium_ready, tmp_path):
     """同一帧重复取档：档位与类名稳定，第二次不产生新的节点改动。"""
     _skip_if_unbuilt()
-    with contract_page.serve_contract_page(PRESET, ROOT) as url:
+    storyboard = _preset_storyboard(tmp_path)
+    with contract_page.serve_contract_page(storyboard, tmp_path, repo_root=ROOT) as url:
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(30)
             first = page.evaluate(_FIT_FACTS)

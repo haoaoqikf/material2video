@@ -646,7 +646,7 @@ K 系列内部还有一层区分：**K7 与 K8 是硬判定，其余是提醒。
    `@font-face` 是全局注册的（浏览器没有作用域化的字体定义），`:root` 也是全局的。
    曾经有两处漏掉作用域：字体栈写在裸 `:root` 上，使既有视频整体换字体；
    深色主题块写成 `:root, :root[data-a2v-preset="keynote"]…`，把浅色主题的页面整片刷黑。
-   修复后 `examples/declarative-number` 限帧 12 帧的成片与改动前**逐字节一致**
+   修复后当时的 `declarative-number` 历史示例限帧 12 帧的成片与改动前**逐字节一致**
    （当时的回归记录连命令与哈希一起写：`--capture-format png`（该参数已删除）
    → `A0A94CFC…`，
    默认 JPEG → `CBEBD8BF…`；这条逐字节口径已随引擎迁移作废，
@@ -838,7 +838,7 @@ value.textContent = String(Math.round(raw * progress));
 （这条门槛写在已删除的整页组件路径里；现行的 `count` 配方由
 `web/src/primitives/SceneTree.tsx` 逐帧求值。）
 
-`examples/declarative-number` 的 `value: 73`（74 步）仍然滚动。
+历史 `declarative-number` 示例的 `value: 73`（74 步）仍然滚动。
 
 守住它的是 `tests/test_motion_trajectory.py`（已删除）的 `TestNumberRoll`：
 一条断言"不透明度 ≥ 0.5 时数字必须等于最终值"（在真浏览器里逐帧读
@@ -924,7 +924,7 @@ frac ∈ [0.5, 1)   新节点是 focus，mix 从 0 升到 1（淡入）
 
 **预设门控**：`loopPoint` 是共享几何，而当时还不声明预设的 `why-effort-fails` 也有 `loop` 幕，
 所以旧路径仍用冻结的 3 个停位 / 6 格（该路径已删除）。改动当时用新旧两个版本的组件实现
-渲染 `why-effort-fails` 限帧成片，结果**逐字节一致**。
+渲染当时的 `why-effort-fails` 限帧成片，结果**逐字节一致**。
 
 （历史记录：这条缺口当年由旧 `Loop` 组件的几何测试守住；v2 场景树架构下
 径向排布由原语确定性求解，旧组件与其测试已随整页组件路径移除。）

@@ -25,3 +25,9 @@ def test_v4_contract_uses_world_and_stages_not_stage_local_scenes():
     text = REFERENCE.read_text(encoding="utf-8")
     assert "全片唯一 renderer" in text
     assert "阶段代表推理进展，不是换场" in text
+
+
+def test_repository_example_set_is_fixed_and_limited_to_three():
+    text = REFERENCE.read_text(encoding="utf-8")
+    assert "最多 3 个" in text
+    assert "不新增、删除或替换目录" in text

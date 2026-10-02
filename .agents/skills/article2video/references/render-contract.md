@@ -90,12 +90,12 @@ JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影�
 
 | 作品 | 完整成片 SHA256 |
 | --- | --- |
-| `examples/declarative-number` | `D749DBCAB378E9EF674ECEDEFBADD198D8A08453CA2842E661EFC4DC0F69CA28` |
+| 已移除的 `declarative-number` 历史样例 | `D749DBCAB378E9EF674ECEDEFBADD198D8A08453CA2842E661EFC4DC0F69CA28` |
 | `examples/keynote-baseline` | `A7C990498EA8BF0F2653BF529A30606B5DFAC95AD83AA7AC8533070C8D70DF7A` |
-| `examples/why-effort-fails` | `74513AE69282D25C86FAE4FCCCC43A93FF3D1BF0BCB5703C51B0E35C44D381ED` |
+| 已移除的 `why-effort-fails` 历史样例 | `74513AE69282D25C86FAE4FCCCC43A93FF3D1BF0BCB5703C51B0E35C44D381ED` |
 
-依赖安装完成后渲染不访问网络。`declarative-number` 已在同一锁文件环境中完整重渲两次，
-两次 SHA256 均为上表值，证明当前编码链路跨会话可复现。
+上述两项是已移除示例的历史哈希，不代表当前支持的示例；依赖安装完成后渲染不访问网络。历史 `declarative-number` 示例当时在同一锁文件环境中完整重渲两次，
+两次 SHA256 均为上表值，证明当时编码链路跨会话可复现。
 
 ### 画面源码的确定性
 
