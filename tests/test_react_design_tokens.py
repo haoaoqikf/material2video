@@ -7,7 +7,7 @@
 于是**未启用预设**的画面也换上了预设的字体、安全区与底色，而全部静态检查照常通过。
 这里问的是浏览器算出来的值，所以那类错误跑不掉。
 
-会话策略：本模块只用**函数级**会话，两个页面先后各开一次，不并行。
+会话策略：本模块只用**函数级**会话，在同一页面里依次读取深色并切换到浅色。
 Playwright 的同步 API 不许一个进程里同时存在两个会话，因此这条检查不能和
 持有模块级会话的模块放在一起（那正是它先前失败的原因）。
 """
@@ -21,7 +21,6 @@ import pytest
 from a2v import browser, contract_page
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PLAIN = ROOT / "examples" / "declarative-number" / "storyboard.json"
 PRESET = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
 #: 分两类看：既看两层**不同**的取值（字体、安全区、底色、字阶），
@@ -48,14 +47,14 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
     """打开页面读计算值；`flips` 里的主题会依次改写根元素属性后再读一次。
 
     改属性而不是另开一个页面：浅色主题的选择器要匹配的正是「预设与主题都挂在
-    根元素上、舞台只管画面」这种形状，而手头的示例分镜只有深色预设。
+    根元素上、舞台只管画面」这种形状；示例分镜声明深色预设，再在浏览器中切换浅色。
 
     属性挂在哪里是**契约的一部分**：React 路径与旧页面 `assets/declarative.js`
     一样，把 `data-a2v-preset` / `data-a2v-theme` / 尺寸变量写到
-    `document.documentElement` 上（见 `A2VComposition` 里的 `useLayoutEffect`），
+    `document.documentElement` 上（见 `A2VCompositionV4` 里的 `useLayoutEffect`），
     自定义属性沿 DOM 继承到舞台，因此这里读与改都落在根元素上。
     """
-    with browser.open_animated_page(url, width=1080, height=1920) as page:
+    with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
         reads = [
             page.evaluate(
                 "() => {"
@@ -68,7 +67,7 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                 "out[name] = (body.getPropertyValue(name) || root.getPropertyValue(name) || '').trim();"
                 "}"
                 "return {tokens: out, preset: !!document.querySelector('[data-a2v-preset]'),"
-                "scene: !!document.querySelector('[data-a2v-scene]'),"
+                "scene: !!document.querySelector('[data-a2v-scene], [data-a2v-world]'),"
                 "theme: document.documentElement.getAttribute('data-a2v-theme')};"
                 "}"
             )
@@ -94,26 +93,13 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
         return reads
 
 
-def test_v3_preset_tokens_apply_to_all_contract_pages(chromium_ready):
+def test_v4_preset_tokens_apply_to_dark_and_light_themes(chromium_ready):
     _skip_if_unbuilt()
-    with contract_page.serve_contract_page(PLAIN, ROOT) as plain_url:
-        plain = _tokens(plain_url, chromium_ready)[0]
     with contract_page.serve_contract_page(PRESET, ROOT) as preset_url:
         dark, light = _tokens(preset_url, chromium_ready, flips=("light",))
 
-    assert plain["scene"], "契约页没有画出画面，后面的令牌断言就没有意义"
-    assert plain["preset"] is True, "v3 分镜强制声明 keynote 预设"
-    assert plain["tokens"]["--a2v-safe-top"] == "240px", plain["tokens"]
-    # 这份分镜写的是浅色主题；预设令牌仍与主题令牌共同生效。
-    assert plain["tokens"]["--a2v-bg-0"].lower() == "#eff1f4", plain["tokens"]
-    assert plain["tokens"]["--a2v-accent"].lower() == "#0a6ad9", plain["tokens"]
-    assert plain["theme"] == "light", plain
-    assert "PingFang SC" in plain["tokens"]["--a2v-font"], plain["tokens"]
-    assert plain["tokens"]["--a2v-size-body"], plain["tokens"]
-
-    assert dark["preset"] is True, "启用预设的分镜必须在画面上挂出预设属性"
-    # 预设与主题都挂在根元素上（与旧 declarative.js 同一形状）：
-    # 浅色主题的选择器 `[data-a2v-preset][data-a2v-theme="light"]` 必须匹配它
+    assert dark["scene"], "契约页没有画出画面，后面的令牌断言就没有意义"
+    assert dark["preset"] is True, "启用预设的 V4 分镜必须在画面上挂出预设属性"
     assert dark["theme"] == "dark", dark
     assert dark["tokens"]["--a2v-safe-top"] == "240px", dark["tokens"]
     assert dark["tokens"]["--a2v-bg-0"].lower() == "#08090c", dark["tokens"]
@@ -127,7 +113,5 @@ def test_v3_preset_tokens_apply_to_all_contract_pages(chromium_ready):
     assert light["tokens"]["--a2v-size-body"] == "40px", light["tokens"]
     assert light["tokens"]["--a2v-safe-top"] == "240px", light["tokens"]
 
-    # 两层是叠加的：只由默认层给的令牌在启用预设后依然可用
-    assert plain["tokens"]["--a2v-surface"].startswith("linear-gradient")
     assert dark["tokens"]["--a2v-surface"].startswith("linear-gradient"), dark
     assert dark["tokens"]["--a2v-width"] == "1080px"

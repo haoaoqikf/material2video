@@ -31,7 +31,8 @@
   `keynote.css` 始终被引入、排版引擎始终可用，
   这一点是刻意的——按需注入会让「有没有生效」变得难以验证。
 - 两套主题都支持预设：`"theme": "dark"` 与 `"theme": "light"`。
-- 参考实现见 `examples/keynote-baseline/`（8 幕 / 2040 帧 / 68s）。
+- 当前 V4 参考实现见 `examples/keynote-baseline/`（一个持续的分叉路线地图，4 个阶段；正文和实际时长以作品评审记录为准）。
+- 旧版八幕 / 2040 帧 / 68 秒数据是历史 V3 基线，不代表当前标杆或新标准；当前示例已改编为 V4，旧版结论仅保留在历史评测段落中。
 
 ## 二、为什么是这几个数值
 
@@ -448,7 +449,13 @@ kind.textContent = scene.type || '';
 
 ## 四、观感闸门 K1–K10
 
-### 当前实测（两套主题）
+### 当前 V4 主题验证
+
+V4 持续世界的主题令牌由 `tests/test_react_design_tokens.py` 在真实浏览器中检查：测试加载当前代码场景标杆，先读深色主题，再将根元素切换为浅色，并逐项核对底色、强调色、安全区、字号、字体、默认表面与画布尺寸。运行 `uv run pytest tests/test_react_design_tokens.py -q -p no:cacheprovider`。
+
+V4 的 `review.py` 尚未把 V3 的 K 系列量测迁移到全片 world；实际报告会对不可用指标标记跳过，不能把下表历史通过数当作 V4 结果。
+
+### 历史 V3 基线实测（不代表当前示例）
 
 阈值是"该达到什么"，下面是"现在是什么"——两个数字都必须是可核查的（命令见本节末）：
 
@@ -467,9 +474,7 @@ kind.textContent = scene.type || '';
 
 浅色那 1 条提醒就是第八章记录的已知偏差（浅色底上光晕不承担焦点）。
 
-复现命令：深色用 `uv run python .agents/skills/article2video/scripts/review.py --storyboard examples/keynote-baseline/storyboard.json`；
-浅色把该分镜的 `visual.theme` 改成 `light`、另存为 `examples/keynote-baseline/` 下的探针分镜再跑
-（**探针分镜用完即删，不入库**）。
+以上 K/M 数字来自旧 V3 多幕作品。当前 V4 双主题验证请运行上面的浏览器令牌测试；V4 分镜若需检查视觉结构和连续性，则查看对应的联系表、有声评审材料与 `review.md`。
 
 ### 维度 ↔ 判据对照
 
