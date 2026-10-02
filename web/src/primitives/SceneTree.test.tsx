@@ -34,6 +34,22 @@ describe('场景树运行时', () => {
     expect(html).toContain(`data-a2v-node-id="${hiddenId}"`);
     expect(html).toContain('visibility:hidden');
   });
+  it('折线图缺测时保留类别位置且横轴标签使用主题正文颜色', () => {
+    const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
+    scene.data = { weeks: [
+      { label: '第 1 周', value: 2 }, { label: '第 2 周', value: null },
+      { label: '第 3 周', value: null }, { label: '第 4 周', value: 14 },
+    ] };
+    scene.sceneTree = {
+      id: 'feedback-chart', type: 'chart', chart: 'line', contentRef: 'data.weeks',
+    } as SceneNode;
+    const html = renderToStaticMarkup(<SceneTree scene={scene} frame={0} />);
+    expect(html).toContain('style="fill:var(--a2v-text-1, currentColor)"');
+    expect(html).toContain('>第 1 周</text>');
+    expect(html).toContain('>第 4 周</text>');
+    expect(html).toContain('points="56,304 664,56"');
+    expect(html.match(/<circle /g)).toHaveLength(2);
+  });
   it('同一帧的动效样式可复现且不改变布局声明', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.durationInFrames = 60;

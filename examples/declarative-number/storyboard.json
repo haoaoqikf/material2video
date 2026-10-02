@@ -1,349 +1,692 @@
 {
-  "version": 3,
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "每一次尝试都留下反馈",
+  "visualDirection": {
+    "motif": "一台持续计数的反馈计数器：读数在上、刻度尺在下，底部三枚标签由两段连接件串成回路",
+    "compositionBias": "centered",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "切换成独立文字页",
+      "把示意读数写成真实调查统计"
+    ]
+  },
+  "directingBrief": {
+    "thesis": "尝试本身不值钱，值钱的是它留下的反馈记录：记录越全，下一次选择越有依据",
+    "audienceShift": "从「做了多少次」转向「每次留下了什么可以用在下一次」",
+    "emotionalArc": [
+      "平静",
+      "累积",
+      "看见联系",
+      "确定"
+    ],
+    "visualMotif": "同一个计数器读数、同一把刻度尺与同一条三标签回路在四个阶段持续存在",
+    "stylePack": "editorial",
+    "avoid": [
+      "把次数当成成就展示",
+      "把反馈说成一次性奖励"
+    ]
+  },
   "visual": {
     "theme": "light",
     "preset": "keynote"
   },
-  "scenes": [
+  "world": {
+    "id": "feedback-counter",
+    "claim": "尝试留下反馈记录，记录累积起来才有下一次选择的依据",
+    "metaphor": "一台持续计数的反馈计数器：读数在上、刻度尺在下，底部「尝试→反馈→下一次」三枚标签串成一条回路",
+    "objects": [
+      {
+        "id": "headline",
+        "role": "annotation",
+        "description": "全片主标题，四阶段持续存在"
+      },
+      {
+        "id": "counter",
+        "role": "primary",
+        "description": "尝试计数读数：按 contentRef 分档从 0 推到 73（示意）"
+      },
+      {
+        "id": "unit",
+        "role": "supporting",
+        "description": "读数单位与示意说明"
+      },
+      {
+        "id": "tally",
+        "role": "primary",
+        "description": "四周反馈刻度尺：只标第 1 周 2 条与第 4 周 14 条示意端点，中间周次留空"
+      },
+      {
+        "id": "attempt",
+        "role": "supporting",
+        "description": "回路第一枚标签「尝试」"
+      },
+      {
+        "id": "feedback",
+        "role": "primary",
+        "description": "回路第二枚标签「反馈」"
+      },
+      {
+        "id": "next",
+        "role": "supporting",
+        "description": "回路第三枚标签「下一次」"
+      },
+      {
+        "id": "note",
+        "role": "annotation",
+        "description": "示意口径说明"
+      }
+    ],
+    "renderer": {
+      "kind": "tree"
+    },
+    "data": {
+      "headline": "尝试会留下反馈",
+      "count": 0,
+      "countSteps": {
+        "a": 18,
+        "b": 41,
+        "c": 62,
+        "d": 73
+      },
+      "unit": "次尝试（示意）",
+      "weeks": [
+        {
+          "label": "第 1 周",
+          "value": null
+        },
+        {
+          "label": "第 2 周",
+          "value": null
+        },
+        {
+          "label": "第 3 周",
+          "value": null
+        },
+        {
+          "label": "第 4 周",
+          "value": null
+        }
+      ],
+      "weeksAll": [
+        {
+          "label": "第 1 周",
+          "value": 2
+        },
+        {
+          "label": "第 2 周",
+          "value": null
+        },
+        {
+          "label": "第 3 周",
+          "value": null
+        },
+        {
+          "label": "第 4 周",
+          "value": 14
+        }
+      ],
+      "tags": {
+        "attempt": "尝试",
+        "feedback": "反馈",
+        "next": "下一次"
+      },
+      "note": "次数与每周反馈条数均为示意，不是调查统计",
+      "weeksStart": [
+        {
+          "label": "第 1 周",
+          "value": 2
+        },
+        {
+          "label": "第 2 周",
+          "value": null
+        },
+        {
+          "label": "第 3 周",
+          "value": null
+        },
+        {
+          "label": "第 4 周",
+          "value": null
+        }
+      ]
+    },
+    "sceneTree": {
+      "id": "root",
+      "type": "column",
+      "gap": "md",
+      "align": "center",
+      "children": [
+        {
+          "id": "headline",
+          "type": "text",
+          "contentRef": "data.headline",
+          "role": "headline",
+          "state": "rest"
+        },
+        {
+          "id": "counter-row",
+          "type": "row",
+          "gap": "md",
+          "align": "center",
+          "children": [
+            {
+              "id": "counter",
+              "type": "number",
+              "contentRef": "data.count",
+              "role": "hero",
+              "schematic": true,
+              "state": "rest"
+            },
+            {
+              "id": "unit",
+              "type": "text",
+              "contentRef": "data.unit",
+              "role": "label",
+              "state": "rest"
+            }
+          ]
+        },
+        {
+          "id": "tally",
+          "type": "chart",
+          "contentRef": "data.weeks",
+          "chart": "line",
+          "schematic": true,
+          "state": "rest"
+        },
+        {
+          "id": "chain",
+          "type": "flow",
+          "direction": "ltr",
+          "gap": "sm",
+          "children": [
+            {
+              "id": "attempt",
+              "type": "surface",
+              "state": "muted",
+              "children": [
+                {
+                  "id": "attempt-text",
+                  "type": "text",
+                  "contentRef": "data.tags.attempt",
+                  "role": "body"
+                }
+              ]
+            },
+            {
+              "id": "feedback",
+              "type": "surface",
+              "state": "muted",
+              "children": [
+                {
+                  "id": "feedback-text",
+                  "type": "text",
+                  "contentRef": "data.tags.feedback",
+                  "role": "body"
+                }
+              ]
+            },
+            {
+              "id": "next",
+              "type": "surface",
+              "state": "muted",
+              "children": [
+                {
+                  "id": "next-text",
+                  "type": "text",
+                  "contentRef": "data.tags.next",
+                  "role": "body"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "contentRef": "data.note",
+          "role": "caption",
+          "state": "rest"
+        }
+      ]
+    },
+    "stateTracks": [
+      {
+        "id": "count-a",
+        "target": "counter",
+        "property": "contentRef",
+        "binding": {
+          "stageId": "claim",
+          "phase": "establish"
+        },
+        "to": "data.countSteps.a",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "count-b",
+        "target": "counter",
+        "property": "contentRef",
+        "binding": {
+          "stageId": "claim",
+          "phase": "change"
+        },
+        "to": "data.countSteps.b",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "count-c",
+        "target": "counter",
+        "property": "contentRef",
+        "binding": {
+          "beatId": "beat-3"
+        },
+        "to": "data.countSteps.c",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "count-d",
+        "target": "counter",
+        "property": "contentRef",
+        "binding": {
+          "beatId": "beat-4"
+        },
+        "to": "data.countSteps.d",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "counter-focus",
+        "target": "counter",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-1"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "counter-done",
+        "target": "counter",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-7"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "unit-focus",
+        "target": "unit",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-1"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tally-first",
+        "target": "tally",
+        "property": "contentRef",
+        "binding": {
+          "beatId": "beat-3"
+        },
+        "to": "data.weeksStart",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tally-focus",
+        "target": "tally",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-3"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tally-all",
+        "target": "tally",
+        "property": "contentRef",
+        "binding": {
+          "beatId": "beat-4"
+        },
+        "to": "data.weeksAll",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "tally-done",
+        "target": "tally",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-4"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "attempt-focus",
+        "target": "attempt",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-5"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "feedback-focus",
+        "target": "feedback",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-5"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "next-focus",
+        "target": "next",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-6"
+        },
+        "to": "focus",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "attempt-done",
+        "target": "attempt",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-7"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "feedback-done",
+        "target": "feedback",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-7"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      },
+      {
+        "id": "next-done",
+        "target": "next",
+        "property": "state",
+        "binding": {
+          "beatId": "beat-7"
+        },
+        "to": "done",
+        "interpolation": "step-end"
+      }
+    ],
+    "motions": [],
+    "camera": {
+      "shot": "medium",
+      "composition": "center",
+      "depth": "layered",
+      "focus": "counter",
+      "segments": [
+        {
+          "id": "hold-claim",
+          "kind": "hold",
+          "binding": {
+            "beatId": "beat-1"
+          },
+          "focus": "counter",
+          "intensity": 0
+        },
+        {
+          "id": "push-tally",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "beat-3"
+          },
+          "focus": "tally",
+          "intensity": 0.3
+        },
+        {
+          "id": "hold-tally",
+          "kind": "hold",
+          "binding": {
+            "beatId": "beat-4"
+          },
+          "focus": "tally",
+          "intensity": 0
+        },
+        {
+          "id": "push-feedback",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "beat-5"
+          },
+          "focus": "feedback",
+          "intensity": 0.3
+        },
+        {
+          "id": "pull-back",
+          "kind": "pull-out",
+          "binding": {
+            "beatId": "beat-6"
+          },
+          "focus": "next",
+          "intensity": 0.6
+        },
+        {
+          "id": "hold-close",
+          "kind": "hold",
+          "binding": {
+            "beatId": "beat-7"
+          },
+          "focus": "counter",
+          "intensity": 0
+        }
+      ]
+    }
+  },
+  "stages": [
     {
-      "id": "count",
-      "type": "number",
-      "durationInFrames": 90,
-      "visual": {},
+      "id": "claim",
+      "durationInFrames": 200,
       "data": {
-        "value": 73,
-        "label": "次尝试（示意）",
-        "caption": "每一次都会留下反馈",
-        "feedback": [
-          {
-            "label": "第 1 周",
-            "value": 2
-          },
-          {
-            "label": "第 2 周",
-            "value": 5
-          },
-          {
-            "label": "第 3 周",
-            "value": 9
-          },
-          {
-            "label": "第 4 周",
-            "value": 14
-          }
-        ]
+        "headline": "尝试会留下反馈"
       },
       "visualIntent": {
         "relation": "focus",
         "focus": "number",
-        "composition": "offset",
-        "density": "balanced",
+        "composition": "center",
+        "density": "sparse",
         "tone": "neutral",
         "mode": "chart",
-        "claim": "尝试次数会积累反馈，反馈让下一次选择更有依据",
-        "showWithoutText": "一条从左下往右上抬升的折线，四段爬升说明反馈随尝试一起累积",
-        "primaryObject": "累计反馈折线与它的上升斜率",
-        "motionMeaning": "折线逐段画出，把「每试一次就多一点反馈」的积累过程演出来"
+        "claim": "尝试次数先以读数形式站到台面上，刻度尺还空着",
+        "showWithoutText": "一个读数分两档往上跳，它下面那把刻度尺四段都还是零",
+        "primaryObject": "持续存在的计数器读数与它下方的刻度尺",
+        "motionMeaning": "读数分档往上走，把「次数在累积」先演成数字的变化"
       },
-      "sceneTree": {
-        "id": "root",
-        "type": "column",
-        "gap": "lg",
-        "children": [
-          {
-            "id": "count-hero",
-            "type": "row",
-            "align": "center",
-            "gap": "sm",
-            "children": [
-              {
-                "id": "content-value",
-                "type": "number",
-                "contentRef": "data.value",
-                "role": "hero",
-                "schematic": true
-              },
-              {
-                "id": "content-label",
-                "type": "text",
-                "contentRef": "data.label",
-                "role": "label"
-              }
-            ]
-          },
-          {
-            "id": "content-caption",
-            "type": "text",
-            "contentRef": "data.caption",
-            "role": "caption"
-          },
-          {
-            "id": "content-chart",
-            "type": "chart",
-            "contentRef": "data.feedback",
-            "chart": "line",
-            "schematic": true
-          }
-        ]
-      },
-      "motions": [
+      "beats": [
         {
-          "target": "content-value",
-          "recipe": "count",
-          "durationFrames": 24,
-          "phase": "establish"
+          "id": "beat-1",
+          "action": "connect",
+          "targets": [
+            "counter",
+            "unit",
+            "headline"
+          ],
+          "meaning": "读数站起来，单位与标题落位，刻度尺仍停在零点"
         },
         {
-          "target": "content-label",
-          "recipe": "reveal",
-          "durationFrames": 24,
-          "phase": "change"
-        },
-        {
-          "target": "content-caption",
-          "recipe": "reveal",
-          "durationFrames": 24,
-          "phase": "result"
-        },
-        {
-          "target": "content-chart",
-          "recipe": "reveal",
-          "durationFrames": 24,
-          "phase": "establish"
+          "id": "beat-2",
+          "action": "transform",
+          "targets": [
+            "counter",
+            "tally"
+          ],
+          "meaning": "读数再上一档，刻度尺仍空着——次数本身还不是反馈"
         }
       ],
-      "renderer": {
-        "kind": "tree"
-      },
-      "camera": {
-        "shot": "wide",
-        "composition": "left",
-        "depth": "layered",
-        "focus": "content-value",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "content-value",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      }
+      "narrationSegments": [
+        {
+          "id": "line-1",
+          "beatId": "beat-1",
+          "text": "假设我们完成了 73 次尝试。"
+        },
+        {
+          "id": "line-2",
+          "beatId": "beat-2",
+          "text": "这个数字是示意，不是调查统计。"
+        }
+      ]
     },
     {
-      "id": "closing",
-      "type": "conclusion",
-      "durationInFrames": 90,
-      "visual": {},
+      "id": "weeks",
+      "durationInFrames": 280,
       "data": {
-        "text": "反馈，让下一次更有方向",
-        "action": "继续上场",
-        "chain": [
-          "尝试",
-          "反馈",
-          "下一次"
-        ]
+        "headline": "反馈按周攒下来"
       },
       "visualIntent": {
-        "relation": "focus",
-        "focus": "text",
-        "composition": "split",
+        "relation": "collection",
+        "focus": "chart",
+        "composition": "center",
         "density": "balanced",
-        "tone": "neutral",
-        "mode": "process",
-        "claim": "尝试产生反馈，反馈决定下一次怎么试",
-        "showWithoutText": "三块表面被两支箭头串成一条链，箭头方向说明反馈会回流到下一次尝试",
-        "primaryObject": "三段推进链与两支连接箭头",
-        "motionMeaning": "箭头逐段画出，把反馈送回下一次尝试的路径演一遍"
+        "tone": "uplifting",
+        "mode": "chart",
+        "claim": "反馈不是一次出现的，它按周一段一段攒起来",
+        "showWithoutText": "刻度尺先出现第 1 周的 2 条记录，再连到第 4 周的 14 条记录，中间周次留空",
+        "primaryObject": "持续存在的刻度尺与第 1、4 周的两个示意数据端点",
+        "motionMeaning": "先建立起点，再显示第 4 周终点并连接两端，表示反馈逐步累积"
       },
-      "sceneTree": {
-        "id": "root",
-        "type": "column",
-        "gap": "lg",
-        "children": [
-          {
-            "id": "content-text",
-            "type": "text",
-            "contentRef": "data.text",
-            "role": "headline"
-          },
-          {
-            "id": "closing-chain",
-            "type": "row",
-            "align": "center",
-            "gap": "sm",
-            "children": [
-              {
-                "id": "chain-1",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "chain-1-text",
-                    "type": "text",
-                    "contentRef": "data.chain[0]",
-                    "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "chain-arrow-1",
-                "type": "connector",
-                "direction": "ltr"
-              },
-              {
-                "id": "chain-2",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "chain-2-text",
-                    "type": "text",
-                    "contentRef": "data.chain[1]",
-                    "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "chain-arrow-2",
-                "type": "connector",
-                "direction": "ltr"
-              },
-              {
-                "id": "chain-3",
-                "type": "surface",
-                "state": "focus",
-                "children": [
-                  {
-                    "id": "chain-3-text",
-                    "type": "text",
-                    "contentRef": "data.chain[2]",
-                    "role": "body"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "content-action",
-            "type": "text",
-            "contentRef": "data.action",
-            "role": "title"
-          }
-        ]
-      },
-      "motions": [
+      "beats": [
         {
-          "target": "content-text",
-          "recipe": "reveal",
-          "durationFrames": 12,
-          "phase": "establish"
+          "id": "beat-3",
+          "action": "accumulate",
+          "targets": [
+            "tally",
+            "counter"
+          ],
+          "meaning": "第 1 周出现 2 条示意反馈，计数与刻度尺开始对应"
         },
         {
-          "target": "chain-arrow-1",
-          "recipe": "draw",
-          "durationFrames": 10,
-          "phase": "change"
-        },
-        {
-          "target": "chain-2",
-          "recipe": "reveal",
-          "durationFrames": 10,
-          "phase": "result"
-        },
-        {
-          "target": "chain-arrow-2",
-          "recipe": "draw",
-          "durationFrames": 10,
-          "phase": "result"
-        },
-        {
-          "target": "chain-3",
-          "recipe": "rise",
-          "durationFrames": 12,
-          "phase": "result"
-        },
-        {
-          "target": "content-action",
-          "recipe": "reveal",
-          "durationFrames": 12,
-          "phase": "result"
+          "id": "beat-4",
+          "action": "transform",
+          "targets": [
+            "tally",
+            "counter"
+          ],
+          "meaning": "第 4 周达到 14 条示意反馈，两个有依据的端点连成累积趋势"
         }
       ],
-      "renderer": {
-        "kind": "tree"
+      "narrationSegments": [
+        {
+          "id": "line-3",
+          "beatId": "beat-3",
+          "text": "举一个示意例子：第 1 周留下 2 条反馈，"
+        },
+        {
+          "id": "line-4",
+          "beatId": "beat-4",
+          "text": "到第 4 周攒到 14 条；每一次尝试都往计数里添了一点。"
+        }
+      ]
+    },
+    {
+      "id": "chain",
+      "durationInFrames": 240,
+      "data": {
+        "headline": "送进下一次选择"
       },
-      "camera": {
-        "shot": "medium",
-        "composition": "split",
-        "depth": "layered",
-        "focus": "content-text",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "content-text",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
+      "visualIntent": {
+        "relation": "cause",
+        "focus": "shape",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "calm",
+        "mode": "process",
+        "claim": "留下来的反馈只有被送进下一次选择才有用",
+        "showWithoutText": "「尝试」与「反馈」两枚标签之间的方向箭头由暗转亮",
+        "primaryObject": "持续存在的三标签回路与刻度尺",
+        "motionMeaning": "尝试指向反馈的箭头亮起，把「试过一次就有东西留下」演出来"
       },
-      "transition": {
-        "kind": "decompose",
-        "source": "content-chart",
-        "targets": [
-          "chain-1",
-          "chain-2",
-          "chain-3"
-        ],
-        "meaning": "反馈累计曲线拆成尝试、反馈与下一次行动的回路"
-      }
+      "beats": [
+        {
+          "id": "beat-5",
+          "action": "connect",
+          "targets": [
+            "attempt",
+            "feedback"
+          ],
+          "meaning": "一次尝试与它留下的反馈被方向箭头接上"
+        }
+      ],
+      "narrationSegments": [
+        {
+          "id": "line-5",
+          "beatId": "beat-5",
+          "text": "反馈不是奖章，而是下一次选择的依据；知道哪一步有效，就少走一遍弯路。"
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "durationInFrames": 390,
+      "data": {
+        "headline": "回路自己转起来"
+      },
+      "visualIntent": {
+        "relation": "cycle",
+        "focus": "path",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "decisive",
+        "mode": "cycle",
+        "claim": "把每次结果都记下来，回路才会自己转起来",
+        "showWithoutText": "反馈指向下一次的箭头亮起，三枚标签与读数一起落定",
+        "primaryObject": "持续存在的三标签回路与计数器读数",
+        "motionMeaning": "反馈接到下一次之后回路闭合，标签一起进入完成态"
+      },
+      "beats": [
+        {
+          "id": "beat-6",
+          "action": "connect",
+          "targets": [
+            "next",
+            "feedback"
+          ],
+          "meaning": "反馈与下一次之间接上方向箭头，回路闭合"
+        },
+        {
+          "id": "beat-7",
+          "action": "restore",
+          "targets": [
+            "attempt",
+            "feedback",
+            "next",
+            "counter"
+          ],
+          "meaning": "三枚标签与读数一起进入完成态，画面停在同一个回路上"
+        }
+      ],
+      "narrationSegments": [
+        {
+          "id": "line-6",
+          "beatId": "beat-6",
+          "text": "所以别把尝试当成消耗，它把模糊的方向一点点换成可用的信息。"
+        },
+        {
+          "id": "line-7",
+          "beatId": "beat-7",
+          "text": "稀缺的从来不是运气，而是把每次结果都记下来的习惯。"
+        }
+      ]
     }
-  ],
-  "schemaVersion": 3,
-  "visualDirection": {
-    "motif": "刻度",
-    "compositionBias": "mixed",
-    "density": "balanced",
-    "rhythm": "steady",
-    "avoid": [
-      "repeated-center"
-    ]
-  },
-  "directingVersion": 1,
-  "directingBrief": {
-    "thesis": "数字变化只有具备明确过程才有说服力",
-    "audienceShift": "从孤立读数转向理解数量变化",
-    "emotionalArc": [
-      "好奇",
-      "确认"
-    ],
-    "visualMotif": "刻度",
-    "stylePack": "editorial",
-    "avoid": [
-      "静态文字页连续复用",
-      "脱离语义的装饰动效"
-    ]
-  }
+  ]
 }

@@ -65,6 +65,22 @@ def test_shared_v4_contract_vectors() -> None:
         assert not validate(_mutate(case["mutation"])).ok, case["name"]
 
 
+def test_chart_accepts_explicit_missing_values_without_rejecting_fixed_categories() -> None:
+    value = copy.deepcopy(VECTORS["valid"])
+    value["world"]["data"]["series"] = [
+        {"label": "第 1 周", "value": 2},
+        {"label": "第 2 周", "value": None},
+        {"label": "第 3 周", "value": None},
+        {"label": "第 4 周", "value": 14},
+    ]
+    value["world"]["sceneTree"]["children"].append({
+        "id": "weekly-series", "type": "chart", "chart": "line",
+        "contentRef": "data.series", "schematic": True,
+    })
+    value["world"]["objects"].append({"id": "weekly-series", "role": "supporting", "description": "两周端点之间的示意趋势"})
+    assert validate(value).ok
+
+
 def test_declared_duration_boundaries_and_40_seconds_with_171_chars() -> None:
     for seconds in (35, 45):
         value = copy.deepcopy(VECTORS["valid"])

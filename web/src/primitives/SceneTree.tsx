@@ -113,13 +113,13 @@ export function radialChildStyle(index: number, total: number): CSSProperties {
   };
 }
 
-/** 图表数据点：label/value 全部来自分镜内容，缺数值的点不参与几何。 */
-function chartPoints(value: unknown): Array<{ label: string; value: number }> {
+/** 图表数据点：null 是显式缺测值；保留它的类别槽位，避免后续点横向重排。 */
+function chartPoints(value: unknown): Array<{ label: string; value: number | null }> {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => (item && typeof item === 'object' ? (item as Record<string, unknown>) : {}))
-    .filter((point) => typeof point.value === 'number' && Number.isFinite(point.value))
-    .map((point) => ({ label: String(point.label ?? ''), value: point.value as number }));
+    .filter((point) => point.value === null || (typeof point.value === 'number' && Number.isFinite(point.value)))
+    .map((point) => ({ label: String(point.label ?? ''), value: point.value as number | null }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -319,12 +319,12 @@ function segmentColor(index: number): string {
   return `color-mix(in srgb, var(--a2v-accent, #7aa2ff) ${share}%, transparent)`;
 }
 
-function BarChart({ points, schematic }: { points: Array<{ label: string; value: number }>; schematic?: boolean }): ReactNode {
-  const max = Math.max(...points.map((point) => Math.abs(point.value)), 1);
+function BarChart({ points, schematic }: { points: Array<{ label: string; value: number | null }>; schematic?: boolean }): ReactNode {
+  const max = Math.max(...points.flatMap((point) => point.value === null ? [] : [Math.abs(point.value)]), 1);
   return (
     <div className="a2v-primitive-chart a2v-chart-bar">
       {points.map((point, index) => (
-        <div key={index} className="a2v-primitive-bar" style={{ height: `${Math.max(8, (Math.abs(point.value) / max) * 100)}%` }}>
+        <div key={index} className="a2v-primitive-bar" style={{ height: point.value === null ? 0 : `${Math.max(8, (Math.abs(point.value) / max) * 100)}%`, minHeight: point.value === null ? 0 : undefined }}>
           <span>{point.label}</span>
         </div>
       ))}
@@ -333,20 +333,24 @@ function BarChart({ points, schematic }: { points: Array<{ label: string; value:
   );
 }
 
-function LineChart({ points, schematic }: { points: Array<{ label: string; value: number }>; schematic?: boolean }): ReactNode {
+function LineChart({ points, schematic }: { points: Array<{ label: string; value: number | null }>; schematic?: boolean }): ReactNode {
   const width = 720; const height = 360; const pad = 56;
-  const values = points.map((point) => point.value);
-  const min = Math.min(...values); const max = Math.max(...values); const span = max - min || 1;
+  const values = points.flatMap((point) => point.value === null ? [] : [point.value]);
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 1;
+  const span = max - min || 1;
   const step = points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
-  const coords = points.map((point, index) => ({ x: pad + index * step, y: height - pad - ((point.value - min) / span) * (height - pad * 2), label: point.label }));
+  const coords = points.map((point, index) => ({ x: pad + index * step,
+    y: point.value === null ? null : height - pad - ((point.value - min) / span) * (height - pad * 2), label: point.label }));
   return (
     <div className="a2v-primitive-chart a2v-chart-line">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-hidden="true">
-        <polyline points={coords.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="var(--a2v-accent, #7aa2ff)" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline points={coords.filter((point) => point.y !== null).map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="var(--a2v-accent, #7aa2ff)" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" />
         {coords.map((point, index) => (
           <g key={index}>
-            <circle cx={point.x} cy={point.y} r="10" fill="var(--a2v-accent, #7aa2ff)" />
-            <text x={point.x} y={height - 18} textAnchor="middle" fontSize="22" fill="var(--a2v-text-1, currentColor)">{point.label}</text>
+            {point.y !== null ? <circle cx={point.x} cy={point.y} r="10" fill="var(--a2v-accent, #7aa2ff)" /> : null}
+            <text x={point.x} y={height - 18} textAnchor="middle" fontSize="22"
+              style={{ fill: 'var(--a2v-text-1, currentColor)' }}>{point.label}</text>
           </g>
         ))}
       </svg>
@@ -355,12 +359,12 @@ function LineChart({ points, schematic }: { points: Array<{ label: string; value
   );
 }
 
-function PieChart({ points, schematic }: { points: Array<{ label: string; value: number }>; schematic?: boolean }): ReactNode {
-  const total = points.reduce((sum, point) => sum + Math.abs(point.value), 0) || 1;
+function PieChart({ points, schematic }: { points: Array<{ label: string; value: number | null }>; schematic?: boolean }): ReactNode {
+  const total = points.reduce((sum, point) => sum + Math.abs(point.value ?? 0), 0) || 1;
   const radius = 130; const circumference = 2 * Math.PI * radius;
   let consumed = 0;
   const segments = points.map((point, index) => {
-    const fraction = Math.abs(point.value) / total;
+    const fraction = Math.abs(point.value ?? 0) / total;
     const segment = { dash: fraction * circumference, offset: consumed, color: segmentColor(index), label: point.label };
     consumed += fraction * circumference;
     return segment;

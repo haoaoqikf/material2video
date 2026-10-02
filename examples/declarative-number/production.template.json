@@ -1,0 +1,432 @@
+{
+  "version": 4,
+  "fingerprints": {
+    "storyboard": "<当前分镜指纹>",
+    "assets": "<当前资产指纹>",
+    "media": null,
+    "input": "<当前输入指纹>"
+  },
+  "inputReview": {
+    "countingVersion": 1,
+    "source": {
+      "path": "examples/declarative-number/article.md",
+      "sha256": "55d64a3e21c3419693517a7595a78ce3088276ca370a64c27c8be51d0bc84b7c"
+    },
+    "charCount": 145,
+    "lengthStatus": "pass",
+    "singleScene": {
+      "status": "pass",
+      "claim": "尝试留下的反馈记录能帮助下一次选择，反复记录才让方向更有依据",
+      "metaphor": "同一台反馈计数器与四周刻度尺持续增加记录，底部尝试—反馈—下一次回路逐步闭合",
+      "problemSpans": [],
+      "rationale": "文章先声明总尝试次数为示意，随后用周记录说明反馈逐步累积，再论证记录需进入下一次选择。计数读数、每周刻度与三标签回路可在同一个仪表世界内持续呈现；四段无需切换独立地点或视觉系统。已将周数字明确写成示意例子，避免把无来源数值陈述为实测数据。"
+    },
+    "status": "pass",
+    "assessment": {
+      "reviewer": "ai",
+      "model": "<模型名>",
+      "session": "<会话>"
+    }
+  },
+  "inputAdoption": null,
+  "direction": {
+    "keyScenes": {
+      "opening": "claim",
+      "core": "weeks",
+      "climax": "close"
+    },
+    "pace": "先读出示意总量，再逐周补齐记录，接着解释记录如何指导下一次选择，最后闭合行动回路并留出阅读停顿。",
+    "scenePlans": {
+      "close": {
+        "result": "全片停留在记录转化为下一次依据的回路上。",
+        "change": "补上回路连接，读数与三节点一起收束。",
+        "start": "反馈与下一次尚未闭合。"
+      },
+      "claim": {
+        "result": "次数本身不等于有用反馈。",
+        "change": "计数器由 0 推进到 73（示意），空刻度尺明确区分次数与反馈。",
+        "start": "计数器、刻度尺与行动回路同时可见，周记录为空。"
+      },
+      "weeks": {
+        "result": "分散尝试留下的反馈逐周累积。",
+        "change": "前两周记录先出现，后两周补齐，读数同步到 73。",
+        "start": "同一读数与刻度尺保持，周记录从空逐步增长。"
+      },
+      "chain": {
+        "result": "反馈只有进入下一次选择才有用途。",
+        "change": "尝试到反馈的方向连接被点亮。",
+        "start": "读数、刻度尺与三标签回路保持在同一画面。"
+      }
+    }
+  },
+  "reviews": {
+    "keyScenes": {
+      "chain": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        }
+      },
+      "claim": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        }
+      },
+      "close": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        }
+      },
+      "weeks": {
+        "static": {
+          "status": "pending",
+          "dimensions": {
+            "subject_scale": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "composition_repetition": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "information_density": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "visual_motif": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "climax_weight": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        },
+        "dynamic": {
+          "status": "pending",
+          "dimensions": {
+            "motion_meaning": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "narration_sync": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "rhythm": {
+              "status": "pending",
+              "evidence": ""
+            },
+            "result_hold": {
+              "status": "pending",
+              "evidence": ""
+            }
+          },
+          "evidence": "",
+          "assessment": null
+        }
+      }
+    },
+    "full": {
+      "content": {
+        "status": "pending",
+        "dimensions": {
+          "opening_question": {
+            "status": "pending",
+            "evidence": "",
+            "score": null
+          },
+          "explanation_chain": {
+            "status": "pending",
+            "evidence": "",
+            "score": null
+          },
+          "spoken_naturalness": {
+            "status": "pending",
+            "evidence": "",
+            "score": null
+          },
+          "closing_response": {
+            "status": "pending",
+            "evidence": "",
+            "score": null
+          },
+          "boundary_accuracy": {
+            "status": "pending",
+            "evidence": "",
+            "score": null
+          }
+        },
+        "evidence": "",
+        "assessment": null
+      },
+      "static": {
+        "status": "pending",
+        "dimensions": {
+          "subject_scale": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "composition_repetition": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "information_density": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "visual_motif": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "climax_weight": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": null
+      },
+      "dynamic": {
+        "status": "pending",
+        "dimensions": {
+          "motion_meaning": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "narration_sync": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "rhythm": {
+            "status": "pending",
+            "evidence": ""
+          },
+          "result_hold": {
+            "status": "pending",
+            "evidence": ""
+          }
+        },
+        "evidence": "",
+        "assessment": null
+      }
+    }
+  },
+  "continuity": {
+    "worldConsistency": {
+      "status": "pending",
+      "stageId": "",
+      "frameRange": null,
+      "timeRange": null,
+      "evidence": "",
+      "assessment": null,
+      "material": null,
+      "materialSha256": null
+    },
+    "identity": {
+      "status": "pending",
+      "stageId": "",
+      "frameRange": null,
+      "timeRange": null,
+      "evidence": "",
+      "assessment": null,
+      "material": null,
+      "materialSha256": null
+    },
+    "stateCarry": {
+      "status": "pending",
+      "stageId": "",
+      "frameRange": null,
+      "timeRange": null,
+      "evidence": "",
+      "assessment": null,
+      "material": null,
+      "materialSha256": null
+    },
+    "cameraContinuity": {
+      "status": "pending",
+      "stageId": "",
+      "frameRange": null,
+      "timeRange": null,
+      "evidence": "",
+      "assessment": null,
+      "material": null,
+      "materialSha256": null
+    },
+    "resultReadability": {
+      "status": "pending",
+      "stageId": "",
+      "frameRange": null,
+      "timeRange": null,
+      "evidence": "",
+      "assessment": null,
+      "material": null,
+      "materialSha256": null
+    }
+  },
+  "materials": {
+    "keyframes": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "samples": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    },
+    "rehearsal": {
+      "path": "<材料路径>",
+      "fingerprints": {},
+      "sha256": "<当前材料摘要>",
+      "files": {}
+    }
+  },
+  "rework": [],
+  "materialRoot": "..\\..\\.."
+}

@@ -714,7 +714,7 @@ def _validate_node_content(node_type: Any, value: dict[str, Any], path: str, dat
 
 
 def _validate_chart_values(value: Any, path: str, report: Report) -> None:
-    """图表数据必须全部来自分镜：缺失、空数组、缺标签或数值非法都直接报错。"""
+    """图表数据必须来自分镜；显式 null 表示缺测，保留类别但不绘制数据点。"""
     if not isinstance(value, list) or not value:
         report.error(path, "图表内容必须是非空数组，每项形如 {\"label\": \"四月\", \"value\": 12}")
         return
@@ -742,6 +742,8 @@ def _validate_chart_values(value: Any, path: str, report: Report) -> None:
                     f"数据点标签 {len(label.strip())} 个字符，超过 {_CHART_LABEL_MAX_CHARS} 字上限，会挤压图形本身",
                 )
         point_value = item.get("value")
+        if point_value is None:
+            continue
         if isinstance(point_value, bool) or not isinstance(point_value, (int, float)) or not math.isfinite(point_value):
             report.error(f"{item_path}.value", "数据点数值必须是有限数字")
 
