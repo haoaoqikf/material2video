@@ -65,7 +65,7 @@
 - **WHEN** 生成流程未显式提供参考分镜集合
 - **THEN** 系统仍执行片内检查，并明确把跨作品检查标记为未运行而不是通过
 
-### Requirement: 分镜入口只接受 v4 导演契约
+### Requirement: 分镜入口只接受 v3 导演契约
 所有执行入口 SHALL 只接受 version/schemaVersion 4、directingVersion 2，以及完整简报、策略、预设、world 与 stages。旧分镜和缺失字段 SHALL 明确失败，无默认补齐、迁移或兼容回退。
 
 #### Scenario: 旧输入
@@ -83,6 +83,10 @@
 #### Scenario: v4 缺少导演字段
 - **WHEN** v4 缺少 world.renderer、world.camera 或阶段 visualIntent
 - **THEN** 按字段拒绝，不要求旧幕级 renderer 或 transition
+
+#### Scenario: v3 缺少导演字段
+- **WHEN** v3 分镜缺少 renderer、visualIntent 必填论证、camera.segments 或第二幕起的 transition
+- **THEN** 普通与严格校验都报告结构错误；不得依赖运行时默认值补齐
 
 ### Requirement: 全片铺开前必须验证关键幕
 导演计划 SHALL 指定开场、核心论证和高潮 stageId、状态起点、变化及结果。关键阶段 SHALL 在完整 v4 草稿与全局时间轴上通过静态、动态及相关连续性检查，再完善全片；不以独立幕冒充样片。

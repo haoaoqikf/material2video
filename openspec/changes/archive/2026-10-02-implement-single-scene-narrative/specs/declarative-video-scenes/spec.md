@@ -82,6 +82,8 @@
 - **WHEN** 同一场景树节点在同一文案下被连续取档两次
 - **THEN** 第二次不产生任何节点样式或内容改动
 
+## ADDED Requirements
+
 ### Requirement: 图表缺测值保留类别位置
 图表数据 SHALL 允许 `value: null` 表示该类别当前没有已提供的数值。共享渲染器 SHALL 保留该类别的固定横向位置与标签，但不为缺测项绘制柱、点或数值；折线 SHALL 连接已有数值点，缺测类别 SHALL NOT 挤压或重排后续类别。Python 校验器与浏览器渲染 SHALL 对该表示保持一致。
 
