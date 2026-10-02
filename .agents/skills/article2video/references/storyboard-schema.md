@@ -1,98 +1,87 @@
-# 分镜脚本结构 v3
+# 分镜脚本结构 v4
 
-`storyboard.json` 是内容、时长和画面声明的单一真源。所有读取、校验、预览、配音准备、评审与渲染入口只接受 `version: 3`、`schemaVersion: 3`。v1/v2 分镜统一拒绝并提示「不支持 v3 之前分镜」；没有迁移命令、兼容模式或运行时回退。
+`storyboard.json` 是内容、时长和画面声明的单一真源。校验、准备、预览、评审和渲染只接受 `version: 4`、`schemaVersion: 4` 与 `directingVersion: 2`。v1–v3 输入明确拒绝，必须重新编排；没有迁移命令、兼容模式或运行时回退。
 
 ## 根字段
 
-- `version` / `schemaVersion`：都必须为 `3`。
-- `fps`、`width`、`height`、`title`：时间、画布与标题。
-- `visual`：必须含 `preset: "keynote"`，主题可选 `dark` / `light`。
-- `visualDirection`：完整全片策略 `motif`、`compositionBias`、`density`、`rhythm`、`avoid`。
-- `directingVersion`：固定 `1`。
-- `directingBrief`：必填，包含 `thesis`、`audienceShift`、至少两个阶段的 `emotionalArc`、`visualMotif`、`stylePack` 与 `avoid`。
-- `scenes`：非空场景数组。
+- `version` / `schemaVersion` / `directingVersion`：固定为 `4` / `4` / `2`。
+- `fps`、`width`、`height`、`title`：全片帧率、画布与标题；标准示例使用 30fps、1080×1920。
+- `visual`：声明 `preset: "keynote"`，`theme` 为 `dark` 或 `light`。
+- `visualDirection`：全片母题、构图倾向、密度、节奏与禁止项。
+- `directingBrief`：核心论点、受众认知变化、情绪弧线、视觉母题、风格包和避免项。
+- `world`：唯一持续视觉世界，含 `id`、`claim`、`metaphor`、全局 `objects`、唯一 `renderer`、基础 `data`、`stateTracks`、`motions` 与必需的 `camera`。
+- `stages`：一个或多个叙事时间阶段；阶段只声明 `id`、`durationInFrames`、`data`、`visualIntent`、可选 `narrationSegments` 与 `beats`。阶段不能声明 `renderer`、`sceneTree`、`camera` 或 `transition`。
+- `soundtrack`：可选受控音乐及音效声明。
 
-## 每幕字段
+这里的 world 是整条视频持续存在的视觉世界；stage 是口播与推理的时间分段。多个阶段可以推动同一世界中的对象变化，不意味着换场景。镜头推拉、焦点移动也不构成场景切换。
 
-- `id`、`type`、`durationInFrames`、`data`：内容层。
-- `renderer`：必填；场景树幕声明 `{ "kind": "tree" }`，代码幕声明 `{ "kind": "code", "module": "..." }`。
-- `visualIntent`：必填并完整声明 `relation`、`focus`、`composition`、`density`、`tone`、`mode`、`claim`、`showWithoutText`、`primaryObject`、`motionMeaning`。论证字段含义见[文章生成场景树分镜](article-to-storyboard.md)。
-- `camera`：必填 `shot`、`composition`、`depth`、`focus` 与非空 `segments`。每段以 `beatId` 或 `phase` 绑定同一时间轴，并声明 `kind`；不接受单一 `movement`。
-- `transition`：第一幕不得声明，第二幕起每幕必填，必须给 `meaning`。`inherit` / `transform` 使用 `source` + `target`，`decompose` 使用 `source` + 2–6 个 `targets`，`recompose` 使用 2–6 个 `sources` + `target`，`break` 使用 `source`，`dissolve` 不建立节点身份。
-- `sceneTree`：`tree` renderer 必须有唯一根节点；节点 `id` 在幕内唯一稳定。`code` renderer 不得声明场景树。
-- `narrationSegments` 与 `beats`：只要有口播，两者都必填；不接受字符串 `narration`。每项 `{id,text,beatId}` 与 `{id,action,targets,meaning}`，完整口播由段落拼接。静音幕可以不声明两者。
-- `resolvedBeats`：媒体准备生成的派生字段，源分镜不得写。帧区间左闭右开，并与字幕 cue、镜头与动作共用时间轴。
-- `motions`：必填数组，可为空。每条必须使用 `target` 或 `targets` 之一、受控 `recipe`，并且恰好绑定 `phase` 或 `beatId`。禁止 `startFrame`。编组动作必须配 `stagger`，错峰支持 `forward` / `reverse` / `center` / `path`。
-- `visual.kicker`：可选短角标。
+## 世界、对象和轨道
 
-## 语义节拍、镜头与动作共用时间轴
+`world.objects` 是稳定对象目录。每个对象有唯一 `id`、`role`（`primary` / `supporting` / `annotation`）和说明；至少声明一个 primary。tree renderer 的对象必须映射到全局场景树节点，code renderer 的对象必须被全局代码模块探针观察到。
 
-```json
-{
-  "narrationSegments": [
-    {"id": "n1", "text": "先看投入的起点。", "beatId": "b1"},
-    {"id": "n2", "text": "再看它一路累积。", "beatId": "b2"}
-  ],
-  "beats": [
-    {"id": "b1", "action": "establish", "targets": ["flow-a"], "meaning": "交代起点"},
-    {"id": "b2", "action": "accumulate", "targets": ["meter"], "meaning": "量级随口播累积"}
-  ],
-  "motions": [
-    {"target": "flow-a", "recipe": "reveal", "beatId": "b1", "durationFrames": 18},
-    {"targets": ["step-a", "step-b"], "recipe": "rise", "beatId": "b2", "stagger": {"kind": "path", "path": ["step-a", "step-b"], "intervalFrames": 4}}
-  ],
-  "camera": {
-    "shot": "medium", "composition": "center", "depth": "layered", "focus": "flow-a",
-    "segments": [
-      {"kind": "hold", "beatId": "b1", "focus": "flow-a"},
-      {"kind": "push-in", "beatId": "b2", "focus": "meter"},
-      {"kind": "settle", "phase": "settle", "focus": "meter"}
-    ]
-  }
-}
-```
+`world.data` 提供对象基础状态和作品数据。`stateTracks` 以 `id`、`target`、`property`、`binding`、`to` 和 `interpolation` 声明确定性变化；绑定使用 `{ "beatId": "..." }` 或 `{ "stageId": "...", "phase": "change" }`，禁止手写 `startFrame`。起始值由基础数据或前一条轨道终态派生，不维护第二份真源。属性和值类型遵循场景树/代码场景契约和严格校验。
 
-严格验收要求非文字幕至少两个 beat，且至少一个动作改变对象状态或关系；最后一个 beat 后留至少 12 帧稳定阅读区。所有 motion 与 camera segment 都在 beat 或阶段时间轴内解析，编组错峰按声明顺序传播，不能越过稳定阅读区。
+图表数据来自分镜引用的 `{label, value}` 数组；`value: null` 表示缺测，保留类别标签与横向位置但不绘制该点。折线只连接有值的数据点，不能补造缺失数值。
 
-## 跨幕连续性
+镜头仅在 `world.camera` 声明一次：包括 `shot`、`composition`、`depth`、初始 `focus` 与非空 `segments`。镜头段以全局 beat 或阶段 phase 绑定。世界只允许一种 renderer：`{ "kind": "tree", "sceneTree": { ... } }` 所用的全局 `world.sceneTree`，或 `{ "kind": "code", "module": "..." }` 指向作品 `scenes/<module>.tsx`。两者互斥。
 
-连续性窗口由风格包决定。窗口内，上一幕只保留映射源节点及其布局祖先，当前幕渲染映射目标；几何与状态均按当前帧号确定性求值。转场必须明确表达两幕关系，不从相似 id 推断。代码场景没有可静态核对的场景树节点，不能作为映射端点。
+## 阶段、口播和视觉论证
 
-## 场景树节点
+每个有口播的 stage 都要声明 `narrationSegments` 与 `beats`。每段 `{id,text,beatId}`，每个 beat `{id,action,targets,meaning}`；id 在全片唯一。完整口播是所有阶段口播段按顺序直接拼接的结果。动作、状态、镜头和字幕引用同一全局时间轴；媒体准备后生成 `resolvedBeats`，源分镜不能写它。
 
-节点只允许[视觉原语目录](primitive-catalog.md)登记的类型和属性。文字、数字和图表通过 `contentRef: "data.<path>"` 引用内容，图片通过 `sourceRef` 引用本地内容字段。禁止 HTML、CSS、JavaScript、第三方包、任意表达式和 `x/y/transform/style` 自由坐标。
+每阶段的 `visualIntent` 完整声明 `relation`、`focus`、`composition`、`density`、`tone`、`mode`、`claim`、`showWithoutText`、`primaryObject` 和 `motionMeaning`。它解释这一阶段的推理增量，而不是创建另一张完整页面。声明口播的阶段至少有两个 beat，且至少一个动作真实改变对象状态或关系；最后一个 beat 后留至少 12 帧稳定阅读区。
 
-布局节点最多 12 个直接子节点，树深最多 8；`split` 必须恰好两个子节点。连接节点、镜头焦点和动效目标必须引用本幕节点。五个中层原语 `flow`、`cycle`、`timeline`、`gauge`、`pictogram` 的容量、属性与动作支持清单由注册表唯一声明。
+所有轨道、camera 段和 motion 都由 beat 或 phase 绑定；轨道冲突、类型不匹配、未知节点或无效动作在校验阶段失败。tree 原语细节见[视觉原语目录](primitive-catalog.md)，代码模块的确定性与探针协议见[代码场景](code-scenes.md)。
 
-## 完整最小示例
+## 标准字数与时长
+
+标准正文和最终拼接口播各为 130～170 字，目标约 150 字。标题不计；Unicode 标点与空白不计，其余 Unicode 码点（包括数字和拉丁字母）逐个计数。输入审查、最终口播长度、声明时长与媒体实际时长分别校验。
+
+声明总时长为 `sum(stages[].durationInFrames) / fps`，须在 35～45 秒（含边界）。配音准备后再以媒体派生全片帧数检查 35～45 秒；配音超限不能截断口播或补静音，须调整文本/正常语速/有意义停顿后重新 prepare。
+
+## 最小字段形状
+
+可运行的完整双轨样例见 [代码场景示例](../../../../examples/code-scenes/storyboard.json)、[飞镖示例](../../../../examples/darts-trial-and-error/storyboard.json) 与 [少一个选项](../../../../examples/keynote-baseline/storyboard.json)。以下只展示字段形状，不能单独通过字数与语义节拍门禁：
 
 ```json
 {
-  "version": 3,
-  "schemaVersion": 3,
-  "directingVersion": 1,
-  "directingBrief": {"thesis": "方向决定努力效果", "audienceShift": "由投入转向反馈", "emotionalArc": ["疑问", "确认"], "visualMotif": "偏置路径", "stylePack": "editorial", "avoid": []},
-  "visual": {"theme": "dark", "preset": "keynote"},
-  "fps": 30, "width": 1080, "height": 1920,
-  "visualDirection": {"motif": "路径", "compositionBias": "asymmetric", "density": "sparse", "rhythm": "restrained", "avoid": []},
-  "scenes": [{
-    "id": "claim", "type": "quote", "durationInFrames": 150,
-    "data": {"text": "真正害怕的是被否定"},
-    "renderer": {"kind": "tree"},
-    "visualIntent": {"relation": "focus", "focus": "text", "composition": "offset", "density": "sparse", "tone": "tense", "mode": "typography", "claim": "真正害怕的不是失败，而是被否定", "showWithoutText": "偏置文字块周围留下大面积空白", "primaryObject": "偏置标题文字", "motionMeaning": "标题从边缘进入后停在视觉中心"},
-    "camera": {"shot": "wide", "composition": "left", "depth": "flat", "focus": "copy", "segments": [{"phase": "establish", "kind": "hold", "focus": "copy"}]},
-    "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text", "role": "headline"}]},
-    "motions": [{"target": "copy", "recipe": "reveal", "phase": "establish", "durationFrames": 36}]
-  }]
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "标题",
+  "visual": { "theme": "dark", "preset": "keynote" },
+  "visualDirection": { "motif": "持续母题", "compositionBias": "centered", "density": "balanced", "rhythm": "steady", "avoid": [] },
+  "directingBrief": { "thesis": "核心判断", "audienceShift": "认知变化", "emotionalArc": ["疑问", "理解"], "visualMotif": "同一视觉世界", "stylePack": "cinematic", "avoid": [] },
+  "world": {
+    "id": "world-id",
+    "claim": "核心判断",
+    "metaphor": "持续存在的视觉隐喻",
+    "objects": [{ "id": "object-id", "role": "primary", "description": "稳定对象" }],
+    "renderer": { "kind": "code", "module": "world" },
+    "data": { "objects": { "object-id": { "state": "rest" } } },
+    "stateTracks": [],
+    "motions": [],
+    "camera": { "shot": "medium", "composition": "center", "depth": "flat", "focus": "object-id", "segments": [{ "id": "hold", "kind": "hold", "binding": { "stageId": "stage-a", "phase": "establish" }, "focus": "object-id", "intensity": 0 }] }
+  },
+  "stages": [{
+    "id": "stage-a", "durationInFrames": 1080,
+    "data": {},
+    "visualIntent": { "relation": "focus", "focus": "shape", "composition": "center", "density": "balanced", "tone": "neutral", "mode": "metaphor", "claim": "阶段判断", "showWithoutText": "不看正文仍能观察到的变化", "primaryObject": "稳定对象", "motionMeaning": "状态变化如何推进判断" },
+    "narrationSegments": [{ "id": "line-a", "text": "口播句子。", "beatId": "beat-a" }],
+    "beats": [{ "id": "beat-a", "action": "establish", "targets": ["object-id"], "meaning": "建立对象" }]
+  }],
+  "soundtrack": null
 }
 ```
+
+校验命令：
 
 ```bash
 uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --json
+uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --media path/to/media.json
 ```
 
-上例只演示字段结构；完整交付还要满足严格模式下的全片模式覆盖。可运行的完整样例见[文章生成场景树分镜](article-to-storyboard.md)。
-
-## P0 声音扩展
-
-保持分镜 v3。口播段可带可选 `speech: {rate, pauseBeforeMs, pauseAfterMs}`；根级可带 `soundtrack: {music, effects}`，均为封闭对象。参数范围、默认值、路径限制、混音和清单 v3 见 [媒体契约](media-contract.md)；完整有效示例见 [缓冲区分镜](../../../../examples/buffer-smoothing/storyboard.json)。字符串 narration、录音导入与逐字高亮仍不支持。
+版本 4 的主规格和边界以 OpenSpec `storyboard-v3-contract`（历史 capability 名称，当前内容定义 v4）为准。输入审查与候选稿采用流程见[输入文章审查](input-review.md)，从文章构建持续世界的流程见[文章生成分镜](article-to-storyboard.md)。

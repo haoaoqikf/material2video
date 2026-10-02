@@ -30,31 +30,8 @@ WEB = ROOT / "web"
 
 
 def _minimal_storyboard() -> dict:
-    """结构完整的最小分镜（tree 场景），供入口写入测试使用。"""
-    return {
-        "version": 3,
-        "schemaVersion": 3,
-        "directingVersion": 1,
-        "directingBrief": {"thesis": "测试分镜", "audienceShift": "从输入转向画面", "emotionalArc": ["建立", "收束"], "visualMotif": "标题", "stylePack": "technical", "avoid": []},
-        "fps": 30,
-        "width": 1080,
-        "height": 1920,
-        "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
-        "visual": {"theme": "dark", "preset": "keynote"},
-        "scenes": [
-            {
-                "id": "opening",
-                "type": "title",
-                "durationInFrames": 30,
-                "data": {"text": "开场"},
-                "renderer": {"kind": "tree"},
-                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "测试标题", "showWithoutText": "标题是本幕唯一主体", "primaryObject": "标题文字", "motionMeaning": "标题稳定呈现"},
-                "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "copy", "segments": [{"kind": "hold", "phase": "establish", "intensity": 0}, {"kind": "settle", "phase": "settle", "intensity": 0}]},
-                "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
-                "motions": [],
-            }
-        ],
-    }
+    """使用仓库中通过 v4 严格校验的全片世界分镜作为入口夹具。"""
+    return json.loads((ROOT / "examples" / "declarative-number" / "storyboard.json").read_text(encoding="utf-8"))
 
 
 def _node_ready() -> bool:
@@ -381,7 +358,7 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
     model = _model()
     squeezed = pathlib.Path(tmp_path / "storyboard.json")
     payload = json.loads(STORYBOARD.read_text(encoding="utf-8"))
-    payload["scenes"][0]["durationInFrames"] -= 10
+    payload["stages"][0]["durationInFrames"] -= 10
     squeezed.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     output = tmp_path / "clip.mp4"
@@ -394,13 +371,15 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
             workspace_root=ROOT,
         )
     message = str(excinfo.value)
-    assert "180" in message and "170" in message
+    assert "1110" in message and "1100" in message
     assert not output.exists(), "校验失败时不应留下成片"
 
 
 def _model():
-    from a2v import storyboard as sb
+    from a2v.cli import _v4_model
+    from a2v import storyboard_v4
 
-    model, report = sb.load(STORYBOARD)
-    assert model is not None and report.ok, report.issues
-    return model
+    data = json.loads(STORYBOARD.read_text(encoding="utf-8"))
+    report = storyboard_v4.validate(data)
+    assert not report.errors, report.issues
+    return _v4_model(data)

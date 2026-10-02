@@ -51,6 +51,25 @@ describe('v4 全片单一 composition', () => {
     expect(first.match(/data-a2v-node-id="(root|player|dart|target)"/g)).toEqual(second.match(/data-a2v-node-id="(root|player|dart|target)"/g));
   });
 
+  it('把 tree world 的 value 轨道投影到 composition 使用的内容数据', () => {
+    const storyboard = twoStages();
+    storyboard.world.data.count = 2;
+    storyboard.world.sceneTree.children.push({ id: 'counter', type: 'number', contentRef: 'data.count' });
+    storyboard.world.objects.push({ id: 'counter', role: 'supporting', description: '投掷累计' });
+    storyboard.world.stateTracks.push({ id: 'counter-growth', target: 'counter', property: 'value',
+      binding: { stageId: 'ending', phase: 'result' }, to: 11, interpolation: 'step-end' });
+
+    testFrame.value = 0;
+    const before = renderToStaticMarkup(<A2VCompositionV4 {...storyboard} />);
+    testFrame.value = 1049;
+    const after = renderToStaticMarkup(<A2VCompositionV4 {...storyboard} />);
+
+    expect(before).toContain('data-a2v-node-id="counter"');
+    expect(before).toContain('>2</');
+    expect(after).toContain('data-a2v-node-id="counter"');
+    expect(after).toContain('>11</');
+  });
+
   it('全片 code 模式的同一模块宿主在阶段切换时保持单一', () => {
     const storyboard = twoStages();
     storyboard.world.renderer = { kind: 'code', module: 'darts-trial' };

@@ -50,7 +50,8 @@ export const A2VCompositionV4: React.FC<A2VCompositionV4Props> = (props) => {
   } as BeatContext;
   const scene = {
     id: storyboard.world.id, type: 'world', durationInFrames: timeline.totalFrames,
-    data: { ...storyboard.world.data, ...stage.data, world: storyboard.world.data, stage: stage.data },
+    data: { ...(worldFrame?.data ?? storyboard.world.data), ...stage.data,
+      world: worldFrame?.data ?? storyboard.world.data, stage: stage.data },
     narrationSegments: stage.narrationSegments, beats: stage.beats ?? [],
     visualIntent: stage.visualIntent, camera: { ...storyboard.world.camera, segments: [] },
     renderer: storyboard.world.renderer, sceneTree: worldFrame ? legacyTreeRefs(worldFrame.sceneTree) : undefined,

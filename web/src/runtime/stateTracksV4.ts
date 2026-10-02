@@ -35,7 +35,8 @@ function baseline(storyboard: StoryboardV4, target: string, property: string): u
   if (property === 'visible') return node?.visible ?? true;
   const value = node?.[property];
   if (value === undefined && property === 'value' && world.renderer.kind === 'tree' && typeof node?.contentRef === 'string') {
-    return lookup(world.data, node.contentRef);
+    const reference = node.contentRef.startsWith('data.') ? node.contentRef.slice('data.'.length) : node.contentRef;
+    return lookup(world.data, reference);
   }
   return value;
 }

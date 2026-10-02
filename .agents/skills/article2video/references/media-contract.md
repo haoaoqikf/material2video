@@ -1,9 +1,28 @@
 # 配音与字幕
 
+## 当前契约：分镜 v4 / 媒体 version 4
+
+以下字段名和时间语义以 V4 为准；本文件后续音色、缓存、混音与编码说明继续适用。
+
+- 每个有口播的 `stage` 声明 `narrationSegments` 与 `beats`；禁止字符串 `narration`。口播按 stages 顺序拼接。
+- 输入文章必须先通过[输入审查](input-review.md)；正文与最终拼接口播均为130～170字（目标约150字）。声明总时长和配音派生的实际全片时长均须35～45秒。
+- `prepare.py --storyboard <json>` 在配音请求前验证输入审查有效，再生成媒体；配音后检查实际总时长并把结果写入 `standardCheck`。超限可保留诊断材料，但正式渲染被阻断。
+- 媒体 `stages` 与分镜同序，保存每阶段实际 `durationInFrames` 和 WAV 路径；`resolvedBeats` 放在媒体根级，区间使用全片全局帧并含 `stageId`。
+- 音效使用 `stageId`，不再使用旧 `sceneId`。字幕、对象轨道、镜头和音轨全部使用同一累计后的全局阶段边界。
+
+入口：
+
+```bash
+uv run python .agents/skills/article2video/scripts/prepare.py --storyboard storyboard.json
+uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --media videos/<slug>/outputs/media/media.json
+uv run python .agents/skills/article2video/scripts/preview.py --storyboard storyboard.json --media videos/<slug>/outputs/media/media.json
+uv run python .agents/skills/article2video/scripts/render.py --storyboard storyboard.json --media videos/<slug>/outputs/media/media.json
+```
+
 ## 工作流
 
-1. 含口播的每幕必须写分段口播 `narrationSegments` + `beats`；静音幕省略两者。
-   分镜契约 v3 不接受字符串 `narration`。
+1. 含口播的每个阶段必须写分段口播 `narrationSegments` + `beats`；静音阶段省略两者。
+   分镜契约 v4 不接受字符串 `narration`。
 2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
    `videos/<slug>/outputs/media/`（示例为 `videos/examples/<slug>/outputs/media/`）。
 3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。
@@ -28,48 +47,47 @@
 `--rate=-10%` 调整语速，`--force` 强制重建。首次合成需要联网；服务可能变化，
 缓存音频可离线复用，不承诺再次强制生成时波形完全相同。
 
-每幕采用 WordBoundary 事件，将 100ns 时间单位转换为秒，从原文恢复标点后按句断开。
+每个口播阶段采用 WordBoundary 事件，将 100ns 时间单位转换为秒，从原文恢复标点后按句断开。
 长句仅在真实词边界拆分，每条最多 28 字符。不支持逐字高亮或导入录音。支持下述段级语速与停顿。
 音频损坏、时间戳缺失/倒退/越界、时间戳文字未覆盖原文时失败，不猜测字幕时长。
 如果服务把数字或缩写改写成读音导致文字不匹配，请将 narration 写成明确的口语文本。
 
-导演契约中的 `camera` 与 `transition` 不改变媒体清单的幕边界；composition 在现有边界内按帧执行镜头运动和跨幕连续性窗口，因此音频、字幕和总帧数无需增加另一套时间轴。连续性只接受相邻幕的显式稳定节点映射，媒体准备阶段不做图像匹配或节点复制。
+v4 镜头、对象状态、口播和字幕共用 stages 派生出的单条全局时间轴。镜头推拉或焦点变化不会改变媒体阶段边界；媒体准备阶段不重置状态，也不执行图像匹配或节点复制。
 
 分段口播按**原文顺序**消费词边界：每个词块按它在完整口播文本里的字符起点归到
 所属段，段末恢复出来的标点允许落到下一段开头（它本来就没有独立时间），但词本身
 跨过段边界即失败——那说明分段切在词中间。重复短语因此不会被映射到前一处。
 任何一段拿不到词块、或词边界没有覆盖完整口播，同样失败而不猜测。
 
-无 speech 的幕实际帧数为 `max(原帧数, ceil((WAV时长 + 0.3) * fps))`；空口播保持原帧数。
+无口播阶段的实际帧数按该阶段声明时长保留；口播阶段按 TTS 的实际 WAV 边界推导帧数，并按累计帧数计算音频拼接位置，避免逐阶段取整误差累积。
 音频统一解码为 24000Hz、单声道、16bit PCM WAV，按派生时间轴补静音并拼接。
 按累计帧数计算采样位置，避免逐幕取整误差累积。字幕时间以视频开头为零点，
 采用开始包含、结束不包含的区间；SRT 输出四舍五入到毫秒。
 
-## 媒体清单 version 3
+## 媒体清单 version 4
 
 媒体清单独立于分镜版本，由程序生成，不建议手工编辑。
 
 | 字段 | 含义 |
 | --- | --- |
-| `version` | 媒体清单版本，当前为 3 |
-| `source` | 完整原分镜快照，用于网页一致性检查 |
+| `version` | 媒体清单版本，当前为 4 |
+| `source` | 完整 v4 原分镜快照，用于网页一致性检查 |
 | `sourceFingerprint` | 对原分镜排序键、紧凑 UTF-8 JSON 求 SHA-256 |
 | `voice` / `rate` | 合成所用音色和语速 |
-| `scenes` | 与源分镜同序，每项含 `id`、实际 `durationInFrames`、场景 WAV 相对路径 `audio`（静音为 null）；声明了分段口播的幕还含 `resolvedBeats` |
+| `stages` | 与源分镜同序，每项含 `id`、实际 `durationInFrames`、阶段 WAV 相对路径 `audio`（静音为 null） |
+| `resolvedBeats` | 根级全片时间轴，含 `stageId`、`beatId`、全局开始/结束帧、动作和目标 |
 | `cues` | 全局字幕列表，每项含秒数 `start`、`end` 与字符串 `text` |
 | `audio` | 统一 WAV 相对路径，必须在清单目录内 |
 | `subtitles` | 完整 SRT 相对路径 |
 
-`resolvedBeats` 是逐幕的派生节拍时间轴，形状为
-`{id, action, targets, meaning, startFrame, endFrame}`，区间按场景 fps **向外取整**
+`resolvedBeats` 是全局派生节拍时间轴，形状为
+`{id, stageId, action, targets, meaning, startFrame, endFrame}`，区间按全片 fps **向外取整**
 （起点向下、终点向上），并把起点钳到上一段的终点，使相邻区间首尾相接、不因取整
 而重叠；起点包含、终点不包含。画面、字幕与配音共用这批边界——少了它，
 composition 会退回无声等比例估算，字幕却按真实词边界走，两者在同一帧里各说各话。
 
-读取时校验版本、原分镜指纹、场景 ID/顺序/最短时长、字幕区间和统一 WAV 的实际长度，
-并对每幕 `resolvedBeats` 校验顺序、重叠、越界与源声明一致性。**version 1 的旧清单
-继续可读**：只要不含分段口播就照常可用；含分段口播的旧清单会明确要求重新 prepare，
-而不是拿旧缓存凑一个时间轴。修改原分镜后清单立即过期，须重新 prepare；
+读取时校验版本、原分镜指纹、stage ID/顺序/最短时长、字幕区间和统一 WAV 的实际长度，
+并对全局 `resolvedBeats` 校验 stage/beat 顺序、重叠、越界与源声明一致性。旧媒体清单不能用于 V4，须重新 prepare；
 只改网页样式不用重新合成。预览与导出均使用 `scenes` 中的派生时长，
 不在网页重新估算配音时长。
 
@@ -111,7 +129,7 @@ composition 会退回无声等比例估算，字幕却按真实词边界走，�
 {
   "soundtrack": {
     "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": true, "fadeInMs": 500, "fadeOutMs": 500},
-    "effects": [{"sourceRef": "assets/drop.wav", "sceneId": "structure", "beatId": "b2", "offsetMs": 0, "gainDb": -12}]
+    "effects": [{"sourceRef": "assets/drop.wav", "stageId": "structure", "beatId": "b2", "offsetMs": 0, "gainDb": -12}]
   }
 }
 ```
@@ -120,6 +138,6 @@ sourceRef 为分镜目录内本地相对路径，不支持 URL、绝对路径、
 
 旁白二遍 loudnorm 目标 −16 LUFS/−1 dBTP；静音保留。音乐默认 −24 dB，讲话时额外压低 10 dB，攻击/恢复 80/250ms（重叠包络合并）；音效默认 −12 dB。混音限制到 −2 dBFS 以留编码余量，AAC 编码后量测真峰值；超过 −1 dBTP 时降低增益重新合成，最多三次，否则失败。增益修正不改变时间轴。
 
-清单 v3 新增 `narration`（原拼接旁白 WAV）、`soundFingerprint`、`soundAssets`（素材相对清单路径和 SHA-256）。`audio` 为最终混音 WAV，预览和导出共用。读取检查声音配置与素材摘要，变更后重新 prepare；v1/v2 继续可读，但含新声音参数必须升级。素材和媒体目录整体迁移时相对关系须保留。
+清单 v4 保存 `narration`（原拼接旁白 WAV）、`soundFingerprint`、`soundAssets`（素材相对清单路径和 SHA-256）。`audio` 为最终混音 WAV，预览和导出共用。读取检查声音配置与素材摘要，变更后重新 prepare；V1–V3 媒体清单拒绝用于当前渲染。素材和媒体目录整体迁移时相对关系须保留。
 
 媒体派生 props 携带 `subtitleCues`，共享 composition 按当前帧绘制字幕并预留字幕安全区；源分镜不能手写该字段。段级路径的 A4 核对字幕文本、顺序及讲话区间包含于对应含停顿 beat 的关系；无 speech 时继续要求边界相差不超过一帧。

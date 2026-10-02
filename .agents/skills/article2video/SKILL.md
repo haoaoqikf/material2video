@@ -1,21 +1,21 @@
 ---
 name: article2video
-description: 把观点型文章转化为竖屏短视频，产品方向为单场景动态叙事（制作规则仍按当前契约）。AI 选择受控视觉组件并编写分镜，画面由共享 React composition（Remotion）按帧渲染，用确定性脚本导出 MP4。用于拆分镜、预览、渲染、验收与排查不一致问题。
+description: 把观点型文章转化为竖屏单场景动态叙事短视频。AI 审查输入、选择受控视觉组件并编写 v4 分镜，画面由共享 React composition（Remotion）按帧渲染，用确定性脚本导出 MP4。用于拆分镜、预览、渲染、验收与排查不一致问题。
 ---
 
 # article2video
 
 产品方向是**单场景动态叙事**：一个观点，一个场景，一段动态叙事。
 围绕一个核心观点构建持续存在的视觉世界，通过场景内动画、镜头运动、文字与状态变化完成表达。
-完整定义见 [README](../../../README.md#这是什么)，后续路线见
-[项目规划](../../../docs/PROJECT_PLAN.md#单场景动态叙事路线规划中)。
-这里的产品场景与技术分镜阶段不同，多个幕或 `scenes[]` 元素可以表达同一个视觉世界。
-单场景制作规范与连续性评审尚未形成强制规则；本 Skill 的操作步骤、分镜契约与现有校验继续适用。
+完整定义见 [README](../../../README.md#当前能力)，后续路线见
+[项目规划](../../../docs/PROJECT_PLAN.md)。
+这里的产品场景与技术分镜阶段不同，多个 `stages[]` 元素可以表达同一个持续视觉世界。
+单场景创作、输入审查、连续性评审与正式渲染门禁已进入当前制作规则；本 Skill 说明 v4 分镜契约和评审闭环。
 
 **文章是内容层，composition 是表现层，视频是最终发布格式。**
 
-这个 skill 把「写文章 → 出视频」拆成一条可复现的流水线：AI 负责理解文章并选择组件、
-编写分镜（`storyboard.json`）；共享 React composition 读取分镜逐幕挂载视觉组件；
+这个 skill 把「文章 → 视频」拆成一条可复现的流水线：AI 负责审查文章、提炼观点并选择组件、
+编写分镜（`storyboard.json`）；共享 React composition 读取一个持续的全片 world 并按阶段更新上下文；
 脚本负责准备可选配音与字幕，并把 composition 确定性地渲染成 MP4。
 AI 不直接生成视频，因此画面可控、可改、可重渲染。
 
@@ -59,7 +59,7 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
    共用同一批边界；动作从受控词汇表里选，`meaning` 说明这一步解释了什么。
    入场配方只管「怎么出现」，说不清「正在解释哪一步推理」——两者都要，但不能互相替代。
    见[分镜脚本结构](references/storyboard-schema.md)的「语义节拍与字幕同步」。
-9. **默认使用电影化动画计划**：节点动作按建立、变化、结果、收束四阶段推进，编组错峰与镜头段优先绑定 beat；v1/v2 分镜在所有入口拒绝，必须按 v3 重新编排；没有迁移命令或兼容回退。
+9. **默认使用电影化动画计划**：全片 world 的对象状态、动作与镜头段绑定全局 beat 或阶段 phase；v1–v3 分镜在所有入口拒绝，必须按 v4 重新编排；没有迁移命令或兼容回退。
 10. **作品定制动画**：默认场景树；静态原语能够绘制对象但不能表达必要的状态变化、对象编排或镜头揭示时，可以基于明确的叙事理由使用作品级代码场景。先按 [文章生成分镜](references/article-to-storyboard.md) 编写逐幕动作脚本；代码场景必须使用解析后的 `beats.plan`、提供探针并通过[定制动画动态评审](references/visual-review-rubric.md)。存在代码场景时，缺失或未达标的动态评审会阻断正式渲染。
 11. **关键幕先行与 AI 制作记录**：按[文章生成分镜](references/article-to-storyboard.md)先验证开场、核心论证和高潮，再铺开全片；AI 助手自动读取文章、分镜和 `motion-design.md` 填写导演计划，生成联系表、关键幕样片与全片有声评审版后，必须查看实际画面，逐项填写静态/动态评审、可观察证据和返工项。完成结论写入 `production.json` 时绑定评审来源及材料 SHA-256；缺材料或不能查看画面就保持待评审。分镜、媒体、渲染资产或引用材料变化会使相关评审失效。正式成片需要关键幕和全片静态/有声 AI 评审通过，且没有未解决必改项。详见[视觉评审量表](references/visual-review-rubric.md)。制作流程与模板见[制作流程示例](../../../examples/cause-chain/production-workflow.md)。
 
@@ -113,40 +113,38 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 **先完成输入审查**：原文审查必须发生在口播重写和分镜之前。按[输入文章审查](references/input-review.md)核对130～170字、核心观点集中度和单场景表达能力；AI 写明观点、视觉隐喻和依据，依据不足时停止。失败时保留原文、提供具体修改意见和合规候选稿；只有用户明确采用后才能将其作为独立输入重新审查。`prepare.py` 也会在配音前阻断缺少有效审查或来源变化的输入。
 
 **按规范生成**：读 [文章生成分镜](references/article-to-storyboard.md)，它规定这一步的输入输出、
-拆幕与时长规则、内容与排版约束、组件不足时的处理，以及生成后必须走完的校验闭环。
+持续场景与阶段规划、内容与排版约束、组件不足时的处理，以及生成后必须走完的校验闭环。
 产物是 `videos/<slug>/storyboard.json`，字段与校验规则见
 [分镜脚本结构](references/storyboard-schema.md)。
 
 这一步由 AI 工具按规范执行；项目不含生成器程序，也不调用模型服务。
 
-要点（完整清单见规范）：
+目标路径为**提炼核心观点 → 选择核心视觉隐喻 → 构建持续场景 → 编排场景内推理与变化**。标准正文及最终拼接口播分别为130～170字（目标约150字），声明与媒体实际时长分别为35～45秒。要点（完整清单见规范）：
 
-- 先定位文章的核心判断，再按「开场命题 → 核心判断 → 对照/过程 → 结构模型 → 收束」拆幕；
-- 场景时长由**口播所需时间**反推（30fps 下 1 秒 = 30 帧，中文口播每秒约 4–5 字）；
-- 长句拆成多个场景，而不是缩小字号；
+- 先定位核心判断与必要推理，再围绕一个持续视觉世界组织叙事阶段；
+- 阶段时长由口播所需时间规划，整片声明时长仍须35～45秒；
+- 同一视觉世界内允许镜头和焦点变化；必须切换多个独立视觉世界才能讲清的文章不通过输入审查；
 - 不虚构论据或数据；无来源的数值必须把对应节点声明为 `schematic: true`；
-- 逐幕先做视觉转译（受控视觉模式与论证字段），再选原语；文字卡片换布局包装不算图形论证；
-- 新作品的每幕口播切成**语义段**并绑定 beat（一段一个推理步骤），让字幕、配音和画面共用
+- 逐阶段先做视觉转译（受控视觉模式与论证字段），再选原语；文字卡片换布局包装不算图形论证；
+- 新作品的口播切成**语义段**并绑定全局 beat（一段一个推理步骤），让字幕、配音和画面共用
   同一批边界；动作从受控词汇表里选真正改变状态或关系的那一个；
 - 生成后先过 `validate.py --strict --json`，按字段路径修正到通过再交付。
 
 ### 2. 分镜即画面声明
 
-画面默认全部由共享 composition 递归解释场景树提供，**不需要写任何画面代码**。
-分镜根级强制声明 `schemaVersion: 3`、`directingVersion: 1`、完整 `directingBrief`、
-`visualDirection` 与 `visual.preset: "keynote"`；每幕强制 `renderer`、完整视觉论证、
-分段镜头与第二幕起的显式 `transition`。镜头运动与跨幕连续性均按帧驱动渲染；连续对象必须显式声明，支持同类继承、注册表内有限变形、一对多拆解、多对一重组和有意断裂，未登记映射在渲染前失败。
-每幕声明 `visualIntent`（信息关系、焦点、构图、密度、情绪，以及视觉论证字段
+画面默认由共享 composition 渲染：场景树使用全局 `world.sceneTree`，代码世界使用一个全片模块。
+分镜根级强制声明 `version: 4`、`schemaVersion: 4`、`directingVersion: 2`、完整 `directingBrief`、
+`visualDirection` 与 `visual.preset: "keynote"`；全片 `world` 声明唯一 renderer、对象、状态轨道与镜头，`stages[]` 只表示推理阶段，不切换画面根或 renderer。
+每阶段声明 `visualIntent`（信息关系、焦点、构图、密度、情绪，以及视觉论证字段
 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`）、
-`sceneTree`（受控原语树，内容经 `contentRef` 引用 data）与 `motions`
-（按节点 id 绑定的具名动效）。可选 `visual.theme`（`dark` / `light`）与根级
+全局 `sceneTree`（受控原语树，内容经 `contentRef` 引用 data）或作品级 code 模块。可选 `visual.theme`（`dark` / `light`）与根级
 `visual.preset`（目前唯一取值 `"keynote"`）启用发布会级设计语言：
 设计语言层、字号取档与观感闸门一起生效。说明见
 [发布会级设计语言](references/keynote-design-system.md)。
 
-新作品还要写**语义节拍**：`narrationSegments`（分段口播，每段 `{id, text, beatId}`）
-与 `beats`（`{id, action, targets, meaning}`）；v3 不接受字符串 `narration`。
-完整口播就是各段按顺序拼接，因此不存在第二份文本；动作取受控词汇表，
+新作品还要写**语义节拍**：阶段 `narrationSegments`（每段 `{id, text, beatId}`）
+与 `beats`（`{id, action, targets, meaning}`）；v4 不接受字符串 `narration`。
+完整口播就是所有阶段段落按顺序拼接，因此不存在第二份文本；动作取受控词汇表，
 `targets` 的每个原语都要支持该动作。字段与三条硬规则（严格验收、结尾留白、
 单一焦点）见[分镜脚本结构](references/storyboard-schema.md)。
 
@@ -171,17 +169,15 @@ uv run playwright install chromium     # 首次执行，安装浏览器（体检
 uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json
 ```
 
-有错误时终止并列出 `scenes[2].data.items` 这类可定位的路径，修正后重跑。
+有错误时终止并列出 `stages[2].data.items` 或 `world.stateTracks[0].binding` 这类可定位的路径，修正后重跑。
 加 `--json` 可得到机器可读输出，便于批量修正。
-校验器还会按视觉规范给出**警告**（不阻止渲染）：单行字数超限、场景短于 24 帧、
+校验器还会按视觉规范给出**警告**（不阻止渲染）：单行字数超限、阶段短于 24 帧、
 `emphasis` 短语没有出现在文本里。定稿前用 `--strict` 把它们也当作失败。
 
-`--strict` 还执行全片视觉叙事预算：文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是
-文字幕、八幕及以上至少 3 种非文字视觉模式（少于八幕至少 2 种）、声明非 `typography`
-模式的幕必须拿得出结构证据（图表 / 图片 / 连接关系 / 圆周布局 / `flow` / `cycle` /
-`timeline` / `gauge` / `pictogram`），逐幕缺视觉论证字段也报错；
+`--strict` 还执行全片视觉叙事预算：文字幕阶段占比及相邻限制仍会检查；视觉模式数量只作报告，单一隐喻可以贯穿全片；声明非 `typography`
+模式的 tree 阶段必须拿得出结构证据，code world 不由脚本猜测其语义，逐阶段缺视觉论证字段也报错；
 声明分段口播的非文字幕还要至少两条 beat 且包含真正改变状态或关系的动作。
-失败会定位到 `scenes[2].visualIntent.mode` 这类路径；阈值版本化在
+失败会定位到 `stages[2].visualIntent.mode` 这类路径；阈值版本化在
 `a2v/visual_narrative.py` 的 `RULE_VERSION`。判据与可粘贴的正反例见
 [文章生成分镜](references/article-to-storyboard.md)。
 
@@ -264,7 +260,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
    再比对分镜声明的标注有没有真的画出来。**「组件挂上了、画面也出来了，只是图上没有一个字」
    这类缺陷不会报错**，只有真的去读 DOM 才会发现，因此这一步不能省。
    代码场景（`renderer.code`）走最小 DOM 探针协议，协议缺失在严格评审里计为错误；
-   作品改过代码场景后，建议加 `--check-determinism` 对每幕收尾帧做同帧重复截图
+   作品改过代码场景后，建议加 `--check-determinism` 对阶段边界及全片末帧做同帧重复截图
    与随机寻帧验收（PSNR ≥ 60 dB，失败计为错误），见 [代码场景](references/code-scenes.md)；
 2. **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；
 3. **观感与动效闸门**：声明了 `visual.preset` 时跑 K1–K10 观感闸门；
@@ -304,7 +300,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
   **并入错误数与退出码**，报告列出场景 id 与具体问题（哪条 beat 没被引用、
   哪一帧有几个焦点、最后一条 beat 距幕尾还剩几帧）；A6 读 `review.md` 里 AI/人工填写的
   装饰动画结论，**没填写就是「待评审」**，只拦「可发布」标记而不伪造脚本错误。
-  A 系列只约束声明了 `narrationSegments` 的幕；字符串口播由 v3 校验拒绝，无声幕与无媒体下的 A4
+  A 系列的历史自动分析以 V3 局部时间轴为基础；V4 报告会明确标注尚未适配的部分。字符串口播由 v4 校验拒绝，无媒体下的音频同步评审
   如实记为「跳过」。判据见[设计宪法](references/design-constitution.md)的「动画论证闸门」。
 
 ### 7. 渲染验收
@@ -318,7 +314,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
   分镜改过而媒体清单没跟上的（`分镜已修改，请重新 prepare`）先跑 `prepare.py`，
   配音文本没变时它会全部命中缓存，不需要联网。
 - 渲染脚本最后一行输出帧数、时长、分辨率、实测帧率与文件大小；
-- 抽看首帧、每幕切换点、末帧，确认无空白帧、无文字裁切；
+- 抽看全片首帧、阶段边界、末帧，确认无空白帧、无文字裁切且对象状态连续；
 - 用系统默认播放器打开一次成片：全范围像素格式（`yuvj420p`）ffmpeg 能解码，
   但 Windows 播放器会报 `0xc00d36c4`；验收已会自动拦下，人工再确认一次最稳妥；
 - 需要逐像素比对时，用同一帧重复渲染两次比对。
@@ -365,7 +361,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | 体检报「契约页不存在」 | 先 `pnpm -C web build` 构建 `web/dist/contract/contract.html` |
 | `缺少查询参数 a2v-storyboard` | 契约页必须由脚本经本地静态服务打开，不要双击 HTML |
 | `总帧数不一致` / `fps 不一致` | composition 元数据与分镜不一致：检查分镜是否保存、场景时长是否合法 |
-| `不支持 v3 之前分镜` | v1/v2 分镜不能进入任何入口；依据[分镜脚本结构](references/storyboard-schema.md)重新编排，并按要求补齐导演字段 |
+| `不支持 v4 之前分镜` | v1–v3 分镜不能进入任何入口；依据[分镜脚本结构](references/storyboard-schema.md)重新编排，并按要求补齐导演字段 |
 | `未知视觉原语` / `原语 X 不支持属性 Y` | 场景树用了注册表之外的原语或属性：查 [视觉原语目录](references/primitive-catalog.md) 的可选值与容量 |
 | `动效目标 X 不存在` / `原语 X 不支持动效` | 动效绑定的节点 id 写错或配方超出该原语允许范围：按目录声明修正 |
 | `内容引用 data.x 指向不存在的字段` | `contentRef` 指向的分镜 data 字段缺失或拼写不一致 |
@@ -377,7 +373,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `声明为 comparison，但场景树只有文字…` | 该幕声明了非 `typography` 模式却拿不出结构证据：改声明为 `typography`，或用 `chart`/`image`/`connector`/`radial` 真正承担论证，不要只加图标或换布局包装 |
 | `文字幕 N/M 幕，超过允许上限` | 全片文字卡片过多：把其中几幕改成图形论证，或把相邻文字幕合并成一幕 |
 | `相邻两幕均为文字幕` | 文字幕之间必须隔开论证型图形场景，调整幕序或改造其中一幕 |
-| `非文字视觉模式只有 N 种` | 模式过于单一：八幕及以上至少 3 种、少于八幕至少 2 种非文字模式（`metaphor`/`process`/`comparison`/`cycle`/`chart`/`image`） |
+| `模式多样性` | 模式数量只用于报告；持续单一视觉隐喻可贯穿全片，不要求模式最低数量 |
 | 严格校验要求补齐视觉论证字段 | 旧分镜缺 `mode`/`claim`/`showWithoutText`/`primaryObject`/`motionMeaning`：逐幕补齐；脚本不会根据场景树自动推断语义 |
 | `材料已缺失或摘要已变化`（keyframes） | 静态联系表被按另一条时间轴重画过：`production.py keyframes` 与不带 `--media` 的体检写 `contact-sheet.png`（分镜声明时间轴，登记的就是它），带 `--media` 的体检写 `contact-sheet-media.png`；重新执行 `production.py keyframes` 恢复登记材料 |
 | V6 显示「待评审」或 `publishable=否` | `videos/<slug>/outputs/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
@@ -398,9 +394,10 @@ uv run python .agents/skills/article2video/scripts/render.py \
 ## 当前边界
 
 已实现：分镜校验（含严格模式下的视觉叙事预算与「声明与结构」反证）、
-分段口播与语义节拍（`narrationSegments` + `beats`，媒体清单 version 3 携带逐幕
-`resolvedBeats`，画面 / 字幕 / 配音共用同一批边界）、自动配音与逐句字幕、
-React composition 画面（场景树解释器 + 注册表登记的 21 个受控原语，含五个中层原语
+输入字数统计与输入审查门禁、130～170字正文/口播校验、35～45秒声明与实际时长门禁；
+单场景 v4 分镜（全片 `world`、阶段 `stages`、全局对象状态与镜头时间轴）、分段口播与语义节拍
+（媒体清单 version 4 携带全局 `resolvedBeats`，画面 / 字幕 / 配音共用同一批边界）、自动配音与逐句字幕、
+React composition 画面（全片场景树解释器 + 注册表登记的 21 个受控原语，含五个中层原语
 `flow`/`cycle`/`timeline`/`gauge`/`pictogram`，原语注册表单源；个别幕可用
 `renderer.code` 的作品级代码场景）、
 契约页体检（K/M 闸门、场景树契约探针、视觉叙事 V 系列与动画论证 A 系列）、

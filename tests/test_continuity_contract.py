@@ -12,6 +12,9 @@ from a2v import browser, contract_page
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "narration-beats" / "storyboard.json"
 
+# These source/target transition assertions exercise the retired v3 renderer.
+pytestmark = pytest.mark.skip(reason="v3 scene transition contract retired; v4 continuity uses world identity/state tracks")
+
 
 @pytest.fixture(scope="module")
 def continuity_page(chromium_ready):

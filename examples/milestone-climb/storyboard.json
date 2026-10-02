@@ -1,600 +1,127 @@
 {
-  "version": 3,
-  "schemaVersion": 3,
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "把目标切成台阶",
+  "visual": { "theme": "dark", "preset": "keynote" },
   "visualDirection": {
-    "motif": "山径",
+    "motif": "同一条台阶路径逐级向上，计数从示意的两级增至十一级",
     "compositionBias": "centered",
     "density": "balanced",
     "rhythm": "steady",
-    "avoid": [
-      "repeated-center"
-    ]
+    "avoid": ["把每一级画成独立页面", "把示意级数说成实测"]
   },
-  "visual": {
-    "theme": "dark",
-    "preset": "keynote"
+  "directingBrief": {
+    "thesis": "里程碑的价值是把压迫人的大目标切成可迈出、可数、可回退的下一步",
+    "audienceShift": "从被完整目标的尺寸压住，转向只看眼前可走的一级",
+    "emotionalArc": ["压迫", "可达", "继续前进"],
+    "visualMotif": "固定身份的台阶路线持续向上延伸，每步状态逐渐点亮",
+    "stylePack": "cinematic",
+    "avoid": ["把里程碑表现成遥不可及的终点", "将示意级数包装为实证数据"]
   },
-  "scenes": [
+  "world": {
+    "id": "milestone-staircase",
+    "claim": "里程碑把大目标切成可行动的下一步，而不是宣布抵达",
+    "metaphor": "一条身份固定、逐级向上的台阶路径",
+    "objects": [
+      { "id": "staircase", "role": "primary", "description": "贯穿全片的台阶路径与持续向上的方向" },
+      { "id": "step-1", "role": "supporting", "description": "路径起始台阶" },
+      { "id": "step-2", "role": "supporting", "description": "当前可迈出的下一阶" },
+      { "id": "step-3", "role": "supporting", "description": "被计数照亮的后续台阶" },
+      { "id": "step-4", "role": "supporting", "description": "继续前进的台阶" },
+      { "id": "step-5", "role": "supporting", "description": "示意路径的上方台阶，不是终点" },
+      { "id": "weekly-count", "role": "annotation", "description": "每周可数的里程碑数量，数值明确为示意" }
+    ],
+    "renderer": { "kind": "tree" },
+    "data": {
+      "headline": "把整面墙切成一步",
+      "steps": ["看见下一阶", "迈出一级", "数出进度", "允许回退", "继续向上"],
+      "weeklySteps": 2,
+      "weeklyStepsMid": 6,
+      "weeklyStepsFinal": 11,
+      "unit": "级 / 周",
+      "note": "里程碑不是终点，是用来踩的台阶",
+      "objects": { "weekly-count": { "state": "focus", "contentRef": "data.weeklySteps" } }
+    },
+    "stateTracks": [
+      { "id": "step-2-focus", "target": "step-2", "property": "state", "binding": { "stageId": "wall", "phase": "change" }, "to": "focus", "interpolation": "step-end" },
+      { "id": "step-1-done", "target": "step-1", "property": "state", "binding": { "stageId": "count", "phase": "change" }, "to": "done", "interpolation": "step-end" },
+      { "id": "step-2-done", "target": "step-2", "property": "state", "binding": { "stageId": "count", "phase": "change" }, "to": "done", "interpolation": "step-end" },
+      { "id": "step-3-focus", "target": "step-3", "property": "state", "binding": { "stageId": "count", "phase": "change" }, "to": "focus", "interpolation": "step-end" },
+      { "id": "weekly-count-6", "target": "weekly-count", "property": "contentRef", "binding": { "stageId": "count", "phase": "change" }, "to": "data.weeklyStepsMid", "interpolation": "step-end" },
+      { "id": "step-3-done", "target": "step-3", "property": "state", "binding": { "stageId": "keep-going", "phase": "change" }, "to": "done", "interpolation": "step-end" },
+      { "id": "step-4-focus", "target": "step-4", "property": "state", "binding": { "stageId": "keep-going", "phase": "change" }, "to": "focus", "interpolation": "step-end" },
+      { "id": "step-5-focus", "target": "step-5", "property": "state", "binding": { "stageId": "keep-going", "phase": "change" }, "to": "focus", "interpolation": "step-end" },
+      { "id": "weekly-count-11", "target": "weekly-count", "property": "contentRef", "binding": { "beatId": "count-example" }, "to": "data.weeklyStepsFinal", "interpolation": "step-end" }
+    ],
+    "motions": [],
+    "camera": {
+      "shot": "medium", "composition": "center", "depth": "layered", "focus": "staircase",
+      "segments": [
+        { "id": "wide-wall", "kind": "hold", "binding": { "beatId": "wall-size" }, "focus": "staircase", "intensity": 0 },
+        { "id": "next-step", "kind": "push-in", "binding": { "beatId": "make-one-step" }, "focus": "step-2", "intensity": 0.2 },
+        { "id": "keep-going", "kind": "pull-out", "binding": { "beatId": "keep-climbing" }, "focus": "staircase", "intensity": 0.2 }
+      ]
+    },
+    "sceneTree": {
+      "id": "root", "type": "column", "gap": "lg", "align": "center",
+      "children": [
+        { "id": "headline", "type": "text", "contentRef": "data.headline", "role": "headline", "state": "muted" },
+        { "id": "staircase", "type": "flow", "direction": "ttb", "gap": "sm", "children": [
+          { "id": "step-1", "type": "surface", "state": "focus", "children": [{ "id": "step-1-label", "type": "text", "contentRef": "data.steps[0]", "role": "body" }] },
+          { "id": "step-2", "type": "surface", "state": "muted", "children": [{ "id": "step-2-label", "type": "text", "contentRef": "data.steps[1]", "role": "body" }] },
+          { "id": "step-3", "type": "surface", "state": "muted", "children": [{ "id": "step-3-label", "type": "text", "contentRef": "data.steps[2]", "role": "body" }] },
+          { "id": "step-4", "type": "surface", "state": "muted", "children": [{ "id": "step-4-label", "type": "text", "contentRef": "data.steps[3]", "role": "body" }] },
+          { "id": "step-5", "type": "surface", "state": "muted", "children": [{ "id": "step-5-label", "type": "text", "contentRef": "data.steps[4]", "role": "body" }] }
+        ] },
+        { "id": "count-row", "type": "row", "gap": "sm", "align": "center", "children": [
+          { "id": "weekly-count", "type": "number", "contentRef": "data.weeklySteps", "schematic": true, "state": "focus" },
+          { "id": "count-unit", "type": "text", "contentRef": "data.unit", "role": "label" }
+        ] },
+        { "id": "note", "type": "text", "contentRef": "data.note", "role": "caption", "state": "muted" }
+      ]
+    }
+  },
+  "stages": [
     {
-      "id": "claim",
-      "type": "title",
-      "durationInFrames": 72,
-      "data": {
-        "text": "里程碑不是终点线",
-        "subtitle": "它是用来踩的，不是用来仰望的"
-      },
-      "visualIntent": {
-        "relation": "focus",
-        "focus": "text",
-        "composition": "center",
-        "density": "sparse",
-        "tone": "neutral",
-        "mode": "typography",
-        "claim": "里程碑不是终点线，而是把大目标切开的刻度",
-        "showWithoutText": "一条强调横线把上下两块文字分开，断句本身说明这是一句转折",
-        "primaryObject": "标题文字块与它下面的强调横线",
-        "motionMeaning": "横线用 draw 画出，把「终点线」与「用来踩的台阶」之间的转折划出来"
-      },
-      "sceneTree": {
-        "id": "root",
-        "type": "stack",
-        "gap": "lg",
-        "children": [
-          {
-            "id": "claim-text",
-            "type": "text",
-            "contentRef": "data.text",
-            "role": "headline"
-          },
-          {
-            "id": "claim-line",
-            "type": "shape",
-            "shape": "line",
-            "state": "focus"
-          },
-          {
-            "id": "claim-sub",
-            "type": "text",
-            "contentRef": "data.subtitle",
-            "role": "body",
-            "state": "muted"
-          }
-        ]
-      },
-      "motions": [
-        {
-          "target": "claim-text",
-          "recipe": "reveal",
-          "durationFrames": 20,
-          "phase": "establish"
-        },
-        {
-          "target": "claim-line",
-          "recipe": "draw",
-          "durationFrames": 18,
-          "phase": "change"
-        },
-        {
-          "target": "claim-sub",
-          "recipe": "fade",
-          "durationFrames": 20,
-          "phase": "result"
-        }
+      "id": "wall", "durationInFrames": 330, "data": { "headline": "大目标像一整面墙" },
+      "visualIntent": { "relation": "contrast", "focus": "path", "composition": "center", "density": "balanced", "tone": "tense", "mode": "metaphor", "claim": "完整目标的尺寸会让人不敢迈步", "showWithoutText": "同一条向上的台阶路从低处延伸，路径尚未点亮", "primaryObject": "持续存在的台阶路径", "motionMeaning": "先让观众看到整段未走的路" },
+      "narrationSegments": [
+        { "id": "line-1", "beatId": "wall-size", "text": "大目标常像一整面墙：还没迈步，眼前就全是没做到的部分。" },
+        { "id": "line-2", "beatId": "make-one-step", "text": "把目标切成一级级台阶，每一级看得见、够得着、数得出，也允许回退，焦虑就不必逼你一次越过整面墙。" }
       ],
-      "renderer": {
-        "kind": "tree"
-      },
-      "camera": {
-        "shot": "wide",
-        "composition": "left",
-        "depth": "flat",
-        "focus": "claim-text",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "claim-text",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      }
+      "beats": [
+        { "id": "wall-size", "action": "establish", "targets": ["staircase", "step-1", "step-2", "step-3", "step-4", "step-5"], "meaning": "建立完整目标像墙、台阶路径尚未走过的初态" },
+        { "id": "make-one-step", "action": "transform", "targets": ["step-1", "step-2"], "meaning": "把目标从完整尺寸变成眼前够得到的一阶，并保留可回退空间" }
+      ]
     },
     {
-      "id": "climb",
-      "type": "chart",
-      "durationInFrames": 105,
-      "data": {
-        "title": "每周推进的台阶数（示意）",
-        "values": [
-          {
-            "label": "第一周",
-            "value": 2
-          },
-          {
-            "label": "第二周",
-            "value": 5
-          },
-          {
-            "label": "第三周",
-            "value": 4
-          },
-          {
-            "label": "第四周",
-            "value": 8
-          },
-          {
-            "label": "第五周",
-            "value": 11
-          }
-        ]
-      },
-      "visualIntent": {
-        "relation": "sequence",
-        "focus": "chart",
-        "composition": "full",
-        "density": "dense",
-        "tone": "uplifting",
-        "mode": "chart",
-        "claim": "每周推进的台阶数在上升，进度是可数的",
-        "showWithoutText": "五根柱子逐级升高，柱高的差别说明推进速度在加快",
-        "primaryObject": "五根进度柱与它们递增的高度",
-        "motionMeaning": "柱子依次升起，把「一级一级往上走」的过程演出来"
-      },
-      "sceneTree": {
-        "id": "root",
-        "type": "column",
-        "gap": "lg",
-        "children": [
-          {
-            "id": "climb-title",
-            "type": "text",
-            "contentRef": "data.title",
-            "role": "title"
-          },
-          {
-            "id": "climb-chart",
-            "type": "chart",
-            "contentRef": "data.values",
-            "chart": "bar",
-            "schematic": true
-          }
-        ]
-      },
-      "motions": [
-        {
-          "target": "climb-title",
-          "recipe": "reveal",
-          "durationFrames": 18,
-          "phase": "establish"
-        },
-        {
-          "target": "climb-chart",
-          "recipe": "reveal",
-          "durationFrames": 30,
-          "phase": "change"
-        }
+      "id": "count", "durationInFrames": 360, "data": { "headline": "下一阶可以数出来" },
+      "visualIntent": { "relation": "sequence", "focus": "number", "composition": "center", "density": "balanced", "tone": "calm", "mode": "process", "claim": "可数进度让下一步有形状", "showWithoutText": "台阶依次点亮，计数读数沿同一条路径增加", "primaryObject": "台阶路径与示意计数器", "motionMeaning": "让计数跟随台阶点亮，表现行动反馈" },
+      "narrationSegments": [
+        { "id": "line-3", "beatId": "count-progress", "text": "里程碑的作用不是宣布抵达，而是把下一步缩小到今天能完成。" },
+        { "id": "line-4", "beatId": "count-progress", "text": "进度可数，下一阶就有了形状；走过几级，行动会反过来推着人继续。" }
       ],
-      "renderer": {
-        "kind": "tree"
-      },
-      "camera": {
-        "shot": "medium",
-        "composition": "split",
-        "depth": "layered",
-        "focus": "climb-title",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "climb-title",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "transition": {
-        "kind": "transform",
-        "source": "claim-text",
-        "target": "climb-title",
-        "meaning": "目标太大转成逐步爬升的阶梯图"
-      }
+      "beats": [
+        { "id": "count-progress", "action": "accumulate", "targets": ["step-1", "step-2", "step-3", "weekly-count"], "meaning": "台阶状态由已走推进到下一阶，示意计数随之增长" }
+      ]
     },
     {
-      "id": "one-step",
-      "type": "number",
-      "durationInFrames": 90,
-      "data": {
-        "value": 1,
-        "label": "阶",
-        "caption": "先走一步。",
-        "steps": [
-          "这一级",
-          "下一级",
-          "再下一级"
-        ]
-      },
-      "visualIntent": {
-        "relation": "focus",
-        "focus": "number",
-        "composition": "split",
-        "density": "sparse",
-        "tone": "calm",
-        "mode": "process",
-        "claim": "一次只看一级：当前这一级高亮，其余级别退到后面",
-        "showWithoutText": "三块台阶被两支箭头串成一列，第一块高亮、后两块灰暗，明暗与顺序说明只走一步",
-        "primaryObject": "三段台阶链与高亮的当前级",
-        "motionMeaning": "箭头逐段画出、台阶依次落下，把「只看一级、再迈一级」的节奏演出来"
-      },
-      "sceneTree": {
-        "id": "root",
-        "type": "column",
-        "gap": "lg",
-        "children": [
-        {
-          "id": "step-hero",
-            "type": "row",
-            "align": "center",
-            "gap": "sm",
-            "children": [
-              {
-                "id": "step-number",
-                "type": "number",
-                "contentRef": "data.value",
-                "role": "hero",
-                "schematic": true
-              },
-              {
-              "id": "step-unit",
-                "type": "text",
-                "contentRef": "data.label",
-              "role": "title"
-              }
-          ]
-        },
-        {
-          "id": "step-caption",
-          "type": "text",
-          "contentRef": "data.caption",
-          "role": "label"
-        },
-        {
-          "id": "step-track",
-            "type": "row",
-            "align": "center",
-            "gap": "sm",
-            "children": [
-              {
-                "id": "step-now",
-                "type": "surface",
-                "state": "focus",
-                "children": [
-                  {
-                "id": "step-now-text",
-                    "type": "text",
-                    "contentRef": "data.steps[0]",
-                "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "step-arrow-1",
-                "type": "connector",
-                "direction": "ltr"
-              },
-              {
-                "id": "step-next",
-                "type": "surface",
-                "state": "muted",
-                "children": [
-                  {
-                "id": "step-next-text",
-                    "type": "text",
-                    "contentRef": "data.steps[1]",
-                "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "step-arrow-2",
-                "type": "connector",
-                "direction": "ltr"
-              },
-              {
-                "id": "step-later",
-                "type": "surface",
-                "state": "muted",
-                "children": [
-                  {
-                "id": "step-later-text",
-                    "type": "text",
-                    "contentRef": "data.steps[2]",
-                "role": "body"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "motions": [
-        {
-          "target": "step-number",
-          "recipe": "count",
-          "durationFrames": 14,
-          "phase": "establish"
-        },
-        {
-          "target": "step-unit",
-          "recipe": "reveal",
-          "durationFrames": 12,
-          "phase": "change"
-        },
-        {
-          "target": "step-caption",
-          "recipe": "reveal",
-          "durationFrames": 18,
-          "phase": "establish"
-        },
-        {
-          "target": "step-arrow-1",
-          "recipe": "draw",
-          "durationFrames": 10,
-          "phase": "change"
-        },
-        {
-          "target": "step-next",
-          "recipe": "reveal",
-          "durationFrames": 10,
-          "phase": "change"
-        },
-        {
-          "target": "step-arrow-2",
-          "recipe": "draw",
-          "durationFrames": 10,
-          "phase": "result"
-        },
-        {
-          "target": "step-later",
-          "recipe": "reveal",
-          "durationFrames": 10,
-          "phase": "result"
-        }
+      "id": "keep-going", "durationInFrames": 390, "data": { "headline": "里程碑不是终点线" },
+      "visualIntent": { "relation": "focus", "focus": "path", "composition": "center", "density": "balanced", "tone": "decisive", "mode": "process", "claim": "可走的步子比意志力爆发更重要", "showWithoutText": "已走台阶留在身后，前方仍有路径，计数标注示意", "primaryObject": "继续向上的台阶与计数器", "motionMeaning": "让下一阶被点亮而不是把路径收成终点" },
+      "narrationSegments": [
+        { "id": "line-5a", "beatId": "count-example", "text": "比如每周从两级到十一级只是示意，" },
+        { "id": "line-5b", "beatId": "keep-climbing", "text": "不说明意志力突然爆发，而是目标被拆成可走的步子。" },
+        { "id": "line-6", "beatId": "keep-climbing", "text": "里程碑不是终点线，它是用来踩的。" }
       ],
-      "renderer": {
-        "kind": "tree"
-      },
-      "camera": {
-        "shot": "close",
-        "composition": "right",
-        "depth": "layered",
-        "focus": "step-number",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "step-number",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "transition": {
-        "kind": "break",
-        "source": "climb-chart",
-        "meaning": "整体爬升视图停住，镜头落到眼前的一步"
-      }
-    },
-    {
-      "id": "recap",
-      "type": "list",
-      "durationInFrames": 100,
-      "data": {
-        "title": "可数的台阶长这样",
-        "cells": [
-          "看得见",
-          "够得着",
-          "数得出",
-          "可回退"
-        ]
-      },
-      "visualIntent": {
-        "relation": "collection",
-        "focus": "text",
-        "composition": "full",
-        "density": "balanced",
-        "tone": "decisive",
-        "mode": "typography",
-        "claim": "可数的台阶要看得见、够得着、数得出、可回退",
-        "showWithoutText": "四张等大的卡片排成两行两列，整齐的格子说明它们并列同级",
-        "primaryObject": "四个并列卡片与它们的网格排布",
-        "motionMeaning": "四张卡片依次升起，把清单一项项落到台面上"
-      },
-      "sceneTree": {
-        "id": "root",
-        "type": "column",
-        "gap": "lg",
-        "children": [
-          {
-            "id": "recap-title",
-            "type": "text",
-            "contentRef": "data.title",
-            "role": "title"
-          },
-          {
-            "id": "recap-grid",
-            "type": "grid",
-            "columns": 2,
-            "gap": "sm",
-            "children": [
-              {
-                "id": "cell-1",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "cell-1-text",
-                    "type": "text",
-                    "contentRef": "data.cells[0]",
-                    "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "cell-2",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "cell-2-text",
-                    "type": "text",
-                    "contentRef": "data.cells[1]",
-                    "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "cell-3",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "cell-3-text",
-                    "type": "text",
-                    "contentRef": "data.cells[2]",
-                    "role": "body"
-                  }
-                ]
-              },
-              {
-                "id": "cell-4",
-                "type": "surface",
-                "children": [
-                  {
-                    "id": "cell-4-text",
-                    "type": "text",
-                    "contentRef": "data.cells[3]",
-                    "role": "body"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "motions": [
-        {
-          "target": "recap-title",
-          "recipe": "reveal",
-          "durationFrames": 18,
-          "phase": "establish"
-        },
-        {
-          "target": "cell-1",
-          "recipe": "rise",
-          "durationFrames": 16,
-          "phase": "change"
-        },
-        {
-          "target": "cell-2",
-          "recipe": "rise",
-          "durationFrames": 16,
-          "phase": "result"
-        },
-        {
-          "target": "cell-3",
-          "recipe": "rise",
-          "durationFrames": 16,
-          "phase": "result"
-        },
-        {
-          "target": "cell-4",
-          "recipe": "rise",
-          "durationFrames": 16,
-          "phase": "result"
-        }
-      ],
-      "renderer": {
-        "kind": "tree"
-      },
-      "camera": {
-        "shot": "macro",
-        "composition": "full",
-        "depth": "flat",
-        "focus": "recap-title",
-        "segments": [
-          {
-            "kind": "hold",
-            "phase": "establish",
-            "intensity": 0
-          },
-          {
-            "kind": "push-in",
-            "phase": "change",
-            "focus": "recap-title",
-            "intensity": 0.25
-          },
-          {
-            "kind": "settle",
-            "phase": "settle",
-            "intensity": 0
-          }
-        ]
-      },
-      "transition": {
-        "kind": "decompose",
-        "source": "step-track",
-        "targets": [
-          "cell-1",
-          "cell-2",
-          "cell-3",
-          "cell-4"
-        ],
-        "meaning": "当前一步展开为四个可回顾的里程碑"
-      }
+      "beats": [
+        { "id": "count-example", "action": "accumulate", "targets": ["step-3", "step-4", "step-5", "weekly-count"], "meaning": "在口播举例时把示意计数推进到十一级" },
+        { "id": "keep-climbing", "action": "transform", "targets": ["step-3", "step-4", "step-5"], "meaning": "把里程碑留作继续前行的台阶，并明确级数是示意" }
+      ]
     }
   ],
-  "directingVersion": 1,
-  "directingBrief": {
-    "thesis": "长期目标由连续里程碑构成",
-    "audienceShift": "从遥远目标转向看见下一步",
-    "emotionalArc": [
-      "受阻",
-      "前进"
-    ],
-    "visualMotif": "山径",
-    "stylePack": "cinematic",
-    "avoid": [
-      "静态文字页连续复用",
-      "脱离语义的装饰动效"
-    ]
-  }
+  "soundtrack": null
 }

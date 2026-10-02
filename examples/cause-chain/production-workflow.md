@@ -1,12 +1,16 @@
 # 制作流程示例
 
-`production.template.json` 展示《启动摩擦》示例（v4 单场景树世界，四个阶段 `claim`／`loop`／`turn`／`reverse`）的导演阶段分配与待评审结构。正式作品首次接入时按当前输入生成记录；已有记录不要直接重建模板，以免丢失返工和历史记录：
+`production.template.json` 展示《启动摩擦》示例（v4 单场景树世界，四个阶段 `claim`／`loop`／`turn`／`reverse`）的导演阶段分配与待评审结构。当前制作标准是正文与最终口播各130～170字（目标约150字），声明和媒体实际成片各35～45秒。
+
+先在口播改写和分镜前审查文章长度、核心观点集中度与单场景适配。AI 阅读原文后记录观点、建议隐喻和依据；失败或依据不足时保留原文、给出意见和合规候选稿并停止。只有用户明确采用候选稿且重新审查通过后才进入制作。已确认的制作输入通过后，正式作品首次接入时按当前分镜生成记录；已有记录不要直接重建模板，以免丢失返工和历史记录：
 
 ```powershell
 uv run python .agents/skills/article2video/scripts/production.py template `
   --storyboard examples/cause-chain/storyboard.json `
   --out videos/examples/cause-chain/production.json
 ```
+
+输入审查命令与候选采用步骤见[输入文章审查](../../.agents/skills/article2video/references/input-review.md)。
 
 完成配音后，AI 助手读取文章、分镜与 `review.md` 里的画面结论自动填写关键幕角色、全片节奏和逐阶段起始/变化/结果。关键幕角色可以重合；本示例的关键幕是 `claim`（opening）、`loop`（core）、`turn`（climax）。
 

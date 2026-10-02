@@ -17,7 +17,7 @@ import pytest
 from a2v import browser, contract_page
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRESET = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
+PRESET = ROOT / "examples" / "milestone-climb" / "storyboard.json"
 
 
 def _skip_if_unbuilt() -> None:
@@ -43,7 +43,7 @@ def test_preset_fit_is_measured_and_recorded(chromium_ready):
     """预设启用：声明了字号档的文字节点被实测，档位与是否实测记录在节点上。"""
     _skip_if_unbuilt()
     with contract_page.serve_contract_page(PRESET, ROOT) as url:
-        with browser.open_animated_page(url, width=1080, height=1920) as page:
+        with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(30)
             facts = page.evaluate(_FIT_FACTS)
     declared = [item for item in facts if item["fitMeasured"] is not None]
@@ -57,7 +57,7 @@ def test_repeat_fit_on_the_same_frame_writes_nothing_new(chromium_ready):
     """同一帧重复取档：档位与类名稳定，第二次不产生新的节点改动。"""
     _skip_if_unbuilt()
     with contract_page.serve_contract_page(PRESET, ROOT) as url:
-        with browser.open_animated_page(url, width=1080, height=1920) as page:
+        with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(30)
             first = page.evaluate(_FIT_FACTS)
             second = page.evaluate(_FIT_FACTS)

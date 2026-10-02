@@ -22,6 +22,10 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "declarative-number" / "storyboard.json"
 
+# These assertions target the retired v3 per-scene DOM protocol. v4 renderer behavior
+# is covered by A2VCompositionV4 integration tests and v4 probe/review tests.
+pytestmark = pytest.mark.skip(reason="v3 scene DOM contract retired; covered by v4 world/stage tests")
+
 from a2v import browser, contract_page, render  # noqa: E402
 from a2v.errors import A2VError  # noqa: E402
 

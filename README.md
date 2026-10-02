@@ -1,400 +1,65 @@
 # article2video
 
-把观点型文章转化为竖屏单场景动态叙事短视频的个人内容生产项目。
+把观点型文章转化为竖屏**单场景动态叙事短视频**的个人内容生产项目。
 
 **一个观点，一个场景，一段动态叙事。**
 
-**文章是内容层，画面工程是表现层，视频是最终发布格式。** 项目把抽象观点、因果关系和核心模型
-转化为观众可以直观看到的思想结构。
+单场景动态叙事（Single-Scene Visual Narrative）围绕一个核心观点构建持续存在的视觉世界，通过场景内动画、镜头运动、文字与状态变化完成表达，而不是依靠多个独立场景切换。这里的“场景”是整条视频持续存在的视觉世界；技术上的 `stages[]` 是叙事阶段，可以有多个。
 
-## 这是什么
+例如表达“低成本、高频试错”：人物、飞镖与靶构成持续场景，投掷次数、命中状态、镜头和文字在场景内部变化，共同推动论证。
 
-项目的目标表达形式是**单场景动态叙事（Single-Scene Visual Narrative）**：围绕一个核心观点
-构建一个持续存在的视觉场景，通过场景内动画、镜头运动、文字与状态变化完成完整表达，
-而不是依靠多场景切换。
+## 当前能力
 
-例如表达“低成本、高频试错”：人物、飞镖与靶构成持续存在的视觉世界，投掷次数增加、
-命中状态变化、镜头推进与文字提示共同推动论证。
+项目以项目级 Skill 驱动创作：AI 阅读文章、完成输入审查、选择视觉隐喻并撰写 v4 分镜；共享 React composition（Remotion）按帧渲染画面，确定性脚本准备媒体、校验、合成并验收 MP4。脚本负责可确定的长度、结构和时间轴检查，不调用模型或推断文章语义。
 
-这里的“场景”指整条视频的视觉世界；技术上的“幕”和 `scenes[]` 表示分镜或叙事阶段，
-多个阶段可以共同表达同一个视觉世界，不要求数组只有一项，也不要求摄影意义上的单镜头。
-单场景动态叙事是产品方向，目前尚未形成强制制作规则；现有多幕示例不因此被视为已满足该方向。
-后续规范、评审与校验适配见[项目规划](docs/PROJECT_PLAN.md#单场景动态叙事路线规划中)。
+当前标准为：正文及最终口播各 **130～170 字**（目标约150字）；分镜声明时长与配音派生的实际成片时长各为 **35～45秒**。输入审查必须先于口播重写与分镜生成；审查失败时保留原文、给出问题和候选改写，须用户明确采用并重新审查后才能制作。完整契约见 [输入文章审查](.agents/skills/article2video/references/input-review.md)。
 
-实现形态是一个**项目级 Skill**：由 AI 编程工具（Codex、Claude Code、DSH 等）读懂文章，分阶段声明
-内容分镜、视觉策略、逐幕意图与视觉论证、场景树与动效，写成 v3 分镜 JSON；画面由仓库
-`web/` 里的共享 React composition（Remotion）按场景树逐帧渲染成 MP4。
-AI 不直接生成视频，因此画面可控、可改、可重渲染。
+v4 使用一个全片 `world`、稳定对象身份、全局状态/镜头/beat 时间轴和多个 `stages[]` 推进叙事。tree 与 code 两种 renderer 共用同一时间上下文；模式数量只作提示，单一隐喻贯穿全片是允许的。有效输入审查、最终口播字数、实际时长、关键阶段与全片评审及五项连续性结论共同构成正式渲染门禁。v1～v3 分镜在所有执行入口拒绝，须按 v4 重新编排。
 
-```text
-文章 → 内容分镜 → 视频级视觉策略 → 逐幕视觉意图与视觉论证 → 场景树与动效 → v3 分镜 JSON
-     → 配音与字幕准备（可选）→ 共享 composition 逐帧渲染与音轨合成 → 竖屏 MP4
-```
-
-Skill 位于 [`.agents/skills/article2video/`](.agents/skills/article2video/SKILL.md)，
-该目录被 Codex 与 DSH 直接识别；Claude Code 需要时可用软链接映射到 `.claude/skills/`。
-
-## 当前状态
-
-已加入精品科普 P0 能力：口播重写与五项内容评审、代码场景对象动画纯函数、段级 edge-tts 语速与停顿、本地音乐和节拍音效混音。媒体清单 v3 同时保存旁白、混音与声音素材摘要，预览和导出共用混音音轨；旧清单仍可读，新声音参数需要重新 prepare。接口与范围见 [媒体契约](.agents/skills/article2video/references/media-contract.md) 和 [代码场景](.agents/skills/article2video/references/code-scenes.md)。已改编为 v4 单场景动态叙事的标杆见 [飞镖试错示例](examples/darts-trial-and-error/storyboard.json)（全片 code 世界）、[缓冲区示例](examples/buffer-smoothing/storyboard.json)（全片 code 世界）、[因果链示例](examples/cause-chain/storyboard.json)（全片 tree 世界）与 [代码场景示例](examples/code-scenes/storyboard.json)（全片 code 世界，一块系统面板覆盖 Tailwind/Lucide/ECharts/Dagre/自绘 SVG）；关键幕/全片/口播内容/连续性评审与 V6、A6 结论见各自的 `review.md`（[缓冲区验收记录](examples/buffer-smoothing/review.md)、[因果链验收记录](examples/cause-chain/review.md)、[代码场景验收记录](examples/code-scenes/review.md)）；其余示例仍在逐批改编。
-
-仓库已接入 [OpenSpec](openspec/config.yaml) 进行功能变更规划：`openspec/changes/` 存放进行中的提案、规格与任务，归档后的能力规格存放在 `openspec/specs/`，已完成的变更连同其提案、设计与逐轮实施记录留档在 `openspec/changes/archive/`。Codex 与 DSH 的工作流 Skill 位于 `.agents/skills/openspec-*/`。首次使用前需安装 OpenSpec CLI；在仓库根目录可用 `openspec list` 查看变更，以 `$openspec-propose` 发起新提案。
-
-已完成**场景树架构切换**（v2）与导演契约升级（v3）：画面由每幕显式声明的**场景树**
-经共享递归解释器（`web/src/primitives/SceneTree.tsx`）逐节点渲染。旧整页组件、
-`data.figure.kind`、场景类型默认映射与作品专属 `scenes.tsx` 画面模块已全部删除
-（今天的作品级画面走 `renderer.code`，模块放在作品的 `scenes/` 目录下——与已删除的
-`scenes.tsx` 不是一回事）；旧版分镜（v1/v2）进入任何入口都会被拒绝并提示按 v3
-重新编排；不提供迁移工具、兼容开关或运行时回退。
-
-- **分镜 v3 结构**：根级强制 `schemaVersion: 3`、`directingVersion: 1`、完整 `directingBrief`、
-  `visual.preset: "keynote"` 与视频级视觉策略 `visualDirection`
-  （母题、构图偏置、密度、节奏、禁止复用项）；每幕声明 `visualIntent`（信息关系、视觉焦点、
-  构图、密度、情绪，以及视觉论证字段 `mode` / `claim` / `showWithoutText` /
-  `primaryObject` / `motionMeaning`）、`sceneTree`（受控原语树）与 `motions`
-  （按节点 id 绑定的具名动效）。
-  结构与约束见
-  [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)；
-- **导演层与审美闭环**：每幕强制声明完整 `visualIntent`、`renderer`、分段镜头与跨幕转场；运行时按语义阶段、组级错峰、连续状态混合、稳定收束与确定性共享元素几何渲染。
-- **关键幕先行与 AI 制作记录**：`production.py` 提供制作记录模板、阶段状态、静态关键帧、关键幕有声样片与全片评审版；AI 助手依据分镜和动作设计填写导演计划，并在查看实际联系表、关键幕及全片有声画面后填写评审与返工。评审记录 AI 来源、材料摘要和输入指纹；材料或输入过期、评审待定/失败、存在未解决必改项时均阻断正式渲染。
-- **定制动画动态评审**：含作品级代码场景的分镜必须逐幕提供焦点、动作解释、节奏、转场和结果可读性五项评分与播放依据，且每项达到 4/5 后才能进入正式渲染；静态联系表仍用于构图审阅。
-- **分段口播与语义节拍**：新作品用 `narrationSegments`（每段 `{id, text, beatId}`）
-  取代字符串 `narration`；字符串 `narration` 不受支持，并用 `beats`（`{id, action, targets, meaning}`）
-  声明这一步推理在画面上如何发生。动作取自 11 个受控动词（`establish` / `connect` /
-  `transfer` / `accumulate` / `deplete` / `transform` / `compare` / `highlight` /
-  `loop` / `break` / `restore`），其中 `establish` 与 `highlight` 是**中性**动作——
-  只让对象出现或更醒目，不算一次状态或关系变化。有声路径由真实 WordBoundary 解析出
-  逐幕 `resolvedBeats`（媒体清单 version 3），字幕、配音与画面因此共用同一批边界；
-  无声预览按声明时长等比例解析，并固定留出 12 帧稳定阅读时间。v3 有口播时必须使用
-  `narrationSegments + beats`，字符串 `narration` 一律拒绝；
-- **视觉论证与全片预算（严格校验）**：`a2v/visual_narrative.py` 把逐幕声明与场景树结构
-  对照分类——只承认九类**结构证据**：图表、图片、连接关系、圆周布局（≥ 2 个内容子节点），
-  以及五个中层原语 `flow` / `cycle` / `timeline` / `gauge` / `pictogram`；
-  布局原语、表面、形状、图标与单个数值都算包装或文字；`validate.py --strict` 因此执行
-  文字幕不超过 `ceil(场景数 × 30%)`、相邻两幕不得都是文字幕、八幕及以上至少 3 种
-  （少于八幕至少 2 种）非文字模式、声明非 `typography` 模式必须拿得出证据，
-  失败定位到 `scenes[N].visualIntent.mode`。阈值版本化（`RULE_VERSION`）并由测试钉住；
-  v1/v2 分镜在普通与严格校验、预览、配音准备、评审与渲染入口统一拒绝；
-- **视觉原语注册表是唯一真源**：`web/src/registry/registry.json` 登记 21 个原语——
-  布局 7（`stack` / `row` / `column` / `split` / `grid` / `radial` / `overlay`）、
-  内容 5（`text` / `number` / `image` / `icon` / `chart`）、
-  图形 4（`shape` / `surface` / `connector` / `group`），
-  外加五个**中层原语**（`flow` / `cycle` / `timeline` / `gauge` / `pictogram`，
-  按绘制方式归入 layout 与 content 两类）——
-  以及各原语允许的属性、子节点容量、动效配方与支持的语义动作。
-  `scripts/sync_catalog.py` 由它生成
-  Python 校验器镜像（`a2v/catalog.py`）、TypeScript 枚举与属性/动效映射
-  （`web/src/schema/primitiveTypes.ts`）和
-  [原语目录](.agents/skills/article2video/references/primitive-catalog.md)
-  （`--check` 可机检漂移）；校验器按注册表拒绝未知原语、超容量子节点、
-  未注册属性、不支持的动效与不支持该动作的 beat 目标；
-- **确定性渲染**：布局由离散受控参数（对齐、间距档、分栏比例、列数）经 CSS 确定性求解，
-  不允许任意坐标或 transform 逃生口；相同分镜、字体、画布与帧号重复求值，
-  节点几何与可见画面一致（测试钉住）。设计语言预设启用时，对声明了字号档（`role`）的
-  文字原语按**实测宽度**向下取档，档位与是否实测记录在节点的
-  `data-a2v-fit-role` / `data-a2v-fit-measured` 上；
-- **动效**：配方只有五种（`reveal` / `fade` / `rise` / `count` / `draw`），逐帧纯函数；
-  目标用幕内唯一的节点 id 定位，配方与目标原语的匹配、时间范围是否落在场景内
-  都在校验阶段确认，开渲前失败；
-- **场景级代码双轨**：默认每幕走场景树；受控原语表达不了的图表面板、
-  图形叙事可以在幕上声明 `renderer: { kind: "code", module: "…" }`，把整幕画面交给
-  `scenes/` 下工作级 TSX 模块——模块默认导出 `(props) => ReactNode`，逐帧接收
-  `progress`，用 `@a2v/scene` 的探针与适配层（ECharts/Dagre/Lucide/SVG 工具）保持
-  确定性。依赖白名单（`react` / `remotion` / `echarts` / `@dagrejs/dagre` /
-  `lucide-react`）、静态清单（构建前生成 `.gen/active-scenes.ts`）、安全门
-  （挂钟/随机/定时器/网络/动态 import 等静态禁令）与运行期离线隔离（非本地请求
-  一律阻断并计为错误）共同兜底；构建输入指纹覆盖当前作品可达源码与本地资产；
-  `review.py --check-determinism` 做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB）。
-  详见 [代码场景](.agents/skills/article2video/references/code-scenes.md) 与
-  [示例](examples/code-scenes/storyboard.json)；
-- **确定性渲染契约 `window.__A2V__`（version 3）**：由契约页
-  `web/dist/contract/contract.html`（`pnpm -C web build` 产出）提供——它把 composition
-  挂进 `@remotion/player`，从查询参数 `a2v-storyboard` 读分镜，因此一个页面服务任意作品。
-  体检（帧量测、场景树契约探针）用 Playwright 驱动它；渲染不走它，而是直接从 composition
-  源码打包渲染（Remotion）；
-- **文章生成分镜**：按「内容分镜 → 视频级视觉策略 → 逐幕视觉转译 → 推理拆分与节拍编排
-  → 场景树 → 动效 → 验收」分阶段执行，每阶段以前一阶段和原文为输入，可局部返工；
-  视觉转译要求先声明受控视觉模式与
-  无正文视觉表达，原语不足以表达时**停在转译阶段**（重新构思、扩展通用原语或用代码场景），
-  不得改写成文字卡片后继续宣称原模式。步骤、约束、判据与正反例统一写在
-  [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)；
-  由 AI 工具按规范执行，仓库不含生成器程序，也不调用任何模型服务；
-- **多样性检查**：`a2v/diversity.py` 为每幕计算**不含正文**的归一化布局指纹
-  （树形、原语类别、分区比例、焦点象限、密度、意图关系、视觉模式与动效序列），
-  在严格校验命令里报告相邻完全同构与片内过度复用；显式传 `--reference`
-  提供参考分镜集合时才做跨作品比较，否则如实标记「未运行」；
-- 渲染输出 1080 × 1920 / 30fps / H.264 `yuv420p` MP4（`--crf` 默认 18），
-  渲染后自动解码验收帧数与分辨率；
-- 码流按「各播放器都能播」的参数固定：画面 `yuv420p(tv, bt709)`、配音 AAC-LC
-  44.1kHz 立体声；验收阶段会读回码流，命中全范围像素格式（`yuvj420p`）直接报错
-  ——这类流 ffmpeg 能解码，但 Windows 的 Media Foundation 会以 `0xc00d36c4` 拒绝打开；
-- 交付文件落盘后自动交回目标目录的继承权限：经临时目录中转的文件会带上「关闭继承」
-  的 ACL，导致打包应用（Windows 11 新版媒体播放器）报 `0x80070005` 打不开成片；
-- 成片带溯源：渲染成功后在同目录写 `<名字>.provenance.json`（version 4：画面来源
-  `renderer`、分镜、**构建输入指纹**——composition 可达的全部源码、`package.json`
-  与锁文件、字体——帧数分辨率帧率与渲染时刻），体检命令据此回答
-  「这个成片是不是旧画面渲的」——`report.json` 的 `provenance` 段与终端一栏给出
-  `对得上` / `落后（并指名是哪几个文件变了）` / `无法判断`。
-  它是提示不拦人：不参与错误数，也不改退出码。为什么需要它：成片不入库，
-  以前改了动效源码而没重渲，旧成片看上去仍然是「上次验收通过」的样子。
-  溯源一律用相对引用（`workspace` + 工作区相对键，`web/` 下的构建输入记
-  `/__a2v_web__/` 别名键），因此文章与产物放在仓库之外也读得回来；
-- 可直接运行的完整示例（v3 多幕分镜，仍在逐批改编为 v4 单场景）：
-  [`examples/narration-beats/`](examples/narration-beats/storyboard.json)
-  （分段口播 + 语义节拍：5 幕覆盖 `flow` / `cycle` / `timeline` / `gauge` / `pictogram`，
-  严格校验与 A1–A5、A7、A8 全部通过）、
-  [`examples/milestone-climb/`](examples/milestone-climb/storyboard.json)
-  （台阶与数据构图：column + chart + number + grid，4 幕）、
-  [`examples/why-effort-fails/`](examples/why-effort-fails/storyboard.json)
-  （5 幕）、[`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)
-  （8 幕，设计语言基线）与
-  [`examples/declarative-number/`](examples/declarative-number/storyboard.json)；
-- edge-tts 中文自动配音、逐句字幕与 SRT 导出；配音超时自动延长场景；
-- 配音按场景缓存，统一 WAV 音轨支持预览播放、拖动和最终 AAC 合成；
-- 目录约定与输出路径推导：每篇文章一个 `videos/<slug>/`，产物落在 `videos/<slug>/outputs/`，
-  示例产物独立在 `videos/examples/<slug>/outputs/`；`--out` 与 `--out-dir` 可省略，
-  显式参数继续优先；
-- **文章与仓库解耦**：`videos/` 是作品内容，已在 `.gitignore` 中忽略（文章内容不入库）；
-  文章与产物还可以整体放在仓库之外的**内容根**里，用 `--content-root` 或
-  `A2V_CONTENT_ROOT` 指定（命令行优先），命令与产物结构完全不变。契约页与 composition
-  在仓库 `web/` 下，渲染与体检按仓库根自动定位并用 `/__a2v_web__/` 别名挂载，
-  内容根里不需要 skill 副本。不设内容根时工作区根就是仓库根；
-- **发布会级设计语言层**（可选）：分镜根级声明 `visual.preset: "keynote"` 时启用
-  `web/src/styles/keynote.css`——模块化字号阶（每档配对行高与字距）、
-  8pt 间距阶、五个圆角档 + pill、三级阴影、12 列网格，以及 `keynote-dark`
-  与 `keynote-light` 两套主题，对比度预算正文 7:1、大字与图形 4.5:1；
-  **图形颜色按类别守预算**，`fill`/`stroke`/`background` 里不许出现字面色值，
-  由 `tests/test_figure_contrast.py` 按分类表断言，新增 `--fig-*` 必须先归类；
-  纯分隔线刻意保持耳语并豁免于 WCAG 1.4.11；
-  Inter Variable 与 Noto Sans SC Variable（SIL OFL 1.1）随仓库分发、不走 CDN，
-  由 `web/src/assets/fonts.json` 声明并在 `web/src/fonts.ts` 里于首帧前注册；
-  预设作用域（未启用预设时画面不受预设影响）由
-  `tests/test_react_design_tokens.py` 在浏览器里量计算值守住；
-  参考实现见 [`examples/keynote-baseline/`](examples/keynote-baseline/storyboard.json)；
-- **观感闸门 K1–K10**：`scripts/a2v/keynote.py` 把留白预算、强调色占比、同帧字号种类、
-  对齐基线、正文对比度、卡片纪律、图形描边一致性量成数值结论，与回答「是不是废片」的
-  C 系列**分开计分**；`review.py` 随体检一起输出，取不到样本的条目
-  跳过并写明原因。
-  其中 **K7 文字溢出与 K8 容器内溢出是硬判定**：文本块越出安全区（容差 8px）、
-  或图形内的文字穿出它所属的容器（容差 2px）时，
-  会并入体检的错误数与退出码，并报出是哪个文本块、往哪个方向越了多少像素。
-  K8 只判定**文字自己声明了所属容器**的部分：文字用
-  `data-a2v-inside="<容器选择器>"` 指向容器，没声明的不判定、该项如实记「跳过」；
-  场景树里的 `surface` 节点会带上空的 `data-a2v-inside=""`，空选择器按假值处理，
-  不参与判定。
-  图表原语是 DOM/SVG 实现，K7/K8 对整幕生效，不存在量不到的 canvas 内部。
-  阈值与设计取舍见
-  [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)；
-- **契约锚点**：场景树每个可渲染节点输出稳定的 `data-a2v-node-id` 与
-  `data-a2v-primitive` 类型标记，契约探针按节点 id 核对「声明的内容真的画了出来」，
-  动效按节点 id 量测——原语内部 DOM 结构调整不影响验收目标；
-- 自动化测试：Python 侧覆盖 v3 校验、分段口播与节拍时间轴、媒体清单 `resolvedBeats`、
-  A 系列动画论证闸门、多样性指纹、视觉叙事预算与 V 系列闸门、
-  缓存与失败恢复、字幕时间轴、
-  路径推导、契约页、取档行为、动效量测、渲染溯源与 Remotion 打包；
-  web 侧（`pnpm -C web test`）覆盖 schema 校验、注册表自洽、场景树运行时纯函数
-  与五个中层原语的 beat 状态。
-
-尚未实现、请勿当作已有能力使用：**分镜生成器程序**（生成由 AI 工具按
-[规范](.agents/skills/article2video/references/article-to-storyboard.md) 执行，没有内置生成服务、
-模型调用或批量生成）、**自动选曲**、**内容根的自动探测**（只能显式指定，脚本不去猜）、
-**平台发布**、批量渲染与成片历史版本。
-
-设计语言层相关的未实现项同样不要当作已有能力：**视觉模型自动评审**（K 系列只给数值，
-V5 只列候选与结构证据，V6 与 A6 的结论也由人填写，最终判断仍要人按
-[评审量表](.agents/skills/article2video/references/visual-review-rubric.md) 完成）、
-**按内容自动选预设**（必须由分镜显式声明），以及 K6 对「整幕没有卡片」只报跳过、
-不判断「这一幕本该有卡片」。
+单场景原则、输入审查、时长门禁和连续性评审已落地；各示例的改编与验收记录见 `examples/<slug>/`。历史多幕作品不因阶段数多而自动满足单场景方向，须以当前分镜和评审记录判断。后续路线见[项目规划](docs/PROJECT_PLAN.md)。
 
 ## 快速开始
 
 ```bash
-# 1. 安装依赖（首次）
 uv sync
-uv run playwright install chromium
 pnpm -C web install
 pnpm -C web build
+uv run playwright install chromium
 
-# 2. 校验分镜（v4 单场景或旧 v3 多幕都由同一个入口判定；--strict 执行作品质量门槛）
-uv run python .agents/skills/article2video/scripts/validate.py \
-  examples/cause-chain/storyboard.json --strict --json
+# 严格校验示例
+uv run python .agents/skills/article2video/scripts/validate.py examples/darts-trial-and-error/storyboard.json --strict
 
-# 3. 本地预览（浏览器中确认节奏与排版；首次会自动构建契约页）
-uv run python .agents/skills/article2video/scripts/preview.py \
-  --storyboard examples/cause-chain/storyboard.json
-
-# 4. 视觉评审（抽帧量测 + 场景树契约探针 + 观感闸门，产出联系表与 report.json）
-uv run python .agents/skills/article2video/scripts/review.py \
-  --storyboard examples/cause-chain/storyboard.json
-
-# 5. 查看制作流程与可复制的制作记录模板；示例模板与步骤见 production-workflow.md
-uv run python .agents/skills/article2video/scripts/production.py status \
-  --storyboard examples/cause-chain/storyboard.json
-
-# 有声作品在完成配音后生成关键幕样片与全片有声评审版，检查并填写评审记录后再正式渲染
-uv run python .agents/skills/article2video/scripts/production.py samples \
-  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
-uv run python .agents/skills/article2video/scripts/production.py rehearsal \
-  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
-
-# 正式渲染只接受当前版本评审通过且必改项已关闭的作品
-uv run python .agents/skills/article2video/scripts/render.py \
-  --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
-
-# 6. 测试
+# 运行相关测试
 uv run pytest
 pnpm -C web test
 ```
 
-国内网络下安装较慢时可指定镜像：
+制作新作品的顺序为：
 
-```bash
-UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple uv sync
-PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright uv run playwright install chromium
+```text
+输入审查 → 核心观点与隐喻设计 → 分镜及动画编排 → 配音准备
+→ 实际时长检查 → 评审与渲染
 ```
 
-## 自动配音与字幕
-
-无声命令保持兼容。要输出有声视频，先按每幕口播（`narrationSegments` 分段口播）准备媒体：
+文章和产物放在 `videos/<slug>/`，该目录已忽略、不入库；也可通过 `--content-root` 或 `A2V_CONTENT_ROOT` 将内容放在仓库外。之后按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)、[制作流程](examples/cause-chain/production-workflow.md) 和 [目录约定](.agents/skills/article2video/references/paths-and-outputs.md) 操作。正式渲染示例：
 
 ```bash
-uv run python .agents/skills/article2video/scripts/prepare.py \
-  --storyboard examples/cause-chain/storyboard.json
-
-uv run python .agents/skills/article2video/scripts/preview.py \
-  --storyboard examples/cause-chain/storyboard.json \
-  --media videos/examples/cause-chain/outputs/media/media.json
-
-uv run python .agents/skills/article2video/scripts/render.py \
-  --storyboard examples/cause-chain/storyboard.json \
-  --media videos/examples/cause-chain/outputs/media/media.json
+uv run python .agents/skills/article2video/scripts/validate.py videos/<slug>/storyboard.json --strict
+uv run python .agents/skills/article2video/scripts/prepare.py --storyboard videos/<slug>/storyboard.json
+uv run python .agents/skills/article2video/scripts/production.py status --storyboard videos/<slug>/storyboard.json
+uv run python .agents/skills/article2video/scripts/render.py --storyboard videos/<slug>/storyboard.json --media videos/<slug>/outputs/media/media.json
 ```
 
-省略 `--out-dir` 时媒体写入 `videos/examples/cause-chain/outputs/media/`；省略 `--out` 时
-无声导出为 `silent.mp4`，带 `--media` 则导出 `voiced.mp4` 和同名 `voiced.srt`。
-加 `--limit-frames` 默认写入 `previews/`，不会覆盖正式成片。显式 `--out`、`--out-dir`
-始终优先。
+## 项目结构
 
-默认音色 `zh-CN-XiaoxiaoNeural`、语速 `+0%`；可用 `--voice`、`--rate=-10%` 调整，
-`--force` 强制重新合成。首次合成需要联网，无需 API key；已有缓存可离线重新准备与导出。
-输出 MP4 含 AAC 混音并生成同名 SRT；共享 composition 按媒体清单派生的
-`subtitleCues` 绘制字幕，预览和 Remotion 成片使用相同字幕与安全区。支持本地背景音乐及节拍音效。
+- `.agents/skills/article2video/`：创作工作流、分镜/媒体/渲染/评审契约。
+- `web/src/compositions/` 与 `web/src/runtime/`：共享 composition 和全局时间轴运行时。
+- `web/src/registry/registry.json`：视觉原语唯一真源；运行 `sync_catalog.py --check` 检查生成目录是否漂移。
+- `.agents/skills/article2video/scripts/`：确定性校验、媒体准备、预览、评审和渲染工具。
+- `examples/`：可运行作品、动画设计和评审记录；作品文章和分镜纳入版本控制。
+- `openspec/changes/`：进行中的能力变更；`openspec/specs/`：已归档并落地的规格。
+- `docs/PROJECT_PLAN.md`：产品路线；[AGENTS.md](AGENTS.md)：仓库协作、验证与交付规则。
 
-原分镜不被覆盖；原场景时长作为最短时长，配音较长时自动延长并留 300ms 收尾。
-声明了分段口播的幕还会在媒体清单里得到逐幕 `resolvedBeats`——画面、字幕与配音共用
-这批边界，因此改过分段或时长后必须重新 prepare（旧清单里没有它时会被明确拒绝，
-而不是拿旧缓存凑一个时间轴）。修改分镜后重新执行 prepare（未改变的口播命中缓存）。
-详细接口和错误处理见
-[配音与字幕](.agents/skills/article2video/references/media-contract.md)。
+## 当前边界
 
-## 制作一支新视频
-
-1. 新建文章目录 `videos/<slug>/`（slug 稳定、唯一，标题变化不改名），写入 `article.md`。
-   目录留在仓库里即可——内容不入库，不会被提交；想放仓库外时把它放进
-   内容根（`--content-root <目录>` 或环境变量 `A2V_CONTENT_ROOT`），内容根下同样放
-   `videos/<slug>/`；
-2. 按 [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)
-   分阶段生成分镜：先内容分镜，再视觉策略与逐幕意图，然后把口播切成语义段并绑定 beat，
-   最后按
-   [原语目录](.agents/skills/article2video/references/primitive-catalog.md)
-   组合场景树并绑定动效。默认**不写画面代码**——场景树够用时不需要它；
-   受控原语确实表达不了时，按
-   [代码场景](.agents/skills/article2video/references/code-scenes.md)
-   为个别幕声明 `renderer.code` 并把模块放进作品的 `scenes/`；
-3. 依次执行上面的校验、预览、渲染命令；`videos/<slug>/outputs/` 由脚本自动推导
-   （内容根在仓库外时即 `<内容根>/videos/<slug>/outputs/`），无需手动创建。
-
-v1/v2 分镜无法预览或渲染；请依据分镜结构文档重新编排为 v3。
-
-已完成的文章：
-
-| 目录 | 内容 | 分镜 | 成片（产物路径，不入库） |
-| --- | --- | --- | --- |
-| `videos/never-fear-interviews/`（不入库，作者本机） | 《永远不要害怕面试》 | 8 幕 / 2189 帧（73.0 秒） | `videos/never-fear-interviews/outputs/voiced.mp4` + `.srt` |
-| `videos/compound-interest-leverage/`（不入库，作者本机） | 《复利，才是普通人最强的杠杆》 | 10 幕 / 2982 帧（99.4 秒） | `videos/compound-interest-leverage/outputs/voiced.mp4` + `.srt` |
-| `examples/why-effort-fails/` | 《为什么努力没结果》（观感基线） | 5 幕 / 1350 帧（45 秒） | `videos/examples/why-effort-fails/outputs/` |
-
-上表里的成片路径是**推导出来的产物位置**，`outputs/` 不入库、也不随仓库分发。
-目标作品与 8 个示例均采用 v3 契约与新版导演逻辑，其中
-[`examples/narration-beats/`](examples/narration-beats/storyboard.json)
-是分段口播与语义节拍的端到端参照。
-个别作品在本地另附一份作品网页（不入库，也不是项目能力），把正文、成片、章节跳转与
-口播全文放在同一页里互相对应：章节按钮按媒体清单的幕边界跳转，页面按同一份 `cues`
-同步高亮当前口播行（成片已把字幕烧进画面，页面不再叠第二份字幕），口播全文与画面
-逐幕对齐。这是作者本机的个人做法，不随仓库分发。
-
-目录结构与归属推导规则见
-[目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)；
-分镜字段、渲染契约与排版规范见
-[渲染契约](.agents/skills/article2video/references/render-contract.md)、
-[分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)、
-[竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)。
-
-## 视觉评审
-
-`review.py` 一次跑完三层检查，产物落在 `videos/<slug>/outputs/inspect/`：
-
-- **场景树契约探针**：逐幕多处采样，按 `data-a2v-node-id` 读出画面里每个节点的实际文本，
-  比对分镜声明的内容引用是否真的画了出来。「节点挂上了、画面也出来了，只是没有一个字」
-  这类缺陷不会报错，只能靠读 DOM 发现——这正是它存在的理由；代码场景走**最小 DOM
-  探针协议**（`data-a2v-node` / `-role` / `-inside` / `schematic`），协议缺失在严格评审里
-  计为错误；加 `--check-determinism` 还会对每幕收尾帧做同帧重复截图与随机寻帧验收
-  （PSNR ≥ 60 dB），失败计为错误；
-- **帧量测**：墨迹覆盖率（防空幕、黑屏）与上下安全区的墨迹；动效量测（M0–M4）；
-- **观感闸门 K1–K10**（声明 `visual.preset` 时）与**设计宪法静态检查**的适用部分：
-  React 路径上静态结构检查明说跳过（画面由 composition 源码决定），由 web 侧
-  源码扫描与运行时量测承担；
-- **视觉叙事 V 系列**（`report.json` 的 `visualNarrative`）：V1 文字幕预算、V2 连续文字幕、
-  V3 非文字模式覆盖、V4 声明与结构一致性——这四条与 `validate.py --strict` 同口径，
-  失败并入错误数与退出码；V5 列出文字主导候选幕及判定证据（只呈现，由人逐条裁决）；
-  V6 读 `review.md` 里 AI/人工填写的「图形承担论证」结论，**没填写就是「待评审」**，
-  发布要求 V6 ≥ 4/5 且没有未裁决候选。语义结论不并入自动退出码；
-- **动画论证 A 系列**（`report.json` 的 `animationReview`）：A1 节拍覆盖、A2 含义声明、
-  A3 状态或关系变化、A4 字幕同步、A5 结尾停留、A7 单一焦点、A8 稳定结束——这七条
-  只读分镜与媒体清单（不需要浏览器），失败并入错误数与退出码；A6 读 `review.md` 里
-  AI/人工填写的装饰动画裁决，**没填写就是「待评审」**，只拦 `publishable` 而不伪造脚本错误。
-  只约束声明了 `narrationSegments` 的幕，无声幕与无媒体时的 A4 如实记为「跳过」。
-
-机检只保证「这不是废片」。**值不值得看完**按
-[视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)
-六项 60 分制打分，≥ 40 才发布：[设计宪法](.agents/skills/article2video/references/design-constitution.md)
-标明每条规则能不能机检——把审美也交给脚本，等于放弃质量。
-
-Playwright 在本项目里的用途已收窄为**体检探针**：驱动契约页抽帧量测、读 DOM、
-按帧验证画面。渲染不再经过浏览器截图。
-
-## 关键约束
-
-- **单一真源**：文案与原始时长写在 `storyboard.json`；分段口播的完整文本就是各段按顺序
-  拼接，不另存一份；启用配音时，composition 和脚本
-  共用媒体清单中的派生时长与逐幕 `resolvedBeats`；原语类型、属性、容量、动效与
-  语义动作登记在 `registry.json`，
-  生成物由 `sync_catalog.py` 同步（`--check` 机检漂移）；
-- **帧驱动**：画面只由帧号推导（Remotion 的 `useCurrentFrame()`）。禁止 CSS
-  `animation`/`transition`、`Date.now()`、`Math.random()`，否则逐帧渲染会闪烁且不可复现；
-  web 侧测试与评审把守这条纪律；
-- **受控表达**：分镜不携带 HTML、CSS、JavaScript、第三方包引用、任意表达式或
-  任意坐标脚本；画面只能由原语注册表登记的节点类型与属性组合，校验器与
-  契约探针双重把守；
-- **产物归属**：一篇文章一个目录，产物只写进它自己的 `videos/<slug>/outputs/`；
-  推导不出归属时脚本报错并要求显式指定路径或内容根，不猜测；
-- **画质取舍**：渲染不产生中间帧文件，成片画质由 `--crf` 控制（默认 18）；
-  画面避免大面积 `filter: blur()`，光晕用 `radial-gradient` 或 `box-shadow` 实现。
-
-## 文档导航
-
-- [项目规划](docs/PROJECT_PLAN.md)：处理链路、原语清单与阶段路线（未来方向的权威来源）
-- [文章生成分镜](.agents/skills/article2video/references/article-to-storyboard.md)：分阶段生成流程、约束与校验闭环
-- [协作约定](AGENTS.md)：中文协作、Git 与交付规则
-- [Skill 主文档](.agents/skills/article2video/SKILL.md)：完整工作流与排查手册
-- [分镜脚本结构](.agents/skills/article2video/references/storyboard-schema.md)：字段定义、分段口播与语义节拍、校验规则
-- [配音与字幕](.agents/skills/article2video/references/media-contract.md)：媒体清单 version 3、逐幕 `resolvedBeats`、TTS 缓存与音轨合成
-- [竖屏视觉规范](.agents/skills/article2video/references/visual-spec.md)：排版层级、景深、动效配方、语义动作与中层原语
-- [视觉原语目录](.agents/skills/article2video/references/primitive-catalog.md)：有哪些原语、允许哪些属性、动效与语义动作、怎么组合
-- [设计宪法](.agents/skills/article2video/references/design-constitution.md)：什么算做对了，以及哪条能机检
-- [发布会级设计语言](.agents/skills/article2video/references/keynote-design-system.md)：`visual.preset` 的启用方式、字号阶与令牌、图形基元与状态、取档行为与 K1–K10 观感闸门
-- [视觉评审量表](.agents/skills/article2video/references/visual-review-rubric.md)：六项评分、V6/A6 人工裁决写法与红线
-- [制作流程示例](examples/cause-chain/production-workflow.md)：制作记录、关键幕样片、全片预演、评审与返工闭环
-- [目录约定与输出路径](.agents/skills/article2video/references/paths-and-outputs.md)：文章目录与产物位置规则
-
-本仓库未配置远端，不含账号系统、云端任务队列或自动发布能力。
+文章理解与分镜生成由 AI 工具根据项目 Skill 执行；仓库不含模型调用或自动生成服务。自动选曲、平台发布、批量渲染和成片历史版本也不在当前能力内。语义评审由 AI 阅读材料后填写并绑定制作记录，脚本负责有效性与版本门禁，不替代语义判断。

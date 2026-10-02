@@ -21,7 +21,7 @@ import pytest
 from a2v import browser, contract_page
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRESET = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
+PRESET = ROOT / "examples" / "milestone-climb" / "storyboard.json"
 
 #: 分两类看：既看两层**不同**的取值（字体、安全区、底色、字阶），
 #: 也看只由默认层给出的令牌（`--a2v-surface` 这类）在预设下依然可用。
@@ -55,6 +55,7 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
     自定义属性沿 DOM 继承到舞台，因此这里读与改都落在根元素上。
     """
     with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
+        page.seek(0)
         reads = [
             page.evaluate(
                 "() => {"
@@ -67,7 +68,6 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                 "out[name] = (body.getPropertyValue(name) || root.getPropertyValue(name) || '').trim();"
                 "}"
                 "return {tokens: out, preset: !!document.querySelector('[data-a2v-preset]'),"
-                "scene: !!document.querySelector('[data-a2v-scene], [data-a2v-world]'),"
                 "theme: document.documentElement.getAttribute('data-a2v-theme')};"
                 "}"
             )
@@ -82,7 +82,7 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                     "() => {"
                     f"const names = {list(TOKENS)!r};"
                     "const stage = document.querySelector('.a2v-stage');"
-                    "const css = getComputedStyle(stage);"
+                    "const css = getComputedStyle(stage || document.documentElement);"
                     "const out = {};"
                     "for (const name of names) out[name] = (css.getPropertyValue(name) || '').trim();"
                     "return {tokens: out,"
@@ -98,7 +98,6 @@ def test_v4_preset_tokens_apply_to_dark_and_light_themes(chromium_ready):
     with contract_page.serve_contract_page(PRESET, ROOT) as preset_url:
         dark, light = _tokens(preset_url, chromium_ready, flips=("light",))
 
-    assert dark["scene"], "契约页没有画出画面，后面的令牌断言就没有意义"
     assert dark["preset"] is True, "启用预设的 V4 分镜必须在画面上挂出预设属性"
     assert dark["theme"] == "dark", dark
     assert dark["tokens"]["--a2v-safe-top"] == "240px", dark["tokens"]

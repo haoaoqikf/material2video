@@ -103,16 +103,18 @@ class TestAuditTellsYouWhereItHurts:
 
     def test_missing_glyph_is_reported_with_its_scene_and_field(self):
         data = self._storyboard()
-        scene = data["scenes"][0]
-        scene["text"] = "正常\U0001F600"  # 字体没有的字符，注入到一个会被渲染的字段
+        stage = data["stages"][0]
+        data["world"]["data"]["note"] = "正常\U0001F600"  # 字体没有的字符，注入实际渲染的 world 数据
         findings = fonts.audit_fonts([NOTO, INTER], data)
         assert findings, "插入了字体没有的字符，必须报出来"
         assert "\U0001F600" in findings[0]["missing"]
-        assert scene["id"] in findings[0]["where"], "结论要指到具体的幕与字段"
+        assert "option-map.data.note" in findings[0]["where"], "结论要指到具体的全片世界数据字段"
 
     def test_spoken_segments_are_not_scanned_as_visual_text(self):
         """口播段只供配音和字幕使用，不作为画面可见文字扫描。"""
         data = self._storyboard()
-        scene = data["scenes"][0]
-        scene["narrationSegments"] = [{"id": "n1", "text": "\U0001F600\U0001F601", "beatId": "b1"}]
+        stage = data["stages"][0]
+        data["world"]["data"]["note"] = ""
+        stage["narrationSegments"] = [{"id": "n1", "text": "\U0001F600\U0001F601", "beatId": "b1"}]
+        stage["beats"][0]["meaning"] = ""
         assert fonts.audit_fonts([NOTO, INTER], data) == []

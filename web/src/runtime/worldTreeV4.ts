@@ -39,7 +39,8 @@ export function worldTreeAtFrame(
         if (value === false) hiddenNodeIds.add(node.id);
       } else if (property === 'value') {
         if (!copy.contentRef) throw new Error(`节点 ${node.id} 的 value 轨道缺少 contentRef`);
-        setPath(data, copy.contentRef, value);
+        const reference = copy.contentRef.startsWith('data.') ? copy.contentRef.slice('data.'.length) : copy.contentRef;
+        setPath(data, reference, value);
       } else {
         (copy as unknown as Record<string, unknown>)[property] = structuredClone(value);
       }

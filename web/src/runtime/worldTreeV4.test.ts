@@ -23,17 +23,21 @@ describe('v4 全片唯一 sceneTree 状态投影', () => {
     world.stateTracks.push(
       { id: 'headline-change', target: 'headline', property: 'contentRef', binding: { stageId: 'middle', phase: 'result' }, to: 'labels.next', interpolation: 'step-end' },
       { id: 'chart-growth', target: 'chart', property: 'value', binding: { stageId: 'middle', phase: 'result' }, to: [3, 9], interpolation: 'linear' },
+      { id: 'counter-growth', target: 'counter', property: 'value', binding: { stageId: 'middle', phase: 'result' }, to: 11, interpolation: 'step-end' },
       { id: 'dart-hide', target: 'dart', property: 'visible', binding: { stageId: 'middle', phase: 'change' }, to: false, interpolation: 'step-end' },
     );
+    world.data.count = 2;
+    world.sceneTree.children.push({ id: 'counter', type: 'number', contentRef: 'data.count' });
     const timeline = resolveStoryboardV4(source);
     const tracks = compileStateTracks(source, timeline);
     const before = worldTreeAtFrame(source.world, tracks, 0);
     const after = worldTreeAtFrame(source.world, tracks, 192);
     const ids = (tree: { id: string; children?: any[] }): string[] => [tree.id, ...(tree.children ?? []).flatMap(ids)];
     expect(ids(after.sceneTree)).toEqual(ids(before.sceneTree));
-    expect(ids(after.sceneTree)).toEqual(['root', 'player', 'dart', 'headline', 'chart']);
+    expect(ids(after.sceneTree)).toEqual(['root', 'player', 'dart', 'headline', 'chart', 'counter']);
     expect(after.sceneTree.children?.find((node) => node.id === 'headline')?.contentRef).toBe('labels.next');
     expect(after.data.values).toMatchObject({ chart: [3, 9] });
+    expect(after.data.count).toBe(11);
     expect(after.hiddenNodeIds.has('dart')).toBe(true);
     expect(before.hiddenNodeIds.has('dart')).toBe(false);
     expect((source.world.sceneTree as any).children[1].id).toBe('dart');

@@ -7,8 +7,8 @@
 
 画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
 从 `web/src/contract/` 构建。它把共享 React composition
-（`web/src/compositions/A2VComposition.tsx`）挂进 `@remotion/player`，
-暴露 `window.__A2V__`（**version 3**）。分镜地址由查询参数 `a2v-storyboard` 给出
+（V4 由 `web/src/compositions/A2VCompositionV4.tsx`，旧实现 `A2VComposition.tsx` 不用于 V4）挂进 `@remotion/player`，
+暴露 `window.__A2V__`（**version 4**）。分镜地址由查询参数 `a2v-storyboard` 给出
 （本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
 体检（K 系列、M 系列、组件契约探针）用 Playwright 驱动它；
 渲染（`render.py` 默认）不走它，而是直接从 composition 源码打包渲染
@@ -20,15 +20,15 @@
 
 `render.py --purpose review --frame-range <start-end> --scale 0.5` 可从 composition 的**全局时间轴**渲染片段。帧范围两端都包含；组件、镜头和 beat 继续按全片帧号求值，不得把片段起点重置为第 0 帧。带媒体时音轨按 `start / fps` 精确定位，字幕按同一偏移裁切。输出比例作用于实际像素尺寸，逻辑画布和 composition 布局不变，缩放后宽高必须为偶数。评审输出必须写入作品 `outputs/previews/`，不得充当正式成片；正式输出必须渲染完整时间轴且保持原分辨率。
 
-画面实现必须在 `window` 上暴露 `__A2V__` 对象。契约页（version 3）的字段：
+画面实现必须在 `window` 上暴露 `__A2V__` 对象。契约页（version 4）的字段：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `version` | `number` | 契约版本，当前为 `3` |
+| `version` | `number` | 契约版本，当前为 `4` |
 | `fps` | `number` | 帧率，必须与分镜 JSON 的 `fps` 一致 |
 | `width` | `number` | 画面宽度，必须与分镜 JSON 的 `width` 一致 |
 | `height` | `number` | 画面高度，必须与分镜 JSON 的 `height` 一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于分镜中所有 `durationInFrames` 之和 |
+| `durationInFrames` | `number` | 总帧数，必须等于所有 `stages[].durationInFrames` 之和或媒体派生时长 |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
 | `currentFrame()` | `() => number` | 诊断用：当前实际落在哪一帧。不属于契约要求，渲染脚本不依赖它 |
@@ -38,7 +38,7 @@
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。
-version 3 的 `ready()` 必须保证：
+version 4 的 `ready()` 必须保证：
 
 - 字体已加载完成（否则首帧会用回退字体排版，且首帧与后续帧字宽不一致）；
 - **Player 已经挂载**（契约页要求挂载之后才能 seek
@@ -133,12 +133,18 @@ composition，体检看到的就是渲染会画出的画面。
 `transition.ts` / `geometry.ts` / `timeline.ts`。分镜不写曲线，只声明受控配方与节拍绑定；
 机制、配方清单与推荐帧数见[竖屏视觉规范](visual-spec.md)。
 
+## V4 持续世界与阶段
+
+V4 composition 全片只挂载一个 world 根；`stages[]` 只改变阶段数据与全局时间上下文，不重挂载第二个 renderer。world tree 在所有帧共享同一棵受控树，code world 在所有阶段使用同一个作品模块。对象轨道、镜头、字幕与动作使用全局帧号和同一个媒体派生 `resolvedBeats`；阶段边界不会把对象状态或镜头局部归零。阶段边界不是视觉场景切换，也没有 V3 的跨幕 `transition` 映射契约。
+
+全片代码模块读取 `world`、`stage`、`objectStates`、全局 `frame`、全局 `beats`、镜头、主题和画布；它不得创建私有时间轴。探针使用稳定全局对象 ID，细节见[代码场景](code-scenes.md)。评审范围片段仍然保留原片全局帧语义。
+
 ## 场景树原语
 
-画面由共享 React composition（`web/src/compositions/A2VComposition.tsx`）按分镜逐幕
-递归解释场景树绘制：原语类型、允许属性、子节点容量与动效配方都声明在原语注册表
-`web/src/registry/registry.json`（唯一真源）；每幕的 `sceneTree` 由
-`web/src/primitives/SceneTree.tsx` 自根向下渲染，内容经 `contentRef` 引用场景 data，
+画面由 v4 共享 React composition（`web/src/compositions/A2VCompositionV4.tsx`）按全片
+`world.renderer` 选择 tree 或 code。tree world 的唯一 `world.sceneTree` 由
+`web/src/primitives/SceneTree.tsx` 递归解释绘制；原语类型、允许属性、子节点容量与动效配方都声明在原语注册表
+`web/src/registry/registry.json`（唯一真源）。内容通过 `contentRef` 引用 world/stage data，
 动效按稳定节点 id 绑定。原语目录与组合方式见
 [视觉原语目录](primitive-catalog.md)。
 
@@ -160,12 +166,12 @@ composition，体检看到的就是渲染会画出的画面。
 
 ## 语义节拍运行时
 
-场景先解析为不可变动画计划，再按当前帧求值。共享元素的几何来自受控场景树布局，不调用 `getBoundingClientRect`，不栅格化源节点；代码场景通过公开 props 接收 phase、camera 与 continuity 状态，只有显式探针提供稳定几何时才参与节点级连续性，否则如实降级为场景级转场。
+全局 beats、对象状态轨道与镜头先解析为不可变时间轴，再按当前全局帧求值。共享元素的几何来自唯一受控场景树布局，不调用 `getBoundingClientRect`，不栅格化源节点；代码 world 通过公开 props 接收全片 world、当前 stage、对象状态、`motion` 镜头上下文与全局 beats。被连续性评审引用的对象必须通过探针提供稳定身份和几何，缺失证据时保持待评审并阻断正式输出，不降级为场景转场。
 
 Windows 正式渲染固定使用单 Chromium 并发：1080×1920 画布与随仓库字体在多并发下会抬高峰值内存，长片可能被系统关闭并报 `Target closed`。限帧和正式渲染走同一设置，以稳定资源上限换取可预测交付。
 
-声明了 `narrationSegments` 的幕有一条共享时间轴：composition 从
-`resolvedBeats`（有声，由媒体清单派生）或无声等比例解析（`web/src/runtime/beats.ts`
+声明了 `narrationSegments` 的阶段共用一条全局时间轴：composition 从
+根级 `resolvedBeats`（有声，由媒体清单派生）或无声等比例解析（`web/src/runtime/timelineV4.ts`
 复刻 Python 的同一套规则）得到逐幕 `BeatTimeline`，再按当前帧算出
 
 ```ts

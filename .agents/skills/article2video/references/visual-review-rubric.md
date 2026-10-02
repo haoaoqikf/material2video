@@ -4,6 +4,8 @@
 量表存在的意义是让评审可复现：同一支片子，不同的人（或不同的视觉模型）
 看完应当得到接近的结论，而不是各自凭感觉。
 
+本量表面向 v4 单场景动态叙事。`stages[]` 是同一视觉世界中的推理阶段；文中“场景/幕”若出现在旧版示例或报告字段中，应按当前制作对象映射到阶段，不能据此推断画面发生了场景切换。
+
 前面的机检（见[设计宪法](design-constitution.md)）只保证**这不是一段废片**；
 真正决定有没有人看完的是下面这六项。
 
@@ -33,13 +35,13 @@ uv run python .agents/skills/article2video/scripts/review.py \
 `report.json` 的 `visualNarrative` 给出 V 系列：V1–V4 是机检硬判定（与
 `validate.py --strict` 同口径，失败会并入错误数与退出码），V5 是**文字主导候选清单**
 （列出候选幕与判定证据，只呈现不改退出码），V6 是你现在要写的结论。
-逐幕细看时把 V4/V5 的证据当作提示，而不是当作结论——脚本只报告结构，
+逐阶段细看时把 V4/V5 的证据当作提示，而不是当作结论——脚本只报告结构，
 「图形有没有真的承担论证」由你判断。
 
 `report.json` 的 `animationReview` 给出 A 系列：A1–A5、A7、A8 是机检硬判定
 （节拍覆盖、含义声明、状态或关系变化、字幕同步、结尾停留、单一焦点、稳定结束，
 失败同样并入错误数与退出码），A6 是你现在要写的**装饰动画**结论。
-A 系列只约束声明了 `narrationSegments` 的幕；字符串口播由 v3 校验拒绝，
+A 系列只约束声明了 `narrationSegments` 的阶段；字符串口播由 v4 校验拒绝，
 无声预览下 A4（字幕同步）也记为「跳过」——跳过不等于通过。
 
 article2video Skill 的 AI 助手负责自动填写导演计划和 `production.json` 评审。先读文章、分镜、`motion-design.md` 与 `report.json`，再亲自打开联系表、关键幕样片和全片有声评审版；必须查看实际画面，不能从分镜、脚本报告或文件存在推断画面通过。静态维度为主体尺度、连续构图重复、信息密度、视觉母题和高潮分量；动态维度为动作解释力、口播同步、节奏变化和结果停留。每维选 `pass`、`fail` 或 `pending`，已判定项的依据须定位到场景与帧号/时间。缺材料、打不开或证据不足时留为 `pending`。每条已完成评审均写 `assessment`：`reviewer: "ai"`、`model`、`session` 和材料类别摘要；静态引用 `keyframes`，关键幕动态引用 `samples`，全片动态引用 `rehearsal`。材料摘要由 `production.py` 登记，必须逐字引用对应 `materials.*.sha256`。脚本验证来源结构、材料摘要和输入指纹，但不替 AI 判断审美。
@@ -196,10 +198,10 @@ A6 缺失时状态是「待评审」而不是通过——人工结论缺失既�
 
 分镜中只要有一幕声明 `renderer.kind: "code"`，`report.json` 就会新增
 `bespokeAnimationReview`。这套评审独立于 V/A 自动量测：必须播放输出目录里的真实样片，
-逐幕为五个维度评分并写出可核对的时间或帧依据。五项**各自都至少 4/5**，不取平均，
+按全片阶段推进，为每个阶段在同一模块中的五个维度评分并写出可核对的时间或帧依据。五项**各自都至少 4/5**，不取平均，
 才通过。静帧或联系表不能证明动作含义和节奏。
 
-体检首次生成 `review.md` 时，会按分镜场景列表生成表格。把状态从「待评审」改成「启用」，
+体检首次生成 `review.md` 时，会按分镜阶段列表生成表格。把状态从「待评审」改成「启用」，
 填写每幕各项 1–5 分及播放证据：
 
 ```markdown
@@ -232,4 +234,4 @@ A6 缺失时状态是「待评审」而不是通过——人工结论缺失既�
 
 ## 口播内容门禁
 
-在实际全片有声观看后填写 `reviews.full.content` 五项：opening_question、explanation_chain、spoken_naturalness、closing_response、boundary_accuracy。每项记录 score（整数 1–5）、status 与场景/时间依据；至少 4 为 pass，否则 fail，未观看为 pending。整体状态由各项决定；assessment 引用当前 rehearsal 摘要。与静态/动态评审共享指纹、材料更新和返工规则。旧记录缺内容评审仍可读，但正式渲染阻断。
+在实际全片有声观看后填写 `reviews.full.content` 五项：opening_question、explanation_chain、spoken_naturalness、closing_response、boundary_accuracy。每项记录 score（整数 1–5）、status 与阶段/时间依据；至少 4 为 pass，否则 fail，未观看为 pending。整体状态由各项决定；assessment 引用当前 rehearsal 摘要。与静态/动态评审共享指纹、材料更新和返工规则。旧记录缺内容评审仍可读，但正式渲染阻断。

@@ -1,166 +1,73 @@
-# 代码场景（renderer.code）
+# 全片代码场景（v4）
 
-受控原语表达不了的图表面板、关系图与定制 SVG 图形，可以在**个别幕**上把画面交给
-工作级 TSX 模块。当原语能够画出静态对象、但无法表达作品所需的状态变化、对象编排或
-镜头揭示时，也可因明确的叙事需要选择代码场景。默认每幕仍走场景树；在作品动作脚本中
-记录代码场景解决的具体表达问题，不以代码场景替代可以清楚表达的简单排版。
+当受控原语无法表达持续视觉世界所需的几何、关系或状态变化时，可选择作品级 code renderer。`world.renderer` 只声明一次；模块贯穿整条视频，阶段只改变上下文，不得切换为互不相关的页面。能由原语清楚表达时优先使用 tree renderer。
 
-本文记录分镜声明、模块契约、确定性纪律与工具链行为。可运行的完整示例见
-[`examples/code-scenes/`](../../../../examples/code-scenes/storyboard.json)
-（1 幕场景树 + 4 幕代码场景）。
+本文记录模块契约、确定性纪律和探针要求。完整示例见[代码场景示例](../../../../examples/code-scenes/storyboard.json)与[飞镖试错示例](../../../../examples/darts-trial-and-error/storyboard.json)，均是一个 world、多阶段叙事。
 
-## 1. 分镜声明
+## 分镜声明
+
+以下是关键 world 字段形状（阶段口播与完整导演简报略去，不能单独作为可运行分镜）：
 
 ```json
 {
-  "id": "quarter-chart",
-  "type": "chart",
-  "durationInFrames": 60,
-  "data": { "labels": ["Q1", "Q2"], "values": [32, 48] },
-  "visualIntent": { "relation": "sequence", "focus": "chart", "composition": "full", "density": "balanced", "tone": "neutral" },
-  "renderer": { "kind": "code", "module": "progress-chart" },
-  "motions": []
+  "world": {
+    "id": "system-world",
+    "claim": "整体结果受当前瓶颈限制",
+    "metaphor": "一条持续的工序面板",
+    "objects": [{ "id": "pipeline", "role": "primary", "description": "持续工序流程" }],
+    "renderer": { "kind": "code", "module": "system-panel" },
+    "data": { "objects": { "pipeline": { "state": "rest" } } },
+    "stateTracks": [],
+    "motions": [],
+    "camera": { "shot": "medium", "composition": "center", "depth": "flat", "focus": "pipeline", "segments": [{ "id": "hold", "kind": "hold", "binding": { "stageId": "opening", "phase": "establish" }, "focus": "pipeline", "intensity": 0 }] }
+  },
+  "stages": [{ "id": "opening", "durationInFrames": 1080, "data": {}, "visualIntent": {}, "narrationSegments": [], "beats": [] }]
 }
 ```
 
-- `renderer.kind` 省略时是 `"tree"`，该幕走 `sceneTree`；
-- `renderer.kind = "code"` 时 `module` 必填：稳定模块标识，指向
-  **作品目录下** `scenes/<module>.tsx`（`scenes/` 与分镜同目录，归属规则见
-  [目录约定与输出路径](paths-and-outputs.md)）；
-- `data` 仍是画面内容的唯一真源，模块拿到的只是它的引用；
-- `sceneTree` 与代码场景互斥：声明了 `renderer.code` 的幕不需要（也不读）`sceneTree`；
-- `motions` 对代码场景不可用——动效由模块按当前帧和 `beats.plan` 自行驱动。
-- 使用代码场景时，在与分镜同目录的 `motion-design.md` 中记录本幕初态、触发、变化路径、
-  结果、停顿、主次动作和 beat 映射；不要复制一份口播作为动作脚本。
+- `world.renderer.kind` 固定为 `code`，`module` 指向作品目录下 `scenes/<module>.tsx` 的稳定模块名。
+- `world.objects` 声明全片稳定身份；每个对象须由模块探针暴露，供状态、镜头与连续性评审引用。
+- 全片只能选 tree 或 code 一种 renderer；`stages[]` 不得声明 renderer、sceneTree、camera 或 transition。
+- 对象数据、状态轨道、camera 段和 beat 时间轴统一放在 world 与阶段声明中。模块不私自累计状态，也不创建阶段专属完整页面。
+- 在作品目录的 `motion-design.md` 中说明持续场景、对象初态、各 beat 触发的变化及结果停留，不复制口播全文。
 
-## 2. 模块契约
+## 模块接口
 
-模块放在 `<文章目录>/scenes/<module>.tsx`，默认导出必须是
-`A2VCodeScene<Data>`（`React.FC<A2VCodeSceneProps<Data>>`）：
+模块默认导出 `A2VCodeScene<Data>`（`React.FC<A2VCodeSceneProps<Data>>`），唯一项目内导入别名为 `@a2v/scene`：
 
 ```tsx
 import { probe, type A2VCodeScene } from '@a2v/scene';
 
-const ProgressChart: A2VCodeScene<{ labels: string[]; values: number[] }> = ({
-  scene, frame, localFrame, progress, fps, canvas, theme, random, beats,
-}) => {
-  return <div {...probe({ node: 'canvas', schematic: true })}>{/* … */}</div>;
-};
+const World: A2VCodeScene = ({ world, stage, objectStates, frame, fps, canvas, theme, beats, motion }) => (
+  <div {...probe({ node: 'pipeline', role: 'hero', geometry: { x: 0.1, y: 0.3, width: 0.8, height: 0.4 } })}>
+    {world.claim} · {stage.id} · {objectStates.pipeline?.state} · {frame}/{fps}
+  </div>
+);
 
-export default ProgressChart;
+export default World;
 ```
 
-props 字段集合是**封闭**的：
+共享层注入全片 world、当前 stage、当前全局 `frame`、媒体派生 beats、对象状态、camera/motion 上下文、主题、画布及稳定种子 `random(node)`。`stage.progress` 是阶段内进度，`progress` 与 `localFrame` 在 v4 兼容接口中按全片语义提供。模块不能决定阶段次序、总时长、字幕边界或第二套时钟；禁止挂钟、随机非确定输入、网络、文件系统和 Node 访问。
 
-| 字段 | 含义 |
-| --- | --- |
-| `scene.data` | 本幕 `data` 字段原样传入（内容真源在分镜） |
-| `scene.id` / `scene.type` / `scene.kicker` | 幕标识与类型（只读参考） |
-| `scene.durationInFrames` | 本幕帧数（只读参考：进度已由共享层算好） |
-| `frame` | 全局帧号（整片时间轴） |
-| `localFrame` | 幕内帧号（本幕从 0 重新计数） |
-| `progress` | 幕内进度 `localFrame / (durationInFrames - 1)`，夹在 [0, 1] |
-| `fps` | 帧率 |
-| `canvas` | `{ width, height }`，与分镜输出尺寸一致 |
-| `theme` | `{ theme: 'dark' \| 'light', preset? }`，与设计令牌同源 |
-| `random` | 稳定种子随机函数（见 §4） |
-| `beats` | 语义节拍状态 `{ current, progress, completed, estimated, active, plan }`；声明分段口播的幕才有内容，其余幕为空时间轴（`current: null`、`completed: []`） |
+作品代码从同一纯函数取得状态：`beatActionProgress(plan, id, finishAt)` 按全局 beat 计算动作进度；`compilePath(points)` 预编译路径；`compileReservoir(capacity, initial, intervals)` 计算有界流量及守恒状态；`decomposeObjects(objects, progress, reverse)` 插值稳定 ID 的对象布局。昂贵的路径和流量计算在模块初始化或 `useMemo` 完成，不在每帧重建。
 
-`beats` 只读：`current` 是当前 beat id（区间外为 `null`），`progress` 是它的局部进度，
-`completed` 是已完成的 beat id 列表，`estimated` 表示这是无声估算时间轴，
-`active` 是当前 beat 的声明（没有则为 `null`），`plan` 是本幕的完整解析时间轴。
-模块**不自己解析字幕、不读音频时钟、不读挂钟**——同一帧永远得到同一份状态。
-需要画面变化跟着口播走时，用 `beats.plan` 中真实解析的帧区间驱动各动作；不要拿整幕
-`progress` 平均切分多个口播步骤。代码组件仍须保证任意帧可重复求值。
+## 探针与几何
 
-没有相邻幕、没有总帧数、没有第二套时间 API：顺序与时长只由分镜决定。
-
-## 3. 探针协议（体检必需）
-
-代码场景必须暴露最小 DOM 标记，共享契约探针才能读文本、查安全区与溢出、
-扫动效；**协议缺失在严格评审里计为错误**：
-
-- 根节点由共享包装器自动打 `data-a2v-scene` / `data-a2v-code-scene`，组件不必重复；
-- 需要体检的节点用 `probe({ node, role?, inside?, schematic? })`：
-
-| 标记 | 用途 |
-| --- | --- |
-| `node` | 稳定节点 id（幕内唯一）；文字要被内容探针读到时**必须**带 `node` |
-| `role` | 语义角色，枚举与场景树 `role` 同源：`hero` / `headline` / `title` / `body` / `label` / `caption` |
-| `inside` | 容器归属：值是**节点 id**（如 `probe({ node: 'note', inside: 'panel' })`），K8 溢出量测按它解析选择器 |
-| `schematic` | 图形/图表容器标记；K 闸门与 M 扫描对它放宽装饰性检查 |
-
-## 4. 确定性纪律
-
-可见状态必须是**分镜数据 + 当前帧号**的确定性函数。禁止：挂钟（`Date.now()`）、
-`Math.random()`、计时器、`requestAnimationFrame`、CSS `animation` / `transition`
-（值为「关闭」的写法如 `animation: false` 除外）、网络、动态 `import()` / `eval`。
-伪随机用注入的 `random`（mulberry32，按场景与节点播种，同帧同序）：
+模块通过 `probe()` 给持续对象输出稳定节点 ID、语义 role、可选容器关系、示意标记和画布归一化几何。被 `world.objects`、camera focus 或连续性审查引用的对象必须可观察；缺失探针会让评审失败，不能降级为猜测 DOM 或按换场处理。
 
 ```tsx
-const offset = random('dot') * 24; // 同一帧重复求值结果一致
+<section {...probe({ node: 'target', role: 'hero', geometry: { x: 0.55, y: 0.24, width: 0.34, height: 0.46 } })}>
+  <span {...probe({ node: 'hit-count', role: 'label', inside: 'target', schematic: true })}>3 次·示意</span>
+</section>
 ```
 
-值必须是「关闭」形态的动效声明（如把第三方库动画关掉）不违规；真正的时间动效
-（非零时长/延迟）静态扫描会报「未适配的 CSS 动画/过渡」。
+`geometry` 中的 x/y/width/height 为画布 0～1 归一化值；它用于跨阶段对象位置比较。文字需登记 node 与 role 才能进入内容和排版评审；示意数值须明确标出 `schematic`。被评审规则引用的容器应使用 `inside` 表明归属。
 
-## 5. 适配器（`@a2v/scene` 提供）
+## 验证与安全边界
 
-| API | 用途 |
-| --- | --- |
-| `freezeFrameOption(option)` | ECharts option 展开后强制 `animation: false`、时长 0；配合 `useFrameChart` 使用 |
-| `useFrameChart(build, watch)` | SVG 渲染器实例；每帧同步 `setOption`（非 lazy），卸载时 `dispose` |
-| `layoutGraph(nodes, edges, config)` | Dagre 稳定布局：输入按 id/边排序后计算，冻结结果；重复 id 或幽灵边直接抛错 |
-| `FrameIcon` | Lucide 图标包装：不透明度由 `progress` 驱动，不用 `<use href>` |
-| `frameStroke(progress, pathLength?)` | SVG 描边进度：返回 `{ dasharray, offset }` |
-| `frameStyle(progress, { opacity, rise, scale })` | 受控入场样式（透明度/位移/缩放） |
-| `probe(...)` | 探针标记（见 §3） |
-| `createSceneRandom(sceneId)` | 稳定种子随机（Host 内部用它注入 `random`） |
+- 使用 `validate.py --strict` 验证 v4 分镜字段、全局对象与阶段；缺失或不可解析的 code module 在浏览器启动前报错。
+- `review.py` 对全片抽帧并读取 `window.__A2V__` v4 探针；运行 `--check-determinism` 检查随机寻帧和同帧重绘，PSNR 至少 60 dB。
+- 代码模块通过导入白名单、静态源码规则、可达文件指纹和渲染期离线请求阻断。此边界是项目代码评审措施，不是操作系统沙箱；只执行项目内受控代码。
+- 全片动态与连续性评审应播放有声评审版，核对对象身份、状态承接、camera 和结果停留。缺证据为 pending，不能以静态评审代替。
 
-ECharts 纪律：动画必须关（适配器已强制），当前数据由 `progress` 计算；
-Dagre 纪律：布局只算一次（不随帧重排），动画只作用于可见状态；
-Lucide 纪律：静态 SVG 组件，颜色/透明度由帧号驱动。
-
-## 6. 依赖白名单与资产
-
-- **可用包**（版本由共享工程锁定，不得自行安装或导入其他 npm 包）：
-  `react` / `react-dom` / `react/jsx-runtime` / `remotion` / `@remotion/*` /
-  `echarts` / `@dagrejs/dagre` / `lucide-react` / `@a2v/scene`（项目内部 API 别名）；
-- 导入白名单之外的裸模块：构建前校验失败，报告导入者、包名与位置，且**不会**尝试安装；
-- **本地资产**用打包器导入（不要写相对 URL 字符串——那会按页面地址解析成 404）：
-  ```tsx
-  import markUrl from '../assets/mark.png';
-  // <img src={markUrl} />
-  ```
-  资产文件（`.png` / `.svg` 等）放在作品的 `assets/` 下；
-- **Tailwind 类名纪律**：`className` 里的类名必须是完整字符串；按状态切换时写进
-  映射对象（构建期静态可发现）。运行时拼接的类名不保证生成（构建不会报错，
-  但样式缺失）。作品 `scenes/` 与 `assets/` 会自动加入 Tailwind 内容扫描。
-
-## 7. 安全模型（如实声明）
-
-静态安全门（导入白名单、动态求值、网络 API、Node/进程/文件系统访问、外部 URL）
-+ 渲染期离线隔离（Playwright 路由层阻断所有非本地请求，命中即计为错误）+
-确定性扫描共同构成**审查边界**。它不是操作系统级沙箱：代码场景模块是**作者自己
-编写并入库审查**的代码，不要执行来路不明的模块。断网渲染（离线环境）因此成立。
-
-## 8. 工具链行为
-
-- **静态清单**：构建/预览/渲染前，`web/.gen/active-scenes.ts` 由当前作品重建
-  （静态 import + 模块映射），切换作品不残留上一个作品的模块；
-- **构建输入指纹**：当前作品可达 TS/TSX/CSS/SVG、本地资产、`.gen/scene-manifest.json`
-  与 `package.json`/锁文件全部进入成片溯源；改了任一可达输入，旧成片判「落后」并指名文件；
-- **评审**：代码场景与场景树走同一契约页、同一 C/K/M 量测；加 `--check-determinism`
-  对每幕收尾帧做同帧重复截图与随机寻帧验收（PSNR ≥ 60 dB），失败计为错误；
-- **模块缺失或导出错误**：校验在启动浏览器或打包前失败并指出场景字段与目标模块。
-
-## 对象动画工具
-
-`@a2v/scene` 导出四类纯函数：
-
-- `beatActionProgress(plan, id, localFrame, finishAt=1)`：真实 beat 区间的动作进度；finishAt 为 (0,1]，区间前 0、完成后 1，缺失 beat 报错。
-- `compilePath(points)`：固定 SVG 路径的预采样点数组，返回 `(progress, phase=0)=>{x,y}`。按弧长二分定位；phase 为 0 时钳制端点，非零相位循环。曲线须预采样为折线，精度由点密度决定。
-- `compileReservoir(capacity, initial, intervals)`：intervals 为 `{duration,inflow,outflow}` 分段常流量，返回时间查询函数及 level/overflow/drained/input；outflow 为最大处理能力，空箱不凭空出流。预计算积分，查询 O(log n)，保证容量与守恒。
-- `decomposeObjects(objects, progress, reverse=false)`：固定 `{id,from:{x,y},to:{x,y}}` 数组插值；reverse 用于复原，拒绝重复 ID。
-
-编译工具在模块初始化或 useMemo 中执行，不逐帧重建路径和积分。内容参数放分镜 data；这些工具不创建时钟、探针或场景树原语。完整示例见 [缓冲区](../../../../examples/buffer-smoothing/storyboard.json)。
+命令顺序、渲染门禁和错误处理以 [制作 Skill](../SKILL.md)、[分镜脚本结构](storyboard-schema.md)、[视觉评审量表](visual-review-rubric.md) 和[渲染契约](render-contract.md)为准。
