@@ -63,6 +63,8 @@ AI 不直接生成视频，因此画面可控、可改、可重渲染。
 10. **作品定制动画**：默认场景树；静态原语能够绘制对象但不能表达必要的状态变化、对象编排或镜头揭示时，可以基于明确的叙事理由使用作品级代码场景。先按 [文章生成分镜](references/article-to-storyboard.md) 编写逐幕动作脚本；代码场景必须使用解析后的 `beats.plan`、提供探针并通过[定制动画动态评审](references/visual-review-rubric.md)。存在代码场景时，缺失或未达标的动态评审会阻断正式渲染。
 11. **关键幕先行与 AI 制作记录**：按[文章生成分镜](references/article-to-storyboard.md)先验证开场、核心论证和高潮，再铺开全片；AI 助手自动读取文章、分镜和 `motion-design.md` 填写导演计划，生成联系表、关键幕样片与全片有声评审版后，必须查看实际画面，逐项填写静态/动态评审、可观察证据和返工项。完成结论写入 `production.json` 时绑定评审来源及材料 SHA-256；缺材料或不能查看画面就保持待评审。分镜、媒体、渲染资产或引用材料变化会使相关评审失效。正式成片需要关键幕和全片静态/有声 AI 评审通过，且没有未解决必改项。详见[视觉评审量表](references/visual-review-rubric.md)。完整命令流程见[制作流程](references/production-workflow.md)。
 
+全片铺开前先静音播放开场、核心论证和高潮的关键幕样片；相同构图可以延续，但若只有字幕/标签变化、没有可见的论证性状态推进，必须返工。全片“节奏”单项至少 4/5，并需有声预演时间码或明确阶段证据；缺分、低分或缺证据均不得正式渲染。
+
 ## 目录职责
 
 | 路径 | 职责 |
@@ -270,6 +272,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 机检只保证「这不是废片」；「值不值得看完」按
 [视觉评审量表](references/visual-review-rubric.md) 打分，六项 60 分制、≥ 40 才发布。
 评分标准见[设计宪法](references/design-constitution.md)（哪条能机检、哪条只能人看）。
+全片节奏必须单项达到 4/5 并引用有声预演时间/阶段证据；缺分或低分会阻断正式渲染。
 `report.json` 的 `visualNarrative` 给出 V 系列、`animationReview` 给出 A 系列；
 评审结论写进同级的 `review.md`，其中「图形论证」评分与 `## 候选裁决` 小节会被下一次
 `review.py` 读成 V6 结论，「动效服务」评分与 `## A6 候选裁决` 小节会被读成 A6 结论。
@@ -378,6 +381,7 @@ uv run python .agents/skills/article2video/scripts/render.py \
 | `材料已缺失或摘要已变化`（keyframes） | 静态联系表被按另一条时间轴重画过：`production.py keyframes` 与不带 `--media` 的体检写 `contact-sheet.png`（分镜声明时间轴，登记的就是它），带 `--media` 的体检写 `contact-sheet-media.png`；重新执行 `production.py keyframes` 恢复登记材料 |
 | V6 显示「待评审」或 `publishable=否` | `videos/<slug>/outputs/inspect/review.md` 还没有人工结论，或 V5 候选未裁决、评分低于 4/5：按[评审量表](references/visual-review-rubric.md)填写评分与 `## 候选裁决` |
 | A6 显示「待评审」或 `publishable=否` | 同一份 `review.md` 缺「动效服务」评分，或 `## A6 候选裁决` 没逐条裁决 `animationReview.a6.candidates` 列出的装饰配方：按[评审量表](references/visual-review-rubric.md)填写 |
+| 正式渲染提示「全片节奏评审待完成/未通过」 | `review.md` 的节奏评分缺失、低于 4/5，或没有有声预演时间码/明确阶段依据；返工后更新评审和材料再试 |
 | A 系列报「没有任何 beat 改变对象状态或关系」 | 这一幕的 beat 全是 `establish`/`highlight`：换成 `connect`/`accumulate`/`transform` 这类真正改变状态或关系的动作，或承认它是文字幕并改 `visualIntent.mode` |
 | A 系列报「字幕 cue 与口播段切法不一致」 | 某个口播段切在一句话中间，字幕 cue 跨过了段边界：把段边界挪到句子标点处 |
 | A 系列报「最后一条 beat 距幕尾只有 N 帧」 | 幕尾稳定阅读时间不足 12 帧：加长 `durationInFrames`，或把最后一段口播缩短 |

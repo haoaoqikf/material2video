@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-03
+goal: 提前发现跨阶段变化不足，并阻止全片节奏低于4/5的作品正式渲染

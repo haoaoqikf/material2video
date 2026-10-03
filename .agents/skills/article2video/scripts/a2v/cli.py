@@ -19,6 +19,7 @@ from typing import Any
 from . import contract_page
 from . import fonts as fonts_mod
 from . import paths as paths_mod
+from . import rhythm_review
 from . import storyboard_v4
 from . import visual_narrative as vn
 from .errors import A2VError
@@ -291,6 +292,16 @@ def _aesthetic_render_gate(storyboard_path: str | Path, model: V4Storyboard, art
     review = review_path.read_text(encoding="utf-8")
     if "- 是否值得发布：通过" not in review:
         return "review.md 尚未填写“是否值得发布：通过”"
+    rhythm = rhythm_review.review(review)
+    if rhythm["status"] == "pending":
+        return (
+            f"全片节奏评审待完成：{rhythm['detail']}；请填写“节奏”评分及有声预演时间/阶段证据，"
+            f"至少 {rhythm_review.MIN_SCORE}/5 才能正式渲染"
+        )
+    if rhythm["status"] == "fail":
+        return (
+            f"全片节奏评审未通过：{rhythm['detail']}；请记录具体返工项、修改后重新生成材料并复评"
+        )
     return None
 
 
@@ -945,8 +956,11 @@ def _ensure_aesthetic_review_template(out_dir: Path, scene_ids: list[str] | None
 | 主次层级 |  |  |
 | 跨幕变化 |  |  |
 | 动效服务 |  |  |
+| 节奏 |  |  |
 | 视觉记忆点 |  |  |
 | 结尾余韵 |  |  |
+
+<!-- 节奏至少 4/5 才能正式渲染；依据须含有声预演的时间码或明确阶段。 -->
 
 ## 候选裁决
 
@@ -1141,6 +1155,12 @@ def _review_summary(payload: dict, out_dir: Path) -> str:
     lines.extend(_visual_narrative_lines(payload.get("visualNarrative")))
 
     lines.extend(_animation_review_lines(payload.get("animationReview")))
+
+    review_path = out_dir / "review.md"
+    rhythm = rhythm_review.review(review_path.read_text(encoding="utf-8")) if review_path.is_file() else None
+    if rhythm is not None:
+        score = f"{rhythm['score']}/5" if isinstance(rhythm["score"], int) else "未填写"
+        lines.append(f"全片节奏评审：{rhythm['status']}（{score}）——{rhythm['detail']}")
 
     dynamic = payload.get("bespokeAnimationReview") or {}
     if dynamic.get("required"):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 from a2v import cli
@@ -115,6 +116,32 @@ class TestValidateCommand:
         result = cli.main_render(["--storyboard", "storyboard.json", "--purpose", "review",
                                   "--out", str(tmp_path / "final.mp4")])
         assert result != 0
+
+    def test_review_render_remains_available_when_final_aesthetic_gate_would_fail(self, tmp_path, monkeypatch, capsys):
+        cli._force_utf8_output = lambda: None
+        model = SimpleNamespace(total_frames=90)
+        article = SimpleNamespace(preview_dir=tmp_path / "previews", workspace_root=tmp_path)
+        article.preview_dir.mkdir()
+        storyboard = tmp_path / "storyboard.json"
+        storyboard.write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(cli, "_validated_storyboard", lambda *_args, **_kwargs: model)
+        monkeypatch.setattr(cli, "_article_for", lambda *_args, **_kwargs: article)
+        monkeypatch.setattr(cli, "_storyboard_url", lambda *_args, **_kwargs: "http://localhost/storyboard")
+        monkeypatch.setattr(cli, "_resolve_render_output", lambda args, *_args: Path(args.out))
+
+        def reject_final_gate(*_args, **_kwargs):
+            raise AssertionError("评审版不应执行正式渲染门禁")
+
+        monkeypatch.setattr(cli, "_aesthetic_render_gate", reject_final_gate)
+        monkeypatch.setattr(cli, "render_with_remotion", lambda **_kwargs: SimpleNamespace(summary=lambda: "review output"))
+
+        result = cli.main_render([
+            "--storyboard", str(storyboard), "--purpose", "review",
+            "--out", str(article.preview_dir / "sample.mp4"), "--frame-range", "0-89",
+        ])
+
+        assert result == 0
+        assert "review output" in capsys.readouterr().out
 
     def test_json_output_lists_errors(self, tmp_path, valid_script_v4, capsys):
         valid_script_v4["stages"][0]["durationInFrames"] = 0

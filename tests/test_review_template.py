@@ -13,6 +13,7 @@ import re
 from a2v import animation_review as ar
 from a2v import bespoke_review as br
 from a2v import cli
+from a2v import rhythm_review
 from a2v import visual_narrative as vn
 
 SCENES = ["opening", "smooth"]
@@ -22,6 +23,7 @@ def _fill_scores(text: str, *, graphics: int, motion: int) -> str:
     """像评审人那样把模板里的分数格填上。"""
     text = re.sub(r"^(\|\s*图形论证\s*\|)\s*\|", rf"\1 {graphics} |", text, flags=re.MULTILINE)
     text = re.sub(r"^(\|\s*动效服务\s*\|)\s*\|", rf"\1 {motion} |", text, flags=re.MULTILINE)
+    text = re.sub(r"^(\|\s*节奏\s*\|)\s*\|", r"\1 4 | 00:12 核心阶段明显加速，00:34 结尾停留 |", text, flags=re.MULTILINE)
     return text.replace("- 是否值得发布：待评审", "- 是否值得发布：通过")
 
 
@@ -36,7 +38,7 @@ def _fill_bespoke(text: str, scores: dict[str, int]) -> str:
 def test_模板标签与解析器一致(tmp_path):
     cli._ensure_aesthetic_review_template(tmp_path, SCENES)
     text = (tmp_path / "review.md").read_text(encoding="utf-8")
-    for label in ("图形论证", "动效服务"):
+    for label in ("图形论证", "动效服务", "节奏"):
         assert re.search(rf"^\|\s*{label}\s*\|", text, re.MULTILINE), f"模板缺少「{label}」行"
 
 
@@ -56,6 +58,7 @@ def test_照模板填完就能发布(tmp_path):
 
     a6 = ar.review_a6(path, {"scenes": []})
     assert a6["score"] == 4 and a6["status"] == "通过" and a6["publishable"] is True
+    assert rhythm_review.review(path.read_text(encoding="utf-8"))["status"] == "pass"
 
     bespoke = br.review(
         path,
