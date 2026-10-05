@@ -5,6 +5,14 @@
 本文记录 article2video 的方向与阶段路线。**已实现的能力以 README 的当前状态为准**，
 本文中标注「规划中」的部分不代表已有实现。
 
+## 金融时间序列视频专题（规范阶段，尚未实现）
+
+规划新增与文章流程并列的数据视频专题：用户指定公司或指数及起止年份，由 Codex 等 AI 编程工具搜索公开免费日线数据与重大事件，编排 1920×1080、30 fps 的横屏单标的折线动画，全片无音轨。首期覆盖 A 股、港股、美股及对应指数，时长与速度由 AI 按跨度和事件阅读需求决定。
+
+本轮仅沉淀规范，现有 v4、文章字数/时长约束及有声评审保持不变；专题入口、数据校验与无声门禁尚未实现。后续先补齐接口和渲染接入设计，再实施、验证与归档，不将本轮规范提交视作功能落地。
+
+目标行为见 [OpenSpec 专题规格](../openspec/changes/add-financial-timeseries-video/specs/financial-timeseries-video/spec.md)，制作规则见[专题参考](../.agents/skills/article2video/references/financial-timeseries-video.md)，实施步骤见[任务清单](../openspec/changes/add-financial-timeseries-video/tasks.md)。真实行情、事件资料及产物属于作品内容，不入库；现有三个示例不增删替换。
+
 ## 使用场景与表达原则
 
 面向个人 IP 的观点型抖音内容，输入一篇文章，提炼一个核心观点，转为竖屏单场景动态叙事短视频。
