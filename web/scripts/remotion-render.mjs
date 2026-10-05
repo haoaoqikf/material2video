@@ -13,7 +13,7 @@
  * 用法（bundle 由 `remotion bundle` 先构建好，因此这里不需要打包配置）：
  *
  * ```
- * node scripts/remotion-render.mjs --bundle <目录> --props <分镜> [--out <mp4>]
+ * node scripts/remotion-render.mjs --bundle <目录> --props <分镜> [--composition-id <id>] [--out <mp4>]
  *   [--crf 18] [--preset medium] [--frames 0-29] [--metadata-only]
  * ```
  */
@@ -76,10 +76,11 @@ if (!args.metadataOnly && !args.out) {
 }
 
 const inputProps = JSON.parse(fs.readFileSync(args.props, 'utf8'));
+const compositionId = args['composition-id'] ?? COMPOSITION_ID;
 
 const composition = await selectComposition({
   serveUrl: args.bundle,
-  id: COMPOSITION_ID,
+  id: compositionId,
   inputProps,
   logLevel: 'error',
 });

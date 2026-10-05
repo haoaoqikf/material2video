@@ -1,8 +1,8 @@
 # 金融时间序列视频专题
 
-> **规范阶段，尚未实现。** 本文是待实现专题的制作参考，不是当前可执行入口。现有文章 Skill、v4 schema、校验器和正式渲染门禁保持不变；以下材料当前不渲染，不能直接交给现有脚本制作。
+本文定义金融时间序列视频专题的制作规则。专题入口独立于文章字数、口播和有声评审流程。
 
-待实现行为以 [OpenSpec 专题规格](../../../../openspec/changes/add-financial-timeseries-video/specs/financial-timeseries-video/spec.md) 为准，架构选择见 [设计](../../../../openspec/changes/add-financial-timeseries-video/design.md)，未来路线见 [项目规划](../../../../docs/PROJECT_PLAN.md#金融时间序列视频专题规范阶段尚未实现)。
+专题行为以 [OpenSpec 专题规格](../../../../openspec/specs/financial-timeseries-video/spec.md) 为准。
 
 ## 1. 目标与请求
 
@@ -10,7 +10,7 @@
 
 请求示意：“展示某家公司 2010 年到 2024 年的股价变化，带重大事件，先不要声音。”这不是对真实公司的行情查询。
 
-必填标的名称与起止年份；可补充证券代码、市场、视频时长。年份默认展开为完整自然年；标的必须唯一识别，记录名称、代码、市场、币种或点位单位、上市或指数起始日期。公司多地上市、指数名称歧义或年份倒置时先澄清，不自行猜测。
+必填标的名称与起止年份；可补充证券代码、市场、视频时长。年份默认展开为完整自然年；标的必须唯一识别，记录名称、代码、市场、币种或点位单位、上市或指数起始日期。公司多地上市、指数名称歧义或年份倒置时先澄清，不自行猜测。AI 搜索用于制作准备；项目代码不联网抓取行情。
 
 ## 2. 数据搜索与核验
 
@@ -23,7 +23,7 @@ AI 在制作准备阶段搜索公开免费来源，不依赖账号或付费密�
 5. 校验日期排序、重复冲突、有效数值与交易日覆盖。周末、节假日和已核实停牌不产生虚构报价；应有交易数据异常缺失时阻断数据验收，不补零、插值或用折线跨越掩盖。
 6. 上市前、指数起始前、未来日期或来源覆盖不足，披露请求范围与实际范围；需要缩短时先获得用户确认。来源全部不可用时说明无法获取，不替换标的。
 
-保存原始下载或响应、标准化价格序列和来源清单。来源至少记录链接、获取时间、覆盖范围、调整定义；推导数据还需记录依据。图内显示币种或点位单位、口径与来源摘要，详细链接留在作品材料中。渲染只读已固定的本地文件，不联网。
+保存原始下载或响应文件、标准化价格序列和来源清单。来源至少记录链接、获取时间、覆盖范围、调整定义；原始行情快照记录相对路径、来源链接和 SHA-256，推导数据还需记录依据。预期交易日清单须注明来源，验证器要求它与价格点日期逐项相同。图内显示币种或点位单位、口径与来源摘要，详细链接留在作品材料中。渲染只读已固定的本地文件，不联网。
 
 ## 3. 事件自动筛选
 
@@ -46,22 +46,35 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 - 开头交代标的、范围、口径；事件到达时出现标记和说明，说明在独立区域顺序展开，避免覆盖曲线或彼此重叠。结尾完整总览至少停留三秒，即九十帧。
 - 不包含配音、音乐、音效或静音音轨；最终 MP4 必须完全没有音频流。
 
-## 5. 作品材料建议
+## 5. 作品材料与命令
 
-下面定义文档层最小材料，不是稳定程序接口；具体 schema、命令及 v4 接入方式由后续实现设计确定。这些文件**当前不渲染**，也不替代 `storyboard.json`。
+每个作品目录固定包含以下四份材料。字段契约由 `.agents/skills/article2video/scripts/a2v/financial.py` 校验；这些材料不使用 `storyboard.json`，也不交给文章校验入口。
 
 | 材料 | 建议文件 | 最小信息 |
 | --- | --- | --- |
-| 需求记录 | `request.json` | 原始请求、唯一标的、请求/实际日期范围、口径及确认记录 |
-| 价格序列 | `prices.json` | 日期、收盘数值；附带单位、调整基准、交易日覆盖核验与来源 |
-| 事件清单 | `events.json` | 实际日期、事实标题、来源；附带候选及筛选理由 |
-| 动画编排 | `animation-plan.json` | 总时长、fps、固定坐标范围、日期到帧映射、事件停留及编排理由 |
+| 需求记录 | `request.json` | 原始请求、唯一标的、请求/实际日期范围及缩短确认 |
+| 价格序列 | `prices.json` | 预期交易日、逐日收盘值、口径、来源和原始文件 SHA-256 |
+| 事件清单 | `events.json` | 候选、入选、排除理由及日期依据 |
+| 动画编排 | `animation-plan.json` | 时长、固定轴域、连续半开帧段、日期映射和事件停留 |
 
-原始下载和完整来源记录作为附属材料；静音预演与验收记录放在作品产物目录。实际作品使用已有忽略目录 `videos/<slug>/`，或外部内容根中的作品目录；四类材料、真实行情、事件资料及媒体均不入库。方法与规范入库，不使用 `git add -f` 绕过忽略，不增删替换现有三个示例。
+原始数据快照保存在作品目录中；静音预演与验收记录放在 `outputs/`。实际作品使用已有忽略目录 `videos/<slug>/`，或外部内容根中的作品目录；材料、行情、事件资料及媒体均不入库。方法与规范入库，不使用 `git add -f` 绕过忽略，不增删替换现有三个示例。
+
+```powershell
+uv run python .agents/skills/article2video/scripts/financial_video.py init `
+  --out-dir videos/<slug> --kind stock --name <公司名> --code <证券代码> `
+  --market <市场> --unit USD --listing-date YYYY-MM-DD `
+  --start-date YYYY-01-01 --end-date YYYY-12-31
+
+uv run python .agents/skills/article2video/scripts/financial_video.py validate --project-dir videos/<slug>
+uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug> --limit-frames 120
+uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug>
+```
+
+`init` 只写空模板，不替用户或 AI 搜索资料；空数组、未定时长及坐标占位不能渲染。指数用 `--kind index` 并提供点位单位；AI 还须填写 `prices.json.indexType`。用户自然语言提出标的后，AI 必须搜索、核实来源并填材料；校验失败前不得渲染。短预演不代表终稿验收通过。
 
 ### 合成结构示例
 
-以下数值、标的和事件全部为合成资料，`example.invalid` 是示例地址，不能作为行情或事件证据。示例只帮助理解四类材料，不能输入当前运行时。
+以下数值、标的和事件全部为合成资料，`example.invalid` 是示例地址，不能作为行情或事件证据。字段片段帮助理解材料，原始快照须另存文件，四份完整材料才能通过离线校验。
 
 需求记录：
 
@@ -72,13 +85,12 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
     "name": "合成公司",
     "code": "SYNTHETIC",
     "market": "synthetic",
-    "currency": "USD",
+    "unit": "USD",
     "listingDate": "2010-01-01"
   },
   "requestedRange": ["2020-01-01", "2020-12-31"],
-  "displayRange": ["2020-01-01", "2020-12-31"],
-  "priceBasis": "split-only",
-  "confirmations": []
+  "displayRange": ["2020-01-01", "2020-01-03"],
+  "confirmations": ["合成示例中确认缩短展示范围"]
 }
 ```
 
@@ -87,7 +99,12 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 ```json
 {
   "unit": "USD",
-  "adjustmentBaseDate": "2020-12-31",
+  "priceBasis": "split-adjusted",
+  "adjustmentBaseDate": "2020-01-03",
+  "adjustmentDefinition": "仅拆合股调整，不计分红再投资",
+  "splitAdjustments": [],
+  "expectedTradingDates": ["2020-01-02", "2020-01-03"],
+  "expectedTradingDatesSource": ["https://example.invalid/calendar"],
   "points": [
     {"date": "2020-01-02", "close": 100},
     {"date": "2020-01-03", "close": 101}
@@ -97,7 +114,8 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
     "fetchedAt": "2026-10-05T00:00:00Z",
     "coverage": ["2020-01-01", "2020-12-31"],
     "adjustmentDefinition": "仅拆合股调整；示意期间无拆合股"
-  }]
+  }],
+  "rawSnapshots": [{"path": "raw-prices.csv", "sha256": "由原始快照计算的 64 位 SHA-256", "sourceUrl": "https://example.invalid/prices"}]
 }
 ```
 
@@ -105,11 +123,17 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 
 ```json
 {
-  "selected": [{
+  "candidates": [{
     "id": "event-1",
-    "date": "2020-01-04",
+    "date": "2020-01-02",
+    "dateBasis": "announced",
     "title": "合成公司发布产品公告",
     "sources": ["https://example.invalid/announcement"],
+    "reason": "与标的直接相关；合成事实标注示意"
+  }],
+  "selected": [{
+    "id": "event-1", "date": "2020-01-02", "dateBasis": "announced",
+    "title": "合成公司发布产品公告", "sources": ["https://example.invalid/announcement"],
     "reason": "与标的直接相关；合成事实标注示意"
   }],
   "excluded": []
@@ -120,23 +144,21 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 
 ```json
 {
-  "durationSeconds": 60,
+  "durationSeconds": 6,
   "fps": 30,
   "canvas": {"width": 1920, "height": 1080},
-  "axis": {"dateRange": ["2020-01-01", "2020-12-31"], "valueRange": [90, 120]},
+  "axis": {"dateRange": ["2020-01-01", "2020-01-03"], "valueRange": [90, 120]},
   "segments": [
-    {"frames": [0, 90], "dates": ["2020-01-01", "2020-01-01"], "kind": "opening"},
-    {"frames": [90, 180], "dates": ["2020-01-01", "2020-01-04"], "kind": "advance"},
-    {"frames": [180, 300], "dates": ["2020-01-04", "2020-01-04"], "kind": "hold"},
-    {"frames": [300, 1710], "dates": ["2020-01-04", "2020-12-31"], "kind": "advance"},
-    {"frames": [1710, 1800], "dates": ["2020-12-31", "2020-12-31"], "kind": "ending"}
+    {"frames": [0, 15], "dates": ["2020-01-01", "2020-01-01"], "kind": "opening"},
+    {"frames": [15, 90], "dates": ["2020-01-01", "2020-01-03"], "kind": "advance"},
+    {"frames": [90, 180], "dates": ["2020-01-03", "2020-01-03"], "kind": "ending"}
   ],
-  "eventDisplays": [{"eventId": "event-1", "frames": [180, 300]}],
-  "rationale": "开头交代口径；事件停留4秒；年末总览3秒；其余区间按固定映射推进"
+  "eventDisplays": [{"eventId": "event-1", "frames": [53, 70]}],
+  "rationale": "合成夹具；开头0.5秒、事件卡约0.57秒、结尾总览3秒"
 }
 ```
 
-推进段内日期位置按段端点线性映射；后续接口设计需统一帧边界及事件日期到达的取整规则。示例中事件在到达 1 月 4 日的第 180 帧才展示，不提前出现。
+推进段按首尾帧映射日期，中间日历日向下取整；事件卡开始帧对应事件日期或更晚日期。半开帧区间要求首段始于 0、连续覆盖总帧数；结尾停留至少 90 帧。
 
 ## 6. 制作与验收
 
@@ -150,4 +172,4 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 
 媒体验收检查 MP4 的分辨率、fps、时长和完整终帧，确认音频流数量为零。各项结论留在作品验收记录中；数据或视觉未通过时先修复，不正式导出。
 
-专题将使用独立数据和无声验收，不套用文章字数、口播及有声评审。**此流程尚未实现，当前文章入口没有获得豁免，也没有可供执行的专题 CLI 命令。** 后续实施须补齐接口、校验器、无声门禁及渲染接入，再验证当前文章能力无回归。
+离线验证负责材料完整性与时间映射，不负责验证网络事件来源是否真实；AI 必须阅读来源并记录事件日期依据。用户仍须播放静音预演，检查事件节奏、文字重叠和可读性。

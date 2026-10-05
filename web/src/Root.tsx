@@ -7,6 +7,7 @@ import { A2VCompositionV4, type A2VCompositionV4Props } from './compositions/A2V
 import { EMPTY_STORYBOARD } from './schema/storyboard';
 import { totalFrames } from './runtime/timeline';
 import { resolveStoryboardV4 } from './runtime/timelineV4';
+import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import type { StoryboardV4 } from './schema/storyboardV4';
 import './styles/index.css';
 
@@ -40,15 +41,32 @@ const calculateA2V: CalculateMetadataFunction<ActiveProps> = ({ props }) => {
 
 export const RemotionRoot: FC = () => {
   return (
-    <Composition
-      id="A2V"
-      component={ActiveComposition}
-      durationInFrames={totalFrames(EMPTY_STORYBOARD)}
-      fps={EMPTY_STORYBOARD.fps}
-      width={EMPTY_STORYBOARD.width}
-      height={EMPTY_STORYBOARD.height}
-      defaultProps={EMPTY_STORYBOARD}
-      calculateMetadata={calculateA2V}
-    />
+    <>
+      <Composition
+        id="A2V"
+        component={ActiveComposition}
+        durationInFrames={totalFrames(EMPTY_STORYBOARD)}
+        fps={EMPTY_STORYBOARD.fps}
+        width={EMPTY_STORYBOARD.width}
+        height={EMPTY_STORYBOARD.height}
+        defaultProps={EMPTY_STORYBOARD}
+        calculateMetadata={calculateA2V}
+      />
+      <Composition
+        id="FinancialTimeSeries"
+        component={FinancialTimeSeries}
+        durationInFrames={180}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{} as FinancialTimeSeriesProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width: props.width,
+          height: props.height,
+        })}
+      />
+    </>
   );
 };

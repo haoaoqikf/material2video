@@ -265,6 +265,7 @@ def metadata(
     web_dir: Path,
     bundle_dir: Path,
     props: Path,
+    composition_id: str = COMPOSITION_ID,
     timeout_s: float = _METADATA_TIMEOUT_S,
 ) -> CompositionMetadata:
     """读出 composition 由分镜 props 推导出的画面参数。"""
@@ -277,6 +278,8 @@ def metadata(
             str(bundle_dir),
             "--props",
             str(props),
+            "--composition-id",
+            composition_id,
             "--metadata-only",
         ],
         cwd=web_dir,
@@ -290,9 +293,9 @@ def metadata(
             f"渲染脚本没有报出 composition 元数据（应有一行以 {METADATA_PREFIX} 开头）。"
             f"输出：\n" + "\n".join(lines[-10:])
         )
-    if payload.get("id") != COMPOSITION_ID:
+    if payload.get("id") != composition_id:
         raise RemotionError(
-            f"渲染脚本选中的 composition 是 {payload.get('id')!r}，期望 {COMPOSITION_ID!r}"
+            f"渲染脚本选中的 composition 是 {payload.get('id')!r}，期望 {composition_id!r}"
         )
     return CompositionMetadata(
         fps=int(payload["fps"]),
@@ -314,6 +317,7 @@ def render_frames(
     timeout_s: float,
     frame_start: int = 0,
     scale: float = 1,
+    composition_id: str = COMPOSITION_ID,
 ) -> None:
     """把 composition 渲染并编码成无声 MP4。
 
@@ -340,6 +344,8 @@ def render_frames(
         str(bundle_dir),
         "--props",
         str(props),
+        "--composition-id",
+        composition_id,
         "--out",
         str(out),
         "--crf",

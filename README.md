@@ -18,11 +18,11 @@ v4 使用一个全片 `world`、稳定对象身份、全局状态/镜头/beat �
 
 单场景原则、输入审查、时长门禁和连续性评审已落地；各示例的改编与验收记录见 `examples/<slug>/`。历史多幕作品不因阶段数多而自动满足单场景方向，须以当前分镜和评审记录判断。后续路线见[项目规划](docs/PROJECT_PLAN.md)。
 
-## 专题规范
+## 专题能力
 
-**金融时间序列视频：规范阶段，尚未实现。** 规划由 Codex 等 AI 编程工具按公司或指数及年份范围搜索公开免费数据与事件，制作横屏单标的、带事件标注的无声折线动画。该专题将使用独立的数据输入与无声验收流程，当前文章入口和门禁不变。
+**金融时间序列视频：首版已实现。** AI 编程工具可按公司或指数及年份范围搜索公开免费数据与事件，整理四类本地材料后，通过独立命令校验并渲染 1920×1080、30 fps、无音轨的事件折线视频。行情搜索和来源核实由 AI 在准备阶段完成；渲染器只读取本地固定材料，不联网抓取。
 
-入口见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)、[OpenSpec 提案](openspec/changes/add-financial-timeseries-video/proposal.md)和[后续任务](openspec/changes/add-financial-timeseries-video/tasks.md)。本轮仅沉淀规范，没有新增数据获取或视频生成代码。
+使用方式、材料格式和验收规则见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)；可用命令为 `financial_video.py init|validate|render`。该专题不经过文章字数、口播和有声评审门禁，文章入口保持原行为。
 
 ## 快速开始
 

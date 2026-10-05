@@ -5,13 +5,13 @@
 本文记录 article2video 的方向与阶段路线。**已实现的能力以 README 的当前状态为准**，
 本文中标注「规划中」的部分不代表已有实现。
 
-## 金融时间序列视频专题（规范阶段，尚未实现）
+## 金融时间序列视频专题（首版已实现）
 
-规划新增与文章流程并列的数据视频专题：用户指定公司或指数及起止年份，由 Codex 等 AI 编程工具搜索公开免费日线数据与重大事件，编排 1920×1080、30 fps 的横屏单标的折线动画，全片无音轨。首期覆盖 A 股、港股、美股及对应指数，时长与速度由 AI 按跨度和事件阅读需求决定。
+本专题与文章流程并列：用户指定公司或指数及起止年份，由 Codex 等 AI 编程工具搜索公开免费日线数据与重大事件，编排 1920×1080、30 fps 的横屏单标的折线动画，全片无音轨。首期覆盖 A 股、港股、美股及对应指数，时长与速度由 AI 按跨度和事件阅读需求决定。
 
-本轮仅沉淀规范，现有 v4、文章字数/时长约束及有声评审保持不变；专题入口、数据校验与无声门禁尚未实现。后续先补齐接口和渲染接入设计，再实施、验证与归档，不将本轮规范提交视作功能落地。
+首版已提供独立的 `financial_video.py` 初始化、材料校验和离线渲染入口，并注册横屏 `FinancialTimeSeries` composition；价格口径、来源摘要、交易日覆盖、事件日期和动画映射由独立校验器验收，成片检查无音轨。AI 仍负责联网搜索与事件核实，项目不内置行情服务。文章 v4、字数/时长约束及有声评审保持不变。
 
-目标行为见 [OpenSpec 专题规格](../openspec/changes/add-financial-timeseries-video/specs/financial-timeseries-video/spec.md)，制作规则见[专题参考](../.agents/skills/article2video/references/financial-timeseries-video.md)，实施步骤见[任务清单](../openspec/changes/add-financial-timeseries-video/tasks.md)。真实行情、事件资料及产物属于作品内容，不入库；现有三个示例不增删替换。
+功能契约与制作规则见[专题参考](../.agents/skills/article2video/references/financial-timeseries-video.md)。真实行情、事件资料及产物属于作品内容，不入库；现有三个示例不增删替换。
 
 ## 使用场景与表达原则
 
