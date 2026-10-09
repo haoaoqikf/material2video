@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-09
+goal: 让长区间股价演变以近三个月滚动曲线和自适应纵轴呈现

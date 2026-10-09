@@ -45,7 +45,7 @@ def project(tmp_path: Path) -> Path:
         },
         "animation-plan.json": {
             "schemaVersion": 1, "durationSeconds": 6, "fps": 30, "canvas": {"width": 1920, "height": 1080},
-            "axis": {"dateRange": ["2020-01-01", "2020-01-03"], "valueRange": [90, 110]},
+            "axis": {"dateRange": ["2020-01-01", "2020-01-03"], "visibleWindowMonths": 3, "valueScale": "rolling-linear"},
             "segments": [
                 {"frames": [0, 15], "dates": ["2020-01-01", "2020-01-01"], "kind": "opening"},
                 {"frames": [15, 90], "dates": ["2020-01-01", "2020-01-03"], "kind": "advance"},
@@ -85,6 +85,11 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
         ("animation-plan.json", lambda d: d["segments"][1].update(frames=[14, 90]), "连续"),
         ("events.json", lambda d: (d["selected"][0].update(date="2020-01-03"), d["candidates"][0].update(date="2020-01-03")), "早于事件"),
         ("animation-plan.json", lambda d: d.update(canvas={"width": 1080, "height": 1920}), "1920"),
+        ("animation-plan.json", lambda d: d["axis"].pop("visibleWindowMonths"), "visibleWindowMonths"),
+        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=0), "1 到 1200"),
+        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=True), "1 到 1200"),
+        ("animation-plan.json", lambda d: d["axis"].update(valueScale="fixed"), "rolling-linear"),
+        ("animation-plan.json", lambda d: d["axis"].update(valueRange=[0, 250]), "不接受固定 valueRange"),
     ],
 )
 def test_rejects_invalid_financial_materials(tmp_path, file, mutate, message):

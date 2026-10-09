@@ -310,15 +310,13 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    value_range = axis.get("valueRange")
-    if not isinstance(value_range, list) or len(value_range) != 2:
-        _fail("animation-plan.json.axis.valueRange", "必须声明固定的 [最小值, 最大值]")
-    low, high = value_range
-    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in value_range) or low >= high:
-        _fail("animation-plan.json.axis.valueRange", "上下界必须是有限数字且严格递增")
-    values = [point["close"] for point in prices["points"]]
-    if min(values) < low or max(values) > high:
-        _fail("animation-plan.json.axis.valueRange", "固定纵轴必须覆盖全部有效价格点")
+    window_months = axis.get("visibleWindowMonths")
+    if isinstance(window_months, bool) or not isinstance(window_months, int) or not 1 <= window_months <= 1200:
+        _fail("animation-plan.json.axis.visibleWindowMonths", "必须是 1 到 1200 之间的整数日历月")
+    if axis.get("valueScale") != "rolling-linear":
+        _fail("animation-plan.json.axis.valueScale", "必须使用 rolling-linear 窗口自适应线性纵轴")
+    if "valueRange" in axis:
+        _fail("animation-plan.json.axis.valueRange", "滚动视窗纵轴由可见价格动态计算，不接受固定 valueRange")
     segments = plan.get("segments")
     if not isinstance(segments, list) or len(segments) < 2:
         _fail("animation-plan.json.segments", "至少需要开头与结尾时间段")

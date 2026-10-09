@@ -108,7 +108,7 @@ def _init(args: argparse.Namespace) -> Path:
     _write(root / "events.json", {"schemaVersion": 1, "candidates": [], "selected": [], "excluded": []})
     _write(root / "animation-plan.json", {
         "schemaVersion": 1, "durationSeconds": None, "fps": 30, "canvas": {"width": 1920, "height": 1080},
-        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "valueRange": [0, 1]},
+        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowMonths": 3, "valueScale": "rolling-linear"},
         "segments": [], "eventDisplays": [], "rationale": "由 AI 根据数据跨度和入选事件编排并填写",
     })
     return root

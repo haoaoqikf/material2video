@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, rollingTickDecimals, rollingValueRange, rollingWindowStart, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
@@ -18,7 +18,7 @@ const props: FinancialTimeSeriesProps = {
   events: { selected: [{ id: 'announcement', date: '2020-01-02', dateBasis: 'announced', title: '合成公告', sources: ['https://example.invalid/event'], reason: '合成夹具' }] },
   plan: {
     durationSeconds: 6, fps: 30, canvas: { width: 1920, height: 1080 },
-    axis: { dateRange: ['2020-01-01', '2020-01-03'], valueRange: [90, 110] },
+    axis: { dateRange: ['2020-01-01', '2020-01-03'], visibleWindowMonths: 3, valueScale: 'rolling-linear' },
     segments: [
       { frames: [0, 15], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
       { frames: [15, 90], dates: ['2020-01-01', '2020-01-03'], kind: 'advance' },
@@ -30,6 +30,19 @@ const props: FinancialTimeSeriesProps = {
 };
 
 describe('financial time-series composition', () => {
+  it('subtracts calendar months with month-end clamping and clamps to the data start', () => {
+    expect(rollingWindowStart('2020-05-31', 3, '1999-01-22')).toBe('2020-02-29');
+    expect(rollingWindowStart('2024-05-31', 3, '1999-01-22')).toBe('2024-02-29');
+    expect(rollingWindowStart('2020-02-29', 3, '2020-01-22')).toBe('2020-01-22');
+  });
+
+  it('pads adaptive price ranges, including a single flat value', () => {
+    expect(rollingValueRange([{ date: '2020-01-01', close: 10 }, { date: '2020-01-02', close: 20 }])).toEqual([9.2, 20.8]);
+    expect(rollingValueRange([{ date: '2020-01-01', close: 100 }])).toEqual([99, 101]);
+    expect(rollingTickDecimals(...rollingValueRange([{ date: '2020-01-01', close: 0.041 }]))).toBe(4);
+    expect(rollingValueRange([])).toEqual([0, 1]);
+  });
+
   it('does not expose prices or event markers before their dates', () => {
     testFrame.value = 15;
     const opening = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
@@ -54,5 +67,72 @@ describe('financial time-series composition', () => {
     expect(ending).toContain('102 USD');
     expect(ending).toContain('最近有效收盘 2020-01-03');
     expect(ending).toContain('data-a2v-event-marker="announcement"');
+  });
+
+  it('shows only arrived prices and markers inside the rolling window', () => {
+    const rollingProps: FinancialTimeSeriesProps = {
+      ...props,
+      prices: {
+        ...props.prices,
+        points: [
+          { date: '2020-01-01', close: 15 },
+          { date: '2020-01-02', close: 16 },
+          { date: '2020-01-03', close: 17 },
+          { date: '2020-04-01', close: 99 },
+          { date: '2020-04-02', close: 100 },
+          { date: '2020-04-03', close: 999 },
+        ],
+      },
+      events: { selected: [
+        { ...props.events.selected[0]!, id: 'rolled-out', date: '2020-01-01' },
+        { ...props.events.selected[0]!, id: 'in-window', date: '2020-03-01' },
+      ] },
+      plan: {
+        ...props.plan,
+        axis: { dateRange: ['2020-01-01', '2020-04-03'], visibleWindowMonths: 3, valueScale: 'rolling-linear' },
+        segments: [
+          { frames: [0, 1], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
+          { frames: [1, 90], dates: ['2020-01-01', '2020-04-02'], kind: 'advance' },
+          { frames: [90, 180], dates: ['2020-04-02', '2020-04-02'], kind: 'ending' },
+        ],
+        eventDisplays: [],
+      },
+    };
+    testFrame.value = 179;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...rollingProps} />);
+    expect(markup).toContain('data-a2v-window-start="2020-01-02"');
+    expect(markup).toContain('data-a2v-window-end="2020-04-02"');
+    expect(markup).toContain('data-a2v-visible-price-points="4"');
+    expect(markup).toContain('100 USD');
+    expect(markup).toContain('最近有效收盘 2020-04-02');
+    expect(markup).not.toContain('15 USD');
+    expect(markup).not.toContain('16 USD');
+    expect(markup).not.toContain('17 USD');
+    expect(markup).not.toContain('99 USD');
+    expect(markup).not.toContain('999 USD');
+    expect(markup).not.toContain('data-a2v-event-marker="rolled-out"');
+    expect(markup).toContain('data-a2v-event-marker="in-window"');
+  });
+
+  it('holds the previous real close while the current date is a non-trading day', () => {
+    const nonTradingProps: FinancialTimeSeriesProps = {
+      ...props,
+      prices: { ...props.prices, points: [{ date: '2020-04-01', close: 99 }] },
+      plan: {
+        ...props.plan,
+        axis: { dateRange: ['2020-01-01', '2020-04-02'], visibleWindowMonths: 3, valueScale: 'rolling-linear' },
+        segments: [
+          { frames: [0, 1], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
+          { frames: [1, 90], dates: ['2020-01-01', '2020-04-02'], kind: 'advance' },
+          { frames: [90, 180], dates: ['2020-04-02', '2020-04-02'], kind: 'ending' },
+        ],
+        eventDisplays: [],
+      },
+    };
+    testFrame.value = 179;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
+    expect(markup).toContain('99 USD');
+    expect(markup).toContain('最近有效收盘 2020-04-01');
+    expect(markup).toContain('2020年4月2日');
   });
 });
