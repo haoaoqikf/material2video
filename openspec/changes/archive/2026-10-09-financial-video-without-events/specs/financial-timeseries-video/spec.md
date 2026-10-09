@@ -30,8 +30,6 @@
 - **WHEN** 使用相同价格、编排、渲染资产及工具链重渲染或随机寻帧
 - **THEN** 同一帧的日期、报价和曲线一致，不因实时网络返回而变化
 
-### REMOVED Requirements
-
 
 ## MODIFIED Requirements
 
@@ -154,3 +152,9 @@ request.json MUST 保持 version 1，prices.json MUST 使用 version 3，animati
 #### Scenario: 新版本规则生效
 - **WHEN** 用户初始化或迁移至 v4 计划
 - **THEN** 活动工作流仅接受三类材料，v3 动画计划和过期评审不能直接用于渲染
+
+## REMOVED Requirements
+
+### Requirement: AI 自动筛选可核查事件
+**Reason**: 金融视频仅呈现真实日收盘价折线，不再收集、保存或展示事件。
+**Migration**: 迁移时删除活动事件材料及其历史副本，并使旧计划和评审失效；保留请求、价格日期、收盘价、来源、行情快照和交易日清单。
