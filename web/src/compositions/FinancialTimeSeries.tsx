@@ -3,19 +3,17 @@ import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
-type EventItem = { id: string; date: ISODate; title: string; sources: string[]; dateBasis: 'occurred' | 'announced' | 'reported'; reason: string };
-type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'hold' | 'overview' | 'ending' };
+type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'overview' | 'ending' };
 export type FinancialPlan = {
-  schemaVersion: 3; chartType: 'line';
+  schemaVersion: 4; chartType: 'line';
   durationSeconds: number; fps: 30; canvas: { width: 1920; height: 1080 };
   axis: { dateRange: [ISODate, ISODate]; visibleWindowMonths: number; valueScale: 'rolling-linear' };
-  segments: TimelineSegment[]; eventDisplays: Array<{ eventId: string; frames: [number, number] }>;
+  segments: TimelineSegment[];
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
   request: { instrument: { kind: 'stock' | 'index'; name: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate] };
   prices: { schemaVersion: 3; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
-  events: { selected: EventItem[] };
   plan: FinancialPlan;
   durationInFrames: number; fps: 30; width: 1920; height: 1080;
 };
@@ -198,19 +196,9 @@ function dateText(value: ISODate): string {
     .format(new Date(`${value}T00:00:00Z`));
 }
 
-export function markerRows(positions: number[]): number[] {
-  const placed: Array<{ x: number; row: number }> = [];
-  return positions.map((x) => {
-    let row = 0;
-    while (placed.some((item) => item.row === row && Math.abs(item.x - x) < 30)) row++;
-    placed.push({ x, row });
-    return row;
-  });
-}
-
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const frame = useCurrentFrame();
-  const { request, prices, events, plan } = props;
+  const { request, prices, plan } = props;
   const view = financialView(frame, prices.points, plan);
   const { currentDate, windowStart, latest, visiblePoints, minValue, maxValue } = view;
   const [rangeStart, rangeEnd] = plan.axis.dateRange;
@@ -219,14 +207,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const tickDecimals = rollingTickDecimals(minValue, maxValue);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - PLOT.top);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
-  const activeDisplay = plan.eventDisplays.find(({ frames: [start, end] }) => start <= frame && frame < end);
-  const activeEvent = activeDisplay ? events.selected.find(({ id }) => id === activeDisplay.eventId) : undefined;
   const ticks = dateTicks(view.windowPosition, view.position);
   const overviewActive = plan.segments.some((segment) => segment.kind === 'overview' && frame >= segment.frames[0]);
-  const arrivedEvents = events.selected.map((event, index) => ({ event, index }))
-    .filter(({ event }) => epochDay(event.date) >= view.windowPosition && event.date <= currentDate);
-  const labelPositions = arrivedEvents.map(({ event }) => Math.max(PLOT.left + 14, Math.min(PLOT.right - 14, xForDate(event.date))));
-  const rows = markerRows(labelPositions);
   const sourceSummary = prices.sources.map((source) => {
     if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
     return '公开资料';
@@ -262,16 +244,6 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         <polyline fill="none" stroke="#6ab6ff" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round"
           points={linePoints} data-a2v-visible-price-points={visiblePoints.length} />
       </g>}
-      {arrivedEvents.map(({ event, index }, visibleIndex) => {
-        const x = xForDate(event.date);
-        const labelX = labelPositions[visibleIndex]!;
-        const labelY = PLOT.top + 20 + rows[visibleIndex]! * 32;
-        return <g key={event.id} data-a2v-event-marker={event.id}>
-          <line x1={x} x2={x} y1={PLOT.top} y2={PLOT.bottom} stroke="#efb65c" strokeWidth="2" strokeDasharray="7 9" opacity=".64" />
-          <circle cx={labelX} cy={labelY} r="13" fill="#ffd27b" />
-          <text x={labelX} y={labelY + 6} textAnchor="middle" fill="#080d17" fontSize="15" fontWeight="700">{index + 1}</text>
-        </g>;
-      })}
       {latest && <g>
         {windowStart <= latest.date && <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="9" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />}
         <text x={PLOT.right} y="150" textAnchor="end" fill="#e8f3ff" fontSize="27" fontWeight="600">{priceText(latest.close, prices.unit)}</text>
@@ -279,18 +251,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       </g>}
       <text x={PLOT.left} y="872" fill="#d8e1ed" fontSize="24" fontWeight="600">{dateText(currentDate)}</text>
       <text x={PLOT.right} y="872" textAnchor="end" fill="#76859b" fontSize="16">{overviewActive ? '全历史 · 线性纵轴' : `近${plan.axis.visibleWindowMonths}个月 · 纵轴随视窗自适应`}</text>
-      {activeEvent && <g data-a2v-event-card={activeEvent.id}>
-        <rect x={PLOT.left} y="910" width={PLOT.right - PLOT.left} height="94" rx="12" fill="#172338" stroke="#755d38" />
-        <text x={PLOT.left + 24} y="947" fill="#ffd27b" fontSize="17">{activeEvent.date} · {activeEvent.dateBasis === 'occurred' ? '发生' : activeEvent.dateBasis === 'announced' ? '公告' : '报道'}</text>
-        <text x={PLOT.left + 24} y="983" fill="#f0f3f8" fontSize="22">{activeEvent.title}</text>
-      </g>}
-      {overviewActive && <g data-a2v-overview-legend="">
-        {events.selected.map((event, index) => <text key={event.id} x={PLOT.left + (index % 4) * 403} y={936 + Math.floor(index / 4) * 48} fill="#c6d3e4" fontSize="15">
-          {index + 1} · {event.date} · {event.title.length > 18 ? `${event.title.slice(0, 17)}…` : event.title}
-        </text>)}
-      </g>}
       {!latest && <text x={(PLOT.left + PLOT.right) / 2} y="520" textAnchor="middle" fill="#a8b4c5" fontSize="24">尚无区间内有效收盘数据</text>}
-      <text x={PLOT.left} y="1044" fill="#76859b" fontSize="15">日期与价格按来源核实；事件标记说明发生时间，不表示与价格变化存在因果关系。</text>
+      <text x={PLOT.left} y="1044" fill="#76859b" fontSize="15">日期与价格按来源核实；休市期间不生成新的报价点。</text>
     </svg>
   </AbsoluteFill>;
 }

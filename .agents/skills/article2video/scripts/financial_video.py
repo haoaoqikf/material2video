@@ -42,7 +42,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     init = sub.add_parser("init", help="生成待 AI 搜索资料并填充的作品材料模板")
     _add_init(init)
-    validate = sub.add_parser("validate", help="离线校验四类作品材料与帧时间轴")
+    validate = sub.add_parser("validate", help="离线校验三类作品材料与帧时间轴")
     validate.add_argument("--project-dir", required=True)
     for command in ("render", "preview"):
         render = sub.add_parser(command, help="正式导出" if command == "render" else "生成待评审静音预演，默认完整时长")
@@ -114,12 +114,11 @@ def _init(args: argparse.Namespace) -> Path:
         "splitAdjustments": [], "indexType": "由 AI 核验发布机构定义后填写" if args.kind == "index" else None,
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
     })
-    _write(root / "events.json", {"schemaVersion": 1, "candidates": [], "selected": [], "excluded": []})
     _write(root / "animation-plan.json", {
-        "schemaVersion": 3, "chartType": "line", "durationSeconds": None,
+        "schemaVersion": 4, "chartType": "line", "durationSeconds": None,
         "fps": 30, "canvas": {"width": 1920, "height": 1080},
         "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowMonths": 12, "valueScale": "rolling-linear"},
-        "segments": [], "eventDisplays": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
+        "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
     return root
 
@@ -135,12 +134,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             root = _init(args)
             print(f"已初始化金融时间序列作品材料：{root}")
-            print("请由 AI 搜索并核验数据与事件，填写四份材料后运行 validate。")
+            print("请由 AI 搜索并核验行情，填写三份材料后运行 validate。")
             return 0
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds, args.window_months)
-            print(f"已迁移至 version 3 折线；原材料备份：{backup}；须重新完整预演与评审。")
+            print(f"已迁移至 version 4 无事件折线；价格材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds, args.window_months)
@@ -150,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         docs = financial.load_project(root)
         if args.command == "validate":
             print(f"金融视频材料校验通过：{root}")
-            print(f"交易日 {len(docs['prices']['points'])} 个，入选事件 {len(docs['events']['selected'])} 个，时长 {docs['plan']['durationSeconds']} 秒")
+            print(f"交易日 {len(docs['prices']['points'])} 个，时长 {docs['plan']['durationSeconds']} 秒")
             return 0
         if args.command == "review-template":
             preview = financial.load_preview_record(root, docs)

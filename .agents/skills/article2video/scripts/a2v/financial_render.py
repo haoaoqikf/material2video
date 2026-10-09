@@ -88,9 +88,9 @@ def render(
         raise A2VError("短预演须使用 preview 命令，正式导出不能限制帧数")
     if not preview:
         financial.validate_legibility_review(project_dir, docs)
-    destination = output or project_dir / "outputs" / "financial-line.mp4"
+    destination = output or project_dir / "outputs" / "financial-line-no-events.mp4"
     if preview and output is None:
-        destination = project_dir / "outputs" / "previews" / "financial-line-preview.mp4"
+        destination = project_dir / "outputs" / "previews" / "financial-line-no-events-review.mp4"
     if preview and not destination.resolve().is_relative_to((project_dir / "outputs" / "previews").resolve()):
         raise A2VError("预演只能写入作品 outputs/previews，不能覆盖正式成片")
     if not preview and destination.resolve().is_relative_to((project_dir / "outputs" / "previews").resolve()):
