@@ -118,11 +118,13 @@ def render(
         )
         render_engine._verify_output(temp_video, frames, financial.WIDTH, financial.HEIGHT, financial.FPS)
         _assert_no_audio(temp_video)
-        if not preview:
-            render_engine._grant_access(temp_video)
         if inputs_digest != financial.legibility_review_digest(project_dir):
             raise A2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         os.replace(temp_video, destination)
+    # 必须在搬运之后修复：`icacls /reset` 让文件继承**所在目录**的权限，而中转用的
+    # 临时目录本身就是刻意收紧的 ACL，搬之前修复等于把它再套一遍。成片和预演都是
+    # 要给别人打开的文件，预演同样需要这一步。
+    render_engine._grant_access(destination)
     # 只有作品默认的完整预演才登记为评审材料：`--out` 是复核/对比用的旁路输出，
     # 若它被登记就会顶掉已绑定的预演，令填写好的评审静默失效。
     if preview and output is None:

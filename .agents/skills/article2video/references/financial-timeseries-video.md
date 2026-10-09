@@ -41,7 +41,7 @@ uv run python .agents/skills/article2video/scripts/financial_video.py review-tem
 uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug> --out videos/<slug>/outputs/financial-line.mp4
 ```
 
-`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后，先运行 `validate`。`--period` 和 `--window-months` 已移除，若旧材料包含 OHLC，必须先运行 `migrate-line`。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，评审模板绑定的是它；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有评审，但也不能作为提交评审的预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。
+`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后，先运行 `validate`。`--period` 和 `--window-months` 已移除，若旧材料包含 OHLC，必须先运行 `migrate-line`。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，评审模板绑定的是它；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有评审，但也不能作为提交评审的预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。
 
 ## 材料形状示例
 

@@ -350,6 +350,46 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     assert financial.load_preview_record(root, docs)["path"] == "outputs/previews/test.mp4"
 
 
+@pytest.mark.parametrize("preview", [False, True])
+def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monkeypatch, preview):
+    """交付文件必须重新继承父目录权限，且修复要在搬运之后、预演也一样。
+
+    中转临时目录的 ACL 是刻意收紧的（只有 SYSTEM/Administrators/OWNER RIGHTS）。
+    若在 temp 里就修复，`/reset` 只是把那份限制性 ACL 再套一遍；搬运后再 `/reset`
+    才会继承 outputs 目录的可访问权限，否则标准权限播放器报 0x80070005。
+    """
+    from types import SimpleNamespace
+
+    from a2v import remotion, render as render_engine, security
+
+    root = project(tmp_path)
+    docs = financial.load_project(root)
+    if not preview:
+        monkeypatch.setattr(financial, "validate_legibility_review", lambda *args, **kwargs: None)
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
+    monkeypatch.setattr(remotion, "require_environment", lambda web: None)
+    monkeypatch.setattr(financial_render, "_bundle", lambda web, out: bundle)
+    monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
+    monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
+    monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
+        fps=30, width=1920, height=1080, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+    monkeypatch.setattr(remotion, "render_frames",
+                        lambda **kwargs: Path(kwargs["out"]).write_bytes(b"video"))
+
+    granted: list[Path] = []
+    monkeypatch.setattr(security, "grant_inherited_access",
+                        lambda path: granted.append(Path(path)) or True)
+
+    output = financial_render.render(
+        root, docs, preview=preview, limit_frames=2 if preview else None, preset="ultrafast",
+    )
+    assert output.is_file()
+    assert granted == [output], f"应只对最终落地的文件授予一次访问权限，实际 {granted}"
+    assert granted[0].parent in (root / "outputs", root / "outputs/previews")
+
+
 def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     stock = tmp_path / "stock"
     assert financial_video.main([
