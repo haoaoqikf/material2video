@@ -157,7 +157,7 @@ def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path)
     assert financial.load_project(root)["prices"] == original
     assert not (root / "events.json").exists()
     assert (backup / "events.json").exists()
-    with pytest.raises(A2VError, match="材料已迁移到 v5"):
+    with pytest.raises(A2VError, match="材料已迁移到 v6"):
         financial.migrate_line(root)
 
 
@@ -174,7 +174,7 @@ def test_v3_plan_migrates_without_changing_prices_and_discards_event_material(tm
     backup = financial.migrate_line(root, duration=15)
 
     assert (root / "prices.json").read_bytes() == original_prices
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
     assert not (root / "events.json").exists()
     assert not (root / "outputs" / "legibility-review.json").exists()
     assert not (root / "outputs" / "previews" / "preview-record.json").exists()
@@ -196,7 +196,8 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
 def test_plan_covers_full_60_seconds_without_event_pauses():
     request = {"displayRange": ["1999-01-22", "2026-10-08"]}
     plan = financial.build_line_plan(request)
-    assert plan["schemaVersion"] == 5
+    assert plan["schemaVersion"] == 6
+    assert plan["axis"]["dateScale"] == "staged-expanding"
     assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "ending"]
     assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1680], [1680, 1800]]
     assert "eventDisplays" not in plan
@@ -282,12 +283,12 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
 def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
-    with pytest.raises(A2VError, match="需要 v3 价格和 v5 动画计划"):
+    with pytest.raises(A2VError, match="需要 v3 价格和 v6 动画计划"):
         financial.load_project(root)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     backup = financial.migrate_line(root, duration=15)
     assert backup.is_dir()
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
@@ -437,11 +438,31 @@ def test_v4_plan_requires_explicit_migration_with_complete_backup(tmp_path):
     backup = financial.migrate_line(root)
     assert {name: (backup / name).read_bytes() for name in financial.MATERIALS} == original
     assert final.read_bytes() == b"existing final"
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+
+
+def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
+    root = project(tmp_path)
+    edit(root, "animation-plan.json", lambda plan: plan.update(schemaVersion=5, axis={**plan["axis"], "dateScale": "full-range"}))
+    existing = root / "outputs" / "financial-line.mp4"
+    existing.parent.mkdir()
+    existing.write_bytes(b"existing user video")
+    review = root / "outputs" / "legibility-review.json"
+    review.write_text('{"result":"pass"}', encoding="utf-8")
+
+    with pytest.raises(A2VError, match="需要 v3 价格和 v6 动画计划"):
+        financial.load_project(root)
+    backup = financial.migrate_line(root, duration=15)
+
+    assert json.loads((backup / "animation-plan.json").read_text(encoding="utf-8"))["schemaVersion"] == 5
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+    assert financial.load_project(root)["plan"]["axis"]["dateScale"] == "staged-expanding"
+    assert existing.read_bytes() == b"existing user video"
+    assert not review.exists()
 
 
 @pytest.mark.parametrize("option", ["--window-months", "--window-months=12"])
-def test_removed_window_argument_explains_fixed_axis(option, capsys):
+def test_removed_window_argument_explains_staged_axis(option, capsys):
     with pytest.raises(SystemExit):
         financial_video.main(["plan", "--project-dir", "unused", option])
-    assert "横轴固定展示完整日期范围" in capsys.readouterr().err
+    assert "横轴按阶段扩展至完整日期范围" in capsys.readouterr().err

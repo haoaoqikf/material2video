@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
+const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
+
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('remotion')>();
@@ -16,8 +18,8 @@ const props: FinancialTimeSeriesProps = {
     sources: [{ url: 'https://example.invalid/prices' }],
   },
   plan: {
-    schemaVersion: 5, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1920, height: 1080 },
-    axis: { dateRange: ['2020-01-01', '2020-01-03'], dateScale: 'full-range', valueScale: 'revealed-linear' },
+    schemaVersion: 6, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1920, height: 1080 },
+    axis: { dateRange: ['2020-01-01', '2020-01-03'], dateScale: 'staged-expanding', valueScale: 'revealed-linear' },
     segments: [
       { frames: [0, 90], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
       { frames: [90, 1680], dates: ['2020-01-01', '2020-01-03'], kind: 'advance' },
@@ -73,7 +75,7 @@ describe('financial time-series composition', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).not.toMatch(/event|事件|公告|发生/iu);
-    expect(markup).toContain('完整年份 · 纵轴随已展示价格自适应');
+    expect(markup).toContain('横轴分阶段扩展 · 纵轴随已展示价格自适应');
   });
 
   it('holds the previous real close on non-trading dates without inventing a quote', () => {
@@ -105,7 +107,7 @@ describe('financial time-series composition', () => {
     expect(financialView(885, changedFuture, props.plan)).toEqual(view);
   });
 
-  it('keeps full-history coordinates fixed and preserves every historical point', () => {
+  it('expands the full-history axis in stages and preserves every historical point', () => {
     const historyProps: FinancialTimeSeriesProps = {
       ...props,
       prices: { ...props.prices, points: [
@@ -120,10 +122,16 @@ describe('financial time-series composition', () => {
     const opening = financialView(0, historyProps.prices.points, historyProps.plan);
     const middle = financialView(1000, historyProps.prices.points, historyProps.plan);
     const final = financialView(1679, historyProps.prices.points, historyProps.plan);
+    const ordered = Array.from({ length: 1680 }, (_, frame) => financialView(frame, historyProps.prices.points, historyProps.plan));
+    for (let frame = 1; frame < ordered.length; frame++) {
+      expect(ordered[frame]!.windowEndPosition).toBeGreaterThanOrEqual(ordered[frame - 1]!.windowEndPosition);
+      expect(ordered[frame]!.windowEndPosition).toBeGreaterThanOrEqual(ordered[frame]!.position);
+    }
     expect(opening.windowPosition).toBe(final.windowPosition);
-    expect(opening.windowEndPosition).toBe(final.windowEndPosition);
+    expect(opening.windowEndPosition).toBeLessThan(final.windowEndPosition);
     expect(middle.visiblePoints).toHaveLength(2);
     expect(final.visiblePoints).toHaveLength(3);
+    expect(final.windowEndPosition).toBe(epochDayForTest('2020-01-03'));
     expect(final.maxValue).toBeGreaterThan(100);
     expect(final.minValue).toBeLessThan(1);
     for (let frame = 1680; frame < 1800; frame++) {
@@ -133,11 +141,8 @@ describe('financial time-series composition', () => {
       testFrame.value = frame;
       return renderToStaticMarkup(<FinancialTimeSeries {...historyProps} />);
     };
-    const ticks = (markup: string) => markup.match(/<g><line x1="[^" ]+"[^>]+stroke="#172235"[^]*?<\/g>/g);
-    expect(ticks(markupAt(0))?.length).toBeGreaterThan(1);
-    expect(ticks(markupAt(0))).toEqual(ticks(markupAt(1799)));
-    const firstX = (markup: string) => markup.match(/points="([^,]+),/u)?.[1];
-    expect(firstX(markupAt(0))).toBe(firstX(markupAt(1799)));
+    expect(opening.ticks.length).toBeGreaterThan(1);
+    expect(opening.ticks).not.toEqual(final.ticks);
     expect(markupAt(1799)).toContain('data-a2v-visible-price-points="3"');
   });
 
@@ -165,5 +170,42 @@ describe('financial time-series composition', () => {
       }
     }
     expect(financialView(885, props.prices.points, props.plan)).toEqual(financialView(885, props.prices.points, props.plan));
+  });
+
+  it('derives up to six natural-year stages from partial and leap-year ranges', () => {
+    const rangePlan = (start: string, end: string, durationSeconds = 60) => {
+      const frames = durationSeconds * 30;
+      const advanceEnd = frames - 120;
+      return {
+        ...props.plan, durationSeconds,
+        axis: { ...props.plan.axis, dateRange: [start, end] as [string, string] },
+        segments: [
+          { frames: [0, 90] as [number, number], dates: [start, start] as [string, string], kind: 'opening' as const },
+          { frames: [90, advanceEnd] as [number, number], dates: [start, end] as [string, string], kind: 'advance' as const },
+          { frames: [advanceEnd, frames] as [number, number], dates: [end, end] as [string, string], kind: 'ending' as const },
+        ],
+      };
+    };
+    const decades = rangePlan('1999-02-01', '2026-10-08');
+    expect(financialView(0, [], decades).windowEndPosition).toBe(epochDayForTest('2003-12-31'));
+    expect(financialView(1679, [], decades).windowEndPosition).toBe(epochDayForTest('2026-10-08'));
+
+    const leap = rangePlan('2019-03-01', '2024-02-29');
+    expect(financialView(0, [], leap).windowEndPosition).toBe(epochDayForTest('2019-12-31'));
+    expect(financialView(1679, [], leap).windowEndPosition).toBe(epochDayForTest('2024-02-29'));
+
+    const singleYear = rangePlan('2024-02-29', '2024-12-31');
+    expect(financialView(0, [], singleYear).windowEndPosition).toBe(epochDayForTest('2024-12-31'));
+
+    const fast = rangePlan('2000-01-01', '2026-12-31', 10);
+    let previous = financialView(90, [], fast).windowEndPosition;
+    for (let frame = 91; frame < 180; frame++) {
+      const view = financialView(frame, [], fast);
+      expect(view.windowEndPosition).toBeGreaterThanOrEqual(previous);
+      expect(view.windowEndPosition).toBeGreaterThanOrEqual(view.position);
+      previous = view.windowEndPosition;
+    }
+    expect(financialView(179, [], fast).windowEndPosition).toBe(epochDayForTest('2026-12-31'));
+    expect(financialView(180, [], fast)).toEqual(financialView(299, [], fast));
   });
 });

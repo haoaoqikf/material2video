@@ -114,9 +114,9 @@ def _init(args: argparse.Namespace) -> Path:
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
     })
     _write(root / "animation-plan.json", {
-        "schemaVersion": 5, "chartType": "line", "durationSeconds": None,
+        "schemaVersion": 6, "chartType": "line", "durationSeconds": None,
         "fps": 30, "canvas": {"width": 1920, "height": 1080},
-        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "full-range", "valueScale": "revealed-linear"},
+        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
     return root
@@ -127,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     if any(item == "--period" or item.startswith("--period=") for item in (argv if argv is not None else sys.argv[1:])):
         parser.error("--period 已移除：金融工作流仅支持日收盘价折线；旧材料请运行 migrate-line")
     if any(item == "--window-months" or item.startswith("--window-months=") for item in (argv if argv is not None else sys.argv[1:])):
-        parser.error("--window-months 已移除：横轴固定展示完整日期范围，纵轴随已展示价格自适应；旧计划请运行 migrate-line")
+        parser.error("--window-months 已移除：横轴按阶段扩展至完整日期范围，纵轴随已展示价格自适应；旧计划请运行 migrate-line")
     args = parser.parse_args(argv)
     _force_utf8_output()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
@@ -140,12 +140,12 @@ def main(argv: list[str] | None = None) -> int:
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds)
-            print(f"已迁移至 version 5 固定全范围折线；旧材料备份：{backup}；须重新完整预演与评审。")
+            print(f"已迁移至 version 6 分阶段扩展折线；旧材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)
             _write(root / "animation-plan.json", plan)
-            print(f"已生成 {plan['durationSeconds']} 秒折线编排，完整日期横轴固定，纵轴随已展示价格自适应。")
+            print(f"已生成 {plan['durationSeconds']} 秒折线编排，横轴按阶段扩展，纵轴随已展示价格自适应。")
             return 0
         docs = financial.load_project(root)
         if args.command == "validate":
