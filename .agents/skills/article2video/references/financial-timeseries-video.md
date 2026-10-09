@@ -6,7 +6,7 @@
 
 ## 1. 目标与请求
 
-用户给出“公司或指数 + 起止年份”，由 Codex 等 AI 编程工具自行搜索资料，制作横屏单标的折线图：日期推进、价格或点位逐步展开、重大事件到达时标注，全片无音轨。首期覆盖 A 股、港股、美股及对应指数。
+用户给出“公司或指数 + 起止年份”，由 Codex 等 AI 编程工具自行搜索资料。旧版 schemaVersion 1 使用横屏单标的折线图；新版 schemaVersion 2 使用日/周/月/年 K 线，按跨度和可读性预算自动选择周期。两者均按日期推进、重大事件到达时标注，全片无音轨。首期覆盖 A 股、港股、美股及对应指数。
 
 请求示意：“展示某家公司 2010 年到 2024 年的股价变化，带重大事件，先不要声音。”这不是对真实公司的行情查询。
 
@@ -37,6 +37,14 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 
 ## 4. 视觉与时间编排
 
+### 新版 K 线（schemaVersion 2）
+
+新版 `prices.json` 每个点须有 `date/open/high/low/close`，OHLC 同口径并满足正数及顺序约束；`animation-plan.json` 使用相同 schemaVersion，并由 `financial_video.py plan --project-dir <作品目录> --duration-seconds 60 [--period day|week|month|year]` 生成。首选规则是跨度不超过六个月用日 K、六个月至三年用周 K、三至三十年用月 K、超过三十年用年 K，再按柱数、每秒推进柱数、最小柱间距和成熟窗口换出时间筛选。显式周期在预算不合格时阻断而不静默切换。报告与逐段速度须通过离线校验。日、周、月、年按交易日、ISO 周（周一至周日）、自然月、自然年确定性聚合，保存周期范围和首末交易日；正式渲染使用固定桶，当前桶由截至当前帧的日线临时计算，不泄露未来数据。画面标示周期、最新日收盘和未完成/截断状态；股票使用有明确提示的对数轴，指数使用线性轴。
+
+新版先生成有限帧预览并抽检，再运行 `financial_video.py review-template` 生成评审记录，在完整时长的预演抽检时间码、标签、滚动、坐标和事件重叠均可读后填写通过；模板不能直接视为通过，短预览不能作为全片评审。评审摘要绑定四类材料、web 可达渲染构建输入和金融渲染 Python 代码；任何材料或构建输入变化都会使评审过期并阻止正式导出。旧版 schemaVersion 1 保留折线语义。
+
+### 旧版折线（schemaVersion 1）
+
 - 1920×1080，30 fps，单标的、单持续场景。标题、近期滚动折线、日期、当前价格或点位、事件标注和来源摘要构成画面。
 - 完整数据范围用于驱动全片时间推进；默认横轴只显示当前播放日期及此前最近 3 个日历月。窗口起点按日历月回退并将月末截短到目标月最后一天；数据起始处不足 3 个月时从数据起始日开始。窗口以外的曲线和事件标记滚出画面。
 - 纵轴使用窗口内有效价格的线性自适应范围：极值两侧各留出极差的 8%；窗口价格相同或仅有一个点时，以绝对价格的 1%（至少一个单位的 0.01）作为半范围。网格刻度随窗口变化，画面须明确提示纵轴自适应。
@@ -47,7 +55,7 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 - 开头交代标的、完整范围、口径和滚动视窗；事件到达时出现标记和说明，说明在独立区域顺序展开，避免覆盖曲线或彼此重叠。结尾最终窗口至少停留三秒，即九十帧。
 - 不包含配音、音乐、音效或静音音轨；最终 MP4 必须完全没有音频流。
 
-编排参考：约 27 年的历史、八个事件，60 秒可编排为 1 秒开场、事件各停留 2 秒、40 秒分配给按实际日期跨度加权的推进段、最终滚动视窗停留 3 秒。此为 NVIDIA 长跨度成片的参考节奏，不是其他作品的固定时长要求。
+编排参考：NVIDIA 约 27 年、8 个事件的长跨度材料保持 60 秒，自动选择年 K；修正未完成年度桶在跨事件片段被重复计数后，逐段最高速度约 0.99 根/秒、柱中心最小间距约 57.6px。此为该作品的阅读预算，不是其他作品的固定时长。
 
 ## 5. 作品材料与命令
 
@@ -56,9 +64,9 @@ AI 搜索并自动筛选，无需逐条请用户确认。优先公司公告、�
 | 材料 | 建议文件 | 最小信息 |
 | --- | --- | --- |
 | 需求记录 | `request.json` | 原始请求、唯一标的、请求/实际日期范围及缩短确认 |
-| 价格序列 | `prices.json` | 预期交易日、逐日收盘值、口径、来源和原始文件 SHA-256 |
+| 价格序列 | `prices.json` | 预期交易日、逐日收盘值（旧版）或 OHLC（新版）、口径、来源和原始文件 SHA-256 |
 | 事件清单 | `events.json` | 候选、入选、排除理由及日期依据 |
-| 动画编排 | `animation-plan.json` | 时长、完整日期范围、滚动日历月数、动态纵轴模式、连续半开帧段、日期映射和事件停留 |
+| 动画编排 | `animation-plan.json` | 版本、时长、完整日期范围、周期/窗口/选择报告（新版）、动态纵轴模式、连续半开帧段、日期映射和事件停留 |
 
 原始数据快照保存在作品目录中；静音预演与验收记录放在 `outputs/`。实际作品使用已有忽略目录 `videos/<slug>/`，或外部内容根中的作品目录；材料、行情、事件资料及媒体均不入库。方法与规范入库，不使用 `git add -f` 绕过忽略，不增删替换现有三个示例。
 
@@ -68,8 +76,11 @@ uv run python .agents/skills/article2video/scripts/financial_video.py init `
   --market <市场> --unit USD --listing-date YYYY-MM-DD `
   --start-date YYYY-01-01 --end-date YYYY-12-31
 
+uv run python .agents/skills/article2video/scripts/financial_video.py plan --project-dir videos/<slug> --duration-seconds 60 [--period year]
 uv run python .agents/skills/article2video/scripts/financial_video.py validate --project-dir videos/<slug>
 uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug> --limit-frames 120
+uv run python .agents/skills/article2video/scripts/financial_video.py review-template --project-dir videos/<slug>
+# 完整预演后抽检并填写 outputs/legibility-review.json，再正式导出
 uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug>
 ```
 
@@ -96,6 +107,21 @@ uv run python .agents/skills/article2video/scripts/financial_video.py render --p
   "confirmations": ["合成示例中确认缩短展示范围"]
 }
 ```
+
+新版 K 线价格点（`prices.json` schemaVersion 2）：
+
+```json
+{
+  "schemaVersion": 2,
+  "unit": "USD",
+  "points": [
+    {"date": "2024-12-30", "open": 10, "high": 12, "low": 9, "close": 11},
+    {"date": "2024-12-31", "open": 11, "high": 14, "low": 10, "close": 13}
+  ]
+}
+```
+
+每根蜡烛对应范围、首末交易日和源 OHLC 行由离线聚合生成；播放时当前未完成桶只使用已到达日线。以下价格材料片段是旧版 schemaVersion 1 折线示例：
 
 价格材料片段（仅展示字段，省略全年其余记录；不可据此通过完整性验收）：
 

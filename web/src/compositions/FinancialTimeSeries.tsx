@@ -1,19 +1,22 @@
 import { useLayoutEffect } from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { FinancialCandlesticks, type FinancialCandlestickProps } from './FinancialCandlesticks';
 
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
+type OHLCPoint = PricePoint & { open: number; high: number; low: number };
 type EventItem = { id: string; date: ISODate; title: string; sources: string[]; dateBasis: 'occurred' | 'announced' | 'reported'; reason: string };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'hold' | 'ending' };
 type FinancialPlan = {
   durationSeconds: number; fps: 30; canvas: { width: 1920; height: 1080 };
-  axis: { dateRange: [ISODate, ISODate]; visibleWindowMonths: number; valueScale: 'rolling-linear' };
+  axis: { dateRange: [ISODate, ISODate]; visibleWindowMonths: number; visibleWindowBars?: number; valueScale: 'rolling-linear' | 'rolling-log' };
+  selectedPeriod?: 'day' | 'week' | 'month' | 'year';
   segments: TimelineSegment[]; eventDisplays: Array<{ eventId: string; frames: [number, number] }>;
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
   request: { instrument: { kind: 'stock' | 'index'; name: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate] };
-  prices: { points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
+  prices: { schemaVersion?: number; points: PricePoint[] | OHLCPoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
   events: { selected: EventItem[] };
   plan: FinancialPlan;
   durationInFrames: number; fps: 30; width: 1920; height: 1080;
@@ -121,6 +124,9 @@ function dateText(value: ISODate): string {
 }
 
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
+  if (props.prices.schemaVersion === 2) {
+    return <FinancialCandlesticks {...(props as unknown as FinancialCandlestickProps)} />;
+  }
   const frame = useCurrentFrame();
   const { request, prices, events, plan } = props;
   const currentDate = frameDate(frame, plan);

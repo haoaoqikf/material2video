@@ -135,4 +135,53 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('最近有效收盘 2020-04-01');
     expect(markup).toContain('2020年4月2日');
   });
+
+  it('renders schema v2 candles on the partial bucket without leaking future OHLC', () => {
+    const candlesProps: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, displayRange: ['2024-12-30', '2025-01-02'] },
+      prices: {
+        ...props.prices,
+        schemaVersion: 2,
+        points: [
+          { date: '2024-12-30', open: 10, high: 12, low: 9, close: 11 },
+          { date: '2025-01-02', open: 11, high: 500, low: 10, close: 450 },
+        ],
+        candles: [{ key: '2024', start: '2024-01-01', end: '2024-12-31', firstTradingDate: '2024-12-30', lastTradingDate: '2024-12-30', open: 10, high: 12, low: 9, close: 11 }],
+      } as FinancialTimeSeriesProps['prices'],
+      events: { selected: [{ ...props.events.selected[0]!, date: '2025-01-02' }] },
+      plan: {
+        ...props.plan,
+        selectedPeriod: 'year',
+        axis: { dateRange: ['2024-12-30', '2025-01-02'], visibleWindowBars: 12, visibleWindowMonths: 3, valueScale: 'rolling-log' },
+        segments: [
+          { frames: [0, 90], dates: ['2024-12-30', '2024-12-30'], kind: 'opening' },
+          { frames: [90, 100], dates: ['2024-12-30', '2025-01-02'], kind: 'advance' },
+          { frames: [100, 180], dates: ['2025-01-02', '2025-01-02'], kind: 'ending' },
+        ],
+        eventDisplays: [{ eventId: 'announcement', frames: [100, 120] }],
+      } as FinancialTimeSeriesProps['plan'],
+    };
+    testFrame.value = 90;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...candlesProps} />);
+    expect(markup).toContain('data-a2v-financial="candlestick"');
+    expect(markup).toContain('data-a2v-period="year"');
+    expect(markup).toContain('2024*');
+    expect(markup).not.toContain('>500.00<');
+    expect(markup).not.toContain('>450.00<');
+    expect(markup).not.toContain('data-a2v-event-marker="announcement"');
+  });
+
+  it('shows an empty-range message before the first v2 trading candle', () => {
+    const emptyProps: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, displayRange: ['2024-12-29', '2025-01-02'] },
+      prices: { ...props.prices, schemaVersion: 2, points: [], candles: [{ key: '2024', start: '2024-01-01', end: '2024-12-31', firstTradingDate: '2024-12-30', lastTradingDate: '2024-12-31', open: 10, high: 12, low: 9, close: 11 }] } as FinancialTimeSeriesProps['prices'],
+      plan: { ...props.plan, selectedPeriod: 'year', axis: { ...props.plan.axis, visibleWindowBars: 12, valueScale: 'rolling-log' } } as FinancialTimeSeriesProps['plan'],
+    };
+    testFrame.value = 0;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...emptyProps} />);
+    expect(markup).toContain('尚无区间内 OHLC 报价');
+    expect(markup).not.toContain('Infinity');
+  });
 });

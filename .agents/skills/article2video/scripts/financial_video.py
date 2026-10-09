@@ -50,6 +50,12 @@ def _parser() -> argparse.ArgumentParser:
     render.add_argument("--limit-frames", type=int, help="快速预演前 N 帧，写入 outputs/previews/")
     render.add_argument("--crf", type=int, default=18)
     render.add_argument("--preset", choices=("ultrafast", "veryfast", "fast", "medium", "slow", "slower"), default="medium")
+    plan = sub.add_parser("plan", help="根据 OHLC 材料自动选择 K 线周期并写入动画编排")
+    plan.add_argument("--project-dir", required=True)
+    plan.add_argument("--duration-seconds", type=int, default=60)
+    plan.add_argument("--period", choices=("day", "week", "month", "year"), help="可选：指定主周期；不指定时自动选择")
+    review = sub.add_parser("review-template", help="为 K 线全片评审生成绑定当前材料与资产的记录模板")
+    review.add_argument("--project-dir", required=True)
     return parser
 
 
@@ -98,7 +104,7 @@ def _init(args: argparse.Namespace) -> Path:
     }
     _write(root / "request.json", request)
     _write(root / "prices.json", {
-        "schemaVersion": 1, "unit": args.unit.strip(),
+        "schemaVersion": 2, "unit": args.unit.strip(),
         "priceBasis": "split-adjusted" if args.kind == "stock" else "official-index-points",
         "adjustmentBaseDate": end.isoformat() if args.kind == "stock" else None,
         "adjustmentDefinition": "仅拆合股调整，不计分红再投资；由 AI 核验来源定义后填写" if args.kind == "stock" else None,
@@ -107,9 +113,10 @@ def _init(args: argparse.Namespace) -> Path:
     })
     _write(root / "events.json", {"schemaVersion": 1, "candidates": [], "selected": [], "excluded": []})
     _write(root / "animation-plan.json", {
-        "schemaVersion": 1, "durationSeconds": None, "fps": 30, "canvas": {"width": 1920, "height": 1080},
-        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowMonths": 3, "valueScale": "rolling-linear"},
-        "segments": [], "eventDisplays": [], "rationale": "由 AI 根据数据跨度和入选事件编排并填写",
+        "schemaVersion": 2, "chartType": "candlestick", "selectedPeriod": None, "durationSeconds": None,
+        "fps": 30, "canvas": {"width": 1920, "height": 1080},
+        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowBars": None, "valueScale": "rolling-linear"},
+        "selectionReport": None, "segments": [], "eventDisplays": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
     return root
 
@@ -126,10 +133,39 @@ def main(argv: list[str] | None = None) -> int:
             print("请由 AI 搜索并核验数据与事件，填写四份材料后运行 validate。")
             return 0
         root = _project_path(args.project_dir)
+        if args.command == "plan":
+            documents = {Path(name).stem: financial._load(root / name) for name in financial.MATERIALS}
+            financial._validate_request(documents["request"])
+            if documents["prices"].get("schemaVersion") != 2:
+                raise A2VError("自动 K 线编排要求 prices.json version 2 日 OHLC 数据")
+            documents["animation-plan"] = financial.build_candle_plan(
+                documents["request"], documents["prices"], documents["events"], args.duration_seconds, args.period,
+            )
+            _write(root / "animation-plan.json", documents["animation-plan"])
+            print(f"已选择 {documents['animation-plan']['selectedPeriod']} K；指标：{json.dumps(documents['animation-plan']['selectionReport']['candidates'][documents['animation-plan']['selectedPeriod']], ensure_ascii=False)}")
+            return 0
         docs = financial.load_project(root)
         if args.command == "validate":
             print(f"金融视频材料校验通过：{root}")
             print(f"交易日 {len(docs['prices']['points'])} 个，入选事件 {len(docs['events']['selected'])} 个，时长 {docs['plan']['durationSeconds']} 秒")
+            return 0
+        if args.command == "review-template":
+            if docs["plan"]["schemaVersion"] != 2:
+                raise A2VError("全片可读性评审模板仅用于 schemaVersion 2 K 线视频")
+            report = docs["plan"]["selectionReport"]
+            period_stats = report["candidates"][report["selectedPeriod"]]
+            review_path = root / "outputs" / "legibility-review.json"
+            review_path.parent.mkdir(parents=True, exist_ok=True)
+            _write(review_path, {
+                "schemaVersion": 1, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
+                "result": "pending", "fullVideo": False, "sampleTimecodes": [],
+                "metrics": {"maxBarsPerSecond": report["maxBarsPerSecond"],
+                    "minCenterSpacingPx": period_stats["minCenterSpacingPx"],
+                    "windowReplacementSeconds": period_stats["windowReplacementSeconds"]},
+                "checks": {"labelsReadable": False, "scrollTrackable": False, "axisStable": False,
+                    "eventsDoNotOverlap": False},
+            })
+            print(f"已生成待填写的评审模板：{review_path}")
             return 0
         output = Path(args.out).expanduser().resolve() if args.out else None
         result = financial_render.render(

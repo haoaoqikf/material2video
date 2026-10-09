@@ -173,6 +173,88 @@ def test_raw_snapshot_hash_and_workspace_boundary_are_enforced(tmp_path):
         financial.load_project(root)
 
 
+def test_v2_ohlc_requires_valid_order_and_matching_plan_version(tmp_path):
+    root = project(tmp_path)
+    raw = b"synthetic OHLC fixture"
+    (root / "raw-prices.csv").write_bytes(raw)
+    def make_v2(data):
+        data.update(schemaVersion=2, points=[
+            {"date": "2020-01-02", "open": 99, "high": 101, "low": 98, "close": 100},
+            {"date": "2020-01-03", "open": 100, "high": 103, "low": 99, "close": 102},
+        ], rawSnapshots=[{"path": "raw-prices.csv", "sha256": hashlib.sha256(raw).hexdigest(), "sourceUrl": "https://example.invalid/prices"}])
+    edit(root, "prices.json", make_v2)
+    with pytest.raises(A2VError, match="版本必须一致"):
+        financial.load_project(root)
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=2))
+    with pytest.raises(A2VError, match="OHLC 顺序无效"):
+        edit(root, "prices.json", lambda data: data["points"][0].update(high=90))
+        financial.load_project(root)
+
+
+def test_nvidia_ohlc_material_selects_yearly_period_at_60_seconds():
+    from datetime import date, timedelta
+    points = []
+    day = date(1999, 1, 22)
+    while day <= date(2026, 10, 8):
+        if day.weekday() < 5:
+            value = 1.0 + (day - date(1999, 1, 22)).days / 100
+            points.append({"date": day.isoformat(), "open": value, "high": value + 0.2, "low": value - 0.2, "close": value + 0.1})
+        day += timedelta(days=1)
+    stats = financial.candle_period_stats(points, ["1999-01-22", "2026-10-08"], 60, 8)
+    assert stats["month"]["count"] > 300 and not stats["month"]["eligible"]
+    assert stats["year"]["count"] == 28 and stats["year"]["eligible"]
+    request = {"displayRange": ["1999-01-22", "2026-10-08"], "instrument": {"kind": "stock"}}
+    event_list = {"selected": [{"id": str(i), "date": d} for i, d in enumerate([
+        "1999-01-22", "1999-10-11", "2007-02-16", "2020-04-27", "2023-05-24", "2024-06-10", "2025-02-26", "2026-08-26"])]}
+    plan = financial.build_candle_plan(request, {"points": points}, event_list)
+    assert plan["selectedPeriod"] == "year"
+    assert plan["durationSeconds"] == 60
+    assert plan["selectionReport"]["choiceMode"] == "automatic"
+    assert len(plan["segments"]) == 18
+    assert max(segment["readability"]["revealedBarsPerSecond"] for segment in plan["segments"] if segment["kind"] == "advance") <= 4
+    explicit = financial.build_candle_plan(request, {"points": points}, event_list, duration=60, selected_period="year")
+    assert explicit["selectionReport"]["choiceMode"] == "explicit"
+    assert explicit["selectionReport"]["requestedPeriod"] == "year"
+    with pytest.raises(A2VError, match="指定 month K"):
+        financial.build_candle_plan(request, {"points": points}, event_list, duration=60, selected_period="month")
+
+
+def test_ohlc_aggregation_tracks_calendar_boundaries_and_review_gate(tmp_path):
+    points = [
+        {"date": "2020-12-31", "open": 10, "high": 12, "low": 9, "close": 11},
+        {"date": "2021-01-01", "open": 11, "high": 14, "low": 10, "close": 13},
+        {"date": "2021-01-04", "open": 13, "high": 15, "low": 12, "close": 14},
+    ]
+    weekly = financial.aggregate_ohlc(points, "week")
+    assert weekly[0]["key"] == "2020-W53"
+    assert weekly[0]["firstTradingDate"] == "2020-12-31"
+    assert weekly[0]["lastTradingDate"] == "2021-01-01"
+    assert (weekly[0]["open"], weekly[0]["high"], weekly[0]["low"], weekly[0]["close"]) == (10, 14, 9, 13)
+    assert len(financial.aggregate_ohlc(points, "year")) == 2
+
+    root = project(tmp_path)
+    docs = financial.load_project(root)
+    docs["plan"] = {"schemaVersion": 2, "selectionReport": {"selectedPeriod": "year", "maxBarsPerSecond": 1,
+        "candidates": {"year": {"minCenterSpacingPx": 57.5, "windowReplacementSeconds": 20}}}}
+    with pytest.raises(A2VError, match="需要当前完整视频"):
+        financial.validate_legibility_review(root, docs)
+    review_path = root / "outputs" / "legibility-review.json"
+    review_path.parent.mkdir()
+    review = {"schemaVersion": 1, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
+        "result": "pass", "fullVideo": True, "sampleTimecodes": ["00:00:10"],
+        "metrics": {"maxBarsPerSecond": 1, "minCenterSpacingPx": 57.5, "windowReplacementSeconds": 20},
+        "checks": {"labelsReadable": True, "scrollTrackable": True, "axisStable": True, "eventsDoNotOverlap": True}}
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    financial.validate_legibility_review(root, docs)
+    failed_review = {**review, "result": "fail"}
+    review_path.write_text(json.dumps(failed_review), encoding="utf-8")
+    with pytest.raises(A2VError, match="只接受完整视频评审通过"):
+        financial.validate_legibility_review(root, docs)
+    review_path.write_text(json.dumps({**review, "materialsAndAssetsSha256": "0" * 64}), encoding="utf-8")
+    with pytest.raises(A2VError, match="已过期"):
+        financial.validate_legibility_review(root, docs)
+
+
 def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     stock = tmp_path / "stock"
     assert financial_video.main([

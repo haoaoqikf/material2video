@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import hashlib
 import math
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -37,8 +37,8 @@ def _load(path: Path) -> dict[str, Any]:
         _fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
     if not isinstance(data, dict):
         _fail(path.name, "顶层必须是 JSON 对象")
-    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") != 1:
-        _fail(path.name, "schemaVersion 必须为 1")
+    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2}:
+        _fail(path.name, "schemaVersion 必须为 1 或 2")
     return data
 
 
@@ -88,11 +88,70 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
         _fail("作品目录", f"目录不存在：{root}")
     docs = {name: _load(root / name) for name in MATERIALS}
     request, prices, events, plan = (docs[name] for name in MATERIALS)
+    if request["schemaVersion"] != 1 or events["schemaVersion"] != 1:
+        _fail("材料版本", "request.json 和 events.json 当前必须为 version 1")
+    if prices["schemaVersion"] != plan["schemaVersion"]:
+        _fail("材料版本", "prices.json 与 animation-plan.json 版本必须一致，拒绝混合版本")
     _validate_request(request)
     _validate_prices(prices, request, root)
     _validate_events(events, request)
     _validate_plan(plan, request, prices, events)
     return {"request": request, "prices": prices, "events": events, "plan": plan}
+
+
+def legibility_review_digest(project_dir: str | Path) -> str:
+    """Bind the v2 visual review to exact materials and shared rendering sources."""
+    root = Path(project_dir).resolve()
+    web = Path(__file__).resolve().parents[5] / "web"
+    inputs = [(root, root / name) for name in MATERIALS]
+    from . import remotion
+    inputs.extend((web, path) for path in remotion.build_inputs())
+    scripts = Path(__file__).resolve().parents[1]
+    inputs.extend((scripts, path) for path in (
+        scripts / "a2v/financial.py", scripts / "a2v/financial_render.py",
+        scripts / "a2v/remotion.py", scripts / "financial_video.py",
+    ))
+    digest = hashlib.sha256()
+    for base, path in inputs:
+        try:
+            content = path.read_bytes()
+        except OSError as exc:
+            _fail("可读性评审摘要", f"无法读取绑定文件 {path.name}：{exc}")
+        digest.update(path.relative_to(base).as_posix().encode())
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(content).digest())
+    return digest.hexdigest()
+
+
+def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) -> None:
+    """Reject a missing, stale, or failed full-video review for schema v2."""
+    if docs["plan"]["schemaVersion"] != 2:
+        return
+    path = Path(project_dir).resolve() / "outputs" / "legibility-review.json"
+    try:
+        review = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object_pairs)
+    except (OSError, UnicodeError, ValueError) as exc:
+        _fail("outputs/legibility-review.json", f"正式 K 线渲染需要当前完整视频的评审记录：{exc}")
+    if not isinstance(review, dict) or review.get("schemaVersion") != 1:
+        _fail("outputs/legibility-review.json", "schemaVersion 必须为 1")
+    if review.get("materialsAndAssetsSha256") != legibility_review_digest(project_dir):
+        _fail("outputs/legibility-review.json", "材料或渲染资产已变化；评审记录已过期")
+    if review.get("result") != "pass" or review.get("fullVideo") is not True:
+        _fail("outputs/legibility-review.json", "正式 K 线渲染只接受完整视频评审通过的记录")
+    checks = review.get("checks")
+    required = {"labelsReadable", "scrollTrackable", "axisStable", "eventsDoNotOverlap"}
+    if not isinstance(checks, dict) or set(checks) != required or any(value is not True for value in checks.values()):
+        _fail("outputs/legibility-review.json.checks", "四项可读性结论必须全部通过")
+    timestamps = review.get("sampleTimecodes")
+    if not isinstance(timestamps, list) or not timestamps or any(not isinstance(item, str) or not item.strip() for item in timestamps):
+        _fail("outputs/legibility-review.json.sampleTimecodes", "必须记录完整视频的抽检时间码")
+    report = docs["plan"]["selectionReport"]
+    if review.get("metrics") != {
+        "maxBarsPerSecond": report["maxBarsPerSecond"],
+        "minCenterSpacingPx": report["candidates"][report["selectedPeriod"]]["minCenterSpacingPx"],
+        "windowReplacementSeconds": report["candidates"][report["selectedPeriod"]]["windowReplacementSeconds"],
+    }:
+        _fail("outputs/legibility-review.json.metrics", "评审指标必须与当前周期选择报告一致")
 
 
 def _validate_request(request: dict[str, Any]) -> None:
@@ -161,9 +220,15 @@ def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_ro
         if not isinstance(point, dict):
             _fail(where, "必须是对象")
         point_dates.append(_date(point.get("date"), f"{where}.date"))
-        value = point.get("close")
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
-            _fail(f"{where}.close", "收盘值必须是有限正数")
+        fields = ("open", "high", "low", "close") if prices["schemaVersion"] == 2 else ("close",)
+        values = {}
+        for field in fields:
+            value = point.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+                _fail(f"{where}.{field}", "OHLC 必须为有限正数")
+            values[field] = value
+        if prices["schemaVersion"] == 2 and not (values["low"] <= min(values["open"], values["close"]) <= max(values["open"], values["close"]) <= values["high"]):
+            _fail(where, "OHLC 顺序无效，须满足 low <= min(open, close) <= max(open, close) <= high")
     if point_dates != expected:
         missing = sorted(set(expected) - set(point_dates))
         extra = sorted(set(point_dates) - set(expected))
@@ -300,6 +365,179 @@ def _validate_event(event: Any, where: str, start: date, end: date) -> None:
     _required_text(event.get("reason"), f"{where}.reason")
 
 
+def candle_period_stats(points: list[dict[str, Any]], date_range: list[str], duration: int, event_count: int) -> dict[str, dict[str, Any]]:
+    """Derive deterministic period counts and legibility metrics from daily OHLC."""
+    from collections import defaultdict
+
+    buckets: dict[str, dict[str, int]] = {key: {} for key in ("day", "week", "month", "year")}
+    for point in points:
+        day = date.fromisoformat(point["date"])
+        keys = {
+            "day": day.isoformat(), "week": f"{day.isocalendar().year}-W{day.isocalendar().week:02d}",
+            "month": day.strftime("%Y-%m"), "year": str(day.year),
+        }
+        for period, key in keys.items(): buckets[period][key] = 1
+    advance_seconds = duration - 6 - event_count * 3
+    width = WIDTH - 156 - 152
+    result = {}
+    for period, grouped in buckets.items():
+        count = len(grouped)
+        preferred_window = {"day": 60, "week": 104, "month": 120, "year": 40}[period]
+        visible = min(count, preferred_window, width // 8)
+        speed = count / advance_seconds if advance_seconds > 0 else float("inf")
+        result[period] = {
+            "count": count, "visibleBars": visible,
+            "maxBarsPerSecond": round(speed, 6) if math.isfinite(speed) else None,
+            "minCenterSpacingPx": round(width / visible, 3) if visible else 0,
+            "windowReplacementSeconds": round(visible / speed, 3) if speed > 0 else 0,
+            "eligible": count >= 12 and visible >= 12 and speed <= 4 and width / max(visible, 1) >= 8 and visible / max(speed, 0.000001) >= 8,
+        }
+    return result
+
+
+def aggregate_ohlc(points: list[dict[str, Any]], period: str) -> list[dict[str, Any]]:
+    """Aggregate daily OHLC into deterministic local-calendar buckets."""
+    if period not in {"day", "week", "month", "year"}:
+        _fail("selectedPeriod", "必须为 day/week/month/year")
+    buckets: dict[str, dict[str, Any]] = {}
+    for point in points:
+        day = date.fromisoformat(point["date"])
+        if period == "day": key = day.isoformat()
+        elif period == "week": key = f"{day.isocalendar().year}-W{day.isocalendar().week:02d}"
+        elif period == "month": key = day.strftime("%Y-%m")
+        else: key = str(day.year)
+        bucket = buckets.get(key)
+        if bucket is None:
+            if period == "day": start, end = day, day
+            elif period == "week":
+                start = date.fromisocalendar(day.isocalendar().year, day.isocalendar().week, 1)
+                end = date.fromisocalendar(day.isocalendar().year, day.isocalendar().week, 7)
+            elif period == "month":
+                start = day.replace(day=1)
+                end = start.replace(year=start.year + (start.month == 12), month=start.month % 12 + 1) - timedelta(days=1)
+            else:
+                start, end = day.replace(month=1, day=1), day.replace(month=12, day=31)
+            bucket = {"key": key, "start": start.isoformat(), "end": end.isoformat(),
+                      "firstTradingDate": day.isoformat(), "lastTradingDate": day.isoformat(), **{field: point[field] for field in ("open", "high", "low", "close")}}
+            buckets[key] = bucket
+        else:
+            bucket["high"] = max(bucket["high"], point["high"])
+            bucket["low"] = min(bucket["low"], point["low"])
+            bucket["close"] = point["close"]
+            bucket["lastTradingDate"] = day.isoformat()
+    return list(buckets.values())
+
+
+def build_candle_plan(request: dict[str, Any], prices: dict[str, Any], events: dict[str, Any], duration: int = 60, selected_period: str | None = None) -> dict[str, Any]:
+    """Select a readable period and produce a deterministic event-paused timeline."""
+    start, end = (date.fromisoformat(value) for value in request["displayRange"])
+    selected = sorted(events["selected"], key=lambda item: item["date"])
+    stats = candle_period_stats(prices["points"], request["displayRange"], duration, len(selected))
+    span_days = (end - start).days
+    preferred = "day" if span_days <= 183 else "week" if span_days <= 1095 else "month" if span_days <= 10957 else "year"
+    order = ("day", "week", "month", "year")
+    eligible = [period for period in order if stats[period]["eligible"]]
+    if not eligible:
+        details = "；".join(f"{period}: {stats[period]['count']} 根、{stats[period]['maxBarsPerSecond']} 根/秒、间距 {stats[period]['minCenterSpacingPx']}px、窗口换出 {stats[period]['windowReplacementSeconds']} 秒" for period in order)
+        raise A2VError(f"日、周、月、年 K 线均不满足可读性门槛（{details}）；请增加总时长或缩小经确认的展示范围")
+    start_index = order.index(preferred)
+    if selected_period is not None:
+        if selected_period not in order:
+            raise A2VError("指定周期必须为 day/week/month/year")
+        if selected_period not in eligible:
+            raise A2VError(f"指定 {selected_period} K 不满足可读性门槛；请增加时长或选择其他周期")
+        chosen = selected_period
+    else:
+        chosen = next((period for period in order[start_index:] if period in eligible), None)
+        if chosen is None:
+            chosen = next(period for period in reversed(order[:start_index]) if period in eligible)
+
+    holds = 90
+    waypoints = [start, *(date.fromisoformat(item["date"]) for item in selected), end]
+    gaps = [max(0, (right - left).days) for left, right in zip(waypoints, waypoints[1:])]
+    order = ("day", "week", "month", "year")
+    minimum_duration = None
+    while True:
+        buckets = aggregate_ohlc(prices["points"], chosen)
+        visible = stats[chosen]["visibleBars"]
+        spacing = stats[chosen]["minCenterSpacingPx"]
+        changes = []
+        for left, right in zip(waypoints, waypoints[1:]):
+            before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left.isoformat()}
+            through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right.isoformat()}
+            changes.append(len(through - before))
+        minimum_frames = [math.ceil(count / 4 * FPS) + 1 for count in changes]
+        available = duration * FPS - holds * (2 + len(selected)) - sum(minimum_frames)
+        required = math.ceil((holds * (2 + len(selected)) + sum(minimum_frames)) / FPS)
+        minimum_duration = required if minimum_duration is None else max(minimum_duration, required)
+        if available >= 0:
+            break
+        next_period = None if selected_period is not None else next((name for name in order[order.index(chosen) + 1:] if stats[name]["eligible"]), None)
+        if next_period is None:
+            raise A2VError(f"指定 {duration} 秒无法满足逐段推进上限；至少需要 {minimum_duration} 秒，或减少事件数")
+        chosen = next_period
+    positive = [index for index, value in enumerate(gaps) if value]
+    advancing_frames = duration * FPS - holds * (2 + len(selected))
+    if advancing_frames < sum(minimum_frames):
+        minimum_duration = math.ceil((holds * (2 + len(selected)) + sum(minimum_frames)) / FPS)
+        raise A2VError(f"指定 {duration} 秒无法满足逐段推进上限；至少需要 {minimum_duration} 秒，或减少事件数")
+    remaining = advancing_frames - sum(minimum_frames)
+    weights = [max(1, value) for value in changes]
+    weight_total = max(sum(weights), 1)
+    quotas = [remaining * value / weight_total for value in weights]
+    allocated = minimum_frames[:]
+    for i, quota in enumerate(quotas): allocated[i] += int(quota)
+    left_over = advancing_frames - sum(allocated)
+    for i in sorted(positive, key=lambda j: quotas[j] - int(quotas[j]), reverse=True)[:left_over]: allocated[i] += 1
+
+    segments: list[dict[str, Any]] = [{"frames": [0, holds], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"}]
+    event_displays = []
+    cursor = holds
+    for index, event in enumerate(selected):
+        target = waypoints[index + 1]
+        if target > waypoints[index]:
+            end_frame = cursor + allocated[index]
+            segments.append({"frames": [cursor, end_frame], "dates": [waypoints[index].isoformat(), target.isoformat()], "kind": "advance"})
+            cursor = end_frame
+        event_end = cursor + holds
+        segments.append({"frames": [cursor, event_end], "dates": [target.isoformat(), target.isoformat()], "kind": "hold"})
+        event_displays.append({"eventId": event["id"], "frames": [cursor, event_end]})
+        cursor = event_end
+    if end > waypoints[-2] if selected else end > start:
+        left = waypoints[-2] if selected else start
+        final_index = len(gaps) - 1
+        end_frame = cursor + allocated[final_index]
+        segments.append({"frames": [cursor, end_frame], "dates": [left.isoformat(), end.isoformat()], "kind": "advance"})
+        cursor = end_frame
+    segments.append({"frames": [cursor, duration * FPS], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"})
+
+    visible = stats[chosen]["visibleBars"]
+    bars_per_second = stats[chosen]["maxBarsPerSecond"]
+    spacing = stats[chosen]["minCenterSpacingPx"]
+    for segment in segments:
+        if segment["kind"] != "advance":
+            continue
+        left, right = (date.fromisoformat(value) for value in segment["dates"])
+        before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left.isoformat()}
+        through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right.isoformat()}
+        new_bars = len(through - before)
+        seconds = (segment["frames"][1] - segment["frames"][0] - 1) / FPS
+        speed = new_bars / max(seconds, 1 / FPS)
+        segment["readability"] = {"revealedBarsPerSecond": round(speed, 6),
+            "minCenterSpacingPx": spacing, "windowReplacementSeconds": round(visible / max(speed, 0.000001), 3)}
+    return {
+        "schemaVersion": 2, "chartType": "candlestick", "selectedPeriod": chosen, "durationSeconds": duration,
+        "fps": FPS, "canvas": {"width": WIDTH, "height": HEIGHT},
+        "axis": {"dateRange": request["displayRange"], "visibleWindowBars": visible,
+            "valueScale": "rolling-log" if request["instrument"]["kind"] == "stock" else "rolling-linear"},
+        "selectionReport": {"ruleVersion": 1, "choiceMode": "explicit" if selected_period else "automatic",
+            "requestedPeriod": selected_period, "preferredPeriod": preferred, "candidates": stats,
+            "eligiblePeriods": eligible, "selectedPeriod": chosen, "maxBarsPerSecond": bars_per_second},
+        "segments": segments, "eventDisplays": event_displays,
+        "rationale": f"跨度首选 {preferred} K；按 OHLC 数量与播放预算筛选为 {chosen} K。推进上限 {stats[chosen]['maxBarsPerSecond']} 根/秒；开场、{len(selected)} 个事件及结尾各停留 3 秒。",
+    }
+
+
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any], events: dict[str, Any]) -> None:
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
         _fail("animation-plan.json", "必须使用 1920×1080、30 fps")
@@ -310,11 +548,55 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    window_months = axis.get("visibleWindowMonths")
-    if isinstance(window_months, bool) or not isinstance(window_months, int) or not 1 <= window_months <= 1200:
-        _fail("animation-plan.json.axis.visibleWindowMonths", "必须是 1 到 1200 之间的整数日历月")
-    if axis.get("valueScale") != "rolling-linear":
-        _fail("animation-plan.json.axis.valueScale", "必须使用 rolling-linear 窗口自适应线性纵轴")
+    if plan["schemaVersion"] == 2:
+        period = plan.get("selectedPeriod")
+        if period not in {"day", "week", "month", "year"}:
+            _fail("animation-plan.json.selectedPeriod", "必须为 day/week/month/year")
+        report = plan.get("selectionReport")
+        if not isinstance(report, dict) or report.get("selectedPeriod") != period or report.get("ruleVersion") != 1:
+            _fail("animation-plan.json.selectionReport", "须记录与选择结果一致的 version 1 周期报告")
+        stats = report.get("candidates")
+        if not isinstance(stats, dict) or set(stats) != {"day", "week", "month", "year"}:
+            _fail("animation-plan.json.selectionReport.candidates", "须包含四种周期的候选指标")
+        if not isinstance(axis.get("visibleWindowBars"), int) or axis["visibleWindowBars"] < 12:
+            _fail("animation-plan.json.axis.visibleWindowBars", "K 线视窗至少包含 12 根")
+        duration_seconds = plan.get("durationSeconds")
+        advancing_seconds = duration_seconds - 6 - 3 * len(events["selected"])
+        if advancing_seconds <= 0:
+            _fail("animation-plan.json.durationSeconds", "开场、事件与结尾停留已用尽播放预算")
+        expected_stats = candle_period_stats(prices["points"], request["displayRange"], duration_seconds, len(events["selected"]))
+        if report["candidates"] != expected_stats:
+            _fail("animation-plan.json.selectionReport.candidates", "候选统计与价格材料或播放预算不一致")
+        eligible = [name for name in ("day", "week", "month", "year") if expected_stats[name]["eligible"]]
+        if report.get("eligiblePeriods") != eligible or period not in eligible or report.get("maxBarsPerSecond") != expected_stats[period]["maxBarsPerSecond"]:
+            _fail("animation-plan.json.selectionReport", "所选周期未通过自动可读性阈值")
+        if report.get("choiceMode") not in {"automatic", "explicit"} or (report["choiceMode"] == "explicit" and report.get("requestedPeriod") != period) or (report["choiceMode"] == "automatic" and report.get("requestedPeriod") is not None):
+            _fail("animation-plan.json.selectionReport", "周期选择模式和请求值不一致")
+        buckets = aggregate_ohlc(prices["points"], period)
+        for segment_index, segment in enumerate(plan.get("segments", [])):
+            if not isinstance(segment, dict) or segment.get("kind") != "advance":
+                continue
+            left, right = segment["dates"]
+            before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left}
+            through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right}
+            new_bars = len(through - before)
+            seconds = (segment["frames"][1] - segment["frames"][0] - 1) / FPS
+            speed = new_bars / max(seconds, 1 / FPS)
+            visible = expected_stats[period]["visibleBars"]
+            expected_readability = {"revealedBarsPerSecond": round(speed, 6),
+                "minCenterSpacingPx": expected_stats[period]["minCenterSpacingPx"],
+                "windowReplacementSeconds": round(visible / max(speed, 0.000001), 3)}
+            if segment.get("readability") != expected_readability:
+                _fail(f"animation-plan.json.segments[{segment_index}].readability", "逐段速度、柱间距或窗口换出时间与日期/帧映射不一致")
+            if speed > 4 or expected_readability["minCenterSpacingPx"] < 8 or expected_readability["windowReplacementSeconds"] < 8:
+                _fail(f"animation-plan.json.segments[{segment_index}].readability", "逐段速度、最小柱间距或窗口换出时间未达可读阈值")
+    else:
+        window_months = axis.get("visibleWindowMonths")
+        if isinstance(window_months, bool) or not isinstance(window_months, int) or not 1 <= window_months <= 1200:
+            _fail("animation-plan.json.axis.visibleWindowMonths", "必须是 1 到 1200 之间的整数日历月")
+    expected_scale = "rolling-log" if plan["schemaVersion"] == 2 and request["instrument"]["kind"] == "stock" else "rolling-linear"
+    if axis.get("valueScale") != expected_scale:
+        _fail("animation-plan.json.axis.valueScale", f"必须使用 {expected_scale} 窗口自适应纵轴")
     if "valueRange" in axis:
         _fail("animation-plan.json.axis.valueRange", "滚动视窗纵轴由可见价格动态计算，不接受固定 valueRange")
     segments = plan.get("segments")
@@ -407,8 +689,11 @@ def frame_date(plan: dict[str, Any], frame: int) -> date:
 
 def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
     plan = docs["plan"]
+    prices = docs["prices"]
+    if plan["schemaVersion"] == 2:
+        prices = {**prices, "candles": aggregate_ohlc(prices["points"], plan["selectedPeriod"])}
     return {
-        "request": docs["request"], "prices": docs["prices"], "events": docs["events"],
+        "request": docs["request"], "prices": prices, "events": docs["events"],
         "plan": plan, "durationInFrames": plan["durationSeconds"] * FPS,
         "fps": FPS, "width": WIDTH, "height": HEIGHT,
     }

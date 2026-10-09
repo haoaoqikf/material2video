@@ -82,6 +82,8 @@ def render(
     if limit_frames is not None and limit_frames < 1:
         raise A2VError("--limit-frames 必须大于 0")
     frames = min(total_frames, limit_frames) if limit_frames is not None else total_frames
+    if limit_frames is None:
+        financial.validate_legibility_review(project_dir, docs)
     destination = output or project_dir / "outputs" / "financial-timeseries.mp4"
     if limit_frames is not None and output is None:
         destination = project_dir / "outputs" / "previews" / "financial-timeseries-preview.mp4"
