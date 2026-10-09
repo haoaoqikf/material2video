@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, rollingTickDecimals, rollingValueRange, rollingWindowStart, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, markerRows, rollingTickDecimals, rollingValueRange, rollingWindowStart, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
@@ -11,13 +11,13 @@ vi.mock('remotion', async (importOriginal) => {
 const props: FinancialTimeSeriesProps = {
   request: { instrument: { kind: 'stock', name: '合成公司', code: 'SYN', market: 'TEST', unit: 'USD' }, displayRange: ['2020-01-01', '2020-01-03'] },
   prices: {
-    points: [{ date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 102 }],
+    schemaVersion: 3, points: [{ date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 102 }],
     unit: 'USD', priceBasis: 'split-adjusted', adjustmentDefinition: '合成数据：仅拆合股调整，不计分红再投资',
     sources: [{ url: 'https://example.invalid/prices' }],
   },
   events: { selected: [{ id: 'announcement', date: '2020-01-02', dateBasis: 'announced', title: '合成公告', sources: ['https://example.invalid/event'], reason: '合成夹具' }] },
   plan: {
-    durationSeconds: 6, fps: 30, canvas: { width: 1920, height: 1080 },
+    schemaVersion: 3, chartType: 'line', durationSeconds: 6, fps: 30, canvas: { width: 1920, height: 1080 },
     axis: { dateRange: ['2020-01-01', '2020-01-03'], visibleWindowMonths: 3, valueScale: 'rolling-linear' },
     segments: [
       { frames: [0, 15], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
@@ -30,6 +30,10 @@ const props: FinancialTimeSeriesProps = {
 };
 
 describe('financial time-series composition', () => {
+  it('separates all eight coincident or nearby event labels instead of cycling three rows', () => {
+    expect(markerRows([100, 100, 100, 100, 100, 100, 100, 100])).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(markerRows([100, 120, 180, 181])).toEqual([0, 1, 0, 1]);
+  });
   it('subtracts calendar months with month-end clamping and clamps to the data start', () => {
     expect(rollingWindowStart('2020-05-31', 3, '1999-01-22')).toBe('2020-02-29');
     expect(rollingWindowStart('2024-05-31', 3, '1999-01-22')).toBe('2024-02-29');
@@ -136,52 +140,64 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('2020年4月2日');
   });
 
-  it('renders schema v2 candles on the partial bucket without leaking future OHLC', () => {
-    const candlesProps: FinancialTimeSeriesProps = {
-      ...props,
-      request: { ...props.request, displayRange: ['2024-12-30', '2025-01-02'] },
-      prices: {
-        ...props.prices,
-        schemaVersion: 2,
-        points: [
-          { date: '2024-12-30', open: 10, high: 12, low: 9, close: 11 },
-          { date: '2025-01-02', open: 11, high: 500, low: 10, close: 450 },
-        ],
-        candles: [{ key: '2024', start: '2024-01-01', end: '2024-12-31', firstTradingDate: '2024-12-30', lastTradingDate: '2024-12-30', open: 10, high: 12, low: 9, close: 11 }],
-      } as FinancialTimeSeriesProps['prices'],
-      events: { selected: [{ ...props.events.selected[0]!, date: '2025-01-02' }] },
-      plan: {
-        ...props.plan,
-        selectedPeriod: 'year',
-        axis: { dateRange: ['2024-12-30', '2025-01-02'], visibleWindowBars: 12, visibleWindowMonths: 3, valueScale: 'rolling-log' },
-        segments: [
-          { frames: [0, 90], dates: ['2024-12-30', '2024-12-30'], kind: 'opening' },
-          { frames: [90, 100], dates: ['2024-12-30', '2025-01-02'], kind: 'advance' },
-          { frames: [100, 180], dates: ['2025-01-02', '2025-01-02'], kind: 'ending' },
-        ],
-        eventDisplays: [{ eventId: 'announcement', frames: [100, 120] }],
-      } as FinancialTimeSeriesProps['plan'],
-    };
-    testFrame.value = 90;
-    const markup = renderToStaticMarkup(<FinancialTimeSeries {...candlesProps} />);
-    expect(markup).toContain('data-a2v-financial="candlestick"');
-    expect(markup).toContain('data-a2v-period="year"');
-    expect(markup).toContain('2024*');
-    expect(markup).not.toContain('>500.00<');
-    expect(markup).not.toContain('>450.00<');
-    expect(markup).not.toContain('data-a2v-event-marker="announcement"');
+  it('moves calendar coordinates continuously but quotes only arrived trading points', () => {
+    const view = financialView(54, props.prices.points, props.plan);
+    const next = financialView(55, props.prices.points, props.plan);
+    expect(framePosition(54, props.plan) % 1).not.toBe(0);
+    expect(next.position).toBeGreaterThan(view.position);
+    expect(view.latest?.close).toBe(100);
+    expect(view.linePoints.every((point) => point.date <= view.currentDate)).toBe(true);
+    const changedFuture = props.prices.points.map((point) => point.date > view.currentDate ? { ...point, close: 99999 } : point);
+    expect(financialView(54, changedFuture, props.plan)).toEqual(view);
   });
 
-  it('shows an empty-range message before the first v2 trading candle', () => {
-    const emptyProps: FinancialTimeSeriesProps = {
+  it('expands to every historical point with a stable final linear axis and numbered events', () => {
+    const overviewProps: FinancialTimeSeriesProps = {
       ...props,
-      request: { ...props.request, displayRange: ['2024-12-29', '2025-01-02'] },
-      prices: { ...props.prices, schemaVersion: 2, points: [], candles: [{ key: '2024', start: '2024-01-01', end: '2024-12-31', firstTradingDate: '2024-12-30', lastTradingDate: '2024-12-31', open: 10, high: 12, low: 9, close: 11 }] } as FinancialTimeSeriesProps['prices'],
-      plan: { ...props.plan, selectedPeriod: 'year', axis: { ...props.plan.axis, visibleWindowBars: 12, valueScale: 'rolling-log' } } as FinancialTimeSeriesProps['plan'],
+      prices: { ...props.prices, points: [
+        { date: '2000-01-01', close: 1 }, { date: '2019-01-01', close: 10 }, { date: '2020-01-03', close: 100 },
+      ] },
+      plan: { ...props.plan, axis: { ...props.plan.axis, dateRange: ['2000-01-01', '2020-01-03'], visibleWindowMonths: 12 }, segments: [
+        { frames: [0, 90], dates: ['2000-01-01', '2000-01-01'], kind: 'opening' },
+        { frames: [90, 120], dates: ['2000-01-01', '2020-01-03'], kind: 'advance' },
+        { frames: [120, 180], dates: ['2020-01-03', '2020-01-03'], kind: 'overview' },
+        { frames: [180, 300], dates: ['2020-01-03', '2020-01-03'], kind: 'ending' },
+      ], eventDisplays: [] },
     };
-    testFrame.value = 0;
-    const markup = renderToStaticMarkup(<FinancialTimeSeries {...emptyProps} />);
-    expect(markup).toContain('尚无区间内 OHLC 报价');
-    expect(markup).not.toContain('Infinity');
+    const before = financialView(119, overviewProps.prices.points, overviewProps.plan);
+    const start = financialView(120, overviewProps.prices.points, overviewProps.plan);
+    expect(start.minValue).toBe(before.minValue);
+    expect(start.maxValue).toBe(before.maxValue);
+    expect(start.windowPosition).toBe(before.windowPosition);
+    for (let frame = 120; frame < 180; frame++) {
+      const view = financialView(frame, overviewProps.prices.points, overviewProps.plan);
+      for (const point of view.visiblePoints) {
+        expect(point.close).toBeGreaterThanOrEqual(view.minValue);
+        expect(point.close).toBeLessThanOrEqual(view.maxValue);
+      }
+    }
+    const final = financialView(179, overviewProps.prices.points, overviewProps.plan);
+    expect(final.windowStart).toBe('2000-01-01');
+    expect(final.visiblePoints).toHaveLength(3);
+    expect([final.minValue, final.maxValue]).toEqual(rollingValueRange(overviewProps.prices.points));
+    expect(financialView(299, overviewProps.prices.points, overviewProps.plan)).toEqual(final);
+    testFrame.value = 299;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...overviewProps} />);
+    expect(markup).toContain('全历史 · 线性纵轴');
+    expect(markup).toContain('data-a2v-overview-legend');
+    expect(markup).toContain('data-a2v-visible-price-points="3"');
+    expect(markup).toContain('data-a2v-financial="line"');
+    expect(markup).not.toContain('candlestick');
+  });
+
+  it('keeps every arrived point within the causal smoothed axis and is seek independent', () => {
+    for (const frame of [15, 53, 70, 89, 179, 53]) {
+      const view = financialView(frame, props.prices.points, props.plan);
+      for (const point of view.visiblePoints) {
+        expect(point.close).toBeGreaterThan(view.minValue);
+        expect(point.close).toBeLessThan(view.maxValue);
+      }
+    }
+    expect(financialView(53, props.prices.points, props.plan)).toEqual(financialView(53, props.prices.points, props.plan));
   });
 });

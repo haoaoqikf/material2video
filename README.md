@@ -20,7 +20,7 @@ v4 使用一个全片 `world`、稳定对象身份、全局状态/镜头/beat �
 
 ## 专题能力
 
-**金融时间序列视频：已支持旧版折线与新版自动周期 K 线。** AI 编程工具按公司或指数及日期范围搜索公开免费行情与事件，准备四类本地材料。schemaVersion 1 保留折线行为；schemaVersion 2 使用真实日 OHLC，按时间跨度和播放可读预算选择日/周/月/年 K 线，正式导出前须通过绑定当前材料与渲染资产的全片可读性评审。两种模式均为 1920×1080、30 fps、无音轨，渲染器只读本地固定材料、不联网抓取。制作流程见[金融时间序列视频专题参考](.agents/skills/article2video/references/financial-timeseries-video.md)。
+**金融时间序列视频：已统一为快速滚动折线与全历史收尾。** AI 编程工具按公司或指数及日期范围核验公开免费日收盘价与事件，准备四类本地材料。价格和动画计划使用 schemaVersion 3，默认近 12 个月滚动，结尾 2 秒展开全历史并停留 4 秒；K 线与周期选择已移除。旧 version 1/2 材料通过 `migrate-line` 显式备份迁移，正式导出须通过绑定材料、资产及完整静音预演文件的可读性评审。视频为 1920×1080、30 fps、无音轨，渲染只读固定本地数据。制作流程见[金融时间序列视频专题参考](.agents/skills/article2video/references/financial-timeseries-video.md)。
 
 使用方式、材料格式和验收规则见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)；可用命令为 `financial_video.py init|validate|render`。该专题不经过文章字数、口播和有声评审门禁，文章入口保持原行为。
 

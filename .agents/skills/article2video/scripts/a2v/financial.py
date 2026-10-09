@@ -4,7 +4,9 @@ from __future__ import annotations
 import json
 import hashlib
 import math
-from datetime import date, datetime, timedelta
+import shutil
+import tempfile
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -37,8 +39,8 @@ def _load(path: Path) -> dict[str, Any]:
         _fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
     if not isinstance(data, dict):
         _fail(path.name, "顶层必须是 JSON 对象")
-    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2}:
-        _fail(path.name, "schemaVersion 必须为 1 或 2")
+    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2, 3}:
+        _fail(path.name, "schemaVersion 必须为 1、2 或 3")
     return data
 
 
@@ -92,6 +94,8 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
         _fail("材料版本", "request.json 和 events.json 当前必须为 version 1")
     if prices["schemaVersion"] != plan["schemaVersion"]:
         _fail("材料版本", "prices.json 与 animation-plan.json 版本必须一致，拒绝混合版本")
+    if prices["schemaVersion"] != 3:
+        _fail("材料版本", "旧材料不能直接渲染；请运行 financial_video.py migrate-line --project-dir <作品目录>")
     _validate_request(request)
     _validate_prices(prices, request, root)
     _validate_events(events, request)
@@ -100,7 +104,7 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
 
 
 def legibility_review_digest(project_dir: str | Path) -> str:
-    """Bind the v2 visual review to exact materials and shared rendering sources."""
+    """Bind the visual review to exact materials and shared rendering sources."""
     root = Path(project_dir).resolve()
     web = Path(__file__).resolve().parents[5] / "web"
     inputs = [(root, root / name) for name in MATERIALS]
@@ -124,34 +128,34 @@ def legibility_review_digest(project_dir: str | Path) -> str:
 
 
 def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) -> None:
-    """Reject a missing, stale, or failed full-video review for schema v2."""
-    if docs["plan"]["schemaVersion"] != 2:
-        return
+    """Reject a missing, stale, or failed full-video review."""
     path = Path(project_dir).resolve() / "outputs" / "legibility-review.json"
     try:
         review = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object_pairs)
     except (OSError, UnicodeError, ValueError) as exc:
-        _fail("outputs/legibility-review.json", f"正式 K 线渲染需要当前完整视频的评审记录：{exc}")
+        _fail("outputs/legibility-review.json", f"正式折线渲染需要当前完整视频的评审记录：{exc}")
     if not isinstance(review, dict) or review.get("schemaVersion") != 1:
         _fail("outputs/legibility-review.json", "schemaVersion 必须为 1")
     if review.get("materialsAndAssetsSha256") != legibility_review_digest(project_dir):
         _fail("outputs/legibility-review.json", "材料或渲染资产已变化；评审记录已过期")
     if review.get("result") != "pass" or review.get("fullVideo") is not True:
-        _fail("outputs/legibility-review.json", "正式 K 线渲染只接受完整视频评审通过的记录")
+        _fail("outputs/legibility-review.json", "正式折线渲染只接受完整视频评审通过的记录")
     checks = review.get("checks")
-    required = {"labelsReadable", "scrollTrackable", "axisStable", "eventsDoNotOverlap"}
+    required = set(REVIEW_CHECKS)
     if not isinstance(checks, dict) or set(checks) != required or any(value is not True for value in checks.values()):
-        _fail("outputs/legibility-review.json.checks", "四项可读性结论必须全部通过")
+        _fail("outputs/legibility-review.json.checks", "全部可读性结论必须全部通过")
     timestamps = review.get("sampleTimecodes")
     if not isinstance(timestamps, list) or not timestamps or any(not isinstance(item, str) or not item.strip() for item in timestamps):
         _fail("outputs/legibility-review.json.sampleTimecodes", "必须记录完整视频的抽检时间码")
-    report = docs["plan"]["selectionReport"]
-    if review.get("metrics") != {
-        "maxBarsPerSecond": report["maxBarsPerSecond"],
-        "minCenterSpacingPx": report["candidates"][report["selectedPeriod"]]["minCenterSpacingPx"],
-        "windowReplacementSeconds": report["candidates"][report["selectedPeriod"]]["windowReplacementSeconds"],
-    }:
-        _fail("outputs/legibility-review.json.metrics", "评审指标必须与当前周期选择报告一致")
+    if review.get("metrics") != review_metrics(docs):
+        _fail("outputs/legibility-review.json.metrics", "评审指标与当前折线编排不一致")
+    preview = load_preview_record(project_dir, docs)
+    if review.get("previewSha256") != preview["sha256"]:
+        _fail("outputs/legibility-review.json", "预演文件已变化；请重新评审")
+    evidence = review.get("evidence")
+    if not isinstance(evidence, dict) or any(not isinstance(evidence.get(key), str) or not evidence[key].strip() for key in REVIEW_CHECKS):
+        _fail("outputs/legibility-review.json.evidence", "须填写每项可观察证据")
+
 
 
 def _validate_request(request: dict[str, Any]) -> None:
@@ -220,15 +224,11 @@ def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_ro
         if not isinstance(point, dict):
             _fail(where, "必须是对象")
         point_dates.append(_date(point.get("date"), f"{where}.date"))
-        fields = ("open", "high", "low", "close") if prices["schemaVersion"] == 2 else ("close",)
-        values = {}
-        for field in fields:
-            value = point.get(field)
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
-                _fail(f"{where}.{field}", "OHLC 必须为有限正数")
-            values[field] = value
-        if prices["schemaVersion"] == 2 and not (values["low"] <= min(values["open"], values["close"]) <= max(values["open"], values["close"]) <= values["high"]):
-            _fail(where, "OHLC 顺序无效，须满足 low <= min(open, close) <= max(open, close) <= high")
+        if set(point) != {"date", "close"}:
+            _fail(where, "折线价格点只能包含 date 和 close；旧材料请使用 migrate-line")
+        value = point.get("close")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            _fail(f"{where}.close", "收盘价必须为有限正数")
     if point_dates != expected:
         missing = sorted(set(expected) - set(point_dates))
         extra = sorted(set(point_dates) - set(expected))
@@ -365,177 +365,133 @@ def _validate_event(event: Any, where: str, start: date, end: date) -> None:
     _required_text(event.get("reason"), f"{where}.reason")
 
 
-def candle_period_stats(points: list[dict[str, Any]], date_range: list[str], duration: int, event_count: int) -> dict[str, dict[str, Any]]:
-    """Derive deterministic period counts and legibility metrics from daily OHLC."""
-    from collections import defaultdict
-
-    buckets: dict[str, dict[str, int]] = {key: {} for key in ("day", "week", "month", "year")}
-    for point in points:
-        day = date.fromisoformat(point["date"])
-        keys = {
-            "day": day.isoformat(), "week": f"{day.isocalendar().year}-W{day.isocalendar().week:02d}",
-            "month": day.strftime("%Y-%m"), "year": str(day.year),
-        }
-        for period, key in keys.items(): buckets[period][key] = 1
-    advance_seconds = duration - 6 - event_count * 3
-    width = WIDTH - 156 - 152
-    result = {}
-    for period, grouped in buckets.items():
-        count = len(grouped)
-        preferred_window = {"day": 60, "week": 104, "month": 120, "year": 40}[period]
-        visible = min(count, preferred_window, width // 8)
-        speed = count / advance_seconds if advance_seconds > 0 else float("inf")
-        result[period] = {
-            "count": count, "visibleBars": visible,
-            "maxBarsPerSecond": round(speed, 6) if math.isfinite(speed) else None,
-            "minCenterSpacingPx": round(width / visible, 3) if visible else 0,
-            "windowReplacementSeconds": round(visible / speed, 3) if speed > 0 else 0,
-            "eligible": count >= 12 and visible >= 12 and speed <= 4 and width / max(visible, 1) >= 8 and visible / max(speed, 0.000001) >= 8,
-        }
-    return result
-
-
-def aggregate_ohlc(points: list[dict[str, Any]], period: str) -> list[dict[str, Any]]:
-    """Aggregate daily OHLC into deterministic local-calendar buckets."""
-    if period not in {"day", "week", "month", "year"}:
-        _fail("selectedPeriod", "必须为 day/week/month/year")
-    buckets: dict[str, dict[str, Any]] = {}
-    for point in points:
-        day = date.fromisoformat(point["date"])
-        if period == "day": key = day.isoformat()
-        elif period == "week": key = f"{day.isocalendar().year}-W{day.isocalendar().week:02d}"
-        elif period == "month": key = day.strftime("%Y-%m")
-        else: key = str(day.year)
-        bucket = buckets.get(key)
-        if bucket is None:
-            if period == "day": start, end = day, day
-            elif period == "week":
-                start = date.fromisocalendar(day.isocalendar().year, day.isocalendar().week, 1)
-                end = date.fromisocalendar(day.isocalendar().year, day.isocalendar().week, 7)
-            elif period == "month":
-                start = day.replace(day=1)
-                end = start.replace(year=start.year + (start.month == 12), month=start.month % 12 + 1) - timedelta(days=1)
-            else:
-                start, end = day.replace(month=1, day=1), day.replace(month=12, day=31)
-            bucket = {"key": key, "start": start.isoformat(), "end": end.isoformat(),
-                      "firstTradingDate": day.isoformat(), "lastTradingDate": day.isoformat(), **{field: point[field] for field in ("open", "high", "low", "close")}}
-            buckets[key] = bucket
-        else:
-            bucket["high"] = max(bucket["high"], point["high"])
-            bucket["low"] = min(bucket["low"], point["low"])
-            bucket["close"] = point["close"]
-            bucket["lastTradingDate"] = day.isoformat()
-    return list(buckets.values())
-
-
-def build_candle_plan(request: dict[str, Any], prices: dict[str, Any], events: dict[str, Any], duration: int = 60, selected_period: str | None = None) -> dict[str, Any]:
-    """Select a readable period and produce a deterministic event-paused timeline."""
+def build_line_plan(request: dict[str, Any], events: dict[str, Any], duration: int = 60, window_months: int = 12) -> dict[str, Any]:
+    """Allocate exact frame budgets by calendar span, including same-day events."""
+    if type(duration) is not int or type(window_months) is not int or not 1 <= window_months <= 1200:
+        raise A2VError("时长必须为整数；窗口必须是 1 到 1200 之间的整数日历月")
     start, end = (date.fromisoformat(value) for value in request["displayRange"])
     selected = sorted(events["selected"], key=lambda item: item["date"])
-    stats = candle_period_stats(prices["points"], request["displayRange"], duration, len(selected))
-    span_days = (end - start).days
-    preferred = "day" if span_days <= 183 else "week" if span_days <= 1095 else "month" if span_days <= 10957 else "year"
-    order = ("day", "week", "month", "year")
-    eligible = [period for period in order if stats[period]["eligible"]]
-    if not eligible:
-        details = "；".join(f"{period}: {stats[period]['count']} 根、{stats[period]['maxBarsPerSecond']} 根/秒、间距 {stats[period]['minCenterSpacingPx']}px、窗口换出 {stats[period]['windowReplacementSeconds']} 秒" for period in order)
-        raise A2VError(f"日、周、月、年 K 线均不满足可读性门槛（{details}）；请增加总时长或缩小经确认的展示范围")
-    start_index = order.index(preferred)
-    if selected_period is not None:
-        if selected_period not in order:
-            raise A2VError("指定周期必须为 day/week/month/year")
-        if selected_period not in eligible:
-            raise A2VError(f"指定 {selected_period} K 不满足可读性门槛；请增加时长或选择其他周期")
-        chosen = selected_period
-    else:
-        chosen = next((period for period in order[start_index:] if period in eligible), None)
-        if chosen is None:
-            chosen = next(period for period in reversed(order[:start_index]) if period in eligible)
-
-    holds = 90
     waypoints = [start, *(date.fromisoformat(item["date"]) for item in selected), end]
-    gaps = [max(0, (right - left).days) for left, right in zip(waypoints, waypoints[1:])]
-    order = ("day", "week", "month", "year")
-    minimum_duration = None
-    while True:
-        buckets = aggregate_ohlc(prices["points"], chosen)
-        visible = stats[chosen]["visibleBars"]
-        spacing = stats[chosen]["minCenterSpacingPx"]
-        changes = []
-        for left, right in zip(waypoints, waypoints[1:]):
-            before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left.isoformat()}
-            through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right.isoformat()}
-            changes.append(len(through - before))
-        minimum_frames = [math.ceil(count / 4 * FPS) + 1 for count in changes]
-        available = duration * FPS - holds * (2 + len(selected)) - sum(minimum_frames)
-        required = math.ceil((holds * (2 + len(selected)) + sum(minimum_frames)) / FPS)
-        minimum_duration = required if minimum_duration is None else max(minimum_duration, required)
-        if available >= 0:
-            break
-        next_period = None if selected_period is not None else next((name for name in order[order.index(chosen) + 1:] if stats[name]["eligible"]), None)
-        if next_period is None:
-            raise A2VError(f"指定 {duration} 秒无法满足逐段推进上限；至少需要 {minimum_duration} 秒，或减少事件数")
-        chosen = next_period
-    positive = [index for index, value in enumerate(gaps) if value]
-    advancing_frames = duration * FPS - holds * (2 + len(selected))
-    if advancing_frames < sum(minimum_frames):
-        minimum_duration = math.ceil((holds * (2 + len(selected)) + sum(minimum_frames)) / FPS)
-        raise A2VError(f"指定 {duration} 秒无法满足逐段推进上限；至少需要 {minimum_duration} 秒，或减少事件数")
-    remaining = advancing_frames - sum(minimum_frames)
-    weights = [max(1, value) for value in changes]
-    weight_total = max(sum(weights), 1)
-    quotas = [remaining * value / weight_total for value in weights]
-    allocated = minimum_frames[:]
-    for i, quota in enumerate(quotas): allocated[i] += int(quota)
-    left_over = advancing_frames - sum(allocated)
-    for i in sorted(positive, key=lambda j: quotas[j] - int(quotas[j]), reverse=True)[:left_over]: allocated[i] += 1
+    gaps = [(right - left).days for left, right in zip(waypoints, waypoints[1:])]
+    if any(gap < 0 for gap in gaps):
+        raise A2VError("事件须位于展示范围内")
+    positive = [index for index, gap in enumerate(gaps) if gap > 0]
+    fixed = FPS * (9 + 3 * len(selected))
+    available = duration * FPS - fixed
+    minimum = fixed + 2 * len(positive)
+    if available < 2 * len(positive) or (not positive and available != 0):
+        raise A2VError(f"时长预算不满足开场、事件和全貌停留；至少需要 {math.ceil(minimum / FPS)} 秒；单日范围请使用恰好 {fixed / FPS:g} 秒")
+    allocations = [0] * len(gaps)
+    if positive:
+        remainder = available - 2 * len(positive)
+        total_days = sum(gaps)
+        quotas = {index: remainder * gaps[index] / total_days for index in positive}
+        for index in positive:
+            allocations[index] = 2 + int(quotas[index])
+        for index in sorted(positive, key=lambda index: quotas[index] % 1, reverse=True)[:available - sum(allocations)]:
+            allocations[index] += 1
+    segments = [{"frames": [0, 90], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"}]
+    displays = []
+    cursor = 90
+    for index, gap in enumerate(gaps):
+        left, right = waypoints[index], waypoints[index + 1]
+        if gap > 0:
+            next_frame = cursor + allocations[index]
+            segments.append({"frames": [cursor, next_frame], "dates": [left.isoformat(), right.isoformat()], "kind": "advance"})
+            cursor = next_frame
+        if index < len(selected):
+            segments.append({"frames": [cursor, cursor + 90], "dates": [right.isoformat(), right.isoformat()], "kind": "hold"})
+            displays.append({"eventId": selected[index]["id"], "frames": [cursor, cursor + 90]})
+            cursor += 90
+    segments.extend([
+        {"frames": [cursor, cursor + 60], "dates": [end.isoformat(), end.isoformat()], "kind": "overview"},
+        {"frames": [cursor + 60, cursor + 180], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"},
+    ])
+    return {"schemaVersion": 3, "chartType": "line", "durationSeconds": duration, "fps": FPS,
+        "canvas": {"width": WIDTH, "height": HEIGHT},
+        "axis": {"dateRange": request["displayRange"], "visibleWindowMonths": window_months, "valueScale": "rolling-linear"},
+        "segments": segments, "eventDisplays": displays,
+        "rationale": f"真实日收盘价，近 {window_months} 个月连续滚动；开场及事件各 3 秒，结尾 2 秒展开全历史并停留 4 秒。"}
 
-    segments: list[dict[str, Any]] = [{"frames": [0, holds], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"}]
-    event_displays = []
-    cursor = holds
-    for index, event in enumerate(selected):
-        target = waypoints[index + 1]
-        if target > waypoints[index]:
-            end_frame = cursor + allocated[index]
-            segments.append({"frames": [cursor, end_frame], "dates": [waypoints[index].isoformat(), target.isoformat()], "kind": "advance"})
-            cursor = end_frame
-        event_end = cursor + holds
-        segments.append({"frames": [cursor, event_end], "dates": [target.isoformat(), target.isoformat()], "kind": "hold"})
-        event_displays.append({"eventId": event["id"], "frames": [cursor, event_end]})
-        cursor = event_end
-    if end > waypoints[-2] if selected else end > start:
-        left = waypoints[-2] if selected else start
-        final_index = len(gaps) - 1
-        end_frame = cursor + allocated[final_index]
-        segments.append({"frames": [cursor, end_frame], "dates": [left.isoformat(), end.isoformat()], "kind": "advance"})
-        cursor = end_frame
-    segments.append({"frames": [cursor, duration * FPS], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"})
 
-    visible = stats[chosen]["visibleBars"]
-    bars_per_second = stats[chosen]["maxBarsPerSecond"]
-    spacing = stats[chosen]["minCenterSpacingPx"]
-    for segment in segments:
-        if segment["kind"] != "advance":
-            continue
-        left, right = (date.fromisoformat(value) for value in segment["dates"])
-        before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left.isoformat()}
-        through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right.isoformat()}
-        new_bars = len(through - before)
-        seconds = (segment["frames"][1] - segment["frames"][0] - 1) / FPS
-        speed = new_bars / max(seconds, 1 / FPS)
-        segment["readability"] = {"revealedBarsPerSecond": round(speed, 6),
-            "minCenterSpacingPx": spacing, "windowReplacementSeconds": round(visible / max(speed, 0.000001), 3)}
-    return {
-        "schemaVersion": 2, "chartType": "candlestick", "selectedPeriod": chosen, "durationSeconds": duration,
-        "fps": FPS, "canvas": {"width": WIDTH, "height": HEIGHT},
-        "axis": {"dateRange": request["displayRange"], "visibleWindowBars": visible,
-            "valueScale": "rolling-log" if request["instrument"]["kind"] == "stock" else "rolling-linear"},
-        "selectionReport": {"ruleVersion": 1, "choiceMode": "explicit" if selected_period else "automatic",
-            "requestedPeriod": selected_period, "preferredPeriod": preferred, "candidates": stats,
-            "eligiblePeriods": eligible, "selectedPeriod": chosen, "maxBarsPerSecond": bars_per_second},
-        "segments": segments, "eventDisplays": event_displays,
-        "rationale": f"跨度首选 {preferred} K；按 OHLC 数量与播放预算筛选为 {chosen} K。推进上限 {stats[chosen]['maxBarsPerSecond']} 根/秒；开场、{len(selected)} 个事件及结尾各停留 3 秒。",
-    }
+def prepare_line_plan(root: Path, duration: int, window_months: int) -> dict[str, Any]:
+    request, prices, events = (_load(root / name) for name in MATERIALS[:3])
+    if request["schemaVersion"] != 1 or events["schemaVersion"] != 1 or prices["schemaVersion"] != 3:
+        _fail("材料版本", "需 version 3 价格；旧材料请运行 migrate-line")
+    _validate_request(request)
+    _validate_prices(prices, request, root)
+    _validate_events(events, request)
+    plan = build_line_plan(request, events, duration, window_months)
+    _validate_plan(plan, request, prices, events)
+    return plan
+
+
+def migrate_line(root: Path, duration: int = 60, window_months: int = 12) -> Path:
+    """Validate before writing, back up inputs, restore on any publication failure."""
+    originals = {name: (root / name).read_bytes() for name in MATERIALS}
+    request, prices, events, old_plan = (_load(root / name) for name in MATERIALS)
+    if request["schemaVersion"] != 1 or events["schemaVersion"] != 1:
+        _fail("材料版本", "需求和事件必须为 version 1")
+    if prices["schemaVersion"] not in {1, 2} or prices["schemaVersion"] != old_plan["schemaVersion"]:
+        _fail("材料版本", "迁移仅接受一致的旧 version 1/2 价格与计划")
+    points = prices.get("points")
+    if not isinstance(points, list) or any(not isinstance(point, dict) for point in points):
+        _fail("prices.json.points", "旧价格点须为对象数组")
+    normalized = {**prices, "schemaVersion": 3, "points": [{"date": point.get("date"), "close": point.get("close")} for point in points]}
+    _validate_request(request)
+    _validate_prices(normalized, request, root)
+    _validate_events(events, request)
+    plan = build_line_plan(request, events, duration, window_months)
+    _validate_plan(plan, request, normalized, events)
+    backups = root / "outputs" / "material-backups"
+    backups.mkdir(parents=True, exist_ok=True)
+    backup = Path(tempfile.mkdtemp(prefix="before-line-", dir=backups))
+    for name, content in originals.items():
+        (backup / name).write_bytes(content)
+    review = root / "outputs" / "legibility-review.json"
+    if review.is_file():
+        shutil.copy2(review, backup / review.name)
+    try:
+        for name, value in (("prices.json", normalized), ("animation-plan.json", plan)):
+            (root / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        load_project(root)
+    except (OSError, A2VError):
+        for name, content in originals.items():
+            (root / name).write_bytes(content)
+        raise
+    # The old review remains inspectable but its material digest is now stale.
+    return backup
+
+
+REVIEW_CHECKS = ("labelsReadable", "scrollTrackable", "axisStable", "eventsDoNotOverlap", "overviewComplete")
+
+
+def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
+    return {"durationSeconds": docs["plan"]["durationSeconds"], "visibleWindowMonths": docs["plan"]["axis"]["visibleWindowMonths"], "overviewSeconds": 2, "endingSeconds": 4}
+
+
+def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:
+    root = Path(project_dir).resolve()
+    path = root / "outputs" / "previews" / "preview-record.json"
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(record, dict):
+            raise ValueError("记录必须为对象")
+        relative = record.get("path")
+        if not isinstance(relative, str):
+            raise ValueError("缺少预演路径")
+        video = (root / relative).resolve()
+        if not video.is_relative_to(root / "outputs" / "previews") or not video.is_file():
+            raise ValueError("预演路径越界或文件缺失")
+        if record.get("materialsAndAssetsSha256") != legibility_review_digest(root):
+            raise ValueError("预演材料或资产已变化")
+        if record.get("frames") != docs["plan"]["durationSeconds"] * FPS:
+            raise ValueError("需要完整时长预演")
+        if record.get("sha256") != hashlib.sha256(video.read_bytes()).hexdigest():
+            raise ValueError("预演文件摘要不一致")
+    except (OSError, ValueError) as exc:
+        _fail("完整预演记录", str(exc))
+    return record
 
 
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any], events: dict[str, Any]) -> None:
@@ -548,55 +504,15 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    if plan["schemaVersion"] == 2:
-        period = plan.get("selectedPeriod")
-        if period not in {"day", "week", "month", "year"}:
-            _fail("animation-plan.json.selectedPeriod", "必须为 day/week/month/year")
-        report = plan.get("selectionReport")
-        if not isinstance(report, dict) or report.get("selectedPeriod") != period or report.get("ruleVersion") != 1:
-            _fail("animation-plan.json.selectionReport", "须记录与选择结果一致的 version 1 周期报告")
-        stats = report.get("candidates")
-        if not isinstance(stats, dict) or set(stats) != {"day", "week", "month", "year"}:
-            _fail("animation-plan.json.selectionReport.candidates", "须包含四种周期的候选指标")
-        if not isinstance(axis.get("visibleWindowBars"), int) or axis["visibleWindowBars"] < 12:
-            _fail("animation-plan.json.axis.visibleWindowBars", "K 线视窗至少包含 12 根")
-        duration_seconds = plan.get("durationSeconds")
-        advancing_seconds = duration_seconds - 6 - 3 * len(events["selected"])
-        if advancing_seconds <= 0:
-            _fail("animation-plan.json.durationSeconds", "开场、事件与结尾停留已用尽播放预算")
-        expected_stats = candle_period_stats(prices["points"], request["displayRange"], duration_seconds, len(events["selected"]))
-        if report["candidates"] != expected_stats:
-            _fail("animation-plan.json.selectionReport.candidates", "候选统计与价格材料或播放预算不一致")
-        eligible = [name for name in ("day", "week", "month", "year") if expected_stats[name]["eligible"]]
-        if report.get("eligiblePeriods") != eligible or period not in eligible or report.get("maxBarsPerSecond") != expected_stats[period]["maxBarsPerSecond"]:
-            _fail("animation-plan.json.selectionReport", "所选周期未通过自动可读性阈值")
-        if report.get("choiceMode") not in {"automatic", "explicit"} or (report["choiceMode"] == "explicit" and report.get("requestedPeriod") != period) or (report["choiceMode"] == "automatic" and report.get("requestedPeriod") is not None):
-            _fail("animation-plan.json.selectionReport", "周期选择模式和请求值不一致")
-        buckets = aggregate_ohlc(prices["points"], period)
-        for segment_index, segment in enumerate(plan.get("segments", [])):
-            if not isinstance(segment, dict) or segment.get("kind") != "advance":
-                continue
-            left, right = segment["dates"]
-            before = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= left}
-            through = {bucket["key"] for bucket in buckets if bucket["firstTradingDate"] <= right}
-            new_bars = len(through - before)
-            seconds = (segment["frames"][1] - segment["frames"][0] - 1) / FPS
-            speed = new_bars / max(seconds, 1 / FPS)
-            visible = expected_stats[period]["visibleBars"]
-            expected_readability = {"revealedBarsPerSecond": round(speed, 6),
-                "minCenterSpacingPx": expected_stats[period]["minCenterSpacingPx"],
-                "windowReplacementSeconds": round(visible / max(speed, 0.000001), 3)}
-            if segment.get("readability") != expected_readability:
-                _fail(f"animation-plan.json.segments[{segment_index}].readability", "逐段速度、柱间距或窗口换出时间与日期/帧映射不一致")
-            if speed > 4 or expected_readability["minCenterSpacingPx"] < 8 or expected_readability["windowReplacementSeconds"] < 8:
-                _fail(f"animation-plan.json.segments[{segment_index}].readability", "逐段速度、最小柱间距或窗口换出时间未达可读阈值")
-    else:
-        window_months = axis.get("visibleWindowMonths")
-        if isinstance(window_months, bool) or not isinstance(window_months, int) or not 1 <= window_months <= 1200:
-            _fail("animation-plan.json.axis.visibleWindowMonths", "必须是 1 到 1200 之间的整数日历月")
-    expected_scale = "rolling-log" if plan["schemaVersion"] == 2 and request["instrument"]["kind"] == "stock" else "rolling-linear"
-    if axis.get("valueScale") != expected_scale:
-        _fail("animation-plan.json.axis.valueScale", f"必须使用 {expected_scale} 窗口自适应纵轴")
+    if plan.get("schemaVersion") != 3 or plan.get("chartType") != "line":
+        _fail("animation-plan.json", "必须为 version 3、chartType=line；旧材料请使用 migrate-line")
+    if any(key in plan for key in ("selectedPeriod", "selectionReport")) or "visibleWindowBars" in axis:
+        _fail("animation-plan.json", "不再接受 K 线周期或柱数参数；请使用 migrate-line")
+    window_months = axis.get("visibleWindowMonths")
+    if type(window_months) is not int or not 1 <= window_months <= 1200:
+        _fail("animation-plan.json.axis.visibleWindowMonths", "必须是 1 到 1200 之间的整数日历月")
+    if axis.get("valueScale") != "rolling-linear":
+        _fail("animation-plan.json.axis.valueScale", "必须使用 rolling-linear 窗口自适应纵轴")
     if "valueRange" in axis:
         _fail("animation-plan.json.axis.valueRange", "滚动视窗纵轴由可见价格动态计算，不接受固定 valueRange")
     segments = plan.get("segments")
@@ -624,21 +540,26 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
         if previous_date is not None and date_start != previous_date:
             _fail(f"{where}.dates", "相邻时间段日期边界必须连续")
         kind = segment.get("kind")
-        if kind not in {"opening", "advance", "hold", "ending"}:
-            _fail(f"{where}.kind", "必须为 opening、advance、hold 或 ending")
+        if kind not in {"opening", "advance", "hold", "overview", "ending"}:
+            _fail(f"{where}.kind", "必须为 opening、advance、hold、overview 或 ending")
         if kind == "advance" and (date_start >= date_end or end_frame - start_frame < 2):
             _fail(where, "advance 必须跨日期且至少占两帧")
-        if kind in {"opening", "hold", "ending"} and date_start != date_end:
+        if kind in {"opening", "hold", "overview", "ending"} and date_start != date_end:
             _fail(where, f"{kind} 段必须停留在同一日期")
         if index == 0 and (kind != "opening" or start_frame != 0 or date_start != display_start):
             _fail(where, "首段必须从第 0 帧在展示起始日 opening")
-        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or end_frame - start_frame < 90):
-            _fail(where, "尾段必须在展示结束日停留至少 90 帧并覆盖终帧")
+        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or end_frame - start_frame != 120):
+            _fail(where, "尾段必须在展示结束日停留 120 帧并覆盖终帧")
         if index not in {0, len(segments) - 1} and kind in {"opening", "ending"}:
             _fail(where, "opening 与 ending 只能位于首尾")
         previous_frame, previous_date = end_frame, date_end
     if previous_frame != total_frames or previous_date != display_end:
         _fail("animation-plan.json.segments", "时间段必须覆盖完整时长和展示日期")
+    overview = segments[-2]
+    if overview["kind"] != "overview" or overview["dates"] != [request["displayRange"][1]] * 2 or overview["frames"][1] - overview["frames"][0] != 60:
+        _fail("animation-plan.json.segments", "倒数第二段须在终日用 60 帧展开全貌")
+    if sum(segment["kind"] == "overview" for segment in segments) != 1 or segments[0]["frames"][1] != 90:
+        _fail("animation-plan.json.segments", "只允许一次全貌展开，开场须为 90 帧")
     _required_text(plan.get("rationale"), "animation-plan.json.rationale")
     displays = plan.get("eventDisplays")
     if not isinstance(displays, list):
@@ -646,6 +567,8 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     selected_by_id = {item["id"]: item for item in events["selected"]}
     if {item.get("eventId") for item in displays if isinstance(item, dict)} != set(selected_by_id):
         _fail("animation-plan.json.eventDisplays", "每个且仅每个入选事件须有一个展示区间")
+    if len(displays) != len(selected_by_id):
+        _fail("animation-plan.json.eventDisplays", "事件展示不得重复")
     previous_event_end = -1
     for index, display in enumerate(displays):
         where = f"animation-plan.json.eventDisplays[{index}]"
@@ -658,6 +581,8 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
         event_day = _date(selected_by_id[display["eventId"]]["date"], f"events.{display['eventId']}.date")
         if start_frame < 0 or end_frame <= start_frame or end_frame > total_frames:
             _fail(f"{where}.frames", "事件展示区间超出视频范围或为空")
+        if end_frame - start_frame != 90 or not any(segment["kind"] == "hold" and segment["frames"] == frames and segment["dates"] == [event_day.isoformat()] * 2 for segment in segments):
+            _fail(f"{where}.frames", "每个事件须在真实日期 hold 90 帧")
         if start_frame < previous_event_end:
             _fail(f"{where}.frames", "事件说明区间不得重叠，须依次展示")
         if frame_date(plan, start_frame) < event_day:
@@ -690,8 +615,6 @@ def frame_date(plan: dict[str, Any], frame: int) -> date:
 def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
     plan = docs["plan"]
     prices = docs["prices"]
-    if plan["schemaVersion"] == 2:
-        prices = {**prices, "candles": aggregate_ohlc(prices["points"], plan["selectedPeriod"])}
     return {
         "request": docs["request"], "prices": prices, "events": docs["events"],
         "plan": plan, "durationInFrames": plan["durationSeconds"] * FPS,

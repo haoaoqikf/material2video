@@ -44,17 +44,20 @@ def _parser() -> argparse.ArgumentParser:
     _add_init(init)
     validate = sub.add_parser("validate", help="离线校验四类作品材料与帧时间轴")
     validate.add_argument("--project-dir", required=True)
-    render = sub.add_parser("render", help="离线渲染并验收无音轨横屏 MP4")
-    render.add_argument("--project-dir", required=True)
-    render.add_argument("--out", help="输出 MP4；默认 <project-dir>/outputs/financial-timeseries.mp4")
-    render.add_argument("--limit-frames", type=int, help="快速预演前 N 帧，写入 outputs/previews/")
-    render.add_argument("--crf", type=int, default=18)
-    render.add_argument("--preset", choices=("ultrafast", "veryfast", "fast", "medium", "slow", "slower"), default="medium")
-    plan = sub.add_parser("plan", help="根据 OHLC 材料自动选择 K 线周期并写入动画编排")
-    plan.add_argument("--project-dir", required=True)
-    plan.add_argument("--duration-seconds", type=int, default=60)
-    plan.add_argument("--period", choices=("day", "week", "month", "year"), help="可选：指定主周期；不指定时自动选择")
-    review = sub.add_parser("review-template", help="为 K 线全片评审生成绑定当前材料与资产的记录模板")
+    for command in ("render", "preview"):
+        render = sub.add_parser(command, help="正式导出" if command == "render" else "生成待评审静音预演，默认完整时长")
+        render.add_argument("--project-dir", required=True)
+        render.add_argument("--out", help="独立输出 MP4；预演必须位于作品 outputs/previews 内")
+        if command == "preview":
+            render.add_argument("--limit-frames", type=int, help="仅预演前 N 帧；短预演不能作为完整评审")
+        render.add_argument("--crf", type=int, default=18)
+        render.add_argument("--preset", choices=("ultrafast", "veryfast", "fast", "medium", "slow", "slower"), default="medium")
+    for command in ("plan", "migrate-line"):
+        plan = sub.add_parser(command, help="生成折线编排" if command == "plan" else "备份旧材料，提取真实 close 并迁移为折线")
+        plan.add_argument("--project-dir", required=True)
+        plan.add_argument("--duration-seconds", type=int, default=60)
+        plan.add_argument("--window-months", type=int, default=12)
+    review = sub.add_parser("review-template", help="为折线全片评审生成绑定当前材料与资产的待填写模板")
     review.add_argument("--project-dir", required=True)
     return parser
 
@@ -104,7 +107,7 @@ def _init(args: argparse.Namespace) -> Path:
     }
     _write(root / "request.json", request)
     _write(root / "prices.json", {
-        "schemaVersion": 2, "unit": args.unit.strip(),
+        "schemaVersion": 3, "unit": args.unit.strip(),
         "priceBasis": "split-adjusted" if args.kind == "stock" else "official-index-points",
         "adjustmentBaseDate": end.isoformat() if args.kind == "stock" else None,
         "adjustmentDefinition": "仅拆合股调整，不计分红再投资；由 AI 核验来源定义后填写" if args.kind == "stock" else None,
@@ -113,16 +116,18 @@ def _init(args: argparse.Namespace) -> Path:
     })
     _write(root / "events.json", {"schemaVersion": 1, "candidates": [], "selected": [], "excluded": []})
     _write(root / "animation-plan.json", {
-        "schemaVersion": 2, "chartType": "candlestick", "selectedPeriod": None, "durationSeconds": None,
+        "schemaVersion": 3, "chartType": "line", "durationSeconds": None,
         "fps": 30, "canvas": {"width": 1920, "height": 1080},
-        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowBars": None, "valueScale": "rolling-linear"},
-        "selectionReport": None, "segments": [], "eventDisplays": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
+        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowMonths": 12, "valueScale": "rolling-linear"},
+        "segments": [], "eventDisplays": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
     return root
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
+    if any(item == "--period" or item.startswith("--period=") for item in (argv if argv is not None else sys.argv[1:])):
+        parser.error("--period 已移除：金融工作流仅支持日收盘价折线；旧材料请运行 migrate-line")
     args = parser.parse_args(argv)
     _force_utf8_output()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
@@ -133,16 +138,14 @@ def main(argv: list[str] | None = None) -> int:
             print("请由 AI 搜索并核验数据与事件，填写四份材料后运行 validate。")
             return 0
         root = _project_path(args.project_dir)
+        if args.command == "migrate-line":
+            backup = financial.migrate_line(root, args.duration_seconds, args.window_months)
+            print(f"已迁移至 version 3 折线；原材料备份：{backup}；须重新完整预演与评审。")
+            return 0
         if args.command == "plan":
-            documents = {Path(name).stem: financial._load(root / name) for name in financial.MATERIALS}
-            financial._validate_request(documents["request"])
-            if documents["prices"].get("schemaVersion") != 2:
-                raise A2VError("自动 K 线编排要求 prices.json version 2 日 OHLC 数据")
-            documents["animation-plan"] = financial.build_candle_plan(
-                documents["request"], documents["prices"], documents["events"], args.duration_seconds, args.period,
-            )
-            _write(root / "animation-plan.json", documents["animation-plan"])
-            print(f"已选择 {documents['animation-plan']['selectedPeriod']} K；指标：{json.dumps(documents['animation-plan']['selectionReport']['candidates'][documents['animation-plan']['selectedPeriod']], ensure_ascii=False)}")
+            plan = financial.prepare_line_plan(root, args.duration_seconds, args.window_months)
+            _write(root / "animation-plan.json", plan)
+            print(f"已生成 {plan['durationSeconds']} 秒折线编排，窗口 {plan['axis']['visibleWindowMonths']} 个月。")
             return 0
         docs = financial.load_project(root)
         if args.command == "validate":
@@ -150,26 +153,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"交易日 {len(docs['prices']['points'])} 个，入选事件 {len(docs['events']['selected'])} 个，时长 {docs['plan']['durationSeconds']} 秒")
             return 0
         if args.command == "review-template":
-            if docs["plan"]["schemaVersion"] != 2:
-                raise A2VError("全片可读性评审模板仅用于 schemaVersion 2 K 线视频")
-            report = docs["plan"]["selectionReport"]
-            period_stats = report["candidates"][report["selectedPeriod"]]
+            preview = financial.load_preview_record(root, docs)
             review_path = root / "outputs" / "legibility-review.json"
             review_path.parent.mkdir(parents=True, exist_ok=True)
             _write(review_path, {
                 "schemaVersion": 1, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
                 "result": "pending", "fullVideo": False, "sampleTimecodes": [],
-                "metrics": {"maxBarsPerSecond": report["maxBarsPerSecond"],
-                    "minCenterSpacingPx": period_stats["minCenterSpacingPx"],
-                    "windowReplacementSeconds": period_stats["windowReplacementSeconds"]},
-                "checks": {"labelsReadable": False, "scrollTrackable": False, "axisStable": False,
-                    "eventsDoNotOverlap": False},
+                "previewSha256": preview["sha256"],
+                "metrics": financial.review_metrics(docs),
+                "checks": {key: False for key in financial.REVIEW_CHECKS},
+                "evidence": {key: "" for key in financial.REVIEW_CHECKS},
             })
             print(f"已生成待填写的评审模板：{review_path}")
             return 0
         output = Path(args.out).expanduser().resolve() if args.out else None
         result = financial_render.render(
-            root, docs, output=output, limit_frames=args.limit_frames,
+            root, docs, output=output, limit_frames=getattr(args, "limit_frames", None),
+            preview=args.command == "preview",
             crf=args.crf, preset=args.preset,
         )
         print(f"金融视频已渲染并通过无音轨验收：{result}")

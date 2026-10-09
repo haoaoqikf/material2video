@@ -30,7 +30,7 @@ def project(tmp_path: Path) -> Path:
             "requestedRange": ["2020-01-01", "2020-12-31"], "displayRange": ["2020-01-01", "2020-01-03"], "confirmations": ["合成测试确认缩短日期范围"],
         },
         "prices.json": {
-            "schemaVersion": 1, "unit": "USD", "priceBasis": "split-adjusted", "adjustmentBaseDate": "2020-01-03",
+            "schemaVersion": 3, "unit": "USD", "priceBasis": "split-adjusted", "adjustmentBaseDate": "2020-01-03",
             "adjustmentDefinition": "仅拆合股调整，不计分红再投资；合成数据",
             "splitAdjustments": [], "expectedTradingDates": ["2020-01-02", "2020-01-03"],
             "expectedTradingDatesSource": ["https://example.invalid/calendar"],
@@ -43,16 +43,10 @@ def project(tmp_path: Path) -> Path:
             "candidates": [{"id": "e1", "date": "2020-01-02", "dateBasis": "announced", "title": "合成公告", "sources": ["https://example.invalid/event"], "reason": "合成资料"}],
             "selected": [{"id": "e1", "date": "2020-01-02", "dateBasis": "announced", "title": "合成公告", "sources": ["https://example.invalid/event"], "reason": "合成资料"}], "excluded": [],
         },
-        "animation-plan.json": {
-            "schemaVersion": 1, "durationSeconds": 6, "fps": 30, "canvas": {"width": 1920, "height": 1080},
-            "axis": {"dateRange": ["2020-01-01", "2020-01-03"], "visibleWindowMonths": 3, "valueScale": "rolling-linear"},
-            "segments": [
-                {"frames": [0, 15], "dates": ["2020-01-01", "2020-01-01"], "kind": "opening"},
-                {"frames": [15, 90], "dates": ["2020-01-01", "2020-01-03"], "kind": "advance"},
-                {"frames": [90, 180], "dates": ["2020-01-03", "2020-01-03"], "kind": "ending"},
-            ],
-            "eventDisplays": [{"eventId": "e1", "frames": [53, 70]}], "rationale": "合成测试编排",
-        },
+        "animation-plan.json": financial.build_line_plan(
+            {"displayRange": ["2020-01-01", "2020-01-03"]},
+            {"selected": [{"id": "e1", "date": "2020-01-02"}]}, duration=15,
+        ),
     }
     for name, data in docs.items():
         (root / name).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -71,8 +65,8 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
     docs = financial.load_project(root)
     assert len(docs["prices"]["points"]) == 2
     assert financial.frame_date(docs["plan"], 0).isoformat() == "2020-01-01"
-    assert financial.frame_date(docs["plan"], 52).isoformat() == "2020-01-02"
-    assert financial.frame_date(docs["plan"], 179).isoformat() == "2020-01-03"
+    assert financial.frame_date(docs["plan"], 179).isoformat() == "2020-01-02"
+    assert financial.frame_date(docs["plan"], 449).isoformat() == "2020-01-03"
 
 
 @pytest.mark.parametrize(
@@ -83,7 +77,7 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
         ("prices.json", lambda d: d["points"][1].update(close=float("nan")), "有限正数"),
         ("events.json", lambda d: (d["selected"][0].update(date="2019-12-31"), d["candidates"][0].update(date="2019-12-31")), "展示范围"),
         ("animation-plan.json", lambda d: d["segments"][1].update(frames=[14, 90]), "连续"),
-        ("events.json", lambda d: (d["selected"][0].update(date="2020-01-03"), d["candidates"][0].update(date="2020-01-03")), "早于事件"),
+        ("events.json", lambda d: (d["selected"][0].update(date="2020-01-03"), d["candidates"][0].update(date="2020-01-03")), "真实日期 hold"),
         ("animation-plan.json", lambda d: d.update(canvas={"width": 1080, "height": 1920}), "1920"),
         ("animation-plan.json", lambda d: d["axis"].pop("visibleWindowMonths"), "visibleWindowMonths"),
         ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=0), "1 到 1200"),
@@ -131,7 +125,7 @@ def test_out_of_order_selected_events_are_rejected(tmp_path):
     root = project(tmp_path)
     edit(root, "events.json", lambda d: (d["selected"].append({**d["selected"][0], "id": "e2"}), d["candidates"].append({**d["candidates"][0], "id": "e2"})))
     edit(root, "animation-plan.json", lambda d: d["eventDisplays"].append({"eventId": "e2", "frames": [69, 80]}))
-    with pytest.raises(A2VError, match="不得重叠"):
+    with pytest.raises(A2VError, match="hold 90 帧"):
         financial.load_project(root)
 
 
@@ -173,86 +167,149 @@ def test_raw_snapshot_hash_and_workspace_boundary_are_enforced(tmp_path):
         financial.load_project(root)
 
 
-def test_v2_ohlc_requires_valid_order_and_matching_plan_version(tmp_path):
+def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path):
     root = project(tmp_path)
-    raw = b"synthetic OHLC fixture"
-    (root / "raw-prices.csv").write_bytes(raw)
-    def make_v2(data):
-        data.update(schemaVersion=2, points=[
-            {"date": "2020-01-02", "open": 99, "high": 101, "low": 98, "close": 100},
-            {"date": "2020-01-03", "open": 100, "high": 103, "low": 99, "close": 102},
-        ], rawSnapshots=[{"path": "raw-prices.csv", "sha256": hashlib.sha256(raw).hexdigest(), "sourceUrl": "https://example.invalid/prices"}])
-    edit(root, "prices.json", make_v2)
+    original = json.loads((root / "prices.json").read_text(encoding="utf-8"))
+    old = {**original, "schemaVersion": 2, "points": [{**point, "open": point["close"], "high": point["close"] + 1, "low": point["close"] - 1} for point in original["points"]]}
+    (root / "prices.json").write_text(json.dumps(old), encoding="utf-8")
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=2, chartType="candlestick"))
+    with pytest.raises(A2VError, match="migrate-line"):
+        financial.load_project(root)
+    backup = financial.migrate_line(root, duration=15)
+    assert json.loads((backup / "prices.json").read_text(encoding="utf-8")) == old
+    assert financial.load_project(root)["prices"] == original
+    with pytest.raises(A2VError, match="仅接受一致的旧"):
+        financial.migrate_line(root)
+
+
+def test_migration_rejects_bad_data_before_writing(tmp_path):
+    root = project(tmp_path)
+    edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
+    edit(root, "prices.json", lambda data: data["points"][0].update(close=0))
+    originals = {name: (root / name).read_bytes() for name in financial.MATERIALS}
+    with pytest.raises(A2VError, match="有限正数"):
+        financial.migrate_line(root)
+    assert {name: (root / name).read_bytes() for name in financial.MATERIALS} == originals
+
+
+def test_plan_covers_full_60_seconds_including_same_day_events_and_overview():
+    events = {"selected": [{"id": str(index), "date": day} for index, day in enumerate([
+        "1999-01-22", "1999-10-11", "2007-02-16", "2020-04-27", "2023-05-24", "2024-06-10", "2025-02-26", "2026-08-26"])]}
+    request = {"displayRange": ["1999-01-22", "2026-10-08"]}
+    plan = financial.build_line_plan(request, events)
+    assert plan["segments"][-2]["frames"] == [1620, 1680]
+    assert plan["segments"][-1]["frames"] == [1680, 1800]
+    assert all(item["frames"][1] - item["frames"][0] == 90 for item in plan["eventDisplays"])
+    dates = [financial.frame_date(plan, frame) for frame in range(1800)]
+    assert dates == sorted(dates)
+    assert dates[-1].isoformat() == "2026-10-08"
+    with pytest.raises(A2VError, match="时长预算"):
+        financial.build_line_plan(request, events, duration=30)
+    coincident = financial.build_line_plan(request, {"selected": [{"id": "a", "date": "2000-01-01"}, {"id": "b", "date": "2000-01-01"}]})
+    assert coincident["eventDisplays"][0]["frames"][1] == coincident["eventDisplays"][1]["frames"][0]
+
+
+def preview_fixture(root, docs):
+    folder = root / "outputs" / "previews"
+    folder.mkdir(parents=True)
+    video = folder / "test.mp4"
+    video.write_bytes(b"synthetic preview fixture")
+    digest = hashlib.sha256(video.read_bytes()).hexdigest()
+    (folder / "preview-record.json").write_text(json.dumps({
+        "path": "outputs/previews/test.mp4", "sha256": digest,
+        "frames": docs["plan"]["durationSeconds"] * 30,
+        "materialsAndAssetsSha256": financial.legibility_review_digest(root),
+    }), encoding="utf-8")
+    return digest
+
+
+def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
+    root = project(tmp_path)
+    docs = financial.load_project(root)
+    with pytest.raises(A2VError, match="需要当前完整视频"):
+        financial.validate_legibility_review(root, docs)
+    preview_digest = preview_fixture(root, docs)
+    assert financial_video.main(["review-template", "--project-dir", str(root)]) == 0
+    path = root / "outputs" / "legibility-review.json"
+    review = json.loads(path.read_text(encoding="utf-8"))
+    with pytest.raises(A2VError, match="只接受完整视频评审通过"):
+        financial.validate_legibility_review(root, docs)
+    review.update(result="pass", fullVideo=True, sampleTimecodes=["00:00:03"],
+        checks={key: True for key in financial.REVIEW_CHECKS}, evidence={key: "合成证据" for key in financial.REVIEW_CHECKS})
+    assert review["previewSha256"] == preview_digest
+    path.write_text(json.dumps(review), encoding="utf-8")
+    financial.validate_legibility_review(root, docs)
+    (root / "outputs/previews/test.mp4").write_bytes(b"changed preview")
+    with pytest.raises(A2VError, match="摘要不一致"):
+        financial.validate_legibility_review(root, docs)
+    path.write_text(json.dumps({**review, "materialsAndAssetsSha256": "0" * 64}), encoding="utf-8")
+    with pytest.raises(A2VError, match="已过期"):
+        financial.validate_legibility_review(root, docs)
+
+
+def test_plan_validates_data_before_overwriting_and_rejects_legacy(tmp_path):
+    root = project(tmp_path)
+    old = (root / "animation-plan.json").read_bytes()
+    edit(root, "prices.json", lambda data: data["points"].pop())
+    assert financial_video.main(["plan", "--project-dir", str(root)]) == 2
+    assert (root / "animation-plan.json").read_bytes() == old
+    with pytest.raises(SystemExit):
+        financial_video.main(["plan", "--project-dir", str(root), "--period", "year"])
+
+
+def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypatch):
+    root = project(tmp_path)
+    edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
+    originals = {name: (root / name).read_bytes() for name in financial.MATERIALS}
+
+    def reject(_root):
+        raise A2VError("合成写入后故障")
+
+    monkeypatch.setattr(financial, "load_project", reject)
+    with pytest.raises(A2VError, match="写入后故障"):
+        financial.migrate_line(root, duration=15)
+    assert {name: (root / name).read_bytes() for name in financial.MATERIALS} == originals
+
+
+def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
+    root = project(tmp_path)
+    edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
     with pytest.raises(A2VError, match="版本必须一致"):
         financial.load_project(root)
-    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=2))
-    with pytest.raises(A2VError, match="OHLC 顺序无效"):
-        edit(root, "prices.json", lambda data: data["points"][0].update(high=90))
-        financial.load_project(root)
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
+    backup = financial.migrate_line(root, duration=15)
+    assert backup.is_dir()
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 3
 
 
-def test_nvidia_ohlc_material_selects_yearly_period_at_60_seconds():
-    from datetime import date, timedelta
-    points = []
-    day = date(1999, 1, 22)
-    while day <= date(2026, 10, 8):
-        if day.weekday() < 5:
-            value = 1.0 + (day - date(1999, 1, 22)).days / 100
-            points.append({"date": day.isoformat(), "open": value, "high": value + 0.2, "low": value - 0.2, "close": value + 0.1})
-        day += timedelta(days=1)
-    stats = financial.candle_period_stats(points, ["1999-01-22", "2026-10-08"], 60, 8)
-    assert stats["month"]["count"] > 300 and not stats["month"]["eligible"]
-    assert stats["year"]["count"] == 28 and stats["year"]["eligible"]
-    request = {"displayRange": ["1999-01-22", "2026-10-08"], "instrument": {"kind": "stock"}}
-    event_list = {"selected": [{"id": str(i), "date": d} for i, d in enumerate([
-        "1999-01-22", "1999-10-11", "2007-02-16", "2020-04-27", "2023-05-24", "2024-06-10", "2025-02-26", "2026-08-26"])]}
-    plan = financial.build_candle_plan(request, {"points": points}, event_list)
-    assert plan["selectedPeriod"] == "year"
-    assert plan["durationSeconds"] == 60
-    assert plan["selectionReport"]["choiceMode"] == "automatic"
-    assert len(plan["segments"]) == 18
-    assert max(segment["readability"]["revealedBarsPerSecond"] for segment in plan["segments"] if segment["kind"] == "advance") <= 4
-    explicit = financial.build_candle_plan(request, {"points": points}, event_list, duration=60, selected_period="year")
-    assert explicit["selectionReport"]["choiceMode"] == "explicit"
-    assert explicit["selectionReport"]["requestedPeriod"] == "year"
-    with pytest.raises(A2VError, match="指定 month K"):
-        financial.build_candle_plan(request, {"points": points}, event_list, duration=60, selected_period="month")
-
-
-def test_ohlc_aggregation_tracks_calendar_boundaries_and_review_gate(tmp_path):
-    points = [
-        {"date": "2020-12-31", "open": 10, "high": 12, "low": 9, "close": 11},
-        {"date": "2021-01-01", "open": 11, "high": 14, "low": 10, "close": 13},
-        {"date": "2021-01-04", "open": 13, "high": 15, "low": 12, "close": 14},
-    ]
-    weekly = financial.aggregate_ohlc(points, "week")
-    assert weekly[0]["key"] == "2020-W53"
-    assert weekly[0]["firstTradingDate"] == "2020-12-31"
-    assert weekly[0]["lastTradingDate"] == "2021-01-01"
-    assert (weekly[0]["open"], weekly[0]["high"], weekly[0]["low"], weekly[0]["close"]) == (10, 14, 9, 13)
-    assert len(financial.aggregate_ohlc(points, "year")) == 2
+def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
+    from a2v import remotion
 
     root = project(tmp_path)
     docs = financial.load_project(root)
-    docs["plan"] = {"schemaVersion": 2, "selectionReport": {"selectedPeriod": "year", "maxBarsPerSecond": 1,
-        "candidates": {"year": {"minCenterSpacingPx": 57.5, "windowReplacementSeconds": 20}}}}
-    with pytest.raises(A2VError, match="需要当前完整视频"):
-        financial.validate_legibility_review(root, docs)
-    review_path = root / "outputs" / "legibility-review.json"
-    review_path.parent.mkdir()
-    review = {"schemaVersion": 1, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
-        "result": "pass", "fullVideo": True, "sampleTimecodes": ["00:00:10"],
-        "metrics": {"maxBarsPerSecond": 1, "minCenterSpacingPx": 57.5, "windowReplacementSeconds": 20},
-        "checks": {"labelsReadable": True, "scrollTrackable": True, "axisStable": True, "eventsDoNotOverlap": True}}
-    review_path.write_text(json.dumps(review), encoding="utf-8")
-    financial.validate_legibility_review(root, docs)
-    failed_review = {**review, "result": "fail"}
-    review_path.write_text(json.dumps(failed_review), encoding="utf-8")
-    with pytest.raises(A2VError, match="只接受完整视频评审通过"):
-        financial.validate_legibility_review(root, docs)
-    review_path.write_text(json.dumps({**review, "materialsAndAssetsSha256": "0" * 64}), encoding="utf-8")
-    with pytest.raises(A2VError, match="已过期"):
-        financial.validate_legibility_review(root, docs)
+    preview_fixture(root, docs)
+    path = root / "outputs/previews/preview-record.json"
+    edit_record = json.loads(path.read_text(encoding="utf-8"))
+    path.write_text(json.dumps({**edit_record, "frames": 2}), encoding="utf-8")
+    with pytest.raises(A2VError, match="完整时长"):
+        financial.load_preview_record(root, docs)
+    path.write_text(json.dumps(edit_record), encoding="utf-8")
+    monkeypatch.setattr(remotion, "build_inputs", lambda: [])
+    with pytest.raises(A2VError, match="资产已变化"):
+        financial.load_preview_record(root, docs)
+
+
+def test_preview_cannot_overwrite_a_final_video(tmp_path):
+    root = project(tmp_path)
+    docs = financial.load_project(root)
+    destination = root / "outputs/old-final.mp4"
+    destination.parent.mkdir()
+    destination.write_bytes(b"original final")
+    with pytest.raises(A2VError, match="不能覆盖正式成片"):
+        financial_render.render(root, docs, output=destination, preview=True)
+    assert destination.read_bytes() == b"original final"
 
 
 def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
@@ -282,5 +339,5 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
 def test_financial_preview_renders_widescreen_mp4_without_audio(tmp_path):
     root = project(tmp_path)
     docs = financial.load_project(root)
-    output = financial_render.render(root, docs, limit_frames=2, preset="ultrafast")
+    output = financial_render.render(root, docs, preview=True, limit_frames=2, preset="ultrafast")
     assert output.is_file() and output.stat().st_size > 0

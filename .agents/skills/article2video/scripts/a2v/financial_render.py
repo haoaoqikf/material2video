@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import subprocess
@@ -72,6 +73,7 @@ def render(
     *,
     output: Path | None = None,
     limit_frames: int | None = None,
+    preview: bool = False,
     crf: int = 18,
     preset: str = "medium",
 ) -> Path:
@@ -82,14 +84,21 @@ def render(
     if limit_frames is not None and limit_frames < 1:
         raise A2VError("--limit-frames 必须大于 0")
     frames = min(total_frames, limit_frames) if limit_frames is not None else total_frames
-    if limit_frames is None:
+    if limit_frames is not None and not preview:
+        raise A2VError("短预演须使用 preview 命令，正式导出不能限制帧数")
+    if not preview:
         financial.validate_legibility_review(project_dir, docs)
-    destination = output or project_dir / "outputs" / "financial-timeseries.mp4"
-    if limit_frames is not None and output is None:
-        destination = project_dir / "outputs" / "previews" / "financial-timeseries-preview.mp4"
+    destination = output or project_dir / "outputs" / "financial-line.mp4"
+    if preview and output is None:
+        destination = project_dir / "outputs" / "previews" / "financial-line-preview.mp4"
+    if preview and not destination.resolve().is_relative_to((project_dir / "outputs" / "previews").resolve()):
+        raise A2VError("预演只能写入作品 outputs/previews，不能覆盖正式成片")
+    if not preview and destination.resolve().is_relative_to((project_dir / "outputs" / "previews").resolve()):
+        raise A2VError("正式成片不能写入 previews")
     destination.parent.mkdir(parents=True, exist_ok=True)
     web = remotion.web_dir()
     remotion.require_environment(web)
+    inputs_digest = financial.legibility_review_digest(project_dir)
     props = financial.build_render_props(docs)
     with tempfile.TemporaryDirectory(prefix="a2v-financial-", dir=destination.parent) as temporary:
         temp = Path(temporary)
@@ -109,8 +118,17 @@ def render(
         )
         render_engine._verify_output(temp_video, frames, financial.WIDTH, financial.HEIGHT, financial.FPS)
         _assert_no_audio(temp_video)
-        if limit_frames is None:
+        if not preview:
             render_engine._grant_access(temp_video)
+        if inputs_digest != financial.legibility_review_digest(project_dir):
+            raise A2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         os.replace(temp_video, destination)
+    if preview:
+        record_path = project_dir / "outputs" / "previews" / "preview-record.json"
+        record_path.write_text(json.dumps({
+            "path": destination.resolve().relative_to(project_dir.resolve()).as_posix(),
+            "sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
+            "frames": frames, "materialsAndAssetsSha256": inputs_digest,
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     logger.info("金融视频导出通过：%s（%d 帧，%d fps，无音轨）", destination, frames, financial.FPS)
     return destination
