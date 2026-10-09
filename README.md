@@ -24,6 +24,8 @@ v4 使用一个全片 `world`、稳定对象身份、全局状态/镜头/beat �
 
 使用方式、材料格式和验收规则见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)；可用命令为 `financial_video.py init|validate|render`。该专题不经过文章字数、口播和有声评审门禁，文章入口保持原行为。
 
+后续计划按时间跨度和阅读预算自动选择日/周/月/年 K 线，**尚未实现**；规划见[自动选择 K 线周期](docs/PROJECT_PLAN.md#自动选择-k-线周期规划中尚未实现)。当前仍使用上述日收盘折线流程。
+
 ## 快速开始
 
 ```bash
