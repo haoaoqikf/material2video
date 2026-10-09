@@ -26,7 +26,14 @@ def _approve_render_gate(article: Path, media_path: Path | None = None) -> None:
     inspect = article / "outputs" / "inspect"
     inspect.mkdir(parents=True, exist_ok=True)
     (inspect / "report.json").write_text(json.dumps({"aestheticReview": {"findings": []}}), encoding="utf-8")
-    (inspect / "review.md").write_text("- 是否值得发布：通过\n", encoding="utf-8")
+    # 正式渲染门禁还要求 review.md 的全片节奏单项评分：只写发布结论会被判为待评审。
+    (inspect / "review.md").write_text(
+        "# 视觉评审\n\n"
+        "| 项 | 分 | 依据 |\n| --- | --- | --- |\n"
+        "| 节奏 | 4 | 00:00 开场建立；00:01 核心动作推进后停留（渲染路径测试夹具） |\n\n"
+        "- 是否值得发布：通过\n",
+        encoding="utf-8",
+    )
     # 生产记录（含 v4 正式渲染要求的五项全片连续性结论）由 conftest 统一补齐。
     approve_production_record(article / "storyboard.json", media_path)
 

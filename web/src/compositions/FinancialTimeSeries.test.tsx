@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, financialView, framePosition, rollingTickDecimals, rollingValueRange, rollingWindowStart, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
@@ -16,12 +16,11 @@ const props: FinancialTimeSeriesProps = {
     sources: [{ url: 'https://example.invalid/prices' }],
   },
   plan: {
-    schemaVersion: 4, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1920, height: 1080 },
-    axis: { dateRange: ['2020-01-01', '2020-01-03'], visibleWindowMonths: 3, valueScale: 'rolling-linear' },
+    schemaVersion: 5, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1920, height: 1080 },
+    axis: { dateRange: ['2020-01-01', '2020-01-03'], dateScale: 'full-range', valueScale: 'revealed-linear' },
     segments: [
       { frames: [0, 90], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
-      { frames: [90, 1620], dates: ['2020-01-01', '2020-01-03'], kind: 'advance' },
-      { frames: [1620, 1680], dates: ['2020-01-03', '2020-01-03'], kind: 'overview' },
+      { frames: [90, 1680], dates: ['2020-01-01', '2020-01-03'], kind: 'advance' },
       { frames: [1680, 1800], dates: ['2020-01-03', '2020-01-03'], kind: 'ending' },
     ],
     rationale: '测试夹具',
@@ -30,17 +29,29 @@ const props: FinancialTimeSeriesProps = {
 };
 
 describe('financial time-series composition', () => {
-  it('subtracts calendar months with month-end clamping and clamps to the data start', () => {
-    expect(rollingWindowStart('2020-05-31', 3, '1999-01-22')).toBe('2020-02-29');
-    expect(rollingWindowStart('2024-05-31', 3, '1999-01-22')).toBe('2024-02-29');
-    expect(rollingWindowStart('2020-02-29', 3, '2020-01-22')).toBe('2020-01-22');
+  it('handles thirty years of daily data within the view-computation budget', () => {
+    const start = Date.UTC(1990, 0, 1);
+    const points = Array.from({ length: 11000 }, (_, index) => ({
+      date: new Date(start + index * 86400000).toISOString().slice(0, 10), close: 1 + index / 100,
+    }));
+    const first = points[0]!.date; const last = points.at(-1)!.date;
+    const plan = { ...props.plan, axis: { ...props.plan.axis, dateRange: [first, last] as [string, string] }, segments: props.plan.segments.map((segment) => ({
+      ...segment, dates: (segment.kind === 'opening' ? [first, first] : segment.kind === 'advance' ? [first, last] : [last, last]) as [string, string],
+    })) };
+    const started = performance.now();
+    let count = 0;
+    for (let frame = 0; frame < 1800; frame++) count = financialView(frame, points, plan).visiblePoints.length;
+    const elapsed = performance.now() - started;
+    expect(count).toBe(11000);
+    expect(elapsed).toBeLessThan(3000);
+    console.info(`financialView: 11000 points / 1800 frames = ${elapsed.toFixed(1)} ms (budget 3000 ms)`);
   });
 
   it('pads adaptive price ranges, including a single flat value', () => {
-    expect(rollingValueRange([{ date: '2020-01-01', close: 10 }, { date: '2020-01-02', close: 20 }])).toEqual([9.2, 20.8]);
-    expect(rollingValueRange([{ date: '2020-01-01', close: 100 }])).toEqual([99, 101]);
-    expect(rollingTickDecimals(...rollingValueRange([{ date: '2020-01-01', close: 0.041 }]))).toBe(4);
-    expect(rollingValueRange([])).toEqual([0, 1]);
+    expect(revealedValueRange([{ date: '2020-01-01', close: 10 }, { date: '2020-01-02', close: 20 }])).toEqual([9.2, 20.8]);
+    expect(revealedValueRange([{ date: '2020-01-01', close: 100 }])).toEqual([99, 101]);
+    expect(valueTickDecimals(...revealedValueRange([{ date: '2020-01-01', close: 0.041 }]))).toBe(4);
+    expect(revealedValueRange([])).toEqual([0, 1]);
   });
 
   it('shows no quote before the first real trading close arrives', () => {
@@ -51,7 +62,7 @@ describe('financial time-series composition', () => {
   });
 
   it('shows the latest arrived close and its real trading date', () => {
-    testFrame.value = 855;
+    testFrame.value = 885;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('100 USD');
     expect(markup).toContain('最近有效收盘 2020-01-02');
@@ -62,7 +73,7 @@ describe('financial time-series composition', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).not.toMatch(/event|事件|公告|发生/iu);
-    expect(markup).toContain('全历史 · 线性纵轴');
+    expect(markup).toContain('完整年份 · 纵轴随已展示价格自适应');
   });
 
   it('holds the previous real close on non-trading dates without inventing a quote', () => {
@@ -72,12 +83,11 @@ describe('financial time-series composition', () => {
       prices: { ...props.prices, points: [{ date: '2020-04-01', close: 99 }] },
       plan: { ...props.plan, axis: { ...props.plan.axis, dateRange: ['2020-01-01', '2020-04-03'] }, segments: [
         { frames: [0, 90], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
-        { frames: [90, 1620], dates: ['2020-01-01', '2020-04-03'], kind: 'advance' },
-        { frames: [1620, 1680], dates: ['2020-04-03', '2020-04-03'], kind: 'overview' },
+        { frames: [90, 1680], dates: ['2020-01-01', '2020-04-03'], kind: 'advance' },
         { frames: [1680, 1800], dates: ['2020-04-03', '2020-04-03'], kind: 'ending' },
       ] },
     };
-    testFrame.value = 1619;
+    testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
     expect(markup).toContain('99 USD');
     expect(markup).toContain('最近有效收盘 2020-04-01');
@@ -85,63 +95,75 @@ describe('financial time-series composition', () => {
   });
 
   it('moves calendar coordinates continuously but quotes only arrived trading points', () => {
-    const view = financialView(855, props.prices.points, props.plan);
-    const next = financialView(856, props.prices.points, props.plan);
-    expect(framePosition(855, props.plan) % 1).not.toBe(0);
+    const view = financialView(885, props.prices.points, props.plan);
+    const next = financialView(886, props.prices.points, props.plan);
+    expect(framePosition(885, props.plan) % 1).not.toBe(0);
     expect(next.position).toBeGreaterThan(view.position);
     expect(view.latest?.close).toBe(100);
     expect(view.linePoints.every((point) => point.date <= view.currentDate)).toBe(true);
     const changedFuture = props.prices.points.map((point) => point.date > view.currentDate ? { ...point, close: 99999 } : point);
-    expect(financialView(855, changedFuture, props.plan)).toEqual(view);
+    expect(financialView(885, changedFuture, props.plan)).toEqual(view);
   });
 
-  it('expands to the full history with a stable linear axis', () => {
-    const overviewProps: FinancialTimeSeriesProps = {
+  it('keeps full-history coordinates fixed and preserves every historical point', () => {
+    const historyProps: FinancialTimeSeriesProps = {
       ...props,
-      request: { ...props.request, displayRange: ['2000-01-01', '2020-01-03'] },
       prices: { ...props.prices, points: [
-        { date: '2000-01-01', close: 1 }, { date: '2019-01-01', close: 10 }, { date: '2020-01-03', close: 100 },
+        { date: '2000-01-01', close: 1 }, { date: '2010-01-01', close: 100 }, { date: '2020-01-03', close: 10 },
       ] },
       plan: { ...props.plan, axis: { ...props.plan.axis, dateRange: ['2000-01-01', '2020-01-03'] }, segments: [
         { frames: [0, 90], dates: ['2000-01-01', '2000-01-01'], kind: 'opening' },
-        { frames: [90, 1620], dates: ['2000-01-01', '2020-01-03'], kind: 'advance' },
-        { frames: [1620, 1680], dates: ['2020-01-03', '2020-01-03'], kind: 'overview' },
+        { frames: [90, 1680], dates: ['2000-01-01', '2020-01-03'], kind: 'advance' },
         { frames: [1680, 1800], dates: ['2020-01-03', '2020-01-03'], kind: 'ending' },
       ] },
     };
-    const before = financialView(1619, overviewProps.prices.points, overviewProps.plan);
-    const start = financialView(1620, overviewProps.prices.points, overviewProps.plan);
-    expect(start.minValue).toBe(before.minValue);
-    expect(start.maxValue).toBe(before.maxValue);
-    expect(start.windowPosition).toBe(before.windowPosition);
-    for (let frame = 1620; frame < 1680; frame++) {
-      const view = financialView(frame, overviewProps.prices.points, overviewProps.plan);
-      for (const point of view.visiblePoints) {
-        expect(point.close).toBeGreaterThanOrEqual(view.minValue);
-        expect(point.close).toBeLessThanOrEqual(view.maxValue);
-      }
-    }
-    const final = financialView(1679, overviewProps.prices.points, overviewProps.plan);
-    expect(final.windowStart).toBe('2000-01-01');
+    const opening = financialView(0, historyProps.prices.points, historyProps.plan);
+    const middle = financialView(1000, historyProps.prices.points, historyProps.plan);
+    const final = financialView(1679, historyProps.prices.points, historyProps.plan);
+    expect(opening.windowPosition).toBe(final.windowPosition);
+    expect(opening.windowEndPosition).toBe(final.windowEndPosition);
+    expect(middle.visiblePoints).toHaveLength(2);
     expect(final.visiblePoints).toHaveLength(3);
-    expect([final.minValue, final.maxValue]).toEqual(rollingValueRange(overviewProps.prices.points));
-    expect(financialView(1799, overviewProps.prices.points, overviewProps.plan)).toEqual(final);
-    testFrame.value = 1799;
-    const markup = renderToStaticMarkup(<FinancialTimeSeries {...overviewProps} />);
-    expect(markup).toContain('全历史 · 线性纵轴');
-    expect(markup).toContain('data-a2v-visible-price-points="3"');
-    expect(markup).toContain('data-a2v-financial="line"');
-    expect(markup).not.toContain('candlestick');
+    expect(final.maxValue).toBeGreaterThan(100);
+    expect(final.minValue).toBeLessThan(1);
+    for (let frame = 1680; frame < 1800; frame++) {
+      expect(financialView(frame, historyProps.prices.points, historyProps.plan)).toEqual(final);
+    }
+    const markupAt = (frame: number) => {
+      testFrame.value = frame;
+      return renderToStaticMarkup(<FinancialTimeSeries {...historyProps} />);
+    };
+    const ticks = (markup: string) => markup.match(/<g><line x1="[^" ]+"[^>]+stroke="#172235"[^]*?<\/g>/g);
+    expect(ticks(markupAt(0))?.length).toBeGreaterThan(1);
+    expect(ticks(markupAt(0))).toEqual(ticks(markupAt(1799)));
+    const firstX = (markup: string) => markup.match(/points="([^,]+),/u)?.[1];
+    expect(firstX(markupAt(0))).toBe(firstX(markupAt(1799)));
+    expect(markupAt(1799)).toContain('data-a2v-visible-price-points="3"');
+  });
+
+  it.each([[1, 2, 3], [100, 1, 150], [0.01, 0.01, 0.01], [10, 10, 10]])('contains arrived prices and ignores future extremes: %s', (...values) => {
+    const points = values.map((close, index) => ({ date: `2020-01-0${index + 1}`, close }));
+    const ordered = Array.from({ length: 1800 }, (_, frame) => financialView(frame, points, props.plan));
+    for (const frame of Array.from({ length: 1800 }, (_, index) => 1799 - index)) {
+      const view = financialView(frame, points, props.plan);
+      expect(view).toEqual(ordered[frame]);
+      for (const point of view.visiblePoints) {
+        expect(point.close).toBeGreaterThan(view.minValue);
+        expect(point.close).toBeLessThan(view.maxValue);
+      }
+      const changed = points.map((point) => point.date > view.currentDate ? { ...point, close: 999999 } : point);
+      expect(financialView(frame, changed, props.plan)).toEqual(view);
+    }
   });
 
   it('keeps every arrived point within the causal smoothed axis and is seek independent', () => {
-    for (const frame of [90, 855, 1619, 1620, 1679, 1799]) {
+    for (const frame of [90, 885, 1679, 1680, 1679, 1799]) {
       const view = financialView(frame, props.prices.points, props.plan);
       for (const point of view.visiblePoints) {
         expect(point.close).toBeGreaterThan(view.minValue);
         expect(point.close).toBeLessThan(view.maxValue);
       }
     }
-    expect(financialView(855, props.prices.points, props.plan)).toEqual(financialView(855, props.prices.points, props.plan));
+    expect(financialView(885, props.prices.points, props.plan)).toEqual(financialView(885, props.prices.points, props.plan));
   });
 });

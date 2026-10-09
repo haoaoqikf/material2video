@@ -23,7 +23,7 @@ import re
 import shutil
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -511,6 +511,7 @@ def build_inputs(
     *,
     storyboard_path: str | Path | None = None,
     content_root: str | Path | None = None,
+    scene_modules: Iterable[Path] | None = None,
 ) -> list[Path]:
     """画面与编码的全部构建输入：从入口出发**沿引用可达**的文件。
 
@@ -518,12 +519,21 @@ def build_inputs(
     成片判成「落后」，闸门立刻沦为噪音，而人一旦开始忽略它，它就不再是闸门。
     反面同样要防：可达性算少了会让「改了组件却判成当前」——所以入口、字体、
     依赖清单这些不被 import 的东西必须显式列出来。
+
+    作品级代码场景的入口只有两个确定来源：目录里有分镜时按分镜解析，否则读
+    `.gen/scene-manifest.json`。共享 composition（如金融专题，从不加载作品模块）
+    应显式传 `scene_modules=()`：清单是全局最后写入者，会残留上一篇文章的模块。
     """
     web = contract_page.web_dir(repo_root)
     seen: dict[Path, None] = {}
 
     queue = [candidate for name in _ENTRY_ROOTS if (candidate := web / name).is_file()]
-    queue.extend(_storyboard_modules(storyboard_path, content_root) if storyboard_path else _manifest_modules(repo_root))
+    if scene_modules is not None:
+        queue.extend(scene_modules)
+    elif storyboard_path:
+        queue.extend(_storyboard_modules(storyboard_path, content_root))
+    else:
+        queue.extend(_manifest_modules(repo_root))
     generated_indexes = {
         (web / scene_manifest.GENERATED_MANIFEST).resolve(),
         (web / ".gen" / "active-tailwind.css").resolve(),

@@ -123,7 +123,9 @@ def render(
         if inputs_digest != financial.legibility_review_digest(project_dir):
             raise A2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         os.replace(temp_video, destination)
-    if preview:
+    # 只有作品默认的完整预演才登记为评审材料：`--out` 是复核/对比用的旁路输出，
+    # 若它被登记就会顶掉已绑定的预演，令填写好的评审静默失效。
+    if preview and output is None:
         record_path = project_dir / "outputs" / "previews" / "preview-record.json"
         record_path.write_text(json.dumps({
             "path": destination.resolve().relative_to(project_dir.resolve()).as_posix(),

@@ -10,17 +10,17 @@
 
 ## 材料与编排
 
-作品使用三份材料：`request.json` schema v1、`prices.json` schema v3、`animation-plan.json` schema v4。材料目录不使用 `storyboard.json`，也不进入文章校验入口。
+作品使用三份材料：`request.json` schema v1、`prices.json` schema v3、`animation-plan.json` schema v5。材料目录不使用 `storyboard.json`，也不进入文章校验入口。
 
-计划明确 `chartType: "line"`、可见窗口月数、线性自适应纵轴、画布、帧率和连续半开帧段。默认 60 秒、1920×1080、30 fps、无音轨：开场 3 秒，行情推进 51 秒，终日展开全历史 2 秒，全貌停留 4 秒。滚动阶段显示最近 12 个日历月，横轴连续向左移动，新数据从右侧进入；月末回退截短至目标月有效末日。日期和报价按真实日线推进，休市日保持上一有效收盘价所属日期，绝不生成插值报价或提前显示未来价格。
+计划明确 `chartType: "line"`、`axis.dateScale: "full-range"` 和 `axis.valueScale: "revealed-linear"`，不接受滚动窗口或固定纵轴范围。默认 60 秒、1920×1080、30 fps、无音轨：开场 3 秒，行情推进 53 秒，完整曲线停留 4 秒。完整日期横轴和稀疏年份刻度从开头固定展示，折线从左向右揭示已到达的真实日收盘点，历史点持续保留。休市日保持最近真实收盘价及其交易日期，不生成插值报价或提前显示未来价格。
 
-滚动阶段纵轴对窗口内真实收盘值线性自适应。最后 2 秒同步过渡横轴、纵轴和曲线至完整历史；全貌使用线性纵轴与稀疏年份刻度。画面始终标明当前日期窗口和纵轴自适应提示。动画按帧确定，随机寻帧和顺序播放结果一致。
+纵轴根据从起始日至当前日期全部已展示价格的极值线性自适应，上下各留白 8%。单点或恒定价格以绝对价格的 1%（至少 0.01 单位）作为半跨度。采用六帧因果加权范围并以当前范围包络，保证新极值不裁切；终幕冻结最后推进帧的坐标。回落不会缩小到只容纳近期股价，历史曲线始终完整。画面显示“纵轴随已展示价格自适应”；随机寻帧与顺序播放一致。
 
-正式导出前必须针对完整静音预演完成材料绑定评审。评审记录包括预演哈希、材料和构建资产摘要、抽检时间码，以及标签可读、滚动可跟随、坐标稳定、全貌完整四项结论及证据。短预演不构成正式评审；输入变化会令评审失效。
+正式导出前必须针对完整静音预演完成材料绑定评审。评审记录包括预演哈希、材料和构建资产摘要、抽检时间码，以及 `labelsReadable`（标签可读）、`advanceTrackable`（推进可跟随）、`dateAxisFixed`（横轴固定）、`axisStable`（坐标稳定）、`overviewComplete`（全貌完整）五项结论及证据。短预演不能作为正式评审；输入变化会令评审失效。
 
 ## 显式迁移
 
-旧 OHLC 价格材料及旧动画计划不得直接渲染。使用 `migrate-line` 显式迁移：验证旧材料后只提取原有 `close`，保留日期、价格口径、来源、原始快照和交易日清单，将计划更新为 v4；旧评审作废。迁移完成后，三份当前材料才能用于校验和渲染。迁移不会自动刷新行情截止日。
+旧 OHLC 价格材料及旧 v3/v4 动画计划不得直接渲染或用 `plan` 覆盖。运行 `migrate-line`：验证旧材料后只提取原有 `close`，保留日期、价格口径、来源、原始快照和交易日清单，将计划更新为 v5。迁移前完整备份请求、价格、计划、旧事件及评审/预演记录（如有），成功后清除活动旧事件和过期评审记录；失败恢复活动材料。迁移不刷新行情截止日、不覆盖已有成片，完成后必须重新完整预演与评审。
 
 ## 命令
 
@@ -31,8 +31,8 @@ uv run python .agents/skills/article2video/scripts/financial_video.py init `
   --start-date YYYY-MM-DD --end-date YYYY-MM-DD
 
 # 将旧材料显式迁移到收盘价折线契约
-uv run python .agents/skills/article2video/scripts/financial_video.py migrate-line --project-dir videos/<slug> --duration-seconds 60 --window-months 12
-uv run python .agents/skills/article2video/scripts/financial_video.py plan --project-dir videos/<slug> --duration-seconds 60 --window-months 12
+uv run python .agents/skills/article2video/scripts/financial_video.py migrate-line --project-dir videos/<slug> --duration-seconds 60
+uv run python .agents/skills/article2video/scripts/financial_video.py plan --project-dir videos/<slug> --duration-seconds 60
 uv run python .agents/skills/article2video/scripts/financial_video.py validate --project-dir videos/<slug>
 uv run python .agents/skills/article2video/scripts/financial_video.py preview --project-dir videos/<slug> --limit-frames 120
 uv run python .agents/skills/article2video/scripts/financial_video.py preview --project-dir videos/<slug>
@@ -41,7 +41,7 @@ uv run python .agents/skills/article2video/scripts/financial_video.py review-tem
 uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug> --out videos/<slug>/outputs/financial-line.mp4
 ```
 
-`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后，先运行 `validate`。`--period` 已移除，若旧材料包含 OHLC，必须先运行 `migrate-line`。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。
+`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后，先运行 `validate`。`--period` 和 `--window-months` 已移除，若旧材料包含 OHLC，必须先运行 `migrate-line`。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，评审模板绑定的是它；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有评审，但也不能作为提交评审的预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。
 
 ## 材料形状示例
 
@@ -86,18 +86,17 @@ uv run python .agents/skills/article2video/scripts/financial_video.py render --p
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "chartType": "line",
   "durationSeconds": 60,
   "fps": 30,
   "canvas": {"width": 1920, "height": 1080},
-  "axis": {"dateRange": ["2020-01-01", "2020-12-31"], "visibleWindowMonths": 12, "valueScale": "rolling-linear"},
+  "axis": {"dateRange": ["2020-01-01", "2020-12-31"], "dateScale": "full-range", "valueScale": "revealed-linear"},
   "segments": [
     {"frames": [0, 90], "dates": ["2020-01-01", "2020-01-01"], "kind": "opening"},
-    {"frames": [90, 1620], "dates": ["2020-01-01", "2020-12-31"], "kind": "advance"},
-    {"frames": [1620, 1680], "dates": ["2020-12-31", "2020-12-31"], "kind": "overview"},
+    {"frames": [90, 1680], "dates": ["2020-01-01", "2020-12-31"], "kind": "advance"},
     {"frames": [1680, 1800], "dates": ["2020-12-31", "2020-12-31"], "kind": "ending"}
   ],
-  "rationale": "60 秒连续折线编排，结束时展开完整历史"
+  "rationale": "60 秒固定全日期横轴编排，纵轴随已展示价格自适应"
 }
 ```

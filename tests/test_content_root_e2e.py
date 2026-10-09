@@ -40,7 +40,7 @@ def content_root(tmp_path: Path) -> Path:
         scenes / "option-map.tsx",
     )
     media_path = prep.prepare(article / "storyboard.json", article / "outputs" / "media")
-    # 发布闸门要求每份作品存在评审报告；E2E 只测试内容根路径时写入可发布的静态报告。
+    # 发布闸门要求每份作品存在评审报告，且正式渲染需要 review.md 的全片节奏单项评分。
     outputs = article / "outputs" / "inspect"
     outputs.mkdir(parents=True)
     (outputs / "report.json").write_text(
@@ -51,7 +51,10 @@ def content_root(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (outputs / "review.md").write_text(
-        "# 视觉评审\n\n- 是否值得发布：通过\n- V6：通过\n- A6：通过\n",
+        "# 视觉评审\n\n"
+        "| 项 | 分 | 依据 |\n| --- | --- | --- |\n"
+        "| 节奏 | 4 | 00:00 开场建立；00:01 核心动作推进后停留（内容根端到端测试夹具） |\n\n"
+        "- 是否值得发布：通过\n- V6：通过\n- A6：通过\n",
         encoding="utf-8",
     )
     approve_production_record(article / "storyboard.json", media_path,

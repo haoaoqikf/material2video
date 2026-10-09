@@ -3,11 +3,11 @@ import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
-type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'overview' | 'ending' };
+type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
-  schemaVersion: 4; chartType: 'line';
+  schemaVersion: 5; chartType: 'line';
   durationSeconds: number; fps: 30; canvas: { width: 1920; height: 1080 };
-  axis: { dateRange: [ISODate, ISODate]; visibleWindowMonths: number; valueScale: 'rolling-linear' };
+  axis: { dateRange: [ISODate, ISODate]; dateScale: 'full-range'; valueScale: 'revealed-linear' };
   segments: TimelineSegment[];
   rationale: string;
 };
@@ -41,13 +41,6 @@ export function framePosition(frame: number, plan: FinancialPlan): number {
   return epochDay(startDate) + ((frame - startFrame) * (epochDay(endDate) - epochDay(startDate))) / (endFrame - startFrame - 1);
 }
 
-function fractionalWindowStart(position: number, months: number, dataStart: ISODate): number {
-  const day = Math.floor(position);
-  const start = epochDay(rollingWindowStart(isoDay(day), months, dataStart));
-  const next = epochDay(rollingWindowStart(isoDay(day + 1), months, dataStart));
-  return start + (next - start) * (position - day);
-}
-
 function lastPointIndex(points: PricePoint[], date: ISODate): number {
   let low = 0;
   let high = points.length;
@@ -59,28 +52,7 @@ function lastPointIndex(points: PricePoint[], date: ISODate): number {
   return low - 1;
 }
 
-function lowerBound(points: PricePoint[], date: ISODate): number {
-  let low = 0;
-  let high = points.length;
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (points[mid]!.date < date) low = mid + 1;
-    else high = mid;
-  }
-  return low;
-}
-
-export function rollingWindowStart(endDate: ISODate, months: number, dataStart: ISODate): ISODate {
-  const [year, month, day] = endDate.split('-').map(Number);
-  const absoluteMonth = year! * 12 + month! - 1 - months;
-  const targetYear = Math.floor(absoluteMonth / 12);
-  const targetMonth = ((absoluteMonth % 12) + 12) % 12;
-  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  const start = `${targetYear.toString().padStart(4, '0')}-${(targetMonth + 1).toString().padStart(2, '0')}-${Math.min(day!, lastDay).toString().padStart(2, '0')}`;
-  return start < dataStart ? dataStart : start;
-}
-
-export function rollingValueRange(points: PricePoint[]): [number, number] {
+export function revealedValueRange(points: PricePoint[]): [number, number] {
   if (points.length === 0) return [0, 1];
   let low = points[0]!.close;
   let high = low;
@@ -96,7 +68,7 @@ export function rollingValueRange(points: PricePoint[]): [number, number] {
   return [low - padding, high + padding];
 }
 
-export function rollingTickDecimals(minValue: number, maxValue: number): number {
+export function valueTickDecimals(minValue: number, maxValue: number): number {
   const tickStep = (maxValue - minValue) / 4;
   return Math.min(6, Math.max(2, Math.ceil(-Math.log10(tickStep)) + 1));
 }
@@ -125,65 +97,48 @@ function dateTicks(start: number, end: number): ISODate[] {
   return ticks;
 }
 
-function windowRange(points: PricePoint[], start: number, position: number): [number, number] {
-  const first = lowerBound(points, isoDay(Math.ceil(start)));
-  const end = lastPointIndex(points, isoDay(Math.floor(position))) + 1;
-  const visible = points.slice(first, Math.max(first, end));
-  if (first > 0 && first < end) {
-    const previous = points[first - 1]!;
-    const next = points[first]!;
-    const progress = (start - epochDay(previous.date)) / (epochDay(next.date) - epochDay(previous.date));
-    // The clipped line's boundary is geometry, never a displayed historical quote.
-    // Including it keeps the scale continuous as older points enter the viewport.
-    visible.push({ date: isoDay(Math.ceil(start)), close: previous.close + (next.close - previous.close) * progress });
-  }
-  return rollingValueRange(visible);
+// Prefix ranges avoid scanning decades of daily prices six times per frame.
+// Inputs are immutable render props; the cache stores no frame-dependent state.
+const prefixRanges = new WeakMap<PricePoint[], [number, number][]>();
+function rangesFor(points: PricePoint[]): [number, number][] {
+  const cached = prefixRanges.get(points);
+  if (cached) return cached;
+  let low = Infinity; let high = -Infinity;
+  const ranges = points.map((point) => {
+    low = Math.min(low, point.close); high = Math.max(high, point.close);
+    return revealedValueRange([{ date: point.date, close: low }, { date: point.date, close: high }]);
+  });
+  prefixRanges.set(points, ranges);
+  return ranges;
 }
 
 export function financialView(frame: number, points: PricePoint[], plan: FinancialPlan) {
   const position = framePosition(frame, plan);
   const currentDate = isoDay(Math.floor(position));
-  const dataStart = plan.axis.dateRange[0];
-  const rollingStart = fractionalWindowStart(position, plan.axis.visibleWindowMonths, dataStart);
-  const target = windowRange(points, rollingStart, position);
-  // A fixed causal lookback makes seeking and offline export identical. Newly
-  // arrived extremes remain visible; history only slows contraction of the axis.
+  const windowPosition = epochDay(plan.axis.dateRange[0]);
+  const windowEndPosition = epochDay(plan.axis.dateRange[1]);
+  const end = lastPointIndex(points, currentDate) + 1;
+  const ranges = rangesFor(points);
+  const target = ranges[end - 1] ?? [0, 1];
   let low = 0; let high = 0; let weightTotal = 0;
+  // Freeze the last advance frame's axis for the entire four-second ending.
+  const endingStart = plan.segments.find((segment) => segment.kind === 'ending')!.frames[0];
+  const axisFrame = Math.min(frame, endingStart - 1);
   for (let offset = 0; offset < 6; offset++) {
-    const previous = framePosition(Math.max(0, frame - offset), plan);
-    const range = windowRange(points, fractionalWindowStart(previous, plan.axis.visibleWindowMonths, dataStart), previous);
+    const date = isoDay(Math.floor(framePosition(Math.max(0, axisFrame - offset), plan)));
+    const range = ranges[lastPointIndex(points, date)];
+    if (!range) continue;
     const weight = 6 - offset;
     low += range[0] * weight; high += range[1] * weight; weightTotal += weight;
   }
-  low = Math.min(target[0], low / weightTotal);
-  high = Math.max(target[1], high / weightTotal);
-  const overview = plan.segments.find((segment) => segment.kind === 'overview');
-  const overviewStart = overview?.frames[0] ?? Infinity;
-  const progress = overview ? Math.max(0, Math.min(1, (frame - overviewStart) / (overview.frames[1] - overviewStart - 1))) : 0;
-  const blend = progress * progress * (3 - 2 * progress);
-  if (frame >= overviewStart) {
-    // Anchor to the last rolling frame: the start of the reveal has no axis jump.
-    const before = financialView(overviewStart - 1, points, plan);
-    const full = rollingValueRange(points);
-    low = blend === 1 ? full[0] : before.minValue + (full[0] - before.minValue) * blend;
-    high = blend === 1 ? full[1] : before.maxValue + (full[1] - before.maxValue) * blend;
-  }
-  const windowPosition = rollingStart + (epochDay(dataStart) - rollingStart) * blend;
-  if (frame >= overviewStart) {
-    const visibleRange = windowRange(points, windowPosition, position);
-    // Linear interpolation of the start/end axes alone can clip older, lower
-    // prices during the reveal. The visible envelope is the minimum safe range.
-    low = Math.min(low, visibleRange[0]);
-    high = Math.max(high, visibleRange[1]);
-  }
-  const first = lowerBound(points, isoDay(Math.ceil(windowPosition)));
-  const end = lastPointIndex(points, currentDate) + 1;
-  // One preceding real point gives the clipped viewport an unbroken left edge.
-  // It is never used as a synthetic quote or included in the displayed count.
-  const visiblePoints = points.slice(first, Math.max(first, end));
-  const linePoints = points.slice(Math.max(0, first - 1), Math.max(first, end));
-  return { currentDate, position, windowPosition, windowStart: isoDay(Math.ceil(windowPosition)),
-    minValue: low, maxValue: high, visiblePoints, linePoints, overviewProgress: progress, latest: end > 0 ? points[end - 1]! : null };
+  // Never crop a newly arrived extreme while smoothing a contracting bound.
+  low = weightTotal ? Math.min(target[0], low / weightTotal) : target[0];
+  high = weightTotal ? Math.max(target[1], high / weightTotal) : target[1];
+  const visiblePoints = points.slice(0, end);
+  return { currentDate, position, windowPosition, windowEndPosition,
+    windowStart: plan.axis.dateRange[0], windowEnd: plan.axis.dateRange[1],
+    minValue: low, maxValue: high, visiblePoints, linePoints: visiblePoints,
+    latest: end > 0 ? points[end - 1]! : null };
 }
 
 function priceText(value: number, unit: string): string {
@@ -202,13 +157,12 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const view = financialView(frame, prices.points, plan);
   const { currentDate, windowStart, latest, visiblePoints, minValue, maxValue } = view;
   const [rangeStart, rangeEnd] = plan.axis.dateRange;
-  const dateSpan = Math.max(view.position - view.windowPosition, 1);
+  const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
-  const tickDecimals = rollingTickDecimals(minValue, maxValue);
+  const tickDecimals = valueTickDecimals(minValue, maxValue);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - PLOT.top);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
-  const ticks = dateTicks(view.windowPosition, view.position);
-  const overviewActive = plan.segments.some((segment) => segment.kind === 'overview' && frame >= segment.frames[0]);
+  const ticks = dateTicks(view.windowPosition, view.windowEndPosition);
   const sourceSummary = prices.sources.map((source) => {
     if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
     return '公开资料';
@@ -221,7 +175,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   }, []);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-a2v-financial="line">
-    <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${request.instrument.name} ${overviewActive ? '全历史' : `近${plan.axis.visibleWindowMonths}个月滚动`}价格演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={currentDate} data-a2v-overview-progress={view.overviewProgress}>
+    <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${request.instrument.name} 全日期范围价格演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={PLOT.top} width={PLOT.right - PLOT.left} height={PLOT.bottom - PLOT.top} /></clipPath></defs>
       <text x={PLOT.left} y="96" fill="#f6f8fc" fontSize="48" fontWeight="700">{request.instrument.name} · {request.instrument.code}</text>
       <text x={PLOT.left} y="146" fill="#97a7bd" fontSize="23">{rangeStart} — {rangeEnd}　{prices.priceBasis === 'official-index-points' ? prices.indexType : '仅拆合股调整 · 不含分红再投资'}</text>
@@ -236,7 +190,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       })}
       {ticks.map((tickDate) => {
         const x = xForDate(tickDate);
-        return <g key={`month-${tickDate}`}><line x1={x} x2={x} y1={PLOT.top} y2={PLOT.bottom} stroke="#172235" /><text x={x} y={PLOT.bottom + 40} textAnchor="middle" fill="#9ba9bc" fontSize="18">{view.position - view.windowPosition > 730 ? tickDate.slice(0, 4) : tickDate.slice(0, 7)}</text></g>;
+        return <g key={`month-${tickDate}`}><line x1={x} x2={x} y1={PLOT.top} y2={PLOT.bottom} stroke="#172235" /><text x={x} y={PLOT.bottom + 40} textAnchor="middle" fill="#9ba9bc" fontSize="18">{view.windowEndPosition - view.windowPosition > 730 ? tickDate.slice(0, 4) : tickDate.slice(0, 7)}</text></g>;
       })}
       <line x1={PLOT.left} x2={PLOT.left} y1={PLOT.top} y2={PLOT.bottom} stroke="#53627a" />
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
@@ -250,7 +204,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         <text x={PLOT.right} y="185" textAnchor="end" fill="#98aac1" fontSize="18">最近有效收盘 {latest.date}</text>
       </g>}
       <text x={PLOT.left} y="872" fill="#d8e1ed" fontSize="24" fontWeight="600">{dateText(currentDate)}</text>
-      <text x={PLOT.right} y="872" textAnchor="end" fill="#76859b" fontSize="16">{overviewActive ? '全历史 · 线性纵轴' : `近${plan.axis.visibleWindowMonths}个月 · 纵轴随视窗自适应`}</text>
+      <text x={PLOT.right} y="872" textAnchor="end" fill="#76859b" fontSize="16">完整年份 · 纵轴随已展示价格自适应</text>
       {!latest && <text x={(PLOT.left + PLOT.right) / 2} y="520" textAnchor="middle" fill="#a8b4c5" fontSize="24">尚无区间内有效收盘数据</text>}
       <text x={PLOT.left} y="1044" fill="#76859b" fontSize="15">日期与价格按来源核实；休市期间不生成新的报价点。</text>
     </svg>

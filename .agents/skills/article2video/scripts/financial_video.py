@@ -56,7 +56,6 @@ def _parser() -> argparse.ArgumentParser:
         plan = sub.add_parser(command, help="生成折线编排" if command == "plan" else "备份旧材料，提取真实 close 并迁移为折线")
         plan.add_argument("--project-dir", required=True)
         plan.add_argument("--duration-seconds", type=int, default=60)
-        plan.add_argument("--window-months", type=int, default=12)
     review = sub.add_parser("review-template", help="为折线全片评审生成绑定当前材料与资产的待填写模板")
     review.add_argument("--project-dir", required=True)
     return parser
@@ -115,9 +114,9 @@ def _init(args: argparse.Namespace) -> Path:
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
     })
     _write(root / "animation-plan.json", {
-        "schemaVersion": 4, "chartType": "line", "durationSeconds": None,
+        "schemaVersion": 5, "chartType": "line", "durationSeconds": None,
         "fps": 30, "canvas": {"width": 1920, "height": 1080},
-        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "visibleWindowMonths": 12, "valueScale": "rolling-linear"},
+        "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "full-range", "valueScale": "revealed-linear"},
         "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
     return root
@@ -127,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     if any(item == "--period" or item.startswith("--period=") for item in (argv if argv is not None else sys.argv[1:])):
         parser.error("--period 已移除：金融工作流仅支持日收盘价折线；旧材料请运行 migrate-line")
+    if any(item == "--window-months" or item.startswith("--window-months=") for item in (argv if argv is not None else sys.argv[1:])):
+        parser.error("--window-months 已移除：横轴固定展示完整日期范围，纵轴随已展示价格自适应；旧计划请运行 migrate-line")
     args = parser.parse_args(argv)
     _force_utf8_output()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
@@ -138,13 +139,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
-            backup = financial.migrate_line(root, args.duration_seconds, args.window_months)
-            print(f"已迁移至 version 4 无事件折线；价格材料备份：{backup}；须重新完整预演与评审。")
+            backup = financial.migrate_line(root, args.duration_seconds)
+            print(f"已迁移至 version 5 固定全范围折线；旧材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":
-            plan = financial.prepare_line_plan(root, args.duration_seconds, args.window_months)
+            plan = financial.prepare_line_plan(root, args.duration_seconds)
             _write(root / "animation-plan.json", plan)
-            print(f"已生成 {plan['durationSeconds']} 秒折线编排，窗口 {plan['axis']['visibleWindowMonths']} 个月。")
+            print(f"已生成 {plan['durationSeconds']} 秒折线编排，完整日期横轴固定，纵轴随已展示价格自适应。")
             return 0
         docs = financial.load_project(root)
         if args.command == "validate":

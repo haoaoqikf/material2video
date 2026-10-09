@@ -61,8 +61,8 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
     assert len(docs["prices"]["points"]) == 2
     assert financial.frame_date(docs["plan"], 0).isoformat() == "2020-01-01"
     assert financial.frame_date(docs["plan"], 90).isoformat() == "2020-01-01"
-    assert financial.frame_date(docs["plan"], 180).isoformat() == "2020-01-02"
-    assert financial.frame_date(docs["plan"], 269).isoformat() == "2020-01-03"
+    assert financial.frame_date(docs["plan"], 210).isoformat() == "2020-01-02"
+    assert financial.frame_date(docs["plan"], 329).isoformat() == "2020-01-03"
     assert financial.frame_date(docs["plan"], 449).isoformat() == "2020-01-03"
 
 
@@ -74,10 +74,10 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
         ("prices.json", lambda d: d["points"][1].update(close=float("nan")), "有限正数"),
         ("animation-plan.json", lambda d: d["segments"][1].update(frames=[14, 90]), "连续"),
         ("animation-plan.json", lambda d: d.update(canvas={"width": 1080, "height": 1920}), "1920"),
-        ("animation-plan.json", lambda d: d["axis"].pop("visibleWindowMonths"), "visibleWindowMonths"),
-        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=0), "1 到 1200"),
-        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=True), "1 到 1200"),
-        ("animation-plan.json", lambda d: d["axis"].update(valueScale="fixed"), "rolling-linear"),
+        ("animation-plan.json", lambda d: d["axis"].pop("dateScale"), "dateScale"),
+        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=0), "滚动窗口已移除"),
+        ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=True), "滚动窗口已移除"),
+        ("animation-plan.json", lambda d: d["axis"].update(valueScale="fixed"), "revealed-linear"),
         ("animation-plan.json", lambda d: d["axis"].update(valueRange=[0, 250]), "不接受固定 valueRange"),
     ],
 )
@@ -156,8 +156,8 @@ def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path)
     assert json.loads((backup / "prices.json").read_text(encoding="utf-8")) == old
     assert financial.load_project(root)["prices"] == original
     assert not (root / "events.json").exists()
-    assert not (backup / "events.json").exists()
-    with pytest.raises(A2VError, match="材料已迁移到 v4"):
+    assert (backup / "events.json").exists()
+    with pytest.raises(A2VError, match="材料已迁移到 v5"):
         financial.migrate_line(root)
 
 
@@ -174,12 +174,12 @@ def test_v3_plan_migrates_without_changing_prices_and_discards_event_material(tm
     backup = financial.migrate_line(root, duration=15)
 
     assert (root / "prices.json").read_bytes() == original_prices
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 4
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
     assert not (root / "events.json").exists()
     assert not (root / "outputs" / "legibility-review.json").exists()
     assert not (root / "outputs" / "previews" / "preview-record.json").exists()
-    assert not (backup / "events.json").exists()
-    assert not (backup / "animation-plan.json").exists()
+    assert (backup / "events.json").exists()
+    assert (backup / "animation-plan.json").exists()
 
 
 def test_migration_rejects_bad_data_before_writing(tmp_path):
@@ -196,9 +196,9 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
 def test_plan_covers_full_60_seconds_without_event_pauses():
     request = {"displayRange": ["1999-01-22", "2026-10-08"]}
     plan = financial.build_line_plan(request)
-    assert plan["schemaVersion"] == 4
-    assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "overview", "ending"]
-    assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1620], [1620, 1680], [1680, 1800]]
+    assert plan["schemaVersion"] == 5
+    assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "ending"]
+    assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1680], [1680, 1800]]
     assert "eventDisplays" not in plan
     dates = [financial.frame_date(plan, frame) for frame in range(1800)]
     assert dates == sorted(dates)
@@ -282,12 +282,12 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
 def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
-    with pytest.raises(A2VError, match="需要 v3 价格和 v4 动画计划"):
+    with pytest.raises(A2VError, match="需要 v3 价格和 v5 动画计划"):
         financial.load_project(root)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     backup = financial.migrate_line(root, duration=15)
     assert backup.is_dir()
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 4
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
@@ -302,7 +302,7 @@ def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch
     with pytest.raises(A2VError, match="完整时长"):
         financial.load_preview_record(root, docs)
     path.write_text(json.dumps(edit_record), encoding="utf-8")
-    monkeypatch.setattr(remotion, "build_inputs", lambda: [])
+    monkeypatch.setattr(remotion, "build_inputs", lambda **kwargs: [])
     with pytest.raises(A2VError, match="资产已变化"):
         financial.load_preview_record(root, docs)
 
@@ -316,6 +316,38 @@ def test_preview_cannot_overwrite_a_final_video(tmp_path):
     with pytest.raises(A2VError, match="不能覆盖正式成片"):
         financial_render.render(root, docs, output=destination, preview=True)
     assert destination.read_bytes() == b"original final"
+
+
+def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_path, monkeypatch):
+    """复核用的旁路预演 `--out` 不得顶掉已登记的完整预演，否则评审会静默失效。"""
+    from types import SimpleNamespace
+
+    from a2v import remotion, render as render_engine
+
+    root = project(tmp_path)
+    docs = financial.load_project(root)
+    preview_fixture(root, docs)
+    record_path = root / "outputs/previews/preview-record.json"
+    recorded = record_path.read_bytes()
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
+    monkeypatch.setattr(remotion, "require_environment", lambda web: None)
+    monkeypatch.setattr(financial_render, "_bundle", lambda web, out: bundle)
+    monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
+    monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
+    monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
+        fps=30, width=1920, height=1080, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+    monkeypatch.setattr(remotion, "render_frames",
+                        lambda **kwargs: Path(kwargs["out"]).write_bytes(b"bypass preview"))
+
+    output = financial_render.render(
+        root, docs, preview=True, limit_frames=2, preset="ultrafast",
+        output=root / "outputs/previews/verify-current-code.mp4",
+    )
+    assert output.read_bytes() == b"bypass preview"
+    assert record_path.read_bytes() == recorded, "旁路预演不得改写已登记的预演记录"
+    assert financial.load_preview_record(root, docs)["path"] == "outputs/previews/test.mp4"
 
 
 def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
@@ -349,3 +381,27 @@ def test_financial_preview_renders_widescreen_mp4_without_audio(tmp_path):
     docs = financial.load_project(root)
     output = financial_render.render(root, docs, preview=True, limit_frames=2, preset="ultrafast")
     assert output.is_file() and output.stat().st_size > 0
+
+
+def test_v4_plan_requires_explicit_migration_with_complete_backup(tmp_path):
+    root = project(tmp_path)
+    edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=4))
+    original = {name: (root / name).read_bytes() for name in financial.MATERIALS}
+    with pytest.raises(A2VError, match="migrate-line"):
+        financial.load_project(root)
+    assert financial_video.main(["plan", "--project-dir", str(root)]) == 2
+    assert (root / "animation-plan.json").read_bytes() == original["animation-plan.json"]
+    final = root / "outputs" / "existing.mp4"
+    final.parent.mkdir()
+    final.write_bytes(b"existing final")
+    backup = financial.migrate_line(root)
+    assert {name: (backup / name).read_bytes() for name in financial.MATERIALS} == original
+    assert final.read_bytes() == b"existing final"
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 5
+
+
+@pytest.mark.parametrize("option", ["--window-months", "--window-months=12"])
+def test_removed_window_argument_explains_fixed_axis(option, capsys):
+    with pytest.raises(SystemExit):
+        financial_video.main(["plan", "--project-dir", "unused", option])
+    assert "横轴固定展示完整日期范围" in capsys.readouterr().err
