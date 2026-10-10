@@ -661,7 +661,8 @@ _AESTHETIC_SCRIPT = """
   for (var n = 0; n < fitNodes.length; n++) {
     var node = fitNodes[n];
     var value = (node.textContent || '').replace(/\\s+/g, ' ').trim();
-    if (value) noFit.push({ role: className(node) || String(node.tagName).toLowerCase(), text: value });
+    if (value) noFit.push({ id: node.getAttribute('data-a2v-node-id') || null,
+      role: className(node) || String(node.tagName).toLowerCase(), text: value });
   }
 
   // 图形内部的文字：由组件显式声明「我装在哪个容器里」。
@@ -677,11 +678,19 @@ _AESTHETIC_SCRIPT = """
     if (!labelText) continue;
     var selector = label.getAttribute('data-a2v-inside');
     var scope = label.parentNode;
-    var shape = scope && selector ? scope.querySelector(selector) : null;
+    var shape = null;
+    if (selector) {
+      try {
+        shape = label.parentElement && label.parentElement.closest(selector);
+        if (!shape && scope) shape = scope.querySelector(selector);
+      } catch (error) {
+        violations.push('data-a2v-inside 不是合法选择器：' + selector);
+      }
+    }
     if (!shape) continue;
     try {
-      var textBox = label.getBBox();
-      var shapeBox = shape.getBBox();
+      var textBox = typeof label.getBBox === 'function' ? label.getBBox() : label.getBoundingClientRect();
+      var shapeBox = typeof shape.getBBox === 'function' ? shape.getBBox() : shape.getBoundingClientRect();
     } catch (error) {
       continue;
     }

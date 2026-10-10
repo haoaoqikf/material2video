@@ -375,10 +375,11 @@ class TestOverflowGate:
             "s",
             [_block("quote-text", 200, 800, 400, 700)],
             SAFE,
-            no_fit=[{"role": "quote-text", "text": "一段怎么缩都放不下的长文案"}],
+            no_fit=[{"id": "copy-17", "role": "quote-text", "text": "一段怎么缩都放不下的长文案"}],
         )
         assert gate.status == "fail"
         assert "拆场景" in gate.detail
+        assert "copy-17" in gate.detail
 
     def test_skips_without_safe_geometry(self):
         assert keynote.gate_overflow("s", [], None).status == "skipped"

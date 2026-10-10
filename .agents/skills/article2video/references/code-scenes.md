@@ -63,6 +63,8 @@ export default World;
 
 `geometry` 中的 x/y/width/height 为画布 0～1 归一化值；它用于跨阶段对象位置比较。文字需登记 node 与 role 才能进入内容和排版评审；示意数值须明确标出 `schematic`。被评审规则引用的容器应使用 `inside` 表明归属。
 
+tree v4 的字体后布局预检不改变 code world 的公开探针契约；代码场景仍由作者通过 `geometry` 与 `inside` 明确提供稳定对象边界和包含关系，运行时不读取作品模块私有 DOM。
+
 ## 验证与安全边界
 
 - 使用 `validate.py --strict` 验证 v4 分镜字段、全局对象与阶段；缺失或不可解析的 code module 在浏览器启动前报错。

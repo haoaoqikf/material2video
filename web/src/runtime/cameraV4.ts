@@ -3,6 +3,7 @@ import type { V4Timeline } from './timelineV4';
 import type { CompiledStateTrack } from './stateTracksV4';
 import { stateAt } from './stateTracksV4';
 import { sceneGeometry } from './geometry';
+import type { GeometryBox } from './motionPlan';
 
 export interface CameraPose { x: number; y: number; scale: number }
 export interface CompiledCameraSegment {
@@ -54,6 +55,7 @@ function isBaseVisible(storyboard: StoryboardV4, target: string): boolean {
 /** Compile ordered local declarations to one continuous global pose trajectory. */
 export function compileCameraV4(
   storyboard: StoryboardV4, timeline: V4Timeline, stateTracks: readonly CompiledStateTrack[] = [],
+  measuredGeometry?: ReadonlyMap<string, GeometryBox>,
 ): CameraTimelineV4 {
   const { world } = storyboard;
   const objectIds = new Set(world.objects.map(({ id }) => id));
@@ -73,8 +75,8 @@ export function compileCameraV4(
     return { index, segment, startFrame, endFrame, focus };
   }).sort((a, b) => a.startFrame - b.startFrame || a.index - b.index);
   const initial: CameraPose = { x: 0, y: 0, scale: 1 };
-  const geometry = world.renderer.kind === 'tree' && world.sceneTree
-    ? sceneGeometry(world.sceneTree as unknown as import('@/schema/storyboard').SceneNode) : new Map();
+  const geometry = measuredGeometry ?? (world.renderer.kind === 'tree' && world.sceneTree
+    ? sceneGeometry(world.sceneTree as unknown as import('@/schema/storyboard').SceneNode) : new Map());
   let pose = initial;
   let previousEnd = -1;
   const segments: CompiledCameraSegment[] = [];

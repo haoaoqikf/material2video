@@ -93,6 +93,23 @@ async function waitForCodeScenes(): Promise<void> {
   }
 }
 
+/** v4 tree 的字号适配与镜头几何必须在契约 ready 前完成。 */
+async function waitForTreeLayout(): Promise<void> {
+  const world = document.querySelector<HTMLElement>('[data-a2v-world][data-a2v-world-renderer="tree"]');
+  if (!world) return;
+  const start = Date.now();
+  for (;;) {
+    if (world.dataset.a2vLayoutError) {
+      throw new Error(`场景树布局预检失败：${world.dataset.a2vLayoutError}`);
+    }
+    if (world.dataset.a2vLayoutReady === '1') return;
+    if (Date.now() - start > SEEK_TIMEOUT_MS) {
+      throw new Error(`场景树布局预检在 ${SEEK_TIMEOUT_MS}ms 内未完成`);
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  }
+}
+
 /** 等两次 rAF：第一次进入下一帧，第二次确保那一帧已经画出来。 */
 function nextPaint(): Promise<void> {
   return new Promise((resolve) => {
@@ -193,6 +210,7 @@ export function createContract({ player, storyboard }: CreateContractOptions): A
       await ensureFonts();
       await document.fonts.ready;
       await waitForCodeScenes();
+      await waitForTreeLayout();
       const target = Math.min(Math.max(player.getCurrentFrame(), 0), durationInFrames - 1);
       await settleOnFrame(player, target);
       await document.fonts.ready;
@@ -202,6 +220,7 @@ export function createContract({ player, storyboard }: CreateContractOptions): A
       const clamped = Math.min(Math.max(Math.floor(frame), 0), durationInFrames - 1);
       await settleOnFrame(player, clamped);
       await waitForCodeScenes();
+      await waitForTreeLayout();
       await document.fonts.ready;
     },
     currentFrame: () => player.getCurrentFrame(),

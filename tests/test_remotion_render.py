@@ -338,6 +338,53 @@ def test_renders_global_frame_range_at_review_scale(tmp_path):
     assert provenance["frames"] == 3
 
 
+@requires_node
+def test_tree_layout_preview_matches_remotion_export_at_first_frame(tmp_path):
+    """同一份 tree 分镜的契约预览与正式 Remotion 路径都等布局预检并保持画面一致。"""
+    import sys
+
+    sys.path.insert(0, str(ROOT / "tests"))
+    try:
+        from conftest import v4_storyboard
+    finally:
+        sys.path.pop(0)
+    from a2v import storyboard_v4
+    from a2v.cli import _v4_model
+    from a2v import browser, contract_page
+
+    data = v4_storyboard()
+    report = storyboard_v4.validate(data)
+    assert not report.errors, report.issues
+    article = tmp_path / "videos" / "layout-preview-export"
+    article.mkdir(parents=True)
+    source = article / "storyboard.json"
+    source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    preview_png = tmp_path / "preview.png"
+    with contract_page.serve_contract_page(source, tmp_path, repo_root=ROOT) as url:
+        with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
+            page.seek(0)
+            assert page.evaluate("document.querySelector('[data-a2v-world]').dataset.a2vLayoutReady") == "1"
+            preview_png.write_bytes(page.capture("png"))
+
+    output = tmp_path / "tree-export.mp4"
+    render.render_with_remotion(output=output, storyboard=_v4_model(data), storyboard_path=source,
+                                limit_frames=1, probe=True, workspace_root=ROOT, content_root=tmp_path)
+    from imageio_ffmpeg import get_ffmpeg_exe
+
+    exported_png = tmp_path / "export.png"
+    subprocess.run([get_ffmpeg_exe(), "-y", "-i", str(output), "-frames:v", "1", str(exported_png)],
+                   check=True, capture_output=True)
+    compared = subprocess.run([get_ffmpeg_exe(), "-i", str(preview_png), "-i", str(exported_png),
+                               "-lavfi", "psnr", "-f", "null", "-"],
+                              check=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    import re
+
+    match = re.search(r"average:([\d.]+|inf)", compared.stderr)
+    assert match, f"FFmpeg 未返回 PSNR 结果：{compared.stderr[-1000:]}"
+    psnr = float(match.group(1))
+    assert psnr >= 35, f"预览与导出关键帧布局不一致，PSNR={psnr:.1f}dB"
+
+
 def _stream_info(path: pathlib.Path) -> str:
     from imageio_ffmpeg import get_ffmpeg_exe
 

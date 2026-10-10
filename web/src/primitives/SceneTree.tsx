@@ -10,6 +10,13 @@ const GAP = { none: 0, xs: 8, sm: 16, md: 28, lg: 44, xl: 64 } as const;
 const ROLE_CLASS: Record<string, string> = { hero: 'a2v-hero', headline: 'a2v-headline', title: 'a2v-title', body: 'a2v-body', label: 'a2v-label', caption: 'a2v-caption' };
 /** 字号档位从大到小。预设取档时沿这条阶梯向下找第一个放得下的档位。 */
 export const ROLE_LADDER = ['hero', 'headline', 'title', 'body', 'label', 'caption'] as const;
+export const MAX_FIT_TEXT_LINES = 4;
+
+function renderedLineCount(span: HTMLSpanElement): number {
+  const range = document.createRange();
+  range.selectNodeContents(span);
+  return Math.max(1, range.getClientRects().length);
+}
 const CONNECTOR_TURN: Record<string, string> = { ltr: 'none', rtl: 'scaleX(-1)', ttb: 'rotate(90deg)', btt: 'rotate(-90deg)' };
 
 /**
@@ -63,16 +70,16 @@ export function motionStyle(scene: Scene, nodeId: string, frame: number, baseTra
 
 /**
  * 预设取档的纯函数核：从声明档位开始，沿阶梯向下找第一个「放得下」的档位。
- * `fits` 由调用方用实测宽度实现；全部放不下时落到最小档并如实报告已实测。
+ * `fits` 由调用方用实测宽度实现；全部放不下时保留最小档并报告容量失败。
  */
-export function fitRoleDown(declared: string, fits: (role: string) => boolean): { role: string; measured: boolean } {
-  if (fits(declared)) return { role: declared, measured: true };
+export function fitRoleDown(declared: string, fits: (role: string) => boolean): { role: string; measured: boolean; fits: boolean } {
+  if (fits(declared)) return { role: declared, measured: true, fits: true };
   const start = ROLE_LADDER.indexOf(declared as (typeof ROLE_LADDER)[number]);
   for (let index = Math.max(start, 0) + 1; index < ROLE_LADDER.length; index += 1) {
     const candidate = ROLE_LADDER[index]!;
-    if (fits(candidate)) return { role: candidate, measured: true };
+    if (fits(candidate)) return { role: candidate, measured: true, fits: true };
   }
-  return { role: ROLE_LADDER[ROLE_LADDER.length - 1]!, measured: true };
+  return { role: ROLE_LADDER[ROLE_LADDER.length - 1]!, measured: true, fits: false };
 }
 
 function textValue(value: unknown): string {
@@ -391,7 +398,7 @@ function PieChart({ points, schematic }: { points: Array<{ label: string; value:
 }
 
 /** 文字原语：预设启用且节点声明了字号档（role）时，按实测宽度向下取档。 */
-function TextPrimitive({ node, scene, preset }: { node: SceneNode; scene: Scene; preset: boolean }): ReactNode {
+function TextPrimitive({ node, scene, preset, fitFailure }: { node: SceneNode; scene: Scene; preset: boolean; fitFailure: boolean }): ReactNode {
   const text = textValue(resolveContent(scene.data, node.contentRef));
   const declared = node.role ?? 'body';
   const spanRef = useRef<HTMLSpanElement | null>(null);
@@ -403,19 +410,20 @@ function TextPrimitive({ node, scene, preset }: { node: SceneNode; scene: Scene;
     if (!preset || !node.role || !span || !host) return;
     const fits = (candidate: string): boolean => {
       span.className = ROLE_CLASS[candidate] ?? ROLE_CLASS.body!;
-      return span.scrollWidth <= host.clientWidth;
+      return span.scrollWidth <= host.clientWidth && renderedLineCount(span) <= MAX_FIT_TEXT_LINES;
     };
     const result = fitRoleDown(node.role, fits);
     setRole(result.role);
     // 档位与是否实测记录在节点上，契约探针据此检查取档行为
     host.dataset.a2vFitRole = result.role;
     host.dataset.a2vFitMeasured = String(result.measured);
-  }, [preset, node.role, text]);
+    host.dataset.a2vFitFits = String(result.fits && !fitFailure);
+  }, [preset, node.role, text, fitFailure]);
   return <span ref={spanRef} className={ROLE_CLASS[role] ?? ROLE_CLASS.body}>{text}</span>;
 }
 
-function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext }): ReactNode {
-  if (node.type === 'text') return <TextPrimitive node={node} scene={scene} preset={preset} />;
+function PrimitiveBody({ node, scene, frame, preset, beats, fitFailure }: { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; fitFailure: boolean }): ReactNode {
+  if (node.type === 'text') return <TextPrimitive node={node} scene={scene} preset={preset} fitFailure={fitFailure} />;
   if (node.type === 'number') {
     const raw = Number(resolveContent(scene.data, node.contentRef));
     const planned = sceneMotionPlan(scene, beats.timeline).motions.find((item) => item.target === node.id && item.recipe === 'count');
@@ -448,9 +456,9 @@ function PrimitiveBody({ node, scene, frame, preset, beats }: { node: SceneNode;
   return null;
 }
 
-interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; continuityVisible?: ReadonlySet<string> | null; hiddenNodeIds?: ReadonlySet<string>; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
+interface PrimitiveProps { node: SceneNode; scene: Scene; frame: number; preset: boolean; beats: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; continuityVisible?: ReadonlySet<string> | null; hiddenNodeIds?: ReadonlySet<string>; fitFailures?: ReadonlySet<string>; insideContainerId?: string; place?: CSSProperties; baseTransform?: string; stage?: 'active' | 'done' | 'pending' }
 
-function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, continuityVisible, hiddenNodeIds, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
+function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, continuityVisible, hiddenNodeIds, fitFailures, insideContainerId, place, baseTransform = '', stage }: PrimitiveProps): React.ReactElement {
   // 阶段容器自己算阶段：子节点的顺序就是阶段顺序，当前 beat 指向哪个就走哪一步。
   const stages = node.children && STAGE_CONTAINERS.has(node.type) ? stageState(node.children, beats.timeline, frame) : null;
   const total = node.children?.length ?? 0;
@@ -466,6 +474,8 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
       continuity={continuity}
       continuityVisible={continuityVisible}
       hiddenNodeIds={hiddenNodeIds}
+      fitFailures={fitFailures}
+      insideContainerId={node.type === 'surface' ? node.id : insideContainerId}
       place={node.type === 'radial' ? radialChildStyle(index, total)
         : node.type === 'cycle' ? cycleChildStyle(index, total, node.direction)
         : undefined}
@@ -498,7 +508,9 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
   const stageAttr = stage === 'active' ? 'focus' : stage === 'done' ? 'done' : undefined;
   const attrs = {
     'data-a2v-node-id': node.id, 'data-a2v-primitive': node.type,
-    'data-a2v-inside': node.type === 'surface' ? '' : undefined,
+    'data-a2v-fit-fits': fitFailures?.has(node.id) ? 'false' : undefined,
+    'data-a2v-inside': node.type === 'surface' ? ''
+      : node.type === 'text' && insideContainerId ? `[data-a2v-node-id="${insideContainerId}"]` : undefined,
     'data-a2v-motion': scene.motions.some((item) => item.target === node.id || item.targets?.includes(node.id)) ? '' : undefined,
     'data-a2v-focus-mix': mix.focus.toFixed(4),
     'data-a2v-muted-mix': mix.muted.toFixed(4),
@@ -519,15 +531,15 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
       : node.type === 'cycle' ? [<CycleRing key="cycle-ring" direction={node.direction} progress={stageProgress(stages!, total)} />, ...children!]
       : node.type === 'timeline' ? [<TimelineAxis key="timeline-axis" direction={node.direction} progress={stageProgress(stages!, total)} />, ...children!]
       : children
-    : <PrimitiveBody node={node} scene={scene} frame={frame} preset={preset} beats={beats} />;
+    : <PrimitiveBody node={node} scene={scene} frame={frame} preset={preset} beats={beats} fitFailure={fitFailures?.has(node.id) ?? false} />;
   return <div {...attrs} data-a2v-state={node.state ?? stageAttr ?? 'rest'} className={`a2v-primitive a2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
 }
 
-export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity, hiddenNodeIds }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; hiddenNodeIds?: ReadonlySet<string> }): React.ReactElement {
+export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity, hiddenNodeIds, fitFailures }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; hiddenNodeIds?: ReadonlySet<string>; fitFailures?: ReadonlySet<string> }): React.ReactElement {
   // code 场景由共享 composition 的代码包装器承载，不会走到这里；
   // 缺少场景树说明分镜绕过了 schema 校验，这里直接报错而不是渲染 undefined。
   const tree = scene.sceneTree;
   if (!tree) throw new Error(`场景 ${scene.id} 缺少场景树：tree 场景必须声明 sceneTree`);
   const continuityVisible = continuityVisibleIds(tree, continuity);
-  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} continuity={continuity} continuityVisible={continuityVisible} hiddenNodeIds={hiddenNodeIds} />;
+  return <Primitive node={tree} scene={scene} frame={frame} preset={preset} beats={beats} stylePack={stylePack} continuity={continuity} continuityVisible={continuityVisible} hiddenNodeIds={hiddenNodeIds} fitFailures={fitFailures} />;
 }

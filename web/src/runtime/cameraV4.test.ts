@@ -75,4 +75,12 @@ describe('v4 全局连续镜头轨迹', () => {
     const hiddenTimeline = resolveStoryboardV4(hiddenDuring);
     expect(() => compileCameraV4(hiddenDuring, hiddenTimeline, compileStateTracks(hiddenDuring, hiddenTimeline))).toThrow(/绑定期间不可见/);
   });
+
+  it('reframe 消费布局预检提供的实测节点边界', () => {
+    const storyboard = cameraStoryboard();
+    const timeline = resolveStoryboardV4(storyboard);
+    const geometry = new Map([['target', { x: .1, y: .2, width: .2, height: .1, radius: .1 }]]);
+    const camera = compileCameraV4(storyboard, timeline, [], geometry);
+    expect(camera.segments.find(({ id }) => id === 'reframe-target')?.to.x).toBeCloseTo(92.8);
+  });
 });

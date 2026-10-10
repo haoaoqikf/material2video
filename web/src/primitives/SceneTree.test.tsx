@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import {
   cycleChildStyle,
   fitRoleDown,
+  MAX_FIT_TEXT_LINES,
   layoutStyle,
   motionStyle,
   quantityFactor,
@@ -34,6 +35,15 @@ describe('场景树运行时', () => {
     expect(html).toContain(`data-a2v-node-id="${hiddenId}"`);
     expect(html).toContain('visibility:hidden');
   });
+  it('树文字把最近 surface 声明为实际包含容器', () => {
+    const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]) as Scene;
+    scene.data = { text: '容器中的说明' };
+    scene.sceneTree = { id: 'panel', type: 'surface', children: [
+      { id: 'copy', type: 'text', contentRef: 'data.text' },
+    ] } as SceneNode;
+    const markup = renderToStaticMarkup(<SceneTree scene={scene} frame={0} />);
+    expect(markup).toContain('data-a2v-inside="[data-a2v-node-id=&quot;panel&quot;]"');
+  });
   it('折线图缺测时保留类别位置且横轴标签使用主题正文颜色', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     scene.data = { weeks: [
@@ -64,11 +74,15 @@ describe('预设字号取档', () => {
   const fitsFor = (tooWide: string[]) => (role: string) => !tooWide.includes(role);
 
   it('放得下时保持声明档位', () => {
-    expect(fitRoleDown('title', fitsFor([]))).toEqual({ role: 'title', measured: true });
+    expect(fitRoleDown('title', fitsFor([]))).toEqual({ role: 'title', measured: true, fits: true });
   });
   it('放不下时沿阶梯向下取档', () => {
-    expect(fitRoleDown('hero', fitsFor(['hero', 'headline']))).toEqual({ role: 'title', measured: true });
-    expect(fitRoleDown('body', fitsFor(ROLE_LADDER as unknown as string[]))).toEqual({ role: 'caption', measured: true });
+    expect(fitRoleDown('hero', fitsFor(['hero', 'headline']))).toEqual({ role: 'title', measured: true, fits: true });
+    expect(fitRoleDown('body', fitsFor(ROLE_LADDER as unknown as string[]))).toEqual({ role: 'caption', measured: true, fits: false });
+  });
+  it('字号阶停止后仍不能容纳时标记为未适配', () => {
+    expect(MAX_FIT_TEXT_LINES).toBe(4);
+    expect(fitRoleDown('body', fitsFor(ROLE_LADDER as unknown as string[])).fits).toBe(false);
   });
   it('同一输入重复取档结果一致', () => {
     const fits = fitsFor(['hero']);

@@ -771,7 +771,11 @@ def gate_overflow(
     if offenders:
         detail_parts.append("越出安全区：" + "；".join(offenders[:4]))
     if blocked:
-        names = "；".join(f"「{_clip(item.get('text') or '')}」" for item in blocked[:3])
+        names = "；".join(
+            f"{item['id']}「{_clip(item.get('text') or '')}」" if item.get("id")
+            else f"「{_clip(item.get('text') or '')}」"
+            for item in blocked[:3]
+        )
         detail_parts.append(f"{len(blocked)} 段文案缩到正文下限仍放不下，需要拆场景：{names}")
 
     return Gate(
