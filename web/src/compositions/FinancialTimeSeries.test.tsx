@@ -332,6 +332,8 @@ describe('financial time-series composition', () => {
     const decades = rangePlan('1999-02-01', '2026-10-08');
     expect(financialView(0, [], decades).windowEndPosition).toBe(epochDayForTest('2003-12-31'));
     expect(financialView(1679, [], decades).windowEndPosition).toBe(epochDayForTest('2026-10-08'));
+    expect(Number(financialView(1200, [], decades).ticks.at(-1)?.label)).toBeGreaterThan(2012);
+    expect(financialView(1799, [], decades).ticks.map(({ label }) => label)).toContain('2026');
     for (const frame of [0, 300, 600, 900, 1200, 1500, 1679, 1799]) {
       const labels = financialView(frame, [], decades).ticks;
       expect(labels.length).toBeLessThanOrEqual(4);
