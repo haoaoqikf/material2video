@@ -432,6 +432,7 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     assert stock_request["instrument"]["displayName"] == "短名称"
     assert stock_request["instrument"]["name"] == "合成公司"
     assert stock_request["instrument"]["code"] == "SYN"
+    assert stock_request["investment"] == {"year": 2020, "principal": 100_000}
     stock_plan = json.loads((stock / "animation-plan.json").read_text(encoding="utf-8"))
     assert stock_plan["schemaVersion"] == 7 and stock_plan["canvas"] == {"width": 1080, "height": 1920}
     assert not (stock / "events.json").exists()
@@ -441,7 +442,9 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
         "--code", "IDX", "--market", "TEST", "--unit", "points", "--index-start-date", "2010-01-01",
         "--start-date", "2020-01-01", "--end-date", "2020-12-31",
     ]) == 0
-    assert json.loads((index / "request.json").read_text(encoding="utf-8"))["instrument"]["indexStartDate"] == "2010-01-01"
+    index_request = json.loads((index / "request.json").read_text(encoding="utf-8"))
+    assert index_request["instrument"]["indexStartDate"] == "2010-01-01"
+    assert index_request["investment"] == {"year": 2020, "principal": 100_000}
     assert not (index / "events.json").exists()
     assert "初始化" in capsys.readouterr().out
 

@@ -106,7 +106,7 @@ def _init(args: argparse.Namespace) -> Path:
         },
         "requestedRange": [start.isoformat(), end.isoformat()],
         "displayRange": [start.isoformat(), end.isoformat()],
-        "investment": {"year": start.year, "principal": 1_000_000},
+        "investment": {"year": start.year, "principal": 100_000},
         "confirmations": [],
     }
     _write(root / "request.json", request)
