@@ -117,10 +117,6 @@ class BundleOutcome:
     #: 不必再对同一批文件哈希一遍（禁用缓存时为 None）
     input_fingerprint: dict | None = None
 
-    @property
-    def cache_hit(self) -> bool:
-        return self.cache_status == "hit"
-
 
 #: 后台读行线程遇到 EOF 时投递的哨兵
 _EOF = object()

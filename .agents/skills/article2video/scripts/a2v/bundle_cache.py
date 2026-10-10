@@ -26,7 +26,6 @@ import os
 import shutil
 import time
 from collections.abc import Iterator
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -83,19 +82,6 @@ _LOCK_POLL_S = 0.2
 
 class BundleCacheError(A2VError):
     """缓存不可用（等待超时、目录被占）或缓存状态损坏。"""
-
-
-@dataclass(frozen=True)
-class CacheLookup:
-    """一次缓存判定的结果，供性能报告与日志使用。"""
-
-    #: `hit` / `miss` / `disabled`
-    status: str
-    key: str | None
-    detail: str
-    path: Path | None
-    #: 键计算与完整性复核的耗时
-    prepare_seconds: float
 
 
 def cache_root(web_dir: str | Path) -> Path:
@@ -343,8 +329,3 @@ def key_lock(web_dir: str | Path, key: str) -> Iterator[None]:
         cache_root(web_dir) / f"{key}.lock", what=f"缓存键 {key[:12]} 的构建", timeout_s=KEY_LOCK_TIMEOUT_S
     ):
         yield
-
-
-def lookup(web_dir: str | Path, key: str) -> tuple[bool, str]:
-    """复核缓存条目（供调用方在拿锁前后各判一次）。"""
-    return verify(entry_dir(web_dir, key), key)

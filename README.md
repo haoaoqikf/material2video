@@ -26,7 +26,7 @@ tree v4 在本地字体加载后预检阶段与状态轨道边界的实际文字
 
 **金融时间序列视频：已支持手机竖屏假设投资价值折线。** AI 编程工具按公司或指数及日期范围核验公开免费日收盘价；request 可设置投资年份和本金，默认从区间首年投入 100,000 标的计价币种。以该年首个交易日收盘买入，顶部单行显示不带币种的投资假设标题，右侧小字显示最近实际收盘日期、收益率和收益；收益与市值使用中文万/亿/万亿数量级并以“元”结尾，不展示特定币种名称，底层计算仍使用行情原始计价单位且不换汇。折线显示组合价值，并按盈亏同步切换红绿。不计分红再投资、手续费及税费。动画计划为 version 7、1080×1920、30 fps，横轴分阶段扩展且起点向左铺开，纵轴随已展示组合价值自适应；纵轴刻度和来源口径说明采用小字号。底部显示来源、统计口径和一行历史表现及投资建议风险提示；正式导出须通过绑定材料、资产和完整静音预演的评审，并检查 360×640 缩放与安全区。无事件标注、K 线或周期选择。旧计划通过 `migrate-line` 完整备份并显式迁移，渲染只读固定本地数据。制作流程见[金融时间序列视频专题参考](.agents/skills/article2video/references/financial-timeseries-video.md)。
 
-使用方式、材料格式和验收规则见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)；可用命令为 `financial_video.py init|validate|render`。金融图表绘图区从 x=92 开始，纵轴刻度使用 14 px 并可进入 x=24 专用安全区，投资价值折线为 3 px。该专题不经过文章字数、口播和有声评审门禁，文章入口保持原行为。
+使用方式、材料格式和验收规则见[专题制作参考](.agents/skills/article2video/references/financial-timeseries-video.md)；可用命令为 `financial_video.py init|validate|preview|review-template|render|plan|migrate-line`，其中 `preview` 与 `review-template` 是正式导出前的必经步骤。金融图表绘图区从 x=92 开始，纵轴刻度使用 14 px 并可进入 x=24 专用安全区，投资价值折线为 3 px。该专题不经过文章字数、口播和有声评审门禁，文章入口保持原行为。
 
 
 ## 快速开始
@@ -65,7 +65,7 @@ uv run python .agents/skills/article2video/scripts/render.py --storyboard videos
 
 - `.agents/skills/article2video/`：创作工作流、分镜/媒体/渲染/评审契约。
 - `web/src/compositions/` 与 `web/src/runtime/`：共享 composition 和全局时间轴运行时。
-- `web/src/registry/registry.json`：视觉原语唯一真源；运行 `sync_catalog.py --check` 检查生成目录是否漂移。
+- `web/src/registry/registry.json`：视觉原语唯一真源；运行 `sync_catalog.py --check` 检查生成文件是否漂移。
 - `.agents/skills/article2video/scripts/`：确定性校验、媒体准备、预览、评审和渲染工具。
 - `examples/`：可运行作品、动画设计和评审记录；作品文章和分镜纳入版本控制。
 - `openspec/changes/`：进行中的能力变更；`openspec/specs/`：已归档并落地的规格。

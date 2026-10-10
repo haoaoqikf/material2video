@@ -5,7 +5,7 @@
 ## 文件
 
 - `article.md`：标准篇幅的观点型输入（正文计 152 字）。
-- `storyboard.json`：v4 单一 world、五个叙事阶段、全局动作、九个状态轨道与六段镜头声明。
+- `storyboard.json`：v4 单一 world、五个叙事阶段、全局动作、十个状态轨道与六段镜头声明。
 - `scenes/water-tank.tsx`：同一个 code 世界的帧驱动画面（水位只读剧本声明的对象状态）。
 - `assets/`：早期版本使用的 CC0 背景音与节拍音效素材（许可见 `assets/LICENSE.md`）；当前 v4 分镜未声明 `soundtrack`，`prepare.py` 只产出旁白音轨。
 - `script-design.md`：五幕口播设计与解释职责。

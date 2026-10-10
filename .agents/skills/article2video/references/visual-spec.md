@@ -93,7 +93,7 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 - 关键短语用强调色 + 光晕标出，**不要**整句加粗或变色；
 - 字号取自**模块化字号阶**：启用预设后，不在阶上的字号会绕过
   [K3 闸门](keynote-design-system.md)（同帧字号种类），层级也就无法被机检。
-  八档取值与配对的行高、字距见[发布会级设计语言](keynote-design-system.md)。
+  十档取值与配对的行高、字距见[发布会级设计语言](keynote-design-system.md)。
   组件内部的文字同样受这条约束——样式表（`web/src/styles/primitives.css`、
   `web/src/styles/keynote.css`）里的字号一律写成
   `var(--a2v-*, 原值)`：令牌生效时落到阶上，令牌缺失时落回原值，
@@ -293,7 +293,7 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
   关系图 10–14 秒，结论 8–11 秒；
 - 单场景不要短于 24 帧（0.8 秒），否则入场动效会被压缩到看不清；
   `validate.py` 会对过短的场景给出警告；
-- 总时长 30–60 秒较适合单条内容；超过 90 秒建议拆成多条。
+- 总时长按当前标准为 **35–45 秒**（见分镜契约）；超过 90 秒建议拆成多条。
 
 ## 画面的组成
 
@@ -328,8 +328,9 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 
 ## 设计语言预设（可选）
 
-分镜根级的 `visual.preset` 决定是否启用一层「发布会级」设计语言。字段可选，
-目前唯一取值是 `"keynote"`；未知值由校验器报错并指出 `visual.preset` 字段路径。
+分镜根级的 `visual.preset` 决定是否启用一层「发布会级」设计语言。v4 中该字段必填，
+目前唯一取值是 `"keynote"`；未声明或声明了未登记的取值都由校验器报错并指出
+`visual.preset` 字段路径。
 
 **缺省时行为逐帧不变。** composition 始终引入 `web/src/styles/keynote.css`，
 但只有分镜声明了预设才会在根元素写 `data-a2v-preset="keynote"`（`A2VComposition`
@@ -344,8 +345,9 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 （`keynote-dark` / `keynote-light`）、对比度预算（正文 7:1、大字与图形 4.5:1）、
 随仓库分发的 webfont，以及观感闸门 K1–K10；预设另外把 `--a2v-safe-top` 从
 220px 提到 240px，并提供 `--a2v-safe-bottom-with-subtitles: 520px`。
-版面仍由分镜的 `visual.layout` 选择，**未声明时 composition 兜底为居中**——
-预设不推翻这个兜底，只补齐原本缺的 `left` 一档。
+v4 分镜的 `visual` 只接受 `theme` 与 `preset`，**不存在 `visual.layout`**：版面由
+`world.sceneTree` 的原语承担。下面这套 `data-layout` 兜底只服务旧版 composition
+（`A2VComposition.tsx`），预设不推翻它，只补齐原本缺的 `left` 一档。
 完整的启用方式、令牌表与闸门阈值见[发布会级设计语言](keynote-design-system.md)。
 
 ### 幕角标 `visual.kicker`

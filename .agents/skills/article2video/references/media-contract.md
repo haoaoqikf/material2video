@@ -30,7 +30,7 @@ uv run python .agents/skills/article2video/scripts/render.py --storyboard storyb
 5. `render.py --storyboard <json> --media <media.json>` 输出
    `videos/<slug>/outputs/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
 
-省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；已有 narration 不会自动触发联网或配音，
+省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；分镜里的 `narrationSegments` 不会自动触发联网或配音，
 但会在日志中提示本次按无声导出。composition 读取的分镜在渲染前由媒体清单派生
 （时长由实际口播派生），不由命令行替换其内容。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
 

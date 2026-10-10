@@ -136,10 +136,6 @@ class Gate:
     def failed(self) -> bool:
         return self.status == "fail"
 
-    @property
-    def warned(self) -> bool:
-        return self.status == "warn"
-
     def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,

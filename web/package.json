@@ -22,7 +22,6 @@
     "@dagrejs/dagre": "1.1.4",
     "@remotion/bundler": "4.0.526",
     "@remotion/cli": "4.0.526",
-    "@remotion/fonts": "4.0.526",
     "@remotion/player": "4.0.526",
     "@remotion/renderer": "4.0.526",
     "@remotion/tailwind-v4": "4.0.526",

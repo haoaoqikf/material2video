@@ -109,8 +109,8 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | 上述渲染命令加 `--limit-frames N` | `<工作区根>/videos/<slug>/outputs/previews/<同名成片>` |
 
 文件名只由「是否提供 `--media`」决定：提供则 `voiced.mp4`，否则 `silent.mp4`。
-分镜写了 `narration` 但没有传 `--media` 时保持 `silent.mp4`，并输出警告，
-不会静默产出一个看似有声的文件；需要配音请先执行 `prepare.py`。
+v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
+「写了旁白却没配音」的中间态：需要配音请先执行 `prepare.py`。
 
 ## 成片溯源
 
@@ -122,7 +122,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
   "renderer": "remotion",
   "workspace": "../..",
   "renderedAt": "2026-09-20T12:00:00+00:00",
-  "page": "__a2v_web__/.gen/active-composition.tsx",
+  "page": "__a2v_web__/src/index.ts",
   "storyboard": "videos/<slug>/storyboard.json",
   "frames": 300, "fps": 30, "width": 1080, "height": 1920,
   "captureFormat": "remotion",

@@ -1,6 +1,5 @@
 export const MIN_STANDARD_CHARS = 130;
 export const MAX_STANDARD_CHARS = 170;
-export const ARTICLE_COUNTING_VERSION = 1;
 
 /** Remove only the first non-empty Markdown H1; plain text's first line is body text. */
 export function extractArticleBody(text: string): string {

@@ -94,9 +94,14 @@ def _init(args: argparse.Namespace) -> Path:
         if start < index_start:
             raise A2VError("起始日早于指数发布日；请先确认实际展示范围")
     root.mkdir(parents=True, exist_ok=True)
+    #: 默认本金。文案与数值同源：两处分开写会漂成「投入 100 万」配 principal 100_000。
+    default_principal = 100_000
     request = {
         "schemaVersion": 1,
-        "originalRequest": f"假如在{start.year}年投入100万买入{args.name}，截至{end.year}年投资价值变化",
+        "originalRequest": (
+            f"假如在{start.year}年投入{default_principal // 10_000}万买入{args.name}，"
+            f"截至{end.year}年投资价值变化"
+        ),
         "instrument": {
             "kind": args.kind, "name": args.name.strip(), "code": args.code.strip(),
             "market": args.market.strip(), "unit": args.unit.strip(),
@@ -106,7 +111,7 @@ def _init(args: argparse.Namespace) -> Path:
         },
         "requestedRange": [start.isoformat(), end.isoformat()],
         "displayRange": [start.isoformat(), end.isoformat()],
-        "investment": {"year": start.year, "principal": 100_000},
+        "investment": {"year": start.year, "principal": default_principal},
         "confirmations": [],
     }
     _write(root / "request.json", request)

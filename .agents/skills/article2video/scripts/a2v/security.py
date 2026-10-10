@@ -88,11 +88,6 @@ def has_usable_access(path: str | Path) -> bool:
     return False
 
 
-def needs_access_repair(path: str | Path) -> bool:
-    """判断交付文件是否缺少可访问的授权（见 has_usable_access）。"""
-    return not has_usable_access(path)
-
-
 def grant_inherited_access(path: str | Path) -> bool:
     """让文件重新继承父目录的访问权限，返回是否执行成功。
 

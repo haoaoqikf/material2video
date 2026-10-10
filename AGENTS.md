@@ -8,7 +8,7 @@
 
 ## 关键入口
 
-- `README.md`：项目定位、当前状态与文档导航。
+- `README.md`：项目定位、当前能力与文档导航。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/article2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
@@ -30,10 +30,10 @@
   文章放在仓库外的内容根（`--content-root` / `A2V_CONTENT_ROOT`）时同理，产物也不入库。
 - **示例集合固定**：仓库 `examples/` 只允许 `buffer-smoothing`、`darts-trial-and-error`、
   `keynote-baseline` 三个目录，最多 3 个；后续仅修改这三个示例，不新增、删除或替换示例。
-- 功能落地后同步更新 README 的当前状态，必要时更新项目规划，保持事实与规划一致。
+- 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。
 - 改动渲染契约、分镜结构或视觉规范时，必须同步更新 skill 内的参考文档、校验器与示例；
-  `narration` 等尚未参与的字段要在文档中明确标注「当前不渲染」，不得含糊表述为已支持。
+  尚未参与渲染的字段要在文档中明确标注「当前不渲染」，不得含糊表述为已支持。
 
 ## 验证与交付
 

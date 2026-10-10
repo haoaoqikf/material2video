@@ -310,7 +310,7 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 
 - 缺陷在 `%TEMP%` 下**不会复现**——那里的临时目录额外继承了一条宽松的
   `CREATOR OWNER`，会把问题掩盖掉；用例必须把临时目录建在目标目录里；
-- `needs_access_repair()` 只解析 icacls 的**授权行**。icacls 输出的第一行含文件路径，
+- `has_usable_access()` 只解析 icacls 的**授权行**。icacls 输出的第一行含文件路径，
   而用户名往往就在路径里（`C:\Users\<名>\...`），按整份输出做子串匹配会一律
   误判为「权限正常」。
 
@@ -415,7 +415,7 @@ window.__A2V__.currentFrame();   // Player 当前实际落在哪一帧
 
 - 扫描分镜里会被渲染的字段（`text`/`title`/`subtitle`/`label`/`quote`/`caption`/
   `value`/`unit` 等）以及样式表里会被渲染的固定字串（`content:`）；
-  `narration` 当前不渲染，**不进扫描**；
+  `narrationSegments` 是口播文本、不画在画面上，**不进扫描**；
 - 结论定位到 `sceneId.字段`——只说「缺字」不可修；
 - 只判「字体里有没有这个字形」，不判字宽字重是否合适，也不判断浏览器
   实际选了哪个字体（那要跑浏览器）。
