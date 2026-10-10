@@ -85,30 +85,31 @@ describe('financial time-series composition', () => {
   it('shows only the investment title and live return metrics, with the endpoint amount following the line', () => {
     testFrame.value = 885;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(markup).toContain('100美元');
+    expect(markup).toContain('100元');
     expect(markup).toContain('2020年1月2日');
     expect(markup).not.toContain('2020-01-01 — 2020-01-03');
-    expect(markup).not.toContain('102美元');
-    expect(markup).toContain('收益 0美元');
+    expect(markup).not.toContain('102元');
+    expect(markup).toContain('收益 0元');
     expect(markup).toContain('收益率 0%');
     expect(renderedTitle(markup)).toBe('假如你在2020年买入合成公司，投入100');
     expect(markup).not.toContain('SYN');
     expect(markup).not.toContain('当前市值');
     expect(markup).toContain('data-a2v-current-value-follow="true"');
-    expect(markup).not.toContain('100.00美元');
+    expect(markup).not.toContain('100.00元');
     expect(markup).toContain('stroke="#55d58a"');
     expect(markup).toContain('data-a2v-live-gain="true"');
     expect(markup).toContain('data-a2v-live-return="true"');
     expect(markup).toContain('data-a2v-live-date="true" x="1016" y="350" text-anchor="end"');
     expect(markup).toContain('data-a2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#55d58a" font-size="24"');
     expect(markup).toContain('data-a2v-live-return="true" x="1016" y="390" text-anchor="end" fill="#55d58a" font-size="24"');
-    expect(markup).toContain('>100美元</text>');
+    expect(markup).toContain('>100元</text>');
+    expect(markup).not.toMatch(/美元|港元|人民币|USD/u);
   });
 
   it('colors positive returns and the portfolio line red, and negative returns green', () => {
     testFrame.value = 1679;
     const positive = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(positive).toContain('收益 +2美元');
+    expect(positive).toContain('收益 +2元');
     expect(positive).toContain('收益率 +2%');
     expect(positive).toContain('stroke="#ff5d68"');
     expect(positive).toContain('data-a2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#ff5d68" font-size="24"');
@@ -118,7 +119,7 @@ describe('financial time-series composition', () => {
       { date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 75 },
     ] } };
     const negative = renderToStaticMarkup(<FinancialTimeSeries {...lossProps} />);
-    expect(negative).toContain('收益 −25美元');
+    expect(negative).toContain('收益 −25元');
     expect(negative).toContain('收益率 −25%');
     expect(negative).toContain('stroke="#55d58a"');
     expect(negative).toContain('data-a2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#55d58a" font-size="24"');
@@ -127,8 +128,8 @@ describe('financial time-series composition', () => {
   it('uses the wider plot, thinner line, smaller value ticks, and small source notes', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(markup).toContain('x1="150" x2="1008"');
-    expect(markup).toContain('data-a2v-value-axis-label="true" x="136" y="1199" text-anchor="end" fill="#8b9ab0" font-size="20"');
+    expect(markup).toContain('x1="126" x2="1008"');
+    expect(markup).toContain('data-a2v-value-axis-label="true" x="112" y="1199" text-anchor="end" fill="#8b9ab0" font-size="16"');
     expect(markup).toContain('data-a2v-summary="true" x="64" y="1320" fill="#b9c7d9" font-size="24"');
     expect(markup).toContain('data-a2v-risk-disclaimer="true" x="64" y="1460" fill="#8b9ab0" font-size="20"');
     expect(markup).toContain('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。');
@@ -137,10 +138,10 @@ describe('financial time-series composition', () => {
   });
 
   it.each([
-    [9_999.999, '1 万美元'],
-    [10_000, '1 万美元'],
-    [100_000_000, '1 亿美元'],
-    [1_000_000_000_000, '1 万亿美元'],
+    [9_999.999, '1 万元'],
+    [10_000, '1 万元'],
+    [100_000_000, '1 亿元'],
+    [1_000_000_000_000, '1 万亿元'],
   ])('formats portfolio value and gain with Chinese magnitude units at %s', (value, expected) => {
     const largeValueProps: FinancialTimeSeriesProps = {
       ...props,
@@ -153,6 +154,7 @@ describe('financial time-series composition', () => {
     expect(markup).toContain(`收益 ${expected.replace('1 ', '+1 ')}`);
     expect(markup).toContain('data-a2v-value-axis-label="true"');
     expect(markup).not.toContain('B</text>');
+    if (value >= 100_000_000_000) expect(markup).toContain('textLength="48" lengthAdjust="spacingAndGlyphs"');
   });
 
   it('buys on the first trading close in the investment year and derives portfolio returns', () => {
@@ -230,8 +232,8 @@ describe('financial time-series composition', () => {
     };
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
-    expect(markup).toContain('100美元');
-    expect(markup).not.toContain('99美元');
+    expect(markup).toContain('100元');
+    expect(markup).not.toContain('99元');
     expect(markup).toContain('2020年4月1日');
     expect(markup).not.toContain('2020年4月3日');
   });

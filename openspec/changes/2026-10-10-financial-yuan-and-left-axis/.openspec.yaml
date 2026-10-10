@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-10
+goal: 移除收益和市值中的外币名称，将横轴起点左移以利用更多横向空间

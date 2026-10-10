@@ -20,7 +20,7 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const PLOT = { left: 150, right: 1008, top: 520, bottom: 1190 };
+const PLOT = { left: 126, right: 1008, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
 const LOSS_COLOR = '#55d58a';
@@ -300,8 +300,6 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
     gain, returnRate: gain === null ? null : gain / config.principal };
 }
 
-const CURRENCY_NAMES: Record<string, string> = { USD: '美元', CNY: '人民币', HKD: '港元', JPY: '日元', EUR: '欧元', GBP: '英镑' };
-
 function magnitude(value: number): { value: number; unit: string } {
   const rounded = Math.sign(value) * (Math.round(Math.abs(value) * 100) / 100);
   const absolute = Math.abs(rounded);
@@ -320,10 +318,10 @@ function investmentAmountText(value: number): string {
   return `${magnitudeNumber(scaled.value)}${scaled.unit}`;
 }
 
-function moneyText(value: number, unit: string): string {
+function moneyText(value: number): string {
   const scaled = magnitude(value);
   const amount = scaled.unit ? `${magnitudeNumber(scaled.value)} ${scaled.unit}` : magnitudeNumber(scaled.value);
-  return `${amount}${CURRENCY_NAMES[unit] ?? unit}`;
+  return `${amount}元`;
 }
 
 function compactValue(value: number): string {
@@ -381,7 +379,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
   const gainSign = view.gain !== null && view.gain > 0 ? '+' : view.gain !== null && view.gain < 0 ? '−' : '';
   const rateSign = view.returnRate !== null && view.returnRate > 0 ? '+' : view.returnRate !== null && view.returnRate < 0 ? '−' : '';
-  const liveGain = latest ? `收益 ${gainSign}${moneyText(Math.abs(view.gain!), prices.unit)}` : '';
+  const liveGain = latest ? `收益 ${gainSign}${moneyText(Math.abs(view.gain!))}` : '';
   const liveRate = latest
     ? `收益率 ${rateSign}${new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(view.returnRate!))}`
     : '';
@@ -390,7 +388,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
-  const endpointLabel = latest ? moneyText(latest.close, prices.unit) : '';
+  const endpointLabel = latest ? moneyText(latest.close) : '';
   const endpointX = latest ? xForDate(latest.date) : PLOT.left;
   const endpointY = latest ? yForValue(latest.close) : PLOT.bottom;
   const endpointLabelWidth = measuredTextWidth(endpointLabel, 24) * 1.15;
@@ -451,9 +449,14 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
+        const label = compactValue(value);
+        const labelWidth = PLOT.left - 14 - SAFE_AREA.left;
+        const estimatedLabelWidth = measuredTextWidth(label, 16);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="20">{compactValue(value)}</text>
+          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="16"
+            textLength={estimatedLabelWidth > labelWidth ? labelWidth : undefined}
+            lengthAdjust={estimatedLabelWidth > labelWidth ? 'spacingAndGlyphs' : undefined}>{label}</text>
         </g>;
       })}
       {ticks.map(({ date: tickDate, label, opacity }) => {
