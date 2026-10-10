@@ -161,59 +161,47 @@ function ticksForInterval(start: number, end: number, interval: TickInterval): I
   return ticks;
 }
 
-function axisTicks(frame: number, windowStart: number, windowEnd: number, transitions: AxisTransition[], endingStart: number) {
-  if (frame >= endingStart - 1) {
-    const finalEnd = transitions.at(-1)?.target ?? windowEnd;
-    const interval = tickInterval(windowStart, finalEnd);
-    const dates = ticksForInterval(windowStart, windowEnd, interval);
-    const finalYear = isoDay(windowEnd).slice(0, 4);
-    if (interval.unit === 'year' && !dates.some((date) => date.slice(0, 4) === finalYear)) dates.push(isoDay(windowEnd));
-    return dates.map((date) => ({ date, label: interval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 }));
+type AxisTick = { date: ISODate; label: string; opacity: number };
+
+function selectStableTicks(ticks: AxisTick[], start: number, layoutEnd: number): AxisTick[] {
+  const unique = [...new Map(ticks.map((tick) => [tick.date, tick])).values()];
+  const span = Math.max(layoutEnd - start, 1);
+  const positioned = unique.map((tick) => {
+    const width = tick.label.length * 18;
+    const x = PLOT.left + ((epochDay(tick.date) - start) / span) * (PLOT.right - PLOT.left);
+    return { ...tick, x: Math.max(PLOT.left, Math.min(x, PLOT.right - width / 2)), width };
+  }).sort((a, b) => a.x - b.x || a.date.localeCompare(b.date));
+  if (positioned.length <= 4) return positioned;
+
+  const selected: typeof positioned = [];
+  const first = positioned[0]!;
+  const last = positioned.at(-1)!;
+  if (Math.abs(last.x - first.x) >= (last.width + first.width) / 2 + 12) selected.push(first, last);
+  else selected.push(last);
+  while (selected.length < 4) {
+    const next = positioned
+      .filter((tick) => !selected.some((item) => item.date === tick.date))
+      .filter((tick) => selected.every((other) => Math.abs(tick.x - other.x) >= (tick.width + other.width) / 2 + 12))
+      .sort((a, b) => {
+        const spreadA = Math.min(...selected.map((item) => Math.abs(a.x - item.x)));
+        const spreadB = Math.min(...selected.map((item) => Math.abs(b.x - item.x)));
+        return spreadB - spreadA || b.opacity - a.opacity || a.date.localeCompare(b.date);
+      })[0];
+    if (!next) break;
+    selected.push(next);
   }
-  const finalTransition = transitions.at(-1);
-  if (finalTransition && frame >= endingStart - 6 && finalTransition.end >= endingStart - 1) {
-    const progress = Math.max(0, Math.min(1, (frame - (endingStart - 6)) / 5));
-    const oldInterval = tickInterval(windowStart, finalTransition.oldEnd);
-    const nextInterval = tickInterval(windowStart, finalTransition.target);
-    const labels = new Map<ISODate, { label: string; opacity: number }>();
-    ticksForInterval(windowStart, finalTransition.oldEnd, oldInterval).forEach((date) =>
-      labels.set(date, { label: oldInterval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 - progress }));
-    ticksForInterval(windowStart, finalTransition.target, nextInterval).forEach((date) => {
-      const prior = labels.get(date);
-      labels.set(date, { label: nextInterval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: Math.max(prior?.opacity ?? 0, progress) });
-    });
-    return [...labels].map(([date, { label, opacity }]) => ({ date, label, opacity })).filter(({ opacity }) => opacity > 0);
-  }
-  const active = transitions.find(({ start, end }) => start <= frame && frame <= end);
-  if (active) {
-    const oldInterval = tickInterval(windowStart, active.oldEnd);
-    const nextInterval = tickInterval(windowStart, active.target);
-    const oldTicks = ticksForInterval(windowStart, windowEnd, oldInterval);
-    const oldSet = new Set(oldTicks);
-    const nextTicks = ticksForInterval(windowStart, windowEnd, nextInterval).filter((tick) => !oldSet.has(tick));
-    return [
-      ...oldTicks.map((date) => ({ date, label: oldInterval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 })),
-      ...nextTicks.map((date) => {
-        const distance = windowEnd - epochDay(date);
-        return { date, label: nextInterval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: Math.max(0, Math.min(1, 1 - distance / Math.max((windowEnd - active.oldEnd) * 0.12, 1))) };
-      }).filter(({ opacity }) => opacity > 0),
-    ];
-  }
-  const previous = [...transitions].reverse().find(({ end }) => end < frame && frame - end <= 6);
-  if (previous) {
-    const progress = (frame - previous.end) / 6;
-    const oldTicks = ticksForInterval(windowStart, previous.oldEnd, tickInterval(windowStart, previous.oldEnd));
-    const nextTicks = ticksForInterval(windowStart, previous.target, tickInterval(windowStart, previous.target));
-    const opacities = new Map<ISODate, { opacity: number; label: string }>();
-    oldTicks.forEach((date) => opacities.set(date, { label: previous.oldEnd - windowStart > 730 ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 - progress }));
-    nextTicks.forEach((date) => {
-      const existing = opacities.get(date);
-      opacities.set(date, { label: previous.target - windowStart > 730 ? date.slice(0, 4) : date.slice(0, 7), opacity: Math.max(existing?.opacity ?? 0, progress) });
-    });
-    return [...opacities].map(([date, { opacity, label }]) => ({ date, label, opacity })).filter(({ opacity }) => opacity > 0);
-  }
-  const interval = tickInterval(windowStart, windowEnd);
-  return ticksForInterval(windowStart, windowEnd, interval).map((date) => ({ date, label: interval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 }));
+  return selected.sort((a, b) => a.x - b.x);
+}
+
+function axisTicks(windowStart: number, visibleEnd: number, fullRangeEnd: number) {
+  // Fix labels for the whole composition. Each label enters once as the axis
+  // reaches it, so changing span or collision order cannot make a year blink.
+  const interval = tickInterval(windowStart, fullRangeEnd);
+  const dates = [isoDay(windowStart), ...ticksForInterval(windowStart, fullRangeEnd, interval)];
+  const finalYear = isoDay(fullRangeEnd).slice(0, 4);
+  if (interval.unit === 'year' && !dates.some((date) => date.slice(0, 4) === finalYear)) dates.push(isoDay(fullRangeEnd));
+  const stable = selectStableTicks(dates.map((date) => ({ date, label: interval.unit === 'year' ? date.slice(0, 4) : date.slice(0, 7), opacity: 1 })), windowStart, fullRangeEnd);
+  return stable.filter((tick) => epochDay(tick.date) <= visibleEnd);
 }
 
 // Prefix ranges avoid scanning decades of daily prices six times per frame.
@@ -269,38 +257,14 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const target = ranges[end - 1] ?? [0, 1];
   let low = 0; let high = 0; let weightTotal = 0;
   // Freeze the last advance frame's axis for the entire four-second ending.
-  const rawTicks = axisTicks(frame, windowPosition, windowEndPosition, transitions, endingStart);
+  const rawTicks = axisTicks(windowPosition, windowEndPosition, fullRangeEnd);
   const axisWidth = PLOT.right - PLOT.left;
-  const positioned = rawTicks.map((tick) => {
+  const positioned = rawTicks.filter((tick) => epochDay(tick.date) <= windowEndPosition).map((tick) => {
     const width = tick.label.length * 18;
     const x = PLOT.left + ((epochDay(tick.date) - windowPosition) / Math.max(windowEndPosition - windowPosition, 1)) * axisWidth;
     return { ...tick, x: Math.max(PLOT.left, Math.min(x, PLOT.right - width / 2)), width };
   });
-  const axisTicksForFrame = positioned
-    .filter((tick, index, all) => all.findIndex((item) => item.date === tick.date) === index)
-    .sort((a, b) => a.x - b.x || b.opacity - a.opacity);
-  const visibleAxisTicks: typeof axisTicksForFrame = [];
-  const firstTick = axisTicksForFrame[0];
-  const lastTick = axisTicksForFrame.at(-1);
-  if (firstTick && lastTick && firstTick.date !== lastTick.date) {
-    const endpointsOverlap = Math.abs(lastTick.x - firstTick.x) < (lastTick.width + firstTick.width) / 2 + 12;
-    if (!endpointsOverlap) visibleAxisTicks.push(firstTick, lastTick);
-    else visibleAxisTicks.push(lastTick);
-  } else if (firstTick) visibleAxisTicks.push(firstTick);
-
-  while (visibleAxisTicks.length < 4) {
-    const next = axisTicksForFrame
-      .filter((tick) => !visibleAxisTicks.some((item) => item.date === tick.date))
-      .filter((tick) => visibleAxisTicks.every((other) => Math.abs(tick.x - other.x) >= (tick.width + other.width) / 2 + 12))
-      .sort((a, b) => {
-        const spreadA = Math.min(...visibleAxisTicks.map((item) => Math.abs(a.x - item.x)));
-        const spreadB = Math.min(...visibleAxisTicks.map((item) => Math.abs(b.x - item.x)));
-        return spreadB - spreadA || b.opacity - a.opacity || a.date.localeCompare(b.date);
-      })[0];
-    if (!next) break;
-    visibleAxisTicks.push(next);
-  }
-  visibleAxisTicks.sort((a, b) => a.x - b.x);
+  const visibleAxisTicks = positioned.sort((a, b) => a.x - b.x);
   const axisFrame = Math.min(frame, endingStart - 1);
   for (let offset = 0; offset < 6; offset++) {
     const date = isoDay(Math.floor(framePosition(Math.max(0, axisFrame - offset), plan)));
@@ -484,7 +448,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       })}
       {ticks.map(({ date: tickDate, label, opacity }) => {
         const x = xForDate(tickDate);
-        const labelX = Math.max(PLOT.left, Math.min(x, PLOT.right - label.length * 15));
+        const labelHalfWidth = label.length * 9;
+        const labelX = Math.max(SAFE_AREA.left + labelHalfWidth, Math.min(x, SAFE_AREA.right - labelHalfWidth));
         return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-a2v-axis-label="true" x={labelX} y={PLOT.bottom + 46} textAnchor="middle" fill="#9ba9bc" fontSize="30">{label}</text></g>;
       })}
       <line x1={PLOT.left} x2={PLOT.left} y1={graphTop} y2={PLOT.bottom} stroke="#53627a" />

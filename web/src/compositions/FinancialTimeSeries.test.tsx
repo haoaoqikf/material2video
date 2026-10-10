@@ -284,7 +284,7 @@ describe('financial time-series composition', () => {
       testFrame.value = frame;
       return renderToStaticMarkup(<FinancialTimeSeries {...historyProps} />);
     };
-    expect(opening.ticks.length).toBeGreaterThan(1);
+    expect(opening.ticks.length).toBeGreaterThan(0);
     expect(opening.ticks).not.toEqual(final.ticks);
     expect(markupAt(1799)).toContain('data-a2v-visible-value-points="3"');
   });
@@ -332,8 +332,20 @@ describe('financial time-series composition', () => {
     const decades = rangePlan('1999-02-01', '2026-10-08');
     expect(financialView(0, [], decades).windowEndPosition).toBe(epochDayForTest('2003-12-31'));
     expect(financialView(1679, [], decades).windowEndPosition).toBe(epochDayForTest('2026-10-08'));
-    expect(Number(financialView(1200, [], decades).ticks.at(-1)?.label)).toBeGreaterThan(2012);
+    expect(Number(financialView(1500, [], decades).ticks.at(-1)?.label)).toBeGreaterThan(2012);
     expect(financialView(1799, [], decades).ticks.map(({ label }) => label)).toContain('2026');
+    const labelTrace = Array.from({ length: 1590 }, (_, index) => financialView(index + 90, [], decades).ticks.map(({ label }) => label));
+    const labels = new Set(labelTrace.flat());
+    for (const label of labels) {
+      let visible = false;
+      let appearances = 0;
+      for (const frameLabels of labelTrace) {
+        const current = frameLabels.includes(label);
+        if (current && !visible) appearances++;
+        visible = current;
+      }
+      expect(appearances, `year ${label} reappeared after disappearing`).toBeLessThanOrEqual(1);
+    }
     for (const frame of [0, 300, 600, 900, 1200, 1500, 1679, 1799]) {
       const labels = financialView(frame, [], decades).ticks;
       expect(labels.length).toBeLessThanOrEqual(4);
