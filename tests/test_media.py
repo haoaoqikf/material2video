@@ -308,7 +308,7 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     """
     from a2v import remotion as remotion_mod
     from a2v import render as render_mod
-    from a2v.remotion import CompositionMetadata
+    from a2v.remotion import BundleOutcome, CompositionMetadata
 
     source, path = prepared
     media = load_media(path, source)
@@ -318,29 +318,36 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
 
     def fake_bundle(**kwargs):
         captured["bundle_storyboard"] = Path(kwargs["storyboard_path"])
-        return tmp_path / "bundle"
-
-    def fake_metadata(**kwargs):
-        props = Path(kwargs["props"])
-        captured["props"] = props
-        captured["props_timeline"] = json.loads(props.read_text(encoding="utf-8"))["mediaTimeline"]["stages"]
-        return CompositionMetadata(
-            fps=30, width=1080, height=1920, duration_in_frames=media.storyboard.total_frames
+        return BundleOutcome(
+            path=tmp_path / "bundle",
+            cache_status="hit",
+            cache_key="test-key",
+            cache_detail="测试夹具：直接命中",
+            cache_seconds=0.0,
+            build_seconds=0.0,
         )
 
-    def fake_render_frames(**kwargs):
+    def fake_session(**kwargs):
         # 渲染发生在临时目录存续期间：props 的内容只能在这里读
-        captured["render_timeline"] = json.loads(
-            Path(kwargs["props"]).read_text(encoding="utf-8")
-        )["mediaTimeline"]["stages"]
+        props = Path(kwargs["props"])
+        captured["props"] = props
+        timeline = json.loads(props.read_text(encoding="utf-8"))["mediaTimeline"]["stages"]
+        captured["props_timeline"] = timeline
+        captured["render_timeline"] = timeline
+        params = kwargs["on_metadata"](
+            CompositionMetadata(
+                fps=30, width=1080, height=1920, duration_in_frames=media.storyboard.total_frames
+            )
+        )
+        captured["params"] = params
+        return {"readySeconds": 0.5, "browsersOpened": 1}
 
     def fake_finalize(**kwargs):
         kwargs["output_path"].write_bytes(b"mp4")
 
     monkeypatch.setattr(remotion_mod, "require_environment", lambda: tmp_path)
     monkeypatch.setattr(remotion_mod, "bundle", fake_bundle)
-    monkeypatch.setattr(remotion_mod, "metadata", fake_metadata)
-    monkeypatch.setattr(remotion_mod, "render_frames", fake_render_frames)
+    monkeypatch.setattr(remotion_mod, "render_session", fake_session)
     monkeypatch.setattr(render_mod, "_finalize_output", fake_finalize)
     monkeypatch.setattr(render_mod, "_write_provenance", lambda *args, **kwargs: None)
 
@@ -349,6 +356,7 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
         storyboard=media.storyboard,
         storyboard_path=source,
         media=media,
+        bundle_cache=False,
     )
 
     assert result.frames == media.storyboard.total_frames
@@ -357,3 +365,4 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     assert sum(s["durationInFrames"] for s in captured["props_timeline"]) == media.storyboard.total_frames
     assert captured["render_timeline"] == captured["props_timeline"]
     assert captured["bundle_storyboard"] == source
+    assert captured["params"]["frames"] == f"0-{media.storyboard.total_frames - 1}"

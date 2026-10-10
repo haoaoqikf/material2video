@@ -115,13 +115,55 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 `render.py` 默认（`--engine remotion`）不经过浏览器截图，而是**直接从 composition
 源码渲染**：
 
-1. 打包：`remotion.bundle()` 把 `web/` 打成可渲染的 bundle（产物进临时目录）；
-2. 元数据交叉校验：先向 composition 要一份真实元数据（fps / 尺寸 / 总帧数），
-   用与网页路径**同一组判定函数**与分镜声明的值逐项比对，不一致时报错并列出两边取值；
-3. 逐帧渲染：`remotion.render_frames()` 走 Remotion 的确定性渲染（按帧号 seek），
-   输出 H.264；帧级 timeout 按分钟计，不沿用页面超时；
+1. 打包：`remotion.bundle()` 把 `web/` 打成可渲染的 bundle。默认走本地缓存
+   （见「打包缓存」）；缓存命中时跳过打包，但分镜校验、代码场景边界检查与
+   源码确定性扫描照常执行；
+2. 元数据交叉校验（同一会话）：向 composition 要一份真实元数据（fps / 尺寸 /
+   总帧数），用与网页路径**同一组判定函数**与分镜声明的值逐项比对，不一致时报错
+   并列出两边取值，同时终止会话——**一帧都不会渲**；
+3. 逐帧渲染（同一会话，校验通过后下发渲染参数）：Remotion 按帧号 seek，
+   输出 H.264；渲染与编码在 Remotion 内部重叠，报告里记一段合并耗时；
+   帧级 timeout 按分钟计，不沿用页面超时；
 4. 收口与网页路径共用：合音轨、成片验收（`_verify_output`）、搬到最终位置、
    交付权限修复（见下文），一个字都不差。
+
+### 打包缓存
+
+- 位置：`web/.cache/a2v-bundles/<键>/`（已被 `.gitignore` 忽略，可随时整目录删除）。
+- 键覆盖**全部会改变产物的输入**：共享源码可达集合、当前作品的场景清单与导入、
+  生成的 Tailwind 内容、字体、`public/` 静态资产、`remotion.config.ts` /
+  `tsconfig.json` / `package.json` / `pnpm-lock.yaml` 以及 Node 版本。
+  因此改代码、换字体、换作品或升级依赖都会换键，不会交付上一份画面。
+- 命中判定是**逐文件复核摘要与大小**，不是「目录存在」；清单缺少完成标记
+  （上次构建被中断）即判未命中并重建。
+- 构建先写临时目录，产物清单写全后整体改名发布；同一把键由锁串行，等待者拿到锁后
+  复查一次，不重复打包。从 `.gen` 清单生成到打包结束由全局锁串行，防止并行切换作品
+  互相污染。
+- `--no-bundle-cache` 本次强制重新打包（诊断与基准对照用）；
+  缓存只省掉打包，**不跳过任何门禁**。
+
+### 渲染会话与并发
+
+- 一次渲染只起一个 Node 进程、只开一个浏览器：选择 composition、报出元数据、
+  等待 Python 的确认行，之后用同一个浏览器渲染。两次进程调用各冷启动一次浏览器的
+  开销因此消失。`--metadata-only` 诊断路径保留。
+- Python 侧的校验不通过时发送 `ABORT`，Node 走 `finally` 关掉浏览器后退出；父进程
+  EOF、静默超时、渲染失败同样收掉整棵进程树（Windows 用 `taskkill /T`），
+  不留下孤儿 Chromium。
+- `--concurrency <正整数>` 透传给 Remotion，**默认 1**。提高并发会抬高峰值内存，
+  Windows 长片在多并发页签下可能被系统关闭并报 `Target closed`，因此不按 CPU 数
+  自动提高；非法取值在解析参数时即报错，早于打包与渲染。
+
+### 性能报告（`<名字>.performance.json`）
+
+每次 Remotion 渲染在成片同级写一份结构化报告（已被 `.gitignore` 忽略），字段包括：
+各阶段秒数（`cache` / `bundle` / `metadata` / `render` / `mux` / `probe`）、跳过阶段列表、
+缓存命中状态与键、实际并发、帧数与分辨率、浏览器开启次数，以及硬件与软件版本。
+`render` 已含编码，因此没有独立的 `encode` 阶段——两段在 Remotion 里是同一段时间，
+拆开相加会让总耗时重复累计。未执行的阶段写 `null` 并列入 `skipped`，不写 0 冒充实测。
+需要可对照的机器数据时用 `benchmark_render.py benchmark`（冷/热缓存与并发 1/2/4 对照）
+与 `benchmark_render.py accept`（全片有声渲染与跨并发未编码画面 PSNR 验收），
+报告同样落在作品 `outputs/` 下。
 
 体检路径（`review.py`）与此不同：它仍用 Playwright 驱动**契约页**——量测与探针
 （约 90KB 已实测的判定逻辑）继续对着真实画面工作，而契约页挂的正是同一份
@@ -327,7 +369,7 @@ window.__A2V__.currentFrame();   // Player 当前实际落在哪一帧
 | `renderedAt` | 渲染时刻（UTC） |
 | `page` / `storyboard` | composition 入口与分镜，相对工作区根；落在仓库 `web/` 别名目录里的记 `/__a2v_web__/` 别名键；两者之外只记文件名（不写绝对路径） |
 | `frames` / `fps` / `width` / `height` / `captureFormat` | 成片参数；当前渲染路径的 `captureFormat` 为 `remotion` |
-| `assets.files` | 逐个的 sha256。当前路径是**构建输入**——composition 可达的全部源码文件、`package.json` 与锁文件、字体，外加分镜与媒体清单指纹；作品声明了代码场景时，还包含当前作品可达的 TS/TSX/CSS/SVG、本地资产与 `.gen/scene-manifest.json` 静态清单（作品文件记 `__a2v_workspace__/…` 键）；历史网页路径则指纹页面真正引用的本地资源 |
+| `assets.files` | 逐个的 sha256。当前路径是**构建输入**——composition 可达的全部源码文件、`package.json` 与锁文件、字体，外加分镜与媒体清单指纹；作品声明了代码场景时，还包含当前作品可达的 TS/TSX/CSS/SVG 与本地资产（作品文件记 `__a2v_workspace__/…` 键）。全局 `.gen/` 索引不计入成片溯源，但计入打包缓存键；历史网页路径则指纹页面真正引用的本地资源 |
 | `assets.digest` | 上表的规范化 JSON 摘要，与媒体清单的 `sourceFingerprint` 同一套算法 |
 
 两条口径值得记住：

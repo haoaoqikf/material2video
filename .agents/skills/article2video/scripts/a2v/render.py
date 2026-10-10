@@ -23,7 +23,7 @@ from typing import Iterator
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from . import assets, paths, remotion, security
+from . import assets, paths, perf, remotion, security
 from .audio import mux
 from .browser import PageContract
 from .errors import A2VError
@@ -54,20 +54,39 @@ class RenderResult:
     width: int
     height: int
     duration_seconds: float
-    #: 画面产出耗时。网页路径是逐帧截图，Remotion 路径是逐帧渲染 + 编码；
-    #: 两条路径都会把这一段的耗时报出来，好比较换渲染器到底快了多少。
+    #: 画面产出耗时。网页路径是逐帧截图；Remotion 路径是**同一个 Node 会话**的
+    #: 元数据握手 + 逐帧渲染编码（浏览器只冷启动一次），两条路径都会把这一段
+    #: 耗时报出来，好比较换渲染器到底快了多少。
     capture_seconds: float
     total_seconds: float
     size_bytes: int
+    #: `hit` / `miss` / `disabled`：本次是否复用了打包缓存
+    cache_status: str = ""
+    #: 实际使用的渲染并发
+    concurrency: int = remotion.DEFAULT_CONCURRENCY
+    #: 分阶段耗时（`None` 表示该阶段本次未执行）
+    stages: dict[str, float | None] | None = None
+    #: 结构化性能报告落点；写失败时为 None
+    performance_path: Path | None = None
 
     def summary(self) -> str:
         rate = self.frames / self.capture_seconds if self.capture_seconds else 0
+        extra = []
+        if self.cache_status:
+            extra.append(
+                {"hit": "打包缓存命中", "miss": "打包缓存未命中", "disabled": "本次禁用打包缓存"}[
+                    self.cache_status
+                ]
+            )
+            extra.append(f"并发 {self.concurrency}")
         return (
             f"输出 {self.output}：{self.frames} 帧 / {self.duration_seconds:.1f}s，"
             f"{self.width}x{self.height} @{self.fps}fps，"
             f"画面产出 {self.capture_seconds:.1f}s（约 {rate:.1f} 帧/秒），"
             f"总耗时 {self.total_seconds:.1f}s，"
-            f"文件 {self.size_bytes / 1024 / 1024:.1f} MiB"
+            + ("，".join(extra) + "，" if extra else "")
+            + f"文件 {self.size_bytes / 1024 / 1024:.1f} MiB"
+            + (f"，性能报告 {self.performance_path.name}" if self.performance_path else "")
         )
 
 
@@ -297,18 +316,22 @@ def _finalize_output(
     probe: bool,
     frame_start: int = 0,
     subtitle_offset: float | None = None,
+    timings: perf.StageTimings | None = None,
 ) -> Path:
     """两条渲染路径共用的收口：合音轨、验成片、搬到最终位置、修权限。
 
     共用是刻意的：帧数、分辨率、帧率、音轨参数都是验收项，
     两条路径各写一遍迟早会出现「一条路径的成片能过、另一条过不了」，
     而那种差异只会在交付之后被人发现。
+
+    `timings` 给出时，合音轨与验收分别计时；没执行的那一段记「跳过」而不是 0。
     """
     final_path = video_path
     if media:
         final_path = temp / "final.mp4"
         offset = frame_start / fps if subtitle_offset is None else subtitle_offset
-        mux(video_path, media.audio, final_path, total_frames / fps, start=offset)
+        with perf.measure(timings, "mux"):
+            mux(video_path, media.audio, final_path, total_frames / fps, start=offset)
         cues = [
             {**cue, "start": max(cue["start"] - offset, 0), "end": cue["end"] - offset}
             for cue in media.data["cues"]
@@ -317,8 +340,13 @@ def _finalize_output(
         (temp / "subtitles.srt").write_text(
             srt(cues, total_frames / fps), encoding="utf-8"
         )
+    elif timings is not None:
+        timings.skip("mux")
     if probe:
-        _verify_output(final_path, total_frames, width, height, fps, expect_audio=media is not None)
+        with perf.measure(timings, "probe"):
+            _verify_output(final_path, total_frames, width, height, fps, expect_audio=media is not None)
+    elif timings is not None:
+        timings.skip("probe")
     final_path.replace(output_path)
     if media:
         (temp / "subtitles.srt").replace(output_path.with_suffix(".srt"))
@@ -346,6 +374,8 @@ def render_with_remotion(
     content_root: str | Path | None = None,
     frame_range: tuple[int, int] | None = None,
     scale: float = 1,
+    concurrency: int = remotion.DEFAULT_CONCURRENCY,
+    bundle_cache: bool = True,
 ) -> RenderResult:
     """用 React composition（Remotion）逐帧渲染并编码成片。
 
@@ -353,8 +383,14 @@ def render_with_remotion(
     因此不再有网页可查——取而代之的是渲染前先向 composition 要一份真实元数据
     （fps / 尺寸 / 总帧数），并用**同一组判定函数**与分镜交叉校验。
     合音轨、成片验收、交付权限与溯源与网页路径共用同一段代码。
+
+    打包走本地缓存（键覆盖全部构建输入，命中前逐文件复核完整性）；渲染走
+    **同一个 Node 会话**：只开一个浏览器，元数据交叉校验通过后才下发渲染参数。
+    两条都与画质无关——分辨率、CRF、JPEG 质量、编码参数与验收标准都不变。
+    本次的分阶段耗时、缓存状态与实际并发写进同级的 `<名字>.performance.json`。
     """
     started = time.monotonic()
+    concurrency = remotion.check_concurrency(concurrency)
     output_path = Path(output)
     if not 0 < scale <= 1:
         raise RenderError("输出缩放比例必须大于 0 且不超过 1")
@@ -379,6 +415,9 @@ def render_with_remotion(
         raise RenderError(f"分镜文件不存在: {props}")
 
     directory = remotion.require_environment()
+    timings = perf.StageTimings()
+    #: 会话回调里算出来的画面参数；渲染失败时不会用到
+    resolved: dict[str, int] = {}
     with contextlib.ExitStack() as stack:
         temp = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output_path.parent)))
         video_path = temp / "video.mp4"
@@ -390,104 +429,211 @@ def render_with_remotion(
             # 作品归属按原分镜与文章目录解析。
             props = write_effective_storyboard(media, temp)
 
-        bundle_started = time.monotonic()
-        bundle_dir = remotion.bundle(
+        outcome = remotion.bundle(
             web_dir=directory,
             out_dir=temp / "bundle",
             storyboard_path=storyboard_path,
             content_root=content_root,
+            workspace_root=workspace_root,
+            cache=bundle_cache,
         )
-        logger.info("打包 composition 用了 %.1f 秒", time.monotonic() - bundle_started)
-
-        # 渲染前就把画面参数与分镜对齐：composition 的时长由 props 推导，
-        # 两份数据不一致时渲出一支长度不对的片子，再去反推原因代价很大
-        contract = remotion.metadata(web_dir=directory, bundle_dir=bundle_dir, props=props)
-        declared = contract.contract
-        effective_fps = _resolve_fps(declared, storyboard, None)
-        width, height = _resolve_dimensions(declared, storyboard)
-        output_width, output_height = round(width * scale), round(height * scale)
-        if output_width % 2 or output_height % 2:
-            raise RenderError(f"缩放后尺寸必须为偶数，当前为 {output_width}×{output_height}")
-        total_frames = _resolve_total_frames(declared, storyboard)
-        logger.info(
-            "composition 契约: %d fps, %d 帧, %dx%d", effective_fps, total_frames, width, height
-        )
-
-        if frame_range is not None:
-            start_frame, end_frame = frame_range
-            if start_frame < 0 or end_frame < start_frame or end_frame >= total_frames:
-                raise RenderError(f"全局帧范围无效：{start_frame}-{end_frame}，总帧数 {total_frames}")
-            rendered_frames = end_frame - start_frame + 1
+        if outcome.cache_status == "hit":
+            timings.skip("bundle")
         else:
-            start_frame = 0
-            rendered_frames = total_frames
-        if limit_frames is not None:
-            rendered_frames = min(rendered_frames, max(limit_frames, 1))
-            logger.warning("调试模式：仅渲染 %d 帧", rendered_frames)
+            timings.record("bundle", outcome.build_seconds)
+        if outcome.cache_status == "disabled":
+            timings.skip("cache")
+        else:
+            timings.record("cache", outcome.cache_seconds)
 
-        capture_started = time.monotonic()
-        remotion.render_frames(
+        def confirm(declared: remotion.CompositionMetadata) -> dict:
+            """元数据交叉校验通过后才向 Node 下发渲染参数。
+
+            这里用的判定函数与网页路径完全一致：`_resolve_fps` /
+            `_resolve_dimensions` / `_resolve_total_frames`。校验不通过时抛错，
+            会话随即收到 ABORT 并收掉进程树——**一帧都不会渲**。
+            """
+            contract = declared.contract
+            effective_fps = _resolve_fps(contract, storyboard, None)
+            width, height = _resolve_dimensions(contract, storyboard)
+            output_width, output_height = round(width * scale), round(height * scale)
+            if output_width % 2 or output_height % 2:
+                raise RenderError(f"缩放后尺寸必须为偶数，当前为 {output_width}×{output_height}")
+            total_frames = _resolve_total_frames(contract, storyboard)
+            logger.info(
+                "composition 契约: %d fps, %d 帧, %dx%d（并发 %d）",
+                effective_fps, total_frames, width, height, concurrency,
+            )
+            if frame_range is not None:
+                start_frame, end_frame = frame_range
+                if start_frame < 0 or end_frame < start_frame or end_frame >= total_frames:
+                    raise RenderError(
+                        f"全局帧范围无效：{start_frame}-{end_frame}，总帧数 {total_frames}"
+                    )
+                rendered_frames = end_frame - start_frame + 1
+            else:
+                start_frame = 0
+                rendered_frames = total_frames
+            if limit_frames is not None:
+                rendered_frames = min(rendered_frames, max(limit_frames, 1))
+                logger.warning("调试模式：仅渲染 %d 帧", rendered_frames)
+            resolved.update(
+                fps=effective_fps,
+                width=width,
+                height=height,
+                output_width=output_width,
+                output_height=output_height,
+                start_frame=start_frame,
+                rendered_frames=rendered_frames,
+            )
+            return {
+                "out": str(video_path),
+                "crf": crf,
+                "preset": preset,
+                # 显式给出帧区间：composition 自己也有时长，但**渲染的帧数**是验收项，
+                # 让它由 Python 算出来并写死，比隐含在画面里可核对
+                "frames": f"{start_frame}-{start_frame + rendered_frames - 1}",
+                "scale": scale,
+                "concurrency": concurrency,
+                # 仅供 Python 侧的进度日志使用；Node 不读这个字段
+                "progressTotal": rendered_frames,
+            }
+
+        session_started = time.monotonic()
+        session_info = remotion.render_session(
             web_dir=directory,
-            bundle_dir=bundle_dir,
+            bundle_dir=outcome.path,
             props=props,
-            out=video_path,
-            total_frames=rendered_frames,
-            crf=crf,
-            preset=preset,
+            on_metadata=confirm,
             # 逐帧渲染按分钟计，命令行给的 timeout 是**页面**超时，
             # 拿它当渲染超时会让正常的大项目渲染被误杀
             timeout_s=max(timeout_ms / 1000 * 60, 3600.0),
-            frame_start=start_frame,
-            scale=scale,
         )
-        capture_seconds = time.monotonic() - capture_started
+        session_seconds = time.monotonic() - session_started
+        handshake_seconds = float(session_info.get("readySeconds") or 0.0)
+        timings.record("metadata", handshake_seconds)
+        # 渲染与编码在 Remotion 内部重叠，只记一段合并耗时
+        timings.record("render", max(session_seconds - handshake_seconds, 0.0))
+        capture_seconds = session_seconds
 
         _finalize_output(
             video_path=video_path,
             temp=temp,
             output_path=output_path,
-            total_frames=rendered_frames,
-            fps=effective_fps,
-            width=output_width,
-            height=output_height,
+            total_frames=resolved["rendered_frames"],
+            fps=resolved["fps"],
+            width=resolved["output_width"],
+            height=resolved["output_height"],
             media=media,
             probe=probe,
-            frame_start=start_frame,
-            subtitle_offset=start_frame / effective_fps,
+            frame_start=resolved["start_frame"],
+            subtitle_offset=resolved["start_frame"] / resolved["fps"],
+            timings=timings,
         )
 
     entry = directory / remotion.ENTRY_POINT
+    # 打包时已经算过构建输入指纹：直接复用，不再对同一批文件哈希第二遍
+    # （禁用缓存的路径没有这份指纹，那时才算）
+    assets = outcome.input_fingerprint or remotion.build_input_fingerprint(
+        storyboard_path=storyboard_path,
+        content_root=content_root or workspace_root,
+        workspace_root=workspace_root,
+    )
     _write_provenance(
         output_path,
         page_file=entry,
         storyboard_url=storyboard_url,
         storyboard_origin=storyboard_origin,
         workspace_root=workspace_root,
-        frames=rendered_frames,
-        fps=effective_fps,
-        width=output_width,
-        height=output_height,
+        frames=resolved["rendered_frames"],
+        fps=resolved["fps"],
+        width=resolved["output_width"],
+        height=resolved["output_height"],
         capture_format="remotion",
         media_fingerprint=(media.data.get("sourceFingerprint") if media else None),
         renderer=RENDERER_REMOTION,
-        assets_override=remotion.build_input_fingerprint(
-            storyboard_path=storyboard_path,
-            content_root=content_root or workspace_root,
-            workspace_root=workspace_root,
-        ),
+        assets_override=assets,
+    )
+
+    total_seconds = time.monotonic() - started
+    report_path = _write_performance_report(
+        output=output_path,
+        storyboard_path=storyboard_path,
+        resolved=resolved,
+        concurrency=concurrency,
+        timings=timings,
+        total_seconds=total_seconds,
+        outcome=outcome,
+        session_info=session_info,
     )
 
     return RenderResult(
         output=output_path,
-        frames=rendered_frames,
-        fps=effective_fps,
-        width=output_width,
-        height=output_height,
-        duration_seconds=rendered_frames / effective_fps,
+        frames=resolved["rendered_frames"],
+        fps=resolved["fps"],
+        width=resolved["output_width"],
+        height=resolved["output_height"],
+        duration_seconds=resolved["rendered_frames"] / resolved["fps"],
         capture_seconds=capture_seconds,
-        total_seconds=time.monotonic() - started,
+        total_seconds=total_seconds,
         size_bytes=output_path.stat().st_size,
+        cache_status=outcome.cache_status,
+        concurrency=concurrency,
+        stages=timings.as_dict(),
+        performance_path=report_path,
     )
+
+
+def _write_performance_report(
+    *,
+    output: Path,
+    storyboard_path: str | Path | None,
+    resolved: dict[str, int],
+    concurrency: int,
+    timings: perf.StageTimings,
+    total_seconds: float,
+    outcome: remotion.BundleOutcome,
+    session_info: dict,
+) -> Path | None:
+    """写结构化性能报告；失败只记警告，不牵动已经验收通过的成片。"""
+    payload = perf.build_report(
+        entry="render",
+        output=output,
+        storyboard=storyboard_path,
+        frames=resolved["rendered_frames"],
+        fps=resolved["fps"],
+        width=resolved["output_width"],
+        height=resolved["output_height"],
+        concurrency=concurrency,
+        timings=timings,
+        total_seconds=total_seconds,
+        cache={
+            "status": outcome.cache_status,
+            "key": outcome.cache_key,
+            "detail": outcome.cache_detail,
+            "prepareSeconds": round(outcome.cache_seconds, 3),
+            "buildSeconds": round(outcome.build_seconds, 3),
+        },
+        extra={
+            "session": {
+                "browsersOpened": session_info.get("browsersOpened"),
+                "handshakeSeconds": round(float(session_info.get("readySeconds") or 0.0), 3),
+            }
+        },
+    )
+    try:
+        target = perf.write_report(perf.report_path_for(output), payload)
+    except OSError as exc:  # 报告是附加信息，写不出来不改变成片结论
+        logger.warning("性能报告写入失败（不影响成片）：%s", exc)
+        return None
+    logger.info(
+        "性能报告 %s：总耗时 %.1fs，缓存%s，并发 %d",
+        target.name,
+        total_seconds,
+        {"hit": "命中", "miss": "未命中", "disabled": "已禁用"}[outcome.cache_status],
+        concurrency,
+    )
+    return target
 
 
 @contextlib.contextmanager

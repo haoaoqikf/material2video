@@ -233,15 +233,22 @@ uv run python .agents/skills/article2video/scripts/render.py \
 渲染脚本会：
 
 1. 校验分镜（无效分镜不开渲）；
-2. 把 composition 打包成可渲染 bundle，并先向 composition 要一份真实元数据
-   （fps / 尺寸 / 总帧数），与分镜逐项交叉校验，不一致直接报错；
-3. 用 Remotion 按帧号确定性渲染，输出 H.264；
+2. 打包 composition（默认复用本地缓存），并在**同一个浏览器会话**里先向 composition
+   要一份真实元数据（fps / 尺寸 / 总帧数），与分镜逐项交叉校验，不一致直接终止会话、
+   一帧都不渲；
+3. 校验通过后在同一会话里下发渲染参数，用 Remotion 按帧号确定性渲染，输出 H.264；
 4. 合音轨（有声时）、完整解码一遍成片，核对帧数与分辨率，并检查码流是否为
    播放器友好的格式；
-5. 写成片溯源（哪一版源码渲的，见下文「渲染验收」）。
+5. 写成片溯源（哪一版源码渲的，见下文「渲染验收」），并在成片同级写一份
+   `<名字>.performance.json`（各阶段耗时、缓存命中、并发、浏览器开启次数）。
 
-先用 `--limit-frames 30` 快速跑通链路再全量渲染。首次渲染前会先打包 composition，
-之后同一工程重复渲染无需重新安装依赖。
+先用 `--limit-frames 30` 快速跑通链路再全量渲染。首次渲染会打包 composition 并写入
+`web/.cache/a2v-bundles/`，之后同一输入重复渲染直接复用缓存（该目录已忽略，可随时整目录删除）。
+缓存只省掉打包，分镜校验、代码场景边界检查与源码确定性扫描照常执行。
+
+并发默认 1（`--concurrency` 可显式提高到 2、4）：提高并发会抬高峰值内存，
+Windows 长片在多并发页签下可能被系统关闭并报 `Target closed`，所以不按 CPU 数自动提高。
+`--no-bundle-cache` 强制本次重新打包，用于诊断「缓存是否就是问题所在」。
 
 成片的画面固定为 `yuv420p(tv, bt709)`、配音固定为 AAC-LC 44.1kHz 立体声，
 由编码器统一保证，画面代码不需要也不应该干预。
@@ -355,8 +362,18 @@ uv run python .agents/skills/article2video/scripts/production.py rehearsal --sto
 # 正式渲染（必须已有当前分镜、媒体和资产版本的完整评审记录）
 uv run python .agents/skills/article2video/scripts/render.py \
   --storyboard <json> [--out <输出.mp4>] [--limit-frames N] [--content-root <目录>] \
-  [--media <media.json>] [--crf 18] [--preset medium] [--no-probe] [-v]
+  [--media <media.json>] [--crf 18] [--preset medium] [--concurrency 1] \
+  [--no-bundle-cache] [--no-probe] [-v]
+
+# 渲染基准与成片验收（报告写入作品 outputs/，不入库）
+uv run python .agents/skills/article2video/scripts/benchmark_render.py benchmark
+uv run python .agents/skills/article2video/scripts/benchmark_render.py accept \
+  --storyboard <json> --media <media.json>
 ```
+
+`--concurrency` 只接受正整数且默认 1；`--no-bundle-cache` 只影响本次是否复用打包缓存，
+两者都不改变画面与编码参数。`benchmark` 跑三个固定示例的冷/热缓存与并发 1/2/4 对照，
+`accept` 跑全片有声渲染并比对不同并发的**未编码**中间帧（PSNR ≥ 60 dB）。
 
 ## 排查常见问题
 

@@ -40,11 +40,16 @@
     ├── silent.mp4                    # 最新无声成片
     ├── voiced.mp4                    # 最新配音成片
     ├── voiced.srt                    # 配音成片字幕
+    ├── voiced.performance.json       # 与该成片同名的渲染性能报告（不入库）
     ├── media/                        # 配音清单、音轨与缓存
     ├── previews/                     # 限帧试渲染，使用相同的成片文件名
     │   └── production/                # 关键幕有声样片、全片评审版与输出清单
+    ├── bench/                        # 基准与验收报告、对照截图，按需创建（不入库）
     └── qa/                           # 验收截图等，按需创建
 ```
+
+打包缓存不在作品目录里，而在共享工程下：`web/.cache/a2v-bundles/<键>/`。
+它只与「当前 `web/` 源码 + 当前作品输入 + 依赖版本」有关，跨作品共享，整目录可随时删除。
 
 内容根在仓库之外时，`videos/<slug>/` 与其下的 `outputs/` 一起搬到内容根下，其余不变：
 
@@ -131,6 +136,30 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 复核时也不需要 `--content-root` 或仓库标记。
 
 `version` 不是 3 或 4 的溯源按「旧格式」处理：如实回答无法判断，不默认放行。
+
+## 渲染性能报告
+
+同一支成片还写一份 `<同名>.performance.json`（同样不入库），回答的是另一类问题：
+这次渲染慢在哪、缓存有没有命中、用了几个并发、开了几次浏览器。它**不参与交付判定**，
+写不进去只告警，不会让一次已经验收通过的渲染失败。
+
+```json
+{
+  "version": 1,
+  "frames": 1200, "fps": 30, "width": 1080, "height": 1920,
+  "concurrency": 1,
+  "totalSeconds": 98.4,
+  "stages": { "cache": 0.03, "bundle": null, "metadata": 4.1, "render": 91.8, "mux": 0.5, "probe": 1.4 },
+  "skipped": ["bundle"],
+  "cache": { "status": "hit", "key": "…", "prepareSeconds": 0.03 },
+  "session": { "browsersOpened": 1, "handshakeSeconds": 4.1 },
+  "environment": { "python": "3.12.10", "node": "v22.23.2", "remotion": "4.0.526" }
+}
+```
+
+`render` 已包含编码（两者在 Remotion 内部重叠），因此没有独立的 `encode` 阶段；
+未执行的阶段是 `null` 且列在 `skipped` 里，不用 `0` 冒充实测。
+比对不同配置时用 `benchmark_render.py benchmark`，报告落在作品 `outputs/bench/`。
 
 ## 兼容与覆盖规则
 

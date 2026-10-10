@@ -76,6 +76,17 @@ def _add_engine_argument(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _positive_int(text: str) -> int:
+    """命令行正整数：非法取值在**解析阶段**就失败，早于任何打包或渲染。"""
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"需要正整数，收到 {text!r}") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"需要正整数，收到 {text!r}")
+    return value
+
+
 def _build_render_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="render.py",
@@ -114,6 +125,17 @@ def _build_render_parser() -> argparse.ArgumentParser:
     parser.add_argument("--purpose", choices=("final", "review"), default="final", help="输出用途；正式成片执行完整制作闸门")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument("--no-probe", action="store_true", help="跳过成片解码验收")
+    parser.add_argument(
+        "--concurrency",
+        type=_positive_int,
+        default=1,
+        help="渲染并发（正整数，默认 1）；提高会抬高峰值内存，Windows 长片可能被系统关闭",
+    )
+    parser.add_argument(
+        "--no-bundle-cache",
+        action="store_true",
+        help="本次禁用打包缓存、强制重新打包（诊断与基准对照用）",
+    )
     _add_engine_argument(parser)
     parser.add_argument("-v", "--verbose", action="store_true", help="输出调试日志")
     return parser
@@ -232,6 +254,8 @@ def main_render(argv: list[str] | None = None) -> int:
                 content_root=args.content_root,
                 frame_range=frame_range,
                 scale=args.scale,
+                concurrency=args.concurrency,
+                bundle_cache=not args.no_bundle_cache,
         )
     except (A2VError, OSError) as exc:
         logging.error("渲染失败: %s", exc)
