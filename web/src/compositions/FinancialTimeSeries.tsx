@@ -20,8 +20,11 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const PLOT = { left: 200, right: 880, top: 620, bottom: 1170 };
+const PLOT = { left: 150, right: 1008, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
+const PROFIT_COLOR = '#ff5d68';
+const LOSS_COLOR = '#55d58a';
+const SAFE_AREA = { left: 64, right: 1016, top: 180, bottom: 1500 };
 
 function epochDay(value: ISODate): number {
   const [year, month, day] = value.split('-').map(Number);
@@ -265,9 +268,9 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const rawTicks = axisTicks(frame, windowPosition, windowEndPosition, transitions, endingStart);
   const axisWidth = PLOT.right - PLOT.left;
   const positioned = rawTicks.map((tick) => {
-    const width = tick.label.length * 22;
+    const width = tick.label.length * 18;
     const x = PLOT.left + ((epochDay(tick.date) - windowPosition) / Math.max(windowEndPosition - windowPosition, 1)) * axisWidth;
-    return { ...tick, x: Math.min(x, 900 - width / 2), width };
+    return { ...tick, x: Math.max(PLOT.left, Math.min(x, PLOT.right - width / 2)), width };
   });
   const axisTicksForFrame = positioned.filter((tick, index, all) => all.findIndex((item) => item.date === tick.date) === index);
   const accepted: typeof axisTicksForFrame = [];
@@ -301,13 +304,14 @@ function moneyText(value: number, unit: string): string {
   return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)} ${unit}`;
 }
 
-function compactValue(value: number): string {
-  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 }).format(value);
+function investmentAmountText(value: number, unit: string): string {
+  const currencyNames: Record<string, string> = { USD: '美元', CNY: '人民币', HKD: '港元', JPY: '日元', EUR: '欧元', GBP: '英镑' };
+  const formatted = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(value >= 10_000 ? value / 10_000 : value);
+  return value >= 10_000 ? `${formatted}万${currencyNames[unit] ?? unit}` : `${formatted}${currencyNames[unit] ?? unit}`;
 }
 
-function dateText(value: ISODate): string {
-  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })
-    .format(new Date(`${value}T00:00:00Z`));
+function compactValue(value: number): string {
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 }).format(value);
 }
 
 function wrapSvgText(value: string, maxWidth: number, fontSize: number): string[] {
@@ -338,21 +342,35 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const { request, prices, plan } = props;
   const investment = request.investment ?? { year: Number(request.displayRange[0].slice(0, 4)), principal: 1_000_000 };
   const view = financialView(frame, prices.points, plan, investment);
-  const { currentDate, windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
-  const [rangeStart, rangeEnd] = plan.axis.dateRange;
+  const { windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
   const displayName = request.instrument.displayName ?? request.instrument.name;
-  const titleLines = wrapSvgText(`${displayName} · ${request.instrument.code}`, 836, 64);
-  const graphTop = titleLines.length > 1 ? 855 : 810;
-  const rangeY = titleLines.length > 1 ? 440 : 390;
-  const currentDateY = titleLines.length > 1 ? 535 : 485;
-  const valueLabelY = titleLines.length > 1 ? 595 : 545;
-  const valueY = titleLines.length > 1 ? 655 : 605;
-  const gainY = titleLines.length > 1 ? 730 : 680;
-  const returnY = titleLines.length > 1 ? 790 : 745;
+  const investmentAmount = investmentAmountText(investment.principal, prices.unit);
+  const titleParts = request.instrument.kind === 'index'
+    ? [`假如你在${investment.year}年按比例投资${displayName}，`, `投入${investmentAmount}`]
+    : [`假如你在${investment.year}年买入${displayName}，`, `投入${investmentAmount}`];
+  const titleLines = titleParts.flatMap((part) => wrapSvgText(part, SAFE_AREA.right - SAFE_AREA.left, 48));
+  const titleLineHeight = 64;
+  const graphTop = titleLines.length > 1 ? 550 : 495;
+  const metricY = titleLines.length > 1 ? 410 : 355;
+  const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
+  const gainSign = view.gain !== null && view.gain > 0 ? '+' : view.gain !== null && view.gain < 0 ? '−' : '';
+  const rateSign = view.returnRate !== null && view.returnRate > 0 ? '+' : view.returnRate !== null && view.returnRate < 0 ? '−' : '';
+  const liveGain = latest ? `收益 ${gainSign}${moneyText(Math.abs(view.gain!), prices.unit)}` : '';
+  const liveRate = latest
+    ? `收益率 ${rateSign}${new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(view.returnRate!))}`
+    : '';
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
+  const endpointLabel = latest ? moneyText(latest.close, prices.unit) : '';
+  const endpointX = latest ? xForDate(latest.date) : PLOT.left;
+  const endpointY = latest ? yForValue(latest.close) : PLOT.bottom;
+  const endpointLabelWidth = endpointLabel.length * 18;
+  const endpointLabelX = Math.max(SAFE_AREA.left, Math.min(endpointX + 14, SAFE_AREA.right - endpointLabelWidth));
+  const endpointLabelY = latest && endpointY > graphTop + (PLOT.bottom - graphTop) * 0.35
+    ? Math.min(PLOT.bottom - 14, endpointY + 58)
+    : Math.max(graphTop + 36, endpointY - 34);
   const sourceHosts = prices.sources.map((source) => {
     if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
     return '公开资料';
@@ -361,8 +379,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     `来源 ${sourceHosts.join(' / ')}`,
     `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`,
   ];
-  const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, 836, 36));
-  if (titleLines.length > 2) throw new Error('字段 instrument.displayName/code 超出两行标题容量');
+  const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, SAFE_AREA.right - SAFE_AREA.left, 24));
+  if (titleLines.length > 2) throw new Error('投资假设标题超出两行标题容量');
   if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
 
   useLayoutEffect(() => {
@@ -374,7 +392,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     if (!svg) return;
     for (const element of svg.querySelectorAll('text')) {
       const bounds = element.getBBox();
-      if (bounds.x < 64 || bounds.x + bounds.width > 900 || bounds.y < 180 || bounds.y + bounds.height > 1500) {
+      if (bounds.x < SAFE_AREA.left || bounds.x + bounds.width > SAFE_AREA.right || bounds.y < SAFE_AREA.top || bounds.y + bounds.height > SAFE_AREA.bottom) {
         throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
       }
     }
@@ -389,50 +407,44 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       const x = Number(endpoint.getAttribute('cx'));
       const y = Number(endpoint.getAttribute('cy'));
       const radius = Number(endpoint.getAttribute('r'));
-      if (x - radius < 64 || x + radius > 900 || y - radius < 180 || y + radius > 1500) {
+      if (x - radius < SAFE_AREA.left || x + radius > SAFE_AREA.right || y - radius < SAFE_AREA.top || y + radius > SAFE_AREA.bottom) {
         throw new Error('金融画面曲线端点超出手机安全区');
       }
     }
   }, [frame]);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-a2v-financial="line">
-    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
+    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
-      {titleLines.map((line, index) => <text key={`title-${index}`} x="64" y={260 + index * 100} fill="#f6f8fc" fontSize="64" fontWeight="700">{line}</text>)}
-      <text x="64" y={rangeY} fill="#97a7bd" fontSize="36">{rangeStart} — {rangeEnd}</text>
-      <text x="64" y={rangeY + 44} fill="#b9c7d9" fontSize="32">假设 {investment.year} 年投入 {moneyText(investment.principal, prices.unit)}</text>
-      <text x="64" y={currentDateY} fill="#d8e1ed" fontSize="48" fontWeight="600">{dateText(currentDate)}</text>
+      {titleLines.map((line, index) => <text key={`title-${index}`} x={SAFE_AREA.left} y={270 + index * titleLineHeight} fill="#f6f8fc" fontSize="48" fontWeight="700">{line}</text>)}
       {latest && <>
-        <text x="64" y={valueLabelY} fill="#97a7bd" fontSize="32">当前市值</text>
-        <text x="64" y={valueY} fill="#e8f3ff" fontSize="68" fontWeight="700">{moneyText(latest.close, prices.unit)}</text>
-        <text x="64" y={gainY} fill="#b9c7d9" fontSize="42">收益 {moneyText(view.gain!, prices.unit)}</text>
-        <text x="64" y={returnY} fill="#8ed9ad" fontSize="42">收益率 {new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(view.returnRate!)}</text>
+        <text data-a2v-live-gain="true" x={SAFE_AREA.left} y={metricY} fill={gainColor} fontSize="48" fontWeight="650">{liveGain}</text>
+        <text data-a2v-live-return="true" x={SAFE_AREA.left} y={metricY + 46} fill={gainColor} fontSize="36" fontWeight="600">{liveRate}</text>
       </>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text x={PLOT.left - 18} y={y + 12} textAnchor="end" fill="#8b9ab0" fontSize="28">{compactValue(value)}</text>
+          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="22">{compactValue(value)}</text>
         </g>;
       })}
       {ticks.map(({ date: tickDate, label, opacity }) => {
         const x = xForDate(tickDate);
-        const labelX = Math.min(x, 900 - label.length * 11);
-        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-a2v-axis-label="true" x={labelX} y={PLOT.bottom + 52} textAnchor="middle" fill="#9ba9bc" fontSize="36">{label}</text></g>;
+        const labelX = Math.max(PLOT.left, Math.min(x, PLOT.right - label.length * 15));
+        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-a2v-axis-label="true" x={labelX} y={PLOT.bottom + 46} textAnchor="middle" fill="#9ba9bc" fontSize="30">{label}</text></g>;
       })}
       <line x1={PLOT.left} x2={PLOT.left} y1={graphTop} y2={PLOT.bottom} stroke="#53627a" />
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
       {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
-        <polyline fill="none" stroke="#6ab6ff" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round"
+        <polyline fill="none" stroke={gainColor} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"
           points={linePoints} data-a2v-visible-value-points={visiblePoints.length} />
       </g>}
       {latest && windowStart <= latest.date && <>
-        <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="10" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />
-        <text data-a2v-current-value-follow="true" x={Math.min(Math.max(xForDate(latest.date) + 18, 64), 900 - moneyText(latest.close, prices.unit).length * 18)} y={Math.max(graphTop + 36, yForValue(latest.close) - 20)} fill="#c7e6ff" fontSize="28" fontWeight="700">{moneyText(latest.close, prices.unit)}</text>
+        <circle cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />
+        <text data-a2v-current-value-follow="true" x={endpointLabelX} y={endpointLabelY} fill={gainColor} fontSize="24" fontWeight="700">{endpointLabel}</text>
       </>}
-      {!latest && <text x="540" y="960" textAnchor="middle" fill="#a8b4c5" fontSize="36">尚未到达投资起点</text>}
-      {summaryLines.map((line, index) => <text key={`summary-${index}`} x="64" y={1324 + index * 44} fill="#b9c7d9" fontSize="36">{line}</text>)}
+      {summaryLines.map((line, index) => <text data-a2v-summary="true" key={`summary-${index}`} x={SAFE_AREA.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
     </svg>
   </AbsoluteFill>;
 }

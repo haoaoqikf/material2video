@@ -31,6 +31,8 @@ const props: FinancialTimeSeriesProps = {
 };
 
 describe('financial time-series composition', () => {
+  const renderedTitle = (markup: string) => [...markup.matchAll(/font-size="48" font-weight="700">([^<]+)<\/text>/gu)].map((match) => match[1]).join('');
+
   it('handles thirty years of daily data within the view-computation budget', () => {
     const start = Date.UTC(1990, 0, 1);
     const points = Array.from({ length: 11000 }, (_, index) => ({
@@ -59,24 +61,62 @@ describe('financial time-series composition', () => {
   it('shows no quote before the first real trading close arrives', () => {
     testFrame.value = 90;
     const opening = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(opening).toContain('尚未到达投资起点');
-    expect(opening).not.toContain('当前市值');
-    expect(opening).not.toContain('收益率');
+    expect(renderedTitle(opening)).toBe('假如你在2020年买入合成公司，投入100美元');
+    expect(opening).not.toContain('data-a2v-live-gain');
+    expect(opening).not.toContain('data-a2v-live-return');
     expect(opening).not.toContain('data-a2v-current-value-follow');
+    expect(opening).not.toContain('尚未到达投资起点');
+    expect(opening).not.toContain('data-a2v-visible-value-points');
   });
 
-  it('shows the latest arrived close and its real trading date', () => {
+  it('shows only the investment title and live return metrics, with the endpoint amount following the line', () => {
     testFrame.value = 885;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('100 USD');
-    expect(markup).toContain('2020年1月2日');
-    expect(markup).not.toContain('收盘日期 2020-01-02');
+    expect(markup).not.toContain('2020年1月2日');
+    expect(markup).not.toContain('2020-01-01 — 2020-01-03');
     expect(markup).not.toContain('102 USD');
     expect(markup).toContain('收益 0 USD');
     expect(markup).toContain('收益率 0%');
-    expect(markup).toContain('假设 2020 年投入 100 USD');
+    expect(renderedTitle(markup)).toBe('假如你在2020年买入合成公司，投入100美元');
+    expect(markup).not.toContain('SYN');
+    expect(markup).not.toContain('当前市值');
     expect(markup).toContain('data-a2v-current-value-follow="true"');
     expect(markup).not.toContain('100.00 USD');
+    expect(markup).toContain('stroke="#55d58a"');
+    expect(markup).toContain('data-a2v-live-gain="true"');
+    expect(markup).toContain('data-a2v-live-return="true"');
+    expect(markup).toContain('data-a2v-live-gain="true" x="64" y="410" fill="#55d58a"');
+    expect(markup).toContain('data-a2v-live-return="true" x="64" y="456" fill="#55d58a"');
+  });
+
+  it('colors positive returns and the portfolio line red, and negative returns green', () => {
+    testFrame.value = 1679;
+    const positive = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(positive).toContain('收益 +2 USD');
+    expect(positive).toContain('收益率 +2%');
+    expect(positive).toContain('stroke="#ff5d68"');
+    expect(positive).toContain('data-a2v-live-gain="true" x="64" y="410" fill="#ff5d68"');
+    expect(positive).toContain('data-a2v-live-return="true" x="64" y="456" fill="#ff5d68"');
+
+    const lossProps = { ...props, prices: { ...props.prices, points: [
+      { date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 75 },
+    ] } };
+    const negative = renderToStaticMarkup(<FinancialTimeSeries {...lossProps} />);
+    expect(negative).toContain('收益 −25 USD');
+    expect(negative).toContain('收益率 −25%');
+    expect(negative).toContain('stroke="#55d58a"');
+    expect(negative).toContain('data-a2v-live-gain="true" x="64" y="410" fill="#55d58a"');
+  });
+
+  it('uses the wider plot, thinner line, smaller value ticks, and small source notes', () => {
+    testFrame.value = 1679;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(markup).toContain('x1="150" x2="1008"');
+    expect(markup).toContain('data-a2v-value-axis-label="true" x="136" y="1199" text-anchor="end" fill="#8b9ab0" font-size="22"');
+    expect(markup).toContain('data-a2v-summary="true" x="64" y="1320" fill="#b9c7d9" font-size="24"');
+    expect(markup).toContain('stroke-width="4"');
+    expect(markup).toContain('r="8"');
   });
 
   it('buys on the first trading close in the investment year and derives portfolio returns', () => {
@@ -114,7 +154,8 @@ describe('financial time-series composition', () => {
       ] },
     };
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...indexProps} />);
-    expect(markup).toContain('示例指数 · SYN');
+    expect(renderedTitle(markup)).toBe('假如你在2020年按比例投资示例指数，投入100美元');
+    expect(markup).not.toContain('示例指数 · SYN');
     expect(markup).toContain('按点位比例模拟');
     expect(markup.match(/example\.invalid/g)).toHaveLength(1);
     expect(markup).toContain('market.example');
@@ -125,7 +166,7 @@ describe('financial time-series composition', () => {
       ...props,
       request: { ...props.request, instrument: { ...props.request.instrument, displayName: '超长显示名称'.repeat(8) } },
     };
-    expect(() => renderToStaticMarkup(<FinancialTimeSeries {...longName} />)).toThrow('instrument.displayName/code');
+    expect(() => renderToStaticMarkup(<FinancialTimeSeries {...longName} />)).toThrow('投资假设标题');
   });
 
   it('holds the previous real close on non-trading dates without inventing a quote', () => {
@@ -143,7 +184,7 @@ describe('financial time-series composition', () => {
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
     expect(markup).toContain('100 USD');
     expect(markup).not.toContain('99 USD');
-    expect(markup).toContain('2020年4月3日');
+    expect(markup).not.toContain('2020年4月3日');
   });
 
   it('moves calendar coordinates continuously but quotes only arrived trading points', () => {
