@@ -18,7 +18,7 @@ const props: FinancialTimeSeriesProps = {
     sources: [{ url: 'https://example.invalid/prices' }],
   },
   plan: {
-    schemaVersion: 6, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1920, height: 1080 },
+    schemaVersion: 7, chartType: 'line', durationSeconds: 60, fps: 30, canvas: { width: 1080, height: 1920 },
     axis: { dateRange: ['2020-01-01', '2020-01-03'], dateScale: 'staged-expanding', valueScale: 'revealed-linear' },
     segments: [
       { frames: [0, 90], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
@@ -27,7 +27,7 @@ const props: FinancialTimeSeriesProps = {
     ],
     rationale: '测试夹具',
   },
-  durationInFrames: 1800, fps: 30, width: 1920, height: 1080,
+  durationInFrames: 1800, fps: 30, width: 1080, height: 1920,
 };
 
 describe('financial time-series composition', () => {
@@ -67,7 +67,8 @@ describe('financial time-series composition', () => {
     testFrame.value = 885;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('100 USD');
-    expect(markup).toContain('最近有效收盘 2020-01-02');
+    expect(markup).toContain('2020年1月2日');
+    expect(markup).not.toContain('收盘日期 2020-01-02');
     expect(markup).not.toContain('102 USD');
   });
 
@@ -75,7 +76,30 @@ describe('financial time-series composition', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).not.toMatch(/event|事件|公告|发生/iu);
-    expect(markup).toContain('横轴分阶段扩展 · 纵轴随已展示价格自适应');
+    expect(markup).toContain('横轴分阶段扩展，纵轴随已展示价格自适应');
+  });
+
+  it('uses the optional short name and derives one wrapped index note from unique source hosts', () => {
+    const indexProps: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, instrument: { ...props.request.instrument, kind: 'index', displayName: '示例指数' } },
+      prices: { ...props.prices, priceBasis: 'official-index-points', indexType: '价格指数', sources: [
+        { url: 'https://example.invalid/series' }, { url: 'https://example.invalid/calendar' }, { url: 'https://market.example/index' },
+      ] },
+    };
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...indexProps} />);
+    expect(markup).toContain('示例指数 · SYN');
+    expect(markup).toContain('指数类型 价格指数');
+    expect(markup.match(/example\.invalid/g)).toHaveLength(1);
+    expect(markup).toContain('market.example');
+  });
+
+  it('blocks a title that exceeds the fixed two-line capacity instead of shrinking it', () => {
+    const longName: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, instrument: { ...props.request.instrument, displayName: '超长显示名称'.repeat(8) } },
+    };
+    expect(() => renderToStaticMarkup(<FinancialTimeSeries {...longName} />)).toThrow('instrument.displayName/code');
   });
 
   it('holds the previous real close on non-trading dates without inventing a quote', () => {
@@ -92,7 +116,7 @@ describe('financial time-series composition', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
     expect(markup).toContain('99 USD');
-    expect(markup).toContain('最近有效收盘 2020-04-01');
+    expect(markup).toContain('收盘日期 2020-04-01');
     expect(markup).toContain('2020年4月3日');
   });
 
@@ -189,6 +213,15 @@ describe('financial time-series composition', () => {
     const decades = rangePlan('1999-02-01', '2026-10-08');
     expect(financialView(0, [], decades).windowEndPosition).toBe(epochDayForTest('2003-12-31'));
     expect(financialView(1679, [], decades).windowEndPosition).toBe(epochDayForTest('2026-10-08'));
+    for (const frame of [0, 300, 600, 900, 1200, 1500, 1679, 1799]) {
+      const labels = financialView(frame, [], decades).ticks;
+      expect(labels.length).toBeLessThanOrEqual(4);
+      for (let index = 1; index < labels.length; index++) {
+        const left = labels[index - 1]!;
+        const right = labels[index]!;
+        expect(right.x - left.x).toBeGreaterThanOrEqual((right.width + left.width) / 2 + 12);
+      }
+    }
 
     const leap = rangePlan('2019-03-01', '2024-02-29');
     expect(financialView(0, [], leap).windowEndPosition).toBe(epochDayForTest('2019-12-31'));

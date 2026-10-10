@@ -14,8 +14,8 @@ from .errors import A2VError
 
 MATERIALS = ("request.json", "prices.json", "animation-plan.json")
 FPS = 30
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 1080
+HEIGHT = 1920
 
 
 def _fail(where: str, reason: str) -> None:
@@ -38,8 +38,8 @@ def _load(path: Path) -> dict[str, Any]:
         _fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
     if not isinstance(data, dict):
         _fail(path.name, "顶层必须是 JSON 对象")
-    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2, 3, 4, 5, 6}:
-        _fail(path.name, "schemaVersion 必须为 1、2、3、4、5 或 6")
+    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2, 3, 4, 5, 6, 7}:
+        _fail(path.name, "schemaVersion 必须为 1 至 7 的整数")
     return data
 
 
@@ -91,8 +91,8 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     request, prices, plan = (docs[name] for name in MATERIALS)
     if request["schemaVersion"] != 1:
         _fail("request.json", "当前必须为 version 1")
-    if prices["schemaVersion"] != 3 or plan["schemaVersion"] != 6:
-        _fail("材料版本", "需要 v3 价格和 v6 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
+    if prices["schemaVersion"] != 3 or plan["schemaVersion"] != 7:
+        _fail("材料版本", "需要 v3 价格和 v7 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
     if (root / "events.json").exists():
         _fail("events.json", "事件材料已移除；请运行 financial_video.py migrate-line --project-dir <作品目录> 清理旧材料")
     _validate_request(request)
@@ -134,8 +134,8 @@ def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) ->
         review = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object_pairs)
     except (OSError, UnicodeError, ValueError) as exc:
         _fail("outputs/legibility-review.json", f"正式折线渲染需要当前完整视频的评审记录：{exc}")
-    if not isinstance(review, dict) or review.get("schemaVersion") != 1:
-        _fail("outputs/legibility-review.json", "schemaVersion 必须为 1")
+    if not isinstance(review, dict) or review.get("schemaVersion") != 2:
+        _fail("outputs/legibility-review.json", "schemaVersion 必须为 2（含手机缩放证据）")
     if review.get("materialsAndAssetsSha256") != legibility_review_digest(project_dir):
         _fail("outputs/legibility-review.json", "材料或渲染资产已变化；评审记录已过期")
     if review.get("result") != "pass" or review.get("fullVideo") is not True:
@@ -155,6 +155,10 @@ def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) ->
     evidence = review.get("evidence")
     if not isinstance(evidence, dict) or any(not isinstance(evidence.get(key), str) or not evidence[key].strip() for key in REVIEW_CHECKS):
         _fail("outputs/legibility-review.json.evidence", "须填写每项可观察证据")
+    for key in ("mobileScale", "safeArea"):
+        item = evidence.get(key)
+        if not isinstance(item, dict) or item.get("reviewed") is not True or not isinstance(item.get("details"), str) or not item["details"].strip():
+            _fail(f"outputs/legibility-review.json.evidence.{key}", "须记录已检查状态和可复核证据")
 
 
 
@@ -167,6 +171,8 @@ def _validate_request(request: dict[str, Any]) -> None:
         _fail("request.json.instrument.kind", "必须为 stock 或 index")
     for key in ("name", "code", "market", "unit"):
         _required_text(instrument.get(key), f"request.json.instrument.{key}")
+    if "displayName" in instrument:
+        _required_text(instrument["displayName"], "request.json.instrument.displayName")
     if instrument["kind"] == "stock":
         _date(instrument.get("listingDate"), "request.json.instrument.listingDate")
     else:
@@ -317,7 +323,7 @@ def build_line_plan(request: dict[str, Any], duration: int = 60) -> dict[str, An
         {"frames": [advance_end, total_frames], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"},
     ]
     return {
-        "schemaVersion": 6, "chartType": "line", "durationSeconds": duration, "fps": FPS,
+        "schemaVersion": 7, "chartType": "line", "durationSeconds": duration, "fps": FPS,
         "canvas": {"width": WIDTH, "height": HEIGHT},
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
@@ -330,8 +336,8 @@ def prepare_line_plan(root: Path, duration: int) -> dict[str, Any]:
         _fail("events.json", "事件材料已移除；请先显式运行 migrate-line 清理旧材料")
     request, prices = (_load(root / name) for name in MATERIALS[:2])
     old_plan = _load(root / "animation-plan.json")
-    if old_plan.get("schemaVersion") != 6:
-        _fail("animation-plan.json", "旧计划请先显式运行 migrate-line，备份后迁移到 v6")
+    if old_plan.get("schemaVersion") != 7:
+        _fail("animation-plan.json", "旧计划请先显式运行 migrate-line，备份后迁移到 v7")
     if request["schemaVersion"] != 1 or prices["schemaVersion"] != 3:
         _fail("材料版本", "需 version 1 请求和 version 3 价格；旧材料请运行 migrate-line")
     _validate_request(request)
@@ -352,6 +358,8 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
     preview_record = root / "outputs" / "previews" / "preview-record.json"
     preview_original = preview_record.read_bytes() if preview_record.is_file() else None
     request, prices, old_plan = (_load(root / name) for name in source_names)
+    if old_plan["schemaVersion"] == 7:
+        _fail("材料版本", "计划已是 v7，拒绝重复迁移")
     if request["schemaVersion"] != 1:
         _fail("request.json", "迁移仅接受 version 1 请求材料")
     if prices["schemaVersion"] not in {1, 2, 3} or old_plan["schemaVersion"] not in {1, 2, 3, 4, 5, 6}:
@@ -360,8 +368,6 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
         _fail("材料版本", "旧价格与计划版本不一致；拒绝混合迁移")
     if prices["schemaVersion"] == 3 and old_plan["schemaVersion"] not in {3, 4, 5, 6}:
         _fail("材料版本", "v3 价格必须与 v3/v4/v5 动画计划一起迁移")
-    if prices["schemaVersion"] == 3 and old_plan["schemaVersion"] == 6 and event_original is None:
-        _fail("材料版本", "材料已迁移到 v6，拒绝重复迁移")
     points = prices.get("points")
     if not isinstance(points, list) or any(not isinstance(point, dict) for point in points):
         _fail("prices.json.points", "旧价格点须为对象数组")
@@ -405,7 +411,9 @@ REVIEW_CHECKS = ("labelsReadable", "advanceTrackable", "stagedAxisStable", "axis
 
 
 def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
-    return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": 4}
+    return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": 4,
+            "canvas": {"width": WIDTH, "height": HEIGHT}, "mobileCheck": {"width": 360, "height": 640},
+            "safeArea": {"x": [64, 900], "y": [180, 1500]}}
 
 
 def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:
@@ -434,7 +442,7 @@ def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[s
 
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any]) -> None:
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
-        _fail("animation-plan.json", "必须使用 1920×1080、30 fps")
+        _fail("animation-plan.json", "必须使用 1080×1920、30 fps")
     duration = plan.get("durationSeconds")
     if isinstance(duration, bool) or not isinstance(duration, int) or duration < 10:
         _fail("animation-plan.json.durationSeconds", "无事件计划必须至少为 10 秒")
@@ -442,8 +450,8 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    if plan.get("schemaVersion") != 6 or plan.get("chartType") != "line":
-        _fail("animation-plan.json", "必须为 version 6、chartType=line；旧材料请使用 migrate-line")
+    if plan.get("schemaVersion") != 7 or plan.get("chartType") != "line":
+        _fail("animation-plan.json", "必须为 version 7、chartType=line；旧材料请使用 migrate-line")
     if any(key in plan for key in ("selectedPeriod", "selectionReport", "eventDisplays")) or "visibleWindowBars" in axis:
         _fail("animation-plan.json", "计划包含已移除的周期、柱数或事件字段；请使用 migrate-line")
     if "visibleWindowMonths" in axis:

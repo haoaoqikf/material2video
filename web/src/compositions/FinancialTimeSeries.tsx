@@ -1,26 +1,26 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
-  schemaVersion: 6; chartType: 'line';
-  durationSeconds: number; fps: 30; canvas: { width: 1920; height: 1080 };
+  schemaVersion: 7; chartType: 'line';
+  durationSeconds: number; fps: 30; canvas: { width: 1080; height: 1920 };
   axis: { dateRange: [ISODate, ISODate]; dateScale: 'staged-expanding'; valueScale: 'revealed-linear' };
   segments: TimelineSegment[];
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock' | 'index'; name: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate] };
+  request: { instrument: { kind: 'stock' | 'index'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate] };
   prices: { schemaVersion: 3; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
   plan: FinancialPlan;
-  durationInFrames: number; fps: 30; width: 1920; height: 1080;
+  durationInFrames: number; fps: 30; width: 1080; height: 1920;
 };
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
-const PLOT = { left: 156, right: 1768, top: 250, bottom: 790 };
+const WIDTH = 1080;
+const HEIGHT = 1920;
+const PLOT = { left: 200, right: 880, top: 620, bottom: 1170 };
 const DAY_MS = 86_400_000;
 
 function epochDay(value: ISODate): number {
@@ -246,7 +246,20 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const target = ranges[end - 1] ?? [0, 1];
   let low = 0; let high = 0; let weightTotal = 0;
   // Freeze the last advance frame's axis for the entire four-second ending.
-  const axisTicksForFrame = axisTicks(frame, windowPosition, windowEndPosition, transitions, endingStart);
+  const rawTicks = axisTicks(frame, windowPosition, windowEndPosition, transitions, endingStart);
+  const axisWidth = PLOT.right - PLOT.left;
+  const positioned = rawTicks.map((tick) => {
+    const width = tick.label.length * 22;
+    const x = PLOT.left + ((epochDay(tick.date) - windowPosition) / Math.max(windowEndPosition - windowPosition, 1)) * axisWidth;
+    return { ...tick, x: Math.min(x, 900 - width / 2), width };
+  });
+  const axisTicksForFrame = positioned.filter((tick, index, all) => all.findIndex((item) => item.date === tick.date) === index);
+  const accepted: typeof axisTicksForFrame = [];
+  for (const tick of axisTicksForFrame.sort((a, b) => b.opacity - a.opacity || a.date.localeCompare(b.date))) {
+    if (accepted.length >= 4 || accepted.some((other) => Math.abs(tick.x - other.x) < (tick.width + other.width) / 2 + 12)) continue;
+    accepted.push(tick);
+  }
+  const visibleAxisTicks = accepted.sort((a, b) => a.x - b.x);
   const axisFrame = Math.min(frame, endingStart - 1);
   for (let offset = 0; offset < 6; offset++) {
     const date = isoDay(Math.floor(framePosition(Math.max(0, axisFrame - offset), plan)));
@@ -260,7 +273,7 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   high = weightTotal ? Math.max(target[1], high / weightTotal) : target[1];
   const visiblePoints = points.slice(0, end);
   return { currentDate, position, windowPosition, windowEndPosition,
-    windowStart: plan.axis.dateRange[0], windowEnd: plan.axis.dateRange[1], ticks: axisTicksForFrame,
+    windowStart: plan.axis.dateRange[0], windowEnd: plan.axis.dateRange[1], ticks: visibleAxisTicks,
     minValue: low, maxValue: high, visiblePoints, linePoints: visiblePoints,
     latest: end > 0 ? points[end - 1]! : null };
 }
@@ -275,61 +288,121 @@ function dateText(value: ISODate): string {
     .format(new Date(`${value}T00:00:00Z`));
 }
 
+function wrapSvgText(value: string, maxWidth: number, fontSize: number): string[] {
+  const measure = (text: string) => [...text].reduce((width, char) => width + (/[\u0000-\u00ff]/.test(char) ? fontSize * 0.56 : fontSize), 0);
+  const lines: string[] = [];
+  let line = '';
+  const units = value.match(/[A-Za-z0-9.-]+|\s+|[\s\S]/gu) ?? [];
+  for (const unit of units) {
+    const candidate = line + unit;
+    if (line && measure(candidate) > maxWidth) { lines.push(line.trimEnd()); line = unit.trimStart(); }
+    else line = candidate;
+    if (measure(line) > maxWidth) {
+      let remainder = '';
+      for (const char of [...line]) {
+        if (remainder && measure(remainder + char) > maxWidth) { lines.push(remainder); remainder = char; }
+        else remainder += char;
+      }
+      line = remainder;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const frame = useCurrentFrame();
   const { request, prices, plan } = props;
   const view = financialView(frame, prices.points, plan);
   const { currentDate, windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
   const [rangeStart, rangeEnd] = plan.axis.dateRange;
+  const displayName = request.instrument.displayName ?? request.instrument.name;
+  const titleLines = wrapSvgText(`${displayName} · ${request.instrument.code}`, 836, 64);
+  const graphTop = titleLines.length > 1 ? 760 : PLOT.top;
+  const rangeY = titleLines.length > 1 ? 440 : 390;
+  const currentDateY = titleLines.length > 1 ? 510 : 468;
+  const priceY = titleLines.length > 1 ? 620 : 565;
+  const closeDateY = titleLines.length > 1 ? 690 : 610;
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const tickDecimals = valueTickDecimals(minValue, maxValue);
-  const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - PLOT.top);
+  const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
-  const sourceSummary = prices.sources.map((source) => {
+  const sourceHosts = prices.sources.map((source) => {
     if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
     return '公开资料';
-  }).filter((source, index, all) => all.indexOf(source) === index).join(' / ');
+  }).filter((source, index, all) => all.indexOf(source) === index);
+  const summaryText = [
+    `市场 ${request.instrument.market} · ${prices.unit} · 来源 ${sourceHosts.join(' / ')}`,
+    prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}` : '仅拆合股调整，不含分红再投资',
+    '横轴分阶段扩展，纵轴随已展示价格自适应',
+  ];
+  const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, 836, 36));
+  if (titleLines.length > 2) throw new Error('字段 instrument.displayName/code 超出两行标题容量');
+  if (summaryLines.length > 5) throw new Error('字段 market/unit/sources/priceBasis 超出说明区域五行容量');
+  const dateDiffers = latest && latest.date !== currentDate;
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--a2v-width', `${WIDTH}px`);
     document.documentElement.style.setProperty('--a2v-height', `${HEIGHT}px`);
     document.documentElement.dataset.a2vTheme = 'dark';
-  }, []);
+    if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    for (const element of svg.querySelectorAll('text')) {
+      const bounds = element.getBBox();
+      if (bounds.x < 64 || bounds.x + bounds.width > 900 || bounds.y < 180 || bounds.y + bounds.height > 1500) {
+        throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
+      }
+    }
+    const labelBounds = [...svg.querySelectorAll<SVGTextElement>('[data-a2v-axis-label="true"]')]
+      .map((element) => element.getBBox()).sort((a, b) => a.x - b.x);
+    for (let index = 1; index < labelBounds.length; index++) {
+      if (labelBounds[index]!.x - (labelBounds[index - 1]!.x + labelBounds[index - 1]!.width) < 12) {
+        throw new Error('金融画面横轴标签实际字体边界发生重叠');
+      }
+    }
+    for (const endpoint of svg.querySelectorAll<SVGCircleElement>('circle')) {
+      const x = Number(endpoint.getAttribute('cx'));
+      const y = Number(endpoint.getAttribute('cy'));
+      const radius = Number(endpoint.getAttribute('r'));
+      if (x - radius < 64 || x + radius > 900 || y - radius < 180 || y + radius > 1500) {
+        throw new Error('金融画面曲线端点超出手机安全区');
+      }
+    }
+  }, [frame]);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-a2v-financial="line">
-    <svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${request.instrument.name} 全日期范围价格演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
-      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={PLOT.top} width={PLOT.right - PLOT.left} height={PLOT.bottom - PLOT.top} /></clipPath></defs>
-      <text x={PLOT.left} y="96" fill="#f6f8fc" fontSize="48" fontWeight="700">{request.instrument.name} · {request.instrument.code}</text>
-      <text x={PLOT.left} y="146" fill="#97a7bd" fontSize="23">{rangeStart} — {rangeEnd}　{prices.priceBasis === 'official-index-points' ? prices.indexType : '仅拆合股调整 · 不含分红再投资'}</text>
-      <text x={PLOT.left} y="184" fill="#8292a9" fontSize="18">市场 {request.instrument.market} · 单位 {prices.unit} · 来源：{sourceSummary}</text>
+    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 全日期范围价格演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
+      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
+      {titleLines.map((line, index) => <text key={`title-${index}`} x="64" y={260 + index * 100} fill="#f6f8fc" fontSize="64" fontWeight="700">{line}</text>)}
+      <text x="64" y={rangeY} fill="#97a7bd" fontSize="36">{rangeStart} — {rangeEnd}</text>
+      <text x="64" y={currentDateY} fill="#d8e1ed" fontSize="48" fontWeight="600">{dateText(currentDate)}</text>
+      {latest && <text x="64" y={priceY} fill="#e8f3ff" fontSize="80" fontWeight="700">{priceText(latest.close, prices.unit)}</text>}
+      {dateDiffers && <text x="64" y={closeDateY} fill="#98aac1" fontSize="36">收盘日期 {latest!.date}</text>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text x={PLOT.left - 18} y={y + 7} textAnchor="end" fill="#8b9ab0" fontSize="18">{new Intl.NumberFormat('en-US', { maximumFractionDigits: tickDecimals }).format(value)}</text>
+          <text x={PLOT.left - 18} y={y + 12} textAnchor="end" fill="#8b9ab0" fontSize="36">{new Intl.NumberFormat('en-US', { maximumFractionDigits: tickDecimals }).format(value)}</text>
         </g>;
       })}
       {ticks.map(({ date: tickDate, label, opacity }) => {
         const x = xForDate(tickDate);
-        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={PLOT.top} y2={PLOT.bottom} stroke="#172235" /><text x={x} y={PLOT.bottom + 40} textAnchor="middle" fill="#9ba9bc" fontSize="18">{label}</text></g>;
+        const labelX = Math.min(x, 900 - label.length * 11);
+        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-a2v-axis-label="true" x={labelX} y={PLOT.bottom + 52} textAnchor="middle" fill="#9ba9bc" fontSize="36">{label}</text></g>;
       })}
-      <line x1={PLOT.left} x2={PLOT.left} y1={PLOT.top} y2={PLOT.bottom} stroke="#53627a" />
+      <line x1={PLOT.left} x2={PLOT.left} y1={graphTop} y2={PLOT.bottom} stroke="#53627a" />
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
       {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
-        <polyline fill="none" stroke="#6ab6ff" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round"
+        <polyline fill="none" stroke="#6ab6ff" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round"
           points={linePoints} data-a2v-visible-price-points={visiblePoints.length} />
       </g>}
-      {latest && <g>
-        {windowStart <= latest.date && <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="9" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />}
-        <text x={PLOT.right} y="150" textAnchor="end" fill="#e8f3ff" fontSize="27" fontWeight="600">{priceText(latest.close, prices.unit)}</text>
-        <text x={PLOT.right} y="185" textAnchor="end" fill="#98aac1" fontSize="18">最近有效收盘 {latest.date}</text>
-      </g>}
-      <text x={PLOT.left} y="872" fill="#d8e1ed" fontSize="24" fontWeight="600">{dateText(currentDate)}</text>
-      <text x={PLOT.right} y="872" textAnchor="end" fill="#76859b" fontSize="16">横轴分阶段扩展 · 纵轴随已展示价格自适应</text>
-      {!latest && <text x={(PLOT.left + PLOT.right) / 2} y="520" textAnchor="middle" fill="#a8b4c5" fontSize="24">尚无区间内有效收盘数据</text>}
-      <text x={PLOT.left} y="1044" fill="#76859b" fontSize="15">日期与价格按来源核实；休市期间不生成新的报价点。</text>
+      {latest && windowStart <= latest.date && <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="10" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />}
+      {!latest && <text x="540" y="900" textAnchor="middle" fill="#a8b4c5" fontSize="36">尚无区间内有效收盘数据</text>}
+      {summaryLines.map((line, index) => <text key={`summary-${index}`} x="64" y={1324 + index * 44} fill="#b9c7d9" fontSize="36">{line}</text>)}
     </svg>
   </AbsoluteFill>;
 }

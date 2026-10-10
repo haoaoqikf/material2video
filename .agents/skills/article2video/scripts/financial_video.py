@@ -28,6 +28,7 @@ def _add_init(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-dir", required=True, help="作品目录，如 videos/acme-2010-2024")
     parser.add_argument("--kind", required=True, choices=("stock", "index"))
     parser.add_argument("--name", required=True, help="公司或指数名称")
+    parser.add_argument("--display-name", help="画面短名称；默认回退公司或指数正式名称")
     parser.add_argument("--code", required=True, help="证券/指数代码")
     parser.add_argument("--market", required=True, help="市场标识，例如 NASDAQ、HKEX、SSE")
     parser.add_argument("--unit", required=True, help="股票币种或指数点位单位")
@@ -70,6 +71,8 @@ def _init(args: argparse.Namespace) -> Path:
         raise A2VError("日期必须使用 YYYY-MM-DD 格式")
     if start > end:
         raise A2VError("开始日期不能晚于结束日期")
+    if args.display_name is not None and not args.display_name.strip():
+        raise A2VError("--display-name 不能为空")
     if args.kind == "stock":
         if args.index_start_date:
             raise A2VError("股票不使用 --index-start-date")
@@ -97,6 +100,7 @@ def _init(args: argparse.Namespace) -> Path:
         "instrument": {
             "kind": args.kind, "name": args.name.strip(), "code": args.code.strip(),
             "market": args.market.strip(), "unit": args.unit.strip(),
+            **({"displayName": args.display_name.strip()} if args.display_name is not None else {}),
             **({"listingDate": args.listing_date} if args.listing_date else {}),
             **({"indexStartDate": args.index_start_date} if args.index_start_date else {}),
         },
@@ -114,8 +118,8 @@ def _init(args: argparse.Namespace) -> Path:
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
     })
     _write(root / "animation-plan.json", {
-        "schemaVersion": 6, "chartType": "line", "durationSeconds": None,
-        "fps": 30, "canvas": {"width": 1920, "height": 1080},
+        "schemaVersion": 7, "chartType": "line", "durationSeconds": None,
+        "fps": 30, "canvas": {"width": 1080, "height": 1920},
         "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })
@@ -140,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds)
-            print(f"已迁移至 version 6 分阶段扩展折线；旧材料备份：{backup}；须重新完整预演与评审。")
+            print(f"已迁移至 version 7 竖屏分阶段扩展折线；旧材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)
@@ -157,12 +161,14 @@ def main(argv: list[str] | None = None) -> int:
             review_path = root / "outputs" / "legibility-review.json"
             review_path.parent.mkdir(parents=True, exist_ok=True)
             _write(review_path, {
-                "schemaVersion": 1, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
+                "schemaVersion": 2, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
                 "result": "pending", "fullVideo": False, "sampleTimecodes": [],
                 "previewSha256": preview["sha256"],
                 "metrics": financial.review_metrics(docs),
                 "checks": {key: False for key in financial.REVIEW_CHECKS},
-                "evidence": {key: "" for key in financial.REVIEW_CHECKS},
+                "evidence": {**{key: "" for key in financial.REVIEW_CHECKS},
+                    "mobileScale": {"width": 360, "height": 640, "reviewed": False, "details": ""},
+                    "safeArea": {"bounds": {"x": [64, 900], "y": [180, 1500]}, "reviewed": False, "details": ""}},
             })
             print(f"已生成待填写的评审模板：{review_path}")
             return 0

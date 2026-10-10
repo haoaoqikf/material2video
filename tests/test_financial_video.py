@@ -73,7 +73,7 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
         ("prices.json", lambda d: d["points"].pop(), "完全一致"),
         ("prices.json", lambda d: d["points"][1].update(close=float("nan")), "有限正数"),
         ("animation-plan.json", lambda d: d["segments"][1].update(frames=[14, 90]), "连续"),
-        ("animation-plan.json", lambda d: d.update(canvas={"width": 1080, "height": 1920}), "1920"),
+        ("animation-plan.json", lambda d: d.update(canvas={"width": 1920, "height": 1080}), "1080"),
         ("animation-plan.json", lambda d: d["axis"].pop("dateScale"), "dateScale"),
         ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=0), "滚动窗口已移除"),
         ("animation-plan.json", lambda d: d["axis"].update(visibleWindowMonths=True), "滚动窗口已移除"),
@@ -157,7 +157,7 @@ def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path)
     assert financial.load_project(root)["prices"] == original
     assert not (root / "events.json").exists()
     assert (backup / "events.json").exists()
-    with pytest.raises(A2VError, match="材料已迁移到 v6"):
+    with pytest.raises(A2VError, match="计划已是 v7"):
         financial.migrate_line(root)
 
 
@@ -174,7 +174,7 @@ def test_v3_plan_migrates_without_changing_prices_and_discards_event_material(tm
     backup = financial.migrate_line(root, duration=15)
 
     assert (root / "prices.json").read_bytes() == original_prices
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
     assert not (root / "events.json").exists()
     assert not (root / "outputs" / "legibility-review.json").exists()
     assert not (root / "outputs" / "previews" / "preview-record.json").exists()
@@ -196,7 +196,7 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
 def test_plan_covers_full_60_seconds_without_event_pauses():
     request = {"displayRange": ["1999-01-22", "2026-10-08"]}
     plan = financial.build_line_plan(request)
-    assert plan["schemaVersion"] == 6
+    assert plan["schemaVersion"] == 7
     assert plan["axis"]["dateScale"] == "staged-expanding"
     assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "ending"]
     assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1680], [1680, 1800]]
@@ -236,8 +236,18 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     with pytest.raises(A2VError, match="只接受完整视频评审通过"):
         financial.validate_legibility_review(root, docs)
     review.update(result="pass", fullVideo=True, sampleTimecodes=["00:00:03"],
-        checks={key: True for key in financial.REVIEW_CHECKS}, evidence={key: "合成证据" for key in financial.REVIEW_CHECKS})
+        checks={key: True for key in financial.REVIEW_CHECKS}, evidence={**{key: "合成证据" for key in financial.REVIEW_CHECKS},
+            "mobileScale": {"width": 360, "height": 640, "reviewed": True, "details": "合成缩放证据"},
+            "safeArea": {"bounds": {"x": [64, 900], "y": [180, 1500]}, "reviewed": True, "details": "合成安全区证据"}})
     assert review["previewSha256"] == preview_digest
+    path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
+    with pytest.raises(A2VError, match="review.json.metrics"):
+        financial.validate_legibility_review(root, docs)
+    missing_mobile = json.loads(json.dumps(review))
+    missing_mobile["evidence"]["mobileScale"].update(reviewed=False, details="")
+    path.write_text(json.dumps(missing_mobile), encoding="utf-8")
+    with pytest.raises(A2VError, match="evidence.mobileScale"):
+        financial.validate_legibility_review(root, docs)
     path.write_text(json.dumps(review), encoding="utf-8")
     financial.validate_legibility_review(root, docs)
     (root / "outputs/previews/test.mp4").write_bytes(b"changed preview")
@@ -283,12 +293,12 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
 def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
-    with pytest.raises(A2VError, match="需要 v3 价格和 v6 动画计划"):
+    with pytest.raises(A2VError, match="需要 v3 价格和 v7 动画计划"):
         financial.load_project(root)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     backup = financial.migrate_line(root, duration=15)
     assert backup.is_dir()
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
@@ -338,7 +348,7 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
     monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
     monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
-        fps=30, width=1920, height=1080, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+        fps=30, width=1080, height=1920, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
     monkeypatch.setattr(remotion, "render_frames",
                         lambda **kwargs: Path(kwargs["out"]).write_bytes(b"bypass preview"))
 
@@ -375,7 +385,7 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
     monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
     monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
-        fps=30, width=1920, height=1080, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+        fps=30, width=1080, height=1920, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
     monkeypatch.setattr(remotion, "render_frames",
                         lambda **kwargs: Path(kwargs["out"]).write_bytes(b"video"))
 
@@ -395,10 +405,16 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     stock = tmp_path / "stock"
     assert financial_video.main([
         "init", "--out-dir", str(stock), "--kind", "stock", "--name", "合成公司",
-        "--code", "SYN", "--market", "TEST", "--unit", "USD", "--listing-date", "2010-01-01",
+        "--code", "SYN", "--display-name", "短名称", "--market", "TEST", "--unit", "USD", "--listing-date", "2010-01-01",
         "--start-date", "2020-01-01", "--end-date", "2020-12-31",
     ]) == 0
     assert all((stock / name).is_file() for name in financial.MATERIALS)
+    stock_request = json.loads((stock / "request.json").read_text(encoding="utf-8"))
+    assert stock_request["instrument"]["displayName"] == "短名称"
+    assert stock_request["instrument"]["name"] == "合成公司"
+    assert stock_request["instrument"]["code"] == "SYN"
+    stock_plan = json.loads((stock / "animation-plan.json").read_text(encoding="utf-8"))
+    assert stock_plan["schemaVersion"] == 7 and stock_plan["canvas"] == {"width": 1080, "height": 1920}
     assert not (stock / "events.json").exists()
     index = tmp_path / "index"
     assert financial_video.main([
@@ -409,6 +425,17 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     assert json.loads((index / "request.json").read_text(encoding="utf-8"))["instrument"]["indexStartDate"] == "2010-01-01"
     assert not (index / "events.json").exists()
     assert "初始化" in capsys.readouterr().out
+
+
+def test_init_rejects_blank_display_name_without_creating_materials(tmp_path, capsys):
+    output = tmp_path / "blank-name"
+    assert financial_video.main([
+        "init", "--out-dir", str(output), "--kind", "stock", "--name", "公司", "--code", "ABC",
+        "--display-name", "  ", "--market", "TEST", "--unit", "USD", "--listing-date", "2010-01-01",
+        "--start-date", "2020-01-01", "--end-date", "2020-12-31",
+    ]) == 2
+    assert "--display-name 不能为空" in capsys.readouterr().err
+    assert not output.exists()
 
 
 @pytest.mark.slow
@@ -438,7 +465,7 @@ def test_v4_plan_requires_explicit_migration_with_complete_backup(tmp_path):
     backup = financial.migrate_line(root)
     assert {name: (backup / name).read_bytes() for name in financial.MATERIALS} == original
     assert final.read_bytes() == b"existing final"
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
 
 
 def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
@@ -450,12 +477,12 @@ def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
     review = root / "outputs" / "legibility-review.json"
     review.write_text('{"result":"pass"}', encoding="utf-8")
 
-    with pytest.raises(A2VError, match="需要 v3 价格和 v6 动画计划"):
+    with pytest.raises(A2VError, match="需要 v3 价格和 v7 动画计划"):
         financial.load_project(root)
     backup = financial.migrate_line(root, duration=15)
 
     assert json.loads((backup / "animation-plan.json").read_text(encoding="utf-8"))["schemaVersion"] == 5
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 6
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
     assert financial.load_project(root)["plan"]["axis"]["dateScale"] == "staged-expanding"
     assert existing.read_bytes() == b"existing user video"
     assert not review.exists()
