@@ -1,3 +1,0 @@
-schema: spec-driven
-created: 2026-10-10
-goal: 将投资价值绘图区左移至 x=92，纵轴刻度独立使用 x=24 安全区并设为 14 px，同时将折线细化至 3 px。
