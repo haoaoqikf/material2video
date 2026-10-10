@@ -28,6 +28,7 @@ def project(tmp_path: Path) -> Path:
             "schemaVersion": 1, "originalRequest": "合成标的 2020 年无声走势",
             "instrument": {"kind": "stock", "name": "合成公司", "code": "SYN", "market": "TEST", "unit": "USD", "listingDate": "2010-01-01"},
             "requestedRange": ["2020-01-01", "2020-12-31"], "displayRange": ["2020-01-01", "2020-01-03"], "confirmations": ["合成测试确认缩短日期范围"],
+            "investment": {"year": 2020, "principal": 1_000_000},
         },
         "prices.json": {
             "schemaVersion": 3, "unit": "USD", "priceBasis": "split-adjusted", "adjustmentBaseDate": "2020-01-03",
@@ -64,6 +65,23 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
     assert financial.frame_date(docs["plan"], 210).isoformat() == "2020-01-02"
     assert financial.frame_date(docs["plan"], 329).isoformat() == "2020-01-03"
     assert financial.frame_date(docs["plan"], 449).isoformat() == "2020-01-03"
+    assert docs["request"]["investment"] == {"year": 2020, "principal": 1_000_000}
+    assert financial.build_render_props(docs)["request"]["investment"]["principal"] == 1_000_000
+
+
+@pytest.mark.parametrize(
+    ("investment", "message"),
+    [
+        ({"year": 2019, "principal": 100}, "展示范围内"),
+        ({"year": 2020, "principal": 0}, "有限正数"),
+        ({"year": True, "principal": 100}, "展示范围内"),
+    ],
+)
+def test_rejects_invalid_investment_settings(tmp_path, investment, message):
+    root = project(tmp_path)
+    edit(root, "request.json", lambda data: data.update(investment=investment))
+    with pytest.raises(A2VError, match=message):
+        financial.load_project(root)
 
 
 @pytest.mark.parametrize(
@@ -101,6 +119,7 @@ def test_full_year_request_can_be_confirmed_to_actual_dates(tmp_path):
     request = json.loads((root / "request.json").read_text(encoding="utf-8"))
     request["requestedRange"] = [f"{date.today().year}-01-01", f"{date.today().year}-12-31"]
     request["displayRange"] = [f"{date.today().year}-01-01", today]
+    request["investment"] = {"year": date.today().year, "principal": 1_000_000}
     request["confirmations"] = ["用户确认使用截至当前日期的实际行情范围"]
     financial._validate_request(request)
 

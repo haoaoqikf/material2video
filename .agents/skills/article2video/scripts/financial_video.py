@@ -96,7 +96,7 @@ def _init(args: argparse.Namespace) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     request = {
         "schemaVersion": 1,
-        "originalRequest": f"{args.name} {start.year}年到{end.year}年股价/点位演变视频",
+        "originalRequest": f"假如在{start.year}年投入100万买入{args.name}，截至{end.year}年投资价值变化",
         "instrument": {
             "kind": args.kind, "name": args.name.strip(), "code": args.code.strip(),
             "market": args.market.strip(), "unit": args.unit.strip(),
@@ -106,6 +106,7 @@ def _init(args: argparse.Namespace) -> Path:
         },
         "requestedRange": [start.isoformat(), end.isoformat()],
         "displayRange": [start.isoformat(), end.isoformat()],
+        "investment": {"year": start.year, "principal": 1_000_000},
         "confirmations": [],
     }
     _write(root / "request.json", request)
@@ -131,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     if any(item == "--period" or item.startswith("--period=") for item in (argv if argv is not None else sys.argv[1:])):
         parser.error("--period 已移除：金融工作流仅支持日收盘价折线；旧材料请运行 migrate-line")
     if any(item == "--window-months" or item.startswith("--window-months=") for item in (argv if argv is not None else sys.argv[1:])):
-        parser.error("--window-months 已移除：横轴按阶段扩展至完整日期范围，纵轴随已展示价格自适应；旧计划请运行 migrate-line")
+        parser.error("--window-months 已移除：横轴按阶段扩展至完整日期范围，纵轴随已展示组合价值自适应；旧计划请运行 migrate-line")
     args = parser.parse_args(argv)
     _force_utf8_output()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
@@ -149,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)
             _write(root / "animation-plan.json", plan)
-            print(f"已生成 {plan['durationSeconds']} 秒折线编排，横轴按阶段扩展，纵轴随已展示价格自适应。")
+            print(f"已生成 {plan['durationSeconds']} 秒折线编排，横轴按阶段扩展，纵轴随已展示组合价值自适应。")
             return 0
         docs = financial.load_project(root)
         if args.command == "validate":

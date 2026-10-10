@@ -189,6 +189,15 @@ def _validate_request(request: dict[str, Any]) -> None:
         _fail("request.json", "请求和展示日期必须从早到晚")
     if display_dates[0] < requested_dates[0] or display_dates[1] > requested_dates[1]:
         _fail("request.json.displayRange", "实际展示范围不得超出请求范围")
+    investment = request.setdefault("investment", {"year": display_dates[0].year, "principal": 1_000_000})
+    if not isinstance(investment, dict):
+        _fail("request.json.investment", "必须为 year 和 principal 组成的对象")
+    year = investment.get("year")
+    principal = investment.get("principal")
+    if isinstance(year, bool) or not isinstance(year, int) or year < display_dates[0].year or year > display_dates[1].year:
+        _fail("request.json.investment.year", "必须是展示范围内的有效年份")
+    if isinstance(principal, bool) or not isinstance(principal, (int, float)) or not math.isfinite(principal) or principal <= 0:
+        _fail("request.json.investment.principal", "必须是有限正数")
     if instrument["kind"] == "stock":
         listing = _date(instrument["listingDate"], "request.json.instrument.listingDate")
         if display_dates[0] < listing:
@@ -239,6 +248,8 @@ def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_ro
         missing = sorted(set(expected) - set(point_dates))
         extra = sorted(set(point_dates) - set(expected))
         _fail("prices.json.points", f"日期必须与核实的预期交易日完全一致；缺失 {len(missing)} 项，额外 {len(extra)} 项")
+    if not any(item.year == request["investment"]["year"] for item in point_dates):
+        _fail("request.json.investment.year", "该投资年份没有可用交易日收盘价")
     sources = prices.get("sources")
     if not isinstance(sources, list) or not sources:
         _fail("prices.json.sources", "必须保留原始数据来源")
@@ -327,7 +338,7 @@ def build_line_plan(request: dict[str, Any], duration: int = 60) -> dict[str, An
         "canvas": {"width": WIDTH, "height": HEIGHT},
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
-        "rationale": "真实日收盘价，横轴按年度阶段平滑扩展；开场 3 秒、连续行情推进、完整历史停留 4 秒，纵轴随已展示价格自适应。",
+        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 3 秒、连续推进、完整历史停留 4 秒，纵轴随已展示组合价值自适应。",
     }
 
 
@@ -459,9 +470,9 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     if axis.get("dateScale") != "staged-expanding":
         _fail("animation-plan.json.axis.dateScale", "必须使用 staged-expanding 分阶段扩展横轴")
     if axis.get("valueScale") != "revealed-linear":
-        _fail("animation-plan.json.axis.valueScale", "必须使用 revealed-linear 已展示价格自适应纵轴")
+        _fail("animation-plan.json.axis.valueScale", "必须使用 revealed-linear 已展示组合价值自适应纵轴")
     if "valueRange" in axis:
-        _fail("animation-plan.json.axis.valueRange", "纵轴由已展示价格动态计算，不接受固定 valueRange")
+        _fail("animation-plan.json.axis.valueRange", "纵轴由已展示组合价值动态计算，不接受固定 valueRange")
     segments = plan.get("segments")
     if not isinstance(segments, list) or len(segments) != 3:
         _fail("animation-plan.json.segments", "必须恰有 opening、advance 和 ending 三段")

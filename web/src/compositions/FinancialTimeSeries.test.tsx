@@ -11,7 +11,7 @@ vi.mock('remotion', async (importOriginal) => {
 });
 
 const props: FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock', name: '合成公司', code: 'SYN', market: 'TEST', unit: 'USD' }, displayRange: ['2020-01-01', '2020-01-03'] },
+  request: { instrument: { kind: 'stock', name: '合成公司', code: 'SYN', market: 'TEST', unit: 'USD' }, displayRange: ['2020-01-01', '2020-01-03'], investment: { year: 2020, principal: 100 } },
   prices: {
     schemaVersion: 3, points: [{ date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 102 }],
     unit: 'USD', priceBasis: 'split-adjusted', adjustmentDefinition: '合成数据：仅拆合股调整，不计分红再投资',
@@ -42,7 +42,7 @@ describe('financial time-series composition', () => {
     })) };
     const started = performance.now();
     let count = 0;
-    for (let frame = 0; frame < 1800; frame++) count = financialView(frame, points, plan).visiblePoints.length;
+    for (let frame = 0; frame < 1800; frame++) count = financialView(frame, points, plan, { year: 1990, principal: 1 }).visiblePoints.length;
     const elapsed = performance.now() - started;
     expect(count).toBe(11000);
     expect(elapsed).toBeLessThan(3000);
@@ -59,8 +59,10 @@ describe('financial time-series composition', () => {
   it('shows no quote before the first real trading close arrives', () => {
     testFrame.value = 90;
     const opening = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(opening).toContain('尚无区间内有效收盘数据');
-    expect(opening).not.toContain('100 USD');
+    expect(opening).toContain('尚未到达投资起点');
+    expect(opening).not.toContain('当前市值');
+    expect(opening).not.toContain('收益率');
+    expect(opening).not.toContain('data-a2v-current-value-follow');
   });
 
   it('shows the latest arrived close and its real trading date', () => {
@@ -70,13 +72,37 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('2020年1月2日');
     expect(markup).not.toContain('收盘日期 2020-01-02');
     expect(markup).not.toContain('102 USD');
+    expect(markup).toContain('收益 0 USD');
+    expect(markup).toContain('收益率 0%');
+    expect(markup).toContain('假设 2020 年投入 100 USD');
+    expect(markup).toContain('data-a2v-current-value-follow="true"');
+    expect(markup).not.toContain('100.00 USD');
+  });
+
+  it('buys on the first trading close in the investment year and derives portfolio returns', () => {
+    const points = [
+      { date: '2019-12-31', close: 50 },
+      { date: '2020-01-02', close: 100 },
+      { date: '2020-01-03', close: 125 },
+    ];
+    const before = financialView(90, points, props.plan, { year: 2020, principal: 1_000_000 });
+    const after = financialView(1679, points, props.plan, { year: 2020, principal: 1_000_000 });
+    expect(before.latest).toBeNull();
+    expect(after.investmentStartDate).toBe('2020-01-02');
+    expect(after.latest?.close).toBe(1_250_000);
+    expect(after.gain).toBe(250_000);
+    expect(after.returnRate).toBe(0.25);
+    expect(after.visiblePoints.map(({ date }) => date)).toEqual(['2020-01-02', '2020-01-03']);
+    expect(after.minValue).toBeGreaterThanOrEqual(0);
   });
 
   it('contains no event markers, cards, lists, or copy', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).not.toMatch(/event|事件|公告|发生/iu);
-    expect(markup).toContain('横轴分阶段扩展，纵轴随已展示价格自适应');
+    expect(markup).toContain('不计分红再投资');
+    expect(markup).not.toContain('横轴分阶段扩展');
+    expect(markup).not.toContain('市场 TEST');
   });
 
   it('uses the optional short name and derives one wrapped index note from unique source hosts', () => {
@@ -89,7 +115,7 @@ describe('financial time-series composition', () => {
     };
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...indexProps} />);
     expect(markup).toContain('示例指数 · SYN');
-    expect(markup).toContain('指数类型 价格指数');
+    expect(markup).toContain('按点位比例模拟');
     expect(markup.match(/example\.invalid/g)).toHaveLength(1);
     expect(markup).toContain('market.example');
   });
@@ -105,7 +131,7 @@ describe('financial time-series composition', () => {
   it('holds the previous real close on non-trading dates without inventing a quote', () => {
     const nonTradingProps: FinancialTimeSeriesProps = {
       ...props,
-      request: { ...props.request, displayRange: ['2020-01-01', '2020-04-03'] },
+      request: { ...props.request, displayRange: ['2020-01-01', '2020-04-03'], investment: { year: 2020, principal: 100 } },
       prices: { ...props.prices, points: [{ date: '2020-04-01', close: 99 }] },
       plan: { ...props.plan, axis: { ...props.plan.axis, dateRange: ['2020-01-01', '2020-04-03'] }, segments: [
         { frames: [0, 90], dates: ['2020-01-01', '2020-01-01'], kind: 'opening' },
@@ -115,8 +141,8 @@ describe('financial time-series composition', () => {
     };
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...nonTradingProps} />);
-    expect(markup).toContain('99 USD');
-    expect(markup).toContain('收盘日期 2020-04-01');
+    expect(markup).toContain('100 USD');
+    expect(markup).not.toContain('99 USD');
     expect(markup).toContain('2020年4月3日');
   });
 
@@ -125,7 +151,7 @@ describe('financial time-series composition', () => {
     const next = financialView(886, props.prices.points, props.plan);
     expect(framePosition(885, props.plan) % 1).not.toBe(0);
     expect(next.position).toBeGreaterThan(view.position);
-    expect(view.latest?.close).toBe(100);
+    expect(view.latest?.close).toBe(1_000_000);
     expect(view.linePoints.every((point) => point.date <= view.currentDate)).toBe(true);
     const changedFuture = props.prices.points.map((point) => point.date > view.currentDate ? { ...point, close: 99999 } : point);
     expect(financialView(885, changedFuture, props.plan)).toEqual(view);
@@ -134,6 +160,7 @@ describe('financial time-series composition', () => {
   it('expands the full-history axis in stages and preserves every historical point', () => {
     const historyProps: FinancialTimeSeriesProps = {
       ...props,
+      request: { ...props.request, investment: { year: 2000, principal: 100 } },
       prices: { ...props.prices, points: [
         { date: '2000-01-01', close: 1 }, { date: '2010-01-01', close: 100 }, { date: '2020-01-03', close: 10 },
       ] },
@@ -157,7 +184,7 @@ describe('financial time-series composition', () => {
     expect(final.visiblePoints).toHaveLength(3);
     expect(final.windowEndPosition).toBe(epochDayForTest('2020-01-03'));
     expect(final.maxValue).toBeGreaterThan(100);
-    expect(final.minValue).toBeLessThan(1);
+    expect(final.minValue).toBeLessThan(100);
     for (let frame = 1680; frame < 1800; frame++) {
       expect(financialView(frame, historyProps.prices.points, historyProps.plan)).toEqual(final);
     }
@@ -167,7 +194,7 @@ describe('financial time-series composition', () => {
     };
     expect(opening.ticks.length).toBeGreaterThan(1);
     expect(opening.ticks).not.toEqual(final.ticks);
-    expect(markupAt(1799)).toContain('data-a2v-visible-price-points="3"');
+    expect(markupAt(1799)).toContain('data-a2v-visible-value-points="3"');
   });
 
   it.each([[1, 2, 3], [100, 1, 150], [0.01, 0.01, 0.01], [10, 10, 10]])('contains arrived prices and ignores future extremes: %s', (...values) => {

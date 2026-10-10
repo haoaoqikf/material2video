@@ -12,7 +12,7 @@ export type FinancialPlan = {
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock' | 'index'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate] };
+  request: { instrument: { kind: 'stock' | 'index'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year: number; principal: number } };
   prices: { schemaVersion: 3; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
   plan: FinancialPlan;
   durationInFrames: number; fps: 30; width: 1080; height: 1920;
@@ -212,6 +212,19 @@ function axisTicks(frame: number, windowStart: number, windowEnd: number, transi
 // Prefix ranges avoid scanning decades of daily prices six times per frame.
 // Inputs are immutable render props; the cache stores no frame-dependent state.
 const prefixRanges = new WeakMap<PricePoint[], [number, number][]>();
+const investmentSeriesCache = new WeakMap<PricePoint[], Map<string, { points: PricePoint[]; startDate: ISODate; principal: number; buyClose: number } | null>>();
+function investmentSeries(points: PricePoint[], year: number, principal: number) {
+  let cache = investmentSeriesCache.get(points);
+  if (!cache) { cache = new Map(); investmentSeriesCache.set(points, cache); }
+  const key = `${year}:${principal}`;
+  if (cache.has(key)) return cache.get(key)!;
+  const first = points.findIndex((point) => Number(point.date.slice(0, 4)) === year);
+  if (first < 0) { cache.set(key, null); return null; }
+  const buyClose = points[first]!.close;
+  const result = { points: points.slice(first).map((point) => ({ date: point.date, close: principal * point.close / buyClose })), startDate: points[first]!.date, principal, buyClose };
+  cache.set(key, result);
+  return result;
+}
 function rangesFor(points: PricePoint[]): [number, number][] {
   const cached = prefixRanges.get(points);
   if (cached) return cached;
@@ -224,7 +237,7 @@ function rangesFor(points: PricePoint[]): [number, number][] {
   return ranges;
 }
 
-export function financialView(frame: number, points: PricePoint[], plan: FinancialPlan) {
+export function financialView(frame: number, points: PricePoint[], plan: FinancialPlan, investment?: { year: number; principal: number }) {
   const position = framePosition(frame, plan);
   const currentDate = isoDay(Math.floor(position));
   const windowPosition = epochDay(plan.axis.dateRange[0]);
@@ -241,8 +254,11 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   windowEndPosition = Math.min(fullRangeEnd, Math.max(windowEndPosition, position));
   const endingStart = plan.segments.find((segment) => segment.kind === 'ending')!.frames[0];
   if (frame >= endingStart - 1) windowEndPosition = fullRangeEnd;
-  const end = lastPointIndex(points, currentDate) + 1;
-  const ranges = rangesFor(points);
+  const config = investment ?? { year: Number(plan.axis.dateRange[0].slice(0, 4)), principal: 1_000_000 };
+  const series = investmentSeries(points, config.year, config.principal);
+  const valuePoints = series?.points ?? [];
+  const end = lastPointIndex(valuePoints, currentDate) + 1;
+  const ranges = rangesFor(valuePoints);
   const target = ranges[end - 1] ?? [0, 1];
   let low = 0; let high = 0; let weightTotal = 0;
   // Freeze the last advance frame's axis for the entire four-second ending.
@@ -263,24 +279,30 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const axisFrame = Math.min(frame, endingStart - 1);
   for (let offset = 0; offset < 6; offset++) {
     const date = isoDay(Math.floor(framePosition(Math.max(0, axisFrame - offset), plan)));
-    const range = ranges[lastPointIndex(points, date)];
+    const range = ranges[lastPointIndex(valuePoints, date)];
     if (!range) continue;
     const weight = 6 - offset;
     low += range[0] * weight; high += range[1] * weight; weightTotal += weight;
   }
   // Never crop a newly arrived extreme while smoothing a contracting bound.
-  low = weightTotal ? Math.min(target[0], low / weightTotal) : target[0];
+  low = Math.max(0, weightTotal ? Math.min(target[0], low / weightTotal) : target[0]);
   high = weightTotal ? Math.max(target[1], high / weightTotal) : target[1];
-  const visiblePoints = points.slice(0, end);
+  const visiblePoints = valuePoints.slice(0, end);
+  const latest = end > 0 ? valuePoints[end - 1]! : null;
+  const gain = latest ? latest.close - config.principal : null;
   return { currentDate, position, windowPosition, windowEndPosition,
     windowStart: plan.axis.dateRange[0], windowEnd: plan.axis.dateRange[1], ticks: visibleAxisTicks,
     minValue: low, maxValue: high, visiblePoints, linePoints: visiblePoints,
-    latest: end > 0 ? points[end - 1]! : null };
+    latest, investmentStartDate: series?.startDate ?? null, principal: config.principal,
+    gain, returnRate: gain === null ? null : gain / config.principal };
 }
 
-function priceText(value: number, unit: string): string {
-  const decimals = value >= 1000 ? 0 : value >= 1 ? 2 : 4;
-  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals }).format(value)} ${unit}`;
+function moneyText(value: number, unit: string): string {
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)} ${unit}`;
+}
+
+function compactValue(value: number): string {
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 }).format(value);
 }
 
 function dateText(value: ISODate): string {
@@ -314,19 +336,21 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const frame = useCurrentFrame();
   const { request, prices, plan } = props;
-  const view = financialView(frame, prices.points, plan);
+  const investment = request.investment ?? { year: Number(request.displayRange[0].slice(0, 4)), principal: 1_000_000 };
+  const view = financialView(frame, prices.points, plan, investment);
   const { currentDate, windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
   const [rangeStart, rangeEnd] = plan.axis.dateRange;
   const displayName = request.instrument.displayName ?? request.instrument.name;
   const titleLines = wrapSvgText(`${displayName} · ${request.instrument.code}`, 836, 64);
-  const graphTop = titleLines.length > 1 ? 760 : PLOT.top;
+  const graphTop = titleLines.length > 1 ? 855 : 810;
   const rangeY = titleLines.length > 1 ? 440 : 390;
-  const currentDateY = titleLines.length > 1 ? 510 : 468;
-  const priceY = titleLines.length > 1 ? 620 : 565;
-  const closeDateY = titleLines.length > 1 ? 690 : 610;
+  const currentDateY = titleLines.length > 1 ? 535 : 485;
+  const valueLabelY = titleLines.length > 1 ? 595 : 545;
+  const valueY = titleLines.length > 1 ? 655 : 605;
+  const gainY = titleLines.length > 1 ? 730 : 680;
+  const returnY = titleLines.length > 1 ? 790 : 745;
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
-  const tickDecimals = valueTickDecimals(minValue, maxValue);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
   const linePoints = view.linePoints.map((point) => `${xForDate(point.date)},${yForValue(point.close)}`).join(' ');
   const sourceHosts = prices.sources.map((source) => {
@@ -334,14 +358,12 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     return '公开资料';
   }).filter((source, index, all) => all.indexOf(source) === index);
   const summaryText = [
-    `市场 ${request.instrument.market} · ${prices.unit} · 来源 ${sourceHosts.join(' / ')}`,
-    prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}` : '仅拆合股调整，不含分红再投资',
-    '横轴分阶段扩展，纵轴随已展示价格自适应',
+    `来源 ${sourceHosts.join(' / ')}`,
+    `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`,
   ];
   const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, 836, 36));
   if (titleLines.length > 2) throw new Error('字段 instrument.displayName/code 超出两行标题容量');
-  if (summaryLines.length > 5) throw new Error('字段 market/unit/sources/priceBasis 超出说明区域五行容量');
-  const dateDiffers = latest && latest.date !== currentDate;
+  if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--a2v-width', `${WIDTH}px`);
@@ -374,19 +396,24 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   }, [frame]);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-a2v-financial="line">
-    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 全日期范围价格演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
+    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd} data-a2v-current-date={currentDate}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
       {titleLines.map((line, index) => <text key={`title-${index}`} x="64" y={260 + index * 100} fill="#f6f8fc" fontSize="64" fontWeight="700">{line}</text>)}
       <text x="64" y={rangeY} fill="#97a7bd" fontSize="36">{rangeStart} — {rangeEnd}</text>
+      <text x="64" y={rangeY + 44} fill="#b9c7d9" fontSize="32">假设 {investment.year} 年投入 {moneyText(investment.principal, prices.unit)}</text>
       <text x="64" y={currentDateY} fill="#d8e1ed" fontSize="48" fontWeight="600">{dateText(currentDate)}</text>
-      {latest && <text x="64" y={priceY} fill="#e8f3ff" fontSize="80" fontWeight="700">{priceText(latest.close, prices.unit)}</text>}
-      {dateDiffers && <text x="64" y={closeDateY} fill="#98aac1" fontSize="36">收盘日期 {latest!.date}</text>}
+      {latest && <>
+        <text x="64" y={valueLabelY} fill="#97a7bd" fontSize="32">当前市值</text>
+        <text x="64" y={valueY} fill="#e8f3ff" fontSize="68" fontWeight="700">{moneyText(latest.close, prices.unit)}</text>
+        <text x="64" y={gainY} fill="#b9c7d9" fontSize="42">收益 {moneyText(view.gain!, prices.unit)}</text>
+        <text x="64" y={returnY} fill="#8ed9ad" fontSize="42">收益率 {new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(view.returnRate!)}</text>
+      </>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text x={PLOT.left - 18} y={y + 12} textAnchor="end" fill="#8b9ab0" fontSize="36">{new Intl.NumberFormat('en-US', { maximumFractionDigits: tickDecimals }).format(value)}</text>
+          <text x={PLOT.left - 18} y={y + 12} textAnchor="end" fill="#8b9ab0" fontSize="28">{compactValue(value)}</text>
         </g>;
       })}
       {ticks.map(({ date: tickDate, label, opacity }) => {
@@ -398,10 +425,13 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
       {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
         <polyline fill="none" stroke="#6ab6ff" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round"
-          points={linePoints} data-a2v-visible-price-points={visiblePoints.length} />
+          points={linePoints} data-a2v-visible-value-points={visiblePoints.length} />
       </g>}
-      {latest && windowStart <= latest.date && <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="10" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />}
-      {!latest && <text x="540" y="900" textAnchor="middle" fill="#a8b4c5" fontSize="36">尚无区间内有效收盘数据</text>}
+      {latest && windowStart <= latest.date && <>
+        <circle cx={xForDate(latest.date)} cy={yForValue(latest.close)} r="10" fill="#9bd0ff" stroke="#09213a" strokeWidth="4" />
+        <text data-a2v-current-value-follow="true" x={Math.min(Math.max(xForDate(latest.date) + 18, 64), 900 - moneyText(latest.close, prices.unit).length * 18)} y={Math.max(graphTop + 36, yForValue(latest.close) - 20)} fill="#c7e6ff" fontSize="28" fontWeight="700">{moneyText(latest.close, prices.unit)}</text>
+      </>}
+      {!latest && <text x="540" y="960" textAnchor="middle" fill="#a8b4c5" fontSize="36">尚未到达投资起点</text>}
       {summaryLines.map((line, index) => <text key={`summary-${index}`} x="64" y={1324 + index * 44} fill="#b9c7d9" fontSize="36">{line}</text>)}
     </svg>
   </AbsoluteFill>;
