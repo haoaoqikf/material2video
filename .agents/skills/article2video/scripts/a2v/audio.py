@@ -16,22 +16,6 @@ from .errors import A2VError
 SAMPLE_RATE = 24000
 
 
-def concatenate_samples(parts: list[tuple[Path | None, int]], output: Path) -> None:
-    """按精确样本数拼接，不把毫秒停顿取整为视频帧。"""
-    with wave.open(str(output), "wb") as dest:
-        dest.setparams((1, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
-        for path, samples in parts:
-            written = 0
-            if path:
-                with wave.open(str(path), "rb") as source:
-                    while block := source.readframes(SAMPLE_RATE):
-                        dest.writeframesraw(block); written += len(block) // 2
-            if written > samples: raise A2VError("段音频超出样本预算")
-            while written < samples:
-                size = min(SAMPLE_RATE, samples - written)
-                dest.writeframesraw(b"\0\0" * size); written += size
-
-
 def loudness(path: Path) -> dict:
     try:
         result = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(path), "-af",

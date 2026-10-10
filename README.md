@@ -67,6 +67,8 @@ uv run python .agents/skills/article2video/scripts/render.py --storyboard videos
 - `openspec/changes/`：进行中的能力变更；`openspec/specs/`：已归档并落地的规格。
 - `docs/PROJECT_PLAN.md`：产品路线；[AGENTS.md](AGENTS.md)：仓库协作、验证与交付规则。
 
+根目录 `.gen/` 是一次性工作材料；`web/.gen/`、`web/dist/`、`web/public/fonts/` 和测试缓存为可再生的本地产物，均不入库。清理这些目录后，运行 `pnpm -C web build` 可重建前端清单、字体和契约页；作品的代码场景清单由制作工具按当前作品重新生成。
+
 ## 当前边界
 
 文章理解与分镜生成由 AI 工具根据项目 Skill 执行；仓库不含模型调用或自动生成服务。自动选曲、平台发布、批量渲染和成片历史版本也不在当前能力内。语义评审由 AI 阅读材料后填写并绑定制作记录，脚本负责有效性与版本门禁，不替代语义判断。

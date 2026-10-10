@@ -61,9 +61,9 @@
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion），由场景树递归解释器按分镜逐幕绘制。
-需要新表达时按原语注册表流程新增通用原语；个别幕需要独特的图表面板、
-关系图或定制 SVG 时，可以在该幕声明 `renderer.code`，模块放在作品目录的
+React composition（Remotion），围绕全片 `world` 按全局时间轴绘制，`stages[]` 推进叙事。
+需要新表达时按原语注册表流程新增通用原语；全片需要独特的图表面板、
+关系图或定制 SVG 时，在 `world.renderer` 声明 `kind: "code"` 与 `module`，模块放在作品目录的
 `scenes/` 下（`videos/<slug>/scenes/` 或 `examples/<slug>/scenes/`，与分镜同目录），
 本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
 

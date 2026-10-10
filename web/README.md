@@ -85,7 +85,8 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 
 ## 作品代码场景（`renderer.code`）
 
-个别幕可以声明 `renderer.code`，把画面交给作品 `scenes/` 下的 TSX 模块。模块契约、
+v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交给作品
+`scenes/` 下的 TSX 模块；`stages[]` 只推进叙事，不单独声明 renderer。模块契约、
 依赖白名单、探针协议与确定性纪律的**权威文档**在
 [代码场景](../.agents/skills/article2video/references/code-scenes.md)，
 这里只记 web 工程侧的接法：
@@ -115,17 +116,18 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
   扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
   需要按状态切换时，把完整类名写进映射对象再取用。
 
-## 渲染契约（`window.__A2V__` version 3）
+## 渲染契约（`window.__A2V__` version 4）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | 固定 `3` |
+| `version` | v4 分镜为 `4`；内部旧版页面实现仍为 `3`，当前制作入口拒绝 v1～v3 分镜 |
 | `fps` / `width` / `height` / `durationInFrames` | 必须与分镜一致，不一致时渲染入口报错终止 |
 | `ready()` | 字体就绪、Player 已挂载、首帧已绘制后 resolve |
 | `seekToFrame(frame)` | 把画面定位到第 `frame` 帧并暂停，画面更新完成后 resolve |
 | `currentFrame()` | 只读诊断读数：画面当前停在第几帧，供量测失败时定位，不参与 `seekToFrame` 语义 |
+| `world()` / `stage()` / `objectStates()` / `camera()` / `beats()` | v4 全片世界、当前阶段、对象状态、镜头与节拍探针 |
 
 分镜地址由查询参数给出：`contract.html?a2v-storyboard=<分镜的 URL>`，
 因此这一个页面服务任意作品，作品不需要自己的 HTML。
@@ -139,7 +141,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 这样契约页与 Remotion 的页面用同一个字符串都能解析到。
 
 字体的唯一真源是 `src/assets/fonts.json`（清单），文件本身在构建前由
-`scripts/sync-fonts.mjs` 从 skill 资产目录同步到 `public/fonts/`（已 gitignore）。
+`scripts/sync-fonts.mjs` 从 `src/assets/fonts/` 同步到 `public/fonts/`（已 gitignore）。
 **源文件缺失会让构建失败**：静默回退到系统字体是本项目最怕的一类失败——
 成片出来了、字全变了、没有任何报错。
 
