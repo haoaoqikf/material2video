@@ -169,7 +169,8 @@ def main(argv: list[str] | None = None) -> int:
                 "checks": {key: False for key in financial.REVIEW_CHECKS},
                 "evidence": {**{key: "" for key in financial.REVIEW_CHECKS},
                     "mobileScale": {"width": 360, "height": 640, "reviewed": False, "details": ""},
-                    "safeArea": {"bounds": {"x": [64, 1016], "y": [180, 1500]}, "reviewed": False, "details": ""}},
+                    "safeArea": {"bounds": {"x": [64, 1016], "y": [180, 1500]}, "reviewed": False, "details": ""},
+                    "valueAxisSafeArea": {"bounds": {"x": [24, 1016], "y": [180, 1500]}, "reviewed": False, "details": ""}},
             })
             print(f"已生成待填写的评审模板：{review_path}")
             return 0

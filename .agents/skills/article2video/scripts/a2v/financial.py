@@ -424,7 +424,8 @@ REVIEW_CHECKS = ("labelsReadable", "advanceTrackable", "stagedAxisStable", "axis
 def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
     return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": 4,
             "canvas": {"width": WIDTH, "height": HEIGHT}, "mobileCheck": {"width": 360, "height": 640},
-            "safeArea": {"x": [64, 1016], "y": [180, 1500]}}
+            "safeArea": {"x": [64, 1016], "y": [180, 1500]},
+            "valueAxisSafeArea": {"x": [24, 1016], "y": [180, 1500]}}
 
 
 def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:

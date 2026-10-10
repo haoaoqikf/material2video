@@ -20,11 +20,12 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const PLOT = { left: 126, right: 1008, top: 520, bottom: 1190 };
+const PLOT = { left: 92, right: 1008, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
 const LOSS_COLOR = '#55d58a';
 const SAFE_AREA = { left: 64, right: 1016, top: 180, bottom: 1500 };
+const VALUE_AXIS_SAFE_AREA = { left: 24, right: 1016, top: 180, bottom: 1500 };
 
 function epochDay(value: ISODate): number {
   const [year, month, day] = value.split('-').map(Number);
@@ -416,7 +417,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     if (!svg) return;
     for (const element of svg.querySelectorAll('text')) {
       const bounds = element.getBBox();
-      if (bounds.x < SAFE_AREA.left || bounds.x + bounds.width > SAFE_AREA.right || bounds.y < SAFE_AREA.top || bounds.y + bounds.height > SAFE_AREA.bottom) {
+      const safeArea = element.hasAttribute('data-a2v-value-axis-label') ? VALUE_AXIS_SAFE_AREA : SAFE_AREA;
+      if (bounds.x < safeArea.left || bounds.x + bounds.width > safeArea.right || bounds.y < safeArea.top || bounds.y + bounds.height > safeArea.bottom) {
         throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
       }
     }
@@ -450,11 +452,11 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
         const label = compactValue(value);
-        const labelWidth = PLOT.left - 14 - SAFE_AREA.left;
-        const estimatedLabelWidth = measuredTextWidth(label, 16);
+        const labelWidth = PLOT.left - 14 - VALUE_AXIS_SAFE_AREA.left;
+        const estimatedLabelWidth = measuredTextWidth(label, 14);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="16"
+          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="14"
             textLength={estimatedLabelWidth > labelWidth ? labelWidth : undefined}
             lengthAdjust={estimatedLabelWidth > labelWidth ? 'spacingAndGlyphs' : undefined}>{label}</text>
         </g>;
@@ -467,7 +469,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       <line x1={PLOT.left} x2={PLOT.left} y1={graphTop} y2={PLOT.bottom} stroke="#53627a" />
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
       {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
-        <polyline fill="none" stroke={gainColor} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"
+        <polyline fill="none" stroke={gainColor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
           points={linePoints} data-a2v-visible-value-points={visiblePoints.length} />
       </g>}
       {latest && windowStart <= latest.date && <>

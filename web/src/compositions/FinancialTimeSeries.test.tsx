@@ -125,15 +125,15 @@ describe('financial time-series composition', () => {
     expect(negative).toContain('data-a2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#55d58a" font-size="24"');
   });
 
-  it('uses the wider plot, thinner line, smaller value ticks, and small source notes', () => {
+  it('uses the wider plot, dedicated value-axis safe area, thinner line, and small source notes', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(markup).toContain('x1="126" x2="1008"');
-    expect(markup).toContain('data-a2v-value-axis-label="true" x="112" y="1199" text-anchor="end" fill="#8b9ab0" font-size="16"');
+    expect(markup).toContain('x1="92" x2="1008"');
+    expect(markup).toContain('data-a2v-value-axis-label="true" x="78" y="1199" text-anchor="end" fill="#8b9ab0" font-size="14"');
     expect(markup).toContain('data-a2v-summary="true" x="64" y="1320" fill="#b9c7d9" font-size="24"');
     expect(markup).toContain('data-a2v-risk-disclaimer="true" x="64" y="1460" fill="#8b9ab0" font-size="20"');
     expect(markup).toContain('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。');
-    expect(markup).toContain('stroke-width="4"');
+    expect(markup).toContain('stroke-width="3"');
     expect(markup).toContain('r="8"');
   });
 
@@ -154,7 +154,7 @@ describe('financial time-series composition', () => {
     expect(markup).toContain(`收益 ${expected.replace('1 ', '+1 ')}`);
     expect(markup).toContain('data-a2v-value-axis-label="true"');
     expect(markup).not.toContain('B</text>');
-    if (value >= 100_000_000_000) expect(markup).toContain('textLength="48" lengthAdjust="spacingAndGlyphs"');
+    if (value >= 100_000_000_000) expect(markup).toContain('textLength="54" lengthAdjust="spacingAndGlyphs"');
   });
 
   it('buys on the first trading close in the investment year and derives portfolio returns', () => {
