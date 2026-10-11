@@ -140,6 +140,19 @@ def test_second_bundle_hits_the_cache_and_skips_packing(web):
     assert "命中" in second.cache_detail
 
 
+def test_stable_cache_identity_reuses_bundle_across_ephemeral_plan_files(web):
+    first_plan = web.tmp / "render-plan-one.json"
+    second_plan = web.tmp / "render-plan-two.json"
+    identity = web.tmp / "project" / "general-plan.json"
+    first_plan.write_text("{}", encoding="utf-8")
+    second_plan.write_text("{}", encoding="utf-8")
+    first = _bundle(web, storyboard_path=first_plan, cache_identity=identity)
+    second = _bundle(web, storyboard_path=second_plan, cache_identity=identity)
+    assert first.cache_status == "miss"
+    assert second.cache_status == "hit"
+    assert web.state["build"] == 1
+
+
 def test_cache_miss_when_a_shared_source_file_changes(web):
     _bundle(web)
     web.state["base"] = {"web/src/index.ts": "digest-2"}
@@ -296,6 +309,15 @@ def test_stale_lock_is_reclaimed(tmp_path):
     with bundle_cache._exclusive(lock, what="测试锁", timeout_s=1.0):
         assert lock.is_file()
     assert not lock.exists(), "释放后不应留下锁文件"
+
+
+def test_lock_from_exited_process_is_reclaimed_before_the_age_threshold(tmp_path, monkeypatch):
+    lock = tmp_path / "orphan.lock"
+    lock.write_text("987654321", encoding="ascii")
+    monkeypatch.setattr(bundle_cache, "_process_is_alive", lambda _pid: False)
+    with bundle_cache._exclusive(lock, what="测试锁", timeout_s=0.1):
+        assert lock.is_file()
+    assert not lock.exists()
 
 
 def test_cache_manifest_records_the_key_and_the_product_files(web):

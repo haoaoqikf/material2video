@@ -245,8 +245,8 @@ def provenance_status(video: str | Path) -> dict:
         storyboard_path = (workspace / storyboard_rel).resolve() if storyboard_rel else None
         current = remotion.build_input_fingerprint(
             storyboard_path=storyboard_path if storyboard_path and storyboard_path.is_file() else None,
-            content_root=workspace,
             workspace_root=workspace,
+            scene_modules=(None if storyboard_path and storyboard_path.is_file() else ()),
         )["files"]
         old = (recorded.get("assets") or {}).get("files") or {}
         return _compare_fingerprint(old, current, workspace, mounts, label="构建输入")

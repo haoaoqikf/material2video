@@ -120,7 +120,7 @@ class TestManifestGeneration:
         storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4,
             "world": {"renderer": {"kind": "code", "module": "world"}}}, ensure_ascii=False), encoding="utf-8")
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
-        files = remotion.build_input_fingerprint(repo_root=web_dir.parent)["files"]
+        files = remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=remotion._manifest_modules(web_dir.parent))["files"]
         assert any("videos/v4-fingerprint/scenes/world.tsx" in key for key in files), files
 
     def test纯tree分镜生成空清单(self, tmp_path, web_dir):
@@ -338,7 +338,7 @@ class TestFingerprintCoverage:
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
-        files = remotion.build_input_fingerprint(repo_root=web_dir.parent)["files"]
+        files = remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=remotion._manifest_modules(web_dir.parent))["files"]
         keys = list(files)
         # 作品模块与资产用可复核的工作区键（不是只剩文件名）
         assert any("videos/fingerprint/scenes/chart.tsx" in key for key in keys), keys
@@ -351,22 +351,23 @@ class TestFingerprintCoverage:
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
-        before = remotion.build_input_fingerprint(repo_root=web_dir.parent)
+        modules = remotion._manifest_modules(web_dir.parent)
+        before = remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=modules)
         module = article / "scenes" / "chart.tsx"
         original = module.read_text(encoding="utf-8")
         # 修改可达的作品模块 → 指纹变化（旧成片必须判 stale）
         module.write_text(original + "// 修改画面\n", encoding="utf-8")
-        after = remotion.build_input_fingerprint(repo_root=web_dir.parent)
+        after = remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=modules)
         assert after["digest"] != before["digest"]
         module.write_text(original, encoding="utf-8")
         # 恢复之后指纹回到原值
-        assert remotion.build_input_fingerprint(repo_root=web_dir.parent)["digest"] == before["digest"]
+        assert remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=modules)["digest"] == before["digest"]
 
         # 无关作品的文件不在可达集合里：改动不影响指纹
         other = root / "videos" / "unrelated"
         (other / "scenes").mkdir(parents=True)
         (other / "scenes" / "noise.tsx").write_text(SCENE_MODULE + "// 无关改动\n", encoding="utf-8")
-        assert remotion.build_input_fingerprint(repo_root=web_dir.parent)["digest"] == before["digest"]
+        assert remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=modules)["digest"] == before["digest"]
 
 
 class TestGitIgnore:

@@ -44,6 +44,14 @@ def review_gate(root: Path, project: dict) -> None:
     financial.validate_legibility_review(root, docs)
 
 
+def review_template(root: Path, _project: dict) -> None:
+    """Create the existing full-video and mobile-legibility review template."""
+    from a2v.types.financial import commands
+
+    if commands.main(["review-template", "--project-dir", str(root)]):
+        raise A2VError("金融类型手机可读性评审模板生成失败")
+
+
 def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
     return {"priceBasis": "价格来源、口径、覆盖范围与交易日一致",
             "investmentCalculation": "本金、日期区间和假设投资价值计算",
@@ -51,4 +59,4 @@ def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, s
 
 
 TYPE = VideoType("financial-timeseries", "金融时间序列与假设投资价值演变", validate, prepare, preview, render,
-                 review_gate=review_gate, review_criteria=review_criteria)
+                 review_gate=review_gate, review_criteria=review_criteria, review_template=review_template)

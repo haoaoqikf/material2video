@@ -297,13 +297,36 @@ def _reclaim_stale(lock_file: Path) -> bool:
         age = time.time() - lock_file.stat().st_mtime
     except OSError:  # pragma: no cover - 刚被释放
         return False
-    if age < LOCK_STALE_S:
+    owner = None
+    try:
+        owner = int(lock_file.read_text(encoding="ascii").strip())
+    except (OSError, UnicodeError, ValueError):
+        pass
+    dead_owner = owner is not None and not _process_is_alive(owner)
+    if not dead_owner and age < LOCK_STALE_S:
         return False
-    logger.warning("清理过期锁文件 %s（已存在 %.0f 秒）", lock_file, age)
+    reason = f"持有进程 {owner} 已退出" if dead_owner else f"已存在 {age:.0f} 秒"
+    logger.warning("清理过期锁文件 %s（%s）", lock_file, reason)
     with contextlib.suppress(OSError):
         lock_file.unlink()
         return True
     return False
+
+
+def _process_is_alive(pid: int) -> bool:
+    """Check the lock owner without treating permission denial as process death."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError as exc:
+        # Windows reports ERROR_INVALID_PARAMETER for a PID that no longer exists.
+        if getattr(exc, "winerror", None) == 87:
+            return False
+        return True
+    return True
 
 
 @contextlib.contextmanager

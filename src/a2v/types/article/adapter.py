@@ -22,9 +22,21 @@ def _storyboard(root: Path, project: dict) -> Path:
     return path
 
 
+def _content_root(root: Path) -> Path | None:
+    """Resolve the legacy article workspace from a canonical project location."""
+    if root.parent.name in {"videos", "examples"}:
+        return root.parent.parent.resolve()
+    return paths.content_root()
+
+
+def _content_args(root: Path) -> list[str]:
+    workspace = _content_root(root)
+    return ["--content-root", str(workspace)] if workspace is not None else []
+
+
 def validate(root: Path, project: dict) -> None:
     path = _storyboard(root, project)
-    if cli.main_validate([str(path), "--strict"]):
+    if cli.main_validate([str(path), "--strict", *_content_args(root)]):
         raise A2VError(f"文章 v4 分镜未通过校验：{path}")
 
 
@@ -32,7 +44,7 @@ def prepare(root: Path, project: dict) -> dict:
     path = _storyboard(root, project)
     validate(root, project)
     media_path = root / "outputs" / "media" / "media.json"
-    args = [str(path), "--out-dir", str(media_path.parent)]
+    args = ["--storyboard", str(path), "--out-dir", str(media_path.parent), *_content_args(root)]
     if cli.main_prepare(args):
         raise A2VError("文章媒体准备失败")
     loaded = media.load_media(media_path, path)
@@ -52,7 +64,7 @@ def preview(root: Path, project: dict, *, limit_frames: int | None = None) -> Pa
     path = _storyboard(root, project)
     output = root / "outputs" / "previews" / "video.mp4"
     media_path = root / "outputs" / "media" / "media.json"
-    args = ["--storyboard", str(path), "--purpose", "review", "--out", str(output)]
+    args = ["--storyboard", str(path), "--purpose", "review", "--out", str(output), *_content_args(root)]
     if media_path.is_file():
         args += ["--media", str(media_path)]
     if limit_frames:
@@ -64,19 +76,42 @@ def preview(root: Path, project: dict, *, limit_frames: int | None = None) -> Pa
 
 def render(root: Path, project: dict) -> Path:
     path = _storyboard(root, project)
-    if cli.main_render(["--storyboard", str(path)]):
+    if cli.main_render(["--storyboard", str(path), *_content_args(root)]):
         raise A2VError("文章正式渲染失败")
     return root / "outputs" / "silent.mp4"
 
 
 def review_gate(root: Path, project: dict) -> None:
     storyboard = _storyboard(root, project)
-    article = paths.for_storyboard(storyboard)
+    workspace = _content_root(root)
+    article = paths.for_storyboard(storyboard, workspace)
     raw = json.loads(storyboard.read_text(encoding="utf-8"))
-    current = production.current_fingerprints(storyboard, None, article)
+    media_path = root / "outputs" / "media" / "media.json"
+    current = production.current_fingerprints(
+        storyboard, media_path if media_path.is_file() else None, article
+    )
     reason = production.gate(production.record_path(article), raw, current)
     if reason:
         raise A2VError(reason)
+    reason = cli._aesthetic_render_gate(
+        str(storyboard), _v4_model(raw), article, str(media_path) if media_path.is_file() else None
+    )
+    if reason:
+        raise A2VError(reason)
+
+
+def review_template(root: Path, project: dict) -> None:
+    """Create the established article-specific production review record."""
+    from a2v.types.article import workflow_cli
+
+    storyboard = _storyboard(root, project)
+    workspace = _content_root(root)
+    args = ["template", "--storyboard", str(storyboard)]
+    if workspace is not None:
+        args += ["--content-root", str(workspace)]
+    code = workflow_cli.main(args)
+    if code:
+        raise A2VError("文章类型评审模板生成失败")
 
 
 def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
@@ -103,5 +138,5 @@ def prepare_narration(text: str, cache: Path) -> tuple[Path, list[dict], list[di
 
 
 TYPE = VideoType("article-narrative", "观点型文章的 v4 单场景叙事", validate, prepare, preview, render,
-                 review_gate=review_gate, review_criteria=review_criteria,
+                 review_gate=review_gate, review_criteria=review_criteria, review_template=review_template,
                  audio_tracks=audio_tracks, prepare_narration=prepare_narration)

@@ -49,6 +49,13 @@ def _plan(root: Path, project: dict[str, Any]) -> dict[str, Any]:
             raise A2VError(f"场景 {scene['id']} 类型无效：{kind!r}")
         embedded = kind in {"financial-timeseries", "article-narrative"}
         if embedded:
+            # Embedded works keep their own complete timeline and soundtrack.
+            # Accepting parent duration/narration fields here would make authors
+            # believe that a forbidden trim or audio overlay had been applied.
+            if "duration" in scene:
+                raise A2VError(f"嵌入场景 {scene['id']} 保留完整时间轴，不允许声明 duration")
+            if "narration" in scene:
+                raise A2VError(f"嵌入场景 {scene['id']} 保留自身声音，不允许声明父级 narration")
             ref = scene.get("project")
             if not isinstance(ref, str) or not ref:
                 raise A2VError(f"嵌入场景 {scene['id']} 必须声明 project 路径")
@@ -64,6 +71,23 @@ def _plan(root: Path, project: dict[str, Any]) -> dict[str, Any]:
             frames = embedded_prepared["durationInFrames"]
             scene["embeddedProps"] = embedded_prepared["props"]
             scene["embeddedComposition"] = embedded_prepared["compositionId"]
+            scene["embeddedCodeModules"] = []
+            if kind == "article-narrative":
+                storyboard = child_root / child_manifest["materials"]["storyboard"]
+                modules = {}
+                for _path, declaration, module in code_scenes.iter_code_scenes(scene["embeddedProps"]):
+                    resolved = code_scenes.resolve_module(storyboard.parent, module)
+                    if resolved is None:
+                        raise A2VError(f"嵌入文章代码场景模块不存在：{module}")
+                    alias = "__a2v_embedded_" + hashlib.sha256(
+                        f"{scene['id']}:{module}".encode("utf-8")
+                    ).hexdigest()[:16]
+                    declaration["renderer"]["module"] = alias
+                    relative = resolved.resolve().relative_to(root.resolve()).as_posix()
+                    modules[alias] = {"path": relative, "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest()}
+                scene["embeddedCodeModules"] = [
+                    {"id": alias, **details} for alias, details in sorted(modules.items())
+                ]
         else:
             duration = scene.get("duration")
             narration = scene.get("narration")
@@ -175,6 +199,8 @@ def prepare(root: Path, project: dict) -> dict:
     audio_segments = []
     fps = plan["fps"]
     for scene in plan["scenes"]:
+        for module in scene.get("embeddedCodeModules", []):
+            inputs[f"embedded-module:{module['id']}"] = module["sha256"]
         if scene["type"] in {"financial-timeseries", "article-narrative"}:
             child_root, child_manifest = load_project((root / scene["project"]).resolve())
             prepared = load_current_prepared(child_root, child_manifest)
@@ -258,6 +284,23 @@ def _compile(plan: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
+def _embedded_modules(root: Path, scenes: list[dict[str, Any]], inputs: dict[str, str] | None = None) -> list[tuple[str, Path]]:
+    """Resolve namespaced article modules and recheck their prepared digests."""
+    result = []
+    for scene in scenes:
+        for module in scene.get("embeddedCodeModules", []):
+            path = (root / module["path"]).resolve()
+            try:
+                path.relative_to(root.resolve())
+            except ValueError as exc:
+                raise A2VError(f"嵌入代码场景模块越界：{path}") from exc
+            digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
+            if digest != module["sha256"] or (inputs is not None and inputs.get(f"embedded-module:{module['id']}") != digest):
+                raise A2VError(f"嵌入代码场景模块已变化；请重新 prepare 并评审：{path}")
+            result.append((module["id"], path))
+    return result
+
+
 def preview(root: Path, project: dict, *, limit_frames: int | None = None) -> Path:
     return _render(root, project, preview=True, limit_frames=limit_frames)
 
@@ -313,6 +356,7 @@ def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | Non
         # modules are scoped to the current work and stale scenes cannot leak.
         render_plan = dict(prepared["props"])
         render_plan["scenes"] = render_plan["compiledScenes"]
+        additional_modules = _embedded_modules(root, render_plan["compiledScenes"], prepared["inputs"])
         # The scene manifest resolves project-relative code modules from the
         # plan's parent directory. Keep this ephemeral snapshot in the project
         # root so `scenes/foo.tsx` has the same meaning as in the source plan.
@@ -322,7 +366,9 @@ def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | Non
         try:
             plan_for_bundle.write_text(json.dumps(render_plan, ensure_ascii=False), encoding="utf-8")
             outcome = remotion.bundle(web_dir=web, out_dir=temp / "bundle", storyboard_path=plan_for_bundle,
-                content_root=root.parent, workspace_root=root.parent, cache=True)
+                content_root=root.parent, workspace_root=root.parent, cache=True,
+                additional_modules=additional_modules,
+                cache_identity=root / project["materials"]["plan"])
         finally:
             plan_for_bundle.unlink(missing_ok=True)
         timings.record("bundle", outcome.build_seconds)

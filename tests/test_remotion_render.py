@@ -23,6 +23,17 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
 import a2v.engine.remotion as remotion
+
+
+def test_additional_scene_modules_change_cache_and_provenance_fingerprint(tmp_path: pathlib.Path) -> None:
+    module = tmp_path / "embedded.tsx"
+    module.write_text("export default function Scene() { return null; }", encoding="utf-8")
+    base = {"files": {"web/src/index.ts": "base"}, "digest": "base"}
+    first = remotion._with_additional_modules(base, [("embedded-scene", module)])
+    module.write_text("export default function Changed() { return null; }", encoding="utf-8")
+    second = remotion._with_additional_modules(base, [("embedded-scene", module)])
+    assert "__a2v_embedded_code__/embedded-scene" in first["files"]
+    assert first["digest"] != second["digest"]
 import a2v.types.article.render as render
 import a2v.engine.scene_manifest as scene_manifest
 import a2v.types.article.storyboard as sb
@@ -174,12 +185,12 @@ def test_build_input_fingerprint_covers_source_styles_fonts_and_lockfile():
 
 def test_fingerprint_keys_survive_a_workspace_root_outside_the_repo():
     """内容根外置时构建输入全在工作区根之外，键仍必须是可复核的别名键。"""
-    files = remotion.build_input_fingerprint()["files"]
+    files = remotion.build_input_fingerprint(scene_modules=())["files"]
     assert all(key.count("/") >= 1 for key in files), "出现了只剩文件名的键"
 
 
 def test_tests_and_build_artifacts_are_not_build_inputs():
-    keys = set(remotion.build_input_fingerprint()["files"])
+    keys = set(remotion.build_input_fingerprint(scene_modules=())["files"])
     assert not any(".test." in key for key in keys)
     assert not any("/node_modules/" in key for key in keys)
     assert not any("/dist/" in key for key in keys)
@@ -225,7 +236,7 @@ def test_an_unreferenced_file_change_does_not_mark_videos_stale(tmp_path):
                 "renderer": "remotion",
                 "workspace": str(ROOT),
                 "page": "web/src/index.ts",
-                "assets": remotion.build_input_fingerprint(),
+                    "assets": remotion.build_input_fingerprint(scene_modules=()),
             },
             ensure_ascii=False,
         ),
@@ -240,7 +251,7 @@ def test_an_unreferenced_file_change_does_not_mark_videos_stale(tmp_path):
 
 
 def test_fingerprint_is_stable_between_calls():
-    assert remotion.build_input_fingerprint() == remotion.build_input_fingerprint()
+    assert remotion.build_input_fingerprint(scene_modules=()) == remotion.build_input_fingerprint(scene_modules=())
 
 
 # ---------------------------------------------------------------- 溯源
@@ -259,7 +270,7 @@ def test_provenance_status_turns_stale_when_a_component_changes(tmp_path):
                 "renderer": "remotion",
                 "workspace": str(ROOT),
                 "page": "web/src/index.ts",
-                "assets": remotion.build_input_fingerprint(),
+                    "assets": remotion.build_input_fingerprint(scene_modules=()),
             },
             ensure_ascii=False,
         ),

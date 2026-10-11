@@ -120,3 +120,50 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
     with pytest.raises(A2VError, match="当前类型的每项结论"):
         _require_review(root, manifest, prepared)
+
+
+def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monkeypatch, capsys) -> None:
+    calls: list[str] = []
+    root = tmp_path / "hook-project"
+    root.mkdir()
+    manifest = {"schemaVersion": 1, "id": "hook-project", "type": "review-hook"}
+    prepared = {"preparedFingerprint": "hook-fingerprint"}
+    preview = root / "outputs" / "previews" / "video.mp4"
+    preview.parent.mkdir(parents=True)
+    preview.write_bytes(b"full preview")
+    (root / "outputs" / "preview-record.json").write_text(json.dumps({
+        "path": "outputs/previews/video.mp4",
+        "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
+        "preparedFingerprint": prepared["preparedFingerprint"],
+    }), encoding="utf-8")
+
+    def type_review_template(*_args) -> None:
+        calls.append("template")
+
+    def type_review_gate(*_args) -> None:
+        calls.append("gate")
+
+    video_type = VideoType(
+        "review-hook", "review hook test", lambda *_: None, lambda *_: None,
+        lambda *_: preview, lambda *_: "rendered.mp4",
+        review_gate=type_review_gate,
+        review_criteria=lambda *_: {"specialized": "专用评审"},
+        review_template=type_review_template,
+    )
+    monkeypatch.setattr(registry, "_registry", {"review-hook": video_type})
+    monkeypatch.setattr("a2v.cli.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("a2v.cli.load_current_prepared", lambda *_args: prepared)
+
+    assert main(["review-template", "--project", str(root)]) == 0
+    generic = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
+    assert generic["criteria"] == {"specialized": "专用评审"}
+    assert calls == ["template"]
+
+    generic["status"] = "pass"
+    generic["evidence"] = {"specialized": "已按类型材料逐项检查"}
+    (root / "outputs" / "review.json").write_text(json.dumps(generic), encoding="utf-8")
+    assert main(["review", "--project", str(root)]) == 0
+    assert calls == ["template", "gate"]
+    assert main(["render", "--project", str(root)]) == 0
+    assert calls == ["template", "gate", "gate"]
+    assert "rendered.mp4" in capsys.readouterr().out

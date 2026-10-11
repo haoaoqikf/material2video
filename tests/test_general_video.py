@@ -101,6 +101,73 @@ def test_graphic_relations_and_data_are_bounded_and_referenced(tmp_path: Path) -
         adapter._validate_graphic_data("chart", broken)
 
 
+@pytest.mark.parametrize(("field", "message"), [
+    ("duration", "保留完整时间轴"),
+    ("narration", "保留自身声音"),
+])
+def test_embedded_scene_rejects_parent_trim_or_narration(tmp_path: Path, field: str, message: str) -> None:
+    scene = {"id": "embedded", "type": "article-narrative", "project": "child"}
+    scene[field] = {"frames": 30} if field == "duration" else "不能覆盖片段声音"
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [scene]})
+    with pytest.raises(A2VError, match=message):
+        adapter._plan(root, manifest)
+
+
+def test_embedded_scene_rejects_reference_cycle_and_transition_overflow(tmp_path: Path) -> None:
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "cycle", "type": "article-narrative", "project": "."},
+    ]})
+    with pytest.raises(A2VError, match="project"):
+        adapter._plan(root, manifest)
+
+    root, manifest = _project(tmp_path / "overflow", {"schemaVersion": 1, "scenes": [
+        {"id": "first", "type": "graphic", "duration": {"frames": 12}},
+        {"id": "second", "type": "graphic", "duration": {"frames": 20},
+         "transition": {"type": "crossfade", "frames": 12}},
+    ]})
+    with pytest.raises(A2VError, match="淡化不能超过前一场景时长"):
+        adapter._plan(root, manifest)
+
+
+def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tmp_path: Path) -> None:
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "story-one", "type": "article-narrative", "project": "one"},
+        {"id": "story-two", "type": "article-narrative", "project": "two"},
+    ]})
+    from a2v.core.project import create_project, load_project as load_child, save_prepared
+
+    for name in ("one", "two"):
+        child = root / name
+        create_project(child, "article-narrative")
+        child_root, child_manifest = load_child(child)
+        source = {"schemaVersion": 4, "world": {"renderer": {"kind": "code", "module": "water-tank"}}}
+        (child_root / "storyboard.json").write_text(json.dumps(source), encoding="utf-8")
+        (child_root / "scenes").mkdir()
+        code = child_root / "scenes" / "water-tank.tsx"
+        code.write_text("export default function Scene() { return null; }", encoding="utf-8")
+        save_prepared(child_root, project=child_manifest, composition_id="A2V", props=source,
+            width=1080, height=1920, fps=30, duration_in_frames=60, inputs={
+                "storyboard": hashlib.sha256((child_root / "storyboard.json").read_bytes()).hexdigest(),
+            })
+
+    plan = adapter._plan(root, manifest)
+    first, second = plan["scenes"]
+    first_module = first["embeddedProps"]["world"]["renderer"]["module"]
+    second_module = second["embeddedProps"]["world"]["renderer"]["module"]
+    assert first_module != second_module
+    assert first["embeddedCodeModules"][0]["id"] == first_module
+    modules = adapter._embedded_modules(root, plan["scenes"])
+    assert {module_id for module_id, _path in modules} == {first_module, second_module}
+
+    first_path = modules[0][1]
+    first_path.write_text("export default function Changed() { return null; }", encoding="utf-8")
+    with pytest.raises(A2VError, match="重新 prepare"):
+        adapter._embedded_modules(root, plan["scenes"], {
+            f"embedded-module:{module['id']}": module["sha256"]
+            for scene in plan["scenes"] for module in scene["embeddedCodeModules"]
+        })
+
+
 def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp_path: Path, monkeypatch) -> None:
     from types import SimpleNamespace
 

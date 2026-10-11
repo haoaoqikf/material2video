@@ -15,7 +15,7 @@ description: 使用统一 a2v 制作入口创作金融时间序列、文章叙�
 | `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
 
-通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。代码场景通过公开 `@a2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
+通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章的 React 场景会递归进入静态模块清单，按通用场景 ID 隔离模块名，并把模块摘要纳入准备记录和打包缓存键。代码场景通过公开 `@a2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
 
 ## 统一命令
 
@@ -26,7 +26,7 @@ uv run a2v validate --project videos/<slug>
 uv run a2v prepare --project videos/<slug>
 uv run a2v preview --project videos/<slug>
 uv run a2v review-template --project videos/<slug>
-# 查看预演，填写 outputs/review.json 中的评审结论与证据
+# 查看预演，填写 outputs/review.json；文章还需完成 production.json 专用评审，金融还需填写 legibility-review.json
 uv run a2v review --project videos/<slug>
 uv run a2v render --project videos/<slug>
 uv run a2v status --project videos/<slug>

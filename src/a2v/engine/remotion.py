@@ -51,7 +51,7 @@ import a2v.engine.scene_manifest as scene_manifest
 import a2v.core.source_policy as source_policy
 from a2v.engine.browser import PageContract
 from a2v.core.errors import A2VError
-from a2v.core.fingerprints import file_digest, fingerprint
+from a2v.core.fingerprints import file_digest, fingerprint as calculate_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -359,6 +359,7 @@ def prepare_composition_entry(
     web_dir: Path,
     storyboard_path: str | Path,
     content_root: str | Path | None = None,
+    additional_modules: list[tuple[str, str | Path]] | None = None,
 ) -> Path:
     """按当前作品重建代码场景静态清单，并检查其归属与安全边界。
 
@@ -376,7 +377,8 @@ def prepare_composition_entry(
     except OSError as exc:
         raise RemotionError(f"分镜读取失败，无法重建代码场景清单：{exc}") from exc
     manifest = scene_manifest.generate(
-        web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root
+        web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root,
+        additional_modules=additional_modules,
     )
     _check_code_scene_boundaries(
         web_dir=web_dir, storyboard_path=Path(storyboard_path), content_root=content_root
@@ -415,6 +417,8 @@ def bundle(
     workspace_root: str | Path | None = None,
     timeout_s: float = _BUNDLE_TIMEOUT_S,
     cache: bool = True,
+    additional_modules: list[tuple[str, str | Path]] | None = None,
+    cache_identity: str | Path | None = None,
 ) -> BundleOutcome:
     """把 composition 打包成静态产物，交给后续的取元数据与渲染复用。
 
@@ -435,7 +439,8 @@ def bundle(
     # 会把清单覆盖掉，而缓存会把这份污染固化下来。
     with bundle_cache.generation_lock(web):
         prepare_composition_entry(
-            web_dir=web, storyboard_path=storyboard_path, content_root=content_root
+            web_dir=web, storyboard_path=storyboard_path, content_root=content_root,
+            additional_modules=additional_modules,
         )
         violations = source_policy.scan(build_inputs())
         if violations:
@@ -464,9 +469,10 @@ def bundle(
             content_root=content_root or workspace_root,
             workspace_root=workspace_root,
         )
+        fingerprint = _with_additional_modules(fingerprint, additional_modules or [])
         base = fingerprint["files"]
         key, detail = bundle_cache.compute_key(
-            web_dir=web, base_files=base, storyboard_path=storyboard_path
+            web_dir=web, base_files=base, storyboard_path=cache_identity or storyboard_path
         )
         entry = bundle_cache.entry_dir(web, key)
         ok, reason = bundle_cache.verify(entry, key)
@@ -903,7 +909,8 @@ def fingerprint_mounts(repo_root: Path | None = None, workspace_root: str | Path
     """
     mounts = {**assets.default_mounts(), **contract_page.web_mounts(repo_root)}
     data = _manifest_data(repo_root)
-    workspace = str(workspace_root) if workspace_root is not None else (data.get("workspaceRoot") if data else None)
+    manifest_workspace = data.get("workspaceRoot") if data else None
+    workspace = str(workspace_root) if workspace_root is not None else manifest_workspace
     if workspace:
         mounts[WORK_MOUNT_PREFIX] = Path(str(workspace))
     return mounts
@@ -1025,17 +1032,37 @@ def build_input_fingerprint(
     storyboard_path: str | Path | None = None,
     content_root: str | Path | None = None,
     workspace_root: str | Path | None = None,
+    scene_modules: Iterable[Path] | None = None,
 ) -> dict:
     """成片溯源用的构建输入指纹。
 
     口径与页面路径一致（同样是 `{"files": {...}, "digest": ...}`），
     因此 `provenance_status` 的复核逻辑两条路径共用一套。
     """
-    mounts = fingerprint_mounts(repo_root, workspace_root)
+    data = _manifest_data(repo_root)
+    effective_workspace = workspace_root or (data.get("workspaceRoot") if data else None)
+    mounts = fingerprint_mounts(repo_root, effective_workspace)
     root = contract_page.web_dir(repo_root)
+    selected_modules = (
+        scene_modules
+        if scene_modules is not None
+        else _storyboard_modules(storyboard_path, content_root) if storyboard_path else ()
+    )
     files = {
         assets.asset_key(path, root, mounts): file_digest(path)
-        for path in build_inputs(repo_root, storyboard_path=storyboard_path, content_root=content_root)
+        for path in build_inputs(repo_root, scene_modules=selected_modules)
     }
     ordered = dict(sorted(files.items()))
-    return {"files": ordered, "digest": fingerprint(ordered)}
+    return {"files": ordered, "digest": calculate_fingerprint(ordered)}
+
+
+def _with_additional_modules(fingerprint_data: dict, modules: Iterable[tuple[str, str | Path]]) -> dict:
+    """Bind non-storyboard code modules into cache and provenance fingerprints."""
+    files = dict(fingerprint_data["files"])
+    for module_id, module_path in modules:
+        module_file = Path(module_path).resolve()
+        if not module_file.is_file():
+            raise RemotionError(f"附加代码场景模块不存在：{module_file}")
+        files[f"__a2v_embedded_code__/{module_id}"] = file_digest(module_file)
+    ordered = dict(sorted(files.items()))
+    return {"files": ordered, "digest": calculate_fingerprint(ordered)}

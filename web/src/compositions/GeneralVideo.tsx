@@ -14,6 +14,19 @@ export type GeneralScene = {
 };
 export type GeneralVideoProps = {schemaVersion:1;fps:30;width:1080;height:1920;durationInFrames:number;compiledScenes:GeneralScene[];title?:string;subtitleCues?:Array<{startFrame:number;endFrame:number;text:string}>};
 
+/** Incoming scene fades over the still-visible outgoing scene. */
+export function sceneOpacityAtFrame(scene: GeneralScene, frame: number): number {
+  const localFrame = frame - scene.startFrame;
+  const overlap = scene.transitionFrames;
+  if (!overlap || localFrame >= overlap) return 1;
+  if (overlap <= 1) return 1;
+  return Math.max(0, Math.min(1, localFrame / (overlap - 1)));
+}
+
+export function activeSubtitleCues(cues: GeneralVideoProps['subtitleCues'], frame: number) {
+  return (cues ?? []).filter(cue => cue.startFrame <= frame && frame < cue.endFrame);
+}
+
 function GraphicScene({scene}: {scene:GeneralScene}): React.ReactElement {
   const data=scene.data??{};
   const lines=Array.isArray(data.lines)?data.lines:[];
@@ -69,22 +82,15 @@ function SceneContent({scene,fps,width,height}: {scene:GeneralScene;fps:number;w
 
 export const GeneralVideo: React.FC<GeneralVideoProps> = (props) => {
   const frame=useCurrentFrame();
-  const current=props.compiledScenes.find(scene=>scene.startFrame<=frame&&frame<scene.endFrame);
-  const cue=current?.subtitleCues?.find(item=>item.startFrame<=frame&&frame<item.endFrame);
+  const cues=activeSubtitleCues(props.subtitleCues, frame);
   return <AbsoluteFill style={{background:'#111720'}}>
-    {props.compiledScenes.map((scene,index)=><Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
-      <AbsoluteFill style={{opacity:(local=>{
-        const fadeIn=scene.transitionFrames;
-        const next=props.compiledScenes[index+1];
-        const fadeOut=next?.transitionFrames??0;
-        const incoming=fadeIn?Math.min(1,Math.max(0,(local+1)/fadeIn)):1;
-        const outgoing=fadeOut&&local>=scene.durationInFrames-fadeOut?Math.min(1,Math.max(0,(scene.durationInFrames-local)/fadeOut)):1;
-        return Math.min(incoming,outgoing);
-      })(frame-scene.startFrame)}}>
+    {props.compiledScenes.map(scene=><Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
+      <AbsoluteFill style={{opacity:sceneOpacityAtFrame(scene,frame)}}>
         <SceneContent scene={scene} fps={props.fps} width={props.width} height={props.height}/>
       </AbsoluteFill>
     </Sequence>)}
-    {cue&&<div style={{position:'absolute',left:100,right:100,bottom:260,textAlign:'center',fontSize:46,fontWeight:600,color:'#fff',textShadow:'0 2px 8px #000',pointerEvents:'none'}}>{cue.text}</div>}
-    {current?.narration&&<></>}
+    {cues.length>0&&<div style={{position:'absolute',left:100,right:100,bottom:260,textAlign:'center',fontSize:46,fontWeight:600,color:'#fff',textShadow:'0 2px 8px #000',pointerEvents:'none'}}>
+      {cues.map((cue,index)=><div key={`${cue.startFrame}-${index}`}>{cue.text}</div>)}
+    </div>}
   </AbsoluteFill>;
 };

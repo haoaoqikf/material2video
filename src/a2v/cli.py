@@ -123,6 +123,11 @@ def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
         raise A2VError("已评审的预演文件不存在或已变化")
 
 
+def _require_type_review(video_type, root: Path, manifest: dict) -> None:
+    if video_type.review_gate is not None:
+        video_type.review_gate(root, manifest)
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_output()
     _register_builtins()
@@ -190,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
             prepared = load_current_prepared(root, manifest)
             if args.command == "render":
                 _require_review(root, manifest, prepared)
+                _require_type_review(video_type, root, manifest)
                 output = video_type.render(root, manifest)
             else:
                 output = video_type.preview(root, manifest, limit_frames=getattr(args, "limit_frames", None))
@@ -219,11 +225,15 @@ def main(argv: list[str] | None = None) -> int:
                         "evidence": {name: "" for name in criteria},
                         "projectId": manifest["id"], "preparedFingerprint": prepared["preparedFingerprint"],
                         "preview": preview}
+            if video_type.review_template is not None:
+                video_type.review_template(root, manifest)
             (root / "outputs" / "review.json").write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"待填写评审模板：{root / 'outputs' / 'review.json'}")
             return 0
         if args.command == "review":
-            _require_review(root, manifest, load_current_prepared(root, manifest))
+            prepared = load_current_prepared(root, manifest)
+            _require_review(root, manifest, prepared)
+            _require_type_review(video_type, root, manifest)
             print("当前准备版本与完整预演评审通过")
             return 0
         return 0

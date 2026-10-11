@@ -14,7 +14,7 @@
 3. PreparedVideo 执行契约 v1：compositionId、props、width/height/fps/durationInFrames、inputs/asset 指纹、音轨和字幕、依赖项目；保存至 outputs/prepared.json。准备产物参与记录绑定但不是可编辑源；render 只读并复核。
 4. 统一记录保存 preview-record.json 和 review.json；完整预演绑定输入与准备指纹及视频摘要。评审模板保持 pending，结论需要具体证据和评审来源。类型门禁单独检查，嵌入项目必须通过自身正式门禁。
 5. general-plan.json v1 使用 scenes：id、type、duration（frames 或 narration）、data/material project、narration、transition。全片帧数为场景帧数总和减交叉淡化重叠。默认硬切；淡化默认12帧，相邻淡化不能导致三场景重叠。固定时长口播溢出失败，父级口播不能覆盖嵌入片段口播。
-6. Remotion General composition 使用同一编译时间轴，Sequence 提供局部帧，透明度/音量共享淡化函数；字幕映射全片帧。graphical 使用现有 SceneTree；代码沿用源码白名单、种子随机与探针。公开 API 增加 GeneralSceneProps，保留文章上下文。
+6. Remotion General composition 使用同一编译时间轴，Sequence 提供局部帧，透明度/音量共享淡化函数；字幕映射全片帧。graphic 使用受控原语；代码沿用源码白名单、种子随机与探针。嵌入文章代码模块递归纳入静态清单，按父级场景 ID 生成隔离别名，并绑定准备和打包缓存指纹。公开 API 增加 GeneralSceneProps，保留文章上下文。
 7. 所有类型经同一共享渲染器：准备清单、生成锁、完整缓存键、一次浏览器会话、元数据确认、临时输出验收、原子替换、指纹复核、性能与溯源。文章媒体复用现有 TTS/本地混音，不复制声音实现。
 8. 保留仓库名和 Skill 位置，移除生产旧命令。制作流程所需文章审查、关键样片、基准等操作通过新 CLI 子命令提供，维护工具可迁入包的工具模块。
 
