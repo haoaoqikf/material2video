@@ -12,12 +12,12 @@
 
 系统 SHALL 支持两层根：**仓库根**（前端工程与共享组件所在处）与**工作区根**
 （存放 `videos|examples/<slug>` 与作品目录下 `outputs/` 的目录）。工作区根 SHALL 按
-`--content-root` > `A2V_CONTENT_ROOT` > 仓库根 的优先级解析；未提供两个来源时
+`--content-root` > `M2V_CONTENT_ROOT` > 仓库根 的优先级解析；未提供两个来源时
 工作区根 SHALL 等于仓库根。
 
 输入文件位于仓库根的规范目录（`videos|examples/<slug>`）时，归属 SHALL 按仓库根判定；
 位于其他位置时 SHALL 按工作区根判定。两者都不满足时系统 SHALL 报错，
-SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与 `A2V_CONTENT_ROOT`
+SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与 `M2V_CONTENT_ROOT`
 两条设置方式。
 
 作品的专属画面以工作区根下的 React 模块声明，系统 SHALL 据此生成前端工程的动态入口。
@@ -26,11 +26,11 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 与打包。
 
 #### Scenario: 未设置内容根
-- **WHEN** 既没有 `--content-root` 也没有 `A2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/<slug>/`
+- **WHEN** 既没有 `--content-root` 也没有 `M2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/<slug>/`
 - **THEN** 工作区根为仓库根，源目录为该文章目录，产物写入 `<仓库根>/videos/<slug>/outputs/`
 
 #### Scenario: 内容根指向仓库外
-- **WHEN** `--content-root` 或 `A2V_CONTENT_ROOT` 指向仓库外目录，输入文件位于 `<内容根>/videos/<slug>/`
+- **WHEN** `--content-root` 或 `M2V_CONTENT_ROOT` 指向仓库外目录，输入文件位于 `<内容根>/videos/<slug>/`
 - **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/<slug>/outputs/`，且命令与工作目录无关
 
 #### Scenario: 仓库内优先
@@ -39,7 +39,7 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 无法推导归属
 - **WHEN** 输入文件既不在仓库根的 `videos|examples/<slug>` 内，也不在已解析的工作区根内
-- **THEN** 命令报错并列出实际路径，错误信息包含 `--content-root` 与 `A2V_CONTENT_ROOT`
+- **THEN** 命令报错并列出实际路径，错误信息包含 `--content-root` 与 `M2V_CONTENT_ROOT`
 
 #### Scenario: 内容根里的作品带专属画面
 - **WHEN** 作品与它的专属画面模块位于仓库外的内容根下
@@ -65,7 +65,7 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 外部内容根
 
-- **WHEN** `--content-root` 或 `A2V_CONTENT_ROOT` 指向外部内容根
+- **WHEN** `--content-root` 或 `M2V_CONTENT_ROOT` 指向外部内容根
 - **THEN** 使用该内容根下的 `videos/<slug>/outputs/` 同构路径
 
 #### Scenario: 显式输出参数

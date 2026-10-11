@@ -173,7 +173,7 @@ SHALL NOT 只打印在观感闸门的提示列表中而不影响结论。其余�
 每一幕里**每一个**渲染出来的字号 SHALL 是字号阶上的一档，SHALL NOT 出现
 阶外的整数（组件里写死的值、按字数自算的值、或为了迁就某个判据阈值而挑的值）。
 
-字号阶 SHALL 只有一处声明（设计语言层的 `--a2v-size-*`）；校验 SHALL 从那里读，
+字号阶 SHALL 只有一处声明（设计语言层的 `--m2v-size-*`）；校验 SHALL 从那里读，
 SHALL NOT 在测试里另抄一份——抄的那份会把缺陷一起抄进去。
 
 相邻两档 SHALL 至少相差 10%：差几个像素的两个字号看不出区别，
@@ -201,8 +201,8 @@ SHALL NOT 在测试里另抄一份——抄的那份会把缺陷一起抄进去�
 
 ### Requirement: 状态语汇覆盖每一种角色
 
-状态语汇 SHALL 为画面里每一种承载状态的角色提供基元：**面**（`a2v-surface`）、
-**文字层**（`a2v-label`）、**连接件**（`a2v-connector`）、**边界框**（`a2v-frame`）。
+状态语汇 SHALL 为画面里每一种承载状态的角色提供基元：**面**（`m2v-surface`）、
+**文字层**（`m2v-label`）、**连接件**（`m2v-connector`）、**边界框**（`m2v-frame`）。
 组件 SHALL NOT 为同一种角色自造第二套表达（`.is-accent`、`.is-focus` 之类），
 SHALL NOT 为已有基元再起一个同义的新名字——一个概念只能有一个名字。
 
@@ -225,7 +225,7 @@ SHALL 从样式表推导，SHALL NOT 在测试里手抄——手抄的两份会�
 
 #### Scenario: 组件自造第二套状态表达
 - **WHEN** 某个组件用 `.is-accent` 之类的临场类名表达焦点
-- **THEN** 机检报错：它 SHALL 改用基元 + `data-a2v-state`
+- **THEN** 机检报错：它 SHALL 改用基元 + `data-m2v-state`
 
 #### Scenario: 基元清单被手抄成第二份
 - **WHEN** 样式侧基元清单与实际样式表推导出的集合不一致
@@ -274,24 +274,24 @@ SHALL 被解析，SHALL NOT 静默退回画布。
 
 ### Requirement: 四族基元 × 四个状态每一格都要落地
 
-四族基元（`a2v-surface` / `a2v-label` / `a2v-connector` / `a2v-frame`）在四个状态下
+四族基元（`m2v-surface` / `m2v-label` / `m2v-connector` / `m2v-frame`）在四个状态下
 SHALL 都画出颜色，SHALL NOT 出现空规则或整族缺失。每一格在**两种媒介**上都
 SHALL 与各自的 rest 不同——只声明一种媒介时，另一种媒介上的组件收不到这个状态。
 
 判据用**合成元素**量，不依赖基线是否恰好用到某一态。
 
 #### Scenario: 某一族缺状态规则
-- **WHEN** 边界框带着 `data-a2v-state="focus"` 渲染
+- **WHEN** 边界框带着 `data-m2v-state="focus"` 渲染
 - **THEN** 描边相对 rest 有变化（迁移前整族没有状态规则，四态完全相同）
 
 #### Scenario: 状态只声明一种媒介
-- **WHEN** 一个 HTML 元素带 `class="a2v-label" data-a2v-state="muted"`
-- **THEN** 计算出的 `color` 与 rest 不同（迁移前两者都是 `--a2v-ink-3`，空操作）
+- **WHEN** 一个 HTML 元素带 `class="m2v-label" data-m2v-state="muted"`
+- **THEN** 计算出的 `color` 与 rest 不同（迁移前两者都是 `--m2v-ink-3`，空操作）
 
 ### Requirement: 重点面上的墨色由设计层给出
 
 `focus` 态的填充是强调色实体，该面在两套主题下都是深色。设计层 SHALL 定义
-压在这个面上的墨色令牌（`--a2v-on-focus`），组件 SHALL 使用它，
+压在这个面上的墨色令牌（`--m2v-on-focus`），组件 SHALL 使用它，
 SHALL NOT 各自选色——实测组件各自选了强调色，得到"深蓝面 + 蓝字"，
 浅色主题下只有 1.07:1。
 
@@ -437,13 +437,13 @@ SHALL NOT 在组件内写死这些数值。
 SHALL 记录在参考文档里：
 
 - **数据描边**（画出数据形状的轮廓、柱体边、轴线、括号、箭头，以及吊住物体的结构线）：
-  对所在主题的 `--a2v-bg-0` 的对比度 SHALL ≥ 4.5:1；
-- **图形内文本**：对所在主题的 `--a2v-bg-0` 的对比度 SHALL ≥ 4.5:1；
+  对所在主题的 `--m2v-bg-0` 的对比度 SHALL ≥ 4.5:1；
+- **图形内文本**：对所在主题的 `--m2v-bg-0` 的对比度 SHALL ≥ 4.5:1；
   绘制在 `--fig-ink` 上的文字对 `--fig-ink` 的对比度 SHALL ≥ 4.5:1；
-- **边界描边**（一个物体唯一可见的边界）：对所在主题的 `--a2v-bg-2` 的对比度
+- **边界描边**（一个物体唯一可见的边界）：对所在主题的 `--m2v-bg-2` 的对比度
   SHALL ≥ 3:1；被归入这一类的令牌 SHALL 至少被一处边界声明真正引用；
-- **装饰描边**（不承载数据的辅助线）：对所在主题的 `--a2v-bg-0` 的对比度 SHALL ≥ 1.5:1；
-  纯分隔线（`--a2v-hairline`）SHALL 保持耳语档，SHALL NOT 因为「统一提到 3:1」被抬高；
+- **装饰描边**（不承载数据的辅助线）：对所在主题的 `--m2v-bg-0` 的对比度 SHALL ≥ 1.5:1；
+  纯分隔线（`--m2v-hairline`）SHALL 保持耳语档，SHALL NOT 因为「统一提到 3:1」被抬高；
 - **面填充**（水体、次级面等块面）：SHALL 归类，但 SHALL NOT 设对比度数值下限——
   形状的可读性由描边负责。给面填充设下限会把浅色主题里正确的白色面阶判成缺陷。
 
@@ -479,15 +479,15 @@ SHALL 记录在参考文档里：
 - **THEN** 正文对比度达到 7:1、大字与图形达到 4.5:1，无需页面自行补足
 
 #### Scenario: 数据描边太淡
-- **WHEN** 某个数据描边令牌对所在主题 `--a2v-bg-0` 的对比度低于 4.5:1
+- **WHEN** 某个数据描边令牌对所在主题 `--m2v-bg-0` 的对比度低于 4.5:1
 - **THEN** 机检报错，并指出令牌名、所属主题、实测对比度与阈值
 
 #### Scenario: 图形内文本太淡
-- **WHEN** 某个图形内文本令牌对所在主题 `--a2v-bg-0` 的对比度低于 4.5:1
+- **WHEN** 某个图形内文本令牌对所在主题 `--m2v-bg-0` 的对比度低于 4.5:1
 - **THEN** 机检报错；绘制在 `--fig-ink` 上的文字改为对 `--fig-ink` 判定
 
 #### Scenario: 边界看不清
-- **WHEN** 某个边界描边令牌对所在主题 `--a2v-bg-2` 的对比度低于 3:1
+- **WHEN** 某个边界描边令牌对所在主题 `--m2v-bg-2` 的对比度低于 3:1
 - **THEN** 机检报错，并给出实测值与阈值
 
 #### Scenario: 承重的边界令牌没人用
@@ -495,7 +495,7 @@ SHALL 记录在参考文档里：
 - **THEN** 机检报错——定义了却没人用的令牌看似成体系，实际不承担任何东西
 
 #### Scenario: 装饰描边看不见
-- **WHEN** 某个装饰描边令牌对所在主题 `--a2v-bg-0` 的对比度低于 1.5:1
+- **WHEN** 某个装饰描边令牌对所在主题 `--m2v-bg-0` 的对比度低于 1.5:1
 - **THEN** 机检报错，而不是让它以「它是装饰」为由默认放行
 
 #### Scenario: 分隔线保持耳语
@@ -549,8 +549,8 @@ SHALL 记录在参考文档里：
 
 组件 SHALL NOT 用行内样式直接写 `text-shadow` 来表达帧驱动的光晕：
 行内优先级最高，会让设计语言层无法覆盖。组件 SHALL 改为报告一个 0 到 1 的
-通道（`--a2v-emphasis-glow`），模糊半径与浓度 SHALL 由设计层的令牌
-（`--a2v-glow-emphasis-blur/alpha`、`--a2v-glow-heat-blur/alpha`）给出。
+通道（`--m2v-emphasis-glow`），模糊半径与浓度 SHALL 由设计层的令牌
+（`--m2v-glow-emphasis-blur/alpha`、`--m2v-glow-heat-blur/alpha`）给出。
 令牌缺失时 SHALL 落回设计层给出的兜底取值，SHALL NOT 回到组件行内写法。
 
 #### Scenario: 预设下光晕按进度亮起
@@ -588,7 +588,7 @@ SHALL NOT 让某一种媒介的组件另行计算同一语义——否则同一�
 HTML 侧 SHALL 声明 `background-color` 而非 `background` 简写，
 以免覆盖组件自己的材质（`background-image`）。
 
-「当前焦点」态 SHALL 额外提供一个**状态之内**的连续通道 `--a2v-focus-mix`
+「当前焦点」态 SHALL 额外提供一个**状态之内**的连续通道 `--m2v-focus-mix`
 （0..1，默认 `1`）：`1` 是完整焦点外观，`0` SHALL 等于「基准」态的外观。
 组件 SHALL 用它表达焦点的淡入淡出，SHALL NOT 为此新增状态
 （因为确定性契约禁止 CSS `transition`，状态一换就是一次瞬跳）。
@@ -616,7 +616,7 @@ HTML 侧 SHALL 声明 `background-color` 而非 `background` 简写，
 
 #### Scenario: 焦点在帧边界上翻牌
 - **WHEN** 某组件在两个相邻帧之间把元素从「基准」换成「当前焦点」，
-  而该元素在换手帧的 `--a2v-focus-mix` 明显大于 0
+  而该元素在换手帧的 `--m2v-focus-mix` 明显大于 0
 - **THEN** 视为缺陷：这次换手是一次跳变，应当改为在 `mix = 0` 时交接
 
 #### Scenario: 焦点量逐帧跳变

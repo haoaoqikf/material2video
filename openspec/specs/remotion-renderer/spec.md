@@ -127,7 +127,7 @@ SHALL 读回码流参数并拒绝全范围像素格式的产物。
 ### Requirement: 版本 3 渲染契约
 
 系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把共享 composition 挂载为可寻址的帧序列，
-并在 `window.__A2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、
+并在 `window.__M2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、
 `ready()` 与 `seekToFrame(frame)`。
 
 `version` SHALL 为 `3`。`ready()` SHALL 在字体、当前作品代码 bundle、首批本地资源就绪
@@ -158,7 +158,7 @@ SHALL 读回码流参数并拒绝全范围像素格式的产物。
 
 #### Scenario: 版本不匹配
 
-- **WHEN** 页面暴露的 `__A2V__` 版本不是 `3`
+- **WHEN** 页面暴露的 `__M2V__` 版本不是 `3`
 - **THEN** 渲染入口报错终止并说明当前支持的契约版本
 
 ### Requirement: 合成性能可观测
