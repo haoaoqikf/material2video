@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-import a2v.core.catalog as catalog
-import a2v.types.article.storyboard as storyboard
+import m2v.core.catalog as catalog
+import m2v.types.article.storyboard as storyboard
 MIDLEVEL = {"flow", "cycle", "timeline", "gauge", "pictogram"}
 
 def v3() -> dict:
@@ -154,6 +154,6 @@ def test_midlevel_props_are_consumed_by_the_renderer():
         / "web/src/primitives/SceneTree.tsx"
     ).read_text(encoding="utf-8")
     for node_type in MIDLEVEL:
-        assert f"a2v-primitive-{node_type}" in source or f"'{node_type}'" in source
+        assert f"m2v-primitive-{node_type}" in source or f"'{node_type}'" in source
         for prop in catalog.PRIMITIVE_CATALOG[node_type].props:
             assert prop in source, f"{node_type}.{prop} 未被渲染器消费"

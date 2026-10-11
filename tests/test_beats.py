@@ -12,8 +12,8 @@ import pathlib
 
 import pytest
 
-import a2v.engine.beats as beats
-import a2v.types.article.storyboard as storyboard
+import m2v.engine.beats as beats
+import m2v.types.article.storyboard as storyboard
 
 
 def beat_script() -> dict:

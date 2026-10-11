@@ -30,9 +30,9 @@ describe('场景树运行时', () => {
   it('隐藏全局树节点时保留稳定 id 与布局节点', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
     const hiddenId = scene.sceneTree!.children![0]!.id;
-    const html = renderToStaticMarkup(<div className="a2v-safe"><SceneTree scene={scene} frame={0} hiddenNodeIds={new Set([hiddenId])} /></div>);
-    expect(html).toContain('class="a2v-safe"');
-    expect(html).toContain(`data-a2v-node-id="${hiddenId}"`);
+    const html = renderToStaticMarkup(<div className="m2v-safe"><SceneTree scene={scene} frame={0} hiddenNodeIds={new Set([hiddenId])} /></div>);
+    expect(html).toContain('class="m2v-safe"');
+    expect(html).toContain(`data-m2v-node-id="${hiddenId}"`);
     expect(html).toContain('visibility:hidden');
   });
   it('树文字把最近 surface 声明为实际包含容器', () => {
@@ -42,7 +42,7 @@ describe('场景树运行时', () => {
       { id: 'copy', type: 'text', contentRef: 'data.text' },
     ] } as SceneNode;
     const markup = renderToStaticMarkup(<SceneTree scene={scene} frame={0} />);
-    expect(markup).toContain('data-a2v-inside="[data-a2v-node-id=&quot;panel&quot;]"');
+    expect(markup).toContain('data-m2v-inside="[data-m2v-node-id=&quot;panel&quot;]"');
   });
   it('折线图缺测时保留类别位置且横轴标签使用主题正文颜色', () => {
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]);
@@ -54,7 +54,7 @@ describe('场景树运行时', () => {
       id: 'feedback-chart', type: 'chart', chart: 'line', contentRef: 'data.weeks',
     } as SceneNode;
     const html = renderToStaticMarkup(<SceneTree scene={scene} frame={0} />);
-    expect(html).toContain('style="fill:var(--a2v-text-1, currentColor)"');
+    expect(html).toContain('style="fill:var(--m2v-text-1, currentColor)"');
     expect(html).toContain('>第 1 周</text>');
     expect(html).toContain('>第 4 周</text>');
     expect(html).toContain('points="56,304 664,56"');
@@ -175,8 +175,8 @@ describe('中层原语的方向关系', () => {
     expect(cycleChildStyle(1, 5, 'cw')).not.toEqual(cycleChildStyle(1, 4, 'cw'));
   });
 
-  it('阶段状态锚点不占用画布的 data-a2v-stage', () => {
-    // 画布容器用 [data-a2v-stage] 声明 1080×1920 + overflow:hidden（base.css）；
+  it('阶段状态锚点不占用画布的 data-m2v-stage', () => {
+    // 画布容器用 [data-m2v-stage] 声明 1080×1920 + overflow:hidden（base.css）；
     // 节点上一旦同名，每个阶段子节点都会被撑成整块画布并把标题挤出安全区。
     const scene = structuredClone(EMPTY_STORYBOARD.scenes[0]) as Scene;
     scene.sceneTree = {
@@ -193,9 +193,9 @@ describe('中层原语的方向关系', () => {
         beats={{ timeline: stageTimeline, state: { current: 'b2', progress: 0.5, completed: ['b1'], estimated: false } }}
       />,
     );
-    expect(markup).toContain('data-a2v-stage-state="done"');
-    expect(markup).toContain('data-a2v-stage-state="active"');
-    expect(markup).not.toContain('data-a2v-stage=');
+    expect(markup).toContain('data-m2v-stage-state="done"');
+    expect(markup).toContain('data-m2v-stage-state="active"');
+    expect(markup).not.toContain('data-m2v-stage=');
   });
 });
 

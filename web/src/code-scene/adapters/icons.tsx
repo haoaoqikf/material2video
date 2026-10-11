@@ -13,7 +13,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
-export interface A2VFrameIconProps {
+export interface M2VFrameIconProps {
   /** Lucide 图标组件（来自 lucide-react 的具名导出）。 */
   icon: LucideIcon;
   /** 像素尺寸（正方形）。 */
@@ -41,7 +41,7 @@ export function FrameIcon({
   style,
   className,
   ...rest
-}: A2VFrameIconProps): React.ReactElement {
+}: M2VFrameIconProps): React.ReactElement {
   return (
     <Icon
       size={size}

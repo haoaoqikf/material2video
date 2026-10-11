@@ -11,15 +11,15 @@
  *     带上它，`line-height: 1.5`、标题的 `margin`、`font-size` 继承等会整体
  *     换一套——不报错，只是每个字都挪一点。`box-sizing: border-box` 由
  *     `base.css` 的 `*` 规则提供，不依赖 preflight；
- *   - `tokens.css`：设计令牌真源（`:root { --a2v-* }` 声明只保留这一处真源）。
+ *   - `tokens.css`：设计令牌真源（`:root { --m2v-* }` 声明只保留这一处真源）。
  *     令牌是变量，先声明后使用，放最前不影响层叠；
  *   - `primitives.css`：四族基元的层。
  *     **它必须紧跟 `keynote.css`**：这一段在旧文件里位于**尾部**，正是靠源序
- *     压过同权重的设计语言层。搬到最前面会让源序反过来——实测 `.a2v-label`
+ *     压过同权重的设计语言层。搬到最前面会让源序反过来——实测 `.m2v-label`
  *     的字距从 `normal` 变成 `0.14em`，冰山幕的标注宽 155px 而不是 136px。
  *
- * 本文件**不手写任何元素级规则**：`html/body`、`[data-a2v-stage]`、
- * `[data-a2v-scene]`、`.a2v-safe` 由 `declarative.css` 提供，
+ * 本文件**不手写任何元素级规则**：`html/body`、`[data-m2v-stage]`、
+ * `[data-m2v-scene]`、`.m2v-safe` 由 `declarative.css` 提供，
  * 免得同一件事有两个真源。
  *
  * 末尾的 `scene-tree.css` 是**场景树原语的追加层**（只能整块排在搬运层之后，

@@ -17,9 +17,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import a2v.engine.perf as perf
-import a2v.engine.remotion as remotion
-import a2v.types.article.render as render_mod
+import m2v.engine.perf as perf
+import m2v.engine.remotion as remotion
+import m2v.types.article.render as render_mod
 
 
 def _storyboard(frames: int = 90):

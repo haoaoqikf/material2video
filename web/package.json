@@ -1,9 +1,9 @@
 {
-  "name": "article2video-web",
+  "name": "material2video-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "article2video 的画面实现：React composition、帧驱动运行时与渲染契约页",
+  "description": "material2video 的画面实现：React composition、帧驱动运行时与渲染契约页",
   "scripts": {
     "sync:fonts": "node scripts/sync-fonts.mjs",
     "dev": "node scripts/sync-fonts.mjs && vite",

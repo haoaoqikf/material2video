@@ -1,8 +1,8 @@
 import React from 'react';
 import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
-import { A2VCompositionV4, type A2VCompositionV4Props } from './A2VCompositionV4';
-import type { A2VCodeScene } from '@/code-scene';
+import { M2VCompositionV4, type M2VCompositionV4Props } from './M2VCompositionV4';
+import type { M2VCodeScene } from '@/code-scene';
 import { createSceneRandom } from '@/code-scene';
 import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
 
@@ -34,7 +34,7 @@ function GraphicScene({scene}: {scene:GeneralScene}): React.ReactElement {
   const links=Array.isArray(data.links)?data.links as Array<{from:string;to:string;label:string}>:[];
   const values=Array.isArray(data.values)?data.values as Array<{label:string;value:number}>:[];
   const maximum=Math.max(1,...values.map(item=>item.value));
-  return <AbsoluteFill style={{justifyContent:'center',padding:'150px 112px',background:'#111720',color:'#f3f4f6',fontFamily:'A2V Sans, sans-serif'}}>
+  return <AbsoluteFill style={{justifyContent:'center',padding:'150px 112px',background:'#111720',color:'#f3f4f6',fontFamily:'M2V Sans, sans-serif'}}>
     {typeof data.kicker==='string'&&<div style={{fontSize:30,color:'#f7c85b',marginBottom:36}}>{data.kicker}</div>}
     <div style={{fontSize:72,lineHeight:1.2,fontWeight:700}}>{String(data.title??data.text??'')}</div>
     {typeof data.body==='string'&&<div style={{fontSize:38,lineHeight:1.5,marginTop:48,color:'#c8d0da'}}>{data.body}</div>}
@@ -60,7 +60,7 @@ function GraphicScene({scene}: {scene:GeneralScene}): React.ReactElement {
 
 function CodeScene({scene,fps,width,height}: {scene:GeneralScene;fps:number;width:number;height:number}): React.ReactElement {
   const module=scene.renderer?.module??'';
-  const Component=ACTIVE_CODE_SCENES[module] as A2VCodeScene<Record<string,unknown>>|undefined;
+  const Component=ACTIVE_CODE_SCENES[module] as M2VCodeScene<Record<string,unknown>>|undefined;
   if(!Component) throw new Error(`通用场景 ${scene.id} 的代码模块未注册：${module}`);
   const frame=useCurrentFrame();
   const progress=scene.durationInFrames<=1?1:frame/(scene.durationInFrames-1);
@@ -75,7 +75,7 @@ function CodeScene({scene,fps,width,height}: {scene:GeneralScene;fps:number;widt
 
 function SceneContent({scene,fps,width,height}: {scene:GeneralScene;fps:number;width:number;height:number}): React.ReactElement {
   if(scene.type==='financial-timeseries') return <FinancialTimeSeries {...(scene.embeddedProps as FinancialTimeSeriesProps)}/>;
-  if(scene.type==='article-narrative') return <A2VCompositionV4 {...(scene.embeddedProps as A2VCompositionV4Props)}/>;
+  if(scene.type==='article-narrative') return <M2VCompositionV4 {...(scene.embeddedProps as M2VCompositionV4Props)}/>;
   if(scene.type==='code') return <CodeScene scene={scene} fps={fps} width={width} height={height}/>;
   return <GraphicScene scene={scene}/>;
 }

@@ -48,7 +48,7 @@ Config.overrideWebpackConfig((currentConfiguration) => {
         ...withTailwind.resolve?.alias,
         '@': srcDir,
         // 作品代码场景可导入的唯一项目内部模块（与 vite/tsconfig 同一约定）
-        '@a2v/scene': path.resolve(srcDir, 'code-scene/index.ts'),
+        '@m2v/scene': path.resolve(srcDir, 'code-scene/index.ts'),
         // 依赖白名单的裸包：作品模块在仓库外的内容根，向上查找找不到
         // web/ 的依赖；webpack 别名把子路径写在包名前，避免前缀覆盖。
         'react/jsx-runtime': path.join(modulesDir, 'react/jsx-runtime'),

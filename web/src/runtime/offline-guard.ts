@@ -3,7 +3,7 @@
  *
  * 静态闸门在源码层面拒绝网络 API；这层兜底运行期：即使代码用拼接等
  * 方式绕过静态检查，对非本地地址的 fetch / XHR / WebSocket 也会被拒绝，
- * 且每次阻断都会记录到 `window.__A2V_VIOLATIONS__`，契约页路径把它
+ * 且每次阻断都会记录到 `window.__M2V_VIOLATIONS__`，契约页路径把它
  * 读出来并入体检失败。允许的地址只有本机（localhost / 127.0.0.1）、
  * 相对路径与 data:/blob: 这类不入网协议——预览、评审与渲染全部离线可跑。
  */
@@ -33,7 +33,7 @@ let installed = false;
 
 /**
  * 安装守卫。幂等：重复调用不会二次包装原生 API。
- * 返回 recorder 供测试注入；生产路径记录到 `window.__A2V_VIOLATIONS__`。
+ * 返回 recorder 供测试注入；生产路径记录到 `window.__M2V_VIOLATIONS__`。
  */
 export function installOfflineGuard(recorder?: Recorder): void {
   if (installed) return;
@@ -41,13 +41,13 @@ export function installOfflineGuard(recorder?: Recorder): void {
   const record =
     recorder ??
     ((message: string) => {
-      const bag = (window as unknown as { __A2V_VIOLATIONS__?: string[] });
-      bag.__A2V_VIOLATIONS__ = bag.__A2V_VIOLATIONS__ ?? [];
-      bag.__A2V_VIOLATIONS__.push(message);
+      const bag = (window as unknown as { __M2V_VIOLATIONS__?: string[] });
+      bag.__M2V_VIOLATIONS__ = bag.__M2V_VIOLATIONS__ ?? [];
+      bag.__M2V_VIOLATIONS__.push(message);
     });
 
   const block = (kind: string, url: string): Error =>
-    new Error(`A2V 运行期隔离：${kind} 非本地请求被阻断（${url}）。画面必须离线可渲染。`);
+    new Error(`M2V 运行期隔离：${kind} 非本地请求被阻断（${url}）。画面必须离线可渲染。`);
 
   const originalFetch = window.fetch.bind(window);
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {

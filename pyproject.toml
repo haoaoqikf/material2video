@@ -1,7 +1,7 @@
 [project]
-name = "article2video"
+name = "material2video"
 version = "0.1.0"
-description = "把观点型文章制作成竖屏信息可视化短视频的项目级 Skill"
+description = "从文章、金融数据与场景材料到成片的离线视频制作工具链"
 requires-python = ">=3.11"
 dependencies = [
     "playwright>=1.55,<2",
@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-a2v = "a2v.cli:main"
+m2v = "m2v.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

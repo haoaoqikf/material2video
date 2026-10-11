@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-import a2v.engine.scene_manifest as scene_manifest
+import m2v.engine.scene_manifest as scene_manifest
 from conftest import SKILL_MARKER
 
 SCENE_MODULE = "export default function Scene() { return null; }\n"
@@ -59,7 +59,7 @@ def _storyboard(renderers: list[dict | None]) -> dict:
 def _make_project(tmp_path: Path, slug: str) -> Path:
     marker = tmp_path / SKILL_MARKER
     marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("# article2video skill", encoding="utf-8")
+    marker.write_text("# material2video skill", encoding="utf-8")
     article = tmp_path / "videos" / slug
     article.mkdir(parents=True, exist_ok=True)
     return article
@@ -111,7 +111,7 @@ class TestManifestGeneration:
         assert "videos/v4-world/scenes/world" in text
 
     def testv4全片code模块进入可达源码指纹(self, tmp_path, web_dir):
-        import a2v.engine.remotion as remotion
+        import m2v.engine.remotion as remotion
 
         article = _make_project(tmp_path, "v4-fingerprint")
         (article / "scenes").mkdir()
@@ -129,7 +129,7 @@ class TestManifestGeneration:
         storyboard.write_text(json.dumps(_storyboard([None, None]), ensure_ascii=False), encoding="utf-8")
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
         text = _generated(web_dir)
-        assert "ACTIVE_CODE_SCENES: Record<string, A2VCodeScene<any>> = {}" in text
+        assert "ACTIVE_CODE_SCENES: Record<string, M2VCodeScene<any>> = {}" in text
         assert "import s0" not in text
 
     def test纯code分镜生成全部模块(self, tmp_path, web_dir):
@@ -242,7 +242,7 @@ class TestCrossRootResolution:
         (article / "scenes").mkdir(parents=True)
         module = article / "scenes" / "chart.tsx"
         module.write_text(
-            "import { createSceneRandom } from '@a2v/scene';\n"
+            "import { createSceneRandom } from '@m2v/scene';\n"
             "export default function Scene() { return null; }\n",
             encoding="utf-8",
         )
@@ -275,7 +275,7 @@ class TestCrossRootResolution:
         # 清单生成需要作品归属：补上仓库根标记
         marker = tmp_path / SKILL_MARKER
         marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text("# article2video skill", encoding="utf-8")
+        marker.write_text("# material2video skill", encoding="utf-8")
         root = tmp_path / "content-root"
         article = root / "videos" / "external"
         (article / "scenes").mkdir(parents=True)
@@ -334,7 +334,7 @@ class TestFingerprintCoverage:
         return root, article, storyboard
 
     def test指纹覆盖作品模块资产与清单(self, tmp_path, web_dir):
-        import a2v.engine.remotion as remotion
+        import m2v.engine.remotion as remotion
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
@@ -347,7 +347,7 @@ class TestFingerprintCoverage:
         assert not any(".gen/scene-manifest.json" in key for key in keys), keys
 
     def test修改可达输入改变指纹_无关作品不影响(self, tmp_path, web_dir):
-        import a2v.engine.remotion as remotion
+        import m2v.engine.remotion as remotion
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)

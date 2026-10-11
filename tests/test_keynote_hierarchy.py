@@ -10,7 +10,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-import a2v.types.article.keynote as keynote
+import m2v.types.article.keynote as keynote
 
 
 def _text(role, left, right, top, bottom, size, alpha=1.0):

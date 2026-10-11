@@ -20,7 +20,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@a2v/scene": ["./src/code-scene/index.ts"],
+      "@m2v/scene": ["./src/code-scene/index.ts"],
       "react": ["./node_modules/@types/react"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
       "react-dom": ["./node_modules/@types/react-dom"],

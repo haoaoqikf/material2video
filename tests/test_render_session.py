@@ -15,13 +15,13 @@ from pathlib import Path
 
 import pytest
 
-import a2v.engine.remotion as remotion
+import m2v.engine.remotion as remotion
 
 requires_node = pytest.mark.skipif(
     shutil.which("node") is None, reason="需要 Node 才能验证会话协议"
 )
 
-METADATA = {"id": "A2V", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 90}
+METADATA = {"id": "M2V", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 90}
 
 
 def _js_path(path: Path) -> str:
@@ -62,7 +62,7 @@ def _handshake_script(
 ) -> str:
     """一段只实现协议的假渲染脚本：所有行为都由参数决定。"""
     meta = json.dumps(metadata or METADATA)
-    sess = json.dumps(session or {"browsersOpened": 1, "compositionId": "A2V"})
+    sess = json.dumps(session or {"browsersOpened": 1, "compositionId": "M2V"})
     confirm_file = _js_path(tmp_path / "confirm.json")
     abort_file = _js_path(tmp_path / "abort.json")
     render_file = _js_path(tmp_path / "render.txt")

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from a2v.core.errors import A2VError
-from a2v.core.project import create_project, load_project, load_current_prepared
-from a2v.types.general import adapter
+from m2v.core.errors import M2VError
+from m2v.core.project import create_project, load_project, load_current_prepared
+from m2v.types.general import adapter
 
 
 def _project(tmp_path: Path, plan: dict) -> tuple[Path, dict]:
@@ -31,7 +31,7 @@ def test_compile_uses_one_frame_axis_and_rejects_three_way_overlap(tmp_path: Pat
 
     compiled["scenes"][1]["transition"]["frames"] = 30
     compiled["scenes"][2]["transition"]["frames"] = 30
-    with pytest.raises(A2VError, match="三个场景同时重叠"):
+    with pytest.raises(M2VError, match="三个场景同时重叠"):
         adapter._compile(compiled)
 
 
@@ -44,12 +44,12 @@ def test_prepare_binds_plan_and_reports_expired_when_material_changes(tmp_path: 
     assert prepared["durationInFrames"] == 45
     assert load_current_prepared(root, manifest)["preparedFingerprint"] == prepared["preparedFingerprint"]
     (root / "general-plan.json").write_text('{"schemaVersion":1,"scenes":[]}', encoding="utf-8")
-    with pytest.raises(A2VError, match="材料已变化"):
+    with pytest.raises(M2VError, match="材料已变化"):
         load_current_prepared(root, manifest)
 
 
 def test_mux_audio_uses_frame_delays_and_overlap_fades(monkeypatch, tmp_path: Path) -> None:
-    import a2v.types.general.adapter as general
+    import m2v.types.general.adapter as general
 
     wav = tmp_path / "voice.wav"
     wav.write_bytes(b"wave")
@@ -79,7 +79,7 @@ def test_code_scene_is_scanned_before_prepare(tmp_path: Path) -> None:
         "export default function Unsafe() { return fetch('https://example.invalid'); }\n",
         encoding="utf-8",
     )
-    with pytest.raises(A2VError, match="网络 API"):
+    with pytest.raises(M2VError, match="网络 API"):
         adapter.validate(root, manifest)
 
 
@@ -97,7 +97,7 @@ def test_graphic_relations_and_data_are_bounded_and_referenced(tmp_path: Path) -
 
     broken = plan["scenes"][0]["data"]
     broken["links"][0]["to"] = "missing"
-    with pytest.raises(A2VError, match="引用已声明节点"):
+    with pytest.raises(M2VError, match="引用已声明节点"):
         adapter._validate_graphic_data("chart", broken)
 
 
@@ -109,7 +109,7 @@ def test_embedded_scene_rejects_parent_trim_or_narration(tmp_path: Path, field: 
     scene = {"id": "embedded", "type": "article-narrative", "project": "child"}
     scene[field] = {"frames": 30} if field == "duration" else "不能覆盖片段声音"
     root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [scene]})
-    with pytest.raises(A2VError, match=message):
+    with pytest.raises(M2VError, match=message):
         adapter._plan(root, manifest)
 
 
@@ -117,7 +117,7 @@ def test_embedded_scene_rejects_reference_cycle_and_transition_overflow(tmp_path
     root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
         {"id": "cycle", "type": "article-narrative", "project": "."},
     ]})
-    with pytest.raises(A2VError, match="project"):
+    with pytest.raises(M2VError, match="project"):
         adapter._plan(root, manifest)
 
     root, manifest = _project(tmp_path / "overflow", {"schemaVersion": 1, "scenes": [
@@ -125,7 +125,7 @@ def test_embedded_scene_rejects_reference_cycle_and_transition_overflow(tmp_path
         {"id": "second", "type": "graphic", "duration": {"frames": 20},
          "transition": {"type": "crossfade", "frames": 12}},
     ]})
-    with pytest.raises(A2VError, match="淡化不能超过前一场景时长"):
+    with pytest.raises(M2VError, match="淡化不能超过前一场景时长"):
         adapter._plan(root, manifest)
 
 
@@ -134,7 +134,7 @@ def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tm
         {"id": "story-one", "type": "article-narrative", "project": "one"},
         {"id": "story-two", "type": "article-narrative", "project": "two"},
     ]})
-    from a2v.core.project import create_project, load_project as load_child, save_prepared
+    from m2v.core.project import create_project, load_project as load_child, save_prepared
 
     for name in ("one", "two"):
         child = root / name
@@ -145,7 +145,7 @@ def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tm
         (child_root / "scenes").mkdir()
         code = child_root / "scenes" / "water-tank.tsx"
         code.write_text("export default function Scene() { return null; }", encoding="utf-8")
-        save_prepared(child_root, project=child_manifest, composition_id="A2V", props=source,
+        save_prepared(child_root, project=child_manifest, composition_id="M2V", props=source,
             width=1080, height=1920, fps=30, duration_in_frames=60, inputs={
                 "storyboard": hashlib.sha256((child_root / "storyboard.json").read_bytes()).hexdigest(),
             })
@@ -161,7 +161,7 @@ def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tm
 
     first_path = modules[0][1]
     first_path.write_text("export default function Changed() { return null; }", encoding="utf-8")
-    with pytest.raises(A2VError, match="重新 prepare"):
+    with pytest.raises(M2VError, match="重新 prepare"):
         adapter._embedded_modules(root, plan["scenes"], {
             f"embedded-module:{module['id']}": module["sha256"]
             for scene in plan["scenes"] for module in scene["embeddedCodeModules"]
@@ -189,5 +189,5 @@ def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp
         {"id": "fixed", "type": "graphic", "duration": {"frames": 30},
          "narration": "口播放不下。", "data": {"title": "固定容量"}},
     ]})
-    with pytest.raises(A2VError, match="超出固定帧容量"):
+    with pytest.raises(M2VError, match="超出固定帧容量"):
         adapter.prepare(fixed_root, fixed_manifest)

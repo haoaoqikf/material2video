@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Scene } from '@/schema/storyboard';
-import type { A2VBeatState, A2VCodeSceneProps, A2VThemeInfo, A2VWorldInfo, A2VStageInfo, A2VObjectStates } from '@/code-scene';
+import type { M2VBeatState, M2VCodeSceneProps, M2VThemeInfo, M2VWorldInfo, M2VStageInfo, M2VObjectStates } from '@/code-scene';
 import { createSceneRandom } from '@/code-scene';
 import type { BeatContext } from '@/runtime/beats';
 import { codeSceneBeatState } from '@/runtime/beats';
@@ -18,12 +18,12 @@ import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
  *   绝不静默渲染空场景（校验理应拦截，这里是最后的防线）；
  * - **注入运行时**：幕数据、全局帧、幕内帧、进度、fps、画布、主题、
  *   稳定种子随机。作品拿不到时长与相邻幕，不可能形成第二套时间轴；
- * - **探针与主题**：根节点带 `data-a2v-code-scene` 与主题标记，
- *   外层 `a2v-safe` 提供与场景树一致的安全区；共享设计令牌来自
+ * - **探针与主题**：根节点带 `data-m2v-code-scene` 与主题标记，
+ *   外层 `m2v-safe` 提供与场景树一致的安全区；共享设计令牌来自
  *   `<html>` 上的 CSS 变量（composition 统一写入），字体颜色基础一致；
- * - **就绪协议**：`data-a2v-code-ready` 在场景完成首次提交且首批
+ * - **就绪协议**：`data-m2v-code-ready` 在场景完成首次提交且首批
  *   本地资源（图片）就绪后翻为 `"1"`；资源失败写入
- *   `data-a2v-code-error`，由契约页 ready/seek 显式报错，
+ *   `data-m2v-code-error`，由契约页 ready/seek 显式报错，
  *   不会把未完成画面截成空白帧。
  *
  * 布局说明：包装器不套用场景树排版引擎，也不做取档——代码场景的
@@ -54,7 +54,7 @@ export function CodeSceneHost({
   beats: BeatContext;
   continuity?: ContinuityRenderState;
   cameraOverride?: CameraState;
-  v4Context?: { world: A2VWorldInfo; stage: A2VStageInfo; objectStates: A2VObjectStates; phase: A2VCodeSceneProps['motion']['phase'] };
+  v4Context?: { world: M2VWorldInfo; stage: M2VStageInfo; objectStates: M2VObjectStates; phase: M2VCodeSceneProps['motion']['phase'] };
 }): React.ReactElement {
   const renderer = scene.renderer;
   const module_ = renderer?.kind === 'code' ? renderer.module : '';
@@ -105,12 +105,12 @@ export function CodeSceneHost({
     };
   }, []);
 
-  const themeInfo: A2VThemeInfo = { theme, ...(preset ? { preset } : {}) };
+  const themeInfo: M2VThemeInfo = { theme, ...(preset ? { preset } : {}) };
   const random = createSceneRandom(v4Context?.world.id ?? scene.id);
-  const beatState: A2VBeatState = codeSceneBeatState(beats);
+  const beatState: M2VBeatState = codeSceneBeatState(beats);
   const plan = sceneMotionPlan(scene, beats.timeline); const phase = (Object.entries(plan.phases).find(([, span]) => span.startFrame <= localFrame && localFrame < span.endFrame)?.[0] ?? 'settle') as 'establish'|'change'|'result'|'settle';
   const relation = continuity?.relation; const continuityProgress = relation ? Math.min(1, Math.max(0, continuity.frame / relation.span)) : 0;
-  const props: A2VCodeSceneProps = {
+  const props: M2VCodeSceneProps = {
     world: v4Context?.world ?? { id: scene.id, claim: '', metaphor: '', objects: [] },
     stage: v4Context?.stage ?? { id: scene.id, data: scene.data, startFrame: 0, endFrame: scene.durationInFrames,
       progress: scene.durationInFrames <= 1 ? 1 : Math.min(1, Math.max(0, localFrame / (scene.durationInFrames - 1))) },
@@ -136,13 +136,13 @@ export function CodeSceneHost({
   return (
     <div
       ref={ref}
-      className="a2v-code-scene"
-      data-a2v-code-scene={module_}
-      data-a2v-code-ready={error ? 'error' : ready ? '1' : '0'}
-      {...(error ? { 'data-a2v-code-error': error } : {})}
-      data-a2v-theme={theme}
-      data-a2v-continuity-mode={continuity ? 'probe-required' : 'none'}
-      {...(preset ? { 'data-a2v-preset': preset } : {})}
+      className="m2v-code-scene"
+      data-m2v-code-scene={module_}
+      data-m2v-code-ready={error ? 'error' : ready ? '1' : '0'}
+      {...(error ? { 'data-m2v-code-error': error } : {})}
+      data-m2v-theme={theme}
+      data-m2v-continuity-mode={continuity ? 'probe-required' : 'none'}
+      {...(preset ? { 'data-m2v-preset': preset } : {})}
     >
       <Component {...props} />
     </div>

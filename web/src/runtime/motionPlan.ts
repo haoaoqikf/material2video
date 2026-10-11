@@ -52,5 +52,5 @@ export function motionProgress(item: FrameSpan, frame: number): number { return 
 export function visualMix(state: 'rest'|'focus'|'muted'|'done'|undefined, progress = 1): VisualMix { const p = ease(progress); return { focus: state === 'focus' ? p : 0, muted: state === 'muted' ? p : 0, done: state === 'done' ? p : 0 }; }
 export function channelStyle(parts: { base?: string; beat?: string; motion?: string; continuity?: string; opacity?: number; mix?: VisualMix }): CSSProperties {
   const transform = [parts.base, parts.beat, parts.motion, parts.continuity].filter(Boolean).join(' ');
-  return { ...(transform ? { transform } : {}), ...(parts.opacity !== undefined ? { opacity: parts.opacity } : {}), '--a2v-focus-mix': String(parts.mix?.focus ?? 0), '--a2v-muted-mix': String(parts.mix?.muted ?? 0), '--a2v-done-mix': String(parts.mix?.done ?? 0) } as CSSProperties;
+  return { ...(transform ? { transform } : {}), ...(parts.opacity !== undefined ? { opacity: parts.opacity } : {}), '--m2v-focus-mix': String(parts.mix?.focus ?? 0), '--m2v-muted-mix': String(parts.mix?.muted ?? 0), '--m2v-done-mix': String(parts.mix?.done ?? 0) } as CSSProperties;
 }

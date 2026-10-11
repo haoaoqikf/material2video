@@ -4,17 +4,17 @@
  * 逐字搬自冻结的共享资产 `assets/keynote.css`（基元与状态一节），取值一个都没改：
  * 这些颜色被对比度预算与强调色占比闸门按实测值守着，改一个就要连带复核。
  *
- * 组件只声明「我是什么基元」（`a2v-surface` / `a2v-label` / `a2v-connector` /
- * `a2v-frame`）与「我现在是什么状态」（`data-a2v-state`），长相由这里一处决定。
+ * 组件只声明「我是什么基元」（`m2v-surface` / `m2v-label` / `m2v-connector` /
+ * `m2v-frame`）与「我现在是什么状态」（`data-m2v-state`），长相由这里一处决定。
  * 基元类挂在组件**已有的**元素上，不新增 DOM 层级。
  *
  * 三条硬约束，改这块之前先读：
  *
- * 1. **作用域**：每条规则都带 `[data-a2v-preset="keynote"]`。未启用预设的画面里
+ * 1. **作用域**：每条规则都带 `[data-m2v-preset="keynote"]`。未启用预设的画面里
  *    基元类匹配不到任何声明——这是「非预设画面不变」的实现方式，不是风格问题。
  * 2. **两种媒介**：每个状态同时声明 SVG（`fill` / `stroke`）与 HTML
  *    （`background-color` / `color` / `border-color`）。只声明一种时，另一种媒介上的
- *    组件把 `data-a2v-state` 挂上去是个**静默空操作**——实测 `versus` 幕整幕的
+ *    组件把 `data-m2v-state` 挂上去是个**静默空操作**——实测 `versus` 幕整幕的
  *    强调色占比因此只有 0.0016（闸门要 0.002）。HTML 侧用 `background-color`
  *    而不是 `background` 简写：简写会连 `background-image` 一起重置，
  *    把组件自己的材质抹掉。
@@ -24,17 +24,17 @@
  */
 
 /* 表面：卡片、节点圆盘、托盘 */
-[data-a2v-preset="keynote"] .a2v-surface {
+[data-m2v-preset="keynote"] .m2v-surface {
   fill: var(--fig-surface);
   stroke: var(--fig-line);
-  stroke-width: var(--a2v-stroke-4);
+  stroke-width: var(--m2v-stroke-4);
 }
 
 /* 图形内的文字 */
-[data-a2v-preset="keynote"] .a2v-label {
-  fill: var(--a2v-text-1);
-  font-weight: var(--a2v-weight-semibold);
-  letter-spacing: var(--a2v-track-body);
+[data-m2v-preset="keynote"] .m2v-label {
+  fill: var(--m2v-text-1);
+  font-weight: var(--m2v-weight-semibold);
+  letter-spacing: var(--m2v-track-body);
 }
 
 /* 连线、箭头、轨道、轴线。
@@ -44,20 +44,20 @@
  * 纯填充的箭头头。这里早先写死了 `stroke-width: var(--fig-connector-w, 4)`，
  * 在第 16 轮有消费者之后，它会把组件的 3px / 5px 一起改成 4px。
  *
- * 墨色走 `--a2v-connector-ink`：它只在预设作用域内被四个状态赋值，
+ * 墨色走 `--m2v-connector-ink`：它只在预设作用域内被四个状态赋值，
  * 未启用预设时组件各自的兜底值生效（既有画面不变）。 */
-[data-a2v-preset="keynote"] .a2v-connector {
+[data-m2v-preset="keynote"] .m2v-connector {
   fill: none;
-  stroke: var(--a2v-connector-ink, var(--fig-line-data, var(--fig-line)));
+  stroke: var(--m2v-connector-ink, var(--fig-line-data, var(--fig-line)));
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 /* 边界框：一个物体唯一可见的边界 */
-[data-a2v-preset="keynote"] .a2v-frame {
+[data-m2v-preset="keynote"] .m2v-frame {
   fill: none;
-  stroke: var(--a2v-hairline-strong);
-  stroke-width: var(--a2v-stroke-2);
+  stroke: var(--m2v-hairline-strong);
+  stroke-width: var(--m2v-stroke-2);
 }
 
 /* ---------- 四个状态 ----------
@@ -69,7 +69,7 @@
  * SVG 的焦点**光晕由组件自绘**（例如 `.loop-token-halo` 那种径向渐变圆），
  * 不在这里用 `filter`：仓库禁用 `filter: blur()` 一类的写法，
  * 逐帧截图的性能与可复现性都靠这条守住。 */
-[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="rest"] {
+[data-m2v-preset="keynote"] .m2v-surface[data-m2v-state="rest"] {
   fill: var(--fig-surface);
   stroke: var(--fig-line);
   background-color: var(--fig-surface);
@@ -83,12 +83,12 @@
  * 唯一的蓝色面是中性表面 `--fig-surface`，暗到只会被读成"一块暗面板"）。
  *
  * 现在的分工：**填充定焦点（色块），描边给边界（亮线）**。
- * 填充取 `--a2v-accent-soft-solid`——它是一个被压暗的强调色，
+ * 填充取 `--m2v-accent-soft-solid`——它是一个被压暗的强调色，
  * 在深底上读得出"这块被选中了"，又远不到霓虹的程度，符合"色彩克制"。
- * 与 `done` 态（`--a2v-accent-deep`）形成 rest（中性）→ focus（暗档）→ done（亮档）
+ * 与 `done` 态（`--m2v-accent-deep`）形成 rest（中性）→ focus（暗档）→ done（亮档）
  * 的三级强调色阶梯，而不是让两个状态都靠描边区分。
  *
- * ## `--a2v-focus-mix`：焦点也可以是连续量
+ * ## `--m2v-focus-mix`：焦点也可以是连续量
  *
  * 四态是离散的，而确定性契约禁止 CSS `transition`——所以状态一换，
  * 画面上就是一次瞬跳。实测飞轮幕的节点圆盘在相邻采样帧之间
@@ -98,7 +98,7 @@
  * 但"焦点在哪"本身可以是连续的（飞轮的小球位置 `travel` 就是连续量），
  * 所以这一条不引入第五个状态——规格明确说连续量不该并进四态——
  * 而是给 `focus` 态加一个**在状态之内**的连续通道：
- * `--a2v-focus-mix`（0..1，默认 1）。
+ * `--m2v-focus-mix`（0..1，默认 1）。
  *
  *   mix = 1 → 完整焦点外观（与从前逐像素一致，所以别的组件不受影响）
  *   mix = 0 → 外观**等于 rest**，于是"从 rest 换到 focus"不再是一次跳变
@@ -106,7 +106,7 @@
  * 交接因此可以做到既连续、又始终只有一个焦点：
  * 旧节点以 mix 1→0 淡出，到 mix = 0 的那一帧才把 `focus` 交给新节点
  * （新节点从 mix 0 开始淡入）。切换瞬间两侧都等于 rest 外观，视觉上没有缝。
- * 同一帧里 `data-a2v-state="focus"` 的元素始终只有一个。
+ * 同一帧里 `data-m2v-state="focus"` 的元素始终只有一个。
  *
  * ## 两种媒介，一组状态：`fill` 与 `background-color`
  *
@@ -120,39 +120,39 @@
  * 所以每个状态同时声明两种媒介的写法：SVG 读 `fill`，HTML 读
  * `background-color`——各自对另一种媒介无副作用。HTML 侧只声明
  * `background-color` 而不是 `background` 简写，是为了不覆盖组件自己的
- * `background-image`（那是"材质"：`--a2v-surface` 这层白色光泽，
+ * `background-image`（那是"材质"：`--m2v-surface` 这层白色光泽，
  * 它与状态无关）。描边属于**边界框**基元，仍由组件按自己的需求声明。
  *
  * 选择器是三层（属性 + 类 + 属性），所以它能盖住组件自己写的
  * `.vs-side { background: … }`，不需要组件再让步。 */
-[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="focus"] {
-  --a2v-focus-mix: 1;
+[data-m2v-preset="keynote"] .m2v-surface[data-m2v-state="focus"] {
+  --m2v-focus-mix: 1;
   fill: color-mix(
     in srgb,
-    var(--a2v-accent-soft-solid) calc(var(--a2v-focus-mix) * 100%),
+    var(--m2v-accent-soft-solid) calc(var(--m2v-focus-mix) * 100%),
     var(--fig-surface)
   );
   stroke: color-mix(
     in srgb,
-    var(--a2v-accent) calc(var(--a2v-focus-mix) * 100%),
+    var(--m2v-accent) calc(var(--m2v-focus-mix) * 100%),
     var(--fig-line)
   );
   /* HTML 形态：与上面的 fill 是同一个颜色表达式，只是落在另一种媒介上 */
   background-color: color-mix(
     in srgb,
-    var(--a2v-accent-soft-solid) calc(var(--a2v-focus-mix) * 100%),
+    var(--m2v-accent-soft-solid) calc(var(--m2v-focus-mix) * 100%),
     var(--fig-surface)
   );
 }
-[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="muted"] {
-  fill: var(--a2v-bg-0);
-  stroke: var(--a2v-hairline);
-  background-color: var(--a2v-bg-0);
+[data-m2v-preset="keynote"] .m2v-surface[data-m2v-state="muted"] {
+  fill: var(--m2v-bg-0);
+  stroke: var(--m2v-hairline);
+  background-color: var(--m2v-bg-0);
 }
-[data-a2v-preset="keynote"] .a2v-surface[data-a2v-state="done"] {
-  fill: var(--a2v-accent-deep);
-  stroke: var(--a2v-accent);
-  background-color: var(--a2v-accent-deep);
+[data-m2v-preset="keynote"] .m2v-surface[data-m2v-state="done"] {
+  fill: var(--m2v-accent-deep);
+  stroke: var(--m2v-accent);
+  background-color: var(--m2v-accent-deep);
 }
 
 /* ---------- 状态语汇（二）：线条族 ----------
@@ -161,7 +161,7 @@
  * 同族的元素里既有描边路径（弧线、虚线，`fill: none`），也有纯填充标记
  * （箭头头，只有 `fill`）。若线条族也去写 `stroke` / `fill` 属性，
  * 三层选择器（属性 + 类 + 属性）就会盖掉组件自己的 `fill: none`，
- * 把一条弧线填成一块实心。所以它只供给一个通道变量 `--a2v-connector-ink`，
+ * 把一条弧线填成一块实心。所以它只供给一个通道变量 `--m2v-connector-ink`，
  * 由组件决定把它落到 `stroke` 还是 `fill` 上。
  *
  * 有了这一族，`berg-link`（虚线）、`ex-arc`（弧）、`ex-arrow`（箭头头）
@@ -170,66 +170,66 @@
 /* 边界框也走同一套状态：**边界跟着面走**。
  *
  * 第 23 轮普查发现这一族**一条状态规则都没有**——四族基元里唯独它缺，
- * 于是 `data-a2v-state` 写在边界框上是个静默空操作。补齐的方式与别的族一致：
+ * 于是 `data-m2v-state` 写在边界框上是个静默空操作。补齐的方式与别的族一致：
  * 取同一套阶梯的同一档位（rest 中性 / focus 强调 / muted 弱化 / done 收束），
  * 强调档同时抬一档线宽，让"这块被选中"在细线上也读得出来。
  *
  * 边界框不画面，所以四态只声明描边，SVG 侧是 `stroke`，HTML 侧是 `border-color`。 */
-[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="rest"] {
-  stroke: var(--a2v-hairline-strong);
-  border-color: var(--a2v-hairline-strong);
+[data-m2v-preset="keynote"] .m2v-frame[data-m2v-state="rest"] {
+  stroke: var(--m2v-hairline-strong);
+  border-color: var(--m2v-hairline-strong);
 }
-[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="focus"] {
-  stroke: var(--a2v-accent);
-  stroke-width: var(--a2v-stroke-3);
-  border-color: var(--a2v-accent);
+[data-m2v-preset="keynote"] .m2v-frame[data-m2v-state="focus"] {
+  stroke: var(--m2v-accent);
+  stroke-width: var(--m2v-stroke-3);
+  border-color: var(--m2v-accent);
 }
-[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="muted"] {
-  stroke: var(--a2v-hairline);
-  border-color: var(--a2v-hairline);
+[data-m2v-preset="keynote"] .m2v-frame[data-m2v-state="muted"] {
+  stroke: var(--m2v-hairline);
+  border-color: var(--m2v-hairline);
 }
-[data-a2v-preset="keynote"] .a2v-frame[data-a2v-state="done"] {
-  stroke: var(--a2v-accent-deep);
-  stroke-width: var(--a2v-stroke-3);
-  border-color: var(--a2v-accent-deep);
-}
-
-[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="rest"] {
-  --a2v-connector-ink: var(--fig-line);
-  border-color: var(--a2v-connector-ink);
-}
-[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="focus"] {
-  --a2v-connector-ink: var(--a2v-accent);
-  border-color: var(--a2v-connector-ink);
-}
-[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="muted"] {
-  --a2v-connector-ink: var(--a2v-hairline);
-  border-color: var(--a2v-connector-ink);
-}
-[data-a2v-preset="keynote"] .a2v-connector[data-a2v-state="done"] {
-  --a2v-connector-ink: var(--a2v-accent-deep);
-  border-color: var(--a2v-connector-ink);
+[data-m2v-preset="keynote"] .m2v-frame[data-m2v-state="done"] {
+  stroke: var(--m2v-accent-deep);
+  stroke-width: var(--m2v-stroke-3);
+  border-color: var(--m2v-accent-deep);
 }
 
-[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="focus"] {
-  /* 原先这里写的是 `var(--a2v-text-1)`——与基元自己的取值一模一样，
-   * 于是「标签获得焦点」是个空操作：组件把 data-a2v-state="focus" 挂上去，
+[data-m2v-preset="keynote"] .m2v-connector[data-m2v-state="rest"] {
+  --m2v-connector-ink: var(--fig-line);
+  border-color: var(--m2v-connector-ink);
+}
+[data-m2v-preset="keynote"] .m2v-connector[data-m2v-state="focus"] {
+  --m2v-connector-ink: var(--m2v-accent);
+  border-color: var(--m2v-connector-ink);
+}
+[data-m2v-preset="keynote"] .m2v-connector[data-m2v-state="muted"] {
+  --m2v-connector-ink: var(--m2v-hairline);
+  border-color: var(--m2v-connector-ink);
+}
+[data-m2v-preset="keynote"] .m2v-connector[data-m2v-state="done"] {
+  --m2v-connector-ink: var(--m2v-accent-deep);
+  border-color: var(--m2v-connector-ink);
+}
+
+[data-m2v-preset="keynote"] .m2v-label[data-m2v-state="focus"] {
+  /* 原先这里写的是 `var(--m2v-text-1)`——与基元自己的取值一模一样，
+   * 于是「标签获得焦点」是个空操作：组件把 data-m2v-state="focus" 挂上去，
    * 画面毫无变化。焦点态必须在两种媒介上都真的变。 */
-  fill: var(--a2v-accent);
-  color: var(--a2v-accent);
+  fill: var(--m2v-accent);
+  color: var(--m2v-accent);
 }
-[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="muted"] {
-  fill: var(--a2v-text-3);
+[data-m2v-preset="keynote"] .m2v-label[data-m2v-state="muted"] {
+  fill: var(--m2v-text-3);
   /* 两种媒介都要声明：只写 `fill` 的话，HTML 文字上这一态是空操作
    * （第 23 轮的合成矩阵就是靠这一点查出缺口）。
    *
-   * 两个媒介的**静止墨色不是同一档**——HTML 侧是 `--a2v-ink-3`（眉标），
-   * SVG 侧是 `--a2v-text-1`（图形内的字）。所以"褪一档"落到不同的档位：
+   * 两个媒介的**静止墨色不是同一档**——HTML 侧是 `--m2v-ink-3`（眉标），
+   * SVG 侧是 `--m2v-text-1`（图形内的字）。所以"褪一档"落到不同的档位：
    * SVG 到 ink-3，HTML 到 ink-4（那一档的注释写着"不进正文"，正合 muted）。 */
-  color: var(--a2v-ink-4);
+  color: var(--m2v-ink-4);
 }
-[data-a2v-preset="keynote"] .a2v-label[data-a2v-state="done"] {
-  /* `done` 这一态是给**压在 done 面**（填充 `--a2v-accent-deep`）上的文字用的，
+[data-m2v-preset="keynote"] .m2v-label[data-m2v-state="done"] {
+  /* `done` 这一态是给**压在 done 面**（填充 `--m2v-accent-deep`）上的文字用的，
    * 所以取 `--fig-on-ink`（强调面上的墨色）。单独压在画布上用会读不出来——
    * 这是配对契约，不是颜色错，写在设计文档第七章。 */
   fill: var(--fig-on-ink);

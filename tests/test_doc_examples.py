@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-REFERENCE = Path(__file__).resolve().parents[1] / ".agents/skills/article2video/references/article-to-storyboard.md"
+REFERENCE = Path(__file__).resolve().parents[1] / ".agents/skills/material2video/references/article-to-storyboard.md"
 
 
 def test_workflow_starts_with_input_review_and_designs_one_world():

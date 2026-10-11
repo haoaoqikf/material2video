@@ -1,4 +1,4 @@
-"""测试夹具：导入位于 src/ 的 a2v 包。"""
+"""测试夹具：导入位于 src/ 的 m2v 包。"""
 
 from __future__ import annotations
 
@@ -11,13 +11,13 @@ import pytest
 
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(SRC_DIR))
-SCRIPT_TOOLS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "scripts"
+SCRIPT_TOOLS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "material2video" / "scripts"
 sys.path.insert(0, str(SCRIPT_TOOLS_DIR))
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
 
-# 项目根标记的相对路径，与 a2v.paths.PROJECT_MARKER 保持一致
-SKILL_MARKER = Path(".agents/skills/article2video/SKILL.md")
+# 项目根标记的相对路径，与 m2v.paths.PROJECT_MARKER 保持一致
+SKILL_MARKER = Path(".agents/skills/material2video/SKILL.md")
 
 
 def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = None) -> Path:
@@ -28,7 +28,7 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
     """
     marker = tmp_path / SKILL_MARKER
     marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("# article2video skill", encoding="utf-8")
+    marker.write_text("# material2video skill", encoding="utf-8")
 
     article = tmp_path / kind / slug
     article.mkdir(parents=True, exist_ok=True)
@@ -43,9 +43,9 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
 def approve_production_record(storyboard_path: str | Path, media_path: str | Path | None = None,
                              content_root: str | Path | None = None) -> Path:
     """为渲染路径测试创建当前指纹绑定的通过记录，不运行人工评审工具。"""
-    import a2v.types.article.article_text as article_text
-    import a2v.types.article.paths as paths
-    import a2v.types.article.production as production
+    import m2v.types.article.article_text as article_text
+    import m2v.types.article.paths as paths
+    import m2v.types.article.production as production
 
     source = Path(storyboard_path)
     raw = json.loads(source.read_text(encoding="utf-8"))
@@ -120,9 +120,9 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
 
 def approve_input_review(storyboard_path: str | Path, content_root: str | Path | None = None) -> Path:
     """准备通过的最小输入审查，供 prepare CLI 路径测试使用。"""
-    import a2v.types.article.article_text as article_text
-    import a2v.types.article.paths as paths
-    import a2v.types.article.production as production
+    import m2v.types.article.article_text as article_text
+    import m2v.types.article.paths as paths
+    import m2v.types.article.production as production
 
     source = Path(storyboard_path)
     article = paths.for_storyboard(source, content_root)
@@ -207,7 +207,7 @@ def speech(monkeypatch):
     """
     import re
 
-    import a2v.types.article.prepare as prep
+    import m2v.types.article.prepare as prep
 
     async def fake(text, voice, rate, output):
         tokens = re.findall(r"[\w\u4e00-\u9fff]", text)

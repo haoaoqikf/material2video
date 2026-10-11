@@ -62,7 +62,7 @@ work/
 
 # Article content: 文章内容不入库
 # 文章目录（`videos/<slug>/`：原文、分镜、专属网页）是作品内容，不进版本控制。
-# 想放仓库外时配 A2V_CONTENT_ROOT 或 --content-root 指向内容根；产物随之
+# 想放仓库外时配 M2V_CONTENT_ROOT 或 --content-root 指向内容根；产物随之
 # 落在内容根的 outputs/<slug>/ 下，仓库里不会留下成片。
 /videos/
 # 候选稿与用户明确采用的工作副本属于作品内容，不进入 Git；article.md 原文保持不变。

@@ -22,10 +22,10 @@ from pathlib import Path
 
 import pytest
 
-import a2v.core.code_scenes as cs
-import a2v.types.article.storyboard_v4 as sb
-from a2v.types.article.cli import main_validate
-from a2v.types.article.storyboard import Report
+import m2v.core.code_scenes as cs
+import m2v.types.article.storyboard_v4 as sb
+from m2v.types.article.cli import main_validate
+from m2v.types.article.storyboard import Report
 
 from conftest import v4_storyboard
 
@@ -195,9 +195,9 @@ class TestCliJsonSnapshot:
 
     def _project_with_storyboard(self, tmp_path: Path, data: dict) -> Path:
         # 路径归属依赖仓库根标记（与 conftest.make_project 同一约定）
-        marker = tmp_path / ".agents" / "skills" / "article2video" / "SKILL.md"
+        marker = tmp_path / ".agents" / "skills" / "material2video" / "SKILL.md"
         marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text("# article2video skill", encoding="utf-8")
+        marker.write_text("# material2video skill", encoding="utf-8")
         article = tmp_path / "videos" / "slug"
         article.mkdir(parents=True, exist_ok=True)
         storyboard = article / "storyboard.json"

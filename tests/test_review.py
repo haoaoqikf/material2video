@@ -8,10 +8,10 @@
 
 from __future__ import annotations
 
-import a2v.types.article.cli as cli
-import a2v.types.article.inspect as review
-import a2v.types.article.keynote as keynote
-from a2v.types.article.storyboard import Report
+import m2v.types.article.cli as cli
+import m2v.types.article.inspect as review
+import m2v.types.article.keynote as keynote
+from m2v.types.article.storyboard import Report
 
 W, H = review._PROBE_W, review._PROBE_H
 
@@ -174,7 +174,7 @@ class TestKeynoteMetrics:
             "背景梯度": (11, 12, 15),
             "背景暗端": (8, 9, 12),
             "中性表面 --fig-surface": (23, 30, 43),
-            "14% 染色 --a2v-accent-soft": (15, 39, 47),
+            "14% 染色 --m2v-accent-soft": (15, 39, 47),
             "白字": (244, 247, 251),
         }
         for name, color in neutrals.items():
@@ -491,7 +491,7 @@ class TestDeterminismAcceptance:
         return [{"id": "s0", "durationInFrames": 30, "startFrame": 0}]
 
     def test_画面漂移被判定为失败(self, tmp_path):
-        import a2v.core.determinism as determinism_mod
+        import m2v.core.determinism as determinism_mod
 
         dark = self._png(tmp_path, "dark.png", 20)
         light = self._png(tmp_path, "light.png", 220)
@@ -508,7 +508,7 @@ class TestDeterminismAcceptance:
         assert verdicts and all(verdict.ok for verdict in verdicts)
 
     def test_失败结论进入错误并影响退出码(self):
-        from a2v.core.determinism import FrameVerdict
+        from m2v.core.determinism import FrameVerdict
 
         report = Report()
         verdicts = [FrameVerdict(frame=29, psnr=18.4, threshold=60.0)]

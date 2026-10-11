@@ -8,7 +8,7 @@ tests/test_prepare_v4_media.py 覆盖，旧契约的拒绝由 tests/test_v4_only
 
 保留下来的算法层意图——分段解析成单调帧区间、中文标点还原不移动边界、
 重复短语按原文顺序消费、长句跨帧、覆盖不完整必须失败、阶段延长后 beat 仍在区间内——
-改用 ``a2v.subtitles.segment_windows`` / ``a2v.beats.resolve_from_windows``
+改用 ``m2v.subtitles.segment_windows`` / ``m2v.beats.resolve_from_windows``
 与全片累加帧号表达；清单顶层 ``resolvedBeats`` 的非法形态也在这里继续覆盖。
 """
 
@@ -22,14 +22,14 @@ from pathlib import Path
 
 import pytest
 
-import a2v.engine.beats as beats
-import a2v.types.article.media as media_mod
-import a2v.types.article.prepare as prep
-import a2v.engine.subtitles as subtitles
-import a2v.types.article.timeline_v4 as timeline_v4
-from a2v.engine.audio import wav_duration
-from a2v.core.errors import A2VError
-from a2v.types.article.media import load_media
+import m2v.engine.beats as beats
+import m2v.types.article.media as media_mod
+import m2v.types.article.prepare as prep
+import m2v.engine.subtitles as subtitles
+import m2v.types.article.timeline_v4 as timeline_v4
+from m2v.engine.audio import wav_duration
+from m2v.core.errors import M2VError
+from m2v.types.article.media import load_media
 
 #: 与 TTS 替身、字幕解析口径一致：只有文字字符才有词边界，标点没有独立时间。
 _WORD = re.compile(r"[\w\u4e00-\u9fff]")
@@ -162,7 +162,7 @@ def test_long_sentence_is_split_across_frames():
     _, words, windows = windows_for(segments)
     stage = stage_of(segments, ["b1", "b2"])
     # 声明帧数装不下真实语音时直接失败，而不是把长句挤成零帧
-    with pytest.raises(A2VError, match="超出场景"):
+    with pytest.raises(M2VError, match="超出场景"):
         beats.resolve_from_windows(stage, windows, 30, 120)
     timeline = beats.resolve_from_windows(stage, windows, 30, 400)
     long_beat = timeline.beats[1]
@@ -202,7 +202,7 @@ def test_segment_without_word_boundaries_fails(tmp_path, speech, valid_script_v4
     # 第 3 段只剩标点（全片仍满足 130～170 字）：没有词边界可以对上，必须报错而不是猜时间
     valid_script_v4["stages"][0]["narrationSegments"][2]["text"] = "。。。"
     source = write(tmp_path, valid_script_v4)
-    with pytest.raises(A2VError, match="没有对应的词边界"):
+    with pytest.raises(M2VError, match="没有对应的词边界"):
         prep.prepare(source, tmp_path / "media")
 
 
@@ -217,7 +217,7 @@ def test_incomplete_text_coverage_fails(tmp_path, monkeypatch, valid_script_v4):
 
     monkeypatch.setattr(prep, "synthesize", partial)
     source = write(tmp_path, valid_script_v4)
-    with pytest.raises(A2VError, match="未覆盖完整口播"):
+    with pytest.raises(M2VError, match="未覆盖完整口播"):
         prep.prepare(source, tmp_path / "media")
 
 
@@ -251,7 +251,7 @@ def test_invalid_global_resolved_beats_are_rejected(tmp_path, speech, valid_scri
     data = json.loads(Path(manifest).read_text(encoding="utf-8"))
     mutate(data["resolvedBeats"])
     Path(manifest).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(A2VError, match=expected):
+    with pytest.raises(M2VError, match=expected):
         load_media(manifest, source)
 
 
@@ -260,7 +260,7 @@ def test_global_resolved_beats_must_match_source_declaration(tmp_path, speech, v
     data = json.loads(Path(manifest).read_text(encoding="utf-8"))
     data["resolvedBeats"][0]["targets"] = ["arrow"]
     Path(manifest).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(A2VError, match="与源声明或累计时间轴不匹配"):
+    with pytest.raises(M2VError, match="与源声明或累计时间轴不匹配"):
         load_media(manifest, source)
 
 
@@ -277,7 +277,7 @@ def test_global_resolved_beats_are_required_for_narrated_stages(
     else:
         data.pop("resolvedBeats")
     Path(manifest).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(A2VError, match=expected):
+    with pytest.raises(M2VError, match=expected):
         load_media(manifest, source)
 
 

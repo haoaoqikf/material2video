@@ -10,7 +10,7 @@
 
 - `README.md`：项目定位、当前能力与文档导航。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
-- `.agents/skills/article2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
+- `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
 
 ## OpenSpec 工作流
@@ -19,7 +19,7 @@
 - 实施完成后自动归档：`openspec-apply-change` 的任务全部完成（tasks 全为 `- [x]`）、验证与提交通过后，
   直接按 `openspec-archive-change` 流程同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`，
   随后提交归档结果，无需再次征求确认；仅当验证失败、任务未完成或流程被暂停时才停下并说明原因。
-- OpenSpec 规格描述可验证的产品行为；README 记录当前状态，`docs/PROJECT_PLAN.md` 记录未来路线，article2video Skill 的参考文档记录制作与渲染契约。修改时同步维护相关权威文档。
+- OpenSpec 规格描述可验证的产品行为；README 记录当前状态，`docs/PROJECT_PLAN.md` 记录未来路线，material2video Skill 的参考文档记录制作与渲染契约。修改时同步维护相关权威文档。
 - 小型文档修正或不改变行为的维护工作可直接处理，无需为形式创建变更。
 
 ## 修改规则
@@ -27,7 +27,7 @@
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/<slug>/`（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
   中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/` 留在仓库内。
-  文章放在仓库外的内容根（`--content-root` / `A2V_CONTENT_ROOT`）时同理，产物也不入库。
+  文章放在仓库外的内容根（`--content-root` / `M2V_CONTENT_ROOT`）时同理，产物也不入库。
 - **示例集合固定**：仓库 `examples/` 只允许 `buffer-smoothing`、`darts-trial-and-error`、
   `keynote-baseline` 三个目录，最多 3 个；后续仅修改这三个示例，不新增、删除或替换示例。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。

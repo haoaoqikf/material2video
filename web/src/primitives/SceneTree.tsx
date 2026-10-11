@@ -7,7 +7,7 @@ import { channelStyle, motionProgress, sceneMotionPlan, visualMix } from '@/runt
 import { IconGlyph } from './iconSet';
 
 const GAP = { none: 0, xs: 8, sm: 16, md: 28, lg: 44, xl: 64 } as const;
-const ROLE_CLASS: Record<string, string> = { hero: 'a2v-hero', headline: 'a2v-headline', title: 'a2v-title', body: 'a2v-body', label: 'a2v-label', caption: 'a2v-caption' };
+const ROLE_CLASS: Record<string, string> = { hero: 'm2v-hero', headline: 'm2v-headline', title: 'm2v-title', body: 'm2v-body', label: 'm2v-label', caption: 'm2v-caption' };
 /** 字号档位从大到小。预设取档时沿这条阶梯向下找第一个放得下的档位。 */
 export const ROLE_LADDER = ['hero', 'headline', 'title', 'body', 'label', 'caption'] as const;
 export const MAX_FIT_TEXT_LINES = 4;
@@ -204,7 +204,7 @@ export function stageProgress(stage: StageState, total: number): number {
 /** 相邻阶段之间的方向连接：箭头朝向只由 `direction` 决定，与帧号无关。 */
 function FlowArrow({ direction }: { direction?: string }): ReactNode {
   return (
-    <span className="a2v-flow-arrow" data-a2v-relation="flow" data-a2v-direction={direction ?? 'ltr'} aria-hidden="true">
+    <span className="m2v-flow-arrow" data-m2v-relation="flow" data-m2v-direction={direction ?? 'ltr'} aria-hidden="true">
       <svg viewBox="0 0 24 24" width="30" height="30" style={{ transform: CONNECTOR_TURN[direction ?? 'ltr'] ?? 'none' }}>
         <path d="M3 12h14M12 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -227,12 +227,12 @@ const CYCLE_CIRCUMFERENCE = 2 * Math.PI * CYCLE_RADIUS;
 function CycleRing({ direction, progress }: { direction?: string; progress: number }): ReactNode {
   const counter = direction === 'ccw';
   return (
-    <svg className="a2v-cycle-ring" viewBox="0 0 100 100" aria-hidden="true">
-      <circle className="a2v-cycle-track" cx="50" cy="50" r={CYCLE_RADIUS} fill="none" strokeWidth="0.7" />
-      <circle className="a2v-cycle-fill" cx="50" cy="50" r={CYCLE_RADIUS} fill="none" strokeWidth="1.4"
+    <svg className="m2v-cycle-ring" viewBox="0 0 100 100" aria-hidden="true">
+      <circle className="m2v-cycle-track" cx="50" cy="50" r={CYCLE_RADIUS} fill="none" strokeWidth="0.7" />
+      <circle className="m2v-cycle-fill" cx="50" cy="50" r={CYCLE_RADIUS} fill="none" strokeWidth="1.4"
         strokeDasharray={`${CYCLE_CIRCUMFERENCE * progress} ${CYCLE_CIRCUMFERENCE}`}
         transform={counter ? 'rotate(-90 50 50) scale(-1 1) translate(-100 0)' : 'rotate(-90 50 50)'} />
-      <polygon className="a2v-cycle-head" points={counter ? '56,3.5 56,16.5 45,10' : '44,3.5 44,16.5 55,10'} />
+      <polygon className="m2v-cycle-head" points={counter ? '56,3.5 56,16.5 45,10' : '44,3.5 44,16.5 55,10'} />
     </svg>
   );
 }
@@ -241,8 +241,8 @@ function CycleRing({ direction, progress }: { direction?: string; progress: numb
 function TimelineAxis({ direction, progress }: { direction?: string; progress: number }): ReactNode {
   const axis = axisOf(direction);
   return (
-    <span className="a2v-timeline-axis" data-a2v-relation="timeline" aria-hidden="true">
-      <span className="a2v-timeline-fill" style={{ transform: `${axis.scale}(${progress})`, transformOrigin: axis.origin }} />
+    <span className="m2v-timeline-axis" data-m2v-relation="timeline" aria-hidden="true">
+      <span className="m2v-timeline-fill" style={{ transform: `${axis.scale}(${progress})`, transformOrigin: axis.origin }} />
     </span>
   );
 }
@@ -273,23 +273,23 @@ function GaugePrimitive({ scene, node, factor }: { scene: Scene; node: SceneNode
   const angle = -120 + (240 * shown) / 100;
   const [needleX, needleY] = polar(angle, 104);
   return (
-    <div className="a2v-gauge" data-a2v-value={value} data-a2v-shown={Math.round(shown)}>
+    <div className="m2v-gauge" data-m2v-value={value} data-m2v-shown={Math.round(shown)}>
       <svg viewBox="0 0 360 320" role="img" aria-hidden="true">
-        <path className="a2v-connector a2v-gauge-track" d={arcPath(-120, 120, 120)} strokeWidth="14" />
-        {shown > 0 ? <path className="a2v-gauge-fill" d={arcPath(-120, angle, 120)} strokeWidth="14" /> : null}
+        <path className="m2v-connector m2v-gauge-track" d={arcPath(-120, 120, 120)} strokeWidth="14" />
+        {shown > 0 ? <path className="m2v-gauge-fill" d={arcPath(-120, angle, 120)} strokeWidth="14" /> : null}
         {GAUGE_TICKS.map((tick) => {
           const at = -120 + (240 * tick) / 100;
           const [x1, y1] = polar(at, 132);
           const [x2, y2] = polar(at, 146);
-          return <line key={tick} className="a2v-connector a2v-gauge-tick" x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth="4" />;
+          return <line key={tick} className="m2v-connector m2v-gauge-tick" x1={x1} y1={y1} x2={x2} y2={y2} strokeWidth="4" />;
         })}
-        <line className="a2v-gauge-needle" x1="180" y1="180" x2={needleX} y2={needleY} strokeWidth="7" />
-        <circle className="a2v-gauge-hub" cx="180" cy="180" r="12" />
+        <line className="m2v-gauge-needle" x1="180" y1="180" x2={needleX} y2={needleY} strokeWidth="7" />
+        <circle className="m2v-gauge-hub" cx="180" cy="180" r="12" />
       </svg>
-      <div className="a2v-gauge-readout">
-        <span className="a2v-numeric a2v-gauge-value">{Math.round(shown)}</span>
-        <span className="a2v-caption">%</span>
-        {node.schematic ? <span className="a2v-caption a2v-gauge-note">示意</span> : null}
+      <div className="m2v-gauge-readout">
+        <span className="m2v-numeric m2v-gauge-value">{Math.round(shown)}</span>
+        <span className="m2v-caption">%</span>
+        {node.schematic ? <span className="m2v-caption m2v-gauge-note">示意</span> : null}
       </div>
     </div>
   );
@@ -303,18 +303,18 @@ function PictogramPrimitive({ scene, node, factor }: { scene: Scene; node: Scene
   const value = quantityValue(scene, node);
   const filled = Math.round((value * factor * PICTOGRAM_UNITS) / 100);
   return (
-    <div className="a2v-pictogram" data-a2v-units={PICTOGRAM_UNITS} data-a2v-filled={filled}>
-      <div className="a2v-pictogram-units">
+    <div className="m2v-pictogram" data-m2v-units={PICTOGRAM_UNITS} data-m2v-filled={filled}>
+      <div className="m2v-pictogram-units">
         {Array.from({ length: PICTOGRAM_UNITS }, (_, index) => (
-          <span key={index} className="a2v-pictogram-unit" data-a2v-state={index < filled ? 'focus' : 'rest'} aria-hidden="true">
+          <span key={index} className="m2v-pictogram-unit" data-m2v-state={index < filled ? 'focus' : 'rest'} aria-hidden="true">
             <IconGlyph name={node.icon ?? 'check'} size={52} />
           </span>
         ))}
       </div>
-      <div className="a2v-pictogram-readout">
-        <span className="a2v-numeric a2v-pictogram-value">{Math.round(value * factor)}</span>
-        <span className="a2v-caption">%</span>
-        {node.schematic ? <span className="a2v-caption a2v-pictogram-note">示意</span> : null}
+      <div className="m2v-pictogram-readout">
+        <span className="m2v-numeric m2v-pictogram-value">{Math.round(value * factor)}</span>
+        <span className="m2v-caption">%</span>
+        {node.schematic ? <span className="m2v-caption m2v-pictogram-note">示意</span> : null}
       </div>
     </div>
   );
@@ -323,19 +323,19 @@ function PictogramPrimitive({ scene, node, factor }: { scene: Scene; node: Scene
 /** 段落颜色：同一强调色的确定性明度阶梯，索引相同的输入永远得到相同颜色。 */
 function segmentColor(index: number): string {
   const share = 100 - ((index % 6) * 16);
-  return `color-mix(in srgb, var(--a2v-accent, #7aa2ff) ${share}%, transparent)`;
+  return `color-mix(in srgb, var(--m2v-accent, #7aa2ff) ${share}%, transparent)`;
 }
 
 function BarChart({ points, schematic }: { points: Array<{ label: string; value: number | null }>; schematic?: boolean }): ReactNode {
   const max = Math.max(...points.flatMap((point) => point.value === null ? [] : [Math.abs(point.value)]), 1);
   return (
-    <div className="a2v-primitive-chart a2v-chart-bar">
+    <div className="m2v-primitive-chart m2v-chart-bar">
       {points.map((point, index) => (
-        <div key={index} className="a2v-primitive-bar" style={{ height: point.value === null ? 0 : `${Math.max(8, (Math.abs(point.value) / max) * 100)}%`, minHeight: point.value === null ? 0 : undefined }}>
+        <div key={index} className="m2v-primitive-bar" style={{ height: point.value === null ? 0 : `${Math.max(8, (Math.abs(point.value) / max) * 100)}%`, minHeight: point.value === null ? 0 : undefined }}>
           <span>{point.label}</span>
         </div>
       ))}
-      {schematic ? <small className="a2v-schematic">示意</small> : null}
+      {schematic ? <small className="m2v-schematic">示意</small> : null}
     </div>
   );
 }
@@ -350,18 +350,18 @@ function LineChart({ points, schematic }: { points: Array<{ label: string; value
   const coords = points.map((point, index) => ({ x: pad + index * step,
     y: point.value === null ? null : height - pad - ((point.value - min) / span) * (height - pad * 2), label: point.label }));
   return (
-    <div className="a2v-primitive-chart a2v-chart-line">
+    <div className="m2v-primitive-chart m2v-chart-line">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-hidden="true">
-        <polyline points={coords.filter((point) => point.y !== null).map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="var(--a2v-accent, #7aa2ff)" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline points={coords.filter((point) => point.y !== null).map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="var(--m2v-accent, #7aa2ff)" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" />
         {coords.map((point, index) => (
           <g key={index}>
-            {point.y !== null ? <circle cx={point.x} cy={point.y} r="10" fill="var(--a2v-accent, #7aa2ff)" /> : null}
+            {point.y !== null ? <circle cx={point.x} cy={point.y} r="10" fill="var(--m2v-accent, #7aa2ff)" /> : null}
             <text x={point.x} y={height - 18} textAnchor="middle" fontSize="22"
-              style={{ fill: 'var(--a2v-text-1, currentColor)' }}>{point.label}</text>
+              style={{ fill: 'var(--m2v-text-1, currentColor)' }}>{point.label}</text>
           </g>
         ))}
       </svg>
-      {schematic ? <small className="a2v-schematic">示意</small> : null}
+      {schematic ? <small className="m2v-schematic">示意</small> : null}
     </div>
   );
 }
@@ -377,7 +377,7 @@ function PieChart({ points, schematic }: { points: Array<{ label: string; value:
     return segment;
   });
   return (
-    <div className="a2v-primitive-chart a2v-chart-pie">
+    <div className="m2v-primitive-chart m2v-chart-pie">
       <svg viewBox="0 0 360 360" role="img" aria-hidden="true">
         {segments.map((segment, index) => (
           <circle key={index} cx="180" cy="180" r={radius} fill="none" stroke={segment.color} strokeWidth="56"
@@ -385,14 +385,14 @@ function PieChart({ points, schematic }: { points: Array<{ label: string; value:
             transform="rotate(-90 180 180)" />
         ))}
       </svg>
-      <div className="a2v-chart-legend">
+      <div className="m2v-chart-legend">
         {segments.map((segment, index) => (
-          <span key={index} className="a2v-chart-legend-item">
+          <span key={index} className="m2v-chart-legend-item">
             <i style={{ background: segment.color }} />{segment.label}
           </span>
         ))}
       </div>
-      {schematic ? <small className="a2v-schematic">示意</small> : null}
+      {schematic ? <small className="m2v-schematic">示意</small> : null}
     </div>
   );
 }
@@ -405,7 +405,7 @@ function TextPrimitive({ node, scene, preset, fitFailure }: { node: SceneNode; s
   const [role, setRole] = useState<string>(declared);
   useLayoutEffect(() => {
     const span = spanRef.current;
-    // 宿主就是包裹本原语的 .a2v-primitive 容器（span 的父元素）
+    // 宿主就是包裹本原语的 .m2v-primitive 容器（span 的父元素）
     const host = span?.parentElement;
     if (!preset || !node.role || !span || !host) return;
     const fits = (candidate: string): boolean => {
@@ -415,9 +415,9 @@ function TextPrimitive({ node, scene, preset, fitFailure }: { node: SceneNode; s
     const result = fitRoleDown(node.role, fits);
     setRole(result.role);
     // 档位与是否实测记录在节点上，契约探针据此检查取档行为
-    host.dataset.a2vFitRole = result.role;
-    host.dataset.a2vFitMeasured = String(result.measured);
-    host.dataset.a2vFitFits = String(result.fits && !fitFailure);
+    host.dataset.m2vFitRole = result.role;
+    host.dataset.m2vFitMeasured = String(result.measured);
+    host.dataset.m2vFitFits = String(result.fits && !fitFailure);
   }, [preset, node.role, text, fitFailure]);
   return <span ref={spanRef} className={ROLE_CLASS[role] ?? ROLE_CLASS.body}>{text}</span>;
 }
@@ -428,7 +428,7 @@ function PrimitiveBody({ node, scene, frame, preset, beats, fitFailure }: { node
     const raw = Number(resolveContent(scene.data, node.contentRef));
     const planned = sceneMotionPlan(scene, beats.timeline).motions.find((item) => item.target === node.id && item.recipe === 'count');
     const p = planned ? motionProgress(planned, frame) : 1;
-    return <><span className="a2v-numeric">{Number.isFinite(raw) ? Math.round(raw * p) : textValue(resolveContent(scene.data, node.contentRef))}</span>{node.schematic ? <span className="a2v-caption">示意</span> : null}</>;
+    return <><span className="m2v-numeric">{Number.isFinite(raw) ? Math.round(raw * p) : textValue(resolveContent(scene.data, node.contentRef))}</span>{node.schematic ? <span className="m2v-caption">示意</span> : null}</>;
   }
   if (node.type === 'image') return <img src={textValue(resolveContent(scene.data, node.sourceRef))} alt="" />;
   if (node.type === 'icon') return <IconGlyph name={node.icon} size={96} />;
@@ -442,8 +442,8 @@ function PrimitiveBody({ node, scene, frame, preset, beats, fitFailure }: { node
     const turn = CONNECTOR_TURN[node.direction ?? 'ltr'] ?? 'none';
     return (
       <svg viewBox="0 0 160 32" width="160" height="32" aria-hidden="true" style={{ transform: turn }}>
-        <line x1="4" y1="16" x2="132" y2="16" stroke="var(--a2v-accent, #7aa2ff)" strokeWidth="4" strokeLinecap="round" />
-        <polygon points="132,6 154,16 132,26" fill="var(--a2v-accent, #7aa2ff)" />
+        <line x1="4" y1="16" x2="132" y2="16" stroke="var(--m2v-accent, #7aa2ff)" strokeWidth="4" strokeLinecap="round" />
+        <polygon points="132,6 154,16 132,26" fill="var(--m2v-accent, #7aa2ff)" />
       </svg>
     );
   }
@@ -507,32 +507,32 @@ function Primitive({ node, scene, frame, preset, beats, stylePack, continuity, c
   // 阶段容器把当前阶段映射到注册表已有的可视状态：不改注册表、不新造状态。
   const stageAttr = stage === 'active' ? 'focus' : stage === 'done' ? 'done' : undefined;
   const attrs = {
-    'data-a2v-node-id': node.id, 'data-a2v-primitive': node.type,
-    'data-a2v-fit-fits': fitFailures?.has(node.id) ? 'false' : undefined,
-    'data-a2v-inside': node.type === 'surface' ? ''
-      : node.type === 'text' && insideContainerId ? `[data-a2v-node-id="${insideContainerId}"]` : undefined,
-    'data-a2v-motion': scene.motions.some((item) => item.target === node.id || item.targets?.includes(node.id)) ? '' : undefined,
-    'data-a2v-focus-mix': mix.focus.toFixed(4),
-    'data-a2v-muted-mix': mix.muted.toFixed(4),
-    'data-a2v-done-mix': mix.done.toFixed(4),
-    'data-a2v-continuity-phase': continuity && (continuity.relation.sourceIds.includes(node.id) || continuity.relation.targetIds.includes(node.id)) ? continuity.phase : undefined,
-    'data-a2v-beat-state': beatState,
-    'data-a2v-beat-action': beat.active?.action,
-    'data-a2v-beat-progress': beat.active ? beat.progress.toFixed(4) : undefined,
-    // 注意：**不能**写成 `data-a2v-stage`——那是画布容器的属性（`[data-a2v-stage]`
+    'data-m2v-node-id': node.id, 'data-m2v-primitive': node.type,
+    'data-m2v-fit-fits': fitFailures?.has(node.id) ? 'false' : undefined,
+    'data-m2v-inside': node.type === 'surface' ? ''
+      : node.type === 'text' && insideContainerId ? `[data-m2v-node-id="${insideContainerId}"]` : undefined,
+    'data-m2v-motion': scene.motions.some((item) => item.target === node.id || item.targets?.includes(node.id)) ? '' : undefined,
+    'data-m2v-focus-mix': mix.focus.toFixed(4),
+    'data-m2v-muted-mix': mix.muted.toFixed(4),
+    'data-m2v-done-mix': mix.done.toFixed(4),
+    'data-m2v-continuity-phase': continuity && (continuity.relation.sourceIds.includes(node.id) || continuity.relation.targetIds.includes(node.id)) ? continuity.phase : undefined,
+    'data-m2v-beat-state': beatState,
+    'data-m2v-beat-action': beat.active?.action,
+    'data-m2v-beat-progress': beat.active ? beat.progress.toFixed(4) : undefined,
+    // 注意：**不能**写成 `data-m2v-stage`——那是画布容器的属性（`[data-m2v-stage]`
     // 在 base.css 里声明 1080×1920 与 overflow:hidden）。同名会让每个阶段子节点
     // 撑成整块画布并把标题挤出安全区，这里用 `-state` 保持两个命名空间互不干扰。
-    'data-a2v-stage-state': stage,
+    'data-m2v-stage-state': stage,
     style,
   };
-  const shapeClass = node.type === 'shape' ? ` a2v-shape-${node.shape ?? 'circle'}` : '';
+  const shapeClass = node.type === 'shape' ? ` m2v-shape-${node.shape ?? 'circle'}` : '';
   const body = node.children
     ? node.type === 'flow' ? withFlowArrows(children!, node.direction)
       : node.type === 'cycle' ? [<CycleRing key="cycle-ring" direction={node.direction} progress={stageProgress(stages!, total)} />, ...children!]
       : node.type === 'timeline' ? [<TimelineAxis key="timeline-axis" direction={node.direction} progress={stageProgress(stages!, total)} />, ...children!]
       : children
     : <PrimitiveBody node={node} scene={scene} frame={frame} preset={preset} beats={beats} fitFailure={fitFailures?.has(node.id) ?? false} />;
-  return <div {...attrs} data-a2v-state={node.state ?? stageAttr ?? 'rest'} className={`a2v-primitive a2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
+  return <div {...attrs} data-m2v-state={node.state ?? stageAttr ?? 'rest'} className={`m2v-primitive m2v-primitive-${node.type}${shapeClass}`}>{body}</div>;
 }
 
 export function SceneTree({ scene, frame, preset = false, beats = EMPTY_BEAT_CONTEXT, stylePack, continuity, hiddenNodeIds, fitFailures }: { scene: Scene; frame: number; preset?: boolean; beats?: BeatContext; stylePack?: string; continuity?: ContinuityRenderState; hiddenNodeIds?: ReadonlySet<string>; fitFailures?: ReadonlySet<string> }): React.ReactElement {

@@ -3,14 +3,14 @@
   "sourceDirFromWeb": "src/assets/fonts",
   "files": [
     {
-      "family": "A2V Inter",
+      "family": "M2V Inter",
       "file": "Inter-Variable.ttf",
       "weight": "100 900",
       "usage": "拉丁与数字；图表数值列的对齐依赖它",
       "license": "OFL-Inter.txt"
     },
     {
-      "family": "A2V Sans",
+      "family": "M2V Sans",
       "file": "NotoSansSC-Variable.ttf",
       "weight": "100 900",
       "usage": "中文",

@@ -36,16 +36,16 @@ export function mergeMeasuredGeometry(samples: readonly HTMLElement[], width: nu
   const bounds = new Map<string, { left: number; top: number; right: number; bottom: number }>();
   for (const sample of samples) {
     const origin = sample.getBoundingClientRect();
-    for (const node of sample.querySelectorAll<HTMLElement>('[data-a2v-node-id]')) {
+    for (const node of sample.querySelectorAll<HTMLElement>('[data-m2v-node-id]')) {
       if (getComputedStyle(node).visibility === 'hidden') continue;
       const rect = node.getBoundingClientRect();
       if (!rect.width || !rect.height) continue;
-      const current = bounds.get(node.dataset.a2vNodeId!);
+      const current = bounds.get(node.dataset.m2vNodeId!);
       const left = rect.left - origin.left, top = rect.top - origin.top;
       const next = { left: Math.min(current?.left ?? left, left), top: Math.min(current?.top ?? top, top),
         right: Math.max(current?.right ?? left + rect.width, left + rect.width),
         bottom: Math.max(current?.bottom ?? top + rect.height, top + rect.height) };
-      bounds.set(node.dataset.a2vNodeId!, next);
+      bounds.set(node.dataset.m2vNodeId!, next);
     }
   }
   return new Map([...bounds].map(([id, box]) => [id, {
@@ -58,11 +58,11 @@ export function mergeMeasuredGeometry(samples: readonly HTMLElement[], width: nu
 export function findLayoutFailures(samples: readonly HTMLElement[]): ReadonlySet<string> {
   const failures = new Set<string>();
   for (const sample of samples) {
-    const safe = sample.querySelector<HTMLElement>('.a2v-safe')?.getBoundingClientRect();
+    const safe = sample.querySelector<HTMLElement>('.m2v-safe')?.getBoundingClientRect();
     if (!safe) continue;
-    for (const node of sample.querySelectorAll<HTMLElement>('[data-a2v-primitive="text"][data-a2v-fit-measured="true"]')) {
+    for (const node of sample.querySelectorAll<HTMLElement>('[data-m2v-primitive="text"][data-m2v-fit-measured="true"]')) {
       const rect = node.getBoundingClientRect();
-      const surface = node.parentElement?.closest<HTMLElement>('[data-a2v-primitive="surface"]');
+      const surface = node.parentElement?.closest<HTMLElement>('[data-m2v-primitive="surface"]');
       const container = surface?.getBoundingClientRect() ?? safe;
       const style = surface ? getComputedStyle(surface) : undefined;
       const left = container.left + Number.parseFloat(style?.paddingLeft ?? '0');
@@ -70,7 +70,7 @@ export function findLayoutFailures(samples: readonly HTMLElement[]): ReadonlySet
       const top = container.top + Number.parseFloat(style?.paddingTop ?? '0');
       const bottom = container.bottom - Number.parseFloat(style?.paddingBottom ?? '0');
       if (rect.left < left - 1 || rect.right > right + 1 || rect.top < top - 1 || rect.bottom > bottom + 1) {
-        failures.add(node.dataset.a2vNodeId!);
+        failures.add(node.dataset.m2vNodeId!);
       }
     }
   }
@@ -96,14 +96,14 @@ export function LayoutGeometryPreflight({ storyboard, timeline, tracks, frames }
     const scene = { id: world.id, type: 'world', durationInFrames: frames.at(-1)! + 1,
       data: { ...state.data, ...stage.data, world: state.data, stage: stage.data },
       renderer: world.renderer, sceneTree: legacyTreeRefs(state.sceneTree), motions: [] } as unknown as Scene;
-    return <div key={frame} data-a2v-layout-sample={frame} style={{ position: 'relative', width: storyboard.width,
+    return <div key={frame} data-m2v-layout-sample={frame} style={{ position: 'relative', width: storyboard.width,
       height: storyboard.height, overflow: 'hidden' }}>
-      <div className="a2v-safe">
-        <div className="a2v-camera"><SceneTree scene={scene} frame={frame} preset={storyboard.visual.preset === 'keynote'} /></div>
+      <div className="m2v-safe">
+        <div className="m2v-camera"><SceneTree scene={scene} frame={frame} preset={storyboard.visual.preset === 'keynote'} /></div>
       </div>
     </div>;
   });
-  return <div data-a2v-layout-preflight="" aria-hidden="true" style={{ position: 'fixed', left: -20000, top: 0,
+  return <div data-m2v-layout-preflight="" aria-hidden="true" style={{ position: 'fixed', left: -20000, top: 0,
     width: storyboard.width, height: storyboard.height, opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
     {samples}
   </div>;

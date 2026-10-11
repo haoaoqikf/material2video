@@ -9,13 +9,13 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import a2v.engine.audio as audio
-import a2v.types.article.prepare as prepare
-import a2v.types.article.production as production
-import a2v.types.article.storyboard as storyboard
-import a2v.engine.sound as sound
-from a2v.core.errors import A2VError
-from a2v.types.article.media import load_media
+import m2v.engine.audio as audio
+import m2v.types.article.prepare as prepare
+import m2v.types.article.production as production
+import m2v.types.article.storyboard as storyboard
+import m2v.engine.sound as sound
+from m2v.core.errors import M2VError
+from m2v.types.article.media import load_media
 from test_production_workflow import _ready_record
 
 def tone(path, duration=.5):
@@ -84,12 +84,12 @@ def test_stage_speech_cache_and_legacy_manifest(tmp_path, valid_script_v4, monke
     # v1–v3 旧媒体清单一律拒绝：入口不读取、不降级，只要求重新 prepare。
     old = json.loads(manifest.read_text(encoding='utf-8')); old['version'] = 2
     manifest.write_text(json.dumps(old, ensure_ascii=False), encoding='utf-8')
-    with pytest.raises(A2VError, match='v4 分镜的媒体清单版本过旧，请重新 prepare'):
+    with pytest.raises(M2VError, match='v4 分镜的媒体清单版本过旧，请重新 prepare'):
         load_media(manifest, source)
     # v1–v3 分镜同样不被接受：只回一条可执行的诊断。
     legacy = copy.deepcopy(valid_script_v4); legacy['version'] = legacy['schemaVersion'] = 3
     source.write_text(json.dumps(legacy, ensure_ascii=False), encoding='utf-8')
-    with pytest.raises(A2VError, match='不支持 v4 之前分镜；请按分镜 v4 契约重新编排'):
+    with pytest.raises(M2VError, match='不支持 v4 之前分镜；请按分镜 v4 契约重新编排'):
         prepare.prepare(source, manifest.parent)
 
 def test_mix_loop_duck_and_failure_preserves_manifest(tmp_path, valid_script_v4, monkeypatch):
@@ -102,8 +102,8 @@ def test_mix_loop_duck_and_failure_preserves_manifest(tmp_path, valid_script_v4,
     assert audio.wav_duration(media.audio) == media.storyboard.total_frames / media.storyboard.fps
     stats = audio.loudness(media.audio); assert float(stats['input_tp']) <= -1
     (tmp_path / 'bed.wav').write_bytes(b'broken')
-    with pytest.raises(A2VError, match='声音素材已变化'): load_media(manifest, source)
-    with pytest.raises(A2VError): prepare.prepare(source, manifest.parent)
+    with pytest.raises(M2VError, match='声音素材已变化'): load_media(manifest, source)
+    with pytest.raises(M2VError): prepare.prepare(source, manifest.parent)
     assert manifest.read_bytes() == before
 
 def test_sound_assets_resolve_outside_the_media_directory(tmp_path, valid_script_v4, monkeypatch):
@@ -155,4 +155,4 @@ def test_content_missing_low_score_stale_and_rework():
 def test_loudness_timeout_is_actionable(tmp_path, monkeypatch):
     def timeout(*args, **kwargs): raise subprocess.TimeoutExpired('ffmpeg', 300)
     monkeypatch.setattr(audio.subprocess, 'run', timeout)
-    with pytest.raises(A2VError, match='响度量测超时'): audio.loudness(tmp_path / 'voice.wav')
+    with pytest.raises(M2VError, match='响度量测超时'): audio.loudness(tmp_path / 'voice.wav')

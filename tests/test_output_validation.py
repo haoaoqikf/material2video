@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from a2v.core.errors import A2VError
-from a2v.engine import output_validation
+from m2v.core.errors import M2VError
+from m2v.engine import output_validation
 
 
 def test_decoded_progress_reports_the_last_frame_count() -> None:
@@ -20,5 +20,5 @@ def test_output_validation_rejects_wrong_decoded_frame_count(monkeypatch, tmp_pa
     monkeypatch.setattr(output_validation, "get_ffmpeg_exe", lambda: "ffmpeg")
     monkeypatch.setattr(output_validation.subprocess, "run", lambda *args, **kwargs:
                         subprocess.CompletedProcess(args[0], 0, stdout="frame=29\nprogress=end\n", stderr=""))
-    with pytest.raises(A2VError, match="期望 30，实际 29"):
+    with pytest.raises(M2VError, match="期望 30，实际 29"):
         output_validation.verify_output(output, 30, 1080, 1920, 30)

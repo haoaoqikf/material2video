@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from a2v.cli import main
-from a2v.core.errors import A2VError
-from a2v.core.project import create_project, load_project
-from a2v.cli import _require_review, _review_criteria
-from a2v.types.migration import migrate
-from a2v.types import registry
-from a2v.types.registry import VideoType
+from m2v.cli import main
+from m2v.core.errors import M2VError
+from m2v.core.project import create_project, load_project
+from m2v.cli import _require_review, _review_criteria
+from m2v.types.migration import migrate
+from m2v.types import registry
+from m2v.types.registry import VideoType
 from conftest import v4_storyboard
 
 
@@ -46,10 +46,10 @@ def test_article_v4_migration_is_backup_first_and_repeat_fails(tmp_path: Path) -
     assert not old_preview_record.exists()
     assert (archived_record.parent / "production.json").is_file()
     assert (archived_record.parent / "outputs/previews/preview-record.json").is_file()
-    assert len(list(tmp_path.glob("作品一.a2v-backup-*"))) == 1
+    assert len(list(tmp_path.glob("作品一.m2v-backup-*"))) == 1
     try:
         migrate(root, "article-v4")
-    except A2VError as exc:
+    except M2VError as exc:
         assert "重复迁移" in str(exc)
     else:
         raise AssertionError("重复迁移必须失败")
@@ -95,7 +95,7 @@ def test_registered_test_type_appears_without_editing_cli_dispatch(monkeypatch, 
 
 
 def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, monkeypatch) -> None:
-    from a2v.types.general.adapter import TYPE as general_type
+    from m2v.types.general.adapter import TYPE as general_type
 
     monkeypatch.setattr(registry, "_registry", {"general": general_type})
     root = tmp_path / "general"
@@ -118,8 +118,40 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
 
     evidence.pop("audioSubtitles")
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
-    with pytest.raises(A2VError, match="当前类型的每项结论"):
+    with pytest.raises(M2VError, match="当前类型的每项结论"):
         _require_review(root, manifest, prepared)
+
+
+def test_preview_record_round_trips_when_the_preview_lives_outside_the_project_root(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """仓库自带示例的作品根是 `examples/<slug>/`，预演却属于 `videos/examples/<slug>/outputs/`。
+
+    记录按作品根相对化时必须允许 `..`：直接用 `relative_to` 会抛错，完整预演登记不上。
+    """
+    root = tmp_path / "examples" / "demo"
+    root.mkdir(parents=True)
+    manifest = {"schemaVersion": 1, "id": "demo", "type": "outside-preview"}
+    prepared = {"preparedFingerprint": "fp", "durationInFrames": 30}
+    preview = tmp_path / "videos" / "examples" / "demo" / "outputs" / "previews" / "video.mp4"
+    preview.parent.mkdir(parents=True)
+    preview.write_bytes(b"full preview")
+    # prepare 已经写过 outputs/prepared.json，预演记录沿用同一个目录
+    (root / "outputs").mkdir()
+
+    video_type = VideoType(
+        "outside-preview", "预演落在作品根之外", lambda *_: None, lambda *_: None,
+        lambda *_args, **_kwargs: preview, lambda *_: "rendered.mp4",
+    )
+    monkeypatch.setattr(registry, "_registry", {"outside-preview": video_type})
+    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
+
+    assert main(["preview", "--project", str(root)]) == 0
+
+    record = json.loads((root / "outputs" / "preview-record.json").read_text(encoding="utf-8"))
+    assert (root / record["path"]).resolve() == preview.resolve()
+    assert record["sha256"] == hashlib.sha256(preview.read_bytes()).hexdigest()
 
 
 def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -151,8 +183,8 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
         review_template=type_review_template,
     )
     monkeypatch.setattr(registry, "_registry", {"review-hook": video_type})
-    monkeypatch.setattr("a2v.cli.load_project", lambda _path: (root, manifest))
-    monkeypatch.setattr("a2v.cli.load_current_prepared", lambda *_args: prepared)
+    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
 
     assert main(["review-template", "--project", str(root)]) == 0
     generic = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))

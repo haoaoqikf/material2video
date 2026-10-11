@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
-import a2v.types.article.benchmark as benchmark
-import a2v.engine.perf as perf
+import m2v.types.article.benchmark as benchmark
+import m2v.engine.perf as perf
 
 
 def _sample_run(

@@ -1,4 +1,4 @@
-import a2v.types.article.motion_plan as motion_plan
+import m2v.types.article.motion_plan as motion_plan
 
 def test_phase_spans_reserve_stable_tail():
     spans = motion_plan.phase_spans({"durationInFrames": 60})

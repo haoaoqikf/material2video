@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import a2v.types.article.cli as cli
-from a2v.types.article.render import _last_int
+import m2v.types.article.cli as cli
+from m2v.types.article.render import _last_int
 
 
 class TestValidateCommand:
@@ -163,7 +163,7 @@ class TestValidateCommand:
         assert cli.main_validate([str(path), "--strict"]) == 2
 
     def test_prepare_stops_before_tts_when_input_review_is_missing(self, tmp_path, monkeypatch, caplog):
-        import a2v.types.article.prepare as prepare_module
+        import m2v.types.article.prepare as prepare_module
 
         article = SimpleNamespace(kind="article", source_dir=tmp_path, workspace_root=tmp_path,
                                   output_dir=tmp_path / "outputs", media_dir=tmp_path / "outputs" / "media")

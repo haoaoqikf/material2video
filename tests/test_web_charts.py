@@ -20,10 +20,10 @@ from pathlib import Path
 
 import pytest
 
-import a2v.engine.browser as browser
-import a2v.engine.contract_page as contract_page
-import a2v.core.determinism as determinism
-import a2v.types.article.keynote as keynote
+import m2v.engine.browser as browser
+import m2v.engine.contract_page as contract_page
+import m2v.core.determinism as determinism
+import m2v.types.article.keynote as keynote
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web" / "src"
@@ -35,7 +35,7 @@ CHART_SOURCES = (
 
 #: 字面量数据点的两种形态：`label: '四月'` 与 `value: 12`。
 #: 类型注解（`label: string`）与属性读取（`point.label`）都不匹配；
-#: label 限定中文内容，避免误伤 `label: 'a2v-label'` 这类类名映射。
+#: label 限定中文内容，避免误伤 `label: 'm2v-label'` 这类类名映射。
 _LABEL_LITERAL = re.compile(r"\blabel\s*:\s*['\"][^'\"]*[一-鿿]")
 _VALUE_LITERAL = re.compile(r"\bvalue\s*:\s*-?\d")
 
@@ -128,7 +128,7 @@ def chart_page(chromium_ready, tmp_path):
     try:
         with contract_page.serve_contract_page(storyboard, ROOT) as url:
             with browser.open_animated_page(url, width=1080, height=1920) as page:
-                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                page.evaluate("() => document.documentElement.classList.add('m2v-rendering')")
                 yield page
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -136,7 +136,7 @@ def chart_page(chromium_ready, tmp_path):
 
 def _bar_labels(page: object) -> list[str]:
     return page.evaluate(
-        "() => Array.from(document.querySelectorAll('.a2v-primitive-bar span')).map((el) => el.textContent || '')"
+        "() => Array.from(document.querySelectorAll('.m2v-primitive-bar span')).map((el) => el.textContent || '')"
     )
 
 
@@ -152,7 +152,7 @@ def test_chart_marks_schematic(chart_page):
     """声明 schematic 的图表必须在画面上出现「示意」标。"""
     chart_page.seek(30)
     assert chart_page.evaluate(
-        "() => document.querySelector('.a2v-schematic')?.textContent"
+        "() => document.querySelector('.m2v-schematic')?.textContent"
     ) == "示意"
 
 
@@ -180,11 +180,11 @@ def test_chart_frame_is_deterministic(chart_page):
 
 def test_chart_marks_are_not_counted_as_cards_for_k6(chart_page):
     """数据柱是图形标记，不应被卡片纪律闸门要求描边与内高光。"""
-    import a2v.types.article.inspect as a2v_inspect
+    import m2v.types.article.inspect as m2v_inspect
 
-    facts = chart_page.evaluate(a2v_inspect._AESTHETIC_SCRIPT)
+    facts = chart_page.evaluate(m2v_inspect._AESTHETIC_SCRIPT)
     assert facts is not None
-    assert all("a2v-primitive-bar" not in card["role"] for card in facts["cards"])
+    assert all("m2v-primitive-bar" not in card["role"] for card in facts["cards"])
 
 
 # ---------------------------------------------------------------- 观感闸门的判定范围（v2）

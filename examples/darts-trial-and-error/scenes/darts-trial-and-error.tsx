@@ -1,4 +1,4 @@
-import { probe, type A2VCodeScene } from '@a2v/scene';
+import { probe, type M2VCodeScene } from '@m2v/scene';
 
 const throws = [
   { id: 'dart-1', x: 720, y: 610, label: '01' },
@@ -9,7 +9,7 @@ const easeOut = (value: number): number => 1 - (1 - Math.max(0, Math.min(1, valu
 
 interface StageData { headline?: string }
 
-const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canvas }) => {
+const DartsTrialAndError: M2VCodeScene<StageData> = ({ frame, beats, stage, canvas }) => {
   const hit = beats.plan.find((beat) => beat.id === 'beat-3');
   const repeat = beats.plan.find((beat) => beat.id === 'beat-4');
   const learn = beats.plan.find((beat) => beat.id === 'beat-5');
@@ -31,11 +31,11 @@ const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canv
   const flyingX = current ? 312 + (current.x - 312) * phase(repeat) : 0;
   const flyingY = current ? 468 + (current.y - 468) * phase(repeat) : 0;
   const headline = String(stage.data.headline ?? '每次行动都留下反馈');
-  const textColor = 'var(--a2v-text-1)';
-  const muted = 'var(--a2v-text-2)';
-  const accent = 'var(--a2v-accent)';
+  const textColor = 'var(--m2v-text-1)';
+  const muted = 'var(--m2v-text-2)';
+  const accent = 'var(--m2v-accent)';
 
-  return <div style={{ position: 'relative', width: canvas.width, height: canvas.height, overflow: 'hidden', fontFamily: 'var(--a2v-font)', color: textColor }}>
+  return <div style={{ position: 'relative', width: canvas.width, height: canvas.height, overflow: 'hidden', fontFamily: 'var(--m2v-font)', color: textColor }}>
     <div {...probe({ node: 'stage-headline', role: 'headline' })} style={{ position: 'absolute', top: 220, left: 90, width: 900, textAlign: 'center', fontSize: 54, fontWeight: 700 }}>
       {headline}
     </div>
@@ -43,14 +43,14 @@ const DartsTrialAndError: A2VCodeScene<StageData> = ({ frame, beats, stage, canv
       <svg viewBox="0 0 900 940" width="100%" height="100%" aria-label="同一人物向持续存在的飞镖靶投掷">
         <path d="M305 482 Q420 420 536 430" fill="none" stroke="var(--fig-line-soft)" strokeWidth="5" strokeDasharray="10 16" />
         <g {...probe({ node: 'target', schematic: true })}>
-          <circle cx="650" cy="465" r="188" fill="var(--a2v-bg-1)" stroke="var(--fig-line)" strokeWidth="8" />
+          <circle cx="650" cy="465" r="188" fill="var(--m2v-bg-1)" stroke="var(--fig-line)" strokeWidth="8" />
           <circle cx="650" cy="465" r="142" fill="none" stroke="var(--fig-line-soft)" strokeWidth="5" />
           <circle cx="650" cy="465" r="94" fill="none" stroke="var(--fig-line-soft)" strokeWidth="5" />
           <circle cx="650" cy="465" r="46" fill="none" stroke={accent} strokeOpacity=".7" strokeWidth="6" />
           <circle cx="650" cy="465" r="10" fill={accent} />
         </g>
         <g {...probe({ node: 'player', schematic: true })}>
-          <circle cx="205" cy="318" r="54" fill="var(--a2v-bg-2)" stroke={textColor} strokeWidth="6" />
+          <circle cx="205" cy="318" r="54" fill="var(--m2v-bg-2)" stroke={textColor} strokeWidth="6" />
           <path d="M205 374 L205 590 M205 590 L140 720 M205 590 L272 720" fill="none" stroke={textColor} strokeWidth="24" strokeLinecap="round" />
           <g transform={`rotate(${idle} 205 430)`}>
             <path d="M205 430 L312 468" fill="none" stroke={textColor} strokeWidth="24" strokeLinecap="round" />

@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, "-m", "a2v.cli", "article", *args], cwd=ROOT,
+    return subprocess.run([sys.executable, "-m", "m2v.cli", "article", *args], cwd=ROOT,
                           text=True, capture_output=True, check=False,
                           encoding="utf-8", errors="replace", env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")})
 

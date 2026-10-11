@@ -14,12 +14,12 @@ from pathlib import Path
 
 import pytest
 
-import a2v.types.article.cli as cli
-import a2v.types.article.paths as paths
-import a2v.types.article.prepare as prep
-from a2v.core.errors import A2VError
-from a2v.types.article.media import Media
-from a2v.types.article.render import RenderResult
+import m2v.types.article.cli as cli
+import m2v.types.article.paths as paths
+import m2v.types.article.prepare as prep
+from m2v.core.errors import M2VError
+from m2v.types.article.media import Media
+from m2v.types.article.render import RenderResult
 
 from conftest import SKILL_MARKER, approve_input_review, approve_production_record, make_project
 
@@ -53,7 +53,7 @@ class TestProjectRoot:
         loose = tmp_path / "somewhere"
         loose.mkdir()
         (loose / "index.html").write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="未找到仓库根目录"):
+        with pytest.raises(M2VError, match="未找到仓库根目录"):
             paths.project_root(loose / "index.html")
 
     def test_git_root_alone_is_not_enough(self, tmp_path):
@@ -61,7 +61,7 @@ class TestProjectRoot:
         (tmp_path / ".git").mkdir()
         page = tmp_path / "index.html"
         page.write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="未找到仓库根目录"):
+        with pytest.raises(M2VError, match="未找到仓库根目录"):
             paths.project_root(page)
 
 
@@ -91,7 +91,7 @@ class TestArticleLocation:
     def test_article_outside_root_is_rejected(self, tmp_path, valid_script_v4):
         other = tmp_path / "elsewhere"
         make_project(other, "videos", "demo", valid_script_v4)
-        with pytest.raises(A2VError, match="无法推导文章归属"):
+        with pytest.raises(M2VError, match="无法推导文章归属"):
             paths.locate_article(tmp_path, other / "videos" / "demo" / "index.html")
 
 
@@ -147,16 +147,16 @@ class TestOutputLayout:
 
 class TestUnsupportedTargets:
     def test_remote_page_requires_explicit_output(self):
-        with pytest.raises(A2VError, match="远程页面"):
+        with pytest.raises(M2VError, match="远程页面"):
             paths.for_page("https://example.com/index.html")
 
     def test_missing_page_reports_clearly(self, tmp_path):
-        with pytest.raises(A2VError, match="页面文件不存在"):
+        with pytest.raises(M2VError, match="页面文件不存在"):
             paths.for_page(tmp_path / "absent.html")
 
     def test_directory_as_page_is_rejected(self, tmp_path, valid_script_v4):
         article = make_project(tmp_path, "videos", "demo", valid_script_v4)
-        with pytest.raises(A2VError, match="需要一个页面文件"):
+        with pytest.raises(M2VError, match="需要一个页面文件"):
             paths.for_page(article)
 
     def test_page_outside_article_directories_is_rejected(self, tmp_path):
@@ -165,11 +165,11 @@ class TestUnsupportedTargets:
         marker.write_text("# skill", encoding="utf-8")
         page = tmp_path / "index.html"
         page.write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="无法推导文章归属"):
+        with pytest.raises(M2VError, match="无法推导文章归属"):
             paths.for_page(page)
 
     def test_missing_storyboard_reports_clearly(self, tmp_path):
-        with pytest.raises(A2VError, match="分镜脚本不存在"):
+        with pytest.raises(M2VError, match="分镜脚本不存在"):
             paths.for_storyboard(tmp_path / "absent.json")
 
 
@@ -183,7 +183,7 @@ class TestNaming:
     def test_voiced_name_keeps_silent_file_name(self, caplog):
         # 分镜有口播但没给媒体时保持 silent 文件名，同时给出可定位的警告
         assert paths.use_voiced_name(declares_voice=True, with_media=False) is False
-        assert "a2v prepare" in caplog.text
+        assert "m2v prepare" in caplog.text
 
     @pytest.mark.parametrize(
         "segments, expected",
@@ -341,7 +341,7 @@ class TestCrossArticleMediaGuard:
         model = cli._v4_model(valid_script_v4)
 
         args = cli._build_render_parser().parse_args(["--storyboard", str(other / "storyboard.json")])
-        with pytest.raises(A2VError, match="无法确认它与本篇文章同源"):
+        with pytest.raises(M2VError, match="无法确认它与本篇文章同源"):
             cli._resolve_render_output(
                 args, model, Media(manifest.resolve(), {}, model, media_dir / "audio.wav")
             )
@@ -359,7 +359,7 @@ class TestCrossArticleMediaGuard:
                 "--storyboard", str(article / "storyboard.json"),
             ]
         )
-        with pytest.raises(A2VError, match="无法确认它与本篇文章同源"):
+        with pytest.raises(M2VError, match="无法确认它与本篇文章同源"):
             cli._resolve_render_output(
                 args, model, Media(manifest.resolve(), {}, model, elsewhere / "audio.wav")
             )

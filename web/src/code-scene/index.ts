@@ -1,7 +1,7 @@
 /**
  * 代码场景公开 API（作品可导入的唯一项目内部模块）。
  *
- * 作品通过别名 `@a2v/scene` 导入这里定义的类型与工具；依赖白名单检查
+ * 作品通过别名 `@m2v/scene` 导入这里定义的类型与工具；依赖白名单检查
  * 把这个别名当作「项目公开的内部 API」放行，仓库其余内部文件不对作品开放。
  *
  * 设计约束（见 openspec 变更 add-code-driven-scenes 的 design.md）：
@@ -18,19 +18,19 @@ export { beatActionProgress, compilePath, compileReservoir, decomposeObjects } f
 export type { Point, FlowInterval, ReservoirState, ObjectPose } from './objectMotion';
 
 /** 共享画布参数：与分镜声明的输出尺寸一致，场景不得假设其他尺寸。 */
-export interface A2VCanvas {
+export interface M2VCanvas {
   width: number;
   height: number;
 }
 
 /** 主题信息：与共享设计令牌同一来源（`visual.theme` / `visual.preset`）。 */
-export interface A2VThemeInfo {
+export interface M2VThemeInfo {
   theme: 'dark' | 'light';
   preset?: 'keynote';
 }
 
 /** 一条已解析的语义节拍。时间来自分镜与媒体，作品只读，不自己算。 */
-export interface A2VBeatInfo {
+export interface M2VBeatInfo {
   id: string;
   action: string;
   targets: readonly string[];
@@ -47,7 +47,7 @@ export interface A2VBeatInfo {
  * 同一份值：都由共享 composition 按分镜、媒体与当前帧算出。作品不能解析
  * 字幕、读音频时钟或按挂钟推进动画——那会形成第二套时间轴。
  */
-export interface A2VBeatState {
+export interface M2VBeatState {
   /** 当前帧所属的全局 beat id；区间外（片首、稳定阅读段）为 null。 */
   current: string | null;
   /** 当前 beat 的局部进度（0..1）；没有活动 beat 时为 0。 */
@@ -57,18 +57,18 @@ export interface A2VBeatState {
   /** true 表示这是无声等比例估算的时间轴，不是真实词边界。 */
   estimated: boolean;
   /** 当前全局 beat 的完整声明；没有活动 beat 时为 null。 */
-  active: A2VBeatInfo | null;
+  active: M2VBeatInfo | null;
   /** 全片已解析的节拍计划（只读）：作品据此知道还有哪几步要走。 */
-  plan: readonly A2VBeatInfo[];
+  plan: readonly M2VBeatInfo[];
 }
-export interface A2VMotionContext {
+export interface M2VMotionContext {
   phase: 'establish' | 'change' | 'result' | 'settle';
   camera: { kind: string; progress: number; focus: string; x: number; y: number; scale: number; velocity: number };
   continuity: { kind: string; phase: 'source'|'target'; progress: number; sources: readonly string[]; targets: readonly string[] } | null;
 }
 
 /** 注入给代码场景的幕级数据：内容仍以分镜为真源。 */
-export interface A2VSceneInfo<Data = unknown> {
+export interface M2VSceneInfo<Data = unknown> {
   id: string;
   type: string;
   /** 本幕的 `data` 字段原样传入。 */
@@ -79,16 +79,16 @@ export interface A2VSceneInfo<Data = unknown> {
 }
 
 /** 全片唯一世界的只读身份与对象目录。 */
-export interface A2VWorldObjectInfo { id: string; role: 'primary' | 'supporting' | 'annotation'; description: string }
-export interface A2VWorldInfo {
+export interface M2VWorldObjectInfo { id: string; role: 'primary' | 'supporting' | 'annotation'; description: string }
+export interface M2VWorldInfo {
   id: string;
   claim: string;
   metaphor: string;
-  objects: readonly A2VWorldObjectInfo[];
+  objects: readonly M2VWorldObjectInfo[];
 }
 
 /** 当前阶段在全片时间轴上的上下文，不创建阶段独立渲染宿主。 */
-export interface A2VStageInfo<Data = Record<string, unknown>> {
+export interface M2VStageInfo<Data = Record<string, unknown>> {
   id: string;
   data: Data;
   startFrame: number;
@@ -97,7 +97,7 @@ export interface A2VStageInfo<Data = Record<string, unknown>> {
 }
 
 /** 当前全局帧的受控对象属性快照。 */
-export type A2VObjectStates = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+export type M2VObjectStates = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 
 /**
  * 代码场景组件 props。
@@ -106,11 +106,11 @@ export type A2VObjectStates = Readonly<Record<string, Readonly<Record<string, un
  * （`durationInFrames`、相邻幕、总帧数都不在这里），
  * 类型层面保证「第二套时间真源」无法产生。
  */
-export interface A2VCodeSceneProps<Data = unknown> {
-  world: A2VWorldInfo;
-  stage: A2VStageInfo;
-  objectStates: A2VObjectStates;
-  scene: A2VSceneInfo<Data>;
+export interface M2VCodeSceneProps<Data = unknown> {
+  world: M2VWorldInfo;
+  stage: M2VStageInfo;
+  objectStates: M2VObjectStates;
+  scene: M2VSceneInfo<Data>;
   /** 全局帧号：整片时间轴上的绝对帧。 */
   frame: number;
   /** 兼容属性；v4 全片模式下与 frame 相同，阶段局部帧见 stage.progress。 */
@@ -118,12 +118,12 @@ export interface A2VCodeSceneProps<Data = unknown> {
   /** 全片进度；阶段局部进度单独见 stage.progress。 */
   progress: number;
   fps: number;
-  canvas: A2VCanvas;
-  theme: A2VThemeInfo;
+  canvas: M2VCanvas;
+  theme: M2VThemeInfo;
   /** 节拍状态：当前 beat、局部进度、已完成集合与是否为估算时间轴。 */
-  beats: A2VBeatState;
+  beats: M2VBeatState;
   /** 与场景树同源的导演运行时；作品只消费状态，不创建第二套时间轴。 */
-  motion: A2VMotionContext;
+  motion: M2VMotionContext;
   /**
    * 稳定种子随机：`random(node)` 为节点标识派生独立序列；
    * 省略节点时使用场景级默认序列。同一输入永远返回同一序列。
@@ -132,7 +132,7 @@ export interface A2VCodeSceneProps<Data = unknown> {
 }
 
 /** 代码场景组件类型：作品模块的默认导出必须是它。 */
-export type A2VCodeScene<Data = unknown> = React.FC<A2VCodeSceneProps<Data>>;
+export type M2VCodeScene<Data = unknown> = React.FC<M2VCodeSceneProps<Data>>;
 
 /* ------------------------------------------------------------------ */
 /* 稳定种子随机                                                         */
@@ -176,11 +176,11 @@ export function createSceneRandom(sceneId: string, nodeId?: string): (node?: str
  * 语义角色。与场景树原语的 role 枚举同源：
  * 内容探针按角色读取文字、K 系列闸门按角色检查排版。
  */
-export type A2VProbeRole = 'hero' | 'headline' | 'title' | 'body' | 'label' | 'caption';
+export type M2VProbeRole = 'hero' | 'headline' | 'title' | 'body' | 'label' | 'caption';
 
 /**
  * 生成代码场景的最小探针标记：
- * - 根节点由共享包装器自动打 `data-a2v-scene`，组件不必重复；
+ * - 根节点由共享包装器自动打 `data-m2v-scene`，组件不必重复；
  * - 需要体检的节点用 `node` 声明稳定 id，用 `role` 声明语义角色；
  * - 文字要被内容探针读到时必须带 `node` + `role`。
  *
@@ -188,22 +188,22 @@ export type A2VProbeRole = 'hero' | 'headline' | 'title' | 'body' | 'label' | 'c
  *
  * `inside` 声明「这段文字装在哪个容器里」，值是**节点 id**：
  * `probe({ node: 'note', inside: 'panel' })` 会输出
- * `data-a2v-inside="[data-a2v-node=\"panel\"]"`——K8 的容器归属量测
+ * `data-m2v-inside="[data-m2v-node=\"panel\"]"`——K8 的容器归属量测
  * 拿它做选择器查询，因此必须是可解析的选择器而不是裸 id。
  */
-export function probe(options: { node: string; role?: A2VProbeRole; inside?: string; schematic?: boolean; geometry?: { x: number; y: number; width: number; height: number; radius?: number } }): {
-  'data-a2v-node': string;
-  'data-a2v-role'?: string;
-  'data-a2v-inside'?: string;
-  'data-a2v-schematic'?: string;
-  'data-a2v-geometry'?: string;
+export function probe(options: { node: string; role?: M2VProbeRole; inside?: string; schematic?: boolean; geometry?: { x: number; y: number; width: number; height: number; radius?: number } }): {
+  'data-m2v-node': string;
+  'data-m2v-role'?: string;
+  'data-m2v-inside'?: string;
+  'data-m2v-schematic'?: string;
+  'data-m2v-geometry'?: string;
 } {
   return {
-    'data-a2v-node': options.node,
-    ...(options.role ? { 'data-a2v-role': options.role } : {}),
-    ...(options.inside ? { 'data-a2v-inside': `[data-a2v-node="${options.inside}"]` } : {}),
-    ...(options.schematic ? { 'data-a2v-schematic': '' } : {}),
-    ...(options.geometry ? { 'data-a2v-geometry': [options.geometry.x, options.geometry.y, options.geometry.width, options.geometry.height, options.geometry.radius ?? 0].join(',') } : {}),
+    'data-m2v-node': options.node,
+    ...(options.role ? { 'data-m2v-role': options.role } : {}),
+    ...(options.inside ? { 'data-m2v-inside': `[data-m2v-node="${options.inside}"]` } : {}),
+    ...(options.schematic ? { 'data-m2v-schematic': '' } : {}),
+    ...(options.geometry ? { 'data-m2v-geometry': [options.geometry.x, options.geometry.y, options.geometry.width, options.geometry.height, options.geometry.radius ?? 0].join(',') } : {}),
   };
 }
 
@@ -231,16 +231,16 @@ export function frameStyle(
 /* ------------------------------------------------------------------ */
 
 export { freezeFrameOption, useFrameChart } from './adapters/echarts';
-export type { A2VFrameChart } from './adapters/echarts';
+export type { M2VFrameChart } from './adapters/echarts';
 export { layoutGraph } from './adapters/dagre';
 export type {
-  A2VGraphNode,
-  A2VGraphEdge,
-  A2VGraphConfig,
-  A2VGraphPoint,
-  A2VGraphLayout,
-  A2VGraphLayoutNode,
-  A2VGraphLayoutEdge,
+  M2VGraphNode,
+  M2VGraphEdge,
+  M2VGraphConfig,
+  M2VGraphPoint,
+  M2VGraphLayout,
+  M2VGraphLayoutNode,
+  M2VGraphLayoutEdge,
 } from './adapters/dagre';
 export { FrameIcon, frameStroke } from './adapters/icons';
-export type { A2VFrameIconProps } from './adapters/icons';
+export type { M2VFrameIconProps } from './adapters/icons';

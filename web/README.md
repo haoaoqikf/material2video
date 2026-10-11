@@ -1,13 +1,13 @@
 # web/ —— 画面实现与渲染契约页
 
-这里是 article2video 的**表现层与渲染层**：React composition 画画面，Remotion 逐帧渲染成 MP4。
+这里是 Material2Video 的**表现层与渲染层**：React composition 画画面，Remotion 逐帧渲染成 MP4。
 内容层（`storyboard.json`）与配音层（Python 的 `prepare.py`）不在这里。
 
 ## 为什么是 React + Remotion
 
 换成这套栈的理由只有一条：**组件供给**。原生 JS 时代每加一类画面（数据图表、关系图、
 逐字动效）都要从零手写几何与排版，边际成本压不下来。换栈没有松动本项目的核心原则——
-Remotion 的官方规则与 article2video 的渲染契约是同一句话：**所有动画由帧号驱动，
+Remotion 的官方规则与 material2video 的渲染契约是同一句话：**所有动画由帧号驱动，
 不许用 CSS 动画**。
 
 ## 环境要求
@@ -37,7 +37,7 @@ pnpm install
 跑错目录会在配置加载阶段直接报错并说明原因）。
 
 ```bash
-pnpm sync:fonts     # 把 skill 资产里的字体同步到 public/fonts（构建前自动跑）
+pnpm sync:fonts     # 把字体清单中的共享资产同步到 public/fonts（构建前自动跑）
 pnpm dev            # 起契约页开发服务（http://localhost:5178/contract.html）
 pnpm build          # 同步字体 + 类型检查 + 构建契约页到 dist/contract
 pnpm studio         # 起 Remotion Studio，逐帧拖动查看画面
@@ -48,12 +48,12 @@ pnpm test           # 单元测试
 真实渲染不走这里的手写命令——用仓库根的命令行入口：
 
 ```bash
-uv run python .agents/skills/article2video/scripts/render.py --storyboard <分镜> --engine remotion
+uv run m2v render --project <作品目录>
 ```
 
 它负责路径归属推导、契约校验、配音与字幕合成、成片验收与交付权限，再调用这里的
 `scripts/remotion-render.mjs` 逐帧渲染。两边的分工是硬边界：**Python 判定，Node 只执行**。
-中间靠 stdout 上带前缀的行通信（`__A2V_COMPOSITION__{…}` 报元数据、`__A2V_PROGRESS__<百分比>`
+中间靠 stdout 上带前缀的行通信（`__M2V_COMPOSITION__{…}` 报元数据、`__M2V_PROGRESS__<百分比>`
 报进度），不解析 Remotion 的日志文本——日志措辞随版本变化，把判定挂在它上面升级一次就会静默失效。
 
 `--engine` 当前只有一个取值 `remotion`（保留该参数用于显式声明契约）。
@@ -88,13 +88,13 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交给作品
 `scenes/` 下的 TSX 模块；`stages[]` 只推进叙事，不单独声明 renderer。模块契约、
 依赖白名单、探针协议与确定性纪律的**权威文档**在
-[代码场景](../.agents/skills/article2video/references/code-scenes.md)，
+[代码场景](../.agents/skills/material2video/references/code-scenes.md)，
 这里只记 web 工程侧的接法：
 
 - 静态清单 `.gen/active-scenes.ts`（由 `scripts/gen-active-scenes.mjs` 按当前作品
-  整体重建）持有一个 `Record<string, A2VCodeScene<any>>` 映射；
+  整体重建）持有一个 `Record<string, M2VCodeScene<any>>` 映射；
   `src/compositions/CodeSceneHost.tsx` 按模块标识取组件渲染，缺失模块直接抛错；
-- 作品模块通过别名 `@a2v/scene` 导入 `src/code-scene/index.ts`——这是作品可导入的
+- 作品模块通过别名 `@m2v/scene` 导入 `src/code-scene/index.ts`——这是作品可导入的
   **唯一**项目内部 API；tsconfig paths、Vite 与 Remotion webpack 三处都对白名单
   裸包与该别名配置了解析（仓库外的作品模块因此可以编译）；
 - 本地资产（图片/SVG）用打包器导入（`import markUrl from '../assets/mark.png'`），
@@ -116,7 +116,7 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
   扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
   需要按状态切换时，把完整类名写进映射对象再取用。
 
-## 渲染契约（`window.__A2V__` version 4）
+## 渲染契约（`window.__M2V__` version 4）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
 
@@ -129,7 +129,7 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
 | `currentFrame()` | 只读诊断读数：画面当前停在第几帧，供量测失败时定位，不参与 `seekToFrame` 语义 |
 | `world()` / `stage()` / `objectStates()` / `camera()` / `beats()` | v4 全片世界、当前阶段、对象状态、镜头与节拍探针 |
 
-分镜地址由查询参数给出：`contract.html?a2v-storyboard=<分镜的 URL>`，
+分镜地址由查询参数给出：`contract.html?m2v-storyboard=<分镜的 URL>`，
 因此这一个页面服务任意作品，作品不需要自己的 HTML。
 
 契约实现只有一处（`src/contract/bridge.ts`），**作品不许自己实现**。
@@ -145,7 +145,7 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
 **源文件缺失会让构建失败**：静默回退到系统字体是本项目最怕的一类失败——
 成片出来了、字全变了、没有任何报错。
 
-字体栈只在 `[data-a2v-preset="keynote"]` 作用域内切换（见 `src/styles/tokens.css`），
+字体栈只在 `[data-m2v-preset="keynote"]` 作用域内切换（见 `src/styles/tokens.css`），
 作用域之外的元素不继承这套字体栈。
 
 ## 第三方依赖：只经代码场景白名单
@@ -153,14 +153,14 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
 画面**不再**支持接入第三方视觉组件：整页组件接入路径（分类表、帧同步包装层
 `FrameSyncedCssAnimation`）已随场景树架构一并移除，`web/src/third-party/` 不再存在。
 需要第三方库能力时，只能按
-[代码场景](../.agents/skills/article2video/references/code-scenes.md)
+[代码场景](../.agents/skills/material2video/references/code-scenes.md)
 在作品的代码场景里声明，并使用共享白名单：React、React DOM、Remotion、ECharts、
-Dagre、Lucide 与 `@a2v/scene`。
+Dagre、Lucide 与 `@m2v/scene`。
 
-白名单外的裸模块引用会被源码闸门拒绝（`a2v/code_gate.py`）；可渲染源码里的挂钟时间、
-随机数、计时器与 CSS 动画/过渡同样会被拒绝（`a2v/source_policy.py`）。
+白名单外的裸模块引用会被源码闸门拒绝（`m2v/code_gate.py`）；可渲染源码里的挂钟时间、
+随机数、计时器与 CSS 动画/过渡同样会被拒绝（`m2v/source_policy.py`）。
 各白名单视觉库的确定性适配规则见
-[渲染契约](../.agents/skills/article2video/references/render-contract.md)。
+[渲染契约](../.agents/skills/material2video/references/render-contract.md)。
 
 ## 许可证
 

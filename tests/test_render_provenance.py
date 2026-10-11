@@ -18,11 +18,11 @@ from pathlib import Path
 
 import pytest
 
-import a2v.types.article.render as render_mod
+import m2v.types.article.render as render_mod
 
 
 def _digest(path: Path) -> str:
-    import a2v.types.article.media as media_mod
+    import m2v.types.article.media as media_mod
 
     return media_mod.file_digest(path)
 
@@ -40,7 +40,7 @@ def _work(tmp_path: Path) -> Path:
 
 
 def _provenance(tmp_path: Path, page: Path, video: Path, extra: dict | None = None) -> dict:
-    import a2v.types.article.media as media_mod
+    import m2v.types.article.media as media_mod
 
     html = page.read_text(encoding="utf-8")
     workspace = tmp_path
@@ -66,7 +66,7 @@ class TestProvenanceAcrossRoots:
     """文章与产物在仓库之外时，溯源仍要能判定。
 
     v3 用相对引用定位（产物目录 → 工作区根 + 工作区根相对路径），因此不要求
-    产物上级有仓库标记；共享资产经 `/__a2v__/` 引用时记别名键，不因为它在
+    产物上级有仓库标记；共享资产经 `/__m2v__/` 引用时记别名键，不因为它在
     另一个根里就被漏掉——漏掉的话，改了组件库而没重渲的成片会显示「对得上」。
     """
 
@@ -77,14 +77,14 @@ class TestProvenanceAcrossRoots:
         page.parent.mkdir(parents=True)
         page.write_text(
             '<!doctype html><html><head>'
-            '<link rel="stylesheet" href="/__a2v__/figures.css"></head></html>',
+            '<link rel="stylesheet" href="/__m2v__/figures.css"></head></html>',
             encoding="utf-8",
         )
         return content, page
 
     @staticmethod
     def _render(tmp_path: Path, content: Path, page: Path) -> Path:
-        import a2v.types.article.media as media_mod
+        import m2v.types.article.media as media_mod
 
         video = content / "videos" / "demo" / "outputs" / "silent.mp4"
         video.parent.mkdir(parents=True, exist_ok=True)
@@ -108,8 +108,8 @@ class TestProvenanceAcrossRoots:
 
     @pytest.fixture
     def mounted_assets(self, tmp_path, monkeypatch) -> Path:
-        """把 `/__a2v__/` 指到测试自己的资产目录，模拟仓库那一侧。"""
-        import a2v.core.assets as assets_mod
+        """把 `/__m2v__/` 指到测试自己的资产目录，模拟仓库那一侧。"""
+        import m2v.core.assets as assets_mod
 
         fake = tmp_path / "skill-assets"
         fake.mkdir()
@@ -125,7 +125,7 @@ class TestProvenanceAcrossRoots:
         payload = json.loads(video.with_suffix(".provenance.json").read_text(encoding="utf-8"))
         assert payload["workspace"] == "../../.."
         assert payload["page"] == "videos/demo/index.html"
-        assert sorted(payload["assets"]["files"]) == ["__a2v__/figures.css", "videos/demo/index.html"]
+        assert sorted(payload["assets"]["files"]) == ["__m2v__/figures.css", "videos/demo/index.html"]
         assert render_mod.provenance_status(video)["status"] == "current"
 
     def test_shared_asset_change_names_the_alias_key(self, tmp_path, mounted_assets):
@@ -134,7 +134,7 @@ class TestProvenanceAcrossRoots:
         (mounted_assets / "figures.css").write_text(".fig{opacity:.5}", encoding="utf-8")
         result = render_mod.provenance_status(video)
         assert result["status"] == "stale"
-        assert result["changed"] == ["__a2v__/figures.css"]
+        assert result["changed"] == ["__m2v__/figures.css"]
 
     def test_removed_shared_asset_is_reported_as_missing(self, tmp_path, mounted_assets):
         content, page = self._workspace(tmp_path)
@@ -142,7 +142,7 @@ class TestProvenanceAcrossRoots:
         (mounted_assets / "figures.css").unlink()
         result = render_mod.provenance_status(video)
         assert result["status"] == "stale"
-        assert result["missing"] == ["__a2v__/figures.css"]
+        assert result["missing"] == ["__m2v__/figures.css"]
 
     def test_alias_key_cannot_point_outside_the_mount(self, tmp_path, mounted_assets):
         """被人改过的溯源键不得让判定去读挂载目录之外的文件。"""
@@ -151,13 +151,13 @@ class TestProvenanceAcrossRoots:
         sidecar = video.with_suffix(".provenance.json")
         payload = json.loads(sidecar.read_text(encoding="utf-8"))
         (tmp_path / "outside.css").write_text(".a{opacity:1}", encoding="utf-8")
-        payload["assets"]["files"]["__a2v__/../outside.css"] = _digest(
+        payload["assets"]["files"]["__m2v__/../outside.css"] = _digest(
             tmp_path / "outside.css"
         )
         sidecar.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         result = render_mod.provenance_status(video)
         assert result["status"] == "stale"
-        assert result["missing"] == ["__a2v__/../outside.css"]
+        assert result["missing"] == ["__m2v__/../outside.css"]
 
     def test_missing_workspace_reference_is_unknown_not_guessed(self, tmp_path, mounted_assets):
         content, page = self._workspace(tmp_path)
@@ -247,7 +247,7 @@ class TestLineEndingsDoNotFakeStaleness:
 
     def test_binary_assets_are_hashed_raw(self, tmp_path):
         """字体、图片不归一化：二进制里出现 0x0D0A 也不能被改写。"""
-        import a2v.types.article.media as media_mod
+        import m2v.types.article.media as media_mod
 
         blob = tmp_path / "assets" / "font.ttf"
         blob.parent.mkdir(parents=True, exist_ok=True)

@@ -5,7 +5,7 @@
 - 节点数量、内容与基础几何在帧间不变；
 - 量级原语的指示状态按 beat 局部进度变化。
 
-这些都要在真实浏览器里量：`data-a2v-*` 锚点是契约探针唯一的读数入口，
+这些都要在真实浏览器里量：`data-m2v-*` 锚点是契约探针唯一的读数入口，
 量的是页面上的实际值，而不是再算一遍分镜。
 
 契约页未构建时跳过（构建产物不入库）。
@@ -19,8 +19,8 @@ from pathlib import Path
 
 import pytest
 
-import a2v.engine.browser as browser
-import a2v.engine.contract_page as contract_page
+import m2v.engine.browser as browser
+import m2v.engine.contract_page as contract_page
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -124,7 +124,7 @@ def midlevel_page(chromium_ready, tmp_path):
     try:
         with contract_page.serve_contract_page(storyboard, ROOT) as url:
             with browser.open_animated_page(url, width=1080, height=1920) as page:
-                page.evaluate("() => document.documentElement.classList.add('a2v-rendering')")
+                page.evaluate("() => document.documentElement.classList.add('m2v-rendering')")
                 yield page
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -132,53 +132,53 @@ def midlevel_page(chromium_ready, tmp_path):
 
 _FACTS = """
 () => {
-  const scenes = Array.from(document.querySelectorAll('section[data-a2v-scene]'));
+  const scenes = Array.from(document.querySelectorAll('section[data-m2v-scene]'));
   const active = scenes.find((el) => el.style.display !== 'none') || scenes[0];
   const attr = (node, name) => (node ? node.getAttribute(name) : null);
-  const flow = active.querySelector('.a2v-primitive-flow');
-  const cycle = active.querySelector('.a2v-primitive-cycle');
-  const timeline = active.querySelector('.a2v-primitive-timeline');
-  const gauge = active.querySelector('.a2v-gauge');
-  const pictogram = active.querySelector('.a2v-pictogram');
+  const flow = active.querySelector('.m2v-primitive-flow');
+  const cycle = active.querySelector('.m2v-primitive-cycle');
+  const timeline = active.querySelector('.m2v-primitive-timeline');
+  const gauge = active.querySelector('.m2v-gauge');
+  const pictogram = active.querySelector('.m2v-pictogram');
   const stageState = (root) => root
-    ? Array.from(root.querySelectorAll('[data-a2v-stage-state]')).map((el) => attr(el, 'data-a2v-stage-state'))
+    ? Array.from(root.querySelectorAll('[data-m2v-stage-state]')).map((el) => attr(el, 'data-m2v-stage-state'))
     : [];
   const canvasHeight = 1920;
   const geometry = (root) => {
     if (!root) return [];
     return Array.from(root.children)
-      .filter((el) => el.hasAttribute('data-a2v-node-id'))
+      .filter((el) => el.hasAttribute('data-m2v-node-id'))
       .map((el) => {
         const rect = el.getBoundingClientRect();
-        return {id: attr(el, 'data-a2v-node-id'), height: Math.round(rect.height), width: Math.round(rect.width)};
+        return {id: attr(el, 'data-m2v-node-id'), height: Math.round(rect.height), width: Math.round(rect.width)};
       });
   };
   return {
     canvasHeight,
     beat: {
-      current: attr(active, 'data-a2v-beat-current'),
-      progress: Number(attr(active, 'data-a2v-beat-progress')),
-      completed: attr(active, 'data-a2v-beat-completed'),
-      estimated: attr(active, 'data-a2v-beat-estimated'),
+      current: attr(active, 'data-m2v-beat-current'),
+      progress: Number(attr(active, 'data-m2v-beat-progress')),
+      completed: attr(active, 'data-m2v-beat-completed'),
+      estimated: attr(active, 'data-m2v-beat-estimated'),
     },
-    flowArrows: flow ? flow.querySelectorAll('[data-a2v-relation="flow"]').length : -1,
-    flowArrowDirection: flow ? attr(flow.querySelector('[data-a2v-relation="flow"]'), 'data-a2v-direction') : null,
+    flowArrows: flow ? flow.querySelectorAll('[data-m2v-relation="flow"]').length : -1,
+    flowArrowDirection: flow ? attr(flow.querySelector('[data-m2v-relation="flow"]'), 'data-m2v-direction') : null,
     flowStages: stageState(flow),
     flowGeometry: geometry(flow),
-    flowNodes: flow ? flow.querySelectorAll('[data-a2v-node-id]').length : -1,
-    cycleRing: Boolean(cycle && cycle.querySelector('.a2v-cycle-ring')),
-    cycleHead: cycle ? attr(cycle.querySelector('.a2v-cycle-head'), 'points') : null,
-    cycleFill: cycle ? attr(cycle.querySelector('.a2v-cycle-fill'), 'stroke-dasharray') : null,
+    flowNodes: flow ? flow.querySelectorAll('[data-m2v-node-id]').length : -1,
+    cycleRing: Boolean(cycle && cycle.querySelector('.m2v-cycle-ring')),
+    cycleHead: cycle ? attr(cycle.querySelector('.m2v-cycle-head'), 'points') : null,
+    cycleFill: cycle ? attr(cycle.querySelector('.m2v-cycle-fill'), 'stroke-dasharray') : null,
     cycleStages: stageState(cycle),
     cycleGeometry: geometry(cycle),
-    timelineFill: timeline ? attr(timeline.querySelector('.a2v-timeline-fill'), 'style') : null,
+    timelineFill: timeline ? attr(timeline.querySelector('.m2v-timeline-fill'), 'style') : null,
     timelineStages: stageState(timeline),
     timelineGeometry: geometry(timeline),
-    timelineNodes: timeline ? timeline.querySelectorAll('[data-a2v-node-id]').length : -1,
-    gaugeShown: gauge ? Number(attr(gauge, 'data-a2v-shown')) : -1,
-    gaugeValue: gauge ? Number(attr(gauge, 'data-a2v-value')) : -1,
-    pictogramFilled: pictogram ? Number(attr(pictogram, 'data-a2v-filled')) : -1,
-    pictogramUnits: pictogram ? Number(attr(pictogram, 'data-a2v-units')) : -1,
+    timelineNodes: timeline ? timeline.querySelectorAll('[data-m2v-node-id]').length : -1,
+    gaugeShown: gauge ? Number(attr(gauge, 'data-m2v-shown')) : -1,
+    gaugeValue: gauge ? Number(attr(gauge, 'data-m2v-value')) : -1,
+    pictogramFilled: pictogram ? Number(attr(pictogram, 'data-m2v-filled')) : -1,
+    pictogramUnits: pictogram ? Number(attr(pictogram, 'data-m2v-units')) : -1,
     pictogramIcons: pictogram ? pictogram.querySelectorAll('svg').length : -1,
   };
 }
@@ -252,8 +252,8 @@ def test_same_frame_is_reproducible(midlevel_page):
 def test_stage_children_keep_their_content_height(midlevel_page):
     """阶段子节点必须按内容撑开，而不是被撑成整块画布。
 
-    回归背景：节点上的阶段状态属性一度写成 `data-a2v-stage`，与画布容器的
-    `[data-a2v-stage]`（base.css 里声明 1080×1920 + `overflow: hidden`）同名，
+    回归背景：节点上的阶段状态属性一度写成 `data-m2v-stage`，与画布容器的
+    `[data-m2v-stage]`（base.css 里声明 1080×1920 + `overflow: hidden`）同名，
     于是每个阶段子节点都被撑成整块画布：flow 的文字被裁掉、timeline 把标题
     挤出安全区、整幕墨迹掉到 0.4%。这里按几何钉住这条不变量。
     """
@@ -266,5 +266,5 @@ def test_stage_children_keep_their_content_height(midlevel_page):
             assert 0 < box["height"] < canvas / 2, f"{key} 的 {box['id']} 高度异常：{box}"
     # 画布属性只能出现在舞台容器上：阶段状态用独立的属性名
     assert midlevel_page.evaluate(
-        "() => Array.from(document.querySelectorAll('.a2v-primitive[data-a2v-stage]')).length"
+        "() => Array.from(document.querySelectorAll('.m2v-primitive[data-m2v-stage]')).length"
     ) == 0

@@ -12,10 +12,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from a2v.types.financial import financial
-from a2v.types.financial import financial_render
-from a2v.core.errors import A2VError
-from a2v.types.financial import commands as financial_video
+from m2v.types.financial import financial
+from m2v.types.financial import financial_render
+from m2v.core.errors import M2VError
+from m2v.types.financial import commands as financial_video
 
 
 def project(tmp_path: Path) -> Path:
@@ -80,7 +80,7 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
 def test_rejects_invalid_investment_settings(tmp_path, investment, message):
     root = project(tmp_path)
     edit(root, "request.json", lambda data: data.update(investment=investment))
-    with pytest.raises(A2VError, match=message):
+    with pytest.raises(M2VError, match=message):
         financial.load_project(root)
 
 
@@ -102,14 +102,14 @@ def test_rejects_invalid_investment_settings(tmp_path, investment, message):
 def test_rejects_invalid_financial_materials(tmp_path, file, mutate, message):
     root = project(tmp_path)
     edit(root, file, mutate)
-    with pytest.raises(A2VError, match=message):
+    with pytest.raises(M2VError, match=message):
         financial.load_project(root)
 
 
 def test_stock_range_before_listing_requires_a_confirmed_shorter_range(tmp_path):
     root = project(tmp_path)
     edit(root, "request.json", lambda d: d["instrument"].update(listingDate="2021-01-01"))
-    with pytest.raises(A2VError, match="上市日期之前"):
+    with pytest.raises(M2VError, match="上市日期之前"):
         financial.load_project(root)
 
 
@@ -131,14 +131,14 @@ def test_future_display_dates_are_rejected(tmp_path):
     request["requestedRange"] = ["2020-01-01", future]
     request["displayRange"] = ["2020-01-01", future]
     request["confirmations"] = ["合成确认"]
-    with pytest.raises(A2VError, match="未来日期"):
+    with pytest.raises(M2VError, match="未来日期"):
         financial._validate_request(request)
 
 
 def test_legacy_events_file_requires_migration(tmp_path):
     root = project(tmp_path)
     (root / "events.json").write_text("{}", encoding="utf-8")
-    with pytest.raises(A2VError, match="事件材料已移除"):
+    with pytest.raises(M2VError, match="事件材料已移除"):
         financial.load_project(root)
 
 
@@ -155,10 +155,10 @@ def test_index_material_uses_official_points_not_stock_adjustment(tmp_path):
 def test_raw_snapshot_hash_and_workspace_boundary_are_enforced(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda d: d["rawSnapshots"][0].update(sha256="0" * 64))
-    with pytest.raises(A2VError, match="摘要不匹配"):
+    with pytest.raises(M2VError, match="摘要不匹配"):
         financial.load_project(root)
     edit(root, "prices.json", lambda d: d["rawSnapshots"][0].update(path="../outside.csv"))
-    with pytest.raises(A2VError, match="相对路径"):
+    with pytest.raises(M2VError, match="相对路径"):
         financial.load_project(root)
 
 
@@ -169,14 +169,14 @@ def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path)
     (root / "prices.json").write_text(json.dumps(old), encoding="utf-8")
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=2, chartType="candlestick"))
     (root / "events.json").write_text(json.dumps({"selected": [{"title": "旧事件"}]}), encoding="utf-8")
-    with pytest.raises(A2VError, match="migrate-line"):
+    with pytest.raises(M2VError, match="migrate-line"):
         financial.load_project(root)
     backup = financial.migrate_line(root, duration=15)
     assert json.loads((backup / "prices.json").read_text(encoding="utf-8")) == old
     assert financial.load_project(root)["prices"] == original
     assert not (root / "events.json").exists()
     assert (backup / "events.json").exists()
-    with pytest.raises(A2VError, match="计划已是 v7"):
+    with pytest.raises(M2VError, match="计划已是 v7"):
         financial.migrate_line(root)
 
 
@@ -207,7 +207,7 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     edit(root, "prices.json", lambda data: data["points"][0].update(close=0))
     originals = {name: (root / name).read_bytes() for name in financial.MATERIALS}
-    with pytest.raises(A2VError, match="有限正数"):
+    with pytest.raises(M2VError, match="有限正数"):
         financial.migrate_line(root)
     assert {name: (root / name).read_bytes() for name in financial.MATERIALS} == originals
 
@@ -223,7 +223,7 @@ def test_plan_covers_full_60_seconds_without_event_pauses():
     dates = [financial.frame_date(plan, frame) for frame in range(1800)]
     assert dates == sorted(dates)
     assert dates[-1].isoformat() == "2026-10-08"
-    with pytest.raises(A2VError, match="至少需要 10 秒"):
+    with pytest.raises(M2VError, match="至少需要 10 秒"):
         financial.build_line_plan(request, duration=9)
     single_day = financial.build_line_plan({"displayRange": ["2020-01-01", "2020-01-01"]}, duration=10)
     assert all(financial.frame_date(single_day, frame).isoformat() == "2020-01-01" for frame in range(300))
@@ -246,13 +246,13 @@ def preview_fixture(root, docs):
 def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     root = project(tmp_path)
     docs = financial.load_project(root)
-    with pytest.raises(A2VError, match="需要当前完整视频"):
+    with pytest.raises(M2VError, match="需要当前完整视频"):
         financial.validate_legibility_review(root, docs)
     preview_digest = preview_fixture(root, docs)
     assert financial_video.main(["review-template", "--project-dir", str(root)]) == 0
     path = root / "outputs" / "legibility-review.json"
     review = json.loads(path.read_text(encoding="utf-8"))
-    with pytest.raises(A2VError, match="只接受完整视频评审通过"):
+    with pytest.raises(M2VError, match="只接受完整视频评审通过"):
         financial.validate_legibility_review(root, docs)
     review.update(result="pass", fullVideo=True, sampleTimecodes=["00:00:03"],
         checks={key: True for key in financial.REVIEW_CHECKS}, evidence={**{key: "合成证据" for key in financial.REVIEW_CHECKS},
@@ -260,20 +260,20 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
             "safeArea": {"bounds": {"x": [64, 900], "y": [180, 1500]}, "reviewed": True, "details": "合成安全区证据"}})
     assert review["previewSha256"] == preview_digest
     path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
-    with pytest.raises(A2VError, match="review.json.metrics"):
+    with pytest.raises(M2VError, match="review.json.metrics"):
         financial.validate_legibility_review(root, docs)
     missing_mobile = json.loads(json.dumps(review))
     missing_mobile["evidence"]["mobileScale"].update(reviewed=False, details="")
     path.write_text(json.dumps(missing_mobile), encoding="utf-8")
-    with pytest.raises(A2VError, match="evidence.mobileScale"):
+    with pytest.raises(M2VError, match="evidence.mobileScale"):
         financial.validate_legibility_review(root, docs)
     path.write_text(json.dumps(review), encoding="utf-8")
     financial.validate_legibility_review(root, docs)
     (root / "outputs/previews/test.mp4").write_bytes(b"changed preview")
-    with pytest.raises(A2VError, match="摘要不一致"):
+    with pytest.raises(M2VError, match="摘要不一致"):
         financial.validate_legibility_review(root, docs)
     path.write_text(json.dumps({**review, "materialsAndAssetsSha256": "0" * 64}), encoding="utf-8")
-    with pytest.raises(A2VError, match="已过期"):
+    with pytest.raises(M2VError, match="已过期"):
         financial.validate_legibility_review(root, docs)
 
 
@@ -299,10 +299,10 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
     originals = {name: (root / name).read_bytes() for name in financial.MATERIALS}
 
     def reject(_root):
-        raise A2VError("合成写入后故障")
+        raise M2VError("合成写入后故障")
 
     monkeypatch.setattr(financial, "load_project", reject)
-    with pytest.raises(A2VError, match="写入后故障"):
+    with pytest.raises(M2VError, match="写入后故障"):
         financial.migrate_line(root, duration=15)
     assert {name: (root / name).read_bytes() for name in financial.MATERIALS} == originals
     assert (root / "events.json").read_bytes() == legacy_events
@@ -312,7 +312,7 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
 def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
-    with pytest.raises(A2VError, match="需要 v3 价格和 v7 动画计划"):
+    with pytest.raises(M2VError, match="需要 v3 价格和 v7 动画计划"):
         financial.load_project(root)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     backup = financial.migrate_line(root, duration=15)
@@ -321,7 +321,7 @@ def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
-    import a2v.engine.remotion as remotion
+    import m2v.engine.remotion as remotion
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -329,11 +329,11 @@ def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch
     path = root / "outputs/previews/preview-record.json"
     edit_record = json.loads(path.read_text(encoding="utf-8"))
     path.write_text(json.dumps({**edit_record, "frames": 2}), encoding="utf-8")
-    with pytest.raises(A2VError, match="完整时长"):
+    with pytest.raises(M2VError, match="完整时长"):
         financial.load_preview_record(root, docs)
     path.write_text(json.dumps(edit_record), encoding="utf-8")
     monkeypatch.setattr(remotion, "build_inputs", lambda **kwargs: [])
-    with pytest.raises(A2VError, match="资产已变化"):
+    with pytest.raises(M2VError, match="资产已变化"):
         financial.load_preview_record(root, docs)
 
 
@@ -343,7 +343,7 @@ def test_preview_cannot_overwrite_a_final_video(tmp_path):
     destination = root / "outputs/old-final.mp4"
     destination.parent.mkdir()
     destination.write_bytes(b"original final")
-    with pytest.raises(A2VError, match="不能覆盖正式成片"):
+    with pytest.raises(M2VError, match="不能覆盖正式成片"):
         financial_render.render(root, docs, output=destination, preview=True)
     assert destination.read_bytes() == b"original final"
 
@@ -352,8 +352,8 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     """复核用的旁路预演 `--out` 不得顶掉已登记的完整预演，否则评审会静默失效。"""
     from types import SimpleNamespace
 
-    import a2v.engine.remotion as remotion
-    import a2v.engine.output_validation as output_validation
+    import m2v.engine.remotion as remotion
+    import m2v.engine.output_validation as output_validation
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -394,9 +394,9 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     """
     from types import SimpleNamespace
 
-    import a2v.engine.remotion as remotion
-    import a2v.engine.output_validation as output_validation
-    import a2v.core.security as security
+    import m2v.engine.remotion as remotion
+    import m2v.engine.output_validation as output_validation
+    import m2v.core.security as security
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -486,7 +486,7 @@ def test_v4_plan_requires_explicit_migration_with_complete_backup(tmp_path):
     root = project(tmp_path)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=4))
     original = {name: (root / name).read_bytes() for name in financial.MATERIALS}
-    with pytest.raises(A2VError, match="migrate-line"):
+    with pytest.raises(M2VError, match="migrate-line"):
         financial.load_project(root)
     assert financial_video.main(["plan", "--project-dir", str(root)]) == 2
     assert (root / "animation-plan.json").read_bytes() == original["animation-plan.json"]
@@ -508,7 +508,7 @@ def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
     review = root / "outputs" / "legibility-review.json"
     review.write_text('{"result":"pass"}', encoding="utf-8")
 
-    with pytest.raises(A2VError, match="需要 v3 价格和 v7 动画计划"):
+    with pytest.raises(M2VError, match="需要 v3 价格和 v7 动画计划"):
         financial.load_project(root)
     backup = financial.migrate_line(root, duration=15)
 

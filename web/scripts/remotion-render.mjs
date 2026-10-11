@@ -34,15 +34,15 @@ import {
 } from '@remotion/renderer';
 
 /** Python 侧按前缀取行，因此打包器与 Remotion 自己的日志都不影响解析。 */
-const METADATA_PREFIX = '__A2V_COMPOSITION__';
-const PROGRESS_PREFIX = '__A2V_PROGRESS__';
-const SESSION_PREFIX = '__A2V_SESSION__';
-const READY_PREFIX = '__A2V_READY__';
-const DONE_PREFIX = '__A2V_DONE__';
-const CONFIRM_PREFIX = '__A2V_CONFIRM__';
-const ABORT_PREFIX = '__A2V_ABORT__';
+const METADATA_PREFIX = '__M2V_COMPOSITION__';
+const PROGRESS_PREFIX = '__M2V_PROGRESS__';
+const SESSION_PREFIX = '__M2V_SESSION__';
+const READY_PREFIX = '__M2V_READY__';
+const DONE_PREFIX = '__M2V_DONE__';
+const CONFIRM_PREFIX = '__M2V_CONFIRM__';
+const ABORT_PREFIX = '__M2V_ABORT__';
 
-const COMPOSITION_ID = 'A2V';
+const COMPOSITION_ID = 'M2V';
 
 function parseArgs(argv) {
   const parsed = {};

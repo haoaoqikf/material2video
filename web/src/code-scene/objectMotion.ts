@@ -1,11 +1,11 @@
-import type { A2VBeatInfo } from './index';
+import type { M2VBeatInfo } from './index';
 
 export interface Point { x: number; y: number }
 const finite = (value: number): number => { if (!Number.isFinite(value)) throw new Error('动画参数必须有限'); return value; };
 const clamp = (value: number): number => Math.min(1, Math.max(0, finite(value)));
 
 /** 局部动作可提前完成；区间后保持结果，不依赖上一帧。 */
-export function beatActionProgress(plan: readonly A2VBeatInfo[], id: string, frame: number, finishAt = 1): number {
+export function beatActionProgress(plan: readonly M2VBeatInfo[], id: string, frame: number, finishAt = 1): number {
   const beat = plan.find((item) => item.id === id);
   if (!beat) throw new Error(`缺少节拍 ${id}`);
   if (!(finishAt > 0 && finishAt <= 1) || beat.endFrame <= beat.startFrame) throw new Error('节拍区间或完成比例非法');

@@ -30,7 +30,7 @@ export function freezeFrameOption(option: EChartsOption): EChartsOption {
   };
 }
 
-export interface A2VFrameChart {
+export interface M2VFrameChart {
   /** 挂载目标：作品把它 ref 到一个有尺寸的容器上。 */
   ref: RefObject<HTMLDivElement | null>;
   /** echarts 实例（初始化完成后才有）；一般不需要直接操作。 */
@@ -54,7 +54,7 @@ export interface A2VFrameChart {
 export function useFrameChart(
   build: () => EChartsOption,
   watch: readonly unknown[] = [],
-): A2VFrameChart {
+): M2VFrameChart {
   const ref = useRef<HTMLDivElement>(null);
   const [instance, setInstance] = useState<EChartsInstance | null>(null);
   // build 以 ref 保存：帧更新只依赖 watch 的值，不因闭包身份变化重建实例

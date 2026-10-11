@@ -4,7 +4,7 @@
 
 * **不设内容根时两层根重合**，既有调用方式与产物位置逐帧不变；
 * **设了内容根**，仓库外文章的归属、产物与媒体目录都跟着工作区根走，
-  且 `--content-root` 优先于 `A2V_CONTENT_ROOT`；
+  且 `--content-root` 优先于 `M2V_CONTENT_ROOT`；
 * **推不出来时报错并说明两条设置方式**，而不是猜一个位置——猜错的后果是
   把成片写到别处，而人直到打开目录才发现。
 """
@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pytest
 
-import a2v.types.article.cli as cli
-import a2v.types.article.paths as paths
-import a2v.types.article.storyboard_v4 as storyboard_v4
-from a2v.core.errors import A2VError
+import m2v.types.article.cli as cli
+import m2v.types.article.paths as paths
+import m2v.types.article.storyboard_v4 as storyboard_v4
+from m2v.core.errors import M2VError
 
 from conftest import SKILL_MARKER, make_project
 
@@ -29,7 +29,7 @@ def make_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     marker = repo / SKILL_MARKER
     marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.write_text("# article2video skill", encoding="utf-8")
+    marker.write_text("# material2video skill", encoding="utf-8")
     return repo
 
 
@@ -52,7 +52,7 @@ class TestContentRootResolution:
         make_repo(tmp_path)
         content = make_content_root(tmp_path)
         page = content / "videos" / "demo" / "index.html"
-        with pytest.raises(A2VError) as excinfo:
+        with pytest.raises(M2VError) as excinfo:
             paths.for_page(page)
         message = str(excinfo.value)
         assert "--content-root" in message and paths.CONTENT_ROOT_ENV in message
@@ -117,7 +117,7 @@ class TestContentRootResolution:
         loose.mkdir(parents=True)
         page = loose / "index.html"
         page.write_text("<html></html>", encoding="utf-8")
-        with pytest.raises(A2VError, match="无法推导文章归属"):
+        with pytest.raises(M2VError, match="无法推导文章归属"):
             paths.for_page(page, content)
 
 
@@ -176,7 +176,7 @@ class TestContentRootReachesTheEntryPoints:
 
     def test_declarative_serve_root_follows_the_workspace(self, tmp_path, valid_script_v4):
         """共享页面在仓库里、分镜在内容根里：静态根必须是内容根。"""
-        from a2v.types.article.render import _default_serve_root
+        from m2v.types.article.render import _default_serve_root
 
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script_v4)

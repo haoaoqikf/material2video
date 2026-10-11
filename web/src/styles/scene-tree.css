@@ -1,62 +1,62 @@
-.a2v-primitive { position: relative; min-width: 0; }
-.a2v-camera[data-a2v-code-camera] { position: absolute; inset: 0; width: 100%; height: 100%; }
-.a2v-camera[data-a2v-code-camera] > .a2v-code-scene { position: relative; width: 100%; height: 100%; }
-.a2v-primitive-stack, .a2v-primitive-column, .a2v-primitive-row, .a2v-primitive-split, .a2v-primitive-grid, .a2v-primitive-overlay, .a2v-primitive-radial, .a2v-primitive-group { min-height: 120px; }
-.a2v-primitive-overlay > * { grid-area: 1 / 1; }
+.m2v-primitive { position: relative; min-width: 0; }
+.m2v-camera[data-m2v-code-camera] { position: absolute; inset: 0; width: 100%; height: 100%; }
+.m2v-camera[data-m2v-code-camera] > .m2v-code-scene { position: relative; width: 100%; height: 100%; }
+.m2v-primitive-stack, .m2v-primitive-column, .m2v-primitive-row, .m2v-primitive-split, .m2v-primitive-grid, .m2v-primitive-overlay, .m2v-primitive-radial, .m2v-primitive-group { min-height: 120px; }
+.m2v-primitive-overlay > * { grid-area: 1 / 1; }
 
 /* 分镜文案的换行符是硬换行：断行位置由分镜决定（见视觉规范「排版层级」）。
    没有这一条，\n 会在 HTML 里折叠成空格，浏览器自动折行产生单字孤行。 */
-.a2v-primitive-text { white-space: pre-line; }
+.m2v-primitive-text { white-space: pre-line; }
 
 /* 文字角色档位的基础版式：字阶与颜色来自令牌层的 :root 变量，任何主题可用。
-   预设层的同档规则带 [data-a2v-preset] 作用域、特异性更高，启用预设时优先级不变。 */
-.a2v-hero { font-size: var(--a2v-size-hero, 140px); line-height: 1.15; color: var(--a2v-heading-color, var(--a2v-text-1, #f4f7fb)); }
-.a2v-headline { font-size: var(--a2v-size-headline, 96px); line-height: 1.2; color: var(--a2v-heading-color, var(--a2v-text-1, #f4f7fb)); }
-.a2v-title { font-size: var(--a2v-size-title, 76px); line-height: 1.3; color: var(--a2v-text-1, #f4f7fb); }
-.a2v-body { font-size: var(--a2v-size-body, 40px); line-height: 1.5; color: var(--a2v-text-1, #f4f7fb); }
-.a2v-label { font-size: var(--a2v-size-label, 34px); line-height: 1.4; color: var(--a2v-text-1, #f4f7fb); }
-.a2v-caption { font-size: var(--a2v-size-caption, 28px); line-height: 1.4; color: var(--a2v-text-1, #f4f7fb); }
-.a2v-numeric { font-size: var(--a2v-size-display, 120px); line-height: 1.1; color: var(--a2v-heading-color, var(--a2v-text-1, #f4f7fb)); font-variant-numeric: tabular-nums; }
+   预设层的同档规则带 [data-m2v-preset] 作用域、特异性更高，启用预设时优先级不变。 */
+.m2v-hero { font-size: var(--m2v-size-hero, 140px); line-height: 1.15; color: var(--m2v-heading-color, var(--m2v-text-1, #f4f7fb)); }
+.m2v-headline { font-size: var(--m2v-size-headline, 96px); line-height: 1.2; color: var(--m2v-heading-color, var(--m2v-text-1, #f4f7fb)); }
+.m2v-title { font-size: var(--m2v-size-title, 76px); line-height: 1.3; color: var(--m2v-text-1, #f4f7fb); }
+.m2v-body { font-size: var(--m2v-size-body, 40px); line-height: 1.5; color: var(--m2v-text-1, #f4f7fb); }
+.m2v-label { font-size: var(--m2v-size-label, 34px); line-height: 1.4; color: var(--m2v-text-1, #f4f7fb); }
+.m2v-caption { font-size: var(--m2v-size-caption, 28px); line-height: 1.4; color: var(--m2v-text-1, #f4f7fb); }
+.m2v-numeric { font-size: var(--m2v-size-display, 120px); line-height: 1.1; color: var(--m2v-heading-color, var(--m2v-text-1, #f4f7fb)); font-variant-numeric: tabular-nums; }
 
 /* state 是注册属性：静音降存在感，聚焦提亮，收尾微降——三种状态都可观察 */
-.a2v-primitive[data-a2v-state='muted'] { opacity: 0.45; }
-.a2v-primitive[data-a2v-state='focus'] { filter: drop-shadow(0 0 32px color-mix(in srgb, var(--a2v-accent, #7aa2ff) 45%, transparent)); }
-.a2v-primitive[data-a2v-state='done'] { opacity: 0.8; }
+.m2v-primitive[data-m2v-state='muted'] { opacity: 0.45; }
+.m2v-primitive[data-m2v-state='focus'] { filter: drop-shadow(0 0 32px color-mix(in srgb, var(--m2v-accent, #7aa2ff) 45%, transparent)); }
+.m2v-primitive[data-m2v-state='done'] { opacity: 0.8; }
 
-.a2v-primitive-surface { padding: var(--a2v-space-6, 32px); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 35%, transparent); border-radius: 28px; background: color-mix(in srgb, var(--a2v-surface, #171b24) 90%, transparent); box-shadow: 0 14px 36px rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 6%); }
+.m2v-primitive-surface { padding: var(--m2v-space-6, 32px); border: 1px solid color-mix(in srgb, var(--m2v-accent, #7aa2ff) 35%, transparent); border-radius: 28px; background: color-mix(in srgb, var(--m2v-surface, #171b24) 90%, transparent); box-shadow: 0 14px 36px rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 6%); }
 
 /* shape 变体：每个注册的 shape 值都有可观察且互不相同的渲染效果 */
-.a2v-primitive-shape { width: 220px; aspect-ratio: 1; }
-.a2v-shape-circle { border: 2px solid var(--a2v-accent, #7aa2ff); border-radius: 50%; box-shadow: 0 0 72px color-mix(in srgb, var(--a2v-accent, #7aa2ff) 25%, transparent); }
-.a2v-shape-rect { border: 2px solid var(--a2v-accent, #7aa2ff); border-radius: 20px; }
-.a2v-shape-line { width: 320px; height: 4px; aspect-ratio: auto; border: none; border-radius: 2px; background: var(--a2v-accent, #7aa2ff); }
-.a2v-shape-spotlight { width: 560px; border: none; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--a2v-accent, #7aa2ff) 40%, transparent), transparent); }
-.a2v-shape-ring { border: 12px solid var(--a2v-accent, #7aa2ff); border-radius: 50%; background: transparent; }
+.m2v-primitive-shape { width: 220px; aspect-ratio: 1; }
+.m2v-shape-circle { border: 2px solid var(--m2v-accent, #7aa2ff); border-radius: 50%; box-shadow: 0 0 72px color-mix(in srgb, var(--m2v-accent, #7aa2ff) 25%, transparent); }
+.m2v-shape-rect { border: 2px solid var(--m2v-accent, #7aa2ff); border-radius: 20px; }
+.m2v-shape-line { width: 320px; height: 4px; aspect-ratio: auto; border: none; border-radius: 2px; background: var(--m2v-accent, #7aa2ff); }
+.m2v-shape-spotlight { width: 560px; border: none; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--m2v-accent, #7aa2ff) 40%, transparent), transparent); }
+.m2v-shape-ring { border: 12px solid var(--m2v-accent, #7aa2ff); border-radius: 50%; background: transparent; }
 
-.a2v-primitive-connector { display: flex; align-items: center; justify-content: center; }
-.a2v-primitive-connector svg { display: block; }
+.m2v-primitive-connector { display: flex; align-items: center; justify-content: center; }
+.m2v-primitive-connector svg { display: block; }
 
 /* 图表：容器由「原语包装盒 + 内层图表」两层同名类组成。
    包装盒不得另设高度或标签带——入场揭示动效会给它加 clip-path: inset(0)（终态），
    内层一旦溢出包装盒（比如双份 padding 把内层顶出上边缘），溢出内容就被裁掉，
    角标曾因此整块消失；包装盒必须随内容撑开。 */
-.a2v-primitive-chart { display: flex; align-items: end; gap: 18px; height: 360px; width: 100%; position: relative; }
-.a2v-primitive.a2v-primitive-chart { height: auto; }
-.a2v-chart-bar { padding-bottom: 72px; }
-.a2v-primitive-bar { position: relative; flex: 1; min-height: 8%; border-radius: 14px 14px 4px 4px; background: var(--a2v-accent, #7aa2ff); display: flex; align-items: end; justify-content: center; }
-.a2v-primitive-bar span { position: absolute; top: calc(100% + 8px); transform: none; color: var(--a2v-text-1, #f4f7fb); white-space: nowrap; font-size: var(--a2v-size-label, 34px); line-height: 1.2; }
-.a2v-schematic { position: absolute; top: 0; right: 0; font-size: 24px; color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); border: 1px solid color-mix(in srgb, var(--a2v-accent, #7aa2ff) 55%, transparent); border-radius: 8px; padding: 2px 10px; }
+.m2v-primitive-chart { display: flex; align-items: end; gap: 18px; height: 360px; width: 100%; position: relative; }
+.m2v-primitive.m2v-primitive-chart { height: auto; }
+.m2v-chart-bar { padding-bottom: 72px; }
+.m2v-primitive-bar { position: relative; flex: 1; min-height: 8%; border-radius: 14px 14px 4px 4px; background: var(--m2v-accent, #7aa2ff); display: flex; align-items: end; justify-content: center; }
+.m2v-primitive-bar span { position: absolute; top: calc(100% + 8px); transform: none; color: var(--m2v-text-1, #f4f7fb); white-space: nowrap; font-size: var(--m2v-size-label, 34px); line-height: 1.2; }
+.m2v-schematic { position: absolute; top: 0; right: 0; font-size: 24px; color: var(--m2v-accent-ink, var(--m2v-accent, #7aa2ff)); border: 1px solid color-mix(in srgb, var(--m2v-accent, #7aa2ff) 55%, transparent); border-radius: 8px; padding: 2px 10px; }
 
-.a2v-chart-line, .a2v-chart-pie { display: block; height: auto; }
-.a2v-chart-line svg { width: 100%; height: auto; }
-.a2v-chart-line text { fill: currentColor; }
-.a2v-chart-pie { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.a2v-chart-pie svg { width: 420px; max-width: 100%; height: auto; }
-.a2v-chart-legend { display: flex; flex-wrap: wrap; gap: 14px 26px; justify-content: center; font-size: 26px; }
-.a2v-chart-legend-item { display: inline-flex; align-items: center; gap: 10px; }
-.a2v-chart-legend-item i { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
+.m2v-chart-line, .m2v-chart-pie { display: block; height: auto; }
+.m2v-chart-line svg { width: 100%; height: auto; }
+.m2v-chart-line text { fill: currentColor; }
+.m2v-chart-pie { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.m2v-chart-pie svg { width: 420px; max-width: 100%; height: auto; }
+.m2v-chart-legend { display: flex; flex-wrap: wrap; gap: 14px 26px; justify-content: center; font-size: 26px; }
+.m2v-chart-legend-item { display: inline-flex; align-items: center; gap: 10px; }
+.m2v-chart-legend-item i { width: 22px; height: 22px; border-radius: 6px; display: inline-block; }
 
-.a2v-primitive-image img { display: block; width: 100%; max-height: 720px; object-fit: contain; }
+.m2v-primitive-image img { display: block; width: 100%; max-height: 720px; object-fit: contain; }
 
 /* ---------- 中层原语：方向连接与当前阶段 ----------
  *
@@ -70,39 +70,39 @@
  * 3. **无字体依赖**：方向箭头是内联 SVG 路径，不是字符，换字体不会走形。
  */
 
-.a2v-primitive-icon { display: flex; align-items: center; justify-content: center; color: var(--a2v-accent, #7aa2ff); }
-.a2v-flow-arrow { display: inline-flex; align-items: center; justify-content: center; color: var(--a2v-accent, #7aa2ff); flex: 0 0 auto; }
-.a2v-flow-arrow svg { display: block; }
-.a2v-primitive-flow > .a2v-primitive, .a2v-primitive-timeline > .a2v-primitive { flex: 1 1 0; min-width: 0; }
+.m2v-primitive-icon { display: flex; align-items: center; justify-content: center; color: var(--m2v-accent, #7aa2ff); }
+.m2v-flow-arrow { display: inline-flex; align-items: center; justify-content: center; color: var(--m2v-accent, #7aa2ff); flex: 0 0 auto; }
+.m2v-flow-arrow svg { display: block; }
+.m2v-primitive-flow > .m2v-primitive, .m2v-primitive-timeline > .m2v-primitive { flex: 1 1 0; min-width: 0; }
 
 /* 时间轴的阶段标签坐在轴线上：轴从标签背后穿过，标签必须有实底，
-   否则轴线会像删除线一样划过文字。`--a2v-surface` 是渐变、不能 color-mix，
+   否则轴线会像删除线一样划过文字。`--m2v-surface` 是渐变、不能 color-mix，
    因此这里直接用抬升面的实色令牌。 */
-.a2v-primitive-timeline > .a2v-primitive-surface { background: var(--a2v-bg-1, #0d111a); }
+.m2v-primitive-timeline > .m2v-primitive-surface { background: var(--m2v-bg-1, #0d111a); }
 
-.a2v-cycle-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
-.a2v-cycle-track { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 22%, transparent); }
-.a2v-cycle-fill { stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
-.a2v-cycle-head { fill: var(--a2v-accent, #7aa2ff); }
+.m2v-cycle-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.m2v-cycle-track { stroke: color-mix(in srgb, var(--m2v-text-1, #f4f7fb) 22%, transparent); }
+.m2v-cycle-fill { stroke: var(--m2v-accent, #7aa2ff); stroke-linecap: round; }
+.m2v-cycle-head { fill: var(--m2v-accent, #7aa2ff); }
 
-.a2v-timeline-axis { position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); background: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 18%, transparent); border-radius: 3px; overflow: hidden; }
-.a2v-timeline-fill { display: block; width: 100%; height: 100%; background: var(--a2v-accent, #7aa2ff); }
-.a2v-primitive-timeline { padding: 40px 0; }
+.m2v-timeline-axis { position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); background: color-mix(in srgb, var(--m2v-text-1, #f4f7fb) 18%, transparent); border-radius: 3px; overflow: hidden; }
+.m2v-timeline-fill { display: block; width: 100%; height: 100%; background: var(--m2v-accent, #7aa2ff); }
+.m2v-primitive-timeline { padding: 40px 0; }
 
-.a2v-gauge { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.a2v-gauge svg { width: 420px; max-width: 100%; height: auto; }
-.a2v-gauge-track { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 20%, transparent); }
-.a2v-gauge-tick { stroke: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 34%, transparent); }
-.a2v-gauge-fill { fill: none; stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
-.a2v-gauge-needle { stroke: var(--a2v-accent, #7aa2ff); stroke-linecap: round; }
-.a2v-gauge-hub { fill: var(--a2v-accent, #7aa2ff); }
+.m2v-gauge { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.m2v-gauge svg { width: 420px; max-width: 100%; height: auto; }
+.m2v-gauge-track { stroke: color-mix(in srgb, var(--m2v-text-1, #f4f7fb) 20%, transparent); }
+.m2v-gauge-tick { stroke: color-mix(in srgb, var(--m2v-text-1, #f4f7fb) 34%, transparent); }
+.m2v-gauge-fill { fill: none; stroke: var(--m2v-accent, #7aa2ff); stroke-linecap: round; }
+.m2v-gauge-needle { stroke: var(--m2v-accent, #7aa2ff); stroke-linecap: round; }
+.m2v-gauge-hub { fill: var(--m2v-accent, #7aa2ff); }
 /* 读数槽宽度固定：数值从 0 涨到 100 时容器不重排（tabular-nums 保证字宽一致） */
-.a2v-gauge-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
-.a2v-gauge-note { color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); }
+.m2v-gauge-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
+.m2v-gauge-note { color: var(--m2v-accent-ink, var(--m2v-accent, #7aa2ff)); }
 
-.a2v-pictogram { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-.a2v-pictogram-units { display: grid; grid-template-columns: repeat(5, auto); gap: 16px; justify-items: center; }
-.a2v-pictogram-unit { display: inline-flex; color: color-mix(in srgb, var(--a2v-text-1, #f4f7fb) 26%, transparent); }
-.a2v-pictogram-unit[data-a2v-state='focus'] { color: var(--a2v-accent, #7aa2ff); }
-.a2v-pictogram-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
-.a2v-pictogram-note { color: var(--a2v-accent-ink, var(--a2v-accent, #7aa2ff)); }
+.m2v-pictogram { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.m2v-pictogram-units { display: grid; grid-template-columns: repeat(5, auto); gap: 16px; justify-items: center; }
+.m2v-pictogram-unit { display: inline-flex; color: color-mix(in srgb, var(--m2v-text-1, #f4f7fb) 26%, transparent); }
+.m2v-pictogram-unit[data-m2v-state='focus'] { color: var(--m2v-accent, #7aa2ff); }
+.m2v-pictogram-readout { display: flex; align-items: baseline; gap: 8px; min-width: 320px; justify-content: center; }
+.m2v-pictogram-note { color: var(--m2v-accent-ink, var(--m2v-accent, #7aa2ff)); }

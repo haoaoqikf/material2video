@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import a2v.types.article.media as media_mod
+import m2v.types.article.media as media_mod
 
 
 def _page(tmp_path: Path, html: str = "") -> Path:
@@ -134,7 +134,7 @@ class TestKeysSayWhereTheFileIs:
 
     @staticmethod
     def _bundle(tmp_path: Path) -> tuple[Path, dict[str, Path]]:
-        import a2v.core.assets as assets_mod
+        import m2v.core.assets as assets_mod
 
         directory = tmp_path / "bundle" / "assets"
         directory.mkdir(parents=True)
@@ -143,11 +143,11 @@ class TestKeysSayWhereTheFileIs:
     def test_mounted_asset_gets_an_alias_key(self, tmp_path):
         directory, mounts = self._bundle(tmp_path)
         (directory / "theme.css").write_text(":root{--a:1}", encoding="utf-8")
-        page = _page(tmp_path, '<link rel="stylesheet" href="/__a2v__/theme.css">')
+        page = _page(tmp_path, '<link rel="stylesheet" href="/__m2v__/theme.css">')
         files = media_mod.asset_fingerprint(
             page, page.read_text(encoding="utf-8"), mounts=mounts
         )["files"]
-        assert sorted(files) == ["__a2v__/theme.css", "videos/demo/index.html"]
+        assert sorted(files) == ["__m2v__/theme.css", "videos/demo/index.html"]
 
     def test_shared_page_inside_the_mount_records_alias_keys(self, tmp_path):
         """共享页面与它引用的资产都在 bundle 里：页面与资产都记别名键。"""
@@ -160,15 +160,15 @@ class TestKeysSayWhereTheFileIs:
         files = media_mod.asset_fingerprint(
             page, page.read_text(encoding="utf-8"), workspace_root=content, mounts=mounts
         )["files"]
-        assert sorted(files) == ["__a2v__/declarative.html", "__a2v__/figures.css"]
+        assert sorted(files) == ["__m2v__/declarative.html", "__m2v__/figures.css"]
 
     def test_alias_key_resolves_back_for_verification(self, tmp_path):
-        import a2v.core.assets as assets_mod
+        import m2v.core.assets as assets_mod
 
         directory, mounts = self._bundle(tmp_path)
         target = directory / "figures.css"
         target.write_text(".a{opacity:1}", encoding="utf-8")
-        assert assets_mod.key_path("__a2v__/figures.css", tmp_path, mounts) == target.resolve()
+        assert assets_mod.key_path("__m2v__/figures.css", tmp_path, mounts) == target.resolve()
 
     def test_workspace_relative_key_is_kept_for_article_assets(self, tmp_path):
         """内容根里文章自己的资产仍记工作区相对键：换内容根时跟着一起走。"""

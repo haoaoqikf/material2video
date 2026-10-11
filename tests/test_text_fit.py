@@ -15,8 +15,8 @@ import pathlib
 
 import pytest
 
-import a2v.engine.browser as browser
-import a2v.engine.contract_page as contract_page
+import m2v.engine.browser as browser
+import m2v.engine.contract_page as contract_page
 from conftest import v4_storyboard
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -38,11 +38,11 @@ def _skip_if_unbuilt() -> None:
 
 _FIT_FACTS = """
 () => {
-  const nodes = Array.from(document.querySelectorAll('[data-a2v-primitive="text"]'));
+  const nodes = Array.from(document.querySelectorAll('[data-m2v-primitive="text"]'));
   return nodes.map((el) => ({
-    id: el.getAttribute('data-a2v-node-id'),
-    fitRole: el.getAttribute('data-a2v-fit-role'),
-    fitMeasured: el.getAttribute('data-a2v-fit-measured'),
+    id: el.getAttribute('data-m2v-node-id'),
+    fitRole: el.getAttribute('data-m2v-fit-role'),
+    fitMeasured: el.getAttribute('data-m2v-fit-measured'),
     className: el.querySelector('span') ? el.querySelector('span').className : '',
   }));
 }
@@ -57,11 +57,11 @@ def test_preset_fit_is_measured_and_recorded(chromium_ready, tmp_path):
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(30)
             facts = page.evaluate(_FIT_FACTS)
-            ready = page.evaluate("document.querySelector('[data-a2v-world]').dataset.a2vLayoutReady")
-            camera_at_30 = page.evaluate("document.querySelector('[data-a2v-camera=global]').dataset.a2vCameraX")
+            ready = page.evaluate("document.querySelector('[data-m2v-world]').dataset.m2vLayoutReady")
+            camera_at_30 = page.evaluate("document.querySelector('[data-m2v-camera=global]').dataset.m2vCameraX")
             page.seek(0)
             page.seek(30)
-            camera_after_reverse_seek = page.evaluate("document.querySelector('[data-a2v-camera=global]').dataset.a2vCameraX")
+            camera_after_reverse_seek = page.evaluate("document.querySelector('[data-m2v-camera=global]').dataset.m2vCameraX")
     assert ready == "1", "契约 ready/seek 返回前必须完成 tree 布局预检"
     assert camera_after_reverse_seek == camera_at_30, "后段到前段再寻回时镜头几何必须稳定"
     declared = [item for item in facts if item["fitMeasured"] is not None]
@@ -97,9 +97,9 @@ def test_preflight_is_ready_and_text_stays_in_safe_area_on_phone_viewport(chromi
     with contract_page.serve_contract_page(target, tmp_path, repo_root=ROOT) as url:
         with browser.open_animated_page(url, width=360, height=640, expected_version=4) as page:
             facts = page.evaluate("""() => {
-              const safe = document.querySelector('.a2v-safe').getBoundingClientRect();
-              const text = document.querySelector('[data-a2v-node-id="caption"]').getBoundingClientRect();
-              return { ready: document.querySelector('[data-a2v-world]').dataset.a2vLayoutReady,
+              const safe = document.querySelector('.m2v-safe').getBoundingClientRect();
+              const text = document.querySelector('[data-m2v-node-id="caption"]').getBoundingClientRect();
+              return { ready: document.querySelector('[data-m2v-world]').dataset.m2vLayoutReady,
                 safe: { left: safe.left, right: safe.right, top: safe.top, bottom: safe.bottom },
                 text: { left: text.left, right: text.right, top: text.top, bottom: text.bottom } };
             }""")
@@ -117,8 +117,8 @@ def test_text_that_exceeds_line_limit_is_reported_as_not_fitting(chromium_ready,
     with contract_page.serve_contract_page(storyboard, tmp_path, repo_root=ROOT) as url:
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             facts = page.evaluate("""() => {
-              const text = document.querySelector('[data-a2v-node-id="caption"]');
-              return { fits: text.dataset.a2vFitFits, role: text.dataset.a2vFitRole,
+              const text = document.querySelector('[data-m2v-node-id="caption"]');
+              return { fits: text.dataset.m2vFitFits, role: text.dataset.m2vFitRole,
                 lines: (() => { const r = document.createRange(); r.selectNodeContents(text.querySelector('span')); return r.getClientRects().length; })() };
             }""")
     assert facts["role"] == "caption"
@@ -137,19 +137,19 @@ def test_stage_text_change_remeasures_after_reverse_seek(chromium_ready, tmp_pat
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(0)
             initial = page.evaluate("""() => {
-              const el = document.querySelector('[data-a2v-node-id="caption"]');
-              return { text: el.textContent, role: el.dataset.a2vFitRole, fits: el.dataset.a2vFitFits };
+              const el = document.querySelector('[data-m2v-node-id="caption"]');
+              return { text: el.textContent, role: el.dataset.m2vFitRole, fits: el.dataset.m2vFitFits };
             }""")
             page.seek(400)
             changed = page.evaluate("""() => {
-              const el = document.querySelector('[data-a2v-node-id="caption"]');
-              return { text: el.textContent, role: el.dataset.a2vFitRole, fits: el.dataset.a2vFitFits };
+              const el = document.querySelector('[data-m2v-node-id="caption"]');
+              return { text: el.textContent, role: el.dataset.m2vFitRole, fits: el.dataset.m2vFitFits };
             }""")
             page.seek(0)
             page.seek(400)
             repeated = page.evaluate("""() => {
-              const el = document.querySelector('[data-a2v-node-id="caption"]');
-              return { text: el.textContent, role: el.dataset.a2vFitRole, fits: el.dataset.a2vFitFits };
+              const el = document.querySelector('[data-m2v-node-id="caption"]');
+              return { text: el.textContent, role: el.dataset.m2vFitRole, fits: el.dataset.m2vFitFits };
             }""")
     assert initial["text"] == "快速反馈"
     assert changed["text"] == "阶段切换后的长文案" * 40

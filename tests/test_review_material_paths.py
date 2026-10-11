@@ -7,8 +7,8 @@
 """
 from __future__ import annotations
 
-import a2v.types.article.cli as cli
-import a2v.types.article.inspect as inspect
+import m2v.types.article.cli as cli
+import m2v.types.article.inspect as inspect
 
 
 def test_sheet_name_follows_sampling_timeline() -> None:

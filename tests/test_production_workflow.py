@@ -6,9 +6,9 @@ import pytest
 from types import SimpleNamespace
 from pathlib import Path
 
-import a2v.types.article.production as production
-import a2v.types.article.article_text as article_text
-from a2v.core.errors import A2VError
+import m2v.types.article.production as production
+import m2v.types.article.article_text as article_text
+from m2v.core.errors import M2VError
 from conftest import make_project
 
 
@@ -99,7 +99,7 @@ def test_template_deduplicates_key_scene_review_slots() -> None:
 def test_validate_record_reports_unknown_scene_at_field_path() -> None:
     record = _ready_record()
     record["direction"]["keyScenes"]["climax"] = "missing"
-    with pytest.raises(A2VError, match=r"direction\.keyScenes\.climax.*未知场景"):
+    with pytest.raises(M2VError, match=r"direction\.keyScenes\.climax.*未知场景"):
         production.validate_record(record, {"open", "core", "close"})
 
 
@@ -138,7 +138,7 @@ def test_input_review_blocks_missing_evidence_fail_and_changed_source() -> None:
 def test_input_review_requires_workspace_relative_source() -> None:
     record = _ready_record()
     record["inputReview"]["source"]["path"] = "../article.md"
-    with pytest.raises(A2VError, match=r"inputReview.source.path.*相对路径"):
+    with pytest.raises(M2VError, match=r"inputReview.source.path.*相对路径"):
         production.validate_record(record, {"open", "core", "close"})
 
 
@@ -185,7 +185,7 @@ def test_production_v4_requires_independent_explicit_adoption_record():
     }
     production.validate_record(record, {"open", "core", "close"})
     record["inputAdoption"]["confirmation"] = None
-    with pytest.raises(A2VError, match=r"inputAdoption\.confirmation"):
+    with pytest.raises(M2VError, match=r"inputAdoption\.confirmation"):
         production.validate_record(record, {"open", "core", "close"})
 
 
@@ -251,7 +251,7 @@ def test_continuity_completed_entry_requires_stage_and_global_evidence_range():
     record = _ready_record()
     record["continuity"]["identity"].pop("frameRange")
     record["continuity"]["identity"].pop("timeRange")
-    with pytest.raises(A2VError, match=r"continuity\.identity\.frameRange"):
+    with pytest.raises(M2VError, match=r"continuity\.identity\.frameRange"):
         production.validate_record(record, {"open", "core", "close"})
 
 
@@ -291,11 +291,11 @@ def test_resolved_rework_requires_recheck_evidence() -> None:
     production.validate_record(record, {"open", "core", "close"})
     assert production.gate_for_status(record, storyboard, current) is None
     record["rework"][0]["recheck"]["evidence"] = ""
-    with pytest.raises(A2VError, match=r"rework\[0\]\.recheck"):
+    with pytest.raises(M2VError, match=r"rework\[0\]\.recheck"):
         production.validate_record(record, {"open", "core", "close"})
     record["rework"][0]["recheck"]["evidence"] = "依据"
     record["rework"][0]["recheck"]["fingerprints"]["storyboard"] = "old"
-    with pytest.raises(A2VError, match=r"rework\[0\]\.recheck\.fingerprints"):
+    with pytest.raises(M2VError, match=r"rework\[0\]\.recheck\.fingerprints"):
         production.validate_record(record, {"open", "core", "close"})
 
 
@@ -358,7 +358,7 @@ def test_storyboard_fingerprint_changes_when_bytes_change(tmp_path: Path, monkey
 
 def test_example_production_record_is_outside_versioned_example_source(tmp_path: Path) -> None:
     article_root = make_project(tmp_path, "examples", "demo", script={"scenes": []})
-    article = __import__("a2v.types.article.paths", fromlist=["for_storyboard"]).for_storyboard(article_root / "storyboard.json")
+    article = __import__("m2v.types.article.paths", fromlist=["for_storyboard"]).for_storyboard(article_root / "storyboard.json")
     assert production.record_path(article) == tmp_path / "videos" / "examples" / "demo" / "production.json"
 
 
@@ -390,7 +390,7 @@ def test_shipped_production_template_stays_pending() -> None:
     example_dir = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
     storyboard = json.loads((example_dir / "storyboard.json").read_text(encoding="utf-8"))
     record = json.loads((example_dir / "production.template.json").read_text(encoding="utf-8"))
-    with pytest.raises(A2VError, match=r"inputReview\.status"):
+    with pytest.raises(M2VError, match=r"inputReview\.status"):
         production.validate_record(record, production.storyboard_stage_ids(storyboard))
 
 
@@ -433,7 +433,7 @@ def test_completed_review_requires_ai_source_and_visual_material_references() ->
 
     record = _ready_record()
     record["reviews"]["full"]["static"]["assessment"]["materials"].pop("keyframes")
-    with pytest.raises(A2VError, match=r"assessment\.materials"):
+    with pytest.raises(M2VError, match=r"assessment\.materials"):
         production.validate_record(record, {"open", "core", "close"})
 
 

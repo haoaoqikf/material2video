@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-import a2v.types.article.cli as cli
-import a2v.types.article.prepare as prep
-from a2v.types.article.render import RenderResult
+import m2v.types.article.cli as cli
+import m2v.types.article.prepare as prep
+from m2v.types.article.render import RenderResult
 from conftest import make_project
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))

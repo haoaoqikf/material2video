@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-import a2v.core.fonts as fonts
+import m2v.core.fonts as fonts
 
 try:  # 用 skipif 而不是模块级 importorskip：后者会让默认环境「一个用例都没收集到」
     import fontTools.subset  # noqa: F401

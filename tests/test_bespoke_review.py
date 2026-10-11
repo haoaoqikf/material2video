@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from a2v.types.article.bespoke_review import DIMENSIONS, review
+from m2v.types.article.bespoke_review import DIMENSIONS, review
 
 
 def _storyboard(code: bool = True) -> dict:

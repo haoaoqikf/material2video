@@ -23,7 +23,7 @@ KEYNOTE_CSS = ROOT / "web" / "src" / "styles" / "tokens.css"
 
 #: 图形颜色令牌的分类表。新增令牌必须先进这张表，否则
 #: `test_every_token_is_classified` 会失败——「没有对应规则」不等于「可以放行」。
-#: 取值：`(类, 判定参照)`，参照为 `bg`（对 `--a2v-bg-0`）或 `ink`（对 `--fig-ink` 成对判定）。
+#: 取值：`(类, 判定参照)`，参照为 `bg`（对 `--m2v-bg-0`）或 `ink`（对 `--fig-ink` 成对判定）。
 
 #: 参与画面绘制的活样式层：v1 的 figures.css 已随整页组件删除，
 #: 图形令牌的使用方是 keynote / primitives / scene-tree 这几层。
@@ -63,10 +63,10 @@ CLASSES: dict[str, tuple[str, str]] = {
     "--fig-gauge-track": ("面填充", "-"),
     "--fig-title-grad-from": ("图形内文本", "bg"),
     "--fig-title-grad-to": ("图形内文本", "bg"),
-    # 边界描边：判据基座是它落座的面（抬升面 `--a2v-bg-2`），不是画布。
+    # 边界描边：判据基座是它落座的面（抬升面 `--m2v-bg-2`），不是画布。
     # 同一个颜色在两层的比值不同（深色分隔线对画布 1.52:1、对抬升面 1.64:1），
     # 拿画布去量一个压在面板上的边框，只会得到一个乐观的数字。
-    "--a2v-hairline-strong": ("边界描边", "bg2"),
+    "--m2v-hairline-strong": ("边界描边", "bg2"),
 }
 
 #: SVG 表现属性里允许出现的取值。「空壳」的填充曾经写死成 `rgba(22,24,29,0.035)`：
@@ -83,7 +83,7 @@ PAINT_KEYWORDS = {
 LITERAL_COLOR = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(")
 
 #: 每类的对比度下限。面填充**没有**下限：形状的可读性由数据描边负责，
-#: 而浅色主题自己的面阶（`--a2v-bg-0` → `--a2v-surface-1`）就只有 1.13:1，
+#: 而浅色主题自己的面阶（`--m2v-bg-0` → `--m2v-surface-1`）就只有 1.13:1，
 #: 给面填充设下限会把正确的做法判成缺陷。
 BUDGETS: dict[str, float] = {
     "数据描边": 4.5,
@@ -92,13 +92,13 @@ BUDGETS: dict[str, float] = {
     "装饰描边": 1.5,
 }
 
-#: 判定基座：`bg` → `--a2v-bg-0`，`bg2` → `--a2v-bg-2`，`ink` → 对 `--fig-ink` 成对判定。
-BASES = {"bg": "--a2v-bg-0", "bg2": "--a2v-bg-2"}
+#: 判定基座：`bg` → `--m2v-bg-0`，`bg2` → `--m2v-bg-2`，`ink` → 对 `--fig-ink` 成对判定。
+BASES = {"bg": "--m2v-bg-0", "bg2": "--m2v-bg-2"}
 
 #: 纯分隔线：刻意保持耳语。WCAG 1.4.11 管的是「理解内容所必需的图形对象」，
 #: 纯分隔线本来就在豁免范围内；每条都提到 3:1 会让画面整体变重、层次变平。
 #: 单独列出来，是为了让「不抬高它」也成为一条被守住的决定，而不是一句注释。
-DECORATIVE_SEPARATORS = {"--a2v-hairline": "--a2v-bg-2"}
+DECORATIVE_SEPARATORS = {"--m2v-hairline": "--m2v-bg-2"}
 
 THEMES = {"keynote-dark": "dark", "keynote-light": "light"}
 
@@ -150,15 +150,15 @@ def _contrast(
 def _theme_blocks() -> dict[str, dict[str, str]]:
     """从 `keynote.css` 里按主题抽出图形颜色令牌的取值。
 
-    用**带主题名的完整选择器**切块：只写 `[data-a2v-preset="keynote"]` 会先命中
-    `:root[data-a2v-preset="keynote"]` 那个基础块，只写 `[data-a2v-theme` 会先命中
+    用**带主题名的完整选择器**切块：只写 `[data-m2v-preset="keynote"]` 会先命中
+    `:root[data-m2v-preset="keynote"]` 那个基础块，只写 `[data-m2v-theme` 会先命中
     深色块——两种都会让测试安静地量错东西（曾经如此）。
     """
     source = KEYNOTE_CSS.read_text(encoding="utf-8")
     blocks: dict[str, dict[str, str]] = {}
-    base_selector = ":root[data-a2v-preset='keynote']"
+    base_selector = ":root[data-m2v-preset='keynote']"
     for theme in ("dark", "light"):
-        selector = base_selector if theme == "dark" else ":root[data-a2v-preset='keynote'][data-a2v-theme='light']"
+        selector = base_selector if theme == "dark" else ":root[data-m2v-preset='keynote'][data-m2v-theme='light']"
         start = source.find(selector)
         assert start != -1, f"`keynote.css` 里找不到 {theme} 主题块（选择器 {selector}）"
         depth, index, end = 0, source.find("{", start), -1
@@ -174,13 +174,13 @@ def _theme_blocks() -> dict[str, dict[str, str]]:
         assert end != -1, f"{theme} 主题块没有闭合"
         segment = source[source.find("{", start) : end]
         tokens: dict[str, str] = {}
-        # 连 `--a2v-*` 一起抽：边界描边的判据基座是抬升面 `--a2v-bg-2`，
+        # 连 `--m2v-*` 一起抽：边界描边的判据基座是抬升面 `--m2v-bg-2`，
         # 只抽 `--fig-*` 就拿不到基座。
         for match in re.finditer(r"(--[a-z0-9-]+):\s*([^;]+);", segment):
             tokens[match.group(1)] = match.group(2).strip()
         figure_tokens = {k: v for k, v in tokens.items() if k.startswith("--fig-")}
         assert figure_tokens, f"{theme} 主题块里没有抽出任何图形颜色令牌，选择器可能又错了"
-        for base in ("--a2v-bg-0", "--a2v-bg-2"):
+        for base in ("--m2v-bg-0", "--m2v-bg-2"):
             assert base in tokens, f"{theme} 主题块里没有 {base}，无法做判定基座"
         blocks[theme] = tokens
     return blocks
@@ -198,7 +198,7 @@ def _figure_tokens(theme: str) -> dict[str, str]:
     }
 
 
-def _ratio(theme: str, value: str, base: str = "--a2v-bg-0") -> float:
+def _ratio(theme: str, value: str, base: str = "--m2v-bg-0") -> float:
     canvas = _rgb(BLOCKS[theme][base])
     return _contrast(_composite(_rgb(value), canvas), _composite(canvas, canvas))
 
@@ -302,7 +302,7 @@ class TestClassification:
             stripped = re.sub(r"var\(--[a-z0-9-]+,\s*[^()]*(?:\([^()]*\))?[^()]*\)", "var()", value)
             if stripped.lower() in PAINT_KEYWORDS or stripped.startswith("url("):
                 continue
-            # `rgba(var(--a2v-accent-rgb), 0.5)` 是合法的令牌用法：色值来自令牌，
+            # `rgba(var(--m2v-accent-rgb), 0.5)` 是合法的令牌用法：色值来自令牌，
             # 只有 alpha 是就地写的。所以「含 var() 且不含十六进制字面值」放行。
             if "var(--" in stripped and not re.search(r"#[0-9a-fA-F]{3,8}\b", stripped):
                 continue
@@ -318,7 +318,7 @@ class TestBoundaryStrokes:
     """边界描边：一个物体唯一可见的边界。
 
     这一组守的是「承重的线躲在装饰类里」和「令牌定义了却没人用」两种失效。
-    `--a2v-hairline-strong` 曾经就是后者：令牌表里有它、注释里写着 2.99:1，
+    `--m2v-hairline-strong` 曾经就是后者：令牌表里有它、注释里写着 2.99:1，
     实际一处都没引用，按新基座量也只有 2.49:1。
     """
 
@@ -338,7 +338,7 @@ class TestBoundaryStrokes:
     def test_shape_borders_use_a_token(self):
         # 场景树的形状与面板靠边框获得边界；边框一但写死颜色，换主题就失明
         figures = _live_css()
-        for match in re.finditer(r"\.(?:a2v-shape-[a-z]+|a2v-primitive-surface)\s*\{([^}]*)\}", figures):
+        for match in re.finditer(r"\.(?:m2v-shape-[a-z]+|m2v-primitive-surface)\s*\{([^}]*)\}", figures):
             body = match.group(1)
             if "border" not in body:
                 continue
@@ -403,7 +403,7 @@ class TestFaceTiersStayDistinct:
       * 实心面 SHALL NOT 等于画布，否则实心物体在背景上没有面、只剩描边；
       * 实心面、次级面（水体）、空壳 SHALL NOT 塌成同一个取值。
 
-    已知边界：浅色主题的 `--fig-surface` 就等于抬升面 `--a2v-bg-2`（都是 `#ffffff`），
+    已知边界：浅色主题的 `--fig-surface` 就等于抬升面 `--m2v-bg-2`（都是 `#ffffff`），
     深色主题两者只差 1.01:1——所以画在面板**上**的实心物体没有面阶，识别只能靠描边。
     这是接受的取舍，不是缺陷：面板本身已经与画布分开了。
     """
@@ -413,11 +413,11 @@ class TestFaceTiersStayDistinct:
     def test_solid_face_is_visible_against_the_canvas(self):
         for theme in THEMES.values():
             surface = _resolved(theme, "--fig-surface")
-            canvas = _resolved(theme, "--a2v-bg-0")
+            canvas = _resolved(theme, "--m2v-bg-0")
             assert _rgb(surface) != _rgb(canvas), (
                 f"{theme} 主题的 --fig-surface 与画布同色，实心物体在背景上没有面"
             )
-            assert _ratio(theme, surface, "--a2v-bg-0") > 1.0
+            assert _ratio(theme, surface, "--m2v-bg-0") > 1.0
 
     def test_the_three_face_tiers_do_not_collapse(self):
         for theme in THEMES.values():

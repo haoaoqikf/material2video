@@ -3,9 +3,9 @@ import json
 import wave
 from pathlib import Path
 
-import a2v.types.article.media as media_mod
-import a2v.types.article.prepare as prepare_mod
-from a2v.types.article.timeline_v4 import resolve_v4
+import m2v.types.article.media as media_mod
+import m2v.types.article.prepare as prepare_mod
+from m2v.types.article.timeline_v4 import resolve_v4
 
 
 def _two_stage_storyboard():

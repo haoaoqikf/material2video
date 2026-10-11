@@ -16,7 +16,7 @@ import { resolveStoryboardV4, type V4MediaTimeline } from '@/runtime/timelineV4'
  * （除字体与首帧之外，还要保证 Player 已经挂载），因此版本号随语义变化递增
  * （当前为 3）。渲染入口按版本号拒绝旧页面，避免「等超时之后报一句看不懂的话」。
  */
-export interface A2VContractBase {
+export interface M2VContractBase {
   version: 3;
   fps: number;
   width: number;
@@ -28,7 +28,7 @@ export interface A2VContractBase {
   currentFrame: () => number;
 }
 
-export interface A2VContractV4 extends Omit<A2VContractBase, 'version'> {
+export interface M2VContractV4 extends Omit<M2VContractBase, 'version'> {
   version: 4;
   world: () => { id: string; renderer: 'tree' | 'code'; objectIds: string[] };
   stage: () => { id: string; startFrame: number; endFrame: number };
@@ -37,12 +37,12 @@ export interface A2VContractV4 extends Omit<A2VContractBase, 'version'> {
   beats: () => { current: string | null; completed: string[]; plan: string[]; estimated: boolean };
 }
 
-export interface A2VContractV3 extends Omit<A2VContractBase, 'version'> { version: 3 }
-export type A2VContract = A2VContractV3 | A2VContractV4;
+export interface M2VContractV3 extends Omit<M2VContractBase, 'version'> { version: 3 }
+export type M2VContract = M2VContractV3 | M2VContractV4;
 
 declare global {
   interface Window {
-    __A2V__?: A2VContract;
+    __M2V__?: M2VContract;
   }
 }
 
@@ -59,12 +59,12 @@ const CODE_READY_TIMEOUT_MS = 10_000;
  * ——那是硬失败，必须显式报错，不能把未完成画面截成空白帧。
  */
 function codeSceneState(): { pending: number; errors: string[] } {
-  const wrappers = Array.from(document.querySelectorAll<HTMLElement>('[data-a2v-code-scene]'));
+  const wrappers = Array.from(document.querySelectorAll<HTMLElement>('[data-m2v-code-scene]'));
   const errors: string[] = [];
   let pending = 0;
   for (const element of wrappers) {
-    const state = element.dataset.a2vCodeReady;
-    if (state === 'error') errors.push(element.dataset.a2vCodeError ?? '(未知错误)');
+    const state = element.dataset.m2vCodeReady;
+    if (state === 'error') errors.push(element.dataset.m2vCodeError ?? '(未知错误)');
     else if (state !== '1') pending += 1;
   }
   return { pending, errors };
@@ -95,14 +95,14 @@ async function waitForCodeScenes(): Promise<void> {
 
 /** v4 tree 的字号适配与镜头几何必须在契约 ready 前完成。 */
 async function waitForTreeLayout(): Promise<void> {
-  const world = document.querySelector<HTMLElement>('[data-a2v-world][data-a2v-world-renderer="tree"]');
+  const world = document.querySelector<HTMLElement>('[data-m2v-world][data-m2v-world-renderer="tree"]');
   if (!world) return;
   const start = Date.now();
   for (;;) {
-    if (world.dataset.a2vLayoutError) {
-      throw new Error(`场景树布局预检失败：${world.dataset.a2vLayoutError}`);
+    if (world.dataset.m2vLayoutError) {
+      throw new Error(`场景树布局预检失败：${world.dataset.m2vLayoutError}`);
     }
-    if (world.dataset.a2vLayoutReady === '1') return;
+    if (world.dataset.m2vLayoutReady === '1') return;
     if (Date.now() - start > SEEK_TIMEOUT_MS) {
       throw new Error(`场景树布局预检在 ${SEEK_TIMEOUT_MS}ms 内未完成`);
     }
@@ -199,7 +199,7 @@ export interface CreateContractOptions {
   storyboard: Storyboard | (StoryboardV4 & { mediaTimeline?: V4MediaTimeline });
 }
 
-export function createContract({ player, storyboard }: CreateContractOptions): A2VContract {
+export function createContract({ player, storyboard }: CreateContractOptions): M2VContract {
   const isV4 = storyboard.version === 4;
   const durationInFrames = isV4
     ? resolveStoryboardV4(storyboard as StoryboardV4, (storyboard as StoryboardV4 & { mediaTimeline?: V4MediaTimeline }).mediaTimeline).totalFrames
@@ -227,44 +227,44 @@ export function createContract({ player, storyboard }: CreateContractOptions): A
   };
   if (isV4) {
     const readWorld = () => {
-      const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+      const element = document.querySelector<HTMLElement>('[data-m2v-world]');
       if (!element) throw new Error('v4 world 探针未挂载');
-      const objects = JSON.parse(element.dataset.a2vWorldObjects ?? '[]') as Array<{ id: string }>;
-      return { id: element.dataset.a2vWorldId ?? '', renderer: (element.dataset.a2vWorldRenderer ?? '') as 'tree' | 'code', objectIds: objects.map(({ id }) => id) };
+      const objects = JSON.parse(element.dataset.m2vWorldObjects ?? '[]') as Array<{ id: string }>;
+      return { id: element.dataset.m2vWorldId ?? '', renderer: (element.dataset.m2vWorldRenderer ?? '') as 'tree' | 'code', objectIds: objects.map(({ id }) => id) };
     };
     const readStage = () => {
-      const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+      const element = document.querySelector<HTMLElement>('[data-m2v-world]');
       if (!element) throw new Error('v4 stage 探针未挂载');
-      return { id: element.dataset.a2vStageId ?? '', startFrame: Number(element.dataset.a2vStageStart), endFrame: Number(element.dataset.a2vStageEnd) };
+      return { id: element.dataset.m2vStageId ?? '', startFrame: Number(element.dataset.m2vStageStart), endFrame: Number(element.dataset.m2vStageEnd) };
     };
     const readNumber = (element: HTMLElement, key: string): number => {
       const value = Number(element.dataset[key]);
       if (!Number.isFinite(value)) throw new Error(`v4 探针 ${key} 无效`);
       return value;
     };
-    const worldContract: A2VContractV4 = {
+    const worldContract: M2VContractV4 = {
       ...common, version: 4,
       world: readWorld,
       stage: readStage,
       objectStates: () => {
-        const element = document.querySelector<HTMLElement>('[data-a2v-world]');
-        if (!element?.dataset.a2vWorldObjectStates) throw new Error('v4 object state 探针缺失');
-        return JSON.parse(element.dataset.a2vWorldObjectStates) as Record<string, Record<string, unknown>>;
+        const element = document.querySelector<HTMLElement>('[data-m2v-world]');
+        if (!element?.dataset.m2vWorldObjectStates) throw new Error('v4 object state 探针缺失');
+        return JSON.parse(element.dataset.m2vWorldObjectStates) as Record<string, Record<string, unknown>>;
       },
       camera: () => {
-        const element = document.querySelector<HTMLElement>('[data-a2v-camera="global"]');
+        const element = document.querySelector<HTMLElement>('[data-m2v-camera="global"]');
         if (!element) throw new Error('v4 camera 探针缺失');
-        return { kind: element.dataset.a2vCameraKind ?? '', focus: element.dataset.a2vCameraFocus ?? '',
-          x: readNumber(element, 'a2vCameraX'), y: readNumber(element, 'a2vCameraY'),
-          scale: readNumber(element, 'a2vCameraScale'), velocity: readNumber(element, 'a2vCameraVelocity') };
+        return { kind: element.dataset.m2vCameraKind ?? '', focus: element.dataset.m2vCameraFocus ?? '',
+          x: readNumber(element, 'm2vCameraX'), y: readNumber(element, 'm2vCameraY'),
+          scale: readNumber(element, 'm2vCameraScale'), velocity: readNumber(element, 'm2vCameraVelocity') };
       },
       beats: () => {
-        const element = document.querySelector<HTMLElement>('[data-a2v-world]');
+        const element = document.querySelector<HTMLElement>('[data-m2v-world]');
         if (!element) throw new Error('v4 beat 探针缺失');
-        return { current: element.dataset.a2vBeatCurrent || null,
-          completed: (element.dataset.a2vBeatCompleted ?? '').split(',').filter(Boolean),
-          plan: (element.dataset.a2vBeatPlan ?? '').split(',').filter(Boolean),
-          estimated: element.dataset.a2vBeatEstimated === '1' };
+        return { current: element.dataset.m2vBeatCurrent || null,
+          completed: (element.dataset.m2vBeatCompleted ?? '').split(',').filter(Boolean),
+          plan: (element.dataset.m2vBeatPlan ?? '').split(',').filter(Boolean),
+          estimated: element.dataset.m2vBeatEstimated === '1' };
       },
     };
     return worldContract;

@@ -1,17 +1,17 @@
 # 项目规划
 
-article2video 以统一制作底座承载独立视频类型。发展顺序是：先把金融时间序列等专用视频做扎实，再将多类型共同需要的制作能力沉淀为共享模块，最后扩展通用视频编排。
+Material2Video（材料成片）以统一制作底座承载独立视频类型。发展顺序是：先把金融时间序列等专用视频做扎实，再将多类型共同需要的制作能力沉淀为共享模块，最后扩展通用视频编排。
 
 ## 当前落地范围
 
-仓库正在实施 OpenSpec 变更 [专用视频优先、逐步通用化](../openspec/changes/refactor-modular-video-production/proposal.md)。当前代码状态、可用命令和已验证能力以 README 为准；此处计划内容不代表未完成能力已交付。
+已落地架构见 [模块化视频制作规格](../openspec/specs/modular-video-production/spec.md)。当前代码状态、可用命令和已验证能力以 README 为准；此处计划内容不代表未完成能力已交付。
 
 规划目标包含：
 
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与手机可读性门禁。
 - `article-narrative`：完整保留文章 v4、配音、时间轴、状态轨道、镜头、代码世界与制作评审规则。
 - `general`：以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、声音和字幕。
-- `src/a2v`：将实现从 Skill 脚本目录迁入标准 Python 包，由 `a2v --project` 作为统一制作入口。
+- `src/m2v`：将实现从 Skill 脚本目录迁入标准 Python 包，由 `m2v --project` 作为统一制作入口。
 
 ## 扩展原则
 

@@ -6,8 +6,8 @@ import {
   frameStroke,
   layoutGraph,
   probe,
-  type A2VGraphEdge,
-  type A2VGraphNode,
+  type M2VGraphEdge,
+  type M2VGraphNode,
 } from './index';
 import { FrameIcon } from './adapters/icons';
 import { ChartBarIncreasing } from 'lucide-react';
@@ -60,12 +60,12 @@ describe('ECharts 帧驱动选项（任务 5.2）', () => {
 });
 
 describe('Dagre 稳定布局（任务 5.3）', () => {
-  const nodes: A2VGraphNode[] = [
+  const nodes: M2VGraphNode[] = [
     { id: 'ingest', width: 120, height: 48 },
     { id: 'clean', width: 120, height: 48 },
     { id: 'chart', width: 160, height: 64 },
   ];
-  const edges: A2VGraphEdge[] = [
+  const edges: M2VGraphEdge[] = [
     { from: 'ingest', to: 'clean' },
     { from: 'clean', to: 'chart' },
   ];
@@ -114,9 +114,9 @@ describe('SVG 探针与图标约束（任务 5.4）', () => {
 
   it('probe 标记包含节点、角色与 schematic 声明', () => {
     expect(probe({ node: 'value', role: 'headline' })).toEqual({
-      'data-a2v-node': 'value',
-      'data-a2v-role': 'headline',
+      'data-m2v-node': 'value',
+      'data-m2v-role': 'headline',
     });
-    expect(probe({ node: 'shape', schematic: true })['data-a2v-schematic']).toBe('');
+    expect(probe({ node: 'shape', schematic: true })['data-m2v-schematic']).toBe('');
   });
 });

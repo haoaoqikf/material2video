@@ -8,7 +8,7 @@ import { RemotionRoot } from './Root';
 installOfflineGuard();
 
 /**
- * Remotion 的渲染入口。`remotion render src/index.ts A2V --props <分镜>` 从这里开始。
+ * Remotion 的渲染入口。`remotion render src/index.ts M2V --props <分镜>` 从这里开始。
  *
  * 契约页走的是另一个入口（`contract.html` → `src/contract/main.tsx`），
  * 两者复用同一份 composition、同一份样式源码与同一份字体注册。

@@ -16,10 +16,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import a2v.engine.bundle_cache as bundle_cache
-import a2v.engine.perf as perf
-import a2v.engine.remotion as remotion
-from a2v.core.errors import A2VError
+import m2v.engine.bundle_cache as bundle_cache
+import m2v.engine.perf as perf
+import m2v.engine.remotion as remotion
+from m2v.core.errors import M2VError
 
 
 @pytest.fixture
@@ -204,10 +204,10 @@ def test_failed_build_leaves_no_broken_entry_or_temp_dirs(web, monkeypatch):
     def failing(web_dir, out_dir, timeout_s):
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "index.html").write_text("half", encoding="utf-8")
-        raise A2VError("打包失败")
+        raise M2VError("打包失败")
 
     monkeypatch.setattr(remotion, "_bundle_into", failing)
-    with pytest.raises(A2VError):
+    with pytest.raises(M2VError):
         _bundle(web)
     root = bundle_cache.cache_root(web.dir)
     leftovers = [path for path in root.glob(".tmp-*")] if root.is_dir() else []

@@ -22,7 +22,7 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
-import a2v.engine.remotion as remotion
+import m2v.engine.remotion as remotion
 
 
 def test_additional_scene_modules_change_cache_and_provenance_fingerprint(tmp_path: pathlib.Path) -> None:
@@ -32,11 +32,11 @@ def test_additional_scene_modules_change_cache_and_provenance_fingerprint(tmp_pa
     first = remotion._with_additional_modules(base, [("embedded-scene", module)])
     module.write_text("export default function Changed() { return null; }", encoding="utf-8")
     second = remotion._with_additional_modules(base, [("embedded-scene", module)])
-    assert "__a2v_embedded_code__/embedded-scene" in first["files"]
+    assert "__m2v_embedded_code__/embedded-scene" in first["files"]
     assert first["digest"] != second["digest"]
-import a2v.types.article.render as render
-import a2v.engine.scene_manifest as scene_manifest
-import a2v.types.article.storyboard as sb
+import m2v.types.article.render as render
+import m2v.engine.scene_manifest as scene_manifest
+import m2v.types.article.storyboard as sb
 
 WEB = ROOT / "web"
 
@@ -86,11 +86,11 @@ def test_prepare_composition_entry_ignores_article_scenes(tmp_path, monkeypatch)
 
 def test_prepare_composition_entry_requires_storyboard(tmp_path):
     """分镜缺失时明确报错：清单不能悄悄沿用上一支作品的残留。"""
-    from a2v.core.errors import A2VError
+    from m2v.core.errors import M2VError
 
     web = tmp_path / "web"
     storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
-    with pytest.raises(A2VError, match="分镜读取失败"):
+    with pytest.raises(M2VError, match="分镜读取失败"):
         remotion.prepare_composition_entry(web_dir=web, storyboard_path=storyboard)
     assert not (web / ".gen").exists()
 
@@ -132,16 +132,16 @@ def test_programs_are_resolved_to_full_paths():
 
 def test_unknown_program_is_reported_with_the_node_requirement():
     with pytest.raises(remotion.RemotionError) as excinfo:
-        remotion.program("a2v-no-such-program")
+        remotion.program("m2v-no-such-program")
     assert "Node" in str(excinfo.value)
 
 
 def test_metadata_line_is_parsed_and_the_last_one_wins():
     lines = [
         "Bundling 50%",
-        f'{remotion.METADATA_PREFIX}{{"id": "A2V", "fps": 25, "width": 1, "height": 1, "durationInFrames": 1}}',
+        f'{remotion.METADATA_PREFIX}{{"id": "M2V", "fps": 25, "width": 1, "height": 1, "durationInFrames": 1}}',
         "noise",
-        f'{remotion.METADATA_PREFIX}{{"id": "A2V", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 180}}',
+        f'{remotion.METADATA_PREFIX}{{"id": "M2V", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 180}}',
     ]
     payload = remotion._metadata_from(lines)
     assert payload is not None
@@ -173,14 +173,14 @@ def test_composition_metadata_contract_shape():
 def test_build_input_fingerprint_covers_source_styles_fonts_and_lockfile():
     """分量与编码都由这些文件决定，少一项就会出现「源码改了但判为当前」。"""
     files = remotion.build_input_fingerprint()["files"]
-    assert "__a2v_web__/src/compositions/A2VComposition.tsx" in files
-    assert "__a2v_web__/src/styles/tokens.css" in files
-    assert "__a2v_web__/src/assets/fonts.json" in files
-    assert "__a2v_web__/package.json" in files
-    assert "__a2v_web__/pnpm-lock.yaml" in files
-    assert "__a2v_web__/scripts/remotion-render.mjs" in files
+    assert "__m2v_web__/src/compositions/M2VComposition.tsx" in files
+    assert "__m2v_web__/src/styles/tokens.css" in files
+    assert "__m2v_web__/src/assets/fonts.json" in files
+    assert "__m2v_web__/package.json" in files
+    assert "__m2v_web__/pnpm-lock.yaml" in files
+    assert "__m2v_web__/scripts/remotion-render.mjs" in files
     # 字体记的是源文件（别名键），不是构建出来的副本
-    assert any(key.startswith("__a2v_web__/src/assets/fonts/") for key in files)
+    assert any(key.startswith("__m2v_web__/src/assets/fonts/") for key in files)
 
 
 def test_fingerprint_keys_survive_a_workspace_root_outside_the_repo():
@@ -259,7 +259,7 @@ def test_fingerprint_is_stable_between_calls():
 
 def test_provenance_status_turns_stale_when_a_component_changes(tmp_path):
     """这份溯源的全部意义就是这一条：改了组件源码，旧成片必须被判「落后」。"""
-    component = WEB / "src" / "compositions" / "A2VComposition.tsx"
+    component = WEB / "src" / "compositions" / "M2VComposition.tsx"
     original = component.read_bytes()
     video = tmp_path / "video.mp4"
     video.write_bytes(b"not really a video")
@@ -282,7 +282,7 @@ def test_provenance_status_turns_stale_when_a_component_changes(tmp_path):
         component.write_bytes(original + "\n// 改一行\n".encode())
         status = render.provenance_status(video)
         assert status["status"] == "stale"
-        assert any("A2VComposition" in key for key in status["changed"])
+        assert any("M2VComposition" in key for key in status["changed"])
     finally:
         component.write_bytes(original)
     assert render.provenance_status(video)["status"] == "current"
@@ -360,10 +360,10 @@ def test_tree_layout_preview_matches_remotion_export_at_first_frame(tmp_path):
         from conftest import v4_storyboard
     finally:
         sys.path.pop(0)
-    import a2v.types.article.storyboard_v4 as storyboard_v4
-    from a2v.types.article.cli import _v4_model
-    import a2v.engine.browser as browser
-    import a2v.engine.contract_page as contract_page
+    import m2v.types.article.storyboard_v4 as storyboard_v4
+    from m2v.types.article.cli import _v4_model
+    import m2v.engine.browser as browser
+    import m2v.engine.contract_page as contract_page
 
     data = v4_storyboard()
     report = storyboard_v4.validate(data)
@@ -376,7 +376,7 @@ def test_tree_layout_preview_matches_remotion_export_at_first_frame(tmp_path):
     with contract_page.serve_contract_page(source, tmp_path, repo_root=ROOT) as url:
         with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
             page.seek(0)
-            assert page.evaluate("document.querySelector('[data-a2v-world]').dataset.a2vLayoutReady") == "1"
+            assert page.evaluate("document.querySelector('[data-m2v-world]').dataset.m2vLayoutReady") == "1"
             preview_png.write_bytes(page.capture("png"))
 
     output = tmp_path / "tree-export.mp4"
@@ -454,8 +454,8 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
 
 
 def _model():
-    from a2v.types.article.cli import _v4_model
-    import a2v.types.article.storyboard_v4 as storyboard_v4
+    from m2v.types.article.cli import _v4_model
+    import m2v.types.article.storyboard_v4 as storyboard_v4
 
     data = json.loads(STORYBOARD.read_text(encoding="utf-8"))
     report = storyboard_v4.validate(data)

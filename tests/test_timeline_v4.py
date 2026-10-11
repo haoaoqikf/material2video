@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from a2v.types.article.timeline_v4 import resolve_v4
+from m2v.types.article.timeline_v4 import resolve_v4
 
 
 VECTOR = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-timeline-vectors.json").read_text(encoding="utf-8"))

@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-import a2v.core.code_gate as code_gate
-import a2v.engine.remotion as remotion
-import a2v.types.article.storyboard as sb
+import m2v.core.code_gate as code_gate
+import m2v.engine.remotion as remotion
+import m2v.types.article.storyboard as sb
 from conftest import SKILL_MARKER
 
 GOOD_COMPONENT = "export default function Scene() { return null; }\n"
@@ -56,7 +56,7 @@ class TestDependencyWhitelist:
                     "import { useState } from 'react';\n"
                     "import { createRoot } from 'react-dom/client';\n"
                     "import { useCurrentFrame } from 'remotion';\n"
-                    "import { random } from '@a2v/scene';\n"
+                    "import { random } from '@m2v/scene';\n"
                     f"{GOOD_COMPONENT}"
                 )
             },
@@ -78,7 +78,7 @@ class TestDependencyWhitelist:
     def test项目别名不对作品开放(self, tmp_path):
         article, _ = _work(tmp_path, {"entry.tsx": "import { SceneTree } from '@/primitives/SceneTree';\n"})
         violations = _scan(article)
-        assert any("A1" in v.rule and "@a2v/scene" in v.message for v in violations)
+        assert any("A1" in v.rule and "@m2v/scene" in v.message for v in violations)
 
     def testNode内置模块被拒(self, tmp_path):
         article, _ = _work(
@@ -258,7 +258,7 @@ class TestRenderTimeoutCleanup:
     def test打包失败不交付成片且清单可重建(self, tmp_path, monkeypatch):
         marker = tmp_path / SKILL_MARKER
         marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text("# article2video skill", encoding="utf-8")
+        marker.write_text("# material2video skill", encoding="utf-8")
         article = tmp_path / "videos" / "slug"
         article.mkdir(parents=True)
         storyboard = article / "storyboard.json"
@@ -273,7 +273,7 @@ class TestRenderTimeoutCleanup:
 
         monkeypatch.setattr(remotion, "bundle", broken_bundle)
         with pytest.raises(remotion.RemotionError, match="超时"):
-            from a2v.types.article.render import render_with_remotion
+            from m2v.types.article.render import render_with_remotion
 
             render_with_remotion(
                 output=output,
@@ -285,7 +285,7 @@ class TestRenderTimeoutCleanup:
         assert not output.exists()
 
         # 下一次构建正常覆盖临时状态：清单重新生成且指向当前作品
-        import a2v.engine.scene_manifest as scene_manifest
+        import m2v.engine.scene_manifest as scene_manifest
 
         target = scene_manifest.generate(web_dir=remotion.web_dir(), storyboard_path=storyboard)
         assert target.is_file()
@@ -323,10 +323,10 @@ class TestRuntimeIsolation:
 
     @pytest.mark.slow
     def test远程请求被阻断并计入违规(self, tmp_path):
-        from a2v.engine.browser import open_animated_page, is_local_url
+        from m2v.engine.browser import open_animated_page, is_local_url
 
         page_html = """<!doctype html><html><body><script>
-window.__A2V__ = {
+window.__M2V__ = {
   version: 3, fps: 30, width: 1080, height: 1920, durationInFrames: 30,
   ready: () => Promise.resolve(),
   seekToFrame: () => Promise.resolve(),
@@ -337,7 +337,7 @@ fetch('https://example.invalid/evil')
 </script></body></html>"""
         page_file = tmp_path / "page.html"
         page_file.write_text(page_html, encoding="utf-8")
-        from a2v.engine.http_server import LocalServer
+        from m2v.engine.http_server import LocalServer
 
         with LocalServer(tmp_path) as server:
             url = server.url_for(page_file)

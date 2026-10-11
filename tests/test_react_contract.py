@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-import a2v.engine.browser as browser
-import a2v.engine.contract_page as contract_page
-import a2v.types.article.render as render
-from a2v.core.errors import A2VError
+import m2v.engine.browser as browser
+import m2v.engine.contract_page as contract_page
+import m2v.types.article.render as render
+from m2v.core.errors import M2VError
 
 
 def _contract(fps: int = 30, frames: int = 180, width: int = 1080, height: int = 1920):
@@ -87,7 +87,7 @@ def test_frame_count_mismatch_lists_both_values():
 
 def test_contract_page_missing_reports_how_to_build(tmp_path):
     """契约页不存在时要报出**构建命令**，而不是一句找不到文件。"""
-    with pytest.raises(A2VError) as excinfo:
+    with pytest.raises(M2VError) as excinfo:
         contract_page.require_contract_page(tmp_path)
     message = str(excinfo.value)
     assert "pnpm" in message and "build" in message

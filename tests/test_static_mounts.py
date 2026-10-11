@@ -1,6 +1,6 @@
 """静态服务器的挂载：内容根在仓库之外时，共享资产靠别名取到。
 
-别名（`/__a2v__/`）是「内容根可以放在任何地方」的前提：页面在内容根里、
+别名（`/__m2v__/`）是「内容根可以放在任何地方」的前提：页面在内容根里、
 共享资产在仓库里，两者不在一棵树，只能由服务器按声明的前缀把请求接过去。
 因此这里守三件事：**命中的取得到、没声明的不放行、越界的必须挡住**。
 
@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pytest
 
-from a2v.core.errors import A2VError
-from a2v.engine.http_server import LocalServer
+from m2v.core.errors import M2VError
+from m2v.engine.http_server import LocalServer
 
-MOUNT = "/__a2v__"
+MOUNT = "/__m2v__"
 
 
 def _fixture_dirs(tmp_path: Path) -> tuple[Path, Path]:
@@ -104,7 +104,7 @@ class TestMountDoesNotWidenTheStaticRoot:
     def test_prefix_must_be_absolute(self, tmp_path):
         content, assets = _fixture_dirs(tmp_path)
         with pytest.raises(ValueError):
-            LocalServer(content, mounts={"__a2v__": assets})
+            LocalServer(content, mounts={"__m2v__": assets})
 
 
 class TestUrlFor:
@@ -127,7 +127,7 @@ class TestUrlFor:
         outside = tmp_path / "elsewhere.html"
         outside.write_text("<html></html>", encoding="utf-8")
         with LocalServer(content, mounts={MOUNT: assets}) as server:
-            with pytest.raises(A2VError, match="既不在静态根"):
+            with pytest.raises(M2VError, match="既不在静态根"):
                 server.url_for(outside)
 
     def test_url_for_before_start_raises(self, tmp_path):

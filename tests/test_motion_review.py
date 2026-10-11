@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-import a2v.types.article.motion as motion
+import m2v.types.article.motion as motion
 
 #: 采样行格式：[帧, 不透明度, x, y]，与页面里 `SWEEP_SCRIPT` 的压缩采样一致。
 _SAMPLE = list[list[float]]
@@ -111,7 +111,7 @@ class _FakePage:
         self.elements = elements
 
     def evaluate(self, expression: str, arg: dict | None = None) -> dict:
-        assert "querySelectorAll('[data-a2v-scene]')" in expression
+        assert "querySelectorAll('[data-m2v-scene]')" in expression
         return {"index": (arg or {}).get("index"), "elements": self.elements}
 
 

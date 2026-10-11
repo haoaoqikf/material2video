@@ -15,16 +15,16 @@ from pathlib import Path
 
 import pytest
 
-import a2v.types.article.media as media_mod
-import a2v.engine.audio as audio
-import a2v.engine.beats as beats
-import a2v.types.article.cli as cli
-import a2v.types.article.prepare as prep
-import a2v.types.article.storyboard_v4 as storyboard_v4
-from a2v.core.errors import A2VError
-from a2v.types.article.media import load_media
-from a2v.engine.subtitles import cues_from_words, srt
-from a2v.engine.http_server import LocalServer
+import m2v.types.article.media as media_mod
+import m2v.engine.audio as audio
+import m2v.engine.beats as beats
+import m2v.types.article.cli as cli
+import m2v.types.article.prepare as prep
+import m2v.types.article.storyboard_v4 as storyboard_v4
+from m2v.core.errors import M2VError
+from m2v.types.article.media import load_media
+from m2v.engine.subtitles import cues_from_words, srt
+from m2v.engine.http_server import LocalServer
 from conftest import make_project, v4_storyboard
 
 #: v4 示例夹具；共享测试数据本身仍由 v4_storyboard 构造
@@ -114,7 +114,7 @@ def test_legacy_manifest_versions_are_rejected(prepared, version):
         data = json.loads(json.dumps(original))
         mutate(data)
         path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        with pytest.raises(A2VError, match="重新 prepare"):
+        with pytest.raises(M2VError, match="重新 prepare"):
             load_media(path, source)
 
 
@@ -149,7 +149,7 @@ def test_stale_manifest_rejected(prepared):
     data = json.loads(source.read_text(encoding="utf-8"))
     data["title"] = "changed"
     source.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(A2VError, match="重新 prepare"):
+    with pytest.raises(M2VError, match="重新 prepare"):
         load_media(path, source)
     assert cli.main_render(["--out", str(source.parent / "out.mp4"), "--media", str(path),
                             "--storyboard", str(source)]) == 1
@@ -170,7 +170,7 @@ def test_invalid_manifest(prepared, change):
     else:
         data["resolvedBeats"][0]["targets"] = ["nowhere"]
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(A2VError):
+    with pytest.raises(M2VError):
         load_media(path, source)
 
 
@@ -183,7 +183,7 @@ def test_network_failure_retries_and_preserves_manifest(prepared, monkeypatch):
         raise TimeoutError("offline")
     monkeypatch.setattr(prep, "synthesize", fail)
     monkeypatch.setattr(prep.time, "sleep", lambda _: None)
-    with pytest.raises(A2VError, match="3 次"):
+    with pytest.raises(M2VError, match="3 次"):
         prep.prepare(source, path.parent, force=True)
     assert len(calls) == 3
     assert path.read_bytes() == before
@@ -192,7 +192,7 @@ def test_network_failure_retries_and_preserves_manifest(prepared, monkeypatch):
 @pytest.mark.parametrize("words", [[], [{"text": "好", "start": 2, "end": 1}],
     [{"text": "好", "start": float("nan"), "end": 1}], [{"text": "错", "start": 0, "end": .2}]])
 def test_bad_timestamps(words):
-    with pytest.raises(A2VError):
+    with pytest.raises(M2VError):
         cues_from_words("好", words, 2)
 
 
@@ -258,7 +258,7 @@ def test_audio_corruption_rejected(prepared):
     source, path = prepared
     media = load_media(path)
     media.audio.write_bytes(media.audio.read_bytes()[:50])
-    with pytest.raises(A2VError):
+    with pytest.raises(M2VError):
         load_media(path, source)
 
 
@@ -269,7 +269,7 @@ def test_missing_timestamps_does_not_publish(prepared, monkeypatch):
         tone(output)
         return []
     monkeypatch.setattr(prep, "synthesize", incomplete)
-    with pytest.raises(A2VError, match="时间戳"):
+    with pytest.raises(M2VError, match="时间戳"):
         prep.prepare(source, path.parent, force=True)
     assert path.read_bytes() == before
 
@@ -310,9 +310,9 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     回归背景：props 曾一直是原始分镜，composition 按声明时长注册，
     总帧数交叉校验报「不一致」，有声渲染根本无法完成。
     """
-    import a2v.engine.remotion as remotion_mod
-    import a2v.types.article.render as render_mod
-    from a2v.engine.remotion import BundleOutcome, CompositionMetadata
+    import m2v.engine.remotion as remotion_mod
+    import m2v.types.article.render as render_mod
+    from m2v.engine.remotion import BundleOutcome, CompositionMetadata
 
     source, path = prepared
     media = load_media(path, source)

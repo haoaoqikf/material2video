@@ -1,5 +1,5 @@
 /*
- * article2video 共享设计令牌（可选）
+ * material2video 共享设计令牌（可选）
  *
  * 这一层回答的是「画面为什么看起来高级」，只提供两类东西：
  *   1. 设计令牌（颜色、表面、阴影、圆角、节奏），供页面用 var() 引用；
@@ -9,13 +9,13 @@
  * 引入顺序必须是：base.css（画布与安全区）→ theme.css（令牌）→ 页面自身样式，
  * 让页面拥有最终覆盖权：
  *
- *   <link rel="stylesheet" href="../../.agents/skills/article2video/assets/base.css">
- *   <link rel="stylesheet" href="../../.agents/skills/article2video/assets/theme.css">
+ *   <link rel="stylesheet" href="../../.agents/skills/material2video/assets/base.css">
+ *   <link rel="stylesheet" href="../../.agents/skills/material2video/assets/theme.css">
  *
  * 页面在仓库之外的内容根里时，相对路径换成别名（同一个文件）：
  *
- *   <link rel="stylesheet" href="/__a2v__/base.css">
- *   <link rel="stylesheet" href="/__a2v__/theme.css">
+ *   <link rel="stylesheet" href="/__m2v__/base.css">
+ *   <link rel="stylesheet" href="/__m2v__/theme.css">
  *
  * 令牌的取值理由、动效配方与三套风格方向见 references/visual-spec.md。
  *
@@ -28,43 +28,43 @@
  */
 
 /*
- * 背景层工具类：放在 [data-a2v-stage] 内、场景容器之外的常驻元素上。
- * 场景切换只显示/隐藏 [data-a2v-scene]，因此背景不会随幕切换而闪断。
+ * 背景层工具类：放在 [data-m2v-stage] 内、场景容器之外的常驻元素上。
+ * 场景切换只显示/隐藏 [data-m2v-scene]，因此背景不会随幕切换而闪断。
  * 三层都用纯 CSS 渐变实现，不依赖网络图片，也不使用 filter: blur
  * （大面积模糊会拖慢逐帧截图，且模糊半径无法被确定性校验覆盖）。
  */
-.a2v-bg-glow,
-.a2v-bg-grid,
-.a2v-bg-grain {
+.m2v-bg-glow,
+.m2v-bg-grid,
+.m2v-bg-grain {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
 /* 光晕：把视线引向画面主体，同时让深色底不至于是死黑 */
-.a2v-bg-glow {
+.m2v-bg-glow {
   z-index: 0;
   background:
-    radial-gradient(60% 42% at 50% 6%, var(--a2v-glow-1) 0%, rgba(0, 0, 0, 0) 68%),
-    radial-gradient(70% 50% at 82% 96%, var(--a2v-glow-2) 0%, rgba(0, 0, 0, 0) 72%);
+    radial-gradient(60% 42% at 50% 6%, var(--m2v-glow-1) 0%, rgba(0, 0, 0, 0) 68%),
+    radial-gradient(70% 50% at 82% 96%, var(--m2v-glow-2) 0%, rgba(0, 0, 0, 0) 72%);
 }
 
-/* 网格：提供「技术感」的秩序背景，密度由 --a2v-grid-size 控制 */
-.a2v-bg-grid {
+/* 网格：提供「技术感」的秩序背景，密度由 --m2v-grid-size 控制 */
+.m2v-bg-grid {
   z-index: 0;
   background-image:
-    linear-gradient(to right, var(--a2v-grid-color) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--a2v-grid-color) 1px, transparent 1px);
-  background-size: var(--a2v-grid-size) var(--a2v-grid-size);
+    linear-gradient(to right, var(--m2v-grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--m2v-grid-color) 1px, transparent 1px);
+  background-size: var(--m2v-grid-size) var(--m2v-grid-size);
   /* 上下缘淡出，避免网格线在安全区边缘被硬切 */
   mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
 }
 
 /* 细点阵：给纯色区域加一点「材质」，避免大色块显得廉价 */
-.a2v-bg-grain {
+.m2v-bg-grain {
   z-index: 0;
-  opacity: var(--a2v-grain-opacity);
+  opacity: var(--m2v-grain-opacity);
   background-image:
     repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0.9) 0% 25%, transparent 0% 50%),
     repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0.5) 0% 25%, transparent 0% 50%);

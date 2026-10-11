@@ -13,7 +13,7 @@
 import dagre from '@dagrejs/dagre';
 
 /** 图节点：id 必须稳定（与数据绑定，与出现顺序无关）。 */
-export interface A2VGraphNode {
+export interface M2VGraphNode {
   id: string;
   width: number;
   height: number;
@@ -22,50 +22,50 @@ export interface A2VGraphNode {
 }
 
 /** 有向边：from/to 必须引用已声明的节点 id。 */
-export interface A2VGraphEdge {
+export interface M2VGraphEdge {
   from: string;
   to: string;
   label?: string;
 }
 
 /** 布局配置：默认值冻结在此，覆盖需显式传字段。 */
-export interface A2VGraphConfig {
+export interface M2VGraphConfig {
   rankdir?: 'TB' | 'BT' | 'LR' | 'RL';
   nodesep?: number;
   ranksep?: number;
 }
 
-export interface A2VGraphPoint {
+export interface M2VGraphPoint {
   x: number;
   y: number;
 }
 
-export interface A2VGraphLayoutNode extends A2VGraphPoint {
+export interface M2VGraphLayoutNode extends M2VGraphPoint {
   id: string;
   width: number;
   height: number;
   label?: string;
 }
 
-export interface A2VGraphLayoutEdge {
+export interface M2VGraphLayoutEdge {
   from: string;
   to: string;
   label?: string;
   /** dagre 计算的折线控制点（已按路径方向排序）。 */
-  points: A2VGraphPoint[];
+  points: M2VGraphPoint[];
 }
 
-export interface A2VGraphLayout {
+export interface M2VGraphLayout {
   /** 按 id 排序的节点坐标（中心点）。 */
-  nodes: A2VGraphLayoutNode[];
+  nodes: M2VGraphLayoutNode[];
   /** 按 (from, to) 排序的边路径。 */
-  edges: A2VGraphLayoutEdge[];
+  edges: M2VGraphLayoutEdge[];
   /** 整张图的包围盒尺寸，画布/取景用。 */
   width: number;
   height: number;
 }
 
-const DEFAULT_CONFIG: Required<A2VGraphConfig> = {
+const DEFAULT_CONFIG: Required<M2VGraphConfig> = {
   rankdir: 'LR',
   nodesep: 48,
   ranksep: 96,
@@ -82,7 +82,7 @@ function deepFreeze<T>(value: T): T {
 }
 
 /** 规范化排序：节点按 id，边按 (from, to)。 */
-function normalize(nodes: readonly A2VGraphNode[], edges: readonly A2VGraphEdge[]): { nodes: A2VGraphNode[]; edges: A2VGraphEdge[] } {
+function normalize(nodes: readonly M2VGraphNode[], edges: readonly M2VGraphEdge[]): { nodes: M2VGraphNode[]; edges: M2VGraphEdge[] } {
   const sortedNodes = [...nodes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const sortedEdges = [...edges].sort((a, b) =>
     a.from === b.from ? (a.to < b.to ? -1 : a.to > b.to ? 1 : 0) : a.from < b.from ? -1 : 1,
@@ -98,10 +98,10 @@ function normalize(nodes: readonly A2VGraphNode[], edges: readonly A2VGraphEdge[
  * 也不输出一份悄悄歪掉的图。
  */
 export function layoutGraph(
-  nodes: readonly A2VGraphNode[],
-  edges: readonly A2VGraphEdge[],
-  config: A2VGraphConfig = {},
-): A2VGraphLayout {
+  nodes: readonly M2VGraphNode[],
+  edges: readonly M2VGraphEdge[],
+  config: M2VGraphConfig = {},
+): M2VGraphLayout {
   const ids = new Set(nodes.map((node) => node.id));
   if (ids.size !== nodes.length) {
     throw new Error('layoutGraph：节点 id 重复，无法产生稳定布局');
@@ -130,12 +130,12 @@ export function layoutGraph(
   }
   dagre.layout(graph);
 
-  const layoutNodes: A2VGraphLayoutNode[] = sorted.nodes.map((node) => {
+  const layoutNodes: M2VGraphLayoutNode[] = sorted.nodes.map((node) => {
     const placed = graph.node(node.id) as { x: number; y: number };
     return { id: node.id, x: placed.x, y: placed.y, width: node.width, height: node.height, ...(node.label !== undefined ? { label: node.label } : {}) };
   });
-  const layoutEdges: A2VGraphLayoutEdge[] = sorted.edges.map((edge) => {
-    const placed = graph.edge(edge.from, edge.to) as { points: A2VGraphPoint[] };
+  const layoutEdges: M2VGraphLayoutEdge[] = sorted.edges.map((edge) => {
+    const placed = graph.edge(edge.from, edge.to) as { points: M2VGraphPoint[] };
     return {
       from: edge.from,
       to: edge.to,

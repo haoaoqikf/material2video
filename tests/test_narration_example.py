@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import a2v.types.article.article_text as article_text
-import a2v.types.article.storyboard_v4 as storyboard_v4
+import m2v.types.article.article_text as article_text
+import m2v.types.article.storyboard_v4 as storyboard_v4
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/buffer-smoothing/storyboard.json"
-DOC = ROOT / ".agents/skills/article2video/references/article-to-storyboard.md"
+DOC = ROOT / ".agents/skills/material2video/references/article-to-storyboard.md"
 
 
 def _example() -> dict:

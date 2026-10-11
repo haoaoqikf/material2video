@@ -5,12 +5,12 @@ import {
   hashSeed,
   mulberry32,
   probe,
-  type A2VCodeScene,
-  type A2VCodeSceneProps,
+  type M2VCodeScene,
+  type M2VCodeSceneProps,
 } from './index';
 
 /** 一个合法的作品代码场景：默认导出、props 全部来自注入。 */
-const GoodScene: A2VCodeScene<{ title: string }> = ({ world, stage, objectStates, scene, localFrame, progress, random }) => {
+const GoodScene: M2VCodeScene<{ title: string }> = ({ world, stage, objectStates, scene, localFrame, progress, random }) => {
   void world.objects[0]?.id;
   void stage.id;
   void stage.progress;
@@ -23,7 +23,7 @@ const GoodScene: A2VCodeScene<{ title: string }> = ({ world, stage, objectStates
 };
 
 /** 读节拍状态的代码场景：四个必需字段 + 当前 beat 详情与整幕计划。 */
-const BeatAwareScene: A2VCodeScene = ({ beats }) => {
+const BeatAwareScene: M2VCodeScene = ({ beats }) => {
   void beats.current;
   void beats.progress;
   void beats.completed;
@@ -35,22 +35,22 @@ const BeatAwareScene: A2VCodeScene = ({ beats }) => {
 
 describe('代码场景 API 类型', () => {
   it('作品组件能以注入的 props 编译', () => {
-    expectTypeOf(GoodScene).toMatchTypeOf<A2VCodeScene<{ title: string }>>();
+    expectTypeOf(GoodScene).toMatchTypeOf<M2VCodeScene<{ title: string }>>();
   });
   it('节拍状态是注入的只读 props', () => {
-    expectTypeOf(BeatAwareScene).toMatchTypeOf<A2VCodeScene>();
-    expectTypeOf<A2VCodeSceneProps['beats']['current']>().toEqualTypeOf<string | null>();
-    expectTypeOf<A2VCodeSceneProps['beats']['progress']>().toEqualTypeOf<number>();
-    expectTypeOf<A2VCodeSceneProps['beats']['completed']>().toEqualTypeOf<readonly string[]>();
-    expectTypeOf<A2VCodeSceneProps['beats']['estimated']>().toEqualTypeOf<boolean>();
+    expectTypeOf(BeatAwareScene).toMatchTypeOf<M2VCodeScene>();
+    expectTypeOf<M2VCodeSceneProps['beats']['current']>().toEqualTypeOf<string | null>();
+    expectTypeOf<M2VCodeSceneProps['beats']['progress']>().toEqualTypeOf<number>();
+    expectTypeOf<M2VCodeSceneProps['beats']['completed']>().toEqualTypeOf<readonly string[]>();
+    expectTypeOf<M2VCodeSceneProps['beats']['estimated']>().toEqualTypeOf<boolean>();
   });
   it('作品组件不能声明自己的时间轴字段', () => {
     // 分镜是顺序与时长的单一真源：想要 durationInFrames 或相邻幕的组件
     // 在类型层面就编译不过，第二套时间轴无从产生。
-    type TimelineProps = A2VCodeSceneProps & { durationInFrames: number; totalFrames: number; nextScene?: unknown };
+    type TimelineProps = M2VCodeSceneProps & { durationInFrames: number; totalFrames: number; nextScene?: unknown };
     // @ts-expect-error durationInFrames / totalFrames / nextScene 不在注入的 props 上
-    const BadScene: A2VCodeScene = (_props: TimelineProps) => null;
-    expectTypeOf(BadScene).toMatchTypeOf<A2VCodeScene>();
+    const BadScene: M2VCodeScene = (_props: TimelineProps) => null;
+    expectTypeOf(BadScene).toMatchTypeOf<M2VCodeScene>();
   });
   it('scene.data 通过泛型获得类型', () => {
     expectTypeOf<Parameters<typeof GoodScene>[0]['scene']['data']>().toEqualTypeOf<{ title: string }>();
@@ -88,14 +88,14 @@ describe('稳定种子随机', () => {
 describe('探针协议 helper', () => {
   it('输出稳定 DOM 标记', () => {
     expect(probe({ node: 'headline', role: 'headline' })).toEqual({
-      'data-a2v-node': 'headline',
-      'data-a2v-role': 'headline',
+      'data-m2v-node': 'headline',
+      'data-m2v-role': 'headline',
     });
     expect(probe({ node: 'chart', inside: 'panel', schematic: true })).toEqual({
-      'data-a2v-node': 'chart',
+      'data-m2v-node': 'chart',
       // inside 输出为选择器：K8 容器归属量测用它做 querySelector
-      'data-a2v-inside': '[data-a2v-node="panel"]',
-      'data-a2v-schematic': '',
+      'data-m2v-inside': '[data-m2v-node="panel"]',
+      'data-m2v-schematic': '',
     });
   });
   it('frameStyle 只输出确定性属性', () => {

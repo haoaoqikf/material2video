@@ -1,8 +1,8 @@
 import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Player, type PlayerRef } from '@remotion/player';
-import { A2VComposition } from '@/compositions/A2VComposition';
-import { A2VCompositionV4 } from '@/compositions/A2VCompositionV4';
+import { M2VComposition } from '@/compositions/M2VComposition';
+import { M2VCompositionV4 } from '@/compositions/M2VCompositionV4';
 import { ensureFonts } from '@/fonts';
 import { parseStoryboard, type Storyboard } from '@/schema/storyboard';
 import { storyboardV4Schema, type StoryboardV4 } from '@/schema/storyboardV4';
@@ -22,7 +22,7 @@ installOfflineGuard();
  * 渲染契约页。
  *
  * 职责只有一件：把 composition 挂进一个**可被 Playwright 驱动的页面**，
- * 并暴露 `window.__A2V__`（v4 分镜为 version 4）。
+ * 并暴露 `window.__M2V__`（v4 分镜为 version 4）。
  * 体检与量测全部通过它工作。
  *
  * composition 按分镜声明的契约版本在**运行时**选择，而不是由构建期的
@@ -32,14 +32,14 @@ installOfflineGuard();
  */
 function ContractApp(): React.ReactElement {
   const params = new URLSearchParams(window.location.search);
-  const storyboardUrl = params.get('a2v-storyboard');
+  const storyboardUrl = params.get('m2v-storyboard');
   const playerRef = useRef<PlayerRef>(null);
   const [loaded, setLoaded] = useState<{ storyboard: Storyboard | StoryboardV4; mediaTimeline?: V4MediaTimeline; subtitleCues?: Array<{ start: number; end: number; text: string }> } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storyboardUrl) {
-      setError('缺少查询参数 a2v-storyboard：契约页需要分镜的地址才能建场景。');
+      setError('缺少查询参数 m2v-storyboard：契约页需要分镜的地址才能建场景。');
       return;
     }
     let cancelled = false;
@@ -87,20 +87,20 @@ function ContractApp(): React.ReactElement {
       ? { ...loaded.storyboard, mediaTimeline: loaded.mediaTimeline } as StoryboardV4 & { mediaTimeline: V4MediaTimeline }
       : loaded.storyboard;
     const contract = createContract({ player, storyboard });
-    window.__A2V__ = contract;
+    window.__M2V__ = contract;
     return () => {
-      if (window.__A2V__ === contract) {
-        delete window.__A2V__;
+      if (window.__M2V__ === contract) {
+        delete window.__M2V__;
       }
     };
   }, [loaded]);
 
   if (error) {
-    // 契约未建立时 `__A2V__` 保持未定义：渲染脚本会按「未定义」报错，
+    // 契约未建立时 `__M2V__` 保持未定义：渲染脚本会按「未定义」报错，
     // 这是契约里写明的失败表现，比静默截一张空图有用。
     return (
       <div
-        data-a2v-contract-error=""
+        data-m2v-contract-error=""
         style={{
           padding: 40,
           fontFamily: 'monospace',
@@ -117,13 +117,13 @@ function ContractApp(): React.ReactElement {
   }
 
   if (!loaded) {
-    return <div data-a2v-contract-loading="" style={{ color: '#888', padding: 40 }} />;
+    return <div data-m2v-contract-loading="" style={{ color: '#888', padding: 40 }} />;
   }
   const { storyboard, mediaTimeline, subtitleCues } = loaded;
   const durationInFrames = storyboard.version === 4
     ? resolveStoryboardV4(storyboard, mediaTimeline).totalFrames : totalFrames(storyboard);
   const inputProps = { ...storyboard, ...(mediaTimeline ? { mediaTimeline } : {}), ...(subtitleCues ? { subtitleCues } : {}) };
-  const ActiveComposition = storyboard.version === 4 ? A2VCompositionV4 : A2VComposition;
+  const ActiveComposition = storyboard.version === 4 ? M2VCompositionV4 : M2VComposition;
 
   return (
     <Player

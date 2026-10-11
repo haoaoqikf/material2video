@@ -60,7 +60,7 @@ export const sceneNodeSchema: z.ZodType<SceneNode> = z.lazy(() => z.object({
 /**
  * 逐幕视觉论证声明：导演意图字段，composition 不读取它们。
  * 保留在 schema 里供 v3 契约报告呈现导演意图；
- * 校验语义由 Python 端 `a2v.visual_narrative` 负责。
+ * 校验语义由 Python 端 `m2v.visual_narrative` 负责。
  */
 export const visualModeSchema = z.enum(['metaphor', 'process', 'comparison', 'cycle', 'chart', 'image', 'typography']);
 
@@ -210,7 +210,7 @@ export const sceneSchema = z.object({
 });
 
 /**
- * 语义节拍与分段口播的跨字段校验：与 Python 端 `a2v.storyboard` 同一口径。
+ * 语义节拍与分段口播的跨字段校验：与 Python 端 `m2v.storyboard` 同一口径。
  *
  * 单项形状（id 形状、动作枚举、目标非空、meaning 非空）由 zod 的字段声明
  * 负责；这里只查引用完整性与顺序：重复 id、悬空 beat、孤立 beat、

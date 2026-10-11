@@ -1,4 +1,4 @@
-from a2v.types.article.article_text import count_characters, extract_body, save_candidate, standard_length_result
+from m2v.types.article.article_text import count_characters, extract_body, save_candidate, standard_length_result
 
 
 def test_standard_boundaries():

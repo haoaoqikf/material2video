@@ -1,9 +1,9 @@
 import type { FC } from 'react';
 import type { CalculateMetadataFunction } from 'remotion';
 import { Composition } from 'remotion';
-import type { A2VProps } from './compositions/A2VComposition';
-import { A2VComposition } from './compositions/A2VComposition';
-import { A2VCompositionV4, type A2VCompositionV4Props } from './compositions/A2VCompositionV4';
+import type { M2VProps } from './compositions/M2VComposition';
+import { M2VComposition } from './compositions/M2VComposition';
+import { M2VCompositionV4, type M2VCompositionV4Props } from './compositions/M2VCompositionV4';
 import { EMPTY_STORYBOARD } from './schema/storyboard';
 import { totalFrames } from './runtime/timeline';
 import { resolveStoryboardV4 } from './runtime/timelineV4';
@@ -19,19 +19,19 @@ import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVide
  * 不需要每次改 composition 的注册参数。分镜是内容层的单一真源，
  * 画面参数必须由它推导，而不是两处维护。
  */
-type ActiveProps = A2VProps | A2VCompositionV4Props;
+type ActiveProps = M2VProps | M2VCompositionV4Props;
 
 const ActiveComposition: FC<ActiveProps> = (props) => {
   const raw = props as unknown as { version: number };
   return raw.version === 4
-    ? <A2VCompositionV4 {...(props as A2VCompositionV4Props)} />
-    : <A2VComposition {...(props as unknown as A2VProps)} />;
+    ? <M2VCompositionV4 {...(props as M2VCompositionV4Props)} />
+    : <M2VComposition {...(props as unknown as M2VProps)} />;
 };
 
-const calculateA2V: CalculateMetadataFunction<ActiveProps> = ({ props }) => {
+const calculateM2V: CalculateMetadataFunction<ActiveProps> = ({ props }) => {
   const durationInFrames = props.version === 4
     ? resolveStoryboardV4(props as StoryboardV4, props.mediaTimeline).totalFrames
-    : totalFrames(props as A2VProps);
+    : totalFrames(props as M2VProps);
   return {
     durationInFrames,
     fps: props.fps,
@@ -44,14 +44,14 @@ export const RemotionRoot: FC = () => {
   return (
     <>
       <Composition
-        id="A2V"
+        id="M2V"
         component={ActiveComposition}
         durationInFrames={totalFrames(EMPTY_STORYBOARD)}
         fps={EMPTY_STORYBOARD.fps}
         width={EMPTY_STORYBOARD.width}
         height={EMPTY_STORYBOARD.height}
         defaultProps={EMPTY_STORYBOARD}
-        calculateMetadata={calculateA2V}
+        calculateMetadata={calculateM2V}
       />
       <Composition
         id="FinancialTimeSeries"

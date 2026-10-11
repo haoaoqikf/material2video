@@ -39,7 +39,7 @@ export function fontUrl(file: string): string {
     return staticFile(relative);
   }
   // 契约页：没有 staticBase，而且页面本身就挂在别名前缀下
-  // （`/__a2v_web__/dist/contract/contract.html`），因此**相对**路径才是对的——
+  // （`/__m2v_web__/dist/contract/contract.html`），因此**相对**路径才是对的——
   // 绝对路径的 `/fonts/…` 会落到服务器根的 404 上。相对路径挂在哪个前缀下都对。
   return relative;
 }

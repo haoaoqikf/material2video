@@ -19,8 +19,8 @@ import pathlib
 
 import pytest
 
-import a2v.engine.browser as browser
-import a2v.engine.contract_page as contract_page
+import m2v.engine.browser as browser
+import m2v.engine.contract_page as contract_page
 from conftest import v4_storyboard
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -33,16 +33,16 @@ def _preset_storyboard(tmp_path: pathlib.Path) -> pathlib.Path:
     return target
 
 #: 分两类看：既看两层**不同**的取值（字体、安全区、底色、字阶），
-#: 也看只由默认层给出的令牌（`--a2v-surface` 这类）在预设下依然可用。
+#: 也看只由默认层给出的令牌（`--m2v-surface` 这类）在预设下依然可用。
 TOKENS = (
-    "--a2v-bg-0",
-    "--a2v-text-1",
-    "--a2v-accent",
-    "--a2v-safe-top",
-    "--a2v-size-body",
-    "--a2v-font",
-    "--a2v-surface",
-    "--a2v-width",
+    "--m2v-bg-0",
+    "--m2v-text-1",
+    "--m2v-accent",
+    "--m2v-safe-top",
+    "--m2v-size-body",
+    "--m2v-font",
+    "--m2v-surface",
+    "--m2v-width",
 )
 
 
@@ -59,8 +59,8 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
     根元素上、舞台只管画面」这种形状；示例分镜声明深色预设，再在浏览器中切换浅色。
 
     属性挂在哪里是**契约的一部分**：React 路径与旧页面 `assets/declarative.js`
-    一样，把 `data-a2v-preset` / `data-a2v-theme` / 尺寸变量写到
-    `document.documentElement` 上（见 `A2VCompositionV4` 里的 `useLayoutEffect`），
+    一样，把 `data-m2v-preset` / `data-m2v-theme` / 尺寸变量写到
+    `document.documentElement` 上（见 `M2VCompositionV4` 里的 `useLayoutEffect`），
     自定义属性沿 DOM 继承到舞台，因此这里读与改都落在根元素上。
     """
     with browser.open_animated_page(url, width=1080, height=1920, expected_version=4) as page:
@@ -70,32 +70,32 @@ def _tokens(url: str, chromium_ready, flips: tuple[str, ...] = ()) -> list[dict]
                 "() => {"
                 f"const names = {list(TOKENS)!r};"
                 "const root = getComputedStyle(document.documentElement);"
-                "const stage = document.querySelector('.a2v-stage');"
+                "const stage = document.querySelector('.m2v-stage');"
                 "const body = stage ? getComputedStyle(stage) : root;"
                 "const out = {};"
                 "for (const name of names) {"
                 "out[name] = (body.getPropertyValue(name) || root.getPropertyValue(name) || '').trim();"
                 "}"
-                "return {tokens: out, preset: !!document.querySelector('[data-a2v-preset]'),"
-                "theme: document.documentElement.getAttribute('data-a2v-theme')};"
+                "return {tokens: out, preset: !!document.querySelector('[data-m2v-preset]'),"
+                "theme: document.documentElement.getAttribute('data-m2v-theme')};"
                 "}"
             )
         ]
         for theme in flips:
             page.evaluate(
-                "(theme) => document.documentElement.setAttribute('data-a2v-theme', theme)",
+                "(theme) => document.documentElement.setAttribute('data-m2v-theme', theme)",
                 theme,
             )
             reads.append(
                 page.evaluate(
                     "() => {"
                     f"const names = {list(TOKENS)!r};"
-                    "const stage = document.querySelector('.a2v-stage');"
+                    "const stage = document.querySelector('.m2v-stage');"
                     "const css = getComputedStyle(stage || document.documentElement);"
                     "const out = {};"
                     "for (const name of names) out[name] = (css.getPropertyValue(name) || '').trim();"
                     "return {tokens: out,"
-                    "theme: document.documentElement.getAttribute('data-a2v-theme')};"
+                    "theme: document.documentElement.getAttribute('data-m2v-theme')};"
                     "}"
                 )
             )
@@ -110,17 +110,17 @@ def test_v4_preset_tokens_apply_to_dark_and_light_themes(chromium_ready, tmp_pat
 
     assert dark["preset"] is True, "启用预设的 V4 分镜必须在画面上挂出预设属性"
     assert dark["theme"] == "dark", dark
-    assert dark["tokens"]["--a2v-safe-top"] == "240px", dark["tokens"]
-    assert dark["tokens"]["--a2v-bg-0"].lower() == "#08090c", dark["tokens"]
-    assert dark["tokens"]["--a2v-size-body"] == "40px", dark["tokens"]
-    assert "A2V Inter" in dark["tokens"]["--a2v-font"], dark["tokens"]
+    assert dark["tokens"]["--m2v-safe-top"] == "240px", dark["tokens"]
+    assert dark["tokens"]["--m2v-bg-0"].lower() == "#08090c", dark["tokens"]
+    assert dark["tokens"]["--m2v-size-body"] == "40px", dark["tokens"]
+    assert "M2V Inter" in dark["tokens"]["--m2v-font"], dark["tokens"]
 
     # 同一个页面上切成浅色：配色必须整体换掉，字阶与几何不动
     assert light["theme"] == "light"
-    assert light["tokens"]["--a2v-bg-0"].lower() == "#eff1f4", light["tokens"]
-    assert light["tokens"]["--a2v-accent"].lower() == "#0a6ad9", light["tokens"]
-    assert light["tokens"]["--a2v-size-body"] == "40px", light["tokens"]
-    assert light["tokens"]["--a2v-safe-top"] == "240px", light["tokens"]
+    assert light["tokens"]["--m2v-bg-0"].lower() == "#eff1f4", light["tokens"]
+    assert light["tokens"]["--m2v-accent"].lower() == "#0a6ad9", light["tokens"]
+    assert light["tokens"]["--m2v-size-body"] == "40px", light["tokens"]
+    assert light["tokens"]["--m2v-safe-top"] == "240px", light["tokens"]
 
-    assert dark["tokens"]["--a2v-surface"].startswith("linear-gradient"), dark
-    assert dark["tokens"]["--a2v-width"] == "1080px"
+    assert dark["tokens"]["--m2v-surface"].startswith("linear-gradient"), dark
+    assert dark["tokens"]["--m2v-width"] == "1080px"

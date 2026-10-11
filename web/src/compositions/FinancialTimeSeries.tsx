@@ -394,20 +394,20 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
 
   useLayoutEffect(() => {
-    document.documentElement.style.setProperty('--a2v-width', `${WIDTH}px`);
-    document.documentElement.style.setProperty('--a2v-height', `${HEIGHT}px`);
-    document.documentElement.dataset.a2vTheme = 'dark';
+    document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
+    document.documentElement.style.setProperty('--m2v-height', `${HEIGHT}px`);
+    document.documentElement.dataset.m2vTheme = 'dark';
     if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
     const svg = svgRef.current;
     if (!svg) return;
     for (const element of svg.querySelectorAll('text')) {
       const bounds = element.getBBox();
-      const safeArea = element.hasAttribute('data-a2v-value-axis-label') ? VALUE_AXIS_SAFE_AREA : SAFE_AREA;
+      const safeArea = element.hasAttribute('data-m2v-value-axis-label') ? VALUE_AXIS_SAFE_AREA : SAFE_AREA;
       if (bounds.x < safeArea.left || bounds.x + bounds.width > safeArea.right || bounds.y < safeArea.top || bounds.y + bounds.height > safeArea.bottom) {
         throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
       }
     }
-    const labelBounds = [...svg.querySelectorAll<SVGTextElement>('[data-a2v-axis-label="true"]')]
+    const labelBounds = [...svg.querySelectorAll<SVGTextElement>('[data-m2v-axis-label="true"]')]
       .map((element) => element.getBBox()).sort((a, b) => a.x - b.x);
     for (let index = 1; index < labelBounds.length; index++) {
       if (labelBounds[index]!.x - (labelBounds[index - 1]!.x + labelBounds[index - 1]!.width) < 12) {
@@ -424,14 +424,14 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     }
   }, [frame]);
 
-  return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-a2v-financial="line">
-    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-a2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-a2v-window-start={windowStart} data-a2v-window-end={view.windowEnd}>
+  return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
+    <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
-      <text data-a2v-investment-title="true" x={SAFE_AREA.left} y="270" textLength={titleWidth} lengthAdjust="spacing" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
+      <text data-m2v-investment-title="true" x={SAFE_AREA.left} y="270" textLength={titleWidth} lengthAdjust="spacing" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       {latest && <>
-        <text data-a2v-live-date="true" x={SAFE_AREA.right} y="350" textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{liveDate}</text>
-        <text data-a2v-live-return="true" x={SAFE_AREA.right} y="390" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="600">{liveRate}</text>
-        <text data-a2v-live-gain="true" x={SAFE_AREA.right} y="430" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="650">{liveGain}</text>
+        <text data-m2v-live-date="true" x={SAFE_AREA.right} y="350" textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{liveDate}</text>
+        <text data-m2v-live-return="true" x={SAFE_AREA.right} y="390" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="600">{liveRate}</text>
+        <text data-m2v-live-gain="true" x={SAFE_AREA.right} y="430" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="650">{liveGain}</text>
       </>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
@@ -441,7 +441,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         const estimatedLabelWidth = measuredTextWidth(label, 14);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
-          <text data-a2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="14"
+          <text data-m2v-value-axis-label="true" x={PLOT.left - 14} y={y + 9} textAnchor="end" fill="#8b9ab0" fontSize="14"
             textLength={estimatedLabelWidth > labelWidth ? labelWidth : undefined}
             lengthAdjust={estimatedLabelWidth > labelWidth ? 'spacingAndGlyphs' : undefined}>{label}</text>
         </g>;
@@ -450,20 +450,20 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         const x = xForDate(tickDate);
         const labelHalfWidth = label.length * 9;
         const labelX = Math.max(SAFE_AREA.left + labelHalfWidth, Math.min(x, SAFE_AREA.right - labelHalfWidth));
-        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-a2v-axis-label="true" x={labelX} y={PLOT.bottom + 46} textAnchor="middle" fill="#9ba9bc" fontSize="30">{label}</text></g>;
+        return <g key={`month-${tickDate}`} opacity={opacity}><line x1={x} x2={x} y1={graphTop} y2={PLOT.bottom} stroke="#172235" /><text data-m2v-axis-label="true" x={labelX} y={PLOT.bottom + 46} textAnchor="middle" fill="#9ba9bc" fontSize="30">{label}</text></g>;
       })}
       <line x1={PLOT.left} x2={PLOT.left} y1={graphTop} y2={PLOT.bottom} stroke="#53627a" />
       <line x1={PLOT.left} x2={PLOT.right} y1={PLOT.bottom} y2={PLOT.bottom} stroke="#53627a" />
       {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
         <polyline fill="none" stroke={gainColor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
-          points={linePoints} data-a2v-visible-value-points={visiblePoints.length} />
+          points={linePoints} data-m2v-visible-value-points={visiblePoints.length} />
       </g>}
       {latest && windowStart <= latest.date && <>
         <circle cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />
-        <text data-a2v-current-value-follow="true" x={endpointLabelX} y={endpointLabelY} fill={gainColor} fontSize="24" fontWeight="700">{endpointLabel}</text>
+        <text data-m2v-current-value-follow="true" x={endpointLabelX} y={endpointLabelY} fill={gainColor} fontSize="24" fontWeight="700">{endpointLabel}</text>
       </>}
-      {summaryLines.map((line, index) => <text data-a2v-summary="true" key={`summary-${index}`} x={SAFE_AREA.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
-      <text data-a2v-risk-disclaimer="true" x={SAFE_AREA.left} y="1460" fill="#8b9ab0" fontSize="20">过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。</text>
+      {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={SAFE_AREA.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
+      <text data-m2v-risk-disclaimer="true" x={SAFE_AREA.left} y="1460" fill="#8b9ab0" fontSize="20">过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。</text>
     </svg>
   </AbsoluteFill>;
 }
