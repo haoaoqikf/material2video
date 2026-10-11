@@ -9,6 +9,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -303,7 +306,6 @@ def test_stale_lock_is_reclaimed(tmp_path):
     lock = tmp_path / "x.lock"
     lock.write_text("dead holder", encoding="utf-8")
     old = time.time() - bundle_cache.LOCK_STALE_S - 10
-    import os
 
     os.utime(lock, (old, old))
     with bundle_cache._exclusive(lock, what="测试锁", timeout_s=1.0):
@@ -318,6 +320,44 @@ def test_lock_from_exited_process_is_reclaimed_before_the_age_threshold(tmp_path
     with bundle_cache._exclusive(lock, what="测试锁", timeout_s=0.1):
         assert lock.is_file()
     assert not lock.exists()
+
+
+def test_current_process_is_reported_alive():
+    """探测存活不得有副作用：用例能跑完本身就是修复的证据。
+
+    旧实现用 `os.kill(pid, 0)` 探测，在 Windows 上等价于向控制台进程组发送
+    Ctrl+C，运行这一行的测试进程会以 `0xC000013A` 直接中断。
+    """
+    assert bundle_cache._process_is_alive(os.getpid()) is True
+
+
+def test_exited_process_is_reported_dead():
+    """持有者已退出时要能提前回收——这正是保留 pid 探测的理由。"""
+    child = subprocess.Popen([sys.executable, "-c", "pass"])
+    pid = child.pid
+    assert child.wait(timeout=60) == 0
+    assert bundle_cache._process_is_alive(pid) is False
+
+
+def test_open_failure_only_treats_missing_pid_as_dead():
+    """句柄打不开时只有「pid 不存在」算已退出；权限不足与其它错误按存活处理。"""
+    invalid_parameter = bundle_cache._ERROR_INVALID_PARAMETER
+    access_denied = 5
+    unexpected = 1234
+    assert bundle_cache._process_is_alive_after_open_failure(invalid_parameter) is False
+    assert bundle_cache._process_is_alive_after_open_failure(access_denied) is True
+    assert bundle_cache._process_is_alive_after_open_failure(unexpected) is True
+
+
+def test_lock_with_live_owner_is_kept_until_it_ages_out(tmp_path, monkeypatch):
+    """无法确认持有者退出时不得回收锁，等待方应以等待超时报错。"""
+    lock = tmp_path / "held.lock"
+    lock.write_text("4321", encoding="ascii")
+    monkeypatch.setattr(bundle_cache, "_process_is_alive", lambda _pid: True)
+    with pytest.raises(bundle_cache.BundleCacheError, match="秒仍未获得锁"):
+        with bundle_cache._exclusive(lock, what="测试锁", timeout_s=0.3):
+            pytest.fail("不该拿到锁")
+    assert lock.is_file(), "持有者未确认退出时不得回收锁"
 
 
 def test_cache_manifest_records_the_key_and_the_product_files(web):
