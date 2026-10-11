@@ -16,6 +16,7 @@ class VideoType:
     preview: Callable
     render: Callable
     review_gate: Callable | None = None
+    review_criteria: Callable | None = None
     audio_tracks: Callable | None = None
     prepare_narration: Callable | None = None
 

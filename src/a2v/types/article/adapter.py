@@ -77,6 +77,12 @@ def review_gate(root: Path, project: dict) -> None:
     reason = production.gate(production.record_path(article), raw, current)
     if reason:
         raise A2VError(reason)
+
+
+def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
+    return {"visualQuality": "画面层级、手机可读性与图形论证",
+            "narrativeContinuity": "文章阶段、对象状态和镜头连续性",
+            "narrationAudio": "口播、字幕同步与声音完整性"}
     reason = cli._aesthetic_render_gate(str(storyboard), _v4_model(raw), article, None)
     if reason:
         raise A2VError(reason)
@@ -97,4 +103,5 @@ def prepare_narration(text: str, cache: Path) -> tuple[Path, list[dict], list[di
 
 
 TYPE = VideoType("article-narrative", "观点型文章的 v4 单场景叙事", validate, prepare, preview, render,
-                 review_gate=review_gate, audio_tracks=audio_tracks, prepare_narration=prepare_narration)
+                 review_gate=review_gate, review_criteria=review_criteria,
+                 audio_tracks=audio_tracks, prepare_narration=prepare_narration)

@@ -266,6 +266,22 @@ def render(root: Path, project: dict) -> Path:
     return _render(root, project, preview=False)
 
 
+def review_criteria(_root: Path, _project: dict, prepared: dict) -> dict[str, str]:
+    scenes = prepared["props"]["compiledScenes"]
+    embedded = any(scene["type"] in {"financial-timeseries", "article-narrative"} for scene in scenes)
+    audio = bool(prepared.get("audio", {}).get("segments"))
+    criteria = {"overallRhythm": "整片节奏、信息密度与开合是否连贯",
+                "sceneTransitions": "场景边界、硬切/交叉淡化与视觉衔接",
+                "sceneContent": "图文、关系与数据表达是否准确且易读"}
+    if embedded:
+        criteria["embeddedTypeQuality"] = "每个金融/文章片段均通过其专用门禁且保持完整时间轴"
+    if audio:
+        criteria["audioSubtitles"] = "口播、音轨淡化和全片字幕边界是否同步"
+    if any(scene["type"] == "code" for scene in scenes):
+        criteria["codeScene"] = "作品代码场景按帧确定、画面完整且边界符合公开 API"
+    return criteria
+
+
 def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | None = None) -> Path:
     prepared = load_current_prepared(root, project)
     _validate_embedded_reviews(root, _plan(root, project))
@@ -393,4 +409,5 @@ def _mux_audio(root: Path, video: Path, output: Path, segments: list[dict], fps:
         raise A2VError(f"通用视频音轨混合失败：{result.stderr[-2000:]}")
 
 
-TYPE = VideoType("general", "多场景通用视频编排", validate, prepare, preview, render)
+TYPE = VideoType("general", "多场景通用视频编排", validate, prepare, preview, render,
+                 review_criteria=review_criteria)

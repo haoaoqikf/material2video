@@ -44,5 +44,11 @@ def review_gate(root: Path, project: dict) -> None:
     financial.validate_legibility_review(root, docs)
 
 
+def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
+    return {"priceBasis": "价格来源、口径、覆盖范围与交易日一致",
+            "investmentCalculation": "本金、日期区间和假设投资价值计算",
+            "mobileLegibility": "手机竖屏下坐标、标注和收益颜色可读"}
+
+
 TYPE = VideoType("financial-timeseries", "金融时间序列与假设投资价值演变", validate, prepare, preview, render,
-                 review_gate=review_gate)
+                 review_gate=review_gate, review_criteria=review_criteria)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from a2v.cli import main
 from a2v.core.errors import A2VError
 from a2v.core.project import create_project, load_project
+from a2v.cli import _require_review, _review_criteria
 from a2v.types.migration import migrate
 from a2v.types import registry
 from a2v.types.registry import VideoType
@@ -90,3 +92,31 @@ def test_registered_test_type_appears_without_editing_cli_dispatch(monkeypatch, 
     registry.register(VideoType("test-only", "测试扩展类型", noop, noop, noop, noop))
     assert main(["types"]) == 0
     assert '"type": "test-only"' in capsys.readouterr().out
+
+
+def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, monkeypatch) -> None:
+    from a2v.types.general.adapter import TYPE as general_type
+
+    monkeypatch.setattr(registry, "_registry", {"general": general_type})
+    root = tmp_path / "general"
+    root.mkdir()
+    preview_file = root / "outputs" / "previews" / "video.mp4"
+    preview_file.parent.mkdir(parents=True)
+    preview_file.write_bytes(b"preview")
+    manifest = {"id": "review-test", "type": "general"}
+    prepared = {"preparedFingerprint": "fingerprint", "props": {"compiledScenes": [
+        {"id": "code", "type": "code"}],}, "audio": {"segments": [{"sceneId": "code"}]}}
+    criteria = _review_criteria(root, manifest, prepared)
+    evidence = {name: "已逐项检查" for name in criteria}
+    record = {"schemaVersion": 1, "status": "pass", "projectId": manifest["id"],
+        "preparedFingerprint": prepared["preparedFingerprint"], "criteria": criteria, "evidence": evidence,
+        "preview": {"preparedFingerprint": prepared["preparedFingerprint"],
+                    "path": "outputs/previews/video.mp4",
+                    "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest()}}
+    (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
+    _require_review(root, manifest, prepared)
+
+    evidence.pop("audioSubtitles")
+    (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(A2VError, match="当前类型的每项结论"):
+        _require_review(root, manifest, prepared)

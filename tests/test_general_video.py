@@ -99,3 +99,28 @@ def test_graphic_relations_and_data_are_bounded_and_referenced(tmp_path: Path) -
     broken["links"][0]["to"] = "missing"
     with pytest.raises(A2VError, match="引用已声明节点"):
         adapter._validate_graphic_data("chart", broken)
+
+
+def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp_path: Path, monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
+    ]})
+
+    def fake_speech(_text: str, cache: Path):
+        wav = cache / "fake.wav"
+        wav.write_bytes(b"wav")
+        return wav, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
+
+    monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
+    prepared = adapter.prepare(root, manifest)
+    assert prepared["durationInFrames"] == 57
+    assert prepared["subtitles"] == [{"startFrame": 0, "endFrame": 15, "text": "字幕"}]
+
+    fixed_root, fixed_manifest = _project(tmp_path / "fixed", {"schemaVersion": 1, "scenes": [
+        {"id": "fixed", "type": "graphic", "duration": {"frames": 30},
+         "narration": "口播放不下。", "data": {"title": "固定容量"}},
+    ]})
+    with pytest.raises(A2VError, match="超出固定帧容量"):
+        adapter.prepare(fixed_root, fixed_manifest)

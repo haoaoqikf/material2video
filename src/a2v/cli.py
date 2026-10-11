@@ -76,11 +76,26 @@ def _status(root: Path, manifest: dict) -> dict:
             else:
                 preview_status = {"status": "current", "path": record["path"]}
             review = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
-            review_status = {"status": review.get("status", "pending") if review.get("preparedFingerprint") == prep["fingerprint"] else "stale"}
+            prepared = load_current_prepared(root, manifest)
+            criteria = _review_criteria(root, manifest, prepared)
+            evidence = review.get("evidence")
+            complete = (isinstance(evidence, dict) and set(evidence) == set(criteria)
+                        and all(isinstance(value, str) and value.strip() for value in evidence.values()))
+            if review.get("preparedFingerprint") != prep["fingerprint"] or review.get("criteria") != criteria:
+                review_status = {"status": "stale"}
+            else:
+                review_status = {"status": review.get("status", "pending") if complete else "pending"}
         except (OSError, ValueError, KeyError):
             pass
     return {"id": manifest["id"], "type": manifest["type"], "prepare": prep,
             "preview": preview_status, "review": review_status}
+
+
+def _review_criteria(root: Path, manifest: dict, prepared: dict) -> dict[str, str]:
+    video_type = registry.get(manifest["type"])
+    if video_type.review_criteria is not None:
+        return video_type.review_criteria(root, manifest, prepared)
+    return {"visualQuality": "整片画面质量", "continuity": "内容连续性与节奏", "audio": "音轨和字幕同步"}
 
 
 def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
@@ -93,9 +108,13 @@ def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
             or review.get("projectId") != manifest["id"]
             or review.get("preparedFingerprint") != prepared["preparedFingerprint"]):
         raise A2VError("正式评审未通过或已过期；请重新评审当前准备版本")
+    criteria = _review_criteria(root, manifest, prepared)
+    if review.get("criteria") != criteria:
+        raise A2VError("评审项与当前视频类型要求不匹配；请重新生成 review-template")
     evidence = review.get("evidence")
-    if not isinstance(evidence, dict) or not evidence or any(not isinstance(value, str) or not value.strip() for value in evidence.values()):
-        raise A2VError("评审通过必须为每项结论填写非空证据")
+    if (not isinstance(evidence, dict) or set(evidence) != set(criteria)
+            or any(not isinstance(value, str) or not value.strip() for value in evidence.values())):
+        raise A2VError("评审通过必须为当前类型的每项结论填写非空证据")
     preview = review.get("preview")
     if not isinstance(preview, dict) or preview.get("preparedFingerprint") != prepared["preparedFingerprint"]:
         raise A2VError("评审没有绑定当前完整预演")
@@ -195,8 +214,9 @@ def main(argv: list[str] | None = None) -> int:
             if preview.get("preparedFingerprint") != prepared["preparedFingerprint"]:
                 raise A2VError("完整预演不匹配当前准备产物；请重新 preview")
             (root / "outputs").mkdir(exist_ok=True)
-            template = {"schemaVersion": 1, "status": "pending",
-                        "evidence": {"visualQuality": "", "continuity": "", "audio": ""},
+            criteria = _review_criteria(root, manifest, prepared)
+            template = {"schemaVersion": 1, "status": "pending", "criteria": criteria,
+                        "evidence": {name: "" for name in criteria},
                         "projectId": manifest["id"], "preparedFingerprint": prepared["preparedFingerprint"],
                         "preview": preview}
             (root / "outputs" / "review.json").write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
