@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from a2v import cli, rhythm_review
+import a2v.types.article.cli as cli
+import a2v.types.article.rhythm_review as rhythm_review
 
 
 def test_missing_rhythm_score_is_pending():

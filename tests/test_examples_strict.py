@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli
+import a2v.types.article.cli as cli
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))

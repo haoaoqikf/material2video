@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from a2v import motion
+import a2v.types.article.motion as motion
 
 #: 采样行格式：[帧, 不透明度, x, y]，与页面里 `SWEEP_SCRIPT` 的压缩采样一致。
 _SAMPLE = list[list[float]]

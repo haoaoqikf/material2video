@@ -19,7 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from a2v import browser, contract_page
+import a2v.engine.browser as browser
+import a2v.engine.contract_page as contract_page
 
 ROOT = Path(__file__).resolve().parents[1]
 

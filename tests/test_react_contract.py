@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-from a2v import browser, contract_page, render
-from a2v.errors import A2VError
+import a2v.engine.browser as browser
+import a2v.engine.contract_page as contract_page
+import a2v.types.article.render as render
+from a2v.core.errors import A2VError
 
 
 def _contract(fps: int = 30, frames: int = 180, width: int = 1080, height: int = 1920):

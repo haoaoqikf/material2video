@@ -80,13 +80,13 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 
 ## 归属推导
 
-路径推导集中在 `scripts/a2v/paths.py`，命令行只负责参数默认值与报错。
+新制作以 `--project` 确定作品归属，材料路径相对于作品根。文章兼容流程的既有路径推导位于 `src/a2v/types/article/paths.py`。
 
 1. 以输入文件位置向上查找含 `.agents/skills/article2video/SKILL.md` 的目录；找不到时
    取运行中的 bundle 所在仓库——契约页与 composition 从那一份取；
 2. 文件在仓库内直属的 `videos/<slug>/` 或 `examples/<slug>/` 时，工作区根即仓库根；
 3. 否则用内容根作为工作区根，slug 取 `videos|examples/<slug>/` 里的目录名；
-4. 渲染、预览、体检与配音准备都以**分镜**确定归属；
+4. 新制作入口以 `project.json` 确定类型和材料；文章辅助流程仍以分镜路径推导历史目录；
 5. 全程使用绝对路径，与执行命令时的工作目录无关。
 
 推导失败时不猜归属，直接报错并要求显式指定输出路径：
@@ -96,21 +96,21 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | 找不到仓库根标记，且 bundle 不在仓库里 | 报错，提示需要显式指定输出路径 |
 | 文件在仓库外、又没有内容根 | 报错，点名 `--content-root` 与 `A2V_CONTENT_ROOT` |
 | 内容根里也没有 `videos|examples/<slug>/` | 报错，列出实际路径与它检查过的位置 |
-| 省略 `--out` 且没有 `--storyboard` | 报错：无法确定成片文件名 |
-| 媒体清单不在本篇文章的 `videos/<slug>/outputs/media/` 内 | 报错，拒绝跨文章合成 |
+| 缺失 `project.json` 或类型材料 | 指出作品目录或缺失材料，停止后续制作 |
+| 准备记录、资产或嵌入项目指纹已变化 | 要求重新 prepare，再生成预演与评审 |
 
 ## 默认输出
 
 | 命令 | 省略输出参数时的位置 |
 | --- | --- |
-| `prepare.py --storyboard <json>` | `<工作区根>/videos/<slug>/outputs/media/media.json`（含音轨与缓存） |
-| `render.py --storyboard <json>` | `<工作区根>/videos/<slug>/outputs/silent.mp4` |
-| `render.py … --media <media.json>` | `<工作区根>/videos/<slug>/outputs/voiced.mp4` 与同名 `.srt` |
-| 上述渲染命令加 `--limit-frames N` | `<工作区根>/videos/<slug>/outputs/previews/<同名成片>` |
+| `a2v prepare --project <目录>` | `<作品目录>/outputs/prepared.json` 与类型专属生成材料 |
+| `a2v preview --project <目录>` | `<作品目录>/outputs/previews/` 下的当前预演 |
+| `a2v render --project <目录>` | `<作品目录>/outputs/` 下类型默认的正式成片 |
+| `a2v preview --project <目录> --limit-frames N` | 调试用途；不会生成可绑定正式评审的完整预演记录 |
 
-文件名只由「是否提供 `--media`」决定：提供则 `voiced.mp4`，否则 `silent.mp4`。
+文章默认成片名由准备后的音轨决定：有音轨为 `voiced.mp4`，无音轨为 `silent.mp4`。由 `project.json` 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
 v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
-「写了旁白却没配音」的中间态：需要配音请先执行 `prepare.py`。
+「写了旁白却没配音」的中间态：需要配音请先执行 `uv run a2v prepare --project <目录>`。
 
 ## 成片溯源
 
@@ -163,7 +163,7 @@ v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 
 ## 兼容与覆盖规则
 
-- 显式 `--out`、`--out-dir` 始终优先，原有调用方式继续可用；
+- 输出归属由 `--project` 唯一确定；类型内部临时文件在验收后原子替换默认输出；
 - 不设内容根时工作区根即仓库根，路径与产物位置与引入内容根之前一致；
 - 同类重复导出覆盖固定文件（同一篇文章的 `silent.mp4` 只有一份）；
 - 产物先生成、验收后替换，失败不会破坏上一份可用成片；

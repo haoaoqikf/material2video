@@ -9,7 +9,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 REGISTRY = REPO_ROOT / "web/src/registry/registry.json"
-CATALOG = REPO_ROOT / ".agents/skills/article2video/scripts/a2v/catalog.py"
+CATALOG = REPO_ROOT / "src/a2v/core/catalog.py"
 TYPES = REPO_ROOT / "web/src/schema/primitiveTypes.ts"
 DOC = REPO_ROOT / ".agents/skills/article2video/references/primitive-catalog.md"
 BEGIN, END = "# >>> generated:registry >>>", "# <<< generated:registry <<<"

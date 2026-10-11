@@ -6,29 +6,28 @@
 
 - 每个有口播的 `stage` 声明 `narrationSegments` 与 `beats`；禁止字符串 `narration`。口播按 stages 顺序拼接。
 - 输入文章必须先通过[输入审查](input-review.md)；正文与最终拼接口播均为130～170字（目标约150字）。声明总时长和配音派生的实际全片时长均须35～45秒。
-- `prepare.py --storyboard <json>` 在配音请求前验证输入审查有效，再生成媒体；配音后检查实际总时长并把结果写入 `standardCheck`。超限可保留诊断材料，但正式渲染被阻断。
+- `a2v prepare --project <目录>` 在配音请求前验证输入审查有效，再生成媒体；配音后检查实际总时长并把结果写入 `standardCheck`。超限可保留诊断材料，但正式渲染被阻断。
 - 媒体 `stages` 与分镜同序，保存每阶段实际 `durationInFrames` 和 WAV 路径；`resolvedBeats` 放在媒体根级，区间使用全片全局帧并含 `stageId`。
 - 音效使用 `stageId`，不再使用旧 `sceneId`。字幕、对象轨道、镜头和音轨全部使用同一累计后的全局阶段边界。
 
 入口：
 
 ```bash
-uv run python .agents/skills/article2video/scripts/prepare.py --storyboard storyboard.json
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --media videos/<slug>/outputs/media/media.json
-uv run python .agents/skills/article2video/scripts/preview.py --storyboard storyboard.json --media videos/<slug>/outputs/media/media.json
-uv run python .agents/skills/article2video/scripts/render.py --storyboard storyboard.json --media videos/<slug>/outputs/media/media.json
+uv run a2v prepare --project videos/<slug>
+uv run a2v validate --project videos/<slug>
+uv run a2v preview --project videos/<slug>
+uv run a2v review-template --project videos/<slug>
+uv run a2v render --project videos/<slug>
 ```
 
 ## 工作流
 
 1. 含口播的每个阶段必须写分段口播 `narrationSegments` + `beats`；静音阶段省略两者。
    分镜契约 v4 不接受字符串 `narration`。
-2. `prepare.py --storyboard <json>` 生成媒体；省略 `--out-dir` 时写入该文章的
-   `videos/<slug>/outputs/media/`（示例为 `videos/examples/<slug>/outputs/media/`）。
-3. `validate.py <json> --media <media.json>` 检查清单与源分镜、字幕和 WAV 时长。
-4. `preview.py --storyboard <json> --media <media.json>` 预览。
-5. `render.py --storyboard <json> --media <media.json>` 输出
-   `videos/<slug>/outputs/voiced.mp4` 和同名 SRT；省略 `--out` 时由文章归属推导，显式 `--out` 仍然优先。
+2. `a2v prepare --project <目录>` 校验当前分镜并生成配音、字幕及派生时间轴，写入作品 `outputs/`。
+3. `a2v validate --project <目录>` 检查材料、媒体清单、字幕和 WAV 时长。
+4. `a2v preview --project <目录>` 生成完整预演；再用 `a2v article keyframes --storyboard <分镜>` 生成技术体检和关键帧材料，并完成人工评审。
+5. `a2v render --project <目录>` 在准备、完整预演和评审都仍绑定当前材料时输出正式视频。
 
 省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；分镜里的 `narrationSegments` 不会自动触发联网或配音，
 但会在日志中提示本次按无声导出。composition 读取的分镜在渲染前由媒体清单派生

@@ -9,9 +9,13 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from a2v import audio, prepare, production, storyboard, sound
-from a2v.errors import A2VError
-from a2v.media import load_media
+import a2v.engine.audio as audio
+import a2v.types.article.prepare as prepare
+import a2v.types.article.production as production
+import a2v.types.article.storyboard as storyboard
+import a2v.engine.sound as sound
+from a2v.core.errors import A2VError
+from a2v.types.article.media import load_media
 from test_production_workflow import _ready_record
 
 def tone(path, duration=.5):

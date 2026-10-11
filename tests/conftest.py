@@ -1,8 +1,4 @@
-"""测试夹具：把 skill 内的 a2v 包加入导入路径。
-
-a2v 包位于 skill bundle 内部（scripts/a2v），不随项目安装为可导入包，
-因此测试需要显式注入路径，与四个入口脚本的做法保持一致。
-"""
+"""测试夹具：导入位于 src/ 的 a2v 包。"""
 
 from __future__ import annotations
 
@@ -13,8 +9,10 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
+SRC_DIR = Path(__file__).resolve().parents[1] / "src"
+sys.path.insert(0, str(SRC_DIR))
+SCRIPT_TOOLS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "scripts"
+sys.path.insert(0, str(SCRIPT_TOOLS_DIR))
 
 EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
 
@@ -45,7 +43,9 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
 def approve_production_record(storyboard_path: str | Path, media_path: str | Path | None = None,
                              content_root: str | Path | None = None) -> Path:
     """为渲染路径测试创建当前指纹绑定的通过记录，不运行人工评审工具。"""
-    from a2v import article_text, paths, production
+    import a2v.types.article.article_text as article_text
+    import a2v.types.article.paths as paths
+    import a2v.types.article.production as production
 
     source = Path(storyboard_path)
     raw = json.loads(source.read_text(encoding="utf-8"))
@@ -120,7 +120,9 @@ def approve_production_record(storyboard_path: str | Path, media_path: str | Pat
 
 def approve_input_review(storyboard_path: str | Path, content_root: str | Path | None = None) -> Path:
     """准备通过的最小输入审查，供 prepare CLI 路径测试使用。"""
-    from a2v import article_text, paths, production
+    import a2v.types.article.article_text as article_text
+    import a2v.types.article.paths as paths
+    import a2v.types.article.production as production
 
     source = Path(storyboard_path)
     article = paths.for_storyboard(source, content_root)
@@ -205,7 +207,7 @@ def speech(monkeypatch):
     """
     import re
 
-    from a2v import prepare as prep
+    import a2v.types.article.prepare as prep
 
     async def fake(text, voice, rate, output):
         tokens = re.findall(r"[\w\u4e00-\u9fff]", text)

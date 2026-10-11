@@ -13,8 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from a2v import code_gate, remotion
-from a2v import storyboard as sb
+import a2v.core.code_gate as code_gate
+import a2v.engine.remotion as remotion
+import a2v.types.article.storyboard as sb
 from conftest import SKILL_MARKER
 
 GOOD_COMPONENT = "export default function Scene() { return null; }\n"
@@ -272,7 +273,7 @@ class TestRenderTimeoutCleanup:
 
         monkeypatch.setattr(remotion, "bundle", broken_bundle)
         with pytest.raises(remotion.RemotionError, match="超时"):
-            from a2v.render import render_with_remotion
+            from a2v.types.article.render import render_with_remotion
 
             render_with_remotion(
                 output=output,
@@ -284,7 +285,7 @@ class TestRenderTimeoutCleanup:
         assert not output.exists()
 
         # 下一次构建正常覆盖临时状态：清单重新生成且指向当前作品
-        from a2v import scene_manifest
+        import a2v.engine.scene_manifest as scene_manifest
 
         target = scene_manifest.generate(web_dir=remotion.web_dir(), storyboard_path=storyboard)
         assert target.is_file()
@@ -322,7 +323,7 @@ class TestRuntimeIsolation:
 
     @pytest.mark.slow
     def test远程请求被阻断并计入违规(self, tmp_path):
-        from a2v.browser import open_animated_page, is_local_url
+        from a2v.engine.browser import open_animated_page, is_local_url
 
         page_html = """<!doctype html><html><body><script>
 window.__A2V__ = {
@@ -336,7 +337,7 @@ fetch('https://example.invalid/evil')
 </script></body></html>"""
         page_file = tmp_path / "page.html"
         page_file.write_text(page_html, encoding="utf-8")
-        from a2v.http_server import LocalServer
+        from a2v.engine.http_server import LocalServer
 
         with LocalServer(tmp_path) as server:
             url = server.url_for(page_file)

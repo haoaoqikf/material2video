@@ -22,10 +22,14 @@ from pathlib import Path
 
 import pytest
 
-from a2v import beats, media as media_mod, prepare as prep, subtitles, timeline_v4
-from a2v.audio import wav_duration
-from a2v.errors import A2VError
-from a2v.media import load_media
+import a2v.engine.beats as beats
+import a2v.types.article.media as media_mod
+import a2v.types.article.prepare as prep
+import a2v.engine.subtitles as subtitles
+import a2v.types.article.timeline_v4 as timeline_v4
+from a2v.engine.audio import wav_duration
+from a2v.core.errors import A2VError
+from a2v.types.article.media import load_media
 
 #: 与 TTS 替身、字幕解析口径一致：只有文字字符才有词边界，标点没有独立时间。
 _WORD = re.compile(r"[\w\u4e00-\u9fff]")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-from a2v import storyboard
+import a2v.types.article.storyboard as storyboard
 
 def test_v3_timeline_loads(valid_script, tmp_path):
     import json

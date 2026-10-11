@@ -1,0 +1,90 @@
+import React from 'react';
+import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
+import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { A2VCompositionV4, type A2VCompositionV4Props } from './A2VCompositionV4';
+import type { A2VCodeScene } from '@/code-scene';
+import { createSceneRandom } from '@/code-scene';
+import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
+
+export type GeneralScene = {
+  id: string; type: 'graphic'|'financial-timeseries'|'article-narrative'|'code';
+  data?: Record<string, unknown>; durationInFrames: number; startFrame: number; endFrame: number;
+  transitionFrames: number; narration?: string; subtitleCues?: Array<{startFrame:number;endFrame:number;text:string}>;
+  renderer?: {kind:'code';module:string}; embeddedProps?: Record<string, unknown>; embeddedComposition?: string;
+};
+export type GeneralVideoProps = {schemaVersion:1;fps:30;width:1080;height:1920;durationInFrames:number;compiledScenes:GeneralScene[];title?:string;subtitleCues?:Array<{startFrame:number;endFrame:number;text:string}>};
+
+function GraphicScene({scene}: {scene:GeneralScene}): React.ReactElement {
+  const data=scene.data??{};
+  const lines=Array.isArray(data.lines)?data.lines:[];
+  const nodes=Array.isArray(data.nodes)?data.nodes as Array<{id:string;label:string}>:[];
+  const links=Array.isArray(data.links)?data.links as Array<{from:string;to:string;label:string}>:[];
+  const values=Array.isArray(data.values)?data.values as Array<{label:string;value:number}>:[];
+  const maximum=Math.max(1,...values.map(item=>item.value));
+  return <AbsoluteFill style={{justifyContent:'center',padding:'150px 112px',background:'#111720',color:'#f3f4f6',fontFamily:'A2V Sans, sans-serif'}}>
+    {typeof data.kicker==='string'&&<div style={{fontSize:30,color:'#f7c85b',marginBottom:36}}>{data.kicker}</div>}
+    <div style={{fontSize:72,lineHeight:1.2,fontWeight:700}}>{String(data.title??data.text??'')}</div>
+    {typeof data.body==='string'&&<div style={{fontSize:38,lineHeight:1.5,marginTop:48,color:'#c8d0da'}}>{data.body}</div>}
+    {lines.map((line,index)=><div key={index} style={{fontSize:36,lineHeight:1.5,marginTop:24,color:'#c8d0da'}}>{String(line)}</div>)}
+    {nodes.length>0&&<div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:20,marginTop:48}}>
+      {nodes.map((node,index)=><React.Fragment key={node.id}>
+        {index>0&&<span aria-hidden="true" style={{fontSize:42,color:'#f7c85b'}}>→</span>}
+        <div style={{padding:'20px 26px',border:'2px solid #526174',borderRadius:18,background:'#1c2734',fontSize:30,fontWeight:600}}>{node.label}</div>
+      </React.Fragment>)}
+    </div>}
+    {links.map((link,index)=><div key={`${link.from}-${link.to}-${index}`} style={{fontSize:26,color:'#f7c85b',marginTop:16}}>
+      {nodes.find(node=>node.id===link.from)?.label} → {nodes.find(node=>node.id===link.to)?.label}：{link.label}
+    </div>)}
+    {values.length>0&&<div style={{display:'grid',gap:20,marginTop:44}}>
+      {values.map((item,index)=><div key={`${item.label}-${index}`} style={{display:'grid',gridTemplateColumns:'220px 1fr 100px',alignItems:'center',gap:18,fontSize:28}}>
+        <span>{item.label}</span><div style={{height:22,background:'#263443',borderRadius:12,overflow:'hidden'}}>
+          <div style={{width:`${Math.max(0,Math.min(100,item.value/maximum*100))}%`,height:'100%',background:'#f7c85b'}}/>
+        </div><span style={{textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{item.value}</span>
+      </div>)}
+    </div>}
+  </AbsoluteFill>;
+}
+
+function CodeScene({scene,fps,width,height}: {scene:GeneralScene;fps:number;width:number;height:number}): React.ReactElement {
+  const module=scene.renderer?.module??'';
+  const Component=ACTIVE_CODE_SCENES[module] as A2VCodeScene<Record<string,unknown>>|undefined;
+  if(!Component) throw new Error(`通用场景 ${scene.id} 的代码模块未注册：${module}`);
+  const frame=useCurrentFrame();
+  const progress=scene.durationInFrames<=1?1:frame/(scene.durationInFrames-1);
+  return <Component world={{id:scene.id,claim:String(scene.data?.claim??''),metaphor:'',objects:[]}}
+    stage={{id:scene.id,data:scene.data??{},startFrame:0,endFrame:scene.durationInFrames,progress}}
+    objectStates={{}} scene={{id:scene.id,type:'code',data:scene.data??{},durationInFrames:scene.durationInFrames}}
+    frame={frame} localFrame={frame} progress={progress} fps={fps} canvas={{width,height}} theme={{theme:'dark'}}
+    beats={{current:null,progress:0,completed:[],estimated:true,active:null,plan:[]}}
+    motion={{phase:progress<1?'change':'settle',camera:{kind:'none',progress:1,focus:'',x:0,y:0,scale:1,velocity:0},continuity:null}}
+    random={createSceneRandom(scene.id)}/>;
+}
+
+function SceneContent({scene,fps,width,height}: {scene:GeneralScene;fps:number;width:number;height:number}): React.ReactElement {
+  if(scene.type==='financial-timeseries') return <FinancialTimeSeries {...(scene.embeddedProps as FinancialTimeSeriesProps)}/>;
+  if(scene.type==='article-narrative') return <A2VCompositionV4 {...(scene.embeddedProps as A2VCompositionV4Props)}/>;
+  if(scene.type==='code') return <CodeScene scene={scene} fps={fps} width={width} height={height}/>;
+  return <GraphicScene scene={scene}/>;
+}
+
+export const GeneralVideo: React.FC<GeneralVideoProps> = (props) => {
+  const frame=useCurrentFrame();
+  const current=props.compiledScenes.find(scene=>scene.startFrame<=frame&&frame<scene.endFrame);
+  const cue=current?.subtitleCues?.find(item=>item.startFrame<=frame&&frame<item.endFrame);
+  return <AbsoluteFill style={{background:'#111720'}}>
+    {props.compiledScenes.map((scene,index)=><Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
+      <AbsoluteFill style={{opacity:(local=>{
+        const fadeIn=scene.transitionFrames;
+        const next=props.compiledScenes[index+1];
+        const fadeOut=next?.transitionFrames??0;
+        const incoming=fadeIn?Math.min(1,Math.max(0,(local+1)/fadeIn)):1;
+        const outgoing=fadeOut&&local>=scene.durationInFrames-fadeOut?Math.min(1,Math.max(0,(scene.durationInFrames-local)/fadeOut)):1;
+        return Math.min(incoming,outgoing);
+      })(frame-scene.startFrame)}}>
+        <SceneContent scene={scene} fps={props.fps} width={props.width} height={props.height}/>
+      </AbsoluteFill>
+    </Sequence>)}
+    {cue&&<div style={{position:'absolute',left:100,right:100,bottom:260,textAlign:'center',fontSize:46,fontWeight:600,color:'#fff',textShadow:'0 2px 8px #000',pointerEvents:'none'}}>{cue.text}</div>}
+    {current?.narration&&<></>}
+  </AbsoluteFill>;
+};

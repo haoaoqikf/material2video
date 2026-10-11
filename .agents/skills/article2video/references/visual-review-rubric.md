@@ -1,6 +1,6 @@
 # 视觉评审量表
 
-`review.py` 把「该看的」摆出来，这份量表负责「怎么打分」。
+`文章类型视觉体检` 把「该看的」摆出来，这份量表负责「怎么打分」。
 量表存在的意义是让评审可复现：同一支片子，不同的人（或不同的视觉模型）
 看完应当得到接近的结论，而不是各自凭感觉。
 
@@ -12,7 +12,7 @@
 ## 怎么用
 
 ```bash
-uv run python .agents/skills/article2video/scripts/review.py \
+uv run a2v review \
     --storyboard videos/<slug>/storyboard.json \
     --media videos/<slug>/outputs/media/media.json
 ```
@@ -33,7 +33,7 @@ uv run python .agents/skills/article2video/scripts/review.py \
 反过来会让人只看机检过得去的地方，忽略机检根本管不到的问题。
 
 `report.json` 的 `visualNarrative` 给出 V 系列：V1–V4 是机检硬判定（与
-`validate.py --strict` 同口径，失败会并入错误数与退出码），V5 是**文字主导候选清单**
+`a2v validate --project <目录>` 同口径，失败会并入错误数与退出码），V5 是**文字主导候选清单**
 （列出候选幕与判定证据，只呈现不改退出码），V6 是你现在要写的结论。
 逐阶段细看时把 V4/V5 的证据当作提示，而不是当作结论——脚本只报告结构，
 「图形有没有真的承担论证」由你判断。
@@ -61,7 +61,7 @@ article2video Skill 的 AI 助手负责自动填写导演计划和 `production.j
 }
 ```
 
-AI 同时在 `review.md` 填写 V6 图形论证与 A6 装饰动画评分及候选裁决；这些字段仍是 `review.py` 的审美门禁输入，须按实际联系表与视频证据逐条作结论。AI 评审可满足发布门禁，但结论和来源会保存在作品本地记录中供复核。旧记录仍可读，无来源的历史通过不能用于新渲染。
+AI 同时在 `review.md` 填写 V6 图形论证与 A6 装饰动画评分及候选裁决；这些字段仍是 `文章类型视觉体检` 的审美门禁输入，须按实际联系表与视频证据逐条作结论。AI 评审可满足发布门禁，但结论和来源会保存在作品本地记录中供复核。旧记录仍可读，无来源的历史通过不能用于新渲染。
 
 任一失败项都要在作品根的 `production.json` 增加返工项，填写 `id`、`sceneIds`（全片问题使用空数组）、`dimension`、`problem`、`direction`、`returnStage`、`severity` 与 `status`。必改项只能在修改版本复查通过并填写 `recheck.evidence` 和与记录当前值一致的 `recheck.fingerprints` 后设为 `resolved`。修改分镜或共享渲染资产会使所有评审过期；静态联系表按分镜声明时间轴生成，不读媒体（`production.py keyframes` 与不带 `--media` 的体检写同一份 `contact-sheet.png`，带 `--media` 的体检另写 `contact-sheet-media.png`），配音变化只使动态评审过期。重新生成材料不会自动通过。
 
@@ -190,7 +190,7 @@ A 问「这些图形动起来有没有在解释论点」。
 「通过」「不通过」「候选未裁决」之一。**V5 有候选而未裁决，或 V6 评分低于 4，
 发布清单里的 `publishable` 就是否**——「图形论证」这一项不能靠总分补。
 没写 `## 候选裁决` 小节时，只要 V5 列出了候选，状态就是「候选未裁决」。
-用 `评分：4/5` 单独写在 V6 小节里也可以，`review.py` 会识别这种写法；
+用 `评分：4/5` 单独写在 V6 小节里也可以，`文章类型视觉体检` 会识别这种写法；
 但评分与裁决是两件事：分数够高而候选未裁决，仍然不能发布。
 
 `## A6 候选裁决` 同理逐条对应 `animationReview.a6.candidates`（形如

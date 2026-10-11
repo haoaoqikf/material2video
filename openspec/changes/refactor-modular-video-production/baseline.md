@@ -1,0 +1,22 @@
+# 重构基线记录
+
+记录日期：2026-10-11。环境为 Windows 11、AMD64、18 个逻辑 CPU、31.6 GiB 内存、Python 3.12.10、Node 22.23.2、Remotion 4.0.526、FFmpeg 7.1。
+
+## 测试基线
+
+重构前记录：Python 856 passed、5 skipped、14 deselected；Web 176 passed。该记录用于辨别既有失败，原始控制台记录位于本机忽略目录 `.gen/refactor-baseline/`，不纳入仓库。
+
+当前重构验证：Python 全套 875 passed、5 skipped；Web 176 passed；TypeScript 类型检查与 Web build 通过。Windows pytest 在正常 exit 0 后，清理临时目录时仍出现 `pytest-current` ACL `PermissionError`，这属于退出清理告警，不影响测试结果。
+
+## 既有渲染数据
+
+`buffer-smoothing` 完整 1290 帧三轮：323.609 s（冷缓存）、135.219 s、135.625 s（热缓存），热缓存中位数 135.422 s。`darts-trial-and-error` 与 `keynote-baseline` 目前各只有 3 帧预检记录（分别 16.594 s、3.875 s），不能当作全片性能基线。
+
+三轮数据尚未形成，且当前性能记录不采集进程树峰值内存。迁移前后关键帧 PSNR 尚未测量；金融完整渲染及通用混合有声渲染尚未完成。因此这份记录只作为部分基线，不满足性能/内存/画面保真最终验收。
+
+## 本轮真实输出检查
+
+- 通用单一图文场景：30 帧 Remotion 预演和输出验收通过。
+- 通用作品级 React 代码场景：30 帧预演通过，项目相对 `scenes/` 模块在真实 bundle 中解析成功。
+- 金融合成材料：统一 `validate`、`prepare` 与 30 帧预演通过。
+- 通用口播有声输出、嵌入文章/金融混合视频及正式评审后导出仍待完整验收。

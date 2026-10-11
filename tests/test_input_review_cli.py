@@ -7,13 +7,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / ".agents/skills/article2video/scripts/production.py"
-
-
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=ROOT,
+    return subprocess.run([sys.executable, "-m", "a2v.cli", "article", *args], cwd=ROOT,
                           text=True, capture_output=True, check=False,
-                          encoding="utf-8", errors="replace")
+                          encoding="utf-8", errors="replace", env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")})
 
 
 def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:

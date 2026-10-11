@@ -15,12 +15,16 @@ from pathlib import Path
 
 import pytest
 
-from a2v import media as media_mod
-from a2v import audio, beats, cli, prepare as prep, storyboard_v4
-from a2v.errors import A2VError
-from a2v.media import load_media
-from a2v.subtitles import cues_from_words, srt
-from a2v.http_server import LocalServer
+import a2v.types.article.media as media_mod
+import a2v.engine.audio as audio
+import a2v.engine.beats as beats
+import a2v.types.article.cli as cli
+import a2v.types.article.prepare as prep
+import a2v.types.article.storyboard_v4 as storyboard_v4
+from a2v.core.errors import A2VError
+from a2v.types.article.media import load_media
+from a2v.engine.subtitles import cues_from_words, srt
+from a2v.engine.http_server import LocalServer
 from conftest import make_project, v4_storyboard
 
 #: v4 示例夹具；共享测试数据本身仍由 v4_storyboard 构造
@@ -306,9 +310,9 @@ def test_voiced_render_passes_effective_props(prepared, tmp_path, monkeypatch):
     回归背景：props 曾一直是原始分镜，composition 按声明时长注册，
     总帧数交叉校验报「不一致」，有声渲染根本无法完成。
     """
-    from a2v import remotion as remotion_mod
-    from a2v import render as render_mod
-    from a2v.remotion import BundleOutcome, CompositionMetadata
+    import a2v.engine.remotion as remotion_mod
+    import a2v.types.article.render as render_mod
+    from a2v.engine.remotion import BundleOutcome, CompositionMetadata
 
     source, path = prepared
     media = load_media(path, source)

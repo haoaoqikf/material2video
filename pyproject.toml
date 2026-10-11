@@ -9,11 +9,18 @@ dependencies = [
     "edge-tts>=7.2.8,<8",
 ]
 
+[project.scripts]
+a2v = "a2v.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [dependency-groups]
 dev = ["pytest>=8,<9"]
 
-[tool.uv]
-package = false
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

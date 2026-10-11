@@ -145,7 +145,7 @@ wheels = [
 [[package]]
 name = "article2video"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "edge-tts" },
     { name = "imageio-ffmpeg" },

@@ -6,9 +6,9 @@ import pytest
 from types import SimpleNamespace
 from pathlib import Path
 
-from a2v import production
-from a2v import article_text
-from a2v.errors import A2VError
+import a2v.types.article.production as production
+import a2v.types.article.article_text as article_text
+from a2v.core.errors import A2VError
 from conftest import make_project
 
 
@@ -358,7 +358,7 @@ def test_storyboard_fingerprint_changes_when_bytes_change(tmp_path: Path, monkey
 
 def test_example_production_record_is_outside_versioned_example_source(tmp_path: Path) -> None:
     article_root = make_project(tmp_path, "examples", "demo", script={"scenes": []})
-    article = __import__("a2v.paths", fromlist=["for_storyboard"]).for_storyboard(article_root / "storyboard.json")
+    article = __import__("a2v.types.article.paths", fromlist=["for_storyboard"]).for_storyboard(article_root / "storyboard.json")
     assert production.record_path(article) == tmp_path / "videos" / "examples" / "demo" / "production.json"
 
 

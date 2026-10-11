@@ -16,8 +16,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from a2v import bundle_cache, perf, remotion
-from a2v.errors import A2VError
+import a2v.engine.bundle_cache as bundle_cache
+import a2v.engine.perf as perf
+import a2v.engine.remotion as remotion
+from a2v.core.errors import A2VError
 
 
 @pytest.fixture

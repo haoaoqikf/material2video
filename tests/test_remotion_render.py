@@ -22,9 +22,10 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
 
-from a2v import remotion, render  # noqa: E402
-from a2v import scene_manifest  # noqa: E402
-from a2v import storyboard as sb  # noqa: E402
+import a2v.engine.remotion as remotion
+import a2v.types.article.render as render
+import a2v.engine.scene_manifest as scene_manifest
+import a2v.types.article.storyboard as sb
 
 WEB = ROOT / "web"
 
@@ -74,7 +75,7 @@ def test_prepare_composition_entry_ignores_article_scenes(tmp_path, monkeypatch)
 
 def test_prepare_composition_entry_requires_storyboard(tmp_path):
     """分镜缺失时明确报错：清单不能悄悄沿用上一支作品的残留。"""
-    from a2v.errors import A2VError
+    from a2v.core.errors import A2VError
 
     web = tmp_path / "web"
     storyboard = tmp_path / "examples" / "demo" / "storyboard.json"
@@ -348,9 +349,10 @@ def test_tree_layout_preview_matches_remotion_export_at_first_frame(tmp_path):
         from conftest import v4_storyboard
     finally:
         sys.path.pop(0)
-    from a2v import storyboard_v4
-    from a2v.cli import _v4_model
-    from a2v import browser, contract_page
+    import a2v.types.article.storyboard_v4 as storyboard_v4
+    from a2v.types.article.cli import _v4_model
+    import a2v.engine.browser as browser
+    import a2v.engine.contract_page as contract_page
 
     data = v4_storyboard()
     report = storyboard_v4.validate(data)
@@ -441,8 +443,8 @@ def test_frame_count_mismatch_stops_before_rendering(tmp_path):
 
 
 def _model():
-    from a2v.cli import _v4_model
-    from a2v import storyboard_v4
+    from a2v.types.article.cli import _v4_model
+    import a2v.types.article.storyboard_v4 as storyboard_v4
 
     data = json.loads(STORYBOARD.read_text(encoding="utf-8"))
     report = storyboard_v4.validate(data)

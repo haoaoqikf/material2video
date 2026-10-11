@@ -67,8 +67,8 @@ tree v4 的字体后布局预检不改变 code world 的公开探针契约；代
 
 ## 验证与安全边界
 
-- 使用 `validate.py --strict` 验证 v4 分镜字段、全局对象与阶段；缺失或不可解析的 code module 在浏览器启动前报错。
-- `review.py` 对全片抽帧并读取 `window.__A2V__` v4 探针；运行 `--check-determinism` 检查随机寻帧和同帧重绘，PSNR 至少 60 dB。
+- 使用 `uv run a2v validate --project <目录>` 验证 v4 分镜字段、全局对象与阶段；缺失或不可解析的 code module 在浏览器启动前报错。
+- `uv run a2v article keyframes --storyboard <分镜> --check-determinism` 对全片抽帧并读取 `window.__A2V__` v4 探针，检查随机寻帧和同帧重绘，PSNR 至少 60 dB。
 - 代码模块通过导入白名单、静态源码规则、可达文件指纹和渲染期离线请求阻断。此边界是项目代码评审措施，不是操作系统沙箱；只执行项目内受控代码。
 - 全片动态与连续性评审应播放有声评审版，核对对象身份、状态承接、camera 和结果停留。缺证据为 pending，不能以静态评审代替。
 

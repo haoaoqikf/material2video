@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2v import catalog, storyboard
+import a2v.core.catalog as catalog
+import a2v.types.article.storyboard as storyboard
 MIDLEVEL = {"flow", "cycle", "timeline", "gauge", "pictogram"}
 
 def v3() -> dict:

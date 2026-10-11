@@ -10,6 +10,7 @@ import { resolveStoryboardV4 } from './runtime/timelineV4';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import type { StoryboardV4 } from './schema/storyboardV4';
 import './styles/index.css';
+import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
 
 /**
  * 时长、帧率与尺寸都从分镜推导，**不在注册时写死**。
@@ -66,6 +67,17 @@ export const RemotionRoot: FC = () => {
           width: props.width,
           height: props.height,
         })}
+      />
+      <Composition
+        id="GeneralVideo"
+        component={GeneralVideo}
+        durationInFrames={1}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{ schemaVersion: 1, fps: 30, width: 1080, height: 1920, durationInFrames: 1, compiledScenes: [] } as GeneralVideoProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
+          width: props.width, height: props.height })}
       />
     </>
   );

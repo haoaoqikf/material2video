@@ -1,5 +1,7 @@
 from types import SimpleNamespace
-from a2v import animation_review as ar, beats, cli
+import a2v.types.article.animation_review as ar
+import a2v.engine.beats as beats
+import a2v.types.article.cli as cli
 from test_animation_review import _scene, SPANS, SEGMENT_TEXTS
 
 def test_a4_pause_windows_contain_only_their_spoken_cues():

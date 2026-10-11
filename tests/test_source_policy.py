@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from a2v import source_policy
+import a2v.core.source_policy as source_policy
 
 
 def _scan(tmp_path: Path, name: str, source: str):
@@ -63,7 +63,7 @@ def test_scan_passes_on_repository_composition_sources():
     """
     root = Path(__file__).resolve().parents[1]
     web = root / "web"
-    from a2v import remotion
+    import a2v.engine.remotion as remotion
 
     assert not (web / "src/third-party").exists()
     assert source_policy.scan(remotion.build_inputs()) == []

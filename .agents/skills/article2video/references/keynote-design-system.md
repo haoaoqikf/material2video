@@ -9,7 +9,7 @@
 - **设计语言层**（`web/src/styles/keynote.css`）：把「高级感」固化成令牌与用法类；
 - **字号取档**（`web/src/primitives/SceneTree.tsx`）：预设启用时对声明了字号档的
   文字原语按实测宽度和最多四行向下取档，并在最低档仍不适配时记录失败；tree v4 在正式字体加载后预检所有文案状态，镜头使用同批节点实测几何；
-- **观感闸门 K1–K10**（`scripts/a2v/keynote.py`）：把上面两层的效果变成**数值结论**。
+- **观感闸门 K1–K10**（`src/a2v/keynote.py`）：把上面两层的效果变成**数值结论**。
 
 它与 [视觉规范](visual-spec.md) 的分工是：视觉规范是**通用**规范，任何视频都适用；
 本文件只描述**启用预设之后**多出来的那层约束，以及它凭什么自称「发布会级」。
@@ -458,7 +458,7 @@ kind.textContent = scene.type || '';
 
 V4 持续世界的主题令牌由 `tests/test_react_design_tokens.py` 在真实浏览器中检查：测试加载当前代码场景标杆，先读深色主题，再将根元素切换为浅色，并逐项核对底色、强调色、安全区、字号、字体、默认表面与画布尺寸。运行 `uv run pytest tests/test_react_design_tokens.py -q -p no:cacheprovider`。
 
-V4 的 `review.py` 尚未把 V3 的 K 系列量测迁移到全片 world；实际报告会对不可用指标标记跳过，不能把下表历史通过数当作 V4 结果。
+V4 的 `文章类型视觉体检` 尚未把 V3 的 K 系列量测迁移到全片 world；实际报告会对不可用指标标记跳过，不能把下表历史通过数当作 V4 结果。
 
 ### 历史 V3 基线实测（不代表当前示例）
 
@@ -633,7 +633,7 @@ K 系列内部还有一层区分：**K7 与 K8 是硬判定，其余是提醒。
 
 ### 结果结构
 
-`scripts/a2v/keynote.py` 提供 `Gate` 与 `KeynoteResult`：
+`src/a2v/keynote.py` 提供 `Gate` 与 `KeynoteResult`：
 
 - 状态取值 `pass / warn / fail / skipped`，严重度 `0 / 1 / 2 / 3`；
 - `KeynoteResult.render(scene_id, frame, gates)` 按**闸门 × 场景聚合**，
@@ -1366,8 +1366,8 @@ Web 侧没有消费者，`--a2v-glow-heat-blur/alpha` 仍定义在 `tokens.css` 
    通道跨度 ≥179 的饱和蓝（对白约 9.9:1）。要改就得**拆角色**
 2. **保持现状**：认为浅色下"焦点来得晚一点"可接受，就按本节记录它，别再追
 
-改动效时要按动效量测逐步验证——实现是 `scripts/a2v/motion.py`，两处共用一份：
-`tests/test_motion_review.py`（参考实现上的严格判定）与 `scripts/review.py`
+改动效时要按动效量测逐步验证——实现是 `src/a2v/motion.py`，两处共用一份：
+`tests/test_motion_review.py`（参考实现上的严格判定）与 `a2v article keyframes`
 （验收命令，对任意作品跑）——**不能说成「逐字节一致」**。
 
 ### 9.4 为什么写进设计文档而不是留在任务里
@@ -1377,7 +1377,7 @@ Web 侧没有消费者，`--a2v-glow-heat-blur/alpha` 仍定义在 `tokens.css` 
 
 ## 九、动效量测 M0–M4：与 K1–K10 并列的第二族判据
 
-`review.py` 除了 K1–K10 观感闸门，还会逐帧扫过全片跑一族**动效量测**（M0–M4）：
+`文章类型视觉体检` 除了 K1–K10 观感闸门，还会逐帧扫过全片跑一族**动效量测**（M0–M4）：
 
 - 5 条，**只提示、不拦人**（与 K 系列的"失败即拦"不同）
 - 当前实测：5 通过 / 0 提醒 / 0 失败

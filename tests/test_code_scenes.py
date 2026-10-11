@@ -22,10 +22,10 @@ from pathlib import Path
 
 import pytest
 
-from a2v import code_scenes as cs
-from a2v import storyboard_v4 as sb
-from a2v.cli import main_validate
-from a2v.storyboard import Report
+import a2v.core.code_scenes as cs
+import a2v.types.article.storyboard_v4 as sb
+from a2v.types.article.cli import main_validate
+from a2v.types.article.storyboard import Report
 
 from conftest import v4_storyboard
 

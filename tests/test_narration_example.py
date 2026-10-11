@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from a2v import article_text, storyboard_v4
+import a2v.types.article.article_text as article_text
+import a2v.types.article.storyboard_v4 as storyboard_v4
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/buffer-smoothing/storyboard.json"

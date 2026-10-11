@@ -16,8 +16,10 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli, paths, storyboard_v4
-from a2v.errors import A2VError
+import a2v.types.article.cli as cli
+import a2v.types.article.paths as paths
+import a2v.types.article.storyboard_v4 as storyboard_v4
+from a2v.core.errors import A2VError
 
 from conftest import SKILL_MARKER, make_project
 
@@ -174,7 +176,7 @@ class TestContentRootReachesTheEntryPoints:
 
     def test_declarative_serve_root_follows_the_workspace(self, tmp_path, valid_script_v4):
         """共享页面在仓库里、分镜在内容根里：静态根必须是内容根。"""
-        from a2v.render import _default_serve_root
+        from a2v.types.article.render import _default_serve_root
 
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script_v4)

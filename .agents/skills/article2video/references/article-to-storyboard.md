@@ -32,11 +32,13 @@
 ## 常用校验
 
 ```bash
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --json
-uv run python .agents/skills/article2video/scripts/prepare.py --storyboard storyboard.json
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --media videos/<slug>/outputs/media/media.json
-uv run python .agents/skills/article2video/scripts/review.py --storyboard storyboard.json --media videos/<slug>/outputs/media/media.json --check-determinism
-uv run python .agents/skills/article2video/scripts/production.py status --storyboard storyboard.json
+uv run a2v validate --project videos/<slug>
+uv run a2v prepare --project videos/<slug>
+uv run a2v preview --project videos/<slug>
+uv run a2v article status --storyboard videos/<slug>/storyboard.json
+uv run a2v review-template --project videos/<slug>
+uv run a2v review --project videos/<slug>
+uv run a2v render --project videos/<slug>
 ```
 
 完整字段、边界和一份结构样例见[分镜脚本结构](storyboard-schema.md)；时长、输入审查、媒体、渲染及评审操作分别见[输入文章审查](input-review.md)、[媒体契约](media-contract.md)、[渲染契约](render-contract.md)和[视觉评审量表](visual-review-rubric.md)。

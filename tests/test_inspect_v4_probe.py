@@ -2,8 +2,8 @@ import copy
 import json
 from pathlib import Path
 
-from a2v.inspect import scene_windows, v4_stages_as_dicts, verify_v4_world_probe
-from a2v.timeline_v4 import resolve_v4
+from a2v.types.article.inspect import scene_windows, v4_stages_as_dicts, verify_v4_world_probe
+from a2v.types.article.timeline_v4 import resolve_v4
 
 STORYBOARD = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-vectors.json").read_text(encoding="utf-8"))["valid"]
 

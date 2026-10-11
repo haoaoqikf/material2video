@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from a2v.timeline_v4 import resolve_v4
-from a2v.state_tracks_v4 import compile_state_tracks, state_at
+from a2v.types.article.timeline_v4 import resolve_v4
+from a2v.types.article.state_tracks_v4 import compile_state_tracks, state_at
 
 VECTOR = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-timeline-vectors.json").read_text(encoding="utf-8"))
 

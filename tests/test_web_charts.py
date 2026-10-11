@@ -20,7 +20,10 @@ from pathlib import Path
 
 import pytest
 
-from a2v import browser, contract_page, determinism, keynote  # noqa: E402
+import a2v.engine.browser as browser
+import a2v.engine.contract_page as contract_page
+import a2v.core.determinism as determinism
+import a2v.types.article.keynote as keynote
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web" / "src"
@@ -177,7 +180,7 @@ def test_chart_frame_is_deterministic(chart_page):
 
 def test_chart_marks_are_not_counted_as_cards_for_k6(chart_page):
     """数据柱是图形标记，不应被卡片纪律闸门要求描边与内高光。"""
-    from a2v import inspect as a2v_inspect
+    import a2v.types.article.inspect as a2v_inspect
 
     facts = chart_page.evaluate(a2v_inspect._AESTHETIC_SCRIPT)
     assert facts is not None

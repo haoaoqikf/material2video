@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from a2v import cli
+import a2v.types.article.cli as cli
 from conftest import approve_input_review, make_project, v4_storyboard
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +70,7 @@ def test_validate_rejects_legacy_storyboards_with_a_single_diagnostic(tmp_path, 
 
 
 def test_prepare_rejects_legacy_storyboard_before_requesting_speech(tmp_path, monkeypatch, caplog):
-    from a2v import prepare as prepare_module
+    import a2v.types.article.prepare as prepare_module
 
     article = make_project(tmp_path, "videos", "demo", None)
     path = _write(article / "storyboard.json", _legacy_script(3))
@@ -119,10 +119,10 @@ def test_render_rejects_legacy_storyboard_without_writing_output(tmp_path, monke
 def test_production_entry_rejects_legacy_storyboard(tmp_path):
     article = make_project(tmp_path, "videos", "demo", _legacy_script(3))
     completed = subprocess.run(
-        [sys.executable, str(ROOT / ".agents/skills/article2video/scripts/production.py"),
-         "status", "--storyboard", str(article / "storyboard.json"),
+        [sys.executable, "-m", "a2v.cli", "article", "status", "--storyboard", str(article / "storyboard.json"),
          "--content-root", str(tmp_path)],
         cwd=ROOT, text=True, capture_output=True, check=False, encoding="utf-8", errors="replace",
+        env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")},
     )
     assert completed.returncode == 2
     assert LEGACY_MESSAGE in completed.stderr

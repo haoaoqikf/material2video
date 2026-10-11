@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from a2v import catalog
+import a2v.core.catalog as catalog
 import sync_catalog
 
 ROOT=Path(__file__).resolve().parents[1]

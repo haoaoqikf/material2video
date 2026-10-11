@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from a2v.errors import A2VError
-from a2v.http_server import LocalServer
+from a2v.core.errors import A2VError
+from a2v.engine.http_server import LocalServer
 
 MOUNT = "/__a2v__"
 

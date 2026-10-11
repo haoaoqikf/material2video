@@ -14,10 +14,12 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli, paths, prepare as prep
-from a2v.errors import A2VError
-from a2v.media import Media
-from a2v.render import RenderResult
+import a2v.types.article.cli as cli
+import a2v.types.article.paths as paths
+import a2v.types.article.prepare as prep
+from a2v.core.errors import A2VError
+from a2v.types.article.media import Media
+from a2v.types.article.render import RenderResult
 
 from conftest import SKILL_MARKER, approve_input_review, approve_production_record, make_project
 
@@ -181,7 +183,7 @@ class TestNaming:
     def test_voiced_name_keeps_silent_file_name(self, caplog):
         # 分镜有口播但没给媒体时保持 silent 文件名，同时给出可定位的警告
         assert paths.use_voiced_name(declares_voice=True, with_media=False) is False
-        assert "prepare.py" in caplog.text
+        assert "a2v prepare" in caplog.text
 
     @pytest.mark.parametrize(
         "segments, expected",

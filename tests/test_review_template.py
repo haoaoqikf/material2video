@@ -10,11 +10,11 @@ from __future__ import annotations
 
 import re
 
-from a2v import animation_review as ar
-from a2v import bespoke_review as br
-from a2v import cli
-from a2v import rhythm_review
-from a2v import visual_narrative as vn
+import a2v.types.article.animation_review as ar
+import a2v.types.article.bespoke_review as br
+import a2v.types.article.cli as cli
+import a2v.types.article.rhythm_review as rhythm_review
+import a2v.types.article.visual_narrative as vn
 
 SCENES = ["opening", "smooth"]
 

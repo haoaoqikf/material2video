@@ -23,9 +23,9 @@ from pathlib import Path
 
 import pytest
 
-from a2v import scene_manifest
-from a2v.browser import open_animated_page
-from a2v.contract_page import serve_contract_page
+import a2v.engine.scene_manifest as scene_manifest
+from a2v.engine.browser import open_animated_page
+from a2v.engine.contract_page import serve_contract_page
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 REPO_ROOT = WEB_DIR.parent
@@ -293,7 +293,7 @@ class TestChartDeterminism:
 
     @pytest.mark.slow
     def test图表逐帧更新满足PSNR阈值(self, mixed_env):
-        from a2v.determinism import DEFAULT_PSNR_DB, failures, judge_frames
+        from a2v.core.determinism import DEFAULT_PSNR_DB, failures, judge_frames
 
         root, storyboard_path, _, _ = mixed_env
         with serve_contract_page(storyboard_path, root) as url:
@@ -323,7 +323,7 @@ class TestReviewCoverage:
 
     @pytest.mark.slow
     def test契约探针与KM闸门覆盖代码场景(self, mixed_env, tmp_path):
-        from a2v import inspect as inspect_mod
+        import a2v.types.article.inspect as inspect_mod
 
         root, storyboard_path, keynote_path, _ = mixed_env
         scenes = json.loads(keynote_path.read_text(encoding="utf-8"))["scenes"]
@@ -360,7 +360,7 @@ class TestReviewCoverage:
 
     @pytest.mark.slow
     def test缺失探针标记的代码场景严格评审失败(self, mixed_env, tmp_path):
-        from a2v import inspect as inspect_mod
+        import a2v.types.article.inspect as inspect_mod
 
         root, storyboard_path, _, article = mixed_env
         module_file = article / "scenes" / "gauge.tsx"
@@ -437,7 +437,7 @@ class TestReadinessProtocol:
             scene_manifest.generate(web_dir=WEB_DIR, storyboard_path=storyboard_path, content_root=root)
             _build_contract_page()
             with serve_contract_page(storyboard_path, root) as url:
-                from a2v.browser import BrowserError
+                from a2v.engine.browser import BrowserError
 
                 with pytest.raises(BrowserError) as excinfo:
                     with open_animated_page(url, timeout_ms=60000, width=1080, height=1920):

@@ -1,16 +1,14 @@
 schema: spec-driven
 
 context: |
-  项目：article2video，把观点型文章转化为竖屏单场景动态叙事短视频的个人内容生产项目。
-  产品表达：一个观点，一个场景，一段动态叙事。
-  单场景动态叙事（Single-Scene Visual Narrative）：围绕一个核心观点构建一个持续存在的视觉场景，
-  通过场景内动画、镜头运动、文字与状态变化完成完整表达，而不是依靠多场景切换。
-  产品场景指持续的视觉世界；技术上的幕与 scenes[] 是分镜或叙事阶段，不要求数组只有一项。
-  当前契约为 v4：一个持续 world、多阶段叙事、全局状态/镜头/beat 时间轴；单场景输入审查、130～170字正文与口播、35～45秒声明及实际时长、连续性评审和正式渲染门禁均已实现。模式数量仅作报告，不强制多样化。历史 v1～v3 分镜需重新编排，不会被描述为已符合当前方向。
-  技术栈：Python（校验器与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），
+  项目：article2video，使用共享制作底座、独立视频类型和统一制作入口，优先发展金融时间序列等专用视频，再逐步扩展通用多场景编排。
+  当前类型包括 financial-timeseries（独立行情材料、假设投资计算和手机可读性门禁）、article-narrative（文章 v4 单场景叙事、配音、状态轨道、镜头、代码世界及制作门禁）与 general（受控图文、完整类型片段和公开代码场景组合）。
+  文章 v4 仍围绕一个持续 world 与多阶段叙事；130～170字正文/口播、35～45秒和连续性评审只适用于文章类型，不约束金融或整条通用视频。历史文章 v1～v3 需重新编排。
+  Python 生产实现位于 src/a2v/：core（作品契约与指纹）、engine（构建、缓存、渲染、合成与验收）、types（业务类型与注册）、cli（统一入口）；Skill 只保留创作指导和参考契约。
+  技术栈：Python（类型校验与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），
   Playwright（契约页量测）、ffmpeg（成片验收与音轨）；Python 依赖由 uv 管理，web 依赖由 pnpm 管理。
   当前能力与文档导航见 README.md；未来路线以 docs/PROJECT_PLAN.md 为准。
-  视频制作流程及渲染、分镜、视觉契约以 .agents/skills/article2video/ 中的文档为准。
+  视频类型创作流程及渲染、分镜、视觉契约以 .agents/skills/article2video/ 中的文档为准；统一 CLI 与架构契约以 README 和 openspec/specs 为准。
   始终使用中文编写面向本项目的变更文档。
   不把规划中的能力写成已实现；变更渲染契约、分镜结构或视觉规范时，同步更新对应参考文档、校验器和示例。
   实施完成后自动归档：apply 的任务全部完成、验证与提交通过后，直接同步 openspec/specs/ 主规格并把变更移入

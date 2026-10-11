@@ -10,12 +10,12 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / ".agents" / "skills" / "article2video" / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from a2v import financial  # noqa: E402
-from a2v import financial_render  # noqa: E402
-from a2v.errors import A2VError  # noqa: E402
-import financial_video  # noqa: E402
+from a2v.types.financial import financial
+from a2v.types.financial import financial_render
+from a2v.core.errors import A2VError
+from a2v.types.financial import commands as financial_video
 
 
 def project(tmp_path: Path) -> Path:
@@ -321,7 +321,7 @@ def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
-    from a2v import remotion
+    import a2v.engine.remotion as remotion
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -352,7 +352,8 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     """复核用的旁路预演 `--out` 不得顶掉已登记的完整预演，否则评审会静默失效。"""
     from types import SimpleNamespace
 
-    from a2v import remotion, render as render_engine
+    import a2v.engine.remotion as remotion
+    import a2v.engine.output_validation as output_validation
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -363,13 +364,16 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     bundle.mkdir()
     monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
     monkeypatch.setattr(remotion, "require_environment", lambda web: None)
-    monkeypatch.setattr(financial_render, "_bundle", lambda web, out: bundle)
+    monkeypatch.setattr(remotion, "bundle", lambda **kwargs: SimpleNamespace(path=bundle, build_seconds=0.0,
+        cache_seconds=0.0, cache_status="hit", cache_key="test", cache_detail="test"))
     monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
-    monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
-    monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
-        fps=30, width=1080, height=1920, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
-    monkeypatch.setattr(remotion, "render_frames",
-                        lambda **kwargs: Path(kwargs["out"]).write_bytes(b"bypass preview"))
+    monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
+    def fake_session(**kwargs):
+        render = kwargs["on_metadata"](SimpleNamespace(fps=30, width=1080, height=1920,
+            duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+        Path(render["out"]).write_bytes(b"bypass preview")
+        return {"readySeconds": 0.01}
+    monkeypatch.setattr(remotion, "render_session", fake_session)
 
     output = financial_render.render(
         root, docs, preview=True, limit_frames=2, preset="ultrafast",
@@ -390,7 +394,9 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     """
     from types import SimpleNamespace
 
-    from a2v import remotion, render as render_engine, security
+    import a2v.engine.remotion as remotion
+    import a2v.engine.output_validation as output_validation
+    import a2v.core.security as security
 
     root = project(tmp_path)
     docs = financial.load_project(root)
@@ -400,13 +406,16 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     bundle.mkdir()
     monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
     monkeypatch.setattr(remotion, "require_environment", lambda web: None)
-    monkeypatch.setattr(financial_render, "_bundle", lambda web, out: bundle)
+    monkeypatch.setattr(remotion, "bundle", lambda **kwargs: SimpleNamespace(path=bundle, build_seconds=0.0,
+        cache_seconds=0.0, cache_status="hit", cache_key="test", cache_detail="test"))
     monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
-    monkeypatch.setattr(render_engine, "_verify_output", lambda *args, **kwargs: None)
-    monkeypatch.setattr(remotion, "metadata", lambda **kwargs: SimpleNamespace(
-        fps=30, width=1080, height=1920, duration_in_frames=docs["plan"]["durationSeconds"] * 30))
-    monkeypatch.setattr(remotion, "render_frames",
-                        lambda **kwargs: Path(kwargs["out"]).write_bytes(b"video"))
+    monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
+    def fake_session(**kwargs):
+        render = kwargs["on_metadata"](SimpleNamespace(fps=30, width=1080, height=1920,
+            duration_in_frames=docs["plan"]["durationSeconds"] * 30))
+        Path(render["out"]).write_bytes(b"video")
+        return {"readySeconds": 0.01}
+    monkeypatch.setattr(remotion, "render_session", fake_session)
 
     granted: list[Path] = []
     monkeypatch.setattr(security, "grant_inherited_access",

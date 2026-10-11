@@ -27,21 +27,17 @@
 ## 命令
 
 ```powershell
-uv run python .agents/skills/article2video/scripts/financial_video.py init `
-  --out-dir videos/<slug> --kind stock --name <公司名> --code <证券代码> `
-  --display-name <画面短名称> `
-  --market <市场> --unit USD --listing-date YYYY-MM-DD `
-  --start-date YYYY-MM-DD --end-date YYYY-MM-DD
-
-# 将旧材料显式迁移到收盘价折线契约
-uv run python .agents/skills/article2video/scripts/financial_video.py migrate-line --project-dir videos/<slug> --duration-seconds 60
-uv run python .agents/skills/article2video/scripts/financial_video.py plan --project-dir videos/<slug> --duration-seconds 60
-uv run python .agents/skills/article2video/scripts/financial_video.py validate --project-dir videos/<slug>
-uv run python .agents/skills/article2video/scripts/financial_video.py preview --project-dir videos/<slug> --limit-frames 120
-uv run python .agents/skills/article2video/scripts/financial_video.py preview --project-dir videos/<slug>
-uv run python .agents/skills/article2video/scripts/financial_video.py review-template --project-dir videos/<slug>
-# 实际查看完整预演，填写 outputs/legibility-review.json 的结论与证据，再正式导出
-uv run python .agents/skills/article2video/scripts/financial_video.py render --project-dir videos/<slug> --out videos/<slug>/outputs/financial-line.mp4
+uv run a2v init --type financial-timeseries --project videos/<slug>
+uv run a2v validate --project videos/<slug>
+uv run a2v financial plan --project videos/<slug> --duration-seconds 60
+uv run a2v prepare --project videos/<slug>
+uv run a2v preview --project videos/<slug>
+uv run a2v review-template --project videos/<slug>
+# 查看完整预演并填写 outputs/review.json，再通过 review 后正式导出
+uv run a2v review --project videos/<slug>
+uv run a2v render --project videos/<slug>
+# 旧金融材料的迁移使用显式、备份优先的操作；先按当前材料契约核对迁移来源版本
+uv run a2v migrate --project videos/<slug> --from financial
 ```
 
 `init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后，先运行 `validate`。`--period` 和 `--window-months` 已移除，旧 v3–v6 计划或旧材料必须先运行 `migrate-line` 显式备份迁移。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，评审模板绑定的是它；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有评审，但也不能作为提交评审的预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。

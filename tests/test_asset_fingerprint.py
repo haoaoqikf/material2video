@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from a2v import media as media_mod
+import a2v.types.article.media as media_mod
 
 
 def _page(tmp_path: Path, html: str = "") -> Path:
@@ -134,7 +134,7 @@ class TestKeysSayWhereTheFileIs:
 
     @staticmethod
     def _bundle(tmp_path: Path) -> tuple[Path, dict[str, Path]]:
-        from a2v import assets as assets_mod
+        import a2v.core.assets as assets_mod
 
         directory = tmp_path / "bundle" / "assets"
         directory.mkdir(parents=True)
@@ -163,7 +163,7 @@ class TestKeysSayWhereTheFileIs:
         assert sorted(files) == ["__a2v__/declarative.html", "__a2v__/figures.css"]
 
     def test_alias_key_resolves_back_for_verification(self, tmp_path):
-        from a2v import assets as assets_mod
+        import a2v.core.assets as assets_mod
 
         directory, mounts = self._bundle(tmp_path)
         target = directory / "figures.css"

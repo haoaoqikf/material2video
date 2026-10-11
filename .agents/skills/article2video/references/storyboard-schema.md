@@ -80,8 +80,8 @@
 校验命令：
 
 ```bash
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --json
-uv run python .agents/skills/article2video/scripts/validate.py storyboard.json --strict --media path/to/media.json
+uv run a2v validate --project videos/<slug>
+uv run a2v prepare --project videos/<slug>
 ```
 
 版本 4 的主规格和边界以 OpenSpec `storyboard-v3-contract`（历史 capability 名称，当前内容定义 v4）为准。输入审查与候选稿采用流程见[输入文章审查](input-review.md)，从文章构建持续世界的流程见[文章生成分镜](article-to-storyboard.md)。

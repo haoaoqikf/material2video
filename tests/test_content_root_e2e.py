@@ -17,8 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from a2v import cli, prepare as prep
-from a2v.render import provenance_status
+import a2v.types.article.cli as cli
+import a2v.types.article.prepare as prep
+from a2v.types.article.render import provenance_status
 from conftest import approve_production_record
 
 ROOT = Path(__file__).resolve().parents[1]

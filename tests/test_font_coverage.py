@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from a2v import fonts
+import a2v.core.fonts as fonts
 
 ASSETS = Path(__file__).resolve().parents[1] / "web/src/assets/fonts"
 NOTO = ASSETS / "NotoSansSC-Variable.ttf"

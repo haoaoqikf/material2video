@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "darts-trial-and-error",
+  "type": "article-narrative",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "audio": "optional"
+  }
+}

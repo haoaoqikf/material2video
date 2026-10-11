@@ -18,9 +18,9 @@ import json
 
 import pytest
 
-from a2v import cli
-from a2v import storyboard as sb
-from a2v import visual_narrative as vn
+import a2v.types.article.cli as cli
+import a2v.types.article.storyboard as sb
+import a2v.types.article.visual_narrative as vn
 
 
 # ---------------------------------------------------------------------------
@@ -605,7 +605,7 @@ class TestCliVisualNarrativePayload:
 
 class TestConsistencyWithDiversity:
     def test_fingerprint_includes_declared_mode_but_not_copy(self):
-        from a2v import diversity
+        import a2v.core.diversity as diversity
 
         same_tree = _storyboard(_scene("a"), _scene("b"))
         scene_a = dict(same_tree["scenes"][0])

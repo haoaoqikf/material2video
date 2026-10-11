@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from a2v import scene_manifest
+import a2v.engine.scene_manifest as scene_manifest
 from conftest import SKILL_MARKER
 
 SCENE_MODULE = "export default function Scene() { return null; }\n"
@@ -111,7 +111,7 @@ class TestManifestGeneration:
         assert "videos/v4-world/scenes/world" in text
 
     def testv4全片code模块进入可达源码指纹(self, tmp_path, web_dir):
-        from a2v import remotion
+        import a2v.engine.remotion as remotion
 
         article = _make_project(tmp_path, "v4-fingerprint")
         (article / "scenes").mkdir()
@@ -334,7 +334,7 @@ class TestFingerprintCoverage:
         return root, article, storyboard
 
     def test指纹覆盖作品模块资产与清单(self, tmp_path, web_dir):
-        from a2v import remotion
+        import a2v.engine.remotion as remotion
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)
@@ -347,7 +347,7 @@ class TestFingerprintCoverage:
         assert not any(".gen/scene-manifest.json" in key for key in keys), keys
 
     def test修改可达输入改变指纹_无关作品不影响(self, tmp_path, web_dir):
-        from a2v import remotion
+        import a2v.engine.remotion as remotion
 
         root, article, storyboard = self._make_code_article(tmp_path)
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard, content_root=root)

@@ -4,7 +4,7 @@ import copy
 import json
 from pathlib import Path
 
-from a2v.storyboard_v4 import validate
+from a2v.types.article.storyboard_v4 import validate
 
 
 VECTORS = json.loads((Path(__file__).parent / "fixtures" / "storyboard-v4-vectors.json").read_text(encoding="utf-8"))

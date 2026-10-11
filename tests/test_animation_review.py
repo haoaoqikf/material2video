@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from a2v import animation_review as ar
-from a2v import beats as beat_mod
+import a2v.types.article.animation_review as ar
+import a2v.engine.beats as beat_mod
 
 FPS = 30
 
@@ -606,8 +606,8 @@ class TestReviewWiring:
     def _payload(self, tmp_path, storyboard: dict, media: dict | None = None) -> tuple[dict, object]:
         import json
 
-        from a2v import cli
-        from a2v.storyboard import Report
+        import a2v.types.article.cli as cli
+        from a2v.types.article.storyboard import Report
 
         path = tmp_path / "storyboard.json"
         path.write_text(json.dumps(storyboard, ensure_ascii=False), encoding="utf-8")
@@ -637,7 +637,7 @@ class TestReviewWiring:
         assert not any("A6" in issue.path for issue in combined.issues)
 
     def test_terminal_summary_lists_every_gate(self, tmp_path):
-        from a2v import cli
+        import a2v.types.article.cli as cli
 
         result, _ = self._payload(tmp_path, _storyboard(_scene()))
         lines = "\n".join(cli._animation_review_lines(result))
@@ -646,6 +646,6 @@ class TestReviewWiring:
         assert "可发布=否" in lines
 
     def test_summary_is_empty_without_the_payload(self):
-        from a2v import cli
+        import a2v.types.article.cli as cli
 
         assert cli._animation_review_lines(None) == []

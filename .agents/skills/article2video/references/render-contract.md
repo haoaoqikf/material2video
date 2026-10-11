@@ -11,14 +11,14 @@
 暴露 `window.__A2V__`（**version 4**）。分镜地址由查询参数 `a2v-storyboard` 给出
 （本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
 体检（K 系列、M 系列、组件契约探针）用 Playwright 驱动它；
-渲染（`render.py` 默认）不走它，而是直接从 composition 源码打包渲染
+渲染（`文章类型渲染` 默认）不走它，而是直接从 composition 源码打包渲染
 （见「渲染引擎与打包」）。
 
 ## 必需接口
 
 ### 评审输出的全局帧范围与缩放
 
-`render.py --purpose review --frame-range <start-end> --scale 0.5` 可从 composition 的**全局时间轴**渲染片段。帧范围两端都包含；组件、镜头和 beat 继续按全片帧号求值，不得把片段起点重置为第 0 帧。带媒体时音轨按 `start / fps` 精确定位，字幕按同一偏移裁切。输出比例作用于实际像素尺寸，逻辑画布和 composition 布局不变，缩放后宽高必须为偶数。评审输出必须写入作品 `outputs/previews/`，不得充当正式成片；正式输出必须渲染完整时间轴且保持原分辨率。
+文章制作的关键场景样片与全片有声排练通过 `a2v article samples` 和 `a2v article rehearsal` 生成；帧范围、媒体时轴和缩放由文章类型内部渲染器统一处理。样片仅用于评审，正式导出仍须经 `a2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
 
 画面实现必须在 `window` 上暴露 `__A2V__` 对象。契约页（version 4）的字段：
 
@@ -112,7 +112,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 
 ## 渲染引擎与打包
 
-`render.py` 默认（`--engine remotion`）不经过浏览器截图，而是**直接从 composition
+`文章类型渲染` 默认（`--engine remotion`）不经过浏览器截图，而是**直接从 composition
 源码渲染**：
 
 1. 打包：`remotion.bundle()` 把 `web/` 打成可渲染的 bundle。默认走本地缓存
@@ -165,7 +165,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 与 `benchmark_render.py accept`（全片有声渲染与跨并发未编码画面 PSNR 验收），
 报告同样落在作品 `outputs/` 下。
 
-体检路径（`review.py`）与此不同：它仍用 Playwright 驱动**契约页**——量测与探针
+体检路径（`文章类型视觉体检`）与此不同：它仍用 Playwright 驱动**契约页**——量测与探针
 （约 90KB 已实测的判定逻辑）继续对着真实画面工作，而契约页挂的正是同一份
 composition，体检看到的就是渲染会画出的画面。
 
@@ -303,7 +303,7 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 而 ffmpeg 与浏览器上传都不受影响，所以问题只在用户双击播放时暴露。
 
 因此 `a2v/security.py` 在文件落到最终位置后调用 `grant_inherited_access()`
-（`icacls /reset`），让文件重新遵循父目录的继承规则；`render.py` 与 `prepare.py`
+（`icacls /reset`），让文件重新遵循父目录的继承规则；`文章类型渲染` 与 `文章类型媒体准备`
 在每个交付文件上都会执行一次，失败只记警告日志、不影响已经渲染好的成片。
 
 排查时注意两点，否则很容易误判为「文件没问题」：
@@ -390,7 +390,7 @@ window.__A2V__.currentFrame();   // Player 当前实际落在哪一帧
   再传 `--content-root`。`version` 不是 3/4 的溯源按旧格式处理，报「无法判断，请重渲」，
   而不是报落后。
 
-体检命令（`review.py`）会读这份溯源并在 `report.json` 的顶层 `provenance` 键
+体检命令（`文章类型视觉体检`）会读这份溯源并在 `report.json` 的顶层 `provenance` 键
 与终端摘要里给结论：`current`（对得上）/ `stale`（落后，并指名是哪几个文件变了）/
 `unknown`（没有溯源、读不出来、旧格式或网页已不在——**如实说无法判断，不默认放行**）。
 这份结论**只提示、不拦人**：不参与错误数，也不改退出码。

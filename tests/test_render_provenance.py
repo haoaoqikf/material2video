@@ -18,11 +18,11 @@ from pathlib import Path
 
 import pytest
 
-from a2v import render as render_mod
+import a2v.types.article.render as render_mod
 
 
 def _digest(path: Path) -> str:
-    from a2v import media as media_mod
+    import a2v.types.article.media as media_mod
 
     return media_mod.file_digest(path)
 
@@ -40,7 +40,7 @@ def _work(tmp_path: Path) -> Path:
 
 
 def _provenance(tmp_path: Path, page: Path, video: Path, extra: dict | None = None) -> dict:
-    from a2v import media as media_mod
+    import a2v.types.article.media as media_mod
 
     html = page.read_text(encoding="utf-8")
     workspace = tmp_path
@@ -84,7 +84,7 @@ class TestProvenanceAcrossRoots:
 
     @staticmethod
     def _render(tmp_path: Path, content: Path, page: Path) -> Path:
-        from a2v import media as media_mod
+        import a2v.types.article.media as media_mod
 
         video = content / "videos" / "demo" / "outputs" / "silent.mp4"
         video.parent.mkdir(parents=True, exist_ok=True)
@@ -109,7 +109,7 @@ class TestProvenanceAcrossRoots:
     @pytest.fixture
     def mounted_assets(self, tmp_path, monkeypatch) -> Path:
         """把 `/__a2v__/` 指到测试自己的资产目录，模拟仓库那一侧。"""
-        from a2v import assets as assets_mod
+        import a2v.core.assets as assets_mod
 
         fake = tmp_path / "skill-assets"
         fake.mkdir()
@@ -247,7 +247,7 @@ class TestLineEndingsDoNotFakeStaleness:
 
     def test_binary_assets_are_hashed_raw(self, tmp_path):
         """字体、图片不归一化：二进制里出现 0x0D0A 也不能被改写。"""
-        from a2v import media as media_mod
+        import a2v.types.article.media as media_mod
 
         blob = tmp_path / "assets" / "font.ttf"
         blob.parent.mkdir(parents=True, exist_ok=True)

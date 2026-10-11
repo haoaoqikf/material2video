@@ -1,4 +1,4 @@
-from a2v import diversity
+import a2v.core.diversity as diversity
 import copy
 
 def scene(scene_id: str, text: str="不同正文") -> dict:
