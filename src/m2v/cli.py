@@ -10,6 +10,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
+from m2v.core.output_cleanup import cleanup_after_render
 from m2v.types import catalog, registry
 
 
@@ -192,6 +193,24 @@ def main(argv: list[str] | None = None) -> int:
                 _require_review(root, manifest, prepared)
                 _require_type_review(video_type, root, manifest)
                 output = video_type.render(root, manifest)
+                try:
+                    output_path = Path(output).resolve()
+                except (OSError, RuntimeError) as exc:
+                    raise M2VError(f"无法解析正式成片路径：{output}: {exc}") from exc
+                if not output_path.is_file():
+                    raise M2VError(f"正式渲染没有生成成片：{output_path}")
+                expected_outputs = (root / "outputs").resolve()
+                # Shipped article examples keep their run products under videos/examples.
+                if root.parent.name == "examples":
+                    example_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
+                    if output_path.parent == example_outputs:
+                        expected_outputs = example_outputs
+                failures = cleanup_after_render(expected_outputs, output_path)
+                if failures:
+                    for failure in failures:
+                        print(f"[warning] 旧产物清理未完成：{failure}", file=sys.stderr)
+                else:
+                    print("旧视频及可再生产物已清理")
             else:
                 output = video_type.preview(root, manifest, limit_frames=getattr(args, "limit_frames", None))
                 if not output.is_file():

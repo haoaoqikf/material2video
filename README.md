@@ -41,6 +41,8 @@ uv run m2v render --project videos/<slug>
 
 `init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v4 分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排，默认 60 秒采用 3 秒开场、51 秒推进、6 秒终幕停留；画面突出实际收盘年份与当前市值，终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。旧文章仅接受有效 v4；v1～v3 必须重新编排。`render` 不修改原始材料，要求准备记录与评审仍匹配当前指纹。
 
+统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、预演、检查图和已知调试产物；保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
+
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
 作品可以位于仓库外内容根；`M2V_CONTENT_ROOT` 用作默认内容根。架构和材料契约见 [OpenSpec 变更](openspec/specs/modular-video-production/spec.md)，未来能力路线见 [项目规划](docs/PROJECT_PLAN.md)。

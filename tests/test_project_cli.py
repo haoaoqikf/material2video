@@ -176,9 +176,17 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     def type_review_gate(*_args) -> None:
         calls.append("gate")
 
+    final_video = root / "outputs" / "rendered.mp4"
+    old_video = root / "outputs" / "old.mp4"
+    old_video.write_bytes(b"old")
+
+    def render_video(*_args) -> Path:
+        final_video.write_bytes(b"new final")
+        return final_video
+
     video_type = VideoType(
         "review-hook", lambda *_: None, lambda *_: None,
-        lambda *_: preview, lambda *_: "rendered.mp4",
+        lambda *_: preview, render_video,
         review_gate=type_review_gate,
         review_criteria=lambda *_: {"specialized": "专用评审"},
         review_template=type_review_template,
@@ -201,3 +209,34 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     assert main(["render", "--project", str(root)]) == 0
     assert calls == ["template", "gate", "gate"]
     assert "rendered.mp4" in capsys.readouterr().out
+    assert final_video.read_bytes() == b"new final"
+    assert not old_video.exists()
+    assert not preview.exists()
+    assert (root / "outputs" / "review.json").is_file()
+
+
+def test_failed_unified_render_does_not_clean_old_outputs(tmp_path: Path, monkeypatch, capsys) -> None:
+    root = tmp_path / "failed-render"
+    outputs = root / "outputs"
+    outputs.mkdir(parents=True)
+    old_video = outputs / "old.mp4"
+    old_video.write_bytes(b"still valid")
+    manifest = {"schemaVersion": 1, "id": "failed-render", "type": "render-failure"}
+
+    def fail_render(*_args) -> Path:
+        raise M2VError("render failed")
+
+    video_type = VideoType(
+        "render-failure", lambda *_: None, lambda *_: None,
+        lambda *_args, **_kwargs: None, fail_render,
+    )
+    register_synthetic_type(monkeypatch, "render-failure", "失败渲染测试")
+    monkeypatch.setattr(registry, "_registry", {"render-failure": video_type})
+    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: {"preparedFingerprint": "fp"})
+    monkeypatch.setattr("m2v.cli._require_review", lambda *_args: None)
+    monkeypatch.setattr("m2v.cli._require_type_review", lambda *_args: None)
+
+    assert main(["render", "--project", str(root)]) == 1
+    assert old_video.read_bytes() == b"still valid"
+    assert "render failed" in capsys.readouterr().err
