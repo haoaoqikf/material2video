@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, safeAreaCenterOffset, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -140,10 +140,10 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('r="8"');
   });
 
-  it('centers the actual content bounds vertically inside the mobile safe area', () => {
-    expect(safeAreaCenterOffset({ y: 240, height: 1200 })).toBe(0);
-    expect(safeAreaCenterOffset({ y: 240, height: 1260 })).toBe(-30);
-    expect(() => safeAreaCenterOffset({ y: 0, height: 1321 })).toThrow('金融画面整体内容高于安全区可用高度');
+  it('centers the actual content bounds on the canvas midpoint within symmetric layout bounds', () => {
+    expect(canvasCenterOffset({ y: 360, height: 1200 })).toBe(0);
+    expect(canvasCenterOffset({ y: 360, height: 1260 })).toBe(-30);
+    expect(() => canvasCenterOffset({ y: 0, height: 1561 })).toThrow('金融画面整体内容高于纵向布局可用高度');
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('data-m2v-content-layer="true"');

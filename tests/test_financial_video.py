@@ -280,10 +280,10 @@ def test_existing_v8_plan_keeps_its_saved_hold_durations(tmp_path):
     docs = financial.load_project(root)
     assert docs["plan"]["segments"][0]["frames"] == [0, 90]
     assert financial.review_metrics(docs)["endingSeconds"] == 6
-    assert financial.review_metrics(docs)["safeArea"] == {"x": [140, 940], "y": [180, 1500]}
+    assert financial.review_metrics(docs)["safeArea"] == {"x": [140, 940], "y": [180, 1740]}
     assert financial.review_metrics(docs)["valueAxisSafeArea"] == financial.review_metrics(docs)["safeArea"]
-    assert financial.review_metrics(docs)["verticalAlignment"] == "safe-area-center"
-    assert financial.review_metrics(docs)["safeAreaCenterY"] == 840
+    assert financial.review_metrics(docs)["verticalAlignment"] == "canvas-center"
+    assert financial.review_metrics(docs)["canvasCenterY"] == 960
 
 
 def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):
@@ -366,15 +366,17 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     assert financial_video.main(["review-template", "--project-dir", str(root)]) == 0
     path = root / "outputs" / "legibility-review.json"
     review = json.loads(path.read_text(encoding="utf-8"))
-    assert review["metrics"]["safeArea"] == {"x": [140, 940], "y": [180, 1500]}
-    assert review["evidence"]["valueAxisSafeArea"]["bounds"] == {"x": [140, 940], "y": [180, 1500]}
+    assert review["metrics"]["safeArea"] == {"x": [140, 940], "y": [180, 1740]}
+    assert review["metrics"]["verticalAlignment"] == "canvas-center"
+    assert review["metrics"]["canvasCenterY"] == 960
+    assert review["evidence"]["valueAxisSafeArea"]["bounds"] == {"x": [140, 940], "y": [180, 1740]}
     with pytest.raises(M2VError, match="只接受完整视频评审通过"):
         financial.validate_legibility_review(root, docs)
     review.update(result="pass", fullVideo=True, sampleTimecodes=["00:00:03"],
         checks={key: True for key in financial.REVIEW_CHECKS}, evidence={**{key: "合成证据" for key in financial.REVIEW_CHECKS},
             "mobileScale": {"width": 360, "height": 640, "reviewed": True, "details": "合成缩放证据"},
-            "safeArea": {"bounds": {"x": [140, 940], "y": [180, 1500]}, "reviewed": True, "details": "合成安全区证据"},
-            "valueAxisSafeArea": {"bounds": {"x": [140, 940], "y": [180, 1500]}, "reviewed": True, "details": "纵轴统一安全区证据"}})
+            "safeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "合成布局边界证据"},
+            "valueAxisSafeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "纵轴统一布局边界证据"}})
     assert review["previewSha256"] == preview_digest
     path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
     with pytest.raises(M2VError, match="review.json.metrics"):
