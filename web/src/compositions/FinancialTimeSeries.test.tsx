@@ -398,24 +398,33 @@ describe('financial time-series composition', () => {
     }
   });
 
-  it('shows the actual-close year and fades in a stable ending result', () => {
+  it('holds the final live-value layout unchanged throughout the ending', () => {
     testFrame.value = 885;
     const advance = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(advance).toMatch(/data-m2v-live-year="true"[^>]*>2020<\/text>/u);
     expect(advance).toContain('font-size="64"');
     expect(advance).toContain('当前市值');
     expect(advance).not.toContain('收益率');
+
+    testFrame.value = 1679;
+    const lastAdvance = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     testFrame.value = 1680;
-    const start = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(start).toContain('<g opacity="0">');
+    const endingStart = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     testFrame.value = 1694;
-    const end = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(end).toContain('本金 → 最终市值');
-    expect(end).toContain('100元 → 102元');
-    expect(end).toContain('累计收益率 +2%');
-    expect(end).toContain('截至 2020年1月3日');
+    const endingAfterHalfSecond = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     testFrame.value = 1799;
-    expect(renderToStaticMarkup(<FinancialTimeSeries {...props} />)).toBe(end);
+    const endingLastFrame = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+
+    expect(endingStart).toBe(lastAdvance);
+    expect(endingAfterHalfSecond).toBe(lastAdvance);
+    expect(endingLastFrame).toBe(lastAdvance);
+    expect(lastAdvance).toContain('<text data-m2v-value-heading="true" x="1016" y="330" text-anchor="end" fill="#b9c7d9" font-size="24">当前市值</text>');
+    expect(lastAdvance).toContain('<text data-m2v-live-date="true" x="1016" y="442"');
+    expect(lastAdvance).toContain('2020年1月3日');
+    expect(lastAdvance).not.toContain('本金 → 最终市值');
+    expect(lastAdvance).not.toContain('100元 → 102元');
+    expect(lastAdvance).not.toContain('累计收益率');
+    expect(lastAdvance).not.toContain('opacity="0"');
   });
 
   it('completes axis expansion at the current boundary crossing, starting 15 frames earlier', () => {

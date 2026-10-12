@@ -380,19 +380,11 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
   const graphTop = 520;
   const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
-  const rateSign = view.returnRate !== null && view.returnRate > 0 ? '+' : view.returnRate !== null && view.returnRate < 0 ? '−' : '';
-  const liveRate = latest
-    ? `累计收益率 ${rateSign}${new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(view.returnRate!))}`
-    : '';
   const liveDate = latest ? displayDate(latest.date) : '';
   const year = (latest?.date ?? plan.axis.dateRange[0]).slice(0, 4);
-  const endingStart = plan.segments.find(({ kind }) => kind === 'ending')!.frames[0];
-  const ending = frame >= endingStart;
-  const endingOpacity = Math.min(1, Math.max(0, (frame - endingStart) / 14));
   const liveValue = latest ? moneyText(latest.close) : '';
-  const resultValue = latest ? `${moneyText(view.principal)} → ${liveValue}` : '';
   const valueWidth = 620;
-  const valueFontSize = Math.min(56, valueWidth / Math.max(measuredTextWidth(ending ? resultValue : liveValue, 56) * 1.08, 1) * 56);
+  const valueFontSize = Math.min(56, valueWidth / Math.max(measuredTextWidth(liveValue, 56) * 1.08, 1) * 56);
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
@@ -452,11 +444,10 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
       <text data-m2v-investment-title="true" x={SAFE_AREA.left} y="270" textLength={titleWidth} lengthAdjust="spacing" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       <text data-m2v-live-year="true" x={SAFE_AREA.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
-      {latest && <g opacity={ending ? endingOpacity : 1}>
-        <text data-m2v-value-heading="true" x={SAFE_AREA.right} y="330" textAnchor="end" fill="#b9c7d9" fontSize="24">{ending ? '本金 → 最终市值' : '当前市值'}</text>
-        <text data-m2v-live-value="true" x={SAFE_AREA.right} y="396" textAnchor="end" fill={gainColor} fontSize={valueFontSize} fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{ending ? resultValue : liveValue}</text>
-        {ending && <text data-m2v-ending-return="true" x={SAFE_AREA.right} y="442" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="600">{liveRate}</text>}
-        <text data-m2v-live-date="true" x={SAFE_AREA.right} y={ending ? 480 : 442} textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{ending ? `截至 ${liveDate}` : liveDate}</text>
+      {latest && <g>
+        <text data-m2v-value-heading="true" x={SAFE_AREA.right} y="330" textAnchor="end" fill="#b9c7d9" fontSize="24">当前市值</text>
+        <text data-m2v-live-value="true" x={SAFE_AREA.right} y="396" textAnchor="end" fill={gainColor} fontSize={valueFontSize} fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{liveValue}</text>
+        <text data-m2v-live-date="true" x={SAFE_AREA.right} y="442" textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{liveDate}</text>
       </g>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
