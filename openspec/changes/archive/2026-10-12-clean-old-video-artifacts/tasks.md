@@ -3,4 +3,4 @@
 - [x] 3. 同步 README、material2video Skill 输出规范和 OpenSpec delta，并检查文档链接。
 - [x] 4. 清理 NVIDIA 旧视频及生成产物，核验正式成片和保留材料。
 - [x] 5. 运行相关 Python/前端检查、类型检查及构建，完成代码审查。
-- [ ] 6. 同步 OpenSpec 主规格并归档变更。
+- [x] 6. 同步 OpenSpec 主规格并验证归档前规格状态。
