@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, placeEndpointCallout, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -30,6 +30,40 @@ const props: FinancialTimeSeriesProps = {
   },
   durationInFrames: 1800, fps: 30, width: 1080, height: 1920,
 };
+
+describe('endpoint value callout placement', () => {
+  it('keeps an open right-side location separated from the endpoint and line', () => {
+    const endpoint = { x: 700, y: 800 };
+    const callout = placeEndpointCallout(endpoint, 120, [{ x: 300, y: 700 }, { x: 700, y: 800 }]);
+    expect(callout.side).toBe('right');
+    expect(callout.x).toBeGreaterThan(endpoint.x + 8);
+    expect(callout.y + callout.height).toBeGreaterThan(endpoint.y);
+    expect(callout.x + callout.width).toBeLessThanOrEqual(940);
+  });
+
+  it('moves a right-edge label inward and keeps it within the project layout', () => {
+    const endpoint = { x: 928, y: 800 };
+    const callout = placeEndpointCallout(endpoint, 100, [{ x: 850, y: 740 }, endpoint]);
+    expect(callout.side).not.toBe('right');
+    expect(callout.x).toBeGreaterThanOrEqual(140);
+    expect(callout.x + callout.width).toBeLessThanOrEqual(940);
+    expect(callout.y).toBeGreaterThanOrEqual(180);
+    expect(callout.y + callout.height).toBeLessThanOrEqual(1740);
+  });
+
+  it('selects the least-colliding side for a volatile path and supports large values', () => {
+    const endpoint = { x: 800, y: 800 };
+    const volatileLine = [{ x: 500, y: 850 }, { x: 760, y: 850 }, { x: 780, y: 830 }, endpoint];
+    const callout = placeEndpointCallout(endpoint, 160, volatileLine);
+    expect(callout.side).toBe('above');
+    expect(callout.x).toBeGreaterThanOrEqual(140);
+    expect(callout.x + callout.width).toBeLessThanOrEqual(940);
+    expect(callout.y + callout.height).toBeLessThan(endpoint.y - 8);
+    const largeCallout = placeEndpointCallout({ x: 760, y: 800 }, 330, [{ x: 760, y: 800 }]);
+    expect(largeCallout.width).toBeGreaterThan(390);
+    expect(largeCallout.x + largeCallout.width).toBeLessThanOrEqual(940);
+  });
+});
 
 describe('financial time-series composition', () => {
   const renderedTitle = (markup: string) => markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
@@ -105,6 +139,9 @@ describe('financial time-series composition', () => {
     expect(markup).not.toContain('SYN');
     expect(markup).toContain('当前市值');
     expect(markup).toContain('data-m2v-current-value-follow="true"');
+    expect(markup).toContain('data-m2v-endpoint-callout="true"');
+    expect(markup).toContain('data-m2v-endpoint-callout-backing="true"');
+    expect(markup).toContain('fill="#080d17" stroke="#35445b"');
     expect(markup).not.toContain('100.00元');
     expect(markup).toContain('stroke="#55d58a"');
     expect(markup).toContain('data-m2v-live-date="true" x="940" y="442" text-anchor="end"');
