@@ -321,18 +321,28 @@ def _validate_source(source: Any, where: str, start: date, end: date) -> None:
     _required_text(source.get("adjustmentDefinition"), f"{where}.adjustmentDefinition")
 
 
-def build_line_plan(request: dict[str, Any], duration: int = 60, prices: dict[str, Any] | None = None) -> dict[str, Any]:
+def _default_duration(request: dict[str, Any]) -> int:
+    start, end = (date.fromisoformat(value) for value in request["displayRange"])
+    year_delta = end.year - start.year
+    over_twenty_years = year_delta > 20 or (year_delta == 20 and (end.month, end.day) > (start.month, start.day))
+    return 90 if over_twenty_years else 60
+
+
+def build_line_plan(request: dict[str, Any], duration: int | None = None, prices: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build a deterministic, event-free timeline with staged date-axis expansion."""
+    if duration is None:
+        duration = _default_duration(request)
     if type(duration) is not int:
         raise M2VError("时长必须为整数")
-    if duration < 10:
-        raise M2VError("无事件计划至少需要 10 秒：开场 3 秒、行情推进及结尾 6 秒")
+    if duration < 4:
+        raise M2VError("无事件计划至少需要 4 秒：开场 1 秒、行情推进及结尾 2 秒")
     start, end = (date.fromisoformat(value) for value in request["displayRange"])
     total_frames = duration * FPS
-    advance_end = total_frames - 180
+    opening_frames, ending_frames = 30, 60
+    advance_end = total_frames - ending_frames
     segments = [
-        {"frames": [0, 90], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"},
-        {"frames": [90, advance_end], "dates": [start.isoformat(), end.isoformat()], "kind": "advance"},
+        {"frames": [0, opening_frames], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"},
+        {"frames": [opening_frames, advance_end], "dates": [start.isoformat(), end.isoformat()], "kind": "advance"},
         {"frames": [advance_end, total_frames], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"},
     ]
     return {
@@ -340,12 +350,12 @@ def build_line_plan(request: dict[str, Any], duration: int = 60, prices: dict[st
         "canvas": {"width": WIDTH, "height": HEIGHT},
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
-        "pacing": build_pacing(request, prices["points"], 90, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": 90, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
-        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 3 秒、连续推进、完整历史停留 6 秒，纵轴随已展示组合价值自适应。",
+        "pacing": build_pacing(request, prices["points"], opening_frames, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": opening_frames, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
+        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 1 秒、连续推进、完整历史停留 2 秒。默认展示跨度超过 20 年时总长 90 秒，否则 60 秒；纵轴随已展示组合价值自适应。",
     }
 
 
-def prepare_line_plan(root: Path, duration: int) -> dict[str, Any]:
+def prepare_line_plan(root: Path, duration: int | None = None) -> dict[str, Any]:
     if (root / "events.json").exists():
         _fail("events.json", "事件材料已移除；请先显式运行 migrate-line 清理旧材料")
     request, prices = (_load(root / name) for name in MATERIALS[:2])
@@ -469,10 +479,11 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
         _fail("animation-plan.json", "必须使用 1080×1920、30 fps")
     duration = plan.get("durationSeconds")
-    if isinstance(duration, bool) or not isinstance(duration, int) or duration < 10:
-        _fail("animation-plan.json.durationSeconds", "无事件计划必须至少为 10 秒")
+    if isinstance(duration, bool) or not isinstance(duration, int) or duration < (4 if plan.get("schemaVersion") == 8 else 10):
+        _fail("animation-plan.json.durationSeconds", "无事件 v8 计划至少为 4 秒；v7 计划至少为 10 秒")
     total_frames = duration * FPS
-    ending_frames = 180 if plan.get("schemaVersion") == 8 else 120
+    ending_frames = 120 if plan.get("schemaVersion") == 7 else None
+    opening_frames = 90 if plan.get("schemaVersion") == 7 else None
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
@@ -521,7 +532,7 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
             _fail(where, f"{kind} 段必须停留在同一日期")
         if index == 0 and (kind != "opening" or start_frame != 0 or date_start != display_start):
             _fail(where, "首段必须从第 0 帧在展示起始日 opening")
-        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or end_frame - start_frame != ending_frames):
+        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or (ending_frames is not None and end_frame - start_frame != ending_frames)):
             _fail(where, "尾段必须在展示结束日停留规定帧数并覆盖终帧")
         if index not in {0, len(segments) - 1} and kind in {"opening", "ending"}:
             _fail(where, "opening 与 ending 只能位于首尾")
@@ -531,24 +542,29 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     expected_kinds = ["opening", "advance", "ending"]
     if [segment["kind"] for segment in segments] != expected_kinds:
         _fail("animation-plan.json.segments", "三段顺序必须为 opening、advance、ending")
-    advance_end = total_frames - ending_frames
-    if segments[0]["frames"] != [0, 90] or segments[1]["frames"] != [90, advance_end]:
-        _fail("animation-plan.json.segments", "opening 固定 90 帧，advance 必须覆盖到规定结尾之前")
+    opening_end = segments[0]["frames"][1]
+    advance_end = segments[2]["frames"][0]
+    if plan["schemaVersion"] == 7 and (opening_end != opening_frames or advance_end != total_frames - ending_frames):
+        _fail("animation-plan.json.segments", "v7 opening 与 ending 帧数必须保持原值")
+    if plan["schemaVersion"] == 8 and (opening_end, total_frames - advance_end) not in {(30, 60), (90, 180)}:
+        _fail("animation-plan.json.segments", "v8 仅接受新 30/60 帧或既有 90/180 帧开场/结尾")
+    if segments[1]["frames"] != [opening_end, advance_end]:
+        _fail("animation-plan.json.segments", "advance 必须连续覆盖到规定结尾之前")
     if segments[2]["frames"] != [advance_end, total_frames]:
-        _fail("animation-plan.json.segments", "ending 必须停留规定帧数")
+        _fail("animation-plan.json.segments", "ending 必须覆盖至终帧")
     if plan["schemaVersion"] == 8:
-        _validate_pacing(plan, display_start, display_end, advance_end)
+        _validate_pacing(plan, display_start, display_end, opening_end, advance_end)
     _required_text(plan.get("rationale"), "animation-plan.json.rationale")
 
 
-def _validate_pacing(plan: dict[str, Any], start: date, end: date, advance_end: int) -> None:
+def _validate_pacing(plan: dict[str, Any], start: date, end: date, opening_end: int, advance_end: int) -> None:
     pacing = plan.get("pacing")
     if not isinstance(pacing, dict) or pacing.get("mode") not in {"uniform", "volatility"}:
         _fail("animation-plan.json.pacing", "须声明 uniform 或 volatility 节奏模式")
     anchors = pacing.get("anchors")
     if not isinstance(anchors, list) or len(anchors) < 2:
         _fail("animation-plan.json.pacing.anchors", "须至少包含推进首末两个锚点")
-    previous_frame, previous_date = 89, start
+    previous_frame, previous_date = opening_end - 1, start
     for index, anchor in enumerate(anchors):
         where = f"animation-plan.json.pacing.anchors[{index}]"
         if not isinstance(anchor, dict) or type(anchor.get("frame")) is not int:
@@ -558,7 +574,7 @@ def _validate_pacing(plan: dict[str, Any], start: date, end: date, advance_end: 
         if not previous_frame < frame < advance_end or not previous_date <= day <= end:
             _fail(where, "锚点帧须严格递增且位于推进范围，日期须单调且位于展示范围")
         previous_frame, previous_date = frame, day
-    if anchors[0] != {"frame": 90, "date": start.isoformat()} or anchors[-1] != {"frame": advance_end - 1, "date": end.isoformat()}:
+    if anchors[0] != {"frame": opening_end, "date": start.isoformat()} or anchors[-1] != {"frame": advance_end - 1, "date": end.isoformat()}:
         _fail("animation-plan.json.pacing.anchors", "锚点须精确覆盖推进首末帧和展示起止日")
     if pacing["mode"] == "uniform" and len(anchors) != 2:
         _fail("animation-plan.json.pacing.anchors", "uniform 模式仅接受首末两个锚点")

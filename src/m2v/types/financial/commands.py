@@ -54,7 +54,7 @@ def _parser() -> argparse.ArgumentParser:
     for command in ("plan", "migrate-line"):
         plan = sub.add_parser(command, help="生成折线编排" if command == "plan" else "备份旧材料，提取真实 close 并迁移为折线")
         plan.add_argument("--project-dir", required=True)
-        plan.add_argument("--duration-seconds", type=int, default=60)
+        plan.add_argument("--duration-seconds", type=int)
     review = sub.add_parser("review-template", help="为折线全片评审生成绑定当前材料与资产的待填写模板")
     review.add_argument("--project-dir", required=True)
     return parser
@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
-            backup = financial.migrate_line(root, args.duration_seconds)
+            backup = financial.migrate_line(root, args.duration_seconds if args.duration_seconds is not None else 60)
             print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":

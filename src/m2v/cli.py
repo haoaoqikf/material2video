@@ -56,7 +56,7 @@ def _parser() -> argparse.ArgumentParser:
     financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
-    financial.add_argument("--duration-seconds", type=int, default=60)
+    financial.add_argument("--duration-seconds", type=int, help="默认按展示跨度选择 60 秒或 90 秒")
     return parser
 
 
@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise M2VError("m2v financial 仅适用于 financial-timeseries 作品")
             from m2v.types.financial.financial import prepare_line_plan, migrate_line
             if args.workflow == "migrate-line":
-                backup = migrate_line(root, args.duration_seconds)
+                backup = migrate_line(root, args.duration_seconds if args.duration_seconds is not None else 60)
                 print(f"已升级金融计划到 v8；备份：{backup}。请重新 prepare、preview 和 review。")
                 return 0
             plan = prepare_line_plan(root, args.duration_seconds)
