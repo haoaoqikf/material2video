@@ -19,6 +19,7 @@ WIDTH = 1080
 HEIGHT = 1920
 SAFE_AREA_X = (140, 940)
 SAFE_AREA_Y = (180, 1500)
+CONTENT_OFFSET_Y = 18
 
 
 def _fail(where: str, reason: str) -> None:
@@ -443,7 +444,8 @@ def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
     return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": (docs["plan"]["segments"][-1]["frames"][1] - docs["plan"]["segments"][-1]["frames"][0]) / FPS,
             "canvas": {"width": WIDTH, "height": HEIGHT}, "mobileCheck": {"width": 360, "height": 640},
             "safeArea": {"x": list(SAFE_AREA_X), "y": list(SAFE_AREA_Y)},
-            "valueAxisSafeArea": {"x": list(SAFE_AREA_X), "y": list(SAFE_AREA_Y)}}
+            "valueAxisSafeArea": {"x": list(SAFE_AREA_X), "y": list(SAFE_AREA_Y)},
+            "contentOffsetY": CONTENT_OFFSET_Y}
 
 
 def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:

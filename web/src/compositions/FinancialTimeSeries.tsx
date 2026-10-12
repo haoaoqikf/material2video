@@ -21,6 +21,7 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
+const CONTENT_OFFSET_Y = 18;
 const PLOT = { left: 220, right: 928, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
@@ -363,6 +364,21 @@ function wrapSvgText(value: string, maxWidth: number, fontSize: number): string[
   return lines;
 }
 
+function transformedBounds(element: SVGGraphicsElement) {
+  const bounds = element.getBBox();
+  const matrix = element.getCTM();
+  if (!matrix) return bounds;
+  const corners = [
+    new DOMPoint(bounds.x, bounds.y), new DOMPoint(bounds.x + bounds.width, bounds.y),
+    new DOMPoint(bounds.x, bounds.y + bounds.height), new DOMPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+  ].map((point) => point.matrixTransform(matrix));
+  const left = Math.min(...corners.map(({ x }) => x));
+  const right = Math.max(...corners.map(({ x }) => x));
+  const top = Math.min(...corners.map(({ y }) => y));
+  const bottom = Math.max(...corners.map(({ y }) => y));
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const frame = useCurrentFrame();
@@ -419,22 +435,23 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     const svg = svgRef.current;
     if (!svg) return;
     for (const element of svg.querySelectorAll('text')) {
-      const bounds = element.getBBox();
+      const bounds = transformedBounds(element);
       const safeArea = SAFE_AREA;
       if (bounds.x < safeArea.left || bounds.x + bounds.width > safeArea.right || bounds.y < safeArea.top || bounds.y + bounds.height > safeArea.bottom) {
         throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
       }
     }
     const labelBounds = [...svg.querySelectorAll<SVGTextElement>('[data-m2v-axis-label="true"]')]
-      .map((element) => element.getBBox()).sort((a, b) => a.x - b.x);
+      .map(transformedBounds).sort((a, b) => a.x - b.x);
     for (let index = 1; index < labelBounds.length; index++) {
       if (labelBounds[index]!.x - (labelBounds[index - 1]!.x + labelBounds[index - 1]!.width) < 12) {
         throw new Error('金融画面横轴标签实际字体边界发生重叠');
       }
     }
     for (const endpoint of svg.querySelectorAll<SVGCircleElement>('circle')) {
-      const x = Number(endpoint.getAttribute('cx'));
-      const y = Number(endpoint.getAttribute('cy'));
+      const center = new DOMPoint(Number(endpoint.getAttribute('cx')), Number(endpoint.getAttribute('cy'))).matrixTransform(endpoint.getCTM()!);
+      const x = center.x;
+      const y = center.y;
       const radius = Number(endpoint.getAttribute('r'));
       if (x - radius < SAFE_AREA.left || x + radius > SAFE_AREA.right || y - radius < SAFE_AREA.top || y + radius > SAFE_AREA.bottom) {
         throw new Error('金融画面曲线端点超出手机安全区');
@@ -444,7 +461,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
-      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
+      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop + CONTENT_OFFSET_Y} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
+      <g data-m2v-content-layer="true" transform={`translate(0 ${CONTENT_OFFSET_Y})`}>
       <text data-m2v-investment-title="true" x={WIDTH / 2} y="270" textAnchor="middle" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       <text data-m2v-live-year="true" x={SAFE_AREA.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
       {latest && <g>
@@ -483,6 +501,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       </>}
       {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={SAFE_AREA.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
       {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={SAFE_AREA.left} y={1460 + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
+      </g>
     </svg>
   </AbsoluteFill>;
 }

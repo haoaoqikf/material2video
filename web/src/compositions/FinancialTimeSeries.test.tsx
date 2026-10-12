@@ -140,6 +140,15 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('r="8"');
   });
 
+  it('shifts the complete foreground down 18 canvas pixels while leaving its background fixed', () => {
+    testFrame.value = 1679;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(markup).toContain('<g data-m2v-content-layer="true" transform="translate(0 18)">');
+    expect(markup).toContain('<rect x="220" y="538" width="708" height="670"');
+    expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270"');
+    expect(markup).toContain('data-m2v-risk-disclaimer="true" x="140" y="1460"');
+  });
+
   it.each([
     [9_999.999, '1 万元'],
     [10_000, '1 万元'],
