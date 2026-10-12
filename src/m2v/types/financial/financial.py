@@ -160,7 +160,7 @@ def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) ->
     evidence = review.get("evidence")
     if not isinstance(evidence, dict) or any(not isinstance(evidence.get(key), str) or not evidence[key].strip() for key in REVIEW_CHECKS):
         _fail("outputs/legibility-review.json.evidence", "须填写每项可观察证据")
-    for key in ("mobileScale", "safeArea", "endpointCallout"):
+    for key in ("mobileScale", "safeArea", "endpointMarker"):
         item = evidence.get(key)
         if not isinstance(item, dict) or item.get("reviewed") is not True or not isinstance(item.get("details"), str) or not item["details"].strip():
             _fail(f"outputs/legibility-review.json.evidence.{key}", "须记录已检查状态和可复核证据")
@@ -446,7 +446,7 @@ def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
             "safeArea": {"x": list(LAYOUT_BOUNDS_X), "y": list(LAYOUT_BOUNDS_Y)},
             "valueAxisSafeArea": {"x": list(LAYOUT_BOUNDS_X), "y": list(LAYOUT_BOUNDS_Y)},
             "verticalAlignment": "canvas-center", "canvasCenterY": CANVAS_CENTER_Y,
-            "endpointCallout": {"opaqueBacking": True, "collisionAwarePlacement": True, "minimumEndpointGap": 18}}
+            "endpointMarker": {"circleOnly": True, "inChartValueBadge": False}}
 
 
 def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:

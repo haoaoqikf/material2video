@@ -369,6 +369,7 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     assert review["metrics"]["safeArea"] == {"x": [140, 940], "y": [180, 1740]}
     assert review["metrics"]["verticalAlignment"] == "canvas-center"
     assert review["metrics"]["canvasCenterY"] == 960
+    assert review["metrics"]["endpointMarker"] == {"circleOnly": True, "inChartValueBadge": False}
     assert review["evidence"]["valueAxisSafeArea"]["bounds"] == {"x": [140, 940], "y": [180, 1740]}
     with pytest.raises(M2VError, match="只接受完整视频评审通过"):
         financial.validate_legibility_review(root, docs)
@@ -377,7 +378,7 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
             "mobileScale": {"width": 360, "height": 640, "reviewed": True, "details": "合成缩放证据"},
             "safeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "合成布局边界证据"},
             "valueAxisSafeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "纵轴统一布局边界证据"},
-            "endpointCallout": {"reviewed": True, "details": "端点金额底板、文字及 18px 间距证据"}})
+            "endpointMarker": {"reviewed": True, "details": "当前价值圆点完整显示；画布顶部的市值与端点日期一致，图表内无覆盖折线的重复金额底板"}})
     assert review["previewSha256"] == preview_digest
     path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
     with pytest.raises(M2VError, match="review.json.metrics"):
@@ -387,10 +388,10 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     path.write_text(json.dumps(missing_mobile), encoding="utf-8")
     with pytest.raises(M2VError, match="evidence.mobileScale"):
         financial.validate_legibility_review(root, docs)
-    missing_callout = json.loads(json.dumps(review))
-    missing_callout["evidence"]["endpointCallout"].update(reviewed=False, details="")
-    path.write_text(json.dumps(missing_callout), encoding="utf-8")
-    with pytest.raises(M2VError, match="evidence.endpointCallout"):
+    missing_marker = json.loads(json.dumps(review))
+    missing_marker["evidence"]["endpointMarker"].update(reviewed=False, details="")
+    path.write_text(json.dumps(missing_marker), encoding="utf-8")
+    with pytest.raises(M2VError, match="evidence.endpointMarker"):
         financial.validate_legibility_review(root, docs)
     path.write_text(json.dumps(review), encoding="utf-8")
     financial.validate_legibility_review(root, docs)

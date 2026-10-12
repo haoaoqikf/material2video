@@ -26,76 +26,7 @@ const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
 const LOSS_COLOR = '#55d58a';
 const LAYOUT_BOUNDS = { left: 140, right: 940, top: 180, bottom: 1740 };
-const ENDPOINT_CALLOUT = { height: 48, paddingX: 14, textBaseline: 32, gap: 20, endpointClearance: 10 };
-
 export type ChartPoint = { x: number; y: number };
-export type EndpointCallout = { x: number; y: number; width: number; height: number; side: 'right' | 'left' | 'above' | 'below' };
-
-function segmentIntersectsRect(start: ChartPoint, end: ChartPoint, rect: EndpointCallout): boolean {
-  const left = rect.x - 4;
-  const right = rect.x + rect.width + 4;
-  const top = rect.y - 4;
-  const bottom = rect.y + rect.height + 4;
-  let tMin = 0;
-  let tMax = 1;
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  if (Math.max(start.x, end.x) < left || Math.min(start.x, end.x) > right
-    || Math.max(start.y, end.y) < top || Math.min(start.y, end.y) > bottom) return false;
-  const clips: [number, number][] = [[-dx, start.x - left], [dx, right - start.x], [-dy, start.y - top], [dy, bottom - start.y]];
-  for (const [p, q] of clips) {
-    if (p === 0) { if (q < 0) return false; continue; }
-    const ratio = q / p;
-    if (p < 0) tMin = Math.max(tMin, ratio);
-    else tMax = Math.min(tMax, ratio);
-    if (tMin > tMax) return false;
-  }
-  return true;
-}
-
-function rectangleClearsEndpoint(rect: EndpointCallout, endpoint: ChartPoint, radius = 8): boolean {
-  const nearestX = Math.max(rect.x, Math.min(endpoint.x, rect.x + rect.width));
-  const nearestY = Math.max(rect.y, Math.min(endpoint.y, rect.y + rect.height));
-  return Math.hypot(endpoint.x - nearestX, endpoint.y - nearestY) >= radius + ENDPOINT_CALLOUT.endpointClearance;
-}
-
-function countLineIntersections(rect: EndpointCallout, line: ChartPoint[]): number {
-  if (line.length < 2) return 0;
-  const left = rect.x - 4;
-  const right = rect.x + rect.width + 4;
-  let low = 1;
-  let high = line.length;
-  // 金融日期点在 X 轴上单调递增，只遍历横向覆盖候选标记的局部线段。
-  while (low < high) {
-    const middle = (low + high) >>> 1;
-    if (line[middle]!.x < left) low = middle + 1;
-    else high = middle;
-  }
-  let collisions = 0;
-  for (let index = Math.max(1, low); index < line.length && line[index - 1]!.x <= right; index++) {
-    if (segmentIntersectsRect(line[index - 1]!, line[index]!, rect)) collisions++;
-  }
-  return collisions;
-}
-
-export function placeEndpointCallout(endpoint: ChartPoint, textWidth: number, line: ChartPoint[]): EndpointCallout {
-  const width = Math.ceil(textWidth * 1.3 + ENDPOINT_CALLOUT.paddingX * 2);
-  const height = ENDPOINT_CALLOUT.height;
-  const gap = ENDPOINT_CALLOUT.gap;
-  const candidates = ([
-    { x: endpoint.x + gap, y: endpoint.y - height / 2, width, height, side: 'right' },
-    { x: endpoint.x - gap - width, y: endpoint.y - height / 2, width, height, side: 'left' },
-    { x: endpoint.x - width / 2, y: endpoint.y - gap - height, width, height, side: 'above' },
-    { x: endpoint.x - width / 2, y: endpoint.y + gap, width, height, side: 'below' },
-  ] satisfies EndpointCallout[]).filter((rect) => rect.x >= LAYOUT_BOUNDS.left + 1 && rect.x + rect.width <= LAYOUT_BOUNDS.right - 1
-    && rect.y >= LAYOUT_BOUNDS.top + 1 && rect.y + rect.height <= LAYOUT_BOUNDS.bottom - 1
-    && rectangleClearsEndpoint(rect, endpoint));
-  if (!candidates.length) throw new Error('当前市值端点标记无法在项目布局范围内放置');
-  const ranked = candidates.map((rect, index) => ({ rect, index,
-    collisions: countLineIntersections(rect, line),
-  })).sort((left, right) => left.collisions - right.collisions || left.index - right.index);
-  return ranked[0]!.rect;
-}
 
 function epochDay(value: ISODate): number {
   const [year, month, day] = value.split('-').map(Number);
@@ -485,10 +416,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
   const chartPoints = view.linePoints.map((point) => ({ x: xForDate(point.date), y: yForValue(point.close) }));
   const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(' ');
-  const endpointLabel = latest ? moneyText(latest.close) : '';
   const endpointX = latest ? xForDate(latest.date) : PLOT.left;
   const endpointY = latest ? yForValue(latest.close) : PLOT.bottom;
-  const endpointCallout = placeEndpointCallout({ x: endpointX, y: endpointY }, measuredTextWidth(endpointLabel, 24), chartPoints);
   const sourceHosts = prices.sources.map((source) => {
     if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
     return '公开资料';
@@ -549,27 +478,10 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         throw new Error('金融画面曲线端点超出项目布局范围');
       }
     }
-    for (const callout of svg.querySelectorAll<SVGGElement>('[data-m2v-endpoint-callout="true"]')) {
-      const backing = callout.querySelector<SVGRectElement>('[data-m2v-endpoint-callout-backing="true"]');
-      const text = callout.querySelector<SVGTextElement>('[data-m2v-current-value-follow="true"]');
-      const endpoint = svg.querySelector<SVGCircleElement>('[data-m2v-financial-endpoint="true"]');
-      if (!backing || !text || !endpoint) throw new Error('当前市值端点标记缺少底板、文字或端点');
-      const rectBounds = transformedBounds(backing);
-      const textBounds = transformedBounds(text);
-      if (rectBounds.x < LAYOUT_BOUNDS.left || rectBounds.x + rectBounds.width > LAYOUT_BOUNDS.right
-        || rectBounds.y < LAYOUT_BOUNDS.top || rectBounds.y + rectBounds.height > LAYOUT_BOUNDS.bottom) {
-        throw new Error('当前市值端点标记底板超出项目布局范围');
-      }
-      if (textBounds.x < rectBounds.x + 6 || textBounds.x + textBounds.width > rectBounds.x + rectBounds.width - 6
-        || textBounds.y < rectBounds.y + 3 || textBounds.y + textBounds.height > rectBounds.y + rectBounds.height - 3) {
-        throw new Error('当前市值端点金额文字未完整包含在底板内');
-      }
-      const center = new DOMPoint(Number(endpoint.getAttribute('cx')), Number(endpoint.getAttribute('cy'))).matrixTransform(endpoint.getCTM()!);
-      const nearestX = Math.max(rectBounds.x, Math.min(center.x, rectBounds.x + rectBounds.width));
-      const nearestY = Math.max(rectBounds.y, Math.min(center.y, rectBounds.y + rectBounds.height));
-      if (Math.hypot(center.x - nearestX, center.y - nearestY) < Number(endpoint.getAttribute('r')) + ENDPOINT_CALLOUT.endpointClearance - 0.5) {
-        throw new Error('当前市值端点金额标记与曲线端点间距不足');
-      }
+    const endpoint = svg.querySelector<SVGCircleElement>('[data-m2v-financial-endpoint="true"]');
+    const polyline = svg.querySelector<SVGPolylineElement>('[data-m2v-visible-value-points]');
+    if (endpoint && polyline && !(polyline.compareDocumentPosition(endpoint) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+      throw new Error('金融曲线端点必须绘制在完整历史折线上方');
     }
   }, [frame, contentOffsetY, contentLayoutKey]);
 
@@ -609,13 +521,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         <polyline fill="none" stroke={gainColor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
           points={linePoints} data-m2v-visible-value-points={visiblePoints.length} />
       </g>}
-      {latest && windowStart <= latest.date && <>
-        <circle data-m2v-financial-endpoint="true" cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />
-        <g data-m2v-endpoint-callout="true" data-m2v-endpoint-callout-side={endpointCallout.side}>
-          <rect data-m2v-endpoint-callout-backing="true" x={endpointCallout.x} y={endpointCallout.y} width={endpointCallout.width} height={endpointCallout.height} rx="7" fill="#080d17" stroke="#35445b" strokeWidth="2" />
-          <text data-m2v-current-value-follow="true" x={endpointCallout.x + ENDPOINT_CALLOUT.paddingX} y={endpointCallout.y + ENDPOINT_CALLOUT.textBaseline} fill={gainColor} fontSize="24" fontWeight="700">{endpointLabel}</text>
-        </g>
-      </>}
+      {latest && windowStart <= latest.date &&
+        <circle data-m2v-financial-endpoint="true" cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />}
       {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
       {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left} y={1460 + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
       </g>
