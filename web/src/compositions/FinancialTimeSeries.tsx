@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 type ISODate = string;
@@ -21,7 +21,6 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const CONTENT_OFFSET_Y = 18;
 const PLOT = { left: 220, right: 928, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
@@ -379,8 +378,17 @@ function transformedBounds(element: SVGGraphicsElement) {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
+export function safeAreaCenterOffset(bounds: { y: number; height: number }, safeArea = SAFE_AREA): number {
+  const safeHeight = safeArea.bottom - safeArea.top;
+  if (bounds.height > safeHeight) throw new Error('金融画面整体内容高于安全区可用高度');
+  const safeCenter = (safeArea.top + safeArea.bottom) / 2;
+  return Math.round((safeCenter - (bounds.y + bounds.height / 2)) * 100) / 100;
+}
+
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const contentLayerRef = useRef<SVGGElement>(null);
+  const [contentOffsetY, setContentOffsetY] = useState(0);
   const frame = useCurrentFrame();
   const { request, prices, plan } = props;
   const investment = request.investment ?? { year: Number(request.displayRange[0].slice(0, 4)), principal: 1_000_000 };
@@ -431,9 +439,21 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
     document.documentElement.style.setProperty('--m2v-height', `${HEIGHT}px`);
     document.documentElement.dataset.m2vTheme = 'dark';
-    if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
     const svg = svgRef.current;
-    if (!svg) return;
+    const contentLayer = contentLayerRef.current;
+    if (!svg || !contentLayer) return;
+    const contentBounds = contentLayer.getBBox();
+    const centeredOffset = safeAreaCenterOffset(contentBounds);
+    if (Math.abs(centeredOffset - contentOffsetY) > 0.01) {
+      setContentOffsetY(centeredOffset);
+      return;
+    }
+    if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
+    const layerBounds = transformedBounds(contentLayer);
+    if (layerBounds.x < SAFE_AREA.left || layerBounds.x + layerBounds.width > SAFE_AREA.right
+      || layerBounds.y < SAFE_AREA.top || layerBounds.y + layerBounds.height > SAFE_AREA.bottom) {
+      throw new Error(`金融画面整体内容超出手机安全区（${layerBounds.x},${layerBounds.y},${layerBounds.width},${layerBounds.height}）`);
+    }
     for (const element of svg.querySelectorAll('text')) {
       const bounds = transformedBounds(element);
       const safeArea = SAFE_AREA;
@@ -457,12 +477,12 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         throw new Error('金融画面曲线端点超出手机安全区');
       }
     }
-  }, [frame]);
+  }, [frame, contentOffsetY]);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
-      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop + CONTENT_OFFSET_Y} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
-      <g data-m2v-content-layer="true" transform={`translate(0 ${CONTENT_OFFSET_Y})`}>
+      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop + contentOffsetY} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
+      <g ref={contentLayerRef} data-m2v-content-layer="true" data-m2v-content-offset-y={contentOffsetY} transform={`translate(0 ${contentOffsetY})`}>
       <text data-m2v-investment-title="true" x={WIDTH / 2} y="270" textAnchor="middle" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       <text data-m2v-live-year="true" x={SAFE_AREA.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
       {latest && <g>

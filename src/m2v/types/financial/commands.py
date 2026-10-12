@@ -172,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
                 "checks": {key: False for key in financial.REVIEW_CHECKS},
                 "evidence": {**{key: "" for key in financial.REVIEW_CHECKS},
                     "mobileScale": {"width": 360, "height": 640, "reviewed": False, "details": ""},
-                    "safeArea": {"bounds": {"x": list(financial.SAFE_AREA_X), "y": list(financial.SAFE_AREA_Y)}, "reviewed": False, "details": f"内容统一下移 {financial.CONTENT_OFFSET_Y} 画布像素；核对变换后的实际文字边界。"},
+                    "safeArea": {"bounds": {"x": list(financial.SAFE_AREA_X), "y": list(financial.SAFE_AREA_Y)}, "reviewed": False, "details": f"前景按实际内容包围盒居中到安全区中心 y={financial.SAFE_AREA_CENTER_Y:g}；核对变换后的完整边界。"},
                     "valueAxisSafeArea": {"bounds": {"x": list(financial.SAFE_AREA_X), "y": list(financial.SAFE_AREA_Y)}, "reviewed": False, "details": ""}},
             })
             print(f"已生成待填写的评审模板：{review_path}")

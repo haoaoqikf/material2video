@@ -282,7 +282,8 @@ def test_existing_v8_plan_keeps_its_saved_hold_durations(tmp_path):
     assert financial.review_metrics(docs)["endingSeconds"] == 6
     assert financial.review_metrics(docs)["safeArea"] == {"x": [140, 940], "y": [180, 1500]}
     assert financial.review_metrics(docs)["valueAxisSafeArea"] == financial.review_metrics(docs)["safeArea"]
-    assert financial.review_metrics(docs)["contentOffsetY"] == 18
+    assert financial.review_metrics(docs)["verticalAlignment"] == "safe-area-center"
+    assert financial.review_metrics(docs)["safeAreaCenterY"] == 840
 
 
 def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):

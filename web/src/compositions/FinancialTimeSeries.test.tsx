@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, safeAreaCenterOffset, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -140,11 +140,15 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('r="8"');
   });
 
-  it('shifts the complete foreground down 18 canvas pixels while leaving its background fixed', () => {
+  it('centers the actual content bounds vertically inside the mobile safe area', () => {
+    expect(safeAreaCenterOffset({ y: 240, height: 1200 })).toBe(0);
+    expect(safeAreaCenterOffset({ y: 240, height: 1260 })).toBe(-30);
+    expect(() => safeAreaCenterOffset({ y: 0, height: 1321 })).toThrow('金融画面整体内容高于安全区可用高度');
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(markup).toContain('<g data-m2v-content-layer="true" transform="translate(0 18)">');
-    expect(markup).toContain('<rect x="220" y="538" width="708" height="670"');
+    expect(markup).toContain('data-m2v-content-layer="true"');
+    expect(markup).toContain('data-m2v-content-offset-y="0" transform="translate(0 0)"');
+    expect(markup).toContain('<rect x="220" y="520" width="708" height="670"');
     expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270"');
     expect(markup).toContain('data-m2v-risk-disclaimer="true" x="140" y="1460"');
   });
