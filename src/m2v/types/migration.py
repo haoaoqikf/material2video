@@ -10,6 +10,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.core.project import PROJECT_FILE, PROJECT_VERSION
+from m2v.types import catalog
 
 
 def migrate(root: Path, source_format: str) -> Path:
@@ -42,8 +43,10 @@ def migrate(root: Path, source_format: str) -> Path:
                 raise M2VError("金融迁移仅支持当前 request v1 与历史价格 v1-v3、计划 v1-v6")
         else:
             financial.load_project(root)
-        video_type = "financial-timeseries"
-        materials = {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"}
+        entry = catalog.catalog().get("financial-timeseries")
+        video_type = entry.name
+        # 材料入口取自类型目录：迁移产物必须与该类型的当前材料契约一致。
+        materials = entry.material_map()
     else:
         raise M2VError(f"不支持的迁移来源：{source_format}")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

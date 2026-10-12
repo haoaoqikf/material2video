@@ -58,5 +58,5 @@ def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, s
             "mobileLegibility": "手机竖屏下坐标、标注和收益颜色可读"}
 
 
-TYPE = VideoType("financial-timeseries", "金融时间序列与假设投资价值演变", validate, prepare, preview, render,
+TYPE = VideoType("financial-timeseries", validate, prepare, preview, render,
                  review_gate=review_gate, review_criteria=review_criteria, review_template=review_template)

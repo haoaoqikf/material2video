@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "types": [
+    {
+      "name": "financial-timeseries",
+      "description": "金融时间序列与假设投资价值演变",
+      "summary": "公开日收盘价材料、假设投资计算、手机竖屏折线画面和完整预演评审。",
+      "plan": "保留独立金融材料、投资价值计算、专用画面与手机可读性门禁。",
+      "skillGuide": "[金融时间序列视频](references/financial-timeseries-video.md)：验证行情口径、假设投资计算与手机可读性。",
+      "materials": [
+        {
+          "name": "request",
+          "file": "request.json",
+          "template": {
+            "schemaVersion": 1,
+            "originalRequest": "填写研究请求",
+            "instrument": {
+              "kind": "stock",
+              "name": "填写标的",
+              "code": "填写代码",
+              "market": "填写市场",
+              "unit": "USD",
+              "listingDate": "YYYY-MM-DD"
+            },
+            "requestedRange": [
+              "YYYY-MM-DD",
+              "YYYY-MM-DD"
+            ],
+            "displayRange": [
+              "YYYY-MM-DD",
+              "YYYY-MM-DD"
+            ],
+            "investment": {
+              "year": 2020,
+              "principal": 100000
+            },
+            "confirmations": []
+          }
+        },
+        {
+          "name": "prices",
+          "file": "prices.json",
+          "template": {
+            "schemaVersion": 3,
+            "unit": "USD",
+            "priceBasis": "split-adjusted",
+            "adjustmentBaseDate": "YYYY-MM-DD",
+            "adjustmentDefinition": "仅拆合股调整，不计分红再投资",
+            "splitAdjustments": [],
+            "expectedTradingDates": [],
+            "expectedTradingDatesSource": [],
+            "points": [],
+            "sources": [],
+            "rawSnapshots": []
+          }
+        },
+        {
+          "name": "plan",
+          "file": "animation-plan.json",
+          "template": {
+            "schemaVersion": 7,
+            "chartType": "line",
+            "durationSeconds": 60,
+            "fps": 30,
+            "canvas": {
+              "width": 1080,
+              "height": 1920
+            },
+            "axis": {
+              "dateRange": [
+                "YYYY-MM-DD",
+                "YYYY-MM-DD"
+              ],
+              "dateScale": "staged-expanding",
+              "valueScale": "revealed-linear"
+            },
+            "segments": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "article-narrative",
+      "description": "观点型文章的 v4 单场景叙事",
+      "summary": "文章 v4 单场景叙事，保留配音、状态轨道、镜头、代码世界与文章制作门禁。",
+      "plan": "完整保留文章 v4、配音、时间轴、状态轨道、镜头、代码世界与制作评审规则。",
+      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。",
+      "materials": [
+        {
+          "name": "storyboard",
+          "file": "storyboard.json",
+          "template": {
+            "version": 4,
+            "schemaVersion": 4,
+            "fps": 30,
+            "width": 1080,
+            "height": 1920,
+            "title": "新作品",
+            "visual": {
+              "theme": "dark",
+              "preset": "keynote"
+            },
+            "visualDirection": {
+              "motif": "填写视觉母题",
+              "compositionBias": "centered",
+              "density": "balanced",
+              "rhythm": "steady",
+              "avoid": []
+            },
+            "directingBrief": {
+              "thesis": "填写核心观点",
+              "audienceShift": "填写观众认知变化",
+              "emotionalArc": [
+                "疑问",
+                "理解"
+              ],
+              "visualMotif": "填写视觉母题",
+              "stylePack": "editorial",
+              "avoid": []
+            },
+            "world": {},
+            "stages": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "general",
+      "description": "多场景通用视频编排",
+      "summary": "受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化和可选口播。",
+      "plan": "以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、声音和字幕。",
+      "skillGuide": "按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。",
+      "materials": [
+        {
+          "name": "plan",
+          "file": "general-plan.json",
+          "template": {
+            "schemaVersion": 1,
+            "fps": 30,
+            "width": 1080,
+            "height": 1920,
+            "scenes": [
+              {
+                "id": "opening",
+                "type": "graphic",
+                "duration": {
+                  "frames": 90
+                },
+                "data": {
+                  "title": "标题",
+                  "body": "编辑 general-plan.json"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

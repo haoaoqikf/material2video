@@ -371,3 +371,37 @@ def v4_storyboard() -> dict:
 def valid_script_v4() -> dict:
     """v4 分镜夹具：按需局部改动，入口只接受这一版契约。"""
     return v4_storyboard()
+
+
+def create_typed_project(directory: str | Path, video_type: str) -> Path:
+    """按类型目录创建作品，替代测试里另写一份材料映射的旧用法。
+
+    材料入口的唯一来源是 ``m2v.types.catalog``；测试也走同一条路径，因此目录里
+    的文件名一旦变化，用例会跟着失败，而不是悄悄与实现错位。
+    """
+    from m2v.core.project import create_project
+    from m2v.types import catalog
+
+    return create_project(directory, video_type, catalog.catalog().get(video_type).material_map())
+
+
+def register_synthetic_type(monkeypatch, name: str, description: str = "合成类型") -> None:
+    """为测试用的合成类型补一份类型目录登记项。
+
+    类型身份只在类型目录里维护，因此走统一入口的合成类型同样需要登记；这里只替换
+    进程内缓存，不写仓库文件。
+    """
+    from m2v.types import catalog
+
+    entry = catalog.Entry(
+        name=name,
+        description=description,
+        summary=description,
+        plan=description,
+        skill_guide=description,
+        materials=(
+            catalog.Material(name="material", file="material.json", template={"schemaVersion": 1}),
+        ),
+    )
+    current = catalog.catalog()
+    monkeypatch.setattr(catalog, "_cached", catalog.Catalog(current.entries() + (entry,)))

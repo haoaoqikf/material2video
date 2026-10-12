@@ -455,5 +455,5 @@ def _mux_audio(root: Path, video: Path, output: Path, segments: list[dict], fps:
         raise M2VError(f"通用视频音轨混合失败：{result.stderr[-2000:]}")
 
 
-TYPE = VideoType("general", "多场景通用视频编排", validate, prepare, preview, render,
+TYPE = VideoType("general", validate, prepare, preview, render,
                  review_criteria=review_criteria)

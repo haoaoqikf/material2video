@@ -149,6 +149,6 @@ def prepare_narration(text: str, cache: Path) -> tuple[Path, list[dict], list[di
     return _scene_audio(text, "zh-CN-XiaoxiaoNeural", "+0%", cache, False)
 
 
-TYPE = VideoType("article-narrative", "观点型文章的 v4 单场景叙事", validate, prepare, preview, render,
+TYPE = VideoType("article-narrative", validate, prepare, preview, render,
                  review_gate=review_gate, review_criteria=review_criteria, review_template=review_template,
                  audio_tracks=audio_tracks, prepare_narration=prepare_narration)

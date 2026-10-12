@@ -10,7 +10,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
-from m2v.types import registry
+from m2v.types import catalog, registry
 
 
 def _force_utf8_output() -> None:
@@ -134,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "types":
-            print(json.dumps([{"type": x.name, "description": x.description} for x in registry.all_types()], ensure_ascii=False, indent=2))
+            print(json.dumps([{"type": x.name, "description": registry.describe(x.name)} for x in registry.all_types()], ensure_ascii=False, indent=2))
             return 0
         if args.command == "article":
             from m2v.types.article import workflow_cli as workflow
@@ -150,27 +150,18 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "init":
             item = registry.get(args.type)
+            entry = catalog.catalog().get(item.name)
             project_dir = Path(args.project).expanduser()
             content_root = args.content_root or os.environ.get("M2V_CONTENT_ROOT")
             if content_root and not project_dir.is_absolute():
                 project_dir = Path(content_root).expanduser() / project_dir
-            path = create_project(project_dir, item.name)
+            path = create_project(project_dir, item.name, entry.material_map())
             root = path.parent
-            template = {
-                "article-narrative": {"storyboard.json": {"version": 4, "schemaVersion": 4, "fps": 30, "width": 1080, "height": 1920, "title": "新作品", "visual": {"theme": "dark", "preset": "keynote"}, "visualDirection": {"motif": "填写视觉母题", "compositionBias": "centered", "density": "balanced", "rhythm": "steady", "avoid": []}, "directingBrief": {"thesis": "填写核心观点", "audienceShift": "填写观众认知变化", "emotionalArc": ["疑问", "理解"], "visualMotif": "填写视觉母题", "stylePack": "editorial", "avoid": []}, "world": {}, "stages": []}},
-                "financial-timeseries": {
-                    "request.json": {"schemaVersion": 1, "originalRequest": "填写研究请求", "instrument": {"kind": "stock", "name": "填写标的", "code": "填写代码", "market": "填写市场", "unit": "USD", "listingDate": "YYYY-MM-DD"}, "requestedRange": ["YYYY-MM-DD", "YYYY-MM-DD"], "displayRange": ["YYYY-MM-DD", "YYYY-MM-DD"], "investment": {"year": 2020, "principal": 100000}, "confirmations": []},
-                    "prices.json": {"schemaVersion": 3, "unit": "USD", "priceBasis": "split-adjusted", "adjustmentBaseDate": "YYYY-MM-DD", "adjustmentDefinition": "仅拆合股调整，不计分红再投资", "splitAdjustments": [], "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": []},
-                    "animation-plan.json": {"schemaVersion": 7, "chartType": "line", "durationSeconds": 60, "fps": 30, "canvas": {"width": 1080, "height": 1920}, "axis": {"dateRange": ["YYYY-MM-DD", "YYYY-MM-DD"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"}, "segments": []},
-                },
-                "general": {"schemaVersion": 1, "fps": 30, "width": 1080, "height": 1920, "scenes": [{"id": "opening", "type": "graphic", "duration": {"frames": 90}, "data": {"title": "标题", "body": "编辑 general-plan.json"}}]},
-            }[item.name]
-            if item.name == "financial-timeseries":
-                for material_name, content in template.items():
-                    (root / material_name).write_text(json.dumps(content, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            else:
-                material_name = next(iter(json.loads(path.read_text(encoding="utf-8"))["materials"].values()))
-                (root / material_name).write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            # 材料文件名与初始内容都取自类型目录：这里是写盘，不是第二处事实。
+            for material in entry.materials:
+                (root / material.file).write_text(
+                    json.dumps(material.template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+                )
             print(f"已创建 {item.name} 作品：{path}")
             return 0
         if args.command == "migrate":

@@ -4,11 +4,15 @@
 
 ## 当前视频类型
 
+<!-- generated:type-catalog:start -->
 - `financial-timeseries`：公开日收盘价材料、假设投资计算、手机竖屏折线画面和完整预演评审。
 - `article-narrative`：文章 v4 单场景叙事，保留配音、状态轨道、镜头、代码世界与文章制作门禁。
 - `general`：受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化和可选口播。
+<!-- generated:type-catalog:end -->
 
 文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 `buffer-smoothing`、`darts-trial-and-error`、`keynote-baseline`，不增删或替换。
+
+新增视频类型只在两处落地：在 `src/m2v/types/catalog.json` 登记类型身份、材料入口与初始化模板，并实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；未在目录登记的类型会在渲染前失败。上面的清单与 Skill、项目规划中的清单都由该目录生成，改动后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成。
 
 ## 快速开始
 
@@ -45,7 +49,7 @@ uv run m2v render --project videos/<slug>
 
 - `src/m2v/core/`：作品契约、路径、指纹、公共错误。
 - `src/m2v/engine/`：Remotion 构建与缓存、渲染会话、音视频合成和验收。
-- `src/m2v/types/`：文章、金融、通用类型及显式注册。
+- `src/m2v/types/`：文章、金融、通用类型、类型目录（`catalog.json`）与显式注册。
 - `src/m2v/cli.py`：`m2v` 统一命令入口。
 - `web/src/compositions/`：共享 composition、金融画面、文章世界与通用场景宿主。
 - `.agents/skills/material2video/references/`：材料、类型创作与评审操作参考。

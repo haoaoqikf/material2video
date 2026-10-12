@@ -7,13 +7,14 @@ from pathlib import Path
 import pytest
 
 from m2v.core.errors import M2VError
-from m2v.core.project import create_project, load_project, load_current_prepared
+from m2v.core.project import load_project, load_current_prepared
 from m2v.types.general import adapter
+from conftest import create_typed_project
 
 
 def _project(tmp_path: Path, plan: dict) -> tuple[Path, dict]:
     root = tmp_path / "通用作品"
-    create_project(root, "general")
+    create_typed_project(root, "general")
     (root / "general-plan.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
     return load_project(root)
 
@@ -134,11 +135,11 @@ def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tm
         {"id": "story-one", "type": "article-narrative", "project": "one"},
         {"id": "story-two", "type": "article-narrative", "project": "two"},
     ]})
-    from m2v.core.project import create_project, load_project as load_child, save_prepared
+    from m2v.core.project import load_project as load_child, save_prepared
 
     for name in ("one", "two"):
         child = root / name
-        create_project(child, "article-narrative")
+        create_typed_project(child, "article-narrative")
         child_root, child_manifest = load_child(child)
         source = {"schemaVersion": 4, "world": {"renderer": {"kind": "code", "module": "water-tank"}}}
         (child_root / "storyboard.json").write_text(json.dumps(source), encoding="utf-8")

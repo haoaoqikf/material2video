@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import uuid
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +14,6 @@ from .errors import M2VError
 PROJECT_FILE = "project.json"
 PROJECT_VERSION = 1
 PREPARED_FILE = "outputs/prepared.json"
-_TYPES = {"article-narrative", "financial-timeseries", "general"}
 
 
 def _fingerprint(value: Any) -> str:
@@ -29,6 +29,12 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
 
 
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
+    """读取作品描述。
+
+    这里**不判定类型是否可用**：类型清单的唯一来源是 ``m2v.types.catalog``，
+    而底层不能反向依赖业务类型层。类型名是否为已知类型、是否有行为实现，
+    由统一入口经 ``m2v.types.registry`` 判定，同样在渲染前失败。
+    """
     root = Path(directory).expanduser().resolve()
     path = root / PROJECT_FILE
     try:
@@ -37,8 +43,8 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
         raise M2VError(f"无法读取作品描述 {path}: {exc}") from exc
     if not isinstance(data, dict) or data.get("schemaVersion") != PROJECT_VERSION:
         raise M2VError("project.json schemaVersion 必须为 1")
-    if data.get("type") not in _TYPES:
-        raise M2VError(f"未知视频类型：{data.get('type')!r}；可用类型：{', '.join(sorted(_TYPES))}")
+    if not isinstance(data.get("type"), str) or not data["type"].strip():
+        raise M2VError("project.json 必须声明非空的视频类型 type")
     if not isinstance(data.get("id"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", data["id"]):
         raise M2VError("作品 id 必须为 1 至 63 位小写字母、数字或连字符")
     materials = data.get("materials")
@@ -57,24 +63,29 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     return root, data
 
 
-def create_project(directory: str | Path, video_type: str) -> Path:
-    if video_type not in _TYPES:
-        raise M2VError(f"未知视频类型：{video_type}")
+def create_project(directory: str | Path, video_type: str, materials: Mapping[str, str]) -> Path:
+    """创建作品描述。
+
+    材料入口由调用方（统一入口，取自类型目录）传入。作品契约此前自带一份类型
+    白名单与材料映射，那是同一份事实的第二处副本；现在它只要求调用方把材料说清楚。
+    """
+    if not isinstance(video_type, str) or not video_type.strip():
+        raise M2VError("作品类型必须是非空字符串")
+    if not isinstance(materials, Mapping) or not materials:
+        raise M2VError("作品材料入口必须是非空映射")
+    for name, reference in materials.items():
+        if not isinstance(name, str) or not name or not isinstance(reference, str) or not reference:
+            raise M2VError("作品材料入口必须是「材料名 → 非空相对路径」的映射")
     root = Path(directory).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     path = root / PROJECT_FILE
     if path.exists():
         raise M2VError(f"作品描述已存在，未覆盖：{path}")
-    defaults = {
-        "article-narrative": {"storyboard": "storyboard.json"},
-        "financial-timeseries": {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"},
-        "general": {"plan": "general-plan.json"},
-    }
     slug = re.sub(r"[^a-z0-9-]+", "-", root.name.lower()).strip("-") or "video"
     # Keep a readable prefix while giving same-named works independent stable IDs.
     project_id = f"{slug[:50].rstrip('-') or 'video'}-{uuid.uuid4().hex[:8]}"
     _write_json(path, {"schemaVersion": PROJECT_VERSION, "id": project_id, "type": video_type,
-                       "materials": defaults[video_type], "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"}})
+                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"}})
     return path
 
 

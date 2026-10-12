@@ -8,12 +8,12 @@ import pytest
 
 from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.core.project import create_project, load_project
+from m2v.core.project import load_project
 from m2v.cli import _require_review, _review_criteria
 from m2v.types.migration import migrate
 from m2v.types import registry
 from m2v.types.registry import VideoType
-from conftest import v4_storyboard
+from conftest import create_typed_project, register_synthetic_type, v4_storyboard
 
 
 def test_init_writes_all_financial_material_templates_under_content_root(tmp_path: Path) -> None:
@@ -58,8 +58,8 @@ def test_article_v4_migration_is_backup_first_and_repeat_fails(tmp_path: Path) -
 def test_same_named_projects_receive_distinct_stable_ids(tmp_path: Path) -> None:
     first = tmp_path / "one" / "作品"
     second = tmp_path / "two" / "作品"
-    first_id = load_project(create_project(first, "general").parent)[1]["id"]
-    second_id = load_project(create_project(second, "general").parent)[1]["id"]
+    first_id = load_project(create_typed_project(first, "general").parent)[1]["id"]
+    second_id = load_project(create_typed_project(second, "general").parent)[1]["id"]
     assert first_id != second_id
     assert load_project(first)[1]["id"] == first_id
 
@@ -89,7 +89,7 @@ def test_migration_failure_restores_old_records_and_materials(tmp_path: Path, mo
 def test_registered_test_type_appears_without_editing_cli_dispatch(monkeypatch, capsys) -> None:
     monkeypatch.setattr(registry, "_registry", {})
     noop = lambda *_args, **_kwargs: None
-    registry.register(VideoType("test-only", "测试扩展类型", noop, noop, noop, noop))
+    registry.register(VideoType("test-only", noop, noop, noop, noop))
     assert main(["types"]) == 0
     assert '"type": "test-only"' in capsys.readouterr().out
 
@@ -140,9 +140,10 @@ def test_preview_record_round_trips_when_the_preview_lives_outside_the_project_r
     (root / "outputs").mkdir()
 
     video_type = VideoType(
-        "outside-preview", "预演落在作品根之外", lambda *_: None, lambda *_: None,
+        "outside-preview", lambda *_: None, lambda *_: None,
         lambda *_args, **_kwargs: preview, lambda *_: "rendered.mp4",
     )
+    register_synthetic_type(monkeypatch, "outside-preview", "预演落在作品根之外")
     monkeypatch.setattr(registry, "_registry", {"outside-preview": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
     monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
@@ -176,12 +177,13 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
         calls.append("gate")
 
     video_type = VideoType(
-        "review-hook", "review hook test", lambda *_: None, lambda *_: None,
+        "review-hook", lambda *_: None, lambda *_: None,
         lambda *_: preview, lambda *_: "rendered.mp4",
         review_gate=type_review_gate,
         review_criteria=lambda *_: {"specialized": "专用评审"},
         review_template=type_review_template,
     )
+    register_synthetic_type(monkeypatch, "review-hook", "review hook test")
     monkeypatch.setattr(registry, "_registry", {"review-hook": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
     monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)

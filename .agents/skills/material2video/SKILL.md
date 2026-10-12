@@ -11,9 +11,11 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 
 | 类型 | 创作指导 |
 |---|---|
+<!-- generated:type-catalog:start -->
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：验证行情口径、假设投资计算与手机可读性。 |
 | `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
+<!-- generated:type-catalog:end -->
 
 通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章的 React 场景会递归进入静态模块清单，按通用场景 ID 隔离模块名，并把模块摘要纳入准备记录和打包缓存键。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
 
@@ -53,3 +55,9 @@ uv run m2v status --project videos/<slug>
 - 嵌入的金融或文章片段不能绕过其类型校验及专用评审门禁。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。
+
+## 新增视频类型
+
+只在两处落地：先在 `src/m2v/types/catalog.json` 登记类型身份（名称与一句话说明）、材料入口（材料名与默认文件名）、初始化模板与文档文案，再实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；已实现但未在目录登记的类型会在渲染前失败。
+
+上述类型表、README 的类型清单与项目规划的规划清单都由该目录生成。改动目录后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成，用 `--check` 只比对不写入。
