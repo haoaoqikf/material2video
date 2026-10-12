@@ -37,7 +37,7 @@ def migrate(root: Path, source_format: str) -> Path:
         raw_plan = json.loads((root / "animation-plan.json").read_text(encoding="utf-8"))
         raw_request = json.loads((root / "request.json").read_text(encoding="utf-8"))
         raw_prices = json.loads((root / "prices.json").read_text(encoding="utf-8"))
-        financial_upgrade = raw_plan.get("schemaVersion") != 7
+        financial_upgrade = raw_plan.get("schemaVersion") not in {7, 8}
         if financial_upgrade:
             if raw_request.get("schemaVersion") != 1 or raw_plan.get("schemaVersion") not in {1, 2, 3, 4, 5, 6} or raw_prices.get("schemaVersion") not in {1, 2, 3}:
                 raise M2VError("金融迁移仅支持当前 request v1 与历史价格 v1-v3、计划 v1-v6")

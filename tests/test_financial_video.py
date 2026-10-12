@@ -176,7 +176,7 @@ def test_explicit_migration_preserves_daily_closes_sources_and_backups(tmp_path)
     assert financial.load_project(root)["prices"] == original
     assert not (root / "events.json").exists()
     assert (backup / "events.json").exists()
-    with pytest.raises(M2VError, match="计划已是 v7"):
+    with pytest.raises(M2VError, match="计划已是 v8"):
         financial.migrate_line(root)
 
 
@@ -193,7 +193,7 @@ def test_v3_plan_migrates_without_changing_prices_and_discards_event_material(tm
     backup = financial.migrate_line(root, duration=15)
 
     assert (root / "prices.json").read_bytes() == original_prices
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 8
     assert not (root / "events.json").exists()
     assert not (root / "outputs" / "legibility-review.json").exists()
     assert not (root / "outputs" / "previews" / "preview-record.json").exists()
@@ -215,10 +215,10 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
 def test_plan_covers_full_60_seconds_without_event_pauses():
     request = {"displayRange": ["1999-01-22", "2026-10-08"]}
     plan = financial.build_line_plan(request)
-    assert plan["schemaVersion"] == 7
+    assert plan["schemaVersion"] == 8
     assert plan["axis"]["dateScale"] == "staged-expanding"
     assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "ending"]
-    assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1680], [1680, 1800]]
+    assert [segment["frames"] for segment in plan["segments"]] == [[0, 90], [90, 1620], [1620, 1800]]
     assert "eventDisplays" not in plan
     dates = [financial.frame_date(plan, frame) for frame in range(1800)]
     assert dates == sorted(dates)
@@ -227,6 +227,82 @@ def test_plan_covers_full_60_seconds_without_event_pauses():
         financial.build_line_plan(request, duration=9)
     single_day = financial.build_line_plan({"displayRange": ["2020-01-01", "2020-01-01"]}, duration=10)
     assert all(financial.frame_date(single_day, frame).isoformat() == "2020-01-01" for frame in range(300))
+
+
+@pytest.mark.parametrize("values", [[100, 100, 100, 100], [100, 101, 400, 402], [400, 399, 100, 99]])
+def test_monthly_pacing_is_monotone_bounded_and_weights_both_directions(values):
+    request = {"displayRange": ["2020-01-01", "2020-03-01"], "investment": {"year": 2020, "principal": 100_000}}
+    points = [{"date": day, "close": value} for day, value in zip(
+        ["2020-01-01", "2020-01-31", "2020-02-02", "2020-03-01"], values)]
+    plan = financial.build_line_plan(request, prices={"points": points})
+    financial._validate_plan(plan, request, {"points": points})
+    dates = [financial.frame_date(plan, frame) for frame in range(1800)]
+    assert dates == sorted(dates)
+    assert dates[90] == date(2020, 1, 1) and dates[1619] == date(2020, 3, 1)
+    for frame in reversed(range(1800)):
+        assert financial.frame_date(plan, frame) == dates[frame]
+    anchors = plan["pacing"]["anchors"]
+    if len(set(values)) == 1:
+        assert len(anchors) == 2
+    else:
+        feb = anchors[1]
+        assert feb["date"] == "2020-02-01"
+        assert feb["frame"] - 90 < 1619 - feb["frame"]
+
+
+def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):
+    root = project(tmp_path)
+    def legacy(plan):
+        plan["schemaVersion"] = 7
+        plan.pop("pacing")
+        plan["segments"][1]["frames"][1] = 330
+        plan["segments"][2]["frames"][0] = 330
+    edit(root, "animation-plan.json", legacy)
+    docs = financial.load_project(root)
+    assert financial.review_metrics(docs)["endingSeconds"] == 4
+    assert financial.frame_date(docs["plan"], 210) == date(2020, 1, 2)
+    with pytest.raises(M2VError, match="显式"):
+        financial.prepare_line_plan(root, 15)
+    originals = {name: (root / name).read_bytes() for name in financial.MATERIALS}
+    outputs = root / "outputs"
+    outputs.mkdir(exist_ok=True)
+    unified_records = ("prepared.json", "review.json", "preview-record.json")
+    for name in unified_records:
+        (outputs / name).write_bytes(b"old unified record")
+    backup = financial.migrate_line(root, 15)
+    assert all((backup / name).read_bytes() == content for name, content in originals.items())
+    assert (root / "prices.json").read_bytes() == originals["prices.json"]
+    for name in unified_records:
+        assert (backup / "outputs" / name).read_bytes() == b"old unified record"
+        assert not (outputs / name).exists()
+    assert financial.review_metrics(financial.load_project(root))["endingSeconds"] == 6
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda a: a[1].update(frame=a[0]["frame"]),
+    lambda a: a[0].update(date="2019-12-31"),
+    lambda a: a[-1].update(frame=1618),
+    lambda a: a[-1].update(date="2020-01-01"),
+    lambda a: a[0].update(frame=True),
+])
+def test_invalid_v8_anchors_are_rejected(mutation):
+    request = {"displayRange": ["2020-01-01", "2020-03-01"]}
+    plan = financial.build_line_plan(request)
+    mutation(plan["pacing"]["anchors"])
+    with pytest.raises(M2VError, match="anchors"):
+        financial._validate_plan(plan, request, {"points": []})
+
+
+def test_short_many_months_and_single_point_pacing():
+    request = {"displayRange": ["1999-01-22", "2026-10-08"]}
+    points = [{"date": f"{year}-02-01", "close": year - 1998} for year in range(1999, 2027)]
+    plan = financial.build_line_plan(request, 10, {"points": points})
+    financial._validate_plan(plan, request, {"points": points})
+    assert len(plan["pacing"]["anchors"]) <= 30
+    assert financial.frame_date(plan, 119) == date(2026, 10, 8)
+    single = financial.build_line_plan({"displayRange": ["2020-01-01", "2020-01-02"]}, 10,
+                                       {"points": [{"date": "2020-01-02", "close": 100}]})
+    assert len(single["pacing"]["anchors"]) == 2
 
 
 def preview_fixture(root, docs):
@@ -312,12 +388,12 @@ def test_migration_rolls_back_if_post_write_validation_fails(tmp_path, monkeypat
 def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     root = project(tmp_path)
     edit(root, "prices.json", lambda data: data.update(schemaVersion=1))
-    with pytest.raises(M2VError, match="需要 v3 价格和 v7 动画计划"):
+    with pytest.raises(M2VError, match="需要 v3 价格和 v7/v8 动画计划"):
         financial.load_project(root)
     edit(root, "animation-plan.json", lambda data: data.update(schemaVersion=1))
     backup = financial.migrate_line(root, duration=15)
     assert backup.is_dir()
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 8
 
 
 def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
@@ -443,7 +519,7 @@ def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):
     assert stock_request["instrument"]["code"] == "SYN"
     assert stock_request["investment"] == {"year": 2020, "principal": 100_000}
     stock_plan = json.loads((stock / "animation-plan.json").read_text(encoding="utf-8"))
-    assert stock_plan["schemaVersion"] == 7 and stock_plan["canvas"] == {"width": 1080, "height": 1920}
+    assert stock_plan["schemaVersion"] == 8 and stock_plan["canvas"] == {"width": 1080, "height": 1920}
     assert not (stock / "events.json").exists()
     index = tmp_path / "index"
     assert financial_video.main([
@@ -496,7 +572,7 @@ def test_v4_plan_requires_explicit_migration_with_complete_backup(tmp_path):
     backup = financial.migrate_line(root)
     assert {name: (backup / name).read_bytes() for name in financial.MATERIALS} == original
     assert final.read_bytes() == b"existing final"
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 8
 
 
 def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
@@ -508,12 +584,12 @@ def test_v5_plan_migrates_explicitly_and_preserves_existing_video(tmp_path):
     review = root / "outputs" / "legibility-review.json"
     review.write_text('{"result":"pass"}', encoding="utf-8")
 
-    with pytest.raises(M2VError, match="需要 v3 价格和 v7 动画计划"):
+    with pytest.raises(M2VError, match="需要 v3 价格和 v7/v8 动画计划"):
         financial.load_project(root)
     backup = financial.migrate_line(root, duration=15)
 
     assert json.loads((backup / "animation-plan.json").read_text(encoding="utf-8"))["schemaVersion"] == 5
-    assert financial.load_project(root)["plan"]["schemaVersion"] == 7
+    assert financial.load_project(root)["plan"]["schemaVersion"] == 8
     assert financial.load_project(root)["plan"]["axis"]["dateScale"] == "staged-expanding"
     assert existing.read_bytes() == b"existing user video"
     assert not review.exists()

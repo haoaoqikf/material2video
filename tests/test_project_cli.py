@@ -23,7 +23,7 @@ def test_init_writes_all_financial_material_templates_under_content_root(tmp_pat
     assert set(manifest["materials"]) == {"request", "prices", "plan"}
     assert all((project_root / name).is_file() for name in manifest["materials"].values())
     with open(project_root / "animation-plan.json", encoding="utf-8") as stream:
-        assert json.load(stream)["schemaVersion"] == 7
+        assert json.load(stream)["schemaVersion"] == 8
 
 
 def test_article_v4_migration_is_backup_first_and_repeat_fails(tmp_path: Path) -> None:

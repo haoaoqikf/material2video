@@ -122,7 +122,7 @@ def _init(args: argparse.Namespace) -> Path:
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
     })
     _write(root / "animation-plan.json", {
-        "schemaVersion": 7, "chartType": "line", "durationSeconds": None,
+        "schemaVersion": 8, "chartType": "line", "durationSeconds": None,
         "fps": 30, "canvas": {"width": 1080, "height": 1920},
         "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
@@ -148,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds)
-            print(f"已迁移至 version 7 竖屏分阶段扩展折线；旧材料备份：{backup}；须重新完整预演与评审。")
+            print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；须重新完整预演与评审。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)

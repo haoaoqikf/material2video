@@ -58,7 +58,7 @@
           "name": "plan",
           "file": "animation-plan.json",
           "template": {
-            "schemaVersion": 7,
+            "schemaVersion": 8,
             "chartType": "line",
             "durationSeconds": 60,
             "fps": 30,

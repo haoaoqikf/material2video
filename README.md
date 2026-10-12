@@ -39,7 +39,7 @@ uv run m2v review --project videos/<slug>
 uv run m2v render --project videos/<slug>
 ```
 
-`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v4 分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成折线编排；旧金融材料使用显式 `m2v migrate --from financial` 迁移。旧文章仅接受有效 v4；v1～v3 必须重新编排。`render` 不修改原始材料，要求准备记录与评审仍匹配当前指纹。
+`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v4 分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排，默认 60 秒采用 3 秒开场、51 秒推进、6 秒总结；画面突出实际收盘年份与当前市值，结尾总结本金到最终市值和累计收益率。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。旧文章仅接受有效 v4；v1～v3 必须重新编排。`render` 不修改原始材料，要求准备记录与评审仍匹配当前指纹。
 
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 

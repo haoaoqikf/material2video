@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
@@ -82,26 +83,22 @@ describe('financial time-series composition', () => {
     expect(markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1]).not.toContain('美元');
   });
 
-  it('shows only the investment title and live return metrics, with the endpoint amount following the line', () => {
+  it('shows the investment title, year and live portfolio value, with the endpoint amount following the line', () => {
     testFrame.value = 885;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('100元');
     expect(markup).toContain('2020年1月2日');
     expect(markup).not.toContain('2020-01-01 — 2020-01-03');
     expect(markup).not.toContain('102元');
-    expect(markup).toContain('收益 0元');
-    expect(markup).toContain('收益率 0%');
+    expect(markup).not.toContain('data-m2v-live-gain');
+    expect(markup).not.toContain('收益率');
     expect(renderedTitle(markup)).toBe('假如你在2020年买入合成公司，投入100');
     expect(markup).not.toContain('SYN');
-    expect(markup).not.toContain('当前市值');
+    expect(markup).toContain('当前市值');
     expect(markup).toContain('data-m2v-current-value-follow="true"');
     expect(markup).not.toContain('100.00元');
     expect(markup).toContain('stroke="#55d58a"');
-    expect(markup).toContain('data-m2v-live-gain="true"');
-    expect(markup).toContain('data-m2v-live-return="true"');
-    expect(markup).toContain('data-m2v-live-date="true" x="1016" y="350" text-anchor="end"');
-    expect(markup).toContain('data-m2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#55d58a" font-size="24"');
-    expect(markup).toContain('data-m2v-live-return="true" x="1016" y="390" text-anchor="end" fill="#55d58a" font-size="24"');
+    expect(markup).toContain('data-m2v-live-date="true" x="1016" y="442" text-anchor="end"');
     expect(markup).toContain('>100元</text>');
     expect(markup).not.toMatch(/美元|港元|人民币|USD/u);
   });
@@ -109,20 +106,17 @@ describe('financial time-series composition', () => {
   it('colors positive returns and the portfolio line red, and negative returns green', () => {
     testFrame.value = 1679;
     const positive = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(positive).toContain('收益 +2元');
-    expect(positive).toContain('收益率 +2%');
+    expect(positive).toContain('102元');
+    expect(positive).not.toContain('收益率');
     expect(positive).toContain('stroke="#ff5d68"');
-    expect(positive).toContain('data-m2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#ff5d68" font-size="24"');
-    expect(positive).toContain('data-m2v-live-return="true" x="1016" y="390" text-anchor="end" fill="#ff5d68" font-size="24"');
 
     const lossProps = { ...props, prices: { ...props.prices, points: [
       { date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 75 },
     ] } };
     const negative = renderToStaticMarkup(<FinancialTimeSeries {...lossProps} />);
-    expect(negative).toContain('收益 −25元');
-    expect(negative).toContain('收益率 −25%');
+    expect(negative).toContain('75元');
+    expect(negative).not.toContain('收益率');
     expect(negative).toContain('stroke="#55d58a"');
-    expect(negative).toContain('data-m2v-live-gain="true" x="1016" y="430" text-anchor="end" fill="#55d58a" font-size="24"');
   });
 
   it('uses the wider plot, dedicated value-axis safe area, thinner line, and small source notes', () => {
@@ -146,12 +140,12 @@ describe('financial time-series composition', () => {
     const largeValueProps: FinancialTimeSeriesProps = {
       ...props,
       request: { ...props.request, investment: { year: 2020, principal: 1 } },
-      prices: { ...props.prices, points: [{ date: '2020-01-02', close: 1 }, { date: '2020-01-03', close: value + 1 }] },
+      prices: { ...props.prices, points: [{ date: '2020-01-02', close: 1 }, { date: '2020-01-03', close: value }] },
     };
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...largeValueProps} />);
     expect(markup).toContain(`>${expected}</text>`);
-    expect(markup).toContain(`收益 ${expected.replace('1 ', '+1 ')}`);
+    expect(markup).not.toContain('data-m2v-live-gain');
     expect(markup).toContain('data-m2v-value-axis-label="true"');
     expect(markup).not.toContain('B</text>');
     if (value >= 100_000_000_000) expect(markup).toContain('textLength="54" lengthAdjust="spacingAndGlyphs"');
@@ -374,4 +368,73 @@ describe('financial time-series composition', () => {
     expect(financialView(179, [], fast).windowEndPosition).toBe(epochDayForTest('2026-12-31'));
     expect(financialView(180, [], fast)).toEqual(financialView(299, [], fast));
   });
+  it('matches Python v8 mapping on every frame and freezes the nonlinear ending', () => {
+    const plan: FinancialTimeSeriesProps['plan'] = {
+      ...props.plan, schemaVersion: 8,
+      axis: { ...props.plan.axis, dateRange: ['1999-01-22', '2026-10-08'] },
+      segments: [
+        { frames: [0, 90], dates: ['1999-01-22', '1999-01-22'], kind: 'opening' },
+        { frames: [90, 1620], dates: ['1999-01-22', '2026-10-08'], kind: 'advance' },
+        { frames: [1620, 1800], dates: ['2026-10-08', '2026-10-08'], kind: 'ending' },
+      ],
+      pacing: { mode: 'volatility', anchors: [
+        { frame: 90, date: '1999-01-22' }, { frame: 800, date: '2020-01-01' },
+        { frame: 1400, date: '2023-01-01' }, { frame: 1619, date: '2026-10-08' },
+      ] },
+    };
+    const python = execFileSync('uv', ['run', 'python', '-c',
+      'import sys,json; from m2v.types.financial.financial import frame_date; p=json.load(sys.stdin); print(json.dumps([frame_date(p,f).isoformat() for f in range(1800)]))'],
+      { cwd: '..', input: JSON.stringify(plan), encoding: 'utf8' });
+    const expected: string[] = JSON.parse(python);
+    const points = [{ date: '1999-01-22', close: 100 }, { date: '2020-01-01', close: 200 }, { date: '2026-10-08', close: 500 }];
+    const ordered = expected.map((_, frame) => financialView(frame, points, plan, { year: 1999, principal: 100 }));
+    for (let frame = 1799; frame >= 0; frame--) {
+      const view = financialView(frame, points, plan, { year: 1999, principal: 100 });
+      expect(view.currentDate).toBe(expected[frame]);
+      expect(view).toEqual(ordered[frame]);
+      if (frame > 0) expect(view.windowEndPosition).toBeGreaterThanOrEqual(ordered[frame - 1]!.windowEndPosition);
+      expect(view.windowEndPosition).toBeGreaterThanOrEqual(view.position);
+      if (frame >= 1620) expect(view).toEqual(ordered[1619]);
+    }
+  });
+
+  it('shows the actual-close year and fades in a stable ending result', () => {
+    testFrame.value = 885;
+    const advance = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(advance).toMatch(/data-m2v-live-year="true"[^>]*>2020<\/text>/u);
+    expect(advance).toContain('font-size="64"');
+    expect(advance).toContain('当前市值');
+    expect(advance).not.toContain('收益率');
+    testFrame.value = 1680;
+    const start = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(start).toContain('<g opacity="0">');
+    testFrame.value = 1694;
+    const end = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(end).toContain('本金 → 最终市值');
+    expect(end).toContain('100元 → 102元');
+    expect(end).toContain('累计收益率 +2%');
+    expect(end).toContain('截至 2020年1月3日');
+    testFrame.value = 1799;
+    expect(renderToStaticMarkup(<FinancialTimeSeries {...props} />)).toBe(end);
+  });
+
+  it('completes axis expansion at the current boundary crossing, starting 15 frames earlier', () => {
+    const plan: FinancialTimeSeriesProps['plan'] = {
+      ...props.plan, schemaVersion: 8, axis: { ...props.plan.axis, dateRange: ['1999-01-22', '2026-10-08'] },
+      segments: [
+        { frames: [0, 90], dates: ['1999-01-22', '1999-01-22'], kind: 'opening' },
+        { frames: [90, 1620], dates: ['1999-01-22', '2026-10-08'], kind: 'advance' },
+        { frames: [1620, 1800], dates: ['2026-10-08', '2026-10-08'], kind: 'ending' },
+      ],
+      pacing: { mode: 'volatility', anchors: [{ frame: 90, date: '1999-01-22' }, { frame: 800, date: '2020-01-01' }, { frame: 1619, date: '2026-10-08' }] },
+    };
+    const current = epochDayForTest('2003-12-31');
+    const next = epochDayForTest('2008-12-31');
+    const crossing = Array.from({ length: 1530 }, (_, i) => i + 90).find(f => framePosition(f, plan) > current)!;
+    expect(financialView(crossing - 16, [], plan).windowEndPosition).toBe(current);
+    expect(financialView(crossing - 8, [], plan).windowEndPosition).toBeGreaterThan(current);
+    expect(financialView(crossing - 8, [], plan).windowEndPosition).toBeLessThan(next);
+    expect(financialView(crossing, [], plan).windowEndPosition).toBe(next);
+  });
+
 });

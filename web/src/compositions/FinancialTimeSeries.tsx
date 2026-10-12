@@ -5,10 +5,11 @@ type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
-  schemaVersion: 7; chartType: 'line';
+  schemaVersion: 7 | 8; chartType: 'line';
   durationSeconds: number; fps: 30; canvas: { width: 1080; height: 1920 };
   axis: { dateRange: [ISODate, ISODate]; dateScale: 'staged-expanding'; valueScale: 'revealed-linear' };
   segments: TimelineSegment[];
+  pacing?: { mode: 'uniform' | 'volatility'; anchors: { frame: number; date: ISODate }[] };
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
@@ -41,6 +42,17 @@ export function framePosition(frame: number, plan: FinancialPlan): number {
   if (!segment) throw new Error(`帧 ${frame} 没有对应时间段`);
   const [startDate, endDate] = segment.dates;
   if (segment.kind !== 'advance') return epochDay(startDate);
+  if (plan.schemaVersion === 8) {
+    const anchors = plan.pacing!.anchors;
+    let low = 0; let high = anchors.length - 1;
+    while (low + 1 < high) {
+      const mid = (low + high) >>> 1;
+      if (anchors[mid]!.frame <= frame) low = mid;
+      else high = mid;
+    }
+    const left = anchors[low]!; const right = anchors[high]!;
+    return epochDay(left.date) + ((frame - left.frame) * (epochDay(right.date) - epochDay(left.date))) / (right.frame - left.frame);
+  }
   const [startFrame, endFrame] = segment.frames;
   return epochDay(startDate) + ((frame - startFrame) * (epochDay(endDate) - epochDay(startDate))) / (endFrame - startFrame - 1);
 }
@@ -94,7 +106,11 @@ function annualBoundaries(start: number, end: number): number[] {
   return [...new Set(boundaries)];
 }
 
+const transitionCache = new WeakMap<FinancialPlan, AxisTransition[]>();
+
 function axisTransitions(plan: FinancialPlan): AxisTransition[] {
+  const cached = transitionCache.get(plan);
+  if (cached) return cached;
   const [startDate, endDate] = plan.axis.dateRange;
   const start = epochDay(startDate);
   const end = epochDay(endDate);
@@ -102,15 +118,15 @@ function axisTransitions(plan: FinancialPlan): AxisTransition[] {
   if (boundaries.length <= 1) return [];
   const advance = plan.segments.find(({ kind }) => kind === 'advance')!;
   const [advanceStart, advanceEnd] = advance.frames;
-  const [advanceDateStart, advanceDateEnd] = advance.dates.map(epochDay) as [number, number];
-  const dateAt = (frame: number) => advanceDateStart + ((frame - advanceStart) * (advanceDateEnd - advanceDateStart)) / (advanceEnd - advanceStart - 1);
+  const dateAt = (frame: number) => framePosition(frame, plan);
   const candidates: AxisTransition[] = [];
   let oldEnd = boundaries[0]!;
   for (const target of boundaries.slice(1)) {
     let low = advanceStart; let high = advanceEnd;
     while (low < high) {
       const mid = (low + high) >>> 1;
-      if (dateAt(mid) > target) high = mid;
+      // Expand before crossing the current boundary, not the new target.
+      if (dateAt(mid) > oldEnd) high = mid;
       else low = mid + 1;
     }
     const endFrame = low;
@@ -126,6 +142,7 @@ function axisTransitions(plan: FinancialPlan): AxisTransition[] {
       previous.target = current.target;
     } else merged.push({ ...current });
   }
+  transitionCache.set(plan, merged);
   return merged;
 }
 
@@ -256,7 +273,7 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const ranges = rangesFor(valuePoints);
   const target = ranges[end - 1] ?? [0, 1];
   let low = 0; let high = 0; let weightTotal = 0;
-  // Freeze the last advance frame's axis for the entire four-second ending.
+  // Freeze the last advance frame's axis for the entire ending.
   const rawTicks = axisTicks(windowPosition, windowEndPosition, fullRangeEnd);
   const axisWidth = PLOT.right - PLOT.left;
   const positioned = rawTicks.filter((tick) => epochDay(tick.date) <= windowEndPosition).map((tick) => {
@@ -363,13 +380,19 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
   const graphTop = 520;
   const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
-  const gainSign = view.gain !== null && view.gain > 0 ? '+' : view.gain !== null && view.gain < 0 ? '−' : '';
   const rateSign = view.returnRate !== null && view.returnRate > 0 ? '+' : view.returnRate !== null && view.returnRate < 0 ? '−' : '';
-  const liveGain = latest ? `收益 ${gainSign}${moneyText(Math.abs(view.gain!))}` : '';
   const liveRate = latest
-    ? `收益率 ${rateSign}${new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(view.returnRate!))}`
+    ? `累计收益率 ${rateSign}${new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(view.returnRate!))}`
     : '';
   const liveDate = latest ? displayDate(latest.date) : '';
+  const year = (latest?.date ?? plan.axis.dateRange[0]).slice(0, 4);
+  const endingStart = plan.segments.find(({ kind }) => kind === 'ending')!.frames[0];
+  const ending = frame >= endingStart;
+  const endingOpacity = Math.min(1, Math.max(0, (frame - endingStart) / 14));
+  const liveValue = latest ? moneyText(latest.close) : '';
+  const resultValue = latest ? `${moneyText(view.principal)} → ${liveValue}` : '';
+  const valueWidth = 620;
+  const valueFontSize = Math.min(56, valueWidth / Math.max(measuredTextWidth(ending ? resultValue : liveValue, 56) * 1.08, 1) * 56);
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - graphTop);
@@ -428,11 +451,13 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
       <text data-m2v-investment-title="true" x={SAFE_AREA.left} y="270" textLength={titleWidth} lengthAdjust="spacing" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
-      {latest && <>
-        <text data-m2v-live-date="true" x={SAFE_AREA.right} y="350" textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{liveDate}</text>
-        <text data-m2v-live-return="true" x={SAFE_AREA.right} y="390" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="600">{liveRate}</text>
-        <text data-m2v-live-gain="true" x={SAFE_AREA.right} y="430" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="650">{liveGain}</text>
-      </>}
+      <text data-m2v-live-year="true" x={SAFE_AREA.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
+      {latest && <g opacity={ending ? endingOpacity : 1}>
+        <text data-m2v-value-heading="true" x={SAFE_AREA.right} y="330" textAnchor="end" fill="#b9c7d9" fontSize="24">{ending ? '本金 → 最终市值' : '当前市值'}</text>
+        <text data-m2v-live-value="true" x={SAFE_AREA.right} y="396" textAnchor="end" fill={gainColor} fontSize={valueFontSize} fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{ending ? resultValue : liveValue}</text>
+        {ending && <text data-m2v-ending-return="true" x={SAFE_AREA.right} y="442" textAnchor="end" fill={gainColor} fontSize="24" fontWeight="600">{liveRate}</text>}
+        <text data-m2v-live-date="true" x={SAFE_AREA.right} y={ending ? 480 : 442} textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{ending ? `截至 ${liveDate}` : liveDate}</text>
+      </g>}
       {Array.from({ length: 5 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);

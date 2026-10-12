@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from m2v.core.errors import M2VError
+from m2v.types.financial.pacing import build_pacing, anchor_date
 
 MATERIALS = ("request.json", "prices.json", "animation-plan.json")
 FPS = 30
@@ -38,8 +39,8 @@ def _load(path: Path) -> dict[str, Any]:
         _fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
     if not isinstance(data, dict):
         _fail(path.name, "顶层必须是 JSON 对象")
-    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2, 3, 4, 5, 6, 7}:
-        _fail(path.name, "schemaVersion 必须为 1 至 7 的整数")
+    if type(data.get("schemaVersion")) is not int or data.get("schemaVersion") not in {1, 2, 3, 4, 5, 6, 7, 8}:
+        _fail(path.name, "schemaVersion 必须为 1 至 8 的整数")
     return data
 
 
@@ -91,8 +92,8 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     request, prices, plan = (docs[name] for name in MATERIALS)
     if request["schemaVersion"] != 1:
         _fail("request.json", "当前必须为 version 1")
-    if prices["schemaVersion"] != 3 or plan["schemaVersion"] != 7:
-        _fail("材料版本", "需要 v3 价格和 v7 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
+    if prices["schemaVersion"] != 3 or plan["schemaVersion"] not in {7, 8}:
+        _fail("材料版本", "需要 v3 价格和 v7/v8 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
     if (root / "events.json").exists():
         _fail("events.json", "事件材料已移除；请运行 financial_video.py migrate-line --project-dir <作品目录> 清理旧材料")
     _validate_request(request)
@@ -114,7 +115,7 @@ def legibility_review_digest(project_dir: str | Path) -> str:
     scripts = Path(__file__).resolve().parents[2]
     inputs.extend((scripts, path) for path in (
         Path(__file__), Path(__file__).with_name("financial_render.py"),
-        Path(__file__).with_name("commands.py"), Path(remotion.__file__),
+        Path(__file__).with_name("commands.py"), Path(__file__).with_name("pacing.py"), Path(remotion.__file__),
     ))
     digest = hashlib.sha256()
     for base, path in inputs:
@@ -320,26 +321,27 @@ def _validate_source(source: Any, where: str, start: date, end: date) -> None:
     _required_text(source.get("adjustmentDefinition"), f"{where}.adjustmentDefinition")
 
 
-def build_line_plan(request: dict[str, Any], duration: int = 60) -> dict[str, Any]:
+def build_line_plan(request: dict[str, Any], duration: int = 60, prices: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build a deterministic, event-free timeline with staged date-axis expansion."""
     if type(duration) is not int:
         raise M2VError("时长必须为整数")
     if duration < 10:
-        raise M2VError("无事件计划至少需要 10 秒：开场 3 秒、行情推进及结尾 4 秒")
+        raise M2VError("无事件计划至少需要 10 秒：开场 3 秒、行情推进及结尾 6 秒")
     start, end = (date.fromisoformat(value) for value in request["displayRange"])
     total_frames = duration * FPS
-    advance_end = total_frames - 120
+    advance_end = total_frames - 180
     segments = [
         {"frames": [0, 90], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"},
         {"frames": [90, advance_end], "dates": [start.isoformat(), end.isoformat()], "kind": "advance"},
         {"frames": [advance_end, total_frames], "dates": [end.isoformat(), end.isoformat()], "kind": "ending"},
     ]
     return {
-        "schemaVersion": 7, "chartType": "line", "durationSeconds": duration, "fps": FPS,
+        "schemaVersion": 8, "chartType": "line", "durationSeconds": duration, "fps": FPS,
         "canvas": {"width": WIDTH, "height": HEIGHT},
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
-        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 3 秒、连续推进、完整历史停留 4 秒，纵轴随已展示组合价值自适应。",
+        "pacing": build_pacing(request, prices["points"], 90, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": 90, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
+        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 3 秒、连续推进、完整历史停留 6 秒，纵轴随已展示组合价值自适应。",
     }
 
 
@@ -348,13 +350,13 @@ def prepare_line_plan(root: Path, duration: int) -> dict[str, Any]:
         _fail("events.json", "事件材料已移除；请先显式运行 migrate-line 清理旧材料")
     request, prices = (_load(root / name) for name in MATERIALS[:2])
     old_plan = _load(root / "animation-plan.json")
-    if old_plan.get("schemaVersion") != 7:
-        _fail("animation-plan.json", "旧计划请先显式运行 migrate-line，备份后迁移到 v7")
+    if old_plan.get("schemaVersion") != 8:
+        _fail("animation-plan.json", "旧计划请先显式运行 migrate-line，备份后迁移到 v8")
     if request["schemaVersion"] != 1 or prices["schemaVersion"] != 3:
         _fail("材料版本", "需 version 1 请求和 version 3 价格；旧材料请运行 migrate-line")
     _validate_request(request)
     _validate_prices(prices, request, root)
-    plan = build_line_plan(request, duration)
+    plan = build_line_plan(request, duration, prices)
     _validate_plan(plan, request, prices)
     return plan
 
@@ -369,30 +371,36 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
     review_original = review_path.read_bytes() if review_path.is_file() else None
     preview_record = root / "outputs" / "previews" / "preview-record.json"
     preview_original = preview_record.read_bytes() if preview_record.is_file() else None
+    unified_paths = [root / "outputs" / name for name in ("prepared.json", "review.json", "preview-record.json")]
+    unified_originals = {path: path.read_bytes() for path in unified_paths if path.is_file()}
     request, prices, old_plan = (_load(root / name) for name in source_names)
-    if old_plan["schemaVersion"] == 7:
-        _fail("材料版本", "计划已是 v7，拒绝重复迁移")
+    if old_plan["schemaVersion"] == 8:
+        _fail("材料版本", "计划已是 v8，拒绝重复迁移")
     if request["schemaVersion"] != 1:
         _fail("request.json", "迁移仅接受 version 1 请求材料")
-    if prices["schemaVersion"] not in {1, 2, 3} or old_plan["schemaVersion"] not in {1, 2, 3, 4, 5, 6}:
-        _fail("材料版本", "迁移仅接受旧 version 1/2 价格或 version 3/4/5 折线计划")
+    if prices["schemaVersion"] not in {1, 2, 3} or old_plan["schemaVersion"] not in {1, 2, 3, 4, 5, 6, 7}:
+        _fail("材料版本", "迁移仅接受旧 version 1/2 价格或 version 1～7 计划")
     if prices["schemaVersion"] in {1, 2} and prices["schemaVersion"] != old_plan["schemaVersion"]:
         _fail("材料版本", "旧价格与计划版本不一致；拒绝混合迁移")
-    if prices["schemaVersion"] == 3 and old_plan["schemaVersion"] not in {3, 4, 5, 6}:
-        _fail("材料版本", "v3 价格必须与 v3/v4/v5 动画计划一起迁移")
+    if prices["schemaVersion"] == 3 and old_plan["schemaVersion"] not in {3, 4, 5, 6, 7}:
+        _fail("材料版本", "v3 价格必须与 v3～v7 动画计划一起迁移")
     points = prices.get("points")
     if not isinstance(points, list) or any(not isinstance(point, dict) for point in points):
         _fail("prices.json.points", "旧价格点须为对象数组")
     normalized = {**prices, "schemaVersion": 3, "points": [{"date": point.get("date"), "close": point.get("close")} for point in points]}
     _validate_request(request)
     _validate_prices(normalized, request, root)
-    plan = build_line_plan(request, duration)
+    plan = build_line_plan(request, duration, normalized)
     _validate_plan(plan, request, normalized)
     backups = root / "outputs" / "material-backups"
     backups.mkdir(parents=True, exist_ok=True)
     backup = Path(tempfile.mkdtemp(prefix=f"before-line-v{old_plan['schemaVersion']}-", dir=backups))
     for name, content in originals.items():
         (backup / name).write_bytes(content)
+    for path, content in unified_originals.items():
+        destination = backup / path.relative_to(root)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(content)
     for name, content in (("events.json", event_original), ("legibility-review.json", review_original), ("preview-record.json", preview_original)):
         if content is not None:
             (backup / name).write_bytes(content)
@@ -406,6 +414,8 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
         review_path.unlink(missing_ok=True)
         preview_record.unlink(missing_ok=True)
         load_project(root)
+        for path in unified_originals:
+            path.unlink(missing_ok=True)
     except (OSError, M2VError):
         for name, content in originals.items():
             (root / name).write_bytes(content)
@@ -415,6 +425,8 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
             review_path.write_bytes(review_original)
         if preview_original is not None:
             preview_record.write_bytes(preview_original)
+        for path, content in unified_originals.items():
+            path.write_bytes(content)
         raise
     return backup
 
@@ -423,7 +435,7 @@ REVIEW_CHECKS = ("labelsReadable", "advanceTrackable", "stagedAxisStable", "axis
 
 
 def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
-    return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": 4,
+    return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": (docs["plan"]["segments"][-1]["frames"][1] - docs["plan"]["segments"][-1]["frames"][0]) / FPS,
             "canvas": {"width": WIDTH, "height": HEIGHT}, "mobileCheck": {"width": 360, "height": 640},
             "safeArea": {"x": [64, 1016], "y": [180, 1500]},
             "valueAxisSafeArea": {"x": [24, 1016], "y": [180, 1500]}}
@@ -460,11 +472,12 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     if isinstance(duration, bool) or not isinstance(duration, int) or duration < 10:
         _fail("animation-plan.json.durationSeconds", "无事件计划必须至少为 10 秒")
     total_frames = duration * FPS
+    ending_frames = 180 if plan.get("schemaVersion") == 8 else 120
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         _fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    if plan.get("schemaVersion") != 7 or plan.get("chartType") != "line":
-        _fail("animation-plan.json", "必须为 version 7、chartType=line；旧材料请使用 migrate-line")
+    if plan.get("schemaVersion") not in {7, 8} or plan.get("chartType") != "line":
+        _fail("animation-plan.json", "必须为 version 7/8、chartType=line；旧材料请使用 migrate-line")
     if any(key in plan for key in ("selectedPeriod", "selectionReport", "eventDisplays")) or "visibleWindowBars" in axis:
         _fail("animation-plan.json", "计划包含已移除的周期、柱数或事件字段；请使用 migrate-line")
     if "visibleWindowMonths" in axis:
@@ -508,8 +521,8 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
             _fail(where, f"{kind} 段必须停留在同一日期")
         if index == 0 and (kind != "opening" or start_frame != 0 or date_start != display_start):
             _fail(where, "首段必须从第 0 帧在展示起始日 opening")
-        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or end_frame - start_frame != 120):
-            _fail(where, "尾段必须在展示结束日停留 120 帧并覆盖终帧")
+        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or end_frame - start_frame != ending_frames):
+            _fail(where, "尾段必须在展示结束日停留规定帧数并覆盖终帧")
         if index not in {0, len(segments) - 1} and kind in {"opening", "ending"}:
             _fail(where, "opening 与 ending 只能位于首尾")
         previous_frame, previous_date = end_frame, date_end
@@ -518,12 +531,37 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     expected_kinds = ["opening", "advance", "ending"]
     if [segment["kind"] for segment in segments] != expected_kinds:
         _fail("animation-plan.json.segments", "三段顺序必须为 opening、advance、ending")
-    advance_end = total_frames - 120
+    advance_end = total_frames - ending_frames
     if segments[0]["frames"] != [0, 90] or segments[1]["frames"] != [90, advance_end]:
-        _fail("animation-plan.json.segments", "opening 固定 90 帧，advance 必须覆盖到结尾前 120 帧")
+        _fail("animation-plan.json.segments", "opening 固定 90 帧，advance 必须覆盖到规定结尾之前")
     if segments[2]["frames"] != [advance_end, total_frames]:
-        _fail("animation-plan.json.segments", "ending 必须停留 120 帧")
+        _fail("animation-plan.json.segments", "ending 必须停留规定帧数")
+    if plan["schemaVersion"] == 8:
+        _validate_pacing(plan, display_start, display_end, advance_end)
     _required_text(plan.get("rationale"), "animation-plan.json.rationale")
+
+
+def _validate_pacing(plan: dict[str, Any], start: date, end: date, advance_end: int) -> None:
+    pacing = plan.get("pacing")
+    if not isinstance(pacing, dict) or pacing.get("mode") not in {"uniform", "volatility"}:
+        _fail("animation-plan.json.pacing", "须声明 uniform 或 volatility 节奏模式")
+    anchors = pacing.get("anchors")
+    if not isinstance(anchors, list) or len(anchors) < 2:
+        _fail("animation-plan.json.pacing.anchors", "须至少包含推进首末两个锚点")
+    previous_frame, previous_date = 89, start
+    for index, anchor in enumerate(anchors):
+        where = f"animation-plan.json.pacing.anchors[{index}]"
+        if not isinstance(anchor, dict) or type(anchor.get("frame")) is not int:
+            _fail(where, "锚点须包含整数 frame 和日期 date")
+        frame = anchor["frame"]
+        day = _date(anchor.get("date"), where)
+        if not previous_frame < frame < advance_end or not previous_date <= day <= end:
+            _fail(where, "锚点帧须严格递增且位于推进范围，日期须单调且位于展示范围")
+        previous_frame, previous_date = frame, day
+    if anchors[0] != {"frame": 90, "date": start.isoformat()} or anchors[-1] != {"frame": advance_end - 1, "date": end.isoformat()}:
+        _fail("animation-plan.json.pacing.anchors", "锚点须精确覆盖推进首末帧和展示起止日")
+    if pacing["mode"] == "uniform" and len(anchors) != 2:
+        _fail("animation-plan.json.pacing.anchors", "uniform 模式仅接受首末两个锚点")
 
 
 def frame_date(plan: dict[str, Any], frame: int) -> date:
@@ -538,6 +576,8 @@ def frame_date(plan: dict[str, Any], frame: int) -> date:
             date_start, date_end = (_date(value, "animation-plan segment") for value in segment["dates"])
             if segment["kind"] != "advance":
                 return date_start
+            if plan["schemaVersion"] == 8:
+                return anchor_date(plan["pacing"]["anchors"], frame)
             offset = frame - start
             span = end - start - 1
             days = (date_end - date_start).days

@@ -8,3 +8,5 @@
 - [评审摘要](review.md)：记录主题、实际时长、画面评审和限制。
 
 画面启用 `keynote` 设计预设。明暗主题令牌验证见 `tests/test_react_design_tokens.py`，通过浏览器实测 V4 主题令牌。正式评审/渲染产物写入被 Git 忽略的 `videos/examples/keynote-baseline/` 工作区。
+
+金融契约的结构示意见 [v8 计划示例](financial-plan.example.json)：仅示意 3/51/6 秒及帧—日期锚点（uniform），不参与本文章示例渲染。金融生产计划默认按真实行情生成 volatility 锚点，操作见[金融专题](../../.agents/skills/material2video/references/financial-timeseries-video.md)。

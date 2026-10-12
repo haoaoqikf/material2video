@@ -36,7 +36,7 @@ uv run m2v status --project videos/<slug>
 
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/<slug> --duration-seconds 60` 生成计划。
 
-文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。已有 v4 文章或历史金融材料迁移前先完整备份，执行 `uv run m2v migrate --project <目录> --from article-v4|financial`；金融支持当前 v7 和旧 v1～v6 计划，v1～v3 文章不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
+文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。已有 v4 文章或历史金融材料迁移前先完整备份，执行 `uv run m2v migrate --project <目录> --from article-v4|financial`；金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，v1～v3 文章不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 
 ## 文章视觉和编排原则
 

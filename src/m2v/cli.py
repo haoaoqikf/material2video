@@ -53,7 +53,7 @@ def _parser() -> argparse.ArgumentParser:
     article.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal"))
     article.add_argument("options", nargs=argparse.REMAINDER)
     financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
-    financial.add_argument("workflow", choices=("plan",))
+    financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, default=60)
     return parser
@@ -143,7 +143,11 @@ def main(argv: list[str] | None = None) -> int:
             root, manifest = load_project(args.project)
             if manifest["type"] != "financial-timeseries":
                 raise M2VError("m2v financial 仅适用于 financial-timeseries 作品")
-            from m2v.types.financial.financial import prepare_line_plan
+            from m2v.types.financial.financial import prepare_line_plan, migrate_line
+            if args.workflow == "migrate-line":
+                backup = migrate_line(root, args.duration_seconds)
+                print(f"已升级金融计划到 v8；备份：{backup}。请重新 prepare、preview 和 review。")
+                return 0
             plan = prepare_line_plan(root, args.duration_seconds)
             (root / manifest["materials"]["plan"]).write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"已生成 {plan['durationSeconds']} 秒金融折线计划")
