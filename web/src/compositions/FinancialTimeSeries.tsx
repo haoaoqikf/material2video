@@ -21,12 +21,11 @@ export type FinancialTimeSeriesProps = {
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const PLOT = { left: 92, right: 1008, top: 520, bottom: 1190 };
+const PLOT = { left: 220, right: 928, top: 520, bottom: 1190 };
 const DAY_MS = 86_400_000;
 const PROFIT_COLOR = '#ff5d68';
 const LOSS_COLOR = '#55d58a';
-const SAFE_AREA = { left: 64, right: 1016, top: 180, bottom: 1500 };
-const VALUE_AXIS_SAFE_AREA = { left: 24, right: 1016, top: 180, bottom: 1500 };
+const SAFE_AREA = { left: 140, right: 940, top: 180, bottom: 1500 };
 
 function epochDay(value: ISODate): number {
   const [year, month, day] = value.split('-').map(Number);
@@ -374,8 +373,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const displayName = request.instrument.displayName ?? request.instrument.name;
   const investmentAmount = investmentAmountText(investment.principal);
   const title = request.instrument.kind === 'index'
-    ? `假如你在${investment.year}年按比例投资${displayName}，投入${investmentAmount}`
-    : `假如你在${investment.year}年买入${displayName}，投入${investmentAmount}`;
+    ? `假如你${investment.year}年按比例投资${investmentAmount}元${displayName}`
+    : `假如你${investment.year}年买入${investmentAmount}元${displayName}`;
   const titleWidth = SAFE_AREA.right - SAFE_AREA.left;
   const titleFontSize = Math.min(48, (titleWidth / measuredTextWidth(title, 48)) * 48);
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
@@ -384,7 +383,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const liveDate = latest ? displayDate(latest.date) : '';
   const year = (latest?.date ?? plan.axis.dateRange[0]).slice(0, 4);
   const liveValue = latest ? moneyText(latest.close) : '';
-  const valueWidth = 620;
+  const yearWidth = measuredTextWidth(year, 64);
+  const valueWidth = SAFE_AREA.right - SAFE_AREA.left - yearWidth - 32;
   const valueFontSize = Math.min(56, valueWidth / Math.max(measuredTextWidth(liveValue, 56) * 1.08, 1) * 56);
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
@@ -408,6 +408,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   ];
   const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, SAFE_AREA.right - SAFE_AREA.left, 24));
   if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
+  const riskLines = wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', SAFE_AREA.right - SAFE_AREA.left, 20);
+  if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
@@ -418,7 +420,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     if (!svg) return;
     for (const element of svg.querySelectorAll('text')) {
       const bounds = element.getBBox();
-      const safeArea = element.hasAttribute('data-m2v-value-axis-label') ? VALUE_AXIS_SAFE_AREA : SAFE_AREA;
+      const safeArea = SAFE_AREA;
       if (bounds.x < safeArea.left || bounds.x + bounds.width > safeArea.right || bounds.y < safeArea.top || bounds.y + bounds.height > safeArea.bottom) {
         throw new Error(`金融画面文字超出手机安全区：${element.textContent ?? ''}（${bounds.x},${bounds.y},${bounds.width},${bounds.height}）`);
       }
@@ -443,7 +445,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
       <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
-      <text data-m2v-investment-title="true" x={SAFE_AREA.left} y="270" textLength={titleWidth} lengthAdjust="spacing" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
+      <text data-m2v-investment-title="true" x={WIDTH / 2} y="270" textAnchor="middle" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       <text data-m2v-live-year="true" x={SAFE_AREA.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
       {latest && <g>
         <text data-m2v-value-heading="true" x={SAFE_AREA.right} y="330" textAnchor="end" fill="#b9c7d9" fontSize="24">当前市值</text>
@@ -454,7 +456,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         const value = minValue + ((maxValue - minValue) * index) / 4;
         const y = yForValue(value);
         const label = compactValue(value);
-        const labelWidth = PLOT.left - 14 - VALUE_AXIS_SAFE_AREA.left;
+        const labelWidth = PLOT.left - 14 - SAFE_AREA.left;
         const estimatedLabelWidth = measuredTextWidth(label, 14);
         return <g key={`grid-${index}`}>
           <line x1={PLOT.left} x2={PLOT.right} y1={y} y2={y} stroke="#253247" strokeWidth="1" />
@@ -480,7 +482,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         <text data-m2v-current-value-follow="true" x={endpointLabelX} y={endpointLabelY} fill={gainColor} fontSize="24" fontWeight="700">{endpointLabel}</text>
       </>}
       {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={SAFE_AREA.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
-      <text data-m2v-risk-disclaimer="true" x={SAFE_AREA.left} y="1460" fill="#8b9ab0" fontSize="20">过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。</text>
+      {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={SAFE_AREA.left} y={1460 + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
     </svg>
   </AbsoluteFill>;
 }
