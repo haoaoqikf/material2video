@@ -30,5 +30,5 @@
 
 ## 6. 归档与提交
 
-- [ ] 6.1 提交实现：代码、测试、三份文档、类型目录与本次规划产物（tasks 全为 `- [x]` 之后）；验证：`git status` 只包含本变更相关文件，不含被忽略的产物、缓存与基线目录
-- [ ] 6.2 归档并提交归档结果：把增量规格同步进 `openspec/specs/modular-video-production/spec.md` 主规格，再将变更目录移入 `openspec/changes/archive/`；验证：`openspec list` 无进行中变更，主规格包含本次新增的三条需求，归档提交与该移动一致
+- [x] 6.1 提交实现：代码、测试、三份文档、类型目录与本次规划产物（tasks 全为 `- [x]` 之后）；验证：`git status` 只包含本变更相关文件，不含被忽略的产物、缓存与基线目录——提交 `86cd660`，21 个文件（新增 `catalog.json`、`catalog.py`、`sync_docs.py`、`test_type_catalog.py`）
+- [x] 6.2 归档并提交归档结果：把增量规格同步进 `openspec/specs/modular-video-production/spec.md` 主规格，再将变更目录移入 `openspec/changes/archive/`；验证：`openspec list` 报「No active changes found」，主规格由 4 条需求增至 7 条（新增「类型的单一登记来源」「初始化材料立即可用」「文档中的类型清单由类型目录生成」），`openspec validate --specs --strict` 25 项通过；同步时据实修正增量规格中一处与实测不符的表述——「未知类型在渲染前失败」原写「退出码为材料或参数错误」，实测未知类型走 `M2VError`、退出码为 1，已改为「执行或门禁失败（1）」，该改动随本次归档一起提交
