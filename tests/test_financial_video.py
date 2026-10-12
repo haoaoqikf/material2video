@@ -212,16 +212,16 @@ def test_migration_rejects_bad_data_before_writing(tmp_path):
     assert {name: (root / name).read_bytes() for name in financial.MATERIALS} == originals
 
 
-def test_plan_uses_short_holds_and_duration_defaults_by_range():
+def test_plan_uses_short_holds_and_uniform_60_second_default():
     request = {"displayRange": ["1999-01-22", "2026-10-08"]}
     plan = financial.build_line_plan(request)
     assert plan["schemaVersion"] == 8
-    assert plan["durationSeconds"] == 90
+    assert plan["durationSeconds"] == 60
     assert plan["axis"]["dateScale"] == "staged-expanding"
     assert [segment["kind"] for segment in plan["segments"]] == ["opening", "advance", "ending"]
-    assert [segment["frames"] for segment in plan["segments"]] == [[0, 30], [30, 2640], [2640, 2700]]
+    assert [segment["frames"] for segment in plan["segments"]] == [[0, 30], [30, 1740], [1740, 1800]]
     assert "eventDisplays" not in plan
-    dates = [financial.frame_date(plan, frame) for frame in range(2700)]
+    dates = [financial.frame_date(plan, frame) for frame in range(1800)]
     assert dates == sorted(dates)
     assert dates[-1].isoformat() == "2026-10-08"
     with pytest.raises(M2VError, match="至少需要 4 秒"):
@@ -230,7 +230,11 @@ def test_plan_uses_short_holds_and_duration_defaults_by_range():
     over_20 = financial.build_line_plan({"displayRange": ["2000-02-29", "2020-03-01"]})
     assert under_20["durationSeconds"] == 60
     assert [part["frames"] for part in under_20["segments"]] == [[0, 30], [30, 1740], [1740, 1800]]
-    assert over_20["durationSeconds"] == 90
+    assert over_20["durationSeconds"] == 60
+    assert [part["frames"] for part in over_20["segments"]] == [[0, 30], [30, 1740], [1740, 1800]]
+    explicit = financial.build_line_plan(request, duration=90)
+    assert explicit["durationSeconds"] == 90
+    assert [part["frames"] for part in explicit["segments"]] == [[0, 30], [30, 2640], [2640, 2700]]
     four_seconds = financial.build_line_plan({"displayRange": ["2020-01-01", "2020-01-02"]}, duration=4)
     assert [part["frames"] for part in four_seconds["segments"]] == [[0, 30], [30, 60], [60, 120]]
     with pytest.raises(M2VError, match="至少需要 4 秒"):

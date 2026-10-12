@@ -321,17 +321,10 @@ def _validate_source(source: Any, where: str, start: date, end: date) -> None:
     _required_text(source.get("adjustmentDefinition"), f"{where}.adjustmentDefinition")
 
 
-def _default_duration(request: dict[str, Any]) -> int:
-    start, end = (date.fromisoformat(value) for value in request["displayRange"])
-    year_delta = end.year - start.year
-    over_twenty_years = year_delta > 20 or (year_delta == 20 and (end.month, end.day) > (start.month, start.day))
-    return 90 if over_twenty_years else 60
-
-
 def build_line_plan(request: dict[str, Any], duration: int | None = None, prices: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build a deterministic, event-free timeline with staged date-axis expansion."""
     if duration is None:
-        duration = _default_duration(request)
+        duration = 60
     if type(duration) is not int:
         raise M2VError("时长必须为整数")
     if duration < 4:
@@ -351,7 +344,7 @@ def build_line_plan(request: dict[str, Any], duration: int | None = None, prices
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
         "pacing": build_pacing(request, prices["points"], opening_frames, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": opening_frames, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
-        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 1 秒、连续推进、完整历史停留 2 秒。默认展示跨度超过 20 年时总长 90 秒，否则 60 秒；纵轴随已展示组合价值自适应。",
+        "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 1 秒、连续推进、完整历史停留 2 秒。所有新计划默认总长 60 秒；纵轴随已展示组合价值自适应。",
     }
 
 

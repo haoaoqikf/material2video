@@ -42,6 +42,7 @@ export function framePosition(frame: number, plan: FinancialPlan): number {
   if (!segment) throw new Error(`帧 ${frame} 没有对应时间段`);
   const [startDate, endDate] = segment.dates;
   if (segment.kind !== 'advance') return epochDay(startDate);
+  if (plan.schemaVersion === 8 && frame === segment.frames[1] - 1) return epochDay(endDate);
   if (plan.schemaVersion === 8) {
     const anchors = plan.pacing!.anchors;
     let low = 0; let high = anchors.length - 1;

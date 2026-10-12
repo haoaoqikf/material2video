@@ -396,6 +396,8 @@ describe('financial time-series composition', () => {
       expect(view.windowEndPosition).toBeGreaterThanOrEqual(view.position);
       if (frame >= 1620) expect(view).toEqual(ordered[1619]);
     }
+    expect(ordered[1619]!.currentDate).toBe('2026-10-08');
+    expect(ordered[1619]!.latest).toEqual(points[2]);
   });
 
   it('holds the final live-value layout unchanged throughout the ending', () => {

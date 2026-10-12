@@ -56,7 +56,7 @@ def _parser() -> argparse.ArgumentParser:
     financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
-    financial.add_argument("--duration-seconds", type=int, help="默认按展示跨度选择 60 秒或 90 秒")
+    financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
     return parser
 
 
