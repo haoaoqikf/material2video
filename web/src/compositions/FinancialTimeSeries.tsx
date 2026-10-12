@@ -388,6 +388,8 @@ export function safeAreaCenterOffset(bounds: { y: number; height: number }, safe
 export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const contentLayerRef = useRef<SVGGElement>(null);
+  const centeredLayoutKeyRef = useRef<string | null>(null);
+  const checkedLayoutKeyRef = useRef<string | null>(null);
   const [contentOffsetY, setContentOffsetY] = useState(0);
   const frame = useCurrentFrame();
   const { request, prices, plan } = props;
@@ -434,6 +436,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
   const riskLines = wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', SAFE_AREA.right - SAFE_AREA.left, 20);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
+  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLines, riskLines]);
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
@@ -442,18 +445,23 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     const svg = svgRef.current;
     const contentLayer = contentLayerRef.current;
     if (!svg || !contentLayer) return;
-    const contentBounds = contentLayer.getBBox();
-    const centeredOffset = safeAreaCenterOffset(contentBounds);
-    if (Math.abs(centeredOffset - contentOffsetY) > 0.01) {
-      setContentOffsetY(centeredOffset);
-      return;
+    if (centeredLayoutKeyRef.current !== contentLayoutKey) {
+      const centeredOffset = safeAreaCenterOffset(contentLayer.getBBox());
+      centeredLayoutKeyRef.current = contentLayoutKey;
+      if (Math.abs(centeredOffset - contentOffsetY) > 0.01) {
+        setContentOffsetY(centeredOffset);
+        return;
+      }
+    }
+    if (checkedLayoutKeyRef.current !== contentLayoutKey) {
+      const layerBounds = transformedBounds(contentLayer);
+      if (layerBounds.x < SAFE_AREA.left || layerBounds.x + layerBounds.width > SAFE_AREA.right
+        || layerBounds.y < SAFE_AREA.top || layerBounds.y + layerBounds.height > SAFE_AREA.bottom) {
+        throw new Error(`金融画面整体内容超出手机安全区（${layerBounds.x},${layerBounds.y},${layerBounds.width},${layerBounds.height}）`);
+      }
+      checkedLayoutKeyRef.current = contentLayoutKey;
     }
     if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
-    const layerBounds = transformedBounds(contentLayer);
-    if (layerBounds.x < SAFE_AREA.left || layerBounds.x + layerBounds.width > SAFE_AREA.right
-      || layerBounds.y < SAFE_AREA.top || layerBounds.y + layerBounds.height > SAFE_AREA.bottom) {
-      throw new Error(`金融画面整体内容超出手机安全区（${layerBounds.x},${layerBounds.y},${layerBounds.width},${layerBounds.height}）`);
-    }
     for (const element of svg.querySelectorAll('text')) {
       const bounds = transformedBounds(element);
       const safeArea = SAFE_AREA;
@@ -477,7 +485,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         throw new Error('金融画面曲线端点超出手机安全区');
       }
     }
-  }, [frame, contentOffsetY]);
+  }, [frame, contentOffsetY, contentLayoutKey]);
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
