@@ -44,11 +44,11 @@ def _parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="离线校验三类作品材料与帧时间轴")
     validate.add_argument("--project-dir", required=True)
     for command in ("render", "preview"):
-        render = sub.add_parser(command, help="正式导出" if command == "render" else "生成待评审静音预演，默认完整时长")
+        render = sub.add_parser(command, help="正式导出" if command == "render" else "生成完整静音预演，默认完整时长")
         render.add_argument("--project-dir", required=True)
         render.add_argument("--out", help="独立输出 MP4；预演必须位于作品 outputs/previews 内")
         if command == "preview":
-            render.add_argument("--limit-frames", type=int, help="仅预演前 N 帧；短预演不能作为完整评审")
+            render.add_argument("--limit-frames", type=int, help="仅预演前 N 帧；短预演不能作为正式验收依据")
         render.add_argument("--crf", type=int, default=18)
         render.add_argument("--preset", choices=("ultrafast", "veryfast", "fast", "medium", "slow", "slower"), default="medium")
     for command in ("plan", "migrate-line"):
