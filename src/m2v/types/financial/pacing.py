@@ -4,9 +4,10 @@ from __future__ import annotations
 import math
 from datetime import date
 from typing import Any
+from m2v.types.financial.valuation import crypto_investment_values
 
 
-def build_pacing(request: dict[str, Any], points: list[dict[str, Any]], first: int, last: int) -> dict[str, Any]:
+def build_pacing(request: dict[str, Any], prices: dict[str, Any], first: int, last: int) -> dict[str, Any]:
     start, end = (date.fromisoformat(value) for value in request["displayRange"])
     endpoints = [{"frame": first, "date": start.isoformat()}, {"frame": last, "date": end.isoformat()}]
     if start == end:
@@ -19,9 +20,13 @@ def build_pacing(request: dict[str, Any], points: list[dict[str, Any]], first: i
     boundaries.append(end)
     changes: dict[str, list[float]] = {}
     investment = request.get("investment", {"year": start.year, "principal": 100_000})
-    invested = [point for point in points if int(point["date"][:4]) >= investment["year"]]
+    if request.get("instrument", {}).get("kind") == "crypto":
+        invested = crypto_investment_values(request, prices)
+        shares = 1.0
+    else:
+        invested = [point for point in prices["points"] if int(point["date"][:4]) >= investment["year"]]
+        shares = investment["principal"] / invested[0]["close"] if invested else 0.0
     if invested:
-        shares = investment["principal"] / invested[0]["close"]
         for previous, current in zip(invested, invested[1:]):
             if not start.isoformat() <= current["date"] <= end.isoformat():
                 continue

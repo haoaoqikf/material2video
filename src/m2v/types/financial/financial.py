@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 from m2v.core.errors import M2VError
 from m2v.types.financial.pacing import build_pacing, anchor_date
+from m2v.types.financial.valuation import crypto_investment_values, expected_daily_dates
 
 MATERIALS = ("request.json", "prices.json", "animation-plan.json")
 FPS = 30
@@ -95,8 +96,11 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     request, prices, plan = (docs[name] for name in MATERIALS)
     if request["schemaVersion"] != 1:
         _fail("request.json", "当前必须为 version 1")
-    if prices["schemaVersion"] != 3 or plan["schemaVersion"] not in {7, 8}:
-        _fail("材料版本", "需要 v3 价格和 v7/v8 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
+    instrument = request.get("instrument")
+    kind = instrument.get("kind") if isinstance(instrument, dict) else None
+    expected_price_version = 4 if kind == "crypto" else 3
+    if prices["schemaVersion"] != expected_price_version or plan["schemaVersion"] not in {7, 8}:
+        _fail("材料版本", f"需要 v{expected_price_version} 价格和 v7/v8 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
     if (root / "events.json").exists():
         _fail("events.json", "事件材料已移除；请运行 financial_video.py migrate-line --project-dir <作品目录> 清理旧材料")
     _validate_request(request)
@@ -118,7 +122,8 @@ def render_inputs_digest(project_dir: str | Path) -> str:
     scripts = Path(__file__).resolve().parents[2]
     inputs.extend((scripts, path) for path in (
         Path(__file__), Path(__file__).with_name("financial_render.py"),
-        Path(__file__).with_name("commands.py"), Path(__file__).with_name("pacing.py"), Path(remotion.__file__),
+        Path(__file__).with_name("commands.py"), Path(__file__).with_name("pacing.py"),
+        Path(__file__).with_name("valuation.py"), Path(remotion.__file__),
     ))
     digest = hashlib.sha256()
     for base, path in inputs:
@@ -137,15 +142,15 @@ def _validate_request(request: dict[str, Any]) -> None:
     _required_text(request.get("originalRequest"), "request.json.originalRequest")
     if not isinstance(instrument, dict):
         _fail("request.json.instrument", "必须声明标的对象")
-    if instrument.get("kind") not in {"stock", "index"}:
-        _fail("request.json.instrument.kind", "必须为 stock 或 index")
+    if instrument.get("kind") not in {"stock", "index", "crypto"}:
+        _fail("request.json.instrument.kind", "必须为 stock、index 或 crypto")
     for key in ("name", "code", "market", "unit"):
         _required_text(instrument.get(key), f"request.json.instrument.{key}")
     if "displayName" in instrument:
         _required_text(instrument["displayName"], "request.json.instrument.displayName")
     if instrument["kind"] == "stock":
         _date(instrument.get("listingDate"), "request.json.instrument.listingDate")
-    else:
+    elif instrument["kind"] == "index":
         _date(instrument.get("indexStartDate"), "request.json.instrument.indexStartDate")
     requested = request.get("requestedRange")
     display = request.get("displayRange")
@@ -161,18 +166,28 @@ def _validate_request(request: dict[str, Any]) -> None:
         _fail("request.json.displayRange", "实际展示范围不得超出请求范围")
     investment = request.setdefault("investment", {"year": display_dates[0].year, "principal": 1_000_000})
     if not isinstance(investment, dict):
-        _fail("request.json.investment", "必须为 year 和 principal 组成的对象")
-    year = investment.get("year")
+        _fail("request.json.investment", "必须是包含本金的对象")
     principal = investment.get("principal")
-    if isinstance(year, bool) or not isinstance(year, int) or year < display_dates[0].year or year > display_dates[1].year:
-        _fail("request.json.investment.year", "必须是展示范围内的有效年份")
     if isinstance(principal, bool) or not isinstance(principal, (int, float)) or not math.isfinite(principal) or principal <= 0:
         _fail("request.json.investment.principal", "必须是有限正数")
+    if instrument["kind"] == "crypto":
+        entry_date = _date(investment.get("date"), "request.json.investment.date")
+        if not display_dates[0] <= entry_date <= display_dates[1]:
+            _fail("request.json.investment.date", "必须位于展示范围内")
+        if investment.get("currency") != "CNY":
+            _fail("request.json.investment.currency", "crypto 本金必须使用 CNY")
+        rationale = investment.get("startRationale")
+        if rationale is not None and (not isinstance(rationale, str) or not rationale.strip() or len(rationale) > 180):
+            _fail("request.json.investment.startRationale", "必须为 1～180 个字符的非空说明")
+    else:
+        year = investment.get("year")
+        if isinstance(year, bool) or not isinstance(year, int) or year < display_dates[0].year or year > display_dates[1].year:
+            _fail("request.json.investment.year", "必须是展示范围内的有效年份")
     if instrument["kind"] == "stock":
         listing = _date(instrument["listingDate"], "request.json.instrument.listingDate")
         if display_dates[0] < listing:
             _fail("request.json.displayRange", "展示范围包含上市日期之前；须更新已确认的展示范围")
-    else:
+    elif instrument["kind"] == "index":
         index_start = _date(instrument["indexStartDate"], "request.json.instrument.indexStartDate")
         if display_dates[0] < index_start:
             _fail("request.json.displayRange", "展示范围早于指数起始日")
@@ -187,6 +202,11 @@ def _validate_request(request: dict[str, Any]) -> None:
 
 def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_root: Path) -> None:
     instrument = request["instrument"]
+    if instrument["kind"] == "crypto":
+        _validate_crypto_prices(prices, request, project_root)
+        return
+    if prices.get("schemaVersion") != 3:
+        _fail("prices.json.schemaVersion", "股票和指数必须使用 version 3")
     expected_basis = "split-adjusted" if instrument["kind"] == "stock" else "official-index-points"
     if prices.get("priceBasis") != expected_basis:
         _fail("prices.json.priceBasis", f"{instrument['kind']} 标的必须使用 {expected_basis}")
@@ -269,7 +289,114 @@ def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_ro
         _required_text(prices.get("indexType"), "prices.json.indexType")
 
 
-def _validate_source(source: Any, where: str, start: date, end: date) -> None:
+def _validate_crypto_prices(prices: dict[str, Any], request: dict[str, Any], project_root: Path) -> None:
+    if prices.get("schemaVersion") != 4:
+        _fail("prices.json.schemaVersion", "crypto 必须使用 version 4")
+    if prices.get("unit") != "USD" or prices.get("priceBasis") != "crypto-spot-close":
+        _fail("prices.json", "crypto 行情必须是 USD 计价的 crypto-spot-close")
+    start_text, end_text = request["displayRange"]
+    start, end = date.fromisoformat(start_text), date.fromisoformat(end_text)
+    full_dates = expected_daily_dates(start_text, end_text)
+    expected = _ordered_dates(prices.get("expectedTradingDates"), "prices.json.expectedTradingDates")
+    date_sources = prices.get("expectedTradingDatesSource")
+    if not isinstance(date_sources, list) or not date_sources:
+        _fail("prices.json.expectedTradingDatesSource", "须记录 crypto 日历日期清单来源")
+    for index, url in enumerate(date_sources):
+        _https_url(url, f"prices.json.expectedTradingDatesSource[{index}]")
+    points = prices.get("points")
+    if not isinstance(points, list) or not points:
+        _fail("prices.json.points", "必须包含完整 BTC/USD 日线")
+    point_dates: list[date] = []
+    for index, point in enumerate(points):
+        where = f"prices.json.points[{index}]"
+        if not isinstance(point, dict) or set(point) != {"date", "close"}:
+            _fail(where, "价格点只能包含 date 和 close")
+        point_dates.append(_date(point.get("date"), f"{where}.date"))
+        value = point.get("close")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            _fail(f"{where}.close", "收盘价必须为有限正数")
+    if point_dates != expected or [item.isoformat() for item in expected] != full_dates:
+        _fail("prices.json.points", "crypto 行情必须逐日覆盖展示日期，无缺失或额外日期")
+    if request["investment"]["date"] not in full_dates:
+        _fail("request.json.investment.date", "买入日必须有真实 crypto 收盘价")
+
+    sources = prices.get("sources")
+    if not isinstance(sources, list) or not sources:
+        _fail("prices.json.sources", "必须保留 BTC 行情来源")
+    source_urls: set[str] = set()
+    covered: set[date] = set()
+    for index, source in enumerate(sources):
+        coverage_start, coverage_end = _validate_source(
+            source, f"prices.json.sources[{index}]", start, end, require_full_coverage=False,
+        )
+        source_urls.add(source["url"])
+        covered.update(day for day in expected if coverage_start <= day <= coverage_end)
+    if len(covered) != len(expected):
+        _fail("prices.json.sources", "BTC 行情来源区间未覆盖全部展示日期")
+    _validate_snapshots(prices.get("rawSnapshots"), source_urls, project_root, "prices.json.rawSnapshots")
+
+    fx = prices.get("fx")
+    if not isinstance(fx, dict) or fx.get("pair") != "USD/CNY" or fx.get("unit") != "CNY per USD":
+        _fail("prices.json.fx", "必须提供 USD/CNY、单位 CNY per USD 的汇率材料")
+    fx_dates = _ordered_dates(fx.get("expectedTradingDates"), "prices.json.fx.expectedTradingDates")
+    fx_date_sources = fx.get("expectedTradingDatesSource")
+    if not isinstance(fx_date_sources, list) or not fx_date_sources:
+        _fail("prices.json.fx.expectedTradingDatesSource", "须记录汇率观测日期清单来源")
+    for index, url in enumerate(fx_date_sources):
+        _https_url(url, f"prices.json.fx.expectedTradingDatesSource[{index}]")
+    fx_points = fx.get("points")
+    if not isinstance(fx_points, list) or not fx_points:
+        _fail("prices.json.fx.points", "必须包含汇率点")
+    fx_point_dates: list[date] = []
+    for index, point in enumerate(fx_points):
+        where = f"prices.json.fx.points[{index}]"
+        if not isinstance(point, dict) or set(point) != {"date", "close"}:
+            _fail(where, "汇率点只能包含 date 和 close")
+        fx_point_dates.append(_date(point.get("date"), f"{where}.date"))
+        value = point.get("close")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            _fail(f"{where}.close", "汇率必须为有限正数")
+    entry_date = date.fromisoformat(request["investment"]["date"])
+    if fx_dates != fx_point_dates or fx_dates[0] > entry_date or fx_dates[-1] > end:
+        _fail("prices.json.fx.points", "汇率点须匹配核验日期、覆盖买入日且不得使用未来汇率")
+    fx_sources = fx.get("sources")
+    if not isinstance(fx_sources, list) or not fx_sources:
+        _fail("prices.json.fx.sources", "必须保留汇率来源")
+    fx_urls: set[str] = set()
+    fx_covered: set[date] = set()
+    for index, source in enumerate(fx_sources):
+        coverage_start, coverage_end = _validate_source(source, f"prices.json.fx.sources[{index}]", start, end, require_full_coverage=False)
+        fx_urls.add(source["url"])
+        fx_covered.update(day for day in fx_dates if coverage_start <= day <= coverage_end)
+    if len(fx_covered) != len(fx_dates):
+        _fail("prices.json.fx.sources", "汇率来源区间未覆盖所有汇率观测日期")
+    _validate_snapshots(fx.get("rawSnapshots"), fx_urls, project_root, "prices.json.fx.rawSnapshots")
+    crypto_investment_values(request, prices)
+
+
+def _validate_snapshots(snapshots: Any, source_urls: set[str], project_root: Path, where: str) -> None:
+    if not isinstance(snapshots, list) or not snapshots:
+        _fail(where, "须保留至少一份原始数据快照")
+    for index, snapshot in enumerate(snapshots):
+        item_where = f"{where}[{index}]"
+        if not isinstance(snapshot, dict):
+            _fail(item_where, "必须是对象")
+        relative = Path(_required_text(snapshot.get("path"), f"{item_where}.path"))
+        if relative.is_absolute() or ".." in relative.parts:
+            _fail(f"{item_where}.path", "快照路径必须是作品目录内的相对路径")
+        target = (project_root / relative).resolve()
+        if not target.is_relative_to(project_root) or not target.is_file():
+            _fail(f"{item_where}.path", "快照文件缺失或越过作品目录")
+        digest = _required_text(snapshot.get("sha256"), f"{item_where}.sha256")
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest.lower()):
+            _fail(f"{item_where}.sha256", "必须是 SHA-256 十六进制摘要")
+        if hashlib.sha256(target.read_bytes()).hexdigest() != digest.lower():
+            _fail(f"{item_where}.sha256", "原始数据快照摘要不匹配")
+        if snapshot.get("sourceUrl") not in source_urls:
+            _fail(f"{item_where}.sourceUrl", "必须引用对应来源清单中的来源")
+
+
+def _validate_source(source: Any, where: str, start: date, end: date, *, require_full_coverage: bool = True) -> tuple[date, date]:
     if not isinstance(source, dict):
         _fail(where, "必须是对象")
     url = _https_url(source.get("url"), f"{where}.url")
@@ -284,9 +411,10 @@ def _validate_source(source: Any, where: str, start: date, end: date) -> None:
     if not isinstance(coverage, list) or len(coverage) != 2:
         _fail(f"{where}.coverage", "必须是 [开始日期, 结束日期]")
     covered_start, covered_end = (_date(item, f"{where}.coverage") for item in coverage)
-    if covered_start > start or covered_end < end:
+    if require_full_coverage and (covered_start > start or covered_end < end):
         _fail(f"{where}.coverage", "来源覆盖范围未覆盖完整展示日期")
     _required_text(source.get("adjustmentDefinition"), f"{where}.adjustmentDefinition")
+    return covered_start, covered_end
 
 
 def build_line_plan(request: dict[str, Any], duration: int | None = None, prices: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -311,7 +439,7 @@ def build_line_plan(request: dict[str, Any], duration: int | None = None, prices
         "canvas": {"width": WIDTH, "height": HEIGHT},
         "axis": {"dateRange": request["displayRange"], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": segments,
-        "pacing": build_pacing(request, prices["points"], opening_frames, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": opening_frames, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
+        "pacing": build_pacing(request, prices, opening_frames, advance_end - 1) if prices is not None else {"mode": "uniform", "anchors": [{"frame": opening_frames, "date": start.isoformat()}, {"frame": advance_end - 1, "date": end.isoformat()}]},
         "rationale": "以真实日收盘价计算假设投资组合价值，横轴按年度阶段平滑扩展；开场 1 秒、连续推进、完整历史停留 2 秒。所有新计划默认总长 60 秒；纵轴随已展示组合价值自适应。",
     }
 
@@ -323,8 +451,9 @@ def prepare_line_plan(root: Path, duration: int | None = None) -> dict[str, Any]
     old_plan = _load(root / "animation-plan.json")
     if old_plan.get("schemaVersion") != 8:
         _fail("animation-plan.json", "旧计划请先显式运行 migrate-line，备份后迁移到 v8")
-    if request["schemaVersion"] != 1 or prices["schemaVersion"] != 3:
-        _fail("材料版本", "需 version 1 请求和 version 3 价格；旧材料请运行 migrate-line")
+    expected_price_version = 4 if request.get("instrument", {}).get("kind") == "crypto" else 3
+    if request["schemaVersion"] != 1 or prices["schemaVersion"] != expected_price_version:
+        _fail("材料版本", f"需 version 1 请求和 version {expected_price_version} 价格；旧材料请运行 migrate-line")
     _validate_request(request)
     _validate_prices(prices, request, root)
     plan = build_line_plan(request, duration, prices)

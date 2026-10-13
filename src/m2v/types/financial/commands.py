@@ -24,12 +24,12 @@ def _write(path: Path, value: dict) -> None:
 
 def _add_init(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-dir", required=True, help="作品目录，如 videos/acme-2010-2024")
-    parser.add_argument("--kind", required=True, choices=("stock", "index"))
+    parser.add_argument("--kind", required=True, choices=("stock", "index", "crypto"))
     parser.add_argument("--name", required=True, help="公司或指数名称")
     parser.add_argument("--display-name", help="画面短名称；默认回退公司或指数正式名称")
     parser.add_argument("--code", required=True, help="证券/指数代码")
     parser.add_argument("--market", required=True, help="市场标识，例如 NASDAQ、HKEX、SSE")
-    parser.add_argument("--unit", required=True, help="股票币种或指数点位单位")
+    parser.add_argument("--unit", required=True, help="股票币种、指数点位单位或 crypto 报价币种")
     parser.add_argument("--start-date", required=True, help="展示开始日 YYYY-MM-DD")
     parser.add_argument("--end-date", required=True, help="展示结束日 YYYY-MM-DD")
     parser.add_argument("--listing-date", help="股票上市日期 YYYY-MM-DD")
@@ -79,7 +79,7 @@ def _init(args: argparse.Namespace) -> Path:
             raise M2VError("上市日期必须使用 YYYY-MM-DD 格式")
         if listing > start:
             raise M2VError("起始日早于上市日；请先确认实际展示范围")
-    else:
+    elif args.kind == "index":
         if args.listing_date:
             raise M2VError("指数不使用 --listing-date")
         if not args.index_start_date:
@@ -107,17 +107,18 @@ def _init(args: argparse.Namespace) -> Path:
         },
         "requestedRange": [start.isoformat(), end.isoformat()],
         "displayRange": [start.isoformat(), end.isoformat()],
-        "investment": {"year": start.year, "principal": default_principal},
+        "investment": ({"date": start.isoformat(), "principal": default_principal, "currency": "CNY"} if args.kind == "crypto" else {"year": start.year, "principal": default_principal}),
         "confirmations": [],
     }
     _write(root / "request.json", request)
     _write(root / "prices.json", {
-        "schemaVersion": 3, "unit": args.unit.strip(),
-        "priceBasis": "split-adjusted" if args.kind == "stock" else "official-index-points",
+        "schemaVersion": 4 if args.kind == "crypto" else 3, "unit": "USD" if args.kind == "crypto" else args.unit.strip(),
+        "priceBasis": "crypto-spot-close" if args.kind == "crypto" else "split-adjusted" if args.kind == "stock" else "official-index-points",
         "adjustmentBaseDate": end.isoformat() if args.kind == "stock" else None,
         "adjustmentDefinition": "仅拆合股调整，不计分红再投资；由 AI 核验来源定义后填写" if args.kind == "stock" else None,
         "splitAdjustments": [], "indexType": "由 AI 核验发布机构定义后填写" if args.kind == "index" else None,
         "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": [],
+        **({"fx": {"pair": "USD/CNY", "unit": "CNY per USD", "expectedTradingDates": [], "expectedTradingDatesSource": [], "points": [], "sources": [], "rawSnapshots": []}} if args.kind == "crypto" else {}),
     })
     _write(root / "animation-plan.json", {
         "schemaVersion": 8, "chartType": "line", "durationSeconds": None,

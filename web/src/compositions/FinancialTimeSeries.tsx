@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
+type FxPoint = { date: ISODate; close: number };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
   schemaVersion: 7 | 8; chartType: 'line';
@@ -13,8 +14,8 @@ export type FinancialPlan = {
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock' | 'index'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year: number; principal: number } };
-  prices: { schemaVersion: 3; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[] };
+  request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string } };
+  prices: { schemaVersion: 3 | 4; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[]; fx?: { pair: 'USD/CNY'; points: FxPoint[] } };
   plan: FinancialPlan;
   durationInFrames: number; fps: 30; width: 1080; height: 1920;
 };
@@ -226,6 +227,7 @@ function axisTicks(windowStart: number, visibleEnd: number, fullRangeEnd: number
 // Inputs are immutable render props; the cache stores no frame-dependent state.
 const prefixRanges = new WeakMap<PricePoint[], [number, number][]>();
 const investmentSeriesCache = new WeakMap<PricePoint[], Map<string, { points: PricePoint[]; startDate: ISODate; principal: number; buyClose: number } | null>>();
+const cryptoSeriesCache = new WeakMap<PricePoint[], WeakMap<FxPoint[], Map<string, { points: PricePoint[]; startDate: ISODate; principal: number; buyClose: number } | null>>>();
 function investmentSeries(points: PricePoint[], year: number, principal: number) {
   let cache = investmentSeriesCache.get(points);
   if (!cache) { cache = new Map(); investmentSeriesCache.set(points, cache); }
@@ -237,6 +239,28 @@ function investmentSeries(points: PricePoint[], year: number, principal: number)
   const result = { points: points.slice(first).map((point) => ({ date: point.date, close: principal * point.close / buyClose })), startDate: points[first]!.date, principal, buyClose };
   cache.set(key, result);
   return result;
+}
+function cryptoInvestmentSeries(points: PricePoint[], fxPoints: FxPoint[], date: ISODate, principal: number) {
+  let byFx = cryptoSeriesCache.get(points);
+  if (!byFx) { byFx = new WeakMap(); cryptoSeriesCache.set(points, byFx); }
+  let cache = byFx.get(fxPoints);
+  if (!cache) { cache = new Map(); byFx.set(fxPoints, cache); }
+  const key = `${date}:${principal}`;
+  if (cache.has(key)) return cache.get(key)!;
+  const startIndex = points.findIndex((point) => point.date === date);
+  if (startIndex < 0) throw new Error(`缺少买入日 ${date} 的 BTC 日收盘价`);
+  const buyFxIndex = lastPointIndex(fxPoints, date);
+  if (buyFxIndex < 0) throw new Error(`缺少 ${date} 当日或此前的 USD/CNY 汇率`);
+  const buyClose = points[startIndex]!.close;
+  const buyFx = fxPoints[buyFxIndex]!.close;
+  let fxIndex = buyFxIndex;
+  const valued = points.slice(startIndex).map((point) => {
+    while (fxIndex + 1 < fxPoints.length && fxPoints[fxIndex + 1]!.date <= point.date) fxIndex++;
+    return { date: point.date, close: principal * point.close / buyClose * fxPoints[fxIndex]!.close / buyFx };
+  });
+  const series = { points: valued, startDate: date, principal, buyClose };
+  cache.set(key, series);
+  return series;
 }
 function rangesFor(points: PricePoint[]): [number, number][] {
   const cached = prefixRanges.get(points);
@@ -250,7 +274,7 @@ function rangesFor(points: PricePoint[]): [number, number][] {
   return ranges;
 }
 
-export function financialView(frame: number, points: PricePoint[], plan: FinancialPlan, investment?: { year: number; principal: number }) {
+export function financialView(frame: number, points: PricePoint[], plan: FinancialPlan, investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY' }, fxPoints?: FxPoint[]) {
   const position = framePosition(frame, plan);
   const currentDate = isoDay(Math.floor(position));
   const windowPosition = epochDay(plan.axis.dateRange[0]);
@@ -268,7 +292,13 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   const endingStart = plan.segments.find((segment) => segment.kind === 'ending')!.frames[0];
   if (frame >= endingStart - 1) windowEndPosition = fullRangeEnd;
   const config = investment ?? { year: Number(plan.axis.dateRange[0].slice(0, 4)), principal: 1_000_000 };
-  const series = investmentSeries(points, config.year, config.principal);
+  let series;
+  if (config.date) {
+    if (!fxPoints?.length) throw new Error('缺少 USD/CNY 历史汇率');
+    series = cryptoInvestmentSeries(points, fxPoints, config.date, config.principal);
+  } else {
+    series = investmentSeries(points, config.year ?? Number(plan.axis.dateRange[0].slice(0, 4)), config.principal);
+  }
   const valuePoints = series?.points ?? [];
   const end = lastPointIndex(valuePoints, currentDate) + 1;
   const ranges = rangesFor(valuePoints);
@@ -412,13 +442,17 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const frame = useCurrentFrame();
   const { request, prices, plan } = props;
   const investment = request.investment ?? { year: Number(request.displayRange[0].slice(0, 4)), principal: 1_000_000 };
-  const view = financialView(frame, prices.points, plan, investment);
+  const isCrypto = request.instrument.kind === 'crypto';
+  const view = financialView(frame, prices.points, plan, investment, prices.fx?.points);
   const { windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
   const displayName = request.instrument.displayName ?? request.instrument.name;
   const investmentAmount = investmentAmountText(investment.principal);
-  const title = request.instrument.kind === 'index'
-    ? `假如你${investment.year}年按比例投资${investmentAmount}元${displayName}`
-    : `假如你${investment.year}年买入${investmentAmount}元${displayName}`;
+  const investmentYear = investment.date?.slice(0, 4) ?? investment.year;
+  const title = isCrypto
+    ? `假如你${investmentYear}年${Number(investment.date!.slice(5, 7))}月买入${investmentAmount}元${displayName}`
+    : request.instrument.kind === 'index'
+      ? `假如你${investmentYear}年按比例投资${investmentAmount}元${displayName}`
+      : `假如你${investmentYear}年买入${investmentAmount}元${displayName}`;
   const titleWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left;
   const titleFontSize = Math.min(48, (titleWidth / measuredTextWidth(title, 48)) * 48);
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
@@ -437,14 +471,17 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(' ');
   const endpointX = latest ? xForDate(latest.date) : PLOT.left;
   const endpointY = latest ? yForValue(latest.close) : PLOT.bottom;
-  const summaryText = [
-    `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`,
-  ];
+  const summaryText = [isCrypto
+    ? 'BTC/USD 日收盘价按历史 USD/CNY 汇率折算；休市日沿用此前汇率，不计手续费及税费'
+    : `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`];
   const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 24));
   if (summaryLines.length > 4) throw new Error('统计口径超出说明区域四行容量');
+  const rationaleLines = isCrypto && investment.startRationale
+    ? wrapSvgText(investment.startRationale, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 18) : [];
+  if (rationaleLines.length > 2) throw new Error('起点说明超出两行容量');
   const riskLines = wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
-  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLines, riskLines]);
+  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLines, rationaleLines, riskLines]);
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
@@ -559,8 +596,9 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       </g>}
       {latest && windowStart <= latest.date &&
         <circle data-m2v-financial-endpoint="true" cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />}
-      {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={1320 + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
-      {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left} y={1460 + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
+      {rationaleLines.map((line, index) => <text data-m2v-start-rationale="true" key={`rationale-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1310 : 0) + index * 24} fill="#9ba9bc" fontSize="18">{line}</text>)}
+      {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1370 : 1320) + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
+      {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1510 : 1460) + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
       </g>
     </svg>
   </AbsoluteFill>;

@@ -16,6 +16,7 @@ from m2v.types.financial import financial
 from m2v.types.financial import financial_render
 from m2v.core.errors import M2VError
 from m2v.types.financial import commands as financial_video
+from m2v.types.financial.valuation import crypto_investment_values, fx_rate_on_or_before
 
 
 def project(tmp_path: Path) -> Path:
@@ -54,6 +55,81 @@ def edit(root: Path, name: str, mutate) -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     mutate(data)
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+
+def test_crypto_cny_valuation_uses_buy_day_fx_and_carries_weekend_rate():
+    request = {"investment": {"date": "2020-01-04", "principal": 100_000}}
+    prices = {
+        "points": [
+            {"date": "2020-01-04", "close": 10},
+            {"date": "2020-01-05", "close": 20},
+            {"date": "2020-01-06", "close": 20},
+        ],
+        "fx": {"points": [
+            {"date": "2020-01-03", "close": 7.0},
+            {"date": "2020-01-06", "close": 7.2},
+        ]},
+    }
+    values = crypto_investment_values(request, prices)
+    assert values[0]["close"] == 100_000
+    assert values[1]["close"] == 200_000
+    assert values[2]["close"] == pytest.approx(205_714.285714)
+    assert fx_rate_on_or_before(prices["fx"]["points"], "2020-01-05") == 7.0
+
+
+def test_crypto_valuation_rejects_missing_buy_day_or_prior_fx():
+    request = {"investment": {"date": "2020-01-04", "principal": 100_000}}
+    with pytest.raises(M2VError, match="BTC/USD"):
+        crypto_investment_values(request, {"points": [{"date": "2020-01-03", "close": 10}], "fx": {"points": []}})
+    with pytest.raises(M2VError, match="USD/CNY"):
+        crypto_investment_values(request, {"points": [{"date": "2020-01-04", "close": 10}], "fx": {"points": []}})
+
+
+def crypto_project(tmp_path: Path) -> Path:
+    root = tmp_path / "crypto"
+    root.mkdir()
+    btc_raw = b"date,close\n2020-01-03,10\n2020-01-04,11\n2020-01-05,12\n2020-01-06,13\n"
+    fx_raw = b"date,close\n2020-01-03,7.0\n2020-01-06,7.2\n"
+    (root / "raw-btc.csv").write_bytes(btc_raw)
+    (root / "raw-fx.csv").write_bytes(fx_raw)
+    btc_url, fx_url = "https://example.invalid/btc", "https://example.invalid/fx"
+    source = lambda url: {"url": url, "fetchedAt": "2026-10-05T00:00:00Z", "coverage": ["2020-01-03", "2020-01-06"], "adjustmentDefinition": "合成日线来源"}
+    request = {"schemaVersion": 1, "originalRequest": "crypto CNY 测试", "instrument": {"kind": "crypto", "name": "Bitcoin", "code": "BTC-USD", "market": "TEST", "unit": "USD"},
+        "requestedRange": ["2020-01-03", "2020-01-06"], "displayRange": ["2020-01-03", "2020-01-06"],
+        "investment": {"date": "2020-01-04", "principal": 100_000, "currency": "CNY"}, "confirmations": []}
+    prices_dates = ["2020-01-03", "2020-01-04", "2020-01-05", "2020-01-06"]
+    prices = {"schemaVersion": 4, "unit": "USD", "priceBasis": "crypto-spot-close", "expectedTradingDates": prices_dates,
+        "expectedTradingDatesSource": [btc_url], "points": [{"date": day, "close": close} for day, close in zip(prices_dates, [10, 11, 12, 13])],
+        "sources": [source(btc_url)], "rawSnapshots": [{"path": "raw-btc.csv", "sha256": hashlib.sha256(btc_raw).hexdigest(), "sourceUrl": btc_url}],
+        "fx": {"pair": "USD/CNY", "unit": "CNY per USD", "expectedTradingDates": ["2020-01-03", "2020-01-06"], "expectedTradingDatesSource": [fx_url],
+            "points": [{"date": "2020-01-03", "close": 7.0}, {"date": "2020-01-06", "close": 7.2}], "sources": [source(fx_url)],
+            "rawSnapshots": [{"path": "raw-fx.csv", "sha256": hashlib.sha256(fx_raw).hexdigest(), "sourceUrl": fx_url}]}}
+    plan = financial.build_line_plan(request, duration=10, prices=prices)
+    for name, data in (("request.json", request), ("prices.json", prices), ("animation-plan.json", plan)):
+        (root / name).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return root
+
+
+def test_crypto_material_v4_validates_daily_coverage_and_fx_snapshots(tmp_path):
+    root = crypto_project(tmp_path)
+    docs = financial.load_project(root)
+    assert len(docs["prices"]["points"]) == 4
+    assert docs["prices"]["fx"]["points"][0]["date"] == "2020-01-03"
+
+
+@pytest.mark.parametrize(
+    ("file", "mutate", "message"),
+    [
+        ("prices.json", lambda data: data["points"].pop(2), "逐日覆盖"),
+        ("prices.json", lambda data: data["fx"]["rawSnapshots"][0].update(sha256="0" * 64), "摘要不匹配"),
+        ("prices.json", lambda data: data["fx"]["points"].append({"date": "2020-01-07", "close": 7.2}) or data["fx"]["expectedTradingDates"].append("2020-01-07"), "不得使用未来汇率"),
+    ],
+)
+def test_crypto_material_v4_rejects_gaps_bad_snapshots_and_future_fx(tmp_path, file, mutate, message):
+    root = crypto_project(tmp_path)
+    edit(root, file, mutate)
+    with pytest.raises(M2VError, match=message):
+        financial.load_project(root)
 
 
 def test_valid_materials_and_deterministic_frame_mapping(tmp_path):

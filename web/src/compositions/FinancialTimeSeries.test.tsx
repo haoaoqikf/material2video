@@ -60,6 +60,32 @@ describe('full-history plot clipping', () => {
 describe('financial time-series composition', () => {
   const renderedTitle = (markup: string) => markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
 
+  it('computes crypto holdings in CNY using the latest non-future FX quote', () => {
+    const crypto = {
+      ...props,
+      request: { ...props.request, instrument: { ...props.request.instrument, kind: 'crypto' as const, name: 'Bitcoin', displayName: '比特币', unit: 'USD' },
+        displayRange: ['2020-01-03', '2020-01-06'] as [string, string], investment: { date: '2020-01-04', principal: 100_000, currency: 'CNY' as const,
+          startRationale: '2011年5月月成交约95万 BTC；月成交不代表当日盘口深度，分批交易仍可能有滑点。' } },
+      prices: { ...props.prices, points: [
+        { date: '2020-01-03', close: 10 }, { date: '2020-01-04', close: 10 }, { date: '2020-01-05', close: 20 }, { date: '2020-01-06', close: 20 },
+      ], fx: { pair: 'USD/CNY' as const, points: [{ date: '2020-01-03', close: 7 }, { date: '2020-01-06', close: 7.2 }] },
+        priceBasis: 'crypto-spot-close' },
+      plan: { ...props.plan, axis: { ...props.plan.axis, dateRange: ['2020-01-03', '2020-01-06'] as [string, string] }, segments: [
+        { frames: [0, 90] as [number, number], dates: ['2020-01-03', '2020-01-03'] as [string, string], kind: 'opening' as const },
+        { frames: [90, 1680] as [number, number], dates: ['2020-01-03', '2020-01-06'] as [string, string], kind: 'advance' as const },
+        { frames: [1680, 1800] as [number, number], dates: ['2020-01-06', '2020-01-06'] as [string, string], kind: 'ending' as const },
+      ] },
+    } as FinancialTimeSeriesProps;
+    const view = financialView(1799, crypto.prices.points, crypto.plan, crypto.request.investment, crypto.prices.fx!.points);
+    expect(view.visiblePoints.map((point) => point.close)).toEqual([100_000, 200_000, 205_714.28571428572]);
+    testFrame.value = 1799;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...crypto} />);
+    expect(renderedTitle(markup)).toBe('假如你2020年1月买入10万元比特币');
+    expect(markup).toContain('data-m2v-start-rationale="true"');
+    expect(markup).toContain('data-m2v-summary="true"');
+    expect(markup).toContain('data-m2v-risk-disclaimer="true"');
+  });
+
   it('handles thirty years of daily data within the view-computation budget', () => {
     const start = Date.UTC(1990, 0, 1);
     const points = Array.from({ length: 11000 }, (_, index) => ({
