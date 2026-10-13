@@ -12,6 +12,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `article-narrative`：完整保留文章 v4、配音、时间轴、状态轨道、镜头、代码世界与制作评审规则。
 - `general`：以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、声音和字幕。
+- `housing-timeseries`：面向住宅年度均价的独立时间序列类型，含材料复算校验、确定性画面与人工评审。
 <!-- generated:type-catalog:end -->
 - `src/m2v`：将实现从 Skill 脚本目录迁入标准 Python 包，由 `m2v --project` 作为统一制作入口。
 

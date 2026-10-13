@@ -15,6 +15,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整预演自动验收。 |
 | `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
+| `housing-timeseries` | 按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、30 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 
 通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章的 React 场景会递归进入静态模块清单，按通用场景 ID 隔离模块名，并把模块摘要纳入准备记录和打包缓存键。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
@@ -35,6 +36,8 @@ uv run m2v status --project videos/<slug>
 ```
 
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/<slug> --duration-seconds 60` 生成计划。
+
+年度住宅销售均价使用独立 `housing-timeseries` 类型，材料、校验和画面契约见[年度住宅均价视频](references/housing-timeseries-video.md)。
 
 文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。已有 v4 文章或历史金融材料迁移前先完整备份，执行 `uv run m2v migrate --project <目录> --from article-v4|financial`；金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，v1～v3 文章不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 

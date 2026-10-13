@@ -155,6 +155,46 @@
           }
         }
       ]
+    },
+    {
+      "name": "housing-timeseries",
+      "description": "年度住宅销售均价变化",
+      "summary": "年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。",
+      "plan": "面向住宅年度均价的独立时间序列类型，含材料复算校验、确定性画面与人工评审。",
+      "skillGuide": "按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、30 fps 无声折线视频。",
+      "materials": [
+        {
+          "name": "series",
+          "file": "series.json",
+          "template": {
+            "schemaVersion": 1,
+            "city": "填写城市",
+            "metric": "住宅商品房平均销售价格",
+            "unit": "元/平方米",
+            "areaUnit": "万平方米",
+            "salesAmountUnit": "亿元",
+            "formula": "salesAmountYiYuan / salesAreaWanSquareMeters * 10000",
+            "durationSeconds": 60,
+            "calculationPrecisionNote": "来源公布的销售额和面积精确至 0.1 单位，计算均价受舍入影响。",
+            "methodologyNote": "填写统计口径与局限。",
+            "sources": [
+              {
+                "title": "数据来源标题",
+                "url": "https://example.org/source"
+              }
+            ],
+            "breakpoints": [],
+            "points": [
+              {
+                "year": 2002,
+                "salesAreaWanSquareMeters": 100,
+                "salesAmountYiYuan": 20,
+                "averagePriceYuanPerSquareMeter": 2000
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

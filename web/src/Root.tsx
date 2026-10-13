@@ -11,6 +11,7 @@ import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositio
 import type { StoryboardV4 } from './schema/storyboardV4';
 import './styles/index.css';
 import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
+import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
 
 /**
  * 时长、帧率与尺寸都从分镜推导，**不在注册时写死**。
@@ -61,6 +62,21 @@ export const RemotionRoot: FC = () => {
         width={1080}
         height={1920}
         defaultProps={{} as FinancialTimeSeriesProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width: props.width,
+          height: props.height,
+        })}
+      />
+      <Composition
+        id="HousingTimeSeries"
+        component={HousingTimeSeries}
+        durationInFrames={1800}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{} as HousingTimeSeriesProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.durationInFrames,
           fps: props.fps,

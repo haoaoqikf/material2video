@@ -30,7 +30,8 @@ def _register_builtins() -> None:
     from m2v.types.article.adapter import TYPE as article
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
-    for item in (article, financial, general):
+    from m2v.types.housing.adapter import TYPE as housing
+    for item in (article, financial, general, housing):
         registry.register(item)
 
 
