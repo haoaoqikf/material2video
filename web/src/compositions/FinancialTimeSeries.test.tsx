@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, assertFinancialPlotUnclipped, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -30,6 +30,32 @@ const props: FinancialTimeSeriesProps = {
   },
   durationInFrames: 1800, fps: 30, width: 1080, height: 1920,
 };
+
+describe('full-history plot clipping', () => {
+  it.each([0, 120, -120])('preserves historical peaks and valleys under a shared %s px translation', (offset) => {
+    const plot = { x: 220, y: 520 + offset, width: 708, height: 670 };
+    const history = { x: 220, y: 567.74 + offset, width: 566, height: 596.72 };
+    expect(() => assertFinancialPlotUnclipped(plot, plot, history)).not.toThrow();
+    if (offset !== 0) {
+      expect(() => assertFinancialPlotUnclipped(plot, { ...plot, y: plot.y + offset }, history)).toThrow('裁剪区域与绘图区错位');
+    }
+  });
+
+  it.each([
+    { x: 220, y: 519, width: 566, height: 400 },
+    { x: 220, y: 568, width: 566, height: 623 },
+    { x: 219, y: 568, width: 566, height: 400 },
+    { x: 220, y: 568, width: 709, height: 400 },
+  ])('rejects cropped historical geometry even with a current endpoint inside the plot: %j', (history) => {
+    const plot = { x: 220, y: 520, width: 708, height: 670 };
+    expect(() => assertFinancialPlotUnclipped(plot, plot, history)).toThrow('历史折线超出有效裁剪范围');
+  });
+
+  it('accepts a single point and subpixel rounding at the left edge', () => {
+    const plot = { x: 220, y: 640, width: 708, height: 670 };
+    expect(() => assertFinancialPlotUnclipped(plot, plot, { x: 219.99998, y: 975, width: 0, height: 0 })).not.toThrow();
+  });
+});
 
 describe('financial time-series composition', () => {
   const renderedTitle = (markup: string) => markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
@@ -152,6 +178,7 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('data-m2v-content-layer="true"');
     expect(markup).toContain('data-m2v-content-offset-y="0" transform="translate(0 0)"');
     expect(markup).toContain('<rect x="220" y="520" width="708" height="670"');
+    expect(markup).toContain('clipPathUnits="userSpaceOnUse"');
     expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270"');
     expect(markup).toContain('data-m2v-risk-disclaimer="true" x="140" y="1460"');
   });

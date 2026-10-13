@@ -174,7 +174,8 @@ def main(argv: list[str] | None = None) -> int:
                     "mobileScale": {"width": 360, "height": 640, "reviewed": False, "details": ""},
                     "safeArea": {"bounds": {"x": list(financial.LAYOUT_BOUNDS_X), "y": list(financial.LAYOUT_BOUNDS_Y)}, "reviewed": False, "details": f"前景按实际内容包围盒居中到画布中心 y={financial.CANVAS_CENTER_Y:g}；核对变换后的完整边界。"},
                     "valueAxisSafeArea": {"bounds": {"x": list(financial.LAYOUT_BOUNDS_X), "y": list(financial.LAYOUT_BOUNDS_Y)}, "reviewed": False, "details": ""},
-                    "endpointMarker": {"reviewed": False, "details": ""}},
+                    "endpointMarker": {"reviewed": False, "details": ""},
+                    "plotClipping": {"reviewed": False, "details": "检查整体居中后的历史峰谷及连接线，确认有效裁剪范围与绘图区一致，没有齐平截断。"}},
             })
             print(f"已生成待填写的评审模板：{review_path}")
             return 0

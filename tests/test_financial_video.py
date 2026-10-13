@@ -370,6 +370,7 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     assert review["metrics"]["verticalAlignment"] == "canvas-center"
     assert review["metrics"]["canvasCenterY"] == 960
     assert review["metrics"]["endpointMarker"] == {"circleOnly": True, "inChartValueBadge": False}
+    assert review["metrics"]["plotClipping"] == {"coordinateSpace": "plot-local", "sharedContentTransform": True, "fullHistoryBoundsChecked": True}
     assert review["evidence"]["valueAxisSafeArea"]["bounds"] == {"x": [140, 940], "y": [180, 1740]}
     with pytest.raises(M2VError, match="只接受完整视频评审通过"):
         financial.validate_legibility_review(root, docs)
@@ -378,7 +379,8 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
             "mobileScale": {"width": 360, "height": 640, "reviewed": True, "details": "合成缩放证据"},
             "safeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "合成布局边界证据"},
             "valueAxisSafeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "纵轴统一布局边界证据"},
-            "endpointMarker": {"reviewed": True, "details": "当前价值圆点完整显示；画布顶部的市值与端点日期一致，图表内无覆盖折线的重复金额底板"}})
+            "endpointMarker": {"reviewed": True, "details": "当前价值圆点完整显示；画布顶部的市值与端点日期一致，图表内无覆盖折线的重复金额底板"},
+            "plotClipping": {"reviewed": True, "details": "居中后历史峰谷及连接线完整，裁剪范围与绘图区一致"}})
     assert review["previewSha256"] == preview_digest
     path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
     with pytest.raises(M2VError, match="review.json.metrics"):
@@ -392,6 +394,11 @@ def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
     missing_marker["evidence"]["endpointMarker"].update(reviewed=False, details="")
     path.write_text(json.dumps(missing_marker), encoding="utf-8")
     with pytest.raises(M2VError, match="evidence.endpointMarker"):
+        financial.validate_legibility_review(root, docs)
+    missing_clip = json.loads(json.dumps(review))
+    missing_clip["evidence"].pop("plotClipping")
+    path.write_text(json.dumps(missing_clip), encoding="utf-8")
+    with pytest.raises(M2VError, match="evidence.plotClipping"):
         financial.validate_legibility_review(root, docs)
     path.write_text(json.dumps(review), encoding="utf-8")
     financial.validate_legibility_review(root, docs)
@@ -603,6 +610,11 @@ def test_init_rejects_blank_display_name_without_creating_materials(tmp_path, ca
 )
 def test_financial_preview_renders_widescreen_mp4_without_audio(tmp_path):
     root = project(tmp_path)
+    # 从真实首个报价日开场，确保浏览器实际渲染非零居中位移下的折线并执行裁剪探针。
+    # 空报价开场不会触发历史折线检查，曾使重复位移的裁剪错误漏过端到端测试。
+    edit(root, "request.json", lambda data: data.update(displayRange=["2020-01-02", "2020-01-03"]))
+    plan = financial.build_line_plan({"displayRange": ["2020-01-02", "2020-01-03"]}, duration=4)
+    (root / "animation-plan.json").write_text(json.dumps(plan), encoding="utf-8")
     docs = financial.load_project(root)
     output = financial_render.render(root, docs, preview=True, limit_frames=2, preset="ultrafast")
     assert output.is_file() and output.stat().st_size > 0

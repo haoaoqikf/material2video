@@ -364,10 +364,9 @@ function wrapSvgText(value: string, maxWidth: number, fontSize: number): string[
   return lines;
 }
 
-function transformedBounds(element: SVGGraphicsElement) {
-  const bounds = element.getBBox();
-  const matrix = element.getCTM();
-  if (!matrix) return bounds;
+type FinancialBounds = { x: number; y: number; width: number; height: number };
+
+function boundsInMatrix(bounds: FinancialBounds, matrix: DOMMatrix) {
   const corners = [
     new DOMPoint(bounds.x, bounds.y), new DOMPoint(bounds.x + bounds.width, bounds.y),
     new DOMPoint(bounds.x, bounds.y + bounds.height), new DOMPoint(bounds.x + bounds.width, bounds.y + bounds.height),
@@ -377,6 +376,26 @@ function transformedBounds(element: SVGGraphicsElement) {
   const top = Math.min(...corners.map(({ y }) => y));
   const bottom = Math.max(...corners.map(({ y }) => y));
   return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+function transformedBounds(element: SVGGraphicsElement) {
+  const bounds = element.getBBox();
+  const matrix = element.getCTM();
+  return matrix ? boundsInMatrix(bounds, matrix) : bounds;
+}
+
+export function assertFinancialPlotUnclipped(plot: FinancialBounds, clip: FinancialBounds, line: FinancialBounds): void {
+  const tolerance = 0.1; // SVG 包围盒使用浮点数；允许亚像素舍入，不允许整体位移错位。
+  const details = () => `绘图区=${JSON.stringify(plot)}，裁剪=${JSON.stringify(clip)}，历史折线=${JSON.stringify(line)}`;
+  if (Math.abs(plot.x - clip.x) > tolerance || Math.abs(plot.y - clip.y) > tolerance
+    || Math.abs(plot.width - clip.width) > tolerance || Math.abs(plot.height - clip.height) > tolerance) {
+    throw new Error(`金融折线裁剪区域与绘图区错位：${details()}`);
+  }
+  if (line.x < clip.x - tolerance || line.y < clip.y - tolerance
+    || line.x + line.width > clip.x + clip.width + tolerance
+    || line.y + line.height > clip.y + clip.height + tolerance) {
+    throw new Error(`金融历史折线超出有效裁剪范围：${details()}`);
+  }
 }
 
 export function canvasCenterOffset(bounds: { y: number; height: number }): number {
@@ -403,7 +422,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const titleWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left;
   const titleFontSize = Math.min(48, (titleWidth / measuredTextWidth(title, 48)) * 48);
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
-  const graphTop = 520;
+  const graphTop = PLOT.top;
   const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
   const liveDate = latest ? displayDate(latest.date) : '';
   const year = (latest?.date ?? plan.axis.dateRange[0]).slice(0, 4);
@@ -455,6 +474,28 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       }
       checkedLayoutKeyRef.current = contentLayoutKey;
     }
+    const polyline = svg.querySelector<SVGPolylineElement>('[data-m2v-visible-value-points]');
+    if (polyline) {
+      const clipRect = svg.querySelector<SVGRectElement>('#financial-plot rect');
+      const clipReference = polyline.parentNode;
+      const clipReferenceMatrix = clipReference instanceof SVGGraphicsElement ? clipReference.getCTM() : null;
+      const clipDefinitionMatrix = clipRect?.getCTM();
+      const svgMatrix = svg.getCTM();
+      const contentMatrix = contentLayer.getCTM();
+      if (!clipRect || !clipReferenceMatrix || !clipDefinitionMatrix || !svgMatrix || !contentMatrix
+        || clipRect.parentElement?.getAttribute('clipPathUnits') !== 'userSpaceOnUse') {
+        throw new Error('金融折线缺少有效的 userSpaceOnUse 裁剪区域或坐标变换');
+      }
+      // userSpaceOnUse 使用引用组的坐标系。先移除 defs 的 SVG 根变换，
+      // 再接入引用组变换，得到包含裁剪定义自身变换的真正有效裁剪边界。
+      const effectiveClipMatrix = clipReferenceMatrix.multiply(svgMatrix.inverse()).multiply(clipDefinitionMatrix);
+      // getBBox 返回未经裁剪的全部历史几何边界，既检查当前端点也检查历史峰谷。
+      assertFinancialPlotUnclipped(
+        boundsInMatrix({ x: PLOT.left, y: PLOT.top, width: PLOT.right - PLOT.left, height: PLOT.bottom - PLOT.top }, contentMatrix),
+        boundsInMatrix(clipRect.getBBox(), effectiveClipMatrix),
+        transformedBounds(polyline),
+      );
+    }
     if (frame % 5 !== 0 && frame !== props.durationInFrames - 1) return;
     for (const element of svg.querySelectorAll('text')) {
       const bounds = transformedBounds(element);
@@ -479,7 +520,6 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       }
     }
     const endpoint = svg.querySelector<SVGCircleElement>('[data-m2v-financial-endpoint="true"]');
-    const polyline = svg.querySelector<SVGPolylineElement>('[data-m2v-visible-value-points]');
     if (endpoint && polyline && !(polyline.compareDocumentPosition(endpoint) & Node.DOCUMENT_POSITION_FOLLOWING)) {
       throw new Error('金融曲线端点必须绘制在完整历史折线上方');
     }
@@ -487,7 +527,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
 
   return <AbsoluteFill style={{ background: '#080d17', color: '#eef4fc', fontFamily: 'Inter, "Noto Sans SC", sans-serif' }} data-m2v-financial="line">
     <svg ref={svgRef} width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" data-m2v-financial="line" aria-label={`${displayName} 假设投资价值演变图`} data-m2v-window-start={windowStart} data-m2v-window-end={view.windowEnd}>
-      <defs><clipPath id="financial-plot"><rect x={PLOT.left} y={graphTop + contentOffsetY} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
+      {/* 裁剪和折线共用局部坐标，引用元素的整体变换会同时移动两者。 */}
+      <defs><clipPath id="financial-plot" clipPathUnits="userSpaceOnUse"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath></defs>
       <g ref={contentLayerRef} data-m2v-content-layer="true" data-m2v-content-offset-y={contentOffsetY} transform={`translate(0 ${contentOffsetY})`}>
       <text data-m2v-investment-title="true" x={WIDTH / 2} y="270" textAnchor="middle" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
       <text data-m2v-live-year="true" x={LAYOUT_BOUNDS.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
