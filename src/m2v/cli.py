@@ -51,6 +51,9 @@ def _parser() -> argparse.ArgumentParser:
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)
     migrate.add_argument("--from", dest="source_format", required=True, choices=("article-v4", "financial"))
+    relocate = sub.add_parser("relocate", help="将单个作品移动到按视频类型分层的标准目录")
+    relocate.add_argument("--project", required=True, help="旧的 videos/<slug> 作品目录")
+    relocate.add_argument("--content-root", help="工作区根；省略时取 M2V_CONTENT_ROOT 或仓库根")
     article = sub.add_parser("article", help="文章类型的语义审查与候选稿操作")
     article.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal"))
     article.add_argument("options", nargs=argparse.REMAINDER)
@@ -175,8 +178,18 @@ def main(argv: list[str] | None = None) -> int:
             entry = catalog.catalog().get(item.name)
             project_dir = Path(args.project).expanduser()
             content_root = args.content_root or os.environ.get("M2V_CONTENT_ROOT")
-            if content_root and not project_dir.is_absolute():
-                project_dir = Path(content_root).expanduser() / project_dir
+            workspace = Path(content_root).expanduser().resolve() if content_root else Path(__file__).resolve().parents[2]
+            if not project_dir.is_absolute():
+                if len(project_dir.parts) == 1:
+                    project_dir = workspace / "videos" / item.name / project_dir
+                elif len(project_dir.parts) == 2 and project_dir.parts[0] == "videos":
+                    raise M2VError(f"作品路径缺少类型目录：请使用 <slug> 或 videos/{item.name}/<slug>")
+                elif len(project_dir.parts) == 3 and project_dir.parts[0] == "videos":
+                    if project_dir.parts[1] != item.name:
+                        raise M2VError(f"作品路径类型目录与 --type 不一致：应为 videos/{item.name}/<slug>")
+                    project_dir = workspace / project_dir
+                else:
+                    project_dir = workspace / project_dir
             path = create_project(project_dir, item.name, entry.material_map())
             root = path.parent
             # 材料文件名与初始内容都取自类型目录：这里是写盘，不是第二处事实。
@@ -190,8 +203,14 @@ def main(argv: list[str] | None = None) -> int:
             from m2v.types.migration import migrate
             migrate(Path(args.project), args.source_format)
             return 0
+        if args.command == "relocate":
+            from m2v.types.relocation import relocate
+            result = relocate(Path(args.project), content_root=args.content_root)
+            print(result.message)
+            return 0
         root, manifest = load_project(args.project)
         video_type = registry.get(manifest["type"])
+        _validate_project_location(root, manifest)
         if args.command == "validate":
             video_type.validate(root, manifest)
             print("材料校验通过")
@@ -217,11 +236,9 @@ def main(argv: list[str] | None = None) -> int:
                 if not output_path.is_file():
                     raise M2VError(f"正式渲染没有生成成片：{output_path}")
                 expected_outputs = (root / "outputs").resolve()
-                # Shipped article examples keep their run products under videos/examples.
+                # Shipped examples keep run products outside their versioned source tree.
                 if root.parent.name == "examples":
-                    example_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
-                    if output_path.parent == example_outputs:
-                        expected_outputs = example_outputs
+                    expected_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
                 failures = cleanup_after_render(expected_outputs, output_path,
                     preserve_previews=manifest["type"] == "financial-timeseries")
                 if failures:
@@ -282,10 +299,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except M2VError as exc:
         print(f"[error] {exc}", file=sys.stderr)
-        return 1 if args.command not in {"init", "migrate"} else 2
+        return 1 if args.command not in {"init", "migrate", "relocate"} else 2
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f"[error] 参数或材料错误：{exc}", file=sys.stderr)
         return 2
+
+
+def _validate_project_location(root: Path, manifest: dict) -> None:
+    """Reject a project whose declared type disagrees with its canonical path."""
+    if root.parent.name not in {"videos", "examples"} and root.parent.parent.name == "videos":
+        expected_type = root.parent.name
+        if expected_type != manifest["type"]:
+            raise M2VError(
+                f"作品类型目录不匹配：project.json 声明 {manifest['type']}，"
+                f"实际位于 videos/{expected_type}/{root.name}；请执行 m2v relocate"
+            )
 
 
 if __name__ == "__main__":

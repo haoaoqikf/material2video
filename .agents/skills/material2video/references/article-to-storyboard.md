@@ -32,13 +32,13 @@
 ## 常用校验
 
 ```bash
-uv run m2v validate --project videos/<slug>
-uv run m2v prepare --project videos/<slug>
-uv run m2v preview --project videos/<slug>
-uv run m2v article status --storyboard videos/<slug>/storyboard.json
-uv run m2v review-template --project videos/<slug>
-uv run m2v review --project videos/<slug>
-uv run m2v render --project videos/<slug>
+uv run m2v validate --project videos/article-narrative/<slug>
+uv run m2v prepare --project videos/article-narrative/<slug>
+uv run m2v preview --project videos/article-narrative/<slug>
+uv run m2v article status --storyboard videos/article-narrative/<slug>/storyboard.json
+uv run m2v review-template --project videos/article-narrative/<slug>
+uv run m2v review --project videos/article-narrative/<slug>
+uv run m2v render --project videos/article-narrative/<slug>
 ```
 
 完整字段、边界和一份结构样例见[分镜脚本结构](storyboard-schema.md)；时长、输入审查、媒体、渲染及评审操作分别见[输入文章审查](input-review.md)、[媒体契约](media-contract.md)、[渲染契约](render-contract.md)和[视觉评审量表](visual-review-rubric.md)。

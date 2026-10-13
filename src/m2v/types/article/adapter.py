@@ -24,6 +24,8 @@ def _storyboard(root: Path, project: dict) -> Path:
 
 def _content_root(root: Path) -> Path | None:
     """Resolve the legacy article workspace from a canonical project location."""
+    if root.parent.parent.name == "videos":
+        return root.parent.parent.parent.resolve()
     if root.parent.name in {"videos", "examples"}:
         return root.parent.parent.resolve()
     return paths.content_root()

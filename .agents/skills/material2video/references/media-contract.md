@@ -13,11 +13,11 @@
 入口：
 
 ```bash
-uv run m2v prepare --project videos/<slug>
-uv run m2v validate --project videos/<slug>
-uv run m2v preview --project videos/<slug>
-uv run m2v review-template --project videos/<slug>
-uv run m2v render --project videos/<slug>
+uv run m2v prepare --project videos/article-narrative/<slug>
+uv run m2v validate --project videos/article-narrative/<slug>
+uv run m2v preview --project videos/article-narrative/<slug>
+uv run m2v review-template --project videos/article-narrative/<slug>
+uv run m2v render --project videos/article-narrative/<slug>
 ```
 
 ## 工作流
@@ -101,7 +101,7 @@ composition 会退回无声等比例估算，字幕却按真实词边界走，�
 
 准备过程在输出目录内写临时文件；统一音轨和 SRT 使用新资源名，最后原子替换 `media.json`。
 失败保留上次可用清单。旧资源为避免破坏已打开的预览不自动删除；不再使用后可清理整个输出目录。
-清单与音轨属于哪篇文章，由它所在的 `videos/<slug>/outputs/media/` 目录决定：渲染时若 `--media`
+清单与音轨属于哪篇文章，由它所在的 `videos/<type>/<slug>/outputs/media/` 目录决定：渲染时若 `--media`
 不在当前文章的媒体目录内，直接报错而不是跨文章合成。
 请将产物放在已忽略的 `outputs/`，生成媒体、清单和缓存均不提交 Git。
 

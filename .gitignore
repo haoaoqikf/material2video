@@ -45,8 +45,8 @@ credentials/
 
 # Generated renders and media
 outputs/
-# 作品产物与源内容统一位于 videos/ 下，仍不纳入版本控制。
-/videos/**/outputs/
+# 作品按视频类型分层；源内容、迁移备份与其下产物均不纳入版本控制。
+/videos/
 renders/
 recordings/
 work/
@@ -61,10 +61,8 @@ work/
 !examples/buffer-smoothing/assets/drop.wav
 
 # Article content: 文章内容不入库
-# 文章目录（`videos/<slug>/`：原文、分镜、专属网页）是作品内容，不进版本控制。
-# 想放仓库外时配 M2V_CONTENT_ROOT 或 --content-root 指向内容根；产物随之
-# 落在内容根的 outputs/<slug>/ 下，仓库里不会留下成片。
-/videos/
+# 作品目录（`videos/<type>/<slug>/`：材料、专属网页与 outputs）是内容，不进版本控制。
+# 想放仓库外时配 M2V_CONTENT_ROOT 或 --content-root 指向内容根。
 # 候选稿与用户明确采用的工作副本属于作品内容，不进入 Git；article.md 原文保持不变。
 /examples/*/article.candidate.md
 /examples/*/article.accepted.md

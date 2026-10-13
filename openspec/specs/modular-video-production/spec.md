@@ -5,11 +5,15 @@
 ## Requirements
 
 ### Requirement: 统一作品及制作入口
-系统 MUST 支持 project.json v1 和 m2v types/init/validate/prepare/preview/review-template/review/status/render/migrate；作品相对材料以作品根解析，类型材料独立。退出码 MUST 区分成功0、执行或门禁失败1、材料或参数错误2。
+系统 MUST 支持 project.json v1 和 m2v types/init/validate/prepare/preview/review-template/review/status/render/migrate/relocate；`m2v init` MUST 将作品初始化到 `videos/<type>/<slug>/`；作品相对材料以作品根解析，类型材料独立。退出码 MUST 区分成功0、执行或门禁失败1、材料或参数错误2。
 
 #### Scenario: 材料归属与未知类型
 - **WHEN** 在不同工作目录操作作品或传入未知类型/版本
 - **THEN** 已知作品归属稳定，未知类型或版本在渲染前失败
+
+#### Scenario: 按类型初始化作品
+- **WHEN** 在工作区根对某个已登记类型执行 `m2v init --type general --project <slug>`
+- **THEN** 作品和初始化材料创建在 `videos/general/<slug>/`
 
 #### Scenario: 仓库自带示例走统一入口
 - **WHEN** 用统一入口对仓库 `examples/<slug>/` 下的示例作品执行 prepare、preview 或 render
@@ -48,8 +52,20 @@
 - **WHEN** 新成片已验收，但一个或多个旧产物无法删除
 - **THEN** 保留新成片并报告清理失败及未删除路径，不影响新成片交付状态
 
+### Requirement: 逐作品路径迁移
+
+系统 MUST 支持对已有统一契约作品逐个执行 `m2v relocate --project videos/<slug>`，按 `project.json` 中已登记的类型将其移入 `videos/<type>/<slug>/`。迁移 MUST 在移动前创建包含完整旧目录的备份，并保持源材料、项目描述和整个 `outputs/` 的相对路径。目标已有同路径文件时 MUST 保留目标、将冲突源文件留在旧目录并报告；其他文件继续移动。迁移 MUST 可重跑以继续处理冲突，且不得覆盖目标文件。仓库外内容根 SHALL 可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 指定。
+
+#### Scenario: 迁移统一契约作品路径
+- **WHEN** 用户对 `videos/<slug>/` 下的作品执行路径迁移
+- **THEN** 作品移动至 `videos/<project.type>/<slug>/`，完整备份旧目录，并保留其全部产物
+
+#### Scenario: 目标文件冲突及重试
+- **WHEN** 目标目录已有同路径文件，且用户处理后重试旧目录
+- **THEN** 目标版本始终不被覆盖，未冲突文件完成迁移，冲突源文件得到报告并在旧目录保留直至可迁移
+
 ### Requirement: 显式迁移
-系统 MUST 校验并完整备份旧作品后迁移，拒绝重复迁移覆盖、未知材料、文章v1-v3；保留历史成片，旧准备和评审不能授权新正式导出。旧制作脚本 MUST 下线。
+系统 MUST 校验并完整备份旧作品后迁移，拒绝重复迁移覆盖、未知材料、文章v1-v3；材料格式迁移使用 `migrate --from`，与路径迁移 `relocate` 分开。保留历史成片，旧准备和评审不能授权新正式导出。旧制作脚本 MUST 下线。
 
 #### Scenario: 迁移旧作品
 - **WHEN** 用户迁移文章v4或当前金融作品

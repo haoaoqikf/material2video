@@ -13,8 +13,8 @@
 
 ```bash
 uv run m2v review \
-    --storyboard videos/<slug>/storyboard.json \
-    --media videos/<slug>/outputs/media/media.json
+    --storyboard videos/article-narrative/<slug>/storyboard.json \
+    --media videos/article-narrative/<slug>/outputs/media/media.json
 ```
 
 产出三样东西：

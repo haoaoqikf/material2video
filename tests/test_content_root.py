@@ -34,9 +34,9 @@ def make_repo(tmp_path: Path) -> Path:
 
 
 def make_content_root(tmp_path: Path, slug: str = "demo", script: dict | None = None) -> Path:
-    """内容根侧：与仓库同构的 `videos/<slug>/`。"""
+    """内容根侧：与仓库同构的 `videos/<type>/<slug>/`。"""
     content = tmp_path / "content"
-    article = content / "videos" / slug
+    article = content / "videos" / "article-narrative" / slug
     article.mkdir(parents=True, exist_ok=True)
     (article / "index.html").write_text("<!doctype html><html></html>", encoding="utf-8")
     if script is not None:
@@ -51,7 +51,7 @@ class TestContentRootResolution:
         """既不设参数也不设环境变量时，报错并点名两条设置方式。"""
         make_repo(tmp_path)
         content = make_content_root(tmp_path)
-        page = content / "videos" / "demo" / "index.html"
+        page = content / "videos" / "article-narrative" / "demo" / "index.html"
         with pytest.raises(M2VError) as excinfo:
             paths.for_page(page)
         message = str(excinfo.value)
@@ -60,7 +60,7 @@ class TestContentRootResolution:
     def test_explicit_content_root_resolves_the_article(self, tmp_path):
         repo = make_repo(tmp_path)
         content = make_content_root(tmp_path, script={"version": 1})
-        found = paths.for_page(content / "videos" / "demo" / "index.html", content)
+        found = paths.for_page(content / "videos" / "article-narrative" / "demo" / "index.html", content)
         # 页面在仓库之外，向上找不到标记：仓库根回退到正在运行的 bundle 所在处，
         # 因为被挂载的共享资产就是那一份。
         assert found.repo_root != repo
@@ -69,18 +69,18 @@ class TestContentRootResolution:
         assert found.workspace_root == content.resolve()
         assert found.kind == "article"
         assert found.slug == "demo"
-        assert found.source_dir == content / "videos" / "demo"
-        assert found.output_dir == content / "videos" / "demo" / "outputs"
-        assert found.media_dir == content / "videos" / "demo" / "outputs" / "media"
-        assert found.render_output(voiced=True) == content / "videos" / "demo" / "outputs" / "voiced.mp4"
+        assert found.source_dir == content / "videos" / "article-narrative" / "demo"
+        assert found.output_dir == content / "videos" / "article-narrative" / "demo" / "outputs"
+        assert found.media_dir == content / "videos" / "article-narrative" / "demo" / "outputs" / "media"
+        assert found.render_output(voiced=True) == content / "videos" / "article-narrative" / "demo" / "outputs" / "voiced.mp4"
 
     def test_environment_variable_is_honoured(self, tmp_path, monkeypatch):
         make_repo(tmp_path)
         content = make_content_root(tmp_path)
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
-        found = paths.for_page(content / "videos" / "demo" / "index.html")
+        found = paths.for_page(content / "videos" / "article-narrative" / "demo" / "index.html")
         assert found.workspace_root == content.resolve()
-        assert found.output_dir == content / "videos" / "demo" / "outputs"
+        assert found.output_dir == content / "videos" / "article-narrative" / "demo" / "outputs"
 
     def test_explicit_argument_beats_environment(self, tmp_path, monkeypatch):
         make_repo(tmp_path)
@@ -88,7 +88,7 @@ class TestContentRootResolution:
         elsewhere = tmp_path / "elsewhere"
         elsewhere.mkdir()
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(elsewhere))
-        found = paths.for_page(content / "videos" / "demo" / "index.html", content)
+        found = paths.for_page(content / "videos" / "article-narrative" / "demo" / "index.html", content)
         assert found.workspace_root == content.resolve()
 
     def test_repo_internal_example_wins_over_content_root(self, tmp_path, monkeypatch):
@@ -104,10 +104,10 @@ class TestContentRootResolution:
     def test_storyboard_in_content_root_resolves_the_same_article(self, tmp_path, valid_script_v4):
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script_v4)
-        source = content / "videos" / "demo" / "storyboard.json"
-        assert paths.for_storyboard(source, content).output_dir == content / "videos" / "demo" / "outputs"
+        source = content / "videos" / "article-narrative" / "demo" / "storyboard.json"
+        assert paths.for_storyboard(source, content).output_dir == content / "videos" / "article-narrative" / "demo" / "outputs"
         assert paths.for_page(
-            content / "videos" / "demo" / "index.html", content
+            content / "videos" / "article-narrative" / "demo" / "index.html", content
         ).source_dir == paths.for_storyboard(source, content).source_dir
 
     def test_article_outside_both_roots_is_rejected(self, tmp_path):
@@ -124,7 +124,7 @@ class TestContentRootResolution:
 class TestContentRootReachesTheEntryPoints:
     def _render_args(self, content: Path, *extra: str):
         return cli._build_render_parser().parse_args(
-            ["--storyboard", str(content / "videos" / "demo" / "storyboard.json"), *extra]
+            ["--storyboard", str(content / "videos" / "article-narrative" / "demo" / "storyboard.json"), *extra]
         )
 
     def test_cli_argument_selects_the_content_root(self, tmp_path, valid_script_v4):
@@ -137,7 +137,7 @@ class TestContentRootReachesTheEntryPoints:
         assert report.ok, [issue.format() for issue in report.issues]
         model = cli._v4_model(valid_script_v4)
         output = cli._resolve_render_output(args, model, None, article)
-        assert output == content / "videos" / "demo" / "outputs" / "silent.mp4"
+        assert output == content / "videos" / "article-narrative" / "demo" / "outputs" / "silent.mp4"
 
     def test_environment_variable_reaches_the_entry_point(self, tmp_path, valid_script_v4, monkeypatch):
         make_repo(tmp_path)
@@ -145,7 +145,7 @@ class TestContentRootReachesTheEntryPoints:
         monkeypatch.setenv(paths.CONTENT_ROOT_ENV, str(content))
         args = self._render_args(content)
         article = cli._article_for(args, required=True)
-        assert article.output_dir == content / "videos" / "demo" / "outputs"
+        assert article.output_dir == content / "videos" / "article-narrative" / "demo" / "outputs"
 
     def test_cli_argument_beats_environment(self, tmp_path, valid_script_v4, monkeypatch):
         make_repo(tmp_path)
@@ -166,13 +166,13 @@ class TestContentRootReachesTheEntryPoints:
         """
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script_v4)
-        assert cli.main_render(["--storyboard", str(content / "videos" / "demo" / "storyboard.json")]) == 1
+        assert cli.main_render(["--storyboard", str(content / "videos" / "article-narrative" / "demo" / "storyboard.json")]) == 1
         assert paths.CONTENT_ROOT_ENV in caplog.text
         assert not (content / "outputs").exists()
         assert not (tmp_path / "repo" / "outputs").exists()
         # 作品目录与仓库两侧都不许出现猜测出来的产物目录
-        assert not (content / "videos" / "demo" / "outputs").exists()
-        assert not (tmp_path / "repo" / "videos" / "demo" / "outputs").exists()
+        assert not (content / "videos" / "article-narrative" / "demo" / "outputs").exists()
+        assert not (tmp_path / "repo" / "videos" / "article-narrative" / "demo" / "outputs").exists()
 
     def test_declarative_serve_root_follows_the_workspace(self, tmp_path, valid_script_v4):
         """共享页面在仓库里、分镜在内容根里：静态根必须是内容根。"""
@@ -180,7 +180,7 @@ class TestContentRootReachesTheEntryPoints:
 
         make_repo(tmp_path)
         content = make_content_root(tmp_path, script=valid_script_v4)
-        page = content / "videos" / "demo" / "index.html"
+        page = content / "videos" / "article-narrative" / "demo" / "index.html"
         assert _default_serve_root(page, content) == paths.for_page(page, content).workspace_root
         assert _default_serve_root(page, content) == content.resolve()
         # 不告诉它内容根时推不出来，只能退回网页所在目录——这也是为什么

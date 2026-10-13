@@ -37,14 +37,14 @@ v7 仍可读取及渲染，保持旧日期映射和 120 帧结尾；不能用 pl
 ## 命令
 
 ```powershell
-uv run m2v init --type financial-timeseries --project videos/<slug>
-uv run m2v validate --project videos/<slug>
-uv run m2v financial plan --project videos/<slug> --duration-seconds 60
-uv run m2v prepare --project videos/<slug>
-uv run m2v preview --project videos/<slug>
-uv run m2v render --project videos/<slug>
+uv run m2v init --type financial-timeseries --project <slug>
+uv run m2v validate --project videos/financial-timeseries/<slug>
+uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60
+uv run m2v prepare --project videos/financial-timeseries/<slug>
+uv run m2v preview --project videos/financial-timeseries/<slug>
+uv run m2v render --project videos/financial-timeseries/<slug>
 # 旧金融材料的迁移使用显式、备份优先的操作；先按当前材料契约核对迁移来源版本
-uv run m2v migrate --project videos/<slug> --from financial
+uv run m2v migrate --project videos/financial-timeseries/<slug> --from financial
 ```
 
 `init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后再生成计划并运行 `validate`。`--period` 和 `--window-months` 已移除，旧 v1–v6 计划或旧材料必须先运行 `migrate-line` 显式备份迁移。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，自动验收使用该绑定记录；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有记录，但也不能作为正式渲染的验收预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。

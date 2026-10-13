@@ -94,7 +94,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--out",
-        help="输出 MP4 路径；省略时按文章归属推导为 videos/<slug>/outputs/silent.mp4，"
+        help="输出 MP4 路径；省略时按文章归属推导为 videos/article-narrative/<slug>/outputs/silent.mp4，"
         "提供 --media 时为 voiced.mp4，配合 --limit-frames 时写入 previews/",
     )
     parser.add_argument("--media", help="m2v prepare 生成的媒体清单；需要 --storyboard")
@@ -118,7 +118,7 @@ def _build_render_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--limit-frames",
         type=int,
-        help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 videos/<slug>/outputs/previews/",
+        help="仅渲染前 N 帧，用于快速验证链路；省略 --out 时写入 videos/article-narrative/<slug>/outputs/previews/",
     )
     parser.add_argument("--frame-range", help="渲染 composition 的全局帧区间 start-end（审片输出）")
     parser.add_argument("--scale", type=float, default=1, help="输出缩放比例；仅供审片输出降低分辨率")
@@ -189,7 +189,7 @@ def _build_review_parser() -> argparse.ArgumentParser:
         help="文章所在的工作区根；省略时读环境变量 M2V_CONTENT_ROOT，都不设则为仓库根",
     )
     parser.add_argument("--media", help="配音媒体清单；提供后按真实时长抽帧")
-    parser.add_argument("--out-dir", help="体检产物目录；省略时写入 videos/<slug>/outputs/inspect")
+    parser.add_argument("--out-dir", help="体检产物目录；省略时写入 videos/article-narrative/<slug>/outputs/inspect")
     parser.add_argument("--timeout", type=int, default=30000, help="页面加载超时毫秒数")
     parser.add_argument(
         "--check-determinism",
@@ -1095,8 +1095,8 @@ def _font_findings(page_file: Path, args) -> list[dict]:
 def _rendered_provenance(out_dir: Path) -> dict:
     """这个作品的成片是不是旧资产渲的。
 
-    成片与体检产物同属一个作品目录（`videos/<slug>/outputs/voiced.mp4` 对
-    `videos/<slug>/outputs/inspect/`），所以从体检目录往上一级找成片。
+    成片与体检产物同属一个作品目录（`videos/article-narrative/<slug>/outputs/voiced.mp4` 对
+    `videos/article-narrative/<slug>/outputs/inspect/`），所以从体检目录往上一级找成片。
     它只回答「产物是不是旧的」，**不参与错误数与退出码**——
     「不够发布会级」和「这些片子不是最新资产渲的」都不是「画面坏了」。
     没有成片时返回空表，不报「无法判断」：还没渲过不是问题。
@@ -1282,7 +1282,7 @@ def main_prepare(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--out-dir",
-        help="媒体输出目录；省略时按文章归属推导为 videos/<slug>/outputs/media",
+        help="媒体输出目录；省略时按文章归属推导为 videos/article-narrative/<slug>/outputs/media",
     )
     parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
     parser.add_argument("--rate", default="+0%", help="语速，例如 --rate=-10%%")

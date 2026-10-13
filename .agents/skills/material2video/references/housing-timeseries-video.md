@@ -5,18 +5,18 @@
 ## 工作流
 
 ```powershell
-uv run m2v init --type housing-timeseries --project videos/<slug>
+uv run m2v init --type housing-timeseries --project <slug>
 # 编辑 series.json，放入连续年份、住宅销售额/面积、均价、来源和口径说明
-uv run m2v validate --project videos/<slug>
-uv run m2v prepare --project videos/<slug>
-uv run m2v preview --project videos/<slug>
+uv run m2v validate --project videos/housing-timeseries/<slug>
+uv run m2v prepare --project videos/housing-timeseries/<slug>
+uv run m2v preview --project videos/housing-timeseries/<slug>
 # 查看完整预演，按 outputs/review.json 的全部准则填写评审结论
-uv run m2v review-template --project videos/<slug>
-uv run m2v review --project videos/<slug>
-uv run m2v render --project videos/<slug>
+uv run m2v review-template --project videos/housing-timeseries/<slug>
+uv run m2v review --project videos/housing-timeseries/<slug>
+uv run m2v render --project videos/housing-timeseries/<slug>
 ```
 
-作品材料与成片属于内容，应放在仓库外内容根或被忽略的 `videos/<slug>/`；不得提交房价工作材料和生成媒体。
+作品材料与成片属于内容，应放在仓库外内容根或被忽略的 `videos/<type>/<slug>/`；不得提交房价工作材料和生成媒体。
 
 ## `series.json` 契约
 

@@ -4,11 +4,11 @@
 
 ```text
 仓库根 repo_root        # .agents/skills/material2video/SKILL.md 所在处：脚本、共享资产、examples
-工作区根 workspace_root # 存放 videos|examples/<slug> 与作品产物的目录
+工作区根 workspace_root # 存放 videos/<type>/<slug>、examples/<slug> 与作品产物的目录
 
-<workspace>/videos/<slug>/{article.md, storyboard.json, index.html}
+<workspace>/videos/<type>/<slug>/{article.md, storyboard.json, index.html}
 <workspace>/examples/<slug>/...          # 与 videos/ 同构的示例（仓库自带，随仓库分发）
-<workspace>/videos/<slug>/outputs/{silent,voiced}.mp4, voiced.srt, media/, previews/
+<workspace>/videos/<type>/<slug>/outputs/{silent,voiced}.mp4, voiced.srt, media/, previews/
 <workspace>/videos/examples/<slug>/outputs/...  # 示例产物独立一层
 ```
 
@@ -161,12 +161,11 @@ def content_root(explicit: str | Path | None = None) -> Path | None:
 
 
 def locate_article(root: str | Path, path: str | Path) -> tuple[ArticleKind, str]:
-    """判定 `path` 属于工作区根下的哪个文章目录，返回 (类型, slug)。
+    """判定 `path` 属于工作区根下的哪个文章目录，返回 (归属类别, slug)。
 
     `path` 可以是文章目录本身，也可以是它内部的任意文件（例如
-    `videos/<slug>/assets/page.html` 仍归属该文章）。判据是祖先中存在
-    `<root>/videos/<slug>` 或 `<root>/examples/<slug>`；再深的层级不会被
-    误判成 slug，因为 slug 必须直接挂在 `videos/` 或 `examples/` 下。
+    `videos/article-narrative/demo/assets/page.html` 仍归属该文章）。正式作品位于
+    `<root>/videos/<type>/<slug>`，示例源位于 `<root>/examples/<slug>`。
     """
     root = Path(root).resolve()
     candidate = Path(path)
@@ -177,15 +176,16 @@ def locate_article(root: str | Path, path: str | Path) -> tuple[ArticleKind, str
         raise M2VError(f"无法解析路径 {start}: {exc}") from exc
 
     for directory in (current, *current.parents):
-        # 文章目录是 slug 那一层，相对 root 恰好两段：<videos|examples>/<slug>。
-        # 因此判据是「父目录名属于 videos/examples，且 slug 目录直接挂在 root 下」，
-        # 而不是「这个目录本身叫 videos/examples」。
-        kind = SOURCE_KINDS.get(directory.parent.name)
-        if kind is not None and _depth_under(root, directory) == 2:
-            return kind, directory.name  # type: ignore[return-value]
+        parts = _relative_parts(root, directory)
+        if parts is None:
+            continue
+        if len(parts) >= 3 and parts[0] == "videos":
+            return "article", parts[2]
+        if len(parts) >= 2 and parts[0] == "examples":
+            return "example", parts[1]
 
     raise M2VError(
-        f"无法推导文章归属：{start} 不是工作区根 {root} 下的 videos/<slug>/ 或 examples/<slug>/，"
+        f"无法推导文章归属：{start} 不是工作区根 {root} 下的 videos/<type>/<slug>/ 或 examples/<slug>/，"
         "请使用规范目录或显式指定输出路径"
     )
 
@@ -196,6 +196,13 @@ def _depth_under(root: Path, directory: Path) -> int:
         return len(directory.relative_to(root).parts)
     except ValueError:
         return -1
+
+
+def _relative_parts(root: Path, directory: Path) -> tuple[str, ...] | None:
+    try:
+        return directory.relative_to(root).parts
+    except ValueError:
+        return None
 
 
 def _belongs_to(root: Path, path: str | Path) -> bool:
@@ -224,14 +231,14 @@ def workspace_root_for(
         return external
     raise M2VError(
         f"无法推导文章归属：{_start_of(path)} 既不在仓库根 {repo} 的 "
-        "videos/<slug>/ 或 examples/<slug>/ 内，"
+        "videos/<type>/<slug>/ 或 examples/<slug>/ 内，"
         + (
             f"也不在内容根 {external} 的同构目录内。"
             if external is not None
             else "也没有可用的内容根。"
         )
         + f"内容根用 --content-root 或环境变量 {CONTENT_ROOT_ENV} 指定，"
-        "指向存放 videos/<slug>/ 与其 outputs/ 子目录的目录"
+        "指向存放 videos/<type>/<slug>/ 与其 outputs/ 子目录的目录"
     )
 
 
@@ -250,15 +257,16 @@ def article_paths(
     kind, slug = locate_article(workspace, path)
     if kind == "example":
         # 示例源文件仍兼容 examples/<slug>/，但产物统一放到 videos/examples 下，
-        # 与正式作品的 videos/<slug>/outputs 结构保持一致且避免同名覆盖。
+        # 与正式作品的 videos/<type>/<slug>/outputs 结构保持一致且避免同名覆盖。
         output_dir = workspace / "videos" / "examples" / slug / OUTPUTS_DIR
     else:
-        output_dir = workspace / "videos" / slug / OUTPUTS_DIR
+        type_name = _video_type_for_source(workspace, path)
+        output_dir = workspace / "videos" / type_name / slug / OUTPUTS_DIR
     return ArticlePaths(
         repo_root=repo,
         workspace_root=workspace,
         kind=kind,
-        source_dir=workspace / source_dir_name(kind) / slug,
+        source_dir=_article_source_dir(workspace, kind, path, slug),
         output_dir=output_dir,
     )
 
@@ -269,6 +277,29 @@ def source_dir_name(kind: ArticleKind) -> str:
         if value == kind:
             return name
     raise M2VError(f"未知的文章归属类型: {kind}")  # pragma: no cover - 类型已收敛
+
+
+def _article_source_dir(workspace: Path, kind: ArticleKind, path: str | Path, slug: str) -> Path:
+    if kind == "example":
+        return workspace / "examples" / slug
+    candidate = Path(path)
+    start = candidate if candidate.is_dir() else candidate.parent
+    for directory in (start.resolve(), *start.resolve().parents):
+        parts = _relative_parts(workspace.resolve(), directory)
+        if parts and len(parts) >= 3 and parts[0] == "videos":
+            return workspace / "videos" / parts[1] / slug
+    raise M2VError(f"无法从作品路径推导源目录：{path}")
+
+
+def _video_type_for_source(workspace: Path, path: str | Path) -> str:
+    """取规范作品目录中的视频类型层。"""
+    candidate = Path(path)
+    start = candidate if candidate.is_dir() else candidate.parent
+    for directory in (start.resolve(), *start.resolve().parents):
+        parts = _relative_parts(workspace.resolve(), directory)
+        if parts and len(parts) >= 3 and parts[0] == "videos":
+            return parts[1]
+    raise M2VError(f"无法从作品路径推导视频类型：{path}")
 
 
 def for_page(page: str | Path, content_root: str | Path | None = None) -> ArticlePaths:

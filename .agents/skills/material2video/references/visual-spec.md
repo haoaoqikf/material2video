@@ -323,7 +323,7 @@ composition 以分镜声明的尺寸原样挂载，不存在预览缩放这一�
 </div>
 ```
 
-本篇素材放在 `videos/<slug>/assets/`，由 `image` 原语的 `sourceRef` 引用；
+本篇素材放在 `videos/<type>/<slug>/assets/`，由 `image` 原语的 `sourceRef` 引用；
 不允许再写作品专属的画面代码，需要新表达时按原语注册表流程新增通用原语。
 
 ## 设计语言预设（可选）

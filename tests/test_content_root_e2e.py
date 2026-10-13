@@ -3,7 +3,7 @@
 这是内容根功能的验收线：分镜与产物都在仓库之外，画面由仓库 `web/` 里的
 契约页给出，两个根不同树，只能靠 `/__m2v_web__/` 别名接起来。
 
-    产物必须落在内容根的 `videos/<slug>/outputs/` 下，溯源要能读回来（版本 3 + 别名页键），
+    产物必须落在内容根的 `videos/<type>/<slug>/outputs/` 下，溯源要能读回来（版本 3 + 别名页键），
 否则「文章与仓库解耦」只是搬了个目录，验收时仍得回仓库里找。
 
 需要 Chromium 与 ffmpeg，属于慢用例。
@@ -30,8 +30,8 @@ pytestmark = pytest.mark.slow
 
 @pytest.fixture
 def content_root(tmp_path: Path) -> Path:
-    """仓库之外的内容根：`videos/demo/` 里放一份分镜。"""
-    article = tmp_path / "content" / "videos" / "demo"
+    """仓库之外的内容根：`videos/article-narrative/demo/` 里放一份分镜。"""
+    article = tmp_path / "content" / "videos" / "article-narrative" / "demo"
     article.mkdir(parents=True)
     shutil.copyfile(DECLARATIVE, article / "storyboard.json")
     scenes = article / "scenes"
@@ -67,16 +67,16 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     """共享页面 + 内容根分镜：页面与分镜分处两个根，仍要渲得出来。"""
     assert cli.main_render(
         [
-            "--storyboard", str(content_root / "videos" / "demo" / "storyboard.json"),
+            "--storyboard", str(content_root / "videos" / "article-narrative" / "demo" / "storyboard.json"),
             "--content-root", str(content_root),
-            "--media", str(content_root / "videos" / "demo" / "outputs" / "media" / "media.json"),
+            "--media", str(content_root / "videos" / "article-narrative" / "demo" / "outputs" / "media" / "media.json"),
             "--limit-frames", "2",
             "--preset", "ultrafast",
             "--no-probe",
         ]
     ) == 0
 
-    video = content_root / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4"
+    video = content_root / "videos" / "article-narrative" / "demo" / "outputs" / "previews" / "voiced.mp4"
     assert video.is_file() and video.stat().st_size > 0
     assert not (ROOT / "outputs" / "demo").exists(), "产物不得落回仓库"
 
@@ -84,10 +84,10 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     # version 4 起区分画面来源；默认路径由 Remotion composition 渲染。
     assert sidecar["version"] == 4
     assert sidecar["renderer"] == "remotion"
-    # 产物在 videos/demo/outputs/previews/ 下：指回内容根要上四层
+    # 产物在 videos/article-narrative/demo/outputs/previews/ 下：指回内容根要上四层
     assert sidecar["workspace"] == "../../../.."
     assert sidecar["page"] == "index.ts"
-    assert sidecar["storyboard"] == "videos/demo/storyboard.json"
+    assert sidecar["storyboard"] == "videos/article-narrative/demo/storyboard.json"
     assert "__m2v_web__/src/compositions/M2VComposition.tsx" in sidecar["assets"]["files"]
     # 下一页运行复核时不需要仓库标记、也不需要内容根参数
     assert provenance_status(video)["status"] == "current"
@@ -98,11 +98,11 @@ def test_environment_variable_alone_is_enough(chromium_ready, content_root, monk
     monkeypatch.setenv("M2V_CONTENT_ROOT", str(content_root))
     assert cli.main_render(
         [
-            "--storyboard", str(content_root / "videos" / "demo" / "storyboard.json"),
-            "--media", str(content_root / "videos" / "demo" / "outputs" / "media" / "media.json"),
+            "--storyboard", str(content_root / "videos" / "article-narrative" / "demo" / "storyboard.json"),
+            "--media", str(content_root / "videos" / "article-narrative" / "demo" / "outputs" / "media" / "media.json"),
             "--limit-frames", "2",
             "--preset", "ultrafast",
             "--no-probe",
         ]
     ) == 0
-    assert (content_root / "videos" / "demo" / "outputs" / "previews" / "voiced.mp4").is_file()
+    assert (content_root / "videos" / "article-narrative" / "demo" / "outputs" / "previews" / "voiced.mp4").is_file()

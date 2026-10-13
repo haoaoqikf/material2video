@@ -20,7 +20,10 @@ EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples" / "buffer-smooth
 SKILL_MARKER = Path(".agents/skills/material2video/SKILL.md")
 
 
-def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = None) -> Path:
+def make_project(
+    tmp_path: Path, kind: str, slug: str, script: dict | None = None,
+    video_type: str = "article-narrative",
+) -> Path:
     """在 tmp_path 下搭一个最小的规范项目，返回文章目录。
 
     kind 取 "videos" 或 "examples"；script 提供时写入 storyboard.json。
@@ -30,7 +33,7 @@ def make_project(tmp_path: Path, kind: str, slug: str, script: dict | None = Non
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text("# material2video skill", encoding="utf-8")
 
-    article = tmp_path / kind / slug
+    article = (tmp_path / kind / video_type / slug) if kind == "videos" else (tmp_path / kind / slug)
     article.mkdir(parents=True, exist_ok=True)
     (article / "index.html").write_text("<!doctype html><html></html>", encoding="utf-8")
     if script is not None:

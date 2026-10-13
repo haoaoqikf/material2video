@@ -11,6 +11,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import load_project
 from m2v.cli import _require_review, _review_criteria
 from m2v.types.migration import migrate
+from m2v.types.relocation import relocate
 from m2v.types import registry
 from m2v.types.registry import VideoType
 from conftest import create_typed_project, register_synthetic_type, v4_storyboard
@@ -18,12 +19,100 @@ from conftest import create_typed_project, register_synthetic_type, v4_storyboar
 
 def test_init_writes_all_financial_material_templates_under_content_root(tmp_path: Path) -> None:
     root = tmp_path / "content"
-    assert main(["init", "--type", "financial-timeseries", "--project", "videos/demo", "--content-root", str(root)]) == 0
-    project_root, manifest = load_project(root / "videos" / "demo")
+    assert main(["init", "--type", "financial-timeseries", "--project", "demo", "--content-root", str(root)]) == 0
+    project_root, manifest = load_project(root / "videos" / "financial-timeseries" / "demo")
     assert set(manifest["materials"]) == {"request", "prices", "plan"}
     assert all((project_root / name).is_file() for name in manifest["materials"].values())
     with open(project_root / "animation-plan.json", encoding="utf-8") as stream:
         assert json.load(stream)["schemaVersion"] == 8
+
+
+def test_init_accepts_explicit_canonical_type_path(tmp_path: Path) -> None:
+    root = tmp_path / "content"
+    assert main(["init", "--type", "general", "--project", "videos/general/demo", "--content-root", str(root)]) == 0
+    assert (root / "videos" / "general" / "demo" / "project.json").is_file()
+
+
+def test_init_rejects_wrong_or_incomplete_type_path(tmp_path: Path) -> None:
+    root = tmp_path / "content"
+    assert main(["init", "--type", "general", "--project", "videos/financial-timeseries/demo", "--content-root", str(root)]) == 2
+    assert main(["init", "--type", "general", "--project", "videos/demo", "--content-root", str(root)]) == 2
+
+
+def test_relocate_moves_project_and_outputs_with_complete_backup(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    create_typed_project(root / "videos" / "demo", "financial-timeseries")
+    source = root / "videos" / "demo"
+    (source / "outputs" / "media").mkdir(parents=True)
+    (source / "outputs" / "media" / "media.json").write_text("{}", encoding="utf-8")
+    original_files = {p.relative_to(source).as_posix(): p.read_bytes() for p in source.rglob("*") if p.is_file()}
+
+    result = relocate(source)
+
+    assert result.target == root / "videos" / "financial-timeseries" / "demo"
+    assert not source.exists()
+    assert {p.relative_to(result.target).as_posix(): p.read_bytes() for p in result.target.rglob("*") if p.is_file()} == original_files
+    assert {p.relative_to(result.backup).as_posix(): p.read_bytes() for p in result.backup.rglob("*") if p.is_file()} == original_files
+
+
+def test_relocate_supports_external_content_root(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    marker = repo / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    content = tmp_path / "content"
+    source = content / "videos" / "demo"
+    create_typed_project(source, "article-narrative")
+
+    result = relocate(source, content_root=content)
+
+    assert result.target == content / "videos" / "article-narrative" / "demo"
+    assert not source.exists()
+    assert result.backup.is_dir()
+
+
+def test_relocate_keeps_conflicting_source_file_and_retries(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    create_typed_project(root / "videos" / "demo", "financial-timeseries")
+    source = root / "videos" / "demo"
+    (source / "unique.txt").write_text("move", encoding="utf-8")
+    target = root / "videos" / "financial-timeseries" / "demo"
+    target.mkdir(parents=True)
+    (target / "unique.txt").write_text("keep-target", encoding="utf-8")
+
+    first = relocate(source)
+    assert first.conflicts == (source / "unique.txt",)
+    assert (target / "unique.txt").read_text(encoding="utf-8") == "keep-target"
+    assert (source / "unique.txt").read_text(encoding="utf-8") == "move"
+    assert (target / "project.json").is_file()
+    assert len(list(source.parent.glob("demo.m2v-relocation-backup-*"))) == 1
+
+    (target / "unique.txt").unlink()
+    second = relocate(source)
+    assert not second.conflicts
+    assert not source.exists()
+    assert (target / "unique.txt").read_text(encoding="utf-8") == "move"
+    assert (target / "project.json").is_file()
+    assert first.backup == second.backup
+
+
+def test_relocate_rejects_non_project_source_without_moving_it(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    source = root / "videos" / "legacy"
+    source.mkdir(parents=True)
+    (source / "article.md").write_text("source", encoding="utf-8")
+    with pytest.raises(M2VError, match="project.json"):
+        relocate(source)
+    assert (source / "article.md").is_file()
 
 
 def test_article_v4_migration_is_backup_first_and_repeat_fails(tmp_path: Path) -> None:
