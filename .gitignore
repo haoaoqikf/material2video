@@ -9,6 +9,7 @@ build/
 .cache/
 .next/
 .pytest_cache/
+.pytest-tmp/
 __pycache__/
 *.py[cod]
 *.tsbuildinfo
