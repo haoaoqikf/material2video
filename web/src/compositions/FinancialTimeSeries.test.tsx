@@ -86,6 +86,26 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('data-m2v-risk-disclaimer="true"');
   });
 
+  it('renders only crypto rationale and legal notice when a legal notice is configured', () => {
+    const crypto = {
+      ...props,
+      request: { ...props.request, instrument: { ...props.request.instrument, kind: 'crypto' as const, name: 'Bitcoin', displayName: '比特币' },
+        investment: { year: 2020, principal: 100_000, date: '2020-01-03', currency: 'CNY' as const,
+          startRationale: '2011年5月回顾成交约949,515 BTC；月成交量不代表5月1日盘口深度，分批买入仍可能有滑点。',
+          legalStatusNotice: '在中国，比特币等虚拟货币不具有与法定货币等同的法律地位。' } },
+      prices: { ...props.prices, priceBasis: 'crypto-spot-close', points: [{ date: '2020-01-03', close: 10 }],
+        fx: { pair: 'USD/CNY' as const, points: [{ date: '2020-01-03', close: 7 }] } },
+    } as FinancialTimeSeriesProps;
+    testFrame.value = 1799;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...crypto} />);
+    expect(markup.match(/data-m2v-start-rationale="true"/gu)).toHaveLength(1);
+    expect(markup.match(/data-m2v-legal-status-notice="true"/gu)).toHaveLength(1);
+    expect(markup).not.toContain('data-m2v-summary="true"');
+    expect(markup).not.toContain('data-m2v-risk-disclaimer="true"');
+    expect(markup).toContain('月成交量不代表5月1日盘口深度');
+    expect(markup).toContain('在中国，比特币等虚拟货币不具有与法定货币等同的法律地位。');
+  });
+
   it('handles thirty years of daily data within the view-computation budget', () => {
     const start = Date.UTC(1990, 0, 1);
     const points = Array.from({ length: 11000 }, (_, index) => ({

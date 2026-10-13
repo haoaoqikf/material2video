@@ -14,7 +14,7 @@ export type FinancialPlan = {
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string } };
+  request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string; legalStatusNotice?: string } };
   prices: { schemaVersion: 3 | 4; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[]; fx?: { pair: 'USD/CNY'; points: FxPoint[] } };
   plan: FinancialPlan;
   durationInFrames: number; fps: 30; width: 1080; height: 1920;
@@ -479,9 +479,14 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const rationaleLines = isCrypto && investment.startRationale
     ? wrapSvgText(investment.startRationale, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 18) : [];
   if (rationaleLines.length > 2) throw new Error('起点说明超出两行容量');
-  const riskLines = wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20);
+  const legalNoticeLines = isCrypto && investment.legalStatusNotice
+    ? wrapSvgText(investment.legalStatusNotice, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20) : [];
+  if (legalNoticeLines.length > 2) throw new Error('法律地位说明超出两行容量');
+  const hasLegalNotice = legalNoticeLines.length > 0;
+  const summaryLinesToRender = isCrypto && hasLegalNotice ? [] : summaryLines;
+  const riskLines = hasLegalNotice ? [] : wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
-  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLines, rationaleLines, riskLines]);
+  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines]);
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
@@ -597,7 +602,8 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
       {latest && windowStart <= latest.date &&
         <circle data-m2v-financial-endpoint="true" cx={endpointX} cy={endpointY} r="8" fill={gainColor} stroke="#09213a" strokeWidth="3" />}
       {rationaleLines.map((line, index) => <text data-m2v-start-rationale="true" key={`rationale-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1310 : 0) + index * 24} fill="#9ba9bc" fontSize="18">{line}</text>)}
-      {summaryLines.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1370 : 1320) + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
+      {summaryLinesToRender.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1370 : 1320) + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
+      {legalNoticeLines.map((line, index) => <text data-m2v-legal-status-notice="true" key={`legal-notice-${index}`} x={LAYOUT_BOUNDS.left} y={1370 + index * 28} fill="#b9c7d9" fontSize="20">{line}</text>)}
       {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1510 : 1460) + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
       </g>
     </svg>

@@ -117,6 +117,21 @@ def test_crypto_material_v4_validates_daily_coverage_and_fx_snapshots(tmp_path):
     assert docs["prices"]["fx"]["points"][0]["date"] == "2020-01-03"
 
 
+@pytest.mark.parametrize("value", ["", "   ", "x" * 181, 123])
+def test_crypto_material_rejects_invalid_legal_status_notice(tmp_path, value):
+    root = crypto_project(tmp_path)
+    edit(root, "request.json", lambda data: data["investment"].update(legalStatusNotice=value))
+    with pytest.raises(M2VError, match="legalStatusNotice"):
+        financial.load_project(root)
+
+
+def test_stock_material_rejects_crypto_legal_status_notice(tmp_path):
+    root = project(tmp_path)
+    edit(root, "request.json", lambda data: data["investment"].update(legalStatusNotice="crypto only"))
+    with pytest.raises(M2VError, match="仅 crypto"):
+        financial.load_project(root)
+
+
 @pytest.mark.parametrize(
     ("file", "mutate", "message"),
     [

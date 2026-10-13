@@ -179,7 +179,12 @@ def _validate_request(request: dict[str, Any]) -> None:
         rationale = investment.get("startRationale")
         if rationale is not None and (not isinstance(rationale, str) or not rationale.strip() or len(rationale) > 180):
             _fail("request.json.investment.startRationale", "必须为 1～180 个字符的非空说明")
+        legal_notice = investment.get("legalStatusNotice")
+        if legal_notice is not None and (not isinstance(legal_notice, str) or not legal_notice.strip() or len(legal_notice) > 180):
+            _fail("request.json.investment.legalStatusNotice", "必须为 1～180 个字符的非空说明")
     else:
+        if "legalStatusNotice" in investment:
+            _fail("request.json.investment.legalStatusNotice", "仅 crypto 投资支持法律地位说明")
         year = investment.get("year")
         if isinstance(year, bool) or not isinstance(year, int) or year < display_dates[0].year or year > display_dates[1].year:
             _fail("request.json.investment.year", "必须是展示范围内的有效年份")
