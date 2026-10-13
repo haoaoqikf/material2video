@@ -55,8 +55,6 @@ def _parser() -> argparse.ArgumentParser:
         plan = sub.add_parser(command, help="生成折线编排" if command == "plan" else "备份旧材料，提取真实 close 并迁移为折线")
         plan.add_argument("--project-dir", required=True)
         plan.add_argument("--duration-seconds", type=int)
-    review = sub.add_parser("review-template", help="为折线全片评审生成绑定当前材料与资产的待填写模板")
-    review.add_argument("--project-dir", required=True)
     return parser
 
 
@@ -148,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds if args.duration_seconds is not None else 60)
-            print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；须重新完整预演与评审。")
+            print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；请重新 prepare 并通过完整预演自动验收。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)
@@ -159,25 +157,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "validate":
             print(f"金融视频材料校验通过：{root}")
             print(f"交易日 {len(docs['prices']['points'])} 个，时长 {docs['plan']['durationSeconds']} 秒")
-            return 0
-        if args.command == "review-template":
-            preview = financial.load_preview_record(root, docs)
-            review_path = root / "outputs" / "legibility-review.json"
-            review_path.parent.mkdir(parents=True, exist_ok=True)
-            _write(review_path, {
-                "schemaVersion": 2, "materialsAndAssetsSha256": financial.legibility_review_digest(root),
-                "result": "pending", "fullVideo": False, "sampleTimecodes": [],
-                "previewSha256": preview["sha256"],
-                "metrics": financial.review_metrics(docs),
-                "checks": {key: False for key in financial.REVIEW_CHECKS},
-                "evidence": {**{key: "" for key in financial.REVIEW_CHECKS},
-                    "mobileScale": {"width": 360, "height": 640, "reviewed": False, "details": ""},
-                    "safeArea": {"bounds": {"x": list(financial.LAYOUT_BOUNDS_X), "y": list(financial.LAYOUT_BOUNDS_Y)}, "reviewed": False, "details": f"前景按实际内容包围盒居中到画布中心 y={financial.CANVAS_CENTER_Y:g}；核对变换后的完整边界。"},
-                    "valueAxisSafeArea": {"bounds": {"x": list(financial.LAYOUT_BOUNDS_X), "y": list(financial.LAYOUT_BOUNDS_Y)}, "reviewed": False, "details": ""},
-                    "endpointMarker": {"reviewed": False, "details": ""},
-                    "plotClipping": {"reviewed": False, "details": "检查整体居中后的历史峰谷及连接线，确认有效裁剪范围与绘图区一致，没有齐平截断。"}},
-            })
-            print(f"已生成待填写的评审模板：{review_path}")
             return 0
         output = Path(args.out).expanduser().resolve() if args.out else None
         result = financial_render.render(

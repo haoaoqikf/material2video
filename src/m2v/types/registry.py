@@ -39,6 +39,7 @@ class VideoType:
     review_template: Callable | None = None
     audio_tracks: Callable | None = None
     prepare_narration: Callable | None = None
+    manual_review_required: bool = True
 
 
 _registry: dict[str, VideoType] = {}

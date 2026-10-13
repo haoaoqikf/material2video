@@ -66,6 +66,24 @@ def test_cleanup_refuses_to_run_when_current_video_is_outside_outputs(tmp_path: 
     assert external.read_bytes() == b"new"
 
 
+def test_financial_cleanup_can_preserve_bound_preview(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "final.mp4"
+    current.write_bytes(b"final")
+    preview = outputs / "previews" / "preview.mp4"
+    preview.parent.mkdir()
+    preview.write_bytes(b"preview")
+    record = preview.parent / "preview-record.json"
+    record.write_text("{}", encoding="utf-8")
+
+    failures = output_cleanup.cleanup_after_render(outputs, current, preserve_previews=True)
+
+    assert failures == []
+    assert preview.is_file()
+    assert record.is_file()
+
+
 def test_cleanup_reports_locked_old_file_and_keeps_new_video(tmp_path: Path, monkeypatch) -> None:
     outputs = tmp_path / "outputs"
     outputs.mkdir()

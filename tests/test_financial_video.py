@@ -279,11 +279,7 @@ def test_existing_v8_plan_keeps_its_saved_hold_durations(tmp_path):
     edit(root, "animation-plan.json", use_previous_v8_timing)
     docs = financial.load_project(root)
     assert docs["plan"]["segments"][0]["frames"] == [0, 90]
-    assert financial.review_metrics(docs)["endingSeconds"] == 6
-    assert financial.review_metrics(docs)["safeArea"] == {"x": [140, 940], "y": [180, 1740]}
-    assert financial.review_metrics(docs)["valueAxisSafeArea"] == financial.review_metrics(docs)["safeArea"]
-    assert financial.review_metrics(docs)["verticalAlignment"] == "canvas-center"
-    assert financial.review_metrics(docs)["canvasCenterY"] == 960
+    assert (docs["plan"]["segments"][-1]["frames"][1] - docs["plan"]["segments"][-1]["frames"][0]) / 30 == 6
 
 
 def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):
@@ -297,7 +293,7 @@ def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):
         plan["segments"][2]["frames"][0] = 330
     edit(root, "animation-plan.json", legacy)
     docs = financial.load_project(root)
-    assert financial.review_metrics(docs)["endingSeconds"] == 4
+    assert (docs["plan"]["segments"][-1]["frames"][1] - docs["plan"]["segments"][-1]["frames"][0]) / 30 == 4
     assert financial.frame_date(docs["plan"], 210) == date(2020, 1, 2)
     with pytest.raises(M2VError, match="显式"):
         financial.prepare_line_plan(root, 15)
@@ -313,7 +309,8 @@ def test_v7_compatibility_and_explicit_backup_upgrade(tmp_path):
     for name in unified_records:
         assert (backup / "outputs" / name).read_bytes() == b"old unified record"
         assert not (outputs / name).exists()
-    assert financial.review_metrics(financial.load_project(root))["endingSeconds"] == 2
+    migrated = financial.load_project(root)
+    assert (migrated["plan"]["segments"][-1]["frames"][1] - migrated["plan"]["segments"][-1]["frames"][0]) / 30 == 2
 
 
 @pytest.mark.parametrize("mutation", [
@@ -352,62 +349,34 @@ def preview_fixture(root, docs):
     (folder / "preview-record.json").write_text(json.dumps({
         "path": "outputs/previews/test.mp4", "sha256": digest,
         "frames": docs["plan"]["durationSeconds"] * 30,
-        "materialsAndAssetsSha256": financial.legibility_review_digest(root),
+        "materialsAndAssetsSha256": financial.render_inputs_digest(root),
     }), encoding="utf-8")
     return digest
 
 
-def test_full_video_review_gate_binds_inputs_preview_and_evidence(tmp_path):
+def test_automatic_gate_requires_current_complete_preview_and_digest(tmp_path):
     root = project(tmp_path)
     docs = financial.load_project(root)
-    with pytest.raises(M2VError, match="需要当前完整视频"):
-        financial.validate_legibility_review(root, docs)
-    preview_digest = preview_fixture(root, docs)
-    assert financial_video.main(["review-template", "--project-dir", str(root)]) == 0
-    path = root / "outputs" / "legibility-review.json"
-    review = json.loads(path.read_text(encoding="utf-8"))
-    assert review["metrics"]["safeArea"] == {"x": [140, 940], "y": [180, 1740]}
-    assert review["metrics"]["verticalAlignment"] == "canvas-center"
-    assert review["metrics"]["canvasCenterY"] == 960
-    assert review["metrics"]["endpointMarker"] == {"circleOnly": True, "inChartValueBadge": False}
-    assert review["metrics"]["plotClipping"] == {"coordinateSpace": "plot-local", "sharedContentTransform": True, "fullHistoryBoundsChecked": True}
-    assert review["evidence"]["valueAxisSafeArea"]["bounds"] == {"x": [140, 940], "y": [180, 1740]}
-    with pytest.raises(M2VError, match="只接受完整视频评审通过"):
-        financial.validate_legibility_review(root, docs)
-    review.update(result="pass", fullVideo=True, sampleTimecodes=["00:00:03"],
-        checks={key: True for key in financial.REVIEW_CHECKS}, evidence={**{key: "合成证据" for key in financial.REVIEW_CHECKS},
-            "mobileScale": {"width": 360, "height": 640, "reviewed": True, "details": "合成缩放证据"},
-            "safeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "合成布局边界证据"},
-            "valueAxisSafeArea": {"bounds": {"x": [140, 940], "y": [180, 1740]}, "reviewed": True, "details": "纵轴统一布局边界证据"},
-            "endpointMarker": {"reviewed": True, "details": "当前价值圆点完整显示；画布顶部的市值与端点日期一致，图表内无覆盖折线的重复金额底板"},
-            "plotClipping": {"reviewed": True, "details": "居中后历史峰谷及连接线完整，裁剪范围与绘图区一致"}})
-    assert review["previewSha256"] == preview_digest
-    path.write_text(json.dumps({**review, "metrics": {"durationSeconds": 60, "endingSeconds": 4}}), encoding="utf-8")
-    with pytest.raises(M2VError, match="review.json.metrics"):
-        financial.validate_legibility_review(root, docs)
-    missing_mobile = json.loads(json.dumps(review))
-    missing_mobile["evidence"]["mobileScale"].update(reviewed=False, details="")
-    path.write_text(json.dumps(missing_mobile), encoding="utf-8")
-    with pytest.raises(M2VError, match="evidence.mobileScale"):
-        financial.validate_legibility_review(root, docs)
-    missing_marker = json.loads(json.dumps(review))
-    missing_marker["evidence"]["endpointMarker"].update(reviewed=False, details="")
-    path.write_text(json.dumps(missing_marker), encoding="utf-8")
-    with pytest.raises(M2VError, match="evidence.endpointMarker"):
-        financial.validate_legibility_review(root, docs)
-    missing_clip = json.loads(json.dumps(review))
-    missing_clip["evidence"].pop("plotClipping")
-    path.write_text(json.dumps(missing_clip), encoding="utf-8")
-    with pytest.raises(M2VError, match="evidence.plotClipping"):
-        financial.validate_legibility_review(root, docs)
-    path.write_text(json.dumps(review), encoding="utf-8")
-    financial.validate_legibility_review(root, docs)
-    (root / "outputs/previews/test.mp4").write_bytes(b"changed preview")
-    with pytest.raises(M2VError, match="摘要不一致"):
-        financial.validate_legibility_review(root, docs)
-    path.write_text(json.dumps({**review, "materialsAndAssetsSha256": "0" * 64}), encoding="utf-8")
-    with pytest.raises(M2VError, match="已过期"):
-        financial.validate_legibility_review(root, docs)
+    with pytest.raises(M2VError, match="完整预演记录"):
+        financial.load_preview_record(root, docs)
+    preview_fixture(root, docs)
+    assert financial.load_preview_record(root, docs)["frames"] == docs["plan"]["durationSeconds"] * 30
+    path = root / "outputs" / "previews" / "preview-record.json"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["frames"] -= 1
+    path.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(M2VError, match="完整预演记录"):
+        financial.load_preview_record(root, docs)
+    record["frames"] = docs["plan"]["durationSeconds"] * 30
+    record["materialsAndAssetsSha256"] = "0" * 64
+    path.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(M2VError, match="完整预演记录"):
+        financial.load_preview_record(root, docs)
+    record["materialsAndAssetsSha256"] = financial.render_inputs_digest(root)
+    path.write_text(json.dumps(record), encoding="utf-8")
+    (root / "outputs" / "previews" / "test.mp4").write_bytes(b"changed preview")
+    with pytest.raises(M2VError, match="完整预演记录"):
+        financial.load_preview_record(root, docs)
 
 
 def test_plan_validates_data_before_overwriting_and_rejects_legacy(tmp_path):
@@ -534,7 +503,7 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     root = project(tmp_path)
     docs = financial.load_project(root)
     if not preview:
-        monkeypatch.setattr(financial, "validate_legibility_review", lambda *args, **kwargs: None)
+        monkeypatch.setattr(financial, "load_preview_record", lambda *args, **kwargs: {"path": "preview.mp4"})
     bundle = tmp_path / "bundle"
     bundle.mkdir()
     monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)

@@ -9,7 +9,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 规划目标包含：
 
 <!-- generated:type-catalog:start -->
-- `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与手机可读性门禁。
+- `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `article-narrative`：完整保留文章 v4、配音、时间轴、状态轨道、镜头、代码世界与制作评审规则。
 - `general`：以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、声音和字幕。
 <!-- generated:type-catalog:end -->

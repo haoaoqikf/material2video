@@ -50,7 +50,7 @@ def render(
     if limit_frames is not None and not preview:
         raise M2VError("短预演须使用 preview 命令，正式导出不能限制帧数")
     if not preview:
-        financial.validate_legibility_review(project_dir, docs)
+        financial.load_preview_record(project_dir, docs)
     destination = output or project_dir / "outputs" / "financial-line-no-events.mp4"
     if preview and output is None:
         destination = project_dir / "outputs" / "previews" / "financial-line-no-events-review.mp4"
@@ -62,7 +62,7 @@ def render(
     web = remotion.web_dir()
     started = time.monotonic()
     timings = perf.StageTimings()
-    inputs_digest = financial.legibility_review_digest(project_dir)
+    inputs_digest = financial.render_inputs_digest(project_dir)
     props = financial.build_render_props(docs)
     storyboard_path = project_dir / "animation-plan.json"
     with tempfile.TemporaryDirectory(prefix="m2v-financial-", dir=destination.parent) as temporary:
@@ -92,7 +92,7 @@ def render(
         with perf.measure(timings, "probe"):
             output_validation.verify_output(temp_video, frames, financial.WIDTH, financial.HEIGHT, financial.FPS)
             _assert_no_audio(temp_video)
-        if inputs_digest != financial.legibility_review_digest(project_dir):
+        if inputs_digest != financial.render_inputs_digest(project_dir):
             raise M2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         temp_video.replace(destination)
 

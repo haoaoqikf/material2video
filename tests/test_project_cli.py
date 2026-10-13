@@ -215,6 +215,66 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     assert (root / "outputs" / "review.json").is_file()
 
 
+def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path, monkeypatch, capsys) -> None:
+    calls: list[str] = []
+    root = tmp_path / "auto-review"
+    root.mkdir()
+    manifest = {"schemaVersion": 1, "id": "auto-review", "type": "auto-review"}
+    prepared = {"preparedFingerprint": "auto-fingerprint", "durationInFrames": 30}
+    outputs = root / "outputs"
+    outputs.mkdir()
+    preview = outputs / "previews" / "preview.mp4"
+    preview.parent.mkdir()
+    preview.write_bytes(b"full preview")
+    record = {"path": "outputs/previews/preview.mp4", "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
+              "preparedFingerprint": prepared["preparedFingerprint"]}
+    (outputs / "preview-record.json").write_text(json.dumps(record), encoding="utf-8")
+    final = outputs / "final.mp4"
+
+    def gate(*_args): calls.append("gate")
+    def render(*_args): final.write_bytes(b"final"); return final
+
+    video_type = VideoType("auto-review", lambda *_: None, lambda *_: None,
+        lambda *_args, **_kwargs: preview, render, review_gate=gate, manual_review_required=False)
+    register_synthetic_type(monkeypatch, "auto-review", "自动验收测试")
+    monkeypatch.setattr(registry, "_registry", {"auto-review": video_type})
+    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
+
+    assert main(["review-template", "--project", str(root)]) == 0
+    assert not (outputs / "review.json").exists()
+    assert main(["review", "--project", str(root)]) == 0
+    assert main(["render", "--project", str(root)]) == 0
+    assert calls == ["gate", "gate"]
+    assert final.read_bytes() == b"final"
+    assert main(["status", "--project", str(root)]) == 0
+    output = capsys.readouterr().out
+    assert '"not-required"' in output
+
+
+def test_financial_status_reads_financial_preview_record_path(tmp_path: Path, monkeypatch) -> None:
+    from m2v.cli import _status
+    from m2v.types.financial.adapter import TYPE as financial_type
+    from dataclasses import replace
+
+    root = tmp_path / "finance"
+    record_dir = root / "outputs" / "previews"
+    record_dir.mkdir(parents=True)
+    preview = record_dir / "preview.mp4"
+    preview.write_bytes(b"full preview")
+    (record_dir / "preview-record.json").write_text(json.dumps({
+        "path": "outputs/previews/preview.mp4", "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
+        "preparedFingerprint": "fp", "materialsAndAssetsSha256": "bound-digest",
+    }), encoding="utf-8")
+    manifest = {"id": "finance", "type": "financial-timeseries"}
+    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_: {"preparedFingerprint": "fp"})
+    monkeypatch.setattr(registry, "_registry", {
+        "financial-timeseries": replace(financial_type, review_gate=lambda *_: None)})
+    result = _status(root, manifest)
+    assert result["preview"]["status"] == "current"
+    assert result["review"]["status"] == "not-required"
+
+
 def test_failed_unified_render_does_not_clean_old_outputs(tmp_path: Path, monkeypatch, capsys) -> None:
     root = tmp_path / "failed-render"
     outputs = root / "outputs"

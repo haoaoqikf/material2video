@@ -66,30 +66,44 @@ def _status(root: Path, manifest: dict) -> dict:
         prep = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
         prep = {"status": "stale-or-missing", "detail": str(exc)}
-    preview_status, review_status = {"status": "missing"}, {"status": "pending"}
+    video_type = registry.get(manifest["type"])
+    preview_status = {"status": "missing"}
+    review_status = {"status": "pending" if video_type.manual_review_required else "not-required"}
     if prep["status"] == "current":
         try:
-            record = json.loads((root / "outputs" / "preview-record.json").read_text(encoding="utf-8"))
+            record_path = root / "outputs" / "preview-record.json"
+            if manifest["type"] == "financial-timeseries":
+                record_path = root / "outputs" / "previews" / "preview-record.json"
+                try:
+                    video_type.review_gate(root, manifest)
+                except M2VError as exc:
+                    preview_status = {"status": "stale", "detail": str(exc)}
+                    raise ValueError("金融预演自动验收未通过") from exc
+            record = json.loads(record_path.read_text(encoding="utf-8"))
             preview_file = (root / record["path"]).resolve()
-            if (record.get("preparedFingerprint") != prep["fingerprint"] or not preview_file.is_file()
+            valid_binding = (record.get("materialsAndAssetsSha256") is not None
+                if manifest["type"] == "financial-timeseries"
+                else record.get("preparedFingerprint") == prep["fingerprint"])
+            if (not valid_binding or not preview_file.is_file()
                     or hashlib.sha256(preview_file.read_bytes()).hexdigest() != record.get("sha256")):
                 preview_status = {"status": "stale"}
             else:
                 preview_status = {"status": "current", "path": record["path"]}
-            review = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
-            prepared = load_current_prepared(root, manifest)
-            criteria = _review_criteria(root, manifest, prepared)
-            evidence = review.get("evidence")
-            complete = (isinstance(evidence, dict) and set(evidence) == set(criteria)
-                        and all(isinstance(value, str) and value.strip() for value in evidence.values()))
-            if review.get("preparedFingerprint") != prep["fingerprint"] or review.get("criteria") != criteria:
-                review_status = {"status": "stale"}
-            else:
-                review_status = {"status": review.get("status", "pending") if complete else "pending"}
+            if video_type.manual_review_required:
+                review = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
+                prepared = load_current_prepared(root, manifest)
+                criteria = _review_criteria(root, manifest, prepared)
+                evidence = review.get("evidence")
+                complete = (isinstance(evidence, dict) and set(evidence) == set(criteria)
+                            and all(isinstance(value, str) and value.strip() for value in evidence.values()))
+                if review.get("preparedFingerprint") != prep["fingerprint"] or review.get("criteria") != criteria:
+                    review_status = {"status": "stale"}
+                else:
+                    review_status = {"status": review.get("status", "pending") if complete else "pending"}
         except (OSError, ValueError, KeyError):
             pass
     return {"id": manifest["id"], "type": manifest["type"], "prepare": prep,
-            "preview": preview_status, "review": review_status}
+              "preview": preview_status, "review": review_status}
 
 
 def _review_criteria(root: Path, manifest: dict, prepared: dict) -> dict[str, str]:
@@ -100,6 +114,8 @@ def _review_criteria(root: Path, manifest: dict, prepared: dict) -> dict[str, st
 
 
 def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
+    if not registry.get(manifest["type"]).manual_review_required:
+        return
     path = root / "outputs" / "review.json"
     try:
         review = json.loads(path.read_text(encoding="utf-8"))
@@ -205,7 +221,8 @@ def main(argv: list[str] | None = None) -> int:
                     example_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
                     if output_path.parent == example_outputs:
                         expected_outputs = example_outputs
-                failures = cleanup_after_render(expected_outputs, output_path)
+                failures = cleanup_after_render(expected_outputs, output_path,
+                    preserve_previews=manifest["type"] == "financial-timeseries")
                 if failures:
                     for failure in failures:
                         print(f"[warning] 旧产物清理未完成：{failure}", file=sys.stderr)
@@ -229,6 +246,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"视频输出：{output}")
             return 0
         if args.command == "review-template":
+            if not video_type.manual_review_required:
+                print("当前金融作品使用完整预演自动验收，无需人工评审模板")
+                return 0
             video_type.validate(root, manifest)
             prepared = load_current_prepared(root, manifest)
             try:
@@ -250,6 +270,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "review":
             prepared = load_current_prepared(root, manifest)
+            if not video_type.manual_review_required:
+                _require_type_review(video_type, root, manifest)
+                print("当前金融作品的完整预演自动验收通过；人工评审不适用")
+                return 0
             _require_review(root, manifest, prepared)
             _require_type_review(video_type, root, manifest)
             print("当前准备版本与完整预演评审通过")

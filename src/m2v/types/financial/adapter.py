@@ -41,22 +41,8 @@ def render(root: Path, project: dict) -> Path:
 
 def review_gate(root: Path, project: dict) -> None:
     docs = _load(root, project)
-    financial.validate_legibility_review(root, docs)
-
-
-def review_template(root: Path, _project: dict) -> None:
-    """Create the existing full-video and mobile-legibility review template."""
-    from m2v.types.financial import commands
-
-    if commands.main(["review-template", "--project-dir", str(root)]):
-        raise M2VError("金融类型手机可读性评审模板生成失败")
-
-
-def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
-    return {"priceBasis": "价格来源、口径、覆盖范围与交易日一致",
-            "investmentCalculation": "本金、日期区间和假设投资价值计算",
-            "mobileLegibility": "手机竖屏下坐标、标注和收益颜色可读"}
+    financial.load_preview_record(root, docs)
 
 
 TYPE = VideoType("financial-timeseries", validate, prepare, preview, render,
-                 review_gate=review_gate, review_criteria=review_criteria, review_template=review_template)
+                 review_gate=review_gate, manual_review_required=False)

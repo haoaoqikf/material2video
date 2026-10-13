@@ -13,7 +13,7 @@ _TEMP_DIR = re.compile(r"^(?:a2v|m2v|debug|tmp|render)(?:-|$)", re.IGNORECASE)
 _KNOWN_REGENERABLE_DIRS = {"previews", "qa", "bench", "review-contact-sheets"}
 
 
-def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path) -> list[str]:
+def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False) -> list[str]:
     """Clean old video/review artifacts without risking files outside outputs.
 
     Returns human-readable failures. A failure never removes the current render or
@@ -43,16 +43,21 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path) -> 
         return [f"无法读取作品输出目录 {outputs}：{exc}"]
     for child in children:
         if child.is_dir() and not child.is_symlink() and (
-            child.name.lower() in _KNOWN_REGENERABLE_DIRS or _TEMP_DIR.match(child.name)
+            (child.name.lower() in _KNOWN_REGENERABLE_DIRS and not (preserve_previews and child.name.lower() == "previews"))
+            or _TEMP_DIR.match(child.name)
         ):
             _remove_tree(child, outputs, failures)
     _unlink(outputs / "preview-record.json", failures)
+    if not preserve_previews:
+        financial_preview_record = outputs / "previews" / "preview-record.json"
+        if financial_preview_record.is_file():
+            _unlink(financial_preview_record, failures)
 
     # Old final videos and their known output sidecars can occur at any depth,
     # including history/. Never recurse into prepared media, which is render input.
     candidates = list(_iter_output_files(outputs, failures))
     for path in candidates:
-        if _inside_named_dir(path, outputs, "media"):
+        if _inside_named_dir(path, outputs, "media") or (preserve_previews and _inside_named_dir(path, outputs, "previews")):
             continue
         if path in keep:
             continue

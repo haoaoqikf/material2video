@@ -7,12 +7,12 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 
 项目采用共享制作底座、独立视频类型、统一制作入口。发展顺序是先建设金融时间序列等专用视频，再沉淀多类型共用能力，逐步扩展到通用多场景视频。
 
-开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。始终先校验和准备，生成完整预演并实际查看，再填写评审结论；没有当前且完整的评审不能正式导出。所有生成产物都是派生产物，不代替可编辑材料。
+开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。先校验和准备，再生成完整预演；文章与通用视频须实际查看并完成当前人工评审，金融视频通过完整预演自动验收后无需人工评审。所有生成产物都是派生产物，不代替可编辑材料。
 
 | 类型 | 创作指导 |
 |---|---|
 <!-- generated:type-catalog:start -->
-| `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：验证行情口径、假设投资计算与手机可读性。 |
+| `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整预演自动验收。 |
 | `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
 <!-- generated:type-catalog:end -->
@@ -28,7 +28,7 @@ uv run m2v validate --project videos/<slug>
 uv run m2v prepare --project videos/<slug>
 uv run m2v preview --project videos/<slug>
 uv run m2v review-template --project videos/<slug>
-# 查看预演，填写 outputs/review.json；文章还需完成 production.json 专用评审，金融还需填写 legibility-review.json
+# 文章与通用视频查看预演并填写 outputs/review.json；文章还需完成 production.json 专用评审
 uv run m2v review --project videos/<slug>
 uv run m2v render --project videos/<slug>
 uv run m2v status --project videos/<slug>
@@ -48,12 +48,12 @@ uv run m2v status --project videos/<slug>
 
 ## 渲染与评审
 
-- 材料、资产或嵌入作品变化后重新 `prepare`，再生成完整 `preview` 和新评审。
+- 材料、资产或嵌入作品变化后重新 `prepare`，再生成完整 `preview`；文章与通用视频还需新评审。
 - 完整预演只绑定当前准备指纹；限帧预览只用于开发排查。
-- 人工或 AI 语义评审须由人实际查看画面后填写依据，工具不会自动判定审美通过。
+- 文章与通用视频的人工或 AI 语义评审须由人实际查看画面后填写依据，工具不会自动判定审美通过；金融只使用确定性技术验收。
 - 正式渲染在临时路径生成并验收后替换交付文件；失败不覆盖先前有效成片。
-- 正式渲染成功并写好成片旁车后，统一入口会清理本作品 `outputs/` 中旧视频、预演和已知检查/调试产物；保留本次成片及旁车、准备与评审 JSON、可重渲的准备媒体。渲染失败不清理，共享构建缓存不受影响；逐项清理失败会报告遗留路径。
-- 嵌入的金融或文章片段不能绕过其类型校验及专用评审门禁。
+- 正式渲染成功并写好成片旁车后，统一入口会清理本作品 `outputs/` 中旧视频和已知检查/调试产物；金融绑定的完整预演会保留，其他类型按原规则清理预演。保留本次成片及旁车、准备与评审 JSON、可重渲的准备媒体。渲染失败不清理，共享构建缓存不受影响；逐项清理失败会报告遗留路径。
+- 嵌入的金融或文章片段不能绕过其类型校验及专用自动验收或人工评审门禁。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。
 

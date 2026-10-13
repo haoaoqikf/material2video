@@ -105,8 +105,8 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     return {"request": request, "prices": prices, "plan": plan}
 
 
-def legibility_review_digest(project_dir: str | Path) -> str:
-    """Bind the visual review to exact materials and shared rendering sources."""
+def render_inputs_digest(project_dir: str | Path) -> str:
+    """Bind a full preview to exact materials and shared rendering sources."""
     root = Path(project_dir).resolve()
     from m2v.core.assets import REPOSITORY_ROOT
     web = REPOSITORY_ROOT / "web"
@@ -125,46 +125,11 @@ def legibility_review_digest(project_dir: str | Path) -> str:
         try:
             content = path.read_bytes()
         except OSError as exc:
-            _fail("可读性评审摘要", f"无法读取绑定文件 {path.name}：{exc}")
+            _fail("渲染输入摘要", f"无法读取绑定文件 {path.name}：{exc}")
         digest.update(path.relative_to(base).as_posix().encode())
         digest.update(b"\0")
         digest.update(hashlib.sha256(content).digest())
     return digest.hexdigest()
-
-
-def validate_legibility_review(project_dir: str | Path, docs: dict[str, Any]) -> None:
-    """Reject a missing, stale, or failed full-video review."""
-    path = Path(project_dir).resolve() / "outputs" / "legibility-review.json"
-    try:
-        review = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object_pairs)
-    except (OSError, UnicodeError, ValueError) as exc:
-        _fail("outputs/legibility-review.json", f"正式折线渲染需要当前完整视频的评审记录：{exc}")
-    if not isinstance(review, dict) or review.get("schemaVersion") != 2:
-        _fail("outputs/legibility-review.json", "schemaVersion 必须为 2（含手机缩放证据）")
-    if review.get("materialsAndAssetsSha256") != legibility_review_digest(project_dir):
-        _fail("outputs/legibility-review.json", "材料或渲染资产已变化；评审记录已过期")
-    if review.get("result") != "pass" or review.get("fullVideo") is not True:
-        _fail("outputs/legibility-review.json", "正式折线渲染只接受完整视频评审通过的记录")
-    checks = review.get("checks")
-    required = set(REVIEW_CHECKS)
-    if not isinstance(checks, dict) or set(checks) != required or any(value is not True for value in checks.values()):
-        _fail("outputs/legibility-review.json.checks", "全部可读性结论必须全部通过")
-    timestamps = review.get("sampleTimecodes")
-    if not isinstance(timestamps, list) or not timestamps or any(not isinstance(item, str) or not item.strip() for item in timestamps):
-        _fail("outputs/legibility-review.json.sampleTimecodes", "必须记录完整视频的抽检时间码")
-    if review.get("metrics") != review_metrics(docs):
-        _fail("outputs/legibility-review.json.metrics", "评审指标与当前折线编排不一致")
-    preview = load_preview_record(project_dir, docs)
-    if review.get("previewSha256") != preview["sha256"]:
-        _fail("outputs/legibility-review.json", "预演文件已变化；请重新评审")
-    evidence = review.get("evidence")
-    if not isinstance(evidence, dict) or any(not isinstance(evidence.get(key), str) or not evidence[key].strip() for key in REVIEW_CHECKS):
-        _fail("outputs/legibility-review.json.evidence", "须填写每项可观察证据")
-    for key in ("mobileScale", "safeArea", "endpointMarker", "plotClipping"):
-        item = evidence.get(key)
-        if not isinstance(item, dict) or item.get("reviewed") is not True or not isinstance(item.get("details"), str) or not item["details"].strip():
-            _fail(f"outputs/legibility-review.json.evidence.{key}", "须记录已检查状态和可复核证据")
-
 
 
 def _validate_request(request: dict[str, Any]) -> None:
@@ -437,19 +402,6 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
     return backup
 
 
-REVIEW_CHECKS = ("labelsReadable", "advanceTrackable", "stagedAxisStable", "axisStable", "overviewComplete")
-
-
-def review_metrics(docs: dict[str, Any]) -> dict[str, Any]:
-    return {"durationSeconds": docs["plan"]["durationSeconds"], "dateScale": "staged-expanding", "valueScale": "revealed-linear", "endingSeconds": (docs["plan"]["segments"][-1]["frames"][1] - docs["plan"]["segments"][-1]["frames"][0]) / FPS,
-            "canvas": {"width": WIDTH, "height": HEIGHT}, "mobileCheck": {"width": 360, "height": 640},
-            "safeArea": {"x": list(LAYOUT_BOUNDS_X), "y": list(LAYOUT_BOUNDS_Y)},
-            "valueAxisSafeArea": {"x": list(LAYOUT_BOUNDS_X), "y": list(LAYOUT_BOUNDS_Y)},
-            "verticalAlignment": "canvas-center", "canvasCenterY": CANVAS_CENTER_Y,
-            "endpointMarker": {"circleOnly": True, "inChartValueBadge": False},
-            "plotClipping": {"coordinateSpace": "plot-local", "sharedContentTransform": True, "fullHistoryBoundsChecked": True}}
-
-
 def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     path = root / "outputs" / "previews" / "preview-record.json"
@@ -463,7 +415,7 @@ def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[s
         video = (root / relative).resolve()
         if not video.is_relative_to(root / "outputs" / "previews") or not video.is_file():
             raise ValueError("预演路径越界或文件缺失")
-        if record.get("materialsAndAssetsSha256") != legibility_review_digest(root):
+        if record.get("materialsAndAssetsSha256") != render_inputs_digest(root):
             raise ValueError("预演材料或资产已变化")
         if record.get("frames") != docs["plan"]["durationSeconds"] * FPS:
             raise ValueError("需要完整时长预演")
