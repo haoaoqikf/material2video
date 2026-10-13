@@ -157,7 +157,7 @@ describe('financial time-series composition', () => {
     expect(negative).toContain('stroke="#55d58a"');
   });
 
-  it('uses the centered plot and unified safe area, thinner line, and small source notes', () => {
+  it('uses the centered plot and unified safe area, thinner line, and small methodology notes', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('x1="220" x2="928"');
@@ -229,7 +229,19 @@ describe('financial time-series composition', () => {
     expect(markup).not.toContain('市场 TEST');
   });
 
-  it('uses the optional short name and derives one wrapped index note from unique source hosts', () => {
+  it.each([0, 900, 1799])('omits stock sources while keeping methodology and risk at frame %s', (frame) => {
+    testFrame.value = frame;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(markup).not.toContain('来源');
+    expect(markup).not.toContain('example.invalid');
+    expect(markup).toContain('仅拆合股调整，不计分红再投资');
+    expect(markup).toContain('不计手续费及税费');
+    expect(markup).toContain('过往业绩不代表未来表现');
+    expect(markup).toContain('不构成投资建议');
+  });
+
+  it.each([0, 900, 1799])('uses the optional short name and keeps the index note without source hosts at frame %s', (frame) => {
+    testFrame.value = frame;
     const indexProps: FinancialTimeSeriesProps = {
       ...props,
       request: { ...props.request, instrument: { ...props.request.instrument, kind: 'index', displayName: '示例指数' } },
@@ -242,8 +254,11 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270" text-anchor="middle"');
     expect(markup).not.toContain('示例指数 · SYN');
     expect(markup).toContain('按点位比例模拟');
-    expect(markup.match(/example\.invalid/g)).toHaveLength(1);
-    expect(markup).toContain('market.example');
+    expect(markup).not.toContain('来源');
+    expect(markup).not.toContain('example.invalid');
+    expect(markup).not.toContain('market.example');
+    expect(markup).toContain('不计手续费及税费');
+    expect(markup).toContain('过往业绩不代表未来表现');
   });
 
   it('shrinks a long title to fit one line and blocks names that cannot remain readable', () => {

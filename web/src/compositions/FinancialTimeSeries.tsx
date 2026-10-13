@@ -437,16 +437,11 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(' ');
   const endpointX = latest ? xForDate(latest.date) : PLOT.left;
   const endpointY = latest ? yForValue(latest.close) : PLOT.bottom;
-  const sourceHosts = prices.sources.map((source) => {
-    if (typeof source === 'object' && source !== null && 'url' in source && typeof source.url === 'string') return new URL(source.url).hostname;
-    return '公开资料';
-  }).filter((source, index, all) => all.indexOf(source) === index);
   const summaryText = [
-    `来源 ${sourceHosts.join(' / ')}`,
     `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`,
   ];
   const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 24));
-  if (summaryLines.length > 4) throw new Error('来源和统计口径超出说明区域四行容量');
+  if (summaryLines.length > 4) throw new Error('统计口径超出说明区域四行容量');
   const riskLines = wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
   const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLines, riskLines]);
