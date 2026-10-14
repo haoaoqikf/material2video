@@ -9,17 +9,17 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from m2v.core.errors import M2VError
-from m2v.types.housing.housing import load_project
+from m2v.types.housing.housing import FPS, DEFAULT_DURATION_SECONDS, build_render_props, load_project
 
 
-def _project(tmp_path: Path, points: list[dict] | None = None) -> tuple[Path, dict]:
+def _project(tmp_path: Path, points: list[dict] | None = None, duration: int | None = 60) -> tuple[Path, dict]:
     root = tmp_path / "housing"
     root.mkdir()
     series = {
         "schemaVersion": 1, "city": "郑州市", "metric": "住宅商品房平均销售价格", "unit": "元/平方米",
         "areaUnit": "万平方米", "salesAmountUnit": "亿元",
         "formula": "salesAmountYiYuan / salesAreaWanSquareMeters * 10000",
-        "durationSeconds": 60, "calculationPrecisionNote": "公布值取整至 0.1。",
+        "calculationPrecisionNote": "公布值取整至 0.1。",
         "methodologyNote": "使用住宅商品房销售额和销售面积计算。",
         "sources": [{"title": "来源", "url": "https://example.org/source"}],
         "breakpoints": [{"year": 2003, "label": "测试口径变化"}],
@@ -30,6 +30,8 @@ def _project(tmp_path: Path, points: list[dict] | None = None) -> tuple[Path, di
              "averagePriceYuanPerSquareMeter": 2200},
         ],
     }
+    if duration is not None:
+        series["durationSeconds"] = duration
     (root / "series.json").write_text(json.dumps(series, ensure_ascii=False), encoding="utf-8")
     return root, {"materials": {"series": "series.json"}}
 
@@ -38,6 +40,21 @@ def test_loads_valid_annual_series(tmp_path: Path) -> None:
     root, project = _project(tmp_path)
     series = load_project(root, project)
     assert [point["year"] for point in series["points"]] == [2002, 2003]
+
+
+def test_defaults_to_30_seconds_when_duration_is_omitted(tmp_path: Path) -> None:
+    root, project = _project(tmp_path, duration=None)
+    series = load_project(root, project)
+
+    assert DEFAULT_DURATION_SECONDS == 30
+    assert build_render_props(series)["durationInFrames"] == 30 * FPS
+
+
+def test_explicit_duration_overrides_30_second_default(tmp_path: Path) -> None:
+    root, project = _project(tmp_path, duration=45)
+    series = load_project(root, project)
+
+    assert build_render_props(series)["durationInFrames"] == 45 * FPS
 
 
 @pytest.mark.parametrize("mutation,match", [

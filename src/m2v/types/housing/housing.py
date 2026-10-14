@@ -12,7 +12,7 @@ from m2v.core.errors import M2VError
 FPS = 30
 WIDTH = 1080
 HEIGHT = 1920
-DEFAULT_DURATION_SECONDS = 60
+DEFAULT_DURATION_SECONDS = 30
 MATERIAL = "series.json"
 
 

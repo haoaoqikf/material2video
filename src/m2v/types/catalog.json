@@ -174,7 +174,7 @@
             "areaUnit": "万平方米",
             "salesAmountUnit": "亿元",
             "formula": "salesAmountYiYuan / salesAreaWanSquareMeters * 10000",
-            "durationSeconds": 60,
+            "durationSeconds": 30,
             "calculationPrecisionNote": "来源公布的销售额和面积精确至 0.1 单位，计算均价受舍入影响。",
             "methodologyNote": "填写统计口径与局限。",
             "sources": [
