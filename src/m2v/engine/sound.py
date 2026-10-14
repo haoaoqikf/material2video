@@ -24,7 +24,12 @@ def local_ref(value: object) -> bool:
             and ":" not in value and not value.startswith("/")
             and all(part not in {"", ".", ".."} for part in value.split("/")))
 
-def validate_sound(source: dict, report) -> None:
+def validate_sound(source: dict, report, *, effects: bool = True) -> None:
+    """校验声音参数与本地素材引用。
+
+    `effects` 为假时只接受音床 `soundtrack.music`，用于没有 beat 轴、
+    因而无法定位音效起点的场景结构（如通用多场景编排）。
+    """
     def fields(value, allowed, where):
         if not isinstance(value, dict):
             report.error(where, "必须是对象"); return False
@@ -58,11 +63,16 @@ def validate_sound(source: dict, report) -> None:
             if "loop" in music and type(music["loop"]) is not bool: report.error("soundtrack.music.loop", "必须是布尔值")
             for key in ("fadeInMs", "fadeOutMs"):
                 if key in music and (type(music[key]) is not int or not 0 <= music[key] <= 60000): report.error("soundtrack.music." + key, "淡入淡出必须为 0–60000ms 整数")
-    effects = track.get("effects", [])
-    if not isinstance(effects, list) or len(effects) > 128:
+    effect_items = track.get("effects", [])
+    if not effect_items:
+        return
+    if not effects:
+        report.error("soundtrack.effects", "该场景结构没有 beat 轴，只支持 soundtrack.music")
+        return
+    if not isinstance(effect_items, list) or len(effect_items) > 128:
         report.error("soundtrack.effects", "音效必须为最多 128 项的数组"); return
     scenes = {s.get("id"): s for s in source.get("scenes", []) if isinstance(s, dict) and isinstance(s.get("id"), str)}
-    for i, item in enumerate(effects):
+    for i, item in enumerate(effect_items):
         where = f"soundtrack.effects[{i}]"
         if not asset(item, where, {"sourceRef", "sceneId", "beatId", "offsetMs", "gainDb"}): continue
         scene = scenes.get(item.get("sceneId")) if isinstance(item.get("sceneId"), str) else None

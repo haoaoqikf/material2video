@@ -351,6 +351,11 @@ window.__M2V__.currentFrame();   // Player 当前实际落在哪一帧
 清单字段与校验见 [配音与字幕](media-contract.md)；
 成片命名与默认输出位置见 [目录约定与输出路径](paths-and-outputs.md)。
 
+通用类型（`general`）的配音不走媒体清单，而是由计划里的 `narration` 与可选
+`soundtrack.music` 在 prepare 阶段合成，字段见 [配音与字幕](media-contract.md) 的「通用片音床」。
+两种类型的成片音轨使用同一组交付参数：**AAC-LC / 44.1kHz / 立体声**。通用片为 128k（与文章类型一致），
+不能沿用清单里 24kHz 单声道 WAV 的源规格——24kHz 单声道 AAC 会被 Windows Media Foundation 拒绝打开。
+
 ## 成片溯源（`<名字>.provenance.json`）
 
 渲染成功后会在成片旁边写一份溯源，例如 `voiced.mp4` →

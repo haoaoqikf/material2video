@@ -18,6 +18,9 @@ from m2v.core.project import file_inputs, load_project, load_current_prepared, s
 from m2v.core import code_gate, code_scenes
 from m2v.types.registry import VideoType
 from m2v.engine import remotion, contract_page, perf
+from m2v.engine import audio as audio_engine
+from m2v.engine import sound as sound_contract
+from m2v.types.article.storyboard import Report
 from m2v.types import registry
 from m2v.engine import output_validation
 from m2v.core import security
@@ -127,6 +130,12 @@ def _plan(root: Path, project: dict[str, Any]) -> dict[str, Any]:
     plan.setdefault("height", 1920)
     if (plan["fps"], plan["width"], plan["height"]) != (30, 1080, 1920):
         raise M2VError("通用视频首版只支持 1080×1920、30 fps")
+    # 场景没有 beat 轴，所以这里只接受音床 `soundtrack.music`；
+    # 音效需要按 beat 定位，当前结构给不出这个锚点。
+    report = Report()
+    sound_contract.validate_sound(plan, report, effects=False)
+    if not report.ok:
+        raise M2VError("\n".join(issue.format() for issue in report.errors))
     plan["scenes"] = compiled
     return plan
 
@@ -197,6 +206,8 @@ def prepare(root: Path, project: dict) -> dict:
     inputs = file_inputs(root, project)
     dependencies = []
     audio_segments = []
+    narration_parts: list[tuple[Path, int]] = []
+    speech_cues: list[dict] = []
     fps = plan["fps"]
     for scene in plan["scenes"]:
         for module in scene.get("embeddedCodeModules", []):
@@ -227,6 +238,8 @@ def prepare(root: Path, project: dict) -> dict:
                                       "endFrame": round(cue["end"] * fps), "text": cue["text"]} for cue in cues]
             audio_segments.append({"sceneId": scene["id"], "path": wav.relative_to(root).as_posix(),
                                    "durationInFrames": math.ceil(seconds * fps)})
+            narration_parts.append((wav, math.ceil(seconds * fps)))
+            speech_cues.extend(cues)
     plan = _compile(plan)
     starts = {scene["id"]: scene["startFrame"] for scene in plan["compiledScenes"]}
     for segment in audio_segments:
@@ -242,6 +255,29 @@ def prepare(root: Path, project: dict) -> dict:
             cue["startFrame"] += scene["startFrame"]
             cue["endFrame"] += scene["startFrame"]
     plan["subtitleCues"] = [cue for scene in plan["compiledScenes"] for cue in scene.get("subtitleCues", [])]
+    # 有音床时先拼出整片旁白再混音，音轨退化为单段落到自己的起点：
+    # 逐场景音轨各自 adelay 只会在末尾留下静音，音乐仍能覆盖，但闪避包络
+    # 与采样边界会散在多条轨上，无法整片统一。
+    assets = sound_contract.sound_assets(plan, root / project["materials"]["plan"])
+    if assets:
+        total_seconds = plan["durationInFrames"] / fps
+        narration_file = root / "outputs" / "audio.wav"
+        with tempfile.TemporaryDirectory(prefix="m2v-general-audio-", dir=root / "outputs") as audio_temporary:
+            audio_work = Path(audio_temporary)
+            audio_engine.concatenate(narration_parts, fps, audio_work / "narration.wav")
+            audio_engine.normalize(audio_work / "narration.wav", narration_file)
+            music = (plan.get("soundtrack") or {}).get("music")
+            audio_engine.mix(narration_file, audio_work / "audio.wav", total_seconds,
+                             speech_cues, (assets[music["sourceRef"]], music) if music else None,
+                             [], audio_work)
+            (audio_work / "audio.wav").replace(narration_file)
+            audio_segments = [{"sceneId": "master", "path": "outputs/audio.wav",
+                               "startFrame": 0, "durationInFrames": plan["durationInFrames"],
+                               "fadeInFrames": 0, "fadeOutFrames": 0}]
+            inputs["sound"] = json.dumps(sound_contract.configuration(plan), ensure_ascii=False,
+                                         sort_keys=True, separators=(",", ":"))
+    for name in {segment["path"] for segment in audio_segments}:
+        security.grant_inherited_access(root / name)
     for segment in audio_segments:
         segment["sha256"] = hashlib.sha256((root / segment["path"]).read_bytes()).hexdigest()
         inputs[f"audio:{segment['sceneId']}"] = segment["sha256"]
@@ -448,8 +484,11 @@ def _mux_audio(root: Path, video: Path, output: Path, segments: list[dict], fps:
         filters.append(chain)
         labels.append(f"[{label}]")
     filters.append(f"{''.join(labels)}amix=inputs={len(labels)}:duration=longest:normalize=0,atrim=duration={frames/fps:.6f}[mixed]")
+    # 成片音轨统一为 AAC-LC / 44.1kHz / 立体声 / 128k：清单里的 WAV 是 24kHz 单声道，
+    # 但 24kHz 单声道 AAC 会被 Windows Media Foundation 拒绝打开，与文章类型保持同一交付规格。
     command.extend(["-filter_complex", ";".join(filters), "-map", "0:v:0", "-map", "[mixed]",
-                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", f"{frames/fps:.6f}", str(output)])
+                    "-c:v", "copy", "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "128k",
+                    "-ar", "44100", "-ac", "2", "-t", f"{frames/fps:.6f}", str(output)])
     result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode:
         raise M2VError(f"通用视频音轨混合失败：{result.stderr[-2000:]}")

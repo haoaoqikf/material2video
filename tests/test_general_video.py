@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import wave
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,14 @@ from m2v.core.errors import M2VError
 from m2v.core.project import load_project, load_current_prepared
 from m2v.types.general import adapter
 from conftest import create_typed_project
+
+
+def _tone(path: Path, seconds: float) -> None:
+    """写一个真实可解码的 24kHz 单声道 WAV；声音测试需要合法 PCM。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as stream:
+        stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
+        stream.writeframes(b"\0\0" * int(seconds * 24000))
 
 
 def _project(tmp_path: Path, plan: dict) -> tuple[Path, dict]:
@@ -167,6 +176,78 @@ def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tm
             f"embedded-module:{module['id']}": module["sha256"]
             for scene in plan["scenes"] for module in scene["embeddedCodeModules"]
         })
+
+
+def test_soundtrack_accepts_music_only_and_rejects_effects_and_bad_refs(tmp_path: Path) -> None:
+    bed = {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True,
+           "fadeInMs": 500, "fadeOutMs": 500}
+    plan = {"schemaVersion": 1, "soundtrack": {"music": bed}, "scenes": [
+        {"id": "only", "type": "graphic", "duration": {"frames": 60}, "data": {"title": "标题"}},
+    ]}
+    root, manifest = _project(tmp_path, plan)
+    adapter._plan(root, manifest)  # 音床通过校验
+
+    bad_effect = {"sourceRef": "assets/drop.wav", "sceneId": "only", "beatId": "b1", "gainDb": -12}
+    root, manifest = _project(tmp_path / "effect", {**plan, "soundtrack": {"music": bed, "effects": [bad_effect]}})
+    with pytest.raises(M2VError, match="没有 beat 轴"):
+        adapter._plan(root, manifest)
+
+    for position, (broken, message) in enumerate((
+        ({"sourceRef": "../secret.wav"}, "本地相对路径"),
+        ({"sourceRef": "assets/bed.wav", "gainDb": 10}, "增益"),
+        ({"sourceRef": "assets/bed.wav", "loop": "yes"}, "布尔值"),
+        ({"sourceRef": "assets/bed.wav", "fadeInMs": 99999}, "淡入淡出"),
+    )):
+        root, manifest = _project(tmp_path / f"broken-{position}",
+                                  {**plan, "soundtrack": {"music": broken}})
+        with pytest.raises(M2VError, match=message):
+            adapter._plan(root, manifest)
+
+
+def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkeypatch) -> None:
+    from types import SimpleNamespace
+    from m2v.engine import audio as audio_engine
+
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
+        {"id": "tail", "type": "graphic", "duration": {"frames": 45}, "data": {"title": "收尾"}},
+    ], "soundtrack": {"music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True}}})
+    bed_raw = root / "assets" / "bed.wav"
+    _tone(bed_raw, 1)
+    cache = root / "outputs" / "audio-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    voice = cache / "voice.wav"
+    _tone(voice, 1)
+
+    def fake_speech(_text: str, _cache: Path):
+        return voice, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
+
+    monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
+    seen: dict[str, object] = {}
+
+    def fake_mix(narration, target, duration, cues, music, effects, work):
+        seen.update(duration=duration, cues=cues, music=music, effects=effects)
+        (work / "audio.wav").write_bytes(b"mixed")
+        return None
+
+    monkeypatch.setattr(audio_engine, "concatenate", lambda *_args: None)
+    monkeypatch.setattr(audio_engine, "normalize", lambda _s, target: target.write_bytes(b"voice"))
+    monkeypatch.setattr(audio_engine, "mix", fake_mix)
+
+    prepared = adapter.prepare(root, manifest)
+
+    # 整片一条音轨落到起点，不再逐场景 adelay；音乐解析到真实素材并进入闪避包络。
+    assert prepared["audio"]["segments"] == [{
+        "sceneId": "master", "path": "outputs/audio.wav", "startFrame": 0,
+        "durationInFrames": prepared["durationInFrames"], "fadeInFrames": 0, "fadeOutFrames": 0,
+        "sha256": hashlib.sha256(b"mixed").hexdigest()}]
+    assert (root / "outputs" / "audio.wav").read_bytes() == b"mixed"
+    assert seen["music"] == (bed_raw, {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True})
+    assert seen["cues"] == [{"start": 0.0, "end": 0.5, "text": "字幕"}]
+    assert seen["duration"] == prepared["durationInFrames"] / 30
+    assert seen["effects"] == []
+    assert json.loads(prepared["inputs"]["sound"])["soundtrack"] == {
+        "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True}}
 
 
 def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp_path: Path, monkeypatch) -> None:
