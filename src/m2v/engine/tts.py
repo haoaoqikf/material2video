@@ -5,6 +5,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import tempfile
 import time
 from importlib.metadata import version
@@ -21,6 +22,63 @@ from m2v.engine.subtitles import cues_from_words
 
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
+
+#: 当前唯一的合成后端。后端抽象首先用来让作品能声明音色与语速，
+#: 而不是让每个调用点各写一份默认值。
+DEFAULT_BACKEND = "edge-tts"
+DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
+DEFAULT_RATE = "+0%"
+BACKENDS = (DEFAULT_BACKEND,)
+_VOICE = re.compile(r"^[A-Za-z]{2,3}-[A-Za-z]{2,4}-[A-Za-z0-9]{2,40}Neural$")
+_RATE = re.compile(r"^[+-]\d{1,2}%$")
+
+
+def settings(project: dict) -> dict:
+    """读取并校验作品级 TTS 配置。
+
+    未声明 `tts` 时返回空配置，调用点必须继续使用原有的默认音色与语速——
+    这样既有作品的准备记录与缓存键不会因为新增字段而变化。
+    """
+    declared = project.get("tts")
+    if declared is None:
+        return {}
+    if not isinstance(declared, dict):
+        raise M2VError("project.json 的 tts 必须是对象")
+    unknown = set(declared) - {"backend", "voice", "rate"}
+    if unknown:
+        raise M2VError(f"tts 存在未知字段：{'、'.join(sorted(unknown))}")
+    result = {}
+    backend = declared.get("backend", DEFAULT_BACKEND)
+    if backend not in BACKENDS:
+        raise M2VError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}")
+    result["backend"] = backend
+    if "voice" in declared:
+        voice = declared["voice"]
+        if not isinstance(voice, str) or not _VOICE.fullmatch(voice):
+            raise M2VError(f"tts.voice 必须是形如 zh-CN-XiaoxiaoNeural 的音色名，实际为 {voice!r}")
+        result["voice"] = voice
+    if "rate" in declared:
+        rate = declared["rate"]
+        if not isinstance(rate, str) or not _RATE.fullmatch(rate) or not -50 <= int(rate[:-1]) <= 50:
+            raise M2VError("tts.rate 必须是 −50% 至 +50% 的有符号百分比")
+        result["rate"] = rate
+    return result
+
+
+async def list_voices() -> dict[str, list[dict]]:
+    """按区域列出可用音色；仅用于诊断与校验，不参与渲染。"""
+    voices = await edge_tts.list_voices()
+    grouped: dict[str, list[dict]] = {}
+    for voice in voices:
+        grouped.setdefault(voice.get("Locale", "unknown"), []).append(voice)
+    return grouped
+
+
+def resolve(project: dict, *, voice: str | None = None, rate: str | None = None) -> tuple[str, str]:
+    """按「命令行 > 作品配置 > 默认值」解析实际使用的音色与语速。"""
+    configured = settings(project)
+    return (voice or configured.get("voice") or DEFAULT_VOICE,
+            rate or configured.get("rate") or DEFAULT_RATE)
 
 
 async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dict]:

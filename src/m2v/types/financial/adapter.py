@@ -20,7 +20,8 @@ def validate(root: Path, project: dict) -> None:
     _load(root, project)
 
 
-def prepare(root: Path, project: dict) -> dict:
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
+    # 金融成片契约要求无音轨，因此不接受音色与语速；参数只为统一类型接口。
     docs = _load(root, project)
     props = financial.build_render_props(docs)
     frames = docs["plan"]["durationSeconds"] * financial.FPS

@@ -216,11 +216,11 @@ def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkey
     _tone(bed_raw, 1)
     cache = root / "outputs" / "audio-cache"
     cache.mkdir(parents=True, exist_ok=True)
-    voice = cache / "voice.wav"
-    _tone(voice, 1)
+    voice_path = cache / "voice.wav"
+    _tone(voice_path, 1)
 
-    def fake_speech(_text: str, _cache: Path):
-        return voice, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
+    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None):
+        return voice_path, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
 
     monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
     seen: dict[str, object] = {}
@@ -257,7 +257,7 @@ def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp
         {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
     ]})
 
-    def fake_speech(_text: str, cache: Path):
+    def fake_speech(_text: str, cache: Path, *, voice: str | None = None, rate: str | None = None):
         wav = cache / "fake.wav"
         wav.write_bytes(b"wav")
         return wav, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False

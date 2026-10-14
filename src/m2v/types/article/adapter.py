@@ -52,12 +52,16 @@ def validate(root: Path, project: dict) -> None:
         raise M2VError(f"文章 v4 分镜未通过校验：{path}")
 
 
-def prepare(root: Path, project: dict) -> dict:
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
     path = _storyboard(root, project)
     validate(root, project)
     article = _article(root, project)
     media_path = article.media_manifest
-    args = ["--storyboard", str(path), "--out-dir", str(article.media_dir), *_content_args(root)]
+    from m2v.engine import tts as shared_tts
+    # 「命令行 > 作品配置 > 默认值」的优先级只在引擎里实现一次。
+    voice, rate = shared_tts.resolve(project, voice=voice, rate=rate)
+    args = ["--storyboard", str(path), "--out-dir", str(article.media_dir),
+            "--voice", voice, "--rate", rate, *_content_args(root)]
     if cli.main_prepare(args):
         raise M2VError("文章媒体准备失败")
     loaded = media.load_media(media_path, path)
@@ -145,10 +149,13 @@ def audio_tracks(root: Path, project: dict, prepared: dict) -> list[dict]:
     return [{"path": media_file.audio, "durationInFrames": prepared["durationInFrames"]}]
 
 
-def prepare_narration(text: str, cache: Path) -> tuple[Path, list[dict], list[dict], float, bool]:
+def prepare_narration(text: str, cache: Path, *, voice: str | None = None,
+                      rate: str | None = None) -> tuple[Path, list[dict], list[dict], float, bool]:
+    """通用类型复用的口播准备入口；音色与语速由调用方按作品配置解析后传入。"""
+    from m2v.engine import tts as shared_tts
     from m2v.types.article.prepare import _scene_audio
     cache.mkdir(parents=True, exist_ok=True)
-    return _scene_audio(text, "zh-CN-XiaoxiaoNeural", "+0%", cache, False)
+    return _scene_audio(text, voice or shared_tts.DEFAULT_VOICE, rate or shared_tts.DEFAULT_RATE, cache, False)
 
 
 TYPE = VideoType("article-narrative", validate, prepare, preview, render,

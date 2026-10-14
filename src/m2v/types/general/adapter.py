@@ -20,6 +20,7 @@ from m2v.types.registry import VideoType
 from m2v.engine import remotion, contract_page, perf
 from m2v.engine import audio as audio_engine
 from m2v.engine import sound as sound_contract
+from m2v.engine import tts as tts_engine
 from m2v.types.article.storyboard import Report
 from m2v.types import registry
 from m2v.engine import output_validation
@@ -200,7 +201,7 @@ def _validate_embedded_reviews(root: Path, plan: dict[str, Any]) -> None:
         child_type.review_gate(child_root, child_manifest)
 
 
-def prepare(root: Path, project: dict) -> dict:
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
     plan = _plan(root, project)
     _validate_embedded_reviews(root, plan)
     inputs = file_inputs(root, project)
@@ -209,6 +210,11 @@ def prepare(root: Path, project: dict) -> dict:
     narration_parts: list[tuple[Path, int]] = []
     speech_cues: list[dict] = []
     fps = plan["fps"]
+    voice, rate = tts_engine.resolve(project, voice=voice, rate=rate)
+    configured_tts = tts_engine.settings(project)
+    if configured_tts:
+        # 作品显式声明音色或语速时记进准备记录：换音色本身就是影响声音的变更。
+        inputs["tts"] = json.dumps(configured_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     for scene in plan["scenes"]:
         for module in scene.get("embeddedCodeModules", []):
             inputs[f"embedded-module:{module['id']}"] = module["sha256"]
@@ -229,7 +235,7 @@ def prepare(root: Path, project: dict) -> dict:
             speech = registry.get("article-narrative").prepare_narration
             if speech is None:
                 raise M2VError("当前注册的视频类型未提供可复用的口播准备接口")
-            wav, cues, _words, seconds, _hit = speech(text, cache)
+            wav, cues, _words, seconds, _hit = speech(text, cache, voice=voice, rate=rate)
             fixed = scene.get("duration", {}).get("frames")
             if fixed is not None and (type(fixed) is not int or seconds > fixed / fps):
                 raise M2VError(f"场景 {scene['id']} 口播超出固定帧容量")

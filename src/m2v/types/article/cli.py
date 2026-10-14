@@ -1284,8 +1284,8 @@ def main_prepare(argv: list[str] | None = None) -> int:
         "--out-dir",
         help="媒体输出目录；省略时按文章归属推导为 videos/article-narrative/<slug>/outputs/media",
     )
-    parser.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
-    parser.add_argument("--rate", default="+0%", help="语速，例如 --rate=-10%%")
+    parser.add_argument("--voice", default=None, help="音色；省略时跟随作品 project.json 的 tts.voice，再退回默认音色")
+    parser.add_argument("--rate", default=None, help="语速，例如 --rate=-10%%；省略时跟随作品 project.json 的 tts.rate")
     parser.add_argument("--force", action="store_true", help="强制重新合成所有非空口播")
     parser.add_argument(
         "--subset-fonts",

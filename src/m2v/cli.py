@@ -39,6 +39,9 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="m2v", description="专用与通用视频制作工具")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("types", help="列出内置视频类型")
+    voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")
+    voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
+    voices.add_argument("--json", action="store_true", help="输出 JSON")
     init = sub.add_parser("init", help="初始化作品目录")
     init.add_argument("--type", required=True)
     init.add_argument("--project", required=True)
@@ -48,6 +51,10 @@ def _parser() -> argparse.ArgumentParser:
         item.add_argument("--project", required=True)
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
+        if command == "prepare":
+            # 临时试听用：不改作品文件也能换音色，省略时跟随 project.json 的 tts。
+            item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
+            item.add_argument("--rate", help="语速，例如 --rate=-6%%")
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)
     migrate.add_argument("--from", dest="source_format", required=True, choices=("article-v4", "financial"))
@@ -62,6 +69,41 @@ def _parser() -> argparse.ArgumentParser:
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
     return parser
+
+
+def _list_voices(locale: str, as_json: bool) -> int:
+    """列出合成可用音色，避免把音色名写错才发现。
+
+    只读诊断：结果不参与渲染，也不写文件。
+    """
+    import asyncio
+    from m2v.engine import tts
+
+    try:
+        grouped = asyncio.run(tts.list_voices())
+    except Exception as exc:
+        raise M2VError(f"无法获取音色列表（需要联网）：{exc}") from exc
+    selected = grouped if locale == "all" else {locale: grouped.get(locale, [])}
+    if locale != "all" and not selected[locale]:
+        available = "、".join(sorted(item for item in grouped if item.startswith("zh")) or sorted(grouped))
+        raise M2VError(f"区域 {locale} 没有可用音色；可尝试 --locale all，或这些中文区域：{available}")
+    if as_json:
+        print(json.dumps({
+            key: [{"voice": v["ShortName"], "gender": v.get("Gender"),
+                   "categories": (v.get("VoiceTag") or {}).get("ContentCategories"),
+                   "personalities": (v.get("VoiceTag") or {}).get("VoicePersonalities")}
+                  for v in values]
+            for key, values in selected.items()}, ensure_ascii=False, indent=2))
+        return 0
+    for key in sorted(selected):
+        print(f"{key}（{len(selected[key])} 个）")
+        for voice in sorted(selected[key], key=lambda item: item["ShortName"]):
+            tag = voice.get("VoiceTag") or {}
+            traits = "、".join(filter(None, (
+                "、".join(tag.get("ContentCategories") or []),
+                "、".join(tag.get("VoicePersonalities") or []))))
+            print(f"  {voice['ShortName']:<38} {voice.get('Gender', ''):<7} {traits}")
+    return 0
 
 
 def _status(root: Path, manifest: dict) -> dict:
@@ -208,6 +250,8 @@ def main(argv: list[str] | None = None) -> int:
             result = relocate(Path(args.project), content_root=args.content_root)
             print(result.message)
             return 0
+        if args.command == "voices":
+            return _list_voices(args.locale, args.json)
         root, manifest = load_project(args.project)
         video_type = registry.get(manifest["type"])
         _validate_project_location(root, manifest)
@@ -217,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "prepare":
             video_type.validate(root, manifest)
-            video_type.prepare(root, manifest)
+            video_type.prepare(root, manifest, voice=args.voice, rate=args.rate)
             print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
             return 0
         if args.command == "status":

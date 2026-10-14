@@ -50,9 +50,10 @@ def _scene_cache_key(text: str, voice: str, rate: str, contract_version: int) ->
 
 
 def prepare(storyboard_path: str | Path, out_dir: str | Path,
-            voice: str = "zh-CN-XiaoxiaoNeural", rate: str = "+0%", force: bool = False) -> Path:
+            voice: str | None = None, rate: str | None = None, force: bool = False) -> Path:
     """为 v4 分镜准备配音与派生时间轴；旧分镜在这里就被拒绝。"""
     started = time.monotonic()
+    voice, rate = voice or shared_tts.DEFAULT_VOICE, rate or shared_tts.DEFAULT_RATE
     source_path, root = Path(storyboard_path), Path(out_dir)
     source = json.loads(source_path.read_text(encoding="utf-8"))
     import m2v.types.article.storyboard_v4 as storyboard_v4
