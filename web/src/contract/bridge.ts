@@ -38,7 +38,11 @@ export interface M2VContractV4 extends Omit<M2VContractBase, 'version'> {
 }
 
 export interface M2VContractV3 extends Omit<M2VContractBase, 'version'> { version: 3 }
-export type M2VContract = M2VContractV3 | M2VContractV4;
+export interface M2VContractV5 {
+  version: 5; fps: number; width: number; height: number; durationInFrames: number;
+  ready: () => Promise<void>; seekToFrame: (frame: number) => Promise<void>;
+}
+export type M2VContract = M2VContractV3 | M2VContractV4 | M2VContractV5;
 
 declare global {
   interface Window {
@@ -126,7 +130,7 @@ function nextPaint(): Promise<void> {
  * 等于目标帧。**两者都要**——当目标帧与当前帧相同时 Player 不发 `seeked`，
  * 只等事件会挂住；只轮询则在目标帧与当前帧不同、而 Player 需要跨帧调度时会忙等。
  */
-async function settleOnFrame(player: PlayerRef, frame: number): Promise<void> {
+export async function settleOnFrame(player: PlayerRef, frame: number): Promise<void> {
   player.pause();
 
   if (player.getCurrentFrame() === frame) {

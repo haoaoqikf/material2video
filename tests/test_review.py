@@ -539,7 +539,7 @@ class TestDeterminismEndToEnd:
 
         # 分镜放在仓库外的内容根里：归属靠 --content-root，共享契约页仍在仓库中
         content = tmp_path / "content"
-        article = content / "videos" / "demo"
+        article = content / "videos" / "article-narrative" / "demo"
         article.mkdir(parents=True)
         (article / "index.html").write_text("<!doctype html><html></html>", encoding="utf-8")
         storyboard = article / "storyboard.json"

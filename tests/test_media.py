@@ -28,7 +28,7 @@ from m2v.engine.http_server import LocalServer
 from conftest import make_project, v4_storyboard
 
 #: v4 示例夹具；共享测试数据本身仍由 v4_storyboard 构造
-V4_EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "darts-trial-and-error" / "storyboard.json"
+V4_EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "darts-trial-and-error" / "legacy-test-storyboard.json"
 
 #: v4 骨架里每个阶段声明的帧数；实际时长由 prepare 重新派生
 DECLARED_STAGE_FRAMES = 400

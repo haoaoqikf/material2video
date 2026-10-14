@@ -115,33 +115,16 @@ def test_relocate_rejects_non_project_source_without_moving_it(tmp_path: Path) -
     assert (source / "article.md").is_file()
 
 
-def test_article_v4_migration_is_backup_first_and_repeat_fails(tmp_path: Path) -> None:
+def test_article_v4_migration_is_rejected_without_changes(tmp_path: Path) -> None:
     root = tmp_path / "作品一"
     root.mkdir()
-    storyboard = v4_storyboard()
-    (root / "storyboard.json").write_text(json.dumps(storyboard), encoding="utf-8")
-    (root / "production.json").write_text('{"status":"pass"}', encoding="utf-8")
-    old_preview_record = root / "outputs" / "previews" / "preview-record.json"
-    old_preview_record.parent.mkdir(parents=True)
-    old_preview_record.write_text('{"status":"pass"}', encoding="utf-8")
-    manifest_path = migrate(root, "article-v4")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["type"] == "article-narrative"
-    history = root / "outputs" / "history"
-    archived_record = next(history.glob("migration-*/migration.json"))
-    archive_data = json.loads(archived_record.read_text(encoding="utf-8"))
-    assert archive_data["status"] == "historical"
-    assert not (root / "production.json").exists()
-    assert not old_preview_record.exists()
-    assert (archived_record.parent / "production.json").is_file()
-    assert (archived_record.parent / "outputs/previews/preview-record.json").is_file()
-    assert len(list(tmp_path.glob("作品一.m2v-backup-*"))) == 1
-    try:
+    (root / "storyboard.json").write_text(json.dumps(v4_storyboard()), encoding="utf-8")
+    original = (root / "storyboard.json").read_bytes()
+    with pytest.raises(M2VError, match="须重新编排"):
         migrate(root, "article-v4")
-    except M2VError as exc:
-        assert "重复迁移" in str(exc)
-    else:
-        raise AssertionError("重复迁移必须失败")
+    assert (root / "storyboard.json").read_bytes() == original
+    assert not (root / "project.json").exists()
+    assert not list(tmp_path.glob("作品一.m2v-backup-*"))
 
 
 def test_same_named_projects_receive_distinct_stable_ids(tmp_path: Path) -> None:
@@ -153,26 +136,15 @@ def test_same_named_projects_receive_distinct_stable_ids(tmp_path: Path) -> None
     assert load_project(first)[1]["id"] == first_id
 
 
-def test_migration_failure_restores_old_records_and_materials(tmp_path: Path, monkeypatch) -> None:
+def test_article_rejection_preserves_old_records(tmp_path: Path) -> None:
     root = tmp_path / "rollback"
     root.mkdir()
     (root / "storyboard.json").write_text(json.dumps(v4_storyboard()), encoding="utf-8")
     (root / "production.json").write_text('{"status":"pass"}', encoding="utf-8")
-    production_before = (root / "production.json").read_bytes()
-    storyboard_before = (root / "storyboard.json").read_bytes()
-    write_text = Path.write_text
-
-    def fail_history(path: Path, *args, **kwargs):
-        if path.name == "migration.json":
-            raise OSError("simulated history write failure")
-        return write_text(path, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "write_text", fail_history)
-    with pytest.raises(OSError, match="simulated history write failure"):
+    before = {p.name:p.read_bytes() for p in root.iterdir()}
+    with pytest.raises(M2VError, match="不支持自动迁移"):
         migrate(root, "article-v4")
-    assert not (root / "project.json").exists()
-    assert (root / "production.json").read_bytes() == production_before
-    assert (root / "storyboard.json").read_bytes() == storyboard_before
+    assert {p.name:p.read_bytes() for p in root.iterdir()} == before
 
 
 def test_registered_test_type_appears_without_editing_cli_dispatch(monkeypatch, capsys) -> None:

@@ -15,7 +15,6 @@ from m2v.types.registry import VideoType
 
 DOCS = ("README.md", ".agents/skills/material2video/SKILL.md", "docs/PROJECT_PLAN.md")
 
-ARTICLE_V4_TOP_LEVEL = {"version", "schemaVersion", "fps", "width", "height", "title", "world", "stages"}
 
 VALID_CATALOG = {
     "schemaVersion": 1,
@@ -131,17 +130,14 @@ def test_init_writes_exactly_the_materials_declared_by_the_catalog(tmp_path: Pat
         assert written == declared | {"project.json"}
 
 
-def test_article_init_writes_a_v4_storyboard_instead_of_a_wrapper(tmp_path: Path, capsys) -> None:
+def test_article_init_writes_a_v5_storyboard(tmp_path: Path, capsys) -> None:
     root = _init(tmp_path, "article-narrative")
     capsys.readouterr()
     storyboard = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
-    assert ARTICLE_V4_TOP_LEVEL <= set(storyboard)
-    assert storyboard["version"] == 4 and storyboard["schemaVersion"] == 4
-    # 占位内容仍需作者填写，因此校验仍失败；但失败原因不再是被文件名键包裹。
-    assert main(["validate", "--project", str(root)]) == 1
-    errors = capsys.readouterr().err
-    assert "不支持 v4 之前分镜" not in errors
-    assert "world.id" in errors
+    assert {"version", "schemaVersion", "fps", "width", "height", "title", "scenes"} <= set(storyboard)
+    assert storyboard["version"] == 5 and storyboard["schemaVersion"] == 5
+    (root / "article.md").write_text("填写观点。", encoding="utf-8")
+    assert main(["validate", "--project", str(root)]) == 0
 
 
 def test_financial_material_constants_agree_with_the_catalog(tmp_path: Path) -> None:

@@ -21,17 +21,7 @@ def migrate(root: Path, source_format: str) -> Path:
         raise M2VError(f"作品目录不存在：{root}")
     financial_upgrade = False
     if source_format == "article-v4":
-        candidates = [root / "storyboard.json"]
-        candidates.extend(root.glob("*.storyboard.json"))
-        source = next((file for file in candidates if file.is_file()), None)
-        if source is None:
-            raise M2VError("未找到 storyboard.json")
-        data = json.loads(source.read_text(encoding="utf-8"))
-        from m2v.types.article.storyboard_v4 import validate
-        report = validate(data)
-        if not report.ok:
-            raise M2VError("仅支持有效的文章 v4 分镜；v1-v3 需重新编排")
-        video_type, materials = "article-narrative", {"storyboard": source.name}
+        raise M2VError("文章类型已改用 v5 讲解分镜；v4 须重新编排，不支持自动迁移")
     elif source_format == "financial":
         from m2v.types.financial import financial
         raw_plan = json.loads((root / "animation-plan.json").read_text(encoding="utf-8"))

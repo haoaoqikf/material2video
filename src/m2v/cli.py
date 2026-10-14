@@ -123,9 +123,14 @@ def _list_voices(locale: str, as_json: bool) -> int:
     return 0
 
 
+def _prepared(root: Path, manifest: dict) -> dict:
+    check = registry.get(manifest["type"]).prepared_check
+    return check(root, manifest) if check else load_current_prepared(root, manifest)
+
+
 def _status(root: Path, manifest: dict) -> dict:
     try:
-        prepared = load_current_prepared(root, manifest)
+        prepared = _prepared(root, manifest)
         prep = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
         prep = {"status": "stale-or-missing", "detail": str(exc)}
@@ -154,7 +159,7 @@ def _status(root: Path, manifest: dict) -> dict:
                 preview_status = {"status": "current", "path": record["path"]}
             if video_type.manual_review_required:
                 review = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
-                prepared = load_current_prepared(root, manifest)
+                prepared = _prepared(root, manifest)
                 criteria = _review_criteria(root, manifest, prepared)
                 evidence = review.get("evidence")
                 complete = (isinstance(evidence, dict) and set(evidence) == set(criteria)
@@ -217,7 +222,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps([{"type": x.name, "description": registry.describe(x.name)} for x in registry.all_types()], ensure_ascii=False, indent=2))
             return 0
         if args.command == "article":
-            from m2v.types.article import workflow_cli as workflow
+            from m2v.types.article import explainer_cli as workflow
             return workflow.main([args.workflow, *args.options])
         if args.command == "financial":
             root, manifest = load_project(args.project)
@@ -286,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(_status(root, manifest), ensure_ascii=False, indent=2))
             return 0
         if args.command in {"preview", "render"}:
-            prepared = load_current_prepared(root, manifest)
+            prepared = _prepared(root, manifest)
             if args.command == "render":
                 _require_review(root, manifest, prepared)
                 _require_type_review(video_type, root, manifest)
@@ -330,7 +335,7 @@ def main(argv: list[str] | None = None) -> int:
                 print("当前金融作品使用完整预演自动验收，无需人工评审模板")
                 return 0
             video_type.validate(root, manifest)
-            prepared = load_current_prepared(root, manifest)
+            prepared = _prepared(root, manifest)
             try:
                 preview = json.loads((root / "outputs" / "preview-record.json").read_text(encoding="utf-8"))
             except (OSError, ValueError) as exc:
@@ -349,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"待填写评审模板：{root / 'outputs' / 'review.json'}")
             return 0
         if args.command == "review":
-            prepared = load_current_prepared(root, manifest)
+            prepared = _prepared(root, manifest)
             if not video_type.manual_review_required:
                 _require_type_review(video_type, root, manifest)
                 print("当前金融作品的完整预演自动验收通过；人工评审不适用")

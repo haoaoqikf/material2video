@@ -23,7 +23,7 @@ from m2v.types.article.render import provenance_status
 from conftest import approve_production_record
 
 ROOT = Path(__file__).resolve().parents[1]
-DECLARATIVE = ROOT / "examples/keynote-baseline/storyboard.json"
+DECLARATIVE = ROOT / "examples/keynote-baseline/legacy-test-storyboard.json"
 
 pytestmark = pytest.mark.slow
 
@@ -84,8 +84,9 @@ def test_declarative_render_writes_into_the_content_root(chromium_ready, content
     # version 4 起区分画面来源；默认路径由 Remotion composition 渲染。
     assert sidecar["version"] == 4
     assert sidecar["renderer"] == "remotion"
-    # 产物在 videos/article-narrative/demo/outputs/previews/ 下：指回内容根要上四层
-    assert sidecar["workspace"] == "../../../.."
+    # 限帧试渲染写在 videos/article-narrative/demo/outputs/previews/ 下：
+    # 从产物目录回到内容根要上五层（previews → outputs → demo → article-narrative → videos → 内容根）。
+    assert sidecar["workspace"] == "../../../../.."
     assert sidecar["page"] == "index.ts"
     assert sidecar["storyboard"] == "videos/article-narrative/demo/storyboard.json"
     assert "__m2v_web__/src/compositions/M2VComposition.tsx" in sidecar["assets"]["files"]

@@ -12,6 +12,7 @@ import type { StoryboardV4 } from './schema/storyboardV4';
 import './styles/index.css';
 import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
 import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
+import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
 
 /**
  * 时长、帧率与尺寸都从分镜推导，**不在注册时写死**。
@@ -44,6 +45,10 @@ const calculateM2V: CalculateMetadataFunction<ActiveProps> = ({ props }) => {
 export const RemotionRoot: FC = () => {
   return (
     <>
+      <Composition id="ArticleExplainer" component={ArticleExplainer} durationInFrames={1} fps={30} width={1080} height={1920}
+        defaultProps={{version: 5, schemaVersion: 5, fps: 30, width: 1080, height: 1920, title: '', visual: {theme: 'dark'},
+          durationInFrames: 1, compiledScenes: [], subtitleCues: []} as ArticleExplainerProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })} />
       <Composition
         id="M2V"
         component={ActiveComposition}

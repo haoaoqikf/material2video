@@ -2,8 +2,8 @@ schema: spec-driven
 
 context: |
   项目：material2video，使用共享制作底座、独立视频类型和统一制作入口，优先发展金融时间序列等专用视频，再逐步扩展通用多场景编排。
-  当前类型包括 financial-timeseries（独立行情材料、假设投资计算和手机可读性门禁）、article-narrative（文章 v4 单场景叙事、配音、状态轨道、镜头、代码世界及制作门禁）与 general（受控图文、完整类型片段和公开代码场景组合）。
-  文章 v4 仍围绕一个持续 world 与多阶段叙事；130～170字正文/口播、35～45秒和连续性评审只适用于文章类型，不约束金融或整条通用视频。历史文章 v1～v3 需重新编排。
+  当前类型包括 financial-timeseries（独立行情材料、假设投资计算和手机可读性门禁）、article-narrative（文章 v5 多幕模板讲解、真实配音、输入语义审查及人工评审）与 general（受控图文、完整类型片段和公开代码场景组合）。
+  文章 v5 使用五模板 scenes 多幕讲解，完整成片最多 60 秒；非空源文与旁白，不限制标准字数。旧文章 v1～v4 需重新编排，不自动迁移。
   Python 生产实现位于 src/m2v/：core（作品契约与指纹）、engine（构建、缓存、渲染、合成与验收）、types（业务类型与注册）、cli（统一入口）；Skill 只保留创作指导和参考契约。
   技术栈：Python（类型校验与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），
   Playwright（契约页量测）、ffmpeg（成片验收与音轨）；Python 依赖由 uv 管理，web 依赖由 pnpm 管理。

@@ -46,7 +46,7 @@ def _capture(monkeypatch) -> list[dict]:
 def project(tmp_path, valid_script_v4, speech):
     article = make_project(tmp_path, "videos", "demo", valid_script_v4)
     media = prep.prepare(
-        article / "storyboard.json", tmp_path / "videos" / "demo" / "outputs" / "media"
+        article / "storyboard.json", article / "outputs" / "media"
     )
     _approve_render_gate(article, media)
     return tmp_path, article, media
@@ -101,7 +101,7 @@ def test_formal_gate_still_blocks_before_the_renderer_is_entered(
     """缓存与并发都不改变「先过门禁」：缺评审记录时连渲染器都不进。"""
     article = make_project(tmp_path, "videos", "demo", valid_script_v4)
     media = prep.prepare(
-        article / "storyboard.json", tmp_path / "videos" / "demo" / "outputs" / "media"
+        article / "storyboard.json", article / "outputs" / "media"
     )
     captured = _capture(monkeypatch)
     assert cli.main_render(_argv(article, media)) != 0

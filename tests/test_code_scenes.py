@@ -194,11 +194,11 @@ class TestCliJsonSnapshot:
     """validate.py --json 的错误结构与 v4 汇总：程序化消费的契约快照。"""
 
     def _project_with_storyboard(self, tmp_path: Path, data: dict) -> Path:
-        # 路径归属依赖仓库根标记（与 conftest.make_project 同一约定）
+        # 路径归属依赖仓库根标记与 videos/<类型>/<作品>/ 目录约定（与 conftest.make_project 同一约定）
         marker = tmp_path / ".agents" / "skills" / "material2video" / "SKILL.md"
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.write_text("# material2video skill", encoding="utf-8")
-        article = tmp_path / "videos" / "slug"
+        article = tmp_path / "videos" / "article-narrative" / "slug"
         article.mkdir(parents=True, exist_ok=True)
         storyboard = article / "storyboard.json"
         storyboard.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")

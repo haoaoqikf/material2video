@@ -1,0 +1,277 @@
+{
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "低成本试错：一张靶上的反馈循环",
+  "visualDirection": {
+    "motif": "飞镖落点逐次靠近靶心",
+    "compositionBias": "centered",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "切换成独立文字页",
+      "把示意次数写成真实统计"
+    ]
+  },
+  "directingBrief": {
+    "thesis": "低成本行动缩短反馈周期，让失败转化为调整信息",
+    "audienceShift": "从害怕失败转向重视每次行动带来的反馈",
+    "emotionalArc": [
+      "犹豫",
+      "观察",
+      "行动",
+      "确信"
+    ],
+    "visualMotif": "同一人物向同一张靶连续投掷飞镖",
+    "stylePack": "cinematic",
+    "avoid": [
+      "宣称高频试错保证成功",
+      "将示意落点包装成统计事实"
+    ]
+  },
+  "visual": {
+    "theme": "dark",
+    "preset": "keynote"
+  },
+  "world": {
+    "id": "dart-world",
+    "claim": "低成本高频试错通过更快反馈改善下一次判断",
+    "metaphor": "人物持续向同一张飞镖靶投掷，每个落点留下可见偏差",
+    "objects": [
+      {
+        "id": "player",
+        "role": "primary",
+        "description": "从开始到结束持续存在的投掷者"
+      },
+      {
+        "id": "dart",
+        "role": "supporting",
+        "description": "每次低成本尝试的飞镖与逐次增加的落点"
+      },
+      {
+        "id": "target",
+        "role": "supporting",
+        "description": "持续存在并提供偏差参照的同一张靶"
+      }
+    ],
+    "renderer": {
+      "kind": "code",
+      "module": "darts-trial-and-error"
+    },
+    "data": {
+      "objects": {
+        "player": {
+          "state": "rest"
+        },
+        "dart": {
+          "state": "rest"
+        },
+        "target": {
+          "state": "rest"
+        }
+      }
+    },
+    "stateTracks": [],
+    "motions": [],
+    "camera": {
+      "shot": "medium",
+      "composition": "center",
+      "depth": "layered",
+      "focus": "target",
+      "segments": [
+        {
+          "id": "hold-open",
+          "kind": "hold",
+          "binding": {
+            "beatId": "beat-1"
+          },
+          "focus": "player",
+          "intensity": 0
+        },
+        {
+          "id": "reveal-target",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "beat-3"
+          },
+          "focus": "target",
+          "intensity": 0.65
+        },
+        {
+          "id": "show-pattern",
+          "kind": "pull-out",
+          "binding": {
+            "beatId": "beat-4"
+          },
+          "focus": "target",
+          "intensity": 0.65
+        },
+        {
+          "id": "settle-learning",
+          "kind": "settle",
+          "binding": {
+            "beatId": "beat-5"
+          },
+          "focus": "target",
+          "intensity": 0
+        }
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "hesitate",
+      "durationInFrames": 300,
+      "data": {
+        "headline": "准备很久，还是没有反馈"
+      },
+      "visualIntent": {
+        "relation": "cause",
+        "focus": "shape",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "tense",
+        "mode": "metaphor",
+        "claim": "反复等待让行动与反馈都迟迟不发生",
+        "showWithoutText": "人物停在同一张尚无落点的靶前",
+        "primaryObject": "持续存在的人物、飞镖与靶",
+        "motionMeaning": "把等待和准备固定为迟迟不投的起点"
+      },
+      "narrationSegments": [
+        {
+          "id": "line-1",
+          "text": "我们常把失败当成浪费，于是反复准备，等到足够确定才行动。可等待没有反馈，判断只能靠猜；越靠猜，下一步越难开始。",
+          "beatId": "beat-1"
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat-1",
+          "action": "establish",
+          "targets": [
+            "player",
+            "target"
+          ],
+          "meaning": "把等待和准备固定为迟迟不投的起点"
+        }
+      ]
+    },
+    {
+      "id": "first-throw",
+      "durationInFrames": 240,
+      "data": {
+        "headline": "先投一次"
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "path",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "neutral",
+        "mode": "metaphor",
+        "claim": "第一次投掷建立可观察的偏差",
+        "showWithoutText": "第一次投掷建立可观察的偏差，人物、飞镖与同一张靶始终留在画面中",
+        "primaryObject": "持续存在的人物、飞镖与靶",
+        "motionMeaning": "第一次投掷建立可观察的偏差"
+      },
+      "narrationSegments": [
+        {
+          "id": "line-3",
+          "text": "把行动拆小，用可承受的代价换信息。飞镖落点告诉你偏差，下一次就能微调。",
+          "beatId": "beat-3"
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat-3",
+          "action": "transfer",
+          "targets": [
+            "player",
+            "dart",
+            "target"
+          ],
+          "meaning": "第一次投掷建立可观察的偏差"
+        }
+      ]
+    },
+    {
+      "id": "repeat-adjust",
+      "durationInFrames": 360,
+      "data": {
+        "headline": "保留落点再调整"
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "path",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "uplifting",
+        "mode": "metaphor",
+        "claim": "连续投掷保留既有落点，并将调整指向靶心",
+        "showWithoutText": "连续投掷保留既有落点，并将调整指向靶心，人物、飞镖与同一张靶始终留在画面中",
+        "primaryObject": "持续存在的人物、飞镖与靶",
+        "motionMeaning": "连续投掷保留既有落点，并将调整指向靶心"
+      },
+      "narrationSegments": [
+        {
+          "id": "line-4",
+          "text": "低成本不保证命中，高频也不等于盲目重复。记录偏差、调整方向，失败才会变成路径信息。",
+          "beatId": "beat-4"
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat-4",
+          "action": "accumulate",
+          "targets": [
+            "player",
+            "dart",
+            "target"
+          ],
+          "meaning": "连续投掷保留既有落点，并将调整指向靶心"
+        }
+      ]
+    },
+    {
+      "id": "learn",
+      "durationInFrames": 300,
+      "data": {
+        "headline": "让失败变成信息"
+      },
+      "visualIntent": {
+        "relation": "sequence",
+        "focus": "shape",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "decisive",
+        "mode": "metaphor",
+        "claim": "把偏差转为下一次方向，落点累积为可读路径",
+        "showWithoutText": "把偏差转为下一次方向，落点累积为可读路径，人物、飞镖与同一张靶始终留在画面中",
+        "primaryObject": "持续存在的人物、飞镖与靶",
+        "motionMeaning": "把偏差转为下一次方向，落点累积为可读路径"
+      },
+      "narrationSegments": [
+        {
+          "id": "line-5",
+          "text": "面对不确定，先降低单次代价，再缩短反馈间隔。没中并非白费，它让下次少一点猜测。",
+          "beatId": "beat-5"
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat-5",
+          "action": "transform",
+          "targets": [
+            "player",
+            "dart",
+            "target"
+          ],
+          "meaning": "把偏差转为下一次方向，落点累积为可读路径"
+        }
+      ]
+    }
+  ]
+}

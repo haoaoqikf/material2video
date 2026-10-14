@@ -128,6 +128,14 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         child = load_current_prepared(child_root, child_project)
         if child["preparedFingerprint"] != dependency["preparedFingerprint"]:
             raise M2VError(f"嵌入作品已重新准备：{dependency_root}；请重新 prepare 当前作品")
+    # 显式引用的附属输入也属于版本绑定：源文、图片、语义审查及准备音轨。
+    for name, digest in prepared.get("inputs", {}).items():
+        if not name.startswith("file:"):
+            continue
+        file = (root / name[5:]).resolve()
+        if (not file.is_relative_to(root.resolve()) or not file.is_file()
+                or hashlib.sha256(file.read_bytes()).hexdigest() != digest):
+            raise M2VError(f"准备引用文件已变化或缺失：{name[5:]}；请重新 prepare 并评审")
     return prepared
 
 

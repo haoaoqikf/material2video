@@ -12,6 +12,7 @@ import { resolveStoryboardV4 } from '@/runtime/timelineV4';
 import type { V4MediaTimeline } from '@/runtime/timelineV4';
 import { installOfflineGuard } from '@/runtime/offline-guard';
 import '@/styles/index.css';
+import { ExplainerContractApp } from './explainer';
 
 // 尽早开始加载字体：`ready()` 会等它，但它不必等到那时才开始
 void ensureFonts();
@@ -151,6 +152,6 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <ContractApp />
+    {new URLSearchParams(location.search).has('m2v-explainer') ? <ExplainerContractApp /> : <ContractApp />}
   </StrictMode>,
 );

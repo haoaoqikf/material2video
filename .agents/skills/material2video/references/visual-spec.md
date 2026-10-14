@@ -6,8 +6,12 @@
 > **版本范围：** 本文的画布、安全区、排版与风格建议可继续参考；下文部分动效机制、
 > 转场、`visual.kicker`、`scene.motions` 与旧版运行时目录表描述的是 v3 历史契约，
 > 不适用于当前 v4。当前以一个持续视觉世界承载多个叙事阶段；v4 字段以
-> [分镜契约](storyboard-schema.md)为准，创作流程以[文章到分镜](article-to-storyboard.md)为准。
+> [设计宪法](design-constitution.md)为准，创作流程以[文章到分镜](article-to-storyboard.md)为准。
 > 不要将本文的旧字段或旧场景切换规则用于 v4 分镜。
+>
+> **适用范围：** v4 只约束 general 嵌入与内部动画模块使用的旧共享动画契约。
+> article-narrative 已改为 v5 多幕讲解模板，画布、分区与模板约束以
+> [文章分镜 v5](storyboard-schema.md)为准。
 
 规范分两层：
 

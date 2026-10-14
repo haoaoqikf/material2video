@@ -1,5 +1,11 @@
 # 配音与字幕
 
+> **适用范围：** 本文的 v4 字段与时间轴描述只约束 general 嵌入与内部动画模块使用的旧共享动画契约。
+> article-narrative 已改为 v5 多幕讲解：每段旁白独立合成、实际语音时间轴、成片最多 60 秒，
+> 且不再限制 130～170 字或 35～45 秒。文章时间轴契约以 [文章分镜 v5](storyboard-schema.md) 与
+> [OpenSpec article-explainer](../../../../openspec/specs/article-explainer/spec.md) 为准；
+> 音色、缓存、混音与编码说明继续适用于所有类型。
+
 ## 当前契约：分镜 v4 / 媒体 version 4
 
 以下字段名和时间语义以 V4 为准；本文件后续音色、缓存、混音与编码说明继续适用。

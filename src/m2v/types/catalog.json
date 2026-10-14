@@ -81,45 +81,43 @@
     },
     {
       "name": "article-narrative",
-      "description": "观点型文章的 v4 单场景叙事",
-      "summary": "文章 v4 单场景叙事，保留配音、状态轨道、镜头、代码世界与文章制作门禁。",
-      "plan": "完整保留文章 v4、配音、时间轴、状态轨道、镜头、代码世界与制作评审规则。",
-      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。",
+      "description": "一分钟以内的 v5 多幕文章讲解",
+      "summary": "v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与人工评审，成片不超过 60 秒。",
+      "plan": "以五种受控讲解模板制作 v5 多幕文章视频，保留真实配音、输入语义审查与当前版本人工评审。",
+      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[制作流程](references/production-workflow.md)：v5 多幕卡片与真实语音时间轴。",
       "materials": [
         {
           "name": "storyboard",
           "file": "storyboard.json",
           "template": {
-            "version": 4,
-            "schemaVersion": 4,
+            "version": 5,
+            "schemaVersion": 5,
             "fps": 30,
             "width": 1080,
             "height": 1920,
             "title": "新作品",
             "visual": {
-              "theme": "dark",
-              "preset": "keynote"
+              "theme": "dark"
             },
-            "visualDirection": {
-              "motif": "填写视觉母题",
-              "compositionBias": "centered",
-              "density": "balanced",
-              "rhythm": "steady",
-              "avoid": []
-            },
-            "directingBrief": {
-              "thesis": "填写核心观点",
-              "audienceShift": "填写观众认知变化",
-              "emotionalArc": [
-                "疑问",
-                "理解"
-              ],
-              "visualMotif": "填写视觉母题",
-              "stylePack": "editorial",
-              "avoid": []
-            },
-            "world": {},
-            "stages": []
+            "scenes": [
+              {
+                "id": "opening",
+                "template": "point",
+                "content": {
+                  "title": "填写核心观点",
+                  "summary": {
+                    "text": "填写画面摘要",
+                    "segmentId": "opening-line"
+                  }
+                },
+                "narrationSegments": [
+                  {
+                    "id": "opening-line",
+                    "text": "填写完整旁白。"
+                  }
+                ]
+              }
+            ]
           }
         }
       ]

@@ -6,7 +6,7 @@
 
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整预演自动验收。
-- `article-narrative`：文章 v4 单场景叙事，保留配音、状态轨道、镜头、代码世界与文章制作门禁。
+- `article-narrative`：v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与人工评审，成片不超过 60 秒。
 - `general`：受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化和可选口播。
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
@@ -43,7 +43,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。
 
-`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v4 分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。该规则也适用于通用视频内嵌的金融片段。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。旧文章仅接受有效 v4；v1～v3 必须重新编排。`render` 不修改原始材料；文章与通用视频要求人工评审匹配当前指纹，金融视频则要求当前完整预演及自动验收记录有效。
+`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v5 讲解分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。该规则也适用于通用视频内嵌的金融片段。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。文章仅接受 v5；v1～v4 必须重新编排。`render` 不修改原始材料；文章与通用视频要求人工评审匹配当前指纹，金融视频则要求当前完整预演及自动验收记录有效。
 
 房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、30 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，须人工检查完整预演后渲染。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
 
@@ -53,6 +53,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
+文章讲解使用 v5 多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`，执行 `m2v article input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；每幕保留 12 帧阅读停留，可选 8 帧画面淡化，完整成片最多 60 秒。自动检查文字溢出及字幕遮挡，完整预演后填写统一 `outputs/review.json` 五项依据。旧 `production.json`、单世界动画分镜与旧评审不再适用，v1～v4 须重新编排；不自动迁移。
+
 作品可以位于仓库外内容根；`M2V_CONTENT_ROOT` 用作默认内容根。架构和材料契约见 [OpenSpec 变更](openspec/specs/modular-video-production/spec.md)，未来能力路线见 [项目规划](docs/PROJECT_PLAN.md)。
 
 ## 项目结构
@@ -61,7 +63,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - `src/m2v/engine/`：Remotion 构建与缓存、渲染会话、音视频合成和验收。
 - `src/m2v/types/`：文章、金融、通用类型、类型目录（`catalog.json`）与显式注册。
 - `src/m2v/cli.py`：`m2v` 统一命令入口。
-- `web/src/compositions/`：共享 composition、金融画面、文章世界与通用场景宿主。
+- `web/src/compositions/`：共享 composition、金融画面、文章讲解模板与通用场景宿主。
 - `.agents/skills/material2video/references/`：材料、类型创作与评审操作参考。
 - `openspec/specs/`、`openspec/changes/`：已归档规格与进行中的变更。
 

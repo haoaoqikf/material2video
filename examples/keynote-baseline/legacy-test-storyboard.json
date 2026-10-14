@@ -1,0 +1,295 @@
+{
+  "version": 4,
+  "schemaVersion": 4,
+  "directingVersion": 2,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "title": "少一个选项",
+  "visual": {
+    "theme": "dark",
+    "preset": "keynote"
+  },
+  "visualDirection": {
+    "motif": "一张持续存在的分叉选项地图从繁密逐步收束",
+    "compositionBias": "centered",
+    "density": "balanced",
+    "rhythm": "steady",
+    "avoid": [
+      "切换独立画面",
+      "把示意数量说成实验数据"
+    ]
+  },
+  "directingBrief": {
+    "thesis": "选项过多会把注意力和决定力耗在比较上，删去多余路线才能向前",
+    "audienceShift": "从把选项数量当成自由，转向看见比较成本并主动收束",
+    "emotionalArc": [
+      "繁杂",
+      "迟疑",
+      "清晰"
+    ],
+    "visualMotif": "同一张地图的分叉路线不断减少，最后留下可执行的一条",
+    "stylePack": "poetic",
+    "avoid": [
+      "呈现成多张页面",
+      "将示意数量包装成实证"
+    ]
+  },
+  "world": {
+    "id": "option-map",
+    "claim": "选择过多会增加比较与犹豫，主动删减才能释放决定力",
+    "metaphor": "一张由一个起点伸出多条岔路、最终收束为一条路线的地图",
+    "objects": [
+      {
+        "id": "map",
+        "role": "primary",
+        "description": "贯穿全片的路线地图和起点"
+      },
+      {
+        "id": "routes",
+        "role": "supporting",
+        "description": "数量逐步减少的选项路线，数量为示意"
+      }
+    ],
+    "renderer": {
+      "kind": "code",
+      "module": "option-map"
+    },
+    "data": {
+      "objects": {
+        "map": {
+          "state": "rest"
+        },
+        "routes": {
+          "state": "focus",
+          "value": 10
+        }
+      }
+    },
+    "stateTracks": [
+      {
+        "id": "route-count-7",
+        "target": "routes",
+        "property": "value",
+        "binding": {
+          "beatId": "compare-cost"
+        },
+        "to": 7,
+        "interpolation": "ease-out"
+      },
+      {
+        "id": "route-count-3",
+        "target": "routes",
+        "property": "value",
+        "binding": {
+          "beatId": "hesitation"
+        },
+        "to": 3,
+        "interpolation": "ease-out"
+      },
+      {
+        "id": "route-count-1",
+        "target": "routes",
+        "property": "value",
+        "binding": {
+          "beatId": "cut-away"
+        },
+        "to": 1,
+        "interpolation": "ease-out"
+      }
+    ],
+    "motions": [],
+    "camera": {
+      "shot": "medium",
+      "composition": "center",
+      "depth": "layered",
+      "focus": "routes",
+      "segments": [
+        {
+          "id": "wide-map",
+          "kind": "hold",
+          "binding": {
+            "beatId": "many-options"
+          },
+          "focus": "routes",
+          "intensity": 0
+        },
+        {
+          "id": "compare-push",
+          "kind": "push-in",
+          "binding": {
+            "beatId": "compare-cost"
+          },
+          "focus": "routes",
+          "intensity": 0.2
+        },
+        {
+          "id": "settle-choice",
+          "kind": "pull-out",
+          "binding": {
+            "beatId": "cut-away"
+          },
+          "focus": "map",
+          "intensity": 0.2
+        }
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "many-options",
+      "durationInFrames": 270,
+      "data": {
+        "headline": "选择越多，自由越多？",
+        "note": "每条岔路都要被评估",
+        "count": 10
+      },
+      "visualIntent": {
+        "relation": "contrast",
+        "focus": "text",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "calm",
+        "mode": "metaphor",
+        "claim": "选择数量看似代表自由",
+        "showWithoutText": "同一个起点伸出繁密的可见路线，路线数只作示意",
+        "primaryObject": "持续存在的分叉选项地图",
+        "motionMeaning": "地图建立多个可能方向"
+      },
+      "narrationSegments": [
+        {
+          "id": "n1",
+          "beatId": "many-options",
+          "text": "桌上有十个方案时，人会以为选择越多越自由。"
+        }
+      ],
+      "beats": [
+        {
+          "id": "many-options",
+          "action": "establish",
+          "targets": [
+            "map",
+            "routes"
+          ],
+          "meaning": "建立一个起点和多条可能路线；数量仅为示意"
+        }
+      ]
+    },
+    {
+      "id": "comparison",
+      "durationInFrames": 270,
+      "data": {
+        "headline": "注意力滑向比较",
+        "note": "不是想要什么，而是哪一个更好",
+        "count": 7
+      },
+      "visualIntent": {
+        "relation": "cause",
+        "focus": "path",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "tense",
+        "mode": "process",
+        "claim": "每多一个选项就多一次评估",
+        "showWithoutText": "地图上的分支逐渐收短，但比较节点仍占据路线",
+        "primaryObject": "同一地图中的分叉路线",
+        "motionMeaning": "收束分支凸显比较消耗注意力"
+      },
+      "narrationSegments": [
+        {
+          "id": "n2",
+          "beatId": "compare-cost",
+          "text": "可每多一项，就多一次比较；注意力从「我想要什么」滑向「哪个更好」，决定力也被评估消耗。"
+        }
+      ],
+      "beats": [
+        {
+          "id": "compare-cost",
+          "action": "transform",
+          "targets": [
+            "routes"
+          ],
+          "meaning": "部分路线变暗并收短，表现比较耗费决定力"
+        }
+      ]
+    },
+    {
+      "id": "hesitation",
+      "durationInFrames": 270,
+      "data": {
+        "headline": "岔路越多，回头越久",
+        "note": "自由来自知道哪条已经足够",
+        "count": 3
+      },
+      "visualIntent": {
+        "relation": "cause",
+        "focus": "path",
+        "composition": "center",
+        "density": "balanced",
+        "tone": "tense",
+        "mode": "metaphor",
+        "claim": "分支过多延长犹豫",
+        "showWithoutText": "多条路线在节点处回旋，逐步只留下少数方向",
+        "primaryObject": "固定身份的路线网络",
+        "motionMeaning": "删去岔路将犹豫转成可执行路径"
+      },
+      "narrationSegments": [
+        {
+          "id": "n3",
+          "beatId": "hesitation",
+          "text": "选择像不断分叉的路，枝条越多，回头和犹豫越久。十个只是示意，关键不在数量，而在每条路都要重新权衡。自由不是拥有全部路线，而是知道哪条足够。"
+        }
+      ],
+      "beats": [
+        {
+          "id": "hesitation",
+          "action": "compare",
+          "targets": [
+            "routes"
+          ],
+          "meaning": "呈现回头与重新权衡带来的迟疑"
+        }
+      ]
+    },
+    {
+      "id": "one-route",
+      "durationInFrames": 270,
+      "data": {
+        "headline": "删去其余路线，向前",
+        "note": "缺的不是更好选项，而是删减的勇气",
+        "count": 1
+      },
+      "visualIntent": {
+        "relation": "focus",
+        "focus": "path",
+        "composition": "center",
+        "density": "sparse",
+        "tone": "decisive",
+        "mode": "process",
+        "claim": "减少选项让决定开始前进",
+        "showWithoutText": "地图保留唯一一条明亮路线，从起点延伸向前",
+        "primaryObject": "留存的路线与稳定起点",
+        "motionMeaning": "最后一条路线定向向前并停留"
+      },
+      "narrationSegments": [
+        {
+          "id": "n4",
+          "beatId": "cut-away",
+          "text": "删到一个，决定才能向前；推迟不会让决定消失，只会把成本带进下一次犹豫。所以缺的不是更好选项，而是删去其余选项的勇气。"
+        }
+      ],
+      "beats": [
+        {
+          "id": "cut-away",
+          "action": "transform",
+          "targets": [
+            "routes",
+            "map"
+          ],
+          "meaning": "地图收束到一条明亮、可执行的路线并稳定停留"
+        }
+      ]
+    }
+  ],
+  "soundtrack": null
+}

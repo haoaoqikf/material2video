@@ -31,9 +31,9 @@
 ├── web/                              # 共享画面工程：组件、令牌、composition（入库）
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
-│   ├── article.md
-│   ├── storyboard.json
-│   ├── production.json                # 导演阶段、指纹、评审和返工记录（不入库）
+│   ├── article.md                    # 文章源文（article-narrative 必填，可改用 article.accepted.md）
+│   ├── storyboard.json               # 当前类型分镜（article-narrative 为 v5 讲解分镜）
+│   ├── production.json                # 旧 v4 动画导演记录（不入库；v5 文章不再使用）
 │   ├── scenes/                       # 代码场景模块（renderer.code），按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
 └── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
@@ -41,6 +41,10 @@
     ├── voiced.mp4                    # 最新配音成片
     ├── voiced.srt                    # 配音成片字幕
     ├── voiced.performance.json       # 与该成片同名的渲染性能报告（不入库）
+    ├── input-review.json             # 文章讲解的人工输入语义审查（v5）
+    ├── review.json                   # 统一人工评审，绑定当前准备指纹与完整预演（v5）
+    ├── preview-record.json           # 完整预演记录，供评审模板绑定
+    ├── prepared.json                 # 当前准备产物与派生时间轴
     ├── media/                        # 配音清单、音轨与缓存
     ├── previews/                     # 限帧试渲染，使用相同的成片文件名
     │   └── production/                # 关键幕有声样片、全片评审版与输出清单
@@ -61,12 +65,15 @@
 
 `examples/<slug>/` 是仓库示例源，产物放入 `videos/examples/<slug>/outputs/`，
 多一层 `examples/`，避免示例与实际文章同名时互相覆盖。
-示例对应的 `production.json` 也放在 `videos/examples/<slug>/`，避免把运行记录写进版本化的 `examples/<slug>/`。
+示例的制作记录同样放在 `videos/examples/<slug>/`，避免把运行记录写进版本化的 `examples/<slug>/`。
+示例里的 `legacy-test-storyboard.json` 是旧共享动画回归用的 v4 分镜，不属于 article-narrative 制作入口。
 
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
 React composition（Remotion），围绕全片 `world` 按全局时间轴绘制，`stages[]` 推进叙事。
+article-narrative 的 v5 讲解改由同一入口交给 `ArticleExplainer` composition 绘制五模板画面，
+不使用 world 与 stages，契约见 [文章分镜 v5](storyboard-schema.md)。
 需要新表达时按原语注册表流程新增通用原语；全片需要独特的图表面板、
 关系图或定制 SVG 时，在 `world.renderer` 声明 `kind: "code"` 与 `module`，模块放在作品目录的
 `scenes/` 下（`videos/<type>/<slug>/scenes/` 或 `examples/<slug>/scenes/`，与分镜同目录），

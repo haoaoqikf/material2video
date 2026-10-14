@@ -1,5 +1,10 @@
 # 渲染契约
 
+> **适用范围：** 本文描述的 world/stages 画面、v4 探针与量测只适用于 general 嵌入与内部动画模块。
+> article-narrative 已改为 v5 讲解：`ArticleExplainer` composition 由准备产物直接驱动，排版由
+> 浏览器量测校验，不读取 v4 探针。文章契约见 [文章分镜 v5](storyboard-schema.md) 与
+> [制作流程](production-workflow.md)；本文的渲染、编码与验收规则两类画面共用。
+
 画面实现与渲染/体检脚本之间只有这一个接口。只要画面实现满足本契约，渲染脚本就能把它
 导出为 MP4；反过来，任何一项不满足都会在开渲前报错，而不是产出一段有问题的视频。
 

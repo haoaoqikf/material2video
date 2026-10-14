@@ -125,7 +125,7 @@ def test_production_entry_rejects_legacy_storyboard(tmp_path):
         env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")},
     )
     assert completed.returncode == 2
-    assert LEGACY_MESSAGE in completed.stderr
+    assert "只接受 v5" in completed.stderr
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +177,7 @@ def test_legacy_media_is_rejected_by_the_validate_entry(tmp_path, capsys):
 def test_rejected_prepare_does_not_create_outputs_outside_the_repository(tmp_path, monkeypatch):
     """内容根在仓库外时同样成立：被拒绝的入口不创建任何作品目录。"""
     workspace = tmp_path / "content-root"
-    article = workspace / "videos" / "demo"
+    article = workspace / "videos" / "article-narrative" / "demo"
     article.mkdir(parents=True)
     path = _write(article / "storyboard.json", _legacy_script(3))
     approve_input_review(path, workspace)

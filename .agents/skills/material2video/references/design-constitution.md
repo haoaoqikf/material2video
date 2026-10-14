@@ -5,6 +5,8 @@
 
 当前生产契约为 v4：全片只有一个 world，`stages[]` 是其中的叙事阶段。下文旧示例中的“幕/场景”在适用时指 stage；历史量测说明不代表 v4 已迁移该项，当前是否可机检以 [视觉评审量表](visual-review-rubric.md) 和 `m2v article keyframes` 实际报告为准。
 
+> **适用范围：** v4 只描述仍供 general 嵌入与内部动画模块使用的旧共享动画契约。article-narrative 已改为 v5 多幕讲解模板，不使用 world、stages、camera 或状态轨道；文章契约以 [文章分镜 v5](storyboard-schema.md) 与 [OpenSpec article-explainer](../../../../openspec/specs/article-explainer/spec.md) 为准。
+
 每条规则有编号（C1…）、理由、以及**能不能机检**。能机检的部分由
 `m2v article keyframes`（帧量测、契约探针、K/V/A 系列）与 `tests/` 下的守卫执行；
 不能机检的部分由 [视觉评审量表](visual-review-rubric.md)

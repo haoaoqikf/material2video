@@ -1,87 +1,37 @@
-# 分镜脚本结构 v4
+# 文章分镜 v5
 
-`storyboard.json` 是内容、时长和画面声明的单一真源。校验、准备、预览、评审和渲染只接受 `version: 4`、`schemaVersion: 4` 与 `directingVersion: 2`。v1–v3 输入明确拒绝，必须重新编排；没有迁移命令、兼容模式或运行时回退。
+`article-narrative` 只接受 `version: 5`、`schemaVersion: 5`。v1～v4 必须重新编排，不自动迁移；历史测试分镜不属于制作入口。
 
-## 根字段
+## 全片与场景
 
-- `version` / `schemaVersion` / `directingVersion`：固定为 `4` / `4` / `2`。
-- `fps`、`width`、`height`、`title`：全片帧率、画布与标题；标准示例使用 30fps、1080×1920。
-- `visual`：声明 `preset: "keynote"`，`theme` 为 `dark` 或 `light`。
-- `visualDirection`：全片母题、构图倾向、密度、节奏与禁止项。
-- `directingBrief`：核心论点、受众认知变化、情绪弧线、视觉母题、风格包和避免项。
-- `world`：唯一持续视觉世界，含 `id`、`claim`、`metaphor`、全局 `objects`、唯一 `renderer`、基础 `data`、`stateTracks`、`motions` 与必需的 `camera`。
-- `stages`：一个或多个叙事时间阶段；阶段只声明 `id`、`durationInFrames`、`data`、`visualIntent`、可选 `narrationSegments` 与 `beats`。阶段不能声明 `renderer`、`sceneTree`、`camera` 或 `transition`。
-- `soundtrack`：可选受控音乐及音效声明。
+全片声明 `fps: 30`、`width: 1080`、`height: 1920`、`title`、可选 `visual: {"theme":"dark"}`（支持 dark/light）和非空 `scenes`。每幕声明 `id`、`template`、`content`、`narrationSegments`，可选 `transition: "cut" | "fade"`。首幕只能 cut。场景及旁白 ID 全片唯一。
 
-这里的 world 是整条视频持续存在的视觉世界；stage 是口播与推理的时间分段。多个阶段可以推动同一世界中的对象变化，不意味着换场景。镜头推拉、焦点移动也不构成场景切换。
+`narrationSegments` 每项为 `{id,text}`，文字非空。屏幕摘要和完整旁白独立，展示元素为 `{text,segmentId,keywords?}`；`segmentId` 必须引用本幕旁白，`keywords` 必须出现在该元素文字中。源文为作品 `article.md` 或明确采用的 `article.accepted.md`；也可在 project.materials.article 指定作品内文件。
 
-## 世界、对象和轨道
+## 五种模板
 
-`world.objects` 是稳定对象目录。每个对象有唯一 `id`、`role`（`primary` / `supporting` / `annotation`）和说明；至少声明一个 primary。tree renderer 的对象必须映射到全局场景树节点，code renderer 的对象必须被全局代码模块探针观察到。
+| template | content 字段 | 限制 |
+|---|---|---|
+| point | title、summary 展示元素 | 一个核心观点 |
+| compare | title、columns 两列，每列 title、items 展示元素 | 恰好两列，每列 1～4 项 |
+| steps | title、items 展示元素 | 1～6 步，按不同旁白段顺序绑定 |
+| cause | title、nodes（id 加展示元素）、links（from/to 加展示元素） | 1～6 节点、1～8 连线，分层有向无环图 |
+| image | title、src、caption 展示元素、可选 fit | PNG/JPEG/WebP 作品内图片，contain 默认完整显示，cover 居中裁切 |
 
-`world.data` 提供对象基础状态和作品数据。`stateTracks` 以 `id`、`target`、`property`、`binding`、`to` 和 `interpolation` 声明确定性变化；绑定使用 `{ "beatId": "..." }` 或 `{ "stageId": "...", "phase": "change" }`，禁止手写 `startFrame`。起始值由基础数据或前一条轨道终态派生，不维护第二份真源。属性和值类型遵循场景树/代码场景契约和严格校验。
+图片在准备时嵌入离线渲染材料并绑定原文件摘要。不自动搜图或生成图片。未知字段拒绝；旧 world、stages、camera、stateTracks 不属于 v5。
 
-图表数据来自分镜引用的 `{label, value}` 数组；`value: null` 表示缺测，保留类别标签与横向位置但不绘制该点。折线只连接有值的数据点，不能补造缺失数值。
+## 时间轴与实际量测
 
-镜头仅在 `world.camera` 声明一次：包括 `shot`、`composition`、`depth`、初始 `focus` 与非空 `segments`。镜头段以全局 beat 或阶段 phase 绑定。世界只允许一种 renderer：`{ "kind": "tree", "sceneTree": { ... } }` 所用的全局 `world.sceneTree`，或 `{ "kind": "code", "module": "..." }` 指向作品 `scenes/<module>.tsx`。两者互斥。
+每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与展示时间。元素在绑定段开始后 8 帧淡入并轻微上移，随后保持稳定；步骤高亮跟随最新开始的旁白段。因果连线必须等待两端节点出现。
 
-## 阶段、口播和视觉论证
+每幕声音结束后保留 12 帧稳定阅读，默认硬切。fade 在完整阅读尾段之后添加 8 帧画面交叉淡化，下一幕配音在淡化结束后开始。音轨不截断、不重叠。完整成片含停留及淡化最多 1800 帧（60 秒），没有原 130～170 字或 35～45 秒限制。
 
-每个有口播的 stage 都要声明 `narrationSegments` 与 `beats`。每段 `{id,text,beatId}`，每个 beat `{id,action,targets,meaning}`；id 在全片唯一。完整口播是所有阶段口播段按顺序直接拼接的结果。动作、状态、镜头和字幕引用同一全局时间轴；媒体准备后生成 `resolvedBeats`，源分镜不能写它。
+准备输出 `compiledScenes`、`segmentWindows`、`subtitleCues` 和 `durationInFrames`；这些为派生字段，不写回分镜。浏览器检查旁白边界、元素入场结束、字幕边界和每幕结尾的真实文字包围盒，溢出或侵入字幕区即失败。人工还需检查阅读节奏。
 
-每阶段的 `visualIntent` 完整声明 `relation`、`focus`、`composition`、`density`、`tone`、`mode`、`claim`、`showWithoutText`、`primaryObject` 和 `motionMeaning`。它解释这一阶段的推理增量，而不是创建另一张完整页面。声明口播的阶段至少有两个 beat，且至少一个动作真实改变对象状态或关系；最后一个 beat 后留至少 12 帧稳定阅读区。
-
-所有轨道、camera 段和 motion 都由 beat 或 phase 绑定；轨道冲突、类型不匹配、未知节点或无效动作在校验阶段失败。tree 原语细节见[视觉原语目录](primitive-catalog.md)，代码模块的确定性与探针协议见[代码场景](code-scenes.md)。
-
-## 标准字数与时长
-
-标准正文和最终拼接口播各为 130～170 字，目标约 150 字。标题不计；Unicode 标点与空白不计，其余 Unicode 码点（包括数字和拉丁字母）逐个计数。输入审查、最终口播长度、声明时长与媒体实际时长分别校验。
-
-声明总时长为 `sum(stages[].durationInFrames) / fps`，须在 35～45 秒（含边界）。配音准备后再以媒体派生全片帧数检查 35～45 秒；配音超限不能截断口播或补静音，须调整文本/正常语速/有意义停顿后重新 prepare。
-
-## 最小字段形状
-
-可运行的完整双轨样例见 [飞镖示例](../../../../examples/darts-trial-and-error/storyboard.json) 与 [发布会设计示例](../../../../examples/keynote-baseline/storyboard.json)。以下只展示字段形状，不能单独通过字数与语义节拍门禁：
+最小示例：
 
 ```json
-{
-  "version": 4,
-  "schemaVersion": 4,
-  "directingVersion": 2,
-  "fps": 30,
-  "width": 1080,
-  "height": 1920,
-  "title": "标题",
-  "visual": { "theme": "dark", "preset": "keynote" },
-  "visualDirection": { "motif": "持续母题", "compositionBias": "centered", "density": "balanced", "rhythm": "steady", "avoid": [] },
-  "directingBrief": { "thesis": "核心判断", "audienceShift": "认知变化", "emotionalArc": ["疑问", "理解"], "visualMotif": "同一视觉世界", "stylePack": "cinematic", "avoid": [] },
-  "world": {
-    "id": "world-id",
-    "claim": "核心判断",
-    "metaphor": "持续存在的视觉隐喻",
-    "objects": [{ "id": "object-id", "role": "primary", "description": "稳定对象" }],
-    "renderer": { "kind": "code", "module": "world" },
-    "data": { "objects": { "object-id": { "state": "rest" } } },
-    "stateTracks": [],
-    "motions": [],
-    "camera": { "shot": "medium", "composition": "center", "depth": "flat", "focus": "object-id", "segments": [{ "id": "hold", "kind": "hold", "binding": { "stageId": "stage-a", "phase": "establish" }, "focus": "object-id", "intensity": 0 }] }
-  },
-  "stages": [{
-    "id": "stage-a", "durationInFrames": 1080,
-    "data": {},
-    "visualIntent": { "relation": "focus", "focus": "shape", "composition": "center", "density": "balanced", "tone": "neutral", "mode": "metaphor", "claim": "阶段判断", "showWithoutText": "不看正文仍能观察到的变化", "primaryObject": "稳定对象", "motionMeaning": "状态变化如何推进判断" },
-    "narrationSegments": [{ "id": "line-a", "text": "口播句子。", "beatId": "beat-a" }],
-    "beats": [{ "id": "beat-a", "action": "establish", "targets": ["object-id"], "meaning": "建立对象" }]
-  }],
-  "soundtrack": null
-}
+{"version":5,"schemaVersion":5,"fps":30,"width":1080,"height":1920,"title":"反馈帮助改进","scenes":[{"id":"opening","template":"point","content":{"title":"先看反馈，再修正","summary":{"text":"修正方法才有进步","segmentId":"line","keywords":["修正"]}},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
-校验命令：
-
-```bash
-uv run m2v validate --project videos/article-narrative/<slug>
-uv run m2v prepare --project videos/article-narrative/<slug>
-```
-
-版本 4 的主规格和边界以 OpenSpec `storyboard-v3-contract`（历史 capability 名称，当前内容定义 v4）为准。输入审查与候选稿采用流程见[输入文章审查](input-review.md)，从文章构建持续世界的流程见[文章生成分镜](article-to-storyboard.md)。
+完整示例：[缓冲](../../../../examples/buffer-smoothing/storyboard.json)、[试错](../../../../examples/darts-trial-and-error/storyboard.json)、[选择](../../../../examples/keynote-baseline/storyboard.json)。当前规格见 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。

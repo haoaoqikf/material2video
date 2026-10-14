@@ -13,12 +13,12 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 |---|---|
 <!-- generated:type-catalog:start -->
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整预演自动验收。 |
-| `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[输入审查](references/input-review.md)、[制作流程](references/production-workflow.md)：保留 v4 world、口播、状态轨道、镜头与连续性门禁。 |
+| `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[制作流程](references/production-workflow.md)：v5 多幕卡片与真实语音时间轴。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
 | `housing-timeseries` | 按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、30 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 
-通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章的 React 场景会递归进入静态模块清单，按通用场景 ID 隔离模块名，并把模块摘要纳入准备记录和打包缓存键。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
+通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章使用 v5 讲解 composition，保留完整时间轴、字幕与配音。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
 
 ## 统一命令
 
@@ -29,7 +29,7 @@ uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v preview --project videos/general/<slug>
 uv run m2v review-template --project videos/general/<slug>
-# 文章与通用视频查看预演并填写 outputs/review.json；文章还需完成 production.json 专用评审
+# 文章与通用视频查看预演并填写 outputs/review.json
 uv run m2v review --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
@@ -40,15 +40,13 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 
 年度住宅销售均价使用独立 `housing-timeseries` 类型，材料、校验和画面契约见[年度住宅均价视频](references/housing-timeseries-video.md)。
 
-文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧文章 v4 或金融材料格式迁移仍使用 `m2v migrate --project <目录> --from article-v4|financial`。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，v1～v3 文章不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
+文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧金融材料迁移仍使用 `m2v migrate --project <目录> --from financial`；文章 v1～v4 必须重新编排 v5。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，文章旧版本不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 
-## 文章视觉和编排原则
+## 文章讲解编排原则
 
-文章类型通过同一视觉世界承载一个观点；`stages[]` 是推理阶段，不代表切换到新的视觉世界。对象身份、状态、镜头、beats 与文字在一个确定性时间轴内共同推进。先声明阶段的视觉论证、关系、焦点、构图和动效语义，再选用 [视觉原语目录](references/primitive-catalog.md)。树形原语不足以表达按帧几何时，才使用作品代码场景。
+文章类型只接受 v5 scenes 多幕讲解。按观点、对比、步骤、因果图、图片选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID。默认深色，可选浅色。每段实际 TTS 决定时间，完整成片含阅读停留与淡化不超过 60 秒；旧 v1～v4 须重新编排。
 
-代码场景须符合[代码场景契约](references/code-scenes.md)的依赖白名单、纯函数与按帧求值要求。动画不得依赖挂钟、随机数或网络；同一场景帧无论重复、倒序或随机求值都必须一致。
-
-正文与口播的历史文章标准、材料字段和连续性评审规则见[分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)和[评审量表](references/visual-review-rubric.md)。这些文章专属约束不作用于金融片段或整条通用视频。
+先阅读源文并填写 outputs/input-review.json，再制作分镜与配音。查看完整有声预演后填写统一 outputs/review.json，不再要求旧 production.json、单世界或镜头连续性门禁。详见 [分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)和[评审量表](references/visual-review-rubric.md)。共享原语与代码场景文档仍供 general 和内部动画模块使用，不属于 v5 模板创作入口。
 
 ## 渲染与评审
 

@@ -388,10 +388,9 @@ def test_shipped_production_template_stays_pending() -> None:
     from pathlib import Path
 
     example_dir = Path(__file__).resolve().parents[1] / "examples" / "buffer-smoothing"
-    storyboard = json.loads((example_dir / "storyboard.json").read_text(encoding="utf-8"))
     record = json.loads((example_dir / "production.template.json").read_text(encoding="utf-8"))
-    with pytest.raises(M2VError, match=r"inputReview\.status"):
-        production.validate_record(record, production.storyboard_stage_ids(storyboard))
+    assert record["schemaVersion"] == 5 and record["status"] == "pending"
+    assert "review-template" in record["note"]
 
 
 def test_status_reports_incomplete_template_as_actionable_not_invalid() -> None:

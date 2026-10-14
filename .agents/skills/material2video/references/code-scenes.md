@@ -1,5 +1,9 @@
 # 全片代码场景（v4）
 
+> **适用范围：** code renderer 依赖 `world`、`stages` 与单世界连续性，只供 general 嵌入与内部动画模块使用。
+> article-narrative 已改为 v5 多幕讲解模板，不接受 `world`、`stages`、`camera` 或 `stateTracks`；
+> 文章契约以 [文章分镜 v5](storyboard-schema.md) 为准。
+
 当受控原语无法表达持续视觉世界所需的几何、关系或状态变化时，可选择作品级 code renderer。`world.renderer` 只声明一次；模块贯穿整条视频，阶段只改变上下文，不得切换为互不相关的页面。能由原语清楚表达时优先使用 tree renderer。
 
 本文记录模块契约、确定性纪律和探针要求。完整示例见[飞镖试错示例](../../../../examples/darts-trial-and-error/storyboard.json)，是一个 world、多阶段叙事。
@@ -72,4 +76,4 @@ tree v4 的字体后布局预检不改变 code world 的公开探针契约；代
 - 代码模块通过导入白名单、静态源码规则、可达文件指纹和渲染期离线请求阻断。此边界是项目代码评审措施，不是操作系统沙箱；只执行项目内受控代码。
 - 全片动态与连续性评审应播放有声评审版，核对对象身份、状态承接、camera 和结果停留。缺证据为 pending，不能以静态评审代替。
 
-命令顺序、渲染门禁和错误处理以 [制作 Skill](../SKILL.md)、[分镜脚本结构](storyboard-schema.md)、[视觉评审量表](visual-review-rubric.md) 和[渲染契约](render-contract.md)为准。
+命令顺序、渲染门禁和错误处理以 [制作 Skill](../SKILL.md)、[设计宪法](design-constitution.md)、[视觉评审量表](visual-review-rubric.md) 和[渲染契约](render-contract.md)为准。

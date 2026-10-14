@@ -20,7 +20,7 @@ import subprocess
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-STORYBOARD = ROOT / "examples" / "keynote-baseline" / "storyboard.json"
+STORYBOARD = ROOT / "examples" / "keynote-baseline" / "legacy-test-storyboard.json"
 
 import m2v.engine.remotion as remotion
 
@@ -43,7 +43,7 @@ WEB = ROOT / "web"
 
 def _minimal_storyboard() -> dict:
     """使用仓库中通过 v4 严格校验的全片世界分镜作为入口夹具。"""
-    return json.loads((ROOT / "examples" / "keynote-baseline" / "storyboard.json").read_text(encoding="utf-8"))
+    return json.loads((ROOT / "examples" / "keynote-baseline" / "legacy-test-storyboard.json").read_text(encoding="utf-8"))
 
 
 def _node_ready() -> bool:
@@ -205,12 +205,12 @@ def test_tests_and_build_artifacts_are_not_build_inputs():
 def test_build_fingerprint_uses_storyboard_code_scenes_not_global_generated_manifest():
     """同一仓库的其它作品改写 active-scenes 生成清单，不应让本作品的指纹漂移。"""
     tree = remotion.build_input_fingerprint(
-        storyboard_path=ROOT / "examples" / "keynote-baseline" / "storyboard.json",
+        storyboard_path=ROOT / "examples" / "keynote-baseline" / "legacy-test-storyboard.json",
         content_root=ROOT,
         workspace_root=ROOT,
     )["files"]
     code = remotion.build_input_fingerprint(
-        storyboard_path=ROOT / "examples" / "darts-trial-and-error" / "storyboard.json",
+        storyboard_path=ROOT / "examples" / "darts-trial-and-error" / "legacy-test-storyboard.json",
         content_root=ROOT,
         workspace_root=ROOT,
     )["files"]

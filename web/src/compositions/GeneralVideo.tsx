@@ -1,7 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
-import { M2VCompositionV4, type M2VCompositionV4Props } from './M2VCompositionV4';
+import { ArticleExplainer, type ArticleExplainerProps } from './ArticleExplainer';
 import type { M2VCodeScene } from '@/code-scene';
 import { createSceneRandom } from '@/code-scene';
 import { ACTIVE_CODE_SCENES } from '../../.gen/active-scenes';
@@ -75,7 +75,7 @@ function CodeScene({scene,fps,width,height}: {scene:GeneralScene;fps:number;widt
 
 function SceneContent({scene,fps,width,height}: {scene:GeneralScene;fps:number;width:number;height:number}): React.ReactElement {
   if(scene.type==='financial-timeseries') return <FinancialTimeSeries {...(scene.embeddedProps as FinancialTimeSeriesProps)}/>;
-  if(scene.type==='article-narrative') return <M2VCompositionV4 {...(scene.embeddedProps as M2VCompositionV4Props)}/>;
+  if(scene.type==='article-narrative') return <ArticleExplainer {...(scene.embeddedProps as ArticleExplainerProps)}/>;
   if(scene.type==='code') return <CodeScene scene={scene} fps={fps} width={width} height={height}/>;
   return <GraphicScene scene={scene}/>;
 }
