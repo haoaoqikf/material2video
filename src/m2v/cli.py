@@ -31,7 +31,8 @@ def _register_builtins() -> None:
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
     from m2v.types.housing.adapter import TYPE as housing
-    for item in (article, financial, general, housing):
+    from m2v.types.stock.adapter import TYPE as stock
+    for item in (article, financial, general, housing, stock):
         registry.register(item)
 
 
@@ -72,6 +73,10 @@ def _parser() -> argparse.ArgumentParser:
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
+    stock = sub.add_parser("stock", help="在线素材剪辑类型的检索与下载")
+    stock.add_argument("workflow", choices=("search",))
+    stock.add_argument("--project", required=True)
+    stock.add_argument("--timeout-seconds", type=float, help="单次网络请求超时（秒）")
     return parser
 
 
@@ -224,6 +229,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "article":
             from m2v.types.article import explainer_cli as workflow
             return workflow.main([args.workflow, *args.options])
+        if args.command == "stock":
+            from m2v.types.stock import cli as stock_cli
+            options = [] if args.timeout_seconds is None else ["--timeout-seconds", str(args.timeout_seconds)]
+            return stock_cli.main([args.workflow, "--project", args.project, *options])
         if args.command == "financial":
             root, manifest = load_project(args.project)
             if manifest["type"] != "financial-timeseries":

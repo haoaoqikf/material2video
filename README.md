@@ -9,6 +9,7 @@
 - `article-narrative`：v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与人工评审，成片不超过 60 秒。
 - `general`：受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化和可选口播。
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
+- `stock-montage`：按主题与逐幕关键词从在线图库检索并下载素材，留证来源、作者与许可后自动剪成竖屏短片，支持可选口播、字幕与本地音床。
 <!-- generated:type-catalog:end -->
 
 文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 `buffer-smoothing`、`darts-trial-and-error`、`keynote-baseline`，不增删或替换。
@@ -49,9 +50,11 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 股票和指数仍按价格或点位比缩放本金；crypto 可指定买入日与 CNY 本金，组合展示价值 = 本金 ×（当前 BTC/USD 收盘价 ÷ 买入日收盘价）×（当日或此前最近 USD/CNY 汇率 ÷ 买入日可用汇率）。crypto 请求还可提供法律地位说明，替换该作品默认估值口径行与通用风险提示；其他作品默认说明不变。prices v4 独立保存汇率来源、观测和原始快照；周末/假日使用最近此前汇率。详见[金融时间序列制作说明](.agents/skills/material2video/references/financial-timeseries-video.md)。
 
+在线素材剪辑通过 `stock-montage` 独立类型制作。材料保存在 `brief.json`，只写主题、逐幕关键词、目标时长、图库配置与可选口播/音床；先设置图库凭据（只从环境变量读取，默认 `M2V_PEXELS_API_KEY`）并执行 `m2v stock search --project <目录>`，工具按幕检索并下载素材到 `assets/stock/`，同时把来源页、作者、许可、像素尺寸、时长与文件摘要写进 `outputs/footage-search.json`。任一幕没有可用候选、素材缺少来源/作者/许可、素材文件或 `brief.json` 被改动，都会让校验失败并要求重新检索；被替换过的素材不会进入渲染。准备阶段按目标时长自动分配逐幕帧数（口播幕按真实语音时长、固定帧数幕按声明值、其余均分并夹在 `minClipSeconds`/`maxClipSeconds` 与素材可用时长之间），静图做推拉平移，短视频按声明入点裁切，有口播或音床时合成单条母版音轨。画布 1080×1920、30 fps，渲染期素材经回环 HTTP 提供，画面不访问外部网络。须人工查看完整预演并填写 `outputs/review.json` 后渲染。详细字段、检索规则与剪辑规则见 [在线素材剪辑说明](.agents/skills/material2video/references/stock-montage-video.md)。
+
 统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、检查图和已知调试产物；金融完整预演作为自动验收绑定记录予以保留，其他类型按原规则清理预演。保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
 
-可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
+可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；在线素材剪辑的检索使用 `m2v stock search --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
 文章讲解使用 v5 多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`，执行 `m2v article input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；每幕保留 12 帧阅读停留，可选 8 帧画面淡化，完整成片最多 60 秒。自动检查文字溢出及字幕遮挡，完整预演后填写统一 `outputs/review.json` 五项依据。旧 `production.json`、单世界动画分镜与旧评审不再适用，v1～v4 须重新编排；不自动迁移。
 

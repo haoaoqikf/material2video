@@ -13,6 +13,7 @@ import './styles/index.css';
 import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
 import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
+import { StockMontage, type StockMontageProps } from './compositions/StockMontage';
 
 /**
  * 时长、帧率与尺寸都从分镜推导，**不在注册时写死**。
@@ -97,6 +98,19 @@ export const RemotionRoot: FC = () => {
         width={1080}
         height={1920}
         defaultProps={{ schemaVersion: 1, fps: 30, width: 1080, height: 1920, durationInFrames: 1, compiledScenes: [] } as GeneralVideoProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
+          width: props.width, height: props.height })}
+      />
+      <Composition
+        id="StockMontage"
+        component={StockMontage}
+        durationInFrames={1}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{ schemaVersion: 1, topic: '', fps: 30, width: 1080, height: 1920,
+          durationInFrames: 1, theme: 'dark', attribution: '', mediaBase: '',
+          compiledScenes: [], subtitleCues: [] } as StockMontageProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
           width: props.width, height: props.height })}
       />

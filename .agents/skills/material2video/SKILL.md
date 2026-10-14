@@ -1,6 +1,6 @@
 ---
 name: material2video
-description: 使用统一 m2v 制作入口创作金融时间序列、文章叙事与通用多场景视频。用于准备类型材料、编排、预演、评审、渲染与排查不一致问题。
+description: 使用统一 m2v 制作入口创作金融时间序列、文章叙事、通用多场景与在线素材剪辑视频。用于准备类型材料、编排、预演、评审、渲染与排查不一致问题。
 ---
 
 # Material2Video（材料成片）制作 Skill
@@ -16,6 +16,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 | `article-narrative` | [文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[制作流程](references/production-workflow.md)：v5 多幕卡片与真实语音时间轴。 |
 | `general` | 按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。 |
 | `housing-timeseries` | 按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、30 fps 无声折线视频。 |
+| `stock-montage` | [在线素材剪辑](references/stock-montage-video.md)：先执行 `m2v stock search` 检索并留证素材，再校验、预演与评审。 |
 <!-- generated:type-catalog:end -->
 
 通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章使用 v5 讲解 composition，保留完整时间轴、字幕与配音。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
@@ -39,6 +40,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60` 生成计划。
 
 年度住宅销售均价使用独立 `housing-timeseries` 类型，材料、校验和画面契约见[年度住宅均价视频](references/housing-timeseries-video.md)。
+
+在线素材剪辑使用独立 `stock-montage` 类型：先 `uv run m2v stock search --project videos/stock-montage/<slug>` 检索并留证素材，再走校验、准备、预演与评审；材料、检索与剪辑规则见[在线素材剪辑视频](references/stock-montage-video.md)。
 
 文章专属输入审查与候选稿工具保留为 `uv run m2v article input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧金融材料迁移仍使用 `m2v migrate --project <目录> --from financial`；文章 v1～v4 必须重新编排 v5。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，文章旧版本不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 
