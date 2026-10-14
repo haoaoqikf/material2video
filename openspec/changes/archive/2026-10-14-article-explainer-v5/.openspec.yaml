@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-10-14
+# 文章输入审查已被 article-explainer 的「讲解评审及版本绑定」取代：
+# article-input-review 与 single-scene-narrative 的最后一条需求都在本变更中被移除，
+# 因此允许归档时删除这两个能力规格。
+retire_capabilities: true
