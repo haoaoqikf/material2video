@@ -34,12 +34,38 @@ export type HousingTimeSeriesProps = {
 const PLOT = { left: 220, right: 928, top: 650, bottom: 1450 };
 const OPENING_FRAMES = 30;
 const ENDING_FRAMES = 60;
+export const YEAR_HOLD_FRAMES = 15;
 
-export function housingPositionAtFrame(frame: number, series: HousingSeries, durationInFrames: number): number {
+export type HousingPosition = { position: number; heldIndex: number | null };
+
+export function housingPositionAtFrame(frame: number, series: HousingSeries, durationInFrames: number): HousingPosition {
   const lastIndex = series.points.length - 1;
-  const advanceEnd = Math.max(durationInFrames - ENDING_FRAMES, OPENING_FRAMES + 1);
-  const progress = Math.max(0, Math.min(1, (frame - OPENING_FRAMES) / (advanceEnd - OPENING_FRAMES)));
-  return progress * lastIndex;
+  const intervalCount = lastIndex;
+  const holdFrames = YEAR_HOLD_FRAMES * series.points.length;
+  const movementFrames = Math.max(intervalCount, durationInFrames - OPENING_FRAMES - ENDING_FRAMES - holdFrames);
+  const movementPerInterval = movementFrames / intervalCount;
+  const startFrame = OPENING_FRAMES;
+  const endFrame = startFrame + holdFrames + movementFrames;
+  const boundedFrame = Math.max(startFrame, Math.min(endFrame, frame));
+  let cursor = startFrame;
+
+  for (let index = 0; index <= lastIndex; index += 1) {
+    const holdEnd = cursor + YEAR_HOLD_FRAMES;
+    if (boundedFrame < holdEnd || index === lastIndex) {
+      return { position: index, heldIndex: index };
+    }
+    cursor = holdEnd;
+    if (index < lastIndex) {
+      const movementEnd = cursor + movementPerInterval;
+      if (boundedFrame < movementEnd) {
+        const fraction = (boundedFrame - cursor) / movementPerInterval;
+        return { position: index + fraction, heldIndex: null };
+      }
+      cursor = movementEnd;
+    }
+  }
+
+  return { position: lastIndex, heldIndex: lastIndex };
 }
 
 export function housingValueRange(values: number[]) {
@@ -72,14 +98,14 @@ export function HousingTimeSeries(props: HousingTimeSeriesProps) {
   const frame = useCurrentFrame();
   const { series, durationInFrames } = props;
   const points = series.points;
-  const position = housingPositionAtFrame(frame, series, durationInFrames);
+  const { position, heldIndex } = housingPositionAtFrame(frame, series, durationInFrames);
   const index = Math.floor(position);
   const fraction = position - index;
   const current = points[index]!;
   const next = points[Math.min(index + 1, points.length - 1)]!;
   const interpolatedPrice = current.averagePriceYuanPerSquareMeter
     + (next.averagePriceYuanPerSquareMeter - current.averagePriceYuanPerSquareMeter) * fraction;
-  const interpolatedYear = fraction >= 0.5 ? next.year : current.year;
+  const interpolatedYear = heldIndex !== null ? points[heldIndex]!.year : (fraction >= 0.5 ? next.year : current.year);
   const visible = points.slice(0, index + 1).map((point) => point.averagePriceYuanPerSquareMeter);
   if (fraction > 0) visible.push(interpolatedPrice);
   const range = housingValueRange(visible);
@@ -88,7 +114,8 @@ export function HousingTimeSeries(props: HousingTimeSeriesProps) {
   const yForValue = (value: number) => PLOT.bottom - ((value - range.min) / (range.max - range.min)) * (PLOT.bottom - PLOT.top);
   const linePoints = points.slice(0, index + 1).map((point, pointIndex) => `${xForIndex(pointIndex)},${yForValue(point.averagePriceYuanPerSquareMeter)}`);
   if (fraction > 0) linePoints.push(`${xForIndex(position)},${yForValue(interpolatedPrice)}`);
-  const value = Math.round(interpolatedPrice);
+  const displayedPrice = heldIndex !== null ? points[heldIndex]!.averagePriceYuanPerSquareMeter : interpolatedPrice;
+  const value = Math.round(displayedPrice);
   const tickStep = Math.max(1, Math.ceil((range.max - range.min) / 4 / 1000)) * 1000;
   const firstTick = Math.ceil(range.min / tickStep) * tickStep;
   const ticks: number[] = [];
@@ -107,7 +134,7 @@ export function HousingTimeSeries(props: HousingTimeSeriesProps) {
       <text x="540" y="250" textAnchor="middle" fill="#eef4fc" fontSize="46" fontWeight="700">{series.city}住宅商品房销售均价</text>
       <text x="145" y="390" fill="#eef4fc" fontSize="72" fontWeight="700" fontVariant="tabular-nums" data-m2v-live-year="true">{interpolatedYear}</text>
       <text x="940" y="330" textAnchor="end" fill="#aebbd0" fontSize="25">住宅平均销售价格</text>
-      <text x="940" y="395" textAnchor="end" fill="#5bd2c0" fontSize="58" fontWeight="700" fontVariant="tabular-nums" data-m2v-live-value="true">{formatPrice(interpolatedPrice)} 元/㎡</text>
+      <text x="940" y="395" textAnchor="end" fill="#5bd2c0" fontSize="58" fontWeight="700" fontVariant="tabular-nums" data-m2v-live-value="true">{formatPrice(displayedPrice)} 元/㎡</text>
       <text x={PLOT.left} y="520" fill="#aebbd0" fontSize="24">年度住宅商品房平均销售价格 · 按销售额 ÷ 销售面积计算</text>
       {ticks.map((tick) => {
         const y = yForValue(tick);
@@ -125,7 +152,8 @@ export function HousingTimeSeries(props: HousingTimeSeriesProps) {
         textAnchor={pointIndex === 0 ? 'start' : pointIndex === points.length - 1 ? 'end' : 'middle'}
         fill="#aebbd0" fontSize="21" data-m2v-axis-label="year">{point.year}</text>)}
       <polyline points={linePoints.join(' ')} fill="none" stroke="#5bd2c0" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" data-m2v-housing-line="true" />
-      <circle cx={xForIndex(position)} cy={yForValue(interpolatedPrice)} r="10" fill="#5bd2c0" stroke="#e1fff9" strokeWidth="3" data-m2v-housing-endpoint="true" />
+      {heldIndex !== null && <circle cx={xForIndex(heldIndex)} cy={yForValue(points[heldIndex]!.averagePriceYuanPerSquareMeter)} r="24" fill="#5bd2c0" opacity="0.2" data-m2v-housing-highlight="true" data-m2v-highlight-year={points[heldIndex]!.year} />}
+      <circle cx={xForIndex(position)} cy={yForValue(heldIndex !== null ? points[heldIndex]!.averagePriceYuanPerSquareMeter : interpolatedPrice)} r={heldIndex !== null ? 13 : 10} fill="#5bd2c0" stroke="#e1fff9" strokeWidth="3" data-m2v-housing-endpoint="true" />
       {change && markerX !== null && <text x={Math.min(markerX + 12, PLOT.right - 220)} y={PLOT.top - 22}
         fill="#ffcf8a" fontSize="20" data-m2v-breakpoint-label="2005">2005 统计口径调整</text>}
       <text x="145" y="1600" fill="#d1d9e5" fontSize="21">统计局注：2005 年起销售面积、销售额采用新口径。</text>
