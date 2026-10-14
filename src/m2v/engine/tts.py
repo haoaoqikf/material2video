@@ -44,7 +44,7 @@ def settings(project: dict) -> dict:
         return {}
     if not isinstance(declared, dict):
         raise M2VError("project.json 的 tts 必须是对象")
-    unknown = set(declared) - {"backend", "voice", "rate"}
+    unknown = set(declared) - {"backend", "voice", "rate", "speech"}
     if unknown:
         raise M2VError(f"tts 存在未知字段：{'、'.join(sorted(unknown))}")
     result = {}
@@ -62,6 +62,9 @@ def settings(project: dict) -> dict:
         if not isinstance(rate, str) or not _RATE.fullmatch(rate) or not -50 <= int(rate[:-1]) <= 50:
             raise M2VError("tts.rate 必须是 −50% 至 +50% 的有符号百分比")
         result["rate"] = rate
+    if "speech" in declared:
+        from m2v.engine import rhythm as rhythm_engine
+        result["speech"] = rhythm_engine.configure(declared["speech"])
     return result
 
 
@@ -103,9 +106,13 @@ def scene_cache_key(text: str, voice: str, rate: str, contract_version: int) -> 
 
 
 def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = False,
-                contract_version: int = 3,
+                contract_version: int = 3, rhythm: dict | None = None,
                 synthesizer: Callable = synthesize) -> tuple[Path, list[dict], list[dict], float, bool]:
-    """Return cached WAV, subtitle cues, word boundaries, duration, and cache hit."""
+    """Return cached WAV, subtitle cues, word boundaries, duration, and cache hit.
+
+    `rhythm` 为真时对停顿做整形。缓存里始终保存**未整形**的原始合成，
+    所以整形开关与参数不改变缓存键，也不会让已有缓存失效。
+    """
     key = scene_cache_key(text, voice, rate, contract_version)
     wav, metadata = cache / f"{key}.wav", cache / f"{key}.json"
     if not force and wav.is_file() and metadata.is_file():
@@ -114,9 +121,10 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
             stored = json.loads(metadata.read_text(encoding="utf-8"))
             if stored["sha256"] != hashlib.sha256(wav.read_bytes()).hexdigest():
                 raise M2VError("缓存音频校验和不匹配")
-            cues = cues_from_words(text, stored["words"], duration)
+            shaped, words, duration = _shape(text, wav, stored["words"], duration, rhythm, cache, key)
+            cues = cues_from_words(text, words, duration)
             logger.info("配音缓存命中 %s", key[:12])
-            return wav, cues, stored["words"], duration, True
+            return shaped, cues, words, duration, True
         except (M2VError, ValueError, KeyError, TypeError):
             logger.warning("配音缓存损坏，重新生成 %s", key[:12])
     cache.mkdir(parents=True, exist_ok=True)
@@ -134,11 +142,48 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
                 logger.warning("配音请求失败，重试 %d/2: %s", attempt + 1, exc)
                 time.sleep(attempt + 1)
         duration = audio.decode(work / "speech.mp3", work / "speech.wav")
-        cues = cues_from_words(text, words, duration)
         digest = hashlib.sha256((work / "speech.wav").read_bytes()).hexdigest()
         (work / "words.json").write_text(json.dumps({"words": words, "sha256": digest}, ensure_ascii=False), encoding="utf-8")
         (work / "speech.wav").replace(wav)
         (work / "words.json").replace(metadata)
         grant_inherited_access(wav)
         grant_inherited_access(metadata)
-    return wav, cues, words, duration, False
+    shaped, words, duration = _shape(text, wav, words, duration, rhythm, cache, key)
+    cues = cues_from_words(text, words, duration)
+    return shaped, cues, words, duration, False
+
+
+def _shape(text: str, wav: Path, words: list[dict], duration: float, rhythm: dict | None,
+           cache: Path, key: str) -> tuple[Path, list[dict], float]:
+    """按韵律声明整形停顿。未声明时原样返回，不做任何多余读写。"""
+    if not rhythm:
+        return wav, words, duration
+    import m2v.engine.rhythm as rhythm_engine
+
+    target = cache / f"{key}.rhythm-{hashlib.sha256(rhythm_engine.fingerprint_of(rhythm).encode()).hexdigest()[:16]}.wav"
+    # 同一作品重复准备时直接复用整形结果：缓存保存的是原始合成，整形是派生物。
+    if target.is_file() and target.stat().st_size > 44:
+        try:
+            stored = json.loads(target.with_suffix(".json").read_text(encoding="utf-8"))
+            if (stored["sha256"] == hashlib.sha256(target.read_bytes()).hexdigest()
+                    and stored["rhythm"] == rhythm):
+                return target, stored["words"], audio.wav_duration(target)
+        except (OSError, ValueError, KeyError, TypeError):
+            logger.warning("韵律缓存损坏，重新整形 %s", key[:12])
+    sample_rate, samples = rhythm_engine.read_samples(wav)
+    pauses = rhythm_engine.plan(text, words, sample_rate, samples, rhythm)
+    shaped, shifts = rhythm_engine.reshape(samples, sample_rate, pauses, rhythm)
+    rhythm_engine.write_samples(target, sample_rate, shaped)
+    shaped_duration = audio.wav_duration(target)
+    # 词边界与音频同源重映射，字幕与时间轴因此自动跟随，不需要第二处补丁。
+    # 缩短停顿会把后文前移，末词可能压到音频末尾；按原顺序保持单调再夹到音频内。
+    moments = rhythm_engine.remap_all(
+        [value for word in words for value in (float(word["start"]), float(word["end"]))],
+        shifts, shaped_duration)
+    moved = [{**word, "start": moments[2 * index], "end": moments[2 * index + 1]}
+             for index, word in enumerate(words)]
+    grant_inherited_access(target)
+    (target.with_suffix(".json")).write_text(json.dumps(
+        {"words": moved, "rhythm": rhythm,
+         "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}, ensure_ascii=False), encoding="utf-8")
+    return target, moved, shaped_duration

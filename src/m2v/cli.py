@@ -52,9 +52,13 @@ def _parser() -> argparse.ArgumentParser:
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
         if command == "prepare":
-            # 临时试听用：不改作品文件也能换音色，省略时跟随 project.json 的 tts。
+            # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
             item.add_argument("--rate", help="语速，例如 --rate=-6%%")
+            item.add_argument("--pause-comma", type=float, metavar="SECONDS", help="逗号、顿号处的停顿秒数")
+            item.add_argument("--pause-period", type=float, metavar="SECONDS", help="句号、问号处的停顿秒数")
+            item.add_argument("--pause-paragraph", type=float, metavar="SECONDS", help="段末停顿秒数")
+            item.add_argument("--head-pad", type=float, metavar="SECONDS", help="每段口播开头的静音长度")
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)
     migrate.add_argument("--from", dest="source_format", required=True, choices=("article-v4", "financial"))
@@ -69,6 +73,19 @@ def _parser() -> argparse.ArgumentParser:
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
     return parser
+
+
+def _rhythm_option(args) -> dict:
+    """把命令行上的节奏选项收成声明；一个都没给时返回空，表示跟随作品配置。"""
+    declared: dict = {}
+    pause = {kind: getattr(args, f"pause_{kind}")
+             for kind in ("comma", "period", "paragraph")
+             if getattr(args, f"pause_{kind}", None) is not None}
+    if pause:
+        declared["pause"] = pause
+    if getattr(args, "head_pad", None) is not None:
+        declared["headPad"] = args.head_pad
+    return declared
 
 
 def _list_voices(locale: str, as_json: bool) -> int:
@@ -261,7 +278,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "prepare":
             video_type.validate(root, manifest)
-            video_type.prepare(root, manifest, voice=args.voice, rate=args.rate)
+            video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
+                               rhythm=_rhythm_option(args))
             print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
             return 0
         if args.command == "status":

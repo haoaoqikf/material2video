@@ -40,9 +40,11 @@ def synthesize(text: str, voice: str, rate: str, output: Path):
     return shared_tts.synthesize(text, voice, rate, output)
 
 
-def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool, *, contract_version: int = 3):
+def _scene_audio(text: str, voice: str, rate: str, cache: Path, force: bool, *,
+                 contract_version: int = 3, rhythm: dict | None = None):
     return shared_tts.scene_audio(text, voice, rate, cache, force=force,
-                                  contract_version=contract_version, synthesizer=synthesize)
+                                  contract_version=contract_version, rhythm=rhythm,
+                                  synthesizer=synthesize)
 
 
 def _scene_cache_key(text: str, voice: str, rate: str, contract_version: int) -> str:
@@ -50,7 +52,8 @@ def _scene_cache_key(text: str, voice: str, rate: str, contract_version: int) ->
 
 
 def prepare(storyboard_path: str | Path, out_dir: str | Path,
-            voice: str | None = None, rate: str | None = None, force: bool = False) -> Path:
+            voice: str | None = None, rate: str | None = None, force: bool = False,
+            rhythm: dict | None = None) -> Path:
     """为 v4 分镜准备配音与派生时间轴；旧分镜在这里就被拒绝。"""
     started = time.monotonic()
     voice, rate = voice or shared_tts.DEFAULT_VOICE, rate or shared_tts.DEFAULT_RATE
@@ -61,11 +64,13 @@ def prepare(storyboard_path: str | Path, out_dir: str | Path,
     if not report.ok:
         raise M2VError("\n".join(i.format() for i in report.errors))
     if not sound.valid_rate(rate): raise M2VError("语速必须是 −50% 至 +50% 的有符号百分比")
-    return _prepare_v4(source_path, root, source, voice, rate, force, sound.sound_assets(source, source_path), started)
+    return _prepare_v4(source_path, root, source, voice, rate, force,
+                       sound.sound_assets(source, source_path), started, rhythm)
 
 
 def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: str,
-                force: bool, assets: dict[str, Path], started: float) -> Path:
+                force: bool, assets: dict[str, Path], started: float,
+                rhythm: dict | None = None) -> Path:
     """Prepare per-stage audio, then resolve all beats on one accumulated frame axis."""
     cache = root / "cache"
     cache.mkdir(parents=True, exist_ok=True)
@@ -82,7 +87,8 @@ def _prepare_v4(source_path: Path, root: Path, source: dict, voice: str, rate: s
             frames = stage["durationInFrames"]
             if text:
                 path, local_cues, local_words, duration, hit = _scene_audio(
-                    text, voice, rate, cache, force, contract_version=MEDIA_CONTRACT_VERSION
+                    text, voice, rate, cache, force, contract_version=MEDIA_CONTRACT_VERSION,
+                    rhythm=rhythm,
                 )
                 hits += int(hit)
                 # Use speech-derived time plus the fixed reading tail. Keeping a longer

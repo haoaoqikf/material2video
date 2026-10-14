@@ -30,7 +30,7 @@ def test_prepare_v4_writes_ordered_global_beats_and_standard_duration(tmp_path, 
     cache = tmp_path / "media" / "cache"
 
     calls = []
-    def fake_scene_audio(text, voice, rate, directory, force, *, contract_version):
+    def fake_scene_audio(text, voice, rate, directory, force, *, contract_version, rhythm=None):
         calls.append(contract_version)
         path = directory / f"stage-{len(calls)}.wav"
         path.parent.mkdir(parents=True, exist_ok=True)

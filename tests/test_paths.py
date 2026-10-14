@@ -381,7 +381,7 @@ class TestPrepareCommandDefaults:
         approve_input_review(article / "storyboard.json")
         calls: list[dict] = []
 
-        def fake_prepare(storyboard, out_dir, voice, rate, force):
+        def fake_prepare(storyboard, out_dir, voice, rate, force, rhythm=None):
             calls.append({"storyboard": storyboard, "out_dir": Path(out_dir)})
             return Path(out_dir) / "media.json"
 

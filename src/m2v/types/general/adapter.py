@@ -19,6 +19,7 @@ from m2v.core import code_gate, code_scenes
 from m2v.types.registry import VideoType
 from m2v.engine import remotion, contract_page, perf
 from m2v.engine import audio as audio_engine
+from m2v.engine import rhythm as rhythm_engine
 from m2v.engine import sound as sound_contract
 from m2v.engine import tts as tts_engine
 from m2v.types.article.storyboard import Report
@@ -201,7 +202,8 @@ def _validate_embedded_reviews(root: Path, plan: dict[str, Any]) -> None:
         child_type.review_gate(child_root, child_manifest)
 
 
-def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
+            rhythm: dict | None = None) -> dict:
     plan = _plan(root, project)
     _validate_embedded_reviews(root, plan)
     inputs = file_inputs(root, project)
@@ -212,9 +214,13 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
     fps = plan["fps"]
     voice, rate = tts_engine.resolve(project, voice=voice, rate=rate)
     configured_tts = tts_engine.settings(project)
-    if configured_tts:
-        # 作品显式声明音色或语速时记进准备记录：换音色本身就是影响声音的变更。
-        inputs["tts"] = json.dumps(configured_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    # 命令行上的节奏选项覆盖作品声明，试听时不必改作品文件。
+    rhythm = rhythm_engine.configure({**configured_tts.get("speech", {}), **(rhythm or {})}) \
+        if (configured_tts.get("speech") or rhythm) else None
+    if configured_tts or rhythm:
+        # 显式声明或命令行覆盖音色、语速、韵律时记进准备记录：换声音本身就是影响声音的变更。
+        inputs["tts"] = json.dumps({**configured_tts, **({"speech": rhythm} if rhythm else {})},
+                                   ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     for scene in plan["scenes"]:
         for module in scene.get("embeddedCodeModules", []):
             inputs[f"embedded-module:{module['id']}"] = module["sha256"]
@@ -232,10 +238,18 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
             text = "".join(narration) if isinstance(narration, list) else str(narration)
             cache = root / "outputs" / "audio-cache"
             cache.mkdir(parents=True, exist_ok=True)
-            speech = registry.get("article-narrative").prepare_narration
-            if speech is None:
+            speak = registry.get("article-narrative").prepare_narration
+            if speak is None:
                 raise M2VError("当前注册的视频类型未提供可复用的口播准备接口")
-            wav, cues, _words, seconds, _hit = speech(text, cache, voice=voice, rate=rate)
+            # 场景可以覆写语速与停顿：这就是逐幕的韵律控制。
+            scene_speech = scene.get("speech") or {}
+            scene_rate = scene_speech.get("rate") or rate
+            scene_rhythm = rhythm_engine.configure(scene_speech) if scene_speech else rhythm
+            if scene_speech:
+                inputs[f"speech:{scene['id']}"] = rhythm_engine.fingerprint_of(
+                    {"speech": scene_speech, "rate": scene_rate})
+            wav, cues, _words, seconds, _hit = speak(text, cache, voice=voice, rate=scene_rate,
+                                                     rhythm=scene_rhythm)
             fixed = scene.get("duration", {}).get("frames")
             if fixed is not None and (type(fixed) is not int or seconds > fixed / fps):
                 raise M2VError(f"场景 {scene['id']} 口播超出固定帧容量")

@@ -1287,6 +1287,7 @@ def main_prepare(argv: list[str] | None = None) -> int:
     parser.add_argument("--voice", default=None, help="音色；省略时跟随作品 project.json 的 tts.voice，再退回默认音色")
     parser.add_argument("--rate", default=None, help="语速，例如 --rate=-10%%；省略时跟随作品 project.json 的 tts.rate")
     parser.add_argument("--force", action="store_true", help="强制重新合成所有非空口播")
+    parser.add_argument("--rhythm", help="停顿整形声明，JSON；由作品配置或命令行节奏选项生成")
     parser.add_argument(
         "--subset-fonts",
         metavar="FONT",
@@ -1314,7 +1315,8 @@ def main_prepare(argv: list[str] | None = None) -> int:
         issue = production._input_review_issue(record, current, record_file)
         if issue:
             raise M2VError(issue + "；当前不会请求语音服务或写入媒体")
-        print(prepare(args.storyboard, out_dir, args.voice, args.rate, args.force))
+        print(prepare(args.storyboard, out_dir, args.voice, args.rate, args.force,
+                      json.loads(args.rhythm) if args.rhythm else None))
         if args.subset_fonts:
             return _subset_fonts(args.storyboard, out_dir, Path(args.subset_fonts))
     except (M2VError, OSError, ValueError) as exc:

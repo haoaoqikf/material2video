@@ -80,7 +80,8 @@ def _prepare_with_capture(root: Path, manifest: dict, monkeypatch) -> dict:
     _tone(voice_file, 1)
     seen: dict[str, str] = {}
 
-    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None):
+    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None,
+                    rhythm: dict | None = None):
         seen.update(voice=voice, rate=rate)
         return voice_file, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
 

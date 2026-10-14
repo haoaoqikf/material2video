@@ -52,16 +52,22 @@ def validate(root: Path, project: dict) -> None:
         raise M2VError(f"文章 v4 分镜未通过校验：{path}")
 
 
-def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
+            rhythm: dict | None = None) -> dict:
     path = _storyboard(root, project)
     validate(root, project)
     article = _article(root, project)
     media_path = article.media_manifest
+    from m2v.engine import rhythm as rhythm_engine
     from m2v.engine import tts as shared_tts
     # 「命令行 > 作品配置 > 默认值」的优先级只在引擎里实现一次。
     voice, rate = shared_tts.resolve(project, voice=voice, rate=rate)
     args = ["--storyboard", str(path), "--out-dir", str(article.media_dir),
             "--voice", voice, "--rate", rate, *_content_args(root)]
+    declared = shared_tts.settings(project).get("speech")
+    if declared or rhythm:
+        merged = rhythm_engine.configure({**(declared or {}), **(rhythm or {})})
+        args.extend(["--rhythm", json.dumps(merged, ensure_ascii=False)])
     if cli.main_prepare(args):
         raise M2VError("文章媒体准备失败")
     loaded = media.load_media(media_path, path)
@@ -150,12 +156,14 @@ def audio_tracks(root: Path, project: dict, prepared: dict) -> list[dict]:
 
 
 def prepare_narration(text: str, cache: Path, *, voice: str | None = None,
-                      rate: str | None = None) -> tuple[Path, list[dict], list[dict], float, bool]:
-    """通用类型复用的口播准备入口；音色与语速由调用方按作品配置解析后传入。"""
+                      rate: str | None = None,
+                      rhythm: dict | None = None) -> tuple[Path, list[dict], list[dict], float, bool]:
+    """通用类型复用的口播准备入口；音色、语速与韵律由调用方按作品配置解析后传入。"""
     from m2v.engine import tts as shared_tts
     from m2v.types.article.prepare import _scene_audio
     cache.mkdir(parents=True, exist_ok=True)
-    return _scene_audio(text, voice or shared_tts.DEFAULT_VOICE, rate or shared_tts.DEFAULT_RATE, cache, False)
+    return _scene_audio(text, voice or shared_tts.DEFAULT_VOICE, rate or shared_tts.DEFAULT_RATE,
+                        cache, False, rhythm=rhythm)
 
 
 TYPE = VideoType("article-narrative", validate, prepare, preview, render,

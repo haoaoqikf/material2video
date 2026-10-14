@@ -219,7 +219,8 @@ def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkey
     voice_path = cache / "voice.wav"
     _tone(voice_path, 1)
 
-    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None):
+    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None,
+                    rhythm: dict | None = None):
         return voice_path, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
 
     monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
@@ -257,7 +258,8 @@ def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp
         {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
     ]})
 
-    def fake_speech(_text: str, cache: Path, *, voice: str | None = None, rate: str | None = None):
+    def fake_speech(_text: str, cache: Path, *, voice: str | None = None, rate: str | None = None,
+                    rhythm: dict | None = None):
         wav = cache / "fake.wav"
         wav.write_bytes(b"wav")
         return wav, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False

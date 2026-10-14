@@ -17,8 +17,9 @@ def validate(root: Path, project: dict) -> None:
     _load(root, project)
 
 
-def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None) -> dict:
-    # 房价成片契约要求无音轨，因此不接受音色与语速；参数只为统一类型接口。
+def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
+            rhythm: dict | None = None) -> dict:
+    # 房价成片契约要求无音轨，因此不接受音色、语速与韵律；参数只为统一类型接口。
     series = _load(root, project)
     props = housing.build_render_props(series)
     return save_prepared(root, project=project, composition_id="HousingTimeSeries", props=props,
