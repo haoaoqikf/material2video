@@ -24,7 +24,7 @@ from conftest import create_typed_project
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types import registry
-from m2v.types.stock import adapter, brief as brief_module, provider, search, timeline
+from m2v.types.stock import adapter, aspect, brief as brief_module, provider, search, timeline
 from m2v.types.stock.pixabay import CACHE_SECONDS, PIXABAY_LICENSE
 
 API_KEY_ENV = "M2V_TEST_PEXELS_KEY"
@@ -215,30 +215,13 @@ class _LibraryHandler(BaseHTTPRequestHandler):
             if query in self.server.empty_queries:  # type: ignore[attr-defined]
                 self._json({"videos": []})
                 return
-            self._json({"videos": [
-                {"id": 101, "width": 1080, "height": 1920, "duration": 4, "url": f"{self.base}/video/101/",
-                 "alt": "城市 清晨 街景", "user": {"name": "作者甲"},
-                 "video_files": [
-                     {"id": 1, "quality": "sd", "file_type": "video/mp4", "width": 540, "height": 960,
-                      "link": f"{self.base}/media/clip-long.mp4"},
-                     {"id": 2, "quality": "hd", "file_type": "video/mp4", "width": 1080, "height": 1920,
-                      "link": f"{self.base}/media/clip-long.mp4"}]},
-                {"id": 102, "width": 1080, "height": 1920, "duration": 3, "url": f"{self.base}/video/102/",
-                 "alt": "城市 夜景", "user": {"name": "作者乙"},
-                 "video_files": [{"id": 3, "quality": "hd", "file_type": "video/mp4", "width": 1080,
-                                  "height": 1920, "link": f"{self.base}/media/clip-short.mp4"}]},
-            ]})
+            self._json({"videos": self._video_candidates(query)})
             return
         if parsed.path == "/v1/search":
             if query in self.server.empty_queries:  # type: ignore[attr-defined]
                 self._json({"photos": []})
                 return
-            self._json({"photos": [
-                {"id": 201, "width": 1080, "height": 1920, "url": f"{self.base}/photo/201/",
-                 "photographer": "作者丙", "alt": "城市 清晨 天际线",
-                 "src": {"portrait": f"{self.base}/media/photo-a.jpg",
-                         "large": f"{self.base}/media/photo-a.jpg"}},
-            ]})
+            self._json({"photos": self._photo_candidates(query)})
             return
         if parsed.path.startswith("/media/"):
             target = self.server.media_dir / Path(parsed.path).name  # type: ignore[attr-defined]
@@ -254,14 +237,71 @@ class _LibraryHandler(BaseHTTPRequestHandler):
             return
         self.send_error(404, "unknown")
 
+    def _video(self, entry_id: int, alt: str, author: str, variants: list[tuple[int, int, str]]) -> dict:
+        """按声明的变体清单拼一条视频条目；声明尺寸与真实文件可以故意不一致。"""
+        return {"id": entry_id, "width": variants[0][0], "height": variants[0][1], "duration": 4,
+                "url": f"{self.base}/video/{entry_id}/", "alt": alt, "user": {"name": author},
+                "video_files": [
+                    {"id": index, "quality": "hd", "file_type": "video/mp4", "width": width,
+                     "height": height, "link": f"{self.base}/media/{name}"}
+                    for index, (width, height, name) in enumerate(variants, start=1)]}
+
+    def _video_candidates(self, query: str) -> list[dict]:
+        """默认返回竖屏候选；特殊关键词返回横屏、变体或声明不实的条目。"""
+        if query in self.server.wide_queries:  # type: ignore[attr-defined]
+            return [self._video(103, f"{query} 横屏 街景", "作者丁", [(1920, 1080, "clip-wide.mp4")])]
+        if query in self.server.mixed_queries:  # type: ignore[attr-defined]
+            # 横屏候选的关键词命中更多：只靠排序会选中它，必须靠比例硬过滤淘汰。
+            return [self._video(106, f"{query} 街景 城市", "作者壬", [(1920, 1080, "clip-wide.mp4")]),
+                    self._video(107, "城市", "作者癸", [(1080, 1920, "clip-long.mp4")])]
+        if query in self.server.near_queries:  # type: ignore[attr-defined]
+            # 1080×1912 与 9:16 的偏差约 0.4%，用于验证容差边界。
+            return [self._video(108, f"{query} 城市 街景", "作者子", [(1080, 1912, "clip-near.mp4")])]
+        if query in self.server.variant_queries:  # type: ignore[attr-defined]
+            # 旧实现按「最接近 1080 高度」选变体，在 orientation=any 时会选到横屏版本。
+            return [self._video(105, f"{query} 城市 街景", "作者戊",
+                                [(1920, 1080, "clip-wide.mp4"), (1080, 1920, "clip-long.mp4")])]
+        if query in self.server.lying_queries:  # type: ignore[attr-defined]
+            return [self._video(104, f"{query} 城市 清晨 街景", "作者己", [(1080, 1920, "clip-wide.mp4")])]
+        return [
+            self._video(101, "城市 清晨 街景", "作者甲",
+                        [(540, 960, "clip-long.mp4"), (1080, 1920, "clip-long.mp4")]),
+            self._video(102, "城市 夜景", "作者乙", [(1080, 1920, "clip-short.mp4")]),
+        ]
+
+    def _photo_candidates(self, query: str) -> list[dict]:
+        if query in self.server.wide_queries:  # type: ignore[attr-defined]
+            return [{"id": 202, "width": 1920, "height": 1080, "url": f"{self.base}/photo/202/",
+                     "photographer": "作者庚", "alt": f"{query} 横屏 天际线",
+                     "src": {"large": f"{self.base}/media/photo-wide.jpg"}}]
+        if query in self.server.rendition_queries:  # type: ignore[attr-defined]
+            # Pexels 的 portrait 是平台裁切过的版本：它的比例与候选声明的原始尺寸不符。
+            return [{"id": 203, "width": 1080, "height": 1920, "url": f"{self.base}/photo/203/",
+                     "photographer": "作者辛", "alt": f"{query} 天际线",
+                     "src": {"portrait": f"{self.base}/media/photo-wide.jpg",
+                             "large": f"{self.base}/media/photo-a.jpg"}}]
+        return [{"id": 201, "width": 1080, "height": 1920, "url": f"{self.base}/photo/201/",
+                 "photographer": "作者丙", "alt": "城市 清晨 天际线",
+                 "src": {"portrait": f"{self.base}/media/photo-a.jpg",
+                         "large": f"{self.base}/media/photo-a.jpg"}}]
+
 
 class FakeLibrary:
     """只服务本机回环地址的假图库；退出时关闭，测试之间互不影响。"""
 
-    def __init__(self, media_dir: Path, empty_queries: set[str] | None = None) -> None:
+    def __init__(self, media_dir: Path, empty_queries: set[str] | None = None, *,
+                 wide_queries: set[str] | None = None, variant_queries: set[str] | None = None,
+                 lying_queries: set[str] | None = None, rendition_queries: set[str] | None = None,
+                 mixed_queries: set[str] | None = None, near_queries: set[str] | None = None) -> None:
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), _LibraryHandler)
         self.server.media_dir = media_dir  # type: ignore[attr-defined]
         self.server.empty_queries = empty_queries or set()  # type: ignore[attr-defined]
+        self.server.wide_queries = wide_queries or set()  # type: ignore[attr-defined]
+        self.server.variant_queries = variant_queries or set()  # type: ignore[attr-defined]
+        self.server.lying_queries = lying_queries or set()  # type: ignore[attr-defined]
+        self.server.rendition_queries = rendition_queries or set()  # type: ignore[attr-defined]
+        self.server.mixed_queries = mixed_queries or set()  # type: ignore[attr-defined]
+        self.server.near_queries = near_queries or set()  # type: ignore[attr-defined]
         self.server.seen_auth = []  # type: ignore[attr-defined]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
@@ -284,16 +324,18 @@ class FakeLibrary:
 
 @pytest.fixture(scope="session")
 def media_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """本机生成的小素材：4 秒与 3 秒竖屏视频，以及一张竖屏图片。"""
+    """本机生成的小素材：竖屏视频、横屏视频，以及竖屏与横屏图片各一张。"""
     directory = tmp_path_factory.mktemp("stock-media")
     ffmpeg = get_ffmpeg_exe()
-    for name, seconds in (("clip-long.mp4", 4), ("clip-short.mp4", 3)):
+    for name, seconds, size in (("clip-long.mp4", 4, "1080x1920"), ("clip-short.mp4", 3, "1080x1920"),
+                                ("clip-wide.mp4", 4, "1920x1080"), ("clip-near.mp4", 4, "1080x1912")):
         subprocess.run([ffmpeg, "-y", "-v", "error", "-f", "lavfi",
-                        "-i", f"testsrc=size=1080x1920:rate=30:duration={seconds}",
+                        "-i", f"testsrc=size={size}:rate=30:duration={seconds}",
                         "-pix_fmt", "yuv420p", str(directory / name)], check=True, timeout=300)
-    subprocess.run([ffmpeg, "-y", "-v", "error", "-f", "lavfi",
-                    "-i", "color=c=steelblue:size=1080x1920", "-frames:v", "1",
-                    str(directory / "photo-a.jpg")], check=True, timeout=300)
+    for name, size in (("photo-a.jpg", "1080x1920"), ("photo-wide.jpg", "1920x1080")):
+        subprocess.run([ffmpeg, "-y", "-v", "error", "-f", "lavfi",
+                        "-i", f"color=c=steelblue:size={size}", "-frames:v", "1",
+                        str(directory / name)], check=True, timeout=300)
     return directory
 
 
@@ -326,13 +368,13 @@ def _project(tmp_path: Path, brief: dict) -> tuple[Path, dict]:
     return load_project(root)
 
 
-def _searched(tmp_path: Path, media_dir: Path, brief_fn=None) -> tuple[Path, dict, dict]:
+def _searched(tmp_path: Path, media_dir: Path, brief_fn=None, **library_kwargs) -> tuple[Path, dict, dict]:
     """建作品、跑检索，返回（作品根，作品契约，检索记录）。
 
     作品里的图库地址必须指向**正在运行**的假图库，因此这里用「基地址 → brief」
     的函数而不是一份写死地址的 brief。
     """
-    with FakeLibrary(media_dir) as library:
+    with FakeLibrary(media_dir, **library_kwargs) as library:
         root, manifest = _project(tmp_path, (brief_fn or _brief)(library.base_url))
         os.environ[API_KEY_ENV] = API_KEY
         try:
@@ -626,6 +668,200 @@ def test_prepare_with_sound_bed_writes_one_master_track(tmp_path: Path, media_di
         adapter.prepare(root, manifest)
 
 
+# --------------------------------------------------------------------------- 长宽比契约
+
+
+def test_aspect_ratio_defaults_and_validation() -> None:
+    brief = brief_module.normalize(_brief("https://api.pexels.com"))
+    assert brief["provider"]["aspectRatio"] == "canvas"
+    assert brief["provider"]["aspectRatioTolerance"] == 0.02
+
+    for mutation, message in (
+        ({"provider": {"aspectRatio": "16:9"}}, "provider.aspectRatio"),
+        ({"provider": {"aspectRatioTolerance": 0.5}}, "aspectRatioTolerance"),
+        ({"provider": {"aspectRatioTolerance": -0.1}}, "aspectRatioTolerance"),
+        ({"provider": {"orientation": "landscape"}}, "provider.orientation"),
+        ({"provider": {"orientation": "square"}}, "provider.orientation"),
+        ({"scenes": [{"id": "a", "keywords": ["甲"], "aspectRatio": "wide"}]}, "aspectRatio"),
+    ):
+        with pytest.raises(M2VError, match=message):
+            brief_module.normalize({**_brief("https://api.pexels.com"), **mutation})
+
+
+def test_aspect_ratio_any_keeps_the_previous_behaviour() -> None:
+    brief = brief_module.normalize({**_brief("https://api.pexels.com"),
+                                    "provider": {"aspectRatio": "any", "orientation": "landscape"}})
+    assert brief["provider"]["aspectRatio"] == "any"
+    assert aspect.target_ratio(brief["provider"]) is None
+
+
+def test_ratio_matches_tolerance_boundary() -> None:
+    ratio = aspect.canvas_ratio()
+    assert aspect.ratio_matches(1080, 1920, ratio, 0.0)
+    assert aspect.ratio_matches(1080, 1912, ratio, 0.02)      # 偏差约 0.4%
+    assert not aspect.ratio_matches(1080, 1830, ratio, 0.02)  # 偏差约 5%
+    assert aspect.ratio_matches(1080, 1830, ratio, 0.06)
+    assert not aspect.ratio_matches(0, 1920, ratio, 0.02)
+    assert not aspect.ratio_matches(1080, 1920.0, ratio, 0.02)
+
+
+def test_search_drops_mismatched_candidates_even_when_keywords_hit_more(tmp_path: Path,
+                                                                       media_dir: Path) -> None:
+    """横屏候选的关键词命中更多，也必须被比例契约淘汰。"""
+    scenes = [{"id": "mixed", "keywords": ["城市横屏"], "media": "video",
+               "transition": {"type": "cut"}}]
+    root, _manifest, record = _searched(
+        tmp_path, media_dir,
+        lambda base: _brief(base, scenes=scenes, targetSeconds=6, durationToleranceSeconds=1,
+                            provider={"orientation": "any"}),
+        mixed_queries={"城市横屏"})
+    asset = record["scenes"][0]["asset"]
+    # 实测尺寸就是所下载文件的尺寸：只有竖屏候选的字节会得到 1080×1920。
+    assert (asset["width"], asset["height"]) == (1080, 1920)
+    assert [item["id"] for item in record["scenes"][0]["candidates"]] == ["107"]
+    assert (root / asset["path"]).is_file()
+
+
+def test_variant_selection_prefers_the_canvas_ratio(tmp_path: Path, media_dir: Path) -> None:
+    """orientation=any 时不再偏向「最接近 1080 高度」的横屏变体。"""
+    scenes = [{"id": "clip", "keywords": ["比例变体"], "media": "video",
+               "transition": {"type": "cut"}}]
+    _root, _manifest, record = _searched(
+        tmp_path, media_dir,
+        lambda base: _brief(base, scenes=scenes, targetSeconds=6, durationToleranceSeconds=1,
+                            provider={"orientation": "any"}),
+        variant_queries={"比例变体"})
+    asset = record["scenes"][0]["asset"]
+    # 横屏变体是 1920×1080、竖屏变体是 1080×1920：实测尺寸能区分实际下载了哪个变体。
+    assert (asset["width"], asset["height"]) == (1080, 1920)
+
+
+def test_tolerance_is_applied_to_the_downloaded_file(tmp_path: Path, media_dir: Path) -> None:
+    """1080×1912 在默认 2% 容差内可用，收紧容差后同一候选被拒。"""
+    scenes = [{"id": "near", "keywords": ["容差边界"], "media": "video",
+               "transition": {"type": "cut"}}]
+    _root, _manifest, record = _searched(
+        tmp_path, media_dir,
+        lambda base: _brief(base, scenes=scenes, targetSeconds=6, durationToleranceSeconds=1),
+        near_queries={"容差边界"})
+    assert (record["scenes"][0]["asset"]["width"], record["scenes"][0]["asset"]["height"]) == (1080, 1912)
+
+    strict = tmp_path / "strict"
+    strict.mkdir()
+    with FakeLibrary(media_dir, near_queries={"容差边界"}) as library:
+        root, manifest = _project(strict, _brief(library.base_url, scenes=scenes, targetSeconds=6,
+                                                 durationToleranceSeconds=1,
+                                                 provider={"aspectRatioTolerance": 0.001}))
+        os.environ[API_KEY_ENV] = API_KEY
+        try:
+            with pytest.raises(M2VError, match="长宽比"):
+                search.search(root, manifest)
+        finally:
+            os.environ.pop(API_KEY_ENV, None)
+        assert not search.record_path(root).exists()
+
+
+def test_search_fails_loudly_when_only_mismatched_candidates_exist(tmp_path: Path,
+                                                                  media_dir: Path) -> None:
+    scenes = [{"id": "wide", "keywords": ["城市横屏"], "media": "video",
+               "transition": {"type": "cut"}}]
+    with FakeLibrary(media_dir, wide_queries={"城市横屏"}) as library:
+        root, manifest = _project(tmp_path, _brief(library.base_url, scenes=scenes, targetSeconds=6,
+                                                   durationToleranceSeconds=1))
+        os.environ[API_KEY_ENV] = API_KEY
+        try:
+            with pytest.raises(M2VError, match="长宽比") as error:
+                search.search(root, manifest)
+        finally:
+            os.environ.pop(API_KEY_ENV, None)
+    message = str(error.value)
+    assert "wide" in message and "9:16" in message and "aspectRatio" in message
+    assert not search.record_path(root).exists()
+    assert not list((root / brief_module.ASSET_DIR).glob("*"))
+
+
+def test_scene_level_any_allows_another_ratio(tmp_path: Path, media_dir: Path) -> None:
+    scenes = [{"id": "wide", "keywords": ["城市横屏"], "media": "video", "aspectRatio": "any",
+               "transition": {"type": "cut"}}]
+    _root, _manifest, record = _searched(
+        tmp_path, media_dir,
+        lambda base: _brief(base, scenes=scenes, targetSeconds=6, durationToleranceSeconds=1),
+        wide_queries={"城市横屏"})
+    assert record["scenes"][0]["aspectRatio"] == "any"
+    assert (record["scenes"][0]["asset"]["width"], record["scenes"][0]["asset"]["height"]) == (1920, 1080)
+
+
+def test_search_rejects_a_declared_size_the_file_does_not_have(tmp_path: Path,
+                                                              media_dir: Path) -> None:
+    """图库声明 9:16、实际下载到横屏文件时必须失败，且不留无引用素材。"""
+    scenes = [{"id": "clip", "keywords": ["声明不实"], "media": "video",
+               "transition": {"type": "cut"}}]
+    with FakeLibrary(media_dir, lying_queries={"声明不实"}) as library:
+        root, manifest = _project(tmp_path, _brief(library.base_url, scenes=scenes, targetSeconds=6,
+                                                   durationToleranceSeconds=1))
+        os.environ[API_KEY_ENV] = API_KEY
+        try:
+            with pytest.raises(M2VError, match="实测") as error:
+                search.search(root, manifest)
+        finally:
+            os.environ.pop(API_KEY_ENV, None)
+    assert "1920×1080" in str(error.value)
+    assert not search.record_path(root).exists()
+    assert not list((root / brief_module.ASSET_DIR).glob("*"))
+
+
+def test_photo_uses_a_ratio_preserving_rendition(tmp_path: Path, media_dir: Path) -> None:
+    """Pexels 的 portrait 缩略图是平台裁切版本，比例匹配时应改取原始比例的版本。"""
+    scenes = [{"id": "sky", "keywords": ["天际线"], "media": "photo",
+               "transition": {"type": "cut"}}]
+    _root, _manifest, record = _searched(
+        tmp_path, media_dir,
+        lambda base: _brief(base, scenes=scenes, targetSeconds=6, durationToleranceSeconds=1),
+        rendition_queries={"天际线"})
+    asset = record["scenes"][0]["asset"]
+    # portrait 缩略图是 1920×1080，原始比例的 large 是 1080×1920：实测尺寸说明取了哪一个。
+    assert (asset["width"], asset["height"]) == (1080, 1920)
+
+
+def test_record_expires_when_the_ratio_declaration_changes(tmp_path: Path, media_dir: Path) -> None:
+    root, manifest, _record = _searched(tmp_path, media_dir)
+    path = root / brief_module.MATERIAL
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    # 幕级覆盖进入检索指纹：改声明后旧记录立即过期，必须重新检索。
+    payload["scenes"][0]["aspectRatio"] = "any"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(M2VError, match="检索记录与当前 brief.json 不一致"):
+        adapter.validate(root, manifest)
+
+    other = tmp_path / "second"
+    other.mkdir()
+    root2, manifest2, _record2 = _searched(other, media_dir)
+    # 记录里的图库参数块被改动时同样必须失败，而不是继续用旧参数渲染。
+    record2 = search.record_path(root2)
+    payload2 = json.loads(record2.read_text(encoding="utf-8"))
+    payload2["provider"]["perPage"] = 99
+    record2.write_text(json.dumps(payload2, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(M2VError, match="图库参数"):
+        adapter.validate(root2, manifest2)
+
+
+def test_validate_rejects_a_recorded_size_that_misses_the_canvas(tmp_path: Path,
+                                                                media_dir: Path) -> None:
+    root, manifest, _record = _searched(tmp_path, media_dir)
+    path = search.record_path(root)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["scenes"][0]["asset"]["width"], payload["scenes"][0]["asset"]["height"] = 1920, 1080
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(M2VError, match="长宽比"):
+        adapter.validate(root, manifest)
+
+
+def test_reference_documents_the_ratio_contract() -> None:
+    text = (Path(__file__).resolve().parents[1] / ".agents/skills/material2video/references"
+            / "stock-montage-video.md").read_text(encoding="utf-8")
+    assert "长宽比" in text and "aspectRatioTolerance" in text and "实测尺寸" in text
+
+
 # --------------------------------------------------------------------------- 统一入口
 
 
@@ -642,6 +878,8 @@ def test_cli_search_command_reports_each_scene(tmp_path: Path, media_dir: Path, 
     assert code == 0
     out = capsys.readouterr().out
     assert "已检索 2 幕素材" in out and "opening" in out
+    # 逐幕输出实测尺寸，交付时可直接核对素材与画布的长宽比。
+    assert "1080×1920" in out
     assert search.record_path(root).is_file()
 
 

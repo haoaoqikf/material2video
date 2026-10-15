@@ -224,7 +224,9 @@
               ],
               "minClipSeconds": 2.5,
               "maxClipSeconds": 8,
-              "allowReuse": false
+              "allowReuse": false,
+              "aspectRatio": "canvas",
+              "aspectRatioTolerance": 0.02
             },
             "visual": {
               "theme": "dark",

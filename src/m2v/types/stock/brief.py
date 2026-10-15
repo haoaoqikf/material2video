@@ -15,6 +15,7 @@ from typing import Any
 from m2v.core.errors import M2VError
 from m2v.engine import sound as sound_contract
 from m2v.types.article.storyboard import Report
+from m2v.types.stock import aspect
 from m2v.types.stock.provider import PROVIDER_DEFAULTS
 
 MATERIAL = "brief.json"
@@ -22,8 +23,9 @@ SEARCH_RECORD = "outputs/footage-search.json"
 ASSET_DIR = "assets/stock"
 
 FPS = 30
-WIDTH = 1080
-HEIGHT = 1920
+# 画布常量由长宽比契约模块定义，检索与图库适配用同一份数值判定比例。
+WIDTH = aspect.CANVAS_WIDTH
+HEIGHT = aspect.CANVAS_HEIGHT
 
 #: 口播幕末尾的阅读停留：与文章、通用类型一致，避免字幕刚消失画面就切走。
 READING_TAIL_FRAMES = 12
@@ -48,6 +50,8 @@ DEFAULTS: dict[str, Any] = {
         "minClipSeconds": 2.5,
         "maxClipSeconds": 8,
         "allowReuse": False,
+        "aspectRatio": aspect.MODE_CANVAS,
+        "aspectRatioTolerance": aspect.DEFAULT_TOLERANCE,
     },
     "visual": {"theme": "dark"},
     "motion": {"photoZoom": 1.12},
@@ -99,7 +103,7 @@ def _validate_scene(raw: Any, index: int, seen: set[str]) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise M2VError(f"{where} 必须是对象")
     allowed = {"id", "keywords", "narration", "durationFrames", "speech", "transition", "assetId",
-               "trimStartSeconds", "media"}
+               "trimStartSeconds", "media", "aspectRatio"}
     unknown = set(raw) - allowed
     if unknown:
         raise M2VError(f"{where} 含未知字段：{'、'.join(sorted(unknown))}")
@@ -107,6 +111,8 @@ def _validate_scene(raw: Any, index: int, seen: set[str]) -> dict[str, Any]:
     if scene_id in seen:
         raise M2VError(f"幕 ID 重复：{scene_id}")
     seen.add(scene_id)
+    if "aspectRatio" in raw and raw["aspectRatio"] not in aspect.MODES:
+        raise M2VError(f"{where}.aspectRatio 只支持 {'、'.join(aspect.MODES)}")
     keywords = raw.get("keywords")
     if (not isinstance(keywords, list) or not keywords
             or any(not isinstance(word, str) or not word.strip() for word in keywords)):
@@ -197,6 +203,17 @@ def normalize(raw: Any) -> dict[str, Any]:
         raise M2VError("provider.maxClipSeconds 不能小于 minClipSeconds")
     if type(provider.get("allowReuse")) is not bool:
         raise M2VError("provider.allowReuse 必须是布尔值")
+    if provider.get("aspectRatio") not in aspect.MODES:
+        raise M2VError(f"provider.aspectRatio 只支持 {'、'.join(aspect.MODES)}")
+    provider["aspectRatioTolerance"] = _require_number(
+        provider.get("aspectRatioTolerance"), "provider.aspectRatioTolerance",
+        low=0, high=aspect.MAX_TOLERANCE)
+    if provider["aspectRatio"] == aspect.MODE_CANVAS and provider["orientation"] in {"landscape", "square"}:
+        # 画布是 9:16，横屏或正方形候选永远无法满足比例契约，提前失败而不是让检索空手而归。
+        raise M2VError(
+            f"provider.aspectRatio=canvas 要求素材与画布 {WIDTH}×{HEIGHT}（9:16）比例一致，"
+            f"但 provider.orientation 声明为 {provider['orientation']}；"
+            "请改为 portrait 或 any，或把 provider.aspectRatio 改为 any")
     brief["provider"] = provider
 
     visual = _merged(raw.get("visual", {}), DEFAULTS["visual"], "visual")

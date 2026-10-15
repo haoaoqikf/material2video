@@ -111,7 +111,8 @@ class PixabayProvider:
             staged.unlink(missing_ok=True)
 
     def _candidate(self, raw: Any, kind: str) -> Candidate | None:
-        from m2v.types.stock.provider import Candidate, PHOTO_SUFFIXES, VIDEO_SUFFIXES, _suffix_of, _target_height
+        from m2v.types.stock.provider import (Candidate, PHOTO_SUFFIXES, VIDEO_SUFFIXES, _suffix_of,
+                                              pick_variant)
 
         if not isinstance(raw, dict) or not raw.get("id"):
             return None
@@ -127,8 +128,7 @@ class PixabayProvider:
                          and isinstance(item.get("url"), str) and item["url"]]
                 if not files:
                     return None
-                chosen = min(files, key=lambda item: (abs(int(item.get("height") or 0) - _target_height(self.config)),
-                                                       item["url"]))
+                chosen = pick_variant(files, self.config, "url")
                 link = chosen["url"]
                 width, height = int(chosen.get("width") or 0), int(chosen.get("height") or 0)
                 duration = float(raw.get("duration") or 0)

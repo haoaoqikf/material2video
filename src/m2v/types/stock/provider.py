@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from m2v.core.errors import M2VError
+from m2v.types.stock import aspect
 from m2v.types.stock.pixabay import PixabayProvider
 
 #: 单个素材文件的下载上限：图库返回异常大文件时直接失败，而不是把磁盘写满。
@@ -127,6 +128,32 @@ def _target_height(config: dict[str, Any]) -> int:
     return 1920 if config.get("orientation") in {"portrait", "square"} else 1080
 
 
+def _variant_ratio(item: Any) -> float:
+    """变体自身的宽高比；尺寸缺失或非法时返回 0（排序时必然落选）。"""
+    if not isinstance(item, dict):
+        return 0.0
+    width, height = int(item.get("width") or 0), int(item.get("height") or 0)
+    return width / height if width > 0 and height > 0 else 0.0
+
+
+def pick_variant(files: list[dict], config: dict[str, Any], link_key: str) -> dict:
+    """选下载变体：声明画布比例时按比例最接近（其次面积最大）选，否则按目标高度选。
+
+    只看高度会让 ``orientation: "any"`` 的作品偏向横屏版本（目标高度退化成 1080），
+    于是竖屏画布拿到横屏素材；因此比例契约生效时以比例为首要依据。
+    """
+    ratio = aspect.target_ratio(config)
+    if ratio is not None:
+        def key(item: dict) -> tuple:
+            own = _variant_ratio(item)
+            distance = abs(own - ratio) if own else float("inf")
+            width, height = int(item.get("width") or 0), int(item.get("height") or 0)
+            return (distance, -(width * height), str(item[link_key]))
+        return min(files, key=key)
+    target = _target_height(config)
+    return min(files, key=lambda item: (abs(int(item.get("height") or 0) - target), str(item[link_key])))
+
+
 class PexelsProvider:
     """Pexels 图库适配器（图片 + 视频）。"""
 
@@ -174,8 +201,7 @@ class PexelsProvider:
                  and isinstance(item.get("link"), str) and item["link"]]
         if not files or not isinstance(author, str) or not author.strip():
             return None
-        target = _target_height(self.config)
-        chosen = min(files, key=lambda item: (abs(int(item.get("height") or 0) - target), str(item["link"])))
+        chosen = pick_variant(files, self.config, "link")
         duration = raw.get("duration")
         return Candidate(
             id=str(raw.get("id")), kind="video",
@@ -191,8 +217,14 @@ class PexelsProvider:
             return None
         author = raw.get("photographer")
         sources = raw.get("src") if isinstance(raw.get("src"), dict) else {}
-        preferred = ("portrait", "large", "large2x", "original") if self.orientation in {"portrait", "square"} \
-            else ("large", "original", "large2x", "portrait")
+        # 声明画布比例时只取保持原始比例的缩略图：Pexels 的 `portrait` 是平台裁切过的
+        # 版本，它的实际比例与候选记录的原始尺寸不一致，会让「记录尺寸 = 实测尺寸」失守。
+        if aspect.target_ratio(self.config) is not None:
+            preferred = ("large2x", "original", "large", "medium")
+        elif self.orientation in {"portrait", "square"}:
+            preferred = ("portrait", "large", "large2x", "original")
+        else:
+            preferred = ("large", "original", "large2x", "portrait")
         link = next((sources[key] for key in preferred if isinstance(sources.get(key), str) and sources[key]), None)
         if not link or not isinstance(author, str) or not author.strip():
             return None

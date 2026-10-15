@@ -37,7 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"已检索 {len(record['scenes'])} 幕素材（图库：{record['provider']['name']}）")
     for entry in record["scenes"]:
         asset = entry["asset"]
-        print(f"  {entry['id']}：{asset['path']}（{asset['kind']}，{asset['author']}，{asset['license']}）")
+        print(f"  {entry['id']}：{asset['path']}"
+              f"（{asset['kind']}，{asset['width']}×{asset['height']}，"
+              f"{asset['author']}，{asset['license']}）")
     print(f"检索记录：{search_module.record_path(root)}")
     return 0
 

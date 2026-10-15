@@ -20,6 +20,8 @@ from typing import Any
 
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
+from m2v.engine import media_probe
+from m2v.types.stock import aspect
 from m2v.types.stock import brief as brief_module
 from m2v.types.stock import provider as provider_module
 
@@ -37,7 +39,8 @@ def search_fingerprint(brief: dict[str, Any]) -> str:
         "topic": brief["topic"],
         "provider": brief["provider"],
         "scenes": [{"id": scene["id"], "keywords": scene["keywords"],
-                    "media": scene.get("media"), "assetId": scene.get("assetId")}
+                    "media": scene.get("media"), "assetId": scene.get("assetId"),
+                    "aspectRatio": scene.get("aspectRatio")}
                    for scene in brief["scenes"]],
     })
 
@@ -47,19 +50,41 @@ def record_path(root: Path) -> Path:
 
 
 def _score(candidate: provider_module.Candidate, keywords: list[str], kind_rank: int,
-           config: dict[str, Any], portrait: bool) -> tuple:
-    """确定性排序键：关键词命中优先，其次方向、分辨率与时长适配，最后来源 ID。"""
+           config: dict[str, Any], mode: str, tolerance: float) -> tuple:
+    """确定性排序键：关键词命中优先，其次方向或比例、分辨率与时长适配，最后来源 ID。"""
     text = candidate.description.lower()
     hits = sum(1 for word in keywords if word.lower() in text)
-    orientation_fit = 1 if (candidate.height >= candidate.width) == portrait else 0
-    target = 1920 if portrait else 1080
+    if mode == aspect.MODE_CANVAS:
+        # 比例已在检索时硬过滤，这里只用于同比例候选之间的排序；分辨率基准取画布高度，
+        # 避免 orientation=any 时退化成 1080 而偏向矮的横屏变体。
+        fit = 1 if aspect.ratio_matches(candidate.width, candidate.height,
+                                        aspect.canvas_ratio(), tolerance) else 0
+        target = aspect.CANVAS_HEIGHT
+    else:
+        portrait = config["orientation"] in {"portrait", "square"}
+        fit = 1 if (candidate.height >= candidate.width) == portrait else 0
+        target = 1920 if portrait else 1080
     resolution = min(candidate.height, target) / target if candidate.height else 0.0
     if candidate.kind == "video":
         duration = candidate.duration_seconds or 0.0
         in_range = 1 if config["minClipSeconds"] <= duration <= config["maxClipSeconds"] else 0
     else:
         in_range = 1
-    return (-hits, -orientation_fit, -in_range, -resolution, kind_rank, candidate.id)
+    return (-hits, -fit, -in_range, -resolution, kind_rank, candidate.id)
+
+
+def _no_candidate_error(scene_id: str, query: str, config: dict[str, Any], mode: str,
+                        tolerance: float) -> M2VError:
+    if mode == aspect.MODE_CANVAS:
+        hint = (f"本幕要求素材长宽比与画布 {aspect.CANVAS_WIDTH}×{aspect.CANVAS_HEIGHT}（9:16）一致"
+                f"（容差 ±{tolerance * 100:g}%），返回的候选均不满足；"
+                "可提高 provider.perPage、改用 provider.orientation=portrait、调整关键词，"
+                "或显式声明 provider.aspectRatio=any / 提高 provider.aspectRatioTolerance")
+    else:
+        hint = "请调整关键词或放宽 provider.media/orientation 后重试"
+    return M2VError(
+        f"幕 {scene_id} 没有可用候选：关键词「{query}」在 {config['name']} 未返回可采用的素材；{hint}")
+
 
 
 def _download(provider, candidate, destination: Path, timeout_s: float) -> tuple[str, int]:
@@ -82,13 +107,15 @@ def search(root: Path, project: dict[str, Any], *, transport=None,
     brief = brief_module.load(root, project)
     config = brief["provider"]
     adapter = provider_module.build(config, transport, cache_dir=root / "outputs/stock-cache")
-    portrait = config["orientation"] in {"portrait", "square"}
+    ratio = aspect.canvas_ratio()
+    tolerance = aspect.tolerance_of(config)
     # 先取一次凭据：缺凭据时在任何请求与写盘之前失败。
     adapter.headers()
     used: set[str] = set()
     scenes: list[dict[str, Any]] = []
     for scene in brief["scenes"]:
         query = " ".join(scene["keywords"])
+        mode = aspect.effective_mode(config, scene)
         kinds = [scene["media"]] if scene.get("media") else list(config["media"])
         found: list[tuple[tuple, provider_module.Candidate]] = []
         for rank, kind in enumerate(kinds):
@@ -99,26 +126,42 @@ def search(root: Path, project: dict[str, Any], *, transport=None,
                     continue
                 if not candidate.source_url or not candidate.author or not candidate.license:
                     continue
-                found.append((_score(candidate, scene["keywords"], rank, config, portrait), candidate))
+                # 比例契约生效时直接丢弃比例不符的候选：降权仍可能选中横屏素材，
+                # 那样画布只能靠大幅裁切掩盖，正是这次要消除的行为。
+                if mode == aspect.MODE_CANVAS and not aspect.ratio_matches(
+                        candidate.width, candidate.height, ratio, tolerance):
+                    continue
+                found.append((_score(candidate, scene["keywords"], rank, config, mode, tolerance), candidate))
         if not found:
-            raise M2VError(
-                f"幕 {scene['id']} 没有可用候选：关键词「{query}」在 {config['name']} 未返回可采用的素材；"
-                f"请调整关键词或放宽 provider.media/orientation 后重试")
+            raise _no_candidate_error(scene["id"], query, config, mode, tolerance)
         found.sort(key=lambda item: item[0])
         chosen = found[0][1]
         used.add(chosen.id)
         name = _UNSAFE_NAME.sub("-", f"{config['name']}-{chosen.kind}-{chosen.id}") + chosen.suffix
         relative = f"{brief_module.ASSET_DIR}/{name}"
-        digest, size = _download(adapter, chosen, root / relative, timeout_s)
+        destination = root / relative
+        digest, size = _download(adapter, chosen, destination, timeout_s)
+        # 留证尺寸以实测为准：图库声明可能与实际文件不符（裁切缩略图、缩放取整）。
+        width, height = media_probe.probe_dimensions(destination)
+        if mode == aspect.MODE_CANVAS and not aspect.ratio_matches(width, height, ratio, tolerance):
+            destination.unlink(missing_ok=True)
+            raise M2VError(
+                f"幕 {scene['id']} 的素材长宽比与画布不一致：下载文件 {relative} 实测 "
+                f"{aspect.describe_ratio(width, height)}，画布要求 "
+                f"{aspect.CANVAS_WIDTH}×{aspect.CANVAS_HEIGHT}（9:16，容差 ±{tolerance * 100:g}%）；"
+                "请更换关键词或图库来源，或为该幕显式声明 aspectRatio=any / 提高 provider.aspectRatioTolerance")
         scenes.append({
             "id": scene["id"], "keywords": list(scene["keywords"]), "query": query,
-            "asset": {**chosen.to_json(), "path": relative, "sha256": digest, "bytes": size},
+            "aspectRatio": mode,
+            "asset": {**chosen.to_json(), "width": width, "height": height,
+                      "path": relative, "sha256": digest, "bytes": size},
             "candidates": [candidate.to_json() for _key, candidate in found[:MAX_RECORDED_CANDIDATES]],
         })
     record = {"schemaVersion": RECORD_VERSION, "briefFingerprint": search_fingerprint(brief),
               "provider": {"name": config["name"], "apiBase": config["apiBase"],
                            "orientation": config["orientation"], "perPage": config["perPage"],
-                           "media": list(config["media"])},
+                           "media": list(config["media"]), "aspectRatio": config["aspectRatio"],
+                           "aspectRatioTolerance": config["aspectRatioTolerance"]},
               "topic": brief["topic"], "scenes": scenes}
     target = record_path(root)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -142,7 +185,8 @@ def load_record(root: Path, project: dict[str, Any], brief: dict[str, Any]) -> d
     config = brief["provider"]
     expected_provider = {"name": config["name"], "apiBase": config["apiBase"],
                          "orientation": config["orientation"], "perPage": config["perPage"],
-                         "media": list(config["media"])}
+                         "media": list(config["media"]), "aspectRatio": config["aspectRatio"],
+                         "aspectRatioTolerance": config["aspectRatioTolerance"]}
     if record.get("provider") != expected_provider:
         raise M2VError("检索记录的图库参数与当前 brief.json 不一致；请重新执行 m2v stock search")
     entries = record.get("scenes")
@@ -151,7 +195,12 @@ def load_record(root: Path, project: dict[str, Any], brief: dict[str, Any]) -> d
     for entry, scene in zip(entries, brief["scenes"]):
         if entry.get("keywords") != list(scene["keywords"]):
             raise M2VError(f"幕 {scene['id']} 的关键词与检索记录不一致；请重新执行 m2v stock search")
+        mode = aspect.effective_mode(config, scene)
+        if entry.get("aspectRatio") != mode:
+            raise M2VError(f"幕 {scene['id']} 的长宽比声明与检索记录不一致；请重新执行 m2v stock search")
         _verify_asset(root, scene["id"], entry.get("asset"))
+        if mode == aspect.MODE_CANVAS:
+            _verify_asset_ratio(scene["id"], entry["asset"], config)
     return record
 
 
@@ -180,3 +229,15 @@ def _verify_asset(root: Path, scene_id: str, asset: Any) -> None:
         raise M2VError(f"素材文件缺失：{reference}；请重新执行 m2v stock search")
     if hashlib.sha256(target.read_bytes()).hexdigest() != asset.get("sha256"):
         raise M2VError(f"素材文件与检索记录不一致：{reference}；请重新执行 m2v stock search")
+
+
+def _verify_asset_ratio(scene_id: str, asset: dict[str, Any], config: dict[str, Any]) -> None:
+    """记录尺寸与画布比例不符时失败：被手改的记录或旧版本记录不得进入渲染。"""
+    tolerance = aspect.tolerance_of(config)
+    if aspect.ratio_matches(asset.get("width"), asset.get("height"), aspect.canvas_ratio(), tolerance):
+        return
+    raise M2VError(
+        f"幕 {scene_id} 的素材长宽比与画布不一致：记录为 "
+        f"{aspect.describe_ratio(asset.get('width'), asset.get('height'))}，画布要求 "
+        f"{aspect.CANVAS_WIDTH}×{aspect.CANVAS_HEIGHT}（9:16，容差 ±{tolerance * 100:g}%）；"
+        "请重新执行 m2v stock search")
