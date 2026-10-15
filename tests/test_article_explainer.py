@@ -203,6 +203,11 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
                 subtitle = page.locator('[data-m2v-subtitle]')
                 assert subtitle.inner_text() == (data["scenes"][0]["narrationSegments"][0]["text"] if frame < 30 else "")
                 if frame < 30:
+                    assert subtitle.evaluate("""el => {
+                        const range = document.createRange(); range.selectNodeContents(el);
+                        return Array.from(range.getClientRects()).filter(r => r.width && r.height).every(r =>
+                            el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)));
+                    }""")
                     # 实际量测已检查正文安全区；此处补充主题前景与背景对比度。
                     assert page.evaluate("""() => {
                         const el = document.querySelector('[data-m2v-subtitle]');
@@ -229,3 +234,14 @@ def test_browser_blocks_overflow(tmp_path, monkeypatch, chromium_ready):
     root,manifest = project(tmp_path,data);fake_tts(monkeypatch)
     prepared=adapter.prepare(root,manifest)
     with pytest.raises(M2VError,match="排版量测失败"): layout_check(root,prepared)
+
+
+def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready):
+    from m2v.types.article import explainer_render
+    root, manifest = project(tmp_path); fake_tts(monkeypatch)
+    prepared = adapter.prepare(root, manifest)
+    # 重现缺失层级：文字与包围盒仍存在，但场景背景盖在字幕之上。
+    monkeypatch.setattr(explainer_render, "MEASURE", explainer_render.MEASURE.replace(
+        "const problems = [];", "const problems = []; document.querySelector('[data-m2v-subtitle]').style.zIndex = 'auto';"))
+    with pytest.raises(M2VError, match="字幕被遮挡"):
+        explainer_render.layout_check(root, prepared)

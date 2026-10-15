@@ -26,6 +26,13 @@ MEASURE = r"""() => {
     const r = range.getBoundingClientRect();
     if (!r.width || !r.height) continue;
     const subtitle = el.closest('[data-m2v-subtitle]');
+    if (subtitle) {
+      for (const rect of range.getClientRects()) {
+        if (!rect.width || !rect.height) continue;
+        const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        if (!top || !subtitle.contains(top)) problems.push('字幕被遮挡：' + el.textContent);
+      }
+    }
     const box = (subtitle || el.closest('[data-m2v-box]'))?.getBoundingClientRect();
     if (r.left < 106 || r.right > 974 || r.top < 158 || r.bottom > (subtitle ? 1782 : 1502))
       problems.push('画布分区溢出：' + el.textContent);

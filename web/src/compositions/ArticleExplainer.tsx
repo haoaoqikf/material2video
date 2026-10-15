@@ -144,7 +144,8 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
         <SceneCard scene={scene} palette={palette} frame={frame}/>
       </AbsoluteFill>
     </Sequence>)}
-    <div data-m2v-subtitle="" style={{position: 'absolute', left: 108, right: 108, top: 1580, height: 200,
+    {/* 场景共享样式使用 z-index: 1；字幕必须覆盖场景背景。 */}
+    <div data-m2v-subtitle="" style={{position: 'absolute', zIndex: 2, left: 108, right: 108, top: 1580, height: 200,
       fontFamily: 'M2V Sans, sans-serif', fontSize: 40, lineHeight: 1.5, color: palette.ink, textAlign: 'center', overflowWrap: 'anywhere'}}>
       {cue && <span data-m2v-copy="">{cue.text}</span>}
     </div>
