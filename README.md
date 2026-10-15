@@ -6,7 +6,7 @@
 
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整预演自动验收。
-- `article-narrative`：v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与人工评审，成片不超过 60 秒。
+- `article-narrative`：v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与可选画面评审，成片不超过 60 秒。
 - `general`：受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化和可选口播。
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 - `stock-montage`：按主题与逐幕关键词从在线图库检索并下载素材，留证来源、作者与许可后自动剪成竖屏短片，支持可选口播、字幕与本地音床。
@@ -35,22 +35,20 @@ uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/
 uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v preview --project videos/general/<slug>
-uv run m2v review-template --project videos/general/<slug>
-# 文章与通用视频查看预演并填写 outputs/review.json；金融视频直接使用完整预演自动验收。
-uv run m2v review --project videos/general/<slug>
+# 所有类型完整预演自动验收通过后直接导出；人工画面评审为可选工具。
 uv run m2v render --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
 
 作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。
 
-`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v5 讲解分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。该规则也适用于通用视频内嵌的金融片段。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。文章仅接受 v5；v1～v4 必须重新编排。`render` 不修改原始材料；文章与通用视频要求人工评审匹配当前指纹，金融视频则要求当前完整预演及自动验收记录有效。
+`init` 会生成材料模板。文章工作流仍先完成原文输入审查，再编辑 v5 讲解分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。该规则也适用于通用视频内嵌的金融片段。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。文章仅接受 v5；v1～v4 必须重新编排。`render` 不修改原始材料；所有类型均要求当前完整预演及自动验收有效，无需人工查看、填写依据或再次确认；`review-template` / `review` 保留为可选工具，文章原文语义审查及金融自动探针保留。
 
 房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、30 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，须人工检查完整预演后渲染。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
 
 股票和指数仍按价格或点位比缩放本金；crypto 可指定买入日与 CNY 本金，组合展示价值 = 本金 ×（当前 BTC/USD 收盘价 ÷ 买入日收盘价）×（当日或此前最近 USD/CNY 汇率 ÷ 买入日可用汇率）。crypto 请求还可提供法律地位说明，替换该作品默认估值口径行与通用风险提示；其他作品默认说明不变。prices v4 独立保存汇率来源、观测和原始快照；周末/假日使用最近此前汇率。详见[金融时间序列制作说明](.agents/skills/material2video/references/financial-timeseries-video.md)。
 
-在线素材剪辑通过 `stock-montage` 独立类型制作。材料保存在 `brief.json`，只写主题、逐幕关键词、目标时长、图库配置与可选口播/音床；支持 Pexels 与 Pixabay；默认保留 Pexels，选择 Pixabay 时在 `brief.json` 中将 `provider.name` 设为 `pixabay`，删除或替换模板原有 `apiBase`/`apiKeyEnv`，并更新 `visual.attribution`。先设置图库凭据（只从环境变量读取：Pexels 为 `M2V_PEXELS_API_KEY`，Pixabay 为 `M2V_PIXABAY_API_KEY`；仅指定来源名称时自动选择对应官方地址与变量）并执行 `m2v stock search --project <目录>`，工具按幕检索并下载素材到 `assets/stock/`（Pixabay 检索响应按要求在作品 `outputs/stock-cache/` 缓存 24 小时，缓存不含 Key；不用于系统性批量下载），同时把来源页、作者、许可、像素尺寸、时长与文件摘要写进 `outputs/footage-search.json`。任一幕没有可用候选、素材缺少来源/作者/许可、素材文件或 `brief.json` 被改动，都会让校验失败并要求重新检索；被替换过的素材不会进入渲染。准备阶段按目标时长自动分配逐幕帧数（口播幕按真实语音时长、固定帧数幕按声明值、其余均分并夹在 `minClipSeconds`/`maxClipSeconds` 与素材可用时长之间），静图做推拉平移，短视频按声明入点裁切，有口播或音床时合成单条母版音轨。画布 1080×1920、30 fps，渲染期素材经回环 HTTP 提供，画面不访问外部网络。须人工查看完整预演并填写 `outputs/review.json` 后渲染。详细字段、检索规则与剪辑规则见 [在线素材剪辑说明](.agents/skills/material2video/references/stock-montage-video.md)。
+在线素材剪辑通过 `stock-montage` 独立类型制作。材料保存在 `brief.json`，只写主题、逐幕关键词、目标时长、图库配置与可选口播/音床；支持 Pexels 与 Pixabay；默认保留 Pexels，选择 Pixabay 时在 `brief.json` 中将 `provider.name` 设为 `pixabay`，删除或替换模板原有 `apiBase`/`apiKeyEnv`，并更新 `visual.attribution`。先设置图库凭据（只从环境变量读取：Pexels 为 `M2V_PEXELS_API_KEY`，Pixabay 为 `M2V_PIXABAY_API_KEY`；仅指定来源名称时自动选择对应官方地址与变量）并执行 `m2v stock search --project <目录>`，工具按幕检索并下载素材到 `assets/stock/`（Pixabay 检索响应按要求在作品 `outputs/stock-cache/` 缓存 24 小时，缓存不含 Key；不用于系统性批量下载），同时把来源页、作者、许可、像素尺寸、时长与文件摘要写进 `outputs/footage-search.json`。任一幕没有可用候选、素材缺少来源/作者/许可、素材文件或 `brief.json` 被改动，都会让校验失败并要求重新检索；被替换过的素材不会进入渲染。准备阶段按目标时长自动分配逐幕帧数（口播幕按真实语音时长、固定帧数幕按声明值、其余均分并夹在 `minClipSeconds`/`maxClipSeconds` 与素材可用时长之间），静图做推拉平移，短视频按声明入点裁切，有口播或音床时合成单条母版音轨。画布 1080×1920、30 fps，渲染期素材经回环 HTTP 提供，画面不访问外部网络。当前完整预演自动验收通过后即可渲染，人工画面评审为可选工具。详细字段、检索规则与剪辑规则见 [在线素材剪辑说明](.agents/skills/material2video/references/stock-montage-video.md)。
 
 统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、检查图和已知调试产物；金融完整预演作为自动验收绑定记录予以保留，其他类型按原规则清理预演。保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
 

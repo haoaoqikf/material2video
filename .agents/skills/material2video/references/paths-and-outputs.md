@@ -42,7 +42,7 @@
     ├── voiced.srt                    # 配音成片字幕
     ├── voiced.performance.json       # 与该成片同名的渲染性能报告（不入库）
     ├── input-review.json             # 文章讲解的人工输入语义审查（v5）
-    ├── review.json                   # 统一人工评审，绑定当前准备指纹与完整预演（v5）
+    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（v5）
     ├── preview-record.json           # 完整预演记录，供评审模板绑定
     ├── prepared.json                 # 当前准备产物与派生时间轴
     ├── media/                        # 配音清单、音轨与缓存

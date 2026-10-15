@@ -10,9 +10,6 @@ uv run m2v init --type housing-timeseries --project <slug>
 uv run m2v validate --project videos/housing-timeseries/<slug>
 uv run m2v prepare --project videos/housing-timeseries/<slug>
 uv run m2v preview --project videos/housing-timeseries/<slug>
-# 查看完整预演，按 outputs/review.json 的全部准则填写评审结论
-uv run m2v review-template --project videos/housing-timeseries/<slug>
-uv run m2v review --project videos/housing-timeseries/<slug>
 uv run m2v render --project videos/housing-timeseries/<slug>
 ```
 
@@ -30,3 +27,5 @@ uv run m2v render --project videos/housing-timeseries/<slug>
 画布为 1080×1920、30 fps。默认 30 秒包含 1 秒开场、逐年推进与 2 秒静止终幕；`series.json` 可通过 `durationSeconds` 显式指定 10 至 180 秒。每个年度数据点到达时停留 0.5 秒（15 帧），高亮对应点并显示该年和约整元均价，停留读数取该年度统计值；年度点之间平滑推进。对于 23 个年度点，默认时长下每个年度间隔约 0.7 秒。纵轴依据当前已揭示数据确定，不提前透露未来极值。
 
 统计口径断点通过材料 `breakpoints` 声明。郑州序列标注 2005 年起销售面积和销售额统计采用新口径；底部保留计算方法、原始数据精度限制、来源机构及年份范围。完整来源 URL 和各年原始面积/金额留在作品材料中。成片不得带音轨或字幕轨。
+
+默认流程为校验 → 准备 → 完整预演 → 正式导出；无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出；主动执行 `review` 时仍检查当前绑定、结论与非空依据，不自动生成人工通过结论。

@@ -244,4 +244,4 @@ def review_criteria(_root: Path, _project: dict, prepared: dict) -> dict[str, st
 
 
 TYPE = VideoType("stock-montage", validate, prepare, preview, render,
-                 review_criteria=review_criteria, manual_review_required=True)
+                 review_criteria=review_criteria, manual_review_available=True)

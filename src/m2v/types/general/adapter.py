@@ -186,10 +186,10 @@ def validate(root: Path, project: dict) -> None:
     violations = code_gate.check_storyboard(article_dir=root, storyboard_data=plan)
     if violations:
         raise M2VError("\n".join(item.render(root) for item in violations))
-    _validate_embedded_reviews(root, plan)
+    _validate_embedded_checks(root, plan)
 
 
-def _validate_embedded_reviews(root: Path, plan: dict[str, Any]) -> None:
+def _validate_embedded_checks(root: Path, plan: dict[str, Any]) -> None:
     for scene in plan["scenes"]:
         if scene["type"] not in {"financial-timeseries", "article-narrative"}:
             continue
@@ -198,14 +198,14 @@ def _validate_embedded_reviews(root: Path, plan: dict[str, Any]) -> None:
         child_type.validate(child_root, child_manifest)
         load_current_prepared(child_root, child_manifest)
         if child_type.review_gate is None:
-            raise M2VError(f"嵌入类型 {child_manifest['type']} 未公开评审门禁接口")
+            raise M2VError(f"嵌入类型 {child_manifest['type']} 未公开自动验收接口")
         child_type.review_gate(child_root, child_manifest)
 
 
 def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
             rhythm: dict | None = None) -> dict:
     plan = _plan(root, project)
-    _validate_embedded_reviews(root, plan)
+    _validate_embedded_checks(root, plan)
     inputs = file_inputs(root, project)
     dependencies = []
     audio_segments = []
@@ -352,7 +352,7 @@ def _embedded_modules(root: Path, scenes: list[dict[str, Any]], inputs: dict[str
                 raise M2VError(f"嵌入代码场景模块越界：{path}") from exc
             digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
             if digest != module["sha256"] or (inputs is not None and inputs.get(f"embedded-module:{module['id']}") != digest):
-                raise M2VError(f"嵌入代码场景模块已变化；请重新 prepare 并评审：{path}")
+                raise M2VError(f"嵌入代码场景模块已变化；请重新 prepare 并生成完整预演：{path}")
             result.append((module["id"], path))
     return result
 
@@ -383,7 +383,7 @@ def review_criteria(_root: Path, _project: dict, prepared: dict) -> dict[str, st
 
 def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | None = None) -> Path:
     prepared = load_current_prepared(root, project)
-    _validate_embedded_reviews(root, _plan(root, project))
+    _validate_embedded_checks(root, _plan(root, project))
     if prepared.get("contractVersion") != 1 or prepared.get("compositionId") != "GeneralVideo":
         raise M2VError("准备记录契约不匹配；请重新 prepare")
     if limit_frames is not None and limit_frames < 1:
@@ -395,7 +395,7 @@ def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | Non
         storyboard_path=entry, content_root=root.parent, workspace_root=root.parent,
     )["digest"]
     if prepared.get("inputs", {}).get("renderer") != current_renderer:
-        raise M2VError("通用视频渲染代码、字体或资源已变化；请重新 prepare 并评审")
+        raise M2VError("通用视频渲染代码、字体或资源已变化；请重新 prepare 并生成完整预演")
     web = contract_page.web_dir()
     destination = root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
     destination.parent.mkdir(parents=True, exist_ok=True)

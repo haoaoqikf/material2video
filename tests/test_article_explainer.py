@@ -146,7 +146,8 @@ def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     image.write_bytes((ROOT / "examples/darts-trial-and-error/assets/feedback.png").read_bytes())
     fake_tts(monkeypatch)
     prepared = adapter.prepare(child, manifest)
-    # 仅为集成测试的人工评审替身，真实制作不会自动写 pass。
+    # 媒体验收在独立测试中覆盖，此处验证无人工评审也能完整嵌入。
+    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *a, **kw: None)
     preview_file = child / "outputs/previews/video.mp4"
     preview_file.parent.mkdir()
     preview_file.write_bytes(b"test preview fixture")
@@ -154,10 +155,6 @@ def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     preview = {"path": "outputs/previews/video.mp4", "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest(),
                "frames": prepared["durationInFrames"], "preparedFingerprint": prepared["preparedFingerprint"]}
     _write_json(child / "outputs/preview-record.json", preview)
-    _write_json(child / "outputs/review.json", {"schemaVersion": 1, "status": "pass", "projectId": manifest["id"],
-        "preparedFingerprint": prepared["preparedFingerprint"], "preview": preview,
-        "criteria": review.criteria(child, manifest, prepared),
-        "evidence": {key: "集成测试人工评审替身" for key in review.criteria(child, manifest, prepared)}})
     create_project(parent, "general", {"plan": "general-plan.json"})
     _write_json(parent / "general-plan.json", {"schemaVersion": 1, "scenes": [{"id": "article", "type": "article-narrative", "project": "video"}]})
     parent, project_manifest = load_project(parent)

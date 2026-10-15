@@ -39,7 +39,8 @@ class VideoType:
     review_template: Callable | None = None
     audio_tracks: Callable | None = None
     prepare_narration: Callable | None = None
-    manual_review_required: bool = True
+    # 可选人工评审工具；不参与导出授权。review_gate 仅执行自动检查。
+    manual_review_available: bool = True
     prepared_check: Callable | None = None
 
 

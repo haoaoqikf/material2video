@@ -47,4 +47,4 @@ def review_gate(root: Path, project: dict) -> None:
 
 
 TYPE = VideoType("financial-timeseries", validate, prepare, preview, render,
-                 review_gate=review_gate, manual_review_required=False)
+                 review_gate=review_gate, manual_review_available=False)

@@ -50,7 +50,7 @@ def render(root: Path, project: dict, prepared: dict, *, preview: bool,
     current = remotion.build_input_fingerprint(
         storyboard_path=entry, content_root=root.parent, workspace_root=root.parent)["digest"]
     if prepared.get("inputs", {}).get("renderer") != current:
-        raise M2VError("画面代码、字体或资源已变化；请重新 prepare 并评审")
+        raise M2VError("画面代码、字体或资源已变化；请重新 prepare 并生成完整预演")
     destination = root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
     destination.parent.mkdir(parents=True, exist_ok=True)
     expected_frames = min(prepared["durationInFrames"], limit_frames or prepared["durationInFrames"])

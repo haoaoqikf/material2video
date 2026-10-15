@@ -14,12 +14,12 @@ def test_adapter_uses_v5_composition(tmp_path,monkeypatch):
     assert len(tracks)==1 and tracks[0]["path"].is_file()
 
 
-def test_review_gate_rejects_unreviewed_preview(tmp_path,monkeypatch):
+def test_review_gate_rejects_missing_full_preview(tmp_path,monkeypatch):
     from m2v.cli import _register_builtins
     _register_builtins()
     root,manifest=project(tmp_path);fake_tts(monkeypatch)
     adapter.prepare(root,manifest)
-    with pytest.raises(M2VError,match="评审"):
+    with pytest.raises(M2VError,match="完整预演"):
         adapter.review_gate(root,manifest)
 
 

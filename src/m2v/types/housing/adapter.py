@@ -44,4 +44,4 @@ def review_criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, s
 
 
 TYPE = VideoType("housing-timeseries", validate, prepare, preview, render,
-                 review_criteria=review_criteria, manual_review_required=True)
+                 review_criteria=review_criteria, manual_review_available=True)

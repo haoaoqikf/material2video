@@ -15,9 +15,6 @@ uv run m2v stock search --project videos/stock-montage/<slug>
 uv run m2v validate --project videos/stock-montage/<slug>
 uv run m2v prepare --project videos/stock-montage/<slug>
 uv run m2v preview --project videos/stock-montage/<slug>
-# 查看完整预演，按 outputs/review.json 的全部准则填写评审结论
-uv run m2v review-template --project videos/stock-montage/<slug>
-uv run m2v review --project videos/stock-montage/<slug>
 uv run m2v render --project videos/stock-montage/<slug>
 ```
 
@@ -76,4 +73,6 @@ Pixabay 按 [API 规则](https://pixabay.com/api/docs/)将检索响应缓存 24 
 
 ## 评审要点
 
-正式渲染要求绑定当前准备指纹且结论为通过的评审，评审项覆盖画面质量（清晰度、构图、竖屏可读性、无重复素材）、剪辑节奏（逐幕时长、推拉平移与转场）、素材来源合规（每幕来源、作者与许可与实际画面一致且可核验），有音轨时另含口播、响度与字幕同步。
+正式渲染要求当前完整预演的准备指纹、摘要和完整帧数有效，并通过媒体技术验收，无需人工画面评审。可按需调用 `review-template` 和 `review`，可选评审项覆盖画面质量（清晰度、构图、竖屏可读性、无重复素材）、剪辑节奏（逐幕时长、推拉平移与转场）、素材来源合规（每幕来源、作者与许可与实际画面一致且可核验），有音轨时另含口播、响度与字幕同步。
+
+默认流程为校验 → 准备 → 完整预演 → 正式导出；无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出；主动执行 `review` 时仍检查当前绑定、结论与非空依据，不自动生成人工通过结论。

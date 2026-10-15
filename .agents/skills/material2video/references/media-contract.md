@@ -32,7 +32,7 @@ uv run m2v render --project videos/article-narrative/<slug>
    分镜契约 v4 不接受字符串 `narration`。
 2. `m2v prepare --project <目录>` 校验当前分镜并生成配音、字幕及派生时间轴，写入作品 `outputs/`。
 3. `m2v validate --project <目录>` 检查材料、媒体清单、字幕和 WAV 时长。
-4. `m2v preview --project <目录>` 生成完整预演；再用 `m2v article keyframes --storyboard <分镜>` 生成技术体检和关键帧材料，并完成人工评审。
+4. `m2v preview --project <目录>` 生成完整预演；再用 `m2v article keyframes --storyboard <分镜>` 生成技术体检和关键帧材料，并可按需进行画面评审。
 5. `m2v render --project <目录>` 在准备、完整预演和评审都仍绑定当前材料时输出正式视频。
 
 省略 `--media` 时保留原无声模式，成片名为 `silent.mp4`；分镜里的 `narrationSegments` 不会自动触发联网或配音，

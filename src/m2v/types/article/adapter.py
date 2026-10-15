@@ -25,9 +25,9 @@ def review_gate(root: Path, project: dict) -> None:
     validate(root, project)
     explainer_review.require_input(root, project)
     prepared = explainer_render.current(root, project)
-    # 嵌入作品同样不能绕过当前完整预演和统一人工评审。
-    from m2v.cli import _require_review
-    _require_review(root, project, prepared)
+    # 独立导出与嵌入均验证完整预演，不依赖可选人工评审。
+    from m2v.core.preview import require_preview
+    require_preview(root, prepared)
 
 
 def audio_tracks(root: Path, project: dict, prepared: dict) -> list[dict]:

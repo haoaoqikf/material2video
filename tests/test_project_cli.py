@@ -174,6 +174,8 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
         "preview": {"preparedFingerprint": prepared["preparedFingerprint"],
                     "path": "outputs/previews/video.mp4",
                     "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest()}}
+    record["preview"]["frames"] = prepared["durationInFrames"] = 30
+    (root / "outputs" / "preview-record.json").write_text(json.dumps(record["preview"]), encoding="utf-8")
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
     _require_review(root, manifest, prepared)
 
@@ -217,18 +219,19 @@ def test_preview_record_round_trips_when_the_preview_lives_outside_the_project_r
 
 
 def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *args, **kwargs: None)
     calls: list[str] = []
     root = tmp_path / "hook-project"
     root.mkdir()
     manifest = {"schemaVersion": 1, "id": "hook-project", "type": "review-hook"}
-    prepared = {"preparedFingerprint": "hook-fingerprint"}
+    prepared = {"preparedFingerprint": "hook-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 30}
     preview = root / "outputs" / "previews" / "video.mp4"
     preview.parent.mkdir(parents=True)
     preview.write_bytes(b"full preview")
     (root / "outputs" / "preview-record.json").write_text(json.dumps({
         "path": "outputs/previews/video.mp4",
         "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
-        "preparedFingerprint": prepared["preparedFingerprint"],
+        "preparedFingerprint": prepared["preparedFingerprint"], "frames": 30,
     }), encoding="utf-8")
 
     def type_review_template(*_args) -> None:
@@ -277,18 +280,19 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
 
 
 def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *args, **kwargs: None)
     calls: list[str] = []
     root = tmp_path / "auto-review"
     root.mkdir()
     manifest = {"schemaVersion": 1, "id": "auto-review", "type": "auto-review"}
-    prepared = {"preparedFingerprint": "auto-fingerprint", "durationInFrames": 30}
+    prepared = {"preparedFingerprint": "auto-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 30}
     outputs = root / "outputs"
     outputs.mkdir()
     preview = outputs / "previews" / "preview.mp4"
     preview.parent.mkdir()
     preview.write_bytes(b"full preview")
     record = {"path": "outputs/previews/preview.mp4", "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
-              "preparedFingerprint": prepared["preparedFingerprint"]}
+              "preparedFingerprint": prepared["preparedFingerprint"], "frames": 30}
     (outputs / "preview-record.json").write_text(json.dumps(record), encoding="utf-8")
     final = outputs / "final.mp4"
 
@@ -296,7 +300,7 @@ def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path,
     def render(*_args): final.write_bytes(b"final"); return final
 
     video_type = VideoType("auto-review", lambda *_: None, lambda *_: None,
-        lambda *_args, **_kwargs: preview, render, review_gate=gate, manual_review_required=False)
+        lambda *_args, **_kwargs: preview, render, review_gate=gate, manual_review_available=False)
     register_synthetic_type(monkeypatch, "auto-review", "自动验收测试")
     monkeypatch.setattr(registry, "_registry", {"auto-review": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
@@ -355,7 +359,7 @@ def test_failed_unified_render_does_not_clean_old_outputs(tmp_path: Path, monkey
     monkeypatch.setattr(registry, "_registry", {"render-failure": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
     monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: {"preparedFingerprint": "fp"})
-    monkeypatch.setattr("m2v.cli._require_review", lambda *_args: None)
+    monkeypatch.setattr("m2v.cli.require_preview", lambda *_args: None)
     monkeypatch.setattr("m2v.cli._require_type_review", lambda *_args: None)
 
     assert main(["render", "--project", str(root)]) == 1
