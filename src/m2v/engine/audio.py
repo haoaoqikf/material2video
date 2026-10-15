@@ -123,16 +123,30 @@ def wav_duration(path: Path) -> float:
         raise M2VError(f"无法读取音轨 {path}: {exc}") from exc
 
 
-def concatenate(parts: list[tuple[Path | None, int]], fps: int, output: Path) -> None:
+def concatenate(parts: list[tuple[Path | None, int]], fps: int, output: Path,
+                fades: list[tuple[int, int]] | None = None) -> None:
+    """按帧边界把逐段配音拼成一条轨；`fades` 给出每段首尾共享画面淡化进度的帧数。
+
+    不给 `fades` 时整段原样写入（文章、素材剪辑的既有行为）。
+    给了就按段内的槽位位置线性淡入淡出：单条母版轨没有逐场景音轨可以 afade，
+    淡化只能在拼接时施加，否则交叉淡化处的声音会硬切。
+    """
     with wave.open(str(output), "wb") as dest:
         dest.setparams((1, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
         cursor, written = 0, 0
-        for path, frames in parts:
+        for index, (path, frames) in enumerate(parts):
             cursor += frames
             end_sample = round(cursor * SAMPLE_RATE / fps)
+            slot_start, slot_end = written, end_sample
+            fade_in_frames, fade_out_frames = (fades[index] if fades else (0, 0))
+            slot_frames = max(end_sample - slot_start, 0)
+            fade_in = min(round(fade_in_frames * SAMPLE_RATE / fps), slot_frames)
+            fade_out = min(round(fade_out_frames * SAMPLE_RATE / fps), slot_frames - fade_in)
             if path:
                 with wave.open(str(path), "rb") as source:
                     while block := source.readframes(SAMPLE_RATE):
+                        if fade_in or fade_out:
+                            block = _fade_block(block, written, fade_in, fade_out, slot_start, slot_end)
                         dest.writeframesraw(block)
                         written += len(block) // 2
             if written > end_sample:
@@ -141,6 +155,22 @@ def concatenate(parts: list[tuple[Path | None, int]], fps: int, output: Path) ->
                 size = min(SAMPLE_RATE, end_sample - written)
                 dest.writeframesraw(b"\0\0" * size)
                 written += size
+
+
+def _fade_block(block: bytes, first_sample: int, fade_in: int, fade_out: int,
+                slot_start: int, slot_end: int) -> bytes:
+    """按槽位内的采样位置给一块 PCM 施加线性淡入淡出。"""
+    samples = list(struct.unpack(f"<{len(block) // 2}h", block))
+    for offset, value in enumerate(samples):
+        position = first_sample + offset
+        gain = 1.0
+        if fade_in:
+            gain = min(gain, (position - slot_start) / fade_in)
+        if fade_out:
+            gain = min(gain, (slot_end - position) / fade_out)
+        if gain < 1.0:
+            samples[offset] = round(value * max(gain, 0.0))
+    return struct.pack(f"<{len(samples)}h", *samples)
 
 
 def mux(video: Path, audio: Path, output: Path, duration: float, start: float = 0) -> None:

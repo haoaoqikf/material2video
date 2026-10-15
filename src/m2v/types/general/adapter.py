@@ -209,8 +209,9 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
     inputs = file_inputs(root, project)
     dependencies = []
     audio_segments = []
-    narration_parts: list[tuple[Path, int]] = []
-    speech_cues: list[dict] = []
+    # 逐场景的声音来源先记下来，等编译出全片时间轴后再按帧边界拼整片旁白。
+    spoken: dict[str, Path] = {}
+    embedded_tracks: dict[str, list[Path]] = {}
     fps = plan["fps"]
     voice, rate = tts_engine.resolve(project, voice=voice, rate=rate)
     configured_tts = tts_engine.settings(project)
@@ -233,6 +234,7 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
             for track in child_type.audio_tracks(child_root, child_manifest, prepared) if child_type.audio_tracks else []:
                 audio_segments.append({"sceneId": scene["id"], "path": os.path.relpath(track["path"], root).replace("\\", "/"),
                                        "durationInFrames": track["durationInFrames"], "embedded": True})
+                embedded_tracks.setdefault(scene["id"], []).append(Path(track["path"]))
         elif scene.get("narration"):
             narration = scene["narration"]
             text = "".join(narration) if isinstance(narration, list) else str(narration)
@@ -258,8 +260,7 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
                                       "endFrame": round(cue["end"] * fps), "text": cue["text"]} for cue in cues]
             audio_segments.append({"sceneId": scene["id"], "path": wav.relative_to(root).as_posix(),
                                    "durationInFrames": math.ceil(seconds * fps)})
-            narration_parts.append((wav, math.ceil(seconds * fps)))
-            speech_cues.extend(cues)
+            spoken[scene["id"]] = wav
     plan = _compile(plan)
     starts = {scene["id"]: scene["startFrame"] for scene in plan["compiledScenes"]}
     for segment in audio_segments:
@@ -280,11 +281,36 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
     # 与采样边界会散在多条轨上，无法整片统一。
     assets = sound_contract.sound_assets(plan, root / project["materials"]["plan"])
     if assets:
+        # 拼接按**全片帧边界**推进：每段占它在时间轴上到下一幕起点为止的帧数，
+        # 没有口播的场景补静音，嵌入场景用子作品自己的整片音轨。
+        # 直接按口播时长拼接会把整片旁白压紧到前 70 秒：画面与字幕仍按场景起点摆放，
+        # 于是人声比字幕早，音床在旁白结束处就断了。
+        compiled = plan["compiledScenes"]
+        narration_parts: list[tuple[Path | None, int]] = []
+        narration_fades: list[tuple[int, int]] = []
+        speech_cues: list[dict] = []
+        for index, scene in enumerate(compiled):
+            start = scene["startFrame"]
+            end = compiled[index + 1]["startFrame"] if index + 1 < len(compiled) else plan["durationInFrames"]
+            length = end - start
+            tracks = embedded_tracks.get(scene["id"]) or []
+            if len(tracks) > 1:
+                raise M2VError(f"嵌入场景 {scene['id']} 有多条音轨，音床混音只支持单条整片音轨")
+            source = spoken.get(scene["id"]) or (tracks[0] if tracks else None)
+            narration_parts.append((source, length))
+            # 单条母版轨没有逐场景音轨可以 afade，淡化要在拼接时按槽位施加，
+            # 否则交叉淡化处画面在过渡、声音却硬切。规则与逐场景轨一致。
+            following = compiled[index + 1] if index + 1 < len(compiled) else {}
+            narration_fades.append((min(scene["transitionFrames"], length // 2),
+                                    min(following.get("transitionFrames", 0), length // 2)))
+            # 闪避包络要的是全片时间：字幕 cue 到这里已经按场景起点偏移过。
+            for cue in scene.get("subtitleCues", []):
+                speech_cues.append({"start": cue["startFrame"] / fps, "end": cue["endFrame"] / fps})
         total_seconds = plan["durationInFrames"] / fps
         narration_file = root / "outputs" / "audio.wav"
         with tempfile.TemporaryDirectory(prefix="m2v-general-audio-", dir=root / "outputs") as audio_temporary:
             audio_work = Path(audio_temporary)
-            audio_engine.concatenate(narration_parts, fps, audio_work / "narration.wav")
+            audio_engine.concatenate(narration_parts, fps, audio_work / "narration.wav", narration_fades)
             audio_engine.normalize(audio_work / "narration.wav", narration_file)
             music = (plan.get("soundtrack") or {}).get("music")
             audio_engine.mix(narration_file, audio_work / "audio.wav", total_seconds,

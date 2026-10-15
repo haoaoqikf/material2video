@@ -209,8 +209,8 @@ def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkey
     from m2v.engine import audio as audio_engine
 
     root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "intro", "type": "graphic", "duration": {"frames": 45}, "data": {"title": "开场"}},
         {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
-        {"id": "tail", "type": "graphic", "duration": {"frames": 45}, "data": {"title": "收尾"}},
     ], "soundtrack": {"music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True}}})
     bed_raw = root / "assets" / "bed.wav"
     _tone(bed_raw, 1)
@@ -231,7 +231,11 @@ def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkey
         (work / "audio.wav").write_bytes(b"mixed")
         return None
 
-    monkeypatch.setattr(audio_engine, "concatenate", lambda *_args: None)
+    def fake_concatenate(parts, _fps, target, _fades=None):
+        seen["parts"] = parts
+        target.write_bytes(b"voice")
+
+    monkeypatch.setattr(audio_engine, "concatenate", fake_concatenate)
     monkeypatch.setattr(audio_engine, "normalize", lambda _s, target: target.write_bytes(b"voice"))
     monkeypatch.setattr(audio_engine, "mix", fake_mix)
 
@@ -244,11 +248,107 @@ def test_soundtrack_music_is_ducked_into_one_master_track(tmp_path: Path, monkey
         "sha256": hashlib.sha256(b"mixed").hexdigest()}]
     assert (root / "outputs" / "audio.wav").read_bytes() == b"mixed"
     assert seen["music"] == (bed_raw, {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True})
-    assert seen["cues"] == [{"start": 0.0, "end": 0.5, "text": "字幕"}]
+    # 拼接按全片帧边界推进：无口播场景补静音，口播场景占满到下一幕起点。
+    assert seen["parts"] == [(None, 45), (voice_path, 57)]
+    assert sum(length for _source, length in seen["parts"]) == prepared["durationInFrames"]
+    # 闪避包络用的是全片时间：第二幕的口播从 45 帧（1.5 秒）起，不是从 0 起。
+    assert seen["cues"] == [{"start": 1.5, "end": 2.0}]
     assert seen["duration"] == prepared["durationInFrames"] / 30
     assert seen["effects"] == []
     assert json.loads(prepared["inputs"]["sound"])["soundtrack"] == {
         "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True}}
+
+
+def _sine(path: Path, seconds: float, frequency: float, amplitude: float = 0.6) -> None:
+    """写一段真实正弦 WAV；电平断言需要非静音信号。"""
+    import math
+    import struct
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frames = int(seconds * 24000)
+    with wave.open(str(path), "wb") as stream:
+        stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
+        stream.writeframes(b"".join(
+            struct.pack("<h", round(amplitude * 32767 * math.sin(2 * math.pi * frequency * index / 24000)))
+            for index in range(frames)))
+
+
+def test_master_track_keeps_scene_frame_boundaries_and_bed_to_the_end(tmp_path: Path, monkeypatch) -> None:
+    """整片母版轨必须按帧边界对齐：口播留在自己那幕，音床铺到最后一段。"""
+    from types import SimpleNamespace
+
+    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
+        {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
+        {"id": "tail", "type": "graphic", "duration": {"frames": 60}, "data": {"title": "收尾"}},
+    ], "soundtrack": {"music": {"sourceRef": "assets/bed.wav", "gainDb": -20, "loop": True,
+                                "fadeInMs": 100, "fadeOutMs": 300}}})
+    voice_path = root / "outputs" / "audio-cache" / "voice.wav"
+    _sine(voice_path, 2.0, 440.0)
+    _sine(root / "assets" / "bed.wav", 0.5, 110.0, amplitude=0.4)
+
+    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None,
+                    rhythm: dict | None = None):
+        return voice_path, [{"start": 0.0, "end": 2.0, "text": "字幕"}], [], 2.0, False
+
+    monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
+    prepared = adapter.prepare(root, manifest)
+    assert prepared["durationInFrames"] == 132  # 72 帧口播幕 + 60 帧静音幕
+
+    with wave.open(str(root / "outputs" / "audio.wav"), "rb") as stream:
+        rate = stream.getframerate()
+        count = stream.getnframes()
+        raw = stream.readframes(count)
+    import struct
+
+    samples = struct.unpack(f"<{count}h", raw)
+    assert count == round(prepared["durationInFrames"] / 30 * rate)
+
+    def peak(start: float, end: float) -> int:
+        window = samples[round(start * rate):round(end * rate)]
+        return max(abs(value) for value in window)
+
+    speech = peak(0.2, 1.8)          # 第一幕口播：接近满幅
+    quiet_tail = peak(2.6, 3.2)      # 第二幕只有音床
+    ending = peak(4.25, 4.4)         # 片尾：音床仍在（正在淡出）
+    assert speech > 5000
+    # 音床在旁白结束后必须继续铺满：按口播时长压紧拼接时这两段都是数字静音。
+    assert quiet_tail > 500
+    assert quiet_tail < speech / 2
+    assert ending > 0
+
+
+def test_concatenate_applies_scene_fade_progress(tmp_path: Path) -> None:
+    """单条母版轨的淡化要在拼接时按槽位施加，否则交叉淡化处声音硬切。"""
+    import struct
+
+    from m2v.engine import audio as audio_engine
+
+    first = tmp_path / "first.wav"
+    second = tmp_path / "second.wav"
+    _sine(first, 1.0, 440.0)
+    _sine(second, 1.0, 440.0)
+    output = tmp_path / "out.wav"
+    audio_engine.concatenate([(first, 30), (second, 30)], 30, output, [(0, 12), (12, 0)])
+
+    with wave.open(str(output), "rb") as stream:
+        rate = stream.getframerate()
+        samples = struct.unpack(f"<{stream.getnframes()}h", stream.readframes(stream.getnframes()))
+
+    def peak(start: float, end: float) -> int:
+        return max(abs(value) for value in samples[round(start * rate):round(end * rate)])
+
+    # 12 帧 @30fps = 0.4 秒淡化窗口，跨接缝前后各占一段。
+    assert peak(0.15, 0.35) > 5000        # 槽位内部保持满幅
+    assert peak(1.65, 1.85) > 5000
+    assert peak(0.99, 0.9999) < 1500      # 接缝前按淡化进度收尾
+    assert peak(1.0001, 1.01) < 1500      # 接缝后按淡化进度起头
+
+    # 不给 fades 时保持逐字节原样拼接（文章与素材剪辑的既有行为）。
+    plain = tmp_path / "plain.wav"
+    audio_engine.concatenate([(first, 30), (second, 30)], 30, plain)
+    with wave.open(str(plain), "rb") as stream:
+        raw = stream.readframes(stream.getnframes())
+    assert raw[:24000 * 2] == first.read_bytes()[44:44 + 24000 * 2]
 
 
 def test_narration_derive_maps_subtitles_and_rejects_fixed_capacity_overflow(tmp_path: Path, monkeypatch) -> None:
