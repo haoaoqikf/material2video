@@ -24,4 +24,4 @@
 
 - [x] 5.1 扩展 `tests/test_stock_montage.py`（比例过滤、变体选择、容差边界、幕级放宽、失败信息、记录过期与复核、实测尺寸）并新增 `tests/test_media_probe.py`。
 - [x] 5.2 运行 `uv run pytest`、`sync_docs.py --check` 与 web 回归，检查暂存内容后提交。
-- [ ] 5.3 重跑 `videos/stock-montage/pixabay-e2e-20261015`：检索、校验、准备、完整预演与正式导出，报告新旧素材尺寸与成片参数。
+- [x] 5.3 重跑 `videos/stock-montage/pixabay-e2e-20261015`：检索、校验、准备、完整预演与正式导出，报告新旧素材尺寸与成片参数。
