@@ -48,7 +48,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 
 ## 语音与字幕
 
-使用 [edge-tts](https://github.com/rany2/edge-tts) 7.2.x，默认 `zh-CN-XiaoxiaoNeural`、`+0%`；`--voice` 指定音色，
+使用 [edge-tts](https://github.com/rany2/edge-tts) 7.2.x，音色必须明确选择，语速默认 `+0%`；`--voice` 指定音色，
 `--rate=-10%` 调整语速，`--force` 强制重建。首次合成需要联网；服务可能变化，
 缓存音频可离线复用，不承诺再次强制生成时波形完全相同。
 
@@ -128,7 +128,7 @@ composition 会退回无声等比例估算，字幕却按真实词边界走，�
 
 ## 配音音色与语速
 
-音色与语速属于**作品属性**，在 `project.json` 的可选 `tts` 对象里声明：
+音色与语速属于**作品属性**，在 `project.json` 的 `tts` 对象里声明；有自身旁白时必须明确音色，无旁白可省略：
 
 ```json
 {
@@ -136,19 +136,44 @@ composition 会退回无声等比例估算，字幕却按真实词边界走，�
 }
 ```
 
-解析顺序固定为「命令行 > 作品配置 > 默认值」，只在 `engine/tts.py` 实现一次：
+音色按「命令行 > 作品配置」解析，不再回落默认晓晓；语速独立按「命令行 > 作品配置 > +0%」解析，只在共享 `engine/tts.py` 实现一次：
 
 | 层 | 写法 | 说明 |
 | --- | --- | --- |
 | 命令行 | `m2v prepare --project <目录> --voice ... --rate=...` | 临时试听用，不改作品文件 |
 | 作品 | `project.json` 的 `tts.voice` / `tts.rate` | 作品的正式选择 |
-| 默认 | 晓晓 `zh-CN-XiaoxiaoNeural` + `+0%` | 未声明时使用 |
+| 缺失 | 音色阻断、语速 `+0%` | 有旁白但未选音时提示由助手选择或 `--voice` 指定 |
 
 - `voice` 必须是合成服务的音色名（形如 `zh-CN-XiaoxiaoNeural`）；`rate` 为 −50% 至 +50% 的有符号百分比。
 - 用 `m2v voices` 看当前可用音色（可用 `--locale all`、`--json`）。这条命令需要联网，只读，不写文件。
   音色**是否真实存在**只在合成时才能确定：准备前不联网是既有约束，所以配置校验只查格式。
-- 未声明 `tts` 的作品，使用的音色、语速、准备记录与语音缓存键都保持不变。
+- 旧有声作品缺少 `tts.voice` 时需先选音；无旁白、仅音床和 general 纯嵌入不要求父作品选音，内嵌作品保持自身配音。
 - 改音色或语速会让已有语音缓存失效并重新合成，这正是"换声音"应有的代价。
+
+### 助手自动选择与溯源
+
+制作助手阅读完整旁白，运行 `m2v voices --json` 查询当前候选（其他语言用 `--locale`），结合语言、受众、内容和服务的风格标签选择；查询失败明确报告，不虚构候选、不回落默认音色。CLI 不调用模型，只读取结果并合成。选定后自动继续制作，无需试听确认；标签与技术验收不等于听感自然。
+
+助手在 `tts.voice` 之外保存可选记录，例如：
+
+```json
+{
+  "tts": {
+    "voice": "zh-CN-YunxiNeural",
+    "selection": {
+      "mode": "assistant",
+      "rationale": "旁白讲解低成本试错与行动反馈，采用有活力的叙事表达。",
+      "narrationSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
+```
+
+上面的零摘要仅示意字段，必须换为真实值：调用 `m2v.engine.tts.narration_digest(texts)`，对按播放顺序排列的非空自身旁白字符串数组，以保留中文、无额外空格的 JSON UTF-8 计算 SHA256。文章逐幕逐段收集 `text`；general 每幕 narration 数组先拼成字符串，排除嵌入片段；素材剪辑收集各幕 narration。保留原文和分段边界，忽略空白段。
+
+助手记录只接受 mode、非空 rationale 和 64 位小写 narrationSha256。旁白改变会阻断 prepare，要求重新判断并更新记录；画面变化不要求重选。手动选择只填 voice，无需 selection；手动修改作品音色时删除旧 selection。`--voice` 覆盖会标记 command-line 来源，并丢弃助手理由；仅覆盖语速不跳过旁白摘要检查。
+
+`outputs/prepared.json` 与成片旁车的 `inputs.tts` 保存 JSON 字符串，包含实际 backend、voice、rate、source（assistant/project/command-line）、有效 selection 及作品级 speech。逐幕覆盖参数在 `inputs` 的 `speech:<场景ID>` JSON 字符串中保存。音色、语速、来源参与准备指纹，修改作品配置必须重新准备和完整预演。语音缓存仍按实际文本、音色、语速等键复用，不因为选择理由变化重复合成。
 
 **换音色比调语速更能改变节奏。** 同一篇长稿、同一标点，量测句间停顿：
 

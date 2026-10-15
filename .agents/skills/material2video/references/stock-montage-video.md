@@ -31,6 +31,8 @@ uv run m2v render --project videos/stock-montage/<slug>
 
 ## 检索与许可
 
+有口播时，编排完成后由制作助手按[统一选音流程](../SKILL.md)查询音色、阅读完整旁白并保存 `tts.voice` 与选择记录，再 prepare、完整预演及导出。用户明确音色优先；无口播或仅音床时不要求选音。
+
 ### 切换到 Pixabay
 
 登录 [Pixabay API 文档](https://pixabay.com/api/docs/)领取 Key，设置当前 PowerShell 环境变量：

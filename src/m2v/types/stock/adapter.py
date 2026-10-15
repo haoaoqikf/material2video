@@ -115,12 +115,14 @@ def prepare(root: Path, project: dict[str, Any], *, voice: str | None = None, ra
     for asset in assets:
         inputs["file:" + asset["path"]] = asset["sha256"]
 
-    voice, rate = tts_engine.resolve(project, voice=voice, rate=rate)
     configured_tts = tts_engine.settings(project)
     rhythm = rhythm_engine.configure({**configured_tts.get("speech", {}), **(rhythm or {})}) \
         if (configured_tts.get("speech") or rhythm) else None
-    if configured_tts or rhythm:
-        inputs["tts"] = json.dumps({**configured_tts, **({"speech": rhythm} if rhythm else {})},
+    texts = [scene["narration"] for scene in brief["scenes"] if scene.get("narration")]
+    actual_tts = tts_engine.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm)
+    if actual_tts:
+        voice, rate = actual_tts["voice"], actual_tts["rate"]
+        inputs["tts"] = json.dumps(actual_tts,
                                    ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
     cache = root / "outputs" / "audio-cache"
@@ -141,8 +143,9 @@ def prepare(root: Path, project: dict[str, Any], *, voice: str | None = None, ra
         scene_rate = speech.get("rate") or rate
         scene_rhythm = rhythm_engine.configure(speech) if speech else rhythm
         if speech:
-            inputs[f"speech:{scene['id']}"] = rhythm_engine.fingerprint_of(
-                {"speech": speech, "rate": scene_rate})
+            inputs[f"speech:{scene['id']}"] = json.dumps(
+                {"speech": speech, "rate": scene_rate}, ensure_ascii=False,
+                sort_keys=True, separators=(",", ":"))
         speak = registry.get("article-narrative").prepare_narration
         if speak is None:
             raise M2VError("当前注册的视频类型未提供可复用的口播准备接口")

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import logging
 import math
 import tempfile
@@ -31,9 +32,11 @@ def implementation_digest() -> str:
 def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
     source = contract.load(root, project)
     explainer_review.require_input(root, project)
-    voice, rate = tts.resolve(project, voice=voice, rate=rate)
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
+    texts = [segment["text"] for scene in source["scenes"] for segment in scene["narrationSegments"]]
+    actual_tts = tts.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm)
+    voice, rate = actual_tts["voice"], actual_tts["rate"]
     cache = root / "outputs/audio-cache"
     cache.mkdir(parents=True, exist_ok=True)
     props = copy.deepcopy(source)
@@ -41,6 +44,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     cursor = hits = 0
     parts, cues, compiled = [], [], []
     inputs = file_inputs(root, project)
+    inputs["tts"] = json.dumps(actual_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     inputs["implementation"] = implementation_digest()
     article = contract.source_file(root, project)
     inputs["file:" + article.relative_to(root).as_posix()] = digest(article)

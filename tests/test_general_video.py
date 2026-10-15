@@ -24,6 +24,10 @@ def _tone(path: Path, seconds: float) -> None:
 def _project(tmp_path: Path, plan: dict) -> tuple[Path, dict]:
     root = tmp_path / "通用作品"
     create_typed_project(root, "general")
+    manifest_path = root / "project.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     (root / "general-plan.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
     return load_project(root)
 

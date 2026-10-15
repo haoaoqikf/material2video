@@ -21,6 +21,10 @@ def board():
 def project(tmp_path, data=None):
     root = tmp_path / "video"
     create_project(root, "article-narrative", {"storyboard": "storyboard.json"})
+    manifest_path = root / "project.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     (root / "storyboard.json").write_text(json.dumps(data or board(), ensure_ascii=False), encoding="utf-8")
     (root / "article.md").write_text("# 标题\n观察结果，根据反馈修正做法。", encoding="utf-8")
     root, manifest = load_project(root)

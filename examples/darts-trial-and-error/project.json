@@ -10,5 +10,13 @@
     "height": 1920,
     "fps": 30,
     "audio": "optional"
+  },
+  "tts": {
+    "voice": "zh-CN-YunxiNeural",
+    "selection": {
+      "mode": "assistant",
+      "rationale": "旁白通过飞镖落点解释低成本试错与反馈迭代，面向希望开始行动的学习者，需要有活力的叙事；当前云希标为 Novel、Lively、Sunshine，与该表达目标匹配，因此选择云希。",
+      "narrationSha256": "461e37fbd700854947a5fcdfaec31ba550bc99f95847bb207628026fe75481da"
+    }
   }
 }

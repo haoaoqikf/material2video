@@ -33,10 +33,10 @@ def _project(tmp_path: Path, plan: dict, tts_config: dict | None = None) -> tupl
     return load_project(root)
 
 
-def test_settings_are_optional_and_defaults_stay_put() -> None:
-    # 未声明 tts 时不产生任何配置，调用点继续用原默认值——既有作品指纹不变。
+def test_settings_are_optional_but_speech_requires_voice() -> None:
     assert tts.settings({}) == {}
-    assert tts.resolve({}) == (tts.DEFAULT_VOICE, tts.DEFAULT_RATE)
+    with pytest.raises(M2VError, match="尚未选择音色"):
+        tts.resolve({})
 
 
 def test_settings_validate_backend_voice_and_rate() -> None:
@@ -101,18 +101,15 @@ def test_prepare_uses_project_voice_and_records_it(tmp_path: Path, monkeypatch) 
     prepared = _prepare_with_capture(root, manifest, monkeypatch)
 
     assert prepared["_seen"] == {"voice": "zh-CN-YunxiNeural", "rate": "-6%"}
-    assert json.loads(prepared["inputs"]["tts"]) == {"backend": "edge-tts", "voice": "zh-CN-YunxiNeural", "rate": "-6%"}
+    assert json.loads(prepared["inputs"]["tts"]) == {"backend": "edge-tts", "voice": "zh-CN-YunxiNeural", "rate": "-6%", "source": "project"}
 
 
-def test_prepare_without_tts_config_uses_defaults_and_keeps_inputs_clean(tmp_path: Path, monkeypatch) -> None:
+def test_prepare_without_voice_fails_before_synthesis(tmp_path: Path, monkeypatch) -> None:
     root, manifest = _project(tmp_path, _speaking_plan())
     _tone(root / "assets" / "bed.wav", 1)
 
-    prepared = _prepare_with_capture(root, manifest, monkeypatch)
-
-    assert prepared["_seen"] == {"voice": tts.DEFAULT_VOICE, "rate": tts.DEFAULT_RATE}
-    # 没声明 tts 就不写这个键，避免让既有作品的准备指纹无谓变化。
-    assert "tts" not in prepared["inputs"]
+    with pytest.raises(M2VError, match="尚未选择音色"):
+        _prepare_with_capture(root, manifest, monkeypatch)
 
 
 def test_prepare_rejects_invalid_project_voice(tmp_path: Path) -> None:

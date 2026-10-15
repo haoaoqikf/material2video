@@ -10,5 +10,13 @@
     "height": 1920,
     "fps": 30,
     "audio": "optional"
+  },
+  "tts": {
+    "voice": "zh-CN-YunyangNeural",
+    "selection": {
+      "mode": "assistant",
+      "rationale": "旁白面向普通学习者解释缓冲机制、容量上限与处理能力的区别，采用清晰可靠的知识讲解；当前服务将云扬标为 News、Professional、Reliable，因此选择云扬，保持原有语速与停顿。",
+      "narrationSha256": "16e458ee183b2a2a1a97b218f04d9511cd86a072811107ae80573f9be7e6f394"
+    }
   }
 }

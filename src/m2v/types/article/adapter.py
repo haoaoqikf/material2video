@@ -41,7 +41,8 @@ def prepare_narration(text: str, cache: Path, *, voice=None, rate=None, rhythm=N
     from m2v.engine import tts
     from m2v.types.article.prepare import _scene_audio
     cache.mkdir(parents=True, exist_ok=True)
-    return _scene_audio(text, voice or tts.DEFAULT_VOICE, rate or tts.DEFAULT_RATE, cache, False, rhythm=rhythm)
+    voice, rate = tts.resolve({}, voice=voice, rate=rate)
+    return _scene_audio(text, voice, rate, cache, False, rhythm=rhythm)
 
 
 TYPE = VideoType("article-narrative", validate, prepare, preview, render,

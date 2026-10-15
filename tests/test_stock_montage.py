@@ -364,6 +364,10 @@ def _brief(api_base: str, *, scenes: list[dict] | None = None, **overrides) -> d
 def _project(tmp_path: Path, brief: dict) -> tuple[Path, dict]:
     root = tmp_path / "videos" / "stock-montage" / "city-morning"
     create_typed_project(root, "stock-montage")
+    manifest_path = root / "project.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     (root / brief_module.MATERIAL).write_text(json.dumps(brief, ensure_ascii=False), encoding="utf-8")
     return load_project(root)
 
@@ -627,7 +631,20 @@ def test_prepare_uses_real_narration_duration_and_subtitles(monkeypatch, tmp_pat
              "transition": {"type": "cut"}},
             {"id": "night", "keywords": ["夜景"], "media": "photo", "transition": {"type": "cut"}},
         ]))
+    configured = manifest.pop("tts")
+    with pytest.raises(M2VError, match="尚未选择音色"):
+        adapter.prepare(root, manifest)
+    manifest["tts"] = configured
+    from m2v.engine import tts
+    configured["selection"] = {"mode": "assistant", "rationale": "清晨城市口播采用清晰叙事",
+                               "narrationSha256": tts.narration_digest(["第一句。"])}
     prepared = adapter.prepare(root, manifest)
+    assert json.loads(prepared["inputs"]["tts"])["source"] == "assistant"
+    with pytest.raises(M2VError, match="选择已过期"):
+        configured["selection"]["narrationSha256"] = tts.narration_digest(["新旁白。"])
+        adapter.prepare(root, manifest)
+    overridden = adapter.prepare(root, manifest, voice="zh-CN-YunyangNeural")
+    assert json.loads(overridden["inputs"]["tts"])["source"] == "command-line"
     scenes = prepared["props"]["compiledScenes"]
     assert scenes[0]["durationInFrames"] == 3 * prepared["fps"] + brief_module.READING_TAIL_FRAMES
     assert prepared["subtitles"] == [{"startFrame": 0, "endFrame": round(1.4 * prepared["fps"]),
@@ -651,6 +668,7 @@ def test_prepare_rejects_narration_beyond_fixed_capacity(monkeypatch, tmp_path: 
 
 def test_prepare_with_sound_bed_writes_one_master_track(tmp_path: Path, media_dir: Path) -> None:
     root, manifest, _record = _searched(tmp_path, media_dir)
+    manifest.pop("tts")
     _tone(root / "assets" / "bed.wav", 12)
     brief = json.loads((root / brief_module.MATERIAL).read_text(encoding="utf-8"))
     brief["soundtrack"] = {"music": {"sourceRef": "assets/bed.wav", "gainDb": -20,

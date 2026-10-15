@@ -10,5 +10,13 @@
     "height": 1920,
     "fps": 30,
     "audio": "optional"
+  },
+  "tts": {
+    "voice": "zh-CN-XiaoyiNeural",
+    "selection": {
+      "mode": "assistant",
+      "rationale": "旁白以日常选项过多的困扰切入，逐步引导删去多余选项并行动，采用轻快的生活化叙事；当前晓伊标为 Novel、Cartoon、Lively，取其活泼叙事方向，因此选择晓伊，不改变原有语速。",
+      "narrationSha256": "255b0d8479470ca736e927410450273adacc4e82d41a1c6e88e75a8f496c009d"
+    }
   }
 }

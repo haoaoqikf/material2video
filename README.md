@@ -30,9 +30,12 @@ pnpm -C web test
 
 统一入口以作品目录为唯一归属：
 
+有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与准备 → 完整预演 → 正式导出。助手读取当前音色列表并按内容选择，用户明确音色优先，不新增试听确认。纯 CLI 读取选音结果；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。助手选择绑定完整旁白，旁白变化需重新判断；实际音色、语速和来源写入准备与成片溯源。无旁白及 general 纯嵌入无需父作品选音。详细字段、迁移和限制见[配音契约](.agents/skills/material2video/references/media-contract.md#配音音色与语速)。
+
 ```powershell
 uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/
 uv run m2v validate --project videos/general/<slug>
+# 有自身旁白时，先按上文选音并保存；手动制作可在 prepare 指定 --voice。
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v preview --project videos/general/<slug>
 # 所有类型完整预演自动验收通过后直接导出；人工画面评审为可选工具。

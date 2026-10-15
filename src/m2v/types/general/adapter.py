@@ -213,14 +213,17 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
     spoken: dict[str, Path] = {}
     embedded_tracks: dict[str, list[Path]] = {}
     fps = plan["fps"]
-    voice, rate = tts_engine.resolve(project, voice=voice, rate=rate)
     configured_tts = tts_engine.settings(project)
     # 命令行上的节奏选项覆盖作品声明，试听时不必改作品文件。
     rhythm = rhythm_engine.configure({**configured_tts.get("speech", {}), **(rhythm or {})}) \
         if (configured_tts.get("speech") or rhythm) else None
-    if configured_tts or rhythm:
-        # 显式声明或命令行覆盖音色、语速、韵律时记进准备记录：换声音本身就是影响声音的变更。
-        inputs["tts"] = json.dumps({**configured_tts, **({"speech": rhythm} if rhythm else {})},
+    texts = ["".join(scene["narration"]) if isinstance(scene["narration"], list) else scene["narration"]
+             for scene in plan["scenes"]
+             if scene["type"] not in {"financial-timeseries", "article-narrative"} and scene.get("narration")]
+    actual_tts = tts_engine.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm)
+    if actual_tts:
+        voice, rate = actual_tts["voice"], actual_tts["rate"]
+        inputs["tts"] = json.dumps(actual_tts,
                                    ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     for scene in plan["scenes"]:
         for module in scene.get("embeddedCodeModules", []):
@@ -248,8 +251,9 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
             scene_rate = scene_speech.get("rate") or rate
             scene_rhythm = rhythm_engine.configure(scene_speech) if scene_speech else rhythm
             if scene_speech:
-                inputs[f"speech:{scene['id']}"] = rhythm_engine.fingerprint_of(
-                    {"speech": scene_speech, "rate": scene_rate})
+                inputs[f"speech:{scene['id']}"] = json.dumps(
+                    {"speech": scene_speech, "rate": scene_rate}, ensure_ascii=False,
+                    sort_keys=True, separators=(",", ":"))
             wav, cues, _words, seconds, _hit = speak(text, cache, voice=voice, rate=scene_rate,
                                                      rhythm=scene_rhythm)
             fixed = scene.get("duration", {}).get("frames")
