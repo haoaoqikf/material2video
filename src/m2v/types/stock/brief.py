@@ -15,6 +15,7 @@ from typing import Any
 from m2v.core.errors import M2VError
 from m2v.engine import sound as sound_contract
 from m2v.types.article.storyboard import Report
+from m2v.types.stock.provider import PROVIDER_DEFAULTS
 
 MATERIAL = "brief.json"
 SEARCH_RECORD = "outputs/footage-search.json"
@@ -40,8 +41,7 @@ DEFAULTS: dict[str, Any] = {
     "durationToleranceSeconds": 2,
     "provider": {
         "name": "pexels",
-        "apiBase": "https://api.pexels.com",
-        "apiKeyEnv": "M2V_PEXELS_API_KEY",
+        **PROVIDER_DEFAULTS["pexels"],
         "orientation": "portrait",
         "perPage": 15,
         "media": ["video", "photo"],
@@ -168,6 +168,9 @@ def normalize(raw: Any) -> dict[str, Any]:
         "durationToleranceSeconds", low=0, high=30)
 
     provider = _merged(raw.get("provider", {}), DEFAULTS["provider"], "provider")
+    source_defaults = PROVIDER_DEFAULTS.get(str(provider["name"]), {})
+    provider = {**provider, **{key: value for key, value in source_defaults.items()
+                              if key not in raw.get("provider", {})}}
     provider_allowed = set(DEFAULTS["provider"])
     if set(provider) - provider_allowed:
         raise M2VError(f"provider 含未知字段：{'、'.join(sorted(set(provider) - provider_allowed))}")

@@ -81,7 +81,7 @@ def search(root: Path, project: dict[str, Any], *, transport=None,
     """执行一次完整检索并写出记录；任何一幕失败都不落盘部分结果。"""
     brief = brief_module.load(root, project)
     config = brief["provider"]
-    adapter = provider_module.build(config, transport)
+    adapter = provider_module.build(config, transport, cache_dir=root / "outputs/stock-cache")
     portrait = config["orientation"] in {"portrait", "square"}
     # 先取一次凭据：缺凭据时在任何请求与写盘之前失败。
     adapter.headers()

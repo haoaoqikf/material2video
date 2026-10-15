@@ -1,6 +1,6 @@
 """在线图库适配器：把「关键词 → 候选素材」与「候选 → 本地文件」两件事收敛到一处。
 
-首版实现 Pexels（免费凭据、图片与视频同一套检索接口、许可条款清晰）。适配器按
+支持 Pexels 和 Pixabay。适配器按
 ``provider.name`` 选择，未知名称直接失败并列出可用名称，不做静默降级。
 
 网络访问全部走可注入的 :class:`Transport`：生产用标准库 ``urllib``（不新增依赖），
@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from m2v.core.errors import M2VError
+from m2v.types.stock.pixabay import PixabayProvider
 
 #: 单个素材文件的下载上限：图库返回异常大文件时直接失败，而不是把磁盘写满。
 MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024
@@ -31,6 +32,17 @@ PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 DEFAULT_TIMEOUT_SECONDS = 30.0
 
 PEXELS_LICENSE = "Pexels License (https://www.pexels.com/license/)"
+
+PROVIDER_DEFAULTS = {
+    "pexels": {"apiBase": "https://api.pexels.com", "apiKeyEnv": "M2V_PEXELS_API_KEY"},
+    "pixabay": {"apiBase": "https://pixabay.com/api", "apiKeyEnv": "M2V_PIXABAY_API_KEY"},
+}
+
+
+def _safe_url(url: str) -> str:
+    """错误信息仅保留端点，避免查询参数中的凭据进入 CLI 日志。"""
+    parsed = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
 
 
 @dataclass(frozen=True)
@@ -72,16 +84,15 @@ class HttpTransport:
             with urllib.request.urlopen(request, timeout=timeout_s) as response:
                 payload = response.read()
         except urllib.error.HTTPError as exc:
-            detail = exc.read()[:400].decode("utf-8", "replace")
-            raise M2VError(f"图库接口返回 {exc.code}：{url}（{detail}）") from exc
+            raise M2VError(f"图库接口返回 {exc.code}：{_safe_url(url)}；请检查凭据、请求参数或额度") from None
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise M2VError(f"无法访问图库接口：{url}（{exc}）") from exc
+            raise M2VError(f"无法访问图库接口：{_safe_url(url)}（{type(exc).__name__}）") from None
         try:
             data = json.loads(payload.decode("utf-8"))
         except (UnicodeError, json.JSONDecodeError) as exc:
-            raise M2VError(f"图库接口没有返回合法 JSON：{url}") from exc
+            raise M2VError(f"图库接口没有返回合法 JSON：{_safe_url(url)}") from None
         if not isinstance(data, dict):
-            raise M2VError(f"图库接口返回的不是对象：{url}")
+            raise M2VError(f"图库接口返回的不是对象：{_safe_url(url)}")
         return data
 
     def download(self, url: str, destination: Path, headers: dict[str, str], timeout_s: float) -> int:
@@ -194,13 +205,16 @@ class PexelsProvider:
             suffix=_suffix_of(str(link), PHOTO_SUFFIXES, ".jpg"))
 
 
-PROVIDERS: dict[str, type] = {"pexels": PexelsProvider}
+PROVIDERS: dict[str, type] = {"pexels": PexelsProvider, "pixabay": PixabayProvider}
 
 
-def build(config: dict[str, Any], transport: Transport | None = None) -> PexelsProvider:
+def build(config: dict[str, Any], transport: Transport | None = None, *,
+          cache_dir: Path | None = None) -> PexelsProvider | PixabayProvider:
     """按 ``provider.name`` 构造适配器；未知名称直接失败并列出可用名称。"""
     factory = PROVIDERS.get(str(config["name"]))
     if factory is None:
         raise M2VError(
             f"未知图库：{config['name']}；当前可用：{'、'.join(sorted(PROVIDERS))}")
+    if factory is PixabayProvider:
+        return factory(config, transport, cache_dir=cache_dir)
     return factory(config, transport)

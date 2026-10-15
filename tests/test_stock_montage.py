@@ -25,9 +25,162 @@ from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types import registry
 from m2v.types.stock import adapter, brief as brief_module, provider, search, timeline
+from m2v.types.stock.pixabay import CACHE_SECONDS, PIXABAY_LICENSE
 
 API_KEY_ENV = "M2V_TEST_PEXELS_KEY"
 API_KEY = "test-key-123"
+
+
+class PixabayTransport:
+    """验证 API 参数、下载头和实际媒体留证，不依赖真实凭据。"""
+
+    def __init__(self, media: Path | None = None) -> None:
+        self.calls = []
+        self.download_headers = []
+        self.media = media
+
+    def get_json(self, url, headers, timeout_s):
+        self.calls.append(url)
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        assert params["key"] == [API_KEY]
+        assert int(params["per_page"][0]) >= 3
+        assert "Authorization" not in headers
+        common = {"id": 301, "user": "Pixabay 作者", "pageURL": "https://pixabay.com/photos/301/",
+                  "tags": "城市 清晨 街景"}
+        if parsed.path.endswith("/videos/"):
+            return {"hits": [{**common, "duration": 4, "videos": {
+                "small": {"url": "https://cdn.example/clip-long.mp4", "width": 540, "height": 960},
+                "large": {"url": "https://cdn.example/clip-long.mp4", "width": 1080, "height": 1920}}}]}
+        return {"hits": [{**common, "id": 302, "largeImageURL": "https://cdn.example/photo-a.jpg",
+                          "imageWidth": 2160, "imageHeight": 3840}]}
+
+    def download(self, url, destination, headers, timeout_s):
+        self.download_headers.append(headers)
+        assert API_KEY not in str(headers)
+        assert "Authorization" not in headers
+        data = (self.media / Path(urlparse(url).path).name).read_bytes() if self.media else b"media"
+        destination.write_bytes(data)
+        return len(data)
+
+
+def test_pixabay_defaults_and_explicit_overrides():
+    raw = _brief("https://custom.example/api", provider={"name": "pixabay"})
+    raw["provider"].pop("apiBase")
+    raw["provider"].pop("apiKeyEnv")
+    normalized = brief_module.normalize(raw)
+    assert normalized["provider"]["apiBase"] == "https://pixabay.com/api"
+    assert normalized["provider"]["apiKeyEnv"] == "M2V_PIXABAY_API_KEY"
+    raw["provider"].update(apiBase="https://custom.example/api", apiKeyEnv=API_KEY_ENV)
+    assert brief_module.normalize(raw)["provider"]["apiKeyEnv"] == API_KEY_ENV
+    assert brief_module.normalize(raw)["provider"]["apiBase"] == "https://custom.example/api"
+
+
+def test_pixabay_candidates_cache_and_download(tmp_path, monkeypatch):
+    monkeypatch.setenv(API_KEY_ENV, API_KEY)
+    config = brief_module.normalize(_brief("https://pixabay.com/api", provider={"name": "pixabay"}))["provider"]
+    transport = PixabayTransport()
+    library = provider.build(config, transport, cache_dir=tmp_path / "cache")
+    for kind, dimensions in (("video", (1080, 1920)), ("photo", (720, 1280))):
+        candidates = library.search("城市", kind, 1, 10)
+        chosen = candidates[0]
+        assert (chosen.width, chosen.height) == dimensions
+        assert chosen.license == PIXABAY_LICENSE
+        assert library.search("城市", kind, 1, 10) == candidates
+        assert provider.build(config, transport, cache_dir=tmp_path / "cache").search("城市", kind, 1, 10) == candidates
+        library.download(chosen, tmp_path / f"asset-{kind}", 10)
+    assert len(transport.calls) == 2
+
+
+def test_pixabay_cache_isolated_by_key_and_safe_errors(tmp_path, monkeypatch):
+    monkeypatch.setenv(API_KEY_ENV, API_KEY)
+    config = brief_module.normalize(_brief("https://pixabay.com/api", provider={"name": "pixabay"}))["provider"]
+    transport = PixabayTransport()
+    library = provider.build(config, transport, cache_dir=tmp_path)
+    library.search("城市", "photo", 3, 10)
+    def unavailable(url, headers, timeout_s):
+        raise M2VError(url)
+    transport.get_json = unavailable
+    monkeypatch.setenv(API_KEY_ENV, "rotated-key")
+    with pytest.raises(M2VError) as caught:
+        library.search("城市", "photo", 3, 10)
+    assert "rotated-key" not in str(caught.value)
+    assert "REDACTED" in str(caught.value)
+    for path in tmp_path.glob("*.json"):
+        assert API_KEY not in path.name + path.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("corruption", ["expired", "broken", "shape"])
+def test_pixabay_cache_refresh(tmp_path, monkeypatch, corruption):
+    monkeypatch.setenv(API_KEY_ENV, API_KEY)
+    config = brief_module.normalize(_brief("https://pixabay.com/api", provider={"name": "pixabay"}))["provider"]
+    transport = PixabayTransport()
+    library = provider.build(config, transport, cache_dir=tmp_path)
+    library.search("城市", "video", 3, 10)
+    path = next(tmp_path.glob("*.json"))
+    entry = json.loads(path.read_text(encoding="utf-8"))
+    if corruption == "expired":
+        entry["createdAt"] -= CACHE_SECONDS + 1
+    elif corruption == "shape":
+        entry = []
+    path.write_text("{" if corruption == "broken" else json.dumps(entry), encoding="utf-8")
+    assert library.search("城市", "video", 3, 10)
+    assert len(transport.calls) == 2
+
+
+@pytest.mark.parametrize("failure", ["http", "network", "json"])
+def test_pixabay_http_errors_do_not_leak_key(monkeypatch, failure):
+    import io
+    import urllib.error
+    import urllib.request
+
+    url = "https://pixabay.com/api/?key=" + API_KEY
+    def fail(*args, **kwargs):
+        if failure == "http":
+            raise urllib.error.HTTPError(url, 429, API_KEY, {}, io.BytesIO(API_KEY.encode()))
+        if failure == "network":
+            raise urllib.error.URLError(url)
+        return io.BytesIO(API_KEY.encode())
+    monkeypatch.setattr(urllib.request, "urlopen", fail)
+    with pytest.raises(M2VError) as caught:
+        provider.HttpTransport().get_json(url, {}, 10)
+    assert API_KEY not in str(caught.value)
+    assert "pixabay.com/api/" in str(caught.value)
+
+
+def test_pixabay_missing_key_and_filters(monkeypatch):
+    monkeypatch.delenv(API_KEY_ENV, raising=False)
+    config = brief_module.normalize(_brief("https://pixabay.com/api", provider={"name": "pixabay"}))["provider"]
+    transport = PixabayTransport()
+    library = provider.build(config, transport)
+    with pytest.raises(M2VError, match=API_KEY_ENV):
+        library.headers()
+    assert not transport.calls
+    monkeypatch.setenv(API_KEY_ENV, API_KEY)
+    with pytest.raises(M2VError, match="100"):
+        library.search("x" * 101, "photo", 3, 10)
+    assert library._candidate({"id": 1, "user": "a", "pageURL": "https://example.org",
+                               "imageWidth": 1920, "imageHeight": 1080,
+                               "largeImageURL": "https://example.org/a.jpg"}, "photo") is None
+    assert library._candidate({"id": 1, "user": "", "pageURL": "https://example.org"}, "photo") is None
+
+
+def test_pixabay_full_search_prepare_and_cache(tmp_path, media_dir, monkeypatch):
+    monkeypatch.setenv(API_KEY_ENV, API_KEY)
+    root, project = _project(tmp_path, _brief("https://pixabay.com/api", provider={"name": "pixabay"},
+                                            targetSeconds=6, scenes=[
+        {"id": "video", "keywords": ["城市"], "media": "video"},
+        {"id": "photo", "keywords": ["城市"], "media": "photo"}]))
+    transport = PixabayTransport(media_dir)
+    record = search.search(root, project, transport=transport)
+    assert record["provider"]["name"] == "pixabay"
+    assert API_KEY not in json.dumps(record)
+    normalized = brief_module.load(root, project)
+    assert search.load_record(root, project, normalized) == record
+    adapter.validate(root, project)
+    adapter.prepare(root, project)
+    assert search.search(root, project, transport=transport) == record
+    assert len(transport.calls) == 2
 
 
 # --------------------------------------------------------------------------- 假图库

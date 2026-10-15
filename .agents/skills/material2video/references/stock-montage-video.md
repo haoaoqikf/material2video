@@ -26,12 +26,38 @@ uv run m2v render --project videos/stock-montage/<slug>
 ## `brief.json` 契约
 
 - 顶层 `schemaVersion` 为 1；`topic` 非空；`targetSeconds` 为 1 至 600 秒；`fps`、`width`、`height` 固定为 30、1080、1920；`durationToleranceSeconds` 默认 2 秒。
-- `provider`：`name`（首版只支持 `pexels`）、`apiBase`（默认官方地址，可指向镜像以便离线测试）、`apiKeyEnv`（默认 `M2V_PEXELS_API_KEY`）、`orientation`、`perPage`、`media`（`video`/`photo` 的子集）、`minClipSeconds`/`maxClipSeconds`、`allowReuse`。凭据只从环境变量读取，缺失时检索在任何请求之前失败。
+- `provider`：`name`（`pexels` 或 `pixabay`，默认 `pexels`）、`apiBase`（按来源默认官方地址，可覆盖以便离线测试）、`apiKeyEnv`（按来源默认环境变量名）、`orientation`、`perPage`（1 至 80；Pixabay 请求至少取 3 条，返回后按声明数量截取）、`media`（`video`/`photo` 的子集）、`minClipSeconds`/`maxClipSeconds`、`allowReuse`。凭据只从环境变量读取，缺失时检索在任何请求之前失败。
 - `visual`：`theme`（`dark`/`light`）与**必填**的 `attribution` 署名文案；`motion.photoZoom` 为静图推拉的最大缩放（默认 1.12）。
 - `scenes`：至少一幕，每幕有唯一 `id` 与非空 `keywords`；可选 `media`（限定该幕只要视频或只要图片）、`assetId`（钉住某个来源 ID）、`trimStartSeconds`（视频裁剪入点）、`durationFrames`（固定帧数）、`narration`（口播文本）、`speech`（该幕语速与停顿）、`transition`（`cut` 或 `crossfade` + 重叠帧数，首幕不允许转场）。
 - `soundtrack.music`：作品目录内的本地音床，字段与共享声音契约一致（`sourceRef`、`gainDb`、`loop`、`fadeInMs`、`fadeOutMs`）。本类型没有 beat 轴，因此不接受 `soundtrack.effects`。
 
 ## 检索与许可
+
+### 切换到 Pixabay
+
+登录 [Pixabay API 文档](https://pixabay.com/api/docs/)领取 Key，设置当前 PowerShell 环境变量：
+
+```powershell
+$env:M2V_PIXABAY_API_KEY = "<你的 Key>"
+# 可选：持久保存到 Windows 当前用户环境变量，新启动的程序生效
+[Environment]::SetEnvironmentVariable("M2V_PIXABAY_API_KEY", $env:M2V_PIXABAY_API_KEY, "User")
+```
+
+在现有 `brief.json` 中将 `provider` 配置为下面的对象，并将 `visual.attribution` 改为 `素材来源：Pixabay`；随后执行原有 `m2v stock search` 流程：
+
+```json
+{
+  "name": "pixabay",
+  "apiBase": "https://pixabay.com/api",
+  "apiKeyEnv": "M2V_PIXABAY_API_KEY",
+  "orientation": "portrait",
+  "media": ["video", "photo"]
+}
+```
+
+只指定 `name` 时会按来源补全地址与凭据变量。由 Pexels 模板切换时应删除或替换原有 `apiBase`、`apiKeyEnv`，否则显式配置会继续优先。Pexels 的默认值仍为 `https://api.pexels.com` / `M2V_PEXELS_API_KEY`。一份作品选择一个来源，不自动回退或混搜。
+
+Pixabay 按 [API 规则](https://pixabay.com/api/docs/)将检索响应缓存 24 小时，位置为作品 `outputs/stock-cache/`；缓存不包含 Key 或完整请求 URL，不入库。默认 API 额度为每 60 秒 100 次请求；仅用于人工指定作品的逐幕检索，不用于系统性批量下载。关键词拼接后不得超过 100 字符。普通图片使用 `largeImageURL`（最大边 1280），留证记录该版本尺寸；不会把原图尺寸当作下载尺寸。方向按实际候选尺寸过滤，严格竖屏或正方形条件可能没有候选；可将 `orientation` 改为 `any` 放宽。许可记录为 Pixabay Content License，仍需人工核验实际用途。
 
 检索按幕独立查询，逐幕选定一个素材：先按声明关键词在返回文本中的命中数排序，再看方向、时长是否落在声明区间与分辨率适配，最后按来源 ID 稳定排序。整个过程不使用随机数，重复检索得到同一结果；已使用的来源 ID 不会重复使用（除非 `allowReuse` 为真）。任一幕没有可用候选即整体失败，报出该幕与关键词，并且不写出部分结果。
 
