@@ -10,7 +10,7 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
 from m2v.types import catalog, registry
-from m2v.types.article.paths import (
+from m2v.core.workspace import (
     CONTENT_ROOT_ENV,
     PROJECT_MARKER,
     bundle_repo_root,

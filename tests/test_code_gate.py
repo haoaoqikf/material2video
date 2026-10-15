@@ -6,17 +6,11 @@
 
 from __future__ import annotations
 
-import json
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
 
 import m2v.core.code_gate as code_gate
-import m2v.engine.remotion as remotion
-import m2v.types.article.storyboard as sb
-from conftest import SKILL_MARKER
 
 GOOD_COMPONENT = "export default function Scene() { return null; }\n"
 
@@ -42,12 +36,6 @@ def _rules(violations: list[code_gate.Violation]) -> list[str]:
 
 
 class TestDependencyWhitelist:
-    def testv4全片code世界运行同一依赖与确定性闸门(self, tmp_path):
-        article, _entry = _work(tmp_path, {"entry.tsx": "export default function Scene() { return Math.random(); }\n"})
-        violations = code_gate.check_storyboard(article_dir=article,
-            storyboard_data={"version": 4, "world": {"renderer": {"kind": "code", "module": "entry"}}})
-        assert any(item.rule == "A10 系统随机" for item in violations)
-
     def test白名单依赖放行(self, tmp_path):
         article, entry = _work(
             tmp_path,
@@ -76,7 +64,7 @@ class TestDependencyWhitelist:
         assert any("A1" in v.rule and "@evil/pkg" in v.message for v in violations)
 
     def test项目别名不对作品开放(self, tmp_path):
-        article, _ = _work(tmp_path, {"entry.tsx": "import { SceneTree } from '@/primitives/SceneTree';\n"})
+        article, _ = _work(tmp_path, {"entry.tsx": "import { GeneralVideo } from '@/compositions/GeneralVideo';\n"})
         violations = _scan(article)
         assert any("A1" in v.rule and "@m2v/scene" in v.message for v in violations)
 
@@ -250,101 +238,3 @@ class TestOrchestration:
     def test_check_storyboard无代码场景返回空(self, tmp_path):
         violations = code_gate.check_storyboard(article_dir=tmp_path, storyboard_data={"scenes": []})
         assert violations == []
-
-
-class TestRenderTimeoutCleanup:
-    """任务 3.4：构建/渲染超时后不成片，临时状态可被下一次构建覆盖。"""
-
-    def test打包失败不交付成片且清单可重建(self, tmp_path, monkeypatch):
-        marker = tmp_path / SKILL_MARKER
-        marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text("# material2video skill", encoding="utf-8")
-        article = tmp_path / "videos" / "slug"
-        article.mkdir(parents=True)
-        storyboard = article / "storyboard.json"
-        storyboard.write_text(json.dumps(_minimal_storyboard(), ensure_ascii=False), encoding="utf-8")
-        model, report = sb.load(storyboard)
-        assert model is not None
-
-        output = tmp_path / "outputs" / "slug" / "silent.mp4"
-
-        def broken_bundle(**_kwargs):
-            raise remotion.RemotionError("打包 composition 超时（超过 600 秒）")
-
-        monkeypatch.setattr(remotion, "bundle", broken_bundle)
-        with pytest.raises(remotion.RemotionError, match="超时"):
-            from m2v.types.article.render import render_with_remotion
-
-            render_with_remotion(
-                output=output,
-                storyboard=model,
-                storyboard_path=storyboard,
-                probe=False,
-            )
-        # 超时/失败后不交付成片
-        assert not output.exists()
-
-        # 下一次构建正常覆盖临时状态：清单重新生成且指向当前作品
-        import m2v.engine.scene_manifest as scene_manifest
-
-        target = scene_manifest.generate(web_dir=remotion.web_dir(), storyboard_path=storyboard)
-        assert target.is_file()
-
-
-def _minimal_storyboard() -> dict:
-    return {
-        "version": 3,
-        "schemaVersion": 3,
-        "directingVersion": 1,
-        "directingBrief": {"thesis": "测试", "audienceShift": "理解", "emotionalArc": ["观察", "确认"], "visualMotif": "路径", "stylePack": "editorial", "avoid": []},
-        "visual": {"theme": "dark", "preset": "keynote"},
-        "fps": 30,
-        "width": 1080,
-        "height": 1920,
-        "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
-        "scenes": [
-            {
-                "id": "opening",
-                "type": "title",
-                "durationInFrames": 30,
-                "data": {"text": "开场"},
-                "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "开场", "showWithoutText": "单个开场文字", "primaryObject": "开场标题", "motionMeaning": "逐步显示"},
-                "renderer": {"kind": "tree"},
-                "camera": {"shot": "medium", "composition": "center", "depth": "flat", "focus": "copy", "segments": [{"phase": "establish", "kind": "hold", "focus": "copy"}]},
-                "sceneTree": {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]},
-                "motions": [],
-            }
-        ],
-    }
-
-
-class TestRuntimeIsolation:
-    """任务 3.3：本地资源成功、远程资源被阻断并计为失败（浏览器集成）。"""
-
-    @pytest.mark.slow
-    def test远程请求被阻断并计入违规(self, tmp_path):
-        from m2v.engine.browser import open_animated_page, is_local_url
-
-        page_html = """<!doctype html><html><body><script>
-window.__M2V__ = {
-  version: 3, fps: 30, width: 1080, height: 1920, durationInFrames: 30,
-  ready: () => Promise.resolve(),
-  seekToFrame: () => Promise.resolve(),
-  currentFrame: () => 0,
-};
-fetch('https://example.invalid/evil')
-  .catch(() => { window.__FETCH_REJECTED__ = true; });
-</script></body></html>"""
-        page_file = tmp_path / "page.html"
-        page_file.write_text(page_html, encoding="utf-8")
-        from m2v.engine.http_server import LocalServer
-
-        with LocalServer(tmp_path) as server:
-            url = server.url_for(page_file)
-            with open_animated_page(url) as page:
-                # 本地相对请求放行
-                assert is_local_url("/page.html")
-                rejected = page.evaluate("() => window.__FETCH_REJECTED__ || false")
-                assert rejected is True, "远程 fetch 应当被拒绝"
-                violations = page.drain_violations()
-                assert any("被阻断的非本地请求" in v and "example.invalid" in v for v in violations)

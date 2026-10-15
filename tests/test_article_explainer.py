@@ -200,6 +200,7 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
             samples = {}
             for frame in [0,8,29,30,41,15,8,0,41]:
                 page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
+                assert page.evaluate("window.__M2V__.currentFrame()") == frame
                 subtitle = page.locator('[data-m2v-subtitle]')
                 assert subtitle.inner_text() == (data["scenes"][0]["narrationSegments"][0]["text"] if frame < 30 else "")
                 if frame < 30:

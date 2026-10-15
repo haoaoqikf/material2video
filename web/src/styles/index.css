@@ -5,36 +5,20 @@
  * 谁赢由源序决定。任何一处对调都会让「同一个元素被两条规则声明」的那几处
  * 悄悄换一个赢家——不报错，只是像素差。
  *
- * 开头两条是新工程专有的层：
  *   - `tailwindcss/theme.css` + `utilities.css`：`@theme` 与工具类的产出层。
  *     **刻意不引 `preflight.css`**：preflight 是「浏览器默认样式的重置」，
  *     带上它，`line-height: 1.5`、标题的 `margin`、`font-size` 继承等会整体
  *     换一套——不报错，只是每个字都挪一点。`box-sizing: border-box` 由
  *     `base.css` 的 `*` 规则提供，不依赖 preflight；
- *   - `tokens.css`：设计令牌真源（`:root { --m2v-* }` 声明只保留这一处真源）。
- *     令牌是变量，先声明后使用，放最前不影响层叠；
- *   - `primitives.css`：四族基元的层。
- *     **它必须紧跟 `keynote.css`**：这一段在旧文件里位于**尾部**，正是靠源序
- *     压过同权重的设计语言层。搬到最前面会让源序反过来——实测 `.m2v-label`
- *     的字距从 `normal` 变成 `0.14em`，冰山幕的标注宽 155px 而不是 136px。
- *
- * 本文件**不手写任何元素级规则**：`html/body`、`[data-m2v-stage]`、
- * `[data-m2v-scene]`、`.m2v-safe` 由 `declarative.css` 提供，
- * 免得同一件事有两个真源。
- *
- * 末尾的 `scene-tree.css` 是**场景树原语的追加层**（只能整块排在搬运层之后，
- * 不许插进旧层中间——插进去会改变同权重选择器的胜负）。
+ *   - `.gen/active-tailwind.css`：Tailwind source 索引，由清单生成器按当前
+ *     作品整体覆盖（只有 `@source` 指令），把作品 `scenes/` 与 `assets/`
+ *     里的完整类名交给扫描；
+ *   - `tokens.css`：设计令牌真源（`--m2v-*` / `--fig-*` 只在这里声明）；
+ *   - `base.css`：盒模型与页面根样式，量测前提。
  */
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
-/* Tailwind source 索引：由清单生成器按当前作品整体覆盖（无规则，只有
-   @source 指令），只把当前作品的 scenes/ 与 assets/ 交给类名扫描。 */
 @import '../../.gen/active-tailwind.css';
 @import './tokens.css';
 @import './base.css';
-@import './theme.css';
-@import './keynote.css';
-@import './primitives.css';
-@import './declarative.css';
-@import './scene-tree.css';

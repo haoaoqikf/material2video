@@ -1,60 +1,61 @@
 # 渲染契约
 
-> **适用范围：** 本文描述的 world/stages 画面、v4 探针与量测只适用于 general 嵌入与内部动画模块。
-> article-narrative 已改为 v5 讲解：`ArticleExplainer` composition 由准备产物直接驱动，排版由
-> 浏览器量测校验，不读取 v4 探针。文章契约见 [文章分镜 v5](storyboard-schema.md) 与
-> [制作流程](production-workflow.md)；本文的渲染、编码与验收规则两类画面共用。
+> **适用范围：** 本文描述当前 5 个视频类型共用的渲染契约：契约页（`version: 5`）、Remotion
+> 逐帧渲染、成片编码、交付权限与溯源。画面只有一条实现路径——共享 React composition 由准备
+> 产物直接驱动；浏览器布局量测当前只覆盖文章 v5 模板。分镜结构见 [文章分镜 v5](storyboard-schema.md)，
+> 作品代码模块见 [代码场景](code-scenes.md)，设计令牌见 [设计令牌](design-tokens.md)，
+> 制作顺序见 [制作流程](production-workflow.md)。v3/v4 的共享动画、场景树、节拍运行时与
+> `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
 
-画面实现与渲染/体检脚本之间只有这一个接口。只要画面实现满足本契约，渲染脚本就能把它
+画面实现与渲染/量测脚本之间只有这一个接口。只要画面实现满足本契约，渲染脚本就能把它
 导出为 MP4；反过来，任何一项不满足都会在开渲前报错，而不是产出一段有问题的视频。
 
 ## 契约的唯一提供者
 
 画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
-从 `web/src/contract/` 构建。它把共享 React composition
-（V4 由 `web/src/compositions/M2VCompositionV4.tsx`，旧实现 `M2VComposition.tsx` 不用于 V4）挂进 `@remotion/player`，
-暴露 `window.__M2V__`（**version 4**）。分镜地址由查询参数 `m2v-storyboard` 给出
-（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
-体检（K 系列、M 系列、组件契约探针）用 Playwright 驱动它；
-渲染（`文章类型渲染` 默认）不走它，而是直接从 composition 源码打包渲染
-（见「渲染引擎与打包」）。
+从 `web/src/contract/` 构建。它把共享 React composition（`ArticleExplainer`）挂进
+`@remotion/player`，暴露 `window.__M2V__`（**version 5**）。作品参数（准备产物）由查询参数
+`m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
+布局量测（`m2v article keyframes`，以及 preview / render 内部）用 Playwright 驱动它；
+渲染不走它，而是直接从 composition 源码打包渲染（见「渲染引擎与打包」）。
 
 ## 必需接口
 
 ### 评审输出的全局帧范围与缩放
 
-文章制作的关键场景样片与全片有声排练通过 `m2v article samples` 和 `m2v article rehearsal` 生成；帧范围、媒体时轴和缩放由文章类型内部渲染器统一处理。样片仅用于评审，正式导出仍须经 `m2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
+文章的完整预演与量测由 `m2v preview --project <目录>` 生成（`m2v article samples` 与
+`m2v article rehearsal` 现在只是它的别名）；`--limit-frames` 只用于调试，限帧预览不绑定评审。
+帧范围、媒体时轴与缩放由类型内部渲染器统一处理，正式导出仍须经
+`m2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
 
-画面实现必须在 `window` 上暴露 `__M2V__` 对象。契约页（version 4）的字段：
+画面实现必须在 `window` 上暴露 `__M2V__` 对象。契约页（version 5）的字段：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `version` | `number` | 契约版本，当前为 `4` |
-| `fps` | `number` | 帧率，必须与分镜 JSON 的 `fps` 一致 |
-| `width` | `number` | 画面宽度，必须与分镜 JSON 的 `width` 一致 |
-| `height` | `number` | 画面高度，必须与分镜 JSON 的 `height` 一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于所有 `stages[].durationInFrames` 之和或媒体派生时长 |
+| `version` | `number` | 契约版本，当前为 `5` |
+| `fps` | `number` | 帧率，必须与准备记录一致 |
+| `width` | `number` | 画面宽度，必须与准备记录一致 |
+| `height` | `number` | 画面高度，必须与准备记录一致 |
+| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v5 由逐段实际配音编译，上限 1800 帧） |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
-| `currentFrame()` | `() => number` | 诊断用：当前实际落在哪一帧。不属于契约要求，渲染脚本不依赖它 |
+| `currentFrame()` | `() => number` | 只读诊断：Player 当前实际帧号，不参与求帧判定 |
 
 `frame` 从 `0` 开始，最大值是 `durationInFrames - 1`。
 
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。
-version 4 的 `ready()` 必须保证：
+version 5 的 `ready()` 必须保证：
 
 - 字体已加载完成（否则首帧会用回退字体排版，且首帧与后续帧字宽不一致）；
-- **Player 已经挂载**（契约页要求挂载之后才能 seek
-  只会得到空画面）；
-- 画面已经绘制过至少一次。
-- v4 tree 的全片布局预检已完成；预检等待正式字体，测量可达文案状态下的节点几何并据此编译镜头。失败会让 `ready()` 报出布局错误，正式 Remotion 渲染也会取消。
+- **Player 已经挂载**（契约页要求挂载之后才能 seek，否则只会得到空画面）；
+- 第 0 帧已经绘制过至少一次；
+- 画面里出现的本地图片已经解码完成，否则后截的帧才会拿到图片。
 
-契约页的实现（`web/src/contract/bridge.ts`）：等字体 Promise（与渲染入口的
-`delayRender` 等的是同一个）、等 `document.fonts.ready`、把 Player 定位到当前帧
-并等画面落定，再确认一次字体。对 tree world，契约还等待 `data-m2v-layout-ready="1"`；
-这确保预览、体检与导出使用同一份字体后测量几何和镜头轨迹。
+契约页的实现（`web/src/contract/bridge.ts` 与 `explainer.tsx`）：等字体 Promise（与渲染入口
+`web/src/index.ts` 里 `delayRender` 等的是同一个）、把 Player 定位到第 0 帧并等画面落定，
+再等全部 `document.images` 解码完成。这样预览、量测与导出用的是同一份字体和同一批已就绪资源。
 
 ## seekToFrame() 的语义与确定性要求
 
@@ -84,25 +85,10 @@ version 4 的 `ready()` 必须保证：
 
 实测口径：Chromium 无头模式下对同一帧重复截图，**偶发**极少数像素相差 1 个色阶
 （抽查 6 帧命中 0–2 帧，PSNR 79–111 dB）。这是光栅化噪声，不是画面逻辑问题——
-未改动的示例页同样复现，且与页码无关。所以验收按「编码后不可见」判定：
-JPEG q98 中间帧的量化步长本身就大于 1 个色阶，成片不受影响。
-需要拦下的是**整块元素的位置/透明度不同**，那类差异的 PSNR 会远低于 60 dB，
-因此自动抽查用 `PSNR ≥ 60 dB` 作为阈值，而不是逐字节相等。
-
-### Remotion 迁移回归基线（2026-09-20）
-
-渲染器从旧网页截图链路切换为 Remotion 后，编码器与浏览器发行版均已改变，旧成片哈希
-不再代表当前实现，因此本次有意重录一次基线；同帧正确性仍以 PSNR ≥ 60 dB 为准，
-下列 SHA256 只用于锁定同一工具链下的跨会话回归：
-
-| 作品 | 完整成片 SHA256 |
-| --- | --- |
-| 已移除的 `declarative-number` 历史样例 | `D749DBCAB378E9EF674ECEDEFBADD198D8A08453CA2842E661EFC4DC0F69CA28` |
-| `examples/keynote-baseline` | `A7C990498EA8BF0F2653BF529A30606B5DFAC95AD83AA7AC8533070C8D70DF7A` |
-| 已移除的 `why-effort-fails` 历史样例 | `74513AE69282D25C86FAE4FCCCC43A93FF3D1BF0BCB5703C51B0E35C44D381ED` |
-
-上述两项是已移除示例的历史哈希，不代表当前支持的示例；依赖安装完成后渲染不访问网络。历史 `declarative-number` 示例当时在同一锁文件环境中完整重渲两次，
-两次 SHA256 均为上表值，证明当时编码链路跨会话可复现。
+未改动的画面同样复现，且与帧号无关。所以验收按「编码后不可见」判定，而不是逐字节相等；
+需要拦下的是**整块元素的位置或透明度不同**，那类差异的 PSNR 会远低于 60 dB，
+因此 `PSNR ≥ 60 dB` 是判定同帧一致性的阈值。当前没有自动抽帧比对同帧的命令，
+确定性由下面的源码闸门与源码指纹保证。
 
 ### 画面源码的确定性
 
@@ -111,26 +97,27 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 都找不到，报出来的全是假问题。确定性的结论由两处承担：
 
 - 组件源码里**不出现**时间源与随机源（`Date.now` / `performance.now` /
-  `Math.random` / CSS `animation`）：由 web 侧测试与代码评审把守，动效一律
-  从 `useCurrentFrame()` 推导；
-- 同一套运行时量测与探针照常运行（见体检章节），成片仍要过上面的确定性验收。
+  `Math.random` / 计时器 / 未关闭的 CSS `animation`）：打包前由静态源码闸门
+  （`src/m2v/core/source_policy.py`）扫描 composition 的全部可达源码，命中即失败
+  并报出文件与行号；动效一律从 `useCurrentFrame()` 推导；
+- 布局量测与成片验收照常运行（见下文），成片仍要过上面的确定性验收。
 
 ## 渲染引擎与打包
 
-`文章类型渲染` 默认（`--engine remotion`）不经过浏览器截图，而是**直接从 composition
-源码渲染**：
+正式渲染不经过浏览器截图，而是**直接从 composition 源码渲染**：
 
 1. 打包：`remotion.bundle()` 把 `web/` 打成可渲染的 bundle。默认走本地缓存
    （见「打包缓存」）；缓存命中时跳过打包，但分镜校验、代码场景边界检查与
    源码确定性扫描照常执行；
 2. 元数据交叉校验（同一会话）：向 composition 要一份真实元数据（fps / 尺寸 /
-   总帧数），用与网页路径**同一组判定函数**与分镜声明的值逐项比对，不一致时报错
-   并列出两边取值，同时终止会话——**一帧都不会渲**；
+   总帧数），与准备记录逐项比对，不一致时报错并列出两边取值，同时终止会话
+   ——**一帧都不会渲**；
 3. 逐帧渲染（同一会话，校验通过后下发渲染参数）：Remotion 按帧号 seek，
    输出 H.264；渲染与编码在 Remotion 内部重叠，报告里记一段合并耗时；
    帧级 timeout 按分钟计，不沿用页面超时；
-4. 收口与网页路径共用：合音轨、成片验收（`_verify_output`）、搬到最终位置、
-   交付权限修复（见下文），一个字都不差。
+4. 收口（各类型渲染入口共用同一批函数）：合音轨、成片验收
+   （`output_validation.verify_output`）、搬到最终位置、交付权限修复（见下文），
+   一个字都不差。
 
 ### 打包缓存
 
@@ -144,7 +131,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 - 构建先写临时目录，产物清单写全后整体改名发布；同一把键由锁串行，等待者拿到锁后
   复查一次，不重复打包。从 `.gen` 清单生成到打包结束由全局锁串行，防止并行切换作品
   互相污染。
-- `--no-bundle-cache` 本次强制重新打包（诊断与基准对照用）；
+- `bundle(cache=False)` 本次强制重新打包（诊断与基准对照用）；
   缓存只省掉打包，**不跳过任何门禁**。
 
 ### 渲染会话与并发
@@ -152,163 +139,123 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 - 一次渲染只起一个 Node 进程、只开一个浏览器：选择 composition、报出元数据、
   等待 Python 的确认行，之后用同一个浏览器渲染。两次进程调用各冷启动一次浏览器的
   开销因此消失。`--metadata-only` 诊断路径保留。
-- Python 侧的校验不通过时发送 `ABORT`，Node 走 `finally` 关掉浏览器后退出；父进程
-  EOF、静默超时、渲染失败同样收掉整棵进程树（Windows 用 `taskkill /T`），
-  不留下孤儿 Chromium。
-- `--concurrency <正整数>` 透传给 Remotion，**默认 1**。提高并发会抬高峰值内存，
+- 两侧只通过 stdout 上的前缀行通信（常量在 `src/m2v/engine/remotion.py`）：Node 报
+  `__M2V_SESSION__`（会话信息）、`__M2V_COMPOSITION__`（composition 元数据）、
+  `__M2V_READY__`（元数据已报出、等确认）、`__M2V_PROGRESS__<百分比>`（渲染进度）与
+  `__M2V_DONE__`（渲染完成）；Python 回 `__M2V_CONFIRM__{...}`（校验通过，可以开渲）
+  或 `__M2V_ABORT__{...}`（校验没过，立即退出）。**先握手再渲染**是刻意的：
+  元数据不匹配时一帧都不会渲。
+- 会话异常时 Node 走 `finally` 关掉浏览器后退出；父进程 EOF、静默超时、渲染失败
+  同样收掉整棵进程树（Windows 用 `taskkill /T`），不留下孤儿 Chromium。
+- 并发（`concurrency`）透传给 Remotion，**默认 1**。提高并发会抬高峰值内存，
   Windows 长片在多并发页签下可能被系统关闭并报 `Target closed`，因此不按 CPU 数
-  自动提高；非法取值在解析参数时即报错，早于打包与渲染。
+  自动提高；非法取值在打包前即报错，早于渲染。当前 5 个类型都固定用 1。
 
 ### 性能报告（`<名字>.performance.json`）
 
 每次 Remotion 渲染在成片同级写一份结构化报告（已被 `.gitignore` 忽略），字段包括：
 各阶段秒数（`cache` / `bundle` / `metadata` / `render` / `mux` / `probe`）、跳过阶段列表、
-缓存命中状态与键、实际并发、帧数与分辨率、浏览器开启次数，以及硬件与软件版本。
+缓存命中状态与键、实际并发、帧数与分辨率、`entry`（`render` 还是 `preview`）、
+`generatedAt` / `executedSeconds` / `totalSeconds`，以及 `environment`（平台、CPU 与内存、
+Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在这个前提下才可比。
 `render` 已含编码，因此没有独立的 `encode` 阶段——两段在 Remotion 里是同一段时间，
 拆开相加会让总耗时重复累计。未执行的阶段写 `null` 并列入 `skipped`，不写 0 冒充实测。
-需要可对照的机器数据时用 `benchmark_render.py benchmark`（冷/热缓存与并发 1/2/4 对照）
-与 `benchmark_render.py accept`（全片有声渲染与跨并发未编码画面 PSNR 验收），
-报告同样落在作品 `outputs/` 下。
+报告是附加信息：写失败只告警，不会让一次已经验收通过的渲染失败。
 
-体检路径（`文章类型视觉体检`）与此不同：它仍用 Playwright 驱动**契约页**——量测与探针
-（约 90KB 已实测的判定逻辑）继续对着真实画面工作，而契约页挂的正是同一份
-composition，体检看到的就是渲染会画出的画面。
+### 布局量测（三项硬判定）
 
-## 动效运行时
+布局量测不走渲染路径：`m2v article keyframes`（以及 preview / render 内部）用 Playwright
+驱动**契约页**，量测对着真实画面工作，而契约页挂的正是渲染会画出的同一份 composition。
+量测只剩三项硬判定，全部按真实文字包围盒判定：
 
-画面上的动效全部由**帧号推导**的纯函数给出，集中在 `web/src/runtime/`：
-`motionPlan.ts`（阶段切分、声明落到帧区间、错峰次序、进度与通道合成）、
-`beats.ts`（分段口播与语义 beat 时间轴）、`camera.ts` / `continuity.ts` /
-`transition.ts` / `geometry.ts` / `timeline.ts`。分镜不写曲线，只声明受控配方与节拍绑定；
-机制、配方清单与推荐帧数见[竖屏视觉规范](visual-spec.md)。
+| 判定 | 判据 |
+| --- | --- |
+| 画布分区溢出 | 文字包围盒越出正文分区（左 106 / 右 974 / 上 158 / 下 1502；字幕区内文字到 1782） |
+| 字幕遮挡 | 字幕文字中心点处的最上层元素不属于字幕层——文字在、但被背景盖住同样失败 |
+| 容器内溢出 | 文字越出它所属的 `data-m2v-box` 容器 2px 以上 |
 
-## V4 持续世界与阶段
+量测读取画面自己打的标记：`data-m2v-copy`（文字）、`data-m2v-box`（容器）、
+`data-m2v-subtitle`（字幕层）、`data-m2v-content`（正文内容区）。结果写
+`outputs/layout-check.json`，失败会阻断预演与正式导出。旧的 K 系列观感闸门已随旧子系统
+删除，不再有那套「约 90KB 判定逻辑」的量测。
 
-V4 composition 全片只挂载一个 world 根；`stages[]` 只改变阶段数据与全局时间上下文，不重挂载第二个 renderer。world tree 在所有帧共享同一棵受控树，code world 在所有阶段使用同一个作品模块。对象轨道、镜头、字幕与动作使用全局帧号和同一个媒体派生 `resolvedBeats`；阶段边界不会把对象状态或镜头局部归零。阶段边界不是视觉场景切换，也没有 V3 的跨幕 `transition` 映射契约。
+## 代码场景（general）
 
-全片代码模块读取 `world`、`stage`、`objectStates`、全局 `frame`、全局 `beats`、镜头、主题和画布；它不得创建私有时间轴。探针使用稳定全局对象 ID，细节见[代码场景](code-scenes.md)。评审范围片段仍然保留原片全局帧语义。
+`general` 的每一幕可以在 `general-plan.json` 的幕上声明
+`renderer: { "kind": "code", "module": "<scenes/ 下的模块标识>" }`，把那一幕交给作品
+`scenes/<module>.tsx` 的模块；模块必须默认导出 `M2VCodeScene` 组件，唯一允许导入的项目
+内部别名是 `@m2v/scene`（`probe` / `random` / `frameStyle` 与白名单适配器）。
 
-## 场景树原语
+共享包装器把该幕的 `data` 原样交给组件，并给出幕标识、幕内帧与幕内进度、`fps`、画布尺寸、
+主题与按幕标识播种的稳定随机源；组件从 `useCurrentFrame()` 取帧，**不得创建私有时间轴**
+（不决定幕顺序、总时长或字幕边界）。`world` / `stage` / `objectStates` / `beats` / `motion`
+这几个 v4 槽位仍在 props 类型里，但一律传空值（`beats.current` 为 `null`、
+`motion.camera.kind` 为 `"none"`、`objectStates` 为空对象），不属于当前契约，作品不得假设
+它们被填充。模块标识、注入字段、依赖白名单与安全边界的完整说明见
+[代码场景](code-scenes.md)。
 
-画面由 v4 共享 React composition（`web/src/compositions/M2VCompositionV4.tsx`）按全片
-`world.renderer` 选择 tree 或 code。tree world 的唯一 `world.sceneTree` 由
-`web/src/primitives/SceneTree.tsx` 递归解释绘制；原语类型、允许属性、子节点容量与动效配方都声明在原语注册表
-`web/src/registry/registry.json`（唯一真源）。内容通过 `contentRef` 引用 world/stage data，
-动效按稳定节点 id 绑定。原语目录与组合方式见
-[视觉原语目录](primitive-catalog.md)。
-
-```
-分镜 ──▶ composition ──▶ SceneTree 递归解释 sceneTree ──▶ 布局/内容/图形原语
-                │                                        │
-                └────── useCurrentFrame()：帧号驱动可视状态 ──┘
-```
+### 组件也必须逐帧确定
 
 对契约的影响只有一条：**组件也是画面的一部分，因此组件的渲染必须满足与
 `seekToFrame` 完全相同的确定性要求**。具体地说：
 
 | 要求 | 原因 |
 | --- | --- |
-| 画面只由帧号、场景与时长推导 | 同帧重复渲染必须一致 |
-| 禁止 `Date.now` / `performance.now` / `Math.random` / CSS 动画 | 同上；React 路径的静态检查跳过，靠组件测试与运行时量测把守 |
-| 逐帧求值不读实时布局；tree v4 在字体就绪后仅预检一次并缓存全片几何 | 每帧测量会随排版抖动，也会拖慢渲染 |
-| 组件不保存默认文案 | 文案只存在于分镜，避免两处漂移 |
-
-## 语义节拍运行时
-
-全局 beats、对象状态轨道与镜头先解析为不可变时间轴，再按当前全局帧求值。共享元素的几何来自唯一受控场景树布局，不调用 `getBoundingClientRect`，不栅格化源节点；代码 world 通过公开 props 接收全片 world、当前 stage、对象状态、`motion` 镜头上下文与全局 beats。被连续性评审引用的对象必须通过探针提供稳定身份和几何，缺失证据时保持可选评审待处理，不以人工评审阻断正式输出；自动契约检查仍有效，不降级为场景转场。
-
-Windows 正式渲染固定使用单 Chromium 并发：1080×1920 画布与随仓库字体在多并发下会抬高峰值内存，长片可能被系统关闭并报 `Target closed`。限帧和正式渲染走同一设置，以稳定资源上限换取可预测交付。
-
-声明了 `narrationSegments` 的阶段共用一条全局时间轴：composition 从
-根级 `resolvedBeats`（有声，由媒体清单派生）或无声等比例解析（`web/src/runtime/timelineV4.ts`
-复刻 Python 的同一套规则）得到逐幕 `BeatTimeline`，再按当前帧算出
-
-```ts
-{ current: string | null, progress: number, completed: string[], estimated: boolean }
-```
-
-这份状态原样传给场景树与代码场景（`web/src/code-scene` 的 `M2VCodeSceneProps.beats`）：
-场景树据此决定关系容器里哪个阶段是当前阶段、量级原语指示到什么程度；代码场景
-只读当前 beat、局部进度与已完成集合，**不自己解析字幕、不读音频时钟、不读挂钟**。
-同一帧永远得到同一份状态——`state_at(frame)` / `beatStateAt(timeline, frame)`
-是纯函数，没有缓存、没有时钟、没有随机。
-
-无声估算在两侧各有一份实现：Python 用它做闸门采样（A5/A7），TypeScript 用它渲染
-预览与无声成片。两边漂移的话，「验收过的边界」与「画面上跑的边界」就不是同一批，
-因此向量集中在 `tests/fixtures/beat-vectors.json`，两侧测试读同一份文件
-（`tests/test_beats.py` 与 `web/src/runtime/beats.test.ts`）。
-
-每幕的 `<section>` 上暴露四个量测锚点，供契约探针读取：
-
-| 锚点 | 含义 |
-| --- | --- |
-| `data-m2v-beat-current` | 当前 beat id；区间外（幕首或结尾阅读段）为空字符串 |
-| `data-m2v-beat-progress` | 当前 beat 的局部进度（4 位小数）；区间外为 0 |
-| `data-m2v-beat-completed` | 已完成的 beat id，逗号分隔，按时间顺序 |
-| `data-m2v-beat-estimated` | `1` 表示无声估算时间轴，`0` 表示来自真实词边界 |
-
-中层原语各自暴露自己的读数：`data-m2v-stage-state`（关系容器子节点的
-`active`/`done`/`pending`）、`data-m2v-relation="flow"` 与 `data-m2v-direction`
-（方向连接）、`data-m2v-value` / `data-m2v-shown`（仪表的目标值与当前显示值）、
-`data-m2v-units` / `data-m2v-filled`（象形图的单位数与已填充数）。
-`data-m2v-shown` 与 `data-m2v-filled` 按当前 beat 的局部进度求值，
-其余读数在帧间保持不变——**节点数量、内容与基础几何是冻结的**，
-变化只发生在已登记的视觉状态上（`data-m2v-state`）。
-
-> `data-m2v-stage`（没有 `-state` 后缀）是**舞台容器**的锚点，
-> 由 base.css 声明 1080 × 1920 与 `overflow: hidden`；场景树节点一律不用这个名字，
-> 否则节点会被撑成整块画布。
+| 画面只由帧号、幕数据与时长推导 | 同帧重复渲染必须一致 |
+| 禁止 `Date.now` / `performance.now` / `Math.random` / 计时器 / CSS 动画 | 同上；打包前的静态源码闸门与组件测试一起把守 |
+| 逐帧求值不读实时布局 | 每帧测量会随排版抖动，也会拖慢渲染 |
+| 组件不保存默认文案 | 文案只存在于分镜或幕数据，避免两处漂移 |
 
 ## 成片编码
 
 渲染路径不产生中间帧文件：Remotion 在引擎内逐帧渲染并直接交给 x264 编码，
-成片的画质由 `--crf` 控制（默认 18）。溯源里的 `captureFormat` 记为
-`remotion`，与历史上「网页逐帧截图」路径的产物区分。
+成片的画质由 CRF 控制（默认 18，`preset` 默认 `medium`）。溯源里记
+`renderer: "remotion"` 与 `compositionId`，与历史上「网页逐帧截图」路径的产物区分。
 
 ## 预览缩放与渲染模式
 
-契约页不缩放：Player 以分镜声明的 `width × height` 原始尺寸挂载，
-体检时视口也设为该尺寸，画面 1:1 落进视口。它没有播放控件
+契约页不缩放：Player 以准备记录里的 `width × height` 原始尺寸挂载，
+量测时视口也设为该尺寸，画面 1:1 落进视口。它没有播放控件
 （`controls` 已关闭），调试手段见下文。
 
 ## 视口与画布尺寸
 
-渲染/体检把浏览器视口设置为分镜声明的 `width × height`，并按该尺寸截图整个视口。
+渲染/量测把浏览器视口设置为准备记录里的 `width × height`，并按该尺寸截图整个视口。
 所以：
 
 - 舞台（composition 根节点）必须严格等于 `width × height`，不要在外层加 margin 或 padding；
 - 页面不能出现滚动条；
-- 所有正文放在 `.m2v-safe` 安全区内，避免被平台 UI 遮挡。
+- 正文放在安全区内（`--m2v-safe-top` / `--m2v-safe-bottom` / `--m2v-safe-x`，有字幕时用
+  `--m2v-safe-bottom-with-subtitles`），避免被平台 UI 遮挡；取值与栅格见
+  [设计令牌](design-tokens.md)。
 
 渲染前渲染脚本会检查舞台实际尺寸与契约是否一致，不一致时输出警告日志。
 
 ## 码流兼容性
 
-成片的码流参数由编码器固定，不由网页决定，原因是「ffmpeg 能解码」并不等于
+成片的码流参数由编码器固定，不由画面决定，原因是「ffmpeg 能解码」并不等于
 「播放器能播放」：
 
 | 项目 | 取值 | 为什么 |
 | --- | --- | --- |
-| 像素格式 | `yuv420p` + `-color_range tv` + `bt709` | JPEG 中间帧带的是全范围色彩，直接进 libx264 会产出 `yuvj420p(pc)`；ffmpeg 自己解码正常，但 Windows 的 Media Foundation 会以 `0xc00d36c4` 拒绝打开整个文件 |
+| 像素格式 | `yuv420p` + `-color_range tv` + `bt709` | 全范围色彩（`yuvj420p(pc)`）ffmpeg 自己解码正常，但 Windows 的 Media Foundation 会以 `0xc00d36c4` 拒绝打开整个文件 |
 | 尺寸 | 宽高都取偶数 | H.264 `yuv420p` 要求宽高可被 2 整除 |
 | 配音 | AAC-LC / 44.1kHz / 立体声 / 128k | 24kHz 单声道 AAC 在 Media Foundation 上会被直接拒绝；44.1kHz 立体声是各平台默认支持的组合 |
 
-`_verify_output()` 在解码验收之外会再读一次码流信息，命中全范围像素格式或非标准
-4:2:0 时**报错终止**，避免把「能解码但播不了」的成片交付出去。这条检查有独立的
-回归测试（`tests/test_remotion_render.py::test_renders_a_short_clip_with_the_expected_stream_parameters`，
-真渲一小段并断言码流参数）。
+`output_validation.verify_output()` 在解码验收之外会再读一次码流信息，命中全范围像素格式或
+非标准 4:2:0 时**报错终止**，避免把「能解码但播不了」的成片交付出去。
 
 ## 交付文件的访问权限
 
-成片、字幕与媒体清单都先写在临时目录里，再移动到最终位置。Windows 的
+成片与准备音轨都先写在临时目录里，再移动到最终位置。Windows 的
 `tempfile.TemporaryDirectory()` 会创建一个**刻意收紧**的目录，ACL 只有
 `SYSTEM / Administrators / OWNER RIGHTS` 且关闭继承；文件把这份 ACL 带到最终位置后，
 管理员账号自己仍能读写，但**以标准权限运行的打包应用会读不到**——
 Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有访问该文件的权限`，
 而 ffmpeg 与浏览器上传都不受影响，所以问题只在用户双击播放时暴露。
 
-因此 `m2v/security.py` 在文件落到最终位置后调用 `grant_inherited_access()`
-（`icacls /reset`），让文件重新遵循父目录的继承规则；`文章类型渲染` 与 `文章类型媒体准备`
+因此 `src/m2v/core/security.py` 在文件落到最终位置后调用 `grant_inherited_access()`
+（`icacls /reset`），让文件重新遵循父目录的继承规则；`m2v render` 与 `m2v prepare`
 在每个交付文件上都会执行一次，失败只记警告日志、不影响已经渲染好的成片。
 
 排查时注意两点，否则很容易误判为「文件没问题」：
@@ -323,109 +270,98 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 
 | 情况 | 结果 |
 | --- | --- |
-| 未定义 `window.__M2V__` | 等待超时后报错，并附带页面控制台的报错信息（契约页加载或解析分镜失败时也是这一表现：`__M2V__` 保持未定义，页面上有错误说明） |
-| `__M2V__.version` 与引擎期望的不一致 | 报错终止（两个版本的 `ready()` 语义不同，混用只会得到一叠空画面） |
+| 未定义 `window.__M2V__` | 等待超时后报错，并附带页面控制台的报错信息（契约页加载或解析材料失败时也是这一表现：`__M2V__` 保持未定义，页面上有错误说明） |
+| `__M2V__.version` 与 composition 的契约版本不一致 | 报错终止，并说明当前支持的契约版本（版本不同的 `ready()` 语义不同，混用只会得到一叠空画面） |
 | `ready` 或 `seekToFrame` 不是函数 | 报错终止 |
 | `fps` / `durationInFrames` / `width` / `height` 不是正整数 | 报错终止 |
-| composition 元数据与分镜的 fps 或总帧数不一致 | 报错终止，并列出两边的值（两条渲染路径共用同一组判定函数） |
+| composition 元数据与准备记录的 fps 或总帧数不一致 | 报错终止，并列出两边的值 |
 | `seekToFrame` 在超时内没有落到目标帧 | 报错终止，报出目标帧与实际所在帧 |
 | 舞台尺寸与契约不一致 | 警告，继续渲染 |
 | 文档尺寸超出视口 | 警告，提示可能存在溢出裁切 |
 
 ## 调试
 
-契约页暴露了一个诊断字段（不属于契约要求）：
+契约暴露只读的 `currentFrame()` 诊断读数，返回 Player 实际所在的帧号，不参与求帧完成判定。
+`seekToFrame` 超时时也会报告目标帧与实际帧（`web/src/contract/bridge.ts` 的 `settleOnFrame`）。
 
-```js
-window.__M2V__.currentFrame();   // Player 当前实际落在哪一帧
-```
-
-排查「画面没到目标帧」时先看它：`seekToFrame` 报超时时，错误信息里也带这个值。
-分镜本身的问题（未知组件、未知布局）会在契约页上直接显示错误说明
+材料本身的问题（未知字段、缺图片、缺少已准备的 v5 材料）会在契约页上直接显示错误说明
 （`data-m2v-contract-error` 元素），渲染入口报「`__M2V__` 未定义」时先打开页面看它。
 
-## 可选配音与字幕
+## 配音与字幕
 
-使用 `--media` 时，媒体清单在渲染前加载并校验：清单里的源分镜必须与命令行给的
-分镜一致（不一致报「媒体与分镜不匹配，请重新 prepare」），随后以清单派生后的
-分镜（时长按口播延长）驱动 composition；音频在帧渲染完成后由 FFmpeg 合入，
-字幕按清单导出为同名 `.srt`。
+配音与字幕由 `m2v prepare` 写进准备记录（`outputs/prepared.json` 的 `audio.segments` 与
+`subtitles`）：音轨在帧渲染完成后由 FFmpeg 合入，字幕由画面自身绘制，**不用 FFmpeg
+字幕滤镜**——那会产出与画面排版不同的一套字幕。正文预留字幕区域，判据见上文的三项硬判定。
 
-正文预留字幕区域，字幕由画面自身绘制，禁止另用 FFmpeg 字幕滤镜产生不同排版。
-媒体服务器只绑定回环地址，支持 CORS 和字节 Range，允许素材在仓库外并支持音频跳转。
-清单字段与校验见 [配音与字幕](media-contract.md)；
-成片命名与默认输出位置见 [目录约定与输出路径](paths-and-outputs.md)。
+准备记录里的音轨路径相对作品根解析，越界或摘要不符直接报错，不跨作品合成；
+字段与校验见 [配音与字幕](media-contract.md)，成片命名与默认输出位置见
+[目录约定与输出路径](paths-and-outputs.md)。
 
-通用类型（`general`）的配音不走媒体清单，而是由计划里的 `narration` 与可选
-`soundtrack.music` 在 prepare 阶段合成，字段见 [配音与字幕](media-contract.md) 的「通用片音床」。
-两种类型的成片音轨使用同一组交付参数：**AAC-LC / 44.1kHz / 立体声**。通用片为 128k（与文章类型一致），
-不能沿用清单里 24kHz 单声道 WAV 的源规格——24kHz 单声道 AAC 会被 Windows Media Foundation 拒绝打开。
+通用类型（`general`）的配音不走准备记录里的分段音轨，而是由计划里的 `narration` 与可选
+`soundtrack.music` 在 prepare 阶段合成，字段见 [配音与字幕](media-contract.md) 的音床一节。
+各类型的成片音轨使用同一组交付参数：**AAC-LC / 44.1kHz / 立体声**，通用片与文章同为 128k，
+不能沿用源音轨 24kHz 单声道的规格——24kHz 单声道 AAC 会被 Windows Media Foundation 拒绝打开。
 
 ## 成片溯源（`<名字>.provenance.json`）
 
-渲染成功后会在成片旁边写一份溯源，例如 `voiced.mp4` →
-`voiced.provenance.json`。它回答的是「这支片子是哪一版资产渲的」，
-因为成片不入库、也没有别的东西会提醒你它已经落后于源码：
-实测发生过两支作品的成片比动效重写早了几个小时，仍然带着被修掉的旧曲线，
-看上去却仍然是「上次验收通过」的样子。
+渲染成功后会在成片旁边写一份溯源，例如 `video.mp4` → `video.provenance.json`。
+它回答的是「这支片子是哪一版资产渲的」，因为成片不入库、也没有别的东西会提醒你它
+已经落后于源码：实测发生过两支作品的成片比动效重写早了几个小时，仍然带着被修掉的
+旧曲线，看上去却仍然是「上次验收通过」的样子。只有正式导出写溯源，预演不写。
 
-字段：
+字段（`schemaVersion` 当前为 `1`）：
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | 溯源格式版本。当前 `4`：画面来源区分为「网页」与「React composition」，后者指纹整个构建输入 |
-| `renderer` | 画面来源：`page`（历史版本：网页逐帧截图）或 `remotion`（composition 直接渲染，当前唯一写入值） |
-| `workspace` | 产物目录 → 工作区根的相对路径（如 `../..`），用于反解页面与资产在哪 |
-| `renderedAt` | 渲染时刻（UTC） |
-| `page` / `storyboard` | composition 入口与分镜，相对工作区根；落在仓库 `web/` 别名目录里的记 `/__m2v_web__/` 别名键；两者之外只记文件名（不写绝对路径） |
-| `frames` / `fps` / `width` / `height` / `captureFormat` | 成片参数；当前渲染路径的 `captureFormat` 为 `remotion` |
-| `assets.files` | 逐个的 sha256。当前路径是**构建输入**——composition 可达的全部源码文件、`package.json` 与锁文件、字体，外加分镜与媒体清单指纹；作品声明了代码场景时，还包含当前作品可达的 TS/TSX/CSS/SVG 与本地资产（作品文件记 `__m2v_workspace__/…` 键）。全局 `.gen/` 索引不计入成片溯源，但计入打包缓存键；历史网页路径则指纹页面真正引用的本地资源 |
-| `assets.digest` | 上表的规范化 JSON 摘要，与媒体清单的 `sourceFingerprint` 同一套算法 |
+| `schemaVersion` | 溯源格式版本，当前为 `1` |
+| `type` / `projectId` | 视频类型与作品标识 |
+| `compositionId` | 渲染用的 composition |
+| `renderer` | 画面来源；金融、房价、通用与素材类型写 `remotion`。文章类型的溯源不含这个键——它只可能是当前渲染路径，写不写都一样 |
+| `durationInFrames` / `frames`、`fps`、`width`、`height` | 成片参数；金融与房价类型用 `frames`，其余用 `durationInFrames` |
+| `preparedFingerprint` / `inputs` | 文章、通用与素材类型：准备记录指纹，以及逐个输入的 sha256（作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>`） |
+| `materialsAndAssetsSha256` | 金融与房价类型：材料与资产的整体摘要 |
+| `bundleKey` | 打包缓存键，用于确认这份成片用的是哪一份 bundle；金融、房价与素材类型写它，文章与通用类型不写 |
 
-两条口径值得记住：
+几条口径值得记住：
 
-- **只指纹真正影响画面的东西**：React 路径指纹从 composition 入口 import 可达的文件——
-  改一个没被任何组件用到的文件不该让成片报落后，而改一个被引用的组件文件
-  就该报。作品代码场景（`renderer.code`）的模块与其本地资产**正是从作品分镜与
-  静态清单出发沿 import 可达**的那部分，因此也在指纹里：改了任一可达输入，
-  旧成片判落后并指名文件；改无关作品不影响。裸包名导入的第三方依赖（如 dagre）
-  由 `package.json` 与锁文件覆盖：依赖版本变了，成片同样判落后。
-  否则闸门会变成噪音，人开始忽略它——那等于没有闸门。
-- **文本资产按 LF 归一化后哈希，二进制按原字节**：git 的换行归一化会在工作区
-  静默翻转行尾，只差行尾的文件不该被判成落后（否则会出现人怎么重渲都消不掉的
-  假落后）。
+- **只指纹真正影响画面的东西**：`inputs.renderer` 是 composition 入口沿 import 可达的
+  文件摘要——改一个没被任何组件用到的文件不该让成片报落后，而改一个被引用的组件文件
+  就该报。作品代码场景（`renderer.module`）的模块与其本地资产**正是从作品分镜与静态
+  清单出发沿 import 可达**的那部分，因此也在指纹里。裸包名导入的第三方依赖（如 dagre）
+  由 `package.json` 与锁文件覆盖：依赖版本变了，成片同样判落后。否则闸门会变成噪音，
+  人开始忽略它——那等于没有闸门。
+- **文本资产按 LF 归一化后哈希，其余按原字节**：git 的换行归一化会在工作区静默翻转
+  行尾，只差行尾的文件不该被判成落后（否则会出现人怎么重渲都消不掉的假落后）。
+  归一化清单是 `.css` / `.mjs` / `.json` / `.html` / `.svg` / `.md` 一类文本后缀；
+  `.ts` / `.tsx` 不在其中，按原字节哈希。
 - **键记文件在哪，不记引用怎么写**：仓库 `web/` 别名目录里的文件一律记
-  `/__m2v_web__/…` 键，内容根里的文章自己的资产记工作区相对键，两者都不在时只记文件名。
-  复核时按同一套规则反解，因此换机器、换目录、换内容根都读得回来，也不需要
-  再传 `--content-root`。`version` 不是 3/4 的溯源按旧格式处理，报「无法判断，请重渲」，
-  而不是报落后。
+  `/__m2v_web__/…` 键，作品自己的文件记 `__m2v_workspace__/…` 键，两者都不在时
+  只记文件名。复核时按同一套规则反解，因此换机器、换目录、换内容根都读得回来，
+  也不需要再传 `--content-root`。
 
-体检命令（`文章类型视觉体检`）会读这份溯源并在 `report.json` 的顶层 `provenance` 键
-与终端摘要里给结论：`current`（对得上）/ `stale`（落后，并指名是哪几个文件变了）/
-`unknown`（没有溯源、读不出来、旧格式或网页已不在——**如实说无法判断，不默认放行**）。
-这份结论**只提示、不拦人**：不参与错误数，也不改退出码。
+当前没有自动复核溯源的命令：溯源只如实记录这批指纹，判落后要拿它记的值与当前值比对。
+旧的 `version: 3/4` 溯源（含 `captureFormat`、`assets.files` 与页面路径）属于已删除的
+网页截图链路，只作历史参考，不要拿来判断当前成片。
 
 ## 字体覆盖（缺字机检）
 
-体检会逐个字符检查分镜里**会被渲染**的文本是否在字体里有字形，缺字按错误处理
-（进错误数与退出码）。判据不是拿某支字体去量，而是**画面实际注册过的字体**：
-字体由 `web/src/assets/fonts.json` 声明、`web/src/fonts.ts` 在运行时注册
-（文件清单见该目录的 README），体检按清单取出字体文件逐个核对字形——
+布局量测的第一步会逐个字符检查材料里**会被渲染**的文本是否在字体里有字形，
+缺字直接报错并阻断预演与正式导出。判据不是拿某支字体去量，而是**画面实际注册过的
+字体**：字体由 `web/src/assets/fonts.json` 声明、`web/src/fonts.ts` 在运行时注册
+（文件清单见该目录的 README），量测按清单取出字体文件逐个核对字形——
 只有当这些字体加起来都没有某个字形时，浏览器才真的会回退到系统字体——
-那正是要抓的东西。清单为空时（画面一个字体文件都没注册）不报缺字——
-无从判断，也不凭空拦人——但会**写明「字体覆盖检查不适用」**：
-一声不吭的检查和通过的检查在报告里长得一样，那是要避免的。
+那正是要抓的东西。清单为空时（画面一个字体文件都没注册）不报缺字：
+无从判断，也不凭空拦人。
 
 为什么它必须存在：缺字是唯一一种**静默失败**。浏览器不报错、不警告，直接用
-系统字体顶上，字宽、字重、基线全变，而 K4 对齐与 K7 溢出量的都是元素框，
-照过。它也是 webfont 子集化的前置条件——不做逐字检查就切字体，
+系统字体顶上，字宽、字重、基线全变，而布局量测量的是元素框，照过。
+它也是 webfont 子集化的前置条件——不做逐字检查就切字体，
 等于把这种漂移变成常态。
 
 范围与边界：
 
-- 扫描分镜里会被渲染的字段（`text`/`title`/`subtitle`/`label`/`quote`/`caption`/
-  `value`/`unit` 等）以及样式表里会被渲染的固定字串（`content:`）；
-  `narrationSegments` 是口播文本、不画在画面上，**不进扫描**；
+- 扫描材料里会被渲染的字段（`text`/`title`/`subtitle`/`label`/`quote`/`caption`/
+  `value`/`unit` 等）；`narrationSegments` 是口播文本、不画在画面上，**不进扫描**；
 - 结论定位到 `sceneId.字段`——只说「缺字」不可修；
 - 只判「字体里有没有这个字形」，不判字宽字重是否合适，也不判断浏览器
   实际选了哪个字体（那要跑浏览器）。

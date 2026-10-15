@@ -49,17 +49,14 @@ import m2v.core.code_scenes as code_scenes
 import m2v.engine.contract_page as contract_page
 import m2v.engine.scene_manifest as scene_manifest
 import m2v.core.source_policy as source_policy
-from m2v.engine.browser import PageContract
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import file_digest, fingerprint as calculate_fingerprint
 
 logger = logging.getLogger(__name__)
 
-#: Remotion 的入口与 composition 标识。两者都写死在 Python 侧：
-#: 它们是渲染契约的一部分，改名会让 `--engine remotion` 找不到画面，
+#: Remotion 入口。它写死在 Python 侧：是渲染契约的一部分，改名会让打包找不到画面，
 #: 而找不到时的报错必须指向这里而不是让人去猜。
 ENTRY_POINT = "src/index.ts"
-COMPOSITION_ID = "M2V"
 
 #: 渲染脚本相对 `web/` 的位置
 RENDER_SCRIPT = "scripts/remotion-render.mjs"
@@ -228,21 +225,6 @@ class CompositionMetadata:
     height: int
     duration_in_frames: int
 
-    @property
-    def contract(self) -> PageContract:
-        """当成页面契约用。
-
-        这样 `_resolve_fps` / `_resolve_dimensions` / `_resolve_total_frames`
-        三条判定对两条渲染路径完全一致——「画面声明的时长」与「分镜累计的时长」
-        必须相等这件事不该因为换了渲染器就换一套写法。
-        """
-        return PageContract(
-            fps=self.fps,
-            duration_in_frames=self.duration_in_frames,
-            width=self.width,
-            height=self.height,
-        )
-
 
 def web_dir() -> Path:
     """前端工程目录（`web/`）。"""
@@ -359,7 +341,6 @@ def prepare_composition_entry(
     web_dir: Path,
     storyboard_path: str | Path,
     content_root: str | Path | None = None,
-    additional_modules: list[tuple[str, str | Path]] | None = None,
 ) -> Path:
     """按当前作品重建代码场景静态清单，并检查其归属与安全边界。
 
@@ -368,9 +349,7 @@ def prepare_composition_entry(
     模块在这里解析归属并确认存在——缺失会在打包/起浏览器之前失败；
     依赖白名单与源码安全闸门也在这里执行，违规即终止，预览与导出都不会开始。
 
-    composition 本身不再由构建期入口选择：契约页与 Remotion 根都按分镜声明的
-    契约版本在运行时选择实现，因此「先构建了哪个版本」不再决定这次预览或导出
-    能不能渲染当前作品。返回的是本次生成的代码场景清单路径。
+    返回的是本次生成的代码场景清单路径。
     """
     try:
         Path(storyboard_path).read_text(encoding="utf-8")
@@ -378,7 +357,6 @@ def prepare_composition_entry(
         raise RemotionError(f"分镜读取失败，无法重建代码场景清单：{exc}") from exc
     manifest = scene_manifest.generate(
         web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root,
-        additional_modules=additional_modules,
     )
     _check_code_scene_boundaries(
         web_dir=web_dir, storyboard_path=Path(storyboard_path), content_root=content_root
@@ -417,7 +395,6 @@ def bundle(
     workspace_root: str | Path | None = None,
     timeout_s: float = _BUNDLE_TIMEOUT_S,
     cache: bool = True,
-    additional_modules: list[tuple[str, str | Path]] | None = None,
     cache_identity: str | Path | None = None,
 ) -> BundleOutcome:
     """把 composition 打包成静态产物，交给后续的取元数据与渲染复用。
@@ -440,7 +417,6 @@ def bundle(
     with bundle_cache.generation_lock(web):
         prepare_composition_entry(
             web_dir=web, storyboard_path=storyboard_path, content_root=content_root,
-            additional_modules=additional_modules,
         )
         violations = source_policy.scan(build_inputs())
         if violations:
@@ -469,7 +445,6 @@ def bundle(
             content_root=content_root or workspace_root,
             workspace_root=workspace_root,
         )
-        fingerprint = _with_additional_modules(fingerprint, additional_modules or [])
         base = fingerprint["files"]
         key, detail = bundle_cache.compute_key(
             web_dir=web, base_files=base, storyboard_path=cache_identity or storyboard_path
@@ -547,7 +522,7 @@ def metadata(
     web_dir: Path,
     bundle_dir: Path,
     props: Path,
-    composition_id: str = COMPOSITION_ID,
+    composition_id: str,
     timeout_s: float = _METADATA_TIMEOUT_S,
 ) -> CompositionMetadata:
     """读出 composition 由分镜 props 推导出的画面参数。"""
@@ -599,7 +574,7 @@ def render_frames(
     timeout_s: float,
     frame_start: int = 0,
     scale: float = 1,
-    composition_id: str = COMPOSITION_ID,
+    composition_id: str,
     concurrency: int = DEFAULT_CONCURRENCY,
 ) -> None:
     """把 composition 渲染并编码成无声 MP4。
@@ -651,7 +626,7 @@ def render_session(
     web_dir: Path,
     bundle_dir: Path,
     props: Path,
-    composition_id: str = COMPOSITION_ID,
+    composition_id: str,
     on_metadata: Callable[[CompositionMetadata], dict | None],
     timeout_s: float,
     metadata_timeout_s: float = _METADATA_TIMEOUT_S,
@@ -1052,17 +1027,5 @@ def build_input_fingerprint(
         assets.asset_key(path, root, mounts): file_digest(path)
         for path in build_inputs(repo_root, scene_modules=selected_modules)
     }
-    ordered = dict(sorted(files.items()))
-    return {"files": ordered, "digest": calculate_fingerprint(ordered)}
-
-
-def _with_additional_modules(fingerprint_data: dict, modules: Iterable[tuple[str, str | Path]]) -> dict:
-    """Bind non-storyboard code modules into cache and provenance fingerprints."""
-    files = dict(fingerprint_data["files"])
-    for module_id, module_path in modules:
-        module_file = Path(module_path).resolve()
-        if not module_file.is_file():
-            raise RemotionError(f"附加代码场景模块不存在：{module_file}")
-        files[f"__m2v_embedded_code__/{module_id}"] = file_digest(module_file)
     ordered = dict(sorted(files.items()))
     return {"files": ordered, "digest": calculate_fingerprint(ordered)}

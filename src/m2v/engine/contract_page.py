@@ -31,11 +31,6 @@ from m2v.engine.http_server import LocalServer
 #: `web/` 目录的服务器别名前缀。页面在这里，分镜在工作区根里，靠它接起来。
 WEB_MOUNT = "/__m2v_web__"
 
-#: 契约页实现的渲染契约版本。
-#: **升级时必须同步改这里，并同步 `web/src/contract/bridge.ts`**：
-#: 版本号在页面启动早期区分契约实现，防止旧页面以空白首帧的形式混入评审。
-CONTRACT_VERSION = 3
-
 #: 契约页相对 `web/` 的位置：Vite 的构建产物
 CONTRACT_PAGE_RELATIVE = Path("dist/contract/contract.html")
 

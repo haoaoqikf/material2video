@@ -19,7 +19,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、文章叙�
 | `stock-montage` | [在线素材剪辑](references/stock-montage-video.md)：先执行 `m2v stock search` 检索并留证素材，再校验、完整预演与导出。 |
 <!-- generated:type-catalog:end -->
 
-通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章使用 v5 讲解 composition，保留完整时间轴、字幕与配音。代码场景通过公开 `@m2v/scene` API 使用确定性帧上下文。源码约束检查不是执行任意不可信代码的安全沙箱。
+通用场景共享一条全片帧轴。首版画布为 1080×1920、30 fps；完整嵌入片段不支持裁切、变速或拉伸。嵌入文章使用 v5 讲解 composition，保留完整时间轴、字幕与配音。代码场景在幕上声明 `renderer`，通过公开 `@m2v/scene` API 使用确定性帧上下文，模块契约见[代码场景](references/code-scenes.md)。源码约束检查不是执行任意不可信代码的安全沙箱。
 
 ## 统一命令
 
@@ -57,7 +57,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 
 文章类型只接受 v5 scenes 多幕讲解。按观点、对比、步骤、因果图、图片选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID。默认深色，可选浅色。默认根据旁白原文生成字幕，并烧录到预演和正式成片，无需额外开关，不得仅交付外置字幕；正文留出字幕安全区，无讲话的停顿及阅读尾段不显示字幕。每段实际 TTS 决定时间，完整成片含阅读停留与淡化不超过 60 秒；旧 v1～v4 须重新编排。
 
-先阅读源文并填写 outputs/input-review.json，再制作分镜与配音。完整有声预演自动验收后即可导出；可按需填写 outputs/review.json，不再要求旧 production.json、单世界或镜头连续性门禁。详见 [分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)和[评审量表](references/visual-review-rubric.md)。共享原语与代码场景文档仍供 general 和内部动画模块使用，不属于 v5 模板创作入口。
+先阅读源文并填写 outputs/input-review.json，再制作分镜与配音。完整有声预演自动验收后即可导出；可按需填写 outputs/review.json，不再要求旧 production.json 门禁。详见 [分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)和[评审量表](references/visual-review-rubric.md)。代码场景文档只服务 general 类型，不属于 v5 模板创作入口。
 
 ## 渲染与评审
 

@@ -1,143 +1,27 @@
 /*
  * material2video 竖屏基础样式
  *
- * 只提供「所有视频都必须一致」的部分：画布尺寸、安全区、字体栈与控件条。
- * 视觉风格（配色、字号、构图）由每个视频的网页自行决定。
+ * 只提供「所有视频都必须一致」的部分：盒模型与页面根样式。
  *
- * 本文件逐字符搬自冻结的共享资产 `assets/base.css`，只去掉了一样东西：
- * 那个只装令牌声明的 `:root { … }` 块（`--m2v-width` / `--m2v-height` /
- * `--m2v-font` / `--m2v-safe-*`）。这些令牌的真源在新工程里是 `tokens.css`，
- * 留在这里就会有两处真源，改一处漏一处不会报错、只会让画面悄悄变样。
- * 除它之外，本文件的每一个字符都与旧文件相同——`tests/test_web_style_stack.py`
- * 会按「去掉注释、空白与 `:root` 令牌块后逐字符一致」这条判据守住它。
+ * `html/body` 的零边距与禁滚动不是排版偏好，而是**量测前提**：布局量测按
+ * 视口绝对坐标判定安全区（例如「正文左边界不得小于 106px」），页面根一旦
+ * 带上浏览器默认边距，整个画面会平移 8px，判定随之全部失真。
+ *
+ * 视觉风格（配色、字号、构图）由每个 composition 与作品代码场景自行决定：
+ * 设计令牌的真源是 `tokens.css`，这里不重复声明任何令牌。
  */
 
 * {
   box-sizing: border-box;
 }
 
-/* 字幕占据安全区底部；正文区域同步上移，预览与导出使用相同布局。 */
-.m2v-with-subtitles .m2v-safe {
-  bottom: calc(var(--m2v-safe-bottom) + 180px);
-}
-
-.m2v-subtitle {
-  position: absolute;
-  left: var(--m2v-safe-x);
-  right: var(--m2v-safe-x);
-  bottom: var(--m2v-safe-bottom);
-  min-height: 128px;
-  font-size: 48px;
-  line-height: 1.3;
-  font-weight: 600;
-  color: white;
-  text-align: center;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-  text-shadow: -2px -2px 0 #101018, 2px -2px 0 #101018,
-    -2px 2px 0 #101018, 2px 2px 0 #101018, 0 3px 8px #101018;
-  z-index: 5;
-  pointer-events: none;
-}
-
 html,
 body {
   margin: 0;
   padding: 0;
-  background: #07090f;
-  color: #f4f7fb;
+  background: var(--m2v-bg-0, #08090c);
+  color: var(--m2v-ink-1, #f4f7fb);
   font-family: var(--m2v-font);
   /* 视频是逐帧截图，滚动条会污染画面，因此禁止页面滚动 */
   overflow: hidden;
-}
-
-/*
- * 舞台：1080 × 1920 的逻辑画布。
- * 预览时由时间轴运行时按窗口大小整体 transform 缩放，不改动内部布局，
- * 保证预览与导出使用同一套坐标。
- */
-[data-m2v-stage] {
-  position: relative;
-  width: var(--m2v-width);
-  height: var(--m2v-height);
-  overflow: hidden;
-  transform-origin: top left;
-  background: #07090f;
-}
-
-/* 单个场景的容器，运行时只显示当前场景 */
-[data-m2v-scene] {
-  position: absolute;
-  inset: 0;
-}
-
-/* 内容安全区：所有正文都应放在这个容器内 */
-.m2v-safe {
-  position: absolute;
-  top: var(--m2v-safe-top);
-  right: var(--m2v-safe-x);
-  bottom: var(--m2v-safe-bottom);
-  left: var(--m2v-safe-x);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 48px;
-}
-
-/* 导出时控件必须完全移出画面；预览时由运行时恢复显示 */
-[data-m2v-controls] {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  border-radius: 999px;
-  background: rgba(16, 20, 30, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-size: 20px;
-  z-index: 10;
-}
-
-[data-m2v-controls] button {
-  font: inherit;
-  color: inherit;
-  padding: 8px 20px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
-  cursor: pointer;
-}
-
-[data-m2v-controls] button:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-[data-m2v-seek] {
-  width: 320px;
-  accent-color: #35e0c8;
-}
-
-[data-m2v-time] {
-  min-width: 132px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.75;
-}
-
-/*
- * 渲染模式：渲染脚本会在截图前给 <html> 加上 m2v-rendering。
- * 这里做两件事，保证导出画面不受预览环境干扰：
- *   1. 隐藏所有预览专用元素（控件条等）；
- *   2. 取消预览缩放，让舞台严格等于 1080 × 1920。
- */
-html.m2v-rendering [data-m2v-controls],
-html.m2v-rendering .m2v-preview-only {
-  display: none !important;
-}
-
-html.m2v-rendering [data-m2v-stage] {
-  transform: none !important;
 }

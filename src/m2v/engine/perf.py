@@ -38,7 +38,7 @@ STAGES: tuple[str, ...] = ("cache", "bundle", "metadata", "render", "mux", "prob
 #: 报告格式版本。字段或口径变化时递增，让旧报告一眼可辨。
 REPORT_VERSION = 1
 
-#: 性能报告后缀：`voiced.mp4` → `voiced.performance.json`，与成片同名同级。
+#: 性能报告后缀：`video.mp4` → `video.performance.json`，与成片同名同级。
 REPORT_SUFFIX = ".performance.json"
 
 

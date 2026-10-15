@@ -57,18 +57,21 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v article input-review|candidate|adopt-candidate`；在线素材剪辑的检索使用 `m2v stock search --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-文章讲解使用 v5 多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`，执行 `m2v article input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；每幕保留 12 帧阅读停留，可选 8 帧画面淡化，完整成片最多 60 秒。自动检查文字溢出、正文侵入字幕区及字幕实际遮挡，完整预演自动验收通过后即可导出；统一 `outputs/review.json` 五项依据为可选评审材料。旧 `production.json`、单世界动画分镜与旧评审不再适用，v1～v4 须重新编排；不自动迁移。
+文章讲解使用 v5 多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`，执行 `m2v article input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；每幕保留 12 帧阅读停留，可选 8 帧画面淡化，完整成片最多 60 秒。自动检查文字溢出、正文侵入字幕区及字幕实际遮挡，完整预演自动验收通过后即可导出；统一 `outputs/review.json` 五项依据为可选评审材料。旧 `production.json` 与旧评审不再适用，v1～v4 须重新编排；不自动迁移。
+
+通用视频（`general`）按 `general-plan.json` 组合受控图文幕、完整金融/文章片段幕与代码场景幕。代码场景在**幕**上声明 `renderer: { kind: "code", module: "<模块标识>" }`，模块放在作品 `scenes/` 下，只可通过 `@m2v/scene` 导入项目内部 API；模块契约、依赖白名单、确定性纪律与构建溯源见 [代码场景](.agents/skills/material2video/references/code-scenes.md)，设计令牌取值见 [设计令牌](.agents/skills/material2video/references/design-tokens.md)。
 
 作品可以位于仓库外内容根；`M2V_CONTENT_ROOT` 用作默认内容根。架构和材料契约见 [OpenSpec 变更](openspec/specs/modular-video-production/spec.md)，未来能力路线见 [项目规划](docs/PROJECT_PLAN.md)。
 
 ## 项目结构
 
-- `src/m2v/core/`：作品契约、路径、指纹、公共错误。
-- `src/m2v/engine/`：Remotion 构建与缓存、渲染会话、音视频合成和验收。
-- `src/m2v/types/`：文章、金融、通用类型、类型目录（`catalog.json`）与显式注册。
+- `src/m2v/core/`：作品契约与路径（`project.py`、`workspace.py`）、指纹与资产、代码场景解析与源码闸门（`code_scenes.py`、`code_gate.py`、`source_policy.py`）、公共错误与报告类型。
+- `src/m2v/engine/`：Remotion 构建与缓存、渲染会话、字幕、音视频合成、性能报告和输出验收。
+- `src/m2v/types/`：文章、金融、通用、住宅与素材剪辑五个类型的行为适配器，以及类型目录（`catalog.json`）与显式注册。
 - `src/m2v/cli.py`：`m2v` 统一命令入口。
-- `web/src/compositions/`：共享 composition、金融画面、文章讲解模板与通用场景宿主。
-- `.agents/skills/material2video/references/`：材料、类型创作与评审操作参考。
+- `web/src/compositions/`：五个类型各自的 composition（`FinancialTimeSeries`、`ArticleExplainer`、`GeneralVideo`、`HousingTimeSeries`、`StockMontage`）。
+- `web/src/code-scene/`：作品代码场景的公开 API（`@m2v/scene`）、稳定随机与白名单视觉库适配。
+- `.agents/skills/material2video/references/`：材料、类型创作与渲染契约参考。
 - `openspec/specs/`、`openspec/changes/`：已归档规格与进行中的变更。
 
 本轮不建设行情服务、云端队列、账号、自动发布、自动选曲或第三方插件系统。

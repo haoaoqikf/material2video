@@ -12,6 +12,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
 from m2v.core.output_cleanup import cleanup_after_render
 from m2v.core.preview import require_preview
+from m2v.core.workspace import CONTENT_ROOT_ENV
 from m2v.types import catalog, registry
 
 
@@ -63,10 +64,10 @@ def _parser() -> argparse.ArgumentParser:
             item.add_argument("--head-pad", type=float, metavar="SECONDS", help="每段口播开头的静音长度")
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)
-    migrate.add_argument("--from", dest="source_format", required=True, choices=("article-v4", "financial"))
+    migrate.add_argument("--from", dest="source_format", required=True, choices=("financial",))
     relocate = sub.add_parser("relocate", help="将单个作品移动到按视频类型分层的标准目录")
     relocate.add_argument("--project", required=True, help="旧的 videos/<slug> 作品目录")
-    relocate.add_argument("--content-root", help="工作区根；省略时取 M2V_CONTENT_ROOT 或仓库根")
+    relocate.add_argument("--content-root", help=f"工作区根；省略时取 {CONTENT_ROOT_ENV} 或仓库根")
     article = sub.add_parser("article", help="文章类型的语义审查与候选稿操作")
     article.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal"))
     article.add_argument("options", nargs=argparse.REMAINDER)
@@ -254,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             item = registry.get(args.type)
             entry = catalog.catalog().get(item.name)
             project_dir = Path(args.project).expanduser()
-            content_root = args.content_root or os.environ.get("M2V_CONTENT_ROOT")
+            content_root = args.content_root or os.environ.get(CONTENT_ROOT_ENV)
             workspace = Path(content_root).expanduser().resolve() if content_root else Path(__file__).resolve().parents[2]
             if not project_dir.is_absolute():
                 if len(project_dir.parts) == 1:

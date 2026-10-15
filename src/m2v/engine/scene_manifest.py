@@ -66,12 +66,11 @@ def generate(
     web_dir: str | Path,
     storyboard_path: str | Path,
     content_root: str | Path | None = None,
-    additional_modules: list[tuple[str, str | Path]] | None = None,
 ) -> Path:
     """为当前作品重建静态场景清单，返回生成文件路径。
 
     分镜没有代码场景时也走同一条路径：生成空映射并覆盖旧文件，
-    保证「切换到纯 tree 作品」同样不残留上一个作品的模块。
+    保证「切换到没有代码幕的作品」同样不残留上一个作品的模块。
     """
     web = Path(web_dir)
     try:
@@ -91,20 +90,11 @@ def generate(
         else:
             workspace_root = str(source_dir.parent.parent.resolve())
 
-    by_id = {item.id: item for item in modules}
-    for module_id, module_path in additional_modules or []:
-        resolved = Path(module_path).resolve()
-        previous = by_id.get(module_id)
-        if previous is not None and previous.path.resolve() != resolved:
-            raise M2VError(f"代码场景模块标识冲突：{module_id}")
-        by_id[module_id] = SceneModule(id=module_id, path=resolved)
-    modules = list(by_id.values())
     manifest = {
         "webDir": str(web.resolve()),
         "outFile": GENERATED_MANIFEST.as_posix(),
         # Tailwind source 索引用：指向当前作品目录（scenes/ 与 assets/）
         "articleDir": article_dir,
-        "additionalSourceDirs": sorted({str(Path(path).resolve().parent.parent) for _, path in additional_modules or []}),
         # 指纹挂载用：作品文件以 __m2v_workspace__ 前缀记录可复核键
         "workspaceRoot": workspace_root,
         "modules": [{"id": item.id, "module": str(item.path.resolve())} for item in modules],

@@ -31,8 +31,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.526",
-    "tailwindcss": "4.2.0",
-    "zod": "4.5.4"
+    "tailwindcss": "4.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

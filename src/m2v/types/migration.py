@@ -20,9 +20,7 @@ def migrate(root: Path, source_format: str) -> Path:
     if not root.is_dir():
         raise M2VError(f"作品目录不存在：{root}")
     financial_upgrade = False
-    if source_format == "article-v4":
-        raise M2VError("文章类型已改用 v5 讲解分镜；v4 须重新编排，不支持自动迁移")
-    elif source_format == "financial":
+    if source_format == "financial":
         from m2v.types.financial import financial
         raw_plan = json.loads((root / "animation-plan.json").read_text(encoding="utf-8"))
         raw_request = json.loads((root / "request.json").read_text(encoding="utf-8"))

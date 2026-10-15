@@ -21,7 +21,7 @@ requires_node = pytest.mark.skipif(
     shutil.which("node") is None, reason="需要 Node 才能验证会话协议"
 )
 
-METADATA = {"id": "M2V", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 90}
+METADATA = {"id": "TestComposition", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 90}
 
 
 def _js_path(path: Path) -> str:
@@ -62,7 +62,7 @@ def _handshake_script(
 ) -> str:
     """一段只实现协议的假渲染脚本：所有行为都由参数决定。"""
     meta = json.dumps(metadata or METADATA)
-    sess = json.dumps(session or {"browsersOpened": 1, "compositionId": "M2V"})
+    sess = json.dumps(session or {"browsersOpened": 1, "compositionId": "TestComposition"})
     confirm_file = _js_path(tmp_path / "confirm.json")
     abort_file = _js_path(tmp_path / "abort.json")
     render_file = _js_path(tmp_path / "render.txt")
@@ -111,6 +111,7 @@ def _session(tmp_path, monkeypatch, script, **kwargs):
         "web_dir": tmp_path,
         "bundle_dir": tmp_path / "bundle",
         "props": tmp_path / "storyboard.json",
+        "composition_id": "TestComposition",
         "on_metadata": lambda meta: {"out": str(tmp_path / "video.mp4"), "progressTotal": 90},
         "timeout_s": 30,
         "metadata_timeout_s": 10,
@@ -157,6 +158,7 @@ def test_metadata_mismatch_aborts_before_any_frame_is_rendered(tmp_path, monkeyp
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=confirm,
             timeout_s=30,
             metadata_timeout_s=10,
@@ -177,6 +179,7 @@ def test_rejected_metadata_makes_the_script_exit_instead_of_waiting(tmp_path, mo
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=lambda meta: None,
             timeout_s=30,
             metadata_timeout_s=10,
@@ -196,6 +199,7 @@ def test_silent_session_times_out_and_is_cleaned_up(tmp_path, monkeypatch):
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=lambda meta: {"out": "x"},
             timeout_s=30,
             metadata_timeout_s=0.5,
@@ -213,6 +217,7 @@ def test_session_that_exits_before_the_metadata_is_reported_with_the_exit_code(t
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=lambda meta: {"out": "x"},
             timeout_s=30,
             metadata_timeout_s=10,
@@ -231,6 +236,7 @@ def test_render_failure_reports_the_output_tail(tmp_path, monkeypatch):
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=lambda meta: {"out": str(tmp_path / "video.mp4")},
             timeout_s=30,
             metadata_timeout_s=10,
@@ -249,6 +255,7 @@ def test_composition_id_mismatch_is_reported_before_rendering(tmp_path, monkeypa
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "storyboard.json",
+            composition_id="TestComposition",
             on_metadata=lambda meta: {"out": "x"},
             timeout_s=30,
             metadata_timeout_s=10,
@@ -273,6 +280,7 @@ def test_a_session_that_lingers_after_done_is_not_reported_as_a_timeout(tmp_path
         web_dir=tmp_path,
         bundle_dir=tmp_path / "bundle",
         props=tmp_path / "storyboard.json",
+        composition_id="TestComposition",
         on_metadata=lambda meta: {"out": str(tmp_path / "video.mp4"), "progressTotal": 90},
         timeout_s=30,
         metadata_timeout_s=10,
@@ -325,6 +333,7 @@ def test_callback_error_terminates_process_before_closing_reader(tmp_path, monke
         if session_mode:
             remotion.render_session(
                 web_dir=tmp_path, bundle_dir=tmp_path, props=tmp_path / "props.json",
+                composition_id="TestComposition",
                 on_metadata=lambda meta: {}, timeout_s=1, on_line=fail,
             )
         else:
@@ -346,6 +355,7 @@ def test_render_frames_passes_the_concurrency_to_the_node_script(tmp_path, monke
         web_dir=tmp_path,
         bundle_dir=tmp_path / "bundle",
         props=tmp_path / "props.json",
+        composition_id="TestComposition",
         out=out,
         total_frames=5,
         crf=18,
@@ -367,6 +377,7 @@ def test_render_frames_rejects_an_invalid_concurrency_before_spawning(tmp_path, 
             web_dir=tmp_path,
             bundle_dir=tmp_path / "bundle",
             props=tmp_path / "props.json",
+            composition_id="TestComposition",
             out=tmp_path / "video.mp4",
             total_frames=5,
             crf=18,

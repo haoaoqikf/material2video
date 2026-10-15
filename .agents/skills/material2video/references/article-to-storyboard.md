@@ -8,6 +8,6 @@
 
 每段旁白给稳定 ID，展示项绑定对应段。关键词需在屏幕文字中存在，步骤按口播顺序排列，因果关系不得循环。优先减少信息密度和拆幕，不用复杂动画掩盖内容问题。
 
-全片实际时长不超过 60 秒，包括每幕 12 帧阅读停留和可选 8 帧淡化；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。旧单世界动画与代码场景约束不作用于 v5 讲解模板。
+全片实际时长不超过 60 秒，包括每幕 12 帧阅读停留和可选 8 帧淡化；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。代码场景与通用视频无关的约束不作用于 v5 讲解模板。
 
-固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。各目录的 legacy-test-storyboard.json 仅供旧共享动画内部回归，不用于文章制作。
+固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例只有 `article.md`、`project.json`、`storyboard.json`、`README.md` 与按需的 `assets/`。

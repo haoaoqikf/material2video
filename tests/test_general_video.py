@@ -143,45 +143,6 @@ def test_embedded_scene_rejects_reference_cycle_and_transition_overflow(tmp_path
         adapter._plan(root, manifest)
 
 
-def test_embedded_article_code_modules_are_namespaced_and_fingerprint_checked(tmp_path: Path) -> None:
-    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
-        {"id": "story-one", "type": "article-narrative", "project": "one"},
-        {"id": "story-two", "type": "article-narrative", "project": "two"},
-    ]})
-    from m2v.core.project import load_project as load_child, save_prepared
-
-    for name in ("one", "two"):
-        child = root / name
-        create_typed_project(child, "article-narrative")
-        child_root, child_manifest = load_child(child)
-        source = {"schemaVersion": 4, "world": {"renderer": {"kind": "code", "module": "water-tank"}}}
-        (child_root / "storyboard.json").write_text(json.dumps(source), encoding="utf-8")
-        (child_root / "scenes").mkdir()
-        code = child_root / "scenes" / "water-tank.tsx"
-        code.write_text("export default function Scene() { return null; }", encoding="utf-8")
-        save_prepared(child_root, project=child_manifest, composition_id="M2V", props=source,
-            width=1080, height=1920, fps=30, duration_in_frames=60, inputs={
-                "storyboard": hashlib.sha256((child_root / "storyboard.json").read_bytes()).hexdigest(),
-            })
-
-    plan = adapter._plan(root, manifest)
-    first, second = plan["scenes"]
-    first_module = first["embeddedProps"]["world"]["renderer"]["module"]
-    second_module = second["embeddedProps"]["world"]["renderer"]["module"]
-    assert first_module != second_module
-    assert first["embeddedCodeModules"][0]["id"] == first_module
-    modules = adapter._embedded_modules(root, plan["scenes"])
-    assert {module_id for module_id, _path in modules} == {first_module, second_module}
-
-    first_path = modules[0][1]
-    first_path.write_text("export default function Changed() { return null; }", encoding="utf-8")
-    with pytest.raises(M2VError, match="重新 prepare"):
-        adapter._embedded_modules(root, plan["scenes"], {
-            f"embedded-module:{module['id']}": module["sha256"]
-            for scene in plan["scenes"] for module in scene["embeddedCodeModules"]
-        })
-
-
 def test_soundtrack_accepts_music_only_and_rejects_effects_and_bad_refs(tmp_path: Path) -> None:
     bed = {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True,
            "fadeInMs": 500, "fadeOutMs": 500}
@@ -191,7 +152,7 @@ def test_soundtrack_accepts_music_only_and_rejects_effects_and_bad_refs(tmp_path
     root, manifest = _project(tmp_path, plan)
     adapter._plan(root, manifest)  # 音床通过校验
 
-    bad_effect = {"sourceRef": "assets/drop.wav", "sceneId": "only", "beatId": "b1", "gainDb": -12}
+    bad_effect = {"sourceRef": "assets/effect.wav", "sceneId": "only", "beatId": "b1", "gainDb": -12}
     root, manifest = _project(tmp_path / "effect", {**plan, "soundtrack": {"music": bed, "effects": [bad_effect]}})
     with pytest.raises(M2VError, match="没有 beat 轴"):
         adapter._plan(root, manifest)

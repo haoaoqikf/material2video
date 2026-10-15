@@ -1,7 +1,7 @@
 # web/ —— 画面实现与渲染契约页
 
 这里是 Material2Video 的**表现层与渲染层**：React composition 画画面，Remotion 逐帧渲染成 MP4。
-内容层（`storyboard.json`）与配音层（Python 的 `prepare.py`）不在这里。
+内容层（材料与分镜 JSON）与配音层（Python 的 `m2v prepare`）不在这里。
 
 ## 为什么是 React + Remotion
 
@@ -56,7 +56,9 @@ uv run m2v render --project <作品目录>
 中间靠 stdout 上带前缀的行通信（`__M2V_COMPOSITION__{…}` 报元数据、`__M2V_PROGRESS__<百分比>`
 报进度），不解析 Remotion 的日志文本——日志措辞随版本变化，把判定挂在它上面升级一次就会静默失效。
 
-`--engine` 当前只有一个取值 `remotion`（保留该参数用于显式声明契约）。
+渲染入口是固定常量（`src/m2v/engine/remotion.py` 的 `ENTRY_POINT`），没有
+`--engine` 之类的切换参数：当前只有 Remotion 一条实现，留一个只有单一取值的
+参数只会让「能不能换引擎」这件事含糊。
 
 ## 渲染脚本（`scripts/remotion-render.mjs`）
 
@@ -85,22 +87,23 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 
 ## 作品代码场景（`renderer.code`）
 
-v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交给作品
-`scenes/` 下的 TSX 模块；`stages[]` 只推进叙事，不单独声明 renderer。模块契约、
-依赖白名单、探针协议与确定性纪律的**权威文档**在
+通用视频材料的幕级 `renderer` 声明 `kind: "code"` 与 `module`，把那一幕的画面交给
+作品 `scenes/` 下的 TSX 模块；`src/compositions/GeneralVideo.tsx` 按模块标识从静态
+清单里取组件渲染，缺失模块直接抛错。模块契约、依赖白名单、探针协议与确定性纪律的
+**权威文档**在
 [代码场景](../.agents/skills/material2video/references/code-scenes.md)，
 这里只记 web 工程侧的接法：
 
 - 静态清单 `.gen/active-scenes.ts`（由 `scripts/gen-active-scenes.mjs` 按当前作品
   整体重建）持有一个 `Record<string, M2VCodeScene<any>>` 映射；
-  `src/compositions/CodeSceneHost.tsx` 按模块标识取组件渲染，缺失模块直接抛错；
 - 作品模块通过别名 `@m2v/scene` 导入 `src/code-scene/index.ts`——这是作品可导入的
   **唯一**项目内部 API；tsconfig paths、Vite 与 Remotion webpack 三处都对白名单
   裸包与该别名配置了解析（仓库外的作品模块因此可以编译）；
 - 本地资产（图片/SVG）用打包器导入（`import markUrl from '../assets/mark.png'`），
   不要写相对 URL 字符串——那会按页面地址解析成 404；
-- 依赖白名单（`react` / `remotion` / `echarts` / `@dagrejs/dagre` / `lucide-react`）
-  的版本锁定在本工程 `package.json`；作品不得自行安装或导入其他 npm 包。
+- 依赖白名单（`react` / `react-dom` / `remotion` / `@remotion/*` / `echarts` /
+  `@dagrejs/dagre` / `lucide-react` / `@m2v/scene`）的版本锁定在本工程
+  `package.json`；作品不得自行安装或导入其他 npm 包。
 
 ## Tailwind 与作品代码场景
 
@@ -116,23 +119,22 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
   扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
   需要按状态切换时，把完整类名写进映射对象再取用。
 
-## 渲染契约（`window.__M2V__` version 4）
+## 渲染契约（`window.__M2V__` version 5）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | v4 分镜为 `4`；内部旧版页面实现仍为 `3`，当前制作入口拒绝 v1～v3 分镜 |
-| `fps` / `width` / `height` / `durationInFrames` | 必须与分镜一致，不一致时渲染入口报错终止 |
+| `version` | 固定为 `5`；量测脚本按版本号拒绝旧页面，而不是等超时后报一句看不懂的话 |
+| `fps` / `width` / `height` / `durationInFrames` | 必须与材料一致，不一致时渲染入口报错终止 |
 | `ready()` | 字体就绪、Player 已挂载、首帧已绘制后 resolve |
 | `seekToFrame(frame)` | 把画面定位到第 `frame` 帧并暂停，画面更新完成后 resolve |
-| `currentFrame()` | 只读诊断读数：画面当前停在第几帧，供量测失败时定位，不参与 `seekToFrame` 语义 |
-| `world()` / `stage()` / `objectStates()` / `camera()` / `beats()` | v4 全片世界、当前阶段、对象状态、镜头与节拍探针 |
+| `currentFrame()` | 返回 Player 当前实际帧号，仅供只读诊断 |
 
-分镜地址由查询参数给出：`contract.html?m2v-storyboard=<分镜的 URL>`，
-因此这一个页面服务任意作品，作品不需要自己的 HTML。
+契约页只量测文章 v5 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
+读取已准备的讲解材料。通用视频代码模块由 `scripts/gen-active-scenes.mjs` 生成静态清单后参与 Remotion 打包。
 
-契约实现只有一处（`src/contract/bridge.ts`），**作品不许自己实现**。
+契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/contract/explainer.tsx`，**作品不许自己实现**。
 
 ## 字体
 
@@ -145,8 +147,8 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
 **源文件缺失会让构建失败**：静默回退到系统字体是本项目最怕的一类失败——
 成片出来了、字全变了、没有任何报错。
 
-字体栈只在 `[data-m2v-preset="keynote"]` 作用域内切换（见 `src/styles/tokens.css`），
-作用域之外的元素不继承这套字体栈。
+字体栈由 `tokens.css` 的 `--m2v-font` 给出，声明在 `:root` 上，页面里的所有元素
+都继承它——不存在按属性切换的作用域。
 
 ## 第三方依赖：只经代码场景白名单
 
@@ -157,8 +159,8 @@ v4 在全片 `world.renderer` 声明 `kind: "code"` 与 `module`，把画面交�
 在作品的代码场景里声明，并使用共享白名单：React、React DOM、Remotion、ECharts、
 Dagre、Lucide 与 `@m2v/scene`。
 
-白名单外的裸模块引用会被源码闸门拒绝（`m2v/code_gate.py`）；可渲染源码里的挂钟时间、
-随机数、计时器与 CSS 动画/过渡同样会被拒绝（`m2v/source_policy.py`）。
+白名单外的裸模块引用会被源码闸门拒绝（`src/m2v/core/code_gate.py`）；可渲染源码里的挂钟时间、
+随机数、计时器与 CSS 动画/过渡同样会被拒绝（`src/m2v/core/source_policy.py`）。
 各白名单视觉库的确定性适配规则见
 [渲染契约](../.agents/skills/material2video/references/render-contract.md)。
 

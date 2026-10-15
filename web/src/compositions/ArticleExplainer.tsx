@@ -102,7 +102,7 @@ function Cause({scene, frame, palette}: {scene: ExplainerScene; frame: number; p
 function SceneCard({scene, palette, frame}: {scene: ExplainerScene; palette: Palette; frame: number}) {
   const content = scene.content;
   const active = selectedStep(scene, frame);
-  return <AbsoluteFill data-m2v-scene={scene.id} style={{background: palette.bg, color: palette.ink,
+  return <AbsoluteFill data-m2v-scene={scene.id} style={{zIndex: 1, background: palette.bg, color: palette.ink,
     fontFamily: 'M2V Sans, sans-serif', padding: '160px 108px 420px', gap: 54}}>
     <div data-m2v-box="" style={{fontSize: 68, lineHeight: 1.5, fontWeight: 750, overflowWrap: 'anywhere'}}>
       <span data-m2v-copy="">{content.title}</span>
@@ -144,7 +144,7 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
         <SceneCard scene={scene} palette={palette} frame={frame}/>
       </AbsoluteFill>
     </Sequence>)}
-    {/* 场景共享样式使用 z-index: 1；字幕必须覆盖场景背景。 */}
+    {/* 场景自带 z-index: 1（见 SceneCard），字幕必须覆盖场景背景，因此为 2。 */}
     <div data-m2v-subtitle="" style={{position: 'absolute', zIndex: 2, left: 108, right: 108, top: 1580, height: 200,
       fontFamily: 'M2V Sans, sans-serif', fontSize: 40, lineHeight: 1.5, color: palette.ink, textAlign: 'center', overflowWrap: 'anywhere'}}>
       {cue && <span data-m2v-copy="">{cue.text}</span>}

@@ -32,25 +32,27 @@
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md                    # 文章源文（article-narrative 必填，可改用 article.accepted.md）
-│   ├── storyboard.json               # 当前类型分镜（article-narrative 为 v5 讲解分镜）
-│   ├── production.json                # 旧 v4 动画导演记录（不入库；v5 文章不再使用）
-│   ├── scenes/                       # 代码场景模块（renderer.code），按需创建
+│   ├── storyboard.json               # article-narrative 的 v5 讲解分镜
+│   ├── general-plan.json             # general 类型的多场景分镜（材料名见 project.json）
+│   ├── scenes/                       # 代码场景模块（幕级 renderer.code），按需创建
 │   └── assets/                       # 本篇专用素材，按需创建
 └── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
-    ├── silent.mp4                    # 最新无声成片
-    ├── voiced.mp4                    # 最新配音成片
-    ├── voiced.srt                    # 配音成片字幕
-    ├── voiced.performance.json       # 与该成片同名的渲染性能报告（不入库）
-    ├── input-review.json             # 文章讲解的人工输入语义审查（v5）
-    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（v5）
-    ├── preview-record.json           # 完整预演记录，供评审模板绑定
+    ├── video.mp4                     # 正式成片（所有类型同名；文件名由渲染器决定，不随有无配音变化）
+    ├── video.provenance.json         # 与该成片同名的溯源记录
+    ├── video.performance.json        # 与该成片同名的渲染性能报告
     ├── prepared.json                 # 当前准备产物与派生时间轴
+    ├── input-review.json             # 文章讲解的人工输入语义审查（article-narrative）
+    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（article-narrative）
+    ├── layout-check.json             # 最近一次布局量测的三项硬判定结论（article-narrative）
+    ├── subtitle-check-props.json     # 最近一次字幕检查用的准备产物副本（article-narrative）
     ├── media/                        # 配音清单、音轨与缓存
-    ├── previews/                     # 限帧试渲染，使用相同的成片文件名
-    │   └── production/                # 关键幕有声样片、全片评审版与输出清单
-    ├── bench/                        # 基准与验收报告、对照截图，按需创建（不入库）
-    └── qa/                           # 验收截图等，按需创建
+    ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
+    ├── previews/                     # 预演产物，使用相同的成片文件名；`m2v render` 会先清掉它
+    └── qa/                           # `m2v article keyframes` 的排版量测截图，按需创建
 ```
+
+当前没有 `.srt` 写出器：字幕烧录进画面，不导出外置字幕文件。旧版曾写出
+`silent.mp4` / `voiced.mp4` / `voiced.srt`，统一入口后只有 `video.mp4` 一个名字。
 
 打包缓存不在作品目录里，而在共享工程下：`web/.cache/m2v-bundles/<键>/`。
 它只与「当前 `web/` 源码 + 当前作品输入 + 依赖版本」有关，跨作品共享，整目录可随时删除。
@@ -63,21 +65,22 @@
 └── videos/<type>/<slug>/outputs/…
 ```
 
-`examples/<slug>/` 是仓库示例源，产物放入 `videos/examples/<slug>/outputs/`，
-多一层 `examples/`，避免示例与实际文章同名时互相覆盖。
-示例的制作记录同样放在 `videos/examples/<slug>/`，避免把运行记录写进版本化的 `examples/<slug>/`。
-示例里的 `legacy-test-storyboard.json` 是旧共享动画回归用的 v4 分镜，不属于 article-narrative 制作入口。
+`examples/<slug>/` 是仓库示例源，产物落在**同一个目录**的 `outputs/` 下（`outputs/` 已在
+`.gitignore` 中忽略）：`m2v --project examples/<slug>` 把示例目录当作作品目录，
+材料与产物都在那里，示例源文件本身不进产物。
+需要把示例的产物与源文件分开时，把示例目录整体复制到 `videos/<type>/<slug>/` 再制作。
 
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion），围绕全片 `world` 按全局时间轴绘制，`stages[]` 推进叙事。
-article-narrative 的 v5 讲解改由同一入口交给 `ArticleExplainer` composition 绘制五模板画面，
-不使用 world 与 stages，契约见 [文章分镜 v5](storyboard-schema.md)。
-需要新表达时按原语注册表流程新增通用原语；全片需要独特的图表面板、
-关系图或定制 SVG 时，在 `world.renderer` 声明 `kind: "code"` 与 `module`，模块放在作品目录的
-`scenes/` 下（`videos/<type>/<slug>/scenes/` 或 `examples/<slug>/scenes/`，与分镜同目录），
-本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
+React composition（Remotion）。五个类型各有自己的 composition，都在 `web/src/compositions/` 下，
+由 `web/src/Root.tsx` 注册。
+article-narrative 的 v5 讲解交给 `ArticleExplainer` 绘制五模板画面，契约见
+[文章分镜 v5](storyboard-schema.md)；通用视频交给 `GeneralVideo`，它按幕组合受控图文幕、
+完整金融/文章片段幕与代码场景幕。
+需要独特图表、关系图或定制 SVG 时，在**那一幕**上声明 `renderer: { kind: "code", module: "<模块标识>" }`，
+模块放在作品目录的 `scenes/` 下（`videos/<type>/<slug>/scenes/` 或 `examples/<slug>/scenes/`，
+与分镜同目录），本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
 
 本篇专用素材（`videos/<type>/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过
@@ -87,7 +90,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 
 ## 归属推导
 
-新制作以 `--project` 确定作品归属，材料路径相对于作品根。文章兼容流程的既有路径推导位于 `src/m2v/types/article/paths.py`。
+新制作以 `--project` 确定作品归属，材料路径相对于作品根；归属推导与内容根判定共用 `src/m2v/core/workspace.py`。
 
 1. 以输入文件位置向上查找含 `.agents/skills/material2video/SKILL.md` 的目录；找不到时
    取运行中的 bundle 所在仓库——契约页与 composition 从那一份取；
@@ -115,34 +118,48 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | `m2v render --project <目录>` | `<作品目录>/outputs/` 下类型默认的正式成片 |
 | `m2v preview --project <目录> --limit-frames N` | 调试用途；不会生成可绑定正式评审的完整预演记录 |
 
-文章默认成片名由准备后的音轨决定：有音轨为 `voiced.mp4`，无音轨为 `silent.mp4`。由 `project.json` 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
-v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
+所有类型的正式成片都叫 `outputs/video.mp4`，预演叫 `outputs/previews/video.mp4`；
+文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
+解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
+v5 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
 「写了旁白却没配音」的中间态：需要配音请先执行 `uv run m2v prepare --project <目录>`。
 
 ## 成片溯源
 
-渲染成功后在成片旁写 `<同名>.provenance.json`，用于回答「这个成片是不是旧画面渲的」：
+渲染成功后在成片旁写 `<同名>.provenance.json`，用于回答「这个成片是不是旧材料渲的」。
+`schemaVersion` 当前为 `1`。文章类型（`article-narrative`）的形状是：
 
 ```json
 {
-  "version": 4,
-  "renderer": "remotion",
-  "workspace": "../..",
-  "renderedAt": "2026-09-20T12:00:00+00:00",
-  "page": "__m2v_web__/src/index.ts",
-  "storyboard": "videos/<type>/<slug>/storyboard.json",
-  "frames": 300, "fps": 30, "width": 1080, "height": 1920,
-  "captureFormat": "remotion",
-  "assets": { "files": { "__m2v_web__/src/registry/registry.json": "…" }, "digest": "…" }
+  "schemaVersion": 1,
+  "type": "article-narrative",
+  "projectId": "buffer-smoothing",
+  "preparedFingerprint": "…",
+  "compositionId": "ArticleExplainer",
+  "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",
+              "file:article.md": "…", "renderer": "…" },
+  "durationInFrames": 590, "fps": 30, "width": 1080, "height": 1920
 }
 ```
 
-定位一律用**相对引用**：`workspace` 是产物目录到工作区根的相对路径，键相对工作区根记；
-构建输入（composition 源码、注册表、令牌与字体清单）在仓库的 `web/` 里，记
-`/__m2v_web__/` 别名键。这样溯源跟着成片走，换机器、换目录、换内容根都读得回来，
-复核时也不需要 `--content-root` 或仓库标记。
+`type` 为 `article-narrative` / `financial-timeseries` / `general` / `housing-timeseries` /
+`stock-montage` 之一，`compositionId` 是它对应的 Remotion composition 标识。
+`preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
+材料、资产、嵌入作品或渲染代码已经变化，成片落后。
+`inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
+`audio:<场景>`、composition 可达源码的 `renderer` 指纹），用它逐项指出是哪个输入变了。
 
-`version` 不是 3 或 4 的溯源按「旧格式」处理：如实回答无法判断，不默认放行。
+各类型的字段并不完全一致，差异有据可查：
+
+| 类型 | 与上表的差异 |
+| --- | --- |
+| `article-narrative` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
+| `general` | 多一个根级 `renderer: "remotion"`；不含 `bundleKey` |
+| `stock-montage` | 多 `renderer: "remotion"` 与 `bundleKey` |
+| `financial-timeseries` / `housing-timeseries` | 多 `renderer` 与 `bundleKey`，并用 `frames` + `materialsAndAssetsSha256` 代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
+
+溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
+独立复核准备指纹与文件摘要完成。
 
 ## 渲染性能报告
 
@@ -153,20 +170,34 @@ v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 ```json
 {
   "version": 1,
+  "entry": "render",
+  "generatedAt": "2026-09-20T12:00:00+00:00",
+  "output": "voiced.mp4",
+  "storyboard": "<分镜的绝对路径>",
   "frames": 1200, "fps": 30, "width": 1080, "height": 1920,
   "concurrency": 1,
-  "totalSeconds": 98.4,
   "stages": { "cache": 0.03, "bundle": null, "metadata": 4.1, "render": 91.8, "mux": 0.5, "probe": 1.4 },
   "skipped": ["bundle"],
-  "cache": { "status": "hit", "key": "…", "prepareSeconds": 0.03 },
-  "session": { "browsersOpened": 1, "handshakeSeconds": 4.1 },
-  "environment": { "python": "3.12.10", "node": "v22.23.2", "remotion": "4.0.526" }
+  "executedSeconds": 97.8,
+  "totalSeconds": 98.4,
+  "environment": {
+    "platform": "Windows-11-10.0.26300-SP0", "machine": "AMD64", "processor": "…",
+    "cpuCount": 18, "memoryGiB": 31.6,
+    "python": "3.12.10", "node": "v22.23.2", "remotion": "4.0.526",
+    "ffmpeg": "ffmpeg version …", "executable": "…/python.exe"
+  },
+  "cache": { "status": "hit", "key": "…", "detail": "命中并复核了 55 个产物文件" },
+  "session": { "browsersOpened": 1, "handshakeSeconds": 4.1 }
 }
 ```
 
+`entry` 标明数据来自哪个入口（`preview` 或 `render`），因为正式门禁下的数字与限帧
+试渲染不同源，混着比会得出错误结论。`environment` 用来解释「同一份材料在两台机器上
+为什么快慢不同」。各类型还会往报告根上补几个自己的字段（例如讲解渲染的
+`layoutCheckSeconds`、通用视频的 `session.browsersOpened` / `observedPeakMemoryBytes`）。
+
 `render` 已包含编码（两者在 Remotion 内部重叠），因此没有独立的 `encode` 阶段；
 未执行的阶段是 `null` 且列在 `skipped` 里，不用 `0` 冒充实测。
-比对不同配置时用 `benchmark_render.py benchmark`，报告落在作品 `outputs/bench/`。
 
 ## 兼容与覆盖规则
 
@@ -176,7 +207,7 @@ v4 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 - 产物先生成、验收后替换，失败不会破坏上一份可用成片；
 - 统一入口正式渲染成功后清理本作品 `outputs/` 中旧视频及其字幕/溯源/性能旁车、预演、检查图和已知调试目录；保留本次成片及旁车、`prepared.json`、评审 JSON 和 `media/` 准备媒体。渲染或验收失败不清理，仓库共享构建缓存不受影响；清理错误按遗留路径报告；
 - 限帧试渲染写入 `previews/`，不会覆盖正式成片。
-- 旧统一作品使用 `m2v relocate --project videos/<slug>` 逐个迁移；命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from` 仅用于材料契约迁移。
+- 旧统一作品使用 `m2v relocate --project videos/<slug>` 逐个迁移；命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from financial` 只用于旧金融材料契约迁移。
 
 ## 相关文档
 

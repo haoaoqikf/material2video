@@ -11,9 +11,9 @@
 3. **导出契约**：模块必须默认导出场景组件（共享 ``M2VCodeScene`` 类型），
    用静态文本检查确认，缺失时报出源码行号。
 
-结构校验（renderer 判别联合、互斥字段）在 ``storyboard.validate`` 里完成；
-这里只做需要文件系统与作品归属的部分，两者共用同一份 ``Issue`` 语义
-（错误路径指向分镜字段，源码问题附带行号）。
+结构校验（renderer 判别联合、互斥字段）在通用视频材料的校验里完成
+（``types/general/adapter.py``）；这里只做需要文件系统与作品归属的部分，
+错误路径指向材料字段，源码问题附带行号。
 """
 
 from __future__ import annotations
@@ -106,17 +106,11 @@ def check_export(path: Path) -> tuple[int, str] | None:
 
 
 def iter_code_scenes(data: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any], str]]:
-    """遍历 v3 幕级或 v4 全片 code 模块，产出 (声明归属路径, 声明, 模块标识)。
+    """遍历材料里声明了 code renderer 的幕，产出 (声明归属路径, 声明, 模块标识)。
 
-    归属路径是**声明所在的对象**（v4 是 `world`，v3 是 `scenes[i]`）：调用方
-    统一补 `.renderer.module`，避免 v4 出现 `world.renderer.renderer.module`。
+    归属路径是**声明所在的对象**（`scenes[i]`）：调用方统一补
+    `.renderer.module`，报错才能指回幕本身而不是模块名。
     """
-    world = data.get("world")
-    if isinstance(world, dict):
-        renderer = world.get("renderer")
-        if isinstance(renderer, dict) and renderer.get("kind") == "code":
-            module = renderer.get("module")
-            yield "world", world, module if isinstance(module, str) else ""
     scenes = data.get("scenes")
     if not isinstance(scenes, list):
         return

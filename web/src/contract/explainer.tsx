@@ -27,6 +27,7 @@ export function ExplainerContractApp() {
     if (!props || !current) return;
     const contract: M2VContractV5 = {version: 5, fps: props.fps, width: props.width, height: props.height,
       durationInFrames: props.durationInFrames,
+      currentFrame: () => current.getCurrentFrame(),
       ready: async () => {await ensureFonts(); await settleOnFrame(current, 0); await readyImages();},
       seekToFrame: async frame => {
         if (!Number.isInteger(frame) || frame < 0 || frame >= props.durationInFrames) throw new Error('讲解求帧越界');

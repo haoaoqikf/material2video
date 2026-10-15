@@ -1,4 +1,4 @@
-"""生成原创 CC0 合成音乐与水滴提示音；无第三方采样。"""
+"""生成原创 CC0 合成音乐床；无第三方采样。"""
 import math
 import struct
 import wave
@@ -13,4 +13,3 @@ def write(name, seconds, signal):
 
 if __name__ == '__main__':
     write('bed.wav', 8, lambda t: .18 * (math.sin(2 * math.pi * 220 * t) + .5 * math.sin(2 * math.pi * 330 * t)) * (.75 + .25 * math.cos(2 * math.pi * t / 8)))
-    write('drop.wav', .35, lambda t: .5 * math.exp(-t * 18) * math.sin(2 * math.pi * (900 * t - 500 * t * t)))

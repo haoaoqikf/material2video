@@ -38,11 +38,11 @@ def audio_tracks(root: Path, project: dict, prepared: dict) -> list[dict]:
 
 def prepare_narration(text: str, cache: Path, *, voice=None, rate=None, rhythm=None):
     # general 仍复用共享口播缓存契约，避免文章升级使通用语音缓存失效。
+    # contract_version=3 是通用与素材类型的缓存键，改动会让已缓存语音全部失效。
     from m2v.engine import tts
-    from m2v.types.article.prepare import _scene_audio
     cache.mkdir(parents=True, exist_ok=True)
     voice, rate = tts.resolve({}, voice=voice, rate=rate)
-    return _scene_audio(text, voice, rate, cache, False, rhythm=rhythm)
+    return tts.scene_audio(text, voice, rate, cache, contract_version=3, rhythm=rhythm)
 
 
 TYPE = VideoType("article-narrative", validate, prepare, preview, render,

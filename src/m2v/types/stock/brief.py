@@ -14,7 +14,7 @@ from typing import Any
 
 from m2v.core.errors import M2VError
 from m2v.engine import sound as sound_contract
-from m2v.types.article.storyboard import Report
+from m2v.core.report import Report
 from m2v.types.stock import aspect
 from m2v.types.stock.provider import PROVIDER_DEFAULTS
 

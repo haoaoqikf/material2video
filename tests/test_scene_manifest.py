@@ -23,37 +23,17 @@ SCENE_MODULE = "export default function Scene() { return null; }\n"
 
 
 def _storyboard(renderers: list[dict | None]) -> dict:
+    """通用视频材料骨架：幕级 renderer 决定该幕走代码场景还是图文分支。"""
     scenes = []
     for index, renderer in enumerate(renderers):
-        scene = {
+        scenes.append({
             "id": f"s{index}",
-            "type": "title",
-            "durationInFrames": 30,
+            "type": "code" if renderer is not None else "graphic",
+            "duration": {"frames": 30},
             "data": {"text": "开场"},
-            "visualIntent": {"relation": "focus", "focus": "text", "composition": "center", "density": "sparse", "tone": "neutral", "mode": "typography", "claim": "测试画面", "showWithoutText": "一个标题承担本幕命题", "primaryObject": "标题文字", "motionMeaning": "标题清晰呈现"},
-            "motions": [],
-            "camera": {"shot": "wide", "composition": "center", "depth": "flat", "focus": "copy" if renderer is None else "scene-focus", "segments": [{"kind": "hold", "phase": "establish", "intensity": 0}, {"kind": "settle", "phase": "settle", "intensity": 0}]},
-        }
-        if renderer is None:
-            scene["renderer"] = {"kind": "tree"}
-            scene["sceneTree"] = {"id": "root", "type": "stack", "children": [{"id": "copy", "type": "text", "contentRef": "data.text"}]}
-        else:
-            scene["renderer"] = renderer
-        if index:
-            scene["transition"] = {"kind": "dissolve", "meaning": "进入下一幕测试"}
-        scenes.append(scene)
-    return {
-        "version": 3,
-        "schemaVersion": 3,
-        "directingVersion": 1,
-        "directingBrief": {"thesis": "测试场景清单", "audienceShift": "从配置转向画面", "emotionalArc": ["建立", "完成"], "visualMotif": "场景声明", "stylePack": "technical", "avoid": []},
-        "fps": 30,
-        "width": 1080,
-        "height": 1920,
-        "visualDirection": {"motif": "测试", "compositionBias": "centered", "density": "sparse", "rhythm": "restrained", "avoid": []},
-        "visual": {"theme": "dark", "preset": "keynote"},
-        "scenes": scenes,
-    }
+            **({"renderer": renderer} if renderer is not None else {}),
+        })
+    return {"schemaVersion": 1, "fps": 30, "width": 1080, "height": 1920, "scenes": scenes}
 
 
 def _make_project(tmp_path: Path, slug: str) -> Path:
@@ -98,30 +78,17 @@ def restore_manifest(web_dir: Path):
 
 
 class TestManifestGeneration:
-    def testv4全片code世界生成单一静态模块入口(self, tmp_path, web_dir):
-        article = _make_project(tmp_path, "v4-world")
-        (article / "scenes").mkdir()
-        (article / "scenes" / "world.tsx").write_text(SCENE_MODULE, encoding="utf-8")
-        storyboard = article / "storyboard.json"
-        storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4,
-            "world": {"renderer": {"kind": "code", "module": "world"}}}, ensure_ascii=False), encoding="utf-8")
-        scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
-        text = _generated(web_dir)
-        assert "'world': s0," in text
-        assert "videos/v4-world/scenes/world" in text
-
-    def testv4全片code模块进入可达源码指纹(self, tmp_path, web_dir):
+    def test代码模块进入可达源码指纹(self, tmp_path, web_dir):
         import m2v.engine.remotion as remotion
 
-        article = _make_project(tmp_path, "v4-fingerprint")
+        article = _make_project(tmp_path, "code-fingerprint")
         (article / "scenes").mkdir()
-        (article / "scenes" / "world.tsx").write_text(SCENE_MODULE, encoding="utf-8")
+        (article / "scenes" / "gauge.tsx").write_text(SCENE_MODULE, encoding="utf-8")
         storyboard = article / "storyboard.json"
-        storyboard.write_text(json.dumps({"version": 4, "schemaVersion": 4,
-            "world": {"renderer": {"kind": "code", "module": "world"}}}, ensure_ascii=False), encoding="utf-8")
+        storyboard.write_text(json.dumps(_storyboard([{"kind": "code", "module": "gauge"}]), ensure_ascii=False), encoding="utf-8")
         scene_manifest.generate(web_dir=web_dir, storyboard_path=storyboard)
         files = remotion.build_input_fingerprint(repo_root=web_dir.parent, scene_modules=remotion._manifest_modules(web_dir.parent))["files"]
-        assert any("videos/v4-fingerprint/scenes/world.tsx" in key for key in files), files
+        assert any("videos/code-fingerprint/scenes/gauge.tsx" in key for key in files), files
 
     def test纯tree分镜生成空清单(self, tmp_path, web_dir):
         article = _make_project(tmp_path, "tree-only")

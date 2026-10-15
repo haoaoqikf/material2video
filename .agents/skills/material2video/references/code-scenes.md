@@ -1,79 +1,139 @@
-# 全片代码场景（v4）
+# 代码场景（幕级 `renderer`）
 
-> **适用范围：** code renderer 依赖 `world`、`stages` 与单世界连续性，只供 general 嵌入与内部动画模块使用。
-> article-narrative 已改为 v5 多幕讲解模板，不接受 `world`、`stages`、`camera` 或 `stateTracks`；
-> 文章契约以 [文章分镜 v5](storyboard-schema.md) 为准。
+通用视频（`general` 类型）的幕可以把自己的画面交给作品目录下的一个 TSX 模块。
+受控的图文幕（`graphic`）能表达清楚的，优先用图文幕；代码场景是给需要自由几何、
+图表或关系图的幕留的出口。
 
-当受控原语无法表达持续视觉世界所需的几何、关系或状态变化时，可选择作品级 code renderer。`world.renderer` 只声明一次；模块贯穿整条视频，阶段只改变上下文，不得切换为互不相关的页面。能由原语清楚表达时优先使用 tree renderer。
+本文记录模块契约、注入范围、确定性纪律与安全边界。通用视频的分镜结构见
+`general-plan.json`（`project.json` 的 `materials.plan` 指向它，见
+[目录约定与输出路径](paths-and-outputs.md)）；文章 v5 分镜与本文无关，见
+[文章分镜 v5](storyboard-schema.md)。渲染与编码规则见[渲染契约](render-contract.md)。
 
-本文记录模块契约、确定性纪律和探针要求。完整示例见[飞镖试错示例](../../../../examples/darts-trial-and-error/storyboard.json)，是一个 world、多阶段叙事。
+## 声明
 
-## 分镜声明
-
-以下是关键 world 字段形状（阶段口播与完整导演简报略去，不能单独作为可运行分镜）：
+在需要代码画面的那一幕上写 `renderer`：
 
 ```json
 {
-  "world": {
-    "id": "system-world",
-    "claim": "整体结果受当前瓶颈限制",
-    "metaphor": "一条持续的工序面板",
-    "objects": [{ "id": "pipeline", "role": "primary", "description": "持续工序流程" }],
-    "renderer": { "kind": "code", "module": "system-panel" },
-    "data": { "objects": { "pipeline": { "state": "rest" } } },
-    "stateTracks": [],
-    "motions": [],
-    "camera": { "shot": "medium", "composition": "center", "depth": "flat", "focus": "pipeline", "segments": [{ "id": "hold", "kind": "hold", "binding": { "stageId": "opening", "phase": "establish" }, "focus": "pipeline", "intensity": 0 }] }
-  },
-  "stages": [{ "id": "opening", "durationInFrames": 1080, "data": {}, "visualIntent": {}, "narrationSegments": [], "beats": [] }]
+  "schemaVersion": 1,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "scenes": [
+    {
+      "id": "pipeline",
+      "type": "code",
+      "durationInFrames": 240,
+      "data": { "claim": "整体结果受当前瓶颈限制", "stages": ["取料", "加工", "质检"] },
+      "renderer": { "kind": "code", "module": "system-panel" }
+    }
+  ]
 }
 ```
 
-- `world.renderer.kind` 固定为 `code`，`module` 指向作品目录下 `scenes/<module>.tsx` 的稳定模块名。
-- `world.objects` 声明全片稳定身份；每个对象须由模块探针暴露，供状态、镜头与连续性评审引用。
-- 全片只能选 tree 或 code 一种 renderer；`stages[]` 不得声明 renderer、sceneTree、camera 或 transition。
-- 对象数据、状态轨道、camera 段和 beat 时间轴统一放在 world 与阶段声明中。模块不私自累计状态，也不创建阶段专属完整页面。
-- 在作品目录的 `motion-design.md` 中说明持续场景、对象初态、各 beat 触发的变化及结果停留，不复制口播全文。
+- `renderer.kind` 固定为 `code`；`module` 是 `scenes/<module>.tsx` 的稳定模块标识，
+  匹配 `^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$`：允许字母、数字、下划线与短横线，
+  也允许用 `/` 分子目录（例如 `charts/gauge`），但拒绝 `..`、绝对路径与盘符。
+- 模块必须落在当前作品的 `scenes/` 目录内（符号链接逃出该目录会被拒绝），
+  并且默认导出 `M2VCodeScene` 组件。
+- 一幕要么声明 `renderer`，要么用该幕类型自带的内联图文内容，不能两者都要。
+- 只有声明了 `renderer` 的幕才需要模块；同一支作品可以有多个代码幕，也可以混用
+  图文幕与嵌入类型幕。模块不参与幕顺序与总时长的决定——那是分镜的真源。
 
 ## 模块接口
 
-模块默认导出 `M2VCodeScene<Data>`（`React.FC<M2VCodeSceneProps<Data>>`），唯一项目内导入别名为 `@m2v/scene`：
+作品唯一可以导入的项目内部 API 是别名 `@m2v/scene`：
 
 ```tsx
-import { probe, type M2VCodeScene } from '@m2v/scene';
+import { useCurrentFrame } from 'remotion';
+import { type M2VCodeScene } from '@m2v/scene';
 
-const World: M2VCodeScene = ({ world, stage, objectStates, frame, fps, canvas, theme, beats, motion }) => (
-  <div {...probe({ node: 'pipeline', role: 'hero', geometry: { x: 0.1, y: 0.3, width: 0.8, height: 0.4 } })}>
-    {world.claim} · {stage.id} · {objectStates.pipeline?.state} · {frame}/{fps}
-  </div>
-);
+const SystemPanel: M2VCodeScene<{ claim: string; stages: string[] }> = ({ scene, progress }) => {
+  const frame = useCurrentFrame();
+  return (
+    <div style={{ padding: 'var(--m2v-space-6)', color: 'var(--m2v-text-1)', fontFamily: 'var(--m2v-font)' }}>
+      <h1 style={{ fontSize: 'var(--m2v-size-title)' }}>{scene.data.claim}</h1>
+      <p style={{ opacity: Math.min(1, progress * 2) }}>{scene.data.stages.join(' → ')} · 第 {frame} 帧</p>
+    </div>
+  );
+};
 
-export default World;
+export default SystemPanel;
 ```
 
-共享层注入全片 world、当前 stage、当前全局 `frame`、媒体派生 beats、对象状态、camera/motion 上下文、主题、画布及稳定种子 `random(node)`。`stage.progress` 是阶段内进度，`progress` 与 `localFrame` 在 v4 兼容接口中按全片语义提供。模块不能决定阶段次序、总时长、字幕边界或第二套时钟；禁止挂钟、随机非确定输入、网络、文件系统和 Node 访问。
+注入的 props：
 
-作品代码从同一纯函数取得状态：`beatActionProgress(plan, id, finishAt)` 按全局 beat 计算动作进度；`compilePath(points)` 预编译路径；`compileReservoir(capacity, initial, intervals)` 计算有界流量及守恒状态；`decomposeObjects(objects, progress, reverse)` 插值稳定 ID 的对象布局。昂贵的路径和流量计算在模块初始化或 `useMemo` 完成，不在每帧重建。
+| 字段 | 含义 |
+| --- | --- |
+| `scene` | `{ id, type, data, durationInFrames, kicker? }`；`data` 是本幕 `data` 字段的原样传入 |
+| `frame` / `localFrame` | 幕内帧号（相对本幕起点），两者相同 |
+| `progress` | 幕内进度 `0..1` |
+| `fps` / `canvas` | 输出帧率与 `{ width, height }` 画布尺寸 |
+| `theme` | `{ theme: 'dark' }`；当前只有深色一套令牌 |
+| `random(node?)` | 按幕标识与节点标识派生的稳定种子随机 |
+| `world` / `stage` / `objectStates` / `beats` / `motion` | **当前无内容**：通用视频不提供全片世界、阶段、跨幕对象状态、语义节拍与镜头运动，一律传空值（`beats.current` 为 `null`、`motion.camera.kind` 为 `"none"`、`motion.continuity` 为 `null`、`objectStates` 为 `{}`）。作品不得假设它们被填充 |
 
-## 探针与几何
+组件拿到的帧号是本幕的，不是全片的；没有相邻幕、没有总帧数、没有音频时钟。
+这样分镜始终是顺序与时长的单一真源，模块无法形成第二套时间轴。
 
-模块通过 `probe()` 给持续对象输出稳定节点 ID、语义 role、可选容器关系、示意标记和画布归一化几何。被 `world.objects`、camera focus 或连续性审查引用的对象必须可观察；缺失探针会让评审失败，不能降级为猜测 DOM 或按换场处理。
+`@m2v/scene` 还导出 `probe()`（输出稳定的 DOM 探针标记）与
+`beatActionProgress`、`compilePath`、`compileReservoir`、`decomposeObjects` 等纯函数
+工具。**探针当前没有消费者**：通用视频的代码场景不参与浏览器布局量测，只有
+`article-narrative` 的 v5 讲解模板会被量测（它读取的是 `data-m2v-copy` 一类标记，
+不是探针）。探针标记仍然可以写，但它现在不会让任何检查通过或不通过。
 
-```tsx
-<section {...probe({ node: 'target', role: 'hero', geometry: { x: 0.55, y: 0.24, width: 0.34, height: 0.46 } })}>
-  <span {...probe({ node: 'hit-count', role: 'label', inside: 'target', schematic: true })}>3 次·示意</span>
-</section>
-```
+## 确定性纪律
 
-`geometry` 中的 x/y/width/height 为画布 0～1 归一化值；它用于跨阶段对象位置比较。文字需登记 node 与 role 才能进入内容和排版评审；示意数值须明确标出 `schematic`。被评审规则引用的容器应使用 `inside` 表明归属。
+代码场景的可见状态必须是「分镜 + 已锁定本地资产 + 当前帧号」的确定性函数：
 
-tree v4 的字体后布局预检不改变 code world 的公开探针契约；代码场景仍由作者通过 `geometry` 与 `inside` 明确提供稳定对象边界和包含关系，运行时不读取作品模块私有 DOM。
+- 禁止挂钟时间、`Date.now()`、`Math.random()`、`setTimeout` / `setInterval`、
+  `requestAnimationFrame` 循环、CSS `animation` / `transition`；需要伪随机时用
+  `random(node)`，它按节点标识播种，同一帧重复求值、随机寻帧、跨机器渲染都得到
+  同一序列。
+- 昂贵的路径与流量计算放在模块初始化或 `useMemo` 里，不要每帧重建。
+- ECharts 关闭内置动画、由帧号算当前状态；Dagre 只以稳定排序的输入计算布局，
+  不随帧重排；Lucide 当静态 SVG 用。
 
-## 验证与安全边界
+## 依赖与安全边界
 
-- 使用 `uv run m2v validate --project <目录>` 验证 v4 分镜字段、全局对象与阶段；缺失或不可解析的 code module 在浏览器启动前报错。
-- `uv run m2v article keyframes --storyboard <分镜> --check-determinism` 对全片抽帧并读取 `window.__M2V__` v4 探针，检查随机寻帧和同帧重绘，PSNR 至少 60 dB。
-- 代码模块通过导入白名单、静态源码规则、可达文件指纹和渲染期离线请求阻断。此边界是项目代码评审措施，不是操作系统沙箱；只执行项目内受控代码。
-- 全片动态与连续性评审应播放有声评审版，核对对象身份、状态承接、camera 和结果停留。缺证据为 pending，不能以静态评审代替。
+依赖白名单（版本由共享前端工程 `web/package.json` 统一锁定，作品不得自行安装或
+导入其他 npm 包）：`react`、`react-dom`、`remotion`、`@remotion/*`、`echarts`、
+`@dagrejs/dagre`、`lucide-react`、`@m2v/scene`。
 
-命令顺序、渲染门禁和错误处理以 [制作 Skill](../SKILL.md)、[设计宪法](design-constitution.md)、[视觉评审量表](visual-review-rubric.md) 和[渲染契约](render-contract.md)为准。
+以下两条由静态检查在构建前执行，命中即失败并给出文件与位置：
+
+- 源码闸门（`src/m2v/core/code_gate.py`）：白名单外的裸模块引用、指向项目内部的
+  别名导入、动态求值/动态导入/Node 内置能力/网络与文件系统访问。
+- 确定性策略（`src/m2v/core/source_policy.py`）：挂钟时间、系统随机数、计时器与
+  CSS 时间动画。
+
+渲染期还会阻断离线请求。这套边界是项目代码评审措施，不是操作系统沙箱——它只保证
+被执行的是项目内受控代码。
+
+## 构建与溯源
+
+构建前由 `web/scripts/gen-active-scenes.mjs` 按当前作品整体重建两个生成物：
+
+- `.gen/active-scenes.ts`：`Record<string, M2VCodeScene>` 静态清单，`GeneralVideo`
+  按模块标识取组件，取不到直接抛错（不会静默渲染空白幕）；
+- `.gen/active-tailwind.css`：只把**当前作品**的 `scenes/` 与 `assets/` 交给
+  Tailwind 类名扫描，其他作品的文件不会被扫进来。
+
+因此作品代码里的 Tailwind 类名必须是**完整字符串**：`className="rounded-xl p-4"`
+会进构建 CSS，`const cls = { box: 'gap-6 border-2' }` 这种完整字符串映射也会进，
+而运行时拼接的 `` className={`rounded-${size}`} `` 扫描器看不到，构建后可能没有
+对应规则、画面静默缺样式。需要按状态切换时，把完整类名写进映射对象再取用。
+
+本地资产（图片/SVG）用打包器导入：`import markUrl from '../assets/mark.png'`。
+不要写相对 URL 字符串——那会按页面地址解析成 404。
+
+作品的 TSX、CSS、SVG 与本地媒体都进入可达源码指纹，改动它们会让旧成片与旧准备记录
+被判为落后。
+
+## 验证
+
+- `uv run m2v validate --project <目录>`：校验分镜字段，并解析每个代码幕的模块
+  （存在性、是否逃出 `scenes/`、语法、默认导出），再跑源码闸门与确定性策略。
+- `uv run m2v prepare|preview|render --project <目录>`：走统一入口；模块解析失败
+  会在启动浏览器或渲染前报错，并指出幕字段与目标模块。
+- 通用视频目前没有逐帧确定性抽帧命令；确定性靠上面的静态检查与源码指纹保证。

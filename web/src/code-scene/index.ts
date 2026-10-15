@@ -10,8 +10,7 @@
  *   分镜是顺序与时长的单一真源，代码模块不可能形成第二套时间轴。
  * - 随机必须是稳定种子随机：`random()` 由场景与节点标识播种，
  *   同一帧重复求值、随机寻帧、跨机器渲染都得到同一序列。
- * - 探针协议是最小可观察面：`useProbeProps` 输出稳定 DOM 标记，
- *   让现有内容探针与 C/K/M 闸门继续量测自由场景。
+ * - 探针协议输出稳定 DOM 标记；当前没有量测消费者，不能视为自动验收。
  */
 import type { CSSProperties } from 'react';
 export { beatActionProgress, compilePath, compileReservoir, decomposeObjects } from './objectMotion';
@@ -23,7 +22,7 @@ export interface M2VCanvas {
   height: number;
 }
 
-/** 主题信息：与共享设计令牌同一来源（`visual.theme` / `visual.preset`）。 */
+/** 主题上下文：通用代码场景当前传入 dark，使用共享单层令牌。 */
 export interface M2VThemeInfo {
   theme: 'dark' | 'light';
   preset?: 'keynote';
@@ -111,11 +110,11 @@ export interface M2VCodeSceneProps<Data = unknown> {
   stage: M2VStageInfo;
   objectStates: M2VObjectStates;
   scene: M2VSceneInfo<Data>;
-  /** 全局帧号：整片时间轴上的绝对帧。 */
+  /** 幕内帧号：`GeneralVideo` 在幕的 `Sequence` 内取值，因此是相对幕起点的帧。 */
   frame: number;
-  /** 兼容属性；v4 全片模式下与 frame 相同，阶段局部帧见 stage.progress。 */
+  /** 与 `frame` 相同；保留该名字只为兼容既有作品模块。 */
   localFrame: number;
-  /** 全片进度；阶段局部进度单独见 stage.progress。 */
+  /** 幕内进度（0..1）：由幕内帧与该幕帧数算出。全片进度不在注入范围内。 */
   progress: number;
   fps: number;
   canvas: M2VCanvas;

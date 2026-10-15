@@ -14,7 +14,7 @@ from m2v.types.migration import migrate
 from m2v.types.relocation import relocate
 from m2v.types import registry
 from m2v.types.registry import VideoType
-from conftest import create_typed_project, register_synthetic_type, v4_storyboard
+from conftest import create_typed_project, register_synthetic_type
 
 
 def test_init_writes_all_financial_material_templates_under_content_root(tmp_path: Path) -> None:
@@ -115,18 +115,6 @@ def test_relocate_rejects_non_project_source_without_moving_it(tmp_path: Path) -
     assert (source / "article.md").is_file()
 
 
-def test_article_v4_migration_is_rejected_without_changes(tmp_path: Path) -> None:
-    root = tmp_path / "作品一"
-    root.mkdir()
-    (root / "storyboard.json").write_text(json.dumps(v4_storyboard()), encoding="utf-8")
-    original = (root / "storyboard.json").read_bytes()
-    with pytest.raises(M2VError, match="须重新编排"):
-        migrate(root, "article-v4")
-    assert (root / "storyboard.json").read_bytes() == original
-    assert not (root / "project.json").exists()
-    assert not list(tmp_path.glob("作品一.m2v-backup-*"))
-
-
 def test_same_named_projects_receive_distinct_stable_ids(tmp_path: Path) -> None:
     first = tmp_path / "one" / "作品"
     second = tmp_path / "two" / "作品"
@@ -134,17 +122,6 @@ def test_same_named_projects_receive_distinct_stable_ids(tmp_path: Path) -> None
     second_id = load_project(create_typed_project(second, "general").parent)[1]["id"]
     assert first_id != second_id
     assert load_project(first)[1]["id"] == first_id
-
-
-def test_article_rejection_preserves_old_records(tmp_path: Path) -> None:
-    root = tmp_path / "rollback"
-    root.mkdir()
-    (root / "storyboard.json").write_text(json.dumps(v4_storyboard()), encoding="utf-8")
-    (root / "production.json").write_text('{"status":"pass"}', encoding="utf-8")
-    before = {p.name:p.read_bytes() for p in root.iterdir()}
-    with pytest.raises(M2VError, match="不支持自动迁移"):
-        migrate(root, "article-v4")
-    assert {p.name:p.read_bytes() for p in root.iterdir()} == before
 
 
 def test_registered_test_type_appears_without_editing_cli_dispatch(monkeypatch, capsys) -> None:
