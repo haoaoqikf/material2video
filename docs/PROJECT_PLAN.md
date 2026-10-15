@@ -11,7 +11,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `article-narrative`：以五种受控讲解模板制作 v5 多幕文章视频，保留真实配音、输入语义审查与完整预演自动验收和可选画面评审。
-- `general`：以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、声音和字幕。
+- `general`：以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、逐场景口播与可选本地音床、字幕。
 - `housing-timeseries`：面向住宅年度均价的独立时间序列类型，含材料复算校验、确定性画面与可选画面评审。
 - `stock-montage`：以一份 brief 驱动在线素材检索、许可留证与自动剪辑，完整预演自动验收，可选评审画面质量与来源合规。
 <!-- generated:type-catalog:end -->
