@@ -105,6 +105,11 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     assert a["endFrame"] == 50 and b["startFrame"] == 42
     assert b["segmentWindows"]["b-line"]["startFrame"] == 50
     assert result["durationInFrames"] == 92
+    assert result["props"]["subtitleCues"] == [
+        {"startFrame": 0, "endFrame": 30, "text": data["scenes"][0]["narrationSegments"][0]["text"]},
+        {"startFrame": 50, "endFrame": 80, "text": data["scenes"][1]["narrationSegments"][0]["text"]},
+    ]
+    assert result["subtitles"] == result["props"]["subtitleCues"]
     assert calls[0][1:3] == ("zh-CN-YunxiNeural", "-6%")
     with wave.open(str(root / result["audio"]["segments"][0]["path"]), "rb") as wav:
         assert wav.getnframes() == 92 * 800
@@ -166,6 +171,8 @@ def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     scene = result["props"]["compiledScenes"][0]
     assert scene["embeddedComposition"] == "ArticleExplainer"
     assert scene["embeddedProps"]["version"] == 5
+    assert scene["embeddedProps"]["subtitleCues"] == prepared["props"]["subtitleCues"]
+    assert scene["embeddedProps"]["subtitleCues"]
     assert scene["durationInFrames"] == prepared["durationInFrames"]
     assert result["audio"]["segments"][0]["durationInFrames"] == prepared["durationInFrames"]
     image.write_bytes(b"changed")
@@ -191,8 +198,24 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
             page.goto(url + "&m2v-explainer=1"); page.wait_for_function("window.__M2V__?.version === 5")
             page.evaluate("async () => await window.__M2V__.ready()")
             samples = {}
-            for frame in [0,8,30,41,15,8,0,41]:
+            for frame in [0,8,29,30,41,15,8,0,41]:
                 page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
+                subtitle = page.locator('[data-m2v-subtitle]')
+                assert subtitle.inner_text() == (data["scenes"][0]["narrationSegments"][0]["text"] if frame < 30 else "")
+                if frame < 30:
+                    # 实际量测已检查正文安全区；此处补充主题前景与背景对比度。
+                    assert page.evaluate("""() => {
+                        const el = document.querySelector('[data-m2v-subtitle]');
+                        const rgb = value => value.match(/[\\d.]+/g).slice(0, 3).map(Number);
+                        const luminance = color => rgb(color).map(v => {
+                            v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+                        }).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+                        let bg = el.parentElement;
+                        while (getComputedStyle(bg).backgroundColor === 'rgba(0, 0, 0, 0)') bg = bg.parentElement;
+                        const a = luminance(getComputedStyle(el).color);
+                        const b = luminance(getComputedStyle(bg).backgroundColor);
+                        return (Math.max(a,b) + .05) / (Math.min(a,b) + .05) >= 4.5;
+                    }""")
                 image = page.screenshot()
                 if frame in samples: assert samples[frame] == image
                 samples[frame] = image

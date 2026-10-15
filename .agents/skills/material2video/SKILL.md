@@ -55,7 +55,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 
 ## 文章讲解编排原则
 
-文章类型只接受 v5 scenes 多幕讲解。按观点、对比、步骤、因果图、图片选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID。默认深色，可选浅色。每段实际 TTS 决定时间，完整成片含阅读停留与淡化不超过 60 秒；旧 v1～v4 须重新编排。
+文章类型只接受 v5 scenes 多幕讲解。按观点、对比、步骤、因果图、图片选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID。默认深色，可选浅色。默认根据旁白原文生成字幕，并烧录到预演和正式成片，无需额外开关，不得仅交付外置字幕；正文留出字幕安全区，无讲话的停顿及阅读尾段不显示字幕。每段实际 TTS 决定时间，完整成片含阅读停留与淡化不超过 60 秒；旧 v1～v4 须重新编排。
 
 先阅读源文并填写 outputs/input-review.json，再制作分镜与配音。完整有声预演自动验收后即可导出；可按需填写 outputs/review.json，不再要求旧 production.json、单世界或镜头连续性门禁。详见 [分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)和[评审量表](references/visual-review-rubric.md)。共享原语与代码场景文档仍供 general 和内部动画模块使用，不属于 v5 模板创作入口。
 
