@@ -16,12 +16,12 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _article_dir(workspace: Path, slug: str = "demo") -> Path:
-    """v5 文章归属固定为 videos/<类型>/<作品>/；旧的两层 videos/<作品>/ 不再推导得出。"""
+    """v6 文章归属固定为 videos/<类型>/<作品>/；旧的两层 videos/<作品>/ 不再推导得出。"""
     return workspace / "videos" / "article-narrative" / slug
 
 
 def _write_project(article_dir: Path) -> None:
-    """最小可用的 v5 文章作品：project.json、源文占位与一份合法讲解分镜。"""
+    """最小可用的 v6 文章作品：project.json、源文占位与一份合法讲解分镜。"""
     article_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "schemaVersion": 1,
@@ -32,7 +32,8 @@ def _write_project(article_dir: Path) -> None:
     }
     (article_dir / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     board = {
-        "version": 5, "schemaVersion": 5, "fps": 30, "width": 1080, "height": 1920, "title": "测试",
+        "version": 6, "schemaVersion": 6, "fps": 30, "width": 1080, "height": 1920, "title": "测试",
+        "input": {"kind": "article"}, "targetSeconds": 60,
         "scenes": [{
             "id": "opening", "template": "point",
             "content": {"title": "观点", "summary": {"text": "摘要", "segmentId": "line"}},
@@ -55,7 +56,7 @@ def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     record_path = article_dir / "outputs" / "input-review.json"
     record = json.loads(record_path.read_text(encoding="utf-8"))
-    # v5 审查只记录源文摘要与非空计数，不再有 130～170 字的 lengthStatus 判定。
+    # v6 审查只记录源文摘要与非空计数，不再有 130～170 字的 lengthStatus 判定。
     assert record["schemaVersion"] == 5
     assert record["status"] == "pending"
     assert record["source"]["path"] == "article.md"

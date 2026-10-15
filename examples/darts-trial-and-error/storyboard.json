@@ -1,10 +1,14 @@
 {
-  "version": 5,
-  "schemaVersion": 5,
+  "version": 6,
+  "schemaVersion": 6,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "试错，要带着反馈",
+  "input": {
+    "kind": "article"
+  },
+  "targetSeconds": 60,
   "visual": {
     "theme": "dark"
   },
@@ -69,8 +73,9 @@
       "template": "image",
       "content": {
         "title": "把偏差变成信息",
-        "src": "assets/feedback.png",
+        "src": "assets/media/e3eabce0423ada353a23164fef774ef4aa46c5210041dcbeb291dc31e350f911.png",
         "fit": "contain",
+        "photoZoom": 1.08,
         "caption": {
           "text": "看清偏差，再做下一次尝试",
           "segmentId": "darts-image-0",
@@ -79,6 +84,7 @@
           ]
         }
       },
+      "aspectRatio": "any",
       "narrationSegments": [
         {
           "id": "darts-image-0",

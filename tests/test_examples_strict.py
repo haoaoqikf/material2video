@@ -26,11 +26,29 @@ def test_examples_are_fixed_and_capped() -> None:
     assert {path.parent.name for path in STORYBOARDS} == EXPECTED_EXAMPLES
 
 
-def test_every_shipped_example_declares_v5() -> None:
-    legacy = {path.parent.name for path in STORYBOARDS if _declared_version(path) != 5}
-    assert not legacy, f"示例未声明 v5：{sorted(legacy)}"
+def test_every_shipped_example_declares_v6() -> None:
+    legacy = {path.parent.name for path in STORYBOARDS if _declared_version(path) != 6}
+    assert not legacy, f"示例未声明 v6：{sorted(legacy)}"
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
-def test_shipped_example_matches_the_v5_contract(path: Path) -> None:
+def test_shipped_example_matches_the_v6_contract(path: Path) -> None:
     explainer.validate(json.loads(path.read_text(encoding="utf-8")), path.parent)
+
+
+@pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
+def test_example_media_is_content_addressed_and_recorded(path: Path) -> None:
+    """示例引用的媒体必须已导入并留证，不能靠未入库的散文件凑数。"""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    referenced = [scene["content"]["src"] for scene in data["scenes"]
+                  if scene["template"] in {"image", "video"}]
+    if not referenced:
+        return
+    record = json.loads((path.parent / "assets/media-sources.json").read_text(encoding="utf-8"))
+    recorded = {entry["path"]: entry for entry in record["assets"]}
+    assert set(referenced) <= set(recorded), f"示例媒体缺少导入记录：{sorted(set(referenced) - set(recorded))}"
+    for relative in referenced:
+        file = path.parent / relative
+        assert file.is_file()
+        assert file.name.startswith(recorded[relative]["sha256"])
+        assert recorded[relative]["kind"] == ("video" if file.suffix == ".mp4" else "image")

@@ -1,6 +1,8 @@
 from __future__ import annotations
 import copy
+import hashlib
 import json
+import shutil
 import wave
 from pathlib import Path
 import pytest
@@ -12,9 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def board():
-    return {"version": 5, "schemaVersion": 5, "fps": 30, "width": 1080, "height": 1920,
-        "title": "测试", "scenes": [{"id": "a", "template": "point",
+    return {"version": 6, "schemaVersion": 6, "fps": 30, "width": 1080, "height": 1920,
+        "title": "测试", "input": {"kind": "article"}, "targetSeconds": 60,
+        "scenes": [{"id": "a", "template": "point",
         "content": {"title": "观点", "summary": {"text": "观察反馈", "segmentId": "a-line", "keywords": ["反馈"]}},
+        "keywords": ["反馈"],
         "narrationSegments": [{"id": "a-line", "text": "观察结果，修正做法。"}]}]}
 
 
@@ -35,7 +39,8 @@ def project(tmp_path, data=None):
     return root, manifest
 
 
-def fake_tts(monkeypatch, seconds=1):
+def fake_tts(monkeypatch, seconds=1, samples=None):
+    """假合成：可声明与落盘长度不同的时长，用于快速验证帧账本。"""
     calls = []
     def speak(text, voice, rate, cache, **kwargs):
         calls.append((text, voice, rate, kwargs))
@@ -43,16 +48,22 @@ def fake_tts(monkeypatch, seconds=1):
         hit = wav.exists()
         with wave.open(str(wav), "wb") as stream:
             stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
-            stream.writeframes(b"\x01\0" * round(seconds * 24000))
+            stream.writeframes(b"\x01\0" * round((seconds if samples is None else samples) * 24000))
         return wav, [{"start": 0, "end": seconds, "text": text}], [], seconds, hit
     monkeypatch.setattr(prepare.tts, "scene_audio", speak)
     return calls
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 5])
 def test_old_storyboards_rejected(tmp_path, version):
     data = board(); data.update(version=version, schemaVersion=version)
     with pytest.raises(M2VError, match="重新编排"):
+        explainer.validate(data, tmp_path)
+
+
+def test_version_and_schema_version_must_agree(tmp_path):
+    data = board(); data["schemaVersion"] = 5
+    with pytest.raises(M2VError, match="只接受 v6"):
         explainer.validate(data, tmp_path)
 
 
@@ -61,10 +72,44 @@ def test_old_storyboards_rejected(tmp_path, version):
     (lambda b: b["scenes"][0]["content"]["summary"].update(keywords=["没有的词"]), "keywords"),
     (lambda b: b["scenes"].append(copy.deepcopy(b["scenes"][0])), "重复 ID"),
     (lambda b: b["scenes"][0].update(world={}), "未知字段"),
+    (lambda b: b.update(targetSeconds=0), "targetSeconds"),
+    (lambda b: b.update(targetSeconds=601), "targetSeconds"),
+    (lambda b: b.update(input={"kind": "video"}), "input.kind"),
+    (lambda b: b["scenes"][0].update(transitionFrames=0), "transitionFrames"),
 ])
 def test_invalid_material(tmp_path, mutation, match):
     data = board(); mutation(data)
     with pytest.raises(M2VError, match=match): explainer.validate(data, tmp_path)
+
+
+def test_card_template_requires_narration(tmp_path):
+    data = board(); data["scenes"][0]["narrationSegments"] = []
+    with pytest.raises(M2VError, match="只有图片或视频幕允许无旁白"):
+        explainer.validate(data, tmp_path)
+
+
+def test_topic_input_requires_keywords_and_no_article(tmp_path):
+    data = board(); data["input"] = {"kind": "topic", "topic": "缓冲机制"}
+    for scene in data["scenes"]:
+        scene.pop("keywords")
+    with pytest.raises(M2VError, match="keywords"): explainer.validate(data, tmp_path)
+    for scene in data["scenes"]:
+        scene["keywords"] = ["缓冲"]
+    explainer.validate(data, tmp_path)
+    root, manifest = project(tmp_path, data)
+    (root / "article.md").unlink()
+    source = explainer.load(root, manifest)
+    assert explainer.topic_input(source)
+    # 主题输入不伪造原文语义审查：没有 article.md 也能准备。
+    assert adapter.validate(root, manifest) is None
+
+
+def test_topic_input_must_declare_topic_text(tmp_path):
+    data = board(); data["input"] = {"kind": "topic"}
+    for scene in data["scenes"]:
+        scene["keywords"] = ["缓冲"]
+    with pytest.raises(M2VError, match="input.topic"):
+        explainer.validate(data, tmp_path)
 
 
 def test_graph_rejects_cycles_and_computes_layers(tmp_path):
@@ -81,15 +126,23 @@ def test_missing_image_and_path_escape(tmp_path):
     with pytest.raises(M2VError, match="本地文件"): explainer.validate(data, tmp_path)
 
 
-@pytest.mark.parametrize("seconds,passes", [(59.6, True), (59.6 + 1/30, False)])
-def test_exact_sixty_second_limit(tmp_path, monkeypatch, seconds, passes):
+def test_media_scene_without_caption_or_narration():
+    """图片与视频幕允许无旁白、无配文，只保留标题。"""
+    assert explainer.elements({"template": "video", "content": {"title": "空镜"}}) == []
+    assert explainer.elements({"template": "image", "content": {"title": "空镜"}}) == []
+
+
+@pytest.mark.parametrize("seconds,samples,passes", [
+    (599.6, .1, True), (599.6 + 1/30, .1, False),
+])
+def test_exact_six_hundred_second_limit(tmp_path, monkeypatch, seconds, samples, passes):
     root, manifest = project(tmp_path)
-    fake_tts(monkeypatch, seconds)
+    fake_tts(monkeypatch, seconds, samples=samples)
     if passes:
         result = adapter.prepare(root, manifest)
-        assert result["durationInFrames"] == 1800
+        assert result["durationInFrames"] == 18000
     else:
-        with pytest.raises(M2VError, match="超过 60 秒"): adapter.prepare(root, manifest)
+        with pytest.raises(M2VError, match="超过 600 秒"): adapter.prepare(root, manifest)
         assert not (root / "outputs/prepared.json").exists()
 
 
@@ -102,19 +155,48 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     result = adapter.prepare(root, manifest, voice="zh-CN-YunxiNeural", rate="-6%")
     a,b = result["props"]["compiledScenes"]
     assert a["segmentWindows"]["a-line"] == {"startFrame": 0, "endFrame": 30}
-    assert a["endFrame"] == 50 and b["startFrame"] == 42
-    assert b["segmentWindows"]["b-line"]["startFrame"] == 50
-    assert result["durationInFrames"] == 92
+    assert a["endFrame"] == 42 and b["startFrame"] == 34
+    assert b["segmentWindows"]["b-line"] == {"startFrame": 42, "endFrame": 72}
+    assert result["durationInFrames"] == 84
     assert result["props"]["subtitleCues"] == [
         {"startFrame": 0, "endFrame": 30, "text": data["scenes"][0]["narrationSegments"][0]["text"]},
-        {"startFrame": 50, "endFrame": 80, "text": data["scenes"][1]["narrationSegments"][0]["text"]},
+        {"startFrame": 42, "endFrame": 72, "text": data["scenes"][1]["narrationSegments"][0]["text"]},
     ]
     assert result["subtitles"] == result["props"]["subtitleCues"]
     assert calls[0][1:3] == ("zh-CN-YunxiNeural", "-6%")
     with wave.open(str(root / result["audio"]["segments"][0]["path"]), "rb") as wav:
-        assert wav.getnframes() == 92 * 800
+        assert wav.getnframes() == 84 * 800
     next_result = adapter.prepare(root, manifest)
     assert next_result["audio"]["cacheHits"] == 2
+
+
+def test_narration_overlap_is_rejected(tmp_path, monkeypatch):
+    """旁白不得重叠：淡化帧数不小于前一幕时长时准备失败。"""
+    data = board(); second = copy.deepcopy(data["scenes"][0])
+    second.update(id="b", transition="crossfade", transitionFrames=42)
+    second["narrationSegments"][0]["id"] = "b-line"; second["content"]["summary"]["segmentId"] = "b-line"
+    data["scenes"].append(second)
+    root, manifest = project(tmp_path, data); fake_tts(monkeypatch)
+    with pytest.raises(M2VError, match="转场过长"):
+        adapter.prepare(root, manifest)
+
+
+def test_silent_media_scene_takes_target_remainder(tmp_path, monkeypatch):
+    """无旁白镜头按固定帧数或目标剩余时长分配，不靠截断口播凑时长。"""
+    data = board()
+    data["scenes"].append({"id": "shot", "template": "image", "narrationSegments": [],
+                           "content": {"title": "空镜", "src": "assets/media/x.png"}})
+    root, manifest = project(tmp_path, data); fake_tts(monkeypatch)
+    (root / "assets/media").mkdir(parents=True)
+    (root / "assets/media/x.png").write_bytes(b"fixture")
+    # 素材实测契约由 media 测试覆盖，这里只验证无旁白幕的帧分配。
+    monkeypatch.setattr("m2v.types.article.media_assets.validate_scene",
+                        lambda root, scene: {"width": 1080, "height": 1920, "durationSeconds": None})
+    result = adapter.prepare(root, manifest)
+    shot = result["props"]["compiledScenes"][1]
+    assert result["durationInFrames"] == 1800
+    assert shot["durationInFrames"] == 1800 - 42
+    assert shot["segmentWindows"] == {}
 
 
 @pytest.mark.parametrize("reference", ["article.md", "outputs/input-review.json"])
@@ -141,18 +223,18 @@ def test_fixed_examples_cover_all_templates():
     assert found == explainer.TEMPLATES
 
 
-def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
+def test_media_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     from m2v.cli import _register_builtins
     from m2v.types.general import adapter as general
     from m2v.core.project import _write_json
     _register_builtins()
     parent = tmp_path / "parent"
     parent.mkdir()
-    data = json.loads((ROOT / "examples/darts-trial-and-error/storyboard.json").read_text(encoding="utf-8"))
+    source = ROOT / "examples/darts-trial-and-error"
+    data = json.loads((source / "storyboard.json").read_text(encoding="utf-8"))
     child, manifest = project(parent, data)
-    (child / "assets").mkdir()
-    image = child / "assets/feedback.png"
-    image.write_bytes((ROOT / "examples/darts-trial-and-error/assets/feedback.png").read_bytes())
+    shutil.copytree(source / "assets", child / "assets")
+    image = next((child / "assets/media").glob("*.png"))
     fake_tts(monkeypatch)
     prepared = adapter.prepare(child, manifest)
     # 媒体验收在独立测试中覆盖，此处验证无人工评审也能完整嵌入。
@@ -160,7 +242,6 @@ def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     preview_file = child / "outputs/previews/video.mp4"
     preview_file.parent.mkdir()
     preview_file.write_bytes(b"test preview fixture")
-    import hashlib
     preview = {"path": "outputs/previews/video.mp4", "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest(),
                "frames": prepared["durationInFrames"], "preparedFingerprint": prepared["preparedFingerprint"]}
     _write_json(child / "outputs/preview-record.json", preview)
@@ -170,7 +251,7 @@ def test_image_change_invalidates_child_and_parent(tmp_path, monkeypatch):
     result = general.prepare(parent, project_manifest)
     scene = result["props"]["compiledScenes"][0]
     assert scene["embeddedComposition"] == "ArticleExplainer"
-    assert scene["embeddedProps"]["version"] == 5
+    assert scene["embeddedProps"]["version"] == 6
     assert scene["embeddedProps"]["subtitleCues"] == prepared["props"]["subtitleCues"]
     assert scene["embeddedProps"]["subtitleCues"]
     assert scene["durationInFrames"] == prepared["durationInFrames"]
@@ -195,7 +276,7 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
         browser = pw.chromium.launch(headless=True)
         try:
             page = browser.new_page(viewport={"width":1080, "height":1920})
-            page.goto(url + "&m2v-explainer=1"); page.wait_for_function("window.__M2V__?.version === 5")
+            page.goto(url + "&m2v-explainer=1"); page.wait_for_function("window.__M2V__?.version === 6")
             page.evaluate("async () => await window.__M2V__.ready()")
             samples = {}
             for frame in [0,8,29,30,41,15,8,0,41]:

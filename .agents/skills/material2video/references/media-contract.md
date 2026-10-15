@@ -3,8 +3,8 @@
 > **适用范围：** 本文描述当前所有类型的配音、字幕与混音契约：音色与语速的三级优先级、
 > 语音缓存与失效、字幕断句规则、成片音轨参数，以及音床。
 > 文章叙事只记录正文计数，**不再限制 130～170 字，也不再限制 35～45 秒**；
-> 成片时长由实际口播派生（文章 v5 上限 1800 帧）。分镜与时间轴契约以
-> [文章分镜 v5](storyboard-schema.md) 与
+> 成片时长由实际口播派生（文章 v6 上限 18000 帧）。分镜与时间轴契约以
+> [文章分镜 v6](storyboard-schema.md)、[文章媒体与音效](article-media-and-sound.md) 与
 > [OpenSpec article-explainer](../../../../openspec/specs/article-explainer/spec.md) 为准。
 > v4 的媒体清单、`stages` 时间轴与语义节拍已随旧子系统删除，本文不再描述。
 
@@ -17,11 +17,11 @@
 | --- | --- |
 | `contractVersion` / `projectId` / `type` | 准备记录版本与归属 |
 | `compositionId` | 该作品渲染用的 composition |
-| `props` | 交给 composition 的完整材料（文章 v5 是 `compiledScenes` / `subtitleCues` / `durationInFrames` 等派生结果） |
+| `props` | 交给 composition 的完整材料（文章 v6 是 `compiledScenes` / `subtitleCues` / `durationInFrames` 等派生结果） |
 | `width` / `height` / `fps` / `durationInFrames` | 画面参数与派生总时长 |
 | `inputs` | 逐个输入的 sha256：作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>` 与声音配置 |
 | `materialFingerprint` / `preparedFingerprint` | 作品描述与整份准备记录的指纹 |
-| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。文章 v5 与素材剪辑始终是整片一条母版轨（`sceneId` 为 `master`）；通用类型在声明了音床时也是整片一条，没有音床时逐幕一条；全片无口播且无音床时为空数组（渲染无声）。`audio.cacheHits` 记本次命中数 |
+| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。文章 v6 与通用类型的音床始终是整片一条母版轨（`sceneId` 为 `master`）；通用类型没有音床时逐幕一条；全片无口播且无音床时为空数组（渲染无声）。`audio.cacheHits` 记本次命中数 |
 | `subtitles` | 全片字幕 cue：`startFrame`、`endFrame`、`text` |
 | `dependencies` | 嵌入作品的准备指纹；子作品重新准备会让父作品的准备记录过期 |
 
@@ -37,16 +37,17 @@ uv run m2v render --project videos/article-narrative/<slug>
 
 ## 工作流
 
-1. 口播写在它所属的幕/场景里：文章 v5 用分段口播 `narrationSegments`（只接受分段形式，
-   不接受整段字符串），通用与素材类型用该幕的 `narration`；静音幕省略口播。
+1. 口播写在它所属的幕/场景里：文章 v6 用分段口播 `narrationSegments`（只接受分段形式，
+   不接受整段字符串；图片与视频幕可以为空），通用类型用该幕的 `narration`；静音幕省略口播。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
-   文章 v5 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 12 帧阅读时间。
+   文章 v6 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 12 帧阅读时间。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
-4. `m2v preview --project <目录>` 生成完整预演（文章 v5 会先跑浏览器排版量测）；
+4. `m2v preview --project <目录>` 生成完整预演（文章 v6 会先跑浏览器排版量测）；
    `m2v article keyframes --storyboard <分镜>` 单独输出各幕结果帧供静态检查。
 5. `m2v render --project <目录>` 在准备、完整预演和评审都仍绑定当前材料时输出正式视频。
 
-文章 v5 的正式导出还要求源文已通过**讲解语义审查**：`m2v article input-review --storyboard
+文章 v6 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
+`m2v article input-review --storyboard
 <分镜>` 生成 `outputs/input-review.json`，填好后 status 为 `pass`、依据非空且 problemSpans
 为空；源文或正文计数变化会让审查过期，须重新审查。计数只用于记录，不设字数区间。见
 [讲解输入审查](input-review.md)。
@@ -54,7 +55,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 渲染与预演都不会触发联网合成：没有跑过 `m2v prepare` 时它们直接报「缺少有效准备记录」
 并停下，不会静默导出一段无声成片。要无声成片就不写口播、也不声明音床，prepare 会写出
 空音轨（`audio.segments` 为空），此时 `m2v render` 照常产出无声画面。
-成片与预演落在作品 `outputs/` 下（文章 v5 为 `outputs/video.mp4`，预演为
+成片与预演落在作品 `outputs/` 下（文章 v6 为 `outputs/video.mp4`，预演为
 `outputs/previews/video.mp4`）。路径推导规则见 [目录约定与输出路径](paths-and-outputs.md)。
 
 ## 语音与字幕
@@ -73,7 +74,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 单声道、16bit PCM WAV，再按派生时间轴补静音并拼接；拼接位置按**累计帧数**换算采样位置，
 避免逐幕取整误差累积——逐幕各自取整会让音轨比画面短出若干帧，而校验只差一点就报错。
 
-文章 v5 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
+文章 v6 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
 不再有「按原文顺序消费词边界、段末标点落到下一段」这类跨段约定。
 
 ## 缓存与失败处理
@@ -92,7 +93,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 
 ## 渲染与验收
 
-字幕由画面自身绘制并烧录在成片里，正文预留字幕安全区（文章 v5 的正文下边界 1502、
+字幕由画面自身绘制并烧录在成片里，正文预留字幕安全区（文章 v6 的正文下边界 1502、
 字幕区到 1782，见 [渲染契约](render-contract.md) 的三项硬判定）；不依赖外置字幕文件。
 准备记录的 `props` 携带 `subtitleCues`，共享 composition 按当前帧绘制字幕并预留安全区；
 **分镜不能手写该字段**——它由 prepare 从真实词边界派生，手写会和音轨各说各话。
@@ -151,7 +152,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 }
 ```
 
-上面的零摘要仅示意字段，必须换为真实值：调用 `m2v.engine.tts.narration_digest(texts)`，对按播放顺序排列的非空自身旁白字符串数组，以保留中文、无额外空格的 JSON UTF-8 计算 SHA256。文章逐幕逐段收集 `text`；general 每幕 narration 数组先拼成字符串，排除嵌入片段；素材剪辑收集各幕 narration。保留原文和分段边界，忽略空白段。
+上面的零摘要仅示意字段，必须换为真实值：调用 `m2v.engine.tts.narration_digest(texts)`，对按播放顺序排列的非空自身旁白字符串数组，以保留中文、无额外空格的 JSON UTF-8 计算 SHA256。文章逐幕逐段收集 `text`（图片与视频幕的旁白段同样计入）；general 每幕 narration 数组先拼成字符串，排除嵌入片段。保留原文和分段边界，忽略空白段。
 
 助手记录只接受 mode、非空 rationale 和 64 位小写 narrationSha256。旁白改变会阻断 prepare，要求重新判断并更新记录；画面变化不要求重选。手动选择只填 voice，无需 selection；手动修改作品音色时删除旧 selection。`--voice` 覆盖会标记 command-line 来源，并丢弃助手理由；仅覆盖语速不跳过旁白摘要检查。
 
@@ -202,21 +203,22 @@ uv run m2v render --project videos/article-narrative/<slug>
 - 缓存里保存的始终是**未整形**的原始合成，所以开关或调整韵律**不会**让语音缓存失效，
   也不必重新合成（但会改变准备记录，需重新 prepare）。
 - 命令行可临时试听：`--pause-comma` / `--pause-period` / `--pause-paragraph` / `--head-pad`。
-- 逐幕覆盖（通用与素材类型）：幕里写 `"speech": {"rate": "-4%", "pause": {"comma": 0.12}}`，
-  未提到的字段跟随作品配置；文章 v5 的分镜不接受逐段 `speech`，只能用作品级配置。
-  逐幕语速会改变该幕语音时长，固定帧容量的作品要一并腾挪。
+- 逐幕覆盖：幕里写 `"speech": {"rate": "-4%", "pause": {"comma": 0.12}}`，
+  未提到的字段跟随作品配置；文章 v6 与通用类型都写在幕上，文章 v6 的旁白段本身只接受
+  `id` 与 `text`。逐幕语速会改变该幕语音时长，固定帧容量的作品要一并腾挪。
 - 本作品 `china-ancient-population` 的实测（7 段口播）：语音合计 74.5s → 70.5s，
   短句读压到 0.15s、句末留 0.55s、起段引子 0.18s → 0.08s。
 
 ## 口播合成与混音
 
-口播的合成粒度随类型不同：文章 v5 逐段合成（`narrationSegments[].text`），通用与素材类型把
+口播的合成粒度随类型不同：文章 v6 逐段合成（`narrationSegments[].text`），通用类型把
 该幕 `narration` 数组拼成一个字符串后合成一次，统一使用上面解析出的音色与语速。
-实际语音时长向上取整到帧，文章 v5 再留出 12 帧稳定阅读时间；缓存按文本、音色、语速与
+实际语音时长向上取整到帧，文章 v6 再留出 12 帧稳定阅读时间；缓存按文本、音色、语速与
 媒体契约版本区分，音乐不进入语音请求缓存键。
 
-文章 v5 拒绝 `narrationSegments[].speech`（分镜只接受 `id` 与 `text`）：整片的停顿节奏改用
-作品级 `tts.speech`（见「停顿节奏」），它不写进分镜、也不改变分段结构。通用与素材类型可以
+文章 v6 拒绝 `narrationSegments[].speech`（分镜的旁白段只接受 `id` 与 `text`，逐幕节奏写在
+幕的 `speech` 上）：整片的停顿节奏改用
+作品级 `tts.speech`（见「停顿节奏」），它不写进分镜、也不改变分段结构。通用类型可以
 在幕上写 `speech`（逐幕语速与停顿），它记进 `inputs.speech:<场景ID>`。
 
 旁白二遍 loudnorm 目标 −16 LUFS/−1 dBTP，静音保留。音乐默认 −24 dB，讲话时额外压低 10 dB，
@@ -227,11 +229,12 @@ uv run m2v render --project videos/article-narrative/<slug>
 改音床素材或任一参数都会让准备记录过期，必须重新 prepare。素材与作品目录整体迁移时
 相对关系须保留。
 
-## 音床（`soundtrack.music`）
+## 音床与音效（`soundtrack`）
 
-通用类型（`general`）的计划与素材剪辑的素材简述都可以声明 `soundtrack.music`：
-作品目录内本地相对路径的音床素材、增益、循环与淡入淡出。文章 v5 的分镜不接受
-`soundtrack`（顶层只允许分镜字段），音床只对通用与素材类型开放。
+通用类型（`general`）的计划可以声明 `soundtrack.music`，文章 v6 分镜的顶层 `soundtrack`
+同时接受 `music` 与 `effects`：作品目录内本地相对路径的音床素材、增益、循环与淡入淡出，
+以及按幕定位的音效（内置提示音或本地素材）。文章 v6 的媒体与音效细节见
+[文章媒体与音效](article-media-and-sound.md)。
 
 ```json
 {
@@ -241,7 +244,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 }
 ```
 
-`sourceRef` 相对**声明它的材料文件所在目录**解析（通用片是计划文件、素材剪辑是素材简述），
+`sourceRef` 相对**声明它的材料文件所在目录**解析（文章分镜、通用片计划文件），
 不支持 URL、绝对路径、`..` 或反斜线，解析后不可越界；`gainDb` 为 −60 至 0；`loop` 默认
 false；淡入淡出 0–60000ms，默认各 500ms。素材缺失或损坏让 prepare 失败，旧准备记录保持有效。
 
@@ -253,14 +256,16 @@ false；淡入淡出 0–60000ms，默认各 500ms。素材缺失或损坏让 pr
 - **音床素材必须能无缝循环**。混音用 `-stream_loop -1` 铺满全片，接缝不连续就会在每个循环点响一下。
   判据不是「首尾采样值接近」，而是「末采样到首采样的步进不超过素材内部的最大相邻步进」：
   频率取循环长度的整数分之一、漂移用相位调制，才能让循环点与信号内部同样平滑。
-- 声明音床后，音轨不再是逐幕轨，而是**整片一条母版轨**：先按全片帧边界拼出旁白，
-  再按字幕讲话区间生成闪避包络与音床混合。口播保持清晰、音床在讲话时被压低。
-  （素材剪辑本来就只有一条母版轨，与是否有音床无关。）
+- 声明音床或音效后，音轨不再是逐幕轨，而是**整片一条母版轨**：先按全片帧边界拼出旁白，
+  再按字幕讲话区间生成闪避包络与音床混合，并把音效按幕/段起点叠上去。口播保持清晰、
+  音床在讲话时被压低。母版轨严格裁到全片时长，循环音床不会把成片拖长。
 - 拼接按**全片帧边界**推进：每幕占它到下一幕起点为止的帧数，没有口播的幕补静音，
   嵌入片段用子作品自己的整片音轨；闪避包络和字幕一样用全片时间。
   不能按口播时长首尾相接——那样人声会整体前移，音床在旁白结束处就断了。
 - 交叉淡化在拼接时按槽位施加线性淡入淡出（帧数取相邻幕的 `transition.frames`，不超过槽位一半），
   母版轨因此仍与画面共享淡化进度；逐幕轨则继续用 `afade` 实现同一件事。
-- **`soundtrack.effects` 当前不渲染**：当前没有任何类型提供可信的音效起点锚点（旧的语义节拍
-  时间轴已随旧子系统删除），声明它会让材料校验失败并说明原因，而不是猜一个位置。
+- **音效只对文章 v6 开放**：它按 `sceneId`（可选 `segmentId`）与 `offsetMs` 定位，
+  起点必须落在全片时长内；通用类型没有可信的音效起点锚点（旧的语义节拍时间轴已随旧子系统
+  删除），声明 `soundtrack.effects` 会让材料校验失败并说明原因，而不是猜一个位置。
+  内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性合成。
 

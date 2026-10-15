@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "keynote-clip",
+      "path": "assets/media/50c33d3edfcb4d8ad81798330fd675e2380a48c6074b73c144be7abcc655a3c7.mp4",
+      "kind": "video",
+      "width": 1080,
+      "height": 1920,
+      "durationSeconds": 4.0,
+      "sha256": "50c33d3edfcb4d8ad81798330fd675e2380a48c6074b73c144be7abcc655a3c7",
+      "sourceUrl": "未知",
+      "mediaUrl": "未知",
+      "author": "material2video 示例",
+      "license": "CC0 1.0 Universal"
+    }
+  ]
+}

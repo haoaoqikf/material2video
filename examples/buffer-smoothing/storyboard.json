@@ -1,10 +1,14 @@
 {
-  "version": 5,
-  "schemaVersion": 5,
+  "version": 6,
+  "schemaVersion": 6,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "缓冲，让快慢衔接",
+  "input": {
+    "kind": "article"
+  },
+  "targetSeconds": 60,
   "visual": {
     "theme": "dark"
   },
@@ -115,5 +119,22 @@
       ],
       "transition": "fade"
     }
-  ]
+  ],
+  "soundtrack": {
+    "music": {
+      "sourceRef": "assets/bed.wav",
+      "gainDb": -26,
+      "loop": true,
+      "fadeInMs": 800,
+      "fadeOutMs": 1200
+    },
+    "effects": [
+      {
+        "builtin": "ding-dong",
+        "sceneId": "buffer-point",
+        "offsetMs": 0,
+        "gainDb": -20
+      }
+    ]
+  }
 }

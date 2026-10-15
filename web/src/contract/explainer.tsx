@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import {Player, type PlayerRef} from '@remotion/player';
 import {ArticleExplainer, type ArticleExplainerProps} from '@/compositions/ArticleExplainer';
 import {ensureFonts} from '@/fonts';
-import {settleOnFrame, type M2VContractV5} from './bridge';
+import {settleOnFrame, type M2VContractV6} from './bridge';
 
 async function readyImages() {
   await Promise.all(Array.from(document.images).map(image => image.decode()));
@@ -17,7 +17,7 @@ export function ExplainerContractApp() {
     void fetch(url).then(async response => {
       if (!response.ok) throw new Error(`讲解材料读取失败：HTTP ${response.status}`);
       const data = await response.json() as ArticleExplainerProps;
-      if (data.version !== 5 || !data.compiledScenes || !data.durationInFrames) throw new Error('需要已准备的 v5 讲解材料');
+      if (data.version !== 6 || !data.compiledScenes || !data.durationInFrames) throw new Error('需要已准备的 v6 讲解材料');
       if (!cancelled) setProps(data);
     }).catch(cause => {if (!cancelled) setError(String(cause));});
     return () => {cancelled = true;};
@@ -25,7 +25,7 @@ export function ExplainerContractApp() {
   useEffect(() => {
     const current = player.current;
     if (!props || !current) return;
-    const contract: M2VContractV5 = {version: 5, fps: props.fps, width: props.width, height: props.height,
+    const contract: M2VContractV6 = {version: 6, fps: props.fps, width: props.width, height: props.height,
       durationInFrames: props.durationInFrames,
       currentFrame: () => current.getCurrentFrame(),
       ready: async () => {await ensureFonts(); await settleOnFrame(current, 0); await readyImages();},

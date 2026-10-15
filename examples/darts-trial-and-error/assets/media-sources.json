@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "darts-feedback",
+      "path": "assets/media/e3eabce0423ada353a23164fef774ef4aa46c5210041dcbeb291dc31e350f911.png",
+      "kind": "image",
+      "width": 864,
+      "height": 700,
+      "durationSeconds": null,
+      "sha256": "e3eabce0423ada353a23164fef774ef4aa46c5210041dcbeb291dc31e350f911",
+      "sourceUrl": "未知",
+      "mediaUrl": "未知",
+      "author": "material2video 示例",
+      "license": "CC0 1.0 Universal"
+    }
+  ]
+}

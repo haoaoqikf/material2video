@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Any
 import hashlib
+import copy
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
@@ -22,6 +23,7 @@ from m2v.engine import audio as audio_engine
 from m2v.engine import rhythm as rhythm_engine
 from m2v.engine import sound as sound_contract
 from m2v.engine import tts as tts_engine
+from m2v.engine.http_server import LocalServer
 from m2v.core.report import Report
 from m2v.types import registry
 from m2v.engine import output_validation
@@ -396,15 +398,26 @@ def _render(root: Path, project: dict, *, preview: bool, limit_frames: int | Non
     started = time.monotonic()
     timings = perf.StageTimings()
     expected_frames = min(prepared["durationInFrames"], limit_frames or prepared["durationInFrames"])
-    with tempfile.TemporaryDirectory(prefix="m2v-general-", dir=destination.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix="m2v-general-", dir=destination.parent) as temporary, \
+            LocalServer(root, cors=True) as server:
         temp = Path(temporary)
         props_file = temp / "prepared-props.json"
-        props_file.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+        # 嵌入文章 v6 的混合媒体经作品本地回环服务读取：媒体基址按子作品相对作品根的
+        # 位置拼接，素材不进入共享 public，也不以 base64 塞进准备记录。
+        props = copy.deepcopy(prepared["props"])
+        props["mediaBase"] = server.base_url + "/"
+        for scene in props.get("compiledScenes", []):
+            if scene.get("embeddedComposition") != "ArticleExplainer":
+                continue
+            relative = Path(str(scene.get("project") or "")).as_posix().strip("/")
+            scene["embeddedProps"] = {**(scene.get("embeddedProps") or {}),
+                                      "mediaBase": f"{server.base_url}/{relative}/" if relative else server.base_url + "/"}
+        props_file.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")
         raw_video = temp / "video.mp4"
         # Remotion's code-scene manifest consumes the same `scenes` collection
         # used by the public code-scene API. Use this prepared snapshot so code
         # modules are scoped to the current work and stale scenes cannot leak.
-        render_plan = dict(prepared["props"])
+        render_plan = dict(props)
         render_plan["scenes"] = render_plan["compiledScenes"]
         # The scene manifest resolves project-relative code modules from the
         # plan's parent directory. Keep this ephemeral snapshot in the project

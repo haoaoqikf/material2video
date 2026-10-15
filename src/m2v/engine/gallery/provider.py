@@ -1,12 +1,12 @@
 """在线图库适配器：把「关键词 → 候选素材」与「候选 → 本地文件」两件事收敛到一处。
 
-支持 Pexels 和 Pixabay。适配器按
-``provider.name`` 选择，未知名称直接失败并列出可用名称，不做静默降级。
+支持 Pexels 和 Pixabay。适配器按 ``provider.name`` 选择，未知名称直接失败并列出
+可用名称，不做静默降级。
 
 网络访问全部走可注入的 :class:`Transport`：生产用标准库 ``urllib``（不新增依赖），
 测试用本机假图库服务，因此检索与下载这条链路可以完全离线验证。
 
-凭据只从环境变量读取，绝不出现在作品材料、检索记录或日志里。
+凭据只从环境变量读取，绝不出现在作品材料、导入记录或日志里。
 """
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from m2v.core.errors import M2VError
-from m2v.types.stock import aspect
-from m2v.types.stock.pixabay import PixabayProvider
+from m2v.engine.gallery import aspect
+from m2v.engine.gallery.pixabay import PixabayProvider
 
 #: 单个素材文件的下载上限：图库返回异常大文件时直接失败，而不是把磁盘写满。
 MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024
@@ -90,7 +90,7 @@ class HttpTransport:
             raise M2VError(f"无法访问图库接口：{_safe_url(url)}（{type(exc).__name__}）") from None
         try:
             data = json.loads(payload.decode("utf-8"))
-        except (UnicodeError, json.JSONDecodeError) as exc:
+        except (UnicodeError, json.JSONDecodeError):
             raise M2VError(f"图库接口没有返回合法 JSON：{_safe_url(url)}") from None
         if not isinstance(data, dict):
             raise M2VError(f"图库接口返回的不是对象：{_safe_url(url)}")
@@ -105,17 +105,17 @@ class HttpTransport:
                 while block := response.read(1024 * 1024):
                     written += len(block)
                     if written > MAX_DOWNLOAD_BYTES:
-                        raise M2VError(f"素材文件超过 {MAX_DOWNLOAD_BYTES // (1024 * 1024)}MB 上限：{url}")
+                        raise M2VError(f"素材文件超过 {MAX_DOWNLOAD_BYTES // (1024 * 1024)}MB 上限：{_safe_url(url)}")
                     sink.write(block)
         except urllib.error.HTTPError as exc:
             destination.unlink(missing_ok=True)
-            raise M2VError(f"下载素材失败（{exc.code}）：{url}") from exc
+            raise M2VError(f"下载素材失败（{exc.code}）：{_safe_url(url)}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             destination.unlink(missing_ok=True)
-            raise M2VError(f"下载素材失败：{url}（{exc}）") from exc
+            raise M2VError(f"下载素材失败：{_safe_url(url)}（{exc}）") from exc
         if not written:
             destination.unlink(missing_ok=True)
-            raise M2VError(f"下载的素材为空：{url}")
+            raise M2VError(f"下载的素材为空：{_safe_url(url)}")
         return written
 
 

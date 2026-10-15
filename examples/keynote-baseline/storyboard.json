@@ -1,10 +1,14 @@
 {
-  "version": 5,
-  "schemaVersion": 5,
+  "version": 6,
+  "schemaVersion": 6,
   "fps": 30,
   "width": 1080,
   "height": 1920,
   "title": "少一个选项",
+  "input": {
+    "kind": "article"
+  },
+  "targetSeconds": 60,
   "visual": {
     "theme": "dark"
   },
@@ -101,6 +105,20 @@
         }
       ],
       "transition": "fade"
+    },
+    {
+      "id": "choice-video",
+      "template": "video",
+      "content": {
+        "title": "选定方向，直接向前",
+        "src": "assets/media/50c33d3edfcb4d8ad81798330fd675e2380a48c6074b73c144be7abcc655a3c7.mp4",
+        "fit": "cover",
+        "trimStartSeconds": 0.5
+      },
+      "durationFrames": 90,
+      "transition": "fade",
+      "transitionFrames": 8,
+      "narrationSegments": []
     }
   ]
 }

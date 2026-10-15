@@ -1,19 +1,19 @@
 import React from 'react';
-import {AbsoluteFill, Img, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Img, OffthreadVideo, Sequence, useCurrentFrame} from 'remotion';
 
-export type DisplayItem = {text: string; segmentId: string; keywords?: string[]};
+export type DisplayItem = {text: string; segmentId?: string; keywords?: string[]};
 type Node = DisplayItem & {id: string};
 type Link = DisplayItem & {from: string; to: string};
 export type ExplainerScene = {
-  id: string; template: 'point' | 'compare' | 'steps' | 'cause' | 'image';
+  id: string; template: 'point' | 'compare' | 'steps' | 'cause' | 'image' | 'video';
   startFrame: number; endFrame: number; durationInFrames: number; transitionFrames: number;
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
   content: {title: string; summary?: DisplayItem; columns?: Array<{title: string; items: DisplayItem[]}>;
-    items?: DisplayItem[]; nodes?: Node[]; links?: Link[]; caption?: DisplayItem; fit?: 'contain' | 'cover'};
-  levels?: Record<string, number>; imageSource?: string;
+    items?: DisplayItem[]; nodes?: Node[]; links?: Link[]; caption?: DisplayItem; fit?: 'contain' | 'cover'; photoZoom?: number};
+  levels?: Record<string, number>; mediaPath?: string; trimStartFrames?: number;
 };
 export type ArticleExplainerProps = {
-  version: 5; schemaVersion: 5; fps: 30; width: 1080; height: 1920; title: string;
+  version: 6; schemaVersion: 6; fps: 30; width: 1080; height: 1920; title: string; mediaBase?: string;
   visual: {theme: 'dark' | 'light'}; durationInFrames: number; compiledScenes: ExplainerScene[];
   subtitleCues: Array<{startFrame: number; endFrame: number; text: string}>;
 };
@@ -24,12 +24,16 @@ const palettes = {
 };
 type Palette = typeof palettes.dark;
 
+function itemStart(scene: ExplainerScene, item: DisplayItem): number {
+  return item.segmentId ? scene.segmentWindows[item.segmentId].startFrame : scene.startFrame;
+}
+
 export function revealProgress(frame: number, startFrame: number): number {
   return Math.max(0, Math.min(1, (frame - startFrame) / 8));
 }
 export function selectedStep(scene: ExplainerScene, frame: number): number {
   return (scene.content.items ?? []).reduce((current, item, index) =>
-    frame >= scene.segmentWindows[item.segmentId].startFrame ? index : current, -1);
+    frame >= itemStart(scene, item) ? index : current, -1);
 }
 export function highlightParts(text: string, keywords: string[]): Array<{text: string; highlight: boolean}> {
   const words = [...new Set(keywords)].filter(Boolean).sort((a, b) => b.length - a.length);
@@ -49,7 +53,7 @@ function Copy({item, palette}: {item: DisplayItem; palette: Palette}) {
 }
 function Reveal({item, scene, frame, children, style}: {item: DisplayItem; scene: ExplainerScene; frame: number;
   children: React.ReactNode; style?: React.CSSProperties}) {
-  const progress = revealProgress(frame, scene.segmentWindows[item.segmentId].startFrame);
+  const progress = revealProgress(frame, itemStart(scene, item));
   return <div data-m2v-reveal="" style={{...style, opacity: progress,
     transform: `translateY(${(1 - progress) * 12}px)`}}>{children}</div>;
 }
@@ -76,8 +80,8 @@ function Cause({scene, frame, palette}: {scene: ExplainerScene; frame: number; p
         <path d="M0,0 L10,5 L0,10 Z" fill={palette.accent}/></marker></defs>
       {(scene.content.links ?? []).map((link, index) => {
         const a = positions[link.from], b = positions[link.to];
-        const start = Math.max(scene.segmentWindows[link.segmentId].startFrame,
-          ...nodes.filter(node => node.id === link.from || node.id === link.to).map(node => scene.segmentWindows[node.segmentId].startFrame));
+        const start = Math.max(itemStart(scene, link),
+          ...nodes.filter(node => node.id === link.from || node.id === link.to).map(node => itemStart(scene, node)));
         return <g key={index} opacity={revealProgress(frame, start)}>
           <path d={`M${a.x},${a.y + 50} L${b.x},${b.y - 50}`} stroke={palette.accent} strokeWidth="4" markerEnd={`url(#arrow-${scene.id})`}/>
         </g>;
@@ -99,7 +103,7 @@ function Cause({scene, frame, palette}: {scene: ExplainerScene; frame: number; p
     </div>
   </div>;
 }
-function SceneCard({scene, palette, frame}: {scene: ExplainerScene; palette: Palette; frame: number}) {
+function SceneCard({scene, palette, frame, base}: {scene: ExplainerScene; palette: Palette; frame: number; base: string}) {
   const content = scene.content;
   const active = selectedStep(scene, frame);
   return <AbsoluteFill data-m2v-scene={scene.id} style={{zIndex: 1, background: palette.bg, color: palette.ink,
@@ -127,8 +131,15 @@ function SceneCard({scene, palette, frame}: {scene: ExplainerScene; palette: Pal
           <span style={{color: palette.accent, marginRight: 20}}>{i + 1}.</span><Copy item={item} palette={palette}/>
         </div></Reveal>)}</div>}
       {scene.template === 'cause' && <Cause scene={scene} frame={frame} palette={palette}/>}
-      {scene.template === 'image' && <><Img src={scene.imageSource!} style={{width: '100%', height: 760,
-        objectFit: content.fit ?? 'contain', objectPosition: 'center', borderRadius: 22}}/>
+      {(scene.template === 'image' || scene.template === 'video') && <>
+        <div style={{width: '100%', height: 760, overflow: 'hidden', borderRadius: 22}}>
+        {scene.template === 'video' ? <OffthreadVideo src={base + scene.mediaPath!.split('/').map(encodeURIComponent).join('/')}
+          trimBefore={scene.trimStartFrames ?? 0} trimAfter={(scene.trimStartFrames ?? 0) + scene.durationInFrames} muted
+          style={{width: '100%', height: '100%', objectFit: content.fit ?? 'contain'}}/> :
+          <Img src={base + scene.mediaPath!.split('/').map(encodeURIComponent).join('/')} style={{width: '100%', height: '100%',
+            objectFit: content.fit ?? 'contain', objectPosition: 'center',
+            transform: `scale(${1 + ((content.photoZoom ?? 1) - 1) * Math.max(0, Math.min(1, (frame-scene.startFrame)/Math.max(1, scene.durationInFrames-1)))})`}}/>}
+        </div>
         {content.caption && <Reveal item={content.caption} scene={scene} frame={frame}><div data-m2v-box="" style={{...bodyStyle, marginTop: 36}}>
           <Copy item={content.caption} palette={palette}/></div></Reveal>}</>}
     </div>
@@ -141,7 +152,7 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
   return <AbsoluteFill style={{background: palette.bg}}>
     {props.compiledScenes.map(scene => <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
       <AbsoluteFill style={{opacity: scene.transitionFrames ? Math.max(0, Math.min(1, (frame - scene.startFrame) / (scene.transitionFrames - 1))) : 1}}>
-        <SceneCard scene={scene} palette={palette} frame={frame}/>
+        <SceneCard scene={scene} palette={palette} frame={frame} base={props.mediaBase ?? ''}/>
       </AbsoluteFill>
     </Sequence>)}
     {/* 场景自带 z-index: 1（见 SceneCard），字幕必须覆盖场景背景，因此为 2。 */}

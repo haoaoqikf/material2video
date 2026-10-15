@@ -1,4 +1,4 @@
-"""文章适配器只接入 v5，不再桥接旧动画 CLI。"""
+"""文章适配器只接入 v6，不再桥接旧动画 CLI。"""
 import json
 import pytest
 from m2v.core.errors import M2VError
@@ -6,10 +6,11 @@ from m2v.types.article import adapter
 from test_article_explainer import project, fake_tts
 
 
-def test_adapter_uses_v5_composition(tmp_path,monkeypatch):
+def test_adapter_uses_v6_composition(tmp_path,monkeypatch):
     root,manifest=project(tmp_path);fake_tts(monkeypatch)
     result=adapter.prepare(root,manifest)
     assert result["compositionId"] == "ArticleExplainer"
+    assert result["props"]["version"] == 6
     tracks=adapter.audio_tracks(root,manifest,result)
     assert len(tracks)==1 and tracks[0]["path"].is_file()
 

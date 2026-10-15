@@ -1,4 +1,4 @@
-"""按实际分段音频编译 v5；所有可见时序只在准备阶段解析。"""
+"""按实际分段音频编译 v6 时间轴；所有可见时序只在准备阶段解析。"""
 from __future__ import annotations
 
 import copy
@@ -24,84 +24,107 @@ def implementation_digest() -> str:
     """准备/量测/混音代码也是交付契约，改动后须重新准备和评审。"""
     from m2v.core.fingerprints import fingerprint
     from . import adapter, explainer_render
-    modules = (contract, explainer_review, explainer_render, adapter, audio, tts, rhythm_engine)
+    from . import soundtrack, media_assets
+    modules = (contract, explainer_review, explainer_render, adapter, audio, tts, rhythm_engine, soundtrack, media_assets)
     files = [Path(module.__file__) for module in modules] + [Path(__file__)]
     return fingerprint({file.name: digest(file) for file in files})
 
 
 def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
+    from . import soundtrack, media_assets
     source = contract.load(root, project)
     explainer_review.require_input(root, project)
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
-    texts = [segment["text"] for scene in source["scenes"] for segment in scene["narrationSegments"]]
+    texts = [s["text"] for scene in source["scenes"] for s in scene.get("narrationSegments", [])]
     actual_tts = tts.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm)
-    voice, rate = actual_tts["voice"], actual_tts["rate"]
     cache = root / "outputs/audio-cache"
     cache.mkdir(parents=True, exist_ok=True)
-    props = copy.deepcopy(source)
-    props["visual"] = {"theme": source.get("visual", {}).get("theme", "dark")}
-    cursor = hits = 0
-    parts, cues, compiled = [], [], []
     inputs = file_inputs(root, project)
     inputs["tts"] = json.dumps(actual_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     inputs["implementation"] = implementation_digest()
-    article = contract.source_file(root, project)
-    inputs["file:" + article.relative_to(root).as_posix()] = digest(article)
-    inputs["file:outputs/input-review.json"] = digest(root / "outputs/input-review.json")
-    for scene in props["scenes"]:
-        fade = contract.FADE_FRAMES if scene.get("transition") == "fade" else 0
-        # 先保留前幕完整 12 帧阅读尾段，再淡化；下一幕声音延迟至淡化结束。
-        start = cursor
-        speech_start = start + fade
-        if fade:
-            compiled[-1]["endFrame"] += fade
-            compiled[-1]["durationInFrames"] += fade
-            parts.append((None, fade))
-        scene["startFrame"], scene["transitionFrames"] = start, fade
-        windows = {}
-        for segment in scene["narrationSegments"]:
-            wav, local_cues, _words, seconds, hit = tts.scene_audio(
-                segment["text"], voice, rate, cache, contract_version=5, rhythm=rhythm)
-            if not math.isfinite(seconds) or seconds <= 0:
-                raise M2VError(f"旁白 {segment['id']} 音频时长无效")
-            frames = math.ceil(seconds * contract.FPS)
-            windows[segment["id"]] = {"startFrame": speech_start, "endFrame": speech_start + frames}
+    if not contract.topic_input(source):
+        article = contract.source_file(root, project)
+        inputs["file:" + article.relative_to(root).as_posix()] = digest(article)
+        inputs["file:outputs/input-review.json"] = digest(root / "outputs/input-review.json")
+    record = root / media_assets.RECORD
+    if record.exists(): inputs["file:" + media_assets.RECORD] = digest(record)
+    # 先量测所有旁白，再分配无旁白镜头的剩余时间，绝不靠截断口播凑时长。
+    scenes = copy.deepcopy(source["scenes"])
+    measured, durations, overlaps, automatic = [], [], [], []
+    hits = 0
+    for index, scene in enumerate(scenes):
+        overlap = scene.get("transitionFrames", 8) if scene.get("transition", "cut") != "cut" else 0
+        overlaps.append(overlap)
+        segments = []
+        for segment in scene.get("narrationSegments", []):
+            speech = scene.get("speech")
+            scene_rhythm = rhythm_engine.configure({**(rhythm or {}), **(speech or {})}) if speech else rhythm
+            wav, cues, _words, seconds, hit = tts.scene_audio(segment["text"], actual_tts["voice"],
+                actual_tts["rate"], cache, contract_version=6, rhythm=scene_rhythm)
+            if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
+            segments.append((segment["id"], wav, cues, math.ceil(seconds * 30)))
+            hits += int(hit)
+        measured.append(segments)
+        minimum = overlap + (sum(s[3] for s in segments) + contract.READING_TAIL if segments else 1)
+        duration = scene.get("durationFrames")
+        if duration is None and segments: duration = minimum
+        if duration is None:
+            automatic.append(index)
+        elif duration < minimum:
+            raise M2VError(f"幕 {scene['id']} 固定时长不足以容纳旁白、阅读停留和转场，不得截断口播")
+        durations.append(duration)
+    if automatic:
+        remainder = round(source.get("targetSeconds", 60) * 30) + sum(overlaps) - sum(d or 0 for d in durations)
+        share, extra = divmod(remainder, len(automatic))
+        for position, index in enumerate(automatic):
+            durations[index] = share + (position < extra)
+            if durations[index] <= overlaps[index]:
+                raise M2VError("目标时长不足以分配无旁白镜头，请增加 targetSeconds")
+    cursor = 0
+    parts, cues = [], []
+    for index, (scene, segments, duration, overlap) in enumerate(zip(scenes, measured, durations, overlaps)):
+        if index and (overlap >= durations[index-1] or (index > 1 and overlap + overlaps[index-1] >= durations[index-1])):
+            raise M2VError(f"幕 {scene['id']} 转场过长或造成三幕重叠")
+        start = cursor - overlap
+        speech_start = cursor  # 交叉淡化后才开始新旁白，前后口播不会重叠。
+        scene.update(startFrame=start, endFrame=start+duration, durationInFrames=duration,
+                     transitionFrames=overlap, segmentWindows={})
+        for identity, wav, local_cues, frames in segments:
+            scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue in local_cues:
-                cs = max(0, min(frames - 1, round(cue["start"] * contract.FPS)))
-                ce = max(cs + 1, min(frames, round(cue["end"] * contract.FPS)))
-                cues.append({"startFrame": speech_start + cs, "endFrame": speech_start + ce, "text": cue["text"]})
+                a = max(0, min(frames-1, round(cue["start"]*30)))
+                b = max(a+1, min(frames, round(cue["end"]*30)))
+                cues.append({"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]})
             parts.append((wav, frames))
             speech_start += frames
-            hits += int(hit)
-        scene["segmentWindows"] = windows
-        scene["endFrame"] = speech_start + contract.READING_TAIL
-        scene["durationInFrames"] = scene["endFrame"] - start
-        parts.append((None, contract.READING_TAIL))
+        parts.append((None, scene["endFrame"] - speech_start))
         cursor = scene["endFrame"]
         if cursor > contract.MAX_FRAMES:
-            logger.warning("讲解准备超限：%d 帧，场景 %s", cursor, scene["id"])
-            raise M2VError(f"讲解全片 {cursor / contract.FPS:.2f} 秒，超过 60 秒；请调整文本或正常语速，不得截断口播")
-        if scene["template"] == "cause":
-            scene["levels"] = contract.graph_levels(scene["content"])
-        if scene["template"] == "image":
-            image = contract.local_file(root, scene["content"]["src"], "image.src")
-            inputs["file:" + image.relative_to(root).as_posix()] = digest(image)
-            # 内嵌与离线契约页均无需依赖作品路径或服务器挂载。
-            import base64
-            mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}[image.suffix.lower()]
-            scene["imageSource"] = f"data:{mime};base64," + base64.b64encode(image.read_bytes()).decode("ascii")
-        compiled.append(scene)
-    props["compiledScenes"], props["subtitleCues"], props["durationInFrames"] = compiled, cues, cursor
+            raise M2VError(f"全片 {cursor/30:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
+        if scene["template"] == "cause": scene["levels"] = contract.graph_levels(scene["content"])
+        if scene["template"] in {"image", "video"}:
+            file = contract.local_file(root, scene["content"]["src"], "content.src")
+            relative = file.relative_to(root).as_posix()
+            inputs["file:" + relative] = digest(file)
+            info = media_assets.validate_scene(root, scene)
+            scene["mediaPath"] = relative
+            if scene["template"] == "video":
+                trim = scene["content"].get("trimStartSeconds", 0)
+                scene["trimStartFrames"] = round(trim*30)
+                if scene["trimStartFrames"] + duration > math.floor(info["durationSeconds"]*30 + .01):
+                    raise M2VError(f"幕 {scene['id']} 视频剩余时长不足，请更换素材或缩短镜头")
+    props = copy.deepcopy(source)
+    props.update(visual={"theme": source.get("visual", {}).get("theme", "dark")},
+                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)
     del props["scenes"]
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)
-    # 使用内容摘要媒体名，准备失败不会覆盖旧准备所引用的音轨。
     with tempfile.TemporaryDirectory(dir=media_dir) as temporary:
-        target = Path(temporary) / "audio.wav"
-        raw = Path(temporary) / "raw.wav"
-        audio.concatenate(parts, contract.FPS, raw)
-        audio.normalize(raw, target)
+        work = Path(temporary)
+        raw, target = work / "raw.wav", work / "audio.wav"
+        audio.concatenate(parts, 30, raw)
+        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/30, work, inputs)
         sha = digest(target)
         master = media_dir / f"{sha}.wav"
         target.replace(master)
@@ -109,9 +132,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     entry = root / project["materials"]["storyboard"]
     inputs["renderer"] = remotion.build_input_fingerprint(storyboard_path=entry,
         content_root=root.parent, workspace_root=root.parent)["digest"]
-    logger.info("讲解准备：%d 幕，%d 帧，TTS 缓存命中 %d", len(compiled), cursor, hits)
+    logger.info("统一文章准备：%d 幕，%d 帧，TTS 缓存命中 %d", len(scenes), cursor, hits)
     return save_prepared(root, project=project, composition_id="ArticleExplainer", props=props,
-        width=contract.WIDTH, height=contract.HEIGHT, fps=contract.FPS, duration_in_frames=cursor,
-        inputs=inputs, subtitles=cues,
+        width=1080, height=1920, fps=30, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
         audio={"segments": [{"sceneId": "master", "path": master.relative_to(root).as_posix(),
             "startFrame": 0, "durationInFrames": cursor, "sha256": sha}], "cacheHits": hits})
+
+

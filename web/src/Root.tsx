@@ -4,7 +4,6 @@ import { ArticleExplainer, type ArticleExplainerProps } from './compositions/Art
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
 import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
-import { StockMontage, type StockMontageProps } from './compositions/StockMontage';
 import './styles/index.css';
 
 /**
@@ -24,7 +23,7 @@ export const RemotionRoot: FC = () => {
         fps={30}
         width={1080}
         height={1920}
-        defaultProps={{ version: 5, schemaVersion: 5, fps: 30, width: 1080, height: 1920, title: '', visual: { theme: 'dark' },
+        defaultProps={{ version: 6, schemaVersion: 6, fps: 30, width: 1080, height: 1920, title: '', visual: { theme: 'dark' },
           durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}
       />
@@ -66,19 +65,6 @@ export const RemotionRoot: FC = () => {
         width={1080}
         height={1920}
         defaultProps={{ schemaVersion: 1, fps: 30, width: 1080, height: 1920, durationInFrames: 1, compiledScenes: [] } as GeneralVideoProps}
-        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
-          width: props.width, height: props.height })}
-      />
-      <Composition
-        id="StockMontage"
-        component={StockMontage}
-        durationInFrames={1}
-        fps={30}
-        width={1080}
-        height={1920}
-        defaultProps={{ schemaVersion: 1, topic: '', fps: 30, width: 1080, height: 1920,
-          durationInFrames: 1, theme: 'dark', attribution: '', mediaBase: '',
-          compiledScenes: [], subtitleCues: [] } as StockMontageProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
           width: props.width, height: props.height })}
       />

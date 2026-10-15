@@ -1,4 +1,4 @@
-"""v5 的浏览器布局验收及可靠 Remotion 导出。"""
+"""v6 的浏览器布局验收及可靠 Remotion 导出。"""
 from __future__ import annotations
 
 import json
@@ -9,6 +9,7 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_current_prepared
 from m2v.engine import audio, contract_page, output_validation, perf, remotion
+from m2v.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
 
 logger = logging.getLogger(__name__)
@@ -51,9 +52,9 @@ MEASURE = r"""() => {
 
 def current(root: Path, project: dict) -> dict:
     prepared = load_current_prepared(root, project)
-    if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 5
-            or not 1 <= prepared["durationInFrames"] <= 1800):
-        raise M2VError("旧文章准备记录不能用于 v5；请重新编排并 prepare")
+    if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 6
+            or not 1 <= prepared["durationInFrames"] <= 18000):
+        raise M2VError("旧文章准备记录不能用于 v6；请重新编排并 prepare")
     entry = root / project["materials"]["storyboard"]
     actual = remotion.build_input_fingerprint(storyboard_path=entry,
         content_root=root.parent, workspace_root=root.parent)["digest"]
@@ -72,9 +73,9 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
         raise M2VError(f"讲解字体缺字：{missing[:5]}")
     outputs = root / "outputs"
     outputs.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="layout-", dir=outputs) as temporary:
+    with tempfile.TemporaryDirectory(prefix="layout-", dir=outputs) as temporary, LocalServer(root, cors=True) as server:
         material = Path(temporary) / "props.json"
-        material.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+        material.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"}, ensure_ascii=False), encoding="utf-8")
         frames = {0, prepared["durationInFrames"] - 1}
         for scene in prepared["props"]["compiledScenes"]:
             frames.update({scene["startFrame"], scene["endFrame"] - 1})
@@ -89,7 +90,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
             try:
                 page = browser.new_page(viewport={"width": 1080, "height": 1920}, device_scale_factor=1)
                 page.goto(url + "&m2v-explainer=1")
-                page.wait_for_function("window.__M2V__?.version === 5", timeout=30000)
+                page.wait_for_function("window.__M2V__?.version === 6", timeout=30000)
                 page.evaluate("async () => await window.__M2V__.ready()")
                 for frame in sorted(frames):
                     page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
@@ -100,7 +101,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
                         page.screenshot(path=str(snapshots / f"frame-{frame}.png"))
             finally:
                 browser.close()
-    result = {"schemaVersion": 5, "preparedFingerprint": prepared["preparedFingerprint"],
+    result = {"schemaVersion": 6, "preparedFingerprint": prepared["preparedFingerprint"],
               "checkedFrames": len(frames), "problems": problems, "status": "fail" if problems else "pass"}
     _write_json(outputs / "layout-check.json", result)
     if problems:
@@ -125,10 +126,10 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
     destination.parent.mkdir(parents=True, exist_ok=True)
     entry = root / project["materials"]["storyboard"]
     timings = perf.StageTimings()
-    with tempfile.TemporaryDirectory(prefix="m2v-explainer-", dir=destination.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix="m2v-explainer-", dir=destination.parent) as temporary, LocalServer(root, cors=True) as server:
         work = Path(temporary)
         props_file = work / "props.json"
-        props_file.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+        props_file.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"}, ensure_ascii=False), encoding="utf-8")
         outcome = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle", storyboard_path=entry,
             content_root=root.parent, workspace_root=root.parent, cache=True)
         timings.record("bundle", outcome.build_seconds)

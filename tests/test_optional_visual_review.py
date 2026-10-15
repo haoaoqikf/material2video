@@ -26,7 +26,7 @@ def preview_fixture(root):
     return prepared, record, video
 
 
-@pytest.mark.parametrize("kind", ["article-narrative", "general", "housing-timeseries", "stock-montage"])
+@pytest.mark.parametrize("kind", ["article-narrative", "general", "housing-timeseries"])
 @pytest.mark.parametrize("review_state", [None, "pending", "fail", "empty-evidence", "stale"])
 def test_all_types_export_without_manual_review(tmp_path, monkeypatch, kind, review_state):
     _register_builtins()
@@ -100,7 +100,7 @@ def test_status_reports_optional_review_independently(tmp_path, monkeypatch):
     _register_builtins()
     prepared, record, video = preview_fixture(tmp_path)
     monkeypatch.setattr("m2v.cli._prepared", lambda *_: prepared)
-    manifest = {"id": "demo", "type": "stock-montage"}
+    manifest = {"id": "demo", "type": "article-narrative"}
     result = _status(tmp_path, manifest)
     assert result["review"] == {"status": "optional", "required": False}
     assert result["preview"]["status"] == "current"

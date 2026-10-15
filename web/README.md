@@ -119,19 +119,19 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
   扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
   需要按状态切换时，把完整类名写进映射对象再取用。
 
-## 渲染契约（`window.__M2V__` version 5）
+## 渲染契约（`window.__M2V__` version 6）
 
 契约页把 composition 挂进一个可被浏览器自动化驱动的页面，并暴露：
 
 | 字段 | 说明 |
 | --- | --- |
-| `version` | 固定为 `5`；量测脚本按版本号拒绝旧页面，而不是等超时后报一句看不懂的话 |
+| `version` | 固定为 `6`；量测脚本按版本号拒绝旧页面，而不是等超时后报一句看不懂的话 |
 | `fps` / `width` / `height` / `durationInFrames` | 必须与材料一致，不一致时渲染入口报错终止 |
 | `ready()` | 字体就绪、Player 已挂载、首帧已绘制后 resolve |
 | `seekToFrame(frame)` | 把画面定位到第 `frame` 帧并暂停，画面更新完成后 resolve |
 | `currentFrame()` | 返回 Player 当前实际帧号，仅供只读诊断 |
 
-契约页只量测文章 v5 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
+契约页只量测文章 v6 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
 读取已准备的讲解材料。通用视频代码模块由 `scripts/gen-active-scenes.mjs` 生成静态清单后参与 Remotion 打包。
 
 契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/contract/explainer.tsx`，**作品不许自己实现**。

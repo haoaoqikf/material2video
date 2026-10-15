@@ -32,10 +32,11 @@
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md                    # 文章源文（article-narrative 必填，可改用 article.accepted.md）
-│   ├── storyboard.json               # article-narrative 的 v5 讲解分镜
+│   ├── storyboard.json               # article-narrative 的 v6 混合媒体分镜
 │   ├── general-plan.json             # general 类型的多场景分镜（材料名见 project.json）
 │   ├── scenes/                       # 代码场景模块（幕级 renderer.code），按需创建
-│   └── assets/                       # 本篇专用素材，按需创建
+│   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
+│   └── assets/                       # 本篇专用素材（音床、音效），按需创建
 └── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
     ├── video.mp4                     # 正式成片（所有类型同名；文件名由渲染器决定，不随有无配音变化）
     ├── video.provenance.json         # 与该成片同名的溯源记录
@@ -73,11 +74,13 @@
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion）。五个类型各有自己的 composition，都在 `web/src/compositions/` 下，
+React composition（Remotion）。四个类型各有自己的 composition，都在 `web/src/compositions/` 下，
 由 `web/src/Root.tsx` 注册。
-article-narrative 的 v5 讲解交给 `ArticleExplainer` 绘制五模板画面，契约见
-[文章分镜 v5](storyboard-schema.md)；通用视频交给 `GeneralVideo`，它按幕组合受控图文幕、
-完整金融/文章片段幕与代码场景幕。
+article-narrative 的 v6 混合媒体分镜交给 `ArticleExplainer` 绘制六模板画面（图片与视频幕经
+回环 HTTP 取本地素材），契约见
+[文章分镜 v6](storyboard-schema.md)；通用视频交给 `GeneralVideo`，它按幕组合受控图文幕、
+完整金融/文章片段幕与代码场景幕。嵌入文章时通用准备会为每个子作品注入 `mediaBase`，
+子作品的素材仍由同一台静态服务器提供。
 需要独特图表、关系图或定制 SVG 时，在**那一幕**上声明 `renderer: { kind: "code", module: "<模块标识>" }`，
 模块放在作品目录的 `scenes/` 下（`videos/<type>/<slug>/scenes/` 或 `examples/<slug>/scenes/`，
 与分镜同目录），本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
@@ -121,7 +124,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 所有类型的正式成片都叫 `outputs/video.mp4`，预演叫 `outputs/previews/video.mp4`；
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
-v5 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
+v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
 「写了旁白却没配音」的中间态：需要配音请先执行 `uv run m2v prepare --project <目录>`。
 
 ## 成片溯源
@@ -142,8 +145,8 @@ v5 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 }
 ```
 
-`type` 为 `article-narrative` / `financial-timeseries` / `general` / `housing-timeseries` /
-`stock-montage` 之一，`compositionId` 是它对应的 Remotion composition 标识。
+`type` 为 `article-narrative` / `financial-timeseries` / `general` / `housing-timeseries`
+之一，`compositionId` 是它对应的 Remotion composition 标识。
 `preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
 材料、资产、嵌入作品或渲染代码已经变化，成片落后。
 `inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
@@ -155,7 +158,6 @@ v5 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 | --- | --- |
 | `article-narrative` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
 | `general` | 多一个根级 `renderer: "remotion"`；不含 `bundleKey` |
-| `stock-montage` | 多 `renderer: "remotion"` 与 `bundleKey` |
 | `financial-timeseries` / `housing-timeseries` | 多 `renderer` 与 `bundleKey`，并用 `frames` + `materialsAndAssetsSha256` 代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染

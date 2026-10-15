@@ -19,6 +19,8 @@ def template(root: Path, project: dict) -> dict:
 
 
 def require_input(root: Path, project: dict) -> None:
+    if explainer.topic_input(explainer.load(root, project)):
+        return
     current = template(root, project)
     try:
         review = json.loads((root / "outputs/input-review.json").read_text(encoding="utf-8"))
@@ -39,7 +41,7 @@ def create_input(root: Path, project: dict) -> Path:
 
 def criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
     return {"informationClarity": "观点与摘要清晰，旁白忠实于当前源文",
-            "templateLayout": "五模板排版与手机可读性，文字无溢出或字幕遮挡",
-            "graphicRelation": "对比、步骤、因果与图片确实帮助说明观点",
+            "templateLayout": "六模板排版与手机可读性，文字无溢出或字幕遮挡",
+            "graphicRelation": "对比、步骤、因果、图片与视频确实帮助说明观点",
             "narrationSync": "逐项出现与当前旁白同步，字幕和音频完整",
-            "readingRhythm": "每幕阅读停留足够，转场连贯，全片不超过一分钟"}
+            "readingRhythm": "每幕阅读停留足够，转场连贯，全片不超过 600 秒"}

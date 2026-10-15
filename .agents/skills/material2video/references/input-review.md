@@ -10,4 +10,4 @@ uv run m2v article input-review --storyboard videos/article-narrative/<slug>/sto
 
 不合格材料可运行 `m2v article candidate --article <article.md> --text-file <候选文本>`；原文保持不变，候选必须非空并绑定原文摘要。用户明确采用后执行 `m2v article adopt-candidate --article <article.md>`，再重新审查。源文或候选变化须重新生成；采用不等于审查通过。
 
-当前审查是 v5 讲解语义审查，不要求单世界隐喻或连续性。旧 production.json 与 singleScene 评审不能用于当前制作。
+当前审查是 v6 讲解语义审查，不要求单世界隐喻或连续性。分镜 `input.kind` 为 `topic` 时没有源文，跳过本审查；旧 production.json 与 singleScene 评审不能用于当前制作。

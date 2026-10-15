@@ -1,8 +1,8 @@
 # 渲染契约
 
-> **适用范围：** 本文描述当前 5 个视频类型共用的渲染契约：契约页（`version: 5`）、Remotion
+> **适用范围：** 本文描述当前 4 个视频类型共用的渲染契约：契约页（`version: 6`）、Remotion
 > 逐帧渲染、成片编码、交付权限与溯源。画面只有一条实现路径——共享 React composition 由准备
-> 产物直接驱动；浏览器布局量测当前只覆盖文章 v5 模板。分镜结构见 [文章分镜 v5](storyboard-schema.md)，
+> 产物直接驱动；浏览器布局量测当前只覆盖文章 v6 模板。分镜结构见 [文章分镜 v6](storyboard-schema.md)，
 > 作品代码模块见 [代码场景](code-scenes.md)，设计令牌见 [设计令牌](design-tokens.md)，
 > 制作顺序见 [制作流程](production-workflow.md)。v3/v4 的共享动画、场景树、节拍运行时与
 > `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
@@ -14,7 +14,7 @@
 
 画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
 从 `web/src/contract/` 构建。它把共享 React composition（`ArticleExplainer`）挂进
-`@remotion/player`，暴露 `window.__M2V__`（**version 5**）。作品参数（准备产物）由查询参数
+`@remotion/player`，暴露 `window.__M2V__`（**version 6**）。作品参数（准备产物）由查询参数
 `m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
 布局量测（`m2v article keyframes`，以及 preview / render 内部）用 Playwright 驱动它；
 渲染不走它，而是直接从 composition 源码打包渲染（见「渲染引擎与打包」）。
@@ -28,7 +28,7 @@
 帧范围、媒体时轴与缩放由类型内部渲染器统一处理，正式导出仍须经
 `m2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
 
-画面实现必须在 `window` 上暴露 `__M2V__` 对象。契约页（version 5）的字段：
+画面实现必须在 `window` 上暴露 `__M2V__` 对象。契约页（version 6）的字段：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -36,7 +36,7 @@
 | `fps` | `number` | 帧率，必须与准备记录一致 |
 | `width` | `number` | 画面宽度，必须与准备记录一致 |
 | `height` | `number` | 画面高度，必须与准备记录一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v5 由逐段实际配音编译，上限 1800 帧） |
+| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v6 由逐段实际配音编译，上限 18000 帧） |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
 | `currentFrame()` | `() => number` | 只读诊断：Player 当前实际帧号，不参与求帧判定 |
@@ -46,7 +46,7 @@
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。
-version 5 的 `ready()` 必须保证：
+version 6 的 `ready()` 必须保证：
 
 - 字体已加载完成（否则首帧会用回退字体排版，且首帧与后续帧字宽不一致）；
 - **Player 已经挂载**（契约页要求挂载之后才能 seek，否则只会得到空画面）；
@@ -284,7 +284,7 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 契约暴露只读的 `currentFrame()` 诊断读数，返回 Player 实际所在的帧号，不参与求帧完成判定。
 `seekToFrame` 超时时也会报告目标帧与实际帧（`web/src/contract/bridge.ts` 的 `settleOnFrame`）。
 
-材料本身的问题（未知字段、缺图片、缺少已准备的 v5 材料）会在契约页上直接显示错误说明
+材料本身的问题（未知字段、缺图片、缺少已准备的 v6 材料）会在契约页上直接显示错误说明
 （`data-m2v-contract-error` 元素），渲染入口报「`__M2V__` 未定义」时先打开页面看它。
 
 ## 配音与字幕

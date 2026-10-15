@@ -6,8 +6,8 @@
 
 本文记录模块契约、注入范围、确定性纪律与安全边界。通用视频的分镜结构见
 `general-plan.json`（`project.json` 的 `materials.plan` 指向它，见
-[目录约定与输出路径](paths-and-outputs.md)）；文章 v5 分镜与本文无关，见
-[文章分镜 v5](storyboard-schema.md)。渲染与编码规则见[渲染契约](render-contract.md)。
+[目录约定与输出路径](paths-and-outputs.md)）；文章 v6 分镜与本文无关，见
+[文章分镜 v6](storyboard-schema.md)。渲染与编码规则见[渲染契约](render-contract.md)。
 
 ## 声明
 
@@ -79,7 +79,7 @@ export default SystemPanel;
 `@m2v/scene` 还导出 `probe()`（输出稳定的 DOM 探针标记）与
 `beatActionProgress`、`compilePath`、`compileReservoir`、`decomposeObjects` 等纯函数
 工具。**探针当前没有消费者**：通用视频的代码场景不参与浏览器布局量测，只有
-`article-narrative` 的 v5 讲解模板会被量测（它读取的是 `data-m2v-copy` 一类标记，
+`article-narrative` 的 v6 讲解模板会被量测（它读取的是 `data-m2v-copy` 一类标记，
 不是探针）。探针标记仍然可以写，但它现在不会让任何检查通过或不通过。
 
 ## 确定性纪律

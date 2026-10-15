@@ -33,8 +33,7 @@ def _register_builtins() -> None:
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
     from m2v.types.housing.adapter import TYPE as housing
-    from m2v.types.stock.adapter import TYPE as stock
-    for item in (article, financial, general, housing, stock):
+    for item in (article, financial, general, housing):
         registry.register(item)
 
 
@@ -68,17 +67,13 @@ def _parser() -> argparse.ArgumentParser:
     relocate = sub.add_parser("relocate", help="将单个作品移动到按视频类型分层的标准目录")
     relocate.add_argument("--project", required=True, help="旧的 videos/<slug> 作品目录")
     relocate.add_argument("--content-root", help=f"工作区根；省略时取 {CONTENT_ROOT_ENV} 或仓库根")
-    article = sub.add_parser("article", help="文章类型的语义审查与候选稿操作")
-    article.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal"))
+    article = sub.add_parser("article", help="文章类型的语义审查、候选稿与媒体素材操作")
+    article.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal", "assets"))
     article.add_argument("options", nargs=argparse.REMAINDER)
     financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
-    stock = sub.add_parser("stock", help="在线素材剪辑类型的检索与下载")
-    stock.add_argument("workflow", choices=("search",))
-    stock.add_argument("--project", required=True)
-    stock.add_argument("--timeout-seconds", type=float, help="单次网络请求超时（秒）")
     return parser
 
 
@@ -234,10 +229,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "article":
             from m2v.types.article import explainer_cli as workflow
             return workflow.main([args.workflow, *args.options])
-        if args.command == "stock":
-            from m2v.types.stock import cli as stock_cli
-            options = [] if args.timeout_seconds is None else ["--timeout-seconds", str(args.timeout_seconds)]
-            return stock_cli.main([args.workflow, "--project", args.project, *options])
         if args.command == "financial":
             root, manifest = load_project(args.project)
             if manifest["type"] != "financial-timeseries":

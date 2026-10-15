@@ -1,12 +1,13 @@
-"""文章 v5 讲解制作的统一类型适配器。"""
+"""文章 v6 统一讲解与素材制作的类型适配器。"""
 from pathlib import Path
 from m2v.types.registry import VideoType
 from . import explainer, explainer_prepare, explainer_render, explainer_review
 
 
 def validate(root: Path, project: dict) -> None:
-    explainer.load(root, project)
-    explainer.source_file(root, project)
+    source = explainer.load(root, project)
+    if not explainer.topic_input(source):
+        explainer.source_file(root, project)
 
 
 def prepare(root: Path, project: dict, **options) -> dict:

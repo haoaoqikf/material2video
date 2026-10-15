@@ -14,7 +14,7 @@ from typing import Any, TYPE_CHECKING
 from m2v.core.errors import M2VError
 
 if TYPE_CHECKING:
-    from m2v.types.stock.provider import Candidate, Transport
+    from m2v.engine.gallery.provider import Candidate, Transport
 
 CACHE_SECONDS = 24 * 60 * 60
 PIXABAY_LICENSE = "Pixabay Content License (https://pixabay.com/service/license-summary/)"
@@ -27,7 +27,7 @@ class PixabayProvider:
 
     def __init__(self, config: dict[str, Any], transport: Transport | None = None, *,
                  cache_dir: Path | None = None) -> None:
-        from m2v.types.stock.provider import HttpTransport
+        from m2v.engine.gallery.provider import HttpTransport
 
         self.config = config
         self.base = str(config["apiBase"]).rstrip("/")
@@ -111,8 +111,8 @@ class PixabayProvider:
             staged.unlink(missing_ok=True)
 
     def _candidate(self, raw: Any, kind: str) -> Candidate | None:
-        from m2v.types.stock.provider import (Candidate, PHOTO_SUFFIXES, VIDEO_SUFFIXES, _suffix_of,
-                                              pick_variant)
+        from m2v.engine.gallery.provider import (Candidate, PHOTO_SUFFIXES, VIDEO_SUFFIXES, _suffix_of,
+                                                 pick_variant)
 
         if not isinstance(raw, dict) or not raw.get("id"):
             return None

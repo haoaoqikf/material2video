@@ -10,5 +10,9 @@ def test_examples_use_bound_narration_and_distinct_screen_copy():
         board=json.loads(file.read_text(encoding="utf-8"));explainer.validate(board,file.parent)
         for scene in board["scenes"]:
             narration="".join(p["text"] for p in scene["narrationSegments"])
-            assert narration and scene["content"]["title"] != narration
-            assert explainer.elements(scene)
+            assert scene["content"]["title"] != narration
+            if scene["template"] in {"image", "video"}:
+                # 素材幕可以没有旁白，也可以只写画面标题。
+                assert explainer.elements(scene) == ([scene["content"]["caption"]] if "caption" in scene["content"] else [])
+                continue
+            assert narration and explainer.elements(scene)

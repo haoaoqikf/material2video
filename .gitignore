@@ -59,6 +59,8 @@ work/
 *.mp3
 # 原创声音示例的可复用输入；配音、混音、成片与 videos/ 仍全部忽略。
 !examples/buffer-smoothing/assets/bed.wav
+# 示例的导入媒体是内容寻址的固定输入（原创 CC0），按需纳入版本控制。
+!examples/*/assets/media/*.mp4
 
 # Article content: 文章内容不入库
 # 作品目录（`videos/<type>/<slug>/`：材料、专属网页与 outputs）是内容，不进版本控制。

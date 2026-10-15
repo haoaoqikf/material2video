@@ -1,7 +1,7 @@
 import type { PlayerRef } from '@remotion/player';
 
 /**
- * 渲染契约（version 5）。
+ * 渲染契约（version 6）。
  *
  * 这是画面实现与量测脚本之间**唯一**的接口：契约页实现它，实现者是
  * `@remotion/player`；布局量测用 Playwright 驱动这个页面。
@@ -9,8 +9,8 @@ import type { PlayerRef } from '@remotion/player';
  * `ready()` 保证字体、首帧与全部本地图片已经就绪。渲染与量测都按版本号
  * 拒绝旧页面，避免「等超时之后报一句看不懂的话」。
  */
-export interface M2VContractV5 {
-  version: 5;
+export interface M2VContractV6 {
+  version: 6;
   fps: number;
   width: number;
   height: number;
@@ -23,7 +23,7 @@ export interface M2VContractV5 {
 
 declare global {
   interface Window {
-    __M2V__?: M2VContractV5;
+    __M2V__?: M2VContractV6;
   }
 }
 

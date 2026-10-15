@@ -1,4 +1,4 @@
-"""v5 讲解分镜的唯一材料契约；与旧世界动画模型隔离。"""
+"""v6 统一讲解与素材分镜的唯一材料契约。"""
 from __future__ import annotations
 
 import json
@@ -7,8 +7,12 @@ from m2v.core.errors import M2VError
 from m2v.types.article.article_text import active_source, extract_body, count_characters
 
 FPS, WIDTH, HEIGHT = 30, 1080, 1920
-MAX_FRAMES, READING_TAIL, FADE_FRAMES = 1800, 12, 8
-TEMPLATES = {"point", "compare", "steps", "cause", "image"}
+MAX_FRAMES, READING_TAIL, FADE_FRAMES = 18000, 12, 8
+TEMPLATES = {"point", "compare", "steps", "cause", "image", "video"}
+
+
+def topic_input(data: dict) -> bool:
+    return data.get("version") == 6 and data.get("input", {}).get("kind") == "topic"
 
 
 def fail(path: str, message: str) -> None:
@@ -53,7 +57,11 @@ def source_file(root: Path, project: dict) -> Path:
 
 
 def elements(scene: dict) -> list[dict]:
-    """各模板展示元素共用绑定契约，供准备和渲染使用。"""
+    """各模板展示元素共用绑定契约，供准备和渲染使用。
+
+    图片与视频幕可以没有旁白，也可以只写画面标题；此时没有展示元素，
+    而不是把缺失的配文当成空对象去校验。
+    """
     content = scene["content"]
     if scene["template"] == "point":
         return [content["summary"]]
@@ -63,7 +71,7 @@ def elements(scene: dict) -> list[dict]:
         return content["items"]
     if scene["template"] == "cause":
         return content["nodes"] + content["links"]
-    return [content["caption"]]
+    return [content["caption"]] if "caption" in content else []
 
 
 def graph_levels(content: dict) -> dict[str, int]:
@@ -87,9 +95,18 @@ def graph_levels(content: dict) -> dict[str, int]:
 
 
 def validate(data: dict, root: Path) -> dict:
-    if not isinstance(data, dict) or data.get("version") != 5 or data.get("schemaVersion") != 5:
-        fail("version", "文章只接受 v5 讲解分镜；v4 及更早作品须重新编排，不自动迁移")
-    obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title", "visual", "scenes"})
+    if not isinstance(data, dict) or data.get("version") != 6 or data.get("schemaVersion") != data.get("version"):
+        fail("version", "文章只接受 v6 分镜；v5 及更早作品须重新编排，不兼容旧版本")
+    modern = data["version"] == 6
+    obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title", "visual", "scenes"} | ({"input", "targetSeconds", "soundtrack"} if modern else set()))
+    if modern:
+        from . import media_assets, soundtrack
+        entry = obj(data.get("input", {"kind": "article"}), "input", {"kind", "topic"})
+        if entry.get("kind") not in {"article", "topic"}:
+            fail("input.kind", "必须为 article/topic")
+        if topic_input(data):
+            text(entry.get("topic"), "input.topic")
+        media_assets.number(data.get("targetSeconds", 60), 1, 600, "targetSeconds")
     for key, expected in (("fps", FPS), ("width", WIDTH), ("height", HEIGHT)):
         if type(data.get(key)) is not int or data[key] != expected:
             fail(key, f"必须为 {expected}")
@@ -97,21 +114,37 @@ def validate(data: dict, root: Path) -> dict:
     visual = obj(data.get("visual", {}), "visual", {"theme"})
     if visual.get("theme", "dark") not in {"dark", "light"}:
         fail("visual.theme", "只支持 dark/light")
-    scenes = items(data.get("scenes"), "scenes", 30)
+    scenes = items(data.get("scenes"), "scenes", 300 if modern else 30)
     all_ids: set[str] = set()
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
-        obj(scene, path, {"id", "template", "content", "narrationSegments", "transition"})
+        obj(scene, path, {"id", "template", "content", "narrationSegments", "transition"} | ({"keywords", "durationFrames", "transitionFrames", "aspectRatio", "speech"} if modern else set()))
         sid = text(scene.get("id"), f"{path}.id")
         if sid in all_ids:
             fail(path, f"重复 ID：{sid}")
         all_ids.add(sid)
         kind = scene.get("template")
-        if kind not in TEMPLATES:
-            fail(path, "template 必须是 point/compare/steps/cause/image")
-        if scene.get("transition", "cut") not in {"cut", "fade"} or (index == 0 and scene.get("transition", "cut") != "cut"):
-            fail(path, "转场仅支持 cut/fade，首幕必须 cut")
-        parts = items(scene.get("narrationSegments"), f"{path}.narrationSegments", 30)
+        if kind not in TEMPLATES or (kind == "video" and not modern):
+            fail(path, "template 必须是 point/compare/steps/cause/image/video")
+        if scene.get("transition", "cut") not in ({"cut", "fade", "crossfade"} if modern else {"cut", "fade"}) or (index == 0 and scene.get("transition", "cut") != "cut"):
+            fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
+        if modern:
+            if topic_input(data) or "keywords" in scene:
+                words = items(scene.get("keywords"), path + ".keywords", 30)
+                for word in words: text(word, path + ".keywords")
+            if "durationFrames" in scene and (type(scene["durationFrames"]) is not int or not 1 <= scene["durationFrames"] <= 18000):
+                fail(path + ".durationFrames", "必须为 1～18000 整数")
+            overlap = scene.get("transitionFrames", 8)
+            if type(overlap) is not int or not 1 <= overlap <= 1800:
+                fail(path + ".transitionFrames", "必须为 1～1800 整数")
+            if "speech" in scene:
+                from m2v.engine import rhythm
+                rhythm.configure(scene["speech"])
+        parts = scene.get("narrationSegments", [])
+        if not modern or parts:
+            parts = items(parts, f"{path}.narrationSegments", 30)
+        elif not isinstance(parts, list) or kind not in {"image", "video"}:
+            fail(path, "只有图片或视频幕允许无旁白")
         part_ids = set()
         for part in parts:
             obj(part, path + ".narrationSegments", {"id", "text"})
@@ -125,7 +158,9 @@ def validate(data: dict, root: Path) -> dict:
             part_ids.add(pid)
         allowed = {"point": {"title", "summary"}, "compare": {"title", "columns"},
                    "steps": {"title", "items"}, "cause": {"title", "nodes", "links"},
-                   "image": {"title", "src", "fit", "caption"}}[kind]
+                   "image": {"title", "src", "fit", "caption"},
+                   "video": {"title", "src", "fit", "caption", "trimStartSeconds"}}[kind]
+        if modern and kind == "image": allowed |= {"photoZoom"}
         content = obj(scene.get("content"), path + ".content", allowed)
         text(content.get("title"), path + ".content.title")
         if kind == "point":
@@ -156,18 +191,20 @@ def validate(data: dict, root: Path) -> dict:
                     fail(path, "因果连线重复")
                 pairs.add(pair)
             graph_levels(content)
-        elif kind == "image":
+        elif kind in {"image", "video"}:
             image = local_file(root, content.get("src"), path + ".src")
-            if image.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            if kind == "image" and image.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
                 fail(path, "图片仅支持 PNG/JPEG/WebP")
             if content.get("fit", "contain") not in {"contain", "cover"}:
-                fail(path, "图片 fit 仅支持 contain/cover")
+                fail(path, "素材 fit 仅支持 contain/cover")
+            if modern:
+                media_assets.validate_scene(root, scene)
         for number, element in enumerate(elements(scene)):
             ep = f"{path}.elements[{number}]"
             extras = {"id"} if kind == "cause" and "id" in element else {"from", "to"} if kind == "cause" else set()
             obj(element, ep, {"text", "segmentId", "keywords"} | extras)
             label = text(element.get("text"), ep + ".text")
-            if element.get("segmentId") not in part_ids:
+            if element.get("segmentId") not in part_ids and not (modern and not parts and element.get("segmentId") is None):
                 fail(ep, "segmentId 必须引用本幕旁白")
             keywords = element.get("keywords", [])
             if not isinstance(keywords, list) or any(not isinstance(word, str) or not word or word not in label for word in keywords):
@@ -181,6 +218,8 @@ def validate(data: dict, root: Path) -> dict:
             node_order = {node["id"]: order[node["segmentId"]] for node in content["nodes"]}
             if any(order[link["segmentId"]] < max(node_order[link["from"]], node_order[link["to"]]) for link in content["links"]):
                 fail(path, "因果连线的旁白绑定不能早于两端节点")
+    if modern:
+        soundtrack.validate(data, root)
     return data
 
 

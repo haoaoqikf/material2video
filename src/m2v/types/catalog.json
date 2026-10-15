@@ -81,21 +81,25 @@
     },
     {
       "name": "article-narrative",
-      "description": "一分钟以内的 v5 多幕文章讲解",
-      "summary": "v5 旁白驱动的观点、对比、步骤、因果图和图片讲解，真实语音同步、深浅主题与可选画面评审，成片不超过 60 秒。",
-      "plan": "以五种受控讲解模板制作 v5 多幕文章视频，保留真实配音、输入语义审查与完整预演自动验收和可选画面评审。",
-      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[制作流程](references/production-workflow.md)：v5 多幕卡片与真实语音时间轴。",
+      "description": "混合图片视频的统一文章与主题讲解",
+      "summary": "v6 旁白驱动的观点、对比、步骤、因果图、图片与视频讲解，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
+      "plan": "以六种受控模板制作 v6 多幕讲解视频，保留真实配音、输入语义审查、完整预演自动验收与可选画面评审。",
+      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[制作流程](references/production-workflow.md)：v6 混合媒体多幕讲解。",
       "materials": [
         {
           "name": "storyboard",
           "file": "storyboard.json",
           "template": {
-            "version": 5,
-            "schemaVersion": 5,
+            "version": 6,
+            "schemaVersion": 6,
             "fps": 30,
             "width": 1080,
             "height": 1920,
             "title": "新作品",
+            "input": {
+              "kind": "article"
+            },
+            "targetSeconds": 60,
             "visual": {
               "theme": "dark"
             },
@@ -188,91 +192,6 @@
                 "salesAreaWanSquareMeters": 100,
                 "salesAmountYiYuan": 20,
                 "averagePriceYuanPerSquareMeter": 2000
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "stock-montage",
-      "description": "在线图库素材的自动检索与剪辑",
-      "summary": "按主题与逐幕关键词从在线图库检索并下载素材，留证来源、作者与许可后自动剪成竖屏短片，支持可选口播、字幕与本地音床。",
-      "plan": "以一份 brief 驱动在线素材检索、许可留证与自动剪辑，完整预演自动验收，可选评审画面质量与来源合规。",
-      "skillGuide": "[在线素材剪辑](references/stock-montage-video.md)：先执行 `m2v stock search` 检索并留证素材，再校验、完整预演与导出。",
-      "materials": [
-        {
-          "name": "brief",
-          "file": "brief.json",
-          "template": {
-            "schemaVersion": 1,
-            "topic": "填写主题",
-            "targetSeconds": 24,
-            "fps": 30,
-            "width": 1080,
-            "height": 1920,
-            "durationToleranceSeconds": 2,
-            "provider": {
-              "name": "pexels",
-              "apiBase": "https://api.pexels.com",
-              "apiKeyEnv": "M2V_PEXELS_API_KEY",
-              "orientation": "portrait",
-              "perPage": 15,
-              "media": [
-                "video",
-                "photo"
-              ],
-              "minClipSeconds": 2.5,
-              "maxClipSeconds": 8,
-              "allowReuse": false,
-              "aspectRatio": "canvas",
-              "aspectRatioTolerance": 0.02
-            },
-            "visual": {
-              "theme": "dark",
-              "attribution": "素材来源：Pexels"
-            },
-            "motion": {
-              "photoZoom": 1.12
-            },
-            "scenes": [
-              {
-                "id": "opening",
-                "keywords": [
-                  "填写第一幕检索关键词"
-                ],
-                "transition": {
-                  "type": "cut"
-                }
-              },
-              {
-                "id": "development",
-                "keywords": [
-                  "填写第二幕检索关键词"
-                ],
-                "transition": {
-                  "type": "crossfade",
-                  "frames": 12
-                }
-              },
-              {
-                "id": "turn",
-                "keywords": [
-                  "填写第三幕检索关键词"
-                ],
-                "transition": {
-                  "type": "crossfade",
-                  "frames": 12
-                }
-              },
-              {
-                "id": "closing",
-                "keywords": [
-                  "填写第四幕检索关键词"
-                ],
-                "transition": {
-                  "type": "cut"
-                }
               }
             ]
           }

@@ -127,7 +127,7 @@ def concatenate(parts: list[tuple[Path | None, int]], fps: int, output: Path,
                 fades: list[tuple[int, int]] | None = None) -> None:
     """按帧边界把逐段配音拼成一条轨；`fades` 给出每段首尾共享画面淡化进度的帧数。
 
-    不给 `fades` 时整段原样写入（文章、素材剪辑的既有行为）。
+    不给 `fades` 时整段原样写入（逐幕音轨的既有行为）。
     给了就按段内的槽位位置线性淡入淡出：单条母版轨没有逐场景音轨可以 afade，
     淡化只能在拼接时施加，否则交叉淡化处的声音会硬切。
     """
