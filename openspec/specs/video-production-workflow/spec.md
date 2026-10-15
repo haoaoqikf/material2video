@@ -67,11 +67,11 @@ production 记录 SHALL 使用新版本 4，包含独立 inputReview 和按需�
 - **THEN** 可继续；输入审查不代替口播内容评审
 
 ### Requirement: 文章作为独立视频类型
-系统 MUST 通过统一 article-narrative 类型制作 v5 讲解视频，按 article-explainer 执行输入审查、准备、完整预演自动验收及可选人工画面评审，保持可查询状态和版本绑定。
+系统 MUST 通过统一 article-narrative 类型制作 v6 混合媒体视频，按 article-explainer 执行输入审查（主题输入跳过）、媒体导入留证、准备、完整预演自动验收及可选人工画面评审，保持可查询状态和版本绑定。
 
 #### Scenario: 保留文章制作闭环
-- **WHEN** 用户提交有效 v5 分镜
-- **THEN** 统一制作流程输出不超过一分钟的有声讲解视频
+- **WHEN** 用户提交有效 v6 分镜
+- **THEN** 统一制作流程输出有声讲解视频，可含图片与视频镜头、音床与音效，且不超过 600 秒
 
 ### Requirement: 配音音色与语速必须可按作品配置
 系统 SHALL 允许作品在 `project.json` 的可选 `tts` 对象中声明 `backend`、`voice` 与 `rate`。解析顺序 SHALL 统一为「命令行 > 作品配置 > 默认值」，且该顺序 SHALL 只在共享 TTS 引擎中实现一次。`voice` SHALL 校验为合成服务使用的音色名格式，`rate` SHALL 校验为 −50% 至 +50% 的有符号百分比，未知字段与不支持的后端 SHALL 在准备前失败。
