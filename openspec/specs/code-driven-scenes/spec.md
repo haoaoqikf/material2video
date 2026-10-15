@@ -6,26 +6,6 @@
 
 ## Requirements
 
-### Requirement: 作品可以声明代码场景
-作品 SHALL 在 world.renderer 声明一个通过稳定模块标识引用的全片代码模块。共享层 SHALL 注入分镜内容、全局帧与进度、阶段上下文、fps、画布、主题和全局状态；模块 SHALL NOT 自行决定阶段顺序或时长。
-
-#### Scenario: 单一全片模块
-- **WHEN** 作品选择 code renderer
-- **THEN** 预览、评审和导出全片使用同一模块与时间轴
-
-#### Scenario: 模块缺失
-- **WHEN** 模块无法解析或没有规定导出
-- **THEN** 启动浏览器前失败并定位 world.renderer.module
-
-#### Scenario: 一支作品混用两种场景
-- **WHEN** 分镜试图在不同阶段混用 tree 和 code
-- **THEN** 校验拒绝阶段 renderer，要求选择一个全片 renderer
-
-#### Scenario: 代码模块不存在
-
-- **WHEN** 分镜引用的作品级代码模块无法解析或没有导出规定的场景组件
-- **THEN** 校验在启动浏览器或渲染前失败，并指出场景字段与目标模块
-
 ### Requirement: 代码场景使用固定能力白名单
 
 代码场景 SHALL 只允许使用 React、React DOM、Remotion、Tailwind、ECharts、Dagre、Lucide、原生 HTML/JSX、原生 SVG、CSS、TypeScript 表达式以及项目公开的内部模块。作品 SHALL NOT 声明、安装、动态下载或导入其他 npm 包；允许包的版本 SHALL 由共享前端工程统一锁定。
@@ -82,20 +62,6 @@ ECharts SHALL 禁用内置动画并由帧号生成当前数据或状态；Dagre 
 - **WHEN** Dagre 对同一组已稳定排序的节点、边和配置执行布局
 - **THEN** 重复得到相同节点坐标与连线路由，动画只作用于其可见状态
 
-### Requirement: 代码场景继续接受统一体检
-
-每个代码场景 SHALL 暴露稳定场景标识、节点标识、语义角色和容器归属标记，使共享契约探针能够读取文本、定位节点、检查安全区与溢出并扫描帧驱动动效。缺少最低探针信息的代码场景 SHALL NOT 通过严格评审。
-
-#### Scenario: 代码场景通过统一评审
-
-- **WHEN** 代码场景按契约标记标题、正文、图表和容器
-- **THEN** 现有内容探针、C/K/M 系列闸门在同一契约页上量测该场景
-
-#### Scenario: 场景没有可观察标记
-
-- **WHEN** 代码场景渲染了内容但未提供规定的场景与节点标识
-- **THEN** 严格评审失败并指出对应场景，成片不得标记为验收通过
-
 ### Requirement: 作品源码进入构建与溯源闭环
 
 系统 SHALL 在构建前生成只包含当前作品代码场景的静态场景清单，并 SHALL 使作品 TSX、CSS、SVG 与本地媒体参与模块解析、Tailwind 内容扫描和成片源码指纹。预览、评审与导出 SHALL 使用同一清单和同一 bundle。
@@ -110,28 +76,28 @@ ECharts SHALL 禁用内置动画并由帧号生成当前数据或状态；Dagre 
 - **WHEN** 已渲染成片之后修改代码场景、CSS、SVG 或其本地资产
 - **THEN** 溯源检查把旧成片判为落后并指出变化的输入
 
-### Requirement: 代码场景接收统一导演运行时上下文
-共享层 SHALL 注入全局 beats、阶段语义状态、全片镜头与对象状态，不提供幕级跨场景转场上下文。代码模块 SHALL 可通过共同上下文编排复杂动作；系统不自动猜测内部节点或生成对象动画。
+### Requirement: 作品可以在幕上声明代码场景
+作品 SHALL 在 `general-plan.json` 的幕上以 `renderer: { kind: "code", module: "<scenes/ 下的模块标识>" }` 声明代码场景；模块标识 SHALL 解析到当前作品 `scenes/` 目录内的真实模块，该模块 SHALL 默认导出 `M2VCodeScene` 组件。共享层 SHALL 注入该幕的 `data`、幕内帧与幕内进度、`fps`、画布尺寸、主题与按幕标识播种的稳定随机源；模块 SHALL NOT 自行决定幕顺序、总时长或字幕边界。
 
-#### Scenario: 随机访问上下文
-- **WHEN** 直接访问后一阶段帧
-- **THEN** 得到与 tree 相同的全局 beat、阶段、镜头和已累计状态
+#### Scenario: 幕级模块进入全片时间轴
+- **WHEN** 作品的某一幕声明 `renderer.kind` 为 `code`
+- **THEN** 该幕的预览、预演与导出使用同一模块，并落在该幕在全片中的帧区间内
 
-#### Scenario: 代码场景跟随镜头段
-- **WHEN** 当前阶段进入绑定 beat 的推进镜头段
-- **THEN** 代码场景收到与场景树相同的镜头进度和焦点信息，并在随机寻帧时得到相同上下文
+#### Scenario: 模块缺失或没有规定导出
+- **WHEN** 幕引用的模块无法解析、逃出 `scenes/` 或没有默认导出规定的场景组件
+- **THEN** 校验在启动浏览器或渲染前失败，并指出该幕的 `renderer.module` 与目标源码位置
 
-### Requirement: 代码场景显式加入节点级连续性
-全片代码模块 SHALL 为持续对象暴露稳定节点 id、几何、语义角色和容器标记，以便验证状态与镜头连续性。缺少被引用节点的探针 SHALL 使严格评审失败，不得降级为独立场景转场或猜测 DOM。
+#### Scenario: 同一幕同时声明 renderer 与内联内容
+- **WHEN** 一幕既声明 `renderer` 又声明该幕类型自带的内联图文内容
+- **THEN** 校验拒绝该幕，要求二选一
 
-#### Scenario: 探针完整
-- **WHEN** 全片模块暴露持续对象探针
-- **THEN** 评审可跟踪阶段边界对象身份、状态与几何
+### Requirement: 代码场景接收幕级上下文槽位
+共享层 SHALL 向代码场景注入幕标识、幕数据、幕内帧与幕内进度、`fps`、画布尺寸、主题与稳定随机源，并 SHALL 保留类型化的 `beats`、`motion` 与 `objectStates` 槽位。通用视频当前不提供语义节拍、镜头运动与跨幕对象状态，这些槽位 SHALL 以文档化的空值传入（`beats.current` 为 `null`、`beats.plan` 为空、`motion.camera.kind` 为 `"none"`、`motion.continuity` 为 `null`、`objectStates` 为空对象）；代码模块 SHALL NOT 假设这些槽位被填充。
 
-#### Scenario: 探针不足
-- **WHEN** 镜头或评审目标缺少规定探针
-- **THEN** 明确报错并阻断正式输出，无场景级转场回退
+#### Scenario: 同一帧重复求值得到同一上下文
+- **WHEN** 以任意顺序、任意次数求同一幕的同一帧号
+- **THEN** 代码场景收到相同的幕数据、幕内帧、幕内进度与随机序列
 
-#### Scenario: 探针不完整
-- **WHEN** 全片代码对象缺少被镜头或连续性评审引用的稳定几何或外观
-- **THEN** 严格评审失败并说明对象和缺失探针，不降级为场景转场
+#### Scenario: 代码场景读取空镜头槽位
+- **WHEN** 代码场景读取 `motion.camera`
+- **THEN** 读到文档化的空镜头（`kind` 为 `"none"`），并据此走无镜头分支而不是抛错

@@ -81,7 +81,21 @@
 ## 8. 验收与归档
 
 - [x] 8.1 跑完 11 项验收清单（可达性、typecheck、build、vitest、pytest 两轮、`m2v types`、三个示例 validate、article 与 general 各一次 preview+render、sync_docs --check、关键词零命中、相对链接）
-- [ ] 8.2 检查 `git status`，排除缓存、依赖与生成媒体
-- [ ] 8.3 提交实现改动与配套文档，报告 commit 标识与验证结果
-- [ ] 8.4 同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`
-- [ ] 8.5 提交归档结果
+- [x] 8.2 检查 `git status`，排除缓存、依赖与生成媒体（`web/dist`、`web/.gen`、`web/.cache`、`videos/**`、`outputs/`、`node_modules` 均被忽略）
+- [x] 8.3 提交实现改动与配套文档，报告 commit 标识与验证结果（`9cd6bba`）
+- [x] 8.4 同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`
+- [x] 8.5 提交归档结果
+
+## 最终复核记录（2026-10-15）
+
+- 结论：旧共享动画链路及无消费者的参数链已移除，当前五类 composition 与文章 v5 契约保留；当前帧诊断接口已补齐，随机寻帧断言通过。未发现本变更范围内的交付阻塞项。
+- 验证：本轮两次完整 pytest 均为 432 passed、5 skipped；Web typecheck、build、87 项 Vitest、三个固定示例 validate、类型清单、文档同步、20 份当前文档相对链接与 JSON 示例检查通过。15 份主规格通过严格校验。
+- 端到端：general/code-smoke 与 article-narrative/v5-qa-keynote-baseline 均完成 prepare、完整 preview 和正式 render，并通过实际媒体验收；通用代码场景抽帧检查通过。作品与生成媒体未入库。
+- 性能：通用正式导出 150 帧、总耗时 13.625 秒；文章正式导出 874 帧、总耗时 67.672 秒。删除降低维护面，未引入额外算法或逐帧工作；未据此声称对比旧版本的性能提升。
+- 剩余限制：本机符号链接权限与未安装可选字体依赖导致 5 项跳过；Vite 有现存包体积提醒。一个旧 buffer-smoothing 作品准备时出现媒体覆盖权限错误，采用 keynote-baseline 完成文章端到端验证，未修改该作品权限。
+- 质量评分：95/100；扣分来自上述环境覆盖限制与包体积提醒。逻辑、异常路径、兼容性、文档和性能影响已复核。
+- 规格同步：更新 4 份能力，退役以下 11 份旧能力规格及其 Purpose，保留历史变更用于追溯。需要恢复退役规格时执行：
+
+```powershell
+git checkout 9cd6bba -- openspec/specs/article-to-storyboard/spec.md openspec/specs/bespoke-explanatory-animation/spec.md openspec/specs/cinematic-directing/spec.md openspec/specs/declarative-video-scenes/spec.md openspec/specs/frame-driven-motion/spec.md openspec/specs/react-component-registry/spec.md openspec/specs/scene-primitive-tree/spec.md openspec/specs/science-video-production/spec.md openspec/specs/semantic-motion-timeline/spec.md openspec/specs/storyboard-aesthetic-review/spec.md openspec/specs/visual-direction-pipeline/spec.md
+```
