@@ -9,11 +9,14 @@ from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
+# 往返移动必须由 overlay 的 x 表达式驱动：本仓库的 ffmpeg（v7.1）只在配置阶段
+# 求值一次 drawbox 的 x，用 drawbox 画会动的方块只会得到一张静止画面。
 FILTER = (
-    "color=c=0x101820:s=1080x1920:r=30:d=4,"
-    "drawbox=x='540-90+360*sin(2*PI*t/4)':y='960-90':w=180:h=180:"
-    "color=0x4fa3ff@0.9:t=fill,"
-    "drawbox=x='140':y='1700':w=800:h=6:color=0x2a3a4d@1:t=fill"
+    "color=c=0x101820:s=1080x1920:r=30:d=4[bg];"
+    "color=c=0x4fa3ff:s=180x180:r=30:d=4,format=rgba,"
+    "geq=r='79':g='163':b='255':a='if(lte(hypot(X-90,Y-90),90),230,0)'[dot];"
+    "[bg][dot]overlay=x='540-90+360*sin(2*PI*t/4)':y='960-90':format=auto[stage];"
+    "[stage]drawbox=x=140:y=1700:w=800:h=6:color=0x2a3a4d@1:t=fill"
 )
 
 
