@@ -14,7 +14,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
 from m2v.engine.sound import asset_digest
 from m2v.types.general import adapter, explainer, soundtrack
-from test_article_explainer import board, fake_tts, project
+from test_article_explainer import board, fake_record, fake_tts, project, scene, scene_root
 
 
 def write_tone(path: Path, seconds: float = 8, frequency: float = 220) -> Path:
@@ -56,7 +56,7 @@ def test_validate_accepts_music_and_effects(tmp_path):
             {"builtin": "ding-dong", "sceneId": "a", "offsetMs": 0, "gainDb": -18},
             {"sourceRef": "assets/click.wav", "sceneId": "a", "segmentId": "a-line", "offsetMs": -200},
         ]})
-    explainer.validate(data, tmp_path)
+    explainer.validate(data, scene_root(tmp_path))
 
 
 @pytest.mark.parametrize("track,match", [
@@ -83,7 +83,7 @@ def test_validate_rejects_invalid_soundtrack(tmp_path, track, match):
     write_tone(tmp_path / "assets/bed.wav")
     write_tone(tmp_path / "assets/click.wav", .2)
     with pytest.raises(M2VError, match=match):
-        explainer.validate(with_soundtrack(board(), track), tmp_path)
+        explainer.validate(with_soundtrack(board(), track), scene_root(tmp_path))
 
 
 def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
@@ -98,6 +98,7 @@ def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
         ]})
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     result = adapter.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
     assert result["durationInFrames"] == 42
@@ -118,6 +119,7 @@ def test_effect_start_beyond_duration_is_rejected(tmp_path, monkeypatch):
         {"builtin": "transition", "sceneId": "a", "offsetMs": 60000}]})
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     with pytest.raises(M2VError, match="起点越界"):
         adapter.prepare(root, manifest)
 
@@ -126,13 +128,11 @@ def test_effect_offset_must_land_inside_the_clip(tmp_path, monkeypatch):
     """负偏移可以把音效提前到幕首之前，但不能越过全片起点。"""
     root, manifest = project(tmp_path)
     data = board()
-    second = copy.deepcopy(data["scenes"][0])
-    second.update(id="b", transition="fade")
-    second["narrationSegments"][0]["id"] = "b-line"; second["content"]["summary"]["segmentId"] = "b-line"
-    data["scenes"].append(second)
+    data["scenes"].append(scene("b", transition="fade"))
     with_soundtrack(data, {"effects": [{"builtin": "click", "sceneId": "b", "offsetMs": -8000}]})
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     # 第二幕起点 34 帧 ≈ 1.13 秒，提前 8 秒会落到全片之外。
     with pytest.raises(M2VError, match="起点越界"):
         adapter.prepare(root, manifest)
@@ -143,6 +143,7 @@ def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
     data = with_soundtrack(board(), {"effects": [{"builtin": "ding-dong", "sceneId": "a"}]})
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     result = adapter.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
     with wave.open(str(master), "rb") as stream:

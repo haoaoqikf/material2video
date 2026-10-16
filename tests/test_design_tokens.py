@@ -1,17 +1,19 @@
-"""设计令牌读取器：解析、单位校验，以及量测接线不许再退回字面量。"""
+"""设计令牌读取器：解析、单位校验，以及字幕几何不许再退回第二处真源。"""
 from __future__ import annotations
+
+import math
 
 import pytest
 
 from m2v.core.errors import M2VError
-from m2v.engine import design_tokens
+from m2v.engine import design_tokens, frames
 from m2v.types.general import explainer_render
 
 SAMPLE = """
 :root { color-scheme: dark; }
 @theme static {
   --m2v-width: 1080px;
-  --m2v-subtitle-leading: 1.5;
+  --m2v-grid-columns: 12;
 }
 """
 
@@ -19,7 +21,7 @@ SAMPLE = """
 def test_只认_theme_static_那一个块():
     """`:root` 里的声明不是令牌，抽进来会让取值取决于文件顺序。"""
     table = design_tokens.theme_block(SAMPLE)
-    assert table == {"--m2v-width": "1080px", "--m2v-subtitle-leading": "1.5"}
+    assert table == {"--m2v-width": "1080px", "--m2v-grid-columns": "12"}
 
 
 def test_缺少标记或没有闭合时明确失败():
@@ -32,56 +34,59 @@ def test_缺少标记或没有闭合时明确失败():
 def test_单位不符时失败而不是当数字继续算():
     """`px` 取值写错单位应当在这里报错，而不是被当成无单位数值。"""
     table = design_tokens.tokens()
-    assert design_tokens.px("--m2v-subtitle-size") == 40
-    assert design_tokens.number("--m2v-subtitle-leading") == 1.5
+    assert design_tokens.px("--m2v-size-body") == 40
+    assert design_tokens.number("--m2v-grid-columns") == 12
     with pytest.raises(M2VError, match="应为 px 长度"):
-        design_tokens.px("--m2v-subtitle-leading")
+        design_tokens.px("--m2v-grid-columns")
     with pytest.raises(M2VError, match="应为无单位数值"):
-        design_tokens.number("--m2v-subtitle-size")
+        design_tokens.number("--m2v-size-body")
     with pytest.raises(M2VError, match="没有"):
         design_tokens.px("--m2v-这个令牌不存在")
 
 
-def test_量测需要的令牌都在令牌层里():
-    """量测读的令牌缺一个就应当在准备/预演之外先失败，而不是画到一半才发现。"""
+def test_字幕几何不再写在令牌层里():
+    """字幕盒按画幅集中在画幅清单：令牌层里再留一份就是第二处真源。"""
     table = design_tokens.tokens()
-    for name in (
-        "--m2v-subtitle-inset-x",
-        "--m2v-subtitle-top",
-        "--m2v-subtitle-height",
-        "--m2v-subtitle-size",
-        "--m2v-subtitle-leading",
-        "--m2v-measure-left",
-        "--m2v-measure-right",
-        "--m2v-measure-top",
-        "--m2v-measure-content-bottom",
-        "--m2v-measure-subtitle-bottom",
-    ):
-        assert name in table, f"令牌层里缺少 {name}"
+    stale = sorted(name for name in table if name.startswith(("--m2v-subtitle-", "--m2v-measure-")))
+    assert stale == [], f"令牌层里还有已被画幅清单接管的名字：{stale}"
 
 
-def test_量测脚本的边界就是令牌取值():
-    """守住接线：边界必须来自令牌，不能再退回脚本里的字面量。"""
-    table = design_tokens.tokens()
-    script = explainer_render.measure_script()
-    bounds = explainer_render.measure_bounds()
-    assert set(bounds) == {"left", "right", "top", "contentBottom", "subtitleBottom"}
-    assert bounds["left"] == float(table["--m2v-measure-left"][:-2])
-    assert bounds["right"] == float(table["--m2v-measure-right"][:-2])
-    assert bounds["top"] == float(table["--m2v-measure-top"][:-2])
-    assert bounds["contentBottom"] == float(table["--m2v-measure-content-bottom"][:-2])
-    assert bounds["subtitleBottom"] == float(table["--m2v-measure-subtitle-bottom"][:-2])
-    # 判据只经 `B.` 引用，脚本里不该再出现这几个数字。
-    for literal in ("< 106", "> 974", "< 158", "1782 : 1502", "> 1502"):
-        assert literal not in script, f"量测脚本里又出现了字面量 {literal}"
+def test_画幅清单是字幕几何的唯一真源():
+    """SDK、合成层与量测消费的准备产物都从同一份清单派生。"""
+    portrait, landscape = frames.spec(1080, 1920), frames.spec(1920, 1080)
+    assert set(portrait["subtitle"]) == {"safeArea", "fontSize", "lineHeight", "textColor", "plateColor"}
+    # 横屏按竖屏数值乘 1080/1920 并四舍五入；水平内边距改用画布宽度的同一比例。
+    ratio = 1080 / 1920
+    # 四舍五入（half-up）而不是 Python 的银行家舍入：22.5 取 23。
+    scale = lambda value: math.floor(value * ratio + 0.5)  # noqa: E731 - 量算式写在一处更好读
+    assert landscape["subtitle"]["fontSize"] == scale(portrait["subtitle"]["fontSize"])
+    assert landscape["subtitle"]["safeArea"]["height"] == scale(portrait["subtitle"]["safeArea"]["height"])
+    portrait_gap = portrait["height"] - (portrait["subtitle"]["safeArea"]["y"] + portrait["subtitle"]["safeArea"]["height"])
+    landscape_gap = landscape["height"] - (landscape["subtitle"]["safeArea"]["y"] + landscape["subtitle"]["safeArea"]["height"])
+    assert landscape_gap == scale(portrait_gap)
+    for spec in (portrait, landscape):
+        area = spec["subtitle"]["safeArea"]
+        assert area["x"] == round(spec["width"] * portrait["subtitle"]["safeArea"]["x"] / portrait["width"])
+        assert area["width"] == spec["width"] - 2 * area["x"], "字幕盒左右内缩必须对称"
+    # 字幕样式独立于作品配色：白字配不透明深色底板。
+    assert portrait["subtitle"]["textColor"] == landscape["subtitle"]["textColor"] == "#ffffff"
+    assert portrait["subtitle"]["plateColor"] == landscape["subtitle"]["plateColor"]
 
 
-def test_字幕盒令牌与量测边界同源():
-    """字幕盒左右内缩与量测判据带 2px 容差，两者必须一起动。"""
-    inset = design_tokens.px("--m2v-subtitle-inset-x")
-    width = design_tokens.px("--m2v-width")
-    top = design_tokens.px("--m2v-subtitle-top")
-    height = design_tokens.px("--m2v-subtitle-height")
-    assert design_tokens.px("--m2v-measure-left") == inset - 2
-    assert design_tokens.px("--m2v-measure-right") == width - inset + 2
-    assert design_tokens.px("--m2v-measure-subtitle-bottom") == top + height + 2
+def test_量测脚本的安全区就是画幅清单取值():
+    """守住接线：安全区必须来自画幅清单，不能再退回脚本里的字面量。"""
+    for size in frames.sizes():
+        script = explainer_render.measure_script(size=size)
+        safe = frames.spec(*size)["subtitle"]["safeArea"]
+        for name, value in safe.items():
+            assert f'"{name}": {value}' in script, f"{size} 的 {name} 没有进量测脚本"
+        # 判据只经 `B.` 引用，脚本里不该再出现这些数字。
+        for value in safe.values():
+            assert f"< {value}" not in script and f"> {value}" not in script
+
+
+def test_未支持画幅明确失败():
+    with pytest.raises(M2VError, match="仅支持"):
+        frames.normalize(1080, 1080)
+    with pytest.raises(M2VError, match="画幅清单里没有"):
+        frames.spec(1080, 1080)

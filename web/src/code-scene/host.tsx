@@ -2,22 +2,21 @@ import React, {useEffect, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {SceneContextProvider, type CodeSceneProps} from './sdk';
 import {ensureFonts, FONT_STACK} from '../fonts';
-import {palettes} from '../palette';
 
 declare global {
   interface Window {
     __M2V_CODE__: {ready: boolean; start: () => void};
-    __M2V_CODE_CONFIG__: CodeSceneProps;
   }
 }
 
 export function mount(Component: React.ComponentType<CodeSceneProps>) {
-  const config = window.__M2V_CODE_CONFIG__;
-  // 实时录制只产出不带透明通道的视频，因此录制页必须自己画上主题背景，
-  // 否则片段会以合成器的白色底混进深色成片，浅色作品文字也随之消失。
-  const palette = palettes[config.theme];
-  document.body.style.background = palette.bg;
-  document.body.style.color = palette.ink;
+  const injected = window.__M2V_CODE_CONFIG__;
+  if (!injected) throw new Error('代码场景录制页缺少运行时配置');
+  // 去掉可选的 media 后再下传：作品通过 useMediaAsset 取素材，不直接读全局。
+  const config: CodeSceneProps = injected;
+  // 录制页不再按主题设置前景与背景：画幅、配色与构图都由作品代码决定，作品必须在
+  // 调用 `ready()` 之前自己铺满整张画布并画上不透明背景。页面底色只是编码兜底，
+  // 不是作品主题——没有铺满的作品会在成片里留出这块底色。
   document.body.style.fontFamily = FONT_STACK;
   window.__M2V_CODE__ = {ready: false, start: () => {throw new Error('场景尚未挂载');}};
   function Host() {

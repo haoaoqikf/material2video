@@ -52,7 +52,7 @@ def main(argv=None) -> int:
         if args.command == "keyframes":
             from .explainer_render import current, layout_check
             prepared = current(root, project)
-            print(f"排版量测通过：{layout_check(root, prepared, snapshots=root / 'outputs/qa')['checkedFrames']} 帧")
+            print(f"字幕量测通过：{layout_check(root, prepared, snapshots=root / 'outputs/qa')['checkedFrames']} 帧")
             return 0
         command = {"template": "review-template", "samples": "preview", "rehearsal": "preview"}.get(args.command, args.command)
         return unified([command, "--project", str(root)])

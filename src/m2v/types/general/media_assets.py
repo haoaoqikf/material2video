@@ -1,17 +1,17 @@
 """助手搜索结果的导入边界：实测媒体、内容寻址及来源留证。
 
-文章 v7 允许混合图片与视频镜头，素材由助手全网检索或从 Pexels、Pixabay 这类
-可选图库获得。无论来源如何，进入作品的方式只有一条：先把候选写进导入清单，
-由 ``m2v general assets import`` 下载或复制、实测真实类型与尺寸、按内容摘要命名
-落盘，并把来源页、作者、许可与实测信息写进 ``assets/media-sources.json``。
-准备与渲染只读本地文件，不联网取素材。
+通用 v8 作品的画面由代码绘制，图片与视频经 ``useMediaAsset`` 按 ID 取用；素材由
+助手全网检索或从 Pexels、Pixabay 这类可选图库获得。无论来源如何，进入作品的方式
+只有一条：先把候选写进导入清单，由 ``m2v general assets import`` 下载或复制、实测
+真实类型与尺寸、按内容摘要命名落盘，并把来源页、作者、许可与实测信息写进
+``assets/media-sources.json``。准备阶段复核**全部**登记素材，运行期只读本地文件，
+不联网取素材，也不允许绕过留证直接取 assets 下的其他文件。
 """
 from __future__ import annotations
 
 import argparse
 import json
 import logging
-import math
 import re
 import shutil
 import subprocess
@@ -24,10 +24,9 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.core import security
-from m2v.engine import media_probe
+from m2v.engine import frames, media_probe
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,
-    DEFAULT_TOLERANCE,
     MAX_DOWNLOAD_BYTES,
     PROVIDER_DEFAULTS,
     HttpTransport,
@@ -37,14 +36,16 @@ from m2v.engine.sound import asset_digest
 
 logger = logging.getLogger(__name__)
 RECORD = "assets/media-sources.json"
+MEDIA_DIR = "assets/media"
+#: 代码场景取已登记素材的 URL 前缀；服务器只在这个前缀下暴露白名单文件。
+MEDIA_URL_PREFIX = "/media"
 SUFFIXES = {"image": {".png", ".jpg", ".jpeg", ".webp"}, "video": {".mp4", ".mov", ".m4v", ".webm"}}
 KINDS = ("video", "photo", "both")
 
 
 def number(value, low, high, where):
-    if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
-        raise M2VError(f"{where}: 必须为 {low}～{high} 的有限数字")
-    return value
+    from .explainer import number as check
+    return check(value, low, high, where)
 
 
 def probe(path: Path, kind: str) -> dict:
@@ -152,36 +153,59 @@ def load_record(root: Path) -> dict:
         raise M2VError(f"素材来源记录无效：{exc}") from exc
 
 
-def validate_scene(root: Path, scene: dict) -> dict:
-    from .explainer import local_file
-    content = scene["content"]
-    file = local_file(root, content.get("src"), "content.src")
-    info = probe(file, scene["template"])
-    mode = scene.get("aspectRatio", "canvas")
-    if mode not in {"canvas", "any"}: raise M2VError("aspectRatio 必须为 canvas/any")
-    if mode == "canvas" and abs(info["width"] / info["height"] / (1080/1920) - 1) > .02:
-        raise M2VError(f"幕 {scene['id']} 素材比例不符；要求 9:16 ±2%，可显式设置 aspectRatio=any")
-    if scene["template"] == "video":
-        number(content.get("trimStartSeconds", 0), 0, info["durationSeconds"], "trimStartSeconds")
-    else:
-        number(content.get("photoZoom", 1), 1, 1.3, "photoZoom")
-    relative = file.relative_to(root.resolve()).as_posix()
-    matches = [e for e in load_record(root)["assets"] if e.get("path") == relative]
-    if not matches:
-        raise M2VError(f"幕 {scene['id']} 素材 {relative} 没有导入记录；请先执行 m2v general assets import 留证来源")
-    for entry in matches:
-        if entry.get("sha256") != asset_digest(file) or any(entry.get(k) != info[k] for k in info):
-            raise M2VError(f"素材 {relative} 与来源记录不符，请重新导入")
-    return info
+def resolve(root: Path) -> dict:
+    """复核全部登记素材，返回「ID → 只读解析信息」与一份摘要指纹。
+
+    代码场景只能按 ID 取素材，作品里写的是哪一幕用哪一项并不进入契约，因此
+    复核不再区分「本幕用到」与否：记录里任何一项对不上都让准备失败，而不是
+    等到某一幕恰好用它时才报错。图片与视频都不受画幅比例限制，裁切与摆位由
+    作品代码决定。
+    """
+    from m2v.core.fingerprints import fingerprint
+    media_root = (root / MEDIA_DIR).resolve()
+    media: dict[str, dict] = {}
+    digests: dict[str, dict] = {}
+    for index, entry in enumerate(load_record(root)["assets"]):
+        where = f"assets[{index}]"
+        if not isinstance(entry, dict):
+            raise M2VError(f"素材记录 {where} 必须是对象")
+        identity = entry.get("id")
+        if not isinstance(identity, str) or not identity:
+            raise M2VError(f"素材记录 {where} 缺少有效 id")
+        if identity in media:
+            raise M2VError(f"素材记录存在重复 ID：{identity}")
+        kind = entry.get("kind")
+        if kind not in SUFFIXES:
+            raise M2VError(f"素材 {identity} 的类型必须是 image/video")
+        relative = entry.get("path")
+        if not isinstance(relative, str):
+            raise M2VError(f"素材 {identity} 缺少 path")
+        file = (root / relative).resolve()
+        if not file.is_relative_to(media_root) or not file.is_file():
+            raise M2VError(f"素材 {identity} 必须指向 {MEDIA_DIR}/ 下存在的已导入文件")
+        sha = entry.get("sha256")
+        if not isinstance(sha, str) or sha != asset_digest(file):
+            raise M2VError(f"素材 {identity} 与来源记录不符，请重新导入")
+        info = probe(file, kind)
+        if any(entry.get(key) != info[key] for key in info):
+            raise M2VError(f"素材 {identity} 的实测尺寸、类型或时长与来源记录不符，请重新导入")
+        media[identity] = {"src": f"{MEDIA_URL_PREFIX}/{file.name}", "kind": kind, **info}
+        digests[identity] = {"path": relative, "sha256": sha, **info}
+    return {"media": media, "digest": fingerprint(digests)}
 
 
-def gallery_config(name: str, **overrides) -> dict:
-    """文章画布固定 9:16，因此图库检索默认按画布比例与竖屏方向约束候选。"""
+def gallery_config(name: str, frame: tuple[int, int], **overrides) -> dict:
+    """图库检索的默认约束：方向跟随作品画幅，比例不设限。
+
+    v8 的素材比例不再受画布约束（裁切与摆位由作品代码决定），因此这里显式声明
+    `aspectRatio: "any"`，让适配器按目标高度挑变体，而不是按画布比例过滤候选。
+    """
     defaults = PROVIDER_DEFAULTS.get(name)
     if defaults is None:
         raise M2VError(f"未知图库：{name}；当前可用：{'、'.join(sorted(PROVIDER_DEFAULTS))}")
-    config = {"name": name, **defaults, "orientation": "portrait",
-              "aspectRatio": "canvas", "aspectRatioTolerance": DEFAULT_TOLERANCE}
+    width, height = frame
+    config = {"name": name, **defaults, "orientation": "portrait" if height >= width else "landscape",
+              "aspectRatio": "any"}
     config.update({key: value for key, value in overrides.items() if value is not None})
     return config
 
@@ -200,6 +224,7 @@ def search(root: Path, project: dict, *, provider_name="pexels", kind="both", qu
         raise M2VError("perPage 必须为 1～80 整数")
     number(timeout_s, .01, 300, "timeoutSeconds")
     source = explainer.load(root, project)
+    size = frames.normalize(source.get("width"), source.get("height"))
     if queries is None:
         queries = []
         for scene in source["scenes"]:
@@ -211,7 +236,7 @@ def search(root: Path, project: dict, *, provider_name="pexels", kind="both", qu
         raise M2VError("检索关键词必须是非空文本")
     if len(queries) != len(source["scenes"]):
         raise M2VError(f"关键词数量 {len(queries)} 与幕数 {len(source['scenes'])} 不一致")
-    gallery = build_gallery(gallery_config(provider_name), transport,
+    gallery = build_gallery(gallery_config(provider_name, size), transport,
                             cache_dir=root / "outputs/gallery-cache")
     kinds = ("video", "photo") if kind == "both" else (kind,)
     results = []

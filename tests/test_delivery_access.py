@@ -25,7 +25,7 @@ import pytest
 
 from m2v.core import security
 from m2v.types.general import adapter, code_scenes, explainer_render, media_assets
-from test_article_explainer import fake_tts, project
+from test_article_explainer import fake_record, fake_tts, project
 from test_article_media import entry, importer, make_image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,7 +114,7 @@ def test_deliver_directory_restores_nested_cache_access(normal_root):
 def test_prepare_delivers_the_master_audio_with_inherited_access(normal_root, monkeypatch):
     """主音轨在临时目录里混音，落到 ``outputs/media`` 时必须交回继承权限。"""
     root, manifest = project(normal_root)
-    fake_tts(monkeypatch)
+    fake_tts(monkeypatch); fake_record(monkeypatch)
     prepared = adapter.prepare(root, manifest)
     master = root / prepared["audio"]["segments"][0]["path"]
     assert master.is_file() and master.parent.name == "media"
@@ -124,7 +124,7 @@ def test_prepare_delivers_the_master_audio_with_inherited_access(normal_root, mo
 def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_root, monkeypatch):
     """成片与溯源文件都从渲染临时目录搬出，两者都必须能被标准权限应用打开。"""
     root, manifest = project(normal_root)
-    fake_tts(monkeypatch)
+    fake_tts(monkeypatch); fake_record(monkeypatch)
     prepared = adapter.prepare(root, manifest)
 
     class FakeServer:
@@ -141,7 +141,7 @@ def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_r
 
     def fake_session(**kwargs):
         render = kwargs["on_metadata"](SimpleNamespace(
-            fps=30, width=1080, height=1920, duration_in_frames=prepared["durationInFrames"]))
+            fps=30, width=1920, height=1080, duration_in_frames=prepared["durationInFrames"]))
         Path(render["out"]).write_bytes(b"silent")
         return {"readySeconds": 0.01}
 
@@ -178,7 +178,7 @@ def test_code_scene_encode_delivers_the_clip_through_security(tmp_path, monkeypa
 
     monkeypatch.setattr(code_scenes.audio, "ffmpeg",
                         lambda args: (work / "encoded.mp4").write_bytes(b"clip"))
-    code_scenes._encode(work, output, 30)
+    code_scenes._encode(work, output, 30, 1920, 1080)
     assert delivered == [(work / "encoded.mp4", output)]
 
 

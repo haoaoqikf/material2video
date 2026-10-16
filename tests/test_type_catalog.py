@@ -109,7 +109,11 @@ def test_valid_catalog_loads_in_declaration_order(tmp_path: Path) -> None:
     (lambda payload: payload["types"][0].update(materials=[]), "materials 必须是非空数组"),
     (lambda payload: payload["types"][0]["materials"][0].update(file="../escape.json"), "单个 JSON 文件名"),
     (lambda payload: payload["types"][0]["materials"][0].update(template={}), "template 必须是非空对象"),
-], ids=["版本不符", "空类型表", "重复类型", "空文案", "非法类型名", "空材料表", "越界文件名", "空模板"])
+    (lambda payload: payload["types"][0].update(starters=["../escape.tsx"]), "相对 .tsx 路径"),
+    (lambda payload: payload["types"][0].update(starters=["scenes/x.ts", "scenes/y.tsx"]), "相对 .tsx 路径"),
+    (lambda payload: payload["types"][0].update(starters=[]), "必须是非空数组"),
+], ids=["版本不符", "空类型表", "重复类型", "空文案", "非法类型名", "空材料表", "越界文件名", "空模板",
+        "起步文件越界", "起步文件非 tsx", "起步文件空表"])
 def test_invalid_catalog_is_rejected_at_load(tmp_path: Path, mutate, message: str) -> None:
     with pytest.raises(M2VError, match=message):
         catalog_module.load(_write_catalog(tmp_path, mutate))
@@ -130,15 +134,29 @@ def test_init_writes_exactly_the_materials_declared_by_the_catalog(tmp_path: Pat
         assert written == declared | {"project.json"}
 
 
-def test_article_init_writes_a_v7_storyboard(tmp_path: Path, capsys) -> None:
+def test_general_init_writes_a_v8_storyboard(tmp_path: Path, capsys) -> None:
     root = _init(tmp_path, "general")
     capsys.readouterr()
     storyboard = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     assert {"version", "schemaVersion", "fps", "width", "height", "title", "scenes"} <= set(storyboard)
-    assert storyboard["version"] == 7 and storyboard["schemaVersion"] == 7
+    assert storyboard["version"] == 8 and storyboard["schemaVersion"] == 8
+    # 默认显式横屏；画幅可以删掉整对尺寸回落到默认，但不能只写一边。
+    assert (storyboard["width"], storyboard["height"]) == (1920, 1080)
     assert storyboard["input"] == {"kind": "article"} and storyboard["targetSeconds"] == 60
+    assert [scene["template"] for scene in storyboard["scenes"]] == ["code"]
     (root / "article.md").write_text("填写观点。", encoding="utf-8")
     assert main(["validate", "--project", str(root)]) == 0
+
+
+def test_init_writes_the_declared_starter_files(tmp_path: Path, capsys) -> None:
+    """起步文件同样按目录声明写入：本地代码场景入口必须存在，validate 才可能通过。"""
+    for entry in catalog_module.catalog().entries():
+        root = _init(tmp_path, entry.name)
+        capsys.readouterr()
+        for relative in entry.starters:
+            assert (root / relative).is_file(), f"{entry.name} 缺少起步文件 {relative}"
+            assert (catalog_module.starters_dir(entry.name) / relative).is_file()
+    assert catalog_module.catalog().get("general").starters == ("scenes/opening.tsx",)
 
 
 def test_financial_material_constants_agree_with_the_catalog(tmp_path: Path) -> None:

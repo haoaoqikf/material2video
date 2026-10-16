@@ -104,11 +104,11 @@ class TestAuditTellsYouWhereItHurts:
 
     def test_missing_glyph_is_reported_with_its_scene_and_field(self):
         data = self._storyboard()
-        data["scenes"][0]["content"]["summary"]["text"] = "正常\U0001F600"
+        data["scenes"][0]["content"]["title"] = "正常\U0001F600"
         findings = fonts.audit_fonts([NOTO, INTER], data)
         assert findings, "插入了字体没有的字符，必须报出来"
         assert "\U0001F600" in findings[0]["missing"]
-        assert "choice-point.content.summary.text" in findings[0]["where"], "结论要指到具体的讲解文字字段"
+        assert "choice-point.content.title" in findings[0]["where"], "结论要指到具体的讲解文字字段"
 
     def test_spoken_segments_are_not_scanned_as_visual_text(self):
         """口播段只供配音和字幕使用，不作为画面可见文字扫描。"""

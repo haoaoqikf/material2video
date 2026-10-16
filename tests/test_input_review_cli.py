@@ -16,31 +16,35 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _article_dir(workspace: Path, slug: str = "demo") -> Path:
-    """v7 文章归属固定为 videos/<类型>/<作品>/；旧的两层 videos/<作品>/ 不再推导得出。"""
+    """文章归属固定为 videos/<类型>/<作品>/；旧的两层 videos/<作品>/ 不再推导得出。"""
     return workspace / "videos" / "general" / slug
 
 
 def _write_project(article_dir: Path) -> None:
-    """最小可用的 v7 文章作品：project.json、源文占位与一份合法讲解分镜。"""
+    """最小可用的 v8 作品：project.json、源文占位、本地场景入口与一份合法分镜。"""
     article_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "schemaVersion": 1,
         "id": "demo-00000000",
         "type": "general",
         "materials": {"storyboard": "storyboard.json"},
-        "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"},
+        "output": {"width": 1920, "height": 1080, "fps": 30, "audio": "optional"},
     }
     (article_dir / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     board = {
-        "version": 7, "schemaVersion": 7, "fps": 30, "width": 1080, "height": 1920, "title": "测试",
+        "version": 8, "schemaVersion": 8, "fps": 30, "width": 1920, "height": 1080, "title": "测试",
         "input": {"kind": "article"}, "targetSeconds": 60,
         "scenes": [{
-            "id": "opening", "template": "point",
-            "content": {"title": "观点", "summary": {"text": "摘要", "segmentId": "line"}},
+            "id": "opening", "template": "code",
+            "content": {"title": "观点", "entry": "scenes/opening.tsx"},
             "narrationSegments": [{"id": "line", "text": "旁白。"}],
         }],
     }
     (article_dir / "storyboard.json").write_text(json.dumps(board, ensure_ascii=False), encoding="utf-8")
+    entry = article_dir / "scenes/opening.tsx"
+    entry.parent.mkdir(parents=True, exist_ok=True)
+    entry.write_text((ROOT / "src/m2v/types/general/starters/scenes/opening.tsx").read_text(encoding="utf-8"),
+                     encoding="utf-8")
 
 
 def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:
@@ -56,7 +60,7 @@ def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     record_path = article_dir / "outputs" / "input-review.json"
     record = json.loads(record_path.read_text(encoding="utf-8"))
-    # v7 审查只记录源文摘要与非空计数，不再有 130～170 字的 lengthStatus 判定。
+    # 审查只记录源文摘要与非空计数，不再有 130～170 字的 lengthStatus 判定。
     assert record["schemaVersion"] == 5
     assert record["status"] == "pending"
     assert record["source"]["path"] == "article.md"

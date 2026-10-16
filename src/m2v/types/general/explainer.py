@@ -1,19 +1,27 @@
-"""v7 统一讲解与素材分镜的唯一材料契约。"""
+"""v8 全画布代码场景分镜的唯一材料契约。
+
+通用作品只接受本地 React `code` 场景：画幅、配色、构图与动效都由作品代码决定，
+契约里不再有模板、主题与展示元素。旧分镜明确拒绝，不提供迁移工具。
+"""
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from m2v.core.errors import M2VError
-from m2v.engine import themes
+from m2v.engine import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
-FPS, WIDTH, HEIGHT = 30, 1080, 1920
+FPS = 30
 MAX_FRAMES, READING_TAIL, FADE_FRAMES = 18000, 12, 8
-TEMPLATES = {"point", "compare", "steps", "cause", "image", "video", "code"}
+VERSION = 8
+TEMPLATE = "code"
+MAX_SCENES, MAX_SEGMENTS = 300, 30
+TRANSITIONS = ("cut", "fade", "crossfade")
 
 
 def topic_input(data: dict) -> bool:
-    return data.get("version") == 7 and data.get("input", {}).get("kind") == "topic"
+    return data.get("version") == VERSION and data.get("input", {}).get("kind") == "topic"
 
 
 def fail(path: str, message: str) -> None:
@@ -26,6 +34,12 @@ def obj(value, path: str, allowed: set[str]) -> dict:
     unknown = set(value) - allowed
     if unknown:
         fail(path, f"未知字段：{'、'.join(sorted(unknown))}")
+    return value
+
+
+def number(value, low: float, high: float, path: str) -> float:
+    if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
+        fail(path, f"必须为 {low}～{high} 的有限数字")
     return value
 
 
@@ -57,97 +71,53 @@ def source_file(root: Path, project: dict) -> Path:
     return source
 
 
-def elements(scene: dict) -> list[dict]:
-    """各模板展示元素共用绑定契约，供准备和渲染使用。
-
-    图片与视频幕可以没有旁白，也可以只写画面标题；此时没有展示元素，
-    而不是把缺失的配文当成空对象去校验。
-    """
-    content = scene["content"]
-    if scene["template"] == "point":
-        return [content["summary"]]
-    if scene["template"] == "compare":
-        return [item for column in content["columns"] for item in column["items"]]
-    if scene["template"] == "steps":
-        return content["items"]
-    if scene["template"] == "cause":
-        return content["nodes"] + content["links"]
-    return [content["caption"]] if "caption" in content else []
-
-
-def graph_levels(content: dict) -> dict[str, int]:
-    nodes = content["nodes"]
-    pending = {node["id"]: 0 for node in nodes}
-    levels = dict(pending)
-    edges = {key: [] for key in pending}
-    for link in content["links"]:
-        edges[link["from"]].append(link["to"])
-        pending[link["to"]] += 1
-    queue = [key for key, degree in pending.items() if degree == 0]
-    for key in queue:
-        for target in edges[key]:
-            levels[target] = max(levels[target], levels[key] + 1)
-            pending[target] -= 1
-            if pending[target] == 0:
-                queue.append(target)
-    if len(queue) != len(nodes):
-        fail("cause.links", "因果图不得包含循环")
-    return levels
-
-
 def validate(data: dict, root: Path) -> dict:
-    if not isinstance(data, dict) or data.get("version") != 7 or data.get("schemaVersion") != data.get("version"):
-        fail("version", "文章只接受 v7 分镜；v6 及更早作品须重新编排，不兼容旧版本")
-    modern = data["version"] == 7
-    obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title", "visual", "scenes"} | ({"input", "targetSeconds", "soundtrack"} if modern else set()))
-    if modern:
-        from . import media_assets, soundtrack
-        entry = obj(data.get("input", {"kind": "article"}), "input", {"kind", "topic"})
-        if entry.get("kind") not in {"article", "topic"}:
-            fail("input.kind", "必须为 article/topic")
-        if topic_input(data):
-            text(entry.get("topic"), "input.topic")
-        media_assets.number(data.get("targetSeconds", 60), 1, 600, "targetSeconds")
-    for key, expected in (("fps", FPS), ("width", WIDTH), ("height", HEIGHT)):
-        if type(data.get(key)) is not int or data[key] != expected:
-            fail(key, f"必须为 {expected}")
+    if not isinstance(data, dict) or data.get("version") != VERSION or data.get("schemaVersion") != data.get("version"):
+        fail("version", "通用分镜只接受 v8；v7 及更早作品须重新编排，不自动迁移")
+    obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title",
+                             "input", "targetSeconds", "soundtrack", "scenes"})
+    if data.get("fps") != FPS:
+        fail("fps", f"必须为 {FPS}")
+    frames.normalize(data.get("width"), data.get("height"))
     text(data.get("title"), "title")
-    visual = obj(data.get("visual", {}), "visual", {"theme"})
-    # 主题名单与默认值都来自 `web/src/themes.json`，不在契约里另存一份。
-    if visual.get("theme", themes.default()) not in themes.names():
-        fail("visual.theme", f"只支持{'、'.join(themes.names())}")
-    scenes = items(data.get("scenes"), "scenes", 300 if modern else 30)
+    from . import soundtrack
+    entry = obj(data.get("input", {"kind": "article"}), "input", {"kind", "topic"})
+    if entry.get("kind") not in {"article", "topic"}:
+        fail("input.kind", "必须为 article/topic")
+    if topic_input(data):
+        text(entry.get("topic"), "input.topic")
+    number(data.get("targetSeconds", 60), 1, 600, "targetSeconds")
+    from m2v.engine import rhythm
+    from .code_scenes import validate_entry
+    scenes = items(data.get("scenes"), "scenes", MAX_SCENES)
     all_ids: set[str] = set()
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
-        obj(scene, path, {"id", "template", "content", "narrationSegments", "transition"} | ({"keywords", "durationFrames", "transitionFrames", "aspectRatio", "speech"} if modern else set()))
+        obj(scene, path, {"id", "template", "content", "narrationSegments", "keywords",
+                          "durationFrames", "transition", "transitionFrames", "speech"})
         sid = text(scene.get("id"), f"{path}.id")
         if sid in all_ids:
             fail(path, f"重复 ID：{sid}")
         all_ids.add(sid)
-        kind = scene.get("template")
-        if kind not in TEMPLATES or (kind == "video" and not modern):
-            fail(path, "template 必须是 point/compare/steps/cause/image/video/code")
-        if scene.get("transition", "cut") not in ({"cut", "fade", "crossfade"} if modern else {"cut", "fade"}) or (index == 0 and scene.get("transition", "cut") != "cut"):
+        if scene.get("template") != TEMPLATE:
+            fail(path, f"template 必须是 {TEMPLATE}：通用画面由作品代码决定，不再有受控模板")
+        if scene.get("transition", "cut") not in TRANSITIONS or (index == 0 and scene.get("transition", "cut") != "cut"):
             fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
-        if modern:
-            if topic_input(data) or "keywords" in scene:
-                words = items(scene.get("keywords"), path + ".keywords", 30)
-                for word in words: text(word, path + ".keywords")
-            if "durationFrames" in scene and (type(scene["durationFrames"]) is not int or not 1 <= scene["durationFrames"] <= 18000):
-                fail(path + ".durationFrames", "必须为 1～18000 整数")
-            overlap = scene.get("transitionFrames", 8)
-            if type(overlap) is not int or not 1 <= overlap <= 1800:
-                fail(path + ".transitionFrames", "必须为 1～1800 整数")
-            if "speech" in scene:
-                from m2v.engine import rhythm
-                rhythm.configure(scene["speech"])
-        parts = scene.get("narrationSegments", [])
-        if not modern or parts:
-            parts = items(parts, f"{path}.narrationSegments", 30)
-        elif not isinstance(parts, list) or kind not in {"image", "video", "code"}:
-            fail(path, "只有图片、视频或代码幕允许无旁白")
-        part_ids = set()
+        if topic_input(data) or "keywords" in scene:
+            words = items(scene.get("keywords"), path + ".keywords", MAX_SEGMENTS)
+            for word in words:
+                text(word, path + ".keywords")
+        if "durationFrames" in scene and (type(scene["durationFrames"]) is not int
+                                          or not 1 <= scene["durationFrames"] <= MAX_FRAMES):
+            fail(path + ".durationFrames", f"必须为 1～{MAX_FRAMES} 整数")
+        overlap = scene.get("transitionFrames", FADE_FRAMES)
+        if type(overlap) is not int or not 1 <= overlap <= 1800:
+            fail(path + ".transitionFrames", "必须为 1～1800 整数")
+        if "speech" in scene:
+            rhythm.configure(scene["speech"])
+        parts = scene.get("narrationSegments")
+        if not isinstance(parts, list) or len(parts) > MAX_SEGMENTS:
+            fail(path + ".narrationSegments", f"必须包含 0～{MAX_SEGMENTS} 项")
         for part in parts:
             obj(part, path + ".narrationSegments", {"id", "text"})
             pid = text(part.get("id"), path + ".narrationSegments.id")
@@ -157,75 +127,11 @@ def validate(data: dict, root: Path) -> dict:
             if pid in all_ids:
                 fail(path, f"重复 ID：{pid}")
             all_ids.add(pid)
-            part_ids.add(pid)
-        allowed = {"point": {"title", "summary"}, "compare": {"title", "columns"},
-                   "steps": {"title", "items"}, "cause": {"title", "nodes", "links"},
-                   "image": {"title", "src", "fit", "caption"},
-                   "video": {"title", "src", "fit", "caption", "trimStartSeconds"},
-                   "code": {"title", "entry", "props"}}[kind]
-        if modern and kind == "image": allowed |= {"photoZoom"}
-        content = obj(scene.get("content"), path + ".content", allowed)
-        text(content.get("title"), path + ".content.title")
-        if kind == "code":
-            from .code_scenes import validate_entry
-            validate_entry(root, content.get("entry"), content.get("props", {}))
-        if kind == "point":
-            obj(content.get("summary"), path + ".summary", {"text", "segmentId", "keywords"})
-        elif kind == "compare":
-            columns = items(content.get("columns"), path + ".columns", 2)
-            if len(columns) != 2:
-                fail(path, "compare 必须恰好两列")
-            for column in columns:
-                obj(column, path + ".columns", {"title", "items"})
-                text(column.get("title"), path + ".columns.title")
-                items(column.get("items"), path + ".columns.items", 4)
-        elif kind == "steps":
-            items(content.get("items"), path + ".items", 6)
-        elif kind == "cause":
-            nodes = items(content.get("nodes"), path + ".nodes", 6)
-            node_ids = [text(obj(n, path + ".nodes", {"id", "text", "segmentId", "keywords"}).get("id"), path + ".nodes.id") for n in nodes]
-            if len(set(node_ids)) != len(node_ids):
-                fail(path, "因果节点 ID 重复")
-            links = items(content.get("links"), path + ".links", 8)
-            pairs = set()
-            for link in links:
-                obj(link, path + ".links", {"from", "to", "text", "segmentId", "keywords"})
-                if link.get("from") not in node_ids or link.get("to") not in node_ids:
-                    fail(path, "因果连线引用未知节点")
-                pair = (link["from"], link["to"])
-                if pair in pairs:
-                    fail(path, "因果连线重复")
-                pairs.add(pair)
-            graph_levels(content)
-        elif kind in {"image", "video"}:
-            image = local_file(root, content.get("src"), path + ".src")
-            if kind == "image" and image.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
-                fail(path, "图片仅支持 PNG/JPEG/WebP")
-            if content.get("fit", "contain") not in {"contain", "cover"}:
-                fail(path, "素材 fit 仅支持 contain/cover")
-            if modern:
-                media_assets.validate_scene(root, scene)
-        for number, element in enumerate(elements(scene)):
-            ep = f"{path}.elements[{number}]"
-            extras = {"id"} if kind == "cause" and "id" in element else {"from", "to"} if kind == "cause" else set()
-            obj(element, ep, {"text", "segmentId", "keywords"} | extras)
-            label = text(element.get("text"), ep + ".text")
-            if element.get("segmentId") not in part_ids and not (modern and not parts and element.get("segmentId") is None):
-                fail(ep, "segmentId 必须引用本幕旁白")
-            keywords = element.get("keywords", [])
-            if not isinstance(keywords, list) or any(not isinstance(word, str) or not word or word not in label for word in keywords):
-                fail(ep, "keywords 必须为画面文字中存在的非空词语数组")
-        if kind == "steps":
-            order = [next(i for i, p in enumerate(parts) if p["id"] == item["segmentId"]) for item in content["items"]]
-            if order != sorted(order) or len(set(order)) != len(order):
-                fail(path, "步骤须按不同旁白分段的先后顺序绑定")
-        if kind == "cause":
-            order = {part["id"]: i for i, part in enumerate(parts)}
-            node_order = {node["id"]: order[node["segmentId"]] for node in content["nodes"]}
-            if any(order[link["segmentId"]] < max(node_order[link["from"]], node_order[link["to"]]) for link in content["links"]):
-                fail(path, "因果连线的旁白绑定不能早于两端节点")
-    if modern:
-        soundtrack.validate(data, root)
+        content = obj(scene.get("content"), path + ".content", {"title", "entry", "props"})
+        if "title" in content:
+            text(content.get("title"), path + ".content.title")
+        validate_entry(root, content.get("entry"), content.get("props", {}))
+    soundtrack.validate(data, root)
     return data
 
 

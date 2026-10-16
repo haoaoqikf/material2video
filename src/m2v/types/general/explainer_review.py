@@ -40,8 +40,8 @@ def create_input(root: Path, project: dict) -> Path:
 
 
 def criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
-    return {"informationClarity": "观点与摘要清晰，旁白忠实于当前源文",
-            "templateLayout": "六模板排版与手机可读性，文字无溢出或字幕遮挡",
-            "graphicRelation": "对比、步骤、因果、图片与视频确实帮助说明观点",
-            "narrationSync": "逐项出现与当前旁白同步，字幕和音频完整",
-            "readingRhythm": "每幕阅读停留足够，转场连贯，全片不超过 600 秒"}
+    return {"informationClarity": "观点与旁白清晰，忠实于当前源文",
+            "visualDesign": "作品画幅下的构图、配色与字阶在目标设备上可读，重要文字与主体避开字幕安全区",
+            "graphicRelation": "关键画面与动画确实帮助说明观点，示意数据有明确标注",
+            "narrationSync": "画面推进与当前旁白同步，字幕和音频完整",
+            "readingRhythm": "镜头节奏与转场连贯，全片不超过 600 秒"}

@@ -1,16 +1,16 @@
-"""文章适配器只接入 v7，不再桥接旧动画 CLI。"""
+"""通用适配器只接入 v8 全画布代码场景，不再桥接旧动画 CLI。"""
 import json
 import pytest
 from m2v.core.errors import M2VError
 from m2v.types.general import adapter
-from test_article_explainer import project, fake_tts
+from test_article_explainer import project, fake_record, fake_tts
 
 
-def test_adapter_uses_v7_composition(tmp_path,monkeypatch):
-    root,manifest=project(tmp_path);fake_tts(monkeypatch)
+def test_adapter_uses_v8_composition(tmp_path,monkeypatch):
+    root,manifest=project(tmp_path);fake_tts(monkeypatch);fake_record(monkeypatch)
     result=adapter.prepare(root,manifest)
     assert result["compositionId"] == "ArticleExplainer"
-    assert result["props"]["version"] == 7
+    assert result["props"]["version"] == 8
     tracks=result["audio"]["segments"]
     assert len(tracks)==1 and (root / tracks[0]["path"]).is_file()
 
@@ -18,14 +18,14 @@ def test_adapter_uses_v7_composition(tmp_path,monkeypatch):
 def test_review_gate_rejects_missing_full_preview(tmp_path,monkeypatch):
     from m2v.cli import _register_builtins
     _register_builtins()
-    root,manifest=project(tmp_path);fake_tts(monkeypatch)
+    root,manifest=project(tmp_path);fake_tts(monkeypatch);fake_record(monkeypatch)
     adapter.prepare(root,manifest)
     with pytest.raises(M2VError,match="完整预演"):
         adapter.review_gate(root,manifest)
 
 
 def test_old_preparation_is_rejected(tmp_path,monkeypatch):
-    root,manifest=project(tmp_path);fake_tts(monkeypatch)
+    root,manifest=project(tmp_path);fake_tts(monkeypatch);fake_record(monkeypatch)
     result=adapter.prepare(root,manifest)
     from m2v.core.project import save_prepared
     save_prepared(root,project=manifest,composition_id="M2V",props={"version":4},width=1080,height=1920,fps=30,duration_in_frames=1200,inputs=result["inputs"])

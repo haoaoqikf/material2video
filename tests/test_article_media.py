@@ -13,7 +13,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.engine.gallery import HttpTransport, build
 from m2v.types.general import adapter, media_assets
-from test_article_explainer import board, fake_tts, project
+from test_article_explainer import board, fake_record, fake_tts, project, scene_root
 
 ROOT = Path(__file__).resolve().parents[1]
 PEXELS_VIDEO = {
@@ -53,6 +53,13 @@ def importer(root: Path, entries, base: Path | None = None, **kwargs):
 
 def entry(identity, kind, **extra):
     return {"id": identity, "kind": kind, **extra}
+
+
+def board_with_keywords():
+    """主题式检索需要逐幕关键词；图库用例统一走竖屏画幅。"""
+    data = board(width=1080, height=1920)
+    data["scenes"][0]["keywords"] = ["反馈"]
+    return data
 
 
 class FakeGallery:
@@ -201,82 +208,74 @@ def test_import_can_reuse_one_file_for_two_ids(workspace):
 
 
 def test_record_and_file_must_agree(workspace):
+    """登记项要同时对上文件摘要与实测尺寸；替换文件即失败。"""
     make_image(workspace / "assets/wide.png")
     record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png")])
     file = workspace / record["assets"][0]["path"]
-    scene = {"id": "s", "template": "image", "aspectRatio": "any",
-             "content": {"title": "图", "src": record["assets"][0]["path"]}}
-    assert media_assets.validate_scene(workspace, scene)["width"] == 864
+    resolved = media_assets.resolve(workspace)
+    assert resolved["media"]["wide"] == {"src": "/media/" + file.name, "kind": "image",
+                                        "width": 864, "height": 700, "durationSeconds": None}
     make_image(file, "1080x1920")
     with pytest.raises(M2VError, match="与来源记录不符"):
-        media_assets.validate_scene(workspace, scene)
-    (workspace / "assets/media-sources.json").unlink()
-    with pytest.raises(M2VError, match="没有导入记录"):
-        media_assets.validate_scene(workspace, scene)
+        media_assets.resolve(workspace)
 
 
-def test_invalid_record_is_reported(workspace):
+def test_resolve_reports_missing_file_and_escaped_path(workspace):
     make_image(workspace / "assets/wide.png")
-    importer(workspace, [entry("wide", "image", localPath="assets/wide.png")])
-    (workspace / "assets/media-sources.json").write_text("{", encoding="utf-8")
-    with pytest.raises(M2VError, match="来源记录无效"):
-        media_assets.load_record(workspace)
+    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png")])
+    (workspace / record["assets"][0]["path"]).unlink()
+    with pytest.raises(M2VError, match="已导入文件"):
+        media_assets.resolve(workspace)
+    # 记录被改成指向 assets/media 之外：解析必须拒绝，而不是把作品里的任意文件挂成媒体。
+    (workspace / "article.md").write_text("x", encoding="utf-8")
+    (workspace / "assets/media-sources.json").write_text(json.dumps({"schemaVersion": 1, "assets": [
+        {"id": "wide", "kind": "image", "path": "article.md", "sha256": "x", "width": 1, "height": 1,
+         "durationSeconds": None}]}), encoding="utf-8")
+    with pytest.raises(M2VError, match="已导入文件"):
+        media_assets.resolve(workspace)
 
 
-def test_aspect_ratio_contract_and_trim_bounds(workspace):
-    make_image(workspace / "assets/wide.png")
-    make_video(workspace / "assets/clip.mp4", seconds=2)
-    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png"),
-                                  entry("clip", "video", localPath="assets/clip.mp4")])
-    paths = {item["id"]: item["path"] for item in record["assets"]}
-    image = {"id": "s", "template": "image", "content": {"title": "图", "src": paths["wide"]}}
-    with pytest.raises(M2VError, match="素材比例不符"):
-        media_assets.validate_scene(workspace, image)
-    image["aspectRatio"] = "any"
-    media_assets.validate_scene(workspace, image)
-    image["aspectRatio"] = "wide"
-    with pytest.raises(M2VError, match="aspectRatio 必须为 canvas/any"):
-        media_assets.validate_scene(workspace, image)
-    image["aspectRatio"] = "any"; image["content"]["photoZoom"] = 1.5
-    with pytest.raises(M2VError, match="photoZoom"):
-        media_assets.validate_scene(workspace, image)
-    video = {"id": "v", "template": "video", "content": {"title": "片", "src": paths["clip"], "trimStartSeconds": 3}}
-    with pytest.raises(M2VError, match="trimStartSeconds"):
-        media_assets.validate_scene(workspace, video)
+def test_media_ratio_is_not_constrained(workspace):
+    """素材比例不受画幅限制：横图、方图与横视频都进同一个只读映射。"""
+    make_image(workspace / "assets/wide.png", "864x700")
+    make_video(workspace / "assets/clip.mp4", seconds=2, size="1920x1080")
+    importer(workspace, [entry("wide", "image", localPath="assets/wide.png"),
+                         entry("clip", "video", localPath="assets/clip.mp4")])
+    resolved = media_assets.resolve(workspace)["media"]
+    assert set(resolved) == {"wide", "clip"}
+    assert resolved["wide"]["kind"] == "image" and resolved["wide"]["durationSeconds"] is None
+    assert resolved["clip"]["kind"] == "video"
+    assert resolved["clip"]["width"] == 1920 and resolved["clip"]["height"] == 1080
+    assert resolved["clip"]["durationSeconds"] == pytest.approx(2, abs=.1)
+    assert resolved["clip"]["src"].startswith("/media/") and resolved["clip"]["src"].endswith(".mp4")
 
 
-def test_scene_without_record_blocks_validate_and_prepare(tmp_path, monkeypatch):
-    data = board()
-    data["scenes"].append({"id": "shot", "template": "image", "narrationSegments": [],
-                           "content": {"title": "空镜", "src": "assets/media/orphan.png"}})
-    root, manifest = project(tmp_path, data)
+def test_unregistered_media_never_enters_the_mapping(tmp_path, monkeypatch):
+    """assets/media 下的散文件不算素材：没有留证就没有 ID 可用。"""
+    root, manifest = project(tmp_path)
     (root / "assets/media").mkdir(parents=True)
     make_image(root / "assets/media/orphan.png", "1080x1920")
-    from m2v.types.general import explainer
-    with pytest.raises(M2VError, match="没有导入记录"):
-        explainer.validate(data, root)
-    fake_tts(monkeypatch)
-    with pytest.raises(M2VError, match="没有导入记录"):
-        adapter.prepare(root, manifest)
+    assert media_assets.resolve(root)["media"] == {}
+    fake_tts(monkeypatch); fake_record(monkeypatch)
+    adapter.prepare(root, manifest)
+    prepared = json.loads((root / "outputs/prepared.json").read_text(encoding="utf-8"))
+    assert prepared["inputs"]["codeMedia"] == media_assets.resolve(root)["digest"]
 
 
-def test_video_scene_beyond_media_duration_blocks_prepare(tmp_path, monkeypatch):
+def test_media_change_invalidates_preparation(tmp_path, monkeypatch):
+    from m2v.core.project import load_current_prepared
     root, manifest = project(tmp_path)
-    make_video(root / "assets/clip.mp4", seconds=4)
-    record = importer(root, [entry("clip", "video", localPath="assets/clip.mp4")])
-    data = board()
-    data["scenes"].append({"id": "shot", "template": "video", "narrationSegments": [],
-                           "content": {"title": "空镜", "src": record["assets"][0]["path"],
-                                       "trimStartSeconds": 3},
-                           "durationFrames": 90})
-    (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    fake_tts(monkeypatch)
-    with pytest.raises(M2VError, match="剩余时长不足"):
-        adapter.prepare(root, manifest)
+    make_image(root / "assets/wide.png")
+    importer(root, [entry("wide", "image", localPath="assets/wide.png")])
+    fake_tts(monkeypatch); fake_record(monkeypatch)
+    adapter.prepare(root, manifest)
+    next((root / "assets/media").glob("*.png")).write_bytes(b"changed")
+    with pytest.raises(M2VError, match="已变化"):
+        load_current_prepared(root, manifest)
 
 
 def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
-    root, manifest = project(tmp_path)
+    root, manifest = project(tmp_path, board_with_keywords())
     monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
     gallery = FakeGallery(videos=[PEXELS_VIDEO], photos=[PEXELS_PHOTO])
     result = media_assets.search(root, manifest, transport=gallery)
@@ -286,7 +285,7 @@ def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
     kinds = {item["kind"] for item in query["candidates"]}
     assert kinds == {"video", "photo"}
     video = next(item for item in query["candidates"] if item["kind"] == "video")
-    # 画布比例优先：选中 1080×1920 变体，而不是更高的 720×1280。
+    # 竖屏画幅按方向与目标高度挑变体：选中 1080×1920，而不是 720×1280。
     assert video["width"] == 1080 and video["height"] == 1920 and video["durationSeconds"] == 6
     assert video["license"].startswith("Pexels License")
     assert all("download_url" not in item for item in query["candidates"])
@@ -295,14 +294,14 @@ def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
 
 
 def test_gallery_search_without_candidates_is_not_a_failure(tmp_path, monkeypatch):
-    root, manifest = project(tmp_path)
+    root, manifest = project(tmp_path, board_with_keywords())
     monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
     result = media_assets.search(root, manifest, transport=FakeGallery(), kind="photo")
     assert result["queries"][0]["candidates"] == []
 
 
 def test_gallery_search_argument_errors(tmp_path, monkeypatch):
-    root, manifest = project(tmp_path)
+    root, manifest = project(tmp_path, board_with_keywords())
     monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
     gallery = FakeGallery()
     with pytest.raises(M2VError, match="kind 必须为"):
@@ -321,13 +320,15 @@ def test_gallery_search_argument_errors(tmp_path, monkeypatch):
         media_assets.search(root, manifest, transport=gallery)
 
 
-def test_gallery_config_defaults_to_portrait_canvas():
-    config = media_assets.gallery_config("pexels")
-    assert config["orientation"] == "portrait" and config["aspectRatio"] == "canvas"
-    assert config["aspectRatioTolerance"] == media_assets.DEFAULT_TOLERANCE
-    assert media_assets.gallery_config("pexels", per_page=None)["name"] == "pexels"
+def test_gallery_config_follows_the_frame_orientation():
+    portrait = media_assets.gallery_config("pexels", (1080, 1920))
+    landscape = media_assets.gallery_config("pexels", (1920, 1080))
+    # 比例不再约束候选：裁切与摆位由作品代码决定。
+    assert portrait["orientation"] == "portrait" and portrait["aspectRatio"] == "any"
+    assert landscape["orientation"] == "landscape" and landscape["aspectRatio"] == "any"
+    assert media_assets.gallery_config("pexels", (1920, 1080), per_page=None)["name"] == "pexels"
     with pytest.raises(M2VError, match="未知图库"):
-        media_assets.gallery_config("unsplash")
+        media_assets.gallery_config("unsplash", (1920, 1080))
     with pytest.raises(M2VError, match="未知图库"):
         build({"name": "unsplash"})
 
@@ -339,8 +340,9 @@ def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
     (root / "project.json").write_text(json.dumps(
         {"schemaVersion": 1, "id": "demo", "type": "general",
          "materials": {"storyboard": "storyboard.json"},
-         "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"}}), encoding="utf-8")
-    (root / "storyboard.json").write_text(json.dumps(board(), ensure_ascii=False), encoding="utf-8")
+         "output": {"width": 1920, "height": 1080, "fps": 30, "audio": "optional"}}), encoding="utf-8")
+    (root / "storyboard.json").write_text(json.dumps(board_with_keywords(), ensure_ascii=False), encoding="utf-8")
+    scene_root(root)
     manifest = tmp_path / "import.json"
     manifest.write_text(json.dumps({"schemaVersion": 1, "assets": [
         entry("wide", "image", localPath="assets/wide.png", author="作者", license="CC0")]}), encoding="utf-8")

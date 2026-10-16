@@ -63,6 +63,7 @@ class Entry:
     plan: str
     skill_guide: str
     materials: tuple[Material, ...]
+    starters: tuple[str, ...] = ()
 
     def material_map(self) -> dict[str, str]:
         """作品契约使用的「材料名 → 默认文件名」映射。"""
@@ -143,7 +144,32 @@ def _parse_entry(raw: Any, index: int, seen: set[str]) -> Entry:
     files = [material.file for material in materials]
     if len(set(files)) != len(files):
         raise M2VError(f"类型目录 types[{name}].materials 的文件名重复：{'、'.join(files)}")
-    return Entry(name=name, materials=materials, **texts)
+    return Entry(name=name, materials=materials, starters=_parse_starters(raw.get("starters"), name), **texts)
+
+
+def _parse_starters(raw: Any, type_name: str) -> tuple[str, ...]:
+    """初始化时额外生成的起步文件（例如本地代码场景入口）。
+
+    路径相对作品根，内容取自 ``types/<类型名>/starters/<同一路径>``。作品代码是
+    可编辑材料而不是派生产物，因此只在 ``init`` 时写一次，之后不再覆盖。
+    """
+    if raw is None:
+        return ()
+    where = f"types[{type_name}].starters"
+    if not isinstance(raw, list) or not raw:
+        raise M2VError(f"类型目录 {where} 必须是非空数组")
+    for index, item in enumerate(raw):
+        if (not isinstance(item, str) or not item or "\\" in item or item.startswith("/")
+                or ".." in item.split("/") or not item.endswith(".tsx")):
+            raise M2VError(f"类型目录 {where}[{index}] 必须是作品内不含上跳段的相对 .tsx 路径：{item!r}")
+    if len(set(raw)) != len(raw):
+        raise M2VError(f"类型目录 {where} 存在重复路径")
+    return tuple(raw)
+
+
+def starters_dir(type_name: str) -> Path:
+    """某类型的起步文件目录：``types/<类型名>/starters/``。"""
+    return Path(__file__).parent / type_name / "starters"
 
 
 def _parse(data: Any) -> Catalog:

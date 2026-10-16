@@ -2,7 +2,7 @@
 
 > **适用范围：** 本文描述当前 3 个视频类型共用的渲染契约：契约页（`version: 6`）、Remotion
 > 逐帧渲染、成片编码、交付权限与溯源。画面只有一条实现路径——共享 React composition 由准备
-> 产物直接驱动；浏览器布局量测当前只覆盖文章 v7 模板。分镜结构见 [文章分镜 v7](storyboard-schema.md)，
+> 产物直接驱动；浏览器量测当前只覆盖共享字幕层。分镜结构见 [通用分镜 v8](storyboard-schema.md)，
 > 设计令牌见 [设计令牌](design-tokens.md)，
 > 制作顺序见 [制作流程](production-workflow.md)。v3/v4 的共享动画、场景树、节拍运行时与
 > `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
@@ -16,7 +16,7 @@
 从 `web/src/contract/` 构建。它把共享 React composition（`ArticleExplainer`）挂进
 `@remotion/player`，暴露 `window.__M2V__`（**version 6**）。作品参数（准备产物）由查询参数
 `m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
-布局量测（`m2v general keyframes`，以及 preview / render 内部）用 Playwright 驱动它；
+字幕量测（preview / render 内部）用 Playwright 驱动它；
 渲染不走它，而是直接从 composition 源码打包渲染（见「渲染引擎与打包」）。
 
 ## 必需接口
@@ -36,7 +36,7 @@
 | `fps` | `number` | 帧率，必须与准备记录一致 |
 | `width` | `number` | 画面宽度，必须与准备记录一致 |
 | `height` | `number` | 画面高度，必须与准备记录一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v7 由逐段实际配音编译，上限 18000 帧） |
+| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（通用 v8 由逐段实际配音编译，上限 18000 帧） |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
 | `currentFrame()` | `() => number` | 只读诊断：Player 当前实际帧号，不参与求帧判定 |
@@ -172,22 +172,27 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 拆开相加会让总耗时重复累计。未执行的阶段写 `null` 并列入 `skipped`，不写 0 冒充实测。
 报告是附加信息：写失败只告警，不会让一次已经验收通过的渲染失败。
 
-### 布局量测（三项硬判定）
+### 字幕量测（两项硬判定）
 
-布局量测不走渲染路径：`m2v general keyframes`（以及 preview / render 内部）用 Playwright
-驱动**契约页**，量测对着真实画面工作，而契约页挂的正是渲染会画出的同一份 composition。
-量测只剩三项硬判定，全部按真实文字包围盒判定：
+量测不走渲染路径：preview / render 内部用 Playwright 驱动**契约页**，量测对着真实画面工作，
+而契约页挂的正是渲染会画出的同一份 composition。
+
+通用 v8 的画面是准备阶段录下的**栅格片段**，合成层只回放片段与共享字幕，因此量测能负责的
+只剩字幕：
 
 | 判定 | 判据 |
 | --- | --- |
-| 画布分区溢出 | 文字包围盒越出正文分区（左 106 / 右 974 / 上 158 / 下 1502；字幕区内文字到 1782）。五个边界全部取自 `--m2v-measure-*` 令牌，与画面字幕盒同源 |
-| 字幕遮挡 | 字幕文字中心点处的最上层元素不属于字幕层——文字在、但被背景盖住同样失败 |
-| 容器内溢出 | 文字越出它所属的 `data-m2v-box` 容器 2px 以上 |
+| 安全区不符 | `data-m2v-subtitle` 容器的实际矩形与画幅清单里的 `subtitle.safeArea` 不一致 |
+| 字幕溢出 | 字幕文字的每一段 client rect 越出安全区 1px 以上 |
+| 字幕遮挡 | 字幕文字中心点处的最上层元素不属于字幕层——文字在、但被盖住同样失败 |
 
-量测读取画面自己打的标记：`data-m2v-copy`（文字）、`data-m2v-box`（容器）、
-`data-m2v-subtitle`（字幕层）、`data-m2v-content`（正文内容区）。结果写
-`outputs/layout-check.json`，失败会阻断预演与正式导出。旧的 K 系列观感闸门已随旧子系统
-删除，不再有那套「约 90KB 判定逻辑」的量测。
+判据来自 `web/src/frames.json`（画幅与字幕几何的唯一真源），由 `measure_script` 注入为
+`B`；脚本里不写任何字面量。结果写 `outputs/layout-check.json`，失败会阻断预演与正式导出。
+
+**边界：系统不声称能自动识别录制片段内全部正文或主体遮挡。** 作品正文在栅格片段里，
+没有 DOM 可供量测；那部分由制作助手实际观看关键帧与代表片段补足，记录写进作品
+`outputs/visual-notes.md`。旧的模板量测（`data-m2v-box` 容器溢出、正文分区边界、K 系列
+观感闸门）已随受控模板一并删除。
 
 ## 成片编码
 
@@ -208,10 +213,10 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 - 舞台（composition 根节点）必须严格等于 `width × height`，不要在外层加 margin 或 padding；
 - 页面不能出现滚动条；
-- 正文放在安全区内（`--m2v-safe-top` / `--m2v-safe-bottom` / `--m2v-safe-x`），避免被平台
-  UI 遮挡；有字幕时正文的下边界由量测实际执行的 `--m2v-measure-content-bottom` 决定，
-  `--m2v-safe-bottom-with-subtitles` 当前没有消费方、取值也不自洽，见
-  [设计令牌](design-tokens.md) 的说明。取值与栅格见同一文档。
+- 通用作品的画幅只支持 1920×1080 与 1080×1920，舞台必须严格等于准备记录里的
+  `width × height`；字幕安全区来自 `web/src/frames.json`，由准备阶段注入 props 与 SDK，
+  作品代码据此避让。专用类型（金融、住宅）的安全性取值见
+  [设计令牌](design-tokens.md)。
 
 渲染前渲染脚本会检查舞台实际尺寸与契约是否一致，不一致时输出警告日志。
 
@@ -268,7 +273,7 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 契约暴露只读的 `currentFrame()` 诊断读数，返回 Player 实际所在的帧号，不参与求帧完成判定。
 `seekToFrame` 超时时也会报告目标帧与实际帧（`web/src/contract/bridge.ts` 的 `settleOnFrame`）。
 
-材料本身的问题（未知字段、缺图片、缺少已准备的 v7 材料）会在契约页上直接显示错误说明
+材料本身的问题（未知字段、缺图片、缺少已准备的 v8 材料）会在契约页上直接显示错误说明
 （`data-m2v-contract-error` 元素），渲染入口报「`__M2V__` 未定义」时先打开页面看它。
 
 ## 配音与字幕
@@ -344,6 +349,8 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 
 - 扫描材料里会被渲染的字段（`text`/`title`/`subtitle`/`label`/`quote`/`caption`/
   `value`/`unit` 等）；`narrationSegments` 是口播文本、不画在画面上，**不进扫描**；
-- 结论定位到 `sceneId.字段`——只说「缺字」不可修；
+- v8 的可见文字基本都在作品 `scenes/**/*.tsx` 里，因此源码中的字符串与模板字面量也一并
+  扫描——这是 v8 唯一一处静态覆盖作品画面的检查，理由还是那一条：缺字是静默失败；
+- 结论定位到 `sceneId.字段` 或作品内的相对路径——只说「缺字」不可修；
 - 只判「字体里有没有这个字形」，不判字宽字重是否合适，也不判断浏览器
   实际选了哪个字体（那要跑浏览器）。

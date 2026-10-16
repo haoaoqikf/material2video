@@ -1,27 +1,22 @@
 {
-  "version": 7,
-  "schemaVersion": 7,
+  "version": 8,
+  "schemaVersion": 8,
   "fps": 30,
-  "width": 1080,
-  "height": 1920,
+  "width": 1920,
+  "height": 1080,
   "title": "少一点比较，多一点方向",
   "input": {
     "kind": "article"
   },
   "targetSeconds": 150,
-  "visual": {
-    "theme": "dark"
-  },
   "scenes": [
     {
       "id": "choice-point",
-      "template": "point",
+      "template": "code",
       "content": {
         "title": "少一点比较，多一点方向",
-        "summary": {
-          "text": "先定标准，再缩小选择",
-          "segmentId": "choice-point-0"
-        }
+        "entry": "scenes/opening.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
@@ -32,29 +27,11 @@
     },
     {
       "id": "choice-compare",
-      "template": "compare",
+      "template": "code",
       "content": {
         "title": "反复排名，还是按需筛选",
-        "columns": [
-          {
-            "title": "不断排名",
-            "items": [
-              {
-                "text": "每次都问哪个最好",
-                "segmentId": "choice-compare-0"
-              }
-            ]
-          },
-          {
-            "title": "明确需要",
-            "items": [
-              {
-                "text": "先问哪些满足条件",
-                "segmentId": "choice-compare-1"
-              }
-            ]
-          }
-        ]
+        "entry": "scenes/compare.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
@@ -68,36 +45,24 @@
       ]
     },
     {
-      "id": "choice-steps",
-      "template": "steps",
+      "id": "choice-criteria",
+      "template": "code",
       "content": {
         "title": "把需要变成筛选标准",
-        "items": [
-          {
-            "text": "写下必须条件",
-            "segmentId": "choice-steps-0"
-          },
-          {
-            "text": "区分偏好与底线",
-            "segmentId": "choice-steps-1"
-          },
-          {
-            "text": "确定比较截止点",
-            "segmentId": "choice-steps-2"
-          }
-        ]
+        "entry": "scenes/criteria.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
-          "id": "choice-steps-0",
+          "id": "choice-criteria-0",
           "text": "第一，列出少量必须满足的条件。预算上限属于底线，某种风格可能只是偏好。把两者分开，才能知道哪些方案应该先排除。"
         },
         {
-          "id": "choice-steps-1",
+          "id": "choice-criteria-1",
           "text": "第二，对剩下的方案比较重要差异，不要为了一个无关细节推翻全部判断。标准可以修正，但应该说明是什么新信息让它改变。"
         },
         {
-          "id": "choice-steps-2",
+          "id": "choice-criteria-2",
           "text": "第三，提前确定比较到什么时候。对代价可承受、还能调整的事情，达到足够好的条件后，就可以把精力转向行动。"
         }
       ]
@@ -107,7 +72,7 @@
       "template": "code",
       "content": {
         "title": "分叉的路线，怎样逐步收敛",
-        "entry": "scenes/three-world.tsx",
+        "entry": "scenes/routes.tsx",
         "props": {}
       },
       "narrationSegments": [
@@ -126,34 +91,29 @@
       ]
     },
     {
-      "id": "choice-video",
-      "template": "video",
+      "id": "choice-action",
+      "template": "code",
       "content": {
         "title": "从比较走向行动",
-        "src": "assets/media/b118b5027845ff85d457f9b0997b21937932fe600f4586cb885fdafae1775ee8.mp4",
-        "fit": "contain",
-        "trimStartSeconds": 0,
-        "caption": {
-          "text": "多条候选 → 条件筛选 → 选定行动（示意）",
-          "segmentId": "choice-video-0"
+        "entry": "scenes/action.tsx",
+        "props": {
+          "assetId": "keynote-clip"
         }
       },
       "narrationSegments": [
         {
-          "id": "choice-video-0",
+          "id": "choice-action-0",
           "text": "把刚才的过程压缩看一次：先有多条路径，再按条件缩小范围，最后沿选定路线前进。这段原创示意只是在复述筛选步骤，不代表某个方案在现实中一定成功。"
         }
       ]
     },
     {
       "id": "choice-boundary",
-      "template": "point",
+      "template": "code",
       "content": {
         "title": "并非所有选择都该只剩一个",
-        "summary": {
-          "text": "可逆就小试，重大就慎选",
-          "segmentId": "choice-boundary-0"
-        }
+        "entry": "scenes/boundary.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
@@ -164,13 +124,11 @@
     },
     {
       "id": "choice-close",
-      "template": "point",
+      "template": "code",
       "content": {
         "title": "让标准帮助你向前",
-        "summary": {
-          "text": "明确目标，保留必要备选",
-          "segmentId": "choice-close-0"
-        }
+        "entry": "scenes/close.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {

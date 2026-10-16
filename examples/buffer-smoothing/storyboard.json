@@ -1,26 +1,23 @@
 {
-  "version": 7,
-  "schemaVersion": 7,
+  "version": 8,
+  "schemaVersion": 8,
   "fps": 30,
-  "width": 1080,
-  "height": 1920,
+  "width": 1920,
+  "height": 1080,
   "title": "缓冲，让快慢衔接",
   "input": {
     "kind": "article"
   },
   "targetSeconds": 150,
-  "visual": {
-    "theme": "dark"
-  },
   "scenes": [
     {
       "id": "buffer-point",
-      "template": "point",
+      "template": "code",
       "content": {
-        "title": "缓冲，让快慢衔接",
-        "summary": {
-          "text": "平均相同，瞬间也会不同",
-          "segmentId": "buffer-point-0"
+        "title": "平均相同，瞬间也会不同",
+        "entry": "scenes/opening.tsx",
+        "props": {
+          "unit": "份/秒"
         }
       },
       "narrationSegments": [
@@ -32,29 +29,11 @@
     },
     {
       "id": "buffer-compare",
-      "template": "compare",
+      "template": "code",
       "content": {
         "title": "直接交接，还是中间暂存",
-        "columns": [
-          {
-            "title": "直接交接",
-            "items": [
-              {
-                "text": "入口一停，出口跟着停",
-                "segmentId": "buffer-compare-0"
-              }
-            ]
-          },
-          {
-            "title": "中间暂存",
-            "items": [
-              {
-                "text": "先存多余，再补不足",
-                "segmentId": "buffer-compare-1"
-              }
-            ]
-          }
-        ]
+        "entry": "scenes/compare.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
@@ -72,10 +51,8 @@
       "template": "code",
       "content": {
         "title": "水箱怎样吸收短期波动",
-        "entry": "scenes/motion-chart.tsx",
-        "props": {
-          "view": "water"
-        }
+        "entry": "scenes/water.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
@@ -89,109 +66,66 @@
       ]
     },
     {
-      "id": "buffer-chart",
+      "id": "buffer-flow",
       "template": "code",
       "content": {
         "title": "流量与积压，要一起看",
-        "entry": "scenes/motion-chart.tsx",
-        "props": {
-          "view": "chart"
-        }
+        "entry": "scenes/flow.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
-          "id": "buffer-chart-0",
+          "id": "buffer-flow-0",
           "text": "再看同一组示意数据。蓝线代表每个时段的输入，金线代表实际输出，下面是箱内积压。输入忽高忽低时，输出仍可以保持稳定。"
         },
         {
-          "id": "buffer-chart-1",
+          "id": "buffer-flow-1",
           "text": "这里每段最多输出四个单位，先有八个单位存量。输入超过四，积压增加；输入低于四，积压减少。两种流量的差，必须由存量来承接。"
         }
       ]
     },
     {
-      "id": "buffer-cause",
-      "template": "cause",
+      "id": "buffer-capacity",
+      "template": "code",
       "content": {
         "title": "容量有上限，等待有代价",
-        "nodes": [
-          {
-            "id": "n0",
-            "text": "暂存增多",
-            "segmentId": "buffer-cause-0"
-          },
-          {
-            "id": "n1",
-            "text": "排队变长",
-            "segmentId": "buffer-cause-1"
-          },
-          {
-            "id": "n2",
-            "text": "容量耗尽",
-            "segmentId": "buffer-cause-2"
-          }
-        ],
-        "links": [
-          {
-            "from": "n0",
-            "to": "n1",
-            "text": "增加等待",
-            "segmentId": "buffer-cause-1"
-          },
-          {
-            "from": "n1",
-            "to": "n2",
-            "text": "触发约束",
-            "segmentId": "buffer-cause-2"
-          }
-        ]
+        "entry": "scenes/capacity.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
-          "id": "buffer-cause-0",
+          "id": "buffer-capacity-0",
           "text": "缓冲并不是越大越好。更多存量能接住更大的短期波动，却也可能意味着更多任务排在前面，后来的任务要等得更久。"
         },
         {
-          "id": "buffer-cause-1",
+          "id": "buffer-capacity-1",
           "text": "如果流入长期大于处理速度，积压就会持续增长。有限容量迟早用完，到那时必须丢弃、拒绝，或者通知上游减速。"
         },
         {
-          "id": "buffer-cause-2",
+          "id": "buffer-capacity-2",
           "text": "因此，扩大水箱只能推迟溢出的时刻，不能让出口永久变快。要处理持续过载，需要提高处理能力，或降低长期输入。"
         }
       ]
     },
     {
-      "id": "buffer-steps",
-      "template": "steps",
+      "id": "buffer-questions",
+      "template": "code",
       "content": {
         "title": "设计缓冲，先问三个问题",
-        "items": [
-          {
-            "text": "波动有多大",
-            "segmentId": "buffer-steps-0"
-          },
-          {
-            "text": "允许等多久",
-            "segmentId": "buffer-steps-1"
-          },
-          {
-            "text": "满了怎么办",
-            "segmentId": "buffer-steps-2"
-          }
-        ]
+        "entry": "scenes/questions.tsx",
+        "props": {}
       },
       "narrationSegments": [
         {
-          "id": "buffer-steps-0",
+          "id": "buffer-questions-0",
           "text": "第一，测量短期波动有多大、持续多久，而不是只看平均数。以此估计需要多少临时存量，避免凭感觉把容量一直加大。"
         },
         {
-          "id": "buffer-steps-1",
+          "id": "buffer-questions-1",
           "text": "第二，明确允许等待多久。对实时通话而言，太晚到达的数据可能已经没有价值；对离线任务而言，等待的容忍度则可能更高。"
         },
         {
-          "id": "buffer-steps-2",
+          "id": "buffer-questions-2",
           "text": "第三，提前决定满了怎么办，并观察积压是否持续上升。缓冲用存储换时间，吸收短期波动，却不会增加长期处理能力。"
         }
       ]

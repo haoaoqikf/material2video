@@ -287,6 +287,14 @@ def main(argv: list[str] | None = None) -> int:
                 (root / material.file).write_text(
                     json.dumps(material.template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
                 )
+            # 起步文件（本地代码场景入口）同样按目录声明复制，之后由作者改写。
+            for relative in entry.starters:
+                source = catalog.starters_dir(item.name) / relative
+                if not source.is_file():
+                    raise M2VError(f"类型目录声明的起步文件不存在：{source}")
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
             print(f"已创建 {item.name} 作品：{path}")
             return 0
         if args.command == "migrate":

@@ -79,10 +79,11 @@ def test_voice_and_rate_change_cache_keys():
 
 
 def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch):
-    from test_article_explainer import project, fake_tts, board
+    from test_article_explainer import project, fake_record, fake_tts, board
     from m2v.types.general import adapter
     root, manifest = project(tmp_path)
     calls = fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     manifest.pop("tts")
     with pytest.raises(M2VError, match="尚未选择"):
         adapter.prepare(root, manifest)
@@ -115,23 +116,14 @@ def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch
         require_preview(root, second, verify_media=False)
 
 
-def test_general_silent_has_no_voice_requirement(tmp_path):
-    import shutil
-    from pathlib import Path
-    from test_article_explainer import project
+def test_general_silent_has_no_voice_requirement(tmp_path, monkeypatch):
+    from test_article_explainer import board, fake_record, project
     from m2v.types.general import adapter
-    source = Path(__file__).resolve().parents[1] / "examples/darts-trial-and-error"
-    data = json.loads((source / "storyboard.json").read_text(encoding="utf-8"))
-    scene = next(s for s in data["scenes"] if s["template"] == "image")
-    scene["narrationSegments"] = []
-    scene["content"].pop("caption", None)
-    scene["durationFrames"] = 30
-    scene["transition"] = "cut"
-    scene.pop("transitionFrames", None)
-    data["scenes"] = [scene]
-    data.pop("soundtrack", None)
+    data = board()
+    # 无旁白作品：整片由声明固定帧数的代码幕构成，不要求选择音色。
+    data["scenes"] = [{**data["scenes"][0], "narrationSegments": [], "durationFrames": 30}]
     root, manifest = project(tmp_path, data)
-    shutil.copytree(source / "assets", root / "assets")
     manifest.pop("tts")
     (root / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
+    fake_record(monkeypatch)
     assert json.loads(adapter.prepare(root, manifest)["inputs"]["tts"]) == {}

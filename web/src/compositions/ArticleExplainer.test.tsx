@@ -1,49 +1,86 @@
-import {describe, expect, it} from 'vitest';
-import {highlightParts, revealProgress, selectedStep, graphPositions, type ExplainerScene} from './ArticleExplainer';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import { frameOf } from '../frames';
+import { ArticleExplainer, type ArticleExplainerProps } from './ArticleExplainer';
 
-describe('讲解的确定性展示', () => {
-  it('在语音段起点渐入，8 帧后稳定；随机求帧结果相同', () => {
-    const ordered = Array.from({length: 40}, (_, frame) => revealProgress(frame, 12));
-    for (const frame of [25, 0, 12, 20, 13, 25]) expect(revealProgress(frame, 12)).toBe(ordered[frame]);
-    expect(ordered[12]).toBe(0); expect(ordered[20]).toBe(1);
+const currentFrame = vi.hoisted(() => ({ value: 0 }));
+vi.mock('remotion', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('remotion')>();
+  return {
+    ...actual,
+    AbsoluteFill: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) =>
+      <div data-m2v-fill="" style={style}>{children}</div>,
+    OffthreadVideo: ({ src, style }: { src: string; style?: React.CSSProperties }) =>
+      <video data-m2v-clip="" src={src} style={style} />,
+    Sequence: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useCurrentFrame: () => currentFrame.value,
+  };
+});
+
+const portrait = frameOf(1080, 1920);
+const landscape = frameOf(1920, 1080);
+
+function props(overrides: Partial<ArticleExplainerProps> = {}): ArticleExplainerProps {
+  const frame = landscape;
+  return {
+    version: 8, schemaVersion: 8, fps: 30, width: frame.width, height: frame.height, title: '测试',
+    subtitle: frame.subtitle, durationInFrames: 90,
+    compiledScenes: [{ id: 'a', startFrame: 0, endFrame: 48, durationInFrames: 48, transitionFrames: 0, mediaPath: 'outputs/code-cache/a.mp4' },
+      { id: 'b', startFrame: 60, endFrame: 90, durationInFrames: 30, transitionFrames: 12, mediaPath: 'outputs/code-cache/b.mp4' }],
+    subtitleCues: [{ startFrame: 0, endFrame: 30, text: '第一句字幕' }, { startFrame: 60, endFrame: 90, text: '第二句字幕' }],
+    ...overrides,
+  };
+}
+
+function render(frame: number, overrides: Partial<ArticleExplainerProps> = {}): string {
+  currentFrame.value = frame;
+  return renderToStaticMarkup(<ArticleExplainer {...props(overrides)} />);
+}
+
+describe('通用作品合成层', () => {
+  it('字幕只在对应的旁白帧内出现，无讲话的帧不显示', () => {
+    expect(render(0)).toContain('第一句字幕');
+    expect(render(29)).toContain('第一句字幕');
+    expect(render(30)).not.toContain('第一句字幕');
+    expect(render(45)).not.toContain('data-m2v-copy');
+    expect(render(60)).toContain('第二句字幕');
+    expect(render(89)).toContain('第二句字幕');
   });
-  it('步骤跟随旁白并在阅读尾段保留最后一步', () => {
-    const scene: ExplainerScene = {id: 'steps', template: 'steps', startFrame: 0, endFrame: 72, durationInFrames: 72, transitionFrames: 0,
-      content: {title: '方法', items: [{text: '观察', segmentId: 'a'}, {text: '修正', segmentId: 'b'}]},
-      segmentWindows: {a: {startFrame: 0, endFrame: 30}, b: {startFrame: 30, endFrame: 60}}};
-    expect(selectedStep(scene, -1)).toBe(-1); expect(selectedStep(scene, 29)).toBe(0);
-    expect(selectedStep(scene, 30)).toBe(1); expect(selectedStep(scene, 71)).toBe(1);
-  });
-  it('关键词按最长匹配，不生成 HTML', () => {
-    expect(highlightParts('观察反馈再修正', ['反馈', '观察反馈'])).toEqual([
-      {text: '观察反馈', highlight: true}, {text: '再修正', highlight: false}]);
-    expect(highlightParts('<script>', [])).toEqual([{text: '<script>', highlight: false}]);
-  });
-  it('缓动的端点固定、单调，且线性控制点等于旧行为', () => {
-    const velvet = [0.37, 0, 0.63, 1];
-    expect(revealProgress(0, 0, 36, velvet)).toBe(0);
-    expect(revealProgress(36, 0, 36, velvet)).toBe(1);
-    const eased = Array.from({length: 37}, (_, frame) => revealProgress(frame, 0, 36, velvet));
-    for (let frame = 1; frame < eased.length; frame++) expect(eased[frame]).toBeGreaterThanOrEqual(eased[frame - 1]);
-    // `[0,0,1,1]` 即线性：必须与不传缓动时逐帧相等，既有画面才可能不变
-    for (let frame = 0; frame <= 36; frame++) {
-      expect(revealProgress(frame, 0, 36, [0, 0, 1, 1])).toBe(revealProgress(frame, 0, 36));
+
+  it('字幕容器就是该画幅的安全区矩形，且与清单取值一致', () => {
+    const markup = render(0, {width: 1080, height: 1920, subtitle: portrait.subtitle});
+    for (const value of [`left:${portrait.subtitle.safeArea.x}px`, `top:${portrait.subtitle.safeArea.y}px`,
+      `width:${portrait.subtitle.safeArea.width}px`, `height:${portrait.subtitle.safeArea.height}px`]) {
+      expect(markup).toContain(value);
     }
+    expect(markup).toContain(`font-size:${portrait.subtitle.fontSize}px`);
+    const wide = render(0, {width: 1920, height: 1080, subtitle: landscape.subtitle});
+    expect(wide).toContain(`left:${landscape.subtitle.safeArea.x}px`);
+    expect(wide).toContain(`top:${landscape.subtitle.safeArea.y}px`);
+    expect(wide).toContain(`font-size:${landscape.subtitle.fontSize}px`);
   });
-  it('缓动在进场前段慢于线性、后段快于线性', () => {
-    const velvet = [0.37, 0, 0.63, 1];
-    const quarter = revealProgress(9, 0, 36, velvet);
-    const threeQuarters = revealProgress(27, 0, 36, velvet);
-    expect(quarter).toBeGreaterThan(0.1);
-    expect(quarter).toBeLessThan(0.25);
-    expect(threeQuarters).toBeGreaterThan(0.75);
-    expect(threeQuarters).toBeLessThan(0.9);
+
+  it('字幕用不透明深色底板与白字，不读取作品配色', () => {
+    const wide = render(0, {width: 1920, height: 1080, subtitle: landscape.subtitle});
+    expect(wide).toContain(`background:${landscape.subtitle.plateColor}`);
+    expect(wide).toContain(`color:${landscape.subtitle.textColor}`);
+    expect(landscape.subtitle.plateColor).toBe('#0b0d12');
+    expect(landscape.subtitle.textColor).toBe('#ffffff');
   });
-  it('图位置仅依赖预编译分层', () => {
-    const scene: ExplainerScene = {id: 'cause', template: 'cause', startFrame: 0, endFrame: 72, durationInFrames: 72, transitionFrames: 0,
-      content: {title: '原因', nodes: ['a', 'b', 'c'].map(id => ({id, text: id, segmentId: 'line'}))},
-      segmentWindows: {line: {startFrame: 0, endFrame: 60}}, levels: {a: 0, b: 1, c: 1}};
-    const first = graphPositions(scene); expect(graphPositions(scene)).toEqual(first);
-    expect(first.b.y).toBe(first.c.y); expect(first.a.y).toBeLessThan(first.b.y);
+
+  it('片段按幕时长回放，转场按帧数渐入，首幕不淡入', () => {
+    const first = render(0);
+    expect(first).toContain('outputs/code-cache/a.mp4');
+    expect(first).toContain('opacity:1');
+    // 第 60 帧是第二幕起点：12 帧转场从 0 开始。
+    expect(render(60)).toContain('opacity:0');
+    expect(render(65)).toContain('opacity:0.4545');
+    expect(render(71)).toContain('opacity:1');
+  });
+
+  it('画幅不同也走同一条合成路径：片段铺满画布', () => {
+    const wide = render(0, {width: 1920, height: 1080, subtitle: landscape.subtitle});
+    expect(wide).toContain('outputs/code-cache/a.mp4');
+    expect(wide).toContain('width:100%;height:100%');
   });
 });

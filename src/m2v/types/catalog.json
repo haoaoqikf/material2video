@@ -82,37 +82,32 @@
     {
       "name": "general",
       "description": "通用",
-      "summary": "v7 旁白驱动的观点、对比、步骤、因果图、图片、视频与本地 React 代码场景讲解，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
-      "plan": "以六种受控模板与本地 React 代码场景制作 v7 多幕讲解视频，保留真实配音、输入语义审查、完整预演自动验收与可选画面评审。",
-      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[制作流程](references/production-workflow.md)：v7 混合媒体与代码场景多幕讲解。",
+      "summary": "v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
+      "plan": "以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整预演自动验收。",
+      "skillGuide": "[作品视觉设计与制作流程](references/production-workflow.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[代码场景契约](references/render-contract.md)：v8 全画布代码场景多幕讲解。",
       "materials": [
         {
           "name": "storyboard",
           "file": "storyboard.json",
           "template": {
-            "version": 7,
-            "schemaVersion": 7,
+            "version": 8,
+            "schemaVersion": 8,
             "fps": 30,
-            "width": 1080,
-            "height": 1920,
+            "width": 1920,
+            "height": 1080,
             "title": "新作品",
             "input": {
               "kind": "article"
             },
             "targetSeconds": 60,
-            "visual": {
-              "theme": "dark"
-            },
             "scenes": [
               {
                 "id": "opening",
-                "template": "point",
+                "template": "code",
                 "content": {
-                  "title": "填写核心观点",
-                  "summary": {
-                    "text": "填写画面摘要",
-                    "segmentId": "opening-line"
-                  }
+                  "title": "开场",
+                  "entry": "scenes/opening.tsx",
+                  "props": {}
                 },
                 "narrationSegments": [
                   {
@@ -124,6 +119,9 @@
             ]
           }
         }
+      ],
+      "starters": [
+        "scenes/opening.tsx"
       ]
     },
     {

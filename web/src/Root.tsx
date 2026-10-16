@@ -3,6 +3,7 @@ import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
+import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
 
 /**
@@ -20,9 +21,10 @@ export const RemotionRoot: FC = () => {
         component={ArticleExplainer}
         durationInFrames={1}
         fps={30}
-        width={1080}
-        height={1920}
-        defaultProps={{ version: 7, schemaVersion: 7, fps: 30, width: 1080, height: 1920, title: '', visual: { theme: 'dark' },
+        width={DEFAULT_FRAME.width}
+        height={DEFAULT_FRAME.height}
+        defaultProps={{ version: 8, schemaVersion: 8, fps: 30, width: DEFAULT_FRAME.width,
+          height: DEFAULT_FRAME.height, title: '', subtitle: DEFAULT_FRAME.subtitle,
           durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}
       />

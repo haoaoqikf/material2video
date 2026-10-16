@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "note": "通用作品的画幅与字幕几何真源：Python 准备/量测与前端 SDK、合成层读同一份。横屏取值按竖屏数值乘 1080/1920 并四舍五入取整，水平内边距改用画布宽度的同一比例（1080 宽的 108px 即 0.1，横屏为 1920×0.1）。",
+  "default": "1920x1080",
+  "frames": [
+    {
+      "width": 1080,
+      "height": 1920,
+      "subtitle": {
+        "x": 108,
+        "y": 1580,
+        "width": 864,
+        "height": 200,
+        "fontSize": 40,
+        "lineHeight": 1.5,
+        "textColor": "#ffffff",
+        "plateColor": "#0b0d12"
+      }
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "subtitle": {
+        "x": 192,
+        "y": 888,
+        "width": 1536,
+        "height": 113,
+        "fontSize": 23,
+        "lineHeight": 1.5,
+        "textColor": "#ffffff",
+        "plateColor": "#0b0d12"
+      }
+    }
+  ]
+}

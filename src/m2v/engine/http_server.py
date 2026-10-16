@@ -49,25 +49,51 @@ def _normalize_mounts(mounts: dict[str, str | Path] | None) -> dict[str, Path]:
     return normalized
 
 
+def _normalize_files(files: dict[str, str | Path] | None, root: Path) -> dict[str, Path]:
+    """校验并归一化白名单文件表：地址一律以 `/` 开头且不指回静态根。
+
+    指回静态根的项会被拒绝而不是静默忽略——那等于白名单被绕过，而绕过本身
+    不会报错，只会让「只暴露登记素材」这句注释变成假的。
+    """
+    normalized: dict[str, Path] = {}
+    for address, file in (files or {}).items():
+        if not address.startswith("/") or posixpath.normpath(address) != address:
+            raise ValueError(f"白名单地址必须是归一化后的绝对路径: {address!r}")
+        target = Path(file).resolve()
+        if not target.is_file():
+            raise FileNotFoundError(f"白名单文件不存在: {target}")
+        if target.is_relative_to(root):
+            raise ValueError(f"白名单文件不得位于静态根内: {target}")
+        normalized[address] = target
+    return normalized
+
+
 class _QuietHandler(SimpleHTTPRequestHandler):
     """屏蔽逐请求日志；渲染上千帧时逐帧输出会淹没进度信息。"""
 
-    def __init__(self, *args, mounts: dict[str, Path] | None = None, **kwargs) -> None:
+    def __init__(self, *args, mounts: dict[str, Path] | None = None, files: dict[str, Path] | None = None,
+                 **kwargs) -> None:
         self.mounts = mounts or {}
+        self.files = files or {}
         super().__init__(*args, **kwargs)
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002 (沿用基类签名)
         logger.debug("%s - %s", self.address_string(), format % args)
 
     def translate_path(self, path: str) -> str:
-        """把 URL 路径翻译成本地文件；命中挂载前缀时改到挂载目录。
+        """把 URL 路径翻译成本地文件；先查白名单文件，再命中挂载前缀。
 
         先按 URL 规则归一化（`/__m2v_web__/../x` 会先变成 `/x`），因此别名下的
         `..` 不可能逃出挂载目录；归一化后再做一次解析校验，挡住目录符号链接
         指向挂载目录之外的情况。别名只提供文件，不提供目录列表：挂载的是
         前端工程资产，列出目录既没有用处又多一层暴露。
+
+        `files` 是逐文件的精确白名单（作品媒体走它）：只有登记过的地址可取，
+        目录结构本身不可枚举，`/media/../x` 归一化后也不再命中任何一项。
         """
         clean = posixpath.normpath(unquote(path.split("?", 1)[0].split("#", 1)[0]))
+        if clean in self.files:
+            return str(self.files[clean])
         for prefix, base in self.mounts.items():
             if clean != prefix and not clean.startswith(prefix + "/"):
                 continue
@@ -149,6 +175,7 @@ class LocalServer:
         port: int = 0,
         cors: bool = False,
         mounts: dict[str, str | Path] | None = None,
+        files: dict[str, str | Path] | None = None,
     ) -> None:
         self.root = Path(root).resolve()
         if not self.root.is_dir():
@@ -157,6 +184,7 @@ class LocalServer:
         self.port = port
         self.cors = cors
         self.mounts = _normalize_mounts(mounts)
+        self.files = _normalize_files(files, self.root)
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self._base_url: str | None = None
@@ -198,6 +226,7 @@ class LocalServer:
             _MediaHandler if self.cors else _QuietHandler,
             directory=str(self.root),
             mounts=self.mounts,
+            files=self.files,
         )
         self._server = ThreadingHTTPServer(("127.0.0.1", self.port), handler)
         self._thread = threading.Thread(

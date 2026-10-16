@@ -32,7 +32,7 @@
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md                    # article 输入的源文，可改用 article.accepted.md；topic 输入省略
-│   ├── storyboard.json               # general 的 v7 混合媒体分镜
+│   ├── storyboard.json               # general 的 v8 全画布代码分镜
 │   ├── scenes/                       # general 代码场景的本地 TSX 入口，按需创建
 │   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
 │   └── assets/                       # 本篇专用素材（音床、音效、代码场景资源），按需创建
@@ -49,7 +49,7 @@
     ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
     ├── code-cache/                   # general 代码场景的录制片段与摘要，按内容摘要命名
     ├── previews/                     # 预演产物，使用相同的成片文件名；`m2v render` 会先清掉它
-    └── qa/                           # `m2v general keyframes` 的排版量测截图，按需创建
+    └── qa/                           # `m2v general keyframes` 的字幕量测截图，按需创建
 ```
 
 当前没有 `.srt` 写出器：字幕烧录进画面，不导出外置字幕文件。旧版曾写出
@@ -76,9 +76,9 @@
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
 React composition（Remotion）。三个类型各有自己的 composition，都在 `web/src/compositions/` 下，
 由 `web/src/Root.tsx` 注册。
-general 的 v7 混合媒体分镜交给 `ArticleExplainer` 绘制七模板画面（图片、视频与代码幕经
-回环 HTTP 取本地素材），契约见
-[文章分镜 v7](storyboard-schema.md)。
+general 的 v8 分镜每一幕都是作品 `scenes/` 下的本地 React 组件：画面在 prepare 阶段按画幅实时
+录成无声片段，`ArticleExplainer` 只负责回放这些片段并叠加共享字幕（片段经回环 HTTP 取），
+契约见 [通用分镜 v8](storyboard-schema.md)。
 
 本篇专用素材（`videos/<type>/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过

@@ -17,7 +17,7 @@ export function ExplainerContractApp() {
     void fetch(url).then(async response => {
       if (!response.ok) throw new Error(`讲解材料读取失败：HTTP ${response.status}`);
       const data = await response.json() as ArticleExplainerProps;
-      if (data.version !== 7 || !data.compiledScenes || !data.durationInFrames) throw new Error('需要已准备的 v7 讲解材料');
+      if (data.version !== 8 || !data.compiledScenes || !data.durationInFrames) throw new Error('需要已准备的 v8 讲解材料');
       if (!cancelled) setProps(data);
     }).catch(cause => {if (!cancelled) setError(String(cause));});
     return () => {cancelled = true;};

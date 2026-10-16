@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 from m2v.core.errors import M2VError
-from m2v.core.project import load_current_prepared
+from m2v.core.project import load_current_prepared, load_project
 from m2v.types.general import adapter, code_scenes, explainer
-from test_article_explainer import board, fake_tts, project
+from test_article_explainer import board, fake_tts, project, scene, scene_root
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
@@ -38,8 +38,9 @@ def code_scene(entry: str = "scenes/demo.tsx", props: object = None, **extra) ->
 
 
 def storyboard(scene: dict) -> dict:
+    """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
     data = board()
-    data["scenes"].append(scene)
+    data["scenes"] = [scene]
     return data
 
 
@@ -51,7 +52,7 @@ def write_source(root: Path, entry: str, source: str = SOURCE) -> None:
 
 def test_code_scene_without_narration_is_accepted(tmp_path):
     write_source(tmp_path, "scenes/demo.tsx")
-    explainer.validate(storyboard(code_scene()), tmp_path)
+    explainer.validate(storyboard(code_scene()), scene_root(tmp_path))
 
 
 @pytest.mark.parametrize("entry", ["C:/outside.tsx", "scenes\\demo.tsx", "assets/demo.tsx",
@@ -61,14 +62,14 @@ def test_entry_outside_the_scenes_directory_is_rejected(tmp_path, entry):
     (tmp_path / "outside.tsx").write_text(SOURCE, encoding="utf-8")
     (tmp_path / "assets").mkdir(exist_ok=True)
     with pytest.raises(M2VError, match="scenes/"):
-        explainer.validate(storyboard(code_scene(entry=entry)), tmp_path)
+        explainer.validate(storyboard(code_scene(entry=entry)), scene_root(tmp_path))
 
 
 @pytest.mark.parametrize("props,match", [([], "JSON 对象"), ({"label": float("nan")}, "有限 JSON")])
 def test_props_must_be_finite_json_object(tmp_path, props, match):
     write_source(tmp_path, "scenes/demo.tsx")
     with pytest.raises(M2VError, match=match):
-        explainer.validate(storyboard(code_scene(props=props)), tmp_path)
+        explainer.validate(storyboard(code_scene(props=props)), scene_root(tmp_path))
 
 
 def test_code_content_has_no_extra_fields(tmp_path):
@@ -76,7 +77,7 @@ def test_code_content_has_no_extra_fields(tmp_path):
     scene = code_scene()
     scene["content"]["module"] = "entry"
     with pytest.raises(M2VError, match="未知字段"):
-        explainer.validate(storyboard(scene), tmp_path)
+        explainer.validate(storyboard(scene), scene_root(tmp_path))
 
 
 def build(project_dir: Path, entry: str, output: Path) -> subprocess.CompletedProcess[str]:
@@ -152,3 +153,49 @@ def test_scene_failure_keeps_no_prepared_record(tmp_path, monkeypatch, chromium_
     with pytest.raises(M2VError, match="代码场景"):
         adapter.prepare(root, manifest)
     assert not (root / "outputs/prepared.json").exists()
+
+
+@requires_node
+def test_recorded_clip_has_no_audio_stream(tmp_path, monkeypatch, chromium_ready):
+    """素材原声不进入母版：录制片段本身不带音轨，成片声音只来自统一音轨。"""
+    root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
+    write_source(root, "scenes/demo.tsx")
+    fake_tts(monkeypatch)
+    clip = root / adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
+    from imageio_ffmpeg import get_ffmpeg_exe
+    probed = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(clip)], capture_output=True,
+                            text=True, encoding="utf-8", errors="replace")
+    assert "Audio:" not in probed.stderr, "录制片段不该带音轨"
+    assert "Video:" in probed.stderr
+
+
+@requires_node
+def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, chromium_ready):
+    """资源没就绪就调用 ready()：录制超时失败，且不发布有效准备记录。"""
+    from m2v.types.general import code_scenes as module
+    monkeypatch.setattr(module, "READY_TIMEOUT_MS", 1200)
+    root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
+    write_source(root, "scenes/demo.tsx",
+                 "export default function Never() { return <div style={{width: '100%', height: '100%'}}/>; }\n")
+    fake_tts(monkeypatch)
+    with pytest.raises(M2VError, match="就绪失败"):
+        adapter.prepare(root, manifest)
+    assert not (root / "outputs/prepared.json").exists()
+    assert not list((root / "outputs/code-cache").glob("*.mp4"))
+
+
+@requires_node
+def test_frame_change_records_a_new_clip(tmp_path, monkeypatch, chromium_ready):
+    """画幅变了即使源码没变也要重新录制：viewport 与片段尺寸都跟着画幅。"""
+    root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
+    write_source(root, "scenes/demo.tsx")
+    fake_tts(monkeypatch)
+    landscape = root / adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
+    board_data = storyboard(code_scene(durationFrames=20))
+    board_data.update(width=1080, height=1920)
+    (root / "storyboard.json").write_text(json.dumps(board_data, ensure_ascii=False), encoding="utf-8")
+    _root, manifest = load_project(root)
+    portrait = adapter.prepare(root, manifest)
+    assert portrait["props"]["compiledScenes"][-1]["mediaPath"] != landscape.relative_to(root).as_posix()
+    assert (portrait["width"], portrait["height"]) == (1080, 1920)
+    assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
