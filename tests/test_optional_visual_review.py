@@ -19,7 +19,7 @@ def preview_fixture(root):
     video = outputs / "preview.mp4"
     video.write_bytes(b"full-preview")
     prepared = {"preparedFingerprint": "current", "durationInFrames": 6,
-                "width": 64, "height": 96, "fps": 30, "audio": {"segments": []}}
+                "width": 64, "height": 96, "fps": 60, "audio": {"segments": []}}
     record = {"preparedFingerprint": "current", "frames": 6,
               "path": "outputs/preview.mp4", "sha256": hashlib.sha256(video.read_bytes()).hexdigest()}
     (outputs / "preview-record.json").write_text(json.dumps(record), encoding="utf-8")
@@ -85,7 +85,7 @@ def test_invalid_preview_blocks_export(tmp_path, monkeypatch, damage):
 def test_decode_checks_actual_frames_even_if_record_claims_full_length(tmp_path):
     prepared, record, video = preview_fixture(tmp_path)
     subprocess.run([get_ffmpeg_exe(), "-v", "error", "-y", "-f", "lavfi", "-i",
-                    "color=c=black:s=64x96:r=30", "-frames:v", "3", "-pix_fmt", "yuv420p",
+                    f"color=c=black:s=64x96:r={prepared['fps']}", "-frames:v", "3", "-pix_fmt", "yuv420p",
                     "-color_range", "tv", "-c:v", "libx264", str(video)], check=True)
     record["sha256"] = hashlib.sha256(video.read_bytes()).hexdigest()
     (tmp_path / "outputs/preview-record.json").write_text(json.dumps(record), encoding="utf-8")

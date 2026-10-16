@@ -340,7 +340,7 @@ def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
     (root / "project.json").write_text(json.dumps(
         {"schemaVersion": 1, "id": "demo", "type": "general",
          "materials": {"storyboard": "storyboard.json"},
-         "output": {"width": 1920, "height": 1080, "fps": 30, "audio": "optional"}}), encoding="utf-8")
+         "output": {"width": 1920, "height": 1080, "fps": 60, "audio": "optional"}}), encoding="utf-8")
     (root / "storyboard.json").write_text(json.dumps(board_with_keywords(), ensure_ascii=False), encoding="utf-8")
     scene_root(root)
     manifest = tmp_path / "import.json"

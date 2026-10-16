@@ -1,3 +1,4 @@
+import { FPS } from '../video-config';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
 export type HousingPoint = {
@@ -32,9 +33,9 @@ export type HousingTimeSeriesProps = {
 };
 
 const PLOT = { left: 220, right: 928, top: 650, bottom: 1450 };
-const OPENING_FRAMES = 30;
-const ENDING_FRAMES = 60;
-export const YEAR_HOLD_FRAMES = 15;
+const OPENING_FRAMES = FPS;
+const ENDING_FRAMES = 2 * FPS;
+export const YEAR_HOLD_FRAMES = FPS / 2;
 
 export type HousingPosition = { position: number; heldIndex: number | null };
 

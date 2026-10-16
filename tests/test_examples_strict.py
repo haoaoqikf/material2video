@@ -58,7 +58,7 @@ def test_shipped_example_matches_the_v8_contract(path: Path) -> None:
 def test_shipped_example_uses_the_declared_frame(path: Path) -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[path.parent.name]
-    assert data["fps"] == 30
+    assert data["fps"] == 60
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
@@ -122,7 +122,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
     if not prepared.is_file():
         pytest.skip("本地没有准备产物；准备后本用例会核对实际时长")
     data = json.loads(prepared.read_text(encoding="utf-8"))
-    seconds = data["durationInFrames"] / 30
+    seconds = data["durationInFrames"] / data["fps"]
     minimum = 165 if name == "solar-system-journey" else 120
     assert minimum <= seconds <= 180, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～180 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]

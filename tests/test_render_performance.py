@@ -61,7 +61,7 @@ def test_report_covers_every_stage_once_and_total_is_not_double_counted():
         output="out.mp4",
         storyboard="storyboard.json",
         frames=90,
-        fps=30,
+        fps=60,
         width=1080,
         height=1920,
         concurrency=1,

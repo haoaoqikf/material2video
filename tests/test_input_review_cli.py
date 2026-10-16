@@ -28,11 +28,11 @@ def _write_project(article_dir: Path) -> None:
         "id": "demo-00000000",
         "type": "general",
         "materials": {"storyboard": "storyboard.json"},
-        "output": {"width": 1920, "height": 1080, "fps": 30, "audio": "optional"},
+        "output": {"width": 1920, "height": 1080, "fps": 60, "audio": "optional"},
     }
     (article_dir / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     board = {
-        "version": 8, "schemaVersion": 8, "fps": 30, "width": 1920, "height": 1080, "title": "测试",
+        "version": 8, "schemaVersion": 8, "fps": 60, "width": 1920, "height": 1080, "title": "测试",
         "input": {"kind": "article"}, "targetSeconds": 60,
         "scenes": [{
             "id": "opening", "template": "code",

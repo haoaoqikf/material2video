@@ -12,8 +12,8 @@ from m2v.core.errors import M2VError
 from m2v.engine import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
-FPS = 30
-MAX_FRAMES, READING_TAIL, FADE_FRAMES = 18000, 12, 8
+from m2v.core.video_config import FPS
+MAX_FRAMES, READING_TAIL, FADE_FRAMES = 600 * FPS, round(.4 * FPS), round(8 / 30 * FPS)
 VERSION = 8
 TEMPLATE = "code"
 MAX_SCENES, MAX_SEGMENTS = 300, 30
@@ -111,8 +111,8 @@ def validate(data: dict, root: Path) -> dict:
                                           or not 1 <= scene["durationFrames"] <= MAX_FRAMES):
             fail(path + ".durationFrames", f"必须为 1～{MAX_FRAMES} 整数")
         overlap = scene.get("transitionFrames", FADE_FRAMES)
-        if type(overlap) is not int or not 1 <= overlap <= 1800:
-            fail(path + ".transitionFrames", "必须为 1～1800 整数")
+        if type(overlap) is not int or not 1 <= overlap <= 60 * FPS:
+            fail(path + ".transitionFrames", "必须为 1～3600 整数")
         if "speech" in scene:
             rhythm.configure(scene["speech"])
         parts = scene.get("narrationSegments")

@@ -53,7 +53,7 @@ general MUST 无需额外配置即可从旁白原文和真实配音帧边界生�
 - **THEN** 完整预演验收失败，明确报告字幕遮挡而非接受仅有文字节点的画面
 
 ### Requirement: v8 横竖屏代码分镜
-系统 MUST 只接受 version/schemaVersion 均为 8 的 general 分镜，30 fps，支持 1920×1080 横屏与 1080×1920 竖屏；width/height 均省略 MUST 默认横屏，半指定、非整数及其他尺寸 MUST 拒绝。全片 MUST 使用同一画幅，不自动裁切或重新排版。每幕 MUST 声明唯一 ID、template: code、本地 content.entry、可选 title/JSON 对象 props 及旁白数组；title 只作元数据。场景及旁白 ID MUST 全片唯一。原文输入 MUST 绑定非空源文并审查，主题输入 MUST 声明非空主题与逐幕关键词且不要求原文审查。代码幕 MUST 允许无旁白，未知字段及旧准备 MUST 拒绝。
+系统 MUST 只接受 version/schemaVersion 均为 8 的 general 分镜，60 fps，支持 1920×1080 横屏与 1080×1920 竖屏；width/height 均省略 MUST 默认横屏，半指定、非整数及其他尺寸 MUST 拒绝。全片 MUST 使用同一画幅，不自动裁切或重新排版。每幕 MUST 声明唯一 ID、template: code、本地 content.entry、可选 title/JSON 对象 props 及旁白数组；title 只作元数据。场景及旁白 ID MUST 全片唯一。原文输入 MUST 绑定非空源文并审查，主题输入 MUST 声明非空主题与逐幕关键词且不要求原文审查。代码幕 MUST 允许无旁白，未知字段及旧准备 MUST 拒绝。
 
 #### Scenario: 默认与显式尺寸
 - **WHEN** 尺寸均省略、显式横屏或显式竖屏
@@ -80,10 +80,10 @@ general MUST 无需额外配置即可从旁白原文和真实配音帧边界生�
 - **THEN** 本地录制片段参与统一音轨、字幕和转场合成
 
 ### Requirement: 实际语音时间与十分钟上限
-系统 MUST 复用项目 TTS 配置与缓存，根据每段实际音频计算展示和字幕时间；每幕结束保留 12 帧阅读时间。默认硬切，可选 fade/crossfade 并按声明帧数重叠，旁白不得重叠。默认目标 60 秒，全片 MUST 不超过 18000 帧；无旁白幕 MUST 支持声明固定帧数或均分目标剩余时长，超限要求调整文本或语速，不截断声音。
+系统 MUST 复用项目 TTS 配置与缓存，根据每段实际音频计算展示和字幕时间；每幕结束保留 24 帧阅读时间。默认硬切，可选 fade/crossfade 并按声明帧数重叠，旁白不得重叠。默认目标 60 秒，全片 MUST 不超过 36000 帧；无旁白幕 MUST 支持声明固定帧数或均分目标剩余时长，超限要求调整文本或语速，不截断声音。
 
 #### Scenario: 时长边界
-- **WHEN** 准备结果为 18000 帧或 18001 帧
+- **WHEN** 准备结果为 36000 帧或 36001 帧
 - **THEN** 前者通过，后者拒绝
 
 #### Scenario: 无旁白镜头分配
@@ -95,11 +95,11 @@ general MUST 无需额外配置即可从旁白原文和真实配音帧边界生�
 - **THEN** 画面淡化期间两幕旁白不重叠，前幕保持完整阅读尾段
 
 ### Requirement: 固定示例的内容驱动演示
-仓库 MUST 仅分发 buffer-smoothing、darts-trial-and-error、solar-system-journey 三个固定示例；前后两者使用 1920×1080，试错使用 1080×1920，均为 v8、30 fps。缓冲与试错实际时长 MUST 为 120～180 秒，太阳系之旅 MUST 为 165～180 秒，均含中文旁白和烧录字幕。核心演示 MUST 按实际旁白时间窗推进，合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。示例 MUST 提供可编辑材料、设计说明、素材来源和旁白与画面的对应关系，生成媒体 MUST NOT 入库。
+仓库 MUST 仅分发 buffer-smoothing、darts-trial-and-error、solar-system-journey 三个固定示例；前后两者使用 1920×1080，试错使用 1080×1920，均为 v8、60 fps。缓冲与试错实际时长 MUST 为 120～180 秒，太阳系之旅 MUST 为 165～180 秒，均含中文旁白和烧录字幕。核心演示 MUST 按实际旁白时间窗推进，合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。示例 MUST 提供可编辑材料、设计说明、素材来源和旁白与画面的对应关系，生成媒体 MUST NOT 入库。
 
 #### Scenario: 三片完整制作
 - **WHEN** 使用三个固定示例通过统一入口完成准备、完整预演与导出
-- **THEN** 成片具有对应画幅、30 fps、实际配音和烧录字幕，保存到各自 videos/examples/<slug>/outputs，时长满足各自范围
+- **THEN** 成片具有对应画幅、60 fps、实际配音和烧录字幕，保存到各自 videos/examples/<slug>/outputs，时长满足各自范围
 
 #### Scenario: 覆盖检查
 - **WHEN** 检查固定示例分镜与源码

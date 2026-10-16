@@ -101,10 +101,10 @@ def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
     fake_record(monkeypatch)
     result = adapter.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
-    assert result["durationInFrames"] == 42
-    # 母版严格等于全片时长：8 秒循环音床被裁到 42 帧，而不是拖长成片。
+    assert result["durationInFrames"] == 84
+    # 母版严格等于全片时长：8 秒循环音床被裁到 84 帧，而不是拖长成片。
     with wave.open(str(master), "rb") as stream:
-        assert stream.getnframes() == 42 * 800
+        assert stream.getnframes() == 84 * 400
     # 本地音床与音效进入版本绑定，替换素材会让准备失效。
     assert result["inputs"]["file:assets/bed.wav"] == asset_digest(bed)
     assert result["inputs"]["file:assets/click.wav"] == asset_digest(click)
@@ -133,7 +133,7 @@ def test_effect_offset_must_land_inside_the_clip(tmp_path, monkeypatch):
     (root / "storyboard.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    # 第二幕起点 34 帧 ≈ 1.13 秒，提前 8 秒会落到全片之外。
+    # 第二幕起点 68 帧 ≈ 1.13 秒，提前 8 秒会落到全片之外。
     with pytest.raises(M2VError, match="起点越界"):
         adapter.prepare(root, manifest)
 
@@ -147,7 +147,7 @@ def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
     result = adapter.prepare(root, manifest)
     master = root / result["audio"]["segments"][0]["path"]
     with wave.open(str(master), "rb") as stream:
-        assert stream.getnframes() == result["durationInFrames"] * 800
+        assert stream.getnframes() == result["durationInFrames"] * 400
 
 
 def test_example_soundtrack_is_declared_and_usable():

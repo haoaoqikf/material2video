@@ -77,5 +77,5 @@ def test_general_full_preview_and_render(tmp_path, monkeypatch, chromium_ready):
     provenance = json.loads((root / "outputs/video.provenance.json").read_text(encoding="utf-8"))
     assert provenance["type"] == "general"
     assert provenance["compositionId"] == "ArticleExplainer"
-    assert provenance["durationInFrames"] == prepared["durationInFrames"] == 42
+    assert provenance["durationInFrames"] == prepared["durationInFrames"] == 84
     assert (root / "outputs/video.mp4").is_file()

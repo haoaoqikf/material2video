@@ -1,7 +1,7 @@
 {
   "version": 8,
   "schemaVersion": 8,
-  "fps": 30,
+  "fps": 60,
   "width": 1080,
   "height": 1920,
   "title": "试错，要带着反馈",

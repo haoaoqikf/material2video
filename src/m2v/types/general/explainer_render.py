@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from m2v.core.video_config import FPS
+
 import json
 import logging
 import tempfile
@@ -65,7 +67,7 @@ def _size(prepared: dict) -> tuple[int, int]:
 def current(root: Path, project: dict) -> dict:
     prepared = load_current_prepared(root, project)
     if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 8
-            or not 1 <= prepared["durationInFrames"] <= 18000):
+            or not 1 <= prepared["durationInFrames"] <= 600 * FPS):
         raise M2VError("旧文章准备记录不能用于 v8；请重新设计并 prepare")
     actual = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     if prepared["inputs"].get("renderer") != actual:
@@ -147,7 +149,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
         timings.record("cache", outcome.cache_seconds)
         silent = work / "silent.mp4"
         def confirm(metadata):
-            expected = (30, width, height, prepared["durationInFrames"])
+            expected = (FPS, width, height, prepared["durationInFrames"])
             actual = (metadata.fps, metadata.width, metadata.height, metadata.duration_in_frames)
             if expected != actual:
                 raise M2VError(f"讲解 composition 元数据不匹配：{actual}，期望 {expected}")
@@ -162,14 +164,14 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
         master = root / prepared["audio"]["segments"][0]["path"]
         final = work / "final.mp4"
         with perf.measure(timings, "mux"):
-            audio.mux(silent, master, final, frames_to_render / 30)
+            audio.mux(silent, master, final, frames_to_render / FPS)
         with perf.measure(timings, "probe"):
-            output_validation.verify_output(final, frames_to_render, width, height, 30, expect_audio=True)
+            output_validation.verify_output(final, frames_to_render, width, height, FPS, expect_audio=True)
         if current(root, project)["preparedFingerprint"] != prepared["preparedFingerprint"]:
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "ArticleExplainer",
-            "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": 30, "width": width, "height": height}
+            "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
         if not preview:
             _write_json(work / "final.provenance.json", provenance)
         # 临时目录带收紧 ACL，交付必须走 security.deliver：搬运与权限修复不可分开。
@@ -177,7 +179,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
         if not preview:
             security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
     perf.write_report(perf.report_path_for(destination), perf.build_report(entry="preview" if preview else "render",
-        output=destination, storyboard=entry, frames=frames_to_render, fps=30, width=width, height=height, concurrency=1,
+        output=destination, storyboard=entry, frames=frames_to_render, fps=FPS, width=width, height=height, concurrency=1,
         timings=timings, total_seconds=time.monotonic()-started,
         cache={"status": outcome.cache_status, "key": outcome.cache_key, "detail": outcome.cache_detail},
         extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"}))

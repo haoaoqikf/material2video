@@ -146,7 +146,7 @@ v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
   "compositionId": "ArticleExplainer",
   "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",
               "file:article.md": "…", "renderer": "…" },
-  "durationInFrames": 590, "fps": 30, "width": 1080, "height": 1920
+  "durationInFrames": 590, "fps": 60, "width": 1080, "height": 1920
 }
 ```
 
@@ -180,7 +180,7 @@ v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
   "generatedAt": "2026-09-20T12:00:00+00:00",
   "output": "voiced.mp4",
   "storyboard": "<分镜的绝对路径>",
-  "frames": 1200, "fps": 30, "width": 1080, "height": 1920,
+  "frames": 1200, "fps": 60, "width": 1080, "height": 1920,
   "concurrency": 1,
   "stages": { "cache": 0.03, "bundle": null, "metadata": 4.1, "render": 91.8, "mux": 0.5, "probe": 1.4 },
   "skipped": ["bundle"],

@@ -21,7 +21,7 @@ requires_node = pytest.mark.skipif(
     shutil.which("node") is None, reason="需要 Node 才能验证会话协议"
 )
 
-METADATA = {"id": "TestComposition", "fps": 30, "width": 1080, "height": 1920, "durationInFrames": 90}
+METADATA = {"id": "TestComposition", "fps": 60, "width": 1080, "height": 1920, "durationInFrames": 90}
 
 
 def _js_path(path: Path) -> str:

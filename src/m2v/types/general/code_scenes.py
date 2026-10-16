@@ -19,13 +19,13 @@ from pathlib import Path
 from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
+from m2v.core.video_config import FPS
 from m2v.core import security
 from m2v.engine import audio
 from m2v.engine.http_server import LocalServer
 
 logger = logging.getLogger(__name__)
 WEB = REPOSITORY_ROOT / "web"
-FPS = 30
 READY_TIMEOUT_MS = 30000
 #: 媒体解析地址的前缀：录制页只从这里取已登记素材，不暴露作品目录。
 MEDIA_URL_PREFIX = "/media"
@@ -52,7 +52,7 @@ def validate_entry(root: Path, entry: object, props: object) -> None:
 
 def implementation_inputs() -> dict[str, str]:
     files = [Path(__file__), WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
-             WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/frames.ts",
+             WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
              *sorted((WEB / "src/code-scene").glob("*.tsx")), *sorted((WEB / "public/fonts").glob("*"))]
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 

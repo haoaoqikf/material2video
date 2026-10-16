@@ -28,6 +28,6 @@ def test_old_preparation_is_rejected(tmp_path,monkeypatch):
     root,manifest=project(tmp_path);fake_tts(monkeypatch);fake_record(monkeypatch)
     result=adapter.prepare(root,manifest)
     from m2v.core.project import save_prepared
-    save_prepared(root,project=manifest,composition_id="M2V",props={"version":4},width=1080,height=1920,fps=30,duration_in_frames=1200,inputs=result["inputs"])
+    save_prepared(root,project=manifest,composition_id="M2V",props={"version":4},width=1080,height=1920,fps=60,duration_in_frames=1200,inputs=result["inputs"])
     with pytest.raises(M2VError,match="旧文章准备"):
         adapter.explainer_render.current(root,manifest)

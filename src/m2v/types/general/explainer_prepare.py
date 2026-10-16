@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from m2v.core.video_config import FPS
+
 import copy
 import hashlib
 import json
@@ -82,7 +84,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             wav, cues, _words, seconds, hit = tts.scene_audio(segment["text"], actual_tts["voice"],
                 actual_tts["rate"], cache, contract_version=8, rhythm=scene_rhythm)
             if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
-            segments.append((segment["id"], wav, cues, math.ceil(seconds * 30)))
+            segments.append((segment["id"], wav, cues, math.ceil(seconds * FPS)))
             hits += int(hit)
         measured.append(segments)
         minimum = overlap + (sum(s[3] for s in segments) + hold_frames if segments else 1)
@@ -94,7 +96,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             raise M2VError(f"幕 {scene['id']} 固定时长不足以容纳旁白、阅读停留和转场，不得截断口播")
         durations.append(duration)
     if automatic:
-        remainder = round(source.get("targetSeconds", 60) * 30) + sum(overlaps) - sum(d or 0 for d in durations)
+        remainder = round(source.get("targetSeconds", 60) * FPS) + sum(overlaps) - sum(d or 0 for d in durations)
         share, extra = divmod(remainder, len(automatic))
         for position, index in enumerate(automatic):
             durations[index] = share + (position < extra)
@@ -112,15 +114,15 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         for identity, wav, local_cues, frames in segments:
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue in local_cues:
-                a = max(0, min(frames-1, round(cue["start"]*30)))
-                b = max(a+1, min(frames, round(cue["end"]*30)))
+                a = max(0, min(frames-1, round(cue["start"]* FPS)))
+                b = max(a+1, min(frames, round(cue["end"]* FPS)))
                 cues.append({"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]})
             parts.append((wav, frames))
             speech_start += frames
         parts.append((None, scene["endFrame"] - speech_start))
         cursor = scene["endFrame"]
         if cursor > contract.MAX_FRAMES:
-            raise M2VError(f"全片 {cursor/30:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
+            raise M2VError(f"全片 {cursor/ FPS:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
         scene["mediaPath"] = code_scenes.record(root, scene, inputs, frame=frame,
                                                 media=resolved["media"], media_digest=resolved["digest"])
         scene["trimStartFrames"] = 0
@@ -133,8 +135,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     with tempfile.TemporaryDirectory(dir=media_dir) as temporary:
         work = Path(temporary)
         raw, target = work / "raw.wav", work / "audio.wav"
-        audio.concatenate(parts, 30, raw)
-        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/30, work, inputs)
+        audio.concatenate(parts, FPS, raw)
+        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ FPS, work, inputs)
         sha = digest(target)
         master = media_dir / f"{sha}.wav"
         security.deliver(target, master)
@@ -142,7 +144,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     inputs["renderer"] = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     logger.info("通用作品准备：%d 幕，%d 帧，%d×%d，TTS 缓存命中 %d", len(scenes), cursor, size[0], size[1], hits)
     prepared = save_prepared(root, project=project, composition_id="ArticleExplainer", props=props,
-        width=size[0], height=size[1], fps=30, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
+        width=size[0], height=size[1], fps=FPS, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
         audio={"segments": [{"sceneId": "master", "path": master.relative_to(root).as_posix(),
             "startFrame": 0, "durationInFrames": cursor, "sha256": sha}], "cacheHits": hits})
     # 阅读速度只报告不阻断，因此放在准备产物写盘之后：报告写不成也不该让准备失败。

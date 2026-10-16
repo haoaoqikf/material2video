@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 from m2v.core.errors import M2VError
 
-FPS = 30
+from m2v.core.video_config import FPS
 WIDTH = 1080
 HEIGHT = 1920
 DEFAULT_DURATION_SECONDS = 30

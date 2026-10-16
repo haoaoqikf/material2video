@@ -141,7 +141,7 @@ def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_r
 
     def fake_session(**kwargs):
         render = kwargs["on_metadata"](SimpleNamespace(
-            fps=30, width=1920, height=1080, duration_in_frames=prepared["durationInFrames"]))
+            fps=60, width=1920, height=1080, duration_in_frames=prepared["durationInFrames"]))
         Path(render["out"]).write_bytes(b"silent")
         return {"readySeconds": 0.01}
 

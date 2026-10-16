@@ -13,7 +13,7 @@ export type ExplainerScene = {
   mediaPath: string;
 };
 export type ArticleExplainerProps = {
-  version: 8; schemaVersion: 8; fps: 30; width: number; height: number; title: string; mediaBase?: string;
+  version: 8; schemaVersion: 8; fps: number; width: number; height: number; title: string; mediaBase?: string;
   subtitle: SubtitleStyle; durationInFrames: number; compiledScenes: ExplainerScene[];
   subtitleCues: Array<{startFrame: number; endFrame: number; text: string}>;
 };

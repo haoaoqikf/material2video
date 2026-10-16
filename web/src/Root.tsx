@@ -1,3 +1,4 @@
+import { FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
@@ -20,10 +21,10 @@ export const RemotionRoot: FC = () => {
         id="ArticleExplainer"
         component={ArticleExplainer}
         durationInFrames={1}
-        fps={30}
+        fps={FPS}
         width={DEFAULT_FRAME.width}
         height={DEFAULT_FRAME.height}
-        defaultProps={{ version: 8, schemaVersion: 8, fps: 30, width: DEFAULT_FRAME.width,
+        defaultProps={{ version: 8, schemaVersion: 8, fps: FPS, width: DEFAULT_FRAME.width,
           height: DEFAULT_FRAME.height, title: '', subtitle: DEFAULT_FRAME.subtitle,
           durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}
@@ -32,7 +33,7 @@ export const RemotionRoot: FC = () => {
         id="FinancialTimeSeries"
         component={FinancialTimeSeries}
         durationInFrames={180}
-        fps={30}
+        fps={FPS}
         width={1080}
         height={1920}
         defaultProps={{} as FinancialTimeSeriesProps}
@@ -46,8 +47,8 @@ export const RemotionRoot: FC = () => {
       <Composition
         id="HousingTimeSeries"
         component={HousingTimeSeries}
-        durationInFrames={1800}
-        fps={30}
+        durationInFrames={60 * FPS}
+        fps={FPS}
         width={1080}
         height={1920}
         defaultProps={{} as HousingTimeSeriesProps}

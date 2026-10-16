@@ -21,8 +21,8 @@ SOURCE = "Netflix Chinese Simplified Timed Text Style Guide：成人节目 ≤9 
 
 REPORT = "outputs/reading-pace.json"
 
-#: 字幕帧边界由 30 fps 的配音派生。
-FPS = 30
+#: 字幕帧边界由 60 fps 的配音派生。
+from m2v.core.video_config import FPS
 
 
 def entries(cues: list[dict]) -> list[dict]:

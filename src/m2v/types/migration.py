@@ -1,6 +1,8 @@
 """Explicit, backup-first migration for existing article and financial projects."""
 from __future__ import annotations
 
+from m2v.core.video_config import FPS
+
 import json
 import re
 import shutil
@@ -46,7 +48,7 @@ def migrate(root: Path, source_format: str) -> Path:
     project_id = f"{slug[:50].rstrip('-') or 'video'}-{uuid.uuid4().hex[:8]}"
     manifest = {"schemaVersion": PROJECT_VERSION, "id": project_id, "type": video_type,
                 "materials": materials,
-                "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"}}
+                "output": {"width": 1080, "height": 1920, "fps": FPS, "audio": "optional"}}
     target = root / PROJECT_FILE
     temporary = target.with_suffix(".json.tmp")
     try:

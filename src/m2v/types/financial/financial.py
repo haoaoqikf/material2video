@@ -11,11 +11,11 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from m2v.core.errors import M2VError
+from m2v.core.video_config import FPS
 from m2v.types.financial.pacing import build_pacing, anchor_date
 from m2v.types.financial.valuation import crypto_investment_values, expected_daily_dates
 
 MATERIALS = ("request.json", "prices.json", "animation-plan.json")
-FPS = 30
 WIDTH = 1080
 HEIGHT = 1920
 LAYOUT_BOUNDS_X = (140, 940)
@@ -430,7 +430,7 @@ def build_line_plan(request: dict[str, Any], duration: int | None = None, prices
         raise M2VError("无事件计划至少需要 4 秒：开场 1 秒、行情推进及结尾 2 秒")
     start, end = (date.fromisoformat(value) for value in request["displayRange"])
     total_frames = duration * FPS
-    opening_frames, ending_frames = 30, 60
+    opening_frames, ending_frames = FPS, 2 * FPS
     advance_end = total_frames - ending_frames
     segments = [
         {"frames": [0, opening_frames], "dates": [start.isoformat(), start.isoformat()], "kind": "opening"},
@@ -560,7 +560,7 @@ def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[s
 
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any]) -> None:
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
-        _fail("animation-plan.json", "必须使用 1080×1920、30 fps")
+        _fail("animation-plan.json", "必须使用 1080×1920、60 fps")
     duration = plan.get("durationSeconds")
     if isinstance(duration, bool) or not isinstance(duration, int) or duration < (4 if plan.get("schemaVersion") == 8 else 10):
         _fail("animation-plan.json.durationSeconds", "无事件 v8 计划至少为 4 秒；v7 计划至少为 10 秒")
@@ -629,8 +629,8 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     advance_end = segments[2]["frames"][0]
     if plan["schemaVersion"] == 7 and (opening_end != opening_frames or advance_end != total_frames - ending_frames):
         _fail("animation-plan.json.segments", "v7 opening 与 ending 帧数必须保持原值")
-    if plan["schemaVersion"] == 8 and (opening_end, total_frames - advance_end) not in {(30, 60), (90, 180)}:
-        _fail("animation-plan.json.segments", "v8 仅接受新 30/60 帧或既有 90/180 帧开场/结尾")
+    if plan["schemaVersion"] == 8 and (opening_end, total_frames - advance_end) not in {(FPS, 2 * FPS), (3 * FPS, 6 * FPS)}:
+        _fail("animation-plan.json.segments", "v8 仅接受 60/120 帧或 180/360 帧开场/结尾")
     if segments[1]["frames"] != [opening_end, advance_end]:
         _fail("animation-plan.json.segments", "advance 必须连续覆盖到规定结尾之前")
     if segments[2]["frames"] != [advance_end, total_frames]:

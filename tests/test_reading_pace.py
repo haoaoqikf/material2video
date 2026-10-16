@@ -15,7 +15,7 @@ def cue(start, end, text):
 
 def test_字数排除标点与空白():
     """与既有 `count_characters` 同口径：标点不计入阅读量。"""
-    measured = reading_pace.entries([cue(0, 30, "观察结果，修正做法。")])
+    measured = reading_pace.entries([cue(0, 60, "观察结果，修正做法。")])
     assert len(measured) == 1
     assert measured[0]["characters"] == 8
     assert measured[0]["seconds"] == 1.0
@@ -23,12 +23,12 @@ def test_字数排除标点与空白():
 
 
 def test_零长与无字的字幕不参与判定():
-    assert reading_pace.entries([cue(5, 5, "有字"), cue(0, 30, "，。")]) == []
+    assert reading_pace.entries([cue(10, 10, "有字"), cue(0, 60, "，。")]) == []
 
 
 def test_超限条目单独列出():
     prepared = {"preparedFingerprint": "x" * 64,
-        "subtitles": [cue(0, 15, "观察结果，修正做法。"), cue(15, 60, "慢慢说清楚。")]}
+        "subtitles": [cue(0, 30, "观察结果，修正做法。"), cue(30, 120, "慢慢说清楚。")]}
     report = reading_pace.report(prepared)
     assert report["status"] == "over-limit"
     # 8 字 / 0.5 秒 = 16 字/秒，超过 9
@@ -38,12 +38,12 @@ def test_超限条目单独列出():
 
 
 def test_没有超限时为_pass():
-    prepared = {"preparedFingerprint": "y" * 64, "subtitles": [cue(0, 30, "观察结果，修正做法。")]}
+    prepared = {"preparedFingerprint": "y" * 64, "subtitles": [cue(0, 60, "观察结果，修正做法。")]}
     assert reading_pace.report(prepared)["status"] == "pass"
 
 
 def test_报告绑定准备指纹(tmp_path):
-    prepared = {"preparedFingerprint": "z" * 64, "subtitles": [cue(0, 30, "观察结果。")]}
+    prepared = {"preparedFingerprint": "z" * 64, "subtitles": [cue(0, 60, "观察结果。")]}
     payload = reading_pace.write(tmp_path, prepared)
     written = json.loads((tmp_path / reading_pace.REPORT).read_text(encoding="utf-8"))
     assert written == payload

@@ -1,6 +1,6 @@
 # 太阳系之旅：从太阳到奥尔特云
 
-写实 3D 科普示例，1920×1080、30 fps，中文旁白与烧录字幕，目标实际片长 165～180 秒。替换原选择示例，另外两个示例保留。
+写实 3D 科普示例，1920×1080、60 fps，中文旁白与烧录字幕，目标实际片长 165～180 秒。替换原选择示例，另外两个示例保留。
 
 以逐站向外旅行为线索，介绍太阳、八大行星、代表卫星、矮行星、小天体带和不同定义下的边界。可编辑源文见 [article.md](article.md)，编排见 [storyboard.json](storyboard.json)，视觉依据见 [DESIGN.md](DESIGN.md)，科学资料与许可见 [SOURCES.md](SOURCES.md)，验证范围与剩余限制见 [VERIFICATION.md](VERIFICATION.md)。
 

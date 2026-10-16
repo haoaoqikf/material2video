@@ -24,23 +24,23 @@ const series: HousingSeries = {
 
 describe('housing annual time series', () => {
   it('maps the advance range to the first and last annual point', () => {
-    expect(housingPositionAtFrame(30, series, 1800)).toEqual({ position: 0, heldIndex: 0 });
-    expect(housingPositionAtFrame(30 + YEAR_HOLD_FRAMES + 1, series, 1800).position).toBeGreaterThan(0);
-    expect(housingPositionAtFrame(900, series, 1800).position).toBeGreaterThan(1);
-    expect(housingPositionAtFrame(1740, series, 1800)).toEqual({ position: 3, heldIndex: 3 });
+    expect(housingPositionAtFrame(60, series, 3600)).toEqual({ position: 0, heldIndex: 0 });
+    expect(housingPositionAtFrame(60 + YEAR_HOLD_FRAMES + 1, series, 3600).position).toBeGreaterThan(0);
+    expect(housingPositionAtFrame(1800, series, 3600).position).toBeGreaterThan(1);
+    expect(housingPositionAtFrame(3480, series, 3600)).toEqual({ position: 3, heldIndex: 3 });
   });
 
-  it('holds every point for 15 frames and reaches the final point before the ending', () => {
+  it('holds every point for 30 frames and reaches the final point before the ending', () => {
     const longSeries = { ...series, points: Array.from({ length: 23 }, (_, index) => ({
       year: 2002 + index, salesAreaWanSquareMeters: 10, salesAmountYiYuan: 2 + index / 10,
       averagePriceYuanPerSquareMeter: 2000 + index * 100,
     })) };
-    expect(housingPositionAtFrame(30, longSeries, 1800)).toEqual({ position: 0, heldIndex: 0 });
-    const secondYear = 30 + YEAR_HOLD_FRAMES + (1800 - 30 - 60 - 23 * YEAR_HOLD_FRAMES) / 22;
-    expect(housingPositionAtFrame(Math.ceil(secondYear), longSeries, 1800)).toEqual({ position: 1, heldIndex: 1 });
-    expect(housingPositionAtFrame(Math.ceil(secondYear) + YEAR_HOLD_FRAMES - 1, longSeries, 1800)).toEqual({ position: 1, heldIndex: 1 });
-    expect(housingPositionAtFrame(Math.ceil(secondYear) + YEAR_HOLD_FRAMES, longSeries, 1800).heldIndex).toBeNull();
-    expect(housingPositionAtFrame(1725, longSeries, 1800)).toEqual({ position: 22, heldIndex: 22 });
+    expect(housingPositionAtFrame(60, longSeries, 3600)).toEqual({ position: 0, heldIndex: 0 });
+    const secondYear = 60 + YEAR_HOLD_FRAMES + (3600 - 60 - 120 - 23 * YEAR_HOLD_FRAMES) / 22;
+    expect(housingPositionAtFrame(Math.ceil(secondYear), longSeries, 3600)).toEqual({ position: 1, heldIndex: 1 });
+    expect(housingPositionAtFrame(Math.ceil(secondYear) + YEAR_HOLD_FRAMES - 1, longSeries, 3600)).toEqual({ position: 1, heldIndex: 1 });
+    expect(housingPositionAtFrame(Math.ceil(secondYear) + YEAR_HOLD_FRAMES, longSeries, 3600).heldIndex).toBeNull();
+    expect(housingPositionAtFrame(3450, longSeries, 3600)).toEqual({ position: 22, heldIndex: 22 });
   });
 
   it('keeps the revealed value range nonnegative and padded', () => {
@@ -57,8 +57,8 @@ describe('housing annual time series', () => {
   });
 
   it('reveals year and price and marks the 2005 break without audio or subtitles', () => {
-    currentFrame.value = 1799;
-    const markup = renderToStaticMarkup(<HousingTimeSeries series={series} durationInFrames={1800} fps={30} width={1080} height={1920} />);
+    currentFrame.value = 3599;
+    const markup = renderToStaticMarkup(<HousingTimeSeries series={series} durationInFrames={3600} fps={60} width={1080} height={1920} />);
     expect(markup).toContain('data-m2v-current-year="2005"');
     expect(markup).toContain('data-m2v-breakpoint-label="2005"');
     expect(markup).toContain('data-m2v-housing-endpoint="true"');
@@ -67,8 +67,8 @@ describe('housing annual time series', () => {
   });
 
   it('shows the held year exact value and highlights its annual point', () => {
-    currentFrame.value = 30;
-    const markup = renderToStaticMarkup(<HousingTimeSeries series={series} durationInFrames={1800} fps={30} width={1080} height={1920} />);
+    currentFrame.value = 60;
+    const markup = renderToStaticMarkup(<HousingTimeSeries series={series} durationInFrames={3600} fps={60} width={1080} height={1920} />);
     expect(markup).toContain('data-m2v-current-year="2002"');
     expect(markup).toContain('data-m2v-current-value="2000"');
     expect(markup).toContain('data-m2v-highlight-year="2002"');

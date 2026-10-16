@@ -201,7 +201,7 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     root = tmp_path / "hook-project"
     root.mkdir()
     manifest = {"schemaVersion": 1, "id": "hook-project", "type": "review-hook"}
-    prepared = {"preparedFingerprint": "hook-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 30}
+    prepared = {"preparedFingerprint": "hook-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 60}
     preview = root / "outputs" / "previews" / "video.mp4"
     preview.parent.mkdir(parents=True)
     preview.write_bytes(b"full preview")
@@ -262,7 +262,7 @@ def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path,
     root = tmp_path / "auto-review"
     root.mkdir()
     manifest = {"schemaVersion": 1, "id": "auto-review", "type": "auto-review"}
-    prepared = {"preparedFingerprint": "auto-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 30}
+    prepared = {"preparedFingerprint": "auto-fingerprint", "durationInFrames": 30, "width": 1080, "height": 1920, "fps": 60}
     outputs = root / "outputs"
     outputs.mkdir()
     preview = outputs / "previews" / "preview.mp4"

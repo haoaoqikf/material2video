@@ -2,6 +2,8 @@
 
 面向短视频的离线制作工具链，采用**共享制作底座、独立视频类型、统一制作入口**。当前重点发展金融时间序列等专用视频，再沉淀可复用能力，逐步扩展到通用多场景编排。
 
+所有视频类型统一固定为 **60 fps**，包括场景录制、完整预演和正式导出；旧 30 fps 材料须重新编排。
+
 ## 当前视频类型
 
 <!-- generated:type-catalog:start -->
@@ -45,7 +47,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 `init` 会生成材料模板；通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用工作流先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成原文输入审查与分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。通用类型仅接受 v8；v7 及更早作品必须重新编排。`render` 不修改原始材料；所有类型均要求当前完整预演及自动验收有效，无需人工查看、填写依据或再次确认；`review-template` / `review` 保留为可选工具，文章原文语义审查及金融自动探针保留。
 
-房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、30 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，完整预演自动验收通过后即可渲染，人工画面评审为可选工具。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
+房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、60 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，完整预演自动验收通过后即可渲染，人工画面评审为可选工具。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
 
 股票和指数仍按价格或点位比缩放本金；crypto 可指定买入日与 CNY 本金，组合展示价值 = 本金 ×（当前 BTC/USD 收盘价 ÷ 买入日收盘价）×（当日或此前最近 USD/CNY 汇率 ÷ 买入日可用汇率）。crypto 请求还可提供法律地位说明，替换该作品默认估值口径行与通用风险提示；其他作品默认说明不变。prices v4 独立保存汇率来源、观测和原始快照；周末/假日使用最近此前汇率。详见[金融时间序列制作说明](.agents/skills/material2video/references/financial-timeseries-video.md)。
 
@@ -61,7 +63,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-通用作品使用 v8 全画布代码场景，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md) 与 [通用作品创作](.agents/skills/material2video/references/article-to-storyboard.md)。制作助手先确定画幅并写出作品 `DESIGN.md`（参考依据、视觉隐喻、字体配色、代表构图、镜头承接与声音意图），再做开场/核心/结尾关键画面、编排运动，并在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题）；执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；字幕按画幅集中配置、白字配不透明深色底板，几何与 SDK 给出的是同一份；每幕保留 12 帧阅读停留，可选 1～1800 帧画面淡化，完整成片最多 600 秒。
+通用作品使用 v8 全画布代码场景，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md) 与 [通用作品创作](.agents/skills/material2video/references/article-to-storyboard.md)。制作助手先确定画幅并写出作品 `DESIGN.md`（参考依据、视觉隐喻、字体配色、代表构图、镜头承接与声音意图），再做开场/核心/结尾关键画面、编排运动，并在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题）；执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；字幕按画幅集中配置、白字配不透明深色底板，几何与 SDK 给出的是同一份；每幕保留 24 帧阅读停留，可选 1～3600 帧画面淡化，完整成片最多 600 秒。
 
 浏览器量测只覆盖共享字幕（安全区矩形、换行范围与实际可见性）；作品正文在录制的片段里，系统不声称能自动识别其中的全部正文或主体遮挡。制作助手因此必须实际观看代表关键帧与含运动、转场和声音的片段，把时间位置、修改与复查写进作品 `outputs/visual-notes.md`，无法观看时如实说明；设计与观看记录都不是导出门禁。准备阶段另写 `outputs/reading-pace.json` 报告每条字幕的阅读速度，超限只提示不阻断。旧 `production.json`、v7 及更早分镜与旧评审不再适用，须重新编排；不自动迁移。
 

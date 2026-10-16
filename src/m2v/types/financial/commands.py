@@ -2,6 +2,8 @@
 """Initialize, validate, and render a no-audio financial time-series video."""
 from __future__ import annotations
 
+from m2v.core.video_config import FPS
+
 import argparse
 import json
 import logging
@@ -122,7 +124,7 @@ def _init(args: argparse.Namespace) -> Path:
     })
     _write(root / "animation-plan.json", {
         "schemaVersion": 8, "chartType": "line", "durationSeconds": None,
-        "fps": 30, "canvas": {"width": 1080, "height": 1920},
+        "fps": FPS, "canvas": {"width": 1080, "height": 1920},
         "axis": {"dateRange": [start.isoformat(), end.isoformat()], "dateScale": "staged-expanding", "valueScale": "revealed-linear"},
         "segments": [], "rationale": "行情材料完成后运行 financial_video.py plan 自动计算",
     })

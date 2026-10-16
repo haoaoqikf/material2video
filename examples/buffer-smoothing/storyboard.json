@@ -1,7 +1,7 @@
 {
   "version": 8,
   "schemaVersion": 8,
-  "fps": 30,
+  "fps": 60,
   "width": 1920,
   "height": 1080,
   "title": "缓冲，让快慢衔接",

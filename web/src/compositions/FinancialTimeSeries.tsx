@@ -7,7 +7,7 @@ type FxPoint = { date: ISODate; close: number };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
   schemaVersion: 7 | 8; chartType: 'line';
-  durationSeconds: number; fps: 30; canvas: { width: 1080; height: 1920 };
+  durationSeconds: number; fps: number; canvas: { width: 1080; height: 1920 };
   axis: { dateRange: [ISODate, ISODate]; dateScale: 'staged-expanding'; valueScale: 'revealed-linear' };
   segments: TimelineSegment[];
   pacing?: { mode: 'uniform' | 'volatility'; anchors: { frame: number; date: ISODate }[] };
@@ -17,7 +17,7 @@ export type FinancialTimeSeriesProps = {
   request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string; legalStatusNotice?: string } };
   prices: { schemaVersion: 3 | 4; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[]; fx?: { pair: 'USD/CNY'; points: FxPoint[] } };
   plan: FinancialPlan;
-  durationInFrames: number; fps: 30; width: 1080; height: 1920;
+  durationInFrames: number; fps: number; width: 1080; height: 1920;
 };
 
 const WIDTH = 1080;

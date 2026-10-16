@@ -23,7 +23,7 @@ def scene(identity="a", **extra):
 
 
 def board(**extra):
-    data = {"version": 8, "schemaVersion": 8, "fps": 30, "width": 1920, "height": 1080,
+    data = {"version": 8, "schemaVersion": 8, "fps": 60, "width": 1920, "height": 1080,
             "title": "测试", "input": {"kind": "article"}, "targetSeconds": 60,
             "scenes": [scene()]}
     data.update(extra)
@@ -193,7 +193,7 @@ def test_topic_input_must_declare_topic_text(tmp_path):
 
 
 @pytest.mark.parametrize("seconds,samples,passes", [
-    (599.6, .1, True), (599.6 + 1/30, .1, False),
+    (599.6, .1, True), (599.6 + 1/60, .1, False),
 ])
 def test_exact_six_hundred_second_limit(tmp_path, monkeypatch, seconds, samples, passes):
     root, manifest = project(tmp_path)
@@ -201,7 +201,7 @@ def test_exact_six_hundred_second_limit(tmp_path, monkeypatch, seconds, samples,
     fake_record(monkeypatch)
     if passes:
         result = adapter.prepare(root, manifest)
-        assert result["durationInFrames"] == 18000
+        assert result["durationInFrames"] == 36000
     else:
         with pytest.raises(M2VError, match="超过 600 秒"): adapter.prepare(root, manifest)
         assert not (root / "outputs/prepared.json").exists()
@@ -215,19 +215,19 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     fake_record(monkeypatch)
     result = adapter.prepare(root, manifest, voice="zh-CN-YunxiNeural", rate="-6%")
     a, b = result["props"]["compiledScenes"]
-    assert a["segmentWindows"]["a-line"] == {"startFrame": 0, "endFrame": 30}
-    assert a["endFrame"] == 42 and b["startFrame"] == 34
-    assert b["segmentWindows"]["b-line"] == {"startFrame": 42, "endFrame": 72}
-    assert result["durationInFrames"] == 84
+    assert a["segmentWindows"]["a-line"] == {"startFrame": 0, "endFrame": 60}
+    assert a["endFrame"] == 84 and b["startFrame"] == 68
+    assert b["segmentWindows"]["b-line"] == {"startFrame": 84, "endFrame": 144}
+    assert result["durationInFrames"] == 168
     assert result["props"]["subtitleCues"] == [
-        {"startFrame": 0, "endFrame": 30, "text": data["scenes"][0]["narrationSegments"][0]["text"]},
-        {"startFrame": 42, "endFrame": 72, "text": data["scenes"][1]["narrationSegments"][0]["text"]},
+        {"startFrame": 0, "endFrame": 60, "text": data["scenes"][0]["narrationSegments"][0]["text"]},
+        {"startFrame": 84, "endFrame": 144, "text": data["scenes"][1]["narrationSegments"][0]["text"]},
     ]
     assert result["subtitles"] == result["props"]["subtitleCues"]
     assert calls[0][1:3] == ("zh-CN-YunxiNeural", "-6%")
     import wave
     with wave.open(str(root / result["audio"]["segments"][0]["path"]), "rb") as wav:
-        assert wav.getnframes() == 84 * 800
+        assert wav.getnframes() == 168 * 400
     next_result = adapter.prepare(root, manifest)
     assert next_result["audio"]["cacheHits"] == 2
 
@@ -235,7 +235,7 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
 def test_narration_overlap_is_rejected(tmp_path, monkeypatch):
     """旁白不得重叠：淡化帧数不小于前一幕时长时准备失败。"""
     data = board()
-    data["scenes"].append(scene("b", transition="crossfade", transitionFrames=42))
+    data["scenes"].append(scene("b", transition="crossfade", transitionFrames=84))
     root, manifest = project(tmp_path, data); fake_tts(monkeypatch); fake_record(monkeypatch)
     with pytest.raises(M2VError, match="转场过长"):
         adapter.prepare(root, manifest)
@@ -248,8 +248,8 @@ def test_silent_scene_takes_target_remainder(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, data); fake_tts(monkeypatch); fake_record(monkeypatch)
     result = adapter.prepare(root, manifest)
     shot = result["props"]["compiledScenes"][1]
-    assert result["durationInFrames"] == 1800
-    assert shot["durationInFrames"] == 1800 - 42
+    assert result["durationInFrames"] == 3600
+    assert shot["durationInFrames"] == 3600 - 84
     assert shot["segmentWindows"] == {}
 
 
@@ -318,14 +318,14 @@ def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium
             page.evaluate("async () => await window.__M2V__.ready()")
             safe = frames.spec(*size)["subtitle"]["safeArea"]
             samples = {}
-            for frame in [0, 8, 29, 30, 41, 15, 8, 0, 41]:
+            for frame in [0, 16, 59, 60, 83, 30, 16, 0, 83]:
                 page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
                 assert page.evaluate("window.__M2V__.currentFrame()") == frame
                 subtitle = page.locator('[data-m2v-subtitle]')
                 assert subtitle.evaluate("el => [el.getBoundingClientRect().left, el.getBoundingClientRect().top]") == [safe["x"], safe["y"]]
                 assert subtitle.evaluate("el => [el.getBoundingClientRect().width, el.getBoundingClientRect().height]") == [safe["width"], safe["height"]]
                 # 无讲话的帧不显示字幕：静音区间隐藏，而不是留下一条空底板。
-                assert subtitle.inner_text() == (data["scenes"][0]["narrationSegments"][0]["text"] if frame < 30 else "")
+                assert subtitle.inner_text() == (data["scenes"][0]["narrationSegments"][0]["text"] if frame < 60 else "")
                 text = subtitle.inner_text()
                 if text:
                     assert page.evaluate("""() => {

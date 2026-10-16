@@ -8,7 +8,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 ## 全片与场景
 
-全片声明 `fps: 30`、`title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
+全片声明 `fps: 60`、`title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
 `soundtrack` 和非空 `scenes`（最多 300 幕）。
 
 **画幅**只支持 1920×1080 横屏与 1080×1920 竖屏：两边都省略时规范化为横屏并写进准备产物；
@@ -22,8 +22,8 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 每幕声明 `id`、`template`（只能是 `code`）、`content`、`narrationSegments`，可选 `keywords`、
 `durationFrames`、`transition`、`transitionFrames`、`speech`。转场支持 `cut`、`fade`、
-`crossfade`，首幕只能 cut；`transitionFrames` 为 1～1800 的整数，默认 8。`durationFrames` 为
-1～18000 的整数，声明后必须容得下旁白、12 帧阅读停留与转场，不得截断口播，它同时是录制片段
+`crossfade`，首幕只能 cut；`transitionFrames` 为 1～3600 的整数，默认 16。`durationFrames` 为
+1～36000 的整数，声明后必须容得下旁白、24 帧阅读停留与转场，不得截断口播，它同时是录制片段
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
 `content` 只接受 `title`（可选，仅作元数据）、`entry`（必填）与 `props`（可选，默认空对象）。
@@ -59,7 +59,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 录制在无头 Chromium 中实时进行：viewport、页面根元素、ffmpeg 标准化尺寸与 composition 都用
 同一画幅。只开放**已登记媒体**与仓库字体，作品目录下的其他文件、导入记录、源文都不暴露；
 外网请求、WebSocket、超时与运行异常都会让 `prepare` 失败且不保存准备记录。片段是不带音轨的
-30 fps 视频，声音一律由统一音轨处理；素材原声不会进入母版。
+60 fps 视频，声音一律由统一音轨处理；素材原声不会进入母版。
 
 准备按源码可达输入、`props`、本幕时间窗、**画幅与字幕安全区**、**媒体映射与导入摘要**、
 共享实现与锁文件、浏览器及编码配置绑定缓存，片段与摘要落在 `outputs/code-cache/`；任何一项
@@ -68,10 +68,10 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 
 ## 时间轴与字幕
 
-每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与画面时间窗。每幕声音结束后保留 12 帧
+每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与画面时间窗。每幕声音结束后保留 24 帧
 稳定阅读，默认硬切。`fade`/`crossfade` 在前一幕完整阅读尾段之后按 `transitionFrames` 交叉淡化，
 下一幕配音在淡化结束后开始，前后口播不重叠。音轨不截断、不重叠，母版轨严格裁到全片时长。
-完整成片含停留及淡化最多 18000 帧（600 秒）。
+完整成片含停留及淡化最多 36000 帧（600 秒）。
 
 默认根据旁白原文自动生成画面字幕，预演和正式导出共用同一字幕层，无需配置开关；字幕烧录进
 画面，不导出外置字幕文件，因此「有字幕」只能以成片里的可见文字为准。字幕使用真实配音派生的
@@ -86,7 +86,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 最小示例：
 
 ```json
-{"version":8,"schemaVersion":8,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
+{"version":8,"schemaVersion":8,"fps":60,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
 完整示例：[缓冲](../../../../examples/buffer-smoothing/storyboard.json)、
