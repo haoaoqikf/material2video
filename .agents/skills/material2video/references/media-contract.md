@@ -93,8 +93,9 @@ uv run m2v render --project videos/general/<slug>
 
 ## 渲染与验收
 
-字幕由画面自身绘制并烧录在成片里，正文预留字幕安全区（文章 v7 的正文下边界 1502、
-字幕区到 1782，见 [渲染契约](render-contract.md) 的三项硬判定）；不依赖外置字幕文件。
+字幕由画面自身绘制并烧录在成片里，正文预留字幕安全区（文章 v7 的正文下边界取自
+`--m2v-measure-content-bottom`、字幕区下沿取自 `--m2v-measure-subtitle-bottom`，见
+[渲染契约](render-contract.md) 的三项硬判定）；不依赖外置字幕文件。
 准备记录的 `props` 携带 `subtitleCues`，共享 composition 按当前帧绘制字幕并预留安全区；
 **分镜不能手写该字段**——它由 prepare 从真实词边界派生，手写会和音轨各说各话。
 渲染按帧 seek，不播放音频；先编码画面，再复制视频流合入 AAC 配音，无二次视频编码。

@@ -24,6 +24,89 @@
 | `--m2v-safe-bottom-with-subtitles` | `520px` | 有字幕时的下边界，比 `--m2v-safe-bottom` 更大 |
 | `--m2v-content-width` | `888px` | 安全区内的可用宽度 |
 | `--m2v-grid-columns` / `--m2v-grid-gutter` | `12` / `24px` | 栅格列数与列间距 |
+| `--m2v-subtitle-inset-x` | `108px` | 字幕盒左右内缩 |
+| `--m2v-subtitle-top` / `--m2v-subtitle-height` | `1580px` / `200px` | 字幕盒纵向位置与高度 |
+| `--m2v-subtitle-size` / `--m2v-subtitle-leading` | `40px` / `1.5` | 字幕字号与行高 |
+| `--m2v-measure-left` / `-right` / `-top` | `106px` / `974px` / `158px` | 正文文字包围盒的允许范围 |
+| `--m2v-measure-content-bottom` | `1502px` | 正文下边界，越过即判「内容侵入字幕区」 |
+| `--m2v-measure-subtitle-bottom` | `1782px` | 字幕文字自身的下边界 |
+
+**字幕盒与量测边界是同一组令牌。** 画面里的字幕盒（`ArticleExplainer`）和浏览器量测的
+判据边界（`explainer_render.py` 的 `measure_script`）都读上表后五项，Python 侧经
+`m2v.engine.design_tokens` 解析 `tokens.css` 得到。这不是顺手抽公共常量：过去两边各写一份
+字面量，改一处不会让另一处报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。
+量测边界名里的 `measure` 就是这个意思：它们只被验收读取，不被画面绘制。
+
+注意 `--m2v-measure-*` 与 `--m2v-safe-*` **不是同一组概念**，取值也不相等：安全区描述
+平台 UI 会遮挡哪里，量测边界描述项目自己的排版分区。`--m2v-safe-bottom-with-subtitles`
+（`520px`）目前与量测用的 `--m2v-measure-content-bottom`（`1502px`）**并不自洽**，
+且它当前没有任何消费方；按哪个为准需要单独判断，本轮刻意未动，不悄悄改掉一个已写进
+文档的取值。
+
+## 字幕尺寸的外部依据
+
+字幕的取值此前是项目自定，没有出处。下表把公开规范与项目现值并列，**差异如实标出**，
+不是「已符合规范」：
+
+| 项 | 公开规范 | 项目现值 | 关系 |
+| --- | --- | --- | --- |
+| 9:16 字幕字号 | 约画幅高 **3.5%**（≈67px）[^bbc] | `--m2v-subtitle-size: 40px` | **低于**规范值约四成 |
+| 9:16 字幕行数 | 最多 **3 行**[^bbc] | cue ≤28 字，实测折 2 行 | 在限内 |
+| 9:16 字幕行宽 | 画幅宽 **90%**[^bbc] | 864 / 1080 = 80% | 更保守 |
+| 9:16 字幕区纵向 | 不越出画面垂直中央 **75%**，即 y 240–1680[^bbc] | 字幕盒 1580–1780 | 下沿**超出**约 100px |
+| 每行字数 | **16 字/行**、最多 2 行[^netflix] | 约 14 字/行 | 在限内 |
+| 标点 | **不用逗号、句号**，改用单个空格[^netflix] | 在 `，。！？；：` 处断句且保留标点 | 取向**相反** |
+| 阅读速度 | 成人 **≤9 字/秒**[^netflix] | 由实际 TTS 语速决定，`outputs/reading-pace.json` 只报告不阻断 | 取值随配音浮动 |
+
+[^bbc]: BBC, *Subtitle Guidelines*（9:16 竖屏一节）
+    https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/
+[^netflix]: Netflix, *Chinese Simplified Timed Text Style Guide*
+    https://partnerhelp.netflixstudios.com/hc/en-us/articles/215986007-Chinese-Simplified-Timed-Text-Style-Guide
+
+标点与阅读速度两条**只是记录，尚未对齐**；行宽与行数在规范之内。
+字号与字幕区下沿低于规范，改成规范值需要同时重排字幕盒并收短 cue，属于行为变更，
+不在本轮范围内。
+
+## 视觉主题
+
+讲解画面的主题是**数据**，不是 CSS 作用域层：`web/src/themes.json` 是颜色、排版与动效的
+唯一真源，前端 `palette.ts` 与 Python 的 `m2v.engine.themes` 读同一份。准备阶段要用主题的
+动效帧数编译时间轴，两处各写一份的话「改主题」只会改到画面那一半。
+
+| 主题 | 定位 | 动效（帧） |
+| --- | --- | --- |
+| `dark` | 默认 | 入场 8、停留 12；不声明转场，沿用分镜 |
+| `light` | 浅色 | 入场 8、停留 12；不声明转场，沿用分镜 |
+| `velvet` | 改编自 HyperFrames `visual-styles.md` 的 Velvet Standard（Vignelli 调性） | 入场 36、停留 90、转场 45 |
+
+`velvet` **不是原值照搬**，三条改编都记在 `themes.json` 的注释里，摘要：
+
+- **颜色**：原风格的强调色 `#1a237e` 在近黑底上对比度只有 1.49:1，画面里几乎不可见；
+  保留靛蓝色相提亮为 `#c5cae9`（12.25:1）。`muted`/`panel`/`border` 原风格未给，
+  按本文件既有的对比度预算派生。
+- **排版**：原风格的字号是 web 尺度（body `1rem`），低于本项目 28px 字阶下限，不采用；
+  只取字重 300、字距 0.15em、拉丁大写这几个特征，字号仍由字阶决定。
+- **缓动**：原风格用 `sine.inOut` / `power1.in`。画面仅由帧号驱动，CSS `animation` /
+  `transition` 会被源码闸门拒绝，因此动效只能以**帧数**表达，缓动曲线当前不渲染。
+
+**主题与令牌层的边界。** `tokens.css` 仍是画面取值的唯一真源，但它是**一套深色**、
+不随主题切换——见 [keynote 设计系统规格](../../../../openspec/specs/keynote-design-system/spec.md)
+第 34、48 行：既只提供一套深色令牌，也禁止再引入 `[data-m2v-preset]` /
+`[data-m2v-theme]` / `[data-m2v-style-pack]` 这类作用域层（没有代码挂属性时整层令牌是空值，
+画面会静默落到初始值）。所以**多主题只能靠 `themes.json` 这份数据**；它覆盖的是
+`ArticleExplainer` 的六种模板画面与代码场景录制页，而走 `var(--m2v-*)` / `var(--fig-*)`
+的画面（契约外壳、图形）不随主题变化——这是设计意图，不是遗漏。
+
+**主题覆盖分镜的规则。** 主题声明了 `transitionFrames` 就覆盖每幕自己的同名声明
+（转场**类型**仍由分镜决定，因此「首幕必须 cut」不受影响）；没声明就沿用分镜与契约默认值。
+`holdFrames` 覆盖阅读停留（契约默认 12 帧），`entranceFrames` 是元素入场时长。
+
+新增主题只需在 `themes.json` 的 `themes` 里加一条记录：主题名单、默认值与契约校验
+（`explainer.py`）都从它派生，`catalog.json` 与 `sync_docs.py` 不涉及主题。
+
+两个已知影响：`velvet` 的入场 36 帧可能长于一个短旁白段，元素在切换前尚未完全显影，
+当前不设门禁；另外长入场会在非单调 seek 下让 Chrome 复用不同的光栅缓存，
+面板圆角处出现约 1 个色阶的单像素差异，属光栅缓存而非画面状态。
 
 ## 字体
 

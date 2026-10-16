@@ -124,6 +124,28 @@ def _list_voices(locale: str, as_json: bool) -> int:
     return 0
 
 
+def _report_reading_pace(root: Path) -> None:
+    """阅读速度只提示不阻断：超限时打印一行，制作照常继续。"""
+    path = root / "outputs/reading-pace.json"
+    if not path.is_file():
+        return
+    try:
+        report = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[warning] 阅读速度报告无法读取：{exc}", file=sys.stderr)
+        return
+    over = report.get("overLimit") or []
+    if not over:
+        return
+    fastest = max(over, key=lambda cue: cue["charactersPerSecond"])
+    print(
+        f"[warning] {len(over)} 条字幕超过 {report.get('limitPerSecond')} 字/秒的阅读上限"
+        f"（最快 {fastest['charactersPerSecond']} 字/秒，第 {fastest['startFrame']} 帧）；"
+        f"详见 {path}",
+        file=sys.stderr,
+    )
+
+
 def _prepared(root: Path, manifest: dict) -> dict:
     check = registry.get(manifest["type"]).prepared_check
     return check(root, manifest) if check else load_current_prepared(root, manifest)
@@ -290,6 +312,7 @@ def main(argv: list[str] | None = None) -> int:
             video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
                                rhythm=_rhythm_option(args))
             print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
+            _report_reading_pace(root)
             return 0
         if args.command == "status":
             print(json.dumps(_status(root, manifest), ensure_ascii=False, indent=2))

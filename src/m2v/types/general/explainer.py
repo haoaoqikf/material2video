@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from m2v.core.errors import M2VError
+from m2v.engine import themes
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
 FPS, WIDTH, HEIGHT = 30, 1080, 1920
@@ -112,8 +113,9 @@ def validate(data: dict, root: Path) -> dict:
             fail(key, f"必须为 {expected}")
     text(data.get("title"), "title")
     visual = obj(data.get("visual", {}), "visual", {"theme"})
-    if visual.get("theme", "dark") not in {"dark", "light"}:
-        fail("visual.theme", "只支持 dark/light")
+    # 主题名单与默认值都来自 `web/src/themes.json`，不在契约里另存一份。
+    if visual.get("theme", themes.default()) not in themes.names():
+        fail("visual.theme", f"只支持{'、'.join(themes.names())}")
     scenes = items(data.get("scenes"), "scenes", 300 if modern else 30)
     all_ids: set[str] = set()
     for index, scene in enumerate(scenes):

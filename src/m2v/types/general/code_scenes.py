@@ -60,9 +60,12 @@ def asset_inputs(root: Path) -> dict[str, str]:
     return result
 
 
-def record(root: Path, scene: dict, inputs: dict[str, str], theme: str = "dark") -> str:
+def record(root: Path, scene: dict, inputs: dict[str, str], theme: str | None = None) -> str:
     """构建可达源码，缓存有效时不启动浏览器；动态本地素材也绑定摘要。"""
     from playwright.sync_api import sync_playwright
+    if theme is None:
+        from m2v.engine import themes
+        theme = themes.default()
     content = scene["content"]
     validate_entry(root, content.get("entry"), content.get("props", {}))
     cache = root / "outputs/code-cache"

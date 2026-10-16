@@ -288,6 +288,44 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
         finally: browser.close()
 
 
+def test_browser_velvet_theme_reaches_the_frame(tmp_path, monkeypatch, chromium_ready):
+    """新增主题要有真实验收：颜色、排版与动效都得落到画面上，而不只是写在清单里。
+
+    这里不比对同一帧两次截图的字节相等，那一条由 dark/light 守着。velvet 的入场有
+    36 帧，非单调 seek 下 Chrome 对亚像素偏移的合成层会复用不同的光栅缓存，
+    面板圆角处会出现 1 像素、约 1 个色阶的差异——是光栅缓存而不是画面状态，
+    因此改用可观察的计算样式与入场进度来判定。
+    """
+    from m2v.types.general.explainer_render import layout_check
+    from m2v.engine.contract_page import serve_contract_page
+    from playwright.sync_api import sync_playwright
+    data = board(); data["visual"] = {"theme": "velvet"}
+    root, manifest = project(tmp_path, data); fake_tts(monkeypatch)
+    prepared = adapter.prepare(root, manifest)
+    assert layout_check(root, prepared)["status"] == "pass"
+    props = root / "outputs/browser-props.json"
+    props.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+    with serve_contract_page(props, root) as url, sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width":1080, "height":1920})
+            page.goto(url + "&m2v-explainer=1"); page.wait_for_function("window.__M2V__?.version === 6")
+            page.evaluate("async () => await window.__M2V__.ready()")
+            page.evaluate("async f => await window.__M2V__.seekToFrame(f)", 0)
+            # 颜色来自主题色板
+            assert page.evaluate("getComputedStyle(document.querySelector('[data-m2v-scene]')).backgroundColor") == "rgb(10, 10, 10)"
+            # 字重与字距来自主题排版（0.15em × 68px = 10.2px）
+            assert page.evaluate("""() => {const s = getComputedStyle(document.querySelector('[data-m2v-scene] [data-m2v-box]'));
+                return [s.fontWeight, s.letterSpacing];}""") == ["300", "10.2px"]
+            # 入场时长来自主题动效：36 帧，因此第 18 帧正好过半
+            for frame, expected in ((8, 8 / 36), (18, 0.5), (36, 1)):
+                page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
+                opacity = float(page.evaluate("getComputedStyle(document.querySelector('[data-m2v-reveal]')).opacity"))
+                assert abs(opacity - expected) < 0.02, f"第 {frame} 帧入场进度 {opacity}，期望 {expected}"
+        finally:
+            browser.close()
+
+
 def test_browser_blocks_overflow(tmp_path, monkeypatch, chromium_ready):
     from m2v.types.general.explainer_render import layout_check
     data = board(); data["scenes"][0]["content"]["summary"]["text"] = "很长的摘要" * 150
@@ -302,7 +340,7 @@ def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready)
     root, manifest = project(tmp_path); fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
     # 重现缺失层级：文字与包围盒仍存在，但场景背景盖在字幕之上。
-    monkeypatch.setattr(explainer_render, "MEASURE", explainer_render.MEASURE.replace(
+    monkeypatch.setattr(explainer_render, "MEASURE_BODY", explainer_render.MEASURE_BODY.replace(
         "const problems = [];", "const problems = []; document.querySelector('[data-m2v-subtitle]').style.zIndex = 'auto';"))
     with pytest.raises(M2VError, match="字幕被遮挡"):
         explainer_render.layout_check(root, prepared)

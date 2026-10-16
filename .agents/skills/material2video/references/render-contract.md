@@ -180,7 +180,7 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 | 判定 | 判据 |
 | --- | --- |
-| 画布分区溢出 | 文字包围盒越出正文分区（左 106 / 右 974 / 上 158 / 下 1502；字幕区内文字到 1782） |
+| 画布分区溢出 | 文字包围盒越出正文分区（左 106 / 右 974 / 上 158 / 下 1502；字幕区内文字到 1782）。五个边界全部取自 `--m2v-measure-*` 令牌，与画面字幕盒同源 |
 | 字幕遮挡 | 字幕文字中心点处的最上层元素不属于字幕层——文字在、但被背景盖住同样失败 |
 | 容器内溢出 | 文字越出它所属的 `data-m2v-box` 容器 2px 以上 |
 
@@ -208,9 +208,10 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 - 舞台（composition 根节点）必须严格等于 `width × height`，不要在外层加 margin 或 padding；
 - 页面不能出现滚动条；
-- 正文放在安全区内（`--m2v-safe-top` / `--m2v-safe-bottom` / `--m2v-safe-x`，有字幕时用
-  `--m2v-safe-bottom-with-subtitles`），避免被平台 UI 遮挡；取值与栅格见
-  [设计令牌](design-tokens.md)。
+- 正文放在安全区内（`--m2v-safe-top` / `--m2v-safe-bottom` / `--m2v-safe-x`），避免被平台
+  UI 遮挡；有字幕时正文的下边界由量测实际执行的 `--m2v-measure-content-bottom` 决定，
+  `--m2v-safe-bottom-with-subtitles` 当前没有消费方、取值也不自洽，见
+  [设计令牌](design-tokens.md) 的说明。取值与栅格见同一文档。
 
 渲染前渲染脚本会检查舞台实际尺寸与契约是否一致，不一致时输出警告日志。
 

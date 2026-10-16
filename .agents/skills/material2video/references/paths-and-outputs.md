@@ -44,7 +44,7 @@
     ├── input-review.json             # 文章讲解的人工输入语义审查（general）
     ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（general）
     ├── layout-check.json             # 最近一次布局量测的三项硬判定结论（general）
-    ├── subtitle-check-props.json     # 最近一次字幕检查用的准备产物副本（general）
+    ├── reading-pace.json             # 逐条字幕的阅读速度与超限清单，只报告不阻断（general）
     ├── media/                        # 配音清单、音轨与缓存
     ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
     ├── code-cache/                   # general 代码场景的录制片段与摘要，按内容摘要命名

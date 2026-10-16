@@ -9,15 +9,21 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_current_prepared
 from m2v.core import security
-from m2v.engine import audio, contract_page, output_validation, perf, remotion
+from m2v.engine import audio, contract_page, design_tokens, output_validation, perf, remotion
 from m2v.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
 
 logger = logging.getLogger(__name__)
 
 # 按真实浏览器字体与文本包围盒验收；不可用字符数估算代替布局检查。
-MEASURE = r"""() => {
-  const problems = [];
+#
+# 判据边界不写死在这里：正文分区与字幕区边界来自设计令牌，由 `measure_script`
+# 注入为 `B`。过去它们是这里的字面量，与画面里的字幕盒各写一份，改一处不会让
+# 另一处报错，只会静默漂移。
+#
+# 脚本体与外壳分开，是为了用 JSON 注入边界：脚本里全是 JS 的大括号，走 f-string
+# 就得把每个 `{` 都写成 `{{`，改一次脚本就错一次。
+MEASURE_BODY = r"""  const problems = [];
   const visible = el => {
     for (let p = el; p; p = p.parentElement) if (Number(getComputedStyle(p).opacity) < .01) return false;
     return true;
@@ -36,7 +42,7 @@ MEASURE = r"""() => {
       }
     }
     const box = (subtitle || el.closest('[data-m2v-box]'))?.getBoundingClientRect();
-    if (r.left < 106 || r.right > 974 || r.top < 158 || r.bottom > (subtitle ? 1782 : 1502))
+    if (r.left < B.left || r.right > B.right || r.top < B.top || r.bottom > (subtitle ? B.subtitleBottom : B.contentBottom))
       problems.push('画布分区溢出：' + el.textContent);
     if (box && (r.left < box.left-2 || r.right > box.right+2 || r.top < box.top-2 || r.bottom > box.bottom+2))
       problems.push('文字超出容器：' + el.textContent);
@@ -44,11 +50,27 @@ MEASURE = r"""() => {
   for (const el of document.querySelectorAll('[data-m2v-content]')) {
     if (!visible(el)) continue;
     for (const box of el.querySelectorAll('[data-m2v-box]')) {
-      if (visible(box) && box.getBoundingClientRect().bottom > 1502) problems.push('内容侵入字幕区');
+      if (visible(box) && box.getBoundingClientRect().bottom > B.contentBottom) problems.push('内容侵入字幕区');
     }
   }
   return problems;
 }"""
+
+
+def measure_bounds(repo_root: Path | None = None) -> dict[str, float]:
+    """量测脚本的判据边界，取自设计令牌的 `--m2v-measure-*`。"""
+    return {
+        "left": design_tokens.px("--m2v-measure-left", repo_root),
+        "right": design_tokens.px("--m2v-measure-right", repo_root),
+        "top": design_tokens.px("--m2v-measure-top", repo_root),
+        "contentBottom": design_tokens.px("--m2v-measure-content-bottom", repo_root),
+        "subtitleBottom": design_tokens.px("--m2v-measure-subtitle-bottom", repo_root),
+    }
+
+
+def measure_script(repo_root: Path | None = None) -> str:
+    """把设计令牌里的边界注入量测脚本。"""
+    return "() => {\n  const B = " + json.dumps(measure_bounds(repo_root)) + ";\n" + MEASURE_BODY
 
 
 def current(root: Path, project: dict) -> dict:
@@ -98,7 +120,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
                 page.evaluate("async () => await window.__M2V__.ready()")
                 for frame in sorted(frames):
                     page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
-                    errors = page.evaluate(MEASURE)
+                    errors = page.evaluate(measure_script())
                     problems.extend({"frame": frame, "message": error} for error in errors)
                     if snapshots and any(frame == scene["endFrame"] - 1 for scene in prepared["props"]["compiledScenes"]):
                         snapshots.mkdir(parents=True, exist_ok=True)

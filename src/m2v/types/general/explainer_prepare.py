@@ -11,8 +11,8 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import file_inputs, save_prepared
 from m2v.core import security
-from m2v.engine import audio, remotion, rhythm as rhythm_engine, tts
-from . import explainer as contract, explainer_review
+from m2v.engine import audio, design_tokens, remotion, rhythm as rhythm_engine, themes, tts
+from . import explainer as contract, explainer_review, reading_pace
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def implementation_digest() -> str:
     from m2v.core.fingerprints import fingerprint
     from . import adapter, explainer_render
     from . import soundtrack, media_assets, code_scenes
-    modules = (contract, explainer_review, explainer_render, adapter, audio, tts, rhythm_engine, soundtrack, media_assets, code_scenes)
+    modules = (contract, explainer_review, explainer_render, design_tokens, themes, adapter, audio, tts, rhythm_engine, soundtrack, media_assets, code_scenes)
     files = [Path(module.__file__) for module in modules] + [Path(__file__)]
     return fingerprint({**{file.name: digest(file) for file in files}, **code_scenes.implementation_inputs()})
 
@@ -52,10 +52,15 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     if record.exists(): inputs["file:" + media_assets.RECORD] = digest(record)
     # 先量测所有旁白，再分配无旁白镜头的剩余时间，绝不靠截断口播凑时长。
     scenes = copy.deepcopy(source["scenes"])
+    # 主题可以接管转场时长与阅读停留；没声明就沿用分镜与契约常量，行为与从前一致。
+    theme = source.get("visual", {}).get("theme", themes.default())
+    theme_motion = themes.motion(theme)
+    hold_frames = theme_motion.get("holdFrames", contract.READING_TAIL)
     measured, durations, overlaps, automatic = [], [], [], []
     hits = 0
     for index, scene in enumerate(scenes):
-        overlap = scene.get("transitionFrames", 8) if scene.get("transition", "cut") != "cut" else 0
+        overlap = 0 if scene.get("transition", "cut") == "cut" else theme_motion.get(
+            "transitionFrames", scene.get("transitionFrames", contract.FADE_FRAMES))
         overlaps.append(overlap)
         segments = []
         for segment in scene.get("narrationSegments", []):
@@ -67,7 +72,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             segments.append((segment["id"], wav, cues, math.ceil(seconds * 30)))
             hits += int(hit)
         measured.append(segments)
-        minimum = overlap + (sum(s[3] for s in segments) + contract.READING_TAIL if segments else 1)
+        minimum = overlap + (sum(s[3] for s in segments) + hold_frames if segments else 1)
         duration = scene.get("durationFrames")
         if duration is None and segments: duration = minimum
         if duration is None:
@@ -106,7 +111,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         if scene["template"] == "cause": scene["levels"] = contract.graph_levels(scene["content"])
         if scene["template"] == "code":
             from . import code_scenes
-            scene["mediaPath"] = code_scenes.record(root, scene, inputs, source.get("visual", {}).get("theme", "dark"))
+            scene["mediaPath"] = code_scenes.record(root, scene, inputs, theme)
             scene["trimStartFrames"] = 0
         if scene["template"] in {"image", "video"}:
             file = contract.local_file(root, scene["content"]["src"], "content.src")
@@ -120,7 +125,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
                 if scene["trimStartFrames"] + duration > math.floor(info["durationSeconds"]*30 + .01):
                     raise M2VError(f"幕 {scene['id']} 视频剩余时长不足，请更换素材或缩短镜头")
     props = copy.deepcopy(source)
-    props.update(visual={"theme": source.get("visual", {}).get("theme", "dark")},
+    props.update(visual={"theme": theme},
                  compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)
     del props["scenes"]
     media_dir = root / "outputs/media"
@@ -136,9 +141,12 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     inputs["file:" + master.relative_to(root).as_posix()] = sha
     inputs["renderer"] = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     logger.info("统一文章准备：%d 幕，%d 帧，TTS 缓存命中 %d", len(scenes), cursor, hits)
-    return save_prepared(root, project=project, composition_id="ArticleExplainer", props=props,
+    prepared = save_prepared(root, project=project, composition_id="ArticleExplainer", props=props,
         width=1080, height=1920, fps=30, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
         audio={"segments": [{"sceneId": "master", "path": master.relative_to(root).as_posix(),
             "startFrame": 0, "durationInFrames": cursor, "sha256": sha}], "cacheHits": hits})
+    # 阅读速度只报告不阻断，因此放在准备产物写盘之后：报告写不成也不该让准备失败。
+    reading_pace.write(root, prepared)
+    return prepared
 
 

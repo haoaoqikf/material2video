@@ -4,7 +4,7 @@
 
 ## 全片与场景
 
-全片声明 `fps: 30`、`width: 1080`、`height: 1920`、`title`、`input`、可选 `targetSeconds`、可选 `visual: {"theme":"dark"}`（支持 dark/light）、可选顶层 `soundtrack` 和非空 `scenes`（最多 300 幕）。
+全片声明 `fps: 30`、`width: 1080`、`height: 1920`、`title`、`input`、可选 `targetSeconds`、可选 `visual: {"theme":"<主题名>"}`（主题名单与默认值见 [视觉主题](design-tokens.md#视觉主题)）、可选顶层 `soundtrack` 和非空 `scenes`（最多 300 幕）。
 
 `input` 为 `{"kind":"article"}` 时绑定作品 `article.md` 或明确采用的 `article.accepted.md`（也可在 `project.materials.article` 指定作品内文件），必须先通过源文语义审查；为 `{"kind":"topic","topic":"<非空主题>"}` 时只声明主题，跳过源文与源文语义审查，此时每幕必须声明 `keywords`。`targetSeconds` 为 1～600 的整数，默认 60，只用于分配无旁白镜头的剩余时长。
 
@@ -32,7 +32,7 @@
 
 组件从 `m2v/code-scene` 取得上下文，用 `useSceneContext()` 调用 `ready()` 声明字体与自有资源就绪，并读取 `running`、`elapsedSeconds`、`progress` 启动和驱动动画；组件同时收到 `props`、`fps`、`durationInFrames`、`segmentWindows`（本幕旁白段在本幕内的帧窗口）与 `theme`。可用的共享依赖为 React、`motion`、`three`、`@react-three/fiber`、`@react-three/drei`、`gsap` 与 `echarts`（`Chart` 为固定画布的 ECharts 封装）。
 
-录制在无头 Chromium 中实时进行：正文区域固定 864×920，位于标题下方，标题与字幕由共享外壳绘制，作品代码不覆盖字幕；只开放作品 `assets/` 与仓库字体，外网请求、WebSocket、超时与运行异常都会让 `prepare` 失败且不保存准备记录。录制页按分镜主题（`visual.theme`）画出与成片一致的背景和前景色，因为录制片段不带透明通道：作品代码不要依赖透明背景，浅色主题下的配色由 `theme` 给出。片段标准化为与镜头帧数完全一致的 30 fps 无声视频，声音由统一音轨处理。
+录制在无头 Chromium 中实时进行：正文区域固定 864×920，位于标题下方，标题与字幕由共享外壳绘制，作品代码不覆盖字幕；只开放作品 `assets/` 与仓库字体，外网请求、WebSocket、超时与运行异常都会让 `prepare` 失败且不保存准备记录。录制页按分镜主题（`visual.theme`）画出与成片一致的背景和前景色，因为录制片段不带透明通道：作品代码不要依赖透明背景，浅色主题下的配色由 `theme` 给出。作品代码拿到的是主题**名字**而不是取好的颜色，因此要覆盖清单里的**每一个**主题；只写「浅色走 A、其余走 B」会在新增主题时静默地把新主题当成深色画。片段标准化为与镜头帧数完全一致的 30 fps 无声视频，声音由统一音轨处理。
 
 `code` 幕允许没有旁白，此时镜头长度取声明的 `durationFrames`，未声明时与其余无旁白镜头平分 `targetSeconds` 的剩余帧数。准备按源码可达输入、`assets/` 全部资源、`props`、本幕时间窗、共享实现与锁文件、浏览器及编码配置绑定缓存，片段与摘要落在 `outputs/code-cache/`；任何一项变化都会让旧准备失效并要求重新准备与完整预演。完整预演和正式导出复用同一段已验收片段，导出不再执行作品代码；自由运行的动画不保证逐像素复现，掉帧或重复帧属于实时录制的已知限制。
 
