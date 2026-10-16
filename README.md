@@ -57,7 +57,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-文章讲解使用 v7 混合媒体多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题），执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；每幕保留 12 帧阅读停留，可选 1～1800 帧画面淡化，完整成片最多 600 秒。自动检查文字溢出、正文侵入字幕区及字幕实际遮挡，完整预演自动验收通过后即可导出；统一 `outputs/review.json` 五项依据为可选评审材料。旧 `production.json`、v6 及更早分镜与旧评审不再适用，须重新编排；不自动迁移。
+文章讲解使用 v7 混合媒体多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题），执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；每幕保留 12 帧阅读停留，可选 1～1800 帧画面淡化，完整成片最多 600 秒。自动检查文字溢出、正文侵入字幕区及字幕实际遮挡，完整预演自动验收通过后即可导出；统一 `outputs/review.json` 五项依据为可选评审材料。画面主题由 `web/src/themes.json` 提供，默认深色、可选浅色或 velvet，见[视觉主题](.agents/skills/material2video/references/design-tokens.md#视觉主题)；准备阶段另写 `outputs/reading-pace.json` 报告每条字幕的阅读速度，超限只提示不阻断。旧 `production.json`、v6 及更早分镜与旧评审不再适用，须重新编排；不自动迁移。
 
 
 作品可以位于仓库外内容根；`M2V_CONTENT_ROOT` 用作默认内容根。架构和材料契约见 [OpenSpec 变更](openspec/specs/modular-video-production/spec.md)，未来能力路线见 [项目规划](docs/PROJECT_PLAN.md)。

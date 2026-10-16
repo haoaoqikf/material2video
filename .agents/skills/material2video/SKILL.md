@@ -53,7 +53,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 
 ## 文章讲解编排原则
 
-文章类型只接受 v7 scenes 多幕讲解，`input.kind` 为 `article` 时绑定源文，为 `topic` 时只声明 `input.topic` 并由逐幕 `keywords` 驱动可选图库检索。按观点、对比、步骤、因果图、图片、视频与本地代码场景选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID；图片、视频与代码幕允许没有旁白，此时用 `durationFrames` 声明镜头长度。默认深色，可选浅色。默认根据旁白原文生成字幕，并烧录到预演和正式成片，无需额外开关，不得仅交付外置字幕；正文留出字幕安全区，无讲话的停顿及阅读尾段不显示字幕。每段实际 TTS 决定时间，无旁白镜头按声明帧数或目标剩余时长分配，完整成片含阅读停留与淡化不超过 600 秒；v6 及更早分镜须重新编排。素材只能来自 `assets/media/` 中已导入并留证的内容寻址文件，默认要求 9:16（容差 2%），个别幕可显式 `aspectRatio: "any"`；代码场景的 TSX 入口放在作品 `scenes/` 下，只允许批准的共享依赖；音效用顶层 `soundtrack` 按 `sceneId`/`segmentId`/`offsetMs` 定位，可用内置提示音或本地素材。
+文章类型只接受 v7 scenes 多幕讲解，`input.kind` 为 `article` 时绑定源文，为 `topic` 时只声明 `input.topic` 并由逐幕 `keywords` 驱动可选图库检索。按观点、对比、步骤、因果图、图片、视频与本地代码场景选择模板，旁白和画面摘要独立，展示项绑定本幕旁白 ID；图片、视频与代码幕允许没有旁白，此时用 `durationFrames` 声明镜头长度。默认深色，可选浅色或 velvet（主题清单见 [设计令牌](references/design-tokens.md#视觉主题)；主题可声明转场时长与阅读停留，未声明则沿用分镜）。默认根据旁白原文生成字幕，并烧录到预演和正式成片，无需额外开关，不得仅交付外置字幕；正文留出字幕安全区，无讲话的停顿及阅读尾段不显示字幕。准备阶段另写 `outputs/reading-pace.json` 报告每条字幕的阅读速度，超限只提示不阻断。每段实际 TTS 决定时间，无旁白镜头按声明帧数或目标剩余时长分配，完整成片含阅读停留与淡化不超过 600 秒；v6 及更早分镜须重新编排。素材只能来自 `assets/media/` 中已导入并留证的内容寻址文件，默认要求 9:16（容差 2%），个别幕可显式 `aspectRatio: "any"`；代码场景的 TSX 入口放在作品 `scenes/` 下，只允许批准的共享依赖；音效用顶层 `soundtrack` 按 `sceneId`/`segmentId`/`offsetMs` 定位，可用内置提示音或本地素材。
 
 先阅读源文并填写 outputs/input-review.json（`topic` 输入跳过该审查），再制作分镜、导入素材与配音。完整有声预演自动验收后即可导出；可按需填写 outputs/review.json，不再要求旧 production.json 门禁。详见 [分镜结构](references/storyboard-schema.md)、[文章创作](references/article-to-storyboard.md)、[媒体素材与音效](references/article-media-and-sound.md)和[评审量表](references/visual-review-rubric.md)。
 
