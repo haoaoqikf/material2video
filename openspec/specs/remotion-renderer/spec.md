@@ -13,36 +13,29 @@ Remotion 的官方规则与本项目既有渲染契约是同一条要求（所�
 
 ### Requirement: 画面由 React composition 渲染
 
-系统 SHALL 以共享 React composition 作为唯一画面执行者，SHALL 由 Remotion 负责逐帧渲染与编码。
-composition SHALL 按视频类型绘制共享画面，通用类型 SHALL 使用 v7 六模板与本地 React 代码场景在准备阶段录制的无声片段，
-但作品 SHALL NOT 自行注册 Remotion 根、composition、契约页或时间轴。
+系统 SHALL 以共享 React composition 为唯一合成执行者，由 Remotion 逐帧渲染编码。general SHALL 使用 v8 全画布本地代码场景在 prepare 录制的无声片段；作品 MUST NOT 自行注册 Remotion 根、composition、契约页或共享时间轴。
 
-所有可达画面组件 SHALL 通过帧号钩子或共享场景参数取得当前帧，SHALL NOT 依赖挂钟时间、
-系统随机数、CSS `animation` / `transition` / `@keyframes`，也 SHALL NOT 依赖组件库自带的
-计时器或布局测量循环。渲染路径 SHALL 在开渲前对共享源码和 CSS 做
-静态检查，命中禁用写法时 SHALL 报出文件与位置，SHALL NOT 静默继续。
-作品 `scenes/` 下的代码场景入口 SHALL NOT 进入 composition：它只在准备阶段的独立录制页运行，
-其自由动画不承诺逐像素复现，正式导出只回放已验收片段。
+共享 composition 可达画面 SHALL 由帧号或共享场景参数驱动，不依赖挂钟、系统随机数、CSS 动画或组件自带计时器。渲染前 SHALL 对共享源码和 CSS 静态检查，命中禁用写法时报出文件位置并拒绝。作品 scenes 代码 SHALL 仅运行于独立录制页，不进入 composition；其自由动画不承诺逐像素复现，正式导出只回放已验收片段。
 
 #### Scenario: 使用帧号钩子
 
-- **WHEN** 共享组件需要计算某个元素在第 N 帧的位置、透明度或数值
-- **THEN** 它由帧号与运行时能力算出，结果与求值顺序、真实时间无关
+- **WHEN** 共享合成组件计算第 N 帧的显示状态
+- **THEN** 结果来自帧号和运行时参数，与求值顺序和真实时间无关
 
 #### Scenario: 组件库自带计时器
 
-- **WHEN** 可达组件树中出现由真实时钟或 CSS 动画驱动的实现，且未经确定性适配
-- **THEN** 静态检查报错并指出该组件，渲染不开始
+- **WHEN** 共享可达组件包含未经确定性适配的真实计时器或 CSS 动画
+- **THEN** 静态检查拒绝并定位源文件
 
 #### Scenario: 随机访问一帧
 
-- **WHEN** 渲染器或验收入口直接跳到任意帧求值两次
-- **THEN** 两次得到的画面在确定性阈值内一致
+- **WHEN** 同一已准备作品的同一帧被直接求值两次
+- **THEN** 回放同一片段，满足既有画面确定性阈值
 
 #### Scenario: 作品试图声明独立 composition
 
-- **WHEN** 作品声明独立根注册或 Remotion composition（分镜 `code` 幕声明的本地入口除外）
-- **THEN** 材料校验失败，作品必须由共享 composition 承载
+- **WHEN** 作品试图声明独立 Remotion 根或 composition
+- **THEN** 拒绝该材料，要求使用共享合成及本地录制入口
 
 ### Requirement: 确定性以画面等价为准
 
