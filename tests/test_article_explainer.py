@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
-from m2v.types.article import adapter, explainer, explainer_prepare as prepare, explainer_review as review
+from m2v.types.general import adapter, explainer, explainer_prepare as prepare, explainer_review as review
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,7 +24,7 @@ def board():
 
 def project(tmp_path, data=None):
     root = tmp_path / "video"
-    create_project(root, "article-narrative", {"storyboard": "storyboard.json"})
+    create_project(root, "general", {"storyboard": "storyboard.json"})
     manifest_path = root / "project.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
@@ -190,7 +190,7 @@ def test_silent_media_scene_takes_target_remainder(tmp_path, monkeypatch):
     (root / "assets/media").mkdir(parents=True)
     (root / "assets/media/x.png").write_bytes(b"fixture")
     # 素材实测契约由 media 测试覆盖，这里只验证无旁白幕的帧分配。
-    monkeypatch.setattr("m2v.types.article.media_assets.validate_scene",
+    monkeypatch.setattr("m2v.types.general.media_assets.validate_scene",
                         lambda root, scene: {"width": 1080, "height": 1920, "durationSeconds": None})
     result = adapter.prepare(root, manifest)
     shot = result["props"]["compiledScenes"][1]
@@ -223,47 +223,21 @@ def test_fixed_examples_cover_all_templates():
     assert found == explainer.TEMPLATES
 
 
-def test_media_change_invalidates_child_and_parent(tmp_path, monkeypatch):
-    from m2v.cli import _register_builtins
-    from m2v.types.general import adapter as general
-    from m2v.core.project import _write_json
-    _register_builtins()
-    parent = tmp_path / "parent"
-    parent.mkdir()
+def test_media_change_invalidates_general_prepared(tmp_path, monkeypatch):
     source = ROOT / "examples/darts-trial-and-error"
     data = json.loads((source / "storyboard.json").read_text(encoding="utf-8"))
-    child, manifest = project(parent, data)
-    shutil.copytree(source / "assets", child / "assets")
-    image = next((child / "assets/media").glob("*.png"))
+    root, manifest = project(tmp_path, data)
+    shutil.copytree(source / "assets", root / "assets")
     fake_tts(monkeypatch)
-    prepared = adapter.prepare(child, manifest)
-    # 媒体验收在独立测试中覆盖，此处验证无人工评审也能完整嵌入。
-    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *a, **kw: None)
-    preview_file = child / "outputs/previews/video.mp4"
-    preview_file.parent.mkdir()
-    preview_file.write_bytes(b"test preview fixture")
-    preview = {"path": "outputs/previews/video.mp4", "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest(),
-               "frames": prepared["durationInFrames"], "preparedFingerprint": prepared["preparedFingerprint"]}
-    _write_json(child / "outputs/preview-record.json", preview)
-    create_project(parent, "general", {"plan": "general-plan.json"})
-    _write_json(parent / "general-plan.json", {"schemaVersion": 1, "scenes": [{"id": "article", "type": "article-narrative", "project": "video"}]})
-    parent, project_manifest = load_project(parent)
-    result = general.prepare(parent, project_manifest)
-    scene = result["props"]["compiledScenes"][0]
-    assert scene["embeddedComposition"] == "ArticleExplainer"
-    assert scene["embeddedProps"]["version"] == 6
-    assert scene["embeddedProps"]["subtitleCues"] == prepared["props"]["subtitleCues"]
-    assert scene["embeddedProps"]["subtitleCues"]
-    assert scene["durationInFrames"] == prepared["durationInFrames"]
-    assert result["audio"]["segments"][0]["durationInFrames"] == prepared["durationInFrames"]
-    image.write_bytes(b"changed")
+    adapter.prepare(root, manifest)
+    next((root / "assets/media").glob("*.png")).write_bytes(b"changed")
     with pytest.raises(M2VError, match="文件已变化"):
-        load_current_prepared(parent, project_manifest)
+        load_current_prepared(root, manifest)
 
 
 @pytest.mark.parametrize("theme", ["dark", "light"])
 def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, theme):
-    from m2v.types.article.explainer_render import layout_check
+    from m2v.types.general.explainer_render import layout_check
     from m2v.engine.contract_page import serve_contract_page
     from playwright.sync_api import sync_playwright
     data = board(); data["visual"] = {"theme": theme}
@@ -310,7 +284,7 @@ def test_browser_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, t
 
 
 def test_browser_blocks_overflow(tmp_path, monkeypatch, chromium_ready):
-    from m2v.types.article.explainer_render import layout_check
+    from m2v.types.general.explainer_render import layout_check
     data = board(); data["scenes"][0]["content"]["summary"]["text"] = "很长的摘要" * 150
     data["scenes"][0]["content"]["summary"]["keywords"] = []
     root,manifest = project(tmp_path,data);fake_tts(monkeypatch)
@@ -319,7 +293,7 @@ def test_browser_blocks_overflow(tmp_path, monkeypatch, chromium_ready):
 
 
 def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready):
-    from m2v.types.article import explainer_render
+    from m2v.types.general import explainer_render
     root, manifest = project(tmp_path); fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
     # 重现缺失层级：文字与包围盒仍存在，但场景背景盖在字幕之上。

@@ -1,1 +1,0 @@
-"""Article narrative video type."""

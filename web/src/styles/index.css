@@ -10,15 +10,11 @@
  *     带上它，`line-height: 1.5`、标题的 `margin`、`font-size` 继承等会整体
  *     换一套——不报错，只是每个字都挪一点。`box-sizing: border-box` 由
  *     `base.css` 的 `*` 规则提供，不依赖 preflight；
- *   - `.gen/active-tailwind.css`：Tailwind source 索引，由清单生成器按当前
- *     作品整体覆盖（只有 `@source` 指令），把作品 `scenes/` 与 `assets/`
- *     里的完整类名交给扫描；
  *   - `tokens.css`：设计令牌真源（`--m2v-*` / `--fig-*` 只在这里声明）；
  *   - `base.css`：盒模型与页面根样式，量测前提。
  */
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
-@import '../../.gen/active-tailwind.css';
 @import './tokens.css';
 @import './base.css';

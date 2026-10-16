@@ -2,7 +2,7 @@
 import json
 import pytest
 from m2v.core.errors import M2VError
-from m2v.types.article import adapter
+from m2v.types.general import adapter
 from test_article_explainer import project, fake_tts
 
 
@@ -11,8 +11,8 @@ def test_adapter_uses_v6_composition(tmp_path,monkeypatch):
     result=adapter.prepare(root,manifest)
     assert result["compositionId"] == "ArticleExplainer"
     assert result["props"]["version"] == 6
-    tracks=adapter.audio_tracks(root,manifest,result)
-    assert len(tracks)==1 and tracks[0]["path"].is_file()
+    tracks=result["audio"]["segments"]
+    assert len(tracks)==1 and (root / tracks[0]["path"]).is_file()
 
 
 def test_review_gate_rejects_missing_full_preview(tmp_path,monkeypatch):
@@ -30,4 +30,4 @@ def test_old_preparation_is_rejected(tmp_path,monkeypatch):
     from m2v.core.project import save_prepared
     save_prepared(root,project=manifest,composition_id="M2V",props={"version":4},width=1080,height=1920,fps=30,duration_in_frames=1200,inputs=result["inputs"])
     with pytest.raises(M2VError,match="旧文章准备"):
-        adapter.audio_tracks(root,manifest,result)
+        adapter.explainer_render.current(root,manifest)

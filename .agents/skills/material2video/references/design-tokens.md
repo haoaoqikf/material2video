@@ -128,7 +128,7 @@
 `--m2v-dur-fast` / `-base` / `-slow` = 240 / 360 / 560ms（约 7 / 11 / 17 帧）只是
 **配方里的时长刻度**，注释里换算成 30fps 的帧数供作者取用。画面本身仍然只由帧号
 驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见
-[代码场景](code-scenes.md) 与[渲染契约](render-contract.md)。
+[渲染契约](render-contract.md)。
 
 ## 怎么用
 
@@ -146,5 +146,4 @@
 ```
 
 Tailwind 类与令牌可以混用；需要令牌做任意值时用 `w-[var(--m2v-content-width)]`
-这类写法。作品代码场景只扫描当前作品的 `scenes/` 与 `assets/`，并且类名必须是
-完整字符串——细节见[代码场景](code-scenes.md)。
+这类写法。类名使用完整字符串，画面仅由帧号驱动。

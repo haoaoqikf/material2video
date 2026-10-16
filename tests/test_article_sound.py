@@ -13,7 +13,7 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
 from m2v.engine.sound import asset_digest
-from m2v.types.article import adapter, explainer, soundtrack
+from m2v.types.general import adapter, explainer, soundtrack
 from test_article_explainer import board, fake_tts, project
 
 

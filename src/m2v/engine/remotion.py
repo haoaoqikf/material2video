@@ -37,17 +37,14 @@ import subprocess
 import threading
 import time
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 import m2v.core.assets as assets
 import m2v.engine.bundle_cache as bundle_cache
 import m2v.engine.perf as perf
-import m2v.core.code_gate as code_gate
-import m2v.core.code_scenes as code_scenes
 import m2v.engine.contract_page as contract_page
-import m2v.engine.scene_manifest as scene_manifest
 import m2v.core.source_policy as source_policy
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import file_digest, fingerprint as calculate_fingerprint
@@ -336,56 +333,6 @@ def _run(
     return subprocess.CompletedProcess(command, returncode, "", "")
 
 
-def prepare_composition_entry(
-    *,
-    web_dir: Path,
-    storyboard_path: str | Path,
-    content_root: str | Path | None = None,
-) -> Path:
-    """按当前作品重建代码场景静态清单，并检查其归属与安全边界。
-
-    清单在每次 preview / review / render 前整体覆盖：只包含当前作品分镜
-    引用的模块，切换作品不会残留上一个作品的引用。分镜声明了代码场景时，
-    模块在这里解析归属并确认存在——缺失会在打包/起浏览器之前失败；
-    依赖白名单与源码安全闸门也在这里执行，违规即终止，预览与导出都不会开始。
-
-    返回的是本次生成的代码场景清单路径。
-    """
-    try:
-        Path(storyboard_path).read_text(encoding="utf-8")
-    except OSError as exc:
-        raise RemotionError(f"分镜读取失败，无法重建代码场景清单：{exc}") from exc
-    manifest = scene_manifest.generate(
-        web_dir=web_dir, storyboard_path=storyboard_path, content_root=content_root,
-    )
-    _check_code_scene_boundaries(
-        web_dir=web_dir, storyboard_path=Path(storyboard_path), content_root=content_root
-    )
-    return manifest
-
-
-def _check_code_scene_boundaries(
-    *, web_dir: Path, storyboard_path: Path, content_root: str | Path | None
-) -> None:
-    """对当前作品的代码场景执行依赖白名单与安全闸门。
-
-    只有分镜声明了代码场景时才解析归属；违规一次性全部列出，
-    让 AI 一次修完而不是改一个撞一个。
-    """
-    try:
-        data = json.loads(storyboard_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise RemotionError(f"分镜读取失败，无法检查代码场景边界：{exc}") from exc
-    if not any(True for _ in code_scenes.iter_code_scenes(data)):
-        return
-    violations = code_gate.check_storyboard(
-        article_dir=Path(storyboard_path).resolve().parent, storyboard_data=data
-    )
-    if violations:
-        detail = "\n".join(v.render(web_dir) for v in violations)
-        raise RemotionError(f"代码场景违反依赖白名单或安全边界：\n{detail}")
-
-
 def bundle(
     *,
     web_dir: Path,
@@ -404,20 +351,16 @@ def bundle(
     两条路径各配一遍迟早会漂移，而漂移的表现是「Studio 里对、渲染出来错」。
 
     启用缓存（默认）时，产物落进被忽略的 `web/.cache/m2v-bundles/<键>/`：
-    键覆盖源码可达集合、生成的场景清单、`public/` 静态资产、打包配置与运行版本，
+    键覆盖源码可达集合、`public/` 静态资产、打包配置与运行版本，
     命中前逐文件复核完整性。`cache=False`（CLI 的 `--no-bundle-cache`）时每次都
     打到调用方给的临时目录，用于诊断与基准对照。
 
-    无论命中与否，**分镜校验、代码场景边界检查与源码确定性扫描都会执行**：
+    无论命中与否，**源码确定性扫描都会执行**：
     缓存省掉的是打包，不是门禁。
     """
     web = Path(web_dir)
-    # `.gen/` 是全局共享目录：生成到打包之间必须串行，否则并发的另一支作品
-    # 会把清单覆盖掉，而缓存会把这份污染固化下来。
+    # 同一前端工作区的构建串行，避免共享工具缓存被并发改写。
     with bundle_cache.generation_lock(web):
-        prepare_composition_entry(
-            web_dir=web, storyboard_path=storyboard_path, content_root=content_root,
-        )
         violations = source_policy.scan(build_inputs())
         if violations:
             detail = "\n".join(item.render(web) for item in violations)
@@ -441,8 +384,6 @@ def bundle(
         # 参数必须与写溯源时**逐字相同**，否则溯源里的键与复核时算出来的对不上，
         # 每次渲染后都会被判成「旧资产」。
         fingerprint = build_input_fingerprint(
-            storyboard_path=storyboard_path,
-            content_root=content_root or workspace_root,
             workspace_root=workspace_root,
         )
         base = fingerprint["files"]
@@ -855,23 +796,8 @@ _IMPORT_PATTERNS = (
 _RESOLVE_SUFFIXES = ("", ".ts", ".tsx", ".css", ".json", ".mjs", "/index.ts", "/index.tsx")
 
 
-#: 作品文件的指纹键前缀：读自场景清单的 workspaceRoot，让外部内容根的
-#: 作品文件也有**可复核**的键（而不是退化成只剩文件名）。
+#: 外部内容根的显式指纹挂载前缀。
 WORK_MOUNT_PREFIX = "__m2v_workspace__"
-
-_MANIFEST_PATH = Path(".gen/scene-manifest.json")
-
-
-def _manifest_data(repo_root: Path | None = None) -> dict | None:
-    """读当前作品的场景清单；没有或损坏时返回 None。"""
-    manifest_path = contract_page.web_dir(repo_root) / _MANIFEST_PATH
-    if not manifest_path.is_file():
-        return None
-    try:
-        return json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-
 
 def fingerprint_mounts(repo_root: Path | None = None, workspace_root: str | Path | None = None) -> dict[str, Path]:
     """指纹键使用的挂载表：与契约页服务器同一套别名。
@@ -879,13 +805,10 @@ def fingerprint_mounts(repo_root: Path | None = None, workspace_root: str | Path
     构建输入全在 `web/` 下，而工作区根可能是仓库之外的内容根——那时
     `asset_key` 会退化成只记文件名，复核时拼不回去、每一份成片都被判成
     「资产不见了」。挂上 `web/` 的别名之后，键与工作区根在哪无关；
-    作品文件再挂 `__m2v_workspace__`（根读自场景清单），记录与复核
-    两侧走同一份清单，键永远能拼回真实文件。
+    显式内容根使用 `__m2v_workspace__` 挂载，记录和复核采用相同路径键。
     """
     mounts = {**assets.default_mounts(), **contract_page.web_mounts(repo_root)}
-    data = _manifest_data(repo_root)
-    manifest_workspace = data.get("workspaceRoot") if data else None
-    workspace = str(workspace_root) if workspace_root is not None else manifest_workspace
+    workspace = workspace_root
     if workspace:
         mounts[WORK_MOUNT_PREFIX] = Path(str(workspace))
     return mounts
@@ -921,36 +844,7 @@ def _resolve_import(specifier: str, importer: Path, web: Path) -> Path | None:
     return None
 
 
-def _storyboard_modules(storyboard_path: str | Path, content_root: str | Path | None = None) -> list[Path]:
-    """解析当前分镜真正引用的代码场景源文件，避免依赖全局生成清单的最后写入者。"""
-    data = json.loads(Path(storyboard_path).read_text(encoding="utf-8"))
-    source_dir = Path(storyboard_path).resolve().parent
-    found: dict[Path, None] = {}
-    for _scene_path, _scene, module in code_scenes.iter_code_scenes(data):
-        if module:
-            resolved = code_scenes.resolve_module(source_dir, module)
-            if resolved is not None:
-                found[resolved.resolve()] = None
-    return list(found)
-
-
-def _manifest_modules(repo_root: Path | None = None) -> list[Path]:
-    data = _manifest_data(repo_root)
-    result: dict[Path, None] = {}
-    for item in (data or {}).get("modules", []):
-        raw = item.get("module") if isinstance(item, dict) else None
-        if raw and Path(raw).is_file():
-            result[Path(raw).resolve()] = None
-    return list(result)
-
-
-def build_inputs(
-    repo_root: Path | None = None,
-    *,
-    storyboard_path: str | Path | None = None,
-    content_root: str | Path | None = None,
-    scene_modules: Iterable[Path] | None = None,
-) -> list[Path]:
+def build_inputs(repo_root: Path | None = None) -> list[Path]:
     """画面与编码的全部构建输入：从入口出发**沿引用可达**的文件。
 
     刻意不做「扫描整个 `src/`」：那样改一个没有任何画面用到的文件也会让所有
@@ -958,30 +852,13 @@ def build_inputs(
     反面同样要防：可达性算少了会让「改了组件却判成当前」——所以入口、字体、
     依赖清单这些不被 import 的东西必须显式列出来。
 
-    作品级代码场景的入口只有两个确定来源：目录里有分镜时按分镜解析，否则读
-    `.gen/scene-manifest.json`。共享 composition（如金融专题，从不加载作品模块）
-    应显式传 `scene_modules=()`：清单是全局最后写入者，会残留上一篇文章的模块。
     """
     web = contract_page.web_dir(repo_root)
     seen: dict[Path, None] = {}
 
     queue = [candidate for name in _ENTRY_ROOTS if (candidate := web / name).is_file()]
-    if scene_modules is not None:
-        queue.extend(scene_modules)
-    elif storyboard_path:
-        queue.extend(_storyboard_modules(storyboard_path, content_root))
-    else:
-        queue.extend(_manifest_modules(repo_root))
-    generated_indexes = {
-        (web / scene_manifest.GENERATED_MANIFEST).resolve(),
-        (web / ".gen" / "active-tailwind.css").resolve(),
-    }
     while queue:
         resolved = queue.pop().resolve()
-        # 全局生成索引与 active-tailwind.css 都是从当前作品派生的临时文件，
-        # 不同作品构建时会互相覆盖。真正的代码场景源文件与其导入会按分镜进入 queue。
-        if resolved in generated_indexes:
-            continue
         if resolved in seen:
             continue
         seen[resolved] = None
@@ -1004,28 +881,18 @@ def build_inputs(
 def build_input_fingerprint(
     repo_root: Path | None = None,
     *,
-    storyboard_path: str | Path | None = None,
-    content_root: str | Path | None = None,
     workspace_root: str | Path | None = None,
-    scene_modules: Iterable[Path] | None = None,
 ) -> dict:
     """成片溯源用的构建输入指纹。
 
     口径与页面路径一致（同样是 `{"files": {...}, "digest": ...}`），
     因此 `provenance_status` 的复核逻辑两条路径共用一套。
     """
-    data = _manifest_data(repo_root)
-    effective_workspace = workspace_root or (data.get("workspaceRoot") if data else None)
-    mounts = fingerprint_mounts(repo_root, effective_workspace)
+    mounts = fingerprint_mounts(repo_root, workspace_root)
     root = contract_page.web_dir(repo_root)
-    selected_modules = (
-        scene_modules
-        if scene_modules is not None
-        else _storyboard_modules(storyboard_path, content_root) if storyboard_path else ()
-    )
     files = {
         assets.asset_key(path, root, mounts): file_digest(path)
-        for path in build_inputs(repo_root, scene_modules=selected_modules)
+        for path in build_inputs(repo_root)
     }
     ordered = dict(sorted(files.items()))
     return {"files": ordered, "digest": calculate_fingerprint(ordered)}

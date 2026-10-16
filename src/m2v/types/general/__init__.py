@@ -1,1 +1,1 @@
-"""General multi-scene video type."""
+"""通用 v6 混合媒体讲解类型。"""

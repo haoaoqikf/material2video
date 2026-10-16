@@ -53,10 +53,7 @@ def _is_motion_off(value: str) -> bool:
 def scan(build_inputs: list[Path]) -> list[Violation]:
     """扫描 composition 的可达源码。
 
-    判据只有一条：这些文件是不是只按帧号决定画面。第三方组件的接入路径
-    （分类表、帧同步包装层）已随场景树架构移除，因此这里不再有「分类表里
-    额外接入的源码另算一遍」的分支——画面只能用受控原语或作品级代码场景
-    表达，而代码场景同样要过这道闸门。
+    共享 composition 及其可达样式只按帧号决定画面，禁止隐式时间和随机源。
     """
     violations: list[Violation] = []
     for path in sorted({p.resolve() for p in build_inputs}):

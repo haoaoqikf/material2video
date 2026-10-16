@@ -80,7 +80,7 @@ def test_voice_and_rate_change_cache_keys():
 
 def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch):
     from test_article_explainer import project, fake_tts, board
-    from m2v.types.article import adapter
+    from m2v.types.general import adapter
     root, manifest = project(tmp_path)
     calls = fake_tts(monkeypatch)
     manifest.pop("tts")
@@ -116,33 +116,22 @@ def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch
 
 
 def test_general_silent_has_no_voice_requirement(tmp_path):
-    from test_general_video import _project
+    import shutil
+    from pathlib import Path
+    from test_article_explainer import project
     from m2v.types.general import adapter
-    root, manifest = _project(tmp_path, {"schemaVersion": 1, "scenes": [
-        {"id": "a", "type": "graphic", "duration": {"frames": 30}}]})
+    source = Path(__file__).resolve().parents[1] / "examples/darts-trial-and-error"
+    data = json.loads((source / "storyboard.json").read_text(encoding="utf-8"))
+    scene = next(s for s in data["scenes"] if s["template"] == "image")
+    scene["narrationSegments"] = []
+    scene["content"].pop("caption", None)
+    scene["durationFrames"] = 30
+    scene["transition"] = "cut"
+    scene.pop("transitionFrames", None)
+    data["scenes"] = [scene]
+    data.pop("soundtrack", None)
+    root, manifest = project(tmp_path, data)
+    shutil.copytree(source / "assets", root / "assets")
     manifest.pop("tts")
     (root / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
-    assert "tts" not in adapter.prepare(root, manifest)["inputs"]
-
-
-def test_general_override_is_recorded_and_changes_fingerprint(tmp_path, monkeypatch):
-    from test_tts_backend import _project, _prepare_with_capture, _speaking_plan, _tone
-    from m2v.types.general import adapter
-    root, manifest = _project(tmp_path, _speaking_plan(), {"voice": "zh-CN-YunxiNeural"})
-    _tone(root / "assets/bed.wav", 1)
-    first = _prepare_with_capture(root, manifest, monkeypatch)
-    second = adapter.prepare(root, manifest, voice="zh-CN-YunyangNeural", rate="-6%")
-    actual = json.loads(second["inputs"]["tts"])
-    assert actual == {"backend": "edge-tts", "voice": "zh-CN-YunyangNeural", "rate": "-6%", "source": "command-line"}
-    assert first["preparedFingerprint"] != second["preparedFingerprint"]
-
-
-def test_general_segment_rate_remains_traceable(tmp_path, monkeypatch):
-    from test_tts_backend import _project, _prepare_with_capture, _speaking_plan, _tone
-    plan = _speaking_plan()
-    plan["scenes"][0]["speech"] = {"rate": "-6%", "headPad": 0}
-    root, manifest = _project(tmp_path, plan, {"voice": "zh-CN-YunxiNeural"})
-    _tone(root / "assets/bed.wav", 1)
-    prepared = _prepare_with_capture(root, manifest, monkeypatch)
-    assert prepared["_seen"]["rate"] == "-6%"
-    assert json.loads(prepared["inputs"]["speech:spoken"])["rate"] == "-6%"
+    assert json.loads(adapter.prepare(root, manifest)["inputs"]["tts"]) == {}

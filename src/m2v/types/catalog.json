@@ -80,8 +80,8 @@
       ]
     },
     {
-      "name": "article-narrative",
-      "description": "混合图片视频的统一文章与主题讲解",
+      "name": "general",
+      "description": "通用",
       "summary": "v6 旁白驱动的观点、对比、步骤、因果图、图片与视频讲解，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
       "plan": "以六种受控模板制作 v6 多幕讲解视频，保留真实配音、输入语义审查、完整预演自动验收与可选画面评审。",
       "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[制作流程](references/production-workflow.md)：v6 混合媒体多幕讲解。",
@@ -120,38 +120,6 @@
                     "text": "填写完整旁白。"
                   }
                 ]
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "general",
-      "description": "多场景通用视频编排",
-      "summary": "受控图文场景、金融/文章完整片段及作品级 React 场景的多场景时间轴。首版 1080×1920、30 fps，支持硬切、交叉淡化、可选口播与本地音床。",
-      "plan": "以帧为单位编排受控图文、完整专用类型片段与受约束 React 场景，统一处理场景边界、转场、逐场景口播与可选本地音床、字幕。",
-      "skillGuide": "按独立的 `general-plan.json` 组合受控图文、完整金融/文章片段及公开 React code scene。",
-      "materials": [
-        {
-          "name": "plan",
-          "file": "general-plan.json",
-          "template": {
-            "schemaVersion": 1,
-            "fps": 30,
-            "width": 1080,
-            "height": 1920,
-            "scenes": [
-              {
-                "id": "opening",
-                "type": "graphic",
-                "duration": {
-                  "frames": 90
-                },
-                "data": {
-                  "title": "标题",
-                  "body": "编辑 general-plan.json"
-                }
               }
             ]
           }

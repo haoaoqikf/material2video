@@ -21,33 +21,32 @@
 | `width` / `height` / `fps` / `durationInFrames` | 画面参数与派生总时长 |
 | `inputs` | 逐个输入的 sha256：作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>` 与声音配置 |
 | `materialFingerprint` / `preparedFingerprint` | 作品描述与整份准备记录的指纹 |
-| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。文章 v6 与通用类型的音床始终是整片一条母版轨（`sceneId` 为 `master`）；通用类型没有音床时逐幕一条；全片无口播且无音床时为空数组（渲染无声）。`audio.cacheHits` 记本次命中数 |
+| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。通用 v6 始终输出整片一条母版轨（`sceneId` 为 `master`），包含旁白、音效、音床或对应静音。`audio.cacheHits` 记本次命中数 |
 | `subtitles` | 全片字幕 cue：`startFrame`、`endFrame`、`text` |
-| `dependencies` | 嵌入作品的准备指纹；子作品重新准备会让父作品的准备记录过期 |
 
 入口：
 
 ```bash
-uv run m2v prepare --project videos/article-narrative/<slug>
-uv run m2v validate --project videos/article-narrative/<slug>
-uv run m2v preview --project videos/article-narrative/<slug>
-uv run m2v review-template --project videos/article-narrative/<slug>
-uv run m2v render --project videos/article-narrative/<slug>
+uv run m2v prepare --project videos/general/<slug>
+uv run m2v validate --project videos/general/<slug>
+uv run m2v preview --project videos/general/<slug>
+uv run m2v review-template --project videos/general/<slug>
+uv run m2v render --project videos/general/<slug>
 ```
 
 ## 工作流
 
 1. 口播写在它所属的幕/场景里：文章 v6 用分段口播 `narrationSegments`（只接受分段形式，
-   不接受整段字符串；图片与视频幕可以为空），通用类型用该幕的 `narration`；静音幕省略口播。
+   不接受整段字符串；图片与视频幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
    文章 v6 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 12 帧阅读时间。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
 4. `m2v preview --project <目录>` 生成完整预演（文章 v6 会先跑浏览器排版量测）；
-   `m2v article keyframes --storyboard <分镜>` 单独输出各幕结果帧供静态检查。
-5. `m2v render --project <目录>` 在准备、完整预演和评审都仍绑定当前材料时输出正式视频。
+   `m2v general keyframes --storyboard <分镜>` 单独输出各幕结果帧供静态检查。
+5. `m2v render --project <目录>` 在准备和完整预演均绑定当前材料并通过自动验收时输出正式视频；人工画面评审为可选工具。
 
 文章 v6 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
-`m2v article input-review --storyboard
+`m2v general input-review --storyboard
 <分镜>` 生成 `outputs/input-review.json`，填好后 status 为 `pass`、依据非空且 problemSpans
 为空；源文或正文计数变化会让审查过期，须重新审查。计数只用于记录，不设字数区间。见
 [讲解输入审查](input-review.md)。
@@ -130,7 +129,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 - `voice` 必须是合成服务的音色名（形如 `zh-CN-XiaoxiaoNeural`）；`rate` 为 −50% 至 +50% 的有符号百分比。
 - 用 `m2v voices` 看当前可用音色（可用 `--locale all`、`--json`）。这条命令需要联网，只读，不写文件。
   音色**是否真实存在**只在合成时才能确定：准备前不联网是既有约束，所以配置校验只查格式。
-- 旧有声作品缺少 `tts.voice` 时需先选音；无旁白、仅音床和 general 纯嵌入不要求父作品选音，内嵌作品保持自身配音。
+- 旧有声作品缺少 `tts.voice` 时需先选音；无旁白及仅音床作品不要求选音。
 - 改音色或语速会让已有语音缓存失效并重新合成，这正是"换声音"应有的代价。
 
 ### 助手自动选择与溯源
@@ -152,7 +151,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 }
 ```
 
-上面的零摘要仅示意字段，必须换为真实值：调用 `m2v.engine.tts.narration_digest(texts)`，对按播放顺序排列的非空自身旁白字符串数组，以保留中文、无额外空格的 JSON UTF-8 计算 SHA256。文章逐幕逐段收集 `text`（图片与视频幕的旁白段同样计入）；general 每幕 narration 数组先拼成字符串，排除嵌入片段。保留原文和分段边界，忽略空白段。
+上面的零摘要仅示意字段，必须换为真实值：调用 `m2v.engine.tts.narration_digest(texts)`，对按播放顺序排列的非空自身旁白字符串数组，以保留中文、无额外空格的 JSON UTF-8 计算 SHA256。通用类型逐幕逐段收集 `text`（图片与视频幕的旁白段同样计入）。保留原文和分段边界，忽略空白段。
 
 助手记录只接受 mode、非空 rationale 和 64 位小写 narrationSha256。旁白改变会阻断 prepare，要求重新判断并更新记录；画面变化不要求重选。手动选择只填 voice，无需 selection；手动修改作品音色时删除旧 selection。`--voice` 覆盖会标记 command-line 来源，并丢弃助手理由；仅覆盖语速不跳过旁白摘要检查。
 
@@ -231,8 +230,7 @@ uv run m2v render --project videos/article-narrative/<slug>
 
 ## 音床与音效（`soundtrack`）
 
-通用类型（`general`）的计划可以声明 `soundtrack.music`，文章 v6 分镜的顶层 `soundtrack`
-同时接受 `music` 与 `effects`：作品目录内本地相对路径的音床素材、增益、循环与淡入淡出，
+通用类型（`general`）的 v6 分镜顶层 `soundtrack` 接受 `music` 与 `effects`：作品目录内本地相对路径的音床素材、增益、循环与淡入淡出，
 以及按幕定位的音效（内置提示音或本地素材）。文章 v6 的媒体与音效细节见
 [文章媒体与音效](article-media-and-sound.md)。
 
@@ -260,12 +258,9 @@ false；淡入淡出 0–60000ms，默认各 500ms。素材缺失或损坏让 pr
   再按字幕讲话区间生成闪避包络与音床混合，并把音效按幕/段起点叠上去。口播保持清晰、
   音床在讲话时被压低。母版轨严格裁到全片时长，循环音床不会把成片拖长。
 - 拼接按**全片帧边界**推进：每幕占它到下一幕起点为止的帧数，没有口播的幕补静音，
-  嵌入片段用子作品自己的整片音轨；闪避包络和字幕一样用全片时间。
+  闪避包络和字幕一样用全片时间。
   不能按口播时长首尾相接——那样人声会整体前移，音床在旁白结束处就断了。
-- 交叉淡化在拼接时按槽位施加线性淡入淡出（帧数取相邻幕的 `transition.frames`，不超过槽位一半），
-  母版轨因此仍与画面共享淡化进度；逐幕轨则继续用 `afade` 实现同一件事。
-- **音效只对文章 v6 开放**：它按 `sceneId`（可选 `segmentId`）与 `offsetMs` 定位，
-  起点必须落在全片时长内；通用类型没有可信的音效起点锚点（旧的语义节拍时间轴已随旧子系统
-  删除），声明 `soundtrack.effects` 会让材料校验失败并说明原因，而不是猜一个位置。
+- **音效按通用 v6 契约执行**：它按 `sceneId`（可选 `segmentId`）与 `offsetMs` 定位，
+  起点必须落在全片时长内，使用幕或旁白段窗口与 offsetMs 定位。
   内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性合成。
 

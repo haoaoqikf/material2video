@@ -8,6 +8,6 @@
 
 每段旁白给稳定 ID，展示项绑定对应段。关键词需在屏幕文字中存在，步骤按口播顺序排列，因果关系不得循环。图片与视频幕可以没有旁白，此时用 `durationFrames` 声明镜头长度。优先减少信息密度和拆幕，不用复杂动画掩盖内容问题。
 
-全片实际时长不超过 600 秒，包括每幕 12 帧阅读停留和可选淡化帧数；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。代码场景与通用视频无关的约束不作用于 v6 讲解模板。
+全片实际时长不超过 600 秒，包括每幕 12 帧阅读停留和可选淡化帧数；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。通用类型只接受 v6 讲解模板，不接受作品代码场景。
 
 固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例只有 `article.md`、`project.json`、`storyboard.json`、`README.md` 与按需的 `assets/`。

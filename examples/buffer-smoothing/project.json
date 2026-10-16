@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "buffer-smoothing",
-  "type": "article-narrative",
+  "type": "general",
   "materials": {
     "storyboard": "storyboard.json"
   },

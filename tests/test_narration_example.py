@@ -1,7 +1,7 @@
 """三个示例均使用独立旁白与屏幕摘要。"""
 import json
 from pathlib import Path
-from m2v.types.article import explainer
+from m2v.types.general import explainer
 ROOT=Path(__file__).resolve().parents[1]
 
 

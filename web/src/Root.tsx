@@ -2,7 +2,6 @@ import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
-import { GeneralVideo, type GeneralVideoProps } from './compositions/GeneralVideo';
 import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
 import './styles/index.css';
 
@@ -56,17 +55,6 @@ export const RemotionRoot: FC = () => {
           width: props.width,
           height: props.height,
         })}
-      />
-      <Composition
-        id="GeneralVideo"
-        component={GeneralVideo}
-        durationInFrames={1}
-        fps={30}
-        width={1080}
-        height={1920}
-        defaultProps={{ schemaVersion: 1, fps: 30, width: 1080, height: 1920, durationInFrames: 1, compiledScenes: [] } as GeneralVideoProps}
-        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps,
-          width: props.width, height: props.height })}
       />
     </>
   );

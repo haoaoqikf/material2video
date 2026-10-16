@@ -102,7 +102,7 @@ def resolve(project: dict, *, voice: str | None = None, rate: str | None = None)
 
 
 def narration_digest(texts: list[str]) -> str:
-    """完整有序的自身旁白摘要；分段边界有意义，画面和嵌入旁白不参与。"""
+    """完整有序的自身旁白摘要；分段边界有意义，画面摘要不参与。"""
     encoded = json.dumps([text for text in texts if text.strip()], ensure_ascii=False,
                          separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
@@ -110,7 +110,7 @@ def narration_digest(texts: list[str]) -> str:
 
 def preparation(project: dict, texts: list[str], *, voice: str | None = None,
                 rate: str | None = None, rhythm: dict | None = None) -> dict:
-    """为三种有声类型生成唯一的实际 TTS 记录；静音与纯嵌入不要求选音。"""
+    """生成实际 TTS 记录；无旁白时不要求选音。"""
     configured = settings(project)
     if not any(text.strip() for text in texts):
         return {}

@@ -65,11 +65,11 @@ def test_relocate_supports_external_content_root(tmp_path: Path) -> None:
     marker.write_text("skill", encoding="utf-8")
     content = tmp_path / "content"
     source = content / "videos" / "demo"
-    create_typed_project(source, "article-narrative")
+    create_typed_project(source, "general")
 
     result = relocate(source, content_root=content)
 
-    assert result.target == content / "videos" / "article-narrative" / "demo"
+    assert result.target == content / "videos" / "general" / "demo"
     assert not source.exists()
     assert result.backup.is_dir()
 
@@ -143,7 +143,7 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
     preview_file.write_bytes(b"preview")
     manifest = {"id": "review-test", "type": "general"}
     prepared = {"preparedFingerprint": "fingerprint", "props": {"compiledScenes": [
-        {"id": "code", "type": "code"}],}, "audio": {"segments": [{"sceneId": "code"}]}}
+        {"id": "a", "template": "point"}],}, "audio": {"segments": [{"sceneId": "master"}]}}
     criteria = _review_criteria(root, manifest, prepared)
     evidence = {name: "已逐项检查" for name in criteria}
     record = {"schemaVersion": 1, "status": "pass", "projectId": manifest["id"],
@@ -156,7 +156,7 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
     _require_review(root, manifest, prepared)
 
-    evidence.pop("audioSubtitles")
+    evidence.pop("narrationSync")
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
     with pytest.raises(M2VError, match="当前类型的每项结论"):
         _require_review(root, manifest, prepared)

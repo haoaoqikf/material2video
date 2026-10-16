@@ -26,7 +26,7 @@ def preview_fixture(root):
     return prepared, record, video
 
 
-@pytest.mark.parametrize("kind", ["article-narrative", "general", "housing-timeseries"])
+@pytest.mark.parametrize("kind", ["general", "housing-timeseries"])
 @pytest.mark.parametrize("review_state", [None, "pending", "fail", "empty-evidence", "stale"])
 def test_all_types_export_without_manual_review(tmp_path, monkeypatch, kind, review_state):
     _register_builtins()
@@ -49,9 +49,9 @@ def test_all_types_export_without_manual_review(tmp_path, monkeypatch, kind, rev
     monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_: prepared)
     monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *a, **kw: None)
     # Article source review is deliberately independent of the optional visual review.
-    monkeypatch.setattr("m2v.types.article.adapter.validate", lambda *_: None)
-    monkeypatch.setattr("m2v.types.article.explainer_review.require_input", lambda *_: None)
-    monkeypatch.setattr("m2v.types.article.explainer_render.current", lambda *_: prepared)
+    monkeypatch.setattr("m2v.types.general.adapter.validate", lambda *_: None)
+    monkeypatch.setattr("m2v.types.general.explainer_review.require_input", lambda *_: None)
+    monkeypatch.setattr("m2v.types.general.explainer_render.current", lambda *_: prepared)
     assert main(["render", "--project", str(root)]) == 0
     assert final.read_bytes() == b"final"
     if review_state is None:
@@ -100,7 +100,7 @@ def test_status_reports_optional_review_independently(tmp_path, monkeypatch):
     _register_builtins()
     prepared, record, video = preview_fixture(tmp_path)
     monkeypatch.setattr("m2v.cli._prepared", lambda *_: prepared)
-    manifest = {"id": "demo", "type": "article-narrative"}
+    manifest = {"id": "demo", "type": "general"}
     result = _status(tmp_path, manifest)
     assert result["review"] == {"status": "optional", "required": False}
     assert result["preview"]["status"] == "current"

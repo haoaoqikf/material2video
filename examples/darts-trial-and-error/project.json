@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "darts-trial-and-error",
-  "type": "article-narrative",
+  "type": "general",
   "materials": {
     "storyboard": "storyboard.json"
   },

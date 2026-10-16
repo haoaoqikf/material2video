@@ -2,7 +2,7 @@
 
 用仓库依赖里已有的 ffmpeg（imageio-ffmpeg）合成 1080×1920、30 fps 的短视频，
 画面是一个沿水平方向往返的圆点，用来演示 v6 视频模板的裁剪入点与显示适配。
-生成后按 `m2v article assets import` 导入作品，文件以内容摘要命名并写入来源记录。
+生成后按 `m2v general assets import` 导入作品，文件以内容摘要命名并写入来源记录。
 """
 import subprocess
 from pathlib import Path

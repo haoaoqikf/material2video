@@ -31,25 +31,17 @@ def web(tmp_path, monkeypatch):
     directory = tmp_path / "web"
     (directory / "src").mkdir(parents=True)
     (directory / "public").mkdir()
-    (directory / ".gen").mkdir()
     (directory / "src" / "index.ts").write_text("// entry\n", encoding="utf-8")
     (directory / "remotion.config.ts").write_text("export default {};\n", encoding="utf-8")
     (directory / "package.json").write_text('{"name": "web"}\n', encoding="utf-8")
     (directory / "public" / "icon.svg").write_text("<svg/>\n", encoding="utf-8")
-    (directory / ".gen" / "active-scenes.ts").write_text("export default [];\n", encoding="utf-8")
     storyboard = tmp_path / "storyboard.json"
     storyboard.write_text('{"version": 4, "schemaVersion": 4}\n', encoding="utf-8")
 
     # 键里要记 Node 版本；测试不该为一次 `node --version` 付进程开销
     monkeypatch.setattr(perf, "node_version", lambda: "v22.0.0")
 
-    state = {"prepare": 0, "scan": 0, "build": 0, "base": {f"web/src/index.ts": "digest-1"}}
-    monkeypatch.setattr(
-        remotion,
-        "prepare_composition_entry",
-        lambda **kwargs: state.__setitem__("prepare", state["prepare"] + 1)
-        or directory / ".gen" / "active-scenes.ts",
-    )
+    state = {"scan": 0, "build": 0, "base": {f"web/src/index.ts": "digest-1"}}
 
     def scan(files):
         state["scan"] += 1
@@ -97,16 +89,8 @@ def _key(web, base=None):
     return key
 
 
-def test_key_covers_generated_manifests_public_assets_and_build_config(web):
-    """溯源指纹排除的几类输入必须进缓存键，否则会交付上一份作品的画面。"""
-    baseline = _key(web)
-    (web.dir / ".gen" / "active-scenes.ts").write_text("export default [1];\n", encoding="utf-8")
-    assert _key(web) != baseline, "生成的场景清单变了，键必须变"
-
-    scenes = _key(web)
-    (web.dir / ".gen" / "active-tailwind.css").write_text(".a{}", encoding="utf-8")
-    assert _key(web) != scenes, "生成的样式清单变了，键必须变"
-
+def test_key_covers_public_assets_and_build_config(web):
+    """静态资产和构建配置变化必须触发重新打包。"""
     styles = _key(web)
     (web.dir / "public" / "icon.svg").write_text("<svg width='1'/>\n", encoding="utf-8")
     assert _key(web) != styles, "public 静态资产变了，键必须变"
@@ -146,7 +130,7 @@ def test_second_bundle_hits_the_cache_and_skips_packing(web):
 def test_stable_cache_identity_reuses_bundle_across_ephemeral_plan_files(web):
     first_plan = web.tmp / "render-plan-one.json"
     second_plan = web.tmp / "render-plan-two.json"
-    identity = web.tmp / "project" / "general-plan.json"
+    identity = web.tmp / "project" / "storyboard.json"
     first_plan.write_text("{}", encoding="utf-8")
     second_plan.write_text("{}", encoding="utf-8")
     first = _bundle(web, storyboard_path=first_plan, cache_identity=identity)
@@ -224,7 +208,6 @@ def test_boundary_checks_and_source_scan_run_even_on_a_cache_hit(web):
     hit = _bundle(web)
     assert hit.cache_status == "hit"
     assert web.state["build"] == 1
-    assert web.state["prepare"] == 2
     assert web.state["scan"] == 2
 
 
@@ -253,7 +236,7 @@ def test_disabling_the_cache_always_packs_and_writes_no_entry(web):
 
 
 def test_concurrent_bundles_are_serialized_by_the_generation_lock(web, monkeypatch):
-    """切换作品的两次打包不能交叠：`.gen/` 是全局共享目录，交叠会互相污染。"""
+    """同一前端工作区的两次打包不能交叠，避免并发改写工具缓存。"""
     active = {"now": 0, "peak": 0}
     guard = threading.Lock()
     barrier = threading.Barrier(2)

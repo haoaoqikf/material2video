@@ -7,10 +7,8 @@ composition 源码在切换作品、重复导出、并发对照时被反复重�
 
 三条刻意写死的规则：
 
-1. **键不等于成片溯源指纹。** 溯源指纹有意排除全局生成索引（`.gen/`）：它是
-   按当前作品派生的临时文件，记进去会让其它作品的产物被判「落后」。缓存恰好
-   相反——生成的场景清单、Tailwind 内容、`public/` 静态资产、打包配置和依赖
-   版本都会改变 bundle，漏一项就会交付上一份作品的画面，而这种错误**没有症状**。
+1. **键覆盖完整构建输入。** 除源码摘要，还绑定公共静态资产、构建配置和运行版本，
+   避免源码没变但构建环境已变时复用旧产物。
 2. **先验证再复用。** 命中判定不是「目录存在」，而是逐文件复核摘要与大小；
    上次构建被中断留下的半成品必须判为未命中并重建。
 3. **临时目录构建 + 原子发布。** 直接把产物写进缓存目录，会让中断留下一个
@@ -40,20 +38,13 @@ logger = logging.getLogger(__name__)
 CACHE_ROOT = Path(".cache/m2v-bundles")
 
 #: 缓存条目格式版本。键或完整性口径变化时递增：旧条目整体失效而不是被误用。
-CACHE_VERSION = 1
+CACHE_VERSION = 2
 
 #: 清单文件名（缓存条目内）。
 MANIFEST_NAME = "manifest.json"
 
 #: 打包产物在缓存条目内的子目录名。
 BUNDLE_DIRNAME = "bundle"
-
-#: 生成物：由当前作品派生、会进入 bundle，但不在溯源指纹里。
-GENERATED_INPUTS = (
-    ".gen/scene-manifest.json",
-    ".gen/active-scenes.ts",
-    ".gen/active-tailwind.css",
-)
 
 #: 打包配置：不写进源码 import 图，却直接决定产物。
 BUILD_CONFIG_INPUTS = (
@@ -69,7 +60,7 @@ PUBLIC_DIR = "public"
 #: 等待同一把键的构建完成；打包按分钟计，给足余量。
 KEY_LOCK_TIMEOUT_S = 1800.0
 
-#: 等待全局 `.gen` 生成到构建结束；串行保护会把不同作品的打包排成一队。
+#: 共享前端工作区构建锁的等待时限。
 GENERATION_LOCK_TIMEOUT_S = 3600.0
 
 #: 锁文件超过这个时长认为持有者已经死亡（崩溃残留），可以清理。
@@ -125,30 +116,26 @@ def compute_key(
     """计算完整构建键，返回 (摘要, 组成说明)。
 
     `base_files` 是共享源码可达集合的摘要表（与成片溯源同一份口径）；函数再补上
-    溯源**有意排除**的那几类输入：生成清单、`public/` 静态资产、打包配置，
+    额外影响构建的输入：`public/` 静态资产、打包配置，
     以及打包器与 Node 的运行版本。
     """
     web = Path(web_dir)
-    generated = _digest_files(web, [web / name for name in GENERATED_INPUTS if (web / name).is_file()])
     public = _digest_files(web, _public_files(web))
     config = _digest_files(web, [web / name for name in BUILD_CONFIG_INPUTS if (web / name).is_file()])
     parts = {
         "version": CACHE_VERSION,
         "inputs": dict(sorted(base_files.items())),
-        "generated": generated,
         "public": public,
         "config": config,
         "runtime": {
             "node": perf.node_version(),
-            # 分镜路径进入键：代码场景清单按当前作品生成，切换作品必须换键。
-            # （清单内容本身也在 `generated` 里，这条只是把「哪支作品」也写进键。）
+            # 用稳定材料路径标识本次构建的归属。
             "storyboard": str(Path(storyboard_path).resolve()) if storyboard_path else None,
         },
     }
     key = fingerprint(parts)
     detail = {
         "inputs": len(parts["inputs"]),
-        "generated": sorted(generated),
         "public": len(public),
         "config": sorted(config),
     }
@@ -378,15 +365,10 @@ def _process_is_alive(pid: int) -> bool:
 
 @contextlib.contextmanager
 def generation_lock(web_dir: str | Path) -> Iterator[None]:
-    """串行保护「生成 `.gen` 清单 → 打包完成」这一段。
-
-    `.gen/` 是全局共享的临时目录：A 作品生成清单、B 作品紧接着覆盖它，A 打出来
-    的就是 B 的画面（反之亦然），而缓存会把这份污染固化下来。因此从生成之前
-    一直锁到打包结束。
-    """
+    """串行保护共享前端工作区的打包，避免并发改写工具缓存。"""
     with _exclusive(
         cache_root(web_dir) / ".generation.lock",
-        what="全局代码场景清单与打包",
+        what="前端工作区打包",
         timeout_s=GENERATION_LOCK_TIMEOUT_S,
     ):
         yield

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -19,19 +23,36 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@m2v/scene": ["./src/code-scene/index.ts"],
-      "react": ["./node_modules/@types/react"],
-      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
-      "react-dom": ["./node_modules/@types/react-dom"],
-      "react-dom/client": ["./node_modules/@types/react-dom/client"],
-      "remotion": ["./node_modules/remotion"],
-      "echarts": ["./node_modules/echarts"],
-      "@dagrejs/dagre": ["./node_modules/@dagrejs/dagre"],
-      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"],
-      "@remotion/*": ["./node_modules/@remotion/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/jsx-runtime": [
+        "./node_modules/@types/react/jsx-runtime"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom"
+      ],
+      "react-dom/client": [
+        "./node_modules/@types/react-dom/client"
+      ],
+      "remotion": [
+        "./node_modules/remotion"
+      ],
+      "@remotion/*": [
+        "./node_modules/@remotion/*"
+      ]
     },
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src", "scripts", ".gen", "vite.config.ts", "remotion.config.ts"]
+  "include": [
+    "src",
+    "scripts",
+    "vite.config.ts",
+    "remotion.config.ts"
+  ]
 }

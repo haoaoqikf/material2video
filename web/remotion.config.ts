@@ -47,18 +47,12 @@ Config.overrideWebpackConfig((currentConfiguration) => {
       alias: {
         ...withTailwind.resolve?.alias,
         '@': srcDir,
-        // 作品代码场景可导入的唯一项目内部模块（与 vite/tsconfig 同一约定）
-        '@m2v/scene': path.resolve(srcDir, 'code-scene/index.ts'),
-        // 依赖白名单的裸包：作品模块在仓库外的内容根，向上查找找不到
-        // web/ 的依赖；webpack 别名把子路径写在包名前，避免前缀覆盖。
+        // 固定本工程依赖，子路径写在包名前，避免前缀覆盖。
         'react/jsx-runtime': path.join(modulesDir, 'react/jsx-runtime'),
         'react-dom/client': path.join(modulesDir, 'react-dom/client'),
         react: modulesDir + '/react',
         'react-dom': modulesDir + '/react-dom',
         remotion: modulesDir + '/remotion',
-        echarts: modulesDir + '/echarts',
-        '@dagrejs/dagre': modulesDir + '/@dagrejs/dagre',
-        'lucide-react': modulesDir + '/lucide-react',
         '@remotion/': modulesDir + '/@remotion/',
       },
     },

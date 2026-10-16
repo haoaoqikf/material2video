@@ -10,14 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, "-m", "m2v.cli", "article", *args], cwd=ROOT,
+    return subprocess.run([sys.executable, "-m", "m2v.cli", "general", *args], cwd=ROOT,
                           text=True, capture_output=True, check=False,
                           encoding="utf-8", errors="replace", env={**__import__("os").environ, "PYTHONPATH": str(ROOT / "src")})
 
 
 def _article_dir(workspace: Path, slug: str = "demo") -> Path:
     """v6 文章归属固定为 videos/<类型>/<作品>/；旧的两层 videos/<作品>/ 不再推导得出。"""
-    return workspace / "videos" / "article-narrative" / slug
+    return workspace / "videos" / "general" / slug
 
 
 def _write_project(article_dir: Path) -> None:
@@ -26,7 +26,7 @@ def _write_project(article_dir: Path) -> None:
     manifest = {
         "schemaVersion": 1,
         "id": "demo-00000000",
-        "type": "article-narrative",
+        "type": "general",
         "materials": {"storyboard": "storyboard.json"},
         "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"},
     }
@@ -92,7 +92,7 @@ def test_input_review_candidate_and_explicit_adoption(tmp_path: Path) -> None:
     # 未显式声明 materials.article 的作品靠 article.accepted.md 自动作为当前源文。
     assert record["source"]["path"] == "article.accepted.md"
     manifest = json.loads((article_dir / "project.json").read_text(encoding="utf-8"))
-    assert manifest["schemaVersion"] == 1 and manifest["type"] == "article-narrative"
+    assert manifest["schemaVersion"] == 1 and manifest["type"] == "general"
     assert manifest["materials"] == {"storyboard": "storyboard.json"}
 
 

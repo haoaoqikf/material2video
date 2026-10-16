@@ -1,9 +1,9 @@
 # 渲染契约
 
-> **适用范围：** 本文描述当前 4 个视频类型共用的渲染契约：契约页（`version: 6`）、Remotion
+> **适用范围：** 本文描述当前 3 个视频类型共用的渲染契约：契约页（`version: 6`）、Remotion
 > 逐帧渲染、成片编码、交付权限与溯源。画面只有一条实现路径——共享 React composition 由准备
 > 产物直接驱动；浏览器布局量测当前只覆盖文章 v6 模板。分镜结构见 [文章分镜 v6](storyboard-schema.md)，
-> 作品代码模块见 [代码场景](code-scenes.md)，设计令牌见 [设计令牌](design-tokens.md)，
+> 设计令牌见 [设计令牌](design-tokens.md)，
 > 制作顺序见 [制作流程](production-workflow.md)。v3/v4 的共享动画、场景树、节拍运行时与
 > `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
 
@@ -16,15 +16,15 @@
 从 `web/src/contract/` 构建。它把共享 React composition（`ArticleExplainer`）挂进
 `@remotion/player`，暴露 `window.__M2V__`（**version 6**）。作品参数（准备产物）由查询参数
 `m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
-布局量测（`m2v article keyframes`，以及 preview / render 内部）用 Playwright 驱动它；
+布局量测（`m2v general keyframes`，以及 preview / render 内部）用 Playwright 驱动它；
 渲染不走它，而是直接从 composition 源码打包渲染（见「渲染引擎与打包」）。
 
 ## 必需接口
 
 ### 评审输出的全局帧范围与缩放
 
-文章的完整预演与量测由 `m2v preview --project <目录>` 生成（`m2v article samples` 与
-`m2v article rehearsal` 现在只是它的别名）；`--limit-frames` 只用于调试，限帧预览不绑定评审。
+文章的完整预演与量测由 `m2v preview --project <目录>` 生成（`m2v general samples` 与
+`m2v general rehearsal` 现在只是它的别名）；`--limit-frames` 只用于调试，限帧预览不绑定评审。
 帧范围、媒体时轴与缩放由类型内部渲染器统一处理，正式导出仍须经
 `m2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
 
@@ -32,7 +32,7 @@
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `version` | `number` | 契约版本，当前为 `5` |
+| `version` | `number` | 契约版本，当前为 `6` |
 | `fps` | `number` | 帧率，必须与准备记录一致 |
 | `width` | `number` | 画面宽度，必须与准备记录一致 |
 | `height` | `number` | 画面高度，必须与准备记录一致 |
@@ -107,7 +107,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 正式渲染不经过浏览器截图，而是**直接从 composition 源码渲染**：
 
 1. 打包：`remotion.bundle()` 把 `web/` 打成可渲染的 bundle。默认走本地缓存
-   （见「打包缓存」）；缓存命中时跳过打包，但分镜校验、代码场景边界检查与
+   （见「打包缓存」）；缓存命中时跳过打包，但分镜校验与
    源码确定性扫描照常执行；
 2. 元数据交叉校验（同一会话）：向 composition 要一份真实元数据（fps / 尺寸 /
    总帧数），与准备记录逐项比对，不一致时报错并列出两边取值，同时终止会话
@@ -122,15 +122,13 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 ### 打包缓存
 
 - 位置：`web/.cache/m2v-bundles/<键>/`（已被 `.gitignore` 忽略，可随时整目录删除）。
-- 键覆盖**全部会改变产物的输入**：共享源码可达集合、当前作品的场景清单与导入、
-  生成的 Tailwind 内容、字体、`public/` 静态资产、`remotion.config.ts` /
+- 键覆盖**全部会改变产物的输入**：共享源码可达集合、字体、`public/` 静态资产、`remotion.config.ts` /
   `tsconfig.json` / `package.json` / `pnpm-lock.yaml` 以及 Node 版本。
   因此改代码、换字体、换作品或升级依赖都会换键，不会交付上一份画面。
 - 命中判定是**逐文件复核摘要与大小**，不是「目录存在」；清单缺少完成标记
   （上次构建被中断）即判未命中并重建。
 - 构建先写临时目录，产物清单写全后整体改名发布；同一把键由锁串行，等待者拿到锁后
-  复查一次，不重复打包。从 `.gen` 清单生成到打包结束由全局锁串行，防止并行切换作品
-  互相污染。
+  复查一次，不重复打包；同一前端工作区的构建使用全局锁，避免并发构建冲突。
 - `bundle(cache=False)` 本次强制重新打包（诊断与基准对照用）；
   缓存只省掉打包，**不跳过任何门禁**。
 
@@ -164,7 +162,7 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 ### 布局量测（三项硬判定）
 
-布局量测不走渲染路径：`m2v article keyframes`（以及 preview / render 内部）用 Playwright
+布局量测不走渲染路径：`m2v general keyframes`（以及 preview / render 内部）用 Playwright
 驱动**契约页**，量测对着真实画面工作，而契约页挂的正是渲染会画出的同一份 composition。
 量测只剩三项硬判定，全部按真实文字包围盒判定：
 
@@ -178,33 +176,6 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 `data-m2v-subtitle`（字幕层）、`data-m2v-content`（正文内容区）。结果写
 `outputs/layout-check.json`，失败会阻断预演与正式导出。旧的 K 系列观感闸门已随旧子系统
 删除，不再有那套「约 90KB 判定逻辑」的量测。
-
-## 代码场景（general）
-
-`general` 的每一幕可以在 `general-plan.json` 的幕上声明
-`renderer: { "kind": "code", "module": "<scenes/ 下的模块标识>" }`，把那一幕交给作品
-`scenes/<module>.tsx` 的模块；模块必须默认导出 `M2VCodeScene` 组件，唯一允许导入的项目
-内部别名是 `@m2v/scene`（`probe` / `random` / `frameStyle` 与白名单适配器）。
-
-共享包装器把该幕的 `data` 原样交给组件，并给出幕标识、幕内帧与幕内进度、`fps`、画布尺寸、
-主题与按幕标识播种的稳定随机源；组件从 `useCurrentFrame()` 取帧，**不得创建私有时间轴**
-（不决定幕顺序、总时长或字幕边界）。`world` / `stage` / `objectStates` / `beats` / `motion`
-这几个 v4 槽位仍在 props 类型里，但一律传空值（`beats.current` 为 `null`、
-`motion.camera.kind` 为 `"none"`、`objectStates` 为空对象），不属于当前契约，作品不得假设
-它们被填充。模块标识、注入字段、依赖白名单与安全边界的完整说明见
-[代码场景](code-scenes.md)。
-
-### 组件也必须逐帧确定
-
-对契约的影响只有一条：**组件也是画面的一部分，因此组件的渲染必须满足与
-`seekToFrame` 完全相同的确定性要求**。具体地说：
-
-| 要求 | 原因 |
-| --- | --- |
-| 画面只由帧号、幕数据与时长推导 | 同帧重复渲染必须一致 |
-| 禁止 `Date.now` / `performance.now` / `Math.random` / 计时器 / CSS 动画 | 同上；打包前的静态源码闸门与组件测试一起把守 |
-| 逐帧求值不读实时布局 | 每帧测量会随排版抖动，也会拖慢渲染 |
-| 组件不保存默认文案 | 文案只存在于分镜或幕数据，避免两处漂移 |
 
 ## 成片编码
 
@@ -316,19 +287,17 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 | `schemaVersion` | 溯源格式版本，当前为 `1` |
 | `type` / `projectId` | 视频类型与作品标识 |
 | `compositionId` | 渲染用的 composition |
-| `renderer` | 画面来源；金融、房价、通用与素材类型写 `remotion`。文章类型的溯源不含这个键——它只可能是当前渲染路径，写不写都一样 |
+| `renderer` | 画面来源；金融与房价类型写 `remotion`。通用类型的溯源不含这个键——它只可能是当前渲染路径，写不写都一样 |
 | `durationInFrames` / `frames`、`fps`、`width`、`height` | 成片参数；金融与房价类型用 `frames`，其余用 `durationInFrames` |
-| `preparedFingerprint` / `inputs` | 文章、通用与素材类型：准备记录指纹，以及逐个输入的 sha256（作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>`） |
+| `preparedFingerprint` / `inputs` | 通用类型：准备记录指纹，以及逐个输入的 sha256（作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>`） |
 | `materialsAndAssetsSha256` | 金融与房价类型：材料与资产的整体摘要 |
-| `bundleKey` | 打包缓存键，用于确认这份成片用的是哪一份 bundle；金融、房价与素材类型写它，文章与通用类型不写 |
+| `bundleKey` | 打包缓存键，用于确认这份成片用的是哪一份 bundle；金融与房价类型写它，通用类型不写 |
 
 几条口径值得记住：
 
 - **只指纹真正影响画面的东西**：`inputs.renderer` 是 composition 入口沿 import 可达的
   文件摘要——改一个没被任何组件用到的文件不该让成片报落后，而改一个被引用的组件文件
-  就该报。作品代码场景（`renderer.module`）的模块与其本地资产**正是从作品分镜与静态
-  清单出发沿 import 可达**的那部分，因此也在指纹里。裸包名导入的第三方依赖（如 dagre）
-  由 `package.json` 与锁文件覆盖：依赖版本变了，成片同样判落后。否则闸门会变成噪音，
+  就该报。第三方依赖由 `package.json` 与锁文件覆盖：依赖版本变了，成片同样判落后。否则闸门会变成噪音，
   人开始忽略它——那等于没有闸门。
 - **文本资产按 LF 归一化后哈希，其余按原字节**：git 的换行归一化会在工作区静默翻转
   行尾，只差行尾的文件不该被判成落后（否则会出现人怎么重渲都消不掉的假落后）。

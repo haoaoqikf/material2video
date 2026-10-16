@@ -131,7 +131,7 @@ def test_init_writes_exactly_the_materials_declared_by_the_catalog(tmp_path: Pat
 
 
 def test_article_init_writes_a_v6_storyboard(tmp_path: Path, capsys) -> None:
-    root = _init(tmp_path, "article-narrative")
+    root = _init(tmp_path, "general")
     capsys.readouterr()
     storyboard = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     assert {"version", "schemaVersion", "fps", "width", "height", "title", "scenes"} <= set(storyboard)

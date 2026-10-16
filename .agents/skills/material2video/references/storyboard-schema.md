@@ -1,6 +1,6 @@
 # 文章分镜 v6
 
-`article-narrative` 只接受 `version: 6`、`schemaVersion: 6`。v5 及更早分镜必须重新编排，不自动迁移；历史测试分镜不属于制作入口。
+`general` 只接受 `version: 6`、`schemaVersion: 6`。v5 及更早分镜必须重新编排，不自动迁移；历史测试分镜不属于制作入口。
 
 ## 全片与场景
 

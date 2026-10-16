@@ -34,7 +34,7 @@ def _inputs_digest(project_dir: Path) -> str:
     script_dir = REPOSITORY_ROOT / "src"
     scripts = (Path(__file__), Path(__file__).with_name("housing.py"), Path(__file__).with_name("adapter.py"))
     inputs = [(project_dir, project_dir / housing.MATERIAL)]
-    inputs.extend((web, path) for path in remotion.build_inputs(scene_modules=()))
+    inputs.extend((web, path) for path in remotion.build_inputs())
     inputs.extend((script_dir, path) for path in scripts)
     digest = hashlib.sha256()
     for base, path in inputs:

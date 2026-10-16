@@ -22,14 +22,12 @@ def _tone(path: Path, seconds: float) -> None:
 
 
 def _project(tmp_path: Path, plan: dict, tts_config: dict | None = None) -> tuple[Path, dict]:
-    root = tmp_path / "通用作品"
-    create_typed_project(root, "general")
-    (root / "general-plan.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+    from test_article_explainer import project
+    root, manifest = project(tmp_path, plan)
+    manifest.pop("tts", None)
     if tts_config is not None:
-        manifest_path = root / "project.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["tts"] = tts_config
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (root / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     return load_project(root)
 
 
@@ -65,32 +63,15 @@ def test_resolve_prefers_explicit_over_project_configuration() -> None:
 
 
 def _speaking_plan() -> dict:
-    return {"schemaVersion": 1, "scenes": [
-        {"id": "spoken", "type": "graphic", "narration": "一段口播。", "data": {"title": "口播"}},
-    ], "soundtrack": {"music": {"sourceRef": "assets/bed.wav", "gainDb": -26, "loop": True}}}
+    from test_article_explainer import board
+    return board()
 
 
 def _prepare_with_capture(root: Path, manifest: dict, monkeypatch) -> dict:
-    from types import SimpleNamespace
-    from m2v.engine import audio as audio_engine
-
-    cache = root / "outputs" / "audio-cache"
-    cache.mkdir(parents=True, exist_ok=True)
-    voice_file = cache / "voice.wav"
-    _tone(voice_file, 1)
-    seen: dict[str, str] = {}
-
-    def fake_speech(_text: str, _cache: Path, *, voice: str | None = None, rate: str | None = None,
-                    rhythm: dict | None = None):
-        seen.update(voice=voice, rate=rate)
-        return voice_file, [{"start": 0.0, "end": 0.5, "text": "字幕"}], [], 1.5, False
-
-    monkeypatch.setattr(adapter.registry, "get", lambda _name: SimpleNamespace(prepare_narration=fake_speech))
-    monkeypatch.setattr(audio_engine, "concatenate", lambda *_args: None)
-    monkeypatch.setattr(audio_engine, "normalize", lambda _s, target: target.write_bytes(b"voice"))
-    monkeypatch.setattr(audio_engine, "mix", lambda narration, target, *_rest: (target.write_bytes(b"mixed"), None)[1])
+    from test_article_explainer import fake_tts
+    calls = fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
-    prepared["_seen"] = seen
+    prepared["_seen"] = {"voice": calls[0][1], "rate": calls[0][2]}
     return prepared
 
 

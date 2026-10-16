@@ -2,7 +2,7 @@
 
 每篇文章占一个稳定、唯一的目录名（slug，推荐小写英文与连字符）。文章标题变化不改目录名。
 
-**文章内容不入库**：`videos/` 是作品内容（原文、分镜、专属画面模块），已在 `.gitignore` 中忽略；
+**文章内容不入库**：`videos/` 是作品内容（原文、分镜、媒体素材），已在 `.gitignore` 中忽略；
 仓库里保留的是制作方法与共享画面工程。文章既可以留在仓库的 `videos/` 下，也可以放在仓库之外的
 **内容根**里，两种情况下的命令完全一致。
 
@@ -31,10 +31,8 @@
 ├── web/                              # 共享画面工程：组件、令牌、composition（入库）
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
-│   ├── article.md                    # 文章源文（article-narrative 必填，可改用 article.accepted.md）
-│   ├── storyboard.json               # article-narrative 的 v6 混合媒体分镜
-│   ├── general-plan.json             # general 类型的多场景分镜（材料名见 project.json）
-│   ├── scenes/                       # 代码场景模块（幕级 renderer.code），按需创建
+│   ├── article.md                    # article 输入的源文，可改用 article.accepted.md；topic 输入省略
+│   ├── storyboard.json               # general 的 v6 混合媒体分镜
 │   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
 │   └── assets/                       # 本篇专用素材（音床、音效），按需创建
 └── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
@@ -42,14 +40,14 @@
     ├── video.provenance.json         # 与该成片同名的溯源记录
     ├── video.performance.json        # 与该成片同名的渲染性能报告
     ├── prepared.json                 # 当前准备产物与派生时间轴
-    ├── input-review.json             # 文章讲解的人工输入语义审查（article-narrative）
-    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（article-narrative）
-    ├── layout-check.json             # 最近一次布局量测的三项硬判定结论（article-narrative）
-    ├── subtitle-check-props.json     # 最近一次字幕检查用的准备产物副本（article-narrative）
+    ├── input-review.json             # 文章讲解的人工输入语义审查（general）
+    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（general）
+    ├── layout-check.json             # 最近一次布局量测的三项硬判定结论（general）
+    ├── subtitle-check-props.json     # 最近一次字幕检查用的准备产物副本（general）
     ├── media/                        # 配音清单、音轨与缓存
     ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
     ├── previews/                     # 预演产物，使用相同的成片文件名；`m2v render` 会先清掉它
-    └── qa/                           # `m2v article keyframes` 的排版量测截图，按需创建
+    └── qa/                           # `m2v general keyframes` 的排版量测截图，按需创建
 ```
 
 当前没有 `.srt` 写出器：字幕烧录进画面，不导出外置字幕文件。旧版曾写出
@@ -74,22 +72,15 @@
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion）。四个类型各有自己的 composition，都在 `web/src/compositions/` 下，
+React composition（Remotion）。三个类型各有自己的 composition，都在 `web/src/compositions/` 下，
 由 `web/src/Root.tsx` 注册。
-article-narrative 的 v6 混合媒体分镜交给 `ArticleExplainer` 绘制六模板画面（图片与视频幕经
+general 的 v6 混合媒体分镜交给 `ArticleExplainer` 绘制六模板画面（图片与视频幕经
 回环 HTTP 取本地素材），契约见
-[文章分镜 v6](storyboard-schema.md)；通用视频交给 `GeneralVideo`，它按幕组合受控图文幕、
-完整金融/文章片段幕与代码场景幕。嵌入文章时通用准备会为每个子作品注入 `mediaBase`，
-子作品的素材仍由同一台静态服务器提供。
-需要独特图表、关系图或定制 SVG 时，在**那一幕**上声明 `renderer: { kind: "code", module: "<模块标识>" }`，
-模块放在作品目录的 `scenes/` 下（`videos/<type>/<slug>/scenes/` 或 `examples/<slug>/scenes/`，
-与分镜同目录），本地资产放 `assets/`。模块契约与纪律见 [代码场景](code-scenes.md)。
+[文章分镜 v6](storyboard-schema.md)。
 
 本篇专用素材（`videos/<type>/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过
 `/__m2v_web__/` 别名挂载，内容根在仓库之外时同样可达。
-代码场景的本地资产用打包器导入（`import markUrl from '../assets/mark.png'`），
-构建时随作品源码一起进入依赖白名单检查与指纹。
 
 ## 归属推导
 
@@ -99,7 +90,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
    取运行中的 bundle 所在仓库——契约页与 composition 从那一份取；
 2. 文件在仓库内的 `videos/<type>/<slug>/` 或 `examples/<slug>/` 时，工作区根即仓库根；
 3. 否则用内容根作为工作区根，slug 取 `videos/<type>/<slug>/` 的最后一级目录名；
-4. 新制作入口以 `project.json` 确定类型和材料；文章辅助流程从 `videos/article-narrative/<slug>/` 分镜路径推导作品归属；
+4. 新制作入口以 `project.json` 确定类型和材料；文章辅助流程从 `videos/general/<slug>/` 分镜路径推导作品归属；
 5. 全程使用绝对路径，与执行命令时的工作目录无关。
 
 推导失败时不猜归属，直接报错并要求显式指定输出路径：
@@ -110,7 +101,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | 文件在仓库外、又没有内容根 | 报错，点名 `--content-root` 与 `M2V_CONTENT_ROOT` |
 | 内容根里也没有 `videos/<type>/<slug>/` | 报错，列出实际路径与它检查过的位置 |
 | 缺失 `project.json` 或类型材料 | 指出作品目录或缺失材料，停止后续制作 |
-| 准备记录、资产或嵌入项目指纹已变化 | 要求重新 prepare，再生成预演与评审 |
+| 准备记录、资产或渲染代码指纹已变化 | 要求重新 prepare，再生成预演与评审 |
 
 ## 默认输出
 
@@ -130,12 +121,12 @@ v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 ## 成片溯源
 
 渲染成功后在成片旁写 `<同名>.provenance.json`，用于回答「这个成片是不是旧材料渲的」。
-`schemaVersion` 当前为 `1`。文章类型（`article-narrative`）的形状是：
+`schemaVersion` 当前为 `1`。文章类型（`general`）的形状是：
 
 ```json
 {
   "schemaVersion": 1,
-  "type": "article-narrative",
+  "type": "general",
   "projectId": "buffer-smoothing",
   "preparedFingerprint": "…",
   "compositionId": "ArticleExplainer",
@@ -145,10 +136,10 @@ v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 }
 ```
 
-`type` 为 `article-narrative` / `financial-timeseries` / `general` / `housing-timeseries`
+`type` 为 `general` / `financial-timeseries` / `general` / `housing-timeseries`
 之一，`compositionId` 是它对应的 Remotion composition 标识。
 `preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
-材料、资产、嵌入作品或渲染代码已经变化，成片落后。
+材料、资产或渲染代码已经变化，成片落后。
 `inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
 `audio:<场景>`、composition 可达源码的 `renderer` 指纹），用它逐项指出是哪个输入变了。
 
@@ -156,7 +147,7 @@ v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 
 | 类型 | 与上表的差异 |
 | --- | --- |
-| `article-narrative` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
+| `general` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
 | `general` | 多一个根级 `renderer: "remotion"`；不含 `bundleKey` |
 | `financial-timeseries` / `housing-timeseries` | 多 `renderer` 与 `bundleKey`，并用 `frames` + `materialsAndAssetsSha256` 代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 

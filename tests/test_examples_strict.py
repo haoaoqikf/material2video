@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from m2v.types.article import explainer
+from m2v.types.general import explainer
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))

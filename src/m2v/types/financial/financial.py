@@ -116,9 +116,7 @@ def render_inputs_digest(project_dir: str | Path) -> str:
     web = REPOSITORY_ROOT / "web"
     inputs = [(root, root / name) for name in MATERIALS]
     import m2v.engine.remotion as remotion
-    # 金融画面是共享受信代码，从不加载作品级代码场景：显式声明空模块集，
-    # 避免共享的 .gen/scene-manifest.json 残留上一篇文章的场景而污染摘要。
-    inputs.extend((web, path) for path in remotion.build_inputs(scene_modules=()))
+    inputs.extend((web, path) for path in remotion.build_inputs())
     scripts = Path(__file__).resolve().parents[2]
     inputs.extend((scripts, path) for path in (
         Path(__file__), Path(__file__).with_name("financial_render.py"),

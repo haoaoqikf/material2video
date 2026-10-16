@@ -7,7 +7,7 @@
 准备与渲染只读本地文件，不联网取素材。无论素材来自助手检索、公开媒体直链还是图库，进入作品的方式只有一条：
 
 ```powershell
-uv run m2v article assets import --project videos/article-narrative/<slug> --manifest <清单.json> [--base <清单里 localPath 的基准目录>]
+uv run m2v general assets import --project videos/general/<slug> --manifest <清单.json> [--base <清单里 localPath 的基准目录>]
 ```
 
 清单为 `{"schemaVersion":1,"assets":[...]}`，1～300 项，每项：
@@ -29,7 +29,7 @@ uv run m2v article assets import --project videos/article-narrative/<slug> --man
 分镜的 `content.src` 必须指向 `assets/media/` 下的内容寻址文件，且必须能在来源记录里找到对应条目：
 
 - 文件被替换（摘要变化）或实测尺寸与记录不符 → 校验失败，要求重新导入；
-- 没有导入记录 → 校验失败，提示先执行 `m2v article assets import`；
+- 没有导入记录 → 校验失败，提示先执行 `m2v general assets import`；
 - 导入记录本身被改动 → 记录摘要进入准备输入，重新 `prepare` 前会阻断。
 
 准备阶段把素材文件摘要写进准备输入，因此替换素材会让准备、完整预演与评审全部过期。
@@ -43,7 +43,7 @@ uv run m2v article assets import --project videos/article-narrative/<slug> --man
 ## 可选图库检索
 
 ```powershell
-uv run m2v article assets search --project <目录> [--provider pexels|pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
+uv run m2v general assets search --project <目录> [--provider pexels|pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
 ```
 
 按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可与说明），不下载、不写作品文件；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。凭据只从环境变量读取：Pexels 为 `M2V_PEXELS_API_KEY`，Pixabay 为 `M2V_PIXABAY_API_KEY`；缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。

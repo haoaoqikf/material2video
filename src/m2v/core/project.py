@@ -92,13 +92,13 @@ def create_project(directory: str | Path, video_type: str, materials: Mapping[st
 def save_prepared(root: Path, *, project: dict[str, Any], composition_id: str,
                   props: dict[str, Any], width: int, height: int, fps: int,
                   duration_in_frames: int, inputs: dict[str, str], audio: dict[str, Any] | None = None,
-                  subtitles: list[dict[str, Any]] | None = None, dependencies: list[dict[str, str]] | None = None) -> dict[str, Any]:
+                  subtitles: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     material_hash = _fingerprint({"project": project, "inputs": inputs})
     prepared = {"contractVersion": 1, "projectId": project["id"], "type": project["type"],
                 "compositionId": composition_id, "props": props, "width": width, "height": height,
                 "fps": fps, "durationInFrames": duration_in_frames, "inputs": inputs,
                 "materialFingerprint": material_hash, "audio": audio or {},
-                "subtitles": subtitles or [], "dependencies": dependencies or []}
+                "subtitles": subtitles or []}
     prepared["preparedFingerprint"] = _fingerprint(prepared)
     _write_json(root / PREPARED_FILE, prepared)
     return prepared
@@ -122,12 +122,6 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
             raise M2VError(f"作品材料不存在：{name}={file}")
         if prepared.get("inputs", {}).get(name) != hashlib.sha256(file.read_bytes()).hexdigest():
             raise M2VError(f"作品材料已变化：{name}；请重新 prepare")
-    for dependency in prepared.get("dependencies", []):
-        dependency_root = (root / dependency["path"]).resolve()
-        child_root, child_project = load_project(dependency_root)
-        child = load_current_prepared(child_root, child_project)
-        if child["preparedFingerprint"] != dependency["preparedFingerprint"]:
-            raise M2VError(f"嵌入作品已重新准备：{dependency_root}；请重新 prepare 当前作品")
     # 显式引用的附属输入也属于版本绑定：源文、图片、语义审查及准备音轨。
     for name, digest in prepared.get("inputs", {}).items():
         if not name.startswith("file:"):

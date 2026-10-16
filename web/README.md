@@ -85,39 +85,9 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 两条路径编译**同一份** `src/` 与同一个样式入口 `src/styles/index.css`，
 所以体检量到的画面与成片描述的是同一套代码。这是「预览与导出同源」在构建层的落实。
 
-## 作品代码场景（`renderer.code`）
+## 通用讲解
 
-通用视频材料的幕级 `renderer` 声明 `kind: "code"` 与 `module`，把那一幕的画面交给
-作品 `scenes/` 下的 TSX 模块；`src/compositions/GeneralVideo.tsx` 按模块标识从静态
-清单里取组件渲染，缺失模块直接抛错。模块契约、依赖白名单、探针协议与确定性纪律的
-**权威文档**在
-[代码场景](../.agents/skills/material2video/references/code-scenes.md)，
-这里只记 web 工程侧的接法：
-
-- 静态清单 `.gen/active-scenes.ts`（由 `scripts/gen-active-scenes.mjs` 按当前作品
-  整体重建）持有一个 `Record<string, M2VCodeScene<any>>` 映射；
-- 作品模块通过别名 `@m2v/scene` 导入 `src/code-scene/index.ts`——这是作品可导入的
-  **唯一**项目内部 API；tsconfig paths、Vite 与 Remotion webpack 三处都对白名单
-  裸包与该别名配置了解析（仓库外的作品模块因此可以编译）；
-- 本地资产（图片/SVG）用打包器导入（`import markUrl from '../assets/mark.png'`），
-  不要写相对 URL 字符串——那会按页面地址解析成 404；
-- 依赖白名单（`react` / `react-dom` / `remotion` / `@remotion/*` / `echarts` /
-  `@dagrejs/dagre` / `lucide-react` / `@m2v/scene`）的版本锁定在本工程
-  `package.json`；作品不得自行安装或导入其他 npm 包。
-
-## Tailwind 与作品代码场景
-
-样式入口通过生成的 source 索引（`.gen/active-tailwind.css`，由
-`scripts/gen-active-scenes.mjs` 按当前作品整体覆盖）把**当前作品**的
-`scenes/` 与 `assets/` 交给 Tailwind 类名扫描；其他作品的文件不会被扫进来。
-
-作品代码场景里写 Tailwind 类名必须用**完整字符串**：
-
-- 直接写在 `className` 里的类名会进构建 CSS：`<div className="rounded-xl p-4">`；
-- 完整字符串映射也会进构建 CSS：`const cls = { box: 'gap-6 border-2' }`；
-- **运行时拼接的类名不保证生成**：`className={`rounded-${size}`}` 这种写法
-  扫描器看不到完整类名，构建后可能没有对应规则，画面会静默缺样式。
-  需要按状态切换时，把完整类名写进映射对象再取用。
+通用类型使用 v6 storyboard.json，由 ArticleExplainer 绘制六种模板；作品不加载 React 模块，不支持旧 general-plan 编排或片段嵌入。
 
 ## 渲染契约（`window.__M2V__` version 6）
 
@@ -132,7 +102,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 | `currentFrame()` | 返回 Player 当前实际帧号，仅供只读诊断 |
 
 契约页只量测文章 v6 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
-读取已准备的讲解材料。通用视频代码模块由 `scripts/gen-active-scenes.mjs` 生成静态清单后参与 Remotion 打包。
+读取已准备的讲解材料。
 
 契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/contract/explainer.tsx`，**作品不许自己实现**。
 
@@ -150,26 +120,16 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 字体栈由 `tokens.css` 的 `--m2v-font` 给出，声明在 `:root` 上，页面里的所有元素
 都继承它——不存在按属性切换的作用域。
 
-## 第三方依赖：只经代码场景白名单
+## 源码确定性
 
-画面**不再**支持接入第三方视觉组件：整页组件接入路径（分类表、帧同步包装层
-`FrameSyncedCssAnimation`）已随场景树架构一并移除，`web/src/third-party/` 不再存在。
-需要第三方库能力时，只能按
-[代码场景](../.agents/skills/material2video/references/code-scenes.md)
-在作品的代码场景里声明，并使用共享白名单：React、React DOM、Remotion、ECharts、
-Dagre、Lucide 与 `@m2v/scene`。
-
-白名单外的裸模块引用会被源码闸门拒绝（`src/m2v/core/code_gate.py`）；可渲染源码里的挂钟时间、
-随机数、计时器与 CSS 动画/过渡同样会被拒绝（`src/m2v/core/source_policy.py`）。
-各白名单视觉库的确定性适配规则见
-[渲染契约](../.agents/skills/material2video/references/render-contract.md)。
+共享 composition 的可达源码必须由帧号驱动画面；挂钟时间、随机数、计时器与 CSS 动画由 `src/m2v/core/source_policy.py` 在打包前检查。
 
 ## 许可证
 
 | 依赖 | 许可 | 越界条件 |
 | --- | --- | --- |
 | Remotion | 个人与 ≤3 人公司**免费，可商用** | 4 人以上组织协作，或对外提供渲染服务（属「Remotion for Automators」，$0.01/render、$100/月下限）时须升级 |
-| React / Tailwind / Vite / ECharts / Lucide | MIT / ISC | ECharts 为 Apache-2.0，Lucide 为 ISC：均可商用，随附许可证与版权声明即可 |
+| React / Tailwind / Vite | MIT | 随附许可证与版权声明 |
 | Inter、Noto Sans SC | SIL OFL 1.1 | 随附许可证、不得单独售卖字体、不得用保留字体名发布修改版；本项目不做修改 |
 
 Remotion 的免费额度按**组织规模与用途**判定，不按渲染量。个人内容生产落在免费范围内；

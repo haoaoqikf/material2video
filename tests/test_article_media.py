@@ -12,7 +12,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.engine.gallery import HttpTransport, build
-from m2v.types.article import adapter, media_assets
+from m2v.types.general import adapter, media_assets
 from test_article_explainer import board, fake_tts, project
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -252,7 +252,7 @@ def test_scene_without_record_blocks_validate_and_prepare(tmp_path, monkeypatch)
     root, manifest = project(tmp_path, data)
     (root / "assets/media").mkdir(parents=True)
     make_image(root / "assets/media/orphan.png", "1080x1920")
-    from m2v.types.article import explainer
+    from m2v.types.general import explainer
     with pytest.raises(M2VError, match="没有导入记录"):
         explainer.validate(data, root)
     fake_tts(monkeypatch)
@@ -337,7 +337,7 @@ def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
     (root / "assets").mkdir(parents=True)
     make_image(root / "assets/wide.png")
     (root / "project.json").write_text(json.dumps(
-        {"schemaVersion": 1, "id": "demo", "type": "article-narrative",
+        {"schemaVersion": 1, "id": "demo", "type": "general",
          "materials": {"storyboard": "storyboard.json"},
          "output": {"width": 1080, "height": 1920, "fps": 30, "audio": "optional"}}), encoding="utf-8")
     (root / "storyboard.json").write_text(json.dumps(board(), ensure_ascii=False), encoding="utf-8")
