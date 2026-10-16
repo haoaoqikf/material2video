@@ -1,6 +1,6 @@
 {
-  "$comment": "讲解画面的视觉主题——颜色、排版与动效的唯一真源。TS 侧由 palette.ts 读，Python 侧由 m2v.engine.themes 读：准备阶段要用主题的动效帧数编译时间轴，两处各写一份的话「改主题」只会改到一半，另一半留在 Python 里不跟着动。",
-  "schemaVersion": 1,
+  "$comment": "讲解画面的视觉主题——颜色、排版、取形、间距、构图、字阶与动效的唯一真源。TS 侧由 palette.ts 读，Python 侧由 m2v.engine.themes 读（准备阶段要用动效帧数编译时间轴）。两处各写一份的话「改主题」只会改到一半。",
+  "schemaVersion": 2,
   "default": "dark",
   "themes": {
     "dark": {
@@ -18,9 +18,59 @@
         "titleTransform": "none",
         "bodyLineHeight": 1.5
       },
+      "shape": {
+        "panelRadius": 24,
+        "cardRadius": 20,
+        "nodeRadius": 16,
+        "mediaRadius": 22,
+        "panelRule": 2,
+        "cardRule": 3,
+        "arrowWidth": 4
+      },
+      "layout": {
+        "sceneTop": 160,
+        "sceneBottom": 420,
+        "titleGap": 54,
+        "panelPadding": 44,
+        "columnGap": 28,
+        "columnPadding": 28,
+        "columnLabelGap": 32,
+        "columnItemGap": 28,
+        "cardGap": 24,
+        "cardPaddingX": 28,
+        "cardPaddingY": 24,
+        "numberGap": 20,
+        "nodeGap": 10,
+        "nodePaddingX": 12,
+        "nodePaddingY": 16,
+        "captionGap": 36,
+        "figureWidth": 864,
+        "causeHeight": 1100,
+        "causeLabelTop": 1050,
+        "mediaHeight": 760,
+        "codeHeight": 920
+      },
+      "typeScale": {
+        "title": 68,
+        "lead": 50,
+        "body": 40,
+        "note": 34,
+        "small": 30,
+        "micro": 26
+      },
+      "composition": {
+        "align": "start",
+        "verticalAlign": "start"
+      },
       "motion": {
         "entranceFrames": 8,
-        "holdFrames": 12
+        "holdFrames": 12,
+        "entranceEasing": [
+          0,
+          0,
+          1,
+          1
+        ]
       }
     },
     "light": {
@@ -38,13 +88,63 @@
         "titleTransform": "none",
         "bodyLineHeight": 1.5
       },
+      "shape": {
+        "panelRadius": 24,
+        "cardRadius": 20,
+        "nodeRadius": 16,
+        "mediaRadius": 22,
+        "panelRule": 2,
+        "cardRule": 3,
+        "arrowWidth": 4
+      },
+      "layout": {
+        "sceneTop": 160,
+        "sceneBottom": 420,
+        "titleGap": 54,
+        "panelPadding": 44,
+        "columnGap": 28,
+        "columnPadding": 28,
+        "columnLabelGap": 32,
+        "columnItemGap": 28,
+        "cardGap": 24,
+        "cardPaddingX": 28,
+        "cardPaddingY": 24,
+        "numberGap": 20,
+        "nodeGap": 10,
+        "nodePaddingX": 12,
+        "nodePaddingY": 16,
+        "captionGap": 36,
+        "figureWidth": 864,
+        "causeHeight": 1100,
+        "causeLabelTop": 1050,
+        "mediaHeight": 760,
+        "codeHeight": 920
+      },
+      "typeScale": {
+        "title": 68,
+        "lead": 50,
+        "body": 40,
+        "note": 34,
+        "small": 30,
+        "micro": 26
+      },
+      "composition": {
+        "align": "start",
+        "verticalAlign": "start"
+      },
       "motion": {
         "entranceFrames": 8,
-        "holdFrames": 12
+        "holdFrames": 12,
+        "entranceEasing": [
+          0,
+          0,
+          1,
+          1
+        ]
       }
     },
     "velvet": {
-      "$comment": "改编自 HyperFrames visual-styles.md 的 Velvet Standard（致敬 Massimo Vignelli）。颜色不是原值照搬：原 accent #1a237e 在近黑底上对比度只有 1.49:1，画面里几乎不可见，故保留靛蓝色相提亮为 #c5cae9（12.25:1）。muted/panel/border 原风格未给，按项目既有的对比度预算派生。typography 只取字重/字距/大小写特征：原风格的字号是 web 尺度（body 1rem），低于本项目 28px 字阶下限，不采用。缓动曲线（sine.inOut / power1.in）不落地——画面仅由帧号驱动，源码闸门拒绝 CSS 动画，动效只能以帧数表达。",
+      "$comment": "改编自 HyperFrames visual-styles.md 的 Velvet Standard（致敬 Massimo Vignelli）。逐条改编：颜色——原 accent #1a237e 在近黑底上只有 1.49:1，保留靛色相提亮为 #c5cae9（12.25:1），muted/panel/border 原风格未给，按项目对比度预算派生。取形——按原风格的 rounded sm 0px / md 2px 取近直角与细描边。间距——原风格是 web 尺度（sm 16 / md 32 / lg 64），按视频画布放大；纵向留白受量测的内容下边界 1502 约束，因此「宽松」落在水平外边距与居中对称上，而不是把内容推向字幕区。字阶——取标题 120 : 正文 40 = 3:1（原风格 headline 3rem : body 1rem 的比例）。构图——原风格「symmetrical, centered」，故取居中。动效——原风格的 sine.inOut 以三次贝塞尔控制点落地。",
       "colors": {
         "bg": "#0a0a0a",
         "ink": "#ffffff",
@@ -59,10 +159,60 @@
         "titleTransform": "uppercase",
         "bodyLineHeight": 1.6
       },
+      "shape": {
+        "panelRadius": 2,
+        "cardRadius": 2,
+        "nodeRadius": 2,
+        "mediaRadius": 2,
+        "panelRule": 2,
+        "cardRule": 2,
+        "arrowWidth": 3
+      },
+      "layout": {
+        "sceneTop": 200,
+        "sceneBottom": 420,
+        "titleGap": 72,
+        "panelPadding": 88,
+        "columnGap": 48,
+        "columnPadding": 48,
+        "columnLabelGap": 56,
+        "columnItemGap": 36,
+        "cardGap": 24,
+        "cardPaddingX": 56,
+        "cardPaddingY": 24,
+        "numberGap": 28,
+        "nodeGap": 16,
+        "nodePaddingX": 16,
+        "nodePaddingY": 16,
+        "captionGap": 56,
+        "figureWidth": 864,
+        "causeHeight": 580,
+        "causeLabelTop": 576,
+        "mediaHeight": 700,
+        "codeHeight": 780
+      },
+      "typeScale": {
+        "title": 120,
+        "lead": 96,
+        "body": 40,
+        "note": 36,
+        "small": 32,
+        "micro": 28
+      },
+      "composition": {
+        "align": "center",
+        "verticalAlign": "center"
+      },
       "motion": {
         "entranceFrames": 36,
         "holdFrames": 90,
-        "transitionFrames": 45
+        "transitionFrames": 45,
+        "entranceEasing": [
+          0.37,
+          0,
+          0.63,
+          1
+        ]
       }
     }
   }

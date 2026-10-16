@@ -314,11 +314,17 @@ def test_browser_velvet_theme_reaches_the_frame(tmp_path, monkeypatch, chromium_
             page.evaluate("async f => await window.__M2V__.seekToFrame(f)", 0)
             # 颜色来自主题色板
             assert page.evaluate("getComputedStyle(document.querySelector('[data-m2v-scene]')).backgroundColor") == "rgb(10, 10, 10)"
-            # 字重与字距来自主题排版（0.15em × 68px = 10.2px）
+            # 字阶与字距来自主题：标题 120px（与正文 40px 构成 3:1），字距 0.15em = 18px
             assert page.evaluate("""() => {const s = getComputedStyle(document.querySelector('[data-m2v-scene] [data-m2v-box]'));
-                return [s.fontWeight, s.letterSpacing];}""") == ["300", "10.2px"]
-            # 入场时长来自主题动效：36 帧，因此第 18 帧正好过半
-            for frame, expected in ((8, 8 / 36), (18, 0.5), (36, 1)):
+                return [s.fontWeight, s.fontSize, s.letterSpacing];}""") == ["300", "120px", "18px"]
+            # 取形来自主题：面板近直角（组件现值是 24px）
+            assert page.evaluate("""() => getComputedStyle(
+                document.querySelectorAll('[data-m2v-scene] [data-m2v-box]')[1]).borderTopLeftRadius""") == "2px"
+            # 构图来自主题：居中
+            assert page.evaluate("getComputedStyle(document.querySelector('[data-m2v-scene]')).textAlign") == "center"
+            # 入场时长与缓动都来自主题：36 帧的 easeInOutSine。
+            # 第 9 帧是进场 1/4 处，缓动给约 0.147；线性会给 0.25，两者可区分。
+            for frame, expected in ((9, 0.147), (18, 0.5), (36, 1)):
                 page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame)
                 opacity = float(page.evaluate("getComputedStyle(document.querySelector('[data-m2v-reveal]')).opacity"))
                 assert abs(opacity - expected) < 0.02, f"第 {frame} 帧入场进度 {opacity}，期望 {expected}"

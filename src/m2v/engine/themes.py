@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from m2v.core.errors import M2VError
@@ -18,8 +19,16 @@ from m2v.engine.contract_page import web_dir
 #: 主题清单在 `web/` 下的相对位置。
 MANIFEST_RELATIVE = Path("src/themes.json")
 
-#: 动效帧数的字段定义：名 → 是否允许缺省。缺省表示不覆盖，沿用分镜或契约常量。
-_MOTION_FIELDS = ("entranceFrames", "holdFrames", "transitionFrames")
+#: 主题必须齐全的类别。取值级校验在前端 `palette.ts`——那里才是消费方；
+#: 这里只查结构，让 `prepare` 早一点报出缺失，而不是等渲染或量测时才失败。
+_THEME_CATEGORIES = ("colors", "typography", "shape", "layout", "typeScale", "composition", "motion")
+
+#: 动效里的帧数字段。缺省表示不覆盖，沿用分镜或契约常量。
+_MOTION_INTEGERS = ("entranceFrames", "holdFrames", "transitionFrames")
+
+#: 动效字段全集。`entranceEasing` 是四个三次贝塞尔控制点，不参与时间轴计算，
+#: 只由画面逐帧求值，因此这里只做形状校验。
+_MOTION_FIELDS = (*_MOTION_INTEGERS, "entranceEasing")
 
 
 def manifest_path(repo_root: Path | None = None) -> Path:
@@ -39,6 +48,12 @@ def manifest(repo_root: Path | None = None) -> dict:
         raise M2VError(f"主题清单 {path} 缺少非空的 themes 对象")
     if data.get("default") not in data["themes"]:
         raise M2VError(f"主题清单 {path} 的 default 不在 themes 里：{data.get('default')!r}")
+    for name, spec in data["themes"].items():
+        if not isinstance(spec, dict):
+            raise M2VError(f"主题清单 {path} 的 {name} 不是对象")
+        missing = [category for category in _THEME_CATEGORIES if not isinstance(spec.get(category), dict)]
+        if missing:
+            raise M2VError(f"主题 {name} 缺少类别：{'、'.join(missing)}")
     return data
 
 
@@ -52,8 +67,8 @@ def default(repo_root: Path | None = None) -> str:
     return manifest(repo_root)["default"]
 
 
-def motion(theme: str, repo_root: Path | None = None) -> dict[str, int]:
-    """主题的动效帧数。
+def motion(theme: str, repo_root: Path | None = None) -> dict[str, object]:
+    """主题的动效取值。
 
     `transitionFrames` 可以缺省：缺省表示**不覆盖**分镜里每幕声明的转场时长，
     这样只有显式声明该字段的主题才接管转场。
@@ -72,6 +87,12 @@ def motion(theme: str, repo_root: Path | None = None) -> dict[str, int]:
         if field not in values:
             raise M2VError(f"主题 {theme} 的 motion 缺少 {field}")
     for field, value in values.items():
+        if field == "entranceEasing":
+            if (not isinstance(value, list) or len(value) != 4
+                    or any(isinstance(item, bool) or not isinstance(item, (int, float))
+                           or not math.isfinite(item) for item in value)):
+                raise M2VError(f"主题 {theme} 的 motion.entranceEasing 必须是四个有限数，实际是 {value!r}")
+            continue
         if type(value) is not int or value < 1:
             raise M2VError(f"主题 {theme} 的 motion.{field} 必须为正整数，实际是 {value!r}")
     return dict(values)

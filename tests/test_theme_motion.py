@@ -122,3 +122,29 @@ def test_主题清单是合法JSON且字段齐全():
     for name, spec in data["themes"].items():
         assert set(spec["colors"]) == {"bg", "ink", "muted", "panel", "border", "accent"}, name
         assert set(spec["typography"]) == {"titleWeight", "titleTracking", "titleTransform", "bodyLineHeight"}, name
+        # 取形、间距、字阶与构图必须齐全：缺一类就该在加载时明确失败
+        assert set(spec["shape"]) == {"panelRadius", "cardRadius", "nodeRadius", "mediaRadius",
+                                      "panelRule", "cardRule", "arrowWidth"}, name
+        assert len(spec["layout"]) == 21, name
+        assert set(spec["typeScale"]) == {"title", "lead", "body", "note", "small", "micro"}, name
+        assert set(spec["composition"]) == {"align", "verticalAlign"}, name
+
+
+def test_主题缺少类别时明确失败(tmp_path, monkeypatch):
+    path = tmp_path / "themes.json"
+    monkeypatch.setattr(themes, "manifest_path", lambda repo_root=None: path)
+    path.write_text(json.dumps({"default": "dark", "themes": {"dark": {"colors": {}, "motion": {}}}}), encoding="utf-8")
+    with pytest.raises(M2VError, match="缺少类别"):
+        themes.manifest()
+
+
+def test_缓动字段的形状校验(monkeypatch):
+    def manifest_with(easing):
+        monkeypatch.setattr(themes, "manifest", lambda repo_root=None: {
+            "default": "dark", "themes": {"dark": {"motion": {"entranceFrames": 8, "holdFrames": 12, "entranceEasing": easing}}}})
+    manifest_with([0, 0, 1, 1])
+    assert themes.motion("dark")["entranceEasing"] == [0, 0, 1, 1]
+    for bad in ([0, 0, 1], "linear", [0, 0, 1, float("inf")], [0, 0, 1, True]):
+        manifest_with(bad)
+        with pytest.raises(M2VError, match="entranceEasing"):
+            themes.motion("dark")
