@@ -26,13 +26,13 @@ def test_examples_are_fixed_and_capped() -> None:
     assert {path.parent.name for path in STORYBOARDS} == EXPECTED_EXAMPLES
 
 
-def test_every_shipped_example_declares_v6() -> None:
-    legacy = {path.parent.name for path in STORYBOARDS if _declared_version(path) != 6}
-    assert not legacy, f"示例未声明 v6：{sorted(legacy)}"
+def test_every_shipped_example_declares_v7() -> None:
+    legacy = {path.parent.name for path in STORYBOARDS if _declared_version(path) != 7}
+    assert not legacy, f"示例未声明 v7：{sorted(legacy)}"
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
-def test_shipped_example_matches_the_v6_contract(path: Path) -> None:
+def test_shipped_example_matches_the_v7_contract(path: Path) -> None:
     explainer.validate(json.loads(path.read_text(encoding="utf-8")), path.parent)
 
 

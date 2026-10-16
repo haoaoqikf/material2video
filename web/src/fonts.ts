@@ -29,6 +29,9 @@ export interface RegisteredFont {
 /** 画面实际注册的字体资产。清单是唯一真源（`src/assets/fonts.json`）。 */
 export const FONTS: readonly RegisteredFont[] = fontManifest.files;
 
+/** 画面统一的字体栈：composition 与代码场景录制页共用，保证片段与外壳同字体。 */
+export const FONT_STACK = 'M2V Sans, sans-serif';
+
 /** 字体文件的 URL。两条构建路径的前缀不同，由 `remotion_staticBase` 决定走哪一支。 */
 export function fontUrl(file: string): string {
   const relative = `fonts/${file}`;

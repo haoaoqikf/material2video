@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def board():
-    return {"version": 6, "schemaVersion": 6, "fps": 30, "width": 1080, "height": 1920,
+    return {"version": 7, "schemaVersion": 7, "fps": 30, "width": 1080, "height": 1920,
         "title": "测试", "input": {"kind": "article"}, "targetSeconds": 60,
         "scenes": [{"id": "a", "template": "point",
         "content": {"title": "观点", "summary": {"text": "观察反馈", "segmentId": "a-line", "keywords": ["反馈"]}},
@@ -54,7 +54,7 @@ def fake_tts(monkeypatch, seconds=1, samples=None):
     return calls
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 5, 6])
 def test_old_storyboards_rejected(tmp_path, version):
     data = board(); data.update(version=version, schemaVersion=version)
     with pytest.raises(M2VError, match="重新编排"):
@@ -63,7 +63,7 @@ def test_old_storyboards_rejected(tmp_path, version):
 
 def test_version_and_schema_version_must_agree(tmp_path):
     data = board(); data["schemaVersion"] = 5
-    with pytest.raises(M2VError, match="只接受 v6"):
+    with pytest.raises(M2VError, match="只接受 v7"):
         explainer.validate(data, tmp_path)
 
 
@@ -84,7 +84,7 @@ def test_invalid_material(tmp_path, mutation, match):
 
 def test_card_template_requires_narration(tmp_path):
     data = board(); data["scenes"][0]["narrationSegments"] = []
-    with pytest.raises(M2VError, match="只有图片或视频幕允许无旁白"):
+    with pytest.raises(M2VError, match="只有图片、视频或代码幕允许无旁白"):
         explainer.validate(data, tmp_path)
 
 
@@ -114,7 +114,7 @@ def test_topic_input_must_declare_topic_text(tmp_path):
 
 def test_graph_rejects_cycles_and_computes_layers(tmp_path):
     data = json.loads((ROOT / "examples/buffer-smoothing/storyboard.json").read_text(encoding="utf-8"))
-    scene = data["scenes"][-1]
+    scene = next(item for item in data["scenes"] if item["template"] == "cause")
     assert explainer.graph_levels(scene["content"]) == {"producer": 0, "buffer": 1, "consumer": 2}
     scene["content"]["links"].append({"from": "consumer", "to": "producer", "text": "循环", "segmentId": "buffer-cause-1"})
     with pytest.raises(M2VError, match="循环"): explainer.validate(data, tmp_path)
@@ -228,6 +228,7 @@ def test_media_change_invalidates_general_prepared(tmp_path, monkeypatch):
     data = json.loads((source / "storyboard.json").read_text(encoding="utf-8"))
     root, manifest = project(tmp_path, data)
     shutil.copytree(source / "assets", root / "assets")
+    shutil.copytree(source / "scenes", root / "scenes")
     fake_tts(monkeypatch)
     adapter.prepare(root, manifest)
     next((root / "assets/media").glob("*.png")).write_bytes(b"changed")

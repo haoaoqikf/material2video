@@ -32,9 +32,10 @@
 ├── examples/<slug>/                  # 随仓库发布的示例（入库）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md                    # article 输入的源文，可改用 article.accepted.md；topic 输入省略
-│   ├── storyboard.json               # general 的 v6 混合媒体分镜
+│   ├── storyboard.json               # general 的 v7 混合媒体分镜
+│   ├── scenes/                       # general 代码场景的本地 TSX 入口，按需创建
 │   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
-│   └── assets/                       # 本篇专用素材（音床、音效），按需创建
+│   └── assets/                       # 本篇专用素材（音床、音效、代码场景资源），按需创建
 └── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
     ├── video.mp4                     # 正式成片（所有类型同名；文件名由渲染器决定，不随有无配音变化）
     ├── video.provenance.json         # 与该成片同名的溯源记录
@@ -46,6 +47,7 @@
     ├── subtitle-check-props.json     # 最近一次字幕检查用的准备产物副本（general）
     ├── media/                        # 配音清单、音轨与缓存
     ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
+    ├── code-cache/                   # general 代码场景的录制片段与摘要，按内容摘要命名
     ├── previews/                     # 预演产物，使用相同的成片文件名；`m2v render` 会先清掉它
     └── qa/                           # `m2v general keyframes` 的排版量测截图，按需创建
 ```
@@ -74,9 +76,9 @@
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
 React composition（Remotion）。三个类型各有自己的 composition，都在 `web/src/compositions/` 下，
 由 `web/src/Root.tsx` 注册。
-general 的 v6 混合媒体分镜交给 `ArticleExplainer` 绘制六模板画面（图片与视频幕经
+general 的 v7 混合媒体分镜交给 `ArticleExplainer` 绘制七模板画面（图片、视频与代码幕经
 回环 HTTP 取本地素材），契约见
-[文章分镜 v6](storyboard-schema.md)。
+[文章分镜 v7](storyboard-schema.md)。
 
 本篇专用素材（`videos/<type>/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过
@@ -115,7 +117,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 所有类型的正式成片都叫 `outputs/video.mp4`，预演叫 `outputs/previews/video.mp4`；
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
-v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
+v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
 「写了旁白却没配音」的中间态：需要配音请先执行 `uv run m2v prepare --project <目录>`。
 
 ## 成片溯源
@@ -136,7 +138,7 @@ v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 }
 ```
 
-`type` 为 `general` / `financial-timeseries` / `general` / `housing-timeseries`
+`type` 为 `general` / `financial-timeseries` / `housing-timeseries`
 之一，`compositionId` 是它对应的 Remotion composition 标识。
 `preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
 材料、资产或渲染代码已经变化，成片落后。
@@ -148,7 +150,6 @@ v6 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 | 类型 | 与上表的差异 |
 | --- | --- |
 | `general` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
-| `general` | 多一个根级 `renderer: "remotion"`；不含 `bundleKey` |
 | `financial-timeseries` / `housing-timeseries` | 多 `renderer` 与 `bundleKey`，并用 `frames` + `materialsAndAssetsSha256` 代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染

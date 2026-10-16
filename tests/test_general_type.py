@@ -29,11 +29,11 @@ def test_legacy_identity_and_command_are_rejected(tmp_path):
     assert not (tmp_path / "legacy").exists()
 
 
-def test_general_init_has_only_v6_storyboard(tmp_path):
+def test_general_init_has_only_v7_storyboard(tmp_path):
     assert main(["init", "--type", "general", "--project", "demo", "--content-root", str(tmp_path)]) == 0
     root, manifest = load_project(tmp_path / "videos/general/demo")
     assert manifest["materials"] == {"storyboard": "storyboard.json"}
-    assert json.loads((root / "storyboard.json").read_text(encoding="utf-8"))["version"] == 6
+    assert json.loads((root / "storyboard.json").read_text(encoding="utf-8"))["version"] == 7
     assert not (root / "general-plan.json").exists()
 
 

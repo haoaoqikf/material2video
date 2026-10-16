@@ -1,4 +1,4 @@
-"""v6 统一讲解与素材分镜的唯一材料契约。"""
+"""v7 统一讲解与素材分镜的唯一材料契约。"""
 from __future__ import annotations
 
 import json
@@ -8,11 +8,11 @@ from m2v.types.general.article_text import active_source, extract_body, count_ch
 
 FPS, WIDTH, HEIGHT = 30, 1080, 1920
 MAX_FRAMES, READING_TAIL, FADE_FRAMES = 18000, 12, 8
-TEMPLATES = {"point", "compare", "steps", "cause", "image", "video"}
+TEMPLATES = {"point", "compare", "steps", "cause", "image", "video", "code"}
 
 
 def topic_input(data: dict) -> bool:
-    return data.get("version") == 6 and data.get("input", {}).get("kind") == "topic"
+    return data.get("version") == 7 and data.get("input", {}).get("kind") == "topic"
 
 
 def fail(path: str, message: str) -> None:
@@ -95,9 +95,9 @@ def graph_levels(content: dict) -> dict[str, int]:
 
 
 def validate(data: dict, root: Path) -> dict:
-    if not isinstance(data, dict) or data.get("version") != 6 or data.get("schemaVersion") != data.get("version"):
-        fail("version", "文章只接受 v6 分镜；v5 及更早作品须重新编排，不兼容旧版本")
-    modern = data["version"] == 6
+    if not isinstance(data, dict) or data.get("version") != 7 or data.get("schemaVersion") != data.get("version"):
+        fail("version", "文章只接受 v7 分镜；v6 及更早作品须重新编排，不兼容旧版本")
+    modern = data["version"] == 7
     obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title", "visual", "scenes"} | ({"input", "targetSeconds", "soundtrack"} if modern else set()))
     if modern:
         from . import media_assets, soundtrack
@@ -125,7 +125,7 @@ def validate(data: dict, root: Path) -> dict:
         all_ids.add(sid)
         kind = scene.get("template")
         if kind not in TEMPLATES or (kind == "video" and not modern):
-            fail(path, "template 必须是 point/compare/steps/cause/image/video")
+            fail(path, "template 必须是 point/compare/steps/cause/image/video/code")
         if scene.get("transition", "cut") not in ({"cut", "fade", "crossfade"} if modern else {"cut", "fade"}) or (index == 0 and scene.get("transition", "cut") != "cut"):
             fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
         if modern:
@@ -143,8 +143,8 @@ def validate(data: dict, root: Path) -> dict:
         parts = scene.get("narrationSegments", [])
         if not modern or parts:
             parts = items(parts, f"{path}.narrationSegments", 30)
-        elif not isinstance(parts, list) or kind not in {"image", "video"}:
-            fail(path, "只有图片或视频幕允许无旁白")
+        elif not isinstance(parts, list) or kind not in {"image", "video", "code"}:
+            fail(path, "只有图片、视频或代码幕允许无旁白")
         part_ids = set()
         for part in parts:
             obj(part, path + ".narrationSegments", {"id", "text"})
@@ -159,10 +159,14 @@ def validate(data: dict, root: Path) -> dict:
         allowed = {"point": {"title", "summary"}, "compare": {"title", "columns"},
                    "steps": {"title", "items"}, "cause": {"title", "nodes", "links"},
                    "image": {"title", "src", "fit", "caption"},
-                   "video": {"title", "src", "fit", "caption", "trimStartSeconds"}}[kind]
+                   "video": {"title", "src", "fit", "caption", "trimStartSeconds"},
+                   "code": {"title", "entry", "props"}}[kind]
         if modern and kind == "image": allowed |= {"photoZoom"}
         content = obj(scene.get("content"), path + ".content", allowed)
         text(content.get("title"), path + ".content.title")
+        if kind == "code":
+            from .code_scenes import validate_entry
+            validate_entry(root, content.get("entry"), content.get("props", {}))
         if kind == "point":
             obj(content.get("summary"), path + ".summary", {"text", "segmentId", "keywords"})
         elif kind == "compare":

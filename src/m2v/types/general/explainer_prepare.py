@@ -1,4 +1,4 @@
-"""按实际分段音频编译 v6 时间轴；所有可见时序只在准备阶段解析。"""
+"""按实际分段音频编译 v7 时间轴；所有可见时序只在准备阶段解析。"""
 from __future__ import annotations
 
 import copy
@@ -24,10 +24,10 @@ def implementation_digest() -> str:
     """准备/量测/混音代码也是交付契约，改动后须重新准备和评审。"""
     from m2v.core.fingerprints import fingerprint
     from . import adapter, explainer_render
-    from . import soundtrack, media_assets
-    modules = (contract, explainer_review, explainer_render, adapter, audio, tts, rhythm_engine, soundtrack, media_assets)
+    from . import soundtrack, media_assets, code_scenes
+    modules = (contract, explainer_review, explainer_render, adapter, audio, tts, rhythm_engine, soundtrack, media_assets, code_scenes)
     files = [Path(module.__file__) for module in modules] + [Path(__file__)]
-    return fingerprint({file.name: digest(file) for file in files})
+    return fingerprint({**{file.name: digest(file) for file in files}, **code_scenes.implementation_inputs()})
 
 
 def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
@@ -61,7 +61,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             speech = scene.get("speech")
             scene_rhythm = rhythm_engine.configure({**(rhythm or {}), **(speech or {})}) if speech else rhythm
             wav, cues, _words, seconds, hit = tts.scene_audio(segment["text"], actual_tts["voice"],
-                actual_tts["rate"], cache, contract_version=6, rhythm=scene_rhythm)
+                actual_tts["rate"], cache, contract_version=7, rhythm=scene_rhythm)
             if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
             segments.append((segment["id"], wav, cues, math.ceil(seconds * 30)))
             hits += int(hit)
@@ -103,6 +103,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         if cursor > contract.MAX_FRAMES:
             raise M2VError(f"全片 {cursor/30:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
         if scene["template"] == "cause": scene["levels"] = contract.graph_levels(scene["content"])
+        if scene["template"] == "code":
+            from . import code_scenes
+            scene["mediaPath"] = code_scenes.record(root, scene, inputs, source.get("visual", {}).get("theme", "dark"))
+            scene["trimStartFrames"] = 0
         if scene["template"] in {"image", "video"}:
             file = contract.local_file(root, scene["content"]["src"], "content.src")
             relative = file.relative_to(root).as_posix()

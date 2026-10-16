@@ -1,4 +1,4 @@
-"""v6 的浏览器布局验收及可靠 Remotion 导出。"""
+"""v7 的浏览器布局验收及可靠 Remotion 导出。"""
 from __future__ import annotations
 
 import json
@@ -52,9 +52,14 @@ MEASURE = r"""() => {
 
 def current(root: Path, project: dict) -> dict:
     prepared = load_current_prepared(root, project)
-    if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 6
+    if "codeAssets" in prepared["inputs"]:
+        from .code_scenes import asset_inputs
+        from m2v.core.fingerprints import fingerprint
+        if prepared["inputs"]["codeAssets"] != fingerprint(asset_inputs(root)):
+            raise M2VError("代码场景资源集合已变化；请重新 prepare 并完整预演")
+    if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 7
             or not 1 <= prepared["durationInFrames"] <= 18000):
-        raise M2VError("旧文章准备记录不能用于 v6；请重新编排并 prepare")
+        raise M2VError("旧文章准备记录不能用于 v7；请重新编排并 prepare")
     actual = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     if prepared["inputs"].get("renderer") != actual:
         raise M2VError("讲解渲染代码、字体或资源已变化；请重新 prepare 并评审")

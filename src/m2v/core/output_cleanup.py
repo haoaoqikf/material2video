@@ -57,7 +57,8 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
     # including history/. Never recurse into prepared media, which is render input.
     candidates = list(_iter_output_files(outputs, failures))
     for path in candidates:
-        if _inside_named_dir(path, outputs, "media") or (preserve_previews and _inside_named_dir(path, outputs, "previews")):
+        if (_inside_named_dir(path, outputs, "media") or _inside_named_dir(path, outputs, "code-cache")
+                or (preserve_previews and _inside_named_dir(path, outputs, "previews"))):
             continue
         if path in keep:
             continue

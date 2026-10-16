@@ -19,22 +19,30 @@
     ]
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
     "@remotion/bundler": "4.0.526",
     "@remotion/cli": "4.0.526",
     "@remotion/player": "4.0.526",
     "@remotion/renderer": "4.0.526",
     "@remotion/tailwind-v4": "4.0.526",
     "@tailwindcss/vite": "4.2.0",
+    "echarts": "6.1.0",
+    "gsap": "3.15.0",
+    "motion": "14.3.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.526",
-    "tailwindcss": "4.2.0"
+    "tailwindcss": "4.2.0",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "esbuild": "0.28.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^5.0.1"

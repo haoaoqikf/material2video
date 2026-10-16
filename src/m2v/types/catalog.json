@@ -82,16 +82,16 @@
     {
       "name": "general",
       "description": "通用",
-      "summary": "v6 旁白驱动的观点、对比、步骤、因果图、图片与视频讲解，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
-      "plan": "以六种受控模板制作 v6 多幕讲解视频，保留真实配音、输入语义审查、完整预演自动验收与可选画面评审。",
-      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[制作流程](references/production-workflow.md)：v6 混合媒体多幕讲解。",
+      "summary": "v7 旁白驱动的观点、对比、步骤、因果图、图片、视频与本地 React 代码场景讲解，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
+      "plan": "以六种受控模板与本地 React 代码场景制作 v7 多幕讲解视频，保留真实配音、输入语义审查、完整预演自动验收与可选画面评审。",
+      "skillGuide": "[文章生成分镜](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[制作流程](references/production-workflow.md)：v7 混合媒体与代码场景多幕讲解。",
       "materials": [
         {
           "name": "storyboard",
           "file": "storyboard.json",
           "template": {
-            "version": 6,
-            "schemaVersion": 6,
+            "version": 7,
+            "schemaVersion": 7,
             "fps": 30,
             "width": 1080,
             "height": 1920,

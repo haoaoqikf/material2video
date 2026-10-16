@@ -1,11 +1,13 @@
 import React from 'react';
 import {AbsoluteFill, Img, OffthreadVideo, Sequence, useCurrentFrame} from 'remotion';
+import {palettes, type Palette} from '../palette';
+import {FONT_STACK} from '../fonts';
 
 export type DisplayItem = {text: string; segmentId?: string; keywords?: string[]};
 type Node = DisplayItem & {id: string};
 type Link = DisplayItem & {from: string; to: string};
 export type ExplainerScene = {
-  id: string; template: 'point' | 'compare' | 'steps' | 'cause' | 'image' | 'video';
+  id: string; template: 'point' | 'compare' | 'steps' | 'cause' | 'image' | 'video' | 'code';
   startFrame: number; endFrame: number; durationInFrames: number; transitionFrames: number;
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
   content: {title: string; summary?: DisplayItem; columns?: Array<{title: string; items: DisplayItem[]}>;
@@ -13,16 +15,10 @@ export type ExplainerScene = {
   levels?: Record<string, number>; mediaPath?: string; trimStartFrames?: number;
 };
 export type ArticleExplainerProps = {
-  version: 6; schemaVersion: 6; fps: 30; width: 1080; height: 1920; title: string; mediaBase?: string;
+  version: 7; schemaVersion: 7; fps: 30; width: 1080; height: 1920; title: string; mediaBase?: string;
   visual: {theme: 'dark' | 'light'}; durationInFrames: number; compiledScenes: ExplainerScene[];
   subtitleCues: Array<{startFrame: number; endFrame: number; text: string}>;
 };
-
-const palettes = {
-  dark: {bg: '#111720', ink: '#f3f4f6', muted: '#c8d0da', panel: '#1c2734', border: '#526174', accent: '#f7c85b'},
-  light: {bg: '#f7f5f0', ink: '#18212b', muted: '#465363', panel: '#ffffff', border: '#8793a1', accent: '#855800'},
-};
-type Palette = typeof palettes.dark;
 
 function itemStart(scene: ExplainerScene, item: DisplayItem): number {
   return item.segmentId ? scene.segmentWindows[item.segmentId].startFrame : scene.startFrame;
@@ -107,11 +103,15 @@ function SceneCard({scene, palette, frame, base}: {scene: ExplainerScene; palett
   const content = scene.content;
   const active = selectedStep(scene, frame);
   return <AbsoluteFill data-m2v-scene={scene.id} style={{zIndex: 1, background: palette.bg, color: palette.ink,
-    fontFamily: 'M2V Sans, sans-serif', padding: '160px 108px 420px', gap: 54}}>
+    fontFamily: FONT_STACK, padding: '160px 108px 420px', gap: 54}}>
     <div data-m2v-box="" style={{fontSize: 68, lineHeight: 1.5, fontWeight: 750, overflowWrap: 'anywhere'}}>
       <span data-m2v-copy="">{content.title}</span>
     </div>
     <div data-m2v-content="" style={{position: 'relative', flex: 1, minHeight: 0}}>
+      {scene.template === 'code' && <div style={{width: 864, height: 920, overflow: 'hidden'}}>
+        <OffthreadVideo src={base + scene.mediaPath!.split('/').map(encodeURIComponent).join('/')} muted
+          trimBefore={0} trimAfter={scene.durationInFrames} style={{width: 864, height: 920, objectFit: 'contain'}}/>
+      </div>}
       {scene.template === 'point' && content.summary && <Reveal item={content.summary} scene={scene} frame={frame}>
         <div data-m2v-box="" style={{...bodyStyle, fontSize: 50, padding: 44, background: palette.panel, borderRadius: 24}}>
           <Copy item={content.summary} palette={palette}/></div></Reveal>}
@@ -157,7 +157,7 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
     </Sequence>)}
     {/* 场景自带 z-index: 1（见 SceneCard），字幕必须覆盖场景背景，因此为 2。 */}
     <div data-m2v-subtitle="" style={{position: 'absolute', zIndex: 2, left: 108, right: 108, top: 1580, height: 200,
-      fontFamily: 'M2V Sans, sans-serif', fontSize: 40, lineHeight: 1.5, color: palette.ink, textAlign: 'center', overflowWrap: 'anywhere'}}>
+      fontFamily: FONT_STACK, fontSize: 40, lineHeight: 1.5, color: palette.ink, textAlign: 'center', overflowWrap: 'anywhere'}}>
       {cue && <span data-m2v-copy="">{cue.text}</span>}
     </div>
   </AbsoluteFill>;

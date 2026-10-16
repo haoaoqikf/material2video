@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "schemaVersion": 6,
+  "version": 7,
+  "schemaVersion": 7,
   "fps": 30,
   "width": 1080,
   "height": 1920,
@@ -118,6 +118,20 @@
         }
       ],
       "transition": "fade"
+    },
+    {
+      "id": "code-demo",
+      "template": "code",
+      "keywords": [
+        "演示"
+      ],
+      "content": {
+        "title": "变化逐步累积",
+        "entry": "scenes/motion-chart.tsx",
+        "props": {}
+      },
+      "narrationSegments": [],
+      "durationFrames": 90
     }
   ],
   "soundtrack": {

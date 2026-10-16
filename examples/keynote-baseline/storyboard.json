@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "schemaVersion": 6,
+  "version": 7,
+  "schemaVersion": 7,
   "fps": 30,
   "width": 1080,
   "height": 1920,
@@ -119,6 +119,20 @@
       "transition": "fade",
       "transitionFrames": 8,
       "narrationSegments": []
+    },
+    {
+      "id": "code-demo",
+      "template": "code",
+      "keywords": [
+        "演示"
+      ],
+      "content": {
+        "title": "聚焦一个核心",
+        "entry": "scenes/three-world.tsx",
+        "props": {}
+      },
+      "narrationSegments": [],
+      "durationFrames": 90
     }
   ]
 }

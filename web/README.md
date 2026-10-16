@@ -87,7 +87,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 
 ## 通用讲解
 
-通用类型使用 v6 storyboard.json，由 ArticleExplainer 绘制六种模板；作品不加载 React 模块，不支持旧 general-plan 编排或片段嵌入。
+通用类型使用 v7 storyboard.json，由 ArticleExplainer 绘制六种受控模板与本地 React 代码场景录制的无声片段；`code` 幕的作品 TSX 只在准备阶段由 `src/code-scene/` 的独立录制页运行，不进入 composition，也不支持旧 general-plan 编排或片段嵌入。
 
 ## 渲染契约（`window.__M2V__` version 6）
 
@@ -101,7 +101,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 | `seekToFrame(frame)` | 把画面定位到第 `frame` 帧并暂停，画面更新完成后 resolve |
 | `currentFrame()` | 返回 Player 当前实际帧号，仅供只读诊断 |
 
-契约页只量测文章 v6 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
+契约页只量测文章 v7 模板，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
 读取已准备的讲解材料。
 
 契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/contract/explainer.tsx`，**作品不许自己实现**。

@@ -11,8 +11,8 @@ def test_examples_use_bound_narration_and_distinct_screen_copy():
         for scene in board["scenes"]:
             narration="".join(p["text"] for p in scene["narrationSegments"])
             assert scene["content"]["title"] != narration
-            if scene["template"] in {"image", "video"}:
-                # 素材幕可以没有旁白，也可以只写画面标题。
+            if scene["template"] in {"image", "video", "code"}:
+                # 素材幕与代码幕可以没有旁白，也可以只写画面标题。
                 assert explainer.elements(scene) == ([scene["content"]["caption"]] if "caption" in scene["content"] else [])
                 continue
             assert narration and explainer.elements(scene)

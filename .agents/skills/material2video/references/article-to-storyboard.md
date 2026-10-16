@@ -4,10 +4,10 @@
 
 先阅读源文，判断观点是否清晰、例子是否支撑结论、是否存在事实与推理问题。源文必须非空，没有标准字数限制；候选稿须用户明确采用并重新审查后才能制作。没有源文、只想按一个主题成片时，改用 `input: {"kind":"topic","topic":"<主题>"}`，此时跳过源文与源文语义审查，但每幕必须声明 `keywords` 供检索与选题对齐。
 
-每幕只承担一个说明任务：提出观点用 point，比较做法用 compare，给方法用 steps，解释原因用 cause，具体例子用 image 或 video。屏幕只保留摘要，不复制整段口播。图片、视频与图形只表达材料已有信息，示意内容在旁白或说明中标注；素材只能来自已导入并留证的内容寻址文件，见 [文章媒体与音效](article-media-and-sound.md)。
+每幕只承担一个说明任务：提出观点用 point，比较做法用 compare，给方法用 steps，解释原因用 cause，具体例子用 image 或 video；受控模板无法表达的复杂动画、3D 或动态图表用 code，把本地 React 组件放在作品 `scenes/` 下。屏幕只保留摘要，不复制整段口播。图片、视频与图形只表达材料已有信息，示意内容在旁白或说明中标注；素材只能来自已导入并留证的内容寻址文件，见 [文章媒体与音效](article-media-and-sound.md)；代码场景的入口、依赖边界与录制契约见 [分镜结构](storyboard-schema.md)。
 
-每段旁白给稳定 ID，展示项绑定对应段。关键词需在屏幕文字中存在，步骤按口播顺序排列，因果关系不得循环。图片与视频幕可以没有旁白，此时用 `durationFrames` 声明镜头长度。优先减少信息密度和拆幕，不用复杂动画掩盖内容问题。
+每段旁白给稳定 ID，展示项绑定对应段。关键词需在屏幕文字中存在，步骤按口播顺序排列，因果关系不得循环。图片、视频与代码幕可以没有旁白，此时用 `durationFrames` 声明镜头长度。优先减少信息密度和拆幕，不用复杂动画掩盖内容问题。
 
-全片实际时长不超过 600 秒，包括每幕 12 帧阅读停留和可选淡化帧数；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。通用类型只接受 v6 讲解模板，不接受作品代码场景。
+全片实际时长不超过 600 秒，包括每幕 12 帧阅读停留和可选淡化帧数；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。通用类型只接受 v7 讲解模板与 v7 代码场景，旧版本不自动迁移。
 
-固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例只有 `article.md`、`project.json`、`storyboard.json`、`README.md` 与按需的 `assets/`。
+固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例只有 `article.md`、`project.json`、`storyboard.json`、`README.md` 与按需的 `assets/`、`scenes/`。

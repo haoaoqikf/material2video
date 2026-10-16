@@ -1,4 +1,4 @@
-"""文章 v6 统一讲解与素材制作的类型适配器。"""
+"""文章 v7 统一讲解与素材制作的类型适配器。"""
 from pathlib import Path
 from m2v.types.registry import VideoType
 from . import explainer, explainer_prepare, explainer_render, explainer_review

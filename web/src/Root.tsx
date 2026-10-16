@@ -22,7 +22,7 @@ export const RemotionRoot: FC = () => {
         fps={30}
         width={1080}
         height={1920}
-        defaultProps={{ version: 6, schemaVersion: 6, fps: 30, width: 1080, height: 1920, title: '', visual: { theme: 'dark' },
+        defaultProps={{ version: 7, schemaVersion: 7, fps: 30, width: 1080, height: 1920, title: '', visual: { theme: 'dark' },
           durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}
       />

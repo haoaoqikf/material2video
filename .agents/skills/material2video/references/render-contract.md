@@ -2,7 +2,7 @@
 
 > **适用范围：** 本文描述当前 3 个视频类型共用的渲染契约：契约页（`version: 6`）、Remotion
 > 逐帧渲染、成片编码、交付权限与溯源。画面只有一条实现路径——共享 React composition 由准备
-> 产物直接驱动；浏览器布局量测当前只覆盖文章 v6 模板。分镜结构见 [文章分镜 v6](storyboard-schema.md)，
+> 产物直接驱动；浏览器布局量测当前只覆盖文章 v7 模板。分镜结构见 [文章分镜 v7](storyboard-schema.md)，
 > 设计令牌见 [设计令牌](design-tokens.md)，
 > 制作顺序见 [制作流程](production-workflow.md)。v3/v4 的共享动画、场景树、节拍运行时与
 > `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
@@ -36,7 +36,7 @@
 | `fps` | `number` | 帧率，必须与准备记录一致 |
 | `width` | `number` | 画面宽度，必须与准备记录一致 |
 | `height` | `number` | 画面高度，必须与准备记录一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v6 由逐段实际配音编译，上限 18000 帧） |
+| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（文章 v7 由逐段实际配音编译，上限 18000 帧） |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
 | `currentFrame()` | `() => number` | 只读诊断：Player 当前实际帧号，不参与求帧判定 |
@@ -102,6 +102,18 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
   并报出文件与行号；动效一律从 `useCurrentFrame()` 推导；
 - 布局量测与成片验收照常运行（见下文），成片仍要过上面的确定性验收。
 
+### 代码场景不在确定性闸门内
+
+作品 `scenes/` 下的 TSX **不进入 composition**，因此不受上面的源码闸门约束：它在准备阶段由
+独立录制页实时录制（`web/src/code-scene/`）。打包只批准 React、`motion`、`three`、
+`@react-three/fiber`、`@react-three/drei`、`gsap`、`echarts` 与 `m2v/code-scene`，
+相对导入必须留在作品目录内，远程模块与未批准依赖在构建时报错，工具不安装作品依赖；
+录制页阻断外网请求与 WebSocket，就绪超时、请求失败或运行异常都让 `prepare` 失败。
+录制正文固定 864×920、位于标题下方，标题与字幕仍由共享外壳绘制且字幕层在片段之上；
+片段标准化为与镜头帧数完全一致的 30 fps 无声视频，声音由统一音轨处理。
+成片只回放这段已验收片段，正式导出不再执行作品代码；因此代码场景不保证逐像素复现，
+文字包围盒量测也只覆盖共享外壳的标题与字幕，不检查作品代码画了什么。
+
 ## 渲染引擎与打包
 
 正式渲染不经过浏览器截图，而是**直接从 composition 源码渲染**：
@@ -147,7 +159,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
   同样收掉整棵进程树（Windows 用 `taskkill /T`），不留下孤儿 Chromium。
 - 并发（`concurrency`）透传给 Remotion，**默认 1**。提高并发会抬高峰值内存，
   Windows 长片在多并发页签下可能被系统关闭并报 `Target closed`，因此不按 CPU 数
-  自动提高；非法取值在打包前即报错，早于渲染。当前 5 个类型都固定用 1。
+  自动提高；非法取值在打包前即报错，早于渲染。当前各类型都固定用 1。
 
 ### 性能报告（`<名字>.performance.json`）
 
@@ -255,7 +267,7 @@ Windows 11 新版「媒体播放器」打开成片时报 `0x80070005 你没有�
 契约暴露只读的 `currentFrame()` 诊断读数，返回 Player 实际所在的帧号，不参与求帧完成判定。
 `seekToFrame` 超时时也会报告目标帧与实际帧（`web/src/contract/bridge.ts` 的 `settleOnFrame`）。
 
-材料本身的问题（未知字段、缺图片、缺少已准备的 v6 材料）会在契约页上直接显示错误说明
+材料本身的问题（未知字段、缺图片、缺少已准备的 v7 材料）会在契约页上直接显示错误说明
 （`data-m2v-contract-error` 元素），渲染入口报「`__M2V__` 未定义」时先打开页面看它。
 
 ## 配音与字幕
