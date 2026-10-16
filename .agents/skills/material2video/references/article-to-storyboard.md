@@ -11,3 +11,5 @@
 全片实际时长不超过 600 秒，包括每幕 12 帧阅读停留和可选淡化帧数；超限修改文本或正常语速，不能截断语音。详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。通用类型只接受 v7 讲解模板与 v7 代码场景，旧版本不自动迁移。
 
 固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例只有 `article.md`、`project.json`、`storyboard.json`、`README.md` 与按需的 `assets/`、`scenes/`。
+
+固定示例按文章先行、再分镜、最后准备与成片组织，目标每片 120～180 秒，合计覆盖七种模板及批准的动画、图表与三维组件。核心代码演示包含旁白，通过实际 `segmentWindows` 与录制 `elapsedSeconds` 推进：缓冲演示水位与流量积压，试错演示落点与调整，选择演示条件筛选路径。数值与路径明确标注示意，文章保留适用边界；示例 README 提供论点、旁白与组件对应表。时长以实际配音为准，通过改写调整，不截断语音或单靠 `targetSeconds` 拉长。

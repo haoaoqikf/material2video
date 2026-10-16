@@ -15,8 +15,8 @@
     "voice": "zh-CN-YunyangNeural",
     "selection": {
       "mode": "assistant",
-      "rationale": "旁白面向普通学习者解释缓冲机制、容量上限与处理能力的区别，采用清晰可靠的知识讲解；当前服务将云扬标为 News、Professional、Reliable，因此选择云扬，保持原有语速与停顿。",
-      "narrationSha256": "16e458ee183b2a2a1a97b218f04d9511cd86a072811107ae80573f9be7e6f394"
+      "rationale": "缓冲文章讲解流量、存量与容量边界，需要清晰可靠的知识说明；当前服务返回云扬的 News、Professional、Reliable 标签，与这篇机制推导相符。",
+      "narrationSha256": "e6454825e35aeafae6985dadc5cd4c4f6e392ddc203f80fe58228bb8411cd0f2"
     }
   }
 }

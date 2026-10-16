@@ -115,8 +115,12 @@ def test_topic_input_must_declare_topic_text(tmp_path):
 def test_graph_rejects_cycles_and_computes_layers(tmp_path):
     data = json.loads((ROOT / "examples/buffer-smoothing/storyboard.json").read_text(encoding="utf-8"))
     scene = next(item for item in data["scenes"] if item["template"] == "cause")
-    assert explainer.graph_levels(scene["content"]) == {"producer": 0, "buffer": 1, "consumer": 2}
-    scene["content"]["links"].append({"from": "consumer", "to": "producer", "text": "循环", "segmentId": "buffer-cause-1"})
+    # 只验证图，不让示例中的代码入口和音床依赖临时目录中的文件。
+    data["scenes"] = [scene]
+    data.pop("soundtrack", None)
+    nodes = scene["content"]["nodes"]
+    assert explainer.graph_levels(scene["content"]) == {node["id"]: i for i, node in enumerate(nodes)}
+    scene["content"]["links"].append({"from": nodes[-1]["id"], "to": nodes[0]["id"], "text": "循环", "segmentId": "buffer-cause-1"})
     with pytest.raises(M2VError, match="循环"): explainer.validate(data, tmp_path)
 
 

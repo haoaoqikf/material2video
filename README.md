@@ -10,7 +10,7 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 `buffer-smoothing`、`darts-trial-and-error`、`keynote-baseline`，不增删或替换。
+文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 [缓冲](examples/buffer-smoothing/README.md)、[试错](examples/darts-trial-and-error/README.md)、[选择](examples/keynote-baseline/README.md)，不增删或替换。示例源材料随仓库分发，目标为每片 2～3 分钟；三片合计覆盖七种模板及 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei，核心代码演示按实际旁白时间窗推进。逐片论点与组件对应关系见示例说明；生成视频保存到 `videos/examples/<slug>/outputs/`，不入库。
 
 新增视频类型只在两处落地：在 `src/m2v/types/catalog.json` 登记类型身份、材料入口与初始化模板，并实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；未在目录登记的类型会在渲染前失败。上面的清单与 Skill、项目规划中的清单都由该目录生成，改动后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成。
 

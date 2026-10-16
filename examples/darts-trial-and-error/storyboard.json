@@ -8,7 +8,7 @@
   "input": {
     "kind": "article"
   },
-  "targetSeconds": 60,
+  "targetSeconds": 150,
   "visual": {
     "theme": "dark"
   },
@@ -19,52 +19,74 @@
       "content": {
         "title": "试错，要带着反馈",
         "summary": {
-          "text": "失败提供方向，修正才有进步",
-          "segmentId": "darts-point-0",
-          "keywords": [
-            "修正"
-          ]
+          "text": "把可承受的行动变成信息",
+          "segmentId": "darts-point-0"
         }
       },
       "narrationSegments": [
         {
           "id": "darts-point-0",
-          "text": "一次偏离目标的尝试，也能告诉我们下一次应该怎么调整。"
+          "text": "面对不确定的任务，我们容易一直准备，期待想清楚以后再行动。准备当然有价值，但如果缺少真实反馈，再多猜测也可能围着同一个假设打转。小步尝试，是获得信息的一种办法。"
         }
       ]
     },
     {
-      "id": "darts-steps",
-      "template": "steps",
+      "id": "darts-compare",
+      "template": "compare",
       "content": {
-        "title": "让尝试形成循环",
-        "items": [
+        "title": "准备与试验，各解决什么",
+        "columns": [
           {
-            "text": "确定目标",
-            "segmentId": "darts-steps-0"
+            "title": "继续推演",
+            "items": [
+              {
+                "text": "检查已知条件",
+                "segmentId": "darts-compare-0"
+              }
+            ]
           },
           {
-            "text": "观察偏差",
-            "segmentId": "darts-steps-1"
-          },
-          {
-            "text": "调整做法",
-            "segmentId": "darts-steps-2"
+            "title": "小步试验",
+            "items": [
+              {
+                "text": "发现未知偏差",
+                "segmentId": "darts-compare-1"
+              }
+            ]
           }
         ]
       },
       "narrationSegments": [
         {
-          "id": "darts-steps-0",
-          "text": "先确定你要达到的目标。"
+          "id": "darts-compare-0",
+          "text": "例如练习飞镖，你可以先了解握法和安全规则，但只在脑中想象，并不能告诉你自己实际会偏向哪里。这个偏差需要观察才知道。"
         },
         {
-          "id": "darts-steps-1",
-          "text": "观察实际结果与目标的差异。"
+          "id": "darts-compare-1",
+          "text": "先在安全场地做一次可承受的尝试，记录结果，再决定下一步。低成本不是随便做，而是把一次失败的损失限制在事先接受的范围。"
+        }
+      ]
+    },
+    {
+      "id": "darts-demo",
+      "template": "code",
+      "content": {
+        "title": "看见偏差，再调整方向",
+        "entry": "scenes/timeline.tsx",
+        "props": {}
+      },
+      "narrationSegments": [
+        {
+          "id": "darts-demo-0",
+          "text": "看这组飞镖示意。第一次落在靶心右上方。我们先记录方向，不急着把一次偏离解释成能力不够，也不假装已经找到了原因。"
         },
         {
-          "id": "darts-steps-2",
-          "text": "根据差异调整下一次的做法。"
+          "id": "darts-demo-1",
+          "text": "第二次只调整一个动作，再看落点。现在偏差缩小了，但一次变好仍可能带有偶然性，需要更多观察来判断调整是否有效。"
+        },
+        {
+          "id": "darts-demo-2",
+          "text": "第三次更接近目标。图上的落点只是解释反馈的示意，不是实验数据，也不保证每次修正都会更好。关键是下一次的做法有了依据。"
         }
       ]
     },
@@ -72,40 +94,109 @@
       "id": "darts-image",
       "template": "image",
       "content": {
-        "title": "把偏差变成信息",
-        "src": "assets/media/e3eabce0423ada353a23164fef774ef4aa46c5210041dcbeb291dc31e350f911.png",
+        "title": "把反馈写成记录",
+        "src": "assets/media/7fc66d27c2945dee8c6d863e1b19c384757216038a079466eacb854a24daae4b.png",
         "fit": "contain",
-        "photoZoom": 1.08,
+        "photoZoom": 1.02,
         "caption": {
-          "text": "看清偏差，再做下一次尝试",
-          "segmentId": "darts-image-0",
-          "keywords": [
-            "偏差"
-          ]
+          "text": "假设、观察、调整：三列反馈记录（示意）",
+          "segmentId": "darts-image-0"
         }
       },
-      "aspectRatio": "any",
       "narrationSegments": [
         {
           "id": "darts-image-0",
-          "text": "飞镖偏向哪里，是调整方向的依据。示意图表达反馈的作用，不代表真实实验数据。"
+          "text": "记录可以很简单：这次想验证什么，实际发生什么，下次只改什么。把三列写下来，才能区分你改变了方法，还是仅仅重复了动作。示意表中的结果不代表真实测量。"
         }
       ],
-      "transition": "fade"
+      "aspectRatio": "any"
     },
     {
-      "id": "code-demo",
-      "template": "code",
-      "keywords": [
-        "演示"
-      ],
+      "id": "darts-cause",
+      "template": "cause",
       "content": {
-        "title": "尝试与修正",
-        "entry": "scenes/timeline.tsx",
-        "props": {}
+        "title": "从一次尝试走到下一次",
+        "nodes": [
+          {
+            "id": "n0",
+            "text": "做小试验",
+            "segmentId": "darts-cause-0"
+          },
+          {
+            "id": "n1",
+            "text": "记录偏差",
+            "segmentId": "darts-cause-1"
+          },
+          {
+            "id": "n2",
+            "text": "修正方法",
+            "segmentId": "darts-cause-2"
+          }
+        ],
+        "links": [
+          {
+            "from": "n0",
+            "to": "n1",
+            "text": "获得观察",
+            "segmentId": "darts-cause-1"
+          },
+          {
+            "from": "n1",
+            "to": "n2",
+            "text": "形成依据",
+            "segmentId": "darts-cause-2"
+          }
+        ]
       },
-      "narrationSegments": [],
-      "durationFrames": 90
+      "narrationSegments": [
+        {
+          "id": "darts-cause-0",
+          "text": "这个过程可以连成一条反馈链：小试验产生可以观察的结果，记录保留结果与目标的差别。没有观察，就很难知道该往哪里改。"
+        },
+        {
+          "id": "darts-cause-1",
+          "text": "接着根据记录选择调整，再开始下一轮。图里画的是一轮的因果关系，下一轮会重新观察，而不是把旧结论当成永远正确。"
+        },
+        {
+          "id": "darts-cause-2",
+          "text": "如果结果没有改善，也是一条需要解释的信息。可能是调整方向不对，可能是指标太粗，也可能是问题本身并不适合这样试。"
+        }
+      ]
+    },
+    {
+      "id": "darts-steps",
+      "template": "steps",
+      "content": {
+        "title": "试之前，先设好边界",
+        "items": [
+          {
+            "text": "定义目标与单次成本",
+            "segmentId": "darts-steps-0"
+          },
+          {
+            "text": "一次只改关键变量",
+            "segmentId": "darts-steps-1"
+          },
+          {
+            "text": "设置复盘和停止条件",
+            "segmentId": "darts-steps-2"
+          }
+        ]
+      },
+      "narrationSegments": [
+        {
+          "id": "darts-steps-0",
+          "text": "开始之前，写清目标和一次最多损失多少。涉及健康、安全或不可逆损失时，不能因为强调试错，就绕过专业判断和必要的保护。"
+        },
+        {
+          "id": "darts-steps-1",
+          "text": "每轮尽量只改一个关键因素，并保持观察口径一致。否则，即使结果变好，也很难判断到底是哪项变化起了作用。"
+        },
+        {
+          "id": "darts-steps-2",
+          "text": "最后设置复盘和停止条件。连续没有收获时，先检查假设，必要时换方法或停止。有效试错依赖可承受成本、可观察反馈和真正的修正，高频重复本身并不保证成功。"
+        }
+      ]
     }
   ]
 }

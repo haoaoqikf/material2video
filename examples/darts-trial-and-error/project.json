@@ -15,8 +15,8 @@
     "voice": "zh-CN-YunxiNeural",
     "selection": {
       "mode": "assistant",
-      "rationale": "旁白通过飞镖落点解释低成本试错与反馈迭代，面向希望开始行动的学习者，需要有活力的叙事；当前云希标为 Novel、Lively、Sunshine，与该表达目标匹配，因此选择云希。",
-      "narrationSha256": "461e37fbd700854947a5fcdfaec31ba550bc99f95847bb207628026fe75481da"
+      "rationale": "试错文章以飞镖逐轮观察带出行动与复盘，语气需要有行动感且保持限定；服务返回云希 Novel、Lively、Sunshine，适合此叙事过程。",
+      "narrationSha256": "86a1bc5a47a9c1486759fe2ac0edebf12fd7928d4d2e1007d99df30d00243b6d"
     }
   }
 }

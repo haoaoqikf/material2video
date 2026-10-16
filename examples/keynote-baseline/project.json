@@ -12,11 +12,11 @@
     "audio": "optional"
   },
   "tts": {
-    "voice": "zh-CN-XiaoyiNeural",
+    "voice": "zh-CN-XiaoxiaoNeural",
     "selection": {
       "mode": "assistant",
-      "rationale": "旁白以日常选项过多的困扰切入，逐步引导删去多余选项并行动，采用轻快的生活化叙事；当前晓伊标为 Novel、Cartoon、Lively，取其活泼叙事方向，因此选择晓伊，不改变原有语速。",
-      "narrationSha256": "255b0d8479470ca736e927410450273adacc4e82d41a1c6e88e75a8f496c009d"
+      "rationale": "选择文章从日常活动切入，以温和语气讨论取舍与重大决策边界；服务返回晓晓 News、Novel、Warm，与这篇日常叙述相符。",
+      "narrationSha256": "fc010e5f94e2917249859b2002c272e734cf73ca0eea01cb44ed931436c89b41"
     }
   }
 }

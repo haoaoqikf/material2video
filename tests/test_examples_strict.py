@@ -26,6 +26,29 @@ def test_examples_are_fixed_and_capped() -> None:
     assert {path.parent.name for path in STORYBOARDS} == EXPECTED_EXAMPLES
 
 
+@pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
+def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> None:
+    """核心演示不能退化成与文章无关的无声技术末幕。"""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    article = (path.parent / "article.md").read_text(encoding="utf-8")
+    code_scenes = [scene for scene in data["scenes"] if scene["template"] == "code"]
+    assert code_scenes
+    for scene in code_scenes:
+        assert len(scene["narrationSegments"]) >= 2
+        assert "durationFrames" not in scene, "核心演示长度应由真实旁白决定"
+        source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
+        assert "segmentWindows" in source and "elapsedSeconds" in source
+        for segment in scene["narrationSegments"]:
+            assert segment["text"] in article
+        assert any("示意" in segment["text"] for segment in scene["narrationSegments"])
+
+
+def test_examples_cover_approved_component_families() -> None:
+    sources = "\n".join(file.read_text(encoding="utf-8") for file in EXAMPLES.glob("*/scenes/*.tsx"))
+    for component in ("motion", "Chart", "gsap", "THREE", "Canvas", "PerspectiveCamera"):
+        assert component in sources, f"缺少组件演示：{component}"
+
+
 def test_every_shipped_example_declares_v7() -> None:
     legacy = {path.parent.name for path in STORYBOARDS if _declared_version(path) != 7}
     assert not legacy, f"示例未声明 v7：{sorted(legacy)}"
