@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "solar-system-journey",
+  "type": "general",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "audio": "optional"
+  },
+  "tts": {
+    "voice": "zh-CN-YunyangNeural",
+    "rate": "+8%",
+    "selection": {
+      "mode": "assistant",
+      "rationale": "服务返回云扬的 News、Professional、Reliable 标签；全文以天体特征和尺度边界为主，选择稳健清晰的科普讲解音色，配合缓慢三维镜头。",
+      "narrationSha256": "0fb3468732d1729f2ea9d4166c8d3fa3c6ccc6ab626122b6be768902f177e41d"
+    }
+  }
+}

@@ -13,9 +13,9 @@ from m2v.types.general import explainer
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
-EXPECTED_EXAMPLES = {"buffer-smoothing", "darts-trial-and-error", "keynote-baseline"}
+EXPECTED_EXAMPLES = {"buffer-smoothing", "darts-trial-and-error", "solar-system-journey"}
 #: 两横一竖：画幅是作品设计的一部分，示例必须覆盖两种。
-EXPECTED_FRAMES = {"buffer-smoothing": (1920, 1080), "keynote-baseline": (1920, 1080),
+EXPECTED_FRAMES = {"buffer-smoothing": (1920, 1080), "solar-system-journey": (1920, 1080),
                    "darts-trial-and-error": (1080, 1920)}
 APPROVED_COMPONENTS = {
     "Motion": ("motion", "motion/react"),
@@ -123,7 +123,8 @@ def test_shipped_example_actual_duration(name: str) -> None:
         pytest.skip("本地没有准备产物；准备后本用例会核对实际时长")
     data = json.loads(prepared.read_text(encoding="utf-8"))
     seconds = data["durationInFrames"] / 30
-    assert 120 <= seconds <= 180, f"{name} 实际 {seconds:.1f} 秒，超出 120～180 秒"
+    minimum = 165 if name == "solar-system-journey" else 120
+    assert minimum <= seconds <= 180, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～180 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
 
@@ -134,7 +135,7 @@ def test_no_generated_media_is_tracked() -> None:
         pytest.skip("环境里没有 git")
     listed = subprocess.run(["git", "ls-files", "examples"], cwd=ROOT, capture_output=True, text=True,
                             encoding="utf-8", errors="replace", check=True).stdout.splitlines()
-    # `assets/media/` 下的导入素材是内容寻址的固定输入（原创 CC0），按约定入库；
+    # `assets/media/` 下的导入素材是内容寻址且已记录来源与许可的固定输入，按约定入库；
     # 其余视频与 `outputs/` 下的任何东西都是派生产物。
     generated = [name for name in listed
                  if "/outputs/" in name

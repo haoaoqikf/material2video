@@ -34,7 +34,7 @@ STORYBOARDS = (
     # 仓库自带的分镜：实际文章（`videos/<slug>/`）是内容、不入库
     "examples/buffer-smoothing/storyboard.json",
     "examples/darts-trial-and-error/storyboard.json",
-    "examples/keynote-baseline/storyboard.json",
+    "examples/solar-system-journey/storyboard.json",
 )
 
 

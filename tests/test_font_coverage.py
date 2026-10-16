@@ -79,7 +79,7 @@ class TestShippedWorksAreCovered:
             # 只取仓库自带的分镜：实际文章是内容、不入库，克隆后并不存在
             "examples/buffer-smoothing/storyboard.json",
             "examples/darts-trial-and-error/storyboard.json",
-            "examples/keynote-baseline/storyboard.json",
+            "examples/solar-system-journey/storyboard.json",
         ],
     )
     def test_every_rendered_character_has_a_glyph(self, storyboard):
@@ -92,7 +92,7 @@ class TestAuditTellsYouWhereItHurts:
     """光说「缺字」没用，要说是哪一段缺——否则这条结论不可修。"""
 
     ROOT = Path(__file__).resolve().parents[1]
-    BASELINE = ROOT / "examples/keynote-baseline/storyboard.json"
+    BASELINE = ROOT / "examples/solar-system-journey/storyboard.json"
 
     def _storyboard(self) -> dict:
         import json
@@ -108,7 +108,7 @@ class TestAuditTellsYouWhereItHurts:
         findings = fonts.audit_fonts([NOTO, INTER], data)
         assert findings, "插入了字体没有的字符，必须报出来"
         assert "\U0001F600" in findings[0]["missing"]
-        assert "choice-point.content.title" in findings[0]["where"], "结论要指到具体的讲解文字字段"
+        assert "solar-journey.content.title" in findings[0]["where"], "结论要指到具体的讲解文字字段"
 
     def test_spoken_segments_are_not_scanned_as_visual_text(self):
         """口播段只供配音和字幕使用，不作为画面可见文字扫描。"""

@@ -91,5 +91,5 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 
 完整示例：[缓冲](../../../../examples/buffer-smoothing/storyboard.json)、
 [试错](../../../../examples/darts-trial-and-error/storyboard.json)、
-[选择](../../../../examples/keynote-baseline/storyboard.json)。当前规格见
+[太阳系之旅](../../../../examples/solar-system-journey/storyboard.json)。当前规格见
 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。
