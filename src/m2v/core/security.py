@@ -8,11 +8,12 @@
 后果不是「文件读不了」——你自己的账号（管理员）能读能写——而是**以标准权限运行的
 打包应用读不到**：Windows 11 新版「媒体播放器」打开成片时报
 ``0x80070005 你没有访问该文件的权限``。ffmpeg、浏览器上传都不受影响，
-所以这个问题只在用户双击播放时才暴露。注意它在 ``%TEMP%`` 下不会复现，
-因为那里的临时目录额外继承了一条宽松的 ``CREATOR OWNER``。
+所以这个问题只在用户双击播放时才暴露。``mkdtemp``、``TemporaryDirectory`` 与 pytest 的
+``tmp_path`` 都带这份 ACL，临时目录落在 ``%TEMP%`` 还是仓库里都一样。
 
 修法是让落到最终位置的文件重新遵循父目录的继承规则（``icacls /reset``），
-而不是把产物复制到别处或手工改 ACL。
+而不是把产物复制到别处或手工改 ACL。交付路径统一走 :func:`deliver` 与
+:func:`deliver_directory`，让「搬运」与「修复」不可能只做一半。
 """
 
 from __future__ import annotations
@@ -108,3 +109,50 @@ def grant_inherited_access(path: str | Path) -> bool:
         logger.warning("修复访问权限失败 %s: %s", target, detail[-300:])
         return False
     return True
+
+
+def _warn_if_still_unusable(target: Path) -> None:
+    """修复后复核一次，并把「父目录本身就是收紧的」这种根因直接指出来。
+
+    只复核目标本身、不递归：每次多花一次 ``icacls``，换来的是「交付文件真的能被
+    标准权限应用打开」这个结论，而不是「修复命令返回了 0」。
+    """
+    if has_usable_access(target):
+        return
+    logger.warning(
+        "交付文件仍未被授权给标准权限进程 %s：请检查所在目录 %s 的访问权限，"
+        "打包应用（媒体播放器、照片）会报 0x80070005", target, target.parent)
+
+
+def deliver(temporary: str | Path, destination: str | Path) -> Path:
+    """把临时产物搬到最终位置并交回继承权限，返回最终路径。
+
+    **搬运和修复必须成对出现**：Windows 上 ``tempfile`` 创建的临时目录（``mkdtemp``、
+    ``TemporaryDirectory``）带一份收紧的 ACL（只有 ``SYSTEM``、``Administrators`` 与
+    ``OWNER RIGHTS``，且关闭继承），``Path.replace`` 会把这份 ACL 一起搬到最终位置。
+    只搬运不修复，文件对当前账号仍可读，但以标准权限运行的打包应用打不开，
+    用户双击播放时才暴露。新增交付路径请一律走这里，不要手写 ``replace``。
+    """
+    target = Path(destination)
+    Path(temporary).replace(target)
+    grant_inherited_access(target)
+    _warn_if_still_unusable(target)
+    return target
+
+
+def deliver_directory(temporary: str | Path, destination: str | Path) -> Path:
+    """同 :func:`deliver`，但交付的是整个目录，连目录内容一起交回继承权限。
+
+    用于把临时构建目录整体发布到缓存位置（``os.replace`` 移动目录）：目录带走收紧 ACL 时，
+    里面每个文件也会继承它，因此这里递归重置。非 Windows 平台无行为差异。
+    """
+    target = Path(destination)
+    os.replace(temporary, target)
+    if os.name != "nt" or not target.exists():
+        return target
+    completed = _icacls(str(target), "/reset", "/t")
+    if completed is None or completed.returncode:
+        detail = ((completed.stderr or completed.stdout) if completed else "").strip()
+        logger.warning("修复目录访问权限失败 %s: %s", target, detail[-300:])
+    _warn_if_still_unusable(target)
+    return target

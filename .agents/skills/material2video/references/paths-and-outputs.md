@@ -66,9 +66,9 @@
 └── videos/<type>/<slug>/outputs/…
 ```
 
-`examples/<slug>/` 是仓库示例源，产物落在**同一个目录**的 `outputs/` 下（`outputs/` 已在
-`.gitignore` 中忽略）：`m2v --project examples/<slug>` 把示例目录当作作品目录，
-材料与产物都在那里，示例源文件本身不进产物。
+`examples/<slug>/` 是仓库示例源；`m2v --project examples/<slug>` 使用其中的材料，
+预演与成片落到 `videos/examples/<slug>/outputs/`；准备记录、评审及准备媒体仍在
+`examples/<slug>/outputs/`。两处产物目录均不入库。
 需要把示例的产物与源文件分开时，把示例目录整体复制到 `videos/<type>/<slug>/` 再制作。
 
 ## 画面来自哪里
@@ -119,6 +119,18 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
 v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
 「写了旁白却没配音」的中间态：需要配音请先执行 `uv run m2v prepare --project <目录>`。
+
+## 交付权限
+
+所有从临时目录搬到最终位置的产物都在搬运的同时交回所在目录的继承权限：成片、溯源记录、
+混音主音轨、代码场景录制片段、导入素材与缓存条目。原因是 Windows 的 `tempfile` 临时目录
+带一份收紧的 ACL（只有 `SYSTEM`、`Administrators` 与 `OWNER RIGHTS`，且关闭继承），产物
+只 `replace` 不修复时，当前账号仍能读写，但以标准权限运行的打包应用打不开——用户双击成片时
+媒体播放器报 `0x80070005 你没有访问该文件的权限`。
+
+- 交付统一走 `m2v.core.security.deliver`（整个目录用 `deliver_directory`），不要手写 `Path.replace`。
+- 交付后复核目标本身；仍缺少普通用户授权条目时日志会报告目标与所在目录，指出问题在父目录。
+- 复核判据是 `security.has_usable_access`；非 Windows 平台不存在这个问题，`icacls` 为 Windows 自带命令。
 
 ## 成片溯源
 

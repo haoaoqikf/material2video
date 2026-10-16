@@ -16,7 +16,7 @@ import edge_tts
 
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from m2v.core.security import grant_inherited_access
+from m2v.core import security
 from m2v.engine import audio
 from m2v.engine.subtitles import cues_from_words
 
@@ -189,10 +189,8 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
         duration = audio.decode(work / "speech.mp3", work / "speech.wav")
         digest = hashlib.sha256((work / "speech.wav").read_bytes()).hexdigest()
         (work / "words.json").write_text(json.dumps({"words": words, "sha256": digest}, ensure_ascii=False), encoding="utf-8")
-        (work / "speech.wav").replace(wav)
-        (work / "words.json").replace(metadata)
-        grant_inherited_access(wav)
-        grant_inherited_access(metadata)
+        security.deliver(work / "speech.wav", wav)
+        security.deliver(work / "words.json", metadata)
     shaped, words, duration = _shape(text, wav, words, duration, rhythm, cache, key)
     cues = cues_from_words(text, words, duration)
     return shaped, cues, words, duration, False
@@ -227,7 +225,7 @@ def _shape(text: str, wav: Path, words: list[dict], duration: float, rhythm: dic
         shifts, shaped_duration)
     moved = [{**word, "start": moments[2 * index], "end": moments[2 * index + 1]}
              for index, word in enumerate(words)]
-    grant_inherited_access(target)
+    security.grant_inherited_access(target)
     (target.with_suffix(".json")).write_text(json.dumps(
         {"words": moved, "rhythm": rhythm,
          "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}, ensure_ascii=False), encoding="utf-8")

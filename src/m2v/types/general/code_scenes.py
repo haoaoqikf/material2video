@@ -14,6 +14,7 @@ from pathlib import Path
 from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
+from m2v.core import security
 from m2v.engine import audio
 from m2v.engine.http_server import LocalServer
 
@@ -192,4 +193,4 @@ def _encode(work: Path, output: Path, frames: int) -> None:
     audio.ffmpeg(["-f", "concat", "-safe", "0", "-i", str(work / "frames.txt"), "-an", "-vf",
                   f"fps={FPS},scale={WIDTH}:{HEIGHT},tpad=stop_mode=clone:stop_duration=1",
                   "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p", "-crf", "18", str(temporary)])
-    temporary.replace(output)
+    security.deliver(temporary, output)

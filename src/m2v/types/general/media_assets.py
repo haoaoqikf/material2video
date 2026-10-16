@@ -23,6 +23,7 @@ from urllib.parse import urlsplit
 from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
+from m2v.core import security
 from m2v.engine import media_probe
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,
@@ -132,8 +133,8 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
             except (M2VError, OSError, ValueError, subprocess.TimeoutExpired) as exc:
                 raise M2VError(f"素材 {identity} 导入失败：{exc}；请更换候选后重试") from exc
         for file, destination in staged:
-            if not destination.exists(): file.replace(destination)
-            elif asset_digest(destination) != asset_digest(file): file.replace(destination)
+            if not destination.exists() or asset_digest(destination) != asset_digest(file):
+                security.deliver(file, destination)
     # 保留未被本批替换的 ID；相同文件可被多个素材 ID 引用。
     record = {"schemaVersion": 1, "assets": [e for e in prior["assets"] if e["id"] not in ids] + adopted}
     _write_json(root / RECORD, record)

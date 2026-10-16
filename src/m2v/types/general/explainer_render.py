@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_current_prepared
+from m2v.core import security
 from m2v.engine import audio, contract_page, output_validation, perf, remotion
 from m2v.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
@@ -164,9 +165,10 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
             "inputs": prepared["inputs"], "durationInFrames": frames, "fps": 30, "width": 1080, "height": 1920}
         if not preview:
             _write_json(work / "final.provenance.json", provenance)
-        final.replace(destination)
+        # 临时目录带收紧 ACL，交付必须走 security.deliver：搬运与权限修复不可分开。
+        security.deliver(final, destination)
         if not preview:
-            (work / "final.provenance.json").replace(destination.with_suffix(".provenance.json"))
+            security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
     perf.write_report(perf.report_path_for(destination), perf.build_report(entry="preview" if preview else "render",
         output=destination, storyboard=entry, frames=frames, fps=30, width=1080, height=1920, concurrency=1,
         timings=timings, total_seconds=time.monotonic()-started,

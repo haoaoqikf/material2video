@@ -94,9 +94,8 @@ def render(
             _assert_no_audio(temp_video)
         if inputs_digest != financial.render_inputs_digest(project_dir):
             raise M2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
-        temp_video.replace(destination)
+        security.deliver(temp_video, destination)
 
-    security.grant_inherited_access(destination)
     if preview and output is None:
         record_path = project_dir / "outputs" / "previews" / "preview-record.json"
         record_path.write_text(json.dumps({

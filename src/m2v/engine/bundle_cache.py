@@ -31,6 +31,7 @@ from pathlib import Path
 import m2v.engine.perf as perf
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import file_digest, fingerprint
+from m2v.core import security
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +227,7 @@ def publish(tmp: Path, target: Path, *, key: str) -> None:
             return
         shutil.rmtree(target, ignore_errors=True)
     try:
-        os.replace(tmp, target)
+        security.deliver_directory(tmp, target)
     except OSError:
         if not target.is_dir():
             raise

@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import file_inputs, save_prepared
+from m2v.core import security
 from m2v.engine import audio, remotion, rhythm as rhythm_engine, tts
 from . import explainer as contract, explainer_review
 
@@ -131,7 +132,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         soundtrack.mix(root, source, scenes, raw, target, cues, cursor/30, work, inputs)
         sha = digest(target)
         master = media_dir / f"{sha}.wav"
-        target.replace(master)
+        security.deliver(target, master)
     inputs["file:" + master.relative_to(root).as_posix()] = sha
     inputs["renderer"] = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     logger.info("统一文章准备：%d 幕，%d 帧，TTS 缓存命中 %d", len(scenes), cursor, hits)

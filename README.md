@@ -53,6 +53,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、检查图和已知调试产物；金融完整预演作为自动验收绑定记录予以保留，其他类型按原规则清理预演。保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
 
+从临时目录交付的成片、溯源记录、音轨、代码片段、导入素材和缓存条目统一恢复所在目录的继承权限，并复核交付目标，避免 Windows 标准权限应用打开产物时出现 `0x80070005`；父目录权限仍受限时会报告目标与目录。实现与排查见[交付权限](.agents/skills/material2video/references/paths-and-outputs.md#交付权限)。
+
 可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。文章专属的输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
 文章讲解使用 v7 混合媒体多幕模板，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题），执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。旁白与屏幕摘要独立，画面随实际 TTS 分段时间出现；默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；每幕保留 12 帧阅读停留，可选 1～1800 帧画面淡化，完整成片最多 600 秒。自动检查文字溢出、正文侵入字幕区及字幕实际遮挡，完整预演自动验收通过后即可导出；统一 `outputs/review.json` 五项依据为可选评审材料。旧 `production.json`、v6 及更早分镜与旧评审不再适用，须重新编排；不自动迁移。

@@ -101,9 +101,8 @@ def render(project_dir: Path, series: dict, *, output: Path | None = None,
             _assert_no_audio(temp_video)
         if inputs_digest != _inputs_digest(project_dir):
             raise M2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
-        temp_video.replace(destination)
+        security.deliver(temp_video, destination)
 
-    security.grant_inherited_access(destination)
     if not preview:
         provenance = {"schemaVersion": 1, "type": "housing-timeseries", "frames": frames,
                       "fps": housing.FPS, "width": housing.WIDTH, "height": housing.HEIGHT,
