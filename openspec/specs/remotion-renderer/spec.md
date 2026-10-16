@@ -14,13 +14,15 @@ Remotion 的官方规则与本项目既有渲染契约是同一条要求（所�
 ### Requirement: 画面由 React composition 渲染
 
 系统 SHALL 以共享 React composition 作为唯一画面执行者，SHALL 由 Remotion 负责逐帧渲染与编码。
-composition SHALL 按视频类型绘制共享画面，通用类型仅使用 v6 六模板，
+composition SHALL 按视频类型绘制共享画面，通用类型 SHALL 使用 v7 六模板与本地 React 代码场景在准备阶段录制的无声片段，
 但作品 SHALL NOT 自行注册 Remotion 根、composition、契约页或时间轴。
 
 所有可达画面组件 SHALL 通过帧号钩子或共享场景参数取得当前帧，SHALL NOT 依赖挂钟时间、
 系统随机数、CSS `animation` / `transition` / `@keyframes`，也 SHALL NOT 依赖组件库自带的
 计时器或布局测量循环。渲染路径 SHALL 在开渲前对共享源码和 CSS 做
 静态检查，命中禁用写法时 SHALL 报出文件与位置，SHALL NOT 静默继续。
+作品 `scenes/` 下的代码场景入口 SHALL NOT 进入 composition：它只在准备阶段的独立录制页运行，
+其自由动画不承诺逐像素复现，正式导出只回放已验收片段。
 
 #### Scenario: 使用帧号钩子
 
@@ -39,7 +41,7 @@ composition SHALL 按视频类型绘制共享画面，通用类型仅使用 v6 �
 
 #### Scenario: 作品试图声明独立 composition
 
-- **WHEN** 作品声明代码场景、独立根注册或 Remotion composition
+- **WHEN** 作品声明独立根注册或 Remotion composition（分镜 `code` 幕声明的本地入口除外）
 - **THEN** 材料校验失败，作品必须由共享 composition 承载
 
 ### Requirement: 确定性以画面等价为准
@@ -208,7 +210,7 @@ SHALL 读回码流参数并拒绝全范围像素格式的产物。
 ### Requirement: 渲染契约
 系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把共享 composition 挂载为可寻址的帧序列，并在 `window.__M2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、`ready()` 与 `seekToFrame(frame)`。契约页 SHALL 只服务当前仍受支持的 composition 契约。
 
-`version` SHALL 与所选 composition 的契约版本一致；`general` 的 v6 混合媒体契约 SHALL 为 `6`。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
+`version` SHALL 与所选 composition 的契约版本一致；`general` 的讲解 composition 契约 SHALL 为 `6`，与分镜版本相互独立。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
 
 契约 SHALL 由 Remotion 的 Player 实现，SHALL NOT 由每个作品自行实现。`seekToFrame` 返回后，所有场景组件观察到的当前帧 SHALL 等于 `frame`。
 

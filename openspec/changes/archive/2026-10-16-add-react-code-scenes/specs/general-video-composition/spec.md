@@ -1,6 +1,6 @@
 ## RENAMED Requirements
-- FROM: `通用类型使用 v6 混合媒体讲解`
-- TO: `通用类型使用 v7 混合媒体讲解`
+- FROM: `### Requirement: 通用类型使用 v6 混合媒体讲解`
+- TO: `### Requirement: 通用类型使用 v7 混合媒体讲解`
 
 ## MODIFIED Requirements
 

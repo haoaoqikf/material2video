@@ -1,15 +1,23 @@
 ## RENAMED Requirements
-- FROM: `v6 混合媒体分镜`
-- TO: `v7 混合媒体分镜`
+- FROM: `### Requirement: v6 混合媒体分镜`
+- TO: `### Requirement: v7 混合媒体分镜`
 
 ## MODIFIED Requirements
 
 ### Requirement: v7 混合媒体分镜
-系统 MUST 只接受 version/schemaVersion 为 7 的通用分镜，固定 1080×1920、30 fps。每幕 MUST 声明唯一 ID、六种原有模板或 code 模板、独立屏幕内容及旁白分段；code、图片和视频 MAY 无旁白。原有展示绑定、原文审查、主题关键词、真实语音时间与完整预演门禁 MUST 保留。code MUST 声明 content.title、content.entry 和可选 JSON 对象 content.props。旧分镜及准备 MUST 拒绝，不自动迁移。
+系统 MUST 只接受 version/schemaVersion 为 7 的通用分镜，固定 1080×1920、30 fps；每幕声明唯一 ID、六种原有模板或 code 模板之一、独立屏幕内容及旁白分段（图文卡片必须有旁白），展示绑定必须引用本幕旁白。`input.kind` MUST 为 `article` 或 `topic`：原文输入源文 MUST 非空；主题输入 MUST 声明非空主题、每幕 MUST 声明关键词，且 MUST NOT 要求原文语义审查。图片、视频与代码幕 MUST 支持无旁白；图片与视频幕 MUST 支持裁剪入点、显示适配及图片推拉；代码幕 MUST 声明 content.title、content.entry 与可选 JSON 对象 content.props，媒体 MUST 只引用作品内已导入并留证的本地素材。旧分镜和旧准备 MUST 拒绝，不自动迁移。
 
 #### Scenario: 旧分镜
 - **WHEN** 输入 v6 或更早分镜
-- **THEN** 明确要求重新编排 v7
+- **THEN** 明确要求重新编排 v7，不进行自动迁移
+
+#### Scenario: 主题输入
+- **WHEN** 分镜声明 `input.kind` 为 `topic` 且某幕缺少关键词
+- **THEN** 校验失败并定位该幕，不要求也不伪造原文语义审查
+
+#### Scenario: 非法绑定
+- **WHEN** 展示元素引用未知旁白 ID
+- **THEN** 校验失败并定位字段
 
 #### Scenario: 代码模板
 - **WHEN** 输入有效 code 幕
