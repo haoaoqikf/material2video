@@ -26,12 +26,12 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 与打包。
 
 #### Scenario: 未设置内容根
-- **WHEN** 既没有 `--content-root` 也没有 `M2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/article-narrative/demo/`
-- **THEN** 工作区根为仓库根，源目录为该文章目录，产物写入 `<仓库根>/videos/article-narrative/demo/outputs/`
+- **WHEN** 既没有 `--content-root` 也没有 `M2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/general/demo/`
+- **THEN** 工作区根为仓库根，源目录为该文章目录，产物写入 `<仓库根>/videos/general/demo/outputs/`
 
 #### Scenario: 内容根指向仓库外
-- **WHEN** `--content-root` 或 `M2V_CONTENT_ROOT` 指向仓库外目录，输入文件位于 `<内容根>/videos/article-narrative/demo/`
-- **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/article-narrative/demo/outputs/`，且命令与工作目录无关
+- **WHEN** `--content-root` 或 `M2V_CONTENT_ROOT` 指向仓库外目录，输入文件位于 `<内容根>/videos/general/demo/`
+- **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/general/demo/outputs/`，且命令与工作目录无关
 
 #### Scenario: 仓库内优先
 - **WHEN** 已设置内容根，而输入文件位于仓库根的 `examples/<slug>/`
@@ -55,8 +55,8 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 正式作品默认输出
 
-- **WHEN** 文章位于 `videos/article-narrative/demo/`
-- **THEN** 默认媒体、预览、检查报告、字幕、溯源和成片写入 `videos/article-narrative/demo/outputs/`
+- **WHEN** 文章位于 `videos/general/demo/`
+- **THEN** 默认媒体、预览、检查报告、字幕、溯源和成片写入 `videos/general/demo/outputs/`
 
 #### Scenario: 示例作品默认输出
 

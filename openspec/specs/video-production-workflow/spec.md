@@ -67,7 +67,7 @@ production 记录 SHALL 使用新版本 4，包含独立 inputReview 和按需�
 - **THEN** 可继续；输入审查不代替口播内容评审
 
 ### Requirement: 文章作为独立视频类型
-系统 MUST 通过统一 article-narrative 类型制作 v6 混合媒体视频，按 article-explainer 执行输入审查（主题输入跳过）、媒体导入留证、准备、完整预演自动验收及可选人工画面评审，保持可查询状态和版本绑定。
+系统 MUST 通过统一 general 类型制作 v6 混合媒体视频，按 article-explainer 执行输入审查（主题输入跳过）、媒体导入留证、准备、完整预演自动验收及可选人工画面评审，保持可查询状态和版本绑定。
 
 #### Scenario: 保留文章制作闭环
 - **WHEN** 用户提交有效 v6 分镜
@@ -124,8 +124,8 @@ production 记录 SHALL 使用新版本 4，包含独立 inputReview 和按需�
 - **THEN** 词时间随之重映射，字幕边界与音频一致，且时间戳不越过音频长度
 
 #### Scenario: 场景级覆写
-- **WHEN** 通用类型的某个场景声明了自己的语速或停顿
-- **THEN** 该场景按自身声明合成，未提到的字段跟随作品配置
+- **WHEN** 通用类型的某个场景声明了自己的停顿
+- **THEN** 该场景按自身停顿声明合成，未提到的字段跟随作品配置；逐幕 speech.rate 当前不渲染，实际语速取作品或命令行设置
 
 #### Scenario: 非法节奏声明在准备前失败
 - **WHEN** `tts.speech` 出现未知字段或类别、非数值，或停顿超出允许区间
@@ -147,7 +147,7 @@ production 记录 SHALL 使用新版本 4，包含独立 inputReview 和按需�
 
 #### Scenario: 输入审查未完成
 - **WHEN** 文章作品缺少通过且未过期的输入语义审查
-- **THEN** 查询报告阻塞并给出 `m2v article input-review` 命令
+- **THEN** 查询报告阻塞并给出 `m2v general input-review` 命令
 
 #### Scenario: 预演缺失或过期
 - **WHEN** 当前准备指纹没有对应的完整预演

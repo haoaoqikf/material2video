@@ -155,7 +155,7 @@ uv run m2v render --project videos/general/<slug>
 
 助手记录只接受 mode、非空 rationale 和 64 位小写 narrationSha256。旁白改变会阻断 prepare，要求重新判断并更新记录；画面变化不要求重选。手动选择只填 voice，无需 selection；手动修改作品音色时删除旧 selection。`--voice` 覆盖会标记 command-line 来源，并丢弃助手理由；仅覆盖语速不跳过旁白摘要检查。
 
-`outputs/prepared.json` 与成片旁车的 `inputs.tts` 保存 JSON 字符串，包含实际 backend、voice、rate、source（assistant/project/command-line）、有效 selection 及作品级 speech。逐幕覆盖参数在 `inputs` 的 `speech:<场景ID>` JSON 字符串中保存。音色、语速、来源参与准备指纹，修改作品配置必须重新准备和完整预演。语音缓存仍按实际文本、音色、语速等键复用，不因为选择理由变化重复合成。
+`outputs/prepared.json` 与成片旁车的 `inputs.tts` 保存 JSON 字符串，包含实际 backend、voice、rate、source（assistant/project/command-line）、有效 selection 及作品级 speech。逐幕停顿参数保存在 `props.compiledScenes[].speech`，原始分镜摘要参与指纹；旧 `inputs.speech:<场景ID>` 不再生成。音色、语速、来源参与准备指纹，修改作品配置必须重新准备和完整预演。语音缓存仍按实际文本、音色、语速等键复用，不因为选择理由变化重复合成。
 
 **换音色比调语速更能改变节奏。** 同一篇长稿、同一标点，量测句间停顿：
 
@@ -202,9 +202,9 @@ uv run m2v render --project videos/general/<slug>
 - 缓存里保存的始终是**未整形**的原始合成，所以开关或调整韵律**不会**让语音缓存失效，
   也不必重新合成（但会改变准备记录，需重新 prepare）。
 - 命令行可临时试听：`--pause-comma` / `--pause-period` / `--pause-paragraph` / `--head-pad`。
-- 逐幕覆盖：幕里写 `"speech": {"rate": "-4%", "pause": {"comma": 0.12}}`，
+- 逐幕覆盖：幕里写 `"speech": {"pause": {"comma": 0.12}}`，
   未提到的字段跟随作品配置；文章 v6 与通用类型都写在幕上，文章 v6 的旁白段本身只接受
-  `id` 与 `text`。逐幕语速会改变该幕语音时长，固定帧容量的作品要一并腾挪。
+  `id` 与 `text`。逐幕停顿会改变该幕语音时长，固定帧容量的作品要一并腾挪。`speech.rate` 当前不渲染，实际语速使用作品或命令行设置。
 - 本作品 `china-ancient-population` 的实测（7 段口播）：语音合计 74.5s → 70.5s，
   短句读压到 0.15s、句末留 0.55s、起段引子 0.18s → 0.08s。
 
@@ -218,7 +218,7 @@ uv run m2v render --project videos/general/<slug>
 文章 v6 拒绝 `narrationSegments[].speech`（分镜的旁白段只接受 `id` 与 `text`，逐幕节奏写在
 幕的 `speech` 上）：整片的停顿节奏改用
 作品级 `tts.speech`（见「停顿节奏」），它不写进分镜、也不改变分段结构。通用类型可以
-在幕上写 `speech`（逐幕语速与停顿），它记进 `inputs.speech:<场景ID>`。
+在幕上写 `speech` 覆盖停顿，声明保存在准备画面参数中；逐幕 `speech.rate` 当前不渲染。
 
 旁白二遍 loudnorm 目标 −16 LUFS/−1 dBTP，静音保留。音乐默认 −24 dB，讲话时额外压低 10 dB，
 攻击/恢复 80/250ms（重叠包络合并）。混音限制到 −2 dBFS 以留编码余量，AAC 编码后量测真峰值；

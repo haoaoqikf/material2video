@@ -2,14 +2,14 @@
 
 ## 结论
 
-类型已替换为 general，原文章能力保持 v6 storyboard 契约。旧 general 编排、嵌入和代码场景链路已移除；旧类型、命令与材料均有拒绝回归。代码审查未发现阻断交付的问题。
+类型已替换为 general，原文章能力保持 v6 storyboard 契约。旧 general 编排、嵌入和代码场景链路已移除；旧类型、命令与材料均有拒绝回归。代码审查未发现阻断代码交付的问题。发现旧制作文档误将已删除 general 的逐幕语速与 inputs.speech 记录描述为 v6 能力，已修正：v6 逐幕停顿写入准备画面参数，speech.rate 当前不渲染。
 
 ## 验证结果
 
 - 完整 Python：379 passed，4 skipped（缺少可选 fonttools，字体子集化测试跳过），包含金融真实渲染与通用 42 帧完整预演、正式导出和媒体技术验收。
 - 前端：57 项测试通过，TypeScript 类型检查与 Vite 构建通过；构建保留既有的大于 500 kB 分块提示。
 - 文档生成检查、修改文档的相对链接、6 份修改 JSON 解析、三个固定示例的严格校验、git diff --check 均通过。
-- OpenSpec 变更严格校验通过；主规格按本变更同步，历史归档不修改。
+- OpenSpec 变更严格校验通过；主规格按本变更同步，历史归档不修改；全部 OpenSpec 严格验证 16 项通过。
 
 ## 逻辑与性能影响
 
@@ -19,7 +19,7 @@
 
 四个原文章作品已移动到 videos/general 并更新 project.json 类型，原材料版本与媒体保持不变。三个 v5 作品仍需重新编排，不自动升级。旧 outputs 保留为历史，类型及构建摘要变化使其不再是有效验收依据。
 
-旧 china-ancient-population 与 code-smoke 的删除两次遭自动审批拒绝，原因仅为 blocked by policy，故原地保留，不绕过。任务 3.2 未完成，变更不归档。
+旧 china-ancient-population 与 code-smoke 的删除两次遭自动审批拒绝，原因仅为 blocked by policy，故原地保留，不绕过。迁出后空的 videos/article-narrative 目录清理也被自动审批拒绝。任务 3.2 未完成，变更不归档。
 
 v6-qa-media-sound 的原始 PNG/MP4 存在 Windows 文件访问权限问题，视频没有可核对摘要的副本，未改写。示例中的两份受影响媒体已从 Git 原始字节重建，可读且内容摘要不变；不可读原件保留在忽略的 web/.cache 下。真实 TTS 服务未调用，渲染回归使用本地测试音频。
 
