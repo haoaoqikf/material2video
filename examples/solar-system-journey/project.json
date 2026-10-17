@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "solar-system-journey",
   "type": "general",
+  "productionProfile": "cinematic",
   "materials": {
     "storyboard": "storyboard.json"
   },
@@ -13,11 +14,15 @@
   },
   "tts": {
     "voice": "zh-CN-YunyangNeural",
-    "rate": "+8%",
+    "rate": "-2%",
+    "speech": {
+      "pause": {"comma": 0.15, "period": 0.55, "paragraph": 0.8},
+      "headPad": 0.08
+    },
     "selection": {
       "mode": "assistant",
-      "rationale": "服务返回云扬的 News、Professional、Reliable 标签；全文以天体特征和尺度边界为主，选择稳健清晰的科普讲解音色，配合缓慢三维镜头。",
-      "narrationSha256": "0fb3468732d1729f2ea9d4166c8d3fa3c6ccc6ab626122b6be768902f177e41d"
+      "rationale": "服务返回云扬的 News、Professional、Reliable 标签；改写后的旁白是九段天体特征的短句科普，需要在 60 秒内保持稳定清晰。同一段约 20 秒旁白的 A/B 里云扬 22.55 秒、晓晓 25.09 秒，云扬更贴合 55～65 秒的验收区间，音色也更接近纪录片解说。A/B 样片留在 outputs/voice-ab/ 供人工听感确认。",
+      "narrationSha256": "d54da0d6322f3fa664a7d6e9ed78aec1871f50289cf06fc1c76ca51aa894ac56"
     }
   }
 }

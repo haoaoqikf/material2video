@@ -141,14 +141,16 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
         return relative
 
 
+def _is_hero_frame(frame: int, shots: list[dict]) -> bool:
+    return any(shot.get("tier") == "hero" and shot.get("startFrame", 0) <= frame < shot.get("endFrame", 0)
+               for shot in shots)
+
+
 def _subframes_for(frame: int, shots: list[dict], hero_subframes: int) -> int:
     """hero 镜头内的帧取多个子帧做运动模糊；其余镜头保持单帧。"""
     if hero_subframes <= 1:
         return 1
-    for shot in shots:
-        if shot.get("tier") == "hero" and shot.get("startFrame", 0) <= frame < shot.get("endFrame", 0):
-            return hero_subframes
-    return 1
+    return hero_subframes if _is_hero_frame(frame, shots) else 1
 
 
 def _average(files: list[Path], target: Path) -> None:
@@ -197,7 +199,7 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
         browser = pw.chromium.launch(headless=True, args=["--autoplay-policy=no-user-gesture-required"])
         try:
             context = browser.new_context(viewport={"width": width, "height": height},
-                                          device_scale_factor=supersample,
+                                          device_scale_factor=1,
                                           service_workers="block")
             def route_request(route):
                 url = route.request.url
@@ -225,6 +227,8 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
             subframe_total = 0
             for frame_index in range(total):
                 count = _subframes_for(frame_index, shots, hero_subframes)
+                # SSAA 只作用于 hero 帧：总览保持 1×，避免整片按 2 倍像素采集。
+                frame_scale = supersample if _is_hero_frame(frame_index, shots) else 1
                 subframe_total += count
                 pieces: list[Path] = []
                 for subframe in range(count):
@@ -239,11 +243,12 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
                         raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
                     # CDP 截取已完成绘制的画面；不依赖 screencast 的实时投递频率。
                     # SSAA 用 clip 的 scale 显式放大：裸的 captureScreenshot 只按 CSS 像素
-                    # 出图，device_scale_factor 不会体现在结果里。
+                    # 出图，device_scale_factor 不会体现在结果里。编码时统一降采样，
+                    # 因此同一段片段里 1× 与 2× 的帧可以混用。
                     params = {"format": "png", "captureBeyondViewport": False, "optimizeForSpeed": True}
-                    if supersample > 1:
+                    if frame_scale > 1:
                         params["clip"] = {"x": 0, "y": 0, "width": width, "height": height,
-                                          "scale": supersample}
+                                          "scale": frame_scale}
                     shot = session.send("Page.captureScreenshot", params)
                     piece = work / f"sub-{frame_index:06d}-{subframe}.png"
                     piece.write_bytes(base64.b64decode(shot["data"]))

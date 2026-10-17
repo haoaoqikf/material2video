@@ -1,33 +1,28 @@
 # 太阳系之旅：从太阳到奥尔特云
 
-写实 3D 科普示例，1920×1080、60 fps，中文旁白与烧录字幕，目标实际片长 165～180 秒。替换原选择示例，另外两个示例保留。
+写实 3D 科普示例，1920×1080、60 fps，中文旁白与烧录字幕，目标实际片长 55～65 秒。它是仓库里唯一的 **cinematic 档**样板：9 章、3 个 hero 镜头、单程向外的镜头语言、4K 级资产、确定性后期与母版音轨。另外两个示例保持 standard。
 
-以逐站向外旅行为线索，介绍太阳、八大行星、代表卫星、矮行星、小天体带和不同定义下的边界。可编辑源文见 [article.md](article.md)，编排见 [storyboard.json](storyboard.json)，视觉依据见 [DESIGN.md](DESIGN.md)，科学资料与许可见 [SOURCES.md](SOURCES.md)，验证范围与剩余限制见 [VERIFICATION.md](VERIFICATION.md)。
+以逐站向外旅行为线索，介绍太阳、内行星、地月、小行星带、木星、土星、冰巨星、柯伊伯带与太阳系边缘。全片只有一幕 `solar-journey`，九段旁白驱动十一个镜头。可编辑源文见 [article.md](article.md)，编排见 [storyboard.json](storyboard.json)，视觉依据见 [DESIGN.md](DESIGN.md)，科学资料与许可见 [SOURCES.md](SOURCES.md)，验证范围与剩余限制见 [VERIFICATION.md](VERIFICATION.md)。
 
-全片是同一个完整太阳系三维模型（Three.js / React Three Fiber / Drei），相机在总览、行星与卫星近景之间来回飞行，不替换场景中的天体。画面由真实三维网格、球面纹理、太阳位置点光源与环境补光、独立云层、大气辉光、透明土星环与粒子结构构成。太阳、地球和土星是三处代表画面。岩质凹凸和外太阳系结构为艺术示意，不用于精确历算或科学测量；大小、距离、自转速度非同比例，奥尔特云尚未直接观测证实。
+全片是同一个完整太阳系三维模型（Three.js / React Three Fiber / Drei），相机沿一条向外推进的路径穿过各章，只在三次章节转折回望。画面由真实三维网格、球面纹理、太阳位置点光源与环境补光、独立云层、大气辉光、透明土星环与粒子结构构成，叠加电影级后期（Bloom、DOF、grain、vignette、色散与内置调色档）。地球、土星与奥尔特云是三处 hero 连续镜头。岩质凹凸和外太阳系结构为艺术示意，不用于精确历算或科学测量；大小、距离、自转速度非同比例，奥尔特云尚未直接观测证实。
 
 ## 旁白与画面对应
 
-| 场景 ID | 旁白段 ID | 科普内容 | 实现与推进 |
+| 镜头 ID | 旁白段 ID | 章节 | 实现与推进 |
 |---|---|---|---|
-| solar-journey | sun-0 | 太阳 | 同一模型，相机飞近与返回 |
-| solar-journey | inner-0 | 水星 | 同一模型，相机飞近与返回 |
-| solar-journey | inner-1 | 金星 | 同一模型，相机飞近与返回 |
-| solar-journey | home-0 | 地球 | 同一模型，相机飞近与返回 |
-| solar-journey | home-1 | 月球 | 同一模型，相机飞近与返回 |
-| solar-journey | rock-0 | 火星 | 同一模型，相机飞近与返回 |
-| solar-journey | rock-1 | 谷神星 | 同一模型，相机飞近与返回 |
-| solar-journey | giant-0 | 木星 | 同一模型，相机飞近与返回 |
-| solar-journey | giant-1 | 木卫二 | 同一模型，相机飞近与返回 |
-| solar-journey | rings-0 | 土星 | 同一模型，相机飞近与返回 |
-| solar-journey | rings-1 | 土卫六 | 同一模型，相机飞近与返回 |
-| solar-journey | ice-0 | 天王星 | 同一模型，相机飞近与返回 |
-| solar-journey | ice-1 | 海王星 | 同一模型，相机飞近与返回 |
-| solar-journey | kuiper-0 | 冥王星 | 同一模型，相机飞近与返回 |
-| solar-journey | edge-0 | 日球层顶 | 同一模型，相机飞近与返回 |
-| solar-journey | edge-1 | 奥尔特云 | 同一模型，相机飞近与返回 |
+| cold-open | — | 冷开场 | 日面边缘极特写，日珥升起；无旁白留白 |
+| sun-pullback | sun-0 | 太阳 | 从日面拉到总览，日冕与轨道渐显 |
+| inner-planets | inner-0 | 内行星 | 水星陨坑掠过，落在金星云顶 |
+| earth-hero | home-0 | 地月（hero） | 夜面灯光 → 晨昏线日出 → 海面高光 → 云影，月球前景虚化 |
+| rock-belt | rock-0 | 小行星带 | 火星红色尘土，穿越稀疏小行星带 |
+| jupiter-giant | giant-0 | 木星 | 大红斑正对，云带流动，木卫二冰纹 |
+| saturn-hero | rings-0 | 土星（hero） | 环从侧刃到展开、逆光冰晶、卡西尼缝、土卫六雾霾 |
+| ice-giants | ice-0 | 冰巨星 | 天王星侧躺、海王星风暴 |
+| kuiper-pluto | kuiper-0 | 柯伊伯带 | 冥王星心形区域，柯伊伯带粒子 |
+| oort-hero | edge-0 | 边缘（hero） | 日球层顶气泡边界、彗星、拉远到太阳成点 |
+| oort-hold | — | 收尾 | 静置留白，太阳成为一个亮点 |
 
-主体和文字避让共享字幕安全区；导航仅表示介绍顺序。太阳、行星、卫星与轨道始终存在，镜头按实际旁白窗口推进并返回总览。素材先本地导入留证，录制期间不请求外网。
+主体和文字避让共享字幕安全区；顶部是章节进度轨，不是常驻左栏。太阳、行星、卫星与轨道始终存在，镜头按 `shots` 的时间窗推进。素材先本地导入留证，录制期间不请求外网。
 
 ## 重现制作
 
@@ -36,10 +31,13 @@ uv run m2v validate --project examples/solar-system-journey
 uv run m2v general input-review --storyboard examples/solar-system-journey/storyboard.json
 # 阅读完整源文并填写 outputs/input-review.json，然后继续。
 uv run m2v prepare --project examples/solar-system-journey
+uv run m2v lookdev --project examples/solar-system-journey
 uv run m2v preview --project examples/solar-system-journey
-uv run m2v render --project examples/solar-system-journey
+uv run m2v qa --project examples/solar-system-journey
+uv run m2v render --profile cinematic --project examples/solar-system-journey
 ```
 
-项目已保存服务返回音色中的云扬和选择理由。准备与源文审查记录位于本例 outputs/，完整预演和成片位于 videos/examples/solar-system-journey/outputs/；三张交付关键画面放在该作品的 stills/。代码、源文、设计稿、固定纹理和来源记录纳入 Git，生成媒体不入库。
+项目已保存服务返回音色中的云扬和选择理由；同一段旁白的候选 A/B 样片放在 `outputs/voice-ab/`。准备与源文审查记录位于本例 outputs/，完整预演和成片位于 videos/examples/solar-system-journey/outputs/。代码、源文、设计稿、固定纹理和来源记录纳入 Git，生成媒体不入库。
 
-录制采用共享受控时钟按 60 fps 顺序逐帧采集，等待本帧动画及绘制完成再截图；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧实时录制缓存不复用。
+录制采用共享受控时钟按 60 fps 顺序逐帧采集，hero 镜头另按 `look.motion` 取子帧做运动模糊并按 2 倍设备像素采集后降采样；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧片段缓存不复用。
+

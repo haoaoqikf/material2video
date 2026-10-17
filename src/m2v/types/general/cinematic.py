@@ -165,11 +165,14 @@ def _camera(value, path: str) -> None:
 
 
 def _focus(value, path: str) -> None:
-    obj = _obj(value, path, {"target", "distance", "aperture"})
+    obj = _obj(value, path, {"target", "distance", "from", "to", "aperture"})
     if "target" in obj:
         _text(obj["target"], path + ".target")
-    if "distance" in obj:
-        _number(obj["distance"], 0.01, 1e6, path + ".distance")
+    for name in ("distance", "from", "to"):
+        if name in obj:
+            _number(obj[name], 0.01, 1e6, f"{path}.{name}")
+    if ("from" in obj) != ("to" in obj):
+        fail(path, "焦点拉移必须同时声明 from 与 to")
     if "aperture" in obj:
         _number(obj["aperture"], 0.7, 32, path + ".aperture")
 

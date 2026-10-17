@@ -8,7 +8,7 @@
   "input": {
     "kind": "article"
   },
-  "targetSeconds": 175,
+  "targetSeconds": 64,
   "scenes": [
     {
       "id": "solar-journey",
@@ -34,121 +34,203 @@
             "pluto",
             "heliopause",
             "oort"
+          ],
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.35,
+            "vignette": 0.45,
+            "exposure": {"ev": -0.2, "mode": "look"},
+            "motion": {"subframes": 3, "supersample": 2}
+          },
+          "shots": [
+            {
+              "id": "cold-open",
+              "target": "sun",
+              "tier": "minor",
+              "startFrame": 0,
+              "endFrame": 300,
+              "focus": {"target": "sun", "from": 2.6, "to": 3.4, "aperture": 2.8},
+              "exposure": {"ev": -0.4, "mode": "shot"},
+              "post": {"bloom": 1, "dof": 0.5, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.3, "lut": "deep-space"},
+              "note": "日面边缘极特写，日珥升起；无旁白"
+            },
+            {
+              "id": "sun-pullback",
+              "target": "sun",
+              "tier": "major",
+              "segment": "sun-0",
+              "startFrame": 300,
+              "endFrame": 559,
+              "focus": {"target": "sun", "distance": 8},
+              "post": {"bloom": 0.9, "dof": 0.2, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.18, "lut": "deep-space"},
+              "note": "从日面拉到总览，日冕与轨道渐显"
+            },
+            {
+              "id": "inner-planets",
+              "target": "venus",
+              "tier": "major",
+              "segment": "inner-0",
+              "startFrame": 559,
+              "endFrame": 842,
+              "focus": {"target": "venus", "distance": 4.5},
+              "post": {"bloom": 0.55, "dof": 0.35, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
+              "note": "水星陨坑掠过，落在金星云顶"
+            },
+            {
+              "id": "earth-hero",
+              "target": "earth",
+              "tier": "hero",
+              "segment": "home-0",
+              "startFrame": 842,
+              "endFrame": 1335,
+              "focus": {"target": "earth", "from": 9, "to": 3.4, "aperture": 2.8},
+              "exposure": {"ev": -0.3, "mode": "shot"},
+              "post": {"bloom": 0.7, "dof": 0.6, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
+              "note": "夜面灯光 → 晨昏线日出 → 海面高光 → 云影；月球前景虚化"
+            },
+            {
+              "id": "rock-belt",
+              "target": "mars",
+              "tier": "minor",
+              "segment": "rock-0",
+              "startFrame": 1335,
+              "endFrame": 1651,
+              "focus": {"target": "mars", "distance": 6},
+              "post": {"bloom": 0.5, "dof": 0.3, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
+              "note": "火星红色尘土，穿越稀疏小行星带"
+            },
+            {
+              "id": "jupiter-giant",
+              "target": "jupiter",
+              "tier": "major",
+              "segment": "giant-0",
+              "startFrame": 1651,
+              "endFrame": 1950,
+              "focus": {"target": "jupiter", "distance": 7},
+              "post": {"bloom": 0.6, "dof": 0.35, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
+              "note": "大红斑正对，云带流动，木卫二冰纹"
+            },
+            {
+              "id": "saturn-hero",
+              "target": "saturn",
+              "tier": "hero",
+              "segment": "rings-0",
+              "startFrame": 1950,
+              "endFrame": 2451,
+              "focus": {"target": "saturn", "from": 6, "to": 9, "aperture": 2.8},
+              "exposure": {"ev": -0.3, "mode": "shot"},
+              "post": {"bloom": 0.8, "dof": 0.55, "grain": 0.35, "vignette": 0.5, "chromaticAberration": 0.14, "lut": "deep-space"},
+              "note": "环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景"
+            },
+            {
+              "id": "ice-giants",
+              "target": "neptune",
+              "tier": "minor",
+              "segment": "ice-0",
+              "startFrame": 2451,
+              "endFrame": 2747,
+              "focus": {"target": "neptune", "distance": 6},
+              "post": {"bloom": 0.5, "dof": 0.3, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
+              "note": "天王星侧躺、海王星风暴"
+            },
+            {
+              "id": "kuiper-pluto",
+              "target": "pluto",
+              "tier": "minor",
+              "segment": "kuiper-0",
+              "startFrame": 2747,
+              "endFrame": 3031,
+              "focus": {"target": "pluto", "distance": 4},
+              "post": {"bloom": 0.45, "dof": 0.4, "grain": 0.4, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
+              "note": "冥王星心形区域，柯伊伯带粒子"
+            },
+            {
+              "id": "oort-hero",
+              "target": "oort",
+              "tier": "hero",
+              "segment": "edge-0",
+              "startFrame": 3031,
+              "endFrame": 3551,
+              "focus": {"target": "oort", "from": 20, "to": 400},
+              "exposure": {"ev": -0.3, "mode": "shot"},
+              "post": {"bloom": 0.5, "dof": 0.35, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.1, "lut": "deep-space"},
+              "note": "日球层顶气泡边界、彗星、拉远到太阳成点；含无旁白收尾"
+            },
+            {
+              "id": "oort-hold",
+              "target": "oort",
+              "tier": "minor",
+              "startFrame": 3551,
+              "endFrame": 3824,
+              "focus": {"target": "oort", "distance": 600},
+              "post": {"bloom": 0.4, "dof": 0.2, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.08, "lut": "deep-space"},
+              "note": "收尾静置：太阳成为一个亮点，留白结束"
+            }
           ]
         }
       },
       "narrationSegments": [
         {
           "id": "sun-0",
-          "text": "从太阳出发，我们向太阳系的边缘旅行。太阳是一颗恒星，核心的核聚变持续释放能量，照亮周围的世界。画面中的天体大小和距离经过调整，让我们既能看见细节，也能理解它们的位置。"
+          "text": "太阳是一颗恒星，核聚变的光照亮整个太阳系。",
+          "claims": ["日面颗粒", "日冕辉光"]
         },
         {
           "id": "inner-0",
-          "text": "首先是水星，平均日距约零点三九个天文单位。它布满陨坑，几乎没有能保温的大气，昼夜温差极大。"
-        },
-        {
-          "id": "inner-1",
-          "text": "继续向外是金星。厚重的二氧化碳大气带来强烈温室效应，让它比更靠近太阳的水星还热。眼前的浅黄色，是遮住地表的云层。"
+          "text": "水星几乎没有大气；金星被厚重的二氧化碳云层包裹。",
+          "claims": ["水星陨坑", "金星云顶"]
         },
         {
           "id": "home-0",
-          "text": "一个天文单位，就是地球到太阳的平均距离，约一点五亿千米。地球拥有液态海洋和大气，白色云层覆盖在蓝色星球上方。"
-        },
-        {
-          "id": "home-1",
-          "text": "月球是地球的天然卫星。没有浓厚大气和液态海洋，古老撞击留下的伤痕能够长久保存。它与地球的距离，在这里同样经过压缩。"
+          "text": "地球的夜面亮起城市灯光，晨昏线扫过海面，云层投下流动的阴影，月球从近处缓缓掠过。",
+          "claims": ["夜面城市灯光", "晨昏线", "海面高光", "云影", "月球前景"]
         },
         {
           "id": "rock-0",
-          "text": "火星的红色来自富含氧化铁的尘土。它的大气稀薄而寒冷，河道和矿物证据提示，这里曾经有过液态水活动。"
-        },
-        {
-          "id": "rock-1",
-          "text": "火星和木星之间是主小行星带。它不是密不透风的碎石墙，大多数空间依然空旷。谷神星是其中最大的天体，也是一颗矮行星。"
+          "text": "穿过火星与小行星带，稀疏的岩块在阳光里缓慢漂移。",
+          "claims": ["火星红色尘土", "小行星带粒子"]
         },
         {
           "id": "giant-0",
-          "text": "木星是太阳系最大的行星。我们看到的是不断变化的云带，大红斑是一场巨大的风暴。这里没有可以像地球一样站立的固体表面。"
-        },
-        {
-          "id": "giant-1",
-          "text": "木卫二绕着木星运行。冰壳表面的交错纹路下方，很可能隐藏着全球性海洋。它让我们寻找宜居环境的目光，越过了地球。"
+          "text": "大红斑正对镜头，云带翻涌；木卫二的冰面布满裂纹。",
+          "claims": ["大红斑", "云带流动", "木卫二冰纹"]
         },
         {
           "id": "rings-0",
-          "text": "土星最醒目的标志是环。它看似完整，实际由无数主要含水冰的颗粒组成。斜着看，环像一道薄刃；换个角度，细密的层次才展开。"
-        },
-        {
-          "id": "rings-1",
-          "text": "土卫六拥有浓厚大气，橙色雾霾遮住表面。那里也有河流和湖泊，不过流动的主要是液态甲烷和乙烷，而不是水。"
+          "text": "土星环从侧刃慢慢展开成辽阔的冰晶平面，逆光下冰晶颗粒分明，土卫六静静地藏在橙色雾霾里。",
+          "claims": ["环从侧刃展开", "逆光冰晶", "土卫六雾霾"]
         },
         {
           "id": "ice-0",
-          "text": "天王星几乎侧躺着自转，独特的倾角带来漫长的季节。它与海王星都是冰巨星，这个名称描述内部物质组成，不表示外面包着坚硬冰壳。"
-        },
-        {
-          "id": "ice-1",
-          "text": "海王星平均距离太阳约三十个天文单位。阳光到达这里需要四个多小时，遥远的大气中，仍然吹着猛烈的风。"
+          "text": "天王星几乎侧躺着自转，海王星的大气刮着最快的风。",
+          "claims": ["天王星侧躺", "海王星风暴"]
         },
         {
           "id": "kuiper-0",
-          "text": "海王星之外，柯伊伯带分布着大量冰质小天体。冥王星就是其中著名的一员，是矮行星，不是第九大行星。它的心形区域里，有广阔的氮冰平原。"
+          "text": "冥王星的心形氮冰平原，铺展在柯伊伯带的碎冰之间。",
+          "claims": ["冥王星心形区域", "柯伊伯带粒子"]
         },
         {
           "id": "edge-0",
-          "text": "再往外，日球层顶标志着太阳风与星际介质的交界。跨过它进入星际空间，并不等于离开所有绕太阳运行的天体。"
-        },
-        {
-          "id": "edge-1",
-          "text": "更遥远的奥尔特云，可能延伸到数万乃至约十万个天文单位。它仍是推测性的冰天体群，尚未被直接观测证实。太阳系的边缘，取决于我们用什么来定义。"
+          "text": "日球层顶之外是奥尔特云，太阳在这里收缩成一个亮点，边界取决于我们如何定义。",
+          "claims": ["日球层顶气泡边界", "太阳成点"]
         }
-      ]
+      ],
+      "leadInFrames": 300,
+      "tailFrames": 360
     }
   ],
   "soundtrack": {
     "effects": [
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "inner-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "home-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "giant-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "rings-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "ice-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "edge-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      }
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "inner-0", "offsetMs": 0, "gainDb": -28},
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "home-0", "offsetMs": 0, "gainDb": -26},
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "giant-0", "offsetMs": 0, "gainDb": -28},
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "rings-0", "offsetMs": 0, "gainDb": -26},
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "ice-0", "offsetMs": 0, "gainDb": -28},
+      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "edge-0", "offsetMs": 0, "gainDb": -26}
     ]
   }
 }

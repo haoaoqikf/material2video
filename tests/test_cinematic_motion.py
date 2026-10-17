@@ -129,14 +129,14 @@ export default function Demo() {
 """
 
 
-def capture_config(motion: dict) -> dict:
-    return {"props": {"shots": [{"id": "h", "tier": "hero", "startFrame": 0, "endFrame": 4}]},
+def capture_config(motion: dict, *, hero: tuple[int, int] = (0, 4)) -> dict:
+    return {"props": {"shots": [{"id": "h", "tier": "hero", "startFrame": hero[0], "endFrame": hero[1]}]},
             "fps": 60, "durationInFrames": 4, "width": 320, "height": 240,
             "subtitleSafeArea": {"x": 0, "y": 200, "width": 320, "height": 40},
             "segmentWindows": {}, "media": {}, "motion": motion}
 
 
-def capture_with(tmp_path, motion: dict):
+def capture_with(tmp_path, motion: dict, *, hero: tuple[int, int] = (0, 4)):
     """走真实采集路径（Playwright + CDP 截图 + 子帧平均），只是画幅很小。"""
     from playwright.sync_api import sync_playwright
 
@@ -145,7 +145,7 @@ def capture_with(tmp_path, motion: dict):
     root, work, result = prepare_build(tmp_path, MOVING_BOX)
     assert result.returncode == 0, result.stderr
     with sync_playwright() as pw:
-        code_scenes._capture(pw, root, work, capture_config(motion))
+        code_scenes._capture(pw, root, work, capture_config(motion, hero=hero))
     return work
 
 
@@ -157,6 +157,24 @@ def test_capture_averages_subframes_and_supersamples(tmp_path):
     assert [path.name for path in frames] == [f"frame-{index:06d}.png" for index in range(4)]
     assert media_probe.probe_dimensions(frames[0]) == (640, 480), "SSAA 按 2 倍设备像素采集"
     assert not list(work.glob("sub-*.png")), "子帧中间文件必须清理"
+
+
+@requires_node
+def test_supersample_applies_only_to_hero_frames(tmp_path):
+    """总览保持 1×：只有 hero 帧按 2 倍采集，其余帧仍是目标画幅。"""
+    work = capture_with(tmp_path, {"subframes": 1, "supersample": 2}, hero=(0, 2))
+    frames = sorted(work.glob("frame-*.png"))
+    assert media_probe.probe_dimensions(frames[0]) == (640, 480)
+    assert media_probe.probe_dimensions(frames[3]) == (320, 240)
+
+
+def test_encode_normalises_mixed_supersample_frames(tmp_path):
+    """同一片段里 1× 与 2× 的帧混用，编码后统一为目标画幅。"""
+    solid(tmp_path / "frame-000000.png", "0x335577", size="640x480")
+    solid(tmp_path / "frame-000001.png", "0x335577", size="320x240")
+    output = tmp_path / "clip.mp4"
+    code_scenes._encode(tmp_path, output, 2, 320, 240, supersample=2)
+    assert media_probe.probe_dimensions(output) == (320, 240)
 
 
 @requires_node
