@@ -80,6 +80,11 @@ Python 准备/量测、合成层与作品 SDK 读同一份。字幕用白字配�
 作品画幅只支持 1920×1080 与 1080×1920；横屏的字幕取值是竖屏数值乘 1080/1920 的结果，
 水平内边距取画布宽度的同一比例，比例关系由测试守着（`tests/test_design_tokens.py`）。
 
+cinematic 档（`productionProfile: "cinematic"`）的 look bible、LUT、后期与镜头参数**不替代**这套
+自由设计：作品仍然自己决定配色、排版与构图，look 只是把光色与质感基准固定下来并写进
+`content.props.look` 与 shot list。令牌层与 cinematic look 都不构成对作品配色的强制约束，
+两者都不得被写成「必须读取某个全局调色板」；契约见[电影级制作档位](cinematic-video.md)。
+
 ## 字体
 
 `--m2v-font` 是中文优先的字体栈，声明在 `:root` 上，页面里所有元素都继承它。

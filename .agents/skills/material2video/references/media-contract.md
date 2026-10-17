@@ -107,7 +107,8 @@ uv run m2v render --project videos/general/<slug>
 最终 MP4 检查视频解码帧数、实际尺寸、帧率、时长及音轨解码长度，时长容差 100ms。
 `m2v preview --limit-frames N` 只渲前 N 帧，成片写入 `outputs/previews/`，不覆盖正式成片，
 也不生成可绑定评审的预演记录。
-支持本地音床混音；节拍音效（`soundtrack.effects`）当前不渲染，自动选曲未实现。
+支持本地音床与节拍音效（`soundtrack.effects`）混音：两者都已进入母版音轨，详见
+[音床与音效](#音床与音效soundtrack)；自动选曲未实现。
 
 ## 配音音色与语速
 
@@ -263,4 +264,9 @@ false；淡入淡出 0–60000ms，默认各 500ms。素材缺失或损坏让 pr
 - **音效按通用 v7 契约执行**：它按 `sceneId`（可选 `segmentId`）与 `offsetMs` 定位，
   起点必须落在全片时长内，使用幕或旁白段窗口与 offsetMs 定位。
   内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性合成。
+- **音效混音验收口径**：每条音效按定位起点延迟叠入母版轨，与旁白、音床一起经
+  `amix`、限幅和 `atrim` 严格裁到全片时长；起点越界、引用未知 `sceneId`/`segmentId`
+  或 `builtin`/`sourceRef` 同缺同给都在 prepare 阶段失败。音效增益默认 −18 dB。
+  叠入音效后母版轨仍须通过同一响度与真峰值复核（旁白 −16 LUFS、成片 ≤ −1 dBTP），
+  修正只改增益、不改变时间轴；音效素材摘要进入准备指纹，换素材或改参数都要重新 prepare。
 

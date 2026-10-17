@@ -36,3 +36,30 @@ preview 只做**字幕量测**（安全区矩形、换行范围与可见性）�
 
 默认流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与准备 → 完整预演 → 正式导出；
 无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出。
+
+## cinematic 分支
+
+作品在 `project.json` 声明 `productionProfile: "cinematic"`（或 `prepare --profile cinematic`）后，
+流程改为五个阶段，且**多一道用户确认**：
+
+```powershell
+uv run m2v validate --project videos/general/<slug>
+uv run m2v lookdev --project videos/general/<slug>   # 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片
+# 用户实际观看并确认后，才继续铺全片
+uv run m2v prepare --project videos/general/<slug>
+uv run m2v preview --project videos/general/<slug>
+uv run m2v qa --project videos/general/<slug>        # 技术 QA，输出 outputs/qa.json
+uv run m2v assets audit --project videos/general/<slug>
+uv run m2v render --profile cinematic --project videos/general/<slug>
+uv run m2v master --project videos/general/<slug>     # ProRes/DNxHR 母版 + H.264 交付
+```
+
+- 阶段为 **Brief → Look-dev → Hero → Full film → QA/Master**；look-dev 未获批准时不得继续，
+  这是 standard「自动通过」的唯一例外。
+- shot list、look、`claims`、`leadInFrames` / `tailFrames` / `readingHoldFrames` 都是分镜的可选
+  字段，进入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
+- 感知评分卡十项各 0–4 分，低于 34/40 不通过；hero 镜头与样片必须实际观看并记录时间码。
+- 参考板、look bible、20 项检查表、反模式与成本见[电影级制作档位](cinematic-video.md)。
+
+档位、镜头/look 字段与 cinematic 命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是
+standard 链路。

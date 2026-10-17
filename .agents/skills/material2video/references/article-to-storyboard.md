@@ -48,17 +48,18 @@
 ## 旁白与时长
 
 每段旁白给稳定 ID，逐幕收集。全片实际时长不超过 600 秒，包括每幕 24 帧阅读停留和淡化帧数；
-超限修改文本或正常语速，不能截断语音。固定示例以 120～180 秒为目标，时长以实际配音为准。
+超限修改文本或正常语速，不能截断语音。固定示例中缓冲与试错以 120～180 秒为目标、太阳系之旅以
+165～180 秒为目标，时长以实际配音为准。
 
 ## 固定示例
 
-固定示例集合为 buffer-smoothing、darts-trial-and-error、keynote-baseline，最多 3 个；不新增、删除或替换目录。每个示例有 `article.md`、`project.json`、`storyboard.json`、`README.md`、`DESIGN.md` 与按需的 `assets/`、`scenes/`。
+固定示例集合为 buffer-smoothing、darts-trial-and-error、solar-system-journey，最多 3 个；不新增、删除或替换目录。每个示例有 `article.md`、`project.json`、`storyboard.json`、`README.md`、`DESIGN.md` 与按需的 `assets/`、`scenes/`。
 
-- buffer-smoothing 与 keynote-baseline 使用 1920×1080，darts-trial-and-error 使用 1080×1920。
+- buffer-smoothing 与 solar-system-journey 使用 1920×1080，darts-trial-and-error 使用 1080×1920。
 - 三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei；
   不再要求覆盖旧模板。
 - 核心演示包含旁白，通过实际 `segmentWindows` 与录制时钟推进：缓冲演示水位、流动点与流量积压，
-  试错演示落点与调整，选择演示条件筛选路径。
+  试错演示落点与调整，太阳系演示同一三维模型内相机在总览与各天体之间的连续飞行。
 - 数值与路径明确标注示意，文章保留适用边界；示例 README 提供论点、旁白、画面与组件对应表，
   `DESIGN.md` 记录视觉设计依据。
 

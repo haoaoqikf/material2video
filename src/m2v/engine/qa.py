@@ -1,0 +1,287 @@
+"""cinematic 技术 QA：把「能不能导出」之外的画面与声音缺陷变成可复核的报告。
+
+检查分两类：
+
+- **硬判定**（失败即 `status: fail`）：冻结/重复帧、字幕对比度、响度与真峰值、
+  音画时长一致、每条 `claims` 都有对应镜头。
+- **测量项**（只报告数值与提醒）：banding、aliasing、接触表。它们受内容影响很大，
+  用固定阈值判死会把正常画面误判成缺陷，因此只给数值与观看入口。
+
+报告写在作品 `outputs/qa.json`，接触表写在 `outputs/qa/contact-sheet.png`。
+本模块不修改成片，也不参与导出门禁；它把人工观看前的机械检查做完。
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import tempfile
+from pathlib import Path
+
+from imageio_ffmpeg import get_ffmpeg_exe
+
+from m2v.core.errors import M2VError
+from m2v.core.project import _write_json
+
+#: 抽样画面的尺寸：够看出构图与 banding，又不会让抽样本身成为瓶颈。
+SAMPLE_SIZE = (192, 104)
+#: 冻结判据：相邻抽样帧的平均像素差低于该值即视为**重复帧**（不是慢镜头）。
+#: 定标依据：同一支 174.6 秒三维示例，旧实时 screencast 片段在 1e-6 阈值下有 3.45 秒
+#: 连续重复，受控逐帧采集片段最长 1.42 秒；把阈值放宽到 2e-5 会把慢速运镜也算成冻结。
+FROZEN_DELTA = 1e-06
+#: 冻结多久算缺陷（秒）：短暂停顿是叙事节奏，长时间重复同一帧才是卡住。
+FROZEN_SECONDS = 3.0
+#: 近乎静止（慢镜头或停顿）的参考阈值，只作为测量项报告。
+NEAR_STILL_DELTA = 2e-05
+#: 默认抽样步长（帧）。
+DEFAULT_STEP = 30
+#: 响度容差（LU）：母版混音与编码前后的正常波动，超出才判失败。
+LOUDNESS_TOLERANCE = 2.0
+TARGETS = {"cinematic": {"loudness": -14.0, "truePeak": -1.0},
+           "standard": {"loudness": -16.0, "truePeak": -1.0}}
+
+
+def _run(args: list[str], *, binary: bool = False, timeout: int = 900):
+    result = subprocess.run([get_ffmpeg_exe(), "-v", "error", *args],
+                            capture_output=True, timeout=timeout)
+    if result.returncode:
+        raise M2VError(f"QA 媒体检查失败：{result.stderr.decode('utf-8', 'replace')[-1200:]}")
+    return result.stdout if binary else result.stdout.decode("utf-8", "replace")
+
+
+def sample_frames(video: Path, fps: int, step: int) -> list[bytes]:
+    """按固定步长抽样灰度小图；返回每帧的原始字节。"""
+    if step < 1:
+        raise M2VError("抽样步长必须为正整数")
+    width, height = SAMPLE_SIZE
+    raw = _run(["-i", str(video), "-vf", f"fps={fps / step},scale={width}:{height},format=gray",
+                "-f", "rawvideo", "-pix_fmt", "gray", "-"], binary=True)
+    size = width * height
+    return [raw[offset:offset + size] for offset in range(0, len(raw) - size + 1, size)]
+
+
+def frozen_frames(frames: list[bytes], fps: int, step: int) -> dict:
+    """相邻抽样帧的平均像素差；连续重复同一帧超过阈值即判失败。
+
+    `duplicateRatio` 与 `nearStillRatio` 是测量项：慢速运镜与刻意停顿都会抬高它们，
+    因此只有「连续重复帧超过 `FROZEN_SECONDS` 秒」才是硬判定。
+    """
+    deltas = []
+    for previous, current in zip(frames, frames[1:]):
+        total = sum(abs(a - b) for a, b in zip(previous, current))
+        deltas.append(total / (len(previous) * 255))
+    run = longest = 0
+    for delta in deltas:
+        run = run + 1 if delta < FROZEN_DELTA else 0
+        longest = max(longest, run)
+    seconds = longest * step / fps
+    duplicates = sum(1 for delta in deltas if delta < FROZEN_DELTA)
+    near = sum(1 for delta in deltas if delta < NEAR_STILL_DELTA)
+    total = len(deltas) or 1
+    return {"sampledPairs": len(deltas), "minDelta": round(min(deltas), 7) if deltas else None,
+            "meanDelta": round(sum(deltas) / len(deltas), 7) if deltas else None,
+            "duplicatePairs": duplicates, "duplicateRatio": round(duplicates / total, 4),
+            "nearStillRatio": round(near / total, 4),
+            "longestStillSeconds": round(seconds, 2), "frozenDelta": FROZEN_DELTA,
+            "status": "fail" if seconds > FROZEN_SECONDS else "pass"}
+
+
+def _dark_levels(frame: bytes, ratio: float = 0.2) -> tuple[int, int]:
+    """暗部像素的亮度层数与最大相邻跳变；跳变大说明渐变被量化成色带。"""
+    ordered = sorted(frame)
+    darkest = ordered[: max(1, int(len(ordered) * ratio))]
+    levels = sorted(set(darkest))
+    steps = [b - a for a, b in zip(levels, levels[1:])]
+    return len(levels), max(steps) if steps else 0
+
+
+def _total_variation(frame: bytes) -> float:
+    """相邻像素差的均值：锯齿、摩尔纹与细密纹理都会抬高它。"""
+    width, height = SAMPLE_SIZE
+    total = 0
+    for y in range(height):
+        row = frame[y * width:(y + 1) * width]
+        total += sum(abs(a - b) for a, b in zip(row, row[1:]))
+    return total / (width * height)
+
+
+def picture_metrics(frames: list[bytes]) -> dict:
+    levels = [_dark_levels(frame) for frame in frames]
+    variations = [_total_variation(frame) for frame in frames]
+    return {
+        "darkLevels": {"min": min(item[0] for item in levels), "max": max(item[0] for item in levels)},
+        "darkMaxStep": max(item[1] for item in levels),
+        "totalVariation": {"min": round(min(variations), 4), "max": round(max(variations), 4),
+                           "mean": round(sum(variations) / len(variations), 4)},
+    }
+
+
+def contact_sheet(video: Path, target: Path, *, columns: int = 4, rows: int = 6, every: int = 5) -> Path:
+    """均匀抽帧拼成一张接触表，供人一次看全片构图与曝光。"""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _run(["-i", str(video), "-vf", f"fps=1/{every},scale=480:-2,tile={columns}x{rows}",
+          "-frames:v", "1", "-update", "1", "-y", str(target)])
+    if not target.is_file():
+        raise M2VError("接触表没有生成")
+    return target
+
+
+def sheet_interval(seconds: float, columns: int = 4, rows: int = 6) -> int:
+    """接触表的抽帧间隔：短片也要抽到帧，长片不超过 5 秒一帧。"""
+    return max(1, min(5, int(seconds // (columns * rows))))
+
+
+def _contrast_ratio(foreground: str, background: str) -> float:
+    def luminance(color: str) -> float:
+        value = color.lstrip("#")
+        if len(value) != 6:
+            raise M2VError(f"颜色必须是 #rrggbb：{color}")
+        channels = []
+        for index in (0, 2, 4):
+            channel = int(value[index:index + 2], 16) / 255
+            channels.append(channel / 12.92 if channel <= .04045 else ((channel + .055) / 1.055) ** 2.4)
+        return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
+    high, low = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (high + .05) / (low + .05)
+
+
+def subtitle_contrast(subtitle: dict) -> dict:
+    ratio = _contrast_ratio(subtitle["textColor"], subtitle["plateColor"])
+    return {"textColor": subtitle["textColor"], "plateColor": subtitle["plateColor"],
+            "ratio": round(ratio, 2), "minimum": 4.5, "status": "pass" if ratio >= 4.5 else "fail"}
+
+
+def loudness(audio: Path, profile: str) -> dict:
+    """母版响度与真峰值；目标随档位取值，超限即失败。"""
+    # ebur128 的汇总行走 info 级日志：`-v error` 会把要解析的内容一起吞掉。
+    result = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-nostats", "-i", str(audio),
+                             "-af", "ebur128=peak=true", "-f", "null", "-"],
+                            capture_output=True, timeout=900)
+    text = result.stderr.decode("utf-8", "replace")
+    integrated = true_peak = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("I:") and integrated is None:
+            integrated = float(stripped.split()[1])
+        elif stripped.startswith("Peak:") and true_peak is None:
+            true_peak = float(stripped.split()[1])
+    if integrated is None or true_peak is None:
+        raise M2VError(f"无法从 ffmpeg 读取响度或真峰值：{text[-800:]}")
+    target = TARGETS.get(profile, TARGETS["standard"])
+    return {"integratedLufs": round(integrated, 2), "truePeakDbfs": round(true_peak, 2),
+            "targetLufs": target["loudness"], "targetTruePeak": target["truePeak"],
+            "toleranceLu": LOUDNESS_TOLERANCE,
+            "status": "pass" if (abs(integrated - target["loudness"]) <= LOUDNESS_TOLERANCE
+                                 and true_peak <= target["truePeak"]) else "fail"}
+
+
+def _duration(path: Path) -> float:
+    """读取媒体时长；ffmpeg 在没有指定输出时会以非零退出码结束，这里只看流信息。"""
+    result = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(path)],
+                            capture_output=True, timeout=120)
+    return _probe_duration(result.stderr.decode("utf-8", "replace"))
+
+
+def _probe_duration(text: str) -> float:
+    for line in text.splitlines():
+        if "Duration:" in line:
+            stamp = line.split("Duration:")[1].split(",")[0].strip()
+            hours, minutes, seconds = stamp.split(":")
+            return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    raise M2VError("无法读取媒体时长")
+
+
+def audio_sync(video: Path, audio: Path, expected_seconds: float) -> dict:
+    difference = abs(_duration(video) - _duration(audio))
+    return {"videoSeconds": round(_duration(video), 3), "audioSeconds": round(_duration(audio), 3),
+            "expectedSeconds": round(expected_seconds, 3), "differenceSeconds": round(difference, 3),
+            "toleranceSeconds": 0.1, "status": "pass" if difference <= 0.1 else "fail"}
+
+
+def claims_check(prepared: dict) -> dict:
+    """每条 claims 都要落在某个镜头的时间窗里，否则旁白说的画面上看不到。"""
+    scenes = prepared["props"].get("compiledScenes", [])
+    pending, missing = [], []
+    for scene in scenes:
+        shots = (scene.get("content", {}).get("props") or {}).get("shots") or []
+        for segment in scene.get("narrationSegments", []):
+            claims = segment.get("claims") or []
+            if not claims:
+                continue
+            window = scene.get("segmentWindows", {}).get(segment["id"])
+            if window is None:
+                missing.append({"scene": scene["id"], "segment": segment["id"], "reason": "缺少时间窗"})
+                continue
+            covering = [shot["id"] for shot in shots
+                        if shot["startFrame"] <= window["startFrame"] and shot["endFrame"] >= window["endFrame"]]
+            entry = {"scene": scene["id"], "segment": segment["id"], "claims": claims,
+                     "startFrame": window["startFrame"], "endFrame": window["endFrame"],
+                     "shots": covering}
+            pending.append(entry)
+            if not covering:
+                missing.append({"scene": scene["id"], "segment": segment["id"],
+                                "reason": "没有镜头覆盖该旁白窗口"})
+    return {"segments": pending, "problems": missing,
+            "status": "fail" if missing else "pass"}
+
+
+def delivered_video(root: Path) -> Path:
+    """成片位置：自带示例的产物在 `videos/examples/<slug>/outputs/`，其他作品在作品内。"""
+    output_root = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
+    return output_root / "outputs/video.mp4"
+
+
+def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str = "cinematic",
+        step: int = DEFAULT_STEP) -> dict:
+    """执行全部检查并写入 `outputs/qa.json`；返回报告。"""
+    fps = prepared["fps"]
+    expected = prepared["durationInFrames"] / fps
+    master = root / prepared["audio"]["segments"][0]["path"]
+    target = video or delivered_video(root)
+    if not target.is_file():
+        raise M2VError(f"缺少待检查的成片：{target}；请先 preview 或 render")
+    frames = sample_frames(target, fps, step)
+    if len(frames) < 2:
+        raise M2VError("成片太短，无法抽样检查")
+    outputs = root / "outputs/qa"
+    outputs.mkdir(parents=True, exist_ok=True)
+    checks = {
+        "frozenFrames": frozen_frames(frames, fps, step),
+        "picture": picture_metrics(frames),
+        "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
+        "loudness": loudness(master, profile),
+        "audioSync": audio_sync(target, master, expected),
+        "claims": claims_check(prepared),
+    }
+    sheet = contact_sheet(target, outputs / "contact-sheet.png", every=sheet_interval(expected))
+    report = {"schemaVersion": 1, "profile": profile,
+              "preparedFingerprint": prepared["preparedFingerprint"],
+              "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
+              "durationInFrames": prepared["durationInFrames"], "fps": fps,
+              "sampleStep": step, "contactSheet": sheet.relative_to(root).as_posix(),
+              "checks": checks,
+              "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
+    _write_json(root / "outputs/qa.json", report)
+    return report
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`m2v qa --project <目录> [--profile ...]`。"""
+    import argparse
+    parser = argparse.ArgumentParser(prog="m2v qa", description="cinematic 技术 QA")
+    parser.add_argument("--project", required=True)
+    parser.add_argument("--profile", choices=("standard", "cinematic"))
+    parser.add_argument("--video", help="待检查的成片；省略时取作品 outputs/video.mp4")
+    parser.add_argument("--step", type=int, default=DEFAULT_STEP)
+    args = parser.parse_args(argv)
+    from m2v.core.project import load_project
+    from m2v.types.general import cinematic
+    from m2v.types.general.explainer_render import current
+    root, manifest = load_project(args.project)
+    prepared = current(root, manifest)
+    profile, _source = cinematic.resolve_profile(manifest, args.profile)
+    report = run(root, prepared, video=Path(args.video) if args.video else None,
+                 profile=profile, step=args.step)
+    print(json.dumps({"status": report["status"], "checks": {name: item.get("status", "measured")
+                                                             for name, item in report["checks"].items()}},
+                     ensure_ascii=False, indent=2))
+    return 0 if report["status"] == "pass" else 1

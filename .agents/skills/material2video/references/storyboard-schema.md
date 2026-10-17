@@ -30,11 +30,51 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 `narrationSegments` 每项为 `{id,text}`，文字非空；`code` 幕可以没有旁白（0～30 项），此时镜头
 长度取声明的 `durationFrames`，未声明时与其余无旁白镜头平分 `targetSeconds` 的剩余帧数。
 
+## cinematic 可选字段
+
+下面是 cinematic 档位新增的**可选**字段。standard 作品不写它们，准备记录、缓存键与时间轴
+都与现在完全一致；写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
+档位、字段与命令随 cinematic 变更落地，实现完成前仓库实际可用的仍是 standard 链路；
+档位模型、镜头语法与检查表见[电影级制作档位](cinematic-video.md)。
+
+档位声明在**作品** `project.json`（不在分镜里）：
+
+```json
+{"productionProfile": "cinematic"}
+```
+
+`productionProfile` 只接受 `standard`/`cinematic`，缺省 standard；`prepare --profile` 可临时覆盖，
+准备记录、预演与溯源记录实际生效的档位与来源。
+
+幕级新增三个可选帧数字段：
+
+| 字段 | 范围 | 说明 |
+|---|---|---|
+| `leadInFrames` | 0～1800 | 旁白之前的留白（冷开场），默认 0 |
+| `tailFrames` | 0～1800 | 阅读停留之后的留白（收尾），默认 0 |
+| `readingHoldFrames` | 0～360 | 本幕声音结束后的稳定阅读帧数，默认 24 |
+
+`content.props` 新增两个可选对象：
+
+- `shots`：镜头清单。每项声明 `id`（全片唯一）、`target`、`tier`（`hero`/`major`/`minor`）、
+  可选 `segment`（本幕的旁白段 id）、`startFrame`/`endFrame`（**幕内相对帧**），以及可选的
+  `camera`（`path`/`fov`/`roll`/`easing`/`keyframes`）、`focus`（`target`/`distance`/`aperture`）、
+  `exposure`（`ev`）与 `post`（`bloom`/`dof`/`grain`/`vignette`/`chromaticAberration`/`lut`）。
+  整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。
+- `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`、`grain`、`bloom`、`dof`、
+  `vignette` 与 `exposure`。
+
+镜头时间窗在**准备阶段**校验（真实分段时长来自 TTS）：声明 `segment` 的镜头必须落在该旁白段
+窗口内；没有声明的镜头只能落在留白区（前导段或收尾段），不允许横跨旁白。非法时错误按
+`scenes[<幕>].content.props.shots[<镜头 id>]` 定位。
+
+`narrationSegments` 每项新增可选 `claims`：本段旁白声称的画面特征（最多 12 条、每条不超过
+80 字符、不得重复）。它不改变时间轴，只用于预演后检查该时间窗内特征是否真的可见。
+
 ## 全画布代码场景（code）
 
 `content.entry` 必须是作品 `scenes/` 下存在的相对 TSX 路径。路径越界、缺少文件、非 TSX 后缀、
 未批准的依赖或远程模块都会在构建时拒绝；工具不会安装作品自己的依赖。
-
 组件从 `m2v/code-scene` 取得上下文与 SDK：
 
 ```tsx

@@ -1,12 +1,12 @@
 ## 1. 口径修正与文档基线
 
-- [ ] 1.1 修正 `.agents/skills/material2video/references/article-to-storyboard.md` 与 `AGENTS.md` 的固定示例名单：删除 keynote-baseline，改为 buffer-smoothing、darts-trial-and-error、solar-system-journey，并同步横竖屏与时长描述。
-- [ ] 1.2 修正 `.agents/skills/material2video/references/media-contract.md` 中「节拍音效当前不渲染」的过时表述，明确 `soundtrack.effects` 已进入母版混音，并补一条 effects 混音验收口径。
-- [ ] 1.3 更新 `docs/PROJECT_PLAN.md`：加入 standard/cinematic 双档位与电影级路线；把「复杂转场/第二套渲染引擎」改为「不换引擎，新增电影级后期与母版」；保留「不自动选曲」，改为支持本地/程序化音床。
-- [ ] 1.4 新增 `.agents/skills/material2video/references/cinematic-video.md`：参考板、look bible、shot grammar、材质/后期/声音清单、20 项检查表、反模式与成本表。
-- [ ] 1.5 更新 `SKILL.md`：档位表、cinematic 触发词、Brief → Look-dev → Hero → Full film → QA/Master 阶段、cinematic 的 look-dev 批准例外、禁止静默降级。
-- [ ] 1.6 更新 `production-workflow.md`、`visual-review-rubric.md`、`design-tokens.md` 的交叉引用；说明 cinematic 不替代作品自由设计。
-- [ ] 1.7 运行 `python .agents/skills/material2video/scripts/sync_docs.py --check`、相对链接检查与文档 JSON 示例检查。
+- [x] 1.1 修正 `.agents/skills/material2video/references/article-to-storyboard.md` 与 `AGENTS.md` 的固定示例名单：删除 keynote-baseline，改为 buffer-smoothing、darts-trial-and-error、solar-system-journey，并同步横竖屏与时长描述。
+- [x] 1.2 修正 `.agents/skills/material2video/references/media-contract.md` 中「节拍音效当前不渲染」的过时表述，明确 `soundtrack.effects` 已进入母版混音，并补一条 effects 混音验收口径。
+- [x] 1.3 更新 `docs/PROJECT_PLAN.md`：加入 standard/cinematic 双档位与电影级路线；把「复杂转场/第二套渲染引擎」改为「不换引擎，新增电影级后期与母版」；保留「不自动选曲」，改为支持本地/程序化音床。
+- [x] 1.4 新增 `.agents/skills/material2video/references/cinematic-video.md`：参考板、look bible、shot grammar、材质/后期/声音清单、20 项检查表、反模式与成本表。
+- [x] 1.5 更新 `SKILL.md`：档位表、cinematic 触发词、Brief → Look-dev → Hero → Full film → QA/Master 阶段、cinematic 的 look-dev 批准例外、禁止静默降级。
+- [x] 1.6 更新 `production-workflow.md`、`visual-review-rubric.md`、`design-tokens.md` 的交叉引用；说明 cinematic 不替代作品自由设计。
+- [x] 1.7 运行 `python .agents/skills/material2video/scripts/sync_docs.py --check`、相对链接检查与文档 JSON 示例检查。
 
 ## 2. 档位、字段与指纹
 

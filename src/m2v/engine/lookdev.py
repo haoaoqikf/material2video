@@ -1,0 +1,170 @@
+"""`m2v lookdev`：在铺全片之前，先把关键静帧与一段有声样片摆到人眼前。
+
+cinematic 档的 look-dev 是**用户确认门**：先渲 3–5 张 4K 静帧、一张接触表与一段
+20–30 秒有声样片，用户实际看过并确认后才继续。因此这里的产物不是最终成片，而是
+「方向对不对」的证据：静帧按 2× 放大渲染（1920×1080 → 3840×2160），样片按 1× 渲染
+并合上母版音轨的对应片段。
+
+本模块不修改成片、不写准备记录，也不改变任何指纹。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from imageio_ffmpeg import get_ffmpeg_exe
+
+from m2v.core.errors import M2VError
+from m2v.core.project import _write_json, load_project
+from m2v.engine import audio, perf, remotion
+
+#: 静帧张数与放大倍数：4K 静帧是 cinematic look-dev 的最低要求。
+DEFAULT_STILLS = 4
+STILL_SCALE = 2
+#: 样片长度：够看出节奏与声音，又不必等一次全片渲染。
+DEFAULT_SAMPLE_SECONDS = 24
+MIN_SAMPLE_SECONDS, MAX_SAMPLE_SECONDS = 20, 30
+
+
+def still_frames(prepared: dict, count: int) -> list[int]:
+    """静帧取点：hero 镜头中点优先，其余用首尾与等距点补足，最终恰好 `count` 张。"""
+    duration = prepared["durationInFrames"]
+    shots = [shot for scene in prepared["props"].get("compiledScenes", [])
+             for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
+    heroes = sorted((shot for shot in shots if shot["tier"] == "hero"),
+                    key=lambda shot: shot["startFrame"])
+    picks: list[int] = []
+    for frame in [round((shot["startFrame"] + shot["endFrame"]) / 2) for shot in heroes]:
+        value = max(0, min(duration - 1, int(frame)))
+        if value not in picks:
+            picks.append(value)
+    if len(picks) > count:
+        stride = len(picks) / count
+        picks = [picks[min(len(picks) - 1, int(index * stride))] for index in range(count)]
+    step = duration / count
+    extras = [0, duration - 1, *[round(step * (index + .5)) for index in range(count)]]
+    for frame in extras:
+        if len(picks) >= count:
+            break
+        value = max(0, min(duration - 1, int(frame)))
+        if value not in picks:
+            picks.append(value)
+    return sorted(picks)
+
+
+def sample_window(prepared: dict, seconds: int) -> tuple[int, int]:
+    """样片窗口：优先覆盖第一个 hero 镜头，否则从片头取。"""
+    duration = prepared["durationInFrames"]
+    fps = prepared["fps"]
+    shots = [shot for scene in prepared["props"].get("compiledScenes", [])
+             for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
+    heroes = sorted((shot for shot in shots if shot["tier"] == "hero"),
+                    key=lambda shot: shot["startFrame"])
+    start = heroes[0]["startFrame"] if heroes else 0
+    length = min(seconds * fps, duration - start)
+    if length <= 0:
+        raise M2VError("样片窗口超出成片时长")
+    return start, start + length - 1
+
+
+def _extract_png(video: Path, target: Path) -> None:
+    result = subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-i", str(video),
+                             "-frames:v", "1", str(target)], capture_output=True, timeout=300)
+    if result.returncode or not target.is_file():
+        raise M2VError(f"静帧导出失败：{result.stderr.decode('utf-8', 'replace')[-800:]}")
+
+
+def contact_sheet(stills: list[Path], target: Path, columns: int = 2) -> Path:
+    """把静帧拼成一张接触表；张数不足时按实际数量拼一行。"""
+    if not stills:
+        raise M2VError("没有静帧可拼接触表")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    rows = max(1, (len(stills) + columns - 1) // columns)
+    with tempfile.TemporaryDirectory(prefix="lookdev-", dir=target.parent) as temporary:
+        listing = Path(temporary) / "stills.txt"
+        listing.write_text("".join(f"file '{path.as_posix()}'\n" for path in stills), encoding="utf-8")
+        result = subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "concat", "-safe", "0",
+                                 "-i", str(listing), "-vf", f"scale=960:-2,tile={columns}x{rows}",
+                                 "-frames:v", "1", str(target)], capture_output=True, timeout=300)
+    if result.returncode or not target.is_file():
+        raise M2VError(f"接触表生成失败：{result.stderr.decode('utf-8', 'replace')[-800:]}")
+    return target
+
+
+def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STILLS,
+        sample_seconds: int = DEFAULT_SAMPLE_SECONDS) -> dict:
+    """渲染静帧、接触表与有声样片，返回清单并写入 `outputs/lookdev.json`。"""
+    if not MIN_SAMPLE_SECONDS <= sample_seconds <= MAX_SAMPLE_SECONDS:
+        raise M2VError(f"样片长度必须是 {MIN_SAMPLE_SECONDS}～{MAX_SAMPLE_SECONDS} 秒")
+    if not 3 <= stills <= 5:
+        raise M2VError("静帧张数必须是 3～5")
+    fps, width, height = prepared["fps"], prepared["width"], prepared["height"]
+    outputs = root / "outputs/lookdev"
+    outputs.mkdir(parents=True, exist_ok=True)
+    entry = root / project["materials"]["storyboard"]
+    master = root / prepared["audio"]["segments"][0]["path"]
+    frames = still_frames(prepared, stills)
+    start, end = sample_window(prepared, sample_seconds)
+    timings = perf.StageTimings()
+    with tempfile.TemporaryDirectory(prefix="m2v-lookdev-", dir=outputs) as temporary:
+        work = Path(temporary)
+        props_file = work / "props.json"
+        props_file.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
+                                 storyboard_path=entry, content_root=root.parent,
+                                 workspace_root=root.parent, cache=True)
+        timings.record("bundle", bundle.build_seconds)
+        rendered: list[Path] = []
+        for frame in frames:
+            clip = work / f"still-{frame}.mp4"
+            remotion.render_frames(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
+                                   out=clip, total_frames=1, crf=14, preset="medium", timeout_s=1800,
+                                   frame_start=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
+            target = outputs / f"still-{frame:06d}.png"
+            _extract_png(clip, target)
+            rendered.append(target)
+        sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
+        silent = work / "sample-silent.mp4"
+        sample = outputs / "sample.mp4"
+        frames_spec = {"value": f"{start}-{end}"}
+        def confirm(metadata):
+            expected = (fps, width, height, prepared["durationInFrames"])
+            actual = (metadata.fps, metadata.width, metadata.height, metadata.duration_in_frames)
+            if expected != actual:
+                raise M2VError(f"look-dev 元数据不匹配：{actual}，期望 {expected}")
+            return {"out": str(silent), "crf": 16, "preset": "medium", "frames": frames_spec["value"],
+                    "scale": 1, "concurrency": 1, "progressTotal": end - start + 1}
+        remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
+                                composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
+                                on_line=remotion.progress_handler(end - start + 1))
+        audio.mux(silent, master, sample, (end - start + 1) / fps, start=start / fps)
+    manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
+                "stills": [path.relative_to(root).as_posix() for path in rendered],
+                "contactSheet": sheet.relative_to(root).as_posix(),
+                "sample": sample.relative_to(root).as_posix(),
+                "sampleFrames": [start, end], "sampleSeconds": round((end - start + 1) / fps, 2),
+                "stillScale": STILL_SCALE, "stillSize": [width * STILL_SCALE, height * STILL_SCALE]}
+    _write_json(root / "outputs/lookdev.json", manifest)
+    return manifest
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="m2v lookdev", description="cinematic look-dev 静帧与样片")
+    parser.add_argument("--project", required=True)
+    parser.add_argument("--stills", type=int, default=DEFAULT_STILLS)
+    parser.add_argument("--sample-seconds", type=int, default=DEFAULT_SAMPLE_SECONDS)
+    args = parser.parse_args(argv)
+    from m2v.types.general.explainer_render import current
+    root, manifest = load_project(args.project)
+    prepared = current(root, manifest)
+    result = run(root, manifest, prepared, stills=args.stills, sample_seconds=args.sample_seconds)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

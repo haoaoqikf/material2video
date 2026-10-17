@@ -19,6 +19,36 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 通用类型使用 v8 storyboard.json：每一幕都是本地 React `code` 场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏；画面配色、构图与动效由作品代码决定，图片与视频经已导入素材 ID 解析；代码场景由准备阶段按画幅逐帧录制并缓存，完整预演与导出复用同一片段；不支持旧模板、视觉主题、general-plan 编排或完整片段嵌入。
 
+## 制作档位（standard / cinematic）
+
+通用作品分 **standard**（默认）与 **cinematic** 两档，在 `project.json` 的 `productionProfile`
+声明，也可用 `prepare --profile cinematic` 临时覆盖；分镜不重复声明档位。
+
+| 项 | standard | cinematic |
+|---|---|---|
+| look-dev | 可选 | 必须：3–5 张 4K 静帧 + 20–30 秒有声样片，用户看过并确认后才铺全片 |
+| 镜头 | 作品自由 | 必须提交 shot list；hero ≥ 3，每个 hero 有 8–12 秒连续镜头 |
+| 资产 | 2K 可用 | hero ≥ 4K，normal/roughness/emissive 齐全，许可留证 |
+| 后期 | 无 | Bloom / DOF / grain / vignette / CA / LUT，全部帧驱动 |
+| 声音 | TTS + 可选音床与音效 | 配乐 + 环境 + 音效 + 母版混音（−14 LUFS / −1 dBTP） |
+| 编码 | H.264 CRF18、8bit、44.1k/128k | ProRes/DNxHR 母版 + H.264/HEVC 交付、48k/24bit |
+| 验收 | 完整预演自动验收 | 技术 QA + 感知评分卡 ≥ 34/40 + hero 实看 |
+
+**触发词**：用户明确要求「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时 MUST 使用 cinematic，
+不得静默按 standard 交付再声称电影级；反过来，用户没有这样要求时不要默认加电影级开销。
+
+cinematic 按 **Brief → Look-dev → Hero → Full film → QA/Master** 五个阶段推进，每阶段有产出与
+放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`、`m2v master` 与
+`m2v render --profile cinematic`。字段、清单、评分卡、反模式与成本见
+[电影级制作档位](references/cinematic-video.md)。
+
+**look-dev 批准是「不新增用户逐次确认」的唯一例外**：standard 维持自动通过；cinematic 必须在
+关键静帧与代表片段上停下来给用户实际观看，确认后才铺全片。未获批准时不得继续，也不得把
+未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
+
+档位、镜头/look 字段与上述命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是 standard
+链路，不要据此声称已产出电影级成片。
+
 ## 统一命令
 
 ```powershell
@@ -85,6 +115,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 - 材料、资产或渲染代码变化后重新 `prepare`，再生成完整 `preview`；可选评审如需使用也应重新填写。
 - 完整预演只绑定当前准备指纹；限帧预览只用于开发排查，不能授权正式导出。
 - 所有类型均不要求人工画面评审；默认在校验、准备和完整预演自动验收后直接导出。`review-template` / `review` 仅供主动评审，填写通过结论时仍需真实依据，不自动虚构人工结论；金融维持专用自动探针。通用作品的设计稿与观看记录不参与门禁。
+- **唯一例外是 cinematic 档的 look-dev 批准**：cinematic 作品在关键静帧与代表片段上停下等用户确认，未批准不铺全片；standard 不受影响，仍自动通过。
 - 正式导出独立验证完整预演的当前准备指纹、文件摘要与完整帧数，并进行媒体技术验收；缺失、过期、被替换或限帧预演仍会阻断。
 - 正式渲染在临时路径生成并验收后替换交付文件；失败不覆盖先前有效成片。
 - 正式渲染成功并写好成片旁车后，统一入口会清理本作品 `outputs/` 中旧视频和已知检查/调试产物；金融绑定的完整预演会保留，其他类型按原规则清理预演。保留本次成片及旁车、准备与评审 JSON、可重渲的准备媒体。渲染失败不清理，共享构建缓存不受影响；逐项清理失败会报告遗留路径。
