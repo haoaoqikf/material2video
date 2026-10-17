@@ -21,6 +21,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
+    "@react-three/postprocessing": "^3.2.0",
     "@remotion/bundler": "4.0.526",
     "@remotion/cli": "4.0.526",
     "@remotion/player": "4.0.526",
@@ -30,6 +31,7 @@
     "echarts": "6.1.0",
     "gsap": "3.15.0",
     "motion": "14.3.0",
+    "postprocessing": "^6.39.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "remotion": "4.0.526",

@@ -156,8 +156,10 @@ def test_shots_look_and_claims_validate(tmp_path):
 @pytest.mark.parametrize("mutate,match", [
     (lambda data: data["scenes"][0]["content"]["props"].update(shots=[shot("earth", "hero", 0, 480)]), "hero"),
     (lambda data: data["scenes"][0]["content"]["props"].update(look={"grain": 0.3}), "profile"),
+    (lambda data: data["scenes"][0]["content"]["props"].update(look={"profile": "x", "lut": "cinema.cube"}), "内置调色档"),
     (lambda data: data["scenes"][0]["content"]["props"]["shots"][0].update(tier="epic"), "tier"),
     (lambda data: data["scenes"][0]["content"]["props"]["shots"][0].update(zoom=2), "未知字段"),
+    (lambda data: data["scenes"][0]["content"]["props"]["shots"][0].update(post={"lut": "自定义"}), "内置调色档"),
     (lambda data: data["scenes"][0]["narrationSegments"][0].update(claims=["a", "a"]), "重复"),
     (lambda data: data["scenes"][0]["narrationSegments"][0].update(claims=[""]), "非空"),
 ])

@@ -10,7 +10,8 @@ const project = fs.realpathSync(projectArg);
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(path.join(web, 'package.json'));
 const sdk = path.join(web, 'src/code-scene/sdk.tsx');
-const approved = new Set(['react', 'react-dom', 'motion', 'three', '@react-three/fiber', '@react-three/drei', 'gsap', 'echarts']);
+const approved = new Set(['react', 'react-dom', 'motion', 'three', '@react-three/fiber', '@react-three/drei', 'gsap', 'echarts',
+  'postprocessing', '@react-three/postprocessing']);
 const within = (base, file) => {const rel = path.relative(base, file); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));};
 const result = await build({
   stdin: {contents: `import Scene from ${JSON.stringify(path.resolve(project, entry))}; import {mount} from ${JSON.stringify(path.join(web, 'src/code-scene/host.tsx'))}; mount(Scene);`, resolveDir: web, loader: 'tsx'},

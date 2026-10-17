@@ -1,45 +1,16 @@
 /** 可信作品代码场景 API；只在逐帧录制页使用，不进入 Remotion composition。 */
-import {createContext, useContext, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import * as echarts from 'echarts';
-import type {SubtitleSafeArea} from '../frames';
+import type {MediaAsset} from './context';
 export {motion, AnimatePresence} from 'motion/react';
 export {gsap} from 'gsap';
 export * as THREE from 'three';
 export {Canvas, useFrame, useThree} from '@react-three/fiber';
 export {Float, Stars, PerspectiveCamera} from '@react-three/drei';
 export {echarts};
-
-/** 已导入素材的只读解析结果；视频带实测时长，图片为 `null`。 */
-export type MediaAsset = {
-  src: string;
-  kind: 'image' | 'video';
-  width: number;
-  height: number;
-  durationSeconds: number | null;
-};
-
-export type CodeSceneProps = {
-  props: Record<string, unknown>; fps: number; durationInFrames: number;
-  /** 当前录制画幅。作品代码负责铺满整张画布并绘制不透明背景。 */
-  width: number;
-  height: number;
-  /** 字幕安全区：重要文字与主体须避让该矩形，背景可以延伸到其中。 */
-  subtitleSafeArea: SubtitleSafeArea;
-  segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
-};
-export type SceneContext = {running: boolean; elapsedSeconds: number; progress: number; ready: () => void};
-export const SceneContextProvider = createContext<SceneContext | null>(null);
-export function useSceneContext(): SceneContext {
-  const context = useContext(SceneContextProvider);
-  if (!context) throw new Error('代码场景必须在录制上下文中运行');
-  return context;
-}
-
-declare global {
-  interface Window {
-    __M2V_CODE_CONFIG__?: CodeSceneProps & {media?: Record<string, MediaAsset>};
-  }
-}
+export {SceneContextProvider, useSceneContext} from './context';
+export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from './context';
+export * from './cinematic';
 
 /**
  * 按素材 ID 取已导入素材的本地地址与实测信息。

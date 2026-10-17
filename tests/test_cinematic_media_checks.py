@@ -131,6 +131,33 @@ def test_assets_audit_reports_alpha_and_colour_space(tmp_path):
     assert info["alpha"] is True and info["colorSpace"] == "srgb"
 
 
+def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
+    """作品拿到的素材信息包含实测色彩空间、alpha 与登记许可，且不需要重新导入。"""
+    from test_article_explainer import project
+    from test_article_media import entry, importer, make_image
+    from m2v.types.general import media_assets
+
+    root, _manifest = project(tmp_path)
+    make_image(root / "assets/incoming.png")
+    importer(root, [entry("photo", "image", localPath="assets/incoming.png",
+                          sourceUrl="https://example.com/a", author="作者甲", license="CC0")])
+    resolved = media_assets.resolve(root)["media"]["photo"]
+    assert resolved["colorSpace"] in {"srgb", "unknown"}
+    assert isinstance(resolved["alpha"], bool)
+    assert resolved["license"] == "CC0"
+
+
+def test_media_resolution_keeps_unknown_license(tmp_path):
+    from test_article_explainer import project
+    from test_article_media import entry, importer, make_image
+    from m2v.types.general import media_assets
+
+    root, _manifest = project(tmp_path)
+    make_image(root / "assets/incoming.png")
+    importer(root, [entry("photo", "image", localPath="assets/incoming.png")])
+    assert media_assets.resolve(root)["media"]["photo"]["license"] == "未知"
+
+
 def test_assets_audit_json_round_trip(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)

@@ -214,7 +214,8 @@ def test_record_and_file_must_agree(workspace):
     file = workspace / record["assets"][0]["path"]
     resolved = media_assets.resolve(workspace)
     assert resolved["media"]["wide"] == {"src": "/media/" + file.name, "kind": "image",
-                                        "width": 864, "height": 700, "durationSeconds": None}
+                                        "width": 864, "height": 700, "durationSeconds": None,
+                                        "colorSpace": "srgb", "alpha": False, "license": "未知"}
     make_image(file, "1080x1920")
     with pytest.raises(M2VError, match="与来源记录不符"):
         media_assets.resolve(workspace)

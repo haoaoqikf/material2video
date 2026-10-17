@@ -189,7 +189,13 @@ def resolve(root: Path) -> dict:
         info = probe(file, kind)
         if any(entry.get(key) != info[key] for key in info):
             raise M2VError(f"素材 {identity} 的实测尺寸、类型或时长与来源记录不符，请重新导入")
-        media[identity] = {"src": f"{MEDIA_URL_PREFIX}/{file.name}", "kind": kind, **info}
+        # 色彩空间与 alpha 由实测像素格式推导，登记许可靠来源记录：作品据此设置材质
+        # 与片尾署名。它们不写回来源记录，因此既有作品不需要重新导入素材。
+        from m2v.engine.assets_audit import describe
+        pixel = describe(file)
+        media[identity] = {"src": f"{MEDIA_URL_PREFIX}/{file.name}", "kind": kind, **info,
+                           "colorSpace": pixel["colorSpace"], "alpha": pixel["alpha"],
+                           "license": entry.get("license") or "未知"}
         digests[identity] = {"path": relative, "sha256": sha, **info}
     return {"media": media, "digest": fingerprint(digests)}
 

@@ -9,9 +9,10 @@
 
 ## 实现状态
 
-档位、镜头/look 字段、`lookdev` / `qa` / `assets audit` / `master` 命令与电影级组件随
-cinematic 变更落地。**在实现完成前，仓库实际可用的仍是 standard 链路**：本文档描述的是
-cinematic 档的契约目标，不能据此声称已经产出电影级成片。实现完成后本节与
+档位声明、镜头/look/claims 字段、准备指纹与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）
+已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。仍在实施中：
+`m2v lookdev` / `qa` / `assets audit` / `master` 的入口接线、cinematic 分档编码与母版，以及
+太阳系 60 秒参考片。**在这些完成之前，不要声称已经产出电影级成片**；实现完成后本节与
 [渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 一并更新为「当前支持」。
 
 ## 档位对照
@@ -59,7 +60,7 @@ look bible 是整片唯一的光色与质感基准，写在作品 `DESIGN.md`，
 - **曝光策略**：基准 EV、逆光镜头的过曝容忍上限、暗部提亮手段。
 - **材质基准**：金属度/粗糙度的取值区间，是否允许镜面高光，噪声颗粒的频率与强度。
 - **景深**：哪些镜头深景深（总览）、哪些浅景深（hero 特写），允许的散景形状。
-- **后期基线**：Bloom 阈值、grain 强度、vignette 强度、LUT 文件与其强度。
+- **后期基线**：Bloom 阈值、grain 强度、vignette 强度、调色档（`lut`）与其强度。
 
 `look.profile` 是这份基准的名字；`look` 里的每一项都要能被 shot 级 `post` 覆盖，
 但覆盖必须写进 shot list，不允许在作品代码里散落魔法数字。
@@ -130,7 +131,7 @@ hero 资产按**屏幕像素 / 纹素比**审计，不按「文件看着挺大�
 | grain | 细颗粒，压暗部 banding | 用「帧号 + shot id」确定性种子 |
 | vignette | 收边、聚焦主体 | 强度上限写进 look bible |
 | CA | 边缘色散，镜头感 | 只在 hero 轻微使用 |
-| LUT | 统一色调 | LUT 文件与强度都进指纹 |
+| LUT | 统一色调 | 内置调色档名与强度都进指纹 |
 
 禁止挂钟、`Math.random`、CSS animation 或组件计时器驱动后期参数；源码闸门继续拒绝这些写法。
 同帧重复渲染的 PSNR 必须 ≥ 60dB。

@@ -46,8 +46,9 @@ cinematic 按 **Brief → Look-dev → Hero → Full film → QA/Master** 五个
 关键静帧与代表片段上停下来给用户实际观看，确认后才铺全片。未获批准时不得继续，也不得把
 未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
 
-档位、镜头/look 字段与上述命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是 standard
-链路，不要据此声称已产出电影级成片。
+档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
+`lookdev` / `qa` / `assets audit` / `master` 入口与 cinematic 编码仍在实施中，实现完成前
+不要据此声称已产出电影级成片。
 
 ## 统一命令
 

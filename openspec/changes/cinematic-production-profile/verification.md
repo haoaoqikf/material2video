@@ -33,8 +33,29 @@
 
 `claims` 与镜头的可见性对应关系由 QA 的 claims 检查负责（每条 claims 必须落在至少一个镜头的时间窗内）。该口径已同步写入 `storyboard-schema.md` 与 `cinematic-video.md`。
 
+## 阶段 3：共享电影套件与确定性（3.1–3.4、3.6–3.8；3.5 待做）
+
+- 依赖：`postprocessing@6.39.5` 与 `@react-three/postprocessing@3.2.0` 进入 `web/package.json` 与锁文件，并加入代码场景的批准依赖清单。两份指纹（`implementation_inputs` 与 `build_input_fingerprint`）本来就把 `package.json`/`pnpm-lock.yaml` 计入，因此 bundle cache 键与片段缓存键自动更新，无需另加开关。
+- 套件：`web/src/code-scene/cinematic.tsx` 导出 `LookProvider`/`useLook`/`useShot`、`CameraRig`、`PostFX`、`Starfield`、`ParticleBelt`、`Atmosphere`、`Rings`、`SunSurface`、`Corona`、`Prominence`、`OortCloud`、`Comet`，以及 `pathIntersectsSphere`/`cameraPathRisk`/`backgroundRisk`、`activeShot`/`ease`/`seededRandom`/`hashSeed`。SDK 的上下文与类型拆到 `context.ts`，避免 SDK 入口与套件互相导入成环。
+- 确定性：`PostFX` 关闭 MSAA、自带「镜头 id 哈希 + 帧号」种子的颗粒效果，不使用库里依赖 `Math.random` 生成噪点纹理的 `Noise`；相机位置、朝向、FOV、滚转与曝光全部由帧号算出。
+- `useMediaAsset` 现在返回 `colorSpace`、`alpha` 与登记许可。它们由实测像素格式推导、许可取来源记录原文，**不写回来源记录**，因此既有作品不需要重新导入素材。
+- `lut` 由「任意文本」收紧为内置调色档名（`neutral`/`deep-space`/`teal-amber`/`warm-film`）：录制期不取外网、不读作品目录，非法值明确失败。
+- 依赖缺失的失败口径：`code_scenes.require_cinematic_dependencies()` 在打包前检查两个后期包，缺了直接报「请先运行 pnpm -C web install」，不会静默渲染成没有后期的画面。
+
+### 真实浏览器验证（新增 `tests/test_cinematic_scene_kit.py`，9 项）
+
+- **同帧可复现**：同一场景两次独立录制、同一帧的截图 PSNR ≥ 60dB（实测相等）。
+- **镜头确实在动**：同一镜头首末帧 PSNR < 40。
+- **后期生效**：开与关后期的同一帧 PSNR < 45。
+- **标准画面不受影响**：把 `export * from './cinematic'` 从 SDK 摘掉后重建，标准场景同一帧 PSNR 为 `inf`（逐像素相同）。
+- **批准边界未被放宽**：`lodash` 仍被拒绝。
+- **套件自身过确定性闸门**：对 `cinematic.tsx` 跑 `source_policy.scan` 无违规。
+- **穿球与背景裁切检查**：纯函数结果在页面内直接断言（命中、未命中、余量不足、星空壳外与超出远裁剪面）。
+- 另有 Python 侧用例覆盖缺依赖提前失败、`lut` 非法值、`useMediaAsset` 新字段。
+
 ## 阶段验证结果
 
-- 完整 Python 回归：收集 532 项、528 项通过、4 项跳过、无失败（阶段 1 结束时为 507 项，阶段 2 新增 25 项）。
+- 完整 Python 回归：收集 545 项、541 项通过、4 项跳过、无失败（阶段 2 结束时为 532 项，阶段 3 新增 13 项）。
+- 前端：`pnpm -C web test` 4 个文件 58 项通过；`pnpm -C web build`（含 `tsc --noEmit`）通过，保留既有 chunk 体积提示。
 - 文档相对链接 78 项、JSON 示例 13 项全部有效；`sync_docs.py --check` 无漂移。
 - QA 与资产审计模块以自造小媒体与真实成片双向验证；`lookdev` 的取点、样片窗口与接触表有单元测试覆盖。

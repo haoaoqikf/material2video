@@ -34,8 +34,9 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 下面是 cinematic 档位新增的**可选**字段。standard 作品不写它们，准备记录、缓存键与时间轴
 都与现在完全一致；写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
-档位、字段与命令随 cinematic 变更落地，实现完成前仓库实际可用的仍是 standard 链路；
-档位模型、镜头语法与检查表见[电影级制作档位](cinematic-video.md)。
+档位、可选字段与电影级共享套件已经落地；`lookdev` / `qa` / `assets audit` / `master` 与
+cinematic 编码仍在实施中，因此现阶段不要据此声称已产出电影级成片。档位模型、镜头语法与
+检查表见[电影级制作档位](cinematic-video.md)。
 
 档位声明在**作品** `project.json`（不在分镜里）：
 
@@ -61,7 +62,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
   `camera`（`path`/`fov`/`roll`/`easing`/`keyframes`）、`focus`（`target`/`distance`/`aperture`）、
   `exposure`（`ev`）与 `post`（`bloom`/`dof`/`grain`/`vignette`/`chromaticAberration`/`lut`）。
   整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。
-- `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`、`grain`、`bloom`、`dof`、
+- `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`（内置调色档名，见下）、`grain`、`bloom`、`dof`、
   `vignette` 与 `exposure`。
 
 镜头时间窗在**准备阶段**校验（真实分段时长来自 TTS）：每个镜头必须落在本幕时长内；声明
@@ -90,11 +91,40 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
   前背景，页面底色只是编码兜底——没有铺满的作品会在成片里留出这块底色。
 - **`subtitleSafeArea` 是硬约束**：共享字幕层会盖在这个矩形里，重要文字与主体必须避让，
   背景可以延伸进去。矩形取值来自画幅清单，两种画幅各有取值。
-- `useMediaAsset(id)` 按素材 ID 返回已导入素材的 `{src, kind, width, height, durationSeconds}`；
-  未知 ID 明确抛错。映射由准备阶段复核 `assets/media-sources.json` 后注入，本地服务器只暴露
-  登记过的文件。
+- `useMediaAsset(id)` 按素材 ID 返回已导入素材的 `{src, kind, width, height, durationSeconds,
+  colorSpace, alpha, license}`；未知 ID 明确抛错。映射由准备阶段复核 `assets/media-sources.json`
+  后注入，本地服务器只暴露登记过的文件。`colorSpace`/`alpha` 由实测像素格式推导、`license` 取
+  登记原文，因此不需要为了拿到它们重新导入素材。
 - 可用的共享依赖为 React、`motion`、`three`、`@react-three/fiber`、`@react-three/drei`、
-  `gsap` 与 `echarts`（`Chart` 是 ECharts 封装，宽高默认取当前画布）。
+  `gsap`、`echarts`（`Chart` 是 ECharts 封装，宽高默认取当前画布）以及电影级后期所需的
+  `postprocessing` 与 `@react-three/postprocessing`。依赖缺失时在打包前明确失败，不会静默
+  渲染成没有后期的画面。
+
+### 电影级共享套件（cinematic 专用）
+
+`m2v/code-scene` 另外导出电影级元件；standard 作品不引用它们时画面与既有一致（已验证：
+把套件从 SDK 导出里摘掉后，标准画面逐像素相同）。
+
+| 元件 | 作用 |
+|---|---|
+| `LookProvider` / `useLook` / `useShot` | look 与镜头清单的上下文；不套 provider 时读录制配置里的 `props` |
+| `CameraRig` | 按镜头路径（CatmullRom 或关键帧）与缓动推进相机，含每镜头 FOV/滚转/曝光与焦点拉移 |
+| `PostFX` | Bloom、DOF、grain、vignette、色散与具名调色，全部帧驱动 |
+| `Starfield` / `ParticleBelt` / `OortCloud` | 固定种子的点云：星空、环带与远距离壳层 |
+| `SunSurface` / `Corona` / `Prominence` / `Atmosphere` / `Rings` | 日面、日冕、日珥、大气与行星环 |
+| `Comet` | 彗核与背向太阳的尾迹 |
+| `pathIntersectsSphere` / `cameraPathRisk` / `backgroundRisk` | 穿球、余量不足与背景裁切的纯函数检查 |
+| `activeShot` / `ease` / `seededRandom` / `hashSeed` | 帧到镜头的映射、缓动与确定性随机 |
+
+- **一切随时间变化的东西由 `elapsedSeconds`/帧号驱动**：不使用挂钟、`Math.random`、CSS 动画或
+  组件计时器。粒子与噪声用「固定种子 + 帧号」的确定性哈希，同一帧在任何一次录制里都相同
+  （真实浏览器验证：同帧两次独立录制 PSNR ≥ 60dB）。
+- `lut` 是**内置调色档名**（`neutral`、`deep-space`、`teal-amber`、`warm-film`），不是外部
+  `.cube` 文件：录制期不取外网，也不读作品目录。
+- `PostFX` 使用 `multisampling={0}` 且自带确定性颗粒效果；库里的 `Noise` 依赖 `Math.random`
+  生成的噪点纹理，跨次运行不一致，因此不采用。
+- 作品的焦点目标通过 `CameraRig` 的 `targets` 传入（`Object3D`、`Vector3` 或无参函数），
+  镜头 `focus.target` 按名字在其中查找。
 
 录制在无头 Chromium 中按受控时钟逐帧进行：viewport、页面根元素、ffmpeg 标准化尺寸与 composition 都用
 同一画幅。只开放**已登记媒体**与仓库字体，作品目录下的其他文件、导入记录、源文都不暴露；

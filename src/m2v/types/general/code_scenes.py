@@ -29,6 +29,15 @@ WEB = REPOSITORY_ROOT / "web"
 READY_TIMEOUT_MS = 30000
 #: 媒体解析地址的前缀：录制页只从这里取已登记素材，不暴露作品目录。
 MEDIA_URL_PREFIX = "/media"
+#: 电影级套件依赖。它们是共享 SDK 的一部分：缺了要在打包前明确失败，
+#: 而不是让作品静默渲染成「没有后期」的画面。
+CINEMATIC_DEPS = ("postprocessing", "@react-three/postprocessing")
+
+
+def require_cinematic_dependencies() -> None:
+    missing = [name for name in CINEMATIC_DEPS if not (WEB / "node_modules" / name).exists()]
+    if missing:
+        raise M2VError(f"缺少电影级后期依赖：{'、'.join(missing)}；请先运行 pnpm -C web install")
 
 
 def digest(file: Path) -> str:
@@ -83,6 +92,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与档位都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
+    require_cinematic_dependencies()
     validate_entry(root, content.get("entry"), content.get("props", {}))
     width, height = frame["width"], frame["height"]
     cache = root / "outputs/code-cache"

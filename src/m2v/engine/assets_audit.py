@@ -41,7 +41,7 @@ def _pixel_format(path: Path) -> str:
                             capture_output=True, timeout=120)
     text = result.stderr.decode("utf-8", "replace")
     line = next((item for item in text.splitlines() if "Video:" in item and "Stream #" in item), "")
-    match = re.search(r"\b(yuvj?\d+p|yuva\d+p|rgba?|gray|pal8|ya8)\b", line)
+    match = re.search(r"\b(yuv[a-z0-9]*|yuva[a-z0-9]*|rgba?[a-z0-9]*|gray[a-z0-9]*|pal8|ya8)\b", line)
     return match.group(1) if match else "unknown"
 
 
