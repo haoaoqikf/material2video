@@ -55,11 +55,22 @@ const entry = `
       }
     }
     const entryRadius = radius(points[0]);
+    const exitRadius = radius(points[points.length - 1]);
     if (previous) {
-      assert(distance(previous, points[0]) < 1e-6, shot.id + ' 与上一个镜头的路径不连续');
-      assert(entryRadius >= previousRadius - 1e-6,
-        shot.id + ' 的入口半径回退：' + entryRadius.toFixed(2) + ' < ' + previousRadius.toFixed(2));
+      if (shot.cut) {
+        // 硬切：不接上一个镜头的出口，但只能向前跳，不能退回上一个镜头之前。
+        assert(distance(previous, points[0]) > 1, shot.id + ' 声明了硬切，路径却仍然连着');
+        assert(entryRadius >= previousRadius - 1e-6,
+          shot.id + ' 的硬切入点回退：' + entryRadius.toFixed(2) + ' < ' + previousRadius.toFixed(2));
+      } else {
+        assert(distance(previous, points[0]) < 1e-6, shot.id + ' 与上一个镜头的路径不连续');
+        assert(entryRadius >= previousRadius - 1e-6,
+          shot.id + ' 的入口半径回退：' + entryRadius.toFixed(2) + ' < ' + previousRadius.toFixed(2));
+      }
+      assert(exitRadius >= previousRadius - 1e-6,
+        shot.id + ' 的出口比上一个镜头更靠内：' + exitRadius.toFixed(2) + ' < ' + previousRadius.toFixed(2));
     }
+    if ('cut' in shot) assert(shot.cut === true, shot.id + ' 的 cut 只能是 true');
     assert(['hero', 'major', 'minor'].includes(shot.tier), shot.id + ' 的 tier 非法');
     if (shot.focus?.target) assert(known.has(shot.focus.target), shot.id + ' 的焦点目标未知');
     if (shot.tier === 'hero') {

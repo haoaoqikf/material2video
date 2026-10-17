@@ -197,7 +197,7 @@ def validate_shots(props: dict, path: str) -> list[dict]:
     for index, shot in enumerate(shots):
         item = path + f".shots[{index}]"
         obj = _obj(shot, item, {"id", "target", "tier", "segment", "startFrame", "endFrame",
-                                "camera", "focus", "exposure", "post", "note"})
+                                "camera", "focus", "exposure", "post", "note", "cut"})
         identity = _text(obj.get("id"), item + ".id")
         if identity in seen:
             fail(item, f"重复镜头 ID：{identity}")
@@ -207,6 +207,8 @@ def validate_shots(props: dict, path: str) -> list[dict]:
             fail(item + ".tier", f"必须是 {'/'.join(TIERS)}")
         if "segment" in obj:
             _text(obj["segment"], item + ".segment")
+        if "cut" in obj and type(obj["cut"]) is not bool:
+            fail(item + ".cut", "必须是布尔值")
         start = _integer(obj.get("startFrame"), 0, 600 * FPS, item + ".startFrame")
         end = _integer(obj.get("endFrame"), 1, 600 * FPS, item + ".endFrame")
         if end <= start:

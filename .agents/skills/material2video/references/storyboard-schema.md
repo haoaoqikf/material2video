@@ -61,7 +61,9 @@ cinematic 编码仍在实施中，因此现阶段不要据此声称已产出电�
   可选 `segment`（本幕的旁白段 id）、`startFrame`/`endFrame`（**幕内相对帧**），以及可选的
   `camera`（`path`/`fov`/`roll`/`easing`/`keyframes`）、`focus`（`target`/`distance`/`aperture`）、
   `exposure`（`ev`）与 `post`（`bloom`/`dof`/`grain`/`vignette`/`chromaticAberration`/`lut`）。
-  整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。
+  整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。可选 `cut: true`
+  表示这一镜**硬切**进入：路径不接上一个镜头的出口，而是直接跳到本章的建立机位（只能向前跳，
+  不能退回上一个镜头之前）。
 - `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`（内置调色档名，见下）、`grain`、`bloom`、`dof`、
   `vignette`、`exposure` 与 `motion`。`motion` 只在 cinematic 用：
   `{"subframes": 1–4, "supersample": 1–2}`——`subframes` 是 **hero 镜头内每帧**的子帧数

@@ -26,6 +26,16 @@ from urllib.parse import unquote
 
 from m2v.core.errors import M2VError
 
+#: Chromium 明确拒绝访问的端口（`ERR_UNSAFE_PORT`）。操作系统分配的空闲端口偶尔会落进来，
+#: 实测命中过 1719；这里收录常用的一段，命中就重摇端口。
+_CHROMIUM_BLOCKED_PORTS = frozenset({
+    1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101,
+    102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389,
+    427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636,
+    989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 5060, 5061, 6000, 6566, 6665, 6666,
+    6667, 6668, 6669, 6697, 10080,
+})
+
 logger = logging.getLogger(__name__)
 
 #: 别名下请求目录时返回的占位路径：它不存在，于是照常 404，不列目录
@@ -221,14 +231,26 @@ class LocalServer:
         )
 
     def start(self) -> str:
-        """启动服务并返回基础 URL，例如 http://127.0.0.1:52341。"""
+        """启动服务并返回基础 URL，例如 http://127.0.0.1:52341。
+
+        端口 0 由操作系统分配，偶尔会落到 Chromium 的**受限端口**上（实测 1719），
+        页面加载会直接失败成 `ERR_UNSAFE_PORT`。这类端口一律重摇，最多试十次。
+        """
         handler = partial(
             _MediaHandler if self.cors else _QuietHandler,
             directory=str(self.root),
             mounts=self.mounts,
             files=self.files,
         )
-        self._server = ThreadingHTTPServer(("127.0.0.1", self.port), handler)
+        for _attempt in range(10):
+            server = ThreadingHTTPServer(("127.0.0.1", self.port), handler)
+            port = server.server_address[1]
+            if self.port or port not in _CHROMIUM_BLOCKED_PORTS:
+                self._server = server
+                break
+            server.server_close()
+        else:  # pragma: no cover - 十次都撞上受限端口几乎不可能
+            raise M2VError("无法在 Chromium 可访问的端口上启动静态服务器")
         self._thread = threading.Thread(
             target=self._server.serve_forever, name="m2v-static-server", daemon=True
         )
