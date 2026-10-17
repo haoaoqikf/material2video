@@ -196,7 +196,13 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
     mounts = {"/fonts": WEB / "public/fonts"}
     files = media_files(root, config["media"])
     with LocalServer(work, mounts=mounts, files=files, cors=True) as server:
-        browser = pw.chromium.launch(headless=True, args=["--autoplay-policy=no-user-gesture-required"])
+        # 默认无头 Chromium 走 SwiftShader 软件光栅化，实测整片只有约 1 帧/秒；
+        # 显式打开 ANGLE/D3D11 后走真实 GPU。没有可用 GPU 的环境会自动回退到软件
+        # 光栅化，因此这是提速而不是新的硬依赖。
+        browser = pw.chromium.launch(headless=True, args=[
+            "--autoplay-policy=no-user-gesture-required",
+            "--use-gl=angle", "--use-angle=d3d11", "--ignore-gpu-blocklist",
+        ])
         try:
             context = browser.new_context(viewport={"width": width, "height": height},
                                           device_scale_factor=1,
