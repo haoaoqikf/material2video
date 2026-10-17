@@ -173,13 +173,31 @@ def test_code_scene_encode_delivers_the_clip_through_security(tmp_path, monkeypa
                             (Path(temporary), Path(destination))) or Path(destination))
     work = tmp_path / "work"
     work.mkdir()
-    (work / "frames.txt").write_text("", encoding="utf-8")
+    # 逐帧采集的产物是编号连续的 PNG：编码前先核对帧数与编号，缺一帧就拒绝补帧。
+    for index in range(30):
+        (work / f"frame-{index:06d}.png").write_bytes(b"frame")
     output = tmp_path / "outputs" / "code-cache" / "clip.mp4"
 
     monkeypatch.setattr(code_scenes.audio, "ffmpeg",
                         lambda args: (work / "encoded.mp4").write_bytes(b"clip"))
+    decoded = SimpleNamespace(returncode=0, stdout="\n".join(str(index) for index in range(30)))
+    monkeypatch.setattr(code_scenes, "subprocess", SimpleNamespace(run=lambda *args, **kwargs: decoded))
     code_scenes._encode(work, output, 30, 1920, 1080)
     assert delivered == [(work / "encoded.mp4", output)]
+
+
+def test_code_scene_encode_rejects_missing_or_misnumbered_frames(tmp_path, monkeypatch):
+    """缺帧或编号不连续时明确失败，不用重复帧补齐。"""
+    from m2v.core.errors import M2VError
+
+    monkeypatch.setattr(code_scenes.audio, "ffmpeg", lambda args: None)
+    for names in ([], ["frame-000000.png"], ["frame-000000.png", "frame-000002.png"]):
+        work = tmp_path / ("work-" + str(len(names)))
+        work.mkdir()
+        for name in names:
+            (work / name).write_bytes(b"frame")
+        with pytest.raises(M2VError):
+            code_scenes._encode(work, tmp_path / "clip.mp4", 2, 1920, 1080)
 
 
 def test_media_import_delivers_adopted_media_through_security(tmp_path, monkeypatch):
