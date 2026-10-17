@@ -228,28 +228,25 @@ def validate_shot_windows(scene_id: str, shots: list[dict], windows: dict[str, d
                           duration: int) -> None:
     """准备阶段：镜头时间窗必须落在它声明的位置上。
 
-    声明 `segment` 的镜头落在该旁白段的窗口内；没有声明的镜头只能落在旁白之外的
-    留白区（冷开场的前导段或收尾段），不允许横跨旁白。真实窗口来自 TTS，因此这条
-    判定只能在准备阶段做。
+    镜头**声明** `segment` 时，它必须完整覆盖该旁白段的窗口——这是作者对「这个镜头
+    讲的就是这段旁白」的承诺，也是本模块唯一能判定的对齐关系。没有声明的镜头只要求
+    落在幕时长内：hero 镜头通常要跨过留白与相邻旁白，强行要求落在单段内会让 8～12 秒
+    的 hero 无法成立。
+
+    真实分段时长来自 TTS，因此这条判定只能在准备阶段做，且必须在录制之前失败。
     """
     if not shots:
         return
-    ordered = sorted(windows.items(), key=lambda item: item[1]["startFrame"])
-    lead_end = ordered[0][1]["startFrame"] if ordered else duration
-    tail_start = ordered[-1][1]["endFrame"] if ordered else 0
     for shot in shots:
         where = f"scenes[{scene_id}].content.props.shots[{shot['id']}]"
         start, end = shot["startFrame"], shot["endFrame"]
         if end > duration:
             fail(where, f"时间窗 {start}～{end} 超出幕时长 {duration}")
-        if "segment" in shot:
-            window = windows.get(shot["segment"])
-            if window is None:
-                fail(where, f"引用了本幕不存在的旁白段：{shot['segment']}")
-            if start < window["startFrame"] or end > window["endFrame"]:
-                fail(where, f"时间窗 {start}～{end} 超出旁白段 {shot['segment']} 的 "
-                            f"{window['startFrame']}～{window['endFrame']}")
-        elif start < lead_end and end > lead_end:
-            fail(where, f"未声明 segment 的镜头只能落在留白区，当前 {start}～{end} 横跨旁白起点 {lead_end}")
-        elif start >= lead_end and end <= tail_start:
-            fail(where, f"时间窗 {start}～{end} 落在旁白区间内；请声明它属于哪个 segment")
+        if "segment" not in shot:
+            continue
+        window = windows.get(shot["segment"])
+        if window is None:
+            fail(where, f"引用了本幕不存在的旁白段：{shot['segment']}")
+        if start > window["startFrame"] or end < window["endFrame"]:
+            fail(where, f"时间窗 {start}～{end} 没有覆盖声明的旁白段 {shot['segment']}"
+                        f"（{window['startFrame']}～{window['endFrame']}）")

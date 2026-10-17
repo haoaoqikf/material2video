@@ -171,6 +171,8 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "ArticleExplainer",
+            "productionProfile": prepared["props"].get("productionProfile", "standard"),
+            "productionProfileSource": prepared["props"].get("productionProfileSource", "default"),
             "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
         if not preview:
             _write_json(work / "final.provenance.json", provenance)

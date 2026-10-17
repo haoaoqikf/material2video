@@ -56,6 +56,8 @@ def _parser() -> argparse.ArgumentParser:
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
             item.add_argument("--rate", help="语速，例如 --rate=-6%%")
+            item.add_argument("--profile", choices=("standard", "cinematic"),
+                              help="覆盖作品的制作档位；省略时取 project.json 的 productionProfile")
             item.add_argument("--pause-comma", type=float, metavar="SECONDS", help="逗号、顿号处的停顿秒数")
             item.add_argument("--pause-period", type=float, metavar="SECONDS", help="句号、问号处的停顿秒数")
             item.add_argument("--pause-paragraph", type=float, metavar="SECONDS", help="段末停顿秒数")
@@ -318,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "prepare":
             video_type.validate(root, manifest)
             video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
-                               rhythm=_rhythm_option(args))
+                               rhythm=_rhythm_option(args), profile=args.profile)
             print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
             _report_reading_pace(root)
             return 0
@@ -363,6 +365,11 @@ def main(argv: list[str] | None = None) -> int:
                 relative = Path(os.path.relpath(output.resolve(), root)).as_posix()
                 record = {"path": relative, "sha256": digest,
                           "frames": prepared["durationInFrames"], "preparedFingerprint": prepared["preparedFingerprint"]}
+                # 档位随预演一起留证：同一指纹下档位不会变，但记录要能自证。
+                # 按准备记录里是否声明档位判断，不按类型名分发。
+                profile = prepared.get("props", {}).get("productionProfile")
+                if profile is not None:
+                    record["productionProfile"] = profile
                 (root / "outputs" / "preview-record.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"视频输出：{output}")
             return 0

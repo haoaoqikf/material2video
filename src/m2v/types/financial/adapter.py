@@ -21,8 +21,11 @@ def validate(root: Path, project: dict) -> None:
 
 
 def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
-            rhythm: dict | None = None) -> dict:
+            rhythm: dict | None = None, profile: str | None = None) -> dict:
     # 金融成片契约要求无音轨，因此不接受音色、语速与韵律；参数只为统一类型接口。
+    # 制作档位目前只由通用类型提供：显式拒绝，而不是静默按 standard 处理。
+    if profile is not None:
+        raise M2VError("金融成片不支持制作档位；--profile 仅适用于 general 作品")
     docs = _load(root, project)
     props = financial.build_render_props(docs)
     frames = docs["plan"]["durationSeconds"] * financial.FPS

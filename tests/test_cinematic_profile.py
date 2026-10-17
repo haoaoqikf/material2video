@@ -113,31 +113,27 @@ def test_claims_are_non_empty_unique_and_bounded():
 
 
 def test_shot_windows_follow_declared_segment():
-    shots = cinematic.validate_shots({"shots": [{**hero("earth", 120, 600), "segment": "home-0"}]}, "props")
+    shots = cinematic.validate_shots({"shots": [{**hero("earth", 60, 660), "segment": "home-0"}]}, "props")
     windows = {"home-0": {"startFrame": 120, "endFrame": 600}}
     cinematic.validate_shot_windows("home", shots, windows, 720)
     with pytest.raises(M2VError) as error:
-        cinematic.validate_shot_windows("home", shots, {"home-0": {"startFrame": 180, "endFrame": 600}}, 720)
+        cinematic.validate_shot_windows("home", shots, {"home-0": {"startFrame": 30, "endFrame": 600}}, 720)
     assert "shots[earth]" in str(error.value)
     with pytest.raises(M2VError):
         cinematic.validate_shot_windows("home", shots, {"home-1": {"startFrame": 120, "endFrame": 600}}, 720)
 
 
-def test_shot_windows_allow_silent_lead_in_and_tail_only():
-    lead = cinematic.validate_shots({"shots": [{**hero("sun", 0, 120), "tier": "minor"}]}, "props")
-    windows = {"sun-0": {"startFrame": 300, "endFrame": 900}}
-    cinematic.validate_shot_windows("cold-open", lead, windows, 1200)
-    tail = cinematic.validate_shots({"shots": [{**hero("oort", 1000, 1120), "tier": "minor"}]}, "props")
-    cinematic.validate_shot_windows("edge", tail, windows, 1200)
-    inside = cinematic.validate_shots({"shots": [{**hero("sun", 320, 500), "tier": "minor"}]}, "props")
+def test_undeclared_shot_only_has_to_fit_the_scene():
+    """hero 镜头通常跨过留白与相邻旁白，因此不声明 segment 时只查幕时长。"""
+    shots = cinematic.validate_shots({"shots": [{**hero("earth", 60, 660)}]}, "props")
+    windows = {"home-0": {"startFrame": 120, "endFrame": 600}}
+    cinematic.validate_shot_windows("home", shots, windows, 720)
     with pytest.raises(M2VError):
-        cinematic.validate_shot_windows("edge", inside, windows, 1200)
-    with pytest.raises(M2VError):
-        cinematic.validate_shot_windows("edge", cinematic.validate_shots(
-            {"shots": [{**hero("sun", 200, 400), "tier": "minor"}]}, "props"), windows, 1200)
+        cinematic.validate_shot_windows("home", shots, windows, 600)
 
 
-def test_shot_windows_must_fit_scene_duration():
+def test_shot_window_must_fit_scene_duration():
     shots = cinematic.validate_shots({"shots": [{**hero("sun", 0, 480), "tier": "minor"}]}, "props")
+    cinematic.validate_shot_windows("cold-open", shots, {}, 480)
     with pytest.raises(M2VError):
         cinematic.validate_shot_windows("cold-open", shots, {}, 300)

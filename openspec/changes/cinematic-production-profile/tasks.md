@@ -10,13 +10,13 @@
 
 ## 2. 档位、字段与指纹
 
-- [ ] 2.1 在 `project.json` 增加可选 `productionProfile`（standard/cinematic，默认 standard），校验未知值与非法类型，并写入准备记录、预演与溯源。
-- [ ] 2.2 在 general v8 分镜增加可选 `leadInFrames`、`tailFrames`、`readingHoldFrames`；未声明时保持 24 帧阅读停留与当前时间轴不变。
-- [ ] 2.3 在 `content.props` 增加 `shots` 与 `look` 的 schema 校验：镜头时间窗落在旁白段内、hero ≥ 3、字段类型/范围/未知字段检查；非法时定位到具体镜头。
-- [ ] 2.4 在 narration segment 增加可选 `claims`（画面特征列表）；校验非空字符串、去重、长度上限，并写入准备记录。
-- [ ] 2.5 把 profile、shots、look、claims、leadIn/tail/readHold 纳入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
-- [ ] 2.6 为 standard 作品补回归：未声明新字段时准备记录、缓存键、时间轴与现有成片行为不变。
-- [ ] 2.7 增加 CLI：`--profile standard|cinematic` 覆盖作品配置，并拒绝非法值；记录实际来源。
+- [x] 2.1 在 `project.json` 增加可选 `productionProfile`（standard/cinematic，默认 standard），校验未知值与非法类型，并写入准备记录、预演与溯源。
+- [x] 2.2 在 general v8 分镜增加可选 `leadInFrames`、`tailFrames`、`readingHoldFrames`；未声明时保持 24 帧阅读停留与当前时间轴不变。
+- [x] 2.3 在 `content.props` 增加 `shots` 与 `look` 的 schema 校验：镜头时间窗落在旁白段内、hero ≥ 3、字段类型/范围/未知字段检查；非法时定位到具体镜头。
+- [x] 2.4 在 narration segment 增加可选 `claims`（画面特征列表）；校验非空字符串、去重、长度上限，并写入准备记录。
+- [x] 2.5 把 profile、shots、look、claims、leadIn/tail/readHold 纳入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
+- [x] 2.6 为 standard 作品补回归：未声明新字段时准备记录、缓存键、时间轴与现有成片行为不变。
+- [x] 2.7 增加 CLI：`--profile standard|cinematic` 覆盖作品配置，并拒绝非法值；记录实际来源。
 
 ## 3. 共享电影套件与确定性
 

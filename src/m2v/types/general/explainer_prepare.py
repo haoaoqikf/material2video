@@ -39,8 +39,9 @@ def implementation_digest() -> str:
     return fingerprint({**{file.name: digest(file) for file in files}, **code_scenes.implementation_inputs()})
 
 
-def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
-    from . import soundtrack, media_assets
+def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, profile=None) -> dict:
+    from . import soundtrack, media_assets, cinematic
+    actual_profile, profile_source = cinematic.resolve_profile(project, profile)
     source = contract.load(root, project)
     explainer_review.require_input(root, project)
     size = frame_engine.normalize(source.get("width"), source.get("height"))
@@ -54,6 +55,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     inputs = file_inputs(root, project)
     inputs["tts"] = json.dumps(actual_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     inputs["implementation"] = implementation_digest()
+    # 档位决定编码、后期与验收口径，因此它和镜头、look 一样属于准备输入。
+    inputs["profile"] = json.dumps({"profile": actual_profile, "source": profile_source},
+                                   ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     if not contract.topic_input(source):
         article = contract.source_file(root, project)
         inputs["file:" + article.relative_to(root).as_posix()] = digest(article)
@@ -71,7 +75,6 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     inputs["subtitle"] = json.dumps(frame["subtitle"], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     # 先量测所有旁白，再分配无旁白镜头的剩余时间，绝不靠截断口播凑时长。
     scenes = copy.deepcopy(source["scenes"])
-    hold_frames = contract.READING_TAIL
     measured, durations, overlaps, automatic = [], [], [], []
     hits = 0
     for index, scene in enumerate(scenes):
@@ -87,13 +90,16 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             segments.append((segment["id"], wav, cues, math.ceil(seconds * FPS)))
             hits += int(hit)
         measured.append(segments)
-        minimum = overlap + (sum(s[3] for s in segments) + hold_frames if segments else 1)
+        # 冷开场与收尾靠留白声明，阅读停留可以逐幕调整；未声明时与既有行为一致。
+        pad = scene.get("leadInFrames", 0) + scene.get("tailFrames", 0)
+        hold = scene.get("readingHoldFrames", contract.READING_TAIL)
+        minimum = overlap + (pad + sum(s[3] for s in segments) + hold if segments else max(1, pad))
         duration = scene.get("durationFrames")
         if duration is None and segments: duration = minimum
         if duration is None:
             automatic.append(index)
         elif duration < minimum:
-            raise M2VError(f"幕 {scene['id']} 固定时长不足以容纳旁白、阅读停留和转场，不得截断口播")
+            raise M2VError(f"幕 {scene['id']} 固定时长不足以容纳旁白、留白、阅读停留和转场，不得截断口播")
         durations.append(duration)
     if automatic:
         remainder = round(source.get("targetSeconds", 60) * FPS) + sum(overlaps) - sum(d or 0 for d in durations)
@@ -108,7 +114,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         if index and (overlap >= durations[index-1] or (index > 1 and overlap + overlaps[index-1] >= durations[index-1])):
             raise M2VError(f"幕 {scene['id']} 转场过长或造成三幕重叠")
         start = cursor - overlap
-        speech_start = cursor  # 交叉淡化后才开始新旁白，前后口播不会重叠。
+        # 留白属于本幕：旁白在 leadInFrames 之后才开始，收尾留白同样计入幕长。
+        speech_start = cursor + scene.get("leadInFrames", 0)
         scene.update(startFrame=start, endFrame=start+duration, durationInFrames=duration,
                      transitionFrames=overlap, segmentWindows={})
         for identity, wav, local_cues, frames in segments:
@@ -123,12 +130,19 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         cursor = scene["endFrame"]
         if cursor > contract.MAX_FRAMES:
             raise M2VError(f"全片 {cursor/ FPS:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
+        # 镜头时间窗只能在真实分段时长出来之后判定，且必须在录制之前失败。
+        shots = (scene.get("content", {}).get("props") or {}).get("shots") or []
+        cinematic.validate_shot_windows(scene["id"], shots,
+            {key: {"startFrame": window["startFrame"] - start, "endFrame": window["endFrame"] - start}
+             for key, window in scene["segmentWindows"].items()}, duration)
         scene["mediaPath"] = code_scenes.record(root, scene, inputs, frame=frame,
-                                                media=resolved["media"], media_digest=resolved["digest"])
+                                                media=resolved["media"], media_digest=resolved["digest"],
+                                                profile=actual_profile)
         scene["trimStartFrames"] = 0
     props = copy.deepcopy(source)
     props.update(width=size[0], height=size[1], subtitle=frame["subtitle"],
-                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)
+                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor,
+                 productionProfile=actual_profile, productionProfileSource=profile_source)
     del props["scenes"]
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)

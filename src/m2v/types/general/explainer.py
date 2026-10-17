@@ -18,6 +18,8 @@ VERSION = 8
 TEMPLATE = "code"
 MAX_SCENES, MAX_SEGMENTS = 300, 30
 TRANSITIONS = ("cut", "fade", "crossfade")
+#: cinematic 可选留白与阅读停留的上限（帧）。
+MAX_PAD, MAX_HOLD = 1800, 360
 
 
 def topic_input(data: dict) -> bool:
@@ -89,12 +91,16 @@ def validate(data: dict, root: Path) -> dict:
     number(data.get("targetSeconds", 60), 1, 600, "targetSeconds")
     from m2v.engine import rhythm
     from .code_scenes import validate_entry
+    from . import cinematic
     scenes = items(data.get("scenes"), "scenes", MAX_SCENES)
     all_ids: set[str] = set()
+    all_shots: list[dict] = []
+    shot_ids: set[str] = set()
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
         obj(scene, path, {"id", "template", "content", "narrationSegments", "keywords",
-                          "durationFrames", "transition", "transitionFrames", "speech"})
+                          "durationFrames", "transition", "transitionFrames", "speech",
+                          "leadInFrames", "tailFrames", "readingHoldFrames"})
         sid = text(scene.get("id"), f"{path}.id")
         if sid in all_ids:
             fail(path, f"重复 ID：{sid}")
@@ -103,6 +109,13 @@ def validate(data: dict, root: Path) -> dict:
             fail(path, f"template 必须是 {TEMPLATE}：通用画面由作品代码决定，不再有受控模板")
         if scene.get("transition", "cut") not in TRANSITIONS or (index == 0 and scene.get("transition", "cut") != "cut"):
             fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
+        for name, high in (("leadInFrames", MAX_PAD), ("tailFrames", MAX_PAD),
+                           ("readingHoldFrames", MAX_HOLD)):
+            if name not in scene:
+                continue
+            value = scene[name]
+            if type(value) is not int or not 0 <= value <= high:
+                fail(f"{path}.{name}", f"必须为 0～{high} 的整数")
         if topic_input(data) or "keywords" in scene:
             words = items(scene.get("keywords"), path + ".keywords", MAX_SEGMENTS)
             for word in words:
@@ -119,18 +132,29 @@ def validate(data: dict, root: Path) -> dict:
         if not isinstance(parts, list) or len(parts) > MAX_SEGMENTS:
             fail(path + ".narrationSegments", f"必须包含 0～{MAX_SEGMENTS} 项")
         for part in parts:
-            obj(part, path + ".narrationSegments", {"id", "text"})
+            obj(part, path + ".narrationSegments", {"id", "text", "claims"})
             pid = text(part.get("id"), path + ".narrationSegments.id")
             text(part.get("text"), path + ".narrationSegments.text")
             if not count_characters(part["text"]):
                 fail(path, "旁白不能仅包含标点或空白")
+            cinematic.validate_claims(part, path + ".narrationSegments")
             if pid in all_ids:
                 fail(path, f"重复 ID：{pid}")
             all_ids.add(pid)
         content = obj(scene.get("content"), path + ".content", {"title", "entry", "props"})
         if "title" in content:
             text(content.get("title"), path + ".content.title")
-        validate_entry(root, content.get("entry"), content.get("props", {}))
+        props = content.get("props", {})
+        validate_entry(root, content.get("entry"), props)
+        shots = cinematic.validate_shots(props, path + ".content.props")
+        if "look" in props:
+            cinematic.validate_look(props["look"], path + ".content.props.look")
+        for shot in shots:
+            if shot["id"] in shot_ids:
+                fail(path + ".content.props.shots", f"重复镜头 ID：{shot['id']}")
+            shot_ids.add(shot["id"])
+            all_shots.append(shot)
+    cinematic.validate_work(all_shots)
     soundtrack.validate(data, root)
     return data
 

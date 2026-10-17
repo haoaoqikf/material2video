@@ -57,19 +57,37 @@ def implementation_inputs() -> dict[str, str]:
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
-def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str) -> str:
-    """构建可达源码，缓存有效时不启动浏览器；画幅与媒体映射都进缓存键。"""
+def scene_config(scene: dict, frame: dict, media: dict, *, profile: str = "standard") -> dict:
+    """录制配置，同时是片段缓存键的一部分。
+
+    `profile` 与旁白 `claims` 只在**非默认**时写进配置：standard 作品不写这些字段时，
+    缓存键与既有片段逐字节一致，不会因为新增档位概念而失效。
+    """
+    config = {"props": scene["content"].get("props", {}), "fps": FPS,
+              "durationInFrames": scene["durationInFrames"],
+              "width": frame["width"], "height": frame["height"],
+              "subtitleSafeArea": frame["subtitle"]["safeArea"],
+              "segmentWindows": {key: {name: value - scene["startFrame"] for name, value in window.items()}
+                                 for key, window in scene["segmentWindows"].items()},
+              "media": media}
+    if profile != "standard":
+        config["profile"] = profile
+    claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]
+    if any(claims):
+        config["claims"] = claims
+    return config
+
+
+def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
+           profile: str = "standard") -> str:
+    """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与档位都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
     validate_entry(root, content.get("entry"), content.get("props", {}))
     width, height = frame["width"], frame["height"]
     cache = root / "outputs/code-cache"
     cache.mkdir(parents=True, exist_ok=True)
-    config = {"props": content.get("props", {}), "fps": FPS, "durationInFrames": scene["durationInFrames"],
-              "width": width, "height": height, "subtitleSafeArea": frame["subtitle"]["safeArea"],
-              "segmentWindows": {key: {name: value - scene["startFrame"] for name, value in window.items()}
-                                 for key, window in scene["segmentWindows"].items()},
-              "media": media}
+    config = scene_config(scene, frame, media, profile=profile)
     with tempfile.TemporaryDirectory(prefix="code-", dir=cache) as temporary:
         work = Path(temporary)
         try:

@@ -1,10 +1,11 @@
 """通用 v8 全画布代码场景与素材制作的类型适配器。"""
 from pathlib import Path
 from m2v.types.registry import VideoType
-from . import explainer, explainer_prepare, explainer_render, explainer_review
+from . import cinematic, explainer, explainer_prepare, explainer_render, explainer_review
 
 
 def validate(root: Path, project: dict) -> None:
+    cinematic.validate_project(project)
     source = explainer.load(root, project)
     if not explainer.topic_input(source):
         explainer.source_file(root, project)
