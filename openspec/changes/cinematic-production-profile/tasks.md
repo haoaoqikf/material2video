@@ -39,6 +39,7 @@
 - [x] 4.6 实现 UI：左栏出入、章节进度轨、片头片尾免责声明、字幕 scrim、距太阳 AU 读数；重要文字与主体避让字幕安全区。
 - [x] 4.7 选择并保存音色：对 2 个候选音色做同一段 20 秒 A/B；保存 `tts.voice`、`selection`、`speech`（约 `rate -2%`、comma 0.15、period 0.55、paragraph 0.8、headPad 0.08）。
 - [x] 4.8 制作配乐与音效：60–70 BPM 环境底、低频 drone、飞近 whoosh、环 shimmer、冰裂、风、深空静默；写入 `soundtrack` 并留证许可/生成器。
+- [x] 4.9a 实现原生 4K lookdev 关键帧采集：从当前源码按连续时钟推进，2× 像素绘制并仅保存选定帧，PNG 合成字幕与转场；补充实际细节、跨幕与 standard 回归验证。
 - [ ] 4.9 运行 `m2v lookdev`：输出 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片；实际观看并记录时间码、问题与复查到 `outputs/visual-notes.md`。
 - [ ] 4.10 在 look-dev 样片上取得用户确认；确认前不铺全片。
 

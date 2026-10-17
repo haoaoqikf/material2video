@@ -14,6 +14,7 @@
 - 渲染新增 `--profile cinematic`：ProRes 422 HQ 或 DNxHR HQX 母版，H.264/HEVC 交付，10bit，48kHz/24bit 音频，hero 镜头 2× SSAA，2–4 子帧运动模糊；default 档编码参数保持不变。
 - 资产新增质量与许可审计：hero 资产 4K+、normal/roughness/emissive、土星环径向分辨率、色彩空间、许可；声音新增配乐/环境/音效/母版混音与响度目标。
 - 新增 `m2v lookdev`、`m2v qa`、`m2v assets audit`、`m2v master` 与 `render --profile cinematic`；新增 cinematic 十项评分卡与 hero 实看门禁。
+- lookdev 静帧从当前源码按原生 2× 像素密度采集，以 PNG 合成字幕和转场；不将 1080p 缓存视频放大作为 4K 细节证据，有声样片保留现有流程。
 - 修正现有口径：固定示例名单改为 buffer-smoothing、darts-trial-and-error、solar-system-journey；`soundtrack.effects` 明确为已渲染；路线图加入 cinematic 档位，明确不引入第二套渲染引擎。
 - **BREAKING（示例内容）**：太阳系示例从 174.6 秒、16 段改写为约 60 秒、9 个章节、3 个 hero、单程向外镜头；旧分镜、旧旁白与旧成片失效，不保留旧版本兼容。三个固定示例数量不变，不新增示例。
 - 太阳系示例的 60 秒版本同时作为 cinematic 验收样板：4K 资产、真实后期、配乐与音效、hero 镜头实看记录、ProRes 母版与 H.264 交付。

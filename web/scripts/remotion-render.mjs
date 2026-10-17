@@ -30,6 +30,7 @@ import {
   openBrowser,
   renderFrames,
   renderMedia,
+  renderStill,
   selectComposition,
 } from '@remotion/renderer';
 
@@ -308,7 +309,15 @@ if (args.session) {
 
   reportMetadata(composition, 1);
 
-  if (!args.metadataOnly) {
+  if (args['still-frame'] !== undefined) {
+    const frame = Number(args['still-frame']);
+    if (!Number.isInteger(frame) || frame < 0 || frame >= composition.durationInFrames) {
+      throw new Error('--still-frame 超出 composition 帧范围');
+    }
+    await renderStill({composition, serveUrl: args.bundle, inputProps,
+      output: args.out, frame, scale: args.scale ? Number(args.scale) : 1,
+      imageFormat: 'png', overwrite: true, logLevel: 'error'});
+  } else if (!args.metadataOnly) {
     await renderMedia(
       mediaOptions(composition, args.out, {
         crf: args.crf,

@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill, OffthreadVideo, Sequence, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Img, OffthreadVideo, Sequence, useCurrentFrame} from 'remotion';
 import type {SubtitleStyle} from '../frames';
 import {FONT_STACK} from '../fonts';
 
@@ -11,6 +11,8 @@ export type ExplainerScene = {
   durationInFrames: number;
   transitionFrames: number;
   mediaPath: string;
+  /** 仅 lookdev 静帧合成注入；正式视频继续回放 mediaPath。 */
+  stillPath?: string;
 };
 export type ArticleExplainerProps = {
   version: 8; schemaVersion: 8; fps: number; width: number; height: number; title: string; mediaBase?: string;
@@ -33,9 +35,10 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
           <AbsoluteFill style={{opacity: scene.transitionFrames
             ? Math.max(0, Math.min(1, (frame - scene.startFrame) / (scene.transitionFrames - 1))) : 1}}>
+            {scene.stillPath ? <Img src={scene.stillPath} style={{width: '100%', height: '100%'}}/> :
             <OffthreadVideo src={(props.mediaBase ?? '') + scene.mediaPath.split('/').map(encodeURIComponent).join('/')}
               muted trimBefore={0} trimAfter={scene.durationInFrames}
-              style={{width: '100%', height: '100%'}}/>
+              style={{width: '100%', height: '100%'}}/>}
           </AbsoluteFill>
         </Sequence>
       ))}

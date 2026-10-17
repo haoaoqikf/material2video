@@ -91,6 +91,27 @@ def scene_config(scene: dict, frame: dict, media: dict, *, profile: str = "stand
     return config
 
 
+def build_scene(root: Path, scene: dict, work: Path) -> dict[str, str]:
+    """为正式录制和 lookdev 共用同一源码闸门、打包器与输入摘要。"""
+    require_cinematic_dependencies()
+    content = scene["content"]
+    validate_entry(root, content.get("entry"), content.get("props", {}))
+    try:
+        result = subprocess.run([shutil.which("node") or "node", str(WEB / "scripts/build-code-scene.mjs"),
+            str(root), content["entry"], str(work)], cwd=WEB, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=120)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise M2VError(f"代码场景 {scene['id']} 构建失败：{exc}") from exc
+    if result.returncode:
+        raise M2VError(f"代码场景 {scene['id']} 构建失败：{result.stderr[-4000:]}")
+    source_inputs = {}
+    for name in json.loads((work / "inputs.json").read_text(encoding="utf-8")):
+        file = Path(name)
+        if file.is_relative_to(root):
+            source_inputs["file:" + file.relative_to(root).as_posix()] = digest(file)
+    return source_inputs
+
+
 def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
            profile: str = "standard") -> str:
     """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与档位都进缓存键。"""
@@ -104,19 +125,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     config = scene_config(scene, frame, media, profile=profile)
     with tempfile.TemporaryDirectory(prefix="code-", dir=cache) as temporary:
         work = Path(temporary)
-        try:
-            result = subprocess.run([shutil.which("node") or "node", str(WEB / "scripts/build-code-scene.mjs"),
-                str(root), content["entry"], str(work)], cwd=WEB, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=120)
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise M2VError(f"代码场景 {scene['id']} 构建失败：{exc}") from exc
-        if result.returncode:
-            raise M2VError(f"代码场景 {scene['id']} 构建失败：{result.stderr[-4000:]}")
-        source_inputs = {}
-        for name in json.loads((work / "inputs.json").read_text(encoding="utf-8")):
-            file = Path(name)
-            if file.is_relative_to(root):
-                source_inputs["file:" + file.relative_to(root).as_posix()] = digest(file)
+        source_inputs = build_scene(root, scene, work)
         inputs.update(source_inputs)
         inputs["codeMedia"] = media_digest
         with sync_playwright() as pw:
@@ -172,7 +181,7 @@ def _average(files: list[Path], target: Path) -> None:
                   "-map", "[out]", "-frames:v", "1", "-y", str(target)])
 
 
-def _capture(pw, root: Path, work: Path, config: dict) -> None:
+def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None) -> None:
     """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
 
     cinematic 的 hero 镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
@@ -184,6 +193,13 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
     motion = config.get("motion") or {}
     hero_subframes = int(motion.get("subframes", 1))
     supersample = int(motion.get("supersample", 1))
+    capture_scale = config.get("captureScale", 1)
+    selected = None if selected_frames is None else set(selected_frames)
+    if selected is not None and (not selected or any(type(n) is not int or n < 0
+                                                    or n >= config["durationInFrames"] for n in selected)):
+        raise M2VError("关键帧索引必须位于场景时长内")
+    if capture_scale not in (1, 2):
+        raise M2VError("原生采集像素密度必须为 1 或 2")
     shots = (config.get("props") or {}).get("shots") or []
     config_text = json.dumps(config, ensure_ascii=True).replace("<", "\\u003c")
     (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8"></head>'
@@ -229,12 +245,13 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
             session = context.new_cdp_session(page)
             started = time.monotonic()
             page.evaluate("window.__M2V_CODE__.start()")
-            total = config["durationInFrames"]
+            total = config["durationInFrames"] if selected is None else max(selected) + 1
             subframe_total = 0
             for frame_index in range(total):
                 count = _subframes_for(frame_index, shots, hero_subframes)
                 # SSAA 只作用于 hero 帧：总览保持 1×，避免整片按 2 倍像素采集。
-                frame_scale = supersample if _is_hero_frame(frame_index, shots) else 1
+                frame_scale = capture_scale if capture_scale > 1 else (
+                    supersample if _is_hero_frame(frame_index, shots) else 1)
                 subframe_total += count
                 pieces: list[Path] = []
                 for subframe in range(count):
@@ -247,6 +264,17 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
                         raise M2VError(f"代码场景第 {frame_index} 帧绘制失败：{exc}") from exc
                     if errors:
                         raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
+                    # 状态型动画仍逐帧推进，但只在选定位置读回 GPU，避免生成整片图像。
+                    if selected is not None and frame_index not in selected:
+                        continue
+                    if capture_scale > 1:
+                        insufficient = page.evaluate("""scale => [...document.querySelectorAll('canvas')]
+                            .filter(c => {const r = c.getBoundingClientRect(); return r.width > 0 && r.height > 0
+                              && (c.width < Math.round(r.width * scale) || c.height < Math.round(r.height * scale));})
+                            .map(c => ({width:c.width,height:c.height,cssWidth:c.clientWidth,cssHeight:c.clientHeight}))""",
+                            capture_scale)
+                        if insufficient:
+                            raise M2VError(f"原生采集画布像素不足：{insufficient}；请按 captureScale 绘制")
                     # CDP 截取已完成绘制的画面；不依赖 screencast 的实时投递频率。
                     # SSAA 用 clip 的 scale 显式放大：裸的 captureScreenshot 只按 CSS 像素
                     # 出图，device_scale_factor 不会体现在结果里。编码时统一降采样，
@@ -259,6 +287,11 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
                     piece = work / f"sub-{frame_index:06d}-{subframe}.png"
                     piece.write_bytes(base64.b64decode(shot["data"]))
                     pieces.append(piece)
+                if not pieces:
+                    if frame_index % 300 == 0:
+                        logger.info("关键帧采集时钟推进 %d/%d，耗时 %.1f 秒",
+                                    frame_index + 1, total, time.monotonic() - started)
+                    continue
                 target = work / f"frame-{frame_index:06d}.png"
                 _average(pieces, target)
                 for piece in pieces:

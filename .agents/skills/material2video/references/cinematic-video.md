@@ -10,8 +10,10 @@
 ## 实现状态
 
 档位声明、镜头/look/claims 字段、准备指纹与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）
-已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。仍在实施中：
-`m2v lookdev` / `qa` / `assets audit` / `master` 的入口接线、cinematic 分档编码与母版，以及
+已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。
+`lookdev` / `qa` / `assets audit` 已接线；lookdev 静帧从源码按原生 2× 像素绘制，
+PNG 合成字幕与转场，有声样片仍复用准备片段，详见[渲染契约](render-contract.md#lookdev-原生关键帧)。仍在实施中：
+`master`、cinematic 分档编码与母版，以及
 太阳系 60 秒参考片。**在这些完成之前，不要声称已经产出电影级成片**；实现完成后本节与
 [渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 一并更新为「当前支持」。
 

@@ -28,6 +28,8 @@ export type CodeSceneProps = {
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
   /** 制作档位；standard 作品不声明时为 `standard`。 */
   profile?: string;
+  /** lookdev 的原生像素密度；缺省不改变作品画布设置。 */
+  captureScale?: number;
 };
 
 export type SceneContext = {running: boolean; elapsedSeconds: number; progress: number; ready: () => void};

@@ -2,7 +2,7 @@
 
 cinematic 档的 look-dev 是**用户确认门**：先渲 3–5 张 4K 静帧、一张接触表与一段
 20–30 秒有声样片，用户实际看过并确认后才继续。因此这里的产物不是最终成片，而是
-「方向对不对」的证据：静帧按 2× 放大渲染（1920×1080 → 3840×2160），样片按 1× 渲染
+「方向对不对」的证据：静帧从源码按 2× 原生像素采集，样片按 1× 渲染
 并合上母版音轨的对应片段。
 
 本模块不修改成片、不写准备记录，也不改变任何指纹。
@@ -10,6 +10,8 @@ cinematic 档的 look-dev 是**用户确认门**：先渲 3–5 张 4K 静帧、
 from __future__ import annotations
 
 import argparse
+import base64
+import copy
 import json
 import subprocess
 import sys
@@ -34,8 +36,7 @@ MIN_SAMPLE_SECONDS, MAX_SAMPLE_SECONDS = 20, 30
 def still_frames(prepared: dict, count: int) -> list[int]:
     """静帧取点：hero 镜头中点优先，其余用首尾与等距点补足，最终恰好 `count` 张。"""
     duration = prepared["durationInFrames"]
-    shots = [shot for scene in prepared["props"].get("compiledScenes", [])
-             for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
+    shots = timeline_shots(prepared)
     heroes = sorted((shot for shot in shots if shot["tier"] == "hero"),
                     key=lambda shot: shot["startFrame"])
     picks: list[int] = []
@@ -61,8 +62,7 @@ def sample_window(prepared: dict, seconds: int) -> tuple[int, int]:
     """样片窗口：优先覆盖第一个 hero 镜头，否则从片头取。"""
     duration = prepared["durationInFrames"]
     fps = prepared["fps"]
-    shots = [shot for scene in prepared["props"].get("compiledScenes", [])
-             for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
+    shots = timeline_shots(prepared)
     heroes = sorted((shot for shot in shots if shot["tier"] == "hero"),
                     key=lambda shot: shot["startFrame"])
     start = heroes[0]["startFrame"] if heroes else 0
@@ -72,11 +72,52 @@ def sample_window(prepared: dict, seconds: int) -> tuple[int, int]:
     return start, start + length - 1
 
 
-def _extract_png(video: Path, target: Path) -> None:
-    result = subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-i", str(video),
-                             "-frames:v", "1", str(target)], capture_output=True, timeout=300)
-    if result.returncode or not target.is_file():
-        raise M2VError(f"静帧导出失败：{result.stderr.decode('utf-8', 'replace')[-800:]}")
+def timeline_shots(prepared: dict) -> list[dict]:
+    """作品镜头使用幕内帧号，取点前换算成全片帧号。"""
+    return [{**shot, "startFrame": scene.get("startFrame", 0) + shot["startFrame"],
+             "endFrame": scene.get("startFrame", 0) + shot["endFrame"]}
+            for scene in prepared["props"].get("compiledScenes", [])
+            for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
+
+
+def native_stills(root: Path, prepared: dict, frames: list[int], work: Path) -> dict[tuple[str, int], Path]:
+    """只保存选定帧，但从零连续推进每幕时钟；不触碰准备阶段的视频缓存。"""
+    from playwright.sync_api import sync_playwright
+    from m2v.types.general import code_scenes, media_assets
+    props = prepared["props"]
+    frame_config = {"width": prepared["width"], "height": prepared["height"], "subtitle": props["subtitle"]}
+    media = media_assets.resolve(root)["media"]
+    captured: dict[tuple[str, int], Path] = {}
+    with sync_playwright() as pw:
+        for index, scene in enumerate(props["compiledScenes"]):
+            selected = [frame - scene["startFrame"] for frame in frames
+                        if scene["startFrame"] <= frame < scene["endFrame"]]
+            if not selected:
+                continue
+            directory = work / f"native-{index}"
+            directory.mkdir()
+            code_scenes.build_scene(root, scene, directory)
+            config = code_scenes.scene_config(scene, frame_config, media,
+                                              profile=props.get("productionProfile", "standard"))
+            config["captureScale"] = STILL_SCALE
+            code_scenes._capture(pw, root, directory, config, selected_frames=selected)
+            for frame in selected:
+                captured[(scene["id"], frame + scene["startFrame"])] = directory / f"frame-{frame:06d}.png"
+    for frame in frames:
+        if not any(key[1] == frame for key in captured):
+            raise M2VError(f"lookdev 第 {frame} 帧不属于任何已准备场景")
+    return captured
+
+
+def still_props(prepared: dict, captured: dict, frame: int, media_base: str) -> dict:
+    """仅为静帧替换当前活跃场景，保留共享 composition 的转场和字幕逻辑。"""
+    props = copy.deepcopy(prepared["props"])
+    for scene in props["compiledScenes"]:
+        picture = captured.get((scene["id"], frame))
+        if picture:
+            scene["stillPath"] = "data:image/png;base64," + base64.b64encode(picture.read_bytes()).decode("ascii")
+    props["mediaBase"] = media_base
+    return props
 
 
 def contact_sheet(stills: list[Path], target: Path, columns: int = 2) -> Path:
@@ -123,14 +164,16 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                                  storyboard_path=entry, content_root=root.parent,
                                  workspace_root=root.parent, cache=True)
         timings.record("bundle", bundle.build_seconds)
+        captured = native_stills(root, prepared, frames, work)
         rendered: list[Path] = []
         for frame in frames:
-            clip = work / f"still-{frame}.mp4"
-            remotion.render_frames(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
-                                   out=clip, total_frames=1, crf=14, preset="medium", timeout_s=1800,
-                                   frame_start=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
+            # 原生 PNG 内联到临时 props，避免暴露源码或扩大 HTTP 服务范围。
+            still_file = work / "still-props.json"
+            still_file.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"),
+                                            ensure_ascii=False), encoding="utf-8")
             target = outputs / f"still-{frame:06d}.png"
-            _extract_png(clip, target)
+            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=still_file,
+                                  out=target, frame=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
             rendered.append(target)
         sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
         silent = work / "sample-silent.mp4"
@@ -152,7 +195,8 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                 "contactSheet": sheet.relative_to(root).as_posix(),
                 "sample": sample.relative_to(root).as_posix(),
                 "sampleFrames": [start, end], "sampleSeconds": round((end - start + 1) / fps, 2),
-                "stillScale": STILL_SCALE, "stillSize": [width * STILL_SCALE, height * STILL_SCALE]}
+                "stillScale": STILL_SCALE, "stillSize": [width * STILL_SCALE, height * STILL_SCALE],
+                "stillCapture": "native-code-png-v1"}
     _write_json(root / "outputs/lookdev.json", manifest)
     return manifest
 

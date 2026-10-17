@@ -503,6 +503,16 @@ def metadata(
     )
 
 
+def render_still(*, web_dir: Path, bundle_dir: Path, props: Path, out: Path,
+                 frame: int, scale: int, composition_id: str) -> None:
+    """无损 PNG 静帧；不经 JPEG 或 MP4 中转，保留原生采集的像素细节。"""
+    _run([program("node"), RENDER_SCRIPT, "--bundle", str(bundle_dir), "--props", str(props),
+          "--composition-id", composition_id, "--out", str(out), "--still-frame", str(frame),
+          "--scale", str(scale)], cwd=web_dir, timeout_s=1800, what="合成原生静帧")
+    if not out.is_file() or out.stat().st_size == 0:
+        raise RemotionError(f"静帧渲染完成后没有产出文件：{out}")
+
+
 def render_frames(
     *,
     web_dir: Path,

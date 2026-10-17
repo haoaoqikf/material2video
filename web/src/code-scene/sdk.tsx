@@ -1,16 +1,23 @@
 /** 可信作品代码场景 API；只在逐帧录制页使用，不进入 Remotion composition。 */
 import {useEffect, useRef} from 'react';
+import {Canvas as FiberCanvas, type CanvasProps} from '@react-three/fiber';
 import * as echarts from 'echarts';
 import type {MediaAsset} from './context';
 export {motion, AnimatePresence} from 'motion/react';
 export {gsap} from 'gsap';
 export * as THREE from 'three';
-export {Canvas, useFrame, useThree} from '@react-three/fiber';
+export {useFrame, useThree} from '@react-three/fiber';
 export {Float, Stars, PerspectiveCamera} from '@react-three/drei';
 export {echarts};
 export {SceneContextProvider, useSceneContext} from './context';
 export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from './context';
 export * from './cinematic';
+
+/** lookdev 保留逻辑构图，但强制画布原生绘制足够的像素；普通录制仍使用作品 DPR。 */
+export function Canvas(props: CanvasProps) {
+  const scale = window.__M2V_CODE_CONFIG__?.captureScale;
+  return <FiberCanvas {...props} dpr={scale ?? props.dpr}/>;
+}
 
 /**
  * 按素材 ID 取已导入素材的本地地址与实测信息。
@@ -38,7 +45,8 @@ export function Chart({option, width, height}: {option: echarts.EChartsOption; w
   const host = useRef<HTMLDivElement>(null);
   const box = {width: width ?? canvas.width, height: height ?? canvas.height};
   useEffect(() => {
-    const chart = echarts.init(host.current!, undefined, {...box, renderer: 'canvas'});
+    const chart = echarts.init(host.current!, undefined, {...box, renderer: 'canvas',
+      ...(canvas.captureScale ? {devicePixelRatio: canvas.captureScale} : {})});
     chart.setOption({...option, tooltip: {show: false}, toolbox: {show: false}, dataZoom: []});
     return () => chart.dispose();
   }, [option, box.width, box.height]);

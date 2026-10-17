@@ -123,8 +123,8 @@ def test_shipped_example_actual_duration(name: str) -> None:
         pytest.skip("本地没有准备产物；准备后本用例会核对实际时长")
     data = json.loads(prepared.read_text(encoding="utf-8"))
     seconds = data["durationInFrames"] / data["fps"]
-    minimum = 165 if name == "solar-system-journey" else 120
-    assert minimum <= seconds <= 180, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～180 秒"
+    minimum, maximum = (55, 65) if name == "solar-system-journey" else (120, 180)
+    assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
 
