@@ -47,7 +47,7 @@ export type Look = {
 /** 内置调色：`lut` 是**具名档**而不是外部 .cube 文件，录制期不取外网也不读作品目录。 */
 export const GRADES: Record<LutName, {hue: number; saturation: number; brightness: number; contrast: number}> = {
   'neutral': {hue: 0, saturation: 0, brightness: 0, contrast: 0},
-  'deep-space': {hue: 0.02, saturation: 0.08, brightness: -0.02, contrast: 0.12},
+  'deep-space': {hue: 0.01, saturation: 0.03, brightness: -0.04, contrast: 0.06},
   'teal-amber': {hue: -0.03, saturation: 0.12, brightness: 0, contrast: 0.18},
   'warm-film': {hue: 0.05, saturation: -0.05, brightness: 0.02, contrast: 0.1},
 };
@@ -544,7 +544,7 @@ export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'promin
       const theta = random() * Math.PI * 2;
       const phi = Math.acos(2 * random() - 1) * 0.7;
       const arc = 0.35 + random() * 0.5;
-      const scale = radius * (0.5 + random() * height);
+      const scale = radius * (0.18 + random() * height);
       return {
         position: [Math.sin(phi) * Math.cos(theta) * radius * 0.98,
                    Math.cos(phi) * radius * 0.98,
@@ -560,8 +560,8 @@ export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'promin
         const pulse = 0.75 + 0.25 * Math.sin(elapsedSeconds * speed * Math.PI * 2 + item.phase);
         return (
           <mesh key={index} position={item.position} rotation={item.rotation}>
-            <torusGeometry args={[item.scale, radius * 0.045 * pulse, 8, 24, item.arc]}/>
-            <meshBasicMaterial color={color} transparent opacity={0.75} blending={THREE.AdditiveBlending}/>
+            <torusGeometry args={[item.scale, radius * 0.016 * pulse, 24, 64, item.arc]}/>
+            <meshBasicMaterial color={color} transparent opacity={0.45} blending={THREE.AdditiveBlending}/>
           </mesh>
         );
       })}
