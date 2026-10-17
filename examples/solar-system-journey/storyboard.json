@@ -29,8 +29,8 @@
               "mode": "look"
             },
             "motion": {
-              "subframes": 3,
-              "supersample": 2
+              "subframes": 2,
+              "supersample": 1
             }
           },
           "shots": [
