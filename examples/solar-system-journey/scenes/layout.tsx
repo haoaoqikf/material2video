@@ -3,7 +3,7 @@ import {THREE} from 'm2v/code-scene';
 export type Placement = {radius: number; orbit: number; angle: number; parent?: string};
 /** 单一稳定的压缩坐标系；轨道半径和球体半径分别压缩，不是物理比例。 */
 export const LAYOUT: Record<string, Placement> = {
-  sun: {radius: 3, orbit: 0, angle: 0},
+  sun: {radius: 2.2, orbit: 0, angle: 0},
   mercury: {radius: 0.42, orbit: 8, angle: 0.3},
   venus: {radius: 0.78, orbit: 12, angle: 2.2},
   earth: {radius: 0.85, orbit: 17, angle: 5.7},

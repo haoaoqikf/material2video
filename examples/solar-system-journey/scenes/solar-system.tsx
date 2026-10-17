@@ -11,6 +11,8 @@ import {Planet, type Textures} from './world';
 /** 相机焦点表：天体位置固定，因此直接给 Vector3，不需要 Object3D 引用。 */
 export function focusTargets(): Record<string, THREE.Vector3> {
   const targets: Record<string, THREE.Vector3> = {sun: new THREE.Vector3(0, 0, 0)};
+  // 冷开场要的是「日面边缘」而不是日面正中：给相机一个偏离球心的注视点。
+  targets['sun-limb'] = new THREE.Vector3(LAYOUT.sun.radius * 0.5, LAYOUT.sun.radius * 0.78, 0);
   for (const id of Object.keys(LAYOUT)) targets[id] = positionOf(id);
   return targets;
 }
@@ -46,13 +48,15 @@ function World({textures, targets, active, seconds}: {
 }) {
   const clock = {current: {seconds}};
   return <>
-    <ambientLight intensity={0.2}/>
+    <ambientLight intensity={0.3}/>
     <pointLight position={[0, 0, 0]} intensity={4.2} decay={0} color="#fff0d7"/>
-    <Starfield count={2200} radius={900} seed="solar-system" size={1.6} opacity={0.6}/>
+    {/* 星点收小收暗：之前 2200 颗 1.6px 被 Bloom 糊成星云，深空变成了蓝雾。 */}
+    <Starfield count={900} radius={900} seed="solar-system" size={1.05} opacity={0.4}/>
     <group>
       <SunSurface radius={LAYOUT.sun.radius} color="#ffb44d" hotColor="#fff1c2" granulation={0.65}/>
       <Corona radius={LAYOUT.sun.radius} color="#ff9a3c" intensity={0.85} power={3.1}/>
-      <Prominence radius={LAYOUT.sun.radius} color="#ff7a3c" count={6} height={1.1}/>
+      {/* 日珥贴住日面：原来 1.1 倍半径的圆环在画面边缘断成孤立的橙色弧片。 */}
+      <Prominence radius={LAYOUT.sun.radius} color="#ff7a3c" count={4} height={0.32}/>
     </group>
     {Object.entries(LAYOUT).filter(([id]) => id !== 'sun').map(([id, item]) => <group key={id}>
       {item.orbit > 0 && !item.parent &&

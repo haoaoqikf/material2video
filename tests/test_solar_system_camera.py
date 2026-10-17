@@ -40,7 +40,7 @@ const entry = `
   const radius = (p) => Math.hypot(p[0], p[2]);
   const vec = (p) => ({x: p[0], y: p[1], z: p[2]});
   const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-  const known = new Set([...Object.keys(LAYOUT), 'sun', 'heliopause', 'oort']);
+  const known = new Set([...Object.keys(LAYOUT), 'sun', 'heliopause', 'oort', 'sun-limb']);  // sun-limb 由场景的 focusTargets() 定义：冷开场看日面边缘而不是球心
 
   let previous = null, previousRadius = 0;
   for (const shot of shots) {
