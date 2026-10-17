@@ -28,6 +28,7 @@
 
 ```powershell
 uv run m2v validate --project examples/solar-system-journey
+python examples/solar-system-journey/assets/sound/generate.py  # 声音素材不入库，先本地生成
 uv run m2v general input-review --storyboard examples/solar-system-journey/storyboard.json
 # 阅读完整源文并填写 outputs/input-review.json，然后继续。
 uv run m2v prepare --project examples/solar-system-journey
@@ -37,7 +38,7 @@ uv run m2v qa --project examples/solar-system-journey
 uv run m2v render --profile cinematic --project examples/solar-system-journey
 ```
 
-项目已保存服务返回音色中的云扬和选择理由；同一段旁白的候选 A/B 样片放在 `outputs/voice-ab/`。准备与源文审查记录位于本例 outputs/，完整预演和成片位于 videos/examples/solar-system-journey/outputs/。代码、源文、设计稿、固定纹理和来源记录纳入 Git，生成媒体不入库。
+项目已保存服务返回音色中的云扬和选择理由；同一段旁白的候选 A/B 样片放在 `outputs/voice-ab/`。音乐床与三个音效是同目录 `assets/sound/generate.py` **原创合成**的（无第三方采样，CC0 1.0，许可见 `assets/sound/LICENSE.md`），输出逐字节可复现；**素材本身不入库**，全新克隆后按上面的命令先生成再准备。准备与源文审查记录位于本例 outputs/，完整预演和成片位于 videos/examples/solar-system-journey/outputs/。代码、源文、设计稿、固定纹理、声音生成器与来源记录纳入 Git，生成媒体不入库。
 
 录制采用共享受控时钟按 60 fps 顺序逐帧采集，hero 镜头另按 `look.motion` 取子帧做运动模糊并按 2 倍设备像素采集后降采样；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧片段缓存不复用。
 

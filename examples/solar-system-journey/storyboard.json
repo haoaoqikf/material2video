@@ -632,6 +632,13 @@
     }
   ],
   "soundtrack": {
+    "music": {
+      "sourceRef": "assets/sound/bed.wav",
+      "gainDb": -30,
+      "loop": true,
+      "fadeInMs": 2500,
+      "fadeOutMs": 4000
+    },
     "effects": [
       {
         "builtin": "transition",
@@ -673,6 +680,27 @@
         "sceneId": "solar-journey",
         "segmentId": "edge-0",
         "offsetMs": 0,
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/sound/whoosh.wav",
+        "sceneId": "solar-journey",
+        "segmentId": "giant-0",
+        "offsetMs": -400,
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/sound/shimmer.wav",
+        "sceneId": "solar-journey",
+        "segmentId": "rings-0",
+        "offsetMs": 0,
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/sound/ice.wav",
+        "sceneId": "solar-journey",
+        "segmentId": "ice-0",
+        "offsetMs": 300,
         "gainDb": -26
       }
     ]
