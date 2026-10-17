@@ -1,8 +1,54 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {Billboard} from '@react-three/drei/core/Billboard.js';
-import {THREE, useFrame, useMediaAsset} from 'm2v/code-scene';
+import {THREE, useFrame, useMediaAsset, useThree} from 'm2v/code-scene';
 import {BODIES} from './bodies';
 import {smooth} from './clock';
+
+export type EarthUniforms = {
+  uSunView: {value: THREE.Vector3};
+  uClouds: {value: THREE.Texture | null};
+  uNight: {value: number};
+  uCloudShadow: {value: number};
+};
+
+/**
+ * 地球 hero 的表面细节：夜面城市灯光、海面高光（按陆地/海洋改粗糙度）与云影。
+ *
+ * 三点都由材质自身的贴图与**视空间太阳方向**算出：太阳方向每帧从相机矩阵更新，
+ * 因此昼夜分界永远与场景里的点光源一致；没有引入新的时间或随机源。
+ */
+export function earthSurface(shader: Parameters<THREE.MeshStandardMaterial['onBeforeCompile']>[0],
+                             uniforms: EarthUniforms) {
+  Object.assign(shader.uniforms, uniforms);
+  // 城市点阵锚在**物体空间**法线上：用视空间法线会让灯光随相机游动。
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\n      varying vec3 vObjectNormal;')
+    .replace('#include <beginnormal_vertex>',
+             '#include <beginnormal_vertex>\n      vObjectNormal = normalize(objectNormal);');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', `#include <common>
+      uniform vec3 uSunView;
+      uniform sampler2D uClouds;
+      uniform float uNight;
+      uniform float uCloudShadow;
+      varying vec3 vObjectNormal;
+      float m2vCityHash(vec3 p) {
+        return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453123);
+      }`)
+    // 陆地哑光、海洋高光：直接改标准材质的粗糙度，不另写一套光照。
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      float m2vLand = smoothstep(0.02, 0.16, diffuseColor.r + diffuseColor.g - diffuseColor.b);
+      roughnessFactor = mix(0.14, 0.86, m2vLand);`)
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      {
+        float m2vNight = smoothstep(0.06, -0.24, dot(normalize(vNormal), normalize(uSunView)));
+        float cluster = m2vCityHash(floor(vObjectNormal * 46.0));
+        float lights = smoothstep(0.86, 0.97, cluster) * m2vLand * m2vNight;
+        totalEmissiveRadiance += vec3(1.0, 0.74, 0.46) * lights * uNight;
+        float cloud = texture2D(uClouds, vMapUv).a;
+        diffuseColor.rgb *= 1.0 - cloud * uCloudShadow;
+      }`);
+}
 
 /** 逐项通过素材 ID 解析；固定钩子顺序，来源清单中的全部素材均实际用于本作品。 */
 export function useTextureSources() {
@@ -188,10 +234,23 @@ export function Planet({id, textures, clock, radius = 2.35, phase = 0, detail = 
   const map = body.texture ? textures[body.texture] : generated;
   const sphere = useRef<THREE.Mesh>(null);
   const clouds = useRef<THREE.Mesh>(null);
+  const camera = useThree(state => state.camera);
+  const earthUniforms = useMemo<EarthUniforms>(() => ({
+    uSunView: {value: new THREE.Vector3(1, 0, 0)},
+    uClouds: {value: textures.clouds ?? null},
+    uNight: {value: 1.8},
+    uCloudShadow: {value: 0.38},
+  }), [textures.clouds]);
   useFrame(() => {
     const rotation = clock.current.seconds * (id === 'venus' ? -0.018 : 0.026);
     if (sphere.current) sphere.current.rotation.y = 2.8 + rotation;
     if (clouds.current) clouds.current.rotation.y = 2.8 + rotation * 1.12;
+    if (id === 'earth' && sphere.current) {
+      // 太阳在世界原点：把「从星球指向太阳」的方向转到视空间，与 vNormal 同一空间。
+      const world = sphere.current.getWorldPosition(new THREE.Vector3());
+      earthUniforms.uSunView.value.copy(world.negate().normalize())
+        .transformDirection(camera.matrixWorldInverse);
+    }
   });
   return <group rotation={[id === 'saturn' ? 0.38 + smooth(phase) * 0.28 : 0.1, 0, -(body.tilt ?? 8) * Math.PI / 180]}>
     {id === 'sun' && <Corona radius={radius} clock={clock}/>}
@@ -199,8 +258,12 @@ export function Planet({id, textures, clock, radius = 2.35, phase = 0, detail = 
       <sphereGeometry args={[radius, detail ? 96 : 24, detail ? 64 : 16]}/>
       {id === 'sun' ? <meshBasicMaterial map={textures.sun} color="#ffc078" toneMapped={false}/> :
         <meshStandardMaterial map={map}
-          customProgramCacheKey={() => id === 'saturn' ? 'solar-sphere-ring-shadow-v1' : 'solar-planet-v1'}
-          onBeforeCompile={shader => {if (id === 'saturn') saturnShadow(shader, radius, textures.rings);}}
+          customProgramCacheKey={() => id === 'saturn' ? 'solar-sphere-ring-shadow-v1'
+            : id === 'earth' ? 'solar-earth-cinematic-v1' : 'solar-planet-v1'}
+          onBeforeCompile={shader => {
+            if (id === 'saturn') saturnShadow(shader, radius, textures.rings);
+            if (id === 'earth') earthSurface(shader, earthUniforms);
+          }}
           color={map ? '#ffffff' : body.color} roughness={id === 'earth' ? 0.62 : 0.96}
           metalness={0} bumpMap={body.rocky ? map : undefined}
           bumpScale={body.rocky ? 0.045 : 0} />}
