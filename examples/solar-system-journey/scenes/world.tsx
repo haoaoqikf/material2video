@@ -41,11 +41,13 @@ export function earthSurface(shader: Parameters<THREE.MeshStandardMaterial['onBe
       roughnessFactor = mix(0.14, 0.86, m2vLand);`)
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       {
-        float m2vNight = smoothstep(0.06, -0.24, dot(normalize(vNormal), normalize(uSunView)));
+        // GLSL 未定义 edge0 >= edge1 的 smoothstep；反转结果保证跨 GPU 一致。
+        float m2vNight = 1.0 - smoothstep(-0.24, 0.06, dot(normalize(vNormal), normalize(uSunView)));
         float cluster = m2vCityHash(floor(vObjectNormal * 46.0));
         float lights = smoothstep(0.86, 0.97, cluster) * m2vLand * m2vNight;
         totalEmissiveRadiance += vec3(1.0, 0.74, 0.46) * lights * uNight;
-        float cloud = texture2D(uClouds, vMapUv).a;
+        // 云图是灰度 JPEG，没有 alpha；与云层 alphaMap 一样读取绿色通道。
+        float cloud = texture2D(uClouds, vMapUv).g;
         diffuseColor.rgb *= 1.0 - cloud * uCloudShadow;
       }`);
 }
