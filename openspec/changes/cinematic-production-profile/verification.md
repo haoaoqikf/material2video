@@ -8,7 +8,7 @@
 - `media-contract.md` 的「节拍音效当前不渲染」改为「已进入母版混音」，并补一条音效混音验收口径（定位起点、越界失败、叠入后仍按同一响度与真峰值复核、素材摘要进指纹）。
 - `PROJECT_PLAN.md` 加入 standard/cinematic 双档位与电影级路线；「复杂转场或第二套渲染引擎」改为「不换引擎，以镜头、后期与母版实现」；保留不自动选曲，明确配乐来自本地素材或确定性程序化音床。
 - 新增 `references/cinematic-video.md`：参考板、look bible、镜头语法、材质/后期/声音清单、五阶段门禁、20 项检查表、感知评分卡、反模式与成本表。
-- `SKILL.md` 增加档位表、cinematic 触发词、阶段门禁与 look-dev 批准例外（standard 自动通过的唯一例外）。
+- `SKILL.md` 增加档位表、cinematic 触发词与阶段门禁（当时的 look-dev 批准例外已在后续收窄中取消，见文末「取消 look-dev 人工确认门禁」）。
 - `production-workflow.md` 增加 cinematic 分支命令；`visual-review-rubric.md` 增加十项评分卡；`design-tokens.md` 说明 cinematic look 不替代作品自由设计。
 - 验证：`sync_docs.py --check` 无漂移；文档相对链接 78 项、JSON 示例 13 项全部有效；`test_doc_examples.py` 与 `test_type_catalog.py` 通过。
 
@@ -99,7 +99,7 @@
 - 场景接线：`journey.tsx` 不再计算姿态，改用共享套件的 `CameraRig`（焦点表由固定天体位置生成）、`PostFX` 与深空元件；旧的「每段飞近再退回总览」姿态函数（`poseAt`）与其标签投影已删除，`props.targets` 过渡字段一并移除。
 - UI：章节进度轨（含镜头内进度）、距太阳 AU 读数（按压缩坐标锚点插值，外太阳系取对数）、片头片尾免责声明、字幕 scrim，以及按帧号算出的左栏淡入淡出（不用 CSS 过渡——录制时钟会冻结它）。
 
-**仍未完成**：4.4 的「硬切/match cut」目前是连续运镜而非硬切；4.5 的视觉细节（地球夜景灯光、海面高光、云影、土卫六雾霾等）还需要着色器工作。
+**后续修订**：4.4 的「硬切/match cut」曾实现为 3 处硬切；用户看片后要求更连贯的一镜到底，最终改为全片连续路径，硬切能力保留但本片不再使用。4.5 的视觉细节已由后续着色器工作补齐。
 
 ### 地球 hero 的表面细节（4.5 的一部分）
 
@@ -117,10 +117,10 @@
 - 音效：`whoosh`（飞近，带通噪声包络 + 下行低频）、`shimmer`（环的泛音簇衰减）、`ice`（冰裂爆裂 + 三条固定共振）；章节切换仍用内置 `transition`。分镜的 `soundtrack` 声明音床（−30 dB、循环、2.5 秒淡入 / 4 秒淡出）与三个本地音效的定位与增益。
 - 验证：循环接缝判据、峰值不削顶、ffmpeg 可解码、分镜声明与真实文件一致、生成器重跑得到逐字节相同的素材。
 
-### 硬切策略与端口健壮性（4.4 收尾）
+### 硬切策略与端口健壮性（4.4 收尾，后按用户反馈改为连续运镜）
 
-- 镜头新增可选 `cut: true`：声明硬切的镜头**不接**上一个镜头的出口，而是直接跳到本章的建立机位。整片在 `rock-belt`、`ice-giants`、`kuiper-pluto` 三处硬切，其余镜头仍共用路径点连续运镜。
-- 相机数据测试相应改写：连续镜头必须首尾相接；硬切镜头必须**真的断开**（入口与上一个出口距离 > 1）且只能向前跳（入口半径不回退）；所有镜头的**出口半径**必须单调向外。实测出口序列 5.4 → 8.2 → 13.0 → 13.4 → 30.5 → 45.5 → 46.1 → 84 → 98 → 190 → 245。
+- 镜头新增可选 `cut: true`：声明硬切的镜头**不接**上一个镜头的出口，而是直接跳到本章的建立机位。共享套件保留该能力，供其他作品显式使用。
+- 太阳系样板随后按用户反馈「硬切太多，要几乎一镜到底」改为**全片连续路径、无 cut**：每个镜头的入口就是上一个镜头的出口；`CameraRig` 在镜头边界用 30 帧把朝向（焦点点）、FOV、滚转与曝光混合到下一镜头，DOF 焦点也在同一窗口内混合。相机数据测试现在显式断言全片没有 `cut`，并继续检查入口/出口半径单调向外与全程不穿天体。实测出口序列 5.4 → 8.2 → 13.0 → 15.8 → 30.5 → 45.5 → 46.1 → 84 → 98 → 190 → 429。
 - 顺带修掉一个偶发但真实的缺陷：静态服务器用操作系统分配的空闲端口时，偶尔会拿到 Chromium 的**受限端口**（实测撞上 1719），页面直接 `ERR_UNSAFE_PORT`、录制以「浏览器录制失败」告终。现在命中受限端口会重摇（最多十次），调用方显式指定的端口仍然照用。
 
 ### cinematic 入口接线（6.1、6.2、6.5 的一部分）
@@ -194,4 +194,39 @@
 - **不提供 ProRes/DNxHR 母版与 `m2v master`**：cinematic 成片沿用现有 `m2v render`，只交付普通 H.264 MP4；不新增 10bit/HEVC 分支、48kHz/24bit 音频母版或 320kbps 专用音轨。声音设计（配乐、环境、音效、闪避与成片响度）保持要求。
 - **不执行十项数字评分卡**：技术 QA 与 hero 实看后，把成片交给用户实际观看并直接询问是否通过；用户确认通过即完成，不通过则记录问题位置并返工。`m2v qa`、`visual-notes.md` 与 claims 检查仍然保留。
 
-任务 6.3–6.5 与 `remotion-renderer`、`modular-video-production`、`video-production-workflow`、`article-sound-effects`、`render-provenance` 等规格已按此口径更新。该调整减少了剩余实现量：剩余工作集中在资产与画面收尾、全片重录、技术 QA、用户确认、文档与验证。
+任务 6.3–6.5 与 `remotion-renderer`、`modular-video-production`、`video-production-workflow`、`article-sound-effects`、`render-provenance` 等规格已按此口径更新。该调整减少了剩余实现量：剩余工作集中在资产与画面收尾、全片重录、技术 QA、成片确认、文档与验证。
+
+## 收尾实现：画面、声音与门禁（2026-10-17）
+
+以下为 4.3、4.5、5.1–5.4 与 6.x 的收尾实现记录；正式 look-dev、全片 QA 与用户确认结果在完成运行后补记。
+
+### 画面修复
+
+- **DOF 焦点单位**：`postprocessing` 的 `focusDistance`/`focusRange` 以世界单位计，旧实现把焦点归一到 0–1 再传入，实际焦点落在 1 厘米处，整幅画面（包括月球）被景深糊掉。改为世界单位并用 `focusRange` 控制过渡后，月球前景虚化与主体清晰度同时成立。
+- **非自发光天体的白盘**：材质对所有非地球天体给了白色 `emissive`，但没有 emissiveMap 的天体因此整体自发光。改为仅在有 emissiveMap 时启用；月球、水星、金星、火星与冰巨星恢复纹理。
+- **日冕与日珥**：球壳菲涅尔换成面向相机的径向辉光；部分圆环换成两根落脚点之间的拱形管，日珥与耀斑不再呈现为孤立矩形/硬边圆环。星空与粒子改用圆形点精灵。
+- **地球 hero**：从内行星出口连续掠过太阳进入地球夜面，镜头在 8.2 秒内从夜面弧到日面；月球移到机位与地球之间，作为虚化前景。大气壳只保留一层，避免双重蓝边。后续为满足一镜到底，入口改为与上一镜头共用路径点，不再硬切。
+- **木星与冥王星**：按当前机位逐帧把大红斑/心形转向镜头，并只在源纹理已有地标上做局部对比增强；木卫二移到不再遮挡大红斑的位置。
+- **土星与土卫六**：环影改为平滑半影；土卫六用自身颜色图作低强度自发光，并加 4 单位轨道倾角高度，进入土星 hero 画面右侧成为橙色雾霾前景；环的逆光散射与 4K 径向纹理保留。
+- **奥尔特云收尾**：相机在无旁白段拉远到半径约 429；日球层顶用菲涅尔边界壳表现，最后几秒完整入画，太阳成为亮点，彗星可见。
+
+### 声音与门禁
+
+- cinematic 成片混音新增母版步骤：温和压缩 + 动态 loudnorm，实测 **−14.7 LUFS / −1.0 dBTP**（standard 保持旁白 −16 口径）。
+- look-dev 只产出检查产物：`m2v lookdev` 输出 4K 静帧、接触表与有声样片，观看结论写入作品 `outputs/visual-notes.md`；`m2v render` 不因缺少观看或确认记录而阻断（早期实现的 `outputs/lookdev-approval.json` 门禁已删除，见下节）。
+- 资产审计对没有登记颜色贴图的程序化目标（奥尔特云）豁免 4K 与三张图要求；报告路径统一为 `outputs/asset-audit.json`。
+- QA 报告为冻结段补充镜头与时间戳定位，并在成片旁车写入 QA 报告指纹。
+
+## 取消 look-dev 人工确认门禁（2026-10-18）
+
+用户要求 look-dev 不再需要人工确认。该门禁是阶段 4 引入的实现，与主规格 `video-production-workflow`
+既有的「设计与观看记录 MUST NOT 成为 CLI 导出门禁」口径相冲突，本次按用户要求取消：
+
+- **删除的能力**：`m2v lookdev --approve` / `--note`、`outputs/lookdev-approval.json` 及其「准备指纹 + 清单摘要」绑定语义、`m2v render` 在 CLI 层与 `explainer_render.render()` 里的 cinematic 阻断。旧命令行现在以 argparse 用法错误失败，不做兼容分支。
+- **保留的能力**：`m2v lookdev` 的 `--project/--stills/--sample-seconds` 与全部产物（4K 静帧、接触表、20–30 秒有声样片、`outputs/lookdev.json` 清单）；观看结论继续写入作品 `outputs/visual-notes.md`，作为检查与返工依据。
+- **唯一保留的用户确认**：成片交付阶段询问是否通过（任务 6.3）。
+- **规格同步**：`modular-video-production`（入口要求与「look-dev 之后直接导出」场景）、`video-production-workflow`（档位、Look-dev 阶段条目与缺产物场景）、`general-video-composition`（cinematic 契约）三份增量规格，以及 `proposal.md`、`design.md`。
+- **文档同步**：`SKILL.md`、`cinematic-video.md`（档位对照、阶段门禁、成片确认、反模式、成本表）、`production-workflow.md`、`README.md`、`docs/PROJECT_PLAN.md`、示例 `README.md` / `DESIGN.md` / `SOURCES.md` / `VERIFICATION.md`。
+- **测试**：删除绑定确认记录的用例，改为锁定新契约——模块不再暴露确认符号、`--approve` 被 argparse 拒绝。
+- **验证**：`uv run pytest`（含 cinematic 入口、lookdev、媒体检查、命令回归）、`sync_docs.py --check` 无漂移、`openspec validate --strict` 通过。
+- **产物清理**：已存在的 `outputs/lookdev-approval.json` 不再被任何代码读取；`outputs/` 不入库，无需处理。

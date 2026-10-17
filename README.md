@@ -33,7 +33,7 @@ pnpm -C web test
 general 的 `m2v lookdev --project <目录>` 支持从当前源码原生采集 3–5 张 4K 关键帧，
 以 PNG 合成字幕与转场，并输出接触表及 20–30 秒有声样片；不生成完整成片。
 静帧的画布像素不足会明确失败，不能以放大 1080p 缓存视频代替。
-cinematic 交付普通 H.264 MP4，不另出母版；太阳系参考片与最终用户确认仍在实施中，详见[电影级制作档位](.agents/skills/material2video/references/cinematic-video.md)。
+cinematic 交付普通 H.264 MP4，不另出母版；look-dev 只产出检查产物、不设人工确认门禁，唯一保留的用户确认在成片交付阶段，详见[电影级制作档位](.agents/skills/material2video/references/cinematic-video.md)。
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与准备 → 完整预演 → 正式导出。助手读取当前音色列表并按内容选择，用户明确音色优先，不新增试听确认。纯 CLI 读取选音结果；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。助手选择绑定完整旁白，旁白变化需重新判断；实际音色、语速和来源写入准备与成片溯源。无旁白作品无需选音。详细字段、迁移和限制见[配音契约](.agents/skills/material2video/references/media-contract.md#配音音色与语速)。
 
@@ -66,7 +66,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 从临时目录交付的成片、溯源记录、音轨、代码片段、导入素材和缓存条目统一恢复所在目录的继承权限，并复核交付目标，避免 Windows 标准权限应用打开产物时出现 `0x80070005`；父目录权限仍受限时会报告目标与目录。实现与排查见[交付权限](.agents/skills/material2video/references/paths-and-outputs.md#交付权限)。
 
-可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。通用作品另有三个人工入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒有声样片）、`qa`（接触表、冻结帧、暗部色带、字幕对比度、响度与真峰值、音画同步、claims 可见性，输出 `outputs/qa.json`）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/assets-audit.json`）。文章专属的输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
+可用命令：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。通用作品另有三个人工入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒有声样片；观看结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部色带、字幕对比度、响度与真峰值、音画同步、claims 可见性，输出 `outputs/qa.json`）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/asset-audit.json`）。文章专属的输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`；操作性语义创作指导仍见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
 通用作品使用 v8 全画布代码场景，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md) 与 [通用作品创作](.agents/skills/material2video/references/article-to-storyboard.md)。制作助手先确定画幅并写出作品 `DESIGN.md`（参考依据、视觉隐喻、字体配色、代表构图、镜头承接与声音意图），再做开场/核心/结尾关键画面、编排运动，并在作品内保存非空 `article.md`（或改用 `input.kind: "topic"` 声明主题）；执行 `m2v general input-review --storyboard <路径>` 并填写 `outputs/input-review.json` 后准备配音。默认根据旁白原文生成同步字幕并烧录到预演和正式成片，无需开启字幕选项，仅外置 SRT 不算完成字幕交付；字幕按画幅集中配置、白字配不透明深色底板，几何与 SDK 给出的是同一份；每幕保留 24 帧阅读停留，可选 1～3600 帧画面淡化，完整成片最多 600 秒。
 

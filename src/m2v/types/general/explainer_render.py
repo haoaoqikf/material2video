@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from m2v.core.video_config import FPS
 
+import hashlib
 import json
 import logging
 import tempfile
@@ -123,6 +124,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
 
 def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Path:
     prepared = current(root, project)
+    profile = prepared["props"].get("productionProfile", "standard")
     if limit_frames is not None and (type(limit_frames) is not int or limit_frames < 1):
         raise M2VError("limit_frames 必须为正整数")
     if not preview and limit_frames is not None:
@@ -171,9 +173,30 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "ArticleExplainer",
-            "productionProfile": prepared["props"].get("productionProfile", "standard"),
+            "productionProfile": profile,
             "productionProfileSource": prepared["props"].get("productionProfileSource", "default"),
             "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
+        if profile == "cinematic":
+            # 电影级溯源：look / shots / 后期 / 音频 / 交付摘要。参数与准备指纹同源。
+            scene_props = ((prepared["props"].get("compiledScenes") or [{}])[0]
+                           .get("content", {}).get("props") or {})
+            shots = [{name: shot.get(name) for name in
+                      ("id", "tier", "target", "startFrame", "endFrame", "post")}
+                     for shot in scene_props.get("shots") or []]
+            provenance.update({
+                "look": scene_props.get("look"),
+                "shots": shots,
+                "postFx": {"look": scene_props.get("look"),
+                           "shots": {shot["id"]: shot.get("post") for shot in shots}},
+                "audio": {"master": prepared["audio"]["segments"][0]["path"],
+                          "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
+                          "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,
+                          "delivery": {"codec": "aac", "sampleRate": 44100, "channels": 2,
+                                       "bitrate": "128k"}},
+                "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
+                             "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
+                             "frames": frames_to_render, "fps": FPS, "width": width, "height": height},
+            })
         if not preview:
             _write_json(work / "final.provenance.json", provenance)
         # 临时目录带收紧 ACL，交付必须走 security.deliver：搬运与权限修复不可分开。

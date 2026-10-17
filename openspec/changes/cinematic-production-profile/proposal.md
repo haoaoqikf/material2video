@@ -4,16 +4,16 @@
 
 制作 Skill 也只把「完整预演自动验收」当作导出依据，视觉设计、参考板、镜头语言、材质、后期和声音都没有可验收的标准；审美评审是可选项，导致「能导出」被当成「够好」。同时 Skill 与契约里还有三处过时口径：固定示例名单仍含 keynote-baseline、`soundtrack.effects` 被写成不渲染、路线图把复杂画面与配乐排除在当前范围外。
 
-本变更新增可选的 **cinematic 制作档位**：standard 档保持现有快速链路不变，cinematic 档把 look-dev、镜头清单、材质/后期、声音设计与用户确认变成可执行、可留证的步骤；并把太阳系示例改写为 **60 秒电影级参考片**，作为该档位的验收样板。
+本变更新增可选的 **cinematic 制作档位**：standard 档保持现有快速链路不变，cinematic 档把 look-dev、镜头清单、材质/后期与声音设计变成可执行、可留证的步骤；并把太阳系示例改写为 **60 秒电影级参考片**，作为该档位的验收样板。
 
 ## What Changes
 
-- 新增 **standard / cinematic** 双档位。standard 维持现有自动验收与默认编码；cinematic 增加 look-dev、镜头与 look 契约、后期、声音设计与用户确认。cinematic 不另出 ProRes/DNxHR 母版，成片仍是普通 MP4。用户明确要求「电影级、极致、惊艳、发布级」时 MUST 使用 cinematic。
+- 新增 **standard / cinematic** 双档位。standard 维持现有自动验收与默认编码；cinematic 增加 look-dev、镜头与 look 契约、后期与声音设计，look-dev 不设人工确认门禁。cinematic 不另出 ProRes/DNxHR 母版，成片仍是普通 MP4。用户明确要求「电影级、极致、惊艳、发布级」时 MUST 使用 cinematic。
 - 扩展 general v8 分镜的可选字段：`leadInFrames`、`tailFrames`、`readingHoldFrames`、`content.props.shots`、`content.props.look`、旁白段 `claims`。未声明时行为与当前完全一致，不升级分镜版本。
 - 代码场景 SDK 新增镜头路径、焦段/滚转、曝光、焦点、后期（Bloom/DOF/grain/vignette/CA/LUT）与星空、粒子带、大气、环、日面、日珥、奥尔特云等电影级组件；批准 `postprocessing` / `@react-three/postprocessing` 依赖。
 - 渲染：cinematic 沿用普通 H.264 MP4 交付，不新增母版格式与 10bit/HEVC 分支；hero 镜头 MAY 使用 2× SSAA 与 2–4 子帧运动模糊；standard 档编码参数保持不变。
 - 资产新增质量与许可审计：hero 资产 4K+、normal/roughness/emissive、土星环径向分辨率、色彩空间、许可；声音新增配乐/环境/音效混音与响度目标。
-- 新增 `m2v lookdev`、`m2v qa`、`m2v assets audit`；cinematic 交付以「用户看片后确认是否通过」作为放行依据，不使用数字评分卡。hero 实看仍必须留证。
+- 新增 `m2v lookdev`、`m2v qa`、`m2v assets audit`；cinematic 交付以「用户看片后确认是否通过」作为放行依据，不使用数字评分卡；look-dev 只产出检查产物，不阻断铺全片与导出。hero 实看仍必须留证。
 - lookdev 静帧从当前源码按原生 2× 像素密度采集，以 PNG 合成字幕和转场；不将 1080p 缓存视频放大作为 4K 细节证据，有声样片保留现有流程。
 - 修正现有口径：固定示例名单改为 buffer-smoothing、darts-trial-and-error、solar-system-journey；`soundtrack.effects` 明确为已渲染；路线图加入 cinematic 档位，明确不引入第二套渲染引擎。
 - **BREAKING（示例内容）**：太阳系示例从 174.6 秒、16 段改写为约 60 秒、9 个章节、3 个 hero、单程向外镜头；旧分镜、旧旁白与旧成片失效，不保留旧版本兼容。三个固定示例数量不变，不新增示例。
@@ -31,7 +31,7 @@
 - `general-video-composition`：cinematic 档位与电影级画面约束。
 - `react-code-scenes`：镜头/后期 SDK、确定性后期、电影级组件与资产元数据。
 - `remotion-renderer`：普通 MP4 交付、运动模糊、SSAA 与后期确定性。
-- `video-production-workflow`：档位、look-dev、参考板、镜头清单、claims 与用户确认。
+- `video-production-workflow`：档位、look-dev、参考板、镜头清单与 claims。
 - `article-media-assets`：资产质量与许可审计。
 - `article-sound-effects`：配乐、音效、混音与响度。
 - `render-provenance`：profile / look / post / audio 溯源。

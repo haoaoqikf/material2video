@@ -1,4 +1,5 @@
 """cinematic 的 QA 与资产审计：用自造的小媒体验证判定逻辑。"""
+import hashlib
 import json
 import subprocess
 
@@ -96,6 +97,20 @@ def test_qa_run_writes_report(tmp_path):
     assert report["status"] in {"pass", "fail"} and "frozenFrames" in report["checks"]
 
 
+def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):
+    root = tmp_path / "work"
+    (root / "outputs/media").mkdir(parents=True)
+    video = make_video(root / "outputs/video.mp4")
+    make_audio(root / "outputs/media/master.wav")
+    sidecar = root / "outputs/video.provenance.json"
+    sidecar.write_text(json.dumps({"schemaVersion": 1, "productionProfile": "cinematic"}),
+                       encoding="utf-8")
+    qa.run(root, prepared_stub(), video=video, profile="standard", step=30)
+    saved = json.loads(sidecar.read_text(encoding="utf-8"))
+    digest = hashlib.sha256((root / "outputs/qa.json").read_bytes()).hexdigest()
+    assert saved["qa"] == {"report": "outputs/qa.json", "sha256": digest}
+
+
 def test_assets_audit_blocks_hero_shortfalls(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
@@ -118,7 +133,7 @@ def test_assets_audit_blocks_hero_shortfalls(tmp_path):
     assert report["status"] == "fail"
     assert "低于 4096" in reasons and "normal" in reasons and "环径向纹理" in reasons
     assert assets_audit.audit(root, prepared, record, profile="standard")["status"] == "pass"
-    assert (root / "outputs/assets-audit.json").is_file()
+    assert (root / "outputs/asset-audit.json").is_file()
 
 
 def test_assets_audit_reports_alpha_and_colour_space(tmp_path):
@@ -158,6 +173,58 @@ def test_media_resolution_keeps_unknown_license(tmp_path):
     assert media_assets.resolve(root)["media"]["photo"]["license"] == "未知"
 
 
+def test_lookdev_has_no_approval_gate():
+    """look-dev 只产出检查产物：模块不再暴露确认符号。"""
+    from m2v.engine import lookdev
+    for name in ("approve", "require_approval", "approval_path", "APPROVAL_FILE"):
+        assert not hasattr(lookdev, name), f"lookdev 不应再提供 {name}"
+
+
+def test_lookdev_cli_rejects_removed_approve_flag(tmp_path):
+    """旧命令行必须显式失败，而不是被静默忽略。"""
+    from m2v import cli
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["lookdev", "--project", str(tmp_path), "--approve", "--note", "已观看"])
+    assert excinfo.value.code == 2
+
+
+def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
+    root = tmp_path / "work"
+    (root / "outputs/media").mkdir(parents=True)
+    video = root / "outputs/video.mp4"
+    subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi",
+                    "-i", "color=c=black:size=192x104:rate=60:duration=4",
+                    "-pix_fmt", "yuv420p", str(video)], check=True)
+    make_audio(root / "outputs/media/master.wav", seconds=4)
+    prepared = prepared_stub(durationInFrames=240)
+    prepared["props"]["compiledScenes"] = [{"id": "s", "startFrame": 0, "narrationSegments": [],
+                                            "segmentWindows": {}, "content": {"props": {"shots": [
+                                                {"id": "earth", "tier": "hero", "target": "earth",
+                                                 "startFrame": 0, "endFrame": 240}]}}}]
+    report = qa.run(root, prepared, video=video, profile="standard", step=30)
+    problem = report["checks"]["frozenFrames"]["problem"]
+    assert problem["shot"] == "earth" and problem["startSeconds"] == 0
+
+
+def test_normalize_reaches_cinematic_loudness(tmp_path):
+    from m2v.engine import audio
+    source = make_audio(tmp_path / "quiet.wav", seconds=3)
+    target = tmp_path / "master.wav"
+    audio.normalize(source, target, integrated=-14.0, true_peak=-1.0)
+    report = qa.loudness(target, "cinematic")
+    assert report["status"] == "pass" and abs(report["integratedLufs"] + 14) <= 1.0
+
+
+def test_master_hits_cinematic_loudness_and_peak(tmp_path):
+    from m2v.engine import audio
+    source = make_audio(tmp_path / "quiet.wav", seconds=3)
+    target = tmp_path / "cinematic-master.wav"
+    audio.master(source, target, integrated=-14.0, true_peak=-1.0)
+    report = qa.loudness(target, "cinematic")
+    assert report["status"] == "pass" and abs(report["integratedLufs"] + 14) <= 1.0
+    assert report["truePeakDbfs"] <= -1.0
+
+
 def test_assets_audit_json_round_trip(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
@@ -173,6 +240,6 @@ def test_assets_audit_json_round_trip(tmp_path):
                                                 {"id": "sun", "tier": "hero", "target": "sun",
                                                  "startFrame": 0, "endFrame": 480}]}}}]
     report = assets_audit.audit(root, prepared, record, profile="cinematic")
-    saved = json.loads((root / "outputs/assets-audit.json").read_text(encoding="utf-8"))
+    saved = json.loads((root / "outputs/asset-audit.json").read_text(encoding="utf-8"))
     assert saved["status"] == report["status"] == "fail"
     assert any("许可未知" in item["reason"] for item in report["problems"])

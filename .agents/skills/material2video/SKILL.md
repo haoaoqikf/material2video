@@ -43,9 +43,10 @@ cinematic 按 **Brief → Look-dev → Hero → Full film → QA/确认** 五个
 hero 实看后把成片交给用户观看并询问是否通过。字段、清单、用户确认、反模式与成本见
 [电影级制作档位](references/cinematic-video.md)。
 
-**look-dev 批准是「不新增用户逐次确认」的唯一例外**：standard 维持自动通过；cinematic 必须在
-关键静帧与代表片段上停下来给用户实际观看，确认后才铺全片。未获批准时不得继续，也不得把
-未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
+**look-dev 不设人工确认门禁**：standard 与 cinematic 都不在 look-dev 停下来等确认。
+cinematic 必须在关键静帧与代表片段上实际观看、把时间码与问题记进作品 `outputs/visual-notes.md`，
+再继续铺全片；该记录是检查与返工依据，不是导出门禁。唯一保留的用户确认在成片交付阶段。
+不得把未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
 
 档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
 `lookdev` / `qa` / `assets audit` 入口已接线，太阳系参考片与最终用户确认仍在实施中；
@@ -62,7 +63,7 @@ uv run m2v preview --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
-uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、接触表与有声样片
+uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、接触表与有声样片（观看结论记入 visual-notes.md）
 uv run m2v qa --project videos/general/<slug>       # cinematic：技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可审计
 ```

@@ -2,9 +2,9 @@
 
 ### Requirement: 电影级通用作品档位
 
-系统 MUST 在 `project.json` 接受可选的 `productionProfile`，取值为 `standard` 或 `cinematic`，缺省为 `standard`；非法取值 MUST 在准备前失败。standard MUST 保持当前 prepare、完整预演自动验收、默认编码与不加用户确认的行为。cinematic MUST 启用电影级制作契约：镜头清单、look、后期、声音设计、资产质量、普通 MP4 交付与用户确认。
+系统 MUST 在 `project.json` 接受可选的 `productionProfile`，取值为 `standard` 或 `cinematic`，缺省为 `standard`；非法取值 MUST 在准备前失败。standard MUST 保持当前 prepare、完整预演自动验收、默认编码与不加用户确认的行为。cinematic MUST 启用电影级制作契约：镜头清单、look、后期、声音设计、资产质量与普通 MP4 交付；look-dev MUST NOT 引入人工确认门禁。
 
-cinematic 作品 MUST 在 `content.props` 声明 `shots` 与 `look`，MUST 提供至少 3 个 hero 镜头，MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 在铺全片前取得用户确认，MUST 实际观看 hero 镜头与样片并把时间码、问题与复查写入作品 `outputs/visual-notes.md`。不能观看时 MUST 如实说明，MUST NOT 声称已达到电影级。
+cinematic 作品 MUST 在 `content.props` 声明 `shots` 与 `look`，MUST 提供至少 3 个 hero 镜头，MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 实际观看 hero 镜头与样片并把时间码、问题与复查写入作品 `outputs/visual-notes.md`；该记录 MUST NOT 阻断铺全片或导出。不能观看时 MUST 如实说明，MUST NOT 声称已达到电影级。
 
 cinematic MUST 把 profile、shots、look、后期参数、声音配置与交付参数写入准备记录、预演和溯源；任一参数变化 MUST 使旧准备与完整预演过期。standard 作品不因本要求改变准备记录、缓存键、时间轴或编码。
 

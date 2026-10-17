@@ -18,7 +18,7 @@
 
 - 新增可选 cinematic 档位，使「电影级」成为可执行、可留证、可验收的制作方式。
 - standard 档保持现有快速链路：自动验收、默认编码、无新增用户确认。
-- 把镜头、look、后期、声音、资产质量、交付与用户确认定义成明确契约。
+- 把镜头、look、后期、声音、资产质量与交付定义成明确契约。
 - 将太阳系示例改写为约 60 秒的电影级参考片，作为 cinematic 档的第一份样板。
 - 修正现有文档口径，避免 Skill 继续给出过时事实。
 - 保持确定性、溯源、素材留证、离线制作与现有兼容编码路径。
@@ -47,10 +47,10 @@
 | 声音 | TTS + 可选音床 | 配乐 + 音效 + 混音与响度 |
 | 编码 | H.264 CRF18、8bit、44.1k/128k | 普通 H.264 MP4（不另出母版） |
 | 质检 | 自动字幕 + 抽帧观看 | 技术 QA + hero 实看 + 用户确认 |
-| 门禁 | 自动验收 | look-dev 批准 + 20 秒样片 + 全片 QA |
+| 门禁 | 自动验收 | 全片 QA；look-dev 只产出检查产物，不设人工门禁 |
 | 成本 | 1× | 2–4× |
 
-cinematic 的「look-dev 批准」是现有「不新增用户逐次确认」的唯一例外：standard 保持自动；cinematic 必须在关键静帧与代表片段上停下来给用户看，避免整片渲完才发现方向错了。
+cinematic 不新增用户逐次确认：look-dev 的静帧与样片是**检查产物**，用于实际观看与返工定位，不阻断铺全片或导出。唯一保留的用户确认在成片交付阶段（QA 之后询问是否通过），与 standard 的「设计、观看记录不成为 CLI 门禁」口径一致。
 
 ### 2. 分镜字段：可选扩展，不升级 v8
 
@@ -113,14 +113,14 @@ cinematic 的「look-dev 批准」是现有「不新增用户逐次确认」的�
 - `m2v assets audit --project <dir>`：资产质量与许可。
 - 正式导出沿用现有 `m2v render`，交付普通 H.264 MP4；不提供 `m2v master` 或 ProRes/DNxHR 母版。
 
-cinematic 不设数字评分卡。技术 QA 与 hero 实看完成后，必须把成片交给用户观看并直接询问「是否通过」；用户确认通过后才可标记 cinematic 完成。用户指出问题时记录位置、修改与复查结果；不能观看或未获确认时如实说明，不能声称电影级。
+cinematic 不设数字评分卡，也不在 look-dev 阶段设人工门禁：静帧与样片是检查产物，用于实际观看与返工定位。技术 QA 与 hero 实看完成后，必须把成片交给用户观看并直接询问「是否通过」；这是 cinematic 唯一保留的用户确认，用户确认通过后才可标记 cinematic 完成。用户指出问题时记录位置、修改与复查结果；不能观看或未获确认时如实说明，不能声称电影级。
 
 ### 8. 文档与流程
 
 - 修正固定示例名单、effects 渲染口径、路线图范围。
 - 新增 `references/cinematic-video.md`：参考板、look bible、shot grammar、材质/后期/声音清单、20 项检查表、反模式与成本。
 - SKILL.md 增加档位表、cinematic 触发词、阶段门禁（Brief → Look-dev → Hero → Full film → QA/Master）。
-- `production-workflow.md` 增加 cinematic 分支；`visual-review-rubric.md` 增加用户确认口径。
+- `production-workflow.md` 增加 cinematic 分支；`visual-review-rubric.md` 增加成片确认口径。
 - `storyboard-schema.md` 增加可选字段；`render-contract.md` 增加后期契约；`media-contract.md` 增加声音混音与资产审计；`design-tokens.md` 说明 cinematic look 不替代作品自由设计。
 - 更新 `openspec/config.yaml` 的 context；更新 `PROJECT_PLAN.md` 与 README 的路线/能力。
 - 运行 `python .agents/skills/material2video/scripts/sync_docs.py --check` 与相对链接检查。
@@ -130,7 +130,7 @@ cinematic 不设数字评分卡。技术 QA 与 hero 实看完成后，必须把
 - **渲染成本**：后期 + SSAA + 运动模糊会让 hero 镜头成倍变慢。按镜头分级，只对 hero 开高质量；在 `lookdev` 阶段先量一次单帧成本，避免整片渲完才发现预算失控。
 - **确定性**：后期库可能内部使用时间或随机数。所有 uniform 必须帧驱动，新增同帧 PSNR ≥ 60dB 测试；源码闸门继续扫描。
 - **兼容性**：cinematic 不改变交付格式，成片仍是普通 H.264 MP4，不存在 10bit/HEVC 母版的播放器兼容问题。
-- **流程冲突**：cinematic 的 look-dev 批准与现有「不新增用户确认」冲突。只在 cinematic 档显式增加，standard 不变；用户未选择 cinematic 时不触发。
+- **流程一致性**：早期设计把 look-dev 批准作为「不新增用户确认」的例外。收窄后取消该例外：look-dev 只产出检查产物并记录观看结论，导出门禁只保留全片 QA 与成片确认，与 standard 的既有口径一致。
 - **示例数量**：固定示例仍为三个，不新增；太阳系改为 cinematic 样板，缓冲与试错保持 standard 回归，避免全部示例一起变慢。
 - **依赖进行中变更**：`fix-code-scene-frame-capture` 正在改录制链路。本变更的录制相关任务在其归档后执行；不并行改同一批文件。
 - **资产许可**：4K/8K 纹理、配乐与音效需要逐项留证；未知许可的 hero 资产阻断，避免把版权风险带进成片。
@@ -145,7 +145,7 @@ cinematic 不设数字评分卡。技术 QA 与 hero 实看完成后，必须把
 3. 搭共享电影套件与确定性测试。
 4. 太阳系 look-dev：60 秒脚本、shot list、4K 资产、3–5 张 4K 静帧、20 秒有声样片、音色 A/B。
 5. 实现 hero 与全片、声音设计、UI 与渲染。
-6. QA、用户确认、文档、验证、归档。
+6. QA、成片确认、文档、验证、归档。
 
 任务全部完成后按项目约定同步主规格、更新 README/规划/Skill、归档并提交。
 

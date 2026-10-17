@@ -4,7 +4,7 @@
 
 制作助手 MUST 在编写场景前确定画幅并记录作品视觉设计，用户未指定时采用横屏。设计 MUST 包含参考依据、视觉隐喻、字体配色、开场/核心/结尾构图、运动与镜头承接以及声音意图。助手 MUST 检查代表关键帧，并实际观看含运动、转场和声音的代表片段；发现问题 MUST 记录时间位置、修改和复查。无法观看 MUST 明确说明，MUST NOT 虚构通过。
 
-standard 档的设计与观看记录 MUST NOT 成为 CLI 导出门禁，不新增用户逐次确认。cinematic 档 MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 在铺全片前取得用户确认；hero 镜头实看、20 秒样片与用户确认 MUST 成为导出前的质量门禁。该确认仅限 cinematic 档，standard 不受影响。
+standard 档的设计与观看记录 MUST NOT 成为 CLI 导出门禁，不新增用户逐次确认。cinematic 档 MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，并实际观看 hero 镜头与样片、记录时间码与问题；look-dev 的观看结论 MUST NOT 成为 CLI 导出门禁，MUST NOT 在铺全片前要求用户逐次确认。两个档位的唯一用户确认留在成片交付阶段。
 
 cinematic 档的设计 MUST 额外包含参考板（3–5 张静帧、1–2 段运动参考、1 段声音参考）、look bible（配色、主光比、镜头焦段、颗粒/LUT、曝光策略、黑位）与镜头清单（每段旁白对应的 shot、tier、camera、focus、exposure、post、claims）。参考板与镜头清单位于作品 `DESIGN.md` 或 `outputs/` 记录中，MUST NOT 只写形容词。
 
@@ -20,20 +20,20 @@ cinematic 档的设计 MUST 额外包含参考板（3–5 张静帧、1–2 段�
 - **WHEN** 有效 standard 材料通过技术验收与当前完整预演，但没有视觉设计或观看记录
 - **THEN** CLI 不因缺失这些记录而阻断导出
 
-#### Scenario: 电影级未经 look-dev
-- **WHEN** cinematic 作品未产出 4K 静帧、20 秒有声样片或未经用户确认
-- **THEN** 铺全片与正式导出被阻断，并指出缺失的 look-dev 产物
+#### Scenario: 电影级缺 look-dev 产物
+- **WHEN** cinematic 作品未产出 4K 静帧或 20 秒有声样片
+- **THEN** 报告指出缺失的 look-dev 产物，但不阻断铺全片与正式导出
 
 ## ADDED Requirements
 
 ### Requirement: 电影级制作档位与质量门禁
 
-系统 MUST 提供 standard 与 cinematic 两个制作档位。standard MUST 保持现有自动验收、默认编码与无新增确认的快速链路；cinematic MUST 增加 look-dev、镜头清单、后期、声音设计、资产质量与用户确认。用户明确要求「电影级、极致、惊艳、发布级、品牌片」时，助手 MUST 使用 cinematic，MUST NOT 静默按 standard 交付；选择 cinematic 时必须先说明约 2–4 倍的制作与渲染成本。
+系统 MUST 提供 standard 与 cinematic 两个制作档位。standard MUST 保持现有自动验收、默认编码与无新增确认的快速链路；cinematic MUST 增加 look-dev、镜头清单、后期、声音设计与资产质量，look-dev MUST NOT 引入人工确认门禁。用户明确要求「电影级、极致、惊艳、发布级、品牌片」时，助手 MUST 使用 cinematic，MUST NOT 静默按 standard 交付；选择 cinematic 时必须先说明约 2–4 倍的制作与渲染成本。
 
 cinematic 的流程 MUST 为 Brief → Look-dev → Hero → Full film → QA/确认：
 
 - Brief MUST 记录受众、平台、时长、情绪目标、必须看到的特征与参考板。
-- Look-dev MUST 产出 3–5 张最终画质 4K 静帧、20–30 秒有声样片、至少 2 个旁白音色的 A/B 与配乐/音效意图；用户确认后才能铺全片。
+- Look-dev MUST 产出 3–5 张最终画质 4K 静帧、20–30 秒有声样片、至少 2 个旁白音色的 A/B 与配乐/音效意图，并实际观看、记录问题；产出后即可继续铺全片，不需要用户确认。
 - Hero MUST 先完成至少 3 个 hero 镜头；每个 hero SHOULD 为 8–12 秒连续镜头，允许例外但必须记录理由。
 - Full film MUST 完成全片、声音设计与 UI；实际时长符合作品目标。
 - QA/确认 MUST 运行技术检查与 claims 可见性，把成片交给用户实际观看并询问是否通过；未获用户确认 MUST NOT 标记 cinematic 完成。
@@ -54,7 +54,7 @@ cinematic 的 QA MUST 覆盖：接触表、冻结/重复帧、banding、aliasing
 
 #### Scenario: 标准档不受影响
 - **WHEN** 作品未选择 cinematic
-- **THEN** 继续使用 standard 的自动验收与现有编码，不触发 look-dev 或用户确认
+- **THEN** 继续使用 standard 的自动验收与现有编码，不触发 look-dev 门禁或用户确认
 
 ### Requirement: 旁白主张与画面可见性
 

@@ -15,12 +15,33 @@
 
 ## 固定输入素材
 
+### cinematic 资产升级（2026-10-17）
+
+按实际文件尺寸登记，不采用下载文件名中的“8k”作为分辨率证据。地球日间图为
+8192×4096；太阳、木星、土星为 4096×2048；冥王星保留原图 5926×2963。
+前四项从 [Solar System Scope 原站](https://www.solarsystemscope.com/textures/) 下载，
+保留 INOVE 的 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 署名。
+地球夜灯为同源 8192×4096 地图，取代程序化城市点阵；地球法线与高光遮罩取自原作者
+TIFF，分别转无损 PNG 与 `roughness = 235 - specular × 0.8` 的 8 bit 粗糙度图，
+保留实际 2048×1024 尺寸，不上采样冒充地形精度。云层沿用已登记的灰度图，
+云影读取绿色通道，并补偿云层与地表的相对转动。
+
+土卫六颜色图为原生 4096×2048 程序化雾霾；土星环为原生 4096×512 径向纹理，
+包含 C/B/A 环和卡西尼缝的艺术轮廓。原图 8192×500 不符合高度门槛，未放大采用。
+太阳、土星、木星、冥王星和土卫六的 normal/roughness 是程序化微表面，不是实测高程；
+不自发光天体的 emissive 为黑色，太阳自发光使用其日面图，地球使用夜灯图。
+生成器和参数在 [assets/materials/generate.py](assets/materials/generate.py)，
+原创输出采用 [CC0 1.0](assets/materials/LICENSE.md)。所有 ID、实测尺寸、处理说明、
+角色、目标、色彩空间和摘要见 `assets/media-sources.json`，运行时只读取这些已登记输入。
+
+以上升级已落入可编辑材料；look-dev 静帧、样片与 hero 可见性的实际观看记录见 `outputs/visual-notes.md`，look-dev 不设人工确认门禁。
+
 逐项文件摘要、尺寸和来源保存在 [assets/media-sources.json](assets/media-sources.json)。纹理仅用于艺术性球面展示，不用于地形测量。
 
 | 素材 ID | 来源与署名 | 许可及处理 |
 |---|---|---|
-| sun、mercury、venus、mars、jupiter、saturn、uranus、neptune、moon、clouds、rings | [Solar System Scope / INOVE](https://www.solarsystemscope.com/textures/)，基于 NASA 数据加工 | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)；保留原文件，球面投影和光照改变显示外观。颜色和未观测区域可能经艺术调整 |
-| earth | [NASA/GSFC Blue Marble](https://visibleearth.nasa.gov/collection/1484/blue-marble) | [NASA 媒体使用指南](https://www.nasa.gov/nasa-brand-center/images-and-media/)；原图作为球面日间纹理 |
+| sun、mercury、venus、mars、jupiter、saturn、uranus、neptune、moon、clouds、earth、earth-emissive、earth-normal、earth-roughness、sun-emissive | [Solar System Scope / INOVE](https://www.solarsystemscope.com/textures/)，基于 NASA 数据加工 | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)；原图或上述明确记录的辅助图转换。颜色和未观测区域可能经艺术调整 |
+| titan、rings 与除地球法线/粗糙度外的程序化微表面 | material2video 原创生成器 | [CC0 1.0](assets/materials/LICENSE.md)；艺术示意，不是地形测量 |
 | europa | [NASA / JPL-Caltech / USGS，Voyager 拼接图](https://maps.jpl.nasa.gov/tmaps/jupiter.html) | [JPL 图像使用政策](https://www.jpl.nasa.gov/jpl-image-use-policy/)；使用清理过的木卫二拼接地图 |
 | pluto | [NASA / JHUAPL / SwRI](https://science.nasa.gov/resource/pluto-global-color-map/) | NASA 媒体使用指南；使用新视野号全局彩色地图，分辨率与观测覆盖不均匀 |
 

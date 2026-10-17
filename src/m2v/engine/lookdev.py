@@ -1,9 +1,9 @@
 """`m2v lookdev`：在铺全片之前，先把关键静帧与一段有声样片摆到人眼前。
 
-cinematic 档的 look-dev 是**用户确认门**：先渲 3–5 张 4K 静帧、一张接触表与一段
-20–30 秒有声样片，用户实际看过并确认后才继续。因此这里的产物不是最终成片，而是
-「方向对不对」的证据：静帧从源码按 2× 原生像素采集，样片按 1× 渲染
-并合上母版音轨的对应片段。
+cinematic 档的 look-dev 不设人工确认门禁：渲 3–5 张 4K 静帧、一张接触表与一段
+20–30 秒有声样片，观看结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，
+但不阻断铺全片或导出。这里的产物不是最终成片，而是「方向对不对」的证据：静帧从源码
+按 2× 原生像素采集，样片按 1× 渲染并合上母版音轨的对应片段。
 
 本模块不修改成片、不写准备记录，也不改变任何指纹。
 """
@@ -40,7 +40,9 @@ def still_frames(prepared: dict, count: int) -> list[int]:
     heroes = sorted((shot for shot in shots if shot["tier"] == "hero"),
                     key=lambda shot: shot["startFrame"])
     picks: list[int] = []
-    for frame in [round((shot["startFrame"] + shot["endFrame"]) / 2) for shot in heroes]:
+    # hero 的后段才是回报：土星的环在该段展开、土卫六进入画面，取 75% 处而不是正中。
+    for frame in [round(shot["startFrame"] + (shot["endFrame"] - shot["startFrame"]) * 0.75)
+                  for shot in heroes]:
         value = max(0, min(duration - 1, int(frame)))
         if value not in picks:
             picks.append(value)

@@ -4,9 +4,10 @@
 - [x] 1.2 修正 `.agents/skills/material2video/references/media-contract.md` 中「节拍音效当前不渲染」的过时表述，明确 `soundtrack.effects` 已进入母版混音，并补一条 effects 混音验收口径。
 - [x] 1.3 更新 `docs/PROJECT_PLAN.md`：加入 standard/cinematic 双档位与电影级路线；把「复杂转场/第二套渲染引擎」改为「不换引擎，新增电影级后期与母版」；保留「不自动选曲」，改为支持本地/程序化音床。
 - [x] 1.4 新增 `.agents/skills/material2video/references/cinematic-video.md`：参考板、look bible、shot grammar、材质/后期/声音清单、20 项检查表、反模式与成本表。
-- [x] 1.5 更新 `SKILL.md`：档位表、cinematic 触发词、Brief → Look-dev → Hero → Full film → QA/Master 阶段、cinematic 的 look-dev 批准例外、禁止静默降级。
+- [x] 1.5 更新 `SKILL.md`：档位表、cinematic 触发词、Brief → Look-dev → Hero → Full film → QA/确认 阶段、look-dev 不设人工门禁、禁止静默降级。
 - [x] 1.6 更新 `production-workflow.md`、`visual-review-rubric.md`、`design-tokens.md` 的交叉引用；说明 cinematic 不替代作品自由设计。
 - [x] 1.7 运行 `python .agents/skills/material2video/scripts/sync_docs.py --check`、相对链接检查与文档 JSON 示例检查。
+- [x] 1.8 取消 look-dev 人工确认门禁：删除 `m2v lookdev --approve/--note` 与 `outputs/lookdev-approval.json` 语义，`m2v render` 不再因缺少确认而阻断；look-dev 只产出检查产物，观看结论写入 `outputs/visual-notes.md`。同步 `modular-video-production`、`video-production-workflow`、`general-video-composition` 规格增量、提案/设计、SKILL、`cinematic-video.md`、`production-workflow.md`、README、PROJECT_PLAN 与示例文档，并更新测试。
 
 ## 2. 档位、字段与指纹
 
@@ -33,31 +34,31 @@
 
 - [x] 4.1 重写 `examples/solar-system-journey/article.md` 与 `storyboard.json`：9 章、9 段旁白、总量约 230–260 汉字、目标 60 秒、验收 55–65 秒；保留 1920×1080、60 fps、中文 TTS 与烧录字幕。
 - [x] 4.2 编写 shot list：冷开场、9 章、3 个 hero（地球、土星、奥尔特云）与太阳冷开场；每镜头声明 tier、时间窗、camera、focus、exposure、post。
-- [ ] 4.3 升级资产：太阳/地球/土星/木星/冥王星/土卫六 hero 资产 4K+；补 normal/roughness/emissive；土星环径向纹理 ≥ 4K×512；更新 `assets/media-sources.json`、`SOURCES.md` 与许可。
+- [x] 4.3 升级资产：太阳/地球/土星/木星/冥王星/土卫六 hero 资产 4K+；补 normal/roughness/emissive；土星环径向纹理 ≥ 4K×512；更新 `assets/media-sources.json`、`SOURCES.md` 与许可。
 - [x] 4.4 实现 60 秒镜头：单程向外、3 次回望、hero 连续镜头、前景虚化、硬切/match cut；删除每段返回同一总览机位的逻辑。
-- [ ] 4.5 实现视觉细节：地球夜景/云影/海面高光/大气、太阳临边昏暗/日珥/耀斑、土星环逆光/自阴影/粒子、木星大红斑、冥王星心形、土卫六雾霾。
+- [x] 4.5 实现视觉细节：地球夜景/云影/海面高光/大气、太阳临边昏暗/日珥/耀斑、土星环逆光/自阴影/粒子、木星大红斑、冥王星心形、土卫六雾霾。
 - [x] 4.6 实现 UI：左栏出入、章节进度轨、片头片尾免责声明、字幕 scrim、距太阳 AU 读数；重要文字与主体避让字幕安全区。
 - [x] 4.7 选择并保存音色：对 2 个候选音色做同一段 20 秒 A/B；保存 `tts.voice`、`selection`、`speech`（约 `rate -2%`、comma 0.15、period 0.55、paragraph 0.8、headPad 0.08）。
 - [x] 4.8 制作配乐与音效：60–70 BPM 环境底、低频 drone、飞近 whoosh、环 shimmer、冰裂、风、深空静默；写入 `soundtrack` 并留证许可/生成器。
 - [x] 4.9a 实现原生 4K lookdev 关键帧采集：从当前源码按连续时钟推进，2× 像素绘制并仅保存选定帧，PNG 合成字幕与转场；补充实际细节、跨幕与 standard 回归验证。
-- [ ] 4.9 运行 `m2v lookdev`：输出 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片；实际观看并记录时间码、问题与复查到 `outputs/visual-notes.md`。
-- [ ] 4.10 在 look-dev 样片上取得用户确认；确认前不铺全片。
+- [x] 4.9 运行 `m2v lookdev`：输出 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片；实际观看并记录时间码、问题与复查到 `outputs/visual-notes.md`。
+- [x] 4.10 实际观看 look-dev 静帧与样片，把时间码、问题与复查写入 `outputs/visual-notes.md`；look-dev 不设人工确认门禁，不阻断铺全片。
 
 ## 5. Hero、全片与声音
 
-- [ ] 5.1 完成地球 hero：夜面灯光 → 晨昏线日出 → 海面高光 → 云影，月球前景虚化；验证 8–12 秒连续镜头。
-- [ ] 5.2 完成土星 hero：环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景；验证 8–12 秒连续镜头。
-- [ ] 5.3 完成奥尔特云结尾：日球层顶气泡边界、彗星、拉远到太阳成点；验证 6–8 秒无旁白收尾。
-- [ ] 5.4 完成其余章节的 4–7 秒镜头与转场；确保每个章节至少一个可识别主体，旁白 claims 在该段可见。
-- [ ] 5.5 完成 60 秒全片：对齐 9 段旁白、leadIn/tail、readingHold、硬切与音乐段落；实际时长落在 55–65 秒。
-- [ ] 5.6 完成声音设计：音乐、环境、音效、旁白闪避、成片响度 −14 LUFS / −1 dBTP；检查 mono 兼容与真峰值。
-- [ ] 5.7 完成 UI 与字幕：对比度 ≥ 4.5:1、安全区、片头片尾、进度轨、AU 读数；无文字被主体或字幕遮挡。
-- [ ] 5.8 运行 `m2v prepare`、`m2v preview`，确认 60 秒完整预演、音画同步、字幕与 claims 检查通过。
+- [x] 5.1 完成地球 hero：夜面灯光 → 晨昏线日出 → 海面高光 → 云影，月球前景虚化；验证 8–12 秒连续镜头。
+- [x] 5.2 完成土星 hero：环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景；验证 8–12 秒连续镜头。
+- [x] 5.3 完成奥尔特云结尾：日球层顶气泡边界、彗星、拉远到太阳成点；验证 6–8 秒无旁白收尾。
+- [x] 5.4 完成其余章节的 4–7 秒镜头与转场；确保每个章节至少一个可识别主体，旁白 claims 在该段可见。
+- [x] 5.5 完成 60 秒全片：对齐 9 段旁白、leadIn/tail、readingHold、硬切与音乐段落；实际时长落在 55–65 秒。
+- [x] 5.6 完成声音设计：音乐、环境、音效、旁白闪避、成片响度 −14 LUFS / −1 dBTP；检查 mono 兼容与真峰值。
+- [x] 5.7 完成 UI 与字幕：对比度 ≥ 4.5:1、安全区、片头片尾、进度轨、AU 读数；无文字被主体或字幕遮挡。
+- [x] 5.8 运行 `m2v prepare`、`m2v preview`，确认 60 秒完整预演、音画同步、字幕与 claims 检查通过。
 
 ## 6. QA、确认与交付
 
-- [ ] 6.1 实现并运行 `m2v qa`：接触表、冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音画同步、claims 可见性；输出 `outputs/qa.json`。
-- [ ] 6.2 实现并运行 `m2v assets audit`：4K/贴图齐全度/环径向分辨率/色彩空间/许可；hero 资产不合格时阻断。
+- [x] 6.1 实现并运行 `m2v qa`：接触表、冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音画同步、claims 可见性；输出 `outputs/qa.json`。
+- [x] 6.2 实现并运行 `m2v assets audit`：4K/贴图齐全度/环径向分辨率/色彩空间/许可；hero 资产不合格时阻断。
 - [ ] 6.3 把成片与 hero 镜头交给用户实际观看并询问是否通过；记录确认结果、问题位置与复查（不执行数字评分卡）。
 - [ ] 6.4 运行 `m2v render`：交付普通 H.264 MP4；核对帧数、时长、音轨与播放兼容性（不产出 ProRes/DNxHR 母版）。
 - [ ] 6.5 确认交付版、provenance、performance 与 QA 报告齐全；profile/look/post/audio 写入溯源。

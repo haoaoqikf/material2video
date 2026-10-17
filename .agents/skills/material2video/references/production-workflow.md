@@ -40,25 +40,25 @@ preview 只做**字幕量测**（安全区矩形、换行范围与可见性）�
 ## cinematic 分支
 
 作品在 `project.json` 声明 `productionProfile: "cinematic"`（或 `prepare --profile cinematic`）后，
-流程改为五个阶段，且**多一道用户确认**：
+流程改为五个阶段；look-dev **不新增用户确认**，产出静帧与样片并实际观看后即可继续：
 
 ```powershell
 uv run m2v validate --project videos/general/<slug>
-uv run m2v lookdev --project videos/general/<slug>   # 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片
-# 用户实际观看并确认后，才继续铺全片
 uv run m2v prepare --project videos/general/<slug>
+uv run m2v lookdev --project videos/general/<slug>   # 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片
+# 实际观看静帧与样片，把时间码、问题与复查写进 outputs/visual-notes.md；不阻断后续步骤
 uv run m2v preview --project videos/general/<slug>
 uv run m2v qa --project videos/general/<slug>        # 技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>     # 普通 H.264 MP4 交付
 ```
 
-- 阶段为 **Brief → Look-dev → Hero → Full film → QA/确认**；look-dev 未获批准时不得继续，
-  这是 standard「自动通过」的唯一例外。
+- 阶段为 **Brief → Look-dev → Hero → Full film → QA/确认**；look-dev 只产出检查产物，
+  不设人工门禁，`m2v render` 不因缺少观看或确认记录而阻断。
 - shot list、look、`claims`、`leadInFrames` / `tailFrames` / `readingHoldFrames` 都是分镜的可选
   字段，进入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
 - 不执行数字评分卡：技术 QA 与 hero 实看完成后，把成片交给用户观看并直接询问是否通过；
-  确认结果写入 `outputs/visual-notes.md`，用户指出的问题记录位置与复查结果。
+  这是唯一保留的用户确认，确认结果写入 `outputs/visual-notes.md`，用户指出的问题记录位置与复查结果。
 - 参考板、look bible、20 项检查表、反模式与成本见[电影级制作档位](cinematic-video.md)。
 
 档位、镜头/look 字段与 cinematic 命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是
