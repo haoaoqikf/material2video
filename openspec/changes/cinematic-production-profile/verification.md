@@ -125,9 +125,9 @@
 
 ### cinematic 入口接线（6.1、6.2、6.5 的一部分）
 
-\m2v lookdev\、\m2v qa\、\m2v assets audit\ 三个入口已接进统一命令分发：各自解析参数（静帧张数、样片长度、抽样步长、档位、待检查成片），并在 \main()\ 里先做类型守卫——**只服务 general 作品**，金融与住宅会拿到明确的一句话而不是难懂的失败。README 与 SKILL 的命令清单同步更新。
+`m2v lookdev`、`m2v qa`、`m2v assets audit` 三个入口已接进统一命令分发：各自解析参数（静帧张数、样片长度、抽样步长、档位、待检查成片），并在 `main()` 里先做类型守卫——**只服务 general 作品**，金融与住宅会拿到明确的一句话而不是难懂的失败。README 与 SKILL 的命令清单同步更新。
 
-\m2v master\ 与 ender --profile cinematic\ 仍未接线（依赖 6.4 的 cinematic 编码）。
+`m2v master` 与 ender --profile cinematic` 仍未接线（依赖 6.4 的 cinematic 编码）。
 
 ## 阶段验证结果
 
