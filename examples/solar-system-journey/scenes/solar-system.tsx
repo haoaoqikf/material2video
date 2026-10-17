@@ -51,7 +51,7 @@ function World({textures, targets, active, seconds}: {
     <ambientLight intensity={0.3}/>
     <pointLight position={[0, 0, 0]} intensity={4.2} decay={0} color="#fff0d7"/>
     {/* 星点收小收暗：之前 2200 颗 1.6px 被 Bloom 糊成星云，深空变成了蓝雾。 */}
-    <Starfield count={900} radius={900} seed="solar-system" size={1.05} opacity={0.4}/>
+    <Starfield count={900} radius={900} seed="solar-system" size={0.9} opacity={0.28}/>
     <group>
       <SunSurface radius={LAYOUT.sun.radius} color="#ffb44d" hotColor="#fff1c2" granulation={0.65}/>
       <Corona radius={LAYOUT.sun.radius} color="#ff9a3c" intensity={0.85} power={3.1}/>

@@ -546,9 +546,9 @@ export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'promin
       const arc = 0.35 + random() * 0.5;
       const scale = radius * (0.18 + random() * height);
       return {
-        position: [Math.sin(phi) * Math.cos(theta) * radius * 0.98,
-                   Math.cos(phi) * radius * 0.98,
-                   Math.sin(phi) * Math.sin(theta) * radius * 0.98] as Vec3,
+        position: [Math.sin(phi) * Math.cos(theta) * radius * 0.86,
+                   Math.cos(phi) * radius * 0.86,
+                   Math.sin(phi) * Math.sin(theta) * radius * 0.86] as Vec3,
         rotation: [phi, theta, 0] as Vec3,
         arc, scale, phase: random() * Math.PI * 2,
       };
