@@ -29,7 +29,7 @@
               "mode": "look"
             },
             "motion": {
-              "subframes": 2,
+              "subframes": 1,
               "supersample": 1
             }
           },
