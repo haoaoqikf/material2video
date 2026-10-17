@@ -76,7 +76,7 @@ function World({textures, targets, active, seconds}: {
     <ParticleBelt count={2200} innerRadius={86} outerRadius={106} thickness={2.4} seed="kuiper"
       color="#9fb6cf" size={0.22} spin={0.012}/>
     <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#8fb6ff" size={0.5}
-      bubble={132} bubbleColor="#6fa8ff" bubbleOpacity={0.1}/>
+      bubble={132} bubbleColor="#3d6fa8" bubbleOpacity={0.022}/>
     <Comet position={[96, 12, 150]} radius={0.5} tailLength={22} tailRadius={1.4} sunPosition={[0, 0, 0]}/>
     <CameraRig targets={targets} target={[0, 0, 0]} near={0.02} far={4000}/>
     <PostFX/>
