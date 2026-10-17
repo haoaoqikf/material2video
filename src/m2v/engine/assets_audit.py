@@ -121,6 +121,8 @@ def main(argv: list[str] | None = None) -> int:
     from m2v.types.general import cinematic, media_assets
     from m2v.types.general.explainer_render import current
     root, manifest = load_project(args.project)
+    if manifest["type"] != "general":
+        raise M2VError("m2v assets audit 仅适用于 general 作品")
     prepared = current(root, manifest)
     profile, _source = cinematic.resolve_profile(manifest, args.profile)
     report = audit(root, prepared, media_assets.load_record(root), profile=profile)

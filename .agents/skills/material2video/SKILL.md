@@ -39,8 +39,9 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 cinematic 按 **Brief → Look-dev → Hero → Full film → QA/Master** 五个阶段推进，每阶段有产出与
 放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`、`m2v master` 与
-`m2v render --profile cinematic`。字段、清单、评分卡、反模式与成本见
-[电影级制作档位](references/cinematic-video.md)。
+`m2v render --profile cinematic`。其中 `lookdev`、`qa`、`assets audit` 已接线并只服务 general
+作品（其他类型会明确拒绝）；`master` 与 `render --profile cinematic` 仍在实施中。字段、清单、
+评分卡、反模式与成本见[电影级制作档位](references/cinematic-video.md)。
 
 **look-dev 批准是「不新增用户逐次确认」的唯一例外**：standard 维持自动通过；cinematic 必须在
 关键静帧与代表片段上停下来给用户实际观看，确认后才铺全片。未获批准时不得继续，也不得把
@@ -61,6 +62,9 @@ uv run m2v preview --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
+uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、接触表与有声样片
+uv run m2v qa --project videos/general/<slug>       # cinematic：技术 QA，输出 outputs/qa.json
+uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可审计
 ```
 
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60` 生成计划。

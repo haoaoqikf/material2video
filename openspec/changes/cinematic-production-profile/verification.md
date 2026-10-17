@@ -125,7 +125,7 @@
 
 ## 阶段验证结果
 
-- 完整 Python 回归：收集 568 项、564 项通过、4 项跳过、无失败。
+- 完整 Python 回归：收集 573 项、569 项通过、4 项跳过、无失败。
 - 前端：`pnpm -C web test` 4 个文件 58 项通过；`pnpm -C web build`（含 `tsc --noEmit`）通过，保留既有 chunk 体积提示。
 - 文档相对链接 78 项、JSON 示例 13 项全部有效；`sync_docs.py --check` 无漂移。
 - 三个示例严格检查通过：太阳系新分镜的九段旁白都在重写后的源文里，README 与 DESIGN 同步到 60 秒 cinematic 版本。

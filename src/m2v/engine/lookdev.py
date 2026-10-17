@@ -160,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     from m2v.types.general.explainer_render import current
     root, manifest = load_project(args.project)
+    if manifest["type"] != "general":
+        raise M2VError("m2v lookdev 仅适用于 general 作品")
     prepared = current(root, manifest)
     result = run(root, manifest, prepared, stills=args.stills, sample_seconds=args.sample_seconds)
     print(json.dumps(result, ensure_ascii=False, indent=2))

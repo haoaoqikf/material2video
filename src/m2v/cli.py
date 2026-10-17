@@ -62,6 +62,19 @@ def _parser() -> argparse.ArgumentParser:
             item.add_argument("--pause-period", type=float, metavar="SECONDS", help="句号、问号处的停顿秒数")
             item.add_argument("--pause-paragraph", type=float, metavar="SECONDS", help="段末停顿秒数")
             item.add_argument("--head-pad", type=float, metavar="SECONDS", help="每段口播开头的静音长度")
+    lookdev = sub.add_parser("lookdev", help="cinematic look-dev：4K 静帧、接触表与有声样片")
+    lookdev.add_argument("--project", required=True)
+    lookdev.add_argument("--stills", type=int, default=4, help="静帧张数，3～5")
+    lookdev.add_argument("--sample-seconds", type=int, default=24, help="样片长度，20～30 秒")
+    qa = sub.add_parser("qa", help="cinematic 技术 QA：接触表、冻结帧、响度、claims")
+    qa.add_argument("--project", required=True)
+    qa.add_argument("--profile", choices=("standard", "cinematic"))
+    qa.add_argument("--video", help="待检查的成片；省略时取交付目录里的 video.mp4")
+    qa.add_argument("--step", type=int, default=30, help="抽样步长（帧）")
+    assets = sub.add_parser("assets", help="资产质量与许可审计")
+    assets.add_argument("workflow", choices=("audit",))
+    assets.add_argument("--project", required=True)
+    assets.add_argument("--profile", choices=("standard", "cinematic"))
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)
     migrate.add_argument("--from", dest="source_format", required=True, choices=("financial",))
@@ -265,6 +278,23 @@ def main(argv: list[str] | None = None) -> int:
             (root / manifest["materials"]["plan"]).write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"已生成 {plan['durationSeconds']} 秒金融折线计划")
             return 0
+        if args.command in {"lookdev", "qa", "assets"}:
+            # 三个 cinematic 入口各自解析自己的参数；这里只做统一分发。
+            from m2v.engine import assets_audit, lookdev as lookdev_engine, qa as qa_engine
+            if args.command == "lookdev":
+                return lookdev_engine.main(["--project", args.project, "--stills", str(args.stills),
+                                            "--sample-seconds", str(args.sample_seconds)])
+            if args.command == "qa":
+                options = ["--project", args.project, "--step", str(args.step)]
+                if args.profile:
+                    options += ["--profile", args.profile]
+                if args.video:
+                    options += ["--video", args.video]
+                return qa_engine.main(options)
+            options = ["--project", args.project]
+            if args.profile:
+                options += ["--profile", args.profile]
+            return assets_audit.main(options)
         if args.command == "init":
             item = registry.get(args.type)
             entry = catalog.catalog().get(item.name)
