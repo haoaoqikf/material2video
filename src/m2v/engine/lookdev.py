@@ -21,6 +21,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.engine import audio, perf, remotion
+from m2v.engine.http_server import LocalServer
 
 #: 静帧张数与放大倍数：4K 静帧是 cinematic look-dev 的最低要求。
 DEFAULT_STILLS = 4
@@ -110,10 +111,14 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
     frames = still_frames(prepared, stills)
     start, end = sample_window(prepared, sample_seconds)
     timings = perf.StageTimings()
-    with tempfile.TemporaryDirectory(prefix="m2v-lookdev-", dir=outputs) as temporary:
+    # 画面里的代码片段按相对路径引用，必须像正式渲染那样由本地服务器提供作品根：
+    # 少了这一步，composition 会去 bundle 的静态目录找片段并报 404。
+    with LocalServer(root, cors=True) as server, \
+            tempfile.TemporaryDirectory(prefix="m2v-lookdev-", dir=outputs) as temporary:
         work = Path(temporary)
         props_file = work / "props.json"
-        props_file.write_text(json.dumps(prepared["props"], ensure_ascii=False), encoding="utf-8")
+        props_file.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"},
+                                         ensure_ascii=False), encoding="utf-8")
         bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
                                  storyboard_path=entry, content_root=root.parent,
                                  workspace_root=root.parent, cache=True)
