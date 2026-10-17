@@ -1,4 +1,4 @@
-"""可信 React 场景构建与实时录制。录制产物是准备输入，导出不运行作品代码。
+"""可信 React 场景构建与逐帧录制。录制产物是准备输入，导出不运行作品代码。
 
 v8 的作品代码控制整张画布：录制 viewport、页面根元素、ffmpeg 标准化与 composition
 都用作品声明的画幅。共享层只提供片段回放与字幕，不再画标题或内容框。
@@ -53,7 +53,7 @@ def validate_entry(root: Path, entry: object, props: object) -> None:
 def implementation_inputs() -> dict[str, str]:
     files = [Path(__file__), WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
              WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
-             *sorted((WEB / "src/code-scene").glob("*.tsx")), *sorted((WEB / "public/fonts").glob("*"))]
+             *sorted((WEB / "src/code-scene").glob("*.tsx")), *sorted((WEB / "src/code-scene").glob("*.js")), *sorted((WEB / "public/fonts").glob("*"))]
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
@@ -92,13 +92,13 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
             executable = Path(browser_version)
             key = fingerprint({"config": config, "media": media_digest, "sources": source_inputs,
                                "implementation": implementation_inputs(),
-                               "browser": digest(executable), "size": [width, height], "capture": "cdp-png-444-v2"})
+                               "browser": digest(executable), "size": [width, height], "capture": "fixed-clock-png-444-v3"})
             output = cache / f"{key}.mp4"
             receipt = cache / f"{key}.json"
             if output.is_file() and receipt.is_file() and receipt.read_text() == digest(output):
                 logger.info("代码场景 %s 复用录制缓存", scene["id"])
             else:
-                logger.info("代码场景 %s 开始实时录制：%.2f 秒，%d×%d",
+                logger.info("代码场景 %s 开始逐帧录制：%.2f 秒，%d×%d",
                             scene["id"], config["durationInFrames"] / FPS, width, height)
                 _capture(pw, root, work, config)
                 _encode(work, output, config["durationInFrames"], width, height)
@@ -109,7 +109,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
 
 
 def _capture(pw, root: Path, work: Path, config: dict) -> None:
-    """CDP 帧含真实时间戳；逐帧落盘，避免把长视频帧留在内存。"""
+    """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。"""
     errors: list[str] = []
     width, height = config["width"], config["height"]
     config_text = json.dumps(config, ensure_ascii=True).replace("<", "\\u003c")
@@ -122,7 +122,7 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
     # 只开放已登记媒体与批准字体，不暴露作品配置、源文、导入记录或 assets 下的其他文件。
     mounts = {"/fonts": WEB / "public/fonts"}
     files = media_files(root, config["media"])
-    with LocalServer(work, mounts=mounts, files=files) as server:
+    with LocalServer(work, mounts=mounts, files=files, cors=True) as server:
         browser = pw.chromium.launch(headless=True, args=["--autoplay-policy=no-user-gesture-required"])
         try:
             context = browser.new_context(viewport={"width": width, "height": height}, device_scale_factor=1,
@@ -134,6 +134,7 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
                 else:
                     errors.append("代码场景禁止外网请求：" + url)
                     route.abort()
+            context.add_init_script(path=str(WEB / "src/code-scene/capture-clock.js"))
             context.route("**/*", route_request)
             context.route_web_socket("**/*", lambda route: (errors.append("代码场景禁止 WebSocket"), route.close()))
             page = context.new_page()
@@ -144,40 +145,26 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
             while not page.evaluate("Boolean(window.__M2V_CODE__?.ready)"):
                 if errors or time.monotonic() >= deadline:
                     raise M2VError("代码场景就绪失败：" + "; ".join(errors or ["30 秒内未调用 ready() / 字体或素材未就绪"]))
-                page.wait_for_timeout(50)
+                page.evaluate("window.__M2V_CAPTURE_CLOCK__.bootstrap()")
             session = context.new_cdp_session(page)
-            frames: list[tuple[str, float]] = []
-            def on_frame(event):
-                name = f"frame-{len(frames):06d}.png"
-                (work / name).write_bytes(base64.b64decode(event["data"]))
-                frames.append((name, event["metadata"]["timestamp"]))
-                session.send("Page.screencastFrameAck", {"sessionId": event["sessionId"]})
-            session.on("Page.screencastFrame", on_frame)
-            # PNG 而不是 JPEG：作品画面本就要与片段直接对齐，JPEG 的色度子采样会在
-            # 纯色区域显出可见的方块边缘。
-            session.send("Page.startScreencast", {"format": "png", "maxWidth": width, "maxHeight": height, "everyNthFrame": 1})
-            # 初始画面在 start 前采集，所有后续时序以浏览器实际开始时间为零。
-            page.wait_for_timeout(50)
-            start = page.evaluate("() => {window.__M2V_CODE__.start(); return Date.now()/1000;}")
-            deadline = time.monotonic() + config["durationInFrames"] / FPS
-            while time.monotonic() < deadline:
+            started = time.monotonic()
+            page.evaluate("window.__M2V_CODE__.start()")
+            total = config["durationInFrames"]
+            for frame_index in range(total):
+                # 截图期间时钟冻结，超时使用注入前保留的原生真实定时器。
+                try:
+                    page.evaluate("""([frame, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
+                        window.__M2V_CODE__.advanceToFrame(frame), timeout)""", [frame_index, READY_TIMEOUT_MS])
+                except Exception as exc:
+                    raise M2VError(f"代码场景第 {frame_index} 帧绘制失败：{exc}") from exc
                 if errors:
-                    raise M2VError("代码场景运行失败：" + "; ".join(errors[:5]))
-                page.wait_for_timeout(min(100, max(1, (deadline-time.monotonic())*1000)))
-            session.send("Page.stopScreencast")
-            if errors or not frames:
-                raise M2VError("代码场景录制失败：" + "; ".join(errors or ["没有捕获画面"]))
-            duration = config["durationInFrames"] / FPS
-            # 丢弃就绪前导，保留起点之前最近的已绘制帧作为 t=0 画面。
-            chosen = [(name, max(0., stamp-start)) for name, stamp in frames if stamp <= start+duration]
-            initial = max((i for i, (_, stamp) in enumerate(chosen) if stamp == 0), default=0)
-            chosen = chosen[initial:]
-            lines = []
-            for index, (name, stamp) in enumerate(chosen):
-                end = chosen[index+1][1] if index+1 < len(chosen) else duration
-                lines.extend([f"file '{name}'", f"duration {max(.001, end-stamp):.9f}"])
-            lines.append(f"file '{chosen[-1][0]}'")
-            (work / "frames.txt").write_text("\n".join(lines), encoding="utf-8")
+                    raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
+                # CDP 截取已完成绘制的画面；不依赖 screencast 的实时投递频率。
+                shot = session.send("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False,
+                                                               "optimizeForSpeed": True})
+                (work / f"frame-{frame_index:06d}.png").write_bytes(base64.b64decode(shot["data"]))
+                if frame_index % 300 == 0 or frame_index + 1 == total:
+                    logger.info("代码场景逐帧采集 %d/%d，耗时 %.1f 秒", frame_index + 1, total, time.monotonic() - started)
         except M2VError:
             raise
         except Exception as exc:
@@ -223,7 +210,16 @@ def _encode(work: Path, output: Path, frames: int, width: int, height: int) -> N
     temporary = work / "encoded.mp4"
     # yuv444p 而不是 yuv420p：片段会与作品画布直接拼接，4:2:0 的色度抽样会让底色偏
     # 一两个色阶，在深色画面上显出方块边缘；4:4:4 的往返对纯色是精确的。
-    audio.ffmpeg(["-f", "concat", "-safe", "0", "-i", str(work / "frames.txt"), "-an", "-vf",
-                  f"fps={FPS},scale={width}:{height},tpad=stop_mode=clone:stop_duration=1",
-                  "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p", "-crf", "18", str(temporary)])
+    captured = sorted(work.glob("frame-*.png"))
+    if len(captured) != frames or any(path.name != f"frame-{i:06d}.png" for i, path in enumerate(captured)):
+        raise M2VError("代码场景采集帧缺失，拒绝补帧编码")
+    audio.ffmpeg(["-framerate", str(FPS), "-start_number", "0", "-i", str(work / "frame-%06d.png"),
+                  "-an", "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p", "-crf", "18", str(temporary)])
+    # 解码实际帧数，不能仅相信容器时长或声明帧率。
+    from imageio_ffmpeg import get_ffmpeg_exe
+    result = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(temporary), "-map", "0:v:0",
+                             "-f", "framehash", "-"], capture_output=True, text=True, timeout=300)
+    decoded = sum(bool(line.strip()) and not line.startswith("#") for line in result.stdout.splitlines())
+    if result.returncode or decoded != frames:
+        raise M2VError(f"代码场景编码帧数不符：期望 {frames}，实际 {decoded}")
     security.deliver(temporary, output)

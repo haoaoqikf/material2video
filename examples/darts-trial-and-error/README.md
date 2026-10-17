@@ -38,3 +38,5 @@ uv run m2v render --project examples/darts-trial-and-error
 
 字段见 [分镜结构](../../.agents/skills/material2video/references/storyboard-schema.md) 与
 [制作流程](../../.agents/skills/material2video/references/production-workflow.md)。
+
+录制采用共享受控时钟按 60 fps 顺序逐帧采集，等待本帧动画及绘制完成再截图；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧实时录制缓存不复用。

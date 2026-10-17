@@ -41,3 +41,5 @@ uv run m2v render --project examples/solar-system-journey
 ```
 
 项目已保存服务返回音色中的云扬和选择理由。准备与源文审查记录位于本例 outputs/，完整预演和成片位于 videos/examples/solar-system-journey/outputs/；三张交付关键画面放在该作品的 stills/。代码、源文、设计稿、固定纹理和来源记录纳入 Git，生成媒体不入库。
+
+录制采用共享受控时钟按 60 fps 顺序逐帧采集，等待本帧动画及绘制完成再截图；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧实时录制缓存不复用。

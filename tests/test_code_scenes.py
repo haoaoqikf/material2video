@@ -1,4 +1,4 @@
-"""本地 React 代码场景：入口边界、构建隔离、实时录制与缓存复用。"""
+"""本地 React 代码场景：入口边界、构建隔离、逐帧录制与缓存复用。"""
 from __future__ import annotations
 
 import json

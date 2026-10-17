@@ -40,7 +40,7 @@ uv run m2v render --project videos/general/<slug>
    不接受整段字符串；代码幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
    通用 v8 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 24 帧阅读时间；
-   `code` 幕在这一步实时录制片段并按摘要缓存（见 [渲染契约](render-contract.md)）。
+   `code` 幕在这一步逐帧录制片段并按摘要缓存（见 [渲染契约](render-contract.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
 4. `m2v preview --project <目录>` 生成完整预演（通用 v8 会先跑浏览器字幕量测）；
    `m2v general keyframes --storyboard <分镜>` 单独输出各幕结果帧供静态检查。

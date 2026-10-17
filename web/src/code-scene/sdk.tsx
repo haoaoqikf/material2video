@@ -1,4 +1,4 @@
-/** 可信作品代码场景 API；只在实时录制页使用，不进入 Remotion composition。 */
+/** 可信作品代码场景 API；只在逐帧录制页使用，不进入 Remotion composition。 */
 import {createContext, useContext, useEffect, useRef} from 'react';
 import * as echarts from 'echarts';
 import type {SubtitleSafeArea} from '../frames';

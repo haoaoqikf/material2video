@@ -32,4 +32,5 @@ def test_code_scene_contract_is_documented():
     assert "subtitleSafeArea" in schema and "useMediaAsset" in schema
     assert "1920×1080" in schema and "1080×1920" in schema
     render = (ROOT / "render-contract.md").read_text(encoding="utf-8")
-    assert "代码场景不在确定性闸门内" in render and "契约页（`version: 6`）" in render
+    assert "代码场景的顺序逐帧采集" in render and "契约页（`version: 6`）" in render
+    assert "不使用 fps 重采样或尾帧复制" in render and "不支持倒序或跳帧" in render

@@ -51,7 +51,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 股票和指数仍按价格或点位比缩放本金；crypto 可指定买入日与 CNY 本金，组合展示价值 = 本金 ×（当前 BTC/USD 收盘价 ÷ 买入日收盘价）×（当日或此前最近 USD/CNY 汇率 ÷ 买入日可用汇率）。crypto 请求还可提供法律地位说明，替换该作品默认估值口径行与通用风险提示；其他作品默认说明不变。prices v4 独立保存汇率来源、观测和原始快照；周末/假日使用最近此前汇率。详见[金融时间序列制作说明](.agents/skills/material2video/references/financial-timeseries-video.md)。
 
-通用讲解与素材剪辑合并到 `general` 一个入口：分镜为 v8 全画布代码场景，每一幕都是作品 `scenes/` 下的本地 React 组件，画幅、配色、构图与动效都由作品代码决定；代码场景由准备阶段按画幅实时录制、按源码/画幅/字幕几何/媒体摘要缓存，完整预演与导出复用同一段已验收片段，只允许批准的共享依赖且不访问外网，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。画幅只支持 1920×1080 横屏与 1080×1920 竖屏，两边都省略时取横屏。`input.kind` 为 `article` 时绑定 `article.md` 并先完成源文语义审查，为 `topic` 时只声明 `input.topic`、跳过源文审查，由逐幕 `keywords` 驱动可选图库检索。
+通用讲解与素材剪辑合并到 `general` 一个入口：分镜为 v8 全画布代码场景，每一幕都是作品 `scenes/` 下的本地 React 组件，画幅、配色、构图与动效都由作品代码决定；代码场景由准备阶段按画幅逐帧录制、按源码/画幅/字幕几何/媒体摘要缓存，完整预演与导出复用同一段已验收片段，只允许批准的共享依赖且不访问外网，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。画幅只支持 1920×1080 横屏与 1080×1920 竖屏，两边都省略时取横屏。`input.kind` 为 `article` 时绑定 `article.md` 并先完成源文语义审查，为 `topic` 时只声明 `input.topic`、跳过源文审查，由逐幕 `keywords` 驱动可选图库检索。
 
 媒体进入作品只有一条路：把候选写进导入清单后执行 `m2v general assets import --project <目录> --manifest <清单>`，工具下载或复制素材、实测真实类型与尺寸、按内容摘要落盘到 `assets/media/`，并把来源页、作者、许可、实测像素尺寸、时长与文件摘要写进 `assets/media-sources.json`。准备阶段复核**全部**登记素材，把「素材 ID → 本地地址与实测信息」注入作品代码，作品用 `useMediaAsset(id)` 取用；素材比例不受画幅限制，裁切与摆位由作品决定。录制期本地服务器只暴露登记过的素材与仓库字体，作品拿不到 `assets/` 下的其他文件，也不访问外部网络；被替换过或记录缺失的素材都会让制作失败。可选图库检索用 `m2v general assets search --project <目录>`，支持 Pexels 与 Pixabay（凭据只从环境变量读取：`M2V_PEXELS_API_KEY`、`M2V_PIXABAY_API_KEY`），没有候选不算失败，助手也可以改用其他公开媒体直链再统一导入留证。
 
@@ -95,4 +95,4 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 | `window.__A2V__`、`a2v-storyboard`、`/__a2v_web__/` | `window.__M2V__`、`m2v-storyboard`、`/__m2v_web__/` |
 | `a2v-` / `data-a2v-` / `--a2v-` 样式与属性前缀 | `m2v-` / `data-m2v-` / `--m2v-` |
 
-旧命令与旧环境变量不再支持。当前通用类型为 `general`，使用 v8 `storyboard.json`，辅助命令为 `m2v general`；原 `article-narrative` 身份、`m2v article`、`general-plan.json` 编排、六种受控模板、视觉主题与完整片段嵌入已删除；画面以 v8 的全画布实时录制链路提供，入口是作品 `scenes/` 下的 TSX。旧材料不自动迁移，旧版分镜需重新编排。修改材料后重新 `prepare` 和完整 `preview`，通过自动验收后导出；人工画面评审为可选工具。
+旧命令与旧环境变量不再支持。当前通用类型为 `general`，使用 v8 `storyboard.json`，辅助命令为 `m2v general`；原 `article-narrative` 身份、`m2v article`、`general-plan.json` 编排、六种受控模板、视觉主题与完整片段嵌入已删除；画面以 v8 的全画布逐帧录制链路提供，入口是作品 `scenes/` 下的 TSX。旧材料不自动迁移，旧版分镜需重新编排。修改材料后重新 `prepare` 和完整 `preview`，通过自动验收后导出；人工画面评审为可选工具。
