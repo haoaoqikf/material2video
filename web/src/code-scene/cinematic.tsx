@@ -266,7 +266,7 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
       {settings.bloom > 0
-        ? <Bloom intensity={settings.bloom} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur/>
+        ? <Bloom intensity={settings.bloom} luminanceThreshold={0.82} luminanceSmoothing={0.12} mipmapBlur/>
         : <></>}
       {settings.dof > 0
         ? <DepthOfField focusDistance={focusDistance}
@@ -560,8 +560,8 @@ export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'promin
         const pulse = 0.75 + 0.25 * Math.sin(elapsedSeconds * speed * Math.PI * 2 + item.phase);
         return (
           <mesh key={index} position={item.position} rotation={item.rotation}>
-            <torusGeometry args={[item.scale, radius * 0.016 * pulse, 24, 64, item.arc]}/>
-            <meshBasicMaterial color={color} transparent opacity={0.45} blending={THREE.AdditiveBlending}/>
+            <torusGeometry args={[item.scale, radius * 0.026 * pulse, 24, 64, item.arc]}/>
+            <meshBasicMaterial color={color} transparent opacity={0.62} blending={THREE.AdditiveBlending}/>
           </mesh>
         );
       })}
