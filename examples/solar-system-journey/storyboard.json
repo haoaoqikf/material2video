@@ -17,24 +17,6 @@
         "title": "太阳系之旅：从太阳到奥尔特云",
         "entry": "scenes/journey.tsx",
         "props": {
-          "targets": [
-            "sun",
-            "mercury",
-            "venus",
-            "earth",
-            "moon",
-            "mars",
-            "ceres",
-            "jupiter",
-            "europa",
-            "saturn",
-            "titan",
-            "uranus",
-            "neptune",
-            "pluto",
-            "heliopause",
-            "oort"
-          ],
           "look": {
             "profile": "deep-space-cinematic",
             "lut": "deep-space",
@@ -42,8 +24,14 @@
             "dof": 0.45,
             "grain": 0.35,
             "vignette": 0.45,
-            "exposure": {"ev": -0.2, "mode": "look"},
-            "motion": {"subframes": 3, "supersample": 2}
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 3,
+              "supersample": 2
+            }
           },
           "shots": [
             {
@@ -52,10 +40,46 @@
               "tier": "minor",
               "startFrame": 0,
               "endFrame": 300,
-              "focus": {"target": "sun", "from": 2.6, "to": 3.4, "aperture": 2.8},
-              "exposure": {"ev": -0.4, "mode": "shot"},
-              "post": {"bloom": 1, "dof": 0.5, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.3, "lut": "deep-space"},
-              "note": "日面边缘极特写，日珥升起；无旁白"
+              "focus": {
+                "target": "sun",
+                "from": 2.6,
+                "to": 3.4,
+                "aperture": 2.8
+              },
+              "exposure": {
+                "ev": -0.4,
+                "mode": "shot"
+              },
+              "post": {
+                "bloom": 1,
+                "dof": 0.5,
+                "grain": 0.4,
+                "vignette": 0.5,
+                "chromaticAberration": 0.3,
+                "lut": "deep-space"
+              },
+              "note": "日面边缘极特写，日珥升起；无旁白",
+              "camera": {
+                "path": [
+                  [
+                    3.132,
+                    0.35,
+                    1.324
+                  ],
+                  [
+                    3.435,
+                    0.625,
+                    2.907
+                  ],
+                  [
+                    3.141,
+                    0.85,
+                    4.392
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "sun-pullback",
@@ -64,9 +88,40 @@
               "segment": "sun-0",
               "startFrame": 300,
               "endFrame": 559,
-              "focus": {"target": "sun", "distance": 8},
-              "post": {"bloom": 0.9, "dof": 0.2, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.18, "lut": "deep-space"},
-              "note": "从日面拉到总览，日冕与轨道渐显"
+              "focus": {
+                "target": "sun",
+                "distance": 8
+              },
+              "post": {
+                "bloom": 0.9,
+                "dof": 0.2,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.18,
+                "lut": "deep-space"
+              },
+              "note": "从日面拉到总览，日冕与轨道渐显",
+              "camera": {
+                "path": [
+                  [
+                    3.141,
+                    0.85,
+                    4.392
+                  ],
+                  [
+                    1.983,
+                    1.275,
+                    6.505
+                  ],
+                  [
+                    -0.239,
+                    1.7,
+                    8.197
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "inner-planets",
@@ -75,9 +130,40 @@
               "segment": "inner-0",
               "startFrame": 559,
               "endFrame": 842,
-              "focus": {"target": "venus", "distance": 4.5},
-              "post": {"bloom": 0.55, "dof": 0.35, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
-              "note": "水星陨坑掠过，落在金星云顶"
+              "focus": {
+                "target": "venus",
+                "distance": 4.5
+              },
+              "post": {
+                "bloom": 0.55,
+                "dof": 0.35,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.12,
+                "lut": "deep-space"
+              },
+              "note": "水星陨坑掠过，落在金星云顶",
+              "camera": {
+                "path": [
+                  [
+                    -0.239,
+                    1.7,
+                    8.197
+                  ],
+                  [
+                    -5.121,
+                    1.325,
+                    9.281
+                  ],
+                  [
+                    -10.791,
+                    0.95,
+                    7.25
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "earth-hero",
@@ -86,10 +172,62 @@
               "segment": "home-0",
               "startFrame": 842,
               "endFrame": 1335,
-              "focus": {"target": "earth", "from": 9, "to": 3.4, "aperture": 2.8},
-              "exposure": {"ev": -0.3, "mode": "shot"},
-              "post": {"bloom": 0.7, "dof": 0.6, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
-              "note": "夜面灯光 → 晨昏线日出 → 海面高光 → 云影；月球前景虚化"
+              "focus": {
+                "target": "earth",
+                "from": 9,
+                "to": 3.4,
+                "aperture": 2.8
+              },
+              "exposure": {
+                "ev": -0.3,
+                "mode": "shot"
+              },
+              "post": {
+                "bloom": 0.7,
+                "dof": 0.6,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.12,
+                "lut": "deep-space"
+              },
+              "note": "夜面灯光 → 晨昏线日出 → 海面高光 → 云影；月球前景虚化",
+              "camera": {
+                "path": [
+                  [
+                    -10.791,
+                    0.95,
+                    7.25
+                  ],
+                  [
+                    4.601,
+                    1.005,
+                    -2.977
+                  ],
+                  [
+                    17.195,
+                    1.05,
+                    -11.344
+                  ],
+                  [
+                    17.375,
+                    1.35,
+                    -7.683
+                  ],
+                  [
+                    14.367,
+                    1.65,
+                    -5.766
+                  ],
+                  [
+                    11.185,
+                    1.95,
+                    -7.379
+                  ]
+                ],
+                "fov": 40,
+                "easing": "quintInOut",
+                "roll": -1.5
+              }
             },
             {
               "id": "rock-belt",
@@ -98,9 +236,40 @@
               "segment": "rock-0",
               "startFrame": 1335,
               "endFrame": 1651,
-              "focus": {"target": "mars", "distance": 6},
-              "post": {"bloom": 0.5, "dof": 0.3, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
-              "note": "火星红色尘土，穿越稀疏小行星带"
+              "focus": {
+                "target": "sun",
+                "distance": 6
+              },
+              "post": {
+                "bloom": 0.5,
+                "dof": 0.3,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.1,
+                "lut": "deep-space"
+              },
+              "note": "火星红色尘土，穿越稀疏小行星带",
+              "camera": {
+                "path": [
+                  [
+                    11.185,
+                    1.95,
+                    -7.379
+                  ],
+                  [
+                    13.503,
+                    1.65,
+                    -17.305
+                  ],
+                  [
+                    10.103,
+                    1.35,
+                    -28.778
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "jupiter-giant",
@@ -109,9 +278,40 @@
               "segment": "giant-0",
               "startFrame": 1651,
               "endFrame": 1950,
-              "focus": {"target": "jupiter", "distance": 7},
-              "post": {"bloom": 0.6, "dof": 0.35, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.12, "lut": "deep-space"},
-              "note": "大红斑正对，云带流动，木卫二冰纹"
+              "focus": {
+                "target": "jupiter",
+                "distance": 7
+              },
+              "post": {
+                "bloom": 0.6,
+                "dof": 0.35,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.12,
+                "lut": "deep-space"
+              },
+              "note": "大红斑正对，云带流动，木卫二冰纹",
+              "camera": {
+                "path": [
+                  [
+                    10.103,
+                    1.35,
+                    -28.778
+                  ],
+                  [
+                    37.999,
+                    1.975,
+                    0.32
+                  ],
+                  [
+                    14.347,
+                    2.6,
+                    43.179
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "saturn-hero",
@@ -120,10 +320,57 @@
               "segment": "rings-0",
               "startFrame": 1950,
               "endFrame": 2451,
-              "focus": {"target": "saturn", "from": 6, "to": 9, "aperture": 2.8},
-              "exposure": {"ev": -0.3, "mode": "shot"},
-              "post": {"bloom": 0.8, "dof": 0.55, "grain": 0.35, "vignette": 0.5, "chromaticAberration": 0.14, "lut": "deep-space"},
-              "note": "环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景"
+              "focus": {
+                "target": "saturn",
+                "from": 6,
+                "to": 9,
+                "aperture": 2.8
+              },
+              "exposure": {
+                "ev": -0.3,
+                "mode": "shot"
+              },
+              "post": {
+                "bloom": 0.8,
+                "dof": 0.55,
+                "grain": 0.35,
+                "vignette": 0.5,
+                "chromaticAberration": 0.14,
+                "lut": "deep-space"
+              },
+              "note": "环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景",
+              "camera": {
+                "path": [
+                  [
+                    14.347,
+                    2.6,
+                    43.179
+                  ],
+                  [
+                    51.561,
+                    2.0,
+                    -17.656
+                  ],
+                  [
+                    11.284,
+                    1.6,
+                    -59.438
+                  ],
+                  [
+                    18.633,
+                    5.3,
+                    -52.764
+                  ],
+                  [
+                    16.021,
+                    9.0,
+                    -43.186
+                  ]
+                ],
+                "fov": 40,
+                "easing": "quintInOut",
+                "roll": -1.5
+              }
             },
             {
               "id": "ice-giants",
@@ -132,9 +379,40 @@
               "segment": "ice-0",
               "startFrame": 2451,
               "endFrame": 2747,
-              "focus": {"target": "neptune", "distance": 6},
-              "post": {"bloom": 0.5, "dof": 0.3, "grain": 0.35, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
-              "note": "天王星侧躺、海王星风暴"
+              "focus": {
+                "target": "neptune",
+                "distance": 6
+              },
+              "post": {
+                "bloom": 0.5,
+                "dof": 0.3,
+                "grain": 0.35,
+                "vignette": 0.45,
+                "chromaticAberration": 0.1,
+                "lut": "deep-space"
+              },
+              "note": "天王星侧躺、海王星风暴",
+              "camera": {
+                "path": [
+                  [
+                    16.021,
+                    9.0,
+                    -43.186
+                  ],
+                  [
+                    12.692,
+                    6.45,
+                    -63.781
+                  ],
+                  [
+                    3.159,
+                    3.9,
+                    -83.941
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "kuiper-pluto",
@@ -143,9 +421,40 @@
               "segment": "kuiper-0",
               "startFrame": 2747,
               "endFrame": 3031,
-              "focus": {"target": "pluto", "distance": 4},
-              "post": {"bloom": 0.45, "dof": 0.4, "grain": 0.4, "vignette": 0.45, "chromaticAberration": 0.1, "lut": "deep-space"},
-              "note": "冥王星心形区域，柯伊伯带粒子"
+              "focus": {
+                "target": "pluto",
+                "distance": 4
+              },
+              "post": {
+                "bloom": 0.45,
+                "dof": 0.4,
+                "grain": 0.4,
+                "vignette": 0.45,
+                "chromaticAberration": 0.1,
+                "lut": "deep-space"
+              },
+              "note": "冥王星心形区域，柯伊伯带粒子",
+              "camera": {
+                "path": [
+                  [
+                    3.159,
+                    3.9,
+                    -83.941
+                  ],
+                  [
+                    -90.192,
+                    4.1,
+                    -12.104
+                  ],
+                  [
+                    -22.266,
+                    4.3,
+                    95.437
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             },
             {
               "id": "oort-hero",
@@ -154,10 +463,46 @@
               "segment": "edge-0",
               "startFrame": 3031,
               "endFrame": 3551,
-              "focus": {"target": "oort", "from": 20, "to": 400},
-              "exposure": {"ev": -0.3, "mode": "shot"},
-              "post": {"bloom": 0.5, "dof": 0.35, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.1, "lut": "deep-space"},
-              "note": "日球层顶气泡边界、彗星、拉远到太阳成点；含无旁白收尾"
+              "focus": {
+                "target": "sun",
+                "from": 20,
+                "to": 400
+              },
+              "exposure": {
+                "ev": -0.3,
+                "mode": "shot"
+              },
+              "post": {
+                "bloom": 0.5,
+                "dof": 0.35,
+                "grain": 0.4,
+                "vignette": 0.5,
+                "chromaticAberration": 0.1,
+                "lut": "deep-space"
+              },
+              "note": "日球层顶气泡边界、彗星、拉远到太阳成点；含无旁白收尾",
+              "camera": {
+                "path": [
+                  [
+                    -22.266,
+                    4.3,
+                    95.437
+                  ],
+                  [
+                    -43.133,
+                    7.15,
+                    137.388
+                  ],
+                  [
+                    -70.334,
+                    10.0,
+                    176.502
+                  ]
+                ],
+                "fov": 40,
+                "easing": "quintInOut",
+                "roll": 0.0
+              }
             },
             {
               "id": "oort-hold",
@@ -165,9 +510,40 @@
               "tier": "minor",
               "startFrame": 3551,
               "endFrame": 3824,
-              "focus": {"target": "oort", "distance": 600},
-              "post": {"bloom": 0.4, "dof": 0.2, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.08, "lut": "deep-space"},
-              "note": "收尾静置：太阳成为一个亮点，留白结束"
+              "focus": {
+                "target": "sun",
+                "distance": 600
+              },
+              "post": {
+                "bloom": 0.4,
+                "dof": 0.2,
+                "grain": 0.4,
+                "vignette": 0.5,
+                "chromaticAberration": 0.08,
+                "lut": "deep-space"
+              },
+              "note": "收尾静置：太阳成为一个亮点，留白结束",
+              "camera": {
+                "path": [
+                  [
+                    -70.334,
+                    10.0,
+                    176.502
+                  ],
+                  [
+                    -90.512,
+                    12.0,
+                    197.772
+                  ],
+                  [
+                    -112.963,
+                    14.0,
+                    217.404
+                  ]
+                ],
+                "fov": 40,
+                "easing": "linear"
+              }
             }
           ]
         }
@@ -176,47 +552,79 @@
         {
           "id": "sun-0",
           "text": "太阳是一颗恒星，核聚变的光照亮整个太阳系。",
-          "claims": ["日面颗粒", "日冕辉光"]
+          "claims": [
+            "日面颗粒",
+            "日冕辉光"
+          ]
         },
         {
           "id": "inner-0",
           "text": "水星几乎没有大气；金星被厚重的二氧化碳云层包裹。",
-          "claims": ["水星陨坑", "金星云顶"]
+          "claims": [
+            "水星陨坑",
+            "金星云顶"
+          ]
         },
         {
           "id": "home-0",
           "text": "地球的夜面亮起城市灯光，晨昏线扫过海面，云层投下流动的阴影，月球从近处缓缓掠过。",
-          "claims": ["夜面城市灯光", "晨昏线", "海面高光", "云影", "月球前景"]
+          "claims": [
+            "夜面城市灯光",
+            "晨昏线",
+            "海面高光",
+            "云影",
+            "月球前景"
+          ]
         },
         {
           "id": "rock-0",
           "text": "穿过火星与小行星带，稀疏的岩块在阳光里缓慢漂移。",
-          "claims": ["火星红色尘土", "小行星带粒子"]
+          "claims": [
+            "火星红色尘土",
+            "小行星带粒子"
+          ]
         },
         {
           "id": "giant-0",
           "text": "大红斑正对镜头，云带翻涌；木卫二的冰面布满裂纹。",
-          "claims": ["大红斑", "云带流动", "木卫二冰纹"]
+          "claims": [
+            "大红斑",
+            "云带流动",
+            "木卫二冰纹"
+          ]
         },
         {
           "id": "rings-0",
           "text": "土星环从侧刃慢慢展开成辽阔的冰晶平面，逆光下冰晶颗粒分明，土卫六静静地藏在橙色雾霾里。",
-          "claims": ["环从侧刃展开", "逆光冰晶", "土卫六雾霾"]
+          "claims": [
+            "环从侧刃展开",
+            "逆光冰晶",
+            "土卫六雾霾"
+          ]
         },
         {
           "id": "ice-0",
           "text": "天王星几乎侧躺着自转，海王星的大气刮着最快的风。",
-          "claims": ["天王星侧躺", "海王星风暴"]
+          "claims": [
+            "天王星侧躺",
+            "海王星风暴"
+          ]
         },
         {
           "id": "kuiper-0",
           "text": "冥王星的心形氮冰平原，铺展在柯伊伯带的碎冰之间。",
-          "claims": ["冥王星心形区域", "柯伊伯带粒子"]
+          "claims": [
+            "冥王星心形区域",
+            "柯伊伯带粒子"
+          ]
         },
         {
           "id": "edge-0",
           "text": "日球层顶之外是奥尔特云，太阳在这里收缩成一个亮点，边界取决于我们如何定义。",
-          "claims": ["日球层顶气泡边界", "太阳成点"]
+          "claims": [
+            "日球层顶气泡边界",
+            "太阳成点"
+          ]
         }
       ],
       "leadInFrames": 300,
@@ -225,12 +633,48 @@
   ],
   "soundtrack": {
     "effects": [
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "inner-0", "offsetMs": 0, "gainDb": -28},
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "home-0", "offsetMs": 0, "gainDb": -26},
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "giant-0", "offsetMs": 0, "gainDb": -28},
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "rings-0", "offsetMs": 0, "gainDb": -26},
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "ice-0", "offsetMs": 0, "gainDb": -28},
-      {"builtin": "transition", "sceneId": "solar-journey", "segmentId": "edge-0", "offsetMs": 0, "gainDb": -26}
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "inner-0",
+        "offsetMs": 0,
+        "gainDb": -28
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "home-0",
+        "offsetMs": 0,
+        "gainDb": -26
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "giant-0",
+        "offsetMs": 0,
+        "gainDb": -28
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "rings-0",
+        "offsetMs": 0,
+        "gainDb": -26
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "ice-0",
+        "offsetMs": 0,
+        "gainDb": -28
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "solar-journey",
+        "segmentId": "edge-0",
+        "offsetMs": 0,
+        "gainDb": -26
+      }
     ]
   }
 }

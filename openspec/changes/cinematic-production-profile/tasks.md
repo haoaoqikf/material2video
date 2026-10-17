@@ -32,11 +32,11 @@
 ## 4. 太阳系 look-dev 与 60 秒改写
 
 - [x] 4.1 重写 `examples/solar-system-journey/article.md` 与 `storyboard.json`：9 章、9 段旁白、总量约 230–260 汉字、目标 60 秒、验收 55–65 秒；保留 1920×1080、60 fps、中文 TTS 与烧录字幕。
-- [ ] 4.2 编写 shot list：冷开场、9 章、3 个 hero（地球、土星、奥尔特云）与太阳冷开场；每镜头声明 tier、时间窗、camera、focus、exposure、post。
+- [x] 4.2 编写 shot list：冷开场、9 章、3 个 hero（地球、土星、奥尔特云）与太阳冷开场；每镜头声明 tier、时间窗、camera、focus、exposure、post。
 - [ ] 4.3 升级资产：太阳/地球/土星/木星/冥王星/土卫六 hero 资产 4K+；补 normal/roughness/emissive；土星环径向纹理 ≥ 4K×512；更新 `assets/media-sources.json`、`SOURCES.md` 与许可。
 - [ ] 4.4 实现 60 秒镜头：单程向外、3 次回望、hero 连续镜头、前景虚化、硬切/match cut；删除每段返回同一总览机位的逻辑。
 - [ ] 4.5 实现视觉细节：地球夜景/云影/海面高光/大气、太阳临边昏暗/日珥/耀斑、土星环逆光/自阴影/粒子、木星大红斑、冥王星心形、土卫六雾霾。
-- [ ] 4.6 实现 UI：左栏出入、章节进度轨、片头片尾免责声明、字幕 scrim、距太阳 AU 读数；重要文字与主体避让字幕安全区。
+- [x] 4.6 实现 UI：左栏出入、章节进度轨、片头片尾免责声明、字幕 scrim、距太阳 AU 读数；重要文字与主体避让字幕安全区。
 - [x] 4.7 选择并保存音色：对 2 个候选音色做同一段 20 秒 A/B；保存 `tts.voice`、`selection`、`speech`（约 `rate -2%`、comma 0.15、period 0.55、paragraph 0.8、headPad 0.08）。
 - [ ] 4.8 制作配乐与音效：60–70 BPM 环境底、低频 drone、飞近 whoosh、环 shimmer、冰裂、风、深空静默；写入 `soundtrack` 并留证许可/生成器。
 - [ ] 4.9 运行 `m2v lookdev`：输出 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片；实际观看并记录时间码、问题与复查到 `outputs/visual-notes.md`。
