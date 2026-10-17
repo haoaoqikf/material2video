@@ -50,15 +50,15 @@ uv run m2v prepare --project videos/general/<slug>
 uv run m2v preview --project videos/general/<slug>
 uv run m2v qa --project videos/general/<slug>        # 技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>
-uv run m2v render --profile cinematic --project videos/general/<slug>
-uv run m2v master --project videos/general/<slug>     # ProRes/DNxHR 母版 + H.264 交付
+uv run m2v render --project videos/general/<slug>     # 普通 H.264 MP4 交付
 ```
 
-- 阶段为 **Brief → Look-dev → Hero → Full film → QA/Master**；look-dev 未获批准时不得继续，
+- 阶段为 **Brief → Look-dev → Hero → Full film → QA/确认**；look-dev 未获批准时不得继续，
   这是 standard「自动通过」的唯一例外。
 - shot list、look、`claims`、`leadInFrames` / `tailFrames` / `readingHoldFrames` 都是分镜的可选
   字段，进入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
-- 感知评分卡十项各 0–4 分，低于 34/40 不通过；hero 镜头与样片必须实际观看并记录时间码。
+- 不执行数字评分卡：技术 QA 与 hero 实看完成后，把成片交给用户观看并直接询问是否通过；
+  确认结果写入 `outputs/visual-notes.md`，用户指出的问题记录位置与复查结果。
 - 参考板、look bible、20 项检查表、反模式与成本见[电影级制作档位](cinematic-video.md)。
 
 档位、镜头/look 字段与 cinematic 命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是

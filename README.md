@@ -33,7 +33,7 @@ pnpm -C web test
 general 的 `m2v lookdev --project <目录>` 支持从当前源码原生采集 3–5 张 4K 关键帧，
 以 PNG 合成字幕与转场，并输出接触表及 20–30 秒有声样片；不生成完整成片。
 静帧的画布像素不足会明确失败，不能以放大 1080p 缓存视频代替。
-cinematic 母版与太阳系参考片仍在实施中，详见[电影级制作档位](.agents/skills/material2video/references/cinematic-video.md)。
+cinematic 交付普通 H.264 MP4，不另出母版；太阳系参考片与最终用户确认仍在实施中，详见[电影级制作档位](.agents/skills/material2video/references/cinematic-video.md)。
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与准备 → 完整预演 → 正式导出。助手读取当前音色列表并按内容选择，用户明确音色优先，不新增试听确认。纯 CLI 读取选音结果；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。助手选择绑定完整旁白，旁白变化需重新判断；实际音色、语速和来源写入准备与成片溯源。无旁白作品无需选音。详细字段、迁移和限制见[配音契约](.agents/skills/material2video/references/media-contract.md#配音音色与语速)。
 

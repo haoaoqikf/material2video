@@ -50,17 +50,17 @@
 - [ ] 5.3 完成奥尔特云结尾：日球层顶气泡边界、彗星、拉远到太阳成点；验证 6–8 秒无旁白收尾。
 - [ ] 5.4 完成其余章节的 4–7 秒镜头与转场；确保每个章节至少一个可识别主体，旁白 claims 在该段可见。
 - [ ] 5.5 完成 60 秒全片：对齐 9 段旁白、leadIn/tail、readingHold、硬切与音乐段落；实际时长落在 55–65 秒。
-- [ ] 5.6 完成声音设计：音乐、环境、音效、旁白闪避、母版响度 −14 LUFS / −1 dBTP；检查 mono 兼容与真峰值。
+- [ ] 5.6 完成声音设计：音乐、环境、音效、旁白闪避、成片响度 −14 LUFS / −1 dBTP；检查 mono 兼容与真峰值。
 - [ ] 5.7 完成 UI 与字幕：对比度 ≥ 4.5:1、安全区、片头片尾、进度轨、AU 读数；无文字被主体或字幕遮挡。
 - [ ] 5.8 运行 `m2v prepare`、`m2v preview`，确认 60 秒完整预演、音画同步、字幕与 claims 检查通过。
 
-## 6. QA、母版与交付
+## 6. QA、确认与交付
 
 - [ ] 6.1 实现并运行 `m2v qa`：接触表、冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音画同步、claims 可见性；输出 `outputs/qa.json`。
 - [ ] 6.2 实现并运行 `m2v assets audit`：4K/贴图齐全度/环径向分辨率/色彩空间/许可；hero 资产不合格时阻断。
-- [ ] 6.3 运行 cinematic 评分卡：十项各 0–4 分，≥ 34/40；记录 hero 实看时间码、问题与复查。
-- [ ] 6.4 运行 `m2v render --profile cinematic`：ProRes/DNxHR 母版 + H.264 交付；核对 10bit/48k/帧数/时长/音轨。
-- [ ] 6.5 运行 `m2v master` 或等价入口，确认母版、交付版、provenance、performance 与 QA 报告齐全；profile/look/post/audio 写入溯源。
+- [ ] 6.3 把成片与 hero 镜头交给用户实际观看并询问是否通过；记录确认结果、问题位置与复查（不执行数字评分卡）。
+- [ ] 6.4 运行 `m2v render`：交付普通 H.264 MP4；核对帧数、时长、音轨与播放兼容性（不产出 ProRes/DNxHR 母版）。
+- [ ] 6.5 确认交付版、provenance、performance 与 QA 报告齐全；profile/look/post/audio 写入溯源。
 - [ ] 6.6 更新 README、PROJECT_PLAN、SKILL、DESIGN、VERIFICATION、SOURCES、示例 README；说明太阳系已改为 60 秒 cinematic，缓冲/试错仍为 standard。
 - [ ] 6.7 运行完整验证：`uv run pytest`、`pnpm -C web test`、`pnpm -C web build`、三个示例严格检查、文档链接检查、`openspec validate --strict`。
 - [ ] 6.8 检查暂存内容，排除密钥、缓存、生成媒体与临时产物；提交实现与文档，随后按项目规则同步主规格、归档并提交。

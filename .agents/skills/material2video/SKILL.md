@@ -30,26 +30,26 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 | 镜头 | 作品自由 | 必须提交 shot list；hero ≥ 3，每个 hero 有 8–12 秒连续镜头 |
 | 资产 | 2K 可用 | hero ≥ 4K，normal/roughness/emissive 齐全，许可留证 |
 | 后期 | 无 | Bloom / DOF / grain / vignette / CA / LUT，全部帧驱动 |
-| 声音 | TTS + 可选音床与音效 | 配乐 + 环境 + 音效 + 母版混音（−14 LUFS / −1 dBTP） |
-| 编码 | H.264 CRF18、8bit、44.1k/128k | ProRes/DNxHR 母版 + H.264/HEVC 交付、48k/24bit |
-| 验收 | 完整预演自动验收 | 技术 QA + 感知评分卡 ≥ 34/40 + hero 实看 |
+| 声音 | TTS + 可选音床与音效 | 配乐 + 环境 + 音效 + 混音（成片 −14 LUFS / −1 dBTP） |
+| 编码 | H.264 CRF18、8bit、44.1k/128k | 普通 H.264 MP4（不另出母版） |
+| 验收 | 完整预演自动验收 | 技术 QA + hero 实看 + 用户确认是否通过 |
 
 **触发词**：用户明确要求「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时 MUST 使用 cinematic，
 不得静默按 standard 交付再声称电影级；反过来，用户没有这样要求时不要默认加电影级开销。
 
-cinematic 按 **Brief → Look-dev → Hero → Full film → QA/Master** 五个阶段推进，每阶段有产出与
-放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`、`m2v master` 与
-`m2v render --profile cinematic`。其中 `lookdev`、`qa`、`assets audit` 已接线并只服务 general
-作品（其他类型会明确拒绝）；`master` 与 `render --profile cinematic` 仍在实施中。字段、清单、
-评分卡、反模式与成本见[电影级制作档位](references/cinematic-video.md)。
+cinematic 按 **Brief → Look-dev → Hero → Full film → QA/确认** 五个阶段推进，每阶段有产出与
+放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`，正式导出沿用 `m2v render`。
+三者已接线并只服务 general 作品（其他类型会明确拒绝）。cinematic 不设数字评分卡：技术 QA 与
+hero 实看后把成片交给用户观看并询问是否通过。字段、清单、用户确认、反模式与成本见
+[电影级制作档位](references/cinematic-video.md)。
 
 **look-dev 批准是「不新增用户逐次确认」的唯一例外**：standard 维持自动通过；cinematic 必须在
 关键静帧与代表片段上停下来给用户实际观看，确认后才铺全片。未获批准时不得继续，也不得把
 未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
 
 档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
-`lookdev` / `qa` / `assets audit` / `master` 入口与 cinematic 编码仍在实施中，实现完成前
-不要据此声称已产出电影级成片。
+`lookdev` / `qa` / `assets audit` 入口已接线，太阳系参考片与最终用户确认仍在实施中；
+cinematic 交付普通 H.264 MP4，不另出母版。实现完成前不要据此声称已产出电影级成片。
 
 ## 统一命令
 

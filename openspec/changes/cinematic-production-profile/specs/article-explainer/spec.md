@@ -63,7 +63,7 @@
 ### Requirement: 固定示例的内容驱动演示
 仓库 MUST 仅分发 buffer-smoothing、darts-trial-and-error、solar-system-journey 三个固定示例；前后两者使用 1920×1080，试错使用 1080×1920，均为 v8、60 fps。缓冲与试错实际时长 MUST 为 120～180 秒，太阳系之旅 MUST 为 55～65 秒，均含中文旁白和烧录字幕。核心演示 MUST 按实际旁白时间窗推进，合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。示例 MUST 提供可编辑材料、设计说明、素材来源和旁白与画面的对应关系，生成媒体 MUST NOT 入库。
 
-太阳系之旅 MUST 使用 cinematic 档位：9 个章节、9 段旁白、约 60 秒目标；MUST 提供 3 个 hero 镜头（地球、土星、奥尔特云）、4K look-dev 静帧、20–30 秒有声样片、hero 实看记录、配乐与音效，以及 cinematic 母版与 H.264 交付。缓冲与试错 MUST 保持 standard 档位，作为现有快速链路的回归。
+太阳系之旅 MUST 使用 cinematic 档位：9 个章节、9 段旁白、约 60 秒目标；MUST 提供 3 个 hero 镜头（地球、土星、奥尔特云）、4K look-dev 静帧、20–30 秒有声样片、hero 实看记录、配乐与音效，以及普通 H.264 MP4 交付。缓冲与试错 MUST 保持 standard 档位，作为现有快速链路的回归。
 
 #### Scenario: 三片完整制作
 - **WHEN** 使用三个固定示例通过统一入口完成准备、完整预演与导出
@@ -79,7 +79,7 @@
 
 #### Scenario: 写实画面验收
 - **WHEN** 完成太阳系示例的交付验证
-- **THEN** 提供 3 个 hero 的 4K 静帧与 20–30 秒有声样片，实际观看并记录时间码、问题与复查；提供配乐/音效、QA 报告、cinematic 母版与兼容交付；不将艺术示意表述为实拍或精确历算
+- **THEN** 提供 3 个 hero 的 4K 静帧与 20–30 秒有声样片，实际观看并记录时间码、问题与复查；提供配乐/音效、QA 报告与普通 MP4 交付；不将艺术示意表述为实拍或精确历算
 
 #### Scenario: 标准档回归
 - **WHEN** 缓冲或试错完成准备、完整预演与导出

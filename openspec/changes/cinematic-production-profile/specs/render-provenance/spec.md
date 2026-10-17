@@ -17,8 +17,8 @@ SHALL NOT 因为未引用资源的变化就判为落后。
 组件源码、共享样式与令牌、字体资产、包清单与锁文件。这样「改了组件源码但没重渲」
 会被判为落后——它正是最容易发生、又最不容易被发现的一类落后。
 
-cinematic 导出的溯源 SHALL 额外记录 `profile`、`look`、`shots`、`postFx`、`audioMaster`
-与母版/交付文件摘要；profile MUST 为 standard 或 cinematic。look、shots、后期与母版参数
+cinematic 导出的溯源 SHALL 额外记录 `profile`、`look`、`shots`、`postFx`、`audio`
+与交付文件摘要；profile MUST 为 standard 或 cinematic。look、shots、后期与声音参数
 SHALL 与准备指纹使用同一口径；任一参数变化 MUST 让成片被判为落后。standard 溯源 SHOULD
 省略 cinematic 专用键，保持与现有格式兼容。
 
@@ -39,8 +39,8 @@ SHALL 与准备指纹使用同一口径；任一参数变化 MUST 让成片被�
 - **THEN** 溯源记录工作区相对路径，判定能给出「对得上」而不是「无法判断」
 
 #### Scenario: 电影级溯源
-- **WHEN** 以 cinematic 导出母版与交付版
-- **THEN** 溯源记录 profile、look、shots、postFx、audioMaster、母版与交付摘要；只改 look 或后期后，旧成片被判为落后
+- **WHEN** 以 cinematic 导出成片
+- **THEN** 溯源记录 profile、look、shots、postFx、audio 与交付摘要；只改 look 或后期后，旧成片被判为落后
 
 #### Scenario: 标准档溯源兼容
 - **WHEN** 以 standard 导出

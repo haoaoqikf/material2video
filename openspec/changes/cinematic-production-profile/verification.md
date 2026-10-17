@@ -127,7 +127,8 @@
 
 `m2v lookdev`、`m2v qa`、`m2v assets audit` 三个入口已接进统一命令分发：各自解析参数（静帧张数、样片长度、抽样步长、档位、待检查成片），并在 `main()` 里先做类型守卫——**只服务 general 作品**，金融与住宅会拿到明确的一句话而不是难懂的失败。README 与 SKILL 的命令清单同步更新。
 
-`m2v master` 与 `render --profile cinematic` 仍未接线（依赖 6.4 的 cinematic 编码）。
+`m2v master` 与 `render --profile cinematic` 未接线；后续按用户 2026-10-17 的需求调整取消，
+电影级成片改走现有 `m2v render`，只交付普通 H.264 MP4。
 
 ### 单帧成本实测与采集提速（4.9 的前置量测）
 
@@ -185,3 +186,12 @@
 - 三个示例严格检查通过：太阳系新分镜的九段旁白都在重写后的源文里，README 与 DESIGN 同步到 60 秒 cinematic 版本。
 - 镜头数据验证：`tests/test_solar_system_camera.py` 把 `layout.tsx` 与分镜一起打包，检查路径连续、入口半径不回退、不穿任何天体、hero 绕目标画弧、焦点目标已知、结尾半径 > 100。
 - 场景真机验证：`tests/test_solar_system_scene.py` 用与制作相同的构建入口打包示例自己的 `scenes/`，带真实登记素材在 320×240 下逐帧录 6 帧，确认能构建、帧编号连续、画面不是全黑，且两个镜头的画面不同。
+
+## 需求调整：取消母版与数字评分卡（2026-10-17）
+
+用户明确收窄两项范围，已同步修改提案、设计、任务与规格增量：
+
+- **不提供 ProRes/DNxHR 母版与 `m2v master`**：cinematic 成片沿用现有 `m2v render`，只交付普通 H.264 MP4；不新增 10bit/HEVC 分支、48kHz/24bit 音频母版或 320kbps 专用音轨。声音设计（配乐、环境、音效、闪避与成片响度）保持要求。
+- **不执行十项数字评分卡**：技术 QA 与 hero 实看后，把成片交给用户实际观看并直接询问是否通过；用户确认通过即完成，不通过则记录问题位置并返工。`m2v qa`、`visual-notes.md` 与 claims 检查仍然保留。
+
+任务 6.3–6.5 与 `remotion-renderer`、`modular-video-production`、`video-production-workflow`、`article-sound-effects`、`render-provenance` 等规格已按此口径更新。该调整减少了剩余实现量：剩余工作集中在资产与画面收尾、全片重录、技术 QA、用户确认、文档与验证。
