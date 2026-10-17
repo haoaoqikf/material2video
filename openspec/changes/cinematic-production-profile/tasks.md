@@ -24,7 +24,7 @@
 - [x] 3.2 在 `m2v/code-scene` 导出共享电影组件：`PostFX`、`CameraRig`、`LookProvider`、`Starfield`、`ParticleBelt`、`Atmosphere`、`Rings`、`SunSurface`、`Corona`、`Prominence`、`OortCloud`、`Comet`。
 - [x] 3.3 实现镜头路径与缓动：CatmullRom/Bezier、quintInOut、每镜头 FOV/滚转/曝光、焦点拉移、穿球与背景裁切检查。
 - [x] 3.4 实现确定性后期：Bloom、DOF、grain、vignette、CA、LUT 全部由 `elapsedSeconds`/帧号驱动；粒子噪声使用「帧号 + shot id」种子。
-- [ ] 3.5 实现运动模糊与 SSAA 选项：hero 2–4 子帧、2× 渲染降采样；standard 默认关闭。
+- [x] 3.5 实现运动模糊与 SSAA 选项：hero 2–4 子帧、2× 渲染降采样；standard 默认关闭。
 - [x] 3.6 扩展 `useMediaAsset` 返回 colorSpace、alpha、许可；保持未知 ID 与越界访问的失败语义。
 - [x] 3.7 增加测试：同帧 PSNR ≥ 60dB、源码闸门仍拒绝挂钟/随机/CSS 动画、缺少 postprocessing 时提前失败、standard 画面不因新依赖改变。
 - [x] 3.8 更新 `storyboard-schema.md`、`render-contract.md`、`design-tokens.md` 与 SDK 类型说明，明确「当前支持」与「cinematic 专用」。

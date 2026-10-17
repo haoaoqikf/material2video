@@ -21,6 +21,8 @@ TIERS = ("hero", "major", "minor")
 EASINGS = ("linear", "quintInOut", "quintOut", "sineInOut", "expoInOut")
 #: 内置调色档名：`lut` 是**具名档**而不是外部 .cube 文件，录制期不取外网也不读作品目录。
 LUTS = ("neutral", "deep-space", "teal-amber", "warm-film")
+#: 运动模糊的子帧上限与 SSAA 上限。
+MAX_SUBFRAMES = 4
 HERO_MIN_FRAMES = 8 * FPS
 HERO_MAX_FRAMES = 12 * FPS
 MAX_SHOTS = 120
@@ -106,7 +108,7 @@ def validate_claims(part: dict, path: str) -> None:
 
 def validate_look(look, path: str) -> None:
     """作品 `content.props.look`：look bible 的代码化参数。"""
-    obj = _obj(look, path, {"profile", "lut", "grain", "bloom", "dof", "vignette", "exposure"})
+    obj = _obj(look, path, {"profile", "lut", "grain", "bloom", "dof", "vignette", "exposure", "motion"})
     _text(obj.get("profile"), path + ".profile")
     if "lut" in obj and obj["lut"] not in LUTS:
         fail(path + ".lut", f"必须是内置调色档：{'/'.join(LUTS)}")
@@ -115,6 +117,12 @@ def validate_look(look, path: str) -> None:
             _number(obj[name], 0, 1, f"{path}.{name}")
     if "exposure" in obj:
         _exposure(obj["exposure"], path + ".exposure")
+    if "motion" in obj:
+        motion = _obj(obj["motion"], path + ".motion", {"subframes", "supersample"})
+        if "subframes" in motion:
+            _integer(motion["subframes"], 1, MAX_SUBFRAMES, path + ".motion.subframes")
+        if "supersample" in motion:
+            _integer(motion["supersample"], 1, 2, path + ".motion.supersample")
 
 
 def _exposure(value, path: str) -> None:

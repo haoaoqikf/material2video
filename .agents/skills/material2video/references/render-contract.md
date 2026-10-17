@@ -114,6 +114,13 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext()`，不新增录制配置。
 视频按作品 play/pause、入点、播放速率和循环设置同步到受控时间，原声不进入片段。
 
+cinematic 作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero 镜头内的每一帧按
+`(frame + k / subframes) / fps` 依次推进 `subframes`（1–4）个子帧，宿主把同一帧的 React 状态、
+三维绘制、动画库、CSS 动画与本地视频都停在这些真实时刻上，Python 侧再把子帧等权平均成一张
+输出帧（`mix`，等权归一化）。`supersample: 2` 时按 2 倍设备像素截图、编码时用 lanczos 降采样
+回目标画幅。子帧时间仍然只前进不后退，因此同一帧在任意一次录制里都可复现；未声明 `motion`
+时配置与缓存键与既有一致。
+
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
 系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，打包仍只批准文档列出的共享依赖
 （含电影级后期所需的 `postprocessing` 与 `@react-three/postprocessing`；依赖缺失时在打包前

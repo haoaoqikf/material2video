@@ -33,7 +33,7 @@
 
 `claims` 与镜头的可见性对应关系由 QA 的 claims 检查负责（每条 claims 必须落在至少一个镜头的时间窗内）。该口径已同步写入 `storyboard-schema.md` 与 `cinematic-video.md`。
 
-## 阶段 3：共享电影套件与确定性（3.1–3.4、3.6–3.8；3.5 待做）
+## 阶段 3：共享电影套件与确定性（3.1–3.8 全部完成）
 
 - 依赖：`postprocessing@6.39.5` 与 `@react-three/postprocessing@3.2.0` 进入 `web/package.json` 与锁文件，并加入代码场景的批准依赖清单。两份指纹（`implementation_inputs` 与 `build_input_fingerprint`）本来就把 `package.json`/`pnpm-lock.yaml` 计入，因此 bundle cache 键与片段缓存键自动更新，无需另加开关。
 - 套件：`web/src/code-scene/cinematic.tsx` 导出 `LookProvider`/`useLook`/`useShot`、`CameraRig`、`PostFX`、`Starfield`、`ParticleBelt`、`Atmosphere`、`Rings`、`SunSurface`、`Corona`、`Prominence`、`OortCloud`、`Comet`，以及 `pathIntersectsSphere`/`cameraPathRisk`/`backgroundRisk`、`activeShot`/`ease`/`seededRandom`/`hashSeed`。SDK 的上下文与类型拆到 `context.ts`，避免 SDK 入口与套件互相导入成环。
@@ -42,7 +42,21 @@
 - `lut` 由「任意文本」收紧为内置调色档名（`neutral`/`deep-space`/`teal-amber`/`warm-film`）：录制期不取外网、不读作品目录，非法值明确失败。
 - 依赖缺失的失败口径：`code_scenes.require_cinematic_dependencies()` 在打包前检查两个后期包，缺了直接报「请先运行 pnpm -C web install」，不会静默渲染成没有后期的画面。
 
-### 真实浏览器验证（新增 `tests/test_cinematic_scene_kit.py`，9 项）
+### 运动模糊与 SSAA（3.5）
+
+- 录制协议扩展为**子帧**：宿主新增 `advanceToSubframe(frame, subframe, subframes)`，上下文时间为
+  `(frame + subframe / subframes) / fps`，React 状态、三维绘制、动画库、CSS 动画与本地视频都停在同一
+  时刻；`advanceToFrame(n)` 等价于「第 n 帧的第 0 个子帧」，因此两种推进可以混用。协议只接受连续
+  推进（同帧子帧递增，或进入下一帧的第 0 个子帧），乱序立即失败。
+- 子帧数只对 **hero 镜头内**的帧生效（`look.motion.subframes`，1–4），其余镜头保持单帧；Python 侧把
+  子帧等权平均成一张输出帧。平均用 `mix`（等权归一化）而不是 `blend=all_mode=average`：后者对同一组
+  0/128/255 的子帧给出 159 而不是 128，不能当作平均。
+- SSAA：`look.motion.supersample: 2` 时用 CDP `clip.scale` 按 2 倍设备像素截图（裸的
+  `Page.captureScreenshot` 只按 CSS 像素出图，`device_scale_factor` 不体现在结果里），编码时用
+  lanczos 降采样回目标画幅。
+- `motion` 只在作品显式声明时进入录制配置，standard 作品的缓存键与画面保持逐字节不变。
+
+### 真实浏览器验证（新增 `tests/test_cinematic_scene_kit.py` 9 项、`tests/test_cinematic_motion.py` 11 项）
 
 - **同帧可复现**：同一场景两次独立录制、同一帧的截图 PSNR ≥ 60dB（实测相等）。
 - **镜头确实在动**：同一镜头首末帧 PSNR < 40。
@@ -52,10 +66,13 @@
 - **套件自身过确定性闸门**：对 `cinematic.tsx` 跑 `source_policy.scan` 无违规。
 - **穿球与背景裁切检查**：纯函数结果在页面内直接断言（命中、未命中、余量不足、星空壳外与超出远裁剪面）。
 - 另有 Python 侧用例覆盖缺依赖提前失败、`lut` 非法值、`useMediaAsset` 新字段。
+- **运动模糊与 SSAA 走真实采集路径**：小画幅下真跑 `_capture`（Playwright + CDP + 子帧平均），
+  验证输出帧编号连续、SSAA 采集为 2 倍尺寸、子帧中间文件被清理，并验证「取两个子帧」与
+  「只取一个子帧」的同一帧画面不同（否则模糊是假的）；子帧协议的时间与乱序拒绝也在真实页面里断言。
 
 ## 阶段验证结果
 
-- 完整 Python 回归：收集 545 项、541 项通过、4 项跳过、无失败（阶段 2 结束时为 532 项，阶段 3 新增 13 项）。
+- 完整 Python 回归：收集 556 项、552 项通过、4 项跳过、无失败（阶段 2 结束时为 532 项，阶段 3 新增 24 项）。
 - 前端：`pnpm -C web test` 4 个文件 58 项通过；`pnpm -C web build`（含 `tsc --noEmit`）通过，保留既有 chunk 体积提示。
 - 文档相对链接 78 项、JSON 示例 13 项全部有效；`sync_docs.py --check` 无漂移。
 - QA 与资产审计模块以自造小媒体与真实成片双向验证；`lookdev` 的取点、样片窗口与接触表有单元测试覆盖。

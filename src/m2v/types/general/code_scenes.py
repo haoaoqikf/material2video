@@ -84,6 +84,10 @@ def scene_config(scene: dict, frame: dict, media: dict, *, profile: str = "stand
     claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]
     if any(claims):
         config["claims"] = claims
+    # 运动模糊与 SSAA 只在作品显式声明时进入配置：standard 作品的缓存键逐字节不变。
+    motion = ((scene["content"].get("props") or {}).get("look") or {}).get("motion")
+    if motion:
+        config["motion"] = motion
     return config
 
 
@@ -129,17 +133,56 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                 logger.info("代码场景 %s 开始逐帧录制：%.2f 秒，%d×%d",
                             scene["id"], config["durationInFrames"] / FPS, width, height)
                 _capture(pw, root, work, config)
-                _encode(work, output, config["durationInFrames"], width, height)
+                _encode(work, output, config["durationInFrames"], width, height,
+                        supersample=int((config.get("motion") or {}).get("supersample", 1)))
                 receipt.write_text(digest(output))
         relative = output.relative_to(root).as_posix()
         inputs["file:" + relative] = digest(output)
         return relative
 
 
+def _subframes_for(frame: int, shots: list[dict], hero_subframes: int) -> int:
+    """hero 镜头内的帧取多个子帧做运动模糊；其余镜头保持单帧。"""
+    if hero_subframes <= 1:
+        return 1
+    for shot in shots:
+        if shot.get("tier") == "hero" and shot.get("startFrame", 0) <= frame < shot.get("endFrame", 0):
+            return hero_subframes
+    return 1
+
+
+def _average(files: list[Path], target: Path) -> None:
+    """把同一帧的多个子帧平均成一张图；输入同尺寸同格式，平均即运动模糊。
+
+    用 `mix`（等权、归一化）而不是 `blend=all_mode=average`：后者对同一组
+    0/128/255 的子帧给出 159 而不是 128，不能当作平均。
+    """
+    if not files:
+        raise M2VError("没有可平均的子帧")
+    if len(files) == 1:
+        target.write_bytes(files[0].read_bytes())
+        return
+    args: list[str] = []
+    for file in files:
+        args += ["-i", str(file)]
+    labels = "".join(f"[{index}]" for index in range(len(files)))
+    audio.ffmpeg([*args, "-filter_complex", f"{labels}mix=inputs={len(files)}[out]",
+                  "-map", "[out]", "-frames:v", "1", "-y", str(target)])
+
+
 def _capture(pw, root: Path, work: Path, config: dict) -> None:
-    """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。"""
+    """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
+
+    cinematic 的 hero 镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
+    一个输出帧，等效快门时间内的运动模糊；`supersample` 为 2 时按 2 倍设备像素采集，
+    编码时降采样回目标画幅（SSAA）。两者都只由配置决定，因此同一帧仍然可复现。
+    """
     errors: list[str] = []
     width, height = config["width"], config["height"]
+    motion = config.get("motion") or {}
+    hero_subframes = int(motion.get("subframes", 1))
+    supersample = int(motion.get("supersample", 1))
+    shots = (config.get("props") or {}).get("shots") or []
     config_text = json.dumps(config, ensure_ascii=True).replace("<", "\\u003c")
     (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8"></head>'
         # 页面底色是编码兜底而不是作品主题：作品必须在 ready 之前自己画满不透明背景。
@@ -153,7 +196,8 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
     with LocalServer(work, mounts=mounts, files=files, cors=True) as server:
         browser = pw.chromium.launch(headless=True, args=["--autoplay-policy=no-user-gesture-required"])
         try:
-            context = browser.new_context(viewport={"width": width, "height": height}, device_scale_factor=1,
+            context = browser.new_context(viewport={"width": width, "height": height},
+                                          device_scale_factor=supersample,
                                           service_workers="block")
             def route_request(route):
                 url = route.request.url
@@ -178,21 +222,39 @@ def _capture(pw, root: Path, work: Path, config: dict) -> None:
             started = time.monotonic()
             page.evaluate("window.__M2V_CODE__.start()")
             total = config["durationInFrames"]
+            subframe_total = 0
             for frame_index in range(total):
-                # 截图期间时钟冻结，超时使用注入前保留的原生真实定时器。
-                try:
-                    page.evaluate("""([frame, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
-                        window.__M2V_CODE__.advanceToFrame(frame), timeout)""", [frame_index, READY_TIMEOUT_MS])
-                except Exception as exc:
-                    raise M2VError(f"代码场景第 {frame_index} 帧绘制失败：{exc}") from exc
-                if errors:
-                    raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
-                # CDP 截取已完成绘制的画面；不依赖 screencast 的实时投递频率。
-                shot = session.send("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False,
-                                                               "optimizeForSpeed": True})
-                (work / f"frame-{frame_index:06d}.png").write_bytes(base64.b64decode(shot["data"]))
+                count = _subframes_for(frame_index, shots, hero_subframes)
+                subframe_total += count
+                pieces: list[Path] = []
+                for subframe in range(count):
+                    # 截图期间时钟冻结，超时使用注入前保留的原生真实定时器。
+                    try:
+                        page.evaluate("""([frame, subframe, count, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
+                            window.__M2V_CODE__.advanceToSubframe(frame, subframe, count), timeout)""",
+                            [frame_index, subframe, count, READY_TIMEOUT_MS])
+                    except Exception as exc:
+                        raise M2VError(f"代码场景第 {frame_index} 帧绘制失败：{exc}") from exc
+                    if errors:
+                        raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
+                    # CDP 截取已完成绘制的画面；不依赖 screencast 的实时投递频率。
+                    # SSAA 用 clip 的 scale 显式放大：裸的 captureScreenshot 只按 CSS 像素
+                    # 出图，device_scale_factor 不会体现在结果里。
+                    params = {"format": "png", "captureBeyondViewport": False, "optimizeForSpeed": True}
+                    if supersample > 1:
+                        params["clip"] = {"x": 0, "y": 0, "width": width, "height": height,
+                                          "scale": supersample}
+                    shot = session.send("Page.captureScreenshot", params)
+                    piece = work / f"sub-{frame_index:06d}-{subframe}.png"
+                    piece.write_bytes(base64.b64decode(shot["data"]))
+                    pieces.append(piece)
+                target = work / f"frame-{frame_index:06d}.png"
+                _average(pieces, target)
+                for piece in pieces:
+                    piece.unlink()
                 if frame_index % 300 == 0 or frame_index + 1 == total:
-                    logger.info("代码场景逐帧采集 %d/%d，耗时 %.1f 秒", frame_index + 1, total, time.monotonic() - started)
+                    logger.info("代码场景逐帧采集 %d/%d（子帧 %d），耗时 %.1f 秒",
+                                frame_index + 1, total, subframe_total, time.monotonic() - started)
         except M2VError:
             raise
         except Exception as exc:
@@ -234,15 +296,20 @@ def media_files(root: Path, media: dict) -> dict[str, Path]:
     return files
 
 
-def _encode(work: Path, output: Path, frames: int, width: int, height: int) -> None:
+def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1) -> None:
     temporary = work / "encoded.mp4"
     # yuv444p 而不是 yuv420p：片段会与作品画布直接拼接，4:2:0 的色度抽样会让底色偏
     # 一两个色阶，在深色画面上显出方块边缘；4:4:4 的往返对纯色是精确的。
     captured = sorted(work.glob("frame-*.png"))
     if len(captured) != frames or any(path.name != f"frame-{i:06d}.png" for i, path in enumerate(captured)):
         raise M2VError("代码场景采集帧缺失，拒绝补帧编码")
+    scale: list[str] = []
+    if supersample > 1:
+        # SSAA：采集时按 2 倍设备像素渲染，编码时降采样回目标画幅。
+        scale = ["-vf", f"scale={width}:{height}:flags=lanczos"]
     audio.ffmpeg(["-framerate", str(FPS), "-start_number", "0", "-i", str(work / "frame-%06d.png"),
-                  "-an", "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p", "-crf", "18", str(temporary)])
+                  *scale, "-an", "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p",
+                  "-crf", "18", str(temporary)])
     # 解码实际帧数，不能仅相信容器时长或声明帧率。
     from imageio_ffmpeg import get_ffmpeg_exe
     result = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(temporary), "-map", "0:v:0",

@@ -63,7 +63,10 @@ cinematic 编码仍在实施中，因此现阶段不要据此声称已产出电�
   `exposure`（`ev`）与 `post`（`bloom`/`dof`/`grain`/`vignette`/`chromaticAberration`/`lut`）。
   整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。
 - `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`（内置调色档名，见下）、`grain`、`bloom`、`dof`、
-  `vignette` 与 `exposure`。
+  `vignette`、`exposure` 与 `motion`。`motion` 只在 cinematic 用：
+  `{"subframes": 1–4, "supersample": 1–2}`——`subframes` 是 **hero 镜头内每帧**的子帧数
+  （等效快门时间内的运动模糊，非 hero 镜头始终 1 帧），`supersample` 为 2 时按 2 倍设备像素
+  采集、编码时降采样回目标画幅（SSAA）。两者都进片段缓存键；未声明 `motion` 时缓存键与既有一致。
 
 镜头时间窗在**准备阶段**校验（真实分段时长来自 TTS）：每个镜头必须落在本幕时长内；声明
 `segment` 的镜头还必须**完整覆盖**该旁白段的窗口，没有声明的镜头只查幕时长（8–12 秒的 hero
