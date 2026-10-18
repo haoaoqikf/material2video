@@ -64,4 +64,4 @@
 - [x] 6.5 确认交付版、provenance、performance 与 QA 报告齐全；profile/look/post/audio 写入溯源。
 - [x] 6.6 更新 README、PROJECT_PLAN、SKILL、DESIGN、VERIFICATION、SOURCES、示例 README；说明太阳系已改为 60 秒 cinematic，缓冲/试错仍为 standard。
 - [x] 6.7 运行完整验证：`uv run pytest`、`pnpm -C web test`、`pnpm -C web build`、三个示例严格检查、文档链接检查、`openspec validate --strict`。
-- [ ] 6.8 检查暂存内容，排除密钥、缓存、生成媒体与临时产物；提交实现与文档，随后按项目规则同步主规格、归档并提交。
+- [x] 6.8 检查暂存内容，排除密钥、缓存、生成媒体与临时产物；提交实现与文档，随后按项目规则同步主规格、归档并提交。
