@@ -264,6 +264,20 @@ def test_prepare_binds_frame_subtitle_and_media(tmp_path, monkeypatch):
     assert result["inputs"]["frame"] == "1080x1920"
 
 
+def test_narration_audio_starts_after_lead_in_frames(tmp_path, monkeypatch):
+    """前导留白必须写进音轨；否则整片旁白会比字幕和画面提前。"""
+    import wave
+    data = board()
+    data["scenes"][0]["leadInFrames"] = 30
+    root, manifest, result = prepared(tmp_path / "lead", monkeypatch, data)
+    master = root / result["audio"]["segments"][0]["path"]
+    with wave.open(str(master), "rb") as stream:
+        rate = stream.getframerate()
+        raw = stream.readframes(stream.getnframes())
+    first = next((index for index in range(0, len(raw), 2) if raw[index] or raw[index + 1]), None)
+    assert first is not None and abs(first / 2 / rate - 0.5) < 0.05
+
+
 def test_record_receives_the_declared_frame(tmp_path, monkeypatch):
     data = board()
     root, manifest = project(tmp_path, data)

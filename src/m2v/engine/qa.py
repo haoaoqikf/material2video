@@ -15,13 +15,13 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import tempfile
 from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json
+from m2v.engine import qa_inspection
 
 #: 抽样画面的尺寸：够看出构图与 banding，又不会让抽样本身成为瓶颈。
 SAMPLE_SIZE = (192, 104)
@@ -253,10 +253,11 @@ def delivered_video(root: Path) -> Path:
 def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str = "cinematic",
         step: int = DEFAULT_STEP) -> dict:
     """执行全部检查并写入 `outputs/qa.json`；返回报告。"""
+    root = root.resolve()
     fps = prepared["fps"]
     expected = prepared["durationInFrames"] / fps
-    master = root / prepared["audio"]["segments"][0]["path"]
-    target = video or delivered_video(root)
+    audio_segments = prepared.get("audio", {}).get("segments", [])
+    target = (video or delivered_video(root)).resolve()
     if not target.is_file():
         raise M2VError(f"缺少待检查的成片：{target}；请先 preview 或 render")
     frames = sample_frames(target, fps, step)
@@ -264,6 +265,19 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         raise M2VError("成片太短，无法抽样检查")
     outputs = root / "outputs/qa"
     outputs.mkdir(parents=True, exist_ok=True)
+    inspection = qa_inspection.inspect(target, prepared, outputs, audio_required=bool(audio_segments))
+    has_audio = inspection["audioSignals"]["status"] != "not-applicable"
+    no_audio = {"status": "not-applicable", "detail": "无音轨，契约允许"}
+    if has_audio:
+        video_seconds = _duration(target)
+        audio_seconds = inspection["audioSignals"]["durationSeconds"]
+        difference = max(abs(video_seconds - audio_seconds), abs(expected - audio_seconds),
+                         abs(expected - video_seconds))
+        sync = {"videoSeconds": video_seconds, "audioSeconds": audio_seconds,
+                "expectedSeconds": expected, "differenceSeconds": round(difference, 5),
+                "toleranceSeconds": .1, "status": "pass" if difference <= .1 else "fail"}
+    else:
+        sync = dict(no_audio)
     frozen = frozen_frames(frames, fps, step)
     # 冻结段必须能定位到镜头与时间戳，而不是只报一个总秒数。
     sample = frozen["longestStillRange"]
@@ -277,8 +291,8 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         "frozenFrames": frozen,
         "picture": picture_metrics(frames),
         "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
-        "loudness": loudness(master, profile),
-        "audioSync": audio_sync(target, master, expected),
+        "loudness": loudness(target, profile) if has_audio else dict(no_audio),
+        "audioSync": sync,
         "claims": claims_check(prepared),
     }
     # 检查范围随报告保存，避免调用方把技术 pass 扩大解释为视觉通过。
@@ -286,13 +300,14 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         "frozenFrames": ("decision", "sampled-frame-repetition"),
         "picture": ("measurement", "dark-levels-and-spatial-variation"),
         "subtitleContrast": ("decision", "configured-color-contrast"),
-        "loudness": ("decision", "master-audio-loudness-and-peak"),
+        "loudness": ("decision", "delivery-audio-loudness-and-peak"),
         "audioSync": ("decision", "track-duration-difference"),
         "claims": ("decision", "shot-window-coverage"),
     }
     for name, (kind, scope) in scopes.items():
         checks[name].update(kind=kind, scope=scope)
-    sheet = contact_sheet(target, outputs / "contact-sheet.png", every=sheet_interval(expected))
+    # 所有分页都登记；单页入口只是第一页，不再额外生成会截断尾段的旧接触表。
+    sheet = outputs.parent / inspection["sequence"]["pages"][0]
     # 示例的交付与准备目录不同，观看入口指向实际交付目录。
     observation_record = target.parent / "visual-notes.md"
     observation_path = (observation_record.relative_to(root).as_posix()
@@ -302,12 +317,14 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
               "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
               "durationInFrames": prepared["durationInFrames"], "fps": fps,
               "sampleStep": step, "contactSheet": sheet.relative_to(root).as_posix(),
+              "contactSheets": inspection["sequence"]["pages"],
               "scope": "technical-only",
+              "inspection": inspection,
               "observation": {"status": "not-evaluated",
                               "record": observation_path,
                               "requiredChecks": ["composition", "material", "mobile-legibility",
-                                                 "claim-visibility", "continuous-playback", "listening"],
-                              "detail": "技术结论和测量值不代表视觉质量、语义同步或制作完成；实际观看与试听须另行记录。"},
+                                                 "claim-visibility", "frame-sequence", "audio-candidate-review"],
+                              "detail": "技术结论不代表视觉完成；助手须复核帧序列与音频候选，无需连续播放或实际试听。"},
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
     report_path = root / "outputs/qa.json"

@@ -55,11 +55,11 @@ def test_画幅清单是字幕几何的唯一真源():
     """SDK、合成层与量测消费的准备产物都从同一份清单派生。"""
     portrait, landscape = frames.spec(1080, 1920), frames.spec(1920, 1080)
     assert set(portrait["subtitle"]) == {"safeArea", "fontSize", "lineHeight", "textColor", "plateColor"}
-    # 横屏按竖屏数值乘 1080/1920 并四舍五入；水平内边距改用画布宽度的同一比例。
+    # 盒几何保留画幅缩放；手机观看时横竖屏字幕均40px，避免横屏字号随高度缩小。
     ratio = 1080 / 1920
     # 四舍五入（half-up）而不是 Python 的银行家舍入：22.5 取 23。
     scale = lambda value: math.floor(value * ratio + 0.5)  # noqa: E731 - 量算式写在一处更好读
-    assert landscape["subtitle"]["fontSize"] == scale(portrait["subtitle"]["fontSize"])
+    assert landscape["subtitle"]["fontSize"] == portrait["subtitle"]["fontSize"] == 40
     assert landscape["subtitle"]["safeArea"]["height"] == scale(portrait["subtitle"]["safeArea"]["height"])
     portrait_gap = portrait["height"] - (portrait["subtitle"]["safeArea"]["y"] + portrait["subtitle"]["safeArea"]["height"])
     landscape_gap = landscape["height"] - (landscape["subtitle"]["safeArea"]["y"] + landscape["subtitle"]["safeArea"]["height"])

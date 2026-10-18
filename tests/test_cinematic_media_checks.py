@@ -13,6 +13,7 @@ from m2v.engine import assets_audit, qa
 def make_video(path, *, seconds=2, fps=60, pattern="testsrc", size="192x104"):
     subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi",
                     "-i", f"{pattern}=size={size}:rate={fps}:duration={seconds}",
+                    "-f", "lavfi", "-i", f"sine=frequency=440:duration={seconds}",
                     "-pix_fmt", "yuv420p", str(path)], check=True)
     return path
 
@@ -202,6 +203,7 @@ def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
     video = root / "outputs/video.mp4"
     subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi",
                     "-i", "color=c=black:size=192x104:rate=60:duration=4",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=4",
                     "-pix_fmt", "yuv420p", str(video)], check=True)
     make_audio(root / "outputs/media/master.wav", seconds=4)
     prepared = prepared_stub(durationInFrames=240)

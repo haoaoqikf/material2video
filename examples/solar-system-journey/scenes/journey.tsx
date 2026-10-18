@@ -70,7 +70,10 @@ export default function Journey(config: CodeSceneProps) {
   const frame = Math.round(clock.elapsedSeconds * config.fps);
   const shot = useMemo(() => shotAt(shots, frame), [shots, frame]);
   const progress = shot ? (frame - shot.startFrame) / Math.max(1, shot.endFrame - shot.startFrame) : 0;
-  const active = shot?.target && BODIES[shot.target] ? shot.target : 'sun';
+  // 内行星段先讲水星、冰巨星段先讲天王星：标签与信息卡随旁白切换，镜头仍是同一个连续镜头。
+  const active = shot?.id === 'inner-planets' && frame < 650 ? 'mercury'
+    : shot?.id === 'ice-giants' && frame < 2565 ? 'uranus'
+    : shot?.target && BODIES[shot.target] ? shot.target : 'sun';
   const body = BODIES[active];
   const seconds = clock.elapsedSeconds;
   const sources = useTextureSources();
@@ -98,7 +101,7 @@ export default function Journey(config: CodeSceneProps) {
     <div style={{position: 'absolute', left: 0, right: 0, top: safe.y - 90, height: safe.height + 150,
       pointerEvents: 'none', background: 'linear-gradient(180deg, transparent, rgba(2,5,10,0.82) 45%, rgba(2,5,10,0.92))'}}/>
     <div style={{position: 'absolute', left: 70, right: 70, top: 42, display: 'flex',
-      justifyContent: 'space-between', fontSize: 19, letterSpacing: '0.12em', color: '#bdc9d2'}}>
+      justifyContent: 'space-between', fontSize: 26, letterSpacing: '0.12em', color: '#bdc9d2'}}>
       <span>SOLAR SYSTEM / 太阳系之旅</span>
       <span>{opening ? '冷开场 · 日面边缘' : closing ? '奥尔特云 · 太阳成为亮点' : `正在经过 · ${body.name}`}</span>
     </div>
@@ -109,25 +112,28 @@ export default function Journey(config: CodeSceneProps) {
           background: 'linear-gradient(90deg, #9c8159, #e7cca2)'}}/>
       </div>
       <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 10}}>
-        {CHAPTERS.map((name, index) => <span key={name} style={{fontSize: 15,
+        {CHAPTERS.map((name, index) => <span key={name} style={{fontSize: 22,
           color: index === chapterIndex ? '#e7cca2' : index < chapterIndex ? '#9aa9b8' : '#6b7b8a'}}>{name}</span>)}
       </div>
     </div>
-    <div style={{position: 'absolute', left: 70, top: 420, width: 520, padding: '26px 28px',
+    <div style={{position: 'absolute', left: 70, top: 390, width: 590, padding: '26px 28px',
       borderLeft: '1px solid #9c8159',
       // 右侧渐隐到透明：半透明底板在亮天体前会露出一条硬直边，像多出一个矩形。
       background: 'linear-gradient(90deg, rgba(2,5,10,0.95) 0%, rgba(2,5,10,0.84) 62%, rgba(2,5,10,0) 100%)',
       opacity: panel}}>
-      <div style={{fontSize: 17, letterSpacing: '0.18em', color: '#dabb86'}}>{body.english}</div>
+      <div style={{fontSize: 22, letterSpacing: '0.18em', color: '#dabb86'}}>{body.english}</div>
       <div style={{fontSize: 64, fontWeight: 350, lineHeight: 1.3, marginTop: 12}}>{body.name}</div>
-      <div style={{fontSize: 22, color: '#dabb86', marginTop: 14}}>{body.kind}</div>
-      <div style={{fontSize: 23, lineHeight: 1.6, marginTop: 25}}>{body.feature}</div>
-      <div style={{fontSize: 19, color: '#a7b5c2', marginTop: 20}}>{body.distance}</div>
+      <div style={{fontSize: 28, color: '#dabb86', marginTop: 14}}>{body.kind}</div>
+      <div style={{fontSize: 34, lineHeight: 1.6, marginTop: 25}}>{body.feature}</div>
+      <div style={{fontSize: 26, color: '#a7b5c2', marginTop: 20}}>{body.distance}</div>
     </div>
-    <div style={{position: 'absolute', left: 70, bottom: 150, fontSize: 19, color: '#cfe0f2',
+    {(shot?.target === 'oort') && <div style={{position: 'absolute', left: 70, top: 185, fontSize: 34,
+      color: '#cfe0f2', lineHeight: 1.5}}>奥尔特云 · 包围太阳系的遥远彗星库
+      <div style={{fontSize: 25, color: '#a7b5c2'}}>蓝色内边界为日球层顶，外侧粒子为奥尔特云艺术示意</div></div>}
+    <div style={{position: 'absolute', left: 70, top: safe.y - 132, fontSize: 26, color: '#cfe0f2',
       letterSpacing: '0.06em'}}>距太阳 ≈ {formatAu(au)} AU（压缩坐标）</div>
     <div style={{position: 'absolute', left: 70, right: 70, top: safe.y - 60, display: 'flex',
-      justifyContent: 'space-between', fontSize: 16, color: '#a3b2c0',
+      justifyContent: 'space-between', fontSize: 20, color: '#a3b2c0',
       opacity: opening || closing ? fade : 0}}>
       <span>同一三维模型 · 轨道距离压缩 · 天体放大 · 非实时位置 · 艺术示意</span>
       <span>NASA / JPL / USGS · Solar System Scope（CC BY 4.0）</span>

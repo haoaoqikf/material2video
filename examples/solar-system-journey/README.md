@@ -46,4 +46,4 @@ uv run m2v render --project examples/solar-system-journey
 
 ## 当前自主复核状态
 
-默认发布语境为抖音手机观看，本例保持 1920×1080、60 fps 横屏；制作规则见[自主视觉复核](../../.agents/skills/material2video/references/visual-review-rubric.md)。历史用户确认不代表当前版本已完成完整看听。2026-10-18 的流程修复已建立基线与参考入口，但当前工具没有实际连续播放和试听能力，风险样片返工与全片复核尚未完成；不得把技术 QA 或抽帧写成新版本通过。详见 [VERIFICATION.md](VERIFICATION.md)。
+默认发布语境为抖音手机观看，本例保持 1920×1080、60 fps 横屏；制作规则见[自主视觉复核](../../.agents/skills/material2video/references/visual-review-rubric.md)。2026-10-18 已按替代验收完成：风险窗与全片帧序列、自动音频候选登记在交付目录 `visual-notes.md`，绑定当前准备指纹与 MP4 摘要；水星/天王星主张可见性、木星单帧白闪与旁白前导留白问题均已修改并复查关闭。未连续播放或实际试听，覆盖限制按记录披露；历史用户确认与旧播放/试听记录只作历史，不授权当前版本完成。技术摘要见 [VERIFICATION.md](VERIFICATION.md)。

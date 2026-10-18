@@ -102,7 +102,10 @@ def test_status_reports_optional_review_independently(tmp_path, monkeypatch):
     monkeypatch.setattr("m2v.cli._prepared", lambda *_: prepared)
     manifest = {"id": "demo", "type": "general"}
     result = _status(tmp_path, manifest)
-    assert result["review"] == {"status": "optional", "required": False}
+    assert result["review"]["status"] == "optional"
+    assert result["review"]["required"] is False
+    # 交付文案已改为帧序列与自动音频复核，不再要求播放/试听或用户确认。
+    assert "帧序列" in result["review"]["detail"] and "无需播放" in result["review"]["detail"]
     assert result["preview"]["status"] == "current"
     video.write_bytes(b"changed")
     result = _status(tmp_path, manifest)

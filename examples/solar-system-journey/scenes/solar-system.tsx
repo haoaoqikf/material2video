@@ -8,6 +8,8 @@ import {BODIES} from './bodies';
 import {LAYOUT, positionOf} from './layout';
 import {Planet, type Textures} from './world';
 
+type FocusTarget = THREE.Vector3 | (() => THREE.Vector3);
+
 /** 相机焦点表：天体位置固定，因此直接给 Vector3，不需要 Object3D 引用。 */
 export function focusTargets(): Record<string, THREE.Vector3> {
   const targets: Record<string, THREE.Vector3> = {sun: new THREE.Vector3(0, 0, 0)};
@@ -48,7 +50,7 @@ const FEATURE_BODIES = new Set(['jupiter', 'pluto']);
 const SATURN_SHOT = 'saturn-hero';
 
 function World({textures, targets, active, seconds, shots, fps}: {
-  textures: Textures; targets: Record<string, THREE.Vector3>; active: string; seconds: number;
+  textures: Textures; targets: Record<string, FocusTarget>; active: string; seconds: number;
   shots: Shot[]; fps: number;
 }) {
   const clock = {current: {seconds}};
@@ -59,7 +61,7 @@ function World({textures, targets, active, seconds, shots, fps}: {
     : frame >= saturnShot.endFrame ? 1
       : (frame - saturnShot.startFrame) / Math.max(1, saturnShot.endFrame - saturnShot.startFrame);
   return <>
-    <ambientLight intensity={0.24}/>
+    <ambientLight intensity={0.40}/>
     {/* 点光不再把远处天体照成白盘：降低强度后月球与卫星才留得住纹理。 */}
     <pointLight position={[0, 0, 0]} intensity={1.9} decay={0} color="#fff0d7"/>
     {/* 星点收小收暗：之前 2200 颗 1.6px 被 Bloom 糊成星云，深空变成了蓝雾。 */}
@@ -87,8 +89,8 @@ function World({textures, targets, active, seconds, shots, fps}: {
       color="#c5bba1" size={0.09} spin={0.02}/>
     <ParticleBelt count={2200} innerRadius={86} outerRadius={106} thickness={2.4} seed="kuiper"
       color="#9fb6cf" size={0.14} spin={0.012}/>
-    <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#8fb6ff" size={0.35}
-      bubble={132} bubbleColor="#5f97d8" bubbleOpacity={0.5}/>
+    <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#a8c8ff" size={1.1}
+      bubble={132} bubbleColor="#5f97d8" bubbleOpacity={0.65}/>
     <Comet position={[96, 12, 150]} radius={0.5} tailLength={22} tailRadius={1.4} sunPosition={[0, 0, 0]}/>
     <CameraRig targets={targets} target={[0, 0, 0]} near={0.02} far={4000}/>
     <PostFX/>
@@ -100,7 +102,20 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
   textures: Textures; shots: Shot[]; look: Look; active: string; seconds: number; fps: number;
   onReady: () => void;
 }) {
-  const targets = useMemo(() => focusTargets(), []);
+  // 冰巨星段先讲天王星、再讲海王星；同一连续镜头内按旁白时间把焦点从前者拉到后者。
+  const secondsRef = useRef(seconds);
+  secondsRef.current = seconds;
+  const targets = useMemo<Record<string, FocusTarget>>(() => {
+    const table: Record<string, FocusTarget> = focusTargets();
+    // 每一段先让旁白提到的内/外行星进入画面，再在同一连续镜头内拉焦到下一颗。
+    const pull = (first: string, second: string, start: number, frames: number) => () => {
+      const blend = Math.min(1, Math.max(0, (secondsRef.current * fps - start) / frames));
+      return new THREE.Vector3().lerpVectors(positionOf(first), positionOf(second), blend);
+    };
+    table['inner-focus'] = pull('mercury', 'venus', 635, 24);
+    table['ice-focus'] = pull('uranus', 'neptune', 2550, 24);
+    return table;
+  }, [fps]);
   return <Canvas dpr={1} gl={{antialias: false, alpha: false, powerPreference: 'high-performance'}}>
     <color attach="background" args={['#02050a']}/>
     <PerspectiveCamera makeDefault fov={40} near={0.02} far={4000} position={[3.4, 0.35, 1.0]}/>

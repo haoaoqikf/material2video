@@ -115,9 +115,14 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
             raise M2VError(f"幕 {scene['id']} 转场过长或造成三幕重叠")
         start = cursor - overlap
         # 留白属于本幕：旁白在 leadInFrames 之后才开始，收尾留白同样计入幕长。
-        speech_start = cursor + scene.get("leadInFrames", 0)
+        leading = scene.get("leadInFrames", 0)
+        speech_start = cursor + leading
         scene.update(startFrame=start, endFrame=start+duration, durationInFrames=duration,
                      transitionFrames=overlap, segmentWindows={})
+        # 前导留白必须真的写进音轨：字幕与镜头按 speech_start 排版，旁白若从 0 帧开始
+        # 就会整片提前，出现“字幕在说、声音已走”的错位。
+        if leading:
+            parts.append((None, leading))
         for identity, wav, local_cues, frames in segments:
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue in local_cues:

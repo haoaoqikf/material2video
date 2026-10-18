@@ -6,6 +6,9 @@ ROOT = Path(__file__).resolve().parents[1] / ".agents/skills/material2video/refe
 def test_workflow_and_compatibility_documented():
     text = (ROOT / "article-to-storyboard.md").read_text(encoding="utf-8")
     assert "确定画幅" in text and "视觉设计" in text and "实际观看" in text
+    # 替代验收口径：查看帧序列与自动音频，不再把完整播放/试听写成完成前置。
+    assert "帧序列" in text and "自动音频" in text
+    assert "完整看听" not in text and "完整播放" not in text
     assert "候选稿须用户明确采用并重新审查后才能制作" in text
     assert "实际时长" in text and "600 秒" in text
     assert "最多 3 个" in text and "不新增、删除或替换目录" in text

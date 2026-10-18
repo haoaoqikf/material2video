@@ -30,6 +30,9 @@ export function earthSurface(shader: Parameters<THREE.MeshStandardMaterial['onBe
       uniform float uNight;
       uniform float uCloudShadow;
       `)
+    .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      // 保留海陆粗糙度差异，同时抑制压缩贴图中的近零值产生的镜面白点。
+      roughnessFactor = max(0.62, roughnessFactor);`)
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       {
         // GLSL 未定义 edge0 >= edge1 的 smoothstep；反转结果保证跨 GPU 一致。
@@ -186,6 +189,7 @@ function Rings({radius, texture}: {radius: number; texture: THREE.Texture}) {
     <meshStandardMaterial map={texture} transparent opacity={0.96} alphaTest={0.045}
       customProgramCacheKey={() => 'solar-ring-shadow-v1'}
       onBeforeCompile={shader => saturnShadow(shader, radius)}
+      emissiveMap={texture} emissive="#b9ac8a" emissiveIntensity={0.12}
       side={THREE.DoubleSide} roughness={0.96} metalness={0} depthWrite={false}/>
   </mesh>;
 }
@@ -257,7 +261,7 @@ export function Planet({id, textures, clock, radius = 2.35, phase = 0, detail = 
       uNightMap: {value: textures['earth-emissive'] ?? null},
       uCloudOffset: {value: 0},
     uNight: {value: 1.8},
-    uCloudShadow: {value: 0.38},
+    uCloudShadow: {value: 0.20},
   }), [textures.clouds, textures['earth-emissive']]);
   useFrame(() => {
     const rotation = clock.current.seconds * (id === 'venus' ? -0.018 : 0.026);
@@ -318,7 +322,7 @@ export function Planet({id, textures, clock, radius = 2.35, phase = 0, detail = 
           }}
           color={map ? '#ffffff' : body.color} roughness={textures[`${id}-roughness`] ? 1.3 : 0.96}
           roughnessMap={textures[`${id}-roughness`]}
-          normalMap={textures[`${id}-normal`]} normalScale={new THREE.Vector2(0.35, 0.35)}
+          normalMap={textures[`${id}-normal`]} normalScale={new THREE.Vector2(id === 'earth' ? 0.12 : 0.35, id === 'earth' ? 0.12 : 0.35)}
           emissiveMap={id === 'titan' ? map : id === 'earth' ? undefined : textures[`${id}-emissive`]}
           // 没有 emissiveMap 的天体必须保持黑色自发光；否则白 emissive 会把月球、
           // 水星、金星、火星整颗渲染成没有纹理的白盘。
@@ -331,7 +335,7 @@ export function Planet({id, textures, clock, radius = 2.35, phase = 0, detail = 
     {id === 'earth' && <mesh ref={clouds} rotation={[0, 2.8, 0]}>
       <sphereGeometry args={[radius * 1.008, detail ? 80 : 24, detail ? 48 : 16]}/>
       <meshStandardMaterial color="#ffffff" alphaMap={textures.clouds} transparent
-        opacity={0.92} depthWrite={false} roughness={1}/>
+        opacity={0.72} depthWrite={false} roughness={1}/>
     </mesh>}
     {body.atmosphere && <Atmosphere radius={radius} color={body.atmosphere} detail={detail}/>}
     {id === 'saturn' && <Rings radius={radius} texture={textures.rings}/>}

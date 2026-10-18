@@ -22,8 +22,8 @@
             "lut": "deep-space",
             "bloom": 0.7,
             "dof": 0.45,
-            "grain": 0.35,
-            "vignette": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
             "exposure": {
               "ev": -0.2,
               "mode": "look"
@@ -53,8 +53,8 @@
               "post": {
                 "bloom": 1,
                 "dof": 0.5,
-                "grain": 0.4,
-                "vignette": 0.5,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.3,
                 "lut": "deep-space"
               },
@@ -90,8 +90,8 @@
               "post": {
                 "bloom": 0.9,
                 "dof": 0.2,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.18,
                 "lut": "deep-space"
               },
@@ -126,14 +126,14 @@
               "startFrame": 559,
               "endFrame": 842,
               "focus": {
-                "target": "venus",
+                "target": "inner-focus",
                 "distance": 4.5
               },
               "post": {
                 "bloom": 0.55,
                 "dof": 0.35,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.12,
                 "lut": "deep-space"
               },
@@ -146,9 +146,19 @@
                     8.197
                   ],
                   [
-                    -5.121,
-                    1.325,
-                    9.281
+                    6.2,
+                    1.2,
+                    3.8
+                  ],
+                  [
+                    1.0,
+                    1.2,
+                    10.0
+                  ],
+                  [
+                    -5.0,
+                    1.0,
+                    9.5
                   ],
                   [
                     -10.791,
@@ -179,9 +189,9 @@
               },
               "post": {
                 "bloom": 0.7,
-                "dof": 0.6,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "dof": 0.12,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.12,
                 "lut": "deep-space"
               },
@@ -243,8 +253,8 @@
               "post": {
                 "bloom": 0.5,
                 "dof": 0.3,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.1,
                 "lut": "deep-space"
               },
@@ -298,14 +308,14 @@
                 "distance": 7
               },
               "post": {
-                "bloom": 0.6,
+                "bloom": 0,
                 "dof": 0.35,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.12,
                 "lut": "deep-space"
               },
-              "note": "大红斑正对镜头，云带流动，木卫二冰纹；硬切入木星近景",
+              "note": "大红斑正对镜头，云带流动，木卫二冰纹；硬切入木星近景。关闭 Bloom：27.92 秒曾出现单帧整帧白闪，关闭后消失",
               "camera": {
                 "path": [
                   [
@@ -357,9 +367,9 @@
               },
               "post": {
                 "bloom": 0.8,
-                "dof": 0.55,
-                "grain": 0.35,
-                "vignette": 0.5,
+                "dof": 0.12,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.14,
                 "lut": "deep-space"
               },
@@ -405,14 +415,15 @@
               "startFrame": 2451,
               "endFrame": 2747,
               "focus": {
-                "target": "neptune",
-                "distance": 9
+                "target": "ice-focus",
+                "from": 6,
+                "to": 4
               },
               "post": {
                 "bloom": 0.5,
                 "dof": 0.3,
-                "grain": 0.35,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.1,
                 "lut": "deep-space"
               },
@@ -425,32 +436,32 @@
                     -43.186
                   ],
                   [
-                    -20.0,
-                    7.0,
-                    -10.0
+                    -58,
+                    3.5,
+                    10
                   ],
                   [
-                    -60.0,
-                    5.0,
-                    12.0
+                    -45,
+                    3,
+                    -25
                   ],
                   [
-                    -50.0,
-                    4.0,
-                    -30.0
+                    -33,
+                    3,
+                    -62
                   ],
                   [
-                    -28.0,
-                    3.0,
-                    -65.0
+                    -26,
+                    3,
+                    -78
                   ],
                   [
-                    3.159,
-                    3.9,
-                    -83.941
+                    -25,
+                    3,
+                    -80
                   ]
                 ],
-                "fov": 40,
+                "fov": 34,
                 "easing": "linear"
               }
             },
@@ -468,8 +479,8 @@
               "post": {
                 "bloom": 0.45,
                 "dof": 0.4,
-                "grain": 0.4,
-                "vignette": 0.45,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.1,
                 "lut": "deep-space"
               },
@@ -477,9 +488,9 @@
               "camera": {
                 "path": [
                   [
-                    3.159,
-                    3.9,
-                    -83.941
+                    -25,
+                    3,
+                    -80
                   ],
                   [
                     10.0,
@@ -525,8 +536,8 @@
               "post": {
                 "bloom": 0.5,
                 "dof": 0.35,
-                "grain": 0.4,
-                "vignette": 0.5,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.1,
                 "lut": "deep-space"
               },
@@ -567,8 +578,8 @@
               "post": {
                 "bloom": 0.4,
                 "dof": 0.2,
-                "grain": 0.4,
-                "vignette": 0.5,
+                "grain": 0.035,
+                "vignette": 0.22,
                 "chromaticAberration": 0.08,
                 "lut": "deep-space"
               },

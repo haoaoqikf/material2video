@@ -171,7 +171,7 @@ def _status(root: Path, manifest: dict) -> dict:
     review_status = {"status": "optional" if video_type.manual_review_available else "not-required",
                      "required": False}
     if manifest["type"] == "general":
-        review_status["detail"] = "CLI 仅报告技术就绪与可选评审状态；制作完成须由助手另行完整看听并关闭必改项，无需用户确认。"
+        review_status["detail"] = "CLI 仅报告技术就绪与可选评审状态；制作完成须由助手复核帧序列和自动音频候选并关闭必改项，无需播放、试听或用户确认。"
     preview_status = {"status": "missing"}
     try:
         prepared = _prepared(root, manifest)
