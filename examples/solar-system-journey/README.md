@@ -33,7 +33,7 @@ uv run m2v general input-review --storyboard examples/solar-system-journey/story
 # 阅读完整源文并填写 outputs/input-review.json，然后继续。
 uv run m2v prepare --project examples/solar-system-journey
 uv run m2v lookdev --project examples/solar-system-journey
-# 实际观看静帧与样片，把时间码、问题与复查写进 outputs/visual-notes.md；不阻断后续步骤
+# 实际观看静帧与样片，记录准备指纹、文件摘要、时间码和复查，关闭必改项后铺全片；无需用户确认
 uv run m2v preview --project examples/solar-system-journey
 uv run m2v qa --project examples/solar-system-journey
 uv run m2v render --project examples/solar-system-journey
@@ -43,3 +43,7 @@ uv run m2v render --project examples/solar-system-journey
 
 录制采用共享受控时钟按 60 fps 顺序逐帧采集；`look.motion` 支持 hero 子帧运动模糊与 2 倍 SSAA，但本片为控制约 25 分钟的整片耗时采用 1 子帧、1× 采集，原生 2× 像素细节由 `m2v lookdev` 的 4K 静帧承担。机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧片段缓存不复用。
 
+
+## 当前自主复核状态
+
+默认发布语境为抖音手机观看，本例保持 1920×1080、60 fps 横屏；制作规则见[自主视觉复核](../../.agents/skills/material2video/references/visual-review-rubric.md)。历史用户确认不代表当前版本已完成完整看听。2026-10-18 的流程修复已建立基线与参考入口，但当前工具没有实际连续播放和试听能力，风险样片返工与全片复核尚未完成；不得把技术 QA 或抽帧写成新版本通过。详见 [VERIFICATION.md](VERIFICATION.md)。

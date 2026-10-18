@@ -65,6 +65,9 @@ def test_claims_require_covering_shot():
                                               "startFrame": 120, "endFrame": 480}]}}}
     report = qa.claims_check({"props": {"compiledScenes": [scene]}})
     assert report["status"] == "pass" and report["segments"][0]["shots"] == ["earth"]
+    # 即使目标朝向或画面未知，也只承诺时间窗覆盖，不能冒充可见性验收。
+    assert report["scope"] == "shot-window-coverage"
+    assert report["visibility"] == "not-evaluated"
     scene["content"]["props"]["shots"] = []
     assert qa.claims_check({"props": {"compiledScenes": [scene]}})["status"] == "fail"
 
@@ -95,6 +98,11 @@ def test_qa_run_writes_report(tmp_path):
     report = qa.run(root, prepared_stub(), video=video, profile="standard", step=30)
     assert (root / "outputs/qa.json").is_file()
     assert report["status"] in {"pass", "fail"} and "frozenFrames" in report["checks"]
+    assert report["scope"] == "technical-only"
+    assert report["observation"]["status"] == "not-evaluated"
+    assert report["checks"]["picture"]["kind"] == "measurement"
+    assert "status" not in report["checks"]["picture"]
+    assert report["checks"]["audioSync"]["scope"] == "track-duration-difference"
 
 
 def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):

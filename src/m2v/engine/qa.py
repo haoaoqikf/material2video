@@ -3,7 +3,7 @@
 检查分两类：
 
 - **硬判定**（失败即 `status: fail`）：冻结/重复帧、字幕对比度、响度与真峰值、
-  音画时长一致、每条 `claims` 都有对应镜头。
+  音轨时长一致、每条 `claims` 的时间窗有覆盖镜头。
 - **测量项**（只报告数值与提醒）：banding、aliasing、接触表。它们受内容影响很大，
   用固定阈值判死会把正常画面误判成缺陷，因此只给数值与观看入口。
 
@@ -217,7 +217,7 @@ def audio_sync(video: Path, audio: Path, expected_seconds: float) -> dict:
 
 
 def claims_check(prepared: dict) -> dict:
-    """每条 claims 都要落在某个镜头的时间窗里，否则旁白说的画面上看不到。"""
+    """只检查 claims 时间窗覆盖，不判断特征实际可见性。"""
     scenes = prepared["props"].get("compiledScenes", [])
     pending, missing = [], []
     for scene in scenes:
@@ -239,7 +239,8 @@ def claims_check(prepared: dict) -> dict:
             if not covering:
                 missing.append({"scene": scene["id"], "segment": segment["id"],
                                 "reason": "没有镜头覆盖该旁白窗口"})
-    return {"segments": pending, "problems": missing,
+    return {"scope": "shot-window-coverage", "visibility": "not-evaluated",
+            "segments": pending, "problems": missing,
             "status": "fail" if missing else "pass"}
 
 
@@ -280,12 +281,33 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         "audioSync": audio_sync(target, master, expected),
         "claims": claims_check(prepared),
     }
+    # 检查范围随报告保存，避免调用方把技术 pass 扩大解释为视觉通过。
+    scopes = {
+        "frozenFrames": ("decision", "sampled-frame-repetition"),
+        "picture": ("measurement", "dark-levels-and-spatial-variation"),
+        "subtitleContrast": ("decision", "configured-color-contrast"),
+        "loudness": ("decision", "master-audio-loudness-and-peak"),
+        "audioSync": ("decision", "track-duration-difference"),
+        "claims": ("decision", "shot-window-coverage"),
+    }
+    for name, (kind, scope) in scopes.items():
+        checks[name].update(kind=kind, scope=scope)
     sheet = contact_sheet(target, outputs / "contact-sheet.png", every=sheet_interval(expected))
+    # 示例的交付与准备目录不同，观看入口指向实际交付目录。
+    observation_record = target.parent / "visual-notes.md"
+    observation_path = (observation_record.relative_to(root).as_posix()
+                        if observation_record.is_relative_to(root) else str(observation_record))
     report = {"schemaVersion": 1, "profile": profile,
               "preparedFingerprint": prepared["preparedFingerprint"],
               "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
               "durationInFrames": prepared["durationInFrames"], "fps": fps,
               "sampleStep": step, "contactSheet": sheet.relative_to(root).as_posix(),
+              "scope": "technical-only",
+              "observation": {"status": "not-evaluated",
+                              "record": observation_path,
+                              "requiredChecks": ["composition", "material", "mobile-legibility",
+                                                 "claim-visibility", "continuous-playback", "listening"],
+                              "detail": "技术结论和测量值不代表视觉质量、语义同步或制作完成；实际观看与试听须另行记录。"},
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
     report_path = root / "outputs/qa.json"
@@ -319,7 +341,8 @@ def main(argv: list[str] | None = None) -> int:
     profile, _source = cinematic.resolve_profile(manifest, args.profile)
     report = run(root, prepared, video=Path(args.video) if args.video else None,
                  profile=profile, step=args.step)
-    print(json.dumps({"status": report["status"], "checks": {name: item.get("status", "measured")
+    print(json.dumps({"status": report["status"], "scope": report["scope"],
+                     "observation": report["observation"], "checks": {name: item.get("status", "measured")
                                                              for name, item in report["checks"].items()}},
                      ensure_ascii=False, indent=2))
     return 0 if report["status"] == "pass" else 1

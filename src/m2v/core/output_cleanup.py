@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from urllib.parse import unquote
 
 
 VIDEO_SUFFIXES = {".mp4", ".webm", ".mov", ".mkv", ".avi"}
@@ -13,7 +14,8 @@ _TEMP_DIR = re.compile(r"^(?:a2v|m2v|debug|tmp|render)(?:-|$)", re.IGNORECASE)
 _KNOWN_REGENERABLE_DIRS = {"previews", "qa", "bench", "review-contact-sheets"}
 
 
-def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False) -> list[str]:
+def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False,
+                         preserve_visual_evidence: bool = False) -> list[str]:
     """Clean old video/review artifacts without risking files outside outputs.
 
     Returns human-readable failures. A failure never removes the current render or
@@ -35,6 +37,11 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
     keep = {current}
     keep.update(current.with_suffix(suffix) for suffix in SIDECAR_SUFFIXES)
     failures: list[str] = []
+    if preserve_visual_evidence:
+        try:
+            keep.update(_visual_evidence(outputs))
+        except OSError as exc:
+            return [str(exc)]
 
     # These folders only contain regenerable inspection previews and render caches.
     try:
@@ -46,11 +53,12 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
             (child.name.lower() in _KNOWN_REGENERABLE_DIRS and not (preserve_previews and child.name.lower() == "previews"))
             or _TEMP_DIR.match(child.name)
         ):
-            _remove_tree(child, outputs, failures)
-    _unlink(outputs / "preview-record.json", failures)
+            _remove_tree(child, outputs, failures, keep=keep)
+    if outputs / "preview-record.json" not in keep:
+        _unlink(outputs / "preview-record.json", failures)
     if not preserve_previews:
         financial_preview_record = outputs / "previews" / "preview-record.json"
-        if financial_preview_record.is_file():
+        if financial_preview_record.is_file() and financial_preview_record not in keep:
             _unlink(financial_preview_record, failures)
 
     # Old final videos and their known output sidecars can occur at any depth,
@@ -112,6 +120,41 @@ def _inside_named_dir(path: Path, root: Path, name: str) -> bool:
     return name in relative.parts
 
 
+def _visual_evidence(outputs: Path) -> set[Path]:
+    """保留观看记录中显式引用的本地文件，不跟随链接到作品输出目录之外。
+
+    记录使用相对 visual-notes.md 的 Markdown 文件链接。只保留直接引用，
+    不递归读取其他文档，也不将目录链接解释为保留整棵历史树。
+    """
+    notes = outputs / "visual-notes.md"
+    if not notes.is_file() or notes.is_symlink():
+        return set()
+    keep = {notes}
+    try:
+        text = notes.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        # 记录不可读时宁可保留产物，不能声称已经完成安全清理。
+        raise OSError(f"无法读取视觉证据记录 {notes}: {exc}") from exc
+    for raw in re.findall(r"\]\((<[^>]+>|[^\s)]+)\)", text):
+        value = unquote(raw.strip("<>").split("#", 1)[0])
+        if not value or re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", value):
+            continue
+        candidate = outputs / value
+        try:
+            resolved = candidate.resolve()
+            relative = resolved.relative_to(outputs)
+            # 不保留符号链接；避免外部路径或链接将清理例外扩大到其他作品。
+            lexical = candidate.relative_to(outputs)
+            if any((outputs.joinpath(*lexical.parts[:index])).is_symlink()
+                   for index in range(1, len(lexical.parts) + 1)):
+                continue
+            if relative.parts and resolved.is_file():
+                keep.add(resolved)
+        except (ValueError, OSError, RuntimeError):
+            continue
+    return keep
+
+
 def _unlink(path: Path, failures: list[str]) -> None:
     try:
         if path.is_symlink() or path.is_file():
@@ -120,8 +163,9 @@ def _unlink(path: Path, failures: list[str]) -> None:
         failures.append(f"{path}: {exc}")
 
 
-def _remove_tree(path: Path, outputs: Path, failures: list[str]) -> None:
+def _remove_tree(path: Path, outputs: Path, failures: list[str], *, keep: set[Path] | None = None) -> None:
     """Unlink a known generated directory without following symlinks."""
+    protected = keep or set()
     try:
         path.resolve().relative_to(outputs)
     except ValueError:
@@ -133,7 +177,8 @@ def _remove_tree(path: Path, outputs: Path, failures: list[str]) -> None:
     ):
         parent = Path(directory)
         for name in files:
-            _unlink(parent / name, failures)
+            if parent / name not in protected:
+                _unlink(parent / name, failures)
         for name in child_dirs:
             child = parent / name
             if child.is_symlink():
@@ -146,4 +191,5 @@ def _remove_tree(path: Path, outputs: Path, failures: list[str]) -> None:
         try:
             parent.rmdir()
         except OSError as exc:
-            failures.append(f"{parent}: {exc}")
+            if not any(item.is_relative_to(parent) for item in protected):
+                failures.append(f"{parent}: {exc}")

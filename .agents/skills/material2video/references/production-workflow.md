@@ -1,9 +1,9 @@
 # 通用作品制作流程
 
-通用作品使用 project.json 和 v8 storyboard.json。顺序是：确定画幅与视觉设计（作品 `DESIGN.md`）
+通用作品使用 project.json 和 v8 storyboard.json。顺序是：确定发布语境、画幅与视觉设计（默认抖音横屏；作品 `DESIGN.md`）
 → 写 `scenes/` 下的本地 React 场景 → 保存源文并完成[输入审查](input-review.md)（`input.kind` 为
 `topic` 时跳过）→ 编排旁白 → 按需导入素材 → 由制作助手按[自动选音流程](../SKILL.md)选择并保存
-音色 → 准备与录制 → 实际观看代表片段 → 完整预演 → 正式导出。用户明确指定音色时沿用其选择。
+音色 → 准备与录制 → 实际观看代表片段 → 完整预演 → 正式导出 → 完整看听与自主交付。用户明确指定音色时沿用其选择。
 
 ```powershell
 uv run m2v general assets search --project videos/general/<slug> --kind both
@@ -34,32 +34,29 @@ preview 只做**字幕量测**（安全区矩形、换行范围与可见性）�
 正式渲染先生成临时文件、核验画布尺寸、帧数与声音，再替换 outputs/video.mp4 并保存溯源。
 失败不覆盖旧成片。旧准备与旧评审不兼容；v7 及更早分镜须重新编排。
 
-默认流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与准备 → 完整预演 → 正式导出；
-无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出。
+CLI 自动门禁仍为材料审查 → 选音 → 准备 → 完整预演 → 导出；可选评审记录不阻断导出。助手制作另外遵循[自主视觉复核](visual-review-rubric.md)：自主搜集参考、验证风险样片、必改项关闭后铺全片、最终文件完整看听。导出成功不能代替制作完成。
 
 ## cinematic 分支
 
 作品在 `project.json` 声明 `productionProfile: "cinematic"`（或 `prepare --profile cinematic`）后，
-流程改为五个阶段；look-dev **不新增用户确认**，产出静帧与样片并实际观看后即可继续：
+流程改为五个阶段，所有阶段均无需用户确认；产出静帧与样片、实际复核并关闭必改项后继续：
 
 ```powershell
 uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v lookdev --project videos/general/<slug>   # 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片
-# 实际观看静帧与样片，把时间码、问题与复查写进 outputs/visual-notes.md；不阻断后续步骤
+# 实际观看静帧与样片，记录版本、时间码、问题与复查；关闭必改项后铺全片，不新增 CLI 导出门禁
 uv run m2v preview --project videos/general/<slug>
 uv run m2v qa --project videos/general/<slug>        # 技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>     # 普通 H.264 MP4 交付
 ```
 
-- 阶段为 **Brief → Look-dev → Hero → Full film → QA/确认**；look-dev 只产出检查产物，
+- 阶段为 **Brief → Look-dev → Hero → Full film → QA/自主复核**；look-dev 只产出检查产物，
   不设人工门禁，`m2v render` 不因缺少观看或确认记录而阻断。
 - shot list、look、`claims`、`leadInFrames` / `tailFrames` / `readingHoldFrames` 都是分镜的可选
   字段，进入准备指纹与代码片段缓存键；只改 look 或镜头也必须重新 prepare。
-- 不执行数字评分卡：技术 QA 与 hero 实看完成后，把成片交给用户观看并直接询问是否通过；
-  这是唯一保留的用户确认，确认结果写入 `outputs/visual-notes.md`，用户指出的问题记录位置与复查结果。
-- 参考板、look bible、20 项检查表、反模式与成本见[电影级制作档位](cinematic-video.md)。
+- 不执行数字评分卡。技术 QA 与 hero 实看后完整看听最终文件，关闭必改项再自主交付；模板与版本失效规则见[自主视觉复核](visual-review-rubric.md)。
+- 样片无声或无法实际播放/试听时如实报告范围与未完成原因，不能以抽帧或用户确认补足。
 
-档位、镜头/look 字段与 cinematic 命令已经落地；太阳系 60 秒参考片完成 look-dev、完整预演、
-技术 QA 与用户确认，可直接作为 cinematic 样板参考。
+太阳系示例保留历史制作说明，历史确认不授权新版本完成；当前复核状态见示例 VERIFICATION.md。

@@ -170,6 +170,8 @@ def _status(root: Path, manifest: dict) -> dict:
     video_type = registry.get(manifest["type"])
     review_status = {"status": "optional" if video_type.manual_review_available else "not-required",
                      "required": False}
+    if manifest["type"] == "general":
+        review_status["detail"] = "CLI 仅报告技术就绪与可选评审状态；制作完成须由助手另行完整看听并关闭必改项，无需用户确认。"
     preview_status = {"status": "missing"}
     try:
         prepared = _prepared(root, manifest)
@@ -375,7 +377,8 @@ def main(argv: list[str] | None = None) -> int:
                 if root.parent.name == "examples":
                     expected_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
                 failures = cleanup_after_render(expected_outputs, output_path,
-                    preserve_previews=manifest["type"] == "financial-timeseries")
+                    preserve_previews=manifest["type"] == "financial-timeseries",
+                    preserve_visual_evidence=manifest["type"] == "general")
                 if failures:
                     for failure in failures:
                         print(f"[warning] 旧产物清理未完成：{failure}", file=sys.stderr)

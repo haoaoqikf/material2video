@@ -106,3 +106,47 @@ def test_cleanup_reports_locked_old_file_and_keeps_new_video(tmp_path: Path, mon
     assert failures == [f"{old}: locked"]
     assert current.read_bytes() == b"new"
     assert old.read_bytes() == b"old"
+
+
+def test_general_cleanup_preserves_only_explicit_local_visual_evidence(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "video.mp4"
+    current.write_bytes(b"final")
+    # 既覆盖整目录清理，也覆盖逐文件清理与带空格/编码路径。
+    for name in ("qa/keep.png", "qa/old.png", "debug-review/before.mp4",
+                 "lookdev/after frame.jpg", "lookdev/old.mp4", "old.mp4"):
+        path = outputs / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"evidence")
+    notes = outputs / "visual-notes.md"
+    notes.write_text("[帧](qa/keep.png) [之前](debug-review/before.mp4) "
+                     "[之后](<lookdev/after%20frame.jpg>) [外部](../outside.png) "
+                     "[目录](lookdev/) [网页](https://example.com/photo.png)", encoding="utf-8")
+    external = tmp_path / "outside.png"
+    external.write_bytes(b"external")
+
+    assert output_cleanup.cleanup_after_render(outputs, current, preserve_visual_evidence=True) == []
+
+    assert notes.is_file() and current.is_file() and external.is_file()
+    assert (outputs / "qa/keep.png").is_file()
+    assert (outputs / "debug-review/before.mp4").is_file()
+    assert (outputs / "lookdev/after frame.jpg").is_file()
+    assert not (outputs / "qa/old.png").exists()
+    assert not (outputs / "lookdev/old.mp4").exists()
+    assert not (outputs / "old.mp4").exists()
+
+
+def test_unreadable_visual_record_skips_cleanup_without_losing_current(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "video.mp4"
+    current.write_bytes(b"final")
+    old = outputs / "old.mp4"
+    old.write_bytes(b"old")
+    (outputs / "visual-notes.md").write_bytes(b"\xff")
+
+    failures = output_cleanup.cleanup_after_render(outputs, current, preserve_visual_evidence=True)
+
+    assert len(failures) == 1 and "无法读取视觉证据记录" in failures[0]
+    assert old.is_file() and current.is_file()

@@ -17,6 +17,37 @@ from m2v.types.registry import VideoType
 from conftest import create_typed_project, register_synthetic_type
 
 
+def test_general_render_needs_no_visual_approval_and_preserves_referenced_evidence(tmp_path: Path, monkeypatch, capsys) -> None:
+    root = tmp_path / "work"
+    outputs = root / "outputs"
+    outputs.mkdir(parents=True)
+    manifest = {"schemaVersion": 1, "id": "work", "type": "general"}
+    prepared = {"preparedFingerprint": "current", "durationInFrames": 60,
+                "width": 1920, "height": 1080, "fps": 60}
+    final = outputs / "video.mp4"
+    frame = outputs / "qa" / "frame.png"
+    frame.parent.mkdir()
+    frame.write_bytes(b"evidence")
+    (outputs / "visual-notes.md").write_text("未复查；[帧](qa/frame.png)", encoding="utf-8")
+
+    def render(*_args):
+        final.write_bytes(b"rendered")
+        return final
+
+    video_type = VideoType("general", lambda *_: None, lambda *_: prepared,
+                          lambda *_: None, render, prepared_check=lambda *_: prepared)
+    monkeypatch.setattr(registry, "_registry", {"general": video_type})
+    monkeypatch.setattr("m2v.cli.load_project", lambda *_: (root, manifest))
+    monkeypatch.setattr("m2v.cli.require_preview", lambda *_args, **_kwargs: {})
+
+    assert main(["status", "--project", str(root)]) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["review"]["required"] is False
+    assert "技术就绪" in status["review"]["detail"]
+    assert main(["render", "--project", str(root)]) == 0
+    assert frame.is_file() and final.is_file()
+
+
 def test_init_writes_all_financial_material_templates_under_content_root(tmp_path: Path) -> None:
     root = tmp_path / "content"
     assert main(["init", "--type", "financial-timeseries", "--project", "demo", "--content-root", str(root)]) == 0
