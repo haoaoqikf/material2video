@@ -87,8 +87,32 @@ def ice(t: float, duration: float = 0.9) -> float:
     return crack + 0.12 * ring / 3
 
 
+
+def score(t: float) -> float:
+    """135 秒同主题配乐：温暖探索→巨行星高潮→外层留韵；纯合成艺术声音。"""
+    # Smooth phrase envelopes put useful energy above bass for small speakers.
+    notes = (261.6256, 329.6276, 391.9954, 493.8833, 391.9954, 329.6276, 293.6648, 391.9954)
+    phrase = t / 2.5
+    index = int(phrase) % len(notes)
+    local = phrase % 1
+    note = notes[index]
+    envelope = math.sin(math.pi * local) ** 2
+    melody = envelope * (0.20 * math.sin(2 * math.pi * note * t)
+                         + 0.055 * math.sin(2 * math.pi * note * 2 * t))
+    chord = sum(math.sin(2 * math.pi * f * t) for f in (130.8128, 195.9977, 261.6256)) * 0.045
+    climax = math.exp(-((t - 77) / 19) ** 2)
+    opening = min(1.0, t / 4)
+    ending = min(1.0, max(0.0, (135 - t) / 8))
+    return (melody * (0.65 + climax * 0.5) + chord + bed(t) * 0.18) * opening * ending
+
 if __name__ == "__main__":
     print(write("bed.wav", LOOP_SECONDS, bed))
+    raw = write("score-raw.wav", 135, score)
+    # Normalize the independent music stem before authored gain and speech ducking.
+    from m2v.engine.audio import normalize
+    normalize(raw, HERE / "score.wav", integrated=-18.0, true_peak=-3.0)
+    raw.unlink()
+    print(HERE / "score.wav")
     print(write("whoosh.wav", 1.4, whoosh))
     print(write("shimmer.wav", 1.8, shimmer))
     print(write("ice.wav", 0.9, ice))

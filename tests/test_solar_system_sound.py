@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import shutil
 import struct
+import sys
 import subprocess
 import wave
 from pathlib import Path
@@ -18,12 +19,12 @@ from imageio_ffmpeg import get_ffmpeg_exe
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/solar-system-journey"
 SOUND = EXAMPLE / "assets/sound"
-NAMES = ("bed.wav", "whoosh.wav", "shimmer.wav", "ice.wav")
+NAMES = ("bed.wav", "whoosh.wav", "shimmer.wav", "ice.wav", "score.wav")
 
 
 @pytest.fixture(scope="module")
 def sound_assets() -> Path:
-    subprocess.run(["python", str(SOUND / "generate.py")], check=True, capture_output=True, timeout=600)
+    subprocess.run([sys.executable, str(SOUND / "generate.py")], check=True, capture_output=True, timeout=600)
     return SOUND
 
 
@@ -61,15 +62,18 @@ def test_storyboard_soundtrack_points_at_real_files(sound_assets):
     data = json.loads((EXAMPLE / "storyboard.json").read_text(encoding="utf-8"))
     track = data["soundtrack"]
     music = track["music"]
-    assert music["loop"] is True and music["gainDb"] <= -20
+    assert music["loop"] is False and music["sourceRef"].endswith("score.wav")
+    assert -6 <= music["gainDb"] <= 0
+    with wave.open(str(EXAMPLE / music["sourceRef"]), "rb") as stream:
+        assert stream.getnframes() / stream.getframerate() == 135
     assert (EXAMPLE / music["sourceRef"]).is_file()
     local = [effect for effect in track["effects"] if "sourceRef" in effect]
-    assert len(local) == 3, "三个本地音效（whoosh / shimmer / ice）必须都在声明里"
+    assert len(local) == 2, "少量重要节点使用音效，避免每站重复"
     for effect in local:
         assert (EXAMPLE / effect["sourceRef"]).is_file()
         assert -60 <= effect["gainDb"] <= 0
         assert -60000 <= effect["offsetMs"] <= 60000
-    assert [effect for effect in track["effects"] if "builtin" in effect], "内置提示音不应被移除"
+
 
 
 def test_generator_is_deterministic(sound_assets, tmp_path):
@@ -78,6 +82,6 @@ def test_generator_is_deterministic(sound_assets, tmp_path):
     shutil.copytree(SOUND, target)
     for name in NAMES:
         (target / name).unlink()
-    subprocess.run(["python", str(target / "generate.py")], check=True, capture_output=True, timeout=600)
+    subprocess.run([sys.executable, str(target / "generate.py")], check=True, capture_output=True, timeout=600)
     for name in NAMES:
         assert (target / name).read_bytes() == (sound_assets / name).read_bytes(), f"{name} 不可复现"

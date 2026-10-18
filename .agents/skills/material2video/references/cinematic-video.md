@@ -1,5 +1,7 @@
 # 电影级（cinematic）制作档位
 
+本页配合[节奏、美术、声音与制作阶段](creative-production.md)执行：先整片粗预演、风险优先，再按阶段完成条件精制与复查；不增加用户确认或 CLI 人工门禁。
+
 通用作品（`general`）区分两个制作档位：**standard** 与 **cinematic**。standard 是默认档，
 保持现有的快速链路与自动验收；cinematic 是显式选择的电影级档位，把参考板、look bible、
 镜头清单、材质、后期与声音设计变成可执行、可留证的步骤。
@@ -13,7 +15,7 @@
 已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。
 `lookdev` / `qa` / `assets audit` 已接线；lookdev 静帧从源码按原生 2× 像素绘制，
 PNG 合成字幕与转场，有声样片仍复用准备片段，详见[渲染契约](render-contract.md#lookdev-原生关键帧)。
-太阳系 60 秒参考片保留历史 look-dev 与全片 QA 记录；旧用户确认不授权当前版本完成。
+太阳系逐站导览参考片（历史版本约60秒）保留历史 look-dev 与全片 QA 记录；旧用户确认不授权当前版本完成。
 cinematic 不另出母版，成片仍是普通 H.264 MP4。本节与
 [渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 描述的是**当前支持**的能力。
 

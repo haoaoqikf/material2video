@@ -54,3 +54,7 @@ TIFF，分别转无损 PNG 与 `roughness = 235 - specular × 0.8` 的 8 bit 粗
 Planet textures: Solar System Scope / INOVE (CC BY 4.0), https://www.solarsystemscope.com/textures/ ; https://creativecommons.org/licenses/by/4.0/ . Additional imagery: NASA/GSFC; NASA/JPL-Caltech/USGS; NASA/JHUAPL/SwRI. 3D lighting and artistic visualization by material2video.
 
 视频为科学传播演示，不表示 NASA、JPL 或素材作者对本项目的认可。
+
+## 改进版音乐与事实复核
+
+2026-10-18检索NASA太阳系概览与奥尔特云资料，参考Cassini土星逆光构图；具体用途见DESIGN.md。`assets/sound/score.wav` 为生成器原创135秒旋律配乐，不含第三方采样，按同目录LICENSE.md的CC0许可使用；生成WAV不入库。

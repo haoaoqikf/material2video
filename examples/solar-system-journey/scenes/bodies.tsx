@@ -19,6 +19,7 @@ export const BODIES: Record<string, Body> = {
   uranus: {name: '天王星', english: 'URANUS', kind: '冰巨星', distance: '平均日距 19.2 AU', feature: '几乎侧躺着自转的世界', texture: 'uranus', color: '#b1dddf', tilt: 97.8, atmosphere: '#8ed5df'},
   neptune: {name: '海王星', english: 'NEPTUNE', kind: '冰巨星', distance: '平均日距 30.1 AU', feature: '遥远的阳光，猛烈的大气运动', texture: 'neptune', color: '#6394c9', tilt: 28.3, atmosphere: '#649be3'},
   pluto: {name: '冥王星', english: 'PLUTO / KUIPER BELT', kind: '柯伊伯带中的矮行星', distance: '平均日距 39.5 AU', feature: '心形区域，铺展着氮冰平原', texture: 'pluto', color: '#c6b3a0', rocky: true},
+  kuiper: {name: '柯伊伯带', english: 'THE KUIPER BELT', kind: '海王星轨道外的小天体带', distance: '外太阳系 · 距离为艺术压缩', feature: '冰质小天体的家园', color: '#9fb6cf'},
   heliopause: {name: '日球层顶', english: 'THE HELIOPAUSE', kind: '太阳风与星际介质的交界', distance: '边界位置随方向与太阳活动变化', feature: '进入星际空间，仍可受太阳引力束缚', color: '#6bbaca'},
   oort: {name: '奥尔特云', english: 'THE OORT CLOUD', kind: '推测性结构 · 艺术示意', distance: '推测外缘约 100000 AU', feature: '尚未直接观测证实的遥远冰天体群', color: '#b4c8e0'},
 };

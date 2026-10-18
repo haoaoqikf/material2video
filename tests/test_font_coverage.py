@@ -108,7 +108,7 @@ class TestAuditTellsYouWhereItHurts:
         findings = fonts.audit_fonts([NOTO, INTER], data)
         assert findings, "插入了字体没有的字符，必须报出来"
         assert "\U0001F600" in findings[0]["missing"]
-        assert "solar-journey.content.title" in findings[0]["where"], "结论要指到具体的讲解文字字段"
+        assert f"{data['scenes'][0]['id']}.content.title" in findings[0]["where"], "结论要指到具体的讲解文字字段"
 
     def test_spoken_segments_are_not_scanned_as_visual_text(self):
         """口播段只供配音和字幕使用，不作为画面可见文字扫描。"""

@@ -12,7 +12,7 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 [缓冲](examples/buffer-smoothing/README.md)、[试错](examples/darts-trial-and-error/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)；后续替换须由用户明确授权，数量最多三个。示例源材料、场景代码与 `DESIGN.md` 设计稿随仓库分发，两片横屏、一片竖屏，缓冲与试错每片 120～180 秒，太阳系之旅约 60 秒；三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei，核心演示按实际旁白时间窗推进。逐片论点与组件对应关系见示例说明，视觉依据见各自的 `DESIGN.md`；生成视频保存到 `videos/examples/<slug>/outputs/`，不入库。太阳系之旅是 cinematic 档样板：9 章、3 个 hero、单程向外的连续相机与 4K 资产，缓冲与试错保持 standard。
+文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 [缓冲](examples/buffer-smoothing/README.md)、[试错](examples/darts-trial-and-error/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)；后续替换须由用户明确授权，数量最多三个。示例源材料、场景代码与 `DESIGN.md` 设计稿随仓库分发，两片横屏、一片竖屏，缓冲与试错每片 120～180 秒，太阳系之旅预算 135 秒（120～150 秒）；三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei，核心演示按实际旁白时间窗推进。逐片论点与组件对应关系见示例说明，视觉依据见各自的 `DESIGN.md`；生成视频保存到 `videos/examples/<slug>/outputs/`，不入库。太阳系之旅是 cinematic 档样板：15 幕、3 个 hero、逐站停留与慢叠化相机与 4K 资产，缓冲与试错保持 standard。
 
 新增视频类型只在两处落地：在 `src/m2v/types/catalog.json` 登记类型身份、材料入口与初始化模板，并实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；未在目录登记的类型会在渲染前失败。上面的清单与 Skill、项目规划中的清单都由该目录生成，改动后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成。
 
@@ -101,3 +101,5 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 | `a2v-` / `data-a2v-` / `--a2v-` 样式与属性前缀 | `m2v-` / `data-m2v-` / `--m2v-` |
 
 旧命令与旧环境变量不再支持。当前通用类型为 `general`，使用 v8 `storyboard.json`，辅助命令为 `m2v general`；原 `article-narrative` 身份、`m2v article`、`general-plan.json` 编排、六种受控模板、视觉主题与完整片段嵌入已删除；画面以 v8 的全画布逐帧录制链路提供，入口是作品 `scenes/` 下的 TSX。旧材料不自动迁移，旧版分镜需重新编排。修改材料后重新 `prepare` 和完整 `preview`，通过自动验收后导出；人工画面评审为可选工具。
+
+通用作品制作采用[节奏、美术、声音与阶段复核](.agents/skills/material2video/references/creative-production.md)：先低成本整片粗预演和风险样片，再扩展精制；文案、节奏、连续性、审美、声音与技术分别复核，按改动影响执行回归，不增加用户审批。

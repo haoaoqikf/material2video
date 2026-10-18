@@ -202,3 +202,24 @@ def test_cold_open_shot_without_segment_is_allowed(tmp_path, monkeypatch):
     assert prepared["durationInFrames"] == 200 + 480
     windows = prepared["props"]["compiledScenes"][0]["segmentWindows"]
     assert windows["a-line"] == {"startFrame": 200, "endFrame": 680}
+
+
+@pytest.mark.parametrize("speech_seconds", [1, 3])
+def test_longer_narration_preserves_each_subject_observation(tmp_path, monkeypatch, speech_seconds):
+    """TTS 变长可增长整幕，但不得侵占逐主体声明的观察留白。"""
+    data = board(scenes=[scene("first", leadInFrames=60, tailFrames=120, readingHoldFrames=0),
+                         scene("next", leadInFrames=60, tailFrames=120, readingHoldFrames=0)])
+    _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, data, seconds=speech_seconds)
+    scenes = prepared["props"]["compiledScenes"]
+    for item in scenes:
+        window = next(iter(item["segmentWindows"].values()))
+        assert window["startFrame"] - item["startFrame"] == 60
+        assert item["endFrame"] - window["endFrame"] == 120
+        assert item["durationInFrames"] == 180 + speech_seconds * 60
+    assert scenes[1]["startFrame"] == scenes[0]["endFrame"]
+
+
+def test_subject_budget_rejects_longer_speech_instead_of_removing_observation(tmp_path, monkeypatch):
+    data = board(scenes=[scene(durationFrames=240, leadInFrames=60, tailFrames=120, readingHoldFrames=0)])
+    with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
+        prepare_with(tmp_path, monkeypatch, data, seconds=3)

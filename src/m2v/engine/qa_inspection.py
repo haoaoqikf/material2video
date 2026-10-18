@@ -101,15 +101,16 @@ def _audio_format(video: Path) -> tuple[int, int] | None:
 def narration_windows(prepared: dict) -> list[dict]:
     result = []
     fps = prepared['fps']
+    # prepared 的 segmentWindows 已经是全片绝对帧号（准备阶段把 scene.startFrame 与
+    # 本幕旁白起点一起写进去了）；再叠加一次幕起点会让第二幕以后的窗口整体后移。
     for scene in prepared['props'].get('compiledScenes', []):
-        offset = scene.get('startFrame', 0)
         for segment in scene.get('narrationSegments', []):
             if not segment.get('text', '').strip():
                 continue
             window = scene.get('segmentWindows', {}).get(segment['id'])
             if window:
-                result.append({'id': segment['id'], 'startSeconds': (offset + window['startFrame']) / fps,
-                               'endSeconds': (offset + window['endFrame']) / fps})
+                result.append({'id': segment['id'], 'startSeconds': window['startFrame'] / fps,
+                               'endSeconds': window['endFrame'] / fps})
     return result
 
 

@@ -8,13 +8,13 @@
   "input": {
     "kind": "article"
   },
-  "targetSeconds": 64,
+  "targetSeconds": 135,
   "scenes": [
     {
-      "id": "solar-journey",
+      "id": "sun-stop",
       "template": "code",
       "content": {
-        "title": "太阳系之旅：从太阳到奥尔特云",
+        "title": "恒星，旅程的起点",
         "entry": "scenes/journey.tsx",
         "props": {
           "look": {
@@ -35,734 +35,1481 @@
           },
           "shots": [
             {
-              "id": "cold-open",
-              "target": "sun",
-              "tier": "minor",
-              "startFrame": 0,
-              "endFrame": 300,
-              "focus": {
-                "target": "sun-limb",
-                "from": 5.8,
-                "to": 5.2,
-                "aperture": 2.8
-              },
-              "exposure": {
-                "ev": -0.4,
-                "mode": "shot"
-              },
-              "post": {
-                "bloom": 1,
-                "dof": 0.5,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.3,
-                "lut": "deep-space"
-              },
-              "note": "日面边缘极特写，日珥升起；无旁白",
-              "camera": {
-                "path": [
-                  [
-                    -4.715,
-                    3.622,
-                    2.4
-                  ],
-                  [
-                    -4.294,
-                    3.652,
-                    2.0
-                  ]
-                ],
-                "fov": 36,
-                "easing": "linear"
-              }
-            },
-            {
-              "id": "sun-pullback",
+              "id": "sun-view",
               "target": "sun",
               "tier": "major",
-              "segment": "sun-0",
-              "startFrame": 300,
-              "endFrame": 559,
+              "segment": "sun-line",
+              "startFrame": 0,
+              "endFrame": 780,
               "focus": {
                 "target": "sun",
                 "distance": 8
               },
-              "post": {
-                "bloom": 0.9,
-                "dof": 0.2,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.18,
-                "lut": "deep-space"
-              },
-              "note": "从日面拉到总览，日冕与轨道渐显",
               "camera": {
                 "path": [
                   [
                     -4.294,
                     3.652,
-                    2.0
+                    2
                   ],
                   [
-                    -3.556,
-                    2.676,
-                    5.404
+                    -3.8,
+                    3.1,
+                    5
                   ],
                   [
-                    -0.239,
+                    -1.2,
+                    2,
+                    7.5
+                  ],
+                  [
+                    0,
                     1.7,
-                    8.197
+                    8.2
                   ]
                 ],
                 "fov": 40,
-                "easing": "linear"
-              }
-            },
-            {
-              "id": "inner-planets",
-              "target": "venus",
-              "tier": "major",
-              "segment": "inner-0",
-              "startFrame": 559,
-              "endFrame": 842,
-              "focus": {
-                "target": "inner-focus",
-                "distance": 4.5
+                "easing": "sineInOut"
               },
               "post": {
-                "bloom": 0.55,
-                "dof": 0.35,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.12,
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
                 "lut": "deep-space"
               },
-              "note": "水星陨坑掠过，落在金星云顶",
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "sun",
+          "caption": "恒星，旅程的起点",
+          "chapter": "sun",
+          "journeyOffsetFrames": 0,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 780,
+      "transition": "cut",
+      "transitionFrames": 1,
+      "leadInFrames": 180,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "sun-line",
+          "text": "从太阳出发吧。这颗恒星，照亮了我们的整个旅程。"
+        }
+      ]
+    },
+    {
+      "id": "mercury-stop",
+      "template": "code",
+      "content": {
+        "title": "离太阳最近的行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "mercury-view",
+              "target": "mercury",
+              "tier": "minor",
+              "segment": "mercury-line",
+              "startFrame": 0,
+              "endFrame": 525,
+              "focus": {
+                "target": "mercury",
+                "distance": 8
+              },
               "camera": {
                 "path": [
                   [
-                    -0.239,
-                    1.7,
-                    8.197
+                    5.6495,
+                    0.609,
+                    1.0591
                   ],
                   [
-                    6.2,
-                    1.2,
-                    3.8
+                    5.5487,
+                    0.609,
+                    1.3849
                   ],
                   [
-                    1.0,
-                    1.2,
-                    10.0
+                    5.4263,
+                    0.609,
+                    1.7806
                   ],
                   [
-                    -5.0,
-                    1.0,
-                    9.5
-                  ],
-                  [
-                    -10.791,
-                    0.95,
-                    7.25
+                    5.3687,
+                    0.609,
+                    1.9667
                   ]
                 ],
                 "fov": 40,
-                "easing": "linear"
-              }
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "mercury",
+          "caption": "离太阳最近的行星",
+          "chapter": "inner",
+          "journeyOffsetFrames": 735,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 525,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "mercury-line",
+          "text": "第一站，水星。离太阳最近，满身古老的陨坑。"
+        }
+      ]
+    },
+    {
+      "id": "venus-stop",
+      "template": "code",
+      "content": {
+        "title": "厚云包裹的行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
             },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
             {
-              "id": "earth-hero",
+              "id": "venus-view",
+              "target": "venus",
+              "tier": "minor",
+              "segment": "venus-line",
+              "startFrame": 0,
+              "endFrame": 525,
+              "focus": {
+                "target": "venus",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    -3.5718,
+                    1.131,
+                    6.9826
+                  ],
+                  [
+                    -4.0839,
+                    1.131,
+                    6.6099
+                  ],
+                  [
+                    -4.7057,
+                    1.131,
+                    6.1573
+                  ],
+                  [
+                    -4.9983,
+                    1.131,
+                    5.9443
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "venus",
+          "caption": "厚云包裹的行星",
+          "chapter": "inner",
+          "journeyOffsetFrames": 1215,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 525,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "venus-line",
+          "text": "接着是金星。厚厚的云，把这个世界藏了起来。"
+        }
+      ]
+    },
+    {
+      "id": "earth-stop",
+      "template": "code",
+      "content": {
+        "title": "蓝色家园",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "earth-arrival",
               "target": "earth",
-              "tier": "hero",
-              "segment": "home-0",
-              "startFrame": 842,
-              "endFrame": 1335,
+              "tier": "minor",
+              "startFrame": 0,
+              "endFrame": 45,
               "focus": {
                 "target": "earth",
-                "from": 14,
-                "to": 4.1,
-                "aperture": 2.8
+                "distance": 8
               },
-              "exposure": {
-                "ev": -0.3,
-                "mode": "shot"
-              },
-              "post": {
-                "bloom": 0.7,
-                "dof": 0.12,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.12,
-                "lut": "deep-space"
-              },
-              "note": "硬切入地球夜面：城市灯光 → 晨昏线日出 → 海面高光 → 云影，月球前景虚化",
               "camera": {
                 "path": [
                   [
-                    -10.791,
-                    0.95,
-                    7.25
+                    9.5889,
+                    1.2325,
+                    -7.9208
                   ],
                   [
-                    -4.0,
-                    2.0,
-                    9.0
-                  ],
-                  [
-                    4.0,
-                    3.0,
-                    2.0
-                  ],
-                  [
-                    12.5,
-                    3.6,
-                    -5.0
-                  ],
-                  [
-                    20.0,
-                    2.5,
-                    -13.5
-                  ],
-                  [
-                    18.0,
-                    1.5,
-                    -8.5
-                  ],
-                  [
-                    14.8,
-                    1.0,
-                    -5.5
-                  ]
-                ],
-                "fov": 38,
-                "easing": "quintOut",
-                "roll": -1.5
-              }
-            },
-            {
-              "id": "rock-belt",
-              "target": "mars",
-              "tier": "minor",
-              "segment": "rock-0",
-              "startFrame": 1335,
-              "endFrame": 1651,
-              "focus": {
-                "target": "mars",
-                "distance": 4
-              },
-              "post": {
-                "bloom": 0.5,
-                "dof": 0.3,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.1,
-                "lut": "deep-space"
-              },
-              "note": "火星红色尘土，穿越稀疏小行星带",
-              "camera": {
-                "path": [
-                  [
-                    14.8,
-                    1.0,
-                    -5.5
-                  ],
-                  [
-                    8.0,
-                    3.0,
-                    -15.0
-                  ],
-                  [
-                    -12.0,
-                    4.0,
-                    -22.0
-                  ],
-                  [
-                    -20.0,
-                    3.0,
-                    -16.0
-                  ],
-                  [
-                    0.0,
-                    2.5,
-                    -30.0
-                  ],
-                  [
-                    10.103,
-                    1.35,
-                    -28.778
+                    9.5889,
+                    1.2325,
+                    -7.9208
                   ]
                 ],
                 "fov": 40,
-                "easing": "linear"
-              }
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
             },
             {
-              "id": "jupiter-giant",
+              "id": "earth-view",
+              "target": "earth",
+              "tier": "hero",
+              "segment": "earth-line",
+              "startFrame": 45,
+              "endFrame": 645,
+              "focus": {
+                "target": "earth",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    9.5889,
+                    1.2325,
+                    -7.9208
+                  ],
+                  [
+                    9.969,
+                    1.2325,
+                    -7.3446
+                  ],
+                  [
+                    10.4305,
+                    1.2325,
+                    -6.6451
+                  ],
+                  [
+                    10.6477,
+                    1.2325,
+                    -6.3159
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "earth",
+          "caption": "蓝色家园",
+          "chapter": "home",
+          "journeyOffsetFrames": 1695,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 645,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "earth-line",
+          "text": "这一颗，你一定认识。蓝色的地球，是我们的家。"
+        }
+      ]
+    },
+    {
+      "id": "moon-stop",
+      "template": "code",
+      "content": {
+        "title": "地球的天然卫星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "moon-view",
+              "target": "moon",
+              "tier": "minor",
+              "segment": "moon-line",
+              "startFrame": 0,
+              "endFrame": 525,
+              "focus": {
+                "target": "moon",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    15.4066,
+                    0.3335,
+                    -9.3439
+                  ],
+                  [
+                    15.5002,
+                    0.3335,
+                    -9.1823
+                  ],
+                  [
+                    15.6139,
+                    0.3335,
+                    -8.9861
+                  ],
+                  [
+                    15.6674,
+                    0.3335,
+                    -8.8937
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "moon",
+          "caption": "地球的天然卫星",
+          "chapter": "home",
+          "journeyOffsetFrames": 2295,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 525,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "moon-line",
+          "text": "月球，是地球的天然卫星。一路陪伴着我们。"
+        }
+      ]
+    },
+    {
+      "id": "mars-stop",
+      "template": "code",
+      "content": {
+        "title": "红色尘土的世界",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "mars-view",
+              "target": "mars",
+              "tier": "minor",
+              "segment": "mars-line",
+              "startFrame": 0,
+              "endFrame": 585,
+              "focus": {
+                "target": "mars",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    -16.1462,
+                    0.8845,
+                    -11.2823
+                  ],
+                  [
+                    -15.8431,
+                    0.8845,
+                    -11.6741
+                  ],
+                  [
+                    -15.4751,
+                    0.8845,
+                    -12.1498
+                  ],
+                  [
+                    -15.3019,
+                    0.8845,
+                    -12.3737
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "mars",
+          "caption": "红色尘土的世界",
+          "chapter": "rock",
+          "journeyOffsetFrames": 2775,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 585,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "mars-line",
+          "text": "再往外，是火星。红色尘土，给它披上了一件外衣。"
+        }
+      ]
+    },
+    {
+      "id": "ceres-stop",
+      "template": "code",
+      "content": {
+        "title": "小行星带中的矮行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "ceres-view",
+              "target": "ceres",
+              "tier": "minor",
+              "segment": "ceres-line",
+              "startFrame": 0,
+              "endFrame": 405,
+              "focus": {
+                "target": "ceres",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    -3.5358,
+                    0.435,
+                    -27.1391
+                  ],
+                  [
+                    -3.2938,
+                    0.435,
+                    -27.1664
+                  ],
+                  [
+                    -2.9998,
+                    0.435,
+                    -27.1996
+                  ],
+                  [
+                    -2.8615,
+                    0.435,
+                    -27.2152
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "ceres",
+          "caption": "小行星带中的矮行星",
+          "chapter": "rock",
+          "journeyOffsetFrames": 3315,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 405,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 30,
+      "tailFrames": 45,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "ceres-line",
+          "text": "经过谷神星，我们来到稀疏的小行星带。"
+        }
+      ]
+    },
+    {
+      "id": "jupiter-stop",
+      "template": "code",
+      "content": {
+        "title": "太阳系最大的行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "jupiter-view",
               "target": "jupiter",
               "tier": "major",
-              "segment": "giant-0",
-              "startFrame": 1651,
-              "endFrame": 1950,
+              "segment": "jupiter-line",
+              "startFrame": 0,
+              "endFrame": 765,
               "focus": {
                 "target": "jupiter",
-                "distance": 7
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    18.8641,
+                    3.19,
+                    18.2293
+                  ],
+                  [
+                    17.4647,
+                    3.19,
+                    19.3398
+                  ],
+                  [
+                    15.7655,
+                    3.19,
+                    20.6882
+                  ],
+                  [
+                    14.9659,
+                    3.19,
+                    21.3227
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
               },
               "post": {
                 "bloom": 0,
-                "dof": 0.35,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.12,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
                 "lut": "deep-space"
               },
-              "note": "大红斑正对镜头，云带流动，木卫二冰纹；硬切入木星近景。关闭 Bloom：27.92 秒曾出现单帧整帧白闪，关闭后消失",
-              "camera": {
-                "path": [
-                  [
-                    10.103,
-                    1.35,
-                    -28.778
-                  ],
-                  [
-                    26.0,
-                    2.0,
-                    5.0
-                  ],
-                  [
-                    30.0,
-                    2.5,
-                    28.0
-                  ],
-                  [
-                    20.0,
-                    2.0,
-                    36.0
-                  ],
-                  [
-                    14.347,
-                    2.6,
-                    43.179
-                  ]
-                ],
-                "fov": 40,
-                "easing": "linear"
-              }
-            },
-            {
-              "id": "saturn-hero",
-              "target": "saturn",
-              "tier": "hero",
-              "segment": "rings-0",
-              "startFrame": 1950,
-              "endFrame": 2451,
-              "focus": {
-                "target": "saturn",
-                "from": 6,
-                "to": 9,
-                "aperture": 2.8
-              },
-              "exposure": {
-                "ev": -0.3,
-                "mode": "shot"
-              },
-              "post": {
-                "bloom": 0.8,
-                "dof": 0.12,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.14,
-                "lut": "deep-space"
-              },
-              "note": "环从侧刃到展开、逆光冰晶、卡西尼缝、环影、土卫六雾霾前景",
-              "camera": {
-                "path": [
-                  [
-                    14.347,
-                    2.6,
-                    43.179
-                  ],
-                  [
-                    14.562,
-                    0.8,
-                    -59.311
-                  ],
-                  [
-                    16.432,
-                    1.6,
-                    -56.614
-                  ],
-                  [
-                    19.008,
-                    5.3,
-                    -49.815
-                  ],
-                  [
-                    16.021,
-                    9.0,
-                    -43.186
-                  ]
-                ],
-                "fov": 40,
-                "easing": "quintInOut",
-                "roll": -1.5
-              }
-            },
-            {
-              "id": "ice-giants",
-              "target": "neptune",
-              "tier": "minor",
-              "segment": "ice-0",
-              "startFrame": 2451,
-              "endFrame": 2747,
-              "focus": {
-                "target": "ice-focus",
-                "from": 6,
-                "to": 4
-              },
-              "post": {
-                "bloom": 0.5,
-                "dof": 0.3,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.1,
-                "lut": "deep-space"
-              },
-              "note": "天王星侧躺、海王星风暴",
-              "camera": {
-                "path": [
-                  [
-                    16.021,
-                    9.0,
-                    -43.186
-                  ],
-                  [
-                    -58,
-                    3.5,
-                    10
-                  ],
-                  [
-                    -45,
-                    3,
-                    -25
-                  ],
-                  [
-                    -33,
-                    3,
-                    -62
-                  ],
-                  [
-                    -26,
-                    3,
-                    -78
-                  ],
-                  [
-                    -25,
-                    3,
-                    -80
-                  ]
-                ],
-                "fov": 34,
-                "easing": "linear"
-              }
-            },
-            {
-              "id": "kuiper-pluto",
-              "target": "pluto",
-              "tier": "minor",
-              "segment": "kuiper-0",
-              "startFrame": 2747,
-              "endFrame": 3031,
-              "focus": {
-                "target": "pluto",
-                "distance": 4
-              },
-              "post": {
-                "bloom": 0.45,
-                "dof": 0.4,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.1,
-                "lut": "deep-space"
-              },
-              "note": "冥王星心形区域，柯伊伯带粒子",
-              "camera": {
-                "path": [
-                  [
-                    -25,
-                    3,
-                    -80
-                  ],
-                  [
-                    10.0,
-                    4.5,
-                    -20.0
-                  ],
-                  [
-                    14.0,
-                    4.0,
-                    40.0
-                  ],
-                  [
-                    18.8,
-                    1.1,
-                    90.6
-                  ],
-                  [
-                    -22.266,
-                    4.3,
-                    95.437
-                  ]
-                ],
-                "fov": 40,
-                "easing": "linear"
-              }
-            },
-            {
-              "id": "oort-hero",
-              "target": "oort",
-              "tier": "hero",
-              "segment": "edge-0",
-              "startFrame": 3031,
-              "endFrame": 3551,
-              "focus": {
-                "target": "sun",
-                "from": 20,
-                "to": 400
-              },
-              "exposure": {
-                "ev": -0.3,
-                "mode": "shot"
-              },
-              "post": {
-                "bloom": 0.5,
-                "dof": 0.35,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.1,
-                "lut": "deep-space"
-              },
-              "note": "日球层顶气泡边界、彗星、拉远到太阳成点；含无旁白收尾",
-              "camera": {
-                "path": [
-                  [
-                    -22.266,
-                    4.3,
-                    95.437
-                  ],
-                  [
-                    -43.133,
-                    7.15,
-                    137.388
-                  ],
-                  [
-                    -70.334,
-                    10.0,
-                    176.502
-                  ]
-                ],
-                "fov": 40,
-                "easing": "quintInOut",
-                "roll": 0.0
-              }
-            },
-            {
-              "id": "oort-hold",
-              "target": "oort",
-              "tier": "minor",
-              "startFrame": 3551,
-              "endFrame": 3824,
-              "focus": {
-                "target": "sun",
-                "distance": 600
-              },
-              "post": {
-                "bloom": 0.4,
-                "dof": 0.2,
-                "grain": 0.035,
-                "vignette": 0.22,
-                "chromaticAberration": 0.08,
-                "lut": "deep-space"
-              },
-              "note": "收尾拉远静置：气泡边界完整入画，太阳成为一个亮点，留白结束",
-              "camera": {
-                "path": [
-                  [
-                    -70.334,
-                    10.0,
-                    176.502
-                  ],
-                  [
-                    -150.0,
-                    19.0,
-                    262.0
-                  ],
-                  [
-                    -232.0,
-                    26.0,
-                    362.0
-                  ]
-                ],
-                "fov": 40,
-                "easing": "linear"
-              }
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
             }
-          ]
+          ],
+          "body": "jupiter",
+          "caption": "太阳系最大的行星",
+          "chapter": "giant",
+          "journeyOffsetFrames": 3675,
+          "journeyDurationFrames": 8100
         }
       },
+      "durationFrames": 765,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
       "narrationSegments": [
         {
-          "id": "sun-0",
-          "text": "太阳是一颗恒星，核聚变的光照亮整个太阳系。",
-          "claims": [
-            "日面颗粒",
-            "日冕辉光"
-          ]
-        },
-        {
-          "id": "inner-0",
-          "text": "水星几乎没有大气；金星被厚重的二氧化碳云层包裹。",
-          "claims": [
-            "水星陨坑",
-            "金星云顶"
-          ]
-        },
-        {
-          "id": "home-0",
-          "text": "地球的夜面亮起城市灯光，晨昏线扫过海面，云层投下流动的阴影，月球从近处缓缓掠过。",
-          "claims": [
-            "夜面城市灯光",
-            "晨昏线",
-            "海面高光",
-            "云影",
-            "月球前景"
-          ]
-        },
-        {
-          "id": "rock-0",
-          "text": "穿过火星与小行星带，稀疏的岩块在阳光里缓慢漂移。",
-          "claims": [
-            "火星红色尘土",
-            "小行星带粒子"
-          ]
-        },
-        {
-          "id": "giant-0",
-          "text": "大红斑正对镜头，云带翻涌；木卫二的冰面布满裂纹。",
-          "claims": [
-            "大红斑",
-            "云带流动",
-            "木卫二冰纹"
-          ]
-        },
-        {
-          "id": "rings-0",
-          "text": "土星环从侧刃慢慢展开成辽阔的冰晶平面，逆光下冰晶颗粒分明，土卫六静静地藏在橙色雾霾里。",
-          "claims": [
-            "环从侧刃展开",
-            "逆光冰晶",
-            "土卫六雾霾"
-          ]
-        },
-        {
-          "id": "ice-0",
-          "text": "天王星几乎侧躺着自转，海王星的大气刮着最快的风。",
-          "claims": [
-            "天王星侧躺",
-            "海王星风暴"
-          ]
-        },
-        {
-          "id": "kuiper-0",
-          "text": "冥王星的心形氮冰平原，铺展在柯伊伯带的碎冰之间。",
-          "claims": [
-            "冥王星心形区域",
-            "柯伊伯带粒子"
-          ]
-        },
-        {
-          "id": "edge-0",
-          "text": "日球层顶之外是奥尔特云，太阳在这里收缩成一个亮点，边界取决于我们如何定义。",
-          "claims": [
-            "日球层顶气泡边界",
-            "太阳成点"
-          ]
+          "id": "jupiter-line",
+          "text": "木星到了，太阳系最大的行星。看看它身上，一道道宽阔的云带。"
         }
-      ],
-      "leadInFrames": 300,
-      "tailFrames": 360
+      ]
+    },
+    {
+      "id": "saturn-stop",
+      "template": "code",
+      "content": {
+        "title": "由无数冰粒组成的环",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "saturn-arrival",
+              "target": "saturn",
+              "tier": "minor",
+              "startFrame": 0,
+              "endFrame": 45,
+              "focus": {
+                "target": "saturn",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    17.8444,
+                    0.396,
+                    -65.2948
+                  ],
+                  [
+                    17.8444,
+                    0.396,
+                    -65.2948
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            },
+            {
+              "id": "saturn-view",
+              "target": "saturn",
+              "tier": "hero",
+              "segment": "saturn-line",
+              "startFrame": 45,
+              "endFrame": 765,
+              "focus": {
+                "target": "saturn",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    17.8444,
+                    0.396,
+                    -65.2948
+                  ],
+                  [
+                    20.9299,
+                    0.792,
+                    -60.8448
+                  ],
+                  [
+                    25.1803,
+                    2.6235,
+                    -49.6264
+                  ],
+                  [
+                    20.2518,
+                    4.455,
+                    -38.6886
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "saturn",
+          "caption": "由无数冰粒组成的环",
+          "chapter": "rings",
+          "journeyOffsetFrames": 4395,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 765,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "saturn-line",
+          "text": "下一站，土星。先别急着走，看看它慢慢展开的光环。"
+        }
+      ]
+    },
+    {
+      "id": "uranus-stop",
+      "template": "code",
+      "content": {
+        "title": "侧躺着自转的冰巨星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "uranus-view",
+              "target": "uranus",
+              "tier": "minor",
+              "segment": "uranus-line",
+              "startFrame": 0,
+              "endFrame": 585,
+              "focus": {
+                "target": "uranus",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    -58.1315,
+                    1.5225,
+                    16.0174
+                  ],
+                  [
+                    -58.3355,
+                    1.5225,
+                    15.1896
+                  ],
+                  [
+                    -58.5832,
+                    1.5225,
+                    14.1843
+                  ],
+                  [
+                    -58.6997,
+                    1.5225,
+                    13.7113
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "uranus",
+          "caption": "侧躺着自转的冰巨星",
+          "chapter": "ice",
+          "journeyOffsetFrames": 5115,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 585,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "uranus-line",
+          "text": "这是天王星。一颗几乎侧躺着自转的冰巨星。"
+        }
+      ]
+    },
+    {
+      "id": "neptune-stop",
+      "template": "code",
+      "content": {
+        "title": "最遥远的行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "neptune-view",
+              "target": "neptune",
+              "tier": "minor",
+              "segment": "neptune-line",
+              "startFrame": 0,
+              "endFrame": 585,
+              "focus": {
+                "target": "neptune",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    -27.8735,
+                    1.508,
+                    -68.925
+                  ],
+                  [
+                    -27.0839,
+                    1.508,
+                    -69.2244
+                  ],
+                  [
+                    -26.125,
+                    1.508,
+                    -69.5879
+                  ],
+                  [
+                    -25.6738,
+                    1.508,
+                    -69.759
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "neptune",
+          "caption": "最遥远的行星",
+          "chapter": "ice",
+          "journeyOffsetFrames": 5655,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 585,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "neptune-line",
+          "text": "更远处，是海王星。八颗行星中，它离太阳最远。"
+        }
+      ]
+    },
+    {
+      "id": "pluto-stop",
+      "template": "code",
+      "content": {
+        "title": "柯伊伯带中的矮行星",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "pluto-view",
+              "target": "pluto",
+              "tier": "minor",
+              "segment": "pluto-line",
+              "startFrame": 0,
+              "endFrame": 525,
+              "focus": {
+                "target": "pluto",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    16.1742,
+                    0.464,
+                    90.8278
+                  ],
+                  [
+                    15.9181,
+                    0.464,
+                    90.872
+                  ],
+                  [
+                    15.6072,
+                    0.464,
+                    90.9256
+                  ],
+                  [
+                    15.4609,
+                    0.464,
+                    90.9509
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "pluto",
+          "caption": "柯伊伯带中的矮行星",
+          "chapter": "kuiper",
+          "journeyOffsetFrames": 6195,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 525,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "pluto-line",
+          "text": "冥王星，是一颗矮行星。它身上，还藏着一颗心。"
+        }
+      ]
+    },
+    {
+      "id": "kuiper-stop",
+      "template": "code",
+      "content": {
+        "title": "冰质小天体的家园",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "kuiper-view",
+              "target": "kuiper",
+              "tier": "minor",
+              "segment": "kuiper-line",
+              "startFrame": 0,
+              "endFrame": 345,
+              "focus": {
+                "target": "sun",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    0,
+                    22,
+                    112
+                  ],
+                  [
+                    8,
+                    25,
+                    115
+                  ],
+                  [
+                    15,
+                    27,
+                    118
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "kuiper",
+          "caption": "冰质小天体的家园",
+          "chapter": "kuiper",
+          "journeyOffsetFrames": 6675,
+          "journeyDurationFrames": 8100,
+          "hideBodyPanel": false
+        }
+      },
+      "durationFrames": 345,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 30,
+      "tailFrames": 45,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "kuiper-line",
+          "text": "这里是柯伊伯带，冰质小天体的家园。"
+        }
+      ]
+    },
+    {
+      "id": "heliopause-stop",
+      "template": "code",
+      "content": {
+        "title": "太阳风的边界，并非太阳系的尽头",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "heliopause-view",
+              "target": "heliopause",
+              "tier": "minor",
+              "segment": "heliopause-line",
+              "startFrame": 0,
+              "endFrame": 585,
+              "focus": {
+                "target": "sun",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    20,
+                    35,
+                    155
+                  ],
+                  [
+                    12,
+                    42,
+                    166
+                  ],
+                  [
+                    0,
+                    48,
+                    178
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "heliopause",
+          "caption": "太阳风的边界，并非太阳系的尽头",
+          "chapter": "edge",
+          "journeyOffsetFrames": 6975,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 585,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "heliopause-line",
+          "text": "再向外，是日球层顶。太阳风，在这里与星际介质相遇。"
+        }
+      ]
+    },
+    {
+      "id": "oort-stop",
+      "template": "code",
+      "content": {
+        "title": "推测性的遥远彗星库",
+        "entry": "scenes/journey.tsx",
+        "props": {
+          "look": {
+            "profile": "deep-space-cinematic",
+            "lut": "deep-space",
+            "bloom": 0.7,
+            "dof": 0.45,
+            "grain": 0.035,
+            "vignette": 0.22,
+            "exposure": {
+              "ev": -0.2,
+              "mode": "look"
+            },
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "oort-arrival",
+              "target": "oort",
+              "tier": "minor",
+              "startFrame": 0,
+              "endFrame": 45,
+              "focus": {
+                "target": "sun",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    0,
+                    48,
+                    178
+                  ],
+                  [
+                    0,
+                    48,
+                    178
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            },
+            {
+              "id": "oort-view",
+              "target": "oort",
+              "tier": "hero",
+              "segment": "oort-line",
+              "startFrame": 45,
+              "endFrame": 585,
+              "focus": {
+                "target": "sun",
+                "distance": 8
+              },
+              "camera": {
+                "path": [
+                  [
+                    0,
+                    48,
+                    178
+                  ],
+                  [
+                    0,
+                    65,
+                    220
+                  ],
+                  [
+                    0,
+                    90,
+                    285
+                  ],
+                  [
+                    0,
+                    105,
+                    330
+                  ]
+                ],
+                "fov": 40,
+                "easing": "sineInOut"
+              },
+              "post": {
+                "bloom": 0.35,
+                "dof": 0.08,
+                "grain": 0.012,
+                "vignette": 0.16,
+                "chromaticAberration": 0.04,
+                "lut": "deep-space"
+              },
+              "note": "主体独立停留；跨尺度以慢叠化承接，非一镜到底"
+            }
+          ],
+          "body": "oort",
+          "caption": "推测性的遥远彗星库",
+          "chapter": "edge",
+          "journeyOffsetFrames": 7515,
+          "journeyDurationFrames": 8100
+        }
+      },
+      "durationFrames": 585,
+      "transition": "crossfade",
+      "transitionFrames": 45,
+      "leadInFrames": 60,
+      "tailFrames": 90,
+      "readingHoldFrames": 0,
+      "narrationSegments": [
+        {
+          "id": "oort-line",
+          "text": "更远处，是推测中的奥尔特云。太阳，已成一个亮点。"
+        }
+      ]
     }
   ],
   "soundtrack": {
     "music": {
-      "sourceRef": "assets/sound/bed.wav",
-      "gainDb": -30,
-      "loop": true,
-      "fadeInMs": 2500,
-      "fadeOutMs": 4000
+      "sourceRef": "assets/sound/score.wav",
+      "gainDb": -2,
+      "loop": false,
+      "fadeInMs": 1800,
+      "fadeOutMs": 3500
     },
     "effects": [
       {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "inner-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "home-0",
-        "offsetMs": 0,
-        "gainDb": -26
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "giant-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "rings-0",
-        "offsetMs": 0,
-        "gainDb": -26
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "ice-0",
-        "offsetMs": 0,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "solar-journey",
-        "segmentId": "edge-0",
-        "offsetMs": 0,
-        "gainDb": -26
+        "sourceRef": "assets/sound/shimmer.wav",
+        "sceneId": "saturn-stop",
+        "offsetMs": 2000,
+        "gainDb": -16
       },
       {
         "sourceRef": "assets/sound/whoosh.wav",
-        "sceneId": "solar-journey",
-        "segmentId": "giant-0",
-        "offsetMs": -400,
-        "gainDb": -22
-      },
-      {
-        "sourceRef": "assets/sound/shimmer.wav",
-        "sceneId": "solar-journey",
-        "segmentId": "rings-0",
-        "offsetMs": 0,
-        "gainDb": -24
-      },
-      {
-        "sourceRef": "assets/sound/ice.wav",
-        "sceneId": "solar-journey",
-        "segmentId": "ice-0",
-        "offsetMs": 300,
-        "gainDb": -26
+        "sceneId": "heliopause-stop",
+        "offsetMs": 600,
+        "gainDb": -20
       }
     ]
   }

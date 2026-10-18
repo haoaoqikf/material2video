@@ -71,7 +71,12 @@ def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> N
     for scene in data["scenes"]:
         assert scene["template"] == "code"
         assert scene["narrationSegments"], f"{scene['id']} 没有旁白"
-        assert "durationFrames" not in scene, "镜头长度应由真实旁白决定，而不是写死帧数"
+        if path.parent.name == "solar-system-journey":
+            # 导览需要独立的视觉预算；TTS 仍须实际量测，超预算由 prepare 拒绝。
+            assert scene["durationFrames"] > scene["leadInFrames"] + scene["tailFrames"]
+            assert scene["tailFrames"] >= 45
+        else:
+            assert "durationFrames" not in scene, "讲解示例由实际旁白决定幕长"
         source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
         assert "useNarration" in source, f"{scene['id']} 没有按旁白推进"
         for segment in scene["narrationSegments"]:
@@ -123,7 +128,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         pytest.skip("本地没有准备产物；准备后本用例会核对实际时长")
     data = json.loads(prepared.read_text(encoding="utf-8"))
     seconds = data["durationInFrames"] / data["fps"]
-    minimum, maximum = (55, 65) if name == "solar-system-journey" else (120, 180)
+    minimum, maximum = (120, 150) if name == "solar-system-journey" else (120, 180)
     assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"

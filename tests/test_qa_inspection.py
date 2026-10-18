@@ -50,6 +50,24 @@ def test_hero_and_multiscene_offsets_are_sampled():
     assert 126 in inspect.sample_indices(p)
 
 
+def test_multiscene_narration_windows_are_absolute_not_offset_twice():
+    """segmentWindows 已是全片绝对帧号；QA 不能再叠一次幕起点。"""
+    p = prepared_stub(durationInFrames=1200)
+    p['props']['compiledScenes'] = [
+        {'id': 'first', 'startFrame': 0,
+         'narrationSegments': [{'id': 'a', 'text': '一'}],
+         'segmentWindows': {'a': {'startFrame': 30, 'endFrame': 90}}},
+        {'id': 'second', 'startFrame': 600,
+         'narrationSegments': [{'id': 'b', 'text': '二'}],
+         'segmentWindows': {'b': {'startFrame': 660, 'endFrame': 720}}},
+    ]
+    windows = inspect.narration_windows(p)
+    assert windows == [
+        {'id': 'a', 'startSeconds': 0.5, 'endSeconds': 1.5},
+        {'id': 'b', 'startSeconds': 11.0, 'endSeconds': 12.0},
+    ]
+
+
 def test_black_and_silence_are_candidates_not_visual_failures(tmp_path):
     video = clip(tmp_path / 'black.mp4', silent=True)
     p = prepared_stub()
