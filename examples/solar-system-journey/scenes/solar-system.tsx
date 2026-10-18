@@ -1,7 +1,7 @@
 import {memo, useMemo, useRef} from 'react';
 import {
   CameraRig, Canvas, Comet, Corona, LookProvider, OortCloud, ParticleBelt,
-  PerspectiveCamera, PostFX, Prominence, Starfield, THREE, activeShot, useFrame, useThree,
+  PerspectiveCamera, PostFX, Prominence, Starfield, THREE, useFrame, useThree,
   type Look, type Shot,
 } from 'm2v/code-scene';
 import {BODIES} from './bodies';
@@ -47,21 +47,19 @@ function FirstPaint({textures, onReady}: {textures: Textures; onReady: () => voi
 
 /** 需要展示纹理地标的天体；朝向由 Planet 按当前机位逐帧求解。 */
 const FEATURE_BODIES = new Set(['jupiter', 'pluto']);
-const SATURN_SHOT = 'saturn-view';
 
-function World({textures, targets, active, seconds, shots, fps}: {
+type Window = {startFrame: number; endFrame: number};
+
+function World({textures, targets, active, seconds, fps, saturnWindow}: {
   textures: Textures; targets: Record<string, FocusTarget>; active: string; seconds: number;
-  shots: Shot[]; fps: number;
+  fps: number; saturnWindow?: Window;
 }) {
   const clock = {current: {seconds}};
   const frame = Math.round(seconds * fps);
-  // 冷开场是太阳特写：远处天体在日面边缘只露出局部，容易被误读成太阳的结构。
-  const solo = active === 'sun';
-  const shot = activeShot(shots, frame);
-  const saturnShot = shots.find(item => item.id === SATURN_SHOT);
-  const saturnPhase = !saturnShot || frame < saturnShot.startFrame ? 0
-    : frame >= saturnShot.endFrame ? 1
-      : (frame - saturnShot.startFrame) / Math.max(1, saturnShot.endFrame - saturnShot.startFrame);
+  // 土星环的展开跟随土星旁白窗口，而不是整个 hero 镜头：过场中段环还没有张开。
+  const saturnPhase = !saturnWindow || frame < saturnWindow.startFrame ? 0
+    : frame >= saturnWindow.endFrame ? 1
+      : (frame - saturnWindow.startFrame) / Math.max(1, saturnWindow.endFrame - saturnWindow.startFrame);
   return <>
     <ambientLight intensity={0.40}/>
     {/* 点光不再把远处天体照成白盘：降低强度后月球与卫星才留得住纹理。 */}
@@ -75,7 +73,6 @@ function World({textures, targets, active, seconds, shots, fps}: {
       {/* 耀斑：更短更亮的弧，与日珥同一几何，不引入新的时间源。 */}
       <Prominence radius={LAYOUT.sun.radius} color="#ffe2a8" count={3} seed="solar-flare" height={0.1}/>
     </group>
-    {!solo && <>
     {Object.entries(LAYOUT).filter(([id]) => id !== 'sun').map(([id, item]) => <group key={id}>
       {item.orbit > 0 && !item.parent &&
         <Orbit radius={item.orbit} active={id === active || BODIES[active]?.parent === id}/>}
@@ -95,16 +92,16 @@ function World({textures, targets, active, seconds, shots, fps}: {
     <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#a8c8ff" size={1.1}
       bubble={132} bubbleColor="#5f97d8" bubbleOpacity={0.65}/>
     <Comet position={[96, 12, 150]} radius={0.5} tailLength={22} tailRadius={1.4} sunPosition={[0, 0, 0]}/>
-    </>}
     <CameraRig targets={targets} target={[0, 0, 0]} near={0.02} far={4000}/>
     <PostFX/>
   </>;
 }
 
 /** 所有天体一直留在同一个场景图中，只移动相机；压缩轨道作为稳定空间参照。 */
-export const SolarSystem = memo(function SolarSystem({textures, shots, look, active, seconds, fps, onReady}: {
+export const SolarSystem = memo(function SolarSystem({textures, shots, look, active, seconds, fps,
+                                                      saturnWindow, onReady}: {
   textures: Textures; shots: Shot[]; look: Look; active: string; seconds: number; fps: number;
-  onReady: () => void;
+  saturnWindow?: {startFrame: number; endFrame: number}; onReady: () => void;
 }) {
   // 逐主体镜头使用稳定目标表，避免旧固定帧焦点切换随配音变化失效。
   const targets = useMemo<Record<string, FocusTarget>>(() => focusTargets(), []);
@@ -113,7 +110,7 @@ export const SolarSystem = memo(function SolarSystem({textures, shots, look, act
     <PerspectiveCamera makeDefault fov={40} near={0.02} far={4000} position={[3.4, 0.35, 1.0]}/>
     <LookProvider look={look} shots={shots}>
       <World textures={textures} targets={targets} active={active} seconds={seconds}
-        shots={shots} fps={fps}/>
+        fps={fps} saturnWindow={saturnWindow}/>
       <FirstPaint textures={textures} onReady={onReady}/>
     </LookProvider>
   </Canvas>;

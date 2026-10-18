@@ -132,8 +132,8 @@ def test_example_scene_moves_between_shots(tmp_path):
     assert frames[0].read_bytes() != frames[5].read_bytes()
 
 
-#: 地球在压缩坐标里的位置：轨道 17、角度 5.7。
-EARTH = (17 * math.cos(5.7), 0.0, 17 * math.sin(5.7))
+#: 地球在压缩坐标里的位置：轨道 17、角度 1.55（一镜到底螺旋布局）。
+EARTH = (17 * math.cos(1.55), 0.0, 17 * math.sin(1.55))
 
 
 def side_camera(distance: float) -> list[float]:

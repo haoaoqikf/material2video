@@ -81,6 +81,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
         overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", contract.FADE_FRAMES)
         overlaps.append(overlap)
         segments = []
+        holds = []
         for segment in scene.get("narrationSegments", []):
             speech = scene.get("speech")
             scene_rhythm = rhythm_engine.configure({**(rhythm or {}), **(speech or {})}) if speech else rhythm
@@ -88,12 +89,16 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
                 actual_tts["rate"], cache, contract_version=8, rhythm=scene_rhythm)
             if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
             segments.append((segment["id"], wav, cues, math.ceil(seconds * FPS)))
+            holds.append(segment.get("holdFrames", 0))
             hits += int(hit)
         measured.append(segments)
         # 冷开场与收尾靠留白声明，阅读停留可以逐幕调整；未声明时与既有行为一致。
+        # 段间留白只发生在相邻旁白之间，最后一段由 tailFrames 收尾。
         pad = scene.get("leadInFrames", 0) + scene.get("tailFrames", 0)
         hold = scene.get("readingHoldFrames", contract.READING_TAIL)
-        minimum = overlap + (pad + sum(s[3] for s in segments) + hold if segments else max(1, pad))
+        inter_hold = sum(holds[:-1])
+        minimum = overlap + (pad + sum(s[3] for s in segments) + inter_hold + hold
+                             if segments else max(1, pad))
         duration = scene.get("durationFrames")
         if duration is None and segments: duration = minimum
         if duration is None:
@@ -123,7 +128,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
         # 就会整片提前，出现“字幕在说、声音已走”的错位。
         if leading:
             parts.append((None, leading))
-        for identity, wav, local_cues, frames in segments:
+        for segment_index, (identity, wav, local_cues, frames) in enumerate(segments):
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue in local_cues:
                 a = max(0, min(frames-1, round(cue["start"]* FPS)))
@@ -131,6 +136,12 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
                 cues.append({"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]})
             parts.append((wav, frames))
             speech_start += frames
+            # 段间静默写在发声段之后，下一段的窗口与字幕因此整体后移；末段不插入。
+            if segment_index < len(segments) - 1:
+                gap = holds[segment_index]
+                if gap:
+                    parts.append((None, gap))
+                    speech_start += gap
         parts.append((None, scene["endFrame"] - speech_start))
         cursor = scene["endFrame"]
         if cursor > contract.MAX_FRAMES:

@@ -25,3 +25,10 @@ export const BODIES: Record<string, Body> = {
 };
 export const CHAPTERS = ['太阳', '内行星', '地月', '小行星带', '木星', '土星', '冰巨星', '柯伊伯带', '边缘'];
 export const CHAPTER_IDS = ['sun', 'inner', 'home', 'rock', 'giant', 'rings', 'ice', 'kuiper', 'edge'];
+/** 单幕一镜到底后，章节不再由幕配置给出，改由当前镜头主体映射到章节轨。 */
+export const CHAPTER_OF: Record<string, string> = {
+  sun: 'sun', mercury: 'inner', venus: 'inner', earth: 'home', moon: 'home',
+  mars: 'rock', ceres: 'rock', jupiter: 'giant', europa: 'giant',
+  saturn: 'rings', titan: 'rings', uranus: 'ice', neptune: 'ice',
+  pluto: 'kuiper', kuiper: 'kuiper', heliopause: 'edge', oort: 'edge',
+};

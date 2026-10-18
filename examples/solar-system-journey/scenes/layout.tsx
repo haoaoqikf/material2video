@@ -2,22 +2,26 @@ import {THREE} from 'm2v/code-scene';
 
 export type Placement = {radius: number; orbit: number; angle: number; parent?: string;
   /** 可选轨道倾角高度；用于把前景卫星放进土星 hero 的画面。 */ height?: number};
-/** 单一稳定的压缩坐标系；轨道半径和球体半径分别压缩，不是物理比例。 */
+/** 单一稳定的压缩坐标系；轨道半径和球体半径分别压缩，不是物理比例。
+ *
+ * 一镜到底版本把主序天体的方位角排成随轨道半径单调递增的螺旋（0.30→4.45），
+ * 相机因此可以一路向外飞行而不反复横穿太阳系。卫星的角度是世界方向角，
+ * `positionOf` 直接把它当作相对母星的偏移方向。 */
 export const LAYOUT: Record<string, Placement> = {
   sun: {radius: 2.2, orbit: 0, angle: 0},
   mercury: {radius: 0.42, orbit: 8, angle: 0.3},
-  venus: {radius: 0.78, orbit: 12, angle: 2.2},
-  earth: {radius: 0.85, orbit: 17, angle: 5.7},
-  moon: {radius: 0.23, orbit: 2.5, angle: -0.12, parent: 'earth'},
-  mars: {radius: 0.61, orbit: 23, angle: 3.8},
-  ceres: {radius: 0.3, orbit: 29, angle: 4.6},
-  jupiter: {radius: 2.2, orbit: 38, angle: 0.9},
-  europa: {radius: 0.27, orbit: 5, angle: 1.5, parent: 'jupiter'},
-  saturn: {radius: 1.85, orbit: 51, angle: 4.9},
-  titan: {radius: 0.36, orbit: 6.3, angle: 0.4, parent: 'saturn', height: 4.0},
-  uranus: {radius: 1.05, orbit: 66, angle: 2.9},
-  neptune: {radius: 1.04, orbit: 80, angle: 4.35},
-  pluto: {radius: 0.32, orbit: 94, angle: 1.4},
+  venus: {radius: 0.78, orbit: 12, angle: 0.9},
+  earth: {radius: 0.85, orbit: 17, angle: 1.55},
+  moon: {radius: 0.23, orbit: 2.5, angle: 1.9, parent: 'earth'},
+  mars: {radius: 0.61, orbit: 23, angle: 2.15},
+  ceres: {radius: 0.3, orbit: 29, angle: 2.7},
+  jupiter: {radius: 2.2, orbit: 38, angle: 3.2},
+  europa: {radius: 0.27, orbit: 5, angle: 1.8, parent: 'jupiter'},
+  saturn: {radius: 1.85, orbit: 51, angle: 3.45},
+  titan: {radius: 0.36, orbit: 6.3, angle: 1.36, parent: 'saturn', height: 4.0},
+  uranus: {radius: 1.05, orbit: 66, angle: 3.8},
+  neptune: {radius: 1.04, orbit: 80, angle: 4.15},
+  pluto: {radius: 0.32, orbit: 94, angle: 4.45},
 };
 export function positionOf(id: string): THREE.Vector3 {
   const item = LAYOUT[id];

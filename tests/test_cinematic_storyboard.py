@@ -180,9 +180,9 @@ def test_duplicate_shot_ids_across_scenes_are_rejected(tmp_path):
 def test_shot_must_cover_the_declared_segment_before_recording(tmp_path, monkeypatch):
     """镜头时间窗只有拿到真实分段时长才能判定，且必须在录制之前失败。"""
     shots = [shot("earth", "hero", 0, 480, segment="a-line"),
-             shot("saturn", "hero", 0, 480, segment="a-line"),
-             shot("oort", "hero", 24, 504, segment="a-line")]
-    data = board(scenes=[cinematic_scene(shots)])
+             shot("saturn", "hero", 480, 960, segment="a-line"),
+             shot("oort", "hero", 960, 1440, segment="a-line")]
+    data = board(scenes=[cinematic_scene(shots, durationFrames=1440)])
     root, manifest = project(tmp_path, data)
     fake_tts(monkeypatch, seconds=8)
     calls = fake_record(monkeypatch)
@@ -195,11 +195,12 @@ def test_cold_open_shot_without_segment_is_allowed(tmp_path, monkeypatch):
     """冷开场没有旁白可依：不声明 segment 时只要求落在幕时长内。"""
     shots = [shot("sun", "minor", 0, 200),
              shot("earth", "hero", 200, 680, segment="a-line"),
-             shot("saturn", "hero", 200, 680, segment="a-line"),
-             shot("oort", "hero", 200, 680, segment="a-line")]
-    data = board(scenes=[cinematic_scene(shots, leadInFrames=200, readingHoldFrames=0)])
+             shot("saturn", "hero", 680, 1160),
+             shot("oort", "hero", 1160, 1640)]
+    data = board(scenes=[cinematic_scene(shots, leadInFrames=200, readingHoldFrames=0,
+                                        durationFrames=1640)])
     _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, data, seconds=8)
-    assert prepared["durationInFrames"] == 200 + 480
+    assert prepared["durationInFrames"] == 1640
     windows = prepared["props"]["compiledScenes"][0]["segmentWindows"]
     assert windows["a-line"] == {"startFrame": 200, "endFrame": 680}
 
@@ -223,3 +224,56 @@ def test_subject_budget_rejects_longer_speech_instead_of_removing_observation(tm
     data = board(scenes=[scene(durationFrames=240, leadInFrames=60, tailFrames=120, readingHoldFrames=0)])
     with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
         prepare_with(tmp_path, monkeypatch, data, seconds=3)
+
+
+# ---------------------------------------------------------------- 段间静默
+
+
+def test_segment_hold_inserts_silence_between_narrations(tmp_path, monkeypatch):
+    """第一段之后的静默既进音轨，也把第二段的窗口与字幕整体后移。"""
+    segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": 180},
+                {"id": "b-line", "text": "继续观察，再修正做法。"}]
+    data = board(scenes=[scene(narrationSegments=segments, leadInFrames=0, tailFrames=0,
+                               readingHoldFrames=0, durationFrames=300)])
+    _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, data, seconds=1)
+    windows = prepared["props"]["compiledScenes"][0]["segmentWindows"]
+    assert prepared["durationInFrames"] == 300
+    assert windows["a-line"] == {"startFrame": 0, "endFrame": 60}
+    assert windows["b-line"] == {"startFrame": 240, "endFrame": 300}
+    assert [cue["startFrame"] for cue in prepared["props"]["subtitleCues"]] == [0, 240]
+
+
+def test_segment_hold_counts_toward_the_minimum_duration(tmp_path, monkeypatch):
+    """固定时长必须容纳段间静默；不足时在录制前失败。"""
+    segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": 180},
+                {"id": "b-line", "text": "继续观察，再修正做法。"}]
+    data = board(scenes=[scene(narrationSegments=segments, leadInFrames=0, tailFrames=0,
+                               readingHoldFrames=0, durationFrames=299)])
+    with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
+        prepare_with(tmp_path, monkeypatch, data, seconds=1)
+
+
+@pytest.mark.parametrize("value", [-1, 361, "180", True])
+def test_invalid_segment_hold_is_rejected(tmp_path, value):
+    segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": value},
+                {"id": "b-line", "text": "继续观察，再修正做法。"}]
+    data = board(scenes=[scene(narrationSegments=segments)])
+    with pytest.raises(M2VError, match="holdFrames"):
+        explainer.validate(data, scene_root(tmp_path))
+
+
+def test_last_segment_hold_is_rejected(tmp_path):
+    """收尾留白由 tailFrames 负责，最后一段不得再声明段间静默。"""
+    segments = [{"id": "a-line", "text": "观察结果，修正做法。"},
+                {"id": "b-line", "text": "继续观察，再修正做法。", "holdFrames": 60}]
+    data = board(scenes=[scene(narrationSegments=segments)])
+    with pytest.raises(M2VError, match="最后一段"):
+        explainer.validate(data, scene_root(tmp_path))
+
+
+def test_overlapping_shot_windows_are_rejected(tmp_path):
+    shots = [shot("earth", "hero", 0, 480), shot("saturn", "hero", 400, 880),
+             shot("oort", "hero", 880, 1360)]
+    data = board(scenes=[cinematic_scene(shots)])
+    with pytest.raises(M2VError, match="镜头时间窗重叠"):
+        explainer.validate(data, scene_root(tmp_path))

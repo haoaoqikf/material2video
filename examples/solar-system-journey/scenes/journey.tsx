@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
 import {type CodeSceneProps, type Look, type Shot} from 'm2v/code-scene';
-import {BODIES, CHAPTER_IDS, CHAPTERS} from './bodies';
+import {BODIES, CHAPTER_IDS, CHAPTER_OF, CHAPTERS} from './bodies';
 import {useNarration} from './clock';
 import {useTextures, useTextureSources} from './world';
 import {SolarSystem} from './solar-system';
@@ -21,35 +21,62 @@ export function shotFade(shot: Shot | null, frame: number, ramp = 30): number {
   return Math.min(rise, fall);
 }
 
+/** 信息面板跟随旁白窗口淡入淡出；静默过场与开场不显示，避免 28 个镜头边界各闪一次。 */
+function windowFade(window: {startFrame: number; endFrame: number}, frame: number,
+                    rise = 18, fall = 24): number {
+  const up = Math.min(1, Math.max(0, (frame - window.startFrame) / rise));
+  const down = Math.min(1, Math.max(0, (window.endFrame - frame) / fall));
+  return Math.min(up, down);
+}
+
 export default function Journey(config: CodeSceneProps) {
   const clock = useNarration(config);
   const shots = (config.props.shots ?? []) as Shot[];
   const look = (config.props.look ?? {profile: 'deep-space-cinematic'}) as Look;
   const frame = Math.round(clock.elapsedSeconds * config.fps);
   const shot = useMemo(() => shotAt(shots, frame), [shots, frame]);
-  // 每个对象独立一幕，身份来自本幕语义配置，不依赖旧全片帧号。
-  const active = String(config.props.body ?? shot?.target ?? 'sun');
+  // 单幕一镜到底后，主体身份由当前镜头给出；不再读幕级 body/chapter/caption。
+  const active = shot && BODIES[shot.target] ? shot.target : 'sun';
   const body = BODIES[active];
+  const chapter = CHAPTER_OF[active] ?? 'sun';
+  const chapterIndex = Math.max(0, CHAPTER_IDS.indexOf(chapter));
+  const windows = Object.values(config.segmentWindows);
+  const firstStart = windows.length ? Math.min(...windows.map(window => window.startFrame)) : 0;
+  const oortWindow = config.segmentWindows['oort-line'];
+  const opening = frame < firstStart;
+  const closing = active === 'oort' && (!oortWindow || frame >= oortWindow.startFrame);
+  const speaking = clock.speaking && !closing;
+  const panel = speaking ? windowFade(clock.window, frame) : 0;
+  // hero 的前置过场里，当前镜头自带尚未开始的旁白段，应先报它；否则报下一段旁白的目标。
+  const currentSegmented = shots.find(item => item.segment
+    && item.startFrame <= frame && item.endFrame > frame);
+  const currentWindow = currentSegmented?.segment
+    ? config.segmentWindows[currentSegmented.segment] : undefined;
+  const upcoming = shots.find(item => item.segment && item.startFrame > frame);
+  const nextShot = currentSegmented && currentWindow && frame < currentWindow.startFrame
+    ? currentSegmented : upcoming;
+  const nextBody = nextShot ? BODIES[nextShot.target] : undefined;
+  const status = opening ? '太阳系 · 从上方俯瞰'
+    : closing ? '奥尔特云 · 太阳成为亮点'
+      : speaking ? `正在经过 · ${body.name}`
+        : nextBody ? `前往 · ${nextBody.name}` : `正在经过 · ${body.name}`;
   const seconds = clock.elapsedSeconds;
   const sources = useTextureSources();
   const textures = useTextures(sources);
   const ready = useRef(clock.ready);
   ready.current = clock.ready;
   const onReady = useCallback(() => ready.current(), []);
-  const chapter = String(config.props.chapter ?? 'sun');
-  const chapterIndex = Math.max(0, CHAPTER_IDS.indexOf(chapter));
-  const opening = active === 'sun' && frame < (Object.values(config.segmentWindows)[0]?.startFrame ?? 0);
-  const closing = active === 'oort';
-  const fade = shotFade(shot, frame);
-  const panel = (!opening && !closing && !config.props.hideBodyPanel) ? fade : 0;
   const safe = config.subtitleSafeArea;
-  const track = Math.min(1, (Number(config.props.journeyOffsetFrames ?? 0) + frame) / Number(config.props.journeyDurationFrames ?? config.durationInFrames));
+  const track = Math.min(1, frame / Math.max(1, config.durationInFrames));
+  const caption = String(config.props.caption ?? body.feature);
+  const footnote = opening ? 1 : (closing && oortWindow ? windowFade(oortWindow, frame) : 0);
 
   return <div style={{position: 'relative', width: config.width, height: config.height,
     overflow: 'hidden', background: '#02050a', color: '#f2eee5'}}>
     <div style={{position: 'absolute', inset: 0, zIndex: 0}}>
       {textures && <SolarSystem textures={textures} shots={shots} look={look} active={active}
-        seconds={seconds} fps={config.fps} onReady={onReady}/>}
+        seconds={seconds} fps={config.fps} saturnWindow={config.segmentWindows['saturn-line']}
+        onReady={onReady}/>}
     </div>
     {/* 顶部 scrim：亮天体经过标题/章节导航后方时仍要保持文字对比度。 */}
     <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 168,
@@ -60,7 +87,7 @@ export default function Journey(config: CodeSceneProps) {
     <div style={{position: 'absolute', left: 70, right: 70, top: 42, display: 'flex',
       justifyContent: 'space-between', fontSize: 26, letterSpacing: '0.12em', color: '#bdc9d2'}}>
       <span>SOLAR SYSTEM / 太阳系之旅</span>
-      <span>{opening ? '冷开场 · 日面边缘' : closing ? '奥尔特云 · 太阳成为亮点' : `正在经过 · ${body.name}`}</span>
+      <span>{status}</span>
     </div>
     {/* 章节进度轨：一条轨加九个刻度，替代常驻左栏。 */}
     <div style={{position: 'absolute', left: 70, right: 70, top: 96}}>
@@ -81,17 +108,18 @@ export default function Journey(config: CodeSceneProps) {
       <div style={{fontSize: 22, letterSpacing: '0.18em', color: '#dabb86'}}>{body.english}</div>
       <div style={{fontSize: 64, fontWeight: 350, lineHeight: 1.3, marginTop: 12}}>{body.name}</div>
       <div style={{fontSize: 28, color: '#dabb86', marginTop: 14}}>{body.kind}</div>
-      <div style={{fontSize: 34, lineHeight: 1.6, marginTop: 25}}>{String(config.props.caption ?? body.feature)}</div>
+      <div style={{fontSize: 34, lineHeight: 1.6, marginTop: 25}}>{caption}</div>
       <div style={{fontSize: 26, color: '#a7b5c2', marginTop: 20}}>{'轨道距离与天体大小经过艺术压缩'}</div>
     </div>
-    {(active === 'oort') && <div style={{position: 'absolute', left: 70, top: 185, fontSize: 34,
-      color: '#cfe0f2', lineHeight: 1.5}}>奥尔特云 · 包围太阳系的遥远彗星库
+    {closing && <div style={{position: 'absolute', left: 70, top: 185, fontSize: 34,
+      color: '#cfe0f2', lineHeight: 1.5, opacity: oortWindow ? windowFade(oortWindow, frame) : 1}}>
+      奥尔特云 · 包围太阳系的遥远彗星库
       <div style={{fontSize: 25, color: '#a7b5c2'}}>蓝色内边界为日球层顶，外侧粒子为奥尔特云艺术示意</div></div>}
     <div style={{position: 'absolute', left: 70, top: safe.y - 132, fontSize: 26, color: '#cfe0f2',
-      letterSpacing: '0.06em'}}>{body.distance}</div>
+      letterSpacing: '0.06em', opacity: panel}}>{body.distance}</div>
     <div style={{position: 'absolute', left: 70, right: 70, top: safe.y - 60, display: 'flex',
       justifyContent: 'space-between', fontSize: 20, color: '#a3b2c0',
-      opacity: opening || closing ? fade : 0}}>
+      opacity: footnote}}>
       <span>三维艺术示意 · 轨道距离压缩 · 天体放大 · 非实时位置 · 艺术示意</span>
       <span>NASA / JPL / USGS · Solar System Scope（CC BY 4.0）</span>
     </div>

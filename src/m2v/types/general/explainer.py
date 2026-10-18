@@ -20,6 +20,8 @@ MAX_SCENES, MAX_SEGMENTS = 300, 30
 TRANSITIONS = ("cut", "fade", "crossfade")
 #: cinematic 可选留白与阅读停留的上限（帧）。
 MAX_PAD, MAX_HOLD = 1800, 360
+#: 同一幕内相邻旁白之间的静默上限（帧）。
+MAX_SEGMENT_HOLD = 6 * FPS
 
 
 def topic_input(data: dict) -> bool:
@@ -131,8 +133,8 @@ def validate(data: dict, root: Path) -> dict:
         parts = scene.get("narrationSegments")
         if not isinstance(parts, list) or len(parts) > MAX_SEGMENTS:
             fail(path + ".narrationSegments", f"必须包含 0～{MAX_SEGMENTS} 项")
-        for part in parts:
-            obj(part, path + ".narrationSegments", {"id", "text", "claims"})
+        for part_index, part in enumerate(parts):
+            obj(part, path + ".narrationSegments", {"id", "text", "claims", "holdFrames"})
             pid = text(part.get("id"), path + ".narrationSegments.id")
             text(part.get("text"), path + ".narrationSegments.text")
             if not count_characters(part["text"]):
@@ -141,12 +143,26 @@ def validate(data: dict, root: Path) -> dict:
             if pid in all_ids:
                 fail(path, f"重复 ID：{pid}")
             all_ids.add(pid)
+            if "holdFrames" in part:
+                hold = part["holdFrames"]
+                if type(hold) is not int or not 0 <= hold <= MAX_SEGMENT_HOLD:
+                    fail(f"{path}.narrationSegments[{part_index}].holdFrames",
+                         f"必须为 0～{MAX_SEGMENT_HOLD} 的整数")
+                if part_index == len(parts) - 1 and hold:
+                    fail(f"{path}.narrationSegments[{part_index}].holdFrames",
+                         "最后一段不能声明段间留白；收尾请使用 tailFrames")
         content = obj(scene.get("content"), path + ".content", {"title", "entry", "props"})
         if "title" in content:
             text(content.get("title"), path + ".content.title")
         props = content.get("props", {})
         validate_entry(root, content.get("entry"), props)
         shots = cinematic.validate_shots(props, path + ".content.props")
+        ordered = sorted(shots, key=lambda item: item["startFrame"])
+        for previous, current in zip(ordered, ordered[1:]):
+            if previous["endFrame"] > current["startFrame"]:
+                fail(path + ".content.props.shots",
+                     f"镜头时间窗重叠：{previous['id']} 结束于 {previous['endFrame']}，"
+                     f"{current['id']} 开始于 {current['startFrame']}")
         if "look" in props:
             cinematic.validate_look(props["look"], path + ".content.props.look")
         for shot in shots:
