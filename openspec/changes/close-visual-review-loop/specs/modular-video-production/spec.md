@@ -5,7 +5,7 @@
 系统 MUST 在统一入口新增电影级制作与质检命令：`m2v lookdev --project <目录>`、`m2v qa --project <目录>`、`m2v assets audit --project <目录>`。cinematic 的正式导出沿用现有 `m2v render`，不新增母版命令。命令 MUST 沿用现有作品路径、内容根、退出码与产物归属规则；standard 的现有命令与行为 MUST NOT 改变。
 
 - `lookdev` MUST 只渲染关键静帧与代表片段，MUST NOT 生成完整成片；输出位于作品 `outputs/lookdev/`，包含 3–5 张从当前源码原生采集的 4K 静帧、接触表与 20–30 秒有声样片。观看结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，MUST NOT 成为导出门禁。
-- `qa` MUST 输出 `outputs/qa.json` 与接触表，覆盖冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音轨时长差与 claims 时间窗覆盖，并明确区分技术判定、测量提示和需要实际观看的项目；MUST NOT 将技术通过表述为视觉质量通过；技术失败 MUST 以退出码 1 结束，报告 MUST 可定位到镜头/时间戳。
+- `qa` MUST 输出 `outputs/qa.json` 与接触表，覆盖冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音轨时长差与 claims 时间窗覆盖，并提供全片采样清单、交界/异常加密帧、黑帧/突变及交付音轨削波/静音候选，并明确区分技术判定、测量提示和需查看采样图像的项目与自动信号检查的覆盖限制；MUST NOT 将技术通过表述为视觉质量通过；技术失败 MUST 以退出码 1 结束，报告 MUST 可定位到镜头/时间戳。
 - `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；hero 资产不合格时 MUST 以退出码 1 结束。
 - 正式导出 MUST 沿用 `m2v render`，交付普通 H.264 MP4；系统 MUST NOT 提供 `m2v master` 或 ProRes/DNxHR 母版入口。成片旁车 MUST 记录 profile、交付摘要、音频参数与 QA 指纹。
 - standard 与 cinematic 的所有制作阶段均取消用户确认：`m2v render` MUST NOT 因缺少观看记录、确认文件或 look-dev 产物而阻断。standard MUST 同样无需人工确认。
@@ -37,8 +37,8 @@
 - **THEN** 报告标识为测量提示，不据此自动宣称画面无缺陷，也不将测量项当作技术失败
 
 #### Scenario: 导出与完成分离
-- **WHEN** render 成功但缺少当前有效的最终观看记录
-- **THEN** CLI 仍可输出视频，助手报告尚未完成视觉复核，不要求用户确认，不宣称制作完成
+- **WHEN** render 成功但缺少当前有效的最终替代检查记录
+- **THEN** CLI 仍可输出视频，助手报告尚未完成帧序列与自动音频复核，不要求用户确认，不宣称制作完成
 
 ### Requirement: 共用渲染及可靠输出
 系统 MUST 使用完整缓存键且命中不跳门禁，元数据核验与渲染使用同一浏览器会话；临时成片通过帧数、尺寸、帧率、音轨验收及输入复核后才替换目标。所有类型 MUST 输出溯源与性能记录。正式成片成功替换并生成旁车后，统一入口 MUST 清理当前作品 `outputs/` 中旧成片及其旁车、预演与已知检查和调试产物；MUST 保留本次成片、其字幕/溯源/性能旁车、准备和评审 JSON、可供重渲使用的准备媒体。清理不得越出当前作品 `outputs/`，不得清理共享构建缓存。general 当前 visual-notes、其引用的当前检查证据及返工前后对照 MUST 保留在作品忽略的输出目录中，作为已知检查产物清理的例外；历史无引用大体积检查产物仍按原规则清理。渲染或验收失败 MUST NOT 触发清理；清理遇到文件错误时 MUST 保留有效新成片、报告失败和遗留路径，且不得声称全部清理完成。
