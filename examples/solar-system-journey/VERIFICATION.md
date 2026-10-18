@@ -8,7 +8,7 @@
 - 准备：材料指纹 `932c5a1f…`，准备产物指纹 `27a3c441…`，8100 帧 / 135.0 秒 / 60 fps / 1920×1080，cinematic（来源 project），单幕 28 镜，51 条烧录字幕；TTS 缓存命中 15 段；片段 `outputs/code-cache/29999097….mp4`，母版 `outputs/media/9f02ad4d….wav`。
 - 旁白窗口与预算逐帧一致：360–669、849–1149、1329–1614、1794–2091、2271–2560、2740–3053、3233–3458、3638–4011、4191–4530、4710–5004、5184–5500、5680–5987、6167–6383、6563–6919、7099–7431；14 个 180 帧静默窗与 669 帧尾留白闭合到 8100。
 - 路径数据：生成器的 240 点样条采样未发现穿模（最近余量 0.85，地球/月球过场），边界最大速度比 1.65，星空壳与远裁剪面均未越界。
-- 自动测试：`test_solar_system_camera.py`（单幕/28 镜/旁白覆盖/hero 8–12 秒/穿模/边界速度）、`test_cinematic_storyboard.py`（`holdFrames` 时间轴与校验）、`test_solar_system_scene.py`、`test_solar_system_sound.py`、`test_examples_strict.py`（除实际时长）、`test_font_coverage.py` 与前端 58 项均通过。
+- 自动测试：完整 Python 回归 616 项（4 项跳过）无失败；前端 58 项通过；`test_solar_system_camera.py`（单幕/28 镜/旁白覆盖/hero 8–12 秒/穿模/边界速度）、`test_cinematic_storyboard.py`（`holdFrames` 时间轴与校验）、`test_solar_system_scene.py`、`test_solar_system_sound.py`、`test_examples_strict.py`、`test_font_coverage.py` 通过；OpenSpec 主规格与变更严格校验通过；`assets audit --profile cinematic` pass（2 项预期警告）。
 - 风险样片与全片接触表：0 / 180 / 359 / 450 / 900 / 1500 帧与地球 hero 1614–2160 帧已实际观看；按 4.5 秒间隔抽样的 30 格全片接触表已复核，开场全景、俯冲、太阳站、内行星、地球/土星/奥尔特云 hero 与结尾均连续可读，未见黑场或位置跳变。
 - lookdev：4 张原生 3840×2160 静帧（第 0 / 1994 / 4400 / 7303 帧）与 24 秒有声样片（1614–3054 帧）已生成；实际观看静帧确认开场全景、地球、土星环半开与奥尔特云收尾构图，字幕层正常。
 - 完整预演：`videos/examples/solar-system-journey/outputs/previews/video.mp4`，8100 帧 / 135.0 秒；自动 QA `status=pass`：269 对采样 0 个重复对、最长静止 0 秒、最小帧差 0.00161；字幕对比度 19.43:1；响度 −13.7 LUFS / 真峰值 −3.9 dBTP；音画时长差 0.00082 秒；无 claims 检查项。
