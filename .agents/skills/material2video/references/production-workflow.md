@@ -61,5 +61,5 @@ uv run m2v render --project videos/general/<slug>     # 普通 H.264 MP4 交付
   这是唯一保留的用户确认，确认结果写入 `outputs/visual-notes.md`，用户指出的问题记录位置与复查结果。
 - 参考板、look bible、20 项检查表、反模式与成本见[电影级制作档位](cinematic-video.md)。
 
-档位、镜头/look 字段与 cinematic 命令随 cinematic 变更落地；实现完成前仓库实际可用的仍是
-standard 链路。
+档位、镜头/look 字段与 cinematic 命令已经落地；太阳系 60 秒参考片完成 look-dev、完整预演、
+技术 QA 与用户确认，可直接作为 cinematic 样板参考。

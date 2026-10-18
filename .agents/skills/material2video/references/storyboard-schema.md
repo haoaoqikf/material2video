@@ -34,9 +34,9 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 下面是 cinematic 档位新增的**可选**字段。standard 作品不写它们，准备记录、缓存键与时间轴
 都与现在完全一致；写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
-档位、可选字段与电影级共享套件已经落地；`lookdev` / `qa` / `assets audit` / `master` 与
-cinematic 编码仍在实施中，因此现阶段不要据此声称已产出电影级成片。档位模型、镜头语法与
-检查表见[电影级制作档位](cinematic-video.md)。
+档位、可选字段、电影级共享套件与 `lookdev` / `qa` / `assets audit` 入口已经落地；
+太阳系 60 秒参考片已完成 look-dev、全片 QA 与用户确认，可作为 cinematic 样板。档位模型、
+镜头语法与检查表见[电影级制作档位](cinematic-video.md)。
 
 档位声明在**作品** `project.json`（不在分镜里）：
 

@@ -15,7 +15,7 @@ export const BODIES: Record<string, Body> = {
   jupiter: {name: '木星', english: 'JUPITER', kind: '气态巨行星', distance: '平均日距 5.20 AU', feature: '巨大的云带，持续翻涌的风暴', texture: 'jupiter', color: '#d3af85', tilt: 3.1},
   europa: {name: '木卫二', english: 'EUROPA', kind: '木星的冰质卫星', distance: '母星平均日距 5.20 AU', feature: '交错冰纹下，可能藏着全球海洋', texture: 'europa', color: '#dad0b6', rocky: true, parent: 'jupiter'},
   saturn: {name: '土星', english: 'SATURN', kind: '气态巨行星', distance: '平均日距 9.58 AU', feature: '无数冰粒，组成纤薄而辽阔的环', texture: 'saturn', color: '#d9c19a', tilt: 26.7},
-  titan: {name: '土卫六', english: 'TITAN', kind: '土星的浓雾卫星', distance: '母星平均日距 9.58 AU', feature: '甲烷与乙烷，形成另一种河湖', color: '#d2a05d', atmosphere: '#d9a054', parent: 'saturn'},
+  titan: {name: '土卫六', english: 'TITAN', kind: '土星的浓雾卫星', distance: '母星平均日距 9.58 AU', feature: '甲烷与乙烷，形成另一种河湖', texture: 'titan', color: '#d2a05d', atmosphere: '#d9a054', parent: 'saturn'},
   uranus: {name: '天王星', english: 'URANUS', kind: '冰巨星', distance: '平均日距 19.2 AU', feature: '几乎侧躺着自转的世界', texture: 'uranus', color: '#b1dddf', tilt: 97.8, atmosphere: '#8ed5df'},
   neptune: {name: '海王星', english: 'NEPTUNE', kind: '冰巨星', distance: '平均日距 30.1 AU', feature: '遥远的阳光，猛烈的大气运动', texture: 'neptune', color: '#6394c9', tilt: 28.3, atmosphere: '#649be3'},
   pluto: {name: '冥王星', english: 'PLUTO / KUIPER BELT', kind: '柯伊伯带中的矮行星', distance: '平均日距 39.5 AU', feature: '心形区域，铺展着氮冰平原', texture: 'pluto', color: '#c6b3a0', rocky: true},

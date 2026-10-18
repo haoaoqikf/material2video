@@ -92,7 +92,7 @@ export default function Journey(config: CodeSceneProps) {
     overflow: 'hidden', background: '#02050a', color: '#f2eee5'}}>
     <div style={{position: 'absolute', inset: 0, zIndex: 0}}>
       {textures && <SolarSystem textures={textures} shots={shots} look={look} active={active}
-        seconds={seconds} onReady={onReady}/>}
+        seconds={seconds} fps={config.fps} onReady={onReady}/>}
     </div>
     {/* 字幕 scrim：只在字幕带上下做渐变，不压暗整幅画面。 */}
     <div style={{position: 'absolute', left: 0, right: 0, top: safe.y - 90, height: safe.height + 150,
@@ -113,8 +113,10 @@ export default function Journey(config: CodeSceneProps) {
           color: index === chapterIndex ? '#e7cca2' : index < chapterIndex ? '#9aa9b8' : '#6b7b8a'}}>{name}</span>)}
       </div>
     </div>
-    <div style={{position: 'absolute', left: 70, top: 420, width: 460, padding: '26px 28px',
-      borderLeft: '1px solid #9c8159', background: 'linear-gradient(90deg, rgba(2,5,10,0.96), rgba(2,5,10,0.72))',
+    <div style={{position: 'absolute', left: 70, top: 420, width: 520, padding: '26px 28px',
+      borderLeft: '1px solid #9c8159',
+      // 右侧渐隐到透明：半透明底板在亮天体前会露出一条硬直边，像多出一个矩形。
+      background: 'linear-gradient(90deg, rgba(2,5,10,0.95) 0%, rgba(2,5,10,0.84) 62%, rgba(2,5,10,0) 100%)',
       opacity: panel}}>
       <div style={{fontSize: 17, letterSpacing: '0.18em', color: '#dabb86'}}>{body.english}</div>
       <div style={{fontSize: 64, fontWeight: 350, lineHeight: 1.3, marginTop: 12}}>{body.name}</div>

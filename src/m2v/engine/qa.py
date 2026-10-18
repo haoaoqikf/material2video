@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -70,9 +71,16 @@ def frozen_frames(frames: list[bytes], fps: int, step: int) -> dict:
         total = sum(abs(a - b) for a, b in zip(previous, current))
         deltas.append(total / (len(previous) * 255))
     run = longest = 0
-    for delta in deltas:
-        run = run + 1 if delta < FROZEN_DELTA else 0
-        longest = max(longest, run)
+    run_start = longest_start = 0
+    for index, delta in enumerate(deltas):
+        if delta < FROZEN_DELTA:
+            if run == 0:
+                run_start = index
+            run += 1
+        else:
+            run = 0
+        if run > longest:
+            longest, longest_start = run, run_start
     seconds = longest * step / fps
     duplicates = sum(1 for delta in deltas if delta < FROZEN_DELTA)
     near = sum(1 for delta in deltas if delta < NEAR_STILL_DELTA)
@@ -82,7 +90,18 @@ def frozen_frames(frames: list[bytes], fps: int, step: int) -> dict:
             "duplicatePairs": duplicates, "duplicateRatio": round(duplicates / total, 4),
             "nearStillRatio": round(near / total, 4),
             "longestStillSeconds": round(seconds, 2), "frozenDelta": FROZEN_DELTA,
+            "longestStillRange": {"startSample": longest_start, "endSample": longest_start + longest},
             "status": "fail" if seconds > FROZEN_SECONDS else "pass"}
+
+
+def _shot_at(prepared: dict, frame: int) -> str | None:
+    """把全片帧号定位到镜头 id；幕内镜头帧号先换成全片帧号。"""
+    for scene in prepared["props"].get("compiledScenes", []):
+        start = scene.get("startFrame", 0)
+        for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or []):
+            if start + shot["startFrame"] <= frame < start + shot["endFrame"]:
+                return shot["id"]
+    return None
 
 
 def _dark_levels(frame: bytes, ratio: float = 0.2) -> tuple[int, int]:
@@ -244,8 +263,17 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         raise M2VError("成片太短，无法抽样检查")
     outputs = root / "outputs/qa"
     outputs.mkdir(parents=True, exist_ok=True)
+    frozen = frozen_frames(frames, fps, step)
+    # 冻结段必须能定位到镜头与时间戳，而不是只报一个总秒数。
+    sample = frozen["longestStillRange"]
+    start_frame = sample["startSample"] * step
+    end_frame = sample["endSample"] * step
+    frozen["problem"] = ({"startSeconds": round(start_frame / fps, 2),
+                          "endSeconds": round(end_frame / fps, 2),
+                          "shot": _shot_at(prepared, start_frame)}
+                         if sample["endSample"] > sample["startSample"] else None)
     checks = {
-        "frozenFrames": frozen_frames(frames, fps, step),
+        "frozenFrames": frozen,
         "picture": picture_metrics(frames),
         "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
         "loudness": loudness(master, profile),
@@ -260,7 +288,15 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
               "sampleStep": step, "contactSheet": sheet.relative_to(root).as_posix(),
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
-    _write_json(root / "outputs/qa.json", report)
+    report_path = root / "outputs/qa.json"
+    _write_json(report_path, report)
+    # 成片旁车记录 QA 指纹：交付、溯源与本次技术质检一一对应。
+    sidecar = target.with_suffix(".provenance.json")
+    if sidecar.is_file():
+        provenance = json.loads(sidecar.read_text(encoding="utf-8"))
+        provenance["qa"] = {"report": str(report_path.relative_to(root)).replace("\\", "/"),
+                            "sha256": hashlib.sha256(report_path.read_bytes()).hexdigest()}
+        _write_json(sidecar, provenance)
     return report
 
 

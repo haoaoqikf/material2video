@@ -19,13 +19,14 @@ HEROES = [{"id": "earth", "tier": "hero", "target": "earth", "startFrame": 300, 
           {"id": "sun", "tier": "minor", "target": "sun", "startFrame": 0, "endFrame": 200}]
 
 
-def test_still_frames_prefer_hero_midpoints():
-    assert lookdev.still_frames(scene_with_shots(HEROES), 3) == [540, 1740, 3200]
+def test_still_frames_prefer_hero_payoff():
+    # hero 取 75%：土星环已展开、土卫六进入画面。
+    assert lookdev.still_frames(scene_with_shots(HEROES), 3) == [660, 1860, 3300]
 
 
 def test_still_frames_fill_with_first_last_and_even_points():
     frames = lookdev.still_frames(scene_with_shots(HEROES), 5)
-    assert frames[0] == 0 and frames[-1] == 3599 and {540, 1740, 3200} <= set(frames)
+    assert frames[0] == 0 and frames[-1] == 3599 and {660, 1860, 3300} <= set(frames)
     assert len(frames) == 5
 
 

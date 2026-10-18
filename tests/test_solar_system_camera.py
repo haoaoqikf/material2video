@@ -94,6 +94,7 @@ const entry = `
     previous = points[points.length - 1];
     previousRadius = radius(previous);
   }
+  assert(!shots.some((shot) => 'cut' in shot), '太阳系样板要求几乎一镜到底，不应声明硬切');
   assert(previousRadius > 100, '全片结束时相机仍在太阳系内部：' + previousRadius.toFixed(1));
   assert(shots.filter((shot) => shot.tier === 'hero').length >= 3, 'hero 镜头少于 3 个');
   assert(positionOf('moon').distanceTo(positionOf('earth')) > LAYOUT.earth.radius + LAYOUT.moon.radius);

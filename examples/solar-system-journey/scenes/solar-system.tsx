@@ -1,7 +1,7 @@
 import {memo, useMemo, useRef} from 'react';
 import {
-  Atmosphere, CameraRig, Canvas, Comet, Corona, LookProvider, OortCloud, ParticleBelt,
-  PerspectiveCamera, PostFX, Prominence, Rings, Starfield, SunSurface, THREE, useFrame, useThree,
+  CameraRig, Canvas, Comet, Corona, LookProvider, OortCloud, ParticleBelt,
+  PerspectiveCamera, PostFX, Prominence, Starfield, THREE, activeShot, useFrame, useThree,
   type Look, type Shot,
 } from 'm2v/code-scene';
 import {BODIES} from './bodies';
@@ -43,20 +43,33 @@ function FirstPaint({textures, onReady}: {textures: Textures; onReady: () => voi
   return null;
 }
 
-function World({textures, targets, active, seconds}: {
+/** 需要展示纹理地标的天体；朝向由 Planet 按当前机位逐帧求解。 */
+const FEATURE_BODIES = new Set(['jupiter', 'pluto']);
+const SATURN_SHOT = 'saturn-hero';
+
+function World({textures, targets, active, seconds, shots, fps}: {
   textures: Textures; targets: Record<string, THREE.Vector3>; active: string; seconds: number;
+  shots: Shot[]; fps: number;
 }) {
   const clock = {current: {seconds}};
+  const frame = Math.round(seconds * fps);
+  const shot = activeShot(shots, frame);
+  const saturnShot = shots.find(item => item.id === SATURN_SHOT);
+  const saturnPhase = !saturnShot || frame < saturnShot.startFrame ? 0
+    : frame >= saturnShot.endFrame ? 1
+      : (frame - saturnShot.startFrame) / Math.max(1, saturnShot.endFrame - saturnShot.startFrame);
   return <>
-    <ambientLight intensity={0.3}/>
-    <pointLight position={[0, 0, 0]} intensity={4.2} decay={0} color="#fff0d7"/>
+    <ambientLight intensity={0.24}/>
+    {/* 点光不再把远处天体照成白盘：降低强度后月球与卫星才留得住纹理。 */}
+    <pointLight position={[0, 0, 0]} intensity={1.9} decay={0} color="#fff0d7"/>
     {/* 星点收小收暗：之前 2200 颗 1.6px 被 Bloom 糊成星云，深空变成了蓝雾。 */}
     <Starfield count={900} radius={900} seed="solar-system" size={0.9} opacity={0.28}/>
     <group>
-      <SunSurface radius={LAYOUT.sun.radius} color="#ffb44d" hotColor="#fff1c2" granulation={0.65}/>
+      <Planet id="sun" radius={LAYOUT.sun.radius} textures={textures} clock={clock}/>
       <Corona radius={LAYOUT.sun.radius} color="#ff9a3c" intensity={0.85} power={3.1}/>
-      {/* 日珥贴住日面：原来 1.1 倍半径的圆环在画面边缘断成孤立的橙色弧片。 */}
       <Prominence radius={LAYOUT.sun.radius} color="#ff7a3c" count={4} height={0.32}/>
+      {/* 耀斑：更短更亮的弧，与日珥同一几何，不引入新的时间源。 */}
+      <Prominence radius={LAYOUT.sun.radius} color="#ffe2a8" count={3} seed="solar-flare" height={0.1}/>
     </group>
     {Object.entries(LAYOUT).filter(([id]) => id !== 'sun').map(([id, item]) => <group key={id}>
       {item.orbit > 0 && !item.parent &&
@@ -64,19 +77,18 @@ function World({textures, targets, active, seconds}: {
       {item.parent && <group position={positionOf(item.parent)}>
         <Orbit radius={item.orbit} active={active === id}/></group>}
       <group position={positionOf(id)}>
-        <Planet id={id} radius={item.radius} textures={textures} clock={clock} phase={0.5}
+        <Planet id={id} radius={item.radius} textures={textures} clock={clock}
+          phase={id === 'saturn' ? saturnPhase : 0.5}
+          faceFeature={FEATURE_BODIES.has(id)}
           detail={id === active || BODIES[active]?.parent === id}/>
-        {id === 'earth' && <Atmosphere radius={item.radius} color="#4b9dff" intensity={1.05}/>}
-        {id === 'saturn' && <Rings innerRadius={item.radius * 1.25} outerRadius={item.radius * 1.75}
-          color="#d9c19a" opacity={0.92} seed="saturn-rings" tilt={26.7}/>}
       </group>
     </group>)}
     <ParticleBelt count={1400} innerRadius={26} outerRadius={33} thickness={0.5} seed="main-belt"
-      color="#c5bba1" size={0.16} spin={0.02}/>
+      color="#c5bba1" size={0.09} spin={0.02}/>
     <ParticleBelt count={2200} innerRadius={86} outerRadius={106} thickness={2.4} seed="kuiper"
-      color="#9fb6cf" size={0.22} spin={0.012}/>
-    <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#8fb6ff" size={0.5}
-      bubble={132} bubbleColor="#3d6fa8" bubbleOpacity={0.022}/>
+      color="#9fb6cf" size={0.14} spin={0.012}/>
+    <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#8fb6ff" size={0.35}
+      bubble={132} bubbleColor="#5f97d8" bubbleOpacity={0.5}/>
     <Comet position={[96, 12, 150]} radius={0.5} tailLength={22} tailRadius={1.4} sunPosition={[0, 0, 0]}/>
     <CameraRig targets={targets} target={[0, 0, 0]} near={0.02} far={4000}/>
     <PostFX/>
@@ -84,15 +96,17 @@ function World({textures, targets, active, seconds}: {
 }
 
 /** 所有天体一直留在同一个场景图中，只移动相机；压缩轨道作为稳定空间参照。 */
-export const SolarSystem = memo(function SolarSystem({textures, shots, look, active, seconds, onReady}: {
-  textures: Textures; shots: Shot[]; look: Look; active: string; seconds: number; onReady: () => void;
+export const SolarSystem = memo(function SolarSystem({textures, shots, look, active, seconds, fps, onReady}: {
+  textures: Textures; shots: Shot[]; look: Look; active: string; seconds: number; fps: number;
+  onReady: () => void;
 }) {
   const targets = useMemo(() => focusTargets(), []);
   return <Canvas dpr={1} gl={{antialias: false, alpha: false, powerPreference: 'high-performance'}}>
     <color attach="background" args={['#02050a']}/>
     <PerspectiveCamera makeDefault fov={40} near={0.02} far={4000} position={[3.4, 0.35, 1.0]}/>
     <LookProvider look={look} shots={shots}>
-      <World textures={textures} targets={targets} active={active} seconds={seconds}/>
+      <World textures={textures} targets={targets} active={active} seconds={seconds}
+        shots={shots} fps={fps}/>
       <FirstPaint textures={textures} onReady={onReady}/>
     </LookProvider>
   </Canvas>;

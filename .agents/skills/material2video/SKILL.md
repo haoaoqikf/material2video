@@ -49,8 +49,8 @@ cinematic 必须在关键静帧与代表片段上实际观看、把时间码与�
 不得把未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
 
 档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
-`lookdev` / `qa` / `assets audit` 入口已接线，太阳系参考片与最终用户确认仍在实施中；
-cinematic 交付普通 H.264 MP4，不另出母版。实现完成前不要据此声称已产出电影级成片。
+`lookdev` / `qa` / `assets audit` 入口已接线，太阳系 60 秒参考片已完成 look-dev、全片 QA 与
+用户确认，可作为 当前 cinematic 样板。cinematic 交付普通 H.264 MP4，不另出母版。
 
 ## 统一命令
 

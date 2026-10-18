@@ -83,17 +83,18 @@ def audit(root: Path, prepared: dict, record: dict, *, profile: str = "cinematic
         maps = by_target.get(target, {})
         color = maps.get("color")
         if color is None:
+            # 程序化目标（如奥尔特云粒子/气泡）没有贴图契约，不适用 4K 与三张贴图要求。
             warnings.append({"target": target, "tier": tier, "reason": "没有登记颜色贴图，按程序化材质处理"})
-        else:
-            minimum = HERO_MIN_WIDTH if tier == "hero" else MAJOR_MIN_WIDTH
-            if color["width"] < minimum:
-                problems.append({"target": target, "asset": color["id"],
-                                 "reason": f"{tier} 颜色贴图宽度 {color['width']} 低于 {minimum}"})
-            if str(color.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
-                if tier == "hero":
-                    problems.append({"target": target, "asset": color["id"], "reason": "hero 资产许可未知"})
-                else:
-                    warnings.append({"target": target, "asset": color["id"], "reason": "资产许可未知"})
+            continue
+        minimum = HERO_MIN_WIDTH if tier == "hero" else MAJOR_MIN_WIDTH
+        if color["width"] < minimum:
+            problems.append({"target": target, "asset": color["id"],
+                             "reason": f"{tier} 颜色贴图宽度 {color['width']} 低于 {minimum}"})
+        if str(color.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
+            if tier == "hero":
+                problems.append({"target": target, "asset": color["id"], "reason": "hero 资产许可未知"})
+            else:
+                warnings.append({"target": target, "asset": color["id"], "reason": "资产许可未知"})
         if tier == "hero":
             for role in REQUIRED_HERO_MAPS:
                 if role not in maps:
@@ -109,7 +110,7 @@ def audit(root: Path, prepared: dict, record: dict, *, profile: str = "cinematic
               "preparedFingerprint": prepared["preparedFingerprint"],
               "assets": assets, "tiers": tiers, "problems": problems, "warnings": warnings,
               "status": "fail" if (problems and profile == "cinematic") else "pass"}
-    _write_json(root / "outputs/assets-audit.json", report)
+    _write_json(root / "outputs/asset-audit.json", report)
     return report
 
 

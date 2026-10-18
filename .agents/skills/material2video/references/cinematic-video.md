@@ -12,10 +12,10 @@
 档位声明、镜头/look/claims 字段、准备指纹与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）
 已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。
 `lookdev` / `qa` / `assets audit` 已接线；lookdev 静帧从源码按原生 2× 像素绘制，
-PNG 合成字幕与转场，有声样片仍复用准备片段，详见[渲染契约](render-contract.md#lookdev-原生关键帧)。仍在实施中：
-太阳系 60 秒参考片与最终用户确认。cinematic 不另出母版，成片仍是普通 H.264 MP4。
-**在交付完成之前，不要声称已经产出电影级成片**；实现完成后本节与
-[渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 一并更新为「当前支持」。
+PNG 合成字幕与转场，有声样片仍复用准备片段，详见[渲染契约](render-contract.md#lookdev-原生关键帧)。
+太阳系 60 秒参考片已完成 look-dev、全片 QA 与用户确认，作为 cinematic 验收样板；
+cinematic 不另出母版，成片仍是普通 H.264 MP4。本节与
+[渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 描述的是**当前支持**的能力。
 
 ## 档位对照
 

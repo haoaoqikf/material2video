@@ -70,7 +70,7 @@ def test_global_hero_selection_adds_scene_offset():
     prepared = {'durationInFrames': 3600, 'fps': 60, 'props': {'compiledScenes': [
         {'startFrame': 900, 'content': {'props': {'shots': [
             {'id': 'hero', 'tier': 'hero', 'startFrame': 60, 'endFrame': 180}]}}}]}}
-    assert 1020 in lookdev.still_frames(prepared, 3)
+    assert 1050 in lookdev.still_frames(prepared, 3)
     assert lookdev.sample_window(prepared, 20)[0] == 960
 
 

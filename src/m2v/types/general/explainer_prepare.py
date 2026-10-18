@@ -151,6 +151,11 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
         raw, target = work / "raw.wav", work / "audio.wav"
         audio.concatenate(parts, FPS, raw)
         soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ FPS, work, inputs)
+        if actual_profile == "cinematic":
+            # cinematic 成片响度 −14 LUFS / −1 dBTP；standard 保持既有 −16 口径。
+            mastered = work / "mastered.wav"
+            audio.master(target, mastered, integrated=-14.0, true_peak=-1.0)
+            target = mastered
         sha = digest(target)
         master = media_dir / f"{sha}.wav"
         security.deliver(target, master)

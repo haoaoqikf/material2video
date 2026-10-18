@@ -28,14 +28,30 @@ def loudness(path: Path) -> dict:
     except ValueError as exc: raise M2VError("响度量测未返回有效数据") from exc
 
 
-def normalize(source: Path, target: Path) -> None:
+def normalize(source: Path, target: Path, integrated: float = -16.0,
+              true_peak: float = -1.0) -> None:
+    """两遍 loudnorm；默认 −16 LUFS（旁白），cinematic 成片用 −14 LUFS。"""
     stats = loudness(source)
     if not math.isfinite(float(stats["input_i"])):
         shutil.copyfile(source, target); return
     options = ":".join(f"{key}={stats[value]}" for key, value in {
         "measured_I": "input_i", "measured_TP": "input_tp", "measured_LRA": "input_lra",
         "measured_thresh": "input_thresh", "offset": "target_offset"}.items())
-    ffmpeg(["-i", str(source), "-af", f"loudnorm=I=-16:TP=-1:LRA=11:{options}:linear=true",
+    ffmpeg(["-i", str(source), "-af",
+            f"loudnorm=I={integrated}:TP={true_peak}:LRA=11:{options}:linear=true",
+            "-ar", str(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", str(target)])
+
+
+def master(source: Path, target: Path, integrated: float = -14.0, true_peak: float = -1.0) -> None:
+    """成片响度归一：动态 loudnorm 同时控制响度与真峰值。
+
+    只做线性增益时，峰值余量不足会把目标响度顶住（实测 −15.2 而不是 −14）；
+    动态模式用同一组参数做温和压缩，才能同时满足响度与真峰值上限。
+    """
+    # 温和压缩先收峰值，再让 loudnorm 有增益余量；只靠 loudnorm 实测停在 −15.3。
+    ffmpeg(["-i", str(source), "-af",
+            f"acompressor=threshold=-20dB:ratio=2:attack=5:release=150,"
+            f"loudnorm=I={integrated}:TP={true_peak}:LRA=9",
             "-ar", str(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", str(target)])
 
 

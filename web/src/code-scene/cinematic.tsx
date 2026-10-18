@@ -38,7 +38,12 @@ export type Shot = {
   exposure?: {ev?: number; mode?: 'look' | 'shot'};
   post?: PostSettings;
   note?: string;
+  /** 显式硬切：不参与镜头边界的朝向/焦段/曝光混合。 */
+  cut?: boolean;
 };
+
+/** 镜头边界混合帧数：0.5 秒内把朝向、FOV、滚转与曝光过渡到下一镜头。 */
+export const SHOT_BLEND_FRAMES = 30;
 export type Look = {
   profile: string; lut?: LutName; grain?: number; bloom?: number; dof?: number;
   vignette?: number; exposure?: {ev?: number; mode?: 'look' | 'shot'};
@@ -244,7 +249,7 @@ const Grain = wrapEffect(GrainEffect, {blendFunction: BlendFunction.NORMAL});
  * （后者的噪点纹理来自 `Math.random`，跨次运行不一致）。
  */
 export function PostFX({enabled = true, children}: {enabled?: boolean; children?: ReactNode}) {
-  const {look, shot, frame} = useLook();
+  const {look, shot, shots, frame} = useLook();
   const camera = useThree(state => state.camera);
   const settings = resolvePost(look, shot);
   const grade = GRADES[settings.lut] ?? GRADES.neutral;
@@ -252,12 +257,22 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
   // 焦点拉移：镜头内按进度插值，再按相机近远裁剪面归一化成 DOF 的 0–1 距离。
   const span = Math.max(1, (shot?.endFrame ?? 1) - (shot?.startFrame ?? 0));
   const progress = shot ? (frame - shot.startFrame) / span : 0;
+  const index = shot ? shots.indexOf(shot) : -1;
+  const previous = index > 0 ? shots[index - 1] : null;
+  const blendRaw = shot ? (frame - shot.startFrame + 1) / SHOT_BLEND_FRAMES : 1;
+  const blend = previous && !shot?.cut && !previous.cut
+    ? ease('sineInOut', Math.min(1, Math.max(0, blendRaw))) : 1;
   const world = focusDistanceAt(shot, progress);
+  const previousWorld = previous ? focusDistanceAt(previous, 1) : null;
+  const blendedWorld = world === null ? (previousWorld ?? null)
+    : previousWorld === null ? world : previousWorld + (world - previousWorld) * blend;
   const near = camera instanceof THREE.PerspectiveCamera ? camera.near : 0.1;
   const far = camera instanceof THREE.PerspectiveCamera ? camera.far : 1000;
-  const focusDistance = world === null
-    ? Math.min(0.9, Math.max(0.01, 1 - settings.dof))
-    : Math.min(0.95, Math.max(0.01, (world - near) / Math.max(1e-6, far - near)));
+  // postprocessing 的 focusDistance / focusRange 都以**世界单位**计。之前把焦点
+  // 归一到 [0,1] 再喂进去，焦点实际落在 1 厘米处，整幅画面（包括月球）全被糊掉。
+  const focusWorld = blendedWorld === null ? 30 : blendedWorld;
+  const focusDistance = Math.min(far * 0.9, Math.max(near * 2, focusWorld));
+  const focusRange = Math.max(0.35, focusDistance * 0.3);
   useFrame(() => {
     const effect = grain.current;
     if (effect) effect.seed = hashSeed(shot?.id ?? 'look') % 4096 + frame;
@@ -269,8 +284,8 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
         ? <Bloom intensity={settings.bloom} luminanceThreshold={0.82} luminanceSmoothing={0.12} mipmapBlur/>
         : <></>}
       {settings.dof > 0
-        ? <DepthOfField focusDistance={focusDistance}
-            focalLength={0.02 + settings.dof * 0.06} bokehScale={2 + settings.dof * 4}/>
+        ? <DepthOfField focusDistance={focusDistance} focusRange={focusRange}
+            bokehScale={2 + settings.dof * 4}/>
         : <></>}
       <HueSaturation hue={grade.hue} saturation={grade.saturation}/>
       <BrightnessContrast brightness={grade.brightness} contrast={grade.contrast}/>
@@ -322,6 +337,7 @@ export function CameraRig({shots, targets, target, fov, near = 0.05, far = 6000,
   const scene = useLook();
   const list = shots ?? scene.shots;
   const focus = useRef(new THREE.Vector3());
+  const previousFocus = useRef(new THREE.Vector3());
   const fallbackTarget = useMemo(() => new THREE.Vector3(...(target ?? [0, 0, 0])), [target]);
   const curve = useRef<{key: string; curve: THREE.CatmullRomCurve3} | null>(null);
   if (makeDefault) gl.domElement.dataset.m2vRig = '1';
@@ -352,21 +368,40 @@ export function CameraRig({shots, targets, target, fov, near = 0.05, far = 6000,
       curve.current.curve.getPoint(progress, camera.position);
     }
 
+    // 一镜到底：位置路径连续，镜头边界再把朝向、FOV、滚转与曝光混合到下一镜头。
+    const index = shot ? list.indexOf(shot) : -1;
+    const previous = index > 0 ? list[index - 1] : null;
+    const blendRaw = shot ? (scene.frame - shot.startFrame + 1) / SHOT_BLEND_FRAMES : 1;
+    const blend = previous && !shot?.cut && !previous.cut
+      ? ease('sineInOut', Math.min(1, Math.max(0, blendRaw))) : 1;
+
     const focusName = shot?.focus?.target;
     const resolved = focusName && targets ? targets[focusName] : undefined;
     resolvePoint(resolved, fallbackTarget, focus.current);
+    if (previous && blend < 1) {
+      const prevName = previous.focus?.target;
+      const prevResolved = prevName && targets ? targets[prevName] : undefined;
+      resolvePoint(prevResolved, fallbackTarget, previousFocus.current);
+      focus.current.lerp(previousFocus.current, 1 - blend);
+    }
     camera.lookAt(focus.current);
-    if (camera3?.roll) camera.rotateZ(THREE.MathUtils.degToRad(camera3.roll));
+    const previousRoll = previous?.camera?.roll ?? 0;
+    const roll = previousRoll + ((camera3?.roll ?? 0) - previousRoll) * blend;
+    if (roll) camera.rotateZ(THREE.MathUtils.degToRad(roll));
 
-    const nextFov = camera3?.fov ?? fov;
+    const previousFov = previous?.camera?.fov ?? fov ?? 40;
+    const nextFov = previousFov + ((camera3?.fov ?? fov ?? 40) - previousFov) * blend;
     if (nextFov && Math.abs(camera.fov - nextFov) > 1e-6) {
       camera.fov = nextFov;
       camera.near = near;
       camera.far = far;
       camera.updateProjectionMatrix();
     }
-    const ev = (shot?.exposure?.mode === 'shot' ? shot.exposure.ev : undefined)
-      ?? scene.look.exposure?.ev ?? 0;
+    const exposureOf = (item: Shot | null) => (item?.exposure?.mode === 'shot'
+      ? item.exposure.ev : undefined) ?? scene.look.exposure?.ev ?? 0;
+    const ev = previous
+      ? exposureOf(previous) + (exposureOf(shot) - exposureOf(previous)) * blend
+      : exposureOf(shot);
     gl.toneMappingExposure = 2 ** ev;
   });
   return null;
@@ -410,6 +445,30 @@ function fresnelMaterial(color: string, intensity: number, power: number, bias: 
   });
 }
 
+/**
+ * 圆形点精灵：默认的 `PointsMaterial` 在没有贴图时画的是方形，远景星点会变成
+ * 「雪花」。共享一张 64×64 的径向渐变即可得到圆形点，且完全确定性。
+ */
+let dotTexture: THREE.DataTexture | null = null;
+function softDot(): THREE.DataTexture {
+  if (dotTexture) return dotTexture;
+  const size = 64;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = (x + 0.5) / size * 2 - 1;
+      const dy = (y + 0.5) / size * 2 - 1;
+      const falloff = Math.max(0, 1 - Math.hypot(dx, dy));
+      const index = (y * size + x) * 4;
+      data[index] = 255; data[index + 1] = 255; data[index + 2] = 255;
+      data[index + 3] = Math.round(255 * falloff * falloff);
+    }
+  }
+  dotTexture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  dotTexture.needsUpdate = true;
+  return dotTexture;
+}
+
 /** 星空：固定种子的球壳点云，不随时间变化，作为深空的静态参照。 */
 export function Starfield({count = 1400, radius = 1200, seed = 'stars', color = '#ffffff',
                            size = 2.4, opacity = 0.85}: {
@@ -432,7 +491,8 @@ export function Starfield({count = 1400, radius = 1200, seed = 'stars', color = 
   }, [count, radius, seed]);
   return (
     <points geometry={geometry}>
-      <pointsMaterial color={color} size={size} sizeAttenuation transparent opacity={opacity} depthWrite={false}/>
+      <pointsMaterial map={softDot()} color={color} size={size} sizeAttenuation transparent
+        opacity={opacity} depthWrite={false} alphaTest={0.01}/>
     </points>
   );
 }
@@ -460,7 +520,8 @@ export function ParticleBelt({count = 900, innerRadius = 8, outerRadius = 12, th
   }, [count, innerRadius, outerRadius, thickness, seed]);
   return (
     <points geometry={geometry} rotation={[0, elapsedSeconds * spin, 0]}>
-      <pointsMaterial color={color} size={size} sizeAttenuation transparent opacity={opacity} depthWrite={false}/>
+      <pointsMaterial map={softDot()} color={color} size={size} sizeAttenuation transparent
+        opacity={opacity} depthWrite={false} alphaTest={0.01}/>
     </points>
   );
 }
@@ -474,13 +535,44 @@ export function Atmosphere({radius, color = '#4b9dff', intensity = 1.1, power = 
   return <mesh material={material}><sphereGeometry args={[radius * 1.045, 64, 48]}/></mesh>;
 }
 
-/** 日冕：太阳外层辉光，加法混合朝外。 */
+/**
+ * 日冕：面向相机的径向辉光。
+ *
+ * 之前的球壳菲涅尔在轮廓处形成一圈硬边橙色圆环（像描边而不是辉光）。改成
+ * 始终朝向相机的径向渐变后，外缘连续衰减到零；渐变峰值落在日面轮廓外侧。
+ */
 export function Corona({radius, color = '#ff9a3c', intensity = 0.9, power = 3.2, bias = 0.95}: {
   radius: number; color?: string; intensity?: number; power?: number; bias?: number;
 }) {
-  const material = useMemo(() => fresnelMaterial(color, intensity, power, bias, THREE.FrontSide),
-    [color, intensity, power, bias]);
-  return <mesh material={material}><sphereGeometry args={[radius * 1.22, 64, 48]}/></mesh>;
+  const texture = useMemo(() => {
+    const size = 256;
+    const data = new Uint8Array(size * size * 4);
+    const tint = new THREE.Color(color);
+    // 日面占精灵半宽的 1/2.2；峰值落在轮廓外，向内快速归零，向外按幂衰减。
+    const limb = 1 / 2.2;
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const dx = (x + 0.5) / size * 2 - 1;
+        const dy = (y + 0.5) / size * 2 - 1;
+        const r = Math.hypot(dx, dy);
+        const rise = Math.min(1, Math.max(0, (r - limb * 0.82) / (limb * 0.28)));
+        const fall = Math.pow(Math.max(0, 1 - r), power);
+        const alpha = rise * fall * bias;
+        const index = (y * size + x) * 4;
+        data[index] = Math.round(tint.r * 255);
+        data[index + 1] = Math.round(tint.g * 255);
+        data[index + 2] = Math.round(tint.b * 255);
+        data[index + 3] = Math.round(255 * alpha);
+      }
+    }
+    const map = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+    map.needsUpdate = true;
+    return map;
+  }, [color, power, bias]);
+  return <sprite scale={[radius * 4.4, radius * 4.4, 1]}>
+    <spriteMaterial map={texture} transparent opacity={intensity} depthWrite={false}
+      blending={THREE.AdditiveBlending} toneMapped={false}/>
+  </sprite>;
 }
 
 /** 日面：临边昏暗 + 帧驱动的颗粒噪声，不需要贴图也能有表面细节。 */
@@ -532,7 +624,13 @@ export function SunSurface({radius, color = '#ffb44d', hotColor = '#fff1c2', gra
   return <mesh material={material}><sphereGeometry args={[radius, 96, 64]}/></mesh>;
 }
 
-/** 日珥：从日面升起的热等离子弧，数量与形状由种子决定，涨落由帧号驱动。 */
+/**
+ * 日珥：从日面升起的热等离子弧。
+ *
+ * 旧实现把部分圆环（torus）随机旋转后贴在球面上，圆环平面常常侧对镜头，
+ * 在画面里表现为几片孤立的长方形。这里改成**两根落脚点之间的拱形管**：
+ * 拱面包含表面法线，从任何角度看都是从日面长出来的弧。
+ */
 export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'prominence',
                             height = 0.9, speed = 0.25}: {
   radius: number; color?: string; count?: number; seed?: string; height?: number; speed?: number;
@@ -540,28 +638,35 @@ export function Prominence({radius, color = '#ff7a3c', count = 5, seed = 'promin
   const {elapsedSeconds} = useSceneContext();
   const arcs = useMemo(() => {
     const random = seededRandom(hashSeed(seed));
+    const up = new THREE.Vector3(0, 1, 0);
     return Array.from({length: count}, () => {
       const theta = random() * Math.PI * 2;
-      const phi = Math.acos(2 * random() - 1) * 0.7;
-      const arc = 0.35 + random() * 0.5;
-      const scale = radius * (0.18 + random() * height);
-      return {
-        position: [Math.sin(phi) * Math.cos(theta) * radius * 0.86,
-                   Math.cos(phi) * radius * 0.86,
-                   Math.sin(phi) * Math.sin(theta) * radius * 0.86] as Vec3,
-        rotation: [phi, theta, 0] as Vec3,
-        arc, scale, phase: random() * Math.PI * 2,
-      };
+      const phi = (random() - 0.5) * Math.PI * 0.7;
+      const spread = 0.12 + random() * 0.2;
+      const lift = 0.2 + random() * height;
+      const normal = new THREE.Vector3(Math.cos(phi) * Math.cos(theta), Math.sin(phi),
+        Math.cos(phi) * Math.sin(theta)).normalize();
+      let tangent = new THREE.Vector3().crossVectors(normal, up);
+      if (tangent.lengthSq() < 1e-4) tangent = new THREE.Vector3(1, 0, 0);
+      tangent.normalize();
+      const footA = normal.clone().addScaledVector(tangent, -spread).normalize()
+        .multiplyScalar(radius * 0.995);
+      const footB = normal.clone().addScaledVector(tangent, spread).normalize()
+        .multiplyScalar(radius * 0.995);
+      const apex = normal.clone().multiplyScalar(radius * (1.12 + lift * 1.1));
+      const curve = new THREE.QuadraticBezierCurve3(footA, apex, footB);
+      const geometry = new THREE.TubeGeometry(curve, 48, radius * 0.026, 10, false);
+      return {geometry, phase: random() * Math.PI * 2};
     });
   }, [count, seed, radius, height]);
   return (
     <group>
       {arcs.map((item, index) => {
-        const pulse = 0.75 + 0.25 * Math.sin(elapsedSeconds * speed * Math.PI * 2 + item.phase);
+        const pulse = 0.55 + 0.25 * Math.sin(elapsedSeconds * speed * Math.PI * 2 + item.phase);
         return (
-          <mesh key={index} position={item.position} rotation={item.rotation}>
-            <torusGeometry args={[item.scale, radius * 0.026 * pulse, 24, 64, item.arc]}/>
-            <meshBasicMaterial color={color} transparent opacity={0.62} blending={THREE.AdditiveBlending}/>
+          <mesh key={index} geometry={item.geometry}>
+            <meshBasicMaterial color={color} transparent opacity={pulse}
+              blending={THREE.AdditiveBlending} depthWrite={false}/>
           </mesh>
         );
       })}
@@ -623,18 +728,17 @@ export function OortCloud({count = 2000, radius = 1800, thickness = 420, seed = 
     buffer.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return buffer;
   }, [count, radius, thickness, seed]);
+  // 日球层顶是**边界**而不是一层均匀的雾：用菲涅尔壳让轮廓亮、内部近乎透明。
+  // 只画正面：相机在气泡内部时整面背面会把画面染蓝，而边界本来就该在飞出后回望时可见。
+  const shell = useMemo(() => fresnelMaterial(bubbleColor, bubbleOpacity, 2.4, 0.92, THREE.FrontSide),
+    [bubbleColor, bubbleOpacity]);
   return (
     <group>
       <points geometry={geometry}>
-        <pointsMaterial color={color} size={size} sizeAttenuation transparent opacity={0.7} depthWrite={false}/>
+        <pointsMaterial map={softDot()} color={color} size={size} sizeAttenuation transparent
+          opacity={0.7} depthWrite={false} alphaTest={0.01}/>
       </points>
-      {bubble
-        ? <mesh>
-            <sphereGeometry args={[bubble, 64, 48]}/>
-            <meshBasicMaterial color={bubbleColor} transparent opacity={bubbleOpacity}
-              side={THREE.BackSide} depthWrite={false} blending={THREE.AdditiveBlending}/>
-          </mesh>
-        : null}
+      {bubble ? <mesh material={shell}><sphereGeometry args={[bubble, 64, 48]}/></mesh> : null}
     </group>
   );
 }
