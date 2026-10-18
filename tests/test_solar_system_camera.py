@@ -138,6 +138,39 @@ const entry = `
   assert(positionOf('moon').distanceTo(positionOf('earth')) > LAYOUT.earth.radius + LAYOUT.moon.radius);
   assert(positionOf('titan').distanceTo(positionOf('saturn')) > LAYOUT.saturn.radius * 2.27 + LAYOUT.titan.radius);
 
+  // 每个站点必须有明显的远→近→远：首末点到目标距离 / 镜头内最近距离 >= 1.35。
+  for (const shot of shots) {
+    if (!shot.segment || shot.target === 'sun' || !LAYOUT[shot.target]) continue;
+    const anchor = positionOf(shot.target).toArray();
+    const curve = curveOf(shot.camera.path);
+    let nearest = Infinity;
+    for (let sample = 0; sample <= 240; sample += 1) {
+      nearest = Math.min(nearest, dist(curve.getPoint(sample / 240).toArray(), anchor));
+    }
+    const first = dist(shot.camera.path[0], anchor) / Math.max(1e-9, nearest);
+    const last = dist(shot.camera.path.at(-1), anchor) / Math.max(1e-9, nearest);
+    assert(first >= 1.35 && last >= 1.35,
+      shot.id + ' 没有从远处抵达/拉远：首 ' + first.toFixed(2) + '× / 末 ' + last.toFixed(2) + '×');
+  }
+
+  // 独立过场必须抬升到黄道面上方，而不是贴着行星平面平移。
+  for (const shot of shots) {
+    if (!shot.id.includes('-to-')) continue;
+    const curve = curveOf(shot.camera.path);
+    let maxY = -Infinity;
+    let arc = 0;
+    let previous = null;
+    for (let sample = 0; sample <= 240; sample += 1) {
+      const point = curve.getPoint(sample / 240);
+      maxY = Math.max(maxY, point.y);
+      if (previous) arc += previous.distanceTo(point);
+      previous = point;
+    }
+    const need = Math.max(1.5, 0.10 * arc);
+    assert(maxY > need, shot.id + ' 过场没有离面抬升：'
+      + maxY.toFixed(2) + ' < ' + need.toFixed(2));
+  }
+
   // 镜头边界不得出现停顿或跳速。
   for (let index = 1; index < shots.length; index += 1) {
     const previous = shots[index - 1];
@@ -160,3 +193,25 @@ const entry = `
                              str(ROOT), str(tmp_path / "camera.cjs")], cwd=WEB, env=environment,
                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_generated_path_report_is_clean():
+    proposal = ROOT / "examples/solar-system-journey/outputs/path-proposal.json"
+    if not proposal.is_file():
+        pytest.skip("本地没有路径提案；运行 generate-paths.mjs 后本用例会核对")
+    report = json.loads(proposal.read_text(encoding="utf-8"))["report"]
+    assert report["problems"] == []
+    assert report["boundarySpeedMax"] < 1.5
+    assert all(item["nearest"]["distance"] > 0.5 for item in report["minDistances"])
+    assert all(min(item["first"], item["last"]) >= 1.35 for item in report["approachRatios"])
+
+
+def test_storyboard_shots_match_generated_proposal():
+    generated = ROOT / "examples/solar-system-journey/outputs/storyboard.generated.json"
+    if not generated.is_file():
+        pytest.skip("本地没有生成的 shots；运行 generate-paths.mjs --merge 后本用例会核对")
+    generated_shots = json.loads(generated.read_text(encoding="utf-8"))[
+        "scenes"][0]["content"]["props"]["shots"]
+    current_shots = json.loads(STORYBOARD.read_text(encoding="utf-8"))[
+        "scenes"][0]["content"]["props"]["shots"]
+    assert current_shots == generated_shots, "storyboard.json 的 shots 与生成结果不一致，可能忘记 --merge"
