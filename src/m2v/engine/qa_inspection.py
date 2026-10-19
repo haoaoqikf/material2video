@@ -41,11 +41,11 @@ def shots(prepared: dict) -> list[dict]:
 
 
 def sample_indices(prepared: dict, intervals: list[dict] = ()) -> list[int]:
-    """完整逐秒覆盖，并在镜头交界、hero/风险和异常时间窗按0.1秒加密。"""
+    """全片每0.5秒覆盖，并在镜头交界、hero/风险和异常时间窗按0.1秒加密。"""
     count, fps = prepared['durationInFrames'], prepared['fps']
     if count < 1 or fps < 1:
         raise M2VError('替代验收需要有效帧数和帧率')
-    picks = {0, count - 1, *range(0, count, fps)}
+    picks = {0, count - 1, *range(0, count, max(1, round(fps / 2)))}
     dense = max(1, round(fps / 10))
     spans = []
     for shot in shots(prepared):

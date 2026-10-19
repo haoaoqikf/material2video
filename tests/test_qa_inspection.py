@@ -30,6 +30,7 @@ def test_sampling_includes_short_last_frame_and_boundaries():
             {'id': 'two', 'startFrame': 120, 'endFrame': 240}]}}}]
     picks = inspect.sample_indices(p)
     assert {0, 60, 120, 180, 239}.issubset(picks)
+    assert {30, 90, 150, 210}.issubset(picks)
     assert {90, 96, 102, 108, 114, 120, 126}.issubset(picks)
     assert picks == sorted(set(picks))
     assert max(picks) < 240
