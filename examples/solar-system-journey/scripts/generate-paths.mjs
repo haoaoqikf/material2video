@@ -3,10 +3,10 @@
  *
  * 只读 `scenes/layout.tsx`，为每个站点生成「远入点 → 接近 → 近天体绕行 → 拉远 → 远出点」，
  * 站点之间用抬升到黄道面上方的空间弧连接。控制点按**分段速度曲线**（sin²）在等帧间隔上采样，
- * 相邻镜头的位置、方向与速度都连续；运行时 CameraRig 用 linear 缓动即可。
+ * 原始路径相接；实际运动由 flight.ts 跨边界求值，须另查全过程。
  *
  * 输出 `outputs/path-proposal.json` 与 `outputs/storyboard.generated.json`；
- * 加 `--merge` 时只把生成的 shots 合并回 `storyboard.json` 的 `content.props.shots`。
+ * 加 `--merge` 时合并 shots 与核定时间预算，保留旁白原文。
  *
  * 用法：node examples/solar-system-journey/scripts/generate-paths.mjs [--merge]
  */
@@ -23,13 +23,12 @@ const requireFromWeb = createRequire(path.join(WEB, 'package.json'));
 const {build} = requireFromWeb('esbuild');
 
 const FPS = 60;
-const TOTAL = 8100;
+const TOTAL = 13230;
 const LEAD_IN = 360;
-const HOLD = 180;
-const TAIL = 669;
-const ENTRY = 60;          // 旁白开始前的到站接近帧数
-const TRANSIT = 120;       // 一般过场帧数（留白 180 - 下一站接近 60）
-const HERO = new Set(['earth', 'saturn', 'oort']);
+const HOLD = 540;
+const TAIL = 759;
+const ENTRY = 120;          // 旁白开始前的到站接近帧数：2秒定位
+const TRANSIT = 330;       // 一般过场帧数（540 - 上一站尾留白90 - 下一站接近120）
 
 // ---------------------------------------------------------------- 输入数据
 
@@ -58,25 +57,28 @@ const REGIONS = {
   heliopause: {anchor: [Math.cos(5.05) * 152, 26, Math.sin(5.05) * 152], d: 14},
   oort: {anchor: [Math.cos(5.30) * 175, 40, Math.sin(5.30) * 175], d: 16},
 };
+/** 外层结构的外缘半径；与场景里的 ParticleBelt/OortCloud 参数一致，诊断由此读取。 */
+const STRUCTURE_SIZE = {kuiper: 106, heliopause: 132, oort: 185};
 
 const STATION_ORDER = ['sun', 'mercury', 'venus', 'earth', 'moon', 'mars', 'ceres', 'jupiter',
   'saturn', 'uranus', 'neptune', 'pluto', 'kuiper', 'heliopause', 'oort'];
+// 正式相机统一使用 44 度 FOV（开场 55 度平缓收束）；站点不单独声明 FOV，避免死配置。
 const STATION = {
-  sun: {d: 9, tier: 'major', fov: 44},
-  mercury: {d: 2.6, tier: 'minor', fov: 41},
-  venus: {d: 3.6, tier: 'minor', fov: 41},
-  earth: {d: 4.2, tier: 'hero', fov: 40, tailInHold: 30},
-  moon: {d: 1.6, tier: 'minor', fov: 40},
-  mars: {d: 3.2, tier: 'minor', fov: 41},
-  ceres: {d: 2.0, tier: 'minor', fov: 40},
-  jupiter: {d: 12, tier: 'major', fov: 40},
-  saturn: {d: 14, tier: 'hero', fov: 40, backlit: true},
-  uranus: {d: 6, tier: 'minor', fov: 40},
-  neptune: {d: 6, tier: 'minor', fov: 40},
-  pluto: {d: 2.4, tier: 'minor', fov: 40},
-  kuiper: {d: 12, tier: 'minor', fov: 42},
-  heliopause: {d: 14, tier: 'major', fov: 42},
-  oort: {d: 16, tier: 'hero', fov: 42},
+  sun: {d: 9, tier: 'major'},
+  mercury: {d: 2.6, tier: 'minor'},
+  venus: {d: 3.6, tier: 'minor'},
+  earth: {d: 4.2, tier: 'hero'},
+  moon: {d: 1.6, tier: 'minor'},
+  mars: {d: 3.2, tier: 'minor'},
+  ceres: {d: 2.0, tier: 'minor'},
+  jupiter: {d: 12, tier: 'major'},
+  saturn: {d: 14, tier: 'hero', backlit: true},
+  uranus: {d: 6, tier: 'minor'},
+  neptune: {d: 6, tier: 'minor'},
+  pluto: {d: 2.4, tier: 'minor'},
+  kuiper: {d: 12, tier: 'minor'},
+  heliopause: {d: 14, tier: 'major'},
+  oort: {d: 16, tier: 'hero'},
 };
 
 // ---------------------------------------------------------------- 布局载入
@@ -115,12 +117,6 @@ const normalize = (a) => {
 const lerp3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k,
   a[2] + (b[2] - a[2]) * k];
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-const unitXZ = (from, to) => {
-  const dx = to[0] - from[0];
-  const dz = to[2] - from[2];
-  const length = Math.hypot(dx, dz);
-  return length < 1e-9 ? [0, 0, 1] : [dx / length, 0, dz / length];
-};
 const V = (point) => new THREE.Vector3(...point);
 const curveOf = (points) => new THREE.CatmullRomCurve3(points.map(V), false, 'catmullrom', 0.5);
 
@@ -137,7 +133,7 @@ function stationArc(anchor, d, backlit = false) {
   const at = (radial, tangent, height) => [anchor[0] + d * (radial * u[0] + tangent * t[0]),
     anchor[1] + height * d, anchor[2] + d * (radial * u[2] + tangent * t[2])];
   if (!backlit) {
-    return [at(-0.85, 0.35, 0.20), at(-0.55, 0.65, 0.30), at(-0.25, 0.75, 0.35)];
+    return [at(-0.75, -0.45, 0.30), at(-0.85, 0.0, 0.30), at(-0.65, 0.55, 0.30)];
   }
   return [at(0.85, 0.20, 0.30), at(0.45, 0.65, 0.45), at(-0.15, 0.80, 0.30)];
 }
@@ -200,42 +196,12 @@ function spaceArc(from, to, {liftScale = 0.12, bowScale = 0.08} = {}) {
 }
 
 /**
- * 远点：三维距离 k*d，水平分量被相邻站距限制，剩余距离全部转为垂直抬升。
- * 这样远点既在“远处”，又不会塞到下一站脸上；碰撞不足时把方向向外旋转并缩小 H。
- */
-function farPoint(anchor, other, k, d, label, obstacles, problems) {
-  const gap = Math.max(1e-3, dist(anchor, other));
-  const total = k * d;
-  let horizontal = Math.min(total, 0.12 * gap);
-  let direction = unitXZ(anchor, other);
-  const {u} = frameOf(anchor);
-  let best = null;
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const vertical = Math.sqrt(Math.max(0, total * total - horizontal * horizontal)) + 0.15 * d;
-    let side = normalize(cross(UP, direction));
-    if (dot(side, anchor) < 0) side = scale(side, -1);
-    const point = [anchor[0] + horizontal * direction[0] + 0.15 * horizontal * side[0],
-      anchor[1] + vertical,
-      anchor[2] + horizontal * direction[2] + 0.15 * horizontal * side[2]];
-    best = point;
-    const clearance = obstacles.reduce((least, item) =>
-      Math.min(least, dist(point, item.center) - item.radius), Infinity);
-    if (clearance > 1.0 && Math.hypot(point[0], point[2]) > 3.7) return point;
-    direction = normalize([direction[0] * 0.82 + u[0] * 0.18, 0,
-      direction[2] * 0.82 + u[2] * 0.18]);
-    horizontal *= 0.94;
-  }
-  problems.push(`${label} 远点无法避开天体：${best.map(value => value.toFixed(2)).join(',')}`);
-  return best;
-}
-
-/**
  * 分段采样：每个 phase 用闭式积分 D(f) 精确映射到自己的弧长，端点速度保持 v0/v1。
- * 速度形状在首末各留 12% 平台（平台内就是 v0/v1），中间用 sin² 隆起补齐距离；
- * 这样边界前后各 5 帧的有限差分也等于模型端点速度，而不是仍处在减速段。
+ * 速度形状在整个阶段展开 sin² 隆起，不把位移压在中间40%；
+ * 实际相机另用跨镜头时间滤波平滑位置；必须检查全过程而非只看端点。
  * 控制点在全局等帧间隔上取，运行时 getPoint 的均匀参数化因此与速度曲线一致。
  */
-const FLAT = 0.30;
+const FLAT = 0;
 
 function bumpShape(frame, frames) {
   const x = frame / frames;
@@ -384,30 +350,26 @@ for (const id of STATION_ORDER) {
 // 土星环的展开依赖旧版验证过的 4 点弧：它跨越环平面并从低处抬升。
 // 这些是相对土星的旧版世界偏移；环的朝向由世界坐标固定，与轨道方位角无关。
 arcs.saturn = [[8.334, 0.396, -15.195], [11.420, 0.792, -10.745],
-  [15.670, 2.624, 0.474], [10.742, 4.455, 11.411]].map(offset => addv(anchors.saturn, offset));
+  [15.670, 2.624, 0.474], [10.742, 4.455, 11.411]].reverse().map(offset => addv(anchors.saturn, offset));
+// 太阳保持已核对的俯冲入口；月球抬高以避开近邻地球。
+arcs.sun = [[3.15,1.8,7.65],[5.85,2.7,4.95],[6.75,3.15,2.25]];
+arcs.moon = arcs.moon.map(point => [point[0], point[1] + 0.8, point[2]]);
 const tailEnd = [Math.cos(5.55) * 330, 95, Math.sin(5.55) * 330];
 
 const F_in = {};
 const F_out = {};
-for (let index = 0; index < STATION_ORDER.length; index += 1) {
-  const id = STATION_ORDER[index];
-  const d = STATION[id].d;
-  if (index > 0) {
-    F_in[id] = farPoint(anchors[id], anchors[STATION_ORDER[index - 1]], 1.6, d,
-      `${id} 远入点`, OBSTACLES, problems);
-  }
-  if (index < STATION_ORDER.length - 1 && id !== 'sun') {
-    F_out[id] = farPoint(anchors[id], anchors[STATION_ORDER[index + 1]], 2.0, d,
-      `${id} 远出点`, OBSTACLES, problems);
-  }
+// 远点沿近景视角同侧延伸，避免越过天顶时相机的上方向发生翻转。
+for (const id of STATION_ORDER) {
+  if (id === 'sun') continue;
+  const anchor = anchors[id], d = STATION[id].d;
+  F_in[id] = addv(anchor, scale(subv(arcs[id][0], anchor), 1.8));
+  F_in[id][1] += 0.20 * d;
+  F_out[id] = addv(anchor, scale(subv(arcs[id].at(-1), anchor), 1.9));
+  F_out[id][1] += 0.24 * d;
 }
-// 太阳的出站点单独定义：朝水星方向并抬高，避免沿切线外冲越过水星再折返。
 const mercuryPos = POSITIONS.mercury;
 F_out.sun = scale(normalize([mercuryPos[0],
   0.9 * Math.hypot(mercuryPos[0], mercuryPos[2]), mercuryPos[2]]), 12.5);
-// 奥尔特云的出站点朝收尾方向。
-F_out.oort = farPoint(anchors.oort, tailEnd, 2.0, STATION.oort.d, 'oort 远出点',
-  OBSTACLES, problems);
 
 const transitShapes = [];
 for (let index = 0; index < STATION_ORDER.length - 1; index += 1) {
@@ -445,22 +407,18 @@ for (let index = 0; index < STATION_ORDER.length; index += 1) {
 const plans = STATION_ORDER.map((id, index) => {
   const window = windows[SEGMENTS[index].id];
   const speechFrames = window.endFrame - window.startFrame;
-  const exitFrames = Math.min(90, Math.max(60, Math.round(speechFrames * 0.2)));
+  const exitFrames = 120;
   return {id, index, window, speechFrames, exitFrames,
-    hero: HERO.has(id), tier: STATION[id].tier, segment: SEGMENTS[index].id};
+    tier: STATION[id].tier, segment: SEGMENTS[index].id};
 });
 
-let previousEnd = null;
 for (const plan of plans) {
   plan.start = plan.id === 'sun' ? plan.window.startFrame
-    : plan.hero ? previousEnd
-      : plan.window.startFrame - ENTRY;
-  plan.end = plan.window.endFrame + (plan.hero ? (STATION[plan.id].tailInHold ?? 0) : 0);
-  previousEnd = plan.end;
+    : plan.window.startFrame - ENTRY;
+  plan.end = plan.window.endFrame + 90;
   const stationFrames = plan.end - plan.start;
-  const pre = plan.hero ? TRANSIT : 0;
   const entry = plan.id === 'sun' ? 0 : ENTRY;
-  plan.orbitFrames = stationFrames - pre - entry - plan.exitFrames;
+  plan.orbitFrames = stationFrames - entry - plan.exitFrames;
   if (plan.orbitFrames < 20) throw new Error(`${plan.id} 绕行帧数不足：${plan.orbitFrames}`);
 }
 
@@ -468,9 +426,8 @@ const gaps = [];
 for (let index = 0; index < plans.length - 1; index += 1) {
   const previous = plans[index];
   const next = plans[index + 1];
-  const absorbed = next.hero;
-  gaps.push({index, previous, next, absorbed,
-    frames: absorbed ? TRANSIT : next.start - previous.end,
+  gaps.push({index, previous, next,
+    frames: next.start - previous.end,
     shape: transitShapes[index]});
 }
 
@@ -479,8 +436,7 @@ for (const plan of plans) {
   const A = arcs[id][0];
   const C = arcs[id][arcs[id].length - 1];
   const phases = [];
-  if (plan.hero) phases.push({name: 'pre', shape: transitShapes[plan.index - 1],
-    frames: TRANSIT});
+
   if (id !== 'sun') phases.push({name: 'entry', shape: [F_in[id], M_in[id], A],
     frames: ENTRY});
   phases.push({name: 'orbit', shape: arcs[id], frames: plan.orbitFrames});
@@ -496,11 +452,12 @@ for (const plan of plans) {
 }
 
 for (const gap of gaps) {
+  if (gap.frames !== TRANSIT) throw new Error('段间视觉预算与路径不符');
   gap.length = polyline(gap.shape).length;
   gap.V = gap.length / gap.frames;
 }
 const tailLength = polyline(tailShape).length;
-const tailV = tailLength / TAIL;
+const tailV = tailLength / (TAIL - 90);
 
 // 端点速度：过场两端 clamp 到平均速度的 0.35–0.80，再用入口/出口长度保证积分可行。
 for (let index = 0; index < plans.length; index += 1) {
@@ -521,10 +478,7 @@ for (let index = 0; index < plans.length; index += 1) {
 
 for (const plan of plans) {
   for (const phase of plan.phases) {
-    if (phase.name === 'pre') {
-      phase.v0 = plans[plan.index - 1].vOut;
-      phase.v1 = plan.vIn;
-    } else if (phase.name === 'entry') {
+    if (phase.name === 'entry') {
       phase.v0 = plan.vIn;
       phase.v1 = plan.S;
     } else if (phase.name === 'orbit') {
@@ -575,12 +529,10 @@ for (const plan of plans) {
   const stationShot = {
     id: nameOf(plan.id), target: plan.id, tier: plan.tier, segment: plan.segment,
     startFrame: plan.start, endFrame: plan.end,
-    camera: {path: sampled.path, fov: STATION[plan.id].fov, easing: 'linear'},
+    camera: {path: sampled.path, fov: 44, easing: 'linear'},
     focus: {target: focusOf(plan.id), distance: distanceOf(plan.id)},
     post,
-    note: plan.hero
-      ? 'hero：前置过场 + 远入接近 + 绕行 + 拉远，旁白开始前已到特写。'
-      : '站点：远入接近 + 绕行 + 拉远，旁白开始前已到特写。',
+    note: '站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。',
   };
   phaseStats[stationShot.id] = sampled.lines.map(line => ({name: line.name,
     frames: line.frames, length: line.length, v0: line.v0, v1: line.v1, peak: line.peak,
@@ -589,7 +541,7 @@ for (const plan of plans) {
   push(stationShot);
 
   const gap = plan.index < gaps.length ? gaps[plan.index] : null;
-  if (gap && !gap.absorbed) {
+  if (gap) {
     const next = plans[plan.index + 1];
     const focusTarget = focusOf(next.id);
     const focusPosition = focusTarget === 'sun' ? [0, 0, 0] : anchors[next.id];
@@ -600,7 +552,7 @@ for (const plan of plans) {
     const transitShot = {
       id: `${plan.id}-to-${next.id}`, target: next.id, tier: 'minor',
       startFrame: plan.end, endFrame: next.start,
-      camera: {path: sampledTransit.path, fov: 42, easing: 'linear'},
+      camera: {path: sampledTransit.path, fov: 44, easing: 'linear'},
       focus: {target: focusTarget, from: Math.max(0.02, from), to: Math.max(0.02, to)},
       post,
       note: '空间过场：抬升到黄道面上方，目标从远处持续接近。',
@@ -614,11 +566,11 @@ for (const plan of plans) {
 }
 
 // 收尾：从奥尔特云远出点继续向外拉远。
-const tail = sampleShot([{name: 'tail', shape: tailShape, frames: TAIL,
+const tail = sampleShot([{name: 'tail', shape: tailShape, frames: TAIL - 90,
   v0: plans[plans.length - 1].vOut, v1: 1.15 * plans[plans.length - 1].vOut}]);
 push({
-  id: 'oort-tail', target: 'oort', tier: 'minor', startFrame: SPEECH_END, endFrame: TOTAL,
-  camera: {path: tail.path, fov: 42, easing: 'linear'},
+  id: 'oort-tail', target: 'oort', tier: 'minor', startFrame: plans.at(-1).end, endFrame: TOTAL,
+  camera: {path: tail.path, fov: 44, easing: 'linear'},
   focus: {target: 'sun', distance: 600},
   post,
   note: '收尾：继续向外，太阳成为亮点。',
@@ -718,7 +670,7 @@ for (const [kind, points] of Object.entries({in: F_in, out: F_out})) {
 }
 
 if (shots[0].startFrame !== 0 || shots[shots.length - 1].endFrame !== TOTAL) {
-  problems.push('镜头没有覆盖 0–8100');
+  problems.push(`镜头没有覆盖 0–${TOTAL}`);
 }
 
 // ---------------------------------------------------------------- 分镜
@@ -731,7 +683,7 @@ const storyboard = {
   height: 1080,
   title: '太阳系之旅：一次连续的旅程',
   input: {kind: 'article'},
-  targetSeconds: 135,
+  targetSeconds: TOTAL / FPS,
   scenes: [{
     id: 'solar-journey',
     template: 'code',
@@ -775,6 +727,8 @@ const report = {
     length: Number(polyline(item.camera.path).length.toFixed(2)),
     endPoint: item.camera.path[item.camera.path.length - 1].map(value => Number(value.toFixed(3))),
     phases: phaseStats[item.id] ?? null})),
+  obstacles: OBSTACLES,
+  structureRadius: STRUCTURE_SIZE,
   minDistances,
   speeds,
   boundarySpeedMax: Number(boundarySpeedMax.toFixed(2)),
@@ -790,12 +744,33 @@ fs.writeFileSync(path.join(outDir, 'path-proposal.json'),
 fs.writeFileSync(path.join(outDir, 'storyboard.generated.json'),
   JSON.stringify(storyboard, null, 2) + '\n', 'utf8');
 
-if (process.argv.includes('--merge')) {
+if (process.argv.includes('--merge') && !problems.length) {
   const target = path.join(EXAMPLE, 'storyboard.json');
   const current = JSON.parse(fs.readFileSync(target, 'utf8'));
+  const existing = current.scenes[0].narrationSegments ?? [];
+  const expected = new Set(SEGMENTS.map(segment => segment.id));
+  const unknown = existing.filter(segment => !expected.has(segment.id)).map(segment => segment.id);
+  if (unknown.length) {
+    throw new Error(`storyboard 存在生成器未知的旁白段：${unknown.join('、')}；请先更新 SEGMENTS`);
+  }
+  for (const segment of SEGMENTS) {
+    const old = existing.find(item => item.id === segment.id);
+    if (old && old.text !== segment.text) {
+      throw new Error(`旁白 ${segment.id} 文本与生成器预算不一致；请更新 SEGMENTS 的文本/frames 并重新量测，不能静默回退`);
+    }
+  }
+  // 只更新镜头、时间预算与段间留白；保留旁白原文、claims 与作者扩展字段。
+  const narrationSegments = storyboard.scenes[0].narrationSegments.map(item => {
+    const old = existing.find(candidate => candidate.id === item.id) ?? {};
+    const next = {...old, ...item};
+    if (!('holdFrames' in item)) delete next.holdFrames;
+    return next;
+  });
   current.scenes[0].content.props.shots = storyboard.scenes[0].content.props.shots;
+  Object.assign(current.scenes[0], {durationFrames: TOTAL, leadInFrames: LEAD_IN, tailFrames: TAIL, narrationSegments});
+  current.targetSeconds = TOTAL / FPS;
   fs.writeFileSync(target, JSON.stringify(current, null, 2) + '\n', 'utf8');
-  console.log('已把 shots 合并回 storyboard.json（其余字段保持不变）');
+  console.log('已合并镜头与时间预算（旁白原文未改变，claims 与扩展字段保留）');
 }
 
 console.log(`镜头 ${shots.length} 个，覆盖 ${shots[0].startFrame}–${shots[shots.length - 1].endFrame}`);

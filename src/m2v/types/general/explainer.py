@@ -21,7 +21,7 @@ TRANSITIONS = ("cut", "fade", "crossfade")
 #: cinematic 可选留白与阅读停留的上限（帧）。
 MAX_PAD, MAX_HOLD = 1800, 360
 #: 同一幕内相邻旁白之间的静默上限（帧）。
-MAX_SEGMENT_HOLD = 6 * FPS
+MAX_SEGMENT_HOLD = MAX_PAD  # 长距离连续运镜可复用与首尾留白相同的30秒预算；全片仍限600秒
 
 
 def topic_input(data: dict) -> bool:

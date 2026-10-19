@@ -47,18 +47,18 @@ const entry = `
   assert.equal(scenes.length, 1, '一镜到底必须只有一幕');
   const scene = scenes[0];
   assert.equal(scene.id, 'solar-journey');
-  assert.equal(scene.durationFrames, 8100);
+  assert.equal(scene.durationFrames, 13230);
   assert.equal(scene.transition, 'cut');
   assert.equal(scene.leadInFrames, 360);
-  assert.equal(scene.tailFrames, 669);
+  assert.equal(scene.tailFrames, 759);
   assert.equal(scene.narrationSegments.length, 15);
-  assert(scene.narrationSegments.slice(0, -1).every(item => item.holdFrames === 180),
-    '前 14 段必须有 3 秒段间留白');
+  assert(scene.narrationSegments.slice(0, -1).every(item => item.holdFrames === 540),
+    '前 14 段必须有 9 秒视觉预算');
   assert(!('holdFrames' in scene.narrationSegments.at(-1)), '最后一段不得声明段间留白');
   const shots = scene.content.props.shots;
-  assert.equal(shots.length, 28, '镜头数必须是 28');
+  assert.equal(shots.length, 31, '镜头数必须是 31');
   assert.equal(shots[0].startFrame, 0);
-  assert.equal(shots.at(-1).endFrame, 8100);
+  assert.equal(shots.at(-1).endFrame, 13230);
   for (let index = 1; index < shots.length; index += 1) {
     assert.equal(shots[index].startFrame, shots[index - 1].endFrame, '镜头时间窗必须首尾相接');
   }
@@ -71,9 +71,9 @@ const entry = `
   let cursor = 360;
   scene.narrationSegments.forEach((segment, index) => {
     windows[segment.id] = {startFrame: cursor, endFrame: cursor + segmentFrames[index]};
-    cursor += segmentFrames[index] + (index < segmentFrames.length - 1 ? 180 : 0);
+    cursor += segmentFrames[index] + (index < segmentFrames.length - 1 ? 540 : 0);
   });
-  assert.equal(cursor, 7431, '旁白末帧必须落在尾留白起点');
+  assert.equal(cursor, 12471, '旁白末帧必须落在尾留白起点');
   for (const segment of scene.narrationSegments) {
     const covering = shots.filter(shot => shot.segment === segment.id);
     assert.equal(covering.length, 1, segment.id + ' 必须有且只有一个覆盖镜头');
@@ -110,6 +110,7 @@ const entry = `
       const point = curve.getPoint(sample / 240).toArray();
       assert(point.every(Number.isFinite), shot.id + ' 无效坐标');
       assert(Math.hypot(...point) < 900, shot.id + ' 越出星空壳');
+      // 独立于生成器的几何复核：安全半径在此按场景契约重算，用来交叉检查生成器输出。
       for (const id of Object.keys(LAYOUT)) {
         const body = positionOf(id).toArray();
         const radius = id === 'sun' ? LAYOUT.sun.radius * 1.5
@@ -215,3 +216,22 @@ def test_storyboard_shots_match_generated_proposal():
     current_shots = json.loads(STORYBOARD.read_text(encoding="utf-8"))[
         "scenes"][0]["content"]["props"]["shots"]
     assert current_shots == generated_shots, "storyboard.json 的 shots 与生成结果不一致，可能忘记 --merge"
+
+
+@requires_node
+def test_actual_camera_motion_has_no_sudden_spin_or_collision():
+    """执行实际相机，而非只检查生成器的端点；阈值仅为本片风险回归。"""
+    if not (ROOT / "examples/solar-system-journey/outputs/path-proposal.json").is_file():
+        pytest.skip("本地没有路径提案；运行 generate-paths.mjs 后本用例会核对实际相机")
+    result = subprocess.run([shutil.which("node"), str(ROOT / "examples/solar-system-journey/scripts/check-motion.mjs")],
+                            cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads((ROOT / "examples/solar-system-journey/outputs/motion-report.json").read_text(encoding="utf-8"))
+    assert report["problems"] == []
+    assert report["maxAngularSpeed"] < 60, "本片曾在到站接近期间发生千度/秒的朝向分支翻转"
+    assert report["minClearance"] > 0.4
+    assert report["maxFovStep"] < 12, "全片只有开场把 55 度平缓收束到 44 度，不应有突然变焦"
+    assert len(report["shotScales"]) == 31
+    for shot, scale in report["shotScales"].items():
+        assert 0 < scale["minScale"] <= scale["maxScale"] < 10, f"{shot} 的主体屏幕尺度异常"
+    assert report["frames"] == json.loads(STORYBOARD.read_text(encoding="utf-8"))["scenes"][0]["durationFrames"]

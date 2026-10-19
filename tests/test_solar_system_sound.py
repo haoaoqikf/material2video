@@ -65,7 +65,7 @@ def test_storyboard_soundtrack_points_at_real_files(sound_assets):
     assert music["loop"] is False and music["sourceRef"].endswith("score.wav")
     assert -6 <= music["gainDb"] <= 0
     with wave.open(str(EXAMPLE / music["sourceRef"]), "rb") as stream:
-        assert stream.getnframes() / stream.getframerate() == 135
+        assert stream.getnframes() / stream.getframerate() == data["scenes"][0]["durationFrames"] / data["fps"]
     assert (EXAMPLE / music["sourceRef"]).is_file()
     local = [effect for effect in track["effects"] if "sourceRef" in effect]
     assert len(local) == 2, "少量重要节点使用音效，避免每站重复"
@@ -82,6 +82,6 @@ def test_generator_is_deterministic(sound_assets, tmp_path):
     shutil.copytree(SOUND, target)
     for name in NAMES:
         (target / name).unlink()
-    subprocess.run([sys.executable, str(target / "generate.py")], check=True, capture_output=True, timeout=600)
+    subprocess.run([sys.executable, str(target / "generate.py"), "--storyboard", str(EXAMPLE / "storyboard.json")], check=True, capture_output=True, timeout=600)
     for name in NAMES:
         assert (target / name).read_bytes() == (sound_assets / name).read_bytes(), f"{name} 不可复现"

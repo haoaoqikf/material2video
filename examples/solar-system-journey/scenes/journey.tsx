@@ -21,7 +21,7 @@ export function shotFade(shot: Shot | null, frame: number, ramp = 30): number {
   return Math.min(rise, fall);
 }
 
-/** 信息面板跟随旁白窗口淡入淡出；静默过场与开场不显示，避免 28 个镜头边界各闪一次。 */
+/** 信息面板跟随旁白窗口淡入淡出；静默过场与开场不显示，避免 31 个镜头边界各闪一次。 */
 function windowFade(window: {startFrame: number; endFrame: number}, frame: number,
                     rise = 18, fall = 24): number {
   const up = Math.min(1, Math.max(0, (frame - window.startFrame) / rise));
@@ -75,7 +75,7 @@ export default function Journey(config: CodeSceneProps) {
     overflow: 'hidden', background: '#02050a', color: '#f2eee5'}}>
     <div style={{position: 'absolute', inset: 0, zIndex: 0}}>
       {textures && <SolarSystem textures={textures} shots={shots} look={look} active={active}
-        seconds={seconds} fps={config.fps} saturnWindow={config.segmentWindows['saturn-line']}
+        seconds={seconds} fps={config.fps} windows={config.segmentWindows} saturnWindow={config.segmentWindows['saturn-line']}
         onReady={onReady}/>}
     </div>
     {/* 顶部 scrim：亮天体经过标题/章节导航后方时仍要保持文字对比度。 */}

@@ -229,18 +229,19 @@ def test_subject_budget_rejects_longer_speech_instead_of_removing_observation(tm
 # ---------------------------------------------------------------- 段间静默
 
 
-def test_segment_hold_inserts_silence_between_narrations(tmp_path, monkeypatch):
+@pytest.mark.parametrize("hold", [180, 540, 1800])
+def test_segment_hold_inserts_silence_between_narrations(tmp_path, monkeypatch, hold):
     """第一段之后的静默既进音轨，也把第二段的窗口与字幕整体后移。"""
-    segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": 180},
+    segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": hold},
                 {"id": "b-line", "text": "继续观察，再修正做法。"}]
     data = board(scenes=[scene(narrationSegments=segments, leadInFrames=0, tailFrames=0,
-                               readingHoldFrames=0, durationFrames=300)])
+                               readingHoldFrames=0, durationFrames=120 + hold)])
     _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, data, seconds=1)
     windows = prepared["props"]["compiledScenes"][0]["segmentWindows"]
-    assert prepared["durationInFrames"] == 300
+    assert prepared["durationInFrames"] == 120 + hold
     assert windows["a-line"] == {"startFrame": 0, "endFrame": 60}
-    assert windows["b-line"] == {"startFrame": 240, "endFrame": 300}
-    assert [cue["startFrame"] for cue in prepared["props"]["subtitleCues"]] == [0, 240]
+    assert windows["b-line"] == {"startFrame": 60 + hold, "endFrame": 120 + hold}
+    assert [cue["startFrame"] for cue in prepared["props"]["subtitleCues"]] == [0, 60 + hold]
 
 
 def test_segment_hold_counts_toward_the_minimum_duration(tmp_path, monkeypatch):
@@ -253,7 +254,7 @@ def test_segment_hold_counts_toward_the_minimum_duration(tmp_path, monkeypatch):
         prepare_with(tmp_path, monkeypatch, data, seconds=1)
 
 
-@pytest.mark.parametrize("value", [-1, 361, "180", True])
+@pytest.mark.parametrize("value", [-1, 1801, "180", True])
 def test_invalid_segment_hold_is_rejected(tmp_path, value):
     segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": value},
                 {"id": "b-line", "text": "继续观察，再修正做法。"}]

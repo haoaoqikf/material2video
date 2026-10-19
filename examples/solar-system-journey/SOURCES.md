@@ -57,4 +57,4 @@ Planet textures: Solar System Scope / INOVE (CC BY 4.0), https://www.solarsystem
 
 ## 改进版音乐与事实复核
 
-2026-10-18检索NASA太阳系概览与奥尔特云资料，参考Cassini土星逆光构图；具体用途见DESIGN.md。`assets/sound/score.wav` 为生成器原创135秒旋律配乐，不含第三方采样，按同目录LICENSE.md的CC0许可使用；生成WAV不入库。
+2026-10-18检索NASA太阳系概览与奥尔特云资料，参考Cassini土星逆光构图；具体用途见DESIGN.md。`assets/sound/score.wav` 为生成器按当前分镜时长（本轮重制220.5秒）生成的原创旋律配乐，不含第三方采样，按同目录LICENSE.md的CC0许可使用；生成WAV不入库。

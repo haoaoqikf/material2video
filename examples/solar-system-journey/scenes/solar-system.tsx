@@ -1,14 +1,14 @@
 import {memo, useMemo, useRef} from 'react';
 import {
-  CameraRig, Canvas, Comet, Corona, LookProvider, OortCloud, ParticleBelt,
+  Canvas, Comet, Corona, LookProvider, OortCloud, ParticleBelt,
   PerspectiveCamera, PostFX, Prominence, Starfield, THREE, useFrame, useThree,
   type Look, type Shot,
 } from 'm2v/code-scene';
 import {BODIES} from './bodies';
 import {LAYOUT, positionOf} from './layout';
 import {Planet, type Textures} from './world';
+import {createFlight} from './flight';
 
-type FocusTarget = THREE.Vector3 | (() => THREE.Vector3);
 
 /** 相机焦点表：天体位置固定，因此直接给 Vector3，不需要 Object3D 引用。 */
 export function focusTargets(): Record<string, THREE.Vector3> {
@@ -50,8 +50,30 @@ const FEATURE_BODIES = new Set(['jupiter', 'pluto']);
 
 type Window = {startFrame: number; endFrame: number};
 
-function World({textures, targets, active, seconds, fps, saturnWindow}: {
-  textures: Textures; targets: Record<string, FocusTarget>; active: string; seconds: number;
+function FlightCamera({shots, windows, frame, look}: {
+  shots: Shot[]; windows: Record<string, Window>; frame: number; look: Look}) {
+  const sample = useMemo(() => createFlight(shots, windows, focusTargets()), [shots, windows]);
+  const clock = useRef(frame);
+  clock.current = frame;
+  useFrame(({camera, gl}) => {
+    const pose = sample(clock.current);
+    camera.position.copy(pose.position);
+    camera.quaternion.copy(pose.quaternion);
+    const perspective = camera as THREE.PerspectiveCamera;
+    if (perspective.fov !== pose.fov) {
+      perspective.fov = pose.fov;
+      perspective.updateProjectionMatrix();
+    }
+    // CameraRig 被替换后仍需应用 look 的曝光；镜头级曝光仅在显式声明时覆盖。
+    const current = shots.find(shot => clock.current >= shot.startFrame && clock.current < shot.endFrame);
+    const shotExposure = current?.exposure?.mode === 'shot' ? current.exposure?.ev : undefined;
+    gl.toneMappingExposure = 2 ** (shotExposure ?? look.exposure?.ev ?? 0);
+  }, -2);
+  return null;
+}
+
+function World({textures, active, seconds, fps, saturnWindow}: {
+  textures: Textures; active: string; seconds: number;
   fps: number; saturnWindow?: Window;
 }) {
   const clock = {current: {seconds}};
@@ -92,24 +114,24 @@ function World({textures, targets, active, seconds, fps, saturnWindow}: {
     <OortCloud count={2600} radius={185} thickness={55} seed="oort" color="#a8c8ff" size={1.1}
       bubble={132} bubbleColor="#5f97d8" bubbleOpacity={0.65}/>
     <Comet position={[96, 12, 150]} radius={0.5} tailLength={22} tailRadius={1.4} sunPosition={[0, 0, 0]}/>
-    <CameraRig targets={targets} target={[0, 0, 0]} near={0.02} far={4000}/>
     <PostFX/>
   </>;
 }
 
 /** 所有天体一直留在同一个场景图中，只移动相机；压缩轨道作为稳定空间参照。 */
 export const SolarSystem = memo(function SolarSystem({textures, shots, look, active, seconds, fps,
-                                                      saturnWindow, onReady}: {
+                                                      windows, saturnWindow, onReady}: {
   textures: Textures; shots: Shot[]; look: Look; active: string; seconds: number; fps: number;
+  windows: Record<string, Window>;
   saturnWindow?: {startFrame: number; endFrame: number}; onReady: () => void;
 }) {
   // 逐主体镜头使用稳定目标表，避免旧固定帧焦点切换随配音变化失效。
-  const targets = useMemo<Record<string, FocusTarget>>(() => focusTargets(), []);
   return <Canvas dpr={1} gl={{antialias: false, alpha: false, powerPreference: 'high-performance'}}>
     <color attach="background" args={['#02050a']}/>
     <PerspectiveCamera makeDefault fov={40} near={0.02} far={4000} position={[3.4, 0.35, 1.0]}/>
     <LookProvider look={look} shots={shots}>
-      <World textures={textures} targets={targets} active={active} seconds={seconds}
+      <FlightCamera shots={shots} windows={windows} frame={seconds * fps} look={look}/>
+      <World textures={textures} active={active} seconds={seconds}
         fps={fps} saturnWindow={saturnWindow}/>
       <FirstPaint textures={textures} onReady={onReady}/>
     </LookProvider>

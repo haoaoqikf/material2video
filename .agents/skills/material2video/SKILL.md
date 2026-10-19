@@ -90,6 +90,8 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 
 制作必须执行[节奏、美术、声音与制作阶段](references/creative-production.md)：独立视觉预算、两个美术方向、三张关键画面、整片动态粗预演、风险样片、全片审美与声音修订、阶段条件和改动回归。文案、节奏、连续性、审美、声音及技术分别复核。粗预演不代替当前完整 preview。
 
+先把核心体验写成可观察验收条目；内容、运动与实测配音共同调整预算。按[自主视觉复核](references/visual-review-rubric.md)检查整段运动及交界，已知核心体验缺陷必须返工，不作为限制放行。任务包含流程改进与作品重制时，两项均完成才算交付。
+
 
 通用类型只接受 v8 全画布代码场景：每一幕声明唯一 `id`、`template: "code"`、`content.entry`
 （作品 `scenes/` 下的 TSX）与可选 `content.props`，并声明旁白数组（可以没有旁白，此时用

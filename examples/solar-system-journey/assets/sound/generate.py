@@ -4,6 +4,8 @@
 任何漂移都用相位调制而不是改变频率；因此末采样到首采样的步进不会超过素材内部的
 最大相邻步进，循环点与信号内部同样平滑。
 """
+import argparse
+import json
 import math
 import struct
 import wave
@@ -13,6 +15,11 @@ RATE = 24000
 BEAT_SECONDS = 1.0  # 60 BPM
 LOOP_SECONDS = 16.0  # 16 拍，整数个周期
 HERE = Path(__file__).parent
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--storyboard', type=Path, default=HERE.parents[1] / 'storyboard.json')
+args = parser.parse_args()
+BOARD = json.loads(args.storyboard.read_text(encoding='utf-8'))
+SCORE_SECONDS = BOARD['scenes'][0]['durationFrames'] / BOARD['fps']
 
 
 def seeded(seed: int):
@@ -89,7 +96,7 @@ def ice(t: float, duration: float = 0.9) -> float:
 
 
 def score(t: float) -> float:
-    """135 秒同主题配乐：温暖探索→巨行星高潮→外层留韵；纯合成艺术声音。"""
+    """按当前分镜时长生成的同主题配乐：温暖探索→巨行星高潮→外层留韵；纯合成艺术声音。"""
     # Smooth phrase envelopes put useful energy above bass for small speakers.
     notes = (261.6256, 329.6276, 391.9954, 493.8833, 391.9954, 329.6276, 293.6648, 391.9954)
     phrase = t / 2.5
@@ -100,14 +107,14 @@ def score(t: float) -> float:
     melody = envelope * (0.20 * math.sin(2 * math.pi * note * t)
                          + 0.055 * math.sin(2 * math.pi * note * 2 * t))
     chord = sum(math.sin(2 * math.pi * f * t) for f in (130.8128, 195.9977, 261.6256)) * 0.045
-    climax = math.exp(-((t - 77) / 19) ** 2)
+    climax = math.exp(-((t / SCORE_SECONDS - 0.57) / 0.14) ** 2)
     opening = min(1.0, t / 4)
-    ending = min(1.0, max(0.0, (135 - t) / 8))
+    ending = min(1.0, max(0.0, (SCORE_SECONDS - t) / 8))
     return (melody * (0.65 + climax * 0.5) + chord + bed(t) * 0.18) * opening * ending
 
 if __name__ == "__main__":
     print(write("bed.wav", LOOP_SECONDS, bed))
-    raw = write("score-raw.wav", 135, score)
+    raw = write("score-raw.wav", SCORE_SECONDS, score)
     # Normalize the independent music stem before authored gain and speech ducking.
     from m2v.engine.audio import normalize
     normalize(raw, HERE / "score.wav", integrated=-18.0, true_peak=-3.0)
