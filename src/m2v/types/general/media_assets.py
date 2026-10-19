@@ -196,15 +196,20 @@ def resolve(root: Path) -> dict:
     return {"media": media, "digest": fingerprint(digests)}
 
 
+DEFAULT_GALLERY = "pixabay"
+
+
 def gallery_config(name: str, frame: tuple[int, int], **overrides) -> dict:
     """图库检索的默认约束：方向跟随作品画幅，比例不设限。
 
     v8 的素材比例不再受画布约束（裁切与摆位由作品代码决定），因此这里显式声明
     `aspectRatio: "any"`，让适配器按目标高度挑变体，而不是按画布比例过滤候选。
     """
-    defaults = PROVIDER_DEFAULTS.get(name)
+    if name == "pexels":
+        raise M2VError("Pexels 已停用；请使用 Pixabay（--provider pixabay）")
+    defaults = PROVIDER_DEFAULTS.get(name) if name == DEFAULT_GALLERY else None
     if defaults is None:
-        raise M2VError(f"未知图库：{name}；当前可用：{'、'.join(sorted(PROVIDER_DEFAULTS))}")
+        raise M2VError(f"未知图库：{name}；当前可用：{DEFAULT_GALLERY}")
     width, height = frame
     config = {"name": name, **defaults, "orientation": "portrait" if height >= width else "landscape",
               "aspectRatio": "any"}
@@ -212,7 +217,7 @@ def gallery_config(name: str, frame: tuple[int, int], **overrides) -> dict:
     return config
 
 
-def search(root: Path, project: dict, *, provider_name="pexels", kind="both", queries=None,
+def search(root: Path, project: dict, *, provider_name=DEFAULT_GALLERY, kind="both", queries=None,
            per_page=15, timeout_s=DEFAULT_TIMEOUT_SECONDS, transport=None) -> dict:
     """可选图库检索：只产出候选清单，不下载、不写作品文件。
 
@@ -255,7 +260,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="m2v general assets", description="文章混合媒体素材的检索与导入")
     parser.add_argument("workflow", choices=("search", "import"))
     parser.add_argument("--project", required=True)
-    parser.add_argument("--provider", default="pexels", help="可选图库：pexels 或 pixabay")
+    parser.add_argument("--provider", default=DEFAULT_GALLERY, help="图库：pixabay（默认且唯一启用）；Pexels 已停用")
     parser.add_argument("--kind", default="both", choices=KINDS)
     parser.add_argument("--query", action="append", dest="queries", help="按幕顺序提供关键词，可重复")
     parser.add_argument("--per-page", type=int, default=15)

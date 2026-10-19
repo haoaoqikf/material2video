@@ -16,18 +16,18 @@ from m2v.types.general import adapter, media_assets
 from test_article_explainer import board, fake_record, fake_tts, project, scene_root
 
 ROOT = Path(__file__).resolve().parents[1]
-PEXELS_VIDEO = {
-    "id": 77, "width": 1080, "height": 1920, "duration": 6, "url": "https://www.pexels.com/video/77/",
-    "alt": "竖屏空镜", "user": {"name": "示例作者"},
-    "video_files": [
-        {"file_type": "video/mp4", "link": "https://cdn.example/77-sd.mp4", "width": 720, "height": 1280},
-        {"file_type": "video/mp4", "link": "https://cdn.example/77-hd.mp4", "width": 1080, "height": 1920},
-    ],
+PIXABAY_VIDEO = {
+    "id": 77, "duration": 6, "pageURL": "https://pixabay.com/videos/77/",
+    "tags": "竖屏空镜", "user": "示例作者",
+    "videos": {
+        "small": {"url": "https://cdn.example/77-sd.mp4", "width": 720, "height": 1280},
+        "large": {"url": "https://cdn.example/77-hd.mp4", "width": 1080, "height": 1920},
+    },
 }
-PEXELS_PHOTO = {
-    "id": 88, "width": 1080, "height": 1920, "url": "https://www.pexels.com/photo/88/", "alt": "竖屏照片",
-    "photographer": "示例摄影师",
-    "src": {"large2x": "https://cdn.example/88.jpg", "portrait": "https://cdn.example/88-cropped.jpg"},
+PIXABAY_PHOTO = {
+    "id": 88, "imageWidth": 1080, "imageHeight": 1920,
+    "pageURL": "https://pixabay.com/photos/88/", "tags": "竖屏照片",
+    "user": "示例摄影师", "largeImageURL": "https://cdn.example/88.jpg",
 }
 
 
@@ -71,7 +71,7 @@ class FakeGallery:
 
     def get_json(self, url, headers, timeout_s):
         self.urls.append(url)
-        return {"videos": self.videos} if "/videos/search" in url else {"photos": self.photos}
+        return {"hits": self.videos if "/videos/" in url else self.photos}
 
     def download(self, url, destination, headers, timeout_s):
         destination.write_bytes(self.blob)
@@ -277,10 +277,10 @@ def test_media_change_invalidates_preparation(tmp_path, monkeypatch):
 
 def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, board_with_keywords())
-    monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
-    gallery = FakeGallery(videos=[PEXELS_VIDEO], photos=[PEXELS_PHOTO])
+    monkeypatch.setenv("M2V_PIXABAY_API_KEY", "test-key")
+    gallery = FakeGallery(videos=[PIXABAY_VIDEO], photos=[PIXABAY_PHOTO])
     result = media_assets.search(root, manifest, transport=gallery)
-    assert result["provider"] == "pexels" and result["kind"] == "both" and result["schemaVersion"] == 1
+    assert result["provider"] == "pixabay" and result["kind"] == "both" and result["schemaVersion"] == 1
     query = result["queries"][0]
     assert query["sceneId"] == "a" and query["query"] == "反馈"
     kinds = {item["kind"] for item in query["candidates"]}
@@ -288,7 +288,7 @@ def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
     video = next(item for item in query["candidates"] if item["kind"] == "video")
     # 竖屏画幅按方向与目标高度挑变体：选中 1080×1920，而不是 720×1280。
     assert video["width"] == 1080 and video["height"] == 1920 and video["durationSeconds"] == 6
-    assert video["license"].startswith("Pexels License")
+    assert video["license"].startswith("Pixabay Content License")
     assert all("download_url" not in item for item in query["candidates"])
     # 检索结果只是候选，不写作品文件。
     assert not (root / "assets").exists()
@@ -296,14 +296,14 @@ def test_gallery_search_uses_scene_keywords(tmp_path, monkeypatch):
 
 def test_gallery_search_without_candidates_is_not_a_failure(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, board_with_keywords())
-    monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
+    monkeypatch.setenv("M2V_PIXABAY_API_KEY", "test-key")
     result = media_assets.search(root, manifest, transport=FakeGallery(), kind="photo")
     assert result["queries"][0]["candidates"] == []
 
 
 def test_gallery_search_argument_errors(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, board_with_keywords())
-    monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
+    monkeypatch.setenv("M2V_PIXABAY_API_KEY", "test-key")
     gallery = FakeGallery()
     with pytest.raises(M2VError, match="kind 必须为"):
         media_assets.search(root, manifest, kind="audio", transport=gallery)
@@ -316,18 +316,18 @@ def test_gallery_search_argument_errors(tmp_path, monkeypatch):
     with pytest.raises(M2VError, match="未知图库"):
         media_assets.search(root, manifest, provider_name="unsplash", transport=gallery)
     # 缺少凭据时给出环境变量名，而不是静默退回匿名请求。
-    monkeypatch.delenv("M2V_PEXELS_API_KEY")
-    with pytest.raises(M2VError, match="M2V_PEXELS_API_KEY"):
+    monkeypatch.delenv("M2V_PIXABAY_API_KEY")
+    with pytest.raises(M2VError, match="M2V_PIXABAY_API_KEY"):
         media_assets.search(root, manifest, transport=gallery)
 
 
 def test_gallery_config_follows_the_frame_orientation():
-    portrait = media_assets.gallery_config("pexels", (1080, 1920))
-    landscape = media_assets.gallery_config("pexels", (1920, 1080))
+    portrait = media_assets.gallery_config("pixabay", (1080, 1920))
+    landscape = media_assets.gallery_config("pixabay", (1920, 1080))
     # 比例不再约束候选：裁切与摆位由作品代码决定。
     assert portrait["orientation"] == "portrait" and portrait["aspectRatio"] == "any"
     assert landscape["orientation"] == "landscape" and landscape["aspectRatio"] == "any"
-    assert media_assets.gallery_config("pexels", (1920, 1080), per_page=None)["name"] == "pexels"
+    assert media_assets.gallery_config("pixabay", (1920, 1080), per_page=None)["name"] == "pixabay"
     with pytest.raises(M2VError, match="未知图库"):
         media_assets.gallery_config("unsplash", (1920, 1080))
     with pytest.raises(M2VError, match="未知图库"):
@@ -349,14 +349,40 @@ def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
         entry("wide", "image", localPath="assets/wide.png", author="作者", license="CC0")]}), encoding="utf-8")
     assert media_assets.main(["import", "--project", str(root), "--manifest", str(manifest)]) == 0
     assert "已导入素材 1 项" in capsys.readouterr().out
-    monkeypatch.setenv("M2V_PEXELS_API_KEY", "test-key")
+    monkeypatch.setenv("M2V_PIXABAY_API_KEY", "test-key")
     monkeypatch.setattr(media_assets, "build_gallery",
-                        lambda config, transport=None, **kw: build(config, FakeGallery(videos=[PEXELS_VIDEO])))
+                        lambda config, transport=None, **kw: build(config, FakeGallery(videos=[PIXABAY_VIDEO])))
     assert media_assets.main(["search", "--project", str(root), "--kind", "video"]) == 0
     printed = json.loads(capsys.readouterr().out)
-    assert printed["kind"] == "video"
+    assert printed["kind"] == "video" and printed["provider"] == "pixabay"
+    assert media_assets.main(["search", "--project", str(root), "--provider", "pexels"]) == 1
+    assert "Pexels 已停用" in capsys.readouterr().err
     assert printed["queries"][0]["candidates"][0]["description"] == "竖屏空镜"
     assert media_assets.main(["search", "--project", str(root), "--provider", "unsplash"]) == 1
     assert "未知图库" in capsys.readouterr().err
     assert media_assets.main(["import", "--project", str(root)]) == 1
     assert "--manifest" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("has_key", [False, True])
+def test_pexels_stays_disabled(tmp_path, monkeypatch, has_key):
+    root, manifest = project(tmp_path, board_with_keywords())
+    if has_key:
+        monkeypatch.setenv("M2V_PEXELS_API_KEY", "unused-test-key")
+    else:
+        monkeypatch.delenv("M2V_PEXELS_API_KEY", raising=False)
+    gallery = FakeGallery()
+    with pytest.raises(M2VError, match="Pexels 已停用.*Pixabay"):
+        media_assets.search(root, manifest, provider_name="pexels", transport=gallery)
+    assert gallery.urls == []
+    assert not (root / "outputs/gallery-cache").exists()
+
+
+def test_explicit_pixabay_search(tmp_path, monkeypatch):
+    root, manifest = project(tmp_path, board_with_keywords())
+    monkeypatch.setenv("M2V_PIXABAY_API_KEY", "test-key")
+    gallery = FakeGallery(videos=[PIXABAY_VIDEO])
+    result = media_assets.search(root, manifest, provider_name="pixabay", kind="video", transport=gallery)
+    assert result["provider"] == "pixabay"
+    assert result["queries"][0]["candidates"]
+    assert all(url.startswith("https://pixabay.com/api/") for url in gallery.urls)

@@ -50,10 +50,10 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 ## 可选图库检索
 
 ```powershell
-uv run m2v general assets search --project <目录> [--provider pexels|pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
+uv run m2v general assets search --project <目录> [--provider pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
 ```
 
-按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可与说明），不下载、不写作品文件；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。凭据只从环境变量读取：Pexels 为 `M2V_PEXELS_API_KEY`，Pixabay 为 `M2V_PIXABAY_API_KEY`；缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
+按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可与说明），不下载、不写作品文件；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。默认且唯一启用的图库为 Pixabay，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取；Pexels 固定停用，显式指定会提示改用 Pixabay，即使配置其密钥也不会自动启用。缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
 
 检索方向跟随作品画幅（`height >= width` 取竖屏，否则横屏），比例不设限；检索只用于挑候选，
 不用于系统性批量下载。
