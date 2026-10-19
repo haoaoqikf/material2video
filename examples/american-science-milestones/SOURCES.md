@@ -2,6 +2,8 @@
 
 核验日期：2026-10-19。选取美国主导的代表成果，包含在美工作的移民与国际协作；不主张计算机、互联网或人工智能为一国独创。1776为建国叙事起点，第一项技术里程碑始于1844。
 
+本文件承载完整事实依据、来源页、作者、许可与改编记录。成片只在片尾保留一份简短署名与版权说明，不出现本文件名、仓库路径或查阅指引。
+
 ## 十项事实
 
 | 项目 | 核验页 | 贡献边界 |
@@ -35,6 +37,6 @@
 - **moon**：[NASA](https://images.nasa.gov/details/Apollo_11_Introduction_720p)；Public domain (NASA-produced footage); https://www.nasa.gov/nasa-brand-center/images-and-media/；实际1280×720。
 - **genome**：[National Human Genome Research Institute](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project)；Public domain; https://www.genome.gov/image-gallery；实际1280×1134。
 
-照片在成片中裁切、调色及平移；首飞原图仅重新JPEG压缩，保留6603×4280原生尺寸。NASA片段截取原片84.25–91.75秒以0.75倍慢放至10秒并去音轨，其余不改内容。晶体管图片作者Unitronic，许可[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)；ARPANET图作者UCLA与BBN，许可[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。其改编内容与整支成片按[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)提供，保留署名与来源，不暗示背书。
+照片与地图在成片中裁切、调色及平移；首飞原图仅重新JPEG压缩，保留6603×4280原生尺寸。NASA片段截取原片84.25–91.75秒以0.75倍慢放至10秒并去音轨，成片使用前8秒，其余不改内容。晶体管图片作者Unitronic，许可[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)；ARPANET图作者UCLA与BBN，许可[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。其改编内容与整支成片按[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)提供，保留署名与来源，不暗示背书。
 
 NHGRI图片使用依据为[官方图库声明](https://www.genome.gov/image-gallery)，页面未另行标注版权；NASA依据[媒体使用政策](https://www.nasa.gov/nasa-brand-center/images-and-media/)，选用NASA制作的历史影像，不含商业配乐及第三方标识用途。其他图片的公共领域依据见逐件来源页。许可按项目逐件记录，不由“政府网站”域名推定。

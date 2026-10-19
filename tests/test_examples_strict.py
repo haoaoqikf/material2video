@@ -68,11 +68,11 @@ def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> N
     if path.parent.name == "american-science-milestones":
         assert data["input"]["kind"] == "topic"
         assert not data.get("soundtrack")
-        assert sum(scene["durationFrames"] for scene in data["scenes"]) == 120 * 60
+        assert sum(scene["durationFrames"] for scene in data["scenes"]) == 60 * 60
         assert len(data["scenes"]) == 12
         for scene in data["scenes"]:
             assert not scene["narrationSegments"]
-            assert scene["durationFrames"] >= 360
+            assert scene["durationFrames"] >= 180
         heroes = [shot for scene in data["scenes"] for shot in scene["content"]["props"]["shots"] if shot["tier"] == "hero"]
         assert {shot["target"] for shot in heroes} == {"flight", "moon", "llm"}
         assert all(480 <= shot["endFrame"] - shot["startFrame"] <= 720 for shot in heroes)
@@ -140,14 +140,14 @@ def test_shipped_example_actual_duration(name: str) -> None:
         pytest.skip("本地没有准备产物；准备后本用例会核对实际时长")
     data = json.loads(prepared.read_text(encoding="utf-8"))
     seconds = data["durationInFrames"] / data["fps"]
-    minimum, maximum = (120, 600) if name == "solar-system-journey" else (120, 180)
-    assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
     if name == "american-science-milestones":
-        assert seconds == 120
+        assert seconds == 60
         assert not data["subtitles"]
-    else:
-        assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
+        return
+    minimum, maximum = (120, 600) if name == "solar-system-journey" else (120, 180)
+    assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
+    assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))

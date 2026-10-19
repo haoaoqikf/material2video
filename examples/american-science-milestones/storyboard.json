@@ -9,7 +9,7 @@
     "kind": "topic",
     "topic": "美国建国以来主导的十项科学与技术里程碑，注明国际合作与贡献边界"
   },
-  "targetSeconds": 120,
+  "targetSeconds": 60,
   "scenes": [
     {
       "id": "opening",
@@ -18,7 +18,7 @@
         "从电报到大模型",
         "A SILENT DOCUMENTARY"
       ],
-      "durationFrames": 360,
+      "durationFrames": 180,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -26,14 +26,14 @@
         "props": {
           "chapter": {
             "id": "opening",
-            "year": "1776",
+            "year": "1776—2022",
             "title": "从电报到大模型",
-            "english": "A SILENT DOCUMENTARY",
+            "english": "SELECTED MILESTONES / A SILENT DOCUMENTARY",
             "caption": "",
             "note": "",
-            "credit": "",
-            "layout": "full",
-            "accent": "#d3b38a"
+            "treatment": "opening",
+            "accent": "#d3b38a",
+            "asset": "flight"
           },
           "index": 0,
           "look": {
@@ -52,7 +52,7 @@
               "target": "flight",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 360,
+              "endFrame": 180,
               "cut": true
             }
           ]
@@ -66,7 +66,7 @@
         "摩尔斯电报",
         "THE TELEGRAPH"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -77,10 +77,9 @@
             "year": "1844",
             "title": "摩尔斯电报",
             "english": "THE TELEGRAPH",
-            "caption": "华盛顿与巴尔的摩之间，电信号传递文字。",
-            "note": "跨越距离的通信，开始进入电气时代。",
-            "credit": "Morse telegraph / Public domain",
-            "layout": "plate",
+            "caption": "电信号穿过华盛顿与巴尔的摩之间。",
+            "note": "首次公开示范，并非电报的开端。",
+            "treatment": "signal",
             "accent": "#d3b38a",
             "asset": "telegraph"
           },
@@ -101,7 +100,7 @@
               "target": "telegraph",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -115,7 +114,7 @@
         "贝尔电话",
         "THE TELEPHONE"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -126,10 +125,9 @@
             "year": "1876",
             "title": "贝尔电话",
             "english": "THE TELEPHONE",
-            "caption": "早期清晰语音传输实验，让声音沿电线抵达远方。",
-            "note": "画面为1875年实验装置复制品的历史照片。",
-            "credit": "Early Bell apparatus / Public domain",
-            "layout": "plate",
+            "caption": "清晰语音沿导线传到远方。",
+            "note": "以清晰语音实验为节点。",
+            "treatment": "lens",
             "accent": "#d3b38a",
             "asset": "telephone"
           },
@@ -150,7 +148,7 @@
               "target": "telephone",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -164,7 +162,7 @@
         "莱特兄弟飞机",
         "POWERED FLIGHT"
       ],
-      "durationFrames": 600,
+      "durationFrames": 480,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -175,10 +173,9 @@
             "year": "1903",
             "title": "莱特兄弟飞机",
             "english": "POWERED FLIGHT",
-            "caption": "可控、持续的动力飞行，开启航空时代。",
+            "caption": "可控、持续的动力飞行成为现实。",
             "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
-            "credit": "John T. Daniels / Library of Congress / Public domain",
-            "layout": "full",
+            "treatment": "sweep",
             "accent": "#e0c69e",
             "asset": "flight"
           },
@@ -199,7 +196,7 @@
               "target": "flight",
               "tier": "hero",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 480,
               "cut": true
             }
           ]
@@ -213,7 +210,7 @@
         "原子弹",
         "THE ATOMIC AGE"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -224,10 +221,9 @@
             "year": "1945",
             "title": "原子弹",
             "english": "THE ATOMIC AGE",
-            "caption": "曼哈顿计划完成首次核试验，人类进入核时代。",
-            "note": "科学力量的突破，也带来深重的人道代价。",
-            "credit": "Trinity, 16 July 1945 / Jack W. Aeby / Public domain",
-            "layout": "split",
+            "caption": "首次核试验，让人类进入核时代。",
+            "note": "突破之外，也有深重的人道代价。",
+            "treatment": "portrait",
             "accent": "#d8b08c",
             "asset": "trinity"
           },
@@ -248,7 +244,7 @@
               "target": "trinity",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -262,7 +258,7 @@
         "ENIAC计算机",
         "ELECTRONIC COMPUTING"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -271,12 +267,11 @@
           "chapter": {
             "id": "eniac",
             "year": "1946",
-            "title": "ENIAC计算机",
+            "title": "ENIAC 计算机",
             "english": "ELECTRONIC COMPUTING",
-            "caption": "通用电子数字计算，迈出关键一步。",
-            "note": "研制者与早期程序员共同推动计算走向电子化。",
-            "credit": "U.S. Army photograph / Public domain",
-            "layout": "full",
+            "caption": "电子计算走向通用与高速。",
+            "note": "早期通用电子数字计算的里程碑。",
+            "treatment": "racks",
             "accent": "#c6d3ce",
             "asset": "eniac"
           },
@@ -297,7 +292,7 @@
               "target": "eniac",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -311,7 +306,7 @@
         "晶体管",
         "THE TRANSISTOR"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -322,10 +317,9 @@
             "year": "1947",
             "title": "晶体管",
             "english": "THE TRANSISTOR",
-            "caption": "贝尔实验室的点接触晶体管，推动固态电子时代。",
-            "note": "从真空管到半导体，计算设备开始走向小型化。",
-            "credit": "Unitronic / CC BY-SA 3.0 / Cropped and graded",
-            "layout": "plate",
+            "caption": "固态电子取代真空管，设备开始缩小。",
+            "note": "贝尔实验室 · 点接触晶体管",
+            "treatment": "macro",
             "accent": "#b9d2ca",
             "asset": "transistor"
           },
@@ -346,7 +340,7 @@
               "target": "transistor",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -360,7 +354,7 @@
         "阿波罗登月",
         "APOLLO 11"
       ],
-      "durationFrames": 600,
+      "durationFrames": 480,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -371,10 +365,9 @@
             "year": "1969",
             "title": "阿波罗登月",
             "english": "APOLLO 11",
-            "caption": "人类首次登上月球，把足迹留在另一个世界。",
+            "caption": "人类第一次踏上另一个世界。",
             "note": "1969年7月20日 · 阿波罗11号",
-            "credit": "NASA / Apollo 11 archival film / 0.75倍慢放 / Public domain",
-            "layout": "split",
+            "treatment": "film",
             "accent": "#c8d9dc",
             "asset": "moon"
           },
@@ -395,7 +388,7 @@
               "target": "moon",
               "tier": "hero",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 480,
               "cut": true
             }
           ]
@@ -409,7 +402,7 @@
         "ARPANET",
         "A NETWORK BEGINS"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -420,10 +413,9 @@
             "year": "1969",
             "title": "ARPANET",
             "english": "A NETWORK BEGINS",
-            "caption": "最初的四节点网络，成为现代互联网的重要先驱。",
-            "note": "档案图展示1970年的扩展网络；下方为初始节点示意。",
-            "credit": "UCLA / BBN / CC BY-SA 4.0 / 1970 map",
-            "layout": "plate",
+            "caption": "四个节点连起最初的网络。",
+            "note": "1970年网络图；初始四节点示意。",
+            "treatment": "map",
             "accent": "#88bac9",
             "asset": "arpanet"
           },
@@ -444,7 +436,7 @@
               "target": "arpanet",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -458,7 +450,7 @@
         "人类基因组计划",
         "READING THE GENOME"
       ],
-      "durationFrames": 600,
+      "durationFrames": 240,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -469,10 +461,9 @@
             "year": "2003",
             "title": "人类基因组计划",
             "english": "READING THE GENOME",
-            "caption": "国际合作完成参考序列，美国机构参与主导。",
-            "note": "1990—2003 · 国际合作；当年完成并非全基因组无缺口。",
-            "credit": "NHGRI / Francis Collins examining an autoradiogram / Public domain",
-            "layout": "plate",
+            "caption": "国际合作完成参考序列。",
+            "note": "1990—2003 · 完成时仍有缺口。",
+            "treatment": "helix",
             "accent": "#a4c6ba",
             "asset": "genome"
           },
@@ -493,7 +484,7 @@
               "target": "genome",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 240,
               "cut": true
             }
           ]
@@ -507,7 +498,7 @@
         "大语言模型",
         "LANGUAGE AT SCALE"
       ],
-      "durationFrames": 600,
+      "durationFrames": 480,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -518,11 +509,11 @@
             "year": "2020—2022",
             "title": "大语言模型",
             "english": "LANGUAGE AT SCALE",
-            "caption": "从GPT-3到对话式大模型，语言生成走向大众。",
-            "note": "全球研究长期积累 · 以美国机构OpenAI的进展为例",
-            "credit": "Code animation / 原理示意 · 非真实模型运行记录",
-            "layout": "code",
-            "accent": "#8bbdce"
+            "caption": "语言生成走向大众。",
+            "note": "全球研究积累 · 以 OpenAI 的进展为例",
+            "treatment": "network",
+            "accent": "#8bbdce",
+            "asset": null
           },
           "index": 10,
           "look": {
@@ -541,7 +532,7 @@
               "target": "llm",
               "tier": "hero",
               "startFrame": 0,
-              "endFrame": 600,
+              "endFrame": 480,
               "cut": true
             }
           ]
@@ -555,7 +546,7 @@
         "每一次突破，都有来路。",
         "A SILENT DOCUMENTARY"
       ],
-      "durationFrames": 840,
+      "durationFrames": 300,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -563,136 +554,14 @@
         "props": {
           "chapter": {
             "id": "closing",
-            "year": "1776",
+            "year": "1776—2022",
             "title": "每一次突破，都有来路。",
             "english": "A SILENT DOCUMENTARY",
             "caption": "",
             "note": "",
-            "credit": "",
-            "layout": "full",
+            "treatment": "closing",
             "accent": "#d3b38a"
           },
-          "chapters": [
-            {
-              "id": "telegraph",
-              "year": "1844",
-              "title": "摩尔斯电报",
-              "english": "THE TELEGRAPH",
-              "caption": "华盛顿与巴尔的摩之间，电信号传递文字。",
-              "note": "跨越距离的通信，开始进入电气时代。",
-              "credit": "Morse telegraph / Public domain",
-              "layout": "plate",
-              "accent": "#d3b38a",
-              "asset": "telegraph"
-            },
-            {
-              "id": "telephone",
-              "year": "1876",
-              "title": "贝尔电话",
-              "english": "THE TELEPHONE",
-              "caption": "早期清晰语音传输实验，让声音沿电线抵达远方。",
-              "note": "画面为1875年实验装置复制品的历史照片。",
-              "credit": "Early Bell apparatus / Public domain",
-              "layout": "plate",
-              "accent": "#d3b38a",
-              "asset": "telephone"
-            },
-            {
-              "id": "flight",
-              "year": "1903",
-              "title": "莱特兄弟飞机",
-              "english": "POWERED FLIGHT",
-              "caption": "可控、持续的动力飞行，开启航空时代。",
-              "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
-              "credit": "John T. Daniels / Library of Congress / Public domain",
-              "layout": "full",
-              "accent": "#e0c69e",
-              "asset": "flight"
-            },
-            {
-              "id": "trinity",
-              "year": "1945",
-              "title": "原子弹",
-              "english": "THE ATOMIC AGE",
-              "caption": "曼哈顿计划完成首次核试验，人类进入核时代。",
-              "note": "科学力量的突破，也带来深重的人道代价。",
-              "credit": "Trinity, 16 July 1945 / Jack W. Aeby / Public domain",
-              "layout": "split",
-              "accent": "#d8b08c",
-              "asset": "trinity"
-            },
-            {
-              "id": "eniac",
-              "year": "1946",
-              "title": "ENIAC计算机",
-              "english": "ELECTRONIC COMPUTING",
-              "caption": "通用电子数字计算，迈出关键一步。",
-              "note": "研制者与早期程序员共同推动计算走向电子化。",
-              "credit": "U.S. Army photograph / Public domain",
-              "layout": "full",
-              "accent": "#c6d3ce",
-              "asset": "eniac"
-            },
-            {
-              "id": "transistor",
-              "year": "1947",
-              "title": "晶体管",
-              "english": "THE TRANSISTOR",
-              "caption": "贝尔实验室的点接触晶体管，推动固态电子时代。",
-              "note": "从真空管到半导体，计算设备开始走向小型化。",
-              "credit": "Unitronic / CC BY-SA 3.0 / Cropped and graded",
-              "layout": "plate",
-              "accent": "#b9d2ca",
-              "asset": "transistor"
-            },
-            {
-              "id": "moon",
-              "year": "1969",
-              "title": "阿波罗登月",
-              "english": "APOLLO 11",
-              "caption": "人类首次登上月球，把足迹留在另一个世界。",
-              "note": "1969年7月20日 · 阿波罗11号",
-              "credit": "NASA / Apollo 11 archival film / Public domain",
-              "layout": "split",
-              "accent": "#c8d9dc",
-              "asset": "moon"
-            },
-            {
-              "id": "arpanet",
-              "year": "1969",
-              "title": "ARPANET",
-              "english": "A NETWORK BEGINS",
-              "caption": "最初的四节点网络，成为现代互联网的重要先驱。",
-              "note": "档案图展示1970年的扩展网络；下方为初始节点示意。",
-              "credit": "UCLA / BBN / CC BY-SA 4.0 / 1970 map",
-              "layout": "plate",
-              "accent": "#88bac9",
-              "asset": "arpanet"
-            },
-            {
-              "id": "genome",
-              "year": "2003",
-              "title": "人类基因组计划",
-              "english": "READING THE GENOME",
-              "caption": "国际合作完成参考序列，美国机构参与主导。",
-              "note": "1990—2003 · 国际合作；当年完成并非全基因组无缺口。",
-              "credit": "NHGRI / Francis Collins examining an autoradiogram / Public domain",
-              "layout": "plate",
-              "accent": "#a4c6ba",
-              "asset": "genome"
-            },
-            {
-              "id": "llm",
-              "year": "2020—2022",
-              "title": "大语言模型",
-              "english": "LANGUAGE AT SCALE",
-              "caption": "从GPT-3到对话式大模型，语言生成走向大众。",
-              "note": "全球研究长期积累 · 以美国机构OpenAI的进展为例",
-              "credit": "Code animation / 原理示意 · 非真实模型运行记录",
-              "layout": "code",
-              "accent": "#8bbdce"
-            }
-          ],
           "index": 11,
           "look": {
             "profile": "archive-cinema",
@@ -710,8 +579,120 @@
               "target": "closing",
               "tier": "major",
               "startFrame": 0,
-              "endFrame": 840,
+              "endFrame": 300,
               "cut": true
+            }
+          ],
+          "chapters": [
+            {
+              "id": "telegraph",
+              "year": "1844",
+              "title": "摩尔斯电报",
+              "english": "THE TELEGRAPH",
+              "caption": "电信号穿过华盛顿与巴尔的摩之间。",
+              "note": "首次公开示范，并非电报的开端。",
+              "treatment": "signal",
+              "accent": "#d3b38a",
+              "asset": "telegraph"
+            },
+            {
+              "id": "telephone",
+              "year": "1876",
+              "title": "贝尔电话",
+              "english": "THE TELEPHONE",
+              "caption": "清晰语音沿导线传到远方。",
+              "note": "以清晰语音实验为节点。",
+              "treatment": "lens",
+              "accent": "#d3b38a",
+              "asset": "telephone"
+            },
+            {
+              "id": "flight",
+              "year": "1903",
+              "title": "莱特兄弟飞机",
+              "english": "POWERED FLIGHT",
+              "caption": "可控、持续的动力飞行成为现实。",
+              "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
+              "treatment": "sweep",
+              "accent": "#e0c69e",
+              "asset": "flight"
+            },
+            {
+              "id": "trinity",
+              "year": "1945",
+              "title": "原子弹",
+              "english": "THE ATOMIC AGE",
+              "caption": "首次核试验，让人类进入核时代。",
+              "note": "突破之外，也有深重的人道代价。",
+              "treatment": "portrait",
+              "accent": "#d8b08c",
+              "asset": "trinity"
+            },
+            {
+              "id": "eniac",
+              "year": "1946",
+              "title": "ENIAC 计算机",
+              "english": "ELECTRONIC COMPUTING",
+              "caption": "电子计算走向通用与高速。",
+              "note": "早期通用电子数字计算的里程碑。",
+              "treatment": "racks",
+              "accent": "#c6d3ce",
+              "asset": "eniac"
+            },
+            {
+              "id": "transistor",
+              "year": "1947",
+              "title": "晶体管",
+              "english": "THE TRANSISTOR",
+              "caption": "固态电子取代真空管，设备开始缩小。",
+              "note": "贝尔实验室 · 点接触晶体管",
+              "treatment": "macro",
+              "accent": "#b9d2ca",
+              "asset": "transistor"
+            },
+            {
+              "id": "moon",
+              "year": "1969",
+              "title": "阿波罗登月",
+              "english": "APOLLO 11",
+              "caption": "人类第一次踏上另一个世界。",
+              "note": "1969年7月20日 · 阿波罗11号",
+              "treatment": "film",
+              "accent": "#c8d9dc",
+              "asset": "moon"
+            },
+            {
+              "id": "arpanet",
+              "year": "1969",
+              "title": "ARPANET",
+              "english": "A NETWORK BEGINS",
+              "caption": "四个节点连起最初的网络。",
+              "note": "1970年网络图；初始四节点示意。",
+              "treatment": "map",
+              "accent": "#88bac9",
+              "asset": "arpanet"
+            },
+            {
+              "id": "genome",
+              "year": "2003",
+              "title": "人类基因组计划",
+              "english": "READING THE GENOME",
+              "caption": "国际合作完成参考序列。",
+              "note": "1990—2003 · 完成时仍有缺口。",
+              "treatment": "helix",
+              "accent": "#a4c6ba",
+              "asset": "genome"
+            },
+            {
+              "id": "llm",
+              "year": "2020—2022",
+              "title": "大语言模型",
+              "english": "LANGUAGE AT SCALE",
+              "caption": "语言生成走向大众。",
+              "note": "全球研究积累 · 以 OpenAI 的进展为例",
+              "treatment": "network",
+              "accent": "#8bbdce",
+              "asset": null
             }
           ]
         }
