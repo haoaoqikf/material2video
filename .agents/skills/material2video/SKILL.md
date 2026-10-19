@@ -7,17 +7,17 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 项目采用共享制作底座、独立视频类型、统一制作入口。发展顺序是先建设金融时间序列等专用视频，再沉淀多类型共用能力，完善通用混合媒体讲解视频。
 
-开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。整体流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与准备 → 完整预演 → 正式导出；无自身旁白时跳过选音。所有类型通过当前完整预演自动验收后即可正式导出，CLI 不要求人工记录；general 的制作完成另须助手实际复核并关闭必改项，所有制作阶段无需用户确认。文章原文语义审查保留。所有生成产物都是派生产物，不代替可编辑材料。
+开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。整体流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件；无自身旁白时跳过选音。所有类型由 render 生成一次完整候选，自动验收后直接交付同一文件，CLI 不要求人工记录；general 的制作完成另须助手实际复核并关闭必改项，所有制作阶段无需用户确认。文章原文语义审查保留。所有生成产物都是派生产物，不代替可编辑材料。
 
 | 类型 | 创作指导 |
 |---|---|
 <!-- generated:type-catalog:start -->
-| `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整预演自动验收。 |
+| `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
 | `general` | [作品视觉设计与制作流程](references/production-workflow.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[代码场景契约](references/render-contract.md)：v8 全画布代码场景多幕讲解。 |
 | `housing-timeseries` | 按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、60 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 
-通用类型使用 v8 storyboard.json：每一幕都是本地 React `code` 场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏；画面配色、构图与动效由作品代码决定，图片与视频经已导入素材 ID 解析；代码场景由准备阶段按画幅逐帧录制并缓存，完整预演与导出复用同一片段；不支持旧模板、视觉主题、general-plan 编排或完整片段嵌入。
+通用类型使用 v8 storyboard.json：每一幕都是本地 React `code` 场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏；画面配色、构图与动效由作品代码决定，图片与视频经已导入素材 ID 解析；代码场景在检查或正式生成时按所需窗口逐帧录制并缓存，检查和正式生成按区间复用录制缓存；不支持旧模板、视觉主题、general-plan 编排或完整片段嵌入。
 
 ## 制作档位（standard / cinematic）
 
@@ -32,7 +32,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 | 后期 | 无 | Bloom / DOF / grain / vignette / CA / LUT，全部帧驱动 |
 | 声音 | TTS + 可选音床与音效 | 配乐 + 环境 + 音效 + 混音（成片 −14 LUFS / −1 dBTP） |
 | 编码 | H.264 CRF18、8bit、44.1k/128k | 普通 H.264 MP4（不另出母版） |
-| 验收 | 完整预演自动验收 | 技术 QA + hero 实看 + 助手全片帧序列与自动音频复核 |
+| 验收 | 完整候选自动验收 | 技术 QA + hero 实看 + 助手全片帧序列与自动音频复核 |
 
 **触发词**：用户明确要求「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时 MUST 使用 cinematic，
 不得静默按 standard 交付再声称电影级；反过来，用户没有这样要求时不要默认加电影级开销。
@@ -58,6 +58,7 @@ uv run m2v types
 uv run m2v init --type general --project <slug>
 uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
@@ -71,7 +72,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 
 年度住宅销售均价使用独立 `housing-timeseries` 类型，材料、校验和画面契约见[年度住宅均价视频](references/housing-timeseries-video.md)。
 
-通用讲解（含在线素材）使用 `general` 一个入口：可选图库检索用 `uv run m2v general assets search --project videos/general/<slug>`，素材只有经 `uv run m2v general assets import --project <目录> --manifest <清单>` 导入留证后才能被作品按 ID 取用；再走校验、准备、完整预演与导出。材料、检索、导入与混音规则见[文章媒体与音效](references/article-media-and-sound.md)。
+通用讲解（含在线素材）使用 `general` 一个入口：可选图库检索用 `uv run m2v general assets search --project videos/general/<slug>`，素材只有经 `uv run m2v general assets import --project <目录> --manifest <清单>` 导入留证后才能被作品按 ID 取用；再走校验、准备、按需检查与一次全片生成交付。材料、检索、导入与混音规则见[文章媒体与音效](references/article-media-and-sound.md)。
 
 通用作品的输入审查与候选稿工具保留为 `uv run m2v general input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧金融材料迁移仍使用 `m2v migrate --project <目录> --from financial`；通用 v7 及更早分镜必须重新编排 v8。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，文章旧版本不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 
@@ -82,13 +83,13 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 1. 阅读完整有序旁白，判断语言、受众、内容、情绪与表达风格；通用类型读取逐幕逐段旁白。
 2. 运行 `uv run m2v voices --json`，其他语言通过 `--locale <区域>` 或 `--locale all` 查询。查询失败就明确报告并修复连接，不虚构候选、不静默使用晓晓。结合服务返回的 categories/personalities 与内容选择；不按性别硬编码，不预先统一指定某一种声音。
 3. 写入 `project.json` 的 `tts.voice` 和 `tts.selection`（mode、rationale、narrationSha256），填写结合具体旁白的理由。摘要使用共享 `m2v.engine.tts.narration_digest(texts)`，`texts` 为播放顺序中的自身旁白数组：通用类型逐幕逐段收集 `text`。忽略空白段，保留其余字符串原文与分段边界。
-4. 保留已有语速、停顿设置。继续 prepare、完整 preview 与 render；不得把音色标签或媒体技术验收描述为已试听、自然度达标。
+4. 保留已有语速、停顿设置。继续 prepare、按需片段检查与 render；不得把音色标签或媒体技术验收描述为已试听、自然度达标。
 
 旁白变化必须重新判断，可保留同一音色并更新理由和摘要；画面变化不要求重选。用户手动修改作品音色时移除原助手 `selection`；`prepare --voice` 仅覆盖本次，并且不沿用助手理由。只有 CLI 覆盖语速时仍需有效助手选择。有自身旁白但未明确音色时 prepare 会阻断，不能靠重新渲染自动换声。字段、实际参数溯源和迁移见[配音契约](references/media-contract.md#配音音色与语速)。
 
 ## 通用作品编排原则
 
-制作必须执行[节奏、美术、声音与制作阶段](references/creative-production.md)：独立视觉预算、两个美术方向、三张关键画面、整片动态粗预演、风险样片、全片审美与声音修订、阶段条件和改动回归。文案、节奏、连续性、审美、声音及技术分别复核。粗预演不代替当前完整 preview。
+制作必须执行[节奏、美术、声音与制作阶段](references/creative-production.md)：独立视觉预算、两个美术方向、三张关键画面、整片动态粗预演、风险样片、全片审美与声音修订、阶段条件和改动回归。文案、节奏、连续性、审美、声音及技术分别复核。粗预演不代替正式候选的全片验收。
 
 先把核心体验写成可观察验收条目；内容、运动与实测配音共同调整预算。按[自主视觉复核](references/visual-review-rubric.md)检查整段运动及交界，已知核心体验缺陷必须返工，不作为限制放行。任务包含流程改进与作品重制时，两项均完成才算交付。
 
@@ -120,13 +121,14 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 
 ## 渲染与评审
 
-- 材料、资产或渲染代码变化后重新 `prepare`，再生成完整 `preview`；可选评审如需使用也应重新填写。
-- 完整预演只绑定当前准备指纹；限帧预览只用于开发排查，不能授权正式导出。
-- 所有类型均不要求人工画面评审；默认在校验、准备和完整预演自动验收后直接导出。`review-template` / `review` 仅供主动评审，填写通过结论时仍需真实依据，不自动虚构人工结论；金融维持专用自动探针。通用作品的设计稿与观看记录不参与门禁。
-- standard 与 cinematic 均取消所有用户确认；助手完成当前版本的真实检查并关闭必改项后自主推进，不以自动导出成功代替制作完成。
-- 正式导出独立验证完整预演的当前准备指纹、文件摘要与完整帧数，并进行媒体技术验收；缺失、过期、被替换或限帧预演仍会阻断。
-- 正式渲染在临时路径生成并验收后替换交付文件；失败不覆盖先前有效成片。
-- 正式渲染成功并写好成片旁车后，统一入口会清理本作品 `outputs/` 中旧视频和已知检查/调试产物；金融绑定的完整预演会保留，其他类型按原规则清理预演。保留本次成片及旁车、准备与评审 JSON、可重渲的准备媒体；general 还保留当前 visual-notes.md 及其直接文件链接引用的检查证据和前后对照。渲染失败不清理，共享构建缓存不受影响；逐项清理失败会报告遗留路径。
+- 材料、资产或实现变化后重新 prepare。prepare 只准备配音、时间轴和源码输入，不录制全片。
+- preview 是可选片段检查，默认前十秒，短作品最多全片减一帧。支持 `--start-seconds` / `--end-seconds` 或 `--limit-frames`，禁止覆盖全片；旧 samples / rehearsal 别名已移除。
+- keyframes 原生采集代表静帧；lookdev 按需生成静帧与样片，二者不先录制全片。状态动画从零推进，只截图所需帧；正式生成复用已录区间并补齐缺口。
+- render 不要求预演。完整候选写入 candidates 并绑定输入、实现、参数和 SHA-256 后执行字幕、媒体及类型检查；有效候选重复执行直接复用，验收失败或交付失败也只重试检查和复制，禁止再次完整编码。
+- 全片技术验收通过后复制交付同一文件并保存溯源；失败保留候选和旧有效交付。status 显示 prepared / candidate-pending / validation-failed / ready / delivery-failed / delivered，不将技术通过解释为审美完成。
+- 人工画面评审可选，review-template / review 绑定当前候选 key、preparedFingerprint 和 sha256；旧预演记录不再生效。文章输入语义审查和金融自动探针保留。
+- standard 与 cinematic 均无需用户确认。general 助手须复核最终文件全片帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成。
+- 成功交付后才清理旧视频及已知调试产物，保留当前候选与交付记录、准备媒体、准备/评审 JSON；general 还保留 visual-notes.md 及其引用证据。失败不清理，共享缓存不受影响，清理失败报告遗留路径。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。
 

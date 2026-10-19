@@ -15,7 +15,7 @@ def main(argv=None) -> int:
         from . import media_assets
         return media_assets.main(argv[1:])
     parser = argparse.ArgumentParser(prog="m2v general")
-    parser.add_argument("command", choices=("input-review", "candidate", "adopt-candidate", "status", "template", "keyframes", "samples", "rehearsal"))
+    parser.add_argument("command", choices=("input-review", "candidate", "adopt-candidate", "status", "template", "keyframes"))
     parser.add_argument("--storyboard")
     parser.add_argument("--article")
     parser.add_argument("--text-file")
@@ -52,9 +52,11 @@ def main(argv=None) -> int:
         if args.command == "keyframes":
             from .explainer_render import current, layout_check
             prepared = current(root, project)
-            print(f"字幕量测通过：{layout_check(root, prepared, snapshots=root / 'outputs/qa')['checkedFrames']} 帧")
+            from m2v.engine.lookdev import keyframes
+            layout_check(root, prepared)
+            print(json.dumps(keyframes(root, project, prepared), ensure_ascii=False))
             return 0
-        command = {"template": "review-template", "samples": "preview", "rehearsal": "preview"}.get(args.command, args.command)
+        command = {"template": "review-template"}.get(args.command, args.command)
         return unified([command, "--project", str(root)])
     except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
         print(f"m2v general: {exc}", file=sys.stderr)

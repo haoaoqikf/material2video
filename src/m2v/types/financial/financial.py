@@ -534,30 +534,6 @@ def migrate_line(root: Path, duration: int = 60) -> Path:
     return backup
 
 
-def load_preview_record(project_dir: str | Path, docs: dict[str, Any]) -> dict[str, Any]:
-    root = Path(project_dir).resolve()
-    path = root / "outputs" / "previews" / "preview-record.json"
-    try:
-        record = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(record, dict):
-            raise ValueError("记录必须为对象")
-        relative = record.get("path")
-        if not isinstance(relative, str):
-            raise ValueError("缺少预演路径")
-        video = (root / relative).resolve()
-        if not video.is_relative_to(root / "outputs" / "previews") or not video.is_file():
-            raise ValueError("预演路径越界或文件缺失")
-        if record.get("materialsAndAssetsSha256") != render_inputs_digest(root):
-            raise ValueError("预演材料或资产已变化")
-        if record.get("frames") != docs["plan"]["durationSeconds"] * FPS:
-            raise ValueError("需要完整时长预演")
-        if record.get("sha256") != hashlib.sha256(video.read_bytes()).hexdigest():
-            raise ValueError("预演文件摘要不一致")
-    except (OSError, ValueError) as exc:
-        _fail("完整预演记录", str(exc))
-    return record
-
-
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any]) -> None:
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
         _fail("animation-plan.json", "必须使用 1080×1920、60 fps")

@@ -11,6 +11,8 @@ export type ExplainerScene = {
   durationInFrames: number;
   transitionFrames: number;
   mediaPath: string;
+  mediaStartFrame?: number;
+  mediaDurationFrames?: number;
   /** 仅 lookdev 静帧合成注入；正式视频继续回放 mediaPath。 */
   stillPath?: string;
 };
@@ -36,9 +38,10 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
           <AbsoluteFill style={{opacity: scene.transitionFrames
             ? Math.max(0, Math.min(1, (frame - scene.startFrame) / (scene.transitionFrames - 1))) : 1}}>
             {scene.stillPath ? <Img src={scene.stillPath} style={{width: '100%', height: '100%'}}/> :
+            <Sequence from={scene.mediaStartFrame ?? 0} durationInFrames={scene.mediaDurationFrames ?? scene.durationInFrames} layout="none">
             <OffthreadVideo src={(props.mediaBase ?? '') + scene.mediaPath.split('/').map(encodeURIComponent).join('/')}
-              muted trimBefore={0} trimAfter={scene.durationInFrames}
-              style={{width: '100%', height: '100%'}}/>}
+              muted trimBefore={0} trimAfter={scene.mediaDurationFrames ?? scene.durationInFrames}
+              style={{width: '100%', height: '100%'}}/></Sequence>}
           </AbsoluteFill>
         </Sequence>
       ))}

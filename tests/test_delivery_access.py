@@ -154,7 +154,7 @@ def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_r
         cache_status="hit", cache_key="test", cache_detail="test"))
     monkeypatch.setattr(explainer_render.remotion, "render_session", fake_session)
     monkeypatch.setattr(explainer_render.audio, "mux",
-                        lambda silent, master, final, seconds: Path(final).write_bytes(b"final"))
+                        lambda silent, master, final, seconds, **kwargs: Path(final).write_bytes(b"final"))
     monkeypatch.setattr(explainer_render.output_validation, "verify_output", lambda *args, **kwargs: None)
 
     output = adapter.render(root, manifest)

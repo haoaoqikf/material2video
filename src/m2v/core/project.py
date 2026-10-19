@@ -138,7 +138,7 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
             raise M2VError(f"准备引用文件已变化或缺失：{name[5:]}；请重新 prepare 并评审")
     # project 包含音色等作品属性；仅检查材料文件无法发现这些配置变化。
     if prepared.get("materialFingerprint") != _fingerprint({"project": project, "inputs": prepared["inputs"]}):
-        raise M2VError("作品描述已变化；请重新 prepare 并生成完整预演")
+        raise M2VError("作品描述已变化；请重新 prepare 并生成当前候选")
     return prepared
 
 

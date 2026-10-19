@@ -29,14 +29,15 @@
 ```powershell
 uv run m2v validate --project examples/darts-trial-and-error
 uv run m2v prepare --project examples/darts-trial-and-error
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project examples/darts-trial-and-error
 uv run m2v render --project examples/darts-trial-and-error
 ```
 
 准备与审查记录位于本示例 `outputs/`；预演和成片位于 `videos/examples/darts-trial-and-error/outputs/`，
-均不入库。材料、代码、画幅或登记素材变化后重新准备与完整预演。
+均不入库。材料、代码、画幅或登记素材变化后重新准备并生成当前候选。
 
 字段见 [分镜结构](../../.agents/skills/material2video/references/storyboard-schema.md) 与
 [制作流程](../../.agents/skills/material2video/references/production-workflow.md)。
 
-录制采用共享受控时钟按 60 fps 顺序逐帧采集，等待本帧动画及绘制完成再截图；机器负载只影响制作耗时。修改源码后需重新 prepare 与完整 preview，旧实时录制缓存不复用。
+录制采用共享受控时钟按 60 fps 顺序逐帧采集，等待本帧动画及绘制完成再截图；机器负载只影响制作耗时。修改源码后需重新 prepare 并生成当前候选，旧实时录制缓存不复用。

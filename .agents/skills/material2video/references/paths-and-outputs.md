@@ -42,13 +42,13 @@
     ├── video.performance.json        # 与该成片同名的渲染性能报告
     ├── prepared.json                 # 当前准备产物与派生时间轴
     ├── input-review.json             # 文章讲解的人工输入语义审查（general）
-    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与完整预演（general）
+    ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与候选文件摘要（general）
     ├── layout-check.json             # 最近一次布局量测的三项硬判定结论（general）
     ├── reading-pace.json             # 逐条字幕的阅读速度与超限清单，只报告不阻断（general）
     ├── media/                        # 配音清单、音轨与缓存
     ├── audio-cache/                  # 逐段语音缓存（键含媒体契约版本）
     ├── code-cache/                   # general 代码场景的录制片段与摘要，按内容摘要命名
-    ├── previews/                     # 预演产物，使用相同的成片文件名；`m2v render` 会先清掉它
+    ├── previews/                     # 可选片段检查；成功交付后清理
     └── qa/                           # `m2v general keyframes` 的字幕量测截图，按需创建
 ```
 
@@ -112,9 +112,9 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | `m2v prepare --project <目录>` | `<作品目录>/outputs/prepared.json` 与类型专属生成材料 |
 | `m2v preview --project <目录>` | `<作品目录>/outputs/previews/` 下的当前预演 |
 | `m2v render --project <目录>` | `<作品目录>/outputs/` 下类型默认的正式成片 |
-| `m2v preview --project <目录> --limit-frames N` | 调试用途；不会生成可绑定正式评审的完整预演记录 |
+| `m2v preview --project <目录> --limit-frames N` | 调试用途；严格短于全片，不参与交付门禁 |
 
-所有类型的正式成片都叫 `outputs/video.mp4`，预演叫 `outputs/previews/video.mp4`；
+general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融与住宅沿用各自类型文件名；
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
 v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
@@ -219,3 +219,7 @@ v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 
 - [配音与字幕](media-contract.md)：媒体清单字段、缓存与字幕规则
 - [渲染契约](render-contract.md)：网页接口、确定性要求与渲染模式
+
+## 一次全片生成与候选保留
+
+`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4，住宅为 housing-timeseries.mp4。

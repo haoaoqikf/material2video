@@ -60,7 +60,7 @@ def project(tmp_path, data=None):
 def fake_record(monkeypatch):
     """假录制：真实录制要构建前端并开浏览器，只有专门的用例才该承担。"""
     calls = []
-    def record(root, target, inputs, *, frame, media, media_digest, profile="standard"):
+    def record(root, target, inputs, *, frame, media, media_digest, profile="standard", capture_range=None):
         path = root / "outputs/code-cache" / f"{target['id']}.mp4"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"clip:" + target["id"].encode())
@@ -72,6 +72,8 @@ def fake_record(monkeypatch):
         calls.append({"scene": target["id"], "frame": frame, "media": media, "profile": profile})
         return relative
     monkeypatch.setattr(prepare.code_scenes, "record", record)
+    monkeypatch.setattr(prepare.code_scenes, "build_scene", lambda root, target, work: {
+        "file:" + target["content"]["entry"]: hashlib.sha256((root / target["content"]["entry"]).read_bytes()).hexdigest()})
     return calls
 
 
@@ -283,7 +285,9 @@ def test_record_receives_the_declared_frame(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, data)
     fake_tts(monkeypatch)
     calls = fake_record(monkeypatch)
-    adapter.prepare(root, manifest)
+    prepared_record = adapter.prepare(root, manifest)
+    assert calls == []
+    prepare.code_scenes.materialize(root, prepared_record, 0, 30)
     assert calls[0]["frame"]["width"] == 1920
     assert calls[0]["frame"]["subtitle"]["safeArea"] == frames.spec(1920, 1080)["subtitle"]["safeArea"]
     assert calls[0]["media"] == {}
@@ -323,6 +327,8 @@ def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium
     prepared_record = adapter.prepare(root, manifest)
     assert layout_check(root, prepared_record)["status"] == "pass"
     props = root / "outputs/browser-props.json"
+    from m2v.types.general.code_scenes import materialize
+    prepared_record = materialize(root, prepared_record, 0, prepared_record["durationInFrames"])
     props.write_text(json.dumps(prepared_record["props"], ensure_ascii=False), encoding="utf-8")
     with serve_contract_page(props, root) as url, sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)

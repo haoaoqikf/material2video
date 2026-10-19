@@ -38,7 +38,7 @@ cinematic 不另出母版，成片仍是普通 H.264 MP4。本节与
 cinematic 取消所有阶段用户确认。look-dev 的静帧与样片用于对照参考、实际观看和返工；助手关闭必改项后再铺全片。记录不参与 CLI 导出门禁；完整流程、版本与问题模板见[自主视觉复核](visual-review-rubric.md)。
 
 档位在 `project.json` 的 `productionProfile` 声明（`"standard"` 或 `"cinematic"`，缺省 standard），
-也可用 `m2v prepare --profile cinematic` 临时覆盖；分镜不重复声明档位。准备记录、完整预演与
+也可用 `m2v prepare --profile cinematic` 临时覆盖；分镜不重复声明档位。准备记录、候选与
 成片溯源自上而下继承实际生效的档位与来源。
 
 ## 参考板（reference board）

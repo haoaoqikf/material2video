@@ -32,7 +32,7 @@ v8 的 `pacing` 必须声明 `mode: "volatility" | "uniform"` 和 `anchors: [{fr
 
 v7 仍可读取及渲染，保持旧日期映射和 120 帧结尾；不能用 plan 静默覆盖。已有统一作品使用 `uv run m2v financial migrate-line --project <目录> --duration-seconds 60` 备份后升级 v8；尚无 project.json 的历史作品先使用 `m2v migrate --from financial` 进入统一作品契约，旧 v1～v6 会同时升级 v8，v7/v8 保留原计划。v8 重复升级被拒绝。
 
-迁移前备份请求、价格、计划、旧事件及评审/预演记录；保留 date/close、来源、快照、交易日与截止日，清理过期金融评审。失败恢复活动材料，已有成片不变。升级后必须重新 prepare 并通过完整 preview 自动验收。
+迁移前备份请求、价格、计划、旧事件及评审/预演记录；保留 date/close、来源、快照、交易日与截止日，清理过期金融评审。失败恢复活动材料，已有成片不变。升级后必须重新 prepare，再 render 一次生成并验收候选。
 
 ## 命令
 
@@ -41,13 +41,14 @@ uv run m2v init --type financial-timeseries --project <slug>
 uv run m2v validate --project videos/financial-timeseries/<slug>
 uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60
 uv run m2v prepare --project videos/financial-timeseries/<slug>
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/financial-timeseries/<slug>
 uv run m2v render --project videos/financial-timeseries/<slug>
 # 旧金融材料的迁移使用显式、备份优先的操作；先按当前材料契约核对迁移来源版本
 uv run m2v migrate --project videos/financial-timeseries/<slug> --from financial
 ```
 
-`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后再生成计划并运行 `validate`。`--period` 和 `--window-months` 已移除，旧 v1–v6 计划或旧材料必须先运行 `migrate-line` 显式备份迁移。`preview` 不加 `--out` 时写出作品的标准完整预演并登记 `outputs/previews/preview-record.json`，自动验收使用该绑定记录；带 `--out` 的 `preview` 只是复核/对比用的旁路输出，不会改写已登记的预演记录或已有记录，但也不能作为正式渲染的验收预演。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。
+`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后再生成计划并运行 `validate`。`--period` 和 `--window-months` 已移除，旧 v1–v6 计划或旧材料必须先运行 `migrate-line` 显式备份迁移。`preview` 默认只生成前十秒，支持起止时间与限帧，拒绝全片，不登记旧预演门禁。`render` 要求有效统一作品与准备记录，完整候选只生成一次，验收后复制交付；重复执行复用候选，失败不覆盖旧成片。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。
 
 ## 材料形状示例
 
@@ -110,4 +111,4 @@ uv run m2v migrate --project videos/financial-timeseries/<slug> --from financial
 }
 ```
 
-以上横向留白是项目保守默认值，不代表抖音官方安全区规范；调整画面后须重新准备、完整预演自动验收和渲染。
+以上横向留白是项目保守默认值，不代表抖音官方安全区规范；调整画面后须重新准备，再一次全片生成并验收交付。

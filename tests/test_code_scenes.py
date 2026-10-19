@@ -124,16 +124,18 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
     write_source(root, "scenes/demo.tsx")
     fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
+    assert not (root / "outputs/code-cache").exists()
+    prepared = code_scenes.materialize(root, prepared, 0, prepared["durationInFrames"])
     relative = prepared["props"]["compiledScenes"][-1]["mediaPath"]
     clip = root / relative
     assert clip.is_file() and clip.parent.name == "code-cache"
-    assert prepared["inputs"]["file:" + relative] == code_scenes.digest(clip)
-    assert adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] == relative
+    assert "file:" + relative not in prepared["inputs"]
+    assert recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] == relative
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 1
     write_source(root, "scenes/demo.tsx", SOURCE + "// 变化\n")
     with pytest.raises(M2VError, match="文件已变化"):
         load_current_prepared(root, manifest)
-    assert adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] != relative
+    assert recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] != relative
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
 
 
@@ -151,8 +153,8 @@ def test_scene_failure_keeps_no_prepared_record(tmp_path, monkeypatch, chromium_
                  "}\n")
     fake_tts(monkeypatch)
     with pytest.raises(M2VError, match="代码场景"):
-        adapter.prepare(root, manifest)
-    assert not (root / "outputs/prepared.json").exists()
+        recorded(root, manifest)
+    assert (root / "outputs/prepared.json").exists()
 
 
 @requires_node
@@ -161,7 +163,7 @@ def test_recorded_clip_has_no_audio_stream(tmp_path, monkeypatch, chromium_ready
     root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
     write_source(root, "scenes/demo.tsx")
     fake_tts(monkeypatch)
-    clip = root / adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
+    clip = root / recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
     from imageio_ffmpeg import get_ffmpeg_exe
     probed = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(clip)], capture_output=True,
                             text=True, encoding="utf-8", errors="replace")
@@ -179,8 +181,8 @@ def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, 
                  "export default function Never() { return <div style={{width: '100%', height: '100%'}}/>; }\n")
     fake_tts(monkeypatch)
     with pytest.raises(M2VError, match="就绪失败"):
-        adapter.prepare(root, manifest)
-    assert not (root / "outputs/prepared.json").exists()
+        recorded(root, manifest)
+    assert (root / "outputs/prepared.json").exists()
     assert not list((root / "outputs/code-cache").glob("*.mp4"))
 
 
@@ -190,12 +192,37 @@ def test_frame_change_records_a_new_clip(tmp_path, monkeypatch, chromium_ready):
     root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
     write_source(root, "scenes/demo.tsx")
     fake_tts(monkeypatch)
-    landscape = root / adapter.prepare(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
+    landscape = root / recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"]
     board_data = storyboard(code_scene(durationFrames=20))
     board_data.update(width=1080, height=1920)
     (root / "storyboard.json").write_text(json.dumps(board_data, ensure_ascii=False), encoding="utf-8")
     _root, manifest = load_project(root)
-    portrait = adapter.prepare(root, manifest)
+    portrait = recorded(root, manifest)
     assert portrait["props"]["compiledScenes"][-1]["mediaPath"] != landscape.relative_to(root).as_posix()
     assert (portrait["width"], portrait["height"]) == (1080, 1920)
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
+
+
+def recorded(root, manifest):
+    prepared = adapter.prepare(root, manifest)
+    return code_scenes.materialize(root, prepared, 0, prepared["durationInFrames"])
+
+
+@requires_node
+def test_partial_recording_is_reused_when_completing_scene(tmp_path, monkeypatch, chromium_ready):
+    root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=8)))
+    write_source(root, "scenes/demo.tsx")
+    fake_tts(monkeypatch)
+    prepared = adapter.prepare(root, manifest)
+    original = code_scenes._capture
+    captured = []
+    def count(*args, **kwargs):
+        captured.extend(kwargs["selected_frames"])
+        return original(*args, **kwargs)
+    monkeypatch.setattr(code_scenes, "_capture", count)
+    code_scenes.materialize(root, prepared, 2, 5)
+    completed = code_scenes.materialize(root, prepared, 0, 8)
+    code_scenes.materialize(root, prepared, 0, 8)
+    assert sorted(captured) == list(range(8)), "已有区间不得再次采集"
+    clip = root / completed["props"]["compiledScenes"][0]["mediaPath"]
+    code_scenes._verify_clip(clip, 8)

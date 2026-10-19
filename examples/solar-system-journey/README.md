@@ -19,6 +19,7 @@ uv run m2v validate --project examples/solar-system-journey
 uv run m2v prepare --project examples/solar-system-journey
 uv run python examples/solar-system-journey/scripts/render-risk.py
 uv run m2v lookdev --project examples/solar-system-journey --stills 5 --sample-seconds 24
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project examples/solar-system-journey
 uv run m2v assets audit --project examples/solar-system-journey
 uv run m2v render --project examples/solar-system-journey

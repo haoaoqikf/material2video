@@ -36,6 +36,16 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
 
     keep = {current}
     keep.update(current.with_suffix(suffix) for suffix in SIDECAR_SUFFIXES)
+    # 只保护当前候选，旧版本候选仍随成功交付清理；失败时调用方不进入清理。
+    from .delivery import read_record
+    record = read_record(outputs)
+    try:
+        candidate = Path(record.get("path", "")).resolve()
+        if candidate.parent == outputs / "candidates" and candidate.is_file():
+            keep.add(candidate)
+            keep.update(candidate.with_suffix(suffix) for suffix in (*SIDECAR_SUFFIXES, ".delivery.json"))
+    except (OSError, TypeError):
+        pass
     failures: list[str] = []
     if preserve_visual_evidence:
         try:

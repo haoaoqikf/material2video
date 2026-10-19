@@ -1,7 +1,7 @@
 """按实际分段音频编译 v8 时间轴；所有可见时序只在准备阶段解析。
 
-画面由作品的本地代码绘制，准备阶段把每一幕录成标准化无声片段，并把画幅、
-字幕几何与媒体映射一起绑进准备指纹。导出只回放这些片段，不运行作品代码。
+画面由作品的本地代码绘制，准备阶段只编译时间轴和源码输入，并把画幅、
+字幕几何与媒体映射一起绑进准备指纹。检查和正式生成按需录制片段后合成。
 """
 from __future__ import annotations
 
@@ -151,10 +151,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
         cinematic.validate_shot_windows(scene["id"], shots,
             {key: {"startFrame": window["startFrame"] - start, "endFrame": window["endFrame"] - start}
              for key, window in scene["segmentWindows"].items()}, duration)
-        scene["mediaPath"] = code_scenes.record(root, scene, inputs, frame=frame,
-                                                media=resolved["media"], media_digest=resolved["digest"],
-                                                profile=actual_profile)
-        scene["trimStartFrames"] = 0
+        # 准备只验证/构建源码以收集可达依赖；录制推迟到检查窗口或正式生成。
+        with tempfile.TemporaryDirectory(prefix="scene-inputs-") as temporary:
+            inputs.update(code_scenes.build_scene(root, scene, Path(temporary)))
     props = copy.deepcopy(source)
     props.update(width=size[0], height=size[1], subtitle=frame["subtitle"],
                  compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor,

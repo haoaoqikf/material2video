@@ -30,9 +30,9 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
         duration_in_frames=props["durationInFrames"], inputs=file_inputs(root, project))
 
 
-def preview(root: Path, project: dict, *, limit_frames: int | None = None) -> Path:
+def preview(root: Path, project: dict, *, limit_frames: int | None = None, start_seconds=0, end_seconds=None) -> Path:
     series = _load(root, project)
-    return housing_render.render(root, series, preview=True, limit_frames=limit_frames)
+    return housing_render.render(root, series, preview=True, limit_frames=limit_frames, start_seconds=start_seconds, end_seconds=end_seconds)
 
 
 def render(root: Path, project: dict) -> Path:

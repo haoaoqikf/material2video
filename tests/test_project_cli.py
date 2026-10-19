@@ -38,7 +38,6 @@ def test_general_render_needs_no_visual_approval_and_preserves_referenced_eviden
                           lambda *_: None, render, prepared_check=lambda *_: prepared)
     monkeypatch.setattr(registry, "_registry", {"general": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda *_: (root, manifest))
-    monkeypatch.setattr("m2v.cli.require_preview", lambda *_args, **_kwargs: {})
 
     assert main(["status", "--project", str(root)]) == 0
     status = json.loads(capsys.readouterr().out)
@@ -179,11 +178,11 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
     evidence = {name: "已逐项检查" for name in criteria}
     record = {"schemaVersion": 1, "status": "pass", "projectId": manifest["id"],
         "preparedFingerprint": prepared["preparedFingerprint"], "criteria": criteria, "evidence": evidence,
-        "preview": {"preparedFingerprint": prepared["preparedFingerprint"],
-                    "path": "outputs/previews/video.mp4",
+        "candidate": {"key": "key", "preparedFingerprint": prepared["preparedFingerprint"],
+                    "path": str(preview_file.resolve()),
                     "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest()}}
-    record["preview"]["frames"] = prepared["durationInFrames"] = 30
-    (root / "outputs" / "preview-record.json").write_text(json.dumps(record["preview"]), encoding="utf-8")
+    record["candidate"]["frames"] = prepared["durationInFrames"] = 30
+    (root / "outputs" / "delivery.json").write_text(json.dumps(record["candidate"]), encoding="utf-8")
     (root / "outputs" / "review.json").write_text(json.dumps(record), encoding="utf-8")
     _require_review(root, manifest, prepared)
 
@@ -193,12 +192,12 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
         _require_review(root, manifest, prepared)
 
 
-def test_preview_record_round_trips_when_the_preview_lives_outside_the_project_root(
+def test_preview_outside_the_project_root_needs_no_record(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """仓库自带示例的作品根是 `examples/<slug>/`，预演却属于 `videos/examples/<slug>/outputs/`。
+    """仓库自带示例的作品根是 `examples/<slug>/`，片段却属于 `videos/examples/<slug>/outputs/`。
 
-    记录按作品根相对化时必须允许 `..`：直接用 `relative_to` 会抛错，完整预演登记不上。
+    片段检查只是可选工具，不再写预演记录，因此作品根之外的输出目录也不影响它。
     """
     root = tmp_path / "examples" / "demo"
     root.mkdir(parents=True)
@@ -221,13 +220,11 @@ def test_preview_record_round_trips_when_the_preview_lives_outside_the_project_r
 
     assert main(["preview", "--project", str(root)]) == 0
 
-    record = json.loads((root / "outputs" / "preview-record.json").read_text(encoding="utf-8"))
-    assert (root / record["path"]).resolve() == preview.resolve()
-    assert record["sha256"] == hashlib.sha256(preview.read_bytes()).hexdigest()
+    assert preview.is_file()
+    assert not (root / "outputs/preview-record.json").exists()
 
 
 def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monkeypatch, capsys) -> None:
-    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *args, **kwargs: None)
     calls: list[str] = []
     root = tmp_path / "hook-project"
     root.mkdir()
@@ -236,8 +233,8 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     preview = root / "outputs" / "previews" / "video.mp4"
     preview.parent.mkdir(parents=True)
     preview.write_bytes(b"full preview")
-    (root / "outputs" / "preview-record.json").write_text(json.dumps({
-        "path": "outputs/previews/video.mp4",
+    (root / "outputs" / "delivery.json").write_text(json.dumps({
+        "key": "key", "path": str(preview.resolve()),
         "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
         "preparedFingerprint": prepared["preparedFingerprint"], "frames": 30,
     }), encoding="utf-8")
@@ -287,8 +284,7 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     assert (root / "outputs" / "review.json").is_file()
 
 
-def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path, monkeypatch, capsys) -> None:
-    monkeypatch.setattr("m2v.core.preview.output_validation.verify_output", lambda *args, **kwargs: None)
+def test_type_without_manual_review_uses_type_gate_and_status(tmp_path: Path, monkeypatch, capsys) -> None:
     calls: list[str] = []
     root = tmp_path / "auto-review"
     root.mkdir()
@@ -299,9 +295,9 @@ def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path,
     preview = outputs / "previews" / "preview.mp4"
     preview.parent.mkdir()
     preview.write_bytes(b"full preview")
-    record = {"path": "outputs/previews/preview.mp4", "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
+    record = {"status": "delivered", "key": "key", "path": str(preview.resolve()), "sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
               "preparedFingerprint": prepared["preparedFingerprint"], "frames": 30}
-    (outputs / "preview-record.json").write_text(json.dumps(record), encoding="utf-8")
+    (outputs / "delivery.json").write_text(json.dumps(record), encoding="utf-8")
     final = outputs / "final.mp4"
 
     def gate(*_args): calls.append("gate")
@@ -325,7 +321,7 @@ def test_type_without_manual_review_uses_preview_gate_and_status(tmp_path: Path,
     assert '"not-required"' in output
 
 
-def test_financial_status_reads_financial_preview_record_path(tmp_path: Path, monkeypatch) -> None:
+def test_financial_status_without_delivery_record_reports_prepared(tmp_path: Path, monkeypatch) -> None:
     from m2v.cli import _status
     from m2v.types.financial.adapter import TYPE as financial_type
     from dataclasses import replace
@@ -344,7 +340,8 @@ def test_financial_status_reads_financial_preview_record_path(tmp_path: Path, mo
     monkeypatch.setattr(registry, "_registry", {
         "financial-timeseries": replace(financial_type, review_gate=lambda *_: None)})
     result = _status(root, manifest)
-    assert result["preview"]["status"] == "current"
+    assert result["stage"] == "prepared"
+    assert "candidate" not in result
     assert result["review"]["status"] == "not-required"
 
 
@@ -367,7 +364,6 @@ def test_failed_unified_render_does_not_clean_old_outputs(tmp_path: Path, monkey
     monkeypatch.setattr(registry, "_registry", {"render-failure": video_type})
     monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
     monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: {"preparedFingerprint": "fp"})
-    monkeypatch.setattr("m2v.cli.require_preview", lambda *_args: None)
     monkeypatch.setattr("m2v.cli._require_type_review", lambda *_args: None)
 
     assert main(["render", "--project", str(root)]) == 1

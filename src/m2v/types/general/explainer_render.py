@@ -1,6 +1,6 @@
 """v8 的字幕量测与可靠 Remotion 导出。
 
-画面由作品代码绘制并在准备阶段录成片段，合成层只回放片段与共享字幕。因此浏览器
+画面由作品代码绘制并在检查或正式生成时按需录成片段，合成层只回放片段与共享字幕。因此浏览器
 量测能负责的只剩**字幕**：安全区矩形、换行范围与可见性。作品正文在栅格片段里，
 系统不声称能自动识别其中的全部正文或主体遮挡——那部分由制作助手实际观看补足。
 """
@@ -92,7 +92,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
     outputs.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="layout-", dir=outputs) as temporary, LocalServer(root, cors=True) as server:
         material = Path(temporary) / "props.json"
-        material.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"}, ensure_ascii=False), encoding="utf-8")
+        material.write_text(json.dumps({**prepared["props"], "compiledScenes": [], "mediaBase": server.base_url + "/"}, ensure_ascii=False), encoding="utf-8")
         frames_to_check = {0, prepared["durationInFrames"] - 1}
         for cue in prepared["props"]["subtitleCues"]:
             frames_to_check.update({cue["startFrame"], cue["endFrame"] - 1})
@@ -122,22 +122,21 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
     return result
 
 
-def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Path:
+def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None, defer_validation=False) -> Path:
     prepared = current(root, project)
     profile = prepared["props"].get("productionProfile", "standard")
-    if limit_frames is not None and (type(limit_frames) is not int or limit_frames < 1):
-        raise M2VError("limit_frames 必须为正整数")
-    if not preview and limit_frames is not None:
-        raise M2VError("正式导出不能限帧")
     width, height = _size(prepared)
     # 预演和正式输出共用字幕量测；失败不能覆盖之前的有效成片。
     started = time.monotonic()
     layout_check(root, prepared)
     layout_seconds = time.monotonic() - started
-    frames_to_render = min(prepared["durationInFrames"], limit_frames or prepared["durationInFrames"])
+    end_frame = end_frame or prepared["durationInFrames"]
+    frames_to_render = end_frame - start_frame
+    from . import code_scenes
+    prepared = code_scenes.materialize(root, prepared, start_frame, end_frame)
     # 固定示例的媒体仍归属 videos/examples，避免改变既有作品路径约定。
     output_root = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
-    destination = output_root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
+    destination = output or output_root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
     destination.parent.mkdir(parents=True, exist_ok=True)
     entry = root / project["materials"]["storyboard"]
     timings = perf.StageTimings()
@@ -155,7 +154,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
             actual = (metadata.fps, metadata.width, metadata.height, metadata.duration_in_frames)
             if expected != actual:
                 raise M2VError(f"讲解 composition 元数据不匹配：{actual}，期望 {expected}")
-            return {"out": str(silent), "crf": 18, "preset": "medium", "frames": f"0-{frames_to_render-1}",
+            return {"out": str(silent), "crf": 18, "preset": "medium", "frames": f"{start_frame}-{end_frame-1}",
                     "scale": 1, "concurrency": 1, "progressTotal": frames_to_render}
         render_start = time.monotonic()
         session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
@@ -166,9 +165,10 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
         master = root / prepared["audio"]["segments"][0]["path"]
         final = work / "final.mp4"
         with perf.measure(timings, "mux"):
-            audio.mux(silent, master, final, frames_to_render / FPS)
+            audio.mux(silent, master, final, frames_to_render / FPS, start=start_frame / FPS)
         with perf.measure(timings, "probe"):
-            output_validation.verify_output(final, frames_to_render, width, height, FPS, expect_audio=True)
+            if not defer_validation:
+                output_validation.verify_output(final, frames_to_render, width, height, FPS, expect_audio=True)
         if current(root, project)["preparedFingerprint"] != prepared["preparedFingerprint"]:
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
@@ -210,3 +210,26 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None) -> Pa
         extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"}))
     logger.info("讲解视频导出通过：%s，%d 帧", destination, frames_to_render)
     return destination
+
+
+def render(root: Path, project: dict, *, preview=False, limit_frames=None,
+           start_seconds=0, end_seconds=None) -> Path:
+    from m2v.core import delivery
+    from m2v.core.preview import window
+    from m2v.core.project import load_project
+    prepared = current(root, project)
+    if preview:
+        start, end = window(prepared["durationInFrames"], FPS, start_seconds=start_seconds,
+                            end_seconds=end_seconds, limit_frames=limit_frames)
+        return _generate(root, project, preview=True, start_frame=start, end_frame=end)
+    if limit_frames is not None or start_seconds or end_seconds is not None:
+        raise M2VError("正式导出不能限制时间范围")
+    def binding():
+        _, latest = load_project(root)
+        return delivery.binding(root, current(root, latest), {"crf": 18, "preset": "medium"})
+    def verify(video):
+        layout_check(root, current(root, project))
+        output_validation.verify_output(video, prepared["durationInFrames"], prepared["width"],
+                                        prepared["height"], FPS, expect_audio=True)
+    return delivery.export_once(delivery.outputs(root) / "video.mp4", binding(),
+        lambda target: _generate(root, project, output=target, defer_validation=True), verify, binding)

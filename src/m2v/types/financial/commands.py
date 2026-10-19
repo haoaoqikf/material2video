@@ -50,7 +50,9 @@ def _parser() -> argparse.ArgumentParser:
         render.add_argument("--project-dir", required=True)
         render.add_argument("--out", help="独立输出 MP4；预演必须位于作品 outputs/previews 内")
         if command == "preview":
-            render.add_argument("--limit-frames", type=int, help="仅预演前 N 帧；短预演不能作为正式验收依据")
+            render.add_argument("--limit-frames", type=int, help="检查片段帧数，必须短于全片")
+            render.add_argument("--start-seconds", type=float, default=0)
+            render.add_argument("--end-seconds", type=float)
         render.add_argument("--crf", type=int, default=18)
         render.add_argument("--preset", choices=("ultrafast", "veryfast", "fast", "medium", "slow", "slower"), default="medium")
     for command in ("plan", "migrate-line"):
@@ -149,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
         root = _project_path(args.project_dir)
         if args.command == "migrate-line":
             backup = financial.migrate_line(root, args.duration_seconds if args.duration_seconds is not None else 60)
-            print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；请重新 prepare 并通过完整预演自动验收。")
+            print(f"已迁移至 version 8 波动节奏竖屏折线；旧材料备份：{backup}；请重新 prepare 并执行 render 一次生成与验收交付。")
             return 0
         if args.command == "plan":
             plan = financial.prepare_line_plan(root, args.duration_seconds)
@@ -166,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             root, docs, output=output, limit_frames=getattr(args, "limit_frames", None),
             preview=args.command == "preview",
             crf=args.crf, preset=args.preset,
+            start_seconds=getattr(args, "start_seconds", 0), end_seconds=getattr(args, "end_seconds", None),
         )
         print(f"金融视频已渲染并通过无音轨验收：{result}")
         return 0

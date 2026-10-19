@@ -2,12 +2,12 @@
 
 面向短视频的离线制作工具链，采用**共享制作底座、独立视频类型、统一制作入口**。当前重点发展金融时间序列等专用视频，再沉淀可复用能力，逐步扩展到通用多场景编排。
 
-所有视频类型统一固定为 **60 fps**，包括场景录制、完整预演和正式导出；旧 30 fps 材料须重新编排。
+所有视频类型统一固定为 **60 fps**，包括场景录制、片段检查和正式导出；旧 30 fps 材料须重新编排。
 
 ## 当前视频类型
 
 <!-- generated:type-catalog:start -->
-- `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整预演自动验收。
+- `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整候选自动验收。
 - `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
@@ -35,34 +35,37 @@ general 的 `m2v lookdev --project <目录>` 支持从当前源码原生采集 3
 静帧的画布像素不足会明确失败，不能以放大 1080p 缓存视频代替。
 cinematic 交付普通 H.264 MP4，不另出母版；standard 与 cinematic 均取消所有制作阶段用户确认。助手自主搜索参考、对照风险样片、返工并对最终文件做全片帧序列与自动音频复核；必改项关闭后才能标记制作完成，CLI 导出不新增视觉记录门禁，详见[电影级制作档位](.agents/skills/material2video/references/cinematic-video.md)。
 
-有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与准备 → 完整预演 → 正式导出。助手读取当前音色列表并按内容选择，用户明确音色优先，不新增试听确认。纯 CLI 读取选音结果；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。助手选择绑定完整旁白，旁白变化需重新判断；实际音色、语速和来源写入准备与成片溯源。无旁白作品无需选音。详细字段、迁移和限制见[配音契约](.agents/skills/material2video/references/media-contract.md#配音音色与语速)。
+有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先，不新增试听确认。纯 CLI 读取选音结果；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。助手选择绑定完整旁白，旁白变化需重新判断；实际音色、语速和来源写入准备与成片溯源。无旁白作品无需选音。详细字段、迁移和限制见[配音契约](.agents/skills/material2video/references/media-contract.md#配音音色与语速)。
 
 ```powershell
 uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/
 uv run m2v validate --project videos/general/<slug>
 # 有自身旁白时，先按上文选音并保存；手动制作可在 prepare 指定 --voice。
 uv run m2v prepare --project videos/general/<slug>
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/general/<slug>
-# 所有类型完整预演自动验收通过后直接导出；人工画面评审为可选工具。
+# 所有类型 render 只生成一次全片，自动验收后直接交付；人工画面评审为可选工具。
 uv run m2v render --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
 
 作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。
 
-`init` 会生成材料模板；通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用工作流先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成原文输入审查与分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。既有作品重新准备并通过完整预演自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。通用类型仅接受 v8；v7 及更早作品必须重新编排。`render` 不修改原始材料；所有类型均要求当前完整预演及自动验收有效，CLI 不要求人工记录或用户确认；general 制作完成仍须助手按自主视觉复核流程检查帧序列与音频候选，不要求播放或试听；`review-template` / `review` 保留为可选工具，文章原文语义审查及金融自动探针保留。
+`preview` 只生成片段，默认前十秒（短作品最多全片减一帧），支持 `--start-seconds 20 --end-seconds 25` 或 `--limit-frames N`，覆盖全片会拒绝。它是可选检查工具，不是 render 的前置条件。`render` 将完整候选和输入/实现/编码参数指纹及 SHA-256 保存在 `outputs/candidates/` 与 `outputs/delivery.json`，验收后复制交付同一文件。同版本重复执行、验收失败或交付失败重试均不重新完整编码；文件损坏或输入变化后才重新生成。`status` 报告已准备、候选待验收、验收失败、可交付、交付失败或已交付。可选评审绑定候选摘要。异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。
 
-房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、60 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，完整预演自动验收通过后即可渲染，人工画面评审为可选工具。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
+`init` 会生成材料模板；通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用工作流先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成原文输入审查与分镜。金融材料沿用 request、prices 和 animation-plan，可用 `m2v financial plan --project <目录>` 离线生成 v8 月波动节奏折线编排；所有新计划默认 60 秒，包含 1 秒开场、57 秒推进和 2 秒静止终幕，不随展示跨度变化，也可通过 `--duration-seconds` 显式指定其他时长。金融折线采用 x=140～940、y=180～1740 的项目布局边界及 x=220～928 绘图区；渲染时测量文字与图表前景的实际包围盒，将其垂直中心自动对齐画布中线 y=960，超过布局边界时阻断。裁剪范围随同一前景变换移动；每帧检查整个历史折线而非仅当前端点，裁剪错位或峰谷被裁切时阻断制作。该边界是项目保守默认值，不代表抖音官方安全区规范。标题格式为“假如你某年买入10万元某标的”，指数保留按比例投资表述，本金含“元”。金融画面底部默认显示统计口径和风险提示，不显示来源标签或来源网站名称；crypto 可配置法律地位说明替换该作品的统计口径和风险提示。完整来源、快照及核验要求保留在作品材料中。既有作品重新准备并通过完整候选自动验收后使用新布局。画面顶部突出实际收盘年份、当前市值和日期，图表只显示跟随最新收盘点的圆点，不重复绘制金额牌，保持历史折线完整可见；终幕冻结完整曲线和坐标，并静止保留最终年份、当前市值及实际收盘日期，不显示收益总结。既有 v8 计划不自动修改，仍按材料内已保存分段校验。v7 保留原日期映射与四秒结尾，已有统一作品需用 `m2v financial migrate-line --project <目录>` 备份升级；旧金融材料使用显式 `m2v migrate --from financial` 迁移。通用类型仅接受 v8；v7 及更早作品必须重新编排。`render` 不修改原始材料；所有类型均要求当前完整候选及自动验收有效，不要求事先预演，CLI 不要求人工记录或用户确认；general 制作完成仍须助手按自主视觉复核流程检查帧序列与音频候选，不要求播放或试听；`review-template` / `review` 保留为可选工具，文章原文语义审查及金融自动探针保留。
+
+房价年度序列通过 `housing-timeseries` 独立类型制作。材料保存在 `series.json`，每个年度点包含住宅销售面积、销售额和按两者换算的平均价格，连续年份和单位由类型校验；默认 30 秒、1080×1920、60 fps 无声逐年折线（可通过 `durationSeconds` 指定 10 至 180 秒），每个年度点停留 0.5 秒并高亮显示准确年份与均价，render 只生成一次全片，完整候选自动验收后直接交付，人工画面评审为可选工具。公布值经过舍入时需说明计算均价的精度限制和统计口径断点。详细字段及流程见 [年度住宅均价视频说明](.agents/skills/material2video/references/housing-timeseries-video.md)。
 
 股票和指数仍按价格或点位比缩放本金；crypto 可指定买入日与 CNY 本金，组合展示价值 = 本金 ×（当前 BTC/USD 收盘价 ÷ 买入日收盘价）×（当日或此前最近 USD/CNY 汇率 ÷ 买入日可用汇率）。crypto 请求还可提供法律地位说明，替换该作品默认估值口径行与通用风险提示；其他作品默认说明不变。prices v4 独立保存汇率来源、观测和原始快照；周末/假日使用最近此前汇率。详见[金融时间序列制作说明](.agents/skills/material2video/references/financial-timeseries-video.md)。
 
-通用讲解与素材剪辑合并到 `general` 一个入口：分镜为 v8 全画布代码场景，每一幕都是作品 `scenes/` 下的本地 React 组件，画幅、配色、构图与动效都由作品代码决定；代码场景由准备阶段按画幅逐帧录制、按源码/画幅/字幕几何/媒体摘要缓存，完整预演与导出复用同一段已验收片段，只允许批准的共享依赖且不访问外网，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。默认发布平台为抖音、1920×1080 横屏、60 fps，显式平台和画幅优先；不影响金融/住宅专用竖屏。画幅支持 1920×1080 横屏与 1080×1920 竖屏。平台属于创作约定，不新增配置字段或自动发布能力；手机观看、资料来源及实际复核规则见[自主视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)。`input.kind` 为 `article` 时绑定 `article.md` 并先完成源文语义审查，为 `topic` 时只声明 `input.topic`、跳过源文审查，由逐幕 `keywords` 驱动可选图库检索。
+通用讲解与素材剪辑合并到 `general` 一个入口：分镜为 v8 全画布代码场景，每一幕都是作品 `scenes/` 下的本地 React 组件，画幅、配色、构图与动效都由作品代码决定；代码场景在检查或正式生成时按所需窗口逐帧录制、按源码/画幅/字幕几何/媒体摘要缓存，检查和正式生成按区间复用录制缓存，完整成片只生成一次，只允许批准的共享依赖且不访问外网，详见 [分镜结构](.agents/skills/material2video/references/storyboard-schema.md)。默认发布平台为抖音、1920×1080 横屏、60 fps，显式平台和画幅优先；不影响金融/住宅专用竖屏。画幅支持 1920×1080 横屏与 1080×1920 竖屏。平台属于创作约定，不新增配置字段或自动发布能力；手机观看、资料来源及实际复核规则见[自主视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)。`input.kind` 为 `article` 时绑定 `article.md` 并先完成源文语义审查，为 `topic` 时只声明 `input.topic`、跳过源文审查，由逐幕 `keywords` 驱动可选图库检索。
 
 媒体进入作品只有一条路：把候选写进导入清单后执行 `m2v general assets import --project <目录> --manifest <清单>`，工具下载或复制素材、实测真实类型与尺寸、按内容摘要落盘到 `assets/media/`，并把来源页、作者、许可、实测像素尺寸、时长与文件摘要写进 `assets/media-sources.json`。准备阶段复核**全部**登记素材，把「素材 ID → 本地地址与实测信息」注入作品代码，作品用 `useMediaAsset(id)` 取用；素材比例不受画幅限制，裁切与摆位由作品决定。录制期本地服务器只暴露登记过的素材与仓库字体，作品拿不到 `assets/` 下的其他文件，也不访问外部网络；被替换过或记录缺失的素材都会让制作失败。可选图库检索用 `m2v general assets search --project <目录>`，支持 Pexels 与 Pixabay（凭据只从环境变量读取：`M2V_PEXELS_API_KEY`、`M2V_PIXABAY_API_KEY`），没有候选不算失败，助手也可以改用其他公开媒体直链再统一导入留证。
 
-声音方面，分镜可用顶层 `soundtrack` 声明本地音床（`sourceRef`、`gainDb`、`loop`、淡入淡出）与最多 128 个音效；音效按 `sceneId`、可选 `segmentId` 与 `offsetMs` 定位，既可引用本地素材，也可使用内置 `ding`、`ding-dong`、`click`、`transition`；准备阶段按真实语音时长分配帧数，无旁白镜头按声明帧数或目标剩余时长分配，最后合成单条母版音轨并严格裁到全片时长，全片最多 600 秒。素材原声不进入母版。当前完整预演自动验收通过后即可渲染，人工画面评审为可选工具。详细字段、检索规则与混音规则见 [文章媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)。
+声音方面，分镜可用顶层 `soundtrack` 声明本地音床（`sourceRef`、`gainDb`、`loop`、淡入淡出）与最多 128 个音效；音效按 `sceneId`、可选 `segmentId` 与 `offsetMs` 定位，既可引用本地素材，也可使用内置 `ding`、`ding-dong`、`click`、`transition`；准备阶段按真实语音时长分配帧数，无旁白镜头按声明帧数或目标剩余时长分配，最后合成单条母版音轨并严格裁到全片时长，全片最多 600 秒。素材原声不进入母版。当前 render 只生成一次全片，完整候选自动验收后直接交付，人工画面评审为可选工具。详细字段、检索规则与混音规则见 [文章媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)。
 
-统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、检查图和已知调试产物；金融完整预演作为自动验收绑定记录予以保留，其他类型按原规则清理预演。保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体；general 额外保留交付输出目录的 visual-notes.md 及其直接文件链接引用的检查证据和前后对照。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
+统一入口的正式渲染通过验收并写完成片旁车后，会清理本作品 `outputs/` 中旧视频、检查图和已知调试产物；三类型保留当前 candidates 完整候选及 delivery.json，旧预演不再作为门禁。保留新成片及旁车、准备/评审 JSON 和可重渲的准备媒体；general 额外保留交付输出目录的 visual-notes.md 及其直接文件链接引用的检查证据和前后对照。渲染失败不会触发清理，共享构建缓存不受影响；清理失败会报告遗留路径。
 
 从临时目录交付的成片、溯源记录、音轨、代码片段、导入素材和缓存条目统一恢复所在目录的继承权限，并复核交付目标，避免 Windows 标准权限应用打开产物时出现 `0x80070005`；父目录权限仍受限时会报告目标与目录。实现与排查见[交付权限](.agents/skills/material2video/references/paths-and-outputs.md#交付权限)。
 
@@ -100,6 +103,6 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 | `window.__A2V__`、`a2v-storyboard`、`/__a2v_web__/` | `window.__M2V__`、`m2v-storyboard`、`/__m2v_web__/` |
 | `a2v-` / `data-a2v-` / `--a2v-` 样式与属性前缀 | `m2v-` / `data-m2v-` / `--m2v-` |
 
-旧命令与旧环境变量不再支持。当前通用类型为 `general`，使用 v8 `storyboard.json`，辅助命令为 `m2v general`；原 `article-narrative` 身份、`m2v article`、`general-plan.json` 编排、六种受控模板、视觉主题与完整片段嵌入已删除；画面以 v8 的全画布逐帧录制链路提供，入口是作品 `scenes/` 下的 TSX。旧材料不自动迁移，旧版分镜需重新编排。修改材料后重新 `prepare` 和完整 `preview`，通过自动验收后导出；人工画面评审为可选工具。
+旧命令与旧环境变量不再支持。当前通用类型为 `general`，使用 v8 `storyboard.json`，辅助命令为 `m2v general`；原 `article-narrative` 身份、`m2v article`、`general-plan.json` 编排、六种受控模板、视觉主题与完整片段嵌入已删除；画面以 v8 的全画布逐帧录制链路提供，入口是作品 `scenes/` 下的 TSX。旧材料不自动迁移，旧版分镜需重新编排。修改材料后重新 `prepare`，按需检查后执行 `render` 一次生成全片并验收交付；人工画面评审为可选工具。
 
 通用作品制作采用[节奏、美术、声音与阶段复核](.agents/skills/material2video/references/creative-production.md)：先低成本整片粗预演和风险样片，再扩展精制；先把核心体验写成可观察验收条目，内容与运动联合预算；文案、节奏、连续性、审美、声音与技术分别复核，检查镜头内部与完整过场，已知体验缺陷不得作为限制放行，按改动影响执行回归，不增加用户审批。

@@ -40,7 +40,7 @@ def test_still_frames_without_shots_are_spread_and_bounded():
 def test_sample_window_covers_first_hero():
     assert lookdev.sample_window(scene_with_shots(HEROES), 24) == (300, 1739)
     plain = {"durationInFrames": 900, "fps": 60, "props": {"compiledScenes": []}}
-    assert lookdev.sample_window(plain, 20) == (0, 899)
+    assert lookdev.sample_window(plain, 20) == (0, 898)
 
 
 def test_sample_window_rejects_impossible_request():

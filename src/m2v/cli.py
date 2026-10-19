@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -11,7 +10,7 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project, load_current_prepared
 from m2v.core.output_cleanup import cleanup_after_render
-from m2v.core.preview import require_preview
+from m2v.core.delivery import candidate, outputs as delivery_outputs, read_record
 from m2v.core.workspace import CONTENT_ROOT_ENV
 from m2v.types import catalog, registry
 
@@ -52,6 +51,8 @@ def _parser() -> argparse.ArgumentParser:
         item.add_argument("--project", required=True)
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
+            item.add_argument("--start-seconds", type=float, default=0)
+            item.add_argument("--end-seconds", type=float)
         if command == "prepare":
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
@@ -82,7 +83,7 @@ def _parser() -> argparse.ArgumentParser:
     relocate.add_argument("--project", required=True, help="旧的 videos/<slug> 作品目录")
     relocate.add_argument("--content-root", help=f"工作区根；省略时取 {CONTENT_ROOT_ENV} 或仓库根")
     general = sub.add_parser("general", help="通用类型的语义审查、候选稿与媒体素材操作")
-    general.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "samples", "rehearsal", "assets"))
+    general.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "assets"))
     general.add_argument("options", nargs=argparse.REMAINDER)
     financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
@@ -168,55 +169,33 @@ def _prepared(root: Path, manifest: dict) -> dict:
 
 def _status(root: Path, manifest: dict) -> dict:
     video_type = registry.get(manifest["type"])
-    review_status = {"status": "optional" if video_type.manual_review_available else "not-required",
-                     "required": False}
+    result = {"id": manifest["id"], "type": manifest["type"],
+              "review": {"status": "optional" if video_type.manual_review_available else "not-required", "required": False}}
     if manifest["type"] == "general":
-        review_status["detail"] = "CLI 仅报告技术就绪与可选评审状态；制作完成须由助手复核帧序列和自动音频候选并关闭必改项，无需播放、试听或用户确认。"
-    preview_status = {"status": "missing"}
+        result["review"]["detail"] = "技术就绪不代表制作完成；助手须复核全片帧序列和自动音频候选并关闭必改项，无需用户确认。"
     try:
         prepared = _prepared(root, manifest)
-        prep = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
+        result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
-        return {"id": manifest["id"], "type": manifest["type"],
-                "prepare": {"status": "stale-or-missing", "detail": str(exc)},
-                "preview": preview_status, "review": review_status}
-    record_path = root / "outputs/preview-record.json"
-    if manifest["type"] == "financial-timeseries":
-        record_path = root / "outputs/previews/preview-record.json"
-    if record_path.exists():
+        result.update(prepare={"status": "stale-or-missing", "detail": str(exc)}, stage="unprepared")
+        return result
+    result["stage"] = "prepared"
+    record = read_record(delivery_outputs(root))
+    if record:
         try:
-            if manifest["type"] == "financial-timeseries":
-                _require_type_review(video_type, root, manifest)
-                record = json.loads(record_path.read_text(encoding="utf-8"))
-                video = (root / record["path"]).resolve()
-                if (not record.get("materialsAndAssetsSha256") or not video.is_file()
-                        or hashlib.sha256(video.read_bytes()).hexdigest() != record.get("sha256")):
-                    raise M2VError("金融预演文件或绑定已变化")
-            else:
-                record = require_preview(root, prepared, verify_media=False)
-            preview_status = {"status": "current", "path": record["path"]}
-        except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
-            preview_status = {"status": "stale", "detail": str(exc)}
+            record = candidate(root, prepared)
+            result["candidate"] = record
+            result["stage"] = record["status"]
+        except M2VError as exc:
+            result["candidate"] = {"status": "stale", "detail": str(exc)}
     review_path = root / "outputs/review.json"
     if video_type.manual_review_available and review_path.exists():
         try:
-            review = json.loads(review_path.read_text(encoding="utf-8"))
-            criteria = _review_criteria(root, manifest, prepared)
-            if (not isinstance(review, dict) or review.get("schemaVersion") != 1
-                    or review.get("projectId") != manifest["id"]
-                    or review.get("preparedFingerprint") != prep["fingerprint"]
-                    or review.get("criteria") != criteria or preview_status["status"] != "current"
-                    or review.get("preview") != record):
-                review_status["status"] = "stale"
-            else:
-                evidence = review.get("evidence")
-                complete = (isinstance(evidence, dict) and set(evidence) == set(criteria)
-                            and all(isinstance(v, str) and v.strip() for v in evidence.values()))
-                review_status["status"] = review.get("status", "pending") if complete else "pending"
-        except (OSError, ValueError, KeyError, TypeError):
-            review_status["status"] = "stale"
-    return {"id": manifest["id"], "type": manifest["type"], "prepare": prep,
-            "preview": preview_status, "review": review_status}
+            _require_review(root, manifest, prepared)
+            result["review"]["status"] = "pass"
+        except M2VError as exc:
+            result["review"].update(status="pending-or-stale", detail=str(exc))
+    return result
 
 
 def _review_criteria(root: Path, manifest: dict, prepared: dict) -> dict[str, str]:
@@ -245,10 +224,10 @@ def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
     if (not isinstance(evidence, dict) or set(evidence) != set(criteria)
             or any(not isinstance(value, str) or not value.strip() for value in evidence.values())):
         raise M2VError("评审通过必须为当前类型的每项结论填写非空证据")
-    preview = review.get("preview")
-    current_preview = require_preview(root, prepared, verify_media=False)
-    if not isinstance(preview, dict) or preview != current_preview:
-        raise M2VError("评审没有绑定当前完整预演")
+    preview = review.get("candidate")
+    current_preview = candidate(root, prepared)
+    if not isinstance(preview, dict) or any(preview.get(key) != current_preview.get(key) for key in ("key", "sha256", "preparedFingerprint")):
+        raise M2VError("评审没有绑定当前完整候选")
 
 
 def _require_type_review(video_type, root: Path, manifest: dict) -> None:
@@ -362,8 +341,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command in {"preview", "render"}:
             prepared = _prepared(root, manifest)
             if args.command == "render":
-                if manifest["type"] != "financial-timeseries":
-                    require_preview(root, prepared)
                 _require_type_review(video_type, root, manifest)
                 output = video_type.render(root, manifest)
                 try:
@@ -377,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
                 if root.parent.name == "examples":
                     expected_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
                 failures = cleanup_after_render(expected_outputs, output_path,
-                    preserve_previews=manifest["type"] == "financial-timeseries",
+                    preserve_previews=False,
                     preserve_visual_evidence=manifest["type"] == "general")
                 if failures:
                     for failure in failures:
@@ -385,40 +362,26 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     print("旧视频及可再生产物已清理")
             else:
-                output = video_type.preview(root, manifest, limit_frames=getattr(args, "limit_frames", None))
+                output = video_type.preview(root, manifest, limit_frames=args.limit_frames,
+                    start_seconds=args.start_seconds, end_seconds=args.end_seconds)
                 if not output.is_file():
-                    raise M2VError(f"预演没有生成视频：{output}")
-                if getattr(args, "limit_frames", None) is not None and args.limit_frames < prepared["durationInFrames"]:
-                    print(f"限帧调试预览已生成（不会绑定评审）：{output}")
-                    return 0
-                digest = hashlib.sha256(output.read_bytes()).hexdigest()
-                # 预演不一定落在作品根下：仓库自带示例的作品根是 examples/<slug>/，
-                # 预演却属于 videos/examples/<slug>/outputs/。记录统一按作品根相对化，
-                # 允许 `..`，读回时仍用 `root / path` 解析。
-                relative = Path(os.path.relpath(output.resolve(), root)).as_posix()
-                record = {"path": relative, "sha256": digest,
-                          "frames": prepared["durationInFrames"], "preparedFingerprint": prepared["preparedFingerprint"]}
-                # 档位随预演一起留证：同一指纹下档位不会变，但记录要能自证。
-                # 按准备记录里是否声明档位判断，不按类型名分发。
-                profile = prepared.get("props", {}).get("productionProfile")
-                if profile is not None:
-                    record["productionProfile"] = profile
-                (root / "outputs" / "preview-record.json").write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                    raise M2VError(f"片段检查没有生成视频：{output}")
+                print("片段检查完成，不作为全片生成的前置条件")
             print(f"视频输出：{output}")
             return 0
         if args.command == "review-template":
             if not video_type.manual_review_available:
-                print("当前类型使用完整预演自动验收，不提供人工评审模板")
+                print("当前类型使用候选自动验收，不提供人工评审模板")
                 return 0
             video_type.validate(root, manifest)
             prepared = _prepared(root, manifest)
-            preview = require_preview(root, prepared, verify_media=False)
+            preview = candidate(root, prepared)
             (root / "outputs").mkdir(exist_ok=True)
             criteria = _review_criteria(root, manifest, prepared)
             template = {"schemaVersion": 1, "status": "pending", "criteria": criteria,
                         "evidence": {name: "" for name in criteria},
                         "projectId": manifest["id"], "preparedFingerprint": prepared["preparedFingerprint"],
-                        "preview": preview}
+                        "candidate": {key: preview[key] for key in ("key", "sha256", "preparedFingerprint")}}
             if video_type.review_template is not None:
                 video_type.review_template(root, manifest)
             (root / "outputs" / "review.json").write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -427,15 +390,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "review":
             prepared = _prepared(root, manifest)
             if not video_type.manual_review_available:
-                if manifest["type"] != "financial-timeseries":
-                    require_preview(root, prepared)
+                record = candidate(root, prepared)
+                if record.get("status") not in {"ready", "delivered"}:
+                    raise M2VError("当前候选尚未通过自动验收；请执行 m2v render 重试检查")
                 _require_type_review(video_type, root, manifest)
-                print("当前类型的完整预演自动验收通过；人工评审不适用")
+                print("当前类型的完整候选自动检查通过；人工评审不适用")
                 return 0
-            require_preview(root, prepared)
+            candidate(root, prepared)
             _require_review(root, manifest, prepared)
             _require_type_review(video_type, root, manifest)
-            print("当前准备版本与完整预演评审通过")
+            print("当前准备版本与完整候选评审通过")
             return 0
         return 0
     except M2VError as exc:

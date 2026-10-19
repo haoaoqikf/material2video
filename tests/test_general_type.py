@@ -67,13 +67,23 @@ def test_preparation_for_old_type_cannot_authorize_general(tmp_path, monkeypatch
 
 
 @pytest.mark.slow
-def test_general_full_preview_and_render(tmp_path, monkeypatch, chromium_ready):
-    """用本地合成音频走真实浏览器、Remotion、完整预演门禁与成片验收。"""
+def test_general_partial_check_and_single_full_render(tmp_path, monkeypatch, chromium_ready):
+    """用本地合成音频走真实浏览器、Remotion、片段检查与单次全片验收。"""
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
-    assert main(["preview", "--project", str(root)]) == 0
+    from m2v.engine import remotion
+    sessions = []
+    original = remotion.render_session
+    def counted(**kwargs):
+        sessions.append(kwargs)
+        return original(**kwargs)
+    monkeypatch.setattr(remotion, "render_session", counted)
+    assert main(["preview", "--project", str(root), "--start-seconds", "0.5", "--end-seconds", "0.75"]) == 0
     assert main(["render", "--project", str(root)]) == 0
+    assert main(["render", "--project", str(root)]) == 0
+    assert len(sessions) == 2, "一次片段 + 一次全片；重复 render 不生成"
+
     provenance = json.loads((root / "outputs/video.provenance.json").read_text(encoding="utf-8"))
     assert provenance["type"] == "general"
     assert provenance["compositionId"] == "ArticleExplainer"

@@ -9,6 +9,7 @@ uv run m2v init --type housing-timeseries --project <slug>
 # 编辑 series.json，放入连续年份、住宅销售额/面积、均价、来源和口径说明
 uv run m2v validate --project videos/housing-timeseries/<slug>
 uv run m2v prepare --project videos/housing-timeseries/<slug>
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/housing-timeseries/<slug>
 uv run m2v render --project videos/housing-timeseries/<slug>
 ```
@@ -28,4 +29,4 @@ uv run m2v render --project videos/housing-timeseries/<slug>
 
 统计口径断点通过材料 `breakpoints` 声明。郑州序列标注 2005 年起销售面积和销售额统计采用新口径；底部保留计算方法、原始数据精度限制、来源机构及年份范围。完整来源 URL 和各年原始面积/金额留在作品材料中。成片不得带音轨或字幕轨。
 
-默认流程为校验 → 准备 → 完整预演 → 正式导出；无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出；主动执行 `review` 时仍检查当前绑定、结论与非空依据，不自动生成人工通过结论。
+默认流程为校验 → 准备 → 按需片段检查 → 全片生成一次并验收交付；无需人工查看画面、填写依据或再次确认。可选人工评审记录缺失、待填、失败或过期均不阻断导出；主动执行 `review` 时仍检查当前绑定、结论与非空依据，不自动生成人工通过结论。

@@ -4,9 +4,9 @@
     {
       "name": "financial-timeseries",
       "description": "金融时间序列与假设投资价值演变",
-      "summary": "股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整预演自动验收。",
+      "summary": "股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整候选自动验收。",
       "plan": "保留独立金融材料、投资价值计算、专用画面与确定性技术验收。",
-      "skillGuide": "[金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整预演自动验收。",
+      "skillGuide": "[金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。",
       "materials": [
         {
           "name": "request",
@@ -83,7 +83,7 @@
       "name": "general",
       "description": "通用",
       "summary": "v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。",
-      "plan": "以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整预演自动验收。",
+      "plan": "以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。",
       "skillGuide": "[作品视觉设计与制作流程](references/production-workflow.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[代码场景契约](references/render-contract.md)：v8 全画布代码场景多幕讲解。",
       "materials": [
         {

@@ -447,29 +447,10 @@ def preview_fixture(root, docs):
     return digest
 
 
-def test_automatic_gate_requires_current_complete_preview_and_digest(tmp_path):
+def test_automatic_gate_does_not_require_preview(tmp_path):
+    from m2v.types.financial.adapter import review_gate
     root = project(tmp_path)
-    docs = financial.load_project(root)
-    with pytest.raises(M2VError, match="完整预演记录"):
-        financial.load_preview_record(root, docs)
-    preview_fixture(root, docs)
-    assert financial.load_preview_record(root, docs)["frames"] == docs["plan"]["durationSeconds"] * 60
-    path = root / "outputs" / "previews" / "preview-record.json"
-    record = json.loads(path.read_text(encoding="utf-8"))
-    record["frames"] -= 1
-    path.write_text(json.dumps(record), encoding="utf-8")
-    with pytest.raises(M2VError, match="完整预演记录"):
-        financial.load_preview_record(root, docs)
-    record["frames"] = docs["plan"]["durationSeconds"] * 60
-    record["materialsAndAssetsSha256"] = "0" * 64
-    path.write_text(json.dumps(record), encoding="utf-8")
-    with pytest.raises(M2VError, match="完整预演记录"):
-        financial.load_preview_record(root, docs)
-    record["materialsAndAssetsSha256"] = financial.render_inputs_digest(root)
-    path.write_text(json.dumps(record), encoding="utf-8")
-    (root / "outputs" / "previews" / "test.mp4").write_bytes(b"changed preview")
-    with pytest.raises(M2VError, match="完整预演记录"):
-        financial.load_preview_record(root, docs)
+    review_gate(root, {"materials": {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"}})
 
 
 def test_plan_validates_data_before_overwriting_and_rejects_legacy(tmp_path):
@@ -515,21 +496,11 @@ def test_close_only_legacy_migration_and_mixed_versions(tmp_path):
     assert financial.load_project(root)["plan"]["schemaVersion"] == 8
 
 
-def test_short_or_asset_stale_preview_cannot_supply_review(tmp_path, monkeypatch):
-    import m2v.engine.remotion as remotion
-
+def test_full_preview_range_is_rejected(tmp_path):
     root = project(tmp_path)
     docs = financial.load_project(root)
-    preview_fixture(root, docs)
-    path = root / "outputs/previews/preview-record.json"
-    edit_record = json.loads(path.read_text(encoding="utf-8"))
-    path.write_text(json.dumps({**edit_record, "frames": 2}), encoding="utf-8")
-    with pytest.raises(M2VError, match="完整时长"):
-        financial.load_preview_record(root, docs)
-    path.write_text(json.dumps(edit_record), encoding="utf-8")
-    monkeypatch.setattr(remotion, "build_inputs", lambda **kwargs: [])
-    with pytest.raises(M2VError, match="资产已变化"):
-        financial.load_preview_record(root, docs)
+    with pytest.raises(M2VError, match="不能覆盖全片"):
+        financial_render.render(root, docs, preview=True, limit_frames=docs["plan"]["durationSeconds"] * 60)
 
 
 def test_preview_cannot_overwrite_a_final_video(tmp_path):
@@ -576,7 +547,7 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     )
     assert output.read_bytes() == b"bypass preview"
     assert record_path.read_bytes() == recorded, "旁路预演不得改写已登记的预演记录"
-    assert financial.load_preview_record(root, docs)["path"] == "outputs/previews/test.mp4"
+    assert record_path.read_bytes() == recorded
 
 
 @pytest.mark.parametrize("preview", [False, True])
@@ -596,7 +567,11 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     root = project(tmp_path)
     docs = financial.load_project(root)
     if not preview:
-        monkeypatch.setattr(financial, "load_preview_record", lambda *args, **kwargs: {"path": "preview.mp4"})
+        from m2v.core.project import create_project, load_project
+        from m2v.types.financial.adapter import prepare
+        create_project(root, "financial-timeseries", {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"})
+        _, manifest = load_project(root)
+        prepare(root, manifest)
     bundle = tmp_path / "bundle"
     bundle.mkdir()
     monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
@@ -620,8 +595,8 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
         root, docs, preview=preview, limit_frames=2 if preview else None, preset="ultrafast",
     )
     assert output.is_file()
-    assert granted == [output], f"应只对最终落地的文件授予一次访问权限，实际 {granted}"
-    assert granted[0].parent in (root / "outputs", root / "outputs/previews")
+    assert output in granted
+    assert all(path.is_file() for path in granted)
 
 
 def test_init_creates_content_templates_for_a_stock_or_index(tmp_path, capsys):

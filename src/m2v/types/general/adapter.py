@@ -15,8 +15,8 @@ def prepare(root: Path, project: dict, **options) -> dict:
     return explainer_prepare.prepare(root, project, **options)
 
 
-def preview(root: Path, project: dict, *, limit_frames=None) -> Path:
-    return explainer_render.render(root, project, preview=True, limit_frames=limit_frames)
+def preview(root: Path, project: dict, *, limit_frames=None, start_seconds=0, end_seconds=None) -> Path:
+    return explainer_render.render(root, project, preview=True, limit_frames=limit_frames, start_seconds=start_seconds, end_seconds=end_seconds)
 
 
 def render(root: Path, project: dict) -> Path:
@@ -27,9 +27,6 @@ def review_gate(root: Path, project: dict) -> None:
     validate(root, project)
     explainer_review.require_input(root, project)
     prepared = explainer_render.current(root, project)
-    # 正式导出验证完整预演，不依赖可选人工评审。
-    from m2v.core.preview import require_preview
-    require_preview(root, prepared)
 
 
 TYPE = VideoType("general", validate, prepare, preview, render,

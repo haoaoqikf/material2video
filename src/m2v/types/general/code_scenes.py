@@ -1,4 +1,4 @@
-"""可信 React 场景构建与逐帧录制。录制产物是准备输入，导出不运行作品代码。
+"""可信 React 场景构建与按需逐帧录制。准备绑定源码，最终合成回放录制片段。
 
 v8 的作品代码控制整张画布：录制 viewport、页面根元素、ffmpeg 标准化与 composition
 都用作品声明的画幅。共享层只提供片段回放与字幕，不再画标题或内容框。
@@ -112,8 +112,40 @@ def build_scene(root: Path, scene: dict, work: Path) -> dict[str, str]:
     return source_inputs
 
 
+def _valid_clip(video: Path, receipt: Path) -> bool:
+    try:
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+        return video.is_file() and data.get("sha256") == digest(video)
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def _clip_receipt(video: Path, first: int, last: int) -> None:
+    from m2v.core.project import _write_json
+    _write_json(video.with_suffix(".json"), {"sha256": digest(video), "first": first, "last": last})
+
+
+def _cached_ranges(cache: Path, key: str, first: int, last: int) -> list:
+    candidates = []
+    for receipt in cache.glob(f"{key}-*.json"):
+        try:
+            data = json.loads(receipt.read_text(encoding="utf-8"))
+            begin, finish = data["first"], data["last"]
+            video = receipt.with_suffix(".mp4")
+            if first <= begin < finish <= last and _valid_clip(video, receipt):
+                candidates.append((begin, finish, video))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    accepted, cursor = [], first
+    for begin, finish, video in sorted(candidates, key=lambda item: (item[0], -item[1])):
+        if begin >= cursor:
+            accepted.append((begin, finish, video))
+            cursor = finish
+    return accepted
+
+
 def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
-           profile: str = "standard") -> str:
+           profile: str = "standard", capture_range: tuple[int, int] | None = None) -> str:
     """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与档位都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
@@ -123,6 +155,9 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     cache = root / "outputs/code-cache"
     cache.mkdir(parents=True, exist_ok=True)
     config = scene_config(scene, frame, media, profile=profile)
+    first, last = capture_range or (0, config["durationInFrames"])
+    if not 0 <= first < last <= config["durationInFrames"]:
+        raise M2VError("场景采集范围越界")
     with tempfile.TemporaryDirectory(prefix="code-", dir=cache) as temporary:
         work = Path(temporary)
         source_inputs = build_scene(root, scene, work)
@@ -133,18 +168,41 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
             executable = Path(browser_version)
             key = fingerprint({"config": config, "media": media_digest, "sources": source_inputs,
                                "implementation": implementation_inputs(),
-                               "browser": digest(executable), "size": [width, height], "capture": "fixed-clock-png-444-v3"})
-            output = cache / f"{key}.mp4"
-            receipt = cache / f"{key}.json"
-            if output.is_file() and receipt.is_file() and receipt.read_text() == digest(output):
+                               "browser": digest(executable), "size": [width, height], "capture": "fixed-clock-png-444-v5"})
+            output = cache / f"{key}-{first}-{last}.mp4"
+            receipt = output.with_suffix(".json")
+            if _valid_clip(output, receipt):
                 logger.info("代码场景 %s 复用录制缓存", scene["id"])
             else:
-                logger.info("代码场景 %s 开始逐帧录制：%.2f 秒，%d×%d",
-                            scene["id"], config["durationInFrames"] / FPS, width, height)
-                _capture(pw, root, work, config)
-                _encode(work, output, config["durationInFrames"], width, height,
-                        supersample=int((config.get("motion") or {}).get("supersample", 1)))
-                receipt.write_text(digest(output))
+                # 已检查的区间原样复用，只采集缺口；不能为补齐整幕再截图一次已有帧。
+                accepted = _cached_ranges(cache, key, first, last)
+                pieces = []
+                cursor = first
+                for begin, finish, clip in [*accepted, (last, last, None)]:
+                    if begin > cursor:
+                        gap = work / f"gap-{cursor}"
+                        gap.mkdir()
+                        shutil.copyfile(work / "scene.js", gap / "scene.js")
+                        target = cache / f"{key}-{cursor}-{begin}.mp4"
+                        logger.info("代码场景 %s 采集缺口 %d～%d", scene["id"], cursor, begin)
+                        _capture(pw, root, gap, config, selected_frames=list(range(cursor, begin)))
+                        _encode(gap, target, begin-cursor, width, height, start_frame=cursor,
+                                supersample=int((config.get("motion") or {}).get("supersample", 1)))
+                        _clip_receipt(target, cursor, begin)
+                        pieces.append(target)
+                    if clip is not None:
+                        pieces.append(clip)
+                    cursor = finish
+                if len(pieces) == 1 and pieces[0] == output:
+                    pass
+                else:
+                    listing = work / "concat.txt"
+                    listing.write_text("".join("file '" + str(p.resolve()).replace("\\", "/").replace("'", "'\\''") + "'\n" for p in pieces), encoding="utf-8")
+                    combined = work / "combined.mp4"
+                    audio.ffmpeg(["-f", "concat", "-safe", "0", "-i", str(listing), "-c", "copy", str(combined)])
+                    _verify_clip(combined, last-first)
+                    security.deliver(combined, output)
+                _clip_receipt(output, first, last)
         relative = output.relative_to(root).as_posix()
         inputs["file:" + relative] = digest(output)
         return relative
@@ -340,25 +398,53 @@ def media_files(root: Path, media: dict) -> dict[str, Path]:
     return files
 
 
-def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1) -> None:
+def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1, start_frame: int = 0) -> None:
     temporary = work / "encoded.mp4"
     # yuv444p 而不是 yuv420p：片段会与作品画布直接拼接，4:2:0 的色度抽样会让底色偏
     # 一两个色阶，在深色画面上显出方块边缘；4:4:4 的往返对纯色是精确的。
     captured = sorted(work.glob("frame-*.png"))
-    if len(captured) != frames or any(path.name != f"frame-{i:06d}.png" for i, path in enumerate(captured)):
+    if len(captured) != frames or any(path.name != f"frame-{i + start_frame:06d}.png" for i, path in enumerate(captured)):
         raise M2VError("代码场景采集帧缺失，拒绝补帧编码")
     scale: list[str] = []
     if supersample > 1:
         # SSAA：采集时按 2 倍设备像素渲染，编码时降采样回目标画幅。
         scale = ["-vf", f"scale={width}:{height}:flags=lanczos"]
-    audio.ffmpeg(["-framerate", str(FPS), "-start_number", "0", "-i", str(work / "frame-%06d.png"),
+    audio.ffmpeg(["-framerate", str(FPS), "-start_number", str(start_frame), "-i", str(work / "frame-%06d.png"),
                   *scale, "-an", "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p",
                   "-crf", "18", str(temporary)])
-    # 解码实际帧数，不能仅相信容器时长或声明帧率。
+    _verify_clip(temporary, frames)
+    security.deliver(temporary, output)
+
+
+def _verify_clip(video: Path, frames: int) -> None:
+    # 缓存拼接也必须解码核验帧数，不能相信容器时长。
     from imageio_ffmpeg import get_ffmpeg_exe
-    result = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(temporary), "-map", "0:v:0",
+    result = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(video), "-map", "0:v:0",
                              "-f", "framehash", "-"], capture_output=True, text=True, timeout=300)
     decoded = sum(bool(line.strip()) and not line.startswith("#") for line in result.stdout.splitlines())
     if result.returncode or decoded != frames:
         raise M2VError(f"代码场景编码帧数不符：期望 {frames}，实际 {decoded}")
-    security.deliver(temporary, output)
+
+
+def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
+    """只录制与半开全片窗口相交的场景，保留原始时间轴和转场。"""
+    import copy
+    from . import media_assets
+    from m2v.engine import frames
+    result = copy.deepcopy(prepared)
+    frame = frames.spec(prepared["width"], prepared["height"])
+    media = media_assets.resolve(root)
+    selected = []
+    for scene in result["props"]["compiledScenes"]:
+        first = max(start, scene["startFrame"]) - scene["startFrame"]
+        last = min(end, scene["endFrame"]) - scene["startFrame"]
+        if first >= last:
+            continue
+        scene["mediaPath"] = record(root, scene, {}, frame=frame, media=media["media"],
+            media_digest=media["digest"], profile=prepared["props"].get("productionProfile", "standard"),
+            capture_range=(first, last))
+        scene["mediaStartFrame"] = first
+        scene["mediaDurationFrames"] = last - first
+        selected.append(scene)
+    result["props"]["compiledScenes"] = selected
+    return result

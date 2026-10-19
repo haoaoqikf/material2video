@@ -29,6 +29,7 @@
 ```bash
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v validate --project videos/general/<slug>
+# 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/general/<slug>
 uv run m2v review-template --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
@@ -40,11 +41,11 @@ uv run m2v render --project videos/general/<slug>
    不接受整段字符串；代码幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
    通用 v8 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 24 帧阅读时间；
-   `code` 幕在这一步逐帧录制片段并按摘要缓存（见 [渲染契约](render-contract.md)）。
+   `code` 幕只构建源码并记录依赖，片段在检查或正式生成时按需录制并缓存（见 [渲染契约](render-contract.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
-4. `m2v preview --project <目录>` 生成完整预演（通用 v8 会先跑浏览器字幕量测）；
-   `m2v general keyframes --storyboard <分镜>` 单独输出各幕结果帧供静态检查。
-5. `m2v render --project <目录>` 在准备和完整预演均绑定当前材料并通过自动验收时输出正式视频；人工画面评审为可选工具。
+4. `m2v preview --project <目录>` 生成严格短于全片的检查片段（默认前十秒，支持起止时间）；
+   `m2v general keyframes --storyboard <分镜>` 原生采集代表关键帧供静态检查。
+5. `m2v render --project <目录>` 在当前准备有效时只生成一次完整候选，自动验收后复制交付同一文件；人工画面评审为可选工具。
 
 通用 v8 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
 `m2v general input-review --storyboard
@@ -157,7 +158,7 @@ uv run m2v render --project videos/general/<slug>
 
 助手记录只接受 mode、非空 rationale 和 64 位小写 narrationSha256。旁白改变会阻断 prepare，要求重新判断并更新记录；画面变化不要求重选。手动选择只填 voice，无需 selection；手动修改作品音色时删除旧 selection。`--voice` 覆盖会标记 command-line 来源，并丢弃助手理由；仅覆盖语速不跳过旁白摘要检查。
 
-`outputs/prepared.json` 与成片旁车的 `inputs.tts` 保存 JSON 字符串，包含实际 backend、voice、rate、source（assistant/project/command-line）、有效 selection 及作品级 speech。逐幕停顿参数保存在 `props.compiledScenes[].speech`，原始分镜摘要参与指纹；旧 `inputs.speech:<场景ID>` 不再生成。音色、语速、来源参与准备指纹，修改作品配置必须重新准备和完整预演。语音缓存仍按实际文本、音色、语速等键复用，不因为选择理由变化重复合成。
+`outputs/prepared.json` 与成片旁车的 `inputs.tts` 保存 JSON 字符串，包含实际 backend、voice、rate、source（assistant/project/command-line）、有效 selection 及作品级 speech。逐幕停顿参数保存在 `props.compiledScenes[].speech`，原始分镜摘要参与指纹；旧 `inputs.speech:<场景ID>` 不再生成。音色、语速、来源参与准备指纹，修改作品配置必须重新准备并生成当前候选。语音缓存仍按实际文本、音色、语速等键复用，不因为选择理由变化重复合成。
 
 **换音色比调语速更能改变节奏。** 同一篇长稿、同一标点，量测句间停顿：
 

@@ -45,9 +45,9 @@ def _inputs_digest(project_dir: Path) -> str:
     return digest.hexdigest()
 
 
-def render(project_dir: Path, series: dict, *, output: Path | None = None,
+def _generate(project_dir: Path, series: dict, *, output: Path | None = None,
            limit_frames: int | None = None, preview: bool = False,
-           crf: int = 18, preset: str = "medium") -> Path:
+           crf: int = 18, preset: str = "medium", start_frame: int = 0, defer_validation: bool = False) -> Path:
     if not 0 <= crf <= 51:
         raise M2VError("CRF 必须处于 0 至 51")
     total_frames = series.get("durationSeconds", housing.DEFAULT_DURATION_SECONDS) * housing.FPS
@@ -87,7 +87,7 @@ def render(project_dir: Path, series: dict, *, output: Path | None = None,
             if actual != expected:
                 raise M2VError(f"composition 元数据不匹配：期望 {expected}，实际 {actual}")
             return {"out": str(temp_video), "crf": crf, "preset": preset,
-                    "frames": f"0-{frames - 1}", "scale": 1, "concurrency": 1,
+                    "frames": f"{start_frame}-{start_frame + frames - 1}", "scale": 1, "concurrency": 1,
                     "progressTotal": frames}
 
         render_started = time.monotonic()
@@ -97,8 +97,9 @@ def render(project_dir: Path, series: dict, *, output: Path | None = None,
         timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(time.monotonic() - render_started - timings.as_dict()["metadata"], 0))
         with perf.measure(timings, "probe"):
-            output_validation.verify_output(temp_video, frames, housing.WIDTH, housing.HEIGHT, housing.FPS)
-            _assert_no_audio(temp_video)
+            if not defer_validation:
+                output_validation.verify_output(temp_video, frames, housing.WIDTH, housing.HEIGHT, housing.FPS)
+                _assert_no_audio(temp_video)
         if inputs_digest != _inputs_digest(project_dir):
             raise M2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         security.deliver(temp_video, destination)
@@ -116,5 +117,36 @@ def render(project_dir: Path, series: dict, *, output: Path | None = None,
         concurrency=1, timings=timings, total_seconds=time.monotonic() - started,
         cache={"status": outcome.cache_status, "key": outcome.cache_key, "detail": outcome.cache_detail},
         extra={"compositionId": COMPOSITION_ID}))
-    logger.info("住宅均价视频导出通过：%s（%d 帧，%d fps，无音轨）", destination, frames, housing.FPS)
+    logger.info("住宅均价视频已生成：%s（%d 帧，%d fps，无音轨）", destination, frames, housing.FPS)
     return destination
+
+
+def render(project_dir: Path, series: dict, *, output: Path | None = None,
+           limit_frames: int | None = None, preview: bool = False, crf: int = 18,
+           preset: str = "medium", start_seconds: float = 0, end_seconds: float | None = None) -> Path:
+    from m2v.core import delivery
+    from m2v.core.preview import window
+    from m2v.core.project import load_project, load_current_prepared
+    material = series
+    total = series.get("durationSeconds", housing.DEFAULT_DURATION_SECONDS) * housing.FPS
+    if preview:
+        start, end = window(total, housing.FPS, start_seconds=start_seconds, end_seconds=end_seconds, limit_frames=limit_frames)
+        return _generate(project_dir, material, output=output, preview=True, limit_frames=end-start,
+                         start_frame=start, crf=crf, preset=preset)
+    if limit_frames is not None or start_seconds or end_seconds is not None:
+        raise M2VError("正式导出不能限制时间范围")
+    if output is not None and output.resolve().is_relative_to((project_dir / "outputs/previews").resolve()):
+        raise M2VError("正式成片不能写入 previews")
+    root, project = load_project(project_dir)
+    def current():
+        _, latest = load_project(root)
+        prepared = load_current_prepared(root, latest)
+        return delivery.binding(root, prepared, {"crf": crf, "preset": preset,
+            "inputs": _inputs_digest(root)})
+    def verify(video):
+        output_validation.verify_output(video, total, housing.WIDTH, housing.HEIGHT, housing.FPS)
+        _assert_no_audio(video)
+    destination = output or root / "outputs/housing-timeseries.mp4"
+    return delivery.export_once(destination, current(),
+        lambda target: _generate(root, material, output=target, crf=crf, preset=preset, defer_validation=True),
+        verify, current, directory=delivery.outputs(root))

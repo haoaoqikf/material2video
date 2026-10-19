@@ -1,36 +1,27 @@
-"""完整预演自动门禁，与可选人工画面评审独立。"""
-from __future__ import annotations
-
-import hashlib
-import json
-from pathlib import Path
-
-from m2v.core.errors import M2VError
-from m2v.engine import output_validation
+"""严格短于全片的检查窗口，半开帧区间。"""
+import math
+from .errors import M2VError
 
 
-def require_preview(root: Path, prepared: dict, *, verify_media: bool = True) -> dict:
-    """验证当前完整预演；状态查询只检查绑定，导出前另做全片解码。"""
-    try:
-        record = json.loads((root / "outputs/preview-record.json").read_text(encoding="utf-8"))
-        if not isinstance(record, dict):
-            raise ValueError("预演记录不是对象")
-        frames = record.get("frames")
-        if (record.get("preparedFingerprint") != prepared["preparedFingerprint"]
-                or type(frames) is not int or frames != prepared["durationInFrames"]):
-            raise ValueError("预演指纹或完整帧数不匹配")
-        # 自带示例的预演位于 videos/examples，允许记录中的相对路径含 ..。
-        path = record.get("path")
-        if not isinstance(path, str) or not path.strip():
-            raise ValueError("预演路径无效")
-        video = (root / path).resolve()
-        if (not video.is_file()
-                or hashlib.sha256(video.read_bytes()).hexdigest() != record.get("sha256")):
-            raise ValueError("预演文件缺失或摘要不匹配")
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        raise M2VError("缺少有效的当前完整预演；请重新执行 m2v preview") from exc
-    if verify_media:
-        output_validation.verify_output(video, frames, prepared["width"], prepared["height"],
-                                        prepared["fps"],
-                                        expect_audio=bool(prepared.get("audio", {}).get("segments")))
-    return record
+def window(total: int, fps: int, *, start_seconds: float = 0, end_seconds: float | None = None,
+           limit_frames: int | None = None) -> tuple[int, int]:
+    if not math.isfinite(start_seconds) or start_seconds < 0:
+        raise M2VError("预览起始时间必须为非负有限秒数")
+    if limit_frames is not None and (type(limit_frames) is not int or limit_frames < 1):
+        raise M2VError("limit_frames 必须为正整数")
+    if limit_frames is not None and end_seconds is not None:
+        raise M2VError("--limit-frames 与 --end-seconds 不能同时使用")
+    start = round(start_seconds * fps)
+    if end_seconds is not None:
+        if not math.isfinite(end_seconds):
+            raise M2VError("预览结束时间必须为有限秒数")
+        end = round(end_seconds * fps)
+    elif limit_frames is not None:
+        end = start + limit_frames
+    else:
+        end = min(total if start else total - 1, start + 10 * fps)
+    if not 0 <= start < end <= total:
+        raise M2VError("预览时间范围必须位于作品时长内且非空")
+    if start == 0 and end == total:
+        raise M2VError("预览不能覆盖全片；完整生成请使用 m2v render")
+    return start, end

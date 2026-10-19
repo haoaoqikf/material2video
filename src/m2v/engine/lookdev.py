@@ -69,6 +69,8 @@ def sample_window(prepared: dict, seconds: int) -> tuple[int, int]:
                     key=lambda shot: shot["startFrame"])
     start = heroes[0]["startFrame"] if heroes else 0
     length = min(seconds * fps, duration - start)
+    if start == 0 and length == duration:
+        length -= 1
     if length <= 0:
         raise M2VError("样片窗口超出成片时长")
     return start, start + length - 1
@@ -153,6 +155,8 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
     master = root / prepared["audio"]["segments"][0]["path"]
     frames = still_frames(prepared, stills)
     start, end = sample_window(prepared, sample_seconds)
+    from m2v.types.general.code_scenes import materialize
+    sample_prepared = materialize(root, prepared, start, end + 1)
     timings = perf.StageTimings()
     # 画面里的代码片段按相对路径引用，必须像正式渲染那样由本地服务器提供作品根：
     # 少了这一步，composition 会去 bundle 的静态目录找片段并报 404。
@@ -160,7 +164,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
             tempfile.TemporaryDirectory(prefix="m2v-lookdev-", dir=outputs) as temporary:
         work = Path(temporary)
         props_file = work / "props.json"
-        props_file.write_text(json.dumps({**prepared["props"], "mediaBase": server.base_url + "/"},
+        props_file.write_text(json.dumps({**sample_prepared["props"], "mediaBase": server.base_url + "/"},
                                          ensure_ascii=False), encoding="utf-8")
         bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
                                  storyboard_path=entry, content_root=root.parent,
@@ -221,3 +225,29 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def keyframes(root: Path, project: dict, prepared: dict) -> dict:
+    """直接采集代表静帧，不录制整幕视频。"""
+    frames = still_frames(prepared, 3)
+    outputs = root / "outputs/keyframes"
+    outputs.mkdir(parents=True, exist_ok=True)
+    with LocalServer(root, cors=True) as server, tempfile.TemporaryDirectory(dir=outputs) as temporary:
+        work = Path(temporary)
+        captured = native_stills(root, prepared, frames, work)
+        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
+            storyboard_path=root / project["materials"]["storyboard"], content_root=root.parent,
+            workspace_root=root.parent, cache=True)
+        files = []
+        for frame in frames:
+            props = work / "props.json"
+            props.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"), ensure_ascii=False), encoding="utf-8")
+            target = outputs / f"still-{frame:06d}.png"
+            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props,
+                out=target, frame=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
+            files.append(target)
+        contact_sheet(files, outputs / "contact-sheet.png")
+    result = {"preparedFingerprint": prepared["preparedFingerprint"], "frames": frames,
+              "files": [str(p.relative_to(root)) for p in files]}
+    _write_json(root / "outputs/keyframes.json", result)
+    return result

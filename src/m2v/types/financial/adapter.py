@@ -34,9 +34,9 @@ def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | 
         duration_in_frames=frames, inputs=file_inputs(root, project))
 
 
-def preview(root: Path, project: dict, *, limit_frames: int | None = None) -> Path:
+def preview(root: Path, project: dict, *, limit_frames: int | None = None, start_seconds=0, end_seconds=None) -> Path:
     docs = _load(root, project)
-    return financial_render.render(root, docs, preview=True, limit_frames=limit_frames)
+    return financial_render.render(root, docs, preview=True, limit_frames=limit_frames, start_seconds=start_seconds, end_seconds=end_seconds)
 
 
 def render(root: Path, project: dict) -> Path:
@@ -46,7 +46,7 @@ def render(root: Path, project: dict) -> Path:
 
 def review_gate(root: Path, project: dict) -> None:
     docs = _load(root, project)
-    financial.load_preview_record(root, docs)
+    financial.build_render_props(docs)
 
 
 TYPE = VideoType("financial-timeseries", validate, prepare, preview, render,

@@ -1,10 +1,8 @@
 """金融时间序列视频导出：使用共享打包、浏览器会话与媒体验收底座。"""
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
-import os
 import subprocess
 import tempfile
 import time
@@ -30,7 +28,7 @@ def _assert_no_audio(video: Path) -> None:
         raise M2VError(f"无法验证成片音轨：{(result.stderr + result.stdout)[-1200:]}")
 
 
-def render(
+def _generate(
     project_dir: Path,
     docs: dict,
     *,
@@ -39,6 +37,8 @@ def render(
     preview: bool = False,
     crf: int = 18,
     preset: str = "medium",
+    start_frame: int = 0,
+    defer_validation: bool = False,
 ) -> Path:
     """Validate, render into a temporary file, then atomically publish the video."""
     if crf < 0 or crf > 51:
@@ -49,8 +49,6 @@ def render(
     frames = min(total_frames, limit_frames) if limit_frames is not None else total_frames
     if limit_frames is not None and not preview:
         raise M2VError("短预演须使用 preview 命令，正式导出不能限制帧数")
-    if not preview:
-        financial.load_preview_record(project_dir, docs)
     destination = output or project_dir / "outputs" / "financial-line-no-events.mp4"
     if preview and output is None:
         destination = project_dir / "outputs" / "previews" / "financial-line-no-events-review.mp4"
@@ -81,7 +79,7 @@ def render(
             if actual != expected:
                 raise M2VError(f"composition 元数据不匹配：期望 {expected}，实际 {actual}")
             return {"out": str(temp_video), "crf": crf, "preset": preset,
-                    "frames": f"0-{frames - 1}", "scale": 1, "concurrency": 1,
+                    "frames": f"{start_frame}-{start_frame + frames - 1}", "scale": 1, "concurrency": 1,
                     "progressTotal": frames}
 
         render_started = time.monotonic()
@@ -90,19 +88,13 @@ def render(
         timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(time.monotonic() - render_started - timings.as_dict()["metadata"], 0))
         with perf.measure(timings, "probe"):
-            output_validation.verify_output(temp_video, frames, financial.WIDTH, financial.HEIGHT, financial.FPS)
-            _assert_no_audio(temp_video)
+            if not defer_validation:
+                output_validation.verify_output(temp_video, frames, financial.WIDTH, financial.HEIGHT, financial.FPS)
+                _assert_no_audio(temp_video)
         if inputs_digest != financial.render_inputs_digest(project_dir):
             raise M2VError("渲染期间材料或资产变化；丢弃本次输出并重新预演")
         security.deliver(temp_video, destination)
 
-    if preview and output is None:
-        record_path = project_dir / "outputs" / "previews" / "preview-record.json"
-        record_path.write_text(json.dumps({
-            "path": destination.resolve().relative_to(project_dir.resolve()).as_posix(),
-            "sha256": hashlib.sha256(destination.read_bytes()).hexdigest(),
-            "frames": frames, "materialsAndAssetsSha256": inputs_digest,
-        }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not preview:
         provenance = {"schemaVersion": 1, "type": "financial-timeseries",
                       "frames": frames, "fps": financial.FPS, "width": financial.WIDTH,
@@ -120,5 +112,36 @@ def render(
                            "observedPeakMemoryBytes": session.get("peakMemoryBytes"),
                            "memorySamples": session.get("memorySamples")}})
     perf.write_report(perf.report_path_for(destination), report)
-    logger.info("金融视频导出通过：%s（%d 帧，%d fps，无音轨）", destination, frames, financial.FPS)
+    logger.info("金融视频已生成：%s（%d 帧，%d fps，无音轨）", destination, frames, financial.FPS)
     return destination
+
+
+def render(project_dir: Path, docs: dict, *, output: Path | None = None,
+           limit_frames: int | None = None, preview: bool = False, crf: int = 18,
+           preset: str = "medium", start_seconds: float = 0, end_seconds: float | None = None) -> Path:
+    from m2v.core import delivery
+    from m2v.core.preview import window
+    from m2v.core.project import load_project, load_current_prepared
+    material = docs
+    total = docs["plan"]["durationSeconds"] * financial.FPS
+    if preview:
+        start, end = window(total, financial.FPS, start_seconds=start_seconds, end_seconds=end_seconds, limit_frames=limit_frames)
+        return _generate(project_dir, material, output=output, preview=True, limit_frames=end-start,
+                         start_frame=start, crf=crf, preset=preset)
+    if limit_frames is not None or start_seconds or end_seconds is not None:
+        raise M2VError("正式导出不能限制时间范围")
+    if output is not None and output.resolve().is_relative_to((project_dir / "outputs/previews").resolve()):
+        raise M2VError("正式成片不能写入 previews")
+    root, project = load_project(project_dir)
+    def current():
+        _, latest = load_project(root)
+        prepared = load_current_prepared(root, latest)
+        return delivery.binding(root, prepared, {"crf": crf, "preset": preset,
+            "inputs": financial.render_inputs_digest(root)})
+    def verify(video):
+        output_validation.verify_output(video, total, financial.WIDTH, financial.HEIGHT, financial.FPS)
+        _assert_no_audio(video)
+    destination = output or root / "outputs/financial-line-no-events.mp4"
+    return delivery.export_once(destination, current(),
+        lambda target: _generate(root, material, output=target, crf=crf, preset=preset, defer_validation=True),
+        verify, current, directory=delivery.outputs(root))

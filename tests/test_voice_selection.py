@@ -7,7 +7,7 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
-from m2v.core.preview import require_preview
+from m2v.core.delivery import candidate
 from m2v.engine import tts
 
 
@@ -100,10 +100,10 @@ def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch
     preview_file = root / "outputs/previews/video.mp4"
     preview_file.parent.mkdir()
     preview_file.write_bytes(b"old full preview")
-    (root / "outputs/preview-record.json").write_text(json.dumps({
-        "path": "outputs/previews/video.mp4", "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest(),
+    (root / "outputs/delivery.json").write_text(json.dumps({
+        "path": str(preview_file.resolve()), "sha256": hashlib.sha256(preview_file.read_bytes()).hexdigest(),
         "frames": old["durationInFrames"], "preparedFingerprint": old["preparedFingerprint"]}), encoding="utf-8")
-    require_preview(root, old, verify_media=False)
+    candidate(root, old)
     # 新准备指纹不能使用旧预演；配置改变也使旧准备失效。
     manifest["tts"]["voice"] = "zh-CN-YunyangNeural"
     (root / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -113,7 +113,7 @@ def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch
     assert second["preparedFingerprint"] != old["preparedFingerprint"]
     assert json.loads(second["inputs"]["tts"])["source"] == "command-line"
     with pytest.raises(M2VError):
-        require_preview(root, second, verify_media=False)
+        candidate(root, second)
 
 
 def test_general_silent_has_no_voice_requirement(tmp_path, monkeypatch):
