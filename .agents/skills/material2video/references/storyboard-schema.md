@@ -177,7 +177,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 准备输出 `compiledScenes`、`subtitleCues`、`subtitle`、`width`、`height` 与 `durationInFrames`，
 每幕另派生 `mediaPath`（录制的片段）与 `trimStartFrames`（恒为 0）；这些为派生字段，不写回分镜。
 浏览器量测只检查**字幕**：安全区矩形、换行范围与实际可见性。作品正文在栅格片段里，系统不声称
-能自动识别其中的全部正文或主体遮挡——那部分由制作助手实际观看补足。
+能自动识别其中的全部正文或主体遮挡——那部分由制作助手通过关键帧、全片时间标注帧序列及屏幕投影量测补足，并披露采样间运动风险。
 
 最小示例：
 

@@ -224,4 +224,4 @@ def inspect(video: Path, prepared: dict, outputs: Path, *, audio_required: bool)
             'elapsedSeconds': elapsed,
             'sequence': sequence, 'videoSignals': visual, 'audioSignals': audio,
             'observation': 'not-evaluated', 'reviewRequired': True,
-            'limitations': ['未连续播放或实际试听', '配音自然度、口播误读、音乐感染力未验证', '采样间瞬时缺陷可能遗漏']}
+            'limitations': ['未进行视频播放或连续音频收听（流程不要求）', '配音自然度、口播误读、音乐感染力未验证', '采样间瞬时缺陷可能遗漏']}

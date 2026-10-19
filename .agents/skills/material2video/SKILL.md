@@ -7,7 +7,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 项目采用共享制作底座、独立视频类型、统一制作入口。发展顺序是先建设金融时间序列等专用视频，再沉淀多类型共用能力，完善通用混合媒体讲解视频。
 
-开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。整体流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件；无自身旁白时跳过选音。所有类型由 render 生成一次完整候选，自动验收后直接交付同一文件，CLI 不要求人工记录；general 的制作完成另须助手实际复核并关闭必改项，所有制作阶段无需用户确认。文章原文语义审查保留。所有生成产物都是派生产物，不代替可编辑材料。
+开始制作前读取作品目录中的 `project.json`，确认类型，再按该类型参考材料组织内容。整体流程为材料审查 → 编排旁白 → 选择音色并保存 → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件；无自身旁白时跳过选音。所有类型由 render 生成一次完整候选，自动验收后直接交付同一文件，CLI 不要求人工记录；general 的制作完成另须助手基于帧序列、量测与自动检测复核并关闭必改项，所有制作阶段无需用户确认。全流程不要求播放视频或连续收听声音；按作品类型使用静帧/时间标注帧序列、路径与画面量测、字幕和时间戳核对及自动音频信号分析等证据，并如实记录覆盖范围。文章原文语义审查保留。所有生成产物都是派生产物，不代替可编辑材料。
 
 | 类型 | 创作指导 |
 |---|---|
@@ -33,13 +33,13 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 cinematic 按 **Brief → Look-dev → Hero → Full film → QA/自主复核** 五个阶段推进，每阶段有产出与
 放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`，正式导出沿用 `m2v render`。
 三者已接线并只服务 general 作品（其他类型会明确拒绝）。cinematic 不设数字评分卡：技术 QA 与
-hero 实看后全片帧序列与自动音频复核最终文件，自主关闭必改项并交付。字段、清单、自主复核、反模式与成本见
+hero 风险帧序列及运动量测后全片帧序列与自动音频复核最终文件，自主关闭必改项并交付。字段、清单、自主复核、反模式与成本见
 [电影级制作档位](references/cinematic-video.md)。
 
 **look-dev 不设人工确认门禁**：standard 与 cinematic 都不在 look-dev 停下来等确认。
-cinematic 必须在关键静帧与代表片段上实际观看、把时间码与问题记进作品 `outputs/visual-notes.md`，
+cinematic 必须生成覆盖全片的时间标注帧序列及关键静帧，结合逐帧运动/构图量测和自动音频信号复核，把时间码与问题记进作品 `outputs/visual-notes.md`，
 关闭必改项后再铺全片；该记录是制作完成依据，不是 CLI 导出门禁。最终成片也无需用户确认。
-不得把未看片的成片描述为电影级；无法观看时如实说明，不能虚构通过。
+不得把未完成帧序列与自动信号复核的成片描述为电影级；不要求播放视频或试听音色，替代证据的覆盖和限制须如实记录。
 
 档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
 `lookdev` / `qa` / `assets audit` 入口已接线，太阳系一镜到底参考片保留历史 look-dev 与 QA 记录；旧用户确认不代替当前版本的完整复核。cinematic 交付普通 H.264 MP4，不另出母版。
@@ -56,7 +56,7 @@ uv run m2v preview --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
-uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、接触表与有声样片（观看结论记入 visual-notes.md）
+uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、时间标注风险帧与自动音频报告（复核结论记入 visual-notes.md）
 uv run m2v qa --project videos/general/<slug>       # cinematic：技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可审计
 ```
@@ -76,7 +76,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 1. 阅读完整有序旁白，判断语言、受众、内容、情绪与表达风格；通用类型读取逐幕逐段旁白。
 2. 运行 `uv run m2v voices --json`，其他语言通过 `--locale <区域>` 或 `--locale all` 查询。查询失败就明确报告并修复连接，不虚构候选、不静默使用晓晓。结合服务返回的 categories/personalities 与内容选择；不按性别硬编码，不预先统一指定某一种声音。
 3. 写入 `project.json` 的 `tts.voice` 和 `tts.selection`（mode、rationale、narrationSha256），填写结合具体旁白的理由。摘要使用共享 `m2v.engine.tts.narration_digest(texts)`，`texts` 为播放顺序中的自身旁白数组：通用类型逐幕逐段收集 `text`。忽略空白段，保留其余字符串原文与分段边界。
-4. 保留已有语速、停顿设置。继续 prepare、按需片段检查与 render；不得把音色标签或媒体技术验收描述为已试听、自然度达标。
+4. 保留已有语速、停顿设置。继续 prepare、按需片段检查与 render；音色选择与声音复核记录基于旁白文本、服务元数据和自动信号检查，不要求试听。
 
 旁白变化必须重新判断，可保留同一音色并更新理由和摘要；画面变化不要求重选。用户手动修改作品音色时移除原助手 `selection`；`prepare --voice` 仅覆盖本次，并且不沿用助手理由。只有 CLI 覆盖语速时仍需有效助手选择。有自身旁白但未明确音色时 prepare 会阻断，不能靠重新渲染自动换声。字段、实际参数溯源和迁移见[配音契约](references/voice-and-rhythm.md#配音音色与语速)。
 
@@ -97,7 +97,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 优先验证风险运镜和声音样片 → 关闭必改项后再扩展精制全片。作品代码控制整张画布，必须自己画满不透明背景，并让重要文字与主体
 避让 `subtitleSafeArea`；共享字幕是白字配不透明深色底板，独立于作品配色。
 
-先自主搜索参考，再做覆盖开场、核心难点、结尾与主要风险的代表片段。静帧、加密帧序列和自动音频候选分别检查；必改项关闭后再扩展全片，最终文件全片帧序列与自动音频复核。记录准备指纹、文件摘要、时间码、修改与复查；必要图像或自动检测缺失则报告未完成；不因缺少播放/试听接口而阻断。记录不作为 CLI 导出门禁，所有阶段均无需用户确认。具体模板与判断规则见[自主视觉复核](references/visual-review-rubric.md)。
+先自主搜索参考，再做覆盖开场、核心难点、结尾与主要风险的代表片段。静帧、全片高密度时间标注帧序列、运动/构图量测和自动音频候选分别检查；必改项关闭后再扩展全片，最终文件执行全片帧序列与自动音频复核。记录准备指纹、文件摘要、时间码、修改与复查；必要图像或自动检测缺失则报告未完成；不要求播放视频或试听音色，按替代证据复核并披露采样间运动与主观听感的覆盖限制。记录不作为 CLI 导出门禁，所有阶段均无需用户确认。具体模板与判断规则见[自主视觉复核](references/visual-review-rubric.md)。
 
 动画由 `segmentWindows` 与录制时钟驱动，画面随真实口播推进；视频与图片用 `useMediaAsset(id)`
 按素材 ID 取用，比例不受画幅限制，裁切与摆位由作品决定；视频要等到可播放后再 `ready()`，
@@ -108,7 +108,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 与淡化不超过 600 秒。
 
 浏览器量测只覆盖共享字幕的安全区、换行与可见性；作品正文在录制的片段里，系统不声称能自动
-识别其中的全部正文或主体遮挡——那部分由上面的实际观看补足。详见
+识别其中的全部正文或主体遮挡——那部分由全片时间标注帧序列与屏幕量测补足。详见
 [通用作品创作](references/article-to-storyboard.md)、[分镜结构](references/storyboard-schema.md)、
 [媒体素材与音效](references/article-media-and-sound.md)与[评审量表](references/visual-review-rubric.md)。
 

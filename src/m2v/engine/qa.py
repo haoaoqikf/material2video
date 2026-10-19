@@ -5,10 +5,10 @@
 - **硬判定**（失败即 `status: fail`）：冻结/重复帧、字幕对比度、响度与真峰值、
   音轨时长一致、每条 `claims` 的时间窗有覆盖镜头。
 - **测量项**（只报告数值与提醒）：banding、aliasing、接触表。它们受内容影响很大，
-  用固定阈值判死会把正常画面误判成缺陷，因此只给数值与观看入口。
+  用固定阈值判死会把正常画面误判成缺陷，因此只给数值与静帧复核入口。
 
 报告写在作品 `outputs/qa.json`，接触表写在 `outputs/qa/contact-sheet.png`。
-本模块不修改成片，也不参与导出门禁；它把人工观看前的机械检查做完。
+本模块不修改成片，也不参与导出门禁；它完成帧序列与自动信号复核所需的技术检查。
 """
 from __future__ import annotations
 
@@ -303,7 +303,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         checks[name].update(kind=kind, scope=scope)
     # 所有分页都登记；单页入口只是第一页，不再额外生成会截断尾段的旧接触表。
     sheet = outputs.parent / inspection["sequence"]["pages"][0]
-    # 示例的交付与准备目录不同，观看入口指向实际交付目录。
+    # 示例的交付与准备目录不同，帧序列入口指向实际交付目录。
     observation_record = target.parent / "visual-notes.md"
     observation_path = (observation_record.relative_to(root).as_posix()
                         if observation_record.is_relative_to(root) else str(observation_record))

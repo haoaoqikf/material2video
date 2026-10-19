@@ -64,7 +64,7 @@ uv run m2v render --project videos/general/<slug>
 ## 语音与字幕
 
 使用 [edge-tts](https://github.com/rany2/edge-tts) 7.2.x（`>=7.2.8,<8`），音色必须明确选择，
-语速默认 `+0%`；`m2v prepare` 的 `--voice` / `--rate` 可临时试听而不改作品文件。首次合成需要
+语速默认 `+0%`；`m2v prepare` 的 `--voice` / `--rate` 可临时生成参数候选而不改作品文件，不要求播放或收听候选。首次合成需要
 联网；服务可能变化，缓存音频可离线复用，不承诺再次强制生成时波形完全相同。
 
 每个口播单元采用 WordBoundary 事件，将 100ns 时间单位转换为秒，从原文恢复标点后按句断开。
