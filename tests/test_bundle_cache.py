@@ -47,10 +47,10 @@ def web(tmp_path, monkeypatch):
         state["scan"] += 1
         return []
 
-    monkeypatch.setattr(remotion, "source_policy", SimpleNamespace(scan=scan))
-    monkeypatch.setattr(remotion, "build_inputs", lambda *args, **kwargs: [directory / "src" / "index.ts"])
+    monkeypatch.setattr(remotion.bundling, "source_policy", SimpleNamespace(scan=scan))
+    monkeypatch.setattr(remotion.bundling, "build_inputs", lambda *args, **kwargs: [directory / "src" / "index.ts"])
     monkeypatch.setattr(
-        remotion,
+        remotion.bundling,
         "build_input_fingerprint",
         lambda *args, **kwargs: {"files": dict(state["base"]), "digest": "x"},
     )
@@ -62,7 +62,7 @@ def web(tmp_path, monkeypatch):
         (out_dir / "bundle.js").write_text("console.log(1)\n", encoding="utf-8")
         return 0.5
 
-    monkeypatch.setattr(remotion, "_bundle_into", fake_build)
+    monkeypatch.setattr(remotion.bundling, "_bundle_into", fake_build)
     return SimpleNamespace(
         dir=directory, storyboard=storyboard, state=state, tmp=tmp_path, build=fake_build
     )
@@ -193,7 +193,7 @@ def test_failed_build_leaves_no_broken_entry_or_temp_dirs(web, monkeypatch):
         (out_dir / "index.html").write_text("half", encoding="utf-8")
         raise M2VError("打包失败")
 
-    monkeypatch.setattr(remotion, "_bundle_into", failing)
+    monkeypatch.setattr(remotion.bundling, "_bundle_into", failing)
     with pytest.raises(M2VError):
         _bundle(web)
     root = bundle_cache.cache_root(web.dir)
@@ -213,7 +213,7 @@ def test_boundary_checks_and_source_scan_run_even_on_a_cache_hit(web):
 
 def test_source_violation_stops_before_packing(web, monkeypatch):
     monkeypatch.setattr(
-        remotion,
+        remotion.bundling,
         "source_policy",
         SimpleNamespace(scan=lambda files: [SimpleNamespace(render=lambda web_dir: "用了 Date.now")]),
     )
@@ -253,12 +253,12 @@ def test_concurrent_bundles_are_serialized_by_the_generation_lock(web, monkeypat
             active["now"] -= 1
         return 0.1
 
-    monkeypatch.setattr(remotion, "_bundle_into", slow_build)
+    monkeypatch.setattr(remotion.bundling, "_bundle_into", slow_build)
     errors: list[BaseException] = []
 
     def run(index: int) -> None:
         monkeypatch.setattr(
-            remotion,
+            remotion.bundling,
             "build_input_fingerprint",
             lambda *args, **kwargs: {"files": dict(bases[index]), "digest": "x"},
         )

@@ -10,7 +10,7 @@
 """
 from __future__ import annotations
 
-from m2v.core.errors import M2VError
+from m2v.core.validate import fail, integer as _integer, number as _number, obj as _obj, text as _text
 from m2v.core.video_config import FPS
 
 PROFILE_STANDARD = "standard"
@@ -30,10 +30,6 @@ MAX_CLAIMS = 12
 MAX_CLAIM_CHARS = 80
 LOOK_NUMBERS = ("grain", "bloom", "dof", "vignette")
 POST_NUMBERS = ("bloom", "dof", "grain", "vignette", "chromaticAberration")
-
-
-def fail(path: str, message: str) -> None:
-    raise M2VError(f"{path}: {message}")
 
 
 def resolve_profile(project: dict, override: str | None = None) -> tuple[str, str]:
@@ -58,34 +54,6 @@ def validate_project(project: dict) -> str:
     if not isinstance(declared, str) or declared not in PROFILES:
         fail("productionProfile", f"必须是 {'/'.join(PROFILES)}")
     return declared
-
-
-def _obj(value, path: str, allowed: set[str]) -> dict:
-    if not isinstance(value, dict):
-        fail(path, "必须是对象")
-    unknown = set(value) - allowed
-    if unknown:
-        fail(path, f"未知字段：{'、'.join(sorted(unknown))}")
-    return value
-
-
-def _number(value, low: float, high: float, path: str) -> float:
-    import math
-    if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
-        fail(path, f"必须为 {low}～{high} 的有限数字")
-    return value
-
-
-def _text(value, path: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        fail(path, "必须是非空文本")
-    return value
-
-
-def _integer(value, low: int, high: int, path: str) -> int:
-    if type(value) is not int or not low <= value <= high:
-        fail(path, f"必须为 {low}～{high} 的整数")
-    return value
 
 
 def validate_claims(part: dict, path: str) -> None:

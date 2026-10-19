@@ -71,8 +71,8 @@ def fake_record(monkeypatch):
         inputs["file:" + relative] = hashlib.sha256(path.read_bytes()).hexdigest()
         calls.append({"scene": target["id"], "frame": frame, "media": media, "profile": profile})
         return relative
-    monkeypatch.setattr(prepare.code_scenes, "record", record)
-    monkeypatch.setattr(prepare.code_scenes, "build_scene", lambda root, target, work: {
+    monkeypatch.setattr(prepare.code_scenes.capture, "record", record)
+    monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", lambda root, target, work: {
         "file:" + target["content"]["entry"]: hashlib.sha256((root / target["content"]["entry"]).read_bytes()).hexdigest()})
     return calls
 

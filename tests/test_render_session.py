@@ -106,7 +106,7 @@ def _handshake_script(
 
 def _session(tmp_path, monkeypatch, script, **kwargs):
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     options = {
         "web_dir": tmp_path,
         "bundle_dir": tmp_path / "bundle",
@@ -148,7 +148,7 @@ def test_metadata_mismatch_aborts_before_any_frame_is_rendered(tmp_path, monkeyp
     """帧数/尺寸/帧率对不上时不得渲染：判定发生在确认之前。"""
     script = _handshake_script(tmp_path, metadata=metadata)
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
 
     def confirm(meta):
         raise remotion.RemotionError(f"元数据不一致：{meta.duration_in_frames}")
@@ -173,7 +173,7 @@ def test_rejected_metadata_makes_the_script_exit_instead_of_waiting(tmp_path, mo
     """Python 拒绝确认后，Node 自己退出（走 finally 关浏览器），不需要强杀。"""
     script = _handshake_script(tmp_path)
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     with pytest.raises(remotion.RemotionError, match="已取消渲染"):
         remotion.render_session(
             web_dir=tmp_path,
@@ -193,7 +193,7 @@ def test_silent_session_times_out_and_is_cleaned_up(tmp_path, monkeypatch):
     """报了元数据却永远不进入等待确认状态：必须超时，而不是永久阻塞。"""
     script = _handshake_script(tmp_path, ready=False, hang_after_metadata=True)
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     with pytest.raises(remotion.RemotionError, match="等待 composition 元数据超时"):
         remotion.render_session(
             web_dir=tmp_path,
@@ -211,7 +211,7 @@ def test_silent_session_times_out_and_is_cleaned_up(tmp_path, monkeypatch):
 def test_session_that_exits_before_the_metadata_is_reported_with_the_exit_code(tmp_path, monkeypatch):
     script = "process.stderr.write('composition 选择失败\\n'); process.exit(7);"
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     with pytest.raises(remotion.RemotionError) as excinfo:
         remotion.render_session(
             web_dir=tmp_path,
@@ -230,7 +230,7 @@ def test_session_that_exits_before_the_metadata_is_reported_with_the_exit_code(t
 def test_render_failure_reports_the_output_tail(tmp_path, monkeypatch):
     script = _handshake_script(tmp_path, confirm_exit=9, confirm_output="Target closed")
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     with pytest.raises(remotion.RemotionError) as excinfo:
         remotion.render_session(
             web_dir=tmp_path,
@@ -249,7 +249,7 @@ def test_render_failure_reports_the_output_tail(tmp_path, monkeypatch):
 @requires_node
 def test_composition_id_mismatch_is_reported_before_rendering(tmp_path, monkeypatch):
     script = _handshake_script(tmp_path, metadata={**METADATA, "id": "Other"})
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script))
     with pytest.raises(remotion.RemotionError, match="期望"):
         remotion.render_session(
             web_dir=tmp_path,
@@ -273,9 +273,9 @@ def test_a_session_that_lingers_after_done_is_not_reported_as_a_timeout(tmp_path
         "    process.exit(0);",
         "    setInterval(() => {}, 1000);",  # 保持存活，模拟退出被拖住
     )
-    monkeypatch.setattr(remotion, "_EXIT_GRACE_S", 0.5)
+    monkeypatch.setattr(remotion.session, "_EXIT_GRACE_S", 0.5)
     spawned: list = []
-    monkeypatch.setattr(remotion, "_spawn", _spawn_with(script, record=spawned))
+    monkeypatch.setattr(remotion.session, "_spawn", _spawn_with(script, record=spawned))
     session = remotion.render_session(
         web_dir=tmp_path,
         bundle_dir=tmp_path / "bundle",
@@ -326,9 +326,12 @@ def test_callback_error_terminates_process_before_closing_reader(tmp_path, monke
     def fail(line):
         raise RuntimeError("callback failed")
 
-    monkeypatch.setattr(remotion, "_spawn", lambda *args, **kwargs: Process())
-    monkeypatch.setattr(remotion, "_LineReader", Reader)
-    monkeypatch.setattr(remotion, "_terminate_tree", lambda process: events.append("terminate"))
+    # `_run` 由 `process` 执行、`render_session` 由 `session` 执行：两个命名空间都要替换。
+    # 只替换包上的名字不会被子模块内部的调用看到，那条路径会去起真实进程。
+    for owner in (remotion.process, remotion.session):
+        monkeypatch.setattr(owner, "_spawn", lambda *args, **kwargs: Process())
+        monkeypatch.setattr(owner, "_LineReader", Reader)
+        monkeypatch.setattr(owner, "_terminate_tree", lambda process: events.append("terminate"))
     with pytest.raises(RuntimeError, match="callback failed"):
         if session_mode:
             remotion.render_session(
@@ -349,7 +352,7 @@ def test_render_frames_passes_the_concurrency_to_the_node_script(tmp_path, monke
         Path(kwargs["cwd"]).joinpath("video.mp4").write_bytes(b"x")
         return subprocess.CompletedProcess(command, 0, "", "")
 
-    monkeypatch.setattr(remotion, "_run", fake_run)
+    monkeypatch.setattr(remotion.session, "_run", fake_run)
     out = tmp_path / "video.mp4"
     remotion.render_frames(
         web_dir=tmp_path,
@@ -371,7 +374,7 @@ def test_render_frames_rejects_an_invalid_concurrency_before_spawning(tmp_path, 
     def explode(*args, **kwargs):  # pragma: no cover - 不该被调用
         raise AssertionError("非法并发必须在起进程之前失败")
 
-    monkeypatch.setattr(remotion, "_run", explode)
+    monkeypatch.setattr(remotion.session, "_run", explode)
     with pytest.raises(remotion.RemotionError, match="正整数"):
         remotion.render_frames(
             web_dir=tmp_path,

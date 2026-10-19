@@ -175,7 +175,8 @@ def test_recorded_clip_has_no_audio_stream(tmp_path, monkeypatch, chromium_ready
 def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, chromium_ready):
     """资源没就绪就调用 ready()：录制超时失败，且不发布有效准备记录。"""
     from m2v.types.general import code_scenes as module
-    monkeypatch.setattr(module, "READY_TIMEOUT_MS", 1200)
+    # 录制超时住在采集模块里：包上的名字只是重导出，改它不会影响真正读常量的地方。
+    monkeypatch.setattr(module.capture, "READY_TIMEOUT_MS", 1200)
     root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=20)))
     write_source(root, "scenes/demo.tsx",
                  "export default function Never() { return <div style={{width: '100%', height: '100%'}}/>; }\n")
@@ -219,7 +220,7 @@ def test_partial_recording_is_reused_when_completing_scene(tmp_path, monkeypatch
     def count(*args, **kwargs):
         captured.extend(kwargs["selected_frames"])
         return original(*args, **kwargs)
-    monkeypatch.setattr(code_scenes, "_capture", count)
+    monkeypatch.setattr(code_scenes.capture, "_capture", count)
     code_scenes.materialize(root, prepared, 2, 5)
     completed = code_scenes.materialize(root, prepared, 0, 8)
     code_scenes.materialize(root, prepared, 0, 8)

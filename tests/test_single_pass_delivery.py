@@ -83,9 +83,9 @@ def test_concurrent_export_rejected_and_input_change_discards(tmp_path):
 @pytest.mark.parametrize("kind", ["general", "financial", "housing"])
 def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch, kind):
     from m2v.core import project as project_module
-    from m2v.engine import output_validation
+    from m2v.engine import output_validation, render_pipeline
     from m2v.types.general import explainer_render
-    from m2v.types.financial import financial_render
+    from m2v.types.financial import financial, financial_render
     from m2v.types.housing import housing_render
     module = {"general": explainer_render, "financial": financial_render, "housing": housing_render}[kind]
     project = {"id": "test", "type": kind}
@@ -95,20 +95,22 @@ def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch
     monkeypatch.setattr(delivery, "binding", lambda root, prep, params: {"preparedFingerprint": prep["preparedFingerprint"], "parameters": params})
     monkeypatch.setattr(output_validation, "verify_output", lambda *a, **k: None)
     calls = []
-    def generate(root, data, **kwargs):
+    def generate(root, data, *args, **kwargs):
         calls.append(kwargs)
         kwargs["output"].parent.mkdir(parents=True, exist_ok=True)
         kwargs["output"].write_bytes(b"full")
         return kwargs["output"]
-    monkeypatch.setattr(module, "_generate", generate)
     if kind == "general":
+        monkeypatch.setattr(module, "_generate", generate)
         monkeypatch.setattr(module, "current", lambda *_: prepared)
         monkeypatch.setattr(module, "layout_check", lambda *_: {})
         material = project
     else:
-        monkeypatch.setattr(module, "_assert_no_audio", lambda _: None)
+        # 无声类型共用 `render_pipeline`：替身必须打在管线上，而不是类型模块上。
+        monkeypatch.setattr(render_pipeline, "generate", generate)
+        monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda _: None)
         if kind == "financial":
-            monkeypatch.setattr(module.financial, "render_inputs_digest", lambda _: "inputs")
+            monkeypatch.setattr(financial, "render_inputs_digest", lambda _: "inputs")
             material = {"plan": {"durationSeconds": 20}}
         else:
             monkeypatch.setattr(module, "_inputs_digest", lambda _: "inputs")
@@ -126,7 +128,7 @@ def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, mon
     def record(root, scene, inputs, **kwargs):
         calls.append((scene["id"], kwargs["capture_range"]))
         return "outputs/code-cache/test.mp4"
-    monkeypatch.setattr(code_scenes, "record", record)
+    monkeypatch.setattr(code_scenes.capture, "record", record)
     scenes = [{"id": name, "startFrame": start, "endFrame": end} for name, start, end in
               [("a", 0, 100), ("b", 80, 200), ("c", 200, 300)]]
     prepared = {"width": 1920, "height": 1080, "props": {"compiledScenes": scenes}}

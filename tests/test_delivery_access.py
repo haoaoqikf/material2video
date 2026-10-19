@@ -168,7 +168,7 @@ def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_r
 def test_code_scene_encode_delivers_the_clip_through_security(tmp_path, monkeypatch):
     """代码片段缓存同样是交付文件，不能只搬运不修复。"""
     delivered: list[tuple[Path, Path]] = []
-    monkeypatch.setattr(code_scenes.security, "deliver",
+    monkeypatch.setattr(code_scenes.capture.security, "deliver",
                         lambda temporary, destination: delivered.append(
                             (Path(temporary), Path(destination))) or Path(destination))
     work = tmp_path / "work"
@@ -178,10 +178,10 @@ def test_code_scene_encode_delivers_the_clip_through_security(tmp_path, monkeypa
         (work / f"frame-{index:06d}.png").write_bytes(b"frame")
     output = tmp_path / "outputs" / "code-cache" / "clip.mp4"
 
-    monkeypatch.setattr(code_scenes.audio, "ffmpeg",
+    monkeypatch.setattr(code_scenes.capture.audio, "ffmpeg",
                         lambda args: (work / "encoded.mp4").write_bytes(b"clip"))
     decoded = SimpleNamespace(returncode=0, stdout="\n".join(str(index) for index in range(30)))
-    monkeypatch.setattr(code_scenes, "subprocess", SimpleNamespace(run=lambda *args, **kwargs: decoded))
+    monkeypatch.setattr(code_scenes.capture, "subprocess", SimpleNamespace(run=lambda *args, **kwargs: decoded))
     code_scenes._encode(work, output, 30, 1920, 1080)
     assert delivered == [(work / "encoded.mp4", output)]
 
@@ -190,7 +190,7 @@ def test_code_scene_encode_rejects_missing_or_misnumbered_frames(tmp_path, monke
     """缺帧或编号不连续时明确失败，不用重复帧补齐。"""
     from m2v.core.errors import M2VError
 
-    monkeypatch.setattr(code_scenes.audio, "ffmpeg", lambda args: None)
+    monkeypatch.setattr(code_scenes.capture.audio, "ffmpeg", lambda args: None)
     for names in ([], ["frame-000000.png"], ["frame-000000.png", "frame-000002.png"]):
         work = tmp_path / ("work-" + str(len(names)))
         work.mkdir()

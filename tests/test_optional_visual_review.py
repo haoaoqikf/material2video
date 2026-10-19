@@ -2,7 +2,8 @@
 import json
 from dataclasses import replace
 import pytest
-from m2v.cli import main, _register_builtins, _status
+from m2v.cli import main, _register_builtins
+from m2v.commands import _status
 from m2v.core import delivery
 from m2v.types import registry
 
@@ -25,7 +26,7 @@ def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, ki
     original = registry.get(kind)
     monkeypatch.setattr(registry, "_registry", {kind: replace(original, render=render,
         review_gate=None, prepared_check=lambda *_: prepared)})
-    monkeypatch.setattr("m2v.cli.load_project", lambda *_: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_project", lambda *_: (root, manifest))
     assert main(["render", "--project", str(root)]) == 0
     assert final.read_bytes() == b"final"
 
@@ -33,7 +34,7 @@ def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, ki
 def test_status_reports_candidate_failure_and_review_independently(tmp_path, monkeypatch):
     _register_builtins()
     prepared = {"preparedFingerprint": "current"}
-    monkeypatch.setattr("m2v.cli._prepared", lambda *_: prepared)
+    monkeypatch.setattr("m2v.commands._prepared", lambda *_: prepared)
     manifest = {"id": "demo", "type": "general"}
     assert _status(tmp_path, manifest)["stage"] == "prepared"
     video = tmp_path / "outputs/candidates/test.mp4"

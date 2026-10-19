@@ -20,10 +20,11 @@ import pytest
 import m2v.engine.output_validation as output_validation
 import m2v.engine.perf as perf
 import m2v.engine.remotion as remotion
+import m2v.engine.render_pipeline as render_pipeline
 import m2v.types.financial.financial as financial
 import m2v.types.financial.financial_render as financial_render
 
-from test_financial_video import project
+from financial_helpers import project
 
 
 # ---------------------------------------------------------------- 口径
@@ -91,13 +92,12 @@ def test_financial_render_writes_the_performance_report(tmp_path, monkeypatch):
     total_frames = docs["plan"]["durationSeconds"] * financial.FPS
 
     monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
-    monkeypatch.setattr(remotion, "require_environment", lambda web: None)
     monkeypatch.setattr(remotion, "bundle", lambda **kwargs: SimpleNamespace(
         path=bundle, build_seconds=0.02, cache_seconds=0.01,
         cache_status="hit", cache_key="perf-test", cache_detail="测试替身"))
     monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
-    monkeypatch.setattr(financial_render, "_assert_no_audio", lambda video: None)
-    monkeypatch.setattr(financial_render.security, "grant_inherited_access", lambda path: True)
+    monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda video: None)
+    monkeypatch.setattr(render_pipeline.security, "grant_inherited_access", lambda path: True)
 
     def fake_session(**kwargs):
         params = kwargs["on_metadata"](remotion.CompositionMetadata(

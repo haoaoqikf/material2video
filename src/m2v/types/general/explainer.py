@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 from m2v.core.errors import M2VError
+from m2v.core.validate import fail, items, number, obj, text
 from m2v.engine import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
@@ -26,37 +26,6 @@ MAX_SEGMENT_HOLD = MAX_PAD  # 长距离连续运镜可复用与首尾留白相�
 
 def topic_input(data: dict) -> bool:
     return data.get("version") == VERSION and data.get("input", {}).get("kind") == "topic"
-
-
-def fail(path: str, message: str) -> None:
-    raise M2VError(f"{path}: {message}")
-
-
-def obj(value, path: str, allowed: set[str]) -> dict:
-    if not isinstance(value, dict):
-        fail(path, "必须是对象")
-    unknown = set(value) - allowed
-    if unknown:
-        fail(path, f"未知字段：{'、'.join(sorted(unknown))}")
-    return value
-
-
-def number(value, low: float, high: float, path: str) -> float:
-    if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
-        fail(path, f"必须为 {low}～{high} 的有限数字")
-    return value
-
-
-def text(value, path: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        fail(path, "必须是非空文本")
-    return value
-
-
-def items(value, path: str, maximum: int) -> list:
-    if not isinstance(value, list) or not 1 <= len(value) <= maximum:
-        fail(path, f"必须包含 1～{maximum} 项")
-    return value
 
 
 def local_file(root: Path, ref, path: str) -> Path:

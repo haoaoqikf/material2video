@@ -195,10 +195,6 @@ def _positions(text: str, words: list[dict]) -> list[tuple[int, int] | None]:
 _ALL_PUNCTUATION = "".join(PAUSE_PUNCTUATION.values())
 
 
-def _classify(character: str) -> str:
-    return "comma" if character in PAUSE_PUNCTUATION["comma"] else "period"
-
-
 def plan(text: str, words: list[dict], rate: int, samples: array.array, config: dict) -> list[Pause]:
     """把检测到的停顿按相邻词边界归类，并给出目标时长。
 

@@ -15,8 +15,8 @@ BUILTINS = ("ding", "ding-dong", "click", "transition")
 
 
 def validate(data: dict, root: Path) -> None:
-    from .explainer import obj, local_file
-    from .media_assets import number
+    from m2v.core.validate import number, obj
+    from .explainer import local_file
     track = obj(data.get("soundtrack", {}), "soundtrack", {"music", "effects"})
     scenes = {s["id"]: s for s in data["scenes"]}
     if "music" in track:

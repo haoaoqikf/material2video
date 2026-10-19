@@ -24,18 +24,11 @@
 | `--m2v-safe-bottom-with-subtitles` | `520px` | 有字幕时的下边界，比 `--m2v-safe-bottom` 更大 |
 | `--m2v-content-width` | `888px` | 安全区内的可用宽度 |
 | `--m2v-grid-columns` / `--m2v-grid-gutter` | `12` / `24px` | 栅格列数与列间距 |
-| `--m2v-subtitle-inset-x` | `108px` | 字幕盒左右内缩 |
-| `--m2v-subtitle-top` / `--m2v-subtitle-height` | `1580px` / `200px` | 字幕盒纵向位置与高度 |
-| `--m2v-subtitle-size` / `--m2v-subtitle-leading` | `40px` / `1.5` | 字幕字号与行高 |
-| `--m2v-measure-left` / `-right` / `-top` | `106px` / `974px` / `158px` | 正文文字包围盒的允许范围 |
-| `--m2v-measure-content-bottom` | `1502px` | 正文下边界，越过即判「内容侵入字幕区」 |
-| `--m2v-measure-subtitle-bottom` | `1782px` | 字幕文字自身的下边界 |
 
-**字幕盒与量测边界是同一组令牌。** 画面里的字幕盒（`ArticleExplainer`）和浏览器量测的
-判据边界（`explainer_render.py` 的 `measure_script`）都读上表后五项，Python 侧经
-`m2v.engine.design_tokens` 解析 `tokens.css` 得到。这不是顺手抽公共常量：过去两边各写一份
-字面量，改一处不会让另一处报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。
-量测边界名里的 `measure` 就是这个意思：它们只被验收读取，不被画面绘制。
+字幕几何真源是 `web/src/frames.json`（`m2v.engine.frames` 读取），`m2v.engine.design_tokens`
+只读 `tokens.css` 的非字幕令牌，并由 `tests/test_design_tokens.py` 守着「令牌层不得再出现
+字幕/量测令牌」。这不是顺手抽公共常量：过去画面与量测两边各写一份字面量，改一处不会让另一处
+报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。
 
 注意 `--m2v-measure-*` 与 `--m2v-safe-*` **不是同一组概念**，取值也不相等：安全区描述
 平台 UI 会遮挡哪里，量测边界描述项目自己的排版分区。`--m2v-safe-bottom-with-subtitles`
@@ -50,7 +43,7 @@
 
 | 项 | 公开规范 | 项目现值 | 关系 |
 | --- | --- | --- | --- |
-| 9:16 字幕字号 | 约画幅高 **3.5%**（≈67px）[^bbc] | `--m2v-subtitle-size: 40px` | **低于**规范值约四成 |
+| 9:16 字幕字号 | 约画幅高 **3.5%**（≈67px）[^bbc] | 字幕字号 40px（`web/src/frames.json`） | **低于**规范值约四成 |
 | 9:16 字幕行数 | 最多 **3 行**[^bbc] | cue ≤28 字，实测折 2 行 | 在限内 |
 | 9:16 字幕行宽 | 画幅宽 **90%**[^bbc] | 864 / 1080 = 80% | 更保守 |
 | 9:16 字幕区纵向 | 不越出画面垂直中央 **75%**，即 y 240–1680[^bbc] | 字幕盒 1580–1780 | 下沿**超出**约 100px |
@@ -92,6 +85,31 @@ cinematic 档（`productionProfile: "cinematic"`）的 look bible、LUT、后期
 系统字体只作兜底——系统字体不随仓库分发，换机器可能轻微影响字宽。
 `--m2v-font-latin` 只给拉丁与数字用（图表里的数值列对齐依赖它），
 `--m2v-font-sans` 是图形标签的槽位。
+
+### 缺字机检
+
+布局量测的第一步会逐个字符检查材料里**会被渲染**的文本是否在字体里有字形，
+缺字直接报错并阻断预演与正式导出。判据不是拿某支字体去量，而是**画面实际注册过的
+字体**：字体由 `web/src/assets/fonts.json` 声明、`web/src/fonts.ts` 在运行时注册
+（文件清单见该目录的 README），量测按清单取出字体文件逐个核对字形——
+只有当这些字体加起来都没有某个字形时，浏览器才真的会回退到系统字体——
+那正是要抓的东西。清单为空时（画面一个字体文件都没注册）不报缺字：
+无从判断，也不凭空拦人。
+
+为什么它必须存在：缺字是唯一一种**静默失败**。浏览器不报错、不警告，直接用
+系统字体顶上，字宽、字重、基线全变，而布局量测量的是元素框，照过。
+它也是 webfont 子集化的前置条件——不做逐字检查就切字体，
+等于把这种漂移变成常态。
+
+范围与边界：
+
+- 扫描材料里会被渲染的字段（`text`/`title`/`subtitle`/`label`/`quote`/`caption`/
+  `value`/`unit` 等）；`narrationSegments` 是口播文本、不画在画面上，**不进扫描**；
+- v8 的可见文字基本都在作品 `scenes/**/*.tsx` 里，因此源码中的字符串与模板字面量也一并
+  扫描——这是 v8 唯一一处静态覆盖作品画面的检查，理由还是那一条：缺字是静默失败；
+- 结论定位到 `sceneId.字段` 或作品内的相对路径——只说「缺字」不可修；
+- 只判「字体里有没有这个字形」，不判字宽字重是否合适，也不判断浏览器
+  实际选了哪个字体（那要跑浏览器）。
 
 ## 字号阶
 
@@ -188,7 +206,7 @@ cinematic 档（`productionProfile: "cinematic"`）的 look bible、LUT、后期
 `--m2v-dur-fast` / `-base` / `-slow` = 240 / 360 / 560ms（约 7 / 11 / 17 帧）只是
 **配方里的时长刻度**，注释里换算成 60fps 的帧数供作者取用。画面本身仍然只由帧号
 驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见
-[渲染契约](render-contract.md)。
+[代码场景运行契约](code-scene-runtime.md)。
 
 ## 怎么用
 

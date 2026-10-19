@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from m2v.cli import _report_reading_pace
+from m2v.commands import _report_reading_pace
 from m2v.types.general import adapter, reading_pace
 
 from test_article_explainer import fake_tts, project

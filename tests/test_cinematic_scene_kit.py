@@ -186,8 +186,10 @@ def test_cinematic_sdk_has_no_wall_clock_random_or_css_animation():
     """电影套件自己也要过确定性闸门：不许挂钟、随机数与 CSS 动画。"""
     from m2v.core import source_policy
 
-    sdk = WEB / "src/code-scene/cinematic.tsx"
-    violations = source_policy.scan([sdk])
+    # 套件拆成包后要扫全部模块：`scan` 会静默跳过缺失文件，写死单个路径会让闸门空跑。
+    sdk = sorted((WEB / "src/code-scene/cinematic").glob("*.tsx"))
+    assert sdk, "电影套件的源码文件不见了"
+    violations = source_policy.scan(sdk)
     assert not violations, [item.render(WEB) for item in violations]
 
 
@@ -196,10 +198,10 @@ def test_missing_cinematic_dependency_fails_before_building(monkeypatch):
     from m2v.core.errors import M2VError
     from m2v.types.general import code_scenes
 
-    monkeypatch.setattr(code_scenes, "CINEMATIC_DEPS", ("definitely-missing-package",))
+    monkeypatch.setattr(code_scenes.config, "CINEMATIC_DEPS", ("definitely-missing-package",))
     with pytest.raises(M2VError, match="缺少电影级后期依赖"):
         code_scenes.require_cinematic_dependencies()
-    monkeypatch.setattr(code_scenes, "CINEMATIC_DEPS", ())
+    monkeypatch.setattr(code_scenes.config, "CINEMATIC_DEPS", ())
     code_scenes.require_cinematic_dependencies()
 
 

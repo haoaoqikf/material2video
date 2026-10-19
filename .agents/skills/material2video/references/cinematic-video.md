@@ -16,10 +16,11 @@ cinematic 同样先明确核心体验验收条目；时长预算由内容与运�
 档位声明、镜头/look/claims 字段、准备指纹与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）
 已经落地，并通过真实浏览器验证了同帧可复现与标准画面不受影响。
 `lookdev` / `qa` / `assets audit` 已接线；lookdev 静帧从源码按原生 2× 像素绘制，
-PNG 合成字幕与转场，有声样片仍复用准备片段，详见[渲染契约](render-contract.md#lookdev-原生关键帧)。
+PNG 合成字幕与转场，有声样片仍复用准备片段，详见[代码场景运行契约](code-scene-runtime.md#lookdev-原生关键帧)。
 太阳系一镜到底参考片保留旧版135秒的历史记录；当前重制预算与实际状态见示例设计及验证文档；旧用户确认不授权当前版本完成。跨幕录制的片段无法拼接成真正的一镜到底，相关约束见[分镜结构](storyboard-schema.md#一镜到底)。
 cinematic 不另出母版，成片仍是普通 H.264 MP4。本节与
-[渲染契约](render-contract.md)、[分镜结构](storyboard-schema.md) 描述的是**当前支持**的能力。
+[代码场景运行契约](code-scene-runtime.md)、[渲染引擎](render-engine.md)、
+[分镜结构](storyboard-schema.md) 描述的是**当前支持**的能力。
 
 ## 档位对照
 
@@ -155,7 +156,8 @@ cinematic 的声音设计分四层，全部写进分镜顶层 `soundtrack` 或�
 
 混音目标：旁白 −16 LUFS，音乐 −28 至 −32 dB，音效 −24 dB（默认 −18 dB 声明值由作品决定），
 成片 **−14 LUFS / −1 dBTP**；保留旁白闪避与真峰值限制。cinematic 不另出 48kHz/24bit 母版，
-声音随普通 MP4 交付。字段与验收见[媒体契约](media-contract.md)。
+声音随普通 MP4 交付。字段与验收见[文章媒体与音效](article-media-and-sound.md)与
+[配音音色与节奏](voice-and-rhythm.md)。
 
 ## 助手阶段复核（不新增 CLI 门禁）
 
@@ -230,7 +232,8 @@ cinematic 不设数字评分卡或用户确认。助手对最终文件执行全�
 
 - [制作流程](production-workflow.md)：standard 与 cinematic 的分支与命令。
 - [分镜结构](storyboard-schema.md)：可选字段 `leadInFrames` / `tailFrames` / `readingHoldFrames` / `shots` / `look` / `claims`。
-- [渲染契约](render-contract.md)：后期确定性与普通 MP4 交付。
-- [媒体契约](media-contract.md)：资产审计、声音设计与混音。
+- [代码场景运行契约](code-scene-runtime.md)：后期确定性与逐帧采集。
+- [渲染引擎](render-engine.md)：打包、字幕量测与普通 MP4 编码。
+- [配音音色与节奏](voice-and-rhythm.md)：声音设计与混音；[文章媒体与音效](article-media-and-sound.md)：音床与音效字段。
 - [评审量表](visual-review-rubric.md)：自主复核口径。
 - [设计令牌](design-tokens.md)：cinematic look 与作品自由设计的关系。

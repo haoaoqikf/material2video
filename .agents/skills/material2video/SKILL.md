@@ -13,7 +13,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 |---|---|
 <!-- generated:type-catalog:start -->
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
-| `general` | [作品视觉设计与制作流程](references/production-workflow.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[代码场景契约](references/render-contract.md)：v8 全画布代码场景多幕讲解。 |
+| `general` | [作品视觉设计与制作流程](references/production-workflow.md)、[分镜结构](references/storyboard-schema.md)、[媒体素材与音效](references/article-media-and-sound.md)、[代码场景契约](references/code-scene-runtime.md)：v8 全画布代码场景多幕讲解。 |
 | `housing-timeseries` | 按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、60 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 
@@ -21,18 +21,11 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 ## 制作档位（standard / cinematic）
 
-通用作品分 **standard**（默认）与 **cinematic** 两档，在 `project.json` 的 `productionProfile`
-声明，也可用 `prepare --profile cinematic` 临时覆盖；分镜不重复声明档位。
-
-| 项 | standard | cinematic |
-|---|---|---|
-| look-dev | 可选 | 必须：3–5 张 4K 静帧 + 20–30 秒有声样片，助手实际复核并关闭必改项后铺全片 |
-| 镜头 | 作品自由 | 必须提交 shot list；hero ≥ 3，每个 hero 有 8–12 秒连续镜头 |
-| 资产 | 2K 可用 | hero ≥ 4K，normal/roughness/emissive 齐全，许可留证 |
-| 后期 | 无 | Bloom / DOF / grain / vignette / CA / LUT，全部帧驱动 |
-| 声音 | TTS + 可选音床与音效 | 配乐 + 环境 + 音效 + 混音（成片 −14 LUFS / −1 dBTP） |
-| 编码 | H.264 CRF18、8bit、44.1k/128k | 普通 H.264 MP4（不另出母版） |
-| 验收 | 完整候选自动验收 | 技术 QA + hero 实看 + 助手全片帧序列与自动音频复核 |
+通用作品分 **standard**（默认）与 **cinematic** 两档：standard 是默认档，保持快速链路与自动
+验收；cinematic 由作品在 `project.json` 的 `productionProfile` 显式声明（也可用
+`prepare --profile cinematic` 临时覆盖，分镜不重复声明档位）；用户明确要求
+「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时必须用 cinematic。逐项对照表见
+[电影级制作档位](references/cinematic-video.md#档位对照)。
 
 **触发词**：用户明确要求「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时 MUST 使用 cinematic，
 不得静默按 standard 交付再声称电影级；反过来，用户没有这样要求时不要默认加电影级开销。
@@ -74,7 +67,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 
 通用讲解（含在线素材）使用 `general` 一个入口：可选图库检索用 `uv run m2v general assets search --project videos/general/<slug>`，素材只有经 `uv run m2v general assets import --project <目录> --manifest <清单>` 导入留证后才能被作品按 ID 取用；再走校验、准备、按需检查与一次全片生成交付。材料、检索、导入与混音规则见[文章媒体与音效](references/article-media-and-sound.md)。
 
-通用作品的输入审查与候选稿工具保留为 `uv run m2v general input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧金融材料迁移仍使用 `m2v migrate --project <目录> --from financial`；通用 v7 及更早分镜必须重新编排 v8。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，文章旧版本不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
+通用作品的输入审查与候选稿工具保留为 `uv run m2v general input-review|candidate|adopt-candidate ...`。`m2v relocate --project videos/<slug>` 只迁移作品目录及全部产物；旧金融材料迁移仍使用 `m2v migrate --project <目录> --from financial`；通用 v7 及更早分镜已不再适用，必须重新编排 v8。金融支持当前 v7/v8 和旧 v1～v6 计划；已有统一作品的 v7 升级使用 `m2v financial migrate-line`，文章旧版本不自动迁移。统一入口与状态规则见仓库 [README](../../../README.md)，架构规格见 [OpenSpec 变更](../../../openspec/specs/modular-video-production/spec.md)。
 
 ## 自动选择音色（所有有自身旁白的作品）
 
@@ -85,7 +78,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 3. 写入 `project.json` 的 `tts.voice` 和 `tts.selection`（mode、rationale、narrationSha256），填写结合具体旁白的理由。摘要使用共享 `m2v.engine.tts.narration_digest(texts)`，`texts` 为播放顺序中的自身旁白数组：通用类型逐幕逐段收集 `text`。忽略空白段，保留其余字符串原文与分段边界。
 4. 保留已有语速、停顿设置。继续 prepare、按需片段检查与 render；不得把音色标签或媒体技术验收描述为已试听、自然度达标。
 
-旁白变化必须重新判断，可保留同一音色并更新理由和摘要；画面变化不要求重选。用户手动修改作品音色时移除原助手 `selection`；`prepare --voice` 仅覆盖本次，并且不沿用助手理由。只有 CLI 覆盖语速时仍需有效助手选择。有自身旁白但未明确音色时 prepare 会阻断，不能靠重新渲染自动换声。字段、实际参数溯源和迁移见[配音契约](references/media-contract.md#配音音色与语速)。
+旁白变化必须重新判断，可保留同一音色并更新理由和摘要；画面变化不要求重选。用户手动修改作品音色时移除原助手 `selection`；`prepare --voice` 仅覆盖本次，并且不沿用助手理由。只有 CLI 覆盖语速时仍需有效助手选择。有自身旁白但未明确音色时 prepare 会阻断，不能靠重新渲染自动换声。字段、实际参数溯源和迁移见[配音契约](references/voice-and-rhythm.md#配音音色与语速)。
 
 ## 通用作品编排原则
 

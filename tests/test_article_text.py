@@ -1,15 +1,11 @@
-from m2v.types.general.article_text import count_characters, extract_body, save_candidate, standard_length_result
+"""正文提取与非空计数：只覆盖仍被生产路径使用的行为。"""
+from pathlib import Path
 
-
-def test_standard_boundaries():
-    assert standard_length_result("甲" * 129) == {"count": 129, "pass": False}
-    assert standard_length_result("甲" * 130) == {"count": 130, "pass": True}
-    assert standard_length_result("甲" * 170) == {"count": 170, "pass": True}
-    assert standard_length_result("甲" * 171) == {"count": 171, "pass": False}
+from m2v.types.general.article_text import active_source, count_characters, extract_body
 
 
 def test_count_excludes_unicode_punctuation_and_white_space():
-    assert count_characters("甲，A1 乙！　") == 4
+    assert count_characters("甲，A1 乙！　") == 4
     assert count_characters('''\'‘’"“”…！？—、。''') == 0
 
 
@@ -23,16 +19,10 @@ def test_python_whitespace_matches_unicode_white_space_property():
     assert count_characters("甲\u0085乙\u2007丙") == 3
 
 
-def test_candidate_is_saved_separately_and_must_meet_standard_length(tmp_path):
+def test_active_source_prefers_the_adopted_copy(tmp_path: Path):
     original = tmp_path / "article.md"
     original.write_text("原始内容保持不变", encoding="utf-8")
-    candidate = save_candidate(tmp_path, "候" * 140, "a" * 64)
-    assert candidate["path"] == "article.candidate.md"
-    assert candidate["charCount"] == 140
+    assert active_source(tmp_path).name == "article.md"
+    (tmp_path / "article.accepted.md").write_text("采用稿", encoding="utf-8")
+    assert active_source(tmp_path).name == "article.accepted.md"
     assert original.read_text(encoding="utf-8") == "原始内容保持不变"
-    try:
-        save_candidate(tmp_path, "短" * 129, "a" * 64)
-    except ValueError as exc:
-        assert "130～170" in str(exc)
-    else:
-        raise AssertionError("不合规候选稿必须被拒绝")

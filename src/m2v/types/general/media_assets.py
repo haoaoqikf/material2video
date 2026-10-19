@@ -32,6 +32,7 @@ from m2v.engine.gallery import (
     HttpTransport,
     build as build_gallery,
 )
+from m2v.core.validate import number
 from m2v.engine.sound import asset_digest
 
 logger = logging.getLogger(__name__)
@@ -41,11 +42,6 @@ MEDIA_DIR = "assets/media"
 MEDIA_URL_PREFIX = "/media"
 SUFFIXES = {"image": {".png", ".jpg", ".jpeg", ".webp"}, "video": {".mp4", ".mov", ".m4v", ".webm"}}
 KINDS = ("video", "photo", "both")
-
-
-def number(value, low, high, where):
-    from .explainer import number as check
-    return check(value, low, high, where)
 
 
 def probe(path: Path, kind: str) -> dict:

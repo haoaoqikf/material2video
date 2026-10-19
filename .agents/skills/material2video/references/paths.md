@@ -1,5 +1,10 @@
 # 目录约定与输出路径
 
+> **适用范围：** 本文描述作品目录的归属与输出路径：两层根、内容根、目录结构、画面来源、
+> 归属推导、默认输出与兼容覆盖规则。交付权限、成片溯源、渲染性能报告与候选保留见
+> [交付与溯源](delivery-and-provenance.md)；准备记录字段见[准备记录与字幕](prepared-and-subtitles.md)，
+> 渲染引擎见[渲染引擎](render-engine.md)。
+
 每篇文章占一个稳定、唯一的目录名（slug，推荐小写英文与连字符）。文章标题变化不改目录名。
 
 **文章内容不入库**：`videos/` 是作品内容（原文、分镜、媒体素材），已在 `.gitignore` 中忽略；
@@ -117,93 +122,8 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融与住宅沿用各自类型文件名；
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
-v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
+v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
 「写了旁白却没配音」的中间态：需要配音请先执行 `uv run m2v prepare --project <目录>`。
-
-## 交付权限
-
-所有从临时目录搬到最终位置的产物都在搬运的同时交回所在目录的继承权限：成片、溯源记录、
-混音主音轨、代码场景录制片段、导入素材与缓存条目。原因是 Windows 的 `tempfile` 临时目录
-带一份收紧的 ACL（只有 `SYSTEM`、`Administrators` 与 `OWNER RIGHTS`，且关闭继承），产物
-只 `replace` 不修复时，当前账号仍能读写，但以标准权限运行的打包应用打不开——用户双击成片时
-媒体播放器报 `0x80070005 你没有访问该文件的权限`。
-
-- 交付统一走 `m2v.core.security.deliver`（整个目录用 `deliver_directory`），不要手写 `Path.replace`。
-- 交付后复核目标本身；仍缺少普通用户授权条目时日志会报告目标与所在目录，指出问题在父目录。
-- 复核判据是 `security.has_usable_access`；非 Windows 平台不存在这个问题，`icacls` 为 Windows 自带命令。
-
-## 成片溯源
-
-渲染成功后在成片旁写 `<同名>.provenance.json`，用于回答「这个成片是不是旧材料渲的」。
-`schemaVersion` 当前为 `1`。文章类型（`general`）的形状是：
-
-```json
-{
-  "schemaVersion": 1,
-  "type": "general",
-  "projectId": "buffer-smoothing",
-  "preparedFingerprint": "…",
-  "compositionId": "ArticleExplainer",
-  "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",
-              "file:article.md": "…", "renderer": "…" },
-  "durationInFrames": 590, "fps": 60, "width": 1080, "height": 1920
-}
-```
-
-`type` 为 `general` / `financial-timeseries` / `housing-timeseries`
-之一，`compositionId` 是它对应的 Remotion composition 标识。
-`preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
-材料、资产或渲染代码已经变化，成片落后。
-`inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
-`audio:<场景>`、composition 可达源码的 `renderer` 指纹），用它逐项指出是哪个输入变了。
-
-各类型的字段并不完全一致，差异有据可查：
-
-| 类型 | 与上表的差异 |
-| --- | --- |
-| `general` | 无差异；**不含**根级 `renderer` 与 `bundleKey` |
-| `financial-timeseries` / `housing-timeseries` | 多 `renderer` 与 `bundleKey`，并用 `frames` + `materialsAndAssetsSha256` 代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
-
-溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
-独立复核准备指纹与文件摘要完成。
-
-## 渲染性能报告
-
-同一支成片还写一份 `<同名>.performance.json`（同样不入库），回答的是另一类问题：
-这次渲染慢在哪、缓存有没有命中、用了几个并发、开了几次浏览器。它**不参与交付判定**，
-写不进去只告警，不会让一次已经验收通过的渲染失败。
-
-```json
-{
-  "version": 1,
-  "entry": "render",
-  "generatedAt": "2026-09-20T12:00:00+00:00",
-  "output": "voiced.mp4",
-  "storyboard": "<分镜的绝对路径>",
-  "frames": 1200, "fps": 60, "width": 1080, "height": 1920,
-  "concurrency": 1,
-  "stages": { "cache": 0.03, "bundle": null, "metadata": 4.1, "render": 91.8, "mux": 0.5, "probe": 1.4 },
-  "skipped": ["bundle"],
-  "executedSeconds": 97.8,
-  "totalSeconds": 98.4,
-  "environment": {
-    "platform": "Windows-11-10.0.26300-SP0", "machine": "AMD64", "processor": "…",
-    "cpuCount": 18, "memoryGiB": 31.6,
-    "python": "3.12.10", "node": "v22.23.2", "remotion": "4.0.526",
-    "ffmpeg": "ffmpeg version …", "executable": "…/python.exe"
-  },
-  "cache": { "status": "hit", "key": "…", "detail": "命中并复核了 55 个产物文件" },
-  "session": { "browsersOpened": 1, "handshakeSeconds": 4.1 }
-}
-```
-
-`entry` 标明数据来自哪个入口（`preview` 或 `render`），因为正式门禁下的数字与限帧
-试渲染不同源，混着比会得出错误结论。`environment` 用来解释「同一份材料在两台机器上
-为什么快慢不同」。各类型还会往报告根上补几个自己的字段（例如讲解渲染的
-`layoutCheckSeconds`、通用视频的 `session.browsersOpened` / `observedPeakMemoryBytes`）。
-
-`render` 已包含编码（两者在 Remotion 内部重叠），因此没有独立的 `encode` 阶段；
-未执行的阶段是 `null` 且列在 `skipped` 里，不用 `0` 冒充实测。
 
 ## 兼容与覆盖规则
 
@@ -211,15 +131,15 @@ v7 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 - 不设内容根时工作区根即仓库根，路径与产物位置与引入内容根之前一致；
 - 同类重复导出覆盖固定文件（同一篇文章的 `silent.mp4` 只有一份）；
 - 产物先生成、验收后替换，失败不会破坏上一份可用成片；
+- `render` 只读取作品材料与准备记录，不修改原始材料；
 - 统一入口正式渲染成功后清理本作品 `outputs/` 中旧视频及其字幕/溯源/性能旁车、预演、检查图和已知调试目录；保留本次成片及旁车、`prepared.json`、评审 JSON 和 `media/` 准备媒体。渲染或验收失败不清理，仓库共享构建缓存不受影响；清理错误按遗留路径报告；
 - 限帧试渲染写入 `previews/`，不会覆盖正式成片。
 - 旧统一作品使用 `m2v relocate --project videos/<slug>` 逐个迁移；命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from financial` 只用于旧金融材料契约迁移。
 
 ## 相关文档
 
-- [配音与字幕](media-contract.md)：媒体清单字段、缓存与字幕规则
-- [渲染契约](render-contract.md)：网页接口、确定性要求与渲染模式
-
-## 一次全片生成与候选保留
-
-`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4，住宅为 housing-timeseries.mp4。
+- [交付与溯源](delivery-and-provenance.md)：交付权限、成片溯源、渲染性能报告与候选保留
+- [准备记录与字幕](prepared-and-subtitles.md)：准备记录字段、缓存与字幕规则
+- [配音音色与节奏](voice-and-rhythm.md)：音色、语速与停顿节奏
+- [代码场景运行契约](code-scene-runtime.md)：契约页接口与确定性要求
+- [渲染引擎](render-engine.md)：打包、渲染会话、字幕量测与成片编码

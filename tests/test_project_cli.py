@@ -9,7 +9,7 @@ import pytest
 from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
-from m2v.cli import _require_review, _review_criteria
+from m2v.commands import _require_review, _review_criteria
 from m2v.types.migration import migrate
 from m2v.types.relocation import relocate
 from m2v.types import registry
@@ -37,7 +37,7 @@ def test_general_render_needs_no_visual_approval_and_preserves_referenced_eviden
     video_type = VideoType("general", lambda *_: None, lambda *_: prepared,
                           lambda *_: None, render, prepared_check=lambda *_: prepared)
     monkeypatch.setattr(registry, "_registry", {"general": video_type})
-    monkeypatch.setattr("m2v.cli.load_project", lambda *_: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_project", lambda *_: (root, manifest))
 
     assert main(["status", "--project", str(root)]) == 0
     status = json.loads(capsys.readouterr().out)
@@ -215,8 +215,8 @@ def test_preview_outside_the_project_root_needs_no_record(
     )
     register_synthetic_type(monkeypatch, "outside-preview", "预演落在作品根之外")
     monkeypatch.setattr(registry, "_registry", {"outside-preview": video_type})
-    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
-    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
+    monkeypatch.setattr("m2v.commands.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_current_prepared", lambda *_args: prepared)
 
     assert main(["preview", "--project", str(root)]) == 0
 
@@ -262,8 +262,8 @@ def test_unified_review_template_and_export_run_type_hooks(tmp_path: Path, monke
     )
     register_synthetic_type(monkeypatch, "review-hook", "review hook test")
     monkeypatch.setattr(registry, "_registry", {"review-hook": video_type})
-    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
-    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
+    monkeypatch.setattr("m2v.commands.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_current_prepared", lambda *_args: prepared)
 
     assert main(["review-template", "--project", str(root)]) == 0
     generic = json.loads((root / "outputs" / "review.json").read_text(encoding="utf-8"))
@@ -307,8 +307,8 @@ def test_type_without_manual_review_uses_type_gate_and_status(tmp_path: Path, mo
         lambda *_args, **_kwargs: preview, render, review_gate=gate, manual_review_available=False)
     register_synthetic_type(monkeypatch, "auto-review", "自动验收测试")
     monkeypatch.setattr(registry, "_registry", {"auto-review": video_type})
-    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
-    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: prepared)
+    monkeypatch.setattr("m2v.commands.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_current_prepared", lambda *_args: prepared)
 
     assert main(["review-template", "--project", str(root)]) == 0
     assert not (outputs / "review.json").exists()
@@ -322,7 +322,7 @@ def test_type_without_manual_review_uses_type_gate_and_status(tmp_path: Path, mo
 
 
 def test_financial_status_without_delivery_record_reports_prepared(tmp_path: Path, monkeypatch) -> None:
-    from m2v.cli import _status
+    from m2v.commands import _status
     from m2v.types.financial.adapter import TYPE as financial_type
     from dataclasses import replace
 
@@ -336,7 +336,7 @@ def test_financial_status_without_delivery_record_reports_prepared(tmp_path: Pat
         "preparedFingerprint": "fp", "materialsAndAssetsSha256": "bound-digest",
     }), encoding="utf-8")
     manifest = {"id": "finance", "type": "financial-timeseries"}
-    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_: {"preparedFingerprint": "fp"})
+    monkeypatch.setattr("m2v.commands.load_current_prepared", lambda *_: {"preparedFingerprint": "fp"})
     monkeypatch.setattr(registry, "_registry", {
         "financial-timeseries": replace(financial_type, review_gate=lambda *_: None)})
     result = _status(root, manifest)
@@ -362,9 +362,9 @@ def test_failed_unified_render_does_not_clean_old_outputs(tmp_path: Path, monkey
     )
     register_synthetic_type(monkeypatch, "render-failure", "失败渲染测试")
     monkeypatch.setattr(registry, "_registry", {"render-failure": video_type})
-    monkeypatch.setattr("m2v.cli.load_project", lambda _path: (root, manifest))
-    monkeypatch.setattr("m2v.cli.load_current_prepared", lambda *_args: {"preparedFingerprint": "fp"})
-    monkeypatch.setattr("m2v.cli._require_type_review", lambda *_args: None)
+    monkeypatch.setattr("m2v.commands.load_project", lambda _path: (root, manifest))
+    monkeypatch.setattr("m2v.commands.load_current_prepared", lambda *_args: {"preparedFingerprint": "fp"})
+    monkeypatch.setattr("m2v.commands._require_type_review", lambda *_args: None)
 
     assert main(["render", "--project", str(root)]) == 1
     assert old_video.read_bytes() == b"still valid"

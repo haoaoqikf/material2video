@@ -29,14 +29,21 @@ def digest(file: Path) -> str:
 
 
 def implementation_digest() -> str:
-    """准备/量测/混音代码也是交付契约，改动后须重新准备和评审。"""
-    from m2v.core.fingerprints import fingerprint
+    """准备/量测/混音代码也是交付契约，改动后须重新准备和评审。
+
+    键用仓库内相对路径而不是文件名：拆包后两个包都会出现 `__init__.py`，按文件名
+    做键会互相覆盖，漏掉其中一个包的实现。
+    """
+    from m2v.core.assets import REPOSITORY_ROOT
+    from m2v.core.fingerprints import fingerprint, module_files
+    from m2v.engine import render_pipeline
     from . import adapter, explainer_render
     from . import soundtrack, media_assets, code_scenes
-    modules = (contract, explainer_review, explainer_render, frame_engine, adapter, audio, tts,
+    modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
                rhythm_engine, soundtrack, media_assets, code_scenes)
-    files = [Path(module.__file__) for module in modules] + [Path(__file__)]
-    return fingerprint({**{file.name: digest(file) for file in files}, **code_scenes.implementation_inputs()})
+    files = [file for module in modules for file in module_files(module)] + [Path(__file__)]
+    keys = {file.relative_to(REPOSITORY_ROOT).as_posix(): digest(file) for file in files}
+    return fingerprint({**keys, **code_scenes.implementation_inputs()})
 
 
 def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, profile=None) -> dict:

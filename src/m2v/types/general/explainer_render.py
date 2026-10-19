@@ -17,7 +17,7 @@ from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_current_prepared
 from m2v.core import security
-from m2v.engine import audio, contract_page, frames, output_validation, perf, remotion
+from m2v.engine import audio, contract_page, frames, output_validation, perf, remotion, render_pipeline
 from m2v.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
 
@@ -149,13 +149,9 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         timings.record("bundle", outcome.build_seconds)
         timings.record("cache", outcome.cache_seconds)
         silent = work / "silent.mp4"
-        def confirm(metadata):
-            expected = (FPS, width, height, prepared["durationInFrames"])
-            actual = (metadata.fps, metadata.width, metadata.height, metadata.duration_in_frames)
-            if expected != actual:
-                raise M2VError(f"讲解 composition 元数据不匹配：{actual}，期望 {expected}")
-            return {"out": str(silent), "crf": 18, "preset": "medium", "frames": f"{start_frame}-{end_frame-1}",
-                    "scale": 1, "concurrency": 1, "progressTotal": frames_to_render}
+        confirm = render_pipeline.metadata_confirm(
+            (FPS, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
+            frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
         render_start = time.monotonic()
         session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
             composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
@@ -203,11 +199,10 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         security.deliver(final, destination)
         if not preview:
             security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
-    perf.write_report(perf.report_path_for(destination), perf.build_report(entry="preview" if preview else "render",
-        output=destination, storyboard=entry, frames=frames_to_render, fps=FPS, width=width, height=height, concurrency=1,
-        timings=timings, total_seconds=time.monotonic()-started,
-        cache={"status": outcome.cache_status, "key": outcome.cache_key, "detail": outcome.cache_detail},
-        extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"}))
+    render_pipeline.write_report(destination, entry="preview" if preview else "render", storyboard=entry,
+        frames=frames_to_render, fps=FPS, width=width, height=height, timings=timings,
+        total_seconds=time.monotonic()-started, outcome=outcome,
+        extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"})
     logger.info("讲解视频导出通过：%s，%d 帧", destination, frames_to_render)
     return destination
 

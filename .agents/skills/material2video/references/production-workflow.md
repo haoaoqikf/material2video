@@ -6,20 +6,10 @@
 
 通用作品使用 project.json 和 v8 storyboard.json。制作顺序：发布语境与受众 → 保存源文并完成[输入审查](input-review.md)（topic 跳过）→ 简短导览文案 → 两个美术方向比较 → 镜头时间预算和音乐段落表 → 开场/核心/结尾关键画面与完整动态粗预演 → 最终参数风险样片 → 实际配音与声音时间表回填 → 全片精制 → 全片审美和声音修订 → 六个维度复核 → 自主交付。按[制作阶段](creative-production.md)记录完成条件与改动复查，不增加用户确认或 CLI 人工门禁。
 
-作品代码在 `scenes/`；素材按需导入，音色按[自动选音流程](../SKILL.md)保存。粗预演可使用简化画面与临时配音，但须标明版本及限制；不能代替正式成片的全片验收。风险样片包含实际配音及按设计需要的音乐；优先验证复杂转场、多主体与声音交接，必改项关闭后再扩展精制全片。
+作品代码在 `scenes/`；`m2v init` 会生成材料模板并按类型目录写入起步场景 `scenes/opening.tsx`，素材按需导入，音色按[自动选音流程](../SKILL.md)保存。粗预演可使用简化画面与临时配音，但须标明版本及限制；不能代替正式成片的全片验收。风险样片包含实际配音及按设计需要的音乐；优先验证复杂转场、多主体与声音交接，必改项关闭后再扩展精制全片。
 
-下列 CLI 是准备/按需片段检查/一次全片生成交付的既有技术链路；不能替代上述创作阶段及真实复核：
-
-```powershell
-uv run m2v general assets search --project videos/general/<slug> --kind both
-uv run m2v general assets import --project videos/general/<slug> --manifest <清单.json>
-uv run m2v validate --project videos/general/<slug>
-uv run m2v prepare --project videos/general/<slug>
-# 可选片段检查，默认前十秒且严格短于全片
-uv run m2v preview --project videos/general/<slug>
-uv run m2v render --project videos/general/<slug>
-uv run m2v status --project videos/general/<slug>
-```
+下列 CLI 是准备/按需片段检查/一次全片生成交付的既有技术链路；命令清单与说明见
+[制作 Skill](../SKILL.md) 的统一命令一节，它们不能替代上述创作阶段及真实复核。
 
 prepare 复核全部登记素材并编译实际配音时间轴、母版声音与源码依赖，不录制场景。检查生成时只采集所需帧或片段；正式生成复用区间缓存并补齐缺口。
 
@@ -41,19 +31,8 @@ CLI 自动门禁仍为材料审查 → 选音 → 准备 → 按需检查生成 
 ## cinematic 分支
 
 作品在 `project.json` 声明 `productionProfile: "cinematic"`（或 `prepare --profile cinematic`）后，
-流程改为五个阶段，所有阶段均无需用户确认；产出静帧与样片、实际复核并关闭必改项后继续：
-
-```powershell
-uv run m2v validate --project videos/general/<slug>
-uv run m2v prepare --project videos/general/<slug>
-uv run m2v lookdev --project videos/general/<slug>   # 3–5 张 4K 静帧 + 接触表 + 20–30 秒有声样片
-# 实际观看静帧与样片，记录版本、时间码、问题与复查；关闭必改项后铺全片，不新增 CLI 导出门禁
-# 可选片段检查，默认前十秒且严格短于全片
-uv run m2v preview --project videos/general/<slug>
-uv run m2v render --project videos/general/<slug>    # 仅生成一次全片并验收交付
-uv run m2v qa --project videos/general/<slug>        # 技术 QA，输出 outputs/qa.json
-uv run m2v assets audit --project videos/general/<slug>
-```
+流程改为五个阶段，所有阶段均无需用户确认；产出静帧与样片、实际复核并关闭必改项后继续。
+命令清单与逐条说明见 [制作 Skill](../SKILL.md) 的统一命令一节；cinematic 分支特有的要求是：
 
 - 阶段为 **Brief → Look-dev → Hero → Full film → QA/自主复核**；look-dev 只产出检查产物，
   不设人工门禁，`m2v render` 不因缺少观看或确认记录而阻断。

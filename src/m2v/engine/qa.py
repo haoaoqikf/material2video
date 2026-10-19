@@ -144,11 +144,6 @@ def contact_sheet(video: Path, target: Path, *, columns: int = 4, rows: int = 6,
     return target
 
 
-def sheet_interval(seconds: float, columns: int = 4, rows: int = 6) -> int:
-    """接触表的抽帧间隔：短片也要抽到帧，长片不超过 5 秒一帧。"""
-    return max(1, min(5, int(seconds // (columns * rows))))
-
-
 def _contrast_ratio(foreground: str, background: str) -> float:
     def luminance(color: str) -> float:
         value = color.lstrip("#")
