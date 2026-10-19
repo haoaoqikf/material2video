@@ -42,7 +42,7 @@ uv run m2v render --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
 
-有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频或连续收听声音，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
+有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频、连续收听声音或试听音色，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
 
 作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。目录归属、内容根与默认输出见[目录约定与输出路径](.agents/skills/material2video/references/paths.md)。
 
@@ -53,7 +53,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - 基础链路：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。
 - `preview` 只生成片段，默认前十秒（短作品最多全片减一帧），支持 `--start-seconds 20 --end-seconds 25` 或 `--limit-frames N`，覆盖全片会拒绝。它是可选检查工具，不是 render 的前置条件。
 - `render` 将完整候选和输入/实现/编码参数指纹及 SHA-256 保存在 `outputs/candidates/` 与 `outputs/delivery.json`，验收后复制交付同一文件；同版本重复执行、验收失败或交付失败重试均不重新完整编码；文件损坏或输入变化后才重新生成。`status` 报告已准备、候选待验收、验收失败、可交付、交付失败或已交付。可选评审绑定候选摘要；异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。候选、交付记录与清理规则见[交付与溯源](.agents/skills/material2video/references/delivery-and-provenance.md)。
-- 通用作品另有三个检查入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒有声样片；观看结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/asset-audit.json`）。
+- 通用作品另有三个检查入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒有声样片；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/asset-audit.json`）。
 - 文章专属：输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`。
 - 金融专属：`m2v financial plan` 离线生成 v8 计划，`m2v financial migrate-line` 备份升级已有作品。
 - 操作性语义创作指导见 [material2video Skill](.agents/skills/material2video/SKILL.md)。

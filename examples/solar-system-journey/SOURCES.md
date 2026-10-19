@@ -34,7 +34,7 @@ TIFF，分别转无损 PNG 与 `roughness = 235 - specular × 0.8` 的 8 bit 粗
 原创输出采用 [CC0 1.0](assets/materials/LICENSE.md)。所有 ID、实测尺寸、处理说明、
 角色、目标、色彩空间和摘要见 `assets/media-sources.json`，运行时只读取这些已登记输入。
 
-以上升级已落入可编辑材料；look-dev 静帧、样片与 hero 可见性的实际观看记录见 `outputs/visual-notes.md`，look-dev 不设人工确认门禁。
+以上升级已落入可编辑材料；look-dev 静帧、时间标注帧序列、量测与自动音频信号的复核记录见作品 `outputs/visual-notes.md`，不要求播放样片或试听音色，也不设人工确认门禁。
 
 逐项文件摘要、尺寸和来源保存在 [assets/media-sources.json](assets/media-sources.json)。纹理仅用于艺术性球面展示，不用于地形测量。
 
