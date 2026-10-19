@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
-import {FPS, TOTAL, LEAD_IN, TAIL, SEGMENTS, createProposal} from './lib/paths.mjs';
+import {FPS, LEAD_IN, TAIL, SEGMENTS, createProposal} from './lib/paths.mjs';
 
 const HERE = import.meta.dirname;
 const EXAMPLE = path.resolve(HERE, '..');
@@ -41,7 +41,8 @@ const {THREE, LAYOUT, POSITIONS} = requireFrom(bundle);
 
 // ---------------------------------------------------------------- 路径提案
 
-const {shots, storyboard, report, problems, boundarySpeedMax, minDistances, speeds, approachRatios}
+const {shots, storyboard, report, problems, boundarySpeedMax, minDistances, speeds, approachRatios,
+  totalFrames}
   = createProposal({THREE, LAYOUT, POSITIONS});
 
 // ---------------------------------------------------------------- 产物写出
@@ -76,15 +77,19 @@ if (process.argv.includes('--merge') && !problems.length) {
     return next;
   });
   current.scenes[0].content.props.shots = storyboard.scenes[0].content.props.shots;
-  Object.assign(current.scenes[0], {durationFrames: TOTAL, leadInFrames: LEAD_IN, tailFrames: TAIL, narrationSegments});
-  current.targetSeconds = TOTAL / FPS;
+  Object.assign(current.scenes[0], {durationFrames: totalFrames, leadInFrames: LEAD_IN, tailFrames: TAIL, narrationSegments});
+  current.targetSeconds = totalFrames / FPS;
   fs.writeFileSync(target, JSON.stringify(current, null, 2) + '\n', 'utf8');
   console.log('已合并镜头与时间预算（旁白原文未改变，claims 与扩展字段保留）');
 }
 
 // ---------------------------------------------------------------- 报告打印
 
-console.log(`镜头 ${shots.length} 个，覆盖 ${shots[0].startFrame}–${shots[shots.length - 1].endFrame}`);
+console.log(`镜头 ${shots.length} 个，${totalFrames} 帧 / ${(totalFrames / FPS).toFixed(1)} 秒，覆盖 ${shots[0].startFrame}–${shots[shots.length - 1].endFrame}`);
+console.log('逐段跨站预算：');
+for (const item of report.transitBudgets) {
+  console.log(`  ${item.from} → ${item.to}: ${item.seconds.toFixed(1)} 秒，路径 ${item.pathLength} 单位`);
+}
 console.log(`问题 ${problems.length} 项；边界速度最大 ×${boundarySpeedMax.toFixed(2)}`);
 for (const problem of problems.slice(0, 20)) console.log('  ! ' + problem);
 console.log('速度突变最大的 5 个边界：');

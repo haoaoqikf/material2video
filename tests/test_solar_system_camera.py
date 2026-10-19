@@ -18,7 +18,7 @@ WEB = ROOT / "web"
 STORYBOARD = ROOT / "examples/solar-system-journey/storyboard.json"
 
 #: 与 outputs/prepared.json 一致的实测 TTS 帧长；文本或语速改变时必须同步本表。
-SEGMENT_FRAMES = [309, 300, 285, 297, 289, 313, 225, 373, 339, 294, 316, 307, 216, 356, 332]
+SEGMENT_FRAMES = [309, 300, 285, 297, 289, 313, 225, 373, 339, 294, 316, 307, 216, 359, 332]
 
 requires_node = pytest.mark.skipif(
     shutil.which("node") is None or not (WEB / "node_modules/esbuild").exists(),
@@ -47,33 +47,41 @@ const entry = `
   assert.equal(scenes.length, 1, '一镜到底必须只有一幕');
   const scene = scenes[0];
   assert.equal(scene.id, 'solar-journey');
-  assert.equal(scene.durationFrames, 13230);
+  assert.equal(scene.durationFrames, board.targetSeconds * 60);
   assert.equal(scene.transition, 'cut');
   assert.equal(scene.leadInFrames, 360);
   assert.equal(scene.tailFrames, 759);
   assert.equal(scene.narrationSegments.length, 15);
-  assert(scene.narrationSegments.slice(0, -1).every(item => item.holdFrames === 540),
-    '前 14 段必须有 9 秒视觉预算');
+  assert(scene.narrationSegments.slice(0, -1).every(item => item.holdFrames >= 180 && item.holdFrames < 540),
+    '每段视觉预算应按路径核定，且短于旧版统一9秒');
+  assert(new Set(scene.narrationSegments.slice(0, -1).map(item => item.holdFrames)).size > 1,
+    '段间视觉预算不得全部相同');
   assert(!('holdFrames' in scene.narrationSegments.at(-1)), '最后一段不得声明段间留白');
   const shots = scene.content.props.shots;
   assert.equal(shots.length, 31, '镜头数必须是 31');
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
   assert.equal(shots[0].startFrame, 0);
-  assert.equal(shots.at(-1).endFrame, 13230);
+  assert.equal(shots.at(-1).endFrame, scene.durationFrames);
   for (let index = 1; index < shots.length; index += 1) {
     assert.equal(shots[index].startFrame, shots[index - 1].endFrame, '镜头时间窗必须首尾相接');
   }
   assert(shots.every(shot => !shot.cut), '一镜到底不允许硬切');
   assert(shots.every(shot => shot.camera?.easing === 'linear'),
     '线性缓动是边界不停顿的前提；sineInOut 会让每个镜头边界速度归零');
+  const jupiter = positionOf('jupiter').toArray();
+  const saturn = positionOf('saturn').toArray();
+  assert(dist(jupiter, saturn) >= 26,
+    '独立行星木星与土星须保持显著大于旧版的空间分离');
 
   // 由实测 TTS 帧长重建旁白窗口，逐段检查有且只有一个覆盖镜头。
   const windows = {};
   let cursor = 360;
   scene.narrationSegments.forEach((segment, index) => {
     windows[segment.id] = {startFrame: cursor, endFrame: cursor + segmentFrames[index]};
-    cursor += segmentFrames[index] + (index < segmentFrames.length - 1 ? 540 : 0);
+    cursor += segmentFrames[index] + (index < segmentFrames.length - 1
+      ? scene.narrationSegments[index].holdFrames : 0);
   });
-  assert.equal(cursor, 12471, '旁白末帧必须落在尾留白起点');
+  assert.equal(cursor + scene.tailFrames, scene.durationFrames, '预算须与实际旁白和尾留白闭合');
   for (const segment of scene.narrationSegments) {
     const covering = shots.filter(shot => shot.segment === segment.id);
     assert.equal(covering.length, 1, segment.id + ' 必须有且只有一个覆盖镜头');
@@ -88,7 +96,6 @@ const entry = `
     assert(length >= 480 && length <= 720, hero.id + ' hero 必须 8～12 秒，实际 ' + length);
   }
 
-  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
   const curveOf = points => new THREE.CatmullRomCurve3(
     points.map(point => new THREE.Vector3(...point)), false, 'catmullrom', 0.5);
   const position = (shot, frame) => {

@@ -14,14 +14,14 @@ export const LAYOUT: Record<string, Placement> = {
   earth: {radius: 0.85, orbit: 17, angle: 1.55},
   moon: {radius: 0.23, orbit: 2.5, angle: 1.9, parent: 'earth'},
   mars: {radius: 0.61, orbit: 23, angle: 2.15},
-  ceres: {radius: 0.3, orbit: 29, angle: 2.7},
-  jupiter: {radius: 2.2, orbit: 38, angle: 3.2},
+  ceres: {radius: 0.3, orbit: 33, angle: 2.7},
+  jupiter: {radius: 2.2, orbit: 48, angle: 3.2},
   europa: {radius: 0.27, orbit: 5, angle: 1.8, parent: 'jupiter'},
-  saturn: {radius: 1.85, orbit: 51, angle: 3.45},
+  saturn: {radius: 1.85, orbit: 70, angle: 3.45},
   titan: {radius: 0.36, orbit: 6.3, angle: 1.36, parent: 'saturn', height: 4.0},
-  uranus: {radius: 1.05, orbit: 66, angle: 3.8},
-  neptune: {radius: 1.04, orbit: 80, angle: 4.15},
-  pluto: {radius: 0.32, orbit: 94, angle: 4.45},
+  uranus: {radius: 1.05, orbit: 92, angle: 3.8},
+  neptune: {radius: 1.04, orbit: 115, angle: 4.15},
+  pluto: {radius: 0.32, orbit: 138, angle: 4.45},
 };
 export function positionOf(id: string): THREE.Vector3 {
   const item = LAYOUT[id];

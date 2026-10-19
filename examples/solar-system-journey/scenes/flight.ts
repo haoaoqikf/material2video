@@ -19,7 +19,7 @@ export function createFlight(shots: Shot[], windows: Record<string, Window>, tar
   const stations = shots.filter(shot => shot.segment && windows[shot.segment]);
   const transitions = stations.slice(1).map((next, i) => ({
     start: stations[i].endFrame - 60,
-    end: windows[next.segment!].startFrame - 60,
+    end: windows[next.segment!].startFrame - 30,
     from: stations[i].focus?.target ?? stations[i].target,
     to: next.focus?.target ?? next.target,
   }));
