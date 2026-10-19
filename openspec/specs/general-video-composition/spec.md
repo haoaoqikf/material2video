@@ -19,7 +19,7 @@
 
 系统 MUST 在 `project.json` 接受可选的 `productionProfile`，取值为 `standard` 或 `cinematic`，缺省为 `standard`；非法取值 MUST 在准备前失败。standard MUST 保持当前 prepare、完整候选自动验收、默认编码与不加用户确认的行为。cinematic MUST 启用电影级制作契约：镜头清单、look、后期、声音设计、资产质量与普通 MP4 交付；look-dev MUST NOT 引入人工确认门禁。
 
-cinematic 作品 MUST 在 `content.props` 声明 `shots` 与 `look`，MUST 提供至少 3 个 hero 镜头，MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 对 hero 镜头和样片执行时间标注帧序列、构图/路径量测与自动音频信号检查，并把时间码、问题与复查写入作品 `outputs/visual-notes.md`；该记录 MUST NOT 阻断铺全片或导出。工作流 MUST NOT 要求播放视频或连续收听声音；不能完成规定的替代检查时 MUST 如实说明，MUST NOT 声称已达到电影级。
+cinematic 作品 MUST 在 `content.props` 声明 `shots` 与 `look`，MUST 提供至少 3 个 hero 镜头，MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 对 hero 镜头和样片执行时间标注帧序列、构图/路径量测与自动音频信号检查，并把时间码、问题与复查写入作品 `outputs/visual-notes.md`；该记录 MUST NOT 阻断铺全片或导出。工作流 MUST 遵循跨类型非播放式复核要求，不要求播放视频、连续收听声音或试听音色；不能完成规定的替代检查时 MUST 如实说明，MUST NOT 声称已达到电影级。
 
 cinematic MUST 把 profile、shots、look、后期参数、声音配置与交付参数写入准备记录、预演和溯源；任一参数变化 MUST 使旧准备与完整候选过期。standard 作品不因本要求改变准备记录、缓存键、时间轴或编码。
 
