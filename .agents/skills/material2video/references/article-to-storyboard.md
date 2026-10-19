@@ -48,20 +48,17 @@
 ## 旁白与时长
 
 每段旁白给稳定 ID，逐幕收集。全片实际时长不超过 600 秒，包括每幕 24 帧阅读停留和淡化帧数；
-超限修改文本或正常语速，不能截断语音。固定示例中缓冲与试错以 120～180 秒为目标、太阳系之旅以
-165～180 秒为目标，时长以实际配音为准。
+超限修改文本或正常语速，不能截断语音。试错目标120～180秒，太阳系按动态粗预演核定120～600秒；无声美国科学里程碑固定120秒。
 
 ## 固定示例
 
-固定示例集合为 buffer-smoothing、darts-trial-and-error、solar-system-journey，最多 3 个；不新增、删除或替换目录。每个示例有 `article.md`、`project.json`、`storyboard.json`、`README.md`、`DESIGN.md` 与按需的 `assets/`、`scenes/`。
+固定示例集合为 american-science-milestones、darts-trial-and-error、solar-system-journey，最多3个；用户明确授权才可替换。每个示例提供 project.json、v8 storyboard.json、README.md、DESIGN.md 与 scenes；article 输入另须原文，topic 输入提供事实与素材来源。
 
-- buffer-smoothing 与 solar-system-journey 使用 1920×1080，darts-trial-and-error 使用 1080×1920。
-- 三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei；
-  不再要求覆盖旧模板。
-- 核心演示包含旁白，通过实际 `segmentWindows` 与录制时钟推进：缓冲演示水位、流动点与流量积压，
-  试错演示落点与调整，太阳系演示同一三维模型内相机在总览与各天体之间的连续飞行。
-- 数值与路径明确标注示意，文章保留适用边界；示例 README 提供论点、旁白、画面与组件对应表，
-  `DESIGN.md` 记录视觉设计依据。
+- 美国科学里程碑与太阳系使用1920×1080，试错使用1080×1920。
+- 合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。
+- 试错、太阳系按实际 segmentWindows 推进；美国科学里程碑采用空旁白、固定帧数及画面中文说明，不生成TTS。
+- 美国科学里程碑和太阳系采用cinematic，试错保持standard。档案不冒充4K，原理动画明确标注示意。
+- README提供逐幕内容对应，DESIGN记录画幅、配色、构图与声音意图；生成媒体不入库。
 
 详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。
 通用类型只接受 v8 全画布代码场景，旧版本不自动迁移。

@@ -12,7 +12,7 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 [缓冲](examples/buffer-smoothing/README.md)、[试错](examples/darts-trial-and-error/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)；后续替换须由用户明确授权，数量最多三个。示例源材料、场景代码与 `DESIGN.md` 设计稿随仓库分发，两片横屏、一片竖屏，缓冲与试错每片 120～180 秒，太阳系之旅按动态粗预演核定预算（当前重制 220.5 秒，全片不超过 600 秒）；三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei，核心演示按实际旁白时间窗推进。逐片论点与组件对应关系见示例说明，视觉依据见各自的 `DESIGN.md`；生成视频保存到 `videos/examples/<slug>/outputs/`，不入库。太阳系之旅是 cinematic 档样板：单幕一镜到底、31 个首尾相接的镜头、3 个 hero、从太阳系上方连续俯冲到太阳再向外螺旋巡航，配 4K 资产；缓冲与试错保持 standard。
+文章正文、金融原始材料与作品产物属于内容，不入库。三个固定示例为 [从电报到大模型](examples/american-science-milestones/README.md)、[试错](examples/darts-trial-and-error/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)，数量最多三个，替换须用户明确授权。前后两片横屏、试错竖屏，均为60 fps。美国科学里程碑为120秒的 cinematic 无声混合媒体短片，按年代列出十项成果，优先使用已留证的档案与实物素材，代码动画补充原理；试错保持 standard、120～180秒并含中文旁白与烧录字幕；太阳系为 cinematic 单幕一镜到底，当前重制220.5秒、31个镜头和3个hero。三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei；有声场景依实际旁白时间窗推进，无声场景使用明确帧数预算。可编辑分镜、代码、设计与许可来源随仓库分发；成片保存到 `videos/examples/<slug>/outputs/`，不入库。
 
 新增视频类型只在两处落地：在 `src/m2v/types/catalog.json` 登记类型身份、材料入口与初始化模板，并实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；未在目录登记的类型会在渲染前失败。上面的清单与 Skill、项目规划中的清单都由该目录生成，改动后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成。
 

@@ -51,6 +51,32 @@ def importer(root: Path, entries, base: Path | None = None, **kwargs):
                                      base=base or root, **kwargs)
 
 
+def test_import_preserves_2d_role_and_target(tmp_path):
+    make_image(tmp_path / "archive.png")
+    result = importer(tmp_path, [{"id": "archive", "kind": "image", "localPath": "archive.png",
+                                 "role": "other", "target": "flight", "license": "Public domain"}])
+    assert result["assets"][0]["role"] == "other"
+    assert result["assets"][0]["target"] == "flight"
+    with pytest.raises(M2VError, match="role"):
+        importer(tmp_path, [{"id": "bad", "kind": "image", "localPath": "archive.png", "role": "typo"}])
+
+
+def test_resolve_rejects_tampered_role_and_target(tmp_path):
+    """手改或旧工具写入的非法 role/target 不能绕过审计与准备。"""
+    make_image(tmp_path / "archive.png")
+    importer(tmp_path, [{"id": "archive", "kind": "image", "localPath": "archive.png",
+                         "role": "other"}])
+    record = tmp_path / "assets/media-sources.json"
+    original = json.loads(record.read_text(encoding="utf-8"))
+    for mutate, message in ((lambda item: item.update(role="photo"), "role"),
+                            (lambda item: item.update(target="bad target!"), "target")):
+        data = json.loads(json.dumps(original))
+        mutate(data["assets"][0])
+        record.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        with pytest.raises(M2VError, match=message):
+            media_assets.resolve(tmp_path)
+
+
 def entry(identity, kind, **extra):
     return {"id": identity, "kind": kind, **extra}
 

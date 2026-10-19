@@ -1,0 +1,721 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "title": "从电报到大模型",
+  "input": {
+    "kind": "topic",
+    "topic": "美国建国以来主导的十项科学与技术里程碑，注明国际合作与贡献边界"
+  },
+  "targetSeconds": 120,
+  "scenes": [
+    {
+      "id": "opening",
+      "template": "code",
+      "keywords": [
+        "从电报到大模型",
+        "A SILENT DOCUMENTARY"
+      ],
+      "durationFrames": 360,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "opening",
+            "year": "1776",
+            "title": "从电报到大模型",
+            "english": "A SILENT DOCUMENTARY",
+            "caption": "",
+            "note": "",
+            "credit": "",
+            "layout": "full",
+            "accent": "#d3b38a"
+          },
+          "index": 0,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "opening-shot",
+              "target": "flight",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 360,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "telegraph",
+      "template": "code",
+      "keywords": [
+        "摩尔斯电报",
+        "THE TELEGRAPH"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "telegraph",
+            "year": "1844",
+            "title": "摩尔斯电报",
+            "english": "THE TELEGRAPH",
+            "caption": "华盛顿与巴尔的摩之间，电信号传递文字。",
+            "note": "跨越距离的通信，开始进入电气时代。",
+            "credit": "Morse telegraph / Public domain",
+            "layout": "plate",
+            "accent": "#d3b38a",
+            "asset": "telegraph"
+          },
+          "index": 1,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "telegraph-shot",
+              "target": "telegraph",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "telephone",
+      "template": "code",
+      "keywords": [
+        "贝尔电话",
+        "THE TELEPHONE"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "telephone",
+            "year": "1876",
+            "title": "贝尔电话",
+            "english": "THE TELEPHONE",
+            "caption": "早期清晰语音传输实验，让声音沿电线抵达远方。",
+            "note": "画面为1875年实验装置复制品的历史照片。",
+            "credit": "Early Bell apparatus / Public domain",
+            "layout": "plate",
+            "accent": "#d3b38a",
+            "asset": "telephone"
+          },
+          "index": 2,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "telephone-shot",
+              "target": "telephone",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flight",
+      "template": "code",
+      "keywords": [
+        "莱特兄弟飞机",
+        "POWERED FLIGHT"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "flight",
+            "year": "1903",
+            "title": "莱特兄弟飞机",
+            "english": "POWERED FLIGHT",
+            "caption": "可控、持续的动力飞行，开启航空时代。",
+            "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
+            "credit": "John T. Daniels / Library of Congress / Public domain",
+            "layout": "full",
+            "accent": "#e0c69e",
+            "asset": "flight"
+          },
+          "index": 3,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "flight-shot",
+              "target": "flight",
+              "tier": "hero",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "trinity",
+      "template": "code",
+      "keywords": [
+        "原子弹",
+        "THE ATOMIC AGE"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "trinity",
+            "year": "1945",
+            "title": "原子弹",
+            "english": "THE ATOMIC AGE",
+            "caption": "曼哈顿计划完成首次核试验，人类进入核时代。",
+            "note": "科学力量的突破，也带来深重的人道代价。",
+            "credit": "Trinity, 16 July 1945 / Jack W. Aeby / Public domain",
+            "layout": "split",
+            "accent": "#d8b08c",
+            "asset": "trinity"
+          },
+          "index": 4,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "trinity-shot",
+              "target": "trinity",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "eniac",
+      "template": "code",
+      "keywords": [
+        "ENIAC计算机",
+        "ELECTRONIC COMPUTING"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "eniac",
+            "year": "1946",
+            "title": "ENIAC计算机",
+            "english": "ELECTRONIC COMPUTING",
+            "caption": "通用电子数字计算，迈出关键一步。",
+            "note": "研制者与早期程序员共同推动计算走向电子化。",
+            "credit": "U.S. Army photograph / Public domain",
+            "layout": "full",
+            "accent": "#c6d3ce",
+            "asset": "eniac"
+          },
+          "index": 5,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "eniac-shot",
+              "target": "eniac",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "transistor",
+      "template": "code",
+      "keywords": [
+        "晶体管",
+        "THE TRANSISTOR"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "transistor",
+            "year": "1947",
+            "title": "晶体管",
+            "english": "THE TRANSISTOR",
+            "caption": "贝尔实验室的点接触晶体管，推动固态电子时代。",
+            "note": "从真空管到半导体，计算设备开始走向小型化。",
+            "credit": "Unitronic / CC BY-SA 3.0 / Cropped and graded",
+            "layout": "plate",
+            "accent": "#b9d2ca",
+            "asset": "transistor"
+          },
+          "index": 6,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "transistor-shot",
+              "target": "transistor",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "moon",
+      "template": "code",
+      "keywords": [
+        "阿波罗登月",
+        "APOLLO 11"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "moon",
+            "year": "1969",
+            "title": "阿波罗登月",
+            "english": "APOLLO 11",
+            "caption": "人类首次登上月球，把足迹留在另一个世界。",
+            "note": "1969年7月20日 · 阿波罗11号",
+            "credit": "NASA / Apollo 11 archival film / 0.75倍慢放 / Public domain",
+            "layout": "split",
+            "accent": "#c8d9dc",
+            "asset": "moon"
+          },
+          "index": 7,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "moon-shot",
+              "target": "moon",
+              "tier": "hero",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arpanet",
+      "template": "code",
+      "keywords": [
+        "ARPANET",
+        "A NETWORK BEGINS"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "arpanet",
+            "year": "1969",
+            "title": "ARPANET",
+            "english": "A NETWORK BEGINS",
+            "caption": "最初的四节点网络，成为现代互联网的重要先驱。",
+            "note": "档案图展示1970年的扩展网络；下方为初始节点示意。",
+            "credit": "UCLA / BBN / CC BY-SA 4.0 / 1970 map",
+            "layout": "plate",
+            "accent": "#88bac9",
+            "asset": "arpanet"
+          },
+          "index": 8,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "arpanet-shot",
+              "target": "arpanet",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "genome",
+      "template": "code",
+      "keywords": [
+        "人类基因组计划",
+        "READING THE GENOME"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "genome",
+            "year": "2003",
+            "title": "人类基因组计划",
+            "english": "READING THE GENOME",
+            "caption": "国际合作完成参考序列，美国机构参与主导。",
+            "note": "1990—2003 · 国际合作；当年完成并非全基因组无缺口。",
+            "credit": "NHGRI / Francis Collins examining an autoradiogram / Public domain",
+            "layout": "plate",
+            "accent": "#a4c6ba",
+            "asset": "genome"
+          },
+          "index": 9,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "genome-shot",
+              "target": "genome",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "llm",
+      "template": "code",
+      "keywords": [
+        "大语言模型",
+        "LANGUAGE AT SCALE"
+      ],
+      "durationFrames": 600,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "llm",
+            "year": "2020—2022",
+            "title": "大语言模型",
+            "english": "LANGUAGE AT SCALE",
+            "caption": "从GPT-3到对话式大模型，语言生成走向大众。",
+            "note": "全球研究长期积累 · 以美国机构OpenAI的进展为例",
+            "credit": "Code animation / 原理示意 · 非真实模型运行记录",
+            "layout": "code",
+            "accent": "#8bbdce"
+          },
+          "index": 10,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "llm-shot",
+              "target": "llm",
+              "tier": "hero",
+              "startFrame": 0,
+              "endFrame": 600,
+              "cut": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "closing",
+      "template": "code",
+      "keywords": [
+        "每一次突破，都有来路。",
+        "A SILENT DOCUMENTARY"
+      ],
+      "durationFrames": 840,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/film.tsx",
+        "props": {
+          "chapter": {
+            "id": "closing",
+            "year": "1776",
+            "title": "每一次突破，都有来路。",
+            "english": "A SILENT DOCUMENTARY",
+            "caption": "",
+            "note": "",
+            "credit": "",
+            "layout": "full",
+            "accent": "#d3b38a"
+          },
+          "chapters": [
+            {
+              "id": "telegraph",
+              "year": "1844",
+              "title": "摩尔斯电报",
+              "english": "THE TELEGRAPH",
+              "caption": "华盛顿与巴尔的摩之间，电信号传递文字。",
+              "note": "跨越距离的通信，开始进入电气时代。",
+              "credit": "Morse telegraph / Public domain",
+              "layout": "plate",
+              "accent": "#d3b38a",
+              "asset": "telegraph"
+            },
+            {
+              "id": "telephone",
+              "year": "1876",
+              "title": "贝尔电话",
+              "english": "THE TELEPHONE",
+              "caption": "早期清晰语音传输实验，让声音沿电线抵达远方。",
+              "note": "画面为1875年实验装置复制品的历史照片。",
+              "credit": "Early Bell apparatus / Public domain",
+              "layout": "plate",
+              "accent": "#d3b38a",
+              "asset": "telephone"
+            },
+            {
+              "id": "flight",
+              "year": "1903",
+              "title": "莱特兄弟飞机",
+              "english": "POWERED FLIGHT",
+              "caption": "可控、持续的动力飞行，开启航空时代。",
+              "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
+              "credit": "John T. Daniels / Library of Congress / Public domain",
+              "layout": "full",
+              "accent": "#e0c69e",
+              "asset": "flight"
+            },
+            {
+              "id": "trinity",
+              "year": "1945",
+              "title": "原子弹",
+              "english": "THE ATOMIC AGE",
+              "caption": "曼哈顿计划完成首次核试验，人类进入核时代。",
+              "note": "科学力量的突破，也带来深重的人道代价。",
+              "credit": "Trinity, 16 July 1945 / Jack W. Aeby / Public domain",
+              "layout": "split",
+              "accent": "#d8b08c",
+              "asset": "trinity"
+            },
+            {
+              "id": "eniac",
+              "year": "1946",
+              "title": "ENIAC计算机",
+              "english": "ELECTRONIC COMPUTING",
+              "caption": "通用电子数字计算，迈出关键一步。",
+              "note": "研制者与早期程序员共同推动计算走向电子化。",
+              "credit": "U.S. Army photograph / Public domain",
+              "layout": "full",
+              "accent": "#c6d3ce",
+              "asset": "eniac"
+            },
+            {
+              "id": "transistor",
+              "year": "1947",
+              "title": "晶体管",
+              "english": "THE TRANSISTOR",
+              "caption": "贝尔实验室的点接触晶体管，推动固态电子时代。",
+              "note": "从真空管到半导体，计算设备开始走向小型化。",
+              "credit": "Unitronic / CC BY-SA 3.0 / Cropped and graded",
+              "layout": "plate",
+              "accent": "#b9d2ca",
+              "asset": "transistor"
+            },
+            {
+              "id": "moon",
+              "year": "1969",
+              "title": "阿波罗登月",
+              "english": "APOLLO 11",
+              "caption": "人类首次登上月球，把足迹留在另一个世界。",
+              "note": "1969年7月20日 · 阿波罗11号",
+              "credit": "NASA / Apollo 11 archival film / Public domain",
+              "layout": "split",
+              "accent": "#c8d9dc",
+              "asset": "moon"
+            },
+            {
+              "id": "arpanet",
+              "year": "1969",
+              "title": "ARPANET",
+              "english": "A NETWORK BEGINS",
+              "caption": "最初的四节点网络，成为现代互联网的重要先驱。",
+              "note": "档案图展示1970年的扩展网络；下方为初始节点示意。",
+              "credit": "UCLA / BBN / CC BY-SA 4.0 / 1970 map",
+              "layout": "plate",
+              "accent": "#88bac9",
+              "asset": "arpanet"
+            },
+            {
+              "id": "genome",
+              "year": "2003",
+              "title": "人类基因组计划",
+              "english": "READING THE GENOME",
+              "caption": "国际合作完成参考序列，美国机构参与主导。",
+              "note": "1990—2003 · 国际合作；当年完成并非全基因组无缺口。",
+              "credit": "NHGRI / Francis Collins examining an autoradiogram / Public domain",
+              "layout": "plate",
+              "accent": "#a4c6ba",
+              "asset": "genome"
+            },
+            {
+              "id": "llm",
+              "year": "2020—2022",
+              "title": "大语言模型",
+              "english": "LANGUAGE AT SCALE",
+              "caption": "从GPT-3到对话式大模型，语言生成走向大众。",
+              "note": "全球研究长期积累 · 以美国机构OpenAI的进展为例",
+              "credit": "Code animation / 原理示意 · 非真实模型运行记录",
+              "layout": "code",
+              "accent": "#8bbdce"
+            }
+          ],
+          "index": 11,
+          "look": {
+            "profile": "archive-cinema",
+            "lut": "warm-film",
+            "grain": 0.045,
+            "vignette": 0.2,
+            "motion": {
+              "subframes": 1,
+              "supersample": 1
+            }
+          },
+          "shots": [
+            {
+              "id": "closing-shot",
+              "target": "closing",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 840,
+              "cut": true
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

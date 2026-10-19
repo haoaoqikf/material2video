@@ -122,6 +122,33 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
     return result
 
 
+def cinematic_provenance(prepared: dict) -> dict:
+    """逐幕汇总 cinematic 溯源；镜头帧号换算成全片帧号，避免只记录第一幕。
+
+    单幕作品保留原来的 `look` 对象形状；多幕作品给出 `幕ID → look` 映射，因为各幕
+    可以使用不同的 look 与后期参数。
+    """
+    scenes = prepared["props"].get("compiledScenes") or []
+    looks = {(scene.get("id") or f"scene-{index}"):
+             ((scene.get("content", {}).get("props") or {}).get("look"))
+             for index, scene in enumerate(scenes)}
+    shots = []
+    for scene in scenes:
+        scene_props = scene.get("content", {}).get("props") or {}
+        for shot in scene_props.get("shots") or []:
+            shots.append({
+                **{name: shot.get(name) for name in
+                   ("id", "tier", "target", "startFrame", "endFrame", "post")},
+                "sceneId": scene.get("id"),
+                "startFrame": scene.get("startFrame", 0) + shot["startFrame"],
+                "endFrame": scene.get("startFrame", 0) + shot["endFrame"],
+            })
+    look = looks.get(scenes[0].get("id")) if len(scenes) == 1 else looks
+    return {"look": look, "shots": shots,
+            "postFx": {"look": look,
+                       "shots": {shot["id"]: shot.get("post") for shot in shots}}}
+
+
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None, defer_validation=False) -> Path:
     prepared = current(root, project)
     profile = prepared["props"].get("productionProfile", "standard")
@@ -174,16 +201,8 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
             "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
         if profile == "cinematic":
             # 电影级溯源：look / shots / 后期 / 音频 / 交付摘要。参数与准备指纹同源。
-            scene_props = ((prepared["props"].get("compiledScenes") or [{}])[0]
-                           .get("content", {}).get("props") or {})
-            shots = [{name: shot.get(name) for name in
-                      ("id", "tier", "target", "startFrame", "endFrame", "post")}
-                     for shot in scene_props.get("shots") or []]
+            provenance.update(cinematic_provenance(prepared))
             provenance.update({
-                "look": scene_props.get("look"),
-                "shots": shots,
-                "postFx": {"look": scene_props.get("look"),
-                           "shots": {shot["id"]: shot.get("post") for shot in shots}},
                 "audio": {"master": prepared["audio"]["segments"][0]["path"],
                           "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
                           "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,

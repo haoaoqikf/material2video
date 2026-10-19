@@ -55,8 +55,6 @@ work/
 *.avi
 *.wav
 *.mp3
-# 原创声音示例的可复用输入；配音、混音、成片与 videos/ 仍全部忽略。
-!examples/buffer-smoothing/assets/bed.wav
 # 示例的导入媒体是内容寻址且已记录来源与许可的固定输入，按需纳入版本控制。
 !examples/*/assets/media/*.mp4
 

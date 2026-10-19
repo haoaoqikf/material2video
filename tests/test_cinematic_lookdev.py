@@ -48,6 +48,18 @@ def test_sample_window_rejects_impossible_request():
         lookdev.sample_window({"durationInFrames": 0, "fps": 60, "props": {"compiledScenes": []}}, 20)
 
 
+def test_still_props_keep_only_the_captured_scene(tmp_path):
+    """多幕作品只合成当前帧所在幕，未采样幕没有已物化的 mediaPath。"""
+    picture = tmp_path / "frame.png"
+    picture.write_bytes(b"png")
+    prepared = {"props": {"compiledScenes": [{"id": "a"}, {"id": "b"}]}}
+    props = lookdev.still_props(prepared, {("a", 10): picture}, 10, "http://media/")
+    assert [scene["id"] for scene in props["compiledScenes"]] == ["a"]
+    assert props["compiledScenes"][0]["stillPath"] == "data:image/png;base64,cG5n"
+    assert props["mediaBase"] == "http://media/"
+    assert [scene["id"] for scene in prepared["props"]["compiledScenes"]] == ["a", "b"]
+
+
 def test_contact_sheet_tiles_stills(tmp_path):
     stills = []
     for index in range(3):

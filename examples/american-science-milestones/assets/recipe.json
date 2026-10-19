@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "telegraph",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Morse_telegraph.jpg",
+      "author": "未知",
+      "license": "Public domain",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Morse_telegraph.jpg",
+      "transform": "copy",
+      "expectedSha256": "5283088be2a233e6eaf07b1a5508a6c1fac3c6842a61c2c274cb709c8e6b9851"
+    },
+    {
+      "id": "telephone",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:First_Bell_telephone_1875.png",
+      "author": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9b/First_Bell_telephone_1875.png",
+      "transform": "copy",
+      "expectedSha256": "21fa80a357ff84ea23e10ffcbf50c871be6b77408add5fea8f1eb0e8dec4c561"
+    },
+    {
+      "id": "flight",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:First_flight2.jpg",
+      "author": "John T. Daniels",
+      "license": "Public domain",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/8/86/First_flight2.jpg",
+      "transform": "jpeg-q3",
+      "expectedSha256": "a557c788d8d144fa62c970127df5020fc3c164631c385e306c417e90f7877f43"
+    },
+    {
+      "id": "trinity",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Trinity_shot_color.jpg",
+      "author": "Jack W. Aeby, July 16, 1945, Civilian worker at Los Alamos laboratory, working under the aegis of the Manhattan Project.",
+      "license": "Public domain",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Trinity_shot_color.jpg",
+      "transform": "copy",
+      "expectedSha256": "074c94760632073927ea5961e34f16e4e4b1ea011c823519b7c317ccc6958b0d"
+    },
+    {
+      "id": "eniac",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Classic_shot_of_the_ENIAC_(full_resolution).jpg",
+      "author": "Unidentified U.S. Army photographer",
+      "license": "Public domain",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Classic_shot_of_the_ENIAC_%28full_resolution%29.jpg",
+      "transform": "copy",
+      "expectedSha256": "5df103a63cadc13a2d092c3cb6c91f9eb23742c6244002cecb25b6808ad512c1"
+    },
+    {
+      "id": "transistor",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:1st-Transistor.jpg",
+      "author": "Unitronic",
+      "license": "CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/1st-Transistor.jpg/1280px-1st-Transistor.jpg",
+      "transform": "copy",
+      "expectedSha256": "ebddc0c385006f8e9a20979303f54f513162b065612bdebb2bca1e7e94a0db7b"
+    },
+    {
+      "id": "arpanet",
+      "kind": "image",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:ARPANET_1970_Map.png",
+      "author": "UCLA and BBN",
+      "license": "CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0",
+      "role": "other",
+      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/8/85/ARPANET_1970_Map.png",
+      "transform": "copy",
+      "expectedSha256": "1edf99325e6e435091bdf18e148e9741fab73f9883a91b65ab4c6047a9fa33ae"
+    },
+    {
+      "id": "moon",
+      "kind": "video",
+      "sourceUrl": "https://images.nasa.gov/details/Apollo_11_Introduction_720p",
+      "author": "NASA",
+      "license": "Public domain (NASA-produced footage); https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "role": "other",
+      "downloadUrl": "https://images-assets.nasa.gov/video/Apollo_11_Introduction_720p/Apollo_11_Introduction_720p~medium.mp4",
+      "transform": "moon-continuous-silent",
+      "expectedSha256": "3da9179bd05d0cf0c1a1033f88a601efee4e7b7e5701022724645d4d833bac09"
+    },
+    {
+      "id": "genome",
+      "kind": "image",
+      "sourceUrl": "https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project",
+      "author": "National Human Genome Research Institute",
+      "license": "Public domain; https://www.genome.gov/image-gallery",
+      "role": "other",
+      "downloadUrl": "https://www.genome.gov/sites/default/files/media/images/2022-08/what_is_dna_sequencing_edited_cropped_1280_0.jpg",
+      "transform": "copy",
+      "expectedSha256": "014d70a3dd3c8389a22a1d91afa92f2f9cc63f20760abf59deabf92b968976c4"
+    }
+  ]
+}

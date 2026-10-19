@@ -20,6 +20,7 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 | `kind` | `image` 或 `video` |
 | `localPath` 或 `mediaUrl` | 二选一：作品内（或 `--base` 下）本地文件，或 HTTP(S) 媒体直链 |
 | `sourceUrl` | 可选公开网页地址；不是从网页下载时省略 |
+| `role`、`target` | 可选；`role: "other"` 表示二维媒体，`target` 关联镜头目标；缺省仍为颜色贴图与素材ID。 |
 | `author`、`license` | 可选；未知时如实记为「未知」，不猜测 |
 
 导入过程下载或复制到临时目录，用 ffmpeg 实测真实类型、像素尺寸与视频时长并验证首帧可解码，再按内容摘要落盘为 `assets/media/<sha256><后缀>`，最后把来源页、作者、许可、实测尺寸、时长与文件摘要写进 `assets/media-sources.json`。一批素材全部通过后才发布记录：任何一项失败都不会修改已有记录或留下半成品文件。同一文件可被多个 `id` 引用。
@@ -79,10 +80,7 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 - 定位：`sceneId` 必填且必须是分镜里的幕；可选 `segmentId` 指向该幕旁白段，给出时从该段开始帧计时，否则从幕开始帧计时；`offsetMs` 为 ±60000 的整数，`gainDb` 为 −60～0 dB；音效按幕或旁白段窗口与 `offsetMs` 定位，起点必须落在全片时长内，否则准备失败。
 - `sourceRef` 相对**声明它的材料文件所在目录**解析，不支持 URL、绝对路径、`..` 或反斜线，解析后不可越界；素材缺失或损坏让 prepare 失败，旧准备记录保持有效。
 
-上面的 `assets/bed.wav` 就是示例目录里的那份 CC0 合成音床：它由同目录的
-`examples/buffer-smoothing/assets/generate.py` 原创合成（无第三方采样、按 CC0 1.0 分发，
-见同目录 `LICENSE.md`），8 秒长。音床素材与生成器属于作品内容、不入库；仓库里这一份是
-刻意保留的可复用示例输入，可以照抄做法生成自己的音床。
+上面的 `assets/bed.wav` 是作品自备本地音床的路径示例；仓库音效测试使用独立合成夹具，不依赖固定视频示例。作品音床与生成产物不入库。
 
 - **音床素材必须能无缝循环**。混音用 `-stream_loop -1` 铺满全片，接缝不连续就会在每个循环点响一下。
   判据不是「首尾采样值接近」，而是「末采样到首采样的步进不超过素材内部的最大相邻步进」：

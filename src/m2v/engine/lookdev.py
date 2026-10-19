@@ -114,12 +114,19 @@ def native_stills(root: Path, prepared: dict, frames: list[int], work: Path) -> 
 
 
 def still_props(prepared: dict, captured: dict, frame: int, media_base: str) -> dict:
-    """仅为静帧替换当前活跃场景，保留共享 composition 的转场和字幕逻辑。"""
+    """仅为静帧保留当前活跃场景，避免未采样幕回放没有 mediaPath 的片段。
+
+    静帧是单帧画面，其他幕的内容不会出现在这一帧里；把它们留在合成时间线上只会
+    读取准备阶段尚未物化的 `mediaPath`。转场与字幕层仍由共享 composition 处理。
+    """
     props = copy.deepcopy(prepared["props"])
+    active = []
     for scene in props["compiledScenes"]:
         picture = captured.get((scene["id"], frame))
         if picture:
             scene["stillPath"] = "data:image/png;base64," + base64.b64encode(picture.read_bytes()).decode("ascii")
+            active.append(scene)
+    props["compiledScenes"] = active
     props["mediaBase"] = media_base
     return props
 

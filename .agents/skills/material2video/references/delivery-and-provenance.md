@@ -42,7 +42,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 {
   "schemaVersion": 1,
   "type": "general",
-  "projectId": "buffer-smoothing",
+  "projectId": "american-science-milestones",
   "preparedFingerprint": "…",
   "compositionId": "ArticleExplainer",
   "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",

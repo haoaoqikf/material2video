@@ -185,7 +185,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 {"version":8,"schemaVersion":8,"fps":60,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
-完整示例：[缓冲](../../../../examples/buffer-smoothing/storyboard.json)、
+完整示例：[从电报到大模型](../../../../examples/american-science-milestones/storyboard.json)、
 [试错](../../../../examples/darts-trial-and-error/storyboard.json)、
 [太阳系之旅](../../../../examples/solar-system-journey/storyboard.json)。当前规格见
 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。

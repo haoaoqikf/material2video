@@ -77,7 +77,7 @@ class TestShippedWorksAreCovered:
         "storyboard",
         [
             # 只取仓库自带的分镜：实际文章是内容、不入库，克隆后并不存在
-            "examples/buffer-smoothing/storyboard.json",
+            "examples/american-science-milestones/storyboard.json",
             "examples/darts-trial-and-error/storyboard.json",
             "examples/solar-system-journey/storyboard.json",
         ],

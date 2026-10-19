@@ -123,7 +123,7 @@ def audio_signals(video: Path, prepared: dict, *, required: bool) -> dict:
         return {'kind': 'measurement', 'status': 'not-applicable', 'candidates': [], 'detail': '契约允许无音轨'}
     rate, channels = fmt
     chunk_samples = max(channels, rate // 2 * channels)
-    clips, total = [], 0
+    clips, total, peak_absolute = [], 0, 0.0
     with tempfile.TemporaryFile() as errors:
         proc = subprocess.Popen([get_ffmpeg_exe(), '-hide_banner', '-nostats', '-i', str(video),
                                  '-vn', '-map', '0:a:0', '-af', 'silencedetect=n=-45dB:d=0.5',
@@ -133,7 +133,14 @@ def audio_signals(video: Path, prepared: dict, *, required: bool) -> dict:
             while raw := proc.stdout.read(chunk_samples * 4):
                 samples = array('f')
                 samples.frombytes(raw)
-                peak_count = sum(abs(value) >= .9999 for value in samples)
+                chunk_peak, peak_count = 0.0, 0
+                for value in samples:
+                    magnitude = abs(value)
+                    if magnitude > chunk_peak:
+                        chunk_peak = magnitude
+                    if magnitude >= .9999:
+                        peak_count += 1
+                peak_absolute = max(peak_absolute, chunk_peak)
                 end = total + len(samples)
                 if peak_count:
                     clips.append({'startSeconds': total / (rate * channels),
@@ -173,6 +180,7 @@ def audio_signals(video: Path, prepared: dict, *, required: bool) -> dict:
                        'reason': 'audio-duration-mismatch'})
     return {'kind': 'measurement', 'status': 'measured', 'durationSeconds': round(duration, 5),
             'sampleRate': rate, 'channels': channels, 'durationDifference': round(abs(duration - expected), 5),
+            'peakAbsolute': peak_absolute,
             'narrationWindows': windows, 'timingGranularity': 'segment',
             'candidates': silences + clips + timing,
             'detail': '静音/削波是候选；结合旁白边界和设计停顿复核，不证明口播内容或听感。'}

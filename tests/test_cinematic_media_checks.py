@@ -8,6 +8,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.engine import assets_audit, qa
+from m2v.types.general.explainer_render import cinematic_provenance
 
 
 def make_video(path, *, seconds=2, fps=60, pattern="testsrc", size="192x104"):
@@ -253,3 +254,80 @@ def test_assets_audit_json_round_trip(tmp_path):
     saved = json.loads((root / "outputs/asset-audit.json").read_text(encoding="utf-8"))
     assert saved["status"] == report["status"] == "fail"
     assert any("许可未知" in item["reason"] for item in report["problems"])
+
+
+def test_2d_hero_does_not_require_fabricated_surface_maps(tmp_path):
+    prepared = prepared_stub()
+    prepared["props"]["compiledScenes"] = [{"content": {"props": {"shots": [
+        {"id": "flight", "target": "archive", "tier": "hero"}]}}}]
+    subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi", "-i",
+                    "color=gray:s=1280x720", "-frames:v", "1", str(tmp_path / "archive.png")], check=True)
+    record = {"assets": [{"id": "archive", "role": "other", "path": "archive.png",
+                           "width": 1280, "height": 720, "license": "Public domain"}]}
+    report = assets_audit.audit(tmp_path, prepared, record)
+    assert report["status"] == "pass"
+    assert any("不冒充4K" in warning["reason"] for warning in report["warnings"])
+    record["assets"][0]["license"] = "未知"
+    assert assets_audit.audit(tmp_path, prepared, record)["status"] == "fail"
+
+
+def test_2d_media_is_audited_even_when_color_map_exists(tmp_path):
+    """同一目标另有三维颜色贴图时，二维档案的许可仍必须单独审计。"""
+    prepared = prepared_stub()
+    prepared["props"]["compiledScenes"] = [{"content": {"props": {"shots": [
+        {"id": "flight", "target": "archive", "tier": "hero"}]}}}]
+    subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi", "-i",
+                    "color=gray:s=4200x4200", "-frames:v", "1", str(tmp_path / "color.png")], check=True)
+    subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi", "-i",
+                    "color=gray:s=1280x720", "-frames:v", "1", str(tmp_path / "archive.png")], check=True)
+    record = {"assets": [
+        {"id": "color", "role": "color", "target": "archive", "path": "color.png",
+         "width": 4200, "height": 4200, "license": "Public domain"},
+        {"id": "photo", "role": "other", "target": "archive", "path": "archive.png",
+         "width": 1280, "height": 720, "license": "未知"},
+    ]}
+    report = assets_audit.audit(tmp_path, prepared, record)
+    assert report["status"] == "fail"
+    assert any(item.get("asset") == "photo" and "二维媒体许可未知" in item["reason"]
+               for item in report["problems"])
+
+
+def test_cinematic_provenance_covers_every_scene():
+    """多幕作品逐幕记录镜头与 look，帧号换算成全片帧号。"""
+    prepared = {"props": {"compiledScenes": [
+        {"id": "a", "startFrame": 0, "content": {"props": {
+            "look": {"grain": 0.1},
+            "shots": [{"id": "a1", "tier": "major", "target": "t",
+                       "startFrame": 0, "endFrame": 10, "post": {}}]}}},
+        {"id": "b", "startFrame": 100, "content": {"props": {
+            "look": {"grain": 0.2},
+            "shots": [{"id": "b1", "tier": "hero", "target": "u",
+                       "startFrame": 5, "endFrame": 20, "post": {"bloom": 1}}]}}},
+    ]}}
+    result = cinematic_provenance(prepared)
+    assert [shot["id"] for shot in result["shots"]] == ["a1", "b1"]
+    assert (result["shots"][1]["startFrame"], result["shots"][1]["endFrame"]) == (105, 120)
+    assert result["shots"][1]["sceneId"] == "b"
+    assert result["look"] == {"a": {"grain": 0.1}, "b": {"grain": 0.2}}
+    assert result["postFx"]["shots"]["b1"] == {"bloom": 1}
+
+
+@pytest.mark.parametrize("silent", [True, False])
+def test_silent_film_requires_exact_zero_signal(tmp_path, silent):
+    video = tmp_path / "video.mp4"
+    subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi", "-i",
+                    "testsrc=size=192x104:rate=60:duration=2", "-f", "lavfi", "-i",
+                    "anullsrc=r=24000:cl=mono" if silent else "sine=frequency=440:sample_rate=24000",
+                    "-t", "2", "-pix_fmt", "yuv420p", str(video)], check=True)
+    prepared = prepared_stub()
+    prepared["props"]["compiledScenes"] = [{"id": "silent", "startFrame": 0, "endFrame": 120,
+        "durationInFrames": 120, "narrationSegments": [], "segmentWindows": {}}]
+    report = qa.run(tmp_path, prepared, video=video, profile="cinematic", step=30)
+    check = report["checks"]["loudness"]
+    assert check["status"] == ("pass" if silent else "fail")
+    assert (check["peakAbsolute"] == 0) == silent
+    if silent:
+        # 显式声明空 soundtrack 仍是无声设计，不能因此退回响度目标。
+        prepared["props"]["soundtrack"] = {"effects": []}
+        report = qa.run(tmp_path, prepared, video=video, profile="cinematic", step=30)
+        assert report["checks"]["loudness"]["status"] == "pass"

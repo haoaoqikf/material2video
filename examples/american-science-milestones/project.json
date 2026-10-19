@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "american-science-milestones",
+  "type": "general",
+  "productionProfile": "cinematic",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "audio": "optional"
+  }
+}

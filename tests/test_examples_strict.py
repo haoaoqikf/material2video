@@ -13,9 +13,9 @@ from m2v.types.general import explainer
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
-EXPECTED_EXAMPLES = {"buffer-smoothing", "darts-trial-and-error", "solar-system-journey"}
+EXPECTED_EXAMPLES = {"american-science-milestones", "darts-trial-and-error", "solar-system-journey"}
 #: 两横一竖：画幅是作品设计的一部分，示例必须覆盖两种。
-EXPECTED_FRAMES = {"buffer-smoothing": (1920, 1080), "solar-system-journey": (1920, 1080),
+EXPECTED_FRAMES = {"american-science-milestones": (1920, 1080), "solar-system-journey": (1920, 1080),
                    "darts-trial-and-error": (1080, 1920)}
 APPROVED_COMPONENTS = {
     "Motion": ("motion", "motion/react"),
@@ -65,6 +65,18 @@ def test_shipped_example_uses_the_declared_frame(path: Path) -> None:
 def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> None:
     """每一幕都由真实旁白驱动，不能退化成固定时长的无声技术幕。"""
     data = json.loads(path.read_text(encoding="utf-8"))
+    if path.parent.name == "american-science-milestones":
+        assert data["input"]["kind"] == "topic"
+        assert not data.get("soundtrack")
+        assert sum(scene["durationFrames"] for scene in data["scenes"]) == 120 * 60
+        assert len(data["scenes"]) == 12
+        for scene in data["scenes"]:
+            assert not scene["narrationSegments"]
+            assert scene["durationFrames"] >= 360
+        heroes = [shot for scene in data["scenes"] for shot in scene["content"]["props"]["shots"] if shot["tier"] == "hero"]
+        assert {shot["target"] for shot in heroes} == {"flight", "moon", "llm"}
+        assert all(480 <= shot["endFrame"] - shot["startFrame"] <= 720 for shot in heroes)
+        return
     article = (path.parent / "article.md").read_text(encoding="utf-8")
     sources = _sources(path.parent.name)
     assert "segmentWindows" in sources, "画面没有使用旁白时间窗"
@@ -131,7 +143,27 @@ def test_shipped_example_actual_duration(name: str) -> None:
     minimum, maximum = (120, 600) if name == "solar-system-journey" else (120, 180)
     assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
-    assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
+    if name == "american-science-milestones":
+        assert seconds == 120
+        assert not data["subtitles"]
+    else:
+        assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))
+def test_example_video_assets_cover_their_scene(name: str) -> None:
+    """导入的视频片段不得短于使用它的幕，否则镜头末段会停在片尾。"""
+    board = json.loads((EXAMPLES / name / "storyboard.json").read_text(encoding="utf-8"))
+    sources = EXAMPLES / name / "assets/media-sources.json"
+    media = {item["id"]: item for item in
+             json.loads(sources.read_text(encoding="utf-8"))["assets"]} if sources.is_file() else {}
+    for scene in board["scenes"]:
+        asset = (scene.get("content", {}).get("props", {}).get("chapter") or {}).get("asset")
+        if asset and media.get(asset, {}).get("kind") == "video":
+            seconds = scene["durationFrames"] / board["fps"]
+            assert media[asset]["durationSeconds"] >= seconds - 0.05, (
+                f"{name}/{scene['id']} 需要 {seconds:.2f} 秒，{asset} 只有 "
+                f"{media[asset]['durationSeconds']:.2f} 秒")
 
 
 def test_no_generated_media_is_tracked() -> None:

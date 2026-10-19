@@ -150,10 +150,12 @@ def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
         assert stream.getnframes() == result["durationInFrames"] * 400
 
 
-def test_example_soundtrack_is_declared_and_usable():
-    """固定示例的混音声明必须能被校验器接受（不依赖外部凭据）。"""
-    example = Path(__file__).resolve().parents[1] / "examples/buffer-smoothing"
-    data = json.loads((example / "storyboard.json").read_text(encoding="utf-8"))
-    explainer.validate(data, example)
-    assert data["soundtrack"]["music"]["sourceRef"] == "assets/bed.wav"
+def test_local_soundtrack_fixture_is_declared_and_usable(tmp_path):
+    """独立夹具覆盖本地音床与内置音效，不绑定任何作品内容。"""
+    write_tone(tmp_path / "assets/bed.wav")
+    data = with_soundtrack(board(), {
+        "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True},
+        "effects": [{"builtin": "ding-dong", "sceneId": "a"}],
+    })
+    explainer.validate(data, scene_root(tmp_path))
     assert data["soundtrack"]["effects"][0]["builtin"] in soundtrack.BUILTINS

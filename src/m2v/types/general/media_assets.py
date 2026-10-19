@@ -25,6 +25,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.core import security
 from m2v.engine import frames, media_probe
+from m2v.engine.assets_audit import ROLES
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,
     MAX_DOWNLOAD_BYTES,
@@ -98,6 +99,12 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
             try:
                 kind = entry.get("kind")
                 if kind not in SUFFIXES: raise M2VError("kind 必须为 image/video")
+                role = entry.get("role", "color")
+                if role not in ROLES:
+                    raise M2VError("role 必须是已知贴图角色或 other（二维媒体）")
+                target = entry.get("target", identity)
+                if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", target):
+                    raise M2VError("target 必须是有效的素材目标 ID")
                 local, remote = entry.get("localPath"), entry.get("mediaUrl")
                 if bool(local) == bool(remote): raise M2VError("localPath/mediaUrl 必须二选一")
                 origin = entry.get("sourceUrl") or "未知"
@@ -125,7 +132,9 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
                 relative = f"assets/media/{sha}{suffix}"
                 adopted.append({"id": identity, "path": relative, "kind": kind, **info, "sha256": sha,
                                 "sourceUrl": origin, "mediaUrl": remote or "未知",
-                                "author": entry.get("author") or "未知", "license": entry.get("license") or "未知"})
+                                "author": entry.get("author") or "未知", "license": entry.get("license") or "未知",
+                                **({"role": role} if "role" in entry else {}),
+                                **({"target": target} if "target" in entry else {})})
                 staged.append((file, root / relative))
             except (M2VError, OSError, ValueError, subprocess.TimeoutExpired) as exc:
                 raise M2VError(f"素材 {identity} 导入失败：{exc}；请更换候选后重试") from exc
@@ -173,6 +182,12 @@ def resolve(root: Path) -> dict:
         kind = entry.get("kind")
         if kind not in SUFFIXES:
             raise M2VError(f"素材 {identity} 的类型必须是 image/video")
+        role = entry.get("role", "color")
+        if role not in ROLES:
+            raise M2VError(f"素材 {identity} 的 role 必须是已知贴图角色或 other（二维媒体）")
+        target = entry.get("target", identity)
+        if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", target):
+            raise M2VError(f"素材 {identity} 的 target 必须是有效的素材目标 ID")
         relative = entry.get("path")
         if not isinstance(relative, str):
             raise M2VError(f"素材 {identity} 缺少 path")

@@ -282,11 +282,24 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
                           "endSeconds": round(end_frame / fps, 2),
                           "shot": _shot_at(prepared, start_frame)}
                          if sample["endSample"] > sample["startSample"] else None)
+    scenes = prepared["props"].get("compiledScenes", [])
+    soundtrack = prepared["props"].get("soundtrack") or {}
+    # 显式声明空 soundtrack（如 {"effects": []}）仍是无声设计；只有实际音乐或音效
+    # 才会把成片带入有声响度目标。
+    has_sound_design = bool(soundtrack.get("music") or soundtrack.get("effects"))
+    silent_expected = bool(scenes) and not has_sound_design and not any(
+        scene.get("narrationSegments") for scene in scenes)
+    if silent_expected and has_audio:
+        peak = inspection["audioSignals"]["peakAbsolute"]
+        audio_level = {"status": "pass" if peak == 0 else "fail", "peakAbsolute": peak,
+                       "detail": "无旁白且无声轨设计：全片必须数字静音"}
+    else:
+        audio_level = loudness(target, profile) if has_audio else dict(no_audio)
     checks = {
         "frozenFrames": frozen,
         "picture": picture_metrics(frames),
         "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
-        "loudness": loudness(target, profile) if has_audio else dict(no_audio),
+        "loudness": audio_level,
         "audioSync": sync,
         "claims": claims_check(prepared),
     }

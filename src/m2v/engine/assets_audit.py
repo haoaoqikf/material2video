@@ -82,7 +82,19 @@ def audit(root: Path, prepared: dict, record: dict, *, profile: str = "cinematic
     for target, tier in sorted(tiers.items()):
         maps = by_target.get(target, {})
         color = maps.get("color")
+        media = maps.get("other")
+        if media is not None:
+            # 二维档案不是三维颜色贴图，不要求虚构法线/粗糙度/发光贴图；即使同一目标
+            # 另有三维颜色贴图，二维素材的许可与尺寸也必须单独审计。
+            if str(media.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
+                (problems if tier == "hero" else warnings).append(
+                    {"target": target, "asset": media["id"], "reason": "二维媒体许可未知"})
+            if media["width"] < MAJOR_MIN_WIDTH:
+                warnings.append({"target": target, "asset": media["id"],
+                                 "reason": "二维档案低于2K，须按原生尺寸与实际画面复核，不冒充4K"})
         if color is None:
+            if media is not None:
+                continue
             # 程序化目标（如奥尔特云粒子/气泡）没有贴图契约，不适用 4K 与三张贴图要求。
             warnings.append({"target": target, "tier": tier, "reason": "没有登记颜色贴图，按程序化材质处理"})
             continue
