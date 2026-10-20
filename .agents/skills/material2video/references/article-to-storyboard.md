@@ -48,16 +48,16 @@
 ## 旁白与时长
 
 每段旁白给稳定 ID，逐幕收集。全片实际时长不超过 600 秒，包括每幕 24 帧阅读停留和淡化帧数；
-超限修改文本或正常语速，不能截断语音。试错目标120～180秒，太阳系按动态粗预演核定120～600秒；无声美国科学里程碑固定60秒。
+超限修改文本或正常语速，不能截断语音。交通拥堵波目标75秒、实际60～90秒；太阳系按动态粗预演核定120～600秒；无声美国科学里程碑固定30秒。
 
 ## 固定示例
 
-固定示例集合为 american-science-milestones、darts-trial-and-error、solar-system-journey，最多3个；用户明确授权才可替换。每个示例提供 project.json、v8 storyboard.json、README.md、DESIGN.md 与 scenes；article 输入另须原文，topic 输入提供事实与素材来源。
+固定示例集合为 american-science-milestones、traffic-jam-wave、solar-system-journey，最多3个；用户明确授权才可替换。每个示例提供 project.json、v8 storyboard.json、README.md、DESIGN.md 与 scenes；article 输入另须原文，topic 输入提供事实与素材来源。
 
-- 美国科学里程碑与太阳系使用1920×1080，试错使用1080×1920。
+- 美国科学里程碑与太阳系使用1920×1080，交通拥堵波使用1080×1920。
 - 合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。
-- 试错、太阳系按实际 segmentWindows 推进；美国科学里程碑采用空旁白、固定帧数及画面中文说明，不生成TTS。
-- 美国科学里程碑和太阳系采用cinematic，试错保持standard。档案不冒充4K，原理动画明确标注示意。
+- 交通拥堵波、太阳系按实际 segmentWindows 推进；美国科学里程碑采用空旁白、固定帧数及画面中文说明，不生成TTS。
+- 美国科学里程碑和太阳系采用cinematic，交通拥堵波保持standard。档案不冒充4K，原理动画明确标注示意。
 - README提供逐幕内容对应，DESIGN记录画幅、配色、构图与声音意图；生成媒体不入库。
 
 详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。

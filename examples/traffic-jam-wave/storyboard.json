@@ -1,0 +1,153 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 60,
+  "width": 1080,
+  "height": 1920,
+  "title": "一座城市，为什么会堵车？",
+  "input": {
+    "kind": "topic",
+    "topic": "无事故环路上的拥堵波：车辆向前、低速区域向后传播，以及同一扰动在两种车流密度下的示意对照"
+  },
+  "targetSeconds": 75,
+  "soundtrack": {
+    "effects": [
+      {
+        "builtin": "click",
+        "sceneId": "brake-zoom",
+        "segmentId": "brake-zoom-0",
+        "offsetMs": 1900,
+        "gainDb": -28
+      },
+      {
+        "builtin": "transition",
+        "sceneId": "wave-back",
+        "segmentId": "wave-back-1",
+        "offsetMs": 0,
+        "gainDb": -26
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "jam-open",
+      "template": "code",
+      "keywords": ["交通拥堵", "走走停停", "晚高峰"],
+      "content": {
+        "title": "没有事故，也会走走停停",
+        "entry": "scenes/open.tsx",
+        "props": {
+          "simStart": 12.5
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "jam-open-0",
+          "text": "晚高峰，前方没有事故，也没有封路，车流却开始走走停停。"
+        }
+      ]
+    },
+    {
+      "id": "loop-overview",
+      "template": "code",
+      "keywords": ["环形道路", "无红绿灯", "车流"],
+      "content": {
+        "title": "把镜头拉远：一条闭合的环路",
+        "entry": "scenes/loop.tsx",
+        "props": {
+          "simStart": 0.5
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "loop-overview-0",
+          "text": "把镜头拉远，这是一条没有红绿灯、没有出口的环形道路。此刻，每一辆车都还在沿同一个方向向前开。"
+        }
+      ]
+    },
+    {
+      "id": "brake-zoom",
+      "template": "code",
+      "keywords": ["刹车", "局部车距", "回放"],
+      "content": {
+        "title": "回放到起点：只看一次刹车",
+        "entry": "scenes/brake.tsx",
+        "props": {
+          "simStart": 5
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "brake-zoom-0",
+          "text": "我们回放到起点。一号车轻点了一次刹车，只是把速度降下来，又很快恢复。"
+        }
+      ]
+    },
+    {
+      "id": "wave-back",
+      "template": "code",
+      "keywords": ["拥堵传播", "低速区域", "车辆前进"],
+      "content": {
+        "title": "车辆向前，拥堵向后",
+        "entry": "scenes/wave.tsx",
+        "props": {
+          "simStart": 9
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "wave-back-0",
+          "text": "但后面的车不能同时反应，只好依次减速，制动灯一盏接一盏亮起。"
+        },
+        {
+          "id": "wave-back-1",
+          "text": "注意看：每辆车都在向前，低速区域却沿着车队向后退。方向正好相反。"
+        }
+      ]
+    },
+    {
+      "id": "density-compare",
+      "template": "code",
+      "keywords": ["车流密度", "扰动放大", "速度曲线"],
+      "content": {
+        "title": "同样的刹车，只改变车流密度",
+        "entry": "scenes/density.tsx",
+        "props": {
+          "simStart": 7
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "density-compare-0",
+          "text": "同样的道路和刹车，只把车距变密：扰动经过一轮轮响应，反而被放大。"
+        },
+        {
+          "id": "density-compare-1",
+          "text": "车流稀疏时，同样的扰动在向后传递中逐渐减弱，最后慢慢消散。"
+        }
+      ]
+    },
+    {
+      "id": "jam-close",
+      "template": "code",
+      "keywords": ["拥堵波", "特定条件", "向后传播"],
+      "content": {
+        "title": "没有事故，也会堵车",
+        "entry": "scenes/close.tsx",
+        "props": {
+          "simStart": 14
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "jam-close-0",
+          "text": "所以，拥堵可以在没有事故时形成。它更像一种向后传播的波，而不是某个点的故障。"
+        },
+        {
+          "id": "jam-close-1",
+          "text": "理解这一点，才有可能讨论怎样让波不再被放大。"
+        }
+      ]
+    }
+  ]
+}

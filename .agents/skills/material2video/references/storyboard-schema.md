@@ -186,6 +186,6 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 ```
 
 完整示例：[从电报到大模型](../../../../examples/american-science-milestones/storyboard.json)、
-[试错](../../../../examples/darts-trial-and-error/storyboard.json)、
+[交通拥堵波](../../../../examples/traffic-jam-wave/storyboard.json)、
 [太阳系之旅](../../../../examples/solar-system-journey/storyboard.json)。当前规格见
 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。

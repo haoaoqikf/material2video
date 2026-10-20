@@ -13,7 +13,7 @@ def test_workflow_and_compatibility_documented():
     assert "候选稿须用户明确采用并重新审查后才能制作" in text
     assert "实际时长" in text and "600 秒" in text
     assert "最多3个" in text and "用户明确授权才可替换" in text
-    assert "120～180秒" in text
+    assert "60～90秒" in text and "traffic-jam-wave" in text
     schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
     assert "v7 及更早分镜必须重新编排" in schema
     # v8 没有受控模板：画幅、配色与构图都由作品代码决定。

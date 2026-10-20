@@ -14,10 +14,10 @@ from m2v.types.general import explainer
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
-EXPECTED_EXAMPLES = {"american-science-milestones", "darts-trial-and-error", "solar-system-journey"}
+EXPECTED_EXAMPLES = {"american-science-milestones", "traffic-jam-wave", "solar-system-journey"}
 #: 两横一竖：画幅是作品设计的一部分，示例必须覆盖两种。
 EXPECTED_FRAMES = {"american-science-milestones": (1920, 1080), "solar-system-journey": (1920, 1080),
-                   "darts-trial-and-error": (1080, 1920)}
+                   "traffic-jam-wave": (1080, 1920)}
 APPROVED_COMPONENTS = {
     "Motion": ("motion", "motion/react"),
     "ECharts": ("Chart", "echarts"),
@@ -83,9 +83,17 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
                 assert chapter["title"]
             assert chapter["caption"]
         return
-    article = (path.parent / "article.md").read_text(encoding="utf-8")
+    article = (path.parent / "article.md")
     sources = _sources(path.parent.name)
     assert "segmentWindows" in sources, "画面没有使用旁白时间窗"
+    if data["input"]["kind"] == "topic":
+        # 主题输入没有原文可对照；画面与图表必须明确标注示意，并仍按旁白推进。
+        assert data["input"]["topic"].strip()
+        assert not article.exists(), f"{path.parent.name} 采用主题输入，不应再放一份原文"
+        assert "示意" in sources
+    else:
+        article_text = article.read_text(encoding="utf-8")
+        assert "示意" in sources, "示意数据没有标注"
     for scene in data["scenes"]:
         assert scene["template"] == "code"
         assert scene["narrationSegments"], f"{scene['id']} 没有旁白"
@@ -98,8 +106,8 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
         source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
         assert "useNarration" in source, f"{scene['id']} 没有按旁白推进"
         for segment in scene["narrationSegments"]:
-            assert segment["text"] in article, f"{scene['id']} 的旁白不在原文里"
-    assert "示意" in sources, "示意数据没有标注"
+            if data["input"]["kind"] == "article":
+                assert segment["text"] in article_text, f"{scene['id']} 的旁白不在原文里"
 
 
 def test_examples_cover_approved_component_families() -> None:
@@ -167,7 +175,8 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert seconds == 30
         assert not data["subtitles"]
         return
-    minimum, maximum = (120, 600) if name == "solar-system-journey" else (120, 180)
+    ranges = {"solar-system-journey": (120, 600), "traffic-jam-wave": (60, 90)}
+    minimum, maximum = ranges.get(name, (120, 180))
     assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
 

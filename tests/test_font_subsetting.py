@@ -33,7 +33,7 @@ NOTO = ROOT / "web/src/assets/fonts/NotoSansSC-Variable.ttf"
 STORYBOARDS = (
     # 仓库自带的分镜：实际文章（`videos/<slug>/`）是内容、不入库
     "examples/american-science-milestones/storyboard.json",
-    "examples/darts-trial-and-error/storyboard.json",
+    "examples/traffic-jam-wave/storyboard.json",
     "examples/solar-system-journey/storyboard.json",
 )
 
