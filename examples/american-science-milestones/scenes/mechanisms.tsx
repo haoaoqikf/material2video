@@ -1,163 +1,50 @@
-/** 辅助原理示意；档案存在时仍保留实物主体，不伪装成历史录像。 */
-import {useMemo} from 'react';
-import {Chart, echarts} from 'm2v/code-scene';
-
-/** 电报章节的信号带：符号按帧时钟依次点亮，不表示真实报文内容。 */
-export function MorsePulse({t, accent}: {t: number; accent: string}) {
-  return <svg width={940} height={112} style={{position:'absolute',left:120,top:648,overflow:'visible'}}>
-    {Array.from({length:38},(_,i)=>{
-      const on = (t * .42 - i * .04 + 1) % 1 < .16;
-      const width = i % 4 === 0 ? 24 : 9;
-      return <rect key={i} x={i * 24} y={30} width={width} height={5} rx={2.5}
-        fill={accent} opacity={on ? .95 : .18}/>;
-    })}
-    {Array.from({length:38},(_,i)=><line key={'grid' + i} x1={i * 24} x2={i * 24} y1={22} y2={42}
-      stroke="#ffffff10"/>)}
-    <line x1={0} y1={52} x2={920} y2={52} stroke="#ffffff12"/>
-    <text x={0} y={86} fill="#8fa0a8" fontSize={24} letterSpacing={2}>电信号 · 摩尔斯编码示意</text>
+/** 按题材绘制轻量、帧确定性的示意动势；不是历史影像或真实数据。 */
+export function Mechanism({kind,t,progress,accent}:{kind:string;t:number;progress:number;accent:string}) {
+  const sweep=(t*.42)%1;
+  const points=Array.from({length:56},(_,i)=>({x:770+(i%8)*122,y:120+Math.floor(i/8)*112,i}));
+  if(kind==='wire')return <svg width="920" height="260" viewBox="0 0 920 260" style={{position:'absolute',right:80,top:330,overflow:'visible'}}>
+    <path d="M10 145 C220 30 410 250 620 130 S820 65 910 120" fill="none" stroke={accent} strokeWidth="2" opacity=".55"/>
+    {Array.from({length:22},(_,i)=>{const x=30+i*39;const active=((t*3.2+i*.32)%6)<.55;return <rect key={i} x={x} y={active?108:108} width={active?25:8} height={active?68:8} rx="2" fill={accent} opacity={active?.9:.36}/>;})}
+    <circle cx={10+sweep*900} cy={145+Math.sin(sweep*Math.PI*2)*48} r="10" fill="#fff4db"/>
   </svg>;
-}
-
-/** 电话章节的波形：静态数据按 ECharts 原生时钟入场，不写历史结论。 */
-export function TelephoneWave({accent}: {accent: string}) {
-  const option = useMemo<echarts.EChartsOption>(() => ({
-    animation: true, animationDuration: 1100, animationEasing: 'cubicOut',
-    backgroundColor: 'transparent', grid: {left: 0, right: 0, top: 6, bottom: 6},
-    xAxis: {type: 'value', show: false, min: 0, max: 200},
-    yAxis: {type: 'value', show: false, min: -1, max: 1},
-    series: [{type: 'line', showSymbol: false, silent: true, smooth: false,
-      lineStyle: {color: accent, width: 1.8},
-      data: Array.from({length: 201}, (_, i) => [i, Math.sin(i * .31) * Math.sin(i * .021)])}],
-  }), [accent]);
-  return <div style={{position:'absolute',left:120,top:620,width:860}}>
-    <Chart option={option} width={860} height={126}/>
-    <div style={{fontSize:24,color:'#8fa0a8',marginTop:2,letterSpacing:2}}>声音转为电信号 · 波形示意</div>
+  if(kind==='apparatus')return <svg width="1200" height="580" viewBox="0 0 1200 580" style={{position:'absolute',left:500,top:260,overflow:'visible'}}>
+    <path d={Array.from({length:121},(_,i)=>`${i?'L':'M'} ${i*10} ${300+Math.sin(i*.29+t*1.9)*80*Math.sin(i/120*Math.PI)}`).join(' ')} fill="none" stroke={accent} strokeWidth="5" opacity=".82"/>
+    <path d="M0 300 H1200" fill="none" stroke="#ffffff" strokeWidth="1" opacity=".22"/>
+    <circle cx={sweep*1200} cy={300+Math.sin(sweep*Math.PI*2)*70} r="14" fill="#fff1cf"/>
+    <text x="42" y="500" fill="#fff" opacity=".75" fontSize="25" letterSpacing="8">声音 → 电信号 → 远方</text>
+  </svg>;
+  if(kind==='sky')return <svg width="850" height="340" viewBox="0 0 850 340" style={{position:'absolute',right:40,top:160}}>
+    <path d="M50 250 Q420 30 800 212" fill="none" stroke="#fff3d9" strokeWidth="2" opacity=".5" strokeDasharray="7 13"/>
+    <path d="M90 270 Q400 130 720 228" fill="none" stroke={accent} strokeWidth="3" opacity=".7"/>
+    <circle cx={80+progress*680} cy={258-Math.sin(progress*Math.PI)*115} r="8" fill="#fff3d9"/>
+  </svg>;
+  if(kind==='flash')return <svg width="700" height="700" viewBox="0 0 700 700" style={{position:'absolute',left:650,top:110,opacity:.6}}>
+    {[0,1,2,3].map(i=><circle key={i} cx="350" cy="350" r={95+i*90+Math.sin(t*1.8+i)*8} fill="none" stroke={i%2?accent:'#fff1d7'} strokeWidth="2" opacity={.35-i*.045}/>)}
+  </svg>;
+  if(kind==='machine')return <svg width="1200" height="500" viewBox="0 0 1200 500" style={{position:'absolute',left:460,top:330,opacity:.7}}>
+    {Array.from({length:12},(_,i)=><g key={i} opacity={.25+.7*Math.max(0,Math.sin(t*2-i*.42))}><path d={`M${i*94} 40 V440`} stroke={accent} strokeWidth="2"/><circle cx={i*94} cy={80+(i*41)%330} r="8" fill="#fff1d8"/></g>)}
+    <path d={`M${sweep*1150} 0 V500`} stroke="#fff1db" strokeWidth="3" opacity=".7"/>
+  </svg>;
+  if(kind==='silicon')return <svg width="850" height="760" viewBox="0 0 850 760" style={{position:'absolute',right:50,top:120,opacity:.75}}>
+    <path d="M80 380 H770 M425 50 V710 M160 115 L690 645 M690 115 L160 645" stroke={accent} strokeWidth="3" opacity=".4"/>
+    {Array.from({length:9},(_,i)=><circle key={i} cx={110+i*80} cy={375+Math.sin(i*.8+t*1.4)*120} r={7+(i%3)*2} fill={i===Math.floor(progress*9)%9?'#fff3d9':accent} opacity=".9"/>)}
+  </svg>;
+  if(kind==='moon')return <div style={{position:'absolute',left:0,right:0,bottom:0,height:190,background:`linear-gradient(0deg,rgba(8,13,17,.85),transparent)`,pointerEvents:'none'}}>
+    <div style={{position:'absolute',left:`${10+progress*78}%`,top:40,width:1,height:80,background:'#e9e4d5',opacity:.35}}/>
   </div>;
-}
-
-/** 晶体管截面示意：发射极—基极—集电极与按帧移动的载流子。 */
-export function TransistorDiagram({t, accent}: {t: number; accent: string}) {
-  const x = 170, w = 340;
-  const layers = [
-    {y: 40, h: 96, label: '发射极'},
-    {y: 146, h: 32, label: '基极'},
-    {y: 188, h: 96, label: '集电极'},
-  ];
-  return <svg width={760} height={470} style={{position:'absolute',left:1060,top:170}}>
-    <defs>
-      <linearGradient id="transistor-body" x1="0" y1="0" x2="1" y2="0">
-        <stop stopColor="#203638"/><stop offset=".5" stopColor="#2d4a4c"/><stop offset="1" stopColor="#192b2e"/>
-      </linearGradient>
-    </defs>
-    {layers.map((layer, i) => <g key={layer.label}>
-      <rect x={x} y={layer.y} width={w} height={layer.h} rx={6}
-        fill={i === 1 ? '#b79a64' : 'url(#transistor-body)'}
-        stroke={i === 1 ? '#e3ca92' : accent} strokeOpacity={.55}/>
-      <text x={x + w + 26} y={layer.y + layer.h / 2 + 7} fill="#d9dfda"
-        fontSize={24}>{layer.label}</text>
-    </g>)}
-    <path d={`M ${x + w / 2} 300 L ${x + w / 2} 380`} stroke={accent} strokeWidth={2}
-      strokeDasharray="4 6" opacity=".55"/>
-    {Array.from({length:9},(_,i)=>{
-      const phase = (t * .6 + i / 9) % 1;
-      return <circle key={i} cx={x + w / 2 + Math.sin(i * 2.1) * 50} cy={40 + phase * 244}
-        r={4.5} fill="#ffe8b8" opacity={phase < .72 ? .9 : .12}/>;
-    })}
-    <path d={`M ${x - 78} 300 L ${x - 18} 300`} stroke={accent} strokeWidth={2}/>
-    <path d={`M ${x + w + 178} 236 L ${x + w + 18} 236`} stroke={accent} strokeWidth={2}/>
-    <text x={x - 84} y={288} fill="#8fa0a8" fontSize={24} textAnchor="end">电流</text>
-    <text x={x + w + 190} y={222} fill="#8fa0a8" fontSize={24}>输出</text>
-    <line x1={x} y1={336} x2={x + w} y2={336} stroke="#ffffff14"/>
-    <text x={x} y={404} fill="#8fa0a8" fontSize={24} letterSpacing={2}>点接触晶体管 · 原理示意</text>
+  if(kind==='map')return <svg width="1050" height="720" viewBox="0 0 1050 720" style={{position:'absolute',left:720,top:160,overflow:'visible'}}>
+    <path d="M90 460 L320 180 L620 400 L895 160 M320 180 L895 160 M90 460 L620 400" fill="none" stroke={accent} strokeWidth="3" opacity=".72"/>
+    {[[90,460,'UCLA'],[320,180,'SRI'],[620,400,'UCSB'],[895,160,'UTAH']].map(([x,y,label],i)=><g key={i as number}><circle cx={x as number} cy={y as number} r={9+Math.sin(t*2+i)*2} fill="#fff1d9"/><text x={(x as number)+14} y={(y as number)-16} fill="#fff" fontSize="22" letterSpacing="2">{label}</text></g>)}
   </svg>;
-}
-
-const ARPA_NODES = [
-  {x: 78, y: 82, name: 'UCLA'},
-  {x: 300, y: 40, name: 'SRI'},
-  {x: 548, y: 88, name: 'UCSB'},
-  {x: 360, y: 168, name: 'UTAH'},
-];
-const ARPA_LINKS = [[0, 1], [0, 2], [1, 2], [2, 3]] as const;
-
-/** 独立的初始四节点示意；不叠加在档案图上，避免与图内旧标签混淆。 */
-export function ArpanetNodes({t, accent}: {t: number; accent: string}) {
-  return <svg width={700} height={250} style={{position:'absolute',left:120,top:590,pointerEvents:'none'}}>
-    {ARPA_LINKS.map(([a, b], k) => {
-      const from = ARPA_NODES[a], to = ARPA_NODES[b];
-      const phase = (t * .55 + k * .21) % 1;
-      return <g key={k}>
-        <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={accent}
-          strokeWidth={1.4} opacity={.42}/>
-        <circle cx={from.x + (to.x - from.x) * phase} cy={from.y + (to.y - from.y) * phase}
-          r={4.5} fill="#ffe8b8" opacity={.92}/>
-      </g>;
-    })}
-    {ARPA_NODES.map((node, i) => <g key={node.name}>
-      <circle cx={node.x} cy={node.y} r={8 + Math.sin(t * 2.2 + i) * 2} fill={accent} opacity={.9}/>
-      <circle cx={node.x} cy={node.y} r={19} fill="none" stroke={accent} opacity={.28}/>
-      <text x={node.x} y={node.y + 40} fill="#dbe3e0" fontSize={22}
-        textAnchor="middle" letterSpacing={2}>{node.name}</text>
-    </g>)}
-    <text x={0} y={238} fill="#8fa0a8" fontSize={24} letterSpacing={2}>初始四节点 · 示意</text>
+  if(kind==='sequence')return <svg width="820" height="390" viewBox="0 0 820 390" style={{position:'absolute',right:70,top:220,opacity:.84}}>
+    {Array.from({length:25},(_,i)=>{const y=22+i*14,a=t*.75+i*.3,x1=270+Math.sin(a)*95,x2=270-Math.sin(a)*95;return <g key={i}><path d={`M${x1} ${y} Q500 ${y} ${x2} ${y}`} fill="none" stroke={i%2?accent:'#e2d3ad'} strokeWidth="2" opacity=".65"/><circle cx={x1} cy={y} r="4" fill={accent}/><circle cx={x2} cy={y} r="4" fill="#e2d3ad"/></g>;})}
   </svg>;
-}
-
-/** 基因组章节的双螺旋叠加层：只作结构示意。 */
-export function GenomeHelix({t, accent}: {t: number; accent: string}) {
-  return <svg width={280} height={720} style={{position:'absolute',left:1610,top:100,opacity:.95}}>
-    {Array.from({length:44},(_,i)=>{
-      const angle = i * .31 + t * .65, y = 18 + i * 14;
-      const x1 = 140 + Math.sin(angle) * 62, x2 = 140 - Math.sin(angle) * 62;
-      const depth = (Math.cos(angle) + 1) / 2;
-      return <g key={i}>
-        <line x1={x1} y1={y} x2={x2} y2={y} stroke={accent} strokeWidth={1.5}
-          opacity={.18 + .4 * depth}/>
-        <circle cx={x1} cy={y} r={3.8} fill="#dccda4" opacity={.4 + .6 * depth}/>
-        <circle cx={x2} cy={y} r={3.8} fill="#7cc0c4" opacity={.4 + .6 * (1 - depth)}/>
-      </g>;
-    })}
-    <text x={0} y={690} fill="#8fa0a8" fontSize={24} letterSpacing={2}>DNA双螺旋 · 原理示意</text>
-  </svg>;
-}
-
-/** 大模型章节的抽象计算网络：输入、层间传递与输出，明确不是真实模型记录。 */
-export function LLMNetwork({t, accent}: {t: number; accent: string}) {
-  const cols = 9, rows = 6;
-  const nodeX = (column: number) => 90 + column * 118;
-  const nodeY = (row: number) => 60 + row * 86;
-  return <svg width={1180} height={640} style={{position:'absolute',left:560,top:110}}>
-    <defs>
-      <radialGradient id="llm-halo">
-        <stop stopColor={accent} stopOpacity=".26"/><stop offset="1" stopColor={accent} stopOpacity="0"/>
-      </radialGradient>
-    </defs>
-    <ellipse cx={562} cy={280} rx={540} ry={300} fill="url(#llm-halo)"/>
-    {Array.from({length:cols - 1},(_,column)=>Array.from({length:rows},(_,row)=>{
-      const x1 = nodeX(column), y1 = nodeY(row);
-      return [-1, 0, 1].map(offset => {
-        const target = row + offset;
-        if (target < 0 || target >= rows) return null;
-        const phase = (t * .45 + column * .09 + row * .07 + offset * .11) % 1;
-        return <line key={`${column}-${row}-${offset}`} x1={x1} y1={y1}
-          x2={nodeX(column + 1)} y2={nodeY(target)} stroke={accent}
-          strokeWidth={phase > .72 ? 1.6 : .8} opacity={phase > .72 ? .62 : .17}/>;
-      });
-    }))}
-    {Array.from({length:cols},(_,column)=>Array.from({length:rows},(_,row)=>{
-      const pulse = .35 + .65 * Math.sin(t * 1.6 - column * .4 - row * .3) ** 2;
-      const fill = column < 3 ? '#dccda4' : column > 6 ? '#8fd0d2' : accent;
-      return <circle key={`${column}-${row}`} cx={nodeX(column)} cy={nodeY(row)}
-        r={3.6 + 2.4 * pulse} fill={fill} opacity={.36 + .6 * pulse}/>;
-    }))}
-    {Array.from({length:6},(_,i)=>{
-      const phase = (t * .32 + i * .17) % 1;
-      return <circle key={'packet' + i} cx={nodeX(0) + phase * (nodeX(cols - 1) - nodeX(0))}
-        cy={nodeY(2) + Math.sin(t * 1.2 + i * 1.7) * 70} r={5.5}
-        fill="#fff1c9" opacity={.9}/>;
-    })}
-    <line x1={90} y1={30} x2={1034} y2={30} stroke="#ffffff12"/>
-    <text x={90} y={20} fill="#8fa0a8" fontSize={20} letterSpacing={4}>输入</text>
-    <text x={1034} y={20} fill="#8fa0a8" fontSize={20} letterSpacing={4} textAnchor="end">输出</text>
-  </svg>;
+  if(kind==='language') {
+    return <svg width="1120" height="820" viewBox="0 0 1120 820" style={{position:'absolute',right:-30,top:90,opacity:.78}}>
+      {points.map(n=>n.i%8<7&&<g key={n.i}><line x1={n.x} y1={n.y} x2={points[n.i+1].x} y2={points[n.i+1].y} stroke={accent} strokeWidth="1.5" opacity=".3"/><line x1={n.x} y1={n.y} x2={points[(n.i+8)%56].x} y2={points[(n.i+8)%56].y} stroke={accent} strokeWidth="1" opacity=".18"/></g>)}
+      {points.map(n=><circle key={n.i} cx={n.x} cy={n.y} r={4+3*Math.sin(t*1.1+n.i*.5)**2} fill={n.i%7===Math.floor(progress*7)?'#fff0d4':accent}/>)}
+      {[0,1,2].map(i=><circle key={i} cx={800+((progress*900+i*.32)%900)} cy={150+i*200} r="7" fill="#fff4dd"/>)}
+    </svg>;
+  }
+  return null;
 }

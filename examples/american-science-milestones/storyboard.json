@@ -7,7 +7,7 @@
   "title": "从电报到大模型",
   "input": {
     "kind": "topic",
-    "topic": "美国建国以来主导的十项科学与技术里程碑，注明国际合作与贡献边界"
+    "topic": "十项美国主导或参与的重要科技里程碑，尊重全球累积、国际合作与贡献边界"
   },
   "targetSeconds": 60,
   "scenes": [
@@ -15,8 +15,7 @@
       "id": "opening",
       "template": "code",
       "keywords": [
-        "从电报到大模型",
-        "A SILENT DOCUMENTARY"
+        "从电报到大模型"
       ],
       "durationFrames": 180,
       "transition": "cut",
@@ -26,25 +25,11 @@
         "props": {
           "chapter": {
             "id": "opening",
-            "year": "1776—2022",
-            "title": "从电报到大模型",
-            "english": "SELECTED MILESTONES / A SILENT DOCUMENTARY",
+            "year": "",
+            "title": "",
             "caption": "",
-            "note": "",
-            "treatment": "opening",
-            "accent": "#d3b38a",
+            "accent": "#d8b589",
             "asset": "flight"
-          },
-          "index": 0,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
           },
           "shots": [
             {
@@ -63,8 +48,7 @@
       "id": "telegraph",
       "template": "code",
       "keywords": [
-        "摩尔斯电报",
-        "THE TELEGRAPH"
+        "摩尔斯电报"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -76,23 +60,9 @@
             "id": "telegraph",
             "year": "1844",
             "title": "摩尔斯电报",
-            "english": "THE TELEGRAPH",
-            "caption": "电信号穿过华盛顿与巴尔的摩之间。",
-            "note": "首次公开示范，并非电报的开端。",
-            "treatment": "signal",
-            "accent": "#d3b38a",
-            "asset": "telegraph"
-          },
-          "index": 1,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "caption": "电信号让文字跨越华盛顿与巴尔的摩。",
+            "asset": "telegraph",
+            "accent": "#d3b38a"
           },
           "shots": [
             {
@@ -111,8 +81,7 @@
       "id": "telephone",
       "template": "code",
       "keywords": [
-        "贝尔电话",
-        "THE TELEPHONE"
+        "贝尔电话"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -124,23 +93,9 @@
             "id": "telephone",
             "year": "1876",
             "title": "贝尔电话",
-            "english": "THE TELEPHONE",
-            "caption": "清晰语音沿导线传到远方。",
-            "note": "以清晰语音实验为节点。",
-            "treatment": "lens",
-            "accent": "#d3b38a",
-            "asset": "telephone"
-          },
-          "index": 2,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "caption": "清晰语音沿电线抵达远方。",
+            "asset": "telephone",
+            "accent": "#d9c29e"
           },
           "shots": [
             {
@@ -159,8 +114,8 @@
       "id": "flight",
       "template": "code",
       "keywords": [
-        "莱特兄弟飞机",
-        "POWERED FLIGHT"
+        "莱特兄弟",
+        "动力飞行"
       ],
       "durationFrames": 480,
       "transition": "cut",
@@ -171,20 +126,16 @@
           "chapter": {
             "id": "flight",
             "year": "1903",
-            "title": "莱特兄弟飞机",
-            "english": "POWERED FLIGHT",
-            "caption": "可控、持续的动力飞行成为现实。",
-            "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
-            "treatment": "sweep",
-            "accent": "#e0c69e",
-            "asset": "flight"
+            "title": "动力飞行",
+            "caption": "可控、持续的动力飞行，开启航空时代。",
+            "asset": "flight",
+            "accent": "#e0c69e"
           },
-          "index": 3,
           "look": {
             "profile": "archive-cinema",
             "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
+            "grain": 0.025,
+            "vignette": 0.16,
             "motion": {
               "subframes": 1,
               "supersample": 1
@@ -207,8 +158,7 @@
       "id": "trinity",
       "template": "code",
       "keywords": [
-        "原子弹",
-        "THE ATOMIC AGE"
+        "Trinity核试验"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -219,24 +169,10 @@
           "chapter": {
             "id": "trinity",
             "year": "1945",
-            "title": "原子弹",
-            "english": "THE ATOMIC AGE",
-            "caption": "首次核试验，让人类进入核时代。",
-            "note": "突破之外，也有深重的人道代价。",
-            "treatment": "portrait",
-            "accent": "#d8b08c",
-            "asset": "trinity"
-          },
-          "index": 4,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "title": "Trinity核试验",
+            "caption": "人类进入核时代，也面对深重的人道代价。",
+            "asset": "trinity",
+            "accent": "#edc2a2"
           },
           "shots": [
             {
@@ -255,8 +191,7 @@
       "id": "eniac",
       "template": "code",
       "keywords": [
-        "ENIAC计算机",
-        "ELECTRONIC COMPUTING"
+        "ENIAC计算机"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -267,24 +202,10 @@
           "chapter": {
             "id": "eniac",
             "year": "1946",
-            "title": "ENIAC 计算机",
-            "english": "ELECTRONIC COMPUTING",
-            "caption": "电子计算走向通用与高速。",
-            "note": "早期通用电子数字计算的里程碑。",
-            "treatment": "racks",
-            "accent": "#c6d3ce",
-            "asset": "eniac"
-          },
-          "index": 5,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "title": "ENIAC",
+            "caption": "通用电子数字计算迈出关键一步。",
+            "asset": "eniac",
+            "accent": "#ced9d4"
           },
           "shots": [
             {
@@ -303,8 +224,7 @@
       "id": "transistor",
       "template": "code",
       "keywords": [
-        "晶体管",
-        "THE TRANSISTOR"
+        "晶体管"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -315,24 +235,10 @@
           "chapter": {
             "id": "transistor",
             "year": "1947",
-            "title": "晶体管",
-            "english": "THE TRANSISTOR",
-            "caption": "固态电子取代真空管，设备开始缩小。",
-            "note": "贝尔实验室 · 点接触晶体管",
-            "treatment": "macro",
-            "accent": "#b9d2ca",
-            "asset": "transistor"
-          },
-          "index": 6,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "title": "点接触晶体管",
+            "caption": "固态电子推动计算设备小型化。",
+            "asset": "transistor",
+            "accent": "#b9d2ca"
           },
           "shots": [
             {
@@ -351,8 +257,8 @@
       "id": "moon",
       "template": "code",
       "keywords": [
-        "阿波罗登月",
-        "APOLLO 11"
+        "阿波罗11号",
+        "登月"
       ],
       "durationFrames": 480,
       "transition": "cut",
@@ -363,20 +269,16 @@
           "chapter": {
             "id": "moon",
             "year": "1969",
-            "title": "阿波罗登月",
-            "english": "APOLLO 11",
-            "caption": "人类第一次踏上另一个世界。",
-            "note": "1969年7月20日 · 阿波罗11号",
-            "treatment": "film",
-            "accent": "#c8d9dc",
-            "asset": "moon"
+            "title": "阿波罗11号",
+            "caption": "人类首次登月，把足迹留在另一个世界。",
+            "asset": "moon",
+            "accent": "#c8d9dc"
           },
-          "index": 7,
           "look": {
             "profile": "archive-cinema",
             "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
+            "grain": 0.02,
+            "vignette": 0.12,
             "motion": {
               "subframes": 1,
               "supersample": 1
@@ -400,7 +302,7 @@
       "template": "code",
       "keywords": [
         "ARPANET",
-        "A NETWORK BEGINS"
+        "四节点网络"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -412,23 +314,9 @@
             "id": "arpanet",
             "year": "1969",
             "title": "ARPANET",
-            "english": "A NETWORK BEGINS",
-            "caption": "四个节点连起最初的网络。",
-            "note": "1970年网络图；初始四节点示意。",
-            "treatment": "map",
-            "accent": "#88bac9",
-            "asset": "arpanet"
-          },
-          "index": 8,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "caption": "四节点网络成为现代互联网的重要先驱。",
+            "asset": "arpanet",
+            "accent": "#88bac9"
           },
           "shots": [
             {
@@ -447,8 +335,7 @@
       "id": "genome",
       "template": "code",
       "keywords": [
-        "人类基因组计划",
-        "READING THE GENOME"
+        "人类基因组计划"
       ],
       "durationFrames": 240,
       "transition": "cut",
@@ -460,23 +347,9 @@
             "id": "genome",
             "year": "2003",
             "title": "人类基因组计划",
-            "english": "READING THE GENOME",
-            "caption": "国际合作完成参考序列。",
-            "note": "1990—2003 · 完成时仍有缺口。",
-            "treatment": "helix",
-            "accent": "#a4c6ba",
-            "asset": "genome"
-          },
-          "index": 9,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
+            "caption": "国际合作完成参考序列，美国机构参与主导。",
+            "asset": "genome",
+            "accent": "#a4c6ba"
           },
           "shots": [
             {
@@ -496,7 +369,7 @@
       "template": "code",
       "keywords": [
         "大语言模型",
-        "LANGUAGE AT SCALE"
+        "GPT-3"
       ],
       "durationFrames": 480,
       "transition": "cut",
@@ -508,19 +381,14 @@
             "id": "llm",
             "year": "2020—2022",
             "title": "大语言模型",
-            "english": "LANGUAGE AT SCALE",
-            "caption": "语言生成走向大众。",
-            "note": "全球研究积累 · 以 OpenAI 的进展为例",
-            "treatment": "network",
-            "accent": "#8bbdce",
-            "asset": null
+            "caption": "全球研究积累，让语言生成走向大众。",
+            "accent": "#8bbdce"
           },
-          "index": 10,
           "look": {
             "profile": "archive-cinema",
             "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
+            "grain": 0.015,
+            "vignette": 0.1,
             "motion": {
               "subframes": 1,
               "supersample": 1
@@ -543,8 +411,7 @@
       "id": "closing",
       "template": "code",
       "keywords": [
-        "每一次突破，都有来路。",
-        "A SILENT DOCUMENTARY"
+        "知识接力"
       ],
       "durationFrames": 300,
       "transition": "cut",
@@ -554,25 +421,12 @@
         "props": {
           "chapter": {
             "id": "closing",
-            "year": "1776—2022",
-            "title": "每一次突破，都有来路。",
-            "english": "A SILENT DOCUMENTARY",
+            "year": "",
+            "title": "",
             "caption": "",
-            "note": "",
-            "treatment": "closing",
             "accent": "#d3b38a"
           },
-          "index": 11,
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.045,
-            "vignette": 0.2,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
-          },
+          "chapters": [],
           "shots": [
             {
               "id": "closing-shot",
@@ -581,118 +435,6 @@
               "startFrame": 0,
               "endFrame": 300,
               "cut": true
-            }
-          ],
-          "chapters": [
-            {
-              "id": "telegraph",
-              "year": "1844",
-              "title": "摩尔斯电报",
-              "english": "THE TELEGRAPH",
-              "caption": "电信号穿过华盛顿与巴尔的摩之间。",
-              "note": "首次公开示范，并非电报的开端。",
-              "treatment": "signal",
-              "accent": "#d3b38a",
-              "asset": "telegraph"
-            },
-            {
-              "id": "telephone",
-              "year": "1876",
-              "title": "贝尔电话",
-              "english": "THE TELEPHONE",
-              "caption": "清晰语音沿导线传到远方。",
-              "note": "以清晰语音实验为节点。",
-              "treatment": "lens",
-              "accent": "#d3b38a",
-              "asset": "telephone"
-            },
-            {
-              "id": "flight",
-              "year": "1903",
-              "title": "莱特兄弟飞机",
-              "english": "POWERED FLIGHT",
-              "caption": "可控、持续的动力飞行成为现实。",
-              "note": "1903年12月17日 · 基蒂霍克 · 首飞12秒",
-              "treatment": "sweep",
-              "accent": "#e0c69e",
-              "asset": "flight"
-            },
-            {
-              "id": "trinity",
-              "year": "1945",
-              "title": "原子弹",
-              "english": "THE ATOMIC AGE",
-              "caption": "首次核试验，让人类进入核时代。",
-              "note": "突破之外，也有深重的人道代价。",
-              "treatment": "portrait",
-              "accent": "#d8b08c",
-              "asset": "trinity"
-            },
-            {
-              "id": "eniac",
-              "year": "1946",
-              "title": "ENIAC 计算机",
-              "english": "ELECTRONIC COMPUTING",
-              "caption": "电子计算走向通用与高速。",
-              "note": "早期通用电子数字计算的里程碑。",
-              "treatment": "racks",
-              "accent": "#c6d3ce",
-              "asset": "eniac"
-            },
-            {
-              "id": "transistor",
-              "year": "1947",
-              "title": "晶体管",
-              "english": "THE TRANSISTOR",
-              "caption": "固态电子取代真空管，设备开始缩小。",
-              "note": "贝尔实验室 · 点接触晶体管",
-              "treatment": "macro",
-              "accent": "#b9d2ca",
-              "asset": "transistor"
-            },
-            {
-              "id": "moon",
-              "year": "1969",
-              "title": "阿波罗登月",
-              "english": "APOLLO 11",
-              "caption": "人类第一次踏上另一个世界。",
-              "note": "1969年7月20日 · 阿波罗11号",
-              "treatment": "film",
-              "accent": "#c8d9dc",
-              "asset": "moon"
-            },
-            {
-              "id": "arpanet",
-              "year": "1969",
-              "title": "ARPANET",
-              "english": "A NETWORK BEGINS",
-              "caption": "四个节点连起最初的网络。",
-              "note": "1970年网络图；初始四节点示意。",
-              "treatment": "map",
-              "accent": "#88bac9",
-              "asset": "arpanet"
-            },
-            {
-              "id": "genome",
-              "year": "2003",
-              "title": "人类基因组计划",
-              "english": "READING THE GENOME",
-              "caption": "国际合作完成参考序列。",
-              "note": "1990—2003 · 完成时仍有缺口。",
-              "treatment": "helix",
-              "accent": "#a4c6ba",
-              "asset": "genome"
-            },
-            {
-              "id": "llm",
-              "year": "2020—2022",
-              "title": "大语言模型",
-              "english": "LANGUAGE AT SCALE",
-              "caption": "语言生成走向大众。",
-              "note": "全球研究积累 · 以 OpenAI 的进展为例",
-              "treatment": "network",
-              "accent": "#8bbdce",
-              "asset": null
             }
           ]
         }

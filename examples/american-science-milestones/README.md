@@ -10,16 +10,16 @@
 |---|---|---|---|
 | `opening` | 0–3秒 | 从电报到大模型 | 全幅首飞档案、React / Motion / 帧驱动推移 |
 | `telegraph` | 3–7秒 | 摩尔斯电报 | 竖幅实物、React / SVG / 摩尔斯信号带 |
-| `telephone` | 7–11秒 | 贝尔电话 | 压暗档案背景、实物画框、React / ECharts 波形 |
+| `telephone` | 7–11秒 | 贝尔电话 | 实物主体与 ECharts 示意波形 |
 | `flight` | 11–19秒 | 莱特兄弟飞机 | 全幅档案横移、React / 帧驱动构图 |
 | `trinity` | 19–23秒 | 原子弹 | 竖幅档案、缓慢推进、React / 帧驱动构图 |
 | `eniac` | 23–27秒 | ENIAC计算机 | 全幅机柜横移、指示灯、React / 帧驱动构图 |
 | `transistor` | 27–31秒 | 晶体管 | 实物细节、截面示意、React / SVG |
-| `moon` | 31–39秒 | 阿波罗登月 | NASA 连续影像原速播放、React / 帧驱动 |
+| `moon` | 31–39秒 | 阿波罗登月 | NASA 连续影像、React / 帧驱动 |
 | `arpanet` | 39–43秒 | ARPANET | 1970年档案图、初始四节点示意、React / SVG |
 | `genome` | 43–47秒 | 人类基因组计划 | 全幅历史照片、双螺旋示意、React / SVG |
 | `llm` | 47–55秒 | 大语言模型 | 抽象计算网络、React / SVG，原理示意 |
-| `closing` | 55–60秒 | 每一次突破，都有来路。 | 年代刻度、唯一片尾署名、React / Motion / 帧驱动 |
+| `closing` | 55–60秒 | 每一次突破，都有来路。 | 年代刻度、唯一合并署名与版权说明、React / Motion / 帧驱动 |
 
 ## 制作与重建
 
@@ -30,7 +30,8 @@ uv run m2v validate --project examples/american-science-milestones
 uv run m2v prepare --project examples/american-science-milestones
 uv run m2v assets audit --project examples/american-science-milestones
 uv run python examples/american-science-milestones/scripts/render-rough.py
-uv run m2v lookdev --project examples/american-science-milestones --stills 3 --sample-seconds 24
+uv run python examples/american-science-milestones/scripts/capture-baselines.py
+uv run m2v lookdev --project examples/american-science-milestones --stills 4 --sample-seconds 24
 uv run m2v render --project examples/american-science-milestones
 uv run m2v qa --project examples/american-science-milestones
 ```

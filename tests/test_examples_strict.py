@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import shutil
 from pathlib import Path
@@ -70,9 +71,15 @@ def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> N
         assert not data.get("soundtrack")
         assert sum(scene["durationFrames"] for scene in data["scenes"]) == 60 * 60
         assert len(data["scenes"]) == 12
+        assert [scene["durationFrames"] for scene in data["scenes"]] == [
+            180, 240, 240, 480, 240, 240, 240, 480, 240, 240, 480, 300
+        ]
         for scene in data["scenes"]:
             assert not scene["narrationSegments"]
             assert scene["durationFrames"] >= 180
+            for shot in scene["content"]["props"]["shots"]:
+                assert shot["startFrame"] == 0
+                assert shot["endFrame"] == scene["durationFrames"]
         heroes = [shot for scene in data["scenes"] for shot in scene["content"]["props"]["shots"] if shot["tier"] == "hero"]
         assert {shot["target"] for shot in heroes} == {"flight", "moon", "llm"}
         assert all(480 <= shot["endFrame"] - shot["startFrame"] <= 720 for shot in heroes)
@@ -100,6 +107,22 @@ def test_examples_cover_approved_component_families() -> None:
     sources = "\n".join(_sources(name) for name in EXPECTED_EXAMPLES)
     for family, markers in APPROVED_COMPONENTS.items():
         assert any(marker in sources for marker in markers), f"缺少组件演示：{family}"
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))
+def test_video_copy_does_not_expose_internal_references(name: str) -> None:
+    """观众文案不得要求查阅仓库材料或暴露内部文件路径。"""
+    example = EXAMPLES / name
+    sources = _sources(name)
+    storyboard = json.dumps(json.loads((example / "storyboard.json").read_text(encoding="utf-8")),
+                            ensure_ascii=False)
+    visible_copy_sources = sources + "\n" + storyboard
+    internal_paths = re.compile(
+        r"(?i)\b(?:examples|outputs|openspec)/|\.agents/|"
+        r"(?:详见|查看|参见)\s*(?:内部)?(?:来源|制作|项目)?(?:文档|文件|资料)"
+    )
+    match = re.search(r"\bSOURCES(?:\.md)?\b", visible_copy_sources) or internal_paths.search(visible_copy_sources)
+    assert match is None, f"{name} 的分镜或场景源码出现内部资料引用：{match.group(0) if match else ''}"
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))

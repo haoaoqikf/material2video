@@ -203,7 +203,7 @@ cinematic 档（`productionProfile: "cinematic"`）的 look bible、LUT、后期
 
 ## 动效时长与帧驱动
 
-`--m2v-dur-fast` / `-base` / `-slow` = 240 / 360 / 560ms（约 7 / 11 / 17 帧）只是
+`--m2v-dur-fast` / `-base` / `-slow` = 240 / 360 / 560ms（60 fps 下约 14 / 22 / 34 帧）只是
 **配方里的时长刻度**，注释里换算成 60fps 的帧数供作者取用。画面本身仍然只由帧号
 驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见
 [代码场景运行契约](code-scene-runtime.md)。

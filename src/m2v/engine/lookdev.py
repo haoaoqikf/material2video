@@ -1,9 +1,9 @@
-"""`m2v lookdev`：在铺全片之前生成关键静帧与一段有声样片，供非播放式复核。
+"""`m2v lookdev`：在铺全片之前生成关键静帧与声音意图匹配的样片，供非播放式复核。
 
 cinematic 档的 look-dev 不设人工确认门禁：渲 3–5 张 4K 静帧、一张接触表与一段
-20–30 秒有声样片，静帧、帧序列、量测和自动音频信号复核结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，
+20–30 秒样片（无声作品保持无声），静帧、帧序列、量测和自动音频信号复核结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，
 但不阻断铺全片或导出。这里的产物不是最终成片，而是「方向对不对」的证据：静帧从源码
-按 2× 原生像素采集，样片按 1× 渲染并合上母版音轨的对应片段。
+按 2× 原生像素采集，样片按 1× 渲染；有声作品合上母版对应片段，无声作品交付无音轨样片。
 
 本模块不修改成片、不写准备记录，也不改变任何指纹。
 """
@@ -84,6 +84,20 @@ def timeline_shots(prepared: dict) -> list[dict]:
             for shot in ((scene.get("content", {}).get("props") or {}).get("shots") or [])]
 
 
+def sample_audio(prepared: dict, root: Path) -> tuple[bool, Path | None]:
+    """返回是否应带声音及其准备音轨；空旁白/音床的作品保持无音轨。"""
+    props = prepared["props"]
+    soundtrack = props.get("soundtrack", {})
+    has_sound_design = bool(soundtrack.get("music") or soundtrack.get("effects"))
+    has_narration = any(scene.get("narrationSegments") for scene in props.get("compiledScenes", []))
+    if not (has_sound_design or has_narration):
+        return False, None
+    segments = prepared.get("audio", {}).get("segments", [])
+    if not segments:
+        raise M2VError("有声作品缺少准备音轨，无法生成 look-dev 样片")
+    return True, root / segments[0]["path"]
+
+
 def native_stills(root: Path, prepared: dict, frames: list[int], work: Path) -> dict[tuple[str, int], Path]:
     """只保存选定帧，但从零连续推进每幕时钟；不触碰准备阶段的视频缓存。"""
     from playwright.sync_api import sync_playwright
@@ -159,7 +173,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
     outputs = root / "outputs/lookdev"
     outputs.mkdir(parents=True, exist_ok=True)
     entry = root / project["materials"]["storyboard"]
-    master = root / prepared["audio"]["segments"][0]["path"]
+    has_audio, master = sample_audio(prepared, root)
     frames = still_frames(prepared, stills)
     start, end = sample_window(prepared, sample_seconds)
     from m2v.types.general.code_scenes import materialize
@@ -202,12 +216,16 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
         remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
                                 composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
                                 on_line=remotion.progress_handler(end - start + 1))
-        audio.mux(silent, master, sample, (end - start + 1) / fps, start=start / fps)
+        if master:
+            audio.mux(silent, master, sample, (end - start + 1) / fps, start=start / fps)
+        else:
+            silent.replace(sample)
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "stills": [path.relative_to(root).as_posix() for path in rendered],
                 "contactSheet": sheet.relative_to(root).as_posix(),
                 "sample": sample.relative_to(root).as_posix(),
                 "sampleFrames": [start, end], "sampleSeconds": round((end - start + 1) / fps, 2),
+                "sampleAudio": "present" if has_audio else "none",
                 "stillScale": STILL_SCALE, "stillSize": [width * STILL_SCALE, height * STILL_SCALE],
                 "stillCapture": "native-code-png-v1"}
     _write_json(root / "outputs/lookdev.json", manifest)

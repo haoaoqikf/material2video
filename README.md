@@ -4,6 +4,8 @@
 
 所有视频类型统一固定为 **60 fps**，包括场景录制、片段检查和正式导出；旧 30 fps 材料须重新编排。
 
+所有作品默认面向手机观看，但不强制竖屏；制作复核按作品画幅检查字号、主体比例和播放器遮挡风险。成片文案须逐项排查仓库内部文件名、路径和材料查阅提示；来源与版权信息集中为唯一一份简短片尾署名。评审将重复静态信息卡片和机械逐页切换列为必改项，并结合全片帧序列确认画面有信息推进。
+
 ## 当前视频类型
 
 <!-- generated:type-catalog:start -->
@@ -53,7 +55,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - 基础链路：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。
 - `preview` 只生成片段，默认前十秒（短作品最多全片减一帧），支持 `--start-seconds 20 --end-seconds 25` 或 `--limit-frames N`，覆盖全片会拒绝。它是可选检查工具，不是 render 的前置条件。
 - `render` 将完整候选和输入/实现/编码参数指纹及 SHA-256 保存在 `outputs/candidates/` 与 `outputs/delivery.json`，验收后复制交付同一文件；同版本重复执行、验收失败或交付失败重试均不重新完整编码；文件损坏或输入变化后才重新生成。`status` 报告已准备、候选待验收、验收失败、可交付、交付失败或已交付。可选评审绑定候选摘要；异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。候选、交付记录与清理规则见[交付与溯源](.agents/skills/material2video/references/delivery-and-provenance.md)。
-- 通用作品另有三个检查入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒有声样片；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/asset-audit.json`）。
+- 通用作品另有三个检查入口：`lookdev`（3–5 张 4K 静帧、接触表与 20–30 秒样片；无声作品样片无音轨，有声作品合并对应音轨；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选）与 `assets audit`（按实测尺寸与登记许可审计资产，hero 不合格时阻断，输出 `outputs/asset-audit.json`）。
 - 文章专属：输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，图库默认且仅启用 Pixabay（需 `M2V_PIXABAY_API_KEY`），Pexels 固定停用；公开媒体直链仍可统一导入。混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`。
 - 金融专属：`m2v financial plan` 离线生成 v8 计划，`m2v financial migrate-line` 备份升级已有作品。
 - 操作性语义创作指导见 [material2video Skill](.agents/skills/material2video/SKILL.md)。

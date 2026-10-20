@@ -48,6 +48,19 @@ def test_sample_window_rejects_impossible_request():
         lookdev.sample_window({"durationInFrames": 0, "fps": 60, "props": {"compiledScenes": []}}, 20)
 
 
+def test_sample_audio_follows_story_sound_intent():
+    from pathlib import Path
+
+    base = {"audio": {"segments": [{"path": "outputs/audio.wav"}]},
+            "props": {"soundtrack": {}, "compiledScenes": [{"narrationSegments": []}]}}
+    assert lookdev.sample_audio(base, Path("project")) == (False, None)
+    base["props"]["soundtrack"] = {"music": {"sourceRef": "assets/music.wav"}}
+    assert lookdev.sample_audio(base, Path("project")) == (True, Path("project/outputs/audio.wav"))
+    base["props"]["soundtrack"] = {}
+    base["props"]["compiledScenes"][0]["narrationSegments"] = [{"text": "hello"}]
+    assert lookdev.sample_audio(base, Path("project")) == (True, Path("project/outputs/audio.wav"))
+
+
 def test_still_props_keep_only_the_captured_scene(tmp_path):
     """多幕作品只合成当前帧所在幕，未采样幕没有已物化的 mediaPath。"""
     picture = tmp_path / "frame.png"
