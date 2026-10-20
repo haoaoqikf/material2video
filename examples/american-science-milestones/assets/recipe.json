@@ -99,6 +99,17 @@
       "downloadUrl": "https://www.genome.gov/sites/default/files/media/images/2022-08/what_is_dna_sequencing_edited_cropped_1280_0.jpg",
       "transform": "copy",
       "expectedSha256": "014d70a3dd3c8389a22a1d91afa92f2f9cc63f20760abf59deabf92b968976c4"
+    },
+    {
+      "id": "chatgpt-icon",
+      "kind": "image",
+      "sourceUrl": "https://help.openai.com/en/articles/7905742-what-does-the-official-chatgpt-ios-app-icon-look-like",
+      "author": "OpenAI",
+      "license": "OpenAI trademark and brand asset; use subject to https://openai.com/brand/; not an open license",
+      "role": "other",
+      "downloadUrl": "https://images.ctfassets.net/j22is2dtoxu1/intercom-img-d177d076c9a5453052925143/49d5d812b0a6fcc20a14faa8c629d9fb/icon-ios-1024_401x.png?fm=png&w=1024",
+      "transform": "copy",
+      "expectedSha256": "a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b"
     }
   ]
 }

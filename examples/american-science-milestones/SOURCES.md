@@ -17,13 +17,13 @@
 | 登月1969 | [NASA](https://www.nasa.gov/mission/apollo-11/) | 首次载人登月；月面档案片段 |
 | ARPANET1969 | [DARPA](https://www.darpa.mil/news/features/arpanet) | 初始四节点网络，互联网先驱；画面档案图为1970年的网络 |
 | 基因组2003 | [NHGRI](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project) | 国际合作参考序列，非当年已无缺口；照片为历史测序工作 |
-| 大模型2020—2022 | [GPT-3原始论文](https://arxiv.org/abs/2005.14165)、[2022年对话模型发布](https://openai.com/index/chatgpt/) | OpenAI代表进展；全球研究积累，不声称首次发明所有大模型 |
+| 大模型2020—2022 | [GPT-3原始论文](https://arxiv.org/abs/2005.14165)、[ChatGPT于2022年发布](https://openai.com/index/chatgpt/) | ChatGPT 是具体产品实例；全球研究积累推动该领域发展，不声称 OpenAI 首次发明所有大模型 |
 
 ## 搜索与取舍
 
 优先官方档案，其次许可明确公共媒体。国会图书馆API部分返回403，但官方事实页及公共领域档案可通过Commons原片获取；Commons原尺寸照片部分429，晶体管采用官方建议的1280像素缩略版本。NASA和NHGRI可取得可用素材。大模型已检索原始论文及发布资料，但未取得能真实呈现模型内部运算且许可明确的历史动态素材，因此采用原创代码动画并标注原理示意，不用机器人或数据中心代称模型本体。
 
-## 九项素材与许可
+## 十项素材与许可
 
 以下素材通过统一assets import进入内容寻址目录。对应原始URL和变换步骤见assets/recipe.json，可运行assets/fetch.py重新获取。外站可能变更或限流，脚本失败会明确报错，不静默代换。
 
@@ -36,6 +36,7 @@
 - **arpanet**：[UCLA and BBN](https://commons.wikimedia.org/wiki/File:ARPANET_1970_Map.png)；CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0；实际684×463。
 - **moon**：[NASA](https://images.nasa.gov/details/Apollo_11_Introduction_720p)；Public domain (NASA-produced footage); https://www.nasa.gov/nasa-brand-center/images-and-media/；实际1280×720。
 - **genome**：[National Human Genome Research Institute](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project)；Public domain; https://www.genome.gov/image-gallery；实际1280×1134。
+- **chatgpt-icon**：[OpenAI Help Center 官方 ChatGPT iOS 图标说明](https://help.openai.com/en/articles/7905742-what-does-the-official-chatgpt-ios-app-icon-look-like)；[原始图像文件](https://images.ctfassets.net/j22is2dtoxu1/intercom-img-d177d076c9a5453052925143/49d5d812b0a6fcc20a14faa8c629d9fb/icon-ios-1024_401x.png?fm=png&w=1024)；OpenAI 商标与品牌素材，受[官方品牌指南](https://openai.com/brand/)约束，不属于开放许可；实际1024×1024，SHA-256 `a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b`。图标原样、小尺寸用于与 OpenAI 服务直接相关的示意界面，不暗示背书。素材本身不改动；片中中文界面为原创绘制，显著标注示意且不是实际对话。
 
 照片与地图在成片中裁切、调色及平移；首飞原图仅重新JPEG压缩，保留6603×4280原生尺寸。NASA片段截取原片84.25–91.75秒以0.75倍慢放至10秒并去音轨，成片使用前8秒，其余不改内容。晶体管图片作者Unitronic，许可[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)；ARPANET图作者UCLA与BBN，许可[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。其改编内容与整支成片按[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)提供，保留署名与来源，不暗示背书。
 

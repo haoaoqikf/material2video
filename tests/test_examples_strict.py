@@ -72,7 +72,7 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
         assert sum(scene["durationFrames"] for scene in data["scenes"]) == 30 * 60
         assert len(data["scenes"]) == 12
         assert [scene["durationFrames"] for scene in data["scenes"]] == [
-            120, 120, 120, 180, 120, 150, 150, 180, 150, 120, 210, 180
+            120, 120, 120, 180, 120, 150, 150, 180, 150, 120, 270, 120
         ]
         for scene in data["scenes"]:
             assert not scene["narrationSegments"]

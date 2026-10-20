@@ -14,6 +14,7 @@ function useArchives() {
     flight: useMediaAsset('flight'), trinity: useMediaAsset('trinity'),
     eniac: useMediaAsset('eniac'), transistor: useMediaAsset('transistor'),
     moon: useMediaAsset('moon'), arpanet: useMediaAsset('arpanet'), genome: useMediaAsset('genome'),
+    chatgptIcon: useMediaAsset('chatgpt-icon'),
   };
 }
 
@@ -28,10 +29,29 @@ function Archive({asset,progress,ready,style,startOffsetSeconds=0}:{asset:Return
 
 function Credits() {
   return <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at 75% 30%,#233c43 0%,#0a1116 62%)',display:'flex',alignItems:'center',padding:'0 120px'}}>
-    <div style={{width:'100%',textAlign:'center'}}>
-      <div style={{fontSize:25,letterSpacing:5,color:'#b8c2c1',marginBottom:32}}>署名与版权</div>
-      <div style={{fontSize:32,lineHeight:1.45,color:'#f0eee7'}}>晶体管《1st Transistor》：Unitronic（CC BY-SA 3.0）</div>
-      <div style={{fontSize:32,lineHeight:1.45,color:'#c3cdcf'}}>阿帕网地图：UCLA、BBN（CC BY-SA 4.0）｜均已裁切、调色｜本片 CC BY-SA 4.0</div>
+    <div style={{width:'100%',textAlign:'center',textShadow:'0 2px 16px #000'}}>
+      <div style={{fontSize:41,lineHeight:1.55,fontWeight:500,color:'#f0eee7'}}>晶体管《1st Transistor》 Unitronic｜CC BY-SA 3.0｜裁切、调色</div>
+      <div style={{fontSize:41,lineHeight:1.55,fontWeight:500,color:'#e1e7e6'}}>阿帕网地图 UCLA、BBN｜CC BY-SA 4.0｜裁切、调色｜本片 CC BY-SA 4.0</div>
+    </div>
+  </div>;
+}
+
+function ChatGPTDemo({asset,progress,t}:{asset:ReturnType<typeof useMediaAsset>;progress:number;t:number}) {
+  const answer='全球研究积累，推动语言生成走向大众。';
+  const visible=Math.min(answer.length,Math.max(0,Math.floor((progress-.28)/.52*answer.length)));
+  return <div style={{position:'absolute',right:106,top:160,width:800,height:760,borderRadius:34,background:'linear-gradient(145deg,#192923,#101815 72%)',border:'1px solid #ffffff24',boxShadow:'0 30px 100px #0009',overflow:'hidden',transform:`translateY(${Math.sin(t*1.2)*4}px)`}}>
+    <div style={{height:96,display:'flex',alignItems:'center',padding:'0 32px',borderBottom:'1px solid #ffffff20',gap:20}}>
+      <img src={asset.src} style={{width:54,height:54,objectFit:'contain'}}/>
+      <div><div style={{fontSize:31,fontWeight:600}}>ChatGPT <span style={{fontSize:25,color:'#c7d2cc'}}> / OpenAI</span></div><div style={{fontSize:19,color:'#b8c7be',marginTop:2}}>示意界面</div></div>
+      <div style={{marginLeft:'auto',fontSize:18,color:'#cbd7d0',border:'1px solid #ffffff35',borderRadius:18,padding:'7px 13px'}}>界面重绘 · 非真实对话</div>
+    </div>
+    <div style={{padding:'54px 42px',fontSize:31,lineHeight:1.55,color:'#f4f3eb'}}>
+      <div style={{marginLeft:130,marginBottom:44,padding:'18px 24px',borderRadius:24,background:'#ffffff14'}}>科学知识如何走向大众？</div>
+      <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
+        <img src={asset.src} style={{width:42,height:42,objectFit:'contain',flex:'0 0 auto'}}/>
+        <div>{answer.slice(0,visible)}<span style={{opacity:visible<answer.length&&Math.sin(t*8)>0?.9:.0,color:'#b9e4c3'}}>▍</span></div>
+      </div>
+      <div style={{marginTop:42,display:'flex',alignItems:'center',gap:12,color:'#b8d8c0',fontSize:22}}><span style={{width:9,height:9,borderRadius:'50%',background:'#b8d8c0',boxShadow:'0 0 14px #b8d8c0'}}/>语言模型研究持续积累</div>
     </div>
   </div>;
 }
@@ -56,11 +76,23 @@ export default function Film(config:CodeSceneProps) {
   const p=clamp(t/(config.durationInFrames/config.fps));
   const isOpen=c.id==='opening', isClose=c.id==='closing';
   const asset=archives[c.asset as keyof typeof archives];
+  const chatgptIcon=archives.chatgptIcon;
   useEffect(()=>{if(!asset||isClose)clock.ready();},[asset,isClose]);
   if(isClose)return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'#080e13',color:'#f5f1e8'}}><Credits/></div>;
   const mode:Record<string,string>={telegraph:'wire',telephone:'apparatus',flight:'sky',trinity:'flash',eniac:'machine',transistor:'silicon',moon:'moon',arpanet:'map',genome:'sequence',llm:'language'};
   const special=c.id==='telephone'||c.id==='arpanet';
   const position:Record<string,'lower'|'upper'|'upperNarrow'|'right'|'vertical'>={telegraph:'upper',telephone:'right',flight:'lower',trinity:'right',eniac:'lower',transistor:'vertical',moon:'lower',arpanet:'upperNarrow',genome:'lower',llm:'upper'};
+  if(c.id==='llm')return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'radial-gradient(ellipse at 83% 46%,#244537 0%,#0a1210 48%,#070c10 100%)',color:'#f5f1e8'}}>
+    <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,#070c10 0%,#070c10db 34%,transparent 72%)'}}/>
+    <div style={{position:'absolute',left:126,top:215,width:730,textShadow:'0 3px 22px #000'}}>
+      <div style={{fontSize:30,letterSpacing:5,color:c.accent,marginBottom:20}}>2020—2022</div>
+      <h1 style={{fontSize:78,lineHeight:1.1,fontWeight:500,margin:'0 0 25px'}}>大语言模型</h1>
+      <p style={{fontSize:43,lineHeight:1.45,margin:0,color:'#f0eee7'}}>全球研究积累<br/>推动语言生成走向大众。</p>
+      <div style={{marginTop:38,fontSize:25,color:'#bdd4c8'}}>从基础研究到日常对话</div>
+    </div>
+    <ChatGPTDemo asset={chatgptIcon} progress={p} t={t}/>
+    <div style={{position:'absolute',left:126,bottom:68,fontSize:19,color:'#aebdb4'}}>全球研究与产业协作 · ChatGPT 为具体产品实例</div>
+  </div>;
   return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'#080d11',color:'#f5f1e8'}}>
     {asset&&<div style={{position:'absolute',inset:0,overflow:'hidden'}}>
       <Archive asset={asset} progress={p} ready={clock.ready} startOffsetSeconds={isOpen?4:0} style={special?{opacity:.27,filter:'blur(12px) saturate(.5)',transform:'scale(1.12)'}:undefined}/>

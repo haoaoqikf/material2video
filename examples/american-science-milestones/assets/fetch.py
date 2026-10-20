@@ -24,7 +24,7 @@ def main() -> None:
         work = Path(temporary)
         for item in recipe["assets"]:
             identity = item["id"]
-            suffix = ".mp4" if item["kind"] == "video" else Path(item["downloadUrl"]).suffix
+            suffix = ".mp4" if item["kind"] == "video" else (".png" if item["id"] == "chatgpt-icon" else Path(item["downloadUrl"]).suffix)
             source = work / f"{identity}-original{suffix}"
             logger.info("获取 %s：%s", identity, item["downloadUrl"])
             request = urllib.request.Request(item["downloadUrl"], headers={"User-Agent": "Material2Video/1.0 (educational video)"})

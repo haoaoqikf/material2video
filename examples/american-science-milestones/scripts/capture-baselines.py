@@ -34,7 +34,9 @@ def main() -> None:
         "moon": by_id["moon"]["startFrame"] + 90,
         "transistor": by_id["transistor"]["startFrame"] + 60,
         "arpanet": by_id["arpanet"]["startFrame"] + 75,
-        "closing": by_id["closing"]["startFrame"] + 90,
+        "llm": by_id["llm"]["startFrame"] + 135,
+        "llm-end": by_id["llm"]["startFrame"] + 269,
+        "closing": by_id["closing"]["startFrame"] + 119,
     }
     OUTPUT.mkdir(parents=True, exist_ok=True)
     video = root.parents[1] / "videos" / "examples" / root.name / "outputs" / "video.mp4"

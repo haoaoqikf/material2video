@@ -126,6 +126,20 @@
       "author": "National Human Genome Research Institute",
       "license": "Public domain; https://www.genome.gov/image-gallery",
       "role": "other"
+    },
+    {
+      "id": "chatgpt-icon",
+      "path": "assets/media/a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b.png",
+      "kind": "image",
+      "width": 1024,
+      "height": 1024,
+      "durationSeconds": null,
+      "sha256": "a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b",
+      "sourceUrl": "https://help.openai.com/en/articles/7905742-what-does-the-official-chatgpt-ios-app-icon-look-like",
+      "mediaUrl": "未知",
+      "author": "OpenAI",
+      "license": "OpenAI trademark and brand asset; use subject to https://openai.com/brand/; not an open license",
+      "role": "other"
     }
   ]
 }
