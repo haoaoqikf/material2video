@@ -63,26 +63,25 @@ def test_shipped_example_uses_the_declared_frame(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
-def test_core_demonstrations_explain_the_article_with_narration(path: Path) -> None:
-    """每一幕都由真实旁白驱动，不能退化成固定时长的无声技术幕。"""
+def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path) -> None:
+    """示例应按各自契约使用旁白，或明确采用无声技术短片。"""
     data = json.loads(path.read_text(encoding="utf-8"))
     if path.parent.name == "american-science-milestones":
         assert data["input"]["kind"] == "topic"
         assert not data.get("soundtrack")
-        assert sum(scene["durationFrames"] for scene in data["scenes"]) == 60 * 60
+        assert sum(scene["durationFrames"] for scene in data["scenes"]) == 30 * 60
         assert len(data["scenes"]) == 12
         assert [scene["durationFrames"] for scene in data["scenes"]] == [
-            180, 240, 240, 480, 240, 240, 240, 480, 240, 240, 480, 300
+            120, 120, 120, 180, 120, 150, 150, 180, 150, 120, 210, 180
         ]
         for scene in data["scenes"]:
             assert not scene["narrationSegments"]
-            assert scene["durationFrames"] >= 180
-            for shot in scene["content"]["props"]["shots"]:
-                assert shot["startFrame"] == 0
-                assert shot["endFrame"] == scene["durationFrames"]
-        heroes = [shot for scene in data["scenes"] for shot in scene["content"]["props"]["shots"] if shot["tier"] == "hero"]
-        assert {shot["target"] for shot in heroes} == {"flight", "moon", "llm"}
-        assert all(480 <= shot["endFrame"] - shot["startFrame"] <= 720 for shot in heroes)
+            assert scene["durationFrames"] >= 120
+            chapter = scene["content"]["props"]["chapter"]
+            assert chapter["id"] == scene["id"]
+            if scene["id"] != "closing":
+                assert chapter["title"]
+            assert chapter["caption"]
         return
     article = (path.parent / "article.md").read_text(encoding="utf-8")
     sources = _sources(path.parent.name)
@@ -165,7 +164,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
     seconds = data["durationInFrames"] / data["fps"]
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[name]
     if name == "american-science-milestones":
-        assert seconds == 60
+        assert seconds == 30
         assert not data["subtitles"]
         return
     minimum, maximum = (120, 600) if name == "solar-system-journey" else (120, 180)

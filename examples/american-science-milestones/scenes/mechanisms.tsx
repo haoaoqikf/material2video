@@ -34,7 +34,7 @@ export function Mechanism({kind,t,progress,accent}:{kind:string;t:number;progres
   </div>;
   if(kind==='map')return <svg width="1050" height="720" viewBox="0 0 1050 720" style={{position:'absolute',left:720,top:160,overflow:'visible'}}>
     <path d="M90 460 L320 180 L620 400 L895 160 M320 180 L895 160 M90 460 L620 400" fill="none" stroke={accent} strokeWidth="3" opacity=".72"/>
-    {[[90,460,'UCLA'],[320,180,'SRI'],[620,400,'UCSB'],[895,160,'UTAH']].map(([x,y,label],i)=><g key={i as number}><circle cx={x as number} cy={y as number} r={9+Math.sin(t*2+i)*2} fill="#fff1d9"/><text x={(x as number)+14} y={(y as number)-16} fill="#fff" fontSize="22" letterSpacing="2">{label}</text></g>)}
+    {[[90,460],[320,180],[620,400],[895,160]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r={11+Math.sin(t*2+i)*2} fill="#fff1d9"/>)}
   </svg>;
   if(kind==='sequence')return <svg width="820" height="390" viewBox="0 0 820 390" style={{position:'absolute',right:70,top:220,opacity:.84}}>
     {Array.from({length:25},(_,i)=>{const y=22+i*14,a=t*.75+i*.3,x1=270+Math.sin(a)*95,x2=270-Math.sin(a)*95;return <g key={i}><path d={`M${x1} ${y} Q500 ${y} ${x2} ${y}`} fill="none" stroke={i%2?accent:'#e2d3ad'} strokeWidth="2" opacity=".65"/><circle cx={x1} cy={y} r="4" fill={accent}/><circle cx={x2} cy={y} r="4" fill="#e2d3ad"/></g>;})}

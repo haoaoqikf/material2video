@@ -9,7 +9,7 @@
     "kind": "topic",
     "topic": "十项美国主导或参与的重要科技里程碑，尊重全球累积、国际合作与贡献边界"
   },
-  "targetSeconds": 60,
+  "targetSeconds": 30,
   "scenes": [
     {
       "id": "opening",
@@ -17,7 +17,7 @@
       "keywords": [
         "从电报到大模型"
       ],
-      "durationFrames": 180,
+      "durationFrames": 120,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -26,21 +26,11 @@
           "chapter": {
             "id": "opening",
             "year": "",
-            "title": "",
-            "caption": "",
+            "title": "十项美国科学高光时刻",
+            "caption": "从登月到人工智能，快速看见十个节点",
             "accent": "#d8b589",
-            "asset": "flight"
-          },
-          "shots": [
-            {
-              "id": "opening-shot",
-              "target": "flight",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 180,
-              "cut": true
-            }
-          ]
+            "asset": "moon"
+          }
         }
       }
     },
@@ -50,7 +40,7 @@
       "keywords": [
         "摩尔斯电报"
       ],
-      "durationFrames": 240,
+      "durationFrames": 120,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -60,20 +50,10 @@
             "id": "telegraph",
             "year": "1844",
             "title": "摩尔斯电报",
-            "caption": "电信号让文字跨越华盛顿与巴尔的摩。",
+            "caption": "电信号让文字跨越城市。",
             "asset": "telegraph",
             "accent": "#d3b38a"
-          },
-          "shots": [
-            {
-              "id": "telegraph-shot",
-              "target": "telegraph",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -83,7 +63,7 @@
       "keywords": [
         "贝尔电话"
       ],
-      "durationFrames": 240,
+      "durationFrames": 120,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -93,20 +73,10 @@
             "id": "telephone",
             "year": "1876",
             "title": "贝尔电话",
-            "caption": "清晰语音沿电线抵达远方。",
+            "caption": "语音开始沿电线远行。",
             "asset": "telephone",
             "accent": "#d9c29e"
-          },
-          "shots": [
-            {
-              "id": "telephone-shot",
-              "target": "telephone",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -117,7 +87,7 @@
         "莱特兄弟",
         "动力飞行"
       ],
-      "durationFrames": 480,
+      "durationFrames": 180,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -127,30 +97,10 @@
             "id": "flight",
             "year": "1903",
             "title": "动力飞行",
-            "caption": "可控、持续的动力飞行，开启航空时代。",
+            "caption": "可控动力飞行开启航空时代。",
             "asset": "flight",
             "accent": "#e0c69e"
-          },
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.025,
-            "vignette": 0.16,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
-          },
-          "shots": [
-            {
-              "id": "flight-shot",
-              "target": "flight",
-              "tier": "hero",
-              "startFrame": 0,
-              "endFrame": 480,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -160,7 +110,7 @@
       "keywords": [
         "Trinity核试验"
       ],
-      "durationFrames": 240,
+      "durationFrames": 120,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -169,21 +119,11 @@
           "chapter": {
             "id": "trinity",
             "year": "1945",
-            "title": "Trinity核试验",
-            "caption": "人类进入核时代，也面对深重的人道代价。",
+            "title": "三位一体核试验",
+            "caption": "核时代开启，也留下深重代价。",
             "asset": "trinity",
             "accent": "#edc2a2"
-          },
-          "shots": [
-            {
-              "id": "trinity-shot",
-              "target": "trinity",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -193,7 +133,7 @@
       "keywords": [
         "ENIAC计算机"
       ],
-      "durationFrames": 240,
+      "durationFrames": 150,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -202,21 +142,12 @@
           "chapter": {
             "id": "eniac",
             "year": "1946",
-            "title": "ENIAC",
-            "caption": "通用电子数字计算迈出关键一步。",
+            "title": "埃尼阿克计算机",
+            "caption": "早期通用电子计算的重要实践。",
             "asset": "eniac",
-            "accent": "#ced9d4"
-          },
-          "shots": [
-            {
-              "id": "eniac-shot",
-              "target": "eniac",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+            "accent": "#ced9d4",
+            "alias": "ENIAC"
+          }
         }
       }
     },
@@ -226,7 +157,7 @@
       "keywords": [
         "晶体管"
       ],
-      "durationFrames": 240,
+      "durationFrames": 150,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -235,21 +166,11 @@
           "chapter": {
             "id": "transistor",
             "year": "1947",
-            "title": "点接触晶体管",
-            "caption": "固态电子推动计算设备小型化。",
+            "title": "晶体管",
+            "caption": "固态器件推动设备小型化。",
             "asset": "transistor",
             "accent": "#b9d2ca"
-          },
-          "shots": [
-            {
-              "id": "transistor-shot",
-              "target": "transistor",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -260,7 +181,7 @@
         "阿波罗11号",
         "登月"
       ],
-      "durationFrames": 480,
+      "durationFrames": 180,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -269,31 +190,11 @@
           "chapter": {
             "id": "moon",
             "year": "1969",
-            "title": "阿波罗11号",
-            "caption": "人类首次登月，把足迹留在另一个世界。",
+            "title": "阿波罗11号登月",
+            "caption": "人类首次登月。",
             "asset": "moon",
             "accent": "#c8d9dc"
-          },
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.02,
-            "vignette": 0.12,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
-          },
-          "shots": [
-            {
-              "id": "moon-shot",
-              "target": "moon",
-              "tier": "hero",
-              "startFrame": 0,
-              "endFrame": 480,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -304,7 +205,7 @@
         "ARPANET",
         "四节点网络"
       ],
-      "durationFrames": 240,
+      "durationFrames": 150,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -313,21 +214,12 @@
           "chapter": {
             "id": "arpanet",
             "year": "1969",
-            "title": "ARPANET",
-            "caption": "四节点网络成为现代互联网的重要先驱。",
+            "title": "阿帕网",
+            "caption": "互联网的重要早期先驱。",
             "asset": "arpanet",
-            "accent": "#88bac9"
-          },
-          "shots": [
-            {
-              "id": "arpanet-shot",
-              "target": "arpanet",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+            "accent": "#88bac9",
+            "alias": "ARPANET"
+          }
         }
       }
     },
@@ -337,7 +229,7 @@
       "keywords": [
         "人类基因组计划"
       ],
-      "durationFrames": 240,
+      "durationFrames": 120,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -347,20 +239,10 @@
             "id": "genome",
             "year": "2003",
             "title": "人类基因组计划",
-            "caption": "国际合作完成参考序列，美国机构参与主导。",
+            "caption": "国际合作，美国机构参与主导。",
             "asset": "genome",
             "accent": "#a4c6ba"
-          },
-          "shots": [
-            {
-              "id": "genome-shot",
-              "target": "genome",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 240,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -371,7 +253,7 @@
         "大语言模型",
         "GPT-3"
       ],
-      "durationFrames": 480,
+      "durationFrames": 210,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -381,29 +263,9 @@
             "id": "llm",
             "year": "2020—2022",
             "title": "大语言模型",
-            "caption": "全球研究积累，让语言生成走向大众。",
+            "caption": "全球积累推动语言生成走向大众。",
             "accent": "#8bbdce"
-          },
-          "look": {
-            "profile": "archive-cinema",
-            "lut": "warm-film",
-            "grain": 0.015,
-            "vignette": 0.1,
-            "motion": {
-              "subframes": 1,
-              "supersample": 1
-            }
-          },
-          "shots": [
-            {
-              "id": "llm-shot",
-              "target": "llm",
-              "tier": "hero",
-              "startFrame": 0,
-              "endFrame": 480,
-              "cut": true
-            }
-          ]
+          }
         }
       }
     },
@@ -413,7 +275,7 @@
       "keywords": [
         "知识接力"
       ],
-      "durationFrames": 300,
+      "durationFrames": 180,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -423,20 +285,10 @@
             "id": "closing",
             "year": "",
             "title": "",
-            "caption": "",
+            "caption": "晶体管：《1st Transistor》Unitronic（CC BY-SA 3.0）；阿帕网地图：UCLA、BBN（CC BY-SA 4.0）",
             "accent": "#d3b38a"
           },
-          "chapters": [],
-          "shots": [
-            {
-              "id": "closing-shot",
-              "target": "closing",
-              "tier": "major",
-              "startFrame": 0,
-              "endFrame": 300,
-              "cut": true
-            }
-          ]
+          "chapters": []
         }
       }
     }

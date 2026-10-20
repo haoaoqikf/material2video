@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "american-science-milestones",
   "type": "general",
-  "productionProfile": "cinematic",
+  "productionProfile": "standard",
   "materials": {
     "storyboard": "storyboard.json"
   },

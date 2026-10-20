@@ -1,4 +1,4 @@
-"""从当前正式成片采集开场、登月、晶体管和片尾基准及手机尺寸对照。"""
+"""从当前正式成片采集开场、关键节点和片尾基准及手机尺寸对照。"""
 from __future__ import annotations
 
 import hashlib
@@ -29,10 +29,12 @@ def main() -> None:
     scenes = prepared["props"]["compiledScenes"]
     by_id = {scene["id"]: scene for scene in scenes}
     frames = {
-        "opening": by_id["opening"]["startFrame"] + 60,
-        "moon": by_id["moon"]["startFrame"] + 180,
+        "opening": by_id["opening"]["startFrame"],
+        "opening-end": by_id["opening"]["startFrame"] + 119,
+        "moon": by_id["moon"]["startFrame"] + 90,
         "transistor": by_id["transistor"]["startFrame"] + 60,
-        "closing": by_id["closing"]["startFrame"] + 120,
+        "arpanet": by_id["arpanet"]["startFrame"] + 75,
+        "closing": by_id["closing"]["startFrame"] + 90,
     }
     OUTPUT.mkdir(parents=True, exist_ok=True)
     video = root.parents[1] / "videos" / "examples" / root.name / "outputs" / "video.mp4"
