@@ -1,4 +1,4 @@
-"""cinematic 技术 QA：把「能不能导出」之外的画面与声音缺陷变成可复核的报告。
+"""通用技术 QA：把「能不能导出」之外的画面与声音缺陷变成可复核的报告。
 
 检查分两类：
 
@@ -37,8 +37,7 @@ NEAR_STILL_DELTA = 2e-05
 DEFAULT_STEP = 30
 #: 响度容差（LU）：母版混音与编码前后的正常波动，超出才判失败。
 LOUDNESS_TOLERANCE = 2.0
-TARGETS = {"cinematic": {"loudness": -14.0, "truePeak": -1.0},
-           "standard": {"loudness": -16.0, "truePeak": -1.0}}
+TARGET = {"loudness": -14.0, "truePeak": -1.0}
 
 
 def _run(args: list[str], *, binary: bool = False, timeout: int = 900):
@@ -164,8 +163,8 @@ def subtitle_contrast(subtitle: dict) -> dict:
             "ratio": round(ratio, 2), "minimum": 4.5, "status": "pass" if ratio >= 4.5 else "fail"}
 
 
-def loudness(audio: Path, profile: str) -> dict:
-    """母版响度与真峰值；目标随档位取值，超限即失败。"""
+def loudness(audio: Path) -> dict:
+    """母版响度与真峰值；统一目标 −14 LUFS / −1 dBTP，超限即失败。"""
     # ebur128 的汇总行走 info 级日志：`-v error` 会把要解析的内容一起吞掉。
     result = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-nostats", "-i", str(audio),
                              "-af", "ebur128=peak=true", "-f", "null", "-"],
@@ -180,7 +179,7 @@ def loudness(audio: Path, profile: str) -> dict:
             true_peak = float(stripped.split()[1])
     if integrated is None or true_peak is None:
         raise M2VError(f"无法从 ffmpeg 读取响度或真峰值：{text[-800:]}")
-    target = TARGETS.get(profile, TARGETS["standard"])
+    target = TARGET
     return {"integratedLufs": round(integrated, 2), "truePeakDbfs": round(true_peak, 2),
             "targetLufs": target["loudness"], "targetTruePeak": target["truePeak"],
             "toleranceLu": LOUDNESS_TOLERANCE,
@@ -245,8 +244,7 @@ def delivered_video(root: Path) -> Path:
     return output_root / "outputs/video.mp4"
 
 
-def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str = "cinematic",
-        step: int = DEFAULT_STEP) -> dict:
+def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DEFAULT_STEP) -> dict:
     """执行全部检查并写入 `outputs/qa.json`；返回报告。"""
     root = root.resolve()
     fps = prepared["fps"]
@@ -294,7 +292,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
         audio_level = {"status": "pass" if peak == 0 else "fail", "peakAbsolute": peak,
                        "detail": "无旁白且无声轨设计：全片必须数字静音"}
     else:
-        audio_level = loudness(target, profile) if has_audio else dict(no_audio)
+        audio_level = loudness(target) if has_audio else dict(no_audio)
     checks = {
         "frozenFrames": frozen,
         "picture": picture_metrics(frames),
@@ -320,7 +318,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
     observation_record = target.parent / "visual-notes.md"
     observation_path = (observation_record.relative_to(root).as_posix()
                         if observation_record.is_relative_to(root) else str(observation_record))
-    report = {"schemaVersion": 1, "profile": profile,
+    report = {"schemaVersion": 1,
               "preparedFingerprint": prepared["preparedFingerprint"],
               "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
               "durationInFrames": prepared["durationInFrames"], "fps": fps,
@@ -348,24 +346,22 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, profile: str =
 
 
 def main(argv: list[str] | None = None) -> int:
-    """`m2v qa --project <目录> [--profile ...]`。"""
+    """`m2v qa --project <目录>`。"""
     import argparse
-    parser = argparse.ArgumentParser(prog="m2v qa", description="cinematic 技术 QA")
+    parser = argparse.ArgumentParser(prog="m2v qa", description="通用技术 QA")
     parser.add_argument("--project", required=True)
-    parser.add_argument("--profile", choices=("standard", "cinematic"))
+
     parser.add_argument("--video", help="待检查的成片；省略时取作品 outputs/video.mp4")
     parser.add_argument("--step", type=int, default=DEFAULT_STEP)
     args = parser.parse_args(argv)
     from m2v.core.project import load_project
-    from m2v.types.general import cinematic
     from m2v.types.general.explainer_render import current
     root, manifest = load_project(args.project)
     if manifest["type"] != "general":
         raise M2VError("m2v qa 仅适用于 general 作品")
     prepared = current(root, manifest)
-    profile, _source = cinematic.resolve_profile(manifest, args.profile)
     report = run(root, prepared, video=Path(args.video) if args.video else None,
-                 profile=profile, step=args.step)
+                 step=args.step)
     print(json.dumps({"status": report["status"], "scope": report["scope"],
                      "observation": report["observation"], "checks": {name: item.get("status", "measured")
                                                              for name, item in report["checks"].items()}},

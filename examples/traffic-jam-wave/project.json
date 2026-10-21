@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "id": "traffic-jam-wave",
   "type": "general",
-  "productionProfile": "standard",
   "materials": {
     "storyboard": "storyboard.json"
   },
@@ -13,11 +12,11 @@
     "audio": "optional"
   },
   "tts": {
-    "voice": "zh-CN-XiaoxiaoNeural",
+    "voice": "zh-CN-YunxiNeural",
     "selection": {
       "mode": "assistant",
-      "rationale": "完整旁白以晚高峰提问开场，逐步揭示车辆向前、拥堵向后的机制；服务返回晓晓的 News、Novel 与 Warm 标签，贴近日常科普的冷静叙述。依据旁白文本与服务元数据选择，未试听。",
-      "narrationSha256": "7b872b4c1dcb8eb70c85abf802430a95f01a30d0535ad8678f812ccb2ab2c68e"
+      "rationale": "旁白先展示方向反常，再追查原因并回到生活经历；服务返回云希Novel、Lively、Sunshine，适合有好奇感的中文科普叙述。依据完整旁白和服务元数据，未试听。",
+      "narrationSha256": "4551e57b366837829efa78255b2ebc4acccfe90319c67acad9c700fe0150f000"
     }
   }
 }

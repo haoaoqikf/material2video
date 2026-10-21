@@ -43,6 +43,8 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise M2VError(f"无法读取作品描述 {path}: {exc}") from exc
+    if isinstance(data, dict) and "productionProfile" in data:
+        raise M2VError("productionProfile 制作档位已移除；请删除并重新 prepare")
     if not isinstance(data, dict) or data.get("schemaVersion") != PROJECT_VERSION:
         raise M2VError("project.json schemaVersion 必须为 1")
     if not isinstance(data.get("type"), str) or not data["type"].strip():

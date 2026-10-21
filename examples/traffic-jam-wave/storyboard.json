@@ -4,150 +4,169 @@
   "fps": 60,
   "width": 1080,
   "height": 1920,
-  "title": "一座城市，为什么会堵车？",
+  "title": "车向前，堵车为什么向后？",
   "input": {
     "kind": "topic",
-    "topic": "无事故环路上的拥堵波：车辆向前、低速区域向后传播，以及同一扰动在两种车流密度下的示意对照"
-  },
-  "targetSeconds": 75,
-  "soundtrack": {
-    "effects": [
-      {
-        "builtin": "click",
-        "sceneId": "brake-zoom",
-        "segmentId": "brake-zoom-0",
-        "offsetMs": 1900,
-        "gainDb": -28
-      },
-      {
-        "builtin": "transition",
-        "sceneId": "wave-back",
-        "segmentId": "wave-back-1",
-        "offsetMs": 0,
-        "gainDb": -26
-      }
-    ]
+    "topic": "无瓶颈环路上的拥堵波：车辆向前、低速区域向后；同一扰动在不同密度下的预设示意"
   },
   "scenes": [
     {
-      "id": "jam-open",
+      "id": "opposite",
       "template": "code",
-      "keywords": ["交通拥堵", "走走停停", "晚高峰"],
+      "keywords": [
+        "拥堵波",
+        "车流",
+        "向后传播"
+      ],
       "content": {
-        "title": "没有事故，也会走走停停",
-        "entry": "scenes/open.tsx",
+        "title": "方向相反",
+        "entry": "scenes/film.tsx",
         "props": {
-          "simStart": 12.5
+          "mode": "hook"
         }
       },
+      "readingHoldFrames": 30,
+      "tailFrames": 12,
       "narrationSegments": [
         {
-          "id": "jam-open-0",
-          "text": "晚高峰，前方没有事故，也没有封路，车流却开始走走停停。"
-        }
-      ]
-    },
-    {
-      "id": "loop-overview",
-      "template": "code",
-      "keywords": ["环形道路", "无红绿灯", "车流"],
-      "content": {
-        "title": "把镜头拉远：一条闭合的环路",
-        "entry": "scenes/loop.tsx",
-        "props": {
-          "simStart": 0.5
-        }
-      },
-      "narrationSegments": [
-        {
-          "id": "loop-overview-0",
-          "text": "把镜头拉远，这是一条没有红绿灯、没有出口的环形道路。此刻，每一辆车都还在沿同一个方向向前开。"
-        }
-      ]
-    },
-    {
-      "id": "brake-zoom",
-      "template": "code",
-      "keywords": ["刹车", "局部车距", "回放"],
-      "content": {
-        "title": "回放到起点：只看一次刹车",
-        "entry": "scenes/brake.tsx",
-        "props": {
-          "simStart": 5
-        }
-      },
-      "narrationSegments": [
-        {
-          "id": "brake-zoom-0",
-          "text": "我们回放到起点。一号车轻点了一次刹车，只是把速度降下来，又很快恢复。"
-        }
-      ]
-    },
-    {
-      "id": "wave-back",
-      "template": "code",
-      "keywords": ["拥堵传播", "低速区域", "车辆前进"],
-      "content": {
-        "title": "车辆向前，拥堵向后",
-        "entry": "scenes/wave.tsx",
-        "props": {
-          "simStart": 9
-        }
-      },
-      "narrationSegments": [
-        {
-          "id": "wave-back-0",
-          "text": "但后面的车不能同时反应，只好依次减速，制动灯一盏接一盏亮起。"
+          "id": "h1",
+          "text": "看，这些车都在往前开。可这团拥堵，却在往后走。",
+          "holdFrames": 24
         },
         {
-          "id": "wave-back-1",
-          "text": "注意看：每辆车都在向前，低速区域却沿着车队向后退。方向正好相反。"
+          "id": "h2",
+          "text": "没有事故，也没有封路。到底是什么在倒退？"
         }
       ]
     },
     {
-      "id": "density-compare",
+      "id": "origin",
       "template": "code",
-      "keywords": ["车流密度", "扰动放大", "速度曲线"],
+      "keywords": [
+        "拥堵波",
+        "车流",
+        "向后传播"
+      ],
       "content": {
-        "title": "同样的刹车，只改变车流密度",
-        "entry": "scenes/density.tsx",
+        "title": "从一次减速开始",
+        "entry": "scenes/film.tsx",
         "props": {
-          "simStart": 7
+          "mode": "origin"
         }
       },
+      "readingHoldFrames": 30,
+      "tailFrames": 12,
       "narrationSegments": [
         {
-          "id": "density-compare-0",
-          "text": "同样的道路和刹车，只把车距变密：扰动经过一轮轮响应，反而被放大。"
-        },
-        {
-          "id": "density-compare-1",
-          "text": "车流稀疏时，同样的扰动在向后传递中逐渐减弱，最后慢慢消散。"
+          "id": "o1",
+          "text": "把时间倒回去。前车减速，后面的司机无法同时反应，只能一辆接一辆地减速。"
         }
       ]
     },
     {
-      "id": "jam-close",
+      "id": "relay",
       "template": "code",
-      "keywords": ["拥堵波", "特定条件", "向后传播"],
+      "keywords": [
+        "拥堵波",
+        "车流",
+        "向后传播"
+      ],
       "content": {
-        "title": "没有事故，也会堵车",
-        "entry": "scenes/close.tsx",
+        "title": "换的是区域里的车",
+        "entry": "scenes/film.tsx",
         "props": {
-          "simStart": 14
+          "mode": "relay"
         }
       },
+      "readingHoldFrames": 30,
+      "tailFrames": 12,
       "narrationSegments": [
         {
-          "id": "jam-close-0",
-          "text": "所以，拥堵可以在没有事故时形成。它更像一种向后传播的波，而不是某个点的故障。"
+          "id": "r1",
+          "text": "最先刹车的车已经开走，后面的车却刚刚慢下来。",
+          "holdFrames": 24
         },
         {
-          "id": "jam-close-1",
-          "text": "理解这一点，才有可能讨论怎样让波不再被放大。"
+          "id": "r2",
+          "text": "所以，往后走的不是汽车，而是不断换了一批车的低速区域。"
+        }
+      ]
+    },
+    {
+      "id": "density",
+      "template": "code",
+      "keywords": [
+        "拥堵波",
+        "车流",
+        "向后传播"
+      ],
+      "content": {
+        "title": "同样的减速，两种结果",
+        "entry": "scenes/film.tsx",
+        "props": {
+          "mode": "compare"
+        }
+      },
+      "readingHoldFrames": 30,
+      "tailFrames": 12,
+      "narrationSegments": [
+        {
+          "id": "d1",
+          "text": "同样的减速，在这组密集车流里，后车的速度变化更大。",
+          "holdFrames": 24
+        },
+        {
+          "id": "d2",
+          "text": "把车距拉开，同样的扰动却逐渐减弱。这里展示的是机制示意，不是实测。"
+        }
+      ]
+    },
+    {
+      "id": "return",
+      "template": "code",
+      "keywords": [
+        "拥堵波",
+        "车流",
+        "向后传播"
+      ],
+      "content": {
+        "title": "你可能穿过了一道波",
+        "entry": "scenes/film.tsx",
+        "props": {
+          "mode": "ending"
+        }
+      },
+      "readingHoldFrames": 30,
+      "tailFrames": 60,
+      "narrationSegments": [
+        {
+          "id": "e1",
+          "text": "这就解释了一种熟悉的经历：堵了半天，开到前面却什么也没看见。",
+          "holdFrames": 24
+        },
+        {
+          "id": "e2",
+          "text": "你可能刚刚穿过了一道拥堵波。车继续向前，波留在身后。"
         }
       ]
     }
-  ]
+  ],
+  "soundtrack": {
+    "effects": [
+      {
+        "builtin": "transition",
+        "sceneId": "opposite",
+        "segmentId": "h1",
+        "offsetMs": 3000,
+        "gainDb": -22
+      },
+      {
+        "builtin": "click",
+        "sceneId": "origin",
+        "segmentId": "o1",
+        "offsetMs": 1600,
+        "gainDb": -24
+      }
+    ]
+  }
 }

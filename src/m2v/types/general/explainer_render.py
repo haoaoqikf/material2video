@@ -70,6 +70,8 @@ def current(root: Path, project: dict) -> dict:
     if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 8
             or not 1 <= prepared["durationInFrames"] <= 600 * FPS):
         raise M2VError("旧文章准备记录不能用于 v8；请重新设计并 prepare")
+    if prepared["inputs"].get("productionContract") != "unified-v1":
+        raise M2VError("旧制作契约准备记录已失效；请重新 prepare")
     actual = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     if prepared["inputs"].get("renderer") != actual:
         raise M2VError("讲解渲染代码、字体或资源已变化；请重新 prepare 并评审")
@@ -122,8 +124,8 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
     return result
 
 
-def cinematic_provenance(prepared: dict) -> dict:
-    """逐幕汇总 cinematic 溯源；镜头帧号换算成全片帧号，避免只记录第一幕。
+def visual_provenance(prepared: dict) -> dict:
+    """逐幕汇总视觉溯源；镜头帧号换算成全片帧号，避免只记录第一幕。
 
     单幕作品保留原来的 `look` 对象形状；多幕作品给出 `幕ID → look` 映射，因为各幕
     可以使用不同的 look 与后期参数。
@@ -151,7 +153,6 @@ def cinematic_provenance(prepared: dict) -> dict:
 
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None, defer_validation=False) -> Path:
     prepared = current(root, project)
-    profile = prepared["props"].get("productionProfile", "standard")
     width, height = _size(prepared)
     # 预演和正式输出共用字幕量测；失败不能覆盖之前的有效成片。
     started = time.monotonic()
@@ -196,22 +197,18 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "ArticleExplainer",
-            "productionProfile": profile,
-            "productionProfileSource": prepared["props"].get("productionProfileSource", "default"),
             "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
-        if profile == "cinematic":
-            # 电影级溯源：look / shots / 后期 / 音频 / 交付摘要。参数与准备指纹同源。
-            provenance.update(cinematic_provenance(prepared))
-            provenance.update({
-                "audio": {"master": prepared["audio"]["segments"][0]["path"],
-                          "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
-                          "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,
-                          "delivery": {"codec": "aac", "sampleRate": 44100, "channels": 2,
-                                       "bitrate": "128k"}},
-                "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
-                             "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
-                             "frames": frames_to_render, "fps": FPS, "width": width, "height": height},
-            })
+        provenance.update(visual_provenance(prepared))
+        provenance.update({
+            "audio": {"master": prepared["audio"]["segments"][0]["path"],
+                      "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
+                      "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,
+                      "delivery": {"codec": "aac", "sampleRate": 44100, "channels": 2,
+                                   "bitrate": "128k"}},
+            "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
+                         "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
+                         "frames": frames_to_render, "fps": FPS, "width": width, "height": height},
+        })
         if not preview:
             _write_json(work / "final.provenance.json", provenance)
         # 临时目录带收紧 ACL，交付必须走 security.deliver：搬运与权限修复不可分开。

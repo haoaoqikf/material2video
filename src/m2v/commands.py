@@ -41,21 +41,18 @@ def dispatch(args) -> int:
         print(f"已生成 {plan['durationSeconds']} 秒金融折线计划")
         return 0
     if args.command in {"lookdev", "qa", "assets"}:
-        # 三个 cinematic 入口各自解析自己的参数；这里只做统一分发。
+        # 三个检查入口各自解析自己的参数；这里只做统一分发。
         from m2v.engine import assets_audit, lookdev as lookdev_engine, qa as qa_engine
         if args.command == "lookdev":
             return lookdev_engine.main(["--project", args.project, "--stills", str(args.stills),
-                                        "--sample-seconds", str(args.sample_seconds)])
+                                        "--sample-seconds", str(args.sample_seconds),
+                                        "--still-scale", str(args.still_scale)])
         if args.command == "qa":
             options = ["--project", args.project, "--step", str(args.step)]
-            if args.profile:
-                options += ["--profile", args.profile]
             if args.video:
                 options += ["--video", args.video]
             return qa_engine.main(options)
         options = ["--project", args.project]
-        if args.profile:
-            options += ["--profile", args.profile]
         return assets_audit.main(options)
     if args.command == "init":
         return _init(args)
@@ -121,7 +118,7 @@ def _project_command(args) -> int:
     if args.command == "prepare":
         video_type.validate(root, manifest)
         video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
-                           rhythm=_rhythm_option(args), profile=args.profile)
+                           rhythm=_rhythm_option(args))
         print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
         _report_reading_pace(root)
         return 0

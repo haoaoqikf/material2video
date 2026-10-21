@@ -113,7 +113,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext()`，不新增录制配置。
 视频按作品 play/pause、入点、播放速率和循环设置同步到受控时间，原声不进入片段。
 
-cinematic 作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero 镜头内的每一帧按
+作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero 镜头内的每一帧按
 `(frame + k / subframes) / fps` 依次推进 `subframes`（1–4）个子帧，宿主把同一帧的 React 状态、
 三维绘制、动画库、CSS 动画与本地视频都停在这些真实时刻上，Python 侧再把子帧等权平均成一张
 输出帧（`mix`，等权归一化）。`supersample: 2` 时按 2 倍设备像素截图、编码时用 lanczos 降采样
@@ -126,7 +126,7 @@ cinematic 作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero �
 明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。
 
-### 电影级后期与镜头（cinematic 专用）
+### 电影级后期与镜头
 
 `PostFX` 只作用于 canvas，不影响共享字幕 DOM 层。全部后期参数由 `elapsedSeconds`/帧号驱动：
 颗粒使用「镜头 id 哈希 + 帧号」的自带确定性效果，`EffectComposer` 关闭 MSAA
@@ -134,8 +134,8 @@ cinematic 作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero �
 `CameraRig` 的位置、朝向、FOV、滚转与曝光同样只由帧号算出；`pathIntersectsSphere`、
 `cameraPathRisk` 与 `backgroundRisk` 在作品侧提供穿球与背景裁切的纯函数检查。
 
-standard 作品不引用这些元件时画面与既有一致：真实浏览器验证「把套件从 SDK 导出里摘掉后，
-标准画面逐像素相同」，且档位与 `claims` 只在非默认时进入片段缓存键。
+作品不引用这些元件时画面与既有一致：真实浏览器验证「把套件从 SDK 导出里摘掉后，
+标准画面逐像素相同」，且 look、shots 与 `claims` 只在非默认时进入片段缓存键。
 
 连续编号 PNG 直接按 60 fps 编码为实际画幅的无声视频，输入与解码帧数必须精确一致；
 不使用 fps 重采样或尾帧复制掩盖缺失状态。缓存绑定源码、参数、时间窗、画幅、字幕几何、

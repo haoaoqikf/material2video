@@ -95,7 +95,7 @@ def test_motion_enters_the_cache_config_only_when_declared():
     plain = code_scenes.scene_config(scene(), FRAME, {})
     assert "motion" not in plain, "未声明时缓存键必须与既有一致"
     declared = code_scenes.scene_config(scene(look={"profile": "deep-space", "motion": {"subframes": 3, "supersample": 2}}),
-                                        FRAME, {}, profile="cinematic")
+                                        FRAME, {})
     assert declared["motion"] == {"subframes": 3, "supersample": 2}
 
 

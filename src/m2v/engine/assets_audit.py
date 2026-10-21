@@ -1,16 +1,4 @@
-"""cinematic 资产审计：把「贴图够不够」变成可复核的数字，而不是凭感觉。
-
-审计按**实测尺寸与登记许可**判断，不看文件名也不看下载页的宣传：
-
-- hero 目标的颜色贴图必须 ≥ 4K（宽 ≥ 4096），否则阻断；`major`/`minor` 目标 ≥ 2K 只告警。
-- 环系径向纹理（`role: "ring"`）必须 ≥ 4K×512。
-- hero 目标的 normal/roughness/emissive 齐全度：缺失即阻断（cinematic 档的资产契约）。
-- hero 资产许可未知即阻断；其他资产许可未知只保留「未知」记录。
-- 色彩空间与 alpha 从素材实测像素格式推导，写进报告供作品设置材质。
-
-素材的角色来自来源记录的可选 `role` 字段（`color`/`normal`/`roughness`/`emissive`/`ring`/
-`alpha`/`other`，缺省 `color`），因此审计不需要猜命名约定。
-"""
+"""统一素材许可与原生尺寸审计，不用三维贴图配额替代实际用途复核。"""
 from __future__ import annotations
 
 import argparse
@@ -26,13 +14,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 
 ROLES = ("color", "normal", "roughness", "emissive", "ring", "alpha", "other")
-#: hero 颜色贴图的下限；低于它就不是「4K 资产」。
-HERO_MIN_WIDTH = 4096
-MAJOR_MIN_WIDTH = 2048
-#: 环系径向纹理要求：横向足够细，纵向也要够厚，否则展开时会被拉伸。
-RING_MIN = (4096, 512)
-REQUIRED_HERO_MAPS = ("normal", "roughness", "emissive")
-UNKNOWN_LICENSES = ("", "未知", "unknown", "n/a")
+UNKNOWN_LICENSES = ("", "未知", "unknown", "n/a", "none", "null")
 
 
 def _pixel_format(path: Path) -> str:
@@ -53,75 +35,29 @@ def describe(path: Path) -> dict:
     return {"pixelFormat": pixel, "colorSpace": color_space, "alpha": alpha}
 
 
-def _hero_targets(prepared: dict) -> dict[str, str]:
-    """hero 与 major 目标 → 档位；用于决定资产下限。"""
-    tiers: dict[str, str] = {}
-    for scene in prepared["props"].get("compiledScenes", []):
-        shots = (scene.get("content", {}).get("props") or {}).get("shots") or []
-        for shot in shots:
-            tier = shot["tier"]
-            if tier in ("hero", "major") and tiers.get(shot["target"]) != "hero":
-                tiers[shot["target"]] = tier
-    return tiers
-
-
-def audit(root: Path, prepared: dict, record: dict, *, profile: str = "cinematic") -> dict:
-    """逐项审计并返回报告；阻断项写在 `problems` 里。"""
-    entries = {entry["id"]: entry for entry in record.get("assets", [])}
-    by_target: dict[str, dict[str, dict]] = {}
-    for identity, entry in entries.items():
-        by_target.setdefault(entry.get("target") or identity, {})[entry.get("role", "color")] = entry
-    tiers = _hero_targets(prepared)
+def audit(root: Path, prepared: dict, record: dict) -> dict:
+    """统一审计：所有素材检查许可和文件；清晰度保留人工屏幕用途复核。"""
     assets, problems, warnings = [], [], []
-    for identity, entry in sorted(entries.items()):
+    for entry in record.get("assets", []):
         file = root / entry["path"]
         info = describe(file) if file.is_file() else {"pixelFormat": "missing", "colorSpace": "unknown", "alpha": False}
-        item = {"id": identity, "role": entry.get("role", "color"), "width": entry["width"],
-                "height": entry["height"], "license": entry.get("license", "未知"), **info}
+        item = {"id": entry["id"], "role": entry.get("role", "color"),
+                "width": entry["width"], "height": entry["height"],
+                "license": entry.get("license", "未知"), **info}
         assets.append(item)
-    for target, tier in sorted(tiers.items()):
-        maps = by_target.get(target, {})
-        color = maps.get("color")
-        media = maps.get("other")
-        if media is not None:
-            # 二维档案不是三维颜色贴图，不要求虚构法线/粗糙度/发光贴图；即使同一目标
-            # 另有三维颜色贴图，二维素材的许可与尺寸也必须单独审计。
-            if str(media.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
-                (problems if tier == "hero" else warnings).append(
-                    {"target": target, "asset": media["id"], "reason": "二维媒体许可未知"})
-            if media["width"] < MAJOR_MIN_WIDTH:
-                warnings.append({"target": target, "asset": media["id"],
-                                 "reason": "二维档案低于2K，须按原生尺寸与实际画面复核，不冒充4K"})
-        if color is None:
-            if media is not None:
-                continue
-            # 程序化目标（如奥尔特云粒子/气泡）没有贴图契约，不适用 4K 与三张贴图要求。
-            warnings.append({"target": target, "tier": tier, "reason": "没有登记颜色贴图，按程序化材质处理"})
-            continue
-        minimum = HERO_MIN_WIDTH if tier == "hero" else MAJOR_MIN_WIDTH
-        if color["width"] < minimum:
-            problems.append({"target": target, "asset": color["id"],
-                             "reason": f"{tier} 颜色贴图宽度 {color['width']} 低于 {minimum}"})
-        if str(color.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
-            if tier == "hero":
-                problems.append({"target": target, "asset": color["id"], "reason": "hero 资产许可未知"})
-            else:
-                warnings.append({"target": target, "asset": color["id"], "reason": "资产许可未知"})
-        if tier == "hero":
-            for role in REQUIRED_HERO_MAPS:
-                if role not in maps:
-                    problems.append({"target": target, "reason": f"hero 缺少 {role} 贴图"})
-    for identity, entry in entries.items():
-        if entry.get("role") != "ring":
-            continue
-        if entry["width"] < RING_MIN[0] or entry["height"] < RING_MIN[1]:
-            problems.append({"target": entry.get("target") or identity, "asset": identity,
-                             "reason": f"环径向纹理 {entry['width']}×{entry['height']} 低于 "
-                                       f"{RING_MIN[0]}×{RING_MIN[1]}"})
-    report = {"schemaVersion": 1, "profile": profile,
-              "preparedFingerprint": prepared["preparedFingerprint"],
-              "assets": assets, "tiers": tiers, "problems": problems, "warnings": warnings,
-              "status": "fail" if (problems and profile == "cinematic") else "pass"}
+        if not file.is_file():
+            problems.append({"asset": entry["id"], "reason": "素材文件缺失"})
+        if str(item["license"]).strip().lower() in UNKNOWN_LICENSES:
+            problems.append({"asset": entry["id"], "reason": "素材许可未知"})
+        if min(item["width"], item["height"]) <= 0:
+            problems.append({"asset": entry["id"], "reason": "素材尺寸无效"})
+        else:
+            warnings.append({"asset": entry["id"], "reason": "按原生尺寸与实际显示用途复核清晰度，不冒充4K"})
+    report = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
+              "assets": assets,
+              "resolutionScope": "native-dimensions; screen-usage-not-evaluated",
+              "problems": problems, "warnings": warnings,
+              "status": "fail" if problems else "pass"}
     _write_json(root / "outputs/asset-audit.json", report)
     return report
 
@@ -129,16 +65,15 @@ def audit(root: Path, prepared: dict, record: dict, *, profile: str = "cinematic
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="m2v assets audit", description="资产质量与许可审计")
     parser.add_argument("--project", required=True)
-    parser.add_argument("--profile", choices=("standard", "cinematic"))
+
     args = parser.parse_args(argv)
-    from m2v.types.general import cinematic, media_assets
+    from m2v.types.general import media_assets
     from m2v.types.general.explainer_render import current
     root, manifest = load_project(args.project)
     if manifest["type"] != "general":
         raise M2VError("m2v assets audit 仅适用于 general 作品")
     prepared = current(root, manifest)
-    profile, _source = cinematic.resolve_profile(manifest, args.profile)
-    report = audit(root, prepared, media_assets.load_record(root), profile=profile)
+    report = audit(root, prepared, media_assets.load_record(root))
     print(json.dumps({"status": report["status"], "problems": report["problems"],
                       "warnings": report["warnings"]}, ensure_ascii=False, indent=2))
     return 0 if report["status"] == "pass" else 1

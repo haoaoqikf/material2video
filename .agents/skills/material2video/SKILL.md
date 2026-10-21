@@ -21,30 +21,14 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 通用类型使用 v8 storyboard.json：每一幕都是本地 React `code` 场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏；画面配色、构图与动效由作品代码决定，图片与视频经已导入素材 ID 解析；代码场景在检查或正式生成时按所需窗口逐帧录制并缓存，检查和正式生成按区间复用录制缓存；不支持旧模板、视觉主题、general-plan 编排或完整片段嵌入。
 
-## 制作档位（standard / cinematic）
+## 统一制作标准与循环创作
 
-通用作品分 **standard**（默认）与 **cinematic** 两档：standard 是默认档，保持快速链路与自动
-验收；cinematic 由作品在 `project.json` 的 `productionProfile` 显式声明（也可用
-`prepare --profile cinematic` 临时覆盖，分镜不重复声明档位）；用户明确要求
-「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时必须用 cinematic。逐项对照表见
-[电影级制作档位](references/cinematic-video.md#档位对照)。
+所有通用作品执行同一高质量流程，不再区分普通与电影级。`productionProfile` 和 `--profile` 已删除，旧声明明确拒绝。镜头分级仅控制采集资源；`look.profile` 是美术名字，不是制作档位。
 
-**触发词**：用户明确要求「电影级 / 极致 / 惊艳 / 发布级 / 品牌片」时 MUST 使用 cinematic，
-不得静默按 standard 交付再声称电影级；反过来，用户没有这样要求时不要默认加电影级开销。
+**创作目标 → 方案循环 → 核心试制循环 → 整片预演循环 → 美术与声音定稿 → 精制与复核循环 → 交付**。
+每轮默认3个不同叙事方案，允许全部淘汰后再出下一轮；先验证观看理由与核心事件，再投入全片精制。同一问题连续两轮无改善必须换方法或方案，不设总轮数上限，不为凑轮次重复制作。
 
-cinematic 按 **Brief → Look-dev → Hero → Full film → QA/自主复核** 五个阶段推进，每阶段有产出与
-放行条件；命令为 `m2v lookdev`、`m2v qa`、`m2v assets audit`，正式导出沿用 `m2v render`。
-三者已接线并只服务 general 作品（其他类型会明确拒绝）。cinematic 不设数字评分卡：技术 QA 与
-hero 风险帧序列及运动量测后全片帧序列与自动音频复核最终文件，自主关闭必改项并交付。字段、清单、自主复核、反模式与成本见
-[电影级制作档位](references/cinematic-video.md)。
-
-**look-dev 不设人工确认门禁**：standard 与 cinematic 都不在 look-dev 停下来等确认。
-cinematic 必须生成覆盖全片的时间标注帧序列及关键静帧，结合逐帧运动/构图量测和自动音频信号复核，把时间码与问题记进作品 `outputs/visual-notes.md`，
-关闭必改项后再铺全片；该记录是制作完成依据，不是 CLI 导出门禁。最终成片也无需用户确认。
-不得把未完成帧序列与自动信号复核的成片描述为电影级；不要求播放视频或试听音色，替代证据的覆盖和限制须如实记录。
-
-档位声明、镜头/look 字段与电影级共享套件（`CameraRig`、`PostFX` 与深空元件）已经落地；
-`lookdev` / `qa` / `assets audit` 入口已接线，太阳系一镜到底参考片保留历史 look-dev 与 QA 记录；旧用户确认不代替当前版本的完整复核。cinematic 交付普通 H.264 MP4，不另出母版。
+详见[循环创作流程](references/creative-production.md)及[统一制作与质量工具](references/cinematic-video.md)。所有阶段由助手自主推进，无新增用户确认、运行时创作字段、审美评分或人工导出门禁。关键画面、核心动态试制与最终完整复核必做；二维/三维、镜头数量与时长、配乐、后期、采样尺度按内容决定。无声作品保持无声；有声成片目标−14 LUFS / −1 dBTP。
 
 ## 统一命令
 
@@ -58,8 +42,8 @@ uv run m2v preview --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
-uv run m2v lookdev --project videos/general/<slug>  # cinematic：4K 静帧、时间标注风险帧与自动音频报告（复核结论记入 visual-notes.md）
-uv run m2v qa --project videos/general/<slug>       # cinematic：技术 QA，输出 outputs/qa.json
+uv run m2v lookdev --project videos/general/<slug>  # 代表静帧与风险样片，结论记入 visual-notes.md
+uv run m2v qa --project videos/general/<slug>       # 技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可审计
 ```
 
@@ -124,7 +108,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 - render 不要求预演。完整候选写入 candidates 并绑定输入、实现、参数和 SHA-256 后执行字幕、媒体及类型检查；有效候选重复执行直接复用，验收失败或交付失败也只重试检查和复制，禁止再次完整编码。
 - 全片技术验收通过后复制交付同一文件并保存溯源；失败保留候选和旧有效交付。status 显示 prepared / candidate-pending / validation-failed / ready / delivery-failed / delivered，不将技术通过解释为审美完成。
 - 人工画面评审可选，review-template / review 绑定当前候选 key、preparedFingerprint 和 sha256；旧预演记录不再生效。文章输入语义审查和金融自动探针保留。
-- standard 与 cinematic 均无需用户确认。general 助手须复核最终文件全片帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成。
+- 统一流程无需用户确认。general 助手须复核最终文件全片帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成。
 - 成功交付后才清理旧视频及已知调试产物，保留当前候选与交付记录、准备媒体、准备/评审 JSON；general 还保留 visual-notes.md 及其引用证据。失败不清理，共享缓存不受影响，清理失败报告遗留路径。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。

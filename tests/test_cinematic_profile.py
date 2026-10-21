@@ -9,32 +9,15 @@ def hero(identity: str, start: int, end: int) -> dict:
     return {"id": identity, "target": identity, "tier": "hero", "startFrame": start, "endFrame": end}
 
 
-def test_profile_defaults_to_standard_and_records_source():
-    assert cinematic.resolve_profile({}) == ("standard", "default")
-    assert cinematic.resolve_profile({"productionProfile": "cinematic"}) == ("cinematic", "project")
-    assert cinematic.resolve_profile({"productionProfile": "standard"}, "cinematic") == ("cinematic", "command-line")
-    assert cinematic.validate_project({}) == "standard"
-    assert cinematic.validate_project({"productionProfile": "cinematic"}) == "cinematic"
+@pytest.mark.parametrize("value", ["standard", "cinematic", "epic", "", 1, None, True])
+def test_removed_profile_rejected(value):
+    with pytest.raises(M2VError, match="productionProfile"):
+        cinematic.validate_project({"productionProfile": value})
 
 
-@pytest.mark.parametrize("value", ["epic", "", "STANDARD", 1, None, True])
-def test_profile_rejects_unknown_or_ill_typed_values(value):
-    project = {"productionProfile": value}
-    if value is None:
-        assert cinematic.validate_project(project) == "standard"
-        return
-    with pytest.raises(M2VError):
-        cinematic.validate_project(project)
-
-
-def test_profile_override_rejects_unknown_value():
-    with pytest.raises(M2VError):
-        cinematic.resolve_profile({}, "epic")
-
-
-def test_shots_absent_keeps_standard_behaviour():
+def test_unified_project_and_optional_shots():
+    assert cinematic.validate_project({}) is None
     assert cinematic.validate_shots({}, "props") == []
-    cinematic.validate_work([])
 
 
 def test_shots_accept_declared_fields_and_hero_rule():
@@ -42,7 +25,6 @@ def test_shots_accept_declared_fields_and_hero_rule():
                        {"id": "sun", "target": "sun", "tier": "minor", "startFrame": 1440, "endFrame": 1500}]}
     shots = cinematic.validate_shots(props, "props")
     assert [shot["id"] for shot in shots] == ["earth", "saturn", "oort", "sun"]
-    cinematic.validate_work(shots)
 
 
 def test_shots_reject_unknown_field_with_shot_location():
@@ -62,18 +44,10 @@ def test_shots_reject_duplicate_id_and_bad_tier_and_window():
                                              "startFrame": 480, "endFrame": 480}]}, "props")
 
 
-def test_work_requires_three_heroes():
-    with pytest.raises(M2VError) as error:
-        cinematic.validate_work([hero("earth", 0, 480), hero("saturn", 480, 960)])
-    assert "hero" in str(error.value)
-
-
-@pytest.mark.parametrize("length", [7 * 60, 13 * 60])
-def test_hero_must_be_eight_to_twelve_seconds(length):
-    shots = [hero("earth", 0, length), hero("saturn", 1000, 1000 + 480), hero("oort", 2000, 2000 + 480)]
-    with pytest.raises(M2VError) as error:
-        cinematic.validate_work(shots)
-    assert "hero" in str(error.value)
+@pytest.mark.parametrize("length", [1, 60, 1200])
+def test_hero_count_and_length_follow_content(length):
+    shots = cinematic.validate_shots({"shots": [hero("one", 0, length)]}, "props")
+    cinematic.validate_shot_windows("scene", shots, {}, length)
 
 
 def test_camera_focus_post_and_exposure_ranges():

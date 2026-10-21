@@ -8,7 +8,7 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
-from m2v.types.general import adapter, code_scenes, explainer
+from m2v.types.general import adapter, code_scenes, explainer, explainer_prepare
 from test_article_explainer import board, fake_record, fake_tts, project, scene, scene_root
 
 
@@ -41,9 +41,9 @@ def test_standard_board_keeps_reading_hold_and_windows(tmp_path, monkeypatch):
     assert prepared["durationInFrames"] == 60 + 24
     windows = prepared["props"]["compiledScenes"][0]["segmentWindows"]
     assert windows["a-line"] == {"startFrame": 0, "endFrame": 60}
-    assert prepared["props"]["productionProfile"] == "standard"
-    assert prepared["props"]["productionProfileSource"] == "default"
-    assert json.loads(prepared["inputs"]["profile"]) == {"profile": "standard", "source": "default"}
+    assert "productionProfile" not in prepared["props"]
+    assert prepared["inputs"]["productionContract"] == "unified-v1"
+    assert "profile" not in prepared["inputs"]
 
 
 def test_standard_record_config_omits_cinematic_keys():
@@ -54,7 +54,7 @@ def test_standard_record_config_omits_cinematic_keys():
               "narrationSegments": [{"id": "a-line", "text": "x"}]}
     frame = {"width": 1920, "height": 1080, "subtitle": {"safeArea": {"x": 1, "y": 2, "width": 3, "height": 4}}}
     config = code_scenes.scene_config(target, frame, {"a": {"src": "/media/a.png"}})
-    assert set(config) == {"props", "fps", "durationInFrames", "width", "height",
+    assert set(config) == {"productionContract", "props", "fps", "durationInFrames", "width", "height",
                            "subtitleSafeArea", "segmentWindows", "media"}
 
 
@@ -64,8 +64,8 @@ def test_cinematic_config_carries_profile_and_claims():
               "segmentWindows": {"a-line": {"startFrame": 0, "endFrame": 60}},
               "narrationSegments": [{"id": "a-line", "text": "x", "claims": ["夜面灯光"]}]}
     frame = {"width": 1920, "height": 1080, "subtitle": {"safeArea": {"x": 1, "y": 2, "width": 3, "height": 4}}}
-    config = code_scenes.scene_config(target, frame, {}, profile="cinematic")
-    assert config["profile"] == "cinematic" and config["claims"] == [["夜面灯光"]]
+    config = code_scenes.scene_config(target, frame, {})
+    assert "profile" not in config and config["claims"] == [["夜面灯光"]]
 
 
 # ---------------------------------------------------------------- 留白与阅读停留
@@ -102,19 +102,11 @@ def test_fixed_duration_must_cover_padding(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- 档位来源
 
 
-def test_profile_comes_from_project_then_command_line(tmp_path, monkeypatch):
-    root, manifest = project(tmp_path, board())
+def test_prepare_rejects_removed_profile(tmp_path, monkeypatch):
+    _, manifest = project(tmp_path, board())
     manifest["productionProfile"] = "cinematic"
-    (root / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-    root, manifest = load_project(root)
-    fake_tts(monkeypatch)
-    fake_record(monkeypatch)
-    prepared = adapter.prepare(root, manifest)
-    assert prepared["props"]["productionProfile"] == "cinematic"
-    assert prepared["props"]["productionProfileSource"] == "project"
-    prepared = adapter.prepare(root, manifest, profile="standard")
-    assert prepared["props"]["productionProfile"] == "standard"
-    assert prepared["props"]["productionProfileSource"] == "command-line"
+    with pytest.raises(M2VError, match="productionProfile"):
+        explainer_prepare.prepare(tmp_path, manifest)
 
 
 def test_invalid_project_profile_is_rejected(tmp_path):
@@ -123,14 +115,6 @@ def test_invalid_project_profile_is_rejected(tmp_path):
     with pytest.raises(M2VError, match="productionProfile"):
         adapter.validate(root, manifest)
 
-
-def test_other_types_reject_the_profile_option():
-    from m2v.types.financial import adapter as financial
-    from m2v.types.housing import adapter as housing
-    with pytest.raises(M2VError, match="不支持制作档位"):
-        financial.prepare(Path("."), {}, profile="cinematic")
-    with pytest.raises(M2VError, match="不支持制作档位"):
-        housing.prepare(Path("."), {}, profile="cinematic")
 
 
 def test_cli_rejects_unknown_profile_value(tmp_path):
@@ -154,7 +138,6 @@ def test_shots_look_and_claims_validate(tmp_path):
 
 
 @pytest.mark.parametrize("mutate,match", [
-    (lambda data: data["scenes"][0]["content"]["props"].update(shots=[shot("earth", "hero", 0, 480)]), "hero"),
     (lambda data: data["scenes"][0]["content"]["props"].update(look={"grain": 0.3}), "profile"),
     (lambda data: data["scenes"][0]["content"]["props"].update(look={"profile": "x", "lut": "cinema.cube"}), "内置调色档"),
     (lambda data: data["scenes"][0]["content"]["props"]["shots"][0].update(tier="epic"), "tier"),

@@ -26,8 +26,6 @@ export type CodeSceneProps = {
   /** 字幕安全区：重要文字与主体须避让该矩形，背景可以延伸到其中。 */
   subtitleSafeArea: SubtitleSafeArea;
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
-  /** 制作档位；standard 作品不声明时为 `standard`。 */
-  profile?: string;
   /** lookdev 的原生像素密度；缺省不改变作品画布设置。 */
   captureScale?: number;
 };

@@ -43,7 +43,7 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
         if first >= last:
             continue
         scene["mediaPath"] = record(root, scene, {}, frame=frame, media=media["media"],
-            media_digest=media["digest"], profile=prepared["props"].get("productionProfile", "standard"),
+            media_digest=media["digest"],
             capture_range=(first, last))
         scene["mediaStartFrame"] = first
         scene["mediaDurationFrames"] = last - first
@@ -53,8 +53,8 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
 
 
 def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
-           profile: str = "standard", capture_range: tuple[int, int] | None = None) -> str:
-    """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与档位都进缓存键。"""
+           capture_range: tuple[int, int] | None = None) -> str:
+    """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与统一契约都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
     require_cinematic_dependencies()
@@ -62,7 +62,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     width, height = frame["width"], frame["height"]
     cache = root / "outputs/code-cache"
     cache.mkdir(parents=True, exist_ok=True)
-    config = scene_config(scene, frame, media, profile=profile)
+    config = scene_config(scene, frame, media)
     first, last = capture_range or (0, config["durationInFrames"])
     if not 0 <= first < last <= config["durationInFrames"]:
         raise M2VError("场景采集范围越界")
@@ -182,7 +182,7 @@ def _average(files: list[Path], target: Path) -> None:
 def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None) -> None:
     """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
 
-    cinematic 的 hero 镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
+    声明 look.motion 的重点镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
     一个输出帧，等效快门时间内的运动模糊；`supersample` 为 2 时按 2 倍设备像素采集，
     编码时降采样回目标画幅（SSAA）。两者都只由配置决定，因此同一帧仍然可复现。
     """

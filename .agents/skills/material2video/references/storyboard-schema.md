@@ -51,22 +51,16 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 - 所有镜头使用**同一组 `post` 参数**：`PostFX` 不做边界混合，逐镜不同值会硬跳；
 - 幕级 `body`/`chapter` 不再有意义，作品代码应按 `segmentWindows` 与当前镜头自行推导身份。
 
-## cinematic 可选字段
+## 可选字段
 
-下面是 cinematic 档位新增的**可选**字段。standard 作品不写它们，准备记录、缓存键与时间轴
-都与现在完全一致；写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
-档位、可选字段、电影级共享套件与 `lookdev` / `qa` / `assets audit` 入口已经落地；
-太阳系一镜到底参考片保留旧版135秒的历史记录；当前预算与复核状态见示例文档；旧用户确认不代替当前版本完整复核。档位模型、
-镜头语法与检查表见[电影级制作档位](cinematic-video.md)。
+下面是统一制作流程中的**可选**字段。作品不写它们时，准备记录、缓存键与时间轴保持默认；
+写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
+可选字段、电影级共享套件与 `lookdev` / `qa` / `assets audit` 入口已经落地；
+太阳系一镜到底参考片保留旧版135秒的历史记录；当前预算与复核状态见示例文档；旧用户确认不代替当前版本完整复核。
+镜头语法与检查表见[电影级表现与质量工具](cinematic-video.md)。
 
-档位声明在**作品** `project.json`（不在分镜里）：
-
-```json
-{"productionProfile": "cinematic"}
-```
-
-`productionProfile` 只接受 `standard`/`cinematic`，缺省 standard；`prepare --profile` 可临时覆盖，
-准备记录、预演与溯源记录实际生效的档位与来源。
+制作档位已经删除：`project.json` 不得再写 `productionProfile`（包括 `null`），`prepare` 也不再接受
+`--profile`；旧声明会被明确拒绝，需要删除后重新 prepare。
 
 幕级新增三个可选帧数字段：
 
@@ -86,7 +80,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
   表示这一镜**硬切**进入：路径不接上一个镜头的出口，而是直接跳到本章的建立机位（只能向前跳，
   不能退回上一个镜头之前）。
 - `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`（内置调色档名，见下）、`grain`、`bloom`、`dof`、
-  `vignette`、`exposure` 与 `motion`。`motion` 只在 cinematic 用：
+  `vignette`、`exposure` 与 `motion`。`motion` 只在需要时用：
   `{"subframes": 1–4, "supersample": 1–2}`——`subframes` 是 **hero 镜头内每帧**的子帧数
   （等效快门时间内的运动模糊，非 hero 镜头始终 1 帧），`supersample` 为 2 时按 2 倍设备像素
   采集、编码时降采样回目标画幅（SSAA）。两者都进片段缓存键；未声明 `motion` 时缓存键与既有一致。
@@ -126,9 +120,9 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
   `postprocessing` 与 `@react-three/postprocessing`。依赖缺失时在打包前明确失败，不会静默
   渲染成没有后期的画面。
 
-### 电影级共享套件（cinematic 专用）
+### 电影级共享套件
 
-`m2v/code-scene` 另外导出电影级元件；standard 作品不引用它们时画面与既有一致（已验证：
+`m2v/code-scene` 另外导出电影级元件；作品不引用它们时画面与既有一致（已验证：
 把套件从 SDK 导出里摘掉后，标准画面逐像素相同）。
 
 | 元件 | 作用 |

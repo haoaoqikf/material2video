@@ -25,7 +25,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.core import security
 from m2v.engine import frames, media_probe
-from m2v.engine.assets_audit import ROLES
+from m2v.engine.assets_audit import ROLES, UNKNOWN_LICENSES
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,
     MAX_DOWNLOAD_BYTES,
@@ -182,6 +182,8 @@ def resolve(root: Path) -> dict:
         kind = entry.get("kind")
         if kind not in SUFFIXES:
             raise M2VError(f"素材 {identity} 的类型必须是 image/video")
+        if str(entry.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
+            raise M2VError(f"素材 {identity} 许可未知；请补齐来源与许可")
         role = entry.get("role", "color")
         if role not in ROLES:
             raise M2VError(f"素材 {identity} 的 role 必须是已知贴图角色或 other（二维媒体）")

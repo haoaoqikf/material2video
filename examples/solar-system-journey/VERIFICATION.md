@@ -74,6 +74,6 @@
 
 - 交付版本：`videos/examples/solar-system-journey/outputs/previews/video.mp4`，SHA-256 `86d08cd55d7d8a3fdcf7240904424b81d61381a4c20337d46c731b0940b459fb`，73,989,168 字节，13230 帧 / 220.5 秒 / 1920×1080 / 60 fps / H.264 High / yuv420p(tv, bt709) / AAC-LC 44.1 kHz 立体声。
 - 用户已实际观看该完整预演并确认通过；按用户指令不执行正式 render，`videos/examples/solar-system-journey/outputs/video.mp4` 仍是历史 135 秒版本，不作为本版交付。
-- `assets audit --profile cinematic` 通过（0 问题，日球层顶与奥尔特云无贴图按预期警告）；完整预演自动 QA `status=pass`。
+- `assets audit` 通过（0 问题，日球层顶与奥尔特云无贴图按预期警告）；完整预演自动 QA `status=pass`。
 - 文案、节奏、连续性、审美、声音与技术的六项结论及限制见交付目录 `visual-notes.md`；S01、S02、S03 均关闭。
 

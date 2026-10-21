@@ -90,8 +90,8 @@ def test_scene_code_derives_lights_and_curves_from_the_same_data() -> None:
     for scene in scenes:
         source = scene.read_text(encoding="utf-8")
         assert "Math.random" not in source and "Date.now" not in source
-        if scene.name in {"open.tsx", "loop.tsx", "brake.tsx", "wave.tsx", "density.tsx", "close.tsx"}:
-            assert "braking={car.brake}" in source, f"{scene.name} 没有使用轨迹里的制动状态"
-    density = (EXAMPLE / "scenes/density.tsx").read_text(encoding="utf-8")
-    assert "curve('high')" in density and "curve('low')" in density
-    assert "sample(group" in density, "曲线没有从统一采样生成"
+    film = (EXAMPLE / "scenes/film.tsx").read_text(encoding="utf-8")
+    assert "car.brake" in film, "film.tsx 没有使用轨迹里的制动状态"
+    assert "curve('high'" in film and "curve('low'" in film
+    assert "sample(group" in (EXAMPLE / "scenes/traffic.ts").read_text(encoding="utf-8") \
+        or "sample(group" in film, "曲线没有从统一采样生成"

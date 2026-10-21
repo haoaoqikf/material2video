@@ -8,7 +8,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.engine import assets_audit, qa
-from m2v.types.general.explainer_render import cinematic_provenance
+from m2v.types.general.explainer_render import visual_provenance
 
 
 def make_video(path, *, seconds=2, fps=60, pattern="testsrc", size="192x104"):
@@ -85,7 +85,7 @@ def test_sample_frames_and_contact_sheet(tmp_path):
 def test_loudness_and_audio_sync_on_generated_media(tmp_path):
     video = make_video(tmp_path / "clip.mp4")
     audio = make_audio(tmp_path / "master.wav")
-    report = qa.loudness(audio, "standard")
+    report = qa.loudness(audio)
     assert -18 <= report["integratedLufs"] <= -14 and report["truePeakDbfs"] <= -1
     sync = qa.audio_sync(video, audio, 2.0)
     assert sync["status"] == "pass"
@@ -97,7 +97,7 @@ def test_qa_run_writes_report(tmp_path):
     (root / "outputs/media").mkdir(parents=True)
     video = make_video(root / "outputs/video.mp4")
     make_audio(root / "outputs/media/master.wav")
-    report = qa.run(root, prepared_stub(), video=video, profile="standard", step=30)
+    report = qa.run(root, prepared_stub(), video=video, step=30)
     assert (root / "outputs/qa.json").is_file()
     assert report["status"] in {"pass", "fail"} and "frozenFrames" in report["checks"]
     assert report["scope"] == "technical-only"
@@ -115,13 +115,13 @@ def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):
     sidecar = root / "outputs/video.provenance.json"
     sidecar.write_text(json.dumps({"schemaVersion": 1, "productionProfile": "cinematic"}),
                        encoding="utf-8")
-    qa.run(root, prepared_stub(), video=video, profile="standard", step=30)
+    qa.run(root, prepared_stub(), video=video, step=30)
     saved = json.loads(sidecar.read_text(encoding="utf-8"))
     digest = hashlib.sha256((root / "outputs/qa.json").read_bytes()).hexdigest()
     assert saved["qa"] == {"report": "outputs/qa.json", "sha256": digest}
 
 
-def test_assets_audit_blocks_hero_shortfalls(tmp_path):
+def test_assets_audit_does_not_impose_surface_map_or_4k_quotas(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
     png = root / "assets/media/color.png"
@@ -138,11 +138,11 @@ def test_assets_audit_blocks_hero_shortfalls(tmp_path):
                                             "content": {"props": {"shots": [
                                                 {"id": "earth", "tier": "hero", "target": "earth",
                                                  "startFrame": 0, "endFrame": 480}]}}}]
-    report = assets_audit.audit(root, prepared, record, profile="cinematic")
+    report = assets_audit.audit(root, prepared, record)
     reasons = " ".join(item["reason"] for item in report["problems"])
-    assert report["status"] == "fail"
-    assert "低于 4096" in reasons and "normal" in reasons and "环径向纹理" in reasons
-    assert assets_audit.audit(root, prepared, record, profile="standard")["status"] == "pass"
+    assert report["status"] == "pass"
+    assert not reasons and report["resolutionScope"].endswith("not-evaluated")
+    assert assets_audit.audit(root, prepared, record)["status"] == "pass"
     assert (root / "outputs/asset-audit.json").is_file()
 
 
@@ -172,7 +172,7 @@ def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
     assert resolved["license"] == "CC0"
 
 
-def test_media_resolution_keeps_unknown_license(tmp_path):
+def test_media_resolution_rejects_unknown_license(tmp_path):
     from test_article_explainer import project
     from test_article_media import entry, importer, make_image
     from m2v.types.general import media_assets
@@ -180,7 +180,8 @@ def test_media_resolution_keeps_unknown_license(tmp_path):
     root, _manifest = project(tmp_path)
     make_image(root / "assets/incoming.png")
     importer(root, [entry("photo", "image", localPath="assets/incoming.png")])
-    assert media_assets.resolve(root)["media"]["photo"]["license"] == "未知"
+    with pytest.raises(M2VError, match="许可未知"):
+        media_assets.resolve(root)
 
 
 def test_lookdev_has_no_approval_gate():
@@ -212,7 +213,7 @@ def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
                                             "segmentWindows": {}, "content": {"props": {"shots": [
                                                 {"id": "earth", "tier": "hero", "target": "earth",
                                                  "startFrame": 0, "endFrame": 240}]}}}]
-    report = qa.run(root, prepared, video=video, profile="standard", step=30)
+    report = qa.run(root, prepared, video=video, step=30)
     problem = report["checks"]["frozenFrames"]["problem"]
     assert problem["shot"] == "earth" and problem["startSeconds"] == 0
 
@@ -222,7 +223,7 @@ def test_normalize_reaches_cinematic_loudness(tmp_path):
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
     target = tmp_path / "master.wav"
     audio.normalize(source, target, integrated=-14.0, true_peak=-1.0)
-    report = qa.loudness(target, "cinematic")
+    report = qa.loudness(target)
     assert report["status"] == "pass" and abs(report["integratedLufs"] + 14) <= 1.0
 
 
@@ -231,7 +232,7 @@ def test_master_hits_cinematic_loudness_and_peak(tmp_path):
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
     target = tmp_path / "cinematic-master.wav"
     audio.master(source, target, integrated=-14.0, true_peak=-1.0)
-    report = qa.loudness(target, "cinematic")
+    report = qa.loudness(target)
     assert report["status"] == "pass" and abs(report["integratedLufs"] + 14) <= 1.0
     assert report["truePeakDbfs"] <= -1.0
 
@@ -250,7 +251,7 @@ def test_assets_audit_json_round_trip(tmp_path):
                                             "content": {"props": {"shots": [
                                                 {"id": "sun", "tier": "hero", "target": "sun",
                                                  "startFrame": 0, "endFrame": 480}]}}}]
-    report = assets_audit.audit(root, prepared, record, profile="cinematic")
+    report = assets_audit.audit(root, prepared, record)
     saved = json.loads((root / "outputs/asset-audit.json").read_text(encoding="utf-8"))
     assert saved["status"] == report["status"] == "fail"
     assert any("许可未知" in item["reason"] for item in report["problems"])
@@ -288,11 +289,11 @@ def test_2d_media_is_audited_even_when_color_map_exists(tmp_path):
     ]}
     report = assets_audit.audit(tmp_path, prepared, record)
     assert report["status"] == "fail"
-    assert any(item.get("asset") == "photo" and "二维媒体许可未知" in item["reason"]
+    assert any(item.get("asset") == "photo" and "许可未知" in item["reason"]
                for item in report["problems"])
 
 
-def test_cinematic_provenance_covers_every_scene():
+def test_visual_provenance_covers_every_scene():
     """多幕作品逐幕记录镜头与 look，帧号换算成全片帧号。"""
     prepared = {"props": {"compiledScenes": [
         {"id": "a", "startFrame": 0, "content": {"props": {
@@ -304,7 +305,7 @@ def test_cinematic_provenance_covers_every_scene():
             "shots": [{"id": "b1", "tier": "hero", "target": "u",
                        "startFrame": 5, "endFrame": 20, "post": {"bloom": 1}}]}}},
     ]}}
-    result = cinematic_provenance(prepared)
+    result = visual_provenance(prepared)
     assert [shot["id"] for shot in result["shots"]] == ["a1", "b1"]
     assert (result["shots"][1]["startFrame"], result["shots"][1]["endFrame"]) == (105, 120)
     assert result["shots"][1]["sceneId"] == "b"
@@ -322,12 +323,12 @@ def test_silent_film_requires_exact_zero_signal(tmp_path, silent):
     prepared = prepared_stub()
     prepared["props"]["compiledScenes"] = [{"id": "silent", "startFrame": 0, "endFrame": 120,
         "durationInFrames": 120, "narrationSegments": [], "segmentWindows": {}}]
-    report = qa.run(tmp_path, prepared, video=video, profile="cinematic", step=30)
+    report = qa.run(tmp_path, prepared, video=video, step=30)
     check = report["checks"]["loudness"]
     assert check["status"] == ("pass" if silent else "fail")
     assert (check["peakAbsolute"] == 0) == silent
     if silent:
         # 显式声明空 soundtrack 仍是无声设计，不能因此退回响度目标。
         prepared["props"]["soundtrack"] = {"effects": []}
-        report = qa.run(tmp_path, prepared, video=video, profile="cinematic", step=30)
+        report = qa.run(tmp_path, prepared, video=video, step=30)
         assert report["checks"]["loudness"]["status"] == "pass"

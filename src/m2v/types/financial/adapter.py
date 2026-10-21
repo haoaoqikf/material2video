@@ -23,7 +23,6 @@ TYPE = build_silent_type(SilentTypeSpec(
     width=financial.WIDTH,
     height=financial.HEIGHT,
     fps=financial.FPS,
-    profile_error="金融成片不支持制作档位；--profile 仅适用于 general 作品",
     load=_load,
     build_props=financial.build_render_props,
     duration_frames=lambda docs, _props: docs["plan"]["durationSeconds"] * financial.FPS,

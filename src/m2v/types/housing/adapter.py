@@ -23,7 +23,6 @@ TYPE = build_silent_type(SilentTypeSpec(
     width=housing.WIDTH,
     height=housing.HEIGHT,
     fps=housing.FPS,
-    profile_error="住宅成片不支持制作档位；--profile 仅适用于 general 作品",
     load=_load,
     build_props=housing.build_render_props,
     duration_frames=lambda _docs, props: props["durationInFrames"],

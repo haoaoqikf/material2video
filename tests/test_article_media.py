@@ -65,7 +65,7 @@ def test_resolve_rejects_tampered_role_and_target(tmp_path):
     """手改或旧工具写入的非法 role/target 不能绕过审计与准备。"""
     make_image(tmp_path / "archive.png")
     importer(tmp_path, [{"id": "archive", "kind": "image", "localPath": "archive.png",
-                         "role": "other"}])
+                         "role": "other", "license": "CC0"}])
     record = tmp_path / "assets/media-sources.json"
     original = json.loads(record.read_text(encoding="utf-8"))
     for mutate, message in ((lambda item: item.update(role="photo"), "role"),
@@ -236,12 +236,12 @@ def test_import_can_reuse_one_file_for_two_ids(workspace):
 def test_record_and_file_must_agree(workspace):
     """登记项要同时对上文件摘要与实测尺寸；替换文件即失败。"""
     make_image(workspace / "assets/wide.png")
-    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png")])
+    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="CC0")])
     file = workspace / record["assets"][0]["path"]
     resolved = media_assets.resolve(workspace)
     assert resolved["media"]["wide"] == {"src": "/media/" + file.name, "kind": "image",
                                         "width": 864, "height": 700, "durationSeconds": None,
-                                        "colorSpace": "srgb", "alpha": False, "license": "未知"}
+                                        "colorSpace": "srgb", "alpha": False, "license": "CC0"}
     make_image(file, "1080x1920")
     with pytest.raises(M2VError, match="与来源记录不符"):
         media_assets.resolve(workspace)
@@ -249,7 +249,7 @@ def test_record_and_file_must_agree(workspace):
 
 def test_resolve_reports_missing_file_and_escaped_path(workspace):
     make_image(workspace / "assets/wide.png")
-    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png")])
+    record = importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="CC0")])
     (workspace / record["assets"][0]["path"]).unlink()
     with pytest.raises(M2VError, match="已导入文件"):
         media_assets.resolve(workspace)
@@ -257,8 +257,16 @@ def test_resolve_reports_missing_file_and_escaped_path(workspace):
     (workspace / "article.md").write_text("x", encoding="utf-8")
     (workspace / "assets/media-sources.json").write_text(json.dumps({"schemaVersion": 1, "assets": [
         {"id": "wide", "kind": "image", "path": "article.md", "sha256": "x", "width": 1, "height": 1,
-         "durationSeconds": None}]}), encoding="utf-8")
+         "durationSeconds": None, "license": "CC0"}]}), encoding="utf-8")
     with pytest.raises(M2VError, match="已导入文件"):
+        media_assets.resolve(workspace)
+
+
+def test_unknown_license_blocks_every_registered_media(workspace):
+    """统一契约：任何登记媒体的许可未知都阻断，而不只是 hero 资产。"""
+    make_image(workspace / "assets/wide.png")
+    importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="未知")])
+    with pytest.raises(M2VError, match="许可未知"):
         media_assets.resolve(workspace)
 
 
@@ -266,8 +274,8 @@ def test_media_ratio_is_not_constrained(workspace):
     """素材比例不受画幅限制：横图、方图与横视频都进同一个只读映射。"""
     make_image(workspace / "assets/wide.png", "864x700")
     make_video(workspace / "assets/clip.mp4", seconds=2, size="1920x1080")
-    importer(workspace, [entry("wide", "image", localPath="assets/wide.png"),
-                         entry("clip", "video", localPath="assets/clip.mp4")])
+    importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="CC0"),
+                         entry("clip", "video", localPath="assets/clip.mp4", license="CC0")])
     resolved = media_assets.resolve(workspace)["media"]
     assert set(resolved) == {"wide", "clip"}
     assert resolved["wide"]["kind"] == "image" and resolved["wide"]["durationSeconds"] is None
@@ -293,7 +301,7 @@ def test_media_change_invalidates_preparation(tmp_path, monkeypatch):
     from m2v.core.project import load_current_prepared
     root, manifest = project(tmp_path)
     make_image(root / "assets/wide.png")
-    importer(root, [entry("wide", "image", localPath="assets/wide.png")])
+    importer(root, [entry("wide", "image", localPath="assets/wide.png", license="CC0")])
     fake_tts(monkeypatch); fake_record(monkeypatch)
     adapter.prepare(root, manifest)
     next((root / "assets/media").glob("*.png")).write_bytes(b"changed")

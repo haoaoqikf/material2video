@@ -92,7 +92,7 @@ def test_design_pause_is_a_candidate_without_new_export_gate(tmp_path):
     raw = tmp_path / 'raw.wav'
     subprocess.run([get_ffmpeg_exe(), '-y', '-v', 'error', '-f', 'lavfi', '-i',
                     'sine=frequency=440:duration=2', '-af',
-                    'loudnorm=I=-16:TP=-1:LRA=11:linear=true', str(raw)], check=True)
+                    'loudnorm=I=-14:TP=-1:LRA=11:linear=true', str(raw)], check=True)
     master = root / 'outputs/media/master.wav'
     # 0.55 秒静音为设计停顿，不在旁白窗口内。
     subprocess.run([get_ffmpeg_exe(), '-y', '-v', 'error', '-i', str(raw), '-af',
@@ -106,7 +106,7 @@ def test_design_pause_is_a_candidate_without_new_export_gate(tmp_path):
         'narrationSegments': [{'id': 'a', 'text': '开场'}],
         'segmentWindows': {'a': {'startFrame': 0, 'endFrame': 30}},
         'content': {'props': {'shots': [{'id': 'open', 'startFrame': 0, 'endFrame': 120}]}}}]
-    report = qa.run(root, prepared, video=video, profile='standard', step=30)
+    report = qa.run(root, prepared, video=video, step=30)
     pause = [item for item in report['inspection']['audioSignals']['candidates']
              if item['reason'] == 'silence']
     assert pause and pause[0]['narrationOverlap'] == []

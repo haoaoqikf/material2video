@@ -1,21 +1,9 @@
-"""cinematic 档位的档位解析与可选字段契约。
-
-本模块只做**声明校验**：档位取值、镜头清单（`shots`）、look（`look`）与旁白声明
-（`claims`）的类型、范围与未知字段。镜头时间窗是否落在旁白跨度内要在准备阶段才能
-判定（真实分段时长来自 TTS），因此那部分由 :func:`validate_shot_windows` 在窗口
-已知后调用。
-
-未声明这些字段时行为与当前完全一致：standard 作品不写它们，准备记录、缓存键与
-时间轴都不因本模块而变化。
-"""
+"""通用镜头、look 与画面主张的声明校验；镜头分级只用于采集资源分配。"""
 from __future__ import annotations
 
 from m2v.core.validate import fail, integer as _integer, number as _number, obj as _obj, text as _text
 from m2v.core.video_config import FPS
 
-PROFILE_STANDARD = "standard"
-PROFILE_CINEMATIC = "cinematic"
-PROFILES = (PROFILE_STANDARD, PROFILE_CINEMATIC)
 
 TIERS = ("hero", "major", "minor")
 EASINGS = ("linear", "quintInOut", "quintOut", "sineInOut", "expoInOut")
@@ -23,8 +11,6 @@ EASINGS = ("linear", "quintInOut", "quintOut", "sineInOut", "expoInOut")
 LUTS = ("neutral", "deep-space", "teal-amber", "warm-film")
 #: 运动模糊的子帧上限与 SSAA 上限。
 MAX_SUBFRAMES = 4
-HERO_MIN_FRAMES = 8 * FPS
-HERO_MAX_FRAMES = 12 * FPS
 MAX_SHOTS = 120
 MAX_CLAIMS = 12
 MAX_CLAIM_CHARS = 80
@@ -32,28 +18,10 @@ LOOK_NUMBERS = ("grain", "bloom", "dof", "vignette")
 POST_NUMBERS = ("bloom", "dof", "grain", "vignette", "chromaticAberration")
 
 
-def resolve_profile(project: dict, override: str | None = None) -> tuple[str, str]:
-    """返回（实际生效档位，来源）。命令行覆盖优先于作品声明，作品未声明时为 standard。"""
-    if override is not None:
-        if override not in PROFILES:
-            fail("--profile", f"必须是 {'/'.join(PROFILES)}")
-        return override, "command-line"
-    declared = project.get("productionProfile")
-    if declared is None:
-        return PROFILE_STANDARD, "default"
-    if not isinstance(declared, str) or declared not in PROFILES:
-        fail("productionProfile", f"必须是 {'/'.join(PROFILES)}")
-    return declared, "project"
-
-
-def validate_project(project: dict) -> str:
-    """校验 project.json 的档位声明；缺失视为 standard，非法值明确失败。"""
-    declared = project.get("productionProfile")
-    if declared is None:
-        return PROFILE_STANDARD
-    if not isinstance(declared, str) or declared not in PROFILES:
-        fail("productionProfile", f"必须是 {'/'.join(PROFILES)}")
-    return declared
+def validate_project(project: dict) -> None:
+    """旧档位声明一律拒绝，包括显式 null，避免静默改变制作语义。"""
+    if "productionProfile" in project:
+        fail("productionProfile", "制作档位已移除；请删除 productionProfile 并重新 prepare")
 
 
 def validate_claims(part: dict, path: str) -> None:
@@ -194,27 +162,13 @@ def validate_shots(props: dict, path: str) -> list[dict]:
     return shots
 
 
-def validate_work(shots: list[dict], path: str = "storyboard") -> None:
-    """整片级规则：hero 至少 3 个，每个 hero 是一段 8～12 秒的连续镜头。"""
-    heroes = [shot for shot in shots if shot["tier"] == "hero"]
-    if shots and len(heroes) < 3:
-        fail(path + ".shots", f"cinematic 镜头清单至少需要 3 个 hero，实际 {len(heroes)} 个")
-    for shot in heroes:
-        length = shot["endFrame"] - shot["startFrame"]
-        if not HERO_MIN_FRAMES <= length <= HERO_MAX_FRAMES:
-            fail(path + f".shots[{shot['id']}]",
-                 f"hero 镜头必须为 {HERO_MIN_FRAMES}～{HERO_MAX_FRAMES} 帧"
-                 f"（{HERO_MIN_FRAMES / FPS:g}～{HERO_MAX_FRAMES / FPS:g} 秒），实际 {length} 帧")
-
-
 def validate_shot_windows(scene_id: str, shots: list[dict], windows: dict[str, dict],
                           duration: int) -> None:
     """准备阶段：镜头时间窗必须落在它声明的位置上。
 
     镜头**声明** `segment` 时，它必须完整覆盖该旁白段的窗口——这是作者对「这个镜头
     讲的就是这段旁白」的承诺，也是本模块唯一能判定的对齐关系。没有声明的镜头只要求
-    落在幕时长内：hero 镜头通常要跨过留白与相邻旁白，强行要求落在单段内会让 8～12 秒
-    的 hero 无法成立。
+    落在幕时长内：hero 镜头通常要跨过留白与相邻旁白，不要求镜头长度服从固定配额。
 
     真实分段时长来自 TTS，因此这条判定只能在准备阶段做，且必须在录制之前失败。
     """

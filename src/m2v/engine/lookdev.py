@@ -1,12 +1,4 @@
-"""`m2v lookdev`：在铺全片之前生成关键静帧与声音意图匹配的样片，供非播放式复核。
-
-cinematic 档的 look-dev 不设人工确认门禁：渲 3–5 张 4K 静帧、一张接触表与一段
-20–30 秒样片（无声作品保持无声），静帧、帧序列、量测和自动音频信号复核结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，
-但不阻断铺全片或导出。这里的产物不是最终成片，而是「方向对不对」的证据：静帧从源码
-按 2× 原生像素采集，样片按 1× 渲染；有声作品合上母版对应片段，无声作品交付无音轨样片。
-
-本模块不修改成片、不写准备记录，也不改变任何指纹。
-"""
+"""通用关键画面与风险样片；采样尺寸和长度按内容选择。"""
 from __future__ import annotations
 
 import argparse
@@ -25,12 +17,12 @@ from m2v.core.project import _write_json, load_project
 from m2v.engine import audio, perf, remotion
 from m2v.engine.http_server import LocalServer
 
-#: 静帧张数与放大倍数：4K 静帧是 cinematic look-dev 的最低要求。
+#: 静帧张数与放大倍数：按片长与风险选择，默认原生像素。
 DEFAULT_STILLS = 4
-STILL_SCALE = 2
+STILL_SCALE = 1
 #: 样片长度：够看出节奏与声音，又不必等一次全片渲染。
 DEFAULT_SAMPLE_SECONDS = 24
-MIN_SAMPLE_SECONDS, MAX_SAMPLE_SECONDS = 20, 30
+MIN_SAMPLE_SECONDS, MAX_SAMPLE_SECONDS = 1, 600
 
 
 def still_frames(prepared: dict, count: int) -> list[int]:
@@ -98,7 +90,7 @@ def sample_audio(prepared: dict, root: Path) -> tuple[bool, Path | None]:
     return True, root / segments[0]["path"]
 
 
-def native_stills(root: Path, prepared: dict, frames: list[int], work: Path) -> dict[tuple[str, int], Path]:
+def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, scale: int = STILL_SCALE) -> dict[tuple[str, int], Path]:
     """只保存选定帧，但从零连续推进每幕时钟；不触碰准备阶段的视频缓存。"""
     from playwright.sync_api import sync_playwright
     from m2v.types.general import code_scenes, media_assets
@@ -115,9 +107,8 @@ def native_stills(root: Path, prepared: dict, frames: list[int], work: Path) -> 
             directory = work / f"native-{index}"
             directory.mkdir()
             code_scenes.build_scene(root, scene, directory)
-            config = code_scenes.scene_config(scene, frame_config, media,
-                                              profile=props.get("productionProfile", "standard"))
-            config["captureScale"] = STILL_SCALE
+            config = code_scenes.scene_config(scene, frame_config, media)
+            config["captureScale"] = scale
             code_scenes._capture(pw, root, directory, config, selected_frames=selected)
             for frame in selected:
                 captured[(scene["id"], frame + scene["startFrame"])] = directory / f"frame-{frame:06d}.png"
@@ -163,12 +154,14 @@ def contact_sheet(stills: list[Path], target: Path, columns: int = 2) -> Path:
 
 
 def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STILLS,
-        sample_seconds: int = DEFAULT_SAMPLE_SECONDS) -> dict:
+        sample_seconds: int = DEFAULT_SAMPLE_SECONDS, still_scale: int = STILL_SCALE) -> dict:
     """渲染静帧、接触表与有声样片，返回清单并写入 `outputs/lookdev.json`。"""
+    if still_scale not in (1, 2):
+        raise M2VError("静帧采样尺度只能为1或2")
     if not MIN_SAMPLE_SECONDS <= sample_seconds <= MAX_SAMPLE_SECONDS:
         raise M2VError(f"样片长度必须是 {MIN_SAMPLE_SECONDS}～{MAX_SAMPLE_SECONDS} 秒")
-    if not 3 <= stills <= 5:
-        raise M2VError("静帧张数必须是 3～5")
+    if not 1 <= stills <= 12:
+        raise M2VError("静帧张数必须是 1～12")
     fps, width, height = prepared["fps"], prepared["width"], prepared["height"]
     outputs = root / "outputs/lookdev"
     outputs.mkdir(parents=True, exist_ok=True)
@@ -191,7 +184,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                                  storyboard_path=entry, content_root=root.parent,
                                  workspace_root=root.parent, cache=True)
         timings.record("bundle", bundle.build_seconds)
-        captured = native_stills(root, prepared, frames, work)
+        captured = native_stills(root, prepared, frames, work, scale=still_scale)
         rendered: list[Path] = []
         for frame in frames:
             # 原生 PNG 内联到临时 props，避免暴露源码或扩大 HTTP 服务范围。
@@ -200,7 +193,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                                             ensure_ascii=False), encoding="utf-8")
             target = outputs / f"still-{frame:06d}.png"
             remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=still_file,
-                                  out=target, frame=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
+                                  out=target, frame=frame, scale=still_scale, composition_id="ArticleExplainer")
             rendered.append(target)
         sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
         silent = work / "sample-silent.mp4"
@@ -226,24 +219,25 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                 "sample": sample.relative_to(root).as_posix(),
                 "sampleFrames": [start, end], "sampleSeconds": round((end - start + 1) / fps, 2),
                 "sampleAudio": "present" if has_audio else "none",
-                "stillScale": STILL_SCALE, "stillSize": [width * STILL_SCALE, height * STILL_SCALE],
+                "stillScale": still_scale, "stillSize": [width * still_scale, height * still_scale],
                 "stillCapture": "native-code-png-v1"}
     _write_json(root / "outputs/lookdev.json", manifest)
     return manifest
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="m2v lookdev", description="cinematic look-dev 静帧与样片")
+    parser = argparse.ArgumentParser(prog="m2v lookdev", description="通用关键画面与风险样片")
     parser.add_argument("--project", required=True)
     parser.add_argument("--stills", type=int, default=DEFAULT_STILLS)
     parser.add_argument("--sample-seconds", type=int, default=DEFAULT_SAMPLE_SECONDS)
+    parser.add_argument("--still-scale", type=int, choices=(1, 2), default=STILL_SCALE)
     args = parser.parse_args(argv)
     from m2v.types.general.explainer_render import current
     root, manifest = load_project(args.project)
     if manifest["type"] != "general":
         raise M2VError("m2v lookdev 仅适用于 general 作品")
     prepared = current(root, manifest)
-    result = run(root, manifest, prepared, stills=args.stills, sample_seconds=args.sample_seconds)
+    result = run(root, manifest, prepared, stills=args.stills, sample_seconds=args.sample_seconds, still_scale=args.still_scale)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

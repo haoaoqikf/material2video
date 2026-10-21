@@ -1,7 +1,7 @@
 """无声类型（金融、住宅）的统一适配器。
 
 两种无声类型过去各写一份同样的生命周期：材料门禁 `_load`、`prepare`（拒绝
-`--profile`、构造 props、写准备记录）、`preview`/`render` 转发与评审钩子。差异只有
+构造 props、写准备记录）、`preview`/`render` 转发与评审钩子。差异只有
 类型名、材料门禁文案、props 构造、composition 参数、时长推导与评审钩子——全部由
 :class:`SilentTypeSpec` 声明，生命周期只有这一份。
 
@@ -27,8 +27,6 @@ class SilentTypeSpec:
     width: int
     height: int
     fps: int
-    #: 显式传入 `--profile` 时的拒绝文案：档位目前只由通用类型提供。
-    profile_error: str
     #: （作品根，作品清单）→ 已加载的材料；门禁不通过时抛出 M2VError。
     load: Callable[[Path, dict], dict]
     #: 材料 → composition props。
@@ -49,10 +47,8 @@ def build_silent_type(spec: SilentTypeSpec) -> VideoType:
         spec.load(root, project)
 
     def prepare(root: Path, project: dict, *, voice: str | None = None, rate: str | None = None,
-                rhythm: dict | None = None, profile: str | None = None) -> dict:
+                rhythm: dict | None = None) -> dict:
         # 无声成片契约要求无音轨，因此不接受音色、语速与韵律；参数只为统一类型接口。
-        if profile is not None:
-            raise M2VError(spec.profile_error)
         docs = spec.load(root, project)
         props = spec.build_props(docs)
         return save_prepared(root, project=project, composition_id=spec.composition_id, props=props,

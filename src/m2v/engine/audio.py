@@ -30,7 +30,7 @@ def loudness(path: Path) -> dict:
 
 def normalize(source: Path, target: Path, integrated: float = -16.0,
               true_peak: float = -1.0) -> None:
-    """两遍 loudnorm；默认 −16 LUFS（旁白），cinematic 成片用 −14 LUFS。"""
+    """两遍 loudnorm；旁白默认 −16 LUFS，统一成片母版用 −14 LUFS。"""
     stats = loudness(source)
     if not math.isfinite(float(stats["input_i"])):
         shutil.copyfile(source, target); return

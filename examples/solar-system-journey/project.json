@@ -2,7 +2,6 @@
   "schemaVersion": 1,
   "id": "solar-system-journey",
   "type": "general",
-  "productionProfile": "cinematic",
   "materials": {
     "storyboard": "storyboard.json"
   },

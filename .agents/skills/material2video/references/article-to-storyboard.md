@@ -57,7 +57,7 @@
 - 美国科学里程碑与太阳系使用1920×1080，交通拥堵波使用1080×1920。
 - 合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei。
 - 交通拥堵波、太阳系按实际 segmentWindows 推进；美国科学里程碑采用空旁白、固定帧数及画面中文说明，不生成TTS。
-- 美国科学里程碑和太阳系采用cinematic，交通拥堵波保持standard。档案不冒充4K，原理动画明确标注示意。
+- 三个示例均采用统一制作流程。档案不冒充4K，原理动画明确标注示意。
 - README提供逐幕内容对应，DESIGN记录画幅、配色、构图与声音意图；生成媒体不入库。
 
 详细字段见 [分镜结构](storyboard-schema.md)，操作见 [制作流程](production-workflow.md)。

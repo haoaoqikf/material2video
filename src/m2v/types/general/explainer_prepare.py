@@ -46,9 +46,9 @@ def implementation_digest() -> str:
     return fingerprint({**keys, **code_scenes.implementation_inputs()})
 
 
-def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, profile=None) -> dict:
+def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
     from . import soundtrack, media_assets, cinematic
-    actual_profile, profile_source = cinematic.resolve_profile(project, profile)
+    cinematic.validate_project(project)
     source = contract.load(root, project)
     explainer_review.require_input(root, project)
     size = frame_engine.normalize(source.get("width"), source.get("height"))
@@ -62,9 +62,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
     inputs = file_inputs(root, project)
     inputs["tts"] = json.dumps(actual_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     inputs["implementation"] = implementation_digest()
-    # 档位决定编码、后期与验收口径，因此它和镜头、look 一样属于准备输入。
-    inputs["profile"] = json.dumps({"profile": actual_profile, "source": profile_source},
-                                   ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    inputs["productionContract"] = "unified-v1"
     if not contract.topic_input(source):
         article = contract.source_file(root, project)
         inputs["file:" + article.relative_to(root).as_posix()] = digest(article)
@@ -163,8 +161,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
             inputs.update(code_scenes.build_scene(root, scene, Path(temporary)))
     props = copy.deepcopy(source)
     props.update(width=size[0], height=size[1], subtitle=frame["subtitle"],
-                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor,
-                 productionProfile=actual_profile, productionProfileSource=profile_source)
+                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)
     del props["scenes"]
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)
@@ -173,11 +170,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, pr
         raw, target = work / "raw.wav", work / "audio.wav"
         audio.concatenate(parts, FPS, raw)
         soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ FPS, work, inputs)
-        if actual_profile == "cinematic":
-            # cinematic 成片响度 −14 LUFS / −1 dBTP；standard 保持既有 −16 口径。
-            mastered = work / "mastered.wav"
-            audio.master(target, mastered, integrated=-14.0, true_peak=-1.0)
-            target = mastered
+        mastered = work / "mastered.wav"
+        audio.master(target, mastered, integrated=-14.0, true_peak=-1.0)
+        target = mastered
         sha = digest(target)
         master = media_dir / f"{sha}.wav"
         security.deliver(target, master)

@@ -63,21 +63,15 @@ def implementation_inputs() -> dict[str, str]:
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
-def scene_config(scene: dict, frame: dict, media: dict, *, profile: str = "standard") -> dict:
-    """录制配置，同时是片段缓存键的一部分。
-
-    `profile` 与旁白 `claims` 只在**非默认**时写进配置：standard 作品不写这些字段时，
-    缓存键与既有片段逐字节一致，不会因为新增档位概念而失效。
-    """
-    config = {"props": scene["content"].get("props", {}), "fps": FPS,
+def scene_config(scene: dict, frame: dict, media: dict) -> dict:
+    """录制配置与片段缓存输入；统一契约不复用旧档位缓存。"""
+    config = {"productionContract": "unified-v1", "props": scene["content"].get("props", {}), "fps": FPS,
               "durationInFrames": scene["durationInFrames"],
               "width": frame["width"], "height": frame["height"],
               "subtitleSafeArea": frame["subtitle"]["safeArea"],
               "segmentWindows": {key: {name: value - scene["startFrame"] for name, value in window.items()}
                                  for key, window in scene["segmentWindows"].items()},
               "media": media}
-    if profile != "standard":
-        config["profile"] = profile
     claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]
     if any(claims):
         config["claims"] = claims
