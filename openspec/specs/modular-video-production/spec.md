@@ -147,21 +147,21 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **WHEN** 代码录制片段或导入素材从临时目录落地
 - **THEN** 与成片同等修复，无需人工处理即可打开
 
-### Requirement: 电影级制作与质检入口
+### Requirement: 制作与质检入口
 
-系统 MUST 在统一入口新增电影级制作与质检命令：`m2v lookdev --project <目录>`、`m2v qa --project <目录>`、`m2v assets audit --project <目录>`。cinematic 的正式导出沿用现有 `m2v render`，不新增母版命令。命令 MUST 沿用现有作品路径、内容根、退出码与产物归属规则；standard 的现有命令与行为 MUST NOT 改变。
+系统 MUST 在统一入口提供制作与质检命令：`m2v lookdev --project <目录>`、`m2v qa --project <目录>`、`m2v assets audit --project <目录>`。正式导出沿用现有 `m2v render`，不新增母版命令。命令 MUST 沿用现有作品路径、内容根、退出码与产物归属规则。
 
-- `lookdev` MUST 只渲染关键静帧与代表片段，MUST NOT 生成完整成片；输出位于作品 `outputs/lookdev/`，包含 3–5 张从当前源码原生采集的 4K 静帧、接触表与 20–30 秒有声样片。帧序列、量测与自动音频信号检查的结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，MUST NOT 成为导出门禁；MUST NOT 要求播放样片或连续收听声音。
+- `lookdev` MUST 只渲染关键静帧与代表片段，MUST NOT 生成完整成片；输出位于作品 `outputs/lookdev/`，包含按风险选择的代表静帧（默认原生像素，可显式 2 倍）、接触表与按风险确定长度的有声样片（无声作品保持无音轨）。帧序列、量测与自动音频信号检查的结论写入作品 `outputs/visual-notes.md`，作为检查与返工依据，MUST NOT 成为导出门禁；MUST NOT 要求播放样片或连续收听声音。
 - `qa` MUST 输出 `outputs/qa.json` 与接触表，覆盖冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音轨时长差与 claims 时间窗覆盖，并提供全片采样清单、交界/异常加密帧、黑帧/突变及交付音轨削波/静音候选，并明确区分技术判定、测量提示和需查看采样图像的项目与自动信号检查的覆盖限制；MUST NOT 将技术通过表述为视觉质量通过；技术失败 MUST 以退出码 1 结束，报告 MUST 可定位到镜头/时间戳。
-- `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；hero 资产不合格时 MUST 以退出码 1 结束。
-- 正式导出 MUST 沿用 `m2v render`，交付普通 H.264 MP4；系统 MUST NOT 提供 `m2v master` 或 ProRes/DNxHR 母版入口。成片旁车 MUST 记录 profile、交付摘要、音频参数与 QA 指纹。
-- standard 与 cinematic 的所有制作阶段均取消用户确认：`m2v render` MUST NOT 因缺少帧序列/量测复核记录、确认文件或 look-dev 产物而阻断。standard MUST 同样无需人工确认。
+- `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；任何登记素材许可未知、文件缺失或尺寸无效时 MUST 以退出码 1 结束。
+- 正式导出 MUST 沿用 `m2v render`，交付普通 H.264 MP4；系统 MUST NOT 提供 `m2v master` 或 ProRes/DNxHR 母版入口。成片旁注文件 MUST 记录交付摘要、音频参数与 QA 指纹，MUST NOT 记录 profile。
+- 所有制作阶段均取消用户确认：`m2v render` MUST NOT 因缺少帧序列/量测复核记录、确认文件或 look-dev 产物而阻断。
 
-所有新命令 MUST 遵守离线、素材留证、准备指纹与交付权限规则；缺少准备记录、profile 非法或依赖缺失时 MUST 在渲染前失败，不产出部分产物。
+所有新命令 MUST 遵守离线、素材留证、准备指纹与交付权限规则；缺少准备记录、存在旧 `productionProfile` 声明或依赖缺失时 MUST 在渲染前失败，不产出部分产物。
 
 #### Scenario: look-dev 只出样片
-- **WHEN** 对 cinematic 作品运行 `m2v lookdev`
-- **THEN** 只生成关键静帧、接触表与 20–30 秒有声样片，不生成全片，不覆盖正式成片
+- **WHEN** 对 general 作品运行 `m2v lookdev`
+- **THEN** 只生成关键静帧、接触表与声明长度的样片，不生成全片，不覆盖正式成片
 
 #### Scenario: QA 失败定位
 - **WHEN** 某镜头出现冻结帧或响度超限
@@ -171,13 +171,13 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **WHEN** 跑完 `m2v lookdev` 且作品未记录任何确认或替代复核结论
 - **THEN** `m2v render` 正常交付，不因缺少确认而阻断；`lookdev` 产物仍可供观看与返工定位
 
-#### Scenario: 标准命令不变
-- **WHEN** 使用现有 validate/prepare/preview/render 处理 standard 作品
+#### Scenario: 统一命令保持
+- **WHEN** 使用现有 validate/prepare/preview/render 处理 general 作品
 - **THEN** 参数、默认输出、退出码与成片行为保持不变
 
 #### Scenario: 原生 4K 关键帧
 - **WHEN** 运行 lookdev 生成静帧，作品包含显式低 DPR 的 WebGL 画布或多个代码幕
-- **THEN** 从当前源码连续推进至各幕选定帧，以 2 倍像素绘制画布，PNG 合成原有字幕与转场；不放大 1080p 缓存视频冒充原生细节，像素不足时明确失败；有声样片流程不变
+- **THEN** 从当前源码连续推进至各幕选定帧，按所选择的采样尺度（默认 1 倍，必要时 2 倍）绘制画布，PNG 合成原有字幕与转场；不放大 1080p 缓存视频冒充原生细节，像素不足时明确失败；有声样片流程不变
 
 #### Scenario: 测量项不能冒充通过
 - **WHEN** QA 只计算了 banding 或 aliasing 相关数值

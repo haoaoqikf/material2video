@@ -22,10 +22,10 @@ SHALL NOT 因为未引用资源的变化就判为落后。
 组件源码、共享样式与令牌、字体资产、包清单与锁文件。这样「改了组件源码但没重渲」
 会被判为落后——它正是最容易发生、又最不容易被发现的一类落后。
 
-cinematic 导出的溯源 SHALL 额外记录 `profile`、`look`、`shots`、`postFx`、`audio`
-与交付文件摘要；profile MUST 为 standard 或 cinematic。look、shots、后期与声音参数
-SHALL 与准备指纹使用同一口径；任一参数变化 MUST 让成片被判为落后。standard 溯源 SHOULD
-省略 cinematic 专用键，保持与现有格式兼容。
+general 导出的溯源 SHALL 记录 `look`、`shots`、`postFx`、`audio` 与交付文件摘要，
+MUST NOT 记录 `productionProfile`。look、shots、后期与声音参数 SHALL 与准备指纹使用
+同一口径；任一参数变化 MUST 让成片被判为落后。未声明 shots/look 时溯源省略相应键，
+不视为损坏。
 
 #### Scenario: 渲染成功
 - **WHEN** 渲染脚本成功产出成片
@@ -43,13 +43,13 @@ SHALL 与准备指纹使用同一口径；任一参数变化 MUST 让成片被�
 - **WHEN** 文章与产物位于 `<内容根>/videos|outputs/<slug>/`
 - **THEN** 溯源记录工作区相对路径，判定能给出「对得上」而不是「无法判断」
 
-#### Scenario: 电影级溯源
-- **WHEN** 以 cinematic 导出成片
-- **THEN** 溯源记录 profile、look、shots、postFx、audio 与交付摘要；只改 look 或后期后，旧成片被判为落后
+#### Scenario: 统一制作溯源
+- **WHEN** 导出 general 成片
+- **THEN** 溯源记录 look、shots、postFx、audio 与交付摘要，不记录 productionProfile；只改 look 或后期后，旧成片被判为落后
 
-#### Scenario: 标准档溯源兼容
-- **WHEN** 以 standard 导出
-- **THEN** 溯源保持现有必需字段；缺少 cinematic 专用键不被判为损坏
+#### Scenario: 可选键兼容
+- **WHEN** 作品未声明 shots/look
+- **THEN** 溯源保持必需字段；缺少可选视觉键不被判为损坏
 
 ### Requirement: 成片陈旧可被判定
 系统 SHALL 能据此判定一个已有成片是否落后于当前源码，并 SHALL 指出是哪几个文件变了。

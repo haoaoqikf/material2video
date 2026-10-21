@@ -15,26 +15,24 @@
 - **WHEN** 提交 v7、旧模板、主题字段或完整作品嵌入
 - **THEN** 制作前明确拒绝并要求按 v8 重新编排
 
-### Requirement: 电影级通用作品档位
+### Requirement: 统一制作契约
 
-系统 MUST 在 `project.json` 接受可选的 `productionProfile`，取值为 `standard` 或 `cinematic`，缺省为 `standard`；非法取值 MUST 在准备前失败。standard MUST 保持当前 prepare、完整候选自动验收、默认编码与不加用户确认的行为。cinematic MUST 启用电影级制作契约：镜头清单、look、后期、声音设计、资产质量与普通 MP4 交付；look-dev MUST NOT 引入人工确认门禁。
+系统 MUST 对 general 使用唯一制作契约并拒绝 `productionProfile` 与 `--profile`，不保留双档位分支；`project.json` 中的旧字段（包括显式 `null`）与 CLI 旧参数 MUST 在准备前明确失败。所有作品 MUST 按内容决定镜头数量与时长、二维或三维、声音与后期，不设固定 hero 配额或 4K 静帧要求，但 MUST 保留镜头时间窗越界、重叠与 tier 合法性校验。
 
-cinematic 作品 MUST 在 `content.props` 声明 `shots` 与 `look`，MUST 提供至少 3 个 hero 镜头，MUST 在 look-dev 阶段产出 3–5 张 4K 静帧与 20–30 秒有声样片，MUST 对 hero 镜头和样片执行时间标注帧序列、构图/路径量测与自动音频信号检查，并把时间码、问题与复查写入作品 `outputs/visual-notes.md`；该记录 MUST NOT 阻断铺全片或导出。工作流 MUST 遵循跨类型非播放式复核要求，不要求播放视频、连续收听声音或试听音色；不能完成规定的替代检查时 MUST 如实说明，MUST NOT 声称已达到电影级。
+look-dev MUST 按片长与风险选择代表静帧张数、尺寸、样片长度与采样尺度，MUST NOT 引入人工确认门禁。准备记录、预演与视觉溯源 MUST 记录实际 shots、look、后期参数、声音配置与交付参数；任一参数变化 MUST 使旧准备与完整候选过期。未声明 shots/look 时 MUST 保持默认采集参数与画面行为，并因统一契约使旧片段缓存失效一次。
 
-cinematic MUST 把 profile、shots、look、后期参数、声音配置与交付参数写入准备记录、预演和溯源；任一参数变化 MUST 使旧准备与完整候选过期。standard 作品不因本要求改变准备记录、缓存键、时间轴或编码。
+#### Scenario: 旧档位声明
+- **WHEN** `project.json` 含 `productionProfile`（含 `null`）或 `prepare` 传入 `--profile`
+- **THEN** 准备前明确拒绝，要求删除旧字段并重新 prepare
 
-#### Scenario: 标准档不受影响
-- **WHEN** 作品未声明 `productionProfile`
-- **THEN** 按 standard 执行现有链路，准备记录、完整候选、编码与成片行为与当前一致
-
-#### Scenario: 电影级作品缺少镜头
-- **WHEN** `productionProfile` 为 cinematic 但未声明 shots、hero 少于 3 个或缺少 look-dev 记录
-- **THEN** 准备或导出前明确失败，指出缺失项，不静默降级为 standard
+#### Scenario: 无固定镜头配额
+- **WHEN** 作品按内容使用少于 3 个 hero，或 hero 短于 8 秒
+- **THEN** 校验只检查时间窗、重叠与 tier 合法性，不因固定数量或时长拒绝
 
 #### Scenario: 电影级参数变化
 - **WHEN** 只改动 look、shot、后期或声音参数后重新准备
 - **THEN** 旧准备与完整候选失效，要求重新准备并重新验收；代码片段缓存键同步变化
 
-#### Scenario: 非法档位
-- **WHEN** `productionProfile` 为未知值或非字符串
-- **THEN** 准备前失败并列出允许取值
+#### Scenario: 可选质量参数
+- **WHEN** 作品未声明 shots/look 或 look.motion
+- **THEN** 使用 1 倍、1 子帧采集且不自动添加后期；声明后按 1–2 倍与 1–4 子帧校验并进入缓存键
