@@ -14,7 +14,7 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-文章正文、金融原始材料与作品产物属于内容，不入库。所有通用作品采用统一标准与循环选案、核心试制、整片预演和精制回退流程，不再选择普通/电影级档位；旧 `productionProfile` 与 `--profile` 明确拒绝。三个固定示例为 [从电报到大模型](examples/american-science-milestones/README.md)、[交通拥堵波](examples/traffic-jam-wave/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)，数量最多三个，替换须用户明确授权。前后两片横屏、交通拥堵波竖屏，均为60 fps。美国科学里程碑为30秒无声混合媒体短片，按年代列出十项成果，优先使用已留证的档案与实物素材，代码动画补充原理，逐幕按素材特征变化构图并在片尾集中一份署名；交通拥堵波时长按内容、实测旁白与观察时间确定（本轮准备产物84.9秒，不超过600秒），并含中文旁白与烧录字幕，以离线确定性轨迹解释车辆向前、低速区域向后的传播；太阳系为单幕一镜到底，当前重制220.5秒、31个镜头和3个hero。三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei；有声场景依实际旁白时间窗推进，无声场景使用明确帧数预算。可编辑分镜、代码、设计与许可来源随仓库分发；成片保存到 `videos/examples/<slug>/outputs/`，不入库。
+文章正文、金融原始材料与作品产物属于内容，不入库。所有通用作品采用统一标准与循环选案、核心试制、整片预演和精制回退流程，不再选择普通/电影级档位；旧 `productionProfile` 与 `--profile` 明确拒绝。三个固定示例为 [从电报到大模型](examples/american-science-milestones/README.md)、[交通拥堵波](examples/traffic-jam-wave/README.md)、[太阳系之旅](examples/solar-system-journey/README.md)，数量最多三个，替换须用户明确授权。前后两片横屏、交通拥堵波竖屏，均为60 fps。美国科学里程碑为30秒无声混合媒体短片，按年代列出十项成果，优先使用已留证的档案与实物素材，代码动画补充原理，逐幕按素材特征变化构图并在片尾集中一份署名；交通拥堵波时长按内容、实测旁白与观察时间确定（本轮准备产物70.98秒，不超过600秒），并含中文旁白与烧录字幕，以离线确定性轨迹解释车辆向前、低速区域向后的传播；太阳系为单幕一镜到底，当前重制220.5秒、31个镜头和3个hero。三片合计覆盖 Motion、ECharts、GSAP、Three.js、React Three Fiber 与 Drei；有声场景依实际旁白时间窗推进，无声场景使用明确帧数预算。可编辑分镜、代码、设计与许可来源随仓库分发；成片保存到 `videos/examples/<slug>/outputs/`，不入库。
 
 新增视频类型只在两处落地：在 `src/m2v/types/catalog.json` 登记类型身份、材料入口与初始化模板，并实现该类型的行为适配器（校验、准备、预演、渲染与可选的评审钩子）。统一入口不按类型名硬编码分发，作品契约也不维护类型白名单与材料映射；未在目录登记的类型会在渲染前失败。上面的清单与 Skill、项目规划中的清单都由该目录生成，改动后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成。
 
@@ -55,7 +55,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - 基础链路：`types`、`init`、`validate`、`prepare`、`preview`、`review-template`、`review`、`status`、`render`、`migrate`、`relocate`。
 - `preview` 只生成片段，默认前十秒（短作品最多全片减一帧），支持 `--start-seconds 20 --end-seconds 25` 或 `--limit-frames N`，覆盖全片会拒绝。它是可选检查工具，不是 render 的前置条件。
 - `render` 将完整候选和输入/实现/编码参数指纹及 SHA-256 保存在 `outputs/candidates/` 与 `outputs/delivery.json`，验收后复制交付同一文件；同版本重复执行、验收失败或交付失败重试均不重新完整编码；文件损坏或输入变化后才重新生成。`status` 报告已准备、候选待验收、验收失败、可交付、交付失败或已交付。可选评审绑定候选摘要；异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。候选、交付记录与清理规则见[交付与溯源](.agents/skills/material2video/references/delivery-and-provenance.md)。
-- 通用作品另有三个检查入口：`lookdev`（按风险选择尺寸的代表静帧、接触表与自定长度样片；无声作品样片无音轨，有声作品合并对应音轨；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选）与 `assets audit`（按实测尺寸与登记许可审计资产，全部登记媒体许可未知时阻断，输出 `outputs/asset-audit.json`）。
+- 通用作品另有三个检查入口：`lookdev`（按风险选择尺寸的代表静帧、接触表与自定长度样片；无声作品样片无音轨，有声作品合并对应音轨；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选；`inspection.rhythm` 另报全片及逐场旁白字数、旁白窗口并集、含窗口内停顿的平均字速、静音区间并集/占比与逐场交集，以及引子、段间、阅读停留、幕尾留白和未知归因。该测量不设最低字速或最长静音阈值，不参与技术判定；字幕阅读上限仍单独输出 `reading-pace.json`）与 `assets audit`（按实测尺寸与登记许可审计资产，全部登记媒体许可未知时阻断，输出 `outputs/asset-audit.json`）。
 - 文章专属：输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，图库默认且仅启用 Pixabay（需 `M2V_PIXABAY_API_KEY`），Pexels 固定停用；公开媒体直链仍可统一导入。混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`。
 - 金融专属：`m2v financial plan` 离线生成 v8 计划，`m2v financial migrate-line` 备份升级已有作品。
 - 操作性语义创作指导见 [material2video Skill](.agents/skills/material2video/SKILL.md)。

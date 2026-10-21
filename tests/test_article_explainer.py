@@ -234,6 +234,21 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     assert next_result["audio"]["cacheHits"] == 2
 
 
+def test_segment_holds_are_read_from_each_scene(tmp_path, monkeypatch):
+    """每幕段间留白必须用本幕声明，不能沿用第一遍循环最后一幕的列表。"""
+    first = scene("a", narrationSegments=[
+        {"id": "a1", "text": "甲。", "holdFrames": 30}, {"id": "a2", "text": "乙。"}])
+    second = scene("b", narrationSegments=[
+        {"id": "b1", "text": "丙。", "holdFrames": 6}, {"id": "b2", "text": "丁。"}])
+    root, manifest = project(tmp_path, board(scenes=[first, second]))
+    fake_tts(monkeypatch)
+    fake_record(monkeypatch)
+    result = adapter.prepare(root, manifest)
+    a, b = result["props"]["compiledScenes"]
+    assert a["segmentWindows"]["a2"] == {"startFrame": 90, "endFrame": 150}
+    assert b["segmentWindows"]["b2"] == {"startFrame": 240, "endFrame": 300}
+
+
 def test_narration_overlap_is_rejected(tmp_path, monkeypatch):
     """旁白不得重叠：淡化帧数不小于前一幕时长时准备失败。"""
     data = board()

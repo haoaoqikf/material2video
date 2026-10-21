@@ -156,7 +156,7 @@
         },
         {
           "id": "d2",
-          "text": "这是补充解释，也是机制示意，不是实测。"
+          "text": "车越多，扰动越容易被放大。"
         }
       ]
     },
@@ -175,22 +175,17 @@
           "mode": "return"
         }
       },
-      "readingHoldFrames": 36,
-      "tailFrames": 90,
+      "readingHoldFrames": 30,
+      "tailFrames": 60,
       "narrationSegments": [
         {
           "id": "f1",
           "text": "所以，堵了半天却什么都没看见，并不奇怪。",
-          "holdFrames": 24
+          "holdFrames": 18
         },
         {
           "id": "f2",
-          "text": "你可能只是穿过了一道拥堵波。车继续向前，波留在身后。",
-          "holdFrames": 30
-        },
-        {
-          "id": "f3",
-          "text": "机制依据：杉山等，2008。预设示意，非实测。"
+          "text": "你可能只是穿过了一道拥堵波。车继续向前，波留在身后。"
         }
       ]
     }

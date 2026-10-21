@@ -105,6 +105,32 @@
 - 历史实测（7 段口播）：语音合计 74.5s → 70.5s，
   短句读压到 0.15s、句末留 0.55s、起段引子 0.18s → 0.08s。
 
+## 节奏测量（QA）
+
+`m2v qa` 在 `outputs/qa.json` 的 `inspection.rhythm` 输出客观节奏测量，用于逐段核对停顿
+用途，不增加导出门禁：
+
+| 字段 | 含义 |
+|---|---|
+| `summary.characters` / `narrationSeconds` / `charactersPerSecond` | 全片旁白字数（排除标点与空白）、旁白窗口并集时长、包含窗口内停顿的平均字速；无旁白时字速为 `null` 并给出原因 |
+| `summary.silenceCandidates` / `silenceMerged` / `silenceSeconds` / `silenceRatio` | 交付音轨静音候选数、合并后区间数、全片并集时长与占比；先裁到有效音轨范围，跨场不重复计时 |
+| `scenes[]` | 逐场字数、旁白窗口、字速、静音交集与时间分布；跨场区间按交集分到各场 |
+| `summary.declaredHoldSeconds` | 时间轴实际落地的留白窗口：`leadIn`、`segmentHold`、`readingHold`、`tail`；与测量静音分别报告，不是可相加的同一分类 |
+| `summary.storyboardHoldSeconds` | 分镜声明的留白秒数；与 `declaredHoldSeconds` 不一致时提示逐幕复查，正常准备下二者应一致 |
+| `summary.narrationSilenceSeconds` / `declaredSilenceSeconds` / `unknownSilenceSeconds` | 静音落在旁白窗口、声明留白或无法归因部分的时长 |
+| `limitations` | 混音来源、窗口内停顿位置、非审美判定等限制 |
+
+使用边界：
+
+- 字数与字幕阅读使用同一口径（排除标点与空白），但**窗口平均字速不等于字幕阅读上限**；
+  阅读速度仍由 `outputs/reading-pace.json` 独立报告（≤9 字/秒）。
+- 静音来自混音后的交付音轨，音乐、音效与编码噪声都可能进入候选；窗口内静音只表示位置，
+  不声称由标点造成。无法确认来源的部分记为 `unknown`。
+- 交付音轨短于旁白窗口时 `truncated` 为真，字速为 `null` 并给出原因；不强行用缩短后的
+  窗口计算字速。淡化/交叉淡化造成的跨场重叠，边界静音分配给后一幕，逐场不重复计时。
+- 测量不设最低字速、最长静音或静音占比阈值，也不把技术通过写成节奏合适。逐段仍需说明
+  该停顿服务于观察、理解还是情绪；设计停顿本身不构成关闭节奏问题的证据。
+
 ## 口播合成与混音
 
 通用 v8 逐段合成（`narrationSegments[].text`），统一使用上面解析出的音色与语速。

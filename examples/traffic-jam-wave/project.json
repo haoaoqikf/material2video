@@ -13,10 +13,18 @@
   },
   "tts": {
     "voice": "zh-CN-YunxiNeural",
+    "speech": {
+      "headPad": 0.12,
+      "pause": {
+        "comma": 0.22,
+        "period": 0.65,
+        "paragraph": 0.8
+      }
+    },
     "selection": {
       "mode": "assistant",
       "rationale": "新版旁白从「堵了半天前面却什么都没有」的生活困惑出发，经过方向反常、一次刹车与环路换车，最后回到通勤经历；语气需要好奇、清楚而不过度戏剧化。服务元数据中云希为 Novel 类别，带 Lively、Sunshine 个性，适合这种先提问再解释的中文科普叙述；未试听，依据完整旁白与服务返回元数据选择。",
-      "narrationSha256": "e05e875235264cddb16ef53150a1a9ccc56791b736d2dedf13554cad239017eb"
+      "narrationSha256": "325ce6b7f188f90245ce151adb480f693a6885b6238caf8ed436591ea0c906f7"
     }
   }
 }

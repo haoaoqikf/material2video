@@ -12,8 +12,8 @@ from m2v.core.validate import fail, items, number, obj, text
 from m2v.engine import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
-from m2v.core.video_config import FPS
-MAX_FRAMES, READING_TAIL, FADE_FRAMES = 600 * FPS, round(.4 * FPS), round(8 / 30 * FPS)
+from m2v.core.video_config import FPS, READING_TAIL_SECONDS
+MAX_FRAMES, READING_TAIL, FADE_FRAMES = 600 * FPS, round(READING_TAIL_SECONDS * FPS), round(8 / 30 * FPS)
 VERSION = 8
 TEMPLATE = "code"
 MAX_SCENES, MAX_SEGMENTS = 300, 30

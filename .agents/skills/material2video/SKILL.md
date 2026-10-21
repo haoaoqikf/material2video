@@ -74,7 +74,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 
 短视频制作前明确发布语境、目标受众、核心传播重点及大致时长；按受众理解成本安排内容取舍，不把技术字数/时长合规当成传播效果通过。制作前、制作中与制作后均把降低前两秒流失作为定性审美因素：开场尽早给出可辨认的主题、主体或有意义动作，避免空泛铺垫；复核前两秒在手机尺寸下能否快速建立主题和继续观看的理由。没有真实平台数据时不计算或声称“2秒跳出率”，不设代理分数或机器门禁。中文受众作品以中文专名和贡献说明为主，英文缩写不能成为理解前提。
 
-先把核心体验写成可观察验收条目；内容、运动与实测配音共同调整预算。按[自主视觉复核](references/visual-review-rubric.md)检查整段运动及交界，已知核心体验缺陷必须返工，不作为限制放行。任务包含流程改进与作品重制时，两项均完成才算交付。
+先把核心体验写成可观察验收条目，并在制作前声明手机显示尺寸、关键可见事件及主体辨认、动作理解、关系理解三类目标；三类目标不能互相替代。问题记录沿用原验收条件，状态分为未解决、待复查、已关闭、接受保留：只有已关闭计入解决，接受保留必须记录剩余影响，核心理解问题不得降级放行。按[自主视觉复核](references/visual-review-rubric.md)检查整段运动及交界，已知核心体验缺陷必须返工，不作为限制放行。素材、运动与实测配音共同调整预算；`m2v qa` 的 `inspection.rhythm` 提供客观节奏测量，只作证据，不设审美阈值。最终候选必须逐页实际查看全片时间标注帧序列并记录页码与时间范围，生成采样不等于实际检查。任务包含流程改进与作品重制时，两项均完成才算交付。
 
 
 通用类型只接受 v8 全画布代码场景：每一幕声明唯一 `id`、`template: "code"`、`content.entry`
@@ -110,7 +110,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 - render 不要求预演。完整候选写入 candidates 并绑定输入、实现、参数和 SHA-256 后执行字幕、媒体及类型检查；有效候选重复执行直接复用，验收失败或交付失败也只重试检查和复制，禁止再次完整编码。
 - 全片技术验收通过后复制交付同一文件并保存溯源；失败保留候选和旧有效交付。status 显示 prepared / candidate-pending / validation-failed / ready / delivery-failed / delivered，不将技术通过解释为审美完成。
 - 人工画面评审可选，review-template / review 绑定当前候选 key、preparedFingerprint 和 sha256；旧预演记录不再生效。文章输入语义审查和金融自动探针保留。
-- 统一流程无需用户确认。general 助手须复核最终文件全片帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成；逐场验收与最终潜力报告分别见[逐场设计与独立验收](references/scene-design-and-acceptance.md)和[百万播放潜力](references/reach-potential.md)，两份记录都由 `outputs/visual-notes.md` 直接引用。
+- 统一流程无需用户确认。general 助手须逐页复核最终文件全片时间标注帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成；逐页检查需记录实际页码与时间范围，未覆盖部分保持未完成。逐场验收与最终潜力报告分别见[逐场设计与独立验收](references/scene-design-and-acceptance.md)和[百万播放潜力](references/reach-potential.md)，两份记录都由 `outputs/visual-notes.md` 直接引用。两次导演审查的时点与模板见[全片导演审查与剪辑重组](references/director-review-and-edit.md)。
 - 成功交付后才清理旧视频及已知调试产物，保留当前候选与交付记录、准备媒体、准备/评审 JSON；general 还保留 visual-notes.md 及其引用证据。失败不清理，共享缓存不受影响，清理失败报告遗留路径。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。

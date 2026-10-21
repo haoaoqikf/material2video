@@ -81,6 +81,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     # 先量测所有旁白，再分配无旁白镜头的剩余时间，绝不靠截断口播凑时长。
     scenes = copy.deepcopy(source["scenes"])
     measured, durations, overlaps, automatic = [], [], [], []
+    hold_lists: list[list[int]] = []
     hits = 0
     for index, scene in enumerate(scenes):
         overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", contract.FADE_FRAMES)
@@ -97,6 +98,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             holds.append(segment.get("holdFrames", 0))
             hits += int(hit)
         measured.append(segments)
+        hold_lists.append(holds)
         # 冷开场与收尾靠留白声明，阅读停留可以逐幕调整；未声明时与既有行为一致。
         # 段间留白只发生在相邻旁白之间，最后一段由 tailFrames 收尾。
         pad = scene.get("leadInFrames", 0) + scene.get("tailFrames", 0)
@@ -143,7 +145,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             speech_start += frames
             # 段间静默写在发声段之后，下一段的窗口与字幕因此整体后移；末段不插入。
             if segment_index < len(segments) - 1:
-                gap = holds[segment_index]
+                gap = hold_lists[index][segment_index]
                 if gap:
                     parts.append((None, gap))
                     speech_start += gap

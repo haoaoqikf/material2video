@@ -35,13 +35,13 @@ function Car({car, x, y, scale = 1.6, focus = false, angle = 0, tag, dim = false
       {car.brake && <rect x={-36} y={-18} width={18} height={36} rx={8} fill={C.red} opacity={0.32} filter="url(#softGlow)"/>}
       <rect x={24} y={-10} width={4} height={6} rx={2} fill={C.white} opacity={0.9}/>
       <rect x={24} y={4} width={4} height={6} rx={2} fill={C.white} opacity={0.9}/>
-      <text x={-16} y={4} textAnchor="middle" fontSize={9} fontWeight={700} fill="#0b1520" opacity={showId ? 1 : 0}>{car.id}</text>
+      <text x={-16} y={5} textAnchor="middle" fontSize={13} fontWeight={700} fill="#0b1520" opacity={showId ? 1 : 0}>{car.id}</text>
     </g>
-    {tag && <text x={0} y={-42 * scale} textAnchor="middle" fontSize={13} fontWeight={700} fill={C.cyan}>{tag}</text>}
+    {tag && <text x={0} y={-48 * scale} textAnchor="middle" fontSize={30} fontWeight={700} fill={C.cyan}>{tag}</text>}
   </g>;
 }
 
-function Road({seconds, y, group = 'high', camera, zoom = 1, focus, height = 320, carScale = 1.6,
+function Road({seconds, y, group = 'high', camera, zoom = 1, focus, height = 440, carScale = 2.4,
   showIds = true, slowLabel = false, tagId, dim = false}: {
   seconds: number; y: number; group?: GroupName; camera?: number; zoom?: number; focus?: number;
   height?: number; carScale?: number; showIds?: boolean; slowLabel?: boolean; tagId?: number; dim?: boolean;
@@ -86,7 +86,7 @@ function Road({seconds, y, group = 'high', camera, zoom = 1, focus, height = 320
   </g>;
 }
 
-function Ring({seconds, scale = .85, y = 850, focus}: {seconds: number; scale?: number; y?: number; focus?: number}) {
+function Ring({seconds, scale = 1.1, y = 960, focus}: {seconds: number; scale?: number; y?: number; focus?: number}) {
   const cars = sample('high', seconds);
   const slow = cars.filter(car => speedRatio(car.speed) < TRAFFIC.thresholds.slowRatio);
   const reference = slow.length ? slow[0].s : 0;
@@ -106,7 +106,7 @@ function Ring({seconds, scale = .85, y = 850, focus}: {seconds: number; scale?: 
     {polyline && <path d={polyline} fill="none" stroke={C.red} strokeWidth={128} strokeLinecap="round" opacity={0.22}/>}
     {slow.map(car => <circle key={car.id} cx={car.x} cy={car.y} r={80} fill={C.red} opacity={0.16}/>)}
     {cars.map(car => <Car key={car.id} car={car} x={car.x} y={car.y} angle={car.heading * 180 / Math.PI}
-      scale={1.35} focus={car.id === focus} tag={car.id === focus ? '8 号车' : undefined}/>)}
+      scale={2.6} focus={car.id === focus}/>)}
   </g>;
 }
 
@@ -129,12 +129,12 @@ function Mirror({seconds, x, y, w, h, scale = 1, label = '后视镜', focus = 8}
   const camera = slowCenter(cars) ?? cars[focus - 1].s;
   return <g transform={`translate(${x} ${y}) scale(${scale})`}>
     <rect x={-8} y={-8} width={w + 16} height={h + 16} rx={30} fill="#02070c" stroke={C.edge} strokeWidth={3}/>
-    <svg x={0} y={0} width={w} height={h} viewBox="0 0 1080 300" preserveAspectRatio="xMidYMid slice">
-      <Road seconds={seconds} y={150} height={260} zoom={0.42} carScale={0.95} focus={focus}
+    <svg x={0} y={0} width={w} height={h} viewBox="0 0 1080 320" preserveAspectRatio="xMidYMid slice">
+      <Road seconds={seconds} y={160} height={290} zoom={1.2} carScale={2.6} focus={focus}
         camera={camera} showIds={false}/>
     </svg>
     <rect x={0} y={0} width={w} height={h} fill="url(#mirrorGlass)" opacity={0.5}/>
-    <text x={18} y={-18} fontSize={22} fontWeight={700} fill={C.dim} letterSpacing={2}>{label}</text>
+    <text x={18} y={-20} fontSize={28} fontWeight={700} fill={C.dim} letterSpacing={2}>{label}</text>
   </g>;
 }
 
@@ -201,16 +201,20 @@ export default function Film(props: CodeSceneProps) {
   const brakeTime = 7 + span(['b1', 'b2']) * 5.5;
   const relayTime = 7 + span(['l1', 'l2', 'l3']) * 14;
   const densityTime = 7 + span(['d1', 'd2']) * 11;
-  const returnTime = 19 + span(['f1', 'f2', 'f3']) * 2.2;
+  const returnTime = 19 + span(['f1', 'f2']) * 2.2;
   const rewindAnchor = sample('high', 7)[0].s + TRAFFIC.groups.high.spacing * 2;
-  const brakeAnchor = sample('high', 7)[0].s + TRAFFIC.groups.high.spacing * 2.4;
-  const brakeZoom = mix(0.72, 0.88, ease(t / 2.2));
-  const ringScale = mix(0.74, 0.86, ease(t / 5));
-  const chartReveal = ease((t - 4.2) / 1.6);
+  const brakeAnchor = sample('high', brakeTime)[0].s - TRAFFIC.groups.high.spacing * 2.0;
+  const densityAnchor = sample('high', densityTime)[0].s - TRAFFIC.groups.high.spacing * 2;
+  const brakeZoom = mix(0.95, 1.12, ease(t / 2.2));
+  const ringScale = mix(1.02, 1.18, ease(t / 5));
+  // 密度场先让观众看清两条车流的差别，再出现曲线结果。
+  const highFlowReveal = ease((t - 0.2) / 1.0);
+  const lowFlowReveal = ease((t - 1.2) / 1.0);
+  const chartReveal = ease((t - 2.6) / 1.4);
   const mirrorReveal = ease((t - duration * 0.62) / 1.4);
   const emptyReveal = reveal('e1', 4);
-  const returnReveal = reveal('f2', 3);
-  const sourceReveal = reveal('f3', 3);
+  const returnReveal = reveal('f1', 3);
+  const sourceReveal = clamp((t - (duration - 4.2)) / 1.0);
 
   // 红色反向箭头由帧时间驱动 GSAP 补间；不使用挂钟，重复录制逐帧一致。
   const arrow = useRef<SVGGElement>(null);
@@ -223,9 +227,9 @@ export default function Film(props: CodeSceneProps) {
   const chart = {
     animation: false, backgroundColor: 'transparent',
     grid: {left: 58, right: 30, top: 30, bottom: 46},
-    textStyle: {color: C.dim, fontSize: 21, fontFamily: 'Noto Sans SC'},
-    xAxis: {type: 'value', min: 0, max: 12, axisLabel: {color: C.dim, fontSize: 20}, splitLine: {show: false}},
-    yAxis: {type: 'value', min: 0, max: 100, axisLabel: {color: C.dim, fontSize: 20, formatter: '{value}%'},
+    textStyle: {color: C.dim, fontSize: 26, fontFamily: 'Noto Sans SC'},
+    xAxis: {type: 'value', min: 0, max: 12, axisLabel: {color: C.dim, fontSize: 24}, splitLine: {show: false}},
+    yAxis: {type: 'value', min: 0, max: 100, axisLabel: {color: C.dim, fontSize: 24, formatter: '{value}%'},
       splitLine: {lineStyle: {color: '#1d2f3d'}}},
     series: [
       {type: 'line', data: curve('high', 7, densityTime), showSymbol: false, lineStyle: {color: C.red, width: 5}},
@@ -253,107 +257,111 @@ export default function Film(props: CodeSceneProps) {
       </defs>
       <City/>
       {mode === 'empty' && <>
-        <Road seconds={emptyTime} y={900} height={330} zoom={0.92} carScale={1.55} focus={8} tagId={8} slowLabel
+        <Road seconds={emptyTime} y={950} height={450} zoom={1} carScale={2.4} focus={8} tagId={8} slowLabel
           camera={sample('high', emptyTime)[7].s - TRAFFIC.groups.high.spacing * 2.2}/>
-        <Mirror seconds={mirrorTime} x={676} y={128} w={330} h={238} scale={1} focus={8}/>
+        <Mirror seconds={mirrorTime} x={560} y={370} w={470} h={330} scale={1} focus={8}/>
       </>}
       {mode === 'rewind' && <>
-        <Road seconds={rewindTime} y={810} height={380} zoom={0.55} carScale={1.4} camera={rewindAnchor}
+        <Road seconds={rewindTime} y={870} height={460} zoom={0.95} carScale={2.4} camera={rewindAnchor}
           focus={8} slowLabel tagId={8}/>
-        <g ref={arrow}><Arrow x1={920} x2={170} y={1040} color={C.red} width={7} label="慢区向后"/></g>
-        <Arrow x1={160} x2={930} y={590} color={C.cyan} width={6} label="车流向前"/>
+        <g ref={arrow}><Arrow x1={930} x2={150} y={1135} color={C.red} width={8} label="慢区向后"/></g>
+        <Arrow x1={150} x2={940} y={605} color={C.cyan} width={7} label="车流向前"/>
       </>}
       {mode === 'brake' && <>
         <g>
           {Array.from({length: 6}, (_, i) => {
-            const x = 150 + i * 150;
+            const x = 110 + i * 172;
             const active = speedRatio(sample('high', brakeTime)[i].speed) < TRAFFIC.thresholds.brakeRatio;
             return <g key={i}>
-              <circle cx={x} cy={430} r={16} fill={active ? C.red : '#1d2f3d'} stroke={active ? C.redSoft : C.edge}
-                strokeWidth={2} opacity={active ? 0.95 : 0.8}/>
-              <text x={x} y={472} textAnchor="middle" fontSize={18} fill={active ? C.red : C.dim}>{i + 1}</text>
+              <circle cx={x} cy={400} r={24} fill={active ? C.red : '#1d2f3d'} stroke={active ? C.redSoft : C.edge}
+                strokeWidth={3} opacity={active ? 0.95 : 0.8}/>
+              <text x={x} y={452} textAnchor="middle" fontSize={26} fill={active ? C.red : C.dim}>{i + 1}</text>
             </g>;
           })}
-          <path d="M126 396H954" stroke={C.edge} strokeWidth={2} opacity={0.8}/>
-          <text x={540} y={360} textAnchor="middle" fontSize={22} fill={C.dim}>每辆车的反应，晚 0.85 秒</text>
+          <path d="M86 360H994" stroke={C.edge} strokeWidth={2} opacity={0.8}/>
+          <text x={540} y={326} textAnchor="middle" fontSize={26} fill={C.dim}>每辆车的反应，晚 0.85 秒</text>
         </g>
-        <Road seconds={brakeTime} y={850} height={370} zoom={brakeZoom} carScale={1.55} camera={brakeAnchor}
+        <Road seconds={brakeTime} y={910} height={460} zoom={brakeZoom} carScale={2.4} camera={brakeAnchor}
           focus={1}/>
       </>}
       {mode === 'relay' && <>
-        <Ring seconds={relayTime} scale={ringScale} y={880} focus={8}/>
+        <Ring seconds={relayTime} scale={ringScale} y={960} focus={8}/>
       </>}
       {mode === 'density' && <>
-        <Road seconds={densityTime} y={560} height={190} zoom={0.5} carScale={1.2} group="high"
-          camera={sample('high', 7)[0].s + TRAFFIC.groups.high.spacing * 8}/>
-        <Road seconds={densityTime} y={860} height={190} zoom={0.5} carScale={1.2} group="low"
-          camera={sample('high', 7)[0].s + TRAFFIC.groups.high.spacing * 8}/>
+        <g opacity={highFlowReveal}>
+          <Road seconds={densityTime} y={500} height={230} zoom={0.75} carScale={1.9} group="high"
+            camera={densityAnchor}/>
+        </g>
+        <g opacity={lowFlowReveal}>
+          <Road seconds={densityTime} y={810} height={230} zoom={0.75} carScale={1.9} group="low"
+            camera={densityAnchor}/>
+        </g>
       </>}
       {mode === 'return' && <>
-        <Road seconds={returnTime} y={900} height={330} zoom={0.92} carScale={1.55} focus={8} tagId={8} slowLabel
+        <Road seconds={returnTime} y={950} height={450} zoom={1} carScale={2.4} focus={8} tagId={8} slowLabel
           camera={sample('high', returnTime)[7].s - TRAFFIC.groups.high.spacing * 2.2}/>
-        <Mirror seconds={returnTime} x={666} y={118} w={340} h={250} scale={0.98 + mirrorReveal * 0.16} focus={8}/>
+        <Mirror seconds={returnTime} x={560} y={370} w={470} h={330} scale={0.98 + mirrorReveal * 0.08} focus={8}/>
       </>}
     </svg>
 
     {mode === 'empty' && <>
-      <Label top={86} size={24} color={C.cyan}>你刚驶出拥堵</Label>
-      <Title top={138} size={72} width={590}>堵了半天，</Title>
-      <Title top={228} size={72} width={590} opacity={emptyReveal}>前面<span style={{color: C.red}}>什么都没有</span>？</Title>
-      <Label top={1110} size={34} color={C.cyan} opacity={reveal('e1', 3)}>前方畅通，没有事故，也没有封路。</Label>
-      <Label top={1170} size={30} color={C.red} opacity={reveal('e2', 3)}>可后视镜里，还是一片红灯。</Label>
-      <Label top={1450} size={22} color={C.faint}>预设示意 · 非实测</Label>
+      <Label top={78} size={26} color={C.cyan}>你刚驶出拥堵</Label>
+      <Title top={124} size={80} width={700}>堵了半天，</Title>
+      <Title top={220} size={80} width={700} opacity={emptyReveal}>前面<span style={{color: C.red}}>什么都没有</span>？</Title>
+      <Label top={1210} size={36} color={C.cyan} opacity={reveal('e1', 3)}>前方畅通，没有事故，也没有封路。</Label>
+      <Label top={1280} size={32} color={C.red} opacity={reveal('e2', 3)}>可后视镜里，还是一片红灯。</Label>
+      <Label top={1500} size={24} color={C.faint}>预设示意 · 非实测</Label>
     </>}
     {mode === 'rewind' && <>
-      <Label top={84} size={22} color={C.dim}>回放 · 00:{rewindTime.toFixed(1).padStart(4, '0')}</Label>
-      <Title top={136} size={78} width={860}>拥堵，在往后跑。</Title>
-      <Label top={248} size={32} color={C.cyan} opacity={reveal('w2', 4)}>车在往前开</Label>
-      <Label top={294} size={32} color={C.red} opacity={reveal('w2', 4)}>慢下来的区域，却在往后退</Label>
-      <Label top={1130} size={28} color={C.dim}>同一段时间里，两个方向同时发生。</Label>
-      <div style={{position: 'absolute', left: 76, top: 1210, width: 928, height: 8, borderRadius: 4, background: '#172838'}}>
+      <Label top={80} size={24} color={C.dim}>回放 · 00:{rewindTime.toFixed(1).padStart(4, '0')}</Label>
+      <Title top={124} size={78} width={900}>拥堵，在往后跑。</Title>
+      <Label top={242} size={34} color={C.cyan} opacity={reveal('w2', 4)}>车在往前开</Label>
+      <Label top={292} size={34} color={C.red} opacity={reveal('w2', 4)}>慢下来的区域，却在往后退</Label>
+      <Label top={1210} size={30} color={C.dim}>同一段时间里，两个方向同时发生。</Label>
+      <div style={{position: 'absolute', left: 76, top: 1280, width: 928, height: 8, borderRadius: 4, background: '#172838'}}>
         <div style={{width: `${Math.round(sceneProgress * 100)}%`, height: 8, borderRadius: 4,
           background: `linear-gradient(90deg, ${C.cyan}, ${C.red})`}}/>
       </div>
     </>}
     {mode === 'brake' && <>
-      <Label top={84} size={22} color={C.dim}>局部放大 · 预设轨迹</Label>
-      <Title top={136} size={66} width={928}>一切从一次轻刹车开始。</Title>
-      <Label top={252} size={32} color={C.dim} opacity={reveal('b1', 4)}>前车减速，后车没法同时反应。</Label>
-      <Label top={1120} size={34} color={C.red} opacity={reveal('b2', 3)}>一辆接一辆，刹车灯向后亮起。</Label>
-      <Label top={1188} size={26} color={C.dim}>1 号车与后车：{gapUnits(gapToAhead(sample('high', brakeTime), 1)).toFixed(1)} 车位</Label>
-      <Label top={1450} size={22} color={C.faint}>反应延迟 0.85 秒/辆 · 预设模型</Label>
+      <Label top={78} size={24} color={C.dim}>局部放大 · 预设轨迹</Label>
+      <Title top={120} size={68} width={928}>一切从一次轻刹车开始。</Title>
+      <Label top={238} size={34} color={C.dim} opacity={reveal('b1', 4)}>前车减速，后车没法同时反应。</Label>
+      <Label top={1210} size={36} color={C.red} opacity={reveal('b2', 3)}>一辆接一辆，刹车灯向后亮起。</Label>
+      <Label top={1282} size={30} color={C.dim}>1 号车与后车：{gapUnits(gapToAhead(sample('high', brakeTime), 1)).toFixed(1)} 车位</Label>
+      <Label top={1500} size={24} color={C.faint}>反应延迟 0.85 秒/辆 · 预设模型</Label>
     </>}
     {mode === 'relay' && <>
-      <Label top={84} size={22} color={C.dim}>没有路口 · 没有出口 · 没有事故</Label>
-      <Title top={136} size={80} width={860}>换的是车，<span style={{color: C.red}}>不是路。</span></Title>
-      <div style={{position: 'absolute', left: 300, top: 812, width: 480, textAlign: 'center',
-        fontSize: 44, fontWeight: 750, lineHeight: 1.35}}>
+      <Label top={82} size={24} color={C.dim}>没有路口 · 没有出口 · 没有事故</Label>
+      <Title top={122} size={76} width={900}>换的是车，<span style={{color: C.red}}>不是路。</span></Title>
+      <Label top={228} size={30} color={C.cyan} opacity={reveal('l2', 3)}>蓝框车一直向前，红色慢区不断换车。</Label>
+      <Label top={82} left={760} size={22} color={C.faint}>环路全景 · 预设示意</Label>
+      <div style={{position: 'absolute', left: 280, top: 880, width: 520, textAlign: 'center',
+        fontSize: 50, fontWeight: 750, lineHeight: 1.35}}>
         同一团拥堵<br/><span style={{color: C.red}}>不同的车</span>
       </div>
-      <Label top={1400} size={30} color={C.cyan} opacity={reveal('l2', 3)}>蓝框车一直向前，红色慢区不断换车。</Label>
-      <Label top={1450} size={22} color={C.faint}>环路全景 · 预设示意</Label>
     </>}
     {mode === 'density' && <>
-      <div style={{position: 'absolute', right: 76, top: 86, fontSize: 22, color: C.dim,
-        border: `2px solid ${C.edge}`, borderRadius: 999, padding: '6px 16px'}}>补充解释</div>
-      <Title top={136} size={62} width={900}>同样的刹车，两种结果。</Title>
-      <Label top={400} size={30} color={C.red}>密集车流 · 响应放大</Label>
-      <Label top={700} size={30} color={C.cyan}>稀疏车流 · 逐渐减弱</Label>
-      <Label top={1000} size={22} color={C.dim}>第 6 辆车 · 相对速度</Label>
-      <div style={{position: 'absolute', left: 64, top: 1030, width: 960, height: 390, opacity: chartReveal,
+      <div style={{position: 'absolute', right: 76, top: 86, fontSize: 24, color: C.dim,
+        border: `2px solid ${C.edge}`, borderRadius: 999, padding: '6px 18px'}}>补充解释</div>
+      <Title top={130} size={64} width={900}>同样的刹车，两种结果。</Title>
+      <Label top={300} size={26} color={C.dim} opacity={highFlowReveal}>① 先看车流</Label>
+      <Label top={348} size={32} color={C.red} opacity={highFlowReveal}>密集车流 · 响应放大</Label>
+      <Label top={660} size={32} color={C.cyan} opacity={lowFlowReveal}>稀疏车流 · 逐渐减弱</Label>
+      <Label top={650} left={640} size={24} color={C.faint} opacity={lowFlowReveal}>同一扰动 · 只改密度</Label>
+      <Label top={930} size={24} color={C.dim} opacity={chartReveal}>② 第 6 辆车 · 相对速度</Label>
+      <div style={{position: 'absolute', left: 64, top: 970, width: 960, height: 400, opacity: chartReveal,
         transform: `translateY(${18 * (1 - chartReveal)}px)`}}>
-        <Chart option={chart} width={960} height={390}/>
+        <Chart option={chart} width={960} height={400}/>
       </div>
-      <Label top={1452} size={22} color={C.faint} opacity={reveal('d2', 4)}>预设模型 · 非实测 · 仅解释一种机制</Label>
+      <Label top={1452} size={24} color={C.faint} opacity={reveal('d2', 4)}>预设模型 · 非实测 · 仅解释一种机制</Label>
     </>}
     {mode === 'return' && <>
-      <Label top={84} size={24} color={C.cyan}>回到那条路</Label>
-      <Title top={136} size={78} width={560}>你穿过的，</Title>
-      <Title top={228} size={78} width={560} opacity={returnReveal}>是一道<span style={{color: C.red}}>拥堵波</span>。</Title>
-      <Label top={1110} size={32} color={C.white} opacity={returnReveal}>车继续向前，波留在身后。</Label>
-      <Label top={1180} size={28} color={C.dim} opacity={returnReveal}>所以堵了半天却什么都没看见，并不奇怪。</Label>
-      <Label top={1400} size={24} color={C.dim} opacity={sourceReveal}>原创示意动画 · 机制依据：杉山等，2008</Label>
-      <Label top={1444} size={22} color={C.faint} opacity={sourceReveal}>预设模型，非实测；仅解释拥堵的一种机制。</Label>
+      <Label top={78} size={26} color={C.cyan}>回到那条路</Label>
+      <Title top={124} size={80} width={700}>你穿过的，</Title>
+      <Title top={220} size={80} width={700} opacity={returnReveal}>是一道<span style={{color: C.red}}>拥堵波</span>。</Title>
+      <Label top={1380} size={26} color={C.dim} opacity={sourceReveal}>原创示意动画 · 机制依据：杉山等，2008</Label>
+      <Label top={1428} size={24} color={C.faint} opacity={sourceReveal}>预设模型，非实测；仅解释拥堵的一种机制。</Label>
     </>}
   </div>;
 }

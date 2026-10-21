@@ -4,7 +4,8 @@
 
 - **硬判定**（失败即 `status: fail`）：冻结/重复帧、字幕对比度、响度与真峰值、
   音轨时长一致、每条 `claims` 的时间窗有覆盖镜头。
-- **测量项**（只报告数值与提醒）：banding、aliasing、接触表。它们受内容影响很大，
+- **测量项**（只报告数值与提醒）：banding、aliasing、接触表，以及 `inspection.rhythm`
+  的全片/逐场字数、旁白窗口、平均字速、静音分布与归因。它们受内容影响很大，
   用固定阈值判死会把正常画面误判成缺陷，因此只给数值与静帧复核入口。
 
 报告写在作品 `outputs/qa.json`，接触表写在 `outputs/qa/contact-sheet.png`。
@@ -329,7 +330,8 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
               "observation": {"status": "not-evaluated",
                               "record": observation_path,
                               "requiredChecks": ["composition", "material", "mobile-legibility",
-                                                 "claim-visibility", "frame-sequence", "audio-candidate-review"],
+                                                 "claim-visibility", "frame-sequence", "audio-candidate-review",
+                                                 "rhythm-measurement"],
                               "detail": "技术结论不代表视觉完成；助手须复核帧序列与音频候选，无需连续播放或实际试听。"},
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}

@@ -13,6 +13,7 @@ import time
 
 from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
+from m2v.engine import rhythm_measure
 
 logger = logging.getLogger(__name__)
 
@@ -99,19 +100,10 @@ def _audio_format(video: Path) -> tuple[int, int] | None:
 
 
 def narration_windows(prepared: dict) -> list[dict]:
-    result = []
-    fps = prepared['fps']
+    """保留本模块入口；窗口口径与节奏测量共用 `rhythm_measure.narration_windows`。"""
     # prepared 的 segmentWindows 已经是全片绝对帧号（准备阶段把 scene.startFrame 与
     # 本幕旁白起点一起写进去了）；再叠加一次幕起点会让第二幕以后的窗口整体后移。
-    for scene in prepared['props'].get('compiledScenes', []):
-        for segment in scene.get('narrationSegments', []):
-            if not segment.get('text', '').strip():
-                continue
-            window = scene.get('segmentWindows', {}).get(segment['id'])
-            if window:
-                result.append({'id': segment['id'], 'startSeconds': window['startFrame'] / fps,
-                               'endSeconds': window['endFrame'] / fps})
-    return result
+    return rhythm_measure.narration_windows(prepared)
 
 
 def audio_signals(video: Path, prepared: dict, *, required: bool) -> dict:
@@ -220,6 +212,8 @@ def inspect(video: Path, prepared: dict, outputs: Path, *, audio_required: bool)
     seconds = prepared['durationInFrames'] / prepared['fps']
     visual = video_candidates(video, seconds)
     audio = audio_signals(video, prepared, required=audio_required)
+    # 节奏测量复用上面已完成的音轨检测与 prepared 时间轴，不再解码一次音轨。
+    rhythm = rhythm_measure.build(prepared, audio)
     intervals = visual['candidates'] + audio['candidates']
     sequence = extract_sequence(video, prepared, outputs, intervals)
     # 流式摘要，不把数百MB交付文件读进内存。
@@ -231,5 +225,6 @@ def inspect(video: Path, prepared: dict, outputs: Path, *, audio_required: bool)
     return {'videoSha256': digest, 'preparedFingerprint': prepared['preparedFingerprint'],
             'elapsedSeconds': elapsed,
             'sequence': sequence, 'videoSignals': visual, 'audioSignals': audio,
+            'rhythm': rhythm,
             'observation': 'not-evaluated', 'reviewRequired': True,
             'limitations': ['未进行视频播放或连续音频收听（流程不要求）', '配音自然度、口播误读、音乐感染力未验证', '采样间瞬时缺陷可能遗漏']}
