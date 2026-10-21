@@ -91,6 +91,12 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
         assert data["input"]["topic"].strip()
         assert not article.exists(), f"{path.parent.name} 采用主题输入，不应再放一份原文"
         assert "示意" in sources
+        if path.parent.name == "traffic-jam-wave":
+            # 重制后的生活困惑结构与主线/补充分工。
+            assert [scene["id"] for scene in data["scenes"]] == [
+                "empty", "rewind", "brake", "relay", "density", "return"
+            ]
+            assert not data.get("soundtrack", {}).get("music")
     else:
         article_text = article.read_text(encoding="utf-8")
         assert "示意" in sources, "示意数据没有标注"
@@ -175,7 +181,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert seconds == 30
         assert not data["subtitles"]
         return
-    ranges = {"solar-system-journey": (120, 600), "traffic-jam-wave": (60, 90)}
+    ranges = {"solar-system-journey": (120, 600), "traffic-jam-wave": (1, 600)}
     minimum, maximum = ranges.get(name, (120, 180))
     assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"

@@ -137,6 +137,30 @@ def test_general_cleanup_preserves_only_explicit_local_visual_evidence(tmp_path:
     assert not (outputs / "old.mp4").exists()
 
 
+def test_general_cleanup_preserves_reach_report_and_notes_linked_evidence(tmp_path: Path) -> None:
+    """潜力报告与 visual-notes 直接引用的证据必须保留；只被报告引用的媒体不扩大保留范围。"""
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "video.mp4"
+    current.write_bytes(b"final")
+    report = outputs / "reach-potential-report.md"
+    report.write_text("[依据](reach/evidence.png) [仅报告引用](reach/report-only.png)", encoding="utf-8")
+    for name in ("reach/evidence.png", "reach/report-only.png", "reach/stale.mp4"):
+        path = outputs / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"evidence")
+    (outputs / "visual-notes.md").write_text(
+        "[潜力报告](reach-potential-report.md) [依据](reach/evidence.png)", encoding="utf-8")
+
+    assert output_cleanup.cleanup_after_render(outputs, current, preserve_visual_evidence=True) == []
+
+    assert report.is_file()
+    assert (outputs / "reach/evidence.png").is_file()
+    # 报告自身不是清理的引用入口；未被 visual-notes 引用的媒体仍按清理规则删除。
+    assert not (outputs / "reach/report-only.png").exists()
+    assert not (outputs / "reach/stale.mp4").exists()
+
+
 def test_unreadable_visual_record_skips_cleanup_without_losing_current(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     outputs.mkdir()

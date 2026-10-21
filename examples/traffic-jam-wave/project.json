@@ -15,8 +15,8 @@
     "voice": "zh-CN-YunxiNeural",
     "selection": {
       "mode": "assistant",
-      "rationale": "旁白先展示方向反常，再追查原因并回到生活经历；服务返回云希Novel、Lively、Sunshine，适合有好奇感的中文科普叙述。依据完整旁白和服务元数据，未试听。",
-      "narrationSha256": "4551e57b366837829efa78255b2ebc4acccfe90319c67acad9c700fe0150f000"
+      "rationale": "新版旁白从「堵了半天前面却什么都没有」的生活困惑出发，经过方向反常、一次刹车与环路换车，最后回到通勤经历；语气需要好奇、清楚而不过度戏剧化。服务元数据中云希为 Novel 类别，带 Lively、Sunshine 个性，适合这种先提问再解释的中文科普叙述；未试听，依据完整旁白与服务返回元数据选择。",
+      "narrationSha256": "e05e875235264cddb16ef53150a1a9ccc56791b736d2dedf13554cad239017eb"
     }
   }
 }
