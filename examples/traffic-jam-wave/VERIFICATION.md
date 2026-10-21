@@ -148,6 +148,8 @@
 | `openspec validate --specs --strict` | 18 项通过 |
 | `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` | 类型清单与目录一致 |
 
+实现提交：`101d2ca`（逐场验收、导演审查与拥堵波重制）；归档提交随本次 `openspec archive` 生成，交付时报告。
+
 ## 覆盖限制
 
 - 未播放视频、未连续收听；复核基于全片时间标注帧序列、代表静帧、轨迹量测与自动音频信号。
