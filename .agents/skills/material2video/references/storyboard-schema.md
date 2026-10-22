@@ -36,6 +36,13 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 `segmentWindows` 仍只表示发声窗口，字幕与音效引用自动后移。段间静默是**单幕一镜到底**在
 不打断口播的前提下保留观察时间的唯一方式。
 
+整片只有音床、没有旁白的作品，`durationFrames` 决定全片长度：先取音频的 60 fps 总帧数
+`(samples × 60 + sampleRate - 1) // sampleRate`，再分配到各幕。全部幕使用 `cut` 时
+`sum(durationFrames)` 等于总帧数；使用 `fade`/`crossfade` 时另加重叠帧。`soundtrack.music`
+必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`，否则默认 −24 dB 与
+500ms 淡化会改变原音频。音轨来源与授权要求见
+[文章媒体与音效](article-media-and-sound.md#复用参考音轨受控例外)。
+
 ### 一镜到底
 
 真正的一镜到底必须写成**单幕 + 多个首尾相接的镜头**：每一幕都会独立录制，跨幕相机必然跳变，

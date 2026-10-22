@@ -76,13 +76,17 @@ def _parser() -> argparse.ArgumentParser:
     assets.add_argument("workflow", choices=("audit",))
     assets.add_argument("--project", required=True)
 
-    ref = sub.add_parser("ref", help="获取并校验抖音参考素材")
-    ref.add_argument("workflow", choices=("fetch", "verify"))
-    ref.add_argument("target", help="分享文本/链接，或待校验的参考素材目录")
+    ref = sub.add_parser("ref", help="获取、校验抖音参考素材并提取授权音轨")
+    ref.add_argument("workflow", choices=("fetch", "verify", "audio"))
+    ref.add_argument("target", help="分享文本/链接、待校验的参考素材目录，或 ref audio 的参考目录")
     ref.add_argument("--output", help="参考素材根目录；省略时为 <工作区>/refs/douyin")
     ref.add_argument("--headed", action="store_true", help="显示浏览器窗口，便于登录或完成验证")
-    ref.add_argument("--force", action="store_true", help="校验失败或需要更新时替换已有素材")
+    ref.add_argument("--force", action="store_true", help="校验失败或需要更新时替换已有素材或音轨")
     ref.add_argument("--json", action="store_true", help="输出 JSON")
+    ref.add_argument("--project", help="ref audio 的作品目录")
+    ref.add_argument("--name", help="ref audio 的音频文件名（不含扩展名；默认 ref-<作品ID>）")
+    ref.add_argument("--user-authorized", dest="user_authorized",
+                     help="ref audio 必填：用户明确要求复用该参考作品音频的说明原文")
 
     migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
     migrate.add_argument("--project", required=True)

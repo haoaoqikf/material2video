@@ -3,8 +3,10 @@
 不实现 ``a_bogus`` 等签名参数：页面自己完成签名与请求，这里只读取页面已经取得的
 详情。图文页不请求详情接口，因此保留从页面内嵌 RSC 载荷解析的兜底路径。
 
-参考素材落在 ``refs/douyin/<awemeId>/``：媒体用于制作前分析，不进入成片，也不进入
-版本控制。目录里的 ``recipe.json`` 是唯一留证来源，``ref verify`` 按它复核。
+参考素材落在 ``refs/douyin/<awemeId>/``：媒体默认用于制作前分析，不进入成片，也不进入
+版本控制。目录里的 ``recipe.json`` 是唯一留证来源，``ref verify`` 按它复核。用户明确
+要求复用单条参考音频时，由 ``m2v.reference.audio`` 提取到作品目录并留证，渲染链路仍
+不直接读取 ``refs/``。
 """
 from __future__ import annotations
 

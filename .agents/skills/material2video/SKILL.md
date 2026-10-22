@@ -47,7 +47,11 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧目录及全部产物
 uv run m2v lookdev --project videos/general/<slug>  # 代表静帧与风险样片，结论记入 visual-notes.md
 uv run m2v qa --project videos/general/<slug>       # 技术 QA，输出 outputs/qa.json
 uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可审计
+# 仅在用户明确要求复用某条参考作品音频时：
+uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-authorized "<授权说明>"
 ```
+
+参考素材默认只用于分析、比对与制作参考，渲染链路不直接读取 `refs/`。`m2v ref fetch/verify` 负责获取与复核；用户明确要求复用单条参考作品音频时，`ref audio` 才把音轨提取到作品 `assets/audio/` 并写 provenance（来源、摘要、授权原文、许可状态），成片只保留一处署名。无旁白作品只用 `soundtrack.music` 作全片音源时，必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`，并按 `ceil(samples × 60 / sampleRate)` 对齐每幕 `durationFrames`。细节见[文章媒体与音效](references/article-media-and-sound.md#复用参考音轨受控例外)。
 
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60` 生成计划。
 

@@ -97,3 +97,17 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
   修正只改增益、不改变时间轴；音效素材摘要进入准备指纹，换素材或改参数都要重新 prepare。
 
 没有 `soundtrack` 时母版轨只做响度归一化；有音床或音效时按字幕讲话区间做闪避、混音并限幅。
+
+### 复用参考音轨（受控例外）
+
+参考素材默认不进入成片。用户明确要求复用单条参考作品音频时，先执行：
+
+```powershell
+uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-authorized "<用户授权原文>"
+```
+
+命令按 `recipe.json` 复核参考目录，提取 PCM16 / 48 kHz / 源声道 WAV 到作品 `assets/audio/<名称>.wav`，并写同名 `.provenance.json`。`--json` 或人类输出给出 60 fps 总帧数（`(samples × 60 + sampleRate - 1) // sampleRate`）与可直接粘贴的 `soundtrack` 片段。目标已存在时默认拒绝，来源与摘要一致才复用，`--force` 才替换。
+
+无旁白作品只有音床时，音床就是全片唯一音源：必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`。全部幕使用 `cut` 时 `sum(durationFrames) = totalFrames`；使用 `fade`/`crossfade` 时另加 `transitionFrames` 之和。母版仍会重采样为 24 kHz 单声道、经限幅/压缩/响度归一后交付 AAC 44.1 kHz，交付说明写「整条音频作为唯一音源，经母版响度规范」，不写「比特级原样」。
+
+`--user-authorized` 必须带用户原文；provenance 记录来源、参考视频与提取音频摘要、许可状态与第三方音乐风险，不把用户授权表述为许可。参考视频画面仍不得进入成片；成片只保留一处片尾署名。

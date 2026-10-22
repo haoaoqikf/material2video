@@ -64,3 +64,17 @@ def test_scene_design_and_reach_templates_are_documented():
     for token in ("角色分离自审", "第一次导演审查", "第二次导演审查", "剪辑重组",
                   "回写", "重新 `prepare`", "全片否决", "真实观众", "判断演练"):
         assert token in director, f"导演审查模板缺少：{token}"
+
+
+def test_reference_audio_reuse_is_documented():
+    """参考音轨复用是受控例外：命令、授权说明与无旁白时间轴都要写清楚。"""
+    repo = ROOT.parents[3]
+    readme = (repo / "README.md").read_text(encoding="utf-8")
+    assert "m2v ref audio" in readme and "--user-authorized" in readme
+    skill = (ROOT.parents[0] / "SKILL.md").read_text(encoding="utf-8")
+    assert "ref audio" in skill and "user-authorized" in skill
+    sound = (ROOT / "article-media-and-sound.md").read_text(encoding="utf-8")
+    assert "复用参考音轨（受控例外）" in sound
+    assert "gainDb: 0" in sound and "sampleRate - 1" in sound
+    schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
+    assert "整片只有音床" in schema and "sampleRate - 1" in schema
