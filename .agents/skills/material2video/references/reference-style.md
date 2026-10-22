@@ -110,7 +110,7 @@
 
 ## 第六步：同族冷审
 
-复用[自主视觉复核](visual-review-rubric.md)的冷审原则，制作者不参与判定：
+由独立上下文的冷审执行，制作者不参与判定；结论按[自主视觉复核](visual-review-rubric.md)的证据要求记录：
 
 1. 冷审者先只看并排图，不看 DESIGN.md 与风格契约。
 2. 先描述：两边的主体多大、光从哪来、画面密度如何、文字几层。
@@ -136,5 +136,5 @@
 
 - 阶段与循环：[循环创作、美术、声音与制作阶段](creative-production.md)。
 - 逐场验收与证据：[逐场设计与独立验收](scene-design-and-acceptance.md)。
-- 冷审方法与硬测试：[自主视觉复核](visual-review-rubric.md)。
+- 复核记录与证据要求：[自主视觉复核](visual-review-rubric.md)。
 - 参考素材获取、音轨复用与使用边界：[文章媒体与音效](article-media-and-sound.md)。
