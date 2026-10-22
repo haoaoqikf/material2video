@@ -10,7 +10,10 @@
 
 ## 重现制作
 
+示例媒体不入库；首次重建先运行恢复入口，按配方下载观测图并生成程序化材质，逐项校验摘要、尺寸与时长，已正确的文件直接复用。下载或生成失败会明确报错且不改写已有素材。
+
 ```powershell
+uv run python examples/solar-system-journey/assets/fetch.py
 node examples/solar-system-journey/scripts/generate-paths.mjs --merge
 node examples/solar-system-journey/scripts/check-motion.mjs
 uv run python examples/solar-system-journey/scripts/render-rough.py

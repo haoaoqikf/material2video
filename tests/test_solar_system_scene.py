@@ -41,6 +41,8 @@ SHOTS = [
 
 def build_example(tmp_path: Path):
     """用与制作完全相同的构建入口打包示例自己的场景与已登记素材。"""
+    if not (EXAMPLE / "assets/media").is_dir():
+        pytest.skip("示例媒体未恢复；先运行 examples/solar-system-journey/assets/fetch.py")
     project = tmp_path / "project"
     shutil.copytree(EXAMPLE / "scenes", project / "scenes")
     shutil.copytree(EXAMPLE / "assets/media", project / "assets/media")

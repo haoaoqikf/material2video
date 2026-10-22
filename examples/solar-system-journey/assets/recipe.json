@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "mercury",
+      "downloadUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_mercury.jpg",
+      "transform": "copy",
+      "expectedSha256": "5a5c80607f643496bac9a631e71957def35ed788895f18b678ac849c2b38e48a"
+    },
+    {
+      "id": "venus",
+      "downloadUrl": "https://media.githubusercontent.com/media/TanvirAhmedArnab/SolarSystem/main/SourceAssets/ThirdParty/Textures/SolarSystemScope/2k_venus_atmosphere.jpg",
+      "transform": "copy",
+      "expectedSha256": "225012ad4911730605c4e189ca2a3bf674fce50cc48aab4102b936b47d6991ac"
+    },
+    {
+      "id": "mars",
+      "downloadUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_mars.jpg",
+      "transform": "copy",
+      "expectedSha256": "2d187f3e77a98eaa8cea5f4cc722f633c122ef170b9e94ace6b5fb6cbc3f8e01"
+    },
+    {
+      "id": "uranus",
+      "downloadUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_uranus.jpg",
+      "transform": "copy",
+      "expectedSha256": "d15239d46f82d3ea13d2b260b5b29b2a382f42f2916dae0694d0387b1204a09d"
+    },
+    {
+      "id": "neptune",
+      "downloadUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_neptune.jpg",
+      "transform": "copy",
+      "expectedSha256": "cb42ea82709741d28b0af44d8b283cbc6dbd0c521a7f0e1e1e010ade00977df6"
+    },
+    {
+      "id": "moon",
+      "downloadUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_moon.jpg",
+      "transform": "copy",
+      "expectedSha256": "2764ba6535ea0481a062846ee033cc7a909dae05b31a8fd13f3e98f3a7fd92bd"
+    },
+    {
+      "id": "clouds",
+      "downloadUrl": "https://media.githubusercontent.com/media/TanvirAhmedArnab/SolarSystem/main/SourceAssets/ThirdParty/Textures/SolarSystemScope/2k_earth_clouds.jpg",
+      "transform": "copy",
+      "expectedSha256": "fffd7f68d41b37274822150e54a6ef605af1d3ec35624d9f628c3b896bfa42ed"
+    },
+    {
+      "id": "europa",
+      "downloadUrl": "https://maps.jpl.nasa.gov/tmaps/pix/jup2vss2.jpg",
+      "transform": "copy",
+      "expectedSha256": "03164d293c46b3eff16678c20dfb73337db8a404e2d83f057bc320b95484b54f"
+    },
+    {
+      "id": "pluto",
+      "downloadUrl": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/p/l/pluto_color_mapmosaic.jpg",
+      "transform": "copy",
+      "expectedSha256": "d63da5ee9eab8d0b98ebef3c0cdc3a92676d7c9b247b2383294fb5da5c67a71a"
+    },
+    {
+      "id": "sun",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_sun.jpg",
+      "transform": "copy",
+      "expectedSha256": "f22b1cfb306ddce72a7e3b628668a0175b745038ce6268557cb2f7f1bdf98b9d"
+    },
+    {
+      "id": "earth",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_daymap.jpg",
+      "transform": "copy",
+      "expectedSha256": "88ab060b6e7d241cfc590c69f528fab2b3247b738d40124cb590999a6fe44abc"
+    },
+    {
+      "id": "jupiter",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_jupiter.jpg",
+      "transform": "copy",
+      "expectedSha256": "0bd844bf20822c4e3e80882b077859833c0dac44c7e4e1e0cd63d1b1b6d43085"
+    },
+    {
+      "id": "saturn",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_saturn.jpg",
+      "transform": "copy",
+      "expectedSha256": "0d39a4a490c87c3edabe00a3881a29bb3418364178c79c534fe0986e97e09853"
+    },
+    {
+      "id": "titan",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "4a6d1c475a065dea09d1461010bf71b2325d803c05c119038dbe738aec6172d0"
+    },
+    {
+      "id": "rings",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "83a196b4a877186d1072f5892f6c7added4e0f304f0b862eac26101f07968798"
+    },
+    {
+      "id": "sun-normal",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "c4349d643b986787a34db07c60b84d425323aa59677d3a983428c4854d2e691f"
+    },
+    {
+      "id": "sun-roughness",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "f7e102de07957919660211357b89a986c1ba7f92ebb8e2ffce95d56c972d626c"
+    },
+    {
+      "id": "sun-emissive",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_sun.jpg",
+      "transform": "copy",
+      "expectedSha256": "f22b1cfb306ddce72a7e3b628668a0175b745038ce6268557cb2f7f1bdf98b9d"
+    },
+    {
+      "id": "earth-normal",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif",
+      "transform": "tiff-png",
+      "expectedSha256": "1b10d7fffa7813c5ee34f1a07b4287d9056db77be2522f338b4c6717af28dad8"
+    },
+    {
+      "id": "earth-roughness",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif",
+      "transform": "specular-roughness",
+      "expectedSha256": "e4c94dddb965b4cb6c8c4f6358d6b29b4aa7e2b99fd0882fe9e56a5560161402"
+    },
+    {
+      "id": "earth-emissive",
+      "downloadUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_nightmap.jpg",
+      "transform": "copy",
+      "expectedSha256": "9894e83a585a22c1c425e7ca4f987a9ba625bf08ecee45d3c9dcacae3c2ad5f7"
+    },
+    {
+      "id": "saturn-normal",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "e2326dbe2f2672f2a9709451f5b90de733a2f644bc6cfb455e967b092465d7ae"
+    },
+    {
+      "id": "saturn-roughness",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "48fbcb5e3ff385631267aec00ccf56f5fa189c8755e3d2f1ce04dd95533c0c10"
+    },
+    {
+      "id": "saturn-emissive",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453"
+    },
+    {
+      "id": "jupiter-normal",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "42550f8f768936f0c0a6fc4fa206cfb6f8d19408676cb9e1fee14fda761ca64e"
+    },
+    {
+      "id": "jupiter-roughness",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "563d708c46fe3c7d4f2b81dd1d27ae06159f8239d46c49e790bf8a79b887c808"
+    },
+    {
+      "id": "jupiter-emissive",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453"
+    },
+    {
+      "id": "pluto-normal",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "7688b480f106ef206590dd102ee2c8db0818d63197f6e08d9e4f4975b4070896"
+    },
+    {
+      "id": "pluto-roughness",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "1ee0f04494cfddd66fe49e39edf7a763f665dce90c83b471118984e2785387b8"
+    },
+    {
+      "id": "pluto-emissive",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453"
+    },
+    {
+      "id": "titan-normal",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "9e68244fd1b2629f3ede563ba1d2da3ea065febe730ab821589598742725d071"
+    },
+    {
+      "id": "titan-roughness",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "eb5cc77ff93ba74da71e598524816936988a689ffdf1e6f4caffe17bab11176e"
+    },
+    {
+      "id": "titan-emissive",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453"
+    }
+  ]
+}

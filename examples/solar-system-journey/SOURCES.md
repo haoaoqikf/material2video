@@ -36,7 +36,7 @@ TIFF，分别转无损 PNG 与 `roughness = 235 - specular × 0.8` 的 8 bit 粗
 
 以上升级已落入可编辑材料；look-dev 静帧、时间标注帧序列、量测与自动音频信号的复核记录见作品 `outputs/visual-notes.md`，不要求播放样片或试听音色，也不设人工确认门禁。
 
-逐项文件摘要、尺寸和来源保存在 [assets/media-sources.json](assets/media-sources.json)。纹理仅用于艺术性球面展示，不用于地形测量。
+逐项文件摘要、尺寸和来源保存在 [assets/media-sources.json](assets/media-sources.json)。媒体不入库，按 [assets/recipe.json](assets/recipe.json) 与 [assets/fetch.py](assets/fetch.py) 恢复；配方只记录固定下载地址与生成步骤，不自动更换来源或接受新摘要。纹理仅用于艺术性球面展示，不用于地形测量。
 
 | 素材 ID | 来源与署名 | 许可及处理 |
 |---|---|---|

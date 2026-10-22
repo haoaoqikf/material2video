@@ -4,6 +4,8 @@ import json
 import math
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / 'examples/solar-system-journey'
 spec = importlib.util.spec_from_file_location('solar_material_generator', EXAMPLE / 'assets/materials/generate.py')
@@ -11,7 +13,14 @@ generator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generator)
 
 
+def restored_media_available() -> bool:
+    record = json.loads((EXAMPLE / 'assets/media-sources.json').read_text(encoding='utf-8'))
+    return all((EXAMPLE / entry['path']).is_file() for entry in record['assets'])
+
+
 def test_six_cinematic_targets_have_registered_materials():
+    if not restored_media_available():
+        pytest.skip('示例媒体未恢复；先运行 examples/solar-system-journey/assets/fetch.py')
     from m2v.types.general.media_assets import resolve
     media = resolve(EXAMPLE)['media']
     record = json.loads((EXAMPLE / 'assets/media-sources.json').read_text(encoding='utf-8'))

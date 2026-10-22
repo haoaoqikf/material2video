@@ -3,6 +3,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / ".agents/skills/material2video/references"
 
 
+def test_fixed_examples_document_media_restore():
+    """示例媒体不入库，两个有固定媒体的示例都必须写明恢复入口。"""
+    root = Path(__file__).resolve().parents[1] / "examples"
+    for name in ("american-science-milestones", "solar-system-journey"):
+        readme = (root / name / "README.md").read_text(encoding="utf-8")
+        assert f"examples/{name}/assets/fetch.py" in readme, f"{name} 没有写明媒体恢复入口"
+        assert (root / name / "assets/recipe.json").is_file()
+
+
 def test_workflow_and_compatibility_documented():
     text = (ROOT / "article-to-storyboard.md").read_text(encoding="utf-8")
     assert "确定画幅" in text and "视觉设计" in text and "不要求播放视频" in text

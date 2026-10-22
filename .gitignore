@@ -55,8 +55,9 @@ work/
 *.avi
 *.wav
 *.mp3
-# 示例的导入媒体是内容寻址且已记录来源与许可的固定输入，按需纳入版本控制。
-!examples/*/assets/media/*.mp4
+# 示例媒体按 `assets/recipe.json` 下载或生成、按摘要校验，不进入普通 Git；
+# 公共字体及其许可仍入库。
+examples/*/assets/media/
 
 # Article content: 文章内容不入库
 # 作品目录（`videos/<type>/<slug>/`：材料、专属网页与 outputs）是内容，不进版本控制。

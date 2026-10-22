@@ -29,6 +29,9 @@
 - **文章内容不入库**：`videos/<slug>/`（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
   中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/` 留在仓库内。
   文章放在仓库外的内容根（`--content-root` / `M2V_CONTENT_ROOT`）时同理，产物也不入库。
+- **示例媒体不入库**：`examples/*/assets/media/` 按各自 `assets/recipe.json` 由
+  `assets/fetch.py` 恢复并校验摘要、尺寸与时长；公共字体及许可仍入库。恢复失败时不改写
+  来源登记、不接受摘要漂移，也不覆盖已有素材。
 - **示例集合固定**：仓库 `examples/` 只允许 `american-science-milestones`、`traffic-jam-wave`、
   `solar-system-journey` 三个目录，最多 3 个；后续默认仅修改这三个示例；用户明确授权时可替换其中一个，同步名单与检查，总数仍最多 3 个。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。

@@ -25,7 +25,7 @@
 
 ## 十项素材与许可
 
-以下素材通过统一assets import进入内容寻址目录。对应原始URL和变换步骤见assets/recipe.json，可运行assets/fetch.py重新获取。外站可能变更或限流，脚本失败会明确报错，不静默代换。
+以下素材通过统一assets import进入内容寻址目录。对应原始URL和变换步骤见assets/recipe.json，可运行assets/fetch.py重新获取；媒体不入库，恢复时按登记摘要、尺寸和时长校验，已正确的文件直接复用。外站可能变更或限流，脚本失败会明确报错且不改写已有素材，不静默代换。
 
 - **telegraph**：[未知](https://commons.wikimedia.org/wiki/File:Morse_telegraph.jpg)；Public domain；实际1308×1988。
 - **telephone**：[Unknown authorUnknown author](https://commons.wikimedia.org/wiki/File:First_Bell_telephone_1875.png)；Public domain；实际453×348。

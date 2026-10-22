@@ -23,6 +23,8 @@
 
 ## 重建与验收
 
+示例媒体不入库；首次重建先运行恢复入口，下载与转换结果按登记摘要、尺寸和时长校验，已正确的文件直接复用。失败会明确报错且不改写已有素材。
+
 ```powershell
 uv run python examples/american-science-milestones/assets/fetch.py
 uv run m2v validate --project examples/american-science-milestones

@@ -203,15 +203,16 @@ def test_example_video_assets_cover_their_scene(name: str) -> None:
                 f"{media[asset]['durationSeconds']:.2f} 秒")
 
 
-def test_no_generated_media_is_tracked() -> None:
-    """成片、配音、预演与代码片段缓存都是派生产物，不得进版本控制。"""
+def test_no_generated_or_example_media_is_tracked() -> None:
+    """成片、配音、预演与代码片段缓存都是派生产物；示例媒体按配方恢复，都不进版本控制。"""
     if shutil.which("git") is None:
         pytest.skip("环境里没有 git")
-    listed = subprocess.run(["git", "ls-files", "examples"], cwd=ROOT, capture_output=True, text=True,
-                            encoding="utf-8", errors="replace", check=True).stdout.splitlines()
-    # `assets/media/` 下的导入素材是内容寻址且已记录来源与许可的固定输入，按约定入库；
-    # 其余视频与 `outputs/` 下的任何东西都是派生产物。
+    listed = subprocess.run(["git", "ls-files", "examples", "web/src/assets/fonts"], cwd=ROOT, capture_output=True,
+                            text=True, encoding="utf-8", errors="replace", check=True).stdout.splitlines()
     generated = [name for name in listed
                  if "/outputs/" in name
                  or (name.endswith((".mp4", ".mov", ".webm", ".mp3")) and "/assets/media/" not in name)]
+    restored = [name for name in listed if "/assets/media/" in name]
     assert generated == [], f"示例里有生成媒体被跟踪：{generated}"
+    assert restored == [], f"示例媒体应按 assets/fetch.py 恢复而非入库：{restored}"
+    assert any(name.startswith("web/src/assets/fonts/") for name in listed), "公共字体必须保留在版本控制中"
