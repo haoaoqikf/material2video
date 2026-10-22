@@ -16,6 +16,10 @@ const within = (base, file) => {const rel = path.relative(base, file); return re
 const result = await build({
   stdin: {contents: `import Scene from ${JSON.stringify(path.resolve(project, entry))}; import {mount} from ${JSON.stringify(path.join(web, 'src/code-scene/host.tsx'))}; mount(Scene);`, resolveDir: web, loader: 'tsx'},
   bundle: true, format: 'iife', platform: 'browser', jsx: 'automatic', metafile: true,
+  // 依赖里仍有 process.env.NODE_ENV 分支；浏览器没有 process，构建期直接折成 production。
+  define: {'process.env.NODE_ENV': '"production"'},
+  // 少数依赖在运行时读 process.emit / nextTick；给一个最小浏览器 shim，避免整幕静默失败。
+  banner: {js: 'var process={env:{NODE_ENV:"production"},emit:function(){},emitWarning:function(){},nextTick:function(fn){Promise.resolve().then(fn);},browser:true,version:"",platform:"browser",cwd:function(){return "/";}};'},
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
   loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl'},
   plugins: [{name: 'project-boundary', setup(builder) {
