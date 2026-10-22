@@ -59,6 +59,10 @@ work/
 # 公共字体及其许可仍入库。
 examples/*/assets/media/
 
+# 参考素材（含抖音下载的视频、图文与留证记录）属于内容，不入库。
+# 浏览器 profile 位于 .cache/，已在上面的缓存规则中忽略。
+/refs/
+
 # Article content: 文章内容不入库
 # 作品目录（`videos/<type>/<slug>/`：材料、专属网页与 outputs）是内容，不进版本控制。
 # 想放仓库外时配 M2V_CONTENT_ROOT 或 --content-root 指向内容根。

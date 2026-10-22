@@ -57,6 +57,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - `render` 将完整候选和输入/实现/编码参数指纹及 SHA-256 保存在 `outputs/candidates/` 与 `outputs/delivery.json`，验收后复制交付同一文件；同版本重复执行、验收失败或交付失败重试均不重新完整编码；文件损坏或输入变化后才重新生成。`status` 报告已准备、候选待验收、验收失败、可交付、交付失败或已交付。可选评审绑定候选摘要；异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。候选、交付记录与清理规则见[交付与溯源](.agents/skills/material2video/references/delivery-and-provenance.md)。
 - 通用作品另有三个检查入口：`lookdev`（按风险选择尺寸的代表静帧、接触表与自定长度样片；无声作品样片无音轨，有声作品合并对应音轨；静帧、帧序列、量测和自动音频信号结论写入作品 `outputs/visual-notes.md`，不作为导出门禁）、`qa`（接触表、冻结帧、暗部测量提示、字幕配色对比度、响度与真峰值、音轨时长差、claims 时间窗覆盖；技术结果不代表视觉质量，图像与音频候选处置单独记录，输出 `outputs/qa.json`，含逐秒/逐镜头及交界加密采样、分页接触表、黑场/突变与交付音轨静音/削波候选；`inspection.rhythm` 另报全片及逐场旁白字数、旁白窗口并集、含窗口内停顿的平均字速、静音区间并集/占比与逐场交集，以及引子、段间、阅读停留、幕尾留白和未知归因。该测量不设最低字速或最长静音阈值，不参与技术判定；字幕阅读上限仍单独输出 `reading-pace.json`）与 `assets audit`（按实测尺寸与登记许可审计资产，全部登记媒体许可未知时阻断，输出 `outputs/asset-audit.json`）。
 - 文章专属：输入审查与候选稿操作使用 `m2v general input-review|candidate|adopt-candidate`，图库默认且仅启用 Pixabay（需 `M2V_PIXABAY_API_KEY`），Pexels 固定停用；公开媒体直链仍可统一导入。混合媒体素材的检索与导入使用 `m2v general assets search|import --project <目录>`。
+- 参考素材：`m2v ref fetch <分享链接或分享文本>` 通过浏览器读取抖音作品并下载到 `refs/douyin/<作品ID>/`，写入 `metadata.json` 与 `recipe.json`；`m2v ref verify <目录>` 复核 SHA-256 与字节数。支持视频与图文；已存在且校验通过时直接复用，`--headed` 用于人工完成登录或验证。参考素材属于内容，`refs/` 不入库，也不进入成片。
 - 金融专属：`m2v financial plan` 离线生成 v8 计划，`m2v financial migrate-line` 备份升级已有作品。
 - 操作性语义创作指导见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
@@ -64,6 +65,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 - `src/m2v/core/`：作品契约与路径（`project.py`、`workspace.py`）、指纹与资产、源码确定性检查（`source_policy.py`）、公共错误类型。
 - `src/m2v/engine/`：Remotion 构建与缓存、渲染会话、字幕、音视频合成、性能报告和输出验收。
+- `src/m2v/reference/`：抖音参考素材的浏览器取详情、直链下载、来源与摘要留证（`refs/` 为内容目录，不入库）。
 - `src/m2v/types/`：金融、通用与住宅三个类型的行为适配器，以及类型目录（`catalog.json`）与显式注册。
 - `src/m2v/cli.py`：`m2v` 统一命令入口；子命令实现在 `src/m2v/commands.py`。
 - `web/src/compositions/`：三个类型各自的 composition（`FinancialTimeSeries`、`ArticleExplainer`、`HousingTimeSeries`）；通用作品的画面由作品自己的 `scenes/` 代码绘制，`ArticleExplainer` 只负责全画布片段回放与共享字幕。

@@ -27,6 +27,9 @@ def dispatch(args) -> int:
     if args.command == "general":
         from m2v.types.general import explainer_cli as workflow
         return workflow.main([args.workflow, *args.options])
+    if args.command == "ref":
+        from m2v.reference.cli import main as reference_main
+        return reference_main(args)
     if args.command == "financial":
         root, manifest = load_project(args.project)
         if manifest["type"] != "financial-timeseries":
