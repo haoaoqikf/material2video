@@ -66,6 +66,21 @@ def test_scene_design_and_reach_templates_are_documented():
         assert token in director, f"导演审查模板缺少：{token}"
 
 
+def test_subagent_review_is_documented():
+    """A/B 级评审必须显式要求独立子代理，并定义评审包与降级披露。"""
+    review = (ROOT / "subagent-review.md").read_text(encoding="utf-8")
+    for token in ("A 级", "B 级", "独立子代理", "评审包", "角色分离自审",
+                  "未独立评审（降级）", "先描述后判定", "没有冷审不等于冷审通过",
+                  "不适用"):
+        assert token in review, f"子代理评审文档缺少：{token}"
+    skill = (ROOT.parents[0] / "SKILL.md").read_text(encoding="utf-8")
+    assert "subagent-review.md" in skill
+    director = (ROOT / "director-review-and-edit.md").read_text(encoding="utf-8")
+    assert "独立子代理" in director and "角色分离自审" in director
+    scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")
+    assert "观察复述" in scene and "未独立评审（降级）" in scene
+
+
 def test_reference_audio_reuse_is_documented():
     """参考音轨复用是受控例外：命令、授权说明与无旁白时间轴都要写清楚。"""
     repo = ROOT.parents[3]

@@ -39,7 +39,7 @@ uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 # 可选片段检查，默认前十秒且严格短于全片
 uv run m2v preview --project videos/general/<slug>
-# 所有类型 render 只生成一次全片，自动验收后直接交付；人工画面评审为可选工具。
+# 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，A/B 级评审按独立子代理流程执行。
 uv run m2v render --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
@@ -94,6 +94,6 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 - [material2video Skill](.agents/skills/material2video/SKILL.md)：制作流程的操作手册与统一命令。
 - 类型创作指导：[金融时间序列视频](.agents/skills/material2video/references/financial-timeseries-video.md)、[年度住宅均价视频](.agents/skills/material2video/references/housing-timeseries-video.md)、[通用作品创作](.agents/skills/material2video/references/article-to-storyboard.md)与[通用分镜 v8](.agents/skills/material2video/references/storyboard-schema.md)。
-- 通用作品制作：[制作流程](.agents/skills/material2video/references/production-workflow.md)、[节奏、美术、声音与制作阶段](.agents/skills/material2video/references/creative-production.md)、[逐场设计与独立验收](.agents/skills/material2video/references/scene-design-and-acceptance.md)、[全片导演审查与剪辑重组](.agents/skills/material2video/references/director-review-and-edit.md)、[百万播放潜力](.agents/skills/material2video/references/reach-potential.md)、[文章媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)、[参考风格契约](.agents/skills/material2video/references/reference-style.md)、[统一制作与质量工具](.agents/skills/material2video/references/cinematic-video.md)、[自主视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)、[讲解输入审查](.agents/skills/material2video/references/input-review.md)。
+- 通用作品制作：[制作流程](.agents/skills/material2video/references/production-workflow.md)、[节奏、美术、声音与制作阶段](.agents/skills/material2video/references/creative-production.md)、[逐场设计与独立验收](.agents/skills/material2video/references/scene-design-and-acceptance.md)、[全片导演审查与剪辑重组](.agents/skills/material2video/references/director-review-and-edit.md)、[百万播放潜力](.agents/skills/material2video/references/reach-potential.md)、[文章媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)、[参考风格契约](.agents/skills/material2video/references/reference-style.md)、[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)、[统一制作与质量工具](.agents/skills/material2video/references/cinematic-video.md)、[自主视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)、[讲解输入审查](.agents/skills/material2video/references/input-review.md)。
 - 契约参考：[准备记录与字幕](.agents/skills/material2video/references/prepared-and-subtitles.md)、[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md)、[代码场景运行契约](.agents/skills/material2video/references/code-scene-runtime.md)、[渲染引擎](.agents/skills/material2video/references/render-engine.md)、[目录约定与输出路径](.agents/skills/material2video/references/paths.md)、[交付与溯源](.agents/skills/material2video/references/delivery-and-provenance.md)、[设计令牌](.agents/skills/material2video/references/design-tokens.md)。
 - 架构和材料契约见 [OpenSpec 规格](openspec/specs/modular-video-production/spec.md)，未来能力路线见[项目规划](docs/PROJECT_PLAN.md)。
