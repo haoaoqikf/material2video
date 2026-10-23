@@ -11,21 +11,9 @@ import pytest
 
 from m2v.types.general import explainer
 
+from example_catalog import COVERED_COMPONENTS, EXAMPLES, EXPECTED_EXAMPLES, EXPECTED_FRAMES, STORYBOARDS
+
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "examples"
-STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
-EXPECTED_EXAMPLES = {"american-science-milestones", "traffic-jam-wave", "solar-system-journey"}
-#: 两横一竖：画幅是作品设计的一部分，示例必须覆盖两种。
-EXPECTED_FRAMES = {"american-science-milestones": (1920, 1080), "solar-system-journey": (1920, 1080),
-                   "traffic-jam-wave": (1080, 1920)}
-APPROVED_COMPONENTS = {
-    "Motion": ("motion", "motion/react"),
-    "ECharts": ("Chart", "echarts"),
-    "GSAP": ("gsap",),
-    "Three.js": ("THREE", "three"),
-    "React Three Fiber": ("Canvas", "@react-three/fiber"),
-    "Drei": ("Float", "Stars", "PerspectiveCamera", "@react-three/drei"),
-}
 
 
 def _declared_version(path: Path) -> object:
@@ -59,14 +47,31 @@ def test_shipped_example_matches_the_v8_contract(path: Path) -> None:
 def test_shipped_example_uses_the_declared_frame(path: Path) -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[path.parent.name]
-    assert data["fps"] == 60
+    expected_fps = 30 if path.parent.name == "five-life-choices" else 60
+    assert data["fps"] == expected_fps
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
 def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path) -> None:
     """示例应按各自契约使用旁白，或明确采用无声技术短片。"""
     data = json.loads(path.read_text(encoding="utf-8"))
-    if path.parent.name == "american-science-milestones":
+    name = path.parent.name
+    if name == "five-life-choices":
+        # 无声人生时间轴：单幕、明确帧数预算、画面中文讲解，不生成字幕。
+        assert data["input"]["kind"] == "topic" and data["input"]["topic"].strip()
+        assert not data.get("soundtrack")
+        assert len(data["scenes"]) == 1
+        scene = data["scenes"][0]
+        assert scene["template"] == "code"
+        assert scene["durationFrames"] == 60 * 30
+        assert not scene["narrationSegments"]
+        assert scene["content"]["entry"] == "scenes/life.tsx"
+        source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
+        assert "useSceneContext" in source and "elapsedSeconds" in source
+        assert "useNarration" not in source and "segmentWindows" not in source
+        assert not (path.parent / "article.md").exists()
+        return
+    if name == "american-science-milestones":
         assert data["input"]["kind"] == "topic"
         assert not data.get("soundtrack")
         assert sum(scene["durationFrames"] for scene in data["scenes"]) == 30 * 60
@@ -91,12 +96,6 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
         assert data["input"]["topic"].strip()
         assert not article.exists(), f"{path.parent.name} 采用主题输入，不应再放一份原文"
         assert "示意" in sources
-        if path.parent.name == "traffic-jam-wave":
-            # 重制后的生活困惑结构与主线/补充分工。
-            assert [scene["id"] for scene in data["scenes"]] == [
-                "empty", "rewind", "brake", "relay", "density", "return"
-            ]
-            assert not data.get("soundtrack", {}).get("music")
     else:
         article_text = article.read_text(encoding="utf-8")
         assert "示意" in sources, "示意数据没有标注"
@@ -116,10 +115,12 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
                 assert segment["text"] in article_text, f"{scene['id']} 的旁白不在原文里"
 
 
-def test_examples_cover_approved_component_families() -> None:
+def test_examples_cover_actual_component_families() -> None:
+    """覆盖检查反映三支示例实际使用的组件；不为了覆盖清单引入无关效果。"""
     sources = "\n".join(_sources(name) for name in EXPECTED_EXAMPLES)
-    for family, markers in APPROVED_COMPONENTS.items():
+    for family, markers in COVERED_COMPONENTS.items():
         assert any(marker in sources for marker in markers), f"缺少组件演示：{family}"
+    assert "gsap" not in sources, "GSAP 随拥堵波示例退役；覆盖说明不应再声称演示它"
 
 
 @pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))
@@ -181,9 +182,11 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert seconds == 30
         assert not data["subtitles"]
         return
-    ranges = {"solar-system-journey": (120, 600), "traffic-jam-wave": (1, 600)}
-    minimum, maximum = ranges.get(name, (120, 180))
-    assert minimum <= seconds <= maximum, f"{name} 实际 {seconds:.1f} 秒，超出 {minimum}～{maximum} 秒"
+    if name == "five-life-choices":
+        assert seconds == 60
+        assert not data["subtitles"], "无声示例不应生成字幕"
+        return
+    assert 120 <= seconds <= 600, f"{name} 实际 {seconds:.1f} 秒，超出 120～600 秒"
     assert data["subtitles"], f"{name} 没有烧录字幕的来源字幕"
 
 

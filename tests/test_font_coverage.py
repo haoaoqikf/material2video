@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 import m2v.core.fonts as fonts
+from example_catalog import STORYBOARD_PATHS
 
 ASSETS = Path(__file__).resolve().parents[1] / "web/src/assets/fonts"
 NOTO = ASSETS / "NotoSansSC-Variable.ttf"
@@ -73,15 +74,7 @@ class TestShippedWorksAreCovered:
         walk(json.loads(storyboard.read_text(encoding="utf-8")), out)
         return "".join(out)
 
-    @pytest.mark.parametrize(
-        "storyboard",
-        [
-            # 只取仓库自带的分镜：实际文章是内容、不入库，克隆后并不存在
-            "examples/american-science-milestones/storyboard.json",
-            "examples/traffic-jam-wave/storyboard.json",
-            "examples/solar-system-journey/storyboard.json",
-        ],
-    )
+    @pytest.mark.parametrize("storyboard", STORYBOARD_PATHS)
     def test_every_rendered_character_has_a_glyph(self, storyboard):
         coverage = fonts.codepoint_coverage(NOTO)
         missing = fonts.missing_glyphs(NOTO, self._texts(self.ROOT / storyboard), coverage)

@@ -22,7 +22,7 @@ def test_workflow_and_compatibility_documented():
     assert "候选稿须用户明确采用并重新审查后才能制作" in text
     assert "实际时长" in text and "600 秒" in text
     assert "最多3个" in text and "用户明确授权才可替换" in text
-    assert "交通拥堵波按内容" in text and "traffic-jam-wave" in text
+    assert "人生五选择按核心试制" in text and "five-life-choices" in text
     assert "逐场设计与独立验收" in text and "传播表现评估" in text
     schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
     assert "v7 及更早分镜必须重新编排" in schema

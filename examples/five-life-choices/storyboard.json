@@ -1,0 +1,388 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "普通人一生真正重要的 5 个选择",
+  "input": {
+    "kind": "topic",
+    "topic": "用一条 2.5D 人生时间轴讲解城市、行业、伴侣、投资与持续学习五个选择如何在时间里放大差距"
+  },
+  "targetSeconds": 60,
+  "scenes": [
+    {
+      "id": "life-timeline",
+      "template": "code",
+      "keywords": [
+        "人生选择",
+        "人生时间轴",
+        "城市",
+        "行业",
+        "伴侣",
+        "投资",
+        "持续学习",
+        "决策树"
+      ],
+      "durationFrames": 1800,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "七幕人生时间轴",
+        "entry": "scenes/life.tsx",
+        "props": {
+          "shots": [
+            {
+              "id": "opening",
+              "target": "timeline",
+              "tier": "major",
+              "startFrame": 0,
+              "endFrame": 210,
+              "note": "光点、轨道、年龄刻度与标题"
+            },
+            {
+              "id": "city",
+              "target": "city",
+              "tier": "major",
+              "startFrame": 210,
+              "endFrame": 480,
+              "note": "22 岁五条城市支路与抽象城市网络"
+            },
+            {
+              "id": "industry",
+              "target": "industry",
+              "tier": "hero",
+              "startFrame": 480,
+              "endFrame": 810,
+              "note": "25 岁五条跑道与拉远后的高度差"
+            },
+            {
+              "id": "partner",
+              "target": "partner",
+              "tier": "major",
+              "startFrame": 810,
+              "endFrame": 1065,
+              "note": "左右分屏的两种伴侣关系"
+            },
+            {
+              "id": "investment",
+              "target": "investment",
+              "tier": "hero",
+              "startFrame": 1065,
+              "endFrame": 1320,
+              "note": "25 到 60 岁的两条资产曲线与时间"
+            },
+            {
+              "id": "learning",
+              "target": "learning",
+              "tier": "major",
+              "startFrame": 1320,
+              "endFrame": 1560,
+              "note": "上下两条长期学习版本与知识网络"
+            },
+            {
+              "id": "ending",
+              "target": "tree",
+              "tier": "hero",
+              "startFrame": 1560,
+              "endFrame": 1800,
+              "note": "后拉形成的人生决策树"
+            }
+          ],
+          "copy": [
+            {
+              "id": "opening-1",
+              "text": "人的一生，看起来有无数个选择。",
+              "from": 0.7,
+              "to": 3.6,
+              "size": 56,
+              "weight": 300,
+              "spacing": 2,
+              "x": 220,
+              "y": 286,
+              "width": 1300,
+              "align": "left",
+              "tone": "primary"
+            },
+            {
+              "id": "opening-2",
+              "text": "但真正改变人生轨迹的，可能只有几个。",
+              "from": 3.55,
+              "to": 5.2,
+              "size": 58,
+              "weight": 300,
+              "spacing": 2,
+              "x": 220,
+              "y": 286,
+              "width": 1400,
+              "align": "left",
+              "tone": "primary"
+            },
+            {
+              "id": "title",
+              "text": "普通人一生真正重要的 5 个选择",
+              "from": 5.35,
+              "to": 7.35,
+              "size": 92,
+              "weight": 400,
+              "spacing": 4,
+              "x": 160,
+              "y": 330,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "city-line",
+              "text": "城市，决定你每天会撞见什么机会。",
+              "from": 13.0,
+              "to": 15.9,
+              "size": 62,
+              "weight": 400,
+              "spacing": 2,
+              "x": 180,
+              "y": 762,
+              "width": 1400,
+              "align": "left",
+              "tone": "primary"
+            },
+            {
+              "id": "effort-line",
+              "text": "努力决定你跑多快。",
+              "from": 22.9,
+              "to": 25.25,
+              "size": 60,
+              "weight": 300,
+              "spacing": 2,
+              "x": 180,
+              "y": 218,
+              "width": 1100,
+              "align": "left",
+              "tone": "primary"
+            },
+            {
+              "id": "runway-line",
+              "text": "行业决定你站在哪条跑道上。",
+              "from": 25.25,
+              "to": 27.25,
+              "size": 68,
+              "weight": 400,
+              "spacing": 2,
+              "x": 160,
+              "y": 758,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "partner-line",
+              "text": "伴侣不是人生的配角，而是最大的长期变量之一。",
+              "from": 31.8,
+              "to": 35.4,
+              "size": 56,
+              "weight": 400,
+              "spacing": 2,
+              "x": 160,
+              "y": 112,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "time-giant",
+              "text": "时间",
+              "from": 40.62,
+              "to": 42.3,
+              "size": 230,
+              "weight": 200,
+              "spacing": 28,
+              "x": 160,
+              "y": 356,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "invest-line",
+              "text": "投资真正强大的地方，是让时间替你工作。",
+              "from": 42.2,
+              "to": 44.0,
+              "size": 52,
+              "weight": 300,
+              "spacing": 2,
+              "x": 160,
+              "y": 678,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "invest-note",
+              "text": "曲线为示意，不构成投资建议",
+              "from": 36.0,
+              "to": 43.8,
+              "size": 26,
+              "weight": 400,
+              "spacing": 1,
+              "x": 1360,
+              "y": 846,
+              "width": 460,
+              "align": "right",
+              "tone": "secondary"
+            },
+            {
+              "id": "learning-line-1",
+              "text": "城市、行业、伴侣、投资，决定你走哪条路。",
+              "from": 46.2,
+              "to": 48.9,
+              "size": 58,
+              "weight": 400,
+              "spacing": 2,
+              "x": 160,
+              "y": 112,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "learning-line-2",
+              "text": "持续学习，决定你还能不能换路。",
+              "from": 48.9,
+              "to": 52.0,
+              "size": 72,
+              "weight": 400,
+              "spacing": 3,
+              "x": 160,
+              "y": 468,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "path-line",
+              "text": "一个人的人生，只是无数可能路径中的一条。",
+              "from": 52.6,
+              "to": 55.3,
+              "size": 58,
+              "weight": 400,
+              "spacing": 2,
+              "x": 160,
+              "y": 312,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "closing-1",
+              "text": "人生的差距，往往不是一天拉开的。",
+              "from": 55.8,
+              "to": 58.3,
+              "size": 56,
+              "weight": 300,
+              "spacing": 2,
+              "x": 160,
+              "y": 404,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "closing-2",
+              "text": "而是几个重要选择，被时间不断放大。",
+              "from": 56.6,
+              "to": 58.3,
+              "size": 56,
+              "weight": 300,
+              "spacing": 2,
+              "x": 160,
+              "y": 484,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            },
+            {
+              "id": "final-line",
+              "text": "选对方向，比一直用力更重要。",
+              "from": 58.4,
+              "to": 60.0,
+              "size": 72,
+              "weight": 400,
+              "spacing": 3,
+              "x": 160,
+              "y": 470,
+              "width": 1600,
+              "align": "center",
+              "tone": "primary"
+            }
+          ],
+          "labels": {
+            "ages": [
+              0,
+              10,
+              18,
+              22,
+              30,
+              40,
+              60,
+              80
+            ],
+            "cities": [
+              "北京",
+              "上海",
+              "深圳",
+              "杭州",
+              "家乡"
+            ],
+            "cityNodes": [
+              "工作",
+              "公司",
+              "人脉",
+              "信息",
+              "机会",
+              "工资",
+              "项目"
+            ],
+            "industries": [
+              "传统制造",
+              "房地产",
+              "互联网",
+              "新能源",
+              "AI"
+            ],
+            "partnerLeft": [
+              "争吵",
+              "债务",
+              "内耗",
+              "焦虑"
+            ],
+            "partnerRight": [
+              "支持",
+              "沟通",
+              "储蓄",
+              "成长",
+              "长期计划"
+            ],
+            "learningUpper": "25 岁以后停止学习",
+            "learningLower": "持续学习",
+            "learningNodes": [
+              "AI",
+              "投资",
+              "表达",
+              "管理",
+              "销售",
+              "创业",
+              "新技术"
+            ],
+            "choices": [
+              "城市",
+              "行业",
+              "伴侣",
+              "投资",
+              "持续学习"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

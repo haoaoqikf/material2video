@@ -28,14 +28,11 @@ needs_fonttools = pytest.mark.skipif(
     not HAVE_FONTTOOLS, reason="需要可选依赖：uv sync --extra fonts"
 )
 
+from example_catalog import STORYBOARD_PATHS
+
 ROOT = Path(__file__).resolve().parents[1]
 NOTO = ROOT / "web/src/assets/fonts/NotoSansSC-Variable.ttf"
-STORYBOARDS = (
-    # 仓库自带的分镜：实际文章（`videos/<slug>/`）是内容、不入库
-    "examples/american-science-milestones/storyboard.json",
-    "examples/traffic-jam-wave/storyboard.json",
-    "examples/solar-system-journey/storyboard.json",
-)
+STORYBOARDS = STORYBOARD_PATHS
 
 
 def _storyboard(relative: str) -> dict:

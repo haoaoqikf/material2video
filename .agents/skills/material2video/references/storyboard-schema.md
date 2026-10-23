@@ -5,14 +5,14 @@
 `general` 只接受 `version: 8`、`schemaVersion: 8`。v7 及更早分镜必须重新编排，不自动迁移；
 历史测试分镜不属于制作入口。
 
-帧率规则：`project.json.output.fps` 与本文件 `fps` 均声明时必须一致，仅一处声明时使用该值，都省略则默认30；只接受整数30或60。所有显式帧数字段按实际fps解释，不自动缩放；切换帧率须由作者调整帧预算并重新 prepare。现有显式60帧示例保持原值。
-
 v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里没有模板，没有主题，也没有屏幕摘要
 字段。作品说明与创作依据见各示例的 `DESIGN.md`。
 
+帧率规则：`project.json.output.fps` 与本文件 `fps` 均声明时必须一致，仅一处声明时使用该值，都省略则默认30；只接受整数30或60。所有显式帧数字段按实际fps解释，不自动缩放；切换帧率须由作者调整帧预算并重新 prepare。现有显式60帧示例保持原值。
+
 ## 全片与场景
 
-全片可声明 `fps: 30` 或 `fps: 60`、`title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
+全片可声明 `fps: 30` 或 `fps: 60`，并声明 `title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
 `soundtrack` 和非空 `scenes`（最多 300 幕）。
 
 **画幅**只支持 1920×1080 横屏与 1080×1920 竖屏：两边都省略时规范化为横屏并写进准备产物；
@@ -189,6 +189,6 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 ```
 
 完整示例：[从电报到大模型](../../../../examples/american-science-milestones/storyboard.json)、
-[交通拥堵波](../../../../examples/traffic-jam-wave/storyboard.json)、
+[人生五选择](../../../../examples/five-life-choices/storyboard.json)、
 [太阳系之旅](../../../../examples/solar-system-journey/storyboard.json)。当前规格见
 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。
