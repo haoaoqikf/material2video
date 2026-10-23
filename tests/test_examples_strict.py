@@ -63,7 +63,8 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
         assert len(data["scenes"]) == 1
         scene = data["scenes"][0]
         assert scene["template"] == "code"
-        assert scene["durationFrames"] == 60 * 30
+        assert 45 <= data["targetSeconds"] <= 75
+        assert scene["durationFrames"] == round(data["targetSeconds"] * data["fps"])
         assert not scene["narrationSegments"]
         assert scene["content"]["entry"] == "scenes/life.tsx"
         source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
@@ -158,6 +159,18 @@ def test_examples_document_their_visual_design(name: str) -> None:
             assert segment["id"] in readme, f"{name}/README.md 没有记录 {segment['id']}"
 
 
+def test_five_life_design_records_the_remake_and_boundaries() -> None:
+    """重制必须留下启动、问题表、匿名选案与边界落实，而不是只写结论。"""
+    design = (EXAMPLES / "five-life-choices/DESIGN.md").read_text(encoding="utf-8")
+    for section in ("重制执行记录（2026-10-24）", "唯一问题表（重制前）",
+                    "重制选案与方案（2026-10-24）", "对评审条件的落实",
+                    "重制七幕预算", "核心事件五段式（重制执行）"):
+        assert section in design, f"five-life-choices/DESIGN.md 缺少「{section}」"
+    for token in ("N-3", "group-1", "S01b", "年龄为示意刻度", "不构成行业排名",
+                  "不构成投资建议", "共享节点", "实际换轨"):
+        assert token in design, f"重制记录缺少边界或选案依据：{token}"
+
+
 @pytest.mark.parametrize("name", sorted(EXPECTED_EXAMPLES))
 def test_example_media_is_content_addressed_and_recorded(name: str) -> None:
     """示例引用的素材必须已导入并留证，且通过代码里的素材 ID 取用。"""
@@ -188,7 +201,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert not data["subtitles"]
         return
     if name == "five-life-choices":
-        assert seconds == 60
+        assert 55 <= seconds <= 65, "人生五选择以约 60 秒为目标，由粗样核定帧数"
         assert not data["subtitles"], "无声示例不应生成字幕"
         return
     assert 120 <= seconds <= 600, f"{name} 实际 {seconds:.1f} 秒，超出 120～600 秒"

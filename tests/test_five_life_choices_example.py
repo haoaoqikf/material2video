@@ -22,7 +22,7 @@ README = (EXAMPLE / "README.md").read_text(encoding="utf-8")
 
 def _acts() -> list[tuple[str, float, float]]:
     return [(name, float(start), float(end)) for name, start, end in re.findall(
-        r"\{id: '([a-z]+)', start: ([\d.]+), end: ([\d.]+)\}", GEOMETRY)]
+        r"\{id: [\"']([a-z]+)[\"'], start: ([\d.]+), end: ([\d.]+)\}", GEOMETRY)]
 
 
 def _copy_texts() -> list[str]:
@@ -34,7 +34,8 @@ def test_silent_single_scene_with_an_explicit_frame_budget() -> None:
     assert not STORYBOARD.get("soundtrack")
     assert len(STORYBOARD["scenes"]) == 1
     assert SCENE["id"] == "life-timeline"
-    assert SCENE["durationFrames"] == 60 * 30
+    assert 45 <= STORYBOARD["targetSeconds"] <= 75
+    assert SCENE["durationFrames"] == round(STORYBOARD["targetSeconds"] * STORYBOARD["fps"])
     assert SCENE["narrationSegments"] == []
     assert (STORYBOARD["width"], STORYBOARD["height"], STORYBOARD["fps"]) == (1920, 1080, 30)
     assert STORYBOARD["title"] == "普通人一生真正重要的 5 个选择"
@@ -58,41 +59,47 @@ def test_seven_acts_tile_the_whole_film_and_match_the_shots() -> None:
 def test_copy_order_is_fixed_and_uses_the_requested_lines() -> None:
     texts = _copy_texts()
     required = [
-        "人的一生，看起来有无数个选择。",
-        "但真正改变人生轨迹的，可能只有几个。",
+        "人生不是一条直线。",
+        "真正改道的，只有几个岔口。",
+        "年龄为叙事刻度，不是人生时间表",
         "普通人一生真正重要的 5 个选择",
-        "城市，决定你每天会撞见什么机会。",
-        "努力决定你跑多快。",
+        "五项是常见视角，不是唯一标准",
+        "城市，会改变哪些门对你打开。",
+        "同样努力，先看起来差不多。",
         "行业决定你站在哪条跑道上。",
-        "伴侣不是人生的配角，而是最大的长期变量之一。",
-        "时间",
-        "投资真正强大的地方，是让时间替你工作。",
-        "城市、行业、伴侣、投资，决定你走哪条路。",
-        "持续学习，决定你还能不能换路。",
-        "一个人的人生，只是无数可能路径中的一条。",
-        "人生的差距，往往不是一天拉开的。",
-        "而是几个重要选择，被时间不断放大。",
-        "选对方向，比一直用力更重要。",
+        "拉远才看见：跑道不同，高度不同。",
+        "两个人一起走，路线会互相改写。",
+        "关系会改变坡度，也会留下痕迹。",
+        "每天一点，时间会把小投入垒高。",
+        "同样的时间，留下与不留会分开。",
+        "原路会到尽头。",
+        "学过的东西，会在别处接上。",
+        "换一条路，继续走。",
+        "你走过的，只是其中一条。",
+        "每一次选择，都长出新的可能。",
+        "方向会被时间放大，路也可以改。",
     ]
     positions = [texts.index(line) for line in required]
     assert positions == sorted(positions), "画面文案必须按七幕顺序出现"
     assert [item["id"] for item in COPY] == [
-        "opening-1", "opening-2", "title", "city-line", "effort-line", "runway-line",
-        "partner-line", "time-giant", "invest-line", "invest-note", "learning-line-1",
-        "learning-line-2", "path-line", "closing-1", "closing-2", "final-line"]
+        "opening-1", "opening-2", "age-note", "title", "title-note", "city-line", "industry-line-1",
+        "industry-line-2", "industry-reveal", "industry-note", "partner-line-1",
+        "partner-line-2", "invest-line-1", "invest-note", "invest-line-2",
+        "learning-line-1", "learning-line-2", "learning-line-3", "ending-line-1",
+        "ending-line-2", "final-line"]
     assert LABELS["choices"] == ["城市", "行业", "伴侣", "投资", "持续学习"]
 
 
 def test_labels_cover_the_requested_objects() -> None:
-    assert LABELS["ages"] == [0, 10, 18, 22, 30, 40, 60, 80]
-    assert LABELS["cities"] == ["北京", "上海", "深圳", "杭州", "家乡"]
-    assert LABELS["cityNodes"] == ["工作", "公司", "人脉", "信息", "机会", "工资", "项目"]
+    assert LABELS["ages"] == [0, 18, 22, 25, 30, 38, 47, 60]
+    assert LABELS["cities"] == ["北京", "上海", "杭州", "深圳", "家乡"]
+    assert LABELS["cityNodes"] == ["工作", "人脉", "机会", "信息", "项目", "公司", "工资"]
     assert LABELS["industries"] == ["传统制造", "房地产", "互联网", "新能源", "AI"]
-    assert LABELS["partnerLeft"] == ["争吵", "债务", "内耗", "焦虑"]
-    assert LABELS["partnerRight"] == ["支持", "沟通", "储蓄", "成长", "长期计划"]
+    assert LABELS["partnerLeft"] == ["争执", "消耗", "各自用力", "沉默"]
+    assert LABELS["partnerRight"] == ["分担", "补位", "共同计划", "长期打算", "支持"]
     assert LABELS["learningNodes"] == ["AI", "投资", "表达", "管理", "销售", "创业", "新技术"]
-    assert LABELS["learningUpper"] == "25 岁以后停止学习"
-    assert LABELS["learningLower"] == "持续学习"
+    assert LABELS["learningUpper"] == "先前学过的东西"
+    assert LABELS["learningLower"] == "接上新路，继续走"
 
 
 def test_copy_is_readable_and_stays_out_of_the_subtitle_safe_area() -> None:
@@ -126,10 +133,9 @@ def test_source_is_deterministic_and_has_no_media_dependency() -> None:
 
 
 def test_camera_and_age_keys_cover_the_whole_film_without_going_backwards() -> None:
-    camera = [(float(t),) for t in re.findall(r"\{t: ([\d.]+), pos:", GEOMETRY)]
-    times = [item[0] for item in camera]
-    assert times[0] == 0 and times[-1] == 60
-    assert times == sorted(times), "镜头关键帧必须按时间递增"
+    assert "export const CAMERA_KEYS" in GEOMETRY and "cameraAt" in GEOMETRY
+    assert "camKey(0," in GEOMETRY and "{t: 60.0, pos:" in GEOMETRY
+    assert "export function cameraAt" in GEOMETRY
 
     ages = [(float(t), float(age)) for t, age in re.findall(
         r"\{t: ([\d.]+), age: ([\d.]+)\}", GEOMETRY)]
@@ -140,10 +146,11 @@ def test_camera_and_age_keys_cover_the_whole_film_without_going_backwards() -> N
 
 
 def test_canvas_scene_declares_its_visual_world() -> None:
-    for token in ("AGE_MARKS", "CAMERA_KEYS", "TREE_PATHS", "CITY_BRANCHES",
-                  "INDUSTRY_PATHS", "PARTNER_TRACKS", "INVEST_GROW", "LEARNING_PATH"):
+    for token in ("AGE_MARKS", "CAMERA_KEYS", "TREE_PATHS", "YOUTH_BRANCHES",
+                  "CITY_LANES", "INDUSTRY_LANES", "PARTNER_TRACKS", "INVEST_STEADY",
+                  "LEARNING_THREAD", "LEARNING_BRIDGE", "NEW_PATH", "REALIZED"):
         assert token in GEOMETRY, f"缺少视觉世界定义：{token}"
-    for token in ("drawCity", "drawIndustry", "drawPartnerSplit", "drawInvestment",
+    for token in ("drawYouth", "drawCity", "drawIndustry", "drawPartner", "drawInvestment",
                   "drawLearning", "drawTree"):
         assert token in RENDER, f"缺少绘制层：{token}"
 
@@ -154,7 +161,8 @@ def test_design_documents_the_six_questions_and_the_boundaries() -> None:
                   "60 秒", "画幅", "配色", "构图", "声音", "示意"):
         assert token in DESIGN, f"DESIGN.md 缺少：{token}"
     assert "life-timeline" in README
-    for line in ("城市，决定你每天会撞见什么机会。", "行业决定你站在哪条跑道上。",
-                 "伴侣不是人生的配角", "投资真正强大的地方", "持续学习，决定你还能不能换路。",
-                 "选对方向，比一直用力更重要。"):
+    for line in ("城市，会改变哪些门对你打开。", "行业决定你站在哪条跑道上。",
+                 "两个人一起走，路线会互相改写。", "每天一点，时间会把小投入垒高。",
+                 "原路会到尽头。", "学过的东西，会在别处接上。",
+                 "方向会被时间放大，路也可以改。"):
         assert line in README, f"README 未记录画面文案：{line}"

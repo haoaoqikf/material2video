@@ -65,7 +65,8 @@ export default function Life(config: CodeSceneProps) {
     throw new Error('人生五选择缺少 content.props.copy 或 content.props.labels');
   }
   const scale = config.captureScale ?? 1;
-  const t = clock.elapsedSeconds;
+  // stillT 只用于临时检查项目的单帧取样；正式分镜不写该字段。
+  const t = typeof props.stillT === 'number' ? props.stillT : clock.elapsedSeconds;
 
   useEffect(() => {
     clock.ready();

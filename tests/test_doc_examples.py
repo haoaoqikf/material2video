@@ -107,7 +107,8 @@ def test_visual_event_design_examples_preserve_delivery_boundary():
     repo = ROOT.parents[3]
     for name in ("american-science-milestones", "five-life-choices", "solar-system-journey"):
         design = (repo / "examples" / name / "DESIGN.md").read_text(encoding="utf-8")
-        event = design.split("## 视觉事件设计示范（后续制作指导）", 1)[1]
+        event = design.split("## 视觉事件设计示范（后续制作指导）", 1)[1].split(
+            "## 重制选案与方案（2026-10-24）", 1)[0]
         for token in ("未试制、未重渲染", "不改写已有成片验收结论", "镜头的信息职责",
                       "完整窗口", "visual-creative-direction.md#视觉事件设计"):
             assert token in event, (name, token)
@@ -220,3 +221,14 @@ def test_reference_audio_reuse_is_documented():
     assert "gainDb: 0" in sound and "sampleRate - 1" in sound
     schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
     assert "整片只有音床" in schema and "sampleRate - 1" in schema
+
+
+def test_continuous_sampling_and_text_reveal_checks_are_documented():
+    """重制验证过的采样与文字竞争方法必须写回共享参考，并保留适用边界。"""
+    text = (ROOT / "visual-review-rubric.md").read_text(encoding="utf-8")
+    section = text.split("### 连续采样与文字竞争的最小检查", 1)[1].split("## 检查方法与完成条件", 1)[0]
+    for token in ("累计弧长表", "世界距离", "零长度段", "端点钳制", "floor(u × 点数)",
+                  "世界速度与画面速度分开", "屏幕位移", "揭示不是缩放",
+                  "文字与揭示竞争", "完整揭示窗口", "换轨看主体全过程",
+                  "适用边界", "不成为所有题材的统一门禁", "不得升级为通用阈值"):
+        assert token in section, f"共享参考缺少：{token}"
