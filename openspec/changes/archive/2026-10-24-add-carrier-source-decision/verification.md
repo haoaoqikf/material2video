@@ -26,4 +26,4 @@
 
 ## 提交与归档
 
-实施提交与归档提交见后续仓库历史；变更按 `2026-10-24-add-carrier-source-decision` 归档，主规格同步后再次严格校验。
+实施提交为 `ab1e2a9`。新增要求已同步到 `openspec/specs/video-production-workflow/spec.md`，主规格与变更的 `--strict` 校验通过；变更按 `2026-10-24-add-carrier-source-decision` 归档，归档提交见后续仓库历史。
