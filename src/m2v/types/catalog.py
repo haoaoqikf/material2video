@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from m2v.core.errors import M2VError
-from m2v.core.video_config import FPS
+from m2v.core.video_config import default_fps
 
 #: 随包分发的目录文件。
 CATALOG_PATH = Path(__file__).with_name("catalog.json")
@@ -118,8 +118,9 @@ def _parse_material(raw: Any, type_name: str, index: int) -> Material:
     template = raw.get("template")
     if not isinstance(template, dict) or not template:
         raise M2VError(f"类型目录 {where}.template 必须是非空对象")
-    if "fps" in template and template["fps"] != FPS:
-        raise M2VError(f"类型目录 {where}.template.fps 必须为 {FPS}")
+    expected_fps = default_fps(type_name)
+    if "fps" in template and (type(template["fps"]) is not int or template["fps"] != expected_fps):
+        raise M2VError(f"类型目录 {where}.template.fps 必须为 {expected_fps}")
     return Material(name=name, file=file, template=template)
 
 

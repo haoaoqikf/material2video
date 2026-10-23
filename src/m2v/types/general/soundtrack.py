@@ -1,7 +1,7 @@
 """文章声音契约与程序生成提示音；编排决定由助手保存，渲染不猜测。"""
 from __future__ import annotations
 
-from m2v.core.video_config import FPS
+from m2v.core.video_config import general_fps
 
 import math
 import struct
@@ -68,6 +68,7 @@ def synthesize(name: str, target: Path) -> None:
 def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
         cues: list[dict], duration: float, work: Path, inputs: dict) -> None:
     from .explainer import local_file
+    fps = general_fps({}, source)
     track = source.get("soundtrack", {})
     music = None
     if "music" in track:
@@ -80,7 +81,7 @@ def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
     for index, effect in enumerate(track.get("effects", [])):
         scene = scenes[effect["sceneId"]]
         start = scene["segmentWindows"][effect["segmentId"]]["startFrame"] if "segmentId" in effect else scene["startFrame"]
-        start = start / FPS + effect.get("offsetMs", 0) / 1000
+        start = start / fps + effect.get("offsetMs", 0) / 1000
         if not 0 <= start < duration: raise M2VError(f"音效 {index} 起点越界：{start:.3f}s")
         if "builtin" in effect:
             file = work / f"builtin-{index}.wav"
@@ -91,6 +92,6 @@ def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
         effects.append((file, start, effect.get("gainDb", -18)))
     if music or effects:
         audio.mix(raw, target, duration,
-                  [{"start": c["startFrame"]/ FPS, "end": c["endFrame"]/ FPS} for c in cues], music, effects, work)
+                  [{"start": c["startFrame"]/ fps, "end": c["endFrame"]/ fps} for c in cues], music, effects, work)
     else:
         audio.normalize(raw, target)

@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from m2v.core.video_config import FPS
+from m2v.core.video_config import READING_TAIL_SECONDS
 
 import copy
 import hashlib
@@ -50,6 +50,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     from . import soundtrack, media_assets, cinematic
     cinematic.validate_project(project)
     source = contract.load(root, project)
+    fps = source["fps"]
     explainer_review.require_input(root, project)
     size = frame_engine.normalize(source.get("width"), source.get("height"))
     frame = frame_engine.spec(*size)
@@ -84,7 +85,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     hold_lists: list[list[int]] = []
     hits = 0
     for index, scene in enumerate(scenes):
-        overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", contract.FADE_FRAMES)
+        overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", round(8 / 30 * fps))
         overlaps.append(overlap)
         segments = []
         holds = []
@@ -94,7 +95,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             wav, cues, _words, seconds, hit = tts.scene_audio(segment["text"], actual_tts["voice"],
                 actual_tts["rate"], cache, contract_version=8, rhythm=scene_rhythm)
             if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
-            segments.append((segment["id"], wav, cues, math.ceil(seconds * FPS)))
+            segments.append((segment["id"], wav, cues, math.ceil(seconds * fps)))
             holds.append(segment.get("holdFrames", 0))
             hits += int(hit)
         measured.append(segments)
@@ -102,7 +103,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         # 冷开场与收尾靠留白声明，阅读停留可以逐幕调整；未声明时与既有行为一致。
         # 段间留白只发生在相邻旁白之间，最后一段由 tailFrames 收尾。
         pad = scene.get("leadInFrames", 0) + scene.get("tailFrames", 0)
-        hold = scene.get("readingHoldFrames", contract.READING_TAIL)
+        hold = scene.get("readingHoldFrames", round(READING_TAIL_SECONDS * fps))
         inter_hold = sum(holds[:-1])
         minimum = overlap + (pad + sum(s[3] for s in segments) + inter_hold + hold
                              if segments else max(1, pad))
@@ -114,7 +115,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             raise M2VError(f"幕 {scene['id']} 固定时长不足以容纳旁白、留白、阅读停留和转场，不得截断口播")
         durations.append(duration)
     if automatic:
-        remainder = round(source.get("targetSeconds", 60) * FPS) + sum(overlaps) - sum(d or 0 for d in durations)
+        remainder = round(source.get("targetSeconds", 60) * fps) + sum(overlaps) - sum(d or 0 for d in durations)
         share, extra = divmod(remainder, len(automatic))
         for position, index in enumerate(automatic):
             durations[index] = share + (position < extra)
@@ -138,8 +139,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         for segment_index, (identity, wav, local_cues, frames) in enumerate(segments):
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue in local_cues:
-                a = max(0, min(frames-1, round(cue["start"]* FPS)))
-                b = max(a+1, min(frames, round(cue["end"]* FPS)))
+                a = max(0, min(frames-1, round(cue["start"]* fps)))
+                b = max(a+1, min(frames, round(cue["end"]* fps)))
                 cues.append({"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]})
             parts.append((wav, frames))
             speech_start += frames
@@ -151,8 +152,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
                     speech_start += gap
         parts.append((None, scene["endFrame"] - speech_start))
         cursor = scene["endFrame"]
-        if cursor > contract.MAX_FRAMES:
-            raise M2VError(f"全片 {cursor/ FPS:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
+        if cursor > 600 * fps:
+            raise M2VError(f"全片 {cursor/ fps:.2f} 秒，超过 600 秒；请调整分镜或旁白，不得截断口播")
         # 镜头时间窗只能在真实分段时长出来之后判定，且必须在录制之前失败。
         shots = (scene.get("content", {}).get("props") or {}).get("shots") or []
         cinematic.validate_shot_windows(scene["id"], shots,
@@ -170,8 +171,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     with tempfile.TemporaryDirectory(dir=media_dir) as temporary:
         work = Path(temporary)
         raw, target = work / "raw.wav", work / "audio.wav"
-        audio.concatenate(parts, FPS, raw)
-        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ FPS, work, inputs)
+        audio.concatenate(parts, fps, raw)
+        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ fps, work, inputs)
         mastered = work / "mastered.wav"
         audio.master(target, mastered, integrated=-14.0, true_peak=-1.0)
         target = mastered
@@ -182,7 +183,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     inputs["renderer"] = remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]
     logger.info("通用作品准备：%d 幕，%d 帧，%d×%d，TTS 缓存命中 %d", len(scenes), cursor, size[0], size[1], hits)
     prepared = save_prepared(root, project=project, composition_id="ArticleExplainer", props=props,
-        width=size[0], height=size[1], fps=FPS, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
+        width=size[0], height=size[1], fps=fps, duration_in_frames=cursor, inputs=inputs, subtitles=cues,
         audio={"segments": [{"sceneId": "master", "path": master.relative_to(root).as_posix(),
             "startFrame": 0, "durationInFrames": cursor, "sha256": sha}], "cacheHits": hits})
     # 阅读速度只报告不阻断，因此放在准备产物写盘之后：报告写不成也不该让准备失败。

@@ -92,7 +92,7 @@
           "template": {
             "version": 8,
             "schemaVersion": 8,
-            "fps": 60,
+            "fps": 30,
             "width": 1920,
             "height": 1080,
             "title": "新作品",

@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
-from m2v.core.video_config import FPS
+from m2v.core.video_config import GENERAL_DEFAULT_FPS, validate_general_fps
 
 
 WEB = REPOSITORY_ROOT / "web"
@@ -65,9 +65,9 @@ def implementation_inputs() -> dict[str, str]:
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
-def scene_config(scene: dict, frame: dict, media: dict) -> dict:
+def scene_config(scene: dict, frame: dict, media: dict, *, fps: int = GENERAL_DEFAULT_FPS) -> dict:
     """录制配置与片段缓存输入；统一契约不复用旧档位缓存。"""
-    config = {"productionContract": "unified-v1", "props": scene["content"].get("props", {}), "fps": FPS,
+    config = {"productionContract": "unified-v1", "props": scene["content"].get("props", {}), "fps": validate_general_fps(fps),
               "durationInFrames": scene["durationInFrames"],
               "width": frame["width"], "height": frame["height"],
               "subtitleSafeArea": frame["subtitle"]["safeArea"],

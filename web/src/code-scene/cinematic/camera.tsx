@@ -1,3 +1,4 @@
+import { GENERAL_DEFAULT_FPS } from '../../video-config';
 /**
  * 镜头、路径与焦点求值：`CameraRig`、镜头/look 类型、确定性工具与穿球检查。
  *
@@ -150,7 +151,7 @@ export function useLook(): LookValue {
   const override = useContext(LookContext);
   const {elapsedSeconds} = useSceneContext();
   const config = window.__M2V_CODE_CONFIG__;
-  const fps = config?.fps ?? 60;
+  const fps = config?.fps ?? GENERAL_DEFAULT_FPS;
   const frame = Math.round(elapsedSeconds * fps);
   const props = (config?.props ?? {}) as {look?: Look; shots?: Shot[]};
   const look = override?.look ?? props.look ?? {profile: 'neutral'};

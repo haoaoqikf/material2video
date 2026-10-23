@@ -6,7 +6,6 @@
 """
 from __future__ import annotations
 
-from m2v.core.video_config import FPS
 
 import hashlib
 import json
@@ -68,7 +67,7 @@ def _size(prepared: dict) -> tuple[int, int]:
 def current(root: Path, project: dict) -> dict:
     prepared = load_current_prepared(root, project)
     if (prepared.get("compositionId") != "ArticleExplainer" or prepared["props"].get("version") != 8
-            or not 1 <= prepared["durationInFrames"] <= 600 * FPS):
+            or not 1 <= prepared["durationInFrames"] <= 600 * prepared["fps"]):
         raise M2VError("旧文章准备记录不能用于 v8；请重新设计并 prepare")
     if prepared["inputs"].get("productionContract") != "unified-v1":
         raise M2VError("旧制作契约准备记录已失效；请重新 prepare")
@@ -153,6 +152,7 @@ def visual_provenance(prepared: dict) -> dict:
 
 def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None, defer_validation=False) -> Path:
     prepared = current(root, project)
+    fps = prepared["fps"]
     width, height = _size(prepared)
     # 预演和正式输出共用字幕量测；失败不能覆盖之前的有效成片。
     started = time.monotonic()
@@ -178,7 +178,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         timings.record("cache", outcome.cache_seconds)
         silent = work / "silent.mp4"
         confirm = render_pipeline.metadata_confirm(
-            (FPS, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
+            (fps, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
             frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
         render_start = time.monotonic()
         session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
@@ -189,15 +189,15 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         master = root / prepared["audio"]["segments"][0]["path"]
         final = work / "final.mp4"
         with perf.measure(timings, "mux"):
-            audio.mux(silent, master, final, frames_to_render / FPS, start=start_frame / FPS)
+            audio.mux(silent, master, final, frames_to_render / fps, start=start_frame / fps)
         with perf.measure(timings, "probe"):
             if not defer_validation:
-                output_validation.verify_output(final, frames_to_render, width, height, FPS, expect_audio=True)
+                output_validation.verify_output(final, frames_to_render, width, height, fps, expect_audio=True)
         if current(root, project)["preparedFingerprint"] != prepared["preparedFingerprint"]:
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "ArticleExplainer",
-            "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": FPS, "width": width, "height": height}
+            "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": fps, "width": width, "height": height}
         provenance.update(visual_provenance(prepared))
         provenance.update({
             "audio": {"master": prepared["audio"]["segments"][0]["path"],
@@ -207,7 +207,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
                                    "bitrate": "128k"}},
             "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
                          "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
-                         "frames": frames_to_render, "fps": FPS, "width": width, "height": height},
+                         "frames": frames_to_render, "fps": fps, "width": width, "height": height},
         })
         if not preview:
             _write_json(work / "final.provenance.json", provenance)
@@ -216,7 +216,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         if not preview:
             security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
     render_pipeline.write_report(destination, entry="preview" if preview else "render", storyboard=entry,
-        frames=frames_to_render, fps=FPS, width=width, height=height, timings=timings,
+        frames=frames_to_render, fps=fps, width=width, height=height, timings=timings,
         total_seconds=time.monotonic()-started, outcome=outcome,
         extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"})
     logger.info("讲解视频导出通过：%s，%d 帧", destination, frames_to_render)
@@ -229,8 +229,9 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
     from m2v.core.preview import window
     from m2v.core.project import load_project
     prepared = current(root, project)
+    fps = prepared["fps"]
     if preview:
-        start, end = window(prepared["durationInFrames"], FPS, start_seconds=start_seconds,
+        start, end = window(prepared["durationInFrames"], fps, start_seconds=start_seconds,
                             end_seconds=end_seconds, limit_frames=limit_frames)
         return _generate(root, project, preview=True, start_frame=start, end_frame=end)
     if limit_frames is not None or start_seconds or end_seconds is not None:
@@ -241,6 +242,6 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
     def verify(video):
         layout_check(root, current(root, project))
         output_validation.verify_output(video, prepared["durationInFrames"], prepared["width"],
-                                        prepared["height"], FPS, expect_audio=True)
+                                        prepared["height"], fps, expect_audio=True)
     return delivery.export_once(delivery.outputs(root) / "video.mp4", binding(),
         lambda target: _generate(root, project, output=target, defer_validation=True), verify, binding)

@@ -78,7 +78,9 @@ def test_extract_writes_audio_and_provenance(tmp_path):
         assert (stream.getframerate(), stream.getnchannels(), stream.getsampwidth()) == (48000, 2, 2)
         samples = stream.getnframes()
     assert result["audioInfo"]["samples"] == samples
-    assert result["timeline"]["totalFrames"] == audio.frames_at_60fps(samples)
+    assert result["timeline"]["fps"] == 30
+    assert result["timeline"]["totalFrames"] == (samples * 30 + 47999) // 48000
+    assert result["audioInfo"]["framesAt60fps"] == audio.frames_at_60fps(samples)
     assert result["timeline"]["rounding"] == "ceil"
     assert result["soundtrack"]["music"] == {
         "sourceRef": result["audio"], "gainDb": 0, "loop": False, "fadeInMs": 0, "fadeOutMs": 0}

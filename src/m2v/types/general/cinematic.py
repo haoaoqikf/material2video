@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from m2v.core.validate import fail, integer as _integer, number as _number, obj as _obj, text as _text
-from m2v.core.video_config import FPS
+from m2v.core.video_config import GENERAL_DEFAULT_FPS
 
 
 TIERS = ("hero", "major", "minor")
@@ -76,7 +76,7 @@ def _position(value, path: str) -> None:
         _number(item, -1e6, 1e6, f"{path}[{index}]")
 
 
-def _camera(value, path: str) -> None:
+def _camera(value, path: str, fps: int) -> None:
     obj = _obj(value, path, {"path", "fov", "roll", "easing", "keyframes"})
     if "path" in obj:
         points = obj["path"]
@@ -96,7 +96,7 @@ def _camera(value, path: str) -> None:
             fail(path + ".keyframes", "必须包含 2～64 个关键帧")
         for index, key in enumerate(keys):
             item = _obj(key, f"{path}.keyframes[{index}]", {"frame", "position"})
-            _integer(item.get("frame"), 0, 600 * FPS, f"{path}.keyframes[{index}].frame")
+            _integer(item.get("frame"), 0, 600 * fps, f"{path}.keyframes[{index}].frame")
             _position(item.get("position"), f"{path}.keyframes[{index}].position")
 
 
@@ -122,7 +122,7 @@ def _post(value, path: str) -> None:
         fail(path + ".lut", f"必须是内置调色档：{'/'.join(LUTS)}")
 
 
-def validate_shots(props: dict, path: str) -> list[dict]:
+def validate_shots(props: dict, path: str, *, fps: int = GENERAL_DEFAULT_FPS) -> list[dict]:
     """校验 `content.props.shots`，返回镜头列表；未声明时返回空列表。"""
     if "shots" not in props:
         return []
@@ -145,12 +145,12 @@ def validate_shots(props: dict, path: str) -> list[dict]:
             _text(obj["segment"], item + ".segment")
         if "cut" in obj and type(obj["cut"]) is not bool:
             fail(item + ".cut", "必须是布尔值")
-        start = _integer(obj.get("startFrame"), 0, 600 * FPS, item + ".startFrame")
-        end = _integer(obj.get("endFrame"), 1, 600 * FPS, item + ".endFrame")
+        start = _integer(obj.get("startFrame"), 0, 600 * fps, item + ".startFrame")
+        end = _integer(obj.get("endFrame"), 1, 600 * fps, item + ".endFrame")
         if end <= start:
             fail(item, f"endFrame 必须大于 startFrame（{identity}）")
         if "camera" in obj:
-            _camera(obj["camera"], item + ".camera")
+            _camera(obj["camera"], item + ".camera", fps)
         if "focus" in obj:
             _focus(obj["focus"], item + ".focus")
         if "exposure" in obj:

@@ -12,16 +12,11 @@ from m2v.core.validate import fail, items, number, obj, text
 from m2v.engine import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
-from m2v.core.video_config import FPS, READING_TAIL_SECONDS
-MAX_FRAMES, READING_TAIL, FADE_FRAMES = 600 * FPS, round(READING_TAIL_SECONDS * FPS), round(8 / 30 * FPS)
+from m2v.core.video_config import general_fps
 VERSION = 8
 TEMPLATE = "code"
 MAX_SCENES, MAX_SEGMENTS = 300, 30
 TRANSITIONS = ("cut", "fade", "crossfade")
-#: 可选留白与阅读停留的上限（帧）。
-MAX_PAD, MAX_HOLD = 1800, 360
-#: 同一幕内相邻旁白之间的静默上限（帧）。
-MAX_SEGMENT_HOLD = MAX_PAD  # 长距离连续运镜可复用与首尾留白相同的30秒预算；全片仍限600秒
 
 
 def topic_input(data: dict) -> bool:
@@ -44,13 +39,15 @@ def source_file(root: Path, project: dict) -> Path:
     return source
 
 
-def validate(data: dict, root: Path) -> dict:
+def validate(data: dict, root: Path, project: dict | None = None) -> dict:
     if not isinstance(data, dict) or data.get("version") != VERSION or data.get("schemaVersion") != data.get("version"):
         fail("version", "通用分镜只接受 v8；v7 及更早作品须重新编排，不自动迁移")
     obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title",
                              "input", "targetSeconds", "soundtrack", "scenes"})
-    if data.get("fps") != FPS:
-        fail("fps", f"必须为 {FPS}")
+    # 返回规范化副本，不修改作者材料；下游只读取已解析的实际帧率。
+    data = {**data, "fps": general_fps(project or {}, data)}
+    fps = data["fps"]
+    max_frames, max_pad, max_hold = 600 * fps, 30 * fps, 6 * fps
     frames.normalize(data.get("width"), data.get("height"))
     text(data.get("title"), "title")
     from . import soundtrack
@@ -80,8 +77,8 @@ def validate(data: dict, root: Path) -> dict:
             fail(path, f"template 必须是 {TEMPLATE}：通用画面由作品代码决定，不再有受控模板")
         if scene.get("transition", "cut") not in TRANSITIONS or (index == 0 and scene.get("transition", "cut") != "cut"):
             fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
-        for name, high in (("leadInFrames", MAX_PAD), ("tailFrames", MAX_PAD),
-                           ("readingHoldFrames", MAX_HOLD)):
+        for name, high in (("leadInFrames", max_pad), ("tailFrames", max_pad),
+                           ("readingHoldFrames", max_hold)):
             if name not in scene:
                 continue
             value = scene[name]
@@ -92,11 +89,11 @@ def validate(data: dict, root: Path) -> dict:
             for word in words:
                 text(word, path + ".keywords")
         if "durationFrames" in scene and (type(scene["durationFrames"]) is not int
-                                          or not 1 <= scene["durationFrames"] <= MAX_FRAMES):
-            fail(path + ".durationFrames", f"必须为 1～{MAX_FRAMES} 整数")
-        overlap = scene.get("transitionFrames", FADE_FRAMES)
-        if type(overlap) is not int or not 1 <= overlap <= 60 * FPS:
-            fail(path + ".transitionFrames", "必须为 1～3600 整数")
+                                          or not 1 <= scene["durationFrames"] <= max_frames):
+            fail(path + ".durationFrames", f"必须为 1～{max_frames} 整数")
+        overlap = scene.get("transitionFrames", round(8 / 30 * fps))
+        if type(overlap) is not int or not 1 <= overlap <= 60 * fps:
+            fail(path + ".transitionFrames", f"必须为 1～{60 * fps} 整数")
         if "speech" in scene:
             rhythm.configure(scene["speech"])
         parts = scene.get("narrationSegments")
@@ -114,9 +111,9 @@ def validate(data: dict, root: Path) -> dict:
             all_ids.add(pid)
             if "holdFrames" in part:
                 hold = part["holdFrames"]
-                if type(hold) is not int or not 0 <= hold <= MAX_SEGMENT_HOLD:
+                if type(hold) is not int or not 0 <= hold <= max_pad:
                     fail(f"{path}.narrationSegments[{part_index}].holdFrames",
-                         f"必须为 0～{MAX_SEGMENT_HOLD} 的整数")
+                         f"必须为 0～{max_pad} 的整数")
                 if part_index == len(parts) - 1 and hold:
                     fail(f"{path}.narrationSegments[{part_index}].holdFrames",
                          "最后一段不能声明段间留白；收尾请使用 tailFrames")
@@ -125,7 +122,7 @@ def validate(data: dict, root: Path) -> dict:
             text(content.get("title"), path + ".content.title")
         props = content.get("props", {})
         validate_entry(root, content.get("entry"), props)
-        shots = cinematic.validate_shots(props, path + ".content.props")
+        shots = cinematic.validate_shots(props, path + ".content.props", fps=fps)
         ordered = sorted(shots, key=lambda item: item["startFrame"])
         for previous, current in zip(ordered, ordered[1:]):
             if previous["endFrame"] > current["startFrame"]:
@@ -149,4 +146,4 @@ def load(root: Path, project: dict) -> dict:
         data = json.loads(file.read_text(encoding="utf-8-sig"))
     except (ValueError, OSError) as exc:
         raise M2VError(f"无法读取讲解分镜：{exc}") from exc
-    return validate(data, root)
+    return validate(data, root, project)

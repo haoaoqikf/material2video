@@ -106,7 +106,7 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-authorized "<用户授权原文>"
 ```
 
-命令按 `recipe.json` 复核参考目录，提取 PCM16 / 48 kHz / 源声道 WAV 到作品 `assets/audio/<名称>.wav`，并写同名 `.provenance.json`。`--json` 或人类输出给出 60 fps 总帧数（`(samples × 60 + sampleRate - 1) // sampleRate`）与可直接粘贴的 `soundtrack` 片段。目标已存在时默认拒绝，来源与摘要一致才复用，`--force` 才替换。
+命令按 `recipe.json` 复核参考目录，提取 PCM16 / 48 kHz / 源声道 WAV 到作品 `assets/audio/<名称>.wav`，并写同名 `.provenance.json`。`--json` 或人类输出给出作品实际 fps 的总帧数（`(samples × fps + sampleRate - 1) // sampleRate`）和可直接粘贴的 `soundtrack` 片段；留证中的 `framesAt60fps` 仍是60帧分析信息，不可直接当作30帧作品的编排帧数。目标已存在时默认拒绝，来源与摘要一致才复用，`--force` 才替换。
 
 无旁白作品只有音床时，音床就是全片唯一音源：必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`。全部幕使用 `cut` 时 `sum(durationFrames) = totalFrames`；使用 `fade`/`crossfade` 时另加 `transitionFrames` 之和。母版仍会重采样为 24 kHz 单声道、经限幅/压缩/响度归一后交付 AAC 44.1 kHz，交付说明写「整条音频作为唯一音源，经母版响度规范」，不写「比特级原样」。
 

@@ -43,6 +43,7 @@ def project(tmp_path, data=None):
     create_project(root, "general", {"storyboard": "storyboard.json"})
     manifest_path = root / "project.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["output"]["fps"] = (data or board()).get("fps", 30)
     manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     (root / "storyboard.json").write_text(json.dumps(data or board(), ensure_ascii=False), encoding="utf-8")
@@ -60,7 +61,7 @@ def project(tmp_path, data=None):
 def fake_record(monkeypatch):
     """假录制：真实录制要构建前端并开浏览器，只有专门的用例才该承担。"""
     calls = []
-    def record(root, target, inputs, *, frame, media, media_digest, capture_range=None):
+    def record(root, target, inputs, *, frame, media, media_digest, capture_range=None, fps=30):
         path = root / "outputs/code-cache" / f"{target['id']}.mp4"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"clip:" + target["id"].encode())
@@ -69,7 +70,7 @@ def fake_record(monkeypatch):
         inputs["codeMedia"] = media_digest
         relative = path.relative_to(root).as_posix()
         inputs["file:" + relative] = hashlib.sha256(path.read_bytes()).hexdigest()
-        calls.append({"scene": target["id"], "frame": frame, "media": media})
+        calls.append({"scene": target["id"], "frame": frame, "media": media, "fps": fps})
         return relative
     monkeypatch.setattr(prepare.code_scenes.capture, "record", record)
     monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", lambda root, target, work: {

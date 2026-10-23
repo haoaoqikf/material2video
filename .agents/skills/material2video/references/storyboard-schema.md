@@ -5,12 +5,14 @@
 `general` 只接受 `version: 8`、`schemaVersion: 8`。v7 及更早分镜必须重新编排，不自动迁移；
 历史测试分镜不属于制作入口。
 
+帧率规则：`project.json.output.fps` 与本文件 `fps` 均声明时必须一致，仅一处声明时使用该值，都省略则默认30；只接受整数30或60。所有显式帧数字段按实际fps解释，不自动缩放；切换帧率须由作者调整帧预算并重新 prepare。现有显式60帧示例保持原值。
+
 v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里没有模板，没有主题，也没有屏幕摘要
 字段。作品说明与创作依据见各示例的 `DESIGN.md`。
 
 ## 全片与场景
 
-全片声明 `fps: 60`、`title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
+全片可声明 `fps: 30` 或 `fps: 60`、`title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
 `soundtrack` 和非空 `scenes`（最多 300 幕）。
 
 **画幅**只支持 1920×1080 横屏与 1080×1920 竖屏：两边都省略时规范化为横屏并写进准备产物；
@@ -24,20 +26,20 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 每幕声明 `id`、`template`（只能是 `code`）、`content`、`narrationSegments`，可选 `keywords`、
 `durationFrames`、`transition`、`transitionFrames`、`speech`。转场支持 `cut`、`fade`、
-`crossfade`，首幕只能 cut；`transitionFrames` 为 1～3600 的整数，默认 16。`durationFrames` 为
-1～36000 的整数，声明后必须容得下旁白、24 帧阅读停留与转场，不得截断口播，它同时是录制片段
+`crossfade`，首幕只能 cut；`transitionFrames` 为1～`60 × fps`的整数，默认 `round(8 / 30 × fps)`（30/60 fps下为8/16帧）。`durationFrames` 为
+1～`600 × fps`的整数，声明后必须容得下旁白、默认0.4秒阅读停留与转场，不得截断口播，它同时是录制片段
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
 `content` 只接受 `title`（可选，仅作元数据）、`entry`（必填）与 `props`（可选，默认空对象）。
 `narrationSegments` 每项为 `{id,text}`，文字非空；`code` 幕可以没有旁白（0～30 项），此时镜头
 长度取声明的 `durationFrames`，未声明时与其余无旁白镜头平分 `targetSeconds` 的剩余帧数。
-每项可选 `holdFrames`（0～1800）：本段旁白结束后、下一段开始前的静默帧数，只用于同一幕内的
+每项可选 `holdFrames`（0～`30 × fps`）：本段旁白结束后、下一段开始前的静默帧数，只用于同一幕内的
 连续旁白；最后一段不得声明，收尾留白用 `tailFrames`。静默计入 `durationFrames` 的最小值，
 `segmentWindows` 仍只表示发声窗口，字幕与音效引用自动后移。段间静默是**单幕一镜到底**在
 不打断口播的前提下保留观察时间的唯一方式。
 
-整片只有音床、没有旁白的作品，`durationFrames` 决定全片长度：先取音频的 60 fps 总帧数
-`(samples × 60 + sampleRate - 1) // sampleRate`，再分配到各幕。全部幕使用 `cut` 时
+整片只有音床、没有旁白的作品，`durationFrames` 决定全片长度：先按作品实际fps从采样数向上取整计算总帧数
+`(samples × fps + sampleRate - 1) // sampleRate`，再分配到各幕。全部幕使用 `cut` 时
 `sum(durationFrames)` 等于总帧数；使用 `fade`/`crossfade` 时另加重叠帧。`soundtrack.music`
 必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`，否则默认 −24 dB 与
 500ms 淡化会改变原音频。音轨来源与授权要求见
@@ -73,9 +75,9 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 | 字段 | 范围 | 说明 |
 |---|---|---|
-| `leadInFrames` | 0～1800 | 旁白之前的留白（冷开场），默认 0 |
-| `tailFrames` | 0～1800 | 阅读停留之后的留白（收尾），默认 0 |
-| `readingHoldFrames` | 0～360 | 本幕声音结束后的稳定阅读帧数，默认 24 |
+| `leadInFrames` | 0～`30 × fps` | 旁白之前的留白（冷开场），默认 0 |
+| `tailFrames` | 0～`30 × fps` | 阅读停留之后的留白（收尾），默认 0 |
+| `readingHoldFrames` | 0～`6 × fps` | 本幕声音结束后的稳定阅读帧数，默认0.4秒（30/60 fps下为12/24帧） |
 
 `content.props` 新增两个可选对象：
 
@@ -83,7 +85,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
   可选 `segment`（本幕的旁白段 id）、`startFrame`/`endFrame`（**幕内相对帧**），以及可选的
   `camera`（`path`/`fov`/`roll`/`easing`/`keyframes`）、`focus`（`target`/`distance`/`aperture`）、
   `exposure`（`ev`）与 `post`（`bloom`/`dof`/`grain`/`vignette`/`chromaticAberration`/`lut`）。
-  整片至少 3 个 hero，每个 hero 是一段 8～12 秒（480～720 帧）的连续镜头。可选 `cut: true`
+  整片至少 3 个 hero，每个 hero 是一段 8～12 秒（按作品fps换算为帧数）的连续镜头。可选 `cut: true`
   表示这一镜**硬切**进入：路径不接上一个镜头的出口，而是直接跳到本章的建立机位（只能向前跳，
   不能退回上一个镜头之前）。
 - `look`：look bible 的代码化参数，`profile`（必填）加可选 `lut`（内置调色档名，见下）、`grain`、`bloom`、`dof`、
@@ -156,7 +158,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 录制在无头 Chromium 中按受控时钟逐帧进行：viewport、页面根元素、ffmpeg 标准化尺寸与 composition 都用
 同一画幅。只开放**已登记媒体**与仓库字体，作品目录下的其他文件、导入记录、源文都不暴露；
 外网请求、WebSocket、超时与运行异常都会让录制失败，不生成有效候选；准备阶段只检查材料与源码。片段是不带音轨的
-60 fps 视频，声音一律由统一音轨处理；素材原声不会进入母版。
+作品实际30或60 fps视频，声音一律由统一音轨处理；素材原声不会进入母版。
 
 录制按源码可达输入、`props`、本幕时间窗、**画幅与字幕安全区**、**媒体映射与导入摘要**、
 共享实现与锁文件、浏览器及编码配置绑定缓存，片段与摘要落在 `outputs/code-cache/`，缓存额外绑定采集区间，整幕生成复用已录区间并只补齐缺口；任何一项
@@ -165,10 +167,10 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 
 ## 时间轴与字幕
 
-每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与画面时间窗。每幕声音结束后保留 24 帧
+每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与画面时间窗。每幕声音结束后默认保留0.4秒（按作品fps换算为帧数）
 稳定阅读，默认硬切。`fade`/`crossfade` 在前一幕完整阅读尾段之后按 `transitionFrames` 交叉淡化，
 下一幕配音在淡化结束后开始，前后口播不重叠。音轨不截断、不重叠，母版轨严格裁到全片时长。
-完整成片含停留及淡化最多 36000 帧（600 秒）。
+完整成片含停留及淡化最多 `600 × fps` 帧（600秒）。
 
 默认根据旁白原文自动生成画面字幕，预演和正式导出共用同一字幕层，无需配置开关；字幕烧录进
 画面，不导出外置字幕文件，因此「有字幕」只能以成片里的可见文字为准。字幕使用真实配音派生的
@@ -183,7 +185,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 最小示例：
 
 ```json
-{"version":8,"schemaVersion":8,"fps":60,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
+{"version":8,"schemaVersion":8,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
 完整示例：[从电报到大模型](../../../../examples/american-science-milestones/storyboard.json)、

@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from m2v.core.video_config import FPS
+from m2v.core.video_config import GENERAL_DEFAULT_FPS, validate_general_fps
 from m2v.core import security
 from m2v.engine import audio
 from m2v.engine.http_server import LocalServer
@@ -44,7 +44,7 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
             continue
         scene["mediaPath"] = record(root, scene, {}, frame=frame, media=media["media"],
             media_digest=media["digest"],
-            capture_range=(first, last))
+            capture_range=(first, last), fps=prepared["fps"])
         scene["mediaStartFrame"] = first
         scene["mediaDurationFrames"] = last - first
         selected.append(scene)
@@ -53,7 +53,7 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
 
 
 def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
-           capture_range: tuple[int, int] | None = None) -> str:
+           capture_range: tuple[int, int] | None = None, fps: int = GENERAL_DEFAULT_FPS) -> str:
     """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与统一契约都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
@@ -62,7 +62,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
     width, height = frame["width"], frame["height"]
     cache = root / "outputs/code-cache"
     cache.mkdir(parents=True, exist_ok=True)
-    config = scene_config(scene, frame, media)
+    config = scene_config(scene, frame, media, fps=fps)
     first, last = capture_range or (0, config["durationInFrames"])
     if not 0 <= first < last <= config["durationInFrames"]:
         raise M2VError("场景采集范围越界")
@@ -94,7 +94,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                         target = cache / f"{key}-{cursor}-{begin}.mp4"
                         logger.info("代码场景 %s 采集缺口 %d～%d", scene["id"], cursor, begin)
                         _capture(pw, root, gap, config, selected_frames=list(range(cursor, begin)))
-                        _encode(gap, target, begin-cursor, width, height, start_frame=cursor,
+                        _encode(gap, target, begin-cursor, width, height, start_frame=cursor, fps=fps,
                                 supersample=int((config.get("motion") or {}).get("supersample", 1)))
                         _clip_receipt(target, cursor, begin)
                         pieces.append(target)
@@ -305,7 +305,7 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
             browser.close()
 
 
-def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1, start_frame: int = 0) -> None:
+def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1, start_frame: int = 0, fps: int = GENERAL_DEFAULT_FPS) -> None:
     temporary = work / "encoded.mp4"
     # yuv444p 而不是 yuv420p：片段会与作品画布直接拼接，4:2:0 的色度抽样会让底色偏
     # 一两个色阶，在深色画面上显出方块边缘；4:4:4 的往返对纯色是精确的。
@@ -316,7 +316,7 @@ def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, s
     if supersample > 1:
         # SSAA：采集时按 2 倍设备像素渲染，编码时降采样回目标画幅。
         scale = ["-vf", f"scale={width}:{height}:flags=lanczos"]
-    audio.ffmpeg(["-framerate", str(FPS), "-start_number", str(start_frame), "-i", str(work / "frame-%06d.png"),
+    audio.ffmpeg(["-framerate", str(validate_general_fps(fps)), "-start_number", str(start_frame), "-i", str(work / "frame-%06d.png"),
                   *scale, "-an", "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv444p",
                   "-crf", "18", str(temporary)])
     _verify_clip(temporary, frames)

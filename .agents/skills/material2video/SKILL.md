@@ -55,7 +55,7 @@ uv run m2v assets audit --project videos/general/<slug>  # 资产质量与许可
 uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-authorized "<授权说明>"
 ```
 
-参考素材默认只用于分析、比对与制作参考，渲染链路不直接读取 `refs/`。`m2v ref fetch/verify` 负责获取与复核；用户明确要求复用单条参考作品音频时，`ref audio` 才把音轨提取到作品 `assets/audio/` 并写 provenance（来源、摘要、授权原文、许可状态），成片只保留一处署名。无旁白作品只用 `soundtrack.music` 作全片音源时，必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`，并按 `ceil(samples × 60 / sampleRate)` 对齐每幕 `durationFrames`。细节见[文章媒体与音效](references/article-media-and-sound.md#复用参考音轨受控例外)。
+参考素材默认只用于分析、比对与制作参考，渲染链路不直接读取 `refs/`。`m2v ref fetch/verify` 负责获取与复核；用户明确要求复用单条参考作品音频时，`ref audio` 才把音轨提取到作品 `assets/audio/` 并写 provenance（来源、摘要、授权原文、许可状态），成片只保留一处署名。无旁白作品只用 `soundtrack.music` 作全片音源时，必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`，并按 `ceil(samples × fps / sampleRate)` 对齐每幕 `durationFrames`。细节见[文章媒体与音效](references/article-media-and-sound.md#复用参考音轨受控例外)。
 
 金融材料在价格来源和交易日核验完成后，可用 `uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60` 生成计划。
 
@@ -100,7 +100,7 @@ uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-autho
 `durationFrames` 声明镜头长度）。`input.kind` 为 `article` 时绑定源文，为 `topic` 时只声明
 `input.topic` 并由逐幕 `keywords` 驱动可选图库检索。
 
-制作顺序是**先设计再动手**：确定发布语境与画幅（默认抖音、1920×1080 横屏、60 fps，显式要求优先；所有画幅均默认面向手机播放）→ 在作品 `DESIGN.md` 完成
+制作顺序是**先设计再动手**：确定发布语境与画幅（默认抖音、1920×1080 横屏、默认30 fps（可显式60 fps），显式要求优先；所有画幅均默认面向手机播放）→ 在作品 `DESIGN.md` 完成
 [立意六项](references/production-workflow.md#立意六项方案确定前)（一句话命题、核心体验、表达载体、揭示与记忆、可验算骨架、重点投入；缺项不得进入叙事候选）→
 按信息单元及观察／情绪用途安排全片预算 → 写下参考依据、视觉隐喻、字体配色、开场/核心/普通信息镜头/结尾四处代表构图、镜头承接与声音意图 → 做四张关键画面与完整动态粗预演 →
 优先验证核心表达载体、风险运镜与声音样片 → 关闭必改项后再扩展精制全片。作品代码控制整张画布，必须自己画满不透明背景，并让重要文字与主体

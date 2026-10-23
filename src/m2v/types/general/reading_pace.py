@@ -21,17 +21,16 @@ SOURCE = "Netflix Chinese Simplified Timed Text Style Guide：成人节目 ≤9 
 
 REPORT = "outputs/reading-pace.json"
 
-#: 字幕帧边界由 60 fps 的配音派生。
-from m2v.core.video_config import FPS
+from m2v.core.video_config import GENERAL_DEFAULT_FPS
 
 
-def entries(cues: list[dict]) -> list[dict]:
+def entries(cues: list[dict], fps: int = GENERAL_DEFAULT_FPS) -> list[dict]:
     """逐条字幕的字数、秒数与字/秒。无字或零长的 cue 跳过，不参与判定。"""
     from m2v.types.general.article_text import count_characters
 
     measured = []
     for cue in cues:
-        seconds = (cue["endFrame"] - cue["startFrame"]) / FPS
+        seconds = (cue["endFrame"] - cue["startFrame"]) / fps
         characters = count_characters(cue["text"])
         if seconds <= 0 or characters == 0:
             continue
@@ -47,7 +46,7 @@ def entries(cues: list[dict]) -> list[dict]:
 
 def report(prepared: dict) -> dict:
     """阅读速度报告。超限条目单独列一份，便于提示与复盘。"""
-    measured = entries(prepared["subtitles"])
+    measured = entries(prepared["subtitles"], prepared["fps"])
     over = [cue for cue in measured if cue["charactersPerSecond"] > LIMIT_PER_SECOND]
     return {
         "schemaVersion": 1,

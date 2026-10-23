@@ -20,6 +20,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
+from m2v.core.video_config import project_fps
 from m2v.reference.douyin import verify_directory
 
 FPS = 60
@@ -265,6 +266,8 @@ def _result(reference: Path, root: Path, project: dict, name: str, target_ref: s
             provenance_ref: str, metadata: dict, video: dict, info: dict,
             statement: str, *, reused: bool, saved_audio: dict | None = None) -> dict:
     source_audio = saved_audio or info
+    fps = project_fps(root, project, allow_missing_storyboard=True)
+    total_frames = (info["samples"] * fps + info["sampleRate"] - 1) // info["sampleRate"]
     declared = metadata.get("durationMs")
     warning = None
     if isinstance(declared, (int, float)) and declared > 0:
@@ -289,10 +292,10 @@ def _result(reference: Path, root: Path, project: dict, name: str, target_ref: s
         },
         "audioInfo": source_audio,
         "timeline": {
-            "fps": FPS,
-            "totalFrames": info["framesAt60fps"],
+            "fps": fps,
+            "totalFrames": total_frames,
             "rounding": "ceil",
-            "tailSilenceMaxMs": round(1000 / FPS, 1),
+            "tailSilenceMaxMs": round(1000 / fps, 1),
             "formula": "全部 cut 时 sum(durationFrames) = totalFrames；使用 fade/crossfade 时另加 transitionFrames 之和",
         },
         "soundtrack": _soundtrack(target_ref),

@@ -1,7 +1,7 @@
 """Versioned project manifests and content-addressed preparation records."""
 from __future__ import annotations
 
-from m2v.core.video_config import FPS
+from m2v.core.video_config import FPS, default_fps, project_fps, validate_general_fps
 
 import hashlib
 import json
@@ -64,7 +64,10 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     for field in ("width", "height", "fps"):
         if field in output and (type(output[field]) is not int or output[field] < 1):
             raise M2VError(f"output.{field} 必须是正整数")
-    if output.get("fps", FPS) != FPS:
+    if data["type"] == "general":
+        if "fps" in output:
+            validate_general_fps(output["fps"], "output.fps")
+    elif output.get("fps", FPS) != FPS:
         raise M2VError(f"output.fps 必须为 {FPS}；旧帧率材料请重新编排")
     return root, data
 
@@ -91,7 +94,7 @@ def create_project(directory: str | Path, video_type: str, materials: Mapping[st
     # Keep a readable prefix while giving same-named works independent stable IDs.
     project_id = f"{slug[:50].rstrip('-') or 'video'}-{uuid.uuid4().hex[:8]}"
     _write_json(path, {"schemaVersion": PROJECT_VERSION, "id": project_id, "type": video_type,
-                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": FPS, "audio": "optional"}})
+                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": default_fps(video_type), "audio": "optional"}})
     return path
 
 
@@ -122,8 +125,9 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     prepared["preparedFingerprint"] = expected
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise M2VError("准备记录与当前作品不匹配；请重新 prepare")
-    if prepared.get("fps") != FPS:
-        raise M2VError(f"旧帧率准备记录不能用于 {FPS} fps；请重新 prepare")
+    expected_fps = project_fps(root, project)
+    if type(prepared.get("fps")) is not int or prepared["fps"] != expected_fps:
+        raise M2VError(f"准备记录帧率与当前 {expected_fps} fps 不匹配；请重新 prepare")
     for name, reference in project["materials"].items():
         file = (root / reference).resolve()
         if not file.is_file():

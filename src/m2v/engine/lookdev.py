@@ -107,7 +107,7 @@ def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, 
             directory = work / f"native-{index}"
             directory.mkdir()
             code_scenes.build_scene(root, scene, directory)
-            config = code_scenes.scene_config(scene, frame_config, media)
+            config = code_scenes.scene_config(scene, frame_config, media, fps=prepared["fps"])
             config["captureScale"] = scale
             code_scenes._capture(pw, root, directory, config, selected_frames=selected)
             for frame in selected:

@@ -1,4 +1,4 @@
-import { FPS } from './video-config';
+import { FPS, GENERAL_DEFAULT_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
@@ -21,10 +21,10 @@ export const RemotionRoot: FC = () => {
         id="ArticleExplainer"
         component={ArticleExplainer}
         durationInFrames={1}
-        fps={FPS}
+        fps={GENERAL_DEFAULT_FPS}
         width={DEFAULT_FRAME.width}
         height={DEFAULT_FRAME.height}
-        defaultProps={{ version: 8, schemaVersion: 8, fps: FPS, width: DEFAULT_FRAME.width,
+        defaultProps={{ version: 8, schemaVersion: 8, fps: GENERAL_DEFAULT_FPS, width: DEFAULT_FRAME.width,
           height: DEFAULT_FRAME.height, title: '', subtitle: DEFAULT_FRAME.subtitle,
           durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}

@@ -49,7 +49,7 @@ def _audio(args) -> int:
     print(f"{state}：{result['audio']}")
     print(f"  时长 {info['durationSeconds']:.3f} 秒；{info['sampleRate']} Hz；"
           f"{info['channels']} 声道；{info['bitsPerSample']}-bit")
-    print(f"  60 fps 总帧数：{timeline['totalFrames']}"
+    print(f"  {timeline['fps']} fps 总帧数：{timeline['totalFrames']}"
           f"（向上取整，尾部最多补 {timeline['tailSilenceMaxMs']} ms 静音）")
     print(f"来源：抖音 @{result['source']['author']}；作品 {result['source']['awemeId']}")
     print(f"授权：{result['authorization']['statement']}")
