@@ -6,7 +6,7 @@
  * 段落与提示的时机。分幕由 `props.mode` 选择，所有场景共用道路、车辆、后视镜与环路零件。
  */
 import {useLayoutEffect, useRef, type ReactNode} from 'react';
-import {Chart, gsap, type CodeSceneProps} from 'm2v/code-scene';
+import {Chart, gsap, interpolateState, type CodeSceneProps} from 'm2v/code-scene';
 import {sample, slowCenter, wrapDelta, speedRatio, gapToAhead, gapUnits, loopPoint, TRAFFIC, type CarState, type GroupName} from './traffic';
 import {useNarration, useReady} from './stage';
 
@@ -17,7 +17,6 @@ const C = {
 };
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 const ease = (x: number) => {const t = clamp(x); return t * t * (3 - 2 * t);};
-const mix = (a: number, b: number, t: number) => a + (b - a) * clamp(t);
 
 function Car({car, x, y, scale = 1.6, focus = false, angle = 0, tag, dim = false, showId = true}: {
   car: CarState; x: number; y: number; scale?: number; focus?: boolean; angle?: number; tag?: string; dim?: boolean;
@@ -205,8 +204,9 @@ export default function Film(props: CodeSceneProps) {
   const rewindAnchor = sample('high', 7)[0].s + TRAFFIC.groups.high.spacing * 2;
   const brakeAnchor = sample('high', brakeTime)[0].s - TRAFFIC.groups.high.spacing * 2.0;
   const densityAnchor = sample('high', densityTime)[0].s - TRAFFIC.groups.high.spacing * 2;
-  const brakeZoom = mix(0.95, 1.12, ease(t / 2.2));
-  const ringScale = mix(1.02, 1.18, ease(t / 5));
+  // 共享原语只把进度换算成状态值；缓动与端点取值由本作品给出，画面与手写插值一致。
+  const brakeZoom = interpolateState({states: [{zoom: 0.95}, {zoom: 1.12}], progress: t / 2.2, easing: ease}).zoom;
+  const ringScale = interpolateState({states: [{scale: 1.02}, {scale: 1.18}], progress: t / 5, easing: ease}).scale;
   // 密度场先让观众看清两条车流的差别，再出现曲线结果。
   const highFlowReveal = ease((t - 0.2) / 1.0);
   const lowFlowReveal = ease((t - 1.2) / 1.0);

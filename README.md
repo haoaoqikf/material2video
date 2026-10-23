@@ -8,6 +8,8 @@
 
 制作统一采用方案确定、粗片验证、精制修订、最终验收四阶段，见[制作流程](.agents/skills/material2video/references/production-workflow.md)。共用设计、唯一问题表和独立原始报告；核心表达、重要返工与争议按条件盲审，最终由叙事与视觉两名代理分工检查。传播评估并入最终记录，技术与制作完成分别报告。仅用于后续任务，不要求活跃制作切换，不改变 CLI 与金融住宅专用契约。
 
+通用作品在提出叙事候选前完成立意六项（一句话命题、视觉母题、母题演进、看穿时刻、可验算骨架、赌注），按观众可复述的信息单元安排结构，全片精制后逐段回答删除后的理解损失；交付记录包含三条不可替代决策与信息密度实测。复核区分母题重复与版式重复：同一主体、同一构图且状态单调演进时，按首次与末次实际帧测量（主体以外区域变化率低于 5%、至少一项主体参数单调变化）判定，不因构图相同判为缺陷；不同内容套同一模板仍为必改。新增的五类共享动效原语（数字滚动、数据曲线与柱状生长、列表滚屏、主体状态插值、签名粒子）以 `progress` 为唯一时间输入、不内置视觉主题。
+
 ## 当前视频类型
 
 <!-- generated:type-catalog:start -->
@@ -72,6 +74,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - `src/m2v/cli.py`：`m2v` 统一命令入口；子命令实现在 `src/m2v/commands.py`。
 - `web/src/compositions/`：三个类型各自的 composition（`FinancialTimeSeries`、`ArticleExplainer`、`HousingTimeSeries`）；通用作品的画面由作品自己的 `scenes/` 代码绘制，`ArticleExplainer` 只负责全画布片段回放与共享字幕。
 - `web/src/frames.json`：通用作品画幅与字幕几何的唯一真源，Python 准备/量测与前端 SDK、合成层共读。
+- `web/src/code-scene/primitives.ts`：五类共享动效原语（数字滚动、数据曲线与柱状生长、列表滚屏、主体状态插值、签名粒子），只做进度到数值的映射，不内置视觉主题；修改会使引用作品缓存失效。
 - `.agents/skills/material2video/references/`：材料、类型创作与渲染契约参考。
 - `openspec/specs/`、`openspec/changes/`：已归档规格与进行中的变更。
 

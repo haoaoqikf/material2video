@@ -55,10 +55,12 @@ def validate_entry(root: Path, entry: object, props: object) -> None:
 
 def implementation_inputs() -> dict[str, str]:
     # 代码场景目录里可能再有子目录（例如电影套件拆成 `cinematic/`），因此递归收集：
-    # 漏掉一层会让「改了套件源码」不再改变片段缓存键与准备指纹。
+    # 漏掉一层会让「改了套件源码」不再改变片段缓存键与准备指纹。共享动效原语是纯 TS，
+    # 同样必须进入实现指纹，否则改原语不会让引用作品重新准备。
     files = [Path(__file__), WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
              WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
-             *sorted((WEB / "src/code-scene").rglob("*.tsx")), *sorted((WEB / "src/code-scene").rglob("*.js")),
+             *sorted((WEB / "src/code-scene").rglob("*.tsx")), *sorted((WEB / "src/code-scene").rglob("*.ts")),
+             *sorted((WEB / "src/code-scene").rglob("*.js")),
              *sorted((WEB / "public/fonts").glob("*"))]
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 

@@ -23,7 +23,7 @@ def test_workflow_and_compatibility_documented():
     assert "实际时长" in text and "600 秒" in text
     assert "最多3个" in text and "用户明确授权才可替换" in text
     assert "交通拥堵波按内容" in text and "traffic-jam-wave" in text
-    assert "逐场设计与独立验收" in text and "百万播放潜力" in text
+    assert "逐场设计与独立验收" in text and "传播表现评估" in text
     schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
     assert "v7 及更早分镜必须重新编排" in schema
     # v8 没有受控模板：画幅、配色与构图都由作品代码决定。
@@ -53,12 +53,12 @@ def test_code_scene_contract_is_documented():
 def test_scene_design_and_reach_templates_are_documented():
     """逐场设计与独立验收、百万播放潜力都必须有可填写的模板与完成边界。"""
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")
-    for token in ("逐场设计表", "多镜头场景表", "逐场验收表", "观察复述",
-                  "填写演练", "不新增运行时", "缺项"):
+    for token in ("逐场设计表", "多镜头场景", "逐场验收", "先盲看",
+                  "独立评审职责", "缺项"):
         assert token in scene, f"逐场模板缺少：{token}"
     reach = (ROOT / "reach-potential.md").read_text(encoding="utf-8")
-    for token in ("outputs/reach-potential-report.md", "支持具备潜力", "证据不足", "当前未达到",
-                  "未知", "发布后验证", "演练", "保证播放量"):
+    for token in ("支持具备潜力", "证据不足", "当前未达到", "未知", "发布后验证",
+                  "不预测百万播放", "不新增评分或机器门禁"):
         assert token in reach, f"潜力模板缺少：{token}"
     director = (ROOT / "director-review-and-edit.md").read_text(encoding="utf-8")
     for token in ("角色分离自审", "第一次导演审查", "第二次导演审查", "剪辑重组",
@@ -78,7 +78,7 @@ def test_subagent_review_is_documented():
     director = (ROOT / "director-review-and-edit.md").read_text(encoding="utf-8")
     assert "独立子代理" in director and "角色分离自审" in director
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")
-    assert "观察复述" in scene and "未独立评审（降级）" in scene
+    assert "先盲看" in scene and "独立评审职责" in scene
 
 
 def test_reference_audio_reuse_is_documented():

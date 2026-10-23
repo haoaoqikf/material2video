@@ -12,6 +12,7 @@ export {echarts};
 export {SceneContextProvider, useSceneContext} from './context';
 export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from './context';
 export * from './cinematic';
+export * from './primitives';
 
 /** lookdev 保留逻辑构图，但强制画布原生绘制足够的像素；普通录制仍使用作品 DPR。 */
 export function Canvas(props: CanvasProps) {
