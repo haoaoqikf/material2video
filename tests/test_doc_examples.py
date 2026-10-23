@@ -78,6 +78,47 @@ def test_visual_creative_direction_is_documented():
             assert token in design, f"{name}/DESIGN.md 缺少：{token}"
 
 
+def test_visual_event_design_has_one_template_and_is_connected():
+    """事件方法须同时覆盖画面与认识，并由各入口引用同一定义。"""
+    doc = (ROOT / "visual-creative-direction.md").read_text(encoding="utf-8")
+    event = doc.split("## 视觉事件设计\n", 1)[1].split("\n## 5.", 1)[0]
+    for part in ("初始状态", "变化", "预期", "揭示", "结果"):
+        assert f"| {part} |" in event
+    for token in ("画面状态", "观众认识", "镜头的信息职责", "同文档", "普通镜头简写",
+                  "完整窗口", "简化动态粗样", "保留必要标签", "去文字仅作职责诊断",
+                  "五段式预期答案不得进入盲审包", "不新增运行时字段", "CLI 门禁",
+                  "金融与住宅只执行适用项", "明确启动的重制", "不追溯"):
+        assert token in event, f"事件模板缺少：{token}"
+    # 这些是制作方法的契约检查，不是自动判断视频审美。
+    for scenario in ("完整揭示事件", "无反转直接因果", "静态文字表达", "有运动但无认识推进"):
+        assert f"| {scenario} |" in event
+    for name in ("production-workflow.md", "creative-production.md",
+                 "scene-design-and-acceptance.md", "visual-review-rubric.md", "subagent-review.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert "visual-creative-direction.md#视觉事件设计" in text, name
+        assert "| 初始状态 |" not in text, f"{name} 不应维护第二份完整模板"
+    repo = ROOT.parents[3]
+    for path in (ROOT.parent / "SKILL.md", repo / "README.md"):
+        assert "visual-creative-direction.md#视觉事件设计" in path.read_text(encoding="utf-8")
+
+
+def test_visual_event_design_examples_preserve_delivery_boundary():
+    """后补设计不能被误认为既有成片已重制或通过新验收。"""
+    repo = ROOT.parents[3]
+    for name in ("american-science-milestones", "five-life-choices", "solar-system-journey"):
+        design = (repo / "examples" / name / "DESIGN.md").read_text(encoding="utf-8")
+        event = design.split("## 视觉事件设计示范（后续制作指导）", 1)[1]
+        for token in ("未试制、未重渲染", "不改写已有成片验收结论", "镜头的信息职责",
+                      "完整窗口", "visual-creative-direction.md#视觉事件设计"):
+            assert token in event, (name, token)
+        expected_count = 3 if name == "five-life-choices" else 1
+        for part in ("初始状态", "变化", "预期", "揭示", "结果"):
+            assert event.count(f"| {part} |") == expected_count, (name, part)
+        if name == "five-life-choices":
+            for title in ("行业：", "学习：", "结尾："):
+                assert title in event
+
+
 def test_scene_design_and_reach_templates_are_documented():
     """逐场设计与独立验收、百万播放潜力都必须有可填写的模板与完成边界。"""
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")

@@ -88,6 +88,8 @@ outputs/review-pack/<review-id>/
 }
 ```
 
+核心视觉事件按[视觉事件设计](visual-creative-direction.md#视觉事件设计)复核；先保存实际变化与新增认识，再核对中性目标。五段式预期答案与设计理由不得进入盲审包。
+
 评审包**不得包含**：`DESIGN.md`、`outputs/style-reference.md`、旧版 `visual-notes.md`、制作理由、候选名称与实现说明、既往评审结论、匿名映射 key。`excluded` 必须如实列出故意排除的文件。
 
 评审包是证据，不是审批单或机器判定字段；不得据此新增导出门禁。
