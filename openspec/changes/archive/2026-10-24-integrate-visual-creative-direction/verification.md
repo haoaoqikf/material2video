@@ -29,3 +29,7 @@
 ## 全库规格检查
 
 `openspec validate --specs --strict` 的 2 项既有失败与上一轮归档记录一致，属于这两个变更遗留的格式问题；本轮定向变更与 `video-production-workflow` 主规格严格校验通过。全库严格校验不能报告为全部通过。
+
+## 提交与归档
+
+实施提交为 `cd91804`。新增要求已同步到 `openspec/specs/video-production-workflow/spec.md`，主规格与变更的 `--strict` 校验通过；变更目录按 `2026-10-24-integrate-visual-creative-direction` 归档，归档提交见后续仓库历史。

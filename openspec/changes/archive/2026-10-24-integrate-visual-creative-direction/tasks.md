@@ -24,6 +24,6 @@
 
 ## 4. 提交与归档
 
-- [ ] 4.1 检查暂存内容仅含本轮文档、OpenSpec、示例 DESIGN 与测试，排除媒体、缓存与凭据。
-- [ ] 4.2 提交实施结果，报告 commit 与验证结果。
-- [ ] 4.3 同步 `openspec/specs/video-production-workflow/spec.md` 主规格，按 `2026-10-24-integrate-visual-creative-direction` 归档并提交。
+- [x] 4.1 检查暂存内容仅含本轮文档、OpenSpec、示例 DESIGN 与测试，排除媒体、缓存与凭据。
+- [x] 4.2 提交实施结果，报告 commit 与验证结果。
+- [x] 4.3 同步 `openspec/specs/video-production-workflow/spec.md` 主规格，按 `2026-10-24-integrate-visual-creative-direction` 归档并提交。
