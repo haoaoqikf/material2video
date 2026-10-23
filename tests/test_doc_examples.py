@@ -50,11 +50,38 @@ def test_code_scene_contract_is_documented():
     assert "不使用 fps 重采样或尾帧复制" in render and "不支持倒序或跳帧" in render
 
 
+def test_visual_creative_direction_is_documented():
+    """视觉创意导演方法必须可检索，并接入制作、逐场、复核、导演与示例。"""
+    doc = (ROOT / "visual-creative-direction.md").read_text(encoding="utf-8")
+    for token in ("视觉创意导演方法", "核心表达", "核心视觉母题", "把 ___ 设计成 ___",
+                  "可见变化", "形态变换", "镜头行为", "视觉高潮", "结尾视觉揭示",
+                  "禁止项", "十项自我检查", "例外留痕", "不按形式标签",
+                  "cut", "crossfade", "CameraRig"):
+        assert token in doc, f"视觉创意文档缺少：{token}"
+    assert (ROOT / "visual-creative-direction.md").is_file()
+    for name in ("production-workflow.md", "creative-production.md",
+                 "article-to-storyboard.md", "scene-design-and-acceptance.md",
+                 "visual-review-rubric.md", "director-review-and-edit.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert "visual-creative-direction.md" in text, f"{name} 未引用视觉创意文档"
+    skill = (ROOT.parents[0] / "SKILL.md").read_text(encoding="utf-8")
+    assert "visual-creative-direction.md" in skill
+    readme = (ROOT.parents[3] / "README.md").read_text(encoding="utf-8")
+    assert "visual-creative-direction.md" in readme
+    for name in ("american-science-milestones", "five-life-choices", "solar-system-journey"):
+        design = (ROOT.parents[3] / "examples" / name / "DESIGN.md").read_text(encoding="utf-8")
+        for token in ("视觉创意方案（2026-10-24，非重制记录）", "核心表达", "核心视觉母题",
+                      "整体视觉风格", "分镜设计", "视觉高潮", "结尾视觉揭示", "禁止项",
+                      "十项自我检查"):
+            assert token in design, f"{name}/DESIGN.md 缺少：{token}"
+
+
 def test_scene_design_and_reach_templates_are_documented():
     """逐场设计与独立验收、百万播放潜力都必须有可填写的模板与完成边界。"""
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")
     for token in ("逐场设计表", "多镜头场景", "逐场验收", "先盲看",
-                  "独立评审职责", "缺项"):
+                  "独立评审职责", "缺项", "可见变化", "镜头行为", "母题状态",
+                  "一个核心信息"):
         assert token in scene, f"逐场模板缺少：{token}"
     reach = (ROOT / "reach-potential.md").read_text(encoding="utf-8")
     for token in ("支持具备潜力", "证据不足", "当前未达到", "未知", "发布后验证",
