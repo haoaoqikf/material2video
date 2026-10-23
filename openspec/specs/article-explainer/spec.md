@@ -53,11 +53,19 @@ general MUST 无需额外配置即可从旁白原文和真实配音帧边界生�
 - **THEN** 字幕量测失败，明确报告字幕遮挡而非接受仅有文字节点的画面
 
 ### Requirement: v8 横竖屏代码分镜
-系统 MUST 只接受 version/schemaVersion 均为 8 的 general 分镜，60 fps，支持 1920×1080 横屏与 1080×1920 竖屏；width/height 均省略 MUST 默认横屏，半指定、非整数及其他尺寸 MUST 拒绝。全片 MUST 使用同一画幅，不自动裁切或重新排版。每幕 MUST 声明唯一 ID、template: code、本地 content.entry、可选 title/JSON 对象 props 及旁白数组；title 只作元数据。场景及旁白 ID MUST 全片唯一。原文输入 MUST 绑定非空源文并审查，主题输入 MUST 声明非空主题与逐幕关键词且不要求原文审查。代码幕 MUST 允许无旁白，未知字段及旧准备 MUST 拒绝。
+系统 MUST 只接受 version/schemaVersion 均为 8 的 general 分镜，默认30 fps并支持显式60 fps，支持 1920×1080 横屏与 1080×1920 竖屏；width/height 均省略 MUST 默认横屏，半指定、非整数及其他尺寸 MUST 拒绝。`project.json` 与分镜帧率同时声明时 MUST 一致，仅一处声明时使用该值，均省略时默认30。全片 MUST 使用同一画幅，不自动裁切或重新排版。每幕 MUST 声明唯一 ID、template: code、本地 content.entry、可选 title/JSON 对象 props 及旁白数组；title 只作元数据。场景及旁白 ID MUST 全片唯一。原文输入 MUST 绑定非空源文并审查，主题输入 MUST 声明非空主题与逐幕关键词且不要求原文审查。代码幕 MUST 允许无旁白，未知字段及旧准备 MUST 拒绝。
 
-每幕 MAY 声明 `leadInFrames`、`tailFrames`（0–1800 帧）与 `readingHoldFrames`（0–360 帧）；旁白段 MAY 声明 `claims` 字符串数组与 `holdFrames`（0–1800 帧，本段结束后、下一段前的静默，最后一段不得非零）；`content.props` MAY 声明 `shots` 与 `look` 对象。未声明时 MUST 保持当前时间轴、阅读停留与画面行为。字段类型、范围或时间窗非法时 MUST 拒绝并定位到具体幕、镜头或旁白段。镜头时间窗 MUST 落在所属幕内且不得重叠；`tier` 只能是 hero、major 或 minor；hero 镜头数量和时长 MUST 按内容决定，不设固定配额。
+每幕 MAY 声明 `leadInFrames`、`tailFrames`（0–30秒对应帧数）与 `readingHoldFrames`（0–6秒对应帧数）；旁白段 MAY 声明 `claims` 字符串数组与 `holdFrames`（0–30秒对应帧数，本段结束后、下一段前的静默，最后一段不得非零）；`content.props` MAY 声明 `shots` 与 `look` 对象。未声明时 MUST 保持当前时间轴、阅读停留与画面行为。字段类型、范围或时间窗非法时 MUST 拒绝并定位到具体幕、镜头或旁白段。镜头时间窗 MUST 落在所属幕内且不得重叠；`tier` 只能是 hero、major 或 minor；hero 镜头数量和时长 MUST 按内容决定，不设固定配额。
 
 真正的一镜到底 MUST 写成单幕内多个首尾相接的镜头：所有镜头窗口 MUST 从 0 起严格相接并覆盖整幕，相邻镜头路径的末点与首点 MUST 完全相同，MUST NOT 声明 `cut: true`，全部镜头 MUST 使用 linear 缓动。`post` 参数 SHOULD 在全部镜头间保持一致，因为后期不在镜头边界混合。
+
+#### Scenario: 默认或显式帧率
+- **WHEN** 通用分镜省略帧率或声明整数30/60 fps
+- **THEN** 缺省按30 fps准备，旁白、字幕、停留、转场及600秒时长按所选帧率换算
+
+#### Scenario: 帧数字段不随帧率自动缩放
+- **WHEN** 作者在不同fps下复用 durationFrames、留白、停留或镜头帧数字段
+- **THEN** 系统按声明帧数原值解释，超出新帧率范围则拒绝，不自动改写
 
 #### Scenario: 默认与显式尺寸
 - **WHEN** 尺寸均省略、显式横屏或显式竖屏
@@ -92,10 +100,10 @@ general MUST 无需额外配置即可从旁白原文和真实配音帧边界生�
 - **THEN** 校验拒绝并指出具体幕、镜头或旁白段
 
 ### Requirement: 实际语音时间与十分钟上限
-系统 MUST 复用项目 TTS 配置与缓存，根据每段实际音频计算展示和字幕时间；每幕结束保留默认 24 帧阅读时间，可由 `readingHoldFrames` 覆盖。`leadInFrames` 与 `tailFrames` MUST 在旁白前后增加静音，不截断、不重叠旁白。同一幕内的 `holdFrames` MUST 在相邻旁白之间增加静音，计入幕最小长度，且 MUST NOT 出现在最后一段。默认硬切，可选 fade/crossfade 并按声明帧数重叠，旁白不得重叠。默认目标 60 秒，全片 MUST 不超过 36000 帧；无旁白幕 MUST 支持声明固定帧数或均分目标剩余时长，超限要求调整文本或语速，不截断声音。
+系统 MUST 复用项目 TTS 配置与缓存，根据每段实际音频计算展示和字幕时间；每幕结束保留默认 24 帧阅读时间，可由 `readingHoldFrames` 覆盖。`leadInFrames` 与 `tailFrames` MUST 在旁白前后增加静音，不截断、不重叠旁白。同一幕内的 `holdFrames` MUST 在相邻旁白之间增加静音，计入幕最小长度，且 MUST NOT 出现在最后一段。默认硬切，可选 fade/crossfade 并按声明帧数重叠，旁白不得重叠。默认目标 60 秒，全片 MUST 不超过600秒，帧数按作品fps换算；无旁白幕 MUST 支持声明固定帧数或均分目标剩余时长，超限要求调整文本或语速，不截断声音。
 
 #### Scenario: 时长边界
-- **WHEN** 准备结果为 36000 帧或 36001 帧
+- **WHEN** 准备结果为600秒或超过600秒
 - **THEN** 前者通过，后者拒绝
 
 #### Scenario: 无旁白镜头分配
