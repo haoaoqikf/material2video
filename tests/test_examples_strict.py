@@ -145,8 +145,8 @@ def test_examples_document_their_visual_design(name: str) -> None:
     design = (EXAMPLES / name / "DESIGN.md").read_text(encoding="utf-8")
     for section in ("画幅", "配色", "构图", "声音",
                     "视觉创意方案（2026-10-24，非重制记录）", "核心表达", "核心视觉母题",
-                    "整体视觉风格", "分镜设计", "视觉高潮", "结尾视觉揭示",
-                    "禁止项", "十项自我检查"):
+                    "整体视觉风格", "分镜设计", "载体来源", "视觉高潮",
+                    "结尾视觉揭示", "禁止项", "十项自我检查"):
         assert section in design, f"{name}/DESIGN.md 缺少「{section}」"
     readme = (EXAMPLES / name / "README.md").read_text(encoding="utf-8")
     storyboard = json.loads((EXAMPLES / name / "storyboard.json").read_text(encoding="utf-8"))

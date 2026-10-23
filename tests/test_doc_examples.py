@@ -56,6 +56,8 @@ def test_visual_creative_direction_is_documented():
     for token in ("视觉创意导演方法", "核心表达", "核心视觉母题", "把 ___ 设计成 ___",
                   "可见变化", "形态变换", "镜头行为", "视觉高潮", "结尾视觉揭示",
                   "禁止项", "十项自我检查", "例外留痕", "不按形式标签",
+                  "载体来源", "证据体制", "逐场实例",
+                  "不得用图库素材冒充", "不得用代码动画伪造",
                   "cut", "crossfade", "CameraRig"):
         assert token in doc, f"视觉创意文档缺少：{token}"
     assert (ROOT / "visual-creative-direction.md").is_file()
@@ -81,7 +83,7 @@ def test_scene_design_and_reach_templates_are_documented():
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")
     for token in ("逐场设计表", "多镜头场景", "逐场验收", "先盲看",
                   "独立评审职责", "缺项", "可见变化", "镜头行为", "母题状态",
-                  "一个核心信息"):
+                  "载体来源与理由", "真实/示意", "一个核心信息"):
         assert token in scene, f"逐场模板缺少：{token}"
     reach = (ROOT / "reach-potential.md").read_text(encoding="utf-8")
     for token in ("支持具备潜力", "证据不足", "当前未达到", "未知", "发布后验证",
