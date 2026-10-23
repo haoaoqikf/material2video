@@ -119,6 +119,63 @@ def test_visual_event_design_examples_preserve_delivery_boundary():
                 assert title in event
 
 
+def test_remake_start_preserves_constraints_baseline_and_stage_scope():
+    """重制入口须防止旧实现锁死方案，或未经核验解除用户要求。"""
+    workflow = (ROOT / "production-workflow.md").read_text(encoding="utf-8")
+    remake = workflow.split("## 重制启动\n", 1)[1].split("## 立意六项", 1)[0]
+    for token in ("用户硬约束及来源", "历史实现选择", "问题与目标", "重入阶段与理由",
+                  "局部修复", "结构重制", "不机械重跑全部选案", "实际重制方案确定后",
+                  "SHA-256", "preparedFingerprint", "remake-baseline", "直接 Markdown 文件链接",
+                  "目录链接", "不递归", "下一次 render 前", "渲染后复查",
+                  "videos/examples/", "旧通过结论只作历史", "不伪造"):
+        assert token in remake, f"重制入口缺少：{token}"
+    design = (ROOT.parents[3] / "examples/five-life-choices/DESIGN.md").read_text(encoding="utf-8")
+    sample = design.split("### 后续重制启动示范", 1)[1].split("### 行业：", 1)[0]
+    for token in ("60秒与七幕顺序", "持续运镜", "待核验", "核验前保留", "不预先放宽",
+                  "不改动当前分镜、测试断言", "不关闭旧问题", "最小动态证据"):
+        assert token in sample, token
+
+
+def test_dynamic_event_evidence_covers_process_and_speed_frame():
+    """过程证据集中定义；世界参数与观众可见过程不能混为一谈。"""
+    rubric = (ROOT / "visual-review-rubric.md").read_text(encoding="utf-8")
+    evidence = rubric.split("## 核心事件的最小动态证据\n", 1)[1].split("## 检查方法", 1)[0]
+    requirements = {
+        "同速建立": ("同一时间窗", "世界速度", "画面速度", "透视"),
+        "尺度揭示": ("局部观察", "新信息进入", "全貌稳定", "结果观察"),
+        "实际换轨": ("同一主体", "进入连接", "经过连接", "离开", "继续前进"),
+        "分支展开": ("主路径身份", "分叉来源", "层级显现", "整体观察"),
+    }
+    for kind, tokens in requirements.items():
+        row = next(line for line in evidence.splitlines() if line.startswith(f"| {kind} |"))
+        for token in tokens:
+            assert token in row, (kind, token)
+    for token in ("检查前", "取证后", "手机显示条件", "失败现象", "不设统一采样频率",
+                  "补证并保持待验证", "不增加「待验证」枚举", "不能仅披露采样限制便判通过"):
+        assert token in evidence, token
+    for name in ("visual-creative-direction.md", "scene-design-and-acceptance.md", "subagent-review.md"):
+        assert "visual-review-rubric.md#核心事件的最小动态证据" in (ROOT / name).read_text(encoding="utf-8")
+
+
+def test_remake_comparison_and_completion_do_not_overclaim():
+    """理解成立、粗样胜出与技术通过均不能单独证明重制完成。"""
+    review = (ROOT / "subagent-review.md").read_text(encoding="utf-8")
+    comparison = review.split("### 重制的理解、表现与相对改善\n", 1)[1].split("## 评审包", 1)[0]
+    for dimension in ("理解", "表现", "相对改善"):
+        assert f"| {dimension} |" in comparison
+    for token in ("无明显改善", "退步", "证据不足", "理解成立但表现未改善", "自己的时间轴",
+                  "最终精制候选仍须", "不能把粗样胜出", "两轮无改善", "不以投票",
+                  "不等同真实观众试映"):
+        assert token in comparison, token
+    director = (ROOT / "director-review-and-edit.md").read_text(encoding="utf-8")
+    summary = director.split("## 当前版本完成汇总", 1)[1].split("```", 1)[0]
+    for token in ("交付文件与 SHA-256", "两项结论共同绑定", "技术交付完成", "制作复核完成",
+                  "未关闭问题", "未覆盖范围"):
+        assert token in summary
+    assert "技术通过但制作未完成" in director
+    assert "`delivered` 只说明技术交付状态" in director
+
+
 def test_scene_design_and_reach_templates_are_documented():
     """逐场设计与独立验收、百万播放潜力都必须有可填写的模板与完成边界。"""
     scene = (ROOT / "scene-design-and-acceptance.md").read_text(encoding="utf-8")

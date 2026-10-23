@@ -78,6 +78,8 @@ uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-autho
 
 ## 通用作品编排原则
 
+旧片修复先按[重制启动](references/production-workflow.md#重制启动)核验用户约束、历史实现与重入阶段，并保留比较基线；核心事件按[最小动态证据](references/visual-review-rubric.md#核心事件的最小动态证据)取证。重制须分别验证理解、表现与相对改善，最终按[完成边界](references/director-review-and-edit.md#完成边界)同摘要汇总技术与制作结果。
+
 制作必须执行[节奏、美术、声音与制作阶段](references/creative-production.md)：创作目标、两个美术方向、四张关键画面、整片动态粗预演、风险样片、分层精修、阶段条件和改动回归。文案、节奏、连续性、审美、声音及技术分别复核。三类作品共用审美原则并按类型检查：general 完整执行镜头叙事与强度编排；金融和住宅检查趋势、关键转折、常规图表及结尾，同时保留专用画幅、图表和声音契约。粗预演不代替正式候选的全片验收。
 
 确定母题或替代载体后、逐场构图与关键画面前，按[视觉事件设计](references/visual-creative-direction.md#视觉事件设计)构造核心事件，先验证完整窗口粗样再扩展全片；沿用逐场设计表，普通镜头简写，不强制反转。
@@ -137,7 +139,7 @@ uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-autho
 - 全片技术验收通过后复制交付同一文件并保存溯源；失败保留候选和旧有效交付。status 显示 prepared / candidate-pending / validation-failed / ready / delivery-failed / delivered，不将技术通过解释为审美完成。
 - `m2v review` 仍是可选工具，review-template / review 绑定当前候选 key、preparedFingerprint 和 sha256；旧预演记录不再生效。文章输入语义审查和金融自动探针保留。可选工具不等于制作复核可省：A/B 级评审按[独立子代理评审](references/subagent-review.md)执行，缺有效记录视为对应阶段未完成。
 - 统一流程无需用户确认。general 助手须逐页复核最终文件全片时间标注帧序列及音频候选、关闭必改项，不能用成功导出代替制作完成；逐页检查需记录实际页码与时间范围，未覆盖部分保持未完成。逐场验收与最终传播评估分别见[逐场设计与独立验收](references/scene-design-and-acceptance.md)和[传播表现评估](references/reach-potential.md)，结论并入 `outputs/visual-notes.md`，直接链接原始报告与证据。两次导演审查的时点与模板见[全片导演审查与剪辑重组](references/director-review-and-edit.md)。
-- 成功交付后才清理旧视频及已知调试产物，保留当前候选与交付记录、准备媒体、准备/评审 JSON；general 还保留 visual-notes.md 及其引用证据。失败不清理，共享缓存不受影响，清理失败报告遗留路径。
+- 成功交付后才清理旧视频及已知调试产物；清理前按[基线保留](references/production-workflow.md#基线保留)排除旧版比较文件及引用证据，保留当前候选与交付记录、准备媒体、准备/评审 JSON；general 还保留 visual-notes.md 及其引用证据。失败不清理，共享缓存不受影响，清理失败报告遗留路径。
 
 测试和严格示例校验方式见仓库 README。测试、构建和输出参数应使用仓库配置与 `m2v --help`，不要调用旧的 Skill 脚本制作入口。
 
