@@ -18,6 +18,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 ## 制作流程
 
 - 按材料审查、时间轴准备、按需检查、一次全片生成、验收与复核的顺序推进。有自身旁白时先确定音色；无旁白作品跳过选音。生成产物是派生文件，不能代替可编辑材料。
+- 预览只用于局部片段检查：默认前十秒或显式指定短窗口，不得用接近全片的窗口代替正式生成；需要看全片时执行 `render`，评审帧包从片段或正式成片抽取。
 - 所有类型都由一次完整渲染生成候选，自动验收后交付同一文件。技术交付不代表制作复核完成；无需用户为常规阶段确认或试听，也不要求直接播放视频或连续收听声音。按类型用帧序列、画面量测、字幕时间戳和自动音频信号复核，并记录覆盖范围。
 - 通用作品按方案确定、粗片验证、精制修订、最终验收四阶段执行，不区分普通与电影级制作档位；`productionProfile` 和 `--profile` 已移除并拒绝。用户方案足以实施时直接采用；否则比较叙事候选。阶段、关键帧门和重制基线规则见[制作流程](references/production-workflow.md)。
 - 每个场景及内部镜头在 `DESIGN.md` 标 A/B/C 镜头等级：A 级记忆镜头优先投入关键帧、时间结构与动态验证，B/C 级服务 A 级但不降低可读性底线；等级不进入分镜 JSON 或 CLI。A 级时间结构与最终不可替代性两问见[制作流程](references/production-workflow.md#最终导演审查的不可替代性两问)。
@@ -33,7 +34,7 @@ uv run m2v types
 uv run m2v init --type general --project <slug>
 uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
-uv run m2v preview --project videos/general/<slug>  # 可选片段检查
+uv run m2v preview --project videos/general/<slug>  # 可选局部片段检查（默认前十秒）
 uv run m2v render --project videos/general/<slug>
 uv run m2v status --project videos/general/<slug>
 ```

@@ -30,7 +30,7 @@
 ```bash
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v validate --project videos/general/<slug>
-# 可选片段检查，默认前十秒且严格短于全片
+# 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/general/<slug>
 uv run m2v review-template --project videos/general/<slug>
 uv run m2v render --project videos/general/<slug>
@@ -45,7 +45,7 @@ uv run m2v render --project videos/general/<slug>
    `code` 幕只构建源码并记录依赖，片段在检查或正式生成时按需录制并缓存（见
    [代码场景运行契约](code-scene-runtime.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
-4. `m2v preview --project <目录>` 生成严格短于全片的检查片段（默认前十秒，支持起止时间）；
+4. `m2v preview --project <目录>` 生成局部检查片段（默认前十秒，支持显式短窗口），不得用接近全片的窗口代替正式生成；
    `m2v general keyframes --storyboard <分镜>` 原生采集代表关键帧供静态检查。
 5. `m2v render --project <目录>` 在当前准备有效时只生成一次完整候选，自动验收后复制交付同一文件；人工画面评审为可选工具。
 
