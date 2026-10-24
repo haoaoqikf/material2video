@@ -66,6 +66,15 @@ def test_rough_review_requires_the_full_director_window_and_recognition_check():
     assert "不能用增亮、换色、Bloom 或轻微调速关闭导演问题" in creative
 
 
+def test_general_production_and_director_review_entries_require_director_cards():
+    production = (REF / "creative-production.md").read_text(encoding="utf-8")
+    director = (REF / "director-review-and-edit.md").read_text(encoding="utf-8")
+    for token in ("导演卡", "完整事件窗口", "公开顺序", "端点静帧"):
+        assert token in production
+    for token in ("导演卡", "建立预期", "最终认识", "观察关系", "回到导演卡或事件结构修订"):
+        assert token in director
+
+
 def test_static_direct_examples_keep_existing_storyboard_contract():
     # Director intent remains in DESIGN.md; shipped JSON examples remain valid v8
     # materials and are not expanded with new metadata fields.
