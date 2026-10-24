@@ -92,7 +92,6 @@ from .process import (
     _EXIT_GRACE_S,
     _LineReader,
     _METADATA_TIMEOUT_S,
-    _check_concurrency,
     _run,
     _spawn,
     _tail_text,

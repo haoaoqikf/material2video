@@ -61,10 +61,6 @@ def check_concurrency(value: int) -> int:
     return value
 
 
-#: 兼容内部旧写法
-_check_concurrency = check_concurrency
-
-
 #: 后台读行线程遇到 EOF 时投递的哨兵
 _EOF = object()
 
