@@ -1,37 +1,31 @@
 # 交付验证
 
-本文件记录 65 秒重制实际执行的检查与结论；生成媒体、候选、基线、评审包与帧图保存在本地 `videos/examples/five-life-choices/outputs/`，不入库。
+本文件随30秒剪纸版实际制作更新。最终候选、恢复的音频、时间标注帧与独立评审包均位于忽略的 `videos/examples/five-life-choices/outputs/`，不进入版本控制。
 
-## 自动化检查
+## 自动检查
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 材料校验 | `uv run m2v validate --project examples/five-life-choices` | 通过 |
-| 时间轴准备 | `uv run m2v prepare --project examples/five-life-choices` | 通过；1950 帧 / 65 秒 / 1920×1080 / 30 fps / 无声 |
-| 完整粗片 | `uv run m2v preview --project examples/five-life-choices --start-seconds 0 --end-seconds 64.9` | 通过；逐秒接触表保存于本地 `work/full2/sheet.png`，不作为交付门禁 |
-| Web 数值行为测试 | `pnpm -C web test` | 87 passed |
-| Web 类型与构建 | `pnpm -C web typecheck` / `pnpm -C web build` | 通过 |
-| 示例与文档测试 | `uv run pytest tests/test_five_life_choices_example.py tests/test_examples_strict.py tests/test_doc_examples.py` | 通过 |
-| 全片生成 | `uv run m2v render --project examples/five-life-choices` | 通过；1950 帧、1920×1080、30 fps、65.0 秒、数字静音；SHA-256 `d44ad5a675170bf5e90138c51693ea4011c964d69a566695c8bb834061e9e562` |
-| 技术 QA | `uv run m2v qa --project examples/five-life-choices` | 通过；冻结帧 0、重复帧 0、近静止比 0；静音验收通过；音画差 0.016 秒；字幕对比度 19.43；claims 覆盖通过（可见性未评估） |
+| 材料校验 | `uv run m2v validate --project examples/five-life-choices` | 通过；900帧画面、全片音轨和本地素材引用符合配置 |
+| 时间轴准备 | `uv run m2v prepare --project examples/five-life-choices` | 通过；900帧 / 1920×1080 / 30fps；preparedFingerprint `24644aee94078edde8bae425d05f46de42e630d5e1c2b45b5b752c6586046c43` |
+| Web 类型检查 | `pnpm -C web typecheck` | 通过 |
+| Web 测试 | `pnpm -C web test` | 通过；6个文件、85项测试 |
+| Web 构建 | `pnpm -C web build` | 通过；Vite生产构建完成；contract chunk 542.75 kB，出现500 kB体积提示 |
+| 示例与文档测试 | `uv run pytest tests/test_five_life_choices_example.py tests/test_examples_strict.py tests/test_doc_examples.py -q` | 通过；41项测试；pytest缓存目录因WinError 5未写入，不影响测试 |
+| 完整候选与技术QA | `uv run m2v render --project examples/five-life-choices` / `uv run m2v qa --project examples/five-life-choices` | 通过；1920×1080、30fps、900帧、30秒；冻结帧、字幕对比度、响度、音画同步、主张检查通过；画面实测。SHA-256 `81657fab9515c49fcc1bb8cc6119ee18faf7a0dc151f5e15d3846b87a7641b44`；preparedFingerprint `24644aee94078edde8bae425d05f46de42e630d5e1c2b45b5b752c6586046c43` |
 
-## 关键帧门禁
+## 动态门禁
 
-- 七张无文字关键帧：开场 5.3 / 城市 11.5 / 行业 21.0 / 伴侣 32.0 / 投资 42.5 / 学习 52.4 / 终幕 62.4 秒。
-- 隔离评审只读取图像与问题，不读设计、源码、旧评审。前六幕由 K02 评审读出目标变化；终幕经 K03–K09 多轮返工，最终 K09 放射人生扇由 3/3 评审读出“同一点向右放射出许多路径”。
-- 终幕五个阶段在单帧中未被稳定数出；作为已知限制披露，由成片章节标签与五道阶段弧共同承担，不写成已通过的五阶段静帧识别。
-- 证据：[visual-notes.md](../../videos/examples/five-life-choices/outputs/visual-notes.md)（生成媒体与评审包不入库）。
+23–27秒学习窗口先以4秒完整帧序列预演，并逐轮由隔离评审只检查匿名评审包。通过后再扩展全片；最终全片另由两名隔离评审检查节奏、文案、接触动作、393px可读性及相对旧版基线的表达差异。意见与对应视频摘要绑定；未完成的复核不得记为通过。
 
-## 视觉复核（待最终候选）
+## 画面限制
 
-- 最终候选完成后，两名隔离代理分别检查结构节奏与视觉文案；另做与 b02 基线的对应角色匿名比较。
-- 手机基准：852×479 CSS 像素；另查 393 宽与 200 宽缩略图。393 宽只保证主题与主体辨认，不承诺小字可读。
-- 未实时播放全片，也未试听（成片无旁白/配乐；最终音轨状态以 QA 为准）。
+本片只有程序化矢量剪纸形状，手机复核重点是主体、路径、门洞、桥板与阶梯关系。抽样帧只能支持可见动作和视觉关系判断，不能代替真实观众测试，也不支持“惊艳”、记忆或留存等效果承诺。
 
-## 已知限制
+## 最终候选独立复核
 
-- 终幕五阶段静帧计数不稳定；成片用五章标签提示，不宣称观众能独立数出五个阶段。
-- 终幕从连续世界切入放射人生扇时采用硬切淡入，未达到世界变形的连续转场；已作为已知限制披露，不写成已通过连续转场。
-- 人物在广角镜头中很小，393 宽可能退化为白点；城市与终幕的人物定位依赖环标记。
-- 内部空间是长期条件的解释隐喻，不是真实地理、行业排名、收益公式或唯一成功路径。
-- 没有真实发布数据，不推算留存、跳出率或真实记忆，不宣称惊艳。
+视频 SHA-256：81657fab9515c49fcc1bb8cc6119ee18faf7a0dc151f5e15d3846b87a7641b44。K07全片结构与视觉评审、K21学习段评审均由隔离评审完成，未发现阻断项。结构建议城市段稍短、结尾停留略长；视觉建议手机尺寸窗口细节可简化；学习段建议末帧驻留略短，并指出台阶寓意较抽象。以上作为偏好记录，不影响现有主题识别。评审只基于抽样帧，不能证明真实观众记忆、留存或声音体验。
+
+## 新旧对应事件对照
+
+隔离盲评同尺寸匿名图组：B（新版）更容易看清主体动作和事件关系，统一配色与较大标题在手机上更醒目；A（旧版）保留了更多年龄、时间、路径与阶段标签信息，但细节较密且字号较小。新版明确牺牲了这些具体节点信息，集中讲五种因素怎样影响道路。该对照基于7组静态代表帧，不能评价动态节奏、音画质量或观众反应；评审包本身未携带视频摘要，最终视频绑定摘要仍以K07/K21评审包中的SHA为准。

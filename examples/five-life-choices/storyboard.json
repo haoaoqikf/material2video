@@ -7,9 +7,9 @@
   "title": "五种选择，五种人生",
   "input": {
     "kind": "topic",
-    "topic": "同一个人、同一条道路；城市改变机会密度，行业改变整体趋势，伴侣改变方向，投资放大时间差距，学习打开可抵达的新空间"
+    "topic": "同样的起点，城市改变机会、行业改变速度、伴侣影响方向、投资积累未来、学习打开可能；每次选择都在塑造以后"
   },
-  "targetSeconds": 65,
+  "targetSeconds": 30,
   "scenes": [
     {
       "id": "life-world",
@@ -24,167 +24,109 @@
         "道路",
         "人生轨迹"
       ],
-      "durationFrames": 1950,
+      "durationFrames": 900,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
         "title": "五种选择，五种人生",
         "entry": "scenes/life.tsx",
         "props": {
-          "shots": [
-            {
-              "id": "opening",
-              "target": "fork",
-              "tier": "hero",
-              "startFrame": 0,
-              "endFrame": 180,
-              "note": "贴地跟随同一人物；前方出现几度岔路，选择后镜头拉远，两条路通向完全不同的远方"
-            },
-            {
-              "id": "city",
-              "target": "network",
-              "tier": "hero",
-              "startFrame": 180,
-              "endFrame": 480,
-              "note": "人物进入其中一个机会环境；道路、交叉口与节点不断生长，另一侧平行人生仍然稀疏"
-            },
-            {
-              "id": "industry",
-              "target": "terrain",
-              "tier": "hero",
-              "startFrame": 480,
-              "endFrame": 810,
-              "note": "两个相同人物同速前进；左侧地面持续上升，右侧保持水平，侧移拉远后才看见巨大高差"
-            },
-            {
-              "id": "partner",
-              "target": "coupling",
-              "tier": "hero",
-              "startFrame": 810,
-              "endFrame": 1140,
-              "note": "第二个人进入；一组轨迹互相修正并螺旋上升，另一组不断拉扯、收缩偏离"
-            },
-            {
-              "id": "investment",
-              "target": "compound",
-              "tier": "hero",
-              "startFrame": 1140,
-              "endFrame": 1440,
-              "note": "起点只差一个很小的光点；道路随时间变宽、升高，最终形成巨大峡谷与高地"
-            },
-            {
-              "id": "learning",
-              "target": "unlock",
-              "tier": "hero",
-              "startFrame": 1440,
-              "endFrame": 1710,
-              "note": "人物走到断崖；四次解锁让桥、新路、开口与垂直路径逐层显现，黑暗地图被点亮"
-            },
-            {
-              "id": "finale",
-              "target": "life-map",
-              "tier": "hero",
-              "startFrame": 1710,
-              "endFrame": 1950,
-              "note": "连续拉远发现五段属于同一空间；几十条轨迹从同一点出发，散布成整张人生地图"
-            }
-          ],
           "copy": [
             {
-              "id": "title",
-              "text": "人生真正拉开差距的，\n往往是几个重要选择。",
-              "from": 3.2,
-              "to": 4.8,
-              "size": 62,
-              "weight": 500,
-              "spacing": 4,
+              "id": "opening",
+              "text": "同样的起点",
+              "from": 0.45,
+              "to": 2.75,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 130,
-              "width": 900,
+              "y": 125,
+              "width": 800,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "city",
-              "text": "城市",
-              "from": 8.0,
-              "to": 9.0,
-              "size": 72,
-              "weight": 500,
-              "spacing": 8,
+              "text": "城市，改变机会",
+              "from": 3.4,
+              "to": 7.65,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 110,
-              "width": 600,
+              "y": 125,
+              "width": 950,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "industry",
-              "text": "行业",
-              "from": 18.0,
-              "to": 19.0,
-              "size": 72,
-              "weight": 500,
-              "spacing": 8,
+              "text": "行业，改变速度",
+              "from": 8.35,
+              "to": 12.65,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 110,
-              "width": 600,
+              "y": 125,
+              "width": 950,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "partner",
-              "text": "伴侣",
-              "from": 29.0,
-              "to": 30.0,
-              "size": 72,
-              "weight": 500,
-              "spacing": 8,
+              "text": "伴侣，影响方向",
+              "from": 13.35,
+              "to": 17.65,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 110,
-              "width": 600,
+              "y": 125,
+              "width": 950,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "investment",
-              "text": "投资",
-              "from": 40.0,
-              "to": 41.0,
-              "size": 72,
-              "weight": 500,
-              "spacing": 8,
+              "text": "投资，积累未来",
+              "from": 18.35,
+              "to": 22.65,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 110,
-              "width": 600,
+              "y": 125,
+              "width": 950,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "learning",
-              "text": "学习",
-              "from": 50.0,
-              "to": 51.0,
-              "size": 72,
-              "weight": 500,
-              "spacing": 8,
+              "text": "学习，打开可能",
+              "from": 23.3,
+              "to": 26.7,
+              "size": 76,
+              "weight": 600,
+              "spacing": 2,
               "x": 120,
-              "y": 110,
-              "width": 600,
+              "y": 125,
+              "width": 950,
               "align": "left",
               "tone": "primary"
             },
             {
               "id": "finale",
-              "text": "人生的差距，往往是一次次选择慢慢拉开的。",
-              "from": 63.0,
-              "to": 65.0,
-              "size": 58,
-              "weight": 500,
+              "text": "每次选择，都在塑造以后",
+              "from": 27.2,
+              "to": 30,
+              "size": 68,
+              "weight": 600,
               "spacing": 2,
-              "x": 360,
-              "y": 760,
-              "width": 1200,
+              "x": 250,
+              "y": 125,
+              "width": 1420,
               "align": "center",
               "tone": "primary"
             }
@@ -197,9 +139,96 @@
               "投资",
               "学习"
             ]
-          }
+          },
+          "shots": [
+            {
+              "id": "opening",
+              "target": "fork",
+              "tier": "hero",
+              "startFrame": 0,
+              "endFrame": 90,
+              "note": "人物从岔路共同起点出发，沿橙色支路向前。"
+            },
+            {
+              "id": "city",
+              "target": "opportunity-path",
+              "tier": "hero",
+              "startFrame": 90,
+              "endFrame": 240,
+              "note": "街区窗格机会密度不同，人物沿橙色路径前行。"
+            },
+            {
+              "id": "industry",
+              "target": "road",
+              "tier": "hero",
+              "startFrame": 240,
+              "endFrame": 390,
+              "note": "两位步行人物沿平行路线前行，一条道路更快抬升，进度差异显现。"
+            },
+            {
+              "id": "partner",
+              "target": "bridge",
+              "tier": "hero",
+              "startFrame": 390,
+              "endFrame": 540,
+              "note": "两人各持桥板一端，协作接合后共同通过。"
+            },
+            {
+              "id": "investment",
+              "target": "blocks",
+              "tier": "hero",
+              "startFrame": 540,
+              "endFrame": 690,
+              "note": "人物留下一块积木，逐层累积成可走的台阶。"
+            },
+            {
+              "id": "learning",
+              "target": "book-stairs",
+              "tier": "hero",
+              "startFrame": 690,
+              "endFrame": 810,
+              "note": "书页展开为阶梯，人物踏上并越过障碍。"
+            },
+            {
+              "id": "finale",
+              "target": "paths",
+              "tier": "hero",
+              "startFrame": 810,
+              "endFrame": 900,
+              "note": "五种道路形状回闪成一组，人物继续向前后定格。"
+            }
+          ]
         }
       }
     }
-  ]
+  ],
+  "soundtrack": {
+    "music": {
+      "sourceRef": "assets/sound/score.wav",
+      "gainDb": -4,
+      "loop": false,
+      "fadeInMs": 450,
+      "fadeOutMs": 700
+    },
+    "effects": [
+      {
+        "sourceRef": "assets/sound/door.wav",
+        "sceneId": "life-world",
+        "offsetMs": 5600,
+        "gainDb": -8
+      },
+      {
+        "sourceRef": "assets/sound/bridge.wav",
+        "sceneId": "life-world",
+        "offsetMs": 15500,
+        "gainDb": -8
+      },
+      {
+        "sourceRef": "assets/sound/page.wav",
+        "sceneId": "life-world",
+        "offsetMs": 23400,
+        "gainDb": -8
+      }
+    ]
+  }
 }

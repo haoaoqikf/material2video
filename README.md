@@ -10,7 +10,9 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-固定示例：[从电报到大模型](examples/american-science-milestones/README.md)、[人生五选择](examples/five-life-choices/README.md)和[太阳系之旅](examples/solar-system-journey/README.md)。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
+固定示例：[从电报到大模型](examples/american-science-milestones/README.md)、[人生五选择](examples/five-life-choices/README.md)和[太阳系之旅](examples/solar-system-journey/README.md)。人生五选择为30秒剪纸短片：无旁白，使用原创配乐与三个动作音。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
+
+通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)。
 
 ## 快速开始
 
@@ -33,7 +35,7 @@ uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/
 uv run m2v validate --project videos/general/<slug>
 # 有自身旁白时，先按下文选音并保存；手动制作可在 prepare 指定 --voice。
 uv run m2v prepare --project videos/general/<slug>
-# 可选片段检查，默认前十秒且严格短于全片
+# 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/general/<slug>
 # 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，A/B 级评审按独立子代理流程执行。
 uv run m2v render --project videos/general/<slug>

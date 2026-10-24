@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "score",
+      "path": "score.wav",
+      "sha256": "9ccc9bef6b0a03995ddc014aab20e1b95ef7df15590223bf29989da17debab9e",
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "frames": 720000,
+      "durationSeconds": 30.0,
+      "license": "CC0-1.0",
+      "generator": "generate.py"
+    },
+    {
+      "id": "door-opening",
+      "path": "door.wav",
+      "sha256": "031220e08c230851641afb2e1b7148a0347ee78a5210b0155d7a6d692a0ebc1b",
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "frames": 19200,
+      "durationSeconds": 0.8,
+      "license": "CC0-1.0",
+      "generator": "generate.py"
+    },
+    {
+      "id": "bridge-join",
+      "path": "bridge.wav",
+      "sha256": "c514c6a041fe0fbee51d5c6873302822b7f6ef61adaf973e3ed3b14ba2eacb92",
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "frames": 13200,
+      "durationSeconds": 0.55,
+      "license": "CC0-1.0",
+      "generator": "generate.py"
+    },
+    {
+      "id": "page-turn",
+      "path": "page.wav",
+      "sha256": "1500ae6e0bfb1a268e6d9cd541a39cc31a7704745b3abfc6c9b78e1403c23b24",
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "frames": 19200,
+      "durationSeconds": 0.8,
+      "license": "CC0-1.0",
+      "generator": "generate.py"
+    }
+  ]
+}

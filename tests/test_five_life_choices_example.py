@@ -1,4 +1,4 @@
-"""五种选择，五种人生：保护连续人生世界、尺度事件与输出边界。"""
+"""五种选择剪纸短片：保护30秒画面、文案与声音预算。"""
 from __future__ import annotations
 
 import json
@@ -11,78 +11,69 @@ STORYBOARD = json.loads((EXAMPLE / "storyboard.json").read_text(encoding="utf-8"
 SCENE = STORYBOARD["scenes"][0]
 PROPS = SCENE["content"]["props"]
 SOURCE = (EXAMPLE / "scenes/life.tsx").read_text(encoding="utf-8")
-WORLD = (EXAMPLE / "scenes/world.tsx").read_text(encoding="utf-8")
+LEARNING = (EXAMPLE / "scenes/learningWindow.tsx").read_text(encoding="utf-8")
 MATH = (EXAMPLE / "scenes/lifeMath.ts").read_text(encoding="utf-8")
 DESIGN = (EXAMPLE / "DESIGN.md").read_text(encoding="utf-8")
 
 
-def test_silent_single_scene_has_the_declared_65_second_budget() -> None:
+def test_paper_cut_film_has_900_frames_and_three_action_sounds() -> None:
     assert STORYBOARD["input"]["kind"] == "topic"
-    assert not STORYBOARD.get("soundtrack")
-    assert len(STORYBOARD["scenes"]) == 1
-    assert SCENE["id"] == "life-world"
-    assert STORYBOARD["targetSeconds"] == 65
-    assert SCENE["durationFrames"] == 1950
+    assert len(STORYBOARD["scenes"]) == 1 and SCENE["id"] == "life-world"
+    assert STORYBOARD["targetSeconds"] == 30 and SCENE["durationFrames"] == 900
     assert SCENE["narrationSegments"] == []
     assert (STORYBOARD["width"], STORYBOARD["height"], STORYBOARD["fps"]) == (1920, 1080, 30)
+    soundtrack = STORYBOARD["soundtrack"]
+    assert soundtrack["music"]["sourceRef"] == "assets/sound/score.wav"
+    assert len(soundtrack["effects"]) == 3
+    assert [item["sourceRef"] for item in soundtrack["effects"]] == [
+        "assets/sound/door.wav", "assets/sound/bridge.wav", "assets/sound/page.wav"]
+    source_record = json.loads((EXAMPLE / "assets/sound/sources.json").read_text(encoding="utf-8"))
+    assert source_record["schemaVersion"] == 1
+    records = {item["path"]: item for item in source_record["assets"]}
+    paths = [soundtrack["music"]["sourceRef"], *(item["sourceRef"] for item in soundtrack["effects"])]
+    assert set(paths) == {f"assets/sound/{path}" for path in records}
+    assert {item["id"] for item in records.values()} == {
+        "score", "door-opening", "bridge-join", "page-turn"}
+    assert all(item["sampleRateHz"] == 24000 and item["channels"] == 1 for item in records.values())
+    assert records["score.wav"]["durationSeconds"] == 30
+    assert all(re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) for item in records.values())
 
 
-def test_seven_acts_tile_the_film_and_match_the_shots() -> None:
+def test_seven_acts_tile_the_film_and_match_keyframe_windows() -> None:
     acts = re.findall(r"\{id: '([a-z-]+)', start: (\d+), end: (\d+)\}", MATH)
-    assert [item[0] for item in acts] == [
-        "opening", "city", "industry", "partner", "investment", "learning", "finale"]
-    assert int(acts[0][1]) == 0 and int(acts[-1][2]) == 65
+    ids = ["opening", "city", "industry", "partner", "investment", "learning", "finale"]
+    assert [item[0] for item in acts] == ids
+    assert int(acts[0][1]) == 0 and int(acts[-1][2]) == 30
     assert all(int(a[2]) == int(b[1]) for a, b in zip(acts, acts[1:]))
     shots = PROPS["shots"]
-    assert [shot["id"] for shot in shots] == [item[0] for item in acts]
+    assert [shot["id"] for shot in shots] == ids
     assert all(shot["startFrame"] == int(act[1]) * 30 and shot["endFrame"] == int(act[2]) * 30
                for shot, act in zip(shots, acts))
 
 
-def test_copy_only_names_the_variables_and_the_final_claim() -> None:
+def test_copy_order_is_concise_and_five_choices_are_preserved() -> None:
     copy = PROPS["copy"]
     assert [item["id"] for item in copy] == [
-        "title", "city", "industry", "partner", "investment", "learning", "finale"]
+        "opening", "city", "industry", "partner", "investment", "learning", "finale"]
     assert [item["text"] for item in copy] == [
-        "人生真正拉开差距的，\n往往是几个重要选择。",
-        "城市", "行业", "伴侣", "投资", "学习",
-        "人生的差距，往往是一次次选择慢慢拉开的。",
-    ]
+        "同样的起点", "城市，改变机会", "行业，改变速度", "伴侣，影响方向",
+        "投资，积累未来", "学习，打开可能", "每次选择，都在塑造以后"]
     assert PROPS["labels"]["choices"] == ["城市", "行业", "伴侣", "投资", "学习"]
-    visible = "\n".join(item["text"] for item in copy) + WORLD + SOURCE
-    for token in ("保证收益", "必涨", "稳赚", "唯一成功路径", "行业排名", "决定机会密度"):
+    visible = "\n".join(item["text"] for item in copy) + SOURCE + LEARNING
+    for token in ("保证收益", "必涨", "稳赚", "唯一成功路径", "行业排名"):
         assert token not in visible
 
 
-def test_implementation_is_one_deterministic_continuous_scene() -> None:
-    assert "from 'm2v/code-scene'" in SOURCE
-    assert "<Canvas" in SOURCE and "<LifeWorld t={t}" in SOURCE
-    for source in (SOURCE, WORLD, MATH):
-        for forbidden in ("window.requestAnimationFrame", "Date.now", "Math.random",
-                          "setInterval", "setTimeout"):
+def test_scene_is_deterministic_code_and_learning_window_has_a_clear_page_path() -> None:
+    assert "useSceneContext" in SOURCE and "elapsedSeconds" in SOURCE
+    assert "<svg" in SOURCE and "<Canvas" not in SOURCE
+    assert "LearningWindow" in SOURCE and "clipPath" in LEARNING
+    for source in (SOURCE, LEARNING, MATH):
+        for forbidden in ("window.requestAnimationFrame", "Date.now", "Math.random", "setInterval", "setTimeout"):
             assert forbidden not in source
-    assert "pathUAt" in WORLD and "cameraAt" in WORLD
-    assert "drawFrame" not in SOURCE + WORLD
-    assert "AGE_MARKS" not in WORLD and "TREE_PATHS" not in WORLD
-    assert "geometry.ts" not in SOURCE + WORLD and "render.ts" not in SOURCE + WORLD
 
 
-def test_world_contains_the_five_mechanisms_and_a_final_map() -> None:
-    for token in ("makeNetwork", "RISE", "PLUS_MAIN", "GROWTH_GEO", "unlockAt", "FAN_CURVES", "FAN_ARCS"):
-        assert token in WORLD, token
-    assert "open" in WORLD and "opacity" in WORLD
-    assert "65" in MATH and "DURATION" in MATH
-    assert "cameraAt" in MATH and "pathUAt" in MATH
-
-
-def test_keyframe_gate_and_scale_rules_are_documented() -> None:
-    for token in ("七张无文字关键帧", "去文字", "尺度阶梯", "城市网络", "行业地形",
-                  "最终人生世界", "65 秒", "1950"):
-        assert token in DESIGN, token
+def test_keyframe_and_phone_readability_gate_is_documented() -> None:
+    for token in ("七段", "30秒", "900帧", "393", "静帧", "盲审"):
+        assert token in DESIGN
     assert "当前不渲染" not in DESIGN or "关键帧" in DESIGN
-
-
-def test_old_scene_implementation_and_its_tests_are_retired() -> None:
-    assert not (EXAMPLE / "scenes/geometry.ts").exists()
-    assert not (EXAMPLE / "scenes/render.ts").exists()
-    assert not (ROOT / "web/src/code-scene/five-life-geometry.test.ts").exists()

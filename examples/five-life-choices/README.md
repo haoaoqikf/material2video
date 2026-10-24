@@ -1,38 +1,45 @@
 # 五种选择，五种人生
 
-约 65 秒、1920×1080、30 fps 的无声横屏作品。世界只有人、道路与世界：同一个白色人物沿同一条道路前进，城市改变机会密度，行业改变地面趋势，伴侣改变方向，投资放大时间差距，学习打开可抵达空间；终幕拉远，五个章节被认回为同一张人生轨迹图。
+30秒 / 1920×1080 / 30fps 的剪纸短片，无旁白，以原创轻节奏音乐和三个动作音带出五种人生选择。暖白纸面、深墨剪影和橙色路径构成全片统一视觉；七段依次呈现共同起点、城市、行业、伴侣、投资、学习与结尾。
 
-## 连续事件
+## 七段与动作
 
-| 段落 | 时间预算 | 画面职责 |
-|---|---:|---|
-| 开场 | 0–6 秒 | 人物行走；几度岔路被拉远放大成两个不同远方 |
-| 城市 | 6–16 秒 | 道路、节点与连接生长；另一侧平行人生保持稀疏 |
-| 行业 | 16–27 秒 | 两个相同人物同速；一条地面持续上升，一条保持水平 |
-| 伴侣 | 27–38 秒 | 第二个人进入；一组轨迹互相修正，另一组拉扯偏离 |
-| 投资 | 38–48 秒 | 很小的起点差被时间撑成峡谷与高地 |
-| 学习 | 48–57 秒 | 断崖前四次解锁，黑暗地图逐层亮起 |
-| 终幕 | 57–65 秒 | 拉远发现同一世界；五个节点分叉出几十条人生轨迹 |
+| 段落 | 时间 | 画面动作 | 文案 |
+|---|---:|---|---|
+| 开场 | 0–3秒 | 人物从岔路共同起点出发，沿橙色支路前行 | 同样的起点 |
+| 城市 | 3–8秒 | 人物沿橙色上升路径穿过机会密度不同的楼群 | 城市，改变机会 |
+| 行业 | 8–13秒 | 两条平行路线一平一升，较快路线迅速前移 | 行业，改变速度 |
+| 伴侣 | 13–18秒 | 两人共同接合桥板并通过 | 伴侣，影响方向 |
+| 投资 | 18–23秒 | 一块积木逐层累积成阶梯 | 投资，积累未来 |
+| 学习 | 23–27秒 | 书页展开成阶梯，人物逐级上行越过障碍 | 学习，打开可能 |
+| 结尾 | 27–30秒 | 五种道路形状汇聚到人物继续向前 | 每次选择，都在塑造以后 |
 
-全片无声，无旁白、配乐、音效与素材原声。文字只有开场标题、五个变量名与终幕结论。
+行业与投资只使用抽象示意，不表达排名、收益率或回报保证。无旁白，三个动作音依次对应城市机会路径、桥板与翻页。
 
-## 实现
-
-- `scenes/life.tsx`：React Three Fiber 录制入口、Canvas 与文字层。
-- `scenes/world.tsx`：道路、机会网络、移动地形、双轨、生长道路、黑暗地图与终幕分叉树。
-- `scenes/lifeMath.ts`：七幕时间表、路径进度、连续镜头、学习解锁与终幕拉远。
-- `storyboard.json`：单幕 `life-world`，1950 帧预算与画面文字。
-
-## 重建与复核
+## 重建
 
 ```powershell
+uv run python examples/five-life-choices/assets/sound/generate.py
 uv run m2v validate --project examples/five-life-choices
 uv run m2v prepare --project examples/five-life-choices
-uv run m2v preview --project examples/five-life-choices --start-seconds 0 --end-seconds 8
+uv run m2v preview --project examples/five-life-choices --start-seconds 23 --end-seconds 27
 uv run m2v render --project examples/five-life-choices
 uv run m2v qa --project examples/five-life-choices
 ```
 
-画面基准为 852×479 CSS 像素，另查 393 宽。关键帧与最终候选均需完整时间码证据；独立评审不能依赖审阅界面播放 MP4。生成媒体与评审文件不入库，最终技术与制作结论绑定同一文件摘要。
+片段检查只渲染指定窗口（不带参数时默认前十秒），这里用于在看全片之前检查 23–27 秒学习段的四秒动作与文案。
 
-[视觉设计](DESIGN.md) · [来源与参考边界](SOURCES.md) · [交付验证](VERIFICATION.md)
+素材生成脚本和原创合成许可见 `assets/sound/`。画面设计与独立复核证据见[设计与视觉门禁](DESIGN.md)和[交付验证](VERIFICATION.md)；生成媒体与评审包保存在忽略的 `videos/`，不进入 Git。
+
+## 制作评审帧包
+
+使用项目的 `uv` 环境执行脚本。最终评审应在 `render` 后从完整 `outputs/video.mp4` 生成；`--start-seconds` 指定局部窗口在全片中的原始时间，帧说明也保留原时间码。每包包含1920、852、393像素帧、联系表、中性说明和 SHA-256 清单，且拒绝覆盖已有非空目录。
+
+```powershell
+uv run python examples/five-life-choices/scripts/create_review_pack.py `
+  videos/examples/five-life-choices/outputs/video.mp4 `
+  videos/examples/five-life-choices/outputs/review-packs/learning-window `
+  --id K-window --start-seconds 23 --seconds 4 --interval 0.1
+```
+
+[来源与参考边界](SOURCES.md) · [视觉创意方向](../../.agents/skills/material2video/references/visual-creative-direction.md) · [视觉力量设计](../../.agents/skills/material2video/references/visual-impact-design.md)
