@@ -12,7 +12,7 @@
 
 核心图形高潮在事件设计后接入[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)，以不同视觉机制、代表画面与完整动态粗样比较尺度和注意力；理解与表现分别验证，不把更清楚当作表现必然改善，也不宣称自动预测观众记忆。
 
-通用作品以[视觉事件设计](.agents/skills/material2video/references/visual-creative-direction.md#视觉事件设计)连接画面变化与观众认识：核心镜头先构造事件并验证完整窗口粗样，再扩展全片；该方法是制作指导，不是自动审美能力。
+通用作品在方案确定阶段区分视觉隐喻（用什么表示）、视觉事件（发生什么，见[视觉事件设计](.agents/skills/material2video/references/visual-creative-direction.md#视觉事件设计)）、导演设计（观众按什么顺序看到）和视觉力量（变化如何获得尺度与层级）；关键表达镜头在 `DESIGN.md` 形成导演卡，再映射到现有 storyboard 镜头与时间窗，粗片按完整窗口验证预期、信息揭示和认识变化。普通镜头不强制完整导演卡或反转，不新增 storyboard JSON 字段。详见[制作流程](.agents/skills/material2video/references/production-workflow.md)与[导演卡模板](.agents/skills/material2video/references/visual-creative-direction.md#导演设计观众按什么顺序看到)。
 
 通用作品在叙事候选前完成立意六项（一句话命题、核心体验、表达载体、揭示与记忆、可验算骨架、重点投入）；选定叙事方案后按[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)完成七段式视觉创意方案（核心表达、核心视觉母题、整体视觉风格、分镜设计、视觉高潮、结尾视觉揭示、禁止项）与十项自检，必答但非评分或门禁；载体来源先定整体政策（档案证据型／解释型／混合），再逐场落实实例，不得用图库冒充真实事件或人物，不得用代码伪造证据；三案比较构思、揭示、代表段落、题材关联与风险，设计全片强弱和表达统一，精修主动强化亮点。信息与体验共同分配时间，减法与重要返工同时检查理解、感受、期待和记忆的收益／损失。评审区分实际缺陷、创意风险、审美偏好和证据不足；去文字、静音、缩略图、运动密度是[适用性诊断](.agents/skills/material2video/references/visual-review-rubric.md#诊断测试与适用性)，不按静止时限、母题像素差或形式标签直接否决。母题按完整段落的意义与体验判断，不强制重复或单调增长；事实、许可、技术和关键可读性检查不放宽。共享动效原语（数字滚动、数据曲线与柱状生长、列表滚屏、主体状态插值、签名粒子）以 `progress` 为唯一时间输入、不内置视觉主题。
 

@@ -9,7 +9,7 @@ def test_visual_impact_templates_have_distinct_design_and_review_roles():
     text = (ROOT / "visual-impact-design.md").read_text(encoding="utf-8")
     sections = dict(re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text, re.M | re.S))
     required_rows = {
-        "四层职责与接入": {"视觉事件", "视觉力量", "动态导演", "实现"},
+        "四层职责与接入": {"视觉事件", "导演设计", "视觉力量", "实现"},
         "力量来源与反目标": {"尺度反差", "构图反差", "视觉重量", "空间深度", "信息隐藏与释放", "视觉主导权"},
         "作者模板": {"预期感受与目标", "力量来源与尺度参照", "视觉中心", "前后构图", "图文职责", "完整时间窗口", "候选与取舍"},
         "独立比较与选案": {"理解", "前后反差", "尺度", "层级", "冲击", "画面记忆潜力", "新意", "手机表现"},
