@@ -78,6 +78,8 @@ uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-autho
 
 ## 通用作品编排原则
 
+核心图形高潮按[视觉力量设计](references/visual-impact-design.md)分开设计事件、力量、动态导演与实现；先比较同一事件的不同视觉机制、代表画面与完整粗样，再扩展精制。理解与表现分别验收，沿用四阶段、隔离评审与唯一问题表，不新增评分或导出门禁。
+
 旧片修复先按[重制启动](references/production-workflow.md#重制启动)核验用户约束、历史实现与重入阶段，并保留比较基线；核心事件按[最小动态证据](references/visual-review-rubric.md#核心事件的最小动态证据)取证。重制须分别验证理解、表现与相对改善，最终按[完成边界](references/director-review-and-edit.md#完成边界)同摘要汇总技术与制作结果。
 
 制作必须执行[节奏、美术、声音与制作阶段](references/creative-production.md)：创作目标、两个美术方向、四张关键画面、整片动态粗预演、风险样片、分层精修、阶段条件和改动回归。文案、节奏、连续性、审美、声音及技术分别复核。三类作品共用审美原则并按类型检查：general 完整执行镜头叙事与强度编排；金融和住宅检查趋势、关键转折、常规图表及结尾，同时保留专用画幅、图表和声音契约。粗预演不代替正式候选的全片验收。

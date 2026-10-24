@@ -1,6 +1,47 @@
 """通用手册描述当前 v8 全画布契约、真实时长与输入审查。"""
 from pathlib import Path
+import re
 ROOT = Path(__file__).resolve().parents[1] / ".agents/skills/material2video/references"
+
+
+def test_visual_impact_templates_have_distinct_design_and_review_roles():
+    """保护表单职责与关键边界，不锁定正文措辞、日期或示范数量。"""
+    text = (ROOT / "visual-impact-design.md").read_text(encoding="utf-8")
+    sections = dict(re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text, re.M | re.S))
+    required_rows = {
+        "四层职责与接入": {"视觉事件", "视觉力量", "动态导演", "实现"},
+        "力量来源与反目标": {"尺度反差", "构图反差", "视觉重量", "空间深度", "信息隐藏与释放", "视觉主导权"},
+        "作者模板": {"预期感受与目标", "力量来源与尺度参照", "视觉中心", "前后构图", "图文职责", "完整时间窗口", "候选与取舍"},
+        "独立比较与选案": {"理解", "前后反差", "尺度", "层级", "冲击", "画面记忆潜力", "新意", "手机表现"},
+    }
+    for section, required in required_rows.items():
+        rows = set(re.findall(r"^\| ([^|]+?) \|", sections[section], re.M))
+        assert required <= rows, (section, required - rows)
+    # 短契约标识防止把方法改成评分、统一时长或真实记忆承诺。
+    assert "不打分" in sections["独立比较与选案"]
+    assert "不设总分" in sections["独立比较与选案"]
+    assert "试制起点" in sections["作者模板"]
+    assert "未经真实测试" in sections["独立比较与选案"]
+    assert "颜色承担必要编码" in sections["代表画面与诊断"]
+    assert "后续制作" in sections["实现、返工与完成"]
+
+
+def test_visual_impact_reference_is_reachable_without_runtime_changes():
+    """所有操作入口指向唯一方法，示例只补充后续适用性指导。"""
+    for name in ("production-workflow.md", "visual-creative-direction.md", "creative-production.md",
+                 "scene-design-and-acceptance.md", "subagent-review.md", "director-review-and-edit.md",
+                 "visual-review-rubric.md"):
+        assert "visual-impact-design.md" in (ROOT / name).read_text(encoding="utf-8"), name
+    repo = ROOT.parents[3]
+    for path in (ROOT.parent / "SKILL.md", repo / "README.md", *repo.glob("examples/*/DESIGN.md")):
+        text = path.read_text(encoding="utf-8")
+        links = re.findall(r"\]\(([^)]+visual-impact-design\.md)\)", text)
+        assert links, path
+        assert all((path.parent / link).is_file() for link in links), path
+        if path.name == "DESIGN.md":
+            guidance = text.split("## 视觉力量设计适用性", 1)[1]
+            assert "后续制作指导" in guidance
+            assert "未重渲染" in guidance
 
 
 def test_fixed_examples_document_media_restore():
