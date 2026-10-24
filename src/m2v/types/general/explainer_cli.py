@@ -11,6 +11,9 @@ from . import explainer, explainer_review, article_text
 
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "sounds":
+        from . import sound_library
+        return sound_library.main(argv[1:])
     if argv and argv[0] == "assets":
         from . import media_assets
         return media_assets.main(argv[1:])

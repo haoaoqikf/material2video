@@ -87,7 +87,7 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 ```
 
 - `music`：`sourceRef` 为作品目录内本地音频，`gainDb` 为 −60～0 dB，`loop` 为布尔值（默认 false），`fadeInMs`/`fadeOutMs` 为 0～60000 整数毫秒（默认各 500ms）；音床在旁白区间自动压低。
-- `effects`：最多 128 项，`builtin` 与 `sourceRef` 二选一。内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性地合成，不依赖外部资产许可；`sourceRef` 指向本地音频。
+- `effects`：最多 128 项，`builtin`、`sourceRef` 与 `assetId` 三选一。内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性地合成，不依赖外部资产许可；`sourceRef` 指向本地音频；常见动作音效优先使用下方统一音效库的 `assetId`。
 - 定位：`sceneId` 必填且必须是分镜里的幕；可选 `segmentId` 指向该幕旁白段，给出时从该段开始帧计时，否则从幕开始帧计时；`offsetMs` 为 ±60000 的整数，`gainDb` 为 −60～0 dB；音效按幕或旁白段窗口与 `offsetMs` 定位，起点必须落在全片时长内，否则准备失败。
 - `sourceRef` 相对**声明它的材料文件所在目录**解析，不支持 URL、绝对路径、`..` 或反斜线，解析后不可越界；素材缺失或损坏让 prepare 失败，旧准备记录保持有效。
 
@@ -103,11 +103,68 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
   音床在旁白结束处就断了。母版轨严格裁到全片时长，循环音床不会把成片拖长。
 - **音效混音验收口径**：每条音效按定位起点延迟叠入母版轨，与旁白、音床一起经
   `amix`、限幅和 `atrim` 严格裁到全片时长；起点越界、引用未知 `sceneId`/`segmentId`
-  或 `builtin`/`sourceRef` 同缺同给都在 prepare 阶段失败。音效增益默认 −18 dB。
+  或 `builtin`/`sourceRef`/`assetId` 非三选一都在 prepare 阶段失败。音效增益默认 −18 dB。
   叠入音效后母版轨仍须通过同一响度与真峰值复核（旁白 −16 LUFS、成片 ≤ −1 dBTP），
   修正只改增益、不改变时间轴；音效素材摘要进入准备指纹，换素材或改参数都要重新 prepare。
 
 没有 `soundtrack` 时母版轨只做响度归一化；有音床或音效时按字幕讲话区间做闪避、混音并限幅。
+
+## 统一音效库
+
+来源只有两类：**代码合成**与**第三方音频**。均先落盘到作品的 `assets/sound/<sha256>.wav`，来源登记在 `assets/sound-sources.json`，分镜用 ID 编排；渲染不联网、不随机挑音。音效目录不在画面服务器白名单内。
+
+```powershell
+uv run m2v general sounds catalog
+uv run m2v general sounds import --project <目录> --manifest <音效清单.json> [--base <本地文件基准目录>]
+uv run m2v general sounds audit --project <目录>
+```
+
+`catalog` 输出名称、类别、描述、默认时长、循环能力及变体方式。当前有 `keyboard-key`、`keyboard-typing`、`mouse-click`、`switch`、`spark`、`electric-crackle`、`electric-hum`、`whoosh`、`impact-soft`、`impact-metal`、`success`、`warning`。这些是风格化合成拟音，不能标作真实录音；对真实材质要求高时选择第三方实录。
+
+导入清单 `schemaVersion: 1`，`assets` 为1～300项，音效库总数最多300项。每项 `id` 为1～80位字母、数字、下划线或连字符；`synthesis`、`localPath`、`mediaUrl` 三选一：
+
+```json
+{
+  "schemaVersion": 1,
+  "assets": [
+    {"id": "typing", "synthesis": {"name": "keyboard-typing", "seed": 42, "durationMs": 2000, "eventsMs": [100, 280, 500, 900, 1400]}},
+    {"id": "spark", "synthesis": {"name": "spark", "seed": 17}},
+    {"id": "recorded-key", "localPath": "recordings/key.wav", "sourceUrl": "https://example.org/sounds/key", "author": "原作者", "license": "CC0-1.0"}
+  ]
+}
+```
+
+上面的第三方条目是格式示意，须替换为实际文件和核验过的来源许可。`localPath` 相对清单目录或 `--base` 解析，允许从作品外导入；`mediaUrl` 仅接受 HTTP(S) 音频直链，不解析网页。第三方必须提供明确 `author`、`license` 和 HTTP(S) `sourceUrl`，未知值拒绝；不能将下载成功当作已获许可。当前没有第三方音效搜索 API，助手检索候选后填写清单。导入保留原文件摘要、来源和许可，将音频完整解码为PCM16、24kHz、立体声WAV；单文件输入最多256MiB，时长大于0且最多600秒。损坏／截断文件拒绝，一批全部通过才发布；失败不更新已有记录或已有文件。
+
+合成配方记录生成器版本和规范化参数，输出按CC0-1.0使用。同版本、同配方可复现。参数：`name` 必填；`seed` 为0～4294967295整数，默认0；`durationMs` 为30～30000整数，默认取目录；`intensity` 为0.05～1，默认0.7；`rate` 为1～20，默认7，只影响自动连续打字的平均每秒击键数。`eventsMs` 仅用于连续打字，为1～600个严格递增且落在音效时长内的整数毫秒，显式提供时替代随机间隔。`seed` 影响随机瞬态、噪声、音色和打字间隔；电流嗡鸣及提示音不使用随机变体。声音由瞬态、噪声、共振和包络组合，长按键序列先合成一条音频，避免占用数百个播放事件。
+
+分镜播放示例：
+
+```json
+{
+  "soundtrack": {
+    "effects": [
+      {"assetId": "typing", "sceneId": "typing-scene", "offsetFrames": 12, "gainDb": -14},
+      {"assetId": "spark", "sceneId": "spark-scene", "offsetFrames": 30, "trimStartMs": 10, "durationMs": 400, "fadeOutMs": 40, "pan": 0.7}
+    ]
+  }
+}
+```
+
+播放字段也适用于内置音效和本地 `sourceRef`，全部实际渲染：
+
+| 字段 | 约束与行为 |
+|---|---|
+| `offsetFrames` | −36000～36000整数，相对幕首、按作品实际fps解释；与 `offsetMs`、`segmentId` 互斥，最终起点必须落在全片内 |
+| `trimStartMs` | 0～600000整数，默认0；必须小于素材时长 |
+| `durationMs` | 1～600000整数，默认播放入点后的剩余素材；不循环时不得超过剩余时长 |
+| `loop` | 布尔值，默认false；为true时必须显式给出 `durationMs`，重复入点之后的素材 |
+| `fadeInMs` / `fadeOutMs` | 0～600000整数，默认0，均不得超过播放时长；在循环铺满之后应用 |
+| `pan` | −1～1，左至右；显式设置时先折成单声道再等功率定位，省略时保留素材立体声 |
+
+只有目录标作 `loopable` 的合成嗡鸣保证周期接缝；其他音效或第三方素材的循环接缝须另行检查，`loop: true` 不自动修补断点。准备离线复核**全部登记音效**的许可、参数、完整WAV及摘要，将来源文件和所有音频摘要纳入准备指纹；改素材、配方或事件后重新导入（需要时）并 `prepare`。旁白仍按单声道准备，混音及最终响度处理保留立体声，母版严格裁到全片长度；讲话时压低音床，音效音量由事件控制，不自动压低。
+
+制作接入：分镜时标明需发声的动作及声音作用；核心动态验证同时核对动作帧与音效起点；精修检查重复疲劳、物体质感和旁白遮挡；最终检查波形起点、峰值、声道、尾部和循环接缝。自动信号验证只能证明技术行为，不能替代自然度与听感判断；无需用户逐条试听确认。可复现配方见[键盘与火花演练](../../../../examples/american-science-milestones/assets/SOUND_EXERCISE.md)。
 
 ### 复用参考音轨（受控例外）
 

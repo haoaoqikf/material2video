@@ -40,4 +40,6 @@ uv run m2v qa --project examples/american-science-milestones
 
 [视觉设计](DESIGN.md) · [史实与素材来源](SOURCES.md) · [交付验证](VERIFICATION.md)
 
+附属[键盘与火花音效演练](assets/SOUND_EXERCISE.md)用于在作品副本验证统一音效库，不改变本示例的无声成片。
+
 本示例代码及文案按仓库许可分发；含CC BY-SA素材的改编视听作品依CC BY-SA 4.0分发，片尾集中署名，不暗示素材作者或机构背书。

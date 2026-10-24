@@ -136,6 +136,12 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
             raise M2VError(f"作品材料已变化：{name}；请重新 prepare")
     # 显式引用的附属输入也属于版本绑定：源文、图片、语义审查及准备音轨。
     for name, digest in prepared.get("inputs", {}).items():
+        # 可选登记表的「尚不存在」也是输入状态；首次导入不能复用旧的无登记准备。
+        if name.startswith("absent-file:"):
+            file = (root / name[len("absent-file:"):]).resolve()
+            if not file.is_relative_to(root.resolve()) or file.exists():
+                raise M2VError(f"准备引用文件已变化：{name}；请重新 prepare")
+            continue
         if not name.startswith("file:"):
             continue
         file = (root / name[5:]).resolve()

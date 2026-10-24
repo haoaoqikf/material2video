@@ -6,7 +6,7 @@
 
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整候选自动验收。
-- `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、内置音效与本地音床，成片最长 600 秒。
+- `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
@@ -51,6 +51,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 运行 `uv run m2v --help` 查看当前命令；类型专属材料和制作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
 架构边界与模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+
+通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](examples/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。
 
 ## 从旧名称迁移
 

@@ -104,7 +104,6 @@ def test_frame_limits_preserve_seconds(tmp_path, fps):
 @pytest.mark.parametrize("fps", [30, 60])
 def test_soundtrack_offsets_use_actual_fps(tmp_path, monkeypatch, fps):
     observed = []
-    monkeypatch.setattr(soundtrack, "synthesize", lambda *_: None)
     monkeypatch.setattr(soundtrack.audio, "mix", lambda *args: observed.append(args))
     source = {"fps": fps, "soundtrack": {"effects": [{"builtin": "click", "sceneId": "a",
               "segmentId": "line", "offsetMs": 250}]}}
@@ -112,7 +111,7 @@ def test_soundtrack_offsets_use_actual_fps(tmp_path, monkeypatch, fps):
     soundtrack.mix(tmp_path, source, compiled, tmp_path / "raw.wav", tmp_path / "mix.wav",
                    [{"startFrame": 2 * fps, "endFrame": 3 * fps}], 4, tmp_path, {})
     assert observed[0][3] == [{"start": 2, "end": 3}]
-    assert observed[0][5][0][1] == 2.25
+    assert observed[0][5][0].start == 2.25
 
 
 def test_prepared_invalid_after_frame_rate_change(tmp_path):

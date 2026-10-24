@@ -7,6 +7,7 @@ import math
 import shutil
 import struct
 import wave
+from dataclasses import dataclass
 from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
@@ -14,6 +15,19 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 
 SAMPLE_RATE = 24000
+
+
+@dataclass(frozen=True)
+class Effect:
+    path: Path
+    start: float
+    gain_db: float
+    trim_start: float
+    duration: float
+    loop: bool = False
+    fade_in: float = 0.
+    fade_out: float = 0.
+    pan: float | None = None
 
 
 def loudness(path: Path) -> dict:
@@ -52,7 +66,7 @@ def master(source: Path, target: Path, integrated: float = -14.0, true_peak: flo
     ffmpeg(["-i", str(source), "-af",
             f"acompressor=threshold=-20dB:ratio=2:attack=5:release=150,"
             f"loudnorm=I={integrated}:TP={true_peak}:LRA=9",
-            "-ar", str(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", str(target)])
+            "-ar", str(SAMPLE_RATE), "-ac", "2", "-c:a", "pcm_s16le", str(target)])
 
 
 def duck_envelope(cues: list[dict], duration: float, target: Path) -> None:
@@ -82,9 +96,11 @@ def duck_envelope(cues: list[dict], duration: float, target: Path) -> None:
 
 
 def mix(narration: Path, target: Path, duration: float, cues: list[dict],
-        music: tuple[Path, dict] | None, effects: list[tuple[Path, float, float]], work: Path) -> None:
+        music: tuple[Path, dict] | None, effects: list[Effect], work: Path) -> None:
     normalize(narration, work / "normalized.wav")
-    args = ["-i", str(work / "normalized.wav")]; filters = []; labels = ["[0:a]"]; index = 1
+    args = ["-i", str(work / "normalized.wav")]
+    filters = ["[0:a]aformat=channel_layouts=stereo[voice]"]
+    labels = ["[voice]"]; index = 1
     if music:
         path, settings = music
         if settings.get("loop", False): args += ["-stream_loop", "-1"]
@@ -93,17 +109,36 @@ def mix(narration: Path, target: Path, duration: float, cues: list[dict],
         args += ["-i", str(work / "duck.wav")]; envelope_index = index; index += 1
         fade_in = min(duration, settings.get("fadeInMs", 500) / 1000)
         fade_out = min(duration, settings.get("fadeOutMs", 500) / 1000)
-        effect = f"aresample={SAMPLE_RATE},aformat=channel_layouts=mono,atrim=duration={duration},apad=whole_dur={duration},volume={settings.get('gainDb', -24)}dB"
+        effect = f"aresample={SAMPLE_RATE},aformat=channel_layouts=stereo,atrim=duration={duration},apad=whole_dur={duration},volume={settings.get('gainDb', -24)}dB"
         if fade_in: effect += f",afade=t=in:d={fade_in}"
         if fade_out: effect += f",afade=t=out:st={duration-fade_out}:d={fade_out}"
-        filters += [f"[{music_index}:a]{effect}[music]", f"[music][{envelope_index}:a]amultiply[bed]"]
+        filters += [f"[{music_index}:a]{effect}[music]",
+                    f"[{envelope_index}:a]pan=stereo|c0=c0|c1=c0[duck]", "[music][duck]amultiply[bed]"]
         labels.append("[bed]")
-    for path, start, gain in effects:
-        args += ["-i", str(path)]
-        filters.append(f"[{index}:a]aresample={SAMPLE_RATE},aformat=channel_layouts=mono,volume={gain}dB,adelay={round(start * SAMPLE_RATE)}S:all=1[fx{index}]")
+    for effect in effects:
+        args += ["-i", str(effect.path)]
+        chain = [f"aresample={SAMPLE_RATE}", f"atrim=start={effect.trim_start}", "asetpts=PTS-STARTPTS"]
+        if effect.loop:
+            # 重复已裁掉入点的素材；size 按实际剩余样本数计算，避免回到原文件起点。
+            with wave.open(str(effect.path), "rb") as stream:
+                size = stream.getnframes() - round(effect.trim_start*SAMPLE_RATE)
+            chain.append(f"aloop=loop=-1:size={size}")
+        chain += [f"atrim=duration={effect.duration}", "asetpts=PTS-STARTPTS"]
+        if effect.pan is None:
+            chain.append("aformat=channel_layouts=stereo")
+        else:
+            angle = (effect.pan + 1) * math.pi / 4
+            chain += ["aformat=channel_layouts=mono",
+                      f"pan=stereo|c0={math.cos(angle):.9f}*c0|c1={math.sin(angle):.9f}*c0"]
+        if effect.fade_in:
+            chain.append(f"afade=t=in:d={effect.fade_in}")
+        if effect.fade_out:
+            chain.append(f"afade=t=out:st={effect.duration-effect.fade_out}:d={effect.fade_out}")
+        chain += [f"volume={effect.gain_db}dB", f"adelay={round(effect.start*SAMPLE_RATE)}S:all=1"]
+        filters.append(f"[{index}:a]" + ",".join(chain) + f"[fx{index}]")
         labels.append(f"[fx{index}]"); index += 1
     filters.append("".join(labels) + f"amix=inputs={len(labels)}:normalize=0:duration=first,alimiter=limit=0.794328:level=false:latency=true,atrim=duration={duration},apad=whole_dur={duration}[out]")
-    ffmpeg([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-ar", str(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", str(target)])
+    ffmpeg([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-ar", str(SAMPLE_RATE), "-ac", "2", "-c:a", "pcm_s16le", str(target)])
 
 
 def ffmpeg(args: list[str]) -> None:
@@ -192,7 +227,7 @@ def _fade_block(block: bytes, first_sample: int, fade_in: int, fade_out: int,
 def mux(video: Path, audio: Path, output: Path, duration: float, start: float = 0) -> None:
     """把无声画面与配音合成为最终成片。
 
-    音频统一转成 44.1kHz 立体声 AAC-LC：配音本身是 24kHz 单声道，但 24kHz 单声道
+    音频统一转成 44.1kHz 立体声 AAC-LC：旁白输入是单声道，声音设计母版保留立体声；24kHz 单声道
     AAC 在部分播放器（Windows Media Foundation 实测）里会被直接拒绝打开，
     而 44.1kHz 立体声是兼容性最好、各平台都默认支持的组合。
     画面用 -c:v copy 原样复制，不做二次编码。

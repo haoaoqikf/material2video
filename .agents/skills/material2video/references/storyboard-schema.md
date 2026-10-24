@@ -15,6 +15,8 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 全片可声明 `fps: 30` 或 `fps: 60`，并声明 `title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
 `soundtrack` 和非空 `scenes`（最多 300 幕）。
 
+`soundtrack.effects` 可以用 `assetId` 引用统一音效库，也可以使用内置 `builtin` 或本地 `sourceRef`（三选一）。`offsetFrames` 相对本幕开始帧，与 `offsetMs`、`segmentId` 互斥；播放支持 `trimStartMs`、`durationMs`、`loop`、`fadeInMs`、`fadeOutMs` 与 `pan`，均实际参与混音。字段范围、来源登记与示例见[媒体与音效](article-media-and-sound.md#统一音效库)。
+
 **画幅**只支持 1920×1080 横屏与 1080×1920 竖屏：两边都省略时规范化为横屏并写进准备产物；
 只写一边、写成非整数、方屏或其他组合一律拒绝。全片使用同一画幅，不自动裁切或重新排版。
 `targetSeconds` 为 1～600 的整数，默认 60，只用于分配无旁白镜头的剩余时长。
