@@ -32,4 +32,8 @@
 
 实现提交：`08e0b71`。两份本次主规格已写入，逐项对照增量规格无差异，原有其他声音要求完整保留；`openspec validate article-sound-effects --type spec` 与 `openspec validate sound-effect-library --type spec` 均通过。
 
-归档前全量 `openspec validate --specs` 为25通过、2失败：既有 `early-investing-compound-video` 与 `labor-rights-ten-events-video` 均缺少 `## Requirements`。已核对这些文件与实现前提交完全一致；不在本次音效修改范围内，不编造要求以通过检查。依据同步规格Skill与项目的失败停止约定，变更保留在进行中目录，尚未完成归档，不能声称全量规格同步验收成功。
+首次归档检查时，全量 `openspec validate --specs` 为25通过、2失败：既有 `early-investing-compound-video` 与 `labor-rights-ten-events-video` 使用了增量规格标题 `## ADDED Requirements`，缺少主规格需要的 `## Requirements`。当时按失败停止约定保留在进行中目录，未声称全量规格同步验收成功。
+
+2026-10-24，用户明确授权修复以上两处标题并继续归档。修复提交为 `288cf5d`，仅替换两处章节标题，保留全部作品要求、数值与验收场景。两份规格分别校验通过，`openspec validate --specs --strict` 全量27通过、0失败；`openspec validate unified-sound-effects --strict` 通过。重新比对全部增量要求和场景，确认均已同步到主规格，且其他既有声音要求完整保留。
+
+变更已归档至 `openspec/changes/archive/2026-10-24-unified-sound-effects/`，保留全部计划、增量规格、任务与验证记录。此次仅修改规格格式与归档记录，无视频内容、音效代码或性能行为变化；前述3个既有文档导航测试问题仍按用户边界保留，本轮未重跑与格式修改无关的音视频测试。
