@@ -79,7 +79,7 @@ def test_voice_and_rate_change_cache_keys():
 
 
 def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch):
-    from test_article_explainer import project, fake_record, fake_tts, board
+    from _helpers import project, fake_record, fake_tts, board
     from m2v.types.general import adapter
     root, manifest = project(tmp_path)
     calls = fake_tts(monkeypatch)
@@ -117,7 +117,7 @@ def test_article_requires_voice_and_binds_actual_selection(tmp_path, monkeypatch
 
 
 def test_general_silent_has_no_voice_requirement(tmp_path, monkeypatch):
-    from test_article_explainer import board, fake_record, project
+    from _helpers import board, fake_record, project
     from m2v.types.general import adapter
     data = board()
     # 无旁白作品：整片由声明固定帧数的代码幕构成，不要求选择音色。

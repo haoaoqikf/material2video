@@ -13,7 +13,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.engine.gallery import HttpTransport, build
 from m2v.types.general import adapter, media_assets
-from test_article_explainer import board, fake_record, fake_tts, project, scene_root
+from _helpers import board, fake_record, fake_tts, project, scene_root
 
 ROOT = Path(__file__).resolve().parents[1]
 PIXABAY_VIDEO = {

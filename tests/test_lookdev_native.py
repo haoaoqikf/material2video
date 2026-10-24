@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 from m2v.engine import lookdev
 from m2v.core.errors import M2VError
 from m2v.types.general import code_scenes
-from test_code_scenes import requires_node
+from _helpers import requires_node
 
 
 SOURCE = """
@@ -28,6 +28,7 @@ export default function Scene() {
 """
 
 
+@pytest.mark.slow
 @requires_node
 @pytest.mark.parametrize('sdk_canvas', [True, False], ids=['native-sdk', 'reject-low-resolution'])
 def test_native_4k_has_independent_pixel_columns(tmp_path, sdk_canvas):
@@ -80,6 +81,7 @@ def test_selected_capture_validates_indices_before_browser(tmp_path):
         code_scenes._capture(None, tmp_path, tmp_path, config, selected_frames=[10])
 
 
+@pytest.mark.slow
 @requires_node
 def test_native_crossfade_and_subtitle_composite(tmp_path):
     from m2v.engine import remotion, frames

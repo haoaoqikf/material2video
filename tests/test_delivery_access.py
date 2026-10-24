@@ -25,7 +25,7 @@ import pytest
 
 from m2v.core import security
 from m2v.types.general import adapter, code_scenes, explainer_render, media_assets
-from test_article_explainer import fake_record, fake_tts, project
+from _helpers import fake_record, fake_tts, project
 from test_article_media import entry, importer, make_image
 
 ROOT = Path(__file__).resolve().parents[1]

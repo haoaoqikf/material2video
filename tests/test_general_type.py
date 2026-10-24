@@ -8,7 +8,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.types import registry
 from m2v.types.general import adapter, explainer
-from test_article_explainer import board, fake_record, fake_tts, project, scene_root
+from _helpers import board, fake_record, fake_tts, project, scene_root
 
 
 def test_only_three_current_types(capsys):

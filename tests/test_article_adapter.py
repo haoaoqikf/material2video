@@ -3,7 +3,7 @@ import json
 import pytest
 from m2v.core.errors import M2VError
 from m2v.types.general import adapter
-from test_article_explainer import project, fake_record, fake_tts
+from _helpers import project, fake_record, fake_tts
 
 
 def test_adapter_uses_v8_composition(tmp_path,monkeypatch):

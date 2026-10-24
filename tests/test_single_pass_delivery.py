@@ -89,7 +89,8 @@ def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch
     from m2v.types.housing import housing_render
     module = {"general": explainer_render, "financial": financial_render, "housing": housing_render}[kind]
     project = {"id": "test", "type": kind}
-    prepared = {"preparedFingerprint": "current", "durationInFrames": 1200, "width": 1920, "height": 1080}
+    prepared = {"preparedFingerprint": "current", "durationInFrames": 1200, "width": 1920,
+                "height": 1080, "fps": 30}
     monkeypatch.setattr(project_module, "load_project", lambda _: (tmp_path, project))
     monkeypatch.setattr(project_module, "load_current_prepared", lambda *_: prepared)
     monkeypatch.setattr(delivery, "binding", lambda root, prep, params: {"preparedFingerprint": prep["preparedFingerprint"], "parameters": params})
@@ -131,7 +132,7 @@ def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, mon
     monkeypatch.setattr(code_scenes.capture, "record", record)
     scenes = [{"id": name, "startFrame": start, "endFrame": end} for name, start, end in
               [("a", 0, 100), ("b", 80, 200), ("c", 200, 300)]]
-    prepared = {"width": 1920, "height": 1080, "props": {"compiledScenes": scenes}}
+    prepared = {"width": 1920, "height": 1080, "fps": 30, "props": {"compiledScenes": scenes}}
     result = code_scenes.materialize(tmp_path, prepared, 90, 120)
     assert calls == [("a", (90, 100)), ("b", (10, 40))]
     assert [s["mediaStartFrame"] for s in result["props"]["compiledScenes"]] == [90, 10]

@@ -19,7 +19,9 @@ from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
 from m2v.types.general import code_scenes
-from test_code_scenes import WEB, requires_node
+from _helpers import WEB, requires_node
+
+pytestmark = pytest.mark.slow
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/solar-system-journey"

@@ -17,7 +17,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
-from test_code_scenes import WEB, prepare_build, requires_node
+from _helpers import WEB, prepare_build, requires_node
 
 LOOK = {"profile": "deep-space", "lut": "deep-space", "bloom": 0.7, "grain": 0.35,
         "vignette": 0.45, "dof": 0.35, "exposure": {"ev": -0.3}}
@@ -131,6 +131,7 @@ def capture_at(work: Path, frame: int) -> bytes:
         return page.screenshot()
 
 
+@pytest.mark.slow
 @requires_node
 def test_kit_renders_the_same_frame_identically_across_runs(tmp_path):
     """同一帧在两次独立录制里必须给出同一张画面（PSNR ≥ 60dB）。"""
@@ -141,6 +142,7 @@ def test_kit_renders_the_same_frame_identically_across_runs(tmp_path):
     assert psnr(first, second, tmp_path) >= 60
 
 
+@pytest.mark.slow
 @requires_node
 def test_camera_rig_actually_moves_within_a_shot(tmp_path):
     """镜头必须随帧推进：同一镜头首末帧不能是同一张画面。"""
@@ -151,6 +153,7 @@ def test_camera_rig_actually_moves_within_a_shot(tmp_path):
     assert psnr(start, end, tmp_path) < 40
 
 
+@pytest.mark.slow
 @requires_node
 def test_post_processing_changes_the_picture(tmp_path):
     """后期确实作用于 canvas：开与关的画面必须不同。"""
@@ -161,6 +164,7 @@ def test_post_processing_changes_the_picture(tmp_path):
     assert psnr(capture_at(plain, 30), capture_at(graded, 30), tmp_path) < 45
 
 
+@pytest.mark.slow
 @requires_node
 def test_approved_cinematic_packages_build(tmp_path):
     """批准清单包含后期依赖：作品可以直接引用它们。"""
@@ -175,6 +179,7 @@ export default function Demo() {
     assert result.returncode == 0, result.stderr
 
 
+@requires_node
 def test_unapproved_package_is_still_rejected(tmp_path):
     """新增批准项不能放宽边界：未批准的包仍然拒绝。"""
     _, _, result = prepare_build(tmp_path, "import _ from 'lodash';\nexport default () => _;\n")
@@ -227,6 +232,7 @@ export default function Demo() {
 """
 
 
+@pytest.mark.slow
 @requires_node
 def test_standard_picture_ignores_the_new_dependencies(tmp_path):
     """标准画面不因新依赖改变：把电影套件从 SDK 导出里摘掉后必须逐像素一致。"""
@@ -271,6 +277,7 @@ export default function Demo() {
 """
 
 
+@pytest.mark.slow
 @requires_node
 def test_camera_path_and_background_checks(tmp_path):
     """穿球与背景裁切检查是纯函数，结果直接可断言。"""

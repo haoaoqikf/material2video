@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -11,10 +10,8 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types.general import adapter, code_scenes, explainer
-from test_article_explainer import board, fake_tts, project, scene, scene_root
+from _helpers import board, fake_tts, prepare_build, project, requires_node, scene, scene_root
 
-ROOT = Path(__file__).resolve().parents[1]
-WEB = ROOT / "web"
 SOURCE = """import {motion, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import {useEffect} from 'react';
 
@@ -24,9 +21,6 @@ export default function Demo({props}: CodeSceneProps) {
   return <motion.div animate={running ? {opacity: 1} : {opacity: 0}}>{String(props.label ?? '演示')}</motion.div>;
 }
 """
-requires_node = pytest.mark.skipif(
-    shutil.which("node") is None or not (WEB / "node_modules" / "esbuild").is_dir(),
-    reason="需要 Node 与前端依赖才能验证代码场景构建")
 
 
 def code_scene(entry: str = "scenes/demo.tsx", props: object = None, **extra) -> dict:
@@ -80,20 +74,7 @@ def test_code_content_has_no_extra_fields(tmp_path):
         explainer.validate(storyboard(scene), scene_root(tmp_path))
 
 
-def build(project_dir: Path, entry: str, output: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([shutil.which("node") or "node", str(WEB / "scripts/build-code-scene.mjs"),
-                           str(project_dir), entry, str(output)], cwd=WEB, capture_output=True,
-                          text=True, encoding="utf-8", errors="replace", timeout=180)
-
-
-def prepare_build(tmp_path: Path, source: str) -> tuple[Path, Path, subprocess.CompletedProcess[str]]:
-    project_dir, output = tmp_path / "work", tmp_path / "out"
-    (project_dir / "scenes").mkdir(parents=True)
-    output.mkdir()
-    (project_dir / "scenes/demo.tsx").write_text(source, encoding="utf-8")
-    return project_dir, output, build(project_dir, "scenes/demo.tsx", output)
-
-
+@pytest.mark.slow
 @requires_node
 def test_build_allows_approved_packages_and_records_sources(tmp_path):
     project_dir, output, result = prepare_build(tmp_path, SOURCE)
@@ -109,6 +90,7 @@ def test_build_allows_approved_packages_and_records_sources(tmp_path):
     ("import x from '../../outside';\nexport default () => x;\n", "作品导入越界"),
     ("import x from 'https://example.com/x.js';\nexport default () => x;\n", "未批准的作品依赖"),
 ])
+@pytest.mark.slow
 @requires_node
 def test_build_rejects_unapproved_imports(tmp_path, source, match):
     _project, output, result = prepare_build(tmp_path, source)
@@ -117,6 +99,7 @@ def test_build_rejects_unapproved_imports(tmp_path, source, match):
     assert not (output / "scene.js").exists()
 
 
+@pytest.mark.slow
 @requires_node
 def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monkeypatch, chromium_ready):
     """准备录制真实片段；重复准备复用缓存，源码变化让旧准备失效。"""
@@ -139,6 +122,7 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
 
 
+@pytest.mark.slow
 @requires_node
 def test_scene_failure_keeps_no_prepared_record(tmp_path, monkeypatch, chromium_ready):
     """场景运行异常或请求外网时准备失败，不保存有效准备记录。"""
@@ -157,6 +141,7 @@ def test_scene_failure_keeps_no_prepared_record(tmp_path, monkeypatch, chromium_
     assert (root / "outputs/prepared.json").exists()
 
 
+@pytest.mark.slow
 @requires_node
 def test_recorded_clip_has_no_audio_stream(tmp_path, monkeypatch, chromium_ready):
     """素材原声不进入母版：录制片段本身不带音轨，成片声音只来自统一音轨。"""
@@ -171,6 +156,7 @@ def test_recorded_clip_has_no_audio_stream(tmp_path, monkeypatch, chromium_ready
     assert "Video:" in probed.stderr
 
 
+@pytest.mark.slow
 @requires_node
 def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, chromium_ready):
     """资源没就绪就调用 ready()：录制超时失败，且不发布有效准备记录。"""
@@ -187,6 +173,7 @@ def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, 
     assert not list((root / "outputs/code-cache").glob("*.mp4"))
 
 
+@pytest.mark.slow
 @requires_node
 def test_frame_change_records_a_new_clip(tmp_path, monkeypatch, chromium_ready):
     """画幅变了即使源码没变也要重新录制：viewport 与片段尺寸都跟着画幅。"""
@@ -209,6 +196,7 @@ def recorded(root, manifest):
     return code_scenes.materialize(root, prepared, 0, prepared["durationInFrames"])
 
 
+@pytest.mark.slow
 @requires_node
 def test_partial_recording_is_reused_when_completing_scene(tmp_path, monkeypatch, chromium_ready):
     root, manifest = project(tmp_path, storyboard(code_scene(durationFrames=8)))

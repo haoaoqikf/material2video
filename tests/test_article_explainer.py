@@ -1,97 +1,16 @@
 from __future__ import annotations
 import copy
-import hashlib
 import json
 from pathlib import Path
 import pytest
 from m2v.core.errors import M2VError
-from m2v.core.project import create_project, load_project, load_current_prepared
+from m2v.core.project import load_current_prepared
 from m2v.engine import frames
 from m2v.types.general import adapter, explainer, explainer_prepare as prepare, explainer_review as review
 
+from _helpers import ENTRY, STARTER, board, fake_record, fake_tts, project, scene, scene_root
+
 ROOT = Path(__file__).resolve().parents[1]
-ENTRY = "scenes/opening.tsx"
-STARTER = ROOT / "src/m2v/types/general/starters" / ENTRY
-
-
-def scene(identity="a", **extra):
-    body = {"id": identity, "template": "code",
-            "content": {"title": "观点", "entry": ENTRY, "props": {"title": "观察反馈"}},
-            "narrationSegments": [{"id": f"{identity}-line", "text": "观察结果，修正做法。"}]}
-    body.update(extra)
-    return body
-
-
-def board(**extra):
-    data = {"version": 8, "schemaVersion": 8, "fps": 60, "width": 1920, "height": 1080,
-            "title": "测试", "input": {"kind": "article"}, "targetSeconds": 60,
-            "scenes": [scene()]}
-    data.update(extra)
-    return data
-
-
-def scene_root(path: Path) -> Path:
-    """裸目录：契约校验只要求 entry 存在，不必先建整个作品。"""
-    target = path / ENTRY
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(STARTER.read_text(encoding="utf-8"), encoding="utf-8")
-    return path
-
-
-def project(tmp_path, data=None):
-    root = tmp_path / "video"
-    create_project(root, "general", {"storyboard": "storyboard.json"})
-    manifest_path = root / "project.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["output"]["fps"] = (data or board()).get("fps", 30)
-    manifest["tts"] = {"voice": "zh-CN-YunxiNeural"}
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    (root / "storyboard.json").write_text(json.dumps(data or board(), ensure_ascii=False), encoding="utf-8")
-    (root / "article.md").write_text("# 标题\n观察结果，根据反馈修正做法。", encoding="utf-8")
-    (root / ENTRY).parent.mkdir(parents=True, exist_ok=True)
-    (root / ENTRY).write_text(STARTER.read_text(encoding="utf-8"), encoding="utf-8")
-    root, manifest = load_project(root)
-    record = review.template(root, manifest)
-    record.update(status="pass", claim="反馈帮助改进", rationale="原文有清晰观点和操作方法", reviewer="测试夹具")
-    (root / "outputs").mkdir()
-    (root / "outputs/input-review.json").write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
-    return root, manifest
-
-
-def fake_record(monkeypatch):
-    """假录制：真实录制要构建前端并开浏览器，只有专门的用例才该承担。"""
-    calls = []
-    def record(root, target, inputs, *, frame, media, media_digest, capture_range=None, fps=30):
-        path = root / "outputs/code-cache" / f"{target['id']}.mp4"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b"clip:" + target["id"].encode())
-        entry = root / target["content"]["entry"]
-        inputs["file:" + target["content"]["entry"]] = hashlib.sha256(entry.read_bytes()).hexdigest()
-        inputs["codeMedia"] = media_digest
-        relative = path.relative_to(root).as_posix()
-        inputs["file:" + relative] = hashlib.sha256(path.read_bytes()).hexdigest()
-        calls.append({"scene": target["id"], "frame": frame, "media": media, "fps": fps})
-        return relative
-    monkeypatch.setattr(prepare.code_scenes.capture, "record", record)
-    monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", lambda root, target, work: {
-        "file:" + target["content"]["entry"]: hashlib.sha256((root / target["content"]["entry"]).read_bytes()).hexdigest()})
-    return calls
-
-
-def fake_tts(monkeypatch, seconds=1, samples=None):
-    """假合成：可声明与落盘长度不同的时长，用于快速验证帧账本。"""
-    calls = []
-    def speak(text, voice, rate, cache, **kwargs):
-        calls.append((text, voice, rate, kwargs))
-        wav = cache / "fixture.wav"
-        hit = wav.exists()
-        import wave
-        with wave.open(str(wav), "wb") as stream:
-            stream.setparams((1, 2, 24000, 0, "NONE", "not compressed"))
-            stream.writeframes(b"\x01\0" * round((seconds if samples is None else samples) * 24000))
-        return wav, [{"start": 0, "end": seconds, "text": text}], [], seconds, hit
-    monkeypatch.setattr(prepare.tts, "scene_audio", speak)
-    return calls
 
 
 def prepared(tmp_path, monkeypatch, data=None):
@@ -330,6 +249,7 @@ def test_code_change_invalidates_preparation(tmp_path, monkeypatch):
     with pytest.raises(M2VError, match="已变化"): load_current_prepared(root, manifest)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("size", [(1920, 1080), (1080, 1920)], ids=["横屏", "竖屏"])
 def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, size):
     """两种画幅各跑一遍：安全区、静音隐藏、可见性与随机访问确定性都要成立。"""
@@ -383,6 +303,7 @@ def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium
         finally: browser.close()
 
 
+@pytest.mark.slow
 def test_browser_blocks_subtitle_overflow(tmp_path, monkeypatch, chromium_ready):
     """字幕换行宽度就是安全区宽度：文字放不下时量测必须失败。"""
     from m2v.types.general.explainer_render import layout_check
@@ -393,6 +314,7 @@ def test_browser_blocks_subtitle_overflow(tmp_path, monkeypatch, chromium_ready)
     with pytest.raises(M2VError, match="字幕量测失败"): layout_check(root, prepared_record)
 
 
+@pytest.mark.slow
 def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready):
     from m2v.types.general import explainer_render
     root, manifest = project(tmp_path)

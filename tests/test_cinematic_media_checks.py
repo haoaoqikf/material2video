@@ -158,7 +158,7 @@ def test_assets_audit_reports_alpha_and_colour_space(tmp_path):
 
 def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
     """作品拿到的素材信息包含实测色彩空间、alpha 与登记许可，且不需要重新导入。"""
-    from test_article_explainer import project
+    from _helpers import project
     from test_article_media import entry, importer, make_image
     from m2v.types.general import media_assets
 
@@ -173,7 +173,7 @@ def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
 
 
 def test_media_resolution_rejects_unknown_license(tmp_path):
-    from test_article_explainer import project
+    from _helpers import project
     from test_article_media import entry, importer, make_image
     from m2v.types.general import media_assets
 

@@ -14,7 +14,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
 from m2v.engine.sound import asset_digest
 from m2v.types.general import adapter, explainer, soundtrack
-from test_article_explainer import board, fake_record, fake_tts, project, scene, scene_root
+from _helpers import board, fake_record, fake_tts, project, scene, scene_root
 
 
 def write_tone(path: Path, seconds: float = 8, frequency: float = 220) -> Path:

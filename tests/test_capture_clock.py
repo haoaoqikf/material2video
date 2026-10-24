@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
 from m2v.types.general import code_scenes
-from test_code_scenes import WEB, prepare_build, requires_node
+from _helpers import WEB, prepare_build, requires_node
 
 
 @contextmanager
@@ -72,6 +72,7 @@ export default function Demo() {
 """
 
 
+@pytest.mark.slow
 @requires_node
 def test_fixed_frames_sync_dom_three_and_animation_libraries(tmp_path, chromium_ready):
     with scene_page(tmp_path, MOTION_SCENE) as (page, _):
@@ -112,6 +113,7 @@ def test_encode_rejects_missing_frames(tmp_path):
         code_scenes._encode(tmp_path, tmp_path / 'clip.mp4', 2, 320, 240)
 
 
+@pytest.mark.slow
 @requires_node
 def test_echarts_animation_and_controlled_timers(tmp_path, chromium_ready):
     source = """
@@ -139,6 +141,7 @@ export default function Demo() {
         assert page.evaluate('window.__ticks') == 10
 
 
+@pytest.mark.slow
 @requires_node
 def test_video_seeks_to_controlled_playback_time(tmp_path, chromium_ready):
     source = """

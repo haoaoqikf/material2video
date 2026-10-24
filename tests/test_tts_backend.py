@@ -22,7 +22,7 @@ def _tone(path: Path, seconds: float) -> None:
 
 
 def _project(tmp_path: Path, plan: dict, tts_config: dict | None = None) -> tuple[Path, dict]:
-    from test_article_explainer import project
+    from _helpers import project
     root, manifest = project(tmp_path, plan)
     manifest.pop("tts", None)
     if tts_config is not None:
@@ -63,12 +63,12 @@ def test_resolve_prefers_explicit_over_project_configuration() -> None:
 
 
 def _speaking_plan() -> dict:
-    from test_article_explainer import board
+    from _helpers import board
     return board()
 
 
 def _prepare_with_capture(root: Path, manifest: dict, monkeypatch) -> dict:
-    from test_article_explainer import fake_tts
+    from _helpers import fake_tts
     calls = fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
     prepared["_seen"] = {"voice": calls[0][1], "rate": calls[0][2]}

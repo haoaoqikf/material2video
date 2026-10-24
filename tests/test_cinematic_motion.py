@@ -9,7 +9,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.engine import media_probe
 from m2v.types.general import code_scenes
-from test_code_scenes import requires_node
+from _helpers import requires_node
 
 HERO = [{"id": "earth", "tier": "hero", "startFrame": 10, "endFrame": 20},
         {"id": "sun", "tier": "minor", "startFrame": 0, "endFrame": 10}]
@@ -140,7 +140,7 @@ def capture_with(tmp_path, motion: dict, *, hero: tuple[int, int] = (0, 4)):
     """走真实采集路径（Playwright + CDP 截图 + 子帧平均），只是画幅很小。"""
     from playwright.sync_api import sync_playwright
 
-    from test_code_scenes import prepare_build
+    from _helpers import prepare_build
 
     root, work, result = prepare_build(tmp_path, MOVING_BOX)
     assert result.returncode == 0, result.stderr
@@ -149,6 +149,7 @@ def capture_with(tmp_path, motion: dict, *, hero: tuple[int, int] = (0, 4)):
     return work
 
 
+@pytest.mark.slow
 @requires_node
 def test_capture_averages_subframes_and_supersamples(tmp_path):
     """真实采集路径：hero 帧取两个子帧、按 2 倍设备像素采集，并清理中间文件。"""
@@ -159,6 +160,7 @@ def test_capture_averages_subframes_and_supersamples(tmp_path):
     assert not list(work.glob("sub-*.png")), "子帧中间文件必须清理"
 
 
+@pytest.mark.slow
 @requires_node
 def test_supersample_applies_only_to_hero_frames(tmp_path):
     """总览保持 1×：只有 hero 帧按 2 倍采集，其余帧仍是目标画幅。"""
@@ -177,6 +179,7 @@ def test_encode_normalises_mixed_supersample_frames(tmp_path):
     assert media_probe.probe_dimensions(output) == (320, 240)
 
 
+@pytest.mark.slow
 @requires_node
 def test_motion_blur_changes_the_recorded_frame(tmp_path):
     """同一帧取两个子帧与只取一个子帧必须给出不同画面——否则模糊是假的。"""
@@ -185,6 +188,7 @@ def test_motion_blur_changes_the_recorded_frame(tmp_path):
     assert blurred[0].read_bytes() != single[0].read_bytes()
 
 
+@pytest.mark.slow
 @requires_node
 def test_subframe_advance_moves_time_within_a_frame(tmp_path):
     """子帧必须真的推进 React 时间与画面，否则运动模糊只是重复同一张图。"""
@@ -205,6 +209,7 @@ def test_subframe_advance_moves_time_within_a_frame(tmp_path):
     assert fourth == pytest.approx(1 / 60)
 
 
+@pytest.mark.slow
 @requires_node
 def test_subframe_protocol_rejects_disorder(tmp_path):
     from test_capture_clock import scene_page
