@@ -105,7 +105,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 ### 导演设计映射
 
-导演卡保存在作品 `DESIGN.md`，不属于 v8 storyboard JSON，也不增加运行时字段。以 `scene.id` 和 `shots[].id` 将设计与镜头逐一对照；`shots[].target` 标明该镜头的观察对象，已有 `startFrame` / `endFrame` 及 `camera` 路径将导演卡中的建立、信息公开、观察和结果窗口落实为执行时序。导演卡记录相机动作的叙事目的与注意力安排；`camera` 只记录场景代码消费的相机参数。导演顺序未在 DESIGN 中确定时，不得由实现阶段自行补造核心表达或揭示机制。
+导演卡保存在作品 `DESIGN.md`，不属于 v8 storyboard JSON，也不增加运行时字段。镜头等级（A/B/C）与 A 级时间结构同样只记录在 `DESIGN.md`，需要时用既有 `startFrame` / `endFrame` 落实节奏，不新增 JSON 字段。以 `scene.id` 和 `shots[].id` 将设计与镜头逐一对照；`shots[].target` 标明该镜头的观察对象，已有 `startFrame` / `endFrame` 及 `camera` 路径将导演卡中的建立、信息公开、观察和结果窗口落实为执行时序。导演卡记录相机动作的叙事目的与注意力安排；`camera` 只记录场景代码消费的相机参数。导演顺序未在 DESIGN 中确定时，不得由实现阶段自行补造核心表达或揭示机制。
 
 ## 全画布代码场景（code）
 

@@ -20,6 +20,7 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 - 按材料审查、时间轴准备、按需检查、一次全片生成、验收与复核的顺序推进。有自身旁白时先确定音色；无旁白作品跳过选音。生成产物是派生文件，不能代替可编辑材料。
 - 所有类型都由一次完整渲染生成候选，自动验收后交付同一文件。技术交付不代表制作复核完成；无需用户为常规阶段确认或试听，也不要求直接播放视频或连续收听声音。按类型用帧序列、画面量测、字幕时间戳和自动音频信号复核，并记录覆盖范围。
 - 通用作品按方案确定、粗片验证、精制修订、最终验收四阶段执行，不区分普通与电影级制作档位；`productionProfile` 和 `--profile` 已移除并拒绝。用户方案足以实施时直接采用；否则比较叙事候选。阶段、关键帧门和重制基线规则见[制作流程](references/production-workflow.md)。
+- 每个场景及内部镜头在 `DESIGN.md` 标 A/B/C 镜头等级：A 级记忆镜头优先投入关键帧、时间结构与动态验证，B/C 级服务 A 级但不降低可读性底线；等级不进入分镜 JSON 或 CLI。A 级时间结构与最终不可替代性两问见[制作流程](references/production-workflow.md#最终导演审查的不可替代性两问)。
 - 制作过程中发现可复用的流程改进，应在当前工作中实施并验证；受范围限制的事项按根目录 [AGENTS.md](../../../AGENTS.md) 记录。
 - 评审须区分实际缺陷、创意风险、审美偏好和证据不足。A/B 级评审按[独立评审流程](references/subagent-review.md)隔离执行；详细证据、问题闭环和完成边界见[视觉复核](references/visual-review-rubric.md)与[导演审查](references/director-review-and-edit.md)。
 - 作品面向手机复核，但画幅服从作品设计。素材来源与许可留在作品材料，片尾只保留一份简短署名；画面不出现仓库路径或内部制作提示。
@@ -53,9 +54,9 @@ uv run m2v status --project videos/general/<slug>
 ## 通用场景要点
 
 - 通用作品当前实现基线采用 v8 分镜和作品目录内的 React `code` 全画布场景。这是实现方式，不改变「先确定目标画面、再选择实现方案」的制作原则；其他资产或预渲染内容按现有素材契约导入，由 React 场景组合与呈现，具体边界见[技术链路](references/production-workflow.md#技术链路)。旧模板、主题、`general-plan` 和片段嵌入不属于当前契约。
-- 先确定表达和视觉事件，再制作核心段落目标关键帧并独立盲审，验证完整动态窗口后扩展全片；不为普通镜头增加强制导演卡或反转。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
+- 先确定表达和视觉事件，再制作核心段落目标关键帧并独立盲审，验证完整动态窗口后扩展全片；不为普通镜头增加强制导演卡或反转。核心图形高潮另按[视觉力量设计](references/visual-impact-design.md)比较至少三种视觉机制。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
 - 用户明确要求借鉴某条参考作品时，先按[参考风格契约](references/reference-style.md)记录视觉采用项和量测，再做独立冷审。
-- 素材必须先导入并留证，再通过素材 ID 使用；声音来源、音轨和混音规则见[媒体与音效](references/article-media-and-sound.md)。参考作品默认不进入成片；只有用户明确要求复用整条参考音轨时才运行 `m2v ref audio` 并记录授权，渲染链不直接读取 `refs/`。
+- 素材必须先导入并留证，再通过素材 ID 使用；声音来源、音轨和混音规则见[媒体与音效](references/article-media-and-sound.md)。参考作品默认不进入成片；只有用户明确要求复用整条参考音轨时才运行 `m2v ref audio --user-authorized "<授权说明>"` 并记录授权，渲染链不直接读取 `refs/`。
 - 场景按录制时钟推进，旁白字幕默认烧录；共享动效原语以 `progress` 驱动，不内置作品主题。运行时细节见[代码场景契约](references/code-scene-runtime.md)。
 - 最终复核覆盖完整成片和风险区间，记录证据摘要、时间范围、问题处理与未覆盖项。量测能力和局限见[视觉复核](references/visual-review-rubric.md)。
 
