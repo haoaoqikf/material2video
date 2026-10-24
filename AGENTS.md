@@ -15,6 +15,7 @@
 ## 关键入口
 
 - `README.md`：项目定位、当前能力与文档导航。
+- `ARCHITECTURE.md`：共享模块职责、依赖方向与架构边界。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
