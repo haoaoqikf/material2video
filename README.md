@@ -40,6 +40,8 @@ uv run pytest
 pnpm -C web test
 ```
 
+需要浏览器或真实构建的用例标记为 `slow`；日常快速反馈用 `uv run pytest -m "not slow"`，CI 只跑该子集。
+
 统一入口以作品目录为唯一归属：
 
 ```powershell
