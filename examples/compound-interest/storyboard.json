@@ -180,13 +180,13 @@
       {
         "sourceRef": "assets/media/slide.wav",
         "sceneId": "compound",
-        "offsetFrames": 744,
+        "offsetFrames": 720,
         "gainDb": -4
       },
       {
         "sourceRef": "assets/media/fusion.wav",
         "sceneId": "compound",
-        "offsetFrames": 756,
+        "offsetFrames": 738,
         "gainDb": -3
       },
       {

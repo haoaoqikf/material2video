@@ -54,6 +54,35 @@ export function columnPositions(x: number, baseY: number, count: number, pitch =
   return Array.from({length: count}, (_, i) => ({x, y: baseY - i * pitch}));
 }
 
+/** 一行圆片：从左到右等距。 */
+export function rowPositions(count: number, x0: number, y: number, gap = 42): Point[] {
+  return Array.from({length: count}, (_, i) => ({x: x0 + i * gap, y}));
+}
+
+/**
+ * S5 取出组：10 枚米白本金作底排，30 枚暗金分三排叠在其上，
+ * 合起来是可数的 40 枚整块，而不是“柱 + 架”两个分离对象。
+ */
+export function withdrawBlockPositions(x0 = 300, baseY = 536, gap = 42) {
+  return {
+    white: rowPositions(10, x0, baseY, gap),
+    dark: Array.from({length: 30}, (_, i) => ({
+      x: x0 + (i % 10) * gap,
+      y: baseY - (Math.floor(i / 10) + 1) * gap,
+    })),
+  };
+}
+
+/** 结尾小舞台：15.863 枚按 4×4 排布，末枚仍是 0.863 分数片。 */
+export function endingGridPositions(count = 16, centerX = 1200, centerY = 510,
+                                    cols = 4, gap = 50): Point[] {
+  const rows = Math.ceil(count / cols);
+  return Array.from({length: count}, (_, i) => ({
+    x: centerX + (i % cols - (cols - 1) / 2) * gap,
+    y: centerY + (Math.floor(i / cols) - (rows - 1) / 2) * gap,
+  }));
+}
+
 /** 左侧留存架：3 行 × 10 列，按年份从左到右、从下到上填充。 */
 export function shelfPositions(count: number, x0 = 100, y0 = 300, cols = 10, gap = 42): Point[] {
   return Array.from({length: count}, (_, i) => ({

@@ -85,13 +85,11 @@ def s3_svg() -> str:
 
 def s5_svg() -> str:
     parts = []
-    # 左：10 枚资本柱 + 30 枚已取走收益，底边对齐成一组。
+    # 左：40 枚整块。10 枚米白本金底排 + 30 枚暗金三排。
     for i in range(10):
-        parts.append(disc(290, 920 - i * 30, 21, OFF_WHITE))
+        parts.append(disc(300 + i * 42, 536, 21, OFF_WHITE))
     for i in range(30):
-        x = 360 + (i % 10) * 46
-        y = 828 + (i // 10) * 46
-        parts.append(disc(x, y, 21, DARK_GOLD))
+        parts.append(disc(300 + (i % 10) * 42, 536 - (i // 10 + 1) * 42, 21, DARK_GOLD))
     # 右：158.631 枚资本丘 + 15.863 枚当年收益。
     points = hill_positions(159, 1360, 940)
     units = [1.0] * 158 + [.631]
@@ -100,18 +98,52 @@ def s5_svg() -> str:
     gold_units = [1.0] * 15 + [.863]
     for i, unit in enumerate(gold_units):
         x = 1360 + (i - (len(gold_units) - 1) / 2) * 40
-        parts.append(disc(x, 650, 21 * math.sqrt(unit), GOLD, rim='#FFF4CF'))
+        parts.append(disc(x, 654, 21 * math.sqrt(unit), GOLD, rim='#FFF4CF'))
 
-    parts.append(text(120, 160, 46, '同样的 10,000，同样的 10%', color=MUTED))
-    parts.append(text(120, 215, 46, '30 年累计总额（元）', color=MUTED))
-    parts.append(text(532, 400, 84, '40,000', anchor='middle', weight=600))
-    parts.append(text(532, 470, 52, '收益取走 · 合计', anchor='middle', weight=600))
-    parts.append(text(1360, 400, 96, '174,494', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(1360, 470, 52, '收益再投入 · 合计', anchor='middle', weight=600))
-    parts.append(text(1360, 545, 54, '约 174.5 枚 · 1 枚 = 1,000 元', color=MUTED, anchor='middle'))
-    parts.append(text(960, 1046, 54, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+    parts.append(text(120, 125, 60, '同样 10,000 · 同样 10% · 30 年累计总额（元）', color=MUTED))
+    parts.append(text(500, 230, 60, '收益取走 · 40 枚', anchor='middle', weight=600))
+    parts.append(text(1360, 230, 60, '收益再投入 · 约 174.5 枚', anchor='middle', weight=600))
+    parts.append(text(500, 358, 84, '40,000', anchor='middle', weight=600))
+    parts.append(text(1360, 358, 88, '174,494', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(960, 600, 64, '相差 134,494 元', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(120, 700, 60, '1 枚 = 1,000 元', color=MUTED))
+    parts.append(text(1800, 140, 62, '第 30 年', color=GOLD, anchor='end', weight=600))
+    parts.append(text(960, 1046, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
                       color=MUTED, anchor='middle'))
     return ''.join(parts)
+
+
+def ending_svg(*, with_title: bool) -> str:
+    parts = []
+    left_x, right_x, row_y = 680, 1200, 440
+    if with_title:
+        parts.append(text(960, 170, 84, '复利', anchor='middle', weight=600))
+    else:
+        parts.append(text(960, 170, 66, '第 1 年赚的 1,000 元，到第 30 年', anchor='middle', weight=600))
+    parts.append(text(left_x, 300, 60, '取走', anchor='middle'))
+    parts.append(text(right_x, 300, 60, '再投入', color=GOLD, anchor='middle'))
+    parts.append(disc(left_x, row_y, 21, DARK_GOLD))
+    # 15.863 枚按 4×4 排布，末枚是 0.863 分数片。
+    for i, unit in enumerate([1.0] * 15 + [.863]):
+        x = right_x + (i % 4 - 1.5) * 50
+        y = row_y + (i // 4 - 1.5) * 50
+        parts.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
+    parts.append(text(left_x, 650, 88, '1,000', anchor='middle', weight=600))
+    parts.append(text(right_x, 650, 88, '15,863', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(left_x, 770, 60, '1 枚暗金', color=MUTED, anchor='middle'))
+    parts.append(text(right_x, 770, 60, '15.863 枚米白', color=MUTED, anchor='middle'))
+    parts.append(text(960, 880, 68, '让收益，也成为本金。', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(960, 1046, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+                      color=MUTED, anchor='middle'))
+    return ''.join(parts)
+
+
+def s6_svg() -> str:
+    return ending_svg(with_title=False)
+
+
+def s7_svg() -> str:
+    return ending_svg(with_title=True)
 
 
 def html(svg_body: str) -> str:
@@ -157,14 +189,18 @@ def shoot(name: str, body: str) -> None:
                 f'--window-size={width},{height}', '--virtual-time-budget=2500',
                 f'--screenshot={target}', page.as_uri(),
             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    # Chrome 的窗口宽度有下限，393 宽直接截图会被裁切；按 852 实拍结果等比缩小。
-    from PIL import Image
-    with Image.open(OUT / f'{name}-852.png') as image:
-        image.resize((393, 221), Image.LANCZOS).save(OUT / f'{name}-393.png')
+    # Chrome 的窗口宽度有下限，393 宽按 852 实拍结果等比缩小。
+    from imageio_ffmpeg import get_ffmpeg_exe
+    subprocess.run([
+        get_ffmpeg_exe(), '-v', 'error', '-i', str(OUT / f'{name}-852.png'),
+        '-vf', 'scale=393:-1', '-frames:v', '1', '-y', str(OUT / f'{name}-393.png'),
+    ], check=True)
 
 
 if __name__ == '__main__':
     shoot('s3-mechanism', s3_svg())
     shoot('s5-scale', s5_svg())
+    shoot('s6-ending', s6_svg())
+    shoot('s7-closing', s7_svg())
     for path in sorted(OUT.glob('*.png')):
         print(path.relative_to(ROOT))

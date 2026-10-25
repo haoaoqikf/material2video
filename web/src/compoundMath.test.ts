@@ -1,7 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import {
-  FRAME_BOUNDARIES, FULL_DIAMETER, MODEL, SEGMENTS, UNITS_PER_DISC, balance, discDiameter,
-  discFractions, screenDiameter, secondYear, segmentAt, withdrawState, yearAt, yearState,
+  FRAME_BOUNDARIES, FULL_DIAMETER, MODEL, SEGMENTS, UNITS_PER_DISC, balance, comparison,
+  discDiameter, discFractions, firstGainJourney, screenDiameter, secondYear, segmentAt,
+  withdrawState, yearAt, yearState,
 } from '../../examples/compound-interest/scenes/compoundMath';
 import {FIRST_DISC_INDEX, hillPositions} from '../../examples/compound-interest/scenes/discs';
 
@@ -19,6 +20,20 @@ describe('复利作品的统一金额口径', () => {
     expect(v.fromPrincipal).toBe(1000);
     expect(v.fromGain).toBeCloseTo(100);
     expect(v.total).toBeCloseTo(11000 + v.fromPrincipal + v.fromGain);
+  });
+  it('第30年差额与第1年收益的复利路径', () => {
+    const c = comparison(30);
+    expect(Math.round(c.withdraw.total)).toBe(40000);
+    expect(Math.round(c.reinvest.total)).toBe(174494);
+    expect(Math.round(c.difference)).toBe(134494);
+    const journey = firstGainJourney(30);
+    expect(journey.year1).toBeCloseTo(1000);
+    expect(journey.years).toBe(29);
+    expect(journey.atYear).toBeCloseTo(15863.0929717, 6);
+    expect(discFractions(journey.atYear / UNITS_PER_DISC)).toHaveLength(16);
+    expect(firstGainJourney(1).atYear).toBeCloseTo(1000);
+    expect(comparison(30, 10000, 0).difference).toBe(0);
+    expect(firstGainJourney(30, 10000, 0).atYear).toBe(0);
   });
   it('收益取出但仍计入财富，零收益保持本金不变', () => {
     for (const reinvest of [false, true]) for (const year of [0, 1, 2, 10, 20, 30]) {

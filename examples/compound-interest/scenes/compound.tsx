@@ -2,10 +2,12 @@ import {useEffect} from 'react';
 import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import {
   FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, GOLD, MUTED, OFF_WHITE,
-  columnPositions, hillPositions, mixColor, shelfPositions,
+  columnPositions, endingGridPositions, hillPositions, mixColor, shelfPositions,
+  withdrawBlockPositions,
 } from './discs';
 import {
-  clamp, discDiameter, discFractions, ease, money, segmentAt, withdrawState, yearAt, yearState,
+  clamp, comparison, discDiameter, discFractions, ease, firstGainJourney, money,
+  segmentAt, withdrawState, yearAt, yearState,
 } from './compoundMath';
 
 const RIGHT_X = 1420;
@@ -17,10 +19,13 @@ const TOP10 = BASE_Y - 9 * PITCH;        // 648
 const FIRST_GOLD_Y = 590;
 const GOLD_REST = 586;
 const NEW_GOLD_Y = 558;
+const BLOCK_SOURCE = {x: LEFT_X + 20, y: TOP10 - 40};
 
 const leftColumn = columnPositions(LEFT_X, BASE_Y, 10, PITCH);
 const rightColumn = columnPositions(RIGHT_X, BASE_Y, 13, PITCH);
 const shelf = shelfPositions(30, 300, 400);
+// S5 取出组：10 枚米白本金底排 + 30 枚暗金三排，合起来是可数的 40 枚整块。
+const block = withdrawBlockPositions();
 const hill = hillPositions(159);
 // 与数学精确对应：158.631 枚米白（含 0.631）与 15.863 枚金，不再丢掉零头。
 const hillUnits = discFractions(yearState(30).offWhiteUnits);
@@ -29,6 +34,13 @@ const goldRow = finalGold.map((unit, i) => ({
   x: HILL_CENTER + (i - (finalGold.length - 1) / 2) * 40,
   y: hill[FIRST_DISC_INDEX].y - 48, unit,
 }));
+// 结尾回扣：第 1 年赚到的 1,000 元，到第 30 年按 29 个复利期长成 15.863 枚。
+const firstGain = firstGainJourney(30);
+const firstGainUnits = discFractions(firstGain.atYear / 1000);
+const endGrid = endingGridPositions(firstGainUnits.length, 1200, 440);
+const firstGainUnitsLabel = (firstGain.atYear / 1000).toFixed(3);
+const gap = comparison(30).difference;
+
 // S4 结束时的 12 枚米白 + 第 3 年已转为资本的那枚。第 11 枚（下标 10）是第一年的收益，
 // 在丘上固定映射到顶行中央，供 S6 回扣。
 const PRE_TARGETS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, FIRST_DISC_INDEX, 10, 11];
@@ -49,8 +61,8 @@ const CAM_KEYS: {t: number; cam: Cam}[] = [
   {t: 18.8, cam: {x: 960, y: 540, s: 1.05}},
   {t: 19.6, cam: {x: 960, y: 540, s: 1}},
   {t: 24.0, cam: {x: 960, y: 540, s: 1}},
-  {t: 24.8, cam: {x: 1360, y: 702, s: 2.4}},
-  {t: 27.0, cam: {x: 1360, y: 702, s: 2.4}},
+  // 结尾不再切丘特写：小舞台在中央，镜头只做轻微推进与拉回。
+  {t: 27.0, cam: {x: 960, y: 540, s: 1.03}},
   {t: 29.6, cam: {x: 960, y: 540, s: 1}},
   {t: 30.0, cam: {x: 960, y: 540, s: .985}},
 ];
@@ -130,37 +142,48 @@ function RightColumn({t}: {t: number}) {
   return null;
 }
 
+/** S5 取出组：白柱展开成底排，暗金从柱顶飞入上方三排，形成 40 枚整块。 */
+function WithdrawBlock({t}: {t: number}) {
+  const pre = ease((t - 19) / .4);
+  return <>
+    {leftColumn.map((p, i) => {
+      const target = block.white[i];
+      const p1 = ease(clamp((t - 19.0 - i * .025) / .55));
+      const x = p.x + (target.x - p.x) * p1;
+      const y = p.y + (target.y - p.y) * p1 - Math.sin(p1 * Math.PI) * 26;
+      return <Disc key={`w${i}`} x={x} y={y}/>;
+    })}
+    {block.dark.map((target, i) => {
+      if (i >= 20 && i <= 22) {
+        const source = shelf[i - 20];
+        return <Disc key={`d${i}`} x={source.x + (target.x - source.x) * pre}
+          y={source.y + (target.y - source.y) * pre} state="dark"/>;
+      }
+      const land = 19.2 + 1.6 * Math.pow(i / 29, .75);
+      const p1 = ease(clamp((t - (land - .45)) / .45));
+      const x = BLOCK_SOURCE.x + (target.x - BLOCK_SOURCE.x) * p1;
+      const y = BLOCK_SOURCE.y + (target.y - BLOCK_SOURCE.y) * p1 - Math.sin(p1 * Math.PI) * 55;
+      return <Disc key={`d${i}`} x={x} y={y} state="dark"
+        opacity={clamp((t - (land - .45)) / .2)}/>;
+    })}
+  </>;
+}
+
 function LeftGroup({t}: {t: number}) {
+  if (t >= 19) return <WithdrawBlock t={t}/>;
   if (t < 13) {
     return <>{leftColumn.map((p, i) => <Disc key={`l${i}`} x={p.x} y={p.y}/>)}</>;
   }
-  if (t < 19) {
-    const appear = ease((t - 13.6) / .5);
-    const fly = ease((t - 14.2) / 1.0);
-    const target = shelf[2];
-    const x = LEFT_X + (target.x - LEFT_X) * fly;
-    const y = (TOP10 - 40) + (target.y - (TOP10 - 40)) * fly - Math.sin(fly * Math.PI) * 90;
-    return <>
-      {leftColumn.map((p, i) => <Disc key={`l${i}`} x={p.x} y={p.y}/>)}
-      {shelf.slice(0, 2).map((p, i) => <Disc key={`pre${i}`} x={p.x} y={p.y} state="dark"/>)}
-      {appear > 0 && <Disc x={x} y={y} state="gold" opacity={appear}
-        color={mixColor(GOLD, DARK_GOLD, fly)} rim={t < 15.2 ? GOLD : undefined}/>}
-    </>;
-  }
-  const lift = ease((t - 19) / .8);
-  const sourceX = 730 + 30 * lift;
-  const sourceY = 430 + 200 * (1 - lift);
+  const appear = ease((t - 13.6) / .5);
+  const fly = ease((t - 14.2) / 1.0);
+  const target = shelf[2];
+  const x = LEFT_X + (target.x - LEFT_X) * fly;
+  const y = (TOP10 - 40) + (target.y - (TOP10 - 40)) * fly - Math.sin(fly * Math.PI) * 90;
   return <>
-    {leftColumn.map((p, i) => <Disc key={`l${i}`} x={p.x + 30 * lift} y={p.y - 200 * lift}/>)}
-    {shelf.map((p, i) => {
-      if (i < 3) return <Disc key={`s${i}`} x={p.x} y={p.y} state="dark"/>;
-      const land = 19.3 + 2.1 * Math.pow(i / 29, .8);
-      if (t < land - .35) return null;
-      const drop = ease(clamp((t - (land - .35)) / .35));
-      const x = sourceX + (p.x - sourceX) * drop;
-      const y = sourceY + (p.y - sourceY) * drop - Math.sin(drop * Math.PI) * 40;
-      return <Disc key={`s${i}`} x={x} y={y} state="dark" opacity={clamp((t - (land - .35)) / .2)}/>;
-    })}
+    {leftColumn.map((p, i) => <Disc key={`l${i}`} x={p.x} y={p.y}/>)}
+    {shelf.slice(0, 2).map((p, i) => <Disc key={`pre${i}`} x={p.x} y={p.y} state="dark"/>)}
+    {appear > 0 && <Disc x={x} y={y} state="gold" opacity={appear}
+      color={mixColor(GOLD, DARK_GOLD, fly)} rim={t < 15.2 ? GOLD : undefined}/>}
   </>;
 }
 
@@ -179,26 +202,18 @@ function Sweep({t}: {t: number}) {
   </>;
 }
 
-function Hill({t}: {t: number}) {
-  const dim = 1 - .85 * arrive(t, 24, .8) * (1 - arrive(t, 27, 1.2));
-  const tremble = t > 26.4 ? Math.sin((t - 26.4) * 36) * 3 * Math.exp(-(t - 26.4) * 5) : 0;
+function Hill({t, hideFirst}: {t: number; hideFirst: boolean}) {
   const spread = ease((t - 19) / .8);
-  const floatOut = arrive(t, 24.8, .8) * (1 - arrive(t, 25.8, .8));
-  const back = arrive(t, 25.8, .8);
-  const goldFlash = Math.sin(clamp((t - 25.1) / 1.1) * Math.PI);
-  const firstColor = mixColor(OFF_WHITE, GOLD, goldFlash);
-  const lift = arrive(t, 28, 1);
   return <>
     {PRE_TARGETS.map((targetIndex, i) => {
       const target = hill[targetIndex], source = PRE_SOURCES[i];
       const isFirst = targetIndex === FIRST_DISC_INDEX;
+      if (isFirst && hideFirst) return null;
       const committing = targetIndex === PRE_TARGETS[12];
       const x = source.x + (target.x - source.x) * spread;
-      const y = source.y + (target.y - source.y) * spread + tremble;
-      return <Disc key={`p${i}`} x={x} y={isFirst ? y - 70 * floatOut + 6 * back : y}
-        state="white" color={isFirst ? firstColor : committing ? mixColor(GOLD, OFF_WHITE, spread) : undefined}
-        rim={isFirst && t >= 24 ? GOLD : undefined}
-        opacity={isFirst ? 1 : dim}/>;
+      const y = source.y + (target.y - source.y) * spread;
+      return <Disc key={`p${i}`} x={x} y={y} state="white"
+        color={committing ? mixColor(GOLD, OFF_WHITE, spread) : undefined}/>;
     })}
     {RAIN_ORDER.map((targetIndex, i) => {
       const p = hill[targetIndex], unit = hillUnits[targetIndex];
@@ -206,35 +221,80 @@ function Hill({t}: {t: number}) {
       const fall = clamp((t - (land - .35)) / .35);
       if (t < land - .35) return null;
       const rim = t > land && t < land + 1 ? GOLD : undefined;
-      return <Disc key={`h${targetIndex}`} x={p.x} y={p.y - 340 * (1 - ease(fall)) + tremble}
+      return <Disc key={`h${targetIndex}`} x={p.x} y={p.y - 340 * (1 - ease(fall))}
         r={discDiameter(unit) / 2} state="white" color={mixColor(GOLD, OFF_WHITE, fall)}
-        rim={rim} opacity={dim}/>;
+        rim={rim}/>;
     })}
     {goldRow.map((g, i) => {
       const land = 21.0 + i * .025;
       const p = ease(clamp((t - land) / .35));
       if (t < land) return null;
-      const highlight = i === 7 ? lift : 0;
       const start = {x: hill[FIRST_DISC_INDEX].x, y: hill[FIRST_DISC_INDEX].y - 48};
       return <Disc key={`g${i}`} x={start.x + (g.x - start.x) * p}
-        y={start.y + (g.y - start.y) * p - Math.sin(p * Math.PI) * 24 - 10 * highlight}
-        r={discDiameter(g.unit) / 2} state="gold" rim={highlight > .2 ? OFF_WHITE : undefined}
-        opacity={dim}/>;
+        y={start.y + (g.y - start.y) * p - Math.sin(p * Math.PI) * 24}
+        r={discDiameter(g.unit) / 2} state="gold"/>;
     })}
-    {t >= 27 && <Sweep t={t}/>}
   </>;
 }
 
-function YearLabel({t}: {t: number}) {
+/** S6/S7 小舞台：第 1 年收益分成“取走”和“再投入”两种去向。 */
+function Ending({t}: {t: number}) {
+  const source = hill[FIRST_DISC_INDEX];
+  const lift = ease(clamp((t - 24) / .5));
+  const glow = ease((t - 24.2) / .3);
+  const split = ease(clamp((t - 24.5) / .25));
+  const leftX = 680, rightX = 1200, rowY = 440;
+  const travelX = source.x + (960 - source.x) * lift;
+  const travelY = source.y + (rowY - source.y) * lift - Math.sin(lift * Math.PI) * 70;
+  const labels = arrive(t, 24.7, .3);
+  const values = arrive(t, 25.4, .3);
+  const units = arrive(t, 25.6, .3);
+  const conclusion = arrive(t, 26.0, .4);
+  const headline = arrive(t, 24.0, .35) * (1 - arrive(t, 27.0, .6));
+  const title = arrive(t, 27.8, .5);
+  return <>
+    {t < 24.5 && <Disc x={travelX} y={travelY} color={mixColor(OFF_WHITE, GOLD, glow)}/>}
+    {t >= 24.5 && <Disc x={960 + (leftX - 960) * split} y={rowY} state="dark"
+      color={mixColor(GOLD, DARK_GOLD, split)}/>}
+    {t >= 24.5 && t < 24.7 && <Disc x={960 + (rightX - 960) * split} y={rowY} state="gold"/>}
+    {t >= 24.7 && firstGainUnits.map((unit, i) => {
+      const start = 24.7 + i * .035;
+      if (t < start) return null;
+      const p = ease(clamp((t - start) / .5));
+      const target = endGrid[i];
+      return <Disc key={`e${i}`} x={rightX + (target.x - rightX) * p}
+        y={rowY + (target.y - rowY) * p} r={discDiameter(unit) / 2} state="white"
+        color={mixColor(GOLD, OFF_WHITE, p)} opacity={clamp((t - start) / .08)}/>;
+    })}
+    <Text x={960} y={170} size={66} anchor="middle" weight={600}
+      opacity={headline}>第 1 年赚的 1,000 元，到第 30 年</Text>
+    <Text x={leftX} y={300} size={60} anchor="middle" opacity={labels}>取走</Text>
+    <Text x={rightX} y={300} size={60} color={GOLD} anchor="middle" opacity={labels}>再投入</Text>
+    <Text x={leftX} y={650} size={88} anchor="middle" weight={600}
+      opacity={values}>{money(1000)}</Text>
+    <Text x={rightX} y={650} size={88} color={GOLD} anchor="middle" weight={600}
+      opacity={values}>{money(firstGain.atYear)}</Text>
+    <Text x={leftX} y={770} size={60} color={MUTED} anchor="middle" opacity={units}>1 枚暗金</Text>
+    <Text x={rightX} y={770} size={60} color={MUTED} anchor="middle"
+      opacity={units}>{firstGainUnitsLabel} 枚米白</Text>
+    <Text x={960} y={880} size={68} color={GOLD} anchor="middle" weight={600}
+      opacity={conclusion}>让收益，也成为本金。</Text>
+    <Text x={960} y={170} size={84} anchor="middle" weight={600} opacity={title}>复利</Text>
+  </>;
+}
+
+function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
   if (t < 13 || t >= 24) return null;
-  // S5 时间快进段不逐格报年份，避免与“从第3年到第30年”的标题抢读；21.5秒落定第30年。
+  // S5 时间快进段不逐格报年份，避免与“从第3年到第30年”的标题抢读；21.4秒落定第30年。
   if (t >= 19 && t < 21.4) return null;
-  return <Text x={1800} y={155} size={62} color={GOLD} anchor="end" weight={600}>第 {yearAt(t)} 年</Text>;
+  return <Text x={1800} y={140} size={62} color={GOLD} anchor="end" weight={600}
+    opacity={opacity}>第 {yearAt(t)} 年</Text>;
 }
 
 function TextLayer({t}: {t: number}) {
   const segment = segmentAt(t);
-  const footnote = arrive(t, 4.4, .5) * (1 - arrive(t, 24.0, .5));
+  const footnote = arrive(t, 4.4, .5);
+  const s5Fade = 1 - arrive(t, 23.6, .4);
   // 开场标签在S2推近的头0.35秒内淡出，避免镜头移动时标签与柱脱开。
   const approach = arrive(t, 1.35, .35) * (1 - arrive(t, 3.5, .15));
   return <>
@@ -268,24 +328,29 @@ function TextLayer({t}: {t: number}) {
         opacity={arrive(t, 15.2, .4)}>12,100 × 10% = 1,210</Text>
     </>}
     {segment === 'S5' && <>
-      <Text x={120} y={140} size={46} color={MUTED}>同样的 10,000，同样的 10%</Text>
-      <Text x={120} y={195} size={60} color={MUTED}>{t < 21.4 ? '从第 3 年，到第 30 年' : '30 年累计总额（元）'}</Text>
-      <Text x={572} y={270} size={52} weight={600} anchor="middle">收益取走 · 合计</Text>
-      <Text x={1360} y={270} size={52} weight={600} anchor="middle">收益再投入 · 合计</Text>
-      <Text x={572} y={350} size={84} anchor="middle" weight={600}
-        opacity={arrive(t, 21.4, .2)}>{money(withdrawState(30).total)}</Text>
-      <Text x={1360} y={350} size={88} color={GOLD} anchor="middle" weight={600}
-        opacity={arrive(t, 21.4, .2)}>{money(yearState(30).total)}</Text>
-      <Text x={1360} y={410} size={66} color={MUTED} anchor="middle"
-        opacity={arrive(t, 21.4, .2)}>约 174.5 枚</Text>
-      <Text x={1360} y={480} size={66} color={MUTED} anchor="middle"
-        opacity={arrive(t, 21.4, .2)}>1 枚 = 1,000 元</Text>
+      <Text x={120} y={125} size={60} color={MUTED} opacity={s5Fade}>{t < 21.4
+        ? '同样 10,000 · 同样 10% · 从第 3 年到第 30 年'
+        : '同样 10,000 · 同样 10% · 30 年累计总额（元）'}</Text>
+      {t < 21.4 ? <>
+        <Text x={500} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益取走</Text>
+        <Text x={1360} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益再投入</Text>
+      </> : <>
+        <Text x={500} y={230} size={60} weight={600} anchor="middle"
+          opacity={arrive(t, 21.4, .2) * s5Fade}>收益取走 · 40 枚</Text>
+        <Text x={1360} y={230} size={60} weight={600} anchor="middle"
+          opacity={arrive(t, 21.4, .2) * s5Fade}>收益再投入 · 约 174.5 枚</Text>
+      </>}
+      <Text x={500} y={358} size={84} anchor="middle" weight={600}
+        opacity={arrive(t, 21.4, .2) * s5Fade}>{money(withdrawState(30).total)}</Text>
+      <Text x={1360} y={358} size={88} color={GOLD} anchor="middle" weight={600}
+        opacity={arrive(t, 21.4, .2) * s5Fade}>{money(yearState(30).total)}</Text>
+      <Text x={960} y={600} size={64} color={GOLD} anchor="middle" weight={600}
+        opacity={arrive(t, 21.8, .25) * s5Fade}>相差 {money(gap)} 元</Text>
+      <Text x={120} y={700} size={60} color={MUTED}
+        opacity={arrive(t, 21.4, .2) * s5Fade}>1 枚 = 1,000 元</Text>
     </>}
-    {segment === 'S6' && <Text x={960} y={150} size={72} color={GOLD} anchor="middle" weight={600}
-      opacity={arrive(t, 25.2, .4)}>让收益，也成为本金。</Text>}
-    {segment === 'S7' && <Text x={120} y={170} size={76} weight={600}>复利</Text>}
-    <YearLabel t={t}/>
-    <Text x={960} y={1046} size={54} color={MUTED} anchor="middle" opacity={footnote}>
+    <YearLabel t={t} opacity={segment === 'S5' ? s5Fade : 1}/>
+    <Text x={960} y={1046} size={60} color={MUTED} anchor="middle" opacity={footnote}>
       固定10%数学演示，非实际回报 · 不计税费及通胀
     </Text>
   </>;
@@ -298,6 +363,8 @@ export default function Compound(config: CodeSceneProps) {
   const hideText = Boolean((config.props as {hideText?: boolean} | undefined)?.hideText);
   const cam = cameraAt(t);
   const tx = 960 - cam.s * cam.x, ty = 540 - cam.s * cam.y;
+  // S5 结果退场：先淡文字，再把整组比较淡到 0，结尾小舞台接管画面。
+  const bg = t < 24 ? 1 : 1 - ease((t - 24) / .6);
   return <div style={{width: config.width, height: config.height, background: BG, overflow: 'hidden'}}>
     <svg viewBox="0 0 1920 1080" width="100%" height="100%" aria-label="复利数学演示">
       <defs>
@@ -309,11 +376,15 @@ export default function Compound(config: CodeSceneProps) {
       </defs>
       <rect width={1920} height={1080} fill={BG}/>
       <g transform={`translate(${tx} ${ty}) scale(${cam.s})`}>
-        {t < 3.5 ? <StartColumns t={t}/> : <>
-          <LeftGroup t={t}/>
-          <RightColumn t={t}/>
-        </>}
-        {t >= 19 ? <Hill t={t}/> : null}
+        <g opacity={bg}>
+          {t < 3.5 ? <StartColumns t={t}/> : <>
+            <LeftGroup t={t}/>
+            <RightColumn t={t}/>
+          </>}
+          {t >= 19 ? <Hill t={t} hideFirst={t >= 24}/> : null}
+        </g>
+        {t >= 24 ? <Ending t={t}/> : null}
+        {t >= 27 ? <Sweep t={t}/> : null}
       </g>
       {!hideText && <TextLayer t={t}/>}
     </svg>

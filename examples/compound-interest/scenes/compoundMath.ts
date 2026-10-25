@@ -41,6 +41,27 @@ export function secondYear(principal: number = MODEL.principal, rate: number = M
     total: balance(2, true, principal, rate).total};
 }
 
+/** 第30年两路累计总额与差额：差额直接回答 S1 的“三十年后差多少”。 */
+export function comparison(year: number, principal: number = MODEL.principal,
+                            rate: number = MODEL.rate) {
+  checkYear(year, principal, rate);
+  const withdraw = balance(year, false, principal, rate);
+  const reinvest = balance(year, true, principal, rate);
+  return {withdraw, reinvest, difference: reinvest.total - withdraw.total};
+}
+
+/**
+ * 第1年赚到的收益单独留在系统里，到指定年份的值。
+ * 第1年末才产生，因此从第2年起参与增长，到第30年是 29 个复利期，不是 30 个。
+ */
+export function firstGainJourney(year: number, principal: number = MODEL.principal,
+                                 rate: number = MODEL.rate) {
+  checkYear(year, principal, rate);
+  const year1 = balance(1, true, principal, rate).gain;
+  const years = Math.max(0, year - 1);
+  return {year1, years, atYear: year >= 1 ? year1 * (1 + rate) ** years : 0};
+}
+
 /** 再投入路径第 n 年末：上年总额已成为资本（米白），本年收益尚未再投入（金）。 */
 export function yearState(year: number, principal: number = MODEL.principal,
                           rate: number = MODEL.rate) {
