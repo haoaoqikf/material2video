@@ -239,4 +239,5 @@ outputs/review-pack/<review-id>/
 - 两次导演审查的时点与模板：[全片导演审查与剪辑重组](director-review-and-edit.md)。
 - 逐场观察与七类结论：[逐场设计与独立验收](scene-design-and-acceptance.md)。
 - 风格同族判定：[参考风格契约](reference-style.md)。
+- 参考机制拆解与可迁移规则：[参考视频逆向拆解](reference-video-analysis.md)。
 - 传播反面依据：[传播表现评估](reach-potential.md)。

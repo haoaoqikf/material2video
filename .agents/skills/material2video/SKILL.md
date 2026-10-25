@@ -56,7 +56,7 @@ uv run m2v status --project videos/general/<slug>
 
 - 通用作品当前实现基线采用 v8 分镜和作品目录内的 React `code` 全画布场景。这是实现方式，不改变「先确定目标画面、再选择实现方案」的制作原则；其他资产或预渲染内容按现有素材契约导入，由 React 场景组合与呈现，具体边界见[技术链路](references/production-workflow.md#技术链路)。旧模板、主题、`general-plan` 和片段嵌入不属于当前契约。
 - 先确定表达和视觉事件，再制作核心段落目标关键帧并独立盲审，验证完整动态窗口后扩展全片；不为普通镜头增加强制导演卡或反转。核心图形高潮另按[视觉力量设计](references/visual-impact-design.md)比较至少三种视觉机制。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
-- 用户明确要求借鉴某条参考作品时，先按[参考风格契约](references/reference-style.md)记录视觉采用项和量测，再做独立冷审。
+- 用户要求学习、拆解或借鉴一条或多条参考视频时，先按[参考视频逆向拆解](references/reference-video-analysis.md)提炼观看驱动力与可迁移规则；明确要求外观相似时，再按[参考风格契约](references/reference-style.md)记录视觉采用项和量测，随后做独立冷审。
 - 素材必须先导入并留证，再通过素材 ID 使用；声音来源、音轨和混音规则见[媒体与音效](references/article-media-and-sound.md)。参考作品默认不进入成片；只有用户明确要求复用整条参考音轨时才运行 `m2v ref audio --user-authorized "<授权说明>"` 并记录授权，渲染链不直接读取 `refs/`。
 - 场景按录制时钟推进，旁白字幕默认烧录；共享动效原语以 `progress` 驱动，不内置作品主题。运行时细节见[代码场景契约](references/code-scene-runtime.md)。
 - 最终复核覆盖完整成片和风险区间，记录证据摘要、时间范围、问题处理与未覆盖项。量测能力和局限见[视觉复核](references/visual-review-rubric.md)。

@@ -35,6 +35,20 @@ def test_visual_creative_direction_is_reachable_from_every_entry():
     assert "visual-creative-direction.md" in (REPO / "README.md").read_text(encoding="utf-8")
 
 
+def test_reference_video_analysis_is_reachable_from_learning_entries():
+    """学习或借鉴参考视频时，拆解入口必须可从 Skill 与相关参考文档到达。"""
+    analysis = ROOT / "reference-video-analysis.md"
+    assert analysis.is_file()
+    skill = (ROOT.parent / "SKILL.md").read_text(encoding="utf-8")
+    assert "reference-video-analysis.md" in skill
+    for name in ("reference-style.md", "creative-production.md", "visual-creative-direction.md",
+                 "visual-impact-design.md", "subagent-review.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        links = re.findall(r"\]\(([^)]*reference-video-analysis\.md)\)", text)
+        assert links, name
+        assert all((ROOT / link).is_file() for link in links), name
+
+
 def test_fixed_examples_document_media_restore():
     """示例媒体不入库，两个有固定媒体的示例都必须写明恢复入口。"""
     root = REPO / "examples"
