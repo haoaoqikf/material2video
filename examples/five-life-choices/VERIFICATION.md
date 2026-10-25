@@ -1,6 +1,6 @@
 # 《复利》验证记录
 
-状态：最终候选已完成技术QA与独立评审，待提交与归档。
+状态：最终候选已完成技术QA与独立评审；实现已提交（`e0a7322`），规格已归档。
 
 ## 最终候选
 
@@ -60,7 +60,7 @@
 - 帧序列不是实际播放；运动流畅度与真实观众理解未实测。
 - 不声称真实留存、记忆或“惊艳”；直接采用圆片机制，未做三机制匿名比较。
 
-## 待办
+## 提交与归档
 
-- 检查暂存内容、提交最终实现与文档。
-- 按OpenSpec归档流程同步主规格、移动变更目录并提交归档结果。
+- 实现提交：`e0a7322`（`feat: 以30秒复利圆片示例替换人生五选择`）。
+- OpenSpec：`article-explainer` 主规格已合并；新增 `compound-interest-explainer-video` 主规格；变更移入 `openspec/changes/archive/2026-10-25-replace-five-life-choices-with-compound-interest/`。
