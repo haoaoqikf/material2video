@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,14 @@ from m2v.types.general import explainer
 from example_catalog import COVERED_COMPONENTS, EXAMPLES, EXPECTED_EXAMPLES, EXPECTED_FRAMES, STORYBOARDS
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(scope='module', autouse=True)
+def _restore_compound_media():
+    """示例媒体不入库；校验前按配方恢复，保证新 checkout 也能过 v8 校验。"""
+    script = EXAMPLES / 'five-life-choices' / 'assets' / 'fetch.py'
+    if script.is_file():
+        subprocess.run([sys.executable, str(script)], cwd=script.parent, check=True)
 
 
 def _declared_version(path: Path) -> object:
@@ -57,19 +66,19 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
     data = json.loads(path.read_text(encoding="utf-8"))
     name = path.parent.name
     if name == "five-life-choices":
-        # 30秒剪纸时间轴：单幕代码场景、轻音乐和三个动作音，无旁白。
+        # 30秒复利：固定帧预算，无旁白；8秒进入的环境床 + 事件音。
         assert data["input"]["kind"] == "topic" and data["input"]["topic"].strip()
         assert len(data["scenes"]) == 1
         scene = data["scenes"][0]
         assert scene["template"] == "code"
         assert data["targetSeconds"] == 30
-        assert len(data["soundtrack"]["effects"]) == 3
-        assert scene["durationFrames"] == round(data["targetSeconds"] * data["fps"])
+        assert data["soundtrack"]["music"]["sourceRef"].endswith("bed.wav")
+        assert len(data["soundtrack"]["effects"]) == 28
+        assert scene["durationFrames"] == 900
         assert not scene["narrationSegments"]
-        assert scene["content"]["entry"] == "scenes/life.tsx"
+        assert scene["content"]["entry"] == "scenes/compound.tsx"
         source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
         assert "useSceneContext" in source and "elapsedSeconds" in source
-        assert "useNarration" not in source and "segmentWindows" not in source
         assert not (path.parent / "article.md").exists()
         return
     if name == "american-science-milestones":
@@ -193,7 +202,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert not data["subtitles"]
         return
     if name == "five-life-choices":
-        assert seconds == 30, "人生五选择固定为30秒、900帧"
+        assert seconds == 30, "复利固定为30秒、900帧"
         assert not data["subtitles"], "无旁白示例不应生成字幕"
         return
     assert 120 <= seconds <= 600, f"{name} 实际 {seconds:.1f} 秒，超出 120～600 秒"

@@ -1,45 +1,24 @@
-# 五种选择，五种人生
+# 复利
 
-30秒 / 1920×1080 / 30fps 的剪纸短片，无旁白，以原创轻节奏音乐和三个动作音带出五种人生选择。暖白纸面、深墨剪影和橙色路径构成全片统一视觉；七段依次呈现共同起点、城市、行业、伴侣、投资、学习与结尾。
+30秒 / 1920×1080 / 30fps / 900帧。黑底、米白资本、金色当年收益与暗金已取收益，以 **1 枚圆片 = 1,000 元** 的圆片柱/丘解释“收益也会产生收益”。无旁白、无旋律配乐；8.0秒进入无旋律环境床，另有28个同步事件音。
 
-## 七段与动作
-
-| 段落 | 时间 | 画面动作 | 文案 |
-|---|---:|---|---|
-| 开场 | 0–3秒 | 人物从岔路共同起点出发，沿橙色支路前行 | 同样的起点 |
-| 城市 | 3–8秒 | 人物沿橙色上升路径穿过机会密度不同的楼群 | 城市，改变机会 |
-| 行业 | 8–13秒 | 两条平行路线一平一升，较快路线迅速前移 | 行业，改变速度 |
-| 伴侣 | 13–18秒 | 两人共同接合桥板并通过 | 伴侣，影响方向 |
-| 投资 | 18–23秒 | 一块积木逐层累积成阶梯 | 投资，积累未来 |
-| 学习 | 23–27秒 | 书页展开成阶梯，人物逐级上行越过障碍 | 学习，打开可能 |
-| 结尾 | 27–30秒 | 五种道路形状汇聚到人物继续向前 | 每次选择，都在塑造以后 |
-
-行业与投资只使用抽象示意，不表达排名、收益率或回报保证。无旁白，三个动作音依次对应城市机会路径、桥板与翻页。
+同样一万元、假设年收益率固定10%、无追加投入。颜色只表示资金状态：金色是本轮刚赚到、尚未再投入的收益；米白是已进入下一轮、会继续生息的资本；暗金是已取走、离开增长系统的收益。整片只问“金色最后去了哪里”：左侧被取走变暗金，右侧回吸变米白、继续生息。第30年取出组40,000元（10米白+30暗金），再投入组174,494元（158.631米白+15.863金）。固定收益率仅作数学演示，不代表实际投资回报，不计税费及通胀。
 
 ## 重建
 
 ```powershell
-uv run python examples/five-life-choices/assets/sound/generate.py
+uv run python examples/five-life-choices/assets/fetch.py
 uv run m2v validate --project examples/five-life-choices
 uv run m2v prepare --project examples/five-life-choices
-uv run m2v preview --project examples/five-life-choices --start-seconds 23 --end-seconds 27
+uv run m2v preview --project examples/five-life-choices --start-seconds 8 --end-seconds 13
 uv run m2v render --project examples/five-life-choices
 uv run m2v qa --project examples/five-life-choices
 ```
 
-片段检查只渲染指定窗口（不带参数时默认前十秒），这里用于在看全片之前检查 23–27 秒学习段的四秒动作与文案。
+成片位于 `videos/examples/five-life-choices/outputs/video.mp4`。目录与项目ID沿用固定示例历史名称；当前内容已替换为《复利》，不提供旧五选择兼容入口。
 
-素材生成脚本和原创合成许可见 `assets/sound/`。画面设计与独立复核证据见[设计与视觉门禁](DESIGN.md)和[交付验证](VERIFICATION.md)；生成媒体与评审包保存在忽略的 `videos/`，不进入 Git。
+- [制作设计与参考迁移](DESIGN.md)
+- [数学口径、素材与声音来源](SOURCES.md)
+- [验证与制作状态](VERIFICATION.md)
 
-## 制作评审帧包
-
-使用项目的 `uv` 环境执行脚本。最终评审应在 `render` 后从完整 `outputs/video.mp4` 生成；`--start-seconds` 指定局部窗口在全片中的原始时间，帧说明也保留原时间码。每包包含1920、852、393像素帧、联系表、中性说明和 SHA-256 清单，且拒绝覆盖已有非空目录。
-
-```powershell
-uv run python examples/five-life-choices/scripts/create_review_pack.py `
-  videos/examples/five-life-choices/outputs/video.mp4 `
-  videos/examples/five-life-choices/outputs/review-packs/learning-window `
-  --id K-window --start-seconds 23 --seconds 4 --interval 0.1
-```
-
-[来源与参考边界](SOURCES.md) · [视觉创意方向](../../.agents/skills/material2video/references/visual-creative-direction.md) · [视觉力量设计](../../.agents/skills/material2video/references/visual-impact-design.md)
+环境床与事件音按 [固定配方](assets/recipe.json) 恢复，已有摘要不符文件拒绝覆盖。视频、声音和评审图片为派生产物，不入库。最终制作结论以VERIFICATION绑定的文件版本为准。

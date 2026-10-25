@@ -4,229 +4,207 @@
   "fps": 30,
   "width": 1920,
   "height": 1080,
-  "title": "五种选择，五种人生",
+  "title": "复利",
   "input": {
     "kind": "topic",
-    "topic": "同样的起点，城市改变机会、行业改变速度、伴侣影响方向、投资积累未来、学习打开可能；每次选择都在塑造以后"
+    "topic": "固定10%数学演示：同样一万元，无追加投入，收益取出留存与收益再投入的30年累计总额对比；收益也会产生收益，不代表实际回报。"
   },
   "targetSeconds": 30,
   "scenes": [
     {
-      "id": "life-world",
+      "id": "compound",
       "template": "code",
       "keywords": [
-        "人生选择",
-        "城市",
-        "行业",
-        "伴侣",
-        "投资",
-        "持续学习",
-        "道路",
-        "人生轨迹"
+        "复利",
+        "收益再投入",
+        "数学演示"
       ],
       "durationFrames": 900,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
-        "title": "五种选择，五种人生",
-        "entry": "scenes/life.tsx",
-        "props": {
-          "copy": [
-            {
-              "id": "opening",
-              "text": "同样的起点",
-              "from": 0.45,
-              "to": 2.75,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 800,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "city",
-              "text": "城市，改变机会",
-              "from": 3.4,
-              "to": 7.65,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 950,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "industry",
-              "text": "行业，改变速度",
-              "from": 8.35,
-              "to": 12.65,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 950,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "partner",
-              "text": "伴侣，影响方向",
-              "from": 13.35,
-              "to": 17.65,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 950,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "investment",
-              "text": "投资，积累未来",
-              "from": 18.35,
-              "to": 22.65,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 950,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "learning",
-              "text": "学习，打开可能",
-              "from": 23.3,
-              "to": 26.7,
-              "size": 76,
-              "weight": 600,
-              "spacing": 2,
-              "x": 120,
-              "y": 125,
-              "width": 950,
-              "align": "left",
-              "tone": "primary"
-            },
-            {
-              "id": "finale",
-              "text": "每次选择，都在塑造以后",
-              "from": 27.2,
-              "to": 30,
-              "size": 68,
-              "weight": 600,
-              "spacing": 2,
-              "x": 250,
-              "y": 125,
-              "width": 1420,
-              "align": "center",
-              "tone": "primary"
-            }
-          ],
-          "labels": {
-            "choices": [
-              "城市",
-              "行业",
-              "伴侣",
-              "投资",
-              "学习"
-            ]
-          },
-          "shots": [
-            {
-              "id": "opening",
-              "target": "fork",
-              "tier": "hero",
-              "startFrame": 0,
-              "endFrame": 90,
-              "note": "人物从岔路共同起点出发，沿橙色支路向前。"
-            },
-            {
-              "id": "city",
-              "target": "opportunity-path",
-              "tier": "hero",
-              "startFrame": 90,
-              "endFrame": 240,
-              "note": "街区窗格机会密度不同，人物沿橙色路径前行。"
-            },
-            {
-              "id": "industry",
-              "target": "road",
-              "tier": "hero",
-              "startFrame": 240,
-              "endFrame": 390,
-              "note": "两位步行人物沿平行路线前行，一条道路更快抬升，进度差异显现。"
-            },
-            {
-              "id": "partner",
-              "target": "bridge",
-              "tier": "hero",
-              "startFrame": 390,
-              "endFrame": 540,
-              "note": "两人各持桥板一端，协作接合后共同通过。"
-            },
-            {
-              "id": "investment",
-              "target": "blocks",
-              "tier": "hero",
-              "startFrame": 540,
-              "endFrame": 690,
-              "note": "人物留下一块积木，逐层累积成可走的台阶。"
-            },
-            {
-              "id": "learning",
-              "target": "book-stairs",
-              "tier": "hero",
-              "startFrame": 690,
-              "endFrame": 810,
-              "note": "书页展开为阶梯，人物踏上并越过障碍。"
-            },
-            {
-              "id": "finale",
-              "target": "paths",
-              "tier": "hero",
-              "startFrame": 810,
-              "endFrame": 900,
-              "note": "五种道路形状回闪成一组，人物继续向前后定格。"
-            }
-          ]
-        }
+        "title": "复利",
+        "entry": "scenes/compound.tsx",
+        "props": {}
       }
     }
   ],
   "soundtrack": {
     "music": {
-      "sourceRef": "assets/sound/score.wav",
-      "gainDb": -4,
+      "sourceRef": "assets/media/bed.wav",
+      "gainDb": 0,
       "loop": false,
-      "fadeInMs": 450,
-      "fadeOutMs": 700
+      "fadeInMs": 0,
+      "fadeOutMs": 0
     },
     "effects": [
       {
-        "sourceRef": "assets/sound/door.wav",
-        "sceneId": "life-world",
-        "offsetMs": 5600,
-        "gainDb": -8
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 17,
+        "gainDb": -4
       },
       {
-        "sourceRef": "assets/sound/bridge.wav",
-        "sceneId": "life-world",
-        "offsetMs": 15500,
-        "gainDb": -8
+        "sourceRef": "assets/media/drop2.wav",
+        "sceneId": "compound",
+        "offsetFrames": 19,
+        "gainDb": -4
       },
       {
-        "sourceRef": "assets/sound/page.wav",
-        "sceneId": "life-world",
-        "offsetMs": 23400,
+        "sourceRef": "assets/media/drop3.wav",
+        "sceneId": "compound",
+        "offsetFrames": 22,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 25,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop2.wav",
+        "sceneId": "compound",
+        "offsetFrames": 27,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop3.wav",
+        "sceneId": "compound",
+        "offsetFrames": 30,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 33,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop2.wav",
+        "sceneId": "compound",
+        "offsetFrames": 35,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop3.wav",
+        "sceneId": "compound",
+        "offsetFrames": 38,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 41,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/slide.wav",
+        "sceneId": "compound",
+        "offsetFrames": 120,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/float.wav",
+        "sceneId": "compound",
+        "offsetFrames": 156,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/ding.wav",
+        "sceneId": "compound",
+        "offsetFrames": 225,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/suction.wav",
+        "sceneId": "compound",
+        "offsetFrames": 240,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/fusion.wav",
+        "sceneId": "compound",
+        "offsetFrames": 255,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/tingLow.wav",
+        "sceneId": "compound",
+        "offsetFrames": 294,
+        "gainDb": -2
+      },
+      {
+        "sourceRef": "assets/media/tingHigh.wav",
+        "sceneId": "compound",
+        "offsetFrames": 300,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/slide.wav",
+        "sceneId": "compound",
+        "offsetFrames": 408,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/tick.wav",
+        "sceneId": "compound",
+        "offsetFrames": 450,
+        "gainDb": -5
+      },
+      {
+        "sourceRef": "assets/media/thump.wav",
+        "sceneId": "compound",
+        "offsetFrames": 462,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/thump.wav",
+        "sceneId": "compound",
+        "offsetFrames": 510,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/stream.wav",
+        "sceneId": "compound",
+        "offsetFrames": 570,
+        "gainDb": -8,
+        "durationMs": 5000
+      },
+      {
+        "sourceRef": "assets/media/resonance.wav",
+        "sceneId": "compound",
+        "offsetFrames": 654,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/slide.wav",
+        "sceneId": "compound",
+        "offsetFrames": 744,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/fusion.wav",
+        "sceneId": "compound",
+        "offsetFrames": 756,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/resonance.wav",
+        "sceneId": "compound",
+        "offsetFrames": 774,
+        "gainDb": -3
+      },
+      {
+        "sourceRef": "assets/media/tingHigh.wav",
+        "sceneId": "compound",
+        "offsetFrames": 810,
+        "gainDb": -12
+      },
+      {
+        "sourceRef": "assets/media/chime.wav",
+        "sceneId": "compound",
+        "offsetFrames": 840,
         "gainDb": -8
       }
     ]
