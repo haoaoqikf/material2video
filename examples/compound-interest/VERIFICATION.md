@@ -13,6 +13,7 @@
 - 静帧：`s5-scale`、`s6-ending`、`s7-closing` 各1920/852/393，独立HTML+SVG构图；登记于 `videos/examples/compound-interest/outputs/production/design-frames.json`，阶段仅 result，verifiedBy 为制作助手自检。
 - 测试：前端 `vitest` 96项通过；Python 示例契约37项通过。S1–S4 的 G4 仍有既有缩放裁切/重叠问题，不属于本次改版，未据此声称全片G4通过。
 - 帧检查：最终成片 23.5/25.7/29.5 秒的 1920/852/393 帧已人工核对；S5 差额与左块/金顶排不重叠，S6 数值/单位/结论分层，S7 片名不与结论或脚注重叠。
+- 提交：`7584583`；OpenSpec 变更保留在 `openspec/changes/2026-10-26-redesign-compound-interest-ending/`。因 G2 阶段覆盖、G3 animatic、G5/G6 与独立子代理评审未完成，本轮不归档，避免把未关闭项写成已完成。
 
 ## 上一版（2026-10-25）
 
