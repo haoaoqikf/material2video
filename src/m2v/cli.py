@@ -39,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="m2v", description="专用与通用视频制作工具")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("types", help="列出内置视频类型")
+    from m2v.production.cli import add_parsers
+    add_parsers(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")
     voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
     voices.add_argument("--json", action="store_true", help="输出 JSON")
@@ -49,6 +51,12 @@ def _parser() -> argparse.ArgumentParser:
     for command in ("validate", "prepare", "preview", "review-template", "review", "status", "render"):
         item = sub.add_parser(command)
         item.add_argument("--project", required=True)
+        if command == "status":
+            item.add_argument("--history", action="store_true", help="显示完整制作事件历史")
+            item.add_argument("--json", action="store_true", help="机器可读状态（原有 JSON 输出保持默认）")
+        if command == "review":
+            item.add_argument("action", nargs="?", choices=("import",))
+            item.add_argument("--file", help="独立评审报告 JSON")
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
             item.add_argument("--start-seconds", type=float, default=0)

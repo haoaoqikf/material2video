@@ -21,6 +21,9 @@ from m2v.types import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
+    if args.command in {"gates", "issues", "baseline"} or (args.command == "review" and getattr(args, "action", None) == "import"):
+        from m2v.production.cli import dispatch as production_dispatch
+        return production_dispatch(args)
     if args.command == "types":
         print(json.dumps([{"type": x.name, "description": registry.describe(x.name)} for x in registry.all_types()], ensure_ascii=False, indent=2))
         return 0
@@ -105,6 +108,9 @@ def _init(args) -> int:
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    if item.name == 'general':
+        from m2v.production.storage import write
+        write(root / 'outputs/production/workflow.json', {'version': 1, 'origin': 'new-project'})
     print(f"已创建 {item.name} 作品：{path}")
     return 0
 
@@ -126,13 +132,19 @@ def _project_command(args) -> int:
         _report_reading_pace(root)
         return 0
     if args.command == "status":
-        print(json.dumps(_status(root, manifest), ensure_ascii=False, indent=2))
+        print(json.dumps(_status(root, manifest, full_history=args.history), ensure_ascii=False, indent=2))
         return 0
     if args.command in {"preview", "render"}:
         prepared = _prepared(root, manifest)
         if args.command == "render":
             _require_type_review(video_type, root, manifest)
-            output = video_type.render(root, manifest)
+            _production_render_event(root, manifest, 'render-request')
+            try:
+                output = video_type.render(root, manifest)
+            except Exception:
+                _production_render_event(root, manifest, 'render-failed')
+                raise
+            _production_render_event(root, manifest, 'render-returned')
             try:
                 output_path = Path(output).resolve()
             except (OSError, RuntimeError) as exc:
@@ -207,6 +219,21 @@ def _rhythm_option(args) -> dict:
     return declared
 
 
+def _production_render_event(root: Path, manifest: dict, kind: str, *, candidate_id=None) -> None:
+    """制作记录失败只报告诊断，不改变现有导出成功/失败结果。"""
+    if manifest['type'] != 'general' or not (root / 'DESIGN.md').exists():
+        return
+    try:
+        from m2v.production import contract, ledger
+        from m2v.production.storage import locked
+        c = contract.load(root)
+        with locked(root):
+            ledger.append(root, manifest, kind, upstream={'contract': contract.scope_digest(c)},
+                          data={'candidateId': candidate_id, 'reason': '当前渲染绑定缺少可复用候选，需要生成或失败后重试'} if candidate_id else {})
+    except (M2VError, OSError, ValueError) as exc:
+        print(f'[warning] 制作渲染记录失败：{exc}', file=sys.stderr)
+
+
 def _list_voices(locale: str, as_json: bool) -> int:
     """列出合成可用音色，避免把音色名写错才发现。
 
@@ -269,10 +296,17 @@ def _prepared(root: Path, manifest: dict) -> dict:
     return check(root, manifest) if check else load_current_prepared(root, manifest)
 
 
-def _status(root: Path, manifest: dict) -> dict:
+def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     video_type = registry.get(manifest["type"])
     result = {"id": manifest["id"], "type": manifest["type"],
               "review": {"status": "optional" if video_type.manual_review_available else "not-required", "required": False}}
+    from m2v.production import baselines, ledger
+    result['production'] = ledger.status(root, manifest, full_history=full_history)
+    if manifest['type'] == 'general':
+        try:
+            result['production']['baselines'] = baselines.summary(root)
+        except M2VError as exc:
+            result['production'].setdefault('diagnostics', []).append(str(exc))
     if manifest["type"] == "general":
         result["review"]["detail"] = "技术就绪不代表制作完成；助手须复核全片帧序列和自动音频候选并关闭必改项，无需用户确认。"
     try:

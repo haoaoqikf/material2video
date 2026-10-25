@@ -210,9 +210,11 @@ def test_narration_audio_starts_after_lead_in_frames(tmp_path, monkeypatch):
     master = root / result["audio"]["segments"][0]["path"]
     with wave.open(str(master), "rb") as stream:
         rate = stream.getframerate()
+        bytes_per_frame = stream.getsampwidth() * stream.getnchannels()
         raw = stream.readframes(stream.getnframes())
     first = next((index for index in range(0, len(raw), 2) if raw[index] or raw[index + 1]), None)
-    assert first is not None and abs(first / 2 / rate - 0.5) < 0.05
+    expected_start = data["scenes"][0]["leadInFrames"] / result["fps"]
+    assert first is not None and abs(first / bytes_per_frame / rate - expected_start) < 0.05
 
 
 def test_record_receives_the_declared_frame(tmp_path, monkeypatch):

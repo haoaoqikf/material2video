@@ -25,7 +25,7 @@ export function Text({x, y, size = 40, color = OFF_WHITE, children, opacity = 1,
   x: number; y: number; size?: number; color?: string; children: React.ReactNode;
   opacity?: number; anchor?: 'start' | 'middle' | 'end'; weight?: number;
 }) {
-  return <text x={x} y={y} fontSize={size} fill={color} opacity={opacity} textAnchor={anchor}
+  return <text data-m2v-role="body" x={x} y={y} fontSize={size} fill={color} opacity={opacity} textAnchor={anchor}
     fontWeight={weight} style={{fontFamily: FONT, fontVariantNumeric: 'tabular-nums'}}>{children}</text>;
 }
 
@@ -35,10 +35,14 @@ export function Disc({x, y, r = RADIUS, state, opacity = 1, color, rim}: {
   color?: string; rim?: string;
 }) {
   const fill = color ?? FILL[state ?? 'white'];
+  const normalized = fill.replace(/\s/g, '').toLowerCase();
+  const visibleState = normalized === OFF_WHITE.toLowerCase() || normalized === 'rgb(241,236,221)' ? 'white'
+    : normalized === GOLD.toLowerCase() || normalized === 'rgb(235,198,104)' ? 'gold'
+    : normalized === DARK_GOLD.toLowerCase() || normalized === 'rgb(138,110,56)' ? 'dark' : 'changing';
   const highlight = `M${x - r * .64} ${y - r * .44}a${r * .74} ${r * .74} 0 0 1 ${r * .92} ${-r * .16}`;
   return <g opacity={opacity}>
     <ellipse cx={x + r * .10} cy={y + r * .26} rx={r * .94} ry={r * .86} fill="#030407" opacity={.55}/>
-    <circle cx={x} cy={y} r={r} fill={fill}/>
+    <circle data-m2v-role="disc" data-m2v-state={visibleState} cx={x} cy={y} r={r} fill={fill}/>
     <path d={highlight} fill="none" stroke="#FFFFFF" strokeOpacity={.42} strokeWidth={Math.max(1, r * .05)}/>
     {rim && <circle cx={x} cy={y} r={Math.max(1, r - 1.2)} fill="none" stroke={rim}
       strokeWidth={Math.max(1, r * .05)} opacity={.55}/>}

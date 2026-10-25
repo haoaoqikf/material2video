@@ -67,3 +67,10 @@
 - 实现提交：`e0a7322`（`feat: 以30秒复利圆片示例替换人生五选择`）。
 - 改名提交：`da6fff4`（`refactor: 将复利示例目录与项目ID改为compound-interest`）。
 - OpenSpec：`article-explainer` 主规格已合并；新增 `compound-interest-explainer-video` 主规格；复利变更移入 `openspec/changes/archive/2026-10-25-replace-five-life-choices-with-compound-interest/`；改名变更归档于 `openspec/changes/archive/2026-10-25-rename-compound-interest-example/`。
+
+
+## 检查点工具后验回归
+
+本节验证新制作工具，不追认历史 G0–G6。DESIGN.md 的后验合同与不可见 DOM 标记已加入源码；S5-result 在第700帧的真实浏览器观测为米白169、金16、暗金30，符合当前设计（米白含左10枚与右159枚）。从观测中删除一枚米白后，数量断言应失败；393宽量测同时发现小字与正文重叠，必须保持未关闭，不以计数通过宣称场景通过。
+
+局部事件窗口保存在正式 code-cache 区间缓存，静帧与DOM另行采集；没有生成额外完整候选。生成物、状态卡、唯一问题表及基线 manifest 均留在忽略的 videos/examples/compound-interest/outputs。旧交付的摘要与其原准备绑定单独保留，不用当前准备记录替换旧版出处。独立关键帧来源、早期盲审与G5/G6缺失的部分仍未完成，本次不补造记录。

@@ -179,7 +179,8 @@ def _average(files: list[Path], target: Path) -> None:
                   "-map", "[out]", "-frames:v", "1", "-y", str(target)])
 
 
-def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None) -> None:
+def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None,
+             observe=None) -> None:
     """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
 
     声明 look.motion 的重点镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
@@ -265,6 +266,9 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
                     # 状态型动画仍逐帧推进，但只在选定位置读回 GPU，避免生成整片图像。
                     if selected is not None and frame_index not in selected:
                         continue
+                    if observe is not None and subframe == 0:
+                        # 开发侧观察器只读取已推进的页面，不向运行时配置或成片注入探针。
+                        observe(page, frame_index)
                     if capture_scale > 1:
                         insufficient = page.evaluate("""scale => [...document.querySelectorAll('canvas')]
                             .filter(c => {const r = c.getBoundingClientRect(); return r.width > 0 && r.height > 0

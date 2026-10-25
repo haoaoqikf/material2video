@@ -243,5 +243,16 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
         layout_check(root, current(root, project))
         output_validation.verify_output(video, prepared["durationInFrames"], prepared["width"],
                                         prepared["height"], fps, expect_audio=True)
+    def generate(target):
+        # 只在 export_once 确定候选不可复用后登记真正生成；QA 重试不计一次编码。
+        from m2v.commands import _production_render_event
+        _production_render_event(root, project, 'generation-attempt', candidate_id=target.stem)
+        try:
+            result = _generate(root, project, output=target, defer_validation=True)
+        except Exception:
+            _production_render_event(root, project, 'generation-failed', candidate_id=target.stem)
+            raise
+        _production_render_event(root, project, 'generation-succeeded', candidate_id=target.stem)
+        return result
     return delivery.export_once(delivery.outputs(root) / "video.mp4", binding(),
-        lambda target: _generate(root, project, output=target, defer_validation=True), verify, binding)
+        generate, verify, binding)

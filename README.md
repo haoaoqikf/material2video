@@ -79,3 +79,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。
 - [OpenSpec 规格](openspec/specs/)：已实现能力契约；[项目规划](docs/PROJECT_PLAN.md)：未来路线。
+
+## 制作证据与状态
+
+general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用，存量在制作品本轮不切换；缺失独立证据不自动放行。

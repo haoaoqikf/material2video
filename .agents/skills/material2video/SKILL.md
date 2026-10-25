@@ -27,6 +27,8 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 - 作品面向手机复核，但画幅服从作品设计。素材来源与许可留在作品材料，片尾只保留一份简短署名；画面不出现仓库路径或内部制作提示。
 - 制作前明确受众与表达目标，评审覆盖信息推进、自然文案和完整事件窗口；具体标准见[节奏与创作](references/creative-production.md)、[统一制作与质量工具](references/cinematic-video.md)和[视觉复核](references/visual-review-rubric.md)。
 
+新启动 general 作品和后续重制必须按[检查点门](references/checkpoint-gates.md)在 DESIGN.md 声明合同并记录 G0–G6 证据；状态为制作完成条件，不增加用户审批或导出硬门禁。
+
 ## 常用命令
 
 ```powershell

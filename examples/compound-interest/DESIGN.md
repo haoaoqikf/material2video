@@ -198,3 +198,557 @@ S1：0–0.55空场；0.55–1.45两柱错峰落片；1.35–1.7标签淡入；2
 - 保留横屏、30fps、900帧；示例目录与项目 ID 为 `compound-interest`；旧五选择主题、剪纸、配乐要求被替代。
 - v2 色带版已保存到 `videos/examples/compound-interest/outputs/remake-baseline/b02-20261025/`，只作匿名比较基线，不用于授权 v3。
 - 当前阶段：最终候选（ec5a）已通过QA与F01/F02/F03、H01/H02/H03、C04评审，残余风险已披露；待提交与OpenSpec归档。
+
+
+## 检查点合同（后验回归）
+
+本块是新工具的后验回归材料，不证明历史上已执行 G0–G6。前期独立设计图与新评审证据缺失时保持未完成；默认计数需按实测逐点校准，不据此伪造通过。
+
+```m2v-checkpoints
+{
+  "version": 1,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "structureRisk": true,
+  "retrospective": true,
+  "constraints": {
+    "source": "当前已采用七段设计，后验回归不补造旧评审"
+  },
+  "scenes": [
+    {
+      "id": "compound",
+      "durationFrames": 900,
+      "shots": [
+        {
+          "id": "S1",
+          "tier": "B",
+          "window": [
+            0,
+            105
+          ]
+        },
+        {
+          "id": "S2",
+          "tier": "B",
+          "window": [
+            105,
+            240
+          ]
+        },
+        {
+          "id": "S3",
+          "tier": "A",
+          "window": [
+            240,
+            390
+          ],
+          "timeStructure": {
+            "establish": {
+              "window": [
+                240,
+                265
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "pause": {
+              "window": null,
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露",
+              "notApplicableReason": "连续事件不额外插入停顿",
+              "alternative": "结果段提供消化时间"
+            },
+            "change": {
+              "window": [
+                265,
+                290
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "reveal": {
+              "window": [
+                290,
+                315
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "result": {
+              "window": [
+                315,
+                340
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "hold": {
+              "window": [
+                340,
+                390
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            }
+          }
+        },
+        {
+          "id": "S4",
+          "tier": "B",
+          "window": [
+            390,
+            570
+          ]
+        },
+        {
+          "id": "S5",
+          "tier": "A",
+          "window": [
+            570,
+            720
+          ],
+          "timeStructure": {
+            "establish": {
+              "window": [
+                570,
+                595
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "pause": {
+              "window": null,
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露",
+              "notApplicableReason": "连续事件不额外插入停顿",
+              "alternative": "结果段提供消化时间"
+            },
+            "change": {
+              "window": [
+                595,
+                620
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "reveal": {
+              "window": [
+                620,
+                645
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "result": {
+              "window": [
+                645,
+                670
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "hold": {
+              "window": [
+                670,
+                720
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            }
+          }
+        },
+        {
+          "id": "S6",
+          "tier": "A",
+          "window": [
+            720,
+            810
+          ],
+          "timeStructure": {
+            "establish": {
+              "window": [
+                720,
+                735
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "pause": {
+              "window": null,
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露",
+              "notApplicableReason": "连续事件不额外插入停顿",
+              "alternative": "结果段提供消化时间"
+            },
+            "change": {
+              "window": [
+                735,
+                750
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "reveal": {
+              "window": [
+                750,
+                765
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "result": {
+              "window": [
+                765,
+                780
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            },
+            "hold": {
+              "window": [
+                780,
+                810
+              ],
+              "audience": "按七段导演记录理解资金流向",
+              "visible": "对应阶段的圆片与文字状态",
+              "attention": "资金状态变化",
+              "toleranceFrames": 2,
+              "failure": "变化无法观察或文字提前泄露"
+            }
+          }
+        },
+        {
+          "id": "S7",
+          "tier": "B",
+          "window": [
+            810,
+            900
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "S1-result",
+          "shotId": "S1",
+          "frame": 100,
+          "window": [
+            0,
+            105
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 20
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S2-result",
+          "shotId": "S2",
+          "frame": 235,
+          "window": [
+            105,
+            240
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 20
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S3-result",
+          "shotId": "S3",
+          "frame": 385,
+          "window": [
+            240,
+            390
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 21
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S4-result",
+          "shotId": "S4",
+          "frame": 565,
+          "window": [
+            390,
+            570
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 22
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S5-result",
+          "shotId": "S5",
+          "frame": 700,
+          "window": [
+            570,
+            720
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 169
+            },
+            {
+              "role": "disc",
+              "state": "gold",
+              "count": 16
+            },
+            {
+              "role": "disc",
+              "state": "dark",
+              "count": 30
+            }
+          ],
+          "textPlan": [],
+          "claims": [
+            {
+              "id": "white-units",
+              "value": 158.631,
+              "unit": "千元",
+              "basis": "第30年开始资本，精确金额由当前数学函数计算"
+            },
+            {
+              "id": "white-visible",
+              "value": 159,
+              "unit": "枚",
+              "basis": "158整枚及0.631分数枚"
+            }
+          ],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S6-result",
+          "shotId": "S6",
+          "frame": 805,
+          "window": [
+            720,
+            810
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 169
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        },
+        {
+          "id": "S7-result",
+          "shotId": "S7",
+          "frame": 895,
+          "window": [
+            810,
+            900
+          ],
+          "expected": [
+            {
+              "role": "disc",
+              "state": "white",
+              "count": 169
+            }
+          ],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": [],
+          "sampleStep": 15,
+          "minEventFrames": 15,
+          "measurement": {
+            "bodyRoles": [
+              "body"
+            ],
+            "thresholdSource": "本例手机393宽正文目标12px，按信息单元预算；圆片堆叠是声明机制",
+            "minFont393": 12,
+            "allowedOverlaps": [
+              [
+                "disc",
+                "disc"
+              ]
+            ],
+            "maxTextCharacters": 140
+          }
+        }
+      ]
+    }
+  ]
+}
+```
