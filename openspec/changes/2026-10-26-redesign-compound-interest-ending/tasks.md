@@ -21,12 +21,12 @@
 ## 4. 最终验收
 
 - [x] 4.1 `validate`、`prepare`、`render`、`qa` 通过；S7 无冻结，响度−14.86 LUFS、true peak−1.38 dBTP、音画差通过。
-- [ ] 4.2 受影响检查点 `S5-result`、`S6-result`、`S7-result` 通过；G1 通过。G2 仅有 result 阶段独立静帧，establish/reveal 缺失，state=unverified；G3 因缺 establish 图未生成 animatic，尚未完成。
-- [ ] 4.3 独立子代理对 S5/S6 静帧与最终成片做隔离评审；本轮未执行，已披露且不关闭评审项。
+- [x] 4.2 受影响检查点 `S5-result`、`S6-result`、`S7-result` 通过；G0/G1 通过；G2/G3 的 establish/reveal/result 阶段覆盖与 animatic 技术检查通过。S1–S4 的既有 G4 量测问题仍开放，不属于本次改版。
+- [ ] 4.3 独立子代理对 S5/S6 静帧与最终成片做隔离评审：G4 S5–S7 与 G6 结构通过；G2/G3/G5 仍有未关闭必改项；G6 视觉文案终审未完成。评审项保持开放，未据此归档。
 - [x] 4.4 更新 README/SOURCES/VERIFICATION/visual-notes 与 Skill 复利结尾示例，绑定新 SHA-256 `dc37d1ef…` 与 preparedFingerprint `7677d486…`。
 
 ## 5. 提交与归档
 
 - [x] 5.1 运行 Python 与前端相关测试：前端96项、示例契约37项通过；另外两个示例未改。
 - [x] 5.2 检查暂存内容，提交本次实现与文档，不夹带生成媒体。提交：`7584583`。
-- [ ] 5.3 同步主规格并把本变更移入 `openspec/changes/archive/`，提交归档结果。因 4.2/4.3 未完成，暂不归档，变更保留在 `openspec/changes/`。
+- [ ] 5.3 同步主规格并把本变更移入 `openspec/changes/archive/`，提交归档结果。因 4.3 仍有未关闭评审项，暂不归档，变更保留在 `openspec/changes/`。

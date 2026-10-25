@@ -252,7 +252,7 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
                     for item in read(design)['frames']:
                         if item['checkpointId'] == cp['id']:
                             actual = directory / f'{cp["frame"]:06d}-{item["width"]}.png'
-                            compare = directory / f'compare-{item["width"]}.png'
+                            compare = directory / f'compare-{item["phase"]}-{item["width"]}.png'
                             ffmpeg(['-i', str(local(base, item['path'])), '-i', str(actual),
                                     '-filter_complex', 'hstack=inputs=2', '-frames:v', '1', str(compare)])
                             evidence.append(receipt(base, compare))

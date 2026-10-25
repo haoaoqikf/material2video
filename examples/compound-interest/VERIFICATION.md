@@ -1,19 +1,26 @@
 # 《复利》验证记录
 
-状态：2026-10-26 完成 S5 结果与 S6/S7 结尾改版；技术与受影响检查点通过，独立子代理评审与 G2/G3/G5/G6 未关闭，详见下节与“残余风险”。
+状态：2026-10-26 完成 S5 结果与 S6/S7 结尾改版；技术检查、G0/G1、G2/G3/G5/G6 技术报告与受影响检查点 G4 通过，独立子代理评审已发起并在下节登记；S1–S4 的既有 G4 量测问题仍未关闭。
 
 ## 2026-10-26 结果与结尾改版
 
 - 文件：`videos/examples/compound-interest/outputs/video.mp4`
-- SHA-256 `dc37d1ef018a848401a1e3d4e19f48c4784868b81f5aa13c19d63dde3889d204`；preparedFingerprint `7677d486ed288f835b3922b39811bd62ac0c1dc115910b229a716325ea0691b8`；候选键 `97743219…`。
-- 1920×1080、30fps、900帧、30.0秒；无旁白；30秒环境床+28个事件音；S6事件改为720/738/774，S7保持810/840。
-- 改动：S5 左侧40枚整块（10白底排+30暗金三排）、组名带“40枚/约174.5枚”、差额134,494、单位定义；S6 回扣第1年1,000元（取走1,000/再投入15,863）；S7 片名移到顶部、小舞台与结论保留。数学新增 `comparison` 与 `firstGainJourney`。
-- QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度−14.86 LUFS、true peak−1.38 dBTP；音画差与最长静止由QA判定通过。
-- 检查点：G1 pass；G4 `S5-result`、`S6-result`、`S7-result` 均 pass（字号≥12px@393、无未授权重叠、计数169/16/30与16/1）。G2 仅有 result 阶段独立静帧，establish/reveal 未提供，状态 unverified；G3 因缺 establish 设计图未生成 animatic；G5/G6 与独立子代理评审未执行，不得据此关闭。
-- 静帧：`s5-scale`、`s6-ending`、`s7-closing` 各1920/852/393，独立HTML+SVG构图；登记于 `videos/examples/compound-interest/outputs/production/design-frames.json`，阶段仅 result，verifiedBy 为制作助手自检。
-- 测试：前端 `vitest` 96项通过；Python 示例契约37项通过。S1–S4 的 G4 仍有既有缩放裁切/重叠问题，不属于本次改版，未据此声称全片G4通过。
-- 帧检查：最终成片 23.5/25.7/29.5 秒的 1920/852/393 帧已人工核对；S5 差额与左块/金顶排不重叠，S6 数值/单位/结论分层，S7 片名不与结论或脚注重叠。
-- 提交：`7584583`；OpenSpec 变更保留在 `openspec/changes/2026-10-26-redesign-compound-interest-ending/`。因 G2 阶段覆盖、G3 animatic、G5/G6 与独立子代理评审未完成，本轮不归档，避免把未关闭项写成已完成。
+- SHA-256 `aa429d71205c72eb36e8c9076bf62411ceb2d3a36b762b765a5b814a9c262ae0`；preparedFingerprint `650fe370b38d4066e1c70755c4ff2b18902d020e3f4ebab8904c1d457d99f19b`；候选键 `bfe51e0b…`。
+- 1920×1080、30fps、900帧、30.0秒；无旁白；30秒环境床+28个事件音；S5 差额事件改为618帧（20.6秒），S6事件720/738/774，S7保持810/840。
+- 改动：S5 左侧40枚整块（10白底排+30暗金三排）、组名“收益取走 · 40 枚 · 本金 10”、差额134,494、单位定义；结果20.2秒出现、20.6秒差额、保持到23.8秒（约3.4秒）；S6 回扣第1年1,000元（取走1,000/再投入15,863），标题带“174,494 元里”桥接；S7 标题与口径行同时保留，片名在顶部。数学新增 `comparison` 与 `firstGainJourney`。
+- QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度 −14.7 LUFS、true peak −1.4 dBFS；音画差0.00018秒；最长静止1.0秒。
+- 技术检查：G0/G1 pass；G4 `S5-result`、`S6-result`、`S7-result` 均 pass（字号≥12px@393、无未授权重叠、计数169/16/30与16/1）；G2/G3 技术检查 pass；G5/G6 技术与来源报告 pass。S1–S4 的既有 G4 缩放裁切/重叠仍为开放问题，不属于本次改版，未据此声称全片 G4 通过。
+- 静帧：S3/S5/S6 的 establish/reveal/result 与 S7 result，各1920/852/393；独立HTML+SVG构图；登记于 `videos/examples/compound-interest/outputs/production/design-frames.json`。
+- 测试：前端 `vitest` 96项通过；Python 示例契约37项通过。
+- 独立评审（只投喂中性评审包，报告互不读取）：
+  - G4 S5/S6/S7：pass，无阻断性必改；差额与停留时间可读。
+  - G6 结构：pass；认为 S5 约3.5–4秒足够，S6/S7 关系基本说清。
+  - G2 S5/S6：fail；S6 标题的“174,494 元里”与取走1,000的从属关系不成立，且 16 枚整片与“15.863 枚”冲突。
+  - G3 时序：fail；S5 结果约3.8秒偏短，建议5.5秒或分步；15,863 缺“元”；393 底注/片名贴边。
+  - G5 全片：fail；要求移动端单独排版与 S5 加长到5.5–6秒，并更明确本金构成与 15,863/174,494 关系。
+  - G6 视觉文案：未在本次会话内完成，保持未验证。
+- 结论：S5–S7 的技术与场景检查通过，且 G4 独立评审通过；G2/G3/G5 的独立评审仍有未关闭必改项，G6 尚缺视觉文案终审。故本轮不归档 OpenSpec 变更，问题保留在唯一问题表（`REVIEW-*`）。
+- 提交：前序实现 `7584583`；本轮修正、工具修复与评审证据另行提交。
 
 ## 上一版（2026-10-25）
 

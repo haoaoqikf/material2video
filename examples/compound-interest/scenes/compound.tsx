@@ -159,7 +159,7 @@ function WithdrawBlock({t}: {t: number}) {
         return <Disc key={`d${i}`} x={source.x + (target.x - source.x) * pre}
           y={source.y + (target.y - source.y) * pre} state="dark"/>;
       }
-      const land = 19.2 + 1.6 * Math.pow(i / 29, .75);
+      const land = 19.2 + 1.0 * Math.pow(i / 29, .75);
       const p1 = ease(clamp((t - (land - .45)) / .45));
       const x = BLOCK_SOURCE.x + (target.x - BLOCK_SOURCE.x) * p1;
       const y = BLOCK_SOURCE.y + (target.y - BLOCK_SOURCE.y) * p1 - Math.sin(p1 * Math.PI) * 55;
@@ -217,7 +217,7 @@ function Hill({t, hideFirst}: {t: number; hideFirst: boolean}) {
     })}
     {RAIN_ORDER.map((targetIndex, i) => {
       const p = hill[targetIndex], unit = hillUnits[targetIndex];
-      const land = 19.7 + 1.7 * Math.pow(i / Math.max(1, RAIN_ORDER.length - 1), .62);
+      const land = 19.4 + 0.9 * Math.pow(i / Math.max(1, RAIN_ORDER.length - 1), .62);
       const fall = clamp((t - (land - .35)) / .35);
       if (t < land - .35) return null;
       const rim = t > land && t < land + 1 ? GOLD : undefined;
@@ -226,8 +226,8 @@ function Hill({t, hideFirst}: {t: number; hideFirst: boolean}) {
         rim={rim}/>;
     })}
     {goldRow.map((g, i) => {
-      const land = 21.0 + i * .025;
-      const p = ease(clamp((t - land) / .35));
+      const land = 20.0 + i * .02;
+      const p = ease(clamp((t - land) / .3));
       if (t < land) return null;
       const start = {x: hill[FIRST_DISC_INDEX].x, y: hill[FIRST_DISC_INDEX].y - 48};
       return <Disc key={`g${i}`} x={start.x + (g.x - start.x) * p}
@@ -250,7 +250,7 @@ function Ending({t}: {t: number}) {
   const values = arrive(t, 25.4, .3);
   const units = arrive(t, 25.6, .3);
   const conclusion = arrive(t, 26.0, .4);
-  const headline = arrive(t, 24.0, .35) * (1 - arrive(t, 27.0, .6));
+  const headline = arrive(t, 24.0, .35);
   const title = arrive(t, 27.8, .5);
   return <>
     {t < 24.5 && <Disc x={travelX} y={travelY} color={mixColor(OFF_WHITE, GOLD, glow)}/>}
@@ -266,27 +266,26 @@ function Ending({t}: {t: number}) {
         y={rowY + (target.y - rowY) * p} r={discDiameter(unit) / 2} state="white"
         color={mixColor(GOLD, OFF_WHITE, p)} opacity={clamp((t - start) / .08)}/>;
     })}
-    <Text x={960} y={170} size={66} anchor="middle" weight={600}
-      opacity={headline}>第 1 年赚的 1,000 元，到第 30 年</Text>
-    <Text x={leftX} y={300} size={60} anchor="middle" opacity={labels}>取走</Text>
-    <Text x={rightX} y={300} size={60} color={GOLD} anchor="middle" opacity={labels}>再投入</Text>
+    <Text x={960} y={200} size={60} anchor="middle" weight={600}
+      opacity={headline}>174,494 元里，第 1 年赚的 1,000 元，到第 30 年</Text>
+    <Text x={leftX} y={310} size={60} anchor="middle" opacity={labels}>取走</Text>
+    <Text x={rightX} y={310} size={60} color={GOLD} anchor="middle" opacity={labels}>再投入</Text>
     <Text x={leftX} y={650} size={88} anchor="middle" weight={600}
       opacity={values}>{money(1000)}</Text>
     <Text x={rightX} y={650} size={88} color={GOLD} anchor="middle" weight={600}
       opacity={values}>{money(firstGain.atYear)}</Text>
-    <Text x={leftX} y={770} size={60} color={MUTED} anchor="middle" opacity={units}>1 枚暗金</Text>
-    <Text x={rightX} y={770} size={60} color={MUTED} anchor="middle"
+    <Text x={leftX} y={770} size={64} color={MUTED} anchor="middle" opacity={units}>1 枚暗金</Text>
+    <Text x={rightX} y={770} size={64} color={MUTED} anchor="middle"
       opacity={units}>{firstGainUnitsLabel} 枚米白</Text>
     <Text x={960} y={880} size={68} color={GOLD} anchor="middle" weight={600}
       opacity={conclusion}>让收益，也成为本金。</Text>
-    <Text x={960} y={170} size={84} anchor="middle" weight={600} opacity={title}>复利</Text>
+    <Text x={960} y={100} size={72} anchor="middle" weight={600} opacity={title}>复利</Text>
   </>;
 }
 
 function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
-  if (t < 13 || t >= 24) return null;
-  // S5 时间快进段不逐格报年份，避免与“从第3年到第30年”的标题抢读；21.4秒落定第30年。
-  if (t >= 19 && t < 21.4) return null;
+  // S5 的结果标题直接写“第 30 年累计总额”，不再单独报年份，减少结果屏的浮层。
+  if (t < 13 || t >= 19) return null;
   return <Text x={1800} y={140} size={62} color={GOLD} anchor="end" weight={600}
     opacity={opacity}>第 {yearAt(t)} 年</Text>;
 }
@@ -294,7 +293,7 @@ function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
 function TextLayer({t}: {t: number}) {
   const segment = segmentAt(t);
   const footnote = arrive(t, 4.4, .5);
-  const s5Fade = 1 - arrive(t, 23.6, .4);
+  const s5Fade = 1 - arrive(t, 23.8, .2);
   // 开场标签在S2推近的头0.35秒内淡出，避免镜头移动时标签与柱脱开。
   const approach = arrive(t, 1.35, .35) * (1 - arrive(t, 3.5, .15));
   return <>
@@ -328,29 +327,29 @@ function TextLayer({t}: {t: number}) {
         opacity={arrive(t, 15.2, .4)}>12,100 × 10% = 1,210</Text>
     </>}
     {segment === 'S5' && <>
-      <Text x={120} y={125} size={60} color={MUTED} opacity={s5Fade}>{t < 21.4
-        ? '同样 10,000 · 同样 10% · 从第 3 年到第 30 年'
-        : '同样 10,000 · 同样 10% · 30 年累计总额（元）'}</Text>
-      {t < 21.4 ? <>
+      <Text x={120} y={125} size={60} color={MUTED} opacity={s5Fade}>{t < 20.2
+        ? '同样 10,000 · 同样 10% · 快进到第 30 年'
+        : '同样 10,000 · 同样 10% · 第 30 年累计总额（元）'}</Text>
+      {t < 20.2 ? <>
         <Text x={500} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益取走</Text>
         <Text x={1360} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益再投入</Text>
       </> : <>
         <Text x={500} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 21.4, .2) * s5Fade}>收益取走 · 40 枚</Text>
+          opacity={arrive(t, 20.2, .2) * s5Fade}>收益取走 · 40 枚 · 本金 10</Text>
         <Text x={1360} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 21.4, .2) * s5Fade}>收益再投入 · 约 174.5 枚</Text>
+          opacity={arrive(t, 20.2, .2) * s5Fade}>收益再投入 · 约 174.5 枚</Text>
       </>}
       <Text x={500} y={358} size={84} anchor="middle" weight={600}
-        opacity={arrive(t, 21.4, .2) * s5Fade}>{money(withdrawState(30).total)}</Text>
+        opacity={arrive(t, 20.2, .2) * s5Fade}>{money(withdrawState(30).total)}</Text>
       <Text x={1360} y={358} size={88} color={GOLD} anchor="middle" weight={600}
-        opacity={arrive(t, 21.4, .2) * s5Fade}>{money(yearState(30).total)}</Text>
-      <Text x={960} y={600} size={64} color={GOLD} anchor="middle" weight={600}
-        opacity={arrive(t, 21.8, .25) * s5Fade}>相差 {money(gap)} 元</Text>
-      <Text x={120} y={700} size={60} color={MUTED}
-        opacity={arrive(t, 21.4, .2) * s5Fade}>1 枚 = 1,000 元</Text>
+        opacity={arrive(t, 20.2, .2) * s5Fade}>{money(yearState(30).total)}</Text>
+      <Text x={970} y={592} size={60} color={GOLD} anchor="middle" weight={600}
+        opacity={arrive(t, 20.6, .25) * s5Fade}>相差 {money(gap)} 元</Text>
+      <Text x={120} y={700} size={64} color={MUTED}
+        opacity={arrive(t, 20.2, .2) * s5Fade}>1 枚 = 1,000 元</Text>
     </>}
     <YearLabel t={t} opacity={segment === 'S5' ? s5Fade : 1}/>
-    <Text x={960} y={1046} size={60} color={MUTED} anchor="middle" opacity={footnote}>
+    <Text x={960} y={1046} size={64} color={MUTED} anchor="middle" opacity={footnote}>
       固定10%数学演示，非实际回报 · 不计税费及通胀
     </Text>
   </>;

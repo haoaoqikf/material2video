@@ -20,6 +20,7 @@ from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
+from m2v.core.delivery import outputs as output_root
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json
 from m2v.engine import qa_inspection
@@ -257,9 +258,9 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     frames = sample_frames(target, fps, step)
     if len(frames) < 2:
         raise M2VError("成片太短，无法抽样检查")
-    outputs = root / "outputs/qa"
-    outputs.mkdir(parents=True, exist_ok=True)
-    inspection = qa_inspection.inspect(target, prepared, outputs, audio_required=bool(audio_segments))
+    qa_dir = output_root(root) / "qa"
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    inspection = qa_inspection.inspect(target, prepared, qa_dir, audio_required=bool(audio_segments))
     has_audio = inspection["audioSignals"]["status"] != "not-applicable"
     no_audio = {"status": "not-applicable", "detail": "无音轨，契约允许"}
     if has_audio:
@@ -314,16 +315,23 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     for name, (kind, scope) in scopes.items():
         checks[name].update(kind=kind, scope=scope)
     # 所有分页都登记；单页入口只是第一页，不再额外生成会截断尾段的旧接触表。
-    sheet = outputs.parent / inspection["sequence"]["pages"][0]
+    sheet = qa_dir.parent / inspection["sequence"]["pages"][0]
+
+    def relative(path: Path) -> str:
+        """示例的内容根在 videos/<类型>/<slug>，记录相对作品输出根而非项目目录。"""
+        for base in (root, output_root(root)):
+            if path.is_relative_to(base):
+                return path.relative_to(base).as_posix()
+        return str(path)
+
     # 示例的交付与准备目录不同，帧序列入口指向实际交付目录。
     observation_record = target.parent / "visual-notes.md"
-    observation_path = (observation_record.relative_to(root).as_posix()
-                        if observation_record.is_relative_to(root) else str(observation_record))
+    observation_path = relative(observation_record)
     report = {"schemaVersion": 1,
               "preparedFingerprint": prepared["preparedFingerprint"],
               "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
               "durationInFrames": prepared["durationInFrames"], "fps": fps,
-              "sampleStep": step, "contactSheet": sheet.relative_to(root).as_posix(),
+              "sampleStep": step, "contactSheet": relative(sheet),
               "contactSheets": inspection["sequence"]["pages"],
               "scope": "technical-only",
               "inspection": inspection,
@@ -335,13 +343,13 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
                               "detail": "技术结论不代表视觉完成；助手须复核帧序列与音频候选，无需连续播放或实际试听。"},
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
-    report_path = root / "outputs/qa.json"
+    report_path = output_root(root) / "qa.json"
     _write_json(report_path, report)
     # 成片旁车记录 QA 指纹：交付、溯源与本次技术质检一一对应。
     sidecar = target.with_suffix(".provenance.json")
     if sidecar.is_file():
         provenance = json.loads(sidecar.read_text(encoding="utf-8"))
-        provenance["qa"] = {"report": str(report_path.relative_to(root)).replace("\\", "/"),
+        provenance["qa"] = {"report": relative(report_path),
                             "sha256": hashlib.sha256(report_path.read_bytes()).hexdigest()}
         _write_json(sidecar, provenance)
     return report

@@ -78,3 +78,6 @@ examples/*/assets/media/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Playwright MCP 临时页面快照
+.playwright-mcp/

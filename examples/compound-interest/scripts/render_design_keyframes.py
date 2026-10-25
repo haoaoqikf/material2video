@@ -1,7 +1,8 @@
-"""生成《复利》独立目标静帧（S3 机制 / S5 规模）。
+"""生成《复利》独立目标静帧（S3 机制 / S5 规模 / S6–S7 回扣与片名）。
 
 静帧不是场景截图：这里用独立 HTML+SVG 按最终观感重新构图，供设计评审与手机
-可读性检查。生成物写入 outputs/design/keyframes/，不纳入版本控制。
+可读性检查。每个检查点按 establish/reveal/result 分别生成，写入
+outputs/design/keyframes/，不纳入版本控制。
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -68,22 +70,25 @@ def hill_positions(count: int, center: float, base: float) -> list[tuple[float, 
     return points
 
 
-def s3_svg() -> str:
+def s3_svg(phase: str = 'result') -> str:
     parts = []
-    # 11 枚资本，柱顶承接 1.0 + 0.1 的当年收益。
-    for i in range(11):
+    # establish 为 10 枚资本 + 首笔金色收益；reveal/result 为 11 枚 + 1.0/0.1 金。
+    count = 10 if phase == 'establish' else 11
+    for i in range(count):
         parts.append(disc(620, 930 - i * 64, 55, OFF_WHITE))
     parts.append(disc(660, 178, 55, GOLD, rim='#FFF4CF'))
-    parts.append(disc(760, 178, 55 * math.sqrt(.1), GOLD, rim='#FFF4CF'))
+    if phase != 'establish':
+        parts.append(disc(760, 178, 55 * math.sqrt(.1), GOLD, rim='#FFF4CF'))
     parts.append(text(1120, 330, 72, '第 2 年', weight=600))
-    parts.append(text(1120, 440, 56, '11,000 × 10% = ', color=MUTED))
-    parts.append(text(1576, 440, 56, '1,100', color=GOLD, weight=600))
+    if phase == 'result':
+        parts.append(text(1120, 440, 56, '11,000 × 10% = ', color=MUTED))
+        parts.append(text(1576, 440, 56, '1,100', color=GOLD, weight=600))
     parts.append(text(960, 1046, 54, '固定10%数学演示，非实际回报 · 不计税费及通胀',
                       color=MUTED, anchor='middle'))
     return ''.join(parts)
 
 
-def s5_svg() -> str:
+def s5_svg(phase: str = 'result') -> str:
     parts = []
     # 左：40 枚整块。10 枚米白本金底排 + 30 枚暗金三排。
     for i in range(10):
@@ -100,50 +105,54 @@ def s5_svg() -> str:
         x = 1360 + (i - (len(gold_units) - 1) / 2) * 40
         parts.append(disc(x, 654, 21 * math.sqrt(unit), GOLD, rim='#FFF4CF'))
 
-    parts.append(text(120, 125, 60, '同样 10,000 · 同样 10% · 30 年累计总额（元）', color=MUTED))
-    parts.append(text(500, 230, 60, '收益取走 · 40 枚', anchor='middle', weight=600))
+    if phase == 'establish':
+        parts.append(text(120, 125, 60, '同样 10,000 · 同样 10% · 快进到第 30 年', color=MUTED))
+        parts.append(text(500, 230, 60, '收益取走', anchor='middle', weight=600))
+        parts.append(text(1360, 230, 60, '收益再投入', anchor='middle', weight=600))
+        parts.append(text(960, 1046, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+                          color=MUTED, anchor='middle'))
+        return ''.join(parts)
+
+    parts.append(text(120, 125, 60, '同样 10,000 · 同样 10% · 第 30 年累计总额（元）', color=MUTED))
+    parts.append(text(500, 230, 60, '收益取走 · 40 枚 · 本金 10', anchor='middle', weight=600))
     parts.append(text(1360, 230, 60, '收益再投入 · 约 174.5 枚', anchor='middle', weight=600))
     parts.append(text(500, 358, 84, '40,000', anchor='middle', weight=600))
     parts.append(text(1360, 358, 88, '174,494', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(960, 600, 64, '相差 134,494 元', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(120, 700, 60, '1 枚 = 1,000 元', color=MUTED))
-    parts.append(text(1800, 140, 62, '第 30 年', color=GOLD, anchor='end', weight=600))
-    parts.append(text(960, 1046, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+    parts.append(text(120, 700, 64, '1 枚 = 1,000 元', color=MUTED))
+    if phase == 'result':
+        parts.append(text(970, 592, 60, '相差 134,494 元', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(960, 1046, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
                       color=MUTED, anchor='middle'))
     return ''.join(parts)
 
 
-def ending_svg(*, with_title: bool) -> str:
+def ending_svg(phase: str = 'result', *, with_title: bool = False) -> str:
     parts = []
     left_x, right_x, row_y = 680, 1200, 440
     if with_title:
-        parts.append(text(960, 170, 84, '复利', anchor='middle', weight=600))
-    else:
-        parts.append(text(960, 170, 66, '第 1 年赚的 1,000 元，到第 30 年', anchor='middle', weight=600))
-    parts.append(text(left_x, 300, 60, '取走', anchor='middle'))
-    parts.append(text(right_x, 300, 60, '再投入', color=GOLD, anchor='middle'))
+        parts.append(text(960, 100, 72, '复利', anchor='middle', weight=600))
+    parts.append(text(960, 200, 60, '174,494 元里，第 1 年赚的 1,000 元，到第 30 年',
+                      anchor='middle', weight=600))
+    parts.append(text(left_x, 310, 60, '取走', anchor='middle'))
+    parts.append(text(right_x, 310, 60, '再投入', color=GOLD, anchor='middle'))
     parts.append(disc(left_x, row_y, 21, DARK_GOLD))
-    # 15.863 枚按 4×4 排布，末枚是 0.863 分数片。
-    for i, unit in enumerate([1.0] * 15 + [.863]):
-        x = right_x + (i % 4 - 1.5) * 50
-        y = row_y + (i // 4 - 1.5) * 50
-        parts.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
-    parts.append(text(left_x, 650, 88, '1,000', anchor='middle', weight=600))
-    parts.append(text(right_x, 650, 88, '15,863', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(left_x, 770, 60, '1 枚暗金', color=MUTED, anchor='middle'))
-    parts.append(text(right_x, 770, 60, '15.863 枚米白', color=MUTED, anchor='middle'))
-    parts.append(text(960, 880, 68, '让收益，也成为本金。', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(960, 1046, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+    if phase == 'establish':
+        parts.append(disc(right_x, row_y, 21, GOLD, rim='#FFF4CF'))
+    else:
+        # 15.863 枚按 4×4 排布，末枚是 0.863 分数片。
+        for i, unit in enumerate([1.0] * 15 + [.863]):
+            x = right_x + (i % 4 - 1.5) * 50
+            y = row_y + (i // 4 - 1.5) * 50
+            parts.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
+        parts.append(text(left_x, 650, 88, '1,000', anchor='middle', weight=600))
+        parts.append(text(right_x, 650, 88, '15,863', color=GOLD, anchor='middle', weight=600))
+        parts.append(text(left_x, 770, 64, '1 枚暗金', color=MUTED, anchor='middle'))
+        parts.append(text(right_x, 770, 64, '15.863 枚米白', color=MUTED, anchor='middle'))
+        if phase == 'result':
+            parts.append(text(960, 880, 68, '让收益，也成为本金。', color=GOLD, anchor='middle', weight=600))
+    parts.append(text(960, 1046, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
                       color=MUTED, anchor='middle'))
     return ''.join(parts)
-
-
-def s6_svg() -> str:
-    return ending_svg(with_title=False)
-
-
-def s7_svg() -> str:
-    return ending_svg(with_title=True)
 
 
 def html(svg_body: str) -> str:
@@ -181,7 +190,9 @@ def shoot(name: str, body: str) -> None:
     page.write_text(html(body), encoding='utf-8')
     for width, height, suffix in [(1920, 1080, ''), (852, 479, '-852')]:
         target = OUT / f'{name}{suffix}.png'
-        with tempfile.TemporaryDirectory() as tmp:
+        before = target.stat().st_mtime_ns if target.exists() else 0
+        # Chrome 退出后仍可能短暂占用缓存文件；截图已完成，清理失败不应中断后续静帧。
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
             user_data = Path(tmp) / 'profile'
             subprocess.run([
                 chrome(), '--headless=new', '--disable-gpu', '--hide-scrollbars',
@@ -189,6 +200,17 @@ def shoot(name: str, body: str) -> None:
                 f'--window-size={width},{height}', '--virtual-time-budget=2500',
                 f'--screenshot={target}', page.as_uri(),
             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Chrome 可能先返回、子进程随后才落盘；等到截图摘要稳定，避免 393 缩放读到旧图。
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if target.exists() and target.stat().st_mtime_ns != before:
+                size = target.stat().st_size
+                time.sleep(.2)
+                if target.stat().st_size == size:
+                    break
+            time.sleep(.1)
+        else:
+            raise RuntimeError(f'等待 Chrome 截图超时：{target}')
     # Chrome 的窗口宽度有下限，393 宽按 852 实拍结果等比缩小。
     from imageio_ffmpeg import get_ffmpeg_exe
     subprocess.run([
@@ -198,9 +220,15 @@ def shoot(name: str, body: str) -> None:
 
 
 if __name__ == '__main__':
-    shoot('s3-mechanism', s3_svg())
-    shoot('s5-scale', s5_svg())
-    shoot('s6-ending', s6_svg())
-    shoot('s7-closing', s7_svg())
+    shoot('s3-establish', s3_svg('establish'))
+    shoot('s3-reveal', s3_svg('reveal'))
+    shoot('s3-mechanism', s3_svg('result'))
+    shoot('s5-establish', s5_svg('establish'))
+    shoot('s5-reveal', s5_svg('reveal'))
+    shoot('s5-scale', s5_svg('result'))
+    shoot('s6-establish', ending_svg('establish'))
+    shoot('s6-reveal', ending_svg('reveal'))
+    shoot('s6-ending', ending_svg('result'))
+    shoot('s7-closing', ending_svg('result', with_title=True))
     for path in sorted(OUT.glob('*.png')):
         print(path.relative_to(ROOT))
