@@ -65,7 +65,7 @@
 
 ## 固定示例
 
-固定示例集合为 american-science-milestones、five-life-choices、solar-system-journey，最多3个；用户明确授权才可替换。每个示例提供 project.json、v8 storyboard.json、README.md、DESIGN.md 与 scenes；article 输入另须原文，topic 输入提供事实与素材来源。
+固定示例集合为 american-science-milestones、compound-interest、solar-system-journey，最多3个；用户明确授权才可替换。每个示例提供 project.json、v8 storyboard.json、README.md、DESIGN.md 与 scenes；article 输入另须原文，topic 输入提供事实与素材来源。
 
 - 三个示例均使用1920×1080；《复利》与太阳系为单幕，美国科学里程碑为十二幕。
 - 合计覆盖 Motion、ECharts、Three.js、React Three Fiber 与 Drei；GSAP 随拥堵波示例退役，不强制为覆盖组件增加无关效果。

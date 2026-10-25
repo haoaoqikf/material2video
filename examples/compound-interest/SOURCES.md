@@ -9,4 +9,4 @@
 - 声音：一条30.0秒原创确定性合成环境床（前8秒数字静音、8.0秒淡入、29–30秒淡出，无旋律/节拍/和声）与28个原创事件音，无旁白、无旋律配乐、无第三方采样。许可见 [assets/LICENSE.md](assets/LICENSE.md)，完整配方见 [assets/recipe.json](assets/recipe.json)。
 - 字体：使用项目已入库的公共字体（画面注册名 `M2V Sans`），许可沿用字体目录；不新增外部字体。
 
-恢复：`uv run python examples/five-life-choices/assets/fetch.py`。已有文件必须与登记摘要、24kHz、PCM16、单声道及时长一致，否则拒绝覆盖；生成媒体不入库。8秒静音是环境床资产的一部分，不是 `music` 字段的起始偏移。
+恢复：`uv run python examples/compound-interest/assets/fetch.py`。已有文件必须与登记摘要、24kHz、PCM16、单声道及时长一致，否则拒绝覆盖；生成媒体不入库。8秒静音是环境床资产的一部分，不是 `music` 字段的起始偏移。

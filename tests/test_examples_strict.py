@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture(scope='module', autouse=True)
 def _restore_compound_media():
     """示例媒体不入库；校验前按配方恢复，保证新 checkout 也能过 v8 校验。"""
-    script = EXAMPLES / 'five-life-choices' / 'assets' / 'fetch.py'
+    script = EXAMPLES / 'compound-interest' / 'assets' / 'fetch.py'
     if script.is_file():
         subprocess.run([sys.executable, str(script)], cwd=script.parent, check=True)
 
@@ -56,7 +56,7 @@ def test_shipped_example_matches_the_v8_contract(path: Path) -> None:
 def test_shipped_example_uses_the_declared_frame(path: Path) -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     assert (data["width"], data["height"]) == EXPECTED_FRAMES[path.parent.name]
-    expected_fps = 30 if path.parent.name == "five-life-choices" else 60
+    expected_fps = 30 if path.parent.name == "compound-interest" else 60
     assert data["fps"] == expected_fps
 
 
@@ -65,7 +65,7 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
     """示例应按各自契约使用旁白，或明确采用无声技术短片。"""
     data = json.loads(path.read_text(encoding="utf-8"))
     name = path.parent.name
-    if name == "five-life-choices":
+    if name == "compound-interest":
         # 30秒复利：固定帧预算，无旁白；8秒进入的环境床 + 事件音。
         assert data["input"]["kind"] == "topic" and data["input"]["topic"].strip()
         assert len(data["scenes"]) == 1
@@ -201,7 +201,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert seconds == 30
         assert not data["subtitles"]
         return
-    if name == "five-life-choices":
+    if name == "compound-interest":
         assert seconds == 30, "复利固定为30秒、900帧"
         assert not data["subtitles"], "无旁白示例不应生成字幕"
         return

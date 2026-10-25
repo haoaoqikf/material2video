@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / 'examples/five-life-choices'
+EXAMPLE = ROOT / 'examples/compound-interest'
 BED = {'sourceRef': 'assets/media/bed.wav', 'gainDb': 0, 'loop': False,
        'fadeInMs': 0, 'fadeOutMs': 0}
 DROPS = [17, 19, 22, 25, 27, 30, 33, 35, 38, 41]

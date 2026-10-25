@@ -1,16 +1,18 @@
 # 《复利》验证记录
 
-状态：最终候选已完成技术QA与独立评审；实现已提交（`e0a7322`），规格已归档。
+状态：最终候选已完成技术QA与独立评审；示例目录与项目 ID 已更名为 `compound-interest`，实现已提交，规格已归档。
 
 ## 最终候选
 
-- 文件：`videos/examples/five-life-choices/outputs/video.mp4`
-- SHA-256 `ec5a4b3f5f0b997fb494e322f4d405bb13854784d0c5f819e890c1481446c37c`；preparedFingerprint `fa37d166469fac1fc7ae0d105230702c1de9bd95c3c417c1da7e0386064d0d59`。
+- 文件：`videos/examples/compound-interest/outputs/video.mp4`
+- SHA-256 `ec5a4b3f5f0b997fb494e322f4d405bb13854784d0c5f819e890c1481446c37c`；preparedFingerprint `c2bf6ab3d6e511c26f6c4bdcf2ab82015da0b5fb46a181c89bd75cb3db115b09`。
+- 改名前后成片字节相同（SHA-256 未变）；仅项目 ID 与准备指纹重新绑定，画面、音轨与编码未改变。
 - 1920×1080、30fps、900帧、30.0秒；无旁白、无旋律配乐；30秒环境床（前8秒数字静音、8.0秒进入、29–30秒淡出）+28个事件音。
 - QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度−14.7 LUFS、true peak−1.4 dBTP；最长静止1.0秒在17–18秒（S4有意停留），未触发冻结失败；音画差0.00018秒。
 
 ## 已核验
 
+- 改名后按 `compound-interest` 项目 ID 重新执行validate、prepare、render与qa；成片 SHA-256 与改名前的 `ec5a4b3f…` 完全一致。
 - 材料validate与prepare通过；单幕 `code` 场景，narrationSegments为空。
 - 声音配方逐条复现摘要/格式；S5流音从570帧起、`durationMs:5000`。
 - 数学：0/1/2/3/10/20/30年、零收益、无追加、未逐年舍入、40,000/174,494、158.631/15.863拆分、0.1直径、852最小直径。

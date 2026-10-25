@@ -2,7 +2,7 @@
 
 ## Context
 
-用户授权以30秒《复利》原位替换固定示例 `examples/five-life-choices`，保留目录、项目 ID、1920×1080、30fps、900帧与 general v8 单幕结构。实施中用户给出 v3 完整设计：颜色改为资金状态机，金额改为圆片面积编码，时间轴改为 S1–S7，声音改为8秒进入的环境床加事件音；并确认按项目规范交付 −14 LUFS / −1 dBTP、直接采用圆片机制。本设计按该方案落实，不把未来规划写成已实现能力。
+用户授权以30秒《复利》替换旧的五选择示例，保留画幅、30fps、900帧与 general v8 单幕结构；重做后示例目录与项目 ID 更正为 `compound-interest`。实施中用户给出 v3 完整设计：颜色改为资金状态机，金额改为圆片面积编码，时间轴改为 S1–S7，声音改为8秒进入的环境床加事件音；并确认按项目规范交付 −14 LUFS / −1 dBTP、直接采用圆片机制。本设计按该方案落实，不把未来规划写成已实现能力。
 
 参考片为 `refs/douyin/7692873023291963558/video.mp4`（约62秒《重复》）。只查看过逐秒接触表与关键窗口静帧；不据此断言精确运动曲线、转场或音乐。参考文件与音轨不进入本片素材或声音链路。
 
@@ -134,7 +134,7 @@
 - **R06 完整粗片**：`outputs/review-pack/R06/` 含 opening/full/comparison 三组、1920/852/393 帧、contact sheet、manifest、中性问题；两名新建上下文的独立子代理分别评审，报告互不读取。
 - **最终评审**：两名互不读取报告的隔离代理，一名看结构/节奏/颜色流向，一名看视觉文案/手机/声音时序；缺评审不得关闭。
 - **颜色流向测试**：临时项目渲染 `hideText` 无字版，代理只看画面回答“金色最后在哪”；机制测试只看S3无字版回答“1,100从哪来”。缺证据或误读先修再复核。
-- **新片对 v2**：v2 色带版基线在 `videos/examples/five-life-choices/outputs/remake-baseline/b02-20261025/`，匿名帧包比较“更想看完哪个、记住哪个画面”；不把偏好当真实留存。
+- **新片对 v2**：v2 色带版基线在 `videos/examples/compound-interest/outputs/remake-baseline/b02-20261025/`，匿名帧包比较“更想看完哪个、记住哪个画面”；不把偏好当真实留存。
 - **QA**：frozen 无>3秒硬冻结；S7 27–30有可测运动；loudness −14±2 LUFS、true peak ≤−1 dBTP；audioSync pass；subtitleContrast/claims/picture 按项目检查。
 - 所有评审记录绑定同一最终视频 SHA-256、preparedFingerprint 与 manifest SHA-256。技术通过不替代制作评审；旧R01–R05只属v2色带版，不授权v3。
 
@@ -195,6 +195,6 @@ S1：0–0.55空场；0.55–1.45两柱错峰落片；1.35–1.7标签淡入；2
 
 ## 本轮约束与阶段
 
-- 保留目录与项目 ID、横屏、30fps、900帧；旧五选择主题、剪纸、配乐要求被替代。
-- v2 色带版已保存到 `videos/examples/five-life-choices/outputs/remake-baseline/b02-20261025/`，只作匿名比较基线，不用于授权 v3。
+- 保留横屏、30fps、900帧；示例目录与项目 ID 为 `compound-interest`；旧五选择主题、剪纸、配乐要求被替代。
+- v2 色带版已保存到 `videos/examples/compound-interest/outputs/remake-baseline/b02-20261025/`，只作匿名比较基线，不用于授权 v3。
 - 当前阶段：最终候选（ec5a）已通过QA与F01/F02/F03、H01/H02/H03、C04评审，残余风险已披露；待提交与OpenSpec归档。

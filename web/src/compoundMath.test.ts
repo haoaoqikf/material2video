@@ -2,8 +2,8 @@ import {describe, expect, it} from 'vitest';
 import {
   FRAME_BOUNDARIES, FULL_DIAMETER, MODEL, SEGMENTS, UNITS_PER_DISC, balance, discDiameter,
   discFractions, screenDiameter, secondYear, segmentAt, withdrawState, yearAt, yearState,
-} from '../../examples/five-life-choices/scenes/compoundMath';
-import {FIRST_DISC_INDEX, hillPositions} from '../../examples/five-life-choices/scenes/discs';
+} from '../../examples/compound-interest/scenes/compoundMath';
+import {FIRST_DISC_INDEX, hillPositions} from '../../examples/compound-interest/scenes/discs';
 
 describe('复利作品的统一金额口径', () => {
   it('匹配独立年度终值，计算过程中不舍入', () => {

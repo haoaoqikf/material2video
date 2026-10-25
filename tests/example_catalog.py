@@ -13,7 +13,7 @@ EXAMPLES = ROOT / "examples"
 #: 三个固定示例及其画幅；数量上限为三，替换须用户明确授权。
 EXPECTED_FRAMES: dict[str, tuple[int, int]] = {
     "american-science-milestones": (1920, 1080),
-    "five-life-choices": (1920, 1080),
+    "compound-interest": (1920, 1080),
     "solar-system-journey": (1920, 1080),
 }
 EXPECTED_EXAMPLES = set(EXPECTED_FRAMES)

@@ -7,15 +7,15 @@
 ## 重建
 
 ```powershell
-uv run python examples/five-life-choices/assets/fetch.py
-uv run m2v validate --project examples/five-life-choices
-uv run m2v prepare --project examples/five-life-choices
-uv run m2v preview --project examples/five-life-choices --start-seconds 8 --end-seconds 13
-uv run m2v render --project examples/five-life-choices
-uv run m2v qa --project examples/five-life-choices
+uv run python examples/compound-interest/assets/fetch.py
+uv run m2v validate --project examples/compound-interest
+uv run m2v prepare --project examples/compound-interest
+uv run m2v preview --project examples/compound-interest --start-seconds 8 --end-seconds 13
+uv run m2v render --project examples/compound-interest
+uv run m2v qa --project examples/compound-interest
 ```
 
-成片位于 `videos/examples/five-life-choices/outputs/video.mp4`。目录与项目ID沿用固定示例历史名称；当前内容已替换为《复利》，不提供旧五选择兼容入口。
+成片位于 `videos/examples/compound-interest/outputs/video.mp4`。目录与项目 ID 为 `compound-interest`；不提供旧五选择兼容入口。
 
 - [制作设计与参考迁移](DESIGN.md)
 - [数学口径、素材与声音来源](SOURCES.md)
