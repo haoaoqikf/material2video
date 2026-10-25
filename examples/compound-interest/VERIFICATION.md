@@ -1,6 +1,6 @@
 # 《复利》验证记录
 
-状态：最终候选已完成技术QA与独立评审；示例目录与项目 ID 已更名为 `compound-interest`，实现已提交，规格已归档。
+状态：最终候选已完成技术QA与独立评审；示例目录与项目 ID 已更名为 `compound-interest`，实现已提交（`da6fff4`），规格已归档。
 
 ## 最终候选
 
@@ -65,4 +65,5 @@
 ## 提交与归档
 
 - 实现提交：`e0a7322`（`feat: 以30秒复利圆片示例替换人生五选择`）。
-- OpenSpec：`article-explainer` 主规格已合并；新增 `compound-interest-explainer-video` 主规格；变更移入 `openspec/changes/archive/2026-10-25-replace-five-life-choices-with-compound-interest/`。
+- 改名提交：`da6fff4`（`refactor: 将复利示例目录与项目ID改为compound-interest`）。
+- OpenSpec：`article-explainer` 主规格已合并；新增 `compound-interest-explainer-video` 主规格；复利变更移入 `openspec/changes/archive/2026-10-25-replace-five-life-choices-with-compound-interest/`；改名变更归档于 `openspec/changes/archive/2026-10-25-rename-compound-interest-example/`。

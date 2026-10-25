@@ -10,4 +10,4 @@
 - [x] 2.2 复核新成片与旧版画面一致，记录新 SHA-256、preparedFingerprint 与输出路径；更新 VERIFICATION。
 - [x] 2.3 运行示例专属测试、严格示例集合、文档链接与前端全量测试，确认另外两个示例未回归。
 - [x] 2.4 检查暂存内容仅含本次改名与配套文档，提交并记录 commit。
-- [ ] 2.5 按归档流程同步主规格、移入 `openspec/changes/archive/` 并提交归档结果。
+- [x] 2.5 按归档流程同步主规格、移入 `openspec/changes/archive/` 并提交归档结果。
