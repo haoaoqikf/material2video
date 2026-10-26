@@ -168,6 +168,18 @@ def make_animatic(root: Path, c: dict) -> Path:
     return video
 
 
+def sample_frames(cp: dict, shot: dict) -> list[int]:
+    """边界前后取证，避免短暂文字/状态被规则步长跳过；不越过检查窗。"""
+    start, end = cp['window']
+    frames = {cp['frame'], start, end - 1, *range(start, end, cp.get('sampleStep', 1))}
+    plans = [*cp['textPlan'], *cp.get('statePlan', []), *shot.get('timeStructure', {}).values()]
+    for plan in plans:
+        if plan['window'] is not None:
+            for boundary in plan['window']:
+                frames.update(boundary + offset for offset in (-1, 0, 1) if start <= boundary + offset < end)
+    return sorted(frames)
+
+
 def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
     from playwright.sync_api import sync_playwright
     from m2v.commands import _prepared
@@ -199,10 +211,7 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
             window_clip = directory / 'window.mp4'
             shutil.copyfile(local(root, recorded['mediaPath']), window_clip)
             step = cp.get('sampleStep', 1)
-            frames = sorted({cp['frame'], cp['window'][0], cp['window'][1] - 1,
-                             *range(cp['window'][0], cp['window'][1], step),
-                             *[part['window'][0] for part in shot.get('timeStructure', {}).values()
-                               if part['window'] is not None and cp['window'][0] <= part['window'][0] < cp['window'][1]]})
+            frames = sample_frames(cp, shot)
             measurements = {}
             def observe(page, frame):
                 measurements[frame] = {'elements': page.evaluate(measure.DOM),
@@ -222,8 +231,8 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
                         path = directory / f'{n:06d}-{width}.png'
                         ffmpeg(['-i', str(work / f'frame-{n:06d}.png'), '-vf', f'scale={width}:{round(c["height"] * width / c["width"])}', '-frames:v', '1', str(path)])
                         evidence.append(receipt(base, path))
-                    if n == cp['frame'] and raw.get('probe'):
-                        checks.extend(measure.evaluate_probe(raw['probe'], cp))
+                    if raw.get('probe'):
+                        checks.extend(measure.evaluate_probe(raw['probe'], cp, frame=n))
                 write(directory / 'measurements.json', {'frames': measurements, 'step': step, 'window': cp['window'],
                      'capture': 'browser-selected-frames', 'cachedFullRender': False,
                      'cacheSource': {'path': recorded['mediaPath'], 'startFrame': cp['window'][0], 'endFrame': cp['window'][1]}})

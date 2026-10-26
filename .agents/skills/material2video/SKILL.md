@@ -31,6 +31,8 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 本次流程更新后新启动的 general 作品及明确启动的重制，在粗片验证执行[视觉事件检查](references/production-workflow.md#视觉事件检查)，在精制修订执行[设计兑现检查](references/production-workflow.md#设计兑现检查)。存量在制作品沿用启动时合同，不要求切换流程、重做准备或补造评审。
 
+新启动／明确重制的检查点合同须声明 `acceptanceChecks: true`，按[结构化完成凭据](references/checkpoint-gates.md#表达检查的完成凭据)在 G4 登记视觉事件、G6 登记设计兑现；缺项仍待评审。检查会补采文字／状态／揭示边界前后帧；查询区分自身结果、等待前置与真实过期，不因等待上游重做有效检查。
+
 ## 常用命令
 
 ```powershell

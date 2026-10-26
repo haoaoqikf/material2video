@@ -24,13 +24,15 @@
 
 在 DESIGN.md 内保留且仅保留一个 `m2v-checkpoints` 围栏 JSON 块。格式版本 1，与 v8 storyboard 版本独立，不新增 storyboard 或运行时字段。完整实例见仓库 [复利设计](../../../../examples/compound-interest/DESIGN.md)。
 
-顶层字段：version、fps、width、height、structureRisk、scenes，可选 constraints、retrospective。每场包含 id、durationFrames、shots、checkpoints；镜头包含全片唯一 id、tier、window，可选 core 与 timeStructure。检查点含全片唯一 id、shotId、frame、window、expected、textPlan、claims、forbidden，可选 measurement、sampleStep、minEventFrames、manualEvidence。ID 使用字母数字、下划线和连字符，最长96位。
+顶层字段：version、fps、width、height、structureRisk、scenes，可选 constraints、retrospective、acceptanceChecks。本次修复后新启动的作品及明确启动的重制须声明 `acceptanceChecks: true`；缺省的在制合同不追溯增加完成凭据要求，不升级合同版本或改变渲染缓存。每场包含 id、durationFrames、shots、checkpoints；镜头包含全片唯一 id、tier、window，可选 core 与 timeStructure。检查点含全片唯一 id、shotId、frame、window、expected、textPlan、claims、forbidden，可选 measurement、sampleStep、minEventFrames、manualEvidence、statePlan。ID 使用字母数字、下划线和连字符，最长96位。
 
 全部帧窗是场景局部左闭右开区间，采样 frame 必须处于镜头与检查点帧窗内。G1 不依赖场景源码；G3 才核验 storyboard 实际场景、时长和画幅。每镜头至少一个默认检查点；A 级与核心段落还需建立/结果关键帧，有揭示时增加揭示图，不能用场景截图冒充。
 
 A 级 timeStructure 含 establish、pause、change、reveal、result、hold，每段记录 window、audience、visible、attention、toleranceFrames、failure。不适用段 window 为 null，并记录 notApplicableReason 和 alternative；不为填表制造停顿。适用段连续覆盖镜头窗口。
 
 expected 是 role/count 断言列表，可选 state/color/visible/tolerance，默认在检查点采样帧核对数量；时间窗内其他帧负责布局与动态取证。textPlan 是 role/text/window 列表，核对文字出现与离开；claims 含 id/value/unit/basis，可选 role，同 ID 不可声明不同值。forbidden 是禁止出现的可见文字列表；语义禁止项仍由人工独立评审。
+
+`statePlan` 是 `{window, expected}` 列表，window 采用场景局部半开窗且必须落在所属镜头内，expected 与默认对象断言同构；同角色状态计划窗口不得重叠。在匹配采样帧，状态计划覆盖同角色的单帧默认值，用于验证中途数量、颜色或状态。采样在步长和指定帧之外，自动加入 textPlan、statePlan 与 timeStructure 全部边界的前一帧、边界帧和后一帧，并去重、裁到检查窗。边界覆盖不证明全部连续运动正确，密度和完整窗口评审仍适用。
 
 ## 观测与来源
 
@@ -65,7 +67,7 @@ check 生成报告并登记；G0/G5/G6 用 register 登记外部事实/审查报
 
 history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/版本、类型、时间、门/场景/检查点、证据及上游摘要。事件追加在作品写锁内串行进行，重复导入幂等；gates.json 是显式可重建快照。status 永远只读，检查当前文件，不能盲信快照。历史损坏显示诊断并禁止推断通过，repair 先保留损坏原件再恢复可验证前缀。
 
-既有技术状态字段与可选 review.json 语义保持不变，制作状态在 production 命名空间扩展。通过需当前文件存在且摘要匹配、上游有效、独立评审齐全、无本范围未关闭必改；降级自审只显示旗标，不关闭独立项。状态优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。最早未关闭门是当前门，但 B/C 等待 G5 批量评审时下一步不能回到等待自身。
+既有技术状态字段与可选 review.json 语义保持不变，制作状态在 production 命名空间扩展。通过需当前文件存在且摘要匹配、上游有效、独立评审齐全、无本范围未关闭必改；降级自审只显示旗标，不关闭独立项。自身结果优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。门的 `evidenceStatus` 保留自身检查与评审结果，`prerequisites` 列出未满足的前置门，`ready` 表示自身通过／不适用且前置齐全；自身通过但前置未完成时汇总 `status=等待前置`，不得冒充过期。G4 明细同样列出自身结果和前置条件，并保留 `checkStatus` 单列自动检查。最早未关闭门是当前门，但 B/C 等待 G5 批量评审时下一步不能回到等待自身。
 
 唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
 
@@ -74,6 +76,17 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/版本�
 打包请求字段 gate、scene_id、checkpoint_ids、files、kind、display_sizes；可选 review_type、timecodes。kind 为 design-keyframe/animatic/scene-window/rough-timeline/final-video。普通包只复制中性媒体，不接收任意源码或 HTML；文件改为中性名。盲包排除设计、分镜、源码、旧结论和匿名映射；设计对照图只用于 consistency 包。
 
 独立报告含 gate、sceneId、checkpointIds、packPath、packSha256、reviewerId、isolation、reviewType、verdict、observations、checkIds；G6 另需 focus=structure/visual-copy，两个不同代理覆盖两类职责。isolation=independent-subagent 才计独立；consistency 不计审美通过，其他方式显著降级。manifest、报告、来源文件均以 SHA-256 绑定。批量报告逐检查点回绑；未覆盖项保持待评审。
+
+### 表达检查的完成凭据
+
+启用 acceptanceChecks 后，独立报告增加 `acceptance` 列表，每项包含 checkpointId、kind、window、status、observations、evidence；window 必须等于该检查点完整检查窗，status 为 pass/fail/insufficient，observations 为非空实际观察，evidence 为输出根内 path/sha256 列表。所有来源证据摘要均绑定事件，变化后相关报告失效。报告 verdict=pass 时所有凭据也须 pass。
+
+- G4 的 A 级或 core 检查点必须有 `kind=visual-event` 的独立 blind 凭据；G5 批量报告可以回绑 G4。通用通过或降级自审不能代替该项。
+- G6 必须覆盖上述全部核心检查点的 `kind=design-fulfillment` 凭据，使用单独 consistency 包；导入前，同一 checkId 必须已有当前有效独立 blind 观察。它不替代原有两名隔离终审，也不能先对照再补盲审。
+- design-fulfillment 额外包含 dimensions 对象，键固定为 composition-scale、spatial-hierarchy、impact、attention、timing，每项包含 status 与 observations；design 对象含 direction、keyframes、animation，各为非空 path/sha256 列表，分别引用中性导演条件、独立目标关键帧和当前动画证据。
+- 系统仅校验覆盖、记录和来源，不自动判断是否值得看或有冲击力。缺项列入 `missingAcceptance` 并保持待评审；独立失败阻断制作完成。未启用的存量在制合同不补项，技术导出行为不变。
+
+可复制的 JSON 示例与规则演练见[太阳系检查演练](../../../../examples/solar-system-journey/WORKFLOW_CHECK_EXERCISE.md#结构化完成凭据示例)。
 
 G5 timeline 复用正式 ArticleExplainer composition 和准备音轨，将必要媒体及播放器依赖复制进隔离包。用本地 HTTP 服务打开包内 index.html，不读取作品目录，不额外编码全片。缺失缓存仅补录缺区间；DOM量测仍可能运行浏览器，不伪称只解码缓存。不能播放时补分场片段、跨场窗口及完整顺序，证据不足不放行。
 

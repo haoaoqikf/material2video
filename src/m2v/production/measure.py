@@ -20,6 +20,14 @@ DOM = r"""() => {
 }"""
 
 
+def expected_at(cp: dict, frame: int) -> list[dict]:
+    planned = [item for plan in cp.get('statePlan', []) if plan['window'][0] <= frame < plan['window'][1]
+               for item in plan['expected']]
+    # 时间窗状态优先于单帧默认值，允许过程中的数量与结果不同。
+    roles = {item['role'] for item in planned}
+    return [item for item in cp['expected'] if frame == cp['frame'] and item['role'] not in roles] + planned
+
+
 def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: int) -> list[dict]:
     checks = []
 
@@ -28,7 +36,7 @@ def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: 
 
     visible = {e['id']: e for e in elements if e['visible']}
     values = list(visible.values())
-    for expected in cp['expected'] if frame == cp['frame'] else []:
+    for expected in expected_at(cp, frame):
         pool = values if expected.get('visible', True) else [e for e in elements if not e['visible']]
         matches = [e for e in pool if e['role'] == expected['role'] and
                    ('state' not in expected or e['state'] == expected['state']) and
@@ -58,11 +66,12 @@ def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: 
                 continue
             if min(a['x'] + a['width'], b['x'] + b['width']) > max(a['x'], b['x']) and min(a['y'] + a['height'], b['y'] + b['height']) > max(a['y'], b['y']):
                 result('未授权重叠', 'fail', [a['id'], b['id']])
-    for plan in cp['textPlan']:
-        matches = [e for e in values if e['role'] == plan['role']]
-        should_show = plan['window'][0] <= frame < plan['window'][1]
-        valid = any(e['text'] == plan['text'] for e in matches) if should_show else not matches
-        result('文字状态:' + plan['role'], 'pass' if valid else 'fail', {'visible': should_show, 'text': plan['text']})
+    for role in dict.fromkeys(plan['role'] for plan in cp['textPlan']):
+        matches = [e for e in values if e['role'] == role]
+        active = [plan['text'] for plan in cp['textPlan'] if plan['role'] == role and
+                  plan['window'][0] <= frame < plan['window'][1]]
+        valid = all(any(e['text'] == text for e in matches) for text in active) if active else not matches
+        result('文字状态:' + role, 'pass' if valid else 'fail', {'visible': bool(active), 'text': active})
     for word in cp['forbidden']:
         result('禁止项:' + word, 'fail' if any(word in e['text'] for e in values) else 'pass', word)
     if not elements:
@@ -75,9 +84,9 @@ def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: 
     return checks
 
 
-def evaluate_probe(probe: list[dict], cp: dict) -> list[dict]:
+def evaluate_probe(probe: list[dict], cp: dict, *, frame: int | None = None) -> list[dict]:
     checks = []
-    for expected in cp['expected']:
+    for expected in expected_at(cp, cp['frame'] if frame is None else frame):
         matches = [item for item in probe if item.get('role') == expected['role'] and
                    ('state' not in expected or item.get('state') == expected['state'])]
         actual = matches[0] if len(matches) == 1 else None

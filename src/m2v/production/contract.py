@@ -44,6 +44,22 @@ def interval(value, duration):
         raise M2VError(f'非法帧窗：{value} / {duration}')
 
 
+def expected(value):
+    if not isinstance(value, list) or not value:
+        raise M2VError('检查点必须包含可观察断言')
+    for item in value:
+        fields(item, {'role', 'count'}, {'state', 'color', 'visible', 'tolerance'})
+        text(item['role'])
+        frame(item['count'], '对象数量')
+        for key in ('state', 'color'):
+            if key in item:
+                text(item[key], key)
+        if 'visible' in item and type(item['visible']) is not bool:
+            raise M2VError('visible 必须为布尔值')
+        if 'tolerance' in item:
+            frame(item['tolerance'], '计数容差')
+
+
 def load(root: Path) -> dict:
     try:
         source = (root / 'DESIGN.md').read_text(encoding='utf-8')
@@ -58,7 +74,9 @@ def load(root: Path) -> dict:
 
 
 def validate(c: dict) -> None:
-    fields(c, {'version', 'fps', 'width', 'height', 'structureRisk', 'scenes'}, {'constraints', 'retrospective'})
+    fields(c, {'version', 'fps', 'width', 'height', 'structureRisk', 'scenes'}, {'constraints', 'retrospective', 'acceptanceChecks'})
+    if 'acceptanceChecks' in c and type(c['acceptanceChecks']) is not bool:
+        raise M2VError('acceptanceChecks 必须为布尔值')
     if type(c['version']) is not int or c['version'] != 1 or type(c['structureRisk']) is not bool:
         raise M2VError('合同 version 必须为 1，structureRisk 必须为布尔值')
     if any(type(c[k]) is not int or c[k] <= 0 for k in ('fps', 'width', 'height')):
@@ -114,7 +132,7 @@ def validate(c: dict) -> None:
         covered = set()
         for cp in scene['checkpoints']:
             fields(cp, {'id', 'shotId', 'frame', 'window', 'expected', 'textPlan', 'claims', 'forbidden'},
-                   {'measurement', 'sampleStep', 'minEventFrames', 'manualEvidence'})
+                   {'measurement', 'sampleStep', 'minEventFrames', 'manualEvidence', 'statePlan'})
             cid = identifier(cp['id'])
             if cid in seen:
                 raise M2VError(f'重复检查点 ID：{cid}')
@@ -127,16 +145,7 @@ def validate(c: dict) -> None:
             n = frame(cp['frame'])
             if not shot['window'][0] <= cp['window'][0] <= n < cp['window'][1] <= shot['window'][1]:
                 raise M2VError(f'检查点不在镜头帧窗内：{cid}')
-            if not isinstance(cp['expected'], list) or not cp['expected']:
-                raise M2VError('检查点必须包含可观察断言')
-            for item in cp['expected']:
-                fields(item, {'role', 'count'}, {'state', 'color', 'visible', 'tolerance'})
-                text(item['role'])
-                frame(item['count'], '对象数量')
-                if 'visible' in item and type(item['visible']) is not bool:
-                    raise M2VError('visible 必须为布尔值')
-                if 'tolerance' in item:
-                    frame(item['tolerance'], '计数容差')
+            expected(cp['expected'])
             for key in ('textPlan', 'claims', 'forbidden'):
                 if not isinstance(cp[key], list):
                     raise M2VError(f'{key} 必须为列表')
@@ -161,6 +170,21 @@ def validate(c: dict) -> None:
             for key in ('sampleStep', 'minEventFrames'):
                 if key in cp and (type(cp[key]) is not int or cp[key] < 1):
                     raise M2VError(f'{key} 必须为正整数')
+            plans = cp.get('statePlan', [])
+            if not isinstance(plans, list):
+                raise M2VError('statePlan 必须为列表')
+            by_role = {}
+            for plan in plans:
+                fields(plan, {'window', 'expected'})
+                interval(plan['window'], duration)
+                if not shot['window'][0] <= plan['window'][0] < plan['window'][1] <= shot['window'][1]:
+                    raise M2VError('状态计划必须位于镜头窗口内')
+                expected(plan['expected'])
+                for item in plan['expected']:
+                    windows = by_role.setdefault(item['role'], [])
+                    if any(max(a, plan['window'][0]) < min(b, plan['window'][1]) for a, b in windows):
+                        raise M2VError('同角色状态计划窗口不得重叠')
+                    windows.append(plan['window'])
             if 'measurement' in cp:
                 fields(cp['measurement'], set(), {'bodyRoles', 'thresholdSource', 'minFont393',
                        'allowedOverlaps', 'maxTextCharacters', 'subtitleTop'}, name='量测规则')

@@ -34,3 +34,45 @@
 4. 更新前已启动且未明确启动重制的作品保持原合同，不追加两项验收、不重跑 prepare、不改状态与旧报告。
 
 本演练只验证规则对这些情景的推导结果；不能证明真实动画已达到上述效果。
+
+
+## 结构化完成凭据示例
+
+以下是报告 `acceptance` 中的单项示例，摘要为占位，必须替换为真实文件摘要才可导入；它不是本例真实评审。新作合同另声明 `acceptanceChecks: true`。
+
+```json
+{
+  "checkpointId": "scale-result",
+  "kind": "design-fulfillment",
+  "window": [0, 120],
+  "status": "pass",
+  "observations": "实际观察与三方对照摘要，不能只写符合设计",
+  "evidence": [{"path": "review-pack/example/comparison.png", "sha256": "REPLACE_WITH_SHA256"}],
+  "dimensions": {
+    "composition-scale": {"status": "pass", "observations": "主体比例与角度的对照证据"},
+    "spatial-hierarchy": {"status": "pass", "observations": "前后关系与遮挡的对照证据"},
+    "impact": {"status": "pass", "observations": "对比与释放的实际观察"},
+    "attention": {"status": "pass", "observations": "关键时刻视觉中心的实际观察"},
+    "timing": {"status": "pass", "observations": "建立、揭示与消化时机的实际观察"}
+  },
+  "design": {
+    "direction": [{"path": "review-pack/example/neutral-conditions.json", "sha256": "REPLACE_WITH_SHA256"}],
+    "keyframes": [{"path": "design/keyframes/scale.png", "sha256": "REPLACE_WITH_SHA256"}],
+    "animation": [{"path": "review-pack/example/window.mp4", "sha256": "REPLACE_WITH_SHA256"}]
+  }
+}
+```
+
+视觉事件项使用相同 checkpointId/window/status/observations/evidence，kind 改为 `visual-event`，省略 dimensions 和 design。它在 G4/G5 的 blind 报告内导入；设计兑现在 G6 的 consistency 报告内导入，须先有同一 checkId 的独立 blind 观察。两个报告仍使用[检查点契约](../../.agents/skills/material2video/references/checkpoint-gates.md#表达检查的完成凭据)规定的完整字段。
+
+| 修复验证情景 | 应得到的结果 |
+|---|---|
+| 启用合同，核心镜头只有通用独立通过报告 | G4 待评审，missingAcceptance 列出 visual-event |
+| 只有两名终审，没有五维对照 | G6 待评审，不以技术或盲审通过替代兑现 |
+| 先交对照，后补独立盲审 | 对照导入失败，保持先观察后对照 |
+| 凭据证据文件被替换 | 旧凭据不再计入有效覆盖，需当前证据 |
+| 文字只在步长之间的一帧出现 | 自动补出现、离开及前后帧，核对闪现状态 |
+| 状态计划中途错数但结果帧正确 | 中途断言失败，不能以端点放行 |
+| G1 自身通过，但缺 G0 | evidenceStatus=通过，status=等待前置，prerequisites 包含 G0 |
+| G1 合同摘要实际改变 | evidenceStatus/status=过期，补 G0 不会修复旧证据 |
+| 更新前在制合同未声明 acceptanceChecks | 不补本轮新凭据要求，不重写既有制作证据 |

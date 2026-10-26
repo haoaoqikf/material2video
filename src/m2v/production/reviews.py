@@ -7,7 +7,7 @@ from pathlib import Path
 
 from m2v.core.delivery import digest, outputs
 from m2v.core.errors import M2VError
-from . import contract, ledger
+from . import acceptance, contract, ledger
 from .storage import local, read, receipt, write
 
 KINDS = {'design-keyframe', 'animatic', 'scene-window', 'rough-timeline', 'final-video'}
@@ -60,7 +60,7 @@ def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files
 def import_report(root: Path, manifest: dict, report_path: Path) -> dict:
     report = read(report_path)
     contract.fields(report, {'gate', 'sceneId', 'checkpointIds', 'packPath', 'packSha256', 'reviewerId',
-                            'isolation', 'reviewType', 'verdict', 'observations', 'checkIds'}, {'focus'})
+                            'isolation', 'reviewType', 'verdict', 'observations', 'checkIds'}, {'focus', 'acceptance'})
     if report['gate'] not in ledger.GATES or report['verdict'] not in ('pass', 'fail', 'insufficient'):
         raise M2VError('评审结论无效')
     if not report['observations'] or not report['reviewerId'] or report['reviewType'] not in ('blind', 'consistency'):
@@ -83,9 +83,24 @@ def import_report(root: Path, manifest: dict, report_path: Path) -> dict:
     events, diagnostics = ledger.history(root)
     if diagnostics:
         raise M2VError('; '.join(diagnostics))
-    results = []
+    acceptance_evidence = acceptance.validate(report.get('acceptance', []), c, report, base, ledger.evidence_valid_at)
+    # 所有引用检查先校验，避免多检查报告在半途失败时留下部分通过事件。
+    bound = []
     for check_id in report['checkIds']:
         check = next((e for e in events if e['id'] == check_id and e['type'] == 'check'), None)
+        if not check:
+            raise M2VError('评审引用未知检查')
+        if report.get('acceptance') and report['reviewType'] == 'consistency':
+            prior = [e for e in events if e['type'] == 'review' and e['gate'] == check['gate'] and
+                     e['data'].get('checkId') == check_id and e['upstream'] == check['upstream'] and
+                     e['data'].get('isolation') == 'independent-subagent' and
+                     e['data'].get('reviewType') == 'blind' and ledger.evidence_valid(root, e['evidence'])]
+            if not prior:
+                raise M2VError('设计兑现对照须先有当前检查的独立盲审观察')
+        bound.append(check)
+    results = []
+    for check in bound:
+        check_id = check['id']
         if not check or not (check['gate'] == report['gate'] or (check['gate'] == 'G4' and report['gate'] == 'G5')):
             raise M2VError('评审引用未知检查，或门不匹配')
         if report['sceneId'] is not None and report['sceneId'] != check['sceneId']:
@@ -95,11 +110,15 @@ def import_report(root: Path, manifest: dict, report_path: Path) -> dict:
         current = ledger.upstream(root, c, check['gate'], check['sceneId'], check['checkpointId'])
         if current != check['upstream'] or not ledger.evidence_valid(root, check['evidence']):
             raise M2VError('评审绑定的检查已过期')
+    for check in bound:
+        check_id = check['id']
         results.append(ledger.append(root, manifest, 'review', gate=check['gate'], scene_id=check['sceneId'],
-            checkpoint_id=check['checkpointId'], upstream=current,
+            checkpoint_id=check['checkpointId'], upstream=check['upstream'],
             evidence=[receipt(base, report_path), receipt(base, pack_path),
-                      *[receipt(base, local(pack_path.parent, e['path'])) for e in pack['files']]],
-            data={**{k: report[k] for k in ('reviewerId', 'isolation', 'reviewType', 'verdict', 'focus') if k in report}, 'checkId': check_id},
+                      *[receipt(base, local(pack_path.parent, e['path'])) for e in pack['files']], *acceptance_evidence],
+            data={**{k: report[k] for k in ('reviewerId', 'isolation', 'reviewType', 'verdict', 'focus') if k in report},
+                  'checkId': check_id, 'acceptance': [item for item in report.get('acceptance', [])
+                      if not check['checkpointId'] or item['checkpointId'] == check['checkpointId']]},
             event_id=digest(report_path) + '-' + check_id))
         if report['verdict'] == 'fail':
             from . import issues

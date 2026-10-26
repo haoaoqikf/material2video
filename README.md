@@ -83,3 +83,5 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 ## 制作证据与状态
 
 general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用，存量在制作品本轮不切换；缺失独立证据不自动放行。
+
+新启动的检查点合同可启用表达检查完成凭据：核心视觉事件与五维设计兑现须有独立证据；采样覆盖文字、状态与揭示边界前后帧，状态查询分列自身结果、等待前置及真实过期。新作声明与在制保护见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md#表达检查的完成凭据)。

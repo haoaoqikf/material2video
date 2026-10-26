@@ -10,7 +10,7 @@ from pathlib import Path
 from m2v.core.delivery import digest, outputs
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from . import contract, issues
+from . import acceptance, contract, issues
 from .storage import local, read, receipt, write
 
 logger = logging.getLogger(__name__)
@@ -212,6 +212,7 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                       (not sid or not p['sceneId'] or p['sceneId'] == sid) and
                       (not cid or not p['checkpointId'] or p['checkpointId'] == cid)]
             state, degraded, check_state = '未开始', False, '未开始'
+            missing_acceptance = []
             if last:
                 try:
                     current = upstream(root, c, gate, sid, cid)
@@ -242,12 +243,18 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                             state = '待评审'
                         if any(e['data'].get('verdict') == 'fail' for e in latest.values()):
                             state = '阻断'
+                        missing_acceptance, acceptance_failed = acceptance.coverage(c, gate, cid, reviews)
+                        if acceptance_failed:
+                            state = '阻断'
+                        elif missing_acceptance and state != '阻断':
+                            state = '待评审'
             if state != '过期' and opened:
                 state = '阻断'
             if diagnostics and state in ('通过', '不适用'):
                 state = '阻断'
             row = dict(gate=gate, sceneId=sid, checkpointId=cid, status=state, checkStatus=check_state,
-                       issues=opened, degraded=degraded, lastEvidence=last['evidence'] if last else [])
+                       issues=opened, degraded=degraded, missingAcceptance=missing_acceptance,
+                       lastEvidence=last['evidence'] if last else [])
             results.append(row)
             if sid:
                 scenes.append(row)
@@ -255,12 +262,18 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
         aggregate = next((x for x in order if any(r['status'] == x for r in results)), '通过')
         if all(x['status'] == '不适用' for x in results):
             aggregate = '不适用'
-        rows.append({'gate': gate, 'status': aggregate})
-    # 上游门缺失或变更后下游旧通过不能继续授权。
+        rows.append({'gate': gate, 'status': aggregate,
+                     'missingAcceptance': sorted({item for r in results for item in r['missingAcceptance']})})
+    # 前置未完成不意味着本门证据损坏；保留自身结果，单列可继续工作的条件。
     for index, row in enumerate(rows):
         earlier = [r for r in rows[:index] if r['status'] not in ('通过', '不适用')]
+        row.update(evidenceStatus=row['status'], prerequisites=[r['gate'] for r in earlier],
+                   ready=not earlier and row['status'] in ('通过', '不适用'))
         if row['status'] == '通过' and earlier:
-            row['status'] = '过期'
+            row['status'] = '等待前置'
+        for scene in scenes if row['gate'] == 'G4' else []:
+            scene.update(evidenceStatus=scene['status'], prerequisites=row['prerequisites'],
+                         ready=not earlier and scene['status'] == '通过')
     current = next((r['gate'] for r in rows if r['status'] not in ('通过', '不适用')), None)
     next_action = f'm2v gates check --project {root} --gate {current}' if current else '全部门证据有效，可报告制作复核完成'
     if current == 'G4' and all(s['checkStatus'] == '通过' for s in scenes):

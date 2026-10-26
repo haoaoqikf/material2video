@@ -61,7 +61,10 @@ def test_readonly_status_and_stale_contract(project):
         ledger.register(root, manifest, path)
     before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
     result = ledger.status(root, manifest)
-    assert result['gates'][1]['status'] == '过期'  # 缺 G0，不能授权下游。
+    assert result['gates'][1]['status'] == '等待前置'
+    assert result['gates'][1]['evidenceStatus'] == '通过'
+    assert result['gates'][1]['prerequisites'] == ['G0']
+    assert not result['gates'][1]['ready']
     assert before == {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
     c['scenes'][0]['checkpoints'][0]['expected'][0]['count'] = 3
     changed = contract.scope_digest(c, 'one', 'one-cp')
@@ -349,3 +352,238 @@ def test_title_year_claim_conflict_rejected():
     cp['claims']=[{'id':'year','value':29,'unit':'年','basis':'相同时间状态','role':'year'}]
     with pytest.raises(M2VError,match='文字与定量主张矛盾'):
         contract.validate(c)
+
+
+def enable_acceptance(root, c):
+    c['acceptanceChecks'] = True
+    c['scenes'][0]['shots'][0]['core'] = True
+    (root/'DESIGN.md').write_text('```m2v-checkpoints\n'+json.dumps(c)+'\n```\n', encoding='utf-8')
+
+
+def import_observation(root, manifest, c, check, *, reviewer='observer', kind='blind', items=None, verdict='pass'):
+    """用真实摘要/事件验证导入与状态；媒体内容不在本测试判定范围。"""
+    from m2v.production import reviews
+    import uuid
+    out = outputs(root)
+    directory = out/'review-pack'/uuid.uuid4().hex
+    directory.mkdir(parents=True)
+    media = directory/'observed.png'
+    media.write_bytes(b'neutral evidence fixture')
+    point_ids = [check['checkpointId']] if check['checkpointId'] else [cp['id'] for _,_,cp in contract.checkpoints(c)]
+    pack = dict(gate=check['gate'], sceneId=check['sceneId'], checkpointIds=point_ids, reviewType=kind,
+                files=[receipt(directory, media)])
+    write(directory/'manifest.json', pack)
+    value = dict(gate=check['gate'], sceneId=check['sceneId'], checkpointIds=point_ids,
+        packPath=(directory/'manifest.json').relative_to(out).as_posix(),
+        packSha256=receipt(out,directory/'manifest.json')['sha256'], reviewerId=reviewer,
+        isolation='independent-subagent', reviewType=kind, verdict=verdict,
+        observations=['实际观察'], checkIds=[check['id']])
+    if check['gate'] == 'G6':
+        value['focus'] = 'structure' if reviewer == 'structure' else 'visual-copy'
+    if items is not None:
+        value['acceptance'] = items
+    report = directory/'report.json'
+    write(report,value)
+    return reviews.import_report(root,manifest,report)
+
+
+def passing_check(root, manifest, c, gate='G4'):
+    scope = dict(scene_id='one', checkpoint_id='one-cp') if gate == 'G4' else {}
+    path=checks.save_report(root,c,gate,[{'name':'测量','status':'pass','detail':'fixture'}], **scope)
+    return ledger.register(root,manifest,path)
+
+
+def acceptance_item(root, kind='visual-event'):
+    from m2v.production.acceptance import DIMENSIONS
+    out=outputs(root)
+    evidence=out/'observations.json'
+    write(evidence,{'observation':'完整事件窗口的实际证据'})
+    refs=[receipt(out,evidence)]
+    item=dict(checkpointId='one-cp',kind=kind,window=[0,30],status='pass',observations='关系发生清楚变化',evidence=refs)
+    if kind=='design-fulfillment':
+        item['dimensions']={name:{'status':'pass','observations':'实际对照结果'} for name in DIMENSIONS}
+        item['design']={name:refs for name in ('direction','keyframes','animation')}
+    return item
+
+
+def test_required_event_receipt_missing_then_passes_and_expires(project):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c)
+    import_observation(root,manifest,c,check)
+    row=ledger.status(root,manifest)['scenes'][0]
+    assert row['status']=='待评审' and row['missingAcceptance']==['one-cp:visual-event']
+    item=acceptance_item(root)
+    import_observation(root,manifest,c,check,items=[item])
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='通过'
+    (outputs(root)/'observations.json').write_bytes(b'changed')
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='待评审'
+
+
+def test_existing_contract_requires_no_new_receipt(project):
+    root,manifest,c=project
+    c['scenes'][0]['shots'][0]['core']=True
+    (root/'DESIGN.md').write_text('```m2v-checkpoints\n'+json.dumps(c)+'\n```\n',encoding='utf-8')
+    check=passing_check(root,manifest,c)
+    import_observation(root,manifest,c,check)
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='通过'
+
+
+def test_failed_event_receipt_blocks_and_insufficient_cannot_pass(project):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c)
+    item=acceptance_item(root);item['status']='fail'
+    import_observation(root,manifest,c,check,items=[item],verdict='fail')
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='阻断'
+
+
+def test_g6_requires_separate_five_dimension_design_receipt(project):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c,'G6')
+    item=acceptance_item(root,'design-fulfillment')
+    with pytest.raises(M2VError,match='先有当前检查的独立盲审'):
+        import_observation(root,manifest,c,check,kind='consistency',items=[item])
+    import_observation(root,manifest,c,check,reviewer='structure')
+    import_observation(root,manifest,c,check,reviewer='visual')
+    row=ledger.status(root,manifest)['gates'][6]
+    assert row['evidenceStatus']=='待评审'
+    incomplete={**item,'dimensions':{}}
+    with pytest.raises(M2VError,match='设计兑现五维'):
+        import_observation(root,manifest,c,check,kind='consistency',items=[incomplete])
+    import_observation(root,manifest,c,check,kind='consistency',items=[item])
+    row=ledger.status(root,manifest)['gates'][6]
+    assert row['evidenceStatus']=='通过' and row['status']=='等待前置'
+
+
+@pytest.mark.parametrize('mutation', ['window','evidence','design','degraded'])
+def test_design_receipt_cannot_bypass_coverage_or_independence(project,mutation):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c,'G6')
+    import_observation(root,manifest,c,check,reviewer='structure')
+    item=acceptance_item(root,'design-fulfillment')
+    if mutation=='window': item['window']=[0,29]
+    if mutation=='evidence': item['evidence']=[]
+    if mutation=='design': item['design']['animation']=[]
+    if mutation=='degraded':
+        from m2v.production import acceptance
+        event={'data':{'isolation':'self-review','reviewerId':'author','acceptance':[item]}}
+        missing,failed=acceptance.coverage(c,'G6',None,[event])
+        assert missing and not failed
+    else:
+        with pytest.raises(M2VError):
+            import_observation(root,manifest,c,check,kind='consistency',items=[item])
+
+
+def test_sampling_includes_short_text_and_state_boundaries():
+    c=sample();scene,shot,cp=next(contract.checkpoints(c))
+    cp.update(sampleStep=10,textPlan=[{'role':'title','text':'揭示','window':[7,8]}],
+              statePlan=[{'window':[13,16],'expected':[{'role':'disc','count':1}]}])
+    shot['timeStructure']={'reveal':{'window':[21,25]},'pause':{'window':None}}
+    frames=checks.sample_frames(cp,shot)
+    assert {6,7,8,9,12,13,14,15,16,17,20,21,22,24,25,26} <= set(frames)
+    assert frames==sorted(set(frames)) and min(frames)==0 and max(frames)==29
+    # 粗步长遗漏的单帧文字现在实际参与检查。
+    cp['expected']=[{'role':'title','count':0}]
+    results=measure.evaluate([],cp,width=1920,height=1080,frame=7)
+    assert any(x['name']=='文字状态:title' and x['status']=='fail' for x in results)
+
+
+def test_state_plan_detects_middle_error_despite_correct_endpoint():
+    cp=sample()['scenes'][0]['checkpoints'][0]
+    cp['statePlan']=[{'window':[5,10],'expected':[{'role':'disc','count':1}]}]
+    wrong=[{**element(),'id':str(i),'role':'disc','x':i*200} for i in range(2)]
+    results=measure.evaluate(wrong,cp,width=1920,height=1080,frame=7)
+    assert any(x['name']=='对象状态:disc' and x['status']=='fail' for x in results)
+    results=measure.evaluate(wrong,cp,width=1920,height=1080,frame=15)
+    assert any(x['name']=='对象状态:disc' and x['status']=='pass' for x in results)
+
+
+@pytest.mark.parametrize('plans',[
+    [{'window':[0,10],'expected':[{'role':'disc','count':1}]}, {'window':[9,20],'expected':[{'role':'disc','count':2}]}],
+    [{'window':[0,31],'expected':[{'role':'disc','count':1}]}],
+    [{'window':[0,10],'expected':[]}],
+])
+def test_invalid_state_plan_rejected(plans):
+    c=sample();c['scenes'][0]['checkpoints'][0]['statePlan']=plans
+    with pytest.raises(M2VError): contract.validate(c)
+
+
+def test_waiting_prerequisite_does_not_invalidate_own_evidence(project):
+    root,manifest,c=project
+    check=passing_check(root,manifest,c,'G1')
+    row=ledger.status(root,manifest)['gates'][1]
+    assert row['status']=='等待前置' and row['evidenceStatus']=='通过'
+    passing_check(root,manifest,c,'G0')
+    row=ledger.status(root,manifest)['gates'][1]
+    assert row['status']=='通过' and row['ready'] and not row['prerequisites']
+    c['scenes'][0]['checkpoints'][0]['expected'][0]['count']=3
+    (root/'DESIGN.md').write_text('```m2v-checkpoints\n'+json.dumps(c)+'\n```\n',encoding='utf-8')
+    row=ledger.status(root,manifest)['gates'][1]
+    assert row['evidenceStatus']=='过期' and row['status']=='过期'
+
+
+def test_text_boundary_can_reuse_one_role_for_successive_words():
+    cp=sample()['scenes'][0]['checkpoints'][0]
+    cp['textPlan']=[{'role':'body','text':'建立','window':[0,7]},
+                    {'role':'body','text':'揭示','window':[7,8]}]
+    actual={**element(),'text':'揭示'}
+    result=measure.evaluate([actual],cp,width=1920,height=1080,frame=7)
+    assert [x['status'] for x in result if x['name']=='文字状态:body']==['pass']
+
+
+def test_newer_insufficient_receipt_does_not_reuse_old_pass(project):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c)
+    item=acceptance_item(root)
+    import_observation(root,manifest,c,check,items=[item])
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='通过'
+    item['status']='insufficient'
+    import_observation(root,manifest,c,check,items=[item],verdict='insufficient')
+    assert ledger.status(root,manifest)['scenes'][0]['status']=='待评审'
+
+
+def test_multi_check_report_validation_is_atomic(project):
+    from m2v.production import reviews
+    root,manifest,c=project
+    check=passing_check(root,manifest,c)
+    import_observation(root,manifest,c,check)
+    report=next((outputs(root)/'review-pack').glob('*/report.json'))
+    value=read(report);value['checkIds'].append('missing-check')
+    write(report,value)
+    before=(outputs(root)/'production/history.jsonl').read_bytes()
+    with pytest.raises(M2VError): reviews.import_report(root,manifest,report)
+    assert (outputs(root)/'production/history.jsonl').read_bytes()==before
+
+
+def test_g6_receipts_must_cover_every_core_checkpoint(project):
+    import copy
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    c['scenes'][1]['shots'][0]['core']=True
+    (root/'DESIGN.md').write_text('```m2v-checkpoints\n'+json.dumps(c)+'\n```\n',encoding='utf-8')
+    check=passing_check(root,manifest,c,'G6')
+    import_observation(root,manifest,c,check,reviewer='structure')
+    import_observation(root,manifest,c,check,reviewer='visual')
+    first=acceptance_item(root,'design-fulfillment')
+    import_observation(root,manifest,c,check,kind='consistency',items=[first])
+    row=ledger.status(root,manifest)['gates'][6]
+    assert row['missingAcceptance']==['two-cp:design-fulfillment']
+    assert row['evidenceStatus']=='待评审'
+    second=copy.deepcopy(first);second['checkpointId']='two-cp'
+    import_observation(root,manifest,c,check,kind='consistency',items=[first,second])
+    assert ledger.status(root,manifest)['gates'][6]['evidenceStatus']=='通过'
+
+
+def test_g6_dimension_failure_cannot_be_hidden_by_summary(project):
+    root,manifest,c=project
+    enable_acceptance(root,c)
+    check=passing_check(root,manifest,c,'G6')
+    import_observation(root,manifest,c,check,reviewer='structure')
+    item=acceptance_item(root,'design-fulfillment')
+    item['dimensions']['timing']['status']='fail'
+    with pytest.raises(M2VError,match='总状态必须与五维结果一致'):
+        import_observation(root,manifest,c,check,kind='consistency',items=[item])
