@@ -6,6 +6,8 @@
 
 ## 重建
 
+后续重制按[素材选择规范](../../.agents/skills/material2video/references/article-media-and-sound.md#视频优先与代码适用场景)判断：本片的数量、收益归队与再投入过程适合代码精确合成，无需为视频优先额外寻找外部素材；如新增真实外部画面，再执行视频优先、图片补位。本说明不改变现有作品与评审状态。
+
 ```powershell
 uv run python examples/compound-interest/assets/fetch.py
 uv run m2v validate --project examples/compound-interest

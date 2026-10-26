@@ -63,6 +63,8 @@ uv run m2v status --project videos/general/<slug>
 
 ## 通用场景要点
 
+- 先按表达目的选择外部素材、代码或混合；外部素材优先找合适的视频，找不到再用图片，静态原件可直接用图片；搜索框输入、点击等适合代码的过程可直接合成。选择与回退理由复用 DESIGN.md 现有记录，不设视频占比；详细标准见[素材选择规范](references/article-media-and-sound.md#视频优先与代码适用场景)。
+
 - 通用作品当前实现基线采用 v8 分镜和作品目录内的 React `code` 全画布场景。这是实现方式，不改变「先确定目标画面、再选择实现方案」的制作原则；其他资产或预渲染内容按现有素材契约导入，由 React 场景组合与呈现，具体边界见[技术链路](references/production-workflow.md#技术链路)。旧模板、主题、`general-plan` 和片段嵌入不属于当前契约。
 - 先确定表达和视觉事件，再制作核心段落目标关键帧并独立盲审，验证完整动态窗口后扩展全片；不为普通镜头增加强制导演卡或反转。核心图形高潮另按[视觉力量设计](references/visual-impact-design.md)比较至少三种视觉机制。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
 - 用户要求学习、拆解或借鉴一条或多条参考视频时，先按[参考视频逆向拆解](references/reference-video-analysis.md)提炼观看驱动力与可迁移规则；明确要求外观相似时，再按[参考风格契约](references/reference-style.md)记录视觉采用项和量测，随后做独立冷审。
