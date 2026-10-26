@@ -9,9 +9,10 @@ export const SEGMENTS = [
   {id: 'S2', start: 3.5, end: 8},
   {id: 'S3', start: 8, end: 13},
   {id: 'S4', start: 13, end: 19},
-  {id: 'S5', start: 19, end: 29},
+  {id: 'S5', start: 19, end: 24.8},
+  {id: 'S6', start: 24.8, end: 29},
 ] as const;
-export const FRAME_BOUNDARIES = [0, 105, 240, 390, 570, 870] as const;
+export const FRAME_BOUNDARIES = [0, 105, 240, 390, 570, 744, 870] as const;
 export type SegmentId = (typeof SEGMENTS)[number]['id'];
 
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));

@@ -51,20 +51,31 @@ const CAM_KEYS: {t: number; cam: Cam}[] = [
   {t: 12.2, cam: {x: RIGHT_X, y: 772, s: 2.5}},
   {t: 13.4, cam: {x: 960, y: 540, s: 1.05}},
   {t: 18.8, cam: {x: 960, y: 540, s: 1.05}},
-  // 结果屏略缩小，给页脚与右缘留安全区；19.6–25.8 缓慢推进、25.8–28 缓慢拉回。
+  // 结果屏略缩小，给页脚与右缘留安全区；19.6–24.8 缓慢推进。
   {t: 19.6, cam: {x: 960, y: 540, s: .94}},
-  {t: 25.8, cam: {x: 960, y: 540, s: .93}},
-  {t: 29, cam: {x: 960, y: 540, s: .92}},
+  {t: 24.8, cam: {x: 960, y: 540, s: .93}},
 ];
 
-function cameraAt(t: number): Cam {
+// S6 单独一幕：24.8 秒硬切到丘顶特写，归队后拉回全景，只剩白色本金堆。
+const CLOSING_KEYS: {t: number; cam: Cam}[] = [
+  {t: 24.8, cam: {x: HILL_CENTER, y: 660, s: 2.0}},
+  {t: 26.2, cam: {x: HILL_CENTER, y: 660, s: 2.08}},
+  {t: 26.9, cam: {x: HILL_CENTER, y: 540, s: .95}},
+  {t: 29, cam: {x: HILL_CENTER, y: 540, s: .93}},
+];
+
+function between(t: number, keys: {t: number; cam: Cam}[]): Cam {
   let index = 0;
-  while (index < CAM_KEYS.length - 2 && t > CAM_KEYS[index + 1].t) index++;
-  const from = CAM_KEYS[index], to = CAM_KEYS[index + 1];
+  while (index < keys.length - 2 && t > keys[index + 1].t) index++;
+  const from = keys[index], to = keys[index + 1];
   const p = ease((t - from.t) / Math.max(1e-6, to.t - from.t));
   return {x: from.cam.x + (to.cam.x - from.cam.x) * p,
     y: from.cam.y + (to.cam.y - from.cam.y) * p,
     s: Math.exp(Math.log(from.cam.s) + (Math.log(to.cam.s) - Math.log(from.cam.s)) * p)};
+}
+
+function cameraAt(t: number): Cam {
+  return between(t, t >= 24.8 ? CLOSING_KEYS : CAM_KEYS);
 }
 
 const arrive = (t: number, at: number, duration = .5) => ease((t - at) / duration);
@@ -203,9 +214,12 @@ function Hill({t}: {t: number}) {
       const p = ease(clamp((t - land) / .3));
       if (t < land) return null;
       const start = {x: hill[FIRST_DISC_INDEX].x, y: hill[FIRST_DISC_INDEX].y - 48};
+      // S6：16 枚金片逐枚下沉到白堆顶并变白，圆片总数不变。
+      const sink = t < 24.8 ? 0 : ease(clamp((t - (24.95 + i * .055)) / .5));
       return <Disc key={`g${i}`} x={start.x + (g.x - start.x) * p}
-        y={start.y + (g.y - start.y) * p - Math.sin(p * Math.PI) * 24}
-        r={discDiameter(g.unit) / 2} state="gold"/>;
+        y={start.y + (g.y - start.y) * p - Math.sin(p * Math.PI) * 24 + 26 * sink}
+        r={discDiameter(g.unit) / 2} state={sink > .5 ? 'white' : 'gold'}
+        color={sink > 0 ? mixColor(GOLD, OFF_WHITE, sink) : undefined}/>;
     })}
   </>;
 }
@@ -219,7 +233,8 @@ function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
 
 function TextLayer({t}: {t: number}) {
   const segment = segmentAt(t);
-  const footnote = arrive(t, 4.4, .5);
+  // S6 丘顶特写时脚注会压在圆片上，24.6–24.8 淡出，拉回全景后 26.9 起恢复。
+  const footnote = arrive(t, 4.4, .5) * (1 - arrive(t, 24.6, .2) + arrive(t, 26.9, .3));
   // 开场标签在S2推近的头0.35秒内淡出，避免镜头移动时标签与柱脱开。
   const approach = arrive(t, 1.35, .35) * (1 - arrive(t, 3.5, .15));
   return <>
@@ -252,26 +267,21 @@ function TextLayer({t}: {t: number}) {
       <Text x={120} y={125} size={60} color={MUTED}>{t < 21.0
         ? '同样 10,000 · 同样 10% · 快进到第 30 年'
         : '30 年后的总资产'}</Text>
-      {t < 21.0 ? <>
-        <Text x={500} y={230} size={60} weight={600} anchor="middle">收益取走</Text>
-        <Text x={1360} y={230} size={60} weight={600} anchor="middle">收益再投入</Text>
-      </> : <>
-        <Text x={500} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 21.0, .2)}>收益取走</Text>
-        <Text x={1360} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 21.0, .2)}>收益再投入</Text>
-      </>}
+      <Text x={500} y={230} size={60} weight={600} anchor="middle">收益取走</Text>
+      <Text x={1360} y={230} size={60} weight={600} anchor="middle">收益再投入</Text>
       <Text x={500} y={358} size={84} anchor="middle" weight={600}
         opacity={arrive(t, 21.0, .2)}>40 枚</Text>
       <Text x={1360} y={358} size={88} color={GOLD} anchor="middle" weight={600}
         opacity={arrive(t, 21.0, .2)}>约 174.5 枚</Text>
-      <Text x={120} y={810} size={72} color={GOLD} weight={600}
-        opacity={arrive(t, 25.8, .5)}>让收益，也成为本金。</Text>
-      <Text x={960} y={125} size={96} anchor="middle" weight={600}
-        opacity={arrive(t, 25.8, .45)}>复利</Text>
+    </>}
+    {segment === 'S6' && <>
+      <Text x={960} y={610} size={80} color={GOLD} anchor="middle" weight={600}
+        opacity={arrive(t, 26.9, .4)}>让收益，也成为本金。</Text>
+      <Text x={960} y={150} size={112} anchor="middle" weight={600}
+        opacity={arrive(t, 27.1, .35)}>复利</Text>
     </>}
     <YearLabel t={t}/>
-    <Text x={960} y={1012} size={64} color={MUTED} anchor="middle" opacity={footnote}>
+    <Text x={960} y={t >= 24.8 ? 1024 : 1012} size={64} color={MUTED} anchor="middle" opacity={footnote}>
       固定10%数学演示，非实际回报 · 不计税费及通胀
     </Text>
   </>;
@@ -295,10 +305,10 @@ export default function Compound(config: CodeSceneProps) {
       </defs>
       <rect width={1920} height={1080} fill={BG}/>
       <g transform={`translate(${tx} ${ty}) scale(${cam.s})`}>
-        {t < 3.5 ? <StartColumns t={t}/> : <>
+        {t < 3.5 ? <StartColumns t={t}/> : t < 24.8 ? <>
           <LeftGroup t={t}/>
           <RightColumn t={t}/>
-        </>}
+        </> : null}
         {t >= 19 ? <Hill t={t}/> : null}
       </g>
       {!hideText && <TextLayer t={t}/>}

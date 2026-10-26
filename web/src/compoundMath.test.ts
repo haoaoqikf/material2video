@@ -105,7 +105,7 @@ describe('圆片状态机与面积编码', () => {
   });
 });
 
-describe('五段时间轴', () => {
+describe('六段时间轴', () => {
   it('段落连续覆盖29秒', () => {
     expect(SEGMENTS[0].start).toBe(0);
     expect(SEGMENTS.at(-1)?.end).toBe(29);
@@ -120,8 +120,10 @@ describe('五段时间轴', () => {
     expect(segmentAt(13)).toBe('S4');
     expect(segmentAt(18)).toBe('S4');
     expect(segmentAt(19)).toBe('S5');
-    expect(segmentAt(28.99)).toBe('S5');
-    expect(segmentAt(29.5)).toBe('S5');
+    expect(segmentAt(24.79)).toBe('S5');
+    expect(segmentAt(24.8)).toBe('S6');
+    expect(segmentAt(28.99)).toBe('S6');
+    expect(segmentAt(29.5)).toBe('S6');
     expect(yearAt(3.5)).toBe(1);
     expect(yearAt(8)).toBe(2);
     expect(yearAt(13)).toBe(3);

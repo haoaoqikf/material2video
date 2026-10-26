@@ -26,7 +26,7 @@ def test_film_is_870_frames_with_ambient_bed_and_events():
     assert len(effects) == 25
     offsets = [effect['offsetFrames'] for effect in effects]
     assert offsets == sorted(offsets)
-    assert offsets[:10] == DROPS and offsets[-1] == 780
+    assert offsets[:10] == DROPS and offsets[-1] == 810
     assert all(effect['gainDb'] <= 0 for effect in effects)
     assert 'tts' not in json.loads((EXAMPLE / 'project.json').read_text(encoding='utf-8'))
 

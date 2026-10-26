@@ -180,13 +180,13 @@
       {
         "sourceRef": "assets/media/tingHigh.wav",
         "sceneId": "compound",
-        "offsetFrames": 774,
+        "offsetFrames": 744,
         "gainDb": -6
       },
       {
         "sourceRef": "assets/media/chime.wav",
         "sceneId": "compound",
-        "offsetFrames": 780,
+        "offsetFrames": 810,
         "gainDb": -8
       }
     ]

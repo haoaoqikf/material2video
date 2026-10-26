@@ -1,8 +1,9 @@
 """生成《复利》独立目标静帧（S3 机制 / S5 规模与结果屏收束）。
 
 静帧不是场景截图：这里用独立 HTML+SVG 按最终观感重新构图，供设计评审与手机
-可读性检查。S5 的 result 只含表头与枚数，hold 才是结论与片名收束。每个检查点按
-establish/reveal/result（S5 另含 hold）分别生成，写入 outputs/design/keyframes/，不纳入版本控制。
+可读性检查。S5 的 result 只含表头与枚数；S6 是金顶归队的独立收束，establish 为
+丘顶特写，result 为全白本金堆与结论片名。每个检查点按 establish/reveal/result
+分别生成，写入 outputs/design/keyframes/，不纳入版本控制。
 """
 from __future__ import annotations
 
@@ -110,14 +111,40 @@ def s5_svg(phase: str = 'result') -> str:
         parts.append(text(120, 125, 60, '30 年后的总资产', color=MUTED))
     parts.append(text(500, 230, 60, '收益取走', anchor='middle', weight=600))
     parts.append(text(1360, 230, 60, '收益再投入', anchor='middle', weight=600))
-    if phase in ('result', 'hold'):
+    if phase == 'result':
         parts.append(text(500, 358, 84, '40 枚', anchor='middle', weight=600))
         parts.append(text(1360, 358, 88, '约 174.5 枚', color=GOLD, anchor='middle', weight=600))
-    if phase == 'hold':
-        parts.append(text(120, 810, 72, '让收益，也成为本金。', color=GOLD, weight=600))
-        parts.append(text(960, 125, 96, '复利', anchor='middle', weight=600))
     parts.append(text(960, 1012, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
                       color=MUTED, anchor='middle'))
+    return ''.join(parts)
+
+
+def s6_svg(phase: str = 'result') -> str:
+    """S6 金顶归队：establish 丘顶特写，reveal 全白全景，result 加结论与片名。"""
+    world = []
+    points = hill_positions(159, 1360, 940)
+    units = [1.0] * 158 + [.631]
+    for (x, y), unit in zip(points, units):
+        world.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
+    gold_units = [1.0] * 15 + [.863]
+    cap_y = 654 if phase == 'establish' else 680
+    cap_fill = GOLD if phase == 'establish' else OFF_WHITE
+    rim = '#FFF4CF' if phase == 'establish' else None
+    for i, unit in enumerate(gold_units):
+        x = 1360 + (i - (len(gold_units) - 1) / 2) * 40
+        world.append(disc(x, cap_y, 21 * math.sqrt(unit), cap_fill, rim=rim))
+
+    if phase == 'establish':
+        transform = 'translate(960 540) scale(2) translate(-1360 -660)'
+    else:
+        transform = 'translate(960 540) scale(.95) translate(-1360 -540)'
+    parts = [f'<g transform="{transform}">{"".join(world)}</g>']
+    if phase != 'establish':
+        parts.append(text(960, 1024, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+                          color=MUTED, anchor='middle'))
+    if phase == 'result':
+        parts.append(text(960, 610, 80, '让收益，也成为本金。', color=GOLD, anchor='middle', weight=600))
+        parts.append(text(960, 150, 112, '复利', anchor='middle', weight=600))
     return ''.join(parts)
 
 
@@ -194,6 +221,8 @@ if __name__ == '__main__':
     shoot('s5-establish', s5_svg('establish'))
     shoot('s5-reveal', s5_svg('reveal'))
     shoot('s5-scale', s5_svg('result'))
-    shoot('s5-closing', s5_svg('hold'))
+    shoot('s6-establish', s6_svg('establish'))
+    shoot('s6-reveal', s6_svg('reveal'))
+    shoot('s6-scale', s6_svg('result'))
     for path in sorted(OUT.glob('*.png')):
         print(path.relative_to(ROOT))
