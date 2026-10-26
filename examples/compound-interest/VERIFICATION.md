@@ -14,7 +14,7 @@
 - animatic：29.00秒/870帧；S5 结果在24.8秒结束，S6 使用独立收束静帧；S1/S2/S4 仍按 B 级占位（仅时序）。
 - 测试：前端 `vitest` 96项通过；Python 示例、严格示例与制作门测试通过。
 - 独立评审（全部只投喂中性评审包、报告互不读取）：G4 镜头首轮在 21.00–21.07 秒发现两列标签三帧闪断，并指出 S6 评审包只覆盖 26.9–29.0 秒；修复标签挂载、补 24.8–29.0 秒整段后复审 **pass**。G5 全片 **pass**、G6 结构 **pass**、G6 视觉文案 **pass**。G2 设计 **fail**：S3 result 与 reveal、S5 reveal 与 establish 逐像素相同，S6 没有展示金片并入白堆的过渡帧；G3 animatic **insufficient**：0–8 秒与 13–19 秒仍为黑帧占位，整片为静止硬切，无法核验连续运动。G2/G3 与 S1–S4 既有 G4 项保持开放，未被本轮技术通过关闭；G5/G6 证据通过但因前置未关闭显示“等待前置”。
-- 提交：见交付说明；生成媒体与评审包仍在忽略的 `videos/examples/compound-interest/outputs/`。
+- 提交：`acea783`（实现与文档）；生成媒体与评审包仍在忽略的 `videos/examples/compound-interest/outputs/`。OpenSpec 变更保留在 `openspec/changes/2026-10-26-add-compound-closing-scene/`，因 G2/G3 与 S1–S4 既有 G4 项未关闭而不归档。
 
 ## 2026-10-26 结果屏简化与快进节奏修订
 
