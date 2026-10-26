@@ -39,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="m2v", description="专用与通用视频制作工具")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("types", help="列出内置视频类型")
+    styles = sub.add_parser("styles", help="列出已注册风格（不内置风格）")
+    styles.add_argument("--json", action="store_true", help="输出 JSON")
     from m2v.production.cli import add_parsers
     add_parsers(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")

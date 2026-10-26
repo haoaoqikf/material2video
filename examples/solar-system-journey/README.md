@@ -38,3 +38,5 @@ uv run m2v qa --project examples/solar-system-journey
 ## 旁白与场景对应
 
 场景`solar-journey`采用Three.js / React Three Fiber / Drei绘制同一三维世界。旁白依次为：`sun-line`太阳、`mercury-line`水星、`venus-line`金星、`earth-line`地球、`moon-line`月球、`mars-line`火星、`ceres-line`谷神星、`jupiter-line`木星、`saturn-line`土星、`uranus-line`天王星、`neptune-line`海王星、`pluto-line`冥王星、`kuiper-line`柯伊伯带、`heliopause-line`日球层顶、`oort-line`奥尔特云。正文与字幕按实际配音窗口，导航按当前镜头推进。
+
+本示例未声明可选风格，沿用作品自身设计；风格机制与后续包接入见[风格契约](../../.agents/skills/material2video/references/style-pack.md)。

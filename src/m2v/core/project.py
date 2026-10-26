@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import M2VError
+from .styles import selected_style
 
 PROJECT_FILE = "project.json"
 PROJECT_VERSION = 1
@@ -69,6 +70,8 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
             validate_general_fps(output["fps"], "output.fps")
     elif output.get("fps", FPS) != FPS:
         raise M2VError(f"output.fps 必须为 {FPS}；旧帧率材料请重新编排")
+    selected_style(data, width=output.get("width") if data["type"] != "general" else None,
+                   height=output.get("height") if data["type"] != "general" else None)
     return root, data
 
 
@@ -108,6 +111,11 @@ def save_prepared(root: Path, *, project: dict[str, Any], composition_id: str,
                 "fps": fps, "durationInFrames": duration_in_frames, "inputs": inputs,
                 "materialFingerprint": material_hash, "audio": audio or {},
                 "subtitles": subtitles or []}
+    style = selected_style(project, width=width, height=height)
+    if style:
+        if "style" in inputs and inputs["style"] != style["identity"]["fingerprint"]:
+            raise M2VError("风格在准备过程中变化；请重新 prepare")
+        prepared["style"] = style["identity"]
     prepared["preparedFingerprint"] = _fingerprint(prepared)
     _write_json(root / PREPARED_FILE, prepared)
     return prepared
@@ -123,6 +131,9 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     if not isinstance(expected, str) or _fingerprint(prepared) != expected:
         raise M2VError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
+    style = selected_style(project, width=prepared["width"], height=prepared["height"])
+    if prepared.get("style") != (style["identity"] if style else None):
+        raise M2VError("作品风格已变化；请重新 prepare 并评审")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise M2VError("准备记录与当前作品不匹配；请重新 prepare")
     expected_fps = project_fps(root, project)
@@ -156,6 +167,9 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
 
 def file_inputs(root: Path, project: dict[str, Any]) -> dict[str, str]:
     inputs = {}
+    style = selected_style(project)
+    if style:
+        inputs["style"] = style["identity"]["fingerprint"]
     for name, reference in project["materials"].items():
         file = (root / reference).resolve()
         if not file.is_file():

@@ -126,6 +126,10 @@ Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext
 明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。
 
+### 可选风格
+
+场景可从 `m2v/style` 读取只读身份与参数，从 `m2v/style/components/<name>` 和 `m2v/style/assets/<name>` 导入所选包的登记入口；未选择风格时身份为 null、参数为空对象，资源导入失败。加载边界、就绪要求和缓存规则见[风格接入契约](style-pack.md)。风格不自动换肤。
+
 ### 共享动效原语
 
 `web/src/code-scene/primitives.ts` 提供五类只做数值映射的共享原语，作品从 `m2v/code-scene`

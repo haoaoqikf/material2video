@@ -24,3 +24,5 @@ uv run m2v qa --project examples/compound-interest
 - [验证与制作状态](VERIFICATION.md)
 
 环境床与事件音按 [固定配方](assets/recipe.json) 恢复，已有摘要不符文件拒绝覆盖。视频、声音和评审图片为派生产物，不入库。最终制作结论以VERIFICATION绑定的文件版本为准。
+
+本示例未声明可选风格，沿用作品自身设计；风格机制与后续包接入见[风格契约](../../.agents/skills/material2video/references/style-pack.md)。

@@ -89,15 +89,23 @@ def build_scene(root: Path, scene: dict, work: Path) -> dict[str, str]:
     require_cinematic_dependencies()
     content = scene["content"]
     validate_entry(root, content.get("entry"), content.get("props", {}))
+    from m2v.core.project import load_project
+    from m2v.core.styles import selected_style
+    style = selected_style(load_project(root)[1]) if (root / "project.json").is_file() else None
+    # 校验后的包配置仅给打包器读取，不暴露宿主路径到浏览器参数。
+    style_config = work / "style-build.json"
+    style_config.write_text(json.dumps(style, ensure_ascii=False), encoding="utf-8")
     try:
         result = subprocess.run([shutil.which("node") or "node", str(WEB / "scripts/build-code-scene.mjs"),
-            str(root), content["entry"], str(work)], cwd=WEB, capture_output=True, text=True,
+            str(root), content["entry"], str(work), str(style_config)], cwd=WEB, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=120)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise M2VError(f"代码场景 {scene['id']} 构建失败：{exc}") from exc
     if result.returncode:
         raise M2VError(f"代码场景 {scene['id']} 构建失败：{result.stderr[-4000:]}")
     source_inputs = {}
+    if style:
+        source_inputs["style"] = style["identity"]["fingerprint"]
     for name in json.loads((work / "inputs.json").read_text(encoding="utf-8")):
         file = Path(name)
         if file.is_relative_to(root):

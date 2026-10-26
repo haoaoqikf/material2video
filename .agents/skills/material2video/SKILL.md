@@ -38,6 +38,8 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 新启动／明确重制的检查点合同须声明 `acceptanceChecks: true`，按[结构化完成凭据](references/checkpoint-gates.md#表达检查的完成凭据)在 G4 登记视觉事件、G6 登记设计兑现；缺项仍待评审。检查会补采文字／状态／揭示边界前后帧；查询区分自身结果、等待前置与真实过期，不因等待上游重做有效检查。
 
+可选风格独立于视频类型；选定 `project.json` 的 `style.id` 后，按[风格接入契约](references/style-pack.md)读取指导并落实到 DESIGN.md，显式使用参数、组件与资产。当前无内置风格，未选择时沿用作品设计。
+
 ## 常用命令
 
 ```powershell

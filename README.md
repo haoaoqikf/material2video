@@ -50,6 +50,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 `init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融与住宅分别沿用各自的材料契约。三类各自的材料、编排与画面规则见[文档导航](#文档导航)。
 
+可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前风格目录为空。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)。
+
 ## 命令
 
 运行 `uv run m2v --help` 查看当前命令；类型专属材料和制作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。

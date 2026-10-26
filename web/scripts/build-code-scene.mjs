@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
 
-const [projectArg, entry, output] = process.argv.slice(2);
+const [projectArg, entry, output, styleConfig] = process.argv.slice(2);
+const style = styleConfig ? JSON.parse(fs.readFileSync(styleConfig, 'utf8')) : null;
 const project = fs.realpathSync(projectArg);
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(path.join(web, 'package.json'));
@@ -23,15 +24,31 @@ const result = await build({
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
   loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl'},
   plugins: [{name: 'project-boundary', setup(builder) {
+    builder.onResolve({filter: /^m2v\/style$/}, () => ({path: 'style', namespace: 'm2v-style'}));
+    builder.onLoad({filter: /.*/, namespace: 'm2v-style'}, () => ({contents:
+      `const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
+       export const identity=freeze(JSON.parse(${JSON.stringify(JSON.stringify(style?.identity ?? null))}));
+       export const tokens=freeze(JSON.parse(${JSON.stringify(JSON.stringify(style?.tokens ?? {}))}));`, loader: 'js'}));
     builder.onResolve({filter: /.*/}, args => {
       const fromProject = args.importer && within(project, args.importer);
-      if (!fromProject) return;
+      const fromStyle = args.importer && style && within(style.root, args.importer);
+      if (!fromProject && !fromStyle) return;
       if (args.path === 'm2v/code-scene') return {path: sdk};
+      if (args.path.startsWith('m2v/style/')) {
+        const match = /^m2v\/style\/(components|assets)\/([a-z0-9][a-z0-9-]{0,62})$/.exec(args.path);
+        const file = match && style?.[match[1]]?.[match[2]];
+        if (!file || !within(style.root, fs.realpathSync(file))) throw new Error(`未登记的风格入口：${args.path}`);
+        return {path: fs.realpathSync(file)};
+      }
       if (args.path.startsWith('.')) {
         const candidate = path.resolve(args.resolveDir, args.path);
         const choices = [candidate, ...['.tsx', '.ts', '.jsx', '.js', '.json', '/index.tsx', '/index.ts'].map(ext => candidate + ext)];
         const file = choices.find(item => fs.existsSync(item) && fs.statSync(item).isFile());
-        if (!file || !within(project, fs.realpathSync(file))) throw new Error(`作品导入越界或不存在：${args.path}`);
+        const boundary = fromStyle ? style.root : project;
+        if (!file || !within(boundary, fs.realpathSync(file))) throw new Error(`${fromStyle ? '风格' : '作品'}导入越界或不存在：${args.path}`);
+        // 风格资产只能来自清单登记文件，避免相对导入绕过来源许可登记。
+        if (fromStyle && /\.(png|jpe?g|webp|svg|woff2)$/i.test(file)
+            && !Object.values(style.assets).includes(fs.realpathSync(file))) throw new Error(`未登记的风格资产：${args.path}`);
         return {path: fs.realpathSync(file)};
       }
       const name = args.path.startsWith('@') ? args.path.split('/').slice(0, 2).join('/') : args.path.split('/')[0];
@@ -40,5 +57,6 @@ const result = await build({
     });
   }}],
 });
-const inputs = Object.keys(result.metafile.inputs).filter(file => file !== '<stdin>').map(file => fs.realpathSync(path.resolve(process.cwd(), file)));
+const inputs = Object.keys(result.metafile.inputs).filter(file => file !== '<stdin>' && !file.startsWith('m2v-style:'))
+  .map(file => fs.realpathSync(path.resolve(process.cwd(), file)));
 fs.writeFileSync(path.join(output, 'inputs.json'), JSON.stringify([...new Set(inputs)]));

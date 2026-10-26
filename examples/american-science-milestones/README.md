@@ -45,3 +45,5 @@ uv run m2v qa --project examples/american-science-milestones
 附属[键盘与火花音效演练](assets/SOUND_EXERCISE.md)用于在作品副本验证统一音效库，不改变本示例的无声成片。
 
 本示例代码及文案按仓库许可分发；含CC BY-SA素材的改编视听作品依CC BY-SA 4.0分发，片尾集中署名，不暗示素材作者或机构背书。
+
+本示例未声明可选风格，沿用作品自身设计；风格机制与后续包接入见[风格契约](../../.agents/skills/material2video/references/style-pack.md)。

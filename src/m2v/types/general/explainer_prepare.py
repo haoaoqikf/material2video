@@ -53,6 +53,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     fps = source["fps"]
     explainer_review.require_input(root, project)
     size = frame_engine.normalize(source.get("width"), source.get("height"))
+    from m2v.core.styles import selected_style
+    selected_style(project, width=size[0], height=size[1])
     frame = frame_engine.spec(*size)
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
@@ -161,7 +163,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
              for key, window in scene["segmentWindows"].items()}, duration)
         # 准备只验证/构建源码以收集可达依赖；录制推迟到检查窗口或正式生成。
         with tempfile.TemporaryDirectory(prefix="scene-inputs-") as temporary:
-            inputs.update(code_scenes.build_scene(root, scene, Path(temporary)))
+            scene_inputs = code_scenes.build_scene(root, scene, Path(temporary))
+            if scene_inputs.get("style") != inputs.get("style"):
+                raise M2VError("风格在准备过程中变化；请重新 prepare")
+            inputs.update(scene_inputs)
     props = copy.deepcopy(source)
     props.update(width=size[0], height=size[1], subtitle=frame["subtitle"],
                  compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)

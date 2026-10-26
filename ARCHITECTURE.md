@@ -7,6 +7,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `src/m2v/core/`：作品与工作区契约、路径、资产、指纹、安全策略和公共错误。它不包含具体视频类型的业务流程。
 - `src/m2v/types/`：类型目录、注册表和金融、通用、住宅类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。
 - `src/m2v/types/general/sound_synthesis.py`、`sound_library.py`、`soundtrack.py`：分别负责常见音效目录及确定性拟音、双来源音效登记与离线复核、分镜声音编排；共享 `engine/audio.py` 只处理音频信号与立体声混音，不决定音效选型或许可。
+- `src/m2v/core/styles.py`：解释 `styles/<id>/style.json`，负责风格发现、作品兼容校验和内容指纹；不依赖类型实现。general 打包器只消费已校验入口，风格不修改业务流程。
 - `src/m2v/engine/`：Remotion 构建、渲染会话、音视频、字幕、缓存、质量检查和输出验收；不应依赖类型私有业务规则。
 - `src/m2v/production/`：制作合同、证据依赖、追加式状态、独立评审包及基线保留；制作编排可调用类型采集器，core 不反向依赖该层，渲染不读取制作门作为导出条件。
 - `src/m2v/reference/`：外部参考素材获取、页面详情解析、媒体摘要核验与用户授权的音轨提取。

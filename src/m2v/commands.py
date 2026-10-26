@@ -21,6 +21,14 @@ from m2v.types import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
+    if args.command == "styles":
+        from m2v.core.styles import list_styles
+        items = list_styles()
+        if args.json:
+            print(json.dumps(items, ensure_ascii=False, indent=2))
+        else:
+            print("\n".join(f"{x['id']} {x['version']} — {x['description']}" for x in items) or "暂无已注册风格")
+        return 0
     if args.command in {"gates", "issues", "baseline"} or (args.command == "review" and getattr(args, "action", None) == "import"):
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
@@ -300,6 +308,10 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     video_type = registry.get(manifest["type"])
     result = {"id": manifest["id"], "type": manifest["type"],
               "review": {"status": "optional" if video_type.manual_review_available else "not-required", "required": False}}
+    from m2v.core.styles import selected_style
+    style = selected_style(manifest)
+    if style:
+        result["style"] = {**style["identity"], "guide": style["guide"]}
     from m2v.production import baselines, ledger
     result['production'] = ledger.status(root, manifest, full_history=full_history)
     if manifest['type'] == 'general':
