@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / 'examples/compound-interest'
 BED = {'sourceRef': 'assets/media/bed.wav', 'gainDb': 0, 'loop': False,
        'fadeInMs': 0, 'fadeOutMs': 0}
-DROPS = [17, 19, 22, 25, 27, 30, 33, 35, 38, 41]
+DROPS = [30, 33, 35, 38, 41, 44, 46, 49, 52, 54]
 
 
 def test_film_is_870_frames_with_ambient_bed_and_events():

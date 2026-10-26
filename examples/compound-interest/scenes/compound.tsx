@@ -79,7 +79,7 @@ function cameraAt(t: number): Cam {
 }
 
 const arrive = (t: number, at: number, duration = .5) => ease((t - at) / duration);
-const dropAt = (i: number) => .55 + i * .09;
+const dropAt = (i: number) => 1.0 + i * .09;
 
 function StartColumns({t}: {t: number}) {
   return <>
@@ -236,15 +236,23 @@ function TextLayer({t}: {t: number}) {
   // S6 丘顶特写时脚注会压在圆片上，24.6–24.8 淡出，拉回全景后 26.9 起恢复。
   const footnote = arrive(t, 4.4, .5) * (1 - arrive(t, 24.6, .2) + arrive(t, 26.9, .3));
   // 开场标签在S2推近的头0.35秒内淡出，避免镜头移动时标签与柱脱开。
-  const approach = arrive(t, 1.35, .35) * (1 - arrive(t, 3.5, .15));
+  // 开场主题卡在1.04秒退净；两柱1.0秒起落，标题随之进入，避免与主题卡同屏。
+  const approach = arrive(t, 1.8, .3) * (1 - arrive(t, 3.5, .15));
   return <>
+    {segment === 'S1' && <>
+      <rect width={1920} height={1080} fill={BG} opacity={1 - arrive(t, .82, .22)}/>
+      <Text x={960} y={560} size={112} anchor="middle" weight={600}
+        opacity={1 - arrive(t, .72, .14)}>复利的力量</Text>
+    </>}
     {approach > 0 && <>
       <Text x={LEFT_X} y={610} size={48} anchor="middle" opacity={approach}>收益取走</Text>
       <Text x={RIGHT_X} y={610} size={48} color={GOLD} anchor="middle" opacity={approach}>收益再投入</Text>
     </>}
     {segment === 'S1' && <>
-      <Text x={120} y={170} size={76} weight={600}>同样一万</Text>
-      <Text x={120} y={262} size={76} weight={600}>两种做法</Text>
+      <Text x={120} y={170} size={76} weight={600}
+        opacity={arrive(t, 1.0, .3)}>同样一万</Text>
+      <Text x={120} y={262} size={76} weight={600}
+        opacity={arrive(t, 1.0, .3)}>两种做法</Text>
       <Text x={120} y={360} size={60} color={MUTED} opacity={arrive(t, 2.2, .4)}>三十年后差多少？</Text>
     </>}
     {segment === 'S2' && <>

@@ -41,61 +41,61 @@
       {
         "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
-        "offsetFrames": 17,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/drop2.wav",
-        "sceneId": "compound",
-        "offsetFrames": 19,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/drop3.wav",
-        "sceneId": "compound",
-        "offsetFrames": 22,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/drop1.wav",
-        "sceneId": "compound",
-        "offsetFrames": 25,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/drop2.wav",
-        "sceneId": "compound",
-        "offsetFrames": 27,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/drop3.wav",
-        "sceneId": "compound",
         "offsetFrames": 30,
         "gainDb": -4
       },
       {
-        "sourceRef": "assets/media/drop1.wav",
+        "sourceRef": "assets/media/drop2.wav",
         "sceneId": "compound",
         "offsetFrames": 33,
         "gainDb": -4
       },
       {
-        "sourceRef": "assets/media/drop2.wav",
+        "sourceRef": "assets/media/drop3.wav",
         "sceneId": "compound",
         "offsetFrames": 35,
         "gainDb": -4
       },
       {
-        "sourceRef": "assets/media/drop3.wav",
+        "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
         "offsetFrames": 38,
         "gainDb": -4
       },
       {
-        "sourceRef": "assets/media/drop1.wav",
+        "sourceRef": "assets/media/drop2.wav",
         "sceneId": "compound",
         "offsetFrames": 41,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop3.wav",
+        "sceneId": "compound",
+        "offsetFrames": 44,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 46,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop2.wav",
+        "sceneId": "compound",
+        "offsetFrames": 49,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop3.wav",
+        "sceneId": "compound",
+        "offsetFrames": 52,
+        "gainDb": -4
+      },
+      {
+        "sourceRef": "assets/media/drop1.wav",
+        "sceneId": "compound",
+        "offsetFrames": 54,
         "gainDb": -4
       },
       {
