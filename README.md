@@ -14,7 +14,7 @@
 
 通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)。
 
-制作时按表达目的选择外部素材、代码或混合：外部素材优先找合适的视频，无合适视频再用图片；静态原件可直接使用图片，搜索框输入与点击等适合代码的过程可直接合成。不设视频占比，选择与评审标准见[素材选择规范](.agents/skills/material2video/references/article-media-and-sound.md#视频优先与代码适用场景)。
+制作时按表达目的选择外部素材、代码或混合：外部素材优先找合适的视频，无合适视频再用图片；静态原件可直接使用图片，搜索框输入与点击等适合代码的过程可直接合成。不设视频占比，选择与评审标准见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)。
 
 ## 快速开始
 
@@ -79,6 +79,7 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 - [material2video Skill](.agents/skills/material2video/SKILL.md)：统一制作流程、命令和按类型组织的参考资料。
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法。
+- [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。
 - [OpenSpec 规格](openspec/specs/)：已实现能力契约；[项目规划](docs/PROJECT_PLAN.md)：未来路线。
 
