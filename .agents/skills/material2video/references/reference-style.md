@@ -8,6 +8,12 @@
 - 用户要求「拆解」「学习」「为什么有效」但未要求外观相同时，按[参考视频逆向拆解](reference-video-analysis.md)执行；本文只在需要量测外观时叠加。
 - 用户只要求复用参考音频时，不属于风格借鉴，按[复用参考音轨](article-media-and-sound.md#复用参考音轨受控例外)执行。
 
+## 已登记的外部参考项目
+
+用户点名 material2video 已登记的外部参考项目（当前为 `vibe-knowledge-film` 的夜曲/寓言）时，先读[外部参考项目登记](external-projects.md)确认来源、固定 commit、许可与受限项，再读对应的[项目制作指引](vibe-knowledge-film.md)。
+
+这些登记**不是风格包**：不通过 `project.json` 的 `style.id` 选择，`m2v styles` 不显示，渲染链路不读取；外观仍按本文的 L1/L2/L3、八项指标与画幅转译执行。参考画面、字幕、贴图不得进入成片，受限资产不得复制。
+
 ## 两条边界不能混
 
 | 边界 | 规则 |
