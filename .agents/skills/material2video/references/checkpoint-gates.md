@@ -16,6 +16,10 @@
 
 精制修订按问题影响更新上述证据。镜头 A/B/C 与独立评审 A/B 是不同等级，B/C 不免除独立性要求。G4 检查与评审分列：A 级二者通过才扩展，B/C 检查通过即可在 G5 批量评审并回绑。粗片验证完成须 G4/G5 都关闭；带问题迭代不等于阶段完成。全片评审聚焦跨场问题，仍可重开任何场景问题；迟到缺陷记录 caughtAt/catchableAt 并回填早期检查。
 
+### 视觉事件与设计兑现的阶段归属
+
+对本次更新后新启动的 general 作品及明确启动的重制，G4 执行[视觉事件检查](production-workflow.md#视觉事件检查)，G5 复核其跨场后的有效性；精制修订执行[设计兑现检查](production-workflow.md#设计兑现检查)，按影响更新 G4/G5 证据，G6 核验当前成片闭环并保留重开权。仍使用现有 checks/evidence、独立报告与唯一问题表，不增加门、合同字段或自动审美判定；在制作品不追溯切换。判断演练见[太阳系示例](../../../../examples/solar-system-journey/WORKFLOW_CHECK_EXERCISE.md)。
+
 ## 唯一设计合同
 
 在 DESIGN.md 内保留且仅保留一个 `m2v-checkpoints` 围栏 JSON 块。格式版本 1，与 v8 storyboard 版本独立，不新增 storyboard 或运行时字段。完整实例见仓库 [复利设计](../../../../examples/compound-interest/DESIGN.md)。

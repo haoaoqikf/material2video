@@ -29,6 +29,8 @@ description: 使用统一 m2v 制作入口创作金融时间序列、住宅时�
 
 新启动 general 作品和后续重制必须按[检查点门](references/checkpoint-gates.md)在 DESIGN.md 声明合同并记录 G0–G6 证据；状态为制作完成条件，不增加用户审批或导出硬门禁。
 
+本次流程更新后新启动的 general 作品及明确启动的重制，在粗片验证执行[视觉事件检查](references/production-workflow.md#视觉事件检查)，在精制修订执行[设计兑现检查](references/production-workflow.md#设计兑现检查)。存量在制作品沿用启动时合同，不要求切换流程、重做准备或补造评审。
+
 ## 常用命令
 
 ```powershell
