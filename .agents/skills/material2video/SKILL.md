@@ -27,6 +27,7 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 - 制作过程中发现可复用的流程改进，应在当前工作中实施并验证；受范围限制的事项按根目录 [AGENTS.md](../../../AGENTS.md) 记录。
 - 评审须区分实际缺陷、创意风险、审美偏好和证据不足。A/B 级评审按[独立评审流程](references/subagent-review.md)隔离执行；详细证据、问题闭环和完成边界见[视觉复核](references/visual-review-rubric.md)与[导演审查](references/director-review-and-edit.md)。
 - 作品面向手机复核，但画幅服从作品设计。素材来源与许可留在作品材料，片尾只保留一份简短署名；画面不出现仓库路径或内部制作提示。
+- 画面注释沿用[项目约定](../../../AGENTS.md#修改规则)的从紧范围；确需添加时一律用明显小于主体文字的小字，置于次要位置，手机尺寸下仍须可读，不遮挡主体、关键数据、字幕或关键动作，不争夺焦点。空间不足先精简或调整位置；主题、对象名称、结论和正常字幕不归为注释，不设跨画幅统一像素字号。制作和修订均按[视觉复核](references/visual-review-rubric.md#反目标写进-designmd按题材检查)检查完整出现窗口。
 - 制作前明确受众与表达目标，评审覆盖信息推进、自然文案和完整事件窗口；具体标准见[节奏与创作](references/creative-production.md)、[统一制作与质量工具](references/cinematic-video.md)和[视觉复核](references/visual-review-rubric.md)。
 
 新启动 general 作品和后续重制必须按[检查点门](references/checkpoint-gates.md)在 DESIGN.md 声明合同并记录 G0–G6 证据；状态为制作完成条件，不增加用户审批或导出硬门禁。
