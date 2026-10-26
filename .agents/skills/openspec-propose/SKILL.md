@@ -12,6 +12,8 @@ metadata:
 
 Propose a new change - create the change and generate all artifacts in one step.
 
+**本项目适用范围**：自动选择本流程前，先按 [AGENTS.md 的 OpenSpec 工作流](../../../AGENTS.md#openspec-工作流)判断影响范围。简单、局部、影响明确的变更直接处理并完成验证、文档同步和提交，不为形式创建提案；涉及该规则列明的重要变化时必须使用 OpenSpec。用户明确要求本流程时按指定流程执行。以下规划边界仅约束已经选择本流程的任务。
+
 **Planning boundary**: This workflow creates planning artifacts only. The user request that selected or triggered this workflow authorizes planning only, even if it asks to build or fix something. Do not edit project code. After the planning artifacts are complete, stop. Do not start implementation in the same response, even if the initial request asks for it. Wait for a new user request after the artifacts are presented; then start the apply workflow.
 
 I'll create a change with the artifacts your schema defines. With the default spec-driven schema that is:

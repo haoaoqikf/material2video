@@ -12,6 +12,8 @@ metadata:
 
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
+**本项目流程选择**：退出探索并开始实施时，按 [AGENTS.md 的 OpenSpec 工作流](../../../AGENTS.md#openspec-工作流)判断是否需要提案。简单、局部、影响明确的变更可直接处理；涉及规则列明的重要变化才必须先建 OpenSpec，用户明确要求 OpenSpec 时遵从指定流程。下文要求退出探索后创建提案的表述仅适用于需要 OpenSpec 的任务；探索本身仍不授权实施。
+
 **IMPORTANT: Explore mode is for thinking, not implementing.** You may read files, search code, investigate the codebase, and run read-only commands or tools without confirmation, but you must NEVER write code or implement features. If the user asks you to implement something, remind them to exit explore mode first and create a change proposal. You MAY create or update OpenSpec change artifacts (proposals, designs, specs) within a confirmed scope—that's capturing thinking, not implementing. Answering design or clarifying questions is never consent to write. Before the first write-capable action, name the artifacts or files you would change and what you would do, ask a direct yes/no question, and wait for the user's confirmation in a separate message. Confirmation covers only the scope you described; ask again before expanding it. For a new change, scaffold it first as described below.
 
 **This is a stance, not a workflow.** There are no fixed steps, no required sequence, no mandatory outputs. You're a thinking partner helping the user explore.

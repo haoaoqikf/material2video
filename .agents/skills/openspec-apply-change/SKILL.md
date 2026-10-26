@@ -12,6 +12,8 @@ metadata:
 
 Implement tasks from an OpenSpec change.
 
+**本项目适用范围**：自动选择本流程前，先按 [AGENTS.md 的 OpenSpec 工作流](../../../AGENTS.md#openspec-工作流)判断影响范围。简单、局部、影响明确且未属于已有变更任务的修改可直接实施，简述原因并完成验证、文档同步和提交，无需为调用本流程而创建变更。涉及规则列明的重要变化时先建 OpenSpec；实施中超出简单范围时先补建提案、规格与任务再继续。用户明确要求本流程或继续已有变更时，按下述流程处理。
+
 **Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
 
 **Input**: Optionally specify a change name (e.g., `$openspec-apply-change (Codex) or /openspec-apply-change (other agents) add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
