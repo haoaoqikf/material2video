@@ -17,6 +17,7 @@
 ### Modified Capabilities
 
 - `checkpoint-based-visual-acceptance`：完成凭据、关键边界采样及证据与前置状态分离。
+- `production-status-ledger`：同步等待前置词汇、本门结果及完成条件，保留既有场景。
 
 ## Impact
 
