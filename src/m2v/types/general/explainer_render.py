@@ -13,6 +13,7 @@ import logging
 import tempfile
 import time
 from pathlib import Path
+from m2v.core.audio_policy import declared_audio
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_current_prepared
 from m2v.core import security
@@ -21,6 +22,11 @@ from m2v.engine.http_server import LocalServer
 from .explainer_prepare import implementation_digest
 
 logger = logging.getLogger(__name__)
+
+
+def _has_audio(prepared: dict) -> bool:
+    """按声音声明判定交付轨道；内部静音母版不代表作品需要音轨。"""
+    return declared_audio(prepared)
 
 # 字幕判据不写死在这里：安全区来自共享画幅配置，由 `measure_script` 注入为 `B`。
 # 过去字幕盒写在设计令牌里、量测边界又各写一份常量，改一处不会让另一处报错，
@@ -186,13 +192,18 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
             on_line=remotion.progress_handler(frames_to_render))
         timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(0, time.monotonic() - render_start - float(session.get("readySeconds") or 0)))
-        master = root / prepared["audio"]["segments"][0]["path"]
-        final = work / "final.mp4"
-        with perf.measure(timings, "mux"):
-            audio.mux(silent, master, final, frames_to_render / fps, start=start_frame / fps)
+        has_audio = _has_audio(prepared)
+        final = work / "final.mp4" if has_audio else silent
+        if has_audio:
+            master = root / prepared["audio"]["segments"][0]["path"]
+            with perf.measure(timings, "mux"):
+                audio.mux(silent, master, final, frames_to_render / fps, start=start_frame / fps)
+        else:
+            timings.record("mux", 0)
+            logger.info("作品无声音声明，直接交付无音轨候选")
         with perf.measure(timings, "probe"):
             if not defer_validation:
-                output_validation.verify_output(final, frames_to_render, width, height, fps, expect_audio=True)
+                output_validation.verify_output(final, frames_to_render, width, height, fps, expect_audio=has_audio)
         if current(root, project)["preparedFingerprint"] != prepared["preparedFingerprint"]:
             raise M2VError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": "general", "projectId": project["id"],
@@ -204,7 +215,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
                       "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
                       "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,
                       "delivery": {"codec": "aac", "sampleRate": 44100, "channels": 2,
-                                   "bitrate": "128k"}},
+                                   "bitrate": "128k"}} if has_audio else {"mode": "none"},
             "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),
                          "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
                          "frames": frames_to_render, "fps": fps, "width": width, "height": height},
@@ -242,7 +253,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
     def verify(video):
         layout_check(root, current(root, project))
         output_validation.verify_output(video, prepared["durationInFrames"], prepared["width"],
-                                        prepared["height"], fps, expect_audio=True)
+                                        prepared["height"], fps, expect_audio=_has_audio(prepared))
     def generate(target):
         # 只在 export_once 确定候选不可复用后登记真正生成；QA 重试不计一次编码。
         from m2v.commands import _production_render_event

@@ -14,7 +14,7 @@
 
 通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)。
 
-制作时按表达目的选择外部素材、代码或混合：外部素材优先找合适的视频，无合适视频再用图片；静态原件可直接使用图片，搜索框输入与点击等适合代码的过程可直接合成。不设视频占比，选择与评审标准见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)。
+制作时按表达目的选择外部素材、代码或混合，默认运动载体顺序为真实视频 → 代码动画/示意 → 静态图片：外部素材优先找合适视频；图片仅作最后手段，不得用静帧推拉或缩放伪装视频；静态原件可直接使用图片，搜索框输入与点击等适合代码的过程可直接合成。不设视频占比，选择与评审标准见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)。
 
 ## 快速开始
 
@@ -33,16 +33,18 @@ pnpm -C web test
 统一入口以作品目录为唯一归属：
 
 ```powershell
-uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/
+uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/，项目与分镜均默认横屏
 uv run m2v validate --project videos/general/<slug>
 # 有自身旁白时，先按下文选音并保存；手动制作可在 prepare 指定 --voice。
 uv run m2v prepare --project videos/general/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/general/<slug>
-# 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，A/B 级评审按独立子代理流程执行。
+# 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，适用审核轮按独立子代理流程执行。
 uv run m2v render --project videos/general/<slug>
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
+
+general 作品未配置旁白、音乐和音效时，预览与正式成片均不含音轨；有任一声音声明则保留原混音与验收流程。
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频、连续收听声音或试听音色，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
 

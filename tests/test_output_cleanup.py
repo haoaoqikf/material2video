@@ -161,6 +161,26 @@ def test_general_cleanup_preserves_reach_report_and_notes_linked_evidence(tmp_pa
     assert not (outputs / "reach/stale.mp4").exists()
 
 
+def test_general_cleanup_preserves_independent_design_evidence(tmp_path: Path) -> None:
+    """独立目标关键帧是设计证据，不得在成功交付后被当作普通静帧删除。"""
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "video.mp4"
+    current.write_bytes(b"final")
+    for name in ("design/keyframes/nvidia-result-393.png", "design/source/dgx.jpg",
+                 "design/independent-source.json", "old.mp4"):
+        path = outputs / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"evidence")
+
+    assert output_cleanup.cleanup_after_render(outputs, current, preserve_visual_evidence=True) == []
+
+    assert (outputs / "design/keyframes/nvidia-result-393.png").is_file()
+    assert (outputs / "design/source/dgx.jpg").is_file()
+    assert (outputs / "design/independent-source.json").is_file()
+    assert not (outputs / "old.mp4").exists()
+
+
 def test_unreadable_visual_record_skips_cleanup_without_losing_current(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     outputs.mkdir()

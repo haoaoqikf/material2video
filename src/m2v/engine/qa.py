@@ -20,6 +20,7 @@ from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
+from m2v.core.audio_policy import declared_audio
 from m2v.core.delivery import outputs as output_root
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json
@@ -260,7 +261,10 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
         raise M2VError("成片太短，无法抽样检查")
     qa_dir = output_root(root) / "qa"
     qa_dir.mkdir(parents=True, exist_ok=True)
-    inspection = qa_inspection.inspect(target, prepared, qa_dir, audio_required=bool(audio_segments))
+    audio_required = bool(audio_segments)
+    if prepared.get("type") == "general":
+        audio_required = declared_audio(prepared)
+    inspection = qa_inspection.inspect(target, prepared, qa_dir, audio_required=audio_required)
     has_audio = inspection["audioSignals"]["status"] != "not-applicable"
     no_audio = {"status": "not-applicable", "detail": "无音轨，契约允许"}
     if has_audio:

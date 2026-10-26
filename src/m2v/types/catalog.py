@@ -70,6 +70,15 @@ class Entry:
         """作品契约使用的「材料名 → 默认文件名」映射。"""
         return {material.name: material.file for material in self.materials}
 
+    def initial_dimensions(self) -> dict[str, int]:
+        """从渲染材料的显式画幅派生项目默认值，避免创建器另存一套尺寸。"""
+        for material in self.materials:
+            canvas = material.template.get("canvas", material.template)
+            if isinstance(canvas, dict) and all(type(canvas.get(k)) is int and canvas[k] > 0
+                                                for k in ("width", "height")):
+                return {k: canvas[k] for k in ("width", "height")}
+        return {}
+
 
 class Catalog:
     """已校验的类型目录。构造一律通过 :func:`load`。"""

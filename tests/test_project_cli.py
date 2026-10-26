@@ -54,7 +54,9 @@ def test_init_writes_all_financial_material_templates_under_content_root(tmp_pat
     assert set(manifest["materials"]) == {"request", "prices", "plan"}
     assert all((project_root / name).is_file() for name in manifest["materials"].values())
     with open(project_root / "animation-plan.json", encoding="utf-8") as stream:
-        assert json.load(stream)["schemaVersion"] == 8
+        plan = json.load(stream)
+        assert plan["schemaVersion"] == 8
+        assert {k: manifest["output"][k] for k in ("width", "height")} == plan["canvas"]
 
 
 def test_init_accepts_explicit_canonical_type_path(tmp_path: Path) -> None:

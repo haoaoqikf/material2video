@@ -101,7 +101,7 @@ def _init(args) -> int:
             project_dir = workspace / project_dir
         else:
             project_dir = workspace / project_dir
-    path = create_project(project_dir, item.name, entry.material_map())
+    path = create_project(project_dir, item.name, entry.material_map(), output=entry.initial_dimensions())
     root = path.parent
     # 材料文件名与初始内容都取自类型目录：这里是写盘，不是第二处事实。
     for material in entry.materials:

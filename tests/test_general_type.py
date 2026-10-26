@@ -35,6 +35,7 @@ def test_general_init_has_only_v8_storyboard(tmp_path):
     assert manifest["materials"] == {"storyboard": "storyboard.json"}
     storyboard = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     assert storyboard["version"] == 8 and (storyboard["width"], storyboard["height"]) == (1920, 1080)
+    assert (manifest["output"]["width"], manifest["output"]["height"]) == (storyboard["width"], storyboard["height"])
     # 初始化同时生成可运行的本地场景入口：材料写得出，画面也录得起来。
     assert (root / "scenes/opening.tsx").is_file()
     assert not (root / "general-plan.json").exists()

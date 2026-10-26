@@ -75,7 +75,8 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     return root, data
 
 
-def create_project(directory: str | Path, video_type: str, materials: Mapping[str, str]) -> Path:
+def create_project(directory: str | Path, video_type: str, materials: Mapping[str, str], *,
+                   output: Mapping[str, Any] | None = None) -> Path:
     """创建作品描述。
 
     材料入口由调用方（统一入口，取自类型目录）传入。作品契约此前自带一份类型
@@ -97,7 +98,7 @@ def create_project(directory: str | Path, video_type: str, materials: Mapping[st
     # Keep a readable prefix while giving same-named works independent stable IDs.
     project_id = f"{slug[:50].rstrip('-') or 'video'}-{uuid.uuid4().hex[:8]}"
     _write_json(path, {"schemaVersion": PROJECT_VERSION, "id": project_id, "type": video_type,
-                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": default_fps(video_type), "audio": "optional"}})
+                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": default_fps(video_type), "audio": "optional", **(output or {})}})
     return path
 
 
