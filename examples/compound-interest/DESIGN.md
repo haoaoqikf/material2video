@@ -234,17 +234,52 @@ S1：0–0.82全屏主题卡“复利的力量”；0.82–1.04淡出；1.0–1.
 
 ## 检查点合同（六段：S1–S6）
 
-本块是当前设计合同。G1与 `S1-result`–`S6-result` 的 G4、G2阶段覆盖、G3 animatic、G4场景窗口与独立评审须逐项执行；未关闭项保持披露，不据此宣称全片通过。默认计数按实测逐点校准，不伪造通过。
+本块是当前 v2 设计合同。审核计划声明静态结果段与结构时序风险，核心轮与全片轮按计划覆盖；G4 场景检查逐检查点执行。历史未关闭项保持披露，不据此宣称全片通过，旧评审不授权新版本。默认计数按实测逐点校准，不伪造通过。
 
 `S6-result` 的 G4 窗口从807帧（拉回完成）开始，只核对全白终态与文字；744–807帧的2×丘顶特写是刻意裁切，圆片出画不按裁切失败计，改由 G2 的 `s6-establish/reveal` 独立静帧、G3 animatic 与独立评审覆盖。特写期间页脚淡出，避免压在圆片上。
 
 ```m2v-checkpoints
 {
-  "version": 1,
+  "version": 2,
+  "cycleId": "compound-interest-2026-10-27",
   "fps": 30,
   "width": 1920,
   "height": 1080,
-  "structureRisk": true,
+  "reviewPlan": {
+    "basis": "六段故事板依赖跨场资金阶段与 S6 金顶归队收束；S3/S5/S6 已声明时间结构，静态构图风险集中在同一批结果段。旧评审不授权新版本，历史已知限制保留在作品记录中。",
+    "risks": [
+      {
+        "id": "static-results",
+        "kind": "static-expression",
+        "scope": {
+          "checkpointIds": [
+            "S3-result",
+            "S5-result",
+            "S6-result"
+          ]
+        },
+        "reason": "结果段的空间层级与构图关系需要先由静态方案排除误读",
+        "requiredEvidence": [
+          "独立目标关键帧与盲看观察"
+        ]
+      },
+      {
+        "id": "timeline",
+        "kind": "structure-timing",
+        "scope": {
+          "checkpointIds": [
+            "S3-result",
+            "S5-result",
+            "S6-result"
+          ]
+        },
+        "reason": "资金阶段推进与 S6 并入收束依赖揭示时机",
+        "requiredEvidence": [
+          "animatic 盲看与完整窗口帧序列"
+        ]
+      }
+    ]
+  },
   "retrospective": true,
   "constraints": {
     "source": "当前六段设计与2026-10-26改版（S6独立收束）；旧评审不授权新版，未完成的阶段覆盖与独立评审保持披露"

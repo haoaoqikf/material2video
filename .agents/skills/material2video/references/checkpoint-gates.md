@@ -1,48 +1,75 @@
-# 检查点门、制作状态与基线保留
+# 检查点门、审核策略与基线保留
 
-本契约适用于新启动 general 作品和后续重新启动的重制；存量在制作品本轮沿用启动时流程，已交付作品不补造历史证据。金融和住宅使用专用契约。门是助手声明制作完成的条件，不是用户审批或 CLI 导出硬门禁。
+本契约适用于新启动 general 作品和后续重新启动的重制；存量在制作品沿用启动时合同，已交付作品不补造历史证据。v1 合同明确拒绝，不提供兼容执行、自动迁移或继承通过。金融和住宅使用专用契约。
 
-## 门与四阶段
+门是助手声明制作完成的条件，不是用户审批或 CLI 导出硬门禁。G0–G6 是证据索引，不等于七次人工审核；独立审核轮次和人数由唯一审核策略从合同派生。
+
+## 门、四阶段与审核轮
 
 | 门 | 阶段 | 证据 |
 |---|---|---|
 | G0 | 方案确定 | 当前输入、事实与许可审查及不适用项 |
-| G1 | 方案确定 | DESIGN.md 合同解析、设计声明一致性 |
-| G2 | 方案确定 | A 级/核心段落独立目标关键帧、来源核验与独立盲审 |
-| G3 | 方案确定 | 实际分镜映射与时间线；A 级或结构风险另需 animatic 独立评审 |
-| G4 | 粗片验证 | 逐场检查点、布局/状态观测、完整事件窗口与所需独立评审 |
-| G5 | 粗片验证 | 跨场结构、声画承接、节奏、首次导演及 B/C 批量独立评审 |
-| G6 | 最终验收 | 当前成片技术 QA、完整帧证据、两名隔离终审及交付来源检查 |
+| G1 | 方案确定 | v2 合同、审核计划与设计声明一致性 |
+| G2 | 方案确定 | 仅 `static-expression` 风险触发：独立目标关键帧及观察 |
+| G3 | 方案确定 | 分镜映射自动检查；仅 `structure-timing` 风险触发 animatic 观察 |
+| G4 | 粗片验证 | 每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察 |
+| G5 | 粗片验证 | 一份全片粗片综合报告，覆盖全部场景、结构、衔接、节奏与视觉风险 |
+| G6 | 最终验收 | 当前候选技术 QA、完整全片证据、一名新代理综合审查；`split-final` 时两名 |
 
-精制修订按问题影响更新上述证据。镜头 A/B/C 与独立评审 A/B 是不同等级，B/C 不免除独立性要求。G4 检查与评审分列：A 级二者通过才扩展，B/C 检查通过即可在 G5 批量评审并回绑。粗片验证完成须 G4/G5 都关闭；带问题迭代不等于阶段完成。全片评审聚焦跨场问题，仍可重开任何场景问题；迟到缺陷记录 caughtAt/catchableAt 并回填早期检查。
+独立审核默认三轮：
 
-### 视觉事件与设计兑现的阶段归属
+| 轮 | 时点 | 执行者 | 必须覆盖 |
+|---|---|---|---|
+| 核心样片 | 扩展高投入实现前 | 一名独立代理 | 计划中每项未验证的核心风险；动态须完整事件窗 |
+| 全片粗片 | 精修前 | 一名独立代理 | 全部场景、跨场衔接、结构、节奏、文案理解与视觉风险 |
+| 最终成片 | 当前候选技术 QA 后 | 一名未参与前期评审的新代理 | 当前文件全片、理解、结构、节奏、视觉、文案与手机可读性 |
 
-对本次更新后新启动的 general 作品及明确启动的重制，G4 执行[视觉事件检查](production-workflow.md#视觉事件检查)，G5 复核其跨场后的有效性；精制修订执行[设计兑现检查](production-workflow.md#设计兑现检查)，按影响更新 G4/G5 证据，G6 核验当前成片闭环并保留重开权。仍使用现有 checks/evidence、独立报告与唯一问题表，不增加门、合同字段或自动审美判定；在制作品不追溯切换。判断演练见[太阳系示例](../../../../examples/solar-system-journey/WORKFLOW_CHECK_EXERCISE.md)。
+核心轮只在审核计划存在 `static-expression`、`structure-timing`、`core-event` 等未验证风险时必做；没有这些风险的作品只要求粗片和最终两轮。不同风险可以同轮分批投喂，但报告须逐项覆盖，不能用一个代表事件授权所有未验证风险。粗片和最终两轮不可互相替代。最终默认一人，不表示所有轮共用同一人。
 
-## 唯一设计合同
+门与轮不是一一对应：核心轮报告可以绑定 G2/G3/G4 的多个检查事件；普通镜头 G4 检查通过即可关闭，不再等待 G5 批量回绑；G5 有权发现并重开任意场景问题。
 
-在 DESIGN.md 内保留且仅保留一个 `m2v-checkpoints` 围栏 JSON 块。格式版本 1，与 v8 storyboard 版本独立，不新增 storyboard 或运行时字段。完整实例见仓库 [复利设计](../../../../examples/compound-interest/DESIGN.md)。
+## 唯一设计合同 v2
 
-顶层字段：version、fps、width、height、structureRisk、scenes，可选 constraints、retrospective、acceptanceChecks。本次修复后新启动的作品及明确启动的重制须声明 `acceptanceChecks: true`；缺省的在制合同不追溯增加完成凭据要求，不升级合同版本或改变渲染缓存。每场包含 id、durationFrames、shots、checkpoints；镜头包含全片唯一 id、tier、window，可选 core 与 timeStructure。检查点含全片唯一 id、shotId、frame、window、expected、textPlan、claims、forbidden，可选 measurement、sampleStep、minEventFrames、manualEvidence、statePlan。ID 使用字母数字、下划线和连字符，最长96位。
+在 DESIGN.md 内保留且仅保留一个 `m2v-checkpoints` 围栏 JSON 块。合同 `version` 必须为 2，与 v8 storyboard 版本独立，不进入 storyboard 或渲染缓存指纹。
 
-全部帧窗是场景局部左闭右开区间，采样 frame 必须处于镜头与检查点帧窗内。G1 不依赖场景源码；G3 才核验 storyboard 实际场景、时长和画幅。每镜头至少一个默认检查点；A 级与核心段落还需建立/结果关键帧，有揭示时增加揭示图，不能用场景截图冒充。
+顶层字段：`version`、`cycleId`、`fps`、`width`、`height`、`reviewPlan`、`scenes`，可选 `constraints`、`retrospective`。`cycleId` 标识当前制作周期；旧周期事件不得授权新周期。`structureRisk`、`acceptanceChecks` 和 v1 其余字段一律拒绝。
 
-A 级 timeStructure 含 establish、pause、change、reveal、result、hold，每段记录 window、audience、visible、attention、toleranceFrames、failure。不适用段 window 为 null，并记录 notApplicableReason 和 alternative；不为填表制造停顿。适用段连续覆盖镜头窗口。
+每场包含 `id`、`durationFrames`、`shots`、`checkpoints`。镜头包含全片唯一 `id`、`tier`、`window`，可选 `core` 与 `timeStructure`。检查点含全片唯一 `id`、`shotId`、`frame`、`window`、`expected`、`textPlan`、`claims`、`forbidden`，可选 `measurement`、`sampleStep`、`minEventFrames`、`manualEvidence`、`statePlan`。ID 使用字母数字、下划线和连字符，最长 96 位。
 
-expected 是 role/count 断言列表，可选 state/color/visible/tolerance，默认在检查点采样帧核对数量；时间窗内其他帧负责布局与动态取证。textPlan 是 role/text/window 列表，核对文字出现与离开；claims 含 id/value/unit/basis，可选 role，同 ID 不可声明不同值。forbidden 是禁止出现的可见文字列表；语义禁止项仍由人工独立评审。
+每场至少一个默认检查点；内部镜头按真实状态变化和风险补充，不要求每个内部镜头各有一套。普通镜头可以只声明用途与必要断言。`expected` 可以是空列表，但不能因此跳过实际内容核查。
 
-`statePlan` 是 `{window, expected}` 列表，window 采用场景局部半开窗且必须落在所属镜头内，expected 与默认对象断言同构；同角色状态计划窗口不得重叠。在匹配采样帧，状态计划覆盖同角色的单帧默认值，用于验证中途数量、颜色或状态。采样在步长和指定帧之外，自动加入 textPlan、statePlan 与 timeStructure 全部边界的前一帧、边界帧和后一帧，并去重、裁到检查窗。边界覆盖不证明全部连续运动正确，密度和完整窗口评审仍适用。
+`timeStructure` 只在依赖揭示时机的风险窗必填，含 establish、pause、change、reveal、result、hold；不适用段可省略或写 `window: null` 与原因。不再因 A 级标签强制六段。
+
+全部帧窗是场景局部左闭右开区间，采样 frame 必须处于镜头与检查点帧窗内。
+
+`expected` 是 role/count 断言列表，可选 state/color/visible/tolerance；`textPlan` 是 role/text/window 列表；`claims` 含 id/value/unit/basis，可选 role，同 ID 不可声明不同值；`forbidden` 是禁止出现的可见文字列表。`statePlan` 是 `{window, expected}` 列表，窗口落在所属镜头内且同角色不重叠。采样在步长和指定帧之外，自动加入 textPlan、statePlan 与 timeStructure 全部边界的前一帧、边界帧和后一帧，并去重、裁到检查窗。边界覆盖不证明全部连续运动正确，密度和完整窗口评审仍适用。
+
+## 审核计划与风险触发
+
+`reviewPlan` 必需 `basis` 和 `risks`。`basis` 写明适用性依据；`risks` 允许为空，但空列表意味着作品没有未决的核心表达、结构时序或动态风险，不能用来掩盖已知问题。每项风险含唯一 `id`、`kind`、`scope.checkpointIds`、`reason`、`requiredEvidence`，不得手填人数。
+
+| kind | 额外要求 | 不触发的情况 |
+|---|---|---|
+| `static-expression` | 独立目标关键帧与盲看，覆盖该风险所需建立/结果/揭示状态 | 只是 A 级标签、普通标题或已验证布局 |
+| `structure-timing` | animatic 观察，可与核心样片同轮 | 仅因片中有动画或 A 级镜头 |
+| `core-event` | 完整动态窗口；静帧不能替代 | 无实质动态风险的静态作品 |
+| `split-final` | 两名新且互相隔离的终审代理，分别负责结构与视觉文案 | 时长、镜头等级或主观追求更高级本身 |
+| `substantive-dispute` | 新代理先盲看，再核对中性原条件，单独保留争议结论 | 纯审美偏好差异 |
+| `repeated-failure` | 至少两个实质不同的匿名候选，包含删短、重排或替换机制 | 第一次重要返工 |
+
+`split-final` 的专业风险依据须具体指向当前观察能力或覆盖限制，不允许笼统写“高风险”。用户明确的硬性审核要求可增加要求，不可被默认策略覆盖。删除风险或修改目标不能直接关闭关联的未解决问题。
+
+人数和所需环节由 `policy` 唯一派生：核心轮 0 或 1 轮；粗片恒为 1 人；最终默认 1 人，`split-final` 时 2 人。无风险的简单作品共 2 次独立调用，有核心风险时 3 次。
 
 ## 观测与来源
 
-DOM 使用 data-m2v-role/data-m2v-state；可选 window.__M2V_REVIEW_STATE__ 提供 role/count 状态对象列表，只用于开发读取，不进入画面。Canvas/WebGL 没有可靠可见状态观测时提供逐项人工证据，否则保持未验证，不能把内部模型数等同实际可见对象数。
+DOM 使用 data-m2v-role/data-m2v-state；可选 `window.__M2V_REVIEW_STATE__` 提供 role/count 状态对象列表，只用于开发读取，不进入画面。Canvas/WebGL 没有可靠可见状态观测时提供逐项人工证据，否则保持未验证，不能把内部模型数等同实际可见对象数。
 
-measurement 可声明 bodyRoles、thresholdSource、minFont393、allowedOverlaps、maxTextCharacters、subtitleTop。原生字号乘393/原生宽度得手机等效字号；阈值与文字预算必须有来源。父子包含与 allowedOverlaps 中有意重叠不误判，其他可见元素相交报告复核。裁切检查画布和裁剪祖先；DOM 不证明全部像素遮挡。未标记元素不在自动覆盖范围，需人工补证。
+`measurement` 可声明 bodyRoles、thresholdSource、minFont393、allowedOverlaps、maxTextCharacters、subtitleTop。原生字号乘 393/原生宽度得手机等效字号；阈值与文字预算必须有来源。父子包含与 allowedOverlaps 中有意重叠不误判，其他可见元素相交报告复核。裁切检查画布和裁剪祖先；DOM 不证明全部像素遮挡。未标记元素不在自动覆盖范围，需人工补证。
 
-采集输出原生尺寸、852宽及393宽等比例图，竖屏保持1080×1920原生画幅。sampleStep 不得大于待判断的 minEventFrames；完整窗口包括状态边界，连续运动无法确认时补片段或逐帧证据。B/C 没有设计图时只验合同，不宣称完成设计图对照。
+采集输出原生尺寸、852 宽及 393 宽等比例图，竖屏保持 1080×1920 原生画幅。sampleStep 不得大于待判断的 minEventFrames；完整窗口包括状态边界，连续运动无法确认时补片段或逐帧证据。B/C 没有设计图时只验合同，不宣称完成设计图对照。
 
-独立图清单在 outputs/production/design-frames.json（示例输出根为 videos/examples/<slug>/outputs）。frames 每项记录 checkpointId、phase=establish/reveal/result、width、path、sha256、source=independent-design、tool、createdAt、sourceRecord={path,sha256}、verifiedBy、verificationBasis。PNG实际尺寸和源记录摘要均须有效；来源标签不能单独证明独立制作。仅记录格式，不自动识别所有截图冒充。
+独立目标图清单在 outputs/production/design-frames.json。仅 `static-expression` 风险涉及的检查点需要建立/结果/揭示图，852 与 393 宽由工具从原图派生。来源标签不能单独证明独立制作；PNG 实际尺寸和源记录摘要均须有效。
 
 ## 命令与事件
 
@@ -63,41 +90,48 @@ uv run m2v baseline create --project <作品> --reason <重制原因> --files vi
 uv run m2v baseline prune --project <作品>
 ```
 
-check 生成报告并登记；G0/G5/G6 用 register 登记外部事实/审查报告，不自动给审美通过。报告字段 gate、sceneId、checkpointId、status、checks、evidence、upstream；场景外范围 ID 为 null，checks 每项 name/status/detail，evidence 每项 path/sha256（相对输出根），upstream 由当前制作依赖摘要绑定。可选 retrospective、coverage、reviewRequired、notApplicableReason。status 为 pass/fail/unverified/not-applicable；G2 无适用段落才允许整个门不适用。
+check 生成报告并登记；G0/G5/G6 用 register 登记外部事实/审查报告，不自动给审美通过。报告字段 gate、sceneId、checkpointId、status、checks、evidence、upstream；场景外范围 ID 为 null，checks 每项 name/status/detail，evidence 每项 path/sha256（相对输出根），upstream 由当前制作依赖摘要绑定。可选 retrospective、coverage、reviewRequired、notApplicableReason。status 为 pass/fail/unverified/not-applicable；只有 G2 在没有 `static-expression` 风险时才允许整个门不适用。
 
-history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/版本、类型、时间、门/场景/检查点、证据及上游摘要。事件追加在作品写锁内串行进行，重复导入幂等；gates.json 是显式可重建快照。status 永远只读，检查当前文件，不能盲信快照。历史损坏显示诊断并禁止推断通过，repair 先保留损坏原件再恢复可验证前缀。
+history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期、类型、时间、门/场景/检查点、证据及上游摘要。事件追加在作品写锁内串行进行，重复导入幂等；gates.json 是显式可重建快照。status 永远只读，检查当前文件，不能盲信快照。历史损坏显示诊断并禁止推断通过，repair 先保留损坏原件再恢复可验证前缀。
 
-既有技术状态字段与可选 review.json 语义保持不变，制作状态在 production 命名空间扩展。通过需当前文件存在且摘要匹配、上游有效、独立评审齐全、无本范围未关闭必改；降级自审只显示旗标，不关闭独立项。自身结果优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。门的 `evidenceStatus` 保留自身检查与评审结果，`prerequisites` 列出未满足的前置门，`ready` 表示自身通过／不适用且前置齐全；自身通过但前置未完成时汇总 `status=等待前置`，不得冒充过期。G4 明细同样列出自身结果和前置条件，并保留 `checkStatus` 单列自动检查。最早未关闭门是当前门，但 B/C 等待 G5 批量评审时下一步不能回到等待自身。
+通过需当前文件存在且摘要匹配、上游有效、计划要求的独立评审齐全、无本范围未关闭必改。降级自审只显示旗标，不关闭独立项。自身结果优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。门的 `evidenceStatus` 保留自身检查与评审结果，`prerequisites` 列出未满足的前置门，`ready` 表示自身通过／不适用且前置齐全；自身通过但前置未完成时汇总 `status=等待前置`，不得冒充过期。G4 明细同样列出自身结果和前置条件，并保留 `checkStatus` 单列自动检查。普通镜头检查通过即关闭，不再显示待批量回绑。
 
 唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
 
-## 隔离包与粗片
+## 隔离包与每轮覆盖
 
-打包请求字段 gate、scene_id、checkpoint_ids、files、kind、display_sizes；可选 review_type、timecodes。kind 为 design-keyframe/animatic/scene-window/rough-timeline/final-video。普通包只复制中性媒体，不接收任意源码或 HTML；文件改为中性名。盲包排除设计、分镜、源码、旧结论和匿名映射；设计对照图只用于 consistency 包。
+打包请求字段 gate、scene_id、checkpoint_ids、files、kind、display_sizes；可选 review_type、timecodes、blind_id。kind 为 design-keyframe/animatic/scene-window/rough-timeline/final-video。普通包只复制中性媒体，不接收任意源码或 HTML；文件改为中性名。盲包排除设计、分镜、源码、旧结论和匿名映射；consistency 包只用于同轮设计对照。
 
-独立报告含 gate、sceneId、checkpointIds、packPath、packSha256、reviewerId、isolation、reviewType、verdict、observations、checkIds；G6 另需 focus=structure/visual-copy，两个不同代理覆盖两类职责。isolation=independent-subagent 才计独立；consistency 不计审美通过，其他方式显著降级。manifest、报告、来源文件均以 SHA-256 绑定。批量报告逐检查点回绑；未覆盖项保持待评审。
+独立报告含 gate、round（core/rough/final）、roundId、sceneId、checkpointIds、packPath、packSha256、reviewerId、isolation、reviewType、verdict、observations、checkIds、focus、coverage、invocation。`isolation=independent-subagent` 才计独立；一致性对照不计人数，也不替代盲审。manifest、报告、调用记录与来源文件均以 SHA-256 绑定。
 
-### 表达检查的完成凭据
+每轮报告提供一份 `coverage` 覆盖表：每项 checkpointId、window、status、observations、evidence、issues。窗口必须等于检查点完整检查窗，evidence 必须来自投喂的评审包。rough 与 final 盲审必须覆盖全片检查点；final 的 consistency 对照覆盖适用目标图检查点。核心轮动态风险项必须附过程片段，端点静帧不足。所有来源证据摘要绑定事件，变化后相关报告失效。
 
-启用 acceptanceChecks 后，独立报告增加 `acceptance` 列表，每项包含 checkpointId、kind、window、status、observations、evidence；window 必须等于该检查点完整检查窗，status 为 pass/fail/insufficient，observations 为非空实际观察，evidence 为输出根内 path/sha256 列表。所有来源证据摘要均绑定事件，变化后相关报告失效。报告 verdict=pass 时所有凭据也须 pass。
+同一份报告可通过 `checkIds` 绑定多个门的检查事件，逐项校验后幂等登记；任一绑定无效则整份拒绝，不留部分成功事件。final 轮必须使用未参与该作品前期评审的 reviewerId，并绑定当前候选视频摘要。`split-final` 时两名评审者互不读取报告、各自独立导入。
 
-- G4 的 A 级或 core 检查点必须有 `kind=visual-event` 的独立 blind 凭据；G5 批量报告可以回绑 G4。通用通过或降级自审不能代替该项。
-- G6 必须覆盖上述全部核心检查点的 `kind=design-fulfillment` 凭据，使用单独 consistency 包；导入前，同一 checkId 必须已有当前有效独立 blind 观察。它不替代原有两名隔离终审，也不能先对照再补盲审。
-- design-fulfillment 额外包含 dimensions 对象，键固定为 composition-scale、spatial-hierarchy、impact、attention、timing，每项包含 status 与 observations；design 对象含 direction、keyframes、animation，各为非空 path/sha256 列表，分别引用中性导演条件、独立目标关键帧和当前动画证据。
-- 系统仅校验覆盖、记录和来源，不自动判断是否值得看或有冲击力。缺项列入 `missingAcceptance` 并保持待评审；独立失败阻断制作完成。未启用的存量在制合同不补项，技术导出行为不变。
+### 设计对照与 blind 顺序
 
-可复制的 JSON 示例与规则演练见[太阳系检查演练](../../../../examples/solar-system-journey/WORKFLOW_CHECK_EXERCISE.md#结构化完成凭据示例)。
+终审者先只读取当前成片盲包，写出不可覆写的 blind 观察；之后才能创建 `review_type=consistency` 包，查看适用目标图与中性条件。两阶段可由同一代理完成，对照包必须引用同一轮 blind 报告的 `blind_id`，且创建时间晚于盲审落盘。`readReportIds` 在盲审时为空，对照时只允许同一轮的 blind 报告。先对照再补盲审、或对照结论替代盲审的，均拒绝。
 
-G5 timeline 复用正式 ArticleExplainer composition 和准备音轨，将必要媒体及播放器依赖复制进隔离包。用本地 HTTP 服务打开包内 index.html，不读取作品目录，不额外编码全片。缺失缓存仅补录缺区间；DOM量测仍可能运行浏览器，不伪称只解码缓存。不能播放时补分场片段、跨场窗口及完整顺序，证据不足不放行。
+无独立目标图的镜头只验用途与实际表现，不追补目标图，也不要求五维三方空表。
+
+## 依赖范围与证据失效
+
+场景证据按实际依赖绑定：导入源码、所用素材 ID、字体、全局配置与准备输入。同一文件摘要在一次查询内只读取一次。动态导入、无法解析的本地引用或动态素材 ID 保守扩大范围并在状态中披露原因，不伪称精确。合同范围、源码、素材、字体或准备输入变化使对应细项过期；未被场景使用的文件变化不误伤无关场景。最终视频摘要变化必须重做当前技术 QA 与全片综合终审，但不自动重开未变的选案、目标图和场景量测。
+
+局部布局或字幕改动复查本窗与相邻衔接；核心关系、叙事顺序、总时长或全局样式变化复查相关核心风险与全片结构。
+
+## G5 粗片播放器
+
+G5 timeline 复用正式 ArticleExplainer composition 和准备音轨，将必要媒体及播放器依赖复制进隔离包。用本地 HTTP 服务打开包内 index.html，不读取作品目录，不额外编码全片。缺失缓存仅补录缺区间；DOM 量测仍可能运行浏览器，不伪称只解码缓存。不能播放时补分场片段、跨场窗口及完整顺序，证据不足不放行。
 
 每候选不先编码完整草稿；真实缺陷修复允许新候选。生成计数区分请求、真实生成尝试和成功，验收重试/复制不计编码。
 
 ## 基线保留与清理
 
-默认完整版本目标是当前、直接前一个重置版、首版共3个（重合时更少）；额外保护引用通常使其为4个，多引用可超过4个并报告数量与原因。引用保护优先，解除后下次清理回到目标。局部修复不新增重置，但覆盖前仍保留比较候选（create --candidate），也纳入媒体统计。
+默认完整版本目标是当前、直接前一个重置版、首版共 3 个（重合时更少）；额外保护引用通常使其为 4 个，多引用可超过 4 个并报告数量与原因。引用保护优先，解除后下次清理回到目标。局部修复不新增重置，但覆盖前仍保留比较候选（create --candidate），也纳入媒体统计。
 
 活动比较登记 outputs/production/comparisons.json，列表每项 status=active/closed 与 versionRefs；未知/损坏引用阻止清理。基线位于 outputs/baselines/<id>，保留级别只有 full/record-only。manifest、摘要、准备记录、问题表快照、评审报告台账和关键帧记录长期保留；仅视频、音频和媒体序列可删除。
 
 prune 在作品写锁内先验证记录与引用，再原子登记降级和待删清单，最后幂等删除本基线目录内媒体，全部完成才写 prunedAt。普通交付清理保留制作门、评审包和基线目录；不能越权删除共享素材或缓存。
 
-人工补证 manualEvidence 为输出根内 path/sha256 列表；JSON报告包含 checkpointId、当前 upstream、verifiedBy、observations、checks。只补同名未验证项，不覆盖已观察的缺陷。B/C 没有设计图时 animatic 显示明确占位，仅供时序观察，不推断最终美术通过。
+人工补证 manualEvidence 为输出根内 path/sha256 列表；JSON 报告包含 checkpointId、当前 upstream、verifiedBy、observations、checks。只补同名未验证项，不覆盖已观察的缺陷。B/C 没有设计图时 animatic 显示明确占位，仅供时序观察，不推断最终美术通过。

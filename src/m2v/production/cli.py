@@ -43,7 +43,7 @@ def dispatch(args) -> int:
         elif args.command == 'review':
             if not args.file:
                 raise M2VError('review import 需要 --file 独立评审报告')
-            result = reviews.import_report(root, manifest, Path(args.file))
+            result = reviews.import_report(root, manifest, Path(args.file).resolve())
         elif args.action == 'repair':
             result = ledger.repair(root)
         elif args.action == 'rebuild':
@@ -58,7 +58,7 @@ def dispatch(args) -> int:
         elif args.action == 'register':
             if not args.file:
                 raise M2VError('register 需要 --file 检查报告')
-            result = ledger.register(root, manifest, Path(args.file))
+            result = ledger.register(root, manifest, Path(args.file).resolve())
         else:
             if not args.gate:
                 raise M2VError('check 需要 --gate')

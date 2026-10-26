@@ -89,6 +89,6 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 
 已有视频可通过制作助手的[修订入口](.agents/skills/material2video/references/video-revision.md)按修改意图继续制作：定位受影响场景与时间轴、保护旧版、复用有效方案和证据，再执行局部检查与最终全片复核。入口串联现有命令，未新增修订 CLI 或自动影响分析器。
 
-general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用，存量在制作品本轮不切换；缺失独立证据不自动放行。
+general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
 
-新启动的检查点合同可启用表达检查完成凭据：核心视觉事件与五维设计兑现须有独立证据；采样覆盖文字、状态与揭示边界前后帧，状态查询分列自身结果、等待前置及真实过期。新作声明与在制保护见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md#表达检查的完成凭据)。
+v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需全片粗片与最终成片两次独立调用；有核心风险时增加一轮核心样片。每轮一份覆盖表绑定适用门，不再按检查点重复登记视觉事件或五维设计兑现凭据；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。

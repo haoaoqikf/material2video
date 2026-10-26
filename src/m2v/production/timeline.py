@@ -9,7 +9,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import contract, ledger
+from . import contract, ledger, policy
 from .storage import local, receipt, write
 
 
@@ -20,10 +20,10 @@ def build(root: Path, manifest: dict) -> Path:
     from m2v.engine.lookdev import sample_audio
     state = ledger.status(root, manifest)
     c = contract.load(root)
-    a_ids = {cp['id'] for _, shot, cp in contract.checkpoints(c) if shot['tier'] == 'A'}
-    if not state.get('scenes') or any(s['checkStatus'] != '通过' or
-          (s['checkpointId'] in a_ids and s['status'] != '通过') for s in state['scenes']):
-        raise M2VError('G5 需要全部 G4 检查和 A 级独立评审通过')
+    if not state.get('scenes') or any(s['status'] != '通过' for s in state['scenes']):
+        raise M2VError('G5 需要全部 G4 检查及审核计划指定的核心风险观察通过')
+    if any(r['evidenceStatus'] not in ('通过', '不适用') for r in state['gates'] if r['gate'] in ('G2', 'G3')):
+        raise M2VError('G5 需要先关闭适用的静态与结构风险')
     prepared = _prepared(root, manifest)
     # materialize 只补录缺区间，已有区间按现有摘要校验后复用。
     materialized = code_scenes.materialize(root, prepared, 0, prepared['durationInFrames'])
@@ -65,7 +65,7 @@ def build(root: Path, manifest: dict) -> Path:
     (directory / 'questions.md').write_text('只读取本目录。按完整顺序观察理解、结构、节奏和声画承接。\n'
         '本目录是本地网页，使用本地 HTTP 服务打开 index.html；不能播放时以分场和跨场窗口补证，不推断通过。\n', encoding='utf-8')
     files = [receipt(directory, p) for p in sorted(directory.rglob('*')) if p.is_file()]
-    write(directory / 'manifest.json', dict(reviewId=directory.name, gate='G5', sceneId=None,
+    write(directory / 'manifest.json', dict(reviewId=directory.name, cycleId=c['cycleId'], createdAt=ledger.now(), blindId=None, gate='G5', sceneId=None,
         checkpointIds=[cp['id'] for _, _, cp in contract.checkpoints(c)], scope='whole-film', evidenceType='rough-timeline',
         reviewType='blind', displaySizes=[c['width'], 852, 393], timecodes=[[0, props['durationInFrames']]], files=files,
         excluded=['DESIGN.md', 'storyboard.json', 'scenes/', 'visual-notes.md', 'old-verdicts', 'anonymous-key']))

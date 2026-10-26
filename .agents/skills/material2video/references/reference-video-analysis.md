@@ -195,7 +195,7 @@
 | 观看驱动力、核心表达 | `DESIGN.md` 立意六项 |
 | 视觉母题 | `DESIGN.md`「表达载体」 |
 | 视觉事件与时间结构 | 逐场设计表、核心事件五段式与导演卡，见[视觉创意导演](visual-creative-direction.md#视觉事件设计) |
-| 核心高潮机制 | [视觉力量设计](visual-impact-design.md)：至少三种机制比较 |
+| 核心高潮机制 | [视觉力量设计](visual-impact-design.md)：按未决风险比较机制，不固定候选数量 |
 | 外观层 | [参考风格契约](reference-style.md) 的 L1／L2／L3 与八项指标 |
 | 不借项 | `DESIGN.md` 禁止项与不借清单 |
 

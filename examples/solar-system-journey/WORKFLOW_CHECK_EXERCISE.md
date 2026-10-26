@@ -1,6 +1,6 @@
-# 视觉事件与设计兑现：规则演练
+# 视觉事件、设计对照与审核计划：规则演练
 
-这是沿用太阳系题材的**假设情景推演**，不是当前成片的新评审、独立观察或问题关闭证据。不改变本例设计、代码、素材、输出与启动时合同，也不触发重制。规则以[制作流程](../../.agents/skills/material2video/references/production-workflow.md#视觉事件检查)为准。
+这是沿用太阳系题材的**假设情景推演**，不是当前成片的新评审、独立观察或问题关闭证据。不改变本例设计、代码、素材、输出与启动时合同，也不触发重制。规则以[制作流程](../../.agents/skills/material2video/references/production-workflow.md#核心轮的视觉事件观察)与[检查点门](../../.agents/skills/material2video/references/checkpoint-gates.md)为准。
 
 ## 粗片：这个镜头发生了什么值得看的变化？
 
@@ -35,44 +35,93 @@
 
 本演练只验证规则对这些情景的推导结果；不能证明真实动画已达到上述效果。
 
+## 审核计划与每轮覆盖表示例
 
-## 结构化完成凭据示例
+以下 JSON 均为格式示例，摘要和路径为占位，必须替换为真实文件与摘要才可导入；它不是本例真实评审。
 
-以下是报告 `acceptance` 中的单项示例，摘要为占位，必须替换为真实文件摘要才可导入；它不是本例真实评审。新作合同另声明 `acceptanceChecks: true`。
+合同 v2 通过 `reviewPlan.risks` 声明未验证风险，人数和轮次由策略派生：
 
 ```json
 {
-  "checkpointId": "scale-result",
-  "kind": "design-fulfillment",
-  "window": [0, 120],
-  "status": "pass",
-  "observations": "实际观察与三方对照摘要，不能只写符合设计",
-  "evidence": [{"path": "review-pack/example/comparison.png", "sha256": "REPLACE_WITH_SHA256"}],
-  "dimensions": {
-    "composition-scale": {"status": "pass", "observations": "主体比例与角度的对照证据"},
-    "spatial-hierarchy": {"status": "pass", "observations": "前后关系与遮挡的对照证据"},
-    "impact": {"status": "pass", "observations": "对比与释放的实际观察"},
-    "attention": {"status": "pass", "observations": "关键时刻视觉中心的实际观察"},
-    "timing": {"status": "pass", "observations": "建立、揭示与消化时机的实际观察"}
+  "version": 2,
+  "cycleId": "example-2026-10-27",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "reviewPlan": {
+    "basis": "尺度揭示依赖静态构图与跨场时序，两项均未在本轮验证",
+    "risks": [
+      {
+        "id": "scale-static",
+        "kind": "static-expression",
+        "scope": {"checkpointIds": ["scale-result"]},
+        "reason": "地球与太阳的尺度关系可能被误读为并列对象",
+        "requiredEvidence": ["独立目标关键帧与盲看观察"]
+      },
+      {
+        "id": "timeline",
+        "kind": "structure-timing",
+        "scope": {"checkpointIds": ["scale-result"]},
+        "reason": "拉远揭示的先后顺序决定观众是否先建立错误预期",
+        "requiredEvidence": ["animatic 盲看与完整窗口帧序列"]
+      }
+    ]
   },
-  "design": {
-    "direction": [{"path": "review-pack/example/neutral-conditions.json", "sha256": "REPLACE_WITH_SHA256"}],
-    "keyframes": [{"path": "design/keyframes/scale.png", "sha256": "REPLACE_WITH_SHA256"}],
-    "animation": [{"path": "review-pack/example/window.mp4", "sha256": "REPLACE_WITH_SHA256"}]
-  }
+  "scenes": []
 }
 ```
 
-视觉事件项使用相同 checkpointId/window/status/observations/evidence，kind 改为 `visual-event`，省略 dimensions 和 design。它在 G4/G5 的 blind 报告内导入；设计兑现在 G6 的 consistency 报告内导入，须先有同一 checkId 的独立 blind 观察。两个报告仍使用[检查点契约](../../.agents/skills/material2video/references/checkpoint-gates.md#表达检查的完成凭据)规定的完整字段。
+每轮报告用一份覆盖表，`checkIds` 可绑定多个门的检查事件：
 
-| 修复验证情景 | 应得到的结果 |
+```json
+{
+  "gate": "G4",
+  "round": "core",
+  "roundId": "core-01",
+  "sceneId": "solar-journey",
+  "checkpointIds": ["scale-result"],
+  "packPath": "review-pack/example/manifest.json",
+  "packSha256": "REPLACE_WITH_SHA256",
+  "reviewerId": "R01",
+  "isolation": "independent-subagent",
+  "reviewType": "blind",
+  "verdict": "pass",
+  "observations": ["完整窗口中先出现局部地球，再拉远公开与太阳的比例"],
+  "checkIds": ["<G3 检查事件 ID>", "<G4 检查事件 ID>"],
+  "focus": "comprehensive",
+  "coverage": [
+    {
+      "checkpointId": "scale-result",
+      "window": [0, 120],
+      "status": "pass",
+      "observations": "建立、拉远、稳定与停留均有可见过程",
+      "evidence": [{"path": "review-pack/example/window.mp4", "sha256": "REPLACE_WITH_SHA256"}],
+      "issues": []
+    }
+  ],
+  "invocation": {"path": "invocation-R01.json", "sha256": "REPLACE_WITH_SHA256"}
+}
+```
+
+`coverage.evidence` 必须来自投喂的评审包；rough/final 盲审覆盖全片检查点；final 的设计对照使用 `reviewType=consistency`，引用同一轮 blind 报告的 `blindId`。
+
+| 情景 | 应得到的结果 |
 |---|---|
-| 启用合同，核心镜头只有通用独立通过报告 | G4 待评审，missingAcceptance 列出 visual-event |
-| 只有两名终审，没有五维对照 | G6 待评审，不以技术或盲审通过替代兑现 |
-| 先交对照，后补独立盲审 | 对照导入失败，保持先观察后对照 |
-| 凭据证据文件被替换 | 旧凭据不再计入有效覆盖，需当前证据 |
+| 无核心风险、只有 A 级标签 | 不触发核心轮；粗片 1 人 + 最终 1 名新代理，共 2 次独立调用 |
+| 存在 `core-event` | 核心 1 轮 + 粗片 1 轮 + 最终 1 轮，共 3 次 |
+| 声明 `split-final` | 最终两名新代理分别覆盖结构与视觉文案，互不读报告 |
+| 一份核心报告绑定 G3 与 G4 | 逐项校验后幂等登记，不要求复制报告；任一来源无效则整份拒绝 |
+| 普通场景 G4 检查通过、G5 未开始 | G4 关闭，直接开展 G5，不显示待批量回绑 |
+| 粗片报告遗漏一个场景 | G5 保持覆盖不足，不把该场景已通过的 G4 改回待评审 |
+| 先交 consistency 对照、后补 blind | 对照包创建或导入被拒绝，保持先观察后对照 |
+| 终审使用参与过前期的 reviewerId | 拒绝导入，要求未参与前期评审的新代理 |
+| 同一调用冒充第二名终审 | 拒绝导入，不产生通过事件 |
+| 覆盖证据文件被替换 | 相关报告失效，需当前证据 |
+| 删除风险或修改目标以绕过问题 | 不关闭已登记问题，重新计算审核要求 |
+| 读取 v1 合同 | 明确版本错误，不运行旧审核分支 |
 | 文字只在步长之间的一帧出现 | 自动补出现、离开及前后帧，核对闪现状态 |
 | 状态计划中途错数但结果帧正确 | 中途断言失败，不能以端点放行 |
 | G1 自身通过，但缺 G0 | evidenceStatus=通过，status=等待前置，prerequisites 包含 G0 |
 | G1 合同摘要实际改变 | evidenceStatus/status=过期，补 G0 不会修复旧证据 |
-| 更新前在制合同未声明 acceptanceChecks | 不补本轮新凭据要求，不重写既有制作证据 |
+| 只修改一个标签并重新生成候选 | 复查该窗与衔接，其他依赖未变证据有效；当前全片仍需终审 |
+| 更新前已启动的在制作品 | 沿用启动时合同，不补造 v2 评审或改写历史 |

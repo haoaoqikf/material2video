@@ -11,7 +11,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import contract, ledger, measure
+from . import contract, ledger, measure, policy
 from .storage import local, read, receipt, write
 
 
@@ -43,39 +43,45 @@ def design_frames(root: Path, c: dict) -> list[dict]:
     manifest_path = base / 'production/design-frames.json'
     manifest = read(manifest_path)
     contract.fields(manifest, {'frames'})
-    checks = []
+    checks, derived = [], []
+    selected = policy.checkpoint_ids(c, 'static-expression')
+    import struct
     for _, shot, cp in contract.checkpoints(c):
-        if shot['tier'] != 'A' and not shot.get('core'):
+        if cp['id'] not in selected:
             continue
-        frames = [x for x in manifest['frames'] if x.get('checkpointId') == cp['id']]
-        required_phases = {'establish', 'result'}
+        required = {'establish', 'result'}
         if shot.get('timeStructure', {}).get('reveal', {}).get('window') is not None:
-            required_phases.add('reveal')
-        shot_checkpoint_ids = {point['id'] for _, q, point in contract.checkpoints(c) if q['id'] == shot['id']}
-        phases = {x.get('phase') for x in manifest['frames'] if x.get('checkpointId') in shot_checkpoint_ids}
-        checks.append(dict(name=f'{shot["id"]}:建立揭示结果', status='pass' if required_phases <= phases else 'unverified',
-                           detail={'required': sorted(required_phases), 'actual': sorted(x for x in phases if x)}))
-        for width in (c['width'], 852, 393):
-            width_phases = {x.get('phase') for x in manifest['frames']
-                            if x.get('checkpointId') in shot_checkpoint_ids and x.get('width') == width}
-            checks.append(dict(name=f'{shot["id"]}:{width}:阶段覆盖',
-                status='pass' if required_phases <= width_phases else 'unverified', detail=sorted(required_phases)))
-            item = next((x for x in frames if x.get('width') == width), None)
-            valid = bool(item and item.get('source') == 'independent-design' and item.get('tool') and item.get('createdAt')
-                         and item.get('verifiedBy') and item.get('verificationBasis') and item.get('sourceRecord'))
-            if item and any(marker in (str(item.get('path', '')) + str(item.get('tool', ''))).lower()
-                            for marker in ('lookdev', 'code-cache', 'scene-capture')):
-                valid = False
+            required.add('reveal')
+        for phase in sorted(required):
+            item = next((x for x in manifest['frames'] if x.get('checkpointId') == cp['id']
+                         and x.get('phase') == phase and x.get('width') == c['width']), None)
+            valid = bool(item and item.get('source') == 'independent-design' and item.get('tool')
+                         and item.get('createdAt') and item.get('verifiedBy') and item.get('verificationBasis')
+                         and item.get('sourceRecord'))
             if valid:
-                # PNG 头直接核尺寸，避免为每张设计图启动 ffprobe。
-                import struct
+                valid = not any(marker in (item['path'] + item['tool']).lower()
+                                for marker in ('lookdev', 'code-cache', 'scene-capture'))
+            if valid:
+                valid = ledger.evidence_valid(root, [item['sourceRecord'], {'path': item['path'], 'sha256': item['sha256']}])
+            if valid:
                 path = local(base, item['path'])
                 header = path.read_bytes()[:24]
                 actual = struct.unpack('>II', header[16:24]) if header[:8] == b'\x89PNG\r\n\x1a\n' else None
-                expected = (width, round(c['height'] * width / c['width']))
-                valid = actual == expected and ledger.evidence_valid(root, [item['sourceRecord'], {'path': item['path'], 'sha256': item['sha256']}])
-            checks.append(dict(name=f'{cp["id"]}:{width}', status='pass' if valid else 'unverified', detail='独立来源记录、核验及尺寸'))
+                valid = actual == (c['width'], c['height'])
+            checks.append(dict(name=f"{cp['id']}:{phase}:来源与尺寸", status='pass' if valid else 'unverified',
+                               detail='逐阶段核验独立来源、实际原图尺寸与摘要'))
+            if valid:
+                for width in (852, 393):
+                    path = base / 'production/design-derived' / f"{cp['id']}-{phase}-{width}.png"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    ffmpeg(['-i', str(local(base, item['path'])), '-vf', f'scale={width}:{round(c["height"] * width / c["width"])}',
+                            '-frames:v', '1', str(path)])
+                    derived.append({**item, 'width': width, **receipt(base, path), 'derivedFrom': item['sha256']})
+    # 只替换机器派生图，不重写任何来源声明或许可。
+    manifest['frames'] = [x for x in manifest['frames'] if not x.get('derivedFrom')] + derived
+    write(manifest_path, manifest)
     return checks
+
 
 
 def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Path]:
@@ -84,10 +90,10 @@ def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Pa
         path = save_report(root, c, gate, [{'name': '合同声明与帧窗', 'status': 'pass', 'detail': contract.scope_digest(c)}])
         return [path]
     if gate == 'G2':
-        if not any(q['tier'] == 'A' or q.get('core') for _, q, _ in contract.checkpoints(c)):
+        if not policy.risks(c, 'static-expression'):
             path = save_report(root, c, gate, [])
             value = read(path)
-            value.update(status='not-applicable', notApplicableReason='没有 A 级或核心段落')
+            value.update(status='not-applicable', notApplicableReason='审核计划无 static-expression 风险：' + c['reviewPlan']['basis'])
             write(path, value)
             return [path]
         checks = design_frames(root, c)
@@ -97,13 +103,13 @@ def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Pa
         path = save_report(root, c, gate, checks, evidence=evidence)
         if not checks:
             value = read(path)
-            value.update(status='not-applicable', notApplicableReason='没有 A 级或核心段落')
+            value.update(status='not-applicable', notApplicableReason='审核计划无 static-expression 风险：' + c['reviewPlan']['basis'])
             write(path, value)
         return [path]
     if gate == 'G3':
         errors = contract.mapping(c, read(root / 'storyboard.json'))
         checks = [{'name': '分镜映射', 'status': 'fail' if errors else 'pass', 'detail': errors}]
-        need = c['structureRisk'] or any(q['tier'] == 'A' for _, q, _ in contract.checkpoints(c))
+        need = bool(policy.risks(c, 'structure-timing'))
         evidence = []
         if need:
             animatic = make_animatic(root, c)
@@ -116,7 +122,8 @@ def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Pa
 
 
 def make_animatic(root: Path, c: dict) -> Path:
-    manifest = read(outputs(root) / 'production/design-frames.json')
+    manifest_path = outputs(root) / 'production/design-frames.json'
+    manifest = read(manifest_path) if manifest_path.exists() else {'frames': []}
     target = outputs(root) / 'production/animatic'
     target.mkdir(parents=True, exist_ok=True)
     segments, coverage = [], []
@@ -137,10 +144,10 @@ def make_animatic(root: Path, c: dict) -> Path:
                 phase = key if key in ('establish', 'reveal', 'result', 'hold') else 'establish'
                 match = next((x for x in native if x.get('phase') == phase), None)
                 if match is None and phase == 'hold':
-                    # 未提供独立 hold 图时退回 result，保持旧作品的时序卡行为。
+                    # 未提供独立 hold 图时退回 result，按结果态覆盖停留段。
                     phase = 'result'
                     match = next((x for x in native if x.get('phase') == phase), None)
-                if match is None and shot['tier'] != 'A' and not shot.get('core'):
+                if match is None and not point_ids.intersection(policy.checkpoint_ids(c, 'static-expression')):
                     match = native[0] if native else None
                 copy = target / f'{len(segments):04d}.png'
                 if match:
@@ -148,10 +155,10 @@ def make_animatic(root: Path, c: dict) -> Path:
                     import shutil
                     shutil.copyfile(source, copy)
                     source_record = receipt(outputs(root), source)
-                elif shot['tier'] == 'A' or shot.get('core'):
+                elif point_ids.intersection(policy.checkpoint_ids(c, 'static-expression')):
                     raise M2VError(f'animatic 缺独立 {phase} 设计图：{shot["id"]}')
                 else:
-                    # B/C 允许没有独立图，用显著占位标明覆盖空缺，不能据此判断最终美术。
+                    # 无静态风险的镜头允许时序占位，不能据此判断最终美术。
                     ffmpeg(['-f','lavfi','-i',f'color=c=black:s={c["width"]}x{c["height"]}',
                             '-vf',"drawtext=text='NO DESIGN FRAME - TIMING ONLY':x=20:y=80:fontsize=28:fontcolor=white",'-frames:v','1',str(copy)])
                     source_record = {'placeholder':True}

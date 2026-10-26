@@ -156,3 +156,372 @@
 - 档案与实物承担真实性，力量来自主体尺度、材料之间的构图关系和细节显现；不得为了冲击把示意代码当真实历史证据。
 - 若明确某个核心事件由图形主导，围绕同一事件比较不同视觉机制；普通档案观察、静态文字对照与克制段落不强制反转或3D。
 - 依作品手机基准观察主体、层级与图文职责。灰度诊断只分析明暗，不能因历史材料或必要颜色编码在灰度下丢失语义就判失败；保留事实与必要阅读时间，无声不变。
+
+## 检查点合同（v2）
+
+本块是当前 v2 设计合同，用于后续修订、场景检查与状态查询。历史评审不授权新版本；普通镜头以默认检查点覆盖，不补造逐镜头细表。
+
+```m2v-checkpoints
+{
+  "version": 2,
+  "cycleId": "american-science-milestones-2026-10-27",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "reviewPlan": {
+    "basis": "历史示例的当前 v2 记录：无声档案蒙太奇已交付，历史评审与已知限制保留在作品记录中，不通过本合同补造或授权新版本。",
+    "risks": []
+  },
+  "retrospective": true,
+  "scenes": [
+    {
+      "id": "opening",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "opening-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "opening-cp",
+          "shotId": "opening-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "telegraph",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "telegraph-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "telegraph-cp",
+          "shotId": "telegraph-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "telephone",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "telephone-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "telephone-cp",
+          "shotId": "telephone-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "flight",
+      "durationFrames": 180,
+      "shots": [
+        {
+          "id": "flight-shot",
+          "tier": "B",
+          "window": [
+            0,
+            180
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "flight-cp",
+          "shotId": "flight-shot",
+          "frame": 90,
+          "window": [
+            75,
+            105
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "trinity",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "trinity-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "trinity-cp",
+          "shotId": "trinity-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "eniac",
+      "durationFrames": 150,
+      "shots": [
+        {
+          "id": "eniac-shot",
+          "tier": "B",
+          "window": [
+            0,
+            150
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "eniac-cp",
+          "shotId": "eniac-shot",
+          "frame": 75,
+          "window": [
+            60,
+            90
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "transistor",
+      "durationFrames": 150,
+      "shots": [
+        {
+          "id": "transistor-shot",
+          "tier": "B",
+          "window": [
+            0,
+            150
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "transistor-cp",
+          "shotId": "transistor-shot",
+          "frame": 75,
+          "window": [
+            60,
+            90
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "moon",
+      "durationFrames": 180,
+      "shots": [
+        {
+          "id": "moon-shot",
+          "tier": "B",
+          "window": [
+            0,
+            180
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "moon-cp",
+          "shotId": "moon-shot",
+          "frame": 90,
+          "window": [
+            75,
+            105
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "arpanet",
+      "durationFrames": 150,
+      "shots": [
+        {
+          "id": "arpanet-shot",
+          "tier": "B",
+          "window": [
+            0,
+            150
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "arpanet-cp",
+          "shotId": "arpanet-shot",
+          "frame": 75,
+          "window": [
+            60,
+            90
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "genome",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "genome-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "genome-cp",
+          "shotId": "genome-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "llm",
+      "durationFrames": 270,
+      "shots": [
+        {
+          "id": "llm-shot",
+          "tier": "B",
+          "window": [
+            0,
+            270
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "llm-cp",
+          "shotId": "llm-shot",
+          "frame": 135,
+          "window": [
+            120,
+            150
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "durationFrames": 120,
+      "shots": [
+        {
+          "id": "closing-shot",
+          "tier": "B",
+          "window": [
+            0,
+            120
+          ]
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "closing-cp",
+          "shotId": "closing-shot",
+          "frame": 60,
+          "window": [
+            45,
+            75
+          ],
+          "expected": [],
+          "textPlan": [],
+          "claims": [],
+          "forbidden": []
+        }
+      ]
+    }
+  ]
+}
+```

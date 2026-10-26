@@ -45,8 +45,8 @@ def interval(value, duration):
 
 
 def expected(value):
-    if not isinstance(value, list) or not value:
-        raise M2VError('检查点必须包含可观察断言')
+    if not isinstance(value, list):
+        raise M2VError('可观察断言必须为列表')
     for item in value:
         fields(item, {'role', 'count'}, {'state', 'color', 'visible', 'tolerance'})
         text(item['role'])
@@ -74,11 +74,10 @@ def load(root: Path) -> dict:
 
 
 def validate(c: dict) -> None:
-    fields(c, {'version', 'fps', 'width', 'height', 'structureRisk', 'scenes'}, {'constraints', 'retrospective', 'acceptanceChecks'})
-    if 'acceptanceChecks' in c and type(c['acceptanceChecks']) is not bool:
-        raise M2VError('acceptanceChecks 必须为布尔值')
-    if type(c['version']) is not int or c['version'] != 1 or type(c['structureRisk']) is not bool:
-        raise M2VError('合同 version 必须为 1，structureRisk 必须为布尔值')
+    if not isinstance(c, dict) or type(c.get('version')) is not int or c['version'] != 2:
+        raise M2VError('制作合同仅支持 version=2；旧合同须重新编排，不自动迁移或继承通过')
+    fields(c, {'version', 'cycleId', 'fps', 'width', 'height', 'reviewPlan', 'scenes'}, {'constraints', 'retrospective'})
+    identifier(c['cycleId'])
     if any(type(c[k]) is not int or c[k] <= 0 for k in ('fps', 'width', 'height')):
         raise M2VError('合同 fps/width/height 必须为正整数')
     if c['fps'] not in (30, 60) or (c['width'], c['height']) not in ((1920,1080),(1080,1920)):
@@ -105,10 +104,12 @@ def validate(c: dict) -> None:
                 raise M2VError(f'重复镜头 ID 或非法 tier：{qid}')
             shot_ids.add(qid)
             interval(shot['window'], duration)
-            if shot['tier'] == 'A':
-                fields(shot.get('timeStructure'), set(TIME_PARTS), name='A 级时间结构')
+            if 'timeStructure' in shot:
+                fields(shot['timeStructure'], set(), set(TIME_PARTS), name='风险窗时间结构')
                 cursor = shot['window'][0]
                 for key in TIME_PARTS:
+                    if key not in shot['timeStructure']:
+                        continue
                     part = shot['timeStructure'][key]
                     fields(part, {'window', 'audience', 'visible', 'attention', 'toleranceFrames', 'failure'},
                            {'notApplicableReason', 'alternative'})
@@ -122,10 +123,10 @@ def validate(c: dict) -> None:
                         text(part[k])
                     frame(part['toleranceFrames'], '时机容差')
                     if window[0] != cursor:
-                        raise M2VError('A 级时间结构必须连续覆盖镜头帧窗')
+                        raise M2VError('时间结构必须连续覆盖镜头帧窗')
                     cursor = window[1]
                 if cursor != shot['window'][1]:
-                    raise M2VError('A 级时间结构未覆盖镜头结尾')
+                    raise M2VError('时间结构未覆盖镜头结尾')
             shots[qid] = shot
         if not isinstance(scene['checkpoints'], list) or not scene['checkpoints']:
             raise M2VError('每个场景必须声明检查点')
@@ -180,6 +181,8 @@ def validate(c: dict) -> None:
                 if not shot['window'][0] <= plan['window'][0] < plan['window'][1] <= shot['window'][1]:
                     raise M2VError('状态计划必须位于镜头窗口内')
                 expected(plan['expected'])
+                if not plan['expected']:
+                    raise M2VError('状态计划必须包含断言')
                 for item in plan['expected']:
                     windows = by_role.setdefault(item['role'], [])
                     if any(max(a, plan['window'][0]) < min(b, plan['window'][1]) for a, b in windows):
@@ -194,8 +197,8 @@ def validate(c: dict) -> None:
                         raise M2VError('量测阈值必须为非负数')
             if any(not isinstance(v, str) or not v.strip() for v in cp['forbidden']):
                 raise M2VError('禁止项必须为非空文字')
-        if set(shots) - covered:
-            raise M2VError(f'镜头缺少默认检查点：{sorted(set(shots) - covered)}')
+    from .policy import validate_plan
+    validate_plan(c)
 
 
 def checkpoints(c: dict):
@@ -210,7 +213,12 @@ def scope_digest(c: dict, scene_id: str | None = None, checkpoint_id: str | None
     for scene, shot, cp in checkpoints(c):
         if (not scene_id or scene['id'] == scene_id) and (not checkpoint_id or cp['id'] == checkpoint_id):
             selected.append({'scene': scene['id'], 'duration': scene['durationFrames'], 'shot': shot, 'checkpoint': cp})
-    return fingerprint({'global': {k: v for k, v in c.items() if k != 'scenes'}, 'selected': selected})
+    global_values = {k: v for k, v in c.items() if k not in ('scenes', 'reviewPlan')}
+    from .policy import risks
+    ids = {item['checkpoint']['id'] for item in selected}
+    plan = c['reviewPlan'] if not scene_id and not checkpoint_id else {
+        'risks': [risk for risk in risks(c) if ids.intersection(risk['scope']['checkpointIds'])]}
+    return fingerprint({'global': global_values, 'plan': plan, 'selected': selected})
 
 
 def mapping(c: dict, board: dict) -> list[str]:
