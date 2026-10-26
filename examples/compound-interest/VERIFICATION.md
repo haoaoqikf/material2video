@@ -14,7 +14,7 @@
 - animatic：29.00秒/870帧；S5 结果在24.8秒结束，S6 使用独立收束静帧；S1/S2/S4 仍按 B 级占位（仅时序），开场主题卡与落片未进入 animatic。
 - 测试：前端 `vitest` 96项通过；Python 示例、严格示例与制作门测试通过。
 - 独立评审（全部只投喂中性评审包、报告互不读取）：开场版 G4 镜头 **pass**（21.0 秒标签逐帧连续、S6 归队与回拉平滑）、G5 全片 **pass**、G6 结构 **pass**（主题卡改善“在解释什么”，片名变为回扣但未削弱收束）、G6 视觉文案 **pass**（主题卡 393 约22px、可读；0.7 秒全亮偏短列为创意风险）。G2 设计 **fail**：S3 result 与 reveal、S5 reveal 与 establish 逐像素相同，S6 没有展示金片并入白堆的过渡帧；G3 animatic **fail**：animatic 未包含开场改动，0–8 秒与 13–19 秒仍为黑帧占位。G2/G3 与 S1–S4 既有 G4 项保持开放；G5/G6 证据通过但因前置未关闭显示“等待前置”。
-- 提交：S6 实现与文档 `acea783`；开场主题卡 `c47bcc7`；归档记录见后续提交。生成媒体与评审包仍在忽略的 `videos/examples/compound-interest/outputs/`。用户已验收成片并明确要求直接归档，OpenSpec 变更已同步主规格并移入 `openspec/changes/archive/2026-10-26-add-compound-closing-scene/`；G2/G3 与 S1–S4 既有 G4 项作为已知限制保留。
+- 提交：S6 实现与文档 `acea783`；开场主题卡 `c47bcc7`；归档 `33b29a0`。生成媒体与评审包仍在忽略的 `videos/examples/compound-interest/outputs/`。用户已验收成片并明确要求直接归档，OpenSpec 变更已同步主规格并移入 `openspec/changes/archive/2026-10-26-add-compound-closing-scene/`；G2/G3 与 S1–S4 既有 G4 项作为已知限制保留。
 
 ## 2026-10-26 结果屏简化与快进节奏修订
 
