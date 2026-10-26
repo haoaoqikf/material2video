@@ -35,10 +35,7 @@ export function Disc({x, y, r = RADIUS, state, opacity = 1, color, rim}: {
   color?: string; rim?: string;
 }) {
   const fill = color ?? FILL[state ?? 'white'];
-  const normalized = fill.replace(/\s/g, '').toLowerCase();
-  const visibleState = normalized === OFF_WHITE.toLowerCase() || normalized === 'rgb(241,236,221)' ? 'white'
-    : normalized === GOLD.toLowerCase() || normalized === 'rgb(235,198,104)' ? 'gold'
-    : normalized === DARK_GOLD.toLowerCase() || normalized === 'rgb(138,110,56)' ? 'dark' : 'changing';
+  const visibleState = discStateOf(fill);
   const highlight = `M${x - r * .64} ${y - r * .44}a${r * .74} ${r * .74} 0 0 1 ${r * .92} ${-r * .16}`;
   return <g opacity={opacity}>
     <ellipse cx={x + r * .10} cy={y + r * .26} rx={r * .94} ry={r * .86} fill="#030407" opacity={.55}/>
@@ -47,6 +44,13 @@ export function Disc({x, y, r = RADIUS, state, opacity = 1, color, rim}: {
     {rim && <circle cx={x} cy={y} r={Math.max(1, r - 1.2)} fill="none" stroke={rim}
       strokeWidth={Math.max(1, r * .05)} opacity={.55}/>}
   </g>;
+}
+
+function discStateOf(fill: string) {
+  const normalized = fill.replace(/\s/g, '').toLowerCase();
+  return normalized === OFF_WHITE.toLowerCase() || normalized === 'rgb(241,236,221)' ? 'white'
+    : normalized === GOLD.toLowerCase() || normalized === 'rgb(235,198,104)' ? 'gold'
+    : normalized === DARK_GOLD.toLowerCase() || normalized === 'rgb(138,110,56)' ? 'dark' : 'changing';
 }
 
 /** 柱：从底向上叠放，间距小于直径，像一摞硬币。 */
@@ -71,16 +75,6 @@ export function withdrawBlockPositions(x0 = 300, baseY = 536, gap = 42) {
       y: baseY - (Math.floor(i / 10) + 1) * gap,
     })),
   };
-}
-
-/** 结尾小舞台：15.863 枚按 4×4 排布，末枚仍是 0.863 分数片。 */
-export function endingGridPositions(count = 16, centerX = 1200, centerY = 510,
-                                    cols = 4, gap = 50): Point[] {
-  const rows = Math.ceil(count / cols);
-  return Array.from({length: count}, (_, i) => ({
-    x: centerX + (i % cols - (cols - 1) / 2) * gap,
-    y: centerY + (Math.floor(i / cols) - (rows - 1) / 2) * gap,
-  }));
 }
 
 /** 左侧留存架：3 行 × 10 列，按年份从左到右、从下到上填充。 */

@@ -9,11 +9,9 @@ export const SEGMENTS = [
   {id: 'S2', start: 3.5, end: 8},
   {id: 'S3', start: 8, end: 13},
   {id: 'S4', start: 13, end: 19},
-  {id: 'S5', start: 19, end: 24},
-  {id: 'S6', start: 24, end: 27},
-  {id: 'S7', start: 27, end: 30},
+  {id: 'S5', start: 19, end: 29},
 ] as const;
-export const FRAME_BOUNDARIES = [0, 105, 240, 390, 570, 720, 810, 900] as const;
+export const FRAME_BOUNDARIES = [0, 105, 240, 390, 570, 870] as const;
 export type SegmentId = (typeof SEGMENTS)[number]['id'];
 
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));
@@ -41,25 +39,13 @@ export function secondYear(principal: number = MODEL.principal, rate: number = M
     total: balance(2, true, principal, rate).total};
 }
 
-/** 第30年两路累计总额与差额：差额直接回答 S1 的“三十年后差多少”。 */
+/** 第30年两路累计总额与差额；画面只显示枚数，差额保留为数学口径与测试。 */
 export function comparison(year: number, principal: number = MODEL.principal,
                             rate: number = MODEL.rate) {
   checkYear(year, principal, rate);
   const withdraw = balance(year, false, principal, rate);
   const reinvest = balance(year, true, principal, rate);
   return {withdraw, reinvest, difference: reinvest.total - withdraw.total};
-}
-
-/**
- * 第1年赚到的收益单独留在系统里，到指定年份的值。
- * 第1年末才产生，因此从第2年起参与增长，到第30年是 29 个复利期，不是 30 个。
- */
-export function firstGainJourney(year: number, principal: number = MODEL.principal,
-                                 rate: number = MODEL.rate) {
-  checkYear(year, principal, rate);
-  const year1 = balance(1, true, principal, rate).gain;
-  const years = Math.max(0, year - 1);
-  return {year1, years, atYear: year >= 1 ? year1 * (1 + rate) ** years : 0};
 }
 
 /** 再投入路径第 n 年末：上年总额已成为资本（米白），本年收益尚未再投入（金）。 */
@@ -107,7 +93,7 @@ export const screenDiameter = (units: number, cameraScale: number, viewportWidth
 
 export function segmentAt(t: number): SegmentId {
   for (const segment of SEGMENTS) if (t < segment.end) return segment.id;
-  return 'S7';
+  return SEGMENTS[SEGMENTS.length - 1].id;
 }
 
 /** 年份读数：S2=1、S3=2、S4=3，S5 从 3 推进到 30，之后保持 30。 */

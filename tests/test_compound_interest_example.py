@@ -15,18 +15,18 @@ BED = {'sourceRef': 'assets/media/bed.wav', 'gainDb': 0, 'loop': False,
 DROPS = [17, 19, 22, 25, 27, 30, 33, 35, 38, 41]
 
 
-def test_film_is_900_frames_with_ambient_bed_and_events():
+def test_film_is_870_frames_with_ambient_bed_and_events():
     board = json.loads((EXAMPLE / 'storyboard.json').read_text(encoding='utf-8'))
-    assert (board['width'], board['height'], board['fps'], board['targetSeconds']) == (1920, 1080, 30, 30)
+    assert (board['width'], board['height'], board['fps'], board['targetSeconds']) == (1920, 1080, 30, 29)
     assert len(board['scenes']) == 1
     scene = board['scenes'][0]
-    assert scene['durationFrames'] == 900 and scene['narrationSegments'] == []
+    assert scene['durationFrames'] == 870 and scene['narrationSegments'] == []
     assert board['soundtrack']['music'] == BED
     effects = board['soundtrack']['effects']
-    assert len(effects) == 28
+    assert len(effects) == 25
     offsets = [effect['offsetFrames'] for effect in effects]
     assert offsets == sorted(offsets)
-    assert offsets[:10] == DROPS and offsets[-1] == 840
+    assert offsets[:10] == DROPS and offsets[-1] == 780
     assert all(effect['gainDb'] <= 0 for effect in effects)
     assert 'tts' not in json.loads((EXAMPLE / 'project.json').read_text(encoding='utf-8'))
 
@@ -72,7 +72,7 @@ def test_bed_is_silent_until_eight_seconds_and_fades_out(tmp_path):
     module.generate('bed', target)
     with wave.open(str(target)) as wav:
         assert wav.getframerate() == 24000 and wav.getnchannels() == 1
-        assert wav.getnframes() / 24000 == 30.0
+        assert wav.getnframes() / 24000 == 29.0
         samples = wav.readframes(wav.getnframes())
     values = [abs(int.from_bytes(samples[i:i + 2], 'little', signed=True))
               for i in range(0, len(samples), 2)]
@@ -81,7 +81,7 @@ def test_bed_is_silent_until_eight_seconds_and_fades_out(tmp_path):
     first = next(i for i, value in enumerate(values) if value)
     assert abs(first / 24000 - 8.0) <= .002, '环境床应在8.0秒进入'
     assert max(values) > 500, '环境床必须可闻'
-    assert max(values[29 * 24000 + 23000:]) < max(values) * .2, '29–30秒应淡出'
+    assert max(values[-2400:]) < max(values) * .2, '28.9–29.0秒应淡出'
 
 
 def test_restore_refuses_drift_without_overwriting_any_input(tmp_path, monkeypatch):

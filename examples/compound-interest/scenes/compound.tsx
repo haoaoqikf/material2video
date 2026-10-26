@@ -2,12 +2,10 @@ import {useEffect} from 'react';
 import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import {
   FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, GOLD, MUTED, OFF_WHITE,
-  columnPositions, endingGridPositions, hillPositions, mixColor, shelfPositions,
-  withdrawBlockPositions,
+  columnPositions, hillPositions, mixColor, shelfPositions, withdrawBlockPositions,
 } from './discs';
 import {
-  clamp, comparison, discDiameter, discFractions, ease, firstGainJourney, money,
-  segmentAt, withdrawState, yearAt, yearState,
+  clamp, discDiameter, discFractions, ease, segmentAt, yearAt, yearState,
 } from './compoundMath';
 
 const RIGHT_X = 1420;
@@ -34,15 +32,9 @@ const goldRow = finalGold.map((unit, i) => ({
   x: HILL_CENTER + (i - (finalGold.length - 1) / 2) * 40,
   y: hill[FIRST_DISC_INDEX].y - 48, unit,
 }));
-// 结尾回扣：第 1 年赚到的 1,000 元，到第 30 年按 29 个复利期长成 15.863 枚。
-const firstGain = firstGainJourney(30);
-const firstGainUnits = discFractions(firstGain.atYear / 1000);
-const endGrid = endingGridPositions(firstGainUnits.length, 1200, 440);
-const firstGainUnitsLabel = (firstGain.atYear / 1000).toFixed(3);
-const gap = comparison(30).difference;
 
 // S4 结束时的 12 枚米白 + 第 3 年已转为资本的那枚。第 11 枚（下标 10）是第一年的收益，
-// 在丘上固定映射到顶行中央，供 S6 回扣。
+// 在丘上固定映射到顶行中央，作为金色顶排的生长起点。
 const PRE_TARGETS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, FIRST_DISC_INDEX, 10, 11];
 const PRE_SOURCES = [...rightColumn.slice(0, 12), {x: RIGHT_X, y: NEW_GOLD_Y}];
 const RAIN_TARGETS = hill.map((_, i) => i).filter(i => !PRE_TARGETS.includes(i));
@@ -54,17 +46,15 @@ type Cam = {x: number; y: number; s: number};
 const CAM_KEYS: {t: number; cam: Cam}[] = [
   {t: 0, cam: {x: 960, y: 540, s: 1}},
   {t: 3.65, cam: {x: 960, y: 540, s: 1}},
-  {t: 4.65, cam: {x: RIGHT_X, y: 740, s: 2.5}},
-  {t: 8.0, cam: {x: RIGHT_X, y: 740, s: 2.5}},
-  {t: 12.2, cam: {x: RIGHT_X, y: 740, s: 2.5}},
+  {t: 4.65, cam: {x: RIGHT_X, y: 772, s: 2.5}},
+  {t: 8.0, cam: {x: RIGHT_X, y: 772, s: 2.5}},
+  {t: 12.2, cam: {x: RIGHT_X, y: 772, s: 2.5}},
   {t: 13.4, cam: {x: 960, y: 540, s: 1.05}},
   {t: 18.8, cam: {x: 960, y: 540, s: 1.05}},
-  {t: 19.6, cam: {x: 960, y: 540, s: 1}},
-  {t: 24.0, cam: {x: 960, y: 540, s: 1}},
-  // 结尾不再切丘特写：小舞台在中央，镜头只做轻微推进与拉回。
-  {t: 27.0, cam: {x: 960, y: 540, s: 1.03}},
-  {t: 29.6, cam: {x: 960, y: 540, s: 1}},
-  {t: 30.0, cam: {x: 960, y: 540, s: .985}},
+  // 结果屏略缩小，给页脚与右缘留安全区；19.6–25.8 缓慢推进、25.8–28 缓慢拉回。
+  {t: 19.6, cam: {x: 960, y: 540, s: .94}},
+  {t: 25.8, cam: {x: 960, y: 540, s: .93}},
+  {t: 29, cam: {x: 960, y: 540, s: .92}},
 ];
 
 function cameraAt(t: number): Cam {
@@ -187,28 +177,11 @@ function LeftGroup({t}: {t: number}) {
   </>;
 }
 
-function Sweep({t}: {t: number}) {
-  const p = clamp((t - 27) / 3);
-  const x = -600 + 2600 * p;
-  return <>
-    <rect x={x} y={-200} width={380} height={1500} fill="url(#sweep)" opacity={.10}
-      transform="skewX(-16)"/>
-    {Array.from({length: 14}, (_, i) => {
-      const dx = ((Math.sin(i * 12.9898) * 43758.5453) % 1) * 1000 + 600;
-      const dy = 760 - (t - 27) * (8 + (i % 5) * 2) - ((i * 37) % 180);
-      return <circle key={`d${i}`} cx={dx} cy={dy} r={1.6 + (i % 3) * .6}
-        fill={OFF_WHITE} opacity={.18 + (i % 4) * .05}/>;
-    })}
-  </>;
-}
-
-function Hill({t, hideFirst}: {t: number; hideFirst: boolean}) {
+function Hill({t}: {t: number}) {
   const spread = ease((t - 19) / .8);
   return <>
     {PRE_TARGETS.map((targetIndex, i) => {
       const target = hill[targetIndex], source = PRE_SOURCES[i];
-      const isFirst = targetIndex === FIRST_DISC_INDEX;
-      if (isFirst && hideFirst) return null;
       const committing = targetIndex === PRE_TARGETS[12];
       const x = source.x + (target.x - source.x) * spread;
       const y = source.y + (target.y - source.y) * spread;
@@ -237,54 +210,8 @@ function Hill({t, hideFirst}: {t: number; hideFirst: boolean}) {
   </>;
 }
 
-/** S6/S7 小舞台：第 1 年收益分成“取走”和“再投入”两种去向。 */
-function Ending({t}: {t: number}) {
-  const source = hill[FIRST_DISC_INDEX];
-  const lift = ease(clamp((t - 24) / .5));
-  const glow = ease((t - 24.2) / .3);
-  const split = ease(clamp((t - 24.5) / .25));
-  const leftX = 680, rightX = 1200, rowY = 440;
-  const travelX = source.x + (960 - source.x) * lift;
-  const travelY = source.y + (rowY - source.y) * lift - Math.sin(lift * Math.PI) * 70;
-  const labels = arrive(t, 24.7, .3);
-  const values = arrive(t, 25.4, .3);
-  const units = arrive(t, 25.6, .3);
-  const conclusion = arrive(t, 26.0, .4);
-  const headline = arrive(t, 24.0, .35);
-  const title = arrive(t, 27.8, .5);
-  return <>
-    {t < 24.5 && <Disc x={travelX} y={travelY} color={mixColor(OFF_WHITE, GOLD, glow)}/>}
-    {t >= 24.5 && <Disc x={960 + (leftX - 960) * split} y={rowY} state="dark"
-      color={mixColor(GOLD, DARK_GOLD, split)}/>}
-    {t >= 24.5 && t < 24.7 && <Disc x={960 + (rightX - 960) * split} y={rowY} state="gold"/>}
-    {t >= 24.7 && firstGainUnits.map((unit, i) => {
-      const start = 24.7 + i * .035;
-      if (t < start) return null;
-      const p = ease(clamp((t - start) / .5));
-      const target = endGrid[i];
-      return <Disc key={`e${i}`} x={rightX + (target.x - rightX) * p}
-        y={rowY + (target.y - rowY) * p} r={discDiameter(unit) / 2} state="white"
-        color={mixColor(GOLD, OFF_WHITE, p)} opacity={clamp((t - start) / .08)}/>;
-    })}
-    <Text x={960} y={200} size={60} anchor="middle" weight={600}
-      opacity={headline}>174,494 元里，第 1 年赚的 1,000 元，到第 30 年</Text>
-    <Text x={leftX} y={310} size={60} anchor="middle" opacity={labels}>取走</Text>
-    <Text x={rightX} y={310} size={60} color={GOLD} anchor="middle" opacity={labels}>再投入</Text>
-    <Text x={leftX} y={650} size={88} anchor="middle" weight={600}
-      opacity={values}>{money(1000)}</Text>
-    <Text x={rightX} y={650} size={88} color={GOLD} anchor="middle" weight={600}
-      opacity={values}>{money(firstGain.atYear)}</Text>
-    <Text x={leftX} y={770} size={64} color={MUTED} anchor="middle" opacity={units}>1 枚暗金</Text>
-    <Text x={rightX} y={770} size={64} color={MUTED} anchor="middle"
-      opacity={units}>{firstGainUnitsLabel} 枚米白</Text>
-    <Text x={960} y={880} size={68} color={GOLD} anchor="middle" weight={600}
-      opacity={conclusion}>让收益，也成为本金。</Text>
-    <Text x={960} y={100} size={72} anchor="middle" weight={600} opacity={title}>复利</Text>
-  </>;
-}
-
 function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
-  // S5 的结果标题直接写“第 30 年累计总额”，不再单独报年份，减少结果屏的浮层。
+  // S5 用“30 年后的总资产”表头承担时间信息，不再单独报年份，减少结果屏的浮层。
   if (t < 13 || t >= 19) return null;
   return <Text x={1800} y={140} size={62} color={GOLD} anchor="end" weight={600}
     opacity={opacity}>第 {yearAt(t)} 年</Text>;
@@ -293,7 +220,6 @@ function YearLabel({t, opacity = 1}: {t: number; opacity?: number}) {
 function TextLayer({t}: {t: number}) {
   const segment = segmentAt(t);
   const footnote = arrive(t, 4.4, .5);
-  const s5Fade = 1 - arrive(t, 23.8, .2);
   // 开场标签在S2推近的头0.35秒内淡出，避免镜头移动时标签与柱脱开。
   const approach = arrive(t, 1.35, .35) * (1 - arrive(t, 3.5, .15));
   return <>
@@ -307,49 +233,45 @@ function TextLayer({t}: {t: number}) {
       <Text x={120} y={360} size={60} color={MUTED} opacity={arrive(t, 2.2, .4)}>三十年后差多少？</Text>
     </>}
     {segment === 'S2' && <>
-      <Text x={120} y={75} size={44} color={GOLD}
+      <Text x={120} y={75} size={60} color={GOLD}
         opacity={arrive(t, 3.55, .15)}>收益再投入</Text>
       <Text x={120} y={150} size={66} weight={600}>第 1 年</Text>
-      <Text x={120} y={230} size={48} color={MUTED}>10,000 × 10% = <tspan fill={GOLD}>1,000</tspan></Text>
+      <Text x={120} y={230} size={60} color={MUTED}
+        opacity={1 - arrive(t, 6.6, .3)}>10,000 × 10% = <tspan fill={GOLD}>1,000</tspan></Text>
     </>}
     {segment === 'S3' && <>
-      <Text x={120} y={75} size={44} color={GOLD}
-        opacity={arrive(t, 3.55, .15)}>收益再投入</Text>
       <Text x={120} y={150} size={66} weight={600}>第 2 年</Text>
-      <Text x={120} y={230} size={48} color={MUTED}>11,000 × 10% = <tspan fill={GOLD}>1,100</tspan></Text>
     </>}
     {segment === 'S4' && <>
-      <Text x={510} y={300} size={56} weight={600} anchor="middle">收益取走</Text>
-      <Text x={510} y={350} size={52} color={MUTED} anchor="middle">拿走，不再生息</Text>
-      <Text x={1360} y={300} size={56} weight={600} anchor="middle">收益再投入</Text>
-      <Text x={1360} y={350} size={52} color={MUTED} anchor="middle">留在里面，继续生息</Text>
-      <Text x={1360} y={445} size={64} color={MUTED} anchor="middle"
-        opacity={arrive(t, 15.2, .4)}>12,100 × 10% = 1,210</Text>
+      <Text x={687} y={300} size={60} weight={600} anchor="middle">收益取走</Text>
+      <Text x={687} y={372} size={60} color={MUTED} anchor="middle">拿走，不再生息</Text>
+      <Text x={1443} y={300} size={60} weight={600} anchor="middle">收益再投入</Text>
+      <Text x={1443} y={372} size={60} color={MUTED} anchor="middle">留在里面，继续生息</Text>
     </>}
     {segment === 'S5' && <>
-      <Text x={120} y={125} size={60} color={MUTED} opacity={s5Fade}>{t < 20.2
+      <Text x={120} y={125} size={60} color={MUTED}>{t < 21.0
         ? '同样 10,000 · 同样 10% · 快进到第 30 年'
-        : '同样 10,000 · 同样 10% · 第 30 年累计总额（元）'}</Text>
-      {t < 20.2 ? <>
-        <Text x={500} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益取走</Text>
-        <Text x={1360} y={230} size={60} weight={600} anchor="middle" opacity={s5Fade}>收益再投入</Text>
+        : '30 年后的总资产'}</Text>
+      {t < 21.0 ? <>
+        <Text x={500} y={230} size={60} weight={600} anchor="middle">收益取走</Text>
+        <Text x={1360} y={230} size={60} weight={600} anchor="middle">收益再投入</Text>
       </> : <>
         <Text x={500} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 20.2, .2) * s5Fade}>收益取走 · 40 枚 · 本金 10</Text>
+          opacity={arrive(t, 21.0, .2)}>收益取走</Text>
         <Text x={1360} y={230} size={60} weight={600} anchor="middle"
-          opacity={arrive(t, 20.2, .2) * s5Fade}>收益再投入 · 约 174.5 枚</Text>
+          opacity={arrive(t, 21.0, .2)}>收益再投入</Text>
       </>}
       <Text x={500} y={358} size={84} anchor="middle" weight={600}
-        opacity={arrive(t, 20.2, .2) * s5Fade}>{money(withdrawState(30).total)}</Text>
+        opacity={arrive(t, 21.0, .2)}>40 枚</Text>
       <Text x={1360} y={358} size={88} color={GOLD} anchor="middle" weight={600}
-        opacity={arrive(t, 20.2, .2) * s5Fade}>{money(yearState(30).total)}</Text>
-      <Text x={970} y={592} size={60} color={GOLD} anchor="middle" weight={600}
-        opacity={arrive(t, 20.6, .25) * s5Fade}>相差 {money(gap)} 元</Text>
-      <Text x={120} y={700} size={64} color={MUTED}
-        opacity={arrive(t, 20.2, .2) * s5Fade}>1 枚 = 1,000 元</Text>
+        opacity={arrive(t, 21.0, .2)}>约 174.5 枚</Text>
+      <Text x={120} y={810} size={72} color={GOLD} weight={600}
+        opacity={arrive(t, 25.8, .5)}>让收益，也成为本金。</Text>
+      <Text x={960} y={125} size={96} anchor="middle" weight={600}
+        opacity={arrive(t, 25.8, .45)}>复利</Text>
     </>}
-    <YearLabel t={t} opacity={segment === 'S5' ? s5Fade : 1}/>
-    <Text x={960} y={1046} size={64} color={MUTED} anchor="middle" opacity={footnote}>
+    <YearLabel t={t}/>
+    <Text x={960} y={1012} size={64} color={MUTED} anchor="middle" opacity={footnote}>
       固定10%数学演示，非实际回报 · 不计税费及通胀
     </Text>
   </>;
@@ -362,8 +284,6 @@ export default function Compound(config: CodeSceneProps) {
   const hideText = Boolean((config.props as {hideText?: boolean} | undefined)?.hideText);
   const cam = cameraAt(t);
   const tx = 960 - cam.s * cam.x, ty = 540 - cam.s * cam.y;
-  // S5 结果退场：先淡文字，再把整组比较淡到 0，结尾小舞台接管画面。
-  const bg = t < 24 ? 1 : 1 - ease((t - 24) / .6);
   return <div style={{width: config.width, height: config.height, background: BG, overflow: 'hidden'}}>
     <svg viewBox="0 0 1920 1080" width="100%" height="100%" aria-label="复利数学演示">
       <defs>
@@ -375,15 +295,11 @@ export default function Compound(config: CodeSceneProps) {
       </defs>
       <rect width={1920} height={1080} fill={BG}/>
       <g transform={`translate(${tx} ${ty}) scale(${cam.s})`}>
-        <g opacity={bg}>
-          {t < 3.5 ? <StartColumns t={t}/> : <>
-            <LeftGroup t={t}/>
-            <RightColumn t={t}/>
-          </>}
-          {t >= 19 ? <Hill t={t} hideFirst={t >= 24}/> : null}
-        </g>
-        {t >= 24 ? <Ending t={t}/> : null}
-        {t >= 27 ? <Sweep t={t}/> : null}
+        {t < 3.5 ? <StartColumns t={t}/> : <>
+          <LeftGroup t={t}/>
+          <RightColumn t={t}/>
+        </>}
+        {t >= 19 ? <Hill t={t}/> : null}
       </g>
       {!hideText && <TextLayer t={t}/>}
     </svg>

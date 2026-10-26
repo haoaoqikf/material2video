@@ -5,10 +5,10 @@
       "id": "bed",
       "path": "assets/media/bed.wav",
       "transform": "generate",
-      "durationSeconds": 30.0,
+      "durationSeconds": 29.0,
       "sampleRateHz": 24000,
       "channels": 1,
-      "expectedSha256": "0ed04f83f2dc7850e1ae18f471325edd143db43bedabf3fa0462ac3b6d57cd2f",
+      "expectedSha256": "52fc96715c0f6f05ed01735f3c503f81067d57b924838af205330f7feaf07a57",
       "author": "material2video contributors",
       "license": "CC0-1.0",
       "source": "assets/synthesize.py"

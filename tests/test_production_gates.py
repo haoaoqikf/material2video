@@ -201,6 +201,10 @@ def test_animatic_real_encode_and_duration(project):
     video = checks.make_animatic(root,c)
     assert video.is_file() and video.stat().st_size > 100
     assert read(video.with_name('manifest.json'))['nonDelivery']
+    # 两幕各 30 帧 = 2 秒；编码不得按图片默认帧率漂移。
+    from imageio_ffmpeg import count_frames_and_secs
+    frames, seconds = count_frames_and_secs(str(video))
+    assert abs(seconds - 2.0) < 0.05, (frames, seconds)
 
 
 def test_missing_canvas_observation_is_unverified():

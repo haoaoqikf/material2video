@@ -9,7 +9,7 @@
     "kind": "topic",
     "topic": "固定10%数学演示：同样一万元，无追加投入，收益取出留存与收益再投入的30年累计总额对比；收益也会产生收益，不代表实际回报。"
   },
-  "targetSeconds": 30,
+  "targetSeconds": 29,
   "scenes": [
     {
       "id": "compound",
@@ -19,7 +19,7 @@
         "收益再投入",
         "数学演示"
       ],
-      "durationFrames": 900,
+      "durationFrames": 870,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
@@ -174,37 +174,19 @@
       {
         "sourceRef": "assets/media/resonance.wav",
         "sceneId": "compound",
-        "offsetFrames": 618,
-        "gainDb": -3
-      },
-      {
-        "sourceRef": "assets/media/slide.wav",
-        "sceneId": "compound",
-        "offsetFrames": 720,
-        "gainDb": -4
-      },
-      {
-        "sourceRef": "assets/media/fusion.wav",
-        "sceneId": "compound",
-        "offsetFrames": 738,
-        "gainDb": -3
-      },
-      {
-        "sourceRef": "assets/media/resonance.wav",
-        "sceneId": "compound",
-        "offsetFrames": 774,
+        "offsetFrames": 630,
         "gainDb": -3
       },
       {
         "sourceRef": "assets/media/tingHigh.wav",
         "sceneId": "compound",
-        "offsetFrames": 810,
-        "gainDb": -12
+        "offsetFrames": 774,
+        "gainDb": -6
       },
       {
         "sourceRef": "assets/media/chime.wav",
         "sceneId": "compound",
-        "offsetFrames": 840,
+        "offsetFrames": 780,
         "gainDb": -8
       }
     ]

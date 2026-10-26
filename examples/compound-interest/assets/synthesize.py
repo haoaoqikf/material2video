@@ -1,7 +1,7 @@
 """本例原创音效与环境床；24kHz PCM16 单声道，CC0-1.0，无随机采样。
 
 颜色/事件对应：落片、第一笔金片、回吸与熔合、分屏左右、30 年金属流、回扣、结尾。
-bed 的前 8 秒是数字静音，8.0 秒才淡入，29–30 秒淡出；这样既有 music 字段不需要起始偏移。
+bed 的前 8 秒是数字静音，8.0 秒才淡入，28.0–29.0 秒淡出；这样既有 music 字段不需要起始偏移。
 """
 import math
 import struct
@@ -10,7 +10,7 @@ from pathlib import Path
 
 RATE = 24000
 DURATIONS = {
-    'bed': 30.0,
+    'bed': 29.0,
     'drop1': .18, 'drop2': .18, 'drop3': .18,
     'slide': .35, 'float': .8, 'ding': .9,
     'suction': .7, 'fusion': .6,
@@ -46,10 +46,10 @@ def _bed(n: int) -> list[float]:
     low = 0.0
     for i in range(n):
         t = i / RATE
-        if t < 8 or t >= 30:
+        if t < 8 or t >= 29:
             continue
         fade_in = min(1, (t - 8) / .8)
-        fade_out = min(1, (30 - t) / 1.0)
+        fade_out = min(1, (29 - t) / 1.0)
         low = low * .90 + _noise(i) * .10
         value = (.35 * math.sin(2 * math.pi * 48 * t + .4 * math.sin(2 * math.pi * .031 * t))
                  + .22 * math.sin(2 * math.pi * 63.7 * t + .3 * math.sin(2 * math.pi * .023 * t))

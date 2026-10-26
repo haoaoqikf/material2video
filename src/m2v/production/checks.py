@@ -134,8 +134,12 @@ def make_animatic(root: Path, c: dict) -> Path:
                 if window[0] != cursor:
                     raise M2VError('animatic 时间结构不连续或重叠')
                 cursor = window[1]
-                phase = 'reveal' if key == 'reveal' else 'result' if key in ('result','hold') else 'establish'
+                phase = key if key in ('establish', 'reveal', 'result', 'hold') else 'establish'
                 match = next((x for x in native if x.get('phase') == phase), None)
+                if match is None and phase == 'hold':
+                    # 未提供独立 hold 图时退回 result，保持旧作品的时序卡行为。
+                    phase = 'result'
+                    match = next((x for x in native if x.get('phase') == phase), None)
                 if match is None and shot['tier'] != 'A' and not shot.get('core'):
                     match = native[0] if native else None
                 copy = target / f'{len(segments):04d}.png'
@@ -161,9 +165,20 @@ def make_animatic(root: Path, c: dict) -> Path:
     listing.write_text(''.join(f"file '{p.name}'\nduration {duration:.9f}\n" for p, duration in segments)
                        + f"file '{segments[-1][0].name}'\n", encoding='utf-8')
     video = target / 'animatic.mp4'
-    ffmpeg(['-f', 'concat', '-safe', '0', '-i', str(listing), '-vf',
-            "drawtext=text='ANIMATIC - NON DELIVERY':x=16:y=16:fontsize=22:fontcolor=white,format=yuv420p",
-            '-r', str(c['fps']), '-c:v', 'libx264', str(video)])
+    total = sum(seconds for _, seconds in segments)
+    # 逐段把静帧循环为精确时长再用 concat 滤镜拼接；concat demuxer 在 30fps 下
+    # 会按图片默认帧率重采样，时长会漂移（曾出现 29 秒素材编码成 32 秒）。
+    args = []
+    for path, seconds in segments:
+        args += ['-loop', '1', '-framerate', str(c['fps']), '-t', f'{seconds:.9f}', '-i', str(path)]
+    filters = ''.join(f'[{i}:v]trim=duration={seconds:.9f},setpts=PTS-STARTPTS[v{i}];'
+                      for i, (_, seconds) in enumerate(segments))
+    filters += ''.join(f'[v{i}]' for i in range(len(segments)))
+    filters += (f'concat=n={len(segments)}:v=1:a=0[cat];[cat]'
+                "drawtext=text='ANIMATIC - NON DELIVERY':x=16:y=16:fontsize=22:fontcolor=white,"
+                'format=yuv420p[vout]')
+    ffmpeg([*args, '-filter_complex', filters, '-map', '[vout]', '-r', str(c['fps']),
+            '-t', f'{total:.9f}', '-c:v', 'libx264', str(video)])
     write(target / 'manifest.json', {'nonDelivery': True, 'coverage': coverage, 'sha256': receipt(outputs(root), video)['sha256']})
     return video
 

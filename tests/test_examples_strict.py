@@ -66,15 +66,15 @@ def test_core_demonstrations_follow_their_declared_storytelling_mode(path: Path)
     data = json.loads(path.read_text(encoding="utf-8"))
     name = path.parent.name
     if name == "compound-interest":
-        # 30秒复利：固定帧预算，无旁白；8秒进入的环境床 + 事件音。
+        # 29秒复利：固定帧预算，无旁白；8秒进入的环境床 + 事件音。
         assert data["input"]["kind"] == "topic" and data["input"]["topic"].strip()
         assert len(data["scenes"]) == 1
         scene = data["scenes"][0]
         assert scene["template"] == "code"
-        assert data["targetSeconds"] == 30
+        assert data["targetSeconds"] == 29
         assert data["soundtrack"]["music"]["sourceRef"].endswith("bed.wav")
-        assert len(data["soundtrack"]["effects"]) == 28
-        assert scene["durationFrames"] == 900
+        assert len(data["soundtrack"]["effects"]) == 25
+        assert scene["durationFrames"] == 870
         assert not scene["narrationSegments"]
         assert scene["content"]["entry"] == "scenes/compound.tsx"
         source = (path.parent / scene["content"]["entry"]).read_text(encoding="utf-8")
@@ -202,7 +202,7 @@ def test_shipped_example_actual_duration(name: str) -> None:
         assert not data["subtitles"]
         return
     if name == "compound-interest":
-        assert seconds == 30, "复利固定为30秒、900帧"
+        assert seconds == 29, "复利固定为29秒、870帧"
         assert not data["subtitles"], "无旁白示例不应生成字幕"
         return
     assert 120 <= seconds <= 600, f"{name} 实际 {seconds:.1f} 秒，超出 120～600 秒"
