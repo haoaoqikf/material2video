@@ -12,7 +12,7 @@
 
 固定示例：[从电报到大模型](examples/american-science-milestones/README.md)、[复利](examples/compound-interest/README.md)和[太阳系之旅](examples/solar-system-journey/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
 
-通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)。
+通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)；看图发现毛病后如何定位到成因与改法、形象画到什么程度才算画了，见[看图诊断与形象判据](.agents/skills/material2video/references/visual-diagnosis.md)。
 
 制作载体选择见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)；规则来源及文档维护边界见[架构说明](ARCHITECTURE.md#契约与文档)。类型清单、制作门及审核策略表由共享定义生成，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 可检查漂移。
 
@@ -89,6 +89,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 - [年度住宅均价视频](.agents/skills/material2video/references/housing-timeseries-video.md)：住宅类型的材料、画面节奏与审核约束。
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/visual-creative-direction-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
+- [看图诊断与形象判据](.agents/skills/material2video/references/visual-diagnosis.md)：症状→成因→改法、画得像它本身的判据、主体尺度起点。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。
 - [OpenSpec 规格](openspec/specs/)：已实现能力契约；[项目规划](docs/PROJECT_PLAN.md)：未来路线。
 
