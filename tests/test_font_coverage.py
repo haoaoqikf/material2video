@@ -14,11 +14,12 @@ import pytest
 import m2v.core.fonts as fonts
 from example_catalog import STORYBOARD_PATHS
 
-ASSETS = Path(__file__).resolve().parents[1] / "web/src/assets/fonts"
+ASSETS = Path(__file__).resolve().parents[1] / "fonts/files"
 NOTO = ASSETS / "NotoSansSC-Variable.ttf"
 INTER = ASSETS / "Inter-Variable.ttf"
 
-pytestmark = pytest.mark.skipif(not NOTO.is_file(), reason="随仓库分发的字体不在")
+pytestmark = pytest.mark.skipif(
+    not NOTO.is_file(), reason="字体未恢复；先运行 uv run python fonts/fetch.py")
 
 
 class TestTheReaderItself:

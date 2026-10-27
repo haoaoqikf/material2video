@@ -31,8 +31,11 @@ needs_fonttools = pytest.mark.skipif(
 from example_catalog import STORYBOARD_PATHS
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTO = ROOT / "web/src/assets/fonts/NotoSansSC-Variable.ttf"
+NOTO = ROOT / "fonts/files/NotoSansSC-Variable.ttf"
 STORYBOARDS = STORYBOARD_PATHS
+
+pytestmark = pytest.mark.skipif(
+    not NOTO.is_file(), reason="字体未恢复；先运行 uv run python fonts/fetch.py")
 
 
 def _storyboard(relative: str) -> dict:

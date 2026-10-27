@@ -52,6 +52,7 @@
 - 组件入口接受 `.tsx/.ts/.jsx/.js`。资产接受 `.png/.jpg/.jpeg/.webp/.svg/.woff2/.ttf/.otf`，每项必须有非空来源与许可；声明不代替使用者核验许可。
 - 所有路径使用包内正斜杠相对路径，不接受 `..`、绝对路径、符号链接或跨包引用。
 - 字体通过登记的 `.ttf/.otf/.woff2` URL 显式加载；场景须在字体及其他资源就绪后调用 `ready()`。字体许可随包保存。风格包字体须为 TTF/OTF 才能进行缺字检查（`woff2` 需额外解析依赖）。
+- 包内字体二进制由仓库根 `fonts/registry.json` 与 `fonts/fetch.py` 恢复，不进入 Git；缺失时 `m2v styles`、`validate` 或 `prepare` 明确失败并提示运行 `uv run python fonts/fetch.py`。
 
 ## general 场景接口
 

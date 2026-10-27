@@ -81,7 +81,8 @@ Python 准备/量测、合成层与作品 SDK 读同一份。字幕用白字配�
 ## 字体
 
 `--m2v-font` 是中文优先的字体栈，声明在 `:root` 上，页面里所有元素都继承它。
-两个 webfont（Inter、Noto Sans SC）随仓库分发，清单见 `web/src/assets/fonts.json`；
+两个 webfont（Inter、Noto Sans SC）由字体仓恢复，注册清单见 `web/src/assets/fonts.json`；
+字体二进制不入库，恢复命令为 `uv run python fonts/fetch.py`。
 系统字体只作兜底——系统字体不随仓库分发，换机器可能轻微影响字宽。
 `--m2v-font-latin` 只给拉丁与数字用（图表里的数值列对齐依赖它），
 `--m2v-font-sans` 是图形标签的槽位。

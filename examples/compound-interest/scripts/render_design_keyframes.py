@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 EXAMPLE = ROOT / 'examples/compound-interest'
 OUT = EXAMPLE / 'outputs/design/keyframes'
-FONT = ROOT / 'web/src/assets/fonts/NotoSansSC-Variable.ttf'
+FONT = ROOT / 'fonts/files/NotoSansSC-Variable.ttf'
 
 BG = '#090B10'
 OFF_WHITE = '#F1ECDD'

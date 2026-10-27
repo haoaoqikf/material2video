@@ -20,7 +20,8 @@ def _inputs_digest(project_dir: Path) -> str:
     scripts = (Path(__file__), Path(__file__).with_name("housing.py"), Path(__file__).with_name("adapter.py"),
                Path(render_pipeline.__file__))
     inputs = [(project_dir, project_dir / housing.MATERIAL)]
-    inputs.extend((web, path) for path in remotion.build_inputs())
+    inputs.extend((web, path) for path in remotion.build_inputs() if path.is_relative_to(web))
+    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.build_inputs() if not path.is_relative_to(web))
     inputs.extend((script_dir, path) for path in scripts)
     digest = hashlib.sha256()
     for base, path in inputs:

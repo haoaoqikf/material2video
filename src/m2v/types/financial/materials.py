@@ -515,7 +515,8 @@ def render_inputs_digest(project_dir: str | Path) -> str:
     inputs = [(root, root / name) for name in MATERIALS]
     import m2v.engine.remotion as remotion
     from m2v.engine import render_pipeline
-    inputs.extend((web, path) for path in remotion.build_inputs())
+    inputs.extend((web, path) for path in remotion.build_inputs() if path.is_relative_to(web))
+    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.build_inputs() if not path.is_relative_to(web))
     scripts = Path(__file__).resolve().parents[2]
     inputs.extend((scripts, path) for path in (
         Path(__file__), Path(__file__).with_name("financial_render.py"),

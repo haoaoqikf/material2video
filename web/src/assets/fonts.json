@@ -1,6 +1,7 @@
 {
-  "$comment": "画面实际注册的字体资产清单——唯一真源。渲染层按它注册字体，同步脚本按它把文件搬到打包器需要的位置，缺字机检按它找字形。sourceDirFromWeb 相对于 web/ 工程根。",
-  "sourceDirFromWeb": "src/assets/fonts",
+  "$comment": "画面实际注册的字体资产清单——注册语义的唯一真源。字体二进制不入库，由 fonts/registry.json 与 fonts/fetch.py 恢复；sourceDirFromWeb 与 licenseDirFromWeb 相对于 web/ 工程根。",
+  "sourceDirFromWeb": "../fonts/files",
+  "licenseDirFromWeb": "../fonts/licenses",
   "files": [
     {
       "family": "M2V Inter",

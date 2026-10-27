@@ -229,7 +229,7 @@ def test_no_generated_or_example_media_is_tracked() -> None:
     """成片、配音、预演与代码片段缓存都是派生产物；示例媒体按配方恢复，都不进版本控制。"""
     if shutil.which("git") is None:
         pytest.skip("环境里没有 git")
-    listed = subprocess.run(["git", "ls-files", "examples", "web/src/assets/fonts"], cwd=ROOT, capture_output=True,
+    listed = subprocess.run(["git", "ls-files", "examples", "fonts"], cwd=ROOT, capture_output=True,
                             text=True, encoding="utf-8", errors="replace", check=True).stdout.splitlines()
     generated = [name for name in listed
                  if "/outputs/" in name
@@ -237,4 +237,7 @@ def test_no_generated_or_example_media_is_tracked() -> None:
     restored = [name for name in listed if "/assets/media/" in name]
     assert generated == [], f"示例里有生成媒体被跟踪：{generated}"
     assert restored == [], f"示例媒体应按 assets/fetch.py 恢复而非入库：{restored}"
-    assert any(name.startswith("web/src/assets/fonts/") for name in listed), "公共字体必须保留在版本控制中"
+    tracked_fonts = [name for name in listed if name.endswith((".ttf", ".otf", ".woff2"))]
+    assert tracked_fonts == [], f"字体二进制应由 fonts/fetch.py 恢复而非入库：{tracked_fonts}"
+    assert "fonts/registry.json" in listed, "字体登记表必须保留在版本控制中"
+    assert any(name.startswith("fonts/licenses/") for name in listed), "字体许可必须保留在版本控制中"

@@ -112,9 +112,11 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 `src/fonts.ts` 在运行时用 CSS Font Loading API 注册，URL 用相对路径 `fonts/<文件>`——
 这样契约页与 Remotion 的页面用同一个字符串都能解析到。
 
-字体的唯一真源是 `src/assets/fonts.json`（清单），文件本身在构建前由
-`scripts/sync-fonts.mjs` 从 `src/assets/fonts/` 同步到 `public/fonts/`（已 gitignore）。
-**源文件缺失会让构建失败**：静默回退到系统字体是本项目最怕的一类失败——
+字体二进制**不入库**，由仓库根 `fonts/registry.json` 与 `fonts/fetch.py` 恢复；
+`src/assets/fonts.json` 仍声明画面注册的字体系列与源目录（`../fonts/files`）。
+构建前 `scripts/sync-fonts.mjs` 从字体仓同步到 `public/fonts/`（已 gitignore），并核对
+登记摘要。**源文件缺失或摘要不符会让构建失败**并提示运行
+`uv run python fonts/fetch.py`：静默回退到系统字体是本项目最怕的一类失败——
 成片出来了、字全变了、没有任何报错。
 
 字体栈由 `tokens.css` 的 `--m2v-font` 给出，声明在 `:root` 上，页面里的所有元素

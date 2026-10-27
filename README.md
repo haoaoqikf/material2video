@@ -20,6 +20,7 @@
 
 ```powershell
 uv sync
+uv run python fonts/fetch.py
 pnpm -C web install
 pnpm -C web build
 uv run playwright install chromium

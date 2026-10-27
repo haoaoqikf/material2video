@@ -135,6 +135,8 @@ return (
 
 包内 `assets/NotoSerifSC-subset.ttf` 是 Noto Serif SC 的 GB2312 子集（7542 个字符），
 来源 Google Fonts，许可 SIL Open Font License 1.1，全文见 `assets/OFL-NotoSerifSC.txt`。
+字体二进制不入库，由[字体仓](../../fonts/README.md)的 `fonts/fetch.py` 恢复；缺失时
+`validate`、`prepare` 或 `m2v styles` 会明确失败并提示恢复命令。
 清单 `assets.serif` 登记来源与许可；资产通过 `m2v/style/assets/serif` 取得内联 URL。
 
 - 组件用 `loadNightSerif()`（或 `useNightSerif()`）显式加载；字体失败会阻断录制。

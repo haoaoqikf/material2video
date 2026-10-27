@@ -146,7 +146,8 @@ def font_files(repo_root: Path | None = None) -> list[Path]:
             missing.append(str(candidate))
     if missing:
         raise M2VError(
-            "字体清单声明的字体文件不存在：" + "、".join(missing) + f"（清单：{manifest_path}）"
+            "字体清单声明的字体文件不存在：" + "、".join(missing)
+            + f"（清单：{manifest_path}；请运行 uv run python fonts/fetch.py 恢复）"
         )
     return fonts
 

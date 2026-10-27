@@ -40,6 +40,8 @@ def _file(root: Path, value: Any) -> Path:
         raise M2VError(f"风格入口必须是包内相对路径：{value!r}")
     target = (root / value).resolve()
     if not target.is_relative_to(root) or not target.is_file():
+        if Path(value).suffix in {".ttf", ".otf", ".woff2"}:
+            raise M2VError(f"风格字体缺失或越界：{value}；请运行 uv run python fonts/fetch.py 恢复")
         raise M2VError(f"风格入口缺失或越界：{value}")
     return target
 
