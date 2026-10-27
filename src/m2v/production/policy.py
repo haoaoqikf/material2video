@@ -1,13 +1,32 @@
 """制作审核要求的唯一策略；镜头等级与代理人数无关。"""
 from __future__ import annotations
 
-from m2v.core.errors import M2VError
-from . import contract
+from dataclasses import dataclass
 
-RISK_KINDS = {'static-expression', 'structure-timing', 'core-event', 'split-final',
-              'substantive-dispute', 'repeated-failure'}
-CORE_GATES = {'static-expression': 'G2', 'structure-timing': 'G3', 'core-event': 'G4',
-              'substantive-dispute': 'G4', 'repeated-failure': 'G4'}
+from m2v.core.errors import M2VError
+from . import contract, workflow
+
+
+@dataclass(frozen=True)
+class Risk:
+    kind: str
+    gate: str
+    evidence: str
+    excluded: str
+    final_focuses: tuple[str, ...] = ()
+
+
+RISK_CATALOG = (
+    Risk('static-expression', 'G2', '独立目标关键帧与盲看，覆盖该风险所需建立/结果/揭示状态', '只是 A 级标签、普通标题或已验证布局'),
+    Risk('structure-timing', 'G3', 'animatic 观察，可与核心样片同轮', '仅因片中有动画或 A 级镜头'),
+    Risk('core-event', 'G4', '完整动态窗口；静帧不能替代', '无实质动态风险的静态作品'),
+    Risk('split-final', 'G6', '两名新且互相隔离的终审代理，分别负责结构与视觉文案', '时长、镜头等级或主观追求更高级本身', ('structure', 'visual-copy')),
+    Risk('substantive-dispute', 'G4', '新代理先盲看，再核对中性原条件，单独保留争议结论', '纯审美偏好差异'),
+    Risk('repeated-failure', 'G4', '至少两个实质不同的匿名候选，包含删短、重排或替换机制', '第一次重要返工'),
+)
+RISK_KINDS = frozenset(r.kind for r in RISK_CATALOG)
+CORE_GATES = {r.kind: r.gate for r in RISK_CATALOG if workflow.gate(r.gate).review_round == 'core'}
+DEFAULT_FOCUSES = ('comprehensive',)
 
 
 def risks(c: dict, kind=None) -> list[dict]:
@@ -53,16 +72,17 @@ def requirement(c: dict, gate: str, checkpoint_id=None) -> dict:
     ids = {cid for r in relevant for cid in r['scope']['checkpointIds']}
     if checkpoint_id:
         ids &= {checkpoint_id}
-    focuses = ['comprehensive'] if gate in ('G5', 'G6') or relevant else []
-    if gate == 'G6' and risks(c, 'split-final'):
-        focuses = ['structure', 'visual-copy']
+    focuses = list(DEFAULT_FOCUSES) if workflow.gate(gate).review_round in ('rough', 'final') or relevant else []
+    for risk in RISK_CATALOG:
+        if risk.gate == gate and risk.final_focuses and risks(c, risk.kind):
+            focuses = list(risk.final_focuses)
     return {'count': len(focuses), 'focuses': focuses, 'checkpointIds': sorted(ids),
             'risks': [r['id'] for r in relevant],
             'reasons': [r['reason'] for r in (risks(c, 'split-final') if gate == 'G6' else relevant)]}
 
 
 def round_for(gate: str) -> str:
-    return 'final' if gate == 'G6' else 'rough' if gate == 'G5' else 'core'
+    return workflow.gate(gate).review_round
 
 
 def rounds(c: dict) -> dict:

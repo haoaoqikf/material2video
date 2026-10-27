@@ -25,7 +25,7 @@
 | `--m2v-content-width` | `888px` | 安全区内的可用宽度 |
 | `--m2v-grid-columns` / `--m2v-grid-gutter` | `12` / `24px` | 栅格列数与列间距 |
 
-字幕几何真源是 `web/src/frames.json`（`m2v.engine.frames` 读取），`m2v.engine.design_tokens`
+字幕几何真源是 `web/src/frames.json`（`m2v.core.frames` 读取），`m2v.engine.design_tokens`
 只读 `tokens.css` 的非字幕令牌，并由 `tests/test_design_tokens.py` 守着「令牌层不得再出现
 字幕/量测令牌」。这不是顺手抽公共常量：过去画面与量测两边各写一份字面量，改一处不会让另一处
 报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。

@@ -1,8 +1,9 @@
-"""从类型目录生成三份文档中的类型清单。
+"""从类型目录和制作策略生成文档投影。
 
 README、Skill 与项目规划曾各自维护一份类型清单，与代码里的清单互相独立、没有
 任何一致性检查。现在它们由 `src/m2v/types/catalog.json` 生成，生成区域用成对
-标记圈出，标记之外的内容保持手工维护。
+标记圈出，标记之外的内容保持手工维护。检查点文档的门表、风险表与审核人数表
+分别由 production/workflow.py 和 production/policy.py 派生。
 
 用法：
 
@@ -69,10 +70,12 @@ def write_text(relative: str, text: str, newline: str) -> None:
     (REPO_ROOT / relative).write_text(body, encoding="utf-8", newline="")
 
 
-def _inject(relative: str, text: str, lines: list[str]) -> str:
+def _inject(relative: str, text: str, lines: list[str], *, section="type-catalog") -> str:
+    start_mark = f"<!-- generated:{section}:start -->"
+    end_mark = f"<!-- generated:{section}:end -->"
     parts = text.split("\n")
-    starts = [index for index, line in enumerate(parts) if line.strip() == START_MARK]
-    ends = [index for index, line in enumerate(parts) if line.strip() == END_MARK]
+    starts = [index for index, line in enumerate(parts) if line.strip() == start_mark]
+    ends = [index for index, line in enumerate(parts) if line.strip() == end_mark]
     if len(starts) != 1 or len(ends) != 1:
         raise M2VError(
             f"{relative} 需要恰好一对生成标记，实际 start={len(starts)}、end={len(ends)}"
@@ -82,7 +85,32 @@ def _inject(relative: str, text: str, lines: list[str]) -> str:
     return "\n".join(parts[: starts[0] + 1] + lines + parts[ends[0] :])
 
 
-def build_outputs(catalog=None) -> dict[str, str]:
+CHECKPOINTS = ".agents/skills/material2video/references/checkpoint-gates.md"
+
+
+def production_sections() -> dict[str, list[str]]:
+    """可执行目录的文档视图；条件和人数不在文档脚本中重写。"""
+    from m2v.production import policy, workflow
+
+    gates = ["| 门 | 阶段 | 范围 | 检查方式 | 证据 |", "|---|---|---|---|---|"]
+    gates.extend(f"| {g.id} | {g.phase} | {'检查点' if g.scope == 'checkpoint' else '全片'} | "
+                 f"{'自动检查' if g.checker else '外部报告登记'} | {g.evidence} |" for g in workflow.GATES)
+    risks = ["| kind | 门 | 额外要求 | 不触发的情况 |", "|---|---|---|---|"]
+    risks.extend(f"| `{r.kind}` | {r.gate} | {r.evidence} | {r.excluded} |" for r in policy.RISK_CATALOG)
+    core = '、'.join(f'`{r.kind}`' for r in policy.RISK_CATALOG if r.kind in policy.CORE_GATES)
+    rounds = [f"核心审核风险：{core}。镜头等级不决定审核人数。", "",
+              "| 审核计划 | 核心轮 | 粗片 | 终审 | 独立调用合计 |", "|---|---|---|---|---|"]
+    # 从实际策略枚举核心风险与终审拆分的组合，避免手工计算调用次数。
+    for has_core in (False, True):
+        for split in (False, True):
+            kinds = ([next(iter(policy.CORE_GATES))] if has_core else []) + (['split-final'] if split else [])
+            value = policy.rounds({'reviewPlan': {'risks': [{'id': k, 'kind': k, 'reason': '策略示例', 'scope': {'checkpointIds': []}} for k in kinds]}})
+            label = ('有核心风险' if has_core else '无核心风险') + ('，split-final' if split else '，常规终审')
+            rounds.append(f"| {label} | {value['core']} | {value['rough']} | {value['final']} | {value['defaultCalls']} |")
+    return {'production-gates': gates, 'review-risks': risks, 'review-rounds': rounds}
+
+
+def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
     """生成后的完整文档文本（换行为 ``\\n``），键是相对仓库根的路径。"""
     if catalog is None:
         from m2v.types import catalog as catalog_module
@@ -93,11 +121,16 @@ def build_outputs(catalog=None) -> dict[str, str]:
     for relative, render in TARGETS:
         text, _ = read_text(relative)
         outputs[relative] = _inject(relative, text, render(entries))
+    if include_production:
+        text, _ = read_text(CHECKPOINTS)
+        for section, lines in production_sections().items():
+            text = _inject(CHECKPOINTS, text, lines, section=section)
+        outputs[CHECKPOINTS] = text
     return outputs
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="按类型目录生成文档中的类型清单")
+    parser = argparse.ArgumentParser(description="按类型目录与制作策略生成文档投影")
     parser.add_argument("--check", action="store_true", help="只比对不写入，出现漂移时退出码为 1")
     args = parser.parse_args(argv)
     try:
@@ -115,12 +148,12 @@ def main(argv: list[str] | None = None) -> int:
             write_text(relative, generated, newline)
     if args.check and drifted:
         print(
-            f"[error] 类型清单与类型目录不一致：{'、'.join(drifted)}；"
+            f"[error] 生成文档与权威来源不一致：{'、'.join(drifted)}；"
             f"运行 sync_docs.py 重新生成",
             file=sys.stderr,
         )
         return 1
-    print("已更新：" + "、".join(drifted) if drifted else "类型清单与类型目录一致，无需改动")
+    print("已更新：" + "、".join(drifted) if drifted else "生成文档与权威来源一致，无需改动")
     return 0
 
 

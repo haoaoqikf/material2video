@@ -24,7 +24,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.core import security
-from m2v.engine import frames, media_probe
+from m2v.core import frames
+from m2v.engine import media_probe
 from m2v.engine.assets_audit import ROLES, UNKNOWN_LICENSES
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,

@@ -32,7 +32,7 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
     """只录制与半开全片窗口相交的场景，保留原始时间轴和转场。"""
     import copy
     from .. import media_assets
-    from m2v.engine import frames
+    from m2v.core import frames
     result = copy.deepcopy(prepared)
     frame = frames.spec(prepared["width"], prepared["height"])
     media = media_assets.resolve(root)

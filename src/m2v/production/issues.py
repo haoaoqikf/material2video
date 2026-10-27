@@ -8,6 +8,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from .contract import fields, text
+from .workflow import GATE_IDS
 from .storage import atomic_text, local
 
 BLOCK = re.compile(r'^```m2v-issues\s*\n(.*?)^```\s*$', re.M | re.S)
@@ -44,7 +45,7 @@ def validate(root: Path, items) -> None:
             raise M2VError('问题 ID 重复、状态或必改标识无效')
         seen.add(item['id'])
         for key in ('gate', 'caughtAt', 'catchableAt'):
-            if item[key] not in [f'G{i}' for i in range(7)]:
+            if item[key] not in GATE_IDS:
                 raise M2VError(f'问题 {key} 无效')
         if not isinstance(item['versionRefs'], list) or not isinstance(item['evidence'], list):
             raise M2VError('问题证据与版本引用必须为列表')

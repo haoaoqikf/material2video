@@ -84,7 +84,8 @@ def test_selected_capture_validates_indices_before_browser(tmp_path):
 @pytest.mark.slow
 @requires_node
 def test_native_crossfade_and_subtitle_composite(tmp_path):
-    from m2v.engine import remotion, frames
+    from m2v.core import frames
+    from m2v.engine import remotion
     root = tmp_path / 'project'
     (root / 'scenes').mkdir(parents=True)
     source = """import {useEffect} from 'react';

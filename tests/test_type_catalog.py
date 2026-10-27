@@ -69,7 +69,7 @@ def test_types_command_reads_descriptions_from_the_catalog(capsys) -> None:
 
 def test_docs_type_lists_match_the_catalog() -> None:
     """三份文档里的类型清单必须是生成结果；漂移时用 `sync_docs.py` 重新生成。"""
-    outputs = sync_docs.build_outputs()
+    outputs = sync_docs.build_outputs(include_production=False)
     assert set(outputs) == set(DOCS)
     for relative, generated in outputs.items():
         current, _ = sync_docs.read_text(relative)

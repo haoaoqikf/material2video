@@ -227,7 +227,7 @@ def test_contract_change_does_not_change_prepared_fingerprint(project):
 def test_rough_player_uses_composition_without_full_encode(project, monkeypatch, chromium_ready):
     from m2v.production import timeline
     from m2v.engine.http_server import LocalServer
-    from m2v.engine import frames
+    from m2v.core import frames
     from playwright.sync_api import sync_playwright
     root, manifest, _=project
     clip=root/'clip.mp4'

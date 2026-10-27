@@ -27,14 +27,14 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 - 通用作品按方案确定、粗片验证、精制修订、最终验收四阶段执行，不区分普通与电影级制作档位；`productionProfile` 和 `--profile` 已移除并拒绝。用户方案足以实施时直接采用；否则比较叙事候选。阶段、关键帧门和重制基线规则见[制作流程](references/production-workflow.md)。
 - 每个场景及内部镜头在 `DESIGN.md` 标 A/B/C 镜头等级：A 级记忆镜头优先投入关键帧、时间结构与动态验证，B/C 级服务 A 级但不降低可读性底线；等级本身不触发额外审核，也不进入分镜 JSON 或 CLI。时间结构只在审核计划声明结构时序风险的镜头必填。
 - 制作过程中发现可复用的流程改进，应在当前工作中实施并验证；受范围限制的事项按根目录 [AGENTS.md](../../../AGENTS.md) 记录。
-- 评审须区分实际缺陷、创意风险、审美偏好和证据不足。适用审核轮按[独立评审流程](references/subagent-review.md)隔离执行，默认每轮一名独立代理；详细证据、问题闭环和完成边界见[视觉复核](references/visual-review-rubric.md)与[导演审查](references/director-review-and-edit.md)。
+- 评审须区分实际缺陷、创意风险、审美偏好和证据不足。适用审核轮按[独立评审流程](references/subagent-review.md)隔离执行，轮次与人数按[审核策略](references/checkpoint-gates.md#审核计划与风险触发)派生；详细证据、问题闭环和完成边界见[视觉复核](references/visual-review-rubric.md)与[导演审查](references/director-review-and-edit.md)。
 - 作品面向手机复核，但画幅服从作品设计。素材来源与许可留在作品材料，片尾只保留一份简短署名；画面不出现仓库路径或内部制作提示。
 - 画面注释沿用[项目约定](../../../AGENTS.md#修改规则)的从紧范围；确需添加时一律用明显小于主体文字的小字，置于次要位置，手机尺寸下仍须可读，不遮挡主体、关键数据、字幕或关键动作，不争夺焦点。空间不足先精简或调整位置；主题、对象名称、结论和正常字幕不归为注释，不设跨画幅统一像素字号。制作和修订均按[视觉复核](references/visual-review-rubric.md#反目标写进-designmd按题材检查)检查完整出现窗口。
 - 制作前明确受众与表达目标，评审覆盖信息推进、自然文案和完整事件窗口；具体标准见[节奏与创作](references/creative-production.md)、[统一制作与质量工具](references/cinematic-video.md)和[视觉复核](references/visual-review-rubric.md)。
 
 新启动 general 作品和后续重制必须按[检查点门](references/checkpoint-gates.md)在 DESIGN.md 声明制作合同 v2 并记录 G0–G6 证据；状态为制作完成条件，不增加用户审批或导出硬门禁。v1 合同明确拒绝，不自动迁移或继承通过。
 
-独立审核默认三轮：核心样片（仅当审核计划存在未验证的静态、时序或核心动态风险）、全片粗片、最终成片。每轮一名独立代理，最终由未参与该作品前期评审的新代理综合审查；只有 `split-final` 风险触发两名隔离终审。G2/G3 按风险触发，G4 普通镜头检查通过即关闭，不等待 G5 回绑。每轮一份覆盖表可绑定多个门，不再逐检查点登记视觉事件或五维设计兑现凭据。视觉事件、设计对照与减法诊断并入适用的核心、粗片或最终轮，先盲看落盘、后同轮对照；无适用目标图不补造。
+制作门、审核轮、风险触发、人数、覆盖表与完成条件统一见[检查点契约](references/checkpoint-gates.md)。评审包隔离和执行方式见[独立评审流程](references/subagent-review.md)，视觉判断见[视觉复核](references/visual-review-rubric.md)。
 
 存量在制作品沿用启动时合同，不要求切换流程、重做准备或补造评审。
 
@@ -70,7 +70,7 @@ uv run m2v status --project videos/general/<slug>
 - 先按表达目的选择外部素材、代码或混合；默认运动载体顺序为真实视频 → 代码动画/示意 → 静态图片。外部素材优先找合适的视频，图片仅作最后手段（静态原件、识别或质感），不得用静帧推拉、缩放或轻微位移伪装视频；搜索框输入、点击等适合代码的过程可直接合成。选择与回退理由复用 DESIGN.md 现有记录，不设视频占比；详细标准见[素材选择规范](references/visual-material-selection.md#视频优先与代码适用场景)。
 
 - 通用作品当前实现基线采用 v8 分镜和作品目录内的 React `code` 全画布场景。这是实现方式，不改变「先确定目标画面、再选择实现方案」的制作原则；其他资产或预渲染内容按现有素材契约导入，由 React 场景组合与呈现，具体边界见[技术链路](references/production-workflow.md#技术链路)。旧模板、主题、`general-plan` 和片段嵌入不属于当前契约。
-- 先确定表达和视觉事件，再制作核心段落目标关键帧并独立盲审，验证完整动态窗口后扩展全片；不为普通镜头增加强制导演卡或反转。核心图形高潮另按[视觉力量设计](references/visual-impact-design.md)比较至少三种视觉机制。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
+- 先确定表达和视觉事件，按[审核计划](references/checkpoint-gates.md#审核计划与风险触发)执行适用的目标关键帧、时序与动态验证，再扩展全片；不为普通镜头增加强制导演卡或反转。核心图形高潮另按[视觉力量设计](references/visual-impact-design.md)比较至少三种视觉机制。设计方法见[视觉创意导演](references/visual-creative-direction.md)。
 - 用户要求学习、拆解或借鉴一条或多条参考视频时，先按[参考视频逆向拆解](references/reference-video-analysis.md)提炼观看驱动力与可迁移规则；明确要求外观相似时，再按[参考风格契约](references/reference-style.md)记录视觉采用项和量测，随后做独立冷审。
 - 素材必须先导入并留证，再通过素材 ID 使用；声音来源、音轨和混音规则见[媒体与音效](references/article-media-and-sound.md)。参考作品默认不进入成片；只有用户明确要求复用整条参考音轨时才运行 `m2v ref audio --user-authorized "<授权说明>"` 并记录授权，渲染链不直接读取 `refs/`。
 - 场景按录制时钟推进，旁白字幕默认烧录；共享动效原语以 `progress` 驱动，不内置作品主题。运行时细节见[代码场景契约](references/code-scene-runtime.md)。
@@ -78,4 +78,4 @@ uv run m2v status --project videos/general/<slug>
 
 ## 新增视频类型
 
-在 `src/m2v/types/catalog.json` 登记类型、材料入口、初始化模板和文案，再实现该类型适配器。共享入口不按类型名硬编码分发；类型清单由目录生成。修改后运行 `python .agents/skills/material2video/scripts/sync_docs.py`，用 `--check` 只验证、不写入。
+在 `src/m2v/types/catalog.json` 登记类型、材料入口、初始化模板和文案，再实现该类型适配器。共享入口不按类型名硬编码分发；类型清单由目录生成。类型目录或制作门/审核策略修改后运行 `python .agents/skills/material2video/scripts/sync_docs.py`，用 `--check` 只验证、不写入。

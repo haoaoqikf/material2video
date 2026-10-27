@@ -11,7 +11,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import contract, ledger, measure, policy
+from . import contract, ledger, measure, policy, workflow
 from .storage import local, read, receipt, write
 
 
@@ -86,10 +86,11 @@ def design_frames(root: Path, c: dict) -> list[dict]:
 
 def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Path]:
     c = contract.load(root)
-    if gate == 'G1':
+    checker = workflow.gate(gate).checker
+    if checker == 'declaration':
         path = save_report(root, c, gate, [{'name': '合同声明与帧窗', 'status': 'pass', 'detail': contract.scope_digest(c)}])
         return [path]
-    if gate == 'G2':
+    if checker == 'design':
         if not policy.risks(c, 'static-expression'):
             path = save_report(root, c, gate, [])
             value = read(path)
@@ -106,7 +107,7 @@ def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Pa
             value.update(status='not-applicable', notApplicableReason='审核计划无 static-expression 风险：' + c['reviewPlan']['basis'])
             write(path, value)
         return [path]
-    if gate == 'G3':
+    if checker == 'mapping':
         errors = contract.mapping(c, read(root / 'storyboard.json'))
         checks = [{'name': '分镜映射', 'status': 'fail' if errors else 'pass', 'detail': errors}]
         need = bool(policy.risks(c, 'structure-timing'))
@@ -116,7 +117,7 @@ def run(root: Path, manifest: dict, gate: str, *, checkpoint_id=None) -> list[Pa
             evidence.append(receipt(outputs(root), animatic))
             checks.append({'name': 'animatic', 'status': 'pass', 'detail': '仅验证结构时序，非交付物；待独立评审'})
         return [save_report(root, c, gate, checks, evidence=evidence)]
-    if gate == 'G4':
+    if checker == 'capture':
         return capture(root, c, checkpoint_id)
     raise M2VError('G0/G5/G6 使用 register 登记事实、全片和技术验收报告；不自动产生审美通过')
 

@@ -4,8 +4,7 @@
 过去字幕盒写在 `tokens.css`，量测边界又各写一份常量，「改一个值」只会改到画面那一半，
 判据那一半留在原处不动——两边静默漂移，没有任何一处报错。
 
-画幅只支持两种：1920×1080 横屏与 1080×1920 竖屏，未声明时取横屏。字幕几何按画幅给出，
-横屏取值是竖屏数值乘 1080/1920 的结果，比例关系由测试守着，避免只改一边。
+支持画幅、默认值、字幕几何和字号直接读取清单，不另行维护画幅间的比例推导。
 """
 from __future__ import annotations
 
@@ -13,7 +12,7 @@ import json
 from pathlib import Path
 
 from m2v.core.errors import M2VError
-from m2v.engine.contract_page import web_dir
+from m2v.core.assets import REPOSITORY_ROOT
 
 #: 画幅清单在 `web/` 下的相对位置。
 MANIFEST_RELATIVE = Path("src/frames.json")
@@ -27,7 +26,7 @@ _FRAME_FIELDS = ("width", "height")
 
 
 def manifest_path(repo_root: Path | None = None) -> Path:
-    return web_dir(repo_root) / MANIFEST_RELATIVE
+    return (repo_root or REPOSITORY_ROOT) / "web" / MANIFEST_RELATIVE
 
 
 def manifest(repo_root: Path | None = None) -> dict:

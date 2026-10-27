@@ -7,7 +7,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
-from . import baselines, checks, issues, ledger, reviews
+from . import baselines, checks, issues, ledger, reviews, workflow
 from .storage import locked, read, receipt
 
 
@@ -15,7 +15,7 @@ def add_parsers(sub) -> None:
     gates = sub.add_parser('gates', help='制作门检查、证据登记及隔离评审包')
     gates.add_argument('action', choices=('check', 'register', 'rebuild', 'repair', 'pack', 'timeline'))
     gates.add_argument('--project', required=True)
-    gates.add_argument('--gate', choices=ledger.GATES)
+    gates.add_argument('--gate', choices=workflow.GATE_IDS)
     gates.add_argument('--checkpoint')
     gates.add_argument('--file')
     issues_parser = sub.add_parser('issues', help='更新唯一问题表机器块')

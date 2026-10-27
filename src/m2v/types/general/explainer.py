@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.validate import fail, items, number, obj, text
-from m2v.engine import frames
+from m2v.core import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
 
 from m2v.core.video_config import general_fps

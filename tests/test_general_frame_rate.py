@@ -15,7 +15,8 @@ from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared, load_project, save_prepared
 from m2v.core.video_config import general_fps
-from m2v.engine import frames, lookdev
+from m2v.core import frames
+from m2v.engine import lookdev
 from m2v.types.general import adapter, code_scenes, explainer, reading_pace, soundtrack
 from _helpers import board, fake_record, fake_tts, project, scene, scene_root
 from _helpers import prepare_build, requires_node

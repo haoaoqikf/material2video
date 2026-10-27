@@ -49,7 +49,7 @@ def text(path: Path) -> str:
 
 
 def scene_sources(root: Path, scene: dict) -> dict:
-    from m2v.engine.remotion.inputs import _IMPORT_PATTERNS, _resolve_import
+    from m2v.core.source_imports import import_specifiers, resolve_import
     from m2v.engine.contract_page import web_dir
     root = root.resolve()
     web = web_dir().resolve()
@@ -70,13 +70,12 @@ def scene_sources(root: Path, scene: dict) -> dict:
             continue
         body = text(path)
         bodies.append(body)
-        for pattern in _IMPORT_PATTERNS:
-            for match in pattern.finditer(body):
-                target = _resolve_import(match.group(1), path, web)
-                if target:
-                    queue.append(target)
-                elif match.group(1).startswith(('.', '/', '@/')):
-                    warnings.append('未解析本地引用，保守绑定作品素材与字体')
+        for specifier in import_specifiers(body):
+            target = resolve_import(specifier, path, web)
+            if target:
+                queue.append(target)
+            elif specifier.startswith(('.', '/', '@/')):
+                warnings.append('未解析本地引用，保守绑定作品素材与字体')
         if re.search(r'\bimport\s*\(\s*[^\s\'"]', body):
             warnings.append('动态导入，保守绑定作品源码、素材与字体')
     combined = '\n'.join(bodies) + json.dumps(scene.get('content', {}).get('props', {}), ensure_ascii=False)

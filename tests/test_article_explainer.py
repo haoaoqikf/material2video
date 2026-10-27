@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
-from m2v.engine import frames
+from m2v.core import frames
 from m2v.types.general import adapter, explainer, explainer_prepare as prepare, explainer_review as review
 
 from _helpers import ENTRY, STARTER, board, fake_record, fake_tts, project, scene, scene_root

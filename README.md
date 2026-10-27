@@ -14,7 +14,7 @@
 
 通用视频的画面设计与复核方法见[视觉创意方向](.agents/skills/material2video/references/visual-creative-direction.md)和[视觉力量设计](.agents/skills/material2video/references/visual-impact-design.md)。
 
-制作时按表达目的选择外部素材、代码或混合，默认运动载体顺序为真实视频 → 代码动画/示意 → 静态图片：外部素材优先找合适视频；图片仅作最后手段，不得用静帧推拉或缩放伪装视频；静态原件可直接使用图片，搜索框输入与点击等适合代码的过程可直接合成。不设视频占比，选择与评审标准见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)。
+制作载体选择见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)；规则来源及文档维护边界见[架构说明](ARCHITECTURE.md#契约与文档)。类型清单、制作门及审核策略表由共享定义生成，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 可检查漂移。
 
 ## 快速开始
 

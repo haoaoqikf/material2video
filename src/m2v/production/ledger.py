@@ -10,13 +10,11 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from . import contract, issues, policy, dependencies
+from . import contract, issues, policy, dependencies, workflow
 from .dependencies import digest
 from .storage import local, read, receipt, write
 
 logger = logging.getLogger(__name__)
-GATES = [f'G{i}' for i in range(7)]
-PHASES = ['方案确定'] * 4 + ['粗片验证'] * 2 + ['最终验收']
 
 
 def now() -> str:
@@ -33,7 +31,7 @@ def history(root: Path) -> tuple[list[dict], list[str]]:
             event = json.loads(line)
             contract.fields(event, {'id', 'projectId', 'versionId', 'type', 'time', 'gate', 'sceneId', 'checkpointId',
                                     'evidence', 'upstream', 'data'})
-            if event['id'] in seen or event['gate'] not in [None, *GATES]:
+            if event['id'] in seen or event['gate'] not in [None, *workflow.GATE_IDS]:
                 raise ValueError('重复事件 ID 或未知门')
             if (any(not isinstance(event[k], str) or not event[k] for k in ('id', 'projectId', 'versionId', 'type', 'time'))
                     or not isinstance(event['data'], dict) or not isinstance(event['upstream'], dict)
@@ -145,7 +143,7 @@ def register(root: Path, manifest: dict, report_path: Path) -> dict:
     contract.fields(report, {'gate', 'sceneId', 'checkpointId', 'status', 'checks', 'evidence', 'upstream'},
                     {'notApplicableReason', 'reviewRequired', 'coverage', 'retrospective'})
     gate = report['gate']
-    if gate not in GATES or report['status'] not in ('pass', 'fail', 'unverified', 'not-applicable'):
+    if gate not in workflow.GATE_IDS or report['status'] not in ('pass', 'fail', 'unverified', 'not-applicable'):
         raise M2VError('未知门或报告状态')
     c = contract.load(root)
     current = upstream(root, c, gate, report['sceneId'], report['checkpointId'])
@@ -189,8 +187,9 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     current_events = [e for e in events if e['upstream'].get('cycle') == c['cycleId']]
     for event in current_events:
         indexed.setdefault((event['gate'], event['sceneId'], event['checkpointId']), []).append(event)
-    for gate in GATES:
-        scopes = [(s['id'], cp['id']) for s, _, cp in contract.checkpoints(c)] if gate == 'G4' else [(None, None)]
+    for gate in workflow.GATE_IDS:
+        scopes = ([(s['id'], cp['id']) for s, _, cp in contract.checkpoints(c)]
+                  if workflow.gate(gate).scope == 'checkpoint' else [(None, None)])
         results = []
         for sid, cid in scopes:
             scoped = indexed.get((gate, sid, cid), [])
@@ -255,8 +254,10 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
         rows.append({'gate': gate, 'status': aggregate,
                      'missingAcceptance': sorted({item for r in results for item in r['missingAcceptance']})})
     # 前置未完成不意味着本门证据损坏；保留自身结果，单列可继续工作的条件。
-    for index, row in enumerate(rows):
-        earlier = [r for r in rows[:index] if r['status'] not in ('通过', '不适用')]
+    for row in rows:
+        required = workflow.prerequisites(row['gate'])
+        earlier = [r for r in rows if r['gate'] in required
+                   and r['status'] not in ('通过', '不适用')]
         row.update(evidenceStatus=row['status'], prerequisites=[r['gate'] for r in earlier],
                    ready=not earlier and row['status'] in ('通过', '不适用'))
         if row['status'] == '通过' and earlier:
@@ -272,10 +273,8 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             next_action = f'完成 {policy.round_for(current)} 轮缺失覆盖并导入报告（{current}）'
         elif current in ('G0', 'G5', 'G6'):
             next_action = f'登记 {current} 当前检查证据，再导入适用独立报告'
-    phase = PHASES[int(current[1])] if current else '最终验收'
     g5 = next(r for r in rows if r['gate'] == 'G5')
-    if g5['evidenceStatus'] == '通过' and current in ('G4', 'G5'):
-        phase = '精制修订'
+    phase = workflow.phase(current, rough_passed=g5['evidenceStatus'] == '通过')
     scene_summary = []
     for scene in c['scenes']:
         checkpoints = [row for row in scenes if row['sceneId'] == scene['id']]

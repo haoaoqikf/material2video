@@ -8,7 +8,7 @@ def validate(root: Path, project: dict) -> None:
     cinematic.validate_project(project)
     source = explainer.load(root, project)
     from m2v.core.styles import selected_style
-    from m2v.engine import frames
+    from m2v.core import frames
     width, height = frames.normalize(source.get("width"), source.get("height"))
     selected_style(project, width=width, height=height)
     if not explainer.topic_input(source):

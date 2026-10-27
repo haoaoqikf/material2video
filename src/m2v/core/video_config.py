@@ -13,7 +13,8 @@ GENERAL_ALLOWED_FPS: tuple[int, ...] = tuple(_CONFIG["general"]["allowedFps"])
 
 def validate_general_fps(value: object, field: str = "fps") -> int:
     if type(value) is not int or value not in GENERAL_ALLOWED_FPS:
-        raise M2VError(f"{field} 必须为整数30或60")
+        allowed = "或".join(str(fps) for fps in GENERAL_ALLOWED_FPS)
+        raise M2VError(f"{field} 必须为整数{allowed}")
     return value
 
 

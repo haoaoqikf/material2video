@@ -7,10 +7,10 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import m2v.core.assets as assets
+from m2v.core.source_imports import import_specifiers, resolve_import
 import m2v.engine.contract_page as contract_page
 from m2v.core.fingerprints import file_digest, fingerprint as calculate_fingerprint
 
@@ -28,19 +28,6 @@ _ENTRY_ROOTS = (
 
 #: 依赖清单：裸模块的内容不在仓库里，但**版本**由这两份文件锁定
 _PACKAGE_FILES = ("package.json", "pnpm-lock.yaml")
-
-#: 引用写法。只认「会真的把另一个文件拉进构建」的那几种。
-_IMPORT_PATTERNS = (
-    re.compile(r"""\bfrom\s*['"]([^'"]+)['"]"""),  # import x from 'y' / export … from 'y'
-    re.compile(r"""\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)"""),  # 动态 import('y')
-    re.compile(r"""^[ \t]*import\s+['"]([^'"]+)['"]""", re.MULTILINE),  # 纯副作用 import 'y'
-    re.compile(r"""@import\s+(?:url\()?['"]([^'"]+)['"]"""),  # CSS @import
-    re.compile(r"""url\(\s*['"]?([^'")]+?)['"]?\s*\)"""),  # CSS url(...)
-)
-
-#: 解析引用时依次尝试的后缀（含目录入口）
-_RESOLVE_SUFFIXES = ("", ".ts", ".tsx", ".css", ".json", ".mjs", "/index.ts", "/index.tsx")
-
 
 #: 外部内容根的显式指纹挂载前缀。
 WORK_MOUNT_PREFIX = "__m2v_workspace__"
@@ -65,29 +52,7 @@ def _imports_of(path: Path) -> list[str]:
     if path.suffix.lower() not in (".ts", ".tsx", ".mjs", ".css"):
         return []
     text = path.read_text(encoding="utf-8", errors="replace")
-    found: list[str] = []
-    for pattern in _IMPORT_PATTERNS:
-        found.extend(match.group(1) for match in pattern.finditer(text))
-    return found
-
-
-def _resolve_import(specifier: str, importer: Path, web: Path) -> Path | None:
-    """引用 → 仓库里的文件；裸模块与取不到的引用返回 None。"""
-    if Path(specifier).is_absolute():
-        base = Path(specifier)
-    elif specifier.startswith(("@/", "~/")):
-        base = web / "src" / specifier[2:]
-    elif specifier.startswith("."):
-        base = importer.parent / specifier
-    else:
-        # 裸模块（react、remotion、dagre…）：内容在 node_modules 里，
-        # 由 package.json 与锁文件锁定版本，不逐个指纹
-        return None
-    for suffix in _RESOLVE_SUFFIXES:
-        candidate = Path(f"{base}{suffix}")
-        if candidate.is_file():
-            return candidate
-    return None
+    return import_specifiers(text)
 
 
 def build_inputs(repo_root: Path | None = None) -> list[Path]:
@@ -109,7 +74,7 @@ def build_inputs(repo_root: Path | None = None) -> list[Path]:
             continue
         seen[resolved] = None
         for specifier in _imports_of(resolved):
-            target = _resolve_import(specifier, resolved, web)
+            target = resolve_import(specifier, resolved, web)
             if target is not None:
                 queue.append(target)
 

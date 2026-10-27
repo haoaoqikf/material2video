@@ -8,7 +8,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import acceptance, contract, ledger, policy, dependencies
+from . import workflow, acceptance, contract, ledger, policy, dependencies
 from .dependencies import digest
 from .storage import local, read, receipt, write
 
@@ -18,7 +18,7 @@ EXCLUDED = ['DESIGN.md', 'storyboard.json', 'scenes/', 'visual-notes.md', 'style
 
 def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files: list[str],
             kind: str, display_sizes: list, review_type='blind', timecodes=None, blind_id=None) -> Path:
-    if gate not in ledger.GATES or kind not in KINDS or review_type not in ('blind', 'consistency'):
+    if gate not in workflow.GATE_IDS or kind not in KINDS or review_type not in ('blind', 'consistency'):
         raise M2VError('评审门、证据类型或评审类型无效')
     c = contract.load(root)
     known = {cp['id'] for _, _, cp in contract.checkpoints(c)}
@@ -104,7 +104,7 @@ def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
     report = read(report_path)
     contract.fields(report, {'gate', 'round', 'roundId', 'sceneId', 'checkpointIds', 'packPath', 'packSha256', 'reviewerId',
                             'isolation', 'reviewType', 'verdict', 'observations', 'checkIds', 'focus', 'coverage', 'invocation'})
-    if (report['gate'] not in ledger.GATES or report['verdict'] not in ('pass', 'fail', 'insufficient') or
+    if (report['gate'] not in workflow.GATE_IDS or report['verdict'] not in ('pass', 'fail', 'insufficient') or
             report['round'] not in ('core', 'rough', 'final') or report['reviewType'] not in ('blind', 'consistency') or
             report['isolation'] not in ('independent-subagent', 'external-review', 'self-review')):
         raise M2VError('评审轮次、结论或隔离方式无效')

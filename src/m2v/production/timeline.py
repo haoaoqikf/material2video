@@ -9,7 +9,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import contract, ledger, policy
+from . import contract, ledger, policy, workflow
 from .storage import local, receipt, write
 
 
@@ -22,7 +22,9 @@ def build(root: Path, manifest: dict) -> Path:
     c = contract.load(root)
     if not state.get('scenes') or any(s['status'] != '通过' for s in state['scenes']):
         raise M2VError('G5 需要全部 G4 检查及审核计划指定的核心风险观察通过')
-    if any(r['evidenceStatus'] not in ('通过', '不适用') for r in state['gates'] if r['gate'] in ('G2', 'G3')):
+    if any(r['evidenceStatus'] not in ('通过', '不适用')
+           for r in state['gates'] if r['gate'] in workflow.prerequisites('G5')
+           and workflow.gate(r['gate']).checker in ('design', 'mapping')):
         raise M2VError('G5 需要先关闭适用的静态与结构风险')
     prepared = _prepared(root, manifest)
     # materialize 只补录缺区间，已有区间按现有摘要校验后复用。
