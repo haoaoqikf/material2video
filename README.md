@@ -86,6 +86,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 - [material2video Skill](.agents/skills/material2video/SKILL.md)：按类型与任务/阶段调度，指向四份阶段指南和按触发条件展开的专项参考。
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
+- [年度住宅均价视频](.agents/skills/material2video/references/housing-timeseries-video.md)：住宅类型的材料、画面节奏与审核约束。
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/visual-creative-direction-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。

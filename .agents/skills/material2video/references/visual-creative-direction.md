@@ -303,5 +303,5 @@
 
 ## 15. 判断演练
 
-本节内容已移至[按需参考](visual-creative-direction-examples.md#15-判断演练)；相关任务触发时必须读取。
+本节内容已移至[按需参考](visual-creative-direction-examples.md#15-判断演练)；第 16 节「紧凑示例：复利」同在该页，相关任务触发时必须读取。
 

@@ -26,7 +26,7 @@
   {
     "oldSection": "新增视频类型",
     "oldText": "\n在 `src/m2v/types/catalog.json` 登记类型、材料入口、初始化模板和文案，再实现该类型适配器。共享入口不按类型名硬编码分发；类型清单由目录生成。类型目录或制作门/审核策略修改后运行 `python .agents/skills/material2video/scripts/sync_docs.py`，用 `--check` 只验证、不写入。\n",
-    "authority": "../../../../README.md",
+    "authority": "ARCHITECTURE.md#契约与文档",
     "entry": "SKILL.md"
   }
 ]

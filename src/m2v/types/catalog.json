@@ -129,7 +129,7 @@
       "description": "年度住宅销售均价变化",
       "summary": "年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。",
       "plan": "面向住宅年度均价的独立时间序列类型，含材料复算校验、确定性画面与可选画面评审。",
-      "skillGuide": "按 `series.json` 提供连续年度住宅销售额、面积、计算均价与来源口径；生成 1080×1920、60 fps 无声折线视频。",
+      "skillGuide": "[年度住宅均价视频](references/housing-timeseries-video.md)：按 `series.json` 生成 1080×1920、60 fps 无声折线视频。",
       "materials": [
         {
           "name": "series",

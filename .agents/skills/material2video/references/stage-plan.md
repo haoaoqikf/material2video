@@ -10,6 +10,7 @@
 4. 先确定可见事件和观众的信息顺序，再选素材与实现方式。关键镜头按[导演设计](visual-creative-direction.md#导演设计观众按什么顺序看到)组织；普通镜头不额外填完整导演卡。
 5. 在 DESIGN.md 声明现有 v2 制作合同及适用风险，映射场景/镜头与检查窗。轮次、人数及完成条件只读[审核策略](checkpoint-gates.md#审核计划与风险触发)。
 6. 先做风险最高的目标关键帧或时序试验，不先堆装饰。静态目标通过不替代实际核心片段。
+7. 声明 `static-expression` 风险时，目标关键帧在本阶段完成盲审：新上下文只收关键帧与中性条件，先描述后判定，盲看落盘后再同轮对照。这一轮的执行与隔离要求见[独立评审](subagent-review.md)，不因进入粗片再补。
 
 ## 触发时展开
 
@@ -17,7 +18,8 @@
 - 搜集或入片素材/声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
 - 学习参考：读[参考拆解](reference-video-analysis.md)；明确要求像参考时再读[风格契约](reference-style.md)。
 - 首次实现场景/相机/字体：读[运行时契约](code-scene-runtime.md)；选择风格时读该包 GUIDE。
-- 开始有旁白制作：读[配音契约](voice-and-rhythm.md)，按全文和服务信息选音；无旁白跳过。
+- 作品选择 `style.id`：读[风格接入契约](style-pack.md)，按指导把参数、组件与资产显式落到 DESIGN.md；选风格不会自动换肤。
+- 开始有旁白制作：读[配音契约](voice-and-rhythm.md#配音音色与语速)，按全文和服务信息选音；无旁白跳过。
 
 ## 完成与回退
 

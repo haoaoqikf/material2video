@@ -33,7 +33,7 @@
     {
       "id": "review",
       "guide": "references/stage-rough.md",
-      "when": "核心或粗片评审；最终轮改读 final 主指南"
+      "when": "核心或粗片评审；目标关键帧盲审按方案确定阶段，最终轮改读 final 主指南"
     },
     {
       "id": "diagnose",
@@ -44,7 +44,7 @@
   "types": {
     "general": "references/stage-plan.md",
     "financial-timeseries": "references/financial-timeseries-video.md",
-    "housing-timeseries": "../../../src/m2v/types/catalog.json"
+    "housing-timeseries": "references/housing-timeseries-video.md"
   },
   "conditional": [
     {
@@ -86,6 +86,11 @@
       "id": "style",
       "when": "明确要求外观相似或选择风格；另读所选 GUIDE",
       "guide": "references/reference-style.md"
+    },
+    {
+      "id": "style-pack",
+      "when": "作品选择 style.id，需把风格参数、组件与资产落到 DESIGN.md",
+      "guide": "references/style-pack.md"
     },
     {
       "id": "risk",
@@ -140,6 +145,7 @@
     "证据完成": "references/checkpoint-gates.md",
     "失败回退": "references/production-workflow.md",
     "讲解机制": "references/explainer-design.md",
-    "实际表达": "references/visual-review-rubric.md"
+    "实际表达": "references/visual-review-rubric.md",
+    "过程证据容量": "references/subagent-review.md"
   }
 }

@@ -2,23 +2,23 @@
   "baseline": {
     "SKILL.md": {
       "characters": 6375,
-      "sha256": "11a4aeb4101360ee60bbe8cc896d220d07fbcf0a852a060633b4db6d7562f08b"
+      "sha256": "266218fc38f1e89a703fdb1bbdab2e0186755af24426432cf6dd9008aea76c6c"
     },
     "references/production-workflow.md": {
       "characters": 17068,
-      "sha256": "7a6bbda3f9361be967359e67dd1ff795a21f073c2d4f093492f9515f6f6bdc75"
+      "sha256": "3fdbf878684de77785a15fbe957e8543b5cc903dc1b80b7a5725a775e91e63c1"
     },
     "references/visual-creative-direction.md": {
       "characters": 15028,
-      "sha256": "252ab50f2c7b242e61cc6a0eef05edcbe94a669ce9a65ccc91e9dba51b6b3e79"
+      "sha256": "0817b30e05f893be1f3c8e25e7df72b7bde35bca54739fd28b89646f02bdc9bd"
     },
     "references/visual-review-rubric.md": {
       "characters": 17619,
-      "sha256": "35af4ef82725502928e30b23a5cdff02bf08ef0e6528567b50a8cdcec5803783"
+      "sha256": "e2cac567b487ebfcb647c63728390ac2955c3fcd74d55f51b57b06c782b8fea4"
     },
     "references/subagent-review.md": {
       "characters": 9319,
-      "sha256": "e3e294419a6d74601d02e26e6ae1dbade85d33d87d8a78b73b18dbf162b127c7"
+      "sha256": "bfe4b16c8240a26353f1ca04fa6fd5a6b35d89d6f7a1a935c2adb5922a8a33de"
     },
     "references/reference-video-analysis.md": {
       "characters": 7655,
@@ -26,7 +26,7 @@
     },
     "references/code-scene-runtime.md": {
       "characters": 7765,
-      "sha256": "53349733663c28202405b4fcc9ae70d4ae5e3621d3025a2449f18f56e76f8404"
+      "sha256": "17890ddb8a61eb815e02723433233dc47bceea0079d3d0af0a1979d2b6838361"
     }
   },
   "moves": [
@@ -148,7 +148,8 @@
       "target": "production-record-template.md",
       "entry": "production-workflow.md",
       "characters": 317,
-      "sha256": "50b41236c772cd431a6135bb37e1b0e5d5b3e304e5030870452f527993d822cf"
+      "sha256": "50b41236c772cd431a6135bb37e1b0e5d5b3e304e5030870452f527993d822cf",
+      "note": "仅模板块迁出；本节规则仍完整保留在 production-workflow.md#回退记录与重新放行。"
     }
   ],
   "retainedAuthorities": {
@@ -159,5 +160,6 @@
     "失败回退": "production-workflow.md",
     "讲解机制": "explainer-design.md",
     "实际表达": "visual-review-rubric.md"
-  }
+  },
+  "baselineNote": "基线摘要在提交 229574b 上按 LF 规范化后计算；迁移段 characters/sha256 同为 LF 文本口径。"
 }

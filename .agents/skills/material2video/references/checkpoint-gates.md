@@ -150,6 +150,8 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 计划选中的核心盲审覆盖项还须包含 `assessment`，分列 `understanding`（理解）、`presentation`（表现）、`representativeness`（证据代表性），每项含 `status=pass/fail/insufficient` 与非空 `observations`。覆盖结果取三项中最保守的结果：有 fail 则 fail，其次 insufficient，否则 pass。理解通过不能覆盖表现失败。G2 代表独立目标画面、G3 代表时序证据；G4 用于正式视觉放行时必须采用实际资产、光线、字体、文字合成与完整关键动作，不能以占位样片授权扩展。字段只用于评审，当前不渲染。旧核心报告缺少这些凭据时仅作历史，不补造或推断通过。
 
+动态核心检查点（`core-event` 风险范围）引用的过程片段必须实际探测：至少一段可解码、有视频流与正时长的视频，其视频时长不短于该检查点窗口时长，容差一帧；多个短片段不得相加。报告导入与状态查询共用该检查，坏证据使完成为 false 但不改写历史、不阻止候选生成；判据与执行细节见[独立评审](subagent-review.md#评审包)。
+
 ```json
 {
   "understanding": {"status": "pass", "observations": "完整窗口中能认回同一主体和新公开的关系"},
