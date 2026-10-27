@@ -6,7 +6,7 @@
 
 ```powershell
 pnpm -C web test
-# 7 个测试文件、106 项全部通过（含新增 painter.test.ts 的 11 项）
+# 7 个测试文件、108 项全部通过（含新增 painter.test.ts 的 13 项）
 
 $env:PYTHONIOENCODING='utf-8'
 uv run pytest tests/test_canvas_painter.py tests/test_motion_primitives.py tests/test_cinematic_scene_kit.py -q
