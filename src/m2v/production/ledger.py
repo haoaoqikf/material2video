@@ -230,17 +230,21 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
                                                                      set(requirement['checkpointIds']))]
                         if independent_passes and not passed:
                             missing_acceptance.append('核心理解、表现与代表性凭据')
-                        if policy.round_for(gate) == 'core':
+                        if policy.round_for(gate) == 'core' and gate == 'G4':
+                            # 只要有一条有效通过即足够；坏证据不追加到已有有效通过的检查点，
+                            # 避免同一状态同时声明「完成」与「证据无效」。
                             from . import media_evidence
-                            valid_passes = []
+                            valid_passes, reasons = [], set()
                             for event in passed:
                                 try:
                                     media_evidence.validate(event['data'].get('coverage', []), c, outputs(root),
                                         policy.checkpoint_ids(c, 'core-event') & set(requirement['checkpointIds']))
                                     valid_passes.append(event)
                                 except M2VError as exc:
-                                    missing_acceptance.append(f'动态过程证据无效：{exc}')
+                                    reasons.add(f'动态过程证据无效：{exc}')
                             passed = valid_passes
+                            if not valid_passes:
+                                missing_acceptance.extend(sorted(reasons))
                         focuses = {e['data'].get('focus') for e in passed}
                         if not set(requirement['focuses']) <= focuses:
                             state = '待评审'

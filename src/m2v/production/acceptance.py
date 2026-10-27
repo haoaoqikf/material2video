@@ -72,7 +72,8 @@ def validate(items, c: dict, report: dict, base: Path, evidence_valid) -> list[d
         required = set(points) if report['reviewType'] == 'blind' else policy.checkpoint_ids(c, 'static-expression')
         if not required <= seen:
             raise M2VError('全片或目标图对照报告缺少必要覆盖')
-    if report['round'] == 'core' and report['reviewType'] == 'blind':
+    if report.get('gate') == 'G4' and report['round'] == 'core' and report['reviewType'] == 'blind':
+        # 只有实际动态核心轮才要求过程片段；同一检查点上绑定的 G2 关键帧等静态轮不探测视频。
         dynamic = policy.checkpoint_ids(c, 'core-event') & seen
         media_evidence.validate(items, c, base, dynamic)
     return evidence

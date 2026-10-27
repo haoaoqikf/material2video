@@ -438,12 +438,18 @@ def test_coverage_must_match_scope_and_sequence():
                             c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='缺少必要覆盖'):
         acceptance.validate([item], c, {**report, 'round': 'rough'}, Path('.'), valid)
-    core = {**report, 'round': 'core'}
+    core = {**report, 'round': 'core', 'gate': 'G4'}
     with pytest.raises(M2VError, match='完整过程片段'):
         core_c = sample()
         core_c['reviewPlan']['risks'] = [{'id': 'e', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']},
             'reason': 'r', 'requiredEvidence': ['e']}]
         acceptance.validate([item], core_c, core, Path('.'), valid)
+    # 静态轮不因同一检查点声明了动态风险而要求视频。
+    static_c = sample()
+    static_c['reviewPlan']['risks'] = [{'id': 'e', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']},
+        'reason': 'r', 'requiredEvidence': ['e']}]
+    for gate in ('G0', 'G2', 'G3'):
+        assert acceptance.validate([item], static_c, {**core, 'gate': gate}, Path('.'), valid) == item['evidence']
 
 
 def assessment(**states):
