@@ -31,6 +31,29 @@
   完成为 false 并列出文件与检查点，历史事件与候选文件不改写，静态检查点不探测视频。
 - 未新增系统 `ffprobe` 前提：改用依赖内自带的 ffmpeg（CI 环境无 ffprobe，旧实现会必然失败）。
 
+## 独立规则保全复查与修复
+
+独立只读子代理按入口可达性、迁移逐段比对与强制语气逐项核验，报告的问题已全部修复
+（提交 `29232fa`）：
+
+- 住宅类型原先只路由到 `catalog.json` 的材料模板，`housing-timeseries-video.md` 成为不可达的
+  孤儿文档；现路由、入口与 README 导航均指向该契约，类型文案带链接。
+- 「新增视频类型」的三条操作契约在删除后无真实落点，迁移记录声称的 README 权威不实；
+  现写回 `ARCHITECTURE.md#契约与文档`，并修正记录。
+- 动态核心过程片段的容量判据原先只存在于阶段短指南，而检查点契约自称唯一依据；现落到
+  `checkpoint-gates.md` 与 `subagent-review.md#评审包`，阶段指南保留摘要。
+- 方案确定阶段缺 G2 目标关键帧盲审，评审入口会把该轮跳过；现已补入 `stage-plan.md`。
+- 补回三条入口级规则：生成产物不能代替可编辑材料、按需检查工具不是完整渲染前置、
+  评审帧包从片段或正式成片抽取。
+- 音色「用户明确指定优先」在配音契约无落点且有悬空指向；现补入并改链。
+- `style.id` 定向改读 `style-pack.md`；SKILL 恢复类型表表头与显式指针；复利示例补指针。
+- 迁移记录改用 LF 口径重算基线摘要（原记录混用 CRLF 与 LF，不能自证），并注明
+  `production-record-template.md` 一条只迁代码块、该节规则仍留在制作流程。
+
+复查后重跑：`sync_docs.py --check` 通过（entry=1465、plan=1326、rough=928、refine=882、
+final=1267）；`pytest -m "not slow"` 904 passed、5 skipped、47 deselected；
+`openspec validate --specs --strict` 39 项通过；全部活动文档链接与锚点复查无失效。
+
 ## 验证
 
 - `python .agents/skills/material2video/scripts/sync_docs.py --check`：生成文档一致，阅读预算通过。
