@@ -13,6 +13,9 @@ export {SceneContextProvider, useSceneContext} from './context';
 export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from './context';
 export * from './cinematic';
 export * from './primitives';
+// 二维绘制层用 `painter` 命名空间导出：`Canvas` 已经是 R3F 包装，直接铺开
+// 会让两个同名符号撞在一起。
+export * as painter from './painter';
 
 /** lookdev 保留逻辑构图，但强制画布原生绘制足够的像素；普通录制仍使用作品 DPR。 */
 export function Canvas(props: CanvasProps) {

@@ -134,6 +134,9 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
   `gsap`、`echarts`（`Chart` 是 ECharts 封装，宽高默认取当前画布）以及电影级后期所需的
   `postprocessing` 与 `@react-three/postprocessing`。依赖缺失时在打包前明确失败，不会静默
   渲染成没有后期的画面。
+- `painter` 命名空间提供可选的二维 Canvas 绘制层，用于辉光质感、高密度粒子、线条生长与逐字
+  显影；它同时输出同源的量测代理，使 Canvas 内容可被检查点量测。文字须画在 `overlay` 层。
+  用法、层顺序与量测陷阱见[运行时契约](code-scene-runtime.md#二维绘制层)。
 
 ### 电影级共享套件
 

@@ -153,6 +153,55 @@ Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext
 - 单元测试在 `web/src/code-scene/primitives.test.ts`，覆盖重复求值、跳帧一致性、种子、
   0 与 1 边界；`tests/test_motion_primitives.py` 另检查实现指纹与确定性源码闸门。
 
+### 二维绘制层
+
+`m2v/code-scene` 以 `painter` 命名空间提供可选的二维 Canvas 绘制层（与 R3F 的 `Canvas`
+区分）。不导入时画面与没有这一层时相同。它补的是中间一档：
+
+| 载体 | 什么时候用 |
+|---|---|
+| DOM / SVG | 需要可选中文本、就地排版、风格包组件 |
+| `painter` | 辉光质感、高密度粒子、线条生长、逐字显影 |
+| `three` + `PostFX` | 真实三维、景深与画面后期 |
+
+```tsx
+import {painter} from 'm2v/code-scene';
+const {PainterCanvas} = painter;
+
+<PainterCanvas width={width} height={height} bloom={0.85} grain={0.035} seed={11}
+  paint={(frame, {elapsedSeconds}) => { frame.spark(960, 420, 6, '#F8D893', .9); }}
+  overlay={frame => { frame.text('主体大字', 960, 838, {size: 76, role: 'subject'}); }}
+/>
+```
+
+| 项 | 约定 |
+|---|---|
+| 层 | `background`（底）→ `under`（不参加辉光）→ `paint`（内容，参加辉光）→ `overlay`（辉光之后的锐利层）→ `post` |
+| 文字 | **必须画在 `overlay`**。画进 `paint` 会被自己的光晕冲出重影 |
+| 像素密度 | 按录制配置的 `captureScale` 自动分配后备缓冲；2 倍原生采集时后备缓冲同步放大，不触发像素不足 |
+| 时间 | 只读 `elapsedSeconds` 或帧号；不得使用挂钟、随机源、计时器或 CSS 动画 |
+| 文案 | 必须由作品参数传入，不得内嵌在绘制层；否则字体缺字检查看不到它 |
+| 指纹 | 目录内任何改动都会使引用作品的准备与片段缓存失效 |
+
+#### 量测代理与状态探针
+
+绘制层每帧都会输出两类可量测信息，**两者都来自同一次绘制记录**：
+
+- **代理 DOM**：`div[data-m2v-role][data-m2v-state]`，位置尺寸对应实际绘制包围盒、字号与绘制一致、
+  `textContent` 与文字计划完全相等。它是让 Canvas 内容脱离「观测范围：未验证」的**必需项**。
+- **状态探针**：`window.__M2V_REVIEW_STATE__`，形如 `[{role, count, state}]`，供合同断言交叉校验。
+
+三个已知陷阱：
+
+1. **只写探针不够**。探针只产出独立的「可选状态探针」检查，不消除「观测范围：未验证」；
+   该帧若有活动文字计划而页面没有 DOM 标记，文字状态会直接判失败，人工证据也翻不回来。
+2. **代理文字必须用 `-webkit-text-fill-color: transparent` 隐藏**。用 `opacity: 0` 会被判为不可见，
+   等于代理不存在；用 `color: transparent` 会让颜色断言全部失败；两者还会让画面出现重影。
+3. **`text()` / `chars()` 传 `role` 才进代理**。没传 `role` 的绘制不产生代理元素，也不计入文字预算。
+
+写合同断言时，`expected` 的 `role` 用绘制层给的角色（如 `lead`、`axis-label`）；
+需要固定状态时同时声明 `state`。
+
 ### 讲解机制与已有能力的映射
 
 机制设计与取证要求见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)。以下是已有能力的
