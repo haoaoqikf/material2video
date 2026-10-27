@@ -15,6 +15,8 @@
 - 需要近黑底、宋体主体大字、慢推慢移、少量语义色和光点母题的横屏作品。
 - 不适合：需要大量实拍素材、角色表演、竖屏或非 `general` 类型。类型或画幅不匹配时
   校验会明确失败，不回退到无风格。
+- 旁白要求：清单声明 `requires.narration = "none"`；任一幕含旁白的作品选择本包时
+  `validate` 与 `prepare` 明确失败，不静默改用共享字幕层。无旁白作品使用屏幕字幕约定。
 
 ## 2. 选择与加载
 
@@ -78,7 +80,7 @@ useEffect(() => { if (fontsReady) ready(); }, [fontsReady, ready]);
 主体大字基线取 `type.baseline = 838`，落在安全区上方；不要把结论塞进字幕区。
 
 字号与字距：标题 `type.title = 104`，主体大字 `type.hero = 76`，小标 `type.small = 40`，
-屏幕字幕 `type.screenSubtitle = 44`，章节标 `15/22`；字距 `0.14em`，行高 `1.5`。数值来自
+屏幕字幕 `type.screenSubtitle = 52`，章节标 `15/22`；字距 `0.14em`，行高 `1.5`。数值来自
 `tokens.json`，不在场景里另写一套。
 
 ## 5. 组件

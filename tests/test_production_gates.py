@@ -155,6 +155,10 @@ def test_measure_screen_subtitle_safe_area_and_single_line():
     overflow = {**inside, 'scrollWidth': 1200}
     result = measure.evaluate([overflow], cp, width=1920, height=1080, frame=15, safe_area=safe)
     assert any(x['name'].startswith('屏幕字幕单行') and x['status'] == 'fail' for x in result)
+    # prepared 的 subtitle 对象含 safeArea；传整个对象也必须能解出安全区。
+    nested = measure.evaluate([inside], cp, width=1920, height=1080, frame=15,
+                              safe_area={'safeArea': safe, 'fontSize': 40})
+    assert any(x['name'].startswith('屏幕字幕安全区') and x['status'] == 'pass' for x in nested)
 
 
 def test_non_general_needs_no_contract(tmp_path):

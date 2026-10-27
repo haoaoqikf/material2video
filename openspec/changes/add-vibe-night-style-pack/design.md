@@ -46,18 +46,20 @@ C 夜曲的核心不是 Canvas 引擎，而是数值规格与观看方式。组�
 
 ### 3. 字体作为风格包资产，不改全局字体清单
 
-C 夜曲的主体大字依赖宋体。新增 Noto Serif SC（OFL）woff2 作为包内资产，在 `style.json` 声明 `source` 与 `license`，组件通过 `m2v/style/assets/*` 取得 URL 后显式加载，场景在字体就绪后调用 `ready()`。全局 `web/src/assets/fonts.json` 与字幕层字体不因此改变。
+C 夜曲的主体大字依赖宋体。新增 Noto Serif SC（OFL）TTF 子集，由独立字体仓 `fonts/fetch.py` 恢复到包内；`style.json` 声明 `source` 与 `license`，组件通过 `m2v/style/assets/*` 取得 URL 后显式加载，场景在字体就绪后调用 `ready()`。全局 `web/src/assets/fonts.json` 与字幕层字体不因此改变。
 
-体积控制：优先使用官方可变字体或按常用字表子集化的 woff2；包内保留 OFL 许可全文。试制片必须验证正文用字无回退字体（字体 cmap 检查 + 原尺寸帧复核），缺字视为未完成。
+体积控制：优先使用官方可变字体或按常用字表子集化的 TTF；许可全文随仓库与包保存。`prepare` 用包内字体自身 cmap 对屏幕字幕与场景字面量做严格缺字检查，不与全局字体取并集；试制片还要做原尺寸帧复核，缺字视为未完成。
+
+本包声明 `requires.narration = "none"`：清单只允许这一项旁白要求，有旁白作品选择时 `validate` 与 `prepare` 明确失败，不回退到无风格，也不静默改用共享字幕层。字体缺失时风格加载、校验或准备失败并提示 `uv run python fonts/fetch.py`，不把缺失字体当作已就绪资产。
 
 ### 4. 屏幕字幕由作品自绘（B1）
 
-无旁白作品在 `content.props` 声明屏幕文字（约定字段名 `screenSubtitles`，每项含 `startFrame`、`endFrame`、`text`），由作品场景在 `subtitleSafeArea` 内绘制。约定：
+无旁白作品在 `content.props` 声明屏幕文字（约定字段名 `screenSubtitles`，每项含 `startFrame`、`endFrame`、`text`），由作品场景从上下文 `subtitleSafeArea` 取得几何并绘制；tokens 不复制安全区。约定：
 
 - 一行，不换行；C 夜曲中文不超过 28 字，超出拆句；
 - 无底板、水平居中，字号与基线按 tokens，颜色语义与全片一致；
-- 共享字幕层在无旁白时为空，不冲突；有旁白作品继续使用共享层，不读取 `screenSubtitles`；
-- 这不是产品级字幕：不进入 `subtitleCues`、不参与字幕安全区量测与缺字扫描的自动报告。试制片用帧序列、原尺寸截图与独立评审补足，并在验证记录中披露该限制。
+- 共享字幕层在无旁白时为空，不冲突；同幕既有旁白又声明该字段时 `validate` 明确拒绝，有旁白作品继续使用共享层；
+- 这不是产品级共享字幕：不进入 `subtitleCues`，但组件默认输出 `data-m2v-role="subtitle"`，检查点可用 `measurement.subtitleRoles` 量测安全区、单行与横向溢出；`prepare` 用包内字体严格检查屏幕字幕缺字；淡出按 `screenSubtitleFadeMs` 与作品 fps 换算。试制片仍用帧序列、原尺寸截图与独立评审补足连续性，并在验证记录中披露限制。
 
 选择 B1 而非新增 schema，是为了先验证观感与制作流程；若试制片证明需要时间轴级校验，再另开变更升级为产品级字幕。
 
@@ -77,7 +79,7 @@ C 夜曲的主体大字依赖宋体。新增 Noto Serif SC（OFL）woff2 作为�
 
 ## Risks / Trade-offs
 
-- [宋体资产体积过大] → 使用子集化 woff2 并保留完整许可；以试制片实际用字验证覆盖，缺字即失败。
+- [宋体资产体积过大] → 使用子集化 TTF 并保留完整许可；以试制片实际用字验证覆盖，缺字即失败。
 - [SVG 滤镜在 1080p 逐帧录制下变慢] → 限制每帧滤镜数量，大面积柔光改用径向渐变；粒子改 canvas；必要时降低星点密度。
 - [屏幕字幕不受产品级校验，可能出错字或越界] → 在试制片用帧序列、原尺寸截图、安全区量测与独立评审逐项复核，并在验证记录中写明限制；若问题反复，升级为产品级字幕变更。
 - [风格包与在制作品变更耦合] → 正在制作的 C 夜曲作品保持不写 `style.id`；本变更不要求迁移，风格包落地后由新作品使用。

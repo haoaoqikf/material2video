@@ -14,7 +14,7 @@ DOM = r"""() => {
    }
    return {id:el.id || `element-${index}`, role:el.dataset.m2vRole, state:el.dataset.m2vState || '',
      color:s.fill !== 'none' ? s.fill : s.color, visible, clipped, text:el.textContent?.trim() || '',
-     fontSize:parseFloat(s.fontSize), lineHeight:parseFloat(s.lineHeight),
+     fontSize:parseFloat(s.fontSize), lineHeight:(Number.isFinite(parseFloat(s.lineHeight)) ? parseFloat(s.lineHeight) : 0),
      scrollWidth:el.scrollWidth, clientWidth:el.clientWidth,
      x:r.x, y:r.y, width:r.width, height:r.height,
      parents:nodes.filter(p => p !== el && p.contains(el)).map(p => p.id || `element-${nodes.indexOf(p)}`)};
@@ -32,6 +32,9 @@ def expected_at(cp: dict, frame: int) -> list[dict]:
 
 def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: int,
              safe_area: dict | None = None) -> list[dict]:
+    # 兼容两种传法：直接传 safeArea，或传 prepared 的 subtitle 对象（含 safeArea）。
+    if safe_area is not None and isinstance(safe_area.get('safeArea'), dict):
+        safe_area = safe_area['safeArea']
     checks = []
 
     def result(name, state, detail):
