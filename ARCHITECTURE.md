@@ -19,9 +19,9 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `src/m2v/types/catalog.json` 是类型清单与初始化模板信息的来源；README 和 Skill 中标记的类型清单由同步脚本生成。
 - `web/src/frames.json` 与 `web/src/video-config.json` 分别是画幅/字幕几何和帧率的跨语言来源；Python 经 `core/frames.py`、`core/video_config.py` 读取，制作合同与类型校验复用同一入口。
 - `core/source_imports.py` 是字面量引用提取和本地路径解析的公共接口；构建输入与制作证据分别决定遍历范围、摘要和保守绑定策略。
-- `production/workflow.py` 定义门、阶段、范围、检查处理器及顺序依赖，`production/policy.py` 定义风险与审核策略；状态计算、CLI、自动检查和文档生成消费这些定义。
-- `.agents/skills/material2video/scripts/sync_docs.py` 生成类型清单及检查点文档中的门表、风险表和审核人数表；用 `--check` 验证漂移，生成区不手工维护。
-- 制作操作顺序只在 [production-workflow.md](.agents/skills/material2video/references/production-workflow.md) 维护；合同与证据结构在 [checkpoint-gates.md](.agents/skills/material2video/references/checkpoint-gates.md)，评审隔离与执行在 [subagent-review.md](.agents/skills/material2video/references/subagent-review.md)，视觉判断在 [visual-review-rubric.md](.agents/skills/material2video/references/visual-review-rubric.md)，载体选择在 [visual-material-selection.md](.agents/skills/material2video/references/visual-material-selection.md)。其他入口通过链接引用。
+- `production/workflow.py` 定义门、阶段、范围、检查处理器及顺序依赖，`production/policy.py` 定义风险与审核策略；状态计算、CLI、自动检查和文档生成消费这些定义。`production/media_evidence.py` 只核验动态核心过程片段能否解码、视频流时长是否覆盖检查窗，不判断内容，供报告导入与状态查询共用。
+- `.agents/skills/material2video/scripts/sync_docs.py` 生成类型清单及检查点文档中的门表、风险表和审核人数表；用 `--check` 验证漂移，生成区不手工维护。同目录的 `guidance_docs.py` 校验阅读路由（`references/guidance-routes.json`）的目标、锚点、触发条件与字符预算，由 `sync_docs.py --check` 一并执行。
+- 制作操作顺序只在 [production-workflow.md](.agents/skills/material2video/references/production-workflow.md) 维护，其中「阶段阅读入口」指向四份短阶段指南；日常制作先读当前阶段指南，完整规则仍以本页为准。合同与证据结构在 [checkpoint-gates.md](.agents/skills/material2video/references/checkpoint-gates.md)，评审隔离与执行在 [subagent-review.md](.agents/skills/material2video/references/subagent-review.md)，视觉判断在 [visual-review-rubric.md](.agents/skills/material2video/references/visual-review-rubric.md)，载体选择在 [visual-material-selection.md](.agents/skills/material2video/references/visual-material-selection.md)。其他入口通过链接引用。
 - `openspec/specs/` 描述已实现行为，`openspec/changes/` 保存尚在进行的变更。命令和用户流程说明由 README 与 Skill 分别承担入口和操作手册职责。
 - `videos/`、`refs/` 及示例媒体是内容或派生产物，不属于共享代码模块；具体入库约束见 [AGENTS.md](AGENTS.md)。
 

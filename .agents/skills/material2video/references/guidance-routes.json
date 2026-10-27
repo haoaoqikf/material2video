@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "entry": "SKILL.md",
+  "stages": [
+    {
+      "id": "plan",
+      "guide": "references/stage-plan.md"
+    },
+    {
+      "id": "rough",
+      "guide": "references/stage-rough.md"
+    },
+    {
+      "id": "refine",
+      "guide": "references/stage-refine.md"
+    },
+    {
+      "id": "final",
+      "guide": "references/stage-final.md"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "new",
+      "guide": "references/stage-plan.md",
+      "when": "新制作 general，从方案确定开始"
+    },
+    {
+      "id": "revision",
+      "guide": "references/video-revision.md",
+      "when": "修改已有作品，定位受影响阶段后只读该阶段指南"
+    },
+    {
+      "id": "review",
+      "guide": "references/stage-rough.md",
+      "when": "核心或粗片评审；最终轮改读 final 主指南"
+    },
+    {
+      "id": "diagnose",
+      "guide": "references/stage-refine.md",
+      "when": "排查材料、场景、媒体或证据问题"
+    }
+  ],
+  "types": {
+    "general": "references/stage-plan.md",
+    "financial-timeseries": "references/financial-timeseries-video.md",
+    "housing-timeseries": "../../../src/m2v/types/catalog.json"
+  },
+  "conditional": [
+    {
+      "id": "mechanisms",
+      "when": "讲解片方案与核心试制；读取四种机制章节",
+      "guide": "references/explainer-design.md#四种讲解机制的执行方法"
+    },
+    {
+      "id": "storyboard",
+      "when": "首次编写或修改分镜结构",
+      "guide": "references/storyboard-schema.md"
+    },
+    {
+      "id": "runtime",
+      "when": "首次实现场景、字体、相机或遇到运行时问题",
+      "guide": "references/code-scene-runtime.md"
+    },
+    {
+      "id": "troubleshooting",
+      "when": "低机位细线、轨道、道具或相机保持段问题",
+      "guide": "references/code-scene-troubleshooting.md"
+    },
+    {
+      "id": "media",
+      "when": "搜集、入片或修改素材声音与许可",
+      "guide": "references/article-media-and-sound.md"
+    },
+    {
+      "id": "voice",
+      "when": "存在旁白且首次选音或旁白变化",
+      "guide": "references/voice-and-rhythm.md"
+    },
+    {
+      "id": "reference",
+      "when": "要求学习或拆解参考",
+      "guide": "references/reference-video-analysis.md"
+    },
+    {
+      "id": "style",
+      "when": "明确要求外观相似或选择风格；另读所选 GUIDE",
+      "guide": "references/reference-style.md"
+    },
+    {
+      "id": "risk",
+      "when": "首次声明或修改风险、证据、评审计划或完成状态",
+      "guide": "references/checkpoint-gates.md"
+    },
+    {
+      "id": "isolation",
+      "when": "开始任何适用独立评审",
+      "guide": "references/subagent-review.md"
+    },
+    {
+      "id": "visual",
+      "when": "判定实际表达、文字、关系或视觉问题",
+      "guide": "references/visual-review-rubric.md"
+    },
+    {
+      "id": "visual-examples",
+      "when": "需要视觉设计模板、反例与演练",
+      "guide": "references/visual-creative-direction-examples.md"
+    },
+    {
+      "id": "review-examples",
+      "when": "需要复核判断演练",
+      "guide": "references/visual-review-examples.md"
+    },
+    {
+      "id": "reference-template",
+      "when": "填写参考拆解交付记录",
+      "guide": "references/reference-analysis-template.md"
+    },
+    {
+      "id": "review-template",
+      "when": "填写独立观察报告",
+      "guide": "references/subagent-review-template.md"
+    },
+    {
+      "id": "production-template",
+      "when": "填写推进回退记录",
+      "guide": "references/production-record-template.md"
+    }
+  ],
+  "ruleOwners": {
+    "事实许可": "references/article-media-and-sound.md",
+    "字体确定性": "references/code-scene-runtime.md",
+    "独立隔离": "references/subagent-review.md",
+    "证据完成": "references/checkpoint-gates.md",
+    "失败回退": "references/production-workflow.md",
+    "讲解机制": "references/explainer-design.md",
+    "实际表达": "references/visual-review-rubric.md"
+  }
+}

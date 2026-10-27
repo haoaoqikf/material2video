@@ -1,0 +1,40 @@
+{
+  "files": {
+    "SKILL.md": {
+      "characters": 6375,
+      "sha256": "11a4aeb4101360ee60bbe8cc896d220d07fbcf0a852a060633b4db6d7562f08b"
+    },
+    "references/production-workflow.md": {
+      "characters": 17068,
+      "sha256": "7a6bbda3f9361be967359e67dd1ff795a21f073c2d4f093492f9515f6f6bdc75"
+    },
+    "references/visual-creative-direction.md": {
+      "characters": 15028,
+      "sha256": "252ab50f2c7b242e61cc6a0eef05edcbe94a669ce9a65ccc91e9dba51b6b3e79"
+    },
+    "references/visual-review-rubric.md": {
+      "characters": 17619,
+      "sha256": "35af4ef82725502928e30b23a5cdff02bf08ef0e6528567b50a8cdcec5803783"
+    },
+    "references/subagent-review.md": {
+      "characters": 9319,
+      "sha256": "e3e294419a6d74601d02e26e6ae1dbade85d33d87d8a78b73b18dbf162b127c7"
+    },
+    "references/reference-video-analysis.md": {
+      "characters": 7655,
+      "sha256": "d35b291fc5d819fa880c24800525492822f218f96040c05581742a34e99d92cf"
+    },
+    "references/code-scene-runtime.md": {
+      "characters": 7765,
+      "sha256": "53349733663c28202405b4fcc9ae70d4ae5e3621d3025a2449f18f56e76f8404"
+    }
+  },
+  "defaultGeneralEntry": [
+    "SKILL.md",
+    "references/production-workflow.md",
+    "references/visual-creative-direction.md",
+    "references/storyboard-schema.md",
+    "references/article-media-and-sound.md",
+    "references/code-scene-runtime.md"
+  ]
+}

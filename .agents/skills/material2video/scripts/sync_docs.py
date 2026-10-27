@@ -135,6 +135,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         outputs = build_outputs()
+        from guidance_docs import validate
+        counts = validate(REPO_ROOT)
     except M2VError as exc:
         print(f"[error] {exc}", file=sys.stderr)
         return 1
@@ -154,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print("已更新：" + "、".join(drifted) if drifted else "生成文档与权威来源一致，无需改动")
+    print('阅读预算（正文字符）：' + '、'.join(f'{key}={value}' for key, value in counts.items()))
     return 0
 
 

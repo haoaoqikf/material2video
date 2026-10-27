@@ -1,0 +1,163 @@
+{
+  "baseline": {
+    "SKILL.md": {
+      "characters": 6375,
+      "sha256": "11a4aeb4101360ee60bbe8cc896d220d07fbcf0a852a060633b4db6d7562f08b"
+    },
+    "references/production-workflow.md": {
+      "characters": 17068,
+      "sha256": "7a6bbda3f9361be967359e67dd1ff795a21f073c2d4f093492f9515f6f6bdc75"
+    },
+    "references/visual-creative-direction.md": {
+      "characters": 15028,
+      "sha256": "252ab50f2c7b242e61cc6a0eef05edcbe94a669ce9a65ccc91e9dba51b6b3e79"
+    },
+    "references/visual-review-rubric.md": {
+      "characters": 17619,
+      "sha256": "35af4ef82725502928e30b23a5cdff02bf08ef0e6528567b50a8cdcec5803783"
+    },
+    "references/subagent-review.md": {
+      "characters": 9319,
+      "sha256": "e3e294419a6d74601d02e26e6ae1dbade85d33d87d8a78b73b18dbf162b127c7"
+    },
+    "references/reference-video-analysis.md": {
+      "characters": 7655,
+      "sha256": "d35b291fc5d819fa880c24800525492822f218f96040c05581742a34e99d92cf"
+    },
+    "references/code-scene-runtime.md": {
+      "characters": 7765,
+      "sha256": "53349733663c28202405b4fcc9ae70d4ae5e3621d3025a2449f18f56e76f8404"
+    }
+  },
+  "moves": [
+    {
+      "source": "visual-creative-direction.md#示例与反例",
+      "target": "visual-creative-direction-examples.md#示例与反例",
+      "entry": "visual-creative-direction.md",
+      "characters": 419,
+      "sha256": "23494c2b62abdc2618197879f83efec3b26d711a5ea42f53cea71fa57e384bfa",
+      "headings": [
+        "示例与反例"
+      ]
+    },
+    {
+      "source": "visual-creative-direction.md#12-七段式输出模板",
+      "target": "visual-creative-direction-examples.md#12-七段式输出模板",
+      "entry": "visual-creative-direction.md",
+      "characters": 1423,
+      "sha256": "fc348a2660826cebd57020549c48ccf8476a3dcee49deb6a208fcfe7a1c74a53",
+      "adapted": [
+        "文内相对链接 #视觉事件设计 改为 visual-creative-direction.md#视觉事件设计，因为迁出后原锚点不在本页"
+      ],
+      "headings": [
+        "12. 七段式输出模板",
+        "视觉创意方案（七段式）",
+        "1. 核心表达",
+        "2. 核心视觉母题",
+        "3. 整体视觉风格",
+        "4. 分镜设计",
+        "5. 视觉高潮",
+        "6. 结尾视觉揭示",
+        "7. 禁止项",
+        "十项自我检查"
+      ]
+    },
+    {
+      "source": "visual-creative-direction.md#15-判断演练",
+      "target": "visual-creative-direction-examples.md#15-判断演练",
+      "entry": "visual-creative-direction.md",
+      "characters": 1218,
+      "sha256": "1757b3f98b392586423c6f6b31045e539bd6630724072d5fd16e9cc730b231c4",
+      "headings": [
+        "15. 判断演练",
+        "16. 紧凑示例：复利"
+      ]
+    },
+    {
+      "source": "visual-review-rubric.md#判断演练",
+      "target": "visual-review-examples.md#判断演练",
+      "entry": "visual-review-rubric.md",
+      "characters": 2252,
+      "sha256": "30658e42afccd95ca52abd88f91e70b94b4cab5843e783bd2c5d1429cec8985b",
+      "headings": [
+        "判断演练",
+        "低机位细线、零厚度与保持段",
+        "共面轨道、开场主体与关键道具"
+      ]
+    },
+    {
+      "source": "visual-review-rubric.md#创意保护判断演练非成片评审",
+      "target": "visual-review-examples.md#创意保护判断演练非成片评审",
+      "entry": "visual-review-rubric.md",
+      "characters": 1038,
+      "sha256": "e1a32cec4a31b80c11f0e59f19295cc50f29f86ddb8c523c280d17a10a1d8746",
+      "headings": [
+        "创意保护判断演练（非成片评审）"
+      ]
+    },
+    {
+      "source": "reference-video-analysis.md#交付模板",
+      "target": "reference-analysis-template.md#交付模板",
+      "entry": "reference-video-analysis.md",
+      "characters": 653,
+      "sha256": "cbae9721698cb11c27e468d116514f70277aa00fd55d5b71e2620995ace447ce",
+      "headings": [
+        "交付模板",
+        "参考拆解：<作品 / 平台 / 作者 / 访问日期>",
+        "0 证据与边界",
+        "1 观看驱动力（1–3 条）",
+        "2 时间轴",
+        "3 视觉事件",
+        "4 导演设计",
+        "5 视觉语法",
+        "6 视觉母题",
+        "7 声音",
+        "8 表面风格 vs 底层机制",
+        "9 可迁移规则（≥10 条候选）",
+        "10 反推模板",
+        "11 多参考共性（适用时）",
+        "12 本片采用清单（3–5 条）",
+        "13 三个能力"
+      ]
+    },
+    {
+      "source": "subagent-review.md#输出模板",
+      "target": "subagent-review-template.md#输出模板",
+      "entry": "subagent-review.md",
+      "characters": 506,
+      "sha256": "de1639870f3499e632477938107aefa3441199ebed4b2db10b36f7854d108a33",
+      "headings": [
+        "输出模板",
+        "第一段：只看评审包",
+        "第二段：对照"
+      ]
+    },
+    {
+      "source": "code-scene-runtime.md#低角度平面细线与相机保持段",
+      "target": "code-scene-troubleshooting.md#低角度平面细线与相机保持段",
+      "entry": "code-scene-runtime.md",
+      "characters": 639,
+      "sha256": "7379325caef216abff6e8d96f931805267c4223b6eeff9c2320324a5eee908f5",
+      "headings": [
+        "低角度平面细线与相机保持段",
+        "天体轨道、开场取景与关键道具"
+      ]
+    },
+    {
+      "source": "production-workflow.md#回退记录与重新放行",
+      "target": "production-record-template.md",
+      "entry": "production-workflow.md",
+      "characters": 317,
+      "sha256": "50b41236c772cd431a6135bb37e1b0e5d5b3e304e5030870452f527993d822cf"
+    }
+  ],
+  "retainedAuthorities": {
+    "事实与许可": "article-media-and-sound.md",
+    "字体与确定性": "code-scene-runtime.md",
+    "独立与隔离": "subagent-review.md",
+    "版本及问题闭环": "checkpoint-gates.md",
+    "失败回退": "production-workflow.md",
+    "讲解机制": "explainer-design.md",
+    "实际表达": "visual-review-rubric.md"
+  }
+}

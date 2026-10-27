@@ -2,51 +2,82 @@
 
 这里只检查「读者能否找到并打开」这类结构事实，不锁定正文措辞、小节标题或日期。
 方法本身的正确性由制作与评审流程保证，改一个词不该让测试变红。
+入口按阶段调度：专项文档默认不直接出现在 SKILL.md，但仍须能从入口经阶段指南与路由到达。
 """
 from pathlib import Path
+import json
 import re
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1] / ".agents/skills/material2video/references"
+SKILL = ROOT.parent / "SKILL.md"
 REPO = ROOT.parents[3]
 
 
-def test_visual_impact_reference_is_reachable_without_runtime_changes():
-    """所有操作入口都指向同一份方法文档，且链接可解析。"""
-    for name in ("production-workflow.md", "visual-creative-direction.md", "creative-production.md",
-                 "scene-design-and-acceptance.md", "subagent-review.md", "director-review-and-edit.md",
-                 "visual-review-rubric.md"):
-        assert "visual-impact-design.md" in (ROOT / name).read_text(encoding="utf-8"), name
-    for path in (ROOT.parent / "SKILL.md", REPO / "README.md", *REPO.glob("examples/*/DESIGN.md")):
-        text = path.read_text(encoding="utf-8")
-        links = re.findall(r"\]\(([^)]+visual-impact-design\.md)\)", text)
-        assert links, path
-        assert all((path.parent / link).is_file() for link in links), path
+def reachable() -> dict[str, Path]:
+    """从 SKILL.md 沿活动链接与阅读路由可达的参考文档；不含模板围栏内的示例链接。"""
+    seen: dict[str, Path] = {}
+    route = json.loads((ROOT / "guidance-routes.json").read_text(encoding="utf-8"))
+    queue = [SKILL]
+    queue += [(ROOT / row["guide"]).resolve()
+              for key in ("stages", "tasks", "conditional") for row in route[key]]
+    queue += [(ROOT / value).resolve() for key in ("types", "ruleOwners") for value in route[key].values()]
+    while queue:
+        path = queue.pop().resolve()
+        if not path.is_file() or path.name in seen:
+            continue
+        seen[path.name] = path
+        if path.suffix != ".md":
+            continue
+        text = re.sub(r"^```[^\n]*\n.*?^```\s*$", "", path.read_text(encoding="utf-8"), flags=re.S | re.M)
+        for reference in re.findall(r"\]\(([^)\n]+)\)", text):
+            if "://" in reference or reference.startswith("mailto:"):
+                continue
+            target = (path.parent / reference.partition("#")[0]).resolve()
+            if target.is_file():
+                queue.append(target)
+    return seen
 
 
-def test_visual_creative_direction_is_reachable_from_every_entry():
-    """视觉创意导演方法文档存在，并从制作、复核与示例入口可检索到。"""
-    assert (ROOT / "visual-creative-direction.md").is_file()
-    for name in ("production-workflow.md", "creative-production.md",
-                 "article-to-storyboard.md", "scene-design-and-acceptance.md",
-                 "visual-review-rubric.md", "director-review-and-edit.md"):
-        assert "visual-creative-direction.md" in (ROOT / name).read_text(encoding="utf-8"), name
-    assert "visual-creative-direction.md" in (ROOT.parent / "SKILL.md").read_text(encoding="utf-8")
-    assert "visual-creative-direction.md" in (REPO / "README.md").read_text(encoding="utf-8")
+def test_reference_docs_are_reachable_from_the_entry():
+    """专项方法文档可从入口经阶段指南与路由到达。"""
+    docs = reachable()
+    for name in ("visual-impact-design.md", "visual-creative-direction.md", "reference-video-analysis.md",
+                 "article-media-and-sound.md", "visual-review-rubric.md", "stage-plan.md",
+                 "stage-rough.md", "stage-refine.md", "stage-final.md", "checkpoint-gates.md"):
+        assert name in docs, name
 
 
-def test_reference_video_analysis_is_reachable_from_learning_entries():
-    """学习或借鉴参考视频时，拆解入口必须可从 Skill 与相关参考文档到达。"""
-    analysis = ROOT / "reference-video-analysis.md"
-    assert analysis.is_file()
-    skill = (ROOT.parent / "SKILL.md").read_text(encoding="utf-8")
-    assert "reference-video-analysis.md" in skill
-    for name in ("reference-style.md", "creative-production.md", "visual-creative-direction.md",
-                 "visual-impact-design.md", "subagent-review.md"):
-        text = (ROOT / name).read_text(encoding="utf-8")
-        links = re.findall(r"\]\(([^)]*reference-video-analysis\.md)\)", text)
-        assert links, name
-        assert all((ROOT / link).is_file() for link in links), name
+@pytest.mark.parametrize("name,documents", [
+    ("visual-impact-design.md", ("production-workflow.md", "visual-creative-direction.md",
+                                 "creative-production.md", "scene-design-and-acceptance.md",
+                                 "subagent-review.md", "director-review-and-edit.md",
+                                 "visual-review-rubric.md")),
+    ("visual-creative-direction.md", ("production-workflow.md", "creative-production.md",
+                                      "article-to-storyboard.md", "scene-design-and-acceptance.md",
+                                      "visual-review-rubric.md", "director-review-and-edit.md")),
+    ("reference-video-analysis.md", ("reference-style.md", "creative-production.md",
+                                     "visual-creative-direction.md", "visual-impact-design.md",
+                                     "subagent-review.md")),
+])
+def test_methods_are_linked_from_the_operating_docs(name, documents):
+    """制作、复核与评审文档各自链接同一份方法，读者不必只会从入口找。"""
+    for document in documents:
+        text = (ROOT / document).read_text(encoding="utf-8")
+        assert name in text, f"{document} 没有指向 {name}"
+
+
+def test_readme_and_example_links_resolve():
+    """README 与固定示例的设计文档仍须有可打开的方法链接。"""
+    for name in ("visual-impact-design.md", "visual-creative-direction.md"):
+        paths = (REPO / "README.md", *REPO.glob("examples/*/DESIGN.md"))
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            links = re.findall(rf"\]\(([^)]+{re.escape(name)})\)", text)
+            assert links, f"{path} 没有指向 {name}"
+            assert all((path.parent / link).is_file() for link in links), path
 
 
 def test_fixed_examples_document_media_restore():
@@ -66,8 +97,8 @@ def test_code_scene_contract_is_documented():
 
 
 def test_reference_audio_reuse_is_documented():
-    """参考音轨复用是受控例外：命令与授权开关必须在入口文档中出现。"""
+    """参考音轨复用是受控例外：命令与授权开关必须在入口文档与指南中出现。"""
     readme = (REPO / "README.md").read_text(encoding="utf-8")
     assert "m2v ref audio" in readme and "--user-authorized" in readme
-    skill = (ROOT.parent / "SKILL.md").read_text(encoding="utf-8")
-    assert "ref audio" in skill and "user-authorized" in skill
+    media = reachable()["article-media-and-sound.md"].read_text(encoding="utf-8")
+    assert "ref audio" in media and "user-authorized" in media

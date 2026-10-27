@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from m2v.core.errors import M2VError
-from . import contract, policy
+from . import contract, policy, media_evidence
 
 DIMENSIONS = ('understanding', 'presentation', 'representativeness')
 
@@ -74,8 +74,5 @@ def validate(items, c: dict, report: dict, base: Path, evidence_valid) -> list[d
             raise M2VError('全片或目标图对照报告缺少必要覆盖')
     if report['round'] == 'core' and report['reviewType'] == 'blind':
         dynamic = policy.checkpoint_ids(c, 'core-event') & seen
-        for item in items:
-            if item['checkpointId'] in dynamic and not any(
-                    Path(e['path']).suffix.lower() in ('.mp4', '.webm') for e in item['evidence']):
-                raise M2VError('动态核心需要完整过程片段，端点静帧不足')
+        media_evidence.validate(items, c, base, dynamic)
     return evidence

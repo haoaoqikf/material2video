@@ -84,8 +84,9 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 ## 文档导航
 
-- [material2video Skill](.agents/skills/material2video/SKILL.md)：统一制作流程、命令和按类型组织的参考资料。
-- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法。
+- [material2video Skill](.agents/skills/material2video/SKILL.md)：按类型与任务/阶段调度，指向四份阶段指南和按触发条件展开的专项参考。
+- [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
+- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/visual-creative-direction-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。
 - [OpenSpec 规格](openspec/specs/)：已实现能力契约；[项目规划](docs/PROJECT_PLAN.md)：未来路线。

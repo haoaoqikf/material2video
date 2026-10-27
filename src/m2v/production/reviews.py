@@ -8,7 +8,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import workflow, acceptance, contract, ledger, policy, dependencies
+from . import workflow, acceptance, contract, ledger, policy, dependencies, media_evidence
 from .dependencies import digest
 from .storage import local, read, receipt, write
 
@@ -98,7 +98,7 @@ def _invocation(base: Path, report: dict, pack_path: Path, pack: dict) -> dict:
 
 
 def import_report(root: Path, manifest: dict, report_path: Path) -> dict:
-    with dependencies.snapshot():
+    with dependencies.snapshot(), media_evidence.snapshot():
         return _import_report(root, manifest, report_path)
 
 

@@ -160,7 +160,8 @@ def register(root: Path, manifest: dict, report_path: Path) -> dict:
 
 
 def status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    with dependencies.snapshot():
+    from . import media_evidence
+    with dependencies.snapshot(), media_evidence.snapshot():
         return _status(root, manifest, full_history=full_history)
 
 
@@ -229,6 +230,17 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
                                                                      set(requirement['checkpointIds']))]
                         if independent_passes and not passed:
                             missing_acceptance.append('核心理解、表现与代表性凭据')
+                        if policy.round_for(gate) == 'core':
+                            from . import media_evidence
+                            valid_passes = []
+                            for event in passed:
+                                try:
+                                    media_evidence.validate(event['data'].get('coverage', []), c, outputs(root),
+                                        policy.checkpoint_ids(c, 'core-event') & set(requirement['checkpointIds']))
+                                    valid_passes.append(event)
+                                except M2VError as exc:
+                                    missing_acceptance.append(f'动态过程证据无效：{exc}')
+                            passed = valid_passes
                         focuses = {e['data'].get('focus') for e in passed}
                         if not set(requirement['focuses']) <= focuses:
                             state = '待评审'
