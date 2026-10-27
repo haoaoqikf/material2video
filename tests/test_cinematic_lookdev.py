@@ -84,3 +84,127 @@ def test_contact_sheet_tiles_stills(tmp_path):
     assert sheet.is_file() and sheet.stat().st_size > 0
     with pytest.raises(M2VError):
         lookdev.contact_sheet([], tmp_path / "empty.png")
+
+
+# ---------------------------------------------------------------- 任意时刻预览
+
+def two_scene_prepared():
+    """两个首尾相接的幕，便于验证跨幕取帧与归属校验。"""
+    return {"durationInFrames": 300, "fps": 30,
+            "props": {"compiledScenes": [{"id": "a", "startFrame": 0, "endFrame": 150},
+                                          {"id": "b", "startFrame": 150, "endFrame": 300}]}}
+
+
+def test_seconds_to_frame_rounds_and_clamps():
+    assert lookdev.seconds_to_frame(2.0, 30, 300) == 60
+    # 四舍五入而不是向下取整：作者按秒指定的是最近的那一帧。
+    assert lookdev.seconds_to_frame(2.02, 30, 300) == 61
+    assert lookdev.seconds_to_frame(-5, 30, 300) == 0
+    assert lookdev.seconds_to_frame(999, 30, 300) == 299
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), "2"])
+def test_seconds_to_frame_rejects_non_finite(value):
+    with pytest.raises(M2VError, match="时刻必须是有限数值|时刻必须是秒数"):
+        lookdev.seconds_to_frame(value, 30, 300)
+
+
+def test_check_frames_runs_before_any_browser_work():
+    """归属校验必须先于采集：非法帧不该白跑一遍浏览器。"""
+    prepared = two_scene_prepared()
+    lookdev.check_frames(prepared, [0, 149, 299])
+    with pytest.raises(M2VError, match="超出全片范围"):
+        lookdev.check_frames(prepared, [300])
+    with pytest.raises(M2VError, match="超出全片范围"):
+        lookdev.check_frames(prepared, [-1])
+    with pytest.raises(M2VError, match="没有可采集的时刻"):
+        lookdev.check_frames(prepared, [])
+
+
+def test_check_frames_rejects_frame_outside_every_scene():
+    prepared = two_scene_prepared()
+    prepared["props"]["compiledScenes"][1]["startFrame"] = 200
+    with pytest.raises(M2VError, match="不属于任何已准备场景"):
+        lookdev.check_frames(prepared, [180])
+
+
+def test_uniform_frames_includes_both_ends():
+    assert lookdev.uniform_frames(0, 100, 3) == [0, 50, 100]
+    assert lookdev.uniform_frames(7, 7, 5) == [7]
+    assert lookdev.uniform_frames(0, 100, 1) == [0]
+    with pytest.raises(M2VError, match="早于起点"):
+        lookdev.uniform_frames(50, 10, 3)
+    with pytest.raises(M2VError, match="至少为 1"):
+        lookdev.uniform_frames(0, 10, 0)
+
+
+def test_sheet_frames_accepts_times_and_uniform_count():
+    prepared = two_scene_prepared()
+    assert lookdev.sheet_frames(["1", "3.5"], prepared) == [30, 105]
+    # 重复时刻只采一次。
+    assert lookdev.sheet_frames(["1", "1.0"], prepared) == [30]
+    uniform = lookdev.sheet_frames(["4"], prepared)
+    assert len(uniform) == 4 and uniform == sorted(uniform) and uniform[-1] < 300
+    with pytest.raises(M2VError, match="1～24"):
+        lookdev.sheet_frames(["99"], prepared)
+    with pytest.raises(M2VError, match="时刻必须是秒数"):
+        lookdev.sheet_frames(["abc"], prepared)
+
+
+def test_motion_frames_rejects_bad_windows():
+    prepared = two_scene_prepared()
+    frames = lookdev.motion_frames(1.0, 2.0, 5, prepared)
+    assert len(frames) == 5 and frames[0] == 30 and frames[-1] == 60
+    with pytest.raises(M2VError, match="早于起点"):
+        lookdev.motion_frames(2.0, 1.0, 5, prepared)
+    with pytest.raises(M2VError, match="超出成片时长"):
+        lookdev.motion_frames(0, 100, 5, prepared)
+
+
+def test_sheet_columns_grows_with_count():
+    assert lookdev.sheet_columns(1) == 1
+    assert lookdev.sheet_columns(2) == 2
+    assert lookdev.sheet_columns(3) == 3
+    assert lookdev.sheet_columns(12) == lookdev.SHEET_COLUMNS
+
+
+def test_contact_sheet_labels_are_ascii_only(tmp_path):
+    """标注只用数字与冒号：缺中文字体会让整条拼图命令失败。"""
+    stills = []
+    for index in range(2):
+        path = tmp_path / f"still-{index}.png"
+        subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi",
+                        "-i", "color=c=black:size=320x180", "-frames:v", "1", str(path)], check=True)
+        stills.append(path)
+    sheet = lookdev.contact_sheet(stills, tmp_path / "labelled.png",
+                                  columns=2, labels=["1-0.00s-f0", "中文标注"])
+    assert sheet.is_file() and sheet.stat().st_size > 0
+
+
+def test_preview_modes_are_mutually_exclusive():
+    args = type("Args", (), {"sheet": ["1"], "motion": None, "det": False, "stills": None,
+                             "sample_seconds": lookdev.DEFAULT_SAMPLE_SECONDS})()
+    lookdev._reject_conflicting_modes(args)
+    args.motion = [0.0, 1.0]
+    with pytest.raises(M2VError, match="互斥"):
+        lookdev._reject_conflicting_modes(args)
+    args.motion = None
+    args.stills = 4
+    with pytest.raises(M2VError, match="--stills 互斥"):
+        lookdev._reject_conflicting_modes(args)
+
+
+def test_psnr_reads_identical_and_different_images(tmp_path):
+    first, second, third = (tmp_path / name for name in ("a.png", "b.png", "c.png"))
+    for path, color in ((first, "black"), (second, "black"), (third, "white")):
+        subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi",
+                        "-i", f"color=c={color}:size=64x64", "-frames:v", "1", str(path)], check=True)
+    assert lookdev.psnr(first, second) == float("inf")
+    assert lookdev.psnr(first, third) < lookdev.DETERMINISM_PSNR
+
+
+def test_image_size_rejects_non_png(tmp_path):
+    bogus = tmp_path / "not.png"
+    bogus.write_bytes(b"not a png at all")
+    with pytest.raises(M2VError, match="不是 PNG"):
+        lookdev._image_size(bogus)

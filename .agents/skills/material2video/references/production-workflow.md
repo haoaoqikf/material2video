@@ -301,7 +301,9 @@
 
 ### 指定时刻的单帧检查
 
-`lookdev` 继续用于自动代表帧概览。指定时刻请在 DESIGN.md 合同中声明检查点，执行 `m2v gates check --project <作品> --gate G4 --checkpoint <ID>`，直接按真实时钟采集任意帧；不再复制临时项目或注入 stillT 改写正式时间。
+日常看图用 `lookdev` 的取点模式：`--sheet` 按秒指定时刻拼图、`--motion` 看区间转场、`--det` 核对同帧一致性。这些是预览，不构成制作证据。
+
+需要按 DESIGN.md 合同采集的指定时刻，仍执行 `m2v gates check --project <作品> --gate G4 --checkpoint <ID>`，直接按真实时钟采集；不再复制临时项目或注入 stillT 改写正式时间。
 
 ## 检查点制作门
 

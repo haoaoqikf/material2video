@@ -34,3 +34,33 @@ def test_new_commands_reject_unknown_profile(tmp_path):
     parser = cli._parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["qa", "--project", "x", "--profile", "epic"])
+
+
+def test_lookdev_preview_parameters_are_registered():
+    """三种取点模式的参数必须能从统一入口解析，且保持可选。"""
+    parser = cli._parser()
+    args = parser.parse_args(["lookdev", "--project", "x", "--sheet", "3.5", "9", "21.5"])
+    assert args.sheet == ["3.5", "9", "21.5"] and args.stills is None
+    args = parser.parse_args(["lookdev", "--project", "x", "--motion", "8.2", "10.6", "12"])
+    assert args.motion == [8.2, 10.6, 12.0]
+    args = parser.parse_args(["lookdev", "--project", "x", "--det"])
+    assert args.det is True
+    # 不声明取点模式时，仍按代表静帧处理。
+    assert parser.parse_args(["lookdev", "--project", "x"]).sheet is None
+
+
+def test_lookdev_forwards_preview_arguments(monkeypatch):
+    """取点模式的参数要原样转发；未声明 --stills 时不伪造张数。"""
+    import m2v.engine.lookdev as lookdev_engine
+    from m2v import commands
+
+    captured = {}
+
+    def fake_main(argv):
+        captured["argv"] = argv
+        return 0
+    monkeypatch.setattr(lookdev_engine, "main", fake_main)
+    args = cli._parser().parse_args(["lookdev", "--project", "x", "--sheet", "2", "8"])
+    assert commands.dispatch(args) == 0
+    assert captured["argv"] == ["--project", "x", "--sample-seconds", "24",
+                                "--still-scale", "1", "--sheet", "2", "8"]

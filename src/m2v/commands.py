@@ -58,9 +58,18 @@ def dispatch(args) -> int:
         # 三个检查入口各自解析自己的参数；这里只做统一分发。
         from m2v.engine import assets_audit, lookdev as lookdev_engine, qa as qa_engine
         if args.command == "lookdev":
-            return lookdev_engine.main(["--project", args.project, "--stills", str(args.stills),
-                                        "--sample-seconds", str(args.sample_seconds),
-                                        "--still-scale", str(args.still_scale)])
+            options = ["--project", args.project, "--sample-seconds", str(args.sample_seconds),
+                       "--still-scale", str(args.still_scale)]
+            # 取点模式与代表静帧互斥：只在真的声明了张数时才转发，保留"未声明"语义。
+            if args.stills is not None:
+                options += ["--stills", str(args.stills)]
+            if args.sheet:
+                options += ["--sheet", *[str(item) for item in args.sheet]]
+            if args.motion:
+                options += ["--motion", *[str(item) for item in args.motion]]
+            if args.det:
+                options.append("--det")
+            return lookdev_engine.main(options)
         if args.command == "qa":
             options = ["--project", args.project, "--step", str(args.step)]
             if args.video:

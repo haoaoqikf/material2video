@@ -72,11 +72,16 @@ def _parser() -> argparse.ArgumentParser:
             item.add_argument("--pause-period", type=float, metavar="SECONDS", help="句号、问号处的停顿秒数")
             item.add_argument("--pause-paragraph", type=float, metavar="SECONDS", help="段末停顿秒数")
             item.add_argument("--head-pad", type=float, metavar="SECONDS", help="每段口播开头的静音长度")
-    lookdev = sub.add_parser("lookdev", help="代表静帧、接触表与风险样片")
+    lookdev = sub.add_parser("lookdev", help="代表静帧、接触表与风险样片；可按时刻或区间拼图")
     lookdev.add_argument("--project", required=True)
-    lookdev.add_argument("--stills", type=int, default=4, help="静帧张数，1～12")
+    lookdev.add_argument("--stills", type=int, default=None, help="静帧张数，1～12；省略为 4")
     lookdev.add_argument("--sample-seconds", type=int, default=24, help="样片长度，1～600 秒，实际窗口短于全片")
     lookdev.add_argument("--still-scale", type=int, choices=(1, 2), default=1)
+    lookdev.add_argument("--sheet", nargs="+", metavar="TIME",
+                         help="按时刻（秒）拼一张接触表；给单个整数时全片均匀取这么多帧")
+    lookdev.add_argument("--motion", nargs="+", type=float, metavar="TIME",
+                         help="区间起止秒（可加帧数），均匀取帧拼一张看转场")
+    lookdev.add_argument("--det", action="store_true", help="同帧一致性自检：两次独立采集比 PSNR")
     qa = sub.add_parser("qa", help="通用技术 QA：接触表、冻结帧、响度、claims")
     qa.add_argument("--project", required=True)
 
