@@ -208,3 +208,16 @@ def test_image_size_rejects_non_png(tmp_path):
     bogus.write_bytes(b"not a png at all")
     with pytest.raises(M2VError, match="不是 PNG"):
         lookdev._image_size(bogus)
+
+
+def test_sheet_frames_rejects_out_of_range_times():
+    """负时刻与超出片长的时刻必须报错，不能静默夹到边界。"""
+    prepared = two_scene_prepared()
+    # 单个纯整数是「均匀取多少帧」，不是秒；因此这里只用明显是时刻的写法。
+    for bad in ("-1", "inf", "-0.5", "10.5"):
+        with pytest.raises(M2VError, match="超出成片时长"):
+            lookdev.sheet_frames([bad], prepared)
+    assert lookdev.sheet_frames(["9.9"], prepared) == [297]
+    # 歧义按文档语义解决：--sheet 11 是均匀取 11 帧，不是第 11 秒。
+    eleven = lookdev.sheet_frames(["11"], prepared)
+    assert len(eleven) == 11 and eleven[-1] < 300

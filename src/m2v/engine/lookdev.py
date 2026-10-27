@@ -150,6 +150,9 @@ def sheet_frames(spec: list[str], prepared: dict) -> list[int]:
             value = float(item)
         except ValueError as exc:
             raise M2VError(f"时刻必须是秒数：{item}") from exc
+        # 负时刻静默夹到 0 会让作者以为自己看到的是别的时刻；宁可报错。
+        if not math.isfinite(value) or value < 0 or value * fps > duration - 1:
+            raise M2VError(f"时刻 {item} 超出成片时长 0～{(duration - 1) / fps:.3f} 秒")
         frames.append(seconds_to_frame(value, fps, duration))
     # 重复时刻只采一次，但保留顺序无关的去重结果。
     return sorted(set(frames))
