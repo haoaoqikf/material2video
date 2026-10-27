@@ -16,6 +16,8 @@
 
 制作载体选择见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)；规则来源及文档维护边界见[架构说明](ARCHITECTURE.md#契约与文档)。类型清单、制作门及审核策略表由共享定义生成，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 可检查漂移。
 
+讲解机制与实际表达复核已纳入制作指导：按需组织对象追踪、尺度变化、过程结果与回场，沿现有独立评审验证画面实际建立的关系；方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md#四种讲解机制的执行方法)。注册风格和组件技术通过不代表成片表现通过。
+
 ## 快速开始
 
 ```powershell

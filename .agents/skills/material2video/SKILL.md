@@ -40,6 +40,11 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 可选风格独立于视频类型；选定 `project.json` 的 `style.id` 后，按[风格接入契约](references/style-pack.md)读取指导并落实到 DESIGN.md，显式使用参数、组件与资产。当前无内置风格，未选择时沿用作品设计。
 
+讲解片的对象连续追踪、相机与尺度、过程结果联动、回场按
+[四种讲解机制](references/explainer-design.md#四种讲解机制的执行方法)按需设计并复用现有运行时；
+实际表达的观察见[视觉复核](references/visual-review-rubric.md#讲解关系的观察)，未兑现关键关系的关闭
+仍以[检查点契约](references/checkpoint-gates.md#讲解机制与关键采用项的关闭)为唯一依据。
+
 ## 常用命令
 
 核心样片的理解、表现与代表性必须分别成立；有目标图的实际核心窗先盲审、后同轮对照，未完成不扩展相关正式实现。失败分流见[制作流程](references/production-workflow.md#核心样片放行与失败处理)，风险与关闭条件仅按[检查点契约](references/checkpoint-gates.md)。`m2v status` 的 `summary` 区分候选生成和制作完成，`production.expansion` 列出允许继续的检查点范围；它们不替代实际审美判断。
