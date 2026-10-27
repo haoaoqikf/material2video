@@ -54,6 +54,25 @@
 final=1267）；`pytest -m "not slow"` 904 passed、5 skipped、47 deselected；
 `openspec validate --specs --strict` 39 项通过；全部活动文档链接与锚点复查无失效。
 
+## 独立代码复查与修复
+
+独立只读子代理审查过程证据实现，报告的可复现缺陷已全部修复（提交 `f806980`）：
+
+- 起始 PTS 偏移会把 1 秒画面读成 5 秒并放行（`-itsoffset` 样本实测 5.0）；
+  现归零首帧后按帧数换算，同类样本读出 1.000000s 并被拒绝。
+- 60fps 下不足一帧被微秒截断误拒（59/60 帧测为 0.983333s），30fps 同构造
+  只是截断方向相反才通过；量化误差容忍改为 1e-5，两档 fps 均有边界用例。
+- 畸形 `window`（长度 1 的列表）抛未捕获 `IndexError`，使 `m2v status` 崩溃；
+  现校验为两个递增数值，其余转可读诊断。
+- 同一检查点同时有无效与有效通过时，状态既判通过又列出「动态过程证据无效」；
+  现只在没有任何有效通过时追加原因并去重。
+- 同一检查点绑定 `core-event` 时，G0/G1/G2/G3 的核心报告也被要求视频；现只在
+  G4 动态核心轮探测。
+- 失败缓存改存原因字符串，不再复用异常实例，避免 traceback 串到首次调用点。
+
+复查后重跑：`pytest -m "not slow"` 923 passed、5 skipped、48 deselected；
+`sync_docs.py --check` 通过。
+
 ## 验证
 
 - `python .agents/skills/material2video/scripts/sync_docs.py --check`：生成文档一致，阅读预算通过。
