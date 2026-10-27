@@ -94,3 +94,5 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
 
 v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需全片粗片与最终成片两次独立调用；有核心风险时增加一轮核心样片。每轮一份覆盖表绑定适用门，不再按检查点重复登记视觉事件或五维设计兑现凭据；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
+
+核心盲审覆盖表分别验证理解、表现与样片代表性；有目标图的核心实际片段须先盲审、后同轮独立对照，缺少或失败不授权扩展。独立评审必改项须凭当前同范围独立复查报告关闭。`status` 保留技术 `stage/candidate`，另用 `summary`、`production.complete` 和 `production.expansion` 区分候选生成、制作完成与可扩展检查点；这些条件不新增渲染硬门禁或用户审批。旧核心报告缺少新凭据时仅作历史，不自动补造通过。

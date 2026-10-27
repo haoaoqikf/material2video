@@ -17,7 +17,7 @@ class Risk:
 
 
 RISK_CATALOG = (
-    Risk('static-expression', 'G2', '独立目标关键帧与盲看，覆盖该风险所需建立/结果/揭示状态', '只是 A 级标签、普通标题或已验证布局'),
+    Risk('static-expression', 'G2', '独立目标关键帧与盲看；实际 G4 核心窗须同轮目标对照', '只是 A 级标签、普通标题或已验证布局'),
     Risk('structure-timing', 'G3', 'animatic 观察，可与核心样片同轮', '仅因片中有动画或 A 级镜头'),
     Risk('core-event', 'G4', '完整动态窗口；静帧不能替代', '无实质动态风险的静态作品'),
     Risk('split-final', 'G6', '两名新且互相隔离的终审代理，分别负责结构与视觉文案', '时长、镜头等级或主观追求更高级本身', ('structure', 'visual-copy')),
@@ -66,8 +66,23 @@ def checkpoint_ids(c: dict, kind: str) -> set[str]:
     return {cid for r in risks(c, kind) for cid in r['scope']['checkpointIds']}
 
 
+def core_checkpoint_ids(c: dict) -> set[str]:
+    return {cid for r in risks(c) if r['kind'] in CORE_GATES for cid in r['scope']['checkpointIds']}
+
+
+def consistency_ids(c: dict, gate: str, checkpoint_id=None) -> set[str]:
+    """目标图通过不等于实际片段兑现；仅在实际核心窗与终审要求配对。"""
+    targets = checkpoint_ids(c, 'static-expression')
+    if gate == 'G6':
+        return targets
+    if gate == 'G4':
+        return targets & core_checkpoint_ids(c) & ({checkpoint_id} if checkpoint_id else targets)
+    return set()
+
+
 def requirement(c: dict, gate: str, checkpoint_id=None) -> dict:
-    relevant = [r for r in risks(c) if CORE_GATES.get(r['kind']) == gate
+    relevant = [r for r in risks(c) if (CORE_GATES.get(r['kind']) == gate
+                or (gate == 'G4' and r['kind'] == 'static-expression'))
                 and (checkpoint_id is None or checkpoint_id in r['scope']['checkpointIds'])]
     ids = {cid for r in relevant for cid in r['scope']['checkpointIds']}
     if checkpoint_id:

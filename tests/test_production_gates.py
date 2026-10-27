@@ -402,13 +402,15 @@ def test_coverage_must_match_scope_and_sequence():
     c = sample()
     report = {'checkpointIds': ['one-cp'], 'round': 'core', 'reviewType': 'blind', 'verdict': 'pass'}
     item = {'checkpointId': 'one-cp', 'window': [0, 30], 'status': 'pass',
-            'observations': '看到两枚圆片', 'evidence': [{'path': 'x', 'sha256': 'y'}], 'issues': []}
+            'observations': '看到两枚圆片', 'evidence': [{'path': 'x', 'sha256': 'y'}], 'issues': [],
+            'assessment': assessment()}
     valid = lambda base, entries: True
     assert acceptance.validate([item], c, report, Path('.'), valid) == item['evidence']
     with pytest.raises(M2VError, match='覆盖'):
         acceptance.validate([{**item, 'window': [0, 29]}], c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='失败或证据不足'):
-        acceptance.validate([{**item, 'status': 'insufficient'}], c, report, Path('.'), valid)
+        acceptance.validate([{k: v for k, v in {**item, 'status': 'insufficient'}.items() if k != 'assessment'}],
+                            c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='缺少必要覆盖'):
         acceptance.validate([item], c, {**report, 'round': 'rough'}, Path('.'), valid)
     core = {**report, 'round': 'core'}
@@ -417,6 +419,11 @@ def test_coverage_must_match_scope_and_sequence():
         core_c['reviewPlan']['risks'] = [{'id': 'e', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']},
             'reason': 'r', 'requiredEvidence': ['e']}]
         acceptance.validate([item], core_c, core, Path('.'), valid)
+
+
+def assessment(**states):
+    return {name: {'status': states.get(name, 'pass'), 'observations': '当前证据支持此项判断'}
+            for name in ('understanding', 'presentation', 'representativeness')}
 
 
 def _review_inputs(root, manifest, event, *, round_name='core', focus='comprehensive',
@@ -450,7 +457,8 @@ def _review_inputs(root, manifest, event, *, round_name='core', focus='comprehen
         'isolation': 'independent-subagent', 'reviewType': 'blind' if blind_id is None else 'consistency',
         'verdict': 'pass', 'observations': ['看到两枚圆片和明确变化'], 'checkIds': [event['id']], 'focus': focus,
         'coverage': [{'checkpointId': event['checkpointId'], 'window': [0, 30], 'status': 'pass',
-                      'observations': '完整窗口内有可见变化', 'evidence': evidence, 'issues': []}],
+                      'observations': '完整窗口内有可见变化', 'evidence': evidence, 'issues': [],
+                      'assessment': assessment()}],
         'invocation': receipt(out, invocation)})
     return report, pack_path
 
@@ -512,5 +520,153 @@ def test_text_boundary_can_reuse_one_role_for_successive_words():
     actual={**element(),'text':'揭示'}
     result=measure.evaluate([actual],cp,width=1920,height=1080,frame=7)
     assert [x['status'] for x in result if x['name']=='文字状态:body']==['pass']
+
+
+def static_risk(root, c):
+    c['reviewPlan']['risks'] = [{'id': 'style', 'kind': 'static-expression',
+        'scope': {'checkpointIds': ['one-cp']}, 'reason': '参考关键造型尚未兑现',
+        'requiredEvidence': ['风格契约中的主体与光线采用项']}]
+    (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+
+
+@pytest.mark.parametrize('dimension,state', [('presentation', 'fail'), ('representativeness', 'insufficient')])
+def test_core_cannot_merge_understanding_pass_with_weak_presentation(dimension, state):
+    from m2v.production import acceptance
+    c = sample()
+    c['reviewPlan']['risks'] = [{'id': 'style', 'kind': 'static-expression',
+        'scope': {'checkpointIds': ['one-cp']}, 'reason': 'r', 'requiredEvidence': ['e']}]
+    item = {'checkpointId': 'one-cp', 'window': [0, 30], 'status': 'pass', 'observations': '看懂了',
+            'evidence': [{'path': 'x', 'sha256': 'y'}], 'issues': [], 'assessment': assessment(**{dimension: state})}
+    report = {'checkpointIds': ['one-cp'], 'round': 'core', 'reviewType': 'blind', 'verdict': 'pass'}
+    with pytest.raises(M2VError, match='不得合并'):
+        acceptance.validate([item], c, report, Path('.'), lambda *_: True)
+    item['status'] = state
+    assert acceptance.validate([item], c, {**report, 'verdict': state}, Path('.'), lambda *_: True)
+    item.pop('assessment')
+    with pytest.raises(M2VError, match='assessment'):
+        acceptance.validate([item], c, report, Path('.'), lambda *_: True)
+
+
+def test_core_target_requires_independent_same_round_consistency(project):
+    from m2v.production import reviews
+    root, manifest, c = project
+    static_risk(root, c)
+    with locked(root):
+        event = passing_check(root, manifest, c)
+        blind, _ = _review_inputs(root, manifest, event)
+        reviews.import_report(root, manifest, blind)
+        row = ledger.status(root, manifest)['scenes'][0]
+        assert row['status'] == '待评审' and row['missingAcceptance'] == ['同轮设计对照']
+        blind_id = receipt(outputs(root), blind)['sha256']
+        paired, _ = _review_inputs(root, manifest, event, blind_id=blind_id)
+        value = read(paired)
+        value['isolation'] = 'self-review'
+        write(paired, value)
+        with pytest.raises(M2VError, match='同一代理'):
+            reviews.import_report(root, manifest, paired)
+        value['isolation'] = 'independent-subagent'
+        write(paired, value)
+        reviews.import_report(root, manifest, paired)
+        assert ledger.status(root, manifest)['scenes'][0]['evidenceStatus'] == '通过'
+        # 当前有效报告被改写后，不沿用旧对照。
+        value['observations'] = ['changed']
+        write(paired, value)
+        assert ledger.status(root, manifest)['scenes'][0]['status'] == '待评审'
+
+
+def test_consistency_cannot_bind_another_check(project):
+    from m2v.production import reviews
+    root, manifest, c = project
+    with locked(root):
+        event = passing_check(root, manifest, c)
+        blind, _ = _review_inputs(root, manifest, event)
+        reviews.import_report(root, manifest, blind)
+        second = passing_check(root, manifest, c)
+        paired, _ = _review_inputs(root, manifest, second, blind_id=receipt(outputs(root), blind)['sha256'])
+        with pytest.raises(M2VError, match='同一代理|相同检查'):
+            reviews.import_report(root, manifest, paired)
+
+
+def test_historical_core_pass_without_assessment_cannot_authorize(project):
+    root, manifest, c = project
+    static_risk(root, c)
+    with locked(root):
+        event = passing_check(root, manifest, c, 'G2')
+        ledger.append(root, manifest, 'review', gate='G2', upstream=event['upstream'], evidence=event['evidence'],
+            data={'checkId': event['id'], 'reviewerId': 'legacy', 'reviewType': 'blind',
+                  'verdict': 'pass', 'focus': 'comprehensive', 'isolation': 'independent-subagent',
+                  'coverage': [{'checkpointId': 'one-cp', 'status': 'pass'}]})
+    row = ledger.status(root, manifest)['gates'][2]
+    assert row['evidenceStatus'] == '待评审'
+    assert row['missingAcceptance'] == ['核心理解、表现与代表性凭据']
+
+
+def test_review_issue_needs_current_independent_recheck_and_keeps_scope(project):
+    from m2v.production import reviews
+    root, manifest, c = project
+    static_risk(root, c)
+    with locked(root):
+        event = passing_check(root, manifest, c)
+        failed, _ = _review_inputs(root, manifest, event, reviewer='failed')
+        value = read(failed)
+        value.update(verdict='fail')
+        value['coverage'][0].update(status='fail', assessment=assessment(presentation='fail'))
+        write(failed, value)
+        reviews.import_report(root, manifest, failed)
+        item = issues.load(root)[0]
+        assert item['checkpointId'] == 'one-cp'
+        with pytest.raises(M2VError, match='原范围'):
+            issues.update(root, {**item, 'required': False})
+        fake = {**receipt(outputs(root), failed), 'gate': 'G4'}
+        with pytest.raises(M2VError, match='独立通过复查'):
+            issues.update(root, {**item, 'status': 'closed', 'evidence': [fake]})
+        passed, _ = _review_inputs(root, manifest, event, reviewer='recheck')
+        reviews.import_report(root, manifest, passed)
+        evidence = [{**receipt(outputs(root), passed), 'gate': 'G4'}]
+        issues.update(root, {**item, 'status': 'closed', 'evidence': evidence})
+        assert issues.load(root)[0]['status'] == 'closed'
+        assert ledger.status(root, manifest)['scenes'][0]['evidenceStatus'] == '待评审'
+        # 核心目标变化不能用旧报告关闭或保持通过。
+        c['scenes'][0]['checkpoints'][0]['expected'][0]['count'] = 3
+        (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+        with pytest.raises(M2VError, match='独立通过复查'):
+            issues.load(root)
+        result = ledger.status(root, manifest)
+        assert not result['complete'] and result['diagnostics']
+        issues.update(root, {**item, 'status': 'open'})
+        assert issues.load(root)[0]['status'] == 'open'
+
+
+def test_expansion_keeps_unrelated_scope_available_and_status_readonly(project):
+    root, manifest, c = project
+    # 普通准备门已完成；仅第一个检查点有失败，第二个仍允许继续。
+    with locked(root):
+        for gate in ('G0', 'G1', 'G2', 'G3'):
+            passing_check(root, manifest, c, gate)
+        for sid in ('one', 'two'):
+            path = checks.save_report(root, c, 'G4', [{'name': 'fixture', 'status': 'pass', 'detail': 'ok'}],
+                                     scene_id=sid, checkpoint_id=sid + '-cp')
+            ledger.register(root, manifest, path)
+        issues.update(root, {'id': 'layout', 'status': 'open', 'required': True, 'gate': 'G4', 'sceneId': 'one',
+            'checkpointId': 'one-cp', 'caughtAt': 'G4', 'catchableAt': 'G4', 'evidence': [], 'versionRefs': []})
+    before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+    result = ledger.status(root, manifest)
+    assert not result['complete']
+    assert [row['allowed'] for row in result['expansion']] == [False, True]
+    assert before == {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+
+
+def test_technical_delivery_summary_does_not_claim_production_complete(project, monkeypatch):
+    from m2v import commands
+    from types import SimpleNamespace
+    root, manifest, _ = project
+    monkeypatch.setattr(commands.registry, 'get', lambda *_: SimpleNamespace(manual_review_available=False))
+    monkeypatch.setattr(commands, '_prepared', lambda *_: {'preparedFingerprint': 'current'})
+    monkeypatch.setattr(commands, 'read_record', lambda *_: {'status': 'delivered'})
+    monkeypatch.setattr(commands, 'candidate', lambda *_: {'status': 'delivered'})
+    result = commands._status(root, manifest)
+    assert result['stage'] == 'delivered'
+    assert result['summary'] == '候选已生成，制作未完成'
+    assert not result['production']['complete']
 
 

@@ -326,6 +326,9 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
         result.update(prepare={"status": "stale-or-missing", "detail": str(exc)}, stage="unprepared")
+        if manifest['type'] == 'general':
+            from m2v.production.readiness import summary
+            result['summary'] = summary(result)
         return result
     result["stage"] = "prepared"
     record = read_record(delivery_outputs(root))
@@ -343,6 +346,9 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             result["review"]["status"] = "pass"
         except M2VError as exc:
             result["review"].update(status="pending-or-stale", detail=str(exc))
+    if manifest['type'] == 'general':
+        from m2v.production.readiness import summary
+        result['summary'] = summary(result)
     return result
 
 

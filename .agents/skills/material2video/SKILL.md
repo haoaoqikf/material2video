@@ -42,6 +42,8 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 ## 常用命令
 
+核心样片的理解、表现与代表性必须分别成立；有目标图的实际核心窗先盲审、后同轮对照，未完成不扩展相关正式实现。失败分流见[制作流程](references/production-workflow.md#核心样片放行与失败处理)，风险与关闭条件仅按[检查点契约](references/checkpoint-gates.md)。`m2v status` 的 `summary` 区分候选生成和制作完成，`production.expansion` 列出允许继续的检查点范围；它们不替代实际审美判断。
+
 ```powershell
 uv run m2v types
 uv run m2v init --type general --project <slug>

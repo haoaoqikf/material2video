@@ -14,7 +14,7 @@ from .storage import atomic_text, local
 BLOCK = re.compile(r'^```m2v-issues\s*\n(.*?)^```\s*$', re.M | re.S)
 
 
-def load(root: Path, *, required=False) -> list[dict]:
+def load(root: Path, *, required=False, _reopening_id=None, _review_context=None) -> list[dict]:
     path = outputs(root) / 'visual-notes.md'
     if not path.exists():
         if required:
@@ -30,11 +30,11 @@ def load(root: Path, *, required=False) -> list[dict]:
         items = json.loads(matches[0])
     except ValueError as exc:
         raise M2VError('唯一问题表机器块损坏') from exc
-    validate(root, items)
+    validate(root, items, _reopening_id=_reopening_id, _review_context=_review_context)
     return items
 
 
-def validate(root: Path, items) -> None:
+def validate(root: Path, items, *, _reopening_id=None, _review_context=None) -> None:
     if not isinstance(items, list):
         raise M2VError('问题机器块必须为列表')
     seen = set()
@@ -49,7 +49,10 @@ def validate(root: Path, items) -> None:
                 raise M2VError(f'问题 {key} 无效')
         if not isinstance(item['versionRefs'], list) or not isinstance(item['evidence'], list):
             raise M2VError('问题证据与版本引用必须为列表')
-        if item['status'] == 'closed':
+        if item['id'].startswith('REVIEW-') and not item['required']:
+            raise M2VError('独立评审必改项不能降级为非必改')
+        # 显式重开允许替换本项已过期的闭环证据；只读查询仍严格核验。
+        if item['status'] == 'closed' and item['id'] != _reopening_id:
             if not item['evidence']:
                 raise M2VError('关闭问题必须有复查证据')
             for entry in item['evidence']:
@@ -60,12 +63,61 @@ def validate(root: Path, items) -> None:
             if item['catchableAt'] < item['caughtAt'] and not item.get('uncatchableReason'):
                 if not any(e['gate'] == item['catchableAt'] for e in item['evidence']):
                     raise M2VError('迟到缺陷必须附最早可拦截门的回归证据')
+            if item['id'].startswith('REVIEW-'):
+                if _review_context is None:
+                    from . import contract, ledger
+                    events, diagnostics = ledger.history(root)
+                    _review_context = (events, contract.load(root), diagnostics)
+                _require_independent_recheck(root, item, _review_context)
+
+
+def _require_independent_recheck(root: Path, item: dict, context: tuple) -> None:
+    """仅接受实际已导入、同范围且未过期的独立复查，不相信说明文件。"""
+    from . import acceptance, ledger, policy
+    events, c, diagnostics = context
+    if diagnostics:
+        raise M2VError('制作历史损坏，不能关闭独立评审问题')
+    failed = [e for e in events if e['type'] == 'review' and e['data'].get('verdict') == 'fail'
+              and 'REVIEW-' + e['data'].get('roundId', '') + '-' + e['data'].get('reviewerId', '') == item['id']]
+    if not failed:
+        raise M2VError('找不到独立评审问题的原始失败记录')
+    original = failed[-1]
+    scope = {x['checkpointId'] for x in original['data'].get('coverage', [])}
+    for event in events:
+        data = event['data']
+        if (event['type'] != 'review' or data.get('verdict') != 'pass'
+                or data.get('isolation') != 'independent-subagent'
+                or data.get('reviewType') != original['data'].get('reviewType')
+                or event['gate'] != item['gate'] or event['time'] <= original['time']
+                or (item['sceneId'] and event['sceneId'] not in (None, item['sceneId']))):
+            continue
+        coverage = data.get('coverage', [])
+        if not scope or not scope <= {x['checkpointId'] for x in coverage if x.get('status') == 'pass'}:
+            continue
+        if data.get('round') == 'core' and data.get('reviewType') == 'blind' and not acceptance.core_coverage_passed(
+                coverage, scope & policy.core_checkpoint_ids(c)):
+            continue
+        if event['upstream'] != ledger.upstream(root, c, event['gate'], event['sceneId'], event['checkpointId']):
+            continue
+        if not ledger.evidence_valid(root, event['evidence']):
+            continue
+        # 闭环材料必须直接引用导入的报告，不能仅引用评审包或量测文件。
+        report_digest = data.get('reportId')
+        if any(entry['sha256'] == report_digest and entry['gate'] == event['gate']
+               and any(e['path'] == entry['path'] and e['sha256'] == report_digest for e in event['evidence'])
+               for entry in item['evidence']):
+            return
+    raise M2VError('关闭独立评审问题须引用同范围、当前有效的独立通过复查报告')
 
 
 def update(root: Path, item: dict) -> None:
     path = outputs(root) / 'visual-notes.md'
     source = path.read_text(encoding='utf-8') if path.exists() else '# 制作问题与复查\n'
-    items = load(root)
+    items = load(root, _reopening_id=item['id'] if item.get('status') == 'open' else None)
+    previous = next((x for x in items if x['id'] == item['id']), None)
+    if previous and item['id'].startswith('REVIEW-') and any(
+            item.get(key) != previous[key] for key in ('required', 'gate', 'sceneId', 'checkpointId', 'caughtAt', 'catchableAt')):
+        raise M2VError('独立评审问题不能改变原范围或必改性质')
     items = [x for x in items if x['id'] != item['id']] + [item]
     validate(root, items)
     block = '```m2v-issues\n' + json.dumps(items, ensure_ascii=False, indent=2) + '\n```'

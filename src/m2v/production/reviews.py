@@ -60,7 +60,9 @@ def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files
         entries.append(receipt(target, projection))
     questions = target / 'questions.md'
     questions.write_text('只读取本目录。按时间顺序先记录实际看到的内容、变化与理解，再判断表现、可读性和证据不足。\n'
-                         '不能确认帧间运动或听感时如实限定覆盖，不用作者意图补全画面。\n', encoding='utf-8')
+                         '不能确认帧间运动或听感时如实限定覆盖，不用作者意图补全画面。\n'
+                         '核心风险覆盖项须分别判断 understanding、presentation、representativeness，'
+                         '每项写 status 与 observations；占位证据不能授权正式视觉实现。\n', encoding='utf-8')
     entries.append(receipt(target, questions))
     write(target / 'manifest.json', manifest)
     return target
@@ -150,9 +152,13 @@ def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
         prior = [e for e in earlier if e['data'].get('reportId') == pack.get('blindId')
                  and e['data'].get('reviewType') == 'blind' and e['data'].get('reviewerId') == report['reviewerId']
                  and e['data'].get('roundId') == report['roundId'] and e['data'].get('round') == report['round']
+                 and e['data'].get('isolation') == report['isolation']
+                 and e['data'].get('checkId') in report['checkIds']
                  and ledger.evidence_valid(root, e['evidence'])]
         if not prior or any(e['time'] >= pack['createdAt'] for e in prior):
             raise M2VError('对照须在同一代理本轮独立盲看落盘后创建并绑定')
+        if {e['data']['checkId'] for e in prior} != set(report['checkIds']):
+            raise M2VError('对照必须绑定同轮盲审的相同检查事件')
     coverage_evidence = acceptance.validate(report['coverage'], c, report, base, ledger.evidence_valid_at)
     allowed_evidence = {receipt(base, local(pack_path.parent, e['path']))['path'] for e in pack['files']}
     if any(e['path'] not in allowed_evidence for e in coverage_evidence):
@@ -196,7 +202,8 @@ def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
         identifier = 'REVIEW-' + report['roundId'] + '-' + report['reviewerId']
         check = bound[0]
         issues.update(root, {'id': identifier, 'status': 'open', 'required': True, 'gate': check['gate'],
-            'sceneId': report['sceneId'], 'checkpointId': None, 'caughtAt': report['gate'],
+            'sceneId': report['sceneId'], 'checkpointId': report['checkpointIds'][0] if len(report['checkpointIds']) == 1 else None,
+            'caughtAt': report['gate'],
             'catchableAt': check['gate'], 'evidence': [], 'versionRefs': []})
         notes = base / 'visual-notes.md'
         marker = '\n### ' + identifier + '\n'

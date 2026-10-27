@@ -10,7 +10,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from . import contract, issues, policy, dependencies, workflow
+from . import acceptance, contract, issues, policy, dependencies, readiness, workflow
 from .dependencies import digest
 from .storage import local, read, receipt, write
 
@@ -176,9 +176,10 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
         c = contract.load(root)
     except M2VError as exc:
         return {'applicability': '缺少制作合同或旧流程', 'diagnostics': [str(exc), *diagnostics], 'gates': [],
+                'complete': False, 'expansion': [],
                 'next': '补齐当前 v2 制作合同；旧记录仅作历史，不自动迁移或继承通过', 'history': displayed_history}
     try:
-        problem_list = issues.load(root, required=True)
+        problem_list = issues.load(root, required=True, _review_context=(events, c, diagnostics))
     except (M2VError, OSError) as exc:
         problem_list = []
         diagnostics.append(str(exc))
@@ -221,19 +222,26 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
                         degraded = any(e['data'].get('isolation') != 'independent-subagent' for e in reviews)
                         latest = {(e['data'].get('reviewerId'), e['data'].get('reviewType')): e for e in reviews}
                         blind = [e for (who, kind), e in latest.items() if kind == 'blind']
-                        passed = [e for e in blind if e['data'].get('isolation') == 'independent-subagent'
-                                  and e['data'].get('verdict') == 'pass']
+                        independent_passes = [e for e in blind if e['data'].get('isolation') == 'independent-subagent'
+                                              and e['data'].get('verdict') == 'pass']
+                        passed = [e for e in independent_passes if policy.round_for(gate) != 'core'
+                                  or acceptance.core_coverage_passed(e['data'].get('coverage', []),
+                                                                     set(requirement['checkpointIds']))]
+                        if independent_passes and not passed:
+                            missing_acceptance.append('核心理解、表现与代表性凭据')
                         focuses = {e['data'].get('focus') for e in passed}
                         if not set(requirement['focuses']) <= focuses:
                             state = '待评审'
-                        if any(e['data'].get('verdict') == 'fail' for e in latest.values()):
+                        closed = {p['id'] for p in problem_list if p['status'] == 'closed'}
+                        if any(e['data'].get('verdict') == 'fail'
+                               and 'REVIEW-' + e['data'].get('roundId', '') + '-' + e['data'].get('reviewerId', '') not in closed
+                               for e in latest.values()):
                             state = '阻断'
                         # 对照必须与同一独立观察绑定，不新增人数要求。
-                        if gate == 'G6' and policy.risks(c, 'static-expression'):
-                            paired = {e['data'].get('blindId') for e in latest.values()
-                                      if e['data'].get('reviewType') == 'consistency' and e['data'].get('verdict') == 'pass'}
-                            if not any(e['data'].get('reportId') in paired for e in passed):
-                                missing_acceptance = ['同轮设计对照']
+                        target_ids = policy.consistency_ids(c, gate, cid)
+                        if target_ids:
+                            if not any(_paired_review(b, list(latest.values()), target_ids) for b in passed):
+                                missing_acceptance.append('同轮设计对照')
                                 if state != '阻断':
                                     state = '待评审'
             if state != '过期' and opened:
@@ -282,11 +290,28 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             'totalCheckpoints': len(checkpoints), 'blockedCheckpoints': [x['checkpointId'] for x in checkpoints if x['status'] == '阻断'],
             'issues': sorted({issue for x in checkpoints for issue in x['issues']})})
     return dict(applicability='后验回归' if c.get('retrospective') else '检查点流程', phase=phase,
+                complete=not diagnostics and all(row['ready'] for row in rows),
+                expansion=readiness.expansion(rows, scenes, diagnostics),
                 cycleId=c['cycleId'], reviewRounds=policy.rounds(c), currentGate=current, gates=rows, scenes=scenes, sceneSummary=scene_summary, next=next_action, diagnostics=diagnostics,
                 renders={'requests': sum(e['type'] == 'render-request' for e in events),
                          'generationAttempts': sum(e['type'] == 'generation-attempt' for e in events),
                          'generationSuccesses': sum(e['type'] == 'generation-succeeded' for e in events)},
                 history=displayed_history)
+
+
+def _paired_review(blind: dict, reviews: list[dict], target_ids: set[str]) -> bool:
+    """同一检查/轮次/观察者配对，且覆盖全部适用目标，不能用自审补齐。"""
+    b = blind['data']
+    for review in reviews:
+        data = review['data']
+        if (data.get('reviewType') == 'consistency' and data.get('verdict') == 'pass'
+                and data.get('isolation') == 'independent-subagent'
+                and data.get('blindId') == b.get('reportId')
+                and all(data.get(key) == b.get(key) for key in ('reviewerId', 'round', 'roundId', 'checkId'))
+                and target_ids <= {item['checkpointId'] for item in data.get('coverage', [])
+                                   if item.get('status') == 'pass'}):
+            return True
+    return False
 
 
 def rebuild(root: Path, manifest: dict) -> dict:

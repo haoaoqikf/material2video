@@ -53,7 +53,7 @@
 <!-- generated:review-risks:start -->
 | kind | 门 | 额外要求 | 不触发的情况 |
 |---|---|---|---|
-| `static-expression` | G2 | 独立目标关键帧与盲看，覆盖该风险所需建立/结果/揭示状态 | 只是 A 级标签、普通标题或已验证布局 |
+| `static-expression` | G2 | 独立目标关键帧与盲看；实际 G4 核心窗须同轮目标对照 | 只是 A 级标签、普通标题或已验证布局 |
 | `structure-timing` | G3 | animatic 观察，可与核心样片同轮 | 仅因片中有动画或 A 级镜头 |
 | `core-event` | G4 | 完整动态窗口；静帧不能替代 | 无实质动态风险的静态作品 |
 | `split-final` | G6 | 两名新且互相隔离的终审代理，分别负责结构与视觉文案 | 时长、镜头等级或主观追求更高级本身 |
@@ -62,6 +62,10 @@
 <!-- generated:review-risks:end -->
 
 `split-final` 的专业风险依据须具体指向当前观察能力或覆盖限制，不允许笼统写“高风险”。用户明确的硬性审核要求可增加要求，不可被默认策略覆盖。删除风险或修改目标不能直接关闭关联的未解决问题。
+
+用户明确要求借鉴参考风格时，把尚未验证的关键采用项登记到适用的 `static-expression`／`structure-timing`／`core-event` 风险；`reason` 与 `requiredEvidence` 引用原[风格契约](reference-style.md)，不复制一套指标。预先区分关键采用项与允许偏离项；核心差距不能事后改名为有意偏离来放行，纯偏好差异不自动否决。机器不通过关键词猜测风险，计划完整性仍须人工核查。
+
+`static-expression` 检查点除 G2 目标图观察外，实际 G4 片段也须核心盲审及同轮设计对照。G4 中有目标图的核心窗、G6 中全部适用目标图范围均须对照；G2 自身通过不等于实际实现兑现。配对须同一独立评审者、同轮、同一检查事件及当前有效证据，且覆盖相关检查点。不增加固定轮次或人数。
 
 <!-- generated:review-rounds:start -->
 核心审核风险：`static-expression`、`structure-timing`、`core-event`、`substantive-dispute`、`repeated-failure`。镜头等级不决定审核人数。
@@ -121,11 +125,29 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 同一份报告可通过 `checkIds` 绑定多个门的检查事件，逐项校验后幂等登记；任一绑定无效则整份拒绝，不留部分成功事件。final 轮必须使用未参与该作品前期评审的 reviewerId，并绑定当前候选视频摘要。`split-final` 时两名评审者互不读取报告、各自独立导入。
 
+计划选中的核心盲审覆盖项还须包含 `assessment`，分列 `understanding`（理解）、`presentation`（表现）、`representativeness`（证据代表性），每项含 `status=pass/fail/insufficient` 与非空 `observations`。覆盖结果取三项中最保守的结果：有 fail 则 fail，其次 insufficient，否则 pass。理解通过不能覆盖表现失败。G2 代表独立目标画面、G3 代表时序证据；G4 用于正式视觉放行时必须采用实际资产、光线、字体、文字合成与完整关键动作，不能以占位样片授权扩展。字段只用于评审，当前不渲染。旧核心报告缺少这些凭据时仅作历史，不补造或推断通过。
+
+```json
+{
+  "understanding": {"status": "pass", "observations": "完整窗口中能认回同一主体和新公开的关系"},
+  "presentation": {"status": "fail", "observations": "揭示对象太暗，注意力仍停在旧主体"},
+  "representativeness": {"status": "pass", "observations": "实际资产、字体、灯光与文字合成已用于该完整窗口"}
+}
+```
+
+上例为 `assessment` 内容，对应覆盖项必须为 fail；它是评审观察示例，不是所有作品的统一视觉要求。
+
 ### 设计对照与 blind 顺序
 
 终审者先只读取当前成片盲包，写出不可覆写的 blind 观察；之后才能创建 `review_type=consistency` 包，查看适用目标图与中性条件。两阶段可由同一代理完成，对照包必须引用同一轮 blind 报告的 `blind_id`，且创建时间晚于盲审落盘。`readReportIds` 在盲审时为空，对照时只允许同一轮的 blind 报告。先对照再补盲审、或对照结论替代盲审的，均拒绝。
 
 无独立目标图的镜头只验用途与实际表现，不追补目标图，也不要求五维三方空表。
+
+### 推进范围与独立缺陷关闭
+
+`production.expansion` 逐检查点给出 `allowed` 和 `reasons`：全局 G0–G3 准备证据须有效，当前检查点的 G4 自身检查、适用独立观察与同轮对照须通过，相关必改项须关闭。另一检查点未完成不改变本检查点已有证据；无关准备工作可以继续。范围之外的实现不得借用该通过结果。`production.complete` 只在全部门 ready 且无诊断错误时为 true。技术 `stage/candidate` 保持原语义，`summary` 明示候选生成与制作完成的区别；状态不代表自动审美判定，不阻断取证渲染。
+
+自动登记的 `REVIEW-` 问题保留原失败范围和必改性质，不可通过降级或改范围关闭。关闭须在 `evidence` 直接引用已导入的同范围、同类观察（blind/consistency）、当前有效独立通过复查报告；制作解释、过期报告、量测或降级自审均不能代替。目标变更使旧证据失效，仍需保留原问题并重新复查；普通确定性量测问题沿用原证据闭环。执行见[独立评审](subagent-review.md#评审判断与否决边界)。
 
 ## 依赖范围与证据失效
 

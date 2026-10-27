@@ -95,6 +95,11 @@
       "window": [0, 120],
       "status": "pass",
       "observations": "建立、拉远、稳定与停留均有可见过程",
+      "assessment": {
+        "understanding": {"status": "pass", "observations": "拉远后可认回地球并读出与太阳的新关系"},
+        "presentation": {"status": "pass", "observations": "尺度变化、注意力与结果观察窗口突出该关系"},
+        "representativeness": {"status": "pass", "observations": "实际资产、字体、光与合成用于完整片段，无占位动作"}
+      },
       "evidence": [{"path": "review-pack/example/window.mp4", "sha256": "REPLACE_WITH_SHA256"}],
       "issues": []
     }
@@ -104,6 +109,8 @@
 ```
 
 `coverage.evidence` 必须来自投喂的评审包；rough/final 盲审覆盖全片检查点；final 的设计对照使用 `reviewType=consistency`，引用同一轮 blind 报告的 `blindId`。
+
+核心 G4 有目标图的检查点也须完成同轮独立对照。核心 `assessment` 三项全部通过才允许覆盖为 pass；G2/G3 的代表性分别指目标图和时序证据，不能代替实际片段质量。`production.expansion` 的放行只覆盖对应检查点及已验证风险；`stage=delivered` 仍可能同时显示“候选已生成，制作未完成”。本节是后续制作练习，不改写历史验收结论。
 
 | 情景 | 应得到的结果 |
 |---|---|
