@@ -121,6 +121,20 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
         if "title" in content:
             text(content.get("title"), path + ".content.title")
         props = content.get("props", {})
+        if "screenSubtitles" in props:
+            subtitles = props["screenSubtitles"]
+            if parts:
+                fail(f"{path}.content.props.screenSubtitles",
+                     "有旁白的幕不能声明屏幕字幕；字幕由共享字幕层从旁白派生")
+            if not isinstance(subtitles, list) or not subtitles:
+                fail(f"{path}.content.props.screenSubtitles", "必须为非空数组")
+            for sub_index, subtitle in enumerate(subtitles):
+                subtitle_path = f"{path}.content.props.screenSubtitles[{sub_index}]"
+                obj(subtitle, subtitle_path, {"startFrame", "endFrame", "text"})
+                start, end = subtitle.get("startFrame"), subtitle.get("endFrame")
+                if type(start) is not int or type(end) is not int or start < 0 or end <= start:
+                    fail(subtitle_path, "startFrame/endFrame 必须为 startFrame < endFrame 的非负整数")
+                text(subtitle.get("text"), subtitle_path + ".text")
         validate_entry(root, content.get("entry"), props)
         shots = cinematic.validate_shots(props, path + ".content.props", fps=fps)
         ordered = sorted(shots, key=lambda item: item["startFrame"])

@@ -192,11 +192,15 @@ def validate(c: dict) -> None:
                     windows.append(plan['window'])
             if 'measurement' in cp:
                 fields(cp['measurement'], set(), {'bodyRoles', 'thresholdSource', 'minFont393',
-                       'allowedOverlaps', 'maxTextCharacters', 'subtitleTop'}, name='量测规则')
+                       'allowedOverlaps', 'maxTextCharacters', 'subtitleTop', 'subtitleRoles'}, name='量测规则')
                 rules = cp['measurement']
                 for key in ('minFont393', 'maxTextCharacters', 'subtitleTop'):
                     if key in rules and (type(rules[key]) not in (int, float) or rules[key] < 0):
                         raise M2VError('量测阈值必须为非负数')
+                roles = rules.get('subtitleRoles')
+                if roles is not None and (not isinstance(roles, list)
+                                          or any(not isinstance(value, str) or not value.strip() for value in roles)):
+                    raise M2VError('subtitleRoles 必须为非空字符串列表')
             if any(not isinstance(v, str) or not v.strip() for v in cp['forbidden']):
                 raise M2VError('禁止项必须为非空文字')
     from .policy import validate_plan

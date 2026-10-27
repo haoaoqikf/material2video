@@ -14,7 +14,9 @@ DOM = r"""() => {
    }
    return {id:el.id || `element-${index}`, role:el.dataset.m2vRole, state:el.dataset.m2vState || '',
      color:s.fill !== 'none' ? s.fill : s.color, visible, clipped, text:el.textContent?.trim() || '',
-     fontSize:parseFloat(s.fontSize), x:r.x, y:r.y, width:r.width, height:r.height,
+     fontSize:parseFloat(s.fontSize), lineHeight:parseFloat(s.lineHeight),
+     scrollWidth:el.scrollWidth, clientWidth:el.clientWidth,
+     x:r.x, y:r.y, width:r.width, height:r.height,
      parents:nodes.filter(p => p !== el && p.contains(el)).map(p => p.id || `element-${nodes.indexOf(p)}`)};
  });
 }"""
@@ -28,7 +30,8 @@ def expected_at(cp: dict, frame: int) -> list[dict]:
     return [item for item in cp['expected'] if frame == cp['frame'] and item['role'] not in roles] + planned
 
 
-def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: int) -> list[dict]:
+def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: int,
+             safe_area: dict | None = None) -> list[dict]:
     checks = []
 
     def result(name, state, detail):
@@ -60,6 +63,19 @@ def evaluate(elements: list[dict], cp: dict, *, width: int, height: int, frame: 
             safe = rules.get('subtitleTop')
             if safe is not None and e['y'] + e['height'] > safe:
                 result('字幕安全区:' + e['id'], 'fail', {'subtitleTop': safe})
+    # 作品自绘的屏幕字幕：共享字幕层在无旁白时为空，必须单独检查安全区与单行。
+    for role in rules.get('subtitleRoles', []):
+        for e in [item for item in values if item['role'] == role]:
+            if safe_area is not None:
+                inside = (e['x'] >= safe_area['x'] - .5 and e['y'] >= safe_area['y'] - .5
+                          and e['x'] + e['width'] <= safe_area['x'] + safe_area['width'] + .5
+                          and e['y'] + e['height'] <= safe_area['y'] + safe_area['height'] + .5)
+                result('屏幕字幕安全区:' + e['id'], 'pass' if inside else 'fail',
+                       {'safeArea': safe_area, 'box': {k: e[k] for k in ('x', 'y', 'width', 'height')}})
+            overflow = e.get('scrollWidth', 0) > e.get('clientWidth', e['width']) + 1
+            multiline = '\n' in e['text'] or (e.get('lineHeight') and e['height'] > e['lineHeight'] * 1.5)
+            result('屏幕字幕单行:' + e['id'], 'fail' if overflow or multiline else 'pass',
+                   {'overflow': overflow, 'multiline': multiline, 'text': e['text']})
     for i, a in enumerate(values):
         for b in values[i + 1:]:
             if a['id'] in b['parents'] or b['id'] in a['parents'] or frozenset((a['role'], b['role'])) in allowed:

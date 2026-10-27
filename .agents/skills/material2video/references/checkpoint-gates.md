@@ -46,6 +46,10 @@
 
 `expected` 是 role/count 断言列表，可选 state/color/visible/tolerance；`textPlan` 是 role/text/window 列表；`claims` 含 id/value/unit/basis，可选 role，同 ID 不可声明不同值；`forbidden` 是禁止出现的可见文字列表。`statePlan` 是 `{window, expected}` 列表，窗口落在所属镜头内且同角色不重叠。采样在步长和指定帧之外，自动加入 textPlan、statePlan 与 timeStructure 全部边界的前一帧、边界帧和后一帧，并去重、裁到检查窗。边界覆盖不证明全部连续运动正确，密度和完整窗口评审仍适用。
 
+画面文字的实现要与 `textPlan` 按帧对齐：窗口起点帧应已可见，排他终点帧应不可见；用不透明度渐变时，首末帧保留自动量测能识别的最小可见度。`allowedOverlaps` 只声明设计上有意相交的角色对；薄片、底座、手等结构性接触需在每个相关检查点逐一列出，显式声明正确画面中的必要重叠，而不是让量测把正确画面判成缺陷。
+
+`measurement.subtitleRoles` 用于无旁白作品自绘的屏幕字幕：对命中角色检查包围盒完全落在字幕安全区内、单行且不横向溢出。它不替代 `subtitleTop` 对正文越界的检查，也不改变共享字幕层的量测；未声明该规则的检查点仍需帧序列与人工证据。
+
 ## 审核计划与风险触发
 
 `reviewPlan` 必需 `basis` 和 `risks`。`basis` 写明适用性依据；`risks` 允许为空，但空列表意味着作品没有未决的核心表达、结构时序或动态风险，不能用来掩盖已知问题。每项风险含唯一 `id`、`kind`、`scope.checkpointIds`、`reason`、`requiredEvidence`，不得手填人数。

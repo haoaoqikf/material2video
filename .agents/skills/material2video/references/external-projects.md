@@ -17,7 +17,7 @@
 | 字段 | 含义 |
 |---|---|
 | `id` | 稳定标识，与项目指引文件名一致 |
-| `status` | `temporary` 为临时登记，未并入；并入后另行迁移 |
+| `status` | `temporary` 为临时登记，未并入；C 夜曲已转成正式风格包，B 寓言仍未并入 |
 | `localPath` | 本机路径，仅作定位提示；其他机器按上游与固定 commit 获取 |
 | `upstream` / `pinnedCommit` | 来源仓库与核验过的提交 |
 | `verifiedAt` | 最近一次核对来源、许可与路径的日期 |
@@ -34,7 +34,7 @@
 |---|---|
 | `id` | `vibe-knowledge-film` |
 | 显示名 | vibe-knowledge-film（抖音「Vibe 知识大赏」式无旁白知识短片） |
-| `status` | `temporary`：临时登记，尚未并入；后续评估转成风格包 |
+| `status` | `temporary`：C 夜曲已作为正式风格包 `styles/vibe-night` 落地（2026-10-27）；B 寓言仍未并入 |
 | `localPath` | `C:\D_Merged_From_D\project\third-party\vibe-knowledge-film`（仅本机） |
 | `upstream` | `https://github.com/HeyChengC/vibe-knowledge-film.git` |
 | `pinnedCommit` | `62d51508aad00003dc6209afa80c4b5dc540de59`（2026-10-13） |
@@ -53,7 +53,11 @@
 | C 夜曲 | `references/worlds.md` 的「C 夜曲」、`references/visual-grammar.md`、`engine/vk-kit.js` 的 `PAL.night`/`SUB.night`、`engine/vk.js` 的 `BG.night` | 抽象概念、看不见的机制，拆成当场可演的小实验 | 底 `#010104`，中央深蓝光池 `#0B1830`（透明度 0.62）；主体字 `#F8F9F8`；金 `#F8D893`、冰蓝 `#64E3F6`、玫红 `#E84B75`、紫 `#8477D0`；宋体大字、光点母题、慢推慢移。字幕 41px、字距 0.12、基线 87% 仅作指导 |
 | B 寓言 | `references/worlds.md` 的「B 寓言」、`references/visual-grammar.md`、`engine/vk-kit.js` 的 `PAL.flat`/`SUB.flat` | 心理、行为机制，从动物或生活场景讲到「你该怎么办」 | 代码画的扁平插画、三层视差、左上「本能读数」仪表、暖色场景盘、角色与规则卡。字幕 48px、字距 0.07、基线 89.4%、逐字亮起仅作指导 |
 
-这些数值是**转译后的指导值**，不是可安装资产。外部字幕外观与 material2video 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）不兼容；共享层优先，不得覆盖。
+这些数值是**转译后的指导值**。C 夜曲已转成可安装的正式风格包 `styles/vibe-night`，
+运行时以包内 `tokens.json`、组件与 `GUIDE.md` 为准；B 寓言仍只是指导值，未安装为资产。
+外部字幕外观与 material2video 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）
+不兼容；共享层优先，不得覆盖。无旁白作品可由场景自绘屏幕字幕，约定见
+[C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定)。
 
 #### 视频参考（仅自有样片）
 
@@ -93,10 +97,11 @@ GIF/JPG 只作分析：不复制进本仓库，不作为素材或风格包资产
 
 #### 后续合并
 
-- 未来按[风格接入契约](style-pack.md)转成 `styles/vibe-night`、`styles/vibe-fable`，并把需要的组件重写为 TSX。
-- 共享字幕层仍以 `web/src/frames.json` 为准，不复制外部字幕外观。
-- 合并前 `m2v styles` 仍为空，`project.json` 不得写指向本登记的 `style.id`。
-- 创建风格包、组件或改变契约时另走 OpenSpec 评估。
+- C 夜曲已按[风格接入契约](style-pack.md)转成 `styles/vibe-night`，组件以 TSX 重写并随包登记宋体资产。
+- B 寓言尚未转成 `styles/vibe-fable`；需要时另行评估组件、角色与视差实现，不因本登记自动扩大范围。
+- 共享字幕层仍以 `web/src/frames.json` 为准，不复制外部字幕外观；无旁白屏幕字幕按 C 夜曲 GUIDE 的约定由作品自绘。
+- B 寓言未并入前，`project.json` 不得写指向外部登记的 `style.id`；C 夜曲作品应写 `style.id: "vibe-night"`。
+- 创建新风格包、组件或改变契约时另走 OpenSpec 评估。
 
 #### 维护
 

@@ -7,10 +7,11 @@ from . import cinematic, explainer, explainer_prepare, explainer_render, explain
 def validate(root: Path, project: dict) -> None:
     cinematic.validate_project(project)
     source = explainer.load(root, project)
-    from m2v.core.styles import selected_style
+    from m2v.core.styles import check_requirements, selected_style
     from m2v.core import frames
     width, height = frames.normalize(source.get("width"), source.get("height"))
-    selected_style(project, width=width, height=height)
+    style = selected_style(project, width=width, height=height)
+    check_requirements(style, has_narration=any(scene.get("narrationSegments") for scene in source["scenes"]))
     if not explainer.topic_input(source):
         explainer.source_file(root, project)
 

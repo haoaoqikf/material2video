@@ -13,7 +13,7 @@ from .errors import M2VError
 STYLES_ROOT = REPOSITORY_ROOT / "styles"
 _ID = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 _VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
-ASSET_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".woff2"}
+ASSET_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".woff2", ".ttf", ".otf"}
 
 
 def _json(path: Path) -> Any:
@@ -52,7 +52,7 @@ def load_style(style_id: str) -> dict:
     if root.parent != base or not (root / "style.json").is_file():
         raise M2VError(f"未知风格或风格目录越界：{style_id}")
     manifest = _json(_file(root, "style.json"))
-    allowed = {"schemaVersion", "id", "version", "description", "types", "frames", "guide", "tokens", "components", "assets"}
+    allowed = {"schemaVersion", "id", "version", "description", "types", "frames", "guide", "tokens", "components", "assets", "requires"}
     if (not isinstance(manifest, dict) or set(manifest) - allowed
             or type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != 1
             or manifest.get("id") != style_id):
@@ -74,6 +74,10 @@ def load_style(style_id: str) -> dict:
     guide = _file(root, manifest.get("guide"))
     if guide.suffix != ".md" or not guide.read_text(encoding="utf-8").strip():
         raise M2VError(f"风格 {style_id} guide 必须是非空 Markdown")
+    requires = manifest.get("requires", {})
+    if (not isinstance(requires, dict) or set(requires) - {"narration"}
+            or requires.get("narration", "any") not in ("none", "any")):
+        raise M2VError(f"风格 {style_id} requires 只允许 narration 取 none/any")
     tokens = _json(_file(root, manifest["tokens"])) if "tokens" in manifest else {}
     if not isinstance(tokens, dict):
         raise M2VError(f"风格 {style_id} tokens 必须为 JSON 对象")
@@ -131,3 +135,12 @@ def selected_style(project: dict, *, width: int | None = None, height: int | Non
     if width is not None and height is not None and {"width": width, "height": height} not in package["manifest"]["frames"]:
         raise M2VError(f"风格 {selection['id']} 不支持画幅 {width}×{height}")
     return package
+
+
+def check_requirements(package: dict | None, *, has_narration: bool) -> None:
+    """作品级硬约束：类型与画幅之外，清单只能声明旁白要求。"""
+    if package is None:
+        return
+    requires = package["manifest"].get("requires") or {}
+    if requires.get("narration") == "none" and has_narration:
+        raise M2VError(f"风格 {package['manifest']['id']} 要求无旁白作品；当前分镜包含旁白")

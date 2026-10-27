@@ -13,3 +13,19 @@
 
 - **WHEN** 仓库未注册任何风格包
 - **THEN** 文本显示暂无已注册风格，JSON 返回空数组，未选风格作品保持可用
+
+## ADDED Requirements
+
+### Requirement: 风格要求声明
+
+风格清单 SHALL 可声明可选 `requires` 对象，当前仅允许 `narration` 取 `none` 或 `any`；未知键或非法值 SHALL 明确失败。作品选择风格时 SHALL 按 `requires.narration` 与分镜是否含旁白校验，不满足时 SHALL 明确失败且不回退到无风格。
+
+#### Scenario: 无旁白风格被有旁白作品选择
+
+- **WHEN** 任一幕含旁白的作品选择 `requires.narration = none` 的风格包
+- **THEN** `validate` 与 `prepare` 失败并指出风格与原因
+
+#### Scenario: 无约束风格
+
+- **WHEN** 风格清单未声明 `requires`
+- **THEN** 行为与现有版本一致，不增加旁白限制

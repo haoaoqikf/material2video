@@ -54,8 +54,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     fps = source["fps"]
     explainer_review.require_input(root, project)
     size = frame_engine.normalize(source.get("width"), source.get("height"))
-    from m2v.core.styles import selected_style
-    selected_style(project, width=size[0], height=size[1])
+    from m2v.core.styles import check_requirements, selected_style
+    style = selected_style(project, width=size[0], height=size[1])
+    check_requirements(style, has_narration=any(scene.get("narrationSegments") for scene in source["scenes"]))
     frame = frame_engine.spec(*size)
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None

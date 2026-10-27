@@ -136,6 +136,27 @@ def test_measure_allowed_containment_and_hidden_count():
     assert any(x['name'] == '未授权重叠' and x['status'] == 'fail' for x in result)
 
 
+def test_measure_screen_subtitle_safe_area_and_single_line():
+    cp = sample()['scenes'][0]['checkpoints'][0]
+    cp['expected'] = []
+    cp['textPlan'] = [{'role': 'subtitle', 'text': '夜空为什么是黑的', 'window': [0, 30]}]
+    cp['measurement'] = {'subtitleRoles': ['subtitle']}
+    safe = {'x': 192, 'y': 888, 'width': 1536, 'height': 113}
+    inside = element()
+    inside.update(id='sub', role='subtitle', text='夜空为什么是黑的', x=500, y=900,
+                  width=900, height=66, fontSize=44, lineHeight=66, scrollWidth=880, clientWidth=900)
+    result = measure.evaluate([inside], cp, width=1920, height=1080, frame=15, safe_area=safe)
+    assert all(x['status'] != 'fail' for x in result), result
+    assert any(x['name'].startswith('屏幕字幕安全区') and x['status'] == 'pass' for x in result)
+    assert any(x['name'].startswith('屏幕字幕单行') and x['status'] == 'pass' for x in result)
+    outside = {**inside, 'y': 1020}
+    result = measure.evaluate([outside], cp, width=1920, height=1080, frame=15, safe_area=safe)
+    assert any(x['name'].startswith('屏幕字幕安全区') and x['status'] == 'fail' for x in result)
+    overflow = {**inside, 'scrollWidth': 1200}
+    result = measure.evaluate([overflow], cp, width=1920, height=1080, frame=15, safe_area=safe)
+    assert any(x['name'].startswith('屏幕字幕单行') and x['status'] == 'fail' for x in result)
+
+
 def test_non_general_needs_no_contract(tmp_path):
     assert ledger.status(tmp_path, {'type': 'housing-timeseries'})['applicability'] == '专用类型契约'
 

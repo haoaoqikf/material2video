@@ -22,7 +22,7 @@ const result = await build({
   // 少数依赖在运行时读 process.emit / nextTick；给一个最小浏览器 shim，避免整幕静默失败。
   banner: {js: 'var process={env:{NODE_ENV:"production"},emit:function(){},emitWarning:function(){},nextTick:function(fn){Promise.resolve().then(fn);},browser:true,version:"",platform:"browser",cwd:function(){return "/";}};'},
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
-  loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl'},
+  loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl', '.otf': 'dataurl'},
   plugins: [{name: 'project-boundary', setup(builder) {
     builder.onResolve({filter: /^m2v\/style$/}, () => ({path: 'style', namespace: 'm2v-style'}));
     builder.onLoad({filter: /.*/, namespace: 'm2v-style'}, () => ({contents:
@@ -47,7 +47,7 @@ const result = await build({
         const boundary = fromStyle ? style.root : project;
         if (!file || !within(boundary, fs.realpathSync(file))) throw new Error(`${fromStyle ? '风格' : '作品'}导入越界或不存在：${args.path}`);
         // 风格资产只能来自清单登记文件，避免相对导入绕过来源许可登记。
-        if (fromStyle && /\.(png|jpe?g|webp|svg|woff2)$/i.test(file)
+        if (fromStyle && /\.(png|jpe?g|webp|svg|woff2|ttf|otf)$/i.test(file)
             && !Object.values(style.assets).includes(fs.realpathSync(file))) throw new Error(`未登记的风格资产：${args.path}`);
         return {path: fs.realpathSync(file)};
       }

@@ -249,7 +249,8 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
                 checks = []
                 for n in frames:
                     raw = measurements[n]
-                    checks.extend(measure.evaluate(raw['elements'], cp, width=c['width'], height=c['height'], frame=n))
+                    checks.extend(measure.evaluate(raw['elements'], cp, width=c['width'], height=c['height'], frame=n,
+                                                   safe_area=prepared['props']['subtitle']))
                     for width in (c['width'], 852, 393):
                         path = directory / f'{n:06d}-{width}.png'
                         ffmpeg(['-i', str(work / f'frame-{n:06d}.png'), '-vf', f'scale={width}:{round(c["height"] * width / c["width"])}', '-frames:v', '1', str(path)])

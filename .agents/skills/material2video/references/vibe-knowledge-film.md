@@ -1,6 +1,7 @@
-# vibe-knowledge-film 制作指引（临时登记）
+# vibe-knowledge-film 制作指引
 
-> 状态：临时登记、只读来源，**未安装为风格包**。来源、许可与可用范围以[外部参考项目登记](external-projects.md)为准。
+> 状态：C 夜曲已转成正式风格包 `styles/vibe-night`（2026-10-27）；B 寓言仍为临时登记、只读来源。
+> 来源、许可与可用范围以[外部参考项目登记](external-projects.md)为准。
 > 本文只说明如何查阅与转译，不改变制作阶段、评审职责或验收条件。
 
 ## 什么时候读
@@ -22,6 +23,10 @@
 ## 两套外观
 
 ### C 夜曲
+
+已落地为正式风格包 `styles/vibe-night`：作品在 `project.json` 写 `style.id: "vibe-night"`，
+按 [GUIDE](../../../../styles/vibe-night/GUIDE.md) 显式导入组件与资产。下列数值是包内
+`tokens.json` 的语义来源，运行时以包内参数为准。
 
 适合抽象概念或看不见的机制：把一个概念拆成几个当场可演的小实验。
 
@@ -56,10 +61,10 @@
 |---|---|
 | 视频类型 | 仅 `general`；外部项目没有其他类型。 |
 | 画幅 | 外部只做 1920×1080、30fps；横屏作品可直接对应。竖屏作品必须按[参考风格契约](reference-style.md)的画幅转译规则重新安置主体与文字。 |
-| 字幕 | 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）优先；外部字号、基线、逐字动效只作指导值，不覆盖共享层。 |
-| 外观采纳 | 必须走 [参考风格契约](reference-style.md) 的 L1/L2/L3 与八项指标，写入作品 `outputs/style-reference.md`，并在 `DESIGN.md` 记录来源项目、固定 commit、采用世界与不借清单。 |
+| 字幕 | 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）优先；外部字号、基线、逐字动效只作指导值，不覆盖共享层。无旁白作品可由场景在 `subtitleSafeArea` 内自绘屏幕字幕，按 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定) 执行。 |
+| 外观采纳 | C 夜曲可直接选择正式风格包 `vibe-night`；仍须按 [参考风格契约](reference-style.md) 的 L1/L2/L3 与八项指标写入作品 `outputs/style-reference.md`，并在 `DESIGN.md` 记录来源项目、固定 commit、采用世界与不借清单。B 寓言尚未安装，只能按指导值转译。 |
 | 只借方法 | 不采用外观时，在 `DESIGN.md` 标注「仅方法，不采用外观」，不要只写「参考了 vibe 风格」。 |
-| 能力边界 | 不把外部 Canvas 引擎、字体或组件当作本项目组件；当前没有 C/B 风格包，`project.json` 不得写 `style.id`。 |
+| 能力边界 | 不把外部 Canvas 引擎、字体或组件当作本项目组件；C 夜曲使用 `styles/vibe-night`，B 寓言未并入前 `project.json` 不得写 `style.id`。 |
 
 ## 不借清单
 
@@ -82,4 +87,7 @@
 
 ## 未来合并
 
-临时登记不等于已接入。后续如把 C/B 转成正式风格包，按[风格接入契约](style-pack.md)创建 `styles/vibe-night`、`styles/vibe-fable`，并把需要的组件重写为 TSX；涉及新风格包、组件或契约变化时另走 OpenSpec 评估。合并完成前，`m2v styles` 仍为空，不得在作品中声明 `style.id`。
+C 夜曲已转成正式风格包，组件以 TSX 重写并随包登记宋体资产；B 寓言仍未安装。B 寓言需要时
+按[风格接入契约](style-pack.md)另建 `styles/vibe-fable` 并评估角色、视差与仪表组件；
+涉及新风格包、组件或契约变化时另走 OpenSpec 评估。B 寓言合并前，`project.json` 不得写指向
+本登记的 `style.id`；C 夜曲作品写 `style.id: "vibe-night"`。

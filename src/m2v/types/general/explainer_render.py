@@ -95,6 +95,20 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
     missing = audit_fonts(contract_page.font_files(), prepared["props"], code_scenes.source_texts(root))
     if missing:
         raise M2VError(f"讲解字体缺字：{missing[:5]}")
+    # 全局字体并集不能证明风格包字体覆盖：实际画笔缺字时浏览器仍会静默回退。
+    style = prepared.get("style")
+    if style:
+        from m2v.core.fonts import audit_fonts_strict, rendered_strings
+        from m2v.core.styles import load_style
+        package = load_style(style["id"])
+        entries = [*rendered_strings(prepared["props"]), *code_scenes.source_texts(root).items()]
+        for target in package["assets"].values():
+            font = Path(target)
+            if font.suffix not in (".ttf", ".otf"):
+                raise M2VError(f"风格 {style['id']} 的字体资产必须为 TTF/OTF 才能检查缺字：{font.name}")
+            strict = audit_fonts_strict(font, entries)
+            if strict:
+                raise M2VError(f"讲解字体缺字（风格 {style['id']}）：{strict[:5]}")
     width, height = _size(prepared)
     outputs = root / "outputs"
     outputs.mkdir(exist_ok=True)
