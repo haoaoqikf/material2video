@@ -103,6 +103,11 @@
       "guide": "references/visual-review-rubric.md"
     },
     {
+      "id": "diagnosis",
+      "when": "看图发现画面问题、判断形象是否成立、确定主体尺度",
+      "guide": "references/visual-diagnosis.md"
+    },
+    {
       "id": "visual-examples",
       "when": "需要视觉设计模板、反例与演练",
       "guide": "references/visual-creative-direction-examples.md"
