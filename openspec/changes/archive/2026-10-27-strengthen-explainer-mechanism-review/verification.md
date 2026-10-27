@@ -28,9 +28,15 @@
 
 ## 文档审查与检查
 
-- 独立只读审查：`/root/review_process_docs`，新上下文；发现逐场表栏目名与权威表不一致，已按真实列名修复并链接权威表。
-- 新增相对链接及标题锚点检查通过；受影响文档的6个 JSON 示例均可解析。
+- 独立只读审查：`/root/review_process_docs`，新上下文；发现逐场表栏目名与权威表不一致，已按真实列名修复并链接权威表；同一代理复查确认问题解决，未发现新增问题。
+- 新增29个相对链接及标题锚点检查通过；受影响文档的6个 JSON 示例均可解析。
 - `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 通过，未改生成的轮次、人数和类型表。
 - `openspec validate strengthen-explainer-mechanism-review --strict` 与 `git diff --check` 通过。
 - 仅文档变更，不运行渲染、编译或全量测试；运行时、性能、材料格式、合同字段与自动验收均无改动。
 - 余留限制：试评只验证诊断与边界，不证明后续制作者一定正确执行，也不证明原试制表现已改善。未做代码审查，不提供代码质量分。
+
+## 提交与归档
+
+实施提交 `da0f806`；暂存仅含文本流程文档及配套变更材料，未包含已有风格包任务清单改动、作品、媒体或凭据。
+主规格新增4项要求、6个场景，与增量要求逐字核对一致；`openspec validate --specs` 37项全部通过。
+主规格先同步并验证，再使用 `openspec archive --yes --skip-specs` 仅执行归档移动，未跳过主规格同步。
