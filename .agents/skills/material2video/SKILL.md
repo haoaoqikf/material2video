@@ -44,6 +44,8 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 核心样片的理解、表现与代表性必须分别成立；有目标图的实际核心窗先盲审、后同轮对照，未完成不扩展相关正式实现。失败分流见[制作流程](references/production-workflow.md#核心样片放行与失败处理)，风险与关闭条件仅按[检查点契约](references/checkpoint-gates.md)。`m2v status` 的 `summary` 区分候选生成和制作完成，`production.expansion` 列出允许继续的检查点范围；它们不替代实际审美判断。
 
+适用核心样片评审后、扩展相关实现前，以及全片粗片审查后、精制前，必须按[推进与回退决策](references/production-workflow.md#核心样片与全片粗片的回退决策)明确通过、局部修复、补充试制或退回重设计。设计或技术路线根本失败立即回退，不必等待两轮修复；保留原问题与证据，暂停受影响工作，按对应独立复查重新放行。技术不可行须有试制与限制依据，不以缺证或粗片尚未精制推断失败。
+
 ```powershell
 uv run m2v types
 uv run m2v init --type general --project <slug>
