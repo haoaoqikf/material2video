@@ -20,5 +20,5 @@
 
 - [x] 4.1 删除 `web/public/fonts/` 与风格包字体副本后执行 `fonts/fetch.py`，验证从 `fonts/files` 恢复、摘要一致、`--check` 通过；`fonts/files` 本身来自外部缓存，首次获取说明见 `fonts/README.md`。
 - [x] 4.2 运行 `pnpm -C web build`、字体与风格包测试、全量非 slow 回归；验证渲染语义、共享字幕层与三个固定示例不回归。
-- [ ] 4.3 检查暂存范围，确认只提交字体仓、代码、测试与文档，不含字体二进制、缓存或作品产物；提交并记录 commit。
-- [ ] 4.4 同步 `font-assets`、`font-coverage`、`style-registry` 主规格并归档；提交归档结果。
+- [x] 4.3 检查暂存范围，确认只提交字体仓、代码、测试与文档，不含字体二进制、缓存或作品产物；提交并记录 commit。
+- [x] 4.4 同步 `font-assets`、`font-coverage`、`style-registry` 主规格并归档；提交归档结果。
