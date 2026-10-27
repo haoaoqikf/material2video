@@ -381,8 +381,7 @@ export class Painter {
         }
         ctx.fillStyle = rgba(color, 1);
         ctx.textAlign = 'left';
-        const offset = override.baseline ? 0 : 0;
-        ctx.fillText(char, cursor, y + offset);
+        ctx.fillText(char, cursor, y);
         ctx.restore();
       }
       cursor += widths[index] + track;
