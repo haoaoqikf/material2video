@@ -13,6 +13,7 @@
 - `uv run pytest tests/test_production_gates.py tests/test_production_sources.py tests/test_doc_examples.py tests/test_examples_strict.py -q`：全部通过，退出码 0；pytest 缓存目录权限警告不影响测试结果。
 - 相对链接与 JSON 检查：13 份 Markdown、167 个相对链接、2 个 JSON 块通过；新增回退锚点有效。检查范围为本次已跟踪变更和变更规划材料。
 - `git diff --check`：通过。
+- 归档前同步确认：3 条新增要求、9 个场景完整写入主规格，原有要求保留；`openspec validate --specs --strict`：36 项通过、0 失败。任务全部完成，实施提交为 `925c1d6`。
 
 ## 独立审查
 
