@@ -176,8 +176,8 @@ const {PainterCanvas} = painter;
 
 | 项 | 约定 |
 |---|---|
-| 层 | `background`（底）→ `under`（不参加辉光）→ `paint`（内容，参加辉光）→ `overlay`（辉光之后的锐利层）→ `post` |
-| 文字 | **必须画在 `overlay`**。画进 `paint` 会被自己的光晕冲出重影 |
+| 层 | `background`（底）→ `under`（不参加辉光）→ `paint`（内容，参加辉光）→ `post`（全幅后期）→ `overlay`（锐利层）→ 颗粒 |
+| 文字 | **必须画在 `overlay`**。画进 `paint` 会被自己的光晕冲出重影；`post` 的全幅效果也不作用于文字 |
 | 像素密度 | 按录制配置的 `captureScale` 自动分配后备缓冲；2 倍原生采集时后备缓冲同步放大，不触发像素不足 |
 | 时间 | 只读 `elapsedSeconds` 或帧号；不得使用挂钟、随机源、计时器或 CSS 动画 |
 | 文案 | 必须由作品参数传入，不得内嵌在绘制层；否则字体缺字检查看不到它 |

@@ -107,7 +107,7 @@ export function compose(target: HTMLCanvasElement, options: ComposeOptions): voi
     }
   }
   if (options.post) output.drawImage(options.post, 0, 0, target.width, target.height);
-  // 锐利层画在辉光之后：文字进辉光会被自己的光晕冲出重影，看起来像叠了好几遍。
+  // 锐利层画在最上面：文字进辉光会被自己的光晕冲出重影，也不该被全幅后期染色。
   if (options.overlay) output.drawImage(options.overlay, 0, 0, target.width, target.height);
   const grain = options.grain ?? 0;
   if (grain > 0) {

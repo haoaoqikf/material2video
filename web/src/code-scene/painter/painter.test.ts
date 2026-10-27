@@ -143,3 +143,74 @@ describe('量测代理状态', () => {
     expect(reviewState([])).toEqual([]);
   });
 });
+
+describe('出帧层序', () => {
+  /** 记录 drawImage 顺序的最小画布替身。 */
+  function composeTarget() {
+    const order: string[] = [];
+    const context = {
+      setTransform: () => undefined, save: () => undefined, restore: () => undefined,
+      fillRect: () => order.push('clear'),
+      drawImage: (source: {id?: string}) => order.push(source?.id ?? '?'),
+      createPattern: () => null, fillStyle: '', globalAlpha: 1,
+      globalCompositeOperation: 'source-over', filter: 'none', imageSmoothingEnabled: true,
+    };
+    const target = {
+      width: 100, height: 100,
+      getContext: () => context as unknown as CanvasRenderingContext2D,
+    } as unknown as HTMLCanvasElement;
+    return {target, order};
+  }
+
+  const layer = (id: string) => ({id} as unknown as HTMLCanvasElement);
+
+  /** 辉光要新建临时画布；测试环境没有 DOM，给一个最小替身。 */
+  function stubDocument() {
+    const original = (globalThis as {document?: unknown}).document;
+    const canvas = () => ({
+      width: 0, height: 0,
+      getContext: () => ({
+        setTransform: () => undefined, clearRect: () => undefined, fillRect: () => undefined,
+        drawImage: () => undefined, createRadialGradient: () => ({addColorStop: () => undefined}),
+        createImageData: (w: number, h: number) => ({data: new Uint8ClampedArray(w * h * 4)}),
+        putImageData: () => undefined, save: () => undefined, restore: () => undefined,
+        filter: 'none', globalAlpha: 1, globalCompositeOperation: 'source-over',
+      }),
+    });
+    (globalThis as {document?: unknown}).document = {createElement: canvas};
+    return () => { (globalThis as {document?: unknown}).document = original; };
+  }
+
+  it('锐利层画在辉光与全幅后期之后、颗粒之前', async () => {
+    const {compose} = await import('./bloom');
+    const restore = stubDocument();
+    const {target, order} = composeTarget();
+    try {
+    compose(target, {
+      width: 100, height: 100, scale: 1, frame: 0, bloom: 1, grain: 0,
+      background: layer('background'), under: layer('under'),
+      content: layer('content'), post: layer('post'), overlay: layer('overlay'),
+    });
+    } finally { restore(); }
+    const at = (name: string) => order.indexOf(name);
+    // 文字放最后可见层：既不吃辉光，也不被 post 染色。
+    expect(at('content')).toBeGreaterThan(at('under'));
+    expect(at('content')).toBeGreaterThan(at('background'));
+    expect(at('overlay')).toBeGreaterThan(at('post'));
+    expect(at('overlay')).toBe(order.length - 1);
+  });
+
+  it('关闭辉光时内容与锐利层仍然画上', async () => {
+    const {compose} = await import('./bloom');
+    const restore = stubDocument();
+    const {target, order} = composeTarget();
+    try {
+    compose(target, {
+      width: 100, height: 100, scale: 1, frame: 0, bloom: 0, grain: 0,
+      content: layer('content'), overlay: layer('overlay'),
+    });
+    } finally { restore(); }
+    expect(order).toContain('content');
+    expect(order).toContain('overlay');
+  });
+});
