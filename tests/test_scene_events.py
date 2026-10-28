@@ -168,3 +168,33 @@ export default function Demo(config) {
     for frame in [8, 9, 10]:
         assert list(map(float, snapshots[0][frame])) == pytest.approx(list(map(float, snapshots[1][frame])))
     assert list(map(float, snapshots[0][9])) == [1, 1, 1, 0]
+
+
+def test_event_coverage_reports_actual_spacing_and_missed_frames():
+    """采样步长与事件密度分开报告；诊断不进入 checks 状态。"""
+    from m2v.production.checks import event_coverage
+
+    prepared = {'props': {'resolvedEvents': [
+        {'sceneId': 'compound', 'id': 'drop-1', 'frame': 30, 'globalFrame': 30},
+        {'sceneId': 'compound', 'id': 'drop-2', 'frame': 33, 'globalFrame': 33},
+        {'sceneId': 'compound', 'id': 'drop-3', 'frame': 35, 'globalFrame': 35}]}}
+    scene = {'id': 'compound'}
+    checkpoint = {'window': [0, 105], 'sampleStep': 15}
+    coverage = event_coverage(prepared, scene, checkpoint, [0, 15, 30, 45, 60, 75, 90, 100, 104])
+    assert coverage['eventFrames'] == [30, 33, 35]
+    assert coverage['sampledFrames'] == [30]
+    assert coverage['missedFrames'] == [33, 35]
+    assert coverage['minSpacing'] == 2
+    assert coverage['sampleStep'] == 15
+    assert coverage['warning'] is True
+    assert event_coverage({'props': {}}, scene, checkpoint, []) is None
+
+
+def test_event_coverage_is_quiet_when_every_event_is_sampled():
+    from m2v.production.checks import event_coverage
+
+    prepared = {'props': {'resolvedEvents': [
+        {'sceneId': 'a', 'id': 'hit', 'frame': 10, 'globalFrame': 10}]}}
+    coverage = event_coverage(prepared, {'id': 'a'}, {'window': [0, 20], 'sampleStep': 1}, [10])
+    assert coverage['warning'] is False
+    assert coverage['missedFrames'] == []

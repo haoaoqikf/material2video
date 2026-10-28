@@ -107,7 +107,7 @@ DOM 使用 data-m2v-role/data-m2v-state；可选 `window.__M2V_REVIEW_STATE__` �
 
 `measurement` 可声明 bodyRoles、thresholdSource、minFont393、allowedOverlaps、maxTextCharacters、subtitleTop。原生字号乘 393/原生宽度得手机等效字号；阈值与文字预算必须有来源。父子包含与 allowedOverlaps 中有意重叠不误判，其他可见元素相交报告复核。裁切检查画布和裁剪祖先；DOM 不证明全部像素遮挡。未标记元素不在自动覆盖范围，需人工补证。
 
-采集输出原生尺寸、852 宽及 393 宽等比例图，竖屏保持 1080×1920 原生画幅。sampleStep 不得大于待判断的 minEventFrames；完整窗口包括状态边界，连续运动无法确认时补片段或逐帧证据。B/C 没有设计图时只验合同，不宣称完成设计图对照。
+采集输出原生尺寸、852 宽及 393 宽等比例图，竖屏保持 1080×1920 原生画幅。sampleStep 不得大于待判断的 minEventFrames；完整窗口包括状态边界，连续运动无法确认时补片段或逐帧证据。G4 采集还会把检查窗内的事件帧、实际采样帧、漏采帧与真实最小间隔写入 `measurements.json` 的 `eventCoverage`；它只作诊断，不改变 `checks` 或门结果，作者据此调整 `sampleStep` 或补事件边界帧。B/C 没有设计图时只验合同，不宣称完成设计图对照。
 
 独立目标图清单在 outputs/production/design-frames.json。仅 `static-expression` 风险涉及的检查点需要建立/结果/揭示图，852 与 393 宽由工具从原图派生。来源标签不能单独证明独立制作；PNG 实际尺寸和源记录摘要均须有效。
 

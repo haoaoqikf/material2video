@@ -203,6 +203,34 @@ def sample_frames(cp: dict, shot: dict) -> list[int]:
     return sorted(frames)
 
 
+def event_coverage(prepared: dict, scene: dict, cp: dict, sampled: list[int]) -> dict | None:
+    """只报告检查窗内事件是否被采样帧覆盖，不改变 checks 或门结果。
+
+    `sampleStep` 与 `minEventFrames` 都是作者手填的；事件表已经有真实帧和间隔。
+    这里把两者并排写进 `measurements.json`，让漏采可见，但不由它自动判定通过。
+    """
+    events = [event for event in prepared.get('props', {}).get('resolvedEvents', [])
+              if event.get('sceneId') == scene['id']
+              and cp['window'][0] <= event['frame'] < cp['window'][1]]
+    if not events:
+        return None
+    frames = sorted({event['frame'] for event in events})
+    sampled_set = set(sampled)
+    gaps = [right - left for left, right in zip(frames, frames[1:])]
+    missed = sorted(set(frames) - sampled_set)
+    return {
+        'events': [{'id': event['id'], 'frame': event['frame'],
+                    'globalFrame': event.get('globalFrame')} for event in events],
+        'eventFrames': frames,
+        'sampledFrames': sorted(set(frames) & sampled_set),
+        'missedFrames': missed,
+        'minSpacing': min(gaps) if gaps else None,
+        'sampleStep': cp.get('sampleStep', 1),
+        'warning': bool(missed),
+        'note': '非门禁诊断：只提示采样可能漏掉事件，不改变检查结果',
+    }
+
+
 def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
     from playwright.sync_api import sync_playwright
     from m2v.commands import _prepared
@@ -235,6 +263,7 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
             shutil.copyfile(local(root, recorded['mediaPath']), window_clip)
             step = cp.get('sampleStep', 1)
             frames = sample_frames(cp, shot)
+            coverage = event_coverage(prepared, s, cp, frames)
             measurements = {}
             def observe(page, frame):
                 measurements[frame] = {'elements': page.evaluate(measure.DOM),
@@ -259,6 +288,7 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
                         checks.extend(measure.evaluate_probe(raw['probe'], cp, frame=n))
                 write(directory / 'measurements.json', {'frames': measurements, 'step': step, 'window': cp['window'],
                      'capture': 'browser-selected-frames', 'cachedFullRender': False,
+                     'eventCoverage': coverage,
                      'cacheSource': {'path': recorded['mediaPath'], 'startFrame': cp['window'][0], 'endFrame': cp['window'][1]}})
                 evidence.append(receipt(base, directory / 'measurements.json'))
                 for entry in cp.get('manualEvidence', []):
