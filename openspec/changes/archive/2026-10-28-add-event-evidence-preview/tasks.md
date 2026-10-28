@@ -18,4 +18,4 @@
 
 - [x] 4.1 更新 `.agents/skills/material2video/references/cinematic-video.md`、`code-scene-runtime.md`、`production-workflow.md`、`storyboard-schema.md` 与 `README.md`，说明事件模式、作者声明窗口、事件簇、预览定位与「不替代 G4」。
 - [x] 4.2 运行 `uv run pytest tests/test_cinematic_lookdev.py tests/test_cinematic_commands.py tests/test_vibe_night_fold_layout.py tests/test_doc_examples.py -q` 与 `PYTHONUTF8=1 uv run pytest -m "not slow" -q`；在复利示例上端到端跑一次事件模式，核对产物、清单与标签。
-- [ ] 4.3 同步 `openspec/specs/modular-video-production/spec.md` 主规格，把变更移入 `openspec/changes/archive/2026-10-28-add-event-evidence-preview/` 并提交归档。
+- [x] 4.3 同步 `openspec/specs/modular-video-production/spec.md` 主规格，把变更移入 `openspec/changes/archive/2026-10-28-add-event-evidence-preview/` 并提交归档。
