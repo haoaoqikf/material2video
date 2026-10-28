@@ -249,5 +249,81 @@
         }
       }
     }
-  ]
+  ],
+  "soundtrack": {
+    "effects": [
+      {
+        "assetId": "grain",
+        "sceneId": "coincide",
+        "offsetFrames": 2,
+        "gainDb": -20
+      },
+      {
+        "assetId": "grain",
+        "sceneId": "coincide",
+        "offsetFrames": 6,
+        "gainDb": -23
+      },
+      {
+        "assetId": "swish",
+        "sceneId": "repeat",
+        "offsetFrames": 10,
+        "gainDb": -26
+      },
+      {
+        "assetId": "swish",
+        "sceneId": "repeat",
+        "offsetFrames": 120,
+        "gainDb": -24
+      },
+      {
+        "assetId": "latch",
+        "sceneId": "again",
+        "offsetFrames": 100,
+        "gainDb": -22
+      },
+      {
+        "assetId": "grain",
+        "sceneId": "again",
+        "offsetFrames": 108,
+        "gainDb": -20
+      },
+      {
+        "assetId": "chord",
+        "sceneId": "again",
+        "offsetFrames": 178,
+        "gainDb": -20
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "offsetFrames": 0,
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "offsetFrames": 30,
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "offsetFrames": 60,
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "offsetFrames": 90,
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "offsetFrames": 120,
+        "gainDb": -32
+      }
+    ]
+  }
 }

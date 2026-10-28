@@ -50,9 +50,12 @@ export type TextOptions = {
   measurable?: boolean;
 };
 
+/** 填充色：十六进制/任意 CSS 颜色，或由 `linearGradient`/`radialGradient` 返回的渐变。 */
+export type Fill = string | CanvasGradient;
+
 export type ShapeOptions = {
   color?: string;
-  fill?: string;
+  fill?: Fill;
   width?: number;
   alpha?: number;
   glow?: number;
@@ -304,7 +307,7 @@ export class Painter {
     this.applyStroke(options);
     const path = new Path2D(d);
     if (options.fill) {
-      ctx.fillStyle = rgba(options.fill, options.alpha ?? 1);
+      this.applyFill(options);
       ctx.fill(path);
     }
     if (options.color) ctx.stroke(path);
@@ -327,7 +330,13 @@ export class Painter {
   private applyFill(options: ShapeOptions): void {
     if (!options.fill) return;
     const {ctx} = this;
-    ctx.fillStyle = rgba(options.fill, options.alpha ?? 1);
+    // 渐变的每个 stop 已自带透明度，再乘一次会双重变淡；改用 globalAlpha 叠加。
+    if (typeof options.fill === 'string') {
+      ctx.fillStyle = rgba(options.fill, options.alpha ?? 1);
+      return;
+    }
+    ctx.fillStyle = options.fill;
+    if (options.alpha != null) ctx.globalAlpha *= Math.max(0, Math.min(1, options.alpha));
   }
 
   /** 文字宽度，用于排版与定稿前量最长的一句。 */
@@ -463,9 +472,20 @@ export class Painter {
     return gradient;
   }
 
+  /**
+   * 径向渐变。四参数形式是同心的光圈；六参数形式给两个圆，内圆可以偏离中心，
+   * 这是画「有体积的球」需要的形状——高光不能落在正中间。
+   */
   radialGradient(cx: number, cy: number, r0: number, r1: number,
-                 stops: [number, string, number?][]): CanvasGradient {
-    const gradient = this.ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+                 stops: [number, string, number?][]): CanvasGradient;
+  radialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number,
+                 stops: [number, string, number?][]): CanvasGradient;
+  radialGradient(...args: unknown[]): CanvasGradient {
+    const stops = args[args.length - 1] as [number, string, number?][];
+    const numbers = args.slice(0, -1) as number[];
+    const gradient = numbers.length === 4
+      ? this.ctx.createRadialGradient(numbers[0], numbers[1], numbers[2], numbers[0], numbers[1], numbers[3])
+      : this.ctx.createRadialGradient(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]);
     stops.forEach(([offset, color, alpha]) => gradient.addColorStop(offset, rgba(color, alpha ?? 1)));
     return gradient;
   }

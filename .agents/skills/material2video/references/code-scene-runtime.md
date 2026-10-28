@@ -183,6 +183,63 @@ const {PainterCanvas} = painter;
 | 文案 | 必须由作品参数传入，不得内嵌在绘制层；否则字体缺字检查看不到它 |
 | 指纹 | 目录内任何改动都会使引用作品的准备与片段缓存失效 |
 
+#### 四层怎么分工
+
+层的边界不是「画得先后」，而是**这东西该不该发光**。实心、有体积、需要看清轮廓的
+物体进 `under`——辉光会把它们糊成一片；只有「本身就在发光」的东西才留在 `paint`。
+`styles/examples/vibe-night/fold/` 是这个分工的实例：
+
+| 层 | 画什么 | 为什么 |
+|---|---|---|
+| `background` | 近黑底、中央深蓝光池、暗角 | 不参与辉光，铺满即可 |
+| `under` | 血红细胞、细胞内的分子点 | 实体，边缘必须清晰；参考片同样把实物画在底层 |
+| `paint` | 珠串、密团、氧分子、长杆 | 自发光主体，越亮光晕越大是想要的效果 |
+| `overlay` | 字母行、对象标注、引线 | 文字要锐利，不能带重影 |
+
+```tsx
+<PainterCanvas
+  background={P => { P.clear('#010104'); /* 光池与暗角 */ }}
+  under={P => redCell(P, bend, 0, 0, alpha)}
+  paint={P => beads.forEach(([x, y]) => bead(P, x, y, 14, ICE))}
+  overlay={P => P.text('第 6 颗', x, y, {size: 30, role: 'annotation'})}
+/>
+```
+
+反例：把大面积浅色实心块画进 `paint`，辉光会把它顶到接近纯白（`styles/examples/`
+的鸽子示例早期版本就踩过，米墙实测被推到 253）。此时要么改到 `under`，要么把
+`bloom` 压到 0.1 量级。
+
+#### 相机求值
+
+`painter.cameraAt(keys, progress, easing?)` 把关键帧表与进度求成 `{scale, focusX, focusY}`。
+它是**纯函数**：不读挂钟、随机源或上一帧状态，不施加任何变换，只返回数值，由调用方决定
+如何施加。连续推拉应据此在**固定世界坐标**下绘制，而不是每幕各算一套屏幕几何。
+
+```tsx
+import {painter} from 'm2v/code-scene';
+
+const CAM = [
+  {at: 0,  scale: 0.4, focusX: 0,   focusY: 0},   // 全景
+  {at: 90, scale: 2.3, focusX: -60, focusY: 0},   // 推近到第 6 颗
+  {at: 180, scale: 0.5, focusX: 0,  focusY: 0},   // 拉远看整体
+];
+const {scale, focusX, focusY} = painter.cameraAt(CAM, frame, t => t * t * (3 - 2 * t));
+// 世界坐标 → 屏幕：中心对准焦点
+frame.group({at: [width / 2 - focusX * scale, height / 2 - focusY * scale], scale}, () => {
+  draw_world(frame);
+});
+// 或逐点换算：painter.project({scale, focusX, focusY}, [x, y], width / 2, height / 2)
+```
+
+| 项 | 约定 |
+|---|---|
+| 缩放插值 | **对数空间**：1 与 4 的中点返回 2，等距进度对应等倍率变化，视觉上等速 |
+| 焦点插值 | 按 `1/scale` 反比加权：推近时焦点更快贴到目标对象，不平均滑过 |
+| 端点 | 进度早于首帧或晚于末帧时返回端点值，**不外推** |
+| 关键帧 | 按 `at` 升序，`scale` 必须为正有限数；违反时明确报错，不静默夹取 |
+| 缓动 | 由调用方传入（`easing`），缺省恒等；相机不自带风格化曲线 |
+| 跨幕 | 相机不跨场景自动延续；需要连续推拉时把整段时间轴放进单幕，或由作品显式传入一致状态 |
+
 #### 量测代理与状态探针
 
 绘制层每帧都会输出两类可量测信息，**两者都来自同一次绘制记录**：
@@ -210,7 +267,7 @@ const {PainterCanvas} = painter;
 | 需求 | 可复用能力与作品职责 |
 |---|---|
 | 对象连续追踪 | 作品维护稳定对象数据与绘制函数；数值形态参数可用 `interpolateState`，身份线索由作品保留并实看片验证 |
-| 相机与尺度 | 二维由作品将世界坐标统一映射到 SVG/DOM 的整体 transform；三维使用现有 `CameraRig` 与路径风险检查；二维变换不是三维投影 |
+| 相机与尺度 | 二维用 `painter.cameraAt` 在固定世界坐标下求缩放与焦点，由作品施加变换；三维使用现有 `CameraRig` 与路径风险检查；二维变换不是三维投影 |
 | 过程与结果 | 在同一进度下求模型状态，图形与数字共同读取该状态；`rollNumber`、`growSeries`、`interpolateState` 只负责映射，不替代领域模型 |
 | 回场 | 作品复用同一绘制函数与构图参数，以不同阶段状态呈现；不新增独立回场组件 |
 

@@ -13,7 +13,10 @@ export const SERIF_FAMILY = 'Vibe Night Serif';
 
 export type NightTokens = {
   canvas: {background: string; poolColor: string; poolOpacity: number; vignette: number};
-  colors: {text: string; gold: string; ice: string; rose: string; violet: string; coolWhite: string; muted: string};
+  colors: {
+    text: string; gold: string; ice: string; rose: string; violet: string;
+    coolWhite: string; muted: string; blood: string; oxygen: string;
+  };
   semantics: Record<string, string>;
   layout: {
     width: number; height: number; marginX: number;

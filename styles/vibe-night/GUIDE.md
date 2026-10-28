@@ -3,7 +3,7 @@
 > 状态：正式风格包 `vibe-night` 1.0.0。只适用于 `general` 横屏 1920×1080。
 > 来源、固定提交与不借清单见[外部参考项目登记](../../.agents/skills/material2video/references/external-projects.md)
 > 与[vibe-knowledge-film 制作指引](../../.agents/skills/material2video/references/vibe-knowledge-film.md)。
-> 本次只落地 C 夜曲；B 寓言不在包内，另行评估。
+> B 寓言另见 [`styles/vibe-fable`](../vibe-fable/GUIDE.md)；两包单选，不可混用。
 
 本包把 C 夜曲的外观转成仓库自己的 TSX 组件与参数。它只提供表现层：不改变视频类型、
 材料格式、制作门、审核职责或成片验收条件。选择风格不会自动换肤，场景必须显式导入
@@ -72,6 +72,8 @@ useEffect(() => { if (fontsReady) ready(); }, [fontsReady, ready]);
 | `colors.violet` | `#8477D0` | 距离、回忆与尚未到达的信息 |
 | `colors.coolWhite` | `#CFEAF4` | 普通照明与结构性物体 |
 | `colors.muted` | `#8A97A5` | 次要结构标记与刻度；不承载结论 |
+| `colors.blood` | `#C8384E` | 血的实体：红细胞本体与血管环境；只作组织，不作强调 |
+| `colors.oxygen` | `#FF6A55` | 氧气与结合动作；与 blood 同屏时是唯一的暖红焦点 |
 
 底色 `canvas.background = #010104`，中央光池 `canvas.poolColor = #0B1830`、透明度 `0.62`。
 光池、星点与暗角只作环境，不代替讲解主体；不要用光点代替本应可辨认的实物、人物或数据。
@@ -213,6 +215,6 @@ const {subtitleSafeArea} = useSceneContext();
 ## 10. 边界
 
 - 不复制参考项目的 `engine/`、`film.js`、GIF/JPG、角色、画面与文案；样片只作并排基准，不入片、不入库。
-- 不提供 B 寓言、角色组件或视差场景；不新增视频类型或 CLI 命令。
+- 不提供角色组件或视差场景（那是 B 寓言的职责）；不新增视频类型或 CLI 命令。
 - 不改变分镜 schema、共享字幕层、制作门、审核轮次与导出门禁。
 - 版本升级按不兼容处理：只维护升级后的当前契约，不保留旧版兼容分支或迁移工具。

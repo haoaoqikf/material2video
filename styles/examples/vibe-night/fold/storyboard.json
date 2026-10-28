@@ -38,7 +38,10 @@
               "endFrame": 126,
               "text": "你的血里，有一串珠子"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 0.0
+          }
         }
       }
     },
@@ -69,7 +72,10 @@
               "endFrame": 114,
               "text": "第 6 颗换成了别的一种"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 4.4
+          }
         }
       }
     },
@@ -100,7 +106,10 @@
               "endFrame": 118,
               "text": "整颗细胞跟着弯了下去"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 8.4
+          }
         }
       }
     },
@@ -131,7 +140,10 @@
               "endFrame": 66,
               "text": "一颗珠子，怎么能做到？"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 12.6
+          }
         }
       }
     },
@@ -162,7 +174,10 @@
               "endFrame": 118,
               "text": "它先折起来，才抓得住氧气"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 15.0
+          }
         }
       }
     },
@@ -193,7 +208,10 @@
               "endFrame": 100,
               "text": "错的那颗露在外面，会粘住下一个"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 19.2
+          }
         }
       }
     },
@@ -224,7 +242,10 @@
               "endFrame": 88,
               "text": "一个接一个，连成了长杆"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 22.8
+          }
         }
       }
     },
@@ -255,7 +276,10 @@
               "endFrame": 88,
               "text": "长杆从里面把细胞撑弯"
             }
-          ]
+          ],
+          "clock": {
+            "startSeconds": 26.0
+          }
         }
       }
     },
@@ -287,9 +311,190 @@
               "text": "一颗珠子，改掉了一个细胞的形状"
             }
           ],
-          "credit": "L. Pauling 等 1949 · V. Ingram 1957"
+          "credit": "L. Pauling 等 1949 · V. Ingram 1957",
+          "clock": {
+            "startSeconds": 29.2
+          }
         }
       }
     }
-  ]
+  ],
+  "soundtrack": {
+    "effects": [
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 6,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 11,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 16,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 21,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 26,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 31,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 36,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 41,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 46,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 51,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 56,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 61,
+        "gainDb": -24
+      },
+      {
+        "assetId": "flip",
+        "sceneId": "mutation",
+        "offsetFrames": 40,
+        "gainDb": -20
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "mutation",
+        "offsetFrames": 44,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "sickle",
+        "offsetFrames": 70,
+        "gainDb": -22
+      },
+      {
+        "assetId": "shimmer",
+        "sceneId": "fold",
+        "offsetFrames": 60,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "fold",
+        "offsetFrames": 100,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "sticky",
+        "offsetFrames": 30,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 4,
+        "gainDb": -30
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 10,
+        "gainDb": -28
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 16,
+        "gainDb": -26
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 22,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 28,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 34,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 40,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 46,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 52,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "push",
+        "offsetFrames": 60,
+        "gainDb": -22
+      },
+      {
+        "assetId": "chord",
+        "sceneId": "closing",
+        "offsetFrames": 10,
+        "gainDb": -18
+      }
+    ]
+  }
 }

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "tick",
+      "synthesis": {
+        "generator": "m2v.sound-synthesis",
+        "version": 1,
+        "parameters": {
+          "name": "keyboard-key",
+          "seed": 3,
+          "durationMs": 160,
+          "intensity": 0.45,
+          "rate": 7
+        }
+      }
+    },
+    {
+      "id": "latch",
+      "synthesis": {
+        "generator": "m2v.sound-synthesis",
+        "version": 1,
+        "parameters": {
+          "name": "switch",
+          "seed": 4,
+          "durationMs": 180,
+          "intensity": 0.7,
+          "rate": 7
+        }
+      }
+    },
+    {
+      "id": "grain",
+      "synthesis": {
+        "generator": "m2v.sound-synthesis",
+        "version": 1,
+        "parameters": {
+          "name": "impact-soft",
+          "seed": 9,
+          "durationMs": 350,
+          "intensity": 0.6,
+          "rate": 7
+        }
+      }
+    },
+    {
+      "id": "swish",
+      "synthesis": {
+        "generator": "m2v.sound-synthesis",
+        "version": 1,
+        "parameters": {
+          "name": "whoosh",
+          "seed": 6,
+          "durationMs": 600,
+          "intensity": 0.5,
+          "rate": 7
+        }
+      }
+    },
+    {
+      "id": "chord",
+      "synthesis": {
+        "generator": "m2v.sound-synthesis",
+        "version": 1,
+        "parameters": {
+          "name": "success",
+          "seed": 2,
+          "durationMs": 900,
+          "intensity": 0.6,
+          "rate": 7
+        }
+      }
+    }
+  ]
+}

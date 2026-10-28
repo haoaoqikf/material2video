@@ -59,6 +59,12 @@ work/
 # 公共字体的许可文本仍入库。
 examples/*/assets/media/
 
+# 风格示例的合成音效同理：`assets/sound-recipe.json` 是生成配方（入库），
+# 生成的 wav 与按摘要索引的 `sound-sources.json` 是产物（不入库），
+# 用 `uv run m2v general sounds import --project <示例> --manifest assets/sound-recipe.json` 恢复。
+styles/examples/*/*/assets/sound/
+styles/examples/*/*/assets/sound-sources.json
+
 # 字体二进制不入库：来源、摘要、许可与恢复目标见 fonts/registry.json，
 # 执行 `uv run python fonts/fetch.py` 恢复。许可文本仍入库。
 fonts/files/

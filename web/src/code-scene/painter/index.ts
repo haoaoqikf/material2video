@@ -10,6 +10,7 @@
  */
 export {Painter, type Mark, type Point, type ShapeOptions, type TextOptions, type GroupOptions}
   from './frame';
+export {cameraAt, project, type CameraEasing, type CameraKey, type CameraState} from './camera';
 export {compose, type BloomOptions, type ComposeOptions} from './bloom';
 export {MeasureProxy, reviewState, type ReviewState} from './measure-proxy';
 export {PainterCanvas, type PainterCanvasProps, type PainterFrame} from './usePainter';
