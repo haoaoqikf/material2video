@@ -11,6 +11,9 @@ from .assets import REPOSITORY_ROOT
 from .errors import M2VError
 
 STYLES_ROOT = REPOSITORY_ROOT / "styles"
+# 保留目录：存放风格示例，不是风格包。风格包的指纹覆盖包内**所有**文件，示例若放进
+# `styles/<id>/` 内，示例改动就会让所有选了该风格的作品准备失效，因此单列一层。
+RESERVED_DIRECTORIES = frozenset({"examples"})
 _ID = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 _VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 ASSET_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".woff2", ".ttf", ".otf"}
@@ -49,6 +52,8 @@ def _file(root: Path, value: Any) -> Path:
 def load_style(style_id: str) -> dict:
     if not isinstance(style_id, str) or not _ID.fullmatch(style_id):
         raise M2VError("风格 id 必须是 1 至 63 位小写字母、数字或连字符")
+    if style_id in RESERVED_DIRECTORIES:
+        raise M2VError(f"{style_id} 是保留目录，不是风格包")
     base = STYLES_ROOT.resolve()
     root = (base / style_id).resolve()
     if root.parent != base or not (root / "style.json").is_file():
@@ -119,7 +124,7 @@ def list_styles() -> list[dict]:
         return []
     result = []
     for entry in sorted(STYLES_ROOT.iterdir()):
-        if entry.is_dir():
+        if entry.is_dir() and entry.name not in RESERVED_DIRECTORIES:
             package = load_style(entry.name)
             result.append({key: package["manifest"][key] for key in ("id", "version", "description", "types", "frames")})
     return result

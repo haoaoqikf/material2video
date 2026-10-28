@@ -1,0 +1,253 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "鸽子的迷信",
+  "input": {
+    "kind": "topic",
+    "topic": "斯金纳 1948 年鸽子迷信实验：食物按时间到来，鸽子却重复喂食前碰巧做的动作"
+  },
+  "targetSeconds": 33,
+  "scenes": [
+    {
+      "id": "box",
+      "template": "code",
+      "keywords": [
+        "斯金纳",
+        "鸽子",
+        "箱子"
+      ],
+      "durationFrames": 120,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "box",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "一只饿着的鸽子被放进箱子里"
+          },
+          "clock": {
+            "startSeconds": 0
+          },
+          "gauge": {
+            "value": 36,
+            "startValue": 30,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 114,
+              "text": "1948 年，一只饿着的鸽子被放进箱子"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "feeder",
+      "template": "code",
+      "keywords": [
+        "食槽",
+        "间隔",
+        "计时器"
+      ],
+      "durationFrames": 150,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "feeder",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "食槽定时打开，与它做什么无关"
+          },
+          "clock": {
+            "startSeconds": 4
+          },
+          "gauge": {
+            "value": 34,
+            "startValue": 36,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 14,
+              "endFrame": 142,
+              "text": "墙上的食槽，每 15 秒打开一次"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wander",
+      "template": "code",
+      "keywords": [
+        "寻找食物",
+        "走动",
+        "转圈"
+      ],
+      "durationFrames": 198,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "wander",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "它只是饿，并不知道时间表"
+          },
+          "clock": {
+            "startSeconds": 9
+          },
+          "gauge": {
+            "value": 58,
+            "startValue": 34,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 186,
+              "text": "鸽子不知道。它只是饿，到处找吃的"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "coincide",
+      "template": "code",
+      "keywords": [
+        "食物掉下",
+        "碰巧",
+        "转圈"
+      ],
+      "durationFrames": 108,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "coincide",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "食物落下时，它正好转过身"
+          },
+          "clock": {
+            "startSeconds": 15.6
+          },
+          "gauge": {
+            "value": 74,
+            "startValue": 58,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 100,
+              "text": "食物掉下来那一刻，它碰巧在转圈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "repeat",
+      "template": "code",
+      "keywords": [
+        "重复动作",
+        "迷信",
+        "强化"
+      ],
+      "durationFrames": 219,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "repeat",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "于是它又转了一圈"
+          },
+          "clock": {
+            "startSeconds": 19.2
+          },
+          "gauge": {
+            "value": 118,
+            "startValue": 74,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 96,
+              "text": "于是，它又转了一圈"
+            },
+            {
+              "startFrame": 112,
+              "endFrame": 210,
+              "text": "食物是按时间来的，不是因为它转"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "again",
+      "template": "code",
+      "keywords": [
+        "第二次喂食",
+        "固化",
+        "迷信行为"
+      ],
+      "durationFrames": 195,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/pigeon.tsx",
+        "props": {
+          "chapter": {
+            "id": "again",
+            "year": "1948",
+            "place": "实验室",
+            "topLine": "它越转越快"
+          },
+          "clock": {
+            "startSeconds": 26.5
+          },
+          "gauge": {
+            "value": 142,
+            "startValue": 118,
+            "object": "鸽子"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 78,
+              "text": "再转一圈"
+            },
+            {
+              "startFrame": 90,
+              "endFrame": 186,
+              "text": "15 秒到了，食物又来了"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

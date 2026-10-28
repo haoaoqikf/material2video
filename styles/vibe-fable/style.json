@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "vibe-fable",
+  "version": "1.0.0",
+  "description": "B 寓言：代码画的扁平插画、三层视差、左上「本能读数」仪表与规则卡，适合用动物或生活场景讲心理与行为机制。",
+  "types": ["general"],
+  "frames": [{"width": 1920, "height": 1080}],
+  "requires": {"narration": "none"},
+  "guide": "GUIDE.md",
+  "tokens": "tokens.json",
+  "components": {
+    "kit": "components/kit.tsx",
+    "fable-stage": "components/fable-stage.tsx",
+    "parallax-band": "components/parallax-band.tsx",
+    "instinct-gauge": "components/instinct-gauge.tsx",
+    "scene-note": "components/scene-note.tsx",
+    "top-line": "components/top-line.tsx",
+    "counter-row": "components/counter-row.tsx",
+    "callout": "components/callout.tsx",
+    "rule-card": "components/rule-card.tsx",
+    "title-fable": "components/title-fable.tsx",
+    "screen-subtitle": "components/screen-subtitle.tsx"
+  }
+}

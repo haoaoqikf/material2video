@@ -1,6 +1,6 @@
 # vibe-knowledge-film 制作指引
 
-> 状态：C 夜曲已转成正式风格包 `styles/vibe-night`（2026-10-27）；B 寓言仍为临时登记、只读来源。
+> 状态：C 夜曲与 B 寓言已分别转成正式风格包 `styles/vibe-night`（2026-10-27）与 `styles/vibe-fable`（2026-10-28）。
 > 来源、许可与可用范围以[外部参考项目登记](external-projects.md)为准。
 > 本文只说明如何查阅与转译，不改变制作阶段、评审职责或验收条件。
 
@@ -67,9 +67,9 @@
 | 视频类型 | 仅 `general`；外部项目没有其他类型。 |
 | 画幅 | 外部只做 1920×1080、30fps；横屏作品可直接对应。竖屏作品必须按[参考风格契约](reference-style.md)的画幅转译规则重新安置主体与文字。 |
 | 字幕 | 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）优先；外部字号、基线、逐字动效只作指导值，不覆盖共享层。无旁白作品可由场景在 `subtitleSafeArea` 内自绘屏幕字幕，按 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定) 执行。 |
-| 外观采纳 | C 夜曲可直接选择正式风格包 `vibe-night`；仍须按 [参考风格契约](reference-style.md) 的 L1/L2/L3 与八项指标写入作品 `outputs/style-reference.md`，并在 `DESIGN.md` 记录来源项目、固定 commit、采用世界与不借清单。B 寓言尚未安装，只能按指导值转译。 |
+| 外观采纳 | C 夜曲选 `style.id: "vibe-night"`，B 寓言选 `style.id: "vibe-fable"`；仍须按 [参考风格契约](reference-style.md) 的 L1/L2/L3 与八项指标写入作品 `outputs/style-reference.md`，并在 `DESIGN.md` 记录来源项目、固定 commit、采用世界与不借清单。 |
 | 只借方法 | 不采用外观时，在 `DESIGN.md` 标注「仅方法，不采用外观」，不要只写「参考了 vibe 风格」。 |
-| 能力边界 | 不把外部 Canvas 引擎、字体或组件当作本项目组件；C 夜曲使用 `styles/vibe-night`，B 寓言未并入前 `project.json` 不得写 `style.id`。 |
+| 能力边界 | 不把外部 Canvas 引擎、字体或组件当作本项目组件；两套外观分别使用 `styles/vibe-night` 与 `styles/vibe-fable`，不得写指向外部登记的 `style.id`。 |
 
 ## 不借清单
 
@@ -92,7 +92,7 @@
 
 ## 未来合并
 
-C 夜曲已转成正式风格包，组件以 TSX 重写并随包登记宋体资产；B 寓言仍未安装。B 寓言需要时
-按[风格接入契约](style-pack.md)另建 `styles/vibe-fable` 并评估角色、视差与仪表组件；
-涉及新风格包、组件或契约变化时另走 OpenSpec 评估。B 寓言合并前，`project.json` 不得写指向
-本登记的 `style.id`；C 夜曲作品写 `style.id: "vibe-night"`。
+两套外观都已转成正式风格包：C 夜曲为 `styles/vibe-night`，B 寓言为 `styles/vibe-fable`；
+组件以 TSX 重写，夜曲随包登记宋体资产，寓言复用宿主已注册的无衬线字体。涉及新风格包、
+新组件或契约变化时另走 OpenSpec 评估。作品选择外观写 `style.id: "vibe-night"` 或
+`style.id: "vibe-fable"`，不写指向本登记的 ID。

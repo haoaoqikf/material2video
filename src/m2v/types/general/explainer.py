@@ -134,6 +134,12 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
                 start, end = subtitle.get("startFrame"), subtitle.get("endFrame")
                 if type(start) is not int or type(end) is not int or start < 0 or end <= start:
                     fail(subtitle_path, "startFrame/endFrame 必须为 startFrame < endFrame 的非负整数")
+                # 显式声明时长的幕，屏幕字幕窗口必须落在本幕内；未声明时长的幕由旁白/留白决定，
+                # 权威帧长要到 prepare 才确定，这里不做未经验证的推断。
+                scene_duration = scene.get("durationFrames")
+                if type(scene_duration) is int and end > scene_duration:
+                    fail(subtitle_path,
+                         f"屏幕字幕窗口 {end} 超出本幕时长 {scene_duration}")
                 text(subtitle.get("text"), subtitle_path + ".text")
         validate_entry(root, content.get("entry"), props)
         shots = cinematic.validate_shots(props, path + ".content.props", fps=fps)

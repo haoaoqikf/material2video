@@ -17,7 +17,7 @@
 | 字段 | 含义 |
 |---|---|
 | `id` | 稳定标识，与项目指引文件名一致 |
-| `status` | `temporary` 为临时登记，未并入；C 夜曲已转成正式风格包，B 寓言仍未并入 |
+| `status` | `temporary` 指项目登记本身；其中两套外观 C 夜曲与 B 寓言均已转成正式风格包 |
 | `localPath` | 本机路径，仅作定位提示；其他机器按上游与固定 commit 获取 |
 | `upstream` / `pinnedCommit` | 来源仓库与核验过的提交 |
 | `verifiedAt` | 最近一次核对来源、许可与路径的日期 |
@@ -34,7 +34,7 @@
 |---|---|
 | `id` | `vibe-knowledge-film` |
 | 显示名 | vibe-knowledge-film（抖音「Vibe 知识大赏」式无旁白知识短片） |
-| `status` | `temporary`：C 夜曲已作为正式风格包 `styles/vibe-night` 落地（2026-10-27）；B 寓言仍未并入 |
+| `status` | `temporary`：C 夜曲已作为 `styles/vibe-night` 落地（2026-10-27），B 寓言已作为 `styles/vibe-fable` 落地（2026-10-28） |
 | `localPath` | `C:\D_Merged_From_D\project\third-party\vibe-knowledge-film`（仅本机） |
 | `upstream` | `https://github.com/HeyChengC/vibe-knowledge-film.git` |
 | `pinnedCommit` | `62d51508aad00003dc6209afa80c4b5dc540de59`（2026-10-13） |
@@ -54,7 +54,7 @@
 | B 寓言 | `references/worlds.md` 的「B 寓言」、`references/visual-grammar.md`、`engine/vk-kit.js` 的 `PAL.flat`/`SUB.flat` | 心理、行为机制，从动物或生活场景讲到「你该怎么办」 | 代码画的扁平插画、三层视差、左上「本能读数」仪表、暖色场景盘、角色与规则卡。字幕 48px、字距 0.07、基线 89.4%、逐字亮起仅作指导 |
 
 这些数值是**转译后的指导值**。C 夜曲已转成可安装的正式风格包 `styles/vibe-night`，
-运行时以包内 `tokens.json`、组件与 `GUIDE.md` 为准；B 寓言仍只是指导值，未安装为资产。
+运行时以包内 `tokens.json`、组件与 `GUIDE.md` 为准；两套均已安装为正式风格包，本表数值只作来源对照。
 外部字幕外观与 material2video 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）
 不兼容；共享层优先，不得覆盖。无旁白作品可由场景自绘屏幕字幕，约定见
 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定)。
@@ -98,9 +98,10 @@ GIF/JPG 只作分析：不复制进本仓库，不作为素材或风格包资产
 #### 后续合并
 
 - C 夜曲已按[风格接入契约](style-pack.md)转成 `styles/vibe-night`，组件以 TSX 重写并随包登记宋体资产。
-- B 寓言尚未转成 `styles/vibe-fable`；需要时另行评估组件、角色与视差实现，不因本登记自动扩大范围。
-- 共享字幕层仍以 `web/src/frames.json` 为准，不复制外部字幕外观；无旁白屏幕字幕按 C 夜曲 GUIDE 的约定由作品自绘。
-- B 寓言未并入前，`project.json` 不得写指向外部登记的 `style.id`；C 夜曲作品应写 `style.id: "vibe-night"`。
+- B 寓言已转成 `styles/vibe-fable`：扁平插画舞台、三层视差、本能读数仪表、对照计数、引线标注、规则卡与逐字亮起的屏幕字幕以 TSX 重写；不随包携带字体，使用宿主已注册的 `M2V Sans`。
+- 两套风格各配一个示例：`styles/examples/vibe-night/fold/` 与 `styles/examples/vibe-fable/pigeon/`，按本页登记的 `fold_C`、`pigeon_B` 选题与分镜重写，实现与媒体自绘。示例放在保留目录 `styles/examples/`，不进包内（否则改示例会让所有使用该风格的作品准备失效），也不占用 `examples/` 的三个固定名额。
+- 共享字幕层仍以 `web/src/frames.json` 为准，不复制外部字幕外观；无旁白屏幕字幕按各包 GUIDE 的约定由作品自绘。
+- 作品选择风格应写 `style.id: "vibe-night"` 或 `style.id: "vibe-fable"`；指向外部登记的 ID 不被接受。
 - 创建新风格包、组件或改变契约时另走 OpenSpec 评估。
 
 #### 维护

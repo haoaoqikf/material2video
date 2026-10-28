@@ -1,0 +1,295 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "折叠：一颗珠子改掉一个细胞",
+  "input": {
+    "kind": "topic",
+    "topic": "血红蛋白第 6 位氨基酸改变如何使红细胞变成镰刀形"
+  },
+  "targetSeconds": 33,
+  "scenes": [
+    {
+      "id": "chain",
+      "template": "code",
+      "keywords": [
+        "血红蛋白",
+        "珠子",
+        "氨基酸"
+      ],
+      "durationFrames": 132,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "chain",
+            "index": "01",
+            "character": "珠",
+            "title": "一串珠子",
+            "caption": "血红蛋白 β 链"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 14,
+              "endFrame": 126,
+              "text": "你的血里，有一串珠子"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "mutation",
+      "template": "code",
+      "keywords": [
+        "镰状细胞",
+        "突变",
+        "谷氨酸"
+      ],
+      "durationFrames": 120,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "mutation",
+            "index": "02",
+            "character": "错",
+            "title": "第 6 颗",
+            "caption": "第 6 位：谷氨酸 E → 缬氨酸 V"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 16,
+              "endFrame": 114,
+              "text": "第 6 颗换成了别的一种"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sickle",
+      "template": "code",
+      "keywords": [
+        "红细胞",
+        "镰刀形",
+        "细胞形状"
+      ],
+      "durationFrames": 126,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "sickle",
+            "index": "03",
+            "character": "形",
+            "title": "弯下去",
+            "caption": "红细胞 → 镰状细胞"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 16,
+              "endFrame": 118,
+              "text": "整颗细胞跟着弯了下去"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "question",
+      "template": "code",
+      "keywords": [
+        "血红蛋白",
+        "氧气",
+        "提问"
+      ],
+      "durationFrames": 72,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "question",
+            "index": "04",
+            "character": "问",
+            "title": "凭什么",
+            "caption": "提问：只上字"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 66,
+              "text": "一颗珠子，怎么能做到？"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fold",
+      "template": "code",
+      "keywords": [
+        "蛋白质折叠",
+        "氧气",
+        "结合位点"
+      ],
+      "durationFrames": 126,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "fold",
+            "index": "05",
+            "character": "折",
+            "title": "先折叠",
+            "caption": "折叠后才形成氧结合位点"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 16,
+              "endFrame": 118,
+              "text": "它先折起来，才抓得住氧气"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sticky",
+      "template": "code",
+      "keywords": [
+        "黏点",
+        "血红蛋白",
+        "表面"
+      ],
+      "durationFrames": 108,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "sticky",
+            "index": "06",
+            "character": "黏",
+            "title": "露出来",
+            "caption": "放下氧气以后 · 黏点"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 14,
+              "endFrame": 100,
+              "text": "错的那颗露在外面，会粘住下一个"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rod",
+      "template": "code",
+      "keywords": [
+        "多聚",
+        "长杆",
+        "脱氧"
+      ],
+      "durationFrames": 96,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "rod",
+            "index": "07",
+            "character": "连",
+            "title": "连成杆",
+            "caption": "脱氧状态下的血红蛋白多聚"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 88,
+              "text": "一个接一个，连成了长杆"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "push",
+      "template": "code",
+      "keywords": [
+        "镰状细胞",
+        "长杆",
+        "细胞膜"
+      ],
+      "durationFrames": 96,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "push",
+            "index": "08",
+            "character": "顶",
+            "title": "从里面撑",
+            "caption": "一个红细胞里，约有 2.7 亿个血红蛋白"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 88,
+              "text": "长杆从里面把细胞撑弯"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "closing",
+      "template": "code",
+      "keywords": [
+        "镰状细胞病",
+        "Pauling",
+        "Ingram"
+      ],
+      "durationFrames": 114,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "closing",
+            "index": "09",
+            "character": "结",
+            "title": "一颗珠子",
+            "caption": "L. Pauling 等 1949 · V. Ingram 1957"
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 108,
+              "text": "一颗珠子，改掉了一个细胞的形状"
+            }
+          ],
+          "credit": "L. Pauling 等 1949 · V. Ingram 1957"
+        }
+      }
+    }
+  ]
+}
