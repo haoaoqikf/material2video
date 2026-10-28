@@ -11,7 +11,7 @@ from m2v.core.errors import M2VError
 from m2v.engine import audio
 from m2v.engine.sound import asset_digest
 from m2v.core.validate import integer
-from . import sound_library
+from . import sound_library, scene_events
 
 BUILTINS = ("ding", "ding-dong", "click", "transition")
 
@@ -32,8 +32,9 @@ def validate(data: dict, root: Path) -> None:
             number(music.get(key, 500), 0, 60000, "music." + key)
     effects = track.get("effects", [])
     if not isinstance(effects, list) or len(effects) > 128: raise M2VError("effects 必须为最多 128 项的数组")
+    event_tables = {sid: scene_events.validate(scene) for sid, scene in scenes.items()}
     for effect in effects:
-        obj(effect, "effect", {"builtin", "sourceRef", "assetId", "sceneId", "segmentId", "offsetMs", "offsetFrames", "gainDb",
+        obj(effect, "effect", {"builtin", "sourceRef", "assetId", "sceneId", "segmentId", "eventId", "offsetMs", "offsetFrames", "gainDb",
                                "trimStartMs", "durationMs", "loop", "fadeInMs", "fadeOutMs", "pan"})
         if sum(key in effect for key in ("builtin", "sourceRef", "assetId")) != 1:
             raise M2VError("音效 builtin/sourceRef/assetId 必须三选一（原 builtin/sourceRef 二选一）")
@@ -45,6 +46,7 @@ def validate(data: dict, root: Path) -> None:
         else: local_file(root, effect["sourceRef"], "effect.sourceRef")
         scene = scenes.get(effect.get("sceneId")) if isinstance(effect.get("sceneId"), str) else None
         if scene is None: raise M2VError("音效引用未知 sceneId")
+        scene_events.validate_reference(effect, event_tables[scene["id"]])
         if "segmentId" in effect and effect["segmentId"] not in [s["id"] for s in scene.get("narrationSegments", [])]:
             raise M2VError("音效引用未知 segmentId")
         offset = effect.get("offsetMs", 0)
@@ -132,7 +134,7 @@ def synthesize(name: str, target: Path) -> None:
 
 
 def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
-        cues: list[dict], duration: float, work: Path, inputs: dict) -> None:
+        cues: list[dict], duration: float, work: Path, inputs: dict, *, effect_start_frames: list[float] | None = None) -> None:
     from .explainer import local_file
     fps = general_fps({}, source)
     track = source.get("soundtrack", {})
@@ -154,14 +156,15 @@ def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
         inputs["file:" + file.relative_to(root).as_posix()] = asset_digest(file)
         music = (file, settings)
     effects = []
-    scenes = {scene["id"]: scene for scene in compiled}
+    starts = (effect_start_frames if effect_start_frames is not None else
+              scene_events.effect_starts(track.get("effects", []), compiled, fps, total_frames))
+    if len(starts) != len(track.get("effects", [])):
+        raise M2VError("音效解析起点数量与声明不一致")
     library, library_inputs = sound_library.resolve(root)
     inputs.update(library_inputs)
     local_cache = {}
     for index, effect in enumerate(track.get("effects", [])):
-        scene = scenes[effect["sceneId"]]
-        start = scene["segmentWindows"][effect["segmentId"]]["startFrame"] if "segmentId" in effect else scene["startFrame"]
-        start = start / fps + (effect["offsetFrames"] / fps if "offsetFrames" in effect else effect.get("offsetMs", 0) / 1000)
+        start = starts[index] / fps
         if not 0 <= start < duration: raise M2VError(f"音效 {index} 起点越界：{start:.3f}s")
         if "builtin" in effect:
             file = work / f"builtin-{index}.wav"

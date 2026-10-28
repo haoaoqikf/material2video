@@ -28,6 +28,8 @@ general 制作采用「方案确定 → 制作与迭代 → 最终验收」三�
 
 ## 快速开始
 
+general 可声明幕内事件，由动画、计数、视觉强调和音效共同引用同一帧；prepare 输出绑定准备指纹的 `outputs/events.json`，改事件后重新准备。声明见[幕内事件](.agents/skills/material2video/references/storyboard-schema.md#幕内事件)，SDK 用法见[事件查询](.agents/skills/material2video/references/code-scene-runtime.md#幕内事件查询)。
+
 ```powershell
 uv sync
 uv run python fonts/fetch.py

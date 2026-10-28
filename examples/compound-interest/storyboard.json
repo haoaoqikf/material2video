@@ -26,7 +26,49 @@
         "title": "复利",
         "entry": "scenes/compound.tsx",
         "props": {}
-      }
+      },
+      "events": [
+        {
+          "id": "drop-1",
+          "frame": 30
+        },
+        {
+          "id": "drop-2",
+          "frame": 33
+        },
+        {
+          "id": "drop-3",
+          "frame": 35
+        },
+        {
+          "id": "drop-4",
+          "frame": 38
+        },
+        {
+          "id": "drop-5",
+          "frame": 41
+        },
+        {
+          "id": "drop-6",
+          "frame": 44
+        },
+        {
+          "id": "drop-7",
+          "frame": 46
+        },
+        {
+          "id": "drop-8",
+          "frame": 49
+        },
+        {
+          "id": "drop-9",
+          "frame": 52
+        },
+        {
+          "id": "drop-10",
+          "frame": 54
+        }
+      ]
     }
   ],
   "soundtrack": {
@@ -41,62 +83,62 @@
       {
         "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
-        "offsetFrames": 30,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-1"
       },
       {
         "sourceRef": "assets/media/drop2.wav",
         "sceneId": "compound",
-        "offsetFrames": 33,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-2"
       },
       {
         "sourceRef": "assets/media/drop3.wav",
         "sceneId": "compound",
-        "offsetFrames": 35,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-3"
       },
       {
         "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
-        "offsetFrames": 38,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-4"
       },
       {
         "sourceRef": "assets/media/drop2.wav",
         "sceneId": "compound",
-        "offsetFrames": 41,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-5"
       },
       {
         "sourceRef": "assets/media/drop3.wav",
         "sceneId": "compound",
-        "offsetFrames": 44,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-6"
       },
       {
         "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
-        "offsetFrames": 46,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-7"
       },
       {
         "sourceRef": "assets/media/drop2.wav",
         "sceneId": "compound",
-        "offsetFrames": 49,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-8"
       },
       {
         "sourceRef": "assets/media/drop3.wav",
         "sceneId": "compound",
-        "offsetFrames": 52,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-9"
       },
       {
         "sourceRef": "assets/media/drop1.wav",
         "sceneId": "compound",
-        "offsetFrames": 54,
-        "gainDb": -4
+        "gainDb": -4,
+        "eventId": "drop-10"
       },
       {
         "sourceRef": "assets/media/slide.wav",

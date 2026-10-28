@@ -39,9 +39,9 @@ def implementation_digest() -> str:
     from m2v.core.fingerprints import fingerprint, module_files
     from m2v.engine import render_pipeline
     from . import adapter, explainer_render
-    from . import soundtrack, media_assets, code_scenes
+    from . import soundtrack, media_assets, code_scenes, scene_events
     modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
-               rhythm_engine, soundtrack, media_assets, code_scenes)
+               rhythm_engine, soundtrack, media_assets, code_scenes, scene_events)
     files = [file for module in modules for file in module_files(module)] + [Path(__file__)]
     keys = {file.relative_to(REPOSITORY_ROOT).as_posix(): digest(file) for file in files}
     return fingerprint({**keys, **code_scenes.implementation_inputs()})
@@ -169,9 +169,13 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             if scene_inputs.get("style") != inputs.get("style"):
                 raise M2VError("风格在准备过程中变化；请重新 prepare")
             inputs.update(scene_inputs)
+    from . import scene_events
+    resolved_events = scene_events.resolve(scenes)
+    effect_start_frames = scene_events.effect_starts(source.get("soundtrack", {}).get("effects", []), scenes, fps, cursor)
     props = copy.deepcopy(source)
     props.update(width=size[0], height=size[1], subtitle=frame["subtitle"],
-                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor)
+                 compiledScenes=scenes, subtitleCues=cues, durationInFrames=cursor,
+                 resolvedEvents=resolved_events, effectStartFrames=effect_start_frames)
     del props["scenes"]
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)
@@ -179,7 +183,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         work = Path(temporary)
         raw, target = work / "raw.wav", work / "audio.wav"
         audio.concatenate(parts, fps, raw)
-        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ fps, work, inputs)
+        soundtrack.mix(root, source, scenes, raw, target, cues, cursor/ fps, work, inputs,
+                       effect_start_frames=effect_start_frames)
         mastered = work / "mastered.wav"
         audio.master(target, mastered, integrated=-14.0, true_peak=-1.0)
         target = mastered
@@ -195,4 +200,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             "startFrame": 0, "durationInFrames": cursor, "sha256": sha}], "cacheHits": hits})
     # 阅读速度只报告不阻断，因此放在准备产物写盘之后：报告写不成也不该让准备失败。
     reading_pace.write(root, prepared)
+    from m2v.core.project import _write_json
+    _write_json(root / "outputs/events.json", {"schemaVersion": 1, "fps": fps,
+        "preparedFingerprint": prepared["preparedFingerprint"], "events": resolved_events,
+        "effects": [{"index": index, "sceneId": effect["sceneId"],
+                     **({"eventId": effect["eventId"]} if "eventId" in effect else {}), "globalFrame": start}
+                    for index, (effect, start) in enumerate(zip(source.get("soundtrack", {}).get("effects", []), effect_start_frames))]})
     return prepared

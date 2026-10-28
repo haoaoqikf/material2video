@@ -42,6 +42,22 @@
 
 `frame` 从 `0` 开始，最大值是 `durationInFrames - 1`。
 
+## 幕内事件查询
+
+general 场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用 SDK `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
+
+```tsx
+const events = useMemo(() => createSceneEvents(config.eventFrames), [config.eventFrames]);
+const frame = clock.elapsedSeconds * config.fps;
+const approach = events.progress('contact', frame, 18, -18); // 接触前18帧开始，接触时完成
+const count = frame >= events.frame('contact') ? 1 : 0;
+const emphasis = frame >= events.frame('contact') ? 1 - events.progress('contact', frame, 6) : 0;
+```
+
+从 `react` 导入 `useMemo`，从 `m2v/code-scene` 导入 `createSceneEvents`。`frame(id)` 对未声明事件明确抛错；`progress(id,currentFrame,durationFrames,offsetFrames=0)` 将结果夹到0–1，当前帧、持续帧和偏移须有限，持续帧须大于0。允许分数帧，纯求值不依赖上次调用，适合子帧采集。零时长状态直接比较事件帧。
+
+事件表是初始化快照，建议每份配置只创建一次。事件只规定时刻，不触发回调、不自动模拟碰撞、不重排字幕与旁白。录制页仍顺序逐帧推进；纯事件函数可乱序求值不表示录制页新增随机 seek 能力。声明与音效定位见[幕内事件](storyboard-schema.md#幕内事件)。
+
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。

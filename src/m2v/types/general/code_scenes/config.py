@@ -74,6 +74,8 @@ def scene_config(scene: dict, frame: dict, media: dict, *, fps: int = GENERAL_DE
               "segmentWindows": {key: {name: value - scene["startFrame"] for name, value in window.items()}
                                  for key, window in scene["segmentWindows"].items()},
               "media": media}
+    if scene.get("eventFrames"):
+        config["eventFrames"] = scene["eventFrames"]
     claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]
     if any(claims):
         config["claims"] = claims

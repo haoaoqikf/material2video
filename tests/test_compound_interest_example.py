@@ -24,7 +24,9 @@ def test_film_is_870_frames_with_ambient_bed_and_events():
     assert board['soundtrack']['music'] == BED
     effects = board['soundtrack']['effects']
     assert len(effects) == 25
-    offsets = [effect['offsetFrames'] for effect in effects]
+    event_frames = {event['id']: event['frame'] for event in scene['events']}
+    offsets = [event_frames[effect['eventId']] + effect.get('offsetFrames', 0)
+               if 'eventId' in effect else effect['offsetFrames'] for effect in effects]
     assert offsets == sorted(offsets)
     assert offsets[:10] == DROPS and offsets[-1] == 810
     assert all(effect['gainDb'] <= 0 for effect in effects)

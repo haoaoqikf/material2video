@@ -200,12 +200,14 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
     if capture_scale not in (1, 2):
         raise M2VError("原生采集像素密度必须为 1 或 2")
     shots = (config.get("props") or {}).get("shots") or []
-    config_text = json.dumps(config, ensure_ascii=True).replace("<", "\\u003c")
+    # 使用 JSON.parse 保留 __proto__ 等合法字典键；对象字面量会将其当成原型设置。
+    # 外层字符串继续转义 <，避免作品字符串中的 </script> 提前终止脚本。
+    config_text = json.dumps(json.dumps(config, ensure_ascii=True)).replace("<", "\\u003c")
     (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8"></head>'
         # 页面底色是编码兜底而不是作品主题：作品必须在 ready 之前自己画满不透明背景。
         '<body style="margin:0;overflow:hidden;background:#000">'
         f'<div id="root" style="width:{width}px;height:{height}px;overflow:hidden"></div>'
-        f'<script>window.__M2V_CODE_CONFIG__={config_text}</script><script src="scene.js"></script></body></html>',
+        f'<script>window.__M2V_CODE_CONFIG__=JSON.parse({config_text})</script><script src="scene.js"></script></body></html>',
         encoding="utf-8")
     # 只开放已登记媒体与批准字体，不暴露作品配置、源文、导入记录或 assets 下的其他文件。
     mounts = {"/fonts": WEB / "public/fonts"}

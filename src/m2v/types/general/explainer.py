@@ -68,11 +68,13 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
         path = f"scenes[{index}]"
         obj(scene, path, {"id", "template", "content", "narrationSegments", "keywords",
                           "durationFrames", "transition", "transitionFrames", "speech",
-                          "leadInFrames", "tailFrames", "readingHoldFrames"})
+                          "leadInFrames", "tailFrames", "readingHoldFrames", "events"})
         sid = text(scene.get("id"), f"{path}.id")
         if sid in all_ids:
             fail(path, f"重复 ID：{sid}")
         all_ids.add(sid)
+        from . import scene_events
+        scene_events.validate(scene, scene.get("durationFrames") if type(scene.get("durationFrames")) is int else None)
         if scene.get("template") != TEMPLATE:
             fail(path, f"template 必须是 {TEMPLATE}：通用画面由作品代码决定，不再有受控模板")
         if scene.get("transition", "cut") not in TRANSITIONS or (index == 0 and scene.get("transition", "cut") != "cut"):

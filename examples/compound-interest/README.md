@@ -6,6 +6,8 @@
 
 ## 重建
 
+前十次圆片落点声明在 `storyboard.json` 的 `scenes[0].events`；场景和对应音效共用 `drop-1`～`drop-10`。修改一项事件帧后重新 prepare，即可共同移动该次落点与声音；落点按整数帧量化。此改动需重新生成与复核，历史成片验证不自动覆盖当前材料。
+
 后续重制按[素材选择规范](../../.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)判断：本片的数量、收益归队与再投入过程适合代码精确合成，无需为视频优先额外寻找外部素材；如新增真实外部画面，再执行视频优先、图片补位。本说明不改变现有作品与评审状态。
 
 ```powershell

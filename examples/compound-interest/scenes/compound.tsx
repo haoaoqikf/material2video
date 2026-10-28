@@ -1,5 +1,5 @@
-import {useEffect} from 'react';
-import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {useEffect, useMemo} from 'react';
+import {createSceneEvents, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import {
   FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, GOLD, MUTED, OFF_WHITE,
   columnPositions, hillPositions, mixColor, shelfPositions, withdrawBlockPositions,
@@ -79,12 +79,10 @@ function cameraAt(t: number): Cam {
 }
 
 const arrive = (t: number, at: number, duration = .5) => ease((t - at) / duration);
-const dropAt = (i: number) => 1.0 + i * .09;
-
-function StartColumns({t}: {t: number}) {
+function StartColumns({t, events, fps}: {t: number; events: ReturnType<typeof createSceneEvents>; fps: number}) {
   return <>
     {[LEFT_X, RIGHT_X].map(x => columnPositions(x, BASE_Y, 10, PITCH).map((p, i) => {
-      const land = dropAt(i);
+      const land = events.frame(`drop-${i + 1}`) / fps;
       const p1 = clamp((t - (land - .45)) / .45);
       const bounce = t > land ? Math.sin((t - land) * 17) * 7 * Math.exp(-(t - land) * 7) : 0;
       return <Disc key={`${x}-${i}`} x={p.x} y={-60 + (p.y + 60) * ease(p1) + bounce}
@@ -297,6 +295,7 @@ function TextLayer({t}: {t: number}) {
 
 export default function Compound(config: CodeSceneProps) {
   const clock = useSceneContext();
+  const events = useMemo(() => createSceneEvents(config.eventFrames), [config.eventFrames]);
   useEffect(() => {clock.ready();}, []);
   const t = clock.elapsedSeconds;
   const hideText = Boolean((config.props as {hideText?: boolean} | undefined)?.hideText);
@@ -313,7 +312,7 @@ export default function Compound(config: CodeSceneProps) {
       </defs>
       <rect width={1920} height={1080} fill={BG}/>
       <g transform={`translate(${tx} ${ty}) scale(${cam.s})`}>
-        {t < 3.5 ? <StartColumns t={t}/> : t < 24.8 ? <>
+        {t < 3.5 ? <StartColumns t={t} events={events} fps={config.fps}/> : t < 24.8 ? <>
           <LeftGroup t={t}/>
           <RightColumn t={t}/>
         </> : null}

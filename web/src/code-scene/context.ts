@@ -19,6 +19,8 @@ export type MediaAsset = {
 export type SubtitleSafeArea = {x: number; y: number; width: number; height: number};
 
 export type CodeSceneProps = {
+  /** 当前幕的事件 ID → 幕内整数帧；未声明事件时省略。 */
+  eventFrames?: Readonly<Record<string, number>>;
   props: Record<string, unknown>; fps: number; durationInFrames: number;
   /** 当前录制画幅。作品代码负责铺满整张画布并绘制不透明背景。 */
   width: number;

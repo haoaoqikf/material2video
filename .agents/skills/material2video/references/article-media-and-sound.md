@@ -169,7 +169,8 @@ uv run m2v general sounds audit --project <目录>
 
 | 字段 | 约束与行为 |
 |---|---|
-| `offsetFrames` | −36000～36000整数，相对幕首、按作品实际fps解释；与 `offsetMs`、`segmentId` 互斥，最终起点必须落在全片内 |
+| `offsetFrames` | −36000～36000整数，默认相对幕首、按作品实际fps解释；与 `offsetMs`、`segmentId` 互斥。使用 `eventId` 时相对该事件，偏移后起点须在所属幕内 |
+| `eventId` | 可选，引用 `sceneId` 所属幕的事件；与 `segmentId`、`offsetMs` 互斥，帧偏移默认0。详见[幕内事件](storyboard-schema.md#幕内事件) |
 | `trimStartMs` | 0～600000整数，默认0；必须小于素材时长 |
 | `durationMs` | 1～600000整数，默认播放入点后的剩余素材；不循环时不得超过剩余时长 |
 | `loop` | 布尔值，默认false；为true时必须显式给出 `durationMs`，重复入点之后的素材 |
