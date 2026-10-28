@@ -1,5 +1,6 @@
 """look-dev 的取点与接触表：只验证可判定的部分，渲染本身由真实制作验证。"""
 import subprocess
+from pathlib import Path
 
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
@@ -159,6 +160,86 @@ def test_motion_frames_rejects_bad_windows():
         lookdev.motion_frames(2.0, 1.0, 5, prepared)
     with pytest.raises(M2VError, match="超出成片时长"):
         lookdev.motion_frames(0, 100, 5, prepared)
+
+
+# ---------------------------------------------------------------- 事件取点
+
+def event_prepared():
+    """两个幕、跨幕事件与同帧事件，覆盖选择器解析和窗口校验。"""
+    return {"durationInFrames": 300, "fps": 30, "preparedFingerprint": "test",
+            "props": {"compiledScenes": [
+                {"id": "a", "startFrame": 0, "endFrame": 150, "durationInFrames": 150},
+                {"id": "b", "startFrame": 150, "endFrame": 300, "durationInFrames": 150}],
+                "resolvedEvents": [
+                    {"sceneId": "a", "id": "contact", "frame": 30, "globalFrame": 30},
+                    {"sceneId": "a", "id": "near", "frame": 33, "globalFrame": 33},
+                    {"sceneId": "a", "id": "hit", "frame": 10, "globalFrame": 10},
+                    {"sceneId": "b", "id": "hit", "frame": 20, "globalFrame": 170},
+                    {"sceneId": "b", "id": "reveal", "frame": 40, "globalFrame": 190}]}}
+
+
+def test_event_frames_declare_before_at_after_hold():
+    resolved = lookdev.resolve_event_selectors(
+        event_prepared(), ["a:contact"], before=6, after=6, hold=12)
+    assert resolved["frames"] == [24, 30, 36, 48]
+    assert resolved["labels"] == ["a.contact.b6", "a.contact.at", "a.contact.a6", "a.contact.h12"]
+    event = resolved["events"][0]
+    assert event["sceneId"] == "a" and event["id"] == "contact"
+    assert [(phase["phase"], phase["localFrame"], phase["globalFrame"])
+            for phase in event["phases"]] == [
+                ("before", 24, 24), ("at", 30, 30), ("after", 36, 36), ("hold", 48, 48)]
+
+
+def test_event_frames_use_global_scene_offset():
+    resolved = lookdev.resolve_event_selectors(
+        event_prepared(), ["b:reveal"], before=4, after=4)
+    assert resolved["frames"] == [186, 190, 194]
+    assert resolved["events"][0]["phases"][0]["globalFrame"] == 186
+
+
+def test_event_selector_requires_scene_when_ambiguous():
+    with pytest.raises(M2VError, match="多个幕"):
+        lookdev.resolve_event_selectors(event_prepared(), ["hit"], before=2, after=2)
+    resolved = lookdev.resolve_event_selectors(event_prepared(), ["a:hit"], before=2, after=2)
+    assert resolved["frames"] == [8, 10, 12]
+
+
+def test_event_frames_reject_window_outside_scene():
+    with pytest.raises(M2VError, match="超出本幕范围"):
+        lookdev.resolve_event_selectors(event_prepared(), ["a:contact"], before=31, after=6)
+    with pytest.raises(M2VError, match="超出本幕范围"):
+        lookdev.resolve_event_selectors(event_prepared(), ["a:contact"], before=6, after=130)
+    with pytest.raises(M2VError, match="未找到"):
+        lookdev.resolve_event_selectors(event_prepared(), ["a:missing"], before=6, after=6)
+
+
+def test_event_frames_warn_about_clusters():
+    resolved = lookdev.resolve_event_selectors(
+        event_prepared(), ["a:contact", "a:near"], before=3, after=3)
+    assert resolved["warnings"] and "事件簇" in resolved["warnings"][0]
+    # 两个事件窗口重叠时，同一帧只采一次，标签合并保留来源。
+    assert resolved["frames"] == [27, 30, 33, 36]
+    assert resolved["labels"] == ["a.contact.b3", "a.contact.at.a.near.b3",
+                                  "a.contact.a3.a.near.at", "a.near.a3"]
+
+
+def test_event_mode_requires_before_after_and_is_mutually_exclusive():
+    args = type("Args", (), {"sheet": None, "motion": None, "det": False, "event": ["a:contact"],
+                             "before": None, "after": None, "hold": 0,
+                             "stills": None, "sample_seconds": lookdev.DEFAULT_SAMPLE_SECONDS})()
+    with pytest.raises(M2VError, match="--before 与 --after"):
+        lookdev._reject_conflicting_modes(args)
+    args.before, args.after = 6, 6
+    lookdev._reject_conflicting_modes(args)
+    args.sheet = ["1"]
+    with pytest.raises(M2VError, match="互斥"):
+        lookdev._reject_conflicting_modes(args)
+
+
+def test_event_labels_must_match_frames():
+    prepared = event_prepared()
+    with pytest.raises(M2VError, match="标注数量"):
+        lookdev.preview(Path("."), {}, prepared, mode="event", frames=[24], labels=[])
 
 
 def test_sheet_columns_grows_with_count():

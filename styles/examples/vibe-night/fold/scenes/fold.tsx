@@ -21,6 +21,7 @@ import ChapterMark from 'm2v/style/components/chapter-mark';
 import Dip from 'm2v/style/components/dip';
 import ScreenSubtitle from 'm2v/style/components/screen-subtitle';
 import {loadNightSerif} from 'm2v/style/components/kit';
+import layoutData from './layout.json';
 
 type Chapter = {id: string; index: string; character: string; title: string; caption: string};
 type Subtitle = {startFrame: number; endFrame: number; text: string};
@@ -29,6 +30,11 @@ type Props = {chapter: Chapter; clock: Clock; screenSubtitles: Subtitle[]; credi
 
 type P = InstanceType<typeof painter.Painter>;
 type Vec = [number, number];
+type FoldLayout = {
+  D: number; pitch: number; R: number; knob: number;
+  cavity: Vec; notch: Vec; pts: Vec[];
+};
+const F = layoutData as unknown as FoldLayout;
 
 const WHITE = '#F8F9F8';
 const GOLD = '#F8D893';
@@ -59,7 +65,8 @@ const ROW_Y = [-114, -38, 38, 114];
 const ROW_X = 527.5;
 const CORNER_R = 38;
 const SEQ = 'VHLTPEEKSAVT';
-const KNOB = 5;
+const KNOB = F.knob;
+const PITCH = F.pitch;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const smooth = (value: number) => {const t = clamp01(value); return t * t * (3 - 2 * t);};
@@ -118,32 +125,32 @@ const SERPENTINE: Vec[] = (() => {
 })();
 
 /**
- * 折好的一团：六角格圆盘上由外向内逐环走一圈。
+ * 折好的一团来自 `tools/gen_layout.py`：六角格上一条走遍 146 个格点的路径。
  *
- * 相邻两步始终是格子邻居，折完的珠子仍然一颗挨一颗；由外向内让第 6 颗（索引 5）
- * 留在最外圈——那就是露在表面、会成为黏点的那一颗。最内层留空，正好是抓氧气的窝。
+ * 先保证关系，再谈外观：相邻两颗始终等于 `D`；第 6 颗是右侧凸点（knob），
+ * 左侧留凹口（notch）；中间两个相邻空腔（cavity）放氧分子。接合时
+ * `pitch < 2R`，凸点卡进凹口，两团的格点集合不重合。
+ *
+ * 生成脚本已经断言过；这里在场景加载时再查一遍，避免手工改 `layout.json`
+ * 绕过关系检查。
  */
-const BLOB: Vec[] = (() => {
-  const RING = 7;
-  const cellX = (i: number, j: number) => D * (i + j / 2);
-  const cellY = (j: number) => D * (Math.sqrt(3) / 2) * j;
-  const cells: Vec[] = [];
-  const SIDES: Vec[] = [[-1, 1], [-1, 0], [0, -1], [1, -1], [1, 0], [0, 1]];
-  for (let ring = RING; ring >= 0; ring -= 1) {
-    if (ring === 0) { cells.push([0, 0]); break; }
-    let i = ring, j = 0;
-    for (const [di, dj] of SIDES) {
-      for (let step = 0; step < ring; step += 1) {
-        cells.push([cellX(i, j), cellY(j)]);
-        i += di;
-        j += dj;
-      }
+const BLOB: Vec[] = F.pts;
+const BLOB_RADIUS = F.R;
+(() => {
+  if (F.D !== D) throw new Error('折叠布局的格距与场景不一致');
+  if (BLOB.length !== 146) throw new Error(`折叠布局应有 146 颗珠子，实际 ${BLOB.length}`);
+  if (new Set(BLOB.map(([x, y]) => `${x},${y}`)).size !== BLOB.length) {
+    throw new Error('折叠布局有重复格点');
+  }
+  for (let index = 0; index < BLOB.length - 1; index += 1) {
+    const [x0, y0] = BLOB[index], [x1, y1] = BLOB[index + 1];
+    if (Math.abs(Math.hypot(x1 - x0, y1 - y0) - D) > 0.03) {
+      throw new Error(`折叠布局第 ${index} 与 ${index + 1} 颗不相邻`);
     }
   }
-  return cells.slice(0, 146);
+  if (F.knob !== 5 || KNOB !== 5) throw new Error('折叠布局的 knob 必须是第 6 颗');
+  if (!(F.pitch < 2 * F.R)) throw new Error('折叠布局的接合间距没有形成交错');
 })();
-
-const BLOB_RADIUS = Math.max(...BLOB.map(([x, y]) => Math.hypot(x, y)));
 
 // ---------------------------------------------------------------- 细胞形体
 
@@ -428,7 +435,7 @@ function foldPositions(frame: number): {points: Vec[]; progress: (index: number)
 // ---------------------------------------------------------------- 各幕
 
 function ChainScene({camera, width, height, frame}: SceneProps) {
-  const lit = Math.max(1, Math.round(146 * smooth((frame - 4) / 66)));
+  const lit = Math.max(1, Math.round(BLOB.length * smooth((frame - 4) / 66)));
   const beads = beadAlpha(camera.scale);
   return (
     <Layer camera={camera} width={width} height={height}
@@ -543,7 +550,7 @@ function FoldScene({camera, width, height, frame}: SceneProps) {
   const {points, progress} = foldPositions(frame);
   const folded = smooth((frame - 60) / 28);
   const oxygenIn = smooth((frame - 76) / 32);
-  const pocket: Vec = [-D * 0.5, D * 0.4];
+  const pocket: Vec = F.cavity;
   return (
     <Layer camera={camera} width={width} height={height}
       under={(P) => {
@@ -579,7 +586,7 @@ function StickyScene({camera, width, height, frame}: SceneProps) {
     <Layer camera={camera} width={width} height={height}
       paint={(P) => {
         blobHalo(P, 1);
-        hemePocket(P, -D * 0.5, D * 0.4, 1 - released);
+        hemePocket(P, F.cavity[0], F.cavity[1], 1 - released);
         chainLine(P, BLOB, BEAD_R * 0.17 * camera.scale, blobDepth);
         BLOB.forEach((point, index) => {
           if (index === KNOB) return;
@@ -598,7 +605,7 @@ function StickyScene({camera, width, height, frame}: SceneProps) {
 
 /** 一个粘一个：九团依次接上，越接越快，连成一根长杆。 */
 function RodScene({camera, width, height, frame}: SceneProps) {
-  const PITCH = BLOB_RADIUS * 2 + 6;
+  // 接合中心距来自布局：pitch < 2R，前一团的 knob 正好落进后一团的 notch。
   return (
     <Layer camera={camera} width={width} height={height}
       paint={(P) => {
@@ -622,7 +629,8 @@ function RodScene({camera, width, height, frame}: SceneProps) {
         for (let index = 0; index < 9; index += 1) {
           const flash = (frame - 4 - index * 6) / 14;
           if (flash <= 0 || flash >= 1) continue;
-          P.glow((index - 4) * PITCH, 0, 150, '#FFD0DA', 0.8 * (1 - flash));
+          P.glow((index - 4) * PITCH + BLOB[KNOB][0], BLOB[KNOB][1], 150,
+            '#FFD0DA', 0.8 * (1 - flash));
         }
       }}/>
   );

@@ -53,7 +53,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 音效写 `{"builtin":"click","sceneId":"experiment","eventId":"contact","offsetFrames":0}`，引用本幕事件；`offsetFrames` 可省略为0，事件引用与 `segmentId`、`offsetMs` 互斥。偏移后的起点仍须位于所属幕内，素材播放尾部沿既有全片裁切规则处理。独立音效保留原定位方式。
 
-prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产物 `props.resolvedEvents`（含 `sceneId/id/frame/globalFrame`）；音效实际全片起点保存在 `props.effectStartFrames`，毫秒定位可能产生分数帧。`outputs/events.json` 绑定 `preparedFingerprint` 并列出事件与音效起点。改事件后须重新 prepare，相关录制配置与准备指纹变化。场景使用方式见[事件查询](code-scene-runtime.md#幕内事件查询)。
+prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产物 `props.resolvedEvents`（含 `sceneId/id/frame/globalFrame`）；音效实际全片起点保存在 `props.effectStartFrames`，毫秒定位可能产生分数帧。`outputs/events.json` 绑定 `preparedFingerprint` 并列出事件与音效起点。改事件后须重新 prepare，相关录制配置与准备指纹变化。场景使用方式见[事件查询](code-scene-runtime.md#幕内事件查询)；围绕事件看图用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`，它是预览，不自动绑定检查点或替代 G4 证据。
 
 ### 一镜到底
 

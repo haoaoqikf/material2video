@@ -112,7 +112,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
 
-看图改图用 `m2v lookdev` 的三种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；用法见[视觉与质量工具](.agents/skills/material2video/references/cinematic-video.md)。
+看图改图用 `m2v lookdev` 的四种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性，`--event compound:drop-1 --before 6 --after 6` 按幕内事件取发生前/关键帧/发生后/结果停留。事件模式从当前准备记录解析，窗口由作者用帧声明；事件簇会警告，越界会失败，不会自动绑定检查点。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；用法见[视觉与质量工具](.agents/skills/material2video/references/cinematic-video.md)。
 
 v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需全片粗片与最终成片两次独立调用；有核心风险时增加一轮核心样片。每轮一份覆盖表绑定适用门，不再按检查点重复登记视觉事件或五维设计兑现凭据；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
 

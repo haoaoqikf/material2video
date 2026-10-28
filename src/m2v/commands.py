@@ -69,6 +69,15 @@ def dispatch(args) -> int:
                 options += ["--motion", *[str(item) for item in args.motion]]
             if args.det:
                 options.append("--det")
+            if args.event:
+                for event in args.event:
+                    options += ["--event", event]
+                if args.before is not None:
+                    options += ["--before", str(args.before)]
+                if args.after is not None:
+                    options += ["--after", str(args.after)]
+                if args.hold:
+                    options += ["--hold", str(args.hold)]
             return lookdev_engine.main(options)
         if args.command == "qa":
             options = ["--project", args.project, "--step", str(args.step)]

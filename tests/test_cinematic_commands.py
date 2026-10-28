@@ -45,6 +45,10 @@ def test_lookdev_preview_parameters_are_registered():
     assert args.motion == [8.2, 10.6, 12.0]
     args = parser.parse_args(["lookdev", "--project", "x", "--det"])
     assert args.det is True
+    args = parser.parse_args(["lookdev", "--project", "x", "--event", "a:contact",
+                              "--before", "6", "--after", "6", "--hold", "12"])
+    assert args.event == ["a:contact"]
+    assert (args.before, args.after, args.hold) == (6, 6, 12)
     # 不声明取点模式时，仍按代表静帧处理。
     assert parser.parse_args(["lookdev", "--project", "x"]).sheet is None
 
@@ -64,3 +68,23 @@ def test_lookdev_forwards_preview_arguments(monkeypatch):
     assert commands.dispatch(args) == 0
     assert captured["argv"] == ["--project", "x", "--sample-seconds", "24",
                                 "--still-scale", "1", "--sheet", "2", "8"]
+
+
+def test_lookdev_forwards_event_arguments(monkeypatch):
+    """事件取点要把事件、前后窗口与停留帧原样转发。"""
+    import m2v.engine.lookdev as lookdev_engine
+    from m2v import commands
+
+    captured = {}
+
+    def fake_main(argv):
+        captured["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(lookdev_engine, "main", fake_main)
+    args = cli._parser().parse_args(["lookdev", "--project", "x", "--event", "a:contact",
+                                    "--before", "6", "--after", "6", "--hold", "12"])
+    assert commands.dispatch(args) == 0
+    assert captured["argv"] == ["--project", "x", "--sample-seconds", "24", "--still-scale", "1",
+                                "--event", "a:contact", "--before", "6", "--after", "6",
+                                "--hold", "12"]

@@ -174,6 +174,92 @@ def motion_frames(start_seconds: float, end_seconds: float, count: int, prepared
     return uniform_frames(round(raw_start), round(raw_end), count)
 
 
+def resolve_event_selectors(prepared: dict, selectors: list[str], *, before: int, after: int,
+                            hold: int = 0) -> dict:
+    """把幕内事件解析成作者声明的取证窗口。
+
+    事件在 prepare 阶段已解析为幕内帧和全片帧；这里不重新计算时间，只按
+    `before/at/after/hold` 四点取帧。作者必须显式声明前后窗口，不套用全片统一间隔。
+    """
+    for name, value in (("before", before), ("after", after), ("hold", hold)):
+        if type(value) is not int or value < 0:
+            raise M2VError(f"事件取点的 {name} 必须是非负整数帧")
+    if not selectors:
+        raise M2VError("事件取点至少需要一个 --event")
+    scenes = {scene["id"]: scene for scene in prepared["props"].get("compiledScenes", [])}
+    events = prepared["props"].get("resolvedEvents") or []
+    if not events:
+        raise M2VError("当前准备记录没有幕内事件；请确认作品已声明 events 并重新 prepare")
+
+    selected, seen = [], set()
+    for selector in selectors:
+        if not isinstance(selector, str) or not selector.strip():
+            raise M2VError("事件选择器必须是非空文字")
+        if ":" in selector:
+            scene_id, event_id = selector.split(":", 1)
+            if not scene_id or not event_id:
+                raise M2VError(f"事件选择器必须为 sceneId:eventId：{selector!r}")
+            matches = [event for event in events
+                       if event["sceneId"] == scene_id and event["id"] == event_id]
+        else:
+            matches = [event for event in events if event["id"] == selector]
+            if len(matches) > 1:
+                scenes_with = "、".join(sorted({event["sceneId"] for event in matches}))
+                raise M2VError(f"事件 ID {selector!r} 在多个幕中出现（{scenes_with}）；"
+                               "请用 sceneId:eventId 指定")
+        if not matches:
+            raise M2VError(f"未找到幕内事件：{selector!r}")
+        event = matches[0]
+        key = (event["sceneId"], event["id"])
+        if key not in seen:
+            seen.add(key)
+            selected.append(event)
+
+    frames: dict[int, list[str]] = {}
+    resolved = []
+    for event in selected:
+        scene = scenes.get(event["sceneId"])
+        if scene is None:
+            raise M2VError(f"事件 {event['sceneId']}:{event['id']} 所属的幕不在已准备场景中")
+        duration = scene["durationInFrames"]
+        phases = []
+        for name, offset, suffix in (("before", -before, f"b{before}"),
+                                     ("at", 0, "at"),
+                                     ("after", after, f"a{after}"),
+                                     ("hold", after + hold, f"h{hold}")):
+            if name == "hold" and hold <= 0:
+                continue
+            local = event["frame"] + offset
+            if not 0 <= local < duration:
+                raise M2VError(
+                    f"事件 {event['sceneId']}:{event['id']} 的 {name} 帧 {local} "
+                    f"超出本幕范围 0～{duration - 1}；请缩小 --before/--after/--hold")
+            global_frame = scene["startFrame"] + local
+            label = f"{event['sceneId']}.{event['id']}.{suffix}"
+            phases.append({"phase": name, "offsetFrames": offset, "localFrame": local,
+                           "globalFrame": global_frame, "label": label})
+            frames.setdefault(global_frame, []).append(label)
+        resolved.append({**event, "phases": phases})
+
+    warnings = []
+    by_scene: dict[str, list[dict]] = {}
+    for event in selected:
+        by_scene.setdefault(event["sceneId"], []).append(event)
+    if before + after > 0:
+        for scene_id, group in by_scene.items():
+            group = sorted(group, key=lambda item: item["frame"])
+            for left, right in zip(group, group[1:]):
+                gap = right["frame"] - left["frame"]
+                if gap < before + after:
+                    warnings.append(
+                        f"事件簇：{scene_id}:{left['id']} 与 {right['id']} 相隔 {gap} 帧，"
+                        f"小于 before+after={before + after}；单事件窗口会覆盖相邻事件，"
+                        "建议一次查看整个簇")
+    ordered = sorted(frames)
+    labels = [".".join(dict.fromkeys(frames[frame])) for frame in ordered]
+    return {"frames": ordered, "labels": labels, "events": resolved, "warnings": warnings}
+
+
 def sheet_columns(count: int) -> int:
     """按张数选列数：短拼图少列，长拼图多列，避免单列堆成一条。"""
     if count <= 2:
@@ -331,15 +417,19 @@ def _render_stills(root: Path, project: dict, prepared: dict, frames: list[int],
 
 
 def preview(root: Path, project: dict, prepared: dict, *, mode: str, frames: list[int],
-            still_scale: int = STILL_SCALE) -> dict:
-    """三种取点预览：拼图、区间拼图、同帧一致性。产物落 `outputs/lookdev/`。"""
+            still_scale: int = STILL_SCALE, labels: list[str] | None = None,
+            extra: dict | None = None) -> dict:
+    """取点预览：拼图、区间拼图、同帧一致性与事件取证。产物落 `outputs/lookdev/`。"""
     if still_scale not in (1, 2):
         raise M2VError("静帧采样尺度只能为1或2")
     check_frames(prepared, frames)
     fps = prepared["fps"]
+    if labels is None:
+        labels = [f"{index + 1}-{frame / fps:.2f}s-f{frame}" for index, frame in enumerate(frames)]
+    if len(labels) != len(frames):
+        raise M2VError("接触表标注数量与取帧数量不一致")
     outputs = root / "outputs/lookdev"
     outputs.mkdir(parents=True, exist_ok=True)
-    labels = [f"{index + 1}-{frame / fps:.2f}s-f{frame}" for index, frame in enumerate(frames)]
     if mode == "det":
         return _determinism(root, project, prepared, frames, still_scale, outputs)
     produced = _render_stills(root, project, prepared, frames, still_scale)
@@ -348,9 +438,12 @@ def preview(root: Path, project: dict, prepared: dict, *, mode: str, frames: lis
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "mode": mode, "stillScale": still_scale, "frames": frames,
                 "times": [round(frame / fps, 3) for frame in frames],
+                "labels": labels,
                 "stills": [path.relative_to(root).as_posix() for path in produced],
                 "sheet": sheet.relative_to(root).as_posix(), "columns": columns,
                 "stillCapture": "native-code-png-v1"}
+    if extra:
+        manifest.update(extra)
     _write_json(root / "outputs/lookdev.json", manifest)
     return manifest
 
@@ -471,15 +564,23 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
 
 
 def _reject_conflicting_modes(args) -> None:
-    """三种取点模式与代表静帧互斥，同一调用只能声明一种。"""
+    """取点模式与代表静帧互斥，同一调用只能声明一种。"""
+    event = getattr(args, "event", None)
     declared = [name for name, value in (("--sheet", args.sheet), ("--motion", args.motion),
-                                         ("--det", args.det)) if value]
+                                         ("--det", args.det), ("--event", event)) if value]
     if len(declared) > 1:
         raise M2VError(f"{'、'.join(declared)} 互斥，同一调用只能声明一种取点模式")
     if declared and args.stills is not None:
         raise M2VError(f"{declared[0]} 与 --stills 互斥；取点模式不使用代表静帧张数")
     if declared and args.sample_seconds != DEFAULT_SAMPLE_SECONDS:
         raise M2VError(f"{declared[0]} 与 --sample-seconds 互斥；取点模式不生成样片")
+    before = getattr(args, "before", None)
+    after = getattr(args, "after", None)
+    hold = getattr(args, "hold", 0)
+    if not event and (before is not None or after is not None or hold):
+        raise M2VError("--before/--after/--hold 只能与 --event 一起使用")
+    if event and (before is None or after is None):
+        raise M2VError("事件取点必须同时声明 --before 与 --after；窗口由作者按事件决定")
 
 
 def _preview_frames(args, prepared: dict) -> list[int]:
@@ -509,6 +610,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="区间起止秒，可再给一个帧数；均匀取帧拼一张看转场")
     parser.add_argument("--det", action="store_true",
                         help=f"同帧一致性自检：两次独立采集比 PSNR（阈值 {DETERMINISM_PSNR:g} dB）")
+    parser.add_argument("--event", action="append", metavar="SCENE:EVENT",
+                        help="按幕内事件取点；可重复；需同时声明 --before/--after（帧，非秒）")
+    parser.add_argument("--before", type=int, metavar="FRAMES", help="事件发生前取帧数（帧）")
+    parser.add_argument("--after", type=int, metavar="FRAMES", help="事件发生后取帧数（帧）")
+    parser.add_argument("--hold", type=int, default=0, metavar="FRAMES",
+                        help="结果停留结束帧相对事件后段的额外帧数")
     args = parser.parse_args(argv)
     _reject_conflicting_modes(args)
     from m2v.types.general.explainer_render import current
@@ -516,6 +623,15 @@ def main(argv: list[str] | None = None) -> int:
     if manifest["type"] != "general":
         raise M2VError("m2v lookdev 仅适用于 general 作品")
     prepared = current(root, manifest)
+    if args.event:
+        resolved = resolve_event_selectors(prepared, args.event, before=args.before,
+                                           after=args.after, hold=args.hold)
+        result = preview(root, manifest, prepared, mode="event", frames=resolved["frames"],
+                         still_scale=args.still_scale, labels=resolved["labels"],
+                         extra={"events": resolved["events"],
+                                "eventWarnings": resolved["warnings"]})
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
     if args.sheet or args.motion or args.det:
         frames = _preview_frames(args, prepared)
         mode = "det" if args.det else ("motion" if args.motion else "sheet")

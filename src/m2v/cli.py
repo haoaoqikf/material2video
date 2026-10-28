@@ -82,6 +82,12 @@ def _parser() -> argparse.ArgumentParser:
     lookdev.add_argument("--motion", nargs="+", type=float, metavar="TIME",
                          help="区间起止秒（可加帧数），均匀取帧拼一张看转场")
     lookdev.add_argument("--det", action="store_true", help="同帧一致性自检：两次独立采集比 PSNR")
+    lookdev.add_argument("--event", action="append", metavar="SCENE:EVENT",
+                         help="按幕内事件取点；可重复；需同时声明 --before/--after（帧）")
+    lookdev.add_argument("--before", type=int, metavar="FRAMES", help="事件前取帧数（帧）")
+    lookdev.add_argument("--after", type=int, metavar="FRAMES", help="事件后取帧数（帧）")
+    lookdev.add_argument("--hold", type=int, default=0, metavar="FRAMES",
+                         help="结果停留结束帧相对事件后段的额外帧数")
     qa = sub.add_parser("qa", help="通用技术 QA：接触表、冻结帧、响度、claims")
     qa.add_argument("--project", required=True)
 

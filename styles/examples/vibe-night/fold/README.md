@@ -77,15 +77,21 @@
 - 来源：L. Pauling 等 1949 年指出镰状细胞贫血与血红蛋白异常有关；V. Ingram 1957 年确定
   第 6 位氨基酸替换。这一行作为收尾的小字出处出现在画面上。
 
-**示意的地方**：真实的血红蛋白由 4 条链组成，本片只画了一条；折叠用的是六角格圆盘上
-由外向内逐环走一圈的排布（相邻两颗始终挨着），不是真实三级结构；镰刀由单位圆盘连续
+**示意的地方**：真实的血红蛋白由 4 条链组成，本片只画了一条；折叠用的是六角格上一条
+走遍 146 个格点的路径（相邻两颗始终挨着），不是真实三级结构；镰刀由单位圆盘连续
 映射成形，是二维近似；分子与细胞的大小比例经过压缩（`RHO = 66`）。完整来源与上述边界
 保留在本文件。
+
+折叠布局不是手摆的，而是由 `tools/gen_layout.py` 生成并先断言关系：第 6 颗落在右侧
+凸点（knob），左侧留凹口（notch），中间两个相邻空腔（cavity）放氧分子；两团接合时
+`pitch < 2R`，前一团的凸点卡进后一团的凹口，格点集合不重合。生成结果 `scenes/layout.json`
+随仓库提供，场景加载时还会再检查一次长度、邻接、knob 与接合间距。
 
 ## 制作与校验
 
 ```powershell
 uv run python fonts/fetch.py
+uv run python styles/examples/vibe-night/fold/tools/gen_layout.py
 uv run m2v validate --project styles/examples/vibe-night/fold
 uv run m2v prepare --project styles/examples/vibe-night/fold
 uv run m2v lookdev --project styles/examples/vibe-night/fold --sheet 9
