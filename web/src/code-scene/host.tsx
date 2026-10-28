@@ -65,7 +65,13 @@ export function mount(Component: React.ComponentType<CodeSceneProps>) {
       window.__M2V_CODE__.advanceToFrame = frame => advance(frame, 0, 1);
       window.__M2V_CODE__.advanceToSubframe = (frame, subframe, subframes) => advance(frame, subframe, subframes);
     }, []);
-    return <SceneContextProvider.Provider value={{running, elapsedSeconds,
+    // 全局时间是 opt-in：未声明 capture.timebase=global 时两者退化为幕内时间，
+    // 既有作品看到的数值与行为不变。
+    const sceneStartFrame = config.timeline?.sceneStartFrame ?? 0;
+    const globalFrame = sceneStartFrame + elapsedSeconds * config.fps;
+    const globalSeconds = sceneStartFrame / config.fps + elapsedSeconds;
+    return <SceneContextProvider.Provider value={{running, elapsedSeconds, globalFrame, globalSeconds,
+      sceneStartFrame,
       progress: Math.min(1, elapsedSeconds * config.fps / config.durationInFrames),
       ready: () => {void ensureFonts().then(() => document.fonts.ready).then(() => {window.__M2V_CODE__.ready = true;});}}}>
       <Component {...config}/>

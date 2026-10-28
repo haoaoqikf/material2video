@@ -60,6 +60,43 @@ const emphasis = frame >= events.frame('contact') ? 1 - events.progress('contact
 
 事件发生前后的画面取证用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`：窗口由作者显式声明，工具从当前准备记录解析事件并取 before/at/after/hold 四类帧。它是看图预览，不自动绑定检查点，也不替代 G4 证据；事件越靠后，采集仍从所属幕第 0 帧推进。
 
+## 全局时间与连续行为
+
+跨幕连续的动作不应在每一幕各写一份。作品在幕的 `content.props.capture` 声明：
+
+```json
+{"timebase": "global"}
+```
+
+`scene_config` 随后注入本幕在全片时间轴上的 `timeline`
+（`sceneStartFrame`、`sceneEndFrame`、`durationInFrames`），`useSceneContext()` 提供：
+
+| 字段 | 含义 |
+| --- | --- |
+| `elapsedSeconds` | 幕内时间，语义不变 |
+| `globalSeconds` | `sceneStartFrame / fps + elapsedSeconds`；未声明 global 时等于 `elapsedSeconds` |
+| `globalFrame` | `sceneStartFrame + elapsedSeconds * fps`；子帧保留小数 |
+| `sceneStartFrame` | 本幕全片起点；未声明时为 0 |
+
+推荐写法是**一条状态轨迹 + 多个取景**：
+
+```tsx
+// 不接收幕 ID；位置、朝向、啄食、轨迹全部由全片时间决定
+function act(t: number) { /* ... */ }
+
+export default function Scene(config: CodeSceneProps) {
+  const {elapsedSeconds, globalSeconds} = useSceneContext();
+  const state = act(globalSeconds);
+  // 镜头只决定取景，不改变 state
+  return <Room state={state} shot={SHOT[config.chapter.id]} />;
+}
+```
+
+同一时刻在全景、近景、特写里读到同一 `state`，换镜不会跳位置或动作。`capture.timebase`
+是 opt-in：未声明时录制配置逐字节不变，既有片段缓存继续复用；声明后
+`sceneStartFrame` 进入片段缓存键，前幕时长变化会让该幕重新录制。全局时间本身不改变
+当前顺序采集方式；任意帧直接定位见后续 pure-time 契约。
+
 ## ready() 的语义
 
 渲染脚本在加载页面后调用一次 `ready()`，并等待它 resolve 才开始截图。

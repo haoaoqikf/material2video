@@ -18,6 +18,13 @@ export type MediaAsset = {
 
 export type SubtitleSafeArea = {x: number; y: number; width: number; height: number};
 
+/** 作品声明 `capture.timebase: "global"` 时注入的全片时间轴。 */
+export type SceneTimeline = {
+  sceneStartFrame: number;
+  sceneEndFrame: number;
+  durationInFrames: number;
+};
+
 export type CodeSceneProps = {
   /** 当前幕的事件 ID → 幕内整数帧；未声明事件时省略。 */
   eventFrames?: Readonly<Record<string, number>>;
@@ -30,9 +37,22 @@ export type CodeSceneProps = {
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
   /** lookdev 的原生像素密度；缺省不改变作品画布设置。 */
   captureScale?: number;
+  /** 仅在 `content.props.capture.timebase: "global"` 时注入。 */
+  timeline?: SceneTimeline;
 };
 
-export type SceneContext = {running: boolean; elapsedSeconds: number; progress: number; ready: () => void};
+export type SceneContext = {
+  running: boolean;
+  elapsedSeconds: number;
+  progress: number;
+  /** 全片帧号；未 opt-in 全局时间时等于幕内帧号。子帧保留小数。 */
+  globalFrame: number;
+  /** 全片秒数；未 opt-in 全局时间时等于 elapsedSeconds。 */
+  globalSeconds: number;
+  /** 本幕在全片时间轴上的起点；未 opt-in 时为 0。 */
+  sceneStartFrame: number;
+  ready: () => void;
+};
 export const SceneContextProvider = createContext<SceneContext | null>(null);
 
 export function useSceneContext(): SceneContext {

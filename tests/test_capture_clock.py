@@ -14,11 +14,12 @@ from _helpers import WEB, prepare_build, requires_node
 
 
 @contextmanager
-def scene_page(tmp_path, source, *, frames=62):
+def scene_page(tmp_path, source, *, frames=62, extra=None):
     root, work, result = prepare_build(tmp_path, source)
     assert result.returncode == 0, result.stderr
     config = dict(props={}, fps=60, durationInFrames=frames, width=320, height=240,
                   segmentWindows={}, subtitleSafeArea=dict(x=0, y=200, width=320, height=40))
+    config.update(extra or {})
     (work / 'index.html').write_text('<div id="root"></div><script>window.__M2V_CODE_CONFIG__='
                                     + json.dumps(config) + '</script><script src="scene.js"></script>', encoding='utf-8')
     with LocalServer(work, mounts={'/fonts': WEB / 'public/fonts'}, cors=True) as server, sync_playwright() as pw:
@@ -111,6 +112,30 @@ def test_fixed_frames_sync_dom_three_and_animation_libraries(tmp_path, chromium_
 def test_encode_rejects_missing_frames(tmp_path):
     with pytest.raises(Exception, match='采集帧缺失'):
         code_scenes._encode(tmp_path, tmp_path / 'clip.mp4', 2, 320, 240)
+
+
+@pytest.mark.slow
+@requires_node
+def test_global_time_uses_scene_start_frame(tmp_path, chromium_ready):
+    source = """
+import {useEffect} from 'react';
+import {useSceneContext} from 'm2v/code-scene';
+export default function Demo() {
+  const clock = useSceneContext();
+  useEffect(() => {clock.ready();}, []);
+  return <div id="state" data-global-frame={clock.globalFrame}
+    data-global-seconds={clock.globalSeconds} data-local={clock.elapsedSeconds}
+    data-start={clock.sceneStartFrame}/>;
+}
+"""
+    with scene_page(tmp_path, source, frames=4, extra={"timeline": {
+            "sceneStartFrame": 100, "sceneEndFrame": 104, "durationInFrames": 4}}) as (page, _):
+        for frame in range(4):
+            page.evaluate('n => window.__M2V_CODE__.advanceToFrame(n)', frame)
+            state = page.locator('#state').evaluate(
+                "el => [Number(el.dataset.globalFrame), Number(el.dataset.globalSeconds),"
+                " Number(el.dataset.local), Number(el.dataset.start)]")
+            assert state == pytest.approx([100 + frame, (100 + frame) / 60, frame / 60, 100])
 
 
 @pytest.mark.slow

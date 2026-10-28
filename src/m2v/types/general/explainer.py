@@ -58,7 +58,7 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
         text(entry.get("topic"), "input.topic")
     number(data.get("targetSeconds", 60), 1, 600, "targetSeconds")
     from m2v.engine import rhythm
-    from .code_scenes import validate_entry
+    from .code_scenes import validate_capture, validate_entry
     from . import cinematic
     scenes = items(data.get("scenes"), "scenes", MAX_SCENES)
     all_ids: set[str] = set()
@@ -143,6 +143,7 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
                     fail(subtitle_path,
                          f"屏幕字幕窗口 {end} 超出本幕时长 {scene_duration}")
                 text(subtitle.get("text"), subtitle_path + ".text")
+        validate_capture(props)
         validate_entry(root, content.get("entry"), props)
         shots = cinematic.validate_shots(props, path + ".content.props", fps=fps)
         ordered = sorted(shots, key=lambda item: item["startFrame"])

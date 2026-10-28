@@ -10,12 +10,13 @@
  * 中景、食槽近景、慢推、计时器前置。房间不动，动的是镜头，所以观众始终在同一个
  * 空间里，而不是看六张构图不同的插画。
  *
- * 时间轴：录制按幕挂载，`elapsedSeconds` 是幕内时间。每幕在
- * `props.clock.startSeconds` 里声明自己在全片时间轴上的起点，计时器用
- * 「幕起点 + 幕内时间」，第 15 秒与第 30 秒各掉一次食物——跨幕连续。
+ * 时间轴：录制按幕挂载，`elapsedSeconds` 是幕内时间。每幕声明
+ * `content.props.capture.timebase: "global"`，录制上下文据此提供 `globalSeconds`
+ * （幕起点 + 幕内时间）；计时器、喂食状态与鸽子行为都读同一个全局时间，
+ * 第 15 秒与第 30 秒各掉一次食物——跨幕连续。
  */
 import {useEffect} from 'react';
-import {useSceneContext, type CodeSceneProps, painter} from 'm2v/code-scene';
+import {createSceneEvents, useSceneContext, type CodeSceneProps, painter} from 'm2v/code-scene';
 import FableStage from 'm2v/style/components/fable-stage';
 import InstinctGauge from 'm2v/style/components/instinct-gauge';
 import SceneNote from 'm2v/style/components/scene-note';
@@ -23,10 +24,9 @@ import TopLine from 'm2v/style/components/top-line';
 import ScreenSubtitle from 'm2v/style/components/screen-subtitle';
 
 type Chapter = {id: string; year: string; place: string; topLine: string};
-type Clock = {startSeconds: number};
 type Gauge = {value: number; startValue: number; object: string};
 type Subtitle = {startFrame: number; endFrame: number; text: string};
-type Props = {chapter: Chapter; clock: Clock; gauge: Gauge; screenSubtitles: Subtitle[]};
+type Props = {chapter: Chapter; gauge: Gauge; screenSubtitles: Subtitle[]};
 
 type P = InstanceType<typeof painter.Painter>;
 type Vec = [number, number];
@@ -117,10 +117,13 @@ function shotAt(chapterId: string, progress: number): {scale: number; focus: Vec
  * 所以它是一只有体积的鸟，而不是一块剪影。比例按身体的长度约为高度的 1.5 倍。
  */
 function bird(P: P, x: number, y: number, scale: number, pose: {
-  facing?: number; peck?: number; flap?: number; bob?: number; alpha?: number;
+  facing?: number; turn?: number; peck?: number; flap?: number; bob?: number; alpha?: number;
 }) {
-  const {facing = 1, peck = 0, flap = 0, bob = 0, alpha = 1} = pose;
-  P.group({alpha, at: [x, y], scale: [facing * scale, scale]}, () => {
+  const {facing = 1, turn, peck = 0, flap = 0, bob = 0, alpha = 1} = pose;
+  // 转向时横向压扁身体，和参考片的「转身」读法一致；未给 turn 时保持原朝向。
+  const cosine = turn === undefined ? facing : Math.cos(turn);
+  const width = turn === undefined ? facing : (Math.abs(cosine) < 0.32 ? 0.32 * (cosine < 0 ? -1 : 1) : cosine);
+  P.group({alpha, at: [x, y], scale: [width * scale, scale]}, () => {
     // 影子：贴地的一圈，让鸟站得住。
     P.ellipse(0, 6, 66, 12, {fill: '#000000', alpha: 0.22});
     // 腿：两段折线加脚掌。
@@ -159,7 +162,7 @@ function bird(P: P, x: number, y: number, scale: number, pose: {
  * 画法是自己的一套——环形刻度 + 走过的扇区 + 一根指针 + 读数，不用参考片的表盘构图。
  * 读数显示剩余秒数，跨幕连续。
  */
-function feederTimer(P: P, x: number, y: number, radius: number, globalSeconds: number, alpha = 1) {
+function feederTimer(P: P, x: number, y: number, radius: number, globalSeconds: number, alpha = 1, pulse = 0) {
   const phase = ((globalSeconds % FEED_INTERVAL) + FEED_INTERVAL) % FEED_INTERVAL;
   const ratio = phase / FEED_INTERVAL;
   P.group({alpha}, () => {
@@ -193,6 +196,8 @@ function feederTimer(P: P, x: number, y: number, radius: number, globalSeconds: 
     const remain = Math.max(0, Math.ceil(FEED_INTERVAL - phase));
     P.text(String(remain), x, y + radius * 0.44, {size: radius * 0.36, color: INK, font: SANS});
     P.text('秒', x, y + radius * 0.68, {size: radius * 0.18, color: '#8A7554', font: SANS});
+    // 画面与声音引用同一幕内事件：滴答事件到达时表盘短暂发亮。
+    if (pulse > 0) P.glow(x, y, radius * 2.1, '#FFD27A', 0.4 * pulse);
   });
 }
 
@@ -278,34 +283,79 @@ function feedPhase(globalSeconds: number): {drop: number; stocked: number} {
 }
 
 /**
- * 鸽子的位置与动作：找吃的 → 碰巧转圈 → 跑到食槽吃 → 又转、再转。
+ * 一条全片状态轨迹：找吃的 → 碰巧转圈 → 跑到食槽吃 → 又转、再转。
  *
- * 横向位置用「目标点 + 缓动」而不是纯正弦：食物落下后它要**真的走过去**，
- * 否则观众只看见它在原地晃，「食物来了」与「它吃了」之间没有动作把它们连起来。
+ * 位置、朝向、啄食、步态与转圈轨迹全部由全片秒数决定，不读取幕 ID；六幕只是
+ * 同一房间的六段取景。这样换镜时读到的仍是同一条轨迹，不会因为换幕跳到另一套动作。
  */
-function birdAct(globalSeconds: number, chapterId: string) {
-  const turning = chapterId === 'repeat' || chapterId === 'again';
-  // 进食窗口：食物落定后一小段时间内，它往食槽方向去。
-  const past = FEED_TIMES.filter(at => at <= globalSeconds);
-  const sinceFeed = past.length ? globalSeconds - past[past.length - 1] : Infinity;
-  const eating = sinceFeed > DROP_SECONDS * 0.6 && sinceFeed < DROP_SECONDS + 2.4;
-  const pecking = eating || chapterId === 'coincide';
-  // 三个目标点：中央的「转圈场地」、食槽前方、场地另一侧。
-  const HOME = 980;
-  const FEED_SPOT = 1360;
-  const walk = eating ? smooth((sinceFeed - DROP_SECONDS * 0.6) / 1.4) : 0;
-  const leaving = eating ? 0 : 1;
-  const wander = Math.sin(globalSeconds * 0.42) * 130;
-  const x = turning
-    ? HOME + wander * 0.35
-    : HOME + (FEED_SPOT - HOME) * walk + wander * 0.55 * leaving;
-  const spin = turning ? Math.sin(globalSeconds * 2.1) * 0.9 : 0;
+const HOME = 980;
+const FEED_SPOT = 1360;
+
+/** 按全片时间在关键点之间做平滑插值；首尾之外保持端值。 */
+function track(t: number, points: Array<[number, number]>): number {
+  let index = 0;
+  while (index < points.length - 2 && t >= points[index + 1][0]) index += 1;
+  const [fromTime, fromValue] = points[index];
+  const [toTime, toValue] = points[index + 1];
+  return fromValue + (toValue - fromValue) * smooth((t - fromTime) / Math.max(1e-6, toTime - fromTime));
+}
+
+/** 一个啄食窗口；两端都平滑回到 0，避免窗口边界突然抬头。 */
+function peckAt(t: number, start: number, end: number): number {
+  if (t <= start || t >= end) return 0;
+  const envelope = Math.max(0, Math.min(1, (t - start) * 6, (end - t) * 6));
+  return Math.max(0, Math.sin((t - start) * 9)) * 0.8 * envelope;
+}
+
+/** 事件到达后的短暂视觉强调；画面与音效读取同一份幕内事件帧。 */
+function eventPulse(events: ReturnType<typeof createSceneEvents>, ids: string[], frame: number,
+  spanFrames = 6): number {
+  let value = 0;
+  for (const id of ids) {
+    try {
+      const at = events.frame(id);
+      if (frame >= at && frame < at + spanFrames) value = Math.max(value, 1 - (frame - at) / spanFrames);
+    } catch {
+      // 当前幕没有声明该事件时不强调，不影响画面。
+    }
+  }
+  return value;
+}
+
+function act(t: number) {
+  const x = track(t, [
+    [0, HOME], [4, HOME], [8, 1040], [9, 1040],
+    [10.3, 860], [11.6, 860], [13.2, 1000], [15.2, 1000],
+    [16.0, FEED_SPOT], [19.0, FEED_SPOT], [19.9, 860], [26.5, 860],
+    [30.2, 860], [30.9, FEED_SPOT], [33, FEED_SPOT],
+  ]);
+  const turn = track(t, [
+    [0, 0], [9, 0], [11.5, 0], [11.9, Math.PI], [13.4, Math.PI],
+    [15.0, 3 * Math.PI], [15.3, 4 * Math.PI], [19.0, 4 * Math.PI],
+    [19.3, 5 * Math.PI], [20.2, 5 * Math.PI], [22.2, 7 * Math.PI],
+    [23.6, 7 * Math.PI], [25.6, 9 * Math.PI], [26.4, 9 * Math.PI],
+    [28.0, 11 * Math.PI], [28.4, 11 * Math.PI], [29.9, 13 * Math.PI],
+    [30.2, 14 * Math.PI], [33, 14 * Math.PI],
+  ]);
+  const peck = Math.min(0.9,
+    peckAt(t, 4.8, 6.0) + peckAt(t, 6.8, 8.0) + peckAt(t, 10.4, 11.5)
+    + peckAt(t, 16.2, 18.9) + peckAt(t, 31.1, 32.6));
+  const moving = (t > 4.2 && t < 4.8) || (t > 6.2 && t < 6.8) || (t > 9 && t < 10.3)
+    || (t > 11.9 && t < 13.2) || (t > 15.2 && t < 16) || (t > 19 && t < 19.9)
+    || (t > 30.2 && t < 30.9);
+  // 第一次是「碰巧」的转圈，第二次是重复动作；轨迹画在同一条地面上。
+  const trail = Math.max(
+    smooth((t - 13.5) / 0.4) * (1 - smooth((t - 15.0) / 0.3)),
+    smooth((t - 20.2) / 0.4) * (1 - smooth((t - 29.9) / 0.3)),
+  );
   return {
     x,
-    facing: Math.cos(spin) >= 0 ? 1 : -1,
-    peck: pecking ? Math.abs(Math.sin(globalSeconds * 7.5)) * 0.8 : Math.abs(Math.sin(globalSeconds * 2.2)) * 0.2,
+    turn,
+    facing: Math.cos(turn) >= 0 ? 1 : -1,
+    peck,
     flap: 0,
-    bob: Math.sin(globalSeconds * 3.2) * 0.35,
+    bob: moving ? Math.sin(t * 12) * 0.5 + 0.5 : 0.5,
+    trail: clamp(trail),
   };
 }
 
@@ -313,15 +363,19 @@ function birdAct(globalSeconds: number, chapterId: string) {
 
 export default function Pigeon(props: CodeSceneProps & Props) {
   const {width, height, fps, subtitleSafeArea, props: values, durationInFrames} = props;
-  const {chapter, clock, gauge, screenSubtitles} = values;
-  const {elapsedSeconds, ready} = useSceneContext();
+  const {chapter, gauge, screenSubtitles} = values;
+  const {elapsedSeconds, globalSeconds, ready} = useSceneContext();
   const frame = Math.round(elapsedSeconds * fps);
-  // 逐幕挂载：幕内时间 + 本幕在全片时间轴上的起点 = 全片时间。
-  const globalSeconds = (clock?.startSeconds ?? 0) + elapsedSeconds;
   const {drop, stocked} = feedPhase(globalSeconds);
   const inside = chapter.id !== 'box';
-  const act = birdAct(globalSeconds, chapter.id);
+  const state = act(globalSeconds);
   const shot = shotAt(chapter.id, elapsedSeconds / Math.max(0.001, durationInFrames / fps));
+  const events = createSceneEvents(props.eventFrames);
+  const tickIds = chapter.id === 'feeder'
+    ? ['tick-1', 'tick-2', 'tick-3', 'tick-4', 'tick-5']
+    : chapter.id === 'again' ? ['tick-fast-1', 'tick-fast-2', 'tick-fast-3'] : [];
+  const tickPulse = eventPulse(events, tickIds, frame);
+  const feedPulse = eventPulse(events, ['feed-1-arrival', 'feed-2-arrival'], frame, 10);
 
   useEffect(() => {
     let active = true;
@@ -363,12 +417,13 @@ export default function Pigeon(props: CodeSceneProps & Props) {
           // 箱内：房间整体按镜头取景缩放与平移。
           P.group({at: at(), scale: shot.scale}, () => {
             boxRoom(P, drop, stocked);
-            feederTimer(P, TIMER[0], TIMER[1], TIMER_R, globalSeconds);
-            if (chapter.id === 'repeat' || chapter.id === 'again') {
-              turnTrack(P, act.x, FLOOR_Y - 58, 230, 52, (globalSeconds - 19) / 2.6);
+            if (feedPulse > 0) P.glow(FEEDER[0] + 120, FEEDER[1] + 180, 180, '#FFD27A', 0.45 * feedPulse);
+            feederTimer(P, TIMER[0], TIMER[1], TIMER_R, globalSeconds, 1, tickPulse);
+            if (state.trail > 0) {
+              turnTrack(P, HOME, FLOOR_Y - 58, 230, 52, state.trail);
             }
-            bird(P, act.x, FLOOR_Y - 62, 1.5, {
-              facing: act.facing, peck: act.peck, flap: act.flap, bob: act.bob,
+            bird(P, state.x, FLOOR_Y - 62, 1.5, {
+              facing: state.facing, turn: state.turn, peck: state.peck, flap: state.flap, bob: state.bob,
             });
           });
         }}

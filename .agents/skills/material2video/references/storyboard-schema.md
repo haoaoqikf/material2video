@@ -33,6 +33,9 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
 `content` 只接受 `title`（可选，仅作元数据）、`entry`（必填）与 `props`（可选，默认空对象）。
+`content.props` 可声明保留键 `capture`：当前支持 `{"timebase": "local" | "global"}`（默认
+`local`）。声明 `global` 时录制上下文提供全片时间 `globalSeconds/globalFrame`，供跨幕连续行为
+与共用的计时器读取；未声明时配置与缓存键保持原样。写法见[全局时间与连续行为](code-scene-runtime.md#全局时间与连续行为)。
 `narrationSegments` 每项为 `{id,text}`，文字非空；`code` 幕可以没有旁白（0～30 项），此时镜头
 长度取声明的 `durationFrames`，未声明时与其余无旁白镜头平分 `targetSeconds` 的剩余帧数。
 每项可选 `holdFrames`（0～`30 × fps`）：本段旁白结束后、下一段开始前的静默帧数，只用于同一幕内的
@@ -54,6 +57,8 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 音效写 `{"builtin":"click","sceneId":"experiment","eventId":"contact","offsetFrames":0}`，引用本幕事件；`offsetFrames` 可省略为0，事件引用与 `segmentId`、`offsetMs` 互斥。偏移后的起点仍须位于所属幕内，素材播放尾部沿既有全片裁切规则处理。独立音效保留原定位方式。
 
 prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产物 `props.resolvedEvents`（含 `sceneId/id/frame/globalFrame`）；音效实际全片起点保存在 `props.effectStartFrames`，毫秒定位可能产生分数帧。`outputs/events.json` 绑定 `preparedFingerprint` 并列出事件与音效起点。改事件后须重新 prepare，相关录制配置与准备指纹变化。场景使用方式见[事件查询](code-scene-runtime.md#幕内事件查询)；围绕事件看图用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`，它是预览，不自动绑定检查点或替代 G4 证据。
+
+事件也是声音语义的唯一时间源：画面查询同一 `eventFrames` 做强调或计数，音效用 `eventId` 定位；不要为同一动作在画面和声音里各写一个时刻。变化用事件密度、`gainDb`、`fadeInMs`/`fadeOutMs` 表达，质感差异用不同 `assetId`（可由不同合成 `seed`/`intensity` 生成）。作品内用 `SOUND.md` 或 README 登记“角色→assetId→参数→作用”，让声音角色可核对；现有能力没有 effect 级音高参数，不要为单个动作临时改混音契约。
 
 ### 一镜到底
 

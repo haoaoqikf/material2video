@@ -123,6 +123,21 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 
 没有 `soundtrack` 时母版轨只做响度归一化；有音床或音效时按字幕讲话区间做闪避、混音并限幅。
 
+### 声音语义与事件化
+
+先约定“什么事件用什么声音”，再补素材。推荐在同一作品内固定一组角色，例如计时、到达、接合、揭示；每个角色选稳定 `assetId`，并在作品 `SOUND.md` 或 README 登记“角色→assetId→参数→听觉作用”。画面与音效共用幕内事件：场景查询 `eventFrames` 做强调，音效声明 `eventId`，prepare 输出的 `outputs/events.json` 是两者同源的证据。
+
+变化优先用现有字段表达：
+
+| 手段 | 用法 |
+| --- | --- |
+| 密度 | 同一 `assetId` 在不同事件上重复，事件越密声音越密（如倒计时临近时加快） |
+| 强弱 | 每个事件用独立 `gainDb`；同一素材可前弱后强 |
+| 收束 | `fadeInMs`/`fadeOutMs` 控制尾音，不用突然截断 |
+| 质感 | 用不同合成 `seed`/`intensity` 预生成不同 `assetId`；`intensity` 是配方参数，不能逐事件改 |
+
+现有音效能力没有 effect 级音高参数。不要为了单次动作在混音链里临时加 pitch；确有需要时按合成配方的可选半音参数单独评估。示例见 `styles/examples/vibe-fable/pigeon/SOUND.md`。
+
 ## 统一音效库
 
 来源只有两类：**代码合成**与**第三方音频**。均先落盘到作品的 `assets/sound/<sha256>.wav`，来源登记在 `assets/sound-sources.json`，分镜用 ID 编排；渲染不联网、不随机挑音。音效目录不在画面服务器白名单内。

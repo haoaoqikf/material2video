@@ -190,6 +190,31 @@ def test_style_examples_are_not_discovered_as_style_packages():
     assert not (EXAMPLES / "style.json").exists()
 
 
+def test_pigeon_uses_global_act_and_event_sound_semantics():
+    """示例必须用同一条全局行为轨迹，声音与画面引用同一批幕内事件。"""
+    root = EXAMPLES / "vibe-fable" / "pigeon"
+    board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
+    source = (root / "scenes" / "pigeon.tsx").read_text(encoding="utf-8")
+    assert "birdAct(" not in source, "行为不得再按幕 ID 分支"
+    assert "clock.startSeconds" not in source
+    assert "act(globalSeconds)" in source
+    for scene in board["scenes"]:
+        props = scene["content"]["props"]
+        assert props["capture"] == {"timebase": "global"}
+        assert "clock" not in props
+        assert isinstance(scene.get("events"), list)
+    declared = {(scene["id"], event["id"]) for scene in board["scenes"] for event in scene["events"]}
+    effects = board["soundtrack"]["effects"]
+    assert effects, "示例应保留声音设计"
+    for effect in effects:
+        assert "eventId" in effect, "音效必须引用语义事件"
+        assert "offsetFrames" not in effect and "offsetMs" not in effect
+        assert (effect["sceneId"], effect["eventId"]) in declared
+    sound_map = (root / "SOUND.md").read_text(encoding="utf-8")
+    for asset in {effect["assetId"] for effect in effects}:
+        assert f"`{asset}`" in sound_map, f"SOUND.md 未登记 {asset}"
+
+
 @pytest.mark.slow
 def test_fable_components_build_inside_package(tmp_path):
     if shutil.which("node") is None:

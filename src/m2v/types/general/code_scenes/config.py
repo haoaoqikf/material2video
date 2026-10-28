@@ -65,15 +65,53 @@ def implementation_inputs() -> dict[str, str]:
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
+CAPTURE_FIELDS = {"timebase"}
+
+
+def capture_settings(props: object) -> dict:
+    """校验并返回 `content.props.capture` 的录制声明。
+
+    `capture` 是作品 props 里的保留键，只控制录制，不参与画面数据。默认 local，
+    未声明时调用方不得向配置增加任何键，以免改变既有缓存键。
+    """
+    if props is None:
+        props = {}
+    if not isinstance(props, dict):
+        raise M2VError("content.props 必须为 JSON 对象")
+    capture = props.get("capture", {})
+    if not isinstance(capture, dict):
+        raise M2VError("content.props.capture 必须为 JSON 对象")
+    unknown = sorted(set(capture) - CAPTURE_FIELDS)
+    if unknown:
+        raise M2VError(f"content.props.capture 含未知字段：{'、'.join(unknown)}")
+    timebase = capture.get("timebase", "local")
+    if timebase not in ("local", "global"):
+        raise M2VError("content.props.capture.timebase 必须为 local 或 global")
+    return {"timebase": timebase}
+
+
+def validate_capture(props: object) -> None:
+    """材料校验入口：非法录制声明在 validate/prepare 阶段就失败。"""
+    capture_settings(props)
+
+
 def scene_config(scene: dict, frame: dict, media: dict, *, fps: int = GENERAL_DEFAULT_FPS) -> dict:
     """录制配置与片段缓存输入；统一契约不复用旧档位缓存。"""
-    config = {"productionContract": "unified-v1", "props": scene["content"].get("props", {}), "fps": validate_general_fps(fps),
+    props = scene["content"].get("props", {})
+    settings = capture_settings(props)
+    config = {"productionContract": "unified-v1", "props": props, "fps": validate_general_fps(fps),
               "durationInFrames": scene["durationInFrames"],
               "width": frame["width"], "height": frame["height"],
               "subtitleSafeArea": frame["subtitle"]["safeArea"],
               "segmentWindows": {key: {name: value - scene["startFrame"] for name, value in window.items()}
                                  for key, window in scene["segmentWindows"].items()},
               "media": media}
+    if settings["timebase"] == "global":
+        start = scene.get("startFrame", 0)
+        duration = scene["durationInFrames"]
+        config["timeline"] = {"sceneStartFrame": start,
+                              "sceneEndFrame": scene.get("endFrame", start + duration),
+                              "durationInFrames": duration}
     if scene.get("eventFrames"):
         config["eventFrames"] = scene["eventFrames"]
     claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]

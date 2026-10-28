@@ -31,9 +31,6 @@
             "place": "实验室",
             "topLine": "一只饿着的鸽子被放进箱子里"
           },
-          "clock": {
-            "startSeconds": 0
-          },
           "gauge": {
             "value": 36,
             "startValue": 30,
@@ -45,9 +42,13 @@
               "endFrame": 114,
               "text": "1948 年，一只饿着的鸽子被放进箱子"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": []
     },
     {
       "id": "feeder",
@@ -69,9 +70,6 @@
             "place": "实验室",
             "topLine": "食槽定时打开，与它做什么无关"
           },
-          "clock": {
-            "startSeconds": 4
-          },
           "gauge": {
             "value": 34,
             "startValue": 36,
@@ -83,9 +81,34 @@
               "endFrame": 142,
               "text": "墙上的食槽，每 15 秒打开一次"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": [
+        {
+          "id": "tick-1",
+          "frame": 0
+        },
+        {
+          "id": "tick-2",
+          "frame": 30
+        },
+        {
+          "id": "tick-3",
+          "frame": 60
+        },
+        {
+          "id": "tick-4",
+          "frame": 90
+        },
+        {
+          "id": "tick-5",
+          "frame": 120
+        }
+      ]
     },
     {
       "id": "wander",
@@ -107,9 +130,6 @@
             "place": "实验室",
             "topLine": "它只是饿，并不知道时间表"
           },
-          "clock": {
-            "startSeconds": 9
-          },
           "gauge": {
             "value": 58,
             "startValue": 34,
@@ -121,9 +141,26 @@
               "endFrame": 186,
               "text": "鸽子不知道。它只是饿，到处找吃的"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": [
+        {
+          "id": "peck-wander",
+          "frame": 42
+        },
+        {
+          "id": "turn-1",
+          "frame": 135
+        },
+        {
+          "id": "feeder-open-1",
+          "frame": 180
+        }
+      ]
     },
     {
       "id": "coincide",
@@ -145,9 +182,6 @@
             "place": "实验室",
             "topLine": "食物落下时，它正好转过身"
           },
-          "clock": {
-            "startSeconds": 15.6
-          },
           "gauge": {
             "value": 74,
             "startValue": 58,
@@ -159,9 +193,26 @@
               "endFrame": 100,
               "text": "食物掉下来那一刻，它碰巧在转圈"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": [
+        {
+          "id": "feed-1-arrival",
+          "frame": 6
+        },
+        {
+          "id": "peck-2",
+          "frame": 18
+        },
+        {
+          "id": "peck-3",
+          "frame": 60
+        }
+      ]
     },
     {
       "id": "repeat",
@@ -183,9 +234,6 @@
             "place": "实验室",
             "topLine": "于是它又转了一圈"
           },
-          "clock": {
-            "startSeconds": 19.2
-          },
           "gauge": {
             "value": 118,
             "startValue": 74,
@@ -202,9 +250,26 @@
               "endFrame": 210,
               "text": "食物是按时间来的，不是因为它转"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": [
+        {
+          "id": "turn-2",
+          "frame": 30
+        },
+        {
+          "id": "turn-3",
+          "frame": 132
+        },
+        {
+          "id": "turn-4",
+          "frame": 216
+        }
+      ]
     },
     {
       "id": "again",
@@ -226,9 +291,6 @@
             "place": "实验室",
             "topLine": "它越转越快"
           },
-          "clock": {
-            "startSeconds": 26.5
-          },
           "gauge": {
             "value": 142,
             "startValue": 118,
@@ -245,84 +307,147 @@
               "endFrame": 186,
               "text": "15 秒到了，食物又来了"
             }
-          ]
+          ],
+          "capture": {
+            "timebase": "global"
+          }
         }
-      }
+      },
+      "events": [
+        {
+          "id": "turn-5",
+          "frame": 57
+        },
+        {
+          "id": "tick-fast-1",
+          "frame": 60
+        },
+        {
+          "id": "tick-fast-2",
+          "frame": 75
+        },
+        {
+          "id": "tick-fast-3",
+          "frame": 90
+        },
+        {
+          "id": "feeder-open-2",
+          "frame": 105
+        },
+        {
+          "id": "feed-2-arrival",
+          "frame": 111
+        },
+        {
+          "id": "reveal",
+          "frame": 177
+        }
+      ]
     }
   ],
   "soundtrack": {
     "effects": [
       {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "eventId": "tick-1",
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "eventId": "tick-2",
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "eventId": "tick-3",
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "eventId": "tick-4",
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "feeder",
+        "eventId": "tick-5",
+        "gainDb": -32
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "again",
+        "eventId": "tick-fast-1",
+        "gainDb": -30
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "again",
+        "eventId": "tick-fast-2",
+        "gainDb": -29
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "again",
+        "eventId": "tick-fast-3",
+        "gainDb": -28
+      },
+      {
+        "assetId": "latch",
+        "sceneId": "wander",
+        "eventId": "feeder-open-1",
+        "gainDb": -22
+      },
+      {
+        "assetId": "latch",
+        "sceneId": "again",
+        "eventId": "feeder-open-2",
+        "gainDb": -22
+      },
+      {
         "assetId": "grain",
         "sceneId": "coincide",
-        "offsetFrames": 2,
+        "eventId": "feed-1-arrival",
         "gainDb": -20
       },
       {
         "assetId": "grain",
-        "sceneId": "coincide",
-        "offsetFrames": 6,
-        "gainDb": -23
+        "sceneId": "again",
+        "eventId": "feed-2-arrival",
+        "gainDb": -19
+      },
+      {
+        "assetId": "swish",
+        "sceneId": "wander",
+        "eventId": "turn-1",
+        "gainDb": -28
       },
       {
         "assetId": "swish",
         "sceneId": "repeat",
-        "offsetFrames": 10,
+        "eventId": "turn-2",
         "gainDb": -26
       },
       {
         "assetId": "swish",
         "sceneId": "repeat",
-        "offsetFrames": 120,
+        "eventId": "turn-3",
         "gainDb": -24
       },
       {
-        "assetId": "latch",
+        "assetId": "swish",
         "sceneId": "again",
-        "offsetFrames": 100,
-        "gainDb": -22
-      },
-      {
-        "assetId": "grain",
-        "sceneId": "again",
-        "offsetFrames": 108,
-        "gainDb": -20
+        "eventId": "turn-5",
+        "gainDb": -24
       },
       {
         "assetId": "chord",
         "sceneId": "again",
-        "offsetFrames": 178,
+        "eventId": "reveal",
         "gainDb": -20
-      },
-      {
-        "assetId": "tick",
-        "sceneId": "feeder",
-        "offsetFrames": 0,
-        "gainDb": -32
-      },
-      {
-        "assetId": "tick",
-        "sceneId": "feeder",
-        "offsetFrames": 30,
-        "gainDb": -32
-      },
-      {
-        "assetId": "tick",
-        "sceneId": "feeder",
-        "offsetFrames": 60,
-        "gainDb": -32
-      },
-      {
-        "assetId": "tick",
-        "sceneId": "feeder",
-        "offsetFrames": 90,
-        "gainDb": -32
-      },
-      {
-        "assetId": "tick",
-        "sceneId": "feeder",
-        "offsetFrames": 120,
-        "gainDb": -32
       }
     ]
   }

@@ -49,6 +49,26 @@ def test_code_scene_without_narration_is_accepted(tmp_path):
     explainer.validate(storyboard(code_scene()), scene_root(tmp_path))
 
 
+def test_global_timebase_injects_timeline_only_when_declared():
+    from m2v.core import frames
+    compiled = {"id": "a", "startFrame": 100, "endFrame": 220, "durationInFrames": 120,
+                "segmentWindows": {}, "content": {"entry": "scenes/demo.tsx", "props": {}}}
+    plain = code_scenes.scene_config(compiled, frames.spec(1920, 1080), {}, fps=30)
+    assert "timeline" not in plain
+    opted = {**compiled, "content": {"entry": "scenes/demo.tsx",
+                                     "props": {"capture": {"timebase": "global"}}}}
+    config = code_scenes.scene_config(opted, frames.spec(1920, 1080), {}, fps=30)
+    assert config["timeline"] == {"sceneStartFrame": 100, "sceneEndFrame": 220,
+                                  "durationInFrames": 120}
+
+
+def test_capture_timebase_rejects_unknown_values_and_fields():
+    with pytest.raises(M2VError, match="timebase"):
+        code_scenes.capture_settings({"capture": {"timebase": "wall"}})
+    with pytest.raises(M2VError, match="未知字段"):
+        code_scenes.capture_settings({"capture": {"timebase": "global", "mode": "pure-time"}})
+
+
 @pytest.mark.parametrize("entry", ["C:/outside.tsx", "scenes\\demo.tsx", "assets/demo.tsx",
                                    "scenes/../outside.tsx", "scenes/demo.txt", "scenes/missing.tsx"])
 def test_entry_outside_the_scenes_directory_is_rejected(tmp_path, entry):
