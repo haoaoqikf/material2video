@@ -12,6 +12,8 @@
  * 坐标一律是逻辑坐标；画布后备缓冲的像素密度由 `Painter` 统一换算。
  */
 
+import {area, intersect, type Vertex} from './geometry';
+
 export type Point = [number, number];
 
 /** 一次绘制的记录，供量测代理转成 `data-m2v-role` 元素。 */
@@ -23,6 +25,9 @@ export type Mark = {
   y: number;
   width: number;
   height: number;
+  visible?: boolean;
+  clipped?: boolean;
+  fontFamily?: string;
   text?: string;
   fontSize?: number;
   color?: string;
@@ -94,6 +99,8 @@ export class Painter {
   /** 本帧绘制清单，按绘制顺序排列。 */
   readonly marks: Mark[] = [];
 
+  private clips: Vertex[][] = [];
+
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number, scale = 1) {
     if (!Number.isFinite(scale) || scale <= 0) throw new RangeError('采集像素密度必须是正数');
     this.ctx = ctx;
@@ -117,7 +124,19 @@ export class Painter {
 
   /** 记录一个可量测对象；`measurable: false` 时跳过。 */
   mark(mark: Mark, measurable = true): void {
-    if (measurable) this.marks.push(mark);
+    if (!measurable) return;
+    const polygon = this.rectangle(mark.x, mark.y, mark.width, mark.height);
+    let remaining = polygon;
+    for (const clip of this.clips) remaining = intersect(remaining, clip);
+    remaining = intersect(remaining, [{x: 0, y: 0}, {x: this.width, y: 0},
+      {x: this.width, y: this.height}, {x: 0, y: this.height}]);
+    const xs = polygon.map(p => p.x), ys = polygon.map(p => p.y);
+    const matrix = this.ctx.getTransform();
+    this.marks.push({...mark, x: Math.min(...xs), y: Math.min(...ys),
+      width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
+      fontSize: mark.fontSize == null ? undefined : mark.fontSize * Math.hypot(matrix.c, matrix.d) / this.scale,
+      visible: mark.visible !== false && this.ctx.globalAlpha > 0 && area(remaining) > 1e-9,
+      clipped: mark.clipped === true || area(remaining) + 1e-7 < area(polygon)});
   }
 
   /** 在一组变换、透明度、混合或裁剪里画。 */
@@ -133,13 +152,17 @@ export class Painter {
       ctx.scale(value[0], value[1]);
     }
     if (options.blur) ctx.filter = `blur(${options.blur}px)`;
+    const clipCount = this.clips.length;
     if (options.clip) {
+      this.clips.push(this.rectangle(...options.clip));
       ctx.beginPath();
       ctx.rect(options.clip[0], options.clip[1], options.clip[2], options.clip[3]);
       ctx.clip();
     }
-    draw();
-    ctx.restore();
+    try { draw(); } finally {
+      this.clips.length = clipCount;
+      ctx.restore();
+    }
   }
 
   /** 径向柔光，加法混合。越亮的物体光晕越大是这套出帧的自然结果。 */
@@ -317,93 +340,119 @@ export class Painter {
     return width;
   }
 
-  /** 画一行字，返回宽度；给了 `role` 就记入量测清单。 */
+  /** 从正在绘制的 context 读取变换，换回逻辑像素，避免再维护一套变换栈。 */
+  private rectangle(x: number, y: number, width: number, height: number): Vertex[] {
+    const m = this.ctx.getTransform();
+    return [[x, y], [x + width, y], [x + width, y + height], [x, y + height]]
+      .map(([px, py]) => ({x: (m.a * px + m.c * py + m.e) / this.scale,
+                          y: (m.b * px + m.d * py + m.f) / this.scale}));
+  }
+
+  /** 使用本次 fillText 的实际字形度量；baseline、字体与字距都已在 context 上生效。 */
+  private textMark(content: string, x: number, y: number, settings: TextOptions,
+                   metrics: TextMetrics): Mark {
+    return {role: settings.role!, state: settings.state ?? '', text: content,
+      x: x - metrics.actualBoundingBoxLeft, y: y - metrics.actualBoundingBoxAscent,
+      width: metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight,
+      height: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent,
+      fontSize: settings.size, fontFamily: settings.font, color: settings.color};
+  }
+
+  /** 画一行字，返回排版宽度；透明文字保留不可见记录，不冒充活动文字。 */
   text(content: string, x: number, y: number, options: TextOptions = {}): number {
     const {ctx} = this;
     const settings = {...DEFAULT_TEXT, ...options};
     ctx.save();
-    this.applyFont(settings, options.track ?? 0);
-    const width = ctx.measureText(content).width;
-    const left = settings.align === 'center' ? x - width / 2
-      : settings.align === 'right' ? x - width : x;
-    ctx.globalAlpha *= settings.alpha;
-    if (settings.glow) {
-      ctx.shadowColor = rgba(settings.glowColor ?? settings.color, .85);
-      ctx.shadowBlur = settings.glow;
-    }
-    ctx.fillStyle = rgba(settings.color, 1);
-    ctx.textAlign = 'left';
-    ctx.fillText(content, left, y);
-    ctx.restore();
-    if (options.role) {
-      const size = settings.size;
-      this.mark({role: options.role, state: options.state ?? '',
-                 x: left, y: y - size * .62, width, height: size * 1.24,
-                 text: content, fontSize: size, color: settings.color},
-                options.measurable !== false);
-    }
-    return width;
+    try {
+      this.applyFont(settings, settings.track);
+      const metrics = ctx.measureText(content);
+      const width = metrics.width;
+      const left = settings.align === 'center' ? x - width / 2
+        : settings.align === 'right' ? x - width : x;
+      ctx.globalAlpha *= Math.max(0, Math.min(1, settings.alpha));
+      if (settings.glow) {
+        ctx.shadowColor = rgba(settings.glowColor ?? settings.color, .85);
+        ctx.shadowBlur = settings.glow;
+      }
+      ctx.fillStyle = rgba(settings.color, 1);
+      ctx.fillText(content, left, y);
+      if (options.role) {
+        this.mark({...this.textMark(content, left, y, settings, metrics),
+          visible: this.fillVisible()}, options.measurable !== false);
+      }
+      return width;
+    } finally { ctx.restore(); }
   }
 
-  /**
-   * 逐字画；`per` 返回每个字的覆盖样式——逐字显影、打字、单字变色都用它。
-   * 记入清单时仍是整行一条，与 `text()` 一致，避免被当成多个对象。
-   */
+  /** 逐字显影只登记实际可见字，仍合并为一条对象，不能提前声明整句已显示。 */
   chars(content: string, x: number, y: number, options: TextOptions = {},
         per?: (index: number, char: string) => Partial<TextOptions> | undefined): number {
     const {ctx} = this;
     const settings = {...DEFAULT_TEXT, ...options};
-    const characters = Array.from(content);
-    const track = settings.track;
-    const widths = characters.map(char => {
-      ctx.save();
+    ctx.save();
+    try {
       this.applyFont(settings, 0);
-      const width = ctx.measureText(char).width;
-      ctx.restore();
-      return width;
-    });
-    const total = widths.reduce((sum, value) => sum + value, 0) + track * (characters.length - 1);
-    let cursor = settings.align === 'center' ? x - total / 2
-      : settings.align === 'right' ? x - total : x;
-    const start = cursor;
-    characters.forEach((char, index) => {
-      const override = (per && per(index, char)) || {};
-      const alpha = (override.alpha ?? 1) * settings.alpha;
-      const color = override.color ?? settings.color;
-      if (alpha > .003) {
+      const characters = Array.from(content);
+      const metrics = characters.map(char => ctx.measureText(char));
+      const total = metrics.reduce((sum, value) => sum + value.width, 0)
+        + settings.track * Math.max(0, characters.length - 1);
+      let cursor = settings.align === 'center' ? x - total / 2
+        : settings.align === 'right' ? x - total : x;
+      const start = this.marks.length;
+      const painted: boolean[] = [];
+      characters.forEach((char, index) => {
+        const override = per?.(index, char) || {};
+        const alpha = (override.alpha ?? 1) * settings.alpha;
+        const color = override.color ?? settings.color;
         ctx.save();
-        this.applyFont(settings, 0);
-        ctx.globalAlpha *= Math.max(0, Math.min(1, alpha));
-        const glow = override.glow ?? settings.glow;
-        if (glow) {
-          ctx.shadowColor = rgba(override.glowColor ?? color, .85);
-          ctx.shadowBlur = glow;
-        }
-        ctx.fillStyle = rgba(color, 1);
-        ctx.textAlign = 'left';
-        ctx.fillText(char, cursor, y);
-        ctx.restore();
+        try {
+          ctx.globalAlpha *= Math.max(0, Math.min(1, alpha));
+          const glow = override.glow ?? settings.glow;
+          if (glow) {
+            ctx.shadowColor = rgba(override.glowColor ?? color, .85);
+            ctx.shadowBlur = glow;
+          }
+          ctx.fillStyle = rgba(color, 1);
+          const drawn = alpha > .003;
+          if (drawn) ctx.fillText(char, cursor, y);
+          painted.push(drawn && this.fillVisible());
+          if (options.role) this.mark({...this.textMark(char, cursor, y, {...settings, color}, metrics[index]),
+            visible: drawn && this.fillVisible()}, options.measurable !== false);
+        } finally { ctx.restore(); }
+        cursor += metrics[index].width + settings.track;
+      });
+      const pieces = this.marks.splice(start);
+      const visible = pieces.filter(mark => mark.visible);
+      const bounds = visible.length ? visible : pieces;
+      if (bounds.length) {
+        const left = Math.min(...bounds.map(mark => mark.x)), top = Math.min(...bounds.map(mark => mark.y));
+        this.marks.push({...bounds[0], x: left, y: top,
+          width: Math.max(...bounds.map(mark => mark.x + mark.width)) - left,
+          height: Math.max(...bounds.map(mark => mark.y + mark.height)) - top,
+          text: pieces.filter((mark, index) => mark.visible ||
+            (visible.length > 0 && painted[index] && /^\s+$/.test(mark.text ?? ''))).map(mark => mark.text).join(''),
+          visible: visible.length > 0,
+          clipped: pieces.some(mark => mark.clipped)});
       }
-      cursor += widths[index] + track;
-    });
-    if (options.role) {
-      const size = settings.size;
-      this.mark({role: options.role, state: options.state ?? '',
-                 x: start, y: y - size * .62, width: total, height: size * 1.24,
-                 text: content, fontSize: size, color: settings.color},
-                options.measurable !== false);
-    }
-    return total;
+      return total;
+    } finally { ctx.restore(); }
   }
 
-  private applyFont(options: TextOptions, track?: number): void {
+  /** Canvas 规范化后的填充色包含颜色自身 alpha；globalAlpha 另外相乘。 */
+  private fillVisible(): boolean {
+    const fill = this.ctx.fillStyle;
+    if (typeof fill !== 'string') return this.ctx.globalAlpha > 0;
+    const match = fill.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/);
+    const modern = fill.match(/\/\s*([+\-\deE.]+)(%)?\s*\)$/);
+    const hexAlpha = /^#[\da-f]{8}$/i.test(fill) ? parseInt(fill.slice(7), 16) / 255 : 1;
+    return this.ctx.globalAlpha * (modern ? Number(modern[1]) / (modern[2] ? 100 : 1) : match ? Number(match[1]) : hexAlpha) > 0;
+  }
+
+  private applyFont(options: TextOptions, track = options.track ?? 0): void {
     const {ctx} = this;
-    const size = options.size ?? DEFAULT_TEXT.size;
-    ctx.font = `${size}px ${options.font ?? DEFAULT_TEXT.font}`;
-    // `letterSpacing` 不是所有运行时都有；缺失时退化为无字距，位置仍由 layout 决定。
-    if (track != null && 'letterSpacing' in ctx) {
-      (ctx as unknown as {letterSpacing: string}).letterSpacing = `${track}px`;
-    }
+    ctx.font = `${options.size ?? DEFAULT_TEXT.size}px ${options.font ?? DEFAULT_TEXT.font}`;
+    ctx.textBaseline = options.baseline ?? DEFAULT_TEXT.baseline;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${track}px`;
     ctx.textAlign = 'left';
   }
 

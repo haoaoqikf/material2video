@@ -18,6 +18,7 @@ export type ReviewState = {role: string; count: number; state?: string};
 export function reviewState(marks: Mark[]): ReviewState[] {
   const counts = new Map<string, ReviewState>();
   for (const mark of marks) {
+    if (mark.visible === false) continue;
     const existing = counts.get(mark.role);
     if (existing) {
       existing.count += 1;
@@ -36,10 +37,9 @@ export function reviewState(marks: Mark[]): ReviewState[] {
  * 元素带 `data-m2v-role` 与 `data-m2v-state`、与实际绘制一致的字号与文本；
  * 颜色写进 `color`，供量测核对。
  *
- * **文字必须用 `-webkit-text-fill-color: transparent` 隐藏，不能用
- * `opacity: 0` 或 `color: transparent`**：
+ * **代理本身以 `-webkit-text-fill-color: transparent` 隐藏**：
  *
- * - `opacity: 0` 会让量测判定元素不可见，代理等于不存在；
+ * - `opacity: 0` 仅用于实际绘制不可见的记录，不用来隐藏可见文字的代理；
  * - `color: transparent` 会让量测读到的颜色变成 transparent，颜色断言全部失败；
  * - 只有 text-fill-color 能同时满足「计算样式里的 color 仍是原值」与「屏幕上看不见」。
  *
@@ -51,8 +51,10 @@ export function MeasureProxy({marks}: {marks: Mark[]}): React.ReactElement {
       {marks.map((mark, index) => (
         <div
           key={`${mark.role}-${index}`}
+          data-m2v-painter="true"
           data-m2v-role={mark.role}
           data-m2v-state={mark.state}
+          data-m2v-painter-clipped={mark.clipped ? 'true' : undefined}
           style={{
             position: 'absolute',
             left: mark.x,
@@ -60,6 +62,8 @@ export function MeasureProxy({marks}: {marks: Mark[]}): React.ReactElement {
             width: Math.max(0, mark.width),
             height: Math.max(0, mark.height),
             fontSize: mark.fontSize,
+            fontFamily: mark.fontFamily,
+            opacity: mark.visible === false ? 0 : 1,
             color: mark.color,
             background: 'transparent',
             // 只隐藏填充，不改计算样式里的 color。

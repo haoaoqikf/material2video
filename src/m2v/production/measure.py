@@ -5,7 +5,7 @@ DOM = r"""() => {
  const nodes = [...document.querySelectorAll('[data-m2v-role]')];
  return nodes.map((el, index) => {
    const r = el.getBoundingClientRect(), s = getComputedStyle(el);
-   let visible = r.width > 0 && r.height > 0, clipped = false;
+   let visible = r.width > 0 && r.height > 0, clipped = el.dataset.m2vPainterClipped === 'true';
    for (let n = el; n; n = n.parentElement) {
      const st = getComputedStyle(n), box = n.getBoundingClientRect();
      if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) visible = false;
@@ -15,7 +15,9 @@ DOM = r"""() => {
    return {id:el.id || `element-${index}`, role:el.dataset.m2vRole, state:el.dataset.m2vState || '',
      color:s.fill !== 'none' ? s.fill : s.color, visible, clipped, text:el.textContent?.trim() || '',
      fontSize:parseFloat(s.fontSize), lineHeight:(Number.isFinite(parseFloat(s.lineHeight)) ? parseFloat(s.lineHeight) : 0),
-     scrollWidth:el.scrollWidth, clientWidth:el.clientWidth,
+     // Canvas fillText 单行绘制；代理的墨迹外框不是 DOM 字体排版容器，不能拿其溢出当换行。
+     scrollWidth:el.dataset.m2vPainter === 'true' ? r.width : el.scrollWidth,
+     clientWidth:el.dataset.m2vPainter === 'true' ? r.width : el.clientWidth,
      x:r.x, y:r.y, width:r.width, height:r.height,
      parents:nodes.filter(p => p !== el && p.contains(el)).map(p => p.id || `element-${nodes.indexOf(p)}`)};
  });

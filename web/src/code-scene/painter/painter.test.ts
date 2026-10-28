@@ -12,6 +12,8 @@ import {reviewState} from './measure-proxy';
 function stubContext() {
   const calls: {name: string; args: unknown[]}[] = [];
   const record = (name: string) => (...args: unknown[]) => { calls.push({name, args}); };
+  let matrix = {a: 1, b: 0, c: 0, d: 1, e: 0, f: 0};
+  const stack: {matrix: typeof matrix; alpha: number}[] = [];
   const ctx = {
     canvas: {width: 0, height: 0},
     globalAlpha: 1,
@@ -27,12 +29,14 @@ function stubContext() {
     textAlign: 'left',
     textBaseline: 'middle',
     font: '10px sans-serif',
-    setTransform: record('setTransform'),
-    save: record('save'),
-    restore: record('restore'),
-    translate: record('translate'),
-    rotate: record('rotate'),
-    scale: record('scale'),
+    getTransform: () => ({...matrix}),
+    setTransform: (a: number, b: number, c: number, d: number, e: number, f: number) => { matrix = {a,b,c,d,e,f}; },
+    save: () => { stack.push({matrix: {...matrix}, alpha: ctx.globalAlpha}); },
+    restore: () => { const state = stack.pop()!; matrix = state.matrix; ctx.globalAlpha = state.alpha; },
+    translate: (x: number, y: number) => { matrix.e += matrix.a*x + matrix.c*y; matrix.f += matrix.b*x + matrix.d*y; },
+    rotate: (r: number) => { const m = matrix, c = Math.cos(r), s = Math.sin(r); matrix = {...m,
+      a:m.a*c+m.c*s, b:m.b*c+m.d*s, c:m.c*c-m.a*s, d:m.d*c-m.b*s}; },
+    scale: (x: number, y: number) => { matrix.a *= x; matrix.b *= x; matrix.c *= y; matrix.d *= y; },
     beginPath: record('beginPath'),
     closePath: record('closePath'),
     moveTo: record('moveTo'),
@@ -47,7 +51,8 @@ function stubContext() {
     fillText: record('fillText'),
     setLineDash: record('setLineDash'),
     clip: record('clip'),
-    measureText: (text: string) => ({width: text.length * 10}),
+    measureText: (text: string) => ({width: text.length * 10, actualBoundingBoxLeft: 0,
+      actualBoundingBoxRight: text.length * 10, actualBoundingBoxAscent: 30, actualBoundingBoxDescent: 10}),
     createLinearGradient: () => ({addColorStop: () => undefined}),
     createRadialGradient: () => ({addColorStop: () => undefined}),
   };
@@ -212,5 +217,62 @@ describe('出帧层序', () => {
     } finally { restore(); }
     expect(order).toContain('content');
     expect(order).toContain('overlay');
+  });
+});
+
+
+describe('绘制量测反例', () => {
+  it('透明文字与全部未显影文字不计为可见对象', () => {
+    const {ctx} = stubContext();
+    const p = new Painter(ctx, 640, 360);
+    p.text('TEST', 100, 100, {role: 'subject', alpha: 0});
+    p.chars('TEST', 100, 100, {role: 'subject'}, () => ({alpha: 0}));
+    expect(p.marks.every(m => m.visible === false)).toBe(true);
+    expect(reviewState(p.marks)).toEqual([]);
+  });
+  it('部分显影只报告已画文字', () => {
+    const {ctx} = stubContext();
+    const p = new Painter(ctx, 640, 360);
+    p.chars('TEST', 100, 100, {role: 'subject'}, i => ({alpha: i < 2 ? 1 : 0}));
+    expect(p.marks).toHaveLength(1);
+    expect(p.marks[0].text).toBe('TE');
+    expect(p.marks[0].width).toBe(20);
+  });
+  it('嵌套变换按当前矩阵换算，采集倍数不改变逻辑几何', () => {
+    for (const density of [1, 2]) {
+      const {ctx} = stubContext();
+      const p = new Painter(ctx, 640, 360, density);
+      p.group({at: [100, 50], scale: 2}, () => p.group({at: [10, 10]}, () =>
+        p.text('TEST', 0, 40, {role: 'subject', align: 'left', size: 20})));
+      expect(p.marks[0]).toMatchObject({x: 120, y: 90, width: 80, height: 80, fontSize: 40});
+    }
+  });
+  it('离屏、零透明度与完全裁剪分组不可见，裁剪退出后恢复', () => {
+    const {ctx} = stubContext();
+    const p = new Painter(ctx, 640, 360);
+    const draw = () => p.text('TEST', 100, 100, {role: 'subject'});
+    p.group({at: [1000, 0]}, draw);
+    p.group({alpha: 0}, draw);
+    p.group({clip: [0, 0, 1, 1]}, draw);
+    draw();
+    expect(p.marks.map(m => m.visible)).toEqual([false, false, false, true]);
+  });
+  it('旋转裁剪使用真实多边形，不用其外框放行', () => {
+    const {ctx} = stubContext();
+    const p = new Painter(ctx, 640, 360);
+    p.group({at: [100,100], rotate: Math.PI/4, clip: [0,0,100,100]}, () => {
+      // 返回世界坐标后，左上角处于裁剪外框内、真实菱形之外。
+      p.group({rotate: -Math.PI/4}, () => p.text('T', -60, 35, {role:'subject', align:'left'}));
+    });
+    expect(p.marks[0].visible).toBe(false);
+  });
+  it('部分裁剪保留裁切标记，分组抛错仍恢复 context', () => {
+    const {ctx} = stubContext();
+    const p = new Painter(ctx, 640, 360);
+    p.group({clip:[90,0,10,200]}, () => p.text('TEST',100,100,{role:'subject'}));
+    expect(p.marks[0]).toMatchObject({visible:true,clipped:true});
+    expect(() => p.group({alpha:0,at:[1000,0]}, () => {throw Error('stop');})).toThrow();
+    p.text('TEST',100,100,{role:'subject'});
+    expect(p.marks[1]).toMatchObject({visible:true,x:80});
   });
 });

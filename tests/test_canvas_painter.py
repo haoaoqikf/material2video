@@ -157,3 +157,90 @@ export default function Scene({width, height}: any) {
     assert "观测范围" not in by_name
     probe = measure.evaluate_probe(raw["probe"], cp, frame=2)
     assert probe and all(item["status"] == "pass" for item in probe)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("density", [1, 2])
+def test_painter_visibility_matches_pixels_and_measurement(tmp_path, density):
+    """真实浏览器反例：不可见/部分显影不能靠透明代理把文字计划放行。"""
+    from playwright.sync_api import sync_playwright
+    from m2v.production import measure
+    from _helpers import prepare_build
+
+    source = """
+import {useEffect} from 'react';
+import {painter, useSceneContext} from 'm2v/code-scene';
+export default function Scene({width, height}: any) {
+  const {ready} = useSceneContext();
+  useEffect(() => { ready(); }, [ready]);
+  return <painter.PainterCanvas width={width} height={height} bloom={0} grain={0}
+    paint={() => {}} overlay={(p, state) => {
+      const mode = state.frameIndex;
+      const opts = {role:'subject', state:'revealed', size:48, align:'left' as const};
+      const draw = () => p.text('TEST', 100, 100, opts);
+      if(mode===0) p.text('TEST',100,100,{...opts,alpha:0});
+      if(mode===1) p.chars('TEST',100,100,opts,()=>({alpha:0}));
+      if(mode===2) p.group({at:[1000,0]},draw);
+      if(mode===3) p.group({clip:[0,0,1,1]},draw);
+      if(mode===4) p.group({alpha:0},draw);
+      if(mode===5) p.chars('TEST',100,100,opts,i=>({alpha:i<2?1:0}));
+      if(mode===6) draw();
+      if(mode===7) p.text('TEST',100,100,{...opts,baseline:'top'});
+      if(mode===8) p.group({clip:[100,0,10,300]},draw);
+      if(mode===9) p.text('TEST',100,100,{...opts,color:'rgba(255,255,255,0)'});
+      if(mode===10) p.chars('HELLO WORLD',100,100,opts);
+      if(mode===11) p.text('I',100,100,opts);
+      if(mode===12) p.text('TEST',100,100,{...opts,color:'color(display-p3 1 0 0 / 0)'});
+    }}/>;
+}
+"""
+    root, work, result = prepare_build(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    config = {"width": 640, "height": 360, "captureScale": density, "fps": 30,
+              "durationInFrames": 13, "props": {}, "media": {}, "segmentWindows": {},
+              "subtitleSafeArea": {"x": 0, "y": 300, "width": 640, "height": 40}}
+    seen = {}
+    def observe(page, frame):
+        seen[frame] = {
+            "elements": page.evaluate(measure.DOM),
+            "probe": page.evaluate("window.__M2V_REVIEW_STATE__"),
+            "pixels": page.evaluate("""() => {
+              const c=document.querySelector('canvas'), x=c.getContext('2d');
+              const d=x.getImageData(0,0,c.width,c.height).data;
+              let count=0,top=c.height;
+              for(let i=0;i<d.length;i+=4) if(d[i]+d[i+1]+d[i+2]>0) {
+                count++; top=Math.min(top,Math.floor(i/4/c.width));
+              }
+              return {count,top};
+            }""")}
+    with sync_playwright() as pw:
+        code_scenes._capture(pw, root, work, config, selected_frames=list(range(13)), observe=observe)
+    cp = {"frame": 0, "expected": [{"role": "subject", "count": 1, "state": "revealed"}],
+          "textPlan": [{"role": "subject", "text": "TEST", "window": [0, 13]}],
+          "forbidden": [], "measurement": {}}
+    for frame in [0, 1, 2, 3, 4, 9, 12]:
+        raw = seen[frame]
+        assert raw["pixels"]["count"] == 0, frame
+        assert not any(e["visible"] for e in raw["elements"]), (frame, raw)
+        assert raw["probe"] == [], frame
+        checks = measure.evaluate(raw["elements"], cp, width=640, height=360, frame=frame)
+        assert next(c for c in checks if c["name"] == "文字状态:subject")["status"] == "fail"
+    partial = seen[5]["elements"]
+    assert partial[0]["text"] == "TE"
+    checks = measure.evaluate(partial, cp, width=640, height=360, frame=5)
+    assert next(c for c in checks if c["name"] == "文字状态:subject")["status"] == "fail"
+    for frame in [6, 7]:
+        raw = seen[frame]
+        assert raw["pixels"]["count"] > 0
+        checks = measure.evaluate(raw["elements"], cp, width=640, height=360, frame=frame)
+        assert next(c for c in checks if c["name"] == "文字状态:subject")["status"] == "pass"
+        # 代理上下界来自同一次 Canvas TextMetrics，允许一个采集像素的栅格误差。
+        assert abs(raw["elements"][0]["y"] * density - raw["pixels"]["top"]) <= 1
+    assert seen[7]["elements"][0]["y"] > seen[6]["elements"][0]["y"]
+    checks = measure.evaluate(seen[8]["elements"], cp, width=640, height=360, frame=8)
+    assert any(c["name"].startswith("裁切:") and c["status"] == "fail" for c in checks)
+
+    assert seen[10]["elements"][0]["text"] == "HELLO WORLD"
+    cp["measurement"] = {"subtitleRoles": ["subject"]}
+    checks = measure.evaluate(seen[11]["elements"], cp, width=640, height=360, frame=11)
+    assert next(c for c in checks if c["name"] == "屏幕字幕单行:element-0")["status"] == "pass"
