@@ -21,7 +21,7 @@ def routes() -> dict:
 def test_current_routes_and_budgets_pass():
     counts = guidance_docs.validate(ROOT)
     assert counts['entry'] <= 2000
-    for stage in ('plan', 'rough', 'refine', 'final'):
+    for stage in ('plan', 'iterate', 'final'):
         assert counts[stage] <= 3000
         assert counts['entry'] + counts[stage] <= 5000
 
@@ -39,9 +39,11 @@ def test_anchors_ignore_template_fences():
 
 
 @pytest.mark.parametrize('mutation,match', [
-    (lambda r: r['stages'].pop(), '四阶段'),
-    (lambda r: r['stages'].append({'id': 'extra', 'guide': 'references/stage-final.md'}), '四阶段'),
-    (lambda r: r['stages'][0].update(guide='references/stage-final.md'), '四阶段'),
+    (lambda r: r['stages'][1].update(id='rough'), '三阶段'),
+    (lambda r: r['stages'][1].update(id='refine'), '三阶段'),
+    (lambda r: r['stages'].pop(), '三阶段'),
+    (lambda r: r['stages'].append({'id': 'extra', 'guide': 'references/stage-final.md'}), '三阶段'),
+    (lambda r: r['stages'][0].update(guide='references/stage-final.md'), '三阶段'),
     (lambda r: r['stages'][0].update(guide='references/missing.md'), '阅读目标不存在'),
     (lambda r: r['tasks'][0].update(guide='references/stage-plan.md#不存在的锚点'), '标题锚点不存在'),
     (lambda r: r['conditional'][0].update(when='  '), '触发条件'),

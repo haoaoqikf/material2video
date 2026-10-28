@@ -20,6 +20,8 @@
 
 可选 Canvas 绘制层的量测同步透明度、逐字显影、分组变换与裁剪，使用实际字形外框；完全不可见文字不会作为可见对象通过，部分裁剪明确报告失败。最终像素遮挡与可读性仍需视觉复核，见[绘制量测边界](.agents/skills/material2video/references/code-scene-runtime.md#绘制量测的可见性边界)。
 
+general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；初评验证与精制修订在同一阶段持续闭环，核心、全片粗片与最终评审职责保留。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。
+
 ## 快速开始
 
 ```powershell

@@ -46,7 +46,7 @@ def test_reference_docs_are_reachable_from_the_entry():
     docs = reachable()
     for name in ("visual-impact-design.md", "visual-creative-direction.md", "reference-video-analysis.md",
                  "article-media-and-sound.md", "visual-review-rubric.md", "stage-plan.md",
-                 "stage-rough.md", "stage-refine.md", "stage-final.md", "checkpoint-gates.md"):
+                 "stage-iterate.md", "stage-final.md", "checkpoint-gates.md"):
         assert name in docs, name
 
 

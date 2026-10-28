@@ -7,12 +7,8 @@
       "guide": "references/stage-plan.md"
     },
     {
-      "id": "rough",
-      "guide": "references/stage-rough.md"
-    },
-    {
-      "id": "refine",
-      "guide": "references/stage-refine.md"
+      "id": "iterate",
+      "guide": "references/stage-iterate.md"
     },
     {
       "id": "final",
@@ -32,12 +28,12 @@
     },
     {
       "id": "review",
-      "guide": "references/stage-rough.md",
+      "guide": "references/stage-iterate.md",
       "when": "核心或粗片评审；目标关键帧盲审按方案确定阶段，最终轮改读 final 主指南"
     },
     {
       "id": "diagnose",
-      "guide": "references/stage-refine.md",
+      "guide": "references/stage-iterate.md",
       "when": "排查材料、场景、媒体或证据问题"
     }
   ],

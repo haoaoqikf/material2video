@@ -21,8 +21,8 @@ GATES = (
     Gate('G1', '方案确定', 'project', 'declaration', 'v2 合同、审核计划与设计声明一致性', 'core'),
     Gate('G2', '方案确定', 'project', 'design', '适用风险的独立目标关键帧及观察', 'core'),
     Gate('G3', '方案确定', 'project', 'mapping', '分镜映射自动检查；适用风险的 animatic 观察', 'core'),
-    Gate('G4', '粗片验证', 'checkpoint', 'capture', '每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察', 'core'),
-    Gate('G5', '粗片验证', 'project', None, '一份全片粗片综合报告，覆盖全部场景、结构、衔接、节奏与视觉风险', 'rough'),
+    Gate('G4', '制作与迭代', 'checkpoint', 'capture', '每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察', 'core'),
+    Gate('G5', '制作与迭代', 'project', None, '一份全片粗片综合报告，覆盖全部场景、结构、衔接、节奏与视觉风险', 'rough'),
     Gate('G6', '最终验收', 'project', None, '当前候选技术 QA、完整全片证据与计划要求的终审', 'final'),
 )
 GATE_IDS = tuple(g.id for g in GATES)
@@ -41,7 +41,5 @@ def prerequisites(gate_id: str) -> tuple[str, ...]:
     return GATE_IDS[:GATE_IDS.index(gate_id)]
 
 
-def phase(current_gate: str | None, *, rough_passed: bool) -> str:
-    if rough_passed and current_gate in ('G4', 'G5'):
-        return '精制修订'
+def phase(current_gate: str | None) -> str:
     return gate(current_gate).phase if current_gate else '最终验收'

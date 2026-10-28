@@ -24,17 +24,16 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 - **新制作 general**：从[方案确定](references/stage-plan.md)开始。
 - **修订**：先读[修订入口](references/video-revision.md)，定位影响阶段、保留基线，再进入对应阶段；不重开无关选案。
-- **评审**：目标关键帧盲审在[方案确定](references/stage-plan.md)阶段完成；核心与粗片评审进入[粗片验证](references/stage-rough.md)，最终轮进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
-- **排查**：先读[精制与排查](references/stage-refine.md)，只展开相关技术契约；不要用排错代替制作复核。
-- **住宅**：先读[年度住宅均价视频](references/housing-timeseries-video.md)，再按[类型材料契约](../../../src/m2v/types/catalog.json)的 series 模板执行；不套 general 四阶段。
+- **评审**：目标关键帧盲审在[方案确定](references/stage-plan.md)阶段完成；核心与粗片评审进入[制作与迭代](references/stage-iterate.md)，最终轮进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
+- **排查**：先读[制作与迭代](references/stage-iterate.md)，只展开相关技术契约；不要用排错代替制作复核。
+- **住宅**：先读[年度住宅均价视频](references/housing-timeseries-video.md)，再按[类型材料契约](../../../src/m2v/types/catalog.json)的 series 模板执行；不套 general 三阶段。
 
 ## 当前阶段重点
 
 | 阶段 | 下一份主指南 | 首要问题 |
 |---|---|---|
 | 方案确定 | [方案](references/stage-plan.md) | 让谁理解什么，靠什么对象与机制 |
-| 粗片验证 | [粗片](references/stage-rough.md) | 最难关系成立了吗，能否扩展 |
-| 精制修订 | [精制](references/stage-refine.md) | 修复什么，是否损失有效表达 |
+| 制作与迭代 | [制作与迭代](references/stage-iterate.md) | 核心关系成立了吗，问题是否复查关闭 |
 | 最终验收 | [验收](references/stage-final.md) | 当前候选证据齐全、问题关闭了吗 |
 
 讲解片优先考虑对象追踪、尺度变化、过程结果联动、回场，按需选用；纯文字与合理延迟揭示不机械否决。技术 QA 不替代实际表达判断。

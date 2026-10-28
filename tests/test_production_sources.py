@@ -66,9 +66,12 @@ def test_all_core_risks_require_review_and_appear_in_docs(kind):
 def test_workflow_dependency_and_phase_semantics():
     assert workflow.prerequisites('G0') == ()
     assert workflow.prerequisites('G5') == ('G0', 'G1', 'G2', 'G3', 'G4')
-    assert workflow.phase('G4', rough_passed=False) == '粗片验证'
-    assert workflow.phase('G4', rough_passed=True) == '精制修订'
-    assert workflow.phase('G6', rough_passed=True) == '最终验收'
+    assert workflow.phase('G4') == '制作与迭代'
+    assert workflow.phase('G5') == '制作与迭代'
+    assert workflow.gate('G4').review_round == 'core'
+    assert workflow.gate('G5').review_round == 'rough'
+    assert workflow.gate('G6').review_round == 'final'
+    assert workflow.phase('G6') == '最终验收'
     with pytest.raises(M2VError):
         workflow.gate('G99')
 

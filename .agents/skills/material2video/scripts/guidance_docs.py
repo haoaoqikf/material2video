@@ -9,7 +9,7 @@ from urllib.parse import unquote
 from m2v.core.errors import M2VError
 
 SKILL = Path('.agents/skills/material2video')
-STAGES = {'plan', 'rough', 'refine', 'final'}
+STAGES = {'plan', 'iterate', 'final'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
 TYPES = {'general', 'financial-timeseries', 'housing-timeseries'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达', '过程证据容量'}
@@ -73,7 +73,7 @@ def validate(root: Path, routes: dict | None = None) -> dict[str, int]:
         tasks = _rows(routes['tasks'], {'id', 'guide', 'when'}, 'tasks')
         conditional = _rows(routes['conditional'], {'id', 'guide', 'when'}, 'conditional')
         if {r['id'] for r in stages} != STAGES or len({r['guide'] for r in stages}) != len(STAGES):
-            raise M2VError('四阶段必须各有唯一主指南')
+            raise M2VError('三阶段必须各有唯一主指南')
         if {r['id'] for r in tasks} != TASKS:
             raise M2VError('任务路由必须覆盖 new/revision/review/diagnose')
         for name, keys in (('types', TYPES), ('ruleOwners', OWNERS)):

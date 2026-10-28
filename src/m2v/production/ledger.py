@@ -297,8 +297,7 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             next_action = f'完成 {policy.round_for(current)} 轮缺失覆盖并导入报告（{current}）'
         elif current in ('G0', 'G5', 'G6'):
             next_action = f'登记 {current} 当前检查证据，再导入适用独立报告'
-    g5 = next(r for r in rows if r['gate'] == 'G5')
-    phase = workflow.phase(current, rough_passed=g5['evidenceStatus'] == '通过')
+    phase = workflow.phase(current)
     scene_summary = []
     for scene in c['scenes']:
         checkpoints = [row for row in scenes if row['sceneId'] == scene['id']]
