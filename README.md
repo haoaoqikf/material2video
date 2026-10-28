@@ -18,6 +18,8 @@
 
 讲解机制与实际表达复核已纳入制作指导：按需组织对象追踪、尺度变化、过程结果与回场，沿现有独立评审验证画面实际建立的关系；方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md#四种讲解机制的执行方法)。注册风格和组件技术通过不代表成片表现通过。
 
+general 讲解制作在现有逐场记录和时间线上协调贯穿对象、连续行为、画面事件与适用声音，并检查完整变化和观察窗口；具体方法见[贯穿对象、事件和完整动作](.agents/skills/material2video/references/explainer-design.md#贯穿对象事件和完整动作)。
+
 可选 Canvas 绘制层的量测同步透明度、逐字显影、分组变换与裁剪，使用实际字形外框；完全不可见文字不会作为可见对象通过，部分裁剪明确报告失败。最终像素遮挡与可读性仍需视觉复核，见[绘制量测边界](.agents/skills/material2video/references/code-scene-runtime.md#绘制量测的可见性边界)。
 
 general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；初评验证与精制修订在同一阶段持续闭环，核心、全片粗片与最终评审职责保留。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。制作先以最小完整段落验证最难关系，优先兼顾开场；同一材料由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
