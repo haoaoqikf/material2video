@@ -48,6 +48,7 @@ function stubContext() {
     fill: record('fill'),
     stroke: record('stroke'),
     fillRect: record('fillRect'),
+    drawImage: record('drawImage'),
     fillText: record('fillText'),
     setLineDash: record('setLineDash'),
     clip: record('clip'),
@@ -274,5 +275,43 @@ describe('绘制量测反例', () => {
     expect(() => p.group({alpha:0,at:[1000,0]}, () => {throw Error('stop');})).toThrow();
     p.text('TEST',100,100,{role:'subject'});
     expect(p.marks[1]).toMatchObject({visible:true,x:80});
+  });
+  it('离屏层把重叠对象合成后整体绘制，并在异常后可继续使用', () => {
+    const {ctx, calls} = stubContext();
+    const restore = (globalThis as {document?: unknown}).document;
+    let allocations = 0;
+    const offscreen = {width: 0, height: 0, getContext: () => ({
+      setTransform: () => undefined, clearRect: () => undefined, save: () => undefined,
+      restore: () => undefined, getTransform: () => ({a: 1, b: 0, c: 0, d: 1, e: 0, f: 0}),
+      beginPath: () => undefined, rect: () => undefined, clip: () => undefined,
+      drawImage: () => undefined, globalAlpha: 1, globalCompositeOperation: 'source-over',
+      fillStyle: '', strokeStyle: '', lineWidth: 1, lineCap: 'round', lineJoin: 'round',
+      shadowColor: '', shadowBlur: 0, filter: 'none', setLineDash: () => undefined,
+      arc: () => undefined, ellipse: () => undefined, fill: () => undefined, stroke: () => undefined,
+      moveTo: () => undefined, lineTo: () => undefined, closePath: () => undefined,
+      fillText: () => undefined,
+      measureText: () => ({width: 10, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 10,
+        actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2}),
+      createRadialGradient: () => ({addColorStop: () => undefined}),
+      createLinearGradient: () => ({addColorStop: () => undefined}),
+    })};
+    (globalThis as {document?: unknown}).document = {createElement: () => { allocations++; return offscreen; }};
+    const p = new Painter(ctx, 640, 360, 1);
+    try {
+      p.layer({alpha: .5, at: [10, 20]}, layer => {
+        layer.circle(100, 100, 20, {fill: '#FFF'});
+        layer.circle(110, 100, 20, {fill: '#FFF'});
+      });
+      expect(p.marks).toHaveLength(0);
+      expect(() => p.layer({}, () => { throw Error('stop'); })).toThrow('stop');
+      p.layer({alpha: 0}, layer => layer.text('hidden', 30, 30, {role: 'subject'}));
+      expect(p.marks[0]?.visible).toBe(false);
+      p.layer({scale: 2}, layer => layer.text('scaled', 30, 30, {role: 'scaled', size: 20}));
+      expect(p.marks[1]?.fontSize).toBe(40);
+      p.text('ok', 50, 50, {role: 'subject'});
+      expect(p.marks[2]?.visible).toBe(true);
+      expect(calls.some(call => call.name === 'drawImage')).toBe(true);
+      expect(allocations).toBe(1);
+    } finally { (globalThis as {document?: unknown}).document = restore; }
   });
 });

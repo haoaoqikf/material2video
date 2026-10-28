@@ -81,6 +81,25 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 }
 ```
 
+可选的 `envelopes` 与 `silence` 为全片音乐、音效轨增加层级曲线和主动留静：
+
+```json
+{
+  "soundtrack": {
+    "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": true},
+    "effects": [{"builtin": "transition", "sceneId": "turn", "offsetFrames": 0}],
+    "envelopes": [{"track": "music", "curve": "smooth", "keyframes": [
+      {"frame": 0, "gainDb": -24}, {"frame": 240, "gainDb": -34}, {"frame": 480, "gainDb": -24}
+    ]}],
+    "silence": [{"startFrame": 720, "endFrame": 780, "fadeFrames": 12}]
+  }
+}
+```
+
+- `envelopes` 最多两条，`track` 每种只能出现一次，取 `music` 或 `effects`。每条须有 2～256 个严格递增的 `{frame, gainDb}` 关键帧；帧号按全片时间轴从 0 开始，增益为 −60～0 dB。相邻点按 `curve`（`linear` 或 `smooth`）在 dB 域插值，首尾之外保持端值；要恢复原层级，需显式补回目标 dB 关键帧。音乐包络需要 `music`，音效包络需要至少一项 `effects`。
+- `silence` 最多 128 段，按全片帧升序且不得重叠；每段含 `{startFrame, endFrame, fadeFrames}`，淡化帧数至少为 1 且不超过窗口一半。窗口中部音乐和音效静音，进入和退出用平滑曲线淡化；旁白保持原样，因此这是声音设计层的留静，不是整条母版静音。窗口和关键帧越过实际成片长度会在准备时失败。
+- 帧号按实际项目帧率转换到 24 kHz 混音采样位置。静音优先于音乐与音效包络及旁白闪避；不存在包络或静音字段时沿用既有混音行为。母版响度与真峰值目标不变。
+
 - `music`：`sourceRef` 为作品目录内本地音频，`gainDb` 为 −60～0 dB，`loop` 为布尔值（默认 false），`fadeInMs`/`fadeOutMs` 为 0～60000 整数毫秒（默认各 500ms）；音床在旁白区间自动压低。
 - `effects`：最多 128 项，`builtin`、`sourceRef` 与 `assetId` 三选一。内置提示音为 `ding`、`ding-dong`、`click`、`transition`，由工具确定性地合成，不依赖外部资产许可；`sourceRef` 指向本地音频；常见动作音效优先使用下方统一音效库的 `assetId`。
 - 定位：`sceneId` 必填且必须是分镜里的幕；可选 `segmentId` 指向该幕旁白段，给出时从该段开始帧计时，否则从幕开始帧计时；`offsetMs` 为 ±60000 的整数，`gainDb` 为 −60～0 dB；音效按幕或旁白段窗口与 `offsetMs` 定位，起点必须落在全片时长内，否则准备失败。

@@ -19,7 +19,7 @@ BUILTINS = ("ding", "ding-dong", "click", "transition")
 def validate(data: dict, root: Path) -> None:
     from m2v.core.validate import number, obj
     from .explainer import local_file
-    track = obj(data.get("soundtrack", {}), "soundtrack", {"music", "effects"})
+    track = obj(data.get("soundtrack", {}), "soundtrack", {"music", "effects", "envelopes", "silence"})
     scenes = {s["id"]: s for s in data["scenes"]}
     library, _ = sound_library.resolve(root)
     if "music" in track:
@@ -65,6 +65,51 @@ def validate(data: dict, root: Path) -> None:
             raise M2VError("循环音效必须指定 durationMs")
         number(effect.get("pan", 0), -1, 1, "effect.pan")
 
+    envelopes = track.get("envelopes", [])
+    if not isinstance(envelopes, list) or len(envelopes) > 2:
+        raise M2VError("soundtrack.envelopes 必须为最多 2 项的数组")
+    targets = set()
+    max_frame = 600 * general_fps({}, data)
+    for envelope in envelopes:
+        obj(envelope, "soundtrack.envelope", {"track", "curve", "keyframes"})
+        target = envelope.get("track")
+        if target not in ("music", "effects") or target in targets:
+            raise M2VError("每种声音轨只能声明一条包络，track 为 music 或 effects")
+        targets.add(target)
+        if envelope.get("curve", "linear") not in ("linear", "smooth"):
+            raise M2VError("soundtrack.envelope.curve 只能为 linear 或 smooth")
+        points = envelope.get("keyframes")
+        if not isinstance(points, list) or not 2 <= len(points) <= 256:
+            raise M2VError("soundtrack.envelope.keyframes 必须为 2～256 个关键帧")
+        previous = -1
+        for point in points:
+            obj(point, "soundtrack.envelope.keyframe", {"frame", "gainDb"})
+            frame = integer(point.get("frame"), 0, max_frame, "soundtrack.envelope.frame")
+            if frame <= previous:
+                raise M2VError("soundtrack.envelope 关键帧必须按帧严格递增")
+            previous = frame
+            number(point.get("gainDb"), -60, 0, "soundtrack.envelope.gainDb")
+    if "music" in targets and "music" not in track:
+        raise M2VError("music 包络需要声明 soundtrack.music")
+    if "effects" in targets and not effects:
+        raise M2VError("effects 包络需要声明 soundtrack.effects")
+    silence = track.get("silence", [])
+    if not isinstance(silence, list) or len(silence) > 128:
+        raise M2VError("soundtrack.silence 必须为最多 128 项的数组")
+    if silence and not ("music" in track or effects):
+        raise M2VError("soundtrack.silence 需要 music 或 effects 声音轨")
+    previous_end = -1
+    for window in silence:
+        obj(window, "soundtrack.silence.window", {"startFrame", "endFrame", "fadeFrames"})
+        start = integer(window.get("startFrame"), 0, max_frame, "silence.startFrame")
+        end = integer(window.get("endFrame"), 1, max_frame, "silence.endFrame")
+        fade = integer(window.get("fadeFrames"), 1, max_frame, "silence.fadeFrames")
+        if end <= start or start < previous_end:
+            raise M2VError("静音窗口必须按时间排序且互不重叠")
+        if fade * 2 > end - start:
+            raise M2VError("静音窗口淡化长度不得超过窗口的一半")
+        previous_end = end
+
 
 def synthesize(name: str, target: Path) -> None:
     """无外部资产版权依赖的确定性正弦提示音，短包络避免点击爆音。"""
@@ -91,6 +136,17 @@ def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
     from .explainer import local_file
     fps = general_fps({}, source)
     track = source.get("soundtrack", {})
+    total_frames = round(duration * fps)
+    for envelope in track.get("envelopes", []):
+        if envelope["keyframes"][-1]["frame"] > total_frames:
+            raise M2VError("声音包络关键帧超过全片时长")
+        if envelope["track"] == "music" and "music" not in track:
+            raise M2VError("music 包络需要声明 soundtrack.music")
+        if envelope["track"] == "effects" and not track.get("effects"):
+            raise M2VError("effects 包络需要声明 soundtrack.effects")
+    for window in track.get("silence", []):
+        if window["endFrame"] > total_frames:
+            raise M2VError("静音窗口超过全片时长")
     music = None
     if "music" in track:
         settings = track["music"]
@@ -137,6 +193,7 @@ def mix(root: Path, source: dict, compiled: list[dict], raw: Path, target: Path,
                                    effect.get("fadeOutMs", 0)/1000, effect.get("pan")))
     if music or effects:
         audio.mix(raw, target, duration,
-                  [{"start": c["startFrame"]/ fps, "end": c["endFrame"]/ fps} for c in cues], music, effects, work)
+                  [{"start": c["startFrame"]/ fps, "end": c["endFrame"]/ fps} for c in cues], music, effects, work,
+                  fps=fps, envelopes=track.get("envelopes", []), silence=track.get("silence", []))
     else:
         audio.normalize(raw, target)

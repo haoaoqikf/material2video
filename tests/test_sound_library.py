@@ -227,6 +227,98 @@ def test_trim_loop_fades_and_stereo_master(tmp_path):
     assert not any(pcm(mastered)[1][1::2])
 
 
+def test_soundtrack_envelope_uses_video_frames_and_smooth_silence(tmp_path):
+    output = tmp_path / "gain.wav"
+    audio.soundtrack_envelope([], 2, 30, output,
+        {"curve": "linear", "keyframes": [{"frame": 0, "gainDb": -20},
+            {"frame": 30, "gainDb": 0}, {"frame": 60, "gainDb": -20}]})
+    (channels, rate, count), samples = pcm(output)
+    assert channels == 1 and rate == 24000 and count == 48000
+    assert samples[0] == pytest.approx(3277, abs=1)
+    assert samples[15*800] == pytest.approx(10362, abs=5)
+    assert samples[30*800] == pytest.approx(32767, abs=1)
+
+    audio.soundtrack_envelope([], 2, 30, output, silence=[
+        {"startFrame": 10, "endFrame": 50, "fadeFrames": 5}])
+    (_, _, count), samples = pcm(output)
+    assert count == 48000
+    assert samples[10*800] > 32000
+    assert samples[12*800] < samples[10*800]
+    assert samples[16*800] == 0
+    assert samples[30*800] == 0
+    assert samples[48*800] < samples[50*800]
+    assert samples[50*800] > 32000
+
+    audio.soundtrack_envelope([{"start": .5, "end": 1.}], 2, 30, output,
+        {"curve": "linear", "keyframes": [{"frame": 0, "gainDb": -6},
+            {"frame": 60, "gainDb": -6}]})
+    (_, _, _), samples = pcm(output)
+    assert samples[15*800] == pytest.approx(32767 * 10**(-16/20), abs=2)
+    assert samples[40*800] == pytest.approx(32767 * 10**(-6/20), abs=2)
+
+
+def test_soundtrack_envelope_and_silence_apply_to_mixed_effect_and_music(tmp_path):
+    narration = write_tone(tmp_path / "voice.wav", 2, 0)
+    music = write_tone(tmp_path / "bed.wav", 1, 400)
+    effect = write_tone(tmp_path / "effect.wav", .3, 900)
+    output = tmp_path / "mix.wav"
+    automation = [{"track": "music", "keyframes": [
+        {"frame": 0, "gainDb": 0}, {"frame": 60, "gainDb": -12}]},
+        {"track": "effects", "keyframes": [
+        {"frame": 0, "gainDb": -12}, {"frame": 60, "gainDb": 0}]}]
+    audio.mix(narration, output, 2, [], (music, {"gainDb": 0, "loop": True,
+        "fadeInMs": 0, "fadeOutMs": 0}), [audio.Effect(effect, 0, 0, 0, 2, True),
+        audio.Effect(effect, .2, -3, 0, 1.8, True)], tmp_path,
+        fps=30, envelopes=automation, silence=[{"startFrame": 15, "endFrame": 30, "fadeFrames": 3}])
+    (channels, rate, count), samples = pcm(output)
+    assert channels == 2 and count == 48000
+    # 留静窗口中只有音乐和效果音被静音，旁白仍是独立的声音层。
+    assert not any(samples[round(.7*rate)*2:round(.8*rate)*2])
+    assert energy(samples[round(1.2*rate)*2:round(1.4*rate)*2:2]) > 1000
+    mastered = tmp_path / "mastered.wav"
+    audio.master(output, mastered)
+    (channels, rate, count), final_samples = pcm(mastered)
+    assert channels == 2 and count == 48000
+    assert not any(final_samples[round(.7*rate)*2:round(.8*rate)*2])
+    stats = audio.loudness(mastered)
+    assert -15 <= float(stats["input_i"]) <= -13
+    assert float(stats["input_tp"]) <= -1
+
+
+@pytest.mark.parametrize("envelope", [
+    {"track": "music", "keyframes": [{"frame": 2, "gainDb": 0}, {"frame": 1, "gainDb": -20}]},
+    {"track": "music", "keyframes": [{"frame": 0, "gainDb": 0}, {"frame": 0, "gainDb": -20}]},
+    {"track": "music", "keyframes": [{"frame": 0, "gainDb": 5}, {"frame": 1, "gainDb": -20}]},
+    {"track": "unknown", "keyframes": [{"frame": 0, "gainDb": 0}, {"frame": 1, "gainDb": -20}]},
+])
+def test_soundtrack_envelope_validation_rejects_bad_targets_and_order(tmp_path, envelope):
+    data = board()
+    data["soundtrack"] = {"music": {"sourceRef": "assets/bed.wav"}, "envelopes": [envelope]}
+    (tmp_path / "assets").mkdir(exist_ok=True)
+    write_tone(tmp_path / "assets" / "bed.wav", 1)
+    with pytest.raises(M2VError):
+        explainer.validate(data, scene_root(tmp_path))
+
+
+def test_soundtrack_automation_requires_a_matching_track_and_nonoverlapping_silences(tmp_path):
+    data = board()
+    data["soundtrack"] = {"envelopes": [{"track": "effects", "keyframes": [
+        {"frame": 0, "gainDb": 0}, {"frame": 30, "gainDb": -12}]}]}
+    with pytest.raises(M2VError, match="effects 包络需要"):
+        explainer.validate(data, scene_root(tmp_path))
+    data["soundtrack"] = {"silence": [
+        {"startFrame": 0, "endFrame": 30, "fadeFrames": 2},
+        {"startFrame": 20, "endFrame": 40, "fadeFrames": 2}],
+        "music": {"sourceRef": "assets/bed.wav"}}
+    (tmp_path / "assets").mkdir(exist_ok=True)
+    write_tone(tmp_path / "assets" / "bed.wav", 1)
+    with pytest.raises(M2VError, match="互不重叠"):
+        explainer.validate(data, scene_root(tmp_path))
+    data["soundtrack"] = {"silence": [{"startFrame": 0, "endFrame": 30, "fadeFrames": 16}]}
+    with pytest.raises(M2VError, match="需要 music 或 effects"):
+        explainer.validate(data, scene_root(tmp_path))
+
+
 @pytest.mark.parametrize("extra,match", [
     ({"trimStartMs": 650}, "trimStartMs"),
     ({"durationMs": 651}, "durationMs"),

@@ -44,6 +44,49 @@ def test_painter_passes_the_determinism_source_gate():
     assert not violations, [item.render(WEB) for item in violations]
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize("density", [1, 2])
+def test_offscreen_layer_composites_overlaps_once_at_capture_density(tmp_path, density):
+    from playwright.sync_api import sync_playwright
+    from m2v.types.general import code_scenes
+    from _helpers import prepare_build
+
+    source = """
+import {useEffect} from 'react';
+import {painter, useSceneContext} from 'm2v/code-scene';
+export default function Scene({width, height}: any) {
+  const {ready} = useSceneContext();
+  useEffect(() => { ready(); }, [ready]);
+  return <painter.PainterCanvas width={width} height={height} bloom={0} grain={0}
+    paint={p => { p.clear('#000000'); p.layer({alpha: .5}, layer => layer.layer({}, inner => {
+      inner.circle(40, 50, 22, {fill: '#FF0000'});
+      inner.circle(60, 50, 22, {fill: '#0000FF'});
+    })); }} />;
+}
+"""
+    root, work, result = prepare_build(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    config = {"width": 100, "height": 100, "captureScale": density, "fps": 30,
+              "durationInFrames": 1, "props": {}, "media": {}, "segmentWindows": {},
+              "subtitleSafeArea": {"x": 0, "y": 90, "width": 100, "height": 10}}
+    pixels = {}
+    def observe(page, _frame):
+        pixels.update(page.evaluate("""() => {
+          const c=document.querySelector('canvas'), ctx=c.getContext('2d'), s=Number(c.width/100);
+          const px=(x,y)=>Array.from(ctx.getImageData(Math.round(x*s),Math.round(y*s),1,1).data);
+          return {left:px(30,50), overlap:px(50,50), right:px(70,50), scale:s};
+        }"""))
+    with sync_playwright() as pw:
+        code_scenes._capture(pw, root, work, config, selected_frames=[0], observe=observe)
+    assert pixels["scale"] == density
+    assert pixels["left"][0] == pytest.approx(128, abs=2)
+    assert pixels["left"][2] == 0
+    # 若两个对象各自以 0.5 alpha 画到目标画布，重叠像素会更亮；整体离屏合成应为 128。
+    assert pixels["overlap"][2] == pytest.approx(128, abs=2)
+    assert pixels["overlap"][0] == 0
+    assert pixels["right"][2] == pytest.approx(128, abs=2)
+
+
 def test_whole_code_scene_directory_passes_the_gate():
     """顺带覆盖宿主：这一目录整体不进入生产扫描，只能由测试守住。
 

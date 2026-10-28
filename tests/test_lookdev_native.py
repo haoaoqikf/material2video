@@ -103,7 +103,7 @@ export default function Scene({props}: CodeSceneProps) {
     props = {'version': 8, 'schemaVersion': 8, 'fps': 60, 'width': 1920, 'height': 1080,
              'title': '', 'subtitle': subtitle, 'durationInFrames': 6, 'compiledScenes': scenes,
              'subtitleCues': [{'text': '字幕验收', 'startFrame': 0, 'endFrame': 6}]}
-    prepared = {'width': 1920, 'height': 1080, 'props': props}
+    prepared = {'width': 1920, 'height': 1080, 'fps': 60, 'props': props}
     work = tmp_path / 'work'
     work.mkdir()
     captured = lookdev.native_stills(root, prepared, [3], work)

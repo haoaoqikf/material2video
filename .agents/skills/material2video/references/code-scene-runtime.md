@@ -240,6 +240,23 @@ frame.group({at: [width / 2 - focusX * scale, height / 2 - focusY * scale], scal
 | 缓动 | 由调用方传入（`easing`），缺省恒等；相机不自带风格化曲线 |
 | 跨幕 | 相机不跨场景自动延续；需要连续推拉时把整段时间轴放进单幕，或由作品显式传入一致状态 |
 
+#### 离屏分组合成与数值轨道
+
+`Painter.layer(options, draw)` 把回调中的对象画入透明离屏缓冲，再把整层作为一个对象参与 alpha、位置、旋转、缩放、模糊、裁剪或加法混合。缓冲按尺寸复用；嵌套层使用不同的在用缓冲，绘制报错时仍清空并释放缓冲。它适合多个重叠形状要一起淡入、一起运动的情况；普通 `group()` 仍用于逐对象混合、局部坐标和量测可精确跟随的分组。
+
+```tsx
+frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
+  drawBody(layer);
+  drawHighlights(layer);
+});
+```
+
+子绘制的量测项会加入同一帧清单，并套用离屏层的变换和裁剪；其边界仍是各标记矩形经变换后的外框，不含模糊与辉光的最终像素外沿。复杂变形后的实际边界、遮挡与可读性仍须复核最终画面。逻辑尺寸和采集密度自动匹配，包括 2 倍采集。
+
+`painter.keyframeAt([{at, value}, ...], time, mode?)` 为任意有限数值提供纯求值；`mode` 支持 `linear`、`hold` 和非均匀时间 Catmull-Rom `smooth`。关键帧至少一项且时间严格递增，非法值明确失败；首尾之外保持端点。平滑曲线不夹断过冲，有限量值由调用方显式约束。相机仍使用专用 `cameraAt`，不要把相机尺度换成线性数值曲线。
+
+开发用能力货架在仓库根目录的 `web/gallery.html`：运行 `pnpm -C web dev` 后打开 `http://localhost:5178/gallery.html`。它展示真实 painter API、相机、轨道与固定种子模拟，提供播放/暂停、进度拖动、复位和最小调用代码；Vite 正式构建只含 `contract.html`，货架不会进入生产包。
+
 #### 量测代理与状态探针
 
 绘制层每帧都会输出两类可量测信息，**两者都来自同一次绘制记录**：

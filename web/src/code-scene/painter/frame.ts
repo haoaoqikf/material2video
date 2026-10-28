@@ -73,6 +73,9 @@ export type GroupOptions = {
   additive?: boolean;
 };
 
+const layerBuffers = new Map<string, HTMLCanvasElement[]>();
+const leasedLayerBuffers = new WeakSet<HTMLCanvasElement>();
+
 const DEFAULT_TEXT: Required<Pick<TextOptions, 'font' | 'size' | 'color' | 'alpha' |
   'align' | 'baseline' | 'track' | 'glow'>> = {
   font: 'sans-serif', size: 48, color: '#F8F9F8', alpha: 1,
@@ -165,6 +168,86 @@ export class Painter {
     try { draw(); } finally {
       this.clips.length = clipCount;
       ctx.restore();
+    }
+  }
+
+  /**
+   * 把复杂对象先画入可复用离屏层，再以整体透明度、变换和混合方式合成。
+   * 子对象的量测项会并入当前帧清单；它们的位置仍按子绘制坐标报告，整体变换后的
+   * 可见边界需结合最终像素复核。每个目标画布按采集尺寸复用一块缓冲。
+   */
+  layer(options: GroupOptions, draw: (layer: Painter) => void): void {
+    const target = this.ctx.canvas;
+    const key = `${target.width}x${target.height}`;
+    let buffers = layerBuffers.get(key);
+    if (!buffers) { buffers = []; layerBuffers.set(key, buffers); }
+    let canvas = buffers.find(buffer => !leasedLayerBuffers.has(buffer));
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.width = target.width; canvas.height = target.height;
+      buffers.push(canvas);
+    }
+    leasedLayerBuffers.add(canvas);
+    const layerContext = canvas.getContext('2d');
+    if (!layerContext) {
+      leasedLayerBuffers.delete(canvas);
+      throw new Error('无法创建离屏绘制上下文');
+    }
+    layerContext.setTransform(1, 0, 0, 1, 0, 0);
+    layerContext.clearRect(0, 0, canvas.width, canvas.height);
+    const child = new Painter(layerContext, this.width, this.height, this.scale);
+    try {
+      draw(child);
+      const {ctx} = this;
+      ctx.save();
+      try {
+        const baseTransform = ctx.getTransform();
+        this.applyGroupOptions(options);
+        ctx.drawImage(canvas, 0, 0, this.width, this.height);
+        const matrix = ctx.getTransform();
+        const baseFontScale = Math.hypot(baseTransform.c, baseTransform.d);
+        const fontScale = baseFontScale > 0 ? Math.hypot(matrix.c, matrix.d) / baseFontScale : 0;
+        const layerClips = [...this.clips];
+        if (options.clip) layerClips.push(this.rectangle(...options.clip));
+        const viewport: Vertex[] = [{x: 0, y: 0}, {x: this.width, y: 0},
+          {x: this.width, y: this.height}, {x: 0, y: this.height}];
+        for (const mark of child.marks) {
+          const corners = [[mark.x, mark.y], [mark.x + mark.width, mark.y],
+            [mark.x + mark.width, mark.y + mark.height], [mark.x, mark.y + mark.height]]
+            .map(([x, y]) => [(matrix.a * x! + matrix.c * y! + matrix.e) / this.scale,
+              (matrix.b * x! + matrix.d * y! + matrix.f) / this.scale]);
+          const xs = corners.map(([x]) => x!), ys = corners.map(([, y]) => y!);
+          const polygon = corners.map(([x, y]) => ({x: x!, y: y!}));
+          let remaining = polygon;
+          for (const clip of [...layerClips, viewport]) remaining = intersect(remaining, clip);
+          this.marks.push({...mark, x: Math.min(...xs), y: Math.min(...ys),
+            width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
+            fontSize: mark.fontSize == null ? undefined : mark.fontSize * fontScale,
+            visible: mark.visible !== false && ctx.globalAlpha > 0 && area(remaining) > 1e-9,
+            clipped: mark.clipped === true || area(remaining) + 1e-7 < area(polygon)});
+        }
+      } finally { ctx.restore(); }
+    } finally {
+      // 清空即使绘制回调抛错也会发生，避免下一帧复用时残留半成品。
+      layerContext.setTransform(1, 0, 0, 1, 0, 0);
+      layerContext.clearRect(0, 0, canvas.width, canvas.height);
+      leasedLayerBuffers.delete(canvas);
+    }
+  }
+
+  private applyGroupOptions(options: GroupOptions): void {
+    const {ctx} = this;
+    if (options.alpha != null) ctx.globalAlpha *= Math.max(0, Math.min(1, options.alpha));
+    if (options.additive) ctx.globalCompositeOperation = 'lighter';
+    if (options.at) ctx.translate(options.at[0], options.at[1]);
+    if (options.rotate) ctx.rotate(options.rotate);
+    if (options.scale != null) {
+      const value = Array.isArray(options.scale) ? options.scale : [options.scale, options.scale];
+      ctx.scale(value[0], value[1]);
+    }
+    if (options.blur) ctx.filter = `blur(${options.blur}px)`;
+    if (options.clip) {
+      ctx.beginPath(); ctx.rect(...options.clip); ctx.clip();
     }
   }
 

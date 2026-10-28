@@ -22,6 +22,8 @@ general 讲解制作在现有逐场记录和时间线上协调贯穿对象、连
 
 可选 Canvas 绘制层的量测同步透明度、逐字显影、分组变换与裁剪，使用实际字形外框；完全不可见文字不会作为可见对象通过，部分裁剪明确报告失败。最终像素遮挡与可读性仍需视觉复核，见[绘制量测边界](.agents/skills/material2video/references/code-scene-runtime.md#绘制量测的可见性边界)。
 
+Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt()`；`web/gallery.html` 是只在开发服务器提供的动态能力货架，含可回放固定种子模拟，不进入作品或生产构建。通用声音支持可选全片增益曲线与声音设计层静音窗口；长片的编年、论证链和侧面探索方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md#长片叙事结构)。
+
 general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；初评验证与精制修订在同一阶段持续闭环，核心、全片粗片与最终评审职责保留。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。制作先以最小完整段落验证最难关系，优先兼顾开场；同一材料由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
 ## 快速开始
@@ -96,6 +98,9 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：镜头等级、时间结构、导演卡与视觉事件方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/visual-creative-direction-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [看图诊断与形象判据](.agents/skills/material2video/references/visual-diagnosis.md)：症状→成因→改法、画得像它本身的判据、主体尺度起点。
+- [讲解设计](.agents/skills/material2video/references/explainer-design.md)：通用讲解画法、贯穿关系与长片章节递进。
+- [代码场景运行时](.agents/skills/material2video/references/code-scene-runtime.md)：Painter、相机、数值轨道与动态能力货架。
+- [媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)：本地素材、声音包络和主动留静。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：代码模块职责与依赖边界。
 - [OpenSpec 规格](openspec/specs/)：已实现能力契约；[项目规划](docs/PROJECT_PLAN.md)：未来路线。
 

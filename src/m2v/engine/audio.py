@@ -95,17 +95,84 @@ def duck_envelope(cues: list[dict], duration: float, target: Path) -> None:
             dest.writeframesraw(block)
 
 
+def _automation_gain(frame: float, envelope: dict | None, index: int) -> tuple[float, int]:
+    if envelope is None: return 1., index
+    points = envelope["keyframes"]
+    index = min(index, len(points) - 2)
+    while index < len(points) - 2 and points[index + 1]["frame"] < frame: index += 1
+    left, right = points[index], points[index + 1]
+    if frame <= points[0]["frame"]: db = points[0]["gainDb"]
+    elif frame >= points[-1]["frame"]: db = points[-1]["gainDb"]
+    else:
+        t = (frame - left["frame"]) / (right["frame"] - left["frame"])
+        if envelope.get("curve", "linear") == "smooth": t = t * t * (3 - 2*t)
+        db = left["gainDb"] + (right["gainDb"] - left["gainDb"]) * t
+    return 10 ** (db / 20), index
+
+
+def _silence_gain(frame: float, windows: list[dict], index: int) -> tuple[float, int]:
+    while index < len(windows) and frame >= windows[index]["endFrame"]: index += 1
+    if index >= len(windows): return 1., index
+    start, end, fade = (windows[index][key] for key in ("startFrame", "endFrame", "fadeFrames"))
+    if frame < start: return 1., index
+    if frame < start + fade:
+        t = (frame - start) / fade
+        return 1 - t*t*(3 - 2*t), index
+    if frame >= end - fade:
+        t = (frame - (end - fade)) / fade
+        return t*t*(3 - 2*t), index
+    return 0., index
+
+
+def soundtrack_envelope(cues: list[dict], duration: float, fps: int, target: Path,
+                        envelope: dict | None = None, silence: list[dict] | None = None) -> None:
+    """逐采样生成声音轨增益：帧时间换算使用 sample*fps/SAMPLE_RATE。"""
+    silence = silence or []
+    spans = []
+    for cue in cues:
+        start, end = max(0., cue["start"] - .08), cue["end"] + .25
+        if spans and start <= spans[-1][1]: spans[-1] = (spans[-1][0], max(end, spans[-1][1]))
+        else: spans.append((start, end))
+    span_index = 0
+    automation_index = silence_index = 0
+    low = 10 ** (-10 / 20)
+    count = round(duration * SAMPLE_RATE)
+    with wave.open(str(target), "wb") as dest:
+        dest.setparams((1, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
+        for offset in range(0, count, SAMPLE_RATE):
+            block = bytearray()
+            for sample in range(offset, min(count, offset + SAMPLE_RATE)):
+                seconds = sample / SAMPLE_RATE
+                while span_index < len(spans) and seconds >= spans[span_index][1]: span_index += 1
+                duck = 1.
+                if span_index < len(spans):
+                    start, end = spans[span_index]
+                    if start <= seconds < end:
+                        attack = min(1., (seconds - start) / .08)
+                        release = min(1., (end - seconds) / .25)
+                        duck = 1 - (1 - low) * min(attack, release)
+                frame = sample * fps / SAMPLE_RATE
+                automated, automation_index = _automation_gain(frame, envelope, automation_index)
+                silence_gain, silence_index = _silence_gain(frame, silence, silence_index)
+                gain = duck * automated * silence_gain
+                block.extend(struct.pack("<h", round(max(0., min(1., gain)) * 32767)))
+            dest.writeframesraw(block)
+
+
 def mix(narration: Path, target: Path, duration: float, cues: list[dict],
-        music: tuple[Path, dict] | None, effects: list[Effect], work: Path) -> None:
+        music: tuple[Path, dict] | None, effects: list[Effect], work: Path, *, fps: int = 30,
+        envelopes: list[dict] | None = None, silence: list[dict] | None = None) -> None:
     normalize(narration, work / "normalized.wav")
     args = ["-i", str(work / "normalized.wav")]
     filters = ["[0:a]aformat=channel_layouts=stereo[voice]"]
     labels = ["[voice]"]; index = 1
+    envelopes = envelopes or []; silence = silence or []
+    envelope_for = lambda track: next((item for item in envelopes if item["track"] == track), None)
     if music:
         path, settings = music
         if settings.get("loop", False): args += ["-stream_loop", "-1"]
         args += ["-i", str(path)]; music_index = index; index += 1
-        duck_envelope(cues, duration, work / "duck.wav")
+        soundtrack_envelope(cues, duration, fps, work / "duck.wav", envelope_for("music"), silence)
         args += ["-i", str(work / "duck.wav")]; envelope_index = index; index += 1
         fade_in = min(duration, settings.get("fadeInMs", 500) / 1000)
         fade_out = min(duration, settings.get("fadeOutMs", 500) / 1000)
@@ -115,8 +182,20 @@ def mix(narration: Path, target: Path, duration: float, cues: list[dict],
         filters += [f"[{music_index}:a]{effect}[music]",
                     f"[{envelope_index}:a]pan=stereo|c0=c0|c1=c0[duck]", "[music][duck]amultiply[bed]"]
         labels.append("[bed]")
-    for effect in effects:
+    effect_envelope = envelope_for("effects")
+    if effects and (effect_envelope or silence):
+        soundtrack_envelope([], duration, fps, work / "effects-envelope.wav", effect_envelope, silence)
+        args += ["-i", str(work / "effects-envelope.wav")]
+        effects_gain_index = index; index += 1
+        split_labels = [f"[fxgainmono{n}]" for n in range(len(effects))]
+        split = f"asplit={len(effects)}" if len(effects) > 1 else "anull"
+        filters.append(f"[{effects_gain_index}:a]{split}" + "".join(split_labels))
+        for n, label in enumerate(split_labels):
+            filters.append(f"{label}pan=stereo|c0=c0|c1=c0[fxgain{n}]")
+    for effect_number, effect in enumerate(effects):
         args += ["-i", str(effect.path)]
+        effect_input_index = index
+        index += 1
         chain = [f"aresample={SAMPLE_RATE}", f"atrim=start={effect.trim_start}", "asetpts=PTS-STARTPTS"]
         if effect.loop:
             # 重复已裁掉入点的素材；size 按实际剩余样本数计算，避免回到原文件起点。
@@ -135,8 +214,14 @@ def mix(narration: Path, target: Path, duration: float, cues: list[dict],
         if effect.fade_out:
             chain.append(f"afade=t=out:st={effect.duration-effect.fade_out}:d={effect.fade_out}")
         chain += [f"volume={effect.gain_db}dB", f"adelay={round(effect.start*SAMPLE_RATE)}S:all=1"]
-        filters.append(f"[{index}:a]" + ",".join(chain) + f"[fx{index}]")
-        labels.append(f"[fx{index}]"); index += 1
+        raw_label = f"[fx{effect_input_index}]"
+        filters.append(f"[{effect_input_index}:a]" + ",".join(chain) + raw_label)
+        if effect_envelope or silence:
+            output_label = f"[fxgain{effect_input_index}]"
+            filters.append(f"{raw_label}[fxgain{effect_number}]amultiply{output_label}")
+            labels.append(output_label)
+        else:
+            labels.append(raw_label)
     filters.append("".join(labels) + f"amix=inputs={len(labels)}:normalize=0:duration=first,alimiter=limit=0.794328:level=false:latency=true,atrim=duration={duration},apad=whole_dur={duration}[out]")
     ffmpeg([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-ar", str(SAMPLE_RATE), "-ac", "2", "-c:a", "pcm_s16le", str(target)])
 
