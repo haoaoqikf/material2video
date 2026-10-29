@@ -221,29 +221,29 @@ def _parallel_chunks(root: Path, work: Path, config: dict, gaps: list[tuple[int,
                      cache: Path, key: str, *, fps: int, jobs: int, verify_frames: int,
                      block: int) -> list[tuple[int, int, Path]]:
     """把缺口按块切成子进程任务；返回块区间与片段路径（按起点排序）。"""
-    tasks, expected = [], []
+    chunks = []
     for first, last in gaps:
         for start in range(first, last, block):
             end = min(last, start + block)
-            target = cache / f"{key}-{start}-{end}.mp4"
-            if _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
-                continue
-            directory = work / f"chunk-{start}-{end}"
-            directory.mkdir(parents=True, exist_ok=True)
-            job = {"root": str(root), "work": str(directory), "sceneJs": str(work / "scene.js"),
-                   "config": config, "first": start, "last": end, "output": str(target),
-                   "fps": fps, "verifyFrames": verify_frames}
-            job_file = directory / "job.json"
-            job_file.write_text(json.dumps(job, ensure_ascii=False), encoding="utf-8")
-            tasks.append((start, end, job_file))
-            expected.append((start, end, target))
-    # 已在缓存里的块也要进入最终拼接。
-    for first, last in gaps:
-        for start in range(first, last, block):
-            end = min(last, start + block)
-            target = cache / f"{key}-{start}-{end}.mp4"
-            if not any(item[0] == start and item[1] == end for item in expected):
-                expected.append((start, end, target))
+            chunks.append((start, end, cache / f"{key}-{start}-{end}.mp4"))
+    chunks.sort(key=lambda item: item[0])
+    tasks = []
+    for index, (start, end, target) in enumerate(chunks):
+        if _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
+            continue
+        witnesses = []
+        if index + 1 < len(chunks):
+            witnesses.append(chunks[index + 1][0])
+        if index > 0:
+            witnesses.append(chunks[index][0])
+        directory = work / f"chunk-{start}-{end}"
+        directory.mkdir(parents=True, exist_ok=True)
+        job = {"root": str(root), "work": str(directory), "sceneJs": str(work / "scene.js"),
+               "config": config, "first": start, "last": end, "output": str(target),
+               "fps": fps, "verifyFrames": verify_frames, "witnessFrames": witnesses}
+        job_file = directory / "job.json"
+        job_file.write_text(json.dumps(job, ensure_ascii=False), encoding="utf-8")
+        tasks.append((start, end, job_file))
 
     if tasks:
         def run(task):
@@ -258,11 +258,23 @@ def _parallel_chunks(root: Path, work: Path, config: dict, gaps: list[tuple[int,
         with ThreadPoolExecutor(max_workers=jobs) as pool:
             list(pool.map(run, tasks))
 
-    for start, end, target in expected:
+    for start, end, target in chunks:
         _verify_clip(target, end - start)
         if not _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
             raise M2VError(f"pure-time 块 {start}–{end} 未通过验收")
-    return sorted(expected, key=lambda item: item[0])
+
+    # 相邻块边界见证帧：同一帧在两个独立进程里采集，检验块首状态没有跨进程漂移。
+    for left, right in zip(chunks, chunks[1:]):
+        left_start, left_end, _ = left
+        right_start, right_end, _ = right
+        left_witness = work / f"chunk-{left_start}-{left_end}" / f"witness-{right_start:06d}.png"
+        right_witness = work / f"chunk-{right_start}-{right_end}" / f"witness-{right_start:06d}.png"
+        if not left_witness.is_file() or not right_witness.is_file():
+            continue
+        value = images.psnr(left_witness, right_witness)
+        if value < 60:
+            raise M2VError(f"pure-time 块边界 {right_start} 帧跨进程 PSNR {value:.2f} dB < 60 dB")
+    return chunks
 
 
 def _receipt_probes(pieces: list[tuple[int, int, Path]]) -> tuple[list, float | None]:
@@ -345,7 +357,8 @@ def _average(files: list[Path], target: Path) -> None:
 
 def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None,
              observe=None, pure: bool = False, verify_frames: int = 4,
-             capture_start: int | None = None) -> dict | None:
+             capture_start: int | None = None,
+             witness_frames: list[int] | None = None) -> dict | None:
     """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
 
     顺序模式按连续帧推进；pure 模式只遍历目标帧并绝对 seek，允许倒序。声明 look.motion
@@ -483,7 +496,26 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
                 if position % 300 == 0 or position + 1 == len(frames):
                     logger.info("代码场景逐帧采集 %d/%d（子帧 %d），耗时 %.1f 秒",
                                 position + 1, len(frames), subframe_total, time.monotonic() - started)
-            return _probe_pure(page, session, work, order, verify_frames, errors) if pure else None
+            if not pure:
+                return None
+            witnesses = []
+            for frame in witness_frames or []:
+                if not 0 <= frame < config["durationInFrames"]:
+                    continue
+                page.evaluate("""([frame, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
+                    window.__M2V_CODE__.seekToSubframe(frame, 0, 1), timeout)""",
+                    [frame, READY_TIMEOUT_MS])
+                if errors:
+                    raise M2VError(f"pure-time 边界见证帧 {frame} 运行失败：" + "; ".join(errors))
+                image = session.send("Page.captureScreenshot",
+                                     {"format": "png", "captureBeyondViewport": False,
+                                      "optimizeForSpeed": True})
+                target = work / f"witness-{frame:06d}.png"
+                target.write_bytes(base64.b64decode(image["data"]))
+                witnesses.append(str(target))
+            result = _probe_pure(page, session, work, order, verify_frames, errors) or {}
+            result["witness"] = witnesses
+            return result
         except M2VError:
             raise
         except Exception as exc:

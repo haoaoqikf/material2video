@@ -26,7 +26,8 @@ def run_job(job: dict) -> None:
     config = job["config"]
     with sync_playwright() as playwright:
         probe = _capture(playwright, root, work, config, selected_frames=list(range(first, last)),
-                         pure=True, verify_frames=int(job.get("verifyFrames", 4)), capture_start=first)
+                         pure=True, verify_frames=int(job.get("verifyFrames", 4)), capture_start=first,
+                         witness_frames=[int(frame) for frame in job.get("witnessFrames", [])])
     _encode(work, output, last - first, config["width"], config["height"],
             start_frame=first, fps=int(job["fps"]),
             supersample=int((config.get("motion") or {}).get("supersample", 1)))
