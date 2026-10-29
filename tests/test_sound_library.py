@@ -379,7 +379,7 @@ def test_default_playback_preserves_third_party_stereo(tmp_path):
 
 def test_example_exercise_recipe_is_importable(tmp_path):
     from _helpers import ROOT
-    file = ROOT / "styles/examples/doc-archive/american-science-milestones/assets/sound-exercise.json"
+    file = ROOT / "styles/doc-archive/examples/american-science-milestones/assets/sound-exercise.json"
     data = json.loads(file.read_text(encoding="utf-8"))
     library.import_assets(tmp_path, data, base=file.parent)
     assets, _ = library.resolve(tmp_path)

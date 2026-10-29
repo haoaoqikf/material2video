@@ -82,7 +82,7 @@ import SchematicBadge from 'm2v/style/components/schematic-badge';
 - 场景显式导入组件，未导入时画面与无风格一致。
 - 同帧两次录制字节一致。
 - 包指纹变化使准备失效；修改示例不改变包指纹。
-- 示例作品 `styles/examples/doc-archive/american-science-milestones/` 通过 v8 校验、prepare 与代表性 QA。
+- 示例作品 `styles/doc-archive/examples/american-science-milestones/` 通过 v8 校验、prepare 与代表性 QA。
 
 ## 8. 边界
 

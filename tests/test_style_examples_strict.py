@@ -25,7 +25,9 @@ def _restore_compound_media():
     """示例媒体不入库；校验前按配方恢复，保证新 checkout 也能过 v8 校验。"""
     script = EXAMPLE_PATHS['compound-interest'] / 'assets' / 'fetch.py'
     if script.is_file():
-        subprocess.run([sys.executable, str(script)], cwd=script.parent, check=True)
+        # Windows 子进程可能输出 GBK；不要把这些字节写入 pytest 的 UTF-8 捕获流。
+        result = subprocess.run([sys.executable, str(script)], cwd=script.parent, capture_output=True)
+        assert result.returncode == 0, result.stderr.decode('utf-8', errors='replace')
 
 
 def _declared_version(path: Path) -> object:
@@ -46,7 +48,24 @@ def test_examples_are_fixed_and_capped() -> None:
     for path in EXAMPLE_PATHS.values():
         assert path.is_dir(), f"示例目录不存在：{path}"
         assert (path / "project.json").is_file()
-    assert {path.parent.parent.name for path in STORYBOARDS} == set(STYLE_EXAMPLES)
+    assert {path.parent.parent.parent.name for path in STORYBOARDS} == set(STYLE_EXAMPLES)
+    assert not (ROOT / 'styles/examples').exists(), '不保留旧示例目录或兼容入口'
+
+
+def test_nested_example_media_and_generated_files_stay_ignored() -> None:
+    for root in EXAMPLE_PATHS.values():
+        for relative in ('assets/media/check.png', 'assets/sound/check.wav',
+                         'assets/sound-sources.json', 'outputs/check.json',
+                         'article.candidate.md', 'article.accepted.md'):
+            result = subprocess.run(['git', 'check-ignore', '--no-index', str(root / relative)],
+                                    cwd=ROOT, capture_output=True)
+            assert result.returncode == 0, f'{root.name}/{relative} 未被忽略'
+    # 原有声音生成器和许可必须随目录移动后继续入库。
+    solar = EXAMPLE_PATHS['solar-system-journey']
+    for name in ('generate.py', 'LICENSE.md'):
+        result = subprocess.run(['git', 'check-ignore', '--no-index', str(solar / 'assets/sound' / name)],
+                                cwd=ROOT, capture_output=True)
+        assert result.returncode == 1
 
 
 @pytest.mark.parametrize("path", STORYBOARDS, ids=lambda item: item.parent.name)
@@ -151,7 +170,7 @@ def test_video_copy_does_not_expose_internal_references(name: str) -> None:
                             ensure_ascii=False)
     visible_copy_sources = sources + "\n" + storyboard
     internal_paths = re.compile(
-        r"(?i)\b(?:examples|styles/examples|outputs|openspec)/|\.agents/|"
+        r"(?i)\b(?:examples|styles|outputs|openspec)/|\.agents/|"
         r"(?:详见|查看|参见)\s*(?:内部)?(?:来源|制作|项目)?(?:文档|文件|资料)"
     )
     match = re.search(r"\bSOURCES(?:\.md)?\b", visible_copy_sources) or internal_paths.search(visible_copy_sources)
@@ -241,7 +260,7 @@ def test_no_generated_or_example_media_is_tracked() -> None:
     """成片、配音、预演与代码片段缓存都是派生产物；示例媒体按配方恢复，都不进版本控制。"""
     if shutil.which("git") is None:
         pytest.skip("环境里没有 git")
-    listed = subprocess.run(["git", "ls-files", "styles/examples", "styles", "fonts"], cwd=ROOT,
+    listed = subprocess.run(["git", "ls-files", "styles", "fonts"], cwd=ROOT,
                             capture_output=True, text=True, encoding="utf-8", errors="replace",
                             check=True).stdout.splitlines()
     generated = [name for name in listed

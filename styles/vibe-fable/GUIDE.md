@@ -13,8 +13,8 @@
 注册与清单说明包可被选择；组件构建与确定性检查说明技术可用；两者均不代表成片表现或同族
 验证完成。讲解方法见[讲解设计](../../.agents/skills/material2video/references/explainer-design.md#四种讲解机制的执行方法)，
 对象追踪、相机与尺度、过程结果联动及回场仍由作品按需组织，本包不自动生成。示例
-`styles/examples/vibe-fable/pigeon/` 是第一份实际应用，它的表达结论只对该示例成立。
-事件与取景的可执行示范见[示例练习](../examples/vibe-fable/pigeon/HOWTO.md)。
+`styles/vibe-fable/examples/pigeon/` 是第一份实际应用，它的表达结论只对该示例成立。
+事件与取景的可执行示范见[示例练习](examples/pigeon/HOWTO.md)。
 技术结果与理解观察分别绑定当前候选和窗口记录；跨例子使用仪表前须核对单位、依据与统一口径，没有依据的精确数值不得呈现为实测。
 
 ## 1. 什么时候用
@@ -184,9 +184,9 @@ const {subtitleSafeArea} = useSceneContext();
 
 - 注册：`uv run m2v styles --json` 返回 `vibe-fable` 的 id、version、description、types 与 frames。
 - 准备：`prepare` 记录风格身份与全包内容指纹；包内容变化使旧准备失效，需重新 `prepare`。
-- 示例：`styles/examples/vibe-fable/pigeon/` 用本包完成 33 秒示例，`validate` 通过并可完整渲染。
+- 示例：`styles/vibe-fable/examples/pigeon/` 用本包完成 33 秒示例，`validate` 通过并可完整渲染。
 - 确定性：同一帧两次独立录制一致；不因运行时刻或随机数变化。
-- 回归：`examples/` 的三个固定示例、金融与住宅类型、共享字幕层与既有无风格作品不受影响。
+- 回归：各风格 `examples/` 中的五个固定示例、金融与住宅类型、共享字幕层与既有无风格作品不受影响。
 
 ## 10. 边界
 

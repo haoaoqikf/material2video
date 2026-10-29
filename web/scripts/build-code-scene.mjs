@@ -14,6 +14,8 @@ const sdk = path.join(web, 'src/code-scene/sdk.tsx');
 const approved = new Set(['react', 'react-dom', 'motion', 'three', '@react-three/fiber', '@react-three/drei', 'gsap', 'echarts',
   'postprocessing', '@react-three/postprocessing']);
 const within = (base, file) => {const rel = path.relative(base, file); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));};
+// 示例虽位于风格目录内，仍是独立作品。共享实现不能引用被风格指纹排除的示例。
+const sharedStyleFile = file => style && within(style.root, file) && !within(path.join(style.root, 'examples'), file);
 const result = await build({
   stdin: {contents: `import Scene from ${JSON.stringify(path.resolve(project, entry))}; import {mount} from ${JSON.stringify(path.join(web, 'src/code-scene/host.tsx'))}; mount(Scene);`, resolveDir: web, loader: 'tsx'},
   bundle: true, format: 'iife', platform: 'browser', jsx: 'automatic', metafile: true,
@@ -31,13 +33,13 @@ const result = await build({
        export const tokens=freeze(JSON.parse(${JSON.stringify(JSON.stringify(style?.tokens ?? {}))}));`, loader: 'js'}));
     builder.onResolve({filter: /.*/}, args => {
       const fromProject = args.importer && within(project, args.importer);
-      const fromStyle = args.importer && style && within(style.root, args.importer);
+      const fromStyle = args.importer && !fromProject && sharedStyleFile(args.importer);
       if (!fromProject && !fromStyle) return;
       if (args.path === 'm2v/code-scene') return {path: sdk};
       if (args.path.startsWith('m2v/style/')) {
         const match = /^m2v\/style\/(components|assets)\/([a-z0-9][a-z0-9-]{0,62})$/.exec(args.path);
         const file = match && style?.[match[1]]?.[match[2]];
-        if (!file || !within(style.root, fs.realpathSync(file))) throw new Error(`未登记的风格入口：${args.path}`);
+        if (!file || !sharedStyleFile(fs.realpathSync(file))) throw new Error(`未登记的风格入口：${args.path}`);
         return {path: fs.realpathSync(file)};
       }
       if (args.path.startsWith('.')) {
@@ -45,7 +47,7 @@ const result = await build({
         const choices = [candidate, ...['.tsx', '.ts', '.jsx', '.js', '.json', '/index.tsx', '/index.ts'].map(ext => candidate + ext)];
         const file = choices.find(item => fs.existsSync(item) && fs.statSync(item).isFile());
         const boundary = fromStyle ? style.root : project;
-        if (!file || !within(boundary, fs.realpathSync(file))) throw new Error(`${fromStyle ? '风格' : '作品'}导入越界或不存在：${args.path}`);
+        if (!file || !within(boundary, fs.realpathSync(file)) || (fromStyle && !sharedStyleFile(fs.realpathSync(file)))) throw new Error(`${fromStyle ? '风格' : '作品'}导入越界或不存在：${args.path}`);
         // 风格资产只能来自清单登记文件，避免相对导入绕过来源许可登记。
         if (fromStyle && /\.(png|jpe?g|webp|svg|woff2|ttf|otf)$/i.test(file)
             && !Object.values(style.assets).includes(fs.realpathSync(file))) throw new Error(`未登记的风格资产：${args.path}`);

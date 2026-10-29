@@ -1,4 +1,4 @@
-"""临时包验证风格机制；正式 styles 目录保持为空。"""
+"""临时风格包验证注册、依赖与嵌套作品的构建边界。"""
 from __future__ import annotations
 
 import json
@@ -69,7 +69,7 @@ def test_selection_and_compatibility(package):
 
 
 @pytest.mark.parametrize('field,value', [('schemaVersion', True), ('version', 'v1'), ('id', 'other'),
-    ('guide', '../outside.md'), ('tokens', 'missing.json'), ('types', []), ('frames', []),
+    ('guide', '../outside.md'), ('guide', '.'), ('tokens', 'missing.json'), ('types', []), ('frames', []),
     ('assets', {'bad': {'path': 'mark.svg'}}), ('unknown', True)])
 def test_invalid_package(package, field, value):
     root, manifest = package
@@ -190,6 +190,110 @@ def test_style_file_symlink_rejected(package, tmp_path):
         pytest.skip('当前 Windows 用户没有创建符号链接权限')
     with pytest.raises(M2VError, match='符号链接|越界'):
         styles.load_style(root.name)
+
+
+@pytest.mark.parametrize('field,path', [
+    ('guide', 'examples/demo/GUIDE.md'),
+    ('tokens', 'examples/demo/tokens.json'),
+    ('components', 'examples/demo/piece.tsx'),
+    ('assets', 'examples/demo/mark.svg'),
+])
+def test_shared_manifest_cannot_register_example_files(package, field, path):
+    root, manifest = package
+    target = root / path
+    target.parent.mkdir(parents=True)
+    target.write_text('{}', encoding='utf-8')
+    value = path
+    if field == 'components':
+        value = {'piece': path}
+    elif field == 'assets':
+        value = {'mark': {'path': path, 'source': 'original', 'license': 'MIT'}}
+    write_json(root / 'style.json', {**manifest, field: value})
+    with pytest.raises(M2VError, match='不能引用示例'):
+        styles.load_style(root.name)
+
+
+def test_example_tree_is_pruned_without_reading_or_hashing(package, monkeypatch):
+    root, _ = package
+    before = styles.load_style(root.name)['identity']['fingerprint']
+    example = root / 'examples/demo'
+    for relative in ('scene.tsx', 'assets/media/large.png', 'outputs/video.mp4'):
+        target = example / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b'not a shared dependency')
+    original_walk = styles.os.walk
+    visited = []
+
+    def checked_walk(path):
+        for directory, dirs, files in original_walk(path):
+            visited.append(Path(directory))
+            assert not Path(directory).is_relative_to(root / 'examples')
+            yield directory, dirs, files
+
+    monkeypatch.setattr(styles.os, 'walk', checked_walk)
+    assert styles.load_style(root.name)['identity']['fingerprint'] == before
+    assert root in visited
+    (example / 'scene.tsx').write_text('changed', encoding='utf-8')
+    (example / 'outputs/video.mp4').unlink()
+    assert styles.load_style(root.name)['identity']['fingerprint'] == before
+    # 非示例目录中的未登记共享文件仍然参与哈希。
+    (root / 'unregistered.ts').write_text('export const x = 1;', encoding='utf-8')
+    assert styles.load_style(root.name)['identity']['fingerprint'] != before
+
+
+def test_nested_example_build_preserves_project_and_style_boundaries(package, tmp_path):
+    style_root, _ = package
+    root = style_root / 'examples/demo'
+    create_project(root, 'general', {'storyboard': 'storyboard.json'})
+    _, manifest = load_project(root)
+    manifest['style'] = {'id': style_root.name}
+    write_json(root / 'project.json', manifest)
+    scenes = root / 'scenes'
+    scenes.mkdir()
+    entry = scenes / 'main.tsx'
+    (scenes / 'local.tsx').write_text('export default () => null;', encoding='utf-8')
+    (scenes / 'own.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
+    scene = {'id': 'nested', 'content': {'entry': 'scenes/main.tsx', 'props': {}}}
+    work = tmp_path / 'build-nested'
+    work.mkdir()
+    entry.write_text("import Piece from 'm2v/style/components/piece'; import Local from './local'; import img from './own.svg'; export default () => <div><Piece/><Local/><img src={img}/></div>;", encoding='utf-8')
+    first = build_scene(root, scene, work)
+    # 原作品的相对 SVG 不能被错误当作未登记的风格资产。
+    assert 'data:image/svg+xml' in (work / 'scene.js').read_text(encoding='utf-8')
+    (scenes / 'local.tsx').write_text('export default () => <span>changed</span>;', encoding='utf-8')
+    assert build_scene(root, scene, work) != first
+    sibling = style_root / 'examples/other'
+    sibling.mkdir()
+    (sibling / 'piece.tsx').write_text('export default () => null;', encoding='utf-8')
+    for imported in ('../../../piece', '../../other/piece'):
+        entry.write_text(f"export {{default}} from '{imported}';", encoding='utf-8')
+        with pytest.raises(M2VError, match='作品.*越界'):
+            build_scene(root, scene, work)
+    entry.write_text("export {default} from 'm2v/style/components/piece';", encoding='utf-8')
+    (style_root / 'piece.tsx').write_text("export {default} from './examples/other/piece';", encoding='utf-8')
+    with pytest.raises(M2VError, match='风格.*越界'):
+        build_scene(root, scene, work)
+
+
+def test_nested_example_symlink_cannot_escape_its_project(package, tmp_path):
+    style_root, _ = package
+    root = style_root / 'examples/demo'
+    create_project(root, 'general', {'storyboard': 'storyboard.json'})
+    _, manifest = load_project(root)
+    manifest['style'] = {'id': style_root.name}
+    write_json(root / 'project.json', manifest)
+    scenes = root / 'scenes'
+    scenes.mkdir()
+    try:
+        (scenes / 'escape.tsx').symlink_to(style_root / 'piece.tsx')
+    except OSError:
+        pytest.skip('当前 Windows 用户没有创建符号链接权限')
+    (scenes / 'main.tsx').write_text("export {default} from './escape';", encoding='utf-8')
+    work = tmp_path / 'build-symlink'
+    work.mkdir()
+    scene = {'id': 'nested', 'content': {'entry': 'scenes/main.tsx', 'props': {}}}
+    with pytest.raises(M2VError, match='作品.*越界'):
+        build_scene(root, scene, work)
 
 
 @pytest.mark.slow

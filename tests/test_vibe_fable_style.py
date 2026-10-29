@@ -1,4 +1,4 @@
-"""正式 B 寓言风格包与 `styles/examples/` 示例：清单、组件契约、示例可校验。"""
+"""正式 B 寓言风格包与 `styles/<style>/examples/` 示例：清单、组件契约、示例可校验。"""
 from __future__ import annotations
 
 import json
@@ -14,10 +14,11 @@ from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
 from m2v.types.general import explainer
 from m2v.types.general.code_scenes import build_scene
+from example_catalog import EXAMPLE_PATHS
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "styles" / "vibe-fable"
-EXAMPLES = ROOT / "styles" / "examples"
+EXAMPLES = PACKAGE / "examples"
 COMPONENTS = {
     "kit", "fable-stage", "parallax-band", "instinct-gauge", "scene-note",
     "top-line", "counter-row", "callout", "rule-card", "title-fable", "screen-subtitle",
@@ -36,26 +37,17 @@ def test_registry_lists_both_packages(capsys):
     assert listed["vibe-fable"]["frames"] == [{"width": 1920, "height": 1080}]
 
 
-def test_reserved_examples_directory_is_not_a_package(tmp_path, monkeypatch):
-    """`styles/examples/` 存放示例，不参与发现；即使里面放了合法清单也必须拒绝加载。"""
-    assert "examples" in styles.RESERVED_DIRECTORIES
-    assert EXAMPLES.is_dir()
-    assert "examples" not in {entry["id"] for entry in styles.list_styles()}
-    # 只靠「目录里恰好没有 style.json」通过是虚假覆盖：放一份合法清单进去仍须失败。
+def test_nested_examples_are_not_packages(tmp_path, monkeypatch):
     base = tmp_path / "styles"
-    reserved = base / "examples"
-    reserved.mkdir(parents=True)
-    (reserved / "GUIDE.md").write_text("示例", encoding="utf-8")
-    write_json(reserved / "style.json", {
-        "schemaVersion": 1, "id": "examples", "version": "1.0.0", "description": "伪装成包",
-        "types": ["general"], "frames": [{"width": 1920, "height": 1080}], "guide": "GUIDE.md",
-    })
+    package = base / "vibe-fable"
+    shutil.copytree(PACKAGE, package, ignore=shutil.ignore_patterns("examples"))
+    # 即使嵌套示例内放入合法清单，发现仍只检查 styles 的直接子目录。
+    nested = package / "examples" / "fake"
+    shutil.copytree(package, nested, ignore=shutil.ignore_patterns("examples"))
     monkeypatch.setattr(styles, "STYLES_ROOT", base)
-    with pytest.raises(M2VError, match="保留目录"):
+    assert [entry["id"] for entry in styles.list_styles()] == ["vibe-fable"]
+    with pytest.raises(M2VError, match="不是风格"):
         styles.load_style("examples")
-    assert styles.list_styles() == []
-    with pytest.raises(M2VError):
-        styles.selected_style({"type": "general", "style": {"id": "examples"}})
 
 
 def test_manifest_tokens_and_no_font_asset():
@@ -96,7 +88,7 @@ def test_components_are_frame_driven_and_self_contained():
 
 def test_fingerprint_covers_every_package_file(tmp_path, monkeypatch):
     copy = tmp_path / "styles" / "vibe-fable"
-    shutil.copytree(PACKAGE, copy)
+    shutil.copytree(PACKAGE, copy, ignore=shutil.ignore_patterns("examples"))
     monkeypatch.setattr(styles, "STYLES_ROOT", tmp_path / "styles")
     first = styles.load_style("vibe-fable")["identity"]["fingerprint"]
     (copy / "GUIDE.md").write_text("changed", encoding="utf-8")
@@ -108,8 +100,8 @@ def test_example_changes_do_not_touch_the_package_fingerprint(tmp_path, monkeypa
     """示例与包分离是本次的核心设计：改示例不能让选了该风格的作品准备失效。"""
     base = tmp_path / "styles"
     base.mkdir()
-    shutil.copytree(PACKAGE, base / "vibe-fable")
-    examples = base / "examples" / "vibe-fable" / "pigeon"
+    shutil.copytree(PACKAGE, base / "vibe-fable", ignore=shutil.ignore_patterns("examples"))
+    examples = base / "vibe-fable" / "examples" / "pigeon"
     examples.mkdir(parents=True)
     (examples / "storyboard.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(styles, "STYLES_ROOT", base)
@@ -134,7 +126,7 @@ def test_style_requires_no_narration():
 ])
 def test_shipped_style_example_uses_its_package(slug: str, style_id: str):
     """示例必须声明它演示的风格，且分镜通过 v8 契约校验。"""
-    root = EXAMPLES / slug
+    root = EXAMPLE_PATHS[slug.split("/")[-1]]
     project = json.loads((root / "project.json").read_text(encoding="utf-8"))
     assert project["type"] == "general"
     assert project["style"] == {"id": style_id}
@@ -149,7 +141,7 @@ def test_shipped_style_example_uses_its_package(slug: str, style_id: str):
 ])
 def test_style_example_is_silent_with_screen_subtitles(slug: str, style_id: str):
     """两个示例都是无旁白作品：用屏幕字幕，不生成共享字幕层的旁白字幕。"""
-    root = EXAMPLES / slug
+    root = EXAMPLE_PATHS[slug.split("/")[-1]]
     project = json.loads((root / "project.json").read_text(encoding="utf-8"))
     board = explainer.load(root, project)
     for scene in board["scenes"]:
@@ -172,7 +164,7 @@ def test_style_example_is_silent_with_screen_subtitles(slug: str, style_id: str)
 @pytest.mark.parametrize("slug", ["vibe-night/fold", "vibe-fable/pigeon"])
 def test_style_example_sources_do_not_expose_internal_paths(slug: str):
     """示例是仓库内的可分发材料：可见文案不得出现仓库路径或查阅指引。"""
-    root = EXAMPLES / slug
+    root = EXAMPLE_PATHS[slug.split("/")[-1]]
     sources = "\n".join(
         path.read_text(encoding="utf-8") for path in sorted((root / "scenes").glob("*.tsx")))
     board = (root / "storyboard.json").read_text(encoding="utf-8")
@@ -192,7 +184,7 @@ def test_style_examples_are_not_discovered_as_style_packages():
 
 def test_pigeon_uses_global_act_and_event_sound_semantics():
     """示例必须用同一条全局行为轨迹，声音与画面引用同一批幕内事件。"""
-    root = EXAMPLES / "vibe-fable" / "pigeon"
+    root = EXAMPLE_PATHS["pigeon"]
     board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     source = (root / "scenes" / "pigeon.tsx").read_text(encoding="utf-8")
     assert "birdAct(" not in source, "行为不得再按幕 ID 分支"
@@ -221,7 +213,7 @@ def test_pigeon_uses_global_act_and_event_sound_semantics():
 
 def test_pigeon_removes_unbacked_instinct_readout():
     """实验没有提供本能强度依据，示例不得再显示精确读数或挂载仪表。"""
-    root = EXAMPLES / "vibe-fable" / "pigeon"
+    root = EXAMPLE_PATHS["pigeon"]
     board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     source = (root / "scenes" / "pigeon.tsx").read_text(encoding="utf-8")
     for scene in board["scenes"]:

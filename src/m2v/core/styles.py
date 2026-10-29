@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -11,9 +12,8 @@ from .assets import REPOSITORY_ROOT
 from .errors import M2VError
 
 STYLES_ROOT = REPOSITORY_ROOT / "styles"
-# 保留目录：存放风格示例，不是风格包。风格包的指纹覆盖包内**所有**文件，示例若放进
-# `styles/<id>/` 内，示例改动就会让所有选了该风格的作品准备失效，因此单列一层。
-RESERVED_DIRECTORIES = frozenset({"examples"})
+# 直属 examples 子树是独立作品，不能作为共享入口，也不能进入风格指纹。
+EXAMPLES_DIRECTORY = "examples"
 _ID = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 _VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 ASSET_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".woff2", ".ttf", ".otf"}
@@ -42,6 +42,9 @@ def _file(root: Path, value: Any) -> Path:
             or Path(value).is_absolute() or ".." in Path(value).parts):
         raise M2VError(f"风格入口必须是包内相对路径：{value!r}")
     target = (root / value).resolve()
+    if (Path(value).parts[:1] == (EXAMPLES_DIRECTORY,)
+            or target.is_relative_to(root / EXAMPLES_DIRECTORY)):
+        raise M2VError(f"风格入口不能引用示例作品：{value}")
     if not target.is_relative_to(root) or not target.is_file():
         if Path(value).suffix in {".ttf", ".otf", ".woff2"}:
             raise M2VError(f"风格字体缺失或越界：{value}；请运行 uv run python fonts/fetch.py 恢复")
@@ -52,8 +55,8 @@ def _file(root: Path, value: Any) -> Path:
 def load_style(style_id: str) -> dict:
     if not isinstance(style_id, str) or not _ID.fullmatch(style_id):
         raise M2VError("风格 id 必须是 1 至 63 位小写字母、数字或连字符")
-    if style_id in RESERVED_DIRECTORIES:
-        raise M2VError(f"{style_id} 是保留目录，不是风格包")
+    if style_id == EXAMPLES_DIRECTORY:
+        raise M2VError("examples 是示例目录名，不是风格 id")
     base = STYLES_ROOT.resolve()
     root = (base / style_id).resolve()
     if root.parent != base or not (root / "style.json").is_file():
@@ -106,13 +109,18 @@ def load_style(style_id: str) -> dict:
             if file.suffix not in suffixes:
                 raise M2VError(f"风格 {field} 不支持文件类型：{file.name}")
             resolved[name] = str(file)
-    # 所有包文件纳入依赖，包括指导与尚未被组件引用的资源；禁止目录链接隐藏包外依赖。
+    # 仅在直属 examples 入口剪枝，不扫描其媒体和输出；其他共享文件仍全部纳入依赖。
+    # 清单和构建器同时禁止共享实现引用示例，避免被排除的文件成为隐藏依赖。
     hashes = {}
-    for file in sorted(root.rglob("*")):
-        if file.is_symlink() or not file.resolve().is_relative_to(root):
-            raise M2VError(f"风格包不允许符号链接或越界文件：{file}")
-        if file.is_file():
-            hashes[file.relative_to(root).as_posix()] = hashlib.sha256(file.read_bytes()).hexdigest()
+    for directory, dirs, files in os.walk(root):
+        if Path(directory) == root:
+            dirs[:] = [name for name in dirs if name != EXAMPLES_DIRECTORY]
+        for name in sorted([*dirs, *files]):
+            file = Path(directory) / name
+            if file.is_symlink() or not file.resolve().is_relative_to(root):
+                raise M2VError(f"风格包不允许符号链接或越界文件：{file}")
+            if file.is_file():
+                hashes[file.relative_to(root).as_posix()] = hashlib.sha256(file.read_bytes()).hexdigest()
     digest = hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()
     return {"manifest": manifest, "root": str(root), "guide": str(guide), "tokens": tokens,
             "components": components, "assets": assets,
@@ -124,7 +132,7 @@ def list_styles() -> list[dict]:
         return []
     result = []
     for entry in sorted(STYLES_ROOT.iterdir()):
-        if entry.is_dir() and entry.name not in RESERVED_DIRECTORIES:
+        if entry.is_dir():
             package = load_style(entry.name)
             result.append({key: package["manifest"][key] for key in ("id", "version", "description", "types", "frames")})
     return result

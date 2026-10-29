@@ -414,7 +414,7 @@ def _validate_project_location(root: Path, manifest: dict) -> None:
     """Reject a project whose declared type disagrees with its canonical path.
 
     Only `videos/<type>/<slug>/` is type-scoped. Style examples live under
-    `styles/examples/<style-id>/<slug>/` and are content, not type directories.
+    `styles/<style-id>/examples/<slug>/` and are content, not type directories.
     """
     if root.parent.parent.name == "videos" and root.parent.name != "examples":
         expected_type = root.parent.name

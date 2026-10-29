@@ -91,7 +91,7 @@ def test_prepare_rejects_event_beyond_automatic_duration(tmp_path, monkeypatch):
 def test_real_compound_event_shift_and_local_capture(tmp_path, chromium_ready):
     """真实示例：落点和声音移动15帧；局部取帧与较长窗口同帧像素一致。"""
     from playwright.sync_api import sync_playwright
-    root = Path(__file__).resolve().parents[1] / 'styles/examples/count-ledger/compound-interest'
+    root = Path(__file__).resolve().parents[1] / 'styles/count-ledger/examples/compound-interest'
     source = json.loads((root/'storyboard.json').read_text(encoding='utf-8'))
     target = source['scenes'][0]
     target.update(startFrame=0, durationInFrames=870, segmentWindows={})

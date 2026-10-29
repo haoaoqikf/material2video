@@ -17,7 +17,7 @@ import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / "styles/examples/deep-journey/solar-system-journey"
+EXAMPLE = ROOT / "styles/deep-journey/examples/solar-system-journey"
 SOUND = EXAMPLE / "assets/sound"
 NAMES = ("bed.wav", "whoosh.wav", "shimmer.wav", "ice.wav", "score.wav")
 

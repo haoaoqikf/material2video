@@ -276,7 +276,7 @@ const {PainterCanvas} = painter;
 
 层的边界不是「画得先后」，而是**这东西该不该发光**。实心、有体积、需要看清轮廓的
 物体进 `under`——辉光会把它们糊成一片；只有「本身就在发光」的东西才留在 `paint`。
-`styles/examples/vibe-night/fold/` 是这个分工的实例：
+`styles/vibe-night/examples/fold/` 是这个分工的实例：
 
 | 层 | 画什么 | 为什么 |
 |---|---|---|
@@ -294,7 +294,7 @@ const {PainterCanvas} = painter;
 />
 ```
 
-反例：把大面积浅色实心块画进 `paint`，辉光会把它顶到接近纯白（`styles/examples/`
+反例：把大面积浅色实心块画进 `paint`，辉光会把它顶到接近纯白（`styles/vibe-fable/examples/`
 的鸽子示例早期版本就踩过，米墙实测被推到 253）。此时要么改到 `under`，要么把
 `bloom` 压到 0.1 量级。
 

@@ -21,13 +21,13 @@ from pathlib import Path
 from imageio_ffmpeg import get_ffmpeg_exe
 
 REPO = Path(__file__).resolve().parents[2]
-EXAMPLES = REPO / "styles" / "examples"
+STYLES = REPO / "styles"
 REFERENCE = Path(r"C:\D_Merged_From_D\project\third-party\vibe-knowledge-film\examples")
 
 # 每个示例：叙事位置 → 参考帧与本片同一位置的帧。两边必须讲同一件事。
 PAIRS = {
     "fold": {
-        "dir": EXAMPLES / "vibe-night" / "fold",
+        "dir": STYLES / "vibe-night" / "examples" / "fold",
         "pairs": [
             ("chain", REFERENCE / "fold_C/review/s_0005.90.png", "still-000055.png"),
             ("fold", REFERENCE / "fold_C/review/s_0018.10.png", "still-000495.png"),
@@ -35,7 +35,7 @@ PAIRS = {
         ],
     },
     "pigeon": {
-        "dir": EXAMPLES / "vibe-fable" / "pigeon",
+        "dir": STYLES / "vibe-fable" / "examples" / "pigeon",
         "pairs": [
             ("feeder", REFERENCE / "pigeon_B/review/f_8.0.png", "still-000247.png"),
             ("wander", REFERENCE / "pigeon_B/review/f_16.0.png", "still-000412.png"),

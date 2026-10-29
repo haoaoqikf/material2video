@@ -100,7 +100,7 @@ GIF/JPG 只作分析：不复制进本仓库，不作为素材或风格包资产
 
 - C 夜曲已按[风格接入契约](style-pack.md)转成 `styles/vibe-night`，组件以 TSX 重写并随包登记宋体资产。
 - B 寓言已转成 `styles/vibe-fable`：扁平插画舞台、三层视差、本能读数仪表、对照计数、引线标注、规则卡与逐字亮起的屏幕字幕以 TSX 重写；不随包携带字体，使用宿主已注册的 `M2V Sans`。
-- 两套风格各配一个示例：`styles/examples/vibe-night/fold/` 与 `styles/examples/vibe-fable/pigeon/`，按本页登记的 `fold_C`、`pigeon_B` 选题与分镜重写，实现与媒体自绘。示例放在保留目录 `styles/examples/`，不进包内（否则改示例会让所有使用该风格的作品准备失效），也不占用 `examples/` 的三个固定名额。
+- 两套风格各配一个示例：`styles/vibe-night/examples/fold/` 与 `styles/vibe-fable/examples/pigeon/`，按本页登记的 `fold_C`、`pigeon_B` 选题与分镜重写，实现与媒体自绘。示例归入所属风格的 `examples/` 子树，仍是独立作品，不进入共享风格指纹；固定集合见仓库[风格目录](../../../../styles/README.md)。
 - 共享字幕层仍以 `web/src/frames.json` 为准，不复制外部字幕外观；无旁白屏幕字幕按各包 GUIDE 的约定由作品自绘。
 - 作品选择风格应写 `style.id: "vibe-night"` 或 `style.id: "vibe-fable"`；指向外部登记的 ID 不被接受。
 - 创建新风格包、组件或改变契约时另走 OpenSpec 评估。
@@ -177,7 +177,7 @@ git -C "C:\D_Merged_From_D\project\third-party\vibe-knowledge-film" rev-parse HE
 | `examples/fold_C` | 一台摄影机用对数缩放从血管推进到珠串再拉出；有体积的实物画在底层不吃辉光；第 3 镜与第 8 镜回到同一画面，第一次是结果、第二次是原因 | 普通作品不照搬原样片的具体形象组合与文案；已登记教学示例按下述边界重写 |
 | `examples/pigeon_B` | 计时器按真实时间走；六镜六景别；字幕出现后 0.3 秒内有动作；保留无字幕的纯画面段 | 普通作品不照搬原样片的具体形象组合与文案；已登记教学示例按下述边界重写 |
 
-已登记的 `styles/examples/vibe-night/fold/` 与 `styles/examples/vibe-fable/pigeon/` 是同题材教学重写，可沿用已登记自有样片的选题与机制，画面和实现由本仓库重写；这不授权普通作品照搬整套分镜或文案，也不允许直接复制外部媒体、字体或整段源码。受限参考片仍不得使用。
+已登记的 `styles/vibe-night/examples/fold/` 与 `styles/vibe-fable/examples/pigeon/` 是同题材教学重写，可沿用已登记自有样片的选题与机制，画面和实现由本仓库重写；这不授权普通作品照搬整套分镜或文案，也不允许直接复制外部媒体、字体或整段源码。受限参考片仍不得使用。
 
 拆解方法按[参考视频逆向拆解](reference-video-analysis.md)；外观转译按[参考风格契约](reference-style.md)。样片画面、GIF、JPG 只能看，不得进入成片、评审包或风格包资产。
 

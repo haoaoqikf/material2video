@@ -99,7 +99,7 @@
 
 ## 16. 紧凑示例：复利
 
-以 `styles/examples/count-ledger/compound-interest` 的29秒复利作品说明写法：
+以 `styles/count-ledger/examples/compound-interest` 的29秒复利作品说明写法：
 
 - **核心表达**：收益再投入，使收益也产生收益。
 - **核心视觉母题**：把资金设计成1枚=1,000元的圆片；金色是本轮刚赚到、尚未再投入的收益，米白是已进入下一轮、会继续生息的资本，暗金是已取走、离开增长系统的收益。

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / 'styles/examples/deep-journey/solar-system-journey'
+EXAMPLE = ROOT / 'styles/deep-journey/examples/solar-system-journey'
 spec = importlib.util.spec_from_file_location('solar_material_generator', EXAMPLE / 'assets/materials/generate.py')
 generator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generator)
@@ -20,7 +20,7 @@ def restored_media_available() -> bool:
 
 def test_six_cinematic_targets_have_registered_materials():
     if not restored_media_available():
-        pytest.skip('示例媒体未恢复；先运行 styles/examples/deep-journey/solar-system-journey/assets/fetch.py')
+        pytest.skip('示例媒体未恢复；先运行 styles/deep-journey/examples/solar-system-journey/assets/fetch.py')
     from m2v.types.general.media_assets import resolve
     media = resolve(EXAMPLE)['media']
     record = json.loads((EXAMPLE / 'assets/media-sources.json').read_text(encoding='utf-8'))

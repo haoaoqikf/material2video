@@ -74,7 +74,7 @@ def test_components_are_frame_driven_and_self_contained():
 
 def test_fingerprint_covers_every_package_file(tmp_path, monkeypatch):
     copy = tmp_path / "styles" / "vibe-night"
-    shutil.copytree(PACKAGE, copy)
+    shutil.copytree(PACKAGE, copy, ignore=shutil.ignore_patterns("examples"))
     monkeypatch.setattr(styles, "STYLES_ROOT", tmp_path / "styles")
     first = styles.load_style("vibe-night")["identity"]["fingerprint"]
     (copy / "assets" / "OFL-NotoSerifSC.txt").write_text("changed", encoding="utf-8")

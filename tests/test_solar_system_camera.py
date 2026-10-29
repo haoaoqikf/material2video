@@ -15,7 +15,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
-STORYBOARD = ROOT / "styles/examples/deep-journey/solar-system-journey/storyboard.json"
+STORYBOARD = ROOT / "styles/deep-journey/examples/solar-system-journey/storyboard.json"
 
 #: 与 outputs/prepared.json 一致的实测 TTS 帧长；文本或语速改变时必须同步本表。
 SEGMENT_FRAMES = [309, 300, 285, 297, 289, 313, 225, 373, 339, 294, 316, 307, 216, 359, 332]
@@ -33,8 +33,8 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 const [repo, output] = process.argv.slice(1);
 const web = path.join(repo, 'web');
-const layout = path.join(repo, 'styles/examples/deep-journey/solar-system-journey/scenes/layout.tsx');
-const board = path.join(repo, 'styles/examples/deep-journey/solar-system-journey/storyboard.json');
+const layout = path.join(repo, 'styles/deep-journey/examples/solar-system-journey/scenes/layout.tsx');
+const board = path.join(repo, 'styles/deep-journey/examples/solar-system-journey/storyboard.json');
 const frames = process.env.SEGMENT_FRAMES;
 const entry = `
   import assert from 'node:assert/strict';
@@ -204,7 +204,7 @@ const entry = `
 
 
 def test_generated_path_report_is_clean():
-    proposal = ROOT / "styles/examples/deep-journey/solar-system-journey/outputs/path-proposal.json"
+    proposal = ROOT / "styles/deep-journey/examples/solar-system-journey/outputs/path-proposal.json"
     if not proposal.is_file():
         pytest.skip("本地没有路径提案；运行 generate-paths.mjs 后本用例会核对")
     report = json.loads(proposal.read_text(encoding="utf-8"))["report"]
@@ -215,7 +215,7 @@ def test_generated_path_report_is_clean():
 
 
 def test_storyboard_shots_match_generated_proposal():
-    generated = ROOT / "styles/examples/deep-journey/solar-system-journey/outputs/storyboard.generated.json"
+    generated = ROOT / "styles/deep-journey/examples/solar-system-journey/outputs/storyboard.generated.json"
     if not generated.is_file():
         pytest.skip("本地没有生成的 shots；运行 generate-paths.mjs --merge 后本用例会核对")
     generated_shots = json.loads(generated.read_text(encoding="utf-8"))[
@@ -228,12 +228,12 @@ def test_storyboard_shots_match_generated_proposal():
 @requires_node
 def test_actual_camera_motion_has_no_sudden_spin_or_collision():
     """执行实际相机，而非只检查生成器的端点；阈值仅为本片风险回归。"""
-    if not (ROOT / "styles/examples/deep-journey/solar-system-journey/outputs/path-proposal.json").is_file():
+    if not (ROOT / "styles/deep-journey/examples/solar-system-journey/outputs/path-proposal.json").is_file():
         pytest.skip("本地没有路径提案；运行 generate-paths.mjs 后本用例会核对实际相机")
-    result = subprocess.run([shutil.which("node"), str(ROOT / "styles/examples/deep-journey/solar-system-journey/scripts/check-motion.mjs")],
+    result = subprocess.run([shutil.which("node"), str(ROOT / "styles/deep-journey/examples/solar-system-journey/scripts/check-motion.mjs")],
                             cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
-    report = json.loads((ROOT / "styles/examples/deep-journey/solar-system-journey/outputs/motion-report.json").read_text(encoding="utf-8"))
+    report = json.loads((ROOT / "styles/deep-journey/examples/solar-system-journey/outputs/motion-report.json").read_text(encoding="utf-8"))
     assert report["problems"] == []
     assert report["maxAngularSpeed"] < 60, "本片曾在到站接近期间发生千度/秒的朝向分支翻转"
     assert report["minClearance"] > 0.4

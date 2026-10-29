@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / "styles" / "examples" / "vibe-night" / "fold"
+EXAMPLE = ROOT / "styles" / "vibe-night" / "examples" / "fold"
 LAYOUT = EXAMPLE / "scenes" / "layout.json"
 GENERATOR = EXAMPLE / "tools" / "gen_layout.py"
 NEIGHBORS = {(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1)}

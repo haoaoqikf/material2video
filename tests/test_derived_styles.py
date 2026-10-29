@@ -13,7 +13,7 @@ from m2v.core.errors import M2VError
 from m2v.types.general import explainer
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "styles" / "examples"
+STYLES = ROOT / "styles"
 
 PACKAGES = {
     "doc-archive": {
@@ -113,7 +113,7 @@ def test_package_has_no_work_content(style_id: str):
 def test_fingerprint_covers_every_package_file(style_id: str, tmp_path, monkeypatch):
     package = styles.load_style(style_id)
     copy = tmp_path / "styles" / style_id
-    shutil.copytree(package["root"], copy)
+    shutil.copytree(package["root"], copy, ignore=shutil.ignore_patterns("examples"))
     monkeypatch.setattr(styles, "STYLES_ROOT", tmp_path / "styles")
     first = styles.load_style(style_id)["identity"]["fingerprint"]
     (copy / "GUIDE.md").write_text("changed", encoding="utf-8")
@@ -125,9 +125,9 @@ def test_fingerprint_covers_every_package_file(style_id: str, tmp_path, monkeypa
 def test_example_changes_do_not_touch_package_fingerprint(style_id: str, tmp_path, monkeypatch):
     base = tmp_path / "styles"
     base.mkdir()
-    shutil.copytree(styles.load_style(style_id)["root"], base / style_id)
+    shutil.copytree(styles.load_style(style_id)["root"], base / style_id, ignore=shutil.ignore_patterns("examples"))
     style, slug = PACKAGES[style_id]["example"]
-    example = base / "examples" / style / slug
+    example = base / style / "examples" / slug
     example.mkdir(parents=True)
     (example / "storyboard.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(styles, "STYLES_ROOT", base)
@@ -154,7 +154,7 @@ def test_narration_requirement(style_id: str):
 @pytest.mark.parametrize("style_id", sorted(PACKAGES))
 def test_shipped_example_uses_its_package(style_id: str):
     style, slug = PACKAGES[style_id]["example"]
-    root = EXAMPLES / style / slug
+    root = STYLES / style / "examples" / slug
     project = json.loads((root / "project.json").read_text(encoding="utf-8"))
     assert project["type"] == "general"
     assert project["style"] == {"id": style_id}
@@ -166,7 +166,7 @@ def test_shipped_example_uses_its_package(style_id: str):
 
 def test_deep_journey_example_is_not_pure_time():
     """使用 useFrame 的 3D 组件只服务顺序录制；示例不得声明 pure-time。"""
-    root = EXAMPLES / "deep-journey" / "solar-system-journey"
+    root = STYLES / "deep-journey" / "examples" / "solar-system-journey"
     board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     for scene in board["scenes"]:
         capture = scene.get("content", {}).get("props", {}).get("capture", {})
