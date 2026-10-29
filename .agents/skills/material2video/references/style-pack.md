@@ -1,7 +1,8 @@
 # 风格接入契约
 
 风格独立于视频类型：类型负责材料、业务计算和渲染流程；风格提供表现指导及可选参数、组件与资产。
-仓库当前登记 `vibe-fable`（B 寓言）与 `vibe-night`（C 夜曲），没有内置或默认风格。查询 `uv run m2v styles [--json]`。
+仓库当前登记 `vibe-fable`（B 寓言）、`vibe-night`（C 夜曲）、`doc-archive`（档案纪录片）、
+`count-ledger`（可数物证）与 `deep-journey`（深空旅程），没有内置或默认风格。查询 `uv run m2v styles [--json]`。
 
 ## 作品选择与制作
 
@@ -62,6 +63,8 @@
 - 所有路径使用包内正斜杠相对路径，不接受 `..`、绝对路径、符号链接或跨包引用。
 - 字体通过登记的 `.ttf/.otf/.woff2` URL 显式加载；场景须在字体及其他资源就绪后调用 `ready()`。字体许可随包保存。风格包字体须为 TTF/OTF 才能进行缺字检查（`woff2` 需额外解析依赖）。
 - 包内字体二进制由仓库根 `fonts/registry.json` 与 `fonts/fetch.py` 恢复，不进入 Git；缺失时 `m2v styles`、`validate` 或 `prepare` 明确失败并提示运行 `uv run python fonts/fetch.py`。
+- 当前 `doc-archive`、`count-ledger`、`deep-journey` 不登记 `assets`：使用宿主字体，深空材质程序化。渲染前置检查目前把风格包 `assets` 一律按字体处理，登记非字体纹理或模型会在 `preview` / `render` 阶段失败；确需包内纹理时先单独立项扩展该检查。
+- `deep-journey` 的 3D 组件通过 `m2v/code-scene` 使用 `three`、`@react-three/fiber`、`@react-three/drei`，不直接裸导入；使用 `useFrame` 的组件只适用于顺序录制，声明 `capture.mode: "pure-time"` 的作品不得导入。
 
 ## general 场景接口
 

@@ -50,3 +50,10 @@
 - 本次只抽查代表帧，未重放完整成片，不声称全片视觉验收；三个迁移作品的既有 VERIFICATION 记录保留为历史，不授权新路径下的新版本。
 - 旧 `examples/` 的 `outputs/` 未迁移，约 17.4G 生成本地产物；其中 `examples/compound-interest/outputs/code-cache/code-ajld19eb` 因权限受限无法删除，作为被忽略的本地残留保留，不影响 Git 跟踪与构建。
 - 深空示例迁移后 `article.md` 的字节摘要与旧输入审查记录不一致；已确认迁移前后内容逐字节相同（仅路径/行尾迁移），刷新输入审查的 `source.sha256` 与 `charCount` 后重新 prepare 通过。该刷新是元数据迁移，不是新的语义审查结论。
+
+## 归档
+
+- 实施提交：`0b8d971`。
+- `openspec archive add-three-style-packages-and-migrate-examples -y`：主规格 11 处更新（+17 / ~11 / -5），变更移入 `openspec/changes/archive/2026-10-29-add-three-style-packages-and-migrate-examples/`。
+- `openspec validate --specs`：44 个主规格通过，0 失败。
+- 最终五个风格：`vibe-night`、`vibe-fable`、`doc-archive`、`count-ledger`、`deep-journey`；五个规范示例位于 `styles/examples/<style-id>/<slug>/`。

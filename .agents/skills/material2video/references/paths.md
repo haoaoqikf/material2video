@@ -11,7 +11,7 @@
 仓库里保留的是制作方法与共享画面工程。文章既可以留在仓库的 `videos/` 下，也可以放在仓库之外的
 **内容根**里，两种情况下的命令完全一致。
 
-`examples/` 中的固定媒体也不入库：各示例的 `assets/fetch.py` 按 `assets/recipe.json` 下载或生成，
+`styles/examples/` 中的风格示例媒体也不入库：各示例的 `assets/fetch.py` 按 `assets/recipe.json` 下载或生成，
 逐项校验登记摘要与实测尺寸、时长；公共字体及其许可继续随仓库分发。
 
 ## 两层根
@@ -21,7 +21,7 @@
 | 根 | 是什么 | 怎么确定 |
 | --- | --- | --- |
 | **仓库根**（repo root） | 存放 skill 与共享画面工程（`web/`）的仓库 | 输入文件向上查找 `.agents/skills/material2video/SKILL.md`；文件在仓库之外时取**正在运行的脚本**所在仓库 |
-| **工作区根**（workspace root） | 存放 `videos/<type>/<slug>/`、`examples/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
+| **工作区根**（workspace root） | 存放 `videos/<type>/<slug>/`、`styles/examples/<style-id>/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
 
 内容根按下面的优先级确定，**不自动探测、不猜**：
 
@@ -29,8 +29,8 @@
 2. 环境变量 `M2V_CONTENT_ROOT=<dir>`；
 3. 都没有 → 工作区根 = 仓库根。
 
-内容根要与仓库同构：它下面直接放 `videos/<type>/<slug>/`，产物位于作品目录下的 `outputs/`（仓库示例源放
-`examples/<slug>/`，产物位于 `examples/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
+内容根要与仓库同构：它下面直接放 `videos/<type>/<slug>/`，产物位于作品目录下的 `outputs/`（仓库风格示例源放
+`styles/examples/<style-id>/<slug>/`，产物位于 `styles/examples/<style-id>/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
 `web/` 的共享 composition 提供，契约页在渲染与体检时按仓库根自动定位并挂载。
 
 ## 目录结构
@@ -39,7 +39,7 @@
 <仓库根>/
 ├── .agents/skills/material2video/     # 制作方法与参考文档（入库）
 ├── web/                              # 共享画面工程：组件、令牌、composition（入库）
-├── examples/<slug>/                  # 随仓库发布的示例（入库）
+├── styles/examples/<style-id>/<slug>/ # 随仓库发布的风格示例（入库；媒体与产物除外）
 ├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
 │   ├── article.md                    # article 输入的源文，可改用 article.accepted.md；topic 输入省略
 │   ├── storyboard.json               # general 的 v8 全画布代码分镜
@@ -76,8 +76,8 @@
 └── videos/<type>/<slug>/outputs/…
 ```
 
-`examples/<slug>/` 是仓库示例源；`m2v --project examples/<slug>` 使用其中的材料，
-全部产物（准备记录、媒体缓存、预演、成片与评审）统一落到 `examples/<slug>/outputs/`。
+`styles/examples/<style-id>/<slug>/` 是仓库风格示例源；`m2v --project styles/examples/<style-id>/<slug>/` 使用其中的材料，
+全部产物（准备记录、媒体缓存、预演、成片与评审）统一落到 `styles/examples/<style-id>/<slug>/outputs/`。
 该产物目录同样由 `.gitignore` 的 `outputs/` 规则忽略，不入库。
 需要把示例作为独立作品制作时，把示例目录整体复制到 `videos/<type>/<slug>/`。
 
@@ -100,7 +100,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 
 1. 以输入文件位置向上查找含 `.agents/skills/material2video/SKILL.md` 的目录；找不到时
    取运行中的 bundle 所在仓库——契约页与 composition 从那一份取；
-2. 文件在仓库内的 `videos/<type>/<slug>/` 或 `examples/<slug>/` 时，工作区根即仓库根；
+2. 文件在仓库内的 `videos/<type>/<slug>/` 或 `styles/examples/<style-id>/<slug>/` 时，工作区根即仓库根；
 3. 否则用内容根作为工作区根，slug 取 `videos/<type>/<slug>/` 的最后一级目录名；
 4. 新制作入口以 `project.json` 确定类型和材料；文章辅助流程从 `videos/general/<slug>/` 分镜路径推导作品归属；
 5. 全程使用绝对路径，与执行命令时的工作目录无关。
