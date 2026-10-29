@@ -4,7 +4,7 @@
 > 准备/校验/预演/渲染工作流、语音缓存与失败处理、字幕断句与成片验收口径。
 > 音色、语速与停顿节奏见[配音音色与节奏](voice-and-rhythm.md)。
 > 文章叙事只记录正文计数，**不再限制 130～170 字，也不再限制 35～45 秒**；
-> 成片时长由实际口播派生（通用 v8 上限 36000 帧）。分镜与时间轴契约以
+> 有旁白时长结合实际口播与声明的留白派生，无旁白代码幕按 `durationFrames` 或 `targetSeconds` 分配帧窗组织；通用 v8 全片上限为 600 秒（总帧数不超过 `600 × fps`）。分镜与时间轴契约以
 > [通用分镜 v8](storyboard-schema.md)、[文章媒体与音效](article-media-and-sound.md) 与
 > [OpenSpec article-explainer](../../../../openspec/specs/article-explainer/spec.md) 为准。
 > v4 的媒体清单、`stages` 时间轴与语义节拍已随旧子系统删除，本文不再描述。
@@ -41,7 +41,7 @@ uv run m2v render --project videos/general/<slug>
 1. 口播写在它所属的幕/场景里：通用 v8 用分段口播 `narrationSegments`（只接受分段形式，
    不接受整段字符串；代码幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
-   通用 v8 每段独立合成、按实际音频推导帧数、字幕与展示时间，并在每幕结束留 24 帧阅读时间；
+   通用 v8 有旁白段独立合成，按实际音频及声明的前后留白推导帧数与字幕；幕尾阅读停留由 `readingHoldFrames` 指定，默认 0.8 秒（30fps 为 24 帧），无旁白幕按 `durationFrames` 或剩余目标时长分配；
    `code` 幕只构建源码并记录依赖，片段在检查或正式生成时按需录制并缓存（见
    [代码场景运行契约](code-scene-runtime.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
@@ -100,7 +100,7 @@ uv run m2v render --project videos/general/<slug>
 作品的是同一份；见 [渲染引擎](render-engine.md) 的字幕量测硬判定。不依赖外置字幕文件。
 准备记录的 `props` 携带 `subtitleCues`，共享 composition 按当前帧绘制字幕并预留安全区；
 **分镜不能手写该字段**——它由 prepare 从真实词边界派生，手写会和音轨各说各话。
-渲染按帧 seek，不播放音频；先编码画面，再复制视频流合入 AAC 配音，无二次视频编码。
+渲染按帧 seek，不播放音频；有声作品先编码画面，再复制视频流合入 AAC 母版，无二次视频编码。无声作品的静音准备母版仅供内部时间线，正式成片不含音频流，见[无声作品](article-media-and-sound.md#无声作品)。
 合成时配音统一转码为 **AAC-LC / 44.1kHz / 立体声 / 128k**：准备记录里的 WAV 是 24kHz
 单声道，但 24kHz 单声道 AAC 会被 Windows 的 Media Foundation 拒绝（`0xc00d36c4`），
 44.1kHz 立体声是各平台兼容性最好的组合。画面像素格式固定为 `yuv420p(tv, bt709)`，

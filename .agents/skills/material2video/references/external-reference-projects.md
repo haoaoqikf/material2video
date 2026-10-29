@@ -7,7 +7,7 @@
 
 ## 使用规则
 
-- 只在制作 `general` 视频、且用户明确要求借鉴对应风格或视频参考时查阅。
+- 制作 `general` 视频且用户要求借鉴、作品选择对应正式风格，或需要核对已吸收方法的来源与边界时查阅。已并入通用制作指导的方法按其适用条件使用，无须用户再次提出外部项目名称。
 - 外观借鉴仍按[参考风格契约](reference-style.md)执行：L1/L2/L3、八项指标、画幅转译、同族冷审与 `outputs/style-reference.md`。
 - 参考画面、字幕、贴图不得进入成片；渲染链路不读取外部目录或 `refs/`。
 - 外部项目仍是来源事实的权威；本仓库只登记固定 commit 下的可用范围。
@@ -96,7 +96,7 @@ GIF/JPG 只作分析：不复制进本仓库，不作为素材或风格包资产
 - `examples/*/film.js`（样片实现，只读）
 - `scripts/new_film.py`
 
-#### 后续合并
+#### 已落地转译
 
 - C 夜曲已按[风格接入契约](style-pack.md)转成 `styles/vibe-night`，组件以 TSX 重写并随包登记宋体资产。
 - B 寓言已转成 `styles/vibe-fable`：扁平插画舞台、三层视差、本能读数仪表、对照计数、引线标注、规则卡与逐字亮起的屏幕字幕以 TSX 重写；不随包携带字体，使用宿主已注册的 `M2V Sans`。
@@ -174,8 +174,10 @@ git -C "C:\D_Merged_From_D\project\third-party\vibe-knowledge-film" rev-parse HE
 
 | 样片 | 可学做法 | 注意 |
 |---|---|---|
-| `examples/fold_C` | 一台摄影机用对数缩放从血管推进到珠串再拉出；有体积的实物画在底层不吃辉光；第 3 镜与第 8 镜回到同一画面，第一次是结果、第二次是原因 | 不复制珠子、细胞、镰刀等具体形象与文案例子 |
-| `examples/pigeon_B` | 计时器按真实时间走；六镜六景别；字幕出现后 0.3 秒内有动作；保留无字幕的纯画面段 | 不复制鸽子、食槽、幸运袜等具体形象与文案例子 |
+| `examples/fold_C` | 一台摄影机用对数缩放从血管推进到珠串再拉出；有体积的实物画在底层不吃辉光；第 3 镜与第 8 镜回到同一画面，第一次是结果、第二次是原因 | 普通作品不照搬原样片的具体形象组合与文案；已登记教学示例按下述边界重写 |
+| `examples/pigeon_B` | 计时器按真实时间走；六镜六景别；字幕出现后 0.3 秒内有动作；保留无字幕的纯画面段 | 普通作品不照搬原样片的具体形象组合与文案；已登记教学示例按下述边界重写 |
+
+已登记的 `styles/examples/vibe-night/fold/` 与 `styles/examples/vibe-fable/pigeon/` 是同题材教学重写，可沿用已登记自有样片的选题与机制，画面和实现由本仓库重写；这不授权普通作品照搬整套分镜或文案，也不允许直接复制外部媒体、字体或整段源码。受限参考片仍不得使用。
 
 拆解方法按[参考视频逆向拆解](reference-video-analysis.md)；外观转译按[参考风格契约](reference-style.md)。样片画面、GIF、JPG 只能看，不得进入成片、评审包或风格包资产。
 
@@ -195,7 +197,7 @@ git -C "C:\D_Merged_From_D\project\third-party\vibe-knowledge-film" rev-parse HE
 - 参考片的画面、字幕、贴图、片名卡母题、角色与具体场景。
 - `examples/stim_B`、`examples/info_C`、`look_stim_B.jpg`、`look_info_C.jpg` 及其中的任何设计。
 - 外部 `engine/`、`engine/fonts/`、GIF/JPG、样片 `film.js`。
-- 外部字幕的逐字动效与字号基线，不得覆盖共享字幕层。
+- 外部字幕参数不得覆盖有旁白的共享字幕层；无旁白屏幕字幕可使用正式风格包重写的逐字显影组件，仍遵守安全区与屏幕字幕契约。
 - 不新增 CSS 主题作用域、`themes.json` 或其他并行主题机制。
 
 ### 记录与验收
@@ -209,7 +211,7 @@ git -C "C:\D_Merged_From_D\project\third-party\vibe-knowledge-film" rev-parse HE
 
 采用外观时仍按[参考风格契约](reference-style.md)做风格基准与同族冷审；本文不新增审核轮次或门禁。
 
-### 未来合并
+### 已落地转译与后续扩展
 
 两套外观都已转成正式风格包：C 夜曲为 `styles/vibe-night`，B 寓言为 `styles/vibe-fable`；
 组件以 TSX 重写，夜曲随包登记宋体资产，寓言复用宿主已注册的无衬线字体。涉及新风格包、

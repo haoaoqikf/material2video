@@ -52,7 +52,7 @@ def test_reference_docs_are_reachable_from_the_entry():
 
 @pytest.mark.parametrize("name,documents", [
     ("visual-creative-direction.md", ("production-workflow.md", "creative-production.md",
-                                      "article-to-storyboard.md", "subagent-review.md",
+                                      "stage-plan.md", "subagent-review.md",
                                       "director-review-and-edit.md", "visual-review-rubric.md")),
     ("reference-video-analysis.md", ("reference-style.md", "creative-production.md",
                                      "visual-creative-direction.md", "subagent-review.md")),

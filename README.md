@@ -26,7 +26,7 @@ Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt(
 
 代码场景可声明 `content.props.capture.mode: "pure-time"` 走纯时间采集：任意帧直接 seek，按块并行采集后无损拼接，预览与 lookdev 不再回放前缀；纯性由静态源码闸门与正序/倒序 PSNR 双重验证，失败明确拒绝。`render --jobs N` 可进一步按帧区间分进程渲染。默认仍为顺序采集、单进程；写法与限制见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
 
-general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；低风险作品只派一次当前候选独立终审，核心风险按计划在扩展前增加适用评审。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
+general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；低风险作品只派一次当前候选独立终审，核心风险按计划在扩展前增加适用评审。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。选案按未决问题比较，不固定候选数量；检查工具按需调用，完整证据与制作完成条件仍须满足。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
 ## 快速开始
 
@@ -54,7 +54,7 @@ uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/general/<slug>
-# 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，适用审核轮按独立子代理流程执行。
+# render 每次生成一个全片候选并自动技术验收；制作完成还须有效证据与适用评审。m2v review 是可选工具。
 uv run m2v render --project videos/general/<slug> [--jobs N] # N>1 为进程级分段渲染
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
