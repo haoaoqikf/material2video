@@ -24,6 +24,7 @@
 - 变更涉及的 6 份入口与手册：163 个相对链接及锚点有效；这 6 份文档没有 JSON 围栏，既有路由文档的 JSON 示例及阅读预算检查通过。
 - `openspec validate verify-local-fixes-before-full-render --strict`：通过。
 - `git diff --check`：通过。
+- 实施提交：`8a443e9`；同步两项修改要求并逐块核对，原有场景全部保留；`openspec validate --specs --strict`：44 passed、0 failed。已归档至 `2026-10-29-verify-local-fixes-before-full-render`。
 
 ## 复核结论
 
