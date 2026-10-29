@@ -56,8 +56,8 @@ work/
 *.wav
 *.mp3
 # 示例媒体按 `assets/recipe.json` 下载或生成、按摘要校验，不进入普通 Git；
-# 公共字体的许可文本仍入库。
-examples/*/assets/media/
+# 公共字体的许可文本仍入库。风格示例媒体位于保留目录下，按风格与作品分层。
+styles/examples/*/*/assets/media/
 
 # 风格示例的合成音效同理：`assets/sound-recipe.json` 是生成配方（入库），
 # 生成的 wav 与按摘要索引的 `sound-sources.json` 是产物（不入库），
@@ -82,8 +82,8 @@ styles/*/assets/*.otf
 # 作品目录（`videos/<type>/<slug>/`：材料、专属网页与 outputs）是内容，不进版本控制。
 # 想放仓库外时配 M2V_CONTENT_ROOT 或 --content-root 指向内容根。
 # 候选稿与用户明确采用的工作副本属于作品内容，不进入 Git；article.md 原文保持不变。
-/examples/*/article.candidate.md
-/examples/*/article.accepted.md
+/styles/examples/*/*/article.candidate.md
+/styles/examples/*/*/article.accepted.md
 
 # setuptools editable-install metadata
 *.egg-info/

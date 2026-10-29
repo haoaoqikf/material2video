@@ -31,7 +31,7 @@ def write_json(path: Path, data) -> None:
 def test_registry_lists_both_packages(capsys):
     assert main(["styles", "--json"]) == 0
     listed = {item["id"]: item for item in json.loads(capsys.readouterr().out)}
-    assert set(listed) == {"vibe-fable", "vibe-night"}
+    assert set(listed) == {"vibe-fable", "vibe-night", "doc-archive", "count-ledger", "deep-journey"}
     assert listed["vibe-fable"]["types"] == ["general"]
     assert listed["vibe-fable"]["frames"] == [{"width": 1920, "height": 1080}]
 

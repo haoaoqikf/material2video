@@ -65,9 +65,9 @@ def test_methods_are_linked_from_the_operating_docs(name, documents):
 
 
 def test_readme_and_example_links_resolve():
-    """README 与固定示例的设计文档仍须有可打开的创作方法链接。"""
+    """README 与风格示例的设计文档仍须有可打开的创作方法链接。"""
     name = "visual-creative-direction.md"
-    paths = (REPO / "README.md", *REPO.glob("examples/*/DESIGN.md"))
+    paths = (REPO / "README.md", *REPO.glob("styles/examples/*/*/DESIGN.md"))
     for path in paths:
         text = path.read_text(encoding="utf-8")
         links = re.findall(rf"\]\(([^)]+{re.escape(name)})\)", text)
@@ -76,12 +76,13 @@ def test_readme_and_example_links_resolve():
 
 
 def test_fixed_examples_document_media_restore():
-    """示例媒体不入库，两个有固定媒体的示例都必须写明恢复入口。"""
-    root = REPO / "examples"
-    for name in ("american-science-milestones", "solar-system-journey"):
-        readme = (root / name / "README.md").read_text(encoding="utf-8")
-        assert f"examples/{name}/assets/fetch.py" in readme, f"{name} 没有写明媒体恢复入口"
-        assert (root / name / "assets/recipe.json").is_file()
+    """风格示例媒体不入库，两个有固定媒体的示例都必须写明恢复入口。"""
+    root = REPO / "styles" / "examples"
+    for style, name in (("doc-archive", "american-science-milestones"),
+                         ("deep-journey", "solar-system-journey")):
+        readme = (root / style / name / "README.md").read_text(encoding="utf-8")
+        assert f"styles/examples/{style}/{name}/assets/fetch.py" in readme, f"{name} 没有写明媒体恢复入口"
+        assert (root / style / name / "assets/recipe.json").is_file()
 
 
 def test_code_scene_contract_is_documented():

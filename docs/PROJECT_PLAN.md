@@ -33,7 +33,7 @@ general 的检查点制作工具见[制作证据与状态](../README.md#制作�
 3. 持续完善镜头表现、后期、素材许可与原生尺寸审计，以及交付后的替代复核方式。
 4. 根据新增专用类型的实际重复需求提取能力；保持每类业务门禁独立。
 5. 仅在有明确需求且单独评估后考虑横竖屏以外的尺寸帧率；不引入第二套渲染引擎，电影级画面以现有 Remotion/React/R3F 底座上的镜头、后期与共享套件实现。
-6. 外部参考项目 `vibe-knowledge-film` 的 C 夜曲与 B 寓言已分别转成正式风格包 `styles/vibe-night` 与 `styles/vibe-fable`（见[风格包目录](../styles/README.md)），各配一个可校验的示例；未并入的外观不提供可安装风格。
+6. 外部参考项目 `vibe-knowledge-film` 的 C 夜曲与 B 寓言已分别转成正式风格包 `styles/vibe-night` 与 `styles/vibe-fable`；仓库原有三个固定示例已整理为 `doc-archive`、`count-ledger`、`deep-journey` 三个正式风格包，并迁入 `styles/examples/<style-id>/<slug>/` 作为规范示例（见[风格包目录](../styles/README.md)）。当前共 5 个风格；未并入的外观不提供可安装风格。
 7. 已吸收该项目的两项方法：看图诊断的因果表与形象判据（`references/explainer-design.md#看图诊断与形象判据`），以及 `lookdev` 的任意时刻拼图、区间转场拼图、同帧一致性自检与幕内事件取证。可选二维 Canvas 绘制层（`web/src/code-scene/painter/`）已落地并附同源量测代理，使 Canvas 内容可被检查点量测。
 8. 已吸收 `vibe-knowledge-film` 的六项制作方法：Painter 动态能力货架、离屏分组合成、固定种子可回放模拟、数值关键帧、声音全片包络与留静、长片章节递进。已实现能力与使用边界见[README](../README.md)及制作 Skill；这些方法不自动保证成片表达效果，仍按现有画面与声音复核。两个风格示例已按镜头连接、时间预算和共同尺度补充 `DESIGN.md`，并提供 `HOWTO.md` 的可复现修改练习；练习在临时副本执行，未把变体或媒体纳入仓库。
 9. 后续按实际作品验证风格包边界和性能；已吸收的镜头连接、连续对象与时间预算按现行指导使用；外部分镜表格式及其余镜头语汇尚未整体引入，后续仅按实际需求评估，不建立平行材料或流程。

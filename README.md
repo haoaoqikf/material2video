@@ -10,7 +10,7 @@
 - `housing-timeseries`：年度住宅销售均价动态折线视频，保存原始销售额、面积与来源口径，输出无声竖屏成片。
 <!-- generated:type-catalog:end -->
 
-固定示例：[从电报到大模型](examples/american-science-milestones/README.md)、[复利](examples/compound-interest/README.md)和[太阳系之旅](examples/solar-system-journey/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
+风格示例：[从电报到大模型](styles/examples/doc-archive/american-science-milestones/README.md)、[复利](styles/examples/count-ledger/compound-interest/README.md)、[太阳系之旅](styles/examples/deep-journey/solar-system-journey/README.md)、[折叠](styles/examples/vibe-night/fold/README.md)与[鸽子的迷信](styles/examples/vibe-fable/pigeon/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
@@ -63,11 +63,11 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频、连续收听声音或试听音色，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
 
-作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。仓库自带示例（`examples/<slug>/`）的全部产物写在示例目录下的 `outputs/`，同样不入库。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。目录归属、内容根与默认输出见[目录约定与输出路径](.agents/skills/material2video/references/paths.md)。
+作品及其全部 `outputs/` 产物按类型分层存放于 `videos/<type>/<slug>/`。仓库自带风格示例（`styles/examples/<style-id>/<slug>/`）的全部产物写在示例目录下的 `outputs/`，同样不入库。`init` 的相对参数填写 `<slug>`，也可传入完整的 `videos/<type>/<slug>`；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向已有的 `videos/<slug>/` 统一契约作品，逐个备份后迁移源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。目录归属、内容根与默认输出见[目录约定与输出路径](.agents/skills/material2video/references/paths.md)。
 
 `init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融与住宅分别沿用各自的材料契约。三类各自的材料、编排与画面规则见[文档导航](#文档导航)。
 
-可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前已登记 `vibe-fable`（B 寓言）与 `vibe-night`（C 夜曲），各配一个可校验的风格示例（`styles/examples/`）。两个示例各附 `DESIGN.md`（认回锚点、时间预算与 v2 合同）和 `HOWTO.md`（可复现的事件调时、取景或几何布局练习，含修改位置、验证命令与恢复方式）；技术检查与理解观察分开记录，前者不替代后者。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)，示例与目录约定见[风格包目录](styles/README.md)。
+可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前已登记 `vibe-fable`（B 寓言）、`vibe-night`（C 夜曲）、`doc-archive`（档案纪录片）、`count-ledger`（可数物证）与 `deep-journey`（深空旅程），每个风格配一个可校验的风格示例（`styles/examples/`）。示例各附 `DESIGN.md` 与 `HOWTO.md`（可复现的调时、取景或几何布局练习，含修改位置、验证命令与恢复方式）；技术检查与理解观察分开记录，前者不替代后者。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)，示例与目录约定见[风格包目录](styles/README.md)。
 
 ## 命令
 
@@ -77,7 +77,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 架构边界与模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
-通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](examples/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。
+通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](styles/examples/doc-archive/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。
 
 ## 从旧名称迁移
 

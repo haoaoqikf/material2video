@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLE = ROOT / 'examples/compound-interest'
+EXAMPLE = ROOT / 'styles/examples/count-ledger/compound-interest'
 BED = {'sourceRef': 'assets/media/bed.wav', 'gainDb': 0, 'loop': False,
        'fadeInMs': 0, 'fadeOutMs': 0}
 DROPS = [30, 33, 35, 38, 41, 44, 46, 49, 52, 54]

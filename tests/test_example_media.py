@@ -10,9 +10,10 @@ import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.example_media import restore
+from example_catalog import EXAMPLE_PATHS
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "examples"
+EXAMPLES = ROOT / "styles" / "examples"
 FIXED_EXAMPLES = ("american-science-milestones", "solar-system-journey")
 TRANSFORMS = {"copy", "jpeg-q3", "tiff-png", "specular-roughness", "moon-continuous-silent", "generate"}
 
@@ -63,8 +64,9 @@ def registered(tmp_path: Path, kind: str = "image", *, size: str = "64x48", colo
 def test_fixed_example_recipes_match_registered_assets() -> None:
     """示例配方必须完整覆盖登记且摘要一致，避免恢复出与登记不同的文件。"""
     for name in FIXED_EXAMPLES:
-        sources = json.loads((EXAMPLES / name / "assets/media-sources.json").read_text(encoding="utf-8"))
-        recipe = json.loads((EXAMPLES / name / "assets/recipe.json").read_text(encoding="utf-8"))
+        root = EXAMPLE_PATHS[name]
+        sources = json.loads((root / "assets/media-sources.json").read_text(encoding="utf-8"))
+        recipe = json.loads((root / "assets/recipe.json").read_text(encoding="utf-8"))
         registered_assets = {item["id"]: item for item in sources["assets"]}
         recipes = {item["id"]: item for item in recipe["assets"]}
         assert registered_assets.keys() == recipes.keys()

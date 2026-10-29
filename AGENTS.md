@@ -40,16 +40,18 @@
 - **评审独立**：适用审核必须由独立子代理执行；轮次、风险触发、人数和终审资格统一按[审核策略](.agents/skills/material2video/references/checkpoint-gates.md#审核计划与风险触发)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/<slug>/`（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
-  中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/` 留在仓库内。
+  中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `styles/examples/` 留在仓库内。
   文章放在仓库外的内容根（`--content-root` / `M2V_CONTENT_ROOT`）时同理，产物也不入库。
-- **示例媒体不入库**：`examples/*/assets/media/` 按各自 `assets/recipe.json` 由
+- **示例媒体不入库**：`styles/examples/*/*/assets/media/` 按各自 `assets/recipe.json` 由
   `assets/fetch.py` 恢复并校验摘要、尺寸与时长；恢复失败时不改写来源登记、不接受摘要漂移，
   也不覆盖已有素材。
 - **字体二进制不入库**：字体来源、版本、摘要、许可与恢复目标登记在 `fonts/registry.json`，
   由 `fonts/fetch.py` 恢复并校验；许可文本仍入库。字体缺失时构建、准备与渲染明确失败并提示
   恢复，不得静默回退到系统字体。
-- **示例集合固定**：仓库 `examples/` 只允许 `american-science-milestones`、`compound-interest`、
-  `solar-system-journey` 三个目录，最多 3 个；后续默认仅修改这三个示例；用户明确授权时可替换其中一个，同步名单与检查，总数仍最多 3 个。
+- **风格示例集合固定**：仓库 `styles/examples/` 为每个正式风格保留一个规范示例：
+  `vibe-night/fold`、`vibe-fable/pigeon`、`doc-archive/american-science-milestones`、
+  `count-ledger/compound-interest`、`deep-journey/solar-system-journey`；不再维护顶层 `examples/`。
+  新增或替换示例须同步名单、测试与文档，并保持风格包指纹不受示例改动影响。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。
 - 改动渲染契约、分镜结构或视觉规范时，必须同步更新 skill 内的参考文档、校验器与示例；

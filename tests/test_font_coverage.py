@@ -86,7 +86,7 @@ class TestAuditTellsYouWhereItHurts:
     """光说「缺字」没用，要说是哪一段缺——否则这条结论不可修。"""
 
     ROOT = Path(__file__).resolve().parents[1]
-    BASELINE = ROOT / "examples/solar-system-journey/storyboard.json"
+    BASELINE = ROOT / "styles/examples/deep-journey/solar-system-journey/storyboard.json"
 
     def _storyboard(self) -> dict:
         import json

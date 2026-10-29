@@ -60,7 +60,7 @@ def strings(node, path: str = ""):
 
 
 def storyboards() -> list[pathlib.Path]:
-    return sorted(ROOT.glob("examples/*/storyboard.json"))
+    return sorted(ROOT.glob("styles/examples/*/*/storyboard.json"))
 
 
 class TestCopyRules:

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "american-science-milestones",
+  "type": "general",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "audio": "optional"
+  },
+  "style": {
+    "id": "doc-archive"
+  }
+}

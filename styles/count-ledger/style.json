@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "count-ledger",
+  "version": "1.0.0",
+  "description": "可数物证：近黑底、米白资本、金色新生成与暗金已离开的三态语义，可数圆片、世界坐标相机与数字排版，适合用可数对象解释数量、状态与累积。",
+  "types": ["general"],
+  "frames": [{"width": 1920, "height": 1080}],
+  "requires": {"narration": "none"},
+  "guide": "GUIDE.md",
+  "tokens": "tokens.json",
+  "components": {
+    "kit": "components/kit.tsx",
+    "disc": "components/disc.tsx",
+    "disc-layout": "components/disc-layout.ts",
+    "world-camera": "components/world-camera.ts",
+    "number-text": "components/number-text.tsx"
+  }
+}

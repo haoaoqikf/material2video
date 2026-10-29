@@ -25,7 +25,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `.agents/skills/material2video/scripts/sync_docs.py` 生成类型清单及检查点文档中的门表、风险表和审核人数表；用 `--check` 验证漂移，生成区不手工维护。同目录的 `guidance_docs.py` 校验阅读路由（`references/guidance-routes.json`）的目标、锚点、触发条件与字符预算，由 `sync_docs.py --check` 一并执行。
 - 制作操作顺序只在 [production-workflow.md](.agents/skills/material2video/references/production-workflow.md) 维护，其中「阶段阅读入口」指向四份短阶段指南；日常制作先读当前阶段指南，完整规则仍以本页为准。合同与证据结构在 [checkpoint-gates.md](.agents/skills/material2video/references/checkpoint-gates.md)，评审隔离与执行在 [subagent-review.md](.agents/skills/material2video/references/subagent-review.md)，视觉判断在 [visual-review-rubric.md](.agents/skills/material2video/references/visual-review-rubric.md)，载体选择在 [visual-material-selection.md](.agents/skills/material2video/references/visual-material-selection.md)。其他入口通过链接引用。
 - `openspec/specs/` 描述已实现行为，`openspec/changes/` 保存尚在进行的变更。命令和用户流程说明由 README 与 Skill 分别承担入口和操作手册职责。
-- `videos/`、`refs/` 及示例媒体是内容或派生产物，不属于共享代码模块；具体入库约束见 [AGENTS.md](AGENTS.md)。
+- `videos/`、`refs/` 及 `styles/examples/` 下的示例媒体是内容或派生产物，不属于共享代码模块；风格包只提供表现层，示例作品内容不进入包指纹。具体入库约束见 [AGENTS.md](AGENTS.md)。
 
 ## 依赖方向
 

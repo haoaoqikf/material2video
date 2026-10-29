@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "deep-journey",
+  "version": "1.0.0",
+  "description": "深空连续旅程：近黑深空、自然天体色、暖白正文与淡金导航，单世界 3D 舞台、连续相机与克制 HUD，适合空间、尺度、地理与旅程题材。",
+  "types": ["general"],
+  "frames": [{"width": 1920, "height": 1080}],
+  "guide": "GUIDE.md",
+  "tokens": "tokens.json",
+  "components": {
+    "kit": "components/kit.tsx",
+    "space-stage": "components/space-stage.tsx",
+    "orbit-ring": "components/orbit-ring.tsx",
+    "planet-surface": "components/planet-surface.tsx",
+    "atmosphere": "components/atmosphere.tsx",
+    "chapter-track": "components/chapter-track.tsx",
+    "status-line": "components/status-line.tsx",
+    "info-panel": "components/info-panel.tsx",
+    "subtitle-scrim": "components/subtitle-scrim.tsx",
+    "boundary-footnote": "components/boundary-footnote.tsx"
+  }
+}

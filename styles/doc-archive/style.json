@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-archive",
+  "version": "1.0.0",
+  "description": "档案纪录片：墨黑底、暖白信息层、铜色与冷青信息线，真实档案占主体、代码只补机制，适合历史、科学、人物与事件题材。",
+  "types": ["general"],
+  "frames": [{"width": 1920, "height": 1080}],
+  "requires": {"narration": "none"},
+  "guide": "GUIDE.md",
+  "tokens": "tokens.json",
+  "components": {
+    "kit": "components/kit.tsx",
+    "archive-frame": "components/archive-frame.tsx",
+    "chapter-text": "components/chapter-text.tsx",
+    "signal-line": "components/signal-line.tsx",
+    "waveform": "components/waveform.tsx",
+    "node-link": "components/node-link.tsx",
+    "flash-rings": "components/flash-rings.tsx",
+    "sequence-links": "components/sequence-links.tsx",
+    "credit-block": "components/credit-block.tsx",
+    "schematic-badge": "components/schematic-badge.tsx"
+  }
+}

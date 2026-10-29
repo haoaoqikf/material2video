@@ -1,28 +1,59 @@
-"""固定示例清单的唯一测试口径。
+"""固定风格示例清单的唯一测试口径。
 
-替换示例时只改这里，而不是让四个测试文件各自维护一份名单——分散的名单会在
-替换时漏改，表现为某个测试还在读已删除的目录。运行时不会导入本模块。
+示例统一位于 `styles/examples/<style-id>/<slug>/`。替换示例时只改这里，而不是让多个
+测试文件各自维护一份名单。运行时不会导入本模块。
 """
 from __future__ import annotations
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "examples"
+EXAMPLES = ROOT / "styles" / "examples"
 
-#: 三个固定示例及其画幅；数量上限为三，替换须用户明确授权。
+#: 每个正式风格一个规范示例：风格 ID → 作品 slug。
+STYLE_EXAMPLES: dict[str, str] = {
+    "vibe-night": "fold",
+    "vibe-fable": "pigeon",
+    "doc-archive": "american-science-milestones",
+    "count-ledger": "compound-interest",
+    "deep-journey": "solar-system-journey",
+}
+
+#: 示例作品 slug → 绝对路径。
+EXAMPLE_PATHS: dict[str, Path] = {
+    slug: EXAMPLES / style / slug for style, slug in STYLE_EXAMPLES.items()
+}
+
+EXPECTED_EXAMPLES = set(EXAMPLE_PATHS)
+CONTENT_CONTRACTS = {
+    "american-science-milestones",
+    "compound-interest",
+    "solar-system-journey",
+}
+
 EXPECTED_FRAMES: dict[str, tuple[int, int]] = {
+    "fold": (1920, 1080),
+    "pigeon": (1920, 1080),
     "american-science-milestones": (1920, 1080),
     "compound-interest": (1920, 1080),
     "solar-system-journey": (1920, 1080),
 }
-EXPECTED_EXAMPLES = set(EXPECTED_FRAMES)
-STORYBOARDS = sorted(EXAMPLES.glob("*/storyboard.json"))
-STORYBOARD_PATHS = [f"examples/{name}/storyboard.json" for name in sorted(EXPECTED_EXAMPLES)]
+EXPECTED_FPS: dict[str, int] = {
+    "fold": 30,
+    "pigeon": 30,
+    "american-science-milestones": 60,
+    "compound-interest": 30,
+    "solar-system-journey": 60,
+}
+STORYBOARDS = sorted(EXAMPLES.glob("*/*/storyboard.json"))
+STORYBOARD_PATHS = [
+    f"styles/examples/{style}/{slug}/storyboard.json"
+    for style, slug in sorted(STYLE_EXAMPLES.items())
+]
 
-#: 当前三支示例实际覆盖的共享组件族；GSAP 随拥堵波示例退役，不再要求为覆盖而引入。
+#: 当前五个示例实际覆盖的共享组件族；Motion 与 GSAP 已随旧场景退役，
+#: 不再为了覆盖清单引入无关效果。
 COVERED_COMPONENTS = {
-    "Motion": ("motion", "motion/react"),
     "ECharts": ("Chart", "echarts"),
     "Three.js": ("THREE", "three"),
     "React Three Fiber": ("Canvas", "@react-three/fiber"),

@@ -3,8 +3,8 @@ import {
   FRAME_BOUNDARIES, FULL_DIAMETER, MODEL, SEGMENTS, UNITS_PER_DISC, balance, comparison,
   discDiameter, discFractions, screenDiameter, secondYear, segmentAt,
   withdrawState, yearAt, yearState,
-} from '../../examples/compound-interest/scenes/compoundMath';
-import {FIRST_DISC_INDEX, hillPositions} from '../../examples/compound-interest/scenes/discs';
+} from '../../styles/examples/count-ledger/compound-interest/scenes/compoundMath';
+import {FIRST_DISC_INDEX, hillPositions} from '../../styles/examples/count-ledger/compound-interest/scenes/compoundLayout';
 
 describe('复利作品的统一金额口径', () => {
   it('匹配独立年度终值，计算过程中不舍入', () => {
