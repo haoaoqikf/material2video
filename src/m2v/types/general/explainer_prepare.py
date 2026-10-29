@@ -41,7 +41,7 @@ def implementation_digest() -> str:
     from . import adapter, explainer_render
     from . import soundtrack, media_assets, code_scenes, scene_events
     modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
-               rhythm_engine, soundtrack, media_assets, code_scenes, scene_events)
+               rhythm_engine, soundtrack, media_assets, code_scenes, scene_events, remotion)
     files = [file for module in modules for file in module_files(module)] + [Path(__file__)]
     keys = {file.relative_to(REPOSITORY_ROOT).as_posix(): digest(file) for file in files}
     return fingerprint({**keys, **code_scenes.implementation_inputs()})
