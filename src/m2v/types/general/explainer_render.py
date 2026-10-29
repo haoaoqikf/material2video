@@ -184,9 +184,8 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
     frames_to_render = end_frame - start_frame
     from . import code_scenes
     prepared = code_scenes.materialize(root, prepared, start_frame, end_frame, jobs=jobs)
-    # 固定示例的媒体仍归属 videos/examples，避免改变既有作品路径约定。
-    output_root = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
-    destination = output or output_root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
+    # 示例与正式作品的预演、成片都落在作品目录下的 outputs/。
+    destination = output or root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
     destination.parent.mkdir(parents=True, exist_ok=True)
     entry = root / project["materials"]["storyboard"]
     timings = perf.StageTimings()

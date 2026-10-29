@@ -35,8 +35,8 @@ def digest(path: Path) -> str:
 
 
 def outputs(root: Path) -> Path:
-    base = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
-    return base / "outputs"
+    # 示例与正式作品的产物都归属作品目录本身；示例源与产物仍由忽略规则分开。
+    return root / "outputs"
 
 
 def read_record(directory: Path) -> dict:

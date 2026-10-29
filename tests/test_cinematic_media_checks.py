@@ -107,15 +107,15 @@ def test_qa_run_writes_report(tmp_path):
     assert report["checks"]["audioSync"]["scope"] == "track-duration-difference"
 
 
-def test_qa_writes_report_to_example_content_root(tmp_path):
+def test_qa_writes_report_to_example_outputs(tmp_path):
     root = tmp_path / "examples" / "clip"
-    base = tmp_path / "videos/examples/clip/outputs"
+    base = root / "outputs"
     (base / "media").mkdir(parents=True)
     video = make_video(base / "video.mp4")
     make_audio(base / "media/master.wav")
     qa.run(root, prepared_stub(), video=video, step=30)
     assert (base / "qa.json").is_file()
-    assert not (root / "outputs/qa.json").exists()
+    assert not (tmp_path / "videos/examples/clip/outputs/qa.json").exists()
 
 
 def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):

@@ -17,8 +17,8 @@
 
 #### Scenario: 仓库自带示例走统一入口
 - **WHEN** 用统一入口对仓库 `examples/<slug>/` 下的示例作品执行 prepare、preview 或 render
-- **THEN** 媒体、预演与成片写入 `videos/examples/<slug>/outputs/`，
-  不写进受版本控制的 `examples/<slug>/` 目录
+- **THEN** 媒体、预演与成片写入 `examples/<slug>/outputs/`，
+  不写进受版本控制的示例源文件，产物目录由 `.gitignore` 忽略
 
 ### Requirement: 准备及评审版本绑定
 系统 MUST 在准备后记录输入、资产、源码与准备指纹。render MUST 只读当前准备产物，缺少或过期时要求重新 prepare。正式导出 MUST 不依赖预演，生成一次并验证当前完整候选的准备指纹、文件摘要、完整帧数及媒体技术参数，并执行类型自动门禁；MUST NOT 要求人工画面评审。人工评审工具 SHALL 保留为可选工具，status MUST 标识 required=false，未填写时标识 optional；主动 review 时 MUST 验证当前结论、完整非空依据及候选摘要绑定。

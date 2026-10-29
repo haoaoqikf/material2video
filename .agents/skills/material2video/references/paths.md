@@ -29,8 +29,8 @@
 2. 环境变量 `M2V_CONTENT_ROOT=<dir>`；
 3. 都没有 → 工作区根 = 仓库根。
 
-内容根要与仓库同构：它下面直接放 `videos/<type>/<slug>/`，产物位于作品目录下的 `outputs/`（示例源放
-`examples/<slug>/`，产物位于 `videos/examples/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
+内容根要与仓库同构：它下面直接放 `videos/<type>/<slug>/`，产物位于作品目录下的 `outputs/`（仓库示例源放
+`examples/<slug>/`，产物位于 `examples/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
 `web/` 的共享 composition 提供，契约页在渲染与体检时按仓库根自动定位并挂载。
 
 ## 目录结构
@@ -77,9 +77,9 @@
 ```
 
 `examples/<slug>/` 是仓库示例源；`m2v --project examples/<slug>` 使用其中的材料，
-预演与成片落到 `videos/examples/<slug>/outputs/`；准备记录、评审及准备媒体仍在
-`examples/<slug>/outputs/`。两处产物目录均不入库。
-需要把示例的产物与源文件分开时，把示例目录整体复制到 `videos/<type>/<slug>/` 再制作。
+全部产物（准备记录、媒体缓存、预演、成片与评审）统一落到 `examples/<slug>/outputs/`。
+该产物目录同样由 `.gitignore` 的 `outputs/` 规则忽略，不入库。
+需要把示例作为独立作品制作时，把示例目录整体复制到 `videos/<type>/<slug>/`。
 
 ## 画面来自哪里
 

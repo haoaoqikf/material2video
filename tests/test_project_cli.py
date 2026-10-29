@@ -197,15 +197,16 @@ def test_review_record_requires_every_type_specific_criterion(tmp_path: Path, mo
 def test_preview_outside_the_project_root_needs_no_record(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """仓库自带示例的作品根是 `examples/<slug>/`，片段却属于 `videos/examples/<slug>/outputs/`。
+    """预演可以显式输出到作品根之外；片段检查不再写预演记录。
 
-    片段检查只是可选工具，不再写预演记录，因此作品根之外的输出目录也不影响它。
+    示例作品的默认产物也在作品根下的 `outputs/`，显式外部输出只是可选工具，
+    因此作品根之外的输出目录不影响片段检查。
     """
     root = tmp_path / "examples" / "demo"
     root.mkdir(parents=True)
     manifest = {"schemaVersion": 1, "id": "demo", "type": "outside-preview"}
     prepared = {"preparedFingerprint": "fp", "durationInFrames": 30}
-    preview = tmp_path / "videos" / "examples" / "demo" / "outputs" / "previews" / "video.mp4"
+    preview = tmp_path / "custom" / "previews" / "video.mp4"
     preview.parent.mkdir(parents=True)
     preview.write_bytes(b"full preview")
     # prepare 已经写过 outputs/prepared.json，预演记录沿用同一个目录

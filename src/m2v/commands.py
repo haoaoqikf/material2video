@@ -184,9 +184,6 @@ def _project_command(args) -> int:
             if not output_path.is_file():
                 raise M2VError(f"正式渲染没有生成成片：{output_path}")
             expected_outputs = (root / "outputs").resolve()
-            # Shipped examples keep run products outside their versioned source tree.
-            if root.parent.name == "examples":
-                expected_outputs = (root.parent.parent / "videos" / "examples" / root.name / "outputs").resolve()
             failures = cleanup_after_render(expected_outputs, output_path,
                 preserve_previews=False,
                 preserve_visual_evidence=manifest["type"] == "general")

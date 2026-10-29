@@ -4,7 +4,7 @@
 
 ## 当前交付版本（以替代证据完成复核）
 
-- 当前交付：`videos/examples/solar-system-journey/outputs/video.mp4`，174.55秒（10473帧）、1920×1080、60 fps，单幕31个连续时间窗、15段原旁白。较220.5秒旧版缩短45.95秒（20.8%）；没有统一整体变速，普通段间由旧540帧改为315帧（5.25秒），hero后观察与长路径预算分别保留。
+- 当前交付：`examples/solar-system-journey/outputs/video.mp4`，174.55秒（10473帧）、1920×1080、60 fps，单幕31个连续时间窗、15段原旁白。较220.5秒旧版缩短45.95秒（20.8%）；没有统一整体变速，普通段间由旧540帧改为315帧（5.25秒），hero后观察与长路径预算分别保留。
 - 当前准备指纹 `5b3a1f5ef136729fcb42736c84b2f19865ce40614d1c26519f20f54e0bc79e69`；交付键 `341d635ec5b8cf882667f21442d289d643088fdd6a84b884af802dd56bbadd70`；交付 SHA-256 `d96955bca4960dc24ef95bbcfb4df968ed516a0b0cf066201fbd7c4a466109db`。状态为 delivered，QA 报告、交付清单与该摘要和准备指纹一致。
 - 完整动态粗预演 `outputs/rough-motion-v2/rough.mp4`，SHA-256 `897bb2922c6986d7591fcb63241daa69917b4fa0b95218557c763b9d3f4feb61`，174.55秒、15 fps，使用已准备母版声音。仅作为设计阶段版本留档；流程不要求播放视频或连续收听声音。
 - 旁白实测合计4554帧，按原文、音色及语速重新命中15段缓存，准备通过。原配音选择声明与摘要未变。
@@ -58,7 +58,7 @@
 
 ## 完整预演与自动 QA（任务 6.1）
 
-- 完整预演 `videos/examples/solar-system-journey/outputs/previews/video.mp4`，SHA-256 `86d08cd55d7d8a3fdcf7240904424b81d61381a4c20337d46c731b0940b459fb`，13230 帧 / 220.5 秒 / 1920×1080 / 60 fps / H.264 High / AAC-LC 44.1 kHz 立体声；render 2701.6 秒、mux 12.1 秒。
+- 完整预演 `examples/solar-system-journey/outputs/previews/video.mp4`，SHA-256 `86d08cd55d7d8a3fdcf7240904424b81d61381a4c20337d46c731b0940b459fb`，13230 帧 / 220.5 秒 / 1920×1080 / 60 fps / H.264 High / AAC-LC 44.1 kHz 立体声；render 2701.6 秒、mux 12.1 秒。
 - 预演 QA `status=pass`：0 个冻结/重复对（最小帧差 0.00227、最长静止 0 秒），字幕对比度 19.43:1，响度 −13.8 LUFS / 真峰值 −3.7 dBTP，音画差 0.0199 秒，claims 无缺失，帧序列 113 页。
 - 全片 5 秒间隔接触表与太阳→水星（759–1089）、木星→土星（6621–7500）、结尾（12019–13229）加密帧序列已实际查看；未发现必须返工的构图、主体识别或字幕越界问题。
 - 用户已观看该完整预演并确认视频没有问题，明确无需再执行正式 render；本版交付为 `previews/video.mp4`，不生成新的 `video.mp4`。
@@ -72,8 +72,8 @@
 
 ## 交付与完成状态（任务 6.1–6.3）
 
-- 交付版本：`videos/examples/solar-system-journey/outputs/previews/video.mp4`，SHA-256 `86d08cd55d7d8a3fdcf7240904424b81d61381a4c20337d46c731b0940b459fb`，73,989,168 字节，13230 帧 / 220.5 秒 / 1920×1080 / 60 fps / H.264 High / yuv420p(tv, bt709) / AAC-LC 44.1 kHz 立体声。
-- 用户已实际观看该完整预演并确认通过；按用户指令不执行正式 render，`videos/examples/solar-system-journey/outputs/video.mp4` 仍是历史 135 秒版本，不作为本版交付。
+- 交付版本：`examples/solar-system-journey/outputs/previews/video.mp4`，SHA-256 `86d08cd55d7d8a3fdcf7240904424b81d61381a4c20337d46c731b0940b459fb`，73,989,168 字节，13230 帧 / 220.5 秒 / 1920×1080 / 60 fps / H.264 High / yuv420p(tv, bt709) / AAC-LC 44.1 kHz 立体声。
+- 用户已实际观看该完整预演并确认通过；按用户指令不执行正式 render，`examples/solar-system-journey/outputs/video.mp4` 仍是历史 135 秒版本，不作为本版交付。
 - `assets audit` 通过（0 问题，日球层顶与奥尔特云无贴图按预期警告）；完整预演自动 QA `status=pass`。
 - 文案、节奏、连续性、审美、声音与技术的六项结论及限制见交付目录 `visual-notes.md`；S01、S02、S03 均关闭。
 

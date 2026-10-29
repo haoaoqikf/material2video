@@ -35,7 +35,7 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 仓库内优先
 - **WHEN** 已设置内容根，而输入文件位于仓库根的 `examples/<slug>/`
-- **THEN** 归属仍按仓库根判定，产物写入 `<仓库根>/videos/examples/<slug>/outputs/`
+- **THEN** 归属仍按仓库根判定，产物写入 `<仓库根>/examples/<slug>/outputs/`
 
 #### Scenario: 无法推导归属
 - **WHEN** 输入文件既不在仓库根的 `videos/<type>/<slug>` 或 `examples/<slug>` 内，也不在已解析的工作区根内
@@ -61,7 +61,7 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 #### Scenario: 示例作品默认输出
 
 - **WHEN** 示例文章归属为 `examples/demo/`
-- **THEN** 默认产物写入 `videos/examples/demo/outputs/`，并与正式作品隔离
+- **THEN** 默认产物写入 `examples/demo/outputs/`，与正式作品隔离，且继续由 `.gitignore` 的 `outputs/` 规则排除
 
 #### Scenario: 外部内容根
 

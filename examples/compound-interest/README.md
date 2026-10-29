@@ -19,7 +19,7 @@ uv run m2v render --project examples/compound-interest
 uv run m2v qa --project examples/compound-interest
 ```
 
-成片位于 `videos/examples/compound-interest/outputs/video.mp4`。目录与项目 ID 为 `compound-interest`；不提供旧五选择兼容入口。
+成片位于 `examples/compound-interest/outputs/video.mp4`。目录与项目 ID 为 `compound-interest`；不提供旧五选择兼容入口。
 
 - [制作设计与参考迁移](DESIGN.md)
 - [数学口径、素材与声音来源](SOURCES.md)

@@ -38,7 +38,7 @@ uv run m2v render --project examples/american-science-milestones
 uv run m2v qa --project examples/american-science-milestones
 ```
 
-前两秒审美考虑属于定性创作复核：看开场帧序列与手机尺寸下的主题识别和视觉/信息钩子，不虚构实际平台跳出率。成片位于 `videos/examples/american-science-milestones/outputs/video.mp4`，生成媒体与复核图像不入库。
+前两秒审美考虑属于定性创作复核：看开场帧序列与手机尺寸下的主题识别和视觉/信息钩子，不虚构实际平台跳出率。成片位于 `examples/american-science-milestones/outputs/video.mp4`，生成媒体与复核图像不入库。
 
 [视觉设计](DESIGN.md) · [史实与素材来源](SOURCES.md) · [交付验证](VERIFICATION.md)
 

@@ -156,7 +156,7 @@
 - **R06 完整粗片**：`outputs/review-pack/R06/` 含 opening/full/comparison 三组、1920/852/393 帧、contact sheet、manifest、中性问题；两名新建上下文的独立子代理分别评审，报告互不读取。
 - **最终评审**：两名互不读取报告的隔离代理，一名看结构/节奏/颜色流向，一名看视觉文案/手机/声音时序；缺评审不得关闭。
 - **颜色流向测试**：临时项目渲染 `hideText` 无字版，代理只看画面回答“金色最后在哪”；机制测试只看S3无字版回答“1,100从哪来”。缺证据或误读先修再复核。
-- **新片对 v2**：v2 色带版基线在 `videos/examples/compound-interest/outputs/remake-baseline/b02-20261025/`，匿名帧包比较“更想看完哪个、记住哪个画面”；不把偏好当真实留存。
+- **新片对 v2**：v2 色带版基线在 `examples/compound-interest/outputs/remake-baseline/b02-20261025/`，匿名帧包比较“更想看完哪个、记住哪个画面”；不把偏好当真实留存。
 - **QA**：frozen 无>3秒硬冻结；S6 24.8–29.0有可测运动；loudness −14±2 LUFS、true peak ≤−1 dBTP；audioSync pass；subtitleContrast/claims/picture 按项目检查。
 - 所有评审记录绑定同一最终视频 SHA-256、preparedFingerprint 与 manifest SHA-256。技术通过不替代制作评审；旧R01–R05只属v2色带版，不授权v3。
 
@@ -232,7 +232,7 @@ S1：0–0.82全屏主题卡“复利的力量”；0.82–1.04淡出；1.0–1.
 ## 本轮约束与阶段
 
 - 保留横屏、30fps、870帧；示例目录与项目 ID 为 `compound-interest`；旧五选择主题、剪纸、配乐要求被替代。
-- v2 色带版已保存到 `videos/examples/compound-interest/outputs/remake-baseline/b02-20261025/`，只作匿名比较基线，不用于授权 v3。
+- v2 色带版已保存到 `examples/compound-interest/outputs/remake-baseline/b02-20261025/`，只作匿名比较基线，不用于授权 v3。
 - 当前阶段：2026-10-26 S6「金顶归队」（方案B）与开场主题卡“复利的力量”已渲染并通过 validate/prepare/QA、G0/G1/G2/G3 技术检查、G4 S5/S6；本轮独立评审 G4/G5/G6 结构与视觉文案通过，G2 设计 fail（S3/S5 阶段静帧重复、S6 缺并入过渡帧）与 G3 animatic fail（黑帧占位）作为已知限制保留；S1–S4 的既有 G4 量测问题仍开放。用户已验收成片并要求直接归档，变更已移入 `openspec/changes/archive/2026-10-26-add-compound-closing-scene/`。
 
 

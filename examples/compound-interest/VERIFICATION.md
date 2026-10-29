@@ -8,27 +8,27 @@
 
 ## 2026-10-26 S6 金顶归队与开场主题卡
 
-- 文件：`videos/examples/compound-interest/outputs/video.mp4`
+- 文件：`examples/compound-interest/outputs/video.mp4`
 - SHA-256 `33ab0fa7b52754511cb536ebff73665a0c9b9a18ac3a2b27b6f0b6a10570dc51`；preparedFingerprint `50620304d00f728b4692628003dd5cd0074c73c49a6ea2ac703a71937f04ea34`；候选键 `bf88dab7…`。
 - 1920×1080、30fps、870帧、29.0秒；无旁白；29秒环境床+25个事件音（10个落片音移到30–54帧，744帧切场/归队，810帧片名前收束）。
 - 改动：S1 0–0.82秒全屏主题卡“复利的力量”（112px），文字0.72–0.86秒先退、黑底0.82–1.04秒淡出；两柱1.0–1.81秒落片，标题1.0秒、标签1.8秒、问题2.2秒。S5 结果屏在24.8秒结束，只保留“30 年后的总资产”、两种方式与枚数；21.0秒两列标签保持，不再闪断；S6 24.8秒硬切到丘顶2.0×特写，16枚金片错峰下沉26世界px并变白，26.2–26.9秒拉回0.95×，只剩175枚全白本金；26.9秒结论“让收益，也成为本金。”、27.1秒片名“复利”。S6 脚注基线1024并在特写期间淡出，避免压住圆片。
 - QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度 −14.6 LUFS、true peak −1.2 dBFS；音画差0.00172秒；最长静止1.0秒（17–18秒，S4有意停留）。
 - 技术检查：G0/G1/G2/G3 pass；G4 `S5-result` pass（计数169/16/30、字号≥12px@393）、`S6-result` pass（计数175白/0金/0暗、结论与片名文字状态、无裁切/重叠）。`S6-result` 的 G4 窗口为807–870帧，2×特写由G2独立静帧、G3 animatic与独立评审覆盖。G5/G6 的技术报告通过；G4 汇总仍因 S1–S4 旧检查过期而显示过期，不改写单点结果。
-- 静帧：S3（establish/reveal/result）、S5（establish/reveal/scale）、S6（establish/reveal/scale），各1920/852/393；独立HTML+SVG构图，登记于 `videos/examples/compound-interest/outputs/production/design-frames.json`。
+- 静帧：S3（establish/reveal/result）、S5（establish/reveal/scale）、S6（establish/reveal/scale），各1920/852/393；独立HTML+SVG构图，登记于 `examples/compound-interest/outputs/production/design-frames.json`。
 - animatic：29.00秒/870帧；S5 结果在24.8秒结束，S6 使用独立收束静帧；S1/S2/S4 仍按 B 级占位（仅时序），开场主题卡与落片未进入 animatic。
 - 测试：前端 `vitest` 96项通过；Python 示例、严格示例与制作门测试通过。
 - 独立评审（全部只投喂中性评审包、报告互不读取）：开场版 G4 镜头 **pass**（21.0 秒标签逐帧连续、S6 归队与回拉平滑）、G5 全片 **pass**、G6 结构 **pass**（主题卡改善“在解释什么”，片名变为回扣但未削弱收束）、G6 视觉文案 **pass**（主题卡 393 约22px、可读；0.7 秒全亮偏短列为创意风险）。G2 设计 **fail**：S3 result 与 reveal、S5 reveal 与 establish 逐像素相同，S6 没有展示金片并入白堆的过渡帧；G3 animatic **fail**：animatic 未包含开场改动，0–8 秒与 13–19 秒仍为黑帧占位。G2/G3 与 S1–S4 既有 G4 项保持开放；G5/G6 证据通过但因前置未关闭显示“等待前置”。
-- 提交：S6 实现与文档 `acea783`；开场主题卡 `c47bcc7`；归档 `33b29a0`。生成媒体与评审包仍在忽略的 `videos/examples/compound-interest/outputs/`。用户已验收成片并明确要求直接归档，OpenSpec 变更已同步主规格并移入 `openspec/changes/archive/2026-10-26-add-compound-closing-scene/`；G2/G3 与 S1–S4 既有 G4 项作为已知限制保留。
+- 提交：S6 实现与文档 `acea783`；开场主题卡 `c47bcc7`；归档 `33b29a0`。生成媒体与评审包仍在忽略的 `examples/compound-interest/outputs/`。用户已验收成片并明确要求直接归档，OpenSpec 变更已同步主规格并移入 `openspec/changes/archive/2026-10-26-add-compound-closing-scene/`；G2/G3 与 S1–S4 既有 G4 项作为已知限制保留。
 
 ## 2026-10-26 结果屏简化与快进节奏修订
 
-- 文件：`videos/examples/compound-interest/outputs/video.mp4`
+- 文件：`examples/compound-interest/outputs/video.mp4`
 - SHA-256 `520333bd3adda5f5af48aaeb04a05cf895767f21c790bf410cf09aa5dbb6b102`；preparedFingerprint `dfdaa2c245ea8e5b92afd880a7f65b5a7889dbb9911bc065cb294ecdd5f89489`；候选键 `c637dd5e…`。
 - 1920×1080、30fps、870帧、29.0秒；无旁白；29秒环境床+25个事件音（结果落定音在630帧/21.0秒，结论774帧，片名780帧）。
 - 改动：结果屏只保留“30 年后的总资产”、两种处理方式与枚数“40 枚／约 174.5 枚”，不显示总额、差额或单位图例；快进段19.0–21.0秒（2秒），结果屏21.0–25.8秒，25.8–29.0秒结论与片名进入且表头保留；片名96px；`10,000×10%=1,000`只在第1年出现一次（6.6秒淡出）。数学 `comparison(30)` 仍覆盖40,000/174,494/134,494，差额只作为口径与测试，不上屏。
 - QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度 −14.8 LUFS、true peak −1.4 dBFS；音画差0.00172秒；最长静止1.0秒。
 - 技术检查：G0/G1/G2/G3 pass；G4 `S5-result` pass（字号≥12px@393、文字预算55字、计数169/16/30）。S1–S4 的既有 G4 缩放裁切、开场标签9.8px与紧排文本框重叠仍开放，未据此声称全片 G4 通过。
-- 静帧：S3 与 S5 的 establish/reveal/result，加 S5 hold 收束帧，各1920/852/393；S3 已去掉重复算式；独立HTML+SVG构图；登记于 `videos/examples/compound-interest/outputs/production/design-frames.json`。
+- 静帧：S3 与 S5 的 establish/reveal/result，加 S5 hold 收束帧，各1920/852/393；S3 已去掉重复算式；独立HTML+SVG构图；登记于 `examples/compound-interest/outputs/production/design-frames.json`。
 - animatic：29.00秒/870帧；改为逐段循环精确时长编码，修复此前29秒素材被编成32.17秒的问题；S5 hold 使用收束帧，收束文字与成片同在25.8秒。S1/S2/S4 仍按 B 级占位（仅时序），不作为美术证据。
 - 测试：前端 `vitest` 96项通过；Python 示例、严格示例与制作门测试82项通过（含 animatic 时长回归）。
 - 独立评审 r7（只投喂中性评审包，报告互不读取；全部已导入）：
@@ -39,7 +39,7 @@
   - G6 结构：pass；认为问题到结论的顺序与跳跃提示成立，结论句位置列为偏好。
   - G6 视觉文案：fail；要求补单位链、差值回答、第2年算式与统一金色语义。
 - 结论：成片与技术要求已满足用户本轮两项修改；独立评审要求的大部分内容会重新增加用户明确删去的信息，因此保留为开放项，不据此宣称审美通过，也不关闭 `REVIEW-*` 问题。OpenSpec 变更已按用户明确要求移入 `openspec/changes/archive/2026-10-26-redesign-compound-interest-ending/`，评审开放项不因归档关闭。
-- 提交：实现与文档 `0828ad6`；评审证据、视频与候选保留在忽略的 `videos/examples/compound-interest/outputs/`。
+- 提交：实现与文档 `0828ad6`；评审证据、视频与候选保留在忽略的 `examples/compound-interest/outputs/`。
 
 ## 上一版（2026-10-25）
 
@@ -47,7 +47,7 @@
 
 ### 最终候选
 
-- 文件：`videos/examples/compound-interest/outputs/video.mp4`
+- 文件：`examples/compound-interest/outputs/video.mp4`
 - SHA-256 `ec5a4b3f5f0b997fb494e322f4d405bb13854784d0c5f819e890c1481446c37c`；preparedFingerprint `c2bf6ab3d6e511c26f6c4bdcf2ab82015da0b5fb46a181c89bd75cb3db115b09`。
 - 改名前后成片字节相同（SHA-256 未变）；仅项目 ID 与准备指纹重新绑定，画面、音轨与编码未改变。
 - 1920×1080、30fps、900帧、30.0秒；无旁白、无旋律配乐；30秒环境床（前8秒数字静音、8.0秒进入、29–30秒淡出）+28个事件音。
@@ -116,4 +116,4 @@
 
 本节验证新制作工具，不追认历史 G0–G6。DESIGN.md 的后验合同与不可见 DOM 标记已加入源码；S5-result 在第700帧的真实浏览器观测为米白169、金16、暗金30，符合当前设计（米白含左10枚与右159枚）。从观测中删除一枚米白后，数量断言应失败；393宽量测同时发现小字与正文重叠，必须保持未关闭，不以计数通过宣称场景通过。
 
-局部事件窗口保存在正式 code-cache 区间缓存，静帧与DOM另行采集；没有生成额外完整候选。生成物、状态卡、唯一问题表及基线 manifest 均留在忽略的 videos/examples/compound-interest/outputs。旧交付的摘要与其原准备绑定单独保留，不用当前准备记录替换旧版出处。独立关键帧来源、早期盲审与G5/G6缺失的部分仍未完成，本次不补造记录。
+局部事件窗口保存在正式 code-cache 区间缓存，静帧与DOM另行采集；没有生成额外完整候选。生成物、状态卡、唯一问题表及基线 manifest 均留在忽略的 examples/compound-interest/outputs。旧交付的摘要与其原准备绑定单独保留，不用当前准备记录替换旧版出处。独立关键帧来源、早期盲审与G5/G6缺失的部分仍未完成，本次不补造记录。

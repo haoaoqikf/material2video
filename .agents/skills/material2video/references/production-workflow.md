@@ -131,7 +131,7 @@
 
 新流程在整体重置前用 `m2v baseline create` 保存旧视频、摘要、准备记录及问题证据到 `outputs/baselines/<id>/`；局部修复用 `--candidate` 保护必要比较候选，不新增重置身份。引用保护、默认三个完整版本目标与仅记录媒体清理以[检查点基线契约](checkpoint-gates.md#基线保留与清理)为准。准备记录缺失如实标明，不伪造旧指纹；普通交付清理不删除制作门、评审包或基线树。
 
-存量旧流程仍保留原 `outputs/remake-baseline/` 与 visual-notes.md 的直接文件链接保护，不自动迁移或补造历史。旧通过只作历史；缺少比较基线时明确相对改善证据不足。示例实际产物根为 `videos/examples/<名称>/outputs/`，源示例的 outputs 只放既有准备和缓存产物。
+存量旧流程仍保留原 `outputs/remake-baseline/` 与 visual-notes.md 的直接文件链接保护，不自动迁移或补造历史。旧通过只作历史；缺少比较基线时明确相对改善证据不足。示例的产物根与正式作品一致，都是示例目录下的 `outputs/`。
 
 ## 用户详细方案直接采用
 

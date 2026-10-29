@@ -4,7 +4,7 @@
 
 ## 成片与技术验收
 
-- 成片位于 `videos/examples/american-science-milestones/outputs/video.mp4`：1920×1080、60 fps、1800 帧、30 秒；无旁白、配乐、音效或素材原声，数字静音音轨峰值为 0。末段大语言模型镜头4.5秒，片尾署名2秒。
+- 成片位于 `examples/american-science-milestones/outputs/video.mp4`：1920×1080、60 fps、1800 帧、30 秒；无旁白、配乐、音效或素材原声，数字静音音轨峰值为 0。末段大语言模型镜头4.5秒，片尾署名2秒。
 - 准备指纹：`2b4f5cf18935b5dd97ffb0dcf46e84b284aa31f0313330d28ded1183acec9e00`；交付键：`ea48ecefe7ab4c3a8216a9c0fb1a6aaf295ad01e0842cf63c541c35f250ced53`；成片 SHA-256：`9770e06471775538a0a350b7dd1affaa517c9774c40a05bc84d6d3d89e6f1cba`。
 - `m2v validate`、`prepare` 与 `assets audit` 通过。素材审计无阻断项；历史素材清晰度按原始尺寸使用，程序化目标不适用颜色贴图清单。
 - 最终 QA 绑定当前指纹与成片摘要：439 个帧样本、28 页接触表。冻结帧检查通过：59 对采样、0 对重复；近静止比例 5.08%，最长静止段 0 秒。字幕配置对比度 19.43:1；音画时长差 0.00018 秒。自动 QA 的可见性项目不作结论，另有以下人工画面复核。
@@ -30,4 +30,4 @@
 
 - 没有真实发布留存数据，因此未计算、估算或填写“2秒跳出率”；也没有设置评分或新增导出门禁。
 - 自动 QA 是全片采样与技术量测，不能替代观众偏好调查或平台数据。手机尺寸复核不代表实际设备、播放器 UI 或平台安全区实测。
-- 视觉记录位于忽略目录 `videos/examples/american-science-milestones/outputs/visual-notes.md`；生成媒体、QA 帧和手机图不纳入版本控制。
+- 视觉记录位于忽略目录 `examples/american-science-milestones/outputs/visual-notes.md`；生成媒体、QA 帧和手机图不纳入版本控制。

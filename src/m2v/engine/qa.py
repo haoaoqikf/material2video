@@ -242,9 +242,8 @@ def claims_check(prepared: dict) -> dict:
 
 
 def delivered_video(root: Path) -> Path:
-    """成片位置：自带示例的产物在 `videos/examples/<slug>/outputs/`，其他作品在作品内。"""
-    output_root = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
-    return output_root / "outputs/video.mp4"
+    """成片位置：产物统一在作品目录下的 `outputs/`，示例也不例外。"""
+    return root / "outputs/video.mp4"
 
 
 def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DEFAULT_STEP) -> dict:
@@ -322,13 +321,13 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     sheet = qa_dir.parent / inspection["sequence"]["pages"][0]
 
     def relative(path: Path) -> str:
-        """示例的内容根在 videos/<类型>/<slug>，记录相对作品输出根而非项目目录。"""
+        """记录相对作品根或输出根；两者对示例与正式作品都成立。"""
         for base in (root, output_root(root)):
             if path.is_relative_to(base):
                 return path.relative_to(base).as_posix()
         return str(path)
 
-    # 示例的交付与准备目录不同，帧序列入口指向实际交付目录。
+    # 帧序列入口指向实际交付目录。
     observation_record = target.parent / "visual-notes.md"
     observation_path = relative(observation_record)
     report = {"schemaVersion": 1,
