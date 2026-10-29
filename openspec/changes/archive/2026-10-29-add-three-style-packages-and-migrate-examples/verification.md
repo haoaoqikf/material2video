@@ -27,6 +27,7 @@
 ## 自动化测试
 
 - `uv run pytest -m "not slow" -q -s -p no:cacheprovider`：退出码 0，非 slow 测试通过。
+- 相关 slow 测试：`test_solar_system_scene.py`（3）、`test_scene_events.py`（2）、`test_styles.py`（2）、`test_vibe_fable_style.py`（2）、`test_vibe_night_style.py`（3）通过；太阳系场景测试显式传入 `deep-journey` 的 `style-build` 配置。
 - `pnpm -C web test`：11 个测试文件、137 个测试通过。
 - 定向测试：`test_styles.py`、`test_vibe_night_style.py`、`test_vibe_fable_style.py`、`test_style_examples_strict.py`、`test_doc_examples.py`、`test_storyboard_copy.py`、`test_derived_styles.py` 全部通过。
 

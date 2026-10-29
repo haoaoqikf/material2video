@@ -18,6 +18,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
+from m2v.core import styles
 from m2v.types.general import code_scenes
 from _helpers import WEB, requires_node
 
@@ -48,10 +49,20 @@ def build_example(tmp_path: Path):
     project = tmp_path / "project"
     shutil.copytree(EXAMPLE / "scenes", project / "scenes")
     shutil.copytree(EXAMPLE / "assets/media", project / "assets/media")
+    shutil.copy(EXAMPLE / "project.json", project / "project.json")
+    package = styles.load_style("deep-journey")
+    style_config = project / "style-build.json"
+    style_config.write_text(json.dumps({
+        "root": package["root"],
+        "components": package["components"],
+        "assets": package["assets"],
+        "tokens": package["tokens"],
+        "identity": package["identity"],
+    }, ensure_ascii=False), encoding="utf-8")
     output = tmp_path / "out"
     output.mkdir(parents=True, exist_ok=True)
     result = subprocess.run([shutil.which("node"), str(WEB / "scripts/build-code-scene.mjs"),
-                             str(project), "scenes/journey.tsx", str(output)], cwd=WEB,
+                             str(project), "scenes/journey.tsx", str(output), str(style_config)], cwd=WEB,
                             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
     return project, output, result
 
