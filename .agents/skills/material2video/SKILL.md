@@ -41,4 +41,4 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 ## 条件参考
 
 [阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或用户要求参考风格时，必须读取相应专项；优先级只控制阅读顺序，不降低强制规则效力。
-修改材料后重新 prepare；preview 只检查局部，全片用一次 render 生成候选。命令与能力见[README](../../../README.md)，不凭旧提示猜参数。
+修改材料后重新 prepare；按[返工循环](references/production-workflow.md#检查与返工循环)先实际查看局部修复效果，汇总后再生成下一全片候选。preview 只检查局部，不替代最终全片复核。命令与能力见[README](../../../README.md)，不凭旧提示猜参数。
