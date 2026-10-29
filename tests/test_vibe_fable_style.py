@@ -197,7 +197,8 @@ def test_pigeon_uses_global_act_and_event_sound_semantics():
     source = (root / "scenes" / "pigeon.tsx").read_text(encoding="utf-8")
     assert "birdAct(" not in source, "行为不得再按幕 ID 分支"
     assert "clock.startSeconds" not in source
-    assert "act(globalSeconds)" in source
+    assert "act(globalSeconds, firstTurnAt)" in source
+    assert "events.frame('turn-1') / fps" in source
     for scene in board["scenes"]:
         props = scene["content"]["props"]
         assert props["capture"]["timebase"] == "global"
@@ -207,6 +208,8 @@ def test_pigeon_uses_global_act_and_event_sound_semantics():
     declared = {(scene["id"], event["id"]) for scene in board["scenes"] for event in scene["events"]}
     effects = board["soundtrack"]["effects"]
     assert effects, "示例应保留声音设计"
+    assert any(effect["sceneId"] == "wander" and effect["eventId"] == "turn-1"
+               for effect in effects), "首个转圈的画面和声音必须引用同一事件"
     for effect in effects:
         assert "eventId" in effect, "音效必须引用语义事件"
         assert "offsetFrames" not in effect and "offsetMs" not in effect
@@ -214,6 +217,19 @@ def test_pigeon_uses_global_act_and_event_sound_semantics():
     sound_map = (root / "SOUND.md").read_text(encoding="utf-8")
     for asset in {effect["assetId"] for effect in effects}:
         assert f"`{asset}`" in sound_map, f"SOUND.md 未登记 {asset}"
+
+
+def test_pigeon_removes_unbacked_instinct_readout():
+    """实验没有提供本能强度依据，示例不得再显示精确读数或挂载仪表。"""
+    root = EXAMPLES / "vibe-fable" / "pigeon"
+    board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
+    source = (root / "scenes" / "pigeon.tsx").read_text(encoding="utf-8")
+    for scene in board["scenes"]:
+        assert "gauge" not in scene["content"]["props"]
+    assert "InstinctGauge" not in source
+    assert "instinct-gauge" not in source
+    assert "FEED_INTERVAL = 15" in source
+    assert "FEED_TIMES = [15, 30]" in source
 
 
 @pytest.mark.slow

@@ -27,7 +27,8 @@
 
 示例**不能**放进 `styles/<id>/` 包内：包指纹覆盖包内所有文件，示例一改就会让所有选了该
 风格的作品准备失效。两个示例都按已登记样片的选题与分镜重写，实现与媒体自绘，不复制上游
-`film.js`、GIF/JPG 或画面；产物写入各自 `outputs/`，已被版本控制忽略。
+`film.js`、GIF/JPG 或画面；产物写入各自 `outputs/`，已被版本控制忽略。每个示例另附
+`DESIGN.md`（逐场锚点、时间预算与 v2 合同）和 `HOWTO.md`（在临时副本中可执行的修改练习）。
 
 ```powershell
 uv run python fonts/fetch.py

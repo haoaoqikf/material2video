@@ -14,11 +14,13 @@
 验证完成。讲解方法见[讲解设计](../../.agents/skills/material2video/references/explainer-design.md#四种讲解机制的执行方法)，
 对象追踪、相机与尺度、过程结果联动及回场仍由作品按需组织，本包不自动生成。示例
 `styles/examples/vibe-fable/pigeon/` 是第一份实际应用，它的表达结论只对该示例成立。
+事件与取景的可执行示范见[示例练习](../examples/vibe-fable/pigeon/HOWTO.md)。
+技术结果与理解观察分别绑定当前候选和窗口记录；跨例子使用仪表前须核对单位、依据与统一口径，没有依据的精确数值不得呈现为实测。
 
 ## 1. 什么时候用
 
 - 讲一个心理或行为机制：起点是动物实验或生活场景，终点是「你该怎么办」。
-- 需要角色、场景与一把贯穿全片的尺子（本能读数仪表）来把抽象逻辑演成故事。
+- 需要角色、场景与有来源的共同尺度，把抽象逻辑演成故事。
 - 不适合：抽象概念（数学、逻辑、信息、物理）的当场演示——那更适合 C 夜曲
   （`vibe-night`）；需要大量实拍素材、竖屏或非 `general` 类型。类型或画幅不匹配时
   校验会明确失败，不回退到无风格。
@@ -91,7 +93,7 @@ import ScreenSubtitle from 'm2v/style/components/screen-subtitle';
 | 三层视差 | `parallax-band` | 远景、角色层、前景按不同系数平移缩放 | `frame`、`startFrame`、`durationFrames`、`shift`、`zoom`、`far`、`character`、`near` |
 | 本能读数 | `instinct-gauge` | 左上仪表，0–150，过 100 红区 | `value`、`startValue`、`object`、`frame`、`startFrame`、`durationFrames` |
 | 场景说明 | `scene-note` | 年份 + 地点小字 | `year`、`place`、`x`、`y` |
-| 顶部结论行 | `top-line` | 居中一行短句 | `text`、`frame`、`startFrame`、`fadeFrames` |
+| 顶部结论行 | `top-line` | 居中一行短句 | `text`、`frame`、`startFrame`、`fadeFrames`、可选 `size`（覆盖默认 34，手机可读性需要时使用） |
 | 对照计数 | `counter-row` | 左右两组标签 + 大数字 | `items`（恰好两组）、`frame`、`startFrame`、`durationFrames` |
 | 引线标注 | `callout` | 细线指向被标注对象 | `text`、`at`、`label`、`align` |
 | 规则卡 | `rule-card` | 米色纸卡，承载结论 | `title`、`body`、`latin`、`frame`、`startFrame` |
@@ -169,7 +171,7 @@ const {subtitleSafeArea} = useSceneContext();
 
 1. 一句话对应一个当场可演的动作；遮住文字仍能读出讲解。
 2. 每场一幅插画，不套统一标题框；视觉差异来自场景本身，而不是换版式。
-3. 一把尺子贯穿全片：本能读数只在能比较的地方出现，指针不摆样子。
+3. 一把有依据的尺子贯穿全片：只在口径一致、能够比较时显示读数；没有测量依据就改用定性状态或有来源的时间、次数。
 4. 色块与柔和渐变出质感；不描边、不写实、不加装饰性特效。
 5. 推拉只做慢速单方向移动，三层视差量不同；同一幕内不硬切。
 6. 约五分之一的时间不画字，留给动作与观察；这是创作参考比例，不是验收阈值。

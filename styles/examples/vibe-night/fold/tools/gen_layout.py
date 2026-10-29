@@ -122,6 +122,8 @@ def find_path(cells: set[tuple[int, int]], seed: int, limit: int = 2_000_000) ->
 
 
 def build_layout(seed: int = 1) -> dict:
+    if not 1 <= seed <= 100_000:
+        raise ValueError("seed 必须在 1–100000 之间")
     cells = build_cells()
     path = None
     for candidate in range(seed, seed + 400):

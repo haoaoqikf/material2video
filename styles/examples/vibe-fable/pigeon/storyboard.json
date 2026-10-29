@@ -29,12 +29,7 @@
             "id": "box",
             "year": "1948",
             "place": "实验室",
-            "topLine": "一只饿着的鸽子被放进箱子里"
-          },
-          "gauge": {
-            "value": 36,
-            "startValue": 30,
-            "object": "鸽子"
+            "topLine": "箱子里的等待"
           },
           "screenSubtitles": [
             {
@@ -70,11 +65,6 @@
             "year": "1948",
             "place": "实验室",
             "topLine": "食槽定时打开，与它做什么无关"
-          },
-          "gauge": {
-            "value": 34,
-            "startValue": 36,
-            "object": "鸽子"
           },
           "screenSubtitles": [
             {
@@ -130,18 +120,13 @@
             "id": "wander",
             "year": "1948",
             "place": "实验室",
-            "topLine": "它只是饿，并不知道时间表"
-          },
-          "gauge": {
-            "value": 58,
-            "startValue": 34,
-            "object": "鸽子"
+            "topLine": "到处找吃的"
           },
           "screenSubtitles": [
             {
               "startFrame": 12,
               "endFrame": 186,
-              "text": "鸽子不知道。它只是饿，到处找吃的"
+              "text": "食物快来了，它还在到处转"
             }
           ],
           "capture": {
@@ -183,18 +168,13 @@
             "id": "coincide",
             "year": "1948",
             "place": "实验室",
-            "topLine": "食物落下时，它正好转过身"
-          },
-          "gauge": {
-            "value": 74,
-            "startValue": 58,
-            "object": "鸽子"
+            "topLine": "巧合的一刻"
           },
           "screenSubtitles": [
             {
               "startFrame": 10,
               "endFrame": 100,
-              "text": "食物掉下来那一刻，它碰巧在转圈"
+              "text": "食物落下后，它慢慢走过去"
             }
           ],
           "capture": {
@@ -236,12 +216,7 @@
             "id": "repeat",
             "year": "1948",
             "place": "实验室",
-            "topLine": "于是它又转了一圈"
-          },
-          "gauge": {
-            "value": 118,
-            "startValue": 74,
-            "object": "鸽子"
+            "topLine": "它开始重复"
           },
           "screenSubtitles": [
             {
@@ -294,12 +269,7 @@
             "id": "again",
             "year": "1948",
             "place": "实验室",
-            "topLine": "它越转越快"
-          },
-          "gauge": {
-            "value": 142,
-            "startValue": 118,
-            "object": "鸽子"
+            "topLine": "斯金纳的鸽子实验"
           },
           "screenSubtitles": [
             {
@@ -308,15 +278,21 @@
               "text": "再转一圈"
             },
             {
-              "startFrame": 90,
-              "endFrame": 186,
+              "startFrame": 111,
+              "endFrame": 135,
               "text": "15 秒到了，食物又来了"
+            },
+            {
+              "startFrame": 135,
+              "endFrame": 195,
+              "text": "它把巧合，当成了规律"
             }
           ],
           "capture": {
             "timebase": "global",
             "mode": "pure-time"
-          }
+          },
+          "credit": "B. F. Skinner, 1948"
         }
       },
       "events": [
@@ -357,103 +333,103 @@
         "assetId": "tick",
         "sceneId": "feeder",
         "eventId": "tick-1",
-        "gainDb": -32
+        "gainDb": -11.3
       },
       {
         "assetId": "tick",
         "sceneId": "feeder",
         "eventId": "tick-2",
-        "gainDb": -32
+        "gainDb": -11.3
       },
       {
         "assetId": "tick",
         "sceneId": "feeder",
         "eventId": "tick-3",
-        "gainDb": -32
+        "gainDb": -11.3
       },
       {
         "assetId": "tick",
         "sceneId": "feeder",
         "eventId": "tick-4",
-        "gainDb": -32
+        "gainDb": -11.3
       },
       {
         "assetId": "tick",
         "sceneId": "feeder",
         "eventId": "tick-5",
-        "gainDb": -32
+        "gainDb": -11.3
       },
       {
         "assetId": "tick",
         "sceneId": "again",
         "eventId": "tick-fast-1",
-        "gainDb": -30
+        "gainDb": -9.3
       },
       {
         "assetId": "tick",
         "sceneId": "again",
         "eventId": "tick-fast-2",
-        "gainDb": -29
+        "gainDb": -8.3
       },
       {
         "assetId": "tick",
         "sceneId": "again",
         "eventId": "tick-fast-3",
-        "gainDb": -28
+        "gainDb": -7.3
       },
       {
         "assetId": "latch",
         "sceneId": "wander",
         "eventId": "feeder-open-1",
-        "gainDb": -22
+        "gainDb": -1.3
       },
       {
         "assetId": "latch",
         "sceneId": "again",
         "eventId": "feeder-open-2",
-        "gainDb": -22
+        "gainDb": -1.3
       },
       {
         "assetId": "grain",
         "sceneId": "coincide",
         "eventId": "feed-1-arrival",
-        "gainDb": -20
+        "gainDb": -4.3
       },
       {
         "assetId": "grain",
         "sceneId": "again",
         "eventId": "feed-2-arrival",
-        "gainDb": -19
+        "gainDb": -3.3
       },
       {
         "assetId": "swish",
         "sceneId": "wander",
         "eventId": "turn-1",
-        "gainDb": -28
+        "gainDb": -7.3
       },
       {
         "assetId": "swish",
         "sceneId": "repeat",
         "eventId": "turn-2",
-        "gainDb": -26
+        "gainDb": -5.3
       },
       {
         "assetId": "swish",
         "sceneId": "repeat",
         "eventId": "turn-3",
-        "gainDb": -24
+        "gainDb": -3.3
       },
       {
         "assetId": "swish",
         "sceneId": "again",
         "eventId": "turn-5",
-        "gainDb": -24
+        "gainDb": -3.3
       },
       {
         "assetId": "chord",
         "sceneId": "again",
         "eventId": "reveal",
-        "gainDb": -20
+        "gainDb": -4.3
       }
     ]
   }

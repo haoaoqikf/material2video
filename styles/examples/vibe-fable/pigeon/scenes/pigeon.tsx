@@ -18,15 +18,14 @@
 import {useEffect} from 'react';
 import {createSceneEvents, useSceneContext, type CodeSceneProps, painter} from 'm2v/code-scene';
 import FableStage from 'm2v/style/components/fable-stage';
-import InstinctGauge from 'm2v/style/components/instinct-gauge';
 import SceneNote from 'm2v/style/components/scene-note';
 import TopLine from 'm2v/style/components/top-line';
 import ScreenSubtitle from 'm2v/style/components/screen-subtitle';
+import {T} from 'm2v/style/components/kit';
 
 type Chapter = {id: string; year: string; place: string; topLine: string};
-type Gauge = {value: number; startValue: number; object: string};
 type Subtitle = {startFrame: number; endFrame: number; text: string};
-type Props = {chapter: Chapter; gauge: Gauge; screenSubtitles: Subtitle[]};
+type Props = {chapter: Chapter; screenSubtitles: Subtitle[]; credit?: string};
 
 type P = InstanceType<typeof painter.Painter>;
 type Vec = [number, number];
@@ -74,14 +73,15 @@ const WALL_TOP = 54;
 const WALL_BOTTOM = 866;
 const FLOOR_Y = 838;
 const FEEDER: Vec = [1520, 400];
-const TIMER: Vec = [1690, 250];
-const TIMER_R = 96;
+// 计时器要留在镜头内，与食槽分开，才能作为跨镜时间锚点。
+const TIMER: Vec = [1650, 310];
+const TIMER_R = 78;
 
 /**
  * 六幕的镜头表。`scale` 是「房间 1 单位画多少像素」，焦点是取景中心。
  *
  * 与参考片对齐：全景 → 计时器特写 → 中景 → 食槽近景 → 中景慢推 → 计时器前置。
- * 每幕在幕内缓动，幕间不硬切——观众不会察觉「换了一个镜头」，只会觉得镜头在走。
+ * 每幕在幕内缓动；幕间按分镜硬切，是否能认回房间和对象须复核相邻窗口。
  */
 type Shot = {from: {scale: number; focus: Vec}; to: {scale: number; focus: Vec}};
 const SHOTS: Record<string, Shot> = {
@@ -89,8 +89,8 @@ const SHOTS: Record<string, Shot> = {
   feeder: {from: {scale: 1.26, focus: [1160, 520]}, to: {scale: 1.36, focus: [1210, 505]}},
   // 中景：鸽子是画面唯一的大主体，食槽与计时器留在右侧。
   wander: {from: {scale: 1.5, focus: [1180, 555]}, to: {scale: 1.6, focus: [1200, 555]}},
-  // 近景：鸽子在食槽边啄食。
-  coincide: {from: {scale: 1.62, focus: [1230, 590]}, to: {scale: 1.74, focus: [1245, 595]}},
+  // 近景：鸽子在食槽边啄食。取景保留钟表顶部，避免 12 点刻度被上缘裁掉。
+  coincide: {from: {scale: 1.5, focus: [1230, 590]}, to: {scale: 1.5, focus: [1240, 590]}},
   // 中景：转圈轨迹完整落在画面里。
   repeat: {from: {scale: 1.46, focus: [1170, 570]}, to: {scale: 1.56, focus: [1170, 570]}},
   // 计时器前置：计时器在上、鸽子在下。
@@ -117,17 +117,22 @@ function shotAt(chapterId: string, progress: number): {scale: number; focus: Vec
  * 所以它是一只有体积的鸟，而不是一块剪影。比例按身体的长度约为高度的 1.5 倍。
  */
 function bird(P: P, x: number, y: number, scale: number, pose: {
-  facing?: number; turn?: number; peck?: number; flap?: number; bob?: number; alpha?: number;
+  facing?: number; turn?: number; peck?: number; flap?: number; bob?: number; gait?: number; alpha?: number;
 }) {
-  const {facing = 1, turn, peck = 0, flap = 0, bob = 0, alpha = 1} = pose;
+  const {facing = 1, turn, peck = 0, flap = 0, bob = 0, gait = 0, alpha = 1} = pose;
   // 转向时横向压扁身体，和参考片的「转身」读法一致；未给 turn 时保持原朝向。
   const cosine = turn === undefined ? facing : Math.cos(turn);
   const width = turn === undefined ? facing : (Math.abs(cosine) < 0.32 ? 0.32 * (cosine < 0 ? -1 : 1) : cosine);
-  P.group({alpha, at: [x, y], scale: [width * scale, scale]}, () => {
-    // 影子：贴地的一圈，让鸟站得住。
-    P.ellipse(0, 6, 66, 12, {fill: '#000000', alpha: 0.22});
-    // 腿：两段折线加脚掌。
-    for (const offset of [-18, 16]) {
+  // 地面影子留在世界坐标里，不跟着横向压扁；否则转身时整只鸟连同影子一起收窄，
+  // 读起来像纸片翻面，而不是绕竖轴转身。
+  P.ellipse(x, y + 6, 66 * scale, 12 * scale, {fill: '#000000', alpha: 0.22 * alpha});
+  // 走路时两脚交替、身体轻微起伏；否则平移会读成滑行。
+  const gaitLift = gait ? Math.sin(gait) * 7 : 0;
+  const bodyLift = gait ? Math.abs(Math.sin(gait)) * 2.5 : 0;
+  P.group({alpha, at: [x, y - bodyLift], scale: [width * scale, scale]}, () => {
+    // 腿：两段折线加脚掌；转身时两只脚轻微错步，走路时交替迈步。
+    const step = turn === undefined ? 0 : Math.sin(turn * 2) * 5;
+    for (const offset of [-18 + step + gaitLift, 16 - step - gaitLift]) {
       P.poly([[offset, -34], [offset - 4, -18], [offset - 14, 0]], {color: BIRD_LEG, width: 6});
       P.line(offset - 14, 0, offset - 28, 0, {color: BIRD_LEG, width: 5});
     }
@@ -187,15 +192,15 @@ function feederTimer(P: P, x: number, y: number, radius: number, globalSeconds: 
         x + Math.cos(angle) * radius * 0.96, y + Math.sin(angle) * radius * 0.96,
         {color: INK, width: index % 5 === 0 ? radius * 0.045 : radius * 0.022});
     }
-    // 指针与轴心。
+    // 读数：剩余秒数。字号随半径走，特写与全景都读得清；手机上也要能辨认。
+    const remain = Math.max(0, Math.ceil(FEED_INTERVAL - phase));
+    P.text(String(remain), x, y + radius * 0.42, {size: radius * 0.5, color: INK, font: SANS});
+    P.text('秒', x, y + radius * 0.72, {size: radius * 0.22, color: '#8A7554', font: SANS});
+    // 指针和轴心画在读数之后，避免数字把指针切成几段。
     const tip = -Math.PI / 2 + ratio * Math.PI * 2;
     P.line(x, y, x + Math.cos(tip) * radius * 0.78, y + Math.sin(tip) * radius * 0.78,
       {color: TRACK, width: radius * 0.07});
     P.circle(x, y, radius * 0.09, {fill: INK});
-    // 读数：剩余秒数。字号随半径走，特写与全景都读得清。
-    const remain = Math.max(0, Math.ceil(FEED_INTERVAL - phase));
-    P.text(String(remain), x, y + radius * 0.44, {size: radius * 0.36, color: INK, font: SANS});
-    P.text('秒', x, y + radius * 0.68, {size: radius * 0.18, color: '#8A7554', font: SANS});
     // 画面与声音引用同一幕内事件：滴答事件到达时表盘短暂发亮。
     if (pulse > 0) P.glow(x, y, radius * 2.1, '#FFD27A', 0.4 * pulse);
   });
@@ -234,8 +239,9 @@ function boxRoom(P: P, drop: number, stocked: number) {
     const order = 1 - index / 14;
     const arrive = drop > 0 ? clamp(drop * 2.4 - index * 0.05) : 1;
     if (arrive <= 0) continue;
-    // 库存耗尽时从后往前少几颗，视觉上像被吃掉。
-    if (stocked < order) continue;
+    // 库存耗尽时从后往前少几颗，视觉上像被吃掉；下落过程中按到达进度显示，
+    // 不受「落定后库存」限制，否则食物只会在落定瞬间整盘出现。
+    if (drop <= 0 && stocked < order) continue;
     const gx = fx + 40 + ((index * 41) % 160);
     const settledY = fy + 176 + (index % 3) * 9;
     const gy = drop > 0 ? fy + 70 + smooth(arrive) * (settledY - fy - 70) : settledY;
@@ -245,15 +251,16 @@ function boxRoom(P: P, drop: number, stocked: number) {
   }
 }
 
-/** 转圈轨迹：绕鸟一圈的虚线椭圆，进度随全片时间推进。 */
+/** 转圈轨迹：鸟身后的半圈虚线，进度随全片时间推进。
+ *  只画上半圈（远离镜头的一侧），避免椭圆下弧压到屏幕字幕安全区。 */
 function turnTrack(P: P, x: number, y: number, radiusX: number, radiusY: number, progress: number) {
   if (progress <= 0) return;
-  const steps = 44;
+  const steps = 24;
   const drawn = Math.round(steps * clamp(progress));
   for (let index = 0; index < drawn; index += 1) {
     if (index % 2) continue;
-    const from = Math.PI / 2 + (index / steps) * Math.PI * 2;
-    const to = Math.PI / 2 + ((index + 1) / steps) * Math.PI * 2;
+    const from = Math.PI + (index / steps) * Math.PI;
+    const to = Math.PI + ((index + 1) / steps) * Math.PI;
     P.line(x + Math.cos(from) * radiusX, y + Math.sin(from) * radiusY,
       x + Math.cos(to) * radiusX, y + Math.sin(to) * radiusY,
       {color: TRACK, width: 8, alpha: 0.75});
@@ -266,19 +273,28 @@ function turnTrack(P: P, x: number, y: number, radiusX: number, radiusY: number,
  * 「上一次喂食」取所有不晚于当前时刻的喂食点里最大的那个；`drop` 只在这一刻之后
  * `DROP_SECONDS` 内非零。这样第 15 秒与第 30 秒各掉一次，跨幕不会漏掉。
  *
- * `stocked` 是盘里还剩多少谷子：落下时涨满，随后被吃掉、逐次减少。
- * 两次喂食之间它归零，所以「食物来时才有得吃」这件事在画面上成立。
+ * `stocked` 是盘里还剩多少谷子：落下后保持满盘，只有对应喂食后的啄食窗口才减少，
+ * 其余时间不自行变化。这样「远离食槽时食物不变、啄食时才变少」与画面行为一致。
  */
+const EAT_WINDOWS = [
+  {feedAt: 15, start: 16.2, end: 18.9},
+  {feedAt: 30, start: 30.9, end: 33.0},
+];
+
 function feedPhase(globalSeconds: number): {drop: number; stocked: number} {
   const past = FEED_TIMES.filter(at => at <= globalSeconds);
   if (!past.length) return {drop: 0, stocked: 0};
   const last = past[past.length - 1];
   const since = globalSeconds - last;
   const drop = since < DROP_SECONDS ? since / DROP_SECONDS : 0;
-  // 落定后才算有货；隔一次喂食的间隔里慢慢被吃光。
-  const eatFrom = DROP_SECONDS;
-  const eatSpan = FEED_INTERVAL - DROP_SECONDS - 1.5;
-  const stocked = drop > 0 ? 0 : clamp(1 - (since - eatFrom) / eatSpan);
+  let stocked = 0;
+  const meal = EAT_WINDOWS.find(entry => entry.feedAt === last);
+  if (since >= DROP_SECONDS && meal) {
+    if (globalSeconds < meal.start) stocked = 1;
+    else if (globalSeconds < meal.end) {
+      stocked = 1 - (globalSeconds - meal.start) / (meal.end - meal.start);
+    }
+  }
   return {drop, stocked};
 }
 
@@ -322,7 +338,7 @@ function eventPulse(events: ReturnType<typeof createSceneEvents>, ids: string[],
   return value;
 }
 
-function act(t: number) {
+function act(t: number, firstTurnAt = 13.5) {
   const x = track(t, [
     [0, HOME], [4, HOME], [8, 1040], [9, 1040],
     [10.3, 860], [11.6, 860], [13.2, 1000], [15.2, 1000],
@@ -330,7 +346,7 @@ function act(t: number) {
     [30.2, 860], [30.9, FEED_SPOT], [33, FEED_SPOT],
   ]);
   const turn = track(t, [
-    [0, 0], [9, 0], [11.5, 0], [11.9, Math.PI], [13.4, Math.PI],
+    [0, 0], [9, 0], [11.5, 0], [11.9, Math.PI], [firstTurnAt - 0.1, Math.PI],
     [15.0, 3 * Math.PI], [15.3, 4 * Math.PI], [19.0, 4 * Math.PI],
     [19.3, 5 * Math.PI], [20.2, 5 * Math.PI], [22.2, 7 * Math.PI],
     [23.6, 7 * Math.PI], [25.6, 9 * Math.PI], [26.4, 9 * Math.PI],
@@ -344,10 +360,10 @@ function act(t: number) {
     || (t > 11.9 && t < 13.2) || (t > 15.2 && t < 16) || (t > 19 && t < 19.9)
     || (t > 30.2 && t < 30.9);
   // 第一次是「碰巧」的转圈，第二次是重复动作；轨迹画在同一条地面上。
-  const trail = Math.max(
-    smooth((t - 13.5) / 0.4) * (1 - smooth((t - 15.0) / 0.3)),
-    smooth((t - 20.2) / 0.4) * (1 - smooth((t - 29.9) / 0.3)),
-  );
+  // 两个转圈点在鸽子实际停留的位置：第一次约 1000，第二段约 860，环心不随镜头漂移。
+  const firstTrail = smooth((t - firstTurnAt) / 0.4) * (1 - smooth((t - 15.0) / 0.3));
+  const secondTrail = smooth((t - 20.2) / 0.4) * (1 - smooth((t - 29.9) / 0.3));
+  const trail = Math.max(firstTrail, secondTrail);
   return {
     x,
     turn,
@@ -355,7 +371,9 @@ function act(t: number) {
     peck,
     flap: 0,
     bob: moving ? Math.sin(t * 12) * 0.5 + 0.5 : 0.5,
+    gait: moving ? t * 12 : 0,
     trail: clamp(trail),
+    trailX: firstTrail >= secondTrail ? 1000 : 860,
   };
 }
 
@@ -363,14 +381,17 @@ function act(t: number) {
 
 export default function Pigeon(props: CodeSceneProps & Props) {
   const {width, height, fps, subtitleSafeArea, props: values, durationInFrames} = props;
-  const {chapter, gauge, screenSubtitles} = values;
+  const {chapter, screenSubtitles, credit} = values;
   const {elapsedSeconds, globalSeconds, ready} = useSceneContext();
   const frame = Math.round(elapsedSeconds * fps);
   const {drop, stocked} = feedPhase(globalSeconds);
   const inside = chapter.id !== 'box';
-  const state = act(globalSeconds);
-  const shot = shotAt(chapter.id, elapsedSeconds / Math.max(0.001, durationInFrames / fps));
   const events = createSceneEvents(props.eventFrames);
+  // turn-1 只在 wander 幕发生；幕外回到固定轨迹，避免把幕内事件误当成全局事件。
+  const firstTurnAt = chapter.id === 'wander'
+    ? globalSeconds - elapsedSeconds + events.frame('turn-1') / fps : 13.5;
+  const state = act(globalSeconds, firstTurnAt);
+  const shot = shotAt(chapter.id, elapsedSeconds / Math.max(0.001, durationInFrames / fps));
   const tickIds = chapter.id === 'feeder'
     ? ['tick-1', 'tick-2', 'tick-3', 'tick-4', 'tick-5']
     : chapter.id === 'again' ? ['tick-fast-1', 'tick-fast-2', 'tick-fast-3'] : [];
@@ -420,10 +441,11 @@ export default function Pigeon(props: CodeSceneProps & Props) {
             if (feedPulse > 0) P.glow(FEEDER[0] + 120, FEEDER[1] + 180, 180, '#FFD27A', 0.45 * feedPulse);
             feederTimer(P, TIMER[0], TIMER[1], TIMER_R, globalSeconds, 1, tickPulse);
             if (state.trail > 0) {
-              turnTrack(P, HOME, FLOOR_Y - 58, 230, 52, state.trail);
+              turnTrack(P, state.trailX, FLOOR_Y - 58, 230, 52, state.trail);
             }
             bird(P, state.x, FLOOR_Y - 62, 1.5, {
               facing: state.facing, turn: state.turn, peck: state.peck, flap: state.flap, bob: state.bob,
+              gait: state.gait,
             });
           });
         }}
@@ -437,11 +459,14 @@ export default function Pigeon(props: CodeSceneProps & Props) {
         }}/>
 
       <SceneNote year={chapter.year} place={chapter.place}/>
-      <InstinctGauge value={gauge.value} startValue={gauge.startValue} object={gauge.object}
-        frame={frame} startFrame={10} durationFrames={64}/>
-      <TopLine text={chapter.topLine} frame={frame} startFrame={12}
+      <TopLine text={chapter.topLine} frame={frame} startFrame={12} size={48}
         color={inside ? INK : '#EEC672'}/>
       <ScreenSubtitle items={screenSubtitles} frame={frame} safeArea={subtitleSafeArea} fps={fps}/>
+      {credit ? (
+        <div style={{position: 'absolute', left: 0, right: 0, top: 1022, textAlign: 'center',
+          fontFamily: T.type.fontStack, fontSize: 44, letterSpacing: '0.04em', color: '#FFFFFF',
+          opacity: 0.92, pointerEvents: 'none'}}>{credit}</div>
+      ) : null}
     </div>
   );
 }

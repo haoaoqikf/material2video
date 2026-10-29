@@ -485,13 +485,12 @@ function MutationScene({camera, width, height, frame}: SceneProps) {
         head.forEach((point, index) => {
           const sixth = index === KNOB;
           P.text(sixth && mutated ? 'V' : SEQ[index], point[0], point[1] + BEAD_R + 26, {
-            size: 26, color: sixth ? (mutated ? ROSE : WHITE) : MUTED, font: SERIF,
+            size: 40, color: sixth ? (mutated ? ROSE : WHITE) : MUTED, font: SERIF,
             alpha: sixth ? 1 : 0.8,
           });
         });
         const [kx, ky] = head[KNOB];
         P.line(kx, ky - BEAD_R - 18, kx, ky - BEAD_R - 46, {color: MUTED, width: 1.1, alpha: 0.7});
-        P.text('第 6 颗', kx, ky - BEAD_R - 68, {size: 30, color: WHITE, font: SERIF});
       }}/>
   );
 }
@@ -609,13 +608,15 @@ function RodScene({camera, width, height, frame}: SceneProps) {
   return (
     <Layer camera={camera} width={width} height={height}
       paint={(P) => {
+        // 承接上一幕的主团，其余团从中心向两端依次到达。
+        const slots = [0, -1, 1, -2, 2, -3, 3, -4, 4];
         for (let index = 0; index < 9; index += 1) {
-          const arrival = smooth((frame - 4 - index * 6) / 18);
+          const arrival = index === 0 ? 1 : smooth((frame - 4 - index * 6) / 18);
           if (arrival <= 0) continue;
           // 从长杆两端飞入，越靠外越晚到——接起来的顺序看得见。
-          const distance = Math.abs(index - 4) / 4;
-          const side = index % 2 ? 1 : -1;
-          const x = (index - 4) * PITCH + side * 220 * (1 - arrival);
+          const distance = Math.abs(slots[index]) / 4;
+          const side = slots[index] < 0 ? -1 : 1;
+          const x = slots[index] * PITCH + side * 220 * (1 - arrival);
           const y = side * 120 * (1 - arrival) + distance * 60 * (1 - arrival);
           const rotation = side * 0.6 * (1 - arrival);
           P.group({at: [x, y], rotate: rotation, alpha: Math.min(1, arrival * 2.5)}, () => {
@@ -626,10 +627,10 @@ function RodScene({camera, width, height, frame}: SceneProps) {
           });
         }
         // 刚接上的那一刻亮一下，把「粘住了」点明。
-        for (let index = 0; index < 9; index += 1) {
-          const flash = (frame - 4 - index * 6) / 14;
+        for (let index = 1; index < 9; index += 1) {
+          const flash = (frame - 22 - index * 6) / 14;
           if (flash <= 0 || flash >= 1) continue;
-          P.glow((index - 4) * PITCH + BLOB[KNOB][0], BLOB[KNOB][1], 150,
+          P.glow(slots[index] * PITCH + BLOB[KNOB][0], BLOB[KNOB][1], 150,
             '#FFD0DA', 0.8 * (1 - flash));
         }
       }}/>
@@ -667,7 +668,7 @@ function PushScene({camera, width, height, frame}: SceneProps) {
             const px = -reach + 2 * reach * index / 40;
             points.push(cellPoint(px, row * Math.sqrt(Math.max(0, 1 - px * px)), bend));
           }
-          P.poly(points, {color: '#FF8FA8', width: CELL_R * 0.014, alpha: (0.4 + 0.55 * bend) * alpha, glow: 12,
+          P.poly(points, {color: '#FFE8EF', width: CELL_R * 0.02, alpha: (0.6 + 0.4 * bend) * alpha, glow: 16,
             glowColor: ROSE});
         });
       }}
@@ -715,6 +716,9 @@ export default function Fold(props: CodeSceneProps & Props) {
   return (
     <div style={{position: 'absolute', inset: 0, width, height}}>
       {scene}
+      {/* 顶部渐变衬底：推近到满屏亮红时，保证章题与副标仍可读。 */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 230,
+        background: 'linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,0))', pointerEvents: 'none'}}/>
       {chapter.id !== 'closing' ? (
         <ChapterMark index={chapter.index} character={chapter.character} frame={frame} startFrame={0}/>
       ) : null}
@@ -724,15 +728,13 @@ export default function Fold(props: CodeSceneProps & Props) {
         <GlowText text={chapter.caption} x={width / 2} y={142} size={24} color={MUTED} glow={0.1}
           letterSpacing="0.3em"/>
       ) : null}
-      {credit ? (
-        <GlowText text={credit} x={width / 2} y={940} size={26} color={MUTED} glow={0.2}/>
+      {credit && frame >= 10 ? (
+        <GlowText text={credit} x={width / 2} y={1018} size={44} color={WHITE} glow={0.2} opacity={0.92}/>
       ) : null}
       <ScreenSubtitle items={screenSubtitles} frame={frame} safeArea={subtitleSafeArea} fps={fps}/>
-      {/* 黑场只留给全片首尾。每幕都暗一下会变成九张插图的翻页感，
-          与「一台摄影机走完全片」是相反的语法。 */}
-      {clock?.startSeconds === 0 ? <Dip frame={frame} startFrame={0} durationFrames={14} peak={0.9}/> : null}
+      {/* 黑场只留给片尾；开场不再做先亮后暗的 Dip，避免第一帧闪一下。 */}
       {chapter.id === 'closing' ? (
-        <Dip frame={frame} startFrame={durationInFrames - 14} durationFrames={14} peak={0.9} holdEnd/>
+        <Dip frame={frame} startFrame={durationInFrames - 30} durationFrames={30} peak={1} holdEnd/>
       ) : null}
     </div>
   );
