@@ -2,6 +2,8 @@
 
 ## 结果
 
+- 实施提交：`4625b99`。
+
 - `.agents/skills/material2video/references/`：40 → 29 份 Markdown，净减 11 份。
 - 活动 Markdown 相对路径与标题锚点检查：62 份，0 个断链。
 - `uv run python .agents/skills/material2video/scripts/sync_docs.py --check`：通过；生成文档一致；入口 1410、方案 2567、制作迭代 1886、最终验收 1296 字符，均未超预算。
