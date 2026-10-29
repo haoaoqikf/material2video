@@ -103,4 +103,4 @@ def round_for(gate: str) -> str:
 def rounds(c: dict) -> dict:
     core = any(r['kind'] in CORE_GATES for r in risks(c))
     final = requirement(c, 'G6')['count']
-    return {'core': int(core), 'rough': 1, 'final': final, 'defaultCalls': int(core) + 1 + final}
+    return {'core': int(core), 'rough': 0, 'final': final, 'defaultCalls': int(core) + final}

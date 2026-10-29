@@ -26,7 +26,7 @@ Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt(
 
 代码场景可声明 `content.props.capture.mode: "pure-time"` 走纯时间采集：任意帧直接 seek，按块并行采集后无损拼接，预览与 lookdev 不再回放前缀；纯性由静态源码闸门与正序/倒序 PSNR 双重验证，失败明确拒绝。`render --jobs N` 可进一步按帧区间分进程渲染。默认仍为顺序采集、单进程；写法与限制见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
 
-general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；初评验证与精制修订在同一阶段持续闭环，核心、全片粗片与最终评审职责保留。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。制作先以最小完整段落验证最难关系，优先兼顾开场；同一材料由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
+general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；低风险作品只派一次当前候选独立终审，核心风险按计划在扩展前增加适用评审。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
 ## 快速开始
 
@@ -116,8 +116,8 @@ general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测�
 
 看图改图用 `m2v lookdev` 的四种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性，`--event compound:drop-1 --before 6 --after 6` 按幕内事件取发生前/关键帧/发生后/结果停留。事件模式从当前准备记录解析，窗口由作者用帧声明；事件簇会警告，越界会失败，不会自动绑定检查点。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；用法见[视觉与质量工具](.agents/skills/material2video/references/cinematic-video.md)。
 
-v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需全片粗片与最终成片两次独立调用；有核心风险时增加一轮核心样片。每轮一份覆盖表绑定适用门，不再按检查点重复登记视觉事件或五维设计兑现凭据；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
+v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需一次独立终审；有核心风险时，在扩展前增加适用核心评审。G5 内部检查记录范围、发现和未覆盖限制。独立评审覆盖表绑定适用门；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
 
-适用核心样片在扩展前、全片粗片在阶段问题收敛前，明确作出通过、局部修复、补充试制或退回重设计的制作决策。设计机制、全片结构或技术路线存在有证据的根本失败时立即退回对应设计层，不必等两轮修复；保留原问题、限制受影响工作并经对应独立复查重新放行。决策属于制作流程指导，复用现有失败与问题状态，不新增自动审美判定或导出门禁。触发条件与记录见[回退规则](.agents/skills/material2video/references/production-workflow.md#核心样片与全片粗片的回退决策)。
+适用核心样片评审在扩展前、G5 内部粗片检查在阶段问题收敛前，分别作出通过、局部修复、补充试制或退回重设计的制作决策。设计机制、全片结构或技术路线存在有证据的根本失败时立即退回对应设计层，不必等两轮修复；保留原问题、限制受影响工作并经对应验证重新放行。决策复用现有失败与问题状态，不新增自动审美判定或导出门禁。触发条件与记录见[回退规则](.agents/skills/material2video/references/production-workflow.md#核心样片与全片粗片的回退决策)。
 
 核心盲审覆盖表分别验证理解、表现与样片代表性；有目标图的核心实际片段须先盲审、后同轮独立对照，缺少或失败不授权扩展。独立评审必改项须凭当前同范围独立复查报告关闭。`status` 保留技术 `stage/candidate`，另用 `summary`、`production.complete` 和 `production.expansion` 区分候选生成、制作完成与可扩展检查点；这些条件不新增渲染硬门禁或用户审批。旧核心报告缺少新凭据时仅作历史，不自动补造通过。

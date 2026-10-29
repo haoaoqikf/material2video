@@ -382,18 +382,18 @@ def test_waiting_prerequisite_does_not_invalidate_own_evidence(project):
 def test_policy_derives_rounds_from_risks_only():
     from m2v.production import policy
     plain = sample()
-    assert policy.rounds(plain) == {'core': 0, 'rough': 1, 'final': 1, 'defaultCalls': 2}
+    assert policy.rounds(plain) == {'core': 0, 'rough': 0, 'final': 1, 'defaultCalls': 1}
     core = sample()
     core['reviewPlan']['risks'] = [{'id': 'event', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']},
         'reason': '因果尚未验证', 'requiredEvidence': ['完整窗口']}]
-    assert policy.rounds(core) == {'core': 1, 'rough': 1, 'final': 1, 'defaultCalls': 3}
+    assert policy.rounds(core) == {'core': 1, 'rough': 0, 'final': 1, 'defaultCalls': 2}
     assert policy.requirement(core, 'G4', 'one-cp')['count'] == 1
     assert policy.requirement(core, 'G4', 'two-cp')['count'] == 0
     split = sample()
     split['reviewPlan']['risks'] = [{'id': 'split', 'kind': 'split-final', 'scope': {'checkpointIds': ['one-cp']},
         'reason': '用户要求双人', 'requiredEvidence': ['两份隔离报告']}]
     assert policy.requirement(split, 'G6')['focuses'] == ['structure', 'visual-copy']
-    assert policy.rounds(split) == {'core': 0, 'rough': 1, 'final': 2, 'defaultCalls': 3}
+    assert policy.rounds(split) == {'core': 0, 'rough': 0, 'final': 2, 'defaultCalls': 2}
     # 镜头等级本身不是风险，不派生审核。
     graded = sample()
     graded['scenes'][0]['shots'][0]['tier'] = 'A'

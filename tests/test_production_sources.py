@@ -59,7 +59,7 @@ def test_all_core_risks_require_review_and_appear_in_docs(kind):
             'attention': '主体', 'toleranceFrames': 0, 'failure': '未理解'}}
     contract.validate(c)
     assert policy.requirement(c, policy.CORE_GATES[kind], 'one-cp')['count'] == 1
-    assert policy.rounds(c) == {'core': 1, 'rough': 1, 'final': 1, 'defaultCalls': 3}
+    assert policy.rounds(c) == {'core': 1, 'rough': 0, 'final': 1, 'defaultCalls': 2}
     assert f'`{kind}`' in sync_docs.production_sections()['review-rounds'][0]
 
 
@@ -69,7 +69,8 @@ def test_workflow_dependency_and_phase_semantics():
     assert workflow.phase('G4') == '制作与迭代'
     assert workflow.phase('G5') == '制作与迭代'
     assert workflow.gate('G4').review_round == 'core'
-    assert workflow.gate('G5').review_round == 'rough'
+    assert workflow.gate('G5').review_round == 'internal'
+    assert policy.requirement(sample(), 'G5')['count'] == 0
     assert workflow.gate('G6').review_round == 'final'
     assert workflow.phase('G6') == '最终验收'
     with pytest.raises(M2VError):

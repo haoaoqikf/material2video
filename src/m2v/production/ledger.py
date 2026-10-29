@@ -295,7 +295,9 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
         current_row = next(r for r in rows if r['gate'] == current)
         if current_row['evidenceStatus'] == '待评审':
             next_action = f'完成 {policy.round_for(current)} 轮缺失覆盖并导入报告（{current}）'
-        elif current in ('G0', 'G5', 'G6'):
+        elif current == 'G5':
+            next_action = '完成 G5 全片内部粗片检查并登记检查证据'
+        elif current in ('G0', 'G6'):
             next_action = f'登记 {current} 当前检查证据，再导入适用独立报告'
     phase = workflow.phase(current)
     scene_summary = []

@@ -24,7 +24,7 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 - **新制作 general**：从[方案确定](references/stage-plan.md)开始。
 - **修订**：先读[修订入口](references/video-revision.md)，定位影响阶段、保留基线，再进入对应阶段；不重开无关选案。
-- **评审**：目标关键帧盲审在[方案确定](references/stage-plan.md)阶段完成；核心与粗片评审进入[制作与迭代](references/stage-iterate.md)，最终轮进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
+- **评审**：核心风险按计划在扩展前进入[制作与迭代](references/stage-iterate.md)评审；G5 全片粗片为内部检查，低风险作品不派独立评审；当前候选独立终审进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
 - **排查**：先读[制作与迭代](references/stage-iterate.md)，只展开相关技术契约；不要用排错代替制作复核。
 - **住宅**：先读[年度住宅均价视频](references/housing-timeseries-video.md)，再按[类型材料契约](../../../src/m2v/types/catalog.json)的 series 模板执行；不套 general 三阶段。
 

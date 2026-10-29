@@ -94,7 +94,7 @@ def production_sections() -> dict[str, list[str]]:
 
     gates = ["| 门 | 阶段 | 范围 | 检查方式 | 证据 |", "|---|---|---|---|---|"]
     gates.extend(f"| {g.id} | {g.phase} | {'检查点' if g.scope == 'checkpoint' else '全片'} | "
-                 f"{'自动检查' if g.checker else '外部报告登记'} | {g.evidence} |" for g in workflow.GATES)
+                 f"{'自动检查' if g.checker in ('declaration', 'design', 'mapping', 'capture') else '制作助手内部检查登记' if g.checker == 'internal' else '外部报告登记'} | {g.evidence} |" for g in workflow.GATES)
     risks = ["| kind | 门 | 额外要求 | 不触发的情况 |", "|---|---|---|---|"]
     risks.extend(f"| `{r.kind}` | {r.gate} | {r.evidence} | {r.excluded} |" for r in policy.RISK_CATALOG)
     core = '、'.join(f'`{r.kind}`' for r in policy.RISK_CATALOG if r.kind in policy.CORE_GATES)

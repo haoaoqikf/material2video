@@ -22,7 +22,7 @@ GATES = (
     Gate('G2', '方案确定', 'project', 'design', '适用风险的独立目标关键帧及观察', 'core'),
     Gate('G3', '方案确定', 'project', 'mapping', '分镜映射自动检查；适用风险的 animatic 观察', 'core'),
     Gate('G4', '制作与迭代', 'checkpoint', 'capture', '每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察', 'core'),
-    Gate('G5', '制作与迭代', 'project', None, '一份全片粗片综合报告，覆盖全部场景、结构、衔接、节奏与视觉风险', 'rough'),
+    Gate('G5', '制作与迭代', 'project', 'internal', '制作助手的全片内部粗片检查，覆盖结构、衔接、节奏与已知风险', 'internal'),
     Gate('G6', '最终验收', 'project', None, '当前候选技术 QA、完整全片证据与计划要求的终审', 'final'),
 )
 GATE_IDS = tuple(g.id for g in GATES)
