@@ -12,7 +12,7 @@
 
 固定示例：[从电报到大模型](examples/american-science-milestones/README.md)、[复利](examples/compound-interest/README.md)和[太阳系之旅](examples/solar-system-journey/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
 
-通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/visual-diagnosis.md)。
+通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
 制作载体选择见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)；规则来源及文档维护边界见[架构说明](ARCHITECTURE.md#契约与文档)。类型清单、制作门及审核策略表由共享定义生成，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 可检查漂移。
 
@@ -99,9 +99,9 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 - [material2video Skill](.agents/skills/material2video/SKILL.md)：按类型与任务/阶段调度，指向四份阶段指南和按触发条件展开的专项参考。
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
 - [年度住宅均价视频](.agents/skills/material2video/references/housing-timeseries-video.md)：住宅类型的材料、画面节奏与审核约束。
-- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计和验收方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/visual-creative-direction-examples.md)。
+- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计和验收方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
-- [看图诊断与形象判据](.agents/skills/material2video/references/visual-diagnosis.md)：症状→成因→改法、形象判据与主体尺度起点。
+- [看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)：症状→成因→改法、形象判据与主体尺度起点。
 - [讲解设计](.agents/skills/material2video/references/explainer-design.md)：通用讲解画法、贯穿关系与长片章节递进。
 - [代码场景运行时](.agents/skills/material2video/references/code-scene-runtime.md)：Painter、相机、数值轨道与动态能力货架。
 - [媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md)：本地素材、声音包络和主动留静。
@@ -114,7 +114,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
 
-看图改图用 `m2v lookdev` 的四种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性，`--event compound:drop-1 --before 6 --after 6` 按幕内事件取发生前/关键帧/发生后/结果停留。事件模式从当前准备记录解析，窗口由作者用帧声明；事件簇会警告，越界会失败，不会自动绑定检查点。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；用法见[视觉与质量工具](.agents/skills/material2video/references/cinematic-video.md)。
+看图改图用 `m2v lookdev` 的四种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性，`--event compound:drop-1 --before 6 --after 6` 按幕内事件取发生前/关键帧/发生后/结果停留。事件模式从当前准备记录解析，窗口由作者用帧声明；事件簇会警告，越界会失败，不会自动绑定检查点。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；以上即当前预览模式用法，正式检查点仍用 `m2v gates check`。
 
 v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需一次独立终审；有核心风险时，在扩展前增加适用核心评审。G5 内部检查记录范围、发现和未覆盖限制。独立评审覆盖表绑定适用门；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
 

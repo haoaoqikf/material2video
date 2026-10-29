@@ -90,7 +90,7 @@ prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产�
 写了就进入准备指纹与代码片段缓存键，改任意一项都要重新 prepare。
 可选字段、电影级共享套件与 `lookdev` / `qa` / `assets audit` 入口已经落地；
 太阳系一镜到底参考片保留旧版135秒的历史记录；当前预算与复核状态见示例文档；旧用户确认不代替当前版本完整复核。
-镜头语法与检查表见[电影级表现与质量工具](cinematic-video.md)。
+镜头语法与检查表见[代码场景运行时契约](code-scene-runtime.md)。
 
 制作档位已经删除：`project.json` 不得再写 `productionProfile`（包括 `null`），`prepare` 也不再接受
 `--profile`；旧声明会被明确拒绝，需要删除后重新 prepare。

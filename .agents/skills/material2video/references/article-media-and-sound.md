@@ -65,6 +65,8 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 
 ## 声音
 
+### 无声作品
+
 全部场景无旁白且未配置音乐、音效时，预览与正式成片均不含音频流；准备阶段的静音母版仅用于内部时间线，不混入无声交付。只要存在任意声音声明，仍使用下述混音与音轨验收。最终溯源以 `audio.mode: "none"` 标识无声，不在交付后手工改写成片。
 
 顶层 `soundtrack` 可选，包含 `music` 与 `effects`：

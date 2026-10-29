@@ -1,8 +1,8 @@
 # B 寓言风格包
 
 > 状态：正式风格包 `vibe-fable` 1.0.0。只适用于 `general` 横屏 1920×1080。
-> 来源、固定提交与不借清单见[外部参考项目登记](../../.agents/skills/material2video/references/external-projects.md)
-> 与[vibe-knowledge-film 制作指引](../../.agents/skills/material2video/references/vibe-knowledge-film.md)。
+> 来源、固定提交与不借清单见[外部参考项目登记](../../.agents/skills/material2video/references/external-reference-projects.md)
+> 与[vibe-knowledge-film 制作指引](../../.agents/skills/material2video/references/external-reference-projects.md#vibe-knowledge-film-项目使用指引)。
 
 本包把参考项目的 B 寓言外观转成仓库自己的 TSX 组件与参数。它只提供表现层：不改变视频类型、
 材料格式、制作门、审核职责或成片验收条件。选择风格不会自动换肤，场景必须显式导入

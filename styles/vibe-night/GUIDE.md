@@ -1,8 +1,8 @@
 # C 夜曲风格包
 
 > 状态：正式风格包 `vibe-night` 1.0.0。只适用于 `general` 横屏 1920×1080。
-> 来源、固定提交与不借清单见[外部参考项目登记](../../.agents/skills/material2video/references/external-projects.md)
-> 与[vibe-knowledge-film 制作指引](../../.agents/skills/material2video/references/vibe-knowledge-film.md)。
+> 来源、固定提交与不借清单见[外部参考项目登记](../../.agents/skills/material2video/references/external-reference-projects.md)
+> 与[vibe-knowledge-film 制作指引](../../.agents/skills/material2video/references/external-reference-projects.md#vibe-knowledge-film-项目使用指引)。
 > B 寓言另见 [`styles/vibe-fable`](../vibe-fable/GUIDE.md)；两包单选，不可混用。
 
 本包把 C 夜曲的外观转成仓库自己的 TSX 组件与参数。它只提供表现层：不改变视频类型、

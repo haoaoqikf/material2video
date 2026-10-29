@@ -61,7 +61,7 @@
     {
       "id": "troubleshooting",
       "when": "低机位细线、轨道、道具或相机保持段问题",
-      "guide": "references/code-scene-troubleshooting.md"
+      "guide": "references/code-scene-runtime.md#按需排错"
     },
     {
       "id": "media",
@@ -106,32 +106,32 @@
     {
       "id": "diagnosis",
       "when": "看图发现画面问题、判断形象是否成立、确定主体尺度",
-      "guide": "references/visual-diagnosis.md"
+      "guide": "references/explainer-design.md#看图诊断与形象判据"
     },
     {
       "id": "visual-examples",
       "when": "需要视觉设计模板、反例与演练",
-      "guide": "references/visual-creative-direction-examples.md"
+      "guide": "references/production-examples.md"
     },
     {
       "id": "review-examples",
       "when": "需要复核判断演练",
-      "guide": "references/visual-review-examples.md"
+      "guide": "references/production-examples.md"
     },
     {
       "id": "reference-template",
       "when": "填写参考拆解交付记录",
-      "guide": "references/reference-analysis-template.md"
+      "guide": "references/reference-video-analysis.md#交付模板"
     },
     {
       "id": "review-template",
       "when": "填写独立观察报告",
-      "guide": "references/subagent-review-template.md"
+      "guide": "references/subagent-review.md#评审输出模板"
     },
     {
       "id": "production-template",
       "when": "填写推进回退记录",
-      "guide": "references/production-record-template.md"
+      "guide": "references/production-workflow.md#推进与回退记录模板"
     }
   ],
   "ruleOwners": {
