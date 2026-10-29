@@ -4,7 +4,7 @@
   const nativeTimeout = window.setTimeout.bind(window), nativeClearTimeout = window.clearTimeout.bind(window);
   const NativeDate = window.Date;
   const epoch = 1700000000000;
-  let now = 0, serial = 0, origin = 0, started = false;
+  let now = 0, serial = 0, origin = 0, started = false, bootstrapped = false;
   const rafs = new Map(), timers = new Map();
   const date = function (...args) {
     if (!new.target) return new NativeDate(epoch + now).toString();
@@ -148,11 +148,19 @@
         })]);
       } finally {nativeClearTimeout(timer);}
     },
-    begin() {origin = now; started = true;},
+    begin(atMilliseconds) {origin = Number.isFinite(atMilliseconds) ? atMilliseconds : now;
+      if (Number.isFinite(atMilliseconds)) now = atMilliseconds;
+      started = true;},
     setTime(value) {
       value += origin;
       if (!Number.isFinite(value) || value < now) throw new Error('录制时钟禁止倒序推进');
       now = value;
+    },
+    // 纯时间场景专用：绝对定位，允许跳帧与倒序。顺序模式不暴露给 host 调用。
+    seek(milliseconds) {
+      if (!started) throw new Error('录制开始前不能 seek');
+      if (!Number.isFinite(milliseconds) || milliseconds < 0) throw new Error('seek 时间必须是非负有限数');
+      now = milliseconds;
     },
     async flush() {
       callbacks();
@@ -166,6 +174,18 @@
     },
     async bootstrap() {
       if (started) throw new Error('录制开始后禁止执行就绪泵');
+      // 纯场景的块首采集必须在挂载前就处于块首时间；否则从 0 跳到块首时，
+      // 挂载期间创建的定时器会集中触发，污染状态。
+      if (!bootstrapped) {
+        const config = window.__M2V_CODE_CONFIG__;
+        if (config?.captureMode === 'pure-time') {
+          const frame = Number(config.captureStartFrame);
+          const fps = Number(config.fps);
+          if (Number.isFinite(frame) && frame >= 0 && Number.isFinite(fps) && fps > 0)
+            now = frame * 1000 / fps;
+        }
+        bootstrapped = true;
+      }
       // 布局观测和组件挂载也可能依赖 debounce 定时器；就绪时顺序推进，
       // begin 后以此处时间为起点，场景口播时钟仍精确从零开始。
       now += 1000 / 60;

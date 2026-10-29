@@ -8,28 +8,38 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import math
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
 from m2v.core.video_config import GENERAL_DEFAULT_FPS, validate_general_fps
-from m2v.core import security
-from m2v.engine import audio
+from m2v.core import security, source_policy
+from m2v.engine import audio, images
 from m2v.engine.http_server import LocalServer
-from .config import WEB, build_scene, digest, implementation_inputs, media_files, require_cinematic_dependencies, scene_config, validate_entry
+from .config import (WEB, build_scene, capture_settings, digest, implementation_inputs, media_files,
+                     require_cinematic_dependencies, scene_config, validate_entry)
 
 
 READY_TIMEOUT_MS = 30000
+PURE_CONTRACT = "pure-seek-png-444-v1"
+SEQUENTIAL_CONTRACT = "fixed-clock-png-444-v5"
 
 
 logger = logging.getLogger(__name__)
 
 
-def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
-    """只录制与半开全片窗口相交的场景，保留原始时间轴和转场。"""
+def materialize(root: Path, prepared: dict, start: int, end: int, *, jobs: int | None = None) -> dict:
+    """只录制与半开全片窗口相交的场景，保留原始时间轴和转场。
+
+    pure 场景把请求窗口向外扩到 `blockFrames` 边界，使预演与全片渲染能复用同一批块；
+    合成层按 `mediaStartFrame` 回放扩展窗口，请求窗口的画面不偏移。
+    """
     import copy
     from .. import media_assets
     from m2v.core import frames
@@ -42,9 +52,14 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
         last = min(end, scene["endFrame"]) - scene["startFrame"]
         if first >= last:
             continue
+        settings = capture_settings((scene.get("content") or {}).get("props", {}))
+        if settings["mode"] == "pure-time":
+            block = settings["blockFrames"] or prepared["fps"]
+            first = (first // block) * block
+            last = min(scene["durationInFrames"], ((last + block - 1) // block) * block)
         scene["mediaPath"] = record(root, scene, {}, frame=frame, media=media["media"],
-            media_digest=media["digest"],
-            capture_range=(first, last), fps=prepared["fps"])
+            media_digest=media["digest"], capture_range=(first, last), fps=prepared["fps"],
+            jobs=settings["jobs"] if jobs is None else jobs)
         scene["mediaStartFrame"] = first
         scene["mediaDurationFrames"] = last - first
         selected.append(scene)
@@ -53,12 +68,19 @@ def materialize(root: Path, prepared: dict, start: int, end: int) -> dict:
 
 
 def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, media: dict, media_digest: str,
-           capture_range: tuple[int, int] | None = None, fps: int = GENERAL_DEFAULT_FPS) -> str:
+           capture_range: tuple[int, int] | None = None, fps: int = GENERAL_DEFAULT_FPS,
+           jobs: int = 1) -> str:
     """构建可达源码，缓存有效时不启动浏览器；画幅、媒体映射与统一契约都进缓存键。"""
     from playwright.sync_api import sync_playwright
     content = scene["content"]
     require_cinematic_dependencies()
-    validate_entry(root, content.get("entry"), content.get("props", {}))
+    props = content.get("props", {})
+    validate_entry(root, content.get("entry"), props)
+    settings = capture_settings(props)
+    pure = settings["mode"] == "pure-time"
+    verify_frames = settings["verifyFrames"]
+    jobs = min(4, max(jobs, settings["jobs"]))
+    contract = PURE_CONTRACT if pure else None
     width, height = frame["width"], frame["height"]
     cache = root / "outputs/code-cache"
     cache.mkdir(parents=True, exist_ok=True)
@@ -71,36 +93,56 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
         source_inputs = build_scene(root, scene, work)
         inputs.update(source_inputs)
         inputs["codeMedia"] = media_digest
+        if pure:
+            _assert_pure_sources(root, work)
         with sync_playwright() as pw:
             browser_version = pw.chromium.executable_path
             executable = Path(browser_version)
             key = fingerprint({"config": config, "media": media_digest, "sources": source_inputs,
                                "implementation": implementation_inputs(),
-                               "browser": digest(executable), "size": [width, height], "capture": "fixed-clock-png-444-v5"})
+                               "browser": digest(executable), "size": [width, height],
+                               "capture": contract or SEQUENTIAL_CONTRACT})
             output = cache / f"{key}-{first}-{last}.mp4"
             receipt = output.with_suffix(".json")
-            if _valid_clip(output, receipt):
+            if _valid_clip(output, receipt, contract=contract):
                 logger.info("代码场景 %s 复用录制缓存", scene["id"])
             else:
                 # 已检查的区间原样复用，只采集缺口；不能为补齐整幕再截图一次已有帧。
-                accepted = _cached_ranges(cache, key, first, last)
+                accepted = _cached_ranges(cache, key, first, last, contract=contract)
                 pieces = []
-                cursor = first
-                for begin, finish, clip in [*accepted, (last, last, None)]:
-                    if begin > cursor:
-                        gap = work / f"gap-{cursor}"
-                        gap.mkdir()
-                        shutil.copyfile(work / "scene.js", gap / "scene.js")
-                        target = cache / f"{key}-{cursor}-{begin}.mp4"
-                        logger.info("代码场景 %s 采集缺口 %d～%d", scene["id"], cursor, begin)
-                        _capture(pw, root, gap, config, selected_frames=list(range(cursor, begin)))
-                        _encode(gap, target, begin-cursor, width, height, start_frame=cursor, fps=fps,
-                                supersample=int((config.get("motion") or {}).get("supersample", 1)))
-                        _clip_receipt(target, cursor, begin)
-                        pieces.append(target)
-                    if clip is not None:
-                        pieces.append(clip)
-                    cursor = finish
+                probe_reports = []
+                if pure and jobs > 1:
+                    cached, gaps = _gap_pieces(first, last, accepted)
+                    pieces = [*cached, *_parallel_chunks(
+                        root, work, config, gaps, cache, key, fps=fps, jobs=jobs,
+                        verify_frames=verify_frames, block=settings["blockFrames"] or fps)]
+                    pieces.sort(key=lambda item: item[0])
+                    probes, minimum = _receipt_probes(pieces)
+                    if probes:
+                        probe_reports.append({"probes": probes, "minPsnr": minimum})
+                else:
+                    cursor = first
+                    for begin, finish, clip in [*(accepted or []), (last, last, None)]:
+                        if begin > cursor:
+                            gap = work / f"gap-{cursor}"
+                            gap.mkdir()
+                            shutil.copyfile(work / "scene.js", gap / "scene.js")
+                            target = cache / f"{key}-{cursor}-{begin}.mp4"
+                            logger.info("代码场景 %s 采集缺口 %d～%d", scene["id"], cursor, begin)
+                            runtime = dict(config)
+                            probe = _capture(pw, root, gap, runtime, selected_frames=list(range(cursor, begin)),
+                                             pure=pure, verify_frames=verify_frames, capture_start=cursor)
+                            if pure and probe:
+                                probe_reports.append(probe)
+                            _encode(gap, target, begin-cursor, width, height, start_frame=cursor, fps=fps,
+                                    supersample=int((config.get("motion") or {}).get("supersample", 1)))
+                            extra = {"contract": PURE_CONTRACT, "verified": True, **(probe or {})} if pure else None
+                            _clip_receipt(target, cursor, begin, extra=extra)
+                            pieces.append((cursor, begin, target))
+                        if clip is not None:
+                            pieces.append((begin, finish, clip))
+                        cursor = finish
+                pieces = [item[2] for item in sorted(pieces, key=lambda item: item[0])]
                 if len(pieces) == 1 and pieces[0] == output:
                     pass
                 else:
@@ -110,33 +152,46 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                     audio.ffmpeg(["-f", "concat", "-safe", "0", "-i", str(listing), "-c", "copy", str(combined)])
                     _verify_clip(combined, last-first)
                     security.deliver(combined, output)
-                _clip_receipt(output, first, last)
+                final_extra = {"contract": PURE_CONTRACT, "verified": True} if pure else None
+                if pure and probe_reports:
+                    final_extra["probes"] = [item for report in probe_reports for item in report["probes"]]
+                    final_extra["minPsnr"] = min(
+                        (report["minPsnr"] for report in probe_reports if report["minPsnr"] is not None),
+                        default=None)
+                _clip_receipt(output, first, last, extra=final_extra)
         relative = output.relative_to(root).as_posix()
         inputs["file:" + relative] = digest(output)
         return relative
 
 
-def _valid_clip(video: Path, receipt: Path) -> bool:
+def _valid_clip(video: Path, receipt: Path, *, contract: str | None = None) -> bool:
     try:
         data = json.loads(receipt.read_text(encoding="utf-8"))
-        return video.is_file() and data.get("sha256") == digest(video)
+        if video.is_file() is False or data.get("sha256") != digest(video):
+            return False
+        if contract is not None:
+            return data.get("contract") == contract and data.get("verified") is True
+        return True
     except (OSError, ValueError, AttributeError):
         return False
 
 
-def _clip_receipt(video: Path, first: int, last: int) -> None:
+def _clip_receipt(video: Path, first: int, last: int, *, extra: dict | None = None) -> None:
     from m2v.core.project import _write_json
-    _write_json(video.with_suffix(".json"), {"sha256": digest(video), "first": first, "last": last})
+    payload = {"sha256": digest(video), "first": first, "last": last}
+    if extra:
+        payload.update(extra)
+    _write_json(video.with_suffix(".json"), payload)
 
 
-def _cached_ranges(cache: Path, key: str, first: int, last: int) -> list:
+def _cached_ranges(cache: Path, key: str, first: int, last: int, *, contract: str | None = None) -> list:
     candidates = []
     for receipt in cache.glob(f"{key}-*.json"):
         try:
             data = json.loads(receipt.read_text(encoding="utf-8"))
             begin, finish = data["first"], data["last"]
             video = receipt.with_suffix(".mp4")
-            if first <= begin < finish <= last and _valid_clip(video, receipt):
+            if first <= begin < finish <= last and _valid_clip(video, receipt, contract=contract):
                 candidates.append((begin, finish, video))
         except (OSError, ValueError, KeyError, TypeError):
             continue
@@ -146,6 +201,115 @@ def _cached_ranges(cache: Path, key: str, first: int, last: int) -> list:
             accepted.append((begin, finish, video))
             cursor = finish
     return accepted
+
+
+def _gap_pieces(first: int, last: int, accepted: list) -> tuple[list, list[tuple[int, int]]]:
+    """把已缓存区间与待采集缺口拆开，返回 (已缓存 pieces, 缺口列表)。"""
+    pieces, gaps = [], []
+    cursor = first
+    for begin, finish, clip in accepted:
+        if begin > cursor:
+            gaps.append((cursor, begin))
+        pieces.append((begin, finish, clip))
+        cursor = finish
+    if cursor < last:
+        gaps.append((cursor, last))
+    return pieces, gaps
+
+
+def _parallel_chunks(root: Path, work: Path, config: dict, gaps: list[tuple[int, int]],
+                     cache: Path, key: str, *, fps: int, jobs: int, verify_frames: int,
+                     block: int) -> list[tuple[int, int, Path]]:
+    """把缺口按块切成子进程任务；返回块区间与片段路径（按起点排序）。"""
+    tasks, expected = [], []
+    for first, last in gaps:
+        for start in range(first, last, block):
+            end = min(last, start + block)
+            target = cache / f"{key}-{start}-{end}.mp4"
+            if _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
+                continue
+            directory = work / f"chunk-{start}-{end}"
+            directory.mkdir(parents=True, exist_ok=True)
+            job = {"root": str(root), "work": str(directory), "sceneJs": str(work / "scene.js"),
+                   "config": config, "first": start, "last": end, "output": str(target),
+                   "fps": fps, "verifyFrames": verify_frames}
+            job_file = directory / "job.json"
+            job_file.write_text(json.dumps(job, ensure_ascii=False), encoding="utf-8")
+            tasks.append((start, end, job_file))
+            expected.append((start, end, target))
+    # 已在缓存里的块也要进入最终拼接。
+    for first, last in gaps:
+        for start in range(first, last, block):
+            end = min(last, start + block)
+            target = cache / f"{key}-{start}-{end}.mp4"
+            if not any(item[0] == start and item[1] == end for item in expected):
+                expected.append((start, end, target))
+
+    if tasks:
+        def run(task):
+            start, end, job_file = task
+            result = subprocess.run(
+                [sys.executable, "-m", "m2v.types.general.code_scenes.worker", str(job_file)],
+                cwd=str(root), capture_output=True, text=True, encoding="utf-8",
+                errors="replace", timeout=3600)
+            if result.returncode:
+                raise M2VError(f"pure-time 块 {start}–{end} 采集失败：{(result.stderr or result.stdout)[-1200:]}")
+
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            list(pool.map(run, tasks))
+
+    for start, end, target in expected:
+        _verify_clip(target, end - start)
+        if not _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
+            raise M2VError(f"pure-time 块 {start}–{end} 未通过验收")
+    return sorted(expected, key=lambda item: item[0])
+
+
+def _receipt_probes(pieces: list[tuple[int, int, Path]]) -> tuple[list, float | None]:
+    probes, minimum = [], None
+    for _first, _last, clip in pieces:
+        try:
+            data = json.loads(clip.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        probes.extend(data.get("probes") or [])
+        value = data.get("minPsnr")
+        if isinstance(value, (int, float)):
+            minimum = value if minimum is None else min(minimum, value)
+    return probes, minimum
+
+
+def _pure_source_paths(root: Path, work: Path) -> list[Path]:
+    """作品根与所选风格包内的实际构建输入；不扫 node_modules 与共享运行时。"""
+    try:
+        names = json.loads((work / "inputs.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    style_root = None
+    style_file = work / "style-build.json"
+    if style_file.is_file():
+        try:
+            data = json.loads(style_file.read_text(encoding="utf-8"))
+            configured = Path(data.get("root") or "") if isinstance(data, dict) else None
+            style_root = configured.resolve() if configured is not None else None
+        except (OSError, ValueError, TypeError, AttributeError):
+            style_root = None
+    roots = [root.resolve()]
+    if style_root is not None:
+        roots.append(style_root)
+    paths = []
+    for name in names:
+        path = Path(name).resolve()
+        if any(path.is_relative_to(base) for base in roots):
+            paths.append(path)
+    return paths
+
+
+def _assert_pure_sources(root: Path, work: Path) -> None:
+    violations = source_policy.scan_pure(_pure_source_paths(root, work))
+    if violations:
+        detail = "；".join(item.render(root) for item in violations[:5])
+        raise M2VError(f"pure-time 场景含自走动画或真实时钟：{detail}")
 
 
 def _is_hero_frame(frame: int, shots: list[dict]) -> bool:
@@ -180,12 +344,13 @@ def _average(files: list[Path], target: Path) -> None:
 
 
 def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[int] | None = None,
-             observe=None) -> None:
+             observe=None, pure: bool = False, verify_frames: int = 4,
+             capture_start: int | None = None) -> dict | None:
     """固定时间推进、绘制后截图；逐帧落盘且宿主超时不使用作品时钟。
 
-    声明 look.motion 的重点镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成
-    一个输出帧，等效快门时间内的运动模糊；`supersample` 为 2 时按 2 倍设备像素采集，
-    编码时降采样回目标画幅（SSAA）。两者都只由配置决定，因此同一帧仍然可复现。
+    顺序模式按连续帧推进；pure 模式只遍历目标帧并绝对 seek，允许倒序。声明 look.motion
+    的重点镜头在同一帧内再取若干子帧（`(frame + k/N) / fps`），把子帧平均成一个输出帧；
+    `supersample` 为 2 时按 2 倍设备像素采集，编码时降采样回目标画幅（SSAA）。
     """
     errors: list[str] = []
     width, height = config["width"], config["height"]
@@ -193,16 +358,30 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
     hero_subframes = int(motion.get("subframes", 1))
     supersample = int(motion.get("supersample", 1))
     capture_scale = config.get("captureScale", 1)
-    selected = None if selected_frames is None else set(selected_frames)
-    if selected is not None and (not selected or any(type(n) is not int or n < 0
-                                                    or n >= config["durationInFrames"] for n in selected)):
-        raise M2VError("关键帧索引必须位于场景时长内")
+    pure = pure or config.get("captureMode") == "pure-time"
+    order = None if selected_frames is None else list(selected_frames)
+    if pure:
+        if order is None:
+            order = list(range(config["durationInFrames"]))
+        if not order or any(type(n) is not int or n < 0 or n >= config["durationInFrames"] for n in order):
+            raise M2VError("关键帧索引必须位于场景时长内")
+        selected = None
+    else:
+        selected = None if order is None else set(order)
+        if selected is not None and (not selected or any(type(n) is not int or n < 0
+                                                        or n >= config["durationInFrames"] for n in selected)):
+            raise M2VError("关键帧索引必须位于场景时长内")
     if capture_scale not in (1, 2):
         raise M2VError("原生采集像素密度必须为 1 或 2")
     shots = (config.get("props") or {}).get("shots") or []
+    runtime = dict(config)
+    if pure:
+        runtime["captureMode"] = "pure-time"
+        runtime["captureStartFrame"] = capture_start if capture_start is not None else order[0]
+        runtime["verifyFrames"] = verify_frames
     # 使用 JSON.parse 保留 __proto__ 等合法字典键；对象字面量会将其当成原型设置。
     # 外层字符串继续转义 <，避免作品字符串中的 </script> 提前终止脚本。
-    config_text = json.dumps(json.dumps(config, ensure_ascii=True)).replace("<", "\\u003c")
+    config_text = json.dumps(json.dumps(runtime, ensure_ascii=True)).replace("<", "\\u003c")
     (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8"></head>'
         # 页面底色是编码兜底而不是作品主题：作品必须在 ready 之前自己画满不透明背景。
         '<body style="margin:0;overflow:hidden;background:#000">'
@@ -246,9 +425,9 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
             session = context.new_cdp_session(page)
             started = time.monotonic()
             page.evaluate("window.__M2V_CODE__.start()")
-            total = config["durationInFrames"] if selected is None else max(selected) + 1
+            frames = order if pure else list(range(config["durationInFrames"] if selected is None else max(selected) + 1))
             subframe_total = 0
-            for frame_index in range(total):
+            for position, frame_index in enumerate(frames):
                 count = _subframes_for(frame_index, shots, hero_subframes)
                 # SSAA 只作用于 hero 帧：总览保持 1×，避免整片按 2 倍像素采集。
                 frame_scale = capture_scale if capture_scale > 1 else (
@@ -257,16 +436,17 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
                 pieces: list[Path] = []
                 for subframe in range(count):
                     # 截图期间时钟冻结，超时使用注入前保留的原生真实定时器。
+                    method = "seekToSubframe" if pure else "advanceToSubframe"
                     try:
-                        page.evaluate("""([frame, subframe, count, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
-                            window.__M2V_CODE__.advanceToSubframe(frame, subframe, count), timeout)""",
-                            [frame_index, subframe, count, READY_TIMEOUT_MS])
+                        page.evaluate("""([method, frame, subframe, count, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
+                            window.__M2V_CODE__[method](frame, subframe, count), timeout)""",
+                            [method, frame_index, subframe, count, READY_TIMEOUT_MS])
                     except Exception as exc:
                         raise M2VError(f"代码场景第 {frame_index} 帧绘制失败：{exc}") from exc
                     if errors:
                         raise M2VError(f"代码场景第 {frame_index} 帧运行失败：" + "; ".join(errors))
                     # 状态型动画仍逐帧推进，但只在选定位置读回 GPU，避免生成整片图像。
-                    if selected is not None and frame_index not in selected:
+                    if not pure and selected is not None and frame_index not in selected:
                         continue
                     if observe is not None and subframe == 0:
                         # 开发侧观察器只读取已推进的页面，不向运行时配置或成片注入探针。
@@ -292,23 +472,64 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
                     piece.write_bytes(base64.b64decode(shot["data"]))
                     pieces.append(piece)
                 if not pieces:
-                    if frame_index % 300 == 0:
+                    if position % 300 == 0:
                         logger.info("关键帧采集时钟推进 %d/%d，耗时 %.1f 秒",
-                                    frame_index + 1, total, time.monotonic() - started)
+                                    position + 1, len(frames), time.monotonic() - started)
                     continue
                 target = work / f"frame-{frame_index:06d}.png"
                 _average(pieces, target)
                 for piece in pieces:
                     piece.unlink()
-                if frame_index % 300 == 0 or frame_index + 1 == total:
+                if position % 300 == 0 or position + 1 == len(frames):
                     logger.info("代码场景逐帧采集 %d/%d（子帧 %d），耗时 %.1f 秒",
-                                frame_index + 1, total, subframe_total, time.monotonic() - started)
+                                position + 1, len(frames), subframe_total, time.monotonic() - started)
+            return _probe_pure(page, session, work, order, verify_frames, errors) if pure else None
         except M2VError:
             raise
         except Exception as exc:
             raise M2VError(f"代码场景浏览器录制失败：{exc}") from exc
         finally:
             browser.close()
+
+
+def _probe_pure(page, session, work: Path, order: list[int], verify_frames: int,
+                errors: list[str]) -> dict | None:
+    """正序/倒序探针：证明同一帧与到达顺序无关。"""
+    if len(order) < 2 or verify_frames < 2:
+        return None
+    count = min(verify_frames, len(order))
+    picks = sorted({round(index * (len(order) - 1) / (count - 1)) for index in range(count)})
+    if len(picks) < 2:
+        return None
+    shots: dict[int, tuple[Path, Path]] = {}
+
+    def screenshot(pick: int, suffix: str) -> Path:
+        frame = order[pick]
+        page.evaluate("""([frame, timeout]) => window.__M2V_CAPTURE_CLOCK__.deadline(
+            window.__M2V_CODE__.seekToSubframe(frame, 0, 1), timeout)""",
+            [frame, READY_TIMEOUT_MS])
+        if errors:
+            raise M2VError(f"pure-time 探针第 {frame} 帧运行失败：" + "; ".join(errors))
+        image = session.send("Page.captureScreenshot",
+                             {"format": "png", "captureBeyondViewport": False, "optimizeForSpeed": True})
+        target = work / f"probe-{suffix}-{pick:04d}.png"
+        target.write_bytes(base64.b64decode(image["data"]))
+        return target
+
+    for pick in picks:
+        shots.setdefault(pick, (None, None))
+        shots[pick] = (screenshot(pick, "f"), shots[pick][1])
+    for pick in reversed(picks):
+        shots[pick] = (shots[pick][0], screenshot(pick, "r"))
+    results, minimum = [], math.inf
+    for pick in picks:
+        value = images.psnr(*shots[pick])
+        minimum = min(minimum, value)
+        results.append({"frame": order[pick], "psnr": None if math.isinf(value) else round(value, 2)})
+        if value < 60:
+            raise M2VError(f"pure-time 自检失败：帧 {order[pick]} 正序/倒序 PSNR {value:.2f} dB < 60 dB；"
+                           "场景可能依赖跨帧状态、计时器或随机源")
+    return {"probes": results, "minPsnr": None if math.isinf(minimum) else round(minimum, 2)}
 
 
 def _encode(work: Path, output: Path, frames: int, width: int, height: int, *, supersample: int = 1, start_frame: int = 0, fps: int = GENERAL_DEFAULT_FPS) -> None:

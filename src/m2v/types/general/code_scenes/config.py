@@ -57,7 +57,10 @@ def implementation_inputs() -> dict[str, str]:
     # 代码场景目录里可能再有子目录（例如电影套件拆成 `cinematic/`），因此递归收集：
     # 漏掉一层会让「改了套件源码」不再改变片段缓存键与准备指纹。共享动效原语是纯 TS，
     # 同样必须进入实现指纹，否则改原语不会让引用作品重新准备。
-    files = [Path(__file__), WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
+    files = [Path(__file__),
+             *(path for name in ("capture.py", "pure_capture.py", "worker.py")
+               if (path := Path(__file__).with_name(name)).is_file()),
+             WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
              WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
              *sorted((WEB / "src/code-scene").rglob("*.tsx")), *sorted((WEB / "src/code-scene").rglob("*.ts")),
              *sorted((WEB / "src/code-scene").rglob("*.js")),
@@ -65,14 +68,14 @@ def implementation_inputs() -> dict[str, str]:
     return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
 
 
-CAPTURE_FIELDS = {"timebase"}
+CAPTURE_FIELDS = {"mode", "timebase", "jobs", "blockFrames", "verifyFrames"}
 
 
 def capture_settings(props: object) -> dict:
     """校验并返回 `content.props.capture` 的录制声明。
 
-    `capture` 是作品 props 里的保留键，只控制录制，不参与画面数据。默认 local，
-    未声明时调用方不得向配置增加任何键，以免改变既有缓存键。
+    `capture` 是作品 props 里的保留键，只控制录制，不参与画面数据。默认 local /
+    sequential；未声明时调用方不得向配置增加任何键，以免改变既有缓存键。
     """
     if props is None:
         props = {}
@@ -84,10 +87,36 @@ def capture_settings(props: object) -> dict:
     unknown = sorted(set(capture) - CAPTURE_FIELDS)
     if unknown:
         raise M2VError(f"content.props.capture 含未知字段：{'、'.join(unknown)}")
-    timebase = capture.get("timebase", "local")
+    mode = capture.get("mode", "sequential")
+    if mode not in ("sequential", "pure-time"):
+        raise M2VError("content.props.capture.mode 必须为 sequential 或 pure-time")
+    timebase = capture.get("timebase", "global" if mode == "pure-time" else "local")
     if timebase not in ("local", "global"):
         raise M2VError("content.props.capture.timebase 必须为 local 或 global")
-    return {"timebase": timebase}
+    if mode == "pure-time" and timebase != "global":
+        raise M2VError("pure-time 场景必须使用全局时间；请移除 timebase: local")
+    jobs = capture.get("jobs", 1)
+    if type(jobs) is not int or not 1 <= jobs <= 4:
+        raise M2VError("content.props.capture.jobs 必须为 1～4 的整数")
+    block_frames = capture.get("blockFrames")
+    if block_frames is not None and (type(block_frames) is not int or not 1 <= block_frames <= 36000):
+        raise M2VError("content.props.capture.blockFrames 必须为 1～36000 的整数")
+    verify_frames = capture.get("verifyFrames", 4)
+    if type(verify_frames) is not int or not 2 <= verify_frames <= 4:
+        raise M2VError("content.props.capture.verifyFrames 必须为 2～4 的整数")
+    return {"mode": mode, "timebase": timebase, "jobs": jobs,
+            "blockFrames": block_frames, "verifyFrames": verify_frames}
+
+
+def _visible_props(props: dict) -> dict:
+    """从片段缓存键中剥离运行时采集参数，只保留会改变画面的 capture 声明。"""
+    capture = props.get("capture")
+    if not isinstance(capture, dict):
+        return props
+    visible = {key: value for key, value in capture.items() if key in ("mode", "timebase")}
+    if not visible:
+        return {key: value for key, value in props.items() if key != "capture"}
+    return {**props, "capture": visible}
 
 
 def validate_capture(props: object) -> None:
@@ -99,7 +128,7 @@ def scene_config(scene: dict, frame: dict, media: dict, *, fps: int = GENERAL_DE
     """录制配置与片段缓存输入；统一契约不复用旧档位缓存。"""
     props = scene["content"].get("props", {})
     settings = capture_settings(props)
-    config = {"productionContract": "unified-v1", "props": props, "fps": validate_general_fps(fps),
+    config = {"productionContract": "unified-v1", "props": _visible_props(props), "fps": validate_general_fps(fps),
               "durationInFrames": scene["durationInFrames"],
               "width": frame["width"], "height": frame["height"],
               "subtitleSafeArea": frame["subtitle"]["safeArea"],
@@ -112,6 +141,8 @@ def scene_config(scene: dict, frame: dict, media: dict, *, fps: int = GENERAL_DE
         config["timeline"] = {"sceneStartFrame": start,
                               "sceneEndFrame": scene.get("endFrame", start + duration),
                               "durationInFrames": duration}
+    if settings["mode"] == "pure-time":
+        config["captureMode"] = "pure-time"
     if scene.get("eventFrames"):
         config["eventFrames"] = scene["eventFrames"]
     claims = [segment.get("claims") or [] for segment in scene.get("narrationSegments", [])]

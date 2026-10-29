@@ -76,7 +76,7 @@ def fake_record(monkeypatch):
     """假录制：真实录制要构建前端并开浏览器，只有专门的用例才该承担。"""
     calls = []
 
-    def record(root, target, inputs, *, frame, media, media_digest, capture_range=None, fps=30):
+    def record(root, target, inputs, *, frame, media, media_digest, capture_range=None, fps=30, jobs=1):
         path = root / "outputs/code-cache" / f"{target['id']}.mp4"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"clip:" + target["id"].encode())

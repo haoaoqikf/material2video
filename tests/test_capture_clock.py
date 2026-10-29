@@ -140,6 +140,30 @@ export default function Demo() {
 
 @pytest.mark.slow
 @requires_node
+def test_pure_time_supports_absolute_seek_and_subframes(tmp_path, chromium_ready):
+    source = """
+import {useEffect} from 'react';
+import {useSceneContext} from 'm2v/code-scene';
+export default function Demo() {
+  const clock = useSceneContext();
+  useEffect(() => {clock.ready();}, []);
+  return <div id="state" data-local={clock.elapsedSeconds} data-global={clock.globalSeconds}/>;
+}
+"""
+    with scene_page(tmp_path, source, frames=12, extra={
+            "captureMode": "pure-time", "captureStartFrame": 8,
+            "timeline": {"sceneStartFrame": 100, "sceneEndFrame": 112, "durationInFrames": 12}}) as (page, _):
+        for frame, subframe, subframes in [(8, 0, 1), (3, 0, 1), (9, 2, 4), (1, 0, 1)]:
+            page.evaluate("""([frame, subframe, subframes]) => window.__M2V_CODE__.seekToSubframe(
+                frame, subframe, subframes)""", [frame, subframe, subframes])
+            state = page.locator('#state').evaluate(
+                "el => [Number(el.dataset.local), Number(el.dataset.global)]")
+            position = frame + subframe / subframes
+            assert state == pytest.approx([position / 60, (100 + position) / 60])
+
+
+@pytest.mark.slow
+@requires_node
 def test_echarts_animation_and_controlled_timers(tmp_path, chromium_ready):
     source = """
 import {useEffect} from 'react';

@@ -24,6 +24,8 @@ general 讲解制作在现有逐场记录和时间线上协调贯穿对象、连
 
 Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt()`；`web/gallery.html` 是只在开发服务器提供的动态能力货架，含可回放固定种子模拟，不进入作品或生产构建。通用声音支持可选全片增益曲线与声音设计层静音窗口；长片的编年、论证链和侧面探索方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md#长片叙事结构)。
 
+代码场景可声明 `content.props.capture.mode: "pure-time"` 走纯时间采集：任意帧直接 seek，按块并行采集后无损拼接，预览与 lookdev 不再回放前缀；纯性由静态源码闸门与正序/倒序 PSNR 双重验证，失败明确拒绝。`render --jobs N` 可进一步按帧区间分进程渲染。默认仍为顺序采集、单进程；写法与限制见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
+
 general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；初评验证与精制修订在同一阶段持续闭环，核心、全片粗片与最终评审职责保留。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。制作先以最小完整段落验证最难关系，优先兼顾开场；同一材料由连续构图完善到动态实现，通过后保留并逐段扩展。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
 ## 快速开始
@@ -53,7 +55,7 @@ uv run m2v prepare --project videos/general/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/general/<slug>
 # 所有类型 render 只生成一次全片，自动验收后直接交付；m2v review 为可选工具，适用审核轮按独立子代理流程执行。
-uv run m2v render --project videos/general/<slug>
+uv run m2v render --project videos/general/<slug> [--jobs N] # N>1 为进程级分段渲染
 uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全部产物
 ```
 

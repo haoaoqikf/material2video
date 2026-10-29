@@ -6,7 +6,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 
 - `src/m2v/core/`：作品与工作区契约、路径、资产、指纹、安全策略和公共错误。它不包含具体视频类型的业务流程。
 - `src/m2v/types/`：类型目录、注册表和金融、通用、住宅类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。
-- `src/m2v/types/general/code_scenes/config.py`：代码场景入口校验、录制配置与确定性打包；`capture.py`：逐帧采集、片段缓存与编码验收。录制配置只在作品 opt-in 时注入全局时间轴，未声明时保持既有形状。
+- `src/m2v/types/general/code_scenes/config.py`：代码场景入口校验、录制配置与确定性打包；`capture.py`：逐帧采集、片段缓存与编码验收；`worker.py`：pure-time 分块采集子进程入口。录制配置只在作品 opt-in 时注入全局时间轴与纯模式，未声明时保持既有形状。`src/m2v/engine/remotion/segments.py` 负责 `--jobs` 的分帧区间渲染、逐段验收与无损拼接，不改变单进程路径。
 - `src/m2v/types/general/sound_synthesis.py`、`sound_library.py`、`soundtrack.py`：分别负责常见音效目录及确定性拟音、双来源音效登记与离线复核、分镜声音编排；共享 `engine/audio.py` 只处理音频信号与立体声混音，不决定音效选型或许可。
 - `src/m2v/core/styles.py`：解释 `styles/<id>/style.json`，负责风格发现、作品兼容校验和内容指纹；不依赖类型实现。general 打包器只消费已校验入口，风格不修改业务流程。
 - `src/m2v/engine/`：Remotion 构建、渲染会话、音视频、字幕、缓存、质量检查和输出验收；不应依赖类型私有业务规则。

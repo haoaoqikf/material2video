@@ -44,7 +44,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },
@@ -83,7 +84,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },
@@ -143,7 +145,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },
@@ -195,7 +198,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },
@@ -252,7 +256,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },
@@ -309,7 +314,8 @@
             }
           ],
           "capture": {
-            "timebase": "global"
+            "timebase": "global",
+            "mode": "pure-time"
           }
         }
       },

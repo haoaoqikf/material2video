@@ -66,7 +66,27 @@ def test_capture_timebase_rejects_unknown_values_and_fields():
     with pytest.raises(M2VError, match="timebase"):
         code_scenes.capture_settings({"capture": {"timebase": "wall"}})
     with pytest.raises(M2VError, match="未知字段"):
-        code_scenes.capture_settings({"capture": {"timebase": "global", "mode": "pure-time"}})
+        code_scenes.capture_settings({"capture": {"timebase": "global", "foo": 1}})
+    with pytest.raises(M2VError, match="pure-time 场景必须使用全局时间"):
+        code_scenes.capture_settings({"capture": {"mode": "pure-time", "timebase": "local"}})
+    with pytest.raises(M2VError, match="jobs"):
+        code_scenes.capture_settings({"capture": {"mode": "pure-time", "jobs": 5}})
+    with pytest.raises(M2VError, match="verifyFrames"):
+        code_scenes.capture_settings({"capture": {"mode": "pure-time", "verifyFrames": 1}})
+
+
+def test_pure_time_implies_global_timeline_and_hides_runtime_fields_from_cache():
+    from m2v.core import frames
+    compiled = {"id": "a", "startFrame": 100, "endFrame": 220, "durationInFrames": 120,
+                "segmentWindows": {}, "content": {"entry": "scenes/demo.tsx",
+                "props": {"capture": {"mode": "pure-time", "jobs": 2, "blockFrames": 30,
+                                      "verifyFrames": 3}}}}
+    config = code_scenes.scene_config(compiled, frames.spec(1920, 1080), {}, fps=30)
+    assert config["captureMode"] == "pure-time"
+    assert config["timeline"]["sceneStartFrame"] == 100
+    assert "jobs" not in config["props"]["capture"]
+    assert "blockFrames" not in config["props"]["capture"]
+    assert "verifyFrames" not in config["props"]["capture"]
 
 
 @pytest.mark.parametrize("entry", ["C:/outside.tsx", "scenes\\demo.tsx", "assets/demo.tsx",
@@ -140,6 +160,81 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
         load_current_prepared(root, manifest)
     assert recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] != relative
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
+
+
+PURE_SOURCE = """import {useEffect} from 'react';
+import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+export default function Demo({width, height}: CodeSceneProps) {
+  const {ready, elapsedSeconds} = useSceneContext();
+  useEffect(() => {ready();}, [ready]);
+  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
+    <div style={{position: 'absolute', left: 20 + elapsedSeconds * 400, top: 40,
+      width: 30, height: 30, background: '#fff'}}/>
+  </div>;
+}
+"""
+
+
+def pure_scene(duration=12, **capture):
+    return {"id": "pure", "template": "code", "durationFrames": duration, "durationInFrames": duration,
+            "startFrame": 0, "endFrame": duration, "segmentWindows": {}, "narrationSegments": [],
+            "content": {"title": "纯时间", "entry": "scenes/demo.tsx",
+                        "props": {"capture": {"mode": "pure-time", "verifyFrames": 3, **capture}}}}
+
+
+@pytest.mark.slow
+@requires_node
+def test_pure_time_capture_seeks_directly_and_reuses_blocks(tmp_path, chromium_ready):
+    root = tmp_path / "project"
+    write_source(root, "scenes/demo.tsx", PURE_SOURCE)
+    frame = {"width": 320, "height": 240,
+             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
+    scene = pure_scene()
+    first = code_scenes.record(root, scene, {}, frame=frame, media={}, media_digest="empty",
+                               capture_range=(3, 9), fps=30)
+    first_clip = root / first
+    code_scenes._verify_clip(first_clip, 6)
+    receipt = json.loads(first_clip.with_suffix(".json").read_text(encoding="utf-8"))
+    assert receipt["contract"] == code_scenes.PURE_CONTRACT
+    assert receipt["verified"] is True
+    assert receipt["probes"] and receipt["minPsnr"] is None  # 完全相同
+    complete = code_scenes.record(root, scene, {}, frame=frame, media={}, media_digest="empty",
+                                  capture_range=(0, 12), fps=30)
+    code_scenes._verify_clip(root / complete, 12)
+    clips = list((root / "outputs/code-cache").glob("*.mp4"))
+    assert len(clips) == 4  # 0–3、3–9、9–12 与拼接后的 0–12
+    assert any(path.stem.endswith("-3-9") for path in clips)
+
+
+@pytest.mark.slow
+@requires_node
+def test_pure_time_parallel_chunks_reassemble_in_order(tmp_path, chromium_ready):
+    root = tmp_path / "project"
+    write_source(root, "scenes/demo.tsx", PURE_SOURCE)
+    frame = {"width": 320, "height": 240,
+             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
+    scene = pure_scene(duration=6, jobs=2, blockFrames=2)
+    relative = code_scenes.record(root, scene, {}, frame=frame, media={}, media_digest="empty",
+                                  capture_range=(0, 6), fps=30, jobs=2)
+    clip = root / relative
+    code_scenes._verify_clip(clip, 6)
+    receipts = sorted((root / "outputs/code-cache").glob("*.json"))
+    assert any(item.stem.endswith("-0-2") for item in receipts)
+    assert any(item.stem.endswith("-4-6") for item in receipts)
+
+
+@pytest.mark.slow
+@requires_node
+def test_pure_time_rejects_self_driven_scene(tmp_path, chromium_ready):
+    root = tmp_path / "project"
+    write_source(root, "scenes/demo.tsx",
+                 "import {useFrame} from 'm2v/code-scene';\n"
+                 "export default function Bad() { useFrame(() => {}); return null; }\n")
+    frame = {"width": 320, "height": 240,
+             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
+    with pytest.raises(M2VError, match="pure-time 场景含自走动画"):
+        code_scenes.record(root, pure_scene(), {}, frame=frame, media={},
+                           media_digest="empty", capture_range=(0, 3), fps=30)
 
 
 @pytest.mark.slow

@@ -89,8 +89,12 @@ uv run m2v validate --project styles/examples/vibe-fable/pigeon
 uv run m2v prepare --project styles/examples/vibe-fable/pigeon
 uv run m2v lookdev --project styles/examples/vibe-fable/pigeon --sheet 6
 uv run python tests/tools/style_reference.py pigeon
-uv run m2v render --project styles/examples/vibe-fable/pigeon
+uv run m2v render --project styles/examples/vibe-fable/pigeon [--jobs 2]
 ```
+
+六幕都声明 `content.props.capture.mode: "pure-time"`：`lookdev`、`preview` 与正式采集
+直接 seek 到目标帧，不再从幕首回放；`render --jobs 2` 会把最终渲染按帧区间分进程。
+纯性由静态源码闸门与正序/倒序 PSNR 双重验证。
 
 产物写在作品目录下的 `outputs/`，该目录已被 `.gitignore` 忽略，不入库。
 `outputs/style-reference.md` 是八项指标对照与并排基准的说明。

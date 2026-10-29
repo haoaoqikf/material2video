@@ -96,6 +96,7 @@ from .process import (
     check_concurrency,
     program,
 )
+from .segments import frame_ranges, render_parallel
 from .session import (
     CompositionMetadata,
     _metadata_from,
@@ -117,9 +118,9 @@ __all__ = [
     'PROGRESS_PREFIX', 'Path', 'READY_PREFIX', 'RENDER_SCRIPT', 'RemotionError',
     'SESSION_PREFIX', 'WORK_MOUNT_PREFIX', 'annotations', 'assets', 'build_input_fingerprint',
     'build_inputs', 'bundle', 'bundle_cache', 'calculate_fingerprint', 'check_concurrency',
-    'contextlib', 'contract_page', 'dataclass', 'file_digest', 'fingerprint_mounts', 'json',
+    'contextlib', 'contract_page', 'dataclass', 'file_digest', 'fingerprint_mounts', 'frame_ranges', 'json',
     'logger', 'logging', 'metadata', 'os', 'perf', 'program', 'progress_handler', 'queue', 're',
-    'render_frames', 'render_session', 'render_still', 'shutil',
+    'render_frames', 'render_parallel', 'render_session', 'render_still', 'shutil',
     'signal', 'source_policy', 'subprocess', 'threading', 'time', 'uuid', 'web_dir',
     'implementation_files',
 ]

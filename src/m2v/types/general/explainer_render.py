@@ -171,7 +171,8 @@ def visual_provenance(prepared: dict) -> dict:
                        "shots": {shot["id"]: shot.get("post") for shot in shots}}}
 
 
-def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None, defer_validation=False) -> Path:
+def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_frame=None, output=None,
+              defer_validation=False, jobs: int = 1) -> Path:
     prepared = current(root, project)
     fps = prepared["fps"]
     width, height = _size(prepared)
@@ -182,7 +183,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
     end_frame = end_frame or prepared["durationInFrames"]
     frames_to_render = end_frame - start_frame
     from . import code_scenes
-    prepared = code_scenes.materialize(root, prepared, start_frame, end_frame)
+    prepared = code_scenes.materialize(root, prepared, start_frame, end_frame, jobs=jobs)
     # 固定示例的媒体仍归属 videos/examples，避免改变既有作品路径约定。
     output_root = root.parent.parent / "videos/examples" / root.name if root.parent.name == "examples" else root
     destination = output or output_root / ("outputs/previews/video.mp4" if preview else "outputs/video.mp4")
@@ -198,14 +199,25 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         timings.record("bundle", outcome.build_seconds)
         timings.record("cache", outcome.cache_seconds)
         silent = work / "silent.mp4"
-        confirm = render_pipeline.metadata_confirm(
-            (fps, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
-            frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
+        if jobs < 1:
+            raise M2VError("--jobs 必须为正整数")
         render_start = time.monotonic()
-        session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
-            composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
-            on_line=remotion.progress_handler(frames_to_render))
-        timings.record("metadata", float(session.get("readySeconds") or 0))
+        if jobs > 1 and not preview:
+            remotion.render_parallel(
+                web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
+                composition_id="ArticleExplainer", out=silent,
+                total_frames=prepared["durationInFrames"], fps=fps, width=width, height=height,
+                crf=18, preset="medium", jobs=jobs)
+            timings.skip("metadata")
+            session = {"renderJobs": jobs, "readySeconds": 0}
+        else:
+            confirm = render_pipeline.metadata_confirm(
+                (fps, width, height, prepared["durationInFrames"]), silent, crf=18, preset="medium",
+                frames=frames_to_render, start_frame=start_frame, label="讲解 composition")
+            session = remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=outcome.path, props=props_file,
+                composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
+                on_line=remotion.progress_handler(frames_to_render))
+            timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(0, time.monotonic() - render_start - float(session.get("readySeconds") or 0)))
         has_audio = _has_audio(prepared)
         final = work / "final.mp4" if has_audio else silent
@@ -244,13 +256,14 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
     render_pipeline.write_report(destination, entry="preview" if preview else "render", storyboard=entry,
         frames=frames_to_render, fps=fps, width=width, height=height, timings=timings,
         total_seconds=time.monotonic()-started, outcome=outcome,
-        extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer"})
+        extra={"layoutCheckSeconds": layout_seconds, "compositionId": "ArticleExplainer",
+               "renderJobs": jobs})
     logger.info("讲解视频导出通过：%s，%d 帧", destination, frames_to_render)
     return destination
 
 
 def render(root: Path, project: dict, *, preview=False, limit_frames=None,
-           start_seconds=0, end_seconds=None) -> Path:
+           start_seconds=0, end_seconds=None, jobs: int = 1) -> Path:
     from m2v.core import delivery
     from m2v.core.preview import window
     from m2v.core.project import load_project
@@ -259,7 +272,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
     if preview:
         start, end = window(prepared["durationInFrames"], fps, start_seconds=start_seconds,
                             end_seconds=end_seconds, limit_frames=limit_frames)
-        return _generate(root, project, preview=True, start_frame=start, end_frame=end)
+        return _generate(root, project, preview=True, start_frame=start, end_frame=end, jobs=jobs)
     if limit_frames is not None or start_seconds or end_seconds is not None:
         raise M2VError("正式导出不能限制时间范围")
     def binding():
@@ -274,7 +287,7 @@ def render(root: Path, project: dict, *, preview=False, limit_frames=None,
         from m2v.commands import _production_render_event
         _production_render_event(root, project, 'generation-attempt', candidate_id=target.stem)
         try:
-            result = _generate(root, project, output=target, defer_validation=True)
+            result = _generate(root, project, output=target, defer_validation=True, jobs=jobs)
         except Exception:
             _production_render_event(root, project, 'generation-failed', candidate_id=target.stem)
             raise

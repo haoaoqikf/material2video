@@ -33,9 +33,18 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
 `content` 只接受 `title`（可选，仅作元数据）、`entry`（必填）与 `props`（可选，默认空对象）。
-`content.props` 可声明保留键 `capture`：当前支持 `{"timebase": "local" | "global"}`（默认
-`local`）。声明 `global` 时录制上下文提供全片时间 `globalSeconds/globalFrame`，供跨幕连续行为
-与共用的计时器读取；未声明时配置与缓存键保持原样。写法见[全局时间与连续行为](code-scene-runtime.md#全局时间与连续行为)。
+`content.props` 可声明保留键 `capture`：
+
+```json
+{"mode": "sequential", "timebase": "local", "jobs": 1, "blockFrames": 30, "verifyFrames": 4}
+```
+
+- `mode` 为 `sequential`（默认）或 `pure-time`；`pure-time` 隐含 `timebase: "global"`，且画面只能由时间、props 与事件推导。
+- `timebase: "global"` 让录制上下文提供 `globalSeconds/globalFrame`；`local` 保持幕内时间。
+- `jobs` 为 1–4，`blockFrames` 默认等于 fps，`verifyFrames` 为 2–4；这些是运行时参数，不进入片段缓存键。
+- `mode` 与 `sceneStartFrame` 进入缓存键；未声明 `capture` 时配置与缓存键保持原样。
+
+写法见[全局时间与连续行为](code-scene-runtime.md#全局时间与连续行为)与[纯时间采集](code-scene-runtime.md#纯时间采集opt-in)。
 `narrationSegments` 每项为 `{id,text}`，文字非空；`code` 幕可以没有旁白（0～30 项），此时镜头
 长度取声明的 `durationFrames`，未声明时与其余无旁白镜头平分 `targetSeconds` 的剩余帧数。
 每项可选 `holdFrames`（0～`30 × fps`）：本段旁白结束后、下一段开始前的静默帧数，只用于同一幕内的

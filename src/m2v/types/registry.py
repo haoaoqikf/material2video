@@ -40,6 +40,8 @@ class VideoType:
     # 可选人工评审工具；不参与导出授权。review_gate 仅执行自动检查。
     manual_review_available: bool = True
     prepared_check: Callable | None = None
+    #: 是否接受 `--jobs > 1` 的进程级分段渲染；默认只支持单进程。
+    supports_render_jobs: bool = False
 
 
 _registry: dict[str, VideoType] = {}

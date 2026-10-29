@@ -200,7 +200,8 @@ def test_pigeon_uses_global_act_and_event_sound_semantics():
     assert "act(globalSeconds)" in source
     for scene in board["scenes"]:
         props = scene["content"]["props"]
-        assert props["capture"] == {"timebase": "global"}
+        assert props["capture"]["timebase"] == "global"
+        assert props["capture"]["mode"] == "pure-time"
         assert "clock" not in props
         assert isinstance(scene.get("events"), list)
     declared = {(scene["id"], event["id"]) for scene in board["scenes"] for event in scene["events"]}

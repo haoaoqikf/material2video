@@ -50,6 +50,25 @@ def _is_motion_off(value: str) -> bool:
     return re.fullmatch(r"0+(?:\.0+)?(?:s|ms)?", text) is not None
 
 
+def _scan_text(path: Path, text: str, extra: tuple[tuple[str, re.Pattern], ...] = ()) -> list[Violation]:
+    violations: list[Violation] = []
+    for rule, pattern in (*_RULES, *extra):
+        for match in pattern.finditer(text):
+            violations.append(_violation(path, text, match.start(), rule))
+    for match in _CSS_MOTION.finditer(text):
+        # TypeScript schema 属性名（例如 `transition: transitionSchema.optional()`）
+        # 不是 CSS 声明，不能被源码策略误判为浏览器过渡。
+        if match.group(2) and ("Schema" in match.group(2) or ".optional(" in match.group(2)):
+            continue
+        if match.group(3):
+            violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
+            continue
+        if _is_motion_off(match.group(2) or ""):
+            continue
+        violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
+    return violations
+
+
 def scan(build_inputs: list[Path]) -> list[Violation]:
     """扫描 composition 的可达源码。
 
@@ -59,21 +78,36 @@ def scan(build_inputs: list[Path]) -> list[Violation]:
     for path in sorted({p.resolve() for p in build_inputs}):
         if path.suffix.lower() not in {".ts", ".tsx", ".css", ".mjs"} or not path.is_file():
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        for rule, pattern in _RULES:
-            for match in pattern.finditer(text):
-                violations.append(_violation(path, text, match.start(), rule))
-        for match in _CSS_MOTION.finditer(text):
-            # TypeScript schema 属性名（例如 `transition: transitionSchema.optional()`）
-            # 不是 CSS 声明，不能被源码策略误判为浏览器过渡。
-            if match.group(2) and ("Schema" in match.group(2) or ".optional(" in match.group(2)):
-                continue
-            if match.group(3):
-                violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
-                continue
-            if _is_motion_off(match.group(2) or ""):
-                continue
-            violations.append(_violation(path, text, match.start(), "未适配的 CSS 动画/过渡"))
+        violations.extend(_scan_text(path, path.read_text(encoding="utf-8", errors="replace")))
+    return violations
+
+
+#: 纯时间场景额外禁止的写法：它们要么依赖真实时钟，要么由库自走动画。
+_PURE_RULES = (
+    ("R3F 逐帧回调", re.compile(r"\buseFrame\s*\(")),
+    ("ECharts 自走动画", re.compile(r"\b(?:echarts|Chart)\b")),
+    ("真实日期", re.compile(r"\bnew\s+Date\s*\(")),
+    ("加密随机源", re.compile(r"\bcrypto\.getRandomValues\s*\(")),
+    ("元素动画", re.compile(r"\.animate\s*\(")),
+    ("媒体自走播放", re.compile(r"\b(?:video|audio)\s*\.\s*play\s*\(")),
+    ("空闲回调", re.compile(r"\brequestIdleCallback\s*\(")),
+)
+
+
+def _strip_comments(text: str) -> str:
+    """去掉注释但保留行数，避免注释里的示例词把纯场景判成违规。"""
+    text = re.sub(r"/\*.*?\*/", lambda match: "\n" * match.group(0).count("\n"), text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def scan_pure(build_inputs: list[Path]) -> list[Violation]:
+    """pure-time 场景的静态闸门：基础禁用项 + 自走动画/真实时钟。"""
+    violations: list[Violation] = []
+    for path in sorted({p.resolve() for p in build_inputs}):
+        if path.suffix.lower() not in {".ts", ".tsx", ".js", ".jsx", ".css"} or not path.is_file():
+            continue
+        text = _strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+        violations.extend(_scan_text(path, text, _PURE_RULES))
     return violations
 
 

@@ -21,6 +21,20 @@ def test_declared_sound_controls_delivery(props, expected):
 
 
 @pytest.mark.slow
+def test_parallel_render_uses_segments_and_keeps_frame_count(tmp_path, monkeypatch, chromium_ready):
+    unit = scene(durationFrames=30, narrationSegments=[])
+    data = board(fps=30, targetSeconds=1, scenes=[unit])
+    root, manifest = project(tmp_path, data)
+    fake_tts(monkeypatch, seconds=.4)
+    adapter.prepare(root, manifest)
+    output = adapter.render(root, manifest, jobs=2)
+    assert output.is_file()
+    report = json.loads(output.with_suffix(".performance.json").read_text(encoding="utf-8"))
+    assert report["renderJobs"] == 2
+    assert report["frames"] == 30
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize('sound', ['none', 'effect', 'narration'])
 def test_real_delivery_streams_and_candidate_reuse(tmp_path, monkeypatch, chromium_ready, sound):
     unit = scene(durationFrames=30, narrationSegments=[])

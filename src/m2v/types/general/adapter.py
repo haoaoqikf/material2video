@@ -20,12 +20,14 @@ def prepare(root: Path, project: dict, **options) -> dict:
     return explainer_prepare.prepare(root, project, **options)
 
 
-def preview(root: Path, project: dict, *, limit_frames=None, start_seconds=0, end_seconds=None) -> Path:
-    return explainer_render.render(root, project, preview=True, limit_frames=limit_frames, start_seconds=start_seconds, end_seconds=end_seconds)
+def preview(root: Path, project: dict, *, limit_frames=None, start_seconds=0, end_seconds=None,
+            jobs: int = 1) -> Path:
+    return explainer_render.render(root, project, preview=True, limit_frames=limit_frames,
+                                   start_seconds=start_seconds, end_seconds=end_seconds, jobs=jobs)
 
 
-def render(root: Path, project: dict) -> Path:
-    return explainer_render.render(root, project)
+def render(root: Path, project: dict, *, jobs: int = 1) -> Path:
+    return explainer_render.render(root, project, jobs=jobs)
 
 
 def review_gate(root: Path, project: dict) -> None:
@@ -36,4 +38,4 @@ def review_gate(root: Path, project: dict) -> None:
 
 TYPE = VideoType("general", validate, prepare, preview, render,
                  review_gate=review_gate, review_criteria=explainer_review.criteria,
-                 prepared_check=explainer_render.current)
+                 prepared_check=explainer_render.current, supports_render_jobs=True)

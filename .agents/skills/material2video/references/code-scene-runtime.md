@@ -58,7 +58,7 @@ const emphasis = frame >= events.frame('contact') ? 1 - events.progress('contact
 
 事件表是初始化快照，建议每份配置只创建一次。事件只规定时刻，不触发回调、不自动模拟碰撞、不重排字幕与旁白。录制页仍顺序逐帧推进；纯事件函数可乱序求值不表示录制页新增随机 seek 能力。声明与音效定位见[幕内事件](storyboard-schema.md#幕内事件)。
 
-事件发生前后的画面取证用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`：窗口由作者显式声明，工具从当前准备记录解析事件并取 before/at/after/hold 四类帧。它是看图预览，不自动绑定检查点，也不替代 G4 证据；事件越靠后，采集仍从所属幕第 0 帧推进。
+事件发生前后的画面取证用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`：窗口由作者显式声明，工具从当前准备记录解析事件并取 before/at/after/hold 四类帧。它是看图预览，不自动绑定检查点，也不替代 G4 证据；事件越靠后，顺序采集仍从所属幕第 0 帧推进，pure 场景则直接 seek。
 
 ## 全局时间与连续行为
 
@@ -94,8 +94,8 @@ export default function Scene(config: CodeSceneProps) {
 
 同一时刻在全景、近景、特写里读到同一 `state`，换镜不会跳位置或动作。`capture.timebase`
 是 opt-in：未声明时录制配置逐字节不变，既有片段缓存继续复用；声明后
-`sceneStartFrame` 进入片段缓存键，前幕时长变化会让该幕重新录制。全局时间本身不改变
-当前顺序采集方式；任意帧直接定位见后续 pure-time 契约。
+`sceneStartFrame` 进入片段缓存键，前幕时长变化会让该幕重新录制。需要任意帧直接定位与
+分块并行时，再声明[纯时间采集](#纯时间采集opt-in)；全局时间本身不强制使用它。
 
 ## ready() 的语义
 
@@ -141,8 +141,8 @@ version 6 的 `ready()` 必须保证：
 （抽查 6 帧命中 0–2 帧，PSNR 79–111 dB）。这是光栅化噪声，不是画面逻辑问题——
 未改动的画面同样复现，且与帧号无关。所以验收按「编码后不可见」判定，而不是逐字节相等；
 需要拦下的是**整块元素的位置或透明度不同**，那类差异的 PSNR 会远低于 60 dB，
-因此 `PSNR ≥ 60 dB` 是判定同帧一致性的阈值。当前没有自动抽帧比对同帧的命令，
-确定性由下面的源码闸门与源码指纹保证。
+因此 `PSNR ≥ 60 dB` 是判定同帧一致性的阈值。`m2v lookdev --det` 可用两次独立采集核对
+同帧一致性；pure 场景还会在采集时自动做正序/倒序探针。确定性仍由源码闸门与源码指纹保证。
 
 ### 画面源码的确定性
 
@@ -159,7 +159,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 ### 代码场景的顺序逐帧采集
 
 作品 `scenes/` 下的 TSX 不进入 composition，其动画在检查或正式生成时由独立录制页
-（`web/src/code-scene/`）采集。内部接口 `start()` 后只接受连续的
+（`web/src/code-scene/`）采集。**未声明 pure-time 时**，内部接口 `start()` 后只接受连续的
 `advanceToFrame(n)`，从第 0 帧到 `durationInFrames - 1`；不支持倒序或跳帧。
 
 录制页在作品加载前安装受控 Date/performance、定时器和 RAF 时钟。每帧上下文时间为
@@ -174,6 +174,40 @@ Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext
 输出帧（`mix`，等权归一化）。`supersample: 2` 时按 2 倍设备像素截图、编码时用 lanczos 降采样
 回目标画幅。子帧时间仍然只前进不后退，因此同一帧在任意一次录制里都可复现；未声明 `motion`
 时配置与缓存键与既有一致。
+
+### 纯时间采集（opt-in）
+
+只有画面完全由 `elapsedSeconds`、`globalSeconds`、`props` 与 `eventFrames` 推导的场景，
+才可以在 `content.props.capture` 声明：
+
+```json
+{"mode": "pure-time", "jobs": 2, "blockFrames": 30, "verifyFrames": 4}
+```
+
+- `mode` 默认 `sequential`；`pure-time` 隐含 `timebase: "global"`。
+- `jobs` 为 1–4（默认 1）；`blockFrames` 默认等于 fps；`verifyFrames` 为 2–4（默认 4）。
+- `jobs/blockFrames/verifyFrames` 是运行时参数，不进入片段缓存键；`mode` 与
+  `sceneStartFrame` 进入。未声明 pure 的作品配置、缓存与采集路径不变。
+
+pure 模式允许绝对定位：录制页从块首帧挂载，`seekToFrame` 可跳帧与倒序；采集只遍历目标帧，
+不再从第 0 帧推进。请求窗口会向外扩到 `blockFrames` 边界，块可缓存复用，也可由
+`jobs` 个独立子进程并行采集后无损拼接。预览与 `lookdev` 直接 seek 到目标帧，
+`lookdev --det` 对 pure 场景按倒序做第二遍采集。
+
+pure 场景必须通过两道闸门：
+
+- **静态**：扫描作品根与所选风格包源码，拒绝计时器、随机源、CSS 动效、`useFrame`、
+  ECharts 动画、`new Date`、`element.animate` 与自走媒体播放；
+- **动态**：每段选 2–4 个探针帧，正序与倒序截图 PSNR ≥ 60 dB；相邻块边界见证帧跨进程比对。
+
+任一失败会明确指出场景与帧号，不写缓存、不回退 sequential。`elapsedSeconds` 的既有语义
+不变；全局时间写法见[全局时间与连续行为](#全局时间与连续行为)。
+
+### 分进程最终渲染
+
+`m2v render --jobs N` 在渲染层按帧区间启动 N 个独立进程，每段解码核对帧数、尺寸与帧率，
+拼接后复核总帧数，最后统一混音。默认 1，走原有单会话；目前仅 `general` 支持大于 1。
+`--jobs` 不进入候选绑定，改变 jobs 仍可复用同一内容候选。
 
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
 系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，打包仍只批准文档列出的共享依赖

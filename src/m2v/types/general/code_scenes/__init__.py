@@ -6,7 +6,8 @@ v8 的作品代码控制整张画布：录制 viewport、页面根元素、ffmpe
 模块按职责拆成两个：`config.py` 负责入口校验、录制配置与静态模块构建，`capture.py`
 负责逐帧采集、片段缓存与编码验收。这里只做重导出，调用方继续写 `code_scenes.X`。
 """
-from .capture import materialize, record, _valid_clip, _clip_receipt, _cached_ranges, _is_hero_frame, _subframes_for, _average, _capture, _encode, _verify_clip
+from .capture import (PURE_CONTRACT, SEQUENTIAL_CONTRACT, materialize, record, _valid_clip, _clip_receipt,
+                      _cached_ranges, _is_hero_frame, _subframes_for, _average, _capture, _encode, _verify_clip)
 from .config import require_cinematic_dependencies, digest, validate_entry, validate_capture, capture_settings, implementation_inputs, scene_config, build_scene, source_texts, media_files
 
-__all__ = ['build_scene', 'capture_settings', 'digest', 'implementation_inputs', 'materialize', 'media_files', 'record', 'require_cinematic_dependencies', 'scene_config', 'source_texts', 'validate_capture', 'validate_entry']
+__all__ = ['PURE_CONTRACT', 'SEQUENTIAL_CONTRACT', 'build_scene', 'capture_settings', 'digest', 'implementation_inputs', 'materialize', 'media_files', 'record', 'require_cinematic_dependencies', 'scene_config', 'source_texts', 'validate_capture', 'validate_entry']

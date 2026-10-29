@@ -37,6 +37,10 @@ export type CodeSceneProps = {
   segmentWindows: Record<string, {startFrame: number; endFrame: number}>;
   /** lookdev 的原生像素密度；缺省不改变作品画布设置。 */
   captureScale?: number;
+  /** 纯时间采集模式；缺省为顺序录制。 */
+  captureMode?: 'sequential' | 'pure-time';
+  /** 纯模式块首帧；由采集器注入录制页，不进入片段缓存键。 */
+  captureStartFrame?: number;
   /** 仅在 `content.props.capture.timebase: "global"` 时注入。 */
   timeline?: SceneTimeline;
 };

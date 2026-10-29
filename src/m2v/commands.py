@@ -162,11 +162,17 @@ def _project_command(args) -> int:
         return 0
     if args.command in {"preview", "render"}:
         prepared = _prepared(root, manifest)
+        jobs = getattr(args, "jobs", 1)
+        if type(jobs) is not int or not 1 <= jobs <= 4:
+            raise M2VError("--jobs 必须为 1～4 的整数")
+        if jobs > 1 and not video_type.supports_render_jobs:
+            raise M2VError(f"当前类型 {manifest['type']} 不支持 --jobs > 1")
+        render_options = {"jobs": jobs} if jobs > 1 and video_type.supports_render_jobs else {}
         if args.command == "render":
             _require_type_review(video_type, root, manifest)
             _production_render_event(root, manifest, 'render-request')
             try:
-                output = video_type.render(root, manifest)
+                output = video_type.render(root, manifest, **render_options)
             except Exception:
                 _production_render_event(root, manifest, 'render-failed')
                 raise
@@ -191,7 +197,7 @@ def _project_command(args) -> int:
                 print("旧视频及可再生产物已清理")
         else:
             output = video_type.preview(root, manifest, limit_frames=args.limit_frames,
-                start_seconds=args.start_seconds, end_seconds=args.end_seconds)
+                start_seconds=args.start_seconds, end_seconds=args.end_seconds, **render_options)
             if not output.is_file():
                 raise M2VError(f"片段检查没有生成视频：{output}")
             print("片段检查完成，不作为全片生成的前置条件")

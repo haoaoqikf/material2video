@@ -103,6 +103,16 @@ def scene_windows(prepared: dict) -> list[tuple[int, int]]:
             for scene in prepared["props"].get("compiledScenes", [])]
 
 
+def _all_pure(prepared: dict, frames: list[int]) -> bool:
+    """选中的帧全部落在声明的 pure-time 场景内时才允许倒序验证。"""
+    scenes = [scene for scene in prepared["props"].get("compiledScenes", [])
+              if any(scene["startFrame"] <= frame < scene["endFrame"] for frame in frames)]
+    if not scenes:
+        return False
+    return all(((scene.get("content", {}).get("props") or {}).get("capture") or {}).get("mode") == "pure-time"
+               for scene in scenes)
+
+
 def check_frames(prepared: dict, frames: list[int]) -> None:
     """在启动浏览器前判定帧号合法且归属于某一幕。
 
@@ -302,7 +312,7 @@ def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, 
             code_scenes.build_scene(root, scene, directory)
             config = code_scenes.scene_config(scene, frame_config, media, fps=prepared["fps"])
             config["captureScale"] = scale
-            code_scenes._capture(pw, root, directory, config, selected_frames=selected)
+            code_scenes._capture(pw, root, directory, config, selected_frames=selected, verify_frames=0)
             for frame in selected:
                 captured[(scene["id"], frame + scene["startFrame"])] = directory / f"frame-{frame:06d}.png"
     for frame in frames:
@@ -375,13 +385,8 @@ def contact_sheet(stills: list[Path], target: Path, columns: int = 2,
 
 def psnr(first: Path, second: Path) -> float:
     """两张同尺寸图的 PSNR；完全相同时为无穷大。"""
-    result = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(first), "-i", str(second),
-                             "-lavfi", "psnr=stats_file=-", "-f", "null", "-"],
-                            capture_output=True, text=True, timeout=120)
-    match = re.search(r"psnr_avg:([\d.]+|inf)", result.stdout or "")
-    if not match:
-        raise M2VError(f"无法读取 PSNR：{(result.stderr or result.stdout)[-400:]}")
-    return math.inf if match.group(1) == "inf" else float(match.group(1))
+    from m2v.engine import images
+    return images.psnr(first, second)
 
 
 def _render_stills(root: Path, project: dict, prepared: dict, frames: list[int],
@@ -460,9 +465,15 @@ def _determinism(root: Path, project: dict, prepared: dict, frames: list[int],
     for directory in (first_dir, second_dir):
         directory.mkdir(parents=True, exist_ok=True)
     rows, failed = [], []
+    # pure 场景可以乱序直达：第二遍按倒序采集，正好验证「同帧与到达顺序无关」。
+    # 非 pure 场景的顺序采集不受 id 列表顺序影响（内部仍从 0 推进），不会回归。
+    second_frames = list(reversed(frames)) if _all_pure(prepared, frames) else list(frames)
     first = _render_stills(root, project, prepared, frames, still_scale, into=first_dir)
-    second = _render_stills(root, project, prepared, frames, still_scale, into=second_dir)
-    for path, twin, frame in zip(first, second, frames):
+    second = _render_stills(root, project, prepared, second_frames, still_scale, into=second_dir)
+    first_by_frame = dict(zip(frames, first))
+    second_by_frame = dict(zip(second_frames, second))
+    for frame in frames:
+        path, twin = first_by_frame[frame], second_by_frame[frame]
         if _image_size(path) != _image_size(twin):
             raise M2VError(f"帧 {frame} 两次采集尺寸不一致：{_image_size(path)} 与 {_image_size(twin)}；"
                            "无法比较，可能是采集密度或后期设置不同")
@@ -478,6 +489,7 @@ def _determinism(root: Path, project: dict, prepared: dict, frames: list[int],
                 "frames": frames, "results": rows, "failed": failed,
                 "first": first_dir.relative_to(root).as_posix(),
                 "second": second_dir.relative_to(root).as_posix(),
+                "secondOrder": "reverse" if second_frames != frames else "forward",
                 "stillCapture": "native-code-png-v1"}
     _write_json(root / "outputs/lookdev.json", manifest)
     return manifest
