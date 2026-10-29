@@ -96,7 +96,7 @@
 
 ### Requirement: 风格示例还原度验收
 
-`styles/examples/vibe-night/<slug>/` 下的每个风格示例 SHALL 按[参考风格契约](../../../.agents/skills/material2video/references/reference-style.md)记录八项指标，作为**证据格式**而非通过阈值：
+`styles/vibe-night/examples/<slug>/` 下的每个风格示例 SHALL 按[参考风格契约](../../../.agents/skills/material2video/references/reference-style.md)记录八项指标，作为**证据格式**而非通过阈值：
 
 - SHALL 产出 `outputs/style-reference.md`，逐项列出参考值、实际值与差值；八项指标准确对应契约定义的主体尺度、空场率、线宽、光源、背景质感、机位与运动、剪辑节奏、文字；
 - SHALL 提供与参考样片的并排基准图，参考侧取自已登记样片的采样帧，本片侧取同叙事位置的成片帧；

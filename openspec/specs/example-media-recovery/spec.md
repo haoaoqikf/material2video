@@ -7,7 +7,7 @@
 
 ### Requirement: 固定素材恢复
 
-风格示例 MUST 提供按配方下载或生成全部登记媒体的入口，校验 SHA-256 和媒体尺寸、视频时长，不改写来源登记和预期摘要。恢复入口与配方 SHALL 位于 `styles/examples/<style-id>/<slug>/assets/`。
+风格示例 MUST 提供按配方下载或生成全部登记媒体的入口，校验 SHA-256 和媒体尺寸、视频时长，不改写来源登记和预期摘要。恢复入口与配方 SHALL 位于 `styles/<style-id>/examples/<slug>/assets/`。
 
 #### Scenario: 空目录恢复
 - **WHEN** 用户在没有媒体的风格示例运行恢复入口
@@ -19,7 +19,7 @@
 
 ### Requirement: 版本控制边界
 
-仓库 MUST 保留公共字体及许可，并忽略风格示例媒体；解除跟踪前 MUST 验证完整恢复，改写历史前 MUST 创建可验证备份。风格示例媒体 SHALL 只位于 `styles/examples/*/*/assets/media/`、`styles/examples/*/*/assets/sound/` 等被忽略目录，恢复配方、分镜与场景源码 SHALL 保留在版本控制中。
+仓库 MUST 保留公共字体及许可，并忽略风格示例媒体；解除跟踪前 MUST 验证完整恢复，改写历史前 MUST 创建可验证备份。风格示例媒体 SHALL 只位于 `styles/*/examples/*/assets/media/`、`styles/*/examples/*/assets/sound/` 等被忽略目录，恢复配方、分镜与场景源码 SHALL 保留在版本控制中。
 
 #### Scenario: 历史同步
 - **WHEN** 完成恢复验收并清理历史

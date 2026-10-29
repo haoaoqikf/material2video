@@ -49,21 +49,21 @@
 
 ### Requirement: 风格示例作品（视频专属，不属于包）
 
-仓库 SHALL 在 `styles/examples/doc-archive/american-science-milestones/` 提供规范示例，声明 `style.id: "doc-archive"`。该作品 SHALL 保持 12 幕、约 30 秒、60 fps、全程无旁白/配乐/音效、十项内容的顺序与贡献边界、素材按 ID 取用、片尾仅一次署名，以及观众可见文案不含内部路径。示例 SHALL 通过 v8 校验与 `prepare`，生成媒体 SHALL NOT 入库。题材数据、档案素材、分镜与逐场编排属于作品，SHALL NOT 进入风格包。
+仓库 SHALL 在 `styles/doc-archive/examples/american-science-milestones/` 提供规范示例，声明 `style.id: "doc-archive"`。该作品 SHALL 保持 12 幕、约 30 秒、60 fps、全程无旁白/配乐/音效、十项内容的顺序与贡献边界、素材按 ID 取用、片尾仅一次署名，以及观众可见文案不含内部路径。示例 SHALL 通过 v8 校验与 `prepare`，生成媒体 SHALL NOT 入库。题材数据、档案素材、分镜与逐场编排属于作品，SHALL NOT 进入共享风格实现或风格指纹。
 
 #### Scenario: 示例可校验
 
-- **WHEN** 对 `styles/examples/doc-archive/american-science-milestones/` 运行 `m2v validate` 与 `prepare`
+- **WHEN** 对 `styles/doc-archive/examples/american-science-milestones/` 运行 `m2v validate` 与 `prepare`
 - **THEN** 校验通过，实际时长约 30 秒，无旁白与音轨，十项内容顺序与贡献边界不变
 
 #### Scenario: 示例不被当作风格包
 
 - **WHEN** 运行 `m2v styles` 或 `m2v styles --json`
-- **THEN** `styles/examples/doc-archive/american-science-milestones` 不出现在风格清单中，也不能按风格 id 加载
+- **THEN** `styles/doc-archive/examples/american-science-milestones` 不出现在风格清单中，也不能按风格 id 加载
 
 ### Requirement: 科学里程碑示例必须保持内容与审美契约（视频专属）
 
-`american-science-milestones` 示例 MUST 位于 `styles/examples/doc-archive/american-science-milestones/`，保留现有十项内容、顺序及贡献边界，使用统一标准、1920×1080、60 fps、约 30 秒；开场 2 秒、十项主体 26 秒、片尾署名 2 秒。中文名称与贡献说明 MUST 为主信息；陌生英文缩写仅在首次出现时作为辅助识别，不得成为理解前提。MUST 全程无旁白、配乐、音效及素材原声，交付无音轨或全程数字静音。MUST 面向手机横屏播放完成字号、主体占比及遮挡风险复核，并针对前两秒复核主题建立、视觉钩子及手机尺寸下的辨识情况；不得声称测得真实平台跳出率。MUST 在全片及所有观众可见文字中禁止仓库内部文件名、路径和材料查阅提示；署名和版权说明仅以一份简短片尾内容出现，满足所用素材许可的作者、来源、许可和改动标识要求，详细来源记录仍留在作品材料中。MUST 保留素材留证及生成媒体不入库要求。该要求约束示例作品，不属于风格包。
+`american-science-milestones` 示例 MUST 位于 `styles/doc-archive/examples/american-science-milestones/`，保留现有十项内容、顺序及贡献边界，使用统一标准、1920×1080、60 fps、约 30 秒；开场 2 秒、十项主体 26 秒、片尾署名 2 秒。中文名称与贡献说明 MUST 为主信息；陌生英文缩写仅在首次出现时作为辅助识别，不得成为理解前提。MUST 全程无旁白、配乐、音效及素材原声，交付无音轨或全程数字静音。MUST 面向手机横屏播放完成字号、主体占比及遮挡风险复核，并针对前两秒复核主题建立、视觉钩子及手机尺寸下的辨识情况；不得声称测得真实平台跳出率。MUST 在全片及所有观众可见文字中禁止仓库内部文件名、路径和材料查阅提示；署名和版权说明仅以一份简短片尾内容出现，满足所用素材许可的作者、来源、许可和改动标识要求，详细来源记录仍留在作品材料中。MUST 保留素材留证及生成媒体不入库要求。该要求约束示例作品，不属于风格包。
 
 作品 MUST 以档案纪录方向组织视觉承接，历史影像与实物优先，原理动画明确标注示意；MUST NOT 暗示未经证实的直接历史因果。四张基准 MUST 覆盖开场、登月、晶体管普通信息镜头及片尾。各项 MUST 围绕一个主要视觉变化组织，减轻年份、英文装饰与说明的竞争，MUST NOT 以照片缓慢缩放作为全片主要动画手段。
 

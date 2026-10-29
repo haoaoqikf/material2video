@@ -17,8 +17,8 @@
 - **THEN** 作品和初始化材料创建在 `videos/general/<slug>/`
 
 #### Scenario: 仓库自带示例走统一入口
-- **WHEN** 用统一入口对仓库 `styles/examples/<style-id>/<slug>/` 下的风格示例作品执行 prepare、preview 或 render
-- **THEN** 媒体、预演与成片写入 `styles/examples/<style-id>/<slug>/outputs/`，
+- **WHEN** 用统一入口对仓库 `styles/<style-id>/examples/<slug>/` 下的风格示例作品执行 prepare、preview 或 render
+- **THEN** 媒体、预演与成片写入 `styles/<style-id>/examples/<slug>/outputs/`，
   不写进受版本控制的示例源文件，产物目录由 `.gitignore` 忽略
 
 ### Requirement: 准备及评审版本绑定

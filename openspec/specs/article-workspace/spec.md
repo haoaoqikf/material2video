@@ -11,11 +11,11 @@
 （`videos/<type>/<slug>/`），文章源文件与产物 SHALL 可以位于仓库外的工作区目录。
 
 系统 SHALL 支持两层根：**仓库根**（前端工程与共享组件所在处）与**工作区根**
-（存放 `videos/<type>/<slug>`、`styles/examples/<style-id>/<slug>` 与作品目录下 `outputs/` 的目录）。工作区根 SHALL 按
+（存放 `videos/<type>/<slug>`、`styles/<style-id>/examples/<slug>` 与作品目录下 `outputs/` 的目录）。工作区根 SHALL 按
 `--content-root` > `M2V_CONTENT_ROOT` > 仓库根 的优先级解析；未提供两个来源时
 工作区根 SHALL 等于仓库根。
 
-输入文件位于仓库根的规范目录（`videos/<type>/<slug>` 或 `styles/examples/<style-id>/<slug>`）时，归属 SHALL 按仓库根判定；
+输入文件位于仓库根的规范目录（`videos/<type>/<slug>` 或 `styles/<style-id>/examples/<slug>`）时，归属 SHALL 按仓库根判定；
 位于其他位置时 SHALL 按工作区根判定。两者都不满足时系统 SHALL 报错，
 SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与 `M2V_CONTENT_ROOT`
 两条设置方式。系统 SHALL NOT 再把顶层 `examples/<slug>/` 视为规范目录。
@@ -34,11 +34,11 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 - **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/general/demo/outputs/`，且命令与工作目录无关
 
 #### Scenario: 仓库内优先
-- **WHEN** 已设置内容根，而输入文件位于仓库根的 `styles/examples/doc-archive/american-science-milestones/`
-- **THEN** 归属仍按仓库根判定，产物写入 `<仓库根>/styles/examples/doc-archive/american-science-milestones/outputs/`
+- **WHEN** 已设置内容根，而输入文件位于仓库根的 `styles/doc-archive/examples/american-science-milestones/`
+- **THEN** 归属仍按仓库根判定，产物写入 `<仓库根>/styles/doc-archive/examples/american-science-milestones/outputs/`
 
 #### Scenario: 无法推导归属
-- **WHEN** 输入文件既不在仓库根的 `videos/<type>/<slug>` 或 `styles/examples/<style-id>/<slug>` 内，也不在已解析的工作区根内
+- **WHEN** 输入文件既不在仓库根的 `videos/<type>/<slug>` 或 `styles/<style-id>/examples/<slug>` 内，也不在已解析的工作区根内
 - **THEN** 命令报错并列出实际路径，错误信息包含 `--content-root` 与 `M2V_CONTENT_ROOT`
 
 #### Scenario: 内容根里的作品带专属画面
@@ -60,8 +60,8 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 示例作品默认输出
 
-- **WHEN** 风格示例文章归属为 `styles/examples/<style-id>/<slug>/`
-- **THEN** 默认产物写入 `styles/examples/<style-id>/<slug>/outputs/`，与正式作品隔离，且继续由 `.gitignore` 的 `outputs/` 规则排除
+- **WHEN** 风格示例文章归属为 `styles/<style-id>/examples/<slug>/`
+- **THEN** 默认产物写入 `styles/<style-id>/examples/<slug>/outputs/`，与正式作品隔离，且继续由 `.gitignore` 的 `outputs/` 规则排除
 
 #### Scenario: 外部内容根
 
