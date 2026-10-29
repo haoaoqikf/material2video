@@ -14,7 +14,7 @@
 
 ## 触发时展开
 
-- 首次写分镜：读[分镜契约](storyboard-schema.md)与[逐场表](scene-design-and-acceptance.md#逐场设计表)。
+- 首次写分镜：读[分镜契约](storyboard-schema.md)与[逐场表](visual-creative-direction.md#逐场设计表)。
 - 搜集或入片素材/声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
 - 学习参考：读[参考拆解](reference-video-analysis.md)；明确要求像参考时再读[风格契约](reference-style.md)。
 - 首次实现场景/相机/字体：读[运行时契约](code-scene-runtime.md)；选择风格时读该包 GUIDE。

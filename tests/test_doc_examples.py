@@ -44,40 +44,35 @@ def reachable() -> dict[str, Path]:
 def test_reference_docs_are_reachable_from_the_entry():
     """专项方法文档可从入口经阶段指南与路由到达。"""
     docs = reachable()
-    for name in ("visual-impact-design.md", "visual-creative-direction.md", "reference-video-analysis.md",
+    for name in ("visual-creative-direction.md", "reference-video-analysis.md",
                  "article-media-and-sound.md", "visual-review-rubric.md", "stage-plan.md",
                  "stage-iterate.md", "stage-final.md", "checkpoint-gates.md"):
         assert name in docs, name
 
 
 @pytest.mark.parametrize("name,documents", [
-    ("visual-impact-design.md", ("production-workflow.md", "visual-creative-direction.md",
-                                 "creative-production.md", "scene-design-and-acceptance.md",
-                                 "subagent-review.md", "director-review-and-edit.md",
-                                 "visual-review-rubric.md")),
     ("visual-creative-direction.md", ("production-workflow.md", "creative-production.md",
-                                      "article-to-storyboard.md", "scene-design-and-acceptance.md",
-                                      "visual-review-rubric.md", "director-review-and-edit.md")),
+                                      "article-to-storyboard.md", "subagent-review.md",
+                                      "director-review-and-edit.md", "visual-review-rubric.md")),
     ("reference-video-analysis.md", ("reference-style.md", "creative-production.md",
-                                     "visual-creative-direction.md", "visual-impact-design.md",
-                                     "subagent-review.md")),
+                                     "visual-creative-direction.md", "subagent-review.md")),
 ])
 def test_methods_are_linked_from_the_operating_docs(name, documents):
-    """制作、复核与评审文档各自链接同一份方法，读者不必只会从入口找。"""
+    """创作方法和参考拆解从相关操作文档可达。"""
     for document in documents:
         text = (ROOT / document).read_text(encoding="utf-8")
         assert name in text, f"{document} 没有指向 {name}"
 
 
 def test_readme_and_example_links_resolve():
-    """README 与固定示例的设计文档仍须有可打开的方法链接。"""
-    for name in ("visual-impact-design.md", "visual-creative-direction.md"):
-        paths = (REPO / "README.md", *REPO.glob("examples/*/DESIGN.md"))
-        for path in paths:
-            text = path.read_text(encoding="utf-8")
-            links = re.findall(rf"\]\(([^)]+{re.escape(name)})\)", text)
-            assert links, f"{path} 没有指向 {name}"
-            assert all((path.parent / link).is_file() for link in links), path
+    """README 与固定示例的设计文档仍须有可打开的创作方法链接。"""
+    name = "visual-creative-direction.md"
+    paths = (REPO / "README.md", *REPO.glob("examples/*/DESIGN.md"))
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        links = re.findall(rf"\]\(([^)]+{re.escape(name)})\)", text)
+        assert links, f"{path} 没有指向 {name}"
+        assert all((path.parent / link).is_file() for link in links), path
 
 
 def test_fixed_examples_document_media_restore():

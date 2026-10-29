@@ -159,6 +159,6 @@
 ## 与其他文档的关系
 
 - 阶段与循环：[循环创作、美术、声音与制作阶段](creative-production.md)。
-- 逐场验收与证据：[逐场设计与独立验收](scene-design-and-acceptance.md)。
+- 逐场验收与证据：[逐场设计与独立验收](visual-creative-direction.md)。
 - 复核记录与证据要求：[自主视觉复核](visual-review-rubric.md)。
 - 参考素材获取、音轨复用与使用边界：[文章媒体与音效](article-media-and-sound.md)。

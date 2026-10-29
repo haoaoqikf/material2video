@@ -18,7 +18,7 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 |---|---|
 <!-- generated:type-catalog:start -->
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
-| `general` | [阶段阅读入口](references/production-workflow.md#阶段阅读入口)：v8 全画布代码场景讲解。 |
+| `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
 | `housing-timeseries` | [年度住宅均价视频](references/housing-timeseries-video.md)：按 `series.json` 生成 1080×1920、60 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 

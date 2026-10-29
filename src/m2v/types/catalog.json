@@ -84,7 +84,7 @@
       "description": "通用",
       "summary": "v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。",
       "plan": "以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。",
-      "skillGuide": "[阶段阅读入口](references/production-workflow.md#阶段阅读入口)：v8 全画布代码场景讲解。",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。",
       "materials": [
         {
           "name": "storyboard",

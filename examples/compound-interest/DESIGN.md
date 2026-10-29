@@ -10,7 +10,7 @@
 
 参考片为 `refs/douyin/7692873023291963558/video.mp4`（约62秒《重复》）。只查看过逐秒接触表与关键窗口静帧；不据此断言精确运动曲线、转场或音乐。参考文件与音轨不进入本片素材或声音链路。
 
-相关方法：[视觉创意方向](../../.agents/skills/material2video/references/visual-creative-direction.md)、[视觉力量设计](../../.agents/skills/material2video/references/visual-impact-design.md)、[独立子代理评审](../../.agents/skills/material2video/references/subagent-review.md)。
+相关方法：[视觉创意方向](../../.agents/skills/material2video/references/visual-creative-direction.md)、[视觉力量设计](../../.agents/skills/material2video/references/visual-creative-direction.md)、[独立子代理评审](../../.agents/skills/material2video/references/subagent-review.md)。
 
 ## Goals / Non-Goals
 
