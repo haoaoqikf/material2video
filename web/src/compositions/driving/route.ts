@@ -7,9 +7,38 @@
  * 材料中的 API 距离。
  */
 
+import { LAYOUT, contentRect } from './layout';
+
 export type LonLat = [number, number];
 
 export type DrivingStep = {road: string; points: LonLat[]};
+
+export type RouteCost = {
+  durationSeconds: number;
+  tollsYuan: number;
+  tollDistanceMeters: number;
+  trafficLights: number;
+};
+
+export type RouteCity = {name: string; adcode: string; location: LonLat};
+
+export type BasemapLayer = {
+  zoom: number;
+  bbox: [number, number, number, number];
+  image: {path: string; sha256: string; width: number; height: number};
+  projected: {left: number; top: number; width: number; height: number};
+  tileCount: number;
+  dataUri: string;
+};
+
+export type BasemapConfig = {
+  provider: string;
+  service: string;
+  attribution: string;
+  fetchedAt: string;
+  overview: BasemapLayer;
+  follow: BasemapLayer;
+};
 
 export type DrivingRouteProps = {
   schemaVersion: number;
@@ -25,6 +54,9 @@ export type DrivingRouteProps = {
   routeEnd: LonLat;
   totalDistanceMeters: number;
   attribution: string;
+  cost?: RouteCost;
+  cities?: RouteCity[];
+  basemap?: BasemapConfig;
   steps: DrivingStep[];
 };
 
@@ -36,6 +68,8 @@ export type RouteModel = {
   projected: ProjectedPoint[];
   cumulative: number[];
   lengthMeters: number;
+  /** 投影平面上的折线总长度；用于把米制前瞻换算到投影单位。 */
+  projectedLength: number;
   spans: RoadSpan[];
   bounds: {minX: number; minY: number; maxX: number; maxY: number};
 };
@@ -44,9 +78,6 @@ export type Camera = {scale: number; tx: number; ty: number};
 
 const EARTH_RADIUS_METERS = 6371008.8;
 const MERCATOR_RADIUS = 6378137;
-const OPENING_SECONDS = 3;
-const ENDING_SECONDS = 3;
-const FOLLOW_ZOOM = 2.5;
 
 export function haversineMeters(a: LonLat, b: LonLat): number {
   const toRad = Math.PI / 180;
@@ -87,11 +118,17 @@ export function buildRouteModel(steps: DrivingStep[]): RouteModel {
   const projected = coordinates.map(projectPoint);
   const xs = projected.map((point) => point.x);
   const ys = projected.map((point) => point.y);
+  let projectedLength = 0;
+  for (let index = 1; index < projected.length; index += 1) {
+    projectedLength += Math.hypot(projected[index].x - projected[index - 1].x,
+      projected[index].y - projected[index - 1].y);
+  }
   return {
     coordinates,
     projected,
     cumulative,
     lengthMeters: cumulative[cumulative.length - 1],
+    projectedLength,
     spans,
     bounds: {minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys)},
   };
@@ -170,8 +207,8 @@ export function headingAtDistance(model: RouteModel, distance: number): number {
 
 /** 沿路已走距离：开场停在起点，行驶段平滑起停，结尾停在终点。 */
 export function distanceForFrame(frame: number, durationInFrames: number, fps: number, lengthMeters: number): number {
-  const opening = Math.round(OPENING_SECONDS * fps);
-  const ending = Math.round(ENDING_SECONDS * fps);
+  const opening = Math.round(LAYOUT.camera.openingSeconds * fps);
+  const ending = Math.round(LAYOUT.camera.endingSeconds * fps);
   const drive = durationInFrames - opening - ending;
   if (frame < opening || drive <= 0) return 0;
   if (frame >= durationInFrames - ending) return lengthMeters;
@@ -197,6 +234,20 @@ export function fitCamera(bounds: RouteModel['bounds'], width: number, height: n
   };
 }
 
+/** 全程取景：只使用标题带以下的内容区，避免端点被标题遮挡。 */
+export function fitCameraInContent(bounds: RouteModel['bounds'], width: number, height: number): Camera {
+  const content = contentRect(width, height);
+  const spanX = Math.max(bounds.maxX - bounds.minX, 1e-6);
+  const spanY = Math.max(bounds.maxY - bounds.minY, 1e-6);
+  const scale = Math.min((content.innerRight - content.innerLeft) / spanX,
+    (content.innerBottom - content.innerTop) / spanY);
+  return {
+    scale,
+    tx: content.cx - ((bounds.minX + bounds.maxX) / 2) * scale,
+    ty: content.cy - ((bounds.minY + bounds.maxY) / 2) * scale,
+  };
+}
+
 function mixCamera(from: Camera, to: Camera, amount: number): Camera {
   const t = smoothstep(amount);
   return {
@@ -207,26 +258,53 @@ function mixCamera(from: Camera, to: Camera, amount: number): Camera {
 }
 
 export function cameraForFrame(model: RouteModel, frame: number, durationInFrames: number,
-                                fps: number, width: number, height: number, padding = 130): Camera {
-  const full = fitCamera(model.bounds, width, height, padding);
-  const followScale = full.scale * FOLLOW_ZOOM;
-  const distance = distanceForFrame(frame, durationInFrames, fps, model.lengthMeters);
-  // 前瞻必须是当前视域的一小部分：短路线若固定 200 米下限，跟随镜头会把车推出画面。
-  const visibleSpan = Math.min(width, height) / followScale;
-  const lookAhead = clamp(Math.min(model.lengthMeters * 0.02, visibleSpan * 0.2), 0, model.lengthMeters);
-  const target = pointAtDistance(model, Math.min(distance + lookAhead * 0.5, model.lengthMeters));
-  const follow: Camera = {
-    scale: followScale,
-    tx: width / 2 - target.x * followScale,
-    ty: height / 2 - target.y * followScale,
+                                fps: number, width: number, height: number): Camera {
+  const content = contentRect(width, height);
+  const camera = LAYOUT.camera;
+  const full = fitCameraInContent(model.bounds, width, height);
+  const followScale = full.scale * camera.followZoom;
+  const openingFrames = Math.round(camera.openingSeconds * fps);
+  const endingFrames = Math.round(camera.endingSeconds * fps);
+  const transitionFrames = Math.min(Math.round(camera.openingTransitionSeconds * fps),
+    Math.max(0, durationInFrames - openingFrames - endingFrames));
+  const endingStart = durationInFrames - endingFrames;
+  const metersPerProjected = model.projectedLength > 0 ? model.lengthMeters / model.projectedLength : 1;
+
+  const followAt = (distance: number): Camera => {
+    const visibleMeters = (Math.min(width, height) / followScale) * metersPerProjected;
+    const lookahead = clamp(
+      Math.min(model.lengthMeters * camera.lookaheadRouteFraction,
+        visibleMeters * camera.lookaheadViewFraction),
+      0, model.lengthMeters);
+    const target = pointAtDistance(
+      model, Math.min(distance + lookahead * camera.lookaheadTargetFraction, model.lengthMeters));
+    return {
+      scale: followScale,
+      tx: content.cx - target.x * followScale,
+      ty: content.cy - target.y * followScale,
+    };
   };
-  const seconds = frame / fps;
-  const totalSeconds = durationInFrames / fps;
-  if (seconds < OPENING_SECONDS) return full;
-  if (seconds < OPENING_SECONDS + 1) return mixCamera(full, follow, seconds - OPENING_SECONDS);
-  if (seconds < totalSeconds - ENDING_SECONDS) return follow;
-  if (seconds < totalSeconds - 1) {
-    return mixCamera(follow, full, (seconds - (totalSeconds - ENDING_SECONDS)) / 2);
+
+  const openingScale = full.scale * camera.openingStartZoom;
+  const openingEndScale = full.scale * camera.openingEndZoom;
+  const openingAt = (amount: number): Camera => {
+    const scale = openingScale + (openingEndScale - openingScale) * smoothstep(amount);
+    const start = model.projected[0];
+    return {scale, tx: content.cx - start.x * scale, ty: content.cy - start.y * scale};
+  };
+
+  const distance = distanceForFrame(frame, durationInFrames, fps, model.lengthMeters);
+  if (frame < openingFrames) {
+    return openingAt(openingFrames <= 1 ? 1 : frame / (openingFrames - 1));
+  }
+  if (frame < openingFrames + transitionFrames) {
+    const amount = transitionFrames <= 0 ? 1 : (frame - openingFrames + 1) / transitionFrames;
+    return mixCamera(openingAt(1), followAt(distance), amount);
+  }
+  if (frame < endingStart) return followAt(distance);
+  const blendFrames = Math.max(1, endingFrames - Math.round(fps));
+  if (frame < endingStart + blendFrames) {
+    return mixCamera(followAt(model.lengthMeters), full, (frame - endingStart) / blendFrames);
   }
   return full;
 }
@@ -276,7 +354,15 @@ export function highwayLabels(model: RouteModel): RoadLabel[] {
   return labels.sort((a, b) => b.lengthMeters - a.lengthMeters).slice(0, 6);
 }
 
+/** 概览与跟随底图的混合权重：全程 0，跟随 1，过渡期线性。 */
+export function basemapBlend(cameraScale: number, fullScale: number): number {
+  if (fullScale <= 0) return 0;
+  const ratio = cameraScale / fullScale;
+  return clamp((ratio - 1) / Math.max(1e-6, LAYOUT.camera.overviewFadeRatio - 1), 0, 1);
+}
+
 export function formatDistance(meters: number): string {
   if (meters >= 100_000) return `${Math.round(meters / 1000)} 公里`;
   return `${(meters / 1000).toFixed(1)} 公里`;
 }
+

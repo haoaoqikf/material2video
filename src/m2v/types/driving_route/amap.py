@@ -112,6 +112,17 @@ def _polyline(value: Any, where: str) -> list[list[float]]:
     return points
 
 
+def _parse_cost(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        raise M2VError("高德驾车规划缺少 cost；请确认已请求 show_fields=cost")
+    return {
+        "durationSeconds": _integer_string(value.get("duration"), "预计耗时", minimum=1),
+        "tollsYuan": _integer_string(value.get("tolls"), "过路费", minimum=0),
+        "tollDistanceMeters": _integer_string(value.get("toll_distance"), "收费里程", minimum=0),
+        "trafficLights": _integer_string(value.get("traffic_lights"), "红绿灯", minimum=0),
+    }
+
+
 class AmapClient:
     """高德 Web 服务的最小客户端。错误信息绝不包含请求 URL。"""
 
@@ -181,7 +192,7 @@ class AmapClient:
             "origin": f"{origin[0]},{origin[1]}",
             "destination": f"{destination[0]},{destination[1]}",
             "strategy": "34",
-            "show_fields": "polyline",
+            "show_fields": "cost,cities,polyline",
         })
         route = payload.get("route")
         paths = route.get("paths") if isinstance(route, dict) else None
@@ -191,10 +202,13 @@ class AmapClient:
         if not isinstance(path, dict):
             raise M2VError("高德驾车规划结果结构无效")
         distance = _integer_string(path.get("distance"), "路线总距离", minimum=1)
+        cost = _parse_cost(path.get("cost"))
         raw_steps = path.get("steps")
         if not isinstance(raw_steps, list) or not raw_steps:
             raise M2VError("高德驾车规划没有返回道路分段")
         steps: list[dict[str, Any]] = []
+        cities: list[dict[str, Any]] = []
+        seen_cities: set[str] = set()
         previous_last: list[float] | None = None
         for index, raw in enumerate(raw_steps):
             where = f"第 {index + 1} 段"
@@ -205,6 +219,25 @@ class AmapClient:
                 # 极短的零长度段可能没有几何；由后续连续性校验决定是否可接受。
                 continue
             points = _polyline(polyline, where)
+            city_names = []
+            for city in raw.get("cities") or []:
+                if not isinstance(city, dict):
+                    continue
+                name = city.get("city")
+                adcode = city.get("adcode")
+                if not isinstance(name, str) or not name.strip() or name in seen_cities:
+                    continue
+                if any(name.strip() == existing for existing, _ in city_names):
+                    continue
+                if not isinstance(adcode, str) or not adcode.strip():
+                    continue
+                city_names.append((name.strip(), adcode.strip()))
+            for index_in_step, (name, adcode) in enumerate(city_names):
+                seen_cities.add(name)
+                point_index = round((index_in_step + 1) / (len(city_names) + 1) * (len(points) - 1))
+                point = points[min(len(points) - 1, max(0, point_index))]
+                cities.append({"name": name, "adcode": adcode,
+                               "location": [point[0], point[1]]})
             road = raw.get("road_name")
             road_name = road.strip() if isinstance(road, str) and road.strip() else "未命名道路"
             step_distance = raw.get("step_distance")
@@ -223,4 +256,5 @@ class AmapClient:
         if not steps:
             raise M2VError("高德驾车规划的所有道路段都缺少有效几何")
         return {"distanceMeters": distance, "steps": steps,
-                "startPoint": steps[0]["points"][0], "endPoint": steps[-1]["points"][-1]}
+                "startPoint": steps[0]["points"][0], "endPoint": steps[-1]["points"][-1],
+                "cost": cost, "cities": cities}

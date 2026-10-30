@@ -42,6 +42,13 @@ def dispatch(args) -> int:
         from m2v.reference.cli import main as reference_main
         return reference_main(args)
     if args.command == "driving-route":
+        if args.workflow == "basemap":
+            from m2v.types.driving_route.basemap import fetch_basemap
+            result = fetch_basemap(args.project, refresh=args.refresh)
+            action = "已复用道路底图" if result["reused"] else "已保存道路底图"
+            overview_zoom, follow_zoom = result["zoom"]
+            print(f"{action}：{result['path']}（概览 z{overview_zoom} / 跟随 z{follow_zoom}，{result['tileCount']} 块）")
+            return 0
         from m2v.types.driving_route.fetch import fetch as fetch_route
         target = fetch_route(args.project)
         print(f"已保存高速优先路线：{target}")

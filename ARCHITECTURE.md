@@ -5,7 +5,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 ## 模块边界
 
 - `src/m2v/core/`：作品与工作区契约、路径、资产、指纹、安全策略和公共错误。它不包含具体视频类型的业务流程。
-- `src/m2v/types/`：类型目录、注册表和金融、通用、自驾路线类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。`driving_route/` 中 `materials.py` 负责请求/路线契约、绑定摘要与几何校验，`amap.py` 是唯一的地图 HTTP 客户端，`fetch.py` 负责授权前置、原子保存与失败保护；离线生命周期不导入取数路径，也不需要 Key。
+- `src/m2v/types/`：类型目录、注册表和金融、通用、自驾路线类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。`driving_route/` 中 `materials.py` 负责请求/路线契约、绑定摘要与几何校验，`amap.py` 是路径 API 客户端，`fetch.py` 负责授权前置、原子保存与失败保护，`basemap.py` 是普通道路瓦片的 HTTP 客户端，负责概览/跟随范围计算、拼接、投影矩形与本地影像记录；Pillow 只用于瓦片拼接。离线生命周期不导入取数或取图路径，也不需要 Key。
 - `src/m2v/types/general/code_scenes/config.py`：代码场景入口校验、录制配置与确定性打包；`capture.py`：逐帧采集、片段缓存与编码验收；`worker.py`：pure-time 分块采集子进程入口。录制配置只在作品 opt-in 时注入全局时间轴与纯模式，未声明时保持既有形状。`src/m2v/engine/remotion/segments.py` 负责 `--jobs` 的分帧区间渲染、逐段验收与无损拼接，不改变单进程路径。
 - `src/m2v/types/general/sound_synthesis.py`、`sound_library.py`、`soundtrack.py`：分别负责常见音效目录及确定性拟音、双来源音效登记与离线复核、分镜声音编排；共享 `engine/audio.py` 只处理音频信号与立体声混音，不决定音效选型或许可。
 - `src/m2v/core/styles.py`：解释 `styles/<id>/style.json`，负责风格发现、作品兼容校验和内容指纹；不依赖类型实现。general 打包器只消费已校验入口，风格不修改业务流程。
@@ -13,7 +13,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `src/m2v/production/`：制作合同、证据依赖、追加式状态、独立评审包及基线保留；制作编排可调用类型采集器，core 不反向依赖该层，渲染不读取制作门作为导出条件。
 - `src/m2v/reference/`：外部参考素材获取、页面详情解析、媒体摘要核验与用户授权的音轨提取。
 - `src/m2v/cli.py` 与 `src/m2v/commands.py`：统一命令入口及通用命令编排；类型专属命令由类型模块提供。
-- `web/src/`：Remotion 合成、通用代码场景运行时、共享动效原语、字体与画幅契约。作品场景代码保存在作品内容目录，不放进共享运行时。`web/src/compositions/DrivingRoute.tsx` 只绘制当前帧，投影、累计距离、贴路位置、朝向与镜头在 `compositions/driving/route.ts` 中实现为纯函数；同一帧不依赖执行顺序或跨帧状态。`web/src/code-scene/painter/` 是可选的二维 Canvas 绘制层：供需要辉光质感、高密度粒子与线条生长的场景使用，与 R3F 的 `Canvas` 区分，并输出同源的 DOM 量测代理与状态探针，使 Canvas 内容可被检查点量测。生产链路的确定性源码闸门不覆盖该目录，由测试对整目录执行同一检查。
+- `web/src/`：Remotion 合成、通用代码场景运行时、共享动效原语、字体与画幅契约。作品场景代码保存在作品内容目录，不放进共享运行时。`web/src/compositions/DrivingRoute.tsx` 只绘制当前帧，投影、累计距离、贴路位置、朝向与镜头在 `compositions/driving/route.ts` 中实现为纯函数；同一帧不依赖执行顺序或跨帧状态。配置普通道路底图时，概览常驻、跟随影像在相机变换内按比例淡入；顶部两行标题、车辆旁里程与右下署名在屏幕空间叠加；城市名使用路线材料中的沿线坐标绘制。`web/src/compositions/driving/layout.json` 是标题、内容区、相机与标签尺寸的跨语言单一来源。`web/src/code-scene/painter/` 是可选的二维 Canvas 绘制层：供需要辉光质感、高密度粒子与线条生长的场景使用，与 R3F 的 `Canvas` 区分，并输出同源的 DOM 量测代理与状态探针，使 Canvas 内容可被检查点量测。生产链路的确定性源码闸门不覆盖该目录，由测试对整目录执行同一检查。
 
 ## 契约与文档
 

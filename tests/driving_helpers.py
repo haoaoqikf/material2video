@@ -20,22 +20,23 @@ MIDDLE = [(121.4800, 31.2400), (121.4900, 31.2500)]
 DESTINATION = (121.5000, 31.2600)
 
 
-def request_document() -> dict:
+def request_document(*, map_tiles: bool = False) -> dict:
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "origin": {"city": "上海市", "address": "上海市黄浦区合成起点", "label": "上海"},
         "destination": {"city": "上海市", "address": "上海市黄浦区合成终点", "label": "上海西"},
         "strategy": "highway-first",
         "durationSeconds": 30,
-        "canvas": {"width": 1920, "height": 1080},
+        "canvas": {"width": 1080, "height": 1920},
         "sourceUsage": {
             "verifiedOn": "2026-10-30",
             "documents": [{"title": "合成许可记录", "url": "https://example.invalid/license"}],
             "account": "合成测试账号范围",
-            "purpose": "离线保存路线并制作二维动画视频",
+            "purpose": "离线保存路线与普通道路底图并制作竖屏动画视频",
             "offlineStorage": True,
             "derivativeFrames": True,
             "videoPublication": True,
+            "mapTiles": map_tiles,
             "attribution": "地图数据 © 高德地图（合成测试）",
         },
     }
@@ -55,20 +56,21 @@ def acquisition() -> dict:
              "params": {"address": "上海市黄浦区合成终点", "city": "上海市", "output": "JSON"}},
             {"path": "/v5/direction/driving",
              "params": {"origin": "121.47,31.23", "destination": "121.5,31.26",
-                        "strategy": "34", "show_fields": "polyline"}},
+                        "strategy": "34", "show_fields": "cost,cities,polyline"}},
         ],
     }
 
 
 def route_document(request: dict, *, steps: list[dict] | None = None,
-                   origin_location=ORIGIN, destination_location=DESTINATION) -> dict:
+                   origin_location=ORIGIN, destination_location=DESTINATION,
+                   cost: dict | None = None, cities: list[dict] | None = None) -> dict:
     points = [list(ORIGIN), *[list(item) for item in MIDDLE], list(DESTINATION)]
     steps = steps if steps is not None else [
         {"road": "合成高速", "distanceMeters": 2500, "points": points[:3]},
         {"road": "合成高速", "distanceMeters": 2500, "points": points[2:]},
     ]
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "requestDigest": materials.request_digest(request),
         "coordinateSystem": "GCJ-02",
         "origin": {
@@ -89,6 +91,14 @@ def route_document(request: dict, *, steps: list[dict] | None = None,
             "endPoint": steps[-1]["points"][-1],
             "steps": steps,
         },
+        "cost": cost if cost is not None else {
+            "durationSeconds": 3600, "tollsYuan": 100,
+            "tollDistanceMeters": 2000, "trafficLights": 5,
+        },
+        "cities": cities if cities is not None else [
+            {"name": "上海市", "adcode": "310000", "location": [121.475, 31.235]},
+            {"name": "苏州市", "adcode": "320500", "location": [121.485, 31.245]},
+        ],
         "acquisition": acquisition(),
         "sourceUsage": copy.deepcopy(request["sourceUsage"]),
     }
@@ -98,7 +108,7 @@ def write_project(tmp_path: Path, *, request: dict | None = None, route: dict | 
                   output: dict | None = None) -> Path:
     root = tmp_path / "demo"
     create_project(root, "driving-route", materials.MATERIALS,
-                   output={"width": 1920, "height": 1080, **(output or {})})
+                   output={"width": 1080, "height": 1920, **(output or {})})
     request = copy.deepcopy(request) if request is not None else request_document()
     (root / "request.json").write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
     if route is None:

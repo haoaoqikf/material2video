@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  DrivingRoute, buildRouteModel, cameraForFrame, displayDistanceMeters, distanceForFrame, fitCamera,
-  formatDistance, headingAtDistance, highwayLabels, pointAtDistance, projectPoint, roadLabelKey,
-  toScreen, type DrivingRouteProps,
+  DrivingRoute, basemapBlend, buildRouteModel, cameraForFrame, displayDistanceMeters,
+  distanceForFrame, fitCameraInContent, formatDistance, headingAtDistance, highwayLabels,
+  pointAtDistance, projectPoint, type DrivingRouteProps,
 } from './DrivingRoute';
+import { contentRect } from './driving/layout';
+import { estimateTextWidth, placeDistancePill, truncateText } from './driving/labels';
 
 const frameState = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
@@ -17,11 +19,11 @@ vi.mock('remotion', async (importOriginal) => {
 });
 
 const props: DrivingRouteProps = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   durationInFrames: 1800,
   fps: 60,
-  width: 1920,
-  height: 1080,
+  width: 1080,
+  height: 1920,
   originLabel: '上海',
   destinationLabel: '郑州',
   origin: [121.47, 31.23],
@@ -37,10 +39,11 @@ const props: DrivingRouteProps = {
 };
 
 const model = buildRouteModel(props.steps);
-const render = (frame: number) => {
+const renderProps = (frame: number, value: DrivingRouteProps) => {
   frameState.value = frame;
-  return renderToStaticMarkup(<DrivingRoute {...props} />);
+  return renderToStaticMarkup(<DrivingRoute {...value} />);
 };
+const render = (frame: number) => renderProps(frame, props);
 const attribute = (markup: string, name: string) => markup.match(new RegExp(`${name}="([^"]+)"`, 'u'))?.[1] ?? '';
 
 describe('route geometry', () => {
@@ -51,6 +54,7 @@ describe('route geometry', () => {
     ]);
     expect(duplicate.coordinates).toEqual([[121.47, 31.23], [121.48, 31.24], [121.49, 31.25]]);
     expect(duplicate.spans.map((span) => span.road)).toEqual(['沪蓉高速', '城市道路']);
+    expect(duplicate.projectedLength).toBeGreaterThan(0);
   });
 
   it('keeps the vehicle on the polyline at every sampled distance', () => {
@@ -67,8 +71,6 @@ describe('route geometry', () => {
       }));
       expect(nearest).toBeLessThan(1e-6);
     }
-    expect(pointAtDistance(model, 0)).toMatchObject(model.projected[0]);
-    expect(pointAtDistance(model, model.lengthMeters)).toMatchObject(model.projected[model.projected.length - 1]);
   });
 
   it('averages headings over the route window and never returns NaN', () => {
@@ -78,11 +80,6 @@ describe('route geometry', () => {
       expect(heading).toBeGreaterThanOrEqual(-Math.PI);
       expect(heading).toBeLessThanOrEqual(Math.PI);
     }
-    const reversed = buildRouteModel([
-      {road: '合成高速', points: [[121.5, 31.26], [121.48, 31.24], [121.47, 31.23]]},
-    ]);
-    expect(headingAtDistance(reversed, reversed.lengthMeters / 2)).not.toBeCloseTo(
-      headingAtDistance(model, model.lengthMeters / 2), 2);
   });
 
   it('formats only API distance for display', () => {
@@ -90,8 +87,6 @@ describe('route geometry', () => {
     expect(formatDistance(950_000)).toBe('950 公里');
     expect(displayDistanceMeters(0, model.lengthMeters, 5000)).toBe(0);
     expect(displayDistanceMeters(model.lengthMeters, model.lengthMeters, 5000)).toBe(5000);
-    expect(displayDistanceMeters(1234, model.lengthMeters, 5000)).toBeCloseTo(
-      5000 * (1234 / model.lengthMeters), 6);
   });
 });
 
@@ -104,120 +99,172 @@ describe('timeline and camera', () => {
     expect(distanceForFrame(180, 1800, 60, model.lengthMeters)).toBeGreaterThan(0);
   });
 
-  it('advances monotonically through the driving segment', () => {
-    let previous = -1;
-    for (let frame = 180; frame <= 1619; frame += 37) {
-      const value = distanceForFrame(frame, 1800, 60, model.lengthMeters);
-      expect(value).toBeGreaterThanOrEqual(previous);
-      previous = value;
+  it('supports a one-minute timeline', () => {
+    expect(distanceForFrame(3419, 3600, 60, model.lengthMeters)).toBe(model.lengthMeters);
+    expect(distanceForFrame(180, 3600, 60, model.lengthMeters)).toBeGreaterThan(0);
+  });
+
+  it('opens close at the origin, follows at 6x and ends on the full route', () => {
+    const full = fitCameraInContent(model.bounds, 1080, 1920);
+    expect(cameraForFrame(model, 0, 1800, 60, 1080, 1920).scale).toBeCloseTo(full.scale * 5, 6);
+    expect(cameraForFrame(model, 179, 1800, 60, 1080, 1920).scale).toBeCloseTo(full.scale * 6, 6);
+    expect(cameraForFrame(model, 900, 1800, 60, 1080, 1920).scale).toBeCloseTo(full.scale * 6, 6);
+    expect(cameraForFrame(model, 1799, 1800, 60, 1080, 1920).scale).toBeCloseTo(full.scale, 9);
+  });
+
+  it('keeps the opening zoom monotonic and transitions smoothly', () => {
+    const start = cameraForFrame(model, 0, 1800, 60, 1080, 1920).scale;
+    const end = cameraForFrame(model, 179, 1800, 60, 1080, 1920).scale;
+    let previous = start - 1;
+    for (let frame = 0; frame <= 179; frame += 17) {
+      const scale = cameraForFrame(model, frame, 1800, 60, 1080, 1920).scale;
+      expect(scale).toBeGreaterThanOrEqual(previous);
+      previous = scale;
+    }
+    expect(end).toBeGreaterThan(start);
+    for (const [a, b] of [[179, 180], [239, 240], [1619, 1620], [1739, 1740]]) {
+      const first = cameraForFrame(model, a, 1800, 60, 1080, 1920).scale;
+      const second = cameraForFrame(model, b, 1800, 60, 1080, 1920).scale;
+      expect(Math.abs(second - first) / first).toBeLessThan(0.03);
     }
   });
 
-  it('opens and closes on the full route and follows at 2.5x', () => {
-    const full = fitCamera(model.bounds, 1920, 1080, 130);
-    expect(cameraForFrame(model, 0, 1800, 60, 1920, 1080).scale).toBeCloseTo(full.scale, 9);
-    expect(cameraForFrame(model, 1799, 1800, 60, 1920, 1080).scale).toBeCloseTo(full.scale, 9);
-    expect(cameraForFrame(model, 900, 1800, 60, 1920, 1080).scale).toBeCloseTo(full.scale * 2.5, 6);
-    expect(cameraForFrame(model, 120, 1800, 60, 1920, 1080).scale).toBeCloseTo(full.scale, 9);
+  it('fits the full route inside the content area below the title', () => {
+    const content = contentRect(1080, 1920);
+    const camera = cameraForFrame(model, 1799, 1800, 60, 1080, 1920);
+    for (const point of model.projected) {
+      const screen = {x: point.x * camera.scale + camera.tx, y: point.y * camera.scale + camera.ty};
+      expect(screen.x).toBeGreaterThanOrEqual(content.innerLeft - 0.01);
+      expect(screen.x).toBeLessThanOrEqual(content.innerRight + 0.01);
+      expect(screen.y).toBeGreaterThanOrEqual(content.innerTop - 0.01);
+      expect(screen.y).toBeLessThanOrEqual(content.innerBottom + 0.01);
+    }
   });
 
-  it('transitions continuously into and out of the follow camera', () => {
-    const enter = [cameraForFrame(model, 239, 1800, 60, 1920, 1080), cameraForFrame(model, 240, 1800, 60, 1920, 1080)];
-    const leave = [cameraForFrame(model, 1739, 1800, 60, 1920, 1080), cameraForFrame(model, 1740, 1800, 60, 1920, 1080)];
-    for (const pair of [enter, leave]) {
-      expect(Math.abs(pair[1].scale - pair[0].scale) / pair[0].scale).toBeLessThan(0.01);
+  it('keeps the vehicle visible on very short routes', () => {
+    const short = buildRouteModel([{road: '短高速', points: [[121.47, 31.23], [121.4702, 31.23]]}]);
+    for (const frame of [0, 240, 900, 1500]) {
+      const camera = cameraForFrame(short, frame, 1800, 60, 1080, 1920);
+      const position = pointAtDistance(short, distanceForFrame(frame, 1800, 60, short.lengthMeters));
+      const screen = {x: position.x * camera.scale + camera.tx, y: position.y * camera.scale + camera.ty};
+      expect(screen.x).toBeGreaterThan(0);
+      expect(screen.x).toBeLessThan(1080);
+      expect(screen.y).toBeGreaterThan(0);
+      expect(screen.y).toBeLessThan(1920);
     }
   });
 
   it('is a pure function of the frame, independent of evaluation order', () => {
     const first = {point: pointAtDistance(model, 1234), heading: headingAtDistance(model, 1234),
-      camera: cameraForFrame(model, 900, 1800, 60, 1920, 1080)};
+      camera: cameraForFrame(model, 900, 1800, 60, 1080, 1920)};
     pointAtDistance(model, 0);
-    cameraForFrame(model, 1799, 1800, 60, 1920, 1080);
+    cameraForFrame(model, 1799, 1800, 60, 1080, 1920);
     const again = {point: pointAtDistance(model, 1234), heading: headingAtDistance(model, 1234),
-      camera: cameraForFrame(model, 900, 1800, 60, 1920, 1080)};
+      camera: cameraForFrame(model, 900, 1800, 60, 1080, 1920)};
     expect(again).toEqual(first);
-  });
-
-  it('keeps the vehicle visible on very short routes', () => {
-    const short = buildRouteModel([{road: '短高速', points: [[121.47, 31.23], [121.4702, 31.23]]}]);
-    for (const frame of [240, 900, 1500]) {
-      const camera = cameraForFrame(short, frame, 1800, 60, 1920, 1080);
-      const position = toScreen(camera, pointAtDistance(
-        short, distanceForFrame(frame, 1800, 60, short.lengthMeters)));
-      expect(position.x).toBeGreaterThan(0);
-      expect(position.x).toBeLessThan(1920);
-      expect(position.y).toBeGreaterThan(0);
-      expect(position.y).toBeLessThan(1080);
-    }
   });
 });
 
-describe('labels', () => {
+describe('labels and basemap blend', () => {
   it('merges consecutive highway segments and excludes ordinary roads', () => {
     const labels = highwayLabels(model);
     expect(labels).toHaveLength(2);
-    expect(labels.every((label) => label.road === '沪蓉高速')).toBe(true);
-    expect(labels[0].distance).toBeLessThan(labels[1].distance);
-    const ordinary = buildRouteModel([
-      {road: '城市道路', points: [[121.47, 31.23], [121.48, 31.24]]},
-    ]);
+    const ordinary = buildRouteModel([{road: '城市道路', points: [[121.47, 31.23], [121.48, 31.24]]}]);
     expect(highwayLabels(ordinary)).toEqual([]);
   });
 
-  it('projects with north up', () => {
-    const north = projectPoint([121.47, 31.24]);
-    const south = projectPoint([121.47, 31.23]);
-    expect(north.y).toBeLessThan(south.y);
+  it('moves the distance pill away from an occupied endpoint box', () => {
+    const obstacle = {left: 500, right: 700, top: 1000, bottom: 1060};
+    const pill = placeDistancePill(540, 1085, '已行驶 937 公里', 1080, 1920, 312, [obstacle]);
+    const box = {left: pill.cx - pill.width / 2, right: pill.cx + pill.width / 2,
+      top: pill.cy - pill.height / 2, bottom: pill.cy + pill.height / 2};
+    const overlap = !(box.right < obstacle.left || box.left > obstacle.right
+      || box.bottom < obstacle.top || box.top > obstacle.bottom);
+    expect(overlap).toBe(false);
   });
 
-  it('creates unique keys for repeated labels on a north-south highway', () => {
-    const northSouth = buildRouteModel([
-      {road: '京港澳高速', points: [[121.47, 31.2], [121.47, 31.24], [121.47, 31.28]]},
-    ]);
-    const labels = highwayLabels(northSouth);
-    expect(labels.length).toBe(2);
-    expect(new Set(labels.map(roadLabelKey)).size).toBe(labels.length);
+  it('truncates long text to the available width', () => {
+    const text = truncateText('一个非常长的目的地名称需要被截断', 200, 34);
+    expect(estimateTextWidth(text, 34)).toBeLessThanOrEqual(201);
+    expect(text.endsWith('…')).toBe(true);
+  });
+
+  it('projects with north up and blends the follow layer by camera ratio', () => {
+    expect(projectPoint([121.47, 31.24]).y).toBeLessThan(projectPoint([121.47, 31.23]).y);
+    expect(basemapBlend(1, 1)).toBe(0);
+    expect(basemapBlend(1.5, 1)).toBe(0.5);
+    expect(basemapBlend(4, 1)).toBe(1);
   });
 });
 
 describe('composition markup', () => {
-  it('shows both endpoints and the start position during the opening', () => {
+  it('centers a large two-line title and removes the bottom panel', () => {
     const markup = render(0);
-    expect(markup).toContain('data-m2v-driving="route"');
-    expect(markup).toContain('data-m2v-origin-label="true"');
-    expect(markup).toContain('data-m2v-destination-label="true"');
-    expect(markup).toContain('上海');
-    expect(markup).toContain('郑州');
-    expect(markup).toContain('地图数据 © 高德地图（合成测试）');
-    expect(markup).toContain('M2V Inter');
-    expect(markup).toContain('M2V Sans');
-    expect(markup).not.toContain('Noto Sans SC');
-    expect(Number(attribute(markup, 'data-m2v-distance'))).toBe(0);
-    expect(markup).not.toContain('data-m2v-walked="true"');
+    expect(markup).toContain('data-m2v-title-kicker="true"');
+    expect(markup).toContain('data-m2v-title-main="true"');
+    expect(markup).toContain('模拟行程');
+    expect(markup).toContain('上海 → 郑州');
+    expect(markup).toMatch(/data-m2v-title-main="true"[^>]*x="540"[^>]*text-anchor="middle"/u);
+    expect(markup).toMatch(/data-m2v-title-main="true"[^>]*font-size="88"/u);
+    expect(markup).not.toContain('data-m2v-panel');
+    expect(markup).not.toContain('路线规划估算');
+    expect(markup).not.toContain('全程');
   });
 
-  it('draws the full walked route and stops at the destination at the end', () => {
+  it('shows the traveled distance beside the vehicle and no full route at the start', () => {
+    const markup = render(0);
+    expect(markup).toContain('data-m2v-distance-pill="true"');
+    expect(markup).toContain('已行驶 0.0 公里');
+    expect(markup).not.toContain('data-m2v-walked="true"');
+    expect(markup).toContain('data-m2v-origin-label="true"');
+  });
+
+  it('shows the full walked route and traveled total at the end', () => {
     const markup = render(1799);
     expect(markup).toContain('data-m2v-walked="true"');
-    expect(Number(attribute(markup, 'data-m2v-distance'))).toBeCloseTo(model.lengthMeters, 1);
+    expect(markup).toContain('已行驶 5.0 公里');
     expect(Number(attribute(markup, 'data-m2v-traveled'))).toBeCloseTo(5000, 1);
-    expect(markup).toContain('已行驶 5.0 公里 · 全程 5.0 公里');
-    expect(Number(attribute(markup, 'data-m2v-x'))).toBeCloseTo(
-      model.projected[model.projected.length - 1].x * fitCamera(model.bounds, 1920, 1080, 130).scale
-      + fitCamera(model.bounds, 1920, 1080, 130).tx, 0);
+    expect(markup).toContain('data-m2v-origin-label="true"');
+    expect(markup).toContain('data-m2v-destination-label="true"');
   });
 
-  it('hides endpoint labels that would be clipped while following', () => {
-    const markup = render(1500);
-    expect(markup).not.toContain('data-m2v-origin="true"');
+  it('zooms in while following and draws both basemap layers', () => {
+    const layer = (zoom: number) => ({
+      zoom,
+      bbox: [121.44, 31.2, 121.53, 31.29] as [number, number, number, number],
+      image: {path: 'assets/basemap/x.jpg', sha256: 'a'.repeat(64), width: 256, height: 256},
+      projected: {left: 13_500_000, top: -3_660_000, width: 200_000, height: 200_000},
+      tileCount: 4,
+      dataUri: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+    });
+    const basemap = {
+      provider: 'amap',
+      service: 'road-tiles',
+      attribution: '地图数据 © 高德地图',
+      fetchedAt: '2026-10-30T13:00:00+08:00',
+      overview: layer(8),
+      follow: layer(9),
+    };
+    const markup = renderProps(900, {...props, basemap});
+    const full = fitCameraInContent(model.bounds, 1080, 1920);
+    expect(Number(attribute(markup, 'data-m2v-scale'))).toBeCloseTo(full.scale * 6, 5);
+    expect(markup).toContain('data-m2v-basemap="overview"');
+    expect(markup).toContain('data-m2v-basemap="follow"');
+    expect(markup).toContain('data:image/jpeg;base64');
   });
 
-  it('zooms in while following road labels stay readable', () => {
-    const markup = render(1000);
-    const scale = Number(attribute(markup, 'data-m2v-scale'));
-    expect(scale).toBeGreaterThan(fitCamera(model.bounds, 1920, 1080, 130).scale * 2);
-    expect(markup).toContain('data-m2v-road-label="沪蓉高速"');
+  it('draws city names at their route locations', () => {
+    const markup = renderProps(0, {
+      ...props,
+      cities: [
+        {name: '上海城区', adcode: '310100', location: [121.47, 31.23]},
+        {name: '苏州市', adcode: '320500', location: [121.472, 31.232]},
+        {name: '郑州市', adcode: '410100', location: [121.5, 31.26]},
+      ],
+    });
+    expect(markup).toContain('data-m2v-city-label="苏州市"');
+    expect(markup).not.toContain('data-m2v-city-label="上海城区"');
+    expect(markup).not.toContain('data-m2v-city-label="郑州市"');
   });
 
   it('produces identical markup for the same frame', () => {

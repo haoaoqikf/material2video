@@ -49,8 +49,8 @@ export const RemotionRoot: FC = () => {
         component={DrivingRoute}
         durationInFrames={1800}
         fps={FPS}
-        width={1920}
-        height={1080}
+        width={1080}
+        height={1920}
         defaultProps={{} as DrivingRouteProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.durationInFrames,

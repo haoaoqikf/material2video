@@ -49,7 +49,7 @@ def _acquisition(request: dict[str, Any], origin: dict[str, Any],
                         "city": request["destination"]["city"], "output": "JSON"}},
             {"path": "/v5/direction/driving",
              "params": {"origin": origin_point, "destination": destination_point,
-                        "strategy": "34", "show_fields": "polyline"}},
+                        "strategy": "34", "show_fields": "cost,cities,polyline"}},
         ],
     }
 
@@ -58,7 +58,7 @@ def _route_document(request: dict[str, Any], origin: dict[str, Any],
                     destination: dict[str, Any], path: dict[str, Any],
                     now: datetime) -> dict[str, Any]:
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "requestDigest": materials.request_digest(request),
         "coordinateSystem": "GCJ-02",
         "origin": origin,
@@ -69,6 +69,8 @@ def _route_document(request: dict[str, Any], origin: dict[str, Any],
             "endPoint": path["endPoint"],
             "steps": path["steps"],
         },
+        "cost": path["cost"],
+        "cities": path["cities"],
         "acquisition": _acquisition(request, origin, destination, now),
         "sourceUsage": deepcopy(request["sourceUsage"]),
     }

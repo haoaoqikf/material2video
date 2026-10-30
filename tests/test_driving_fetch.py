@@ -34,8 +34,15 @@ def drive_payload(points, *, distance="5000", road="沪蓉高速", steps=None):
     if steps is None:
         polyline = ";".join(f"{point[0]},{point[1]}" for point in points)
         steps = [{"road_name": road, "step_distance": distance, "polyline": polyline}]
+    for step in steps:
+        step.setdefault("cities", [{"city": "上海市", "adcode": "310000"}])
     return {"status": "1", "info": "OK", "infocode": "10000",
-            "route": {"paths": [{"distance": distance, "steps": steps}]}}
+            "route": {"paths": [{
+                "distance": distance,
+                "cost": {"duration": "3600", "tolls": "100",
+                         "toll_distance": "2000", "traffic_lights": "5"},
+                "steps": steps,
+            }]}}
 
 
 class FakeTransport:
@@ -74,6 +81,9 @@ def test_fetch_saves_a_request_bound_route_without_credentials(tmp_path, monkeyp
     assert route["acquisition"]["strategy"] == 34
     assert route["acquisition"]["requestedAt"] == FIXED_NOW.isoformat(timespec="seconds")
     assert route["route"]["steps"][0]["road"] == "沪蓉高速"
+    assert route["cost"] == {"durationSeconds": 3600, "tollsYuan": 100,
+                             "tollDistanceMeters": 2000, "trafficLights": 5}
+    assert route["cities"] == [{"name": "上海市", "adcode": "310000", "location": [121.49, 31.25]}]
     assert route["sourceUsage"] == materials.load_request(root)["sourceUsage"]
     assert KEY not in target.read_text(encoding="utf-8")
     assert materials.load_project(root)["route"]["route"]["distanceMeters"] == 5000

@@ -10,18 +10,22 @@ from m2v.core.project import load_current_prepared, load_project
 from driving_helpers import request_document, write_project
 
 
-def test_init_writes_independent_materials_and_landscape_defaults(tmp_path):
+def test_init_writes_independent_materials_and_portrait_defaults(tmp_path):
     assert main(["init", "--type", "driving-route", "--project", "demo",
                  "--content-root", str(tmp_path)]) == 0
     root, manifest = load_project(tmp_path / "videos/driving-route/demo")
     assert manifest["materials"] == {"request": "request.json", "route": "route.json"}
-    assert (manifest["output"]["width"], manifest["output"]["height"]) == (1920, 1080)
+    assert (manifest["output"]["width"], manifest["output"]["height"]) == (1080, 1920)
     assert manifest["output"]["fps"] == 60
     request = json.loads((root / "request.json").read_text(encoding="utf-8"))
+    assert request["schemaVersion"] == 2
     assert request["durationSeconds"] == 30
     assert request["strategy"] == "highway-first"
+    assert request["sourceUsage"]["mapTiles"] is False
     route = json.loads((root / "route.json").read_text(encoding="utf-8"))
+    assert route["schemaVersion"] == 2
     assert route["route"] is None
+    assert route["cost"] is None
     assert not (root / "storyboard.json").exists()
 
 
@@ -36,10 +40,12 @@ def test_validate_and_prepare_work_offline_without_a_key(tmp_path, monkeypatch, 
     assert prepared["compositionId"] == "DrivingRoute"
     assert prepared["durationInFrames"] == 1800
     assert prepared["fps"] == 60
-    assert (prepared["width"], prepared["height"]) == (1920, 1080)
+    assert (prepared["width"], prepared["height"]) == (1080, 1920)
     assert set(prepared["inputs"]) == {"request", "route"}
     assert prepared["audio"] == {}
     assert prepared["props"]["originLabel"] == "上海"
+    assert prepared["props"]["cost"]["durationSeconds"] == 3600
+    assert prepared["props"]["cities"][0]["name"] == "上海市"
 
 
 def test_explicit_duration_only_changes_total_frames(tmp_path, monkeypatch):

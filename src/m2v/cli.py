@@ -125,9 +125,10 @@ def _parser() -> argparse.ArgumentParser:
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
-    driving = sub.add_parser("driving-route", help="自驾路线类型的在线取数")
-    driving.add_argument("workflow", choices=("fetch",))
+    driving = sub.add_parser("driving-route", help="自驾路线类型的在线取数与道路底图")
+    driving.add_argument("workflow", choices=("fetch", "basemap"))
     driving.add_argument("--project", required=True)
+    driving.add_argument("--refresh", action="store_true", help="basemap 忽略已有影像并重新取图")
     return parser
 
 

@@ -19,7 +19,7 @@ def test_valid_synthetic_route_loads_and_builds_render_props(tmp_path):
     assert docs["request"]["origin"]["label"] == "上海"
     props = materials.build_render_props(docs)
     assert props["durationInFrames"] == 1800
-    assert (props["width"], props["height"], props["fps"]) == (1920, 1080, 60)
+    assert (props["width"], props["height"], props["fps"]) == (1080, 1920, 60)
     assert props["totalDistanceMeters"] == 5000
     assert [step["road"] for step in props["steps"]] == ["合成高速", "合成高速"]
 
@@ -43,7 +43,7 @@ def test_render_props_remove_consecutive_duplicate_points(tmp_path):
     ("durationSeconds", 6, "大于 6"),
     ("durationSeconds", 6.5, "大于 6"),
     ("durationSeconds", True, "大于 6"),
-    ("canvas", {"width": 1080, "height": 1920}, "固定为 1920×1080"),
+    ("canvas", {"width": 1920, "height": 1080}, "固定为 1080×1920"),
 ])
 def test_request_contract_is_enforced(tmp_path, field, value, match):
     request = request_document()
@@ -143,8 +143,8 @@ def test_unknown_fields_are_rejected(tmp_path):
 def test_duplicate_json_keys_are_rejected(tmp_path):
     root = write_project(tmp_path)
     raw = (root / "request.json").read_text(encoding="utf-8")
-    (root / "request.json").write_text(raw.replace('"schemaVersion": 1,',
-                                                   '"schemaVersion": 1, "schemaVersion": 1,', 1),
+    (root / "request.json").write_text(raw.replace('"schemaVersion": 2,',
+                                                   '"schemaVersion": 2, "schemaVersion": 2,', 1),
                                        encoding="utf-8")
     with pytest.raises(M2VError, match="重复键"):
         materials.load_project(root)
@@ -196,9 +196,9 @@ def test_acquisition_cannot_record_a_credential(tmp_path):
 
 
 def test_project_canvas_must_match_the_type_contract(tmp_path):
-    root = write_project(tmp_path, output={"width": 1080, "height": 1920})
+    root = write_project(tmp_path, output={"width": 1920, "height": 1080})
     _, manifest = load_manifest(root)
-    with pytest.raises(M2VError, match="1920×1080"):
+    with pytest.raises(M2VError, match="1080×1920"):
         adapter.validate(root, manifest)
 
 
@@ -207,9 +207,66 @@ def test_haversine_matches_a_known_distance():
     assert materials.haversine_meters((121.0, 31.0), (121.0, 32.0)) == pytest.approx(111_195, rel=0.002)
 
 
+def test_v1_materials_are_rejected(tmp_path):
+    root = write_project(tmp_path)
+    edit(root / "request.json", lambda data: data.update(schemaVersion=1))
+    with pytest.raises(M2VError, match="必须为 2"):
+        materials.load_project(root)
+
+
+@pytest.mark.parametrize("value", [None, 1, "true"])
+def test_map_tiles_must_be_boolean(tmp_path, value):
+    request = request_document()
+    if value is None:
+        request["sourceUsage"].pop("mapTiles")
+    else:
+        request["sourceUsage"]["mapTiles"] = value
+    root = write_project(tmp_path, request=request)
+    with pytest.raises(M2VError, match="mapTiles"):
+        materials.load_project(root)
+
+
+@pytest.mark.parametrize("field,value,match", [
+    ("durationSeconds", 0, "预计耗时"),
+    ("tollsYuan", -1, "过路费"),
+    ("tollDistanceMeters", 9000, "不能超过路线总距离"),
+    ("trafficLights", True, "红绿灯"),
+])
+def test_cost_must_be_valid(tmp_path, field, value, match):
+    request = request_document()
+    cost = {"durationSeconds": 3600, "tollsYuan": 100,
+            "tollDistanceMeters": 2000, "trafficLights": 5}
+    cost[field] = value
+    root = write_project(tmp_path, request=request, route=route_document(request, cost=cost))
+    with pytest.raises(M2VError, match=match):
+        materials.load_project(root)
+
+
+def test_cities_must_not_repeat(tmp_path):
+    request = request_document()
+    cities = [{"name": "苏州市", "adcode": "320500", "location": [121.48, 31.24]},
+              {"name": "苏州市", "adcode": "320500", "location": [121.48, 31.24]}]
+    root = write_project(tmp_path, request=request, route=route_document(request, cities=cities))
+    with pytest.raises(M2VError, match="城市重复"):
+        materials.load_project(root)
+
+
 def test_route_digest_is_stable_and_covers_request_content():
     request = request_document()
     assert materials.request_digest(request) == materials.request_digest(json.loads(json.dumps(request)))
     changed = json.loads(json.dumps(request))
     changed["destination"]["label"] = "郑州"
     assert materials.request_digest(changed) != materials.request_digest(request)
+
+
+def test_map_tiles_require_a_basemap(tmp_path):
+    request = request_document(map_tiles=True)
+    root = write_project(tmp_path, request=request)
+    with pytest.raises(M2VError, match="缺少底图材料"):
+        materials.load_project(root)
+
+
+def test_map_tiles_false_allows_vector_fallback(tmp_path):
+    root = write_project(tmp_path)
+    docs = materials.load_project(root)
+    assert "basemap" not in docs["route"]
