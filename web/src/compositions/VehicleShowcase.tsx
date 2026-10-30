@@ -32,7 +32,6 @@ type SceneState = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
-  wheels: THREE.Group[];
   speedLines: THREE.LineSegments;
 };
 
@@ -62,9 +61,6 @@ function setFrame(state: SceneState, frame: number, props: VehicleShowcaseProps)
   state.camera.lookAt(0, 0.65, 0);
   state.camera.fov = 38 + close * 4 - speed * 2;
   state.camera.updateProjectionMatrix();
-  state.wheels.forEach((wheel) => {
-    wheel.rotation.z = -seconds * (2.5 + speed * 22);
-  });
   const fade = seconds > props.showcase.durationSeconds - effects.fadeOutSeconds
     ? 1 - smooth((seconds - (props.showcase.durationSeconds - effects.fadeOutSeconds))
       / effects.fadeOutSeconds)
@@ -144,20 +140,7 @@ export function VehicleShowcase(props: VehicleShowcaseProps) {
       model.scale.setScalar(scale);
       model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
       scene.add(model);
-      model.updateWorldMatrix(true, true);
-      const wheels = props.showcase.wheelNodes.flatMap((name) => {
-        const found = model.getObjectByName(name);
-        if (!found) return [];
-        const box = new THREE.Box3().setFromObject(found);
-        const center = box.getCenter(new THREE.Vector3());
-        const pivot = new THREE.Group();
-        scene.add(pivot);
-        pivot.position.copy(center);
-        pivot.updateWorldMatrix(true, true);
-        pivot.attach(found);
-        return [pivot];
-      });
-      stateRef.current = {renderer, scene, camera, wheels, speedLines};
+      stateRef.current = {renderer, scene, camera, speedLines};
       setReady(true);
       continueRender(handle);
     }, (error) => {
