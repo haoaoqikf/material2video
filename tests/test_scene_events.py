@@ -10,6 +10,8 @@ from m2v.core.project import load_current_prepared
 from m2v.types.general import adapter, code_scenes, explainer, scene_events, soundtrack
 from _helpers import board, fake_record, fake_tts, project, scene, scene_root, requires_node, prepare_build
 
+pytestmark = pytest.mark.media
+
 
 @pytest.mark.parametrize('events', [None, {}, [{'id': '', 'frame': 0}],
     [{'id': 'x', 'frame': True}], [{'id': 'x', 'frame': 1.5}],

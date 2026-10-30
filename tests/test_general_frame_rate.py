@@ -21,6 +21,8 @@ from m2v.types.general import adapter, code_scenes, explainer, reading_pace, sou
 from _helpers import board, fake_record, fake_tts, project, scene, scene_root
 from _helpers import prepare_build, requires_node
 
+pytestmark = pytest.mark.media
+
 
 @pytest.mark.parametrize("output,story,expected", [
     ({}, {}, 30), ({"fps": 30}, {}, 30), ({"fps": 60}, {}, 60),

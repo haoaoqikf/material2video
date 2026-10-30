@@ -10,6 +10,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.engine import media_probe
 
+pytestmark = pytest.mark.media
+
 
 @pytest.fixture(scope="module")
 def probe_media(tmp_path_factory: pytest.TempPathFactory) -> Path:

@@ -12,7 +12,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.example_media import restore
 from example_catalog import EXAMPLE_PATHS
 
-ROOT = Path(__file__).resolve().parents[1]
+pytestmark = pytest.mark.media
+
 FIXED_EXAMPLES = ("american-science-milestones", "solar-system-journey")
 TRANSFORMS = {"copy", "jpeg-q3", "tiff-png", "specular-roughness", "moon-continuous-silent", "generate"}
 

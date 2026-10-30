@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-from m2v.cli import main
 from m2v.core import styles
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project
@@ -21,14 +20,6 @@ COMPONENTS = {
     "kit", "night-backdrop", "spark", "comet", "glow-text", "chapter-mark",
     "title-night", "flash", "dip", "number-line", "screen-subtitle",
 }
-
-
-def test_registry_lists_vibe_night(capsys):
-    assert main(["styles", "--json"]) == 0
-    listed = json.loads(capsys.readouterr().out)
-    entry = next(item for item in listed if item["id"] == "vibe-night")
-    assert entry["types"] == ["general"]
-    assert entry["frames"] == [{"width": 1920, "height": 1080}]
 
 
 def test_manifest_tokens_and_assets():

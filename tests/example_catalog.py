@@ -24,38 +24,8 @@ EXAMPLE_PATHS: dict[str, Path] = {
     slug: STYLES / style / "examples" / slug for style, slug in STYLE_EXAMPLES.items()
 }
 
-EXPECTED_EXAMPLES = set(EXAMPLE_PATHS)
-CONTENT_CONTRACTS = {
-    "american-science-milestones",
-    "compound-interest",
-    "solar-system-journey",
-}
-
-EXPECTED_FRAMES: dict[str, tuple[int, int]] = {
-    "fold": (1920, 1080),
-    "pigeon": (1920, 1080),
-    "american-science-milestones": (1920, 1080),
-    "compound-interest": (1920, 1080),
-    "solar-system-journey": (1920, 1080),
-}
-EXPECTED_FPS: dict[str, int] = {
-    "fold": 30,
-    "pigeon": 30,
-    "american-science-milestones": 60,
-    "compound-interest": 30,
-    "solar-system-journey": 60,
-}
 STORYBOARDS = sorted(STYLES.glob("*/examples/*/storyboard.json"))
 STORYBOARD_PATHS = [
     f"styles/{style}/examples/{slug}/storyboard.json"
     for style, slug in sorted(STYLE_EXAMPLES.items())
 ]
-
-#: 当前五个示例实际覆盖的共享组件族；Motion 与 GSAP 已随旧场景退役，
-#: 不再为了覆盖清单引入无关效果。
-COVERED_COMPONENTS = {
-    "ECharts": ("Chart", "echarts"),
-    "Three.js": ("THREE", "three"),
-    "React Three Fiber": ("Canvas", "@react-three/fiber"),
-    "Drei": ("Float", "Stars", "PerspectiveCamera", "@react-three/drei"),
-}

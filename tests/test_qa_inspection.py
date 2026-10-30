@@ -85,6 +85,7 @@ def test_black_and_silence_are_candidates_not_visual_failures(tmp_path):
     assert 1.9 <= signal['durationSeconds'] <= 2.1
 
 
+@pytest.mark.media
 def test_design_pause_is_a_candidate_without_new_export_gate(tmp_path):
     """正常设计停顿只登记候选：技术检查仍按既有门禁判定，不新增阻断。"""
     root = tmp_path / 'pause'
@@ -171,6 +172,7 @@ def test_sequence_accepts_relative_output_path(tmp_path, monkeypatch):
     assert (tmp_path / sequence['pages'][0]).is_file()
 
 
+@pytest.mark.media
 def test_delivery_audio_clipping_candidate_is_located(tmp_path):
     video = tmp_path / 'loud.mkv'
     subprocess.run([get_ffmpeg_exe(), '-v', 'error', '-y', '-f', 'lavfi', '-i',

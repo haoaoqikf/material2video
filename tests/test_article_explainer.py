@@ -10,6 +10,8 @@ from m2v.types.general import adapter, explainer, explainer_prepare as prepare, 
 
 from _helpers import ENTRY, STARTER, board, fake_record, fake_tts, project, scene, scene_root
 
+pytestmark = pytest.mark.media
+
 ROOT = Path(__file__).resolve().parents[1]
 
 

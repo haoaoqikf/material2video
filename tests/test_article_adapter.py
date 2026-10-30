@@ -5,6 +5,8 @@ from m2v.core.errors import M2VError
 from m2v.types.general import adapter
 from _helpers import project, fake_record, fake_tts
 
+pytestmark = pytest.mark.media
+
 
 def test_adapter_uses_v8_composition(tmp_path,monkeypatch):
     root,manifest=project(tmp_path);fake_tts(monkeypatch);fake_record(monkeypatch)

@@ -17,6 +17,8 @@ from m2v.engine.sound import asset_digest
 from m2v.types.general import adapter, explainer, sound_library as library, sound_synthesis as synth
 from _helpers import board, fake_record, project, scene_root
 
+pytestmark = pytest.mark.media
+
 
 def write_tone(path, seconds, frequency=220):
     with wave.open(str(path), "wb") as out:

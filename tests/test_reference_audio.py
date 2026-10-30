@@ -16,6 +16,8 @@ from m2v.core.project import create_project
 from m2v.reference import audio
 from m2v.types.general import explainer
 
+pytestmark = pytest.mark.media
+
 
 def _sha(path: Path) -> str:
     digest = hashlib.sha256()

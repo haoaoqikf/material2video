@@ -74,6 +74,7 @@ def test_still_props_keep_only_the_captured_scene(tmp_path):
     assert [scene["id"] for scene in prepared["props"]["compiledScenes"]] == ["a", "b"]
 
 
+@pytest.mark.media
 def test_contact_sheet_tiles_stills(tmp_path):
     stills = []
     for index in range(3):
@@ -249,6 +250,7 @@ def test_sheet_columns_grows_with_count():
     assert lookdev.sheet_columns(12) == lookdev.SHEET_COLUMNS
 
 
+@pytest.mark.media
 def test_contact_sheet_labels_are_ascii_only(tmp_path):
     """标注只用数字与冒号：缺中文字体会让整条拼图命令失败。"""
     stills = []
@@ -275,6 +277,7 @@ def test_preview_modes_are_mutually_exclusive():
         lookdev._reject_conflicting_modes(args)
 
 
+@pytest.mark.media
 def test_psnr_reads_identical_and_different_images(tmp_path):
     first, second, third = (tmp_path / name for name in ("a.png", "b.png", "c.png"))
     for path, color in ((first, "black"), (second, "black"), (third, "white")):

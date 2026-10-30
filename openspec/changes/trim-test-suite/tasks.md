@@ -1,0 +1,8 @@
+- [x] 1. 建立测试分层：`tests/conftest.py` 默认排除 `slow`、`media`，新增 `--full`，显式 `-m` 覆盖默认；`pyproject.toml` 声明标记与 `--strict-markers`。
+- [x] 2. 标记媒体层：为需要 ffmpeg 真实编解码的模块或用例添加 `media` 标记，混合模块逐例标记。
+- [x] 3. 删除示例内容测试 7 个文件（约 74 例），把两个版本控制卫生用例迁入 `test_example_media.py`，清理 `example_catalog.py` 中失去引用的常量。
+- [x] 4. 删除重复断言：两个风格注册表重复用例、两个文档措辞检查。
+- [x] 5. 缩短 `render_session` 超时用例等待（30 秒到 1 秒），断言不变。
+- [x] 6. 同步 README 测试命令、AGENTS.md 验证层级与 OpenSpec 变更材料。
+- [x] 7. 验证：默认层 688 例 117 秒通过；交付层与 slow 层复跑通过；记录耗时对比。
+- [ ] 8. 检查暂存内容，提交并归档本变更。

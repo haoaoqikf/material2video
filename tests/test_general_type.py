@@ -10,6 +10,8 @@ from m2v.types import registry
 from m2v.types.general import adapter, explainer
 from _helpers import board, fake_record, fake_tts, project, scene_root
 
+pytestmark = pytest.mark.media
+
 
 def test_only_three_current_types(capsys):
     assert main(["types"]) == 0

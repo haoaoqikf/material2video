@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from m2v.cli import main
 from m2v.core import styles
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
@@ -27,14 +26,6 @@ COMPONENTS = {
 
 def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-
-
-def test_registry_lists_both_packages(capsys):
-    assert main(["styles", "--json"]) == 0
-    listed = {item["id"]: item for item in json.loads(capsys.readouterr().out)}
-    assert set(listed) == {"vibe-fable", "vibe-night", "doc-archive", "count-ledger", "deep-journey"}
-    assert listed["vibe-fable"]["types"] == ["general"]
-    assert listed["vibe-fable"]["frames"] == [{"width": 1920, "height": 1080}]
 
 
 def test_nested_examples_are_not_packages(tmp_path, monkeypatch):

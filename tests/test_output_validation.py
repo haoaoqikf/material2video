@@ -8,6 +8,8 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.engine import output_validation
 
+pytestmark = pytest.mark.media
+
 
 def test_decoded_progress_reports_the_last_frame_count() -> None:
     assert output_validation._decoded_frame_count("frame=0\nprogress=continue\nframe=30\nprogress=end\n") == 30

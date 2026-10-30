@@ -39,11 +39,20 @@ pnpm -C web install
 pnpm -C web build
 uv run playwright install chromium
 uv run m2v types
-uv run pytest
+uv run pytest            # 默认：纯单元与契约用例
 pnpm -C web test
 ```
 
-需要浏览器或真实构建的用例标记为 `slow`；日常快速反馈用 `uv run pytest -m "not slow"`，CI 只跑该子集。
+测试按运行成本分层，默认只跑不依赖外部进程的纯单元与契约用例，约数分钟；需要真实媒体或渲染时显式选择：
+
+```powershell
+uv run pytest                  # 默认层：不含 media 与 slow
+uv run pytest -m "not slow"    # 交付前回归：默认层加真实媒体编解码
+uv run pytest -m slow          # 浏览器、真实渲染与长时等待
+uv run pytest --full           # 全部用例
+```
+
+`media` 用例需要 ffmpeg 真实编解码，`slow` 用例需要 Chromium 或完整渲染链路。CI 运行 `-m "not slow"`；本地缺少示例媒体时相关用例按既有约定跳过。显式指定测试文件、目录或节点时按指定范围运行，不套用默认排除。示例内容只由各自作品的制作与验收流程维护，不再作为通用测试重复断言固定帧数与时长。
 
 统一入口以作品目录为唯一归属：
 

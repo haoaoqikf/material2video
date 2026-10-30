@@ -14,6 +14,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.production import media_evidence
 
+pytestmark = pytest.mark.media
+
 
 def make_video(path: Path, seconds: float, fps: int = 30, audio: float | None = None) -> Path:
     args = [get_ffmpeg_exe(), '-y', '-v', 'error', '-f', 'lavfi',

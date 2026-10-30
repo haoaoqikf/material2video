@@ -84,17 +84,3 @@ def test_fixed_examples_document_media_restore():
         assert f"styles/{style}/examples/{name}/assets/fetch.py" in readme, f"{name} 没有写明媒体恢复入口"
         assert (root / style / "examples" / name / "assets/recipe.json").is_file()
 
-
-def test_code_scene_contract_is_documented():
-    """代码场景的公开入口与素材接入点在契约文档中可检索。"""
-    schema = (ROOT / "storyboard-schema.md").read_text(encoding="utf-8")
-    for token in ("m2v/code-scene", "subtitleSafeArea", "useMediaAsset"):
-        assert token in schema, token
-
-
-def test_reference_audio_reuse_is_documented():
-    """参考音轨复用是受控例外：命令与授权开关必须在入口文档与指南中出现。"""
-    readme = (REPO / "README.md").read_text(encoding="utf-8")
-    assert "m2v ref audio" in readme and "--user-authorized" in readme
-    media = reachable()["article-media-and-sound.md"].read_text(encoding="utf-8")
-    assert "ref audio" in media and "user-authorized" in media

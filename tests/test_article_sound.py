@@ -16,6 +16,8 @@ from m2v.engine.sound import asset_digest
 from m2v.types.general import adapter, explainer, soundtrack
 from _helpers import board, fake_record, fake_tts, project, scene, scene_root
 
+pytestmark = pytest.mark.media
+
 
 def write_tone(path: Path, seconds: float = 8, frequency: float = 220) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)

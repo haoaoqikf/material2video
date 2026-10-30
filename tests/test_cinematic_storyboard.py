@@ -11,6 +11,8 @@ from m2v.core.project import load_project
 from m2v.types.general import adapter, code_scenes, explainer, explainer_prepare
 from _helpers import board, fake_record, fake_tts, project, scene, scene_root
 
+pytestmark = pytest.mark.media
+
 
 def prepare_with(tmp_path, monkeypatch, data, *, seconds=1, **options):
     root, manifest = project(tmp_path, data)

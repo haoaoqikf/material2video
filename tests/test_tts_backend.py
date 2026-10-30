@@ -13,6 +13,8 @@ from m2v.engine import tts
 from m2v.types.general import adapter
 from conftest import create_typed_project
 
+pytestmark = pytest.mark.media
+
 
 def _tone(path: Path, seconds: float) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)

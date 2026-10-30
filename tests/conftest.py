@@ -16,6 +16,42 @@ from m2v.core.workspace import PROJECT_MARKER
 
 SKILL_MARKER = PROJECT_MARKER
 
+#: 默认不收集的慢速层。日常验证只跑纯单元与契约用例；需要分层时显式选择。
+DEFAULT_EXCLUDED_MARKERS = ("slow", "media")
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--full",
+        action="store_true",
+        help="运行全部用例，包括默认排除的 slow 与 media",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """未指定目标或 `-m` 时按层排除慢速用例；显式选择或显式路径完全交给调用方。"""
+    if config.getoption("--full") or config.getoption("markexpr") or _has_explicit_path(config):
+        return
+    selected, deselected = [], []
+    for item in items:
+        if any(item.get_closest_marker(name) for name in DEFAULT_EXCLUDED_MARKERS):
+            deselected.append(item)
+        else:
+            selected.append(item)
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = selected
+
+
+def _has_explicit_path(config) -> bool:
+    """命令行里点名了存在的测试路径（含 `file.py::test` 形式）时，不套用默认排除。"""
+    for argument in config.invocation_params.args:
+        if argument.startswith("-"):
+            continue
+        if Path(argument.split("::", 1)[0]).exists():
+            return True
+    return False
+
 
 @pytest.fixture(scope="session")
 def chromium_ready():

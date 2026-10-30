@@ -15,6 +15,8 @@ from m2v.engine.gallery import HttpTransport, build
 from m2v.types.general import adapter, media_assets
 from _helpers import board, fake_record, fake_tts, project, scene_root
 
+pytestmark = pytest.mark.media
+
 ROOT = Path(__file__).resolve().parents[1]
 PIXABAY_VIDEO = {
     "id": 77, "duration": 6, "pageURL": "https://pixabay.com/videos/77/",

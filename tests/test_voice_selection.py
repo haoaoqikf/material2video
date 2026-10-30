@@ -10,6 +10,8 @@ from m2v.core.project import load_current_prepared
 from m2v.core.delivery import candidate
 from m2v.engine import tts
 
+pytestmark = pytest.mark.media
+
 
 def selected(texts):
     return {"tts": {"voice": "zh-CN-YunxiNeural", "selection": {

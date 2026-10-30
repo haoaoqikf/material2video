@@ -201,7 +201,7 @@ def test_silent_session_times_out_and_is_cleaned_up(tmp_path, monkeypatch):
             props=tmp_path / "storyboard.json",
             composition_id="TestComposition",
             on_metadata=lambda meta: {"out": "x"},
-            timeout_s=30,
+            timeout_s=1,
             metadata_timeout_s=0.5,
         )
     assert spawned[0].poll() is not None, "超时后必须收掉进程树"

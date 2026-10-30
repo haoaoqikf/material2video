@@ -28,6 +28,8 @@ from m2v.types.general import adapter, code_scenes, explainer_render, media_asse
 from _helpers import fake_record, fake_tts, project
 from test_article_media import entry, importer, make_image
 
+pytestmark = pytest.mark.media
+
 ROOT = Path(__file__).resolve().parents[1]
 WINDOWS_ONLY = pytest.mark.skipif(os.name != "nt", reason="收紧 ACL 是 Windows 临时目录的行为")
 
