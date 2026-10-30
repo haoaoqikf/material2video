@@ -1,6 +1,6 @@
 # 汽车展示视频专题
 
-本文定义 `vehicle-showcase` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/changes/add-vehicle-showcase-su7/specs/vehicle-showcase/spec.md) 为准。
+本文定义 `vehicle-showcase` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/specs/vehicle-showcase/spec.md) 为准。
 
 ## 材料
 
