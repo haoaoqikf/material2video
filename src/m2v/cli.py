@@ -32,7 +32,8 @@ def _register_builtins() -> None:
     from m2v.types.driving_route.adapter import TYPE as driving_route
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
-    for item in (financial, general, driving_route, building_construction):
+    from m2v.types.vehicle_showcase.adapter import TYPE as vehicle_showcase
+    for item in (financial, general, driving_route, building_construction, vehicle_showcase):
         registry.register(item)
 
 

@@ -1,0 +1,191 @@
+"""SU7 汽车展示材料：离线资产清单、glTF 内嵌与渲染输入。"""
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import math
+import re
+from pathlib import Path
+from typing import Any
+
+from m2v.core.validate import fail, obj, text
+
+WIDTH = 1920
+HEIGHT = 1080
+FPS = 30
+MATERIALS = {"showcase": "showcase.json", "assets": "manifest.json"}
+_MIME = {".bin": "application/octet-stream", ".webp": "image/webp", ".png": "image/png",
+         ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+
+
+def _load(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
+    if not isinstance(data, dict) or data.get("schemaVersion") != 1:
+        fail(path.name, "schemaVersion 必须为 1")
+    return data
+
+
+def _number(value: Any, where: str, *, low: float | None = None) -> float:
+    if type(value) not in (int, float):
+        fail(where, "必须是数字")
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        fail(where, "超出可表示范围")
+    if not math.isfinite(number) or (low is not None and number < low):
+        fail(where, "必须是有限数字" + (f"，且不小于 {low:g}" if low is not None else ""))
+    return number
+
+
+def _validate_showcase(show: dict[str, Any]) -> None:
+    obj(show, "showcase.json", {"schemaVersion", "canvas", "durationSeconds", "fps", "model",
+                                "wheelNodes", "camera", "effects"})
+    canvas = obj(show.get("canvas"), "showcase.json.canvas", {"width", "height"})
+    if (canvas.get("width"), canvas.get("height")) != (WIDTH, HEIGHT):
+        fail("showcase.json.canvas", f"固定为 {WIDTH}×{HEIGHT}")
+    duration = show.get("durationSeconds")
+    if type(duration) is not int or not 10 <= duration <= 120:
+        fail("showcase.json.durationSeconds", "必须是 10～120 的整数秒")
+    if show.get("fps") != FPS:
+        fail("showcase.json.fps", f"必须为 {FPS}")
+    model = text(show.get("model"), "showcase.json.model")
+    normalized = Path(model)
+    if normalized.is_absolute() or ".." in normalized.parts:
+        fail("showcase.json.model", "必须是作品内相对路径")
+    wheels = show.get("wheelNodes")
+    if not isinstance(wheels, list) or not 1 <= len(wheels) <= 12 or any(
+            not isinstance(item, str) or not item.strip() for item in wheels):
+        fail("showcase.json.wheelNodes", "必须包含 1～12 个非空节点名")
+    camera = obj(show.get("camera"), "showcase.json.camera",
+                 {"distance", "height", "orbitStartDegrees", "orbitEndDegrees"})
+    for field in ("distance", "height", "orbitStartDegrees", "orbitEndDegrees"):
+        _number(camera.get(field), f"showcase.json.camera.{field}")
+    effects = obj(show.get("effects"), "showcase.json.effects",
+                  {"speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"})
+    for field in ("speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"):
+        _number(effects.get(field), f"showcase.json.effects.{field}", low=0)
+
+
+def _validate_manifest(manifest: dict[str, Any]) -> None:
+    obj(manifest, "manifest.json", {"schemaVersion", "assets"})
+    assets = manifest.get("assets")
+    if not isinstance(assets, list) or not 1 <= len(assets) <= 80:
+        fail("manifest.json.assets", "必须包含 1～80 个资产")
+    seen: set[str] = set()
+    for index, raw in enumerate(assets):
+        where = f"manifest.json.assets[{index}]"
+        item = obj(raw, where, {"path", "sha256", "source", "license"})
+        path = text(item.get("path"), f"{where}.path")
+        if Path(path).is_absolute() or ".." in Path(path).parts:
+            fail(f"{where}.path", "必须是作品内相对路径")
+        if path in seen:
+            fail(f"{where}.path", "资产路径重复")
+        seen.add(path)
+        digest = text(item.get("sha256"), f"{where}.sha256")
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            fail(f"{where}.sha256", "必须是 64 位十六进制 SHA-256")
+        text(item.get("source"), f"{where}.source")
+        text(item.get("license"), f"{where}.license")
+
+
+def _data_uri(file: Path) -> str:
+    mime = _MIME.get(file.suffix.lower(), "application/octet-stream")
+    return f"data:{mime};base64," + base64.b64encode(file.read_bytes()).decode("ascii")
+
+
+def _embed_model(root: Path, model_path: str, manifest: dict[str, Any],
+                 wheel_nodes: list[str]) -> str:
+    path = (root / model_path).resolve()
+    if not path.is_relative_to(root) or not path.is_file():
+        fail("showcase.json.model", f"模型不存在：{model_path}")
+    registered = {item["path"]: item for item in manifest["assets"]}
+    try:
+        gltf = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        fail("showcase.json.model", f"模型不是有效 glTF JSON：{exc}")
+    for buffer in gltf.get("buffers", []):
+        uri = buffer.get("uri") if isinstance(buffer, dict) else None
+        if isinstance(uri, str) and not uri.startswith("data:"):
+            file = (path.parent / uri).resolve()
+            rel = file.relative_to(root).as_posix()
+            if rel not in registered:
+                fail("manifest.json.assets", f"glTF 依赖未登记：{rel}")
+            buffer["uri"] = _data_uri(file)
+    for image in gltf.get("images", []):
+        uri = image.get("uri") if isinstance(image, dict) else None
+        if isinstance(uri, str) and not uri.startswith("data:"):
+            file = (path.parent / uri).resolve()
+            rel = file.relative_to(root).as_posix()
+            if rel not in registered:
+                fail("manifest.json.assets", f"glTF 依赖未登记：{rel}")
+            image["uri"] = _data_uri(file)
+    nodes = {node.get("name") for node in gltf.get("nodes", []) if isinstance(node, dict)}
+    for name in wheel_nodes:
+        if name not in nodes:
+            fail("showcase.json.wheelNodes", f"glTF 中不存在节点：{name}")
+    return json.dumps(gltf, ensure_ascii=False, separators=(",", ":"))
+
+
+def load_project(project_dir: str | Path) -> dict[str, Any]:
+    root = Path(project_dir).resolve()
+    if not root.is_dir():
+        fail("作品目录", f"目录不存在：{root}")
+    show = _load(root / MATERIALS["showcase"])
+    manifest = _load(root / MATERIALS["assets"])
+    _validate_showcase(show)
+    _validate_manifest(manifest)
+    for asset in manifest["assets"]:
+        file = (root / asset["path"]).resolve()
+        if not file.is_relative_to(root) or not file.is_file():
+            fail("manifest.json.assets", f"资产不存在：{asset['path']}")
+        if hashlib.sha256(file.read_bytes()).hexdigest() != asset["sha256"]:
+            fail("manifest.json.assets", f"资产摘要不匹配：{asset['path']}")
+    model_gltf = _embed_model(root, show["model"], manifest, show["wheelNodes"])
+    return {"showcase": show, "manifest": manifest, "modelGltf": model_gltf}
+
+
+def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
+    show = docs["showcase"]
+    return {
+        "schemaVersion": 1,
+        "durationInFrames": show["durationSeconds"] * FPS,
+        "fps": FPS,
+        "width": WIDTH,
+        "height": HEIGHT,
+        "showcase": show,
+        "modelGltf": docs["modelGltf"],
+    }
+
+
+def render_inputs_digest(project_dir: str | Path) -> str:
+    root = Path(project_dir).resolve()
+    from m2v.core.assets import REPOSITORY_ROOT
+    import m2v.engine.remotion as remotion
+    from m2v.engine import render_pipeline
+
+    web = REPOSITORY_ROOT / "web"
+    web_inputs = remotion.build_inputs()
+    inputs: list[tuple[Path, Path]] = [(root, root / name) for name in MATERIALS.values()]
+    inputs.extend((web, path) for path in web_inputs if path.is_relative_to(web))
+    inputs.extend((REPOSITORY_ROOT, path) for path in web_inputs if not path.is_relative_to(web))
+    package = Path(__file__).resolve().parent
+    inputs.extend((package, path) for path in sorted(package.glob("*.py")))
+    inputs.append((REPOSITORY_ROOT, Path(render_pipeline.__file__)))
+    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.implementation_files())
+    manifest = _load(root / MATERIALS["assets"])
+    for asset in manifest["assets"]:
+        inputs.append((root, root / asset["path"]))
+    digest = hashlib.sha256()
+    for base, path in inputs:
+        try:
+            content = path.read_bytes()
+        except OSError as exc:
+            fail("渲染输入摘要", f"无法读取绑定文件 {path.name}：{exc}")
+        digest.update(path.relative_to(base).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(content).digest())
+    return digest.hexdigest()

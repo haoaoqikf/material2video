@@ -9,6 +9,7 @@ _CONFIG = json.loads((REPOSITORY_ROOT / "web/src/video-config.json").read_text(e
 FPS: int = _CONFIG["fps"]
 DRIVING_ROUTE_FPS: int = _CONFIG["drivingRoute"]["defaultFps"]
 BUILDING_FPS: int = _CONFIG["buildingConstruction"]["defaultFps"]
+VEHICLE_SHOWCASE_FPS: int = _CONFIG["vehicleShowcase"]["defaultFps"]
 GENERAL_DEFAULT_FPS: int = _CONFIG["general"]["defaultFps"]
 GENERAL_ALLOWED_FPS: tuple[int, ...] = tuple(_CONFIG["general"]["allowedFps"])
 
@@ -40,6 +41,8 @@ def default_fps(video_type: str) -> int:
         return DRIVING_ROUTE_FPS
     if video_type == "building-construction":
         return BUILDING_FPS
+    if video_type == "vehicle-showcase":
+        return VEHICLE_SHOWCASE_FPS
     return FPS
 
 

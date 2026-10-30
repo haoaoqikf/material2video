@@ -9,6 +9,7 @@
 - `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。
 - `driving-route`：真实高速优先驾车路线、竖屏普通道路地图、路网与市/县行政区标注、小车沿路行驶与 16× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、30 fps、无声交付。
 - `building-construction`：程序化两层框架住宅、基础到完工的分阶段确定性动画、1920×1080 横屏、30 fps、无声交付。
+- `vehicle-showcase`：本地车辆模型、自动环绕、灯光与视觉疾驰的确定性 1920×1080 横屏动画，30 fps、无声交付。
 <!-- generated:type-catalog:end -->
 
 风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)与[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
