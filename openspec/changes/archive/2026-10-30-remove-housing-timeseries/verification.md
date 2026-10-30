@@ -25,3 +25,10 @@
 - 性能影响：移除专用代码，无新增计算、网络访问、文件 I/O 或依赖；金融与 general 的算法和渲染参数不变。
 - 剩余风险：未为本次能力删除重渲染完整影片，slow 真实浏览器/渲染测试未全量执行；符号链接检查受本机权限限制。旧归档中的住宅引用保留为历史，不代表现有能力。
 - 代码质量：96/100；扣分主要来自完整渲染未在本轮独立验证。
+
+## 主规格同步与归档
+
+- 实施提交：`283c447`。任务全部完成后同步 7 个能力的 delta，6 个保留能力共更新 17 项要求、重命名 1 项；完整保留原有场景，新增旧住宅类型拒绝场景。
+- 退役 `openspec/specs/housing-timeseries/spec.md` 及其 Purpose（年度住宅销售均价独立无声折线类型），删除其最后 2 项要求并移除空目录，已启用 `retire_capabilities: true`。如仅需恢复旧规格文件供查阅，可运行 `git checkout 283c447 -- openspec/specs/housing-timeseries/spec.md`；这不会恢复已删除的本地作品。
+- keynote Purpose 清除已退役类型措辞。同步后逐个 delta 比较通过，`openspec validate --specs --strict` 为 44 项通过、0 项失败。
+- 按项目约定归档至 `openspec/changes/archive/2026-10-30-remove-housing-timeseries/`；此前归档历史保留。
