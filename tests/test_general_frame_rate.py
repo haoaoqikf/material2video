@@ -45,7 +45,7 @@ def test_conflict():
         general_fps({"output": {"fps": 30}}, {"fps": 60})
 
 
-@pytest.mark.parametrize("kind,expected", [("general", 30), ("financial-timeseries", 60), ("housing-timeseries", 60)])
+@pytest.mark.parametrize("kind,expected", [("general", 30), ("financial-timeseries", 60)])
 def test_init_type_defaults(tmp_path, kind, expected):
     root = tmp_path / kind
     assert main(["init", "--type", kind, "--project", str(root)]) == 0

@@ -18,7 +18,7 @@ def test_new_commands_are_registered():
 
 @pytest.mark.parametrize("argv", [["lookdev"], ["qa"], ["assets", "audit"]])
 def test_new_commands_reject_non_general_projects(monkeypatch, tmp_path, argv):
-    """三个入口都只服务 general：金融与住宅作品要拿到明确的话，而不是难懂的失败。"""
+    """三个入口都只服务 general：金融作品要拿到明确的话，而不是难懂的失败。"""
     import m2v.core.project as project_module
 
     manifest = {"id": "x", "type": "financial-timeseries", "materials": {}}

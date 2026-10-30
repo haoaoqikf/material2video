@@ -47,7 +47,7 @@ def test_anchors_ignore_template_fences():
     (lambda r: r['stages'][0].update(guide='references/missing.md'), '阅读目标不存在'),
     (lambda r: r['tasks'][0].update(guide='references/stage-plan.md#不存在的锚点'), '标题锚点不存在'),
     (lambda r: r['conditional'][0].update(when='  '), '触发条件'),
-    (lambda r: r['types'].pop('housing-timeseries'), 'types'),
+    (lambda r: r['types'].pop('financial-timeseries'), 'types'),
     (lambda r: r['ruleOwners'].pop('实际表达'), 'ruleOwners'),
     (lambda r: r.update(schemaVersion=2), '结构或版本无效'),
     (lambda r: r.update(entry='references/stage-plan.md'), 'SKILL.md'),

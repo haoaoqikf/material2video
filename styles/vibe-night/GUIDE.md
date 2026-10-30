@@ -212,7 +212,7 @@ const {subtitleSafeArea} = useSceneContext();
 - 试制：一条 30–45 秒、不入库的原创作品，按[参考风格契约](../../.agents/skills/material2video/references/reference-style.md)
   记录八项指标、并排基准与独立冷审结论；`outputs/style-reference.md` 缺任一项视为未完成。
 - 确定性：同一帧两次独立录制一致；不因运行时刻或随机数变化。
-- 回归：三个固定示例、金融与住宅类型、共享字幕层与既有无风格作品不受影响。
+- 回归：三个固定示例、金融类型、共享字幕层与既有无风格作品不受影响。
 
 ## 10. 边界
 

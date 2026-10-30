@@ -51,7 +51,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 }
 ```
 
-`type` 为 `general` / `financial-timeseries` / `housing-timeseries`
+`type` 为 `general` / `financial-timeseries`
 之一，`compositionId` 是它对应的 Remotion composition 标识。
 `preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
 材料、资产或渲染代码已经变化，成片落后。
@@ -63,7 +63,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 | 类型 | 与上表的差异 |
 | --- | --- |
 | `general` | 无差异；**不含**根级 `renderer` 与 `bundleKey`——通用类型的画面只可能是当前渲染路径，写不写都一样 |
-| `financial-timeseries` / `housing-timeseries` | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
+| `financial-timeseries` | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
 独立复核准备指纹与文件摘要完成。
@@ -134,7 +134,7 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 ## 一次全片生成与候选保留
 
-`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4，住宅为 housing-timeseries.mp4。
+`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4。
 
 异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。
 

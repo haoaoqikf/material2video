@@ -1,11 +1,9 @@
 """无声类型的渲染管线：打包、逐帧渲染、媒体验收与交付的唯一实现。
 
-金融与住宅两种无声类型的导出过去各写一份同样的骨架：crf 与限帧校验、previews
-守卫、临时目录、`remotion.bundle`、composition 元数据核对、`render_session`、
-媒体验收、输入摘要复核、`security.deliver`、溯源写入与性能报告。两份实现只在
-常量、props 构造、摘要函数、目标文件名、溯源 `type` 与报告 `extra` 上不同。
+金融无声导出在此统一执行 crf 与限帧校验、previews 守卫、临时目录、打包、
+composition 元数据核对、渲染、媒体验收、输入摘要复核、交付、溯源与性能报告。
 
-差异全部由 :class:`SilentRenderSpec` 声明，剩下的流程只有这一份。有音轨的通用类型
+类型参数由 :class:`SilentRenderSpec` 声明，剩下的流程只有这一份。有音轨的通用类型
 （`explainer_render`）也复用这里的元数据核对、溯源与报告写法，只是把音频 mux 与
 字幕量测留在自己的编排里。
 """
@@ -54,7 +52,7 @@ def metadata_confirm(
 ) -> Callable[[remotion.CompositionMetadata], dict]:
     """渲染前的元数据核对：画面声明的 fps/宽/高/帧数必须与材料一致。
 
-    返回渲染脚本要求的确认载荷。四个入口（金融、住宅、通用、look-dev）过去各写
+    返回渲染脚本要求的确认载荷。金融、通用与 look-dev 入口过去各写
     一份同样的闭包，这里只留一份，措辞也统一为「期望 …，实际 …」。
     """
 
@@ -108,7 +106,7 @@ class SilentRenderSpec:
     fps: int
     width: int
     height: int
-    #: 作品材料名（`animation-plan.json` / `series.json`），既用于打包也用于报告。
+    #: 作品材料名（`animation-plan.json`），既用于打包也用于报告。
     material_file: str
     #: 正式成片与预演片段在作品 `outputs/` 下的文件名。
     destination_name: str
@@ -124,8 +122,6 @@ class SilentRenderSpec:
     log_message: str
     #: 渲染会话 → 性能报告的 `extra` 字段。
     report_extra: Callable[[dict], dict]
-    #: 是否把渲染脚本的进度行转进日志（住宅沿用既有行为）。
-    log_progress: bool = False
 
 
 def _previews_dir(project_dir: Path) -> Path:
@@ -192,7 +188,7 @@ def generate(
         session = remotion.render_session(
             web_dir=web, bundle_dir=outcome.path, props=props_path, composition_id=spec.composition_id,
             on_metadata=confirm, timeout_s=3600,
-            on_line=remotion.progress_handler(frames) if spec.log_progress else None)
+            on_line=None)
         timings.record("metadata", float(session.get("readySeconds") or 0))
         timings.record("render", max(time.monotonic() - render_started - timings.as_dict()["metadata"], 0))
         with perf.measure(timings, "probe"):

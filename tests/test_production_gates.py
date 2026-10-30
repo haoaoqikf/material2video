@@ -162,7 +162,7 @@ def test_measure_screen_subtitle_safe_area_and_single_line():
 
 
 def test_non_general_needs_no_contract(tmp_path):
-    assert ledger.status(tmp_path, {'type': 'housing-timeseries'})['applicability'] == '专用类型契约'
+    assert ledger.status(tmp_path, {'type': 'financial-timeseries'})['applicability'] == '专用类型契约'
 
 
 def test_local_source_change_does_not_expire_other_scene(project):

@@ -28,7 +28,7 @@ def package(tmp_path, monkeypatch):
     (root / 'piece.tsx').write_text("import React from 'react'; import {tokens} from 'm2v/style'; export default () => <div>{String(tokens.color)}</div>;", encoding='utf-8')
     (root / 'mark.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
     manifest = {'schemaVersion': 1, 'id': root.name, 'version': '1.0.0', 'description': '测试',
-                'types': ['general', 'housing-timeseries'], 'frames': [{'width': 1920, 'height': 1080}],
+                'types': ['general', 'financial-timeseries'], 'frames': [{'width': 1920, 'height': 1080}],
                 'guide': 'GUIDE.md', 'tokens': 'tokens.json', 'components': {'piece': 'piece.tsx'},
                 'assets': {'mark': {'path': 'mark.svg', 'source': 'original', 'license': 'MIT'}}}
     write_json(root / 'style.json', manifest)
@@ -38,7 +38,7 @@ def package(tmp_path, monkeypatch):
 @pytest.fixture
 def project(tmp_path):
     root = tmp_path / 'work'
-    create_project(root, 'housing-timeseries', {'source': 'source.json'})
+    create_project(root, 'financial-timeseries', {'source': 'source.json'})
     (root / 'source.json').write_text('{}', encoding='utf-8')
     _, manifest = load_project(root)
     manifest['output'].update(width=1920, height=1080)
@@ -63,7 +63,7 @@ def test_selection_and_compatibility(package):
         with pytest.raises(M2VError):
             styles.selected_style({'type': 'general', 'style': invalid})
     with pytest.raises(M2VError, match='类型'):
-        styles.selected_style({**selected, 'type': 'financial-timeseries'})
+        styles.selected_style({**selected, 'type': 'unsupported'})
     with pytest.raises(M2VError, match='画幅'):
         styles.selected_style(selected, width=1080, height=1920)
 

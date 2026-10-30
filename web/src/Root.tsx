@@ -3,7 +3,6 @@ import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
-import { HousingTimeSeries, type HousingTimeSeriesProps } from './compositions/HousingTimeSeries';
 import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
 
@@ -37,21 +36,6 @@ export const RemotionRoot: FC = () => {
         width={1080}
         height={1920}
         defaultProps={{} as FinancialTimeSeriesProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: props.durationInFrames,
-          fps: props.fps,
-          width: props.width,
-          height: props.height,
-        })}
-      />
-      <Composition
-        id="HousingTimeSeries"
-        component={HousingTimeSeries}
-        durationInFrames={60 * FPS}
-        fps={FPS}
-        width={1080}
-        height={1920}
-        defaultProps={{} as HousingTimeSeriesProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.durationInFrames,
           fps: props.fps,

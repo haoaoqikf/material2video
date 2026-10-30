@@ -1,6 +1,6 @@
 ---
 name: material2video
-description: 使用统一 m2v 制作入口创作或修订金融时间序列、住宅时间序列、通用讲解视频。用于准备类型材料、编排、局部修改、预演、评审、渲染与排查不一致问题。
+description: 使用统一 m2v 制作入口创作或修订金融时间序列、通用讲解视频。用于准备类型材料、编排、局部修改、预演、评审、渲染与排查不一致问题。
 ---
 
 # Material2Video 制作调度
@@ -19,14 +19,12 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 <!-- generated:type-catalog:start -->
 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
-| `housing-timeseries` | [年度住宅均价视频](references/housing-timeseries-video.md)：按 `series.json` 生成 1080×1920、60 fps 无声折线视频。 |
 <!-- generated:type-catalog:end -->
 
 - **新制作 general**：从[方案确定](references/stage-plan.md)开始。
 - **修订**：先读[修订入口](references/video-revision.md)，定位影响阶段、保留基线，再进入对应阶段；不重开无关选案。
 - **评审**：核心风险按计划在扩展前进入[制作与迭代](references/stage-iterate.md)评审；G5 全片粗片为内部检查，低风险作品不派独立评审；当前候选独立终审进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
 - **排查**：先读[制作与迭代](references/stage-iterate.md)，只展开相关技术契约；不要用排错代替制作复核。
-- **住宅**：先读[年度住宅均价视频](references/housing-timeseries-video.md)，再按[类型材料契约](../../../src/m2v/types/catalog.json)的 series 模板执行；不套 general 三阶段。
 
 ## 当前阶段重点
 

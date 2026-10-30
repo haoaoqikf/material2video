@@ -11,11 +11,31 @@ from m2v.types.general import adapter, explainer
 from _helpers import board, fake_record, fake_tts, project, scene_root
 
 
-def test_only_three_current_types(capsys):
+def test_only_two_current_types(capsys):
     assert main(["types"]) == 0
     types = {item["type"]: item["description"] for item in json.loads(capsys.readouterr().out)}
-    assert set(types) == {"general", "financial-timeseries", "housing-timeseries"}
+    assert set(types) == {"general", "financial-timeseries"}
     assert types["general"] == "通用"
+
+
+def test_removed_housing_type_cannot_be_initialized(tmp_path, capsys):
+    target = tmp_path / "removed"
+    assert main(["init", "--type", "housing-timeseries", "--project", str(target)]) == 2
+    assert "未知视频类型：housing-timeseries" in capsys.readouterr().err
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("command", ["validate", "prepare", "preview", "render", "review-template", "review", "status"])
+def test_removed_housing_project_is_rejected_without_outputs(tmp_path, capsys, command):
+    # 保留旧清单的输入形状，验证拒绝来自类型退役，而不是材料缺失。
+    create_project(tmp_path, "housing-timeseries", {"series": "series.json"})
+    (tmp_path / "series.json").write_text("{}", encoding="utf-8")
+    before = {path.relative_to(tmp_path): path.read_bytes() for path in tmp_path.rglob("*") if path.is_file()}
+    assert main([command, "--project", str(tmp_path)]) == 1
+    assert "未知视频类型：housing-timeseries" in capsys.readouterr().err
+    after = {path.relative_to(tmp_path): path.read_bytes() for path in tmp_path.rglob("*") if path.is_file()}
+    assert after == before
+    assert not (tmp_path / "outputs").exists()
 
 
 def test_legacy_identity_and_command_are_rejected(tmp_path):

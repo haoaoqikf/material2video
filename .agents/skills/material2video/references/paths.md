@@ -124,7 +124,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | `m2v render --project <目录>` | `<作品目录>/outputs/` 下类型默认的正式成片 |
 | `m2v preview --project <目录> --limit-frames N` | 调试用途；严格短于全片，不参与交付门禁 |
 
-general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融与住宅沿用各自类型文件名；
+general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融沿用专用类型文件名；
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
 v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在

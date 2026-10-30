@@ -11,7 +11,6 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `general`：以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。
-- `housing-timeseries`：面向住宅年度均价的独立时间序列类型，含材料复算校验、确定性画面与可选画面评审。
 <!-- generated:type-catalog:end -->
 
 上列各类型（由 `catalog.json` 生成）均已实现到「校验、准备、按需检查、一次全片生成与验收交付」的完整链路；规划里剩下的不是把它们做出来，而是把制作体验做扎实。

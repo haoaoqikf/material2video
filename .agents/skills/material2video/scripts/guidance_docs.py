@@ -11,7 +11,7 @@ from m2v.core.errors import M2VError
 SKILL = Path('.agents/skills/material2video')
 STAGES = {'plan', 'iterate', 'final'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
-TYPES = {'general', 'financial-timeseries', 'housing-timeseries'}
+TYPES = {'general', 'financial-timeseries'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达', '过程证据容量'}
 #: 正文字符预算；入口加当前阶段同时受限，避免「各自达标但合读仍过长」。
 ENTRY_BUDGET, STAGE_BUDGET, COMBINED_BUDGET = 2000, 3000, 5000

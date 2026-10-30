@@ -39,8 +39,7 @@
   ],
   "types": {
     "general": "references/stage-plan.md",
-    "financial-timeseries": "references/financial-timeseries-video.md",
-    "housing-timeseries": "references/housing-timeseries-video.md"
+    "financial-timeseries": "references/financial-timeseries-video.md"
   },
   "conditional": [
     {
