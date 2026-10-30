@@ -115,9 +115,11 @@ export function DrivingRoute(props: DrivingRouteProps) {
       </g>
 
       <text data-m2v-distance-label="true" x={72} y={props.height - 58} fill="#cfe6f5" fontSize={24}
-        fontWeight={500}>已行驶 {formatDistance(traveled)} · 全程 {formatDistance(props.totalDistanceMeters)}</text>
+        fontWeight={500} stroke={BACKGROUND} strokeWidth={6} paintOrder="stroke"
+        strokeLinejoin="round">已行驶 {formatDistance(traveled)} · 全程 {formatDistance(props.totalDistanceMeters)}</text>
       <text data-m2v-attribution="true" x={props.width - 72} y={props.height - 52} textAnchor="end"
-        fill="#7f9bb0" fontSize={24}>{props.attribution}</text>
+        fill="#9fb6c8" fontSize={24} stroke={BACKGROUND} strokeWidth={6} paintOrder="stroke"
+        strokeLinejoin="round">{props.attribution}</text>
     </svg>
   </AbsoluteFill>;
 }

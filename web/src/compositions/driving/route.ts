@@ -139,32 +139,33 @@ export function pointAtDistance(model: RouteModel, distance: number): ProjectedP
   return {x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t, index};
 }
 
-/** 车头方向：在 20～200 米的窗口内合成单位向量，取样相消时退回局部线段切向。 */
+/** 车头方向：沿行驶方向取前后窗口的弦向量，端点处只用朝内的窗口。
+ *
+ * 起点用前方 100 米（总长 0.1% 窗口的一半，20～200 米内）作为朝向，避免车头
+ * 背对随即转弯的路线；终点用后方窗口，保持到达方向。取样相消时退回当前
+ * 非零线段切向，不依赖上一帧。
+ */
 export function headingAtDistance(model: RouteModel, distance: number): number {
   const windowMeters = clamp(model.lengthMeters * 0.001, 20, 200);
-  let sumX = 0;
-  let sumY = 0;
-  for (const offset of [-2, -1, 0, 1, 2]) {
-    const sample = clamp(distance + (offset * windowMeters) / 2, 0, model.lengthMeters);
-    const tangent = unitTangent(model, segmentAt(model, sample));
-    if (!tangent) continue;
-    sumX += tangent.x;
-    sumY += tangent.y;
-  }
-  let resultX = sumX;
-  let resultY = sumY;
-  if (Math.hypot(resultX, resultY) < 1e-9) {
-    const index = segmentAt(model, distance);
+  const lookAhead = windowMeters / 2;
+  const d = clamp(distance, 0, model.lengthMeters);
+  const forward = d + lookAhead <= model.lengthMeters;
+  const from = pointAtDistance(model, forward ? d : d - lookAhead);
+  const to = pointAtDistance(model, forward ? d + lookAhead : d);
+  let dx = to.x - from.x;
+  let dy = to.y - from.y;
+  if (Math.hypot(dx, dy) < 1e-9) {
+    const index = segmentAt(model, d);
     for (let step = 0; step < model.projected.length - 1; step += 1) {
-      const forward = unitTangent(model, index + step) ?? unitTangent(model, index - step);
-      if (forward) {
-        resultX = forward.x;
-        resultY = forward.y;
+      const tangent = unitTangent(model, index + step) ?? unitTangent(model, index - step);
+      if (tangent) {
+        dx = tangent.x;
+        dy = tangent.y;
         break;
       }
     }
   }
-  return Math.atan2(resultY, resultX);
+  return Math.atan2(dy, dx);
 }
 
 /** 沿路已走距离：开场停在起点，行驶段平滑起停，结尾停在终点。 */
