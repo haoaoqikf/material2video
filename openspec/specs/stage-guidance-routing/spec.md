@@ -17,7 +17,7 @@ Skill SHALL 按视频类型和新制作、修订、评审、排查任务分流�
 
 #### Scenario: 专用类型
 
-- **WHEN** 类型是金融
+- **WHEN** 类型是金融或自驾路线
 - **THEN** 路由指向该类型专用契约，不套用 general 三阶段
 
 ### Requirement: 阅读预算与路由可校验

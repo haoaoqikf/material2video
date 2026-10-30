@@ -1,6 +1,6 @@
 # 自驾路线视频专题
 
-本文定义 `driving-route` 类型的离线制作规范。类型行为以 OpenSpec 规格为准；镜头与验收要求不因本指南的说明顺序而降低。
+本文定义 `driving-route` 类型的离线制作规范。类型行为以 [OpenSpec 规格](../../../../openspec/specs/driving-route-video/spec.md) 为准；镜头与验收要求不因本指南的说明顺序而降低。
 
 ## 材料与绑定
 
