@@ -1,6 +1,6 @@
 # 建筑建造视频专题
 
-本文定义 `building-construction` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/changes/add-building-construction-video/specs/building-construction-video/spec.md) 为准。
+本文定义 `building-construction` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/specs/building-construction-video/spec.md) 为准。
 
 ## 材料
 
