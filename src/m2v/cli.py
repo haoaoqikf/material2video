@@ -28,9 +28,10 @@ def _force_utf8_output() -> None:
 def _register_builtins() -> None:
     if registry.all_types():
         return
+    from m2v.types.driving_route.adapter import TYPE as driving_route
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
-    for item in (financial, general):
+    for item in (financial, general, driving_route):
         registry.register(item)
 
 
@@ -124,6 +125,9 @@ def _parser() -> argparse.ArgumentParser:
     financial.add_argument("workflow", choices=("plan", "migrate-line"))
     financial.add_argument("--project", required=True)
     financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
+    driving = sub.add_parser("driving-route", help="自驾路线类型的在线取数")
+    driving.add_argument("workflow", choices=("fetch",))
+    driving.add_argument("--project", required=True)
     return parser
 
 

@@ -11,8 +11,15 @@ from m2v.core.errors import M2VError
 SKILL = Path('.agents/skills/material2video')
 STAGES = {'plan', 'iterate', 'final'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
-TYPES = {'general', 'financial-timeseries'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达', '过程证据容量'}
+
+
+def catalog_types() -> set[str]:
+    """类型清单以 catalog.json 为唯一来源，阅读路由不再维护第二份副本。"""
+    from m2v.types import catalog
+
+    return set(catalog.catalog().names())
+
 #: 正文字符预算；入口加当前阶段同时受限，避免「各自达标但合读仍过长」。
 ENTRY_BUDGET, STAGE_BUDGET, COMBINED_BUDGET = 2000, 3000, 5000
 
@@ -76,7 +83,7 @@ def validate(root: Path, routes: dict | None = None) -> dict[str, int]:
             raise M2VError('三阶段必须各有唯一主指南')
         if {r['id'] for r in tasks} != TASKS:
             raise M2VError('任务路由必须覆盖 new/revision/review/diagnose')
-        for name, keys in (('types', TYPES), ('ruleOwners', OWNERS)):
+        for name, keys in (('types', catalog_types()), ('ruleOwners', OWNERS)):
             if not isinstance(routes[name], dict) or set(routes[name]) != keys:
                 raise M2VError(f'{name} 缺少类型或规则归属')
         for row in tasks + conditional:

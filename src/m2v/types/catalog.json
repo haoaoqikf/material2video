@@ -123,6 +123,62 @@
       "starters": [
         "scenes/opening.tsx"
       ]
+    },
+    {
+      "name": "driving-route",
+      "description": "自驾路线动画",
+      "summary": "真实高速优先驾车路线、二维北向地图、小车沿路行驶与镜头跟随；在线取数与离线成片分离，1920×1080、60 fps、无声交付。",
+      "plan": "保留独立的请求与路线材料、高速优先取数、确定性贴路动画与无声验收。",
+      "skillGuide": "[自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作二维小车动画。",
+      "materials": [
+        {
+          "name": "request",
+          "file": "request.json",
+          "template": {
+            "schemaVersion": 1,
+            "origin": {
+              "city": "填写城市",
+              "address": "填写具体地点地址",
+              "label": "填写画面名称"
+            },
+            "destination": {
+              "city": "填写城市",
+              "address": "填写具体地点地址",
+              "label": "填写画面名称"
+            },
+            "strategy": "highway-first",
+            "durationSeconds": 30,
+            "canvas": {
+              "width": 1920,
+              "height": 1080
+            },
+            "sourceUsage": {
+              "verifiedOn": "YYYY-MM-DD",
+              "documents": [],
+              "account": "填写适用账号与用途范围（不写登录凭据）",
+              "purpose": "填写离线保存、二维衍生画面与视频发布用途",
+              "offlineStorage": false,
+              "derivativeFrames": false,
+              "videoPublication": false,
+              "attribution": "填写来源要求署名的文本"
+            }
+          }
+        },
+        {
+          "name": "route",
+          "file": "route.json",
+          "template": {
+            "schemaVersion": 1,
+            "requestDigest": "",
+            "coordinateSystem": "GCJ-02",
+            "origin": null,
+            "destination": null,
+            "route": null,
+            "acquisition": null,
+            "sourceUsage": null
+          }
+        }
+      ]
     }
   ]
 }

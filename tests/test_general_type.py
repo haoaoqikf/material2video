@@ -11,11 +11,12 @@ from m2v.types.general import adapter, explainer
 from _helpers import board, fake_record, fake_tts, project, scene_root
 
 
-def test_only_two_current_types(capsys):
+def test_only_three_current_types(capsys):
     assert main(["types"]) == 0
     types = {item["type"]: item["description"] for item in json.loads(capsys.readouterr().out)}
-    assert set(types) == {"general", "financial-timeseries"}
+    assert set(types) == {"general", "financial-timeseries", "driving-route"}
     assert types["general"] == "通用"
+    assert types["driving-route"] == "自驾路线动画"
 
 
 def test_removed_housing_type_cannot_be_initialized(tmp_path, capsys):

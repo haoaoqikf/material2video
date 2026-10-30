@@ -2,6 +2,7 @@ import { FPS, GENERAL_DEFAULT_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
+import { DrivingRoute, type DrivingRouteProps } from './compositions/DrivingRoute';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
@@ -36,6 +37,21 @@ export const RemotionRoot: FC = () => {
         width={1080}
         height={1920}
         defaultProps={{} as FinancialTimeSeriesProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width: props.width,
+          height: props.height,
+        })}
+      />
+      <Composition
+        id="DrivingRoute"
+        component={DrivingRoute}
+        durationInFrames={1800}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{} as DrivingRouteProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.durationInFrames,
           fps: props.fps,

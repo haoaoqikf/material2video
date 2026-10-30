@@ -8,7 +8,7 @@ from m2v.core import delivery
 from m2v.types import registry
 
 
-@pytest.mark.parametrize("kind", ["general", "financial-timeseries"])
+@pytest.mark.parametrize("kind", ["general", "financial-timeseries", "driving-route"])
 @pytest.mark.parametrize("review_state", [None, "pending", "fail", "stale"])
 def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, kind, review_state):
     _register_builtins()

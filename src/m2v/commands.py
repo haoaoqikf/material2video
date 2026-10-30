@@ -41,6 +41,11 @@ def dispatch(args) -> int:
     if args.command == "ref":
         from m2v.reference.cli import main as reference_main
         return reference_main(args)
+    if args.command == "driving-route":
+        from m2v.types.driving_route.fetch import fetch as fetch_route
+        target = fetch_route(args.project)
+        print(f"已保存高速优先路线：{target}")
+        return 0
     if args.command == "financial":
         root, manifest = load_project(args.project)
         if manifest["type"] != "financial-timeseries":

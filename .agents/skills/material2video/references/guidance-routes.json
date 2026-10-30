@@ -39,7 +39,8 @@
   ],
   "types": {
     "general": "references/stage-plan.md",
-    "financial-timeseries": "references/financial-timeseries-video.md"
+    "financial-timeseries": "references/financial-timeseries-video.md",
+    "driving-route": "references/driving-route-video.md"
   },
   "conditional": [
     {
