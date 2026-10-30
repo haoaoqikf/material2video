@@ -32,6 +32,7 @@ type SceneState = {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  wheels: THREE.Group[];
   speedLines: THREE.LineSegments;
 };
 
@@ -65,6 +66,7 @@ function setFrame(state: SceneState, frame: number, props: VehicleShowcaseProps)
     ? 1 - smooth((seconds - (props.showcase.durationSeconds - effects.fadeOutSeconds))
       / effects.fadeOutSeconds)
     : 1;
+  state.wheels.forEach((wheel) => { wheel.rotation.z = -seconds * (2.5 + speed * 22); });
   state.speedLines.visible = speed > 0.01 && fade > 0.01;
   const material = state.speedLines.material as THREE.LineBasicMaterial;
   material.opacity = 0.24 * speed * fade;
@@ -140,7 +142,20 @@ export function VehicleShowcase(props: VehicleShowcaseProps) {
       model.scale.setScalar(scale);
       model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
       scene.add(model);
-      stateRef.current = {renderer, scene, camera, speedLines};
+      model.updateWorldMatrix(true, true);
+      const wheels = props.showcase.wheelNodes.flatMap((name) => {
+        const found = model.getObjectByName(name);
+        if (!found) return [];
+        const box = new THREE.Box3().setFromObject(found);
+        const center = box.getCenter(new THREE.Vector3());
+        const pivot = new THREE.Group();
+        scene.add(pivot);
+        pivot.position.copy(center);
+        pivot.updateWorldMatrix(true, true);
+        pivot.attach(found);
+        return [pivot];
+      });
+      stateRef.current = {renderer, scene, camera, wheels, speedLines};
       setReady(true);
       continueRender(handle);
     }, (error) => {

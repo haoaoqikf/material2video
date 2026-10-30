@@ -109,21 +109,19 @@ function generate(house: BuildingProps['building']['house']): Component[] {
           bay * 2 + (z < 0 ? 0 : 1), x, base, z, 0.32, floorHeight, 0.32, CONCRETE_DARK));
       }
     }
-    for (let bay = 0; bay <= bayCount; bay += 1) {
-      const x = -halfW + (width * bay) / bayCount;
+    const beamWidth = width / bayCount;
+    for (let bay = 0; bay < bayCount; bay += 1) {
+      const x = -halfW + beamWidth * bay;
       components.push(box(`beam-front-${floor}-${bay}`, floor === 1 ? 2 : 3, 20 + bay,
-        x === -halfW ? x : x - 0.18, base + floorHeight - 0.35, -halfD, width / bayCount, 0.35, 0.28,
-        CONCRETE_DARK));
+        x, base + floorHeight - 0.35, -halfD, beamWidth, 0.35, 0.28, CONCRETE_DARK));
     }
     components.push(box(`beam-back-${floor}`, floor === 1 ? 2 : 3, 30, -halfW,
       base + floorHeight - 0.35, halfD - 0.28, width, 0.35, 0.28, CONCRETE_DARK));
-    components.push(box(`beam-left-${floor}`, floor === 1 ? 2 : 3, 31, -halfW,
-      base + floorHeight - 0.35, -halfD, 0.28, 0.35, depth, CONCRETE_DARK));
-    components.push(box(`beam-right-${floor}`, floor === 1 ? 2 : 3, 32, halfW - 0.28,
-      base + floorHeight - 0.35, -halfD, 0.28, 0.35, depth, CONCRETE_DARK));
 
     if (floor < floors) {
       const stairX = halfW - 2.1;
+      components.push(box(`stair-stringer-${floor}`, 3, 39, stairX - 0.08,
+        base, -halfD + 1.1, 0.08, floorHeight, 2.9, CONCRETE_DARK));
       for (let step = 0; step < 6; step += 1) {
         components.push(box(`stair-${floor}-${step}`, 3, 40 + step, stairX,
           base + (step * floorHeight) / 6, -halfD + 1.2 + step * 0.36, 1.4,
@@ -191,11 +189,8 @@ function generate(house: BuildingProps['building']['house']): Component[] {
     }
   }
 
-  components.push(box('yard-path', 6, 400, -1.1, 0.02, halfD + 0.2, 2.2, 0.12, sitePadding + 1.5, YARD));
-  components.push(box('yard-wall-left', 6, 401, -halfW - sitePadding + 0.4, 0, halfD + 0.3,
-    0.3, 1.1, sitePadding + 1.1, WALL_SIDE));
-  components.push(box('yard-wall-right', 6, 402, halfW + sitePadding - 0.7, 0, halfD + 0.3,
-    0.3, 1.1, sitePadding + 1.1, WALL_SIDE));
+  components.push(box('yard-path', 6, 400, -1.1, 0.02, halfD + 0.2, 2.2, 0.12,
+    Math.max(1, sitePadding - 0.6), YARD));
   return components;
 }
 
