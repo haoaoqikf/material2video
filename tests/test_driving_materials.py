@@ -18,8 +18,8 @@ def test_valid_synthetic_route_loads_and_builds_render_props(tmp_path):
     docs = materials.load_project(root)
     assert docs["request"]["origin"]["label"] == "上海"
     props = materials.build_render_props(docs)
-    assert props["durationInFrames"] == 1800
-    assert (props["width"], props["height"], props["fps"]) == (1080, 1920, 60)
+    assert props["durationInFrames"] == 900
+    assert (props["width"], props["height"], props["fps"]) == (1080, 1920, 30)
     assert props["totalDistanceMeters"] == 5000
     assert [step["road"] for step in props["steps"]] == ["合成高速", "合成高速"]
 
@@ -211,6 +211,13 @@ def test_v1_materials_are_rejected(tmp_path):
     root = write_project(tmp_path)
     edit(root / "request.json", lambda data: data.update(schemaVersion=1))
     with pytest.raises(M2VError, match="必须为 2"):
+        materials.load_project(root)
+
+
+def test_v2_route_is_rejected(tmp_path):
+    root = write_project(tmp_path)
+    edit(root / "route.json", lambda data: data.update(schemaVersion=2))
+    with pytest.raises(M2VError, match="必须为 3"):
         materials.load_project(root)
 
 

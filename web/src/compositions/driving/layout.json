@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 4,
   "width": 1080,
   "height": 1920,
   "title": {
@@ -17,13 +17,15 @@
     "padding": 24
   },
   "camera": {
-    "openingSeconds": 3,
-    "openingStartZoom": 5,
-    "openingEndZoom": 6,
-    "openingTransitionSeconds": 1,
-    "followZoom": 6,
-    "endingSeconds": 3,
-    "overviewFadeRatio": 2,
+    "openingSeconds": 2,
+    "openingStartZoom": 9,
+    "openingEndZoom": 16,
+    "openingTransitionSeconds": 0.5,
+    "followZoom": 16,
+    "cameraSmoothingSeconds": 0.6,
+    "endingSeconds": 2,
+    "endingHoldSeconds": 1,
+    "overviewFadeRatio": 9,
     "lookaheadRouteFraction": 0.02,
     "lookaheadViewFraction": 0.2,
     "lookaheadTargetFraction": 0.5
@@ -32,7 +34,9 @@
     "sideMargin": 24,
     "endpointSize": 34,
     "roadSize": 26,
-    "citySize": 22,
+    "citySize": 30,
+    "cityWeight": 700,
+    "cityStrokeWidth": 8,
     "attributionSize": 20,
     "pillSize": 28,
     "pillHeight": 52

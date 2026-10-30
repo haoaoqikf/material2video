@@ -1,7 +1,8 @@
-import { FPS, GENERAL_DEFAULT_FPS } from './video-config';
+import { BUILDING_FPS, DRIVING_ROUTE_FPS, FPS, GENERAL_DEFAULT_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
+import { BuildingConstruction, type BuildingProps } from './compositions/BuildingConstruction';
 import { DrivingRoute, type DrivingRouteProps } from './compositions/DrivingRoute';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
 import { DEFAULT_FRAME } from './frames';
@@ -45,10 +46,25 @@ export const RemotionRoot: FC = () => {
         })}
       />
       <Composition
+        id="BuildingConstruction"
+        component={BuildingConstruction}
+        durationInFrames={1200}
+        fps={BUILDING_FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{} as BuildingProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width: props.width,
+          height: props.height,
+        })}
+      />
+      <Composition
         id="DrivingRoute"
         component={DrivingRoute}
-        durationInFrames={1800}
-        fps={FPS}
+        durationInFrames={900}
+        fps={DRIVING_ROUTE_FPS}
         width={1080}
         height={1920}
         defaultProps={{} as DrivingRouteProps}

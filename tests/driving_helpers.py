@@ -57,20 +57,34 @@ def acquisition() -> dict:
             {"path": "/v5/direction/driving",
              "params": {"origin": "121.47,31.23", "destination": "121.5,31.26",
                         "strategy": "34", "show_fields": "cost,cities,polyline"}},
+            {"path": "/v3/config/district",
+             "params": {"keywords": "310000", "subdistrict": "2", "extensions": "base"}},
+            {"path": "/v3/config/district",
+             "params": {"keywords": "320500", "subdistrict": "2", "extensions": "base"}},
         ],
     }
 
 
+def administrative_places() -> list[dict]:
+    return [
+        {"name": "上海市", "level": "city", "adcode": "310000", "center": [121.47, 31.23]},
+        {"name": "苏州市", "level": "city", "adcode": "320500", "center": [120.62, 31.30]},
+        {"name": "昆山市", "level": "county", "adcode": "320583",
+         "parentAdcode": "320500", "center": [120.98, 31.38]},
+    ]
+
+
 def route_document(request: dict, *, steps: list[dict] | None = None,
                    origin_location=ORIGIN, destination_location=DESTINATION,
-                   cost: dict | None = None, cities: list[dict] | None = None) -> dict:
+                   cost: dict | None = None, cities: list[dict] | None = None,
+                   places: list[dict] | None = None) -> dict:
     points = [list(ORIGIN), *[list(item) for item in MIDDLE], list(DESTINATION)]
     steps = steps if steps is not None else [
         {"road": "合成高速", "distanceMeters": 2500, "points": points[:3]},
         {"road": "合成高速", "distanceMeters": 2500, "points": points[2:]},
     ]
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "requestDigest": materials.request_digest(request),
         "coordinateSystem": "GCJ-02",
         "origin": {
@@ -99,6 +113,7 @@ def route_document(request: dict, *, steps: list[dict] | None = None,
             {"name": "上海市", "adcode": "310000", "location": [121.475, 31.235]},
             {"name": "苏州市", "adcode": "320500", "location": [121.485, 31.245]},
         ],
+        "administrativePlaces": places if places is not None else administrative_places(),
         "acquisition": acquisition(),
         "sourceUsage": copy.deepcopy(request["sourceUsage"]),
     }

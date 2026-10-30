@@ -1,7 +1,7 @@
 """Versioned project manifests and content-addressed preparation records."""
 from __future__ import annotations
 
-from m2v.core.video_config import FPS, default_fps, project_fps, validate_general_fps
+from m2v.core.video_config import default_fps, project_fps, validate_general_fps
 
 import hashlib
 import json
@@ -68,8 +68,10 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if data["type"] == "general":
         if "fps" in output:
             validate_general_fps(output["fps"], "output.fps")
-    elif output.get("fps", FPS) != FPS:
-        raise M2VError(f"output.fps 必须为 {FPS}；旧帧率材料请重新编排")
+    else:
+        expected_fps = default_fps(data["type"])
+        if output.get("fps", expected_fps) != expected_fps:
+            raise M2VError(f"output.fps 必须为 {expected_fps}；旧帧率材料请重新编排")
     selected_style(data, width=output.get("width") if data["type"] != "general" else None,
                    height=output.get("height") if data["type"] != "general" else None)
     return root, data

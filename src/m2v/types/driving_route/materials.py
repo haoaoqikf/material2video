@@ -20,17 +20,18 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from m2v.core.validate import fail, obj, text
-from m2v.core.video_config import FPS
+from m2v.core.video_config import DRIVING_ROUTE_FPS
 from m2v.types.driving_route import geometry, layout as layout_module
 
 #: 画幅与帧率是类型契约，不由作品或请求临时覆盖。
 WIDTH = 1080
 HEIGHT = 1920
+FPS = DRIVING_ROUTE_FPS
 
 #: 作品清单里的固定材料入口。
 MATERIALS = {"request": "request.json", "route": "route.json"}
 
-#: 时长下限：首尾各 3 秒，必须留出至少 1 帧行驶。
+#: 时长下限：首尾各 2 秒，必须留出至少 1 帧行驶。
 MIN_DURATION_SECONDS = 6
 
 #: 相邻道路段端点的服务采样容差。
@@ -60,15 +61,16 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _load(path: Path) -> dict[str, Any]:
+def _load(path: Path, expected_version: int = 2) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_pairs)
     except (OSError, UnicodeError, ValueError) as exc:
         fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
     if not isinstance(data, dict):
         fail(path.name, "顶层必须是 JSON 对象")
-    if type(data.get("schemaVersion")) is not int or data["schemaVersion"] != 2:
-        fail(f"{path.name}.schemaVersion", "当前必须为 2；v1 材料请更新请求并重新运行 m2v driving-route fetch")
+    if type(data.get("schemaVersion")) is not int or data["schemaVersion"] != expected_version:
+        fail(f"{path.name}.schemaVersion",
+             f"当前必须为 {expected_version}；旧材料请重新运行 m2v driving-route fetch")
     return data
 
 
@@ -242,8 +244,8 @@ def _validate_acquisition(value: Any) -> None:
     if parsed.tzinfo is None:
         fail(f"{where}.requestedAt", "必须包含时区")
     requests = acquisition.get("requests")
-    if not isinstance(requests, list) or not 1 <= len(requests) <= 10:
-        fail(f"{where}.requests", "必须记录 1～10 条不含凭据的请求")
+    if not isinstance(requests, list) or not 1 <= len(requests) <= 200:
+        fail(f"{where}.requests", "必须记录 1～200 条不含凭据的请求")
     recorded_paths: set[str] = set()
     for index, raw in enumerate(requests):
         item_where = f"{where}.requests[{index}]"
@@ -256,13 +258,49 @@ def _validate_acquisition(value: Any) -> None:
         if not isinstance(params, dict) or not params:
             fail(f"{item_where}.params", "必须记录非空的请求参数")
         for key, param in params.items():
-            if "key" in key.lower():
+            normalized_key = key.lower().replace("-", "_")
+            if "key" in normalized_key and normalized_key != "keywords":
                 fail(f"{item_where}.params", "不得保存凭据字段；Key 只能来自环境变量")
             if not isinstance(param, str) or not param.strip():
                 fail(f"{item_where}.params.{key}", "必须是记录用的非空字符串")
-    expected_requests = {"/v3/geocode/geo", "/v5/direction/driving"}
+    expected_requests = {"/v3/geocode/geo", "/v5/direction/driving", "/v3/config/district"}
     if not expected_requests.issubset(recorded_paths):
-        fail(f"{where}.requests", "必须同时记录定位与驾车规划请求")
+        fail(f"{where}.requests", "必须同时记录定位、驾车规划与行政区请求")
+
+
+def _validate_administrative_places(value: Any, cities: list[dict[str, Any]]) -> None:
+    where = "route.json.administrativePlaces"
+    if not isinstance(value, list) or not 1 <= len(value) <= 1000:
+        fail(where, "必须包含 1～1000 个市/县行政区中心点")
+    city_adcodes = {city["adcode"] for city in cities}
+    seen: set[str] = set()
+    city_places: set[str] = set()
+    county_parents: dict[str, int] = {}
+    for index, raw in enumerate(value):
+        item_where = f"{where}[{index}]"
+        place = obj(raw, item_where, {"name", "level", "adcode", "center", "parentAdcode"})
+        name = _content_text(place.get("name"), f"{item_where}.name")
+        level = place.get("level")
+        if level not in {"city", "county"}:
+            fail(f"{item_where}.level", "必须为 city 或 county")
+        adcode = _content_text(place.get("adcode"), f"{item_where}.adcode")
+        if not re.fullmatch(r"\d{6}", adcode):
+            fail(f"{item_where}.adcode", "必须是 6 位行政区划代码")
+        if adcode in seen:
+            fail(item_where, f"行政区重复：{name}")
+        seen.add(adcode)
+        _coordinate(place.get("center"), f"{item_where}.center")
+        if level == "city":
+            if adcode not in city_adcodes:
+                fail(f"{item_where}.adcode", "市级中心点必须是路线城市之一")
+            city_places.add(adcode)
+        else:
+            parent = place.get("parentAdcode")
+            if not isinstance(parent, str) or parent not in city_adcodes:
+                fail(f"{item_where}.parentAdcode", "必须指向路线中的城市")
+            county_parents[parent] = county_parents.get(parent, 0) + 1
+    if city_places != city_adcodes:
+        fail(where, "每个路线城市都必须有市级中心点")
 
 
 def _validate_cost(value: Any, distance_meters: float) -> None:
@@ -296,20 +334,40 @@ def _validate_cities(value: Any) -> None:
         seen.add(name)
 
 
+def _validate_bbox(value: Any, where: str) -> list[float]:
+    if not isinstance(value, list) or len(value) != 4:
+        fail(where, "必须是 [minLng, minLat, maxLng, maxLat]")
+    min_lng = _finite_number(value[0], f"{where}[0]", low=-180, high=180)
+    min_lat = _finite_number(value[1], f"{where}[1]", low=-90, high=90)
+    max_lng = _finite_number(value[2], f"{where}[2]", low=-180, high=180)
+    max_lat = _finite_number(value[3], f"{where}[3]", low=-90, high=90)
+    if not (min_lng < max_lng and min_lat < max_lat):
+        fail(where, "最小经纬度必须小于最大经纬度")
+    return [min_lng, min_lat, max_lng, max_lat]
+
+
+def _validate_request_record(value: Any, where: str) -> None:
+    request = obj(value, where, {"path", "params"})
+    path_text = text(request.get("path"), f"{where}.path")
+    if not path_text.startswith("/"):
+        fail(f"{where}.path", "必须是服务路径")
+    params = request.get("params")
+    if not isinstance(params, dict) or not params:
+        fail(f"{where}.params", "必须记录非空请求参数")
+    for key, value_text in params.items():
+        normalized_key = key.lower().replace("-", "_")
+        if "key" in normalized_key and normalized_key != "keywords":
+            fail(f"{where}.params", "不得保存凭据字段")
+        if not isinstance(value_text, str) or not value_text.strip():
+            fail(f"{where}.params.{key}", "必须是记录用的非空字符串")
+
+
 def _validate_basemap_layer(value: Any, where: str) -> None:
     layer = obj(value, where, {"zoom", "bbox", "image", "projected", "tileCount", "request"})
     zoom = layer.get("zoom")
     if type(zoom) is not int or not 1 <= zoom <= 18:
         fail(f"{where}.zoom", "必须是 1～18 的整数")
-    bbox = layer.get("bbox")
-    if not isinstance(bbox, list) or len(bbox) != 4:
-        fail(f"{where}.bbox", "必须是 [minLng, minLat, maxLng, maxLat]")
-    min_lng = _finite_number(bbox[0], f"{where}.bbox[0]", low=-180, high=180)
-    min_lat = _finite_number(bbox[1], f"{where}.bbox[1]", low=-90, high=90)
-    max_lng = _finite_number(bbox[2], f"{where}.bbox[2]", low=-180, high=180)
-    max_lat = _finite_number(bbox[3], f"{where}.bbox[3]", low=-90, high=90)
-    if not (min_lng < max_lng and min_lat < max_lat):
-        fail(f"{where}.bbox", "最小经纬度必须小于最大经纬度")
+    _validate_bbox(layer.get("bbox"), f"{where}.bbox")
     image = obj(layer.get("image"), f"{where}.image", {"path", "sha256", "width", "height"})
     path = text(image.get("path"), f"{where}.image.path")
     normalized = Path(path)
@@ -333,29 +391,90 @@ def _validate_basemap_layer(value: Any, where: str) -> None:
     tile_count = layer.get("tileCount")
     if type(tile_count) is not int or tile_count <= 0:
         fail(f"{where}.tileCount", "必须是正整数")
-    request = obj(layer.get("request"), f"{where}.request", {"path", "params"})
-    path_text = text(request.get("path"), f"{where}.request.path")
-    if not path_text.startswith("/"):
-        fail(f"{where}.request.path", "必须是服务路径")
-    params = request.get("params")
-    if not isinstance(params, dict) or not params:
-        fail(f"{where}.request.params", "必须记录非空请求参数")
-    for key, value_text in params.items():
-        if "key" in key.lower():
-            fail(f"{where}.request.params", "不得保存凭据字段")
-        if not isinstance(value_text, str) or not value_text.strip():
-            fail(f"{where}.request.params.{key}", "必须是记录用的非空字符串")
+    _validate_request_record(layer.get("request"), f"{where}.request")
 
 
-def _validate_basemap(value: Any) -> None:
+def _validate_follow_tiles(value: Any, where: str, request: dict[str, Any],
+                           route: dict[str, Any], tile_style: int) -> None:
+    follow = obj(value, where, {"zoom", "tileSize", "tileCount", "planDigest",
+                                "manifestDigest", "bbox", "request", "tiles"})
+    zoom = follow.get("zoom")
+    if type(zoom) is not int or not 1 <= zoom <= 18:
+        fail(f"{where}.zoom", "必须是 1～18 的整数")
+    if follow.get("tileSize") != 256:
+        fail(f"{where}.tileSize", "必须为 256")
+    tile_count = follow.get("tileCount")
+    if type(tile_count) is not int or not 1 <= tile_count <= layout_module.MAX_CORRIDOR_TILES:
+        fail(f"{where}.tileCount", f"必须是 1～{layout_module.MAX_CORRIDOR_TILES} 的整数")
+    for field in ("planDigest", "manifestDigest"):
+        digest = text(follow.get(field), f"{where}.{field}")
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            fail(f"{where}.{field}", "必须是 64 位十六进制 SHA-256")
+    _validate_bbox(follow.get("bbox"), f"{where}.bbox")
+    _validate_request_record(follow.get("request"), f"{where}.request")
+    tiles = follow.get("tiles")
+    if not isinstance(tiles, list) or len(tiles) != tile_count:
+        fail(f"{where}.tiles", "必须与 tileCount 一致")
+    keys: set[tuple[int, int]] = set()
+    records: list[dict[str, Any]] = []
+    limit = (1 << zoom) - 1
+    for index, raw in enumerate(tiles):
+        item_where = f"{where}.tiles[{index}]"
+        tile = obj(raw, item_where, {"x", "y", "z", "path", "sha256", "width", "height",
+                                     "projected"})
+        x, y, z = tile.get("x"), tile.get("y"), tile.get("z")
+        if type(x) is not int or type(y) is not int or type(z) is not int:
+            fail(item_where, "x/y/z 必须是整数")
+        if z != zoom or not (0 <= x <= limit and 0 <= y <= limit):
+            fail(item_where, "x/y/z 超出 zoom 范围或与 zoom 不一致")
+        if (x, y) in keys:
+            fail(item_where, f"瓦片重复：{x}:{y}")
+        keys.add((x, y))
+        path = text(tile.get("path"), f"{item_where}.path")
+        normalized = Path(path)
+        if (normalized.is_absolute() or ".." in normalized.parts
+                or not path.startswith("assets/basemap/follow-tiles-")):
+            fail(f"{item_where}.path", "必须是 assets/basemap/follow-tiles- 下的相对路径")
+        if normalized.suffix.lower() not in {".jpg", ".jpeg"}:
+            fail(f"{item_where}.path", "必须是 JPEG 瓦片")
+        digest = text(tile.get("sha256"), f"{item_where}.sha256")
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            fail(f"{item_where}.sha256", "必须是 64 位十六进制 SHA-256")
+        if tile.get("width") != 256 or tile.get("height") != 256:
+            fail(f"{item_where}", "瓦片尺寸必须为 256×256")
+        projected = obj(tile.get("projected"), f"{item_where}.projected",
+                        {"left", "top", "width", "height"})
+        expected = layout_module.tile_projected_rect(x, y, z)
+        for field in ("left", "top", "width", "height"):
+            actual = _finite_number(projected.get(field), f"{item_where}.projected.{field}")
+            if abs(actual - expected[field]) > max(1e-3, abs(expected[field]) * 1e-9):
+                fail(f"{item_where}.projected.{field}", "与 x/y/z 推导的投影矩形不一致")
+        records.append({"x": x, "y": y, "sha256": digest})
+
+    plan = layout_module.corridor_plan(route, request["durationSeconds"], FPS, zoom,
+                                       tile_style=tile_style)
+    if follow.get("planDigest") != plan["planDigest"]:
+        fail(f"{where}.planDigest", "与当前路线/时长/帧率/底图样式不匹配；请重新运行 basemap")
+    if {tile["x"] for tile in plan["tiles"]} and keys != {(tile["x"], tile["y"])
+                                                         for tile in plan["tiles"]}:
+        fail(f"{where}.tiles", "瓦片集合与相机走廊计划不一致；请重新运行 basemap")
+    if follow.get("bbox") != plan["bbox"]:
+        fail(f"{where}.bbox", "与相机走廊计划不一致")
+    if layout_module.manifest_digest(plan["planDigest"], records) != follow.get("manifestDigest"):
+        fail(f"{where}.manifestDigest", "与瓦片摘要不一致；请重新运行 basemap")
+
+
+def _validate_basemap(value: Any, request: dict[str, Any], route: dict[str, Any]) -> None:
     where = "route.json.basemap"
     basemap = obj(value, where, {"layoutVersion", "provider", "service", "attribution",
-                                 "fetchedAt", "overview", "follow"})
+                                 "fetchedAt", "overview", "followTiles"})
     version = basemap.get("layoutVersion")
     if type(version) is not int or version != layout_module.layout_version():
         fail(f"{where}.layoutVersion", "布局版本不匹配；请重新运行 m2v driving-route basemap")
-    if basemap.get("provider") != "amap" or basemap.get("service") != "road-tiles":
-        fail(where, "当前道路底图只支持 amap road-tiles")
+    service = basemap.get("service")
+    if basemap.get("provider") != "amap" or service not in {"road-tiles", "satellite-tiles"}:
+        fail(where, "当前底图只支持 amap road-tiles 或 satellite-tiles")
+    tile_style = 6 if service == "satellite-tiles" else 8
     _content_text(basemap.get("attribution"), f"{where}.attribution")
     fetched_at = text(basemap.get("fetchedAt"), f"{where}.fetchedAt")
     try:
@@ -365,7 +484,13 @@ def _validate_basemap(value: Any) -> None:
     if parsed.tzinfo is None:
         fail(f"{where}.fetchedAt", "必须包含时区")
     _validate_basemap_layer(basemap.get("overview"), f"{where}.overview")
-    _validate_basemap_layer(basemap.get("follow"), f"{where}.follow")
+    overview = basemap.get("overview")
+    if isinstance(overview, dict) and overview.get("request", {}).get("params", {}).get("style") != str(tile_style):
+        fail(f"{where}.overview.request.params.style", f"必须为 {tile_style}")
+    follow = basemap.get("followTiles")
+    if isinstance(follow, dict) and follow.get("request", {}).get("params", {}).get("style") != str(tile_style):
+        fail(f"{where}.followTiles.request.params.style", f"必须为 {tile_style}")
+    _validate_follow_tiles(follow, f"{where}.followTiles", request, route, tile_style)
 
 
 def _route_bbox(steps: list[dict[str, Any]]) -> tuple[float, float, float, float]:
@@ -381,46 +506,87 @@ def _required_bbox(route_box: tuple[float, float, float, float],
     return [min_lng, min_lat, max_lng, max_lat]
 
 
-def _validate_basemap_image(root: Path, basemap: dict[str, Any],
+def _expected_projected_rect(bbox: list[float], zoom: int) -> dict[str, float]:
+    left = geometry.project(bbox[0], bbox[3])[0]
+    top = -geometry.project(bbox[0], bbox[3])[1]
+    right = geometry.project(bbox[2], bbox[1])[0]
+    bottom = -geometry.project(bbox[2], bbox[1])[1]
+    return {"left": left, "top": top, "width": right - left, "height": bottom - top}
+
+
+def _validate_basemap_image(root: Path, basemap: dict[str, Any], request: dict[str, Any],
                             route: dict[str, Any]) -> None:
-    """校验两级影像的文件、摘要、尺寸与相机视口覆盖。"""
+    """校验概览影像与跟随瓦片的文件、摘要、尺寸和逐帧覆盖。"""
     from PIL import Image
 
     route_box = geometry.route_projected_bbox(route)
     envelope = layout_module.camera_envelope(
         route_box, geometry.projected_length(route), route["route"]["distanceMeters"])
-    required = {
-        "overview": _required_bbox(route_box, envelope["overview_half_x"], envelope["overview_half_y"]),
-        "follow": _required_bbox(route_box, envelope["follow_half_x"], envelope["follow_half_y"]),
-    }
-    for name in ("overview", "follow"):
-        layer = basemap[name]
-        where = f"route.json.basemap.{name}"
-        relative = Path(layer["image"]["path"])
-        file = (root / relative).resolve()
-        if not file.is_relative_to(root.resolve()) or not file.is_file():
-            fail(f"{where}.image.path", f"影像不存在：{relative}")
-        content = file.read_bytes()
-        if hashlib.sha256(content).hexdigest() != layer["image"]["sha256"]:
-            fail(f"{where}.image.sha256", "影像摘要不匹配；请重新运行 m2v driving-route basemap")
+    overview_need = _required_bbox(route_box, envelope["overview_half_x"],
+                                   envelope["overview_half_y"])
+    overview = basemap["overview"]
+    follow = basemap["followTiles"]
+    expected_zoom = layout_module.zoom_for_scale(envelope["follow_scale"], minimum=9)
+    if follow["zoom"] != expected_zoom:
+        fail("route.json.basemap.followTiles.zoom",
+             f"跟随瓦片应为 z{expected_zoom}；请重新运行 m2v driving-route basemap")
+    where = "route.json.basemap.overview"
+    relative = Path(overview["image"]["path"])
+    file = (root / relative).resolve()
+    if not file.is_relative_to(root.resolve()) or not file.is_file():
+        fail(f"{where}.image.path", f"影像不存在：{relative}")
+    content = file.read_bytes()
+    if hashlib.sha256(content).hexdigest() != overview["image"]["sha256"]:
+        fail(f"{where}.image.sha256", "影像摘要不匹配；请重新运行 m2v driving-route basemap")
+    try:
+        with Image.open(file) as image:
+            size = image.size
+    except Exception as exc:  # noqa: BLE001 - 任意解码失败都转为材料错误
+        fail(f"{where}.image", f"无法解码影像：{exc}")
+    if size != (overview["image"]["width"], overview["image"]["height"]):
+        fail(f"{where}.image", "影像尺寸与记录不一致")
+    bbox = overview["bbox"]
+    if not (bbox[0] <= overview_need[0] + 2e-6 and bbox[1] <= overview_need[1] + 2e-6
+            and bbox[2] >= overview_need[2] - 2e-6 and bbox[3] >= overview_need[3] - 2e-6):
+        fail(f"{where}.bbox", "道路底图包围盒未覆盖当前相机视口；请重新运行 basemap")
+    expected_projected = _expected_projected_rect(bbox, overview["zoom"])
+    tolerance = 2.5 * geometry.WORLD / ((1 << overview["zoom"]) * 256)
+    for field, expected in expected_projected.items():
+        if abs(overview["projected"][field] - expected) > tolerance:
+            fail(f"{where}.projected.{field}", "与包围盒/缩放推导的投影矩形不一致；请重新运行 basemap")
+
+    stored: set[tuple[int, int]] = set()
+    for index, tile in enumerate(follow["tiles"]):
+        item_where = f"route.json.basemap.followTiles.tiles[{index}]"
+        tile_path = (root / tile["path"]).resolve()
+        if not tile_path.is_relative_to(root.resolve()) or not tile_path.is_file():
+            fail(f"{item_where}.path", f"瓦片不存在：{tile['path']}")
+        tile_bytes = tile_path.read_bytes()
+        if hashlib.sha256(tile_bytes).hexdigest() != tile["sha256"]:
+            fail(f"{item_where}.sha256", "瓦片摘要不匹配；请重新运行 m2v driving-route basemap")
         try:
-            with Image.open(file) as image:
-                size = image.size
-        except Exception as exc:  # noqa: BLE001 - 任意解码失败都转为材料错误
-            fail(f"{where}.image", f"无法解码影像：{exc}")
-        if size != (layer["image"]["width"], layer["image"]["height"]):
-            fail(f"{where}.image", "影像尺寸与记录不一致")
-        bbox = layer["bbox"]
-        need = required[name]
-        if not (bbox[0] <= need[0] + 2e-6 and bbox[1] <= need[1] + 2e-6
-                and bbox[2] >= need[2] - 2e-6 and bbox[3] >= need[3] - 2e-6):
-            fail(f"{where}.bbox", "道路底图包围盒未覆盖当前相机视口；请重新运行 basemap")
+            with Image.open(tile_path) as image:
+                tile_size = image.size
+        except Exception as exc:  # noqa: BLE001
+            fail(item_where, f"无法解码瓦片：{exc}")
+        if tile_size != (tile["width"], tile["height"]):
+            fail(item_where, "瓦片尺寸与记录不一致")
+        stored.add((tile["x"], tile["y"]))
+
+    tile_style = 6 if basemap.get("service") == "satellite-tiles" else 8
+    missing = layout_module.missing_corridor_tiles(
+        route, request["durationSeconds"], FPS, follow["zoom"], stored, tile_style)
+    if missing:
+        x, y = sorted(missing)[0]
+        fail("route.json.basemap.followTiles",
+             f"缺少 {len(missing)} 块相机走廊瓦片（首块 {x}:{y}）；请重新运行 basemap")
 
 
 def _validate_route(request: dict[str, Any], route: dict[str, Any]) -> None:
     obj(route, "route.json", {"schemaVersion", "requestDigest", "coordinateSystem",
                               "origin", "destination", "route", "acquisition",
-                              "sourceUsage", "cost", "cities", "basemap"})
+                              "sourceUsage", "cost", "cities", "administrativePlaces",
+                              "basemap"})
     digest = text(route.get("requestDigest"), "route.json.requestDigest")
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         fail("route.json.requestDigest", "必须是 64 位十六进制 SHA-256 摘要")
@@ -479,8 +645,9 @@ def _validate_route(request: dict[str, Any], route: dict[str, Any]) -> None:
         fail("route.json.sourceUsage", "必须与当前 request.json.sourceUsage 一致；请重新运行 m2v driving-route fetch")
     _validate_cost(route.get("cost"), distance_meters)
     _validate_cities(route.get("cities"))
+    _validate_administrative_places(route.get("administrativePlaces"), route.get("cities"))
     if "basemap" in route:
-        _validate_basemap(route["basemap"])
+        _validate_basemap(route["basemap"], request, route)
 
 
 def _route_length(steps: list[dict[str, Any]]) -> float:
@@ -495,7 +662,7 @@ def _route_length(steps: list[dict[str, Any]]) -> float:
 def load_request(project_dir: str | Path) -> dict[str, Any]:
     """只读取并校验请求；取数前使用，不要求路线已存在。"""
     root = Path(project_dir).resolve()
-    request = _load(root / MATERIALS["request"])
+    request = _load(root / MATERIALS["request"], 2)
     _validate_request(request)
     return request
 
@@ -512,19 +679,24 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    request = _load(root / MATERIALS["request"])
-    route = _load(root / MATERIALS["route"])
+    request = _load(root / MATERIALS["request"], 2)
+    route = _load(root / MATERIALS["route"], 3)
     _validate_request(request)
     _validate_route(request, route)
     _require_basemap(request, route)
     docs = {"request": request, "route": route}
     if "basemap" in route:
-        _validate_basemap_image(root, route["basemap"], route)
-        docs["basemapDataUris"] = {}
-        for name in ("overview", "follow"):
-            image_path = root / route["basemap"][name]["image"]["path"]
-            docs["basemapDataUris"][name] = (
-                "data:image/jpeg;base64," + base64.b64encode(image_path.read_bytes()).decode("ascii"))
+        _validate_basemap_image(root, route["basemap"], request, route)
+        overview_path = root / route["basemap"]["overview"]["image"]["path"]
+        docs["basemapDataUris"] = {
+            "overview": "data:image/jpeg;base64," + base64.b64encode(
+                overview_path.read_bytes()).decode("ascii"),
+            "followTiles": [
+                "data:image/jpeg;base64," + base64.b64encode(
+                    (root / tile["path"]).read_bytes()).decode("ascii")
+                for tile in route["basemap"]["followTiles"]["tiles"]
+            ],
+        }
     return docs
 
 
@@ -564,19 +736,32 @@ def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
         "attribution": request["sourceUsage"]["attribution"],
         "cost": route["cost"],
         "cities": route["cities"],
+        "administrativePlaces": route["administrativePlaces"],
         "steps": steps,
     }
     if "basemap" in route:
         data_uris = docs.get("basemapDataUris")
-        if not isinstance(data_uris, dict) or set(data_uris) != {"overview", "follow"}:
+        if not isinstance(data_uris, dict) or set(data_uris) != {"overview", "followTiles"}:
             fail("route.json.basemap", "缺少已加载的道路底图影像；请重新 prepare")
+        follow = route["basemap"]["followTiles"]
+        uris = data_uris["followTiles"]
+        if not isinstance(uris, list) or len(uris) != len(follow["tiles"]):
+            fail("route.json.basemap.followTiles", "瓦片影像数量与记录不一致；请重新 prepare")
         props["basemap"] = {
             "provider": route["basemap"]["provider"],
             "service": route["basemap"]["service"],
             "attribution": route["basemap"]["attribution"],
             "fetchedAt": route["basemap"]["fetchedAt"],
             "overview": {**route["basemap"]["overview"], "dataUri": data_uris["overview"]},
-            "follow": {**route["basemap"]["follow"], "dataUri": data_uris["follow"]},
+            "followTiles": {
+                "zoom": follow["zoom"],
+                "tileSize": follow["tileSize"],
+                "tiles": [
+                    {"x": tile["x"], "y": tile["y"], "z": tile["z"],
+                     "projected": tile["projected"], "dataUri": uri}
+                    for tile, uri in zip(follow["tiles"], uris, strict=True)
+                ],
+            },
         }
     return props
 
@@ -597,12 +782,17 @@ def render_inputs_digest(project_dir: str | Path) -> str:
     inputs.extend((package, path) for path in sorted(package.glob("*.py")))
     inputs.append((REPOSITORY_ROOT, Path(render_pipeline.__file__)))
     inputs.extend((REPOSITORY_ROOT, path) for path in remotion.implementation_files())
-    route = _load(root / MATERIALS["route"])
+    route = _load(root / MATERIALS["route"], 3)
     if "basemap" in route:
-        for name in ("overview", "follow"):
-            image = root / route["basemap"][name]["image"]["path"]
+        overview = root / route["basemap"]["overview"]["image"]["path"]
+        if not overview.is_file():
+            fail("route.json.basemap.overview.image.path", f"道路底图影像不存在：{overview}")
+        inputs.append((root, overview))
+        for index, tile in enumerate(route["basemap"]["followTiles"]["tiles"]):
+            image = root / tile["path"]
             if not image.is_file():
-                fail(f"route.json.basemap.{name}.image.path", f"道路底图影像不存在：{image}")
+                fail(f"route.json.basemap.followTiles.tiles[{index}].path",
+                     f"跟随瓦片不存在：{image}")
             inputs.append((root, image))
 
     digest = hashlib.sha256()

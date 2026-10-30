@@ -47,8 +47,9 @@ def test_conflict():
         general_fps({"output": {"fps": 30}}, {"fps": 60})
 
 
-@pytest.mark.parametrize("kind,expected", [("general", 30), ("financial-timeseries", 60)])
-def test_init_type_defaults(tmp_path, kind, expected):
+@pytest.mark.parametrize("kind,expected,bad", [
+    ("general", 30, None), ("financial-timeseries", 60, 30), ("driving-route", 30, 60)])
+def test_init_type_defaults(tmp_path, kind, expected, bad):
     root = tmp_path / kind
     assert main(["init", "--type", kind, "--project", str(root)]) == 0
     _, manifest = load_project(root)
@@ -56,9 +57,9 @@ def test_init_type_defaults(tmp_path, kind, expected):
     if kind == "general":
         assert json.loads((root / "storyboard.json").read_text(encoding="utf-8"))["fps"] == 30
     else:
-        manifest["output"]["fps"] = 30
+        manifest["output"]["fps"] = bad
         (root / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
-        with pytest.raises(M2VError, match="必须为 60"):
+        with pytest.raises(M2VError, match=f"必须为 {expected}"):
             load_project(root)
 
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import math
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -137,23 +138,28 @@ class AmapClient:
 
     def _get(self, path: str, params: dict[str, str]) -> dict[str, Any]:
         url = f"{self._api_base}{path}?{urllib.parse.urlencode({**params, 'key': self._key})}"
-        try:
-            status, body = self._transport(url, self._timeout)
-        except Exception as exc:  # noqa: BLE001 - 任何传输失败都只报类型，不回显 URL
-            raise M2VError(f"高德服务请求失败（{type(exc).__name__}）；请检查网络后重试") from None
-        if status != 200:
-            raise M2VError(f"高德服务返回 HTTP {status}；请稍后重试")
-        try:
-            payload = json.loads(body.decode("utf-8"))
-        except (UnicodeError, ValueError):
-            raise M2VError("高德服务返回非 JSON 响应") from None
-        if not isinstance(payload, dict):
-            raise M2VError("高德服务返回的响应结构无效")
-        if payload.get("status") != "1":
+        for attempt in range(3):
+            try:
+                status, body = self._transport(url, self._timeout)
+            except Exception as exc:  # noqa: BLE001 - 任何传输失败都只报类型，不回显 URL
+                raise M2VError(f"高德服务请求失败（{type(exc).__name__}）；请检查网络后重试") from None
+            if status != 200:
+                raise M2VError(f"高德服务返回 HTTP {status}；请稍后重试")
+            try:
+                payload = json.loads(body.decode("utf-8"))
+            except (UnicodeError, ValueError):
+                raise M2VError("高德服务返回非 JSON 响应") from None
+            if not isinstance(payload, dict):
+                raise M2VError("高德服务返回的响应结构无效")
+            if payload.get("status") == "1":
+                return payload
             code = payload.get("infocode") or "未知错误码"
+            if code == "10021" and attempt < 2:
+                time.sleep(1.0)
+                continue
             info = payload.get("info") or "请求失败"
             raise M2VError(f"高德服务拒绝请求：{info}（infocode={code}）")
-        return payload
+        raise M2VError("高德服务请求被限流；请稍后重试")
 
     def geocode(self, address: str, city: str) -> dict[str, Any]:
         payload = self._get("/v3/geocode/geo", {"address": address, "city": city, "output": "JSON"})
@@ -184,6 +190,60 @@ class AmapClient:
             "formattedAddress": formatted.strip(),
             "city": detected_city.strip(),
             "level": level.strip(),
+        }
+
+    def districts(self, city_adcode: str) -> dict[str, Any]:
+        """读取城市及其下级行政区中心点；不保存行政边界。"""
+        payload = self._get("/v3/config/district", {
+            "keywords": city_adcode, "subdistrict": "2", "extensions": "base",
+        })
+        districts = payload.get("districts")
+        if not isinstance(districts, list) or not districts or not isinstance(districts[0], dict):
+            raise M2VError(f"高德行政区查询没有返回城市：{city_adcode}")
+        top = districts[0]
+        top_name = top.get("name")
+        if not isinstance(top_name, str) or not top_name.strip():
+            raise M2VError(f"高德行政区查询缺少城市名称：{city_adcode}")
+        label = top_name.strip()
+        if label.endswith("城区") and len(label) > 2:
+            label = label[:-2]
+        center = _location(top.get("center"), f"{label}中心点")
+        counties: list[dict[str, Any]] = []
+        seen: set[str] = set()
+
+        def walk(node: dict[str, Any]) -> None:
+            children = node.get("districts")
+            if not isinstance(children, list):
+                return
+            for child in children:
+                if not isinstance(child, dict):
+                    continue
+                level = child.get("level")
+                if level == "district":
+                    name = child.get("name")
+                    adcode = child.get("adcode")
+                    if not isinstance(name, str) or not name.strip():
+                        continue
+                    # 市辖区由市名覆盖，不单独作为县级标签。
+                    if name.strip().endswith("区"):
+                        continue
+                    if not isinstance(adcode, str) or not adcode.strip():
+                        raise M2VError(f"高德行政区查询缺少 {name} 的 adcode")
+                    if adcode in seen:
+                        continue
+                    child_center = _location(child.get("center"), f"{name}中心点")
+                    seen.add(adcode)
+                    counties.append({"name": name.strip(), "level": "county",
+                                     "adcode": adcode.strip(), "parentAdcode": city_adcode,
+                                     "center": [child_center[0], child_center[1]]})
+                elif level == "city":
+                    walk(child)
+
+        walk(top)
+        return {
+            "city": {"name": label, "level": "city", "adcode": city_adcode,
+                     "center": [center[0], center[1]]},
+            "counties": counties,
         }
 
     def drive(self, origin: tuple[float, float],

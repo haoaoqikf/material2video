@@ -22,6 +22,14 @@ export type RouteCost = {
 
 export type RouteCity = {name: string; adcode: string; location: LonLat};
 
+export type AdministrativePlace = {
+  name: string;
+  level: 'city' | 'county';
+  adcode: string;
+  parentAdcode?: string;
+  center: LonLat;
+};
+
 export type BasemapLayer = {
   zoom: number;
   bbox: [number, number, number, number];
@@ -31,13 +39,27 @@ export type BasemapLayer = {
   dataUri: string;
 };
 
+export type FollowTile = {
+  x: number;
+  y: number;
+  z: number;
+  projected: {left: number; top: number; width: number; height: number};
+  dataUri: string;
+};
+
+export type FollowTiles = {
+  zoom: number;
+  tileSize: number;
+  tiles: FollowTile[];
+};
+
 export type BasemapConfig = {
   provider: string;
   service: string;
   attribution: string;
   fetchedAt: string;
   overview: BasemapLayer;
-  follow: BasemapLayer;
+  followTiles: FollowTiles;
 };
 
 export type DrivingRouteProps = {
@@ -56,6 +78,7 @@ export type DrivingRouteProps = {
   attribution: string;
   cost?: RouteCost;
   cities?: RouteCity[];
+  administrativePlaces?: AdministrativePlace[];
   basemap?: BasemapConfig;
   steps: DrivingStep[];
 };
@@ -78,6 +101,7 @@ export type Camera = {scale: number; tx: number; ty: number};
 
 const EARTH_RADIUS_METERS = 6371008.8;
 const MERCATOR_RADIUS = 6378137;
+const WORLD = 2 * Math.PI * MERCATOR_RADIUS;
 
 export function haversineMeters(a: LonLat, b: LonLat): number {
   const toRad = Math.PI / 180;
@@ -143,6 +167,12 @@ export function smoothstep(value: number): number {
   return t * t * (3 - 2 * t);
 }
 
+/** 开场推近使用 ease-out：前段快、末段收稳，避免 2 秒内推近显得迟滞。 */
+export function easeOutQuad(value: number): number {
+  const t = clamp(value, 0, 1);
+  return 1 - (1 - t) * (1 - t);
+}
+
 function segmentAt(model: RouteModel, distance: number): number {
   const d = clamp(distance, 0, model.lengthMeters);
   let low = 0;
@@ -176,6 +206,21 @@ export function pointAtDistance(model: RouteModel, distance: number): ProjectedP
   return {x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t, index};
 }
 
+/** 跟随相机中心：对目标点前后等距折线点做对称平均，压住折线拐点造成的高频抖动。 */
+export function smoothedPointAtDistance(model: RouteModel, distance: number,
+                                        frameStepMeters: number, halfFrames: number): ProjectedPoint {
+  let x = 0;
+  let y = 0;
+  let count = 0;
+  for (let offset = -halfFrames; offset <= halfFrames; offset += 1) {
+    const point = pointAtDistance(model, distance + offset * frameStepMeters);
+    x += point.x;
+    y += point.y;
+    count += 1;
+  }
+  return {x: x / count, y: y / count};
+}
+
 /** 车头方向：沿行驶方向取前后窗口的弦向量，端点处只用朝内的窗口。
  *
  * 起点用前方 100 米（总长 0.1% 窗口的一半，20～200 米内）作为朝向，避免车头
@@ -205,14 +250,45 @@ export function headingAtDistance(model: RouteModel, distance: number): number {
   return Math.atan2(dy, dx);
 }
 
+export type Timeline = {
+  totalFrames: number;
+  openingFrames: number;
+  transitionFrames: number;
+  driveFrames: number;
+  endingFrames: number;
+  endingHoldFrames: number;
+  pulloutFrames: number;
+  endingStart: number;
+};
+
+/** 首尾与行驶段的共享帧账本；相机、里程与底图淡出都从这里取边界。 */
+export function timeline(durationInFrames: number, fps: number): Timeline {
+  const camera = LAYOUT.camera;
+  const openingFrames = Math.round(camera.openingSeconds * fps);
+  const endingFrames = Math.round(camera.endingSeconds * fps);
+  const driveFrames = Math.max(1, durationInFrames - openingFrames - endingFrames);
+  const transitionFrames = Math.min(Math.round(camera.openingTransitionSeconds * fps), driveFrames);
+  const endingHoldFrames = Math.min(Math.round(camera.endingHoldSeconds * fps),
+    Math.max(0, endingFrames - 1));
+  const pulloutFrames = Math.max(1, endingFrames - endingHoldFrames);
+  return {
+    totalFrames: durationInFrames,
+    openingFrames,
+    transitionFrames,
+    driveFrames,
+    endingFrames,
+    endingHoldFrames,
+    pulloutFrames,
+    endingStart: durationInFrames - endingFrames,
+  };
+}
+
 /** 沿路已走距离：开场停在起点，行驶段平滑起停，结尾停在终点。 */
 export function distanceForFrame(frame: number, durationInFrames: number, fps: number, lengthMeters: number): number {
-  const opening = Math.round(LAYOUT.camera.openingSeconds * fps);
-  const ending = Math.round(LAYOUT.camera.endingSeconds * fps);
-  const drive = durationInFrames - opening - ending;
-  if (frame < opening || drive <= 0) return 0;
-  if (frame >= durationInFrames - ending) return lengthMeters;
-  const progress = smoothstep((frame - opening + 1) / drive);
+  const spans = timeline(durationInFrames, fps);
+  if (frame < spans.openingFrames) return 0;
+  if (frame >= spans.endingStart) return lengthMeters;
+  const progress = smoothstep((frame - spans.openingFrames + 1) / spans.driveFrames);
   return lengthMeters * progress;
 }
 
@@ -262,13 +338,11 @@ export function cameraForFrame(model: RouteModel, frame: number, durationInFrame
   const content = contentRect(width, height);
   const camera = LAYOUT.camera;
   const full = fitCameraInContent(model.bounds, width, height);
+  const spans = timeline(durationInFrames, fps);
   const followScale = full.scale * camera.followZoom;
-  const openingFrames = Math.round(camera.openingSeconds * fps);
-  const endingFrames = Math.round(camera.endingSeconds * fps);
-  const transitionFrames = Math.min(Math.round(camera.openingTransitionSeconds * fps),
-    Math.max(0, durationInFrames - openingFrames - endingFrames));
-  const endingStart = durationInFrames - endingFrames;
   const metersPerProjected = model.projectedLength > 0 ? model.lengthMeters / model.projectedLength : 1;
+  const frameStepMeters = model.lengthMeters / spans.driveFrames;
+  const smoothingHalfFrames = Math.floor(camera.cameraSmoothingSeconds * fps + 0.5);
 
   const followAt = (distance: number): Camera => {
     const visibleMeters = (Math.min(width, height) / followScale) * metersPerProjected;
@@ -276,8 +350,10 @@ export function cameraForFrame(model: RouteModel, frame: number, durationInFrame
       Math.min(model.lengthMeters * camera.lookaheadRouteFraction,
         visibleMeters * camera.lookaheadViewFraction),
       0, model.lengthMeters);
-    const target = pointAtDistance(
-      model, Math.min(distance + lookahead * camera.lookaheadTargetFraction, model.lengthMeters));
+    const targetDistance = Math.min(
+      distance + lookahead * camera.lookaheadTargetFraction, model.lengthMeters);
+    const target = smoothedPointAtDistance(model, targetDistance, frameStepMeters,
+      smoothingHalfFrames);
     return {
       scale: followScale,
       tx: content.cx - target.x * followScale,
@@ -288,23 +364,24 @@ export function cameraForFrame(model: RouteModel, frame: number, durationInFrame
   const openingScale = full.scale * camera.openingStartZoom;
   const openingEndScale = full.scale * camera.openingEndZoom;
   const openingAt = (amount: number): Camera => {
-    const scale = openingScale + (openingEndScale - openingScale) * smoothstep(amount);
+    const scale = openingScale + (openingEndScale - openingScale) * easeOutQuad(amount);
     const start = model.projected[0];
     return {scale, tx: content.cx - start.x * scale, ty: content.cy - start.y * scale};
   };
 
   const distance = distanceForFrame(frame, durationInFrames, fps, model.lengthMeters);
-  if (frame < openingFrames) {
-    return openingAt(openingFrames <= 1 ? 1 : frame / (openingFrames - 1));
+  if (frame < spans.openingFrames) {
+    return openingAt(spans.openingFrames <= 1 ? 1 : frame / (spans.openingFrames - 1));
   }
-  if (frame < openingFrames + transitionFrames) {
-    const amount = transitionFrames <= 0 ? 1 : (frame - openingFrames + 1) / transitionFrames;
+  if (frame < spans.openingFrames + spans.transitionFrames) {
+    const amount = spans.transitionFrames <= 0 ? 1
+      : (frame - spans.openingFrames + 1) / spans.transitionFrames;
     return mixCamera(openingAt(1), followAt(distance), amount);
   }
-  if (frame < endingStart) return followAt(distance);
-  const blendFrames = Math.max(1, endingFrames - Math.round(fps));
-  if (frame < endingStart + blendFrames) {
-    return mixCamera(followAt(model.lengthMeters), full, (frame - endingStart) / blendFrames);
+  if (frame < spans.endingStart) return followAt(distance);
+  if (frame < spans.endingStart + spans.pulloutFrames) {
+    return mixCamera(followAt(model.lengthMeters), full,
+      (frame - spans.endingStart + 1) / spans.pulloutFrames);
   }
   return full;
 }
@@ -354,11 +431,52 @@ export function highwayLabels(model: RouteModel): RoadLabel[] {
   return labels.sort((a, b) => b.lengthMeters - a.lengthMeters).slice(0, 6);
 }
 
-/** 概览与跟随底图的混合权重：全程 0，跟随 1，过渡期线性。 */
-export function basemapBlend(cameraScale: number, fullScale: number): number {
-  if (fullScale <= 0) return 0;
-  const ratio = cameraScale / fullScale;
-  return clamp((ratio - 1) / Math.max(1e-6, LAYOUT.camera.overviewFadeRatio - 1), 0, 1);
+/** 跟随瓦片图层的透明度：跟随段完全覆盖概览，结尾拉远时在 1 秒内淡出。 */
+export function basemapOpacity(frame: number, durationInFrames: number, fps: number): number {
+  const spans = timeline(durationInFrames, fps);
+  if (frame < spans.endingStart) return 1;
+  if (frame < spans.endingStart + spans.pulloutFrames) {
+    return 1 - smoothstep((frame - spans.endingStart + 1) / spans.pulloutFrames);
+  }
+  return 0;
+}
+
+export function tileKey(x: number, y: number): string {
+  return `${x}:${y}`;
+}
+
+/** 稳定的瓦片索引：每帧只查视口覆盖的瓦片，不扫描整条走廊。 */
+export function buildTileIndex(tiles: FollowTile[]): Map<string, FollowTile> {
+  return new Map(tiles.map((tile) => [tileKey(tile.x, tile.y), tile]));
+}
+
+/** 按屏幕视口反算瓦片范围；只返回与视口相交（含少量像素余量）的块。 */
+export function selectVisibleTiles(index: ReadonlyMap<string, FollowTile>, zoom: number,
+                                   camera: Camera, width: number, height: number,
+                                   margin: number = 2): FollowTile[] {
+  if (index.size === 0 || camera.scale <= 0) return [];
+  const n = 1 << zoom;
+  const left = (0 - margin - camera.tx) / camera.scale;
+  const top = (0 - margin - camera.ty) / camera.scale;
+  const right = (width + margin - camera.tx) / camera.scale;
+  const bottom = (height + margin - camera.ty) / camera.scale;
+  const toTileX = (x: number) => ((x + Math.PI * MERCATOR_RADIUS) / WORLD) * n;
+  const pxLeft = toTileX(left);
+  const pxRight = toTileX(right);
+  const pyTop = toTileX(top);
+  const pyBottom = toTileX(bottom);
+  const x0 = Math.max(0, Math.floor(pxLeft));
+  const x1 = Math.min(n - 1, Math.floor(pxRight - 1e-9));
+  const y0 = Math.max(0, Math.floor(pyTop));
+  const y1 = Math.min(n - 1, Math.floor(pyBottom - 1e-9));
+  const visible: FollowTile[] = [];
+  for (let y = y0; y <= y1; y += 1) {
+    for (let x = x0; x <= x1; x += 1) {
+      const tile = index.get(tileKey(x, y));
+      if (tile) visible.push(tile);
+    }
+  }
+  return visible;
 }
 
 export function formatDistance(meters: number): string {

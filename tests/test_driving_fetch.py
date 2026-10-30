@@ -45,6 +45,23 @@ def drive_payload(points, *, distance="5000", road="沪蓉高速", steps=None):
             }]}}
 
 
+DISTRICTS = {
+    "310000": ("上海市", [("黄浦区", "310101", "121.48,31.24")]),
+    "320500": ("苏州市", [("姑苏区", "320508", "120.62,31.34"),
+                          ("昆山市", "320583", "120.98,31.38")]),
+    "320583": ("昆山市", []),
+}
+
+
+def district_payload(adcode: str) -> dict:
+    city, counties = DISTRICTS.get(adcode, ("合成市", [("合成区", "999901", "121.48,31.24")]))
+    return {"status": "1", "info": "OK", "infocode": "10000", "districts": [{
+        "name": city, "adcode": adcode, "center": "121.47,31.23", "level": "city",
+        "districts": [{"name": name, "adcode": code, "center": center, "level": "district",
+                       "districts": []} for name, code, center in counties],
+    }]}
+
+
 class FakeTransport:
     def __init__(self, geocodes, drive=None):
         self.geocodes = list(geocodes)
@@ -55,6 +72,10 @@ class FakeTransport:
         self.urls.append(url)
         if "/geocode/" in url:
             return 200, json.dumps(self.geocodes.pop(0)).encode()
+        if "/config/district" in url:
+            import urllib.parse
+            adcode = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["keywords"][0]
+            return 200, json.dumps(district_payload(adcode)).encode()
         return 200, json.dumps(self.drive).encode()
 
 
@@ -76,6 +97,7 @@ def test_fetch_saves_a_request_bound_route_without_credentials(tmp_path, monkeyp
     target = fetch_module.fetch(root, transport=transport, now=FIXED_NOW)
     assert target == root / "route.json"
     route = json.loads(target.read_text(encoding="utf-8"))
+    assert route["schemaVersion"] == 3
     assert route["coordinateSystem"] == "GCJ-02"
     assert route["requestDigest"] == materials.request_digest(materials.load_request(root))
     assert route["acquisition"]["strategy"] == 34
@@ -84,10 +106,38 @@ def test_fetch_saves_a_request_bound_route_without_credentials(tmp_path, monkeyp
     assert route["cost"] == {"durationSeconds": 3600, "tollsYuan": 100,
                              "tollDistanceMeters": 2000, "trafficLights": 5}
     assert route["cities"] == [{"name": "上海市", "adcode": "310000", "location": [121.49, 31.25]}]
+    assert route["administrativePlaces"] == [
+        {"name": "上海市", "level": "city", "adcode": "310000", "center": [121.47, 31.23]},
+    ]
+    assert any("/config/district" in url for url in transport.urls)
     assert route["sourceUsage"] == materials.load_request(root)["sourceUsage"]
     assert KEY not in target.read_text(encoding="utf-8")
     assert materials.load_project(root)["route"]["route"]["distanceMeters"] == 5000
     assert not list(root.glob("*.tmp"))
+
+
+def test_county_level_city_in_route_cities_is_not_duplicated(tmp_path, monkeypatch):
+    root = fetch_project(tmp_path, monkeypatch)
+    drive = drive_payload([ORIGIN, *MIDDLE, DESTINATION])
+    drive["route"]["paths"][0]["steps"][0]["cities"] = [
+        {"city": "苏州市", "adcode": "320500"},
+        {"city": "昆山市", "adcode": "320583"},
+    ]
+    transport = FakeTransport(
+        [geocode_payload(ORIGIN), geocode_payload(DESTINATION)], drive)
+    fetch_module.fetch(root, transport=transport, now=FIXED_NOW, district_delay=0)
+    route = json.loads((root / "route.json").read_text(encoding="utf-8"))
+    places = route["administrativePlaces"]
+    city_adcodes = [place["adcode"] for place in places if place["level"] == "city"]
+    assert city_adcodes.count("320583") == 1
+    assert "320500" in city_adcodes
+
+
+def test_districts_skip_urban_districts_but_keep_counties():
+    client = fetch_module.AmapClient(KEY, transport=FakeTransport([]))
+    result = client.districts("320500")
+    assert result["city"]["name"] == "苏州市"
+    assert [county["name"] for county in result["counties"]] == ["昆山市"]
 
 
 def test_fetch_requires_the_key_environment_variable(tmp_path, monkeypatch):

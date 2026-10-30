@@ -44,7 +44,7 @@ def dispatch(args) -> int:
     if args.command == "driving-route":
         if args.workflow == "basemap":
             from m2v.types.driving_route.basemap import fetch_basemap
-            result = fetch_basemap(args.project, refresh=args.refresh)
+            result = fetch_basemap(args.project, refresh=args.refresh, style=args.style)
             action = "已复用道路底图" if result["reused"] else "已保存道路底图"
             overview_zoom, follow_zoom = result["zoom"]
             print(f"{action}：{result['path']}（概览 z{overview_zoom} / 跟随 z{follow_zoom}，{result['tileCount']} 块）")

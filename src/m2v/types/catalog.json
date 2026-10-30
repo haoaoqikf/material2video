@@ -127,7 +127,7 @@
     {
       "name": "driving-route",
       "description": "自驾路线动画",
-      "summary": "真实高速优先驾车路线、竖屏普通道路地图、路网与城市标注、小车沿路行驶与镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、60 fps、无声交付。",
+      "summary": "真实高速优先驾车路线、竖屏普通道路地图、路网与市/县行政区标注、小车沿路行驶与 16× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、30 fps、无声交付。",
       "plan": "保留独立的请求与路线材料、高速优先取数、授权内普通道路底图、竖屏确定性贴路动画与无声验收；无底部数据面板。",
       "skillGuide": "[自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。",
       "materials": [
@@ -169,7 +169,7 @@
           "name": "route",
           "file": "route.json",
           "template": {
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "requestDigest": "",
             "coordinateSystem": "GCJ-02",
             "origin": null,
@@ -177,8 +177,132 @@
             "route": null,
             "cost": null,
             "cities": [],
+            "administrativePlaces": [],
             "acquisition": null,
             "sourceUsage": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "building-construction",
+      "description": "两层框架住宅建造示意动画",
+      "summary": "程序化两层框架住宅、基础到完工的分阶段确定性动画、1920×1080 横屏、30 fps、无声交付。",
+      "plan": "以稳定构件 ID 和阶段时间轴表达建造过程；不提供 BIM/CAD 导入或工程计算。",
+      "skillGuide": "[建筑建造视频](references/building-construction-video.md)：从基础到完工的构件与阶段说明。",
+      "materials": [
+        {
+          "name": "building",
+          "file": "building.json",
+          "template": {
+            "schemaVersion": 1,
+            "canvas": {
+              "width": 1920,
+              "height": 1080
+            },
+            "house": {
+              "width": 12,
+              "depth": 9,
+              "floors": 2,
+              "floorHeight": 3,
+              "bayCount": 3,
+              "roofHeight": 2.2,
+              "wallThickness": 0.25,
+              "foundationDepth": 1.2,
+              "sitePadding": 4,
+              "openings": [
+                {
+                  "id": "door-front",
+                  "floor": 1,
+                  "side": "back",
+                  "offset": 5.1,
+                  "width": 1.4,
+                  "height": 2.3
+                },
+                {
+                  "id": "window-front-1",
+                  "floor": 1,
+                  "side": "back",
+                  "offset": 2.2,
+                  "width": 1.6,
+                  "height": 1.4
+                },
+                {
+                  "id": "window-front-2",
+                  "floor": 2,
+                  "side": "back",
+                  "offset": 5.1,
+                  "width": 1.8,
+                  "height": 1.4
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "construction",
+          "file": "construction.json",
+          "template": {
+            "schemaVersion": 1,
+            "durationSeconds": 40,
+            "fps": 30,
+            "stages": [
+              {
+                "id": "site",
+                "label": "场地",
+                "startSeconds": 0,
+                "endSeconds": 4
+              },
+              {
+                "id": "foundation",
+                "label": "基础",
+                "startSeconds": 4,
+                "endSeconds": 10
+              },
+              {
+                "id": "frame-1",
+                "label": "一层框架",
+                "startSeconds": 10,
+                "endSeconds": 16
+              },
+              {
+                "id": "frame-2",
+                "label": "二层框架",
+                "startSeconds": 16,
+                "endSeconds": 22
+              },
+              {
+                "id": "walls",
+                "label": "墙体与屋顶",
+                "startSeconds": 22,
+                "endSeconds": 29
+              },
+              {
+                "id": "finishes",
+                "label": "门窗饰面",
+                "startSeconds": 29,
+                "endSeconds": 34
+              },
+              {
+                "id": "yard",
+                "label": "庭院完工",
+                "startSeconds": 34,
+                "endSeconds": 40
+              }
+            ],
+            "camera": {
+              "startAzimuth": 35,
+              "endAzimuth": 55,
+              "elevation": 30
+            }
+          }
+        },
+        {
+          "name": "assets",
+          "file": "manifest.json",
+          "template": {
+            "schemaVersion": 1,
+            "assets": []
           }
         }
       ]

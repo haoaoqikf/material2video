@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
@@ -30,7 +31,8 @@ def _request_document(root: Path) -> dict[str, Any]:
 
 
 def _acquisition(request: dict[str, Any], origin: dict[str, Any],
-                 destination: dict[str, Any], now: datetime) -> dict[str, Any]:
+                 destination: dict[str, Any], now: datetime,
+                 district_requests: list[dict[str, Any]]) -> dict[str, Any]:
     timestamp = now if now.tzinfo is not None else now.astimezone()
     origin_point = f"{origin['location'][0]},{origin['location'][1]}"
     destination_point = f"{destination['location'][0]},{destination['location'][1]}"
@@ -50,15 +52,16 @@ def _acquisition(request: dict[str, Any], origin: dict[str, Any],
             {"path": "/v5/direction/driving",
              "params": {"origin": origin_point, "destination": destination_point,
                         "strategy": "34", "show_fields": "cost,cities,polyline"}},
+            *district_requests,
         ],
     }
 
 
 def _route_document(request: dict[str, Any], origin: dict[str, Any],
                     destination: dict[str, Any], path: dict[str, Any],
-                    now: datetime) -> dict[str, Any]:
+                    now: datetime, district_requests: list[dict[str, Any]]) -> dict[str, Any]:
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "requestDigest": materials.request_digest(request),
         "coordinateSystem": "GCJ-02",
         "origin": origin,
@@ -71,7 +74,8 @@ def _route_document(request: dict[str, Any], origin: dict[str, Any],
         },
         "cost": path["cost"],
         "cities": path["cities"],
-        "acquisition": _acquisition(request, origin, destination, now),
+        "administrativePlaces": path["administrativePlaces"],
+        "acquisition": _acquisition(request, origin, destination, now, district_requests),
         "sourceUsage": deepcopy(request["sourceUsage"]),
     }
 
@@ -95,7 +99,7 @@ def _check_city(place: dict[str, Any], requested: dict[str, Any], label: str) ->
 
 def fetch(project_dir: str | Path, *, transport: Transport | None = None,
           now: datetime | None = None, api_base: str | None = None,
-          timeout: float | None = None) -> Path:
+          timeout: float | None = None, district_delay: float = 0.35) -> Path:
     """取得并保存与当前请求绑定的真实路线；失败不破坏已有材料。"""
     root, project = load_project(project_dir)
     if project["type"] != "driving-route":
@@ -121,7 +125,39 @@ def fetch(project_dir: str | Path, *, transport: Transport | None = None,
     _check_city(destination, request["destination"], "终点")
     path = client.drive(tuple(origin["location"]), tuple(destination["location"]))  # type: ignore[arg-type]
 
-    document = _route_document(request, origin, destination, path, now or datetime.now().astimezone())
+    district_requests: list[dict[str, Any]] = []
+    route_city_adcodes: set[str] = set()
+    district_results: list[tuple[str, dict[str, Any]]] = []
+    for city in path["cities"]:
+        adcode = city["adcode"]
+        if adcode in route_city_adcodes:
+            continue
+        route_city_adcodes.add(adcode)
+        result = client.districts(adcode)
+        if district_delay > 0:
+            time.sleep(district_delay)
+        district_requests.append({
+            "path": "/v3/config/district",
+            "params": {"keywords": adcode, "subdistrict": "2", "extensions": "base"},
+        })
+        district_results.append((adcode, result))
+
+    # 两遍组装：先保证所有路线城市都有市级中心点，再把县级市/县并入；
+    # 若某县级市本身也是路线城市，它的 county 记录跳过，保留其 city 记录。
+    administrative_places = [result["city"] for _, result in district_results]
+    seen_place_adcodes = {place["adcode"] for place in administrative_places}
+    for _, result in district_results:
+        for county in result["counties"]:
+            if county["adcode"] in route_city_adcodes or county["adcode"] in seen_place_adcodes:
+                continue
+            seen_place_adcodes.add(county["adcode"])
+            administrative_places.append(county)
+    if not administrative_places:
+        raise M2VError("路线沿途没有可用行政区中心点；请确认路线包含城市信息")
+    path["administrativePlaces"] = administrative_places
+
+    document = _route_document(request, origin, destination, path,
+                               now or datetime.now().astimezone(), district_requests)
     materials.validate_route_document(request, document)
 
     # 联网期间请求文件可能被修改；落盘前复核，避免保存一份绑定旧请求的路线。

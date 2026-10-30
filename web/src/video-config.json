@@ -1,1 +1,1 @@
-{"fps": 60, "general": {"defaultFps": 30, "allowedFps": [30, 60]}}
+{"fps": 60, "drivingRoute": {"defaultFps": 30}, "general": {"defaultFps": 30, "allowedFps": [30, 60]}, "buildingConstruction": {"defaultFps": 30}}

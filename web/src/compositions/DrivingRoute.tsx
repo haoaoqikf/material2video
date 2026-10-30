@@ -4,22 +4,23 @@
  * 位置、朝向、已走路线与镜头全部来自 `./driving/route` 的纯函数；本文件只做
  * 当前帧取数与绘制，不保存跨帧状态。道路底图与路线使用同一 GCJ-02 投影。
  */
-import { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { useEffect, useMemo } from 'react';
+import { AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame } from 'remotion';
 import {
-  basemapBlend, buildRouteModel, cameraForFrame, clamp, displayDistanceMeters, distanceForFrame,
-  fitCameraInContent, formatDistance, headingAtDistance, highwayLabels, pointAtDistance,
-  projectPoint, roadLabelKey, toScreen, walkedPoints,
-  type DrivingRouteProps, type ProjectedPoint, type RouteCity,
+  basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame, clamp, displayDistanceMeters,
+  distanceForFrame, formatDistance, headingAtDistance, highwayLabels, pointAtDistance,
+  projectPoint, roadLabelKey, selectVisibleTiles, toScreen, walkedPoints,
+  type DrivingRouteProps, type ProjectedPoint,
 } from './driving/route';
 import { LAYOUT, contentRect } from './driving/layout';
 import { estimateTextWidth, fitFontSize, placeDistancePill, truncateText } from './driving/labels';
 
 export type { DrivingRouteProps } from './driving/route';
 export {
-  basemapBlend, buildRouteModel, cameraForFrame, displayDistanceMeters, distanceForFrame,
-  fitCamera, fitCameraInContent, formatDistance, headingAtDistance, highwayLabels, pointAtDistance,
-  projectPoint, roadLabelKey, smoothstep, toScreen, walkedPoints,
+  basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame, displayDistanceMeters,
+  distanceForFrame, easeOutQuad, fitCamera, fitCameraInContent, formatDistance, headingAtDistance,
+  highwayLabels, pointAtDistance, projectPoint, roadLabelKey, selectVisibleTiles, smoothstep,
+  smoothedPointAtDistance, timeline, toScreen, tileKey, walkedPoints,
 } from './driving/route';
 
 const INK = '#142433';
@@ -31,7 +32,7 @@ const PANEL = 'rgba(255,255,255,0.95)';
 const TITLE_HEIGHT = LAYOUT.title.height;
 
 function markerLabelY(y: number, height: number): number {
-  return y < TITLE_HEIGHT + 84 ? y + 48 : Math.min(y - 30, height - 40);
+  return clamp(y - 30, TITLE_HEIGHT + 42, height - 40);
 }
 
 function polylinePoints(points: ProjectedPoint[]): string {
@@ -49,7 +50,6 @@ export function DrivingRoute(props: DrivingRouteProps) {
   const frame = useCurrentFrame();
   const model = useMemo(() => buildRouteModel(props.steps), [props.steps]);
   const content = contentRect(props.width, props.height);
-  const fullCamera = fitCameraInContent(model.bounds, props.width, props.height);
   const camera = cameraForFrame(model, frame, props.durationInFrames, props.fps,
     props.width, props.height);
   const distance = distanceForFrame(frame, props.durationInFrames, props.fps, model.lengthMeters);
@@ -60,7 +60,49 @@ export function DrivingRoute(props: DrivingRouteProps) {
   const destination = toScreen(camera, model.projected[model.projected.length - 1]);
   const walked = walkedPoints(model, distance);
   const traveled = displayDistanceMeters(distance, model.lengthMeters, props.totalDistanceMeters);
-  const blend = basemapBlend(camera.scale, fullCamera.scale);
+  const opacity = basemapOpacity(frame, props.durationInFrames, props.fps);
+  const followTiles = props.basemap?.followTiles.tiles ?? [];
+  const tileIndex = useMemo(() => buildTileIndex(followTiles), [followTiles]);
+  const visibleTiles = props.basemap && opacity > 0
+    ? selectVisibleTiles(tileIndex, props.basemap.followTiles.zoom, camera,
+      props.width, props.height, 2)
+    : [];
+
+  // 数据 URI 瓦片也必须等解码完成；首帧截图不能出现空白块。
+  useEffect(() => {
+    if (followTiles.length === 0) return;
+    const handle = delayRender('加载跟随道路瓦片', {timeoutInMilliseconds: 120_000});
+    let remaining = followTiles.length;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      continueRender(handle);
+    };
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      cancelRender(new Error('跟随道路瓦片加载失败'));
+    };
+    const images = followTiles.map((tile) => {
+      const image = new Image();
+      image.onload = () => {
+        remaining -= 1;
+        if (remaining <= 0) finish();
+      };
+      image.onerror = fail;
+      image.src = tile.dataUri;
+      return image;
+    });
+    return () => {
+      finish();
+      for (const image of images) {
+        image.onload = null;
+        image.onerror = null;
+      }
+    };
+  }, [followTiles]);
+
   const visible = (point: ProjectedPoint) => point.x >= 24 && point.x <= props.width - 24
     && point.y >= TITLE_HEIGHT && point.y <= props.height - 24;
   const inMapArea = (y: number) => y > content.top && y < content.bottom - 12;
@@ -106,6 +148,48 @@ export function DrivingRoute(props: DrivingRouteProps) {
     top: pill.cy - pill.height / 2, bottom: pill.cy + pill.height / 2};
   labelBoxes.push(pillBox);
 
+  const endpointNames = [props.originLabel, props.destinationLabel]
+    .map((label) => label.replace(/[市区县]$/u, ''))
+    .filter((label) => label.length > 0);
+  const areaSize = LAYOUT.labels.citySize;
+  const areaOffset = Math.round(areaSize * 1.2);
+  const areaBoxTop = Math.round(areaSize * 0.9);
+  const areaBoxBottom = Math.round(areaSize * 0.3);
+  const areaBoxes: Box[] = [];
+  labelBoxes.push({left: vehicle.x - 32, right: vehicle.x + 32,
+    top: vehicle.y - 32, bottom: vehicle.y + 32});
+  if (visible(origin)) {
+    labelBoxes.push({left: origin.x - 20, right: origin.x + 20,
+      top: origin.y - 20, bottom: origin.y + 20});
+  }
+  if (visible(destination)) {
+    labelBoxes.push({left: destination.x - 22, right: destination.x + 22,
+      top: destination.y - 22, bottom: destination.y + 22});
+  }
+  const areaLabels = [...(props.administrativePlaces ?? [])]
+    .sort((first, second) => (first.level === 'city' ? 0 : 1)
+      - (second.level === 'city' ? 0 : 1))
+    .flatMap((place) => {
+      if (!place || !Array.isArray(place.center) || place.center.length !== 2) return [];
+      if (endpointNames.some((endpoint) => place.name.includes(endpoint))) return [];
+      if (place.level === 'county' && place.name.endsWith('区')) return [];
+      const point = toScreen(camera, projectPoint(place.center));
+      if (point.x < 0 || point.x > props.width) return [];
+      const halfWidth = (estimateTextWidth(place.name, areaSize) + 16) / 2;
+      const x = Math.round(clamp(point.x, halfWidth + 10, props.width - halfWidth - 10));
+      // 固定上方锚点；放不下就本帧不画，绝不切到下方。
+      const y = Math.round(point.y - areaOffset);
+      if (y - areaBoxTop < content.top + 6 || y + areaBoxBottom > content.bottom - 6) return [];
+      const box = {left: x - halfWidth, right: x + halfWidth,
+        top: y - areaBoxTop, bottom: y + areaBoxBottom};
+      if (box.left < 10 || box.right > props.width - 10) return [];
+      if (labelBoxes.some((other) => overlaps(box, other))) return [];
+      if (areaBoxes.some((other) => overlaps(box, other))) return [];
+      areaBoxes.push(box);
+      labelBoxes.push(box);
+      return [{name: place.name, level: place.level, adcode: place.adcode, x, y}];
+    });
+
   const roadLabels = highwayLabels(model).flatMap((label) => {
     const point = toScreen(camera, pointAtDistance(model, label.distance));
     if (point.x < 90 || point.x > props.width - 90 || !inMapArea(point.y)) return [];
@@ -121,32 +205,6 @@ export function DrivingRoute(props: DrivingRouteProps) {
     if (labelBoxes.some((other) => overlaps(box, other))) return [];
     labelBoxes.push(box);
     return [{road: label.road, distance: label.distance, x, y}];
-  });
-
-  const endpointNames = [props.originLabel, props.destinationLabel]
-    .map((label) => label.replace(/[市区县]$/u, ''))
-    .filter((label) => label.length > 0);
-  const cityBoxes: Box[] = [];
-  const cityLabels = (props.cities ?? []).flatMap((city: RouteCity, index: number) => {
-    if (!city || !Array.isArray(city.location) || city.location.length !== 2) return [];
-    if (endpointNames.some((endpoint) => city.name.includes(endpoint))) return [];
-    const point = toScreen(camera, projectPoint(city.location));
-    if (point.x < 40 || point.x > props.width - 40) return [];
-    if (Math.hypot(point.x - vehicle.x, point.y - vehicle.y) < 80) return [];
-    if (Math.hypot(point.x - origin.x, point.y - origin.y) < 80
-      || Math.hypot(point.x - destination.x, point.y - destination.y) < 80) return [];
-    const halfWidth = (estimateTextWidth(city.name, LAYOUT.labels.citySize) + 16) / 2;
-    for (const offset of index % 2 === 0 ? [-24, 34] : [34, -24]) {
-      const y = point.y + offset;
-      if (!inMapArea(y)) continue;
-      const box = {left: point.x - halfWidth, right: point.x + halfWidth, top: y - 20, bottom: y + 8};
-      if (box.left < 10 || box.right > props.width - 10) continue;
-      if (labelBoxes.some((other) => overlaps(box, other))) continue;
-      if (cityBoxes.some((other) => overlaps(box, other))) continue;
-      cityBoxes.push(box);
-      return [{name: city.name, x: point.x, y}];
-    }
-    return [];
   });
 
   const mainTitle = `${props.originLabel} → ${props.destinationLabel}`;
@@ -167,11 +225,15 @@ export function DrivingRoute(props: DrivingRouteProps) {
             width={props.basemap.overview.projected.width}
             height={props.basemap.overview.projected.height}
             preserveAspectRatio="none" opacity={1} />
-          <image data-m2v-basemap="follow" href={props.basemap.follow.dataUri}
-            x={props.basemap.follow.projected.left} y={props.basemap.follow.projected.top}
-            width={props.basemap.follow.projected.width}
-            height={props.basemap.follow.projected.height}
-            preserveAspectRatio="none" opacity={blend} />
+          <g data-m2v-basemap="follow" data-m2v-basemap-layer="follow"
+            data-m2v-basemap-visible-count={visibleTiles.length}
+            data-m2v-basemap-opacity={opacity.toFixed(4)} opacity={opacity}>
+            {visibleTiles.map((tile) => <image key={`${tile.x}:${tile.y}`}
+              data-m2v-basemap-tile={`${tile.x}:${tile.y}`} href={tile.dataUri}
+              x={tile.projected.left} y={tile.projected.top}
+              width={tile.projected.width} height={tile.projected.height}
+              preserveAspectRatio="none" />)}
+          </g>
         </>}
         <polyline data-m2v-route="true" points={polylinePoints(model.projected)} fill="none"
           stroke="#ffffff" strokeWidth={11} strokeLinejoin="round" strokeLinecap="round"
@@ -194,10 +256,13 @@ export function DrivingRoute(props: DrivingRouteProps) {
         fill="#1f4f82" fontSize={LAYOUT.labels.roadSize} fontWeight={600} stroke="#ffffff"
         strokeWidth={7} paintOrder="stroke" strokeLinejoin="round">{label.road}</text>)}
 
-      {cityLabels.map((label) => <text key={`city-${label.name}`}
-        data-m2v-city-label={label.name} x={label.x} y={label.y} textAnchor="middle"
-        fill="#2a3b4d" fontSize={LAYOUT.labels.citySize} fontWeight={500} stroke="#ffffff"
-        strokeWidth={6} paintOrder="stroke" strokeLinejoin="round">{label.name}</text>)}
+      {areaLabels.map((label) => <text key={`area-${label.adcode}`}
+        data-m2v-administrative-label={label.name}
+        data-m2v-administrative-level={label.level}
+        x={label.x} y={label.y} textAnchor="middle"
+        fill={INK} fontSize={areaSize} fontWeight={LAYOUT.labels.cityWeight}
+        stroke="#ffffff" strokeWidth={LAYOUT.labels.cityStrokeWidth} paintOrder="stroke"
+        strokeLinejoin="round">{label.name}</text>)}
 
       {visible(origin) && <g data-m2v-origin="true">
         <circle cx={origin.x} cy={origin.y} r={12} fill={WALKED} stroke="#ffffff" strokeWidth={4} />

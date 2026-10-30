@@ -1,13 +1,24 @@
 """共享布局与底图覆盖公式的跨语言常量检查。"""
 from __future__ import annotations
 
+import pytest
+
 from m2v.types.driving_route import geometry, layout
 
 
 def test_layout_matches_the_portrait_contract():
     spec = layout.layout()
+    assert spec["version"] == 4
     assert (spec["width"], spec["height"]) == (1080, 1920)
     assert spec["title"]["height"] == 300
+    assert spec["camera"]["openingSeconds"] == 2
+    assert spec["camera"]["openingStartZoom"] == 9
+    assert spec["camera"]["openingEndZoom"] == 16
+    assert spec["camera"]["openingTransitionSeconds"] == 0.5
+    assert spec["camera"]["followZoom"] == 16
+    assert spec["camera"]["cameraSmoothingSeconds"] == 0.6
+    assert spec["camera"]["endingSeconds"] == 2
+    assert spec["camera"]["endingHoldSeconds"] == 1
     content = layout.content_rect()
     assert content["top"] == 340
     assert content["bottom"] == 1830
@@ -37,6 +48,46 @@ def test_flat_route_overview_covers_the_whole_screen_height():
     envelope = layout.camera_envelope(route_box, 1_500_000.0, 1_200_000.0)
     content = layout.content_rect()
     assert envelope["overview_half_y"] >= max(content["cy"], 1920 - content["cy"]) / envelope["full_scale"]
+
+
+def test_opening_uses_faster_ease_out():
+    route = {"route": {"steps": [{"points": [[121.47, 31.23], [121.48, 31.24]]}]}}
+    geom = layout.route_geometry(route)
+    start = layout._opening_camera(geom, 0.0, 1080, 1920)["scale"]
+    middle = layout._opening_camera(geom, 0.5, 1080, 1920)["scale"]
+    end = layout._opening_camera(geom, 1.0, 1080, 1920)["scale"]
+    assert middle == pytest.approx(start + (end - start) * 0.75)
+
+
+def test_follow_camera_smoothing_reduces_frame_acceleration():
+    points = []
+    for index in range(120):
+        points.append([121.47 + index * 0.02, 31.23 + (0.004 if index % 2 else -0.004)])
+    geom = layout.route_geometry({"route": {"steps": [{"points": points}]}})
+    content = layout.content_rect()
+    spans = layout._timeline(1800, 30)
+    step = geom["length_meters"] / spans["drive_frames"]
+    screen_scale = layout._full_scale(geom, 1080, 1920) * 16
+
+    def acceleration(half_frames: int) -> list[float]:
+        centers = []
+        for frame in range(75, 1740):
+            distance = layout.distance_for_frame(geom, frame, 1800, 30)
+            camera = layout._follow_camera(geom, distance, 1080, 1920, step, half_frames)
+            centers.append(((content["cx"] - camera["tx"]) / camera["scale"],
+                            (content["cy"] - camera["ty"]) / camera["scale"]))
+        values = []
+        for index in range(1, len(centers) - 1):
+            dx = centers[index + 1][0] - 2 * centers[index][0] + centers[index - 1][0]
+            dy = centers[index + 1][1] - 2 * centers[index][1] + centers[index - 1][1]
+            values.append((dx * dx + dy * dy) ** 0.5 * screen_scale)
+        values.sort()
+        return values
+
+    raw = acceleration(0)
+    smoothed = acceleration(18)
+    assert smoothed[int(len(smoothed) * 0.95)] < raw[int(len(raw) * 0.95)] * 0.2
+    assert smoothed[int(len(smoothed) * 0.95)] < 0.8
 
 
 def test_geometry_projection_and_length_are_consistent():

@@ -1,4 +1,4 @@
-"""跨语言帧率配置：专用类型固定60，通用类型按作品选择30/60。"""
+"""跨语言帧率配置：专用类型固定帧率，通用类型按作品选择30/60。"""
 import json
 from pathlib import Path
 from m2v.core.assets import REPOSITORY_ROOT
@@ -7,6 +7,8 @@ from m2v.core.errors import M2VError
 
 _CONFIG = json.loads((REPOSITORY_ROOT / "web/src/video-config.json").read_text(encoding="utf-8"))
 FPS: int = _CONFIG["fps"]
+DRIVING_ROUTE_FPS: int = _CONFIG["drivingRoute"]["defaultFps"]
+BUILDING_FPS: int = _CONFIG["buildingConstruction"]["defaultFps"]
 GENERAL_DEFAULT_FPS: int = _CONFIG["general"]["defaultFps"]
 GENERAL_ALLOWED_FPS: tuple[int, ...] = tuple(_CONFIG["general"]["allowedFps"])
 
@@ -32,13 +34,19 @@ def general_fps(project: dict, storyboard: dict) -> int:
 
 
 def default_fps(video_type: str) -> int:
-    return GENERAL_DEFAULT_FPS if video_type == "general" else FPS
+    if video_type == "general":
+        return GENERAL_DEFAULT_FPS
+    if video_type == "driving-route":
+        return DRIVING_ROUTE_FPS
+    if video_type == "building-construction":
+        return BUILDING_FPS
+    return FPS
 
 
 def project_fps(root: Path, project: dict, *, allow_missing_storyboard: bool = False) -> int:
     """在没有已加载分镜的入口核对实际帧率，不依赖业务类型层。"""
     if project["type"] != "general":
-        return FPS
+        return default_fps(project["type"])
     try:
         storyboard = json.loads((root / project["materials"]["storyboard"]).read_text(encoding="utf-8-sig"))
     except FileNotFoundError as exc:

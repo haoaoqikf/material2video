@@ -28,10 +28,11 @@ def _force_utf8_output() -> None:
 def _register_builtins() -> None:
     if registry.all_types():
         return
+    from m2v.types.building_construction.adapter import TYPE as building_construction
     from m2v.types.driving_route.adapter import TYPE as driving_route
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
-    for item in (financial, general, driving_route):
+    for item in (financial, general, driving_route, building_construction):
         registry.register(item)
 
 
@@ -129,6 +130,8 @@ def _parser() -> argparse.ArgumentParser:
     driving.add_argument("workflow", choices=("fetch", "basemap"))
     driving.add_argument("--project", required=True)
     driving.add_argument("--refresh", action="store_true", help="basemap 忽略已有影像并重新取图")
+    driving.add_argument("--style", choices=("road", "satellite"), default="road",
+                         help="basemap 底图样式：普通道路或卫星影像")
     return parser
 
 
