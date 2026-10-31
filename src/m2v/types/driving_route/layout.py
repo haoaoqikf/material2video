@@ -189,7 +189,7 @@ def distance_for_frame(geom: dict[str, Any], frame: int, duration_in_frames: int
         return 0.0
     if frame >= spans["ending_start"]:
         return geom["length_meters"]
-    progress = _smoothstep((frame - spans["opening_frames"] + 1) / spans["drive_frames"])
+    progress = _clamp((frame - spans["opening_frames"] + 1) / spans["drive_frames"], 0.0, 1.0)
     return geom["length_meters"] * progress
 
 

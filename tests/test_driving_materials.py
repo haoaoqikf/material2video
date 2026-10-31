@@ -18,8 +18,8 @@ def test_valid_synthetic_route_loads_and_builds_render_props(tmp_path):
     docs = materials.load_project(root)
     assert docs["request"]["origin"]["label"] == "上海"
     props = materials.build_render_props(docs)
-    assert props["durationInFrames"] == 1800
-    assert (props["width"], props["height"], props["fps"]) == (1080, 1920, 60)
+    assert props["durationInFrames"] == 900
+    assert (props["width"], props["height"], props["fps"]) == (1080, 1920, 30)
     assert props["totalDistanceMeters"] == 5000
     assert [step["road"] for step in props["steps"]] == ["合成高速", "合成高速"]
 

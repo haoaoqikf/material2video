@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "width": 1080,
   "height": 1920,
   "title": {
@@ -18,10 +18,10 @@
   },
   "camera": {
     "openingSeconds": 2,
-    "openingStartZoom": 9,
-    "openingEndZoom": 16,
+    "openingStartZoom": 8,
+    "openingEndZoom": 12,
     "openingTransitionSeconds": 0,
-    "followZoom": 16,
+    "followZoom": 12,
     "cameraSmoothingSeconds": 0.6,
     "endingSeconds": 2,
     "endingHoldSeconds": 1,
@@ -32,11 +32,11 @@
   },
   "labels": {
     "sideMargin": 24,
-    "endpointSize": 34,
+    "endpointSize": 40,
     "roadSize": 26,
-    "citySize": 30,
+    "citySize": 40,
     "cityWeight": 700,
-    "cityStrokeWidth": 8,
+    "cityStrokeWidth": 10,
     "attributionSize": 20,
     "pillSize": 28,
     "pillHeight": 52

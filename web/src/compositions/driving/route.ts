@@ -296,12 +296,12 @@ export function timeline(durationInFrames: number, fps: number): Timeline {
   };
 }
 
-/** 沿路已走距离：开场停在起点，行驶段平滑起停，结尾停在终点。 */
+/** 沿路已走距离：开场停在起点，行驶段按匀速推进到终点，不做全段加减速。 */
 export function distanceForFrame(frame: number, durationInFrames: number, fps: number, lengthMeters: number): number {
   const spans = timeline(durationInFrames, fps);
   if (frame < spans.openingFrames) return 0;
   if (frame >= spans.endingStart) return lengthMeters;
-  const progress = smoothstep((frame - spans.openingFrames + 1) / spans.driveFrames);
+  const progress = clamp((frame - spans.openingFrames + 1) / spans.driveFrames, 0, 1);
   return lengthMeters * progress;
 }
 

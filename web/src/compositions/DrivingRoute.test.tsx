@@ -7,7 +7,7 @@ import {
   headingAtDistance, headingNear, highwayLabels, pointAtDistance, projectPoint, selectVisibleTiles,
   timeline, type DrivingRouteProps,
 } from './DrivingRoute';
-import { contentRect } from './driving/layout';
+import { LAYOUT, contentRect } from './driving/layout';
 import { estimateTextWidth, placeDistancePill, truncateText } from './driving/labels';
 
 const frameState = vi.hoisted(() => ({ value: 0 }));
@@ -142,25 +142,28 @@ describe('timeline and camera', () => {
     expect(distanceForFrame(60, 1800, 30, model.lengthMeters)).toBeGreaterThan(0);
   });
 
-  it('opens close at the origin, follows at 16x and ends on the full route', () => {
+  it('opens close at the origin, follows at 12x and ends on the full route', () => {
     const full = fitCameraInContent(model.bounds, 1080, 1920);
-    expect(cameraForFrame(model, 0, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 9, 6);
-    expect(cameraForFrame(model, 59, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 16, 6);
-    expect(cameraForFrame(model, 900, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 16, 6);
+    expect(cameraForFrame(model, 0, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 8, 6);
+    expect(cameraForFrame(model, 59, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 12, 6);
+    expect(cameraForFrame(model, 900, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale * 12, 6);
     expect(cameraForFrame(model, 1799, 1800, 30, 1080, 1920).scale).toBeCloseTo(full.scale, 9);
   });
 
   it('opens with a fast ease-out push', () => {
     const full = fitCameraInContent(model.bounds, 1080, 1920);
     const halfway = cameraForFrame(model, 30, 1800, 30, 1080, 1920).scale;
-    expect(halfway).toBeGreaterThan(full.scale * 13.5);
+    expect(halfway).toBeGreaterThan(full.scale * 10.5);
   });
 
-  it('starts following without a camera jump at the end of the opening', () => {
+  it('starts following without a camera jump beyond the first constant-speed step', () => {
     const opening = cameraForFrame(model, 59, 1800, 30, 1080, 1920);
     const follow = cameraForFrame(model, 60, 1800, 30, 1080, 1920);
-    expect(Math.abs(follow.tx - opening.tx)).toBeLessThan(2);
-    expect(Math.abs(follow.ty - opening.ty)).toBeLessThan(2);
+    // 行驶段匀速：第一帧就前进一个步长，且相机前瞻从零渐入；允许这两部分的首帧位移。
+    const stepMeters = model.lengthMeters / timeline(1800, 30).driveFrames;
+    const screenStep = stepMeters * follow.scale;
+    expect(Math.abs(follow.tx - opening.tx)).toBeLessThan(screenStep * 2 + 2);
+    expect(Math.abs(follow.ty - opening.ty)).toBeLessThan(screenStep * 2 + 2);
     expect(Math.abs(follow.scale - opening.scale) / opening.scale).toBeLessThan(1e-6);
   });
 
@@ -187,9 +190,9 @@ describe('timeline and camera', () => {
       accelerations.push(Math.hypot(dx, dy) * centers[index].scale);
     }
     accelerations.sort((a, b) => a - b);
-    // 整像素量化允许相邻步进在 14/15/16 px 之间变化；累计加速度仍限制在 2～3 px 内。
+    // 匀速行驶让折线拐点处的相机加速度略高于旧平滑起停曲线；整像素量化另有 ±1 px。
     expect(accelerations[Math.floor(accelerations.length * 0.95)]).toBeLessThan(1.5);
-    expect(Math.max(...accelerations)).toBeLessThan(2.5);
+    expect(Math.max(...accelerations)).toBeLessThan(3.5);
   });
 
   it('keeps the opening zoom monotonic and transitions smoothly', () => {
@@ -358,7 +361,7 @@ describe('composition markup', () => {
     };
     const markup = renderProps(900, {...props, basemap});
     const full = fitCameraInContent(model.bounds, 1080, 1920);
-    expect(Number(attribute(markup, 'data-m2v-scale'))).toBeCloseTo(full.scale * 16, 5);
+    expect(Number(attribute(markup, 'data-m2v-scale'))).toBeCloseTo(full.scale * 12, 5);
     expect(markup).toContain('data-m2v-basemap="overview"');
     expect(markup).toContain('data-m2v-basemap-layer="follow"');
     expect(markup).toContain('data-m2v-basemap-opacity="1.0000"');
@@ -489,8 +492,8 @@ describe('composition markup', () => {
     for (const name of ['苏州市', '昆山市']) {
       expect(markup).toMatch(new RegExp(
         `data-m2v-administrative-label="${name}"[^>]*x="\\d+(?:\\.\\d+)?"[^>]*y="-?\\d+(?:\\.\\d+)?"`
-        + '[^>]*opacity="[\\d.]+"[^>]*fill="#[\\da-f]+"[^>]*font-size="30"'
-        + '[^>]*font-weight="700"[^>]*stroke="#[\\da-f]+"[^>]*stroke-width="8"', 'u'));
+        + `[^>]*opacity="[\\d.]+"[^>]*fill="#[\\da-f]+"[^>]*font-size="${LAYOUT.labels.citySize}"`
+        + `[^>]*font-weight="700"[^>]*stroke="#[\\da-f]+"[^>]*stroke-width="${LAYOUT.labels.cityStrokeWidth}"`, 'u'));
     }
     expect(markup).not.toContain('data-m2v-city-label');
   });

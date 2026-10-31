@@ -9,14 +9,14 @@ from m2v.types.driving_route import geometry, layout
 
 def test_layout_matches_the_portrait_contract():
     spec = layout.layout()
-    assert spec["version"] == 6
+    assert spec["version"] == 7
     assert (spec["width"], spec["height"]) == (1080, 1920)
     assert spec["title"]["height"] == 300
     assert spec["camera"]["openingSeconds"] == 2
-    assert spec["camera"]["openingStartZoom"] == 9
-    assert spec["camera"]["openingEndZoom"] == 16
+    assert spec["camera"]["openingStartZoom"] == 8
+    assert spec["camera"]["openingEndZoom"] == 12
     assert spec["camera"]["openingTransitionSeconds"] == 0
-    assert spec["camera"]["followZoom"] == 16
+    assert spec["camera"]["followZoom"] == 12
     assert spec["camera"]["cameraSmoothingSeconds"] == 0.6
     assert spec["camera"]["endingSeconds"] == 2
     assert spec["camera"]["endingHoldSeconds"] == 1
@@ -68,7 +68,7 @@ def test_follow_camera_smoothing_reduces_frame_acceleration():
     content = layout.content_rect()
     spans = layout._timeline(1800, 30)
     step = geom["length_meters"] / spans["drive_frames"]
-    screen_scale = layout._full_scale(geom, 1080, 1920) * 16
+    screen_scale = layout._full_scale(geom, 1080, 1920) * 12
 
     def acceleration(half_frames: int) -> list[float]:
         centers = []

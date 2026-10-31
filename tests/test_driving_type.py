@@ -16,7 +16,7 @@ def test_init_writes_independent_materials_and_portrait_defaults(tmp_path):
     root, manifest = load_project(tmp_path / "videos/driving-route/demo")
     assert manifest["materials"] == {"request": "request.json", "route": "route.json"}
     assert (manifest["output"]["width"], manifest["output"]["height"]) == (1080, 1920)
-    assert manifest["output"]["fps"] == 60
+    assert manifest["output"]["fps"] == 30
     request = json.loads((root / "request.json").read_text(encoding="utf-8"))
     assert request["schemaVersion"] == 2
     assert request["durationSeconds"] == 30
@@ -38,8 +38,8 @@ def test_validate_and_prepare_work_offline_without_a_key(tmp_path, monkeypatch, 
     assert main(["prepare", "--project", str(root)]) == 0
     prepared = load_current_prepared(root, manifest)
     assert prepared["compositionId"] == "DrivingRoute"
-    assert prepared["durationInFrames"] == 1800
-    assert prepared["fps"] == 60
+    assert prepared["durationInFrames"] == 900
+    assert prepared["fps"] == 30
     assert (prepared["width"], prepared["height"]) == (1080, 1920)
     assert set(prepared["inputs"]) == {"request", "route"}
     assert prepared["audio"] == {}
@@ -54,16 +54,16 @@ def test_explicit_duration_only_changes_total_frames(tmp_path, monkeypatch):
     root = write_project(tmp_path, request=request)
     assert main(["prepare", "--project", str(root)]) == 0
     manifest = json.loads((root / "project.json").read_text(encoding="utf-8"))
-    assert load_current_prepared(root, manifest)["durationInFrames"] == 720
+    assert load_current_prepared(root, manifest)["durationInFrames"] == 360
 
 
-def test_explicit_sixty_seconds_uses_3600_frames(tmp_path, monkeypatch):
+def test_explicit_sixty_seconds_uses_1800_frames(tmp_path, monkeypatch):
     request = request_document()
     request["durationSeconds"] = 60
     root = write_project(tmp_path, request=request)
     assert main(["prepare", "--project", str(root)]) == 0
     manifest = json.loads((root / "project.json").read_text(encoding="utf-8"))
-    assert load_current_prepared(root, manifest)["durationInFrames"] == 3600
+    assert load_current_prepared(root, manifest)["durationInFrames"] == 1800
 
 
 def test_status_reports_prepared_without_network(tmp_path):

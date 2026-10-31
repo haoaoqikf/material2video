@@ -284,13 +284,6 @@ export function DrivingRoute(props: DrivingRouteProps) {
   };
   labelBoxes.push(attributionBox);
 
-  const pillText = `已行驶 ${formatDistance(traveled)}`;
-  const pill = placeDistancePill(vehicle.x, vehicle.y, pillText, props.width, props.height,
-    TITLE_HEIGHT + 12, [attributionBox, ...endpointBoxes]);
-  const pillBox = {left: pill.cx - pill.width / 2, right: pill.cx + pill.width / 2,
-    top: pill.cy - pill.height / 2, bottom: pill.cy + pill.height / 2};
-  labelBoxes.push(pillBox);
-
   const areaSize = LAYOUT.labels.citySize;
   const labelFrames = useMemo(() => buildAdministrativeLabelTimeline(props, model), [
     props.steps, props.administrativePlaces, props.durationInFrames, props.fps, props.width,
@@ -298,9 +291,18 @@ export function DrivingRoute(props: DrivingRouteProps) {
     props.totalDistanceMeters, model,
   ]);
   const areaLabels = labelFrames[frame] ?? [];
-  for (const label of areaLabels) {
-    if (label.opacity >= 0.1) labelBoxes.push(label.box);
-  }
+  const visibleAreaBoxes = areaLabels.filter((label) => label.opacity >= 0.1)
+    .map((label) => label.box);
+
+  // 里程牌是次要覆盖物：优先选择不压住可见行政区标签的候选位置，
+  // 避免在车辆经过城市时把最重要的地名盖住。
+  const pillText = `已行驶 ${formatDistance(traveled)}`;
+  const pill = placeDistancePill(vehicle.x, vehicle.y, pillText, props.width, props.height,
+    TITLE_HEIGHT + 12, [attributionBox, ...endpointBoxes, ...visibleAreaBoxes]);
+  const pillBox = {left: pill.cx - pill.width / 2, right: pill.cx + pill.width / 2,
+    top: pill.cy - pill.height / 2, bottom: pill.cy + pill.height / 2};
+  labelBoxes.push(pillBox);
+  for (const box of visibleAreaBoxes) labelBoxes.push(box);
 
   const roadLabels = highwayLabels(model).flatMap((label) => {
     const point = toScreen(camera, pointAtDistance(model, label.distance));

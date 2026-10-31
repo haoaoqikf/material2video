@@ -44,7 +44,7 @@ def test_fetch_basemap_stitches_overview_and_corridor_tiles(tmp_path):
     block = route["basemap"]
     assert block["provider"] == "amap"
     assert block["service"] == "road-tiles"
-    assert block["layoutVersion"] == layout.layout_version() == 6
+    assert block["layoutVersion"] == layout.layout_version() == 7
     assert block["overview"]["zoom"] >= 8
     assert block["followTiles"]["zoom"] >= 9
     overview = root / block["overview"]["image"]["path"]
@@ -147,7 +147,7 @@ def test_prepare_with_basemap_is_offline(tmp_path, monkeypatch):
     prepared = json.loads((root / "outputs" / "prepared.json").read_text(encoding="utf-8"))
     assert prepared["props"]["basemap"]["overview"]["dataUri"].startswith("data:image/jpeg;base64,")
     assert prepared["props"]["basemap"]["followTiles"]["tiles"]
-    assert prepared["durationInFrames"] == 1800
+    assert prepared["durationInFrames"] == 900
 
 
 def test_cli_basemap_wires_the_command(tmp_path, monkeypatch):
