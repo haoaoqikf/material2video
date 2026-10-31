@@ -70,4 +70,4 @@
 - [x] 8.6 准备并渲染七天全片（约 5400 帧），通过画面、音频、响度、候选绑定与确定性验收。
 - [x] 8.7 对全片执行独立评审与 QA，记录评审包、代表帧、响度量测与发布说明。
 - [x] 8.8 运行 `uv run pytest --full`、前端测试/类型检查/构建、`openspec validate --specs`；检查暂存内容不含 Key、作品、生成媒体，按决策 12 只提交本变更相关改动。
-- [ ] 8.9 归档变更：同步 `openspec/specs/road-trip-video/`、`modular-video-production`、`video-frame-rate` 主规格，移入 `changes/archive/`，单独提交归档结果。
+- [x] 8.9 归档变更：同步 `openspec/specs/road-trip-video/`、`modular-video-production`、`video-frame-rate` 主规格，移入 `changes/archive/`，单独提交归档结果。
