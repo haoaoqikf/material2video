@@ -102,7 +102,7 @@ describe('timeline and camera', () => {
 
   it('uses a shared 60-second frame ledger', () => {
     expect(timeline(1800, 30)).toMatchObject({
-      openingFrames: 60, transitionFrames: 15, driveFrames: 1680,
+      openingFrames: 60, transitionFrames: 0, driveFrames: 1680,
       endingFrames: 60, endingHoldFrames: 30, pulloutFrames: 30, endingStart: 1740,
     });
   });
@@ -275,6 +275,18 @@ describe('composition markup', () => {
     expect(markup).toContain('data-m2v-origin-label="true"');
   });
 
+  it('keeps the vehicle aligned to the initial route direction through the opening zoom', () => {
+    const headingAtFrame = (frame: number) => Number(attribute(
+      renderProps(frame, props), 'data-m2v-heading'));
+    const initialHeading = headingAtFrame(0);
+    for (let frame = 1; frame < 60; frame += 1) {
+      expect(headingAtFrame(frame), `vehicle heading changed during opening at frame ${frame}`)
+        .toBe(initialHeading);
+    }
+    expect(distanceForFrame(60, props.durationInFrames, props.fps,
+      buildRouteModel(props.steps).lengthMeters)).toBeGreaterThan(0);
+  });
+
   it('shows the full walked route and traveled total at the end', () => {
     const markup = render(1799);
     expect(markup).toContain('data-m2v-walked="true"');
@@ -318,7 +330,7 @@ describe('composition markup', () => {
     ];
     const yAt = (frame: number) => {
       const markup = renderProps(frame, {...props, administrativePlaces: places});
-      const match = markup.match(/data-m2v-administrative-label="苏州市"[^>]*y="(\d+)"/u);
+      const match = markup.match(/data-m2v-administrative-label="苏州市"[^>]*y="(-?\d+(?:\.\d+)?)"/u);
       return match ? Number(match[1]) : null;
     };
     const first = yAt(900);
@@ -332,6 +344,13 @@ describe('composition markup', () => {
     }
   });
 
+  it('preserves subpixel screen positions while the camera follows the route', () => {
+    const markup = renderProps(901, {...props, administrativePlaces: [
+      {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
+    ]});
+    expect(markup).toMatch(/data-m2v-administrative-label="苏州市"[^>]*x="\d+\.\d{2}"[^>]*y="-?\d+\.\d{2}"/u);
+  });
+
   it('fades administrative labels continuously across collision thresholds for a full route', () => {
     const places = [
       {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
@@ -341,12 +360,15 @@ describe('composition markup', () => {
     const previous = new Map<string, number>();
     for (let frame = 0; frame < props.durationInFrames; frame += 1) {
       const markup = renderProps(frame, {...props, administrativePlaces: places});
-      for (const match of markup.matchAll(/data-m2v-administrative-label="([^"]+)"[^>]*opacity="([\d.]+)"/gu)) {
-        const name = match[1]!;
-        const opacity = Number(match[2]);
+      const current = new Map([...markup.matchAll(
+        /data-m2v-administrative-label="([^"]+)"[^>]*opacity="([\d.]+)"/gu,
+      )].map((match) => [match[1]!, Number(match[2])]));
+      for (const name of new Set([...previous.keys(), ...current.keys()])) {
+        const opacity = current.get(name) ?? 0;
         const before = previous.get(name);
         if (before !== undefined) {
-          expect(Math.abs(opacity - before), `${name} opacity jumped at frame ${frame}`).toBeLessThan(0.2);
+          expect(Math.abs(opacity - before), `${name} opacity jumped at frame ${frame}`)
+            .toBeLessThan(0.12);
         }
         previous.set(name, opacity);
       }
@@ -367,6 +389,17 @@ describe('composition markup', () => {
       .toEqual(labels(renderProps(900, {...props, administrativePlaces: [...places].reverse()})));
   });
 
+  it('shows only city labels in the settled full-route overview', () => {
+    const places = [
+      {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
+      {name: '昆山市', level: 'county' as const, adcode: '320583', parentAdcode: '320500',
+        center: [121.49, 31.25] as [number, number]},
+    ];
+    const markup = renderProps(props.durationInFrames - 1, {...props, administrativePlaces: places});
+    expect(markup).toContain('data-m2v-administrative-label="苏州市"');
+    expect(markup).not.toContain('data-m2v-administrative-label="昆山市"');
+  });
+
   it('draws city and county administrative names at the same size', () => {
     const markup = renderProps(900, {
       ...props,
@@ -385,7 +418,7 @@ describe('composition markup', () => {
     expect(markup).not.toContain('data-m2v-administrative-label="黄浦区"');
     for (const name of ['苏州市', '昆山市']) {
       expect(markup).toMatch(new RegExp(
-        `data-m2v-administrative-label="${name}"[^>]*x="\\d+"[^>]*y="\\d+"`
+        `data-m2v-administrative-label="${name}"[^>]*x="\\d+(?:\\.\\d+)?"[^>]*y="-?\\d+(?:\\.\\d+)?"`
         + '[^>]*opacity="[\\d.]+"[^>]*fill="#[\\da-f]+"[^>]*font-size="30"'
         + '[^>]*font-weight="700"[^>]*stroke="#[\\da-f]+"[^>]*stroke-width="8"', 'u'));
     }

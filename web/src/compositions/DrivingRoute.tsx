@@ -9,7 +9,7 @@ import { AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFram
 import {
   basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame, clamp, displayDistanceMeters,
   distanceForFrame, formatDistance, headingAtDistance, highwayLabels, pointAtDistance,
-  projectPoint, roadLabelKey, selectVisibleTiles, toScreen, walkedPoints,
+  projectPoint, roadLabelKey, selectVisibleTiles, timeline, toScreen, walkedPoints,
   type DrivingRouteProps, type ProjectedPoint, type RouteModel,
 } from './driving/route';
 import { LAYOUT, contentRect } from './driving/layout';
@@ -127,7 +127,11 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
   const contentBox = {left: 10, right: props.width - 10,
     top: content.top + 6, bottom: content.bottom - 6};
   const areaBoxes: Box[] = [];
+  const spans = timeline(props.durationInFrames, props.fps);
+  const pulloutProgress = clamp((frame - spans.endingStart) / spans.pulloutFrames, 0, 1);
+  const overviewStart = spans.endingStart + spans.pulloutFrames;
   return [...(props.administrativePlaces ?? [])]
+    .filter((place) => frame < overviewStart || place.level === 'city')
     .sort((first, second) => (first.level === 'city' ? 0 : 1)
       - (second.level === 'city' ? 0 : 1)
       || first.adcode.localeCompare(second.adcode, 'en')
@@ -138,8 +142,10 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
       if (place.level === 'county' && place.name.endsWith('区')) return [];
       const point = toScreen(camera, projectPoint(place.center));
       const halfWidth = (estimateTextWidth(place.name, areaSize) + 16) / 2;
-      const x = Math.round(clamp(point.x, halfWidth + 10, props.width - halfWidth - 10));
-      const y = Math.round(point.y - areaOffset);
+      // Preserve subpixel camera motion. Rounding screen coordinates made anchored labels
+      // advance in one-pixel steps while the map moved, which reads as text jitter.
+      const x = clamp(point.x, halfWidth + 10, props.width - halfWidth - 10);
+      const y = point.y - areaOffset;
       const box = {left: x - halfWidth, right: x + halfWidth,
         top: y - areaBoxTop, bottom: y + areaBoxBottom};
       const fadeDistance = 120;
@@ -149,15 +155,17 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
         Math.min(nearest, boxClearance(box, other)), Number.POSITIVE_INFINITY);
       const boundsClearance = Math.min(clearanceToRect(box, contentBox),
         point.x - halfWidth - 10, props.width - halfWidth - 10 - point.x);
-      const opacity = Math.min(fadeForClearance(blockerClearance, fadeDistance),
+      const collisionOpacity = Math.min(fadeForClearance(blockerClearance, fadeDistance),
         fadeForClearance(priorLabelClearance, fadeDistance),
         fadeForClearance(boundsClearance, fadeDistance));
+      const opacity = place.level === 'city' ? collisionOpacity
+        : collisionOpacity * (1 - pulloutProgress);
       areaBoxes.push(box);
       return [{name: place.name, level: place.level, adcode: place.adcode, x, y, opacity, box}];
     });
 }
 
-/** 用九帧居中窗口平滑原始碰撞透明度，单次硬切最多影响一帧的 1/9。 */
+/** 用与相机平滑时长一致的居中窗口平滑碰撞透明度，降低逐帧显隐变化。 */
 export function buildAdministrativeLabelTimeline(props: DrivingRouteProps,
                                                   model: RouteModel): AreaLabel[][] {
   const places = props.administrativePlaces ?? [];
@@ -173,7 +181,9 @@ export function buildAdministrativeLabelTimeline(props: DrivingRouteProps,
   const raw = Array.from({length: props.durationInFrames}, (_, frame) =>
     buildAreaLabelsAtFrame(props, model, frame));
   const rawByFrame = raw.map((labels) => new Map(labels.map((label) => [label.adcode, label])));
-  const radius = 4;
+  const radius = Math.round(props.fps * LAYOUT.camera.cameraSmoothingSeconds / 2);
+  const spans = timeline(props.durationInFrames, props.fps);
+  const overviewStart = spans.endingStart + spans.pulloutFrames;
   const smoothed = raw.map((labels, frame) => labels.map((label) => {
     let total = 0;
     let count = 0;
@@ -182,7 +192,7 @@ export function buildAdministrativeLabelTimeline(props: DrivingRouteProps,
       total += sameLabel?.opacity ?? 0;
       count += 1;
     }
-    return {...label, opacity: total / count};
+    return {...label, opacity: label.level === 'city' || frame < overviewStart ? total / count : 0};
   }));
   byPlaces.set(places, {signature, frames: smoothed});
   return smoothed;
@@ -196,7 +206,9 @@ export function DrivingRoute(props: DrivingRouteProps) {
     props.width, props.height);
   const distance = distanceForFrame(frame, props.durationInFrames, props.fps, model.lengthMeters);
   const traveling = pointAtDistance(model, distance);
-  const heading = (headingAtDistance(model, distance) * 180) / Math.PI;
+  const spans = timeline(props.durationInFrames, props.fps);
+  const headingDistance = frame < spans.openingFrames ? 0 : distance;
+  const heading = (headingAtDistance(model, headingDistance) * 180) / Math.PI;
   const vehicle = toScreen(camera, traveling);
   const origin = toScreen(camera, model.projected[0]);
   const destination = toScreen(camera, model.projected[model.projected.length - 1]);
@@ -370,7 +382,7 @@ export function DrivingRoute(props: DrivingRouteProps) {
       {areaLabels.map((label) => <text key={`area-${label.adcode}`}
         data-m2v-administrative-label={label.name}
         data-m2v-administrative-level={label.level}
-        x={label.x} y={label.y} textAnchor="middle"
+        x={label.x.toFixed(2)} y={label.y.toFixed(2)} textAnchor="middle"
         opacity={label.opacity.toFixed(4)}
         fill={INK} fontSize={areaSize} fontWeight={LAYOUT.labels.cityWeight}
         stroke="#ffffff" strokeWidth={LAYOUT.labels.cityStrokeWidth} paintOrder="stroke"

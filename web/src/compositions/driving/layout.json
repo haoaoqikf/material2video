@@ -20,7 +20,7 @@
     "openingSeconds": 2,
     "openingStartZoom": 9,
     "openingEndZoom": 16,
-    "openingTransitionSeconds": 0.5,
+    "openingTransitionSeconds": 0,
     "followZoom": 16,
     "cameraSmoothingSeconds": 0.6,
     "endingSeconds": 2,
