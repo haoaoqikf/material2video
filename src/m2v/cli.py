@@ -32,8 +32,10 @@ def _register_builtins() -> None:
     from m2v.types.driving_route.adapter import TYPE as driving_route
     from m2v.types.financial.adapter import TYPE as financial
     from m2v.types.general.adapter import TYPE as general
+    from m2v.types.road_trip.adapter import TYPE as road_trip
     from m2v.types.vehicle_showcase.adapter import TYPE as vehicle_showcase
-    for item in (financial, general, driving_route, building_construction, vehicle_showcase):
+    for item in (financial, general, driving_route, building_construction, road_trip,
+                 vehicle_showcase):
         registry.register(item)
 
 
@@ -133,6 +135,12 @@ def _parser() -> argparse.ArgumentParser:
     driving.add_argument("--refresh", action="store_true", help="basemap 忽略已有影像并重新取图")
     driving.add_argument("--style", choices=("road", "satellite"), default="road",
                          help="basemap 底图样式：普通道路或卫星影像")
+    road_trip = sub.add_parser("road-trip", help="多日地图游记的链式取数与每日底图")
+    road_trip.add_argument("workflow", choices=("fetch", "basemap"))
+    road_trip.add_argument("--project", required=True)
+    road_trip.add_argument("--refresh", action="store_true", help="basemap 忽略已有影像并重新取图")
+    road_trip.add_argument("--style", choices=("road", "satellite"), default=None,
+                           help="覆盖逐日 basemapStyle；省略时按 trip.json 的按天设置")
     return parser
 
 

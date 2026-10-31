@@ -246,12 +246,17 @@ class AmapClient:
             "counties": counties,
         }
 
-    def drive(self, origin: tuple[float, float],
-              destination: tuple[float, float]) -> dict[str, Any]:
+    def drive(self, origin: tuple[float, float], destination: tuple[float, float],
+              *, strategy: int = 34, bridge_gaps: float = 0.0) -> dict[str, Any]:
+        """规划一段真实驾车路线；`strategy=3` 为避开高速，用于国道走廊。
+
+        `bridge_gaps` 允许把不超过该米数的服务采样缺口用直线连接步骤补齐，
+        多日行程的城市路口偶见 30–50 米缺口；默认 0 保持自驾路线的既有拒绝。
+        """
         payload = self._get("/v5/direction/driving", {
             "origin": f"{origin[0]},{origin[1]}",
             "destination": f"{destination[0]},{destination[1]}",
-            "strategy": "34",
+            "strategy": str(strategy),
             "show_fields": "cost,cities,polyline",
         })
         route = payload.get("route")
@@ -309,8 +314,15 @@ class AmapClient:
                 gap = _haversine((previous_last[0], previous_last[1]),
                                  (points[0][0], points[0][1]))
                 if gap > STEP_TOLERANCE_METERS:
-                    raise M2VError(f"高德驾车规划{where}与上一段终点相距 {gap:.1f} 米，"
-                                   f"超过 {STEP_TOLERANCE_METERS:g} 米容差；拒绝跨缺口连接")
+                    if bridge_gaps and gap <= bridge_gaps:
+                        # 服务采样在路口偶有几十米断点；用直线连接步骤补齐，
+                        # 材料仍然满足 25 米连续性，不改动真实道路折线。
+                        steps.append({"road": "路口连接", "distanceMeters": 0,
+                                      "points": [[previous_last[0], previous_last[1]],
+                                                 [points[0][0], points[0][1]]]})
+                    else:
+                        raise M2VError(f"高德驾车规划{where}与上一段终点相距 {gap:.1f} 米，"
+                                       f"超过 {STEP_TOLERANCE_METERS:g} 米容差；拒绝跨缺口连接")
             steps.append({"road": road_name, "distanceMeters": step_meters, "points": points})
             previous_last = points[-1]
         if not steps:

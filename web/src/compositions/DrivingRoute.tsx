@@ -13,6 +13,7 @@ import {
   type DrivingRouteProps, type ProjectedPoint, type RouteModel,
 } from './driving/route';
 import { LAYOUT, contentRect } from './driving/layout';
+import { MapLayer } from './driving/MapLayer';
 import { estimateTextWidth, fitFontSize, placeDistancePill, truncateText } from './driving/labels';
 
 export type { DrivingRouteProps } from './driving/route';
@@ -34,10 +35,6 @@ const TITLE_HEIGHT = LAYOUT.title.height;
 
 function markerLabelY(y: number, height: number): number {
   return clamp(y - 30, TITLE_HEIGHT + 42, height - 40);
-}
-
-function polylinePoints(points: ProjectedPoint[]): string {
-  return points.map((point) => `${point.x},${point.y}`).join(' ');
 }
 
 type Box = {left: number; right: number; top: number; bottom: number};
@@ -331,39 +328,9 @@ export function DrivingRoute(props: DrivingRouteProps) {
     <svg width={props.width} height={props.height} viewBox={`0 0 ${props.width} ${props.height}`}
       role="img" aria-label={`${props.originLabel}到${props.destinationLabel}的模拟行程`}
       data-m2v-driving-frame={frame}>
-      <g data-m2v-camera="true" data-m2v-scale={camera.scale.toFixed(8)}
-        transform={`translate(${camera.tx} ${camera.ty}) scale(${camera.scale})`}>
-        {props.basemap && <>
-          <image data-m2v-basemap="overview" href={props.basemap.overview.dataUri}
-            x={props.basemap.overview.projected.left} y={props.basemap.overview.projected.top}
-            width={props.basemap.overview.projected.width}
-            height={props.basemap.overview.projected.height}
-            preserveAspectRatio="none" opacity={1} />
-          <g data-m2v-basemap="follow" data-m2v-basemap-layer="follow"
-            data-m2v-basemap-visible-count={visibleTiles.length}
-            data-m2v-basemap-opacity={opacity.toFixed(4)} opacity={opacity}>
-            {visibleTiles.map((tile) => <image key={`${tile.x}:${tile.y}`}
-              data-m2v-basemap-tile={`${tile.x}:${tile.y}`} href={tile.dataUri}
-              x={tile.projected.left} y={tile.projected.top}
-              width={tile.projected.width} height={tile.projected.height}
-              preserveAspectRatio="none" />)}
-          </g>
-        </>}
-        <polyline data-m2v-route="true" points={polylinePoints(model.projected)} fill="none"
-          stroke="#ffffff" strokeWidth={11} strokeLinejoin="round" strokeLinecap="round"
-          vectorEffect="non-scaling-stroke" opacity={0.82} />
-        <polyline data-m2v-route-color="true" points={polylinePoints(model.projected)} fill="none"
-          stroke={UNWALKED} strokeWidth={6} strokeLinejoin="round" strokeLinecap="round"
-          vectorEffect="non-scaling-stroke" />
-        {distance > 0 && walked.length > 1 && <>
-          <polyline data-m2v-walked-underlay="true" points={polylinePoints(walked)} fill="none"
-            stroke="#ffffff" strokeWidth={13} strokeLinejoin="round" strokeLinecap="round"
-            vectorEffect="non-scaling-stroke" opacity={0.9} />
-          <polyline data-m2v-walked="true" points={polylinePoints(walked)} fill="none"
-            stroke={WALKED} strokeWidth={8} strokeLinejoin="round" strokeLinecap="round"
-            vectorEffect="non-scaling-stroke" />
-        </>}
-      </g>
+      <MapLayer camera={camera} model={model} distance={distance} walked={walked}
+        basemap={props.basemap} visibleTiles={visibleTiles} followOpacity={opacity}
+        walkedColor={WALKED} unwalkedColor={UNWALKED} />
 
       {roadLabels.map((label) => <text key={roadLabelKey(label)}
         data-m2v-road-label={label.road} x={label.x} y={label.y} textAnchor="middle"

@@ -308,6 +308,71 @@
       ]
     },
     {
+      "name": "road-trip",
+      "description": "多日地图游记",
+      "summary": "真实国道走廊、多日行程、每日章节卡与数据卡、旁白字幕音效与程序化音床；1080×1920 竖屏、30 fps、有声交付。",
+      "plan": "保留独立的 trip.json 编排材料、链式取数、每日底图走廊与离线有声渲染；以 318 川藏南线七天为首例。",
+      "skillGuide": "[多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。",
+      "materials": [
+        {
+          "name": "trip",
+          "file": "trip.json",
+          "template": {
+            "schemaVersion": 1,
+            "title": "填写行程标题",
+            "start": {
+              "city": "填写城市",
+              "address": "填写具体地点地址",
+              "label": "填写画面名称"
+            },
+            "end": {
+              "city": "填写城市",
+              "address": "填写具体地点地址",
+              "label": "填写画面名称"
+            },
+            "routePreference": "g318",
+            "targetSeconds": 180,
+            "sourceUsage": {
+              "verifiedOn": "YYYY-MM-DD",
+              "documents": [],
+              "account": "填写适用账号与用途范围（不写登录凭据）",
+              "purpose": "填写离线保存、二维衍生画面与视频发布用途",
+              "offlineStorage": false,
+              "derivativeFrames": false,
+              "videoPublication": false,
+              "attribution": "填写来源要求署名的文本",
+              "mapTiles": false
+            },
+            "sources": [],
+            "days": [
+              {
+                "id": "day-01",
+                "title": "填写当天标题",
+                "subtitle": "",
+                "destination": {
+                  "city": "填写城市",
+                  "address": "填写具体地点地址",
+                  "label": "填写画面名称"
+                },
+                "via": [],
+                "route": "routes/day-01.json",
+                "basemapStyle": "road",
+                "narration": [
+                  {
+                    "id": "day-01-opening",
+                    "text": "填写完整旁白。"
+                  }
+                ],
+                "cards": [],
+                "landmarks": []
+              }
+            ],
+            "effects": []
+          }
+        }
+      ]
+    },
+    {
       "name": "vehicle-showcase",
       "description": "本地三维汽车展示与视觉疾驰",
       "summary": "本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。",

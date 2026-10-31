@@ -5,7 +5,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 ## 模块边界
 
 - `src/m2v/core/`：作品与工作区契约、路径、资产、指纹、安全策略和公共错误。它不包含具体视频类型的业务流程。
-- `src/m2v/types/`：类型目录、注册表和金融、通用、自驾路线类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。`driving_route/` 中 `materials.py` 负责请求/路线契约、绑定摘要与几何校验，`amap.py` 是路径 API 客户端，`fetch.py` 负责授权前置、原子保存与失败保护，`basemap.py` 负责概览拼接与跟随瓦片走廊、内容寻址目录、逐块摘要与本地记录；Pillow 只用于瓦片处理。离线生命周期不导入取数或取图路径，也不需要 Key。
+- `src/m2v/types/`：类型目录、注册表和金融、通用、自驾路线、多日地图游记类型适配器。新类型从目录发现，再由适配器实现校验、准备、预演、渲染及可选评审。`driving_route/` 中 `materials.py` 负责请求/路线契约、绑定摘要与几何校验，`amap.py` 是路径 API 客户端，`fetch.py` 负责授权前置、原子保存与失败保护，`basemap.py` 负责概览拼接与跟随瓦片走廊、内容寻址目录、逐块摘要与本地记录；Pillow 只用于瓦片处理。离线生命周期不导入取数或取图路径，也不需要 Key。`route_common.py` 只含两个类型都成立的真实路线判定（定位精度、步骤连续性、成本、城市与行政区），不导入任何类型私有逻辑；`road_trip/` 在它之上增加多日编排、链式取数、每日底图、时间轴、程序化音床与有声渲染，`fetch.py`/`basemap.py` 同样只被在线命令导入。
 - `src/m2v/types/general/code_scenes/config.py`：代码场景入口校验、录制配置与确定性打包；`capture.py`：逐帧采集、片段缓存与编码验收；`worker.py`：pure-time 分块采集子进程入口。录制配置只在作品 opt-in 时注入全局时间轴与纯模式，未声明时保持既有形状。`src/m2v/engine/remotion/segments.py` 负责 `--jobs` 的分帧区间渲染、逐段验收与无损拼接，不改变单进程路径。
 - `src/m2v/types/general/sound_synthesis.py`、`sound_library.py`、`soundtrack.py`：分别负责常见音效目录及确定性拟音、双来源音效登记与离线复核、分镜声音编排；共享 `engine/audio.py` 只处理音频信号与立体声混音，不决定音效选型或许可。
 - `src/m2v/core/styles.py`：解释 `styles/<id>/style.json`，负责风格发现、作品兼容校验和内容指纹；不依赖类型实现。general 打包器只消费已校验入口，风格不修改业务流程。

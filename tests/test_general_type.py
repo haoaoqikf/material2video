@@ -17,7 +17,7 @@ def test_current_types_are_listed(capsys):
     assert main(["types"]) == 0
     types = {item["type"]: item["description"] for item in json.loads(capsys.readouterr().out)}
     assert set(types) == {"general", "financial-timeseries", "driving-route",
-                          "building-construction", "vehicle-showcase"}
+                          "building-construction", "road-trip", "vehicle-showcase"}
     assert types["general"] == "通用"
     assert types["driving-route"] == "自驾路线动画"
 

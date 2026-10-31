@@ -49,13 +49,19 @@ def route_start_selection(route: dict[str, Any]) -> tuple[list[dict[str, Any]], 
                    "请将起点调整到主干道后重新取数")
 
 
-def route_steps_for_render(route: dict[str, Any]) -> list[dict[str, Any]]:
-    """跳过起点到首条大路之间的短接驳路，原始 API 路线材料保持完整。"""
-    return route_start_selection(route)[0]
+def route_steps_for_render(route: dict[str, Any], *, trim_origin: bool = True) -> list[dict[str, Any]]:
+    """跳过起点到首条大路之间的短接驳路，原始 API 路线材料保持完整。
+
+    多日行程只有第 1 天需要裁剪：后续每天必须与前一天终点严格相接，裁掉
+    起点接驳路会让两天之间出现缺口。
+    """
+    return route_start_selection(route)[0] if trim_origin else route["route"]["steps"]
 
 
-def visual_distance_meters(route: dict[str, Any]) -> float:
+def visual_distance_meters(route: dict[str, Any], *, trim_origin: bool = True) -> float:
     """城市间画面的里程不计入被省略的起点接驳路。"""
+    if not trim_origin:
+        return max(1.0, float(route["route"]["distanceMeters"]))
     return max(1.0, float(route["route"]["distanceMeters"])
                - route_start_selection(route)[1])
 

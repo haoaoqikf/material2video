@@ -53,6 +53,17 @@ def dispatch(args) -> int:
         target = fetch_route(args.project)
         print(f"已保存高速优先路线：{target}")
         return 0
+    if args.command == "road-trip":
+        if args.workflow == "basemap":
+            from m2v.types.road_trip.basemap import fetch_basemap
+            result = fetch_basemap(args.project, refresh=args.refresh, style=args.style)
+            action = "已复用多日底图" if result["reused"] else "已保存多日底图"
+            print(f"{action}：{result['path']}（{result['tileCount']} 块跟随瓦片）")
+            return 0
+        from m2v.types.road_trip.fetch import fetch as fetch_trip
+        targets = fetch_trip(args.project)
+        print(f"已保存 {len(targets)} 天链式路线：{targets[0].parent}")
+        return 0
     if args.command == "financial":
         root, manifest = load_project(args.project)
         if manifest["type"] != "financial-timeseries":

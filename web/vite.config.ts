@@ -37,7 +37,7 @@ export default defineConfig({
     outDir: 'dist/contract',
     emptyOutDir: true,
     rollupOptions: {
-      input: { contract: `${here}contract.html` },
+      input: { contract: `${here}contract.html`, roadtrip: `${here}roadtrip.html` },
     },
   },
   server: {

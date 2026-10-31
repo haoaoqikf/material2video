@@ -42,7 +42,8 @@
     "financial-timeseries": "references/financial-timeseries-video.md",
     "driving-route": "references/driving-route-video.md",
     "building-construction": "references/building-construction-video.md",
-    "vehicle-showcase": "references/vehicle-showcase-video.md"
+    "vehicle-showcase": "references/vehicle-showcase-video.md",
+    "road-trip": "references/road-trip-video.md"
   },
   "conditional": [
     {

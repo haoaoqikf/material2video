@@ -1,10 +1,11 @@
-import { BUILDING_FPS, DRIVING_ROUTE_FPS, FPS, GENERAL_DEFAULT_FPS, VEHICLE_SHOWCASE_FPS } from './video-config';
+import { BUILDING_FPS, DRIVING_ROUTE_FPS, FPS, GENERAL_DEFAULT_FPS, ROAD_TRIP_FPS, VEHICLE_SHOWCASE_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
 import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
 import { BuildingConstruction, type BuildingProps } from './compositions/BuildingConstruction';
 import { DrivingRoute, type DrivingRouteProps } from './compositions/DrivingRoute';
 import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
+import { RoadTrip, type RoadTripProps } from './compositions/RoadTrip';
 import { VehicleShowcase, type VehicleShowcaseProps } from './compositions/VehicleShowcase';
 import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
@@ -69,6 +70,21 @@ export const RemotionRoot: FC = () => {
         width={1920}
         height={1080}
         defaultProps={{} as VehicleShowcaseProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames,
+          fps: props.fps,
+          width: props.width,
+          height: props.height,
+        })}
+      />
+      <Composition
+        id="RoadTrip"
+        component={RoadTrip}
+        durationInFrames={5400}
+        fps={ROAD_TRIP_FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{} as RoadTripProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.durationInFrames,
           fps: props.fps,

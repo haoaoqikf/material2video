@@ -21,6 +21,7 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
 | `driving-route` | [自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。 |
 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：从基础到完工的构件与阶段说明。 |
+| `road-trip` | [多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。 |
 | `vehicle-showcase` | [汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。 |
 <!-- generated:type-catalog:end -->
 
