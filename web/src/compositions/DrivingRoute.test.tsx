@@ -332,6 +332,41 @@ describe('composition markup', () => {
     }
   });
 
+  it('fades administrative labels continuously across collision thresholds for a full route', () => {
+    const places = [
+      {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
+      {name: '昆山市', level: 'county' as const, adcode: '320583', parentAdcode: '320500',
+        center: [121.485, 31.2453] as [number, number]},
+    ];
+    const previous = new Map<string, number>();
+    for (let frame = 0; frame < props.durationInFrames; frame += 1) {
+      const markup = renderProps(frame, {...props, administrativePlaces: places});
+      for (const match of markup.matchAll(/data-m2v-administrative-label="([^"]+)"[^>]*opacity="([\d.]+)"/gu)) {
+        const name = match[1]!;
+        const opacity = Number(match[2]);
+        const before = previous.get(name);
+        if (before !== undefined) {
+          expect(Math.abs(opacity - before), `${name} opacity jumped at frame ${frame}`).toBeLessThan(0.2);
+        }
+        previous.set(name, opacity);
+      }
+    }
+    expect(previous.size).toBe(2);
+  });
+
+  it('keeps administrative collision priority independent of material array order', () => {
+    const places = [
+      {name: '昆山市', level: 'county' as const, adcode: '320583', parentAdcode: '320500',
+        center: [121.485, 31.2462] as [number, number]},
+      {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
+    ];
+    const labels = (markup: string) => [...markup.matchAll(
+      /data-m2v-administrative-label="([^"]+)"[^>]*x="([^"]+)"[^>]*y="([^"]+)"[^>]*text-anchor="middle"\s+opacity="([^"]+)"/gu,
+    )].map((match) => match.slice(1));
+    expect(labels(renderProps(900, {...props, administrativePlaces: places})))
+      .toEqual(labels(renderProps(900, {...props, administrativePlaces: [...places].reverse()})));
+  });
+
   it('draws city and county administrative names at the same size', () => {
     const markup = renderProps(900, {
       ...props,
@@ -351,7 +386,8 @@ describe('composition markup', () => {
     for (const name of ['苏州市', '昆山市']) {
       expect(markup).toMatch(new RegExp(
         `data-m2v-administrative-label="${name}"[^>]*x="\\d+"[^>]*y="\\d+"`
-        + '[^>]*font-size="30"[^>]*font-weight="700"[^>]*stroke-width="8"', 'u'));
+        + '[^>]*opacity="[\\d.]+"[^>]*fill="#[\\da-f]+"[^>]*font-size="30"'
+        + '[^>]*font-weight="700"[^>]*stroke="#[\\da-f]+"[^>]*stroke-width="8"', 'u'));
     }
     expect(markup).not.toContain('data-m2v-city-label');
   });
