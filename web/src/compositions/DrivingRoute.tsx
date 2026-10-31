@@ -47,23 +47,13 @@ function overlaps(first: Box, second: Box): boolean {
     || first.bottom < second.top || first.top > second.bottom);
 }
 
-/** 有符号屏幕距离：分离为正，重叠为负，用于在碰撞边界附近连续淡出。 */
+/** 有符号屏幕距离：分离为正，重叠为负。 */
 function boxClearance(first: Box, second: Box): number {
   const dx = Math.max(second.left - first.right, first.left - second.right, 0);
   const dy = Math.max(second.top - first.bottom, first.top - second.bottom, 0);
   if (dx > 0 || dy > 0) return Math.hypot(dx, dy);
   return -Math.min(first.right - second.left, second.right - first.left,
     first.bottom - second.top, second.bottom - first.top);
-}
-
-function fadeForClearance(clearance: number, distance: number): number {
-  const t = clamp((clearance + distance) / (2 * distance), 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function clearanceToRect(box: Box, rect: Box): number {
-  return Math.min(box.left - rect.left, rect.right - box.right,
-    box.top - rect.top, rect.bottom - box.bottom);
 }
 
 /** 行政区文字在大幅变焦时暂时隐去，避免文字随瓦片缩放高速掠过。 */
@@ -88,15 +78,18 @@ const labelTimelineCache = new WeakMap<object, WeakMap<object, {
   signature: string; frames: AreaLabel[][]
 }>>();
 
+const ENDPOINT_VISIBLE_MARGIN = 24;
+const LABEL_COLLISION_GAP = 4;
+
 function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, frame: number): AreaLabel[] {
   const camera = cameraForFrame(model, frame, props.durationInFrames, props.fps, props.width, props.height);
-  const distance = distanceForFrame(frame, props.durationInFrames, props.fps, model.lengthMeters);
-  const vehicle = toScreen(camera, pointAtDistance(model, distance));
   const origin = toScreen(camera, model.projected[0]);
   const destination = toScreen(camera, model.projected[model.projected.length - 1]);
-  const visible = (point: ProjectedPoint) => point.x >= -120 && point.x <= props.width + 120
-    && point.y >= LAYOUT.title.height - 120 && point.y <= props.height + 120;
-  const labelBoxes: Box[] = [];
+  // 与组件实际绘制端点标签的可见条件保持一致，避免屏幕外端点无形中挡住行政区标签。
+  const visible = (point: ProjectedPoint) => point.x >= ENDPOINT_VISIBLE_MARGIN
+    && point.x <= props.width - ENDPOINT_VISIBLE_MARGIN
+    && point.y >= LAYOUT.title.height
+    && point.y <= props.height - ENDPOINT_VISIBLE_MARGIN;
   const endpointBoxes: Box[] = [];
   const originSize = fitFontSize(props.originLabel, 240, LAYOUT.labels.endpointSize, 22);
   const originText = truncateText(props.originLabel, 240, originSize);
@@ -107,31 +100,10 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
     const halfWidth = (estimateTextWidth(label, size) + 16) / 2;
     const x = clamp(point.x, halfWidth + 10, props.width - halfWidth - 10);
     const y = markerLabelY(point.y, props.height);
-    const box = {left: x - halfWidth, right: x + halfWidth, top: y - 36, bottom: y + 12};
-    endpointBoxes.push(box);
-    labelBoxes.push(box);
+    endpointBoxes.push({left: x - halfWidth, right: x + halfWidth, top: y - 36, bottom: y + 12});
   };
   addEndpoint(origin, originText, originSize);
   addEndpoint(destination, destinationText, destinationSize);
-  const attributionSize = fitFontSize(props.attribution, props.width - 120,
-    LAYOUT.labels.attributionSize, 14);
-  const attributionText = truncateText(props.attribution, props.width - 120, attributionSize);
-  const attributionWidth = estimateTextWidth(attributionText, attributionSize) + 24;
-  const attributionBox = {left: props.width - 40 - attributionWidth, right: props.width - 40,
-    top: props.height - 76, bottom: props.height - 30};
-  labelBoxes.push(attributionBox);
-  const pillText = `已行驶 ${formatDistance(displayDistanceMeters(distance, model.lengthMeters,
-    props.totalDistanceMeters))}`;
-  const pill = placeDistancePill(vehicle.x, vehicle.y, pillText, props.width, props.height,
-    LAYOUT.title.height + 12, [attributionBox, ...endpointBoxes]);
-  labelBoxes.push({left: pill.cx - pill.width / 2, right: pill.cx + pill.width / 2,
-    top: pill.cy - pill.height / 2, bottom: pill.cy + pill.height / 2});
-  labelBoxes.push({left: vehicle.x - 32, right: vehicle.x + 32,
-    top: vehicle.y - 32, bottom: vehicle.y + 32});
-  if (visible(origin)) labelBoxes.push({left: origin.x - 20, right: origin.x + 20,
-    top: origin.y - 20, bottom: origin.y + 20});
-  if (visible(destination)) labelBoxes.push({left: destination.x - 22, right: destination.x + 22,
-    top: destination.y - 22, bottom: destination.y + 22});
 
   const endpointNames = [props.originLabel, props.destinationLabel]
     .map((label) => label.replace(/[市区县]$/u, '')).filter((label) => label.length > 0);
@@ -139,9 +111,6 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
   const areaOffset = Math.round(areaSize * 1.2);
   const areaBoxTop = Math.round(areaSize * 0.9);
   const areaBoxBottom = Math.round(areaSize * 0.3);
-  const content = contentRect(props.width, props.height);
-  const contentBox = {left: 10, right: props.width - 10,
-    top: content.top + 6, bottom: content.bottom - 6};
   const areaBoxes: Box[] = [];
   const spans = timeline(props.durationInFrames, props.fps);
   const pulloutProgress = clamp((frame - spans.endingStart) / spans.pulloutFrames, 0, 1);
@@ -157,25 +126,25 @@ function buildAreaLabelsAtFrame(props: DrivingRouteProps, model: RouteModel, fra
       if (endpointNames.some((endpoint) => place.name.includes(endpoint))) return [];
       if (place.level === 'county' && place.name.endsWith('区')) return [];
       const point = toScreen(camera, projectPoint(place.center));
-      const halfWidth = (estimateTextWidth(place.name, areaSize) + 16) / 2;
-      // Preserve subpixel camera motion. Rounding screen coordinates made anchored labels
-      // advance in one-pixel steps while the map moved, which reads as text jitter.
-      const x = clamp(point.x, halfWidth + 10, props.width - halfWidth - 10);
+      // 地理锚点直接映射到屏幕，不做边缘收拢：标签随地图连续滑入滑出画面，
+      // 由视口自然裁切，避免在边缘停住若干帧再突然起步。
+      const x = point.x;
       const y = point.y - areaOffset;
+      const halfWidth = (estimateTextWidth(place.name, areaSize) + 16) / 2;
       const box = {left: x - halfWidth, right: x + halfWidth,
         top: y - areaBoxTop, bottom: y + areaBoxBottom};
-      const fadeDistance = 120;
-      const blockerClearance = labelBoxes.reduce((nearest, other) =>
+      const blockerClearance = endpointBoxes.reduce((nearest, other) =>
         Math.min(nearest, boxClearance(box, other)), Number.POSITIVE_INFINITY);
       const priorLabelClearance = areaBoxes.reduce((nearest, other) =>
         Math.min(nearest, boxClearance(box, other)), Number.POSITIVE_INFINITY);
-      const boundsClearance = Math.min(clearanceToRect(box, contentBox),
-        point.x - halfWidth - 10, props.width - halfWidth - 10 - point.x);
-      const collisionOpacity = Math.min(fadeForClearance(blockerClearance, fadeDistance),
-        fadeForClearance(priorLabelClearance, fadeDistance),
-        fadeForClearance(boundsClearance, fadeDistance));
-      const opacity = place.level === 'city' ? collisionOpacity
-        : collisionOpacity * (1 - pulloutProgress);
+      // 可见性只有“完全不透明/完全隐藏”两态：标签之间或与端点文字的相对位置在
+      // 跟随段固定，状态不会逐帧翻转；真实重叠时由时间平滑完成一次连续淡出。
+      // 车辆、里程牌、署名与标题带是绘制在标签之上的不透明覆盖物，允许短暂遮挡，
+      // 不再为它们整体调暗标签——那会让标签在半透明状态停留近半秒，像在闪烁。
+      const blocked = Math.min(blockerClearance, priorLabelClearance) < LABEL_COLLISION_GAP;
+      const baseOpacity = blocked ? 0 : 1;
+      const opacity = place.level === 'city' ? baseOpacity
+        : baseOpacity * (1 - pulloutProgress);
       areaBoxes.push(box);
       return [{name: place.name, level: place.level, adcode: place.adcode, x, y, opacity, box}];
     });

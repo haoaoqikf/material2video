@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  DrivingRoute, basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame,
-  cameraMotionLabelOpacity,
+  DrivingRoute, basemapOpacity, buildAdministrativeLabelTimeline, buildRouteModel, buildTileIndex,
+  cameraForFrame, cameraMotionLabelOpacity,
   displayDistanceMeters, distanceForFrame, fitCameraInContent, formatDistance,
   headingAtDistance, headingNear, highwayLabels, pointAtDistance, projectPoint, selectVisibleTiles,
   timeline, type DrivingRouteProps,
@@ -392,6 +392,33 @@ describe('composition markup', () => {
       {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
     ]});
     expect(markup).toMatch(/data-m2v-administrative-label="苏州市"[^>]*x="\d+\.\d{2}"[^>]*y="-?\d+\.\d{2}"/u);
+  });
+
+  it('keeps follows fully opaque and lets labels leave the viewport without clamping', () => {
+    const places = [
+      {name: '苏州市', level: 'city' as const, adcode: '320500', center: [121.485, 31.2462] as [number, number]},
+      {name: '昆山市', level: 'county' as const, adcode: '320583', parentAdcode: '320500',
+        center: [121.485, 31.2453] as [number, number]},
+      {name: '常州市', level: 'city' as const, adcode: '320400', center: [121.478, 31.241] as [number, number]},
+    ];
+    const frames = buildAdministrativeLabelTimeline({...props, administrativePlaces: places}, model);
+    for (let frame = 100; frame < 1700; frame += 1) {
+      for (const label of frames[frame]!) {
+        const onScreen = label.box.right > 0 && label.box.left < props.width
+          && label.box.bottom > 300 && label.box.top < props.height;
+        if (!onScreen) continue;
+        // 跟随段的屏内标签只能全不透明或被更高优先级标签完全隐藏；
+        // 半透明只允许出现在开场/结尾变焦，不得因车辆经过或贴近边缘而长期变淡。
+        expect([0, 1].some((value) => Math.abs(label.opacity - value) < 1e-6),
+          `${label.name}@${frame}:${label.opacity}`).toBe(true);
+      }
+    }
+    const before = frames[900]!.find((label) => label.name === '苏州市');
+    const after = frames[940]!.find((label) => label.name === '苏州市');
+    expect(before!.x).toBeGreaterThan(-1);
+    // 不做边缘收拢：标签随地图滑出画面，屏幕坐标可以小于零且继续移动。
+    expect(after!.x).toBeLessThan(before!.x);
+    expect(after!.opacity).toBe(1);
   });
 
   it('fades administrative labels continuously across collision thresholds for a full route', () => {
