@@ -8,8 +8,8 @@ import { useEffect, useMemo } from 'react';
 import { AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame } from 'remotion';
 import {
   basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame, clamp, displayDistanceMeters,
-  distanceForFrame, formatDistance, headingAtDistance, highwayLabels, pointAtDistance,
-  projectPoint, roadLabelKey, selectVisibleTiles, timeline, toScreen, walkedPoints,
+  distanceForFrame, formatDistance, headingAtDistance, headingNear, highwayLabels, pointAtDistance,
+  projectPoint, roadLabelKey, selectVisibleTiles, smoothstep, timeline, toScreen, walkedPoints,
   type DrivingRouteProps, type ProjectedPoint, type RouteModel,
 } from './driving/route';
 import { LAYOUT, contentRect } from './driving/layout';
@@ -19,6 +19,7 @@ export type { DrivingRouteProps } from './driving/route';
 export {
   basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame, displayDistanceMeters,
   distanceForFrame, easeOutQuad, fitCamera, fitCameraInContent, formatDistance, headingAtDistance,
+  headingNear,
   highwayLabels, pointAtDistance, projectPoint, roadLabelKey, selectVisibleTiles, smoothstep,
   smoothedPointAtDistance, timeline, toScreen, tileKey, walkedPoints,
 } from './driving/route';
@@ -63,6 +64,21 @@ function fadeForClearance(clearance: number, distance: number): number {
 function clearanceToRect(box: Box, rect: Box): number {
   return Math.min(box.left - rect.left, rect.right - box.right,
     box.top - rect.top, rect.bottom - box.bottom);
+}
+
+/** 行政区文字在大幅变焦时暂时隐去，避免文字随瓦片缩放高速掠过。 */
+export function cameraMotionLabelOpacity(frame: number, props: DrivingRouteProps,
+                                          spans: ReturnType<typeof timeline>): number {
+  const fadeFrames = Math.max(1, Math.round(props.fps * LAYOUT.camera.cameraSmoothingSeconds));
+  if (frame < spans.openingFrames) {
+    return smoothstep((frame - spans.openingFrames + fadeFrames) / fadeFrames);
+  }
+  const overviewStart = spans.endingStart + spans.pulloutFrames;
+  if (frame < spans.endingStart) return 1;
+  if (frame < overviewStart) {
+    return 1 - smoothstep((frame - spans.endingStart) / fadeFrames);
+  }
+  return smoothstep((frame - overviewStart) / fadeFrames);
 }
 
 type AreaLabel = {name: string; level: string; adcode: string; x: number; y: number;
@@ -192,7 +208,8 @@ export function buildAdministrativeLabelTimeline(props: DrivingRouteProps,
       total += sameLabel?.opacity ?? 0;
       count += 1;
     }
-    return {...label, opacity: label.level === 'city' || frame < overviewStart ? total / count : 0};
+    const settledOpacity = label.level === 'city' || frame < overviewStart ? total / count : 0;
+    return {...label, opacity: settledOpacity * cameraMotionLabelOpacity(frame, props, spans)};
   }));
   byPlaces.set(places, {signature, frames: smoothed});
   return smoothed;
@@ -208,7 +225,10 @@ export function DrivingRoute(props: DrivingRouteProps) {
   const traveling = pointAtDistance(model, distance);
   const spans = timeline(props.durationInFrames, props.fps);
   const headingDistance = frame < spans.openingFrames ? 0 : distance;
-  const heading = (headingAtDistance(model, headingDistance) * 180) / Math.PI;
+  const previousHeadingDistance = frame <= spans.openingFrames ? 0
+    : distanceForFrame(frame - 1, props.durationInFrames, props.fps, model.lengthMeters);
+  const previousHeading = headingAtDistance(model, previousHeadingDistance);
+  const heading = (headingNear(previousHeading, headingAtDistance(model, headingDistance)) * 180) / Math.PI;
   const vehicle = toScreen(camera, traveling);
   const origin = toScreen(camera, model.projected[0]);
   const destination = toScreen(camera, model.projected[model.projected.length - 1]);

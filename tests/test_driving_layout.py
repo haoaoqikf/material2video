@@ -3,18 +3,19 @@ from __future__ import annotations
 
 import pytest
 
+from m2v.core.errors import M2VError
 from m2v.types.driving_route import geometry, layout
 
 
 def test_layout_matches_the_portrait_contract():
     spec = layout.layout()
-    assert spec["version"] == 4
+    assert spec["version"] == 6
     assert (spec["width"], spec["height"]) == (1080, 1920)
     assert spec["title"]["height"] == 300
     assert spec["camera"]["openingSeconds"] == 2
     assert spec["camera"]["openingStartZoom"] == 9
     assert spec["camera"]["openingEndZoom"] == 16
-    assert spec["camera"]["openingTransitionSeconds"] == 0.5
+    assert spec["camera"]["openingTransitionSeconds"] == 0
     assert spec["camera"]["followZoom"] == 16
     assert spec["camera"]["cameraSmoothingSeconds"] == 0.6
     assert spec["camera"]["endingSeconds"] == 2
@@ -103,6 +104,38 @@ def test_geometry_projection_and_length_are_consistent():
     assert bbox[0] < bbox[2] and bbox[1] < bbox[3]
     x0, y0, x1, y1 = geometry.tile_range((121.44, 31.2, 121.53, 31.29), 10)
     assert x0 <= x1 and y0 <= y1
+
+
+def test_city_route_starts_at_first_major_road_and_omits_local_access_mileage():
+    access = [
+        {"road": "厦门路", "distanceMeters": 88,
+         "points": [[121.477422, 31.240031], [121.478329, 31.240224]]},
+        {"road": "南苏州路", "distanceMeters": 48,
+         "points": [[121.478329, 31.240224], [121.478742, 31.239961]]},
+        {"road": "福建中路", "distanceMeters": 94,
+         "points": [[121.478742, 31.239961], [121.479091, 31.239162]]},
+    ]
+    arterial = {"road": "北京东路", "distanceMeters": 3789,
+                "points": [[121.479091, 31.239162], [121.442838, 31.224775]]}
+    route = {"route": {"distanceMeters": 937281, "steps": [*access, arterial]}}
+
+    render_steps, omitted_meters = geometry.route_start_selection(route)
+
+    assert render_steps == [arterial]
+    assert omitted_meters == pytest.approx(230)
+    assert geometry.route_points(route)[0] == arterial["points"][0]
+    assert geometry.visual_distance_meters(route) == pytest.approx(937051)
+
+
+def test_city_route_requires_a_major_road_within_five_kilometers():
+    points = [[121.47 + index * 0.001, 31.23] for index in range(7)]
+    route = {"route": {"distanceMeters": 6000, "steps": [
+        {"road": "街道", "distanceMeters": 900, "points": [points[index], points[index + 1]]}
+        for index in range(6)
+    ]}}
+
+    with pytest.raises(M2VError, match="起点前 5 公里内未找到"):
+        geometry.route_steps_for_render(route)
 
 
 def test_layout_json_is_a_build_input():

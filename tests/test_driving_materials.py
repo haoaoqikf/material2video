@@ -277,3 +277,24 @@ def test_map_tiles_false_allows_vector_fallback(tmp_path):
     root = write_project(tmp_path)
     docs = materials.load_project(root)
     assert "basemap" not in docs["route"]
+
+
+def test_prepared_route_starts_at_major_road_and_deducts_access_mileage():
+    request = request_document()
+    steps = [
+        {"road": "厦门路", "distanceMeters": 88,
+         "points": [[121.477422, 31.240031], [121.478329, 31.240224]]},
+        {"road": "南苏州路", "distanceMeters": 48,
+         "points": [[121.478329, 31.240224], [121.478742, 31.239961]]},
+        {"road": "福建中路", "distanceMeters": 94,
+         "points": [[121.478742, 31.239961], [121.479091, 31.239162]]},
+        {"road": "北京东路", "distanceMeters": 3789,
+         "points": [[121.479091, 31.239162], [121.442838, 31.224775]]},
+    ]
+    route = route_document(request, steps=steps)
+
+    props = materials.build_render_props({"request": request, "route": route})
+
+    assert props["steps"][0]["road"] == "北京东路"
+    assert props["routeStart"] == [121.479091, 31.239162]
+    assert props["totalDistanceMeters"] == pytest.approx(4770)

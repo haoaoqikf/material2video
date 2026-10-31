@@ -414,7 +414,7 @@ def fetch_basemap(project_dir: str | Path, *, transport: TileTransport | None = 
     route_box = geometry.route_projected_bbox(route)
     projected_length = geometry.projected_length(route)
     envelope = layout_module.camera_envelope(route_box, projected_length,
-                                              route["route"]["distanceMeters"])
+                                              geometry.visual_distance_meters(route))
     overview_plan = layer_plan(route_box, half_x=envelope["overview_half_x"],
                                half_y=envelope["overview_half_y"],
                                scale=envelope["full_scale"], minimum_zoom=8)

@@ -44,7 +44,7 @@ def test_fetch_basemap_stitches_overview_and_corridor_tiles(tmp_path):
     block = route["basemap"]
     assert block["provider"] == "amap"
     assert block["service"] == "road-tiles"
-    assert block["layoutVersion"] == layout.layout_version() == 4
+    assert block["layoutVersion"] == layout.layout_version() == 6
     assert block["overview"]["zoom"] >= 8
     assert block["followTiles"]["zoom"] >= 9
     overview = root / block["overview"]["image"]["path"]

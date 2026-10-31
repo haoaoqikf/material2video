@@ -102,7 +102,7 @@ def _haversine_meters(a: tuple[float, float], b: tuple[float, float]) -> float:
 def route_geometry(route: dict[str, Any]) -> dict[str, Any]:
     """与前端 buildRouteModel 同口径：去连续重复点、球面累计距离、投影折线。"""
     coordinates: list[tuple[float, float]] = []
-    for step in route["route"]["steps"]:
+    for step in geometry.route_steps_for_render(route):
         for raw in step["points"]:
             point = (float(raw[0]), float(raw[1]))
             if not coordinates or coordinates[-1] != point:

@@ -2,8 +2,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   DrivingRoute, basemapOpacity, buildRouteModel, buildTileIndex, cameraForFrame,
+  cameraMotionLabelOpacity,
   displayDistanceMeters, distanceForFrame, fitCameraInContent, formatDistance,
-  headingAtDistance, highwayLabels, pointAtDistance, projectPoint, selectVisibleTiles,
+  headingAtDistance, headingNear, highwayLabels, pointAtDistance, projectPoint, selectVisibleTiles,
   timeline, type DrivingRouteProps,
 } from './DrivingRoute';
 import { contentRect } from './driving/layout';
@@ -83,6 +84,23 @@ describe('route geometry', () => {
     }
   });
 
+  it('uses the real initial road direction and does not look ahead across a street-block loop', () => {
+    const loop = buildRouteModel([{road: '城市道路', points: [
+      [121.47, 31.23], [121.471, 31.23], [121.471, 31.231], [121.469, 31.231],
+    ]}]);
+    const first = loop.projected[0]!;
+    const second = loop.projected[1]!;
+    const initial = Math.atan2(second.y - first.y, second.x - first.x);
+    const delta = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
+    expect(Math.abs(delta(headingAtDistance(loop, 0), initial))).toBeLessThan(1e-9);
+    expect(Math.abs(delta(headingAtDistance(loop, 1), initial))).toBeLessThan(0.02);
+  });
+
+  it('unwraps headings across the negative pi / positive pi boundary', () => {
+    const radians = Math.PI / 180;
+    expect(headingNear(179 * radians, -179 * radians)).toBeCloseTo(181 * radians, 10);
+  });
+
   it('formats only API distance for display', () => {
     expect(formatDistance(5000)).toBe('5.0 公里');
     expect(formatDistance(950_000)).toBe('950 公里');
@@ -107,6 +125,18 @@ describe('timeline and camera', () => {
     });
   });
 
+  it('fades administrative labels around zoom transitions and restores them in the overview', () => {
+    const spans = timeline(props.durationInFrames, props.fps);
+    expect(cameraMotionLabelOpacity(0, props, spans)).toBe(0);
+    expect(cameraMotionLabelOpacity(spans.openingFrames - 18, props, spans)).toBe(0);
+    expect(cameraMotionLabelOpacity(spans.openingFrames - 1, props, spans)).toBeGreaterThan(0.95);
+    expect(cameraMotionLabelOpacity(spans.endingStart + 9, props, spans)).toBeCloseTo(0.5, 5);
+    expect(cameraMotionLabelOpacity(spans.endingStart + spans.pulloutFrames, props, spans)).toBe(0);
+    expect(cameraMotionLabelOpacity(spans.endingStart + spans.pulloutFrames + 9, props, spans))
+      .toBeCloseTo(0.5, 5);
+    expect(cameraMotionLabelOpacity(props.durationInFrames - 1, props, spans)).toBe(1);
+  });
+
   it('supports a one-minute timeline', () => {
     expect(distanceForFrame(1799, 1800, 30, model.lengthMeters)).toBe(model.lengthMeters);
     expect(distanceForFrame(60, 1800, 30, model.lengthMeters)).toBeGreaterThan(0);
@@ -126,7 +156,15 @@ describe('timeline and camera', () => {
     expect(halfway).toBeGreaterThan(full.scale * 13.5);
   });
 
-  it('smooths the follow camera enough to keep labels steady', () => {
+  it('starts following without a camera jump at the end of the opening', () => {
+    const opening = cameraForFrame(model, 59, 1800, 30, 1080, 1920);
+    const follow = cameraForFrame(model, 60, 1800, 30, 1080, 1920);
+    expect(Math.abs(follow.tx - opening.tx)).toBeLessThan(2);
+    expect(Math.abs(follow.ty - opening.ty)).toBeLessThan(2);
+    expect(Math.abs(follow.scale - opening.scale) / opening.scale).toBeLessThan(1e-6);
+  });
+
+  it('keeps the follow camera smoothed while snapping translations to whole pixels', () => {
     const points: [number, number][] = Array.from({length: 120}, (_, index) => [
       121.47 + index * 0.02, 31.23 + (index % 2 ? 0.004 : -0.004),
     ]);
@@ -135,6 +173,10 @@ describe('timeline and camera', () => {
     const centers = [];
     for (let frame = 75; frame < 1740; frame += 1) {
       const camera = cameraForFrame(zigzag, frame, 1800, 30, 1080, 1920);
+      // 地图、路线与屏幕标签共用同一次整像素平移，缩放保持跟随倍率：
+      // 重采样相位逐帧不变，锚定标签不会相对瓦片漂移或闪烁。
+      expect(Number.isInteger(camera.tx)).toBe(true);
+      expect(Number.isInteger(camera.ty)).toBe(true);
       centers.push({x: (content.cx - camera.tx) / camera.scale,
         y: (content.cy - camera.ty) / camera.scale, scale: camera.scale});
     }
@@ -145,8 +187,9 @@ describe('timeline and camera', () => {
       accelerations.push(Math.hypot(dx, dy) * centers[index].scale);
     }
     accelerations.sort((a, b) => a - b);
-    expect(accelerations[Math.floor(accelerations.length * 0.95)]).toBeLessThan(0.8);
-    expect(Math.max(...accelerations)).toBeLessThan(2);
+    // 整像素量化允许相邻步进在 14/15/16 px 之间变化；累计加速度仍限制在 2～3 px 内。
+    expect(accelerations[Math.floor(accelerations.length * 0.95)]).toBeLessThan(1.5);
+    expect(Math.max(...accelerations)).toBeLessThan(2.5);
   });
 
   it('keeps the opening zoom monotonic and transitions smoothly', () => {

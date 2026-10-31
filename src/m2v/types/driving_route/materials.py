@@ -521,7 +521,7 @@ def _validate_basemap_image(root: Path, basemap: dict[str, Any], request: dict[s
 
     route_box = geometry.route_projected_bbox(route)
     envelope = layout_module.camera_envelope(
-        route_box, geometry.projected_length(route), route["route"]["distanceMeters"])
+        route_box, geometry.projected_length(route), geometry.visual_distance_meters(route))
     overview_need = _required_bbox(route_box, envelope["overview_half_x"],
                                    envelope["overview_half_y"])
     overview = basemap["overview"]
@@ -710,7 +710,8 @@ def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
     request, route = docs["request"], docs["route"]
     _require_basemap(request, route)
     steps: list[dict[str, Any]] = []
-    for step in route["route"]["steps"]:
+    render_steps = geometry.route_steps_for_render(route)
+    for step in render_steps:
         points: list[list[float]] = []
         for point in step["points"]:
             coordinate = [float(point[0]), float(point[1])]
@@ -730,9 +731,9 @@ def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
         "destinationLabel": request["destination"]["label"],
         "origin": route["origin"]["location"],
         "destination": route["destination"]["location"],
-        "routeStart": route["route"]["startPoint"],
+        "routeStart": steps[0]["points"][0],
         "routeEnd": route["route"]["endPoint"],
-        "totalDistanceMeters": route["route"]["distanceMeters"],
+        "totalDistanceMeters": geometry.visual_distance_meters(route),
         "attribution": request["sourceUsage"]["attribution"],
         "cost": route["cost"],
         "cities": route["cities"],

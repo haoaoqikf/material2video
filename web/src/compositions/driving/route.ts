@@ -221,15 +221,15 @@ export function smoothedPointAtDistance(model: RouteModel, distance: number,
   return {x: x / count, y: y / count};
 }
 
-/** 车头方向：沿行驶方向取前后窗口的弦向量，端点处只用朝内的窗口。
+/** 车头方向：用短距离弦线跟随当前道路，端点处只向路线内部取样。
  *
- * 起点用前方 100 米（总长 0.1% 窗口的一半，20～200 米内）作为朝向，避免车头
- * 背对随即转弯的路线；终点用后方窗口，保持到达方向。取样相消时退回当前
+ * 长路线按总长比例取样会把起点附近的多个街区弯道平均成一个虚假的方向，
+ * 让车一开始朝错方向、随后再转回来。窗口固定为 15 米，起点直接取首段切线；
+ * 这样初始朝向就是道路方向，且不会预看数百米后的弯道。取样相消时退回最近的
  * 非零线段切向，不依赖上一帧。
  */
 export function headingAtDistance(model: RouteModel, distance: number): number {
-  const windowMeters = clamp(model.lengthMeters * 0.001, 20, 200);
-  const lookAhead = windowMeters / 2;
+  const lookAhead = Math.min(15, model.lengthMeters / 2);
   const d = clamp(distance, 0, model.lengthMeters);
   const forward = d + lookAhead <= model.lengthMeters;
   const from = pointAtDistance(model, forward ? d : d - lookAhead);
@@ -247,7 +247,20 @@ export function headingAtDistance(model: RouteModel, distance: number): number {
       }
     }
   }
+  if (d === 0) {
+    const tangent = unitTangent(model, 0);
+    if (tangent) {
+      dx = tangent.x;
+      dy = tangent.y;
+    }
+  }
   return Math.atan2(dy, dx);
+}
+
+/** 在参考角附近表达当前角度，避免 -π/π 边界让 SVG 车辆反向旋转一整圈。 */
+export function headingNear(reference: number, heading: number): number {
+  const delta = Math.atan2(Math.sin(heading - reference), Math.cos(heading - reference));
+  return reference + delta;
 }
 
 export type Timeline = {
@@ -350,14 +363,25 @@ export function cameraForFrame(model: RouteModel, frame: number, durationInFrame
       Math.min(model.lengthMeters * camera.lookaheadRouteFraction,
         visibleMeters * camera.lookaheadViewFraction),
       0, model.lengthMeters);
-    const targetDistance = Math.min(
-      distance + lookahead * camera.lookaheadTargetFraction, model.lengthMeters);
-    const target = smoothedPointAtDistance(model, targetDistance, frameStepMeters,
+    // 开场结束时相机正对起点；行驶立刻开始，但视野前瞻与折线平滑必须从零渐入，
+    // 否则第 60 帧会从起点瞬间跳到数公里外，形成一次明显的位置突跳。
+    const leadMeters = lookahead * camera.lookaheadTargetFraction;
+    const leadRamp = smoothstep(distance / Math.max(1, leadMeters));
+    const targetDistance = Math.min(distance + leadMeters * leadRamp, model.lengthMeters);
+    const smoothed = smoothedPointAtDistance(model, targetDistance, frameStepMeters,
       smoothingHalfFrames);
+    const anchor = pointAtDistance(model, distance);
+    const smoothingRamp = smoothstep(distance / Math.max(1, lookahead * 0.25));
+    const target = {
+      x: anchor.x + (smoothed.x - anchor.x) * smoothingRamp,
+      y: anchor.y + (smoothed.y - anchor.y) * smoothingRamp,
+    };
+    // 跟随段比例固定，把平移量对齐到整像素：地图瓦片、路线与屏幕标签每帧共享同一
+    // 整像素位移，重采样相位不再逐帧变化，避免文字和地名随镜头移动“沸腾”。
     return {
       scale: followScale,
-      tx: content.cx - target.x * followScale,
-      ty: content.cy - target.y * followScale,
+      tx: Math.round(content.cx - target.x * followScale),
+      ty: Math.round(content.cy - target.y * followScale),
     };
   };
 
