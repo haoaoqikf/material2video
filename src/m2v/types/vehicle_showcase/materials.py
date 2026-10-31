@@ -14,18 +14,25 @@ from m2v.core.validate import fail, obj, text
 WIDTH = 1920
 HEIGHT = 1080
 FPS = 30
+SHOWCASE_VERSION = 2
+MANIFEST_VERSION = 1
 MATERIALS = {"showcase": "showcase.json", "assets": "manifest.json"}
+STUDIO_FIELDS = ("environment", "bodyAo", "floorNormal", "floorRoughness")
 _MIME = {".bin": "application/octet-stream", ".webp": "image/webp", ".png": "image/png",
-         ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".hdr": "image/vnd.radiance"}
 
 
-def _load(path: Path) -> dict[str, Any]:
+def _load(path: Path, version: int) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, ValueError) as exc:
         fail(path.name, f"无法读取有效 UTF-8 JSON：{exc}")
-    if not isinstance(data, dict) or data.get("schemaVersion") != 1:
-        fail(path.name, "schemaVersion 必须为 1")
+    if not isinstance(data, dict):
+        fail(path.name, "必须是 JSON 对象")
+    if data.get("schemaVersion") != version:
+        if path.name == "showcase.json" and data.get("schemaVersion") == 1:
+            fail(path.name, "schemaVersion 1 已停用：请升级到 2 并补齐 studio 影棚资产")
+        fail(path.name, f"schemaVersion 必须为 {version}")
     return data
 
 
@@ -43,7 +50,7 @@ def _number(value: Any, where: str, *, low: float | None = None) -> float:
 
 def _validate_showcase(show: dict[str, Any]) -> None:
     obj(show, "showcase.json", {"schemaVersion", "canvas", "durationSeconds", "fps", "model",
-                                "wheelNodes", "camera", "effects"})
+                                "wheelNodes", "camera", "effects", "studio"})
     canvas = obj(show.get("canvas"), "showcase.json.canvas", {"width", "height"})
     if (canvas.get("width"), canvas.get("height")) != (WIDTH, HEIGHT):
         fail("showcase.json.canvas", f"固定为 {WIDTH}×{HEIGHT}")
@@ -68,6 +75,16 @@ def _validate_showcase(show: dict[str, Any]) -> None:
                   {"speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"})
     for field in ("speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"):
         _number(effects.get(field), f"showcase.json.effects.{field}", low=0)
+    if not effects["speedStartSeconds"] < effects["speedEndSeconds"] < duration:
+        fail("showcase.json.effects", "必须满足 启动秒数 < 疾驰结束秒数 < 总时长")
+    if effects["fadeOutSeconds"] > duration:
+        fail("showcase.json.effects.fadeOutSeconds", "不能超过总时长")
+    studio = obj(show.get("studio"), "showcase.json.studio", set(STUDIO_FIELDS))
+    for field in STUDIO_FIELDS:
+        relative = text(studio.get(field), f"showcase.json.studio.{field}")
+        normalized = Path(relative)
+        if normalized.is_absolute() or ".." in normalized.parts:
+            fail(f"showcase.json.studio.{field}", "必须是作品内相对路径")
 
 
 def _validate_manifest(manifest: dict[str, Any]) -> None:
@@ -130,12 +147,27 @@ def _embed_model(root: Path, model_path: str, manifest: dict[str, Any],
     return json.dumps(gltf, ensure_ascii=False, separators=(",", ":"))
 
 
+def _embed_studio(root: Path, studio: dict[str, Any], manifest: dict[str, Any]) -> dict[str, str]:
+    """把影棚贴图内嵌为 data URI；未登记视为材料错误，不回退到内置环境。"""
+    registered = {item["path"]: item for item in manifest["assets"]}
+    embedded: dict[str, str] = {}
+    for field in STUDIO_FIELDS:
+        relative = studio[field]
+        if relative not in registered:
+            fail(f"showcase.json.studio.{field}", f"贴图未在 manifest.json 登记：{relative}")
+        path = (root / relative).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            fail(f"showcase.json.studio.{field}", f"贴图不存在：{relative}")
+        embedded[field] = _data_uri(path)
+    return embedded
+
+
 def load_project(project_dir: str | Path) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    show = _load(root / MATERIALS["showcase"])
-    manifest = _load(root / MATERIALS["assets"])
+    show = _load(root / MATERIALS["showcase"], SHOWCASE_VERSION)
+    manifest = _load(root / MATERIALS["assets"], MANIFEST_VERSION)
     _validate_showcase(show)
     _validate_manifest(manifest)
     for asset in manifest["assets"]:
@@ -145,19 +177,21 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
         if hashlib.sha256(file.read_bytes()).hexdigest() != asset["sha256"]:
             fail("manifest.json.assets", f"资产摘要不匹配：{asset['path']}")
     model_gltf = _embed_model(root, show["model"], manifest, show["wheelNodes"])
-    return {"showcase": show, "manifest": manifest, "modelGltf": model_gltf}
+    studio = _embed_studio(root, show["studio"], manifest)
+    return {"showcase": show, "manifest": manifest, "modelGltf": model_gltf, "studio": studio}
 
 
 def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
     show = docs["showcase"]
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "durationInFrames": show["durationSeconds"] * FPS,
         "fps": FPS,
         "width": WIDTH,
         "height": HEIGHT,
         "showcase": show,
         "modelGltf": docs["modelGltf"],
+        "studio": docs["studio"],
     }
 
 
@@ -176,7 +210,7 @@ def render_inputs_digest(project_dir: str | Path) -> str:
     inputs.extend((package, path) for path in sorted(package.glob("*.py")))
     inputs.append((REPOSITORY_ROOT, Path(render_pipeline.__file__)))
     inputs.extend((REPOSITORY_ROOT, path) for path in remotion.implementation_files())
-    manifest = _load(root / MATERIALS["assets"])
+    manifest = _load(root / MATERIALS["assets"], MANIFEST_VERSION)
     for asset in manifest["assets"]:
         inputs.append((root, root / asset["path"]))
     digest = hashlib.sha256()

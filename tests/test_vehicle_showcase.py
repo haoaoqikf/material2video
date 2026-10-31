@@ -28,17 +28,27 @@ def write_project(tmp_path):
         "scene": 0,
     }
     (root / "assets" / "car.gltf").write_text(json.dumps(gltf), encoding="utf-8")
+    studio = {
+        "environment": "assets/studio/env.hdr",
+        "bodyAo": "assets/studio/ao.jpg",
+        "floorNormal": "assets/studio/floor_n.webp",
+        "floorRoughness": "assets/studio/floor_r.webp",
+    }
+    (root / "assets" / "studio").mkdir()
+    for relative in studio.values():
+        (root / relative).write_bytes(relative.encode("utf-8"))
     showcase = {
-        "schemaVersion": 1, "canvas": {"width": 1920, "height": 1080},
+        "schemaVersion": 2, "canvas": {"width": 1920, "height": 1080},
         "durationSeconds": 30, "fps": 30, "model": "assets/car.gltf",
         "wheelNodes": ["Wheel.001", "Wheel.002"],
         "camera": {"distance": 8, "height": 2, "orbitStartDegrees": 0,
                    "orbitEndDegrees": 360},
         "effects": {"speedStartSeconds": 19, "speedEndSeconds": 26, "fadeOutSeconds": 4},
+        "studio": studio,
     }
     (root / "showcase.json").write_text(json.dumps(showcase), encoding="utf-8")
     assets = []
-    for path in ("assets/car.gltf", "assets/data.bin", "assets/img.bin"):
+    for path in ("assets/car.gltf", "assets/data.bin", "assets/img.bin", *studio.values()):
         file = root / path
         assets.append({"path": path, "sha256": hashlib.sha256(file.read_bytes()).hexdigest(),
                        "source": "test", "license": "test"})
@@ -52,11 +62,32 @@ def test_assets_are_embedded_and_prepared(tmp_path):
     docs = materials.load_project(root)
     assert "data:application/octet-stream;base64," in docs["modelGltf"]
     assert "data:image/webp;base64," not in docs["modelGltf"]
+    assert "data:image/vnd.radiance;base64," in docs["studio"]["environment"]
+    assert "data:image/jpeg;base64," in docs["studio"]["bodyAo"]
     _, manifest = load_project(root)
     assert main(["prepare", "--project", str(root)]) == 0
     prepared = load_current_prepared(root, manifest)
     assert prepared["durationInFrames"] == 900
     assert prepared["props"]["modelGltf"] == docs["modelGltf"]
+    assert prepared["props"]["studio"]["floorNormal"] == docs["studio"]["floorNormal"]
+
+
+def test_showcase_v1_is_rejected(tmp_path):
+    root = write_project(tmp_path)
+    data = json.loads((root / "showcase.json").read_text(encoding="utf-8"))
+    data["schemaVersion"] = 1
+    (root / "showcase.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(M2VError, match="schemaVersion 1 已停用"):
+        materials.load_project(root)
+
+
+def test_unregistered_studio_asset_is_rejected(tmp_path):
+    root = write_project(tmp_path)
+    data = json.loads((root / "showcase.json").read_text(encoding="utf-8"))
+    data["studio"]["floorNormal"] = "assets/studio/other.webp"
+    (root / "showcase.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(M2VError, match="未在 manifest.json 登记"):
+        materials.load_project(root)
 
 
 def test_missing_wheel_node_is_rejected(tmp_path):
@@ -81,4 +112,13 @@ def test_unsupported_canvas_is_rejected(tmp_path):
     data["canvas"] = {"width": 1080, "height": 1920}
     (root / "showcase.json").write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(M2VError, match="固定为 1920×1080"):
+        materials.load_project(root)
+
+
+def test_invalid_effect_timeline_is_rejected(tmp_path):
+    root = write_project(tmp_path)
+    data = json.loads((root / "showcase.json").read_text(encoding="utf-8"))
+    data["effects"] = {"speedStartSeconds": 26, "speedEndSeconds": 19, "fadeOutSeconds": 4}
+    (root / "showcase.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(M2VError, match="启动秒数 < 疾驰结束秒数 < 总时长"):
         materials.load_project(root)

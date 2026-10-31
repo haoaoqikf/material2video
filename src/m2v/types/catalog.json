@@ -309,16 +309,16 @@
     },
     {
       "name": "vehicle-showcase",
-      "description": "汽车三维展示与视觉疾驰",
-      "summary": "本地车辆模型、自动环绕、灯光与视觉疾驰的确定性 1920×1080 横屏动画，30 fps、无声交付。",
-      "plan": "以本地模型和节点/轨道材料制作离线汽车展示；首例使用已授权的 SU7 复刻资产。",
+      "description": "本地三维汽车展示与视觉疾驰",
+      "summary": "本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。",
+      "plan": "以本地模型和节点/镜头轨道驱动展示，按参考影棚校正车漆、反射与车轮旋转；SU7 作为首例资产。",
       "skillGuide": "[汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。",
       "materials": [
         {
           "name": "showcase",
           "file": "showcase.json",
           "template": {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "canvas": {
               "width": 1920,
               "height": 1080
@@ -331,8 +331,8 @@
               "Wheel.002"
             ],
             "camera": {
-              "distance": 8.2,
-              "height": 2.4,
+              "distance": 7.05,
+              "height": 0.9,
               "orbitStartDegrees": -24,
               "orbitEndDegrees": 336
             },
@@ -340,6 +340,12 @@
               "speedStartSeconds": 19,
               "speedEndSeconds": 26,
               "fadeOutSeconds": 4
+            },
+            "studio": {
+              "environment": "assets/studio/env_light.hdr",
+              "bodyAo": "assets/studio/car_body_ao.jpg",
+              "floorNormal": "assets/studio/floor_normal.webp",
+              "floorRoughness": "assets/studio/floor_roughness.webp"
             }
           }
         },
