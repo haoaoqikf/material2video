@@ -7,7 +7,7 @@
 <!-- generated:type-catalog:start -->
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整候选自动验收。
 - `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。
-- `driving-route`：真实高速优先驾车路线、竖屏普通道路地图、路网与市/县行政区标注、小车沿路行驶与 16× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、30 fps、无声交付。
+- `driving-route`：真实高速优先驾车路线、竖屏普通道路地图、无注记路网与市/县行政区标注、小车沿路行驶与 16× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、60 fps、无声交付。
 - `building-construction`：程序化两层框架住宅、基础到完工的分阶段确定性动画、1920×1080 横屏、30 fps、无声交付。
 - `vehicle-showcase`：本地车辆模型、自动环绕、灯光与视觉疾驰的确定性 1920×1080 横屏动画，30 fps、无声交付。
 <!-- generated:type-catalog:end -->
@@ -78,7 +78,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 `init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融与自驾路线各自沿用专用材料契约。各类型的材料、编排与画面规则见[文档导航](#文档导航)。
 
-自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 并执行 `uv run m2v driving-route fetch --project videos/driving-route/<slug>` 取得真实高速优先路线；需要普通道路底图时，确认授权并置 `mapTiles=true` 后执行 `uv run m2v driving-route basemap --project videos/driving-route/<slug>`，概览拼接图与 z12 跟随瓦片走廊会本地保存并绑定摘要；加 `--style satellite` 可生成卫星底图版本，路线、市/县标签与镜头保持不变。之后 `validate / prepare / preview / render` 全程离线，不需要 Key。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒，首例 60 秒；顶部两行居中标题“模拟行程 / 上海 → 郑州”，已行驶公里数显示在车辆旁，市名与县/县级市名以 30 px 加粗白描边显示（市辖区不单独标注），不显示底部数据面板。城市间画面跳过起点接入大路前的小路，里程同步扣除，5 公里内找不到大路时准备失败。开场 2 秒从 9×快速推到 16×，行政区自绘标签在推近与拉远时淡出、镜头稳定后淡入；中段 16×平滑跟随，跟随段相机平移对齐整像素，底图与标签共享同一重采样相位以避免文字抖动，屏内标签保持全不透明并随地图连续滑出视口；结尾 2 秒拉远并保持全程，最终总览只显示市级标签。小车起步朝向采用路线首段方向。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
+自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 并执行 `uv run m2v driving-route fetch --project videos/driving-route/<slug>` 取得真实高速优先路线；需要普通道路底图时，确认授权并置 `mapTiles=true` 后执行 `uv run m2v driving-route basemap --project videos/driving-route/<slug>`，概览拼接图与 z12 跟随瓦片走廊会本地保存并绑定摘要；加 `--style satellite` 可生成卫星底图版本，路线、市/县标签与镜头保持不变。之后 `validate / prepare / preview / render` 全程离线，不需要 Key。画幅固定 1080×1920 竖屏、60 fps、无音轨，默认 30 秒，首例 60 秒；顶部两行居中标题“模拟行程 / 上海 → 郑州”，已行驶公里数显示在车辆旁，市名与县/县级市名以 30 px 加粗白描边显示（市辖区不单独标注），不显示底部数据面板。普通道路底图使用 `style=8&scl=2` 的 512×512 无文字/POI 注记瓦片，画面地名只由标签层绘制。城市间画面跳过起点接入大路前的小路，里程同步扣除，5 公里内找不到大路时准备失败。开场 2 秒从 9×快速推到 16×，行政区自绘标签在推近与拉远时淡出、镜头稳定后淡入；中段 16×平滑跟随，跟随段相机平移对齐整像素，底图与标签共享同一重采样相位以避免文字抖动，屏内标签保持全不透明并随地图连续滑出视口；结尾 2 秒拉远并保持全程，最终总览只显示市级标签。小车起步朝向采用路线首段方向。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
 
 可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前已登记 `vibe-fable`（B 寓言）、`vibe-night`（C 夜曲）、`doc-archive`（档案纪录片）、`count-ledger`（可数物证）与 `deep-journey`（深空旅程），每个风格配一个可校验的风格示例（`styles/<id>/examples/<slug>/`，示例子树不参与风格指纹）。示例各附 `DESIGN.md` 与 `HOWTO.md`（可复现的调时、取景或几何布局练习，含修改位置、验证命令与恢复方式）；技术检查与理解观察分开记录，前者不替代后者。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)，示例与目录约定见[风格包目录](styles/README.md)。
 

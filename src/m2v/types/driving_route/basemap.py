@@ -31,6 +31,9 @@ from m2v.types.driving_route import geometry, layout as layout_module, materials
 TILE_SIZE = 256
 ROAD_STYLE = 8
 SATELLITE_STYLE = 6
+ROAD_SCL = 2
+ROAD_TILE_PIXELS = 512
+SATELLITE_TILE_PIXELS = 256
 TILE_STYLE = ROAD_STYLE
 STYLE_SERVICES = {ROAD_STYLE: "road-tiles", SATELLITE_STYLE: "satellite-tiles"}
 MAX_ZOOM = 18
@@ -54,10 +57,20 @@ def default_transport(url: str, timeout: float) -> tuple[int, bytes]:
         return exc.code, exc.read()
 
 
+def tile_pixels(style: int) -> int:
+    return ROAD_TILE_PIXELS if style == ROAD_STYLE else SATELLITE_TILE_PIXELS
+
+
+def tile_scl(style: int) -> str | None:
+    return str(ROAD_SCL) if style == ROAD_STYLE else None
+
+
 def tile_url(x: int, y: int, z: int, subdomain: int = 1, style: int = TILE_STYLE) -> str:
     host = "webst" if style == SATELLITE_STYLE else "webrd"
+    scl = tile_scl(style)
+    suffix = f"&scl={scl}" if scl else ""
     return (f"https://{host}0{subdomain}.is.autonavi.com/appmaptile"
-            f"?lang=zh_cn&size=1&scale=1&style={style}&x={x}&y={y}&z={z}")
+            f"?lang=zh_cn&size=1&scale=1&style={style}{suffix}&x={x}&y={y}&z={z}")
 
 
 def zoom_for_scale(scale: float, minimum: int = 1) -> int:
@@ -67,14 +80,14 @@ def zoom_for_scale(scale: float, minimum: int = 1) -> int:
 
 def projected_rect(bbox: tuple[float, float, float, float], z: int,
                    crop: tuple[int, int, int, int],
-                   tile_origin: tuple[int, int]) -> dict[str, float]:
+                   tile_origin: tuple[int, int], *, pixels: int = ROAD_TILE_PIXELS) -> dict[str, float]:
     x0, y0 = tile_origin
     left, top, right, bottom = crop
     n = 1 << z
-    px_left = x0 + left / TILE_SIZE
-    px_top = y0 + top / TILE_SIZE
-    px_right = x0 + right / TILE_SIZE
-    px_bottom = y0 + bottom / TILE_SIZE
+    px_left = x0 + left / pixels
+    px_top = y0 + top / pixels
+    px_right = x0 + right / pixels
+    px_bottom = y0 + bottom / pixels
     return {
         "left": px_left / n * geometry.WORLD - math.pi * geometry.MERCATOR_RADIUS,
         "top": px_top / n * geometry.WORLD - math.pi * geometry.MERCATOR_RADIUS,
@@ -84,7 +97,7 @@ def projected_rect(bbox: tuple[float, float, float, float], z: int,
 
 
 def layer_plan(route_box: tuple[float, float, float, float], *, half_x: float, half_y: float,
-               scale: float, minimum_zoom: int) -> tuple[int, int, int, int, int,
+               scale: float, minimum_zoom: int, pixels: int = ROAD_TILE_PIXELS) -> tuple[int, int, int, int, int,
                                                          tuple[float, float, float, float]]:
     bbox_projected = (route_box[0] - half_x, route_box[1] - half_y,
                       route_box[2] + half_x, route_box[3] + half_y)
@@ -96,8 +109,8 @@ def layer_plan(route_box: tuple[float, float, float, float], *, half_x: float, h
     while zoom > 1:
         x0, y0, x1, y1 = geometry.tile_range(bbox, zoom)
         columns, rows = x1 - x0 + 1, y1 - y0 + 1
-        if (columns * rows <= MAX_TILES and columns * TILE_SIZE <= MAX_WIDTH
-                and rows * TILE_SIZE <= MAX_HEIGHT):
+        if (columns * rows <= MAX_TILES and columns * pixels <= MAX_WIDTH
+                and rows * pixels <= MAX_HEIGHT):
             return zoom, x0, y0, x1, y1, bbox
         zoom -= 1
     raise M2VError("路线包围盒过大，无法在限制内拼接道路底图")
@@ -139,13 +152,13 @@ def _fetch_tiles(z: int, x0: int, y0: int, x1: int, y1: int,
     return tiles
 
 
-def _decode_tile(body: bytes, z: int, x: int, y: int) -> Image.Image:
+def _decode_tile(body: bytes, z: int, x: int, y: int, pixels: int) -> Image.Image:
     try:
         with Image.open(io.BytesIO(body)) as tile:
             rgba = tile.convert("RGBA")
-            if rgba.size != (TILE_SIZE, TILE_SIZE):
-                raise M2VError(f"高德道路瓦片尺寸不是 {TILE_SIZE}×{TILE_SIZE}（z={z}, x={x}, y={y}）")
-            background = Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 255, 255, 255))
+            if rgba.size != (pixels, pixels):
+                raise M2VError(f"高德道路瓦片尺寸不是 {pixels}×{pixels}（z={z}, x={x}, y={y}）")
+            background = Image.new("RGBA", (pixels, pixels), (255, 255, 255, 255))
             background.alpha_composite(rgba)
             return background.convert("RGB")
     except M2VError:
@@ -155,22 +168,23 @@ def _decode_tile(body: bytes, z: int, x: int, y: int) -> Image.Image:
 
 
 def stitch_tiles(tiles: dict[tuple[int, int], bytes], bbox: tuple[float, float, float, float],
-                 z: int, x0: int, y0: int, x1: int, y1: int) -> tuple[Image.Image, dict[str, float]]:
-    canvas = Image.new("RGB", ((x1 - x0 + 1) * TILE_SIZE, (y1 - y0 + 1) * TILE_SIZE), "white")
+                 z: int, x0: int, y0: int, x1: int, y1: int,
+                 *, pixels: int = ROAD_TILE_PIXELS) -> tuple[Image.Image, dict[str, float]]:
+    canvas = Image.new("RGB", ((x1 - x0 + 1) * pixels, (y1 - y0 + 1) * pixels), "white")
     for (x, y), body in tiles.items():
-        canvas.paste(_decode_tile(body, z, x, y), ((x - x0) * TILE_SIZE, (y - y0) * TILE_SIZE))
+        canvas.paste(_decode_tile(body, z, x, y, pixels), ((x - x0) * pixels, (y - y0) * pixels))
     min_lng, min_lat, max_lng, max_lat = bbox
-    left = round((geometry.tile_x(min_lng, z) - x0) * TILE_SIZE)
-    top = round((geometry.tile_y(max_lat, z) - y0) * TILE_SIZE)
-    right = round((geometry.tile_x(max_lng, z) - x0) * TILE_SIZE)
-    bottom = round((geometry.tile_y(min_lat, z) - y0) * TILE_SIZE)
+    left = round((geometry.tile_x(min_lng, z) - x0) * pixels)
+    top = round((geometry.tile_y(max_lat, z) - y0) * pixels)
+    right = round((geometry.tile_x(max_lng, z) - x0) * pixels)
+    bottom = round((geometry.tile_y(min_lat, z) - y0) * pixels)
     width, height = canvas.size
     left, top = max(0, left), max(0, top)
     right, bottom = min(width, right), min(height, bottom)
     if right - left < 2 or bottom - top < 2:
         raise M2VError("道路底图裁剪范围无效")
     crop = (left, top, right, bottom)
-    return canvas.crop(crop), projected_rect(bbox, z, crop, (x0, y0))
+    return canvas.crop(crop), projected_rect(bbox, z, crop, (x0, y0), pixels=pixels)
 
 
 def _write_json_atomic(path: Path, value: dict[str, Any]) -> None:
@@ -188,9 +202,10 @@ def _render_layer(root: Path, name: str, plan: tuple[int, int, int, int, int,
                   transport: TileTransport, *, timeout: float, delay: float,
                   style: int = TILE_STYLE) -> tuple[dict[str, Any], Path, bool]:
     zoom, x0, y0, x1, y1, bbox = plan
+    pixels = tile_pixels(style)
     tiles = _fetch_tiles(zoom, x0, y0, x1, y1, transport, timeout=timeout, delay=delay,
                          style=style)
-    image, projected = stitch_tiles(tiles, bbox, zoom, x0, y0, x1, y1)
+    image, projected = stitch_tiles(tiles, bbox, zoom, x0, y0, x1, y1, pixels=pixels)
     directory = root / "assets" / "basemap"
     directory.mkdir(parents=True, exist_ok=True)
     buffer = io.BytesIO()
@@ -216,7 +231,8 @@ def _render_layer(root: Path, name: str, plan: tuple[int, int, int, int, int,
         "projected": {key: round(value, 3) for key, value in projected.items()},
         "tileCount": len(tiles),
         "request": {"path": "/appmaptile",
-                    "params": {"style": str(style), "lang": "zh_cn", "zoom": str(zoom)}},
+                    "params": {"style": str(style), "lang": "zh_cn", "zoom": str(zoom),
+                               **({"scl": tile_scl(style)} if tile_scl(style) else {})}},
     }
     return layer, target, created
 
@@ -235,12 +251,13 @@ def _fetch_corridor(root: Path, plan: dict[str, Any], transport: TileTransport, 
     directory = root / "assets" / "basemap"
     directory.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=".follow-tiles-tmp-", dir=directory))
+    pixels = tile_pixels(style)
     records: list[dict[str, Any]] = []
     try:
         for index, tile in enumerate(plan["tiles"]):
             x, y, z = tile["x"], tile["y"], tile["z"]
             body = _fetch_tile(z, x, y, index % 4 + 1, transport, timeout=timeout, style=style)
-            image = _decode_tile(body, z, x, y)
+            image = _decode_tile(body, z, x, y, pixels)
             buffer = io.BytesIO()
             image.save(buffer, format="JPEG", quality=90, optimize=True)
             content = buffer.getvalue()
@@ -249,7 +266,7 @@ def _fetch_corridor(root: Path, plan: dict[str, Any], transport: TileTransport, 
             target.write_bytes(content)
             records.append({
                 "x": x, "y": y, "z": z, "sha256": hashlib.sha256(content).hexdigest(),
-                "width": TILE_SIZE, "height": TILE_SIZE, "projected": tile["projected"],
+                "width": pixels, "height": pixels, "projected": tile["projected"],
             })
             if delay > 0:
                 time.sleep(delay)
@@ -328,7 +345,11 @@ def _overview_reusable(root: Path, existing: dict[str, Any], plan: tuple[Any, ..
     if not isinstance(overview, dict) or overview.get("zoom") != plan[0]:
         return False
     request = overview.get("request")
-    if not isinstance(request, dict) or request.get("params", {}).get("style") != str(style):
+    params = request.get("params", {}) if isinstance(request, dict) else {}
+    if params.get("style") != str(style):
+        return False
+    scl = tile_scl(style)
+    if scl is not None and params.get("scl") != scl:
         return False
     if overview.get("bbox") != [round(value, 6) for value in plan[5]]:
         return False
@@ -417,7 +438,8 @@ def fetch_basemap(project_dir: str | Path, *, transport: TileTransport | None = 
                                               geometry.visual_distance_meters(route))
     overview_plan = layer_plan(route_box, half_x=envelope["overview_half_x"],
                                half_y=envelope["overview_half_y"],
-                               scale=envelope["full_scale"], minimum_zoom=8)
+                               scale=envelope["full_scale"], minimum_zoom=8,
+                               pixels=tile_pixels(tile_style))
     follow_zoom = layout_module.zoom_for_scale(envelope["follow_scale"], minimum=9)
     follow_plan = layout_module.corridor_plan(
         route, request["durationSeconds"], materials.FPS, follow_zoom,

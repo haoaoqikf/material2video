@@ -415,6 +415,7 @@ def _validate_follow_tiles(value: Any, where: str, request: dict[str, Any],
     tiles = follow.get("tiles")
     if not isinstance(tiles, list) or len(tiles) != tile_count:
         fail(f"{where}.tiles", "必须与 tileCount 一致")
+    expected_pixels = 512 if tile_style == 8 else 256
     keys: set[tuple[int, int]] = set()
     records: list[dict[str, Any]] = []
     limit = (1 << zoom) - 1
@@ -440,8 +441,8 @@ def _validate_follow_tiles(value: Any, where: str, request: dict[str, Any],
         digest = text(tile.get("sha256"), f"{item_where}.sha256")
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             fail(f"{item_where}.sha256", "必须是 64 位十六进制 SHA-256")
-        if tile.get("width") != 256 or tile.get("height") != 256:
-            fail(f"{item_where}", "瓦片尺寸必须为 256×256")
+        if tile.get("width") != expected_pixels or tile.get("height") != expected_pixels:
+            fail(f"{item_where}", f"瓦片尺寸必须为 {expected_pixels}×{expected_pixels}")
         projected = obj(tile.get("projected"), f"{item_where}.projected",
                         {"left", "top", "width", "height"})
         expected = layout_module.tile_projected_rect(x, y, z)
@@ -474,6 +475,14 @@ def _validate_basemap(value: Any, request: dict[str, Any], route: dict[str, Any]
     service = basemap.get("service")
     if basemap.get("provider") != "amap" or service not in {"road-tiles", "satellite-tiles"}:
         fail(where, "当前底图只支持 amap road-tiles 或 satellite-tiles")
+    if service == "road-tiles":
+        for key in ("overview", "followTiles"):
+            tile_request = basemap.get(key, {}).get("request")
+            params = tile_request.get("params") if isinstance(tile_request, dict) else None
+            if (not isinstance(params, dict) or params.get("style") != "8"
+                    or params.get("scl") != "2"):
+                fail(f"{where}.{key}.request",
+                     "道路底图必须使用 style=8、scl=2 的无注记 512 px 瓦片；请重新运行 basemap")
     tile_style = 6 if service == "satellite-tiles" else 8
     _content_text(basemap.get("attribution"), f"{where}.attribution")
     fetched_at = text(basemap.get("fetchedAt"), f"{where}.fetchedAt")

@@ -337,6 +337,7 @@ def _plan_digest(keys: set[tuple[int, int]], zoom: int, duration_seconds: int, f
         "layoutVersion": layout_version(), "width": width, "height": height,
         "fps": fps, "durationSeconds": duration_seconds, "zoom": zoom,
         "tileSize": TILE_SIZE, "style": tile_style, "lang": TILE_LANG,
+        "scl": "2" if tile_style == TILE_STYLE else None,
         "tiles": [[x, y] for x, y in sorted(keys)],
     }
     encoded = json.dumps(canonical, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
@@ -382,7 +383,8 @@ def corridor_plan(route: dict[str, Any], duration_seconds: int, fps: int, zoom: 
         "planDigest": _plan_digest(keys, zoom, duration_seconds, fps, width, height, tile_style),
         "bbox": _tile_bbox(keys, zoom),
         "request": {"path": "/appmaptile",
-                    "params": {"style": str(tile_style), "lang": TILE_LANG, "zoom": str(zoom)}},
+                    "params": {"style": str(tile_style), "lang": TILE_LANG, "zoom": str(zoom),
+                               **({"scl": "2"} if tile_style == TILE_STYLE else {})}},
         "tiles": tiles,
     }
 

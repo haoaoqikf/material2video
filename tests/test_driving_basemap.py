@@ -13,9 +13,9 @@ from m2v.types.driving_route import basemap, layout, materials
 from driving_helpers import FIXED_NOW, request_document, write_project
 
 
-def tile_bytes(color=(238, 236, 230)) -> bytes:
+def tile_bytes(color=(238, 236, 230), size: int = 512) -> bytes:
     buffer = io.BytesIO()
-    Image.new("RGB", (256, 256), color).save(buffer, format="PNG")
+    Image.new("RGB", (size, size), color).save(buffer, format="PNG")
     return buffer.getvalue()
 
 
@@ -31,7 +31,7 @@ class TileTransport:
         self.urls.append(url)
         if self.fail_all or (self.fail_at is not None and len(self.urls) == self.fail_at):
             return 500, b""
-        return 200, tile_bytes(self.color)
+        return 200, tile_bytes(self.color, 256 if "style=6" in url else 512)
 
 
 def test_fetch_basemap_stitches_overview_and_corridor_tiles(tmp_path):
@@ -39,7 +39,7 @@ def test_fetch_basemap_stitches_overview_and_corridor_tiles(tmp_path):
     transport = TileTransport()
     result = basemap.fetch_basemap(root, transport=transport, now=FIXED_NOW, delay=0)
     assert result["reused"] is False
-    assert transport.urls and all("style=8" in url for url in transport.urls)
+    assert transport.urls and all("style=8" in url and "scl=2" in url for url in transport.urls)
     route = json.loads((root / "route.json").read_text(encoding="utf-8"))
     block = route["basemap"]
     assert block["provider"] == "amap"
@@ -56,7 +56,7 @@ def test_fetch_basemap_stitches_overview_and_corridor_tiles(tmp_path):
     for tile in tiles:
         image = root / tile["path"]
         assert image.is_file()
-        assert tile["width"] == tile["height"] == 256
+        assert tile["width"] == tile["height"] == 512
         with Image.open(image) as opened:
             assert opened.format == "JPEG"
     docs = materials.load_project(root)
@@ -147,7 +147,7 @@ def test_prepare_with_basemap_is_offline(tmp_path, monkeypatch):
     prepared = json.loads((root / "outputs" / "prepared.json").read_text(encoding="utf-8"))
     assert prepared["props"]["basemap"]["overview"]["dataUri"].startswith("data:image/jpeg;base64,")
     assert prepared["props"]["basemap"]["followTiles"]["tiles"]
-    assert prepared["durationInFrames"] == 900
+    assert prepared["durationInFrames"] == 1800
 
 
 def test_cli_basemap_wires_the_command(tmp_path, monkeypatch):
