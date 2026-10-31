@@ -7,7 +7,7 @@
 
 ### Requirement: 独立自驾路线材料与生命周期
 
-系统 MUST 提供 `driving-route` 类型，以独立的 `request.json` 和 `route.json` 执行初始化、校验、准备、片段预演、完整渲染、状态及可选评审，MUST NOT 要求 general storyboard。请求 MUST 声明起终点地址、所属城市、画面名称、高速优先策略及视频时长；初始化默认30秒。路线 MUST 记录请求摘要、定位结果、实际路线端点、明确坐标系、有序分段坐标、道路名称、总距离、提供方、采集时间及来源使用依据。画幅 MUST 固定1080×1920 竖屏、30 fps；时长 MUST 为大于6秒的整数，首尾各保留2秒，剩余时间行驶。
+系统 MUST 提供 `driving-route` 类型，以独立的 `request.json` 和 `route.json` 执行初始化、校验、准备、片段预演、完整渲染、状态及可选评审，MUST NOT 要求 general storyboard。请求 MUST 声明起终点地址、所属城市、画面名称、高速优先策略及视频时长；初始化默认30秒。路线 MUST 记录请求摘要、定位结果、实际路线端点、明确坐标系、有序分段坐标、道路名称、总距离、提供方、采集时间及来源使用依据。画幅 MUST 固定1080×1920 竖屏、60 fps；时长 MUST 为大于6秒的整数，首尾各保留2秒，剩余时间行驶。
 
 #### Scenario: 初始化与更换端点
 - **WHEN** 初始化 driving-route 作品并设置任意受支持的起终点
@@ -18,8 +18,8 @@
 - **THEN** 校验指出字段及原因，拒绝准备和渲染，不以示意坐标填充真实路线
 
 #### Scenario: 旧横屏材料被拒绝
-- **WHEN** 材料或 `project.json` 仍为 1920×1080 横屏，或 driving-route 仍声明 60 fps
-- **THEN** 校验明确失败并提示按 1080×1920、30 fps 重新初始化或更新后重新准备，不输出旧契约成片
+- **WHEN** 材料或 `project.json` 仍为 1920×1080 横屏，或 driving-route 仍声明 30 fps
+- **THEN** 校验明确失败并提示按 1080×1920、60 fps 重新初始化或更新后重新准备，不输出旧契约成片
 
 ### Requirement: 高速优先在线采集与凭据隔离
 
@@ -95,7 +95,7 @@
 
 #### Scenario: 无声完整输出
 - **WHEN** 有效作品执行正式渲染
-- **THEN** 输出绑定当前输入的1080×1920、30 fps、约定时长 MP4 且不含音轨，并保留溯源和候选验收记录
+- **THEN** 输出绑定当前输入的1080×1920、60 fps、约定时长 MP4 且不含音轨，并保留溯源和候选验收记录
 
 #### Scenario: 首例仅技术通过
 - **WHEN** 首例技术验收通过但缺少当前候选独立视觉评审或仍有必改项
@@ -103,7 +103,7 @@
 
 ### Requirement: 普通道路底图与城市标注
 
-系统 MUST 允许 `driving-route` 使用已授权的高德普通道路底图。`request.json` v2 的 `sourceUsage` MUST 包含 `mapTiles` 布尔字段；`route.json` v3 MUST 包含 `cost`、`cities`（含 `name`、`adcode`、`location`）与 `administrativePlaces`（市/县行政区中心点；市辖区不单独列出）；v1 请求与 v2 路线 MUST 被明确拒绝，提示重新 fetch，不提供静默兼容。`fetch` MUST 为沿线城市请求 `/v3/config/district` 并记录不含凭据的行政区请求；行政区请求失败 MUST 使整次 fetch 失败并保留旧路线。`mapTiles=true` 时 MUST 包含 `basemap`，缺失 MUST 使 validate/prepare/render 明确失败并提示先运行 basemap；`mapTiles=false` 是允许矢量例外的最小范围。`cost` MUST 保留并校验，但当前 MUST NOT 在画面渲染。`m2v driving-route basemap --project <目录>` MUST 只在来源使用依据与 `mapTiles` 均落实时取图，使用 GCJ-02 Web Mercator 的高德普通道路瓦片（style=8，含路网与城市注记）；卫星变体使用 style=6，MUST NOT 使用 WGS84 影像或其他提供方。底图 MUST 提供 z8 概览拼接影像与 z12 跟随瓦片走廊；概览常驻底层，跟随瓦片按当前相机视口绘制并在结尾 1 秒内淡出到概览。跟随瓦片 MUST 使用内容寻址目录 `follow-tiles-*`，并记录计划摘要、清单摘要与逐块摘要。取图失败 MUST 保留旧路线与旧影像，MUST NOT 发布半份材料。成功结果 MUST 记录布局版本、提供方、缩放、包围盒、瓦片数、概览影像 SHA-256/宽高/投影矩形、跟随瓦片的计划摘要、清单摘要、逐块路径/SHA-256/投影矩形、采集时间、署名与不含凭据的请求参数。
+系统 MUST 允许 `driving-route` 使用已授权的高德普通道路底图。`request.json` v2 的 `sourceUsage` MUST 包含 `mapTiles` 布尔字段；`route.json` v3 MUST 包含 `cost`、`cities`（含 `name`、`adcode`、`location`）与 `administrativePlaces`（市/县行政区中心点；市辖区不单独列出）；v1 请求与 v2 路线 MUST 被明确拒绝，提示重新 fetch，不提供静默兼容。`fetch` MUST 为沿线城市请求 `/v3/config/district` 并记录不含凭据的行政区请求；行政区请求失败 MUST 使整次 fetch 失败并保留旧路线。`mapTiles=true` 时 MUST 包含 `basemap`，缺失 MUST 使 validate/prepare/render 明确失败并提示先运行 basemap；`mapTiles=false` 是允许矢量例外的最小范围。`cost` MUST 保留并校验，但当前 MUST NOT 在画面渲染。`m2v driving-route basemap --project <目录>` MUST 只在来源使用依据与 `mapTiles` 均落实时取图，使用 GCJ-02 Web Mercator 的高德普通道路瓦片（style=8、scl=2；512×512，无文字或 POI 注记）；卫星变体使用 style=6，MUST NOT 使用 WGS84 影像或其他提供方。底图瓦片 MUST NOT 包含文字或 POI 注记；道路名与行政区名只由渲染层绘制。底图 MUST 提供 z8 概览拼接影像与 z12 跟随瓦片走廊；概览常驻底层，跟随瓦片按当前相机视口绘制并在结尾 1 秒内淡出到概览。跟随瓦片 MUST 使用内容寻址目录 `follow-tiles-*`，并记录计划摘要、清单摘要与逐块摘要。取图失败 MUST 保留旧路线与旧影像，MUST NOT 发布半份材料。成功结果 MUST 记录布局版本、提供方、缩放、包围盒、瓦片数、概览影像 SHA-256/宽高/投影矩形、跟随瓦片的计划摘要、清单摘要、逐块路径/SHA-256/尺寸/投影矩形、采集时间、署名与不含凭据的请求参数（道路底图 MUST 记录 style=8、scl=2、语言与缩放）。
 
 城市与县级行政区叠加标签 MUST 保持行政区中心点锚定，并与底图共用同一相机平移；跟随段相机缩放固定，平移 MUST 对齐到整像素，使瓦片与标签拥有相同的重采样相位，不得单独对标签取整、单独平滑或施加额外缓动。市名与县/县级市名以 30 px、字重 700、8 px 白色描边绘制，固定在中心点上方。市辖区（名称以“区”结尾）不单独标注。跟随段屏内标签 MUST 保持全不透明；标签 MUST NOT 为靠近视口边缘而横向收拢或淡出，须随地图连续滑入滑出并由视口裁切。车辆、里程牌、署名与标题带 MUST 作为绘制在标签之上的覆盖物，允许短暂遮挡标签，MUST NOT 因此整体调暗标签。标签之间及与端点文字的可见性 MUST 为全不透明或完全隐藏两态；仅当包围盒间距小于 4 px 时隐藏低优先级标签，状态变化 MUST 按相机平滑时长（当前 0.6 秒）做确定性时间平滑；标签冲突 MUST 按城市优先、再按行政区代码的稳定顺序处理。开场推近与结尾拉远时，自绘市/县标签 MUST 随镜头变焦平滑淡出，并在稳定跟随或最终总览阶段平滑淡入。结尾拉远时县/县级市叠加标签 MUST 渐隐；最终全程保持段 MUST 只显示市级叠加标签。
 
@@ -167,7 +167,7 @@
 
 ### Requirement: 卫星底图变体
 
-系统 MUST 允许 `driving-route` 在保持起终点、路线、16× 平滑跟随、30 fps、市/县行政区标签、标题与里程呈现不变的前提下，生成卫星影像底图版本。`m2v driving-route basemap --style satellite` MUST 使用已授权的高德卫星瓦片（style=6，`satellite-tiles`），概览与 z12 跟随走廊的瓦片数量、投影、摘要与失败回滚规则与道路底图一致；`route.json.basemap.service` MUST 记录实际底图类型，材料校验 MUST 拒绝底图类型与瓦片样式不一致的记录。卫星版本 MUST NOT 改变路线、行政区数据或画面文字，只替换底图影像；渲染仍离线读取本地瓦片，不访问网络或 Key。
+系统 MUST 允许 `driving-route` 在保持起终点、路线、16× 平滑跟随、60 fps、市/县行政区标签、标题与里程呈现不变的前提下，生成卫星影像底图版本。`m2v driving-route basemap --style satellite` MUST 使用已授权的高德卫星瓦片（style=6，`satellite-tiles`），概览与 z12 跟随走廊的瓦片数量、投影、摘要与失败回滚规则与道路底图一致；`route.json.basemap.service` MUST 记录实际底图类型，材料校验 MUST 拒绝底图类型与瓦片样式不一致的记录。卫星版本 MUST NOT 改变路线、行政区数据或画面文字，只替换底图影像；渲染仍离线读取本地瓦片，不访问网络或 Key。
 
 #### Scenario: 生成卫星版本
 - **WHEN** 已授权的 driving-route 作品执行 `basemap --style satellite`
