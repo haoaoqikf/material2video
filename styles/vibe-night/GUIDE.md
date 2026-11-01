@@ -224,3 +224,9 @@ const {subtitleSafeArea} = useSceneContext();
 ### 教学重写与普通作品借鉴
 
 本包关联的教学示例按已登记自有样片的选题与机制重写，不直接复制外部媒体或整段源码。普通作品仍须针对自身内容设计，不照搬教学示例或上游样片的整套分镜与文案；边界见[外部参考项目与转译指南](../../.agents/skills/material2video/references/external-reference-projects.md#视频参考)。技术可用、制作证据闭环与实际表现验证分别记录，组件通过不等于成片通过。
+
+## 运动人格
+
+- **Premium / Calm**：入场与抵达用 `easeOutQuint`，画面内移动与转场用 `easeInOutQuint`；环境呼吸与漂移用 `easeInOutSine`，不做过冲。
+- 签名动作是缓慢显现、彗尾掠过与呼吸式 ambient；光晕与粒子只在承担表达时出现，不用装饰运动填补信息推进。
+- 时长按帧换算后写进作品 `DESIGN.md` 的运动计划；通用时长、缓动与编排方法见[运动设计](../../.agents/skills/motion-design/SKILL.md)。

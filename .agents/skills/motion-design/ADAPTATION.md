@@ -2,6 +2,19 @@
 
 上游是一份 UI / 交互动效知识。本文件把它接到 material2video 的帧驱动视频语境；上游的导演原则、编排和时长直觉仍然有效，但实现方式、时间单位和交互场景必须转译。
 
+## 术语
+
+本项目里 "motion" 有多个含义，读文档时先按本表区分：
+
+| 词 | 含义 | 不属于 |
+|---|---|---|
+| 运动设计 / `motion-design` | 本 skill：镜头与画面内运动的方法 | — |
+| `look.motion` | 分镜字段：hero 镜头的子帧与 SSAA，只影响采集质量 | 运动设计证据 |
+| `lookdev --motion` | 命令：按起止秒抽帧做运动片段预览 | 评审证据的替代 |
+| `motion.ts` / `MOTION_CURVES` | 共享命名缓动模块 | 动画库 |
+| `motion` 导出 | `m2v/code-scene` 转出的 framer-motion 库 | 缓动曲线 |
+
+
 ## 什么时候读
 
 | 场景 | 读取内容 |
@@ -63,6 +76,18 @@
 | `deep-journey` | Premium / Elegant |
 
 人格只约束缓动、时长和过冲倾向，不决定题材、构图或叙事。作品仍按实际表达调整；无风格作品由设计自行声明人格。
+
+人格落到命名曲线的方案起点（不是门禁）：
+
+| 人格 | 入场 / 抵达 | 画面内移动、转场 | 过冲 |
+|---|---|---|---|
+| Premium / Elegant | `easeOutQuint` | `easeInOutQuint` | 不用 |
+| Calm | `easeOutCubic` | `easeInOutSine` | 不用 |
+| Corporate | `easeOutCubic` | `easeInOutCubic` | 0–3%，通常不用 |
+| Playful | `backOut` 落定 | `easeInOutCubic` | 有，收在落点 |
+| Energetic | `easeOutExpo` | `easeInOutCubic` | 少量，避免持续抖动 |
+
+选择后写进 `DESIGN.md` 的运动计划，同片保持一致；换曲线要有表达理由，不按镜头逐次换风格。
 
 ## 采集模式边界
 

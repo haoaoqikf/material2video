@@ -89,3 +89,9 @@ import SchematicBadge from 'm2v/style/components/schematic-badge';
 - 不提供档案素材、许可文本、题材文案或分镜。
 - 不提供人物造型、3D 场景或数据图表；这些属于作品或其他风格。
 - 不自动换肤，不改变业务计算、制作门或评审职责。
+
+## 9. 运动人格
+
+- **Corporate / Premium**：档案出现用 `easeOutCubic` 的轻微位移加透明度，章节标记稳定不抖，画面内移动用 `easeInOutCubic`。
+- 签名动作是档案的「揭示—停留—接续」，不用快速切页或粒子填充；署名与页脚保持静止。
+- 时长按帧换算后写进作品 `DESIGN.md` 的运动计划；通用方法见[运动设计](../../.agents/skills/motion-design/SKILL.md)。

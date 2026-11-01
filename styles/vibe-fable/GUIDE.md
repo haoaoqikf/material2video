@@ -199,3 +199,9 @@ const {subtitleSafeArea} = useSceneContext();
 ### 教学重写与普通作品借鉴
 
 本包关联的教学示例按已登记自有样片的选题与机制重写，不直接复制外部媒体或整段源码。普通作品仍须针对自身内容设计，不照搬教学示例或上游样片的整套分镜与文案；边界见[外部参考项目与转译指南](../../.agents/skills/material2video/references/external-reference-projects.md#视频参考)。技术可用、制作证据闭环与实际表现验证分别记录，组件通过不等于成片通过。
+
+## 运动人格
+
+- **Playful**：落定用 `backOut`，入场用 `easeOutCubic` 带少量回弹，画面内移动用 `easeInOutCubic`；回弹只在落点收住，不让整体持续抖动。
+- 签名动作是角色的弹跳与形变：挤压拉伸服务动作，错峰按镜头节拍确定，装饰性弹跳不替代信息推进。
+- 时长按帧换算后写进作品 `DESIGN.md` 的运动计划；通用时长、缓动与编排方法见[运动设计](../../.agents/skills/motion-design/SKILL.md)。

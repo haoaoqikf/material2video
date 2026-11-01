@@ -51,3 +51,41 @@ def test_old_aesthetic_skill_is_removed() -> None:
         ROOT / "ARCHITECTURE.md",
     ):
         assert "aesthetic-foundations" not in path.read_text(encoding="utf-8"), path
+
+
+TYPE_GUIDES = ("building-construction", "driving-route", "financial-timeseries",
+               "road-trip", "vehicle-showcase")
+
+
+@pytest.mark.parametrize("type_id", TYPE_GUIDES)
+def test_type_guides_link_both_project_skills(type_id: str) -> None:
+    """类型指南必须把通用视觉与运动判断交给 skill，自己只留类型特有契约。"""
+    guide = SKILLS / "material2video" / "references" / f"{type_id}-video.md"
+    text = guide.read_text(encoding="utf-8")
+    for target in ("../frontend-design/SKILL.md", "../frontend-design/ADAPTATION.md",
+                   "../motion-design/SKILL.md", "../motion-design/ADAPTATION.md"):
+        assert target in text, f"{type_id} 缺少 {target}"
+
+
+def test_guidance_uses_five_blocks_not_the_retired_seven_part_form() -> None:
+    """七段式模板已删除，指导文档不得再要求填写七段或按七段取证。"""
+    references = SKILLS / "material2video" / "references"
+    retired = ("七段是必答问题", "| 七段 |", "七段是否齐全", "七段式定稿")
+    for path in references.glob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        for marker in retired:
+            assert marker not in text, f"{path.name} 仍在维护 {marker}"
+    direction = (references / "visual-creative-direction.md").read_text(encoding="utf-8")
+    assert "### 4. 运动计划" in direction
+    for block in ("### 1. 题材", "### 2. 视觉计划", "### 3. 叙事计划", "### 5. 风险与证据"):
+        assert block in direction
+
+
+def test_guidance_does_not_copy_upstream_motion_recipes() -> None:
+    """项目文档不得复述 skill 的 UI 版缓动配方与毫秒表，通用方法只留一个权威位置。"""
+    references = SKILLS / "material2video" / "references"
+    upstream_only = ("cubic-bezier", "ease-out-back", "ease-out-expo", "easeInOutBack")
+    for path in references.glob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        for marker in upstream_only:
+            assert marker not in text, f"{path.name} 复述了上游缓动配方：{marker}"

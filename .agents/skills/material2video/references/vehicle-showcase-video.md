@@ -31,3 +31,9 @@ uv run m2v render --project videos/vehicle-showcase/<slug>
 - **确定性**：镜头、车轮角度、环境强度、灯板亮度、地面反射与辉光全部是 `frame / fps` 的纯函数；反射目标每帧重渲染，不跨帧累积，乱序取帧应一致。
 - 视觉疾驰不是真实道路驾驶；不宣称车辆性能或真实运动。
 - 首例 SU7 资产必须来自已核实授权的 `alphardex/su7-replica` 固定提交；授权未落实时不得导入或发布。
+
+## 视觉与运动
+
+- 画面构图、车漆与反射的明暗层级、字阶与留白按 [Frontend Design](../../frontend-design/SKILL.md) 与[视频适配](../../frontend-design/ADAPTATION.md) 判断；影棚参数只决定材质，不代替视觉方向。
+- 环绕镜头、车辆启动、车轮加速与疾驰的时长、缓动与编排按[运动设计](../../motion-design/SKILL.md) 与[视频适配](../../motion-design/ADAPTATION.md)：环绕是匀速跟踪的合法 `linear` 例外，启动与收束用减速落定，车轮加减速按帧换算而不是按毫秒照搬。
+- 本页只保留模型、影棚与确定性契约，不复述通用视觉或运动理论。

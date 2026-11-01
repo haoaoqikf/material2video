@@ -93,3 +93,9 @@ import BoundaryFootnote from 'm2v/style/components/boundary-footnote';
 - 不提供天体数据、纹理、路径、旁白、分镜或声音。
 - 不提供 2D 图表、档案框或可数对象；这些属于其他风格或作品。
 - 不自动换肤，不改变业务计算、制作门或评审职责。
+
+## 9. 运动人格
+
+- **Premium / Elegant**：入场与抵达用 `easeOutQuint`，画面内移动与转场用 `easeInOutQuint`，不做过冲。
+- 签名动作是「远入点 → 接近 → 近天体绕行 → 拉远 → 远出点」；一镜到底时相机全程 `linear`，用速度连续换取镜头边界不归零，这是显式例外。
+- 镜头移动必须有认知作用，见上文；通用时长、缓动与编排方法见[运动设计](../../.agents/skills/motion-design/SKILL.md)。

@@ -79,3 +79,9 @@ import NumberText from 'm2v/style/components/number-text';
 - 不提供题材数学、金额、年份、分镜或声音。
 - 不提供通用图表、曲线或 3D 场景；这些属于其他风格或共享能力。
 - 不自动换肤，不改变业务计算、制作门或评审职责。
+
+## 9. 运动人格
+
+- **Corporate**：入场与抵达用 `easeOutCubic`，画面内移动与状态切换用 `easeInOutCubic`，不做过冲。
+- 签名动作是数值滚动、生长条与账页推进：进度由帧号求值，缓动由调用方显式传入；数据匀速推进时写明这是匀速跟踪例外。
+- 时长按帧换算后写进作品 `DESIGN.md` 的运动计划；通用时长、缓动与编排方法见[运动设计](../../.agents/skills/motion-design/SKILL.md)。

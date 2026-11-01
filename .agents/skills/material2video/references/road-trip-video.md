@@ -111,6 +111,12 @@ uv run m2v render --project <作品目录>
 - 章节卡与数据卡不得遮挡字幕安全区；字幕安全区来自 `web/src/frames.json`。
 - 渲染时注入本地静态服务地址，只挂载当前视口可见瓦片；全程不访问外网。
 
+## 视觉与运动
+
+- 构图、层级、字体与色彩判断按 [Frontend Design](../../frontend-design/SKILL.md) 与[视频适配](../../frontend-design/ADAPTATION.md)；章节卡、数据卡与字幕安全区的关系按本页契约执行。
+- 每日镜头推进、跟随时长与转场编排按[运动设计](../../motion-design/SKILL.md) 与[视频适配](../../motion-design/ADAPTATION.md)：匀速跟随是显式 `linear` 例外，推近与收束用减速落定，倍率变化按帧换算。
+- 本页只保留游记特有的材料、取数、底图与画面契约，不复述通用视觉或运动理论。
+
 ## 验收
 
 1. `m2v validate` 通过；材料与路线的摘要已记录。
