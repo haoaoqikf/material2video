@@ -98,6 +98,8 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](styles/doc-archive/examples/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。
 
+外部素材的制作期检查另有两个只读入口：`uv run m2v assets report --project <目录>` 交叉核对登记、场景引用与 `SOURCES.md`，写 `outputs/assets-report.json`；`uv run m2v assets contact-sheet --input <候选>` 把视频按时刻抽帧或多张图片拼成带序号的接触表。两者不联网、不导入素材、不替代 `prepare` 与 `assets audit`，用法与读法见[素材检索与台账](.agents/skills/material2video/references/material-sourcing.md#6-导入与台账)。
+
 ## 从旧名称迁移
 
 本次为全面改名，不提供旧入口兼容别名。重新执行 `uv sync`、`pnpm -C web install` 和 `pnpm -C web build` 后，更新调用方：
@@ -121,6 +123,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
 - [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计与五块式 `DESIGN.md` 模板；反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
+- [素材检索与台账](.agents/skills/material2video/references/material-sourcing.md)：来源层级、检索词、候选评估卡、许可决策与 `assets report`/`contact-sheet` 操作。
 - [看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)：症状→成因→改法、形象判据与主体尺度起点。
 - [讲解设计](.agents/skills/material2video/references/explainer-design.md)：通用讲解画法、贯穿关系与长片章节递进。
 - [代码场景运行时](.agents/skills/material2video/references/code-scene-runtime.md)：Painter、相机、数值轨道与动态能力货架。

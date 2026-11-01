@@ -18,6 +18,7 @@
 - `ARCHITECTURE.md`：共享模块职责、依赖方向与架构边界。
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
+- `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
 - `.agents/skills/frontend-design/SKILL.md`：项目级视觉设计与反模板知识，提供视觉方向、字体、构图、层级与自我批评的判断方法；视频适配见同目录 `ADAPTATION.md`。
 - `.agents/skills/motion-design/SKILL.md`：项目级运动设计知识，提供情绪意图、运动人格、时长、缓动、编排与质量检查；帧驱动适配见同目录 `ADAPTATION.md`。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。

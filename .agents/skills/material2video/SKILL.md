@@ -43,5 +43,6 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 ## 条件参考
 
 [阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或用户要求参考风格时，必须读取相应专项；优先级只控制阅读顺序，不降低强制规则效力。
+检索、评估或整理外部素材时读[素材检索与台账](references/material-sourcing.md)：来源层级、候选评估卡、许可判断与 `assets report`/`contact-sheet` 用法按该页执行；载体选择与导入契约仍以既有参考页为准。
 判断构图、色彩、字体、留白、视觉重心或画面是否模板化时读[Frontend Design](../frontend-design/SKILL.md)，先按[项目适配](../frontend-design/ADAPTATION.md)确认视频语境。设计镜头运动、转场、入场退场或缓动时读[运动设计](../motion-design/SKILL.md)，先按[项目适配](../motion-design/ADAPTATION.md)确认帧驱动与采集模式边界。两者只提供方法与词汇，不新增门禁、评分或审核轮次。
 修改材料后重新 prepare；按[返工循环](references/production-workflow.md#检查与返工循环)先实际查看局部修复效果，汇总后再生成下一全片候选。preview 只检查局部，不替代最终全片复核。命令与能力见[README](../../../README.md)，不凭旧提示猜参数。

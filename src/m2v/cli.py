@@ -100,9 +100,19 @@ def _parser() -> argparse.ArgumentParser:
 
     qa.add_argument("--video", help="待检查的成片；省略时取交付目录里的 video.mp4")
     qa.add_argument("--step", type=int, default=30, help="抽样步长（帧）")
-    assets = sub.add_parser("assets", help="资产质量与许可审计")
-    assets.add_argument("workflow", choices=("audit",))
-    assets.add_argument("--project", required=True)
+    assets = sub.add_parser("assets", help="资产审计、素材台账与候选接触表")
+    assets.add_argument("workflow", choices=("audit", "report", "contact-sheet"))
+    assets.add_argument("--project",
+                        help="作品目录；audit/report 必填，contact-sheet 仅用于默认输出位置")
+    assets.add_argument("--sources", help="report 的来源表路径；省略时取作品 SOURCES.md")
+    assets.add_argument("--input", action="append", dest="inputs", metavar="FILE",
+                        help="contact-sheet 的候选文件，可重复；最多一个视频")
+    assets.add_argument("--times", help="contact-sheet 的视频取帧时刻（逗号分隔秒）")
+    assets.add_argument("--samples", type=int, default=6, help="未给 --times 时视频的均匀采样数")
+    assets.add_argument("--columns", type=int, default=3, help="contact-sheet 的列数")
+    assets.add_argument("--tile-width", type=int, default=480, help="contact-sheet 的单格宽度")
+    assets.add_argument("--out", help="contact-sheet 的输出 PNG；省略时按作品或输入目录")
+    assets.add_argument("--json", action="store_true", help="report/contact-sheet 输出 JSON")
 
     ref = sub.add_parser("ref", help="获取、校验抖音参考素材并提取授权音轨")
     ref.add_argument("workflow", choices=("fetch", "verify", "audio"))

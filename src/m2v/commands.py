@@ -118,8 +118,20 @@ def dispatch(args) -> int:
             if args.video:
                 options += ["--video", args.video]
             return qa_engine.main(options)
-        options = ["--project", args.project]
-        return assets_audit.main(options)
+        from m2v.engine import assets_tools
+        if args.workflow == "audit":
+            if not args.project:
+                raise M2VError("assets audit 需要 --project")
+            return assets_audit.main(["--project", args.project])
+        if args.workflow == "report":
+            if not args.project:
+                raise M2VError("assets report 需要 --project")
+            return assets_tools.report_main(project=args.project, sources=args.sources,
+                                            as_json=args.json)
+        return assets_tools.contact_main(
+            project=args.project, inputs=args.inputs or [], times=args.times,
+            samples=args.samples, columns=args.columns, tile_width=args.tile_width,
+            out=args.out, as_json=args.json)
     if args.command == "init":
         return _init(args)
     if args.command == "migrate":

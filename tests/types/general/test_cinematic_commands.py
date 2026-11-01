@@ -4,16 +4,70 @@ from __future__ import annotations
 import pytest
 
 from m2v import cli
+from m2v.core.errors import M2VError
 from m2v.engine import assets_audit, lookdev, qa
 
 
 def test_new_commands_are_registered():
     parser = cli._parser()
     for argv in (["lookdev", "--project", "x"], ["qa", "--project", "x"],
-                 ["assets", "audit", "--project", "x"]):
+                 ["assets", "audit", "--project", "x"],
+                 ["assets", "report", "--project", "x"],
+                 ["assets", "contact-sheet", "--input", "a.mp4"]):
         args = parser.parse_args(argv)
-        assert args.project == "x"
+        assert args.project == "x" or args.workflow == "contact-sheet"
     assert parser.parse_args(["assets", "audit", "--project", "x"]).workflow == "audit"
+    assert parser.parse_args(["assets", "report", "--project", "x"]).workflow == "report"
+    sheet = parser.parse_args(["assets", "contact-sheet", "--input", "a.mp4",
+                               "--times", "0,2", "--columns", "2"])
+    assert (sheet.workflow, sheet.inputs, sheet.times, sheet.columns) == (
+        "contact-sheet", ["a.mp4"], "0,2", 2)
+
+
+def test_assets_report_forwards_options(monkeypatch):
+    """report 把来源表与 JSON 开关原样交给实现，不自行改写参数。"""
+    import m2v.engine.assets_tools as tools
+    from m2v import commands
+
+    captured = {}
+
+    def fake_report_main(**kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(tools, "report_main", fake_report_main)
+    args = cli._parser().parse_args(["assets", "report", "--project", "x",
+                                     "--sources", "s.md", "--json"])
+    assert commands.dispatch(args) == 0
+    assert captured == {"project": "x", "sources": "s.md", "as_json": True}
+
+
+def test_assets_contact_sheet_forwards_options(monkeypatch, tmp_path):
+    import m2v.engine.assets_tools as tools
+    from m2v import commands
+
+    captured = {}
+
+    def fake_contact_main(**kwargs):
+        captured.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(tools, "contact_main", fake_contact_main)
+    args = cli._parser().parse_args(["assets", "contact-sheet", "--input", "a.png",
+                                     "--input", "b.png", "--samples", "4",
+                                     "--tile-width", "320", "--out", str(tmp_path / "s.png")])
+    assert commands.dispatch(args) == 0
+    assert captured["inputs"] == ["a.png", "b.png"]
+    assert (captured["samples"], captured["tile_width"], captured["project"]) == (4, 320, None)
+
+
+def test_assets_report_rejects_non_general_project(monkeypatch, tmp_path):
+    import m2v.engine.assets_tools as tools
+
+    manifest = {"id": "x", "type": "financial-timeseries", "materials": {}}
+    monkeypatch.setattr(tools, "load_project", lambda path: (tmp_path, manifest))
+    with pytest.raises(M2VError, match="仅适用于 general"):
+        tools.report_main(project=str(tmp_path))
 
 
 @pytest.mark.parametrize("argv", [["lookdev"], ["qa"], ["assets", "audit"]])

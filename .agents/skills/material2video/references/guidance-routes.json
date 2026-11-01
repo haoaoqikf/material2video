@@ -72,6 +72,11 @@
       "guide": "references/article-media-and-sound.md"
     },
     {
+      "id": "sourcing",
+      "when": "检索、评估、整理外部素材或核对来源台账",
+      "guide": "references/material-sourcing.md"
+    },
+    {
       "id": "voice",
       "when": "存在旁白且首次选音或旁白变化",
       "guide": "references/voice-and-rhythm.md"
