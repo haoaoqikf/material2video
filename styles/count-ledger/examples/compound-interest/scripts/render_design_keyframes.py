@@ -73,56 +73,56 @@ def hill_positions(count: int, center: float, base: float) -> list[tuple[float, 
 
 def s3_svg(phase: str = 'result') -> str:
     parts = []
-    # establish 为 10 枚资本 + 首笔金色收益；reveal/result 为 11 枚 + 1.0/0.1 金。
+    # 与成片一致：右柱在中轴，2.4× 取景；establish 为 10 枚资本，reveal/result 为 11 枚 + 1.0/0.1 金。
     count = 10 if phase == 'establish' else 11
     for i in range(count):
-        parts.append(disc(620, 930 - i * 64, 55, OFF_WHITE))
-    parts.append(disc(660, 178, 55, GOLD, rim='#FFF4CF'))
+        parts.append(disc(960, 930 - i * 67, 50, OFF_WHITE))
+    parts.append(disc(960, 175, 50, GOLD, rim='#FFF4CF'))
     if phase != 'establish':
-        parts.append(disc(760, 178, 55 * math.sqrt(.1), GOLD, rim='#FFF4CF'))
-    parts.append(text(1120, 330, 72, '第 2 年', weight=600))
-    parts.append(text(960, 1046, 54, '固定10%数学演示，非实际回报 · 不计税费及通胀',
-                      color=MUTED, anchor='middle'))
+        parts.append(disc(992, 175, 50 * math.sqrt(.1), GOLD, rim='#FFF4CF'))
+    parts.append(text(120, 150, 80, '第 2 年', weight=600))
+    parts.append(text(120, 1044, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+                      color=MUTED))
     return ''.join(parts)
 
 
 def s5_svg(phase: str = 'result') -> str:
     world = []
-    # 左：40 枚整块。10 枚米白本金底排 + 30 枚暗金三排。
+    # 左：40 枚整块。10 枚米白本金底排 + 30 枚暗金三排；与统一轴 640/1280 同源。
     for i in range(10):
-        world.append(disc(300 + i * 42, 536, 21, OFF_WHITE))
+        world.append(disc(300 + i * 42, 560, 21, OFF_WHITE))
     for i in range(30):
-        world.append(disc(300 + (i % 10) * 42, 536 - (i // 10 + 1) * 42, 21, DARK_GOLD))
+        world.append(disc(300 + (i % 10) * 42, 560 - (i // 10 + 1) * 42, 21, DARK_GOLD))
     # 右：158.631 枚资本丘 + 15.863 枚当年收益。
-    points = hill_positions(159, 1360, 940)
+    points = hill_positions(159, 1280, 940)
     units = [1.0] * 158 + [.631]
     for (x, y), unit in zip(points, units):
         world.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
     gold_units = [1.0] * 15 + [.863]
     for i, unit in enumerate(gold_units):
-        x = 1360 + (i - (len(gold_units) - 1) / 2) * 40
+        x = 1280 + (i - (len(gold_units) - 1) / 2) * 40
         world.append(disc(x, 654, 21 * math.sqrt(unit), GOLD, rim='#FFF4CF'))
 
-    parts = [f'<g transform="translate(960 540) scale(.925) translate(-960 -540)">'
+    parts = [f'<g transform="translate(960 540) scale(.885) translate(-960 -540)">'
              f'{"".join(world)}</g>']
     if phase in ('establish', 'reveal'):
-        parts.append(text(120, 125, 60, '同样 10,000 · 同样 10% · 快进到第 30 年', color=MUTED))
+        parts.append(text(120, 125, 60, '同样 10,000，同样 10%，快进到第 30 年', color=MUTED))
     else:
         parts.append(text(120, 125, 60, '30 年后的总资产', color=MUTED))
-    parts.append(text(500, 230, 60, '收益取走', anchor='middle', weight=600))
-    parts.append(text(1360, 230, 60, '收益再投入', anchor='middle', weight=600))
+    parts.append(text(543, 260, 60, '收益取走', anchor='middle', weight=600))
+    parts.append(text(1243, 260, 60, '收益再投入', anchor='middle', weight=600))
     if phase == 'result':
-        parts.append(text(500, 358, 84, '40 枚', anchor='middle', weight=600))
-        parts.append(text(1360, 358, 88, '约 174.5 枚', color=GOLD, anchor='middle', weight=600))
-    parts.append(text(960, 1012, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
-                      color=MUTED, anchor='middle'))
+        parts.append(text(543, 385, 88, '40 枚', anchor='middle', weight=600))
+        parts.append(text(1243, 385, 88, '约 174.5 枚', anchor='middle', weight=600))
+    parts.append(text(120, 1044, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀',
+                      color=MUTED))
     return ''.join(parts)
 
 
 def s6_svg(phase: str = 'result') -> str:
     """S6 金顶归队：establish 丘顶特写，reveal 全白全景，result 加结论与片名。"""
     world = []
-    points = hill_positions(159, 1360, 940)
+    points = hill_positions(159, 1280, 940)
     units = [1.0] * 158 + [.631]
     for (x, y), unit in zip(points, units):
         world.append(disc(x, y, 21 * math.sqrt(unit), OFF_WHITE))
@@ -131,19 +131,18 @@ def s6_svg(phase: str = 'result') -> str:
     cap_fill = GOLD if phase == 'establish' else OFF_WHITE
     rim = '#FFF4CF' if phase == 'establish' else None
     for i, unit in enumerate(gold_units):
-        x = 1360 + (i - (len(gold_units) - 1) / 2) * 40
+        x = 1280 + (i - (len(gold_units) - 1) / 2) * 40
         world.append(disc(x, cap_y, 21 * math.sqrt(unit), cap_fill, rim=rim))
 
     if phase == 'establish':
-        transform = 'translate(960 540) scale(2) translate(-1360 -660)'
+        transform = 'translate(960 540) scale(2) translate(-1280 -660)'
     else:
-        transform = 'translate(960 540) scale(.95) translate(-1360 -540)'
+        transform = 'translate(960 540) scale(.95) translate(-1280 -540)'
     parts = [f'<g transform="{transform}">{"".join(world)}</g>']
     if phase != 'establish':
-        parts.append(text(960, 1024, 64, '固定10%数学演示，非实际回报 · 不计税费及通胀',
-                          color=MUTED, anchor='middle'))
+        parts.append(text(120, 1044, 60, '固定10%数学演示，非实际回报 · 不计税费及通胀', color=MUTED))
     if phase == 'result':
-        parts.append(text(960, 610, 80, '让收益，也成为本金。', color=GOLD, anchor='middle', weight=600))
+        parts.append(text(960, 610, 88, '让收益，也成为本金。', anchor='middle', weight=600))
         parts.append(text(960, 150, 112, '复利', anchor='middle', weight=600))
     return ''.join(parts)
 

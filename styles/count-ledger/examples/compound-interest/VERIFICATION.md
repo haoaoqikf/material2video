@@ -1,5 +1,20 @@
 # 《复利》验证记录
 
+## 2026-11-01 视觉与运动升级（frontend-design / motion-design）
+
+- 文件：`styles/count-ledger/examples/compound-interest/outputs/video.mp4`
+- SHA-256 `8da326da058a970cf617162d6b8482df53292bc4a232cc9a0e70531c2b68012e`；preparedFingerprint `08ed08e7b5d8749ccae1c9b0b328a4e6cd290a3f80ad8b126a6f4afe7fa69660`。
+- 1920×1080、30fps、870帧、29.0秒；无旁白；29秒环境床与25个事件音不变，storyboard 事件帧未改。
+- 改动：金色只用于圆片状态，全部文字改为米白/次要灰；S1/S4/S5 统一到 640/1280 对称列轴；字阶收敛为 112/88/80/60；S1 相机 1.6×、标题收成一行；S2 金币微距 4.2× 后回到 2.4×；S4 两行标签基线 300/390，留存架下移；S5 标题一句、两个结果数字同字号同色、口径说明移到左下角；S6 结论 88px 米白、金片在下沉末端 0.12 秒内变白；金雨按丘的行列顺序成波次；全部运动改用 `m2v/code-scene` 命名缓动与“落定一沉”签名动作。
+- QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度 −14.6 LUFS、true peak −1.2 dBFS；音画差 0.00172 秒；最长静止 1.0 秒（17–18 秒，S4 有意停留）。
+- 技术检查：G1 pass；G2 pass（S3/S5/S6 各 establish/reveal/result 独立 HTML+SVG 目标静帧，1920 原生尺寸核验，852/393 由工具派生）；G3 pass（animatic 由上述设计帧覆盖，29.00 秒）；G4 六个检查点全部 pass（S1 90–105、S2 195–240、S3 340–390、S4 480–570 采样窗口收窄到稳定结果段；S2 期望按画面内实际可见的 10 枚米白 + 1 枚金计数，S5 169 白/16 金/30 暗、S6 175 白/0 金/0 暗不变）。
+- 测试：前端 `vitest` 193 项通过（新增统一列轴、丘行列与结构化金雨测试）；Python `uv run pytest` 803 项通过、6 项跳过、417 项按标记未选。
+- 静态证据：`outputs/lookdev/` 的本版代表帧（2.5/7/16/21.5/27.5 秒）与 S5 19–21 秒运动接触表；独立设计帧在 `outputs/design/keyframes/`，登记于 `outputs/production/design-frames.json`。
+- 无字颜色流向自审（角色分离，未独立评审）：临时把 storyboard 场景 props 设为 `hideText`，渲染 8–26 秒无字片段并按 0.5–2 秒取样 11 帧；可见金色只从右柱顶产生、回吸后变米白，左侧被取走后变暗金并落到留存架，30 年时形成 40 枚整块与 159 白 + 16 金的丘；恢复 storyboard 后重新 prepare，preparedFingerprint 回到 `08ed08e7…`，成片 SHA 未变。该观察不能替代独立终审。
+- 393 复测由 G4 采集的 393 宽图与字号检查覆盖：正文 60px≈12.3px、结果数字 88px≈18px、片名 112px≈22.9px；无字号失败项。
+- 独立评审：核心轮与终审尚待导入独立子代理报告；G0/G5/G6 不因技术通过或本记录宣布审美通过，旧版评审不授权本版。
+- OpenSpec：变更 `openspec/changes/upgrade-compound-interest-visual-motion/`；完成后同步主规格并归档。
+
 ## 2026-10-28 幕内事件接入
 
 当前源材料的前十次落片改为 `drop-1`～`drop-10` 幕内事件，场景与音效共同引用整数帧。真实浏览器回归验证首事件从30帧移到45帧后，圆片接触与音效起点同时后移15帧，局部采集的第30帧与较长窗口采集像素一致。其余落点由原时间量化到既有音效整数帧，最大调整小于半帧。本轮只验证功能与局部采集，未重制完整成片或重新执行全片视觉审核；以下历史验收仅对应其绑定版本，不覆盖当前材料。

@@ -4,7 +4,9 @@ import {
   discDiameter, discFractions, screenDiameter, secondYear, segmentAt,
   withdrawState, yearAt, yearState,
 } from '../../styles/count-ledger/examples/compound-interest/scenes/compoundMath';
-import {FIRST_DISC_INDEX, hillPositions} from '../../styles/count-ledger/examples/compound-interest/scenes/compoundLayout';
+import {
+  AXES, FIRST_DISC_INDEX, HILL_ROWS, hillCell, hillLandingDelay, hillPositions,
+} from '../../styles/count-ledger/examples/compound-interest/scenes/compoundLayout';
 
 describe('复利作品的统一金额口径', () => {
   it('匹配独立年度终值，计算过程中不舍入', () => {
@@ -90,7 +92,8 @@ describe('圆片状态机与面积编码', () => {
     expect(discFractions(1).every(unit => unit <= 1)).toBe(true);
     expect(UNITS_PER_DISC).toBe(1000);
     // 852 宽下：S3 的 0.1 金片与 S5 的分数圆片都必须 ≥14px。
-    expect(screenDiameter(.1, 2.5)).toBeGreaterThanOrEqual(14);
+    // S3 相机 2.4×：0.1 金片在 852 宽仍 ≥14px。
+    expect(screenDiameter(.1, 2.4)).toBeGreaterThanOrEqual(14);
     expect(screenDiameter(.631, 1)).toBeGreaterThanOrEqual(14);
     expect(screenDiameter(.863, 1)).toBeGreaterThanOrEqual(14);
   });
@@ -102,6 +105,38 @@ describe('圆片状态机与面积编码', () => {
     expect(white.reduce((a, b) => a + b, 0)).toBeCloseTo(158.631);
     expect(FIRST_DISC_INDEX).toBeGreaterThanOrEqual(0);
     expect(FIRST_DISC_INDEX).toBeLessThan(hill.length);
+  });
+});
+
+describe('统一列轴与结构化金雨', () => {
+  it('左右列轴关于画面中心对称，丘与右柱同轴', () => {
+    expect(AXES.left + AXES.right).toBe(1920);
+    expect(AXES.right).toBe(AXES.hill);
+    expect(960 - AXES.left).toBe(AXES.right - 960);
+  });
+  it('丘索引按行列定位，行从下往上、行内从左往右', () => {
+    expect(hillCell(0)).toEqual({row: 0, col: 0});
+    expect(hillCell(HILL_ROWS[0] - 1)).toEqual({row: 0, col: HILL_ROWS[0] - 1});
+    expect(hillCell(HILL_ROWS[0])).toEqual({row: 1, col: 0});
+    const last = HILL_ROWS.reduce((a, b) => a + b, 0) - 1;
+    expect(hillCell(last)).toEqual({row: HILL_ROWS.length - 1, col: HILL_ROWS.at(-1)! - 1});
+    expect(() => hillCell(-1)).toThrow();
+    expect(() => hillCell(last + 1)).toThrow();
+    expect(() => hillCell(1.5)).toThrow();
+  });
+  it('金雨落定按行列成波次，不再随机', () => {
+    expect(hillLandingDelay(0)).toBe(0);
+    expect(hillLandingDelay(1)).toBeGreaterThan(hillLandingDelay(0));
+    // 下一行首枚比本行首枚晚 0.09 秒；同排逐枚递增 0.018 秒。
+    expect(hillLandingDelay(HILL_ROWS[0]) - hillLandingDelay(0)).toBeCloseTo(.09);
+    // 末枚落定不超过 1.1 秒，仍在 19.4–20.5 秒窗口内。
+    const last = HILL_ROWS.reduce((a, b) => a + b, 0) - 1;
+    expect(hillLandingDelay(last)).toBeLessThan(1.1);
+    for (let i = 1; i <= last; i++) {
+      if (hillCell(i).row === hillCell(i - 1).row) {
+        expect(hillLandingDelay(i)).toBeGreaterThan(hillLandingDelay(i - 1));
+      }
+    }
   });
 });
 

@@ -1,7 +1,7 @@
 /** 复利作品的表现层入口：从风格包复用圆片、文字与通用布局；丘、取出组与索引见 compoundLayout。 */
 import {T as LedgerTokens} from 'm2v/style/components/kit';
 import Disc from 'm2v/style/components/disc';
-import NumberText from 'm2v/style/components/number-text';
+import NumberText, {type NumberTextProps} from 'm2v/style/components/number-text';
 import {column, row, shelf} from 'm2v/style/components/disc-layout';
 import {mixColor} from 'm2v/style/components/kit';
 
@@ -18,7 +18,8 @@ export type DiscState = 'white' | 'gold' | 'dark';
 export type {Point} from './compoundLayout';
 
 export {Disc, mixColor};
-export const Text = NumberText;
+/** 本片文字统一标记为 body，供检查点合同与字号量测识别；风格包组件保持默认 number。 */
+export const Text = (props: NumberTextProps) => <NumberText role="body" {...props}/>;
 export const columnPositions = column;
 export const rowPositions = row;
 export const shelfPositions = shelf;
