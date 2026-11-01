@@ -16,7 +16,7 @@ from m2v.core.errors import M2VError
 from m2v.core.output_cleanup import cleanup_after_render
 from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.core.workspace import CONTENT_ROOT_ENV
-from m2v.types import catalog, registry
+from m2v.type_system import catalog, registry
 
 
 def dispatch(args) -> int:
@@ -123,11 +123,11 @@ def dispatch(args) -> int:
     if args.command == "init":
         return _init(args)
     if args.command == "migrate":
-        from m2v.types.migration import migrate
+        from m2v.types.financial.migration import migrate
         migrate(Path(args.project), args.source_format)
         return 0
     if args.command == "relocate":
-        from m2v.types.relocation import relocate
+        from m2v.type_system.relocation import relocate
         result = relocate(Path(args.project), content_root=args.content_root)
         print(result.message)
         return 0

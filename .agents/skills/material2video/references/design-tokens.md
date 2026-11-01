@@ -9,7 +9,7 @@
 这一点是硬约束：曾经有 `:root[data-m2v-preset='keynote']` 与
 `:root[data-m2v-style-pack='...']` 两层，而没有任何代码会给页面挂上这两个属性，
 字阶、间距、圆角与描边阶恰好只写在里面，于是作品里的 `var(--m2v-space-3)` 一直是
-空值——画面安静地落到初始值，没有任何报错。`tests/test_figure_contrast.py` 的 `TestSingleSource` 守住「不许再出现作用域层」。
+空值——画面安静地落到初始值，没有任何报错。`tests/common/test_figure_contrast.py` 的 `TestSingleSource` 守住「不许再出现作用域层」。
 
 用 `@theme static` 而不是 `@theme`：Tailwind 默认只输出被工具类用到的主题变量，
 而这里的令牌多数是**组件直接引用**的。实测 `@theme` 下这些名字一个都不会出现在
@@ -26,7 +26,7 @@
 | `--m2v-grid-columns` / `--m2v-grid-gutter` | `12` / `24px` | 栅格列数与列间距 |
 
 字幕几何真源是 `web/src/frames.json`（`m2v.core.frames` 读取），`m2v.engine.design_tokens`
-只读 `tokens.css` 的非字幕令牌，并由 `tests/test_design_tokens.py` 守着「令牌层不得再出现
+只读 `tokens.css` 的非字幕令牌，并由 `tests/common/test_design_tokens.py` 守着「令牌层不得再出现
 字幕/量测令牌」。这不是顺手抽公共常量：过去画面与量测两边各写一份字面量，改一处不会让另一处
 报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。
 
@@ -67,7 +67,7 @@ Python 准备/量测、合成层与作品 SDK 读同一份。字幕用白字配�
 因此作品自己画深底还是浅底都不影响字幕可读性。
 
 作品画幅只支持 1920×1080 与 1080×1920；横屏字幕安全区几何按竖屏高度缩放，字幕字号则横竖屏均为40px以适应手机观看；
-水平内边距取画布宽度的同一比例，几何与字阶由测试守着（`tests/test_design_tokens.py`）。
+水平内边距取画布宽度的同一比例，几何与字阶由测试守着（`tests/common/test_design_tokens.py`）。
 
 统一制作流程中的 look bible、LUT、后期与镜头参数**不替代**这套自由设计：作品仍然自己决定
 配色、排版与构图，look 只是把光色与质感基准固定下来并写进 `content.props.look` 与 shot list。
@@ -190,7 +190,7 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
 
 半透明令牌先合成到底色再量对比度——直接拿 alpha 前的取值算会高估。
 
-`tests/test_figure_contrast.py` 按上表守着这些取值，并且要求**新增的图形颜色令牌
+`tests/common/test_figure_contrast.py` 按上表守着这些取值，并且要求**新增的图形颜色令牌
 先进分类表**：「没有对应规则」不等于「可以放行」。改任何一个值之前先跑那个测试；
 它同时守住几条不打算改的决定，例如纯分隔线要保持耳语（WCAG 1.4.11 管的是
 「理解内容所必需的图形对象」，纯分隔线在豁免范围内，把每条线都提到 3:1 只会让

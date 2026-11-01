@@ -1,6 +1,6 @@
 """通用 v8 全画布代码场景与素材制作的类型适配器。"""
 from pathlib import Path
-from m2v.types.registry import VideoType
+from m2v.type_system.registry import VideoType
 from . import cinematic, explainer, explainer_prepare, explainer_render, explainer_review
 
 

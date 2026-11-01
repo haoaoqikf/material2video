@@ -1,12 +1,12 @@
 import { BUILDING_FPS, DRIVING_ROUTE_FPS, FPS, GENERAL_DEFAULT_FPS, ROAD_TRIP_FPS, VEHICLE_SHOWCASE_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
-import { ArticleExplainer, type ArticleExplainerProps } from './compositions/ArticleExplainer';
-import { BuildingConstruction, type BuildingProps } from './compositions/BuildingConstruction';
-import { DrivingRoute, type DrivingRouteProps } from './compositions/DrivingRoute';
-import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './compositions/FinancialTimeSeries';
-import { RoadTrip, type RoadTripProps } from './compositions/RoadTrip';
-import { VehicleShowcase, type VehicleShowcaseProps } from './compositions/VehicleShowcase';
+import { ArticleExplainer, type ArticleExplainerProps } from './types/general/ArticleExplainer';
+import { BuildingConstruction, type BuildingProps } from './types/building_construction/BuildingConstruction';
+import { DrivingRoute, type DrivingRouteProps } from './types/driving_route/DrivingRoute';
+import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './types/financial/FinancialTimeSeries';
+import { RoadTrip, type RoadTripProps } from './types/road_trip/RoadTrip';
+import { VehicleShowcase, type VehicleShowcaseProps } from './types/vehicle_showcase/VehicleShowcase';
 import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
 

@@ -12,7 +12,7 @@ from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
 from m2v.types.driving_route import geometry
 
-LAYOUT_PATH = REPOSITORY_ROOT / "web/src/compositions/driving/layout.json"
+LAYOUT_PATH = REPOSITORY_ROOT / "web/src/types/driving_route/layout.json"
 EARTH_RADIUS_METERS = 6371008.8
 TILE_SIZE = 256
 TILE_STYLE = 8

@@ -12,7 +12,7 @@ import sys
 from m2v import commands
 from m2v.core.errors import M2VError
 from m2v.core.workspace import CONTENT_ROOT_ENV
-from m2v.types import registry
+from m2v.type_system import registry
 
 
 def _force_utf8_output() -> None:

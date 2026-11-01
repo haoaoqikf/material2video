@@ -1,7 +1,7 @@
 """从类型目录和制作策略生成文档投影。
 
 README、Skill 与项目规划曾各自维护一份类型清单，与代码里的清单互相独立、没有
-任何一致性检查。现在它们由 `src/m2v/types/catalog.json` 生成，生成区域用成对
+任何一致性检查。现在它们由 `src/m2v/type_system/catalog.json` 生成，生成区域用成对
 标记圈出，标记之外的内容保持手工维护。检查点文档的门表、风险表与审核人数表
 分别由 production/workflow.py 和 production/policy.py 派生。
 
@@ -142,7 +142,7 @@ def production_sections() -> dict[str, list[str]]:
 def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
     """生成后的完整文档文本（换行为 ``\\n``），键是相对仓库根的路径。"""
     if catalog is None:
-        from m2v.types import catalog as catalog_module
+        from m2v.type_system import catalog as catalog_module
 
         catalog = catalog_module.catalog()
     entries = catalog

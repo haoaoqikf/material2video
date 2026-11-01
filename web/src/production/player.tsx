@@ -2,7 +2,7 @@
 import {createRoot} from 'react-dom/client';
 import {Player} from '@remotion/player';
 import {Audio} from 'remotion';
-import {ArticleExplainer, type ArticleExplainerProps} from '../compositions/ArticleExplainer';
+import {ArticleExplainer, type ArticleExplainerProps} from '../types/general/ArticleExplainer';
 import {ensureFonts} from '../fonts';
 
 type ReviewProps = ArticleExplainerProps & {reviewAudio?: string};

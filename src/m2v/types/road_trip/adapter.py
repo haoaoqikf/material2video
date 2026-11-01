@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from m2v.core.errors import M2VError
-from m2v.types.registry import VideoType
+from m2v.type_system.registry import VideoType
 from m2v.types.road_trip import materials, prepare as prepare_module, render as render_module
 
 

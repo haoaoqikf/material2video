@@ -1,6 +1,6 @@
 # Material2Video（材料成片）
 
-面向短视频的离线制作工具链，采用**共享制作底座、独立视频类型、统一制作入口**。项目当前能力见下方类型目录；制作流程和类型契约由 [material2video Skill](.agents/skills/material2video/SKILL.md) 及其参考文档维护。
+面向短视频的离线制作工具链，采用**通用代码、类型专属代码、具体作品代码**三层组织，并保持统一的制作入口。代码分层、模块职责与依赖方向见 [ARCHITECTURE.md](ARCHITECTURE.md)；项目当前能力见下方类型目录；制作流程和类型契约由 [material2video Skill](.agents/skills/material2video/SKILL.md) 及其参考文档维护。
 
 ## 当前视频类型
 

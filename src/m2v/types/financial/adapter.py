@@ -5,7 +5,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.types.financial import financial, financial_render
-from m2v.types.silent_type import SilentTypeSpec, build_silent_type
+from m2v.type_system.silent_type import SilentTypeSpec, build_silent_type
 
 #: 材料入口固定为这三份；名字写在契约里，不由作品清单自选。
 MATERIALS = {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"}

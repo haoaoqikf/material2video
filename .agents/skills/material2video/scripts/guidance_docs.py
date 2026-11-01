@@ -16,7 +16,7 @@ OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '�
 
 def catalog_types() -> set[str]:
     """类型清单以 catalog.json 为唯一来源，阅读路由不再维护第二份副本。"""
-    from m2v.types import catalog
+    from m2v.type_system import catalog
 
     return set(catalog.catalog().names())
 

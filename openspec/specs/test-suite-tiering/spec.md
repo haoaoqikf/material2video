@@ -21,7 +21,7 @@
 - **THEN** 只运行纯单元与契约用例，不启动 ffmpeg、浏览器或真实渲染
 
 #### Scenario: 显式指定文件
-- **WHEN** 运行 `uv run pytest tests/test_article_media.py`
+- **WHEN** 运行 `uv run pytest tests/types/general/test_article_media.py`
 - **THEN** 运行该文件内的全部用例，包括其中的 `media` 用例
 
 #### Scenario: 显式选择层级

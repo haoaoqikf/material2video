@@ -240,7 +240,7 @@ pure 场景必须通过两道闸门：
 - 原语属于共享渲染资产：`implementation_inputs()` 递归收集 `web/src/code-scene/` 下的
   `.tsx`、`.ts` 与 `.js`，修改原语会使引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
 - 单元测试在 `web/src/code-scene/primitives.test.ts`，覆盖重复求值、跳帧一致性、种子、
-  0 与 1 边界；`tests/test_motion_primitives.py` 另检查实现指纹与确定性源码闸门。
+  0 与 1 边界；`tests/common/test_motion_primitives.py` 另检查实现指纹与确定性源码闸门。
 
 ### 二维绘制层
 

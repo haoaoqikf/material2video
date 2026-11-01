@@ -106,7 +106,7 @@ uv run m2v render --project <作品目录>
 - 每日镜头：章节卡 → 8× 推近到 12× → 12× 匀速跟随 → 收束到当天概览；
   最后一天结束后可继续收束到全局概览。
 - Day 4 在怒江七十二拐窗口把跟随倍率平滑提高到 14×；窗口与倍率来自
-  `web/src/compositions/roadtrip/layout.json`，不逐帧计算。
+  `web/src/types/road_trip/layout.json`，不逐帧计算。
 - 跟随段相机平移对齐整像素；底图、路线与标签共享同一重采样相位。
 - 章节卡与数据卡不得遮挡字幕安全区；字幕安全区来自 `web/src/frames.json`。
 - 渲染时注入本地静态服务地址，只挂载当前视口可见瓦片；全程不访问外网。

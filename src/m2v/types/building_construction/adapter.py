@@ -5,7 +5,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.types.building_construction import materials, render as building_render
-from m2v.types.silent_type import SilentTypeSpec, build_silent_type
+from m2v.type_system.silent_type import SilentTypeSpec, build_silent_type
 
 
 def _load(root: Path, project: dict) -> dict:

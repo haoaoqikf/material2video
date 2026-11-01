@@ -9,6 +9,8 @@ import pytest
 
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(SRC_DIR))
+TESTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(TESTS_DIR))
 SCRIPT_TOOLS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "material2video" / "scripts"
 sys.path.insert(0, str(SCRIPT_TOOLS_DIR))
 
@@ -68,11 +70,11 @@ def chromium_ready():
 def create_typed_project(directory: str | Path, video_type: str) -> Path:
     """按类型目录创建作品，替代测试里另写一份材料映射的旧用法。
 
-    材料入口的唯一来源是 ``m2v.types.catalog``；测试也走同一条路径，因此目录里
+    材料入口的唯一来源是 ``m2v.type_system.catalog``；测试也走同一条路径，因此目录里
     的文件名一旦变化，用例会跟着失败，而不是悄悄与实现错位。
     """
     from m2v.core.project import create_project
-    from m2v.types import catalog
+    from m2v.type_system import catalog
 
     return create_project(directory, video_type, catalog.catalog().get(video_type).material_map())
 
@@ -83,7 +85,7 @@ def register_synthetic_type(monkeypatch, name: str, description: str = "合成�
     类型身份只在类型目录里维护，因此走统一入口的合成类型同样需要登记；这里只替换
     进程内缓存，不写仓库文件。
     """
-    from m2v.types import catalog
+    from m2v.type_system import catalog
 
     entry = catalog.Entry(
         name=name,

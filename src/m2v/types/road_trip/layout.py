@@ -1,6 +1,6 @@
 """多日地图游记的共享布局、每日相机与底图走廊。
 
-Python 与前端读同一份 `web/src/compositions/roadtrip/layout.json`：章节卡、
+Python 与前端读同一份 `web/src/types/road_trip/layout.json`：章节卡、
 相机倍率、跟随倍率窗口与字幕安全区的口径不在这里另写一遍。几何投影与瓦片
 反算复用 `driving_route` 的实现，保证两类地图视频的底图坐标完全一致。
 """
@@ -18,7 +18,7 @@ from m2v.core.errors import M2VError
 from m2v.types.driving_route import geometry
 from m2v.types.driving_route import layout as driving_layout
 
-LAYOUT_PATH = REPOSITORY_ROOT / "web/src/compositions/roadtrip/layout.json"
+LAYOUT_PATH = REPOSITORY_ROOT / "web/src/types/road_trip/layout.json"
 TILE_SIZE = driving_layout.TILE_SIZE
 SAMPLE_STEP_METERS = 400.0
 #: 相机平滑取样步长固定为米制，不随天数或旁白时长变化；否则走廊清单会随

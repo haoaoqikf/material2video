@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from m2v.core.errors import M2VError
-from m2v.types.silent_type import SilentTypeSpec, build_silent_type
+from m2v.type_system.silent_type import SilentTypeSpec, build_silent_type
 from m2v.types.vehicle_showcase import materials, render as vehicle_render
 
 

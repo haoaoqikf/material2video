@@ -3,6 +3,14 @@
 这里是 Material2Video 的**表现层与渲染层**：React composition 画画面，Remotion 逐帧渲染成 MP4。
 内容层（材料与分镜 JSON）与配音层（Python 的 `m2v prepare`）不在这里。
 
+## 目录分层
+
+- **通用代码**：`src/code-scene/`、`src/runtime/`、`src/contract/`（桥接层）、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。
+- **类型专属代码**：`src/types/<type>/`，含该类型的 composition、纯函数、布局 JSON 与契约页入口。
+- **具体作品代码**：作品内容目录下的 `scenes/` 与 `assets/`；不放进 `src/`。
+
+`src/contract/bridge.ts` 是通用契约桥；类型契约页放在各自的 `src/types/<type>/` 下。
+
 ## 为什么是 React + Remotion
 
 换成这套栈的理由只有一条：**组件供给**。原生 JS 时代每加一类画面（数据图表、关系图、
@@ -79,7 +87,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 
 | 路径 | 入口 | 用途 |
 | --- | --- | --- |
-| Vite | `contract.html` → `src/contract/main.tsx` | 渲染契约页：被 Playwright 驱动，供体检与量测使用 |
+| Vite | `contract.html` → `src/types/general/contract-main.tsx` | 渲染契约页：被 Playwright 驱动，供体检与量测使用 |
 | Remotion | `src/index.ts` → `src/Root.tsx` | 逐帧渲染成 MP4 |
 
 两条路径编译**同一份** `src/` 与同一个样式入口 `src/styles/index.css`，
@@ -104,7 +112,7 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 契约页只量测已准备的 v8 讲解材料，不需要作品自带 HTML；页面通过 `m2v-storyboard` 查询参数
 读取这些材料。
 
-契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/contract/explainer.tsx`，**作品不许自己实现**。
+契约类型与求帧逻辑在 `src/contract/bridge.ts`，页面实现在 `src/types/general/contract.tsx`，**作品不许自己实现**。
 
 ## 字体
 

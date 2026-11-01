@@ -34,9 +34,9 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     """读取作品描述。
 
-    这里**不判定类型是否可用**：类型清单的唯一来源是 ``m2v.types.catalog``，
+    这里**不判定类型是否可用**：类型清单的唯一来源是 ``m2v.type_system.catalog``，
     而底层不能反向依赖业务类型层。类型名是否为已知类型、是否有行为实现，
-    由统一入口经 ``m2v.types.registry`` 判定，同样在渲染前失败。
+    由统一入口经 ``m2v.type_system.registry`` 判定，同样在渲染前失败。
     """
     root = Path(directory).expanduser().resolve()
     path = root / PROJECT_FILE

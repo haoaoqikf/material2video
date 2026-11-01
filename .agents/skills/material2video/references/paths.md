@@ -89,7 +89,7 @@
 ## 画面来自哪里
 
 画面不再是一张作品自己的 HTML：渲染入口把分镜交给仓库 `web/` 里的共享
-React composition（Remotion）。三个类型各有自己的 composition，都在 `web/src/compositions/` 下，
+React composition（Remotion）。各类型有自己的 composition，位于 `web/src/types/<type>/`，
 由 `web/src/Root.tsx` 注册。
 general 的 v8 分镜每一幕都是作品 `scenes/` 下的本地 React 组件：画面在 prepare 阶段按画幅实时
 录成无声片段，`ArticleExplainer` 只负责回放这些片段并叠加共享字幕（片段经回环 HTTP 取），
