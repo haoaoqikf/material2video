@@ -9,11 +9,14 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 当前类型范围（由 `catalog.json` 生成，与 README 和 Skill 的类型清单同源）：
 
 <!-- generated:type-catalog:start -->
+**路线旅程**：以真实道路为骨架的路线与旅程影像：单段自驾行程与多日地图游记。
+- `driving-route`：保留独立的请求与路线材料、高速优先取数、授权内普通道路底图、竖屏确定性贴路动画与无声验收；无底部数据面板。
+- `road-trip`：保留独立的 trip.json 编排材料、链式取数、每日底图走廊与离线有声渲染；以 318 川藏南线七天为首例。
+
+**未分类**
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `general`：以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。
-- `driving-route`：保留独立的请求与路线材料、高速优先取数、授权内普通道路底图、竖屏确定性贴路动画与无声验收；无底部数据面板。
 - `building-construction`：以稳定构件 ID 和阶段时间轴表达建造过程；不提供 BIM/CAD 导入或工程计算。
-- `road-trip`：保留独立的 trip.json 编排材料、链式取数、每日底图走廊与离线有声渲染；以 318 川藏南线七天为首例。
 - `vehicle-showcase`：以本地模型和节点/镜头轨道驱动展示，按参考影棚校正车漆、反射与车轮旋转；SU7 作为首例资产。
 <!-- generated:type-catalog:end -->
 
@@ -27,7 +30,7 @@ general 的检查点制作工具见[制作证据与状态](../README.md#制作�
 
 ## 扩展原则
 
-新专用类型按“材料契约—业务准备—专用画面—类型评审—注册接入”实现。共享底座不导入类型私有逻辑；只有多个真实类型出现相同需求时才抽取共享能力。模块边界见 [架构说明](../ARCHITECTURE.md)，已实现的渲染与制作契约见 [OpenSpec 规格](../openspec/specs/) 和 [制作 Skill](../.agents/skills/material2video/SKILL.md)。
+新专用类型按“材料契约—业务准备—专用画面—类型评审—注册接入”实现。类型目录支持可选的「类别 → 类型」归组：类别只组织类型、派生规范作品位置与文档分组，不提供行为；当前 `route-journey`（路线旅程）包含 `driving-route` 与 `road-trip`，其余类型未分类。共享底座不导入类型私有逻辑；只有多个真实类型出现相同需求时才抽取共享能力。模块边界见 [架构说明](../ARCHITECTURE.md)，已实现的渲染与制作契约见 [OpenSpec 规格](../openspec/specs/) 和 [制作 Skill](../.agents/skills/material2video/SKILL.md)。
 
 ## 后续路线
 

@@ -17,7 +17,7 @@ DOCS = ("README.md", ".agents/skills/material2video/SKILL.md", "docs/PROJECT_PLA
 
 
 VALID_CATALOG = {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "types": [{
         "name": "demo",
         "description": "一句话说明",
@@ -62,9 +62,33 @@ def test_registered_type_missing_from_catalog_is_rejected(monkeypatch) -> None:
 def test_types_command_reads_descriptions_from_the_catalog(capsys) -> None:
     assert main(["types"]) == 0
     listed = json.loads(capsys.readouterr().out)
-    assert {item["type"]: item["description"] for item in listed} == {
-        entry.name: entry.description for entry in catalog_module.catalog().entries()
+    documented = catalog_module.catalog()
+    expected = {}
+    for entry in documented.entries():
+        category = documented.category(entry.category) if entry.category else None
+        expected[entry.name] = {
+            "description": entry.description,
+            "category": category.id if category else None,
+            "categoryTitle": category.title if category else None,
+        }
+    assert {item["type"]: {key: item[key] for key in ("description", "category", "categoryTitle")}
+            for item in listed} == expected
+
+
+def test_categories_group_types_and_derive_workspace_parts() -> None:
+    documented = catalog_module.catalog()
+    assert [category.id for category in documented.categories()] == ["route-journey"]
+    assert [entry.name for entry in documented.types_in("route-journey")] == ["driving-route", "road-trip"]
+    assert documented.get("driving-route").workspace_parts() == ("route-journey", "driving-route")
+    assert documented.get("general").workspace_parts() == ("general",)
+    assert {entry.name for entry in documented.uncategorized()} == {
+        "financial-timeseries", "general", "building-construction", "vehicle-showcase",
     }
+
+
+def test_category_name_is_not_a_video_type() -> None:
+    with pytest.raises(M2VError, match="类型类别「路线旅程」"):
+        registry.get("route-journey")
 
 
 def test_docs_type_lists_match_the_catalog() -> None:
@@ -101,7 +125,7 @@ def test_valid_catalog_loads_in_declaration_order(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("mutate, message", [
-    (lambda payload: payload.update(schemaVersion=2), "schemaVersion"),
+    (lambda payload: payload.update(schemaVersion=3), "schemaVersion"),
     (lambda payload: payload.update(types=[]), "types 必须是非空数组"),
     (lambda payload: payload["types"].append(json.loads(json.dumps(payload["types"][0]))), "重复登记类型"),
     (lambda payload: payload["types"][0].update(summary="   "), "summary 必须是非空字符串"),
@@ -112,11 +136,55 @@ def test_valid_catalog_loads_in_declaration_order(tmp_path: Path) -> None:
     (lambda payload: payload["types"][0].update(starters=["../escape.tsx"]), "相对 .tsx 路径"),
     (lambda payload: payload["types"][0].update(starters=["scenes/x.ts", "scenes/y.tsx"]), "相对 .tsx 路径"),
     (lambda payload: payload["types"][0].update(starters=[]), "必须是非空数组"),
+    (lambda payload: payload["types"][0].update(category="ghost"), "未登记的类别"),
+    (lambda payload: payload.update(categories=[]), "categories 必须是非空数组"),
+    (lambda payload: payload.update(categories=[{"id": "solo", "title": "单", "description": "说明"}]),
+     "没有任何类型成员"),
+    (lambda payload: payload.update(categories=[{"id": "demo", "title": "示例", "description": "说明"}]),
+     "类别标识与类型名冲突"),
+    (lambda payload: payload.update(categories=[
+        {"id": "group", "title": "组", "description": "说明"},
+        {"id": "group", "title": "组二", "description": "说明二"},
+    ]), "重复登记类别"),
+    (lambda payload: payload.update(categories=[{"id": "Bad", "title": "组", "description": "说明"}]),
+     "小写字母"),
 ], ids=["版本不符", "空类型表", "重复类型", "空文案", "非法类型名", "空材料表", "越界文件名", "空模板",
-        "起步文件越界", "起步文件非 tsx", "起步文件空表"])
+        "起步文件越界", "起步文件非 tsx", "起步文件空表", "未登记类别", "空类别表", "空类别",
+        "类别与类型同名", "重复类别", "非法类别名"])
 def test_invalid_catalog_is_rejected_at_load(tmp_path: Path, mutate, message: str) -> None:
     with pytest.raises(M2VError, match=message):
         catalog_module.load(_write_catalog(tmp_path, mutate))
+
+
+def test_catalog_groups_types_by_category(tmp_path: Path) -> None:
+    def mutate(payload):
+        payload["types"][0].update(category="group")
+        payload["categories"] = [{"id": "group", "title": "示例类别", "description": "说明"}]
+
+    loaded = catalog_module.load(_write_catalog(tmp_path, mutate))
+    assert loaded.get("demo").workspace_parts() == ("group", "demo")
+    assert loaded.types_in("group")[0].name == "demo"
+
+
+def test_init_places_categorized_type_under_its_category(tmp_path: Path, capsys) -> None:
+    root = tmp_path / "content"
+    assert main(["init", "--type", "driving-route", "--project", "demo", "--content-root", str(root)]) == 0
+    capsys.readouterr()
+    assert (root / "videos/route-journey/driving-route/demo/project.json").is_file()
+    assert not (root / "videos/driving-route/demo").exists()
+    assert main(["init", "--type", "road-trip", "--project", "videos/route-journey/road-trip/trip",
+                 "--content-root", str(root)]) == 0
+    capsys.readouterr()
+    assert (root / "videos/route-journey/road-trip/trip/project.json").is_file()
+
+
+def test_init_rejects_flat_path_for_categorized_type(tmp_path: Path, capsys) -> None:
+    root = tmp_path / "content"
+    assert main(["init", "--type", "driving-route", "--project", "videos/driving-route/demo",
+                 "--content-root", str(root)]) == 2
+    message = capsys.readouterr().err
+    assert "videos/route-journey/driving-route/<slug>" in message
+    assert not (root / "videos/driving-route/demo").exists()
 
 
 def test_init_writes_exactly_the_materials_declared_by_the_catalog(tmp_path: Path, capsys) -> None:

@@ -96,4 +96,5 @@ def register_synthetic_type(monkeypatch, name: str, description: str = "合成�
         ),
     )
     current = catalog.catalog()
-    monkeypatch.setattr(catalog, "_cached", catalog.Catalog(current.entries() + (entry,)))
+    monkeypatch.setattr(catalog, "_cached",
+                        catalog.Catalog(current.entries() + (entry,), current.categories()))

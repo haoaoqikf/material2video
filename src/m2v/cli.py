@@ -120,7 +120,8 @@ def _parser() -> argparse.ArgumentParser:
     migrate.add_argument("--project", required=True)
     migrate.add_argument("--from", dest="source_format", required=True, choices=("financial",))
     relocate = sub.add_parser("relocate", help="将单个作品移动到按视频类型分层的标准目录")
-    relocate.add_argument("--project", required=True, help="旧的 videos/<slug> 作品目录")
+    relocate.add_argument("--project", required=True,
+                          help="非规范位置的统一契约作品目录（如 videos/<slug> 或 videos/<type>/<slug>）")
     relocate.add_argument("--content-root", help=f"工作区根；省略时取 {CONTENT_ROOT_ENV} 或仓库根")
     general = sub.add_parser("general", help="通用类型的语义审查、候选稿与媒体素材操作")
     general.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))

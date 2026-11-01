@@ -33,7 +33,18 @@ def dispatch(args) -> int:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
-        print(json.dumps([{"type": x.name, "description": registry.describe(x.name)} for x in registry.all_types()], ensure_ascii=False, indent=2))
+        entries = catalog.catalog()
+        listing = []
+        for item in registry.all_types():
+            entry = entries.get(item.name) if entries.has(item.name) else None
+            category = entries.category(entry.category) if entry and entry.category else None
+            listing.append({
+                "type": item.name,
+                "description": registry.describe(item.name),
+                "category": category.id if category else None,
+                "categoryTitle": category.title if category else None,
+            })
+        print(json.dumps(listing, ensure_ascii=False, indent=2))
         return 0
     if args.command == "general":
         from m2v.types.general import explainer_cli as workflow
@@ -131,17 +142,23 @@ def _init(args) -> int:
     project_dir = Path(args.project).expanduser()
     content_root = args.content_root or os.environ.get(CONTENT_ROOT_ENV)
     workspace = Path(content_root).expanduser().resolve() if content_root else Path(__file__).resolve().parents[2]
+    standard = entry.workspace_parts()
+    standard_hint = "videos/" + "/".join((*standard, "<slug>"))
     if not project_dir.is_absolute():
         if len(project_dir.parts) == 1:
-            project_dir = workspace / "videos" / item.name / project_dir
-        elif len(project_dir.parts) == 2 and project_dir.parts[0] == "videos":
-            raise M2VError(f"作品路径缺少类型目录：请使用 <slug> 或 videos/{item.name}/<slug>")
-        elif len(project_dir.parts) == 3 and project_dir.parts[0] == "videos":
-            if project_dir.parts[1] != item.name:
-                raise M2VError(f"作品路径类型目录与 --type 不一致：应为 videos/{item.name}/<slug>")
+            project_dir = workspace / "videos" / Path(*standard) / project_dir
+        elif project_dir.parts[0] == "videos":
+            expected = ("videos", *standard, project_dir.parts[-1])
+            if project_dir.parts != expected:
+                raise M2VError(
+                    f"作品路径与类型类别不一致：{item.name} 的标准位置为 {standard_hint}，"
+                    f"实际为 {project_dir.as_posix()}"
+                )
             project_dir = workspace / project_dir
         else:
             project_dir = workspace / project_dir
+    # 绝对路径同样按类别校验；在写盘前失败，避免留下位置错误的作品。
+    _validate_project_location(project_dir, {"type": item.name})
     path = create_project(project_dir, item.name, entry.material_map(), output=entry.initial_dimensions())
     root = path.parent
     # 材料文件名与初始内容都取自类型目录：这里是写盘，不是第二处事实。
@@ -434,15 +451,29 @@ def _require_type_review(video_type, root: Path, manifest: dict) -> None:
 
 
 def _validate_project_location(root: Path, manifest: dict) -> None:
-    """Reject a project whose declared type disagrees with its canonical path.
+    """Reject a project whose path disagrees with its type's canonical workspace location.
 
-    Only `videos/<type>/<slug>/` is type-scoped. Style examples live under
-    `styles/<style-id>/examples/<slug>/` and are content, not type directories.
+    Canonical location is derived from the type catalog: categorized types live at
+    ``videos/<category>/<type>/<slug>`` and uncategorized types at
+    ``videos/<type>/<slug>``. Style examples live under
+    ``styles/<style-id>/examples/<slug>/`` and are content, not type directories.
     """
-    if root.parent.parent.name == "videos" and root.parent.name != "examples":
-        expected_type = root.parent.name
-        if expected_type != manifest["type"]:
-            raise M2VError(
-                f"作品类型目录不匹配：project.json 声明 {manifest['type']}，"
-                f"实际位于 videos/{expected_type}/{root.name}；请执行 m2v relocate"
-            )
+    try:
+        index = max(position for position, part in enumerate(root.parts) if part == "videos")
+    except ValueError:
+        return
+    actual_parts = root.parts[index + 1:]
+    # 只校验可识别的规范深度（未分类 2 段、分类 3 段）。更浅的旧路径由
+    # relocate 处理；更深或只是祖先目录恰好名为 videos 时不做误判。
+    if len(actual_parts) not in (2, 3):
+        return
+    entry = catalog.catalog().get(manifest["type"])
+    expected_parts = (*entry.workspace_parts(), root.name)
+    if actual_parts == expected_parts:
+        return
+    actual = Path("videos", *actual_parts).as_posix()
+    standard = Path("videos", *entry.workspace_parts(), "<slug>").as_posix()
+    raise M2VError(
+        f"作品位置与类型类别不匹配：project.json 声明 {manifest['type']}，"
+        f"实际位于 {actual}，标准位置为 {standard}；请执行 m2v relocate"
+    )

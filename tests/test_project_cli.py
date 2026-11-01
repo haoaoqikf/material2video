@@ -71,6 +71,41 @@ def test_init_rejects_wrong_or_incomplete_type_path(tmp_path: Path) -> None:
     assert main(["init", "--type", "general", "--project", "videos/demo", "--content-root", str(root)]) == 2
 
 
+def test_init_accepts_explicit_canonical_category_path(tmp_path: Path) -> None:
+    root = tmp_path / "content"
+    assert main(["init", "--type", "driving-route", "--project",
+                 "videos/route-journey/driving-route/demo", "--content-root", str(root)]) == 0
+    assert (root / "videos" / "route-journey" / "driving-route" / "demo" / "project.json").is_file()
+
+
+def test_relocate_moves_flat_categorized_type_into_category(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    create_typed_project(root / "videos" / "driving-route" / "demo", "driving-route")
+    source = root / "videos" / "driving-route" / "demo"
+
+    result = relocate(source)
+
+    assert result.target == root / "videos" / "route-journey" / "driving-route" / "demo"
+    assert not source.exists()
+    assert (result.target / "project.json").is_file()
+    assert result.backup.is_dir()
+
+
+def test_relocate_reports_project_already_in_canonical_category_path(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("skill", encoding="utf-8")
+    source = root / "videos" / "route-journey" / "road-trip" / "demo"
+    create_typed_project(source, "road-trip")
+
+    with pytest.raises(M2VError, match="已经位于标准目录"):
+        relocate(source)
+
+
 def test_relocate_moves_project_and_outputs_with_complete_backup(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     marker = root / ".agents" / "skills" / "material2video" / "SKILL.md"

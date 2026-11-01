@@ -55,11 +55,18 @@ def register(video_type: VideoType) -> None:
 
 def get(name: str) -> VideoType:
     """取行为实现；未注册或未在类型目录登记都在渲染前失败。"""
+    entry = catalog.catalog()
+    category = entry.category(name)
+    if category is not None:
+        children = entry.types_in(name)
+        raise M2VError(
+            f"{name} 是类型类别「{category.title}」，不是视频类型；"
+            f"请指定子类型：{'、'.join(item.name for item in children)}"
+        )
     try:
         video_type = _registry[name]
     except KeyError as exc:
         raise M2VError(f"未知视频类型：{name}；运行 m2v types 查看可用类型") from exc
-    entry = catalog.catalog()
     if not entry.has(name):
         raise M2VError(
             f"视频类型未在类型目录登记：{name}；请在 {catalog.CATALOG_PATH.name} 中登记该类型的"

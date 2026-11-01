@@ -64,16 +64,16 @@ Key 只从环境变量 `M2V_AMAP_KEY` 读取，不写入材料、响应、日志
 ```powershell
 uv run m2v init --type driving-route --project <slug>
 # 填写 request.json（含 sourceUsage 与 mapTiles），设置 M2V_AMAP_KEY 后取数
-uv run m2v driving-route fetch --project videos/driving-route/<slug>
+uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>
 # 需要普通道路底图时，确认 mapTiles=true 后取图
-uv run m2v driving-route basemap --project videos/driving-route/<slug>
+uv run m2v driving-route basemap --project videos/route-journey/driving-route/<slug>
 # 卫星底图版本（其他画面契约不变）
-uv run m2v driving-route basemap --project videos/driving-route/<slug> --style satellite
-uv run m2v validate --project videos/driving-route/<slug>
-uv run m2v prepare --project videos/driving-route/<slug>
+uv run m2v driving-route basemap --project videos/route-journey/driving-route/<slug> --style satellite
+uv run m2v validate --project videos/route-journey/driving-route/<slug>
+uv run m2v prepare --project videos/route-journey/driving-route/<slug>
 # 可选局部预演，不能覆盖正式成片
-uv run m2v preview --project videos/driving-route/<slug> --start-seconds 0 --end-seconds 6
-uv run m2v render --project videos/driving-route/<slug>
+uv run m2v preview --project videos/route-journey/driving-route/<slug> --start-seconds 0 --end-seconds 6
+uv run m2v render --project videos/route-journey/driving-route/<slug>
 ```
 
 `validate / prepare / preview / render` 只读取已保存材料，断网且未配置 Key 时仍可执行，不发生外部网络访问。`render` 输出 `outputs/driving-route.mp4`，预演写在 `outputs/previews/`；重复导出在相同有效输入下复用候选。

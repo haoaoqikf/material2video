@@ -14,15 +14,15 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 
 读取作品 `project.json` 确认类型；新作品先确定类型与内容根。先定位任务与阶段，再读取下一份主指南；不递归读完所有链接。
 
-| 类型 | 创作指导 |
-|---|---|
 <!-- generated:type-catalog:start -->
-| `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
-| `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
-| `driving-route` | [自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。 |
-| `building-construction` | [建筑建造视频](references/building-construction-video.md)：从基础到完工的构件与阶段说明。 |
-| `road-trip` | [多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。 |
-| `vehicle-showcase` | [汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。 |
+| 类别 | 类型 | 创作指导 |
+|---|---|---|
+| 路线旅程 | `driving-route` | [自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。 |
+| 路线旅程 | `road-trip` | [多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。 |
+| 未分类 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
+| 未分类 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
+| 未分类 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：从基础到完工的构件与阶段说明。 |
+| 未分类 | `vehicle-showcase` | [汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。 |
 <!-- generated:type-catalog:end -->
 
 - **新制作 general**：从[方案确定](references/stage-plan.md)开始。

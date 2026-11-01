@@ -21,7 +21,12 @@
 | 根 | 是什么 | 怎么确定 |
 | --- | --- | --- |
 | **仓库根**（repo root） | 存放 skill 与共享画面工程（`web/`）的仓库 | 输入文件向上查找 `.agents/skills/material2video/SKILL.md`；文件在仓库之外时取**正在运行的脚本**所在仓库 |
-| **工作区根**（workspace root） | 存放 `videos/<type>/<slug>/`、`styles/<style-id>/examples/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
+| **工作区根**（workspace root） | 存放 `videos/<类型路径>/<slug>/`、`styles/<style-id>/examples/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
+
+`<类型路径>` 由类型目录决定：未分类类型为 `<type>`，属于类别的类型为 `<category>/<type>`。
+例如 `driving-route` 与 `road-trip` 同属 `route-journey`，规范位置分别是
+`videos/route-journey/driving-route/<slug>/` 与 `videos/route-journey/road-trip/<slug>/`。
+类别只组织与发现类型，本身不是可初始化或可渲染的类型。
 
 内容根按下面的优先级确定，**不自动探测、不猜**：
 
@@ -29,7 +34,7 @@
 2. 环境变量 `M2V_CONTENT_ROOT=<dir>`；
 3. 都没有 → 工作区根 = 仓库根。
 
-内容根要与仓库同构：它下面直接放 `videos/<type>/<slug>/`，产物位于作品目录下的 `outputs/`（仓库风格示例源放
+内容根要与仓库同构：它下面直接放 `videos/<类型路径>/<slug>/`，产物位于作品目录下的 `outputs/`（仓库风格示例源放
 `styles/<style-id>/examples/<slug>/`，产物位于 `styles/<style-id>/examples/<slug>/outputs/`）。内容根里**不需要**也不应该有 skill 副本——画面由仓库里
 `web/` 的共享 composition 提供，契约页在渲染与体检时按仓库根自动定位并挂载。
 
@@ -40,13 +45,13 @@
 ├── .agents/skills/material2video/     # 制作方法与参考文档（入库）
 ├── web/                              # 共享画面工程：组件、令牌、composition（入库）
 ├── styles/<style-id>/examples/<slug>/ # 随仓库发布的风格示例（入库；媒体与产物除外）
-├── videos/<type>/<slug>/             # 实际文章内容（不入库，见 .gitignore）
+├── videos/<类型路径>/<slug>/          # 作品内容（不入库，见 .gitignore）
 │   ├── article.md                    # article 输入的源文，可改用 article.accepted.md；topic 输入省略
 │   ├── storyboard.json               # general 的 v8 全画布代码分镜
 │   ├── scenes/                       # general 代码场景的本地 TSX 入口，按需创建
 │   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
 │   └── assets/                       # 本篇专用素材（音床、音效、代码场景资源），按需创建
-└── videos/<type>/<slug>/outputs/     # 成片与中间产物（不入库）
+└── videos/<类型路径>/<slug>/outputs/     # 成片与中间产物（不入库）
     ├── video.mp4                     # 正式成片（所有类型同名；文件名由渲染器决定，不随有无配音变化）
     ├── video.provenance.json         # 与该成片同名的溯源记录
     ├── video.performance.json        # 与该成片同名的渲染性能报告
@@ -68,18 +73,18 @@
 打包缓存不在作品目录里，而在共享工程下：`web/.cache/m2v-bundles/<键>/`。
 它只与「当前 `web/` 源码 + 当前作品输入 + 依赖版本」有关，跨作品共享，整目录可随时删除。
 
-内容根在仓库之外时，`videos/<type>/<slug>/` 与其下的 `outputs/` 一起搬到内容根下，其余不变：
+内容根在仓库之外时，`videos/<类型路径>/<slug>/` 与其下的 `outputs/` 一起搬到内容根下，其余不变：
 
 ```text
 <内容根>/
-├── videos/<type>/<slug>/…
-└── videos/<type>/<slug>/outputs/…
+├── videos/<类型路径>/<slug>/…
+└── videos/<类型路径>/<slug>/outputs/…
 ```
 
 `styles/<style-id>/examples/<slug>/` 是仓库风格示例源；`m2v --project styles/<style-id>/examples/<slug>/` 使用其中的材料，
 全部产物（准备记录、媒体缓存、预演、成片与评审）统一落到 `styles/<style-id>/examples/<slug>/outputs/`。
 该产物目录同样由 `.gitignore` 的 `outputs/` 规则忽略，不入库。
-需要把示例作为独立作品制作时，把示例目录整体复制到 `videos/<type>/<slug>/`。
+需要把示例作为独立作品制作时，把示例目录整体复制到该类型规范位置 `videos/<类型路径>/<slug>/`。
 
 ## 画面来自哪里
 
@@ -90,7 +95,7 @@ general 的 v8 分镜每一幕都是作品 `scenes/` 下的本地 React 组件�
 录成无声片段，`ArticleExplainer` 只负责回放这些片段并叠加共享字幕（片段经回环 HTTP 取），
 契约见 [通用分镜 v8](storyboard-schema.md)。
 
-本篇专用素材（`videos/<type>/<slug>/assets/`）由静态服务器按工作区根提供，
+本篇专用素材（`videos/<类型路径>/<slug>/assets/`）由静态服务器按工作区根提供，
 composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则通过
 `/__m2v_web__/` 别名挂载，内容根在仓库之外时同样可达。
 
@@ -100,8 +105,8 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 
 1. 以输入文件位置向上查找含 `.agents/skills/material2video/SKILL.md` 的目录；找不到时
    取运行中的 bundle 所在仓库——契约页与 composition 从那一份取；
-2. 文件在仓库内的 `videos/<type>/<slug>/` 或 `styles/<style-id>/examples/<slug>/` 时，工作区根即仓库根；
-3. 否则用内容根作为工作区根，slug 取 `videos/<type>/<slug>/` 的最后一级目录名；
+2. 文件在仓库内的 `videos/<类型路径>/<slug>/` 或 `styles/<style-id>/examples/<slug>/` 时，工作区根即仓库根；
+3. 否则用内容根作为工作区根，slug 取 `videos/<类型路径>/<slug>/` 的最后一级目录名；
 4. 新制作入口以 `project.json` 确定类型和材料；文章辅助流程从 `videos/general/<slug>/` 分镜路径推导作品归属；
 5. 全程使用绝对路径，与执行命令时的工作目录无关。
 
@@ -111,7 +116,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | --- | --- |
 | 找不到仓库根标记，且 bundle 不在仓库里 | 报错，提示需要显式指定输出路径 |
 | 文件在仓库外、又没有内容根 | 报错，点名 `--content-root` 与 `M2V_CONTENT_ROOT` |
-| 内容根里也没有 `videos/<type>/<slug>/` | 报错，列出实际路径与它检查过的位置 |
+| 内容根里也没有 `videos/<类型路径>/<slug>/` | 报错，列出实际路径与它检查过的位置 |
 | 缺失 `project.json` 或类型材料 | 指出作品目录或缺失材料，停止后续制作 |
 | 准备记录、资产或渲染代码指纹已变化 | 要求重新 prepare，再生成预演与评审 |
 
@@ -139,7 +144,7 @@ v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 - `render` 只读取作品材料与准备记录，不修改原始材料；
 - 统一入口正式渲染成功后清理本作品 `outputs/` 中旧视频及其字幕/溯源/性能旁车、预演、检查图和已知调试目录；保留本次成片及旁车、`prepared.json`、评审 JSON 和 `media/` 准备媒体。渲染或验收失败不清理，仓库共享构建缓存不受影响；清理错误按遗留路径报告；
 - 限帧试渲染写入 `previews/`，不会覆盖正式成片。
-- 旧统一作品使用 `m2v relocate --project videos/<slug>` 逐个迁移；命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from financial` 只用于旧金融材料契约迁移。
+- 旧统一作品使用 `m2v relocate --project <非规范位置>` 逐个迁移；`videos/<slug>/` 与旧的平铺 `videos/<type>/<slug>/` 都可作为来源，目标由类型目录中的类别决定。命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from financial` 只用于旧金融材料契约迁移。
 
 ## 相关文档
 

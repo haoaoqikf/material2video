@@ -35,48 +35,48 @@ class RelocationResult:
 
 
 def relocate(project: str | Path, *, content_root: str | Path | None = None) -> RelocationResult:
-    """Move one legacy ``videos/<slug>`` project, retaining conflicts for retry."""
-    source = Path(project).expanduser().resolve()
-    if not source.is_dir():
-        if source.parent.name != "videos":
-            raise M2VError(f"旧作品目录不存在：{source}")
-        candidates = sorted(source.parent.glob(f"*/{source.name}/project.json"))
-        if candidates:
-            raise M2VError(f"作品已经迁移到标准目录：{candidates[0].parent}")
-        raise M2VError(f"旧作品目录不存在：{source}")
-    if source.parent.name != "videos":
-        raise M2VError(f"路径迁移只接受 videos/<slug>/ 旧路径：{source}")
+    """把 ``videos/`` 下非规范位置的作品移动到类型类别决定的规范位置。
 
+    来源可以是旧的 ``videos/<slug>`` 或平铺的 ``videos/<type>/<slug>``；
+    目标由类型目录的 :meth:`Entry.workspace_parts` 推导，因此分类类型会移动到
+    ``videos/<category>/<type>/<slug>``。保留完整备份与冲突重试语义。
+    """
+    source = Path(project).expanduser().resolve()
     repo_root = _repo_root(source)
     workspace = _workspace_root(source, repo_root, content_root)
+    videos_root = workspace / "videos"
+    if not source.is_dir():
+        found = _discover_migrated(videos_root, source.name)
+        if found is not None:
+            raise M2VError(f"作品已经迁移到标准目录：{found}")
+        raise M2VError(f"作品目录不存在：{source}")
     try:
-        source.relative_to(workspace)
+        source.relative_to(videos_root)
     except ValueError as exc:
-        raise M2VError(f"来源不在工作区根 {workspace} 内：{source}") from exc
+        raise M2VError(f"路径迁移只接受工作区 videos/ 下的作品：{source}") from exc
+    if source == videos_root:
+        raise M2VError(f"路径迁移需要作品目录，而不是 videos/ 本身：{source}")
 
     previous_backups = sorted(source.parent.glob(f"{source.name}.m2v-relocation-backup-*"))
     if (source / "project.json").is_file():
         root, manifest = load_project(source)
-    elif previous_backups and any(p.is_file() or p.is_symlink() for p in source.rglob("*")):
-        # A retry may remain after the root manifest already moved. In that case
-        # prefer the destination manifest, which is the active project's truth.
-        discovered_targets = sorted(source.parent.glob(f"*/{source.name}/project.json"))
-        manifest_source = discovered_targets[0].parent if discovered_targets else previous_backups[0]
-        root, manifest = load_project(manifest_source)
+    elif previous_backups:
+        # A retry may remain after the root manifest already moved. The backup is
+        # a complete pre-move copy, so it is the reliable manifest source.
+        root, manifest = load_project(previous_backups[0])
     else:
-        raise M2VError(f"旧作品目录缺少 project.json：{source}")
+        raise M2VError(f"作品目录缺少 project.json：{source}")
     type_name = manifest["type"]
-    catalog.catalog().get(type_name)
+    entry = catalog.catalog().get(type_name)
     registry.get(type_name)
-    target_parent = workspace / "videos" / type_name
-    target = target_parent / source.name
+    target = videos_root.joinpath(*entry.workspace_parts(), source.name)
     if target == source:
         raise M2VError(f"作品已经位于标准目录：{source}")
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     backup = previous_backups[0] if previous_backups else source.with_name(f"{source.name}.m2v-relocation-backup-{stamp}")
     if not previous_backups:
         shutil.copytree(source, backup, copy_function=shutil.copy2, symlinks=True)
-    target_parent.mkdir(parents=True, exist_ok=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
 
     conflicts: list[Path] = []
     for current, directories, files in os.walk(source, topdown=True, followlinks=False):
@@ -100,6 +100,15 @@ def relocate(project: str | Path, *, content_root: str | Path | None = None) -> 
     if not any(source.iterdir()):
         source.rmdir()
     return RelocationResult(source, target, backup, tuple(conflicts))
+
+
+def _discover_migrated(videos_root: Path, slug: str) -> Path | None:
+    """在 ``videos/`` 的两级与三级规范层级中查找同名已迁移作品。"""
+    for pattern in (f"*/{slug}/project.json", f"*/*/{slug}/project.json"):
+        hits = sorted(videos_root.glob(pattern))
+        if hits:
+            return hits[0].parent
+    return None
 
 
 def _move_one(source: Path, destination: Path, conflicts: list[Path]) -> None:

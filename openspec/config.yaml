@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   项目：material2video，使用共享制作底座、独立视频类型和统一制作入口，优先发展金融时间序列等专用视频，持续完善通用混合媒体讲解。
-  当前类型包括 financial-timeseries（行情与假设投资时间序列）、general（通用 v8 全画布代码场景讲解，保留真实配音、输入语义审查及完整候选自动验收）、driving-route（真实高速优先驾车路线的竖屏普通道路/卫星地图动画，在线取数与离线成片分离，顶部模拟行程标题、车辆旁里程、16× 平滑跟随与结尾全程收束，固定 1080×1920、30 fps、无音轨）、building-construction（两层框架住宅程序化建造示意，1920×1080、30 fps、无声）、road-trip（多日真实路线竖屏地图游记，链式取数、每日底图、旁白字幕音效与程序化音床，1080×1920、30 fps、有声）与 vehicle-showcase（本地汽车模型、自动环绕与视觉疾驰，1920×1080、30 fps、无声）。旧 article-narrative 身份、m2v article 命令、general-plan 编排与完整片段嵌入已删除；作品画面以 v8 的本地 TSX 全画布逐帧录制链路提供。
+  当前类型包括 financial-timeseries（行情与假设投资时间序列）、general（通用 v8 全画布代码场景讲解，保留真实配音、输入语义审查及完整候选自动验收）、driving-route（真实高速优先驾车路线的竖屏普通道路/卫星地图动画，在线取数与离线成片分离，顶部模拟行程标题、车辆旁里程、16× 平滑跟随与结尾全程收束，固定 1080×1920、30 fps、无音轨）、building-construction（两层框架住宅程序化建造示意，1920×1080、30 fps、无声）、road-trip（多日真实路线竖屏地图游记，链式取数、每日底图、旁白字幕音效与程序化音床，1080×1920、30 fps、有声）与 vehicle-showcase（本地汽车模型、自动环绕与视觉疾驰，1920×1080、30 fps、无声）。类型目录支持「类别 → 类型」归组：driving-route 与 road-trip 属于 route-journey（路线旅程），其作品规范位置为 videos/route-journey/<type>/<slug>；未分类类型仍为 videos/<type>/<slug>。类别只组织类型，不可初始化或渲染。旧 article-narrative 身份、m2v article 命令、general-plan 编排与完整片段嵌入已删除；作品画面以 v8 的本地 TSX 全画布逐帧录制链路提供。
   通用 v8 使用 scenes 多幕讲解，每一幕都是作品 `scenes/` 下的本地 React 代码场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏，完整成片最多 600 秒；代码片段在检查或正式生成时按所需窗口逐帧录制并缓存，检查和正式生成按区间复用录制缓存。图片与视频经已导入素材 ID 解析，比例不受画幅限制。原文输入需非空源文，主题输入按逐幕关键词检索，均不限制标准字数。旧 v7 及更早分镜需重新编排，不自动迁移。
   Python 生产实现位于 src/m2v/：core（作品契约与指纹）、engine（构建、缓存、渲染、合成与验收）、types（业务类型与注册）、cli（统一入口）；Skill 只保留创作指导和参考契约。
   技术栈：Python（类型校验与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），

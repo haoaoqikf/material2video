@@ -34,19 +34,48 @@ SKILL = ".agents/skills/material2video/SKILL.md"
 PLAN = "docs/PROJECT_PLAN.md"
 
 
-def _readme_lines(entries) -> list[str]:
-    return [f"- `{entry.name}`：{entry.summary}" for entry in entries]
+def _grouped_lines(catalog, render_entry, *, with_description: bool = False) -> list[str]:
+    """先按类别登记顺序输出成员，再输出未分类类型；空行只分隔有内容的组。"""
+    groups = [
+        (category.title, category.description, catalog.types_in(category.id))
+        for category in catalog.categories()
+    ]
+    uncategorized = catalog.uncategorized()
+    if uncategorized:
+        groups.append(("未分类", "", uncategorized))
+    lines: list[str] = []
+    for index, (title, description, entries) in enumerate(groups):
+        if index:
+            lines.append("")
+        suffix = f"：{description}" if with_description and description else ""
+        lines.append(f"**{title}**{suffix}")
+        lines.extend(render_entry(entry) for entry in entries)
+    return lines
 
 
-def _skill_lines(entries) -> list[str]:
-    return [f"| `{entry.name}` | {entry.skill_guide} |" for entry in entries]
+def _readme_lines(catalog) -> list[str]:
+    return _grouped_lines(catalog, lambda entry: f"- `{entry.name}`：{entry.summary}", with_description=True)
 
 
-def _plan_lines(entries) -> list[str]:
-    return [f"- `{entry.name}`：{entry.plan}" for entry in entries]
+def _skill_lines(catalog) -> list[str]:
+    lines = ["| 类别 | 类型 | 创作指导 |", "|---|---|---|"]
+    for category in catalog.categories():
+        lines.extend(
+            f"| {category.title} | `{entry.name}` | {entry.skill_guide} |"
+            for entry in catalog.types_in(category.id)
+        )
+    lines.extend(
+        f"| 未分类 | `{entry.name}` | {entry.skill_guide} |"
+        for entry in catalog.uncategorized()
+    )
+    return lines
 
 
-#: （相对路径，渲染函数）。渲染结果按类型目录的登记顺序输出。
+def _plan_lines(catalog) -> list[str]:
+    return _grouped_lines(catalog, lambda entry: f"- `{entry.name}`：{entry.plan}", with_description=True)
+
+
+#: （相对路径，渲染函数）。渲染结果先按类别登记顺序、再按类型登记顺序输出。
 TARGETS = ((README, _readme_lines), (SKILL, _skill_lines), (PLAN, _plan_lines))
 
 
@@ -116,7 +145,7 @@ def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
         from m2v.types import catalog as catalog_module
 
         catalog = catalog_module.catalog()
-    entries = catalog.entries()
+    entries = catalog
     outputs: dict[str, str] = {}
     for relative, render in TARGETS:
         text, _ = read_text(relative)

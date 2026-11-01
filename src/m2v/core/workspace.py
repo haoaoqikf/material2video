@@ -4,7 +4,7 @@
 
 ```text
 仓库根 repo_root        # .agents/skills/material2video/SKILL.md 所在处：脚本、共享资产、examples
-工作区根 workspace_root # 存放 videos/<type>/<slug> 与作品产物的目录
+工作区根 workspace_root # 存放 videos/<类型路径>/<slug> 与作品产物的目录
 ```
 
 工作区根按 `--content-root` > `M2V_CONTENT_ROOT` > 仓库根 解析：不设内容根时

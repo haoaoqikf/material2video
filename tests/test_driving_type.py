@@ -13,7 +13,7 @@ from driving_helpers import request_document, write_project
 def test_init_writes_independent_materials_and_portrait_defaults(tmp_path):
     assert main(["init", "--type", "driving-route", "--project", "demo",
                  "--content-root", str(tmp_path)]) == 0
-    root, manifest = load_project(tmp_path / "videos/driving-route/demo")
+    root, manifest = load_project(tmp_path / "videos/route-journey/driving-route/demo")
     assert manifest["materials"] == {"request": "request.json", "route": "route.json"}
     assert (manifest["output"]["width"], manifest["output"]["height"]) == (1080, 1920)
     assert manifest["output"]["fps"] == 30
