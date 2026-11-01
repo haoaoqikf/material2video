@@ -4,6 +4,8 @@
 
 本文只规定评审方式与证据，不新增 CLI 命令、运行时字段或自动审美评分。
 
+评审者可以读取[Frontend Design](../../frontend-design/SKILL.md)与[运动设计](../../motion-design/SKILL.md)作为观察词汇和方法，但两者不是评审包内容，不改变隔离、轮次、人数、问题分级或门禁。评审仍须先盲看落盘，再对照中性条件；不得把两个 skill 的上游默认判断直接当作否决依据。
+
 ## 与 CLI 可选评审的区别
 
 - `m2v review-template` / `m2v review` 生成的 `outputs/review.json` 是**可选工具**，不阻断导出。

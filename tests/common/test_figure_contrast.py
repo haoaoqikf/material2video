@@ -234,7 +234,7 @@ class TestSingleSource:
 
     def test字号与描边阶在令牌块里(self):
         # 同一类失效：阶缺一档时引用它的画面会静默落到初始值
-        for name in ("--m2v-size-caption", "--m2v-size-body", "--m2v-size-numeral",
+        for name in ("--m2v-size-caption", "--m2v-size-body",
                      "--m2v-leading-body", "--m2v-tracking-label",
                      "--m2v-weight-regular", "--m2v-weight-bold",
                      "--m2v-stroke-1", "--m2v-stroke-5",

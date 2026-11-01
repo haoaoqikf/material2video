@@ -91,7 +91,7 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
   const previous = index > 0 ? shots[index - 1] : null;
   const blendRaw = shot ? (frame - shot.startFrame + 1) / SHOT_BLEND_FRAMES : 1;
   const blend = previous && !shot?.cut && !previous.cut
-    ? ease('sineInOut', Math.min(1, Math.max(0, blendRaw))) : 1;
+    ? ease('easeInOutSine', Math.min(1, Math.max(0, blendRaw))) : 1;
   const world = focusDistanceAt(shot, progress);
   const previousWorld = previous ? focusDistanceAt(previous, 1) : null;
   const blendedWorld = world === null ? (previousWorld ?? null)

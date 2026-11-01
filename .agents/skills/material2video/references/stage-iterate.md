@@ -25,3 +25,5 @@
 - 源文、分镜、时间轴：[材料](stage-plan.md)与[分镜](storyboard-schema.md)。
 - 素材、声音、许可：[素材声音](article-media-and-sound.md)；旁白变化另读[配音](voice-and-rhythm.md)。
 - 证据、评审和问题关闭：[检查点](checkpoint-gates.md)与[独立评审](subagent-review.md)。命令查 README 和实际 --help。
+- 运动设计、转场、入场退场与缓动：[运动设计](../../motion-design/SKILL.md)与[视频适配](../../motion-design/ADAPTATION.md)。
+- 构图、色彩、字体、留白与视觉重心：[Frontend Design](../../frontend-design/SKILL.md)与[视频适配](../../frontend-design/ADAPTATION.md)。

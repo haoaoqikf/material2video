@@ -9,10 +9,11 @@ import {createContext, useContext, useMemo, useRef, type ReactNode} from 'react'
 import * as THREE from 'three';
 import {useFrame, useThree} from '@react-three/fiber';
 import {useSceneContext} from '../context';
+import {easeMotion, type MotionCurveName} from '../motion';
 
 export type Vec3 = [number, number, number];
 export type ShotTier = 'hero' | 'major' | 'minor';
-export type EasingName = 'linear' | 'quintInOut' | 'quintOut' | 'sineInOut' | 'expoInOut';
+export type EasingName = MotionCurveName;
 export type LutName = 'neutral' | 'deep-space' | 'teal-amber' | 'warm-film';
 export type PostSettings = {
   bloom?: number; dof?: number; grain?: number; vignette?: number;
@@ -64,16 +65,9 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+/** 相机缓动；未声明时使用画面内默认的缓入缓出。 */
 export function ease(name: EasingName | undefined, t: number): number {
-  const value = Math.min(1, Math.max(0, t));
-  switch (name ?? 'quintInOut') {
-    case 'linear': return value;
-    case 'quintOut': return 1 - (1 - value) ** 5;
-    case 'sineInOut': return -(Math.cos(Math.PI * value) - 1) / 2;
-    case 'expoInOut': return value === 0 ? 0 : value === 1 ? 1 : value < .5
-      ? 2 ** (20 * value - 10) / 2 : (2 - 2 ** (-20 * value + 10)) / 2;
-    default: return value < .5 ? 16 * value ** 5 : 1 - (-2 * value + 2) ** 5 / 2;
-  }
+  return easeMotion(name, t);
 }
 
 /** 当前帧落在哪个镜头里；`endFrame` 为开区间上界。 */
@@ -250,7 +244,7 @@ export function CameraRig({shots, targets, target, fov, near = 0.05, far = 6000,
     const previous = index > 0 ? list[index - 1] : null;
     const blendRaw = shot ? (scene.frame - shot.startFrame + 1) / SHOT_BLEND_FRAMES : 1;
     const blend = previous && !shot?.cut && !previous.cut
-      ? ease('sineInOut', Math.min(1, Math.max(0, blendRaw))) : 1;
+      ? ease('easeInOutSine', Math.min(1, Math.max(0, blendRaw))) : 1;
 
     const focusName = shot?.focus?.target;
     const resolved = focusName && targets ? targets[focusName] : undefined;

@@ -19,15 +19,18 @@ REPO = ROOT.parents[3]
 def reachable() -> dict[str, Path]:
     """从 SKILL.md 沿活动链接与阅读路由可达的参考文档；不含模板围栏内的示例链接。"""
     seen: dict[str, Path] = {}
+    visited: set[Path] = set()
     route = json.loads((ROOT / "guidance-routes.json").read_text(encoding="utf-8"))
     queue = [SKILL]
-    queue += [(ROOT / row["guide"]).resolve()
+    queue += [(ROOT.parent / row["guide"]).resolve()
               for key in ("stages", "tasks", "conditional") for row in route[key]]
-    queue += [(ROOT / value).resolve() for key in ("types", "ruleOwners") for value in route[key].values()]
+    queue += [(ROOT.parent / value).resolve()
+              for key in ("types", "ruleOwners") for value in route[key].values()]
     while queue:
         path = queue.pop().resolve()
-        if not path.is_file() or path.name in seen:
+        if not path.is_file() or path in visited:
             continue
+        visited.add(path)
         seen[path.name] = path
         if path.suffix != ".md":
             continue

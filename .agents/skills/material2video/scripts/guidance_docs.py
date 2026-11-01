@@ -11,7 +11,8 @@ from m2v.core.errors import M2VError
 SKILL = Path('.agents/skills/material2video')
 STAGES = {'plan', 'iterate', 'final'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
-OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达', '过程证据容量'}
+OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达',
+          '视觉审美', '运动设计', '过程证据容量'}
 
 
 def catalog_types() -> set[str]:
@@ -53,6 +54,17 @@ def target(root: Path, base: Path, reference: str) -> Path:
     if anchor and anchor not in anchors(path.read_text(encoding='utf-8')):
         raise M2VError(f'阅读目标标题锚点不存在：{reference}')
     return path
+
+
+def link_target(root: Path, base: Path, reference: str) -> Path:
+    """活动链接校验：目录链接允许以 `/` 结尾，其余目标仍须是文件。"""
+    raw, _, anchor = unquote(reference).partition('#')
+    path = (base / raw).resolve() if raw else base.resolve()
+    if raw.endswith('/') and not anchor:
+        if not path.is_relative_to(root.resolve()) or not path.is_dir():
+            raise M2VError(f'链接目录不存在或越界：{reference}')
+        return path
+    return target(root, base, reference)
 
 
 def _rows(value, keys: set[str], name: str) -> list[dict]:
@@ -113,7 +125,7 @@ def validate(root: Path, routes: dict | None = None) -> dict[str, int]:
             plain = re.sub(r'^```[^\n]*\n.*?^```\s*$', '', text, flags=re.S | re.M)
             for reference in re.findall(r'\]\(([^)\n]+)\)', plain):
                 if '://' not in reference and not reference.startswith('mailto:'):
-                    target(root, path.parent if not reference.startswith('#') else path, reference)
+                    link_target(root, path.parent if not reference.startswith('#') else path, reference)
             for block in re.findall(r'```json\s*\n(.*?)\n```', text, re.S):
                 try:
                     json.loads(block)

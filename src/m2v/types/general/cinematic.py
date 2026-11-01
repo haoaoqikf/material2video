@@ -6,7 +6,10 @@ from m2v.core.video_config import GENERAL_DEFAULT_FPS
 
 
 TIERS = ("hero", "major", "minor")
-EASINGS = ("linear", "quintInOut", "quintOut", "sineInOut", "expoInOut")
+EASINGS = ("linear", "easeInCubic", "easeOutCubic", "easeInOutCubic",
+           "easeInQuint", "easeOutQuint", "easeInOutQuint",
+           "easeInExpo", "easeOutExpo", "easeInOutExpo",
+           "easeInOutSine", "backOut")
 #: 内置调色档名：`lut` 是**具名档**而不是外部 .cube 文件，录制期不取外网也不读作品目录。
 LUTS = ("neutral", "deep-space", "teal-amber", "warm-film")
 #: 运动模糊的子帧上限与 SSAA 上限。

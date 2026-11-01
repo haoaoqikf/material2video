@@ -107,6 +107,26 @@
       "guide": "references/visual-review-rubric.md"
     },
     {
+      "id": "aesthetic",
+      "when": "判断构图、色彩、字体、留白、视觉重心或画面是否模板化",
+      "guide": "../frontend-design/SKILL.md"
+    },
+    {
+      "id": "aesthetic-protocol",
+      "when": "按观察—对照—批评方法复核实际画面",
+      "guide": "../frontend-design/SKILL.md#restraint-and-self-critique"
+    },
+    {
+      "id": "motion",
+      "when": "设计或复核镜头运动、转场、入场退场与缓动",
+      "guide": "../motion-design/SKILL.md"
+    },
+    {
+      "id": "motion-timing",
+      "when": "查视频节拍、帧数、缓动与错峰预算",
+      "guide": "../motion-design/reference/timing-easing-tables.md"
+    },
+    {
       "id": "diagnosis",
       "when": "看图发现画面问题、判断形象是否成立、确定主体尺度",
       "guide": "references/explainer-design.md#看图诊断与形象判据"
@@ -145,6 +165,8 @@
     "失败回退": "references/production-workflow.md",
     "讲解机制": "references/explainer-design.md",
     "实际表达": "references/visual-review-rubric.md",
+    "视觉审美": "../frontend-design/SKILL.md",
+    "运动设计": "../motion-design/SKILL.md",
     "过程证据容量": "references/subagent-review.md"
   }
 }

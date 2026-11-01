@@ -52,7 +52,7 @@ def test_hero_count_and_length_follow_content(length):
 
 def test_camera_focus_post_and_exposure_ranges():
     shot = {**hero("earth", 0, 480),
-            "camera": {"path": [[0, 0, 9], [0, 0, 3]], "fov": 32, "roll": -2, "easing": "quintInOut",
+            "camera": {"path": [[0, 0, 9], [0, 0, 3]], "fov": 32, "roll": -2, "easing": "easeInOutQuint",
                        "keyframes": [{"frame": 0, "position": [0, 0, 9]}, {"frame": 480, "position": [0, 0, 3]}]},
             "focus": {"target": "earth", "distance": 3.2, "aperture": 2.8},
             "exposure": {"ev": -0.3},

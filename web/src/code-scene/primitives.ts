@@ -22,9 +22,11 @@ export function clampProgress(progress: number): number {
   return Math.min(1, Math.max(0, progress));
 }
 
-function easedProgress(progress: number, easing?: Easing): number {
-  const value = easing ? easing(clampProgress(progress)) : clampProgress(progress);
-  return clampProgress(value);
+function easedProgress(progress: number, easing: Easing): number {
+  if (typeof easing !== 'function') throw new TypeError('easing 必须显式传入');
+  const value = easing(clampProgress(progress));
+  if (!Number.isFinite(value)) throw new RangeError('easing 必须返回有限数值');
+  return value;
 }
 
 function finite(value: number, name: string): number {
@@ -58,7 +60,7 @@ export function rollNumber({
   from, to, progress, decimals = 0, easing, group = false,
 }: {
   from: number; to: number; progress: number;
-  decimals?: number; easing?: Easing; group?: boolean;
+  decimals?: number; easing: Easing; group?: boolean;
 }): {value: number; text: string} {
   finite(from, 'from'); finite(to, 'to');
   if (!Number.isInteger(decimals) || decimals < 0 || decimals > 20) {
@@ -79,7 +81,7 @@ export function rollNumber({
 export function growSeries({
   values, progress, floor = 0, easing, stagger = 0,
 }: {
-  values: readonly number[]; progress: number; floor?: number; easing?: Easing; stagger?: number;
+  values: readonly number[]; progress: number; floor?: number; easing: Easing; stagger?: number;
 }): {values: number[]; ratios: number[]} {
   finite(floor, 'floor');
   const delay = Math.min(0.999999, nonNegative(stagger, 'stagger'));
@@ -107,7 +109,7 @@ export function scrollList({
   count, rowExtent, viewport, progress, easing, overscan = 0,
 }: {
   count: number; rowExtent: number; viewport: number; progress: number;
-  easing?: Easing; overscan?: number;
+  easing: Easing; overscan?: number;
 }): {offset: number; rows: {index: number; y: number}[]} {
   integer(count, 'count');
   if (finite(rowExtent, 'rowExtent') <= 0) throw new RangeError('rowExtent 必须大于 0');
@@ -133,7 +135,7 @@ export function scrollList({
 export function interpolateState<T extends Record<string, number>>({
   states, progress, easing,
 }: {
-  states: readonly T[]; progress: number; easing?: Easing;
+  states: readonly T[]; progress: number; easing: Easing;
 }): T {
   if (!states.length) throw new RangeError('states 至少需要一个状态');
   const keys = Object.keys(states[0]);
@@ -198,7 +200,7 @@ export function particleField({
 }: {
   count: number; progress: number; seed?: string | number;
   origin?: {x: number; y: number}; spread?: {x: number; y: number};
-  distance?: number; lifetime?: number; size?: number; opacity?: number; easing?: Easing;
+  distance?: number; lifetime?: number; size?: number; opacity?: number; easing: Easing;
 }): Particle[] {
   integer(count, 'count');
   finite(origin.x, 'origin.x'); finite(origin.y, 'origin.y');

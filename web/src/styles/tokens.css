@@ -40,7 +40,6 @@
   --m2v-safe-top: 240px;
   --m2v-safe-bottom: 320px;
   --m2v-safe-x: 96px;
-  --m2v-safe-bottom-with-subtitles: 520px;
   --m2v-content-width: 888px;
   --m2v-grid-columns: 12;
   --m2v-grid-gutter: 24px;
@@ -58,22 +57,9 @@
   --m2v-size-title: 76px; /* 小节标题、大号说明 */
   --m2v-size-headline: 96px; /* 金句、主命题 */
   --m2v-size-display: 120px; /* 主角数字与极短命题 */
-  --m2v-size-hero: 140px; /* 开场与收束，一个画面只用一次 */
-  /* 主角数值：数字幕里那个「主角」。
-   *
-   * 单个数位在 1080×1920、安全区宽 888px 的画布上可以到 350px；
-   * 更长的数值由拟合引擎按实测宽度自动往下取档，不会溢出。
-   *
-   * `mega` 存在只是因为**字阶是模块化的**：140 → 350 是 2.5 倍，
-   * 中间必须有一档，否则拟合引擎对大数值没有落点。 */
-  --m2v-size-mega: 220px;
-  --m2v-size-numeral: 350px;
 
   /* 行高：字号越大越紧。显式指定，不依赖字体自带度量，
    * 这是跨字体跨机器保持版式一致的前提。 */
-  --m2v-leading-hero: 1.06;
-  --m2v-leading-mega: 1;
-  --m2v-leading-numeral: 1;
   --m2v-leading-display: 1.1;
   --m2v-leading-headline: 1.14;
   --m2v-leading-title: 1.2;
@@ -114,7 +100,6 @@
   --m2v-ink-lead: var(--m2v-size-lead); /* 60px：引文 */
   --m2v-ink-title: var(--m2v-size-title); /* 76px：图形小标题 */
   --m2v-ink-display: var(--m2v-size-display); /* 120px：图形主数值 */
-  --m2v-ink-numeral: var(--m2v-size-numeral); /* 350px：数字幕的主角数值 */
 
   /* ---------- 幕标题的角色令牌 ----------
    *
@@ -176,7 +161,6 @@
    * 那不是一个刻度，而是一串近似值——同一个语义「小标签要松开」有五个取值，
    * 于是「为什么这两个标签的字距不一样」永远没有答案。
    * 这里按语义收成五槽，逐值映射到最近的一槽。 */
-  --m2v-track-numeral: -0.07em; /* 主角数字：>120px 的数值需要更强的光学收紧 */
   --m2v-track-display: var(--m2v-tracking-hero); /* -0.03em：大标题 */
   --m2v-track-body: var(--m2v-tracking-body); /* 0em：正文 */
   --m2v-track-caption: var(--m2v-tracking-caption); /* 0.06em：角标、来源 */
@@ -193,11 +177,8 @@
   --fig-arrow-len: 34px; /* 箭镞长度 */
   --fig-arrow-half: 16px; /* 箭镞半高 */
 
-  /* ---------- 动效时长：换算成 30fps 的帧数写在注释里，
-   * 画面仍然只由帧驱动（禁止 CSS animation/transition） ---------- */
-  --m2v-dur-fast: 240ms; /* ≈ 7 帧 */
-  --m2v-dur-base: 360ms; /* ≈ 11 帧 */
-  --m2v-dur-slow: 560ms; /* ≈ 17 帧 */
+  /* 动效时长不作为 CSS 令牌：画面只由帧号驱动，时长由作品按实际帧率换算。
+   * 命名缓动与视频节拍见 .agents/skills/motion-design/ADAPTATION.md。 */
 
   /* ---------- 表面：三级背景 + 两级抬升表面 ---------- */
   --m2v-bg-0: #08090c; /* 画布最底层 */

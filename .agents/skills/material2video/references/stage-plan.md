@@ -19,6 +19,8 @@
 ## 触发时展开
 
 - 首次写分镜：读[分镜契约](storyboard-schema.md)与[逐场表](visual-creative-direction.md#逐场设计表)。
+- 判断构图、色彩、字体、留白或视觉方向：读[Frontend Design](../../frontend-design/SKILL.md)，先按[视频适配](../../frontend-design/ADAPTATION.md)执行。
+- 设计镜头运动、入场退场或转场：读[运动设计](../../motion-design/SKILL.md)与[视频适配](../../motion-design/ADAPTATION.md)。
 - 搜集或入片素材/声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
 - 学习参考：读[参考拆解](reference-video-analysis.md)；明确要求像参考时再读[风格契约](reference-style.md)。
 - 首次实现场景/相机/字体：读[运行时契约](code-scene-runtime.md)；选择风格时读该包 GUIDE。

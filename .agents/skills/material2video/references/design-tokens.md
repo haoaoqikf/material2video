@@ -21,7 +21,6 @@
 | --- | --- | --- |
 | `--m2v-width` / `--m2v-height` | `1080px` / `1920px` | 画布逻辑尺寸；渲染脚本把视口设成同样大小，布局量测的绝对坐标判据依赖它 |
 | `--m2v-safe-top` / `--m2v-safe-bottom` / `--m2v-safe-x` | `240px` / `320px` / `96px` | 竖屏平台上下 UI 会遮挡画面，正文不进入该区域 |
-| `--m2v-safe-bottom-with-subtitles` | `520px` | 有字幕时的下边界，比 `--m2v-safe-bottom` 更大 |
 | `--m2v-content-width` | `888px` | 安全区内的可用宽度 |
 | `--m2v-grid-columns` / `--m2v-grid-gutter` | `12` / `24px` | 栅格列数与列间距 |
 
@@ -30,7 +29,7 @@
 字幕/量测令牌」。这不是顺手抽公共常量：过去画面与量测两边各写一份字面量，改一处不会让另一处
 报错，只会静默漂移——量测判的是旧边界，而画面已经挪走了。
 
-注意 `--m2v-measure-*` 与 `--m2v-safe-*` **不是同一组概念**：安全区描述平台 UI 会遮挡哪里，量测边界描述项目自己的排版分区。`--m2v-safe-bottom-with-subtitles`（`520px`）当前没有消费方，属于未生效的遗留令牌；实际字幕几何以 `web/src/frames.json` 为准。该遗留令牌不构成当前安全区契约，新代码不得引用它。
+注意 `--m2v-measure-*` 与 `--m2v-safe-*` **不是同一组概念**：安全区描述平台 UI 会遮挡哪里，量测边界描述项目自己的排版分区。字幕几何以 `web/src/frames.json` 为准，安全区令牌不再保存字幕专用边界。
 
 ## 字幕尺寸的外部依据
 
@@ -119,9 +118,6 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
 | `--m2v-size-title` | 76px | 小节标题、大号说明 |
 | `--m2v-size-headline` | 96px | 金句、主命题 |
 | `--m2v-size-display` | 120px | 主角数字与极短命题 |
-| `--m2v-size-hero` | 140px | 开场与收束，一个画面只用一次 |
-| `--m2v-size-mega` | 220px | 字阶的模块化中间档 |
-| `--m2v-size-numeral` | 350px | 数字幕的主角数值；更长的数值由拟合引擎按实测宽度往下取档 |
 
 每一档都配一个行高 `--m2v-leading-*`（字号越大越紧）与一个字距
 `--m2v-tracking-*`（标题收紧、标签放开）。行高显式指定，不依赖字体自带度量——
@@ -129,7 +125,7 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
 
 组件内部的文字不引用裸字号，而是引用同一张表的语义别名：
 `--m2v-ink-caption` / `-label` / `-body` / `-value` / `-lead` / `-title` /
-`-display` / `-numeral`，以及幕标题的 `--m2v-heading-size` / `-weight` / `-track` /
+`-display`，以及幕标题的 `--m2v-heading-size` / `-weight` / `-track` /
 `-color`。这样改字阶时组件会跟着走。
 
 字重上限收到 `--m2v-weight-bold`（700）：Inter 与 Noto Sans SC 都是可变字体，
@@ -148,7 +144,7 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
   分档问的是同一个问题：「这条线消失了，观众还看得懂吗」。竖屏 1080 宽在手机上
   实际显示约 400–500 逻辑像素，1px 缩过之后接近消失；但把所有线抬到 4px 又会让
   次级结构与数据描边一样重，层级反而塌掉。
-- 组件字距收成五个语义槽：`--m2v-track-numeral` / `-display` / `-body` /
+- 组件字距收成四个语义槽：`--m2v-track-display` / `-body` /
   `-caption` / `-label`。
 - 图形几何只收「应当一起变」的那几个量：`--fig-node-r-min`、`--fig-surface-pad`、
   `--fig-connector-w`、`--fig-arrow-len`、`--fig-arrow-half`。一张图的**坐标**
@@ -198,10 +194,9 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
 
 ## 动效时长与帧驱动
 
-`--m2v-dur-fast` / `-base` / `-slow` = 240 / 360 / 560ms（60 fps 下约 14 / 22 / 34 帧）只是
-**配方里的时长刻度**，注释里换算成 60fps 的帧数供作者取用。画面本身仍然只由帧号
-驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见
-[代码场景运行契约](code-scene-runtime.md)。
+令牌层不再保存动效时长。画面只由帧号驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见[代码场景运行契约](code-scene-runtime.md)。
+
+视频节拍、毫秒到帧的换算、命名缓动、风格人格与采集模式边界统一见[运动设计](../../motion-design/SKILL.md)及其[视频适配](../../motion-design/ADAPTATION.md)。缓动曲线从 `web/src/code-scene/motion.ts` 导入，相机与原语共用同一套命名。
 
 ## 怎么用
 

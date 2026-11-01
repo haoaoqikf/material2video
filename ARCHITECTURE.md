@@ -35,6 +35,8 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `production/workflow.py` 定义门、阶段、范围、检查处理器及顺序依赖，`production/policy.py` 定义风险与审核策略；状态计算、CLI、自动检查和文档生成消费这些定义。`production/media_evidence.py` 只核验动态核心过程片段能否解码、视频流时长是否覆盖检查窗，不判断内容，供报告导入与状态查询共用。
 - `.agents/skills/material2video/scripts/sync_docs.py` 生成类型清单及检查点文档中的门表、风险表和审核人数表；用 `--check` 验证漂移，生成区不手工维护。同目录的 `guidance_docs.py` 校验阅读路由（`references/guidance-routes.json`）的目标、锚点、触发条件与字符预算，由 `sync_docs.py --check` 一并执行。
 - 制作操作顺序只在 [production-workflow.md](.agents/skills/material2video/references/production-workflow.md) 维护，其中「阶段阅读入口」指向四份短阶段指南；日常制作先读当前阶段指南，完整规则仍以本页为准。合同与证据结构在 [checkpoint-gates.md](.agents/skills/material2video/references/checkpoint-gates.md)，评审隔离与执行在 [subagent-review.md](.agents/skills/material2video/references/subagent-review.md)，视觉判断在 [visual-review-rubric.md](.agents/skills/material2video/references/visual-review-rubric.md)，载体选择在 [visual-material-selection.md](.agents/skills/material2video/references/visual-material-selection.md)。自驾路线的取数授权、材料绑定与画面契约在 [driving-route-video.md](.agents/skills/material2video/references/driving-route-video.md)。其他入口通过链接引用。
+- 项目级知识 skill：`.agents/skills/frontend-design/` 负责视觉方向、字体、构图、层级与反模板判断，`.agents/skills/motion-design/` 负责运动设计与帧驱动动效。两者固定上游提交，上游正文原样保留，视频语境差异集中在各自 `ADAPTATION.md`；主 Skill 只负责在方案、制作、验收阶段调度，它们不改变代码分层、渲染契约、审核轮次或门禁。
+- `web/src/code-scene/motion.ts` 是相机与原语共用的命名缓动来源；原语要求显式缓动，不得各自复制曲线。
 - `openspec/specs/` 描述已实现行为，`openspec/changes/` 保存尚在进行的变更。命令和用户流程说明由 README 与 Skill 分别承担入口和操作手册职责。
 - `videos/`、`refs/` 及 `styles/<id>/examples/<slug>/` 下的示例媒体是内容或派生产物，不属于共享代码模块；风格包只提供表现层，示例子树不进入包指纹，共享清单和组件不得引用示例；嵌套示例仍按独立作品执行导入边界。具体入库约束见 [AGENTS.md](AGENTS.md)。
 

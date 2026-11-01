@@ -23,7 +23,7 @@ LOOK = {"profile": "deep-space", "lut": "deep-space", "bloom": 0.7, "grain": 0.3
         "vignette": 0.45, "dof": 0.35, "exposure": {"ev": -0.3}}
 SHOTS = [{"id": "sun-open", "target": "sun", "tier": "hero", "startFrame": 0, "endFrame": 480,
           "camera": {"path": [[0, 1.5, 14], [2, 0.5, 7], [0, 0, 5]], "fov": 34, "roll": -2,
-                     "easing": "quintInOut"},
+                     "easing": "easeInOutQuint"},
           "focus": {"target": "sun", "distance": 5, "aperture": 2.8},
           "exposure": {"ev": -0.3, "mode": "shot"},
           "post": {"bloom": 0.9, "grain": 0.4, "vignette": 0.5, "chromaticAberration": 0.25}}]
@@ -268,7 +268,7 @@ export default function Demo() {
         {name: 'earth', center: [40, 0, 0], radius: 1}]),
       background: backgroundRisk([[0, 0, 90], [0, 0, 130]], 120, 100),
       shot: activeShot([{id: 'a', startFrame: 0, endFrame: 10}, {id: 'b', startFrame: 10, endFrame: 20}], 10)?.id,
-      easing: [ease('linear', 0.25), ease('quintInOut', 0), ease('quintInOut', 1)],
+      easing: [ease('linear', 0.25), ease('easeInOutQuint', 0), ease('easeInOutQuint', 1)],
     };
     ready();
   }, []);
