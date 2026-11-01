@@ -16,7 +16,7 @@
 
 - [x] 3.1 `sync_docs.py` 按类别分组生成 README、Skill 表格与项目规划清单，未分类归入「未分类」。
 - [x] 3.2 更新 `ARCHITECTURE.md`、`openspec/config.yaml`、`references/paths.md`、`references/driving-route-video.md` 及 README 中的路径示例。
-- [ ] 3.3 更新 `openspec/specs` 对应主规格（归档阶段完成）。
+- [x] 3.3 更新 `openspec/specs` 对应主规格（归档阶段完成）。
 
 ## 4. 测试与验证
 
@@ -24,4 +24,4 @@
 - [x] 4.2 `test_project_cli.py` 覆盖分类类型的 `init` 拒绝平铺路径与 `relocate` 迁移平铺类型目录。
 - [x] 4.3 更新受路径影响的类型测试。
 - [x] 4.4 运行 `uv run pytest`、`uv run python .agents/skills/material2video/scripts/sync_docs.py --check`。
-- [ ] 4.5 检查暂存内容并提交本次改动；不包含 `videos/` 内容。
+- [x] 4.5 检查暂存内容并提交本次改动；不包含 `videos/` 内容。
