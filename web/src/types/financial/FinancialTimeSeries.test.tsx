@@ -9,7 +9,7 @@ const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86
 const testFrame = vi.hoisted(() => ({ value: 0 }));
 vi.mock('remotion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('remotion')>();
-  return { ...actual, AbsoluteFill: ({ children }: { children: React.ReactNode }) => <div>{children}</div>, useCurrentFrame: () => testFrame.value };
+  return { ...actual, AbsoluteFill: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>, useCurrentFrame: () => testFrame.value };
 });
 
 const props: FinancialTimeSeriesProps = {
@@ -59,7 +59,13 @@ describe('full-history plot clipping', () => {
 });
 
 describe('financial time-series composition', () => {
-  const renderedTitle = (markup: string) => markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
+  const renderedTitle = (markup: string) => {
+    const title = markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1];
+    if (title) return title;
+    const subject = markup.match(/data-m2v-investment-subject="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
+    const premise = markup.match(/data-m2v-investment-premise="true"[^>]*>([^<]+)<\/text>/u)?.[1] ?? '';
+    return `${premise}${subject}`;
+  };
 
   it('computes crypto holdings in CNY using the latest non-future FX quote', () => {
     const crypto = {
@@ -153,7 +159,7 @@ describe('financial time-series composition', () => {
     };
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...millionProps} />);
     expect(renderedTitle(markup)).toBe('假如你2020年买入100万元合成公司');
-    expect(markup.match(/data-m2v-investment-title="true"[^>]*>([^<]+)<\/text>/u)?.[1]).not.toContain('美元');
+    expect(markup.match(/data-m2v-investment-premise="true"[^>]*>([^<]+)<\/text>/u)?.[1]).not.toContain('美元');
   });
 
   it('formats title principal before the instrument and includes 元 for stock and index', () => {
@@ -273,7 +279,8 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('data-m2v-content-offset-y="0" transform="translate(0 0)"');
     expect(markup).toContain('<rect x="200" y="500" width="720" height="780"');
     expect(markup).toContain('clipPathUnits="userSpaceOnUse"');
-    expect(markup).toContain('data-m2v-investment-title="true" x="142" y="270"');
+    expect(markup).toContain('data-m2v-investment-subject="true" x="142" y="250"');
+    expect(markup).toContain('data-m2v-investment-premise="true" x="142" y="302"');
     expect(markup).toContain('data-m2v-risk-disclaimer="true" x="142" y="1484"');
   });
 
@@ -347,7 +354,8 @@ describe('financial time-series composition', () => {
     };
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...indexProps} />);
     expect(renderedTitle(markup)).toBe('假如你2020年按比例投资100元示例指数');
-    expect(markup).toContain('data-m2v-investment-title="true" x="142" y="270" text-anchor="start"');
+    expect(markup).toContain('data-m2v-investment-subject="true" x="142" y="250" text-anchor="start"');
+    expect(markup).toContain('data-m2v-investment-premise="true" x="142" y="302" text-anchor="start"');
     expect(markup).not.toContain('示例指数 · SYN');
     expect(markup).toContain('按点位比例模拟');
     expect(markup).not.toContain('来源');
@@ -359,23 +367,48 @@ describe('financial time-series composition', () => {
     expect(markup).toContain('过往业绩不代表未来表现');
   });
 
-  it('shrinks a long title to fit one line and blocks names that cannot remain readable', () => {
+  it('shrinks a long subject and blocks names that cannot remain readable', () => {
     const moderateName: FinancialTimeSeriesProps = {
       ...props,
-      request: { ...props.request, instrument: { ...props.request.instrument, displayName: '中长名称'.repeat(2) } },
+      request: { ...props.request, instrument: { ...props.request.instrument, displayName: '中长名称'.repeat(4) } },
     };
     testFrame.value = 0;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...moderateName} />);
     expect(renderedTitle(markup)).toContain('买入100元');
-    const titleFontSize = Number(markup.match(/data-m2v-investment-title="true"[^>]*font-size="([^"]+)"/u)?.[1]);
-    expect(titleFontSize).toBeLessThan(48);
-    expect(titleFontSize).toBeGreaterThanOrEqual(26);
+    const subjectFontSize = Number(markup.match(/data-m2v-investment-subject="true"[^>]*font-size="([^"]+)"/u)?.[1]);
+    expect(subjectFontSize).toBeLessThan(56);
+    expect(subjectFontSize).toBeGreaterThanOrEqual(40);
 
     const longName: FinancialTimeSeriesProps = {
       ...props,
       request: { ...props.request, instrument: { ...props.request.instrument, displayName: '超长显示名称'.repeat(8) } },
     };
-    expect(() => renderToStaticMarkup(<FinancialTimeSeries {...longName} />)).toThrow('投资假设标题过长');
+    expect(() => renderToStaticMarkup(<FinancialTimeSeries {...longName} />)).toThrow('投资主体名过长');
+  });
+
+  it('keeps the single-line formula when titleMode is premise', () => {
+    const premiseProps: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, design: { titleMode: 'premise' } },
+    };
+    testFrame.value = 900;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...premiseProps} />);
+    expect(renderedTitle(markup)).toBe('假如你2020年买入100元合成公司');
+    expect(markup).toContain('data-m2v-investment-title="true" x="142" y="270"');
+    expect(markup).not.toContain('data-m2v-investment-subject="true"');
+  });
+
+  it('keeps design profile and accent in the background only', () => {
+    const designed: FinancialTimeSeriesProps = {
+      ...props,
+      request: { ...props.request, design: { profile: 'ledger', accent: '#C9A45C', titleMode: 'subject', personality: 'premium' } },
+    };
+    testFrame.value = 900;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...designed} />);
+    expect(markup).toContain('data-m2v-design-profile="ledger"');
+    expect(markup).toContain('rgba(201, 164, 92, 0.045)');
+    expect(markup).not.toMatch(/stroke="#C9A45C"/u);
+    expect(markup).not.toMatch(/fill="#C9A45C"/u);
   });
 
   it('holds the previous real close on non-trading dates without inventing a quote', () => {

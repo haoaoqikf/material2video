@@ -5,6 +5,9 @@
  * 全部为纯函数（只有缓存用的 `WeakMap`，输入是不可变的渲染 props），不持有
  * 帧相关状态，因此同一帧在任何一次渲染里都得到同一结果。
  */
+import {easeMotion} from '../../code-scene/motion';
+import type {FinancialDesign} from './design';
+
 type ISODate = string;
 type PricePoint = { date: ISODate; close: number };
 type FxPoint = { date: ISODate; close: number };
@@ -18,7 +21,7 @@ export type FinancialPlan = {
   rationale: string;
 };
 export type FinancialTimeSeriesProps = {
-  request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string; legalStatusNotice?: string } };
+  request: { instrument: { kind: 'stock' | 'index' | 'crypto'; name: string; displayName?: string; code: string; market: string; unit: string }; displayRange: [ISODate, ISODate]; investment?: { year?: number; date?: ISODate; principal: number; currency?: 'CNY'; startRationale?: string; legalStatusNotice?: string }; design?: FinancialDesign };
   prices: { schemaVersion: 3 | 4; points: PricePoint[]; unit: string; priceBasis: string; adjustmentDefinition?: string; indexType?: string; sources: unknown[]; fx?: { pair: 'USD/CNY'; points: FxPoint[] } };
   plan: FinancialPlan;
   durationInFrames: number; fps: number; width: 1080; height: 1920;
@@ -39,6 +42,10 @@ export const TEXT_MUTED = '#6F6C67';
 export const GRID_COLOR = 'rgba(242,240,235,0.09)';
 export const VALUE_AXIS_FONT_SIZE = 24;
 export const VALUE_AXIS_LABEL_X = 188;
+export const TITLE_SUBJECT_SIZE = 56;
+export const TITLE_PREMISE_SIZE = 32;
+export const TITLE_SUBJECT_MIN = 48;
+export const TITLE_PREMISE_MIN = 28;
 export const LAYOUT_BOUNDS = { left: 140, right: 940, top: 180, bottom: 1740 };
 export type ChartPoint = { x: number; y: number };
 
@@ -81,6 +88,19 @@ function lastPointIndex(points: PricePoint[], date: ISODate): number {
     else high = mid;
   }
   return low - 1;
+}
+
+/** 投资起点首次出现的帧；用于市值入场，不改变日期映射。 */
+export function firstFrameForDate(plan: FinancialPlan, value: ISODate): number {
+  const target = epochDay(value);
+  let low = 0;
+  let high = plan.durationSeconds * plan.fps - 1;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (Math.floor(framePosition(mid, plan)) >= target) high = mid;
+    else low = mid + 1;
+  }
+  return low;
 }
 
 export function revealedValueRange(points: PricePoint[]): [number, number] {
@@ -297,7 +317,7 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
   for (const transition of transitions) {
     if (frame < transition.start) break;
     const progress = Math.max(0, Math.min(1, (frame - transition.start) / Math.max(transition.end - transition.start, 1)));
-    const eased = progress * progress * (3 - 2 * progress);
+    const eased = easeMotion('easeInOutCubic', progress);
     windowEndPosition = Math.max(windowEndPosition, transition.oldEnd + (transition.target - transition.oldEnd) * eased);
     if (frame >= transition.end) windowEndPosition = Math.max(windowEndPosition, transition.target);
   }

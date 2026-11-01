@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MOTION_CURVES, easeMotion, motionCurve, type MotionCurveName } from './motion';
+import { MOTION_CURVES, easeMotion, motionCurve, oscillate, pingPong, waveMotion, type MotionCurveName } from './motion';
 
 const NAMES = Object.keys(MOTION_CURVES) as MotionCurveName[];
 
@@ -34,5 +34,20 @@ describe('共享命名缓动', () => {
   it('按名称取曲线，未命名时使用缓入缓出', () => {
     expect(motionCurve('easeOutCubic')(0.5)).toBe(MOTION_CURVES.easeOutCubic(0.5));
     expect(easeMotion(undefined, 0.5)).toBe(MOTION_CURVES.easeInOutCubic(0.5));
+  });
+
+  it('往返波在 0/0.25/0.5/0.75/1 形成 0→1→0', () => {
+    expect(pingPong(0)).toBe(0);
+    expect(pingPong(0.25)).toBe(0.5);
+    expect(pingPong(0.5)).toBe(1);
+    expect(pingPong(0.75)).toBe(0.5);
+    expect(pingPong(1)).toBe(0);
+    expect(waveMotion('easeInOutSine', 0)).toBe(0);
+    expect(waveMotion('easeInOutSine', 0.5)).toBe(1);
+    expect(waveMotion('easeInOutSine', 1)).toBe(0);
+    expect(oscillate('easeInOutSine', 0.5)).toBe(1);
+    expect(oscillate('easeInOutSine', 0)).toBe(-1);
+    expect(pingPong(Number.NaN)).toBe(0);
+    expect(waveMotion('linear', Infinity)).toBe(0);
   });
 });

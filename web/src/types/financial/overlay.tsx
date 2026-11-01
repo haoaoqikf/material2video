@@ -7,14 +7,21 @@
  */
 import {
   HEIGHT, LAYOUT_BOUNDS, LOSS_COLOR, NEUTRAL_COLOR, PROFIT_COLOR, TEXT_PRIMARY, TEXT_SECONDARY,
+  TITLE_PREMISE_MIN, TITLE_PREMISE_SIZE, TITLE_SUBJECT_MIN, TITLE_SUBJECT_SIZE,
   displayDate, investmentAmountText, measuredTextWidth, moneyText, transformedBounds, wrapSvgText,
   type FinancialTimeSeriesProps, type FinancialView, type Investment,
 } from './chart';
+import {resolveDesign, type FinancialTitleMode} from './design';
 
 export type OverlayCopy = {
   isCrypto: boolean;
   displayName: string;
+  titleMode: FinancialTitleMode;
+  subject: string;
+  premise: string;
   title: string;
+  subjectFontSize: number;
+  premiseFontSize: number;
   titleFontSize: number;
   showValue: boolean;
   gainColor: string;
@@ -35,15 +42,38 @@ export function overlayCopy(props: FinancialTimeSeriesProps, view: FinancialView
   const displayName = request.instrument.displayName ?? request.instrument.name;
   const investmentAmount = investmentAmountText(investment.principal);
   const investmentYear = investment.date?.slice(0, 4) ?? investment.year;
+  const design = resolveDesign(request.design);
+  const titleMode = design.titleMode;
   const title = isCrypto
     ? `假如你${investmentYear}年${Number(investment.date!.slice(5, 7))}月买入${investmentAmount}元${displayName}`
     : request.instrument.kind === 'index'
       ? `假如你${investmentYear}年按比例投资${investmentAmount}元${displayName}`
       : `假如你${investmentYear}年买入${investmentAmount}元${displayName}`;
+  const premise = isCrypto
+    ? `假如你${investmentYear}年${Number(investment.date!.slice(5, 7))}月买入${investmentAmount}元`
+    : request.instrument.kind === 'index'
+      ? `假如你${investmentYear}年按比例投资${investmentAmount}元`
+      : `假如你${investmentYear}年买入${investmentAmount}元`;
   const titleWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left;
-  // 编辑式标题以 40px 为基准，过长时单行缩小，保住左对齐的层级。
-  const titleFontSize = Math.min(40, (titleWidth / measuredTextWidth(title, 40)) * 40);
-  if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
+  const fitTier = (text: string, tiers: number[], message: string): number => {
+    for (const size of tiers) {
+      if (measuredTextWidth(text, size) <= titleWidth) return size;
+    }
+    throw new Error(message);
+  };
+  // premise 模式保留单行公式；subject 模式用主体名承担 56/48px 的主层级。
+  const subjectFontSize = titleMode === 'subject'
+    ? fitTier(displayName, [TITLE_SUBJECT_SIZE, TITLE_SUBJECT_MIN], '投资主体名过长，无法保持可读主体字号')
+    : 0;
+  const premiseFontSize = titleMode === 'subject'
+    ? fitTier(premise, [TITLE_PREMISE_SIZE, TITLE_PREMISE_MIN], '投资条件句过长，无法保持可读条件句字号')
+    : 0;
+  const titleFontSize = titleMode === 'premise'
+    ? Math.min(40, (titleWidth / measuredTextWidth(title, 40)) * 40)
+    : 40;
+  if (titleMode === 'premise' && titleFontSize < 26) {
+    throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
+  }
   const gainColor = view.gain === null || view.gain === 0 ? NEUTRAL_COLOR : view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
   const liveDate = view.latest ? displayDate(view.latest.date) : '';
   const liveValue = view.latest ? moneyText(view.latest.close) : '';
@@ -65,8 +95,10 @@ export function overlayCopy(props: FinancialTimeSeriesProps, view: FinancialView
   const summaryLinesToRender = isCrypto && hasLegalNotice ? [] : summaryLines;
   const riskLines = hasLegalNotice ? [] : wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 16);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
-  const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines]);
-  return { isCrypto, displayName, title, titleFontSize, showValue: view.latest !== null, gainColor,
+  const contentLayoutKey = JSON.stringify([titleMode, displayName, subjectFontSize, premise, premiseFontSize,
+    title, titleFontSize, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines]);
+  return { isCrypto, displayName, titleMode, subject: displayName, premise, title,
+    subjectFontSize, premiseFontSize, titleFontSize, showValue: view.latest !== null, gainColor,
     valueFontSize, liveValue, liveDate, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines, contentLayoutKey };
 }
 
@@ -119,13 +151,30 @@ export function assertOverlaySafeArea(svg: SVGSVGElement): void {
   }
 }
 
-/** 顶部覆盖层：编辑式投资标题与 hero 市值。 */
-export function TopOverlay({copy}: {copy: OverlayCopy}) {
-  const {title, titleFontSize, showValue, gainColor, valueFontSize, liveValue, liveDate} = copy;
+export type TopMotion = {
+  subjectOpacity: number;
+  premiseOpacity: number;
+  valueOpacity: number;
+};
+
+const STILL: TopMotion = {subjectOpacity: 1, premiseOpacity: 1, valueOpacity: 1};
+
+/** 顶部覆盖层：编辑式主体名/条件句与 hero 市值。 */
+export function TopOverlay({copy, motion = STILL}: {copy: OverlayCopy; motion?: TopMotion}) {
+  const {titleMode, subject, premise, title, subjectFontSize, premiseFontSize, titleFontSize,
+    showValue, gainColor, valueFontSize, liveValue, liveDate} = copy;
   return <>
-    <text data-m2v-investment-title="true" x={LAYOUT_BOUNDS.left + 2} y="270" textAnchor="start" fill={TEXT_PRIMARY}
-      fontSize={titleFontSize} fontWeight="700" letterSpacing="-0.02em">{title}</text>
-    {showValue && <g>
+    {titleMode === 'subject' ? <>
+      <text data-m2v-investment-subject="true" x={LAYOUT_BOUNDS.left + 2} y="250" textAnchor="start" fill={TEXT_PRIMARY}
+        fontSize={subjectFontSize} fontWeight="700" letterSpacing="-0.03em"
+        opacity={motion.subjectOpacity}>{subject}</text>
+      <text data-m2v-investment-premise="true" x={LAYOUT_BOUNDS.left + 2} y="302" textAnchor="start" fill={TEXT_PRIMARY}
+        fontSize={premiseFontSize} fontWeight="500" letterSpacing="-0.01em"
+        opacity={motion.premiseOpacity}>{premise}</text>
+    </> : <text data-m2v-investment-title="true" x={LAYOUT_BOUNDS.left + 2} y="270" textAnchor="start" fill={TEXT_PRIMARY}
+      fontSize={titleFontSize} fontWeight="700" letterSpacing="-0.02em"
+      opacity={motion.subjectOpacity}>{title}</text>}
+    {showValue && <g opacity={motion.valueOpacity}>
       <text data-m2v-live-value="true" x={LAYOUT_BOUNDS.right - 4} y="400" textAnchor="end" fill={gainColor}
         fontSize={valueFontSize} fontWeight="700" letterSpacing="-0.03em" style={{ fontVariantNumeric: 'tabular-nums' }}>{liveValue}</text>
       <text data-m2v-live-date="true" data-m2v-live-caption="true" x={LAYOUT_BOUNDS.right - 4} y="438" textAnchor="end"

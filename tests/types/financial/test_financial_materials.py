@@ -105,6 +105,42 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
 
 
 
+@pytest.mark.parametrize("design", [
+    None,
+    {},
+    {"profile": "ledger"},
+    {"profile": "signal", "accent": "#A8B0BD", "titleMode": "subject", "personality": "corporate"},
+    {"profile": "archive", "accent": "#6F8CA8", "titleMode": "premise", "personality": "calm"},
+])
+def test_accepts_optional_design_profile(tmp_path, design):
+    root = project(tmp_path)
+    edit(root, "request.json", lambda data: data.update(design=design))
+    docs = financial.load_project(root)
+    assert docs["request"].get("design") == design
+    assert financial.build_render_props(docs)["request"].get("design") == design
+
+
+@pytest.mark.parametrize(
+    ("design", "message"),
+    [
+        ({"profile": "unknown"}, "design.profile"),
+        ({"profile": []}, "design.profile"),
+        ({"titleMode": {}}, "design.titleMode"),
+        ({"personality": 1}, "design.personality"),
+        ({"accent": "#FFF"}, "design.accent"),
+        ({"accent": "#GGGGGG"}, "design.accent"),
+        ({"accent": "#FF5A4E"}, "design.accent"),
+        ({"accent": "#4bd39a"}, "design.accent"),
+        ({"acccent": "#A8B0BD"}, "未知字段"),
+    ],
+)
+def test_rejects_invalid_design_profile(tmp_path, design, message):
+    root = project(tmp_path)
+    edit(root, "request.json", lambda data: data.update(design=design))
+    with pytest.raises(M2VError, match=message):
+        financial.load_project(root)
+
+
 @pytest.mark.parametrize(
     ("investment", "message"),
     [

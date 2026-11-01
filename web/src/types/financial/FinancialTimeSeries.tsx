@@ -7,14 +7,17 @@
  */
 import { useLayoutEffect, useRef, useState } from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { easeMotion, oscillate, waveMotion } from '../../code-scene/motion';
 import {
   FONT_STACK, GRID_COLOR, HEIGHT, LAYOUT_BOUNDS, PLOT, TEXT_PRIMARY, TEXT_SECONDARY, VALUE_AXIS_FONT_SIZE, VALUE_AXIS_LABEL_X, WIDTH,
   assertChartPlotUnclipped, assertEndpointAboveLine, axisTickDecimals, axisTickLabel, axisUnit, chartGeometry,
-  financialView, measuredTextWidth,
+  financialView, firstFrameForDate, measuredTextWidth,
   type FinancialTimeSeriesProps,
 } from './chart';
+import { OPENING_DURATIONS, resolveDesign, withAlpha } from './design';
 import {
   BottomOverlay, TopOverlay, assertContentLayerWithinBounds, assertOverlaySafeArea, canvasCenterOffset, overlayCopy,
+  type TopMotion,
 } from './overlay';
 
 export type { ChartPoint, FinancialPlan, FinancialTimeSeriesProps } from './chart';
@@ -35,6 +38,21 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const view = financialView(frame, prices.points, plan, investment, prices.fx?.points);
   const { windowStart, latest, visiblePoints, minValue, maxValue, ticks } = view;
   const copy = overlayCopy(props, view, investment);
+  const design = resolveDesign(request.design);
+  const timing = OPENING_DURATIONS[design.personality];
+  const openingEnd = plan.segments[0].frames[1];
+  const entrance = (start: number, duration: number) => {
+    const progress = Math.max(0, Math.min(1, (frame - start) / Math.max(duration, 1)));
+    return easeMotion('easeOutCubic', progress);
+  };
+  const subjectOpacity = entrance(0, timing.subject);
+  const premiseOpacity = entrance(4, timing.premise);
+  const chartOpacity = entrance(6, timing.chart);
+  const firstValueFrame = view.investmentStartDate ? firstFrameForDate(plan, view.investmentStartDate) : 0;
+  // 市值排在图表之后入场；若投资起点更晚，则从真实起点开始。
+  const valueStart = Math.max(firstValueFrame, Math.min(openingEnd, 30) - timing.value);
+  const valueOpacity = entrance(valueStart, timing.value);
+  const topMotion: TopMotion = {subjectOpacity, premiseOpacity, valueOpacity};
   const { displayName, gainColor, contentLayoutKey } = copy;
   const graphTop = PLOT.top;
   const { xForDate, yForValue, linePoints, trendPath, principalY, endpointX, endpointY } = chartGeometry(
@@ -48,9 +66,11 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const endingStart = plan.segments.find((segment) => segment.kind === 'ending')!.frames[0];
   const breathProgress = Math.max(0, Math.min(1, (endingStart - 1 - frame) / 15));
   const endpointRadius = 7;
-  const haloRadius = 14 * (1 + 0.06 * breathProgress * (0.5 + 0.5 * Math.sin(frame / 7)));
-  const glowX = 50 + Math.sin(frame / 90) * 3;
-  const glowY = 22 + Math.cos(frame / 110) * 2;
+  const haloRadius = 14 * (1 + 0.06 * breathProgress * waveMotion('easeInOutSine', frame / 44));
+  // 结尾冻结：背景光晕在进入 ending 前停住，避免整屏仍有肉眼可见的 ambient 漂移。
+  const ambientFrame = Math.min(frame, endingStart - 1);
+  const glowX = 50 + oscillate('easeInOutSine', ambientFrame / 565) * 3;
+  const glowY = 22 + oscillate('easeInOutSine', ambientFrame / 691) * 2;
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--m2v-width', `${WIDTH}px`);
@@ -78,11 +98,15 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
     }
   }, [frame, contentOffsetY, contentLayoutKey]);
 
+  const accentWash = design.accent
+    ? `, radial-gradient(ellipse 86% 44% at 50% 10%, ${withAlpha(design.tint, 0.045)} 0%, ${withAlpha(design.tint, 0)} 68%)`
+    : '';
   return <AbsoluteFill style={{
     backgroundColor: '#0A0A0B',
-    backgroundImage: `radial-gradient(ellipse 120% 72% at ${glowX}% ${glowY}%, #17171B 0%, #0D0D10 46%, #08080A 100%)`,
+    backgroundImage: `radial-gradient(ellipse 120% 72% at ${glowX}% ${glowY}%, ${design.glow} 0%, #0D0D10 46%, #08080A 100%)${accentWash}`,
     color: TEXT_PRIMARY, fontFamily: FONT_STACK,
-  }} data-m2v-financial="line">
+  }} data-m2v-financial="line" data-m2v-design-profile={design.profile}
+    data-m2v-design-title-mode={design.titleMode} data-m2v-design-personality={design.personality}>
     <div style={{
       position: 'absolute', inset: 0, backgroundImage: NOISE_BACKGROUND, backgroundSize: '140px 140px',
       opacity: 0.03,
@@ -93,7 +117,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         <clipPath id="financial-plot" clipPathUnits="userSpaceOnUse"><rect x={PLOT.left} y={graphTop} width={PLOT.right - PLOT.left} height={PLOT.bottom - graphTop} /></clipPath>
       </defs>
       <g ref={contentLayerRef} data-m2v-content-layer="true" data-m2v-content-offset-y={contentOffsetY} transform={`translate(0 ${contentOffsetY})`}>
-      <TopOverlay copy={copy}/>      {Array.from({ length: 3 }, (_, index) => {
+      <TopOverlay copy={copy} motion={topMotion}/>      <g opacity={chartOpacity}>{Array.from({ length: 3 }, (_, index) => {
         const value = minValue + ((maxValue - minValue) * index) / 2;
         const y = yForValue(value);
         const label = axisTickLabel(value, unit.divisor, tickDecimals);
@@ -112,11 +136,11 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         const labelHalfWidth = measuredTextWidth(label, 28) / 2;
         // 留 2px 余量，避免估算字体宽度与实际字形包围盒在安全区边缘互相打架。
         const labelX = Math.max(LAYOUT_BOUNDS.left + labelHalfWidth + 2, Math.min(x, LAYOUT_BOUNDS.right - labelHalfWidth - 2));
-        return <text key={`year-${tickDate}`} opacity={opacity} data-m2v-axis-label="true" x={labelX} y={PLOT.bottom + 44} textAnchor="middle" fill={TEXT_SECONDARY} fontSize="28">{label}</text>;
-      })}
-      {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)">
+        return <text key={`year-${tickDate}`} opacity={opacity} transform={`translate(0 ${4 * (1 - opacity)})`} data-m2v-axis-label="true" x={labelX} y={PLOT.bottom + 44} textAnchor="middle" fill={TEXT_SECONDARY} fontSize="28">{label}</text>;
+      })}</g>
+      {view.linePoints.length > 0 && <g clipPath="url(#financial-plot)" opacity={chartOpacity}>
         {principalY !== null && <line data-m2v-principal-line="true" x1={PLOT.left} x2={PLOT.right} y1={principalY} y2={principalY}
-          stroke="#7A766F" strokeWidth="1.5" strokeDasharray="6 10" opacity="0.5" />}
+          stroke="#7A766F" strokeWidth="1.5" strokeDasharray="6 10" opacity={0.5 * chartOpacity} />}
         <polyline data-m2v-visible-value-points={visiblePoints.length} fill="none" stroke={gainColor} strokeWidth="2" opacity="0.26"
           strokeLinejoin="round" strokeLinecap="round" points={linePoints} />
         {trendPath && <path d={trendPath} fill="none" stroke={gainColor} strokeWidth="12" opacity="0.08"
@@ -124,10 +148,10 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
         {trendPath && <path data-m2v-trend-line="true" d={trendPath} fill="none" stroke={gainColor} strokeWidth="3"
           strokeLinejoin="round" strokeLinecap="round" />}
       </g>}
-      {principalY !== null && <text data-m2v-principal-label="true" x={PLOT.right - 12}
+      {principalY !== null && <text data-m2v-principal-label="true" x={PLOT.right - 12} opacity={chartOpacity}
         y={principalY < graphTop + 26 ? principalY + 20 : principalY - 10} textAnchor="end" fill={TEXT_SECONDARY} fontSize="20">本金</text>}
       {showEndpoint &&
-        <g>
+        <g opacity={topMotion.valueOpacity}>
           <line data-m2v-endpoint-guide="true" x1={endpointX} x2={endpointX} y1={graphTop} y2={Math.min(PLOT.bottom, endpointY + 24)} stroke={gainColor} strokeWidth="1" opacity="0.12" />
           <circle cx={endpointX} cy={endpointY} r={haloRadius} fill="none" stroke={gainColor} strokeWidth="1.2" opacity="0.3" />
           <circle data-m2v-financial-endpoint="true" cx={endpointX} cy={endpointY} r={endpointRadius} fill={gainColor} stroke="#0A0A0B" strokeWidth="2.5" />

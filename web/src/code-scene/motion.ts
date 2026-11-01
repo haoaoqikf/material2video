@@ -83,3 +83,19 @@ export function motionCurve(name: MotionCurveName | undefined): MotionCurve {
 export function easeMotion(name: MotionCurveName | undefined, progress: number): number {
   return motionCurve(name)(progress);
 }
+
+/** 0→1→0 的往返进度；非有限输入按 0。 */
+export function pingPong(progress: number): number {
+  const value = clampProgress(progress);
+  return value <= 0.5 ? value * 2 : 2 - value * 2;
+}
+
+/** 带缓动的往返波，返回 0–1；用于呼吸、环境漂移等 ambient 运动。 */
+export function waveMotion(name: MotionCurveName | undefined, progress: number): number {
+  return motionCurve(name)(pingPong(progress));
+}
+
+/** 带缓动的往返振荡，返回 -1–1。 */
+export function oscillate(name: MotionCurveName | undefined, progress: number): number {
+  return 2 * waveMotion(name, progress) - 1;
+}

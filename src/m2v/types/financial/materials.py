@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import hashlib
 import math
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,15 @@ LAYOUT_BOUNDS_Y = (180, 1740)
 
 
 CANVAS_CENTER_Y = HEIGHT / 2
+
+#: 可选设计档案；缺省值与前端 `design.ts` 保持一致。
+DESIGN_PROFILES = {"ledger", "signal", "archive"}
+DESIGN_TITLE_MODES = {"subject", "premise"}
+DESIGN_PERSONALITIES = {"premium", "corporate", "calm"}
+DESIGN_KEYS = {"profile", "accent", "titleMode", "personality"}
+PROFIT_COLOR = "#ff5a4e"
+LOSS_COLOR = "#4bd39a"
+ACCENT_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 
 def _object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -106,6 +116,25 @@ def _validate_request(request: dict[str, Any]) -> None:
         _required_text(instrument.get(key), f"request.json.instrument.{key}")
     if "displayName" in instrument:
         _required_text(instrument["displayName"], "request.json.instrument.displayName")
+    design = request.get("design")
+    if design is not None:
+        if not isinstance(design, dict):
+            fail("request.json.design", "必须是对象")
+        unknown = set(design) - DESIGN_KEYS
+        if unknown:
+            fail("request.json.design", f"包含未知字段：{', '.join(sorted(unknown))}")
+        if "profile" in design and (not isinstance(design["profile"], str) or design["profile"] not in DESIGN_PROFILES):
+            fail("request.json.design.profile", f"必须是 {'/'.join(sorted(DESIGN_PROFILES))}")
+        if "titleMode" in design and (not isinstance(design["titleMode"], str) or design["titleMode"] not in DESIGN_TITLE_MODES):
+            fail("request.json.design.titleMode", f"必须是 {'/'.join(sorted(DESIGN_TITLE_MODES))}")
+        if "personality" in design and (not isinstance(design["personality"], str) or design["personality"] not in DESIGN_PERSONALITIES):
+            fail("request.json.design.personality", f"必须是 {'/'.join(sorted(DESIGN_PERSONALITIES))}")
+        accent = design.get("accent")
+        if accent is not None:
+            if not isinstance(accent, str) or not ACCENT_PATTERN.fullmatch(accent):
+                fail("request.json.design.accent", "必须是 #RRGGBB")
+            if accent.lower() in {PROFIT_COLOR, LOSS_COLOR}:
+                fail("request.json.design.accent", "不能与正收益或负收益颜色相同")
     if instrument["kind"] == "stock":
         _date(instrument.get("listingDate"), "request.json.instrument.listingDate")
     elif instrument["kind"] == "index":
