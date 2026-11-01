@@ -72,7 +72,7 @@
 
 ## 后续设计与评审应用（2026-10-23，非重制记录）
 
-本节仅示范后续采用[核心体验设计](../../../../.agents/skills/material2video/references/creative-production.md#核心体验与表达设计)和[诊断适用性](../../../../.agents/skills/material2video/references/visual-review-rubric.md#诊断测试与适用性)的方式；未新增试制、候选比较或成片复核，不改写既有交付结论。
+本节仅示范后续采用[分层精修](../../../../.agents/skills/material2video/references/production-workflow.md#分层精修)和[诊断适用性](../../../../.agents/skills/material2video/references/visual-review-rubric.md#诊断测试与适用性)的方式；未新增试制、候选比较或成片复核，不改写既有交付结论。
 
 - 设计重点：以档案的真实质感及信号、计算、知识能力的扩展组织体验；三案可比较档案并列、尺度揭示、文字关系编排，不能只换色。核心段落与辅助段落的强弱在后续制作时间线上确定。
 - 评审重点：无声是本片契约，按无声目标检查；档案静止与中文名称是有效载体候选，不因静止或去文字后信息损失直接否决。仍须检验30秒内的阅读、史实边界和必要署名。

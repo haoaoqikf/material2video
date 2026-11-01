@@ -55,7 +55,7 @@
 
 ## 后续设计与评审应用（2026-10-23，非重制记录）
 
-本节仅示范后续采用[核心体验设计](../../../../.agents/skills/material2video/references/creative-production.md#核心体验与表达设计)和[诊断适用性](../../../../.agents/skills/material2video/references/visual-review-rubric.md#诊断测试与适用性)的方式；未新增试制、候选比较或成片复核，不改写既有交付结论。
+本节仅示范后续采用[分层精修](../../../../.agents/skills/material2video/references/production-workflow.md#分层精修)和[诊断适用性](../../../../.agents/skills/material2video/references/visual-review-rubric.md#诊断测试与适用性)的方式；未新增试制、候选比较或成片复核，不改写既有交付结论。
 
 - 设计重点：以接近、观察、离开及跨尺度关系建立探索感；核心尺度段落投入更多，普通介绍允许克制，抵达后的观察可保持静止。
 - 评审重点：按完整移动与观察窗口判断速度、辨认和尺度回报，不按固定运动密度要求持续推拉；一镜到底是本片目标，空间表达要求源于该目标，不推广为所有视频必须立体。

@@ -53,11 +53,16 @@ def test_reference_docs_are_reachable_from_the_entry():
         assert name in docs, name
 
 
+def test_merged_guidance_docs_are_removed():
+    """合并后的旧文档不得继续以独立文件存在。"""
+    for name in ("creative-production.md", "director-review-and-edit.md"):
+        assert not (ROOT / name).exists(), name
+
+
 @pytest.mark.parametrize("name,documents", [
-    ("visual-creative-direction.md", ("production-workflow.md", "creative-production.md",
-                                      "stage-plan.md", "subagent-review.md",
-                                      "director-review-and-edit.md", "visual-review-rubric.md")),
-    ("reference-video-analysis.md", ("reference-style.md", "creative-production.md",
+    ("visual-creative-direction.md", ("production-workflow.md", "stage-plan.md",
+                                      "subagent-review.md", "visual-review-rubric.md")),
+    ("reference-video-analysis.md", ("reference-style.md",
                                      "visual-creative-direction.md", "subagent-review.md")),
 ])
 def test_methods_are_linked_from_the_operating_docs(name, documents):

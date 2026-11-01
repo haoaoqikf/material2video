@@ -132,8 +132,13 @@
       "guide": "references/explainer-design.md#看图诊断与形象判据"
     },
     {
+      "id": "design-template",
+      "when": "填写或重写 DESIGN.md 的五块式设计记录",
+      "guide": "references/visual-creative-direction.md#12-designmd-模板"
+    },
+    {
       "id": "visual-examples",
-      "when": "需要视觉设计模板、反例与演练",
+      "when": "需要视觉设计反例与演练",
       "guide": "references/production-examples.md"
     },
     {

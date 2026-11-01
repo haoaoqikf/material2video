@@ -33,7 +33,7 @@ uv run m2v qa --project styles/deep-journey/examples/solar-system-journey
 
 路径生成器默认只写outputs下提案，加`--merge`合并镜头与已核定时间预算，保留旁白原文与claims，文本变化时拒绝静默回退。运动诊断逐帧执行真实相机，记录有限数值、穿模余量、速度与加减速、转向、FOV变化、每个镜头的主体屏幕尺度与轨迹，`observation=not-evaluated`，不自动生成审美通过结论。`render-risk.py`从当前准备片段采集全片正式画幅风险帧，重跑会先清空旧采样。粗预演只用于设计，不授权正式导出；有当前准备产物时直接复用其完整母版音轨，没有时退回原创循环底并明确标注为临时声音。
 
-准备媒体在本例outputs，交付为styles/deep-journey/examples/solar-system-journey/outputs/video.mp4；生成媒体、粗预演和复核证据不入库。最终记录绑定当前准备指纹与交付摘要，流程见[制作阶段](../../../../.agents/skills/material2video/references/creative-production.md)。
+准备媒体在本例outputs，交付为styles/deep-journey/examples/solar-system-journey/outputs/video.mp4；生成媒体、粗预演和复核证据不入库。最终记录绑定当前准备指纹与交付摘要，流程见[制作阶段](../../../../.agents/skills/material2video/references/production-workflow.md)。
 
 ## 旁白与场景对应
 

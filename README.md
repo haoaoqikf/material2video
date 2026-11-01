@@ -119,7 +119,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 - [Frontend Design](.agents/skills/frontend-design/SKILL.md)：项目级视觉设计与反模板知识；视觉方向、字体、构图、层级与自我批评，视频语境见[适配说明](.agents/skills/frontend-design/ADAPTATION.md)。
 - [运动设计](.agents/skills/motion-design/SKILL.md)：项目级运动设计知识；情绪意图、运动人格、时长、缓动、编排与质量检查，帧驱动边界见[适配说明](.agents/skills/motion-design/ADAPTATION.md)。
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
-- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计和验收方法；模板、反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
+- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计与五块式 `DESIGN.md` 模板；反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)：症状→成因→改法、形象判据与主体尺度起点。
 - [讲解设计](.agents/skills/material2video/references/explainer-design.md)：通用讲解画法、贯穿关系与长片章节递进。
