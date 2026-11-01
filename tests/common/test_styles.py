@@ -94,7 +94,7 @@ def test_style_change_during_preparation_rejected(package, project):
     (style_root / 'GUIDE.md').write_text('changed', encoding='utf-8')
     with pytest.raises(M2VError, match='准备过程中变化'):
         save_prepared(root, project=manifest, composition_id='test', props={}, width=1920, height=1080,
-                      fps=60, duration_in_frames=60, inputs=inputs)
+                      fps=30, duration_in_frames=60, inputs=inputs)
 
 
 def test_status_reports_selected_style(package, project, capsys):
@@ -114,7 +114,7 @@ def test_prepared_rejects_actual_frame(package, project):
     manifest['style'] = {'id': style_root.name}
     with pytest.raises(M2VError, match='画幅'):
         save_prepared(root, project=manifest, composition_id='test', props={}, width=1080, height=1920,
-                      fps=60, duration_in_frames=60, inputs=file_inputs(root, manifest))
+                      fps=30, duration_in_frames=60, inputs=file_inputs(root, manifest))
 
 
 @pytest.mark.parametrize('changed', ['GUIDE.md', 'tokens.json', 'piece.tsx', 'mark.svg'])
@@ -123,7 +123,7 @@ def test_prepared_style_dependency(package, project, changed):
     root, manifest = project
     manifest['style'] = {'id': style_root.name}
     prepared = save_prepared(root, project=manifest, composition_id='test', props={}, width=1920, height=1080,
-                            fps=60, duration_in_frames=60, inputs=file_inputs(root, manifest))
+                            fps=30, duration_in_frames=60, inputs=file_inputs(root, manifest))
     assert prepared['style']['version'] == '1.0.0'
     assert load_current_prepared(root, manifest)['style'] == prepared['style']
     target = style_root / changed
@@ -135,7 +135,7 @@ def test_prepared_style_dependency(package, project, changed):
 def test_unstyled_prepare_unchanged(project):
     root, manifest = project
     prepared = save_prepared(root, project=manifest, composition_id='test', props={}, width=1920, height=1080,
-                            fps=60, duration_in_frames=60, inputs=file_inputs(root, manifest))
+                            fps=30, duration_in_frames=60, inputs=file_inputs(root, manifest))
     assert 'style' not in prepared
     assert load_current_prepared(root, manifest) == prepared
 

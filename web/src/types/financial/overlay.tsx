@@ -6,7 +6,7 @@
  * 包围盒，按 `LAYOUT_BOUNDS` 判定文字与端点是否越界或相互重叠。
  */
 import {
-  HEIGHT, LAYOUT_BOUNDS, LOSS_COLOR, PROFIT_COLOR, WIDTH,
+  HEIGHT, LAYOUT_BOUNDS, LOSS_COLOR, NEUTRAL_COLOR, PROFIT_COLOR, TEXT_PRIMARY, TEXT_SECONDARY,
   displayDate, investmentAmountText, measuredTextWidth, moneyText, transformedBounds, wrapSvgText,
   type FinancialTimeSeriesProps, type FinancialView, type Investment,
 } from './chart';
@@ -16,7 +16,6 @@ export type OverlayCopy = {
   displayName: string;
   title: string;
   titleFontSize: number;
-  year: string;
   showValue: boolean;
   gainColor: string;
   valueFontSize: number;
@@ -29,9 +28,9 @@ export type OverlayCopy = {
   contentLayoutKey: string;
 };
 
-/** 顶部年份/市值与底部说明的全部文案、字号与颜色；越界容量在这里立刻失败。 */
+/** 顶部编辑式层级与底部说明的全部文案、字号与颜色；越界容量在这里立刻失败。 */
 export function overlayCopy(props: FinancialTimeSeriesProps, view: FinancialView, investment: Investment): OverlayCopy {
-  const { request, prices, plan } = props;
+  const { request, prices } = props;
   const isCrypto = request.instrument.kind === 'crypto';
   const displayName = request.instrument.displayName ?? request.instrument.name;
   const investmentAmount = investmentAmountText(investment.principal);
@@ -42,32 +41,32 @@ export function overlayCopy(props: FinancialTimeSeriesProps, view: FinancialView
       ? `假如你${investmentYear}年按比例投资${investmentAmount}元${displayName}`
       : `假如你${investmentYear}年买入${investmentAmount}元${displayName}`;
   const titleWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left;
-  const titleFontSize = Math.min(48, (titleWidth / measuredTextWidth(title, 48)) * 48);
+  // 编辑式标题以 40px 为基准，过长时单行缩小，保住左对齐的层级。
+  const titleFontSize = Math.min(40, (titleWidth / measuredTextWidth(title, 40)) * 40);
   if (titleFontSize < 26) throw new Error('投资假设标题过长，无法在安全区内保持可读的单行字号');
-  const gainColor = view.gain !== null && view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
+  const gainColor = view.gain === null || view.gain === 0 ? NEUTRAL_COLOR : view.gain > 0 ? PROFIT_COLOR : LOSS_COLOR;
   const liveDate = view.latest ? displayDate(view.latest.date) : '';
-  const year = (view.latest?.date ?? plan.axis.dateRange[0]).slice(0, 4);
   const liveValue = view.latest ? moneyText(view.latest.close) : '';
-  const yearWidth = measuredTextWidth(year, 64);
-  const valueWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left - yearWidth - 32;
-  const valueFontSize = Math.min(56, valueWidth / Math.max(measuredTextWidth(liveValue, 56) * 1.08, 1) * 56);
+  const valueWidth = LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left;
+  // hero 金额按 72/64/56 固定档位适配，位数变化时只换档，不逐帧抖动。
+  const valueFontSize = [72, 64, 56].find((size) => measuredTextWidth(liveValue, size) <= valueWidth) ?? 48;
   const summaryText = [isCrypto
     ? 'BTC/USD 日收盘价按历史 USD/CNY 汇率折算；休市日沿用此前汇率，不计手续费及税费'
     : `${prices.priceBasis === 'official-index-points' ? `指数类型 ${prices.indexType}；按点位比例模拟，不代表指数可直接持有` : '仅拆合股调整，不计分红再投资'}；按比例持仓，不计手续费及税费`];
-  const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 24));
+  const summaryLines = summaryText.flatMap((line) => wrapSvgText(line, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20));
   if (summaryLines.length > 4) throw new Error('统计口径超出说明区域四行容量');
   const rationaleLines = isCrypto && investment.startRationale
-    ? wrapSvgText(investment.startRationale, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 18) : [];
+    ? wrapSvgText(investment.startRationale, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 16) : [];
   if (rationaleLines.length > 2) throw new Error('起点说明超出两行容量');
   const legalNoticeLines = isCrypto && investment.legalStatusNotice
-    ? wrapSvgText(investment.legalStatusNotice, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20) : [];
+    ? wrapSvgText(investment.legalStatusNotice, LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 16) : [];
   if (legalNoticeLines.length > 2) throw new Error('法律地位说明超出两行容量');
   const hasLegalNotice = legalNoticeLines.length > 0;
   const summaryLinesToRender = isCrypto && hasLegalNotice ? [] : summaryLines;
-  const riskLines = hasLegalNotice ? [] : wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 20);
+  const riskLines = hasLegalNotice ? [] : wrapSvgText('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。', LAYOUT_BOUNDS.right - LAYOUT_BOUNDS.left, 16);
   if (riskLines.length > 2) throw new Error('风险提示超出说明区域两行容量');
   const contentLayoutKey = JSON.stringify([title, titleFontSize, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines]);
-  return { isCrypto, displayName, title, titleFontSize, year, showValue: view.latest !== null, gainColor,
+  return { isCrypto, displayName, title, titleFontSize, showValue: view.latest !== null, gainColor,
     valueFontSize, liveValue, liveDate, summaryLinesToRender, rationaleLines, legalNoticeLines, riskLines, contentLayoutKey };
 }
 
@@ -82,7 +81,15 @@ export function assertContentLayerWithinBounds(contentLayer: SVGGElement): void 
   const layerBounds = transformedBounds(contentLayer);
   if (layerBounds.x < LAYOUT_BOUNDS.left || layerBounds.x + layerBounds.width > LAYOUT_BOUNDS.right
     || layerBounds.y < LAYOUT_BOUNDS.top || layerBounds.y + layerBounds.height > LAYOUT_BOUNDS.bottom) {
-    throw new Error(`金融画面整体内容超出项目布局范围（${layerBounds.x},${layerBounds.y},${layerBounds.width},${layerBounds.height}）`);
+    // 报出具体越界元素，避免只给整体包围盒后还要逐层排查。
+    const offenders = [...contentLayer.querySelectorAll('*')]
+      .filter((element): element is SVGGraphicsElement => element instanceof SVGGraphicsElement)
+      .map((element) => ({ element, bounds: transformedBounds(element) }))
+      .filter(({ bounds }) => bounds.x < LAYOUT_BOUNDS.left || bounds.x + bounds.width > LAYOUT_BOUNDS.right
+        || bounds.y < LAYOUT_BOUNDS.top || bounds.y + bounds.height > LAYOUT_BOUNDS.bottom)
+      .map(({ element, bounds }) => `${element.tagName}「${(element.textContent ?? '').slice(0, 16)}」(${bounds.x.toFixed(2)},${bounds.y.toFixed(2)},${bounds.width.toFixed(2)},${bounds.height.toFixed(2)})`)
+      .join('；');
+    throw new Error(`金融画面整体内容超出项目布局范围（${layerBounds.x},${layerBounds.y},${layerBounds.width},${layerBounds.height}）：${offenders}`);
   }
 }
 
@@ -112,16 +119,17 @@ export function assertOverlaySafeArea(svg: SVGSVGElement): void {
   }
 }
 
-/** 顶部覆盖层：投资假设标题、当前年份与实时市值。 */
+/** 顶部覆盖层：编辑式投资标题与 hero 市值。 */
 export function TopOverlay({copy}: {copy: OverlayCopy}) {
-  const {title, titleFontSize, year, showValue, gainColor, valueFontSize, liveValue, liveDate} = copy;
+  const {title, titleFontSize, showValue, gainColor, valueFontSize, liveValue, liveDate} = copy;
   return <>
-    <text data-m2v-investment-title="true" x={WIDTH / 2} y="270" textAnchor="middle" fill="#f6f8fc" fontSize={titleFontSize} fontWeight="700">{title}</text>
-    <text data-m2v-live-year="true" x={LAYOUT_BOUNDS.left} y="390" fill="#f6f8fc" fontSize="64" fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{year}</text>
+    <text data-m2v-investment-title="true" x={LAYOUT_BOUNDS.left + 2} y="270" textAnchor="start" fill={TEXT_PRIMARY}
+      fontSize={titleFontSize} fontWeight="700" letterSpacing="-0.02em">{title}</text>
     {showValue && <g>
-      <text data-m2v-value-heading="true" x={LAYOUT_BOUNDS.right} y="330" textAnchor="end" fill="#b9c7d9" fontSize="24">当前市值</text>
-      <text data-m2v-live-value="true" x={LAYOUT_BOUNDS.right} y="396" textAnchor="end" fill={gainColor} fontSize={valueFontSize} fontWeight="700" style={{ fontVariantNumeric: 'tabular-nums' }}>{liveValue}</text>
-      <text data-m2v-live-date="true" x={LAYOUT_BOUNDS.right} y="442" textAnchor="end" fill="#b9c7d9" fontSize="24" fontWeight="500">{liveDate}</text>
+      <text data-m2v-live-value="true" x={LAYOUT_BOUNDS.right - 4} y="400" textAnchor="end" fill={gainColor}
+        fontSize={valueFontSize} fontWeight="700" letterSpacing="-0.03em" style={{ fontVariantNumeric: 'tabular-nums' }}>{liveValue}</text>
+      <text data-m2v-live-date="true" data-m2v-live-caption="true" x={LAYOUT_BOUNDS.right - 4} y="438" textAnchor="end"
+        fill={TEXT_SECONDARY} fontSize="24">当前市值 · {liveDate}</text>
     </g>}
   </>;
 }
@@ -130,9 +138,9 @@ export function TopOverlay({copy}: {copy: OverlayCopy}) {
 export function BottomOverlay({copy}: {copy: OverlayCopy}) {
   const {isCrypto, rationaleLines, summaryLinesToRender, legalNoticeLines, riskLines} = copy;
   return <>
-    {rationaleLines.map((line, index) => <text data-m2v-start-rationale="true" key={`rationale-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1310 : 0) + index * 24} fill="#9ba9bc" fontSize="18">{line}</text>)}
-    {summaryLinesToRender.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1370 : 1320) + index * 32} fill="#b9c7d9" fontSize="24">{line}</text>)}
-    {legalNoticeLines.map((line, index) => <text data-m2v-legal-status-notice="true" key={`legal-notice-${index}`} x={LAYOUT_BOUNDS.left} y={1370 + index * 28} fill="#b9c7d9" fontSize="20">{line}</text>)}
-    {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left} y={(isCrypto ? 1510 : 1460) + index * 28} fill="#8b9ab0" fontSize="20">{line}</text>)}
+    {rationaleLines.map((line, index) => <text data-m2v-start-rationale="true" key={`rationale-${index}`} x={LAYOUT_BOUNDS.left + 2} y={(isCrypto ? 1360 : 0) + index * 24} fill={TEXT_SECONDARY} fontSize="20">{line}</text>)}
+    {summaryLinesToRender.map((line, index) => <text data-m2v-summary="true" key={`summary-${index}`} x={LAYOUT_BOUNDS.left + 2} y={(isCrypto ? 1420 : 1380) + index * 28} fill="#B5B0A8" fontSize="24">{line}</text>)}
+    {legalNoticeLines.map((line, index) => <text data-m2v-legal-status-notice="true" key={`legal-notice-${index}`} x={LAYOUT_BOUNDS.left + 2} y={1420 + index * 24} fill={TEXT_SECONDARY} fontSize="20">{line}</text>)}
+    {riskLines.map((line, index) => <text data-m2v-risk-disclaimer="true" key={`risk-${index}`} x={LAYOUT_BOUNDS.left + 2} y={(isCrypto ? 1560 : 1484) + index * 26} fill={TEXT_SECONDARY} fontSize="22">{line}</text>)}
   </>;
 }

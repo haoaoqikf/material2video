@@ -95,10 +95,10 @@ def test_valid_materials_and_deterministic_frame_mapping(tmp_path):
     docs = financial.load_project(root)
     assert len(docs["prices"]["points"]) == 2
     assert financial.frame_date(docs["plan"], 0).isoformat() == "2020-01-01"
-    assert financial.frame_date(docs["plan"], 60).isoformat() == "2020-01-01"
-    assert financial.frame_date(docs["plan"], 420).isoformat() == "2020-01-02"
-    assert financial.frame_date(docs["plan"], 779).isoformat() == "2020-01-03"
-    assert financial.frame_date(docs["plan"], 899).isoformat() == "2020-01-03"
+    assert financial.frame_date(docs["plan"], 30).isoformat() == "2020-01-01"
+    assert financial.frame_date(docs["plan"], 210).isoformat() == "2020-01-02"
+    assert financial.frame_date(docs["plan"], 389).isoformat() == "2020-01-03"
+    assert financial.frame_date(docs["plan"], 449).isoformat() == "2020-01-03"
     assert docs["request"]["investment"] == {"year": 2020, "principal": 1_000_000}
     assert financial.build_render_props(docs)["request"]["investment"]["principal"] == 1_000_000
 

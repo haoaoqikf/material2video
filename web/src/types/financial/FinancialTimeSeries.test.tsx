@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, assertFinancialPlotUnclipped, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
+import { monotoneCurvePath, trendPoints } from './chart';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -181,8 +182,9 @@ describe('financial time-series composition', () => {
     expect(markup).not.toContain('data-m2v-endpoint-callout-backing');
     expect(markup.indexOf('data-m2v-visible-value-points=')).toBeLessThan(markup.indexOf('data-m2v-financial-endpoint="true"'));
     expect(markup).not.toContain('100.00元');
-    expect(markup).toContain('stroke="#55d58a"');
-    expect(markup).toContain('data-m2v-live-date="true" x="940" y="442" text-anchor="end"');
+    expect(markup).toContain('stroke="#D8D4CC"');
+    expect(markup).toContain('fill="#D8D4CC" font-size="72"');
+    expect(markup).toContain('data-m2v-live-date="true" data-m2v-live-caption="true" x="936" y="438" text-anchor="end"');
     expect(markup).toContain('>100元</text>');
     expect(markup).not.toMatch(/美元|港元|人民币|USD/u);
   });
@@ -192,7 +194,7 @@ describe('financial time-series composition', () => {
     const positive = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(positive).toContain('102元');
     expect(positive).not.toContain('收益率');
-    expect(positive).toContain('stroke="#ff5d68"');
+    expect(positive).toContain('stroke="#FF5A4E"');
 
     const lossProps = { ...props, prices: { ...props.prices, points: [
       { date: '2020-01-02', close: 100 }, { date: '2020-01-03', close: 75 },
@@ -200,19 +202,65 @@ describe('financial time-series composition', () => {
     const negative = renderToStaticMarkup(<FinancialTimeSeries {...lossProps} />);
     expect(negative).toContain('75元');
     expect(negative).not.toContain('收益率');
-    expect(negative).toContain('stroke="#55d58a"');
+    expect(negative).toContain('stroke="#4BD39A"');
   });
 
-  it('uses the centered plot and unified safe area, thinner line, and small methodology notes', () => {
+  it('samples the trend curve at the last real close of each month and keeps the final point', () => {
+    const points = [
+      { date: '2020-01-02', close: 10 }, { date: '2020-01-31', close: 12 },
+      { date: '2020-02-03', close: 14 }, { date: '2020-02-28', close: 16 },
+      { date: '2020-03-02', close: 18 },
+    ];
+    expect(trendPoints(points)).toEqual([
+      { date: '2020-01-31', close: 12 }, { date: '2020-02-28', close: 16 }, { date: '2020-03-02', close: 18 },
+    ]);
+    expect(trendPoints(points.slice(0, 2))).toEqual(points.slice(0, 2));
+  });
+
+  it('keeps a monotone curve inside the neighboring point range without overshoot', () => {
+    const curve = monotoneCurvePath([
+      { x: 0, y: 100 }, { x: 100, y: 40 }, { x: 200, y: 40 }, { x: 300, y: 120 },
+    ]);
+    expect(curve.startsWith('M 0,100')).toBe(true);
+    expect(curve).toContain('C ');
+    // 控制点由单调插值生成，y 不会越过相邻采样点的上下界。
+    const values = [...curve.matchAll(/,(-?\d+(?:\.\d+)?)/gu)].map((match) => Number(match[1]));
+    expect(Math.min(...values)).toBeGreaterThanOrEqual(40);
+    expect(Math.max(...values)).toBeLessThanOrEqual(120);
+  });
+
+  it('uses the enlarged plot, readable axis labels, dual curves and small methodology notes', () => {
     testFrame.value = 1679;
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(markup).toContain('x1="220" x2="928"');
-    expect(markup).toContain('data-m2v-value-axis-label="true" x="206" y="1199" text-anchor="end" fill="#8b9ab0" font-size="14"');
-    expect(markup).toContain('data-m2v-summary="true" x="140" y="1320" fill="#b9c7d9" font-size="24"');
-    expect(markup).toContain('data-m2v-risk-disclaimer="true" x="140" y="1460" fill="#8b9ab0" font-size="20"');
+    expect(markup).toContain('x1="200" x2="920"');
+    expect(markup).toContain('data-m2v-value-axis-label="true" x="188" y="1287" text-anchor="end" fill="#8E8B86" font-size="24"');
+    expect(markup).toContain('data-m2v-value-axis-unit="true" x="188" y="478"');
+    expect(markup).toContain('data-m2v-summary="true" x="142" y="1380" fill="#B5B0A8" font-size="24"');
+    expect(markup).toContain('data-m2v-risk-disclaimer="true" x="142" y="1484" fill="#8E8B86" font-size="22"');
     expect(markup).toContain('过往业绩不代表未来表现。本视频仅作信息展示，不构成投资建议。');
+    expect(markup).toContain('data-m2v-visible-value-points="2" fill="none" stroke="#FF5A4E" stroke-width="2" opacity="0.26"');
+    expect(markup).toContain('data-m2v-trend-line="true"');
     expect(markup).toContain('stroke-width="3"');
-    expect(markup).toContain('r="8"');
+    expect(markup).toContain('r="7"');
+  });
+
+  it('labels the value axis once and never repeats a tick value', () => {
+    testFrame.value = 0;
+    const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    const unitLabels = markup.match(/data-m2v-value-axis-unit="true"/gu) ?? [];
+    expect(unitLabels).toHaveLength(1);
+    const ticks = [...markup.matchAll(/data-m2v-value-axis-label="true"[^>]*>([^<]+)<\/text>/gu)].map((match) => match[1]);
+    expect(ticks).toHaveLength(3);
+    expect(new Set(ticks).size).toBe(3);
+  });
+
+  it('draws the principal baseline with a small label and no return figure', () => {
+    testFrame.value = 885;
+    const inside = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
+    expect(inside).toContain('data-m2v-principal-line="true"');
+    expect(inside).toMatch(/data-m2v-principal-label="true"[^>]*>本金<\/text>/u);
+    expect(inside).not.toContain('data-m2v-live-return');
+    expect(inside).not.toContain('收益率');
   });
 
   it('centers the actual content bounds on the canvas midpoint within symmetric layout bounds', () => {
@@ -223,17 +271,17 @@ describe('financial time-series composition', () => {
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
     expect(markup).toContain('data-m2v-content-layer="true"');
     expect(markup).toContain('data-m2v-content-offset-y="0" transform="translate(0 0)"');
-    expect(markup).toContain('<rect x="220" y="520" width="708" height="670"');
+    expect(markup).toContain('<rect x="200" y="500" width="720" height="780"');
     expect(markup).toContain('clipPathUnits="userSpaceOnUse"');
-    expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270"');
-    expect(markup).toContain('data-m2v-risk-disclaimer="true" x="140" y="1460"');
+    expect(markup).toContain('data-m2v-investment-title="true" x="142" y="270"');
+    expect(markup).toContain('data-m2v-risk-disclaimer="true" x="142" y="1484"');
   });
 
   it.each([
-    [9_999.999, '1 万元'],
-    [10_000, '1 万元'],
-    [100_000_000, '1 亿元'],
-    [1_000_000_000_000, '1 万亿元'],
+    [9_999.999, '1万元'],
+    [10_000, '1万元'],
+    [100_000_000, '1亿元'],
+    [1_000_000_000_000, '1万亿元'],
   ])('formats portfolio value and gain with Chinese magnitude units at %s', (value, expected) => {
     const largeValueProps: FinancialTimeSeriesProps = {
       ...props,
@@ -246,7 +294,9 @@ describe('financial time-series composition', () => {
     expect(markup).not.toContain('data-m2v-live-gain');
     expect(markup).toContain('data-m2v-value-axis-label="true"');
     expect(markup).not.toContain('B</text>');
-    if (value >= 100_000_000_000) expect(markup).toContain('>1.08万亿</text>');
+    expect(markup).not.toContain(' 万元');
+    expect(markup).not.toContain(' 亿元');
+    expect(markup).not.toContain(' 万亿元');
   });
 
   it('buys on the first trading close in the investment year and derives portfolio returns', () => {
@@ -297,13 +347,15 @@ describe('financial time-series composition', () => {
     };
     const markup = renderToStaticMarkup(<FinancialTimeSeries {...indexProps} />);
     expect(renderedTitle(markup)).toBe('假如你2020年按比例投资100元示例指数');
-    expect(markup).toContain('data-m2v-investment-title="true" x="540" y="270" text-anchor="middle"');
+    expect(markup).toContain('data-m2v-investment-title="true" x="142" y="270" text-anchor="start"');
     expect(markup).not.toContain('示例指数 · SYN');
     expect(markup).toContain('按点位比例模拟');
     expect(markup).not.toContain('来源');
     expect(markup).not.toContain('example.invalid');
     expect(markup).not.toContain('market.example');
-    expect(markup).toContain('不计手续费及税费');
+    // 指数口径较长，20px 下折为两行属于正常排版。
+    expect(markup).toContain('不计手续费');
+    expect(markup).toContain('及税费');
     expect(markup).toContain('过往业绩不代表未来表现');
   });
 
@@ -516,8 +568,8 @@ describe('financial time-series composition', () => {
   it('holds the final live-value layout unchanged throughout the ending', () => {
     testFrame.value = 885;
     const advance = renderToStaticMarkup(<FinancialTimeSeries {...props} />);
-    expect(advance).toMatch(/data-m2v-live-year="true"[^>]*>2020<\/text>/u);
-    expect(advance).toContain('font-size="64"');
+    expect(advance).not.toContain('data-m2v-live-year');
+    expect(advance).toContain('font-size="72"');
     expect(advance).toContain('当前市值');
     expect(advance).not.toContain('收益率');
 
@@ -533,8 +585,8 @@ describe('financial time-series composition', () => {
     expect(endingStart).toBe(lastAdvance);
     expect(endingAfterHalfSecond).toBe(lastAdvance);
     expect(endingLastFrame).toBe(lastAdvance);
-    expect(lastAdvance).toContain('<text data-m2v-value-heading="true" x="940" y="330" text-anchor="end" fill="#b9c7d9" font-size="24">当前市值</text>');
-    expect(lastAdvance).toContain('<text data-m2v-live-date="true" x="940" y="442"');
+    expect(lastAdvance).toContain('data-m2v-live-value="true" x="936" y="400" text-anchor="end"');
+    expect(lastAdvance).toContain('data-m2v-live-date="true" data-m2v-live-caption="true" x="936" y="438"');
     expect(lastAdvance).toContain('2020年1月3日');
     expect(lastAdvance).not.toContain('本金 → 最终市值');
     expect(lastAdvance).not.toContain('100元 → 102元');

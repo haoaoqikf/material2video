@@ -27,10 +27,18 @@ export type Investment = NonNullable<FinancialTimeSeriesProps['request']['invest
 
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
-export const PLOT = { left: 220, right: 928, top: 520, bottom: 1190 };
+export const PLOT = { left: 200, right: 920, top: 500, bottom: 1280 };
 const DAY_MS = 86_400_000;
-export const PROFIT_COLOR = '#ff5d68';
-export const LOSS_COLOR = '#55d58a';
+export const FONT_STACK = '"M2V Inter", "M2V Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif';
+export const PROFIT_COLOR = '#FF5A4E';
+export const LOSS_COLOR = '#4BD39A';
+export const NEUTRAL_COLOR = '#D8D4CC';
+export const TEXT_PRIMARY = '#F2F0EB';
+export const TEXT_SECONDARY = '#8E8B86';
+export const TEXT_MUTED = '#6F6C67';
+export const GRID_COLOR = 'rgba(242,240,235,0.09)';
+export const VALUE_AXIS_FONT_SIZE = 24;
+export const VALUE_AXIS_LABEL_X = 188;
 export const LAYOUT_BOUNDS = { left: 140, right: 940, top: 180, bottom: 1740 };
 export type ChartPoint = { x: number; y: number };
 
@@ -317,7 +325,7 @@ export function financialView(frame: number, points: PricePoint[], plan: Financi
     const x = PLOT.left + ((epochDay(tick.date) - windowPosition) / Math.max(windowEndPosition - windowPosition, 1)) * axisWidth;
     return { ...tick, x: Math.max(PLOT.left, Math.min(x, PLOT.right - width / 2)), width };
   });
-  const visibleAxisTicks = positioned.sort((a, b) => a.x - b.x);
+  const visibleAxisTicks = positioned.filter((tick) => epochDay(tick.date) <= position).sort((a, b) => a.x - b.x);
   const axisFrame = Math.min(frame, endingStart - 1);
   for (let offset = 0; offset < 6; offset++) {
     const date = isoDay(Math.floor(framePosition(Math.max(0, axisFrame - offset), plan)));
@@ -343,15 +351,26 @@ export type FinancialView = ReturnType<typeof financialView>;
 
 function magnitude(value: number): { value: number; unit: string } {
   const rounded = Math.sign(value) * (Math.round(Math.abs(value) * 100) / 100);
-  const absolute = Math.abs(rounded);
-  if (absolute >= 1_000_000_000_000) return { value: rounded / 1_000_000_000_000, unit: '万亿' };
-  if (absolute >= 100_000_000) return { value: rounded / 100_000_000, unit: '亿' };
-  if (absolute >= 10_000) return { value: rounded / 10_000, unit: '万' };
-  return { value: rounded, unit: '' };
+  const { divisor, unit } = unitScale(rounded);
+  return { value: rounded / divisor, unit };
 }
 
+/** 中文数量级与除数；金额和纵轴共用同一刻度体系。 */
+export function unitScale(value: number): { divisor: number; unit: string } {
+  const absolute = Math.abs(value);
+  if (absolute >= 1_000_000_000_000) return { divisor: 1_000_000_000_000, unit: '万亿' };
+  if (absolute >= 100_000_000) return { divisor: 100_000_000, unit: '亿' };
+  if (absolute >= 10_000) return { divisor: 10_000, unit: '万' };
+  return { divisor: 1, unit: '' };
+}
+
+const plainNumber = new Intl.NumberFormat('zh-CN', { useGrouping: false, maximumFractionDigits: 2 });
+const fixedNumber = (digits: number) => new Intl.NumberFormat('zh-CN', {
+  useGrouping: false, minimumFractionDigits: digits, maximumFractionDigits: digits,
+});
+
 function magnitudeNumber(value: number): string {
-  return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(value);
+  return plainNumber.format(value);
 }
 
 export function investmentAmountText(value: number): string {
@@ -361,13 +380,32 @@ export function investmentAmountText(value: number): string {
 
 export function moneyText(value: number): string {
   const scaled = magnitude(value);
-  const amount = scaled.unit ? `${magnitudeNumber(scaled.value)} ${scaled.unit}` : magnitudeNumber(scaled.value);
-  return `${amount}元`;
+  return `${magnitudeNumber(scaled.value)}${scaled.unit}元`;
 }
 
 export function compactValue(value: number): string {
   const scaled = magnitude(value);
-  return `${new Intl.NumberFormat('zh-CN', { maximumSignificantDigits: 3 }).format(scaled.value)}${scaled.unit}`;
+  return `${new Intl.NumberFormat('zh-CN', { useGrouping: false, maximumSignificantDigits: 3 }).format(scaled.value)}${scaled.unit}`;
+}
+
+/** 纵轴刻度的统一小数位：按缩放后的刻度间距决定，避免相邻刻度四舍五入成同一个值。 */
+export function axisTickDecimals(minValue: number, maxValue: number): number {
+  const { divisor } = unitScale(Math.max(Math.abs(minValue), Math.abs(maxValue)));
+  const step = Math.abs(maxValue - minValue) / 4 / divisor;
+  if (!Number.isFinite(step) || step <= 0) return 0;
+  return Math.min(4, Math.max(0, Math.ceil(-Math.log10(step)) + 1));
+}
+
+/** 纵轴刻度只输出数字，数量级单位在轴顶标注一次。 */
+export function axisTickLabel(value: number, divisor: number, decimals: number): string {
+  const scaled = value / divisor;
+  if (Math.abs(scaled) < 10 ** -decimals / 2) return fixedNumber(decimals).format(0);
+  return fixedNumber(decimals).format(scaled);
+}
+
+/** 纵轴数量级单位，取纵轴上限所在档位。 */
+export function axisUnit(maxValue: number): { divisor: number; unit: string } {
+  return unitScale(maxValue);
 }
 
 export function displayDate(value: ISODate): string {
@@ -435,28 +473,107 @@ export function assertFinancialPlotUnclipped(plot: FinancialBounds, clip: Financ
   }
 }
 
+/** 主曲线采样：每个自然月保留最后一个真实收盘点，首末点天然落在采样中。 */
+export function trendPoints(points: PricePoint[]): PricePoint[] {
+  if (points.length <= 2) return points;
+  const sampled: PricePoint[] = [];
+  let month = '';
+  for (const point of points) {
+    const current = point.date.slice(0, 7);
+    if (current !== month) {
+      sampled.push(point);
+      month = current;
+    } else {
+      sampled[sampled.length - 1] = point;
+    }
+  }
+  return sampled.length >= 2 ? sampled : points;
+}
+
+/** Fritsch–Carlson 单调三次插值：经过全部采样点，不在相邻点之间产生过冲。 */
+export function monotoneCurvePath(points: ChartPoint[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0]!.x},${points[0]!.y}`;
+  const count = points.length;
+  const widths = new Array<number>(count - 1);
+  const slopes = new Array<number>(count - 1);
+  for (let index = 0; index < count - 1; index++) {
+    const width = points[index + 1]!.x - points[index]!.x;
+    widths[index] = width > 0 ? width : 1e-6;
+    slopes[index] = (points[index + 1]!.y - points[index]!.y) / widths[index]!;
+  }
+  const tangents = new Array<number>(count).fill(0);
+  tangents[0] = slopes[0]!;
+  tangents[count - 1] = slopes[count - 2]!;
+  for (let index = 1; index < count - 1; index++) {
+    const previous = slopes[index - 1]!;
+    const next = slopes[index]!;
+    if (previous * next <= 0) { tangents[index] = 0; continue; }
+    const left = 2 * widths[index]! + widths[index - 1]!;
+    const right = widths[index]! + 2 * widths[index - 1]!;
+    tangents[index] = (left + right) / (left / previous + right / next);
+  }
+  for (let index = 0; index < count - 1; index++) {
+    if (slopes[index] === 0) {
+      tangents[index] = 0;
+      tangents[index + 1] = 0;
+      continue;
+    }
+    const alpha = tangents[index]! / slopes[index]!;
+    const beta = tangents[index + 1]! / slopes[index]!;
+    const magnitude = alpha * alpha + beta * beta;
+    if (magnitude > 9) {
+      const scale = 3 / Math.sqrt(magnitude);
+      tangents[index] = scale * alpha * slopes[index]!;
+      tangents[index + 1] = scale * beta * slopes[index]!;
+    }
+  }
+  let path = `M ${points[0]!.x},${points[0]!.y}`;
+  for (let index = 0; index < count - 1; index++) {
+    const width = widths[index]!;
+    path += ` C ${points[index]!.x + width / 3},${points[index]!.y + tangents[index]! * width / 3}`
+      + ` ${points[index + 1]!.x - width / 3},${points[index + 1]!.y - tangents[index + 1]! * width / 3}`
+      + ` ${points[index + 1]!.x},${points[index + 1]!.y}`;
+  }
+  return path;
+}
+
 export type ChartGeometry = {
   xForDate: (value: ISODate) => number;
   yForValue: (value: number) => number;
   chartPoints: ChartPoint[];
   linePoints: string;
+  trendLinePoints: string;
+  trendPath: string;
+  areaPath: string;
+  principalY: number | null;
   endpointX: number;
   endpointY: number;
 };
 
-/** 曲线与坐标求值：日期→横坐标、数值→纵坐标、折线点串与端点位置。 */
-export function chartGeometry(view: FinancialView, minValue: number, maxValue: number): ChartGeometry {
+/** 曲线与坐标求值：日期→横坐标、数值→纵坐标、主曲线与日线点串、端点与本金基线。 */
+export function chartGeometry(view: FinancialView, minValue: number, maxValue: number, principal?: number): ChartGeometry {
   const dateSpan = Math.max(view.windowEndPosition - view.windowPosition, 1);
   const xForDate = (value: ISODate) => PLOT.left + ((epochDay(value) - view.windowPosition) / dateSpan) * (PLOT.right - PLOT.left);
   const yForValue = (value: number) => PLOT.bottom - ((value - minValue) / (maxValue - minValue)) * (PLOT.bottom - PLOT.top);
   const chartPoints = view.linePoints.map((point) => ({ x: xForDate(point.date), y: yForValue(point.close) }));
+  const trendChartPoints = trendPoints(view.linePoints).map((point) => ({ x: xForDate(point.date), y: yForValue(point.close) }));
   const linePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(' ');
+  const trendLinePoints = trendChartPoints.map((point) => `${point.x},${point.y}`).join(' ');
+  const trendPath = monotoneCurvePath(trendChartPoints);
+  const areaPath = trendPath && trendChartPoints.length > 1
+    ? `${trendPath} L ${trendChartPoints.at(-1)!.x},${PLOT.bottom} L ${trendChartPoints[0]!.x},${PLOT.bottom} Z` : '';
+  const principalY = principal !== undefined && principal > minValue && principal < maxValue ? yForValue(principal) : null;
   const endpointX = view.latest ? xForDate(view.latest.date) : PLOT.left;
   const endpointY = view.latest ? yForValue(view.latest.close) : PLOT.bottom;
-  return { xForDate, yForValue, chartPoints, linePoints, endpointX, endpointY };
+  return { xForDate, yForValue, chartPoints, linePoints, trendLinePoints, trendPath, areaPath, principalY, endpointX, endpointY };
 }
 
-/** 折线裁剪校验：裁剪区域必须与绘图区重合，且历史折线不得越界。 */
+/** 折线裁剪校验：裁剪区域必须与绘图区重合，且历史折线不得越界。
+ *
+ * 只检查真实日线 polyline：主曲线是它的按月采样加单调插值，采样点与日线共用坐标，
+ * 曲线本身不出相邻采样点范围；而 path 的 bbox 会把贝塞尔控制点算进去，用于裁剪判定会误报。
+ */
 export function assertChartPlotUnclipped(svg: SVGSVGElement, contentLayer: SVGGElement): void {
   const polyline = svg.querySelector<SVGPolylineElement>('[data-m2v-visible-value-points]');
   if (polyline) {

@@ -382,7 +382,7 @@ def _validate_source(source: Any, where: str, start: date, end: date, *, require
 
 def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[str, Any]) -> None:
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
-        fail("animation-plan.json", "必须使用 1080×1920、60 fps")
+        fail("animation-plan.json", "必须使用 1080×1920、30 fps")
     duration = plan.get("durationSeconds")
     if isinstance(duration, bool) or not isinstance(duration, int) or duration < (4 if plan.get("schemaVersion") == 8 else 10):
         fail("animation-plan.json.durationSeconds", "无事件 v8 计划至少为 4 秒；v7 计划至少为 10 秒")

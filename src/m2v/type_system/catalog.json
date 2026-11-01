@@ -11,7 +11,7 @@
     {
       "name": "financial-timeseries",
       "description": "金融时间序列与假设投资价值演变",
-      "summary": "股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、手机竖屏折线画面和完整候选自动验收。",
+      "summary": "股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、30 fps 编辑式手机竖屏双层趋势曲线与完整候选自动验收。",
       "plan": "保留独立金融材料、投资价值计算、专用画面与确定性技术验收。",
       "skillGuide": "[金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。",
       "materials": [
@@ -68,7 +68,7 @@
             "schemaVersion": 8,
             "chartType": "line",
             "durationSeconds": 60,
-            "fps": 60,
+            "fps": 30,
             "canvas": {
               "width": 1080,
               "height": 1920

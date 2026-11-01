@@ -86,7 +86,7 @@ def preview_fixture(root, docs):
     digest = hashlib.sha256(video.read_bytes()).hexdigest()
     (folder / "preview-record.json").write_text(json.dumps({
         "path": "outputs/previews/test.mp4", "sha256": digest,
-        "frames": docs["plan"]["durationSeconds"] * 60,
+        "frames": docs["plan"]["durationSeconds"] * 30,
         "materialsAndAssetsSha256": financial.render_inputs_digest(root),
     }), encoding="utf-8")
     return digest

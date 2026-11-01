@@ -29,7 +29,7 @@ def test_full_preview_range_is_rejected(tmp_path):
     root = project(tmp_path)
     docs = financial.load_project(root)
     with pytest.raises(M2VError, match="不能覆盖全片"):
-        financial_render.render(root, docs, preview=True, limit_frames=docs["plan"]["durationSeconds"] * 60)
+        financial_render.render(root, docs, preview=True, limit_frames=docs["plan"]["durationSeconds"] * 30)
 
 
 
@@ -67,8 +67,8 @@ def test_preview_with_explicit_out_does_not_replace_the_recorded_preview(tmp_pat
     monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda video: None)
     monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
     def fake_session(**kwargs):
-        render = kwargs["on_metadata"](SimpleNamespace(fps=60, width=1080, height=1920,
-            duration_in_frames=docs["plan"]["durationSeconds"] * 60))
+        render = kwargs["on_metadata"](SimpleNamespace(fps=30, width=1080, height=1920,
+            duration_in_frames=docs["plan"]["durationSeconds"] * 30))
         Path(render["out"]).write_bytes(b"bypass preview")
         return {"readySeconds": 0.01}
     monkeypatch.setattr(remotion, "render_session", fake_session)
@@ -114,8 +114,8 @@ def test_delivered_video_gets_inherited_access_after_being_moved(tmp_path, monke
     monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda video: None)
     monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
     def fake_session(**kwargs):
-        render = kwargs["on_metadata"](SimpleNamespace(fps=60, width=1080, height=1920,
-            duration_in_frames=docs["plan"]["durationSeconds"] * 60))
+        render = kwargs["on_metadata"](SimpleNamespace(fps=30, width=1080, height=1920,
+            duration_in_frames=docs["plan"]["durationSeconds"] * 30))
         Path(render["out"]).write_bytes(b"video")
         return {"readySeconds": 0.01}
     monkeypatch.setattr(remotion, "render_session", fake_session)
