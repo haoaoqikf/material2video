@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "dark-proof",
+  "version": "1.0.0",
+  "description": "暗场论证：近黑舞台、米白/金/朱红三色语义、巨型数字、可数点阵、论证图表、双语屏幕字幕与手绘描线，适合用一个数字推完一条论证的 60 秒知识短片。",
+  "types": ["general"],
+  "frames": [{"width": 1920, "height": 1080}],
+  "guide": "GUIDE.md",
+  "tokens": "tokens.json",
+  "components": {
+    "kit": "components/kit.tsx",
+    "stage": "components/stage.tsx",
+    "hero-number": "components/hero-number.tsx",
+    "counter": "components/counter.tsx",
+    "dot-field": "components/dot-field.tsx",
+    "proof-chart": "components/proof-chart.tsx",
+    "bilingual-title": "components/bilingual-title.tsx",
+    "screen-subtitle": "components/screen-subtitle.tsx",
+    "hand-drawn-line": "components/hand-drawn-line.tsx"
+  }
+}

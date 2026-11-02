@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "dark-proof-sample",
+  "type": "general",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "audio": "optional"
+  },
+  "style": {
+    "id": "dark-proof"
+  }
+}

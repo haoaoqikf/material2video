@@ -8,9 +8,9 @@
 
 - 新增正式风格包 `styles/dark-proof/`（中文名「暗场论证」）：清单、tokens、GUIDE 与可复用组件，覆盖近黑舞台、巨型数字、可数点阵、论证图表、计数器、双语字幕、手绘描线与确定性工具。风格只提供表现层，不内置题材数学、文案、分镜或声音。
 - 新增规范示例 `styles/dark-proof/examples/sample/`：《样本》约 58 秒（1740 帧）、1920×1080、30 fps、无旁白；用“3 条评价 → 3/1000 样本 → 样本量增大 → 线是人画的 → 均值回归 → 盲人摸象 → 标准误 → 收束”讲清小样本幻觉；中英双语屏幕字幕，原创环境床与稀疏事件音。
-- 把仓库固定风格示例集合从五个扩为六个，新增 `dark-proof/sample`；同步 `tests/helpers/examples.py`、`styles/README.md`、README、[风格接入契约](../../../.agents/skills/material2video/references/style-pack.md) 与 `AGENTS.md` 的固定名单。
+- 把仓库固定风格示例集合从五个扩为六个，新增 `dark-proof/sample`；同步 `tests/helpers/examples.py`、`styles/README.md`、README、[风格接入契约](../../../../.agents/skills/material2video/references/style-pack.md) 与 `AGENTS.md` 的固定名单。
 - 新增风格包与示例的契约测试：注册、清单、类型画幅拒绝、组件确定性、指纹剪枝、示例无旁白与字幕安全区、六示例校验、无参考媒体进入成片。
-- 更新 `style-registry`、`article-explainer` 与 `vibe-fable-style` 中写死“五个风格/五个示例”的规格表述。
+- 更新 `style-registry`、`article-explainer`、`vibe-fable-style` 与 `video-frame-rate` 中写死“五个风格/五个示例”的规格表述。
 
 不新增视频类型或 CLI 命令；不改变 v8 分镜 schema、共享字幕层、制作门、评审职责与导出条件；不重制现有五套风格或其示例；参考片的画面、字幕、文案、角色与音轨不进入成片或风格包。
 
@@ -25,6 +25,7 @@
 - `style-registry`: 正式风格包从五个扩为六个，登记 `dark-proof`，并保持示例目录不参与风格发现与指纹。
 - `article-explainer`: 随附风格示例集合从五个扩为六个，新增 `dark-proof/sample` 的 v8、画幅、帧率、无旁白与文案检查。
 - `vibe-fable-style`: 风格示例数量表述从五个改为六个，避免主规格在新增示例后失真。
+- `video-frame-rate`: 固定示例数量从五个改为六个，登记 `dark-proof/sample` 为 30 fps 示例。
 
 ## Impact
 
@@ -32,4 +33,4 @@
 - 预期不修改 `src/m2v/` 的注册、准备或渲染实现：现有风格发现、指纹、组件导入与 v8 录制链路可直接承载新包；若实施中发现清单或构建边界缺口，再按本变更补充。
 - 修改 `tests/helpers/examples.py` 与文档中的固定名单；现有五套风格包的内容与指纹不变，现有示例行为不变。
 - 参考片只作为拆解证据与并排基准，渲染链路不读取 `refs/`；参考画面、音轨与文案不进入成片。
-- 本变更只完成规划，不实施风格包、示例、测试或文档修改。
+- 本变更先完成规划，随后在同一变更内实施风格包、示例、测试与文档修改；实施证据见示例 `VERIFICATION.md` 与 `outputs/style-reference.md`。

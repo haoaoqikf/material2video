@@ -118,7 +118,7 @@
 
 ### Requirement: 参考风格证据
 
-《样本》SHALL 按[参考风格契约](../../../.agents/skills/material2video/references/reference-style.md)产出 `outputs/style-reference.md`，记录借鉴分层、不借清单、八项指标（参考值、目标值、实际值、差值）、三张并排基准与 2 秒动效样片，并由独立子代理完成冷审。该记录是证据格式，SHALL NOT 被当作数值通过阈值；缺少任一材料视为还原度验收未完成。
+《样本》SHALL 按[参考风格契约](../../../../../../.agents/skills/material2video/references/reference-style.md)产出 `outputs/style-reference.md`，记录借鉴分层、不借清单、八项指标（参考值、目标值、实际值、差值）、三张并排基准与 2 秒动效样片，并由独立子代理完成冷审。该记录是证据格式，SHALL NOT 被当作数值通过阈值；缺少任一材料视为还原度验收未完成。
 
 #### Scenario: 材料齐全
 

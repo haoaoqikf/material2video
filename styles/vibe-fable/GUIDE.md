@@ -186,7 +186,7 @@ const {subtitleSafeArea} = useSceneContext();
 - 准备：`prepare` 记录风格身份与全包内容指纹；包内容变化使旧准备失效，需重新 `prepare`。
 - 示例：`styles/vibe-fable/examples/pigeon/` 用本包完成 33 秒示例，`validate` 通过并可完整渲染。
 - 确定性：同一帧两次独立录制一致；不因运行时刻或随机数变化。
-- 回归：各风格 `examples/` 中的五个固定示例、金融类型、共享字幕层与既有无风格作品不受影响。
+- 回归：各风格 `examples/` 中的六个固定示例、金融类型、共享字幕层与既有无风格作品不受影响。
 
 ## 10. 边界
 

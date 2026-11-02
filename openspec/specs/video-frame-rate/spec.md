@@ -27,5 +27,5 @@
 - **THEN** 原准备及录制缓存失效，需按新帧率重新准备；以秒计的时长和运动速度保持一致
 
 #### Scenario: 固定示例
-- **WHEN** 五个随附风格示例完成准备、完整预演及正式导出
-- **THEN** `doc-archive` 与 `deep-journey` 示例按其显式声明的 60 fps 交付，`count-ledger`、`vibe-night/fold` 与 `vibe-fable/pigeon` 按 30 fps 交付；各示例帧数与准备记录一致，旁白与字幕同步
+- **WHEN** 六个随附风格示例完成准备、完整预演及正式导出
+- **THEN** `doc-archive` 与 `deep-journey` 示例按其显式声明的 60 fps 交付，`count-ledger`、`vibe-night/fold`、`vibe-fable/pigeon` 与 `dark-proof/sample` 按 30 fps 交付；各示例帧数与准备记录一致，旁白与字幕同步
