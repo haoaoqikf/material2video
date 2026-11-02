@@ -32,4 +32,4 @@
 - [x] 6.1 更新 README、ARCHITECTURE、web README 许可表、skill reference 与 guidance routes。
 - [x] 6.2 新增 OpenSpec 提案、设计、规格与任务。
 - [x] 6.3 `pnpm -C web test/build`、`uv run pytest`、`-m "not slow"`、目标 slow 用例、`sync_docs.py --check`、`openspec validate --strict`。
-- [ ] 6.4 检查暂存内容，提交实施结果；同步主规格并归档变更。
+- [x] 6.4 检查暂存内容，提交实施结果；同步主规格并归档变更。
