@@ -30,4 +30,4 @@
 - [x] 5.2 重新渲染代表帧、边界帧与 `--det` 同帧一致性；核对字幕逐字展开、英文延迟、关键词高亮、光效与取样窗。
 - [x] 5.3 全片 `uv run m2v render` 与 `uv run m2v qa`；检查响度约 −14 LUFS / ≤−1 dBTP，`outputs/` 不入库。
 - [x] 5.4 重做 `outputs/style-reference.md`、并排图与 2 秒样片，删除旧「平涂无光晕」结论；由独立子代理冷审新图与样片并记录差异项。
-- [ ] 5.5 检查 Git 暂存范围，提交实施；同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`，再提交归档结果。
+- [x] 5.5 检查 Git 暂存范围，提交实施；同步 `openspec/specs/` 主规格并把变更移入 `openspec/changes/archive/`，再提交归档结果。
