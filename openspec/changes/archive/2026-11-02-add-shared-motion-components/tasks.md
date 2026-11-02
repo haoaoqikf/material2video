@@ -38,4 +38,4 @@
 - [x] 6.2 `uv run pytest`、`uv run pytest -m "not slow"`、slow code scene build/pure-time。
 - [x] 6.3 `sync_docs.py --check`、`openspec validate --strict`、`openspec validate --specs`。
 - [x] 6.4 对 dark-proof sample / vibe-fable pigeon / doc-archive film 做代表帧复核。
-- [ ] 6.5 检查暂存内容，提交实施结果；同步主规格并归档变更。
+- [x] 6.5 检查暂存内容，提交实施结果；同步主规格并归档变更。
