@@ -1,11 +1,16 @@
 import {useEffect, useMemo} from 'react';
-import {createSceneEvents, easeMotion, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import {
-  FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, GOLD, MUTED, OFF_WHITE,
+  RollingNumber, SlideIn, TextBlock, createSceneEvents, easeMotion, useSceneContext,
+  type CodeSceneProps,
+} from 'm2v/code-scene';
+import {
+  FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, FONT, GOLD, MUTED, OFF_WHITE,
   columnPositions, hillPositions, mixColor, shelfPositions, withdrawBlockPositions,
 } from './discs';
 import {AXES, hillLandingDelay} from './compoundLayout';
-import {clamp, discDiameter, discFractions, segmentAt, yearState} from './compoundMath';
+import {
+  UNITS_PER_DISC, balance, clamp, discDiameter, discFractions, segmentAt, yearState,
+} from './compoundMath';
 
 const LEFT_X = AXES.left;
 const RIGHT_X = AXES.right;
@@ -78,6 +83,65 @@ const S1_LABEL_X = {left: projectX(LEFT_X, CAM_KEYS[0].cam), right: projectX(RIG
 const S1_LABEL_Y = projectY(604, CAM_KEYS[0].cam);
 const S4_CAM = {x: 960, y: 540, s: 1.02};
 const S5_CAM = {x: 960, y: 540, s: .885};
+
+// 共享组件取数口径：S2 的当年收益与金币同步从 0 长到 1,000；S5 只揭示终值，
+// 不在读数里出现与已成形圆片不一致的中间总量。
+const FIRST_YEAR_GAIN = balance(1, true).gain;
+const RESULT_TEXT = {
+  withdraw: `${Math.round(balance(30, false).total / UNITS_PER_DISC)} 枚`,
+  reinvest: `约 ${yearState(30).totalUnits.toFixed(1)} 枚`,
+};
+const S5_RESULT_X = {
+  withdraw: projectX(300 + 4.5 * 42, S5_CAM),
+  reinvest: projectX(HILL_CENTER, S5_CAM),
+};
+
+// 结论用逐字显影而不是硬边擦写：擦写边界会停在半个字上，静止帧像裁切错误。
+const CONCLUSION = '让收益，也成为本金。';
+
+function Formula({t}: {t: number}) {
+  return (
+    <div data-m2v-role="body" style={{
+      position: 'absolute', left: 120, top: 280 - TYPE.body * .8,
+      fontFamily: FONT, fontSize: TYPE.body, fontWeight: 500, color: MUTED,
+      lineHeight: 1, whiteSpace: 'nowrap',
+      opacity: arrive(t, 4.2, .25) * (1 - arrive(t, 6.6, .3)),
+    }}>
+      10,000 × 10% ={' '}
+      <RollingNumber from={0} to={FIRST_YEAR_GAIN} progress={clamp((t - 4.2) / 1.0)}
+        decimals={0} group easing={easeOut}/>
+    </div>
+  );
+}
+
+/** 结果枚数只揭示终值：上浮淡入，不滚动也不横向擦写，避免中间值被读成另一个总数。 */
+function ResultFigures({t}: {t: number}) {
+  const stat = (x: number, text: string, delay: number) => (
+    <div style={{position: 'absolute', left: x, top: 385 - TYPE.hero * .8,
+      transform: 'translateX(-50%)', width: 'max-content'}}>
+      <SlideIn progress={clamp((t - 21.0 - delay) / .45)} from="bottom" distance={18} fade
+        style={{fontFamily: FONT, fontSize: TYPE.hero, fontWeight: 600, color: OFF_WHITE,
+          lineHeight: 1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums'}}
+        role="body">{text}</SlideIn>
+    </div>
+  );
+  return <>
+    {stat(S5_RESULT_X.withdraw, RESULT_TEXT.withdraw, 0)}
+    {stat(S5_RESULT_X.reinvest, RESULT_TEXT.reinvest, .06)}
+  </>;
+}
+
+function Conclusion({t}: {t: number}) {
+  return (
+    <div style={{position: 'absolute', left: 460, top: 610 - TYPE.hero * .8,
+      width: 1000, opacity: arrive(t, 26.9, .05)}}>
+      <TextBlock text={CONCLUSION} maxWidth={1000} fontFamily={FONT} fontSize={TYPE.hero}
+        fontWeight={600} lineHeight={1} align="center" baseOpacity={0}
+        progress={clamp((t - 26.9) / .55)} easing={easeOut} role="body"
+        style={{color: OFF_WHITE}}/>
+    </div>
+  );
+}
 
 // 命名缓动：入场减速、离场加速、画面内两端平滑、相机 easeInOutSine、落定回弹。
 const easeOut = (p: number) => easeMotion('easeOutCubic', p);
@@ -281,8 +345,6 @@ function TextLayer({t}: {t: number}) {
     </>}
     {segment === 'S2' && <>
       <Text x={120} y={150} size={TYPE.heading} weight={600}>第 1 年</Text>
-      <Text x={120} y={280} size={TYPE.body} color={MUTED}
-        opacity={1 - arrive(t, 6.6, .3)}>10,000 × 10% = 1,000</Text>
     </>}
     {segment === 'S3' && <>
       <Text x={120} y={150} size={TYPE.heading} weight={600}>第 2 年</Text>
@@ -297,16 +359,10 @@ function TextLayer({t}: {t: number}) {
       <Text x={120} y={125} size={TYPE.body} color={MUTED}>{t < 21.0
         ? '同样 10,000，同样 10%，快进到第 30 年'
         : '30 年后的总资产'}</Text>
-      <Text x={projectX(300 + 4.5 * 42, S5_CAM)} y={260} size={TYPE.body} weight={600} anchor="middle">收益取走</Text>
-      <Text x={projectX(HILL_CENTER, S5_CAM)} y={260} size={TYPE.body} weight={600} anchor="middle">收益再投入</Text>
-      <Text x={projectX(300 + 4.5 * 42, S5_CAM)} y={385} size={TYPE.hero} anchor="middle" weight={600}
-        opacity={arrive(t, 21.0, .2)}>40 枚</Text>
-      <Text x={projectX(HILL_CENTER, S5_CAM)} y={385} size={TYPE.hero} anchor="middle" weight={600}
-        opacity={arrive(t, 21.0, .2)}>约 174.5 枚</Text>
+      <Text x={S5_RESULT_X.withdraw} y={260} size={TYPE.body} weight={600} anchor="middle">收益取走</Text>
+      <Text x={S5_RESULT_X.reinvest} y={260} size={TYPE.body} weight={600} anchor="middle">收益再投入</Text>
     </>}
     {segment === 'S6' && <>
-      {t >= 26.9 && <Text x={960} y={610} size={TYPE.hero} anchor="middle" weight={600}
-        opacity={arrive(t, 26.9, .4)}>让收益，也成为本金。</Text>}
       {t >= 27.1 && <Text x={960} y={150} size={TYPE.title} anchor="middle" weight={600}
         opacity={arrive(t, 27.1, .35)}>复利</Text>}
     </>}
@@ -324,7 +380,8 @@ export default function Compound(config: CodeSceneProps) {
   const hideText = Boolean((config.props as {hideText?: boolean} | undefined)?.hideText);
   const cam = cameraAt(t);
   const tx = 960 - cam.s * cam.x, ty = 540 - cam.s * cam.y;
-  return <div style={{width: config.width, height: config.height, background: BG, overflow: 'hidden'}}>
+  return <div style={{position: 'relative', width: config.width, height: config.height,
+    background: BG, overflow: 'hidden'}}>
     <svg viewBox="0 0 1920 1080" width="100%" height="100%" aria-label="复利数学演示">
       <rect width={1920} height={1080} fill={BG}/>
       <g transform={`translate(${tx} ${ty}) scale(${cam.s})`}>
@@ -336,5 +393,11 @@ export default function Compound(config: CodeSceneProps) {
       </g>
       {!hideText && <TextLayer t={t}/>}
     </svg>
+    {/* 共享动效组件是 DOM 层：滚动读数与擦写文字叠在画布上，不改变世界坐标。 */}
+    {!hideText && <div style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+      {t >= 4.2 && segmentAt(t) === 'S2' && <Formula t={t}/>}
+      {t >= 21 && segmentAt(t) === 'S5' && <ResultFigures t={t}/>}
+      {t >= 26.9 && <Conclusion t={t}/>}
+    </div>}
   </div>;
 }

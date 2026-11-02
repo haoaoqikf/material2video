@@ -1,5 +1,20 @@
 # 《复利》验证记录
 
+## 2026-11-03 共享动效组件接入
+
+- 文件：`styles/count-ledger/examples/compound-interest/outputs/video.mp4`
+- SHA-256 `a2037e1bf9e32f3215f79d8ea6fd35fa2aee65bcc0bd7efd0125c21ea4aa070a`；preparedFingerprint `633488a03aa97122560d4f1f533896ec6f604a49b1f16fc31210fbfb166b46aa`。
+- 1920×1080、30fps、870帧、29.0秒；无旁白；29秒环境床与25个事件音、数学口径、分镜、相机关键帧、圆片数量与检查点断言均未改。
+- 改动：S2 公式改为 4.2 秒淡入，当年收益用 `RollingNumber` 随金币从 0 滚到 1,000（4.2–5.2 秒，`easeOutCubic`，千位分隔）；S5 结果枚数只揭示终值，21.0 秒起 0.45 秒自下 18px 上浮淡入，左右错开 0.06 秒；S6 结论用 `TextBlock` 在 26.9–27.45 秒逐字显影。数字与结论层均带 `data-m2v-role=body`，字号分别为 60/88/88，仍由检查点量测。
+- 为什么不用滚动或擦写读数：独立盲看指出滚动会出现“27 枚”配 40 枚圆片，横向擦写会出现“约 17”这类可读的错误中间值，硬边还会把单个汉字切成半字。改为 S5 终值上浮、S6 逐字显影后，画面只呈现完整终值或完整字形。
+- QA pass（frozen、picture measured、subtitleContrast、loudness、audioSync、claims）：响度 −14.6 LUFS、true peak −1.2 dBFS；音画差 0.00172 秒；最长静止 0.83 秒（11–12 秒，S3），近静止比 3.57%；S5/S6 无冻结失败。
+- 技术检查：validate、prepare pass；G1 pass；G4 六个检查点全部 pass（S1–S4 圆片计数与裁切/重叠不变；S5 169白/16金/30暗、文字预算 56；S6 175白/0金/0暗、结论与片名文字状态）。G2/G3 的设计静帧与 animatic 未随本次运动细节重制，沿用 2026-11-01 构图证据；它们不证明新的读数与逐字显影，本记录不据此宣称新的 G2/G3 复核通过。
+- 同帧一致性：`lookdev --det` pass（含 frame 815/27.167 秒）；两次独立采集一致，`psnr` 为 null 表示未测出可见差异。
+- 测试：前端 `vitest` 245 项通过；Python 相关示例、共享组件/原语与代码场景测试 127 项通过；`uv run pytest -m "not slow"` 退出码 0。代码场景本身由 prepare、render、G4 与 det 覆盖。
+- 成片抽帧：S2 4.4/5.2 秒、S5 21.05/21.2/21.45/24.0 秒、S6 26.95/27.05/27.2/27.5/28.5 秒已从最终文件抽取核对；S5 只出现终值，S6 每个字完整出现、无半字，片名 27.1 秒后进入。抽帧位于忽略的 `work/compound-interest-20261101/`。
+- 定向独立盲看：单名新建上下文代理仅看 9 张成片抽帧（中间版），指出 S5 滚动与圆片数量矛盾、S6 硬边擦写半字；两项已据此修正。该盲看不构成正式 G5/G6 终审，未关闭独立评审项；其另指的既有金顶排右端叠片（V3-C16 残余风险）与结果屏无色例（用户明确删除图例的既有决定）本轮未改。
+- 旧版证据：2026-11-01 成片 `8da326da…` 与代表帧已移至 `work/compound-interest-20261101/`，只证明上一版。
+
 ## 2026-11-01 视觉与运动升级（frontend-design / motion-design）
 
 - 文件：`styles/count-ledger/examples/compound-interest/outputs/video.mp4`
