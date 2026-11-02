@@ -1,8 +1,11 @@
 /**
  * 引线标注：贴着画面里某个东西的小字，一条细线指过去。
  * 只用于识别对象或指出可见特征，不写解释性长句。
+ *
+ * 引线生长交给共享 Callout/@remotion/paths；本文件只保留 vibe-fable 的
+ * 颜色、字号与文字阴影。
  */
-import {useId} from 'react';
+import {Callout as SharedCallout} from 'm2v/code-scene';
 import {T, alpha, color} from './kit';
 
 export type CalloutProps = {
@@ -13,29 +16,30 @@ export type CalloutProps = {
   align?: 'left' | 'right';
   color?: string;
   opacity?: number;
+  progress?: number;
   role?: string;
   state?: string;
 };
 
 export default function Callout({
   text, at, label, align = label.x >= at.x ? 'left' : 'right', color: textColor = color('ink'),
-  opacity = 1, role, state,
+  opacity = 1, progress = 1, role, state,
 }: CalloutProps) {
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const accent = color('gold');
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{position: 'absolute', inset: 0, opacity, pointerEvents: 'none'}}>
-      <svg width="100%" height="100%" style={{position: 'absolute', inset: 0, overflow: 'visible'}}>
-        <line x1={at.x} y1={at.y} x2={label.x} y2={label.y} stroke={alpha(accent, 0.9)} strokeWidth={2}/>
-        <circle cx={at.x} cy={at.y} r={5} fill={accent}/>
-      </svg>
-      <div style={{
-        position: 'absolute', left: label.x, top: label.y,
-        transform: align === 'left' ? 'translate(0, -50%)' : 'translate(-100%, -50%)',
-        marginLeft: align === 'left' ? 14 : -14,
-        fontFamily: T.type.fontStack, fontSize: T.type.callout, color: textColor, whiteSpace: 'nowrap',
-        textShadow: '0 2px 8px rgba(0,0,0,.4)',
-      }}>{text}</div>
-    </div>
+    <SharedCallout
+      text={text}
+      at={at}
+      label={label}
+      align={align}
+      color={alpha(color('gold'), 0.9)}
+      textColor={textColor}
+      opacity={opacity}
+      progress={progress}
+      fontSize={T.type.callout}
+      fontFamily={T.type.fontStack}
+      textShadow="0 2px 8px rgba(0,0,0,.4)"
+      role={role}
+      state={state}
+    />
   );
 }

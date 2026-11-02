@@ -24,7 +24,7 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 - `src/m2v/production/`：制作合同、证据依赖、追加式状态、独立评审包及基线保留；制作编排可调用类型采集器，core 不反向依赖该层，渲染不读取制作门作为导出条件。
 - `src/m2v/reference/`：外部参考素材获取、页面详情解析、媒体摘要核验与用户授权的音轨提取。`ytdlp_adapter.py` 是 yt-dlp 提取入口；yt-dlp 无法处理平台签名时，`douyin.py` 才退回浏览器解析并留下明确日志。
 - `src/m2v/cli.py` 与 `src/m2v/commands.py`：统一命令入口及通用命令编排；类型专属命令由类型模块提供。
-- `web/src/`：Remotion 合成、通用代码场景运行时、共享动效原语、字体与画幅契约。类型专属 composition 在 `web/src/types/<type>/`；作品场景代码保存在作品内容目录，不放进共享运行时或类型目录。`web/src/types/driving_route/DrivingRoute.tsx` 只绘制当前帧，投影、累计距离、贴路位置、朝向、镜头与瓦片可见性在 `types/driving_route/route.ts` 中实现为纯函数；同一帧不依赖执行顺序或跨帧状态。配置普通道路底图时，概览常驻，z12 跟随瓦片按当前相机视口绘制并在结尾淡出；顶部两行标题、车辆旁里程与右下署名在屏幕空间叠加；市/县名使用路线材料中的行政区中心点绘制，市辖区不单独标注。`web/src/types/driving_route/layout.json` 是标题、内容区、相机与标签尺寸的跨语言单一来源。`web/src/code-scene/painter/` 是可选的二维 Canvas 绘制层：供需要辉光质感、高密度粒子与线条生长的场景使用，与 R3F 的 `Canvas` 区分，并输出同源的 DOM 量测代理与状态探针，使 Canvas 内容可被检查点量测。生产链路的确定性源码闸门不覆盖该目录，由测试对整目录执行同一检查。
+- `web/src/`：Remotion 合成、通用代码场景运行时、共享动效组件、共享动效原语、字体与画幅契约。类型专属 composition 在 `web/src/types/<type>/`；作品场景代码保存在作品内容目录，不放进共享运行时或类型目录。`web/src/code-scene/motion-components/` 提供只依赖 `progress`/`easing` 的 L1/L2 组件；`paths.ts` 封装 `@remotion/paths`，`styles.ts` 封装 `@remotion/animation-utils`，`MarkerHighlight` 使用 `roughjs` 生成草图几何。作品与风格包只能通过 `m2v/code-scene` 使用，不直接 import 这些库。`web/src/types/driving_route/DrivingRoute.tsx` 只绘制当前帧，投影、累计距离、贴路位置、朝向、镜头与瓦片可见性在 `types/driving_route/route.ts` 中实现为纯函数；同一帧不依赖执行顺序或跨帧状态。配置普通道路底图时，概览常驻，z12 跟随瓦片按当前相机视口绘制并在结尾淡出；顶部两行标题、车辆旁里程与右下署名在屏幕空间叠加；市/县名使用路线材料中的行政区中心点绘制，市辖区不单独标注。`web/src/types/driving_route/layout.json` 是标题、内容区、相机与标签尺寸的跨语言单一来源。`web/src/code-scene/painter/` 是可选的二维 Canvas 绘制层：供需要辉光质感、高密度粒子与线条生长的场景使用，与 R3F 的 `Canvas` 区分，并输出同源的 DOM 量测代理与状态探针，使 Canvas 内容可被检查点量测。生产链路的确定性源码闸门不覆盖该目录，由测试对整目录执行同一检查。
 
 ## 契约与文档
 

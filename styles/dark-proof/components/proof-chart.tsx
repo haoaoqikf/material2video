@@ -5,6 +5,7 @@
  * 不依赖 CSS 动画；坐标与颜色均来自 props。
  */
 import type {CSSProperties} from 'react';
+import {pathDrawProps, pathLength, pathTangentAtLength} from 'm2v/code-scene';
 import {clamp01, LATIN, T} from './kit';
 
 export type Point = [number, number];
@@ -112,11 +113,12 @@ export function ChartLine({
     .map(([px, py], index) => `${index === 0 ? 'M' : 'L'}${px.toFixed(2)} ${py.toFixed(2)}`).join(' ');
   const value = clamp01(progress);
   if (!path || value <= 0) return null;
+  const draw = dashed
+    ? {pathLength: 1, strokeDasharray: '0.02 0.018', strokeDashoffset: 0}
+    : pathDrawProps(path, value);
   return (
     <path d={path} fill="none" stroke={color} strokeWidth={width}
-      strokeLinecap="round" strokeLinejoin="round" opacity={opacity}
-      pathLength={1} strokeDasharray={dashed ? '0.02 0.018' : '1'}
-      strokeDashoffset={dashed ? 0 : 1 - value}/>
+      strokeLinecap="round" strokeLinejoin="round" opacity={opacity} {...draw}/>
   );
 }
 
@@ -160,16 +162,19 @@ export function ChartArrow({
   const length = Math.hypot(dx, dy) || 1;
   const cx = mx - (dy / length) * bend;
   const cy = my + (dx / length) * bend;
-  const angle = Math.atan2(to[1] - cy, to[0] - cx);
+  const path = `M${from[0].toFixed(2)} ${from[1].toFixed(2)} Q${cx.toFixed(2)} ${cy.toFixed(2)} `
+    + `${to[0].toFixed(2)} ${to[1].toFixed(2)}`;
+  const tangent = pathTangentAtLength(path, Math.max(0, pathLength(path) - 0.001))
+    ?? {x: to[0] - cx, y: to[1] - cy};
+  const angle = Math.atan2(tangent.y, tangent.x);
   const left = angle + Math.PI * 0.82;
   const right = angle - Math.PI * 0.82;
   const headOpacity = clamp01((value - 0.82) / 0.18);
-  const path = `M${from[0].toFixed(2)} ${from[1].toFixed(2)} Q${cx.toFixed(2)} ${cy.toFixed(2)} `
-    + `${to[0].toFixed(2)} ${to[1].toFixed(2)}`;
+  const draw = pathDrawProps(path, value);
   return (
     <g opacity={opacity}>
       <path d={path} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round"
-        pathLength={1} strokeDasharray="1" strokeDashoffset={1 - value}/>
+        {...draw}/>
       {headOpacity > 0 ? (
         <path
           d={`M${(to[0] + Math.cos(left) * head).toFixed(2)} ${(to[1] + Math.sin(left) * head).toFixed(2)} `

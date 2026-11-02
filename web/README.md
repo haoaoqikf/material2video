@@ -139,6 +139,10 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 | 依赖 | 许可 | 越界条件 |
 | --- | --- | --- |
 | Remotion | 个人与 ≤3 人公司**免费，可商用** | 4 人以上组织协作，或对外提供渲染服务（属「Remotion for Automators」，$0.01/render、$100/月下限）时须升级 |
+| `@remotion/paths` / `@remotion/animation-utils` | MIT | 随附许可证与版权声明 |
+| `roughjs` | MIT | 随附许可证与版权声明 |
+| `perfect-freehand` | MIT | 随附许可证与版权声明 |
+| `svg-path-properties` | ISC | 随附许可证与版权声明 |
 | React / Tailwind / Vite | MIT | 随附许可证与版权声明 |
 | Inter、Noto Sans SC | SIL OFL 1.1 | 随附许可证、不得单独售卖字体、不得用保留字体名发布修改版；本项目不做修改 |
 

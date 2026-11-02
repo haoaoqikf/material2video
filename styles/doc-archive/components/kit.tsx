@@ -4,7 +4,7 @@
  * 本包不随包携带字体，使用宿主已注册的 `M2V Sans`；所有时间输入来自受控帧号，
  * 不使用挂钟、`Math.random`、CSS 动画或组件计时器。
  */
-import {hashSeed, seededRandom, useSceneContext} from 'm2v/code-scene';
+import {hashSeed, makeTransform, scale as scaleTransform, seededRandom, translate3d, useSceneContext} from 'm2v/code-scene';
 import {tokens} from 'm2v/style';
 
 export type ChapterPosition = 'lower' | 'upper' | 'upperNarrow' | 'right' | 'vertical';
@@ -61,10 +61,10 @@ export function lerp(from: number, to: number, progress: number): number {
 export function archiveGradient(progress: number): {
   transform: string; filter: string;
 } {
-  const scale = T.motion.sourceScale + T.motion.sourceScaleGrowth * clamp01(progress);
+  const scaleValue = T.motion.sourceScale + T.motion.sourceScaleGrowth * clamp01(progress);
   const drift = T.motion.sourceDriftPx * clamp01(progress);
   return {
-    transform: `scale(${scale}) translate3d(${-drift}px,0,0)`,
+    transform: makeTransform([scaleTransform(scaleValue), translate3d(-drift, 0, 0)]),
     filter: `saturate(${T.motion.sourceSaturate}) contrast(${T.motion.sourceContrast})`,
   };
 }

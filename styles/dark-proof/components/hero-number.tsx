@@ -6,6 +6,7 @@
  * 与 scale 驱动，组件不自行计时。
  */
 import type {CSSProperties} from 'react';
+import {makeTransform, scale as scaleTransform} from 'm2v/code-scene';
 import {LATIN, NUMERIC_STYLE, T} from './kit';
 
 export type HeroNumberProps = {
@@ -33,7 +34,8 @@ export default function HeroNumber({
     <div
       data-m2v-role="hero-number"
       style={{
-        position: 'absolute', left: x, top: y, transform: `translate(${translate}, -50%) scale(${scale})`,
+        position: 'absolute', left: x, top: y,
+        transform: `translate(${translate}, -50%) ${makeTransform([scaleTransform(scale)])}`,
         transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'right center' : 'left center',
         fontFamily: LATIN, ...NUMERIC_STYLE, fontSize: size, lineHeight: 0.9,
         letterSpacing: '-0.035em', color, opacity, whiteSpace: 'nowrap',

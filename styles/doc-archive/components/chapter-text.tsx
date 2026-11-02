@@ -1,5 +1,6 @@
 /** 章节文字：年份、标题、别名与一句贡献；五种位置变体，进入由秒数换算。 */
 import type {CSSProperties} from 'react';
+import {makeTransform, translateY} from 'm2v/code-scene';
 import {T, chapterReveal, type ChapterPosition} from './kit';
 
 export type ChapterTextProps = {
@@ -26,7 +27,7 @@ export default function ChapterText({
         position: 'absolute',
         ...T.layout.chapter[position],
         opacity: reveal.opacity,
-        transform: `translateY(${reveal.translateY}px)`,
+        transform: makeTransform([translateY(reveal.translateY)]),
         textShadow: '0 3px 22px #000',
         ...style,
       }}

@@ -2,12 +2,11 @@
  * 手绘描线：按显式进度画出外部传入的 path。
  *
  * 默认用 `samplePath` 采样 + `perfect-freehand` 生成锥形手绘笔触；多子路径或
- * 采样失败时回退到普通 SVG 描边。路径与题材留在作品内；组件只负责线宽、
- * 圆头、轻微错位复本与生长进度，不读挂钟、不用滤镜或计时器。
+ * 采样失败时回退到普通 SVG 描边。回退路径的生长由共享的 `@remotion/paths`
+ * 封装计算；路径与题材留在作品内，组件不读挂钟、不用滤镜或计时器。
  */
 import {useMemo} from 'react';
-import {getStroke, polygonPath, samplePath} from 'm2v/code-scene';
-
+import {getStroke, pathDrawProps, polygonPath, samplePath} from 'm2v/code-scene';
 export type HandDrawnLineProps = {
   d: string;
   color?: string;
@@ -62,18 +61,19 @@ export default function HandDrawnLine({
     );
   }
   const dash = dashed ? '0.014 0.012' : '1';
+  const draw = dashed
+    ? {pathLength: 1, strokeDasharray: dash, strokeDashoffset: 0}
+    : pathDrawProps(d, value);
   return (
     <g opacity={opacity}>
       {ghostOffset !== 0 ? (
         <g transform={`translate(${ghostOffset} ${-ghostOffset * 0.6})`} opacity={0.32}>
           <path d={d} fill="none" stroke={color} strokeWidth={Math.max(1, width * 0.55)}
-            strokeLinecap="round" strokeLinejoin="round"
-            pathLength={1} strokeDasharray={dash} strokeDashoffset={dashed ? 0 : 1 - value}/>
+            strokeLinecap="round" strokeLinejoin="round" {...draw}/>
         </g>
       ) : null}
       <path d={d} fill="none" stroke={color} strokeWidth={width}
-        strokeLinecap="round" strokeLinejoin="round"
-        pathLength={1} strokeDasharray={dash} strokeDashoffset={dashed ? 0 : 1 - value}/>
+        strokeLinecap="round" strokeLinejoin="round" {...draw}/>
     </g>
   );
 }

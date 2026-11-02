@@ -5,7 +5,10 @@
  * 与 `frame` 的插值决定，不做装饰性摆动。
  */
 import {useId} from 'react';
+import {motionCurve, rollNumber, type Easing} from 'm2v/code-scene';
 import {T, alpha, color, frameProgress} from './kit';
+
+const LINEAR = motionCurve('linear');
 
 export type InstinctGaugeProps = {
   /** 目标读数；与 `startValue` 之间按 `frame` 插值。 */
@@ -18,6 +21,7 @@ export type InstinctGaugeProps = {
   /** 插值起止帧；省略时直接显示 `value`。 */
   startFrame?: number;
   durationFrames?: number;
+  easing?: Easing;
   /** 面板可见度。 */
   opacity?: number;
   x?: number;
@@ -43,13 +47,13 @@ function arcPath(cx: number, cy: number, radius: number, from: number, to: numbe
 
 export default function InstinctGauge({
   value, startValue, object, frame, startFrame = 0, durationFrames = 0,
-  opacity = 1, x = T.layout.gauge.x, y = T.layout.gauge.y, role, state,
+  easing = LINEAR, opacity = 1, x = T.layout.gauge.x, y = T.layout.gauge.y, role, state,
 }: InstinctGaugeProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const {min, max, redFrom, ticks, label, overLabel} = T.gauge;
   const progress = durationFrames > 0 ? frameProgress(frame, startFrame, durationFrames) : 1;
   const from = startValue ?? value;
-  const current = from + (value - from) * progress;
+  const current = rollNumber({from, to: value, progress, decimals: 0, easing}).value;
   const ratio = Math.min(1, Math.max(0, (current - min) / (max - min)));
   const redRatio = Math.min(1, Math.max(0, (redFrom - min) / (max - min)));
   const width = T.layout.gauge.width;

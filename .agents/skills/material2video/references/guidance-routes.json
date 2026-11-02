@@ -62,6 +62,11 @@
       "guide": "references/code-scene-runtime.md"
     },
     {
+      "id": "motion-components",
+      "when": "需要使用或修改共享 L1/L2 动效组件、路径生长、数字滚动、打字机、高亮或引线",
+      "guide": "references/code-scene-runtime.md#共享动效组件"
+    },
+    {
       "id": "troubleshooting",
       "when": "低机位细线、轨道、道具或相机保持段问题",
       "guide": "references/code-scene-runtime.md#按需排错"

@@ -18,6 +18,7 @@ export * from './dynamics';
 export * from './subtitles';
 export {svgPathProperties} from 'svg-path-properties';
 export {getStroke} from 'perfect-freehand';
+export * from './motion-components';
 export {createSceneEvents} from './events';
 // 二维绘制层用 `painter` 命名空间导出：`Canvas` 已经是 R3F 包装，直接铺开
 // 会让两个同名符号撞在一起。

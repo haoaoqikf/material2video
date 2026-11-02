@@ -253,6 +253,35 @@ pure 场景必须通过两道闸门：
 统一导出，作品不直接导入第三方包。新增动效或可视化组件前先按 `AGENTS.md` 的「动效与组件先
 调研外部方案」检索并记录选型，既有原语能满足时优先复用。
 
+### 共享动效组件
+
+`m2v/code-scene` 另提供一层可直接使用的 L1/L2 组件；它们只把 `progress` 和显式
+`easing` 映射成样式或几何，不读挂钟、不启动动画、不依赖 Remotion context。
+
+| 层 | 组件 | 用途 |
+| --- | --- | --- |
+| L1 | `FadeIn` / `SlideIn` / `ZoomIn` | 透明度、位移、缩放入场 |
+| L1 | `Blur` / `Glow` | CSS 模糊与辉光 |
+| L1 | `DrawLine` | SVG 路径按进度生长（含双层错位） |
+| L2 | `RollingNumber` | 数字滚动，复用 `rollNumber` |
+| L2 | `Typewriter` | 逐字显影，光标不能闪烁 |
+| L2 | `MarkerHighlight` | 手绘高亮，粗糙几何由 roughjs 生成 |
+| L2 | `BarGrowth` | 柱状生长，复用 `growSeries` |
+| L2 | `Callout` | 引线标注，引线按进度生长 |
+
+使用边界：
+
+- `@remotion/paths` 只用于 SVG path；Canvas 点列、粒子、辉光与量测继续用 Painter。
+- `@remotion/animation-utils` 只用于 CSS 数值、颜色与 transform；SVG 数值属性、Three.js
+  数值继续用 `interpolate`/`growSeries`/`interpolateState`。
+- `roughjs` 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化作品
+  已有的艺术路径。
+- 作品与风格组件必须从 `m2v/code-scene` 使用这些能力，不得直接 import `@remotion/*`
+  或 `roughjs`。代码场景打包器的 approved 白名单不放宽。
+- `@remotion/shapes` 与 `@remotion/motion-blur` 当前不引入；后者只适用于 Remotion
+  composition，code scene 的运动模糊仍用既有子帧方案。
+- 共享组件属于实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
+
 ### 二维绘制层
 
 `m2v/code-scene` 以 `painter` 命名空间提供可选的二维 Canvas 绘制层（与 R3F 的 `Canvas`

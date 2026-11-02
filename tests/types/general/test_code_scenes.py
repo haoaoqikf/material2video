@@ -162,6 +162,26 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
 
 
+@pytest.mark.slow
+@requires_node
+def test_build_allows_shared_motion_components(tmp_path):
+    source = """import {useEffect} from 'react';
+import {DrawLine, FadeIn, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+export default function Demo({width, height}: CodeSceneProps) {
+  const {ready, elapsedSeconds} = useSceneContext();
+  useEffect(() => {ready();}, [ready]);
+  const progress = Math.min(1, elapsedSeconds);
+  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
+    <FadeIn progress={progress}><div style={{color: '#fff'}}>shared</div></FadeIn>
+    <DrawLine d="M20 20 L200 200" progress={progress}/>
+  </div>;
+}
+"""
+    _project, output, result = prepare_build(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    assert (output / "scene.js").is_file()
+
+
 PURE_SOURCE = """import {useEffect} from 'react';
 import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 export default function Demo({width, height}: CodeSceneProps) {
@@ -170,6 +190,28 @@ export default function Demo({width, height}: CodeSceneProps) {
   return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
     <div style={{position: 'absolute', left: 20 + elapsedSeconds * 400, top: 40,
       width: 30, height: 30, background: '#fff'}}/>
+  </div>;
+}
+"""
+
+
+PURE_SHARED_SOURCE = """import {useEffect} from 'react';
+import {
+  BarGrowth, DrawLine, FadeIn, MarkerHighlight, RollingNumber, Typewriter,
+  motionCurve, useSceneContext, type CodeSceneProps,
+} from 'm2v/code-scene';
+export default function Demo({width, height}: CodeSceneProps) {
+  const {ready, elapsedSeconds} = useSceneContext();
+  useEffect(() => {ready();}, [ready]);
+  const progress = motionCurve('linear')(Math.min(1, elapsedSeconds));
+  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
+    <FadeIn progress={progress}><div style={{color: '#fff'}}>shared</div></FadeIn>
+    <DrawLine d="M20 20 L200 200" progress={progress}/>
+    <MarkerHighlight width={320} height={240} box={{x: 20, y: 20, width: 160, height: 60}}
+      progress={progress} seed={7}/>
+    <RollingNumber from={0} to={100} progress={progress}/>
+    <Typewriter text="pure" progress={progress}/>
+    <BarGrowth values={[10, 20]} progress={progress} width={320} height={240}/>
   </div>;
 }
 """
@@ -204,6 +246,23 @@ def test_pure_time_capture_seeks_directly_and_reuses_blocks(tmp_path, chromium_r
     clips = list((root / "outputs/code-cache").glob("*.mp4"))
     assert len(clips) == 4  # 0–3、3–9、9–12 与拼接后的 0–12
     assert any(path.stem.endswith("-3-9") for path in clips)
+
+
+@pytest.mark.slow
+@requires_node
+def test_pure_time_accepts_shared_motion_components(tmp_path, chromium_ready):
+    root = tmp_path / "project"
+    write_source(root, "scenes/demo.tsx", PURE_SHARED_SOURCE)
+    frame = {"width": 320, "height": 240,
+             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
+    relative = code_scenes.record(root, pure_scene(duration=6), {}, frame=frame, media={},
+                                  media_digest="empty", capture_range=(0, 6), fps=30)
+    clip = root / relative
+    code_scenes._verify_clip(clip, 6)
+    receipt = json.loads(clip.with_suffix(".json").read_text(encoding="utf-8"))
+    assert receipt["contract"] == code_scenes.PURE_CONTRACT
+    assert receipt["verified"] is True
+    assert receipt["probes"] and receipt["minPsnr"] is None
 
 
 @pytest.mark.slow

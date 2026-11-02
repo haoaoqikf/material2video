@@ -5,6 +5,7 @@
  * 三个插槽都是可选渲染函数，不传即该层为空。
  */
 import type {ReactNode} from 'react';
+import {makeTransform, scale, translate3d} from 'm2v/code-scene';
 import {T, frameProgress} from './kit';
 
 export type ParallaxBandProps = {
@@ -29,7 +30,10 @@ export default function ParallaxBand({
   const progress = frameProgress(frame, startFrame, durationFrames);
   const layer = (factor: number): React.CSSProperties => ({
     position: 'absolute', inset: 0, pointerEvents: 'none',
-    transform: `translate3d(${(shift * factor).toFixed(3)}px, 0, 0) scale(${(1 + (zoom - 1) * factor * progress).toFixed(5)})`,
+    transform: makeTransform([
+      translate3d(shift * factor * progress, 0, 0),
+      scale(1 + (zoom - 1) * factor * progress),
+    ]),
   });
   return (
     <div data-m2v-role={role} data-m2v-state={state} style={{position: 'absolute', inset: 0, overflow: 'hidden'}}>
