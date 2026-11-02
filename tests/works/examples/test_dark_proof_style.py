@@ -19,13 +19,14 @@ EXAMPLE = PACKAGE / "examples" / "sample"
 COMPONENTS = {
     "kit", "stage", "hero-number", "counter", "dot-field", "proof-chart",
     "bilingual-title", "screen-subtitle", "hand-drawn-line",
+    "light-trail", "burst", "shock-ring",
 }
 
 
 def test_manifest_tokens_and_no_assets():
     package = styles.load_style("dark-proof")
     manifest = package["manifest"]
-    assert manifest["version"] == "1.0.0"
+    assert manifest["version"] == "1.1.0"
     assert set(package["components"]) == COMPONENTS
     assert "assets" not in manifest, "本包不登记字体或外部素材资产"
     assert "requires" not in manifest, "旁白可选，不能把 narration 锁成 none"
@@ -39,6 +40,9 @@ def test_manifest_tokens_and_no_assets():
     assert tokens["layout"]["subjectTop"] == 140 and tokens["layout"]["subjectBottom"] == 940
     assert tokens["layout"]["marginX"] == 96
     assert "safeArea" not in tokens["layout"], "字幕安全区只能来自场景上下文"
+    assert tokens["light"]["ringOpacity"] == 0.5
+    assert tokens["light"]["burstCount"] == 22
+    assert tokens["subtitleMotion"]["charStaggerFrames"] == 2
 
 
 def test_selection_rejects_wrong_type_and_frame():
@@ -146,6 +150,18 @@ def test_example_math_relations_are_present():
     assert "n × 4 → 误差 ÷ 2" in source
     assert "Math.sqrt(3)" in source and "Math.sqrt(1000)" in source
     assert "mean of three" in source
+
+
+def test_example_elephant_uses_icon_geometry_and_real_crops():
+    source = (EXAMPLE / "scenes" / "sample.tsx").read_text(encoding="utf-8")
+    # Lucide Lab `elephant` 的头部/耳外沿与卷鼻路径；腿、眼与取样窗必须共用同一几何。
+    assert "M14.5 12H14" in source and "M14 10a4 4 0 0 0 4 4" in source
+    assert "M10 16v5" in source and "M2 11v7" in source
+    assert "ELE_TUSKS" in source and "ELE_EYE" in source
+    assert 'id="sample-elephant-figure"' in source
+    assert 'href="#sample-elephant-figure"' in source
+    assert "ELE_CROPS" in source and "clipPath" in source
+    assert "局部一" not in source, "取样窗必须是真实局部放大，不是通用纹理"
 
 
 def test_example_media_recipe_is_complete():

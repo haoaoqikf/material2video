@@ -19,6 +19,16 @@ export type DarkProofTokens = {
   };
   motion: {enter: string; inScene: string; dissolveSeconds: number; revealSeconds: number};
   dots: {radius: number; fieldRadius: number; highlightRadius: number};
+  light: {
+    core: string; gold: string; ivory: string; ember: string;
+    trailSamples: number; trailLengthRatio: number; trailWidth: number;
+    burstCount: number; burstDistance: number; burstLifetime: number;
+    ringCount: number; ringTravel: number; ringThickness: number; ringOpacity: number;
+  };
+  subtitleMotion: {
+    enterFrames: number; exitFrames: number; risePx: number; driftPx: number;
+    englishDelayFrames: number; charStaggerFrames: number; charRevealFrames: number; glow: number;
+  };
   subtitles: {zh: number; en: number; lineGap: number};
 };
 

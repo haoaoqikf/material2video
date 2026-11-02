@@ -28,6 +28,8 @@ general 的检查点制作工具见[制作证据与状态](../README.md#制作�
 
 通用代码场景已支持 opt-in 的全局时间与事件化声音语义；pure-time 场景可直接 seek、按块并行采集，`render --jobs` 可按帧区间分进程渲染。默认仍是顺序采集与单进程，跨类型扩展待实际需求。
 
+通用代码场景的动效已按「外部方案优先」选型并分层沉淀：纯函数库 `svg-path-properties`（路径等距采样）与 `perfect-freehand`（锥形手绘笔触）以 MIT 许可引入，供手绘线、光轨与真实局部取样使用；`@remotion/motion-blur`、`tsparticles`、`reveal-text`、`roughjs`、`flubber` 等候选因依赖 Remotion 上下文、rAF/真实时间、CSS 动画、风格不合或停止维护而未引入。新增的 `web/src/code-scene/dynamics.ts` 与 `subtitles.ts` 提供纯数值的光轨、爆散、扩散环、互补溶解与字幕错峰，供任意代码场景复用；`dark-proof` 包在此之上提供 `light-trail`、`burst`、`shock-ring` 等风格组件，《样本》示例用它们实现锚点转场、光效、逐字字幕与 Lucide Lab 大象几何。选型依据与许可记录在示例 `SOURCES.md` 与本次变更规格中。
+
 ## 扩展原则
 
 新专用类型按“材料契约—业务准备—专用画面—类型评审—注册接入”实现。类型目录支持可选的「类别 → 类型」归组：类别只组织类型、派生规范作品位置与文档分组，不提供行为；当前 `route-journey`（路线旅程）包含 `driving-route` 与 `road-trip`，其余类型未分类。共享底座不导入类型私有逻辑；只有多个真实类型出现相同需求时才抽取共享能力。模块边界见 [架构说明](../ARCHITECTURE.md)，已实现的渲染与制作契约见 [OpenSpec 规格](../openspec/specs/) 和 [制作 Skill](../.agents/skills/material2video/SKILL.md)。

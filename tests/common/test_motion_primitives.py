@@ -10,6 +10,8 @@ from m2v.types.general import cinematic, code_scenes
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
 PRIMITIVES = WEB / "src/code-scene/primitives.ts"
+DYNAMICS = WEB / "src/code-scene/dynamics.ts"
+SUBTITLES = WEB / "src/code-scene/subtitles.ts"
 MOTION = WEB / "src/code-scene/motion.ts"
 SDK = WEB / "src/code-scene/sdk.tsx"
 
@@ -19,16 +21,25 @@ def test_primitives_are_part_of_the_implementation_fingerprint():
     inputs = {name.replace("\\", "/"): value for name, value in code_scenes.implementation_inputs().items()}
     assert "web/src/code-scene/primitives.ts" in inputs
     assert inputs["web/src/code-scene/primitives.ts"] == code_scenes.digest(PRIMITIVES)
+    assert "web/src/code-scene/dynamics.ts" in inputs
+    assert inputs["web/src/code-scene/dynamics.ts"] == code_scenes.digest(DYNAMICS)
+    assert "web/src/code-scene/subtitles.ts" in inputs
+    assert inputs["web/src/code-scene/subtitles.ts"] == code_scenes.digest(SUBTITLES)
 
 
 def test_primitives_pass_the_determinism_source_gate():
     """原语不得引入挂钟、隐式随机源、计时器或未适配的 CSS 动画。"""
-    violations = source_policy.scan([PRIMITIVES])
+    violations = source_policy.scan([PRIMITIVES, DYNAMICS, SUBTITLES])
     assert not violations, [item.render(WEB) for item in violations]
 
 
 def test_sdk_exports_the_shared_primitives():
-    assert "export * from './primitives';" in SDK.read_text(encoding="utf-8")
+    text = SDK.read_text(encoding="utf-8")
+    assert "export * from './primitives';" in text
+    assert "export * from './dynamics';" in text
+    assert "export * from './subtitles';" in text
+    assert "svg-path-properties" in text
+    assert "perfect-freehand" in text
 
 
 def test_named_curves_match_the_python_validator():

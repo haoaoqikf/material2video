@@ -14,6 +14,10 @@ export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from '.
 export * from './cinematic';
 export * from './motion';
 export * from './primitives';
+export * from './dynamics';
+export * from './subtitles';
+export {svgPathProperties} from 'svg-path-properties';
+export {getStroke} from 'perfect-freehand';
 export {createSceneEvents} from './events';
 // 二维绘制层用 `painter` 命名空间导出：`Canvas` 已经是 R3F 包装，直接铺开
 // 会让两个同名符号撞在一起。
