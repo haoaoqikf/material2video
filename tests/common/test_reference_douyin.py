@@ -134,6 +134,11 @@ def _install_fake_fetch(monkeypatch, detail: dict) -> None:
             bodies, "", "https://www.douyin.com/video/7699065250221428002", "标题",
         ),
     )
+    monkeypatch.setattr(
+        douyin, "ytdlp_probe",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            douyin.YtDlpUnavailable("测试环境不访问 yt-dlp")),
+    )
 
     def fake_download(urls, destination: Path, kind: str) -> dict:
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -141,6 +146,51 @@ def _install_fake_fetch(monkeypatch, detail: dict) -> None:
         return {"sha256": douyin._digest(destination), "bytes": destination.stat().st_size}
 
     monkeypatch.setattr(douyin, "_download_first", fake_download)
+
+
+def test_fetch_uses_ytdlp_before_browser(monkeypatch, tmp_path: Path) -> None:
+    item = {
+        "schemaVersion": 1,
+        "awemeId": "7699065250221428002",
+        "kind": "video",
+        "desc": "yt-dlp 提取",
+        "author": {"uid": "1", "secUid": "", "nickname": "作者"},
+        "createTime": 1792578323,
+        "durationMs": 2000,
+        "declaredWidth": 1920,
+        "declaredHeight": 1080,
+        "coverUrl": "",
+        "videoUrls": ["https://cdn.example/video.mp4"],
+        "images": [],
+        "sourceUrl": "https://v.douyin.com/RoCzhrDGM5g/",
+        "finalUrl": "https://www.douyin.com/video/7699065250221428002",
+    }
+    monkeypatch.setattr(douyin, "ytdlp_probe", lambda *_args, **_kwargs: dict(item))
+    monkeypatch.setattr(
+        douyin, "_read_page",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("不应启动浏览器")),
+    )
+
+    def fake_download(urls, destination: Path, kind: str) -> dict:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(b"fake-media-bytes")
+        return {"sha256": douyin._digest(destination), "bytes": destination.stat().st_size}
+
+    monkeypatch.setattr(douyin, "_download_first", fake_download)
+    result = douyin.fetch("https://v.douyin.com/RoCzhrDGM5g/", output=tmp_path)
+    assert result.item["desc"] == "yt-dlp 提取"
+    assert (result.directory / "video.mp4").is_file()
+
+
+def test_fetch_can_disable_browser_fallback(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        douyin, "ytdlp_probe",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            douyin.YtDlpUnavailable("平台要求签名")),
+    )
+    with pytest.raises(M2VError, match="yt-dlp"):
+        douyin.fetch("https://v.douyin.com/RoCzhrDGM5g/", output=tmp_path,
+                     fallback_browser=False)
 
 
 def test_fetch_writes_recipe_and_reuses_verified_copy(monkeypatch, tmp_path: Path) -> None:

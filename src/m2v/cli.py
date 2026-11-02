@@ -119,6 +119,7 @@ def _parser() -> argparse.ArgumentParser:
     ref.add_argument("target", help="分享文本/链接、待校验的参考素材目录，或 ref audio 的参考目录")
     ref.add_argument("--output", help="参考素材根目录；省略时为 <工作区>/refs/douyin")
     ref.add_argument("--headed", action="store_true", help="显示浏览器窗口，便于登录或完成验证")
+    ref.add_argument("--cookies", help="yt-dlp 使用的 Netscape cookie 文件路径")
     ref.add_argument("--force", action="store_true", help="校验失败或需要更新时替换已有素材或音轨")
     ref.add_argument("--json", action="store_true", help="输出 JSON")
     ref.add_argument("--project", help="ref audio 的作品目录")

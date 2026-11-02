@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -34,6 +35,8 @@ SAMPLE_SIZE = (192, 104)
 FROZEN_DELTA = 1e-06
 #: 冻结多久算缺陷（秒）：短暂停顿是叙事节奏，长时间重复同一帧才是卡住。
 FROZEN_SECONDS = 3.0
+#: freezedetect 只报告不短于该值的区间；更短的逐帧停顿不进入测量。
+FREEZE_MIN_SECONDS = 0.1
 #: 近乎静止（慢镜头或停顿）的参考阈值，只作为测量项报告。
 NEAR_STILL_DELTA = 2e-05
 #: 默认抽样步长（帧）。
@@ -62,38 +65,82 @@ def sample_frames(video: Path, fps: int, step: int) -> list[bytes]:
     return [raw[offset:offset + size] for offset in range(0, len(raw) - size + 1, size)]
 
 
-def frozen_frames(frames: list[bytes], fps: int, step: int) -> dict:
-    """相邻抽样帧的平均像素差；连续重复同一帧超过阈值即判失败。
+def freeze_intervals(video: Path) -> list[tuple[float, float]]:
+    """用 ffmpeg freezedetect 找冻结区间，返回 [(开始秒, 持续秒)]。
 
-    `duplicateRatio` 与 `nearStillRatio` 是测量项：慢速运镜与刻意停顿都会抬高它们，
-    因此只有「连续重复帧超过 `FROZEN_SECONDS` 秒」才是硬判定。
+    检测在原生分辨率上执行，`n` 与现有平均像素差阈值同口径；`FREEZE_MIN_SECONDS`
+    只过滤逐帧的极小停顿，不代表通过阈值。
+    """
+    result = subprocess.run(
+        [get_ffmpeg_exe(), "-hide_banner", "-nostats", "-i", str(video),
+         "-vf", f"freezedetect=n={FROZEN_DELTA}:d={FREEZE_MIN_SECONDS}",
+         "-an", "-f", "null", "-"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900)
+    if result.returncode:
+        raise M2VError(f"冻结帧检测失败：{result.stderr[-1200:]}")
+    intervals: list[tuple[float, float]] = []
+    current: float | None = None
+    for kind, value in re.findall(
+            r"lavfi\.freezedetect\.(freeze_start|freeze_duration|freeze_end):\s*([\d.]+)",
+            result.stderr):
+        seconds = float(value)
+        if kind == "freeze_start":
+            current = seconds
+        elif kind == "freeze_duration" and current is not None:
+            intervals.append((current, seconds))
+            current = None
+        elif kind == "freeze_end" and current is not None:
+            intervals.append((current, max(0.0, seconds - current)))
+            current = None
+    if current is not None:
+        # 冻结持续到片尾时 ffmpeg 只打印 freeze_start；用媒体时长补齐。
+        intervals.append((current, max(0.0, _duration(video) - current)))
+    return intervals
+
+
+def frozen_frames(frames: list[bytes], fps: int, step: int, *,
+                  video: Path | None = None) -> dict:
+    """冻结帧报告：硬判定由 ffmpeg freezedetect 产生，采样只负责测量项。
+
+    `video` 是生产路径必传的成片；纯帧列表调用保留给单元测试，用现有像素差
+    作为降级判定。两者输出字段一致，调用方不需要分支。
     """
     deltas = []
     for previous, current in zip(frames, frames[1:]):
         total = sum(abs(a - b) for a, b in zip(previous, current))
         deltas.append(total / (len(previous) * 255))
-    run = longest = 0
-    run_start = longest_start = 0
-    for index, delta in enumerate(deltas):
-        if delta < FROZEN_DELTA:
-            if run == 0:
-                run_start = index
-            run += 1
-        else:
-            run = 0
-        if run > longest:
-            longest, longest_start = run, run_start
-    seconds = longest * step / fps
     duplicates = sum(1 for delta in deltas if delta < FROZEN_DELTA)
     near = sum(1 for delta in deltas if delta < NEAR_STILL_DELTA)
     total = len(deltas) or 1
+
+    if video is not None:
+        intervals = freeze_intervals(video)
+        longest_start_seconds, longest = max(intervals, key=lambda item: item[1], default=(0.0, 0.0))
+        start_sample = round(longest_start_seconds * fps / step)
+        end_sample = round((longest_start_seconds + longest) * fps / step)
+    else:
+        # 纯帧列表的降级路径：与旧实现一致的连续重复判定。
+        run = longest_run = 0
+        run_start = longest_start = 0
+        for index, delta in enumerate(deltas):
+            if delta < FROZEN_DELTA:
+                if run == 0:
+                    run_start = index
+                run += 1
+            else:
+                run = 0
+            if run > longest_run:
+                longest_run, longest_start = run, run_start
+        start_sample, end_sample = longest_start, longest_start + longest_run
+        longest = longest_run * step / fps
+
     return {"sampledPairs": len(deltas), "minDelta": round(min(deltas), 7) if deltas else None,
             "meanDelta": round(sum(deltas) / len(deltas), 7) if deltas else None,
             "duplicatePairs": duplicates, "duplicateRatio": round(duplicates / total, 4),
             "nearStillRatio": round(near / total, 4),
-            "longestStillSeconds": round(seconds, 2), "frozenDelta": FROZEN_DELTA,
-            "longestStillRange": {"startSample": longest_start, "endSample": longest_start + longest},
-            "status": "fail" if seconds > FROZEN_SECONDS else "pass"}
+            "longestStillSeconds": round(longest, 2), "frozenDelta": FROZEN_DELTA,
+            "longestStillRange": {"startSample": start_sample, "endSample": end_sample},
+            "status": "fail" if longest > FROZEN_SECONDS else "pass"}
 
 
 def _shot_at(prepared: dict, frame: int) -> str | None:
@@ -276,7 +323,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
                 "toleranceSeconds": .1, "status": "pass" if difference <= .1 else "fail"}
     else:
         sync = dict(no_audio)
-    frozen = frozen_frames(frames, fps, step)
+    frozen = frozen_frames(frames, fps, step, video=target)
     # 冻结段必须能定位到镜头与时间戳，而不是只报一个总秒数。
     sample = frozen["longestStillRange"]
     start_frame = sample["startSample"] * step

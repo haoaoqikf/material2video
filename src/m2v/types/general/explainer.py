@@ -8,9 +8,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from m2v.core.errors import M2VError
+from m2v.core.schema import validate_document
 from m2v.core.validate import fail, items, number, obj, text
 from m2v.core import frames
 from m2v.types.general.article_text import active_source, extract_body, count_characters
+from m2v.types.general.schema import Storyboard
 
 from m2v.core.video_config import general_fps
 VERSION = 8
@@ -42,8 +44,7 @@ def source_file(root: Path, project: dict) -> Path:
 def validate(data: dict, root: Path, project: dict | None = None) -> dict:
     if not isinstance(data, dict) or data.get("version") != VERSION or data.get("schemaVersion") != data.get("version"):
         fail("version", "通用分镜只接受 v8；v7 及更早作品须重新编排，不自动迁移")
-    obj(data, "storyboard", {"version", "schemaVersion", "fps", "width", "height", "title",
-                             "input", "targetSeconds", "soundtrack", "scenes"})
+    validate_document(Storyboard, data, "storyboard")
     # 返回规范化副本，不修改作者材料；下游只读取已解析的实际帧率。
     data = {**data, "fps": general_fps(project or {}, data)}
     fps = data["fps"]
@@ -66,9 +67,6 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
     shot_ids: set[str] = set()
     for index, scene in enumerate(scenes):
         path = f"scenes[{index}]"
-        obj(scene, path, {"id", "template", "content", "narrationSegments", "keywords",
-                          "durationFrames", "transition", "transitionFrames", "speech",
-                          "leadInFrames", "tailFrames", "readingHoldFrames", "events"})
         sid = text(scene.get("id"), f"{path}.id")
         if sid in all_ids:
             fail(path, f"重复 ID：{sid}")

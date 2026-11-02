@@ -28,6 +28,8 @@ general 的检查点制作工具见[制作证据与状态](../README.md#制作�
 
 通用代码场景已支持 opt-in 的全局时间与事件化声音语义；pure-time 场景可直接 seek、按块并行采集，`render --jobs` 可按帧区间分进程渲染。默认仍是顺序采集与单进程，跨类型扩展待实际需求。
 
+基础设施层已把六项可替换的手写能力交给成熟组件：抖音参考素材默认走 yt-dlp（浏览器解析只作兜底），路线投影/瓦片/距离使用 mercantile、geographiclib、Turf 与 d3-geo，字体 cmap 与子集化使用 fontTools，冻结帧硬判定使用 ffmpeg freezedetect，进程树内存使用 psutil，材料结构校验使用 Pydantic。逐帧确定性、离线契约、制作证据链与专用画面仍由项目自己维护。
+
 ## 扩展原则
 
 新专用类型按“材料契约—业务准备—专用画面—类型评审—注册接入”实现。类型目录支持可选的「类别 → 类型」归组：类别只组织类型、派生规范作品位置与文档分组，不提供行为；当前 `route-journey`（路线旅程）包含 `driving-route` 与 `road-trip`，其余类型未分类。共享底座不导入类型私有逻辑；只有多个真实类型出现相同需求时才抽取共享能力。模块边界见 [架构说明](../ARCHITECTURE.md)，已实现的渲染与制作契约见 [OpenSpec 规格](../openspec/specs/) 和 [制作 Skill](../.agents/skills/material2video/SKILL.md)。

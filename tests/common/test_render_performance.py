@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -78,6 +79,11 @@ def test_report_covers_every_stage_once_and_total_is_not_double_counted():
     assert report["skipped"] == ["mux", "probe"]
     # 环境信息随报告一起留下，否则两次数字没有可比性
     assert report["environment"]["python"]
+
+
+def test_tree_memory_reads_the_current_process():
+    value = perf.tree_memory_bytes(os.getpid())
+    assert value and value > 0
 
 
 # ---------------------------------------------------------------- 落盘

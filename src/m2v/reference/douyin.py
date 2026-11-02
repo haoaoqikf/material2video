@@ -1,16 +1,16 @@
-"""抖音参考素材：浏览器取详情、直链下载、写来源与摘要留证。
+"""抖音参考素材：yt-dlp 提取、直链下载、写来源与摘要留证。
 
-不实现 ``a_bogus`` 等签名参数：页面自己完成签名与请求，这里只读取页面已经取得的
-详情。图文页不请求详情接口，因此保留从页面内嵌 RSC 载荷解析的兜底路径。
-
-参考素材落在 ``refs/douyin/<awemeId>/``：媒体默认用于制作前分析，不进入成片，也不进入
-版本控制。目录里的 ``recipe.json`` 是唯一留证来源，``ref verify`` 按它复核。用户明确
-要求复用单条参考音频时，由 ``m2v.reference.audio`` 提取到作品目录并留证，渲染链路仍
-不直接读取 ``refs/``。
+默认先用 yt-dlp 读取作品详情；平台要求签名或新鲜 cookie 导致提取失败时，
+才退回浏览器解析（页面自己完成签名与请求）。两条路径产出同一份规范化详情，
+参考素材都落在 ``refs/douyin/<awemeId>/``：媒体默认用于制作前分析，不进入成片，
+也不进入版本控制。目录里的 ``recipe.json`` 是唯一留证来源，``ref verify`` 按它复核。
+用户明确要求复用单条参考音频时，由 ``m2v.reference.audio`` 提取到作品目录并留证，
+渲染链路仍不直接读取 ``refs/``。
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import time
@@ -34,6 +34,9 @@ from .douyin_detail import (
     video_urls,
 )
 from .douyin_media import _digest, _download_first, _guess_ext, _measure, verify_directory
+from .ytdlp_adapter import YtDlpUnavailable, probe as ytdlp_probe
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -177,29 +180,41 @@ def fetch(
     headed: bool = False,
     force: bool = False,
     timeout_s: float = 45,
+    cookies: str | Path | None = None,
+    fallback_browser: bool = True,
 ) -> FetchResult:
-    """下载一条抖音参考素材；已存在时先校验，校验失败必须 ``force`` 才替换。"""
+    """下载一条抖音参考素材；已存在时先校验，校验失败必须 ``force`` 才替换。
+
+    默认先用 yt-dlp；提取失败且允许兜底时退回浏览器解析。两条路径最终都写入
+    同一套 ``metadata.json`` / ``recipe.json`` 留证。
+    """
     url = extract_share_url(target)
     expected_id = aweme_id_from_url(url)
-    bodies, html, final_url, title = _read_page(url, headed=headed, timeout_s=timeout_s)
-    # 短链本身没有作品 ID；跳转后的规范 URL 可以补上，避免从推荐内容里选错详情。
-    expected_id = expected_id or aweme_id_from_url(final_url)
-    detail = _detail_from_bodies(bodies, expected_id)
-    if detail is None and html:
-        detail = detail_from_html(html, expected_id)
-    if detail is None:
-        hint = (
-            "；请确认链接可访问且未被风控"
-            if headed
-            else "；可加 --headed 打开可见浏览器完成登录或验证后重试"
+    final_url = url
+    item: dict | None = None
+
+    try:
+        item = ytdlp_probe(url, cookies=cookies, timeout_s=timeout_s)
+        final_url = item.get("finalUrl") or url
+        if expected_id and item.get("awemeId") and item["awemeId"] != expected_id:
+            raise YtDlpUnavailable(
+                f"yt-dlp 返回的作品 ID {item['awemeId']} 与链接 {expected_id} 不一致"
+            )
+    except YtDlpUnavailable as exc:
+        if not fallback_browser:
+            raise M2VError(
+                f"yt-dlp 无法读取抖音作品详情：{exc}；"
+                "可提供 --cookies，或允许浏览器兜底"
+            ) from exc
+        logger.warning("yt-dlp 无法读取抖音详情（%s），退回浏览器解析", exc)
+        item = _fetch_with_browser(
+            url,
+            expected_id=expected_id,
+            headed=headed,
+            timeout_s=timeout_s,
         )
-        raise M2VError(f"未能读取抖音作品详情（{final_url}｜{title[:60]}）{hint}")
-    item = normalize_detail(
-        detail,
-        aweme_id=expected_id,
-        source_url=url,
-        final_url=final_url,
-    )
+        final_url = item["finalUrl"]
+
     if not item["awemeId"]:
         raise M2VError("详情缺少作品 ID，无法确定保存目录")
 
@@ -253,3 +268,31 @@ def fetch(
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return FetchResult(destination, item, False, files)
+
+
+def _fetch_with_browser(
+    url: str,
+    *,
+    expected_id: str | None,
+    headed: bool,
+    timeout_s: float,
+) -> dict:
+    """浏览器兜底：让页面完成签名，再读取详情接口或 RSC 载荷。"""
+    bodies, html, final_url, title = _read_page(url, headed=headed, timeout_s=timeout_s)
+    target_id = expected_id or aweme_id_from_url(final_url)
+    detail = _detail_from_bodies(bodies, target_id)
+    if detail is None and html:
+        detail = detail_from_html(html, target_id)
+    if detail is None:
+        hint = (
+            "；请确认链接可访问且未被风控"
+            if headed
+            else "；可加 --headed 打开可见浏览器完成登录或验证后重试"
+        )
+        raise M2VError(f"未能读取抖音作品详情（{final_url}｜{title[:60]}）{hint}")
+    return normalize_detail(
+        detail,
+        aweme_id=target_id,
+        source_url=url,
+        final_url=final_url,
+    )

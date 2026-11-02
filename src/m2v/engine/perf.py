@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import contextlib
-import ctypes
 import json
 import logging
 import os
@@ -27,6 +26,8 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -209,120 +210,40 @@ def _first_line(command: list[str]) -> str | None:
 
 def _total_memory_gib() -> float | None:
     """物理内存总量（GiB）。取不到时返回 None，不猜一个值。"""
-    if os.name == "nt":
-        class _MemoryStatusEx(ctypes.Structure):
-            _fields_ = [
-                ("dwLength", ctypes.c_ulong),
-                ("dwMemoryLoad", ctypes.c_ulong),
-                ("ullTotalPhys", ctypes.c_ulonglong),
-                ("ullAvailPhys", ctypes.c_ulonglong),
-                ("ullTotalPageFile", ctypes.c_ulonglong),
-                ("ullAvailPageFile", ctypes.c_ulonglong),
-                ("ullTotalVirtual", ctypes.c_ulonglong),
-                ("ullAvailVirtual", ctypes.c_ulonglong),
-                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
-            ]
-
-        try:
-            status = _MemoryStatusEx()
-            status.dwLength = ctypes.sizeof(_MemoryStatusEx)
-            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
-                return round(status.ullTotalPhys / 1024**3, 1)
-        except (AttributeError, OSError):  # pragma: no cover - 非 Windows 或受限环境
-            return None
-        return None
-    try:  # pragma: no cover - POSIX 分支
-        return round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024**3, 1)
-    except (AttributeError, ValueError, OSError):
+    try:
+        return round(psutil.virtual_memory().total / 1024**3, 1)
+    except (OSError, RuntimeError):  # pragma: no cover - 受限环境
         return None
 
 
 _PROBE_TIMEOUT_S = 30
 
+_PROCESS_GONE = (
+    psutil.NoSuchProcess,
+    psutil.AccessDenied,
+    psutil.ZombieProcess,
+    OSError,
+)
+
 
 def tree_memory_bytes(pid: int) -> int | None:
     """当前进程树的常驻内存之和（字节）。
 
-    Windows 用一次 CIM 查询取全表再按父子关系做 BFS：逐 pid 递归调用
-    `Get-Process` 会在子进程不断生灭时漏掉整棵子树。POSIX 用 `ps` 的 pid/ppid/rss。
+    用 psutil 取当前进程与全部递归子进程的 RSS；子进程可能在采样间隙退出，
+    因此对单个进程的读取失败只跳过该进程，不放弃整棵树。
     取不到时返回 None——报告里宁可缺一项，也不写一个假数。
     """
-    if os.name == "nt":
-        return _windows_tree_memory(pid)
-    return _posix_tree_memory(pid)
-
-
-def _windows_tree_memory(pid: int) -> int | None:
-    script = (
-        "$ErrorActionPreference='SilentlyContinue';"
-        "$all = Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,WorkingSetSize;"
-        "$ids = New-Object 'System.Collections.Generic.HashSet[int]';"
-        f"[void]$ids.Add({int(pid)});"
-        "$changed = $true;"
-        "while ($changed) { $changed = $false;"
-        "  foreach ($p in $all) {"
-        "    if ($ids.Contains([int]$p.ParentProcessId) -and -not $ids.Contains([int]$p.ProcessId)) {"
-        "      [void]$ids.Add([int]$p.ProcessId); $changed = $true } } }"
-        "$sum = [int64]0;"
-        "foreach ($p in $all) { if ($ids.Contains([int]$p.ProcessId)) { $sum += [int64]$p.WorkingSetSize } };"
-        "[Console]::Out.Write($sum)"
-    )
-    shell = shutil.which("pwsh") or shutil.which("powershell")
-    if shell is None:  # pragma: no cover - Windows 上通常都有其中一个
-        return None
     try:
-        completed = subprocess.run(
-            [shell, "-NoProfile", "-NonInteractive", "-Command", script],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=_PROBE_TIMEOUT_S,
-        )
-    except (OSError, subprocess.SubprocessError):  # pragma: no cover - 采样失败不致命
+        process = psutil.Process(int(pid))
+        total = process.memory_info().rss
+        children = process.children(recursive=True)
+    except _PROCESS_GONE:  # pragma: no cover - 进程已退出或受限
         return None
-    text = (completed.stdout or "").strip()
-    if not text.isdigit():
-        return None
-    return int(text)
-
-
-def _posix_tree_memory(pid: int) -> int | None:  # pragma: no cover - POSIX 分支
-    try:
-        completed = subprocess.run(
-            ["ps", "-eo", "pid=,ppid=,rss="],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=_PROBE_TIMEOUT_S,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    rows: list[tuple[int, int, int]] = []
-    for line in completed.stdout.splitlines():
-        parts = line.split()
-        if len(parts) != 3:
-            continue
+    for child in children:
         try:
-            rows.append((int(parts[0]), int(parts[1]), int(parts[2])))
-        except ValueError:
+            total += child.memory_info().rss
+        except _PROCESS_GONE:  # pragma: no cover - 采样期间子进程退出
             continue
-    children: dict[int, list[int]] = {}
-    rss: dict[int, int] = {}
-    for child, parent, size in rows:
-        children.setdefault(parent, []).append(child)
-        rss[child] = size
-    total = 0
-    stack = [pid]
-    seen: set[int] = set()
-    while stack:
-        current = stack.pop()
-        if current in seen:
-            continue
-        seen.add(current)
-        total += rss.get(current, 0) * 1024
-        stack.extend(children.get(current, ()))
     return total or None
 
 

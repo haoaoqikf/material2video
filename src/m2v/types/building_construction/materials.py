@@ -8,7 +8,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from m2v.core.validate import fail, obj, text
+from m2v.core.schema import validate_document
+from m2v.core.validate import fail, text
+from .schema import Building, Construction, Manifest
 
 WIDTH = 1920
 HEIGHT = 1080
@@ -18,7 +20,6 @@ MATERIALS = {
     "construction": "construction.json",
     "assets": "manifest.json",
 }
-_WALL_SIDES = {"front", "back", "left", "right"}
 _ID = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
 
 
@@ -52,42 +53,33 @@ def _id(value: Any, where: str) -> str:
 
 
 def _validate_building(building: dict[str, Any]) -> None:
-    obj(building, "building.json", {"schemaVersion", "canvas", "house"})
-    canvas = obj(building.get("canvas"), "building.json.canvas", {"width", "height"})
-    if (canvas.get("width"), canvas.get("height")) != (WIDTH, HEIGHT):
+    canvas = building["canvas"]
+    if (canvas["width"], canvas["height"]) != (WIDTH, HEIGHT):
         fail("building.json.canvas", f"固定为 {WIDTH}×{HEIGHT}")
-    house = obj(building.get("house"), "building.json.house", {
-        "width", "depth", "floors", "floorHeight", "bayCount", "roofHeight",
-        "wallThickness", "foundationDepth", "sitePadding", "openings",
-    })
+    house = building["house"]
     width = _number(house.get("width"), "building.json.house.width", low=4)
     depth = _number(house.get("depth"), "building.json.house.depth", low=4)
     floors = house.get("floors")
-    if type(floors) is not int or not 1 <= floors <= 3:
+    if not 1 <= floors <= 3:
         fail("building.json.house.floors", "必须是 1～3 的整数")
     floor_height = _number(house.get("floorHeight"), "building.json.house.floorHeight", low=2.2)
     bay_count = house.get("bayCount")
-    if type(bay_count) is not int or not 2 <= bay_count <= 5:
+    if not 2 <= bay_count <= 5:
         fail("building.json.house.bayCount", "必须是 2～5 的整数")
     for field in ("roofHeight", "wallThickness", "foundationDepth", "sitePadding"):
         _number(house.get(field), f"building.json.house.{field}", low=0.1)
-    openings = house.get("openings")
-    if not isinstance(openings, list) or len(openings) > 60:
-        fail("building.json.house.openings", "必须是最多 60 项的数组")
+    openings = house["openings"]
     seen: set[str] = set()
-    for index, raw in enumerate(openings):
+    for index, opening in enumerate(openings):
         where = f"building.json.house.openings[{index}]"
-        opening = obj(raw, where, {"id", "floor", "side", "offset", "width", "height"})
         opening_id = _id(opening.get("id"), f"{where}.id")
         if opening_id in seen:
             fail(f"{where}.id", "开口 ID 重复")
         seen.add(opening_id)
         floor = opening.get("floor")
-        if type(floor) is not int or not 1 <= floor <= floors:
+        if not 1 <= floor <= floors:
             fail(f"{where}.floor", "必须落在声明楼层内")
         side = opening.get("side")
-        if side not in _WALL_SIDES:
-            fail(f"{where}.side", "必须是 front/back/left/right")
         offset = _number(opening.get("offset"), f"{where}.offset", low=0)
         opening_width = _number(opening.get("width"), f"{where}.width", low=0.2)
         opening_height = _number(opening.get("height"), f"{where}.height", low=0.3)
@@ -99,26 +91,20 @@ def _validate_building(building: dict[str, Any]) -> None:
 
 
 def _validate_construction(construction: dict[str, Any]) -> None:
-    obj(construction, "construction.json", {"schemaVersion", "durationSeconds", "fps",
-                                             "stages", "camera"})
     duration = construction.get("durationSeconds")
-    if type(duration) is not int or not 10 <= duration <= 120:
+    if not 10 <= duration <= 120:
         fail("construction.json.durationSeconds", "必须是 10～120 的整数秒")
     if construction.get("fps") != FPS:
         fail("construction.json.fps", f"必须为 {FPS}")
-    stages = construction.get("stages")
-    if not isinstance(stages, list) or not 1 <= len(stages) <= 20:
-        fail("construction.json.stages", "必须包含 1～20 个阶段")
+    stages = construction["stages"]
     cursor = 0.0
     seen: set[str] = set()
-    for index, raw in enumerate(stages):
+    for index, stage in enumerate(stages):
         where = f"construction.json.stages[{index}]"
-        stage = obj(raw, where, {"id", "label", "startSeconds", "endSeconds"})
         stage_id = _id(stage.get("id"), f"{where}.id")
         if stage_id in seen:
             fail(f"{where}.id", "阶段 ID 重复")
         seen.add(stage_id)
-        text(stage.get("label"), f"{where}.label")
         start = _number(stage.get("startSeconds"), f"{where}.startSeconds", low=0)
         end = _number(stage.get("endSeconds"), f"{where}.endSeconds", low=0)
         if abs(start - cursor) > 1e-6 or end <= start:
@@ -126,37 +112,31 @@ def _validate_construction(construction: dict[str, Any]) -> None:
         cursor = end
     if abs(cursor - duration) > 1e-6:
         fail("construction.json.stages", "阶段必须完整覆盖声明时长")
-    camera = obj(construction.get("camera"), "construction.json.camera",
-                 {"startAzimuth", "endAzimuth", "elevation"})
+    camera = construction["camera"]
     for field in ("startAzimuth", "endAzimuth", "elevation"):
         _number(camera.get(field), f"construction.json.camera.{field}")
 
 
 def _validate_assets(manifest: dict[str, Any]) -> None:
-    obj(manifest, "assets/manifest.json", {"schemaVersion", "assets"})
-    assets = manifest.get("assets")
-    if not isinstance(assets, list) or len(assets) > 50:
-        fail("assets/manifest.json.assets", "必须是最多 50 项的数组")
-    for index, raw in enumerate(assets):
+    for index, item in enumerate(manifest["assets"]):
         where = f"assets/manifest.json.assets[{index}]"
-        item = obj(raw, where, {"path", "sha256", "source", "license"})
-        path = text(item.get("path"), f"{where}.path")
+        path = item["path"]
         if Path(path).is_absolute() or ".." in Path(path).parts:
             fail(f"{where}.path", "必须是作品内相对路径")
-        digest = text(item.get("sha256"), f"{where}.sha256")
+        digest = item["sha256"]
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             fail(f"{where}.sha256", "必须是 64 位十六进制 SHA-256")
-        text(item.get("source"), f"{where}.source")
-        text(item.get("license"), f"{where}.license")
 
 
 def load_project(project_dir: str | Path) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    building = _load(root / MATERIALS["building"])
-    construction = _load(root / MATERIALS["construction"])
-    manifest = _load(root / MATERIALS["assets"])
+    building = validate_document(Building, _load(root / MATERIALS["building"]), "building.json")
+    construction = validate_document(
+        Construction, _load(root / MATERIALS["construction"]), "construction.json")
+    manifest = validate_document(
+        Manifest, _load(root / MATERIALS["assets"]), "assets/manifest.json")
     _validate_building(building)
     _validate_construction(construction)
     _validate_assets(manifest)

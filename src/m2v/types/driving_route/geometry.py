@@ -1,11 +1,18 @@
-"""自驾路线共享几何：GCJ-02 Web Mercator 投影、路线 bbox、投影长度与瓦片范围。"""
+"""自驾路线共享几何：GCJ-02 Web Mercator 投影、路线 bbox、投影长度与瓦片范围。
+
+投影与瓦片索引交给 mercantile，球面距离交给共享的 geographiclib 零扁率球体；
+路线起点裁剪与连续大路判定仍是本类型的业务规则。
+"""
 from __future__ import annotations
 
 import math
 import re
 from typing import Any
 
+import mercantile
+
 from m2v.core.errors import M2VError
+from m2v.core.geodesy import distance_meters
 
 MERCATOR_RADIUS = 6378137.0
 WORLD = 2 * math.pi * MERCATOR_RADIUS
@@ -15,14 +22,18 @@ _MAJOR_ROAD_NAME = re.compile(r"高速|快速|国道|省道|大道|高架|环路
 
 
 def project(lng: float, lat: float) -> tuple[float, float]:
-    return (MERCATOR_RADIUS * math.radians(lng),
-            MERCATOR_RADIUS * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2)))
+    """经纬度 → Web Mercator 米（y 向北为正）。"""
+    return tuple(mercantile.xy(lng, lat))
 
 
 def unproject(x: float, y: float) -> tuple[float, float]:
-    lng = math.degrees(x / MERCATOR_RADIUS)
-    lat = math.degrees(2 * math.atan(math.exp(y / MERCATOR_RADIUS)) - math.pi / 2)
-    return lng, lat
+    """Web Mercator 米 → 经纬度。"""
+    result = mercantile.lnglat(x, y)
+    return result.lng, result.lat
+
+
+def _haversine_meters(a: list[float], b: list[float]) -> float:
+    return distance_meters((a[0], a[1]), (b[0], b[1]))
 
 
 def route_start_selection(route: dict[str, Any]) -> tuple[list[dict[str, Any]], float]:
@@ -71,11 +82,7 @@ def route_points(route: dict[str, Any]) -> list[list[float]]:
 
 
 def _haversine_meters(a: list[float], b: list[float]) -> float:
-    lng1, lat1 = math.radians(a[0]), math.radians(a[1])
-    lng2, lat2 = math.radians(b[0]), math.radians(b[1])
-    dlat, dlng = lat2 - lat1, lng2 - lng1
-    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
-    return 2 * 6371008.8 * math.asin(min(1.0, math.sqrt(h)))
+    return distance_meters((a[0], a[1]), (b[0], b[1]))
 
 
 def route_projected_points(route: dict[str, Any]) -> list[tuple[float, float]]:
@@ -100,12 +107,22 @@ def meters_per_projected(route: dict[str, Any]) -> float:
     return visual_distance_meters(route) / projected
 
 
+def _tile_axis_bounds(z: int) -> mercantile.Bbox:
+    return mercantile.xy_bounds(mercantile.Tile(0, 0, z))
+
+
 def tile_x(lng: float, z: int) -> float:
-    return (lng + 180.0) / 360.0 * (1 << z)
+    """经度 → 小数瓦片列号；用 mercantile 的同一套投影与瓦片边界换算。"""
+    x, _ = mercantile.xy(lng, 0.0)
+    bounds = _tile_axis_bounds(z)
+    return (x - bounds.left) / (bounds.right - bounds.left)
 
 
 def tile_y(lat: float, z: int) -> float:
-    return (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * (1 << z)
+    """纬度 → 小数瓦片行号（向南递增）。"""
+    _, y = mercantile.xy(0.0, lat)
+    bounds = _tile_axis_bounds(z)
+    return (bounds.top - y) / (bounds.top - bounds.bottom)
 
 
 def tile_range(bbox: tuple[float, float, float, float], z: int) -> tuple[int, int, int, int]:

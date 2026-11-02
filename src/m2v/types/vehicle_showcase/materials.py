@@ -9,7 +9,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from m2v.core.validate import fail, obj, text
+from m2v.core.schema import validate_document
+from m2v.core.validate import fail
+from .schema import Manifest, Showcase
 
 WIDTH = 1920
 HEIGHT = 1080
@@ -49,64 +51,50 @@ def _number(value: Any, where: str, *, low: float | None = None) -> float:
 
 
 def _validate_showcase(show: dict[str, Any]) -> None:
-    obj(show, "showcase.json", {"schemaVersion", "canvas", "durationSeconds", "fps", "model",
-                                "wheelNodes", "camera", "effects", "studio"})
-    canvas = obj(show.get("canvas"), "showcase.json.canvas", {"width", "height"})
+    canvas = show["canvas"]
     if (canvas.get("width"), canvas.get("height")) != (WIDTH, HEIGHT):
         fail("showcase.json.canvas", f"固定为 {WIDTH}×{HEIGHT}")
     duration = show.get("durationSeconds")
-    if type(duration) is not int or not 10 <= duration <= 120:
+    if not 10 <= duration <= 120:
         fail("showcase.json.durationSeconds", "必须是 10～120 的整数秒")
     if show.get("fps") != FPS:
         fail("showcase.json.fps", f"必须为 {FPS}")
-    model = text(show.get("model"), "showcase.json.model")
+    model = show["model"]
     normalized = Path(model)
     if normalized.is_absolute() or ".." in normalized.parts:
         fail("showcase.json.model", "必须是作品内相对路径")
-    wheels = show.get("wheelNodes")
-    if not isinstance(wheels, list) or not 1 <= len(wheels) <= 12 or any(
-            not isinstance(item, str) or not item.strip() for item in wheels):
-        fail("showcase.json.wheelNodes", "必须包含 1～12 个非空节点名")
-    camera = obj(show.get("camera"), "showcase.json.camera",
-                 {"distance", "height", "orbitStartDegrees", "orbitEndDegrees"})
+    camera = show["camera"]
     for field in ("distance", "height", "orbitStartDegrees", "orbitEndDegrees"):
         _number(camera.get(field), f"showcase.json.camera.{field}")
-    effects = obj(show.get("effects"), "showcase.json.effects",
-                  {"speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"})
+    effects = show["effects"]
     for field in ("speedStartSeconds", "speedEndSeconds", "fadeOutSeconds"):
         _number(effects.get(field), f"showcase.json.effects.{field}", low=0)
     if not effects["speedStartSeconds"] < effects["speedEndSeconds"] < duration:
         fail("showcase.json.effects", "必须满足 启动秒数 < 疾驰结束秒数 < 总时长")
     if effects["fadeOutSeconds"] > duration:
         fail("showcase.json.effects.fadeOutSeconds", "不能超过总时长")
-    studio = obj(show.get("studio"), "showcase.json.studio", set(STUDIO_FIELDS))
+    studio = show["studio"]
     for field in STUDIO_FIELDS:
-        relative = text(studio.get(field), f"showcase.json.studio.{field}")
+        relative = studio[field]
         normalized = Path(relative)
         if normalized.is_absolute() or ".." in normalized.parts:
             fail(f"showcase.json.studio.{field}", "必须是作品内相对路径")
 
 
 def _validate_manifest(manifest: dict[str, Any]) -> None:
-    obj(manifest, "manifest.json", {"schemaVersion", "assets"})
-    assets = manifest.get("assets")
-    if not isinstance(assets, list) or not 1 <= len(assets) <= 80:
-        fail("manifest.json.assets", "必须包含 1～80 个资产")
+    assets = manifest["assets"]
     seen: set[str] = set()
-    for index, raw in enumerate(assets):
+    for index, item in enumerate(assets):
         where = f"manifest.json.assets[{index}]"
-        item = obj(raw, where, {"path", "sha256", "source", "license"})
-        path = text(item.get("path"), f"{where}.path")
+        path = item["path"]
         if Path(path).is_absolute() or ".." in Path(path).parts:
             fail(f"{where}.path", "必须是作品内相对路径")
         if path in seen:
             fail(f"{where}.path", "资产路径重复")
         seen.add(path)
-        digest = text(item.get("sha256"), f"{where}.sha256")
+        digest = item["sha256"]
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             fail(f"{where}.sha256", "必须是 64 位十六进制 SHA-256")
-        text(item.get("source"), f"{where}.source")
-        text(item.get("license"), f"{where}.license")
 
 
 def _data_uri(file: Path) -> str:
@@ -166,8 +154,10 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    show = _load(root / MATERIALS["showcase"], SHOWCASE_VERSION)
-    manifest = _load(root / MATERIALS["assets"], MANIFEST_VERSION)
+    show = validate_document(
+        Showcase, _load(root / MATERIALS["showcase"], SHOWCASE_VERSION), "showcase.json")
+    manifest = validate_document(
+        Manifest, _load(root / MATERIALS["assets"], MANIFEST_VERSION), "manifest.json")
     _validate_showcase(show)
     _validate_manifest(manifest)
     for asset in manifest["assets"]:

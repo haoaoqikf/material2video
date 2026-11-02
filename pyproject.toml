@@ -8,6 +8,12 @@ dependencies = [
     "imageio-ffmpeg>=0.6,<0.7",
     "edge-tts>=7.2.8,<8",
     "pillow>=13.0.0",
+    "psutil>=7.2.2",
+    "fonttools>=4.50,<5",
+    "mercantile>=1.2.1",
+    "geographiclib>=2.1",
+    "yt-dlp>=2026.10.26",
+    "pydantic>=2,<3",
 ]
 
 [project.scripts]
@@ -30,8 +36,3 @@ markers = [
     "slow: 需要浏览器、真实渲染或长时等待的用例；默认不运行，-m slow 单独运行",
     "media: 需要 ffmpeg 真实编解码的用例；默认不运行，-m 'not slow' 连同默认层一起运行",
 ]
-
-# 子集化用的可选依赖：默认渲染完全离线可跑，装了并显式开启才会切字体。
-# 没装的机器不会因此少任何能力，只是不能切子集。
-[project.optional-dependencies]
-fonts = ["fonttools>=4.50,<5"]

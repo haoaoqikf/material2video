@@ -20,6 +20,16 @@ def clip(path, *, silent=False, audio=True, seconds=2):
     return path
 
 
+@pytest.mark.media
+def test_freezedetect_reports_a_freeze_that_runs_to_the_end(tmp_path):
+    video = clip(tmp_path / 'frozen.mp4', audio=False)
+    intervals = qa.freeze_intervals(video)
+    assert len(intervals) == 1
+    start, duration = intervals[0]
+    assert start == pytest.approx(0, abs=0.1)
+    assert duration == pytest.approx(2, abs=0.1)
+
+
 def test_sampling_includes_short_last_frame_and_boundaries():
     p = prepared_stub(durationInFrames=7)
     assert inspect.sample_indices(p) == [0, 6]

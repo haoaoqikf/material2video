@@ -13,9 +13,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
+from m2v.core.schema import validate_document
 from m2v.core.validate import fail
 from m2v.core.video_config import FPS
 from m2v.types.financial.valuation import crypto_investment_values, expected_daily_dates
+from m2v.types.financial.schema import Plan, Prices, Request
 
 
 MATERIALS = ("request.json", "prices.json", "animation-plan.json")
@@ -530,6 +532,9 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
         fail("材料版本", f"需要 v{expected_price_version} 价格和 v7/v8 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
     if (root / "events.json").exists():
         fail("events.json", "事件材料已移除；请运行 financial_video.py migrate-line --project-dir <作品目录> 清理旧材料")
+    validate_document(Request, request, "request.json")
+    validate_document(Prices, prices, "prices.json")
+    validate_document(Plan, plan, "animation-plan.json")
     _validate_request(request)
     _validate_prices(prices, request, root)
     _validate_plan(plan, request, prices)

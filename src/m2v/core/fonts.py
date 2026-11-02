@@ -7,97 +7,27 @@
 变成常态。
 
 判据只取字体文件自己的 `cmap`，不按字体名或 Unicode 区段猜覆盖面——
-这条闸门存在的唯一理由就是不能猜。零依赖：支持格式 4（BMP）与格式 12（含
-BMP 之外）；同一字符出现在多个子表时取「有字形」的那个，那是字体的正常做法。
+这条闸门存在的唯一理由就是不能猜。`cmap` 解析交给 fontTools：它同时覆盖
+格式 4（BMP）与格式 12（含 BMP 之外），同一字符出现在多个子表时
+`getBestCmap()` 会取「有字形」的那个，那是字体的正常做法。
 """
 
 from __future__ import annotations
 
-import struct
 from pathlib import Path
 
-
-def _cmap_offsets(data: bytes) -> list[tuple[int, int, int]]:
-    """返回 (platformID, encodingID, offset) 列表。"""
-    if len(data) < 12:
-        raise ValueError("不是字体文件：太短")
-    tag = data[:4]
-    if tag not in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"ttcf"):
-        raise ValueError(f"不是认识的字体格式：{tag!r}")
-    num_tables = struct.unpack(">H", data[4:6])[0]
-    cmap_offset = None
-    for index in range(num_tables):
-        start = 12 + index * 16
-        entry = data[start:start + 16]
-        if len(entry) < 16:
-            break
-        if entry[:4] == b"cmap":
-            cmap_offset = struct.unpack(">I", entry[8:12])[0]
-            break
-    if cmap_offset is None:
-        raise ValueError("字体里没有 cmap 表")
-    count = struct.unpack(">H", data[cmap_offset + 2:cmap_offset + 4])[0]
-    found = []
-    for index in range(count):
-        base = cmap_offset + 4 + index * 8
-        platform, encoding, offset = struct.unpack(">HHI", data[base:base + 8])
-        found.append((platform, encoding, cmap_offset + offset))
-    return found
-
-
-def _format4_codepoints(data: bytes, offset: int) -> set[int]:
-    seg_x2 = struct.unpack(">H", data[offset + 6:offset + 8])[0]
-    segments = seg_x2 // 2
-    ends = struct.unpack(f">{segments}H", data[offset + 14:offset + 14 + seg_x2])
-    starts_at = offset + 16 + seg_x2
-    starts = struct.unpack(f">{segments}H", data[starts_at:starts_at + seg_x2])
-    deltas_at = starts_at + seg_x2
-    deltas = struct.unpack(f">{segments}h", data[deltas_at:deltas_at + seg_x2])
-    ranges_at = deltas_at + seg_x2
-    ranges = struct.unpack(f">{segments}H", data[ranges_at:ranges_at + seg_x2])
-    points: set[int] = set()
-    for index in range(segments):
-        start, end = starts[index], ends[index]
-        if start == 0xFFFF or end < start:
-            continue
-        for code in range(start, end + 1):
-            if ranges[index] == 0:
-                glyph = (code + deltas[index]) & 0xFFFF
-            else:
-                at = ranges_at + index * 2 + ranges[index] + (code - start) * 2
-                if at + 2 > len(data):
-                    continue
-                glyph = struct.unpack(">H", data[at:at + 2])[0]
-                if glyph:
-                    glyph = (glyph + deltas[index]) & 0xFFFF
-            if glyph:
-                points.add(code)
-    return points
-
-
-def _format12_codepoints(data: bytes, offset: int) -> set[int]:
-    groups = struct.unpack(">I", data[offset + 12:offset + 16])[0]
-    points: set[int] = set()
-    for index in range(groups):
-        base = offset + 16 + index * 12
-        start, end, glyph = struct.unpack(">III", data[base:base + 12])
-        if glyph == 0 or end < start or end - start > 0x11000:
-            continue
-        points.update(range(start, end + 1))
-    return points
+from fontTools.ttLib import TTFont, TTLibError
 
 
 def codepoint_coverage(font: str | Path) -> set[int]:
-    """字体里有字形的码位集合。"""
-    data = Path(font).read_bytes()
-    points: set[int] = set()
-    for _platform, _encoding, offset in _cmap_offsets(data):
-        fmt = struct.unpack(">H", data[offset:offset + 2])[0]
-        if fmt == 4:
-            points |= _format4_codepoints(data, offset)
-        elif fmt == 12:
-            points |= _format12_codepoints(data, offset)
-    return points
+    """字体里有字形的码位集合。认不出的文件转成 `ValueError`。"""
+    path = Path(font)
+    try:
+        with TTFont(str(path), lazy=True) as face:
+            cmap = face.getBestCmap() or {}
+    except (TTLibError, OSError, ValueError, KeyError) as exc:
+        raise ValueError(f"不是认识的字体文件：{path.name}") from exc
+    return {code for code, glyph in cmap.items() if glyph and glyph != ".notdef"}
 
 
 def missing_glyphs(font: str | Path, text: str, coverage: set[int] | None = None) -> list[str]:
@@ -225,24 +155,14 @@ def charset_for(storyboard: dict, extra_texts: dict[str, str] | None = None) -> 
     return "".join(sorted(chars))
 
 
-class SubsetUnavailable(RuntimeError):
-    """没装可选依赖（fonttools）。"""
-
-
 def subset_font(source: str | Path, text: str, target: str | Path) -> Path:
     """切出只含 `text` 里字符的字体，写到 `target`。
 
     源文件**不动**——共享字体要渲染将来的任意文章，按今天的文本切共享资产
-    明天就会缺字。切出来的子集只服务这一支作品。
-    需要可选依赖 `fonttools`（`uv sync --extra fonts`）；没装时抛
-    `SubsetUnavailable`，由调用方给出清楚的提示而不是崩掉。
+    明天就会缺字。切出来的子集只服务这一支作品。fontTools 是运行时依赖，
+    不再有“没装就不可用”的分支。
     """
-    try:
-        from fontTools import subset as fonttools_subset
-    except ImportError as exc:  # pragma: no cover - 取决于环境
-        raise SubsetUnavailable(
-            "切字体子集需要可选依赖：uv sync --extra fonts（默认渲染不需要它）"
-        ) from exc
+    from fontTools import subset as fonttools_subset
 
     source_path, target_path = Path(source), Path(target)
     target_path.parent.mkdir(parents=True, exist_ok=True)

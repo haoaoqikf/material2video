@@ -77,6 +77,7 @@ def main(args) -> int:
             output=args.output,
             headed=args.headed,
             force=args.force,
+            cookies=args.cookies,
         )
         if args.json:
             print(json.dumps(_summary(result), ensure_ascii=False, indent=2))

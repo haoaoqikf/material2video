@@ -94,6 +94,8 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 仅当用户明确要求复用整条参考音轨时，使用 `m2v ref audio <参考目录> --project <作品目录> --user-authorized "<授权说明>"` 并在作品材料记录授权；参考作品默认不进入成片。
 
+抖音参考素材抓取默认走 yt-dlp；平台要求签名或新鲜 cookie 时，可提供 Netscape cookie 文件 `m2v ref fetch <链接> --cookies <文件>`；yt-dlp 仍无法提取时自动退回浏览器解析并输出明确日志，`--headed` 可打开可见浏览器完成登录或验证。
+
 架构边界与模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](styles/doc-archive/examples/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。

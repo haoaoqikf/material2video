@@ -18,10 +18,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from m2v.core.geodesy import EARTH_RADIUS_METERS, distance_meters
+from m2v.core.schema import validate_document
 from m2v.core.validate import fail, obj, text
+from m2v.types.route_schema import Place, SourceUsage
 
 #: 球面距离口径；只用于沿路进度与连续性判定，不冒充公路里程。
-EARTH_RADIUS_METERS = 6371008.8
+__all__ = ["EARTH_RADIUS_METERS", "haversine_meters"]
 
 #: 相邻道路段端点的服务采样容差。
 STEP_TOLERANCE_METERS = 25.0
@@ -133,11 +136,7 @@ def point_list(value: Any, where: str) -> list[tuple[float, float]]:
 
 def haversine_meters(a: tuple[float, float], b: tuple[float, float]) -> float:
     """两点间球面距离（米）；经纬度顺序为 (经度, 纬度)。"""
-    lng1, lat1 = math.radians(a[0]), math.radians(a[1])
-    lng2, lat2 = math.radians(b[0]), math.radians(b[1])
-    dlat, dlng = lat2 - lat1, lng2 - lng1
-    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
-    return 2 * EARTH_RADIUS_METERS * math.asin(min(1.0, math.sqrt(h)))
+    return distance_meters(a, b)
 
 
 def _normalize_city(value: str) -> str:
@@ -156,34 +155,29 @@ def canonical_digest(value: Any) -> str:
 
 
 def validate_place(value: Any, where: str) -> None:
-    place = obj(value, where, {"city", "address", "label"})
+    validate_document(Place, value, where)
     for field in ("city", "address", "label"):
-        content_text(place.get(field), f"{where}.{field}")
+        content_text(value.get(field), f"{where}.{field}")
 
 
 def validate_source_usage(value: Any, where: str) -> None:
-    usage = obj(value, where, {"verifiedOn", "documents", "account", "purpose", "offlineStorage",
-                               "derivativeFrames", "videoPublication", "mapTiles",
-                               "attribution"})
-    date_text(usage.get("verifiedOn"), f"{where}.verifiedOn")
-    documents = usage.get("documents")
-    if not isinstance(documents, list) or not 1 <= len(documents) <= 8:
+    validate_document(SourceUsage, value, where)
+    date_text(value.get("verifiedOn"), f"{where}.verifiedOn")
+    documents = value["documents"]
+    if not 1 <= len(documents) <= 8:
         fail(f"{where}.documents", "必须记录 1～8 份政策或授权文档引用")
-    for index, raw in enumerate(documents):
+    for index, document in enumerate(documents):
         item_where = f"{where}.documents[{index}]"
-        document = obj(raw, item_where, {"title", "url", "note"})
         content_text(document.get("title"), f"{item_where}.title")
         https_url(document.get("url"), f"{item_where}.url")
         if "note" in document:
             content_text(document["note"], f"{item_where}.note")
-    content_text(usage.get("account"), f"{where}.account")
-    content_text(usage.get("purpose"), f"{where}.purpose")
+    content_text(value.get("account"), f"{where}.account")
+    content_text(value.get("purpose"), f"{where}.purpose")
     for field in ("offlineStorage", "derivativeFrames", "videoPublication"):
-        if usage.get(field) is not True:
+        if value.get(field) is not True:
             fail(f"{where}.{field}", "必须确认该用途已获授权（true）；未落实时不得取数或制作")
-    if type(usage.get("mapTiles")) is not bool:
-        fail(f"{where}.mapTiles", "必须是布尔值；使用道路底图时必须为 true")
-    content_text(usage.get("attribution"), f"{where}.attribution")
+    content_text(value.get("attribution"), f"{where}.attribution")
 
 
 def validate_geocoded_place(value: Any, where: str, expected_city: str) -> tuple[float, float]:

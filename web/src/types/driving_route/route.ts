@@ -7,6 +7,10 @@
  * 材料中的 API 距离。
  */
 
+import {distance as turfDistance} from '@turf/distance';
+import {point as turfPoint} from '@turf/helpers';
+import {geoMercator} from 'd3-geo';
+
 import { LAYOUT, contentRect } from './layout';
 
 export type LonLat = [number, number];
@@ -99,24 +103,19 @@ export type RouteModel = {
 
 export type Camera = {scale: number; tx: number; ty: number};
 
-const EARTH_RADIUS_METERS = 6371008.8;
 const MERCATOR_RADIUS = 6378137;
 const WORLD = 2 * Math.PI * MERCATOR_RADIUS;
 
+/** 球面距离交给 Turf；单位、地球半径与项目既有口径一致。 */
 export function haversineMeters(a: LonLat, b: LonLat): number {
-  const toRad = Math.PI / 180;
-  const lat1 = a[1] * toRad;
-  const lat2 = b[1] * toRad;
-  const dLat = lat2 - lat1;
-  const dLng = (b[0] - a[0]) * toRad;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(h)));
+  return turfDistance(turfPoint(a), turfPoint(b), {units: 'meters'});
 }
 
-/** 局部 Web Mercator；y 取负号，使屏幕方向保持北向上。 */
+/** 局部 Web Mercator；d3-geo 输出 y 向下，屏幕方向保持北向上。 */
+const PROJECT = geoMercator().scale(MERCATOR_RADIUS).translate([0, 0]);
+
 export function projectPoint([lng, lat]: LonLat): ProjectedPoint {
-  const x = MERCATOR_RADIUS * (lng * Math.PI) / 180;
-  const y = -MERCATOR_RADIUS * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  const [x, y] = PROJECT([lng, lat]) as [number, number];
   return {x, y};
 }
 

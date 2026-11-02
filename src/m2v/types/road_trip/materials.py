@@ -15,11 +15,13 @@ from typing import Any
 
 from m2v.core import frames as frame_engine
 from m2v.core.errors import M2VError
+from m2v.core.schema import validate_document
 from m2v.core.validate import fail, obj, text
 from m2v.core.video_config import ROAD_TRIP_FPS
 from m2v.types import route_common
 from m2v.types.driving_route import layout as driving_layout
 from m2v.types.road_trip import layout as layout_module
+from m2v.types.road_trip.schema import DayRoute, Trip
 
 WIDTH = 1080
 HEIGHT = 1920
@@ -244,8 +246,7 @@ def _validate_effects(value: Any, days: dict[str, dict[str, Any]]) -> list[dict[
 
 
 def _validate_trip(trip: dict[str, Any]) -> dict[str, Any]:
-    obj(trip, "trip.json", {"schemaVersion", "title", "start", "end", "routePreference",
-                            "targetSeconds", "sourceUsage", "sources", "days", "effects"})
+    validate_document(Trip, trip, "trip.json")
     route_common.content_text(trip.get("title"), "trip.json.title")
     route_common.validate_place(trip.get("start"), "trip.json.start")
     route_common.validate_place(trip.get("end"), "trip.json.end")
@@ -319,10 +320,7 @@ def _validate_route(route: dict[str, Any], trip_doc: dict[str, Any], day: dict[s
                     index: int, previous: dict[str, Any] | None) -> None:
     trip = trip_doc
     where = f"{day['route']}"
-    obj(route, where, {"schemaVersion", "dayId", "start", "destination", "via",
-                       "routePreference", "requestDigest", "coordinateSystem", "origin",
-                       "endPlace", "viaPoints", "route", "cost", "cities",
-                       "administrativePlaces", "acquisition"})
+    validate_document(DayRoute, route, where)
     if route.get("dayId") != day["id"]:
         fail(f"{where}.dayId", f"必须为 {day['id']}")
     if route.get("routePreference") != trip["routePreference"]:

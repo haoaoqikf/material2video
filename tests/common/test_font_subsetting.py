@@ -1,11 +1,8 @@
 """按作品切字体子集。
 
-默认链路完全离线、不装可选依赖也照跑；这里测的是「装了之后切出来的东西对不对」，
-因此整套用例在缺少 `fonttools` 时 skip（仓库已在别处用同一写法），
-而默认链路的测试不受影响。
-
-要守住的三件事：源文件不被改、子集真的更小、**切完必须过缺字机检**——
-最后一条是这条能力能安全存在的前提：漏字的子集会静默回退到系统字体。
+fontTools 是运行时依赖；这里测的是“切出来的东西对不对”。要守住的三件事：
+源文件不被改、子集真的更小、**切完必须过缺字机检**——最后一条是这条能力
+能安全存在的前提：漏字的子集会静默回退到系统字体。
 """
 
 from __future__ import annotations
@@ -16,17 +13,6 @@ from pathlib import Path
 import pytest
 
 import m2v.core.fonts as fonts
-
-try:  # 用 skipif 而不是模块级 importorskip：后者会让默认环境「一个用例都没收集到」
-    import fontTools.subset  # noqa: F401
-
-    HAVE_FONTTOOLS = True
-except ImportError:  # pragma: no cover - 取决于环境
-    HAVE_FONTTOOLS = False
-
-needs_fonttools = pytest.mark.skipif(
-    not HAVE_FONTTOOLS, reason="需要可选依赖：uv sync --extra fonts"
-)
 
 from helpers.examples import STORYBOARD_PATHS
 
@@ -53,7 +39,6 @@ class TestCharsetMatchesWhatTheCheckLooksAt:
         assert charset == "甲"
 
 
-@needs_fonttools
 class TestSubsetting:
     def test_source_font_is_left_alone(self, tmp_path):
         before = NOTO.read_bytes()

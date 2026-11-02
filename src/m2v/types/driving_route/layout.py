@@ -10,10 +10,10 @@ from typing import Any
 
 from m2v.core.assets import REPOSITORY_ROOT
 from m2v.core.errors import M2VError
+from m2v.core.geodesy import distance_meters
 from m2v.types.driving_route import geometry
 
 LAYOUT_PATH = REPOSITORY_ROOT / "web/src/types/driving_route/layout.json"
-EARTH_RADIUS_METERS = 6371008.8
 TILE_SIZE = 256
 TILE_STYLE = 8
 TILE_LANG = "zh_cn"
@@ -92,11 +92,7 @@ def camera_envelope(route_bbox: tuple[float, float, float, float],
 
 
 def _haversine_meters(a: tuple[float, float], b: tuple[float, float]) -> float:
-    lng1, lat1 = math.radians(a[0]), math.radians(a[1])
-    lng2, lat2 = math.radians(b[0]), math.radians(b[1])
-    dlat, dlng = lat2 - lat1, lng2 - lng1
-    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
-    return 2 * EARTH_RADIUS_METERS * math.asin(min(1.0, math.sqrt(h)))
+    return distance_meters(a, b)
 
 
 def route_geometry(route: dict[str, Any]) -> dict[str, Any]:

@@ -28,6 +28,9 @@
     "@remotion/renderer": "4.0.526",
     "@remotion/tailwind-v4": "4.0.526",
     "@tailwindcss/vite": "4.2.0",
+    "@turf/distance": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "d3-geo": "^3.1.1",
     "echarts": "6.1.0",
     "gsap": "3.15.0",
     "motion": "14.3.0",
@@ -39,6 +42,7 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/node": "^26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

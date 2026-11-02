@@ -17,10 +17,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from m2v.core.schema import validate_document
 from m2v.core.validate import fail, obj, text
 from m2v.core.video_config import DRIVING_ROUTE_FPS
 from m2v.types import route_common
 from m2v.types.driving_route import geometry, layout as layout_module
+from m2v.types.driving_route.schema import DrivingRequest, DrivingRoute
 
 #: 画幅与帧率是类型契约，不由作品或请求临时覆盖。
 WIDTH = 1080
@@ -73,8 +75,7 @@ def _validate_source_usage(value: Any, where: str) -> None:
 
 
 def _validate_request(request: dict[str, Any]) -> None:
-    obj(request, "request.json", {"schemaVersion", "origin", "destination", "strategy",
-                                  "durationSeconds", "canvas", "sourceUsage"})
+    validate_document(DrivingRequest, request, "request.json")
     _validate_place(request.get("origin"), "request.json.origin")
     _validate_place(request.get("destination"), "request.json.destination")
     if request.get("strategy") != "highway-first":
@@ -349,10 +350,7 @@ def _validate_basemap_image(root: Path, basemap: dict[str, Any], request: dict[s
 
 
 def _validate_route(request: dict[str, Any], route: dict[str, Any]) -> None:
-    obj(route, "route.json", {"schemaVersion", "requestDigest", "coordinateSystem",
-                              "origin", "destination", "route", "acquisition",
-                              "sourceUsage", "cost", "cities", "administrativePlaces",
-                              "basemap"})
+    validate_document(DrivingRoute, route, "route.json")
     digest = text(route.get("requestDigest"), "route.json.requestDigest")
     if not re.fullmatch(r"[0-9a-f]{64}", digest):
         fail("route.json.requestDigest", "必须是 64 位十六进制 SHA-256 摘要")
