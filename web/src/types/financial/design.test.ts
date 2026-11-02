@@ -10,12 +10,17 @@ describe('金融设计档案', () => {
     expect(design.accent).toBeNull();
   });
 
-  it('接受三种 profile 与可选 accent，accent 覆盖 profile tint', () => {
+  it('接受三种 profile 与可选 accent，accent 覆盖 profile tint 但不改变分隔线色', () => {
     const ledger = resolveDesign({profile: 'ledger', accent: '#C9A45C'});
     expect(ledger.glow).toBe('#1A1713');
     expect(ledger.tint).toBe('#C9A45C');
+    expect(ledger.rule).toBe('#C9A45C');
     const archive = resolveDesign({profile: 'archive'});
     expect(archive.tint).toBe('#6F8CA8');
+    expect(archive.rule).toBe('#6F8CA8');
+    const signal = resolveDesign({profile: 'signal', accent: '#123456'});
+    expect(signal.tint).toBe('#123456');
+    expect(signal.rule).toBe('#A8B0BD');
   });
 
   it('拒绝未知枚举、非法 accent 与涨跌颜色', () => {

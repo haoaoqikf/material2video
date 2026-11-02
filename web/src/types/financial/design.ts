@@ -18,12 +18,14 @@ export type ResolvedFinancialDesign = {
   accent: string | null;
   glow: string;
   tint: string;
+  /** 对账单分隔线色：由 profile 决定，不跟随用户 accent，也不进入数据层。 */
+  rule: string;
 };
 
-const PROFILES: Record<FinancialProfile, {glow: string; tint: string}> = {
-  signal: {glow: '#17171B', tint: '#A8B0BD'},
-  ledger: {glow: '#1A1713', tint: '#C9A45C'},
-  archive: {glow: '#10161D', tint: '#6F8CA8'},
+const PROFILES: Record<FinancialProfile, {glow: string; tint: string; rule: string}> = {
+  signal: {glow: '#17171B', tint: '#A8B0BD', rule: '#A8B0BD'},
+  ledger: {glow: '#1A1713', tint: '#C9A45C', rule: '#C9A45C'},
+  archive: {glow: '#10161D', tint: '#6F8CA8', rule: '#6F8CA8'},
 };
 
 const TITLE_MODES: FinancialTitleMode[] = ['subject', 'premise'];
@@ -66,5 +68,6 @@ export function resolveDesign(design: FinancialDesign | undefined): ResolvedFina
     }
   }
   return {profile, titleMode, personality, accent,
-    glow: PROFILES[profile].glow, tint: accent ?? PROFILES[profile].tint};
+    glow: PROFILES[profile].glow, tint: accent ?? PROFILES[profile].tint,
+    rule: PROFILES[profile].rule};
 }
