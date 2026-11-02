@@ -4,15 +4,9 @@ import rough from 'roughjs';
 import {motionCurve} from '../motion';
 import {clampProgress, growSeries, rollNumber, type Easing} from '../primitives';
 import {pathDrawProps} from './paths';
+import {dataAttrs} from './internal';
 
 const LINEAR = motionCurve('linear');
-
-function dataAttrs(role?: string, state?: string): Record<string, string> {
-  return {
-    ...(role ? {'data-m2v-role': role} : {}),
-    ...(state ? {'data-m2v-state': state} : {}),
-  };
-}
 
 export type RollingNumberProps = {
   from: number;

@@ -217,6 +217,41 @@ export default function Demo({width, height}: CodeSceneProps) {
 """
 
 
+PURE_EXTENDED_SOURCE = """import {useEffect} from 'react';
+import {
+  ArcGauge, AreaPlot, AutoFitText, Axis, ChapterTrack, IconGrid, LinePlot, MaskReveal,
+  NoiseDrift, PathMorph, Pictogram, ProgressRing, Sparkline, TextBlock, Waveform,
+  useSceneContext, type CodeSceneProps,
+} from 'm2v/code-scene';
+export default function Demo({width, height}: CodeSceneProps) {
+  const {ready, elapsedSeconds} = useSceneContext();
+  useEffect(() => {ready();}, [ready]);
+  const progress = Math.min(1, elapsedSeconds);
+  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
+    <NoiseDrift seed="demo" progress={progress} amount={4}>
+      <AutoFitText text="共享组件" withinWidth={200} fontFamily="M2V Sans" maxFontSize={40}/>
+    </NoiseDrift>
+    <TextBlock text="中文排版测试，标点不落行首。" maxWidth={160} fontFamily="M2V Sans"
+      fontSize={16} progress={progress}/>
+    <MaskReveal progress={progress}><div style={{width: 80, height: 40, background: '#fff'}}/></MaskReveal>
+    <PathMorph from="M10 10 L100 10" to="M10 10 L10 100" progress={progress}/>
+    <ArcGauge progress={progress} size={80} thickness={6}/>
+    <ProgressRing progress={progress} size={60} thickness={5}/>
+    <LinePlot series={[{values: [1, 3, 2]}]} progress={progress} width={200} height={120}>
+      <Axis orientation="x" domain={[0, 2]} range={[16, 184]} at={104} ticks={2}/>
+    </LinePlot>
+    <AreaPlot series={[{values: [2, 1, 3]}]} progress={progress} width={120} height={60}/>
+    <Sparkline values={[1, 2, 1]} width={80} height={30} fill="rgba(255, 255, 255, 0.2)"/>
+    <ChapterTrack chapters={['一', '二', '三']} progress={progress} width={200} height={60}/>
+    <Pictogram count={6} value={3} progress={progress} cellSize={10} gap={2}/>
+    <IconGrid icon="M0 0 L10 0 L10 10 Z" count={4} value={2} progress={progress}
+      cellSize={8} gap={2}/>
+    <Waveform samples={[0, 1, -1, 0.5]} bars={4} width={120} height={40} progress={progress}/>
+  </div>;
+}
+"""
+
+
 def pure_scene(duration=12, **capture):
     return {"id": "pure", "template": "code", "durationFrames": duration, "durationInFrames": duration,
             "startFrame": 0, "endFrame": duration, "segmentWindows": {}, "narrationSegments": [],
@@ -253,6 +288,23 @@ def test_pure_time_capture_seeks_directly_and_reuses_blocks(tmp_path, chromium_r
 def test_pure_time_accepts_shared_motion_components(tmp_path, chromium_ready):
     root = tmp_path / "project"
     write_source(root, "scenes/demo.tsx", PURE_SHARED_SOURCE)
+    frame = {"width": 320, "height": 240,
+             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
+    relative = code_scenes.record(root, pure_scene(duration=6), {}, frame=frame, media={},
+                                  media_digest="empty", capture_range=(0, 6), fps=30)
+    clip = root / relative
+    code_scenes._verify_clip(clip, 6)
+    receipt = json.loads(clip.with_suffix(".json").read_text(encoding="utf-8"))
+    assert receipt["contract"] == code_scenes.PURE_CONTRACT
+    assert receipt["verified"] is True
+    assert receipt["probes"] and receipt["minPsnr"] is None
+
+
+@pytest.mark.slow
+@requires_node
+def test_pure_time_accepts_extended_motion_components(tmp_path, chromium_ready):
+    root = tmp_path / "project"
+    write_source(root, "scenes/demo.tsx", PURE_EXTENDED_SOURCE)
     frame = {"width": 320, "height": 240,
              "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
     relative = code_scenes.record(root, pure_scene(duration=6), {}, frame=frame, media={},

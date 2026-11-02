@@ -4,15 +4,9 @@ import {motionCurve} from '../motion';
 import {clampProgress, type Easing} from '../primitives';
 import {makeTransform, scale, styleAt, translateX, translateY} from './styles';
 import {pathDrawProps} from './paths';
+import {dataAttrs} from './internal';
 
 const ENTRY_EASING = motionCurve('easeOutCubic');
-
-function dataAttrs(role?: string, state?: string): Record<string, string> {
-  return {
-    ...(role ? {'data-m2v-role': role} : {}),
-    ...(state ? {'data-m2v-state': state} : {}),
-  };
-}
 
 export type FadeInProps = {
   progress: number;

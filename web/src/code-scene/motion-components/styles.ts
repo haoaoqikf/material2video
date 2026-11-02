@@ -1,7 +1,9 @@
 /** `@remotion/animation-utils` 的薄封装：只用于 CSS 样式，不用于 SVG 数值属性。 */
 import type {CSSProperties} from 'react';
 import {
-  interpolateStyles, makeTransform, rotate, scale, translate, translate3d, translateX, translateY,
+  interpolateStyles, makeTransform, matrix, matrix3d, perspective, rotate, rotate3d, rotateX,
+  rotateY, rotateZ, scale, scale3d, scaleX, scaleY, scaleZ, skew, skewX, skewY, translate,
+  translate3d, translateX, translateY, translateZ,
 } from '@remotion/animation-utils';
 import {clampProgress, type Easing} from '../primitives';
 
@@ -14,4 +16,8 @@ export function styleAt(
     easing ? {...options, easing} : options);
 }
 
-export {makeTransform, rotate, scale, translate, translate3d, translateX, translateY};
+export {
+  makeTransform, matrix, matrix3d, perspective, rotate, rotate3d, rotateX, rotateY, rotateZ,
+  scale, scale3d, scaleX, scaleY, scaleZ, skew, skewX, skewY, translate, translate3d, translateX,
+  translateY, translateZ,
+};
