@@ -8,15 +8,18 @@
  * 文案或音轨。所有变化由帧号驱动，随机点使用固定种子。
  */
 import {useEffect, useRef} from 'react';
-import {hashSeed, seededRandom, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {hashSeed, samplePath, seededRandom, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import Stage from 'm2v/style/components/stage';
 import HeroNumber from 'm2v/style/components/hero-number';
 import Counter from 'm2v/style/components/counter';
 import DotField, {type DotPoint} from 'm2v/style/components/dot-field';
 import {ChartArrow, ChartFrame, ChartLine, ChartMarker} from 'm2v/style/components/proof-chart';
 import BilingualTitle from 'm2v/style/components/bilingual-title';
-import ScreenSubtitle from 'm2v/style/components/screen-subtitle';
+import ScreenSubtitle, {type SubtitleVariant} from 'm2v/style/components/screen-subtitle';
 import HandDrawnLine from 'm2v/style/components/hand-drawn-line';
+import LightTrail from 'm2v/style/components/light-trail';
+import Burst from 'm2v/style/components/burst';
+import ShockRing from 'm2v/style/components/shock-ring';
 import {
   LATIN, NUMERIC_STYLE, SANS, T, easeInOutSine, easeOutCubic,
   frameProgress, lerp, mixColor,
@@ -87,19 +90,47 @@ const COLUMN_POINTS = COLUMN_SPEC.map(spec => {
   return {spec, points};
 });
 
-/** 大象轮廓与耳朵：原创路径，只表达“一个整体被分成局部观察”。 */
-const ELEPHANT = `M170 300 C128 330 108 382 98 432 C84 502 68 572 94 616
-  C110 640 141 632 151 602 C166 558 166 505 180 468 C208 482 232 508 240 548
-  L270 598 C282 616 308 616 320 596 L338 558 C392 572 470 574 520 564
-  L566 604 C580 620 606 618 618 598 L642 554 C700 550 752 514 770 458
-  C796 452 814 426 808 398 C832 382 838 350 820 328 C842 308 836 274 810 262
-  C782 230 730 220 684 238 C642 208 582 198 534 216 C490 192 432 194 394 222
-  C342 212 290 232 268 270 C226 268 192 282 170 300 Z`;
-const EAR = `M360 238 C412 240 438 300 426 362 C416 418 370 446 334 424
-  C306 396 300 320 360 238 Z`;
+/**
+ * 大象几何取自 Lucide Lab `elephant`（ISC，`@lucide/lab` 0.7.0）的侧视轮廓：
+ * 头部、卷鼻、耳朵、前后腿与眼都来自该图标，只取路径数据，不在运行时依赖图标包。
+ * 象牙、尾与眼点为作品补充。图标坐标 24×24，按 `ELE_S` 放大到画面右侧。
+ * 来源、版本与许可见作品 SOURCES.md。
+ */
+const ELE_S = 25;
+const ELE_X = 560;
+const ELE_Y = 300;
+const ELE_PATHS: Array<{d: string; delay: number; width: number}> = [
+  // 背、耳外沿与头部右侧。
+  {d: 'M14.5 12H14c-2.8 0-5-2.2-5-5V5a2 2 0 0 1 2-2h2c1.5 0 2.8.8 3.4 2H19c1.7 0 3 1.3 3 3v10',
+    delay: 10, width: 0.52},
+  // 卷鼻。
+  {d: 'M14 10a4 4 0 0 0 4 4 4 4 0 0 1 4 4 2 2 0 0 1-4 0', delay: 40, width: 0.5},
+  // 前腿内侧。
+  {d: 'M10 16v5', delay: 26, width: 0.44},
+  // 身体下沿、后腿与前腿外侧。
+  {d: 'M18 14a4 4 0 0 0-4 4v3H6v-2.6c0-1.1-.8-2.3-1.7-3C2.9 14.3 2 12.8 2 11c0-3.3 3.1-6 7-6',
+    delay: 0, width: 0.52},
+  // 后腿外沿。
+  {d: 'M2 11v7', delay: 4, width: 0.46},
+];
+const ELE_TUSKS = [
+  'M17.4 14.2C18.5 15 19.1 16 19.2 17.2',
+  'M17.8 14.6C18.7 15.3 19.2 16.1 19.3 17',
+];
+const ELE_EYE = {x: 18, y: 10, r: 0.34};
 
-const EX = (x: number) => 520 + x * 0.82;
-const EY = (y: number) => 170 + y * 0.82;
+/**
+ * 三个取样窗是同一大象的真实局部放大：窗放在象身右侧，用细引线指向被放大的点，
+ * 窗内是同一组路径按 `zoom` 放大后的裁片，不是另画的纹理。
+ */
+const ELE_CROPS = [
+  {label: '耳朵', source: {x: 9.3, y: 7.6}, center: {x: 1376, y: 356}, zoom: 1.55},
+  {label: '头部', source: {x: 21.9, y: 17.9}, center: {x: 1632, y: 536}, zoom: 1.55},
+  {label: '前腿', source: {x: 14, y: 19.2}, center: {x: 1376, y: 716}, zoom: 1.65},
+].map(crop => ({
+  ...crop,
+  source: {x: ELE_X + crop.source.x * ELE_S, y: ELE_Y + crop.source.y * ELE_S},
+}));
 
 function log10(value: number): number {
   return Math.log(value) / Math.LN10;
@@ -167,9 +198,6 @@ function ReviewDisc({x, y, value, opacity}: {x: number; y: number; value: number
 function Opening({frame, opacity}: {frame: number; opacity: number}) {
   const enter = 0.08 + 0.92 * easeOutCubic(frameProgress(frame, 0, 34));
   const move = easeInOutSine(frameProgress(frame, 62, 70));
-  const fieldIn = fadeIn(frame, 78, 138);
-  const fieldReveal = easeInOutSine(frameProgress(frame, 88, 76));
-  const goldIn = easeOutCubic(frameProgress(frame, 92, 44));
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
       <HeroNumber
@@ -186,14 +214,6 @@ function Opening({frame, opacity}: {frame: number; opacity: number}) {
         transform: 'translate(-50%, -50%)', fontFamily: SANS, fontSize: 60,
         color: IVORY, opacity: fadeIn(frame, 34, 72), whiteSpace: 'nowrap',
       }}>条评价</div>
-      <DotField
-        box={FIELD_BOX}
-        points={FIELD_POINTS}
-        opacity={fieldIn * 0.62}
-        reveal={fieldReveal}
-        emphasis={GOLD_POINTS}
-        emphasisOpacity={goldIn}
-      />
       <div style={{
         position: 'absolute', left: FIELD_BOX.x + 20, top: FIELD_BOX.y + FIELD_BOX.height + 22,
         fontFamily: LATIN, ...NUMERIC_STYLE, fontSize: 34, color: GOLD,
@@ -214,7 +234,6 @@ function Swings({frame, opacity}: {frame: number; opacity: number}) {
   const swingIn = fadeIn(frame, 226, 262);
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
-      <DotField box={FIELD_BOX} points={FIELD_POINTS} opacity={0.06} reveal={1}/>
       <div style={{
         position: 'absolute', left: 960, top: 196, transform: 'translate(-50%, -50%)',
         fontFamily: SANS, fontSize: 44, color: MUTED, opacity: fadeIn(frame, 168, 204),
@@ -309,25 +328,15 @@ const THREE_POINTS: Array<[number, number]> = [[620, 680], [960, 540], [1300, 42
 const TREND = `M620 680 C780 640 820 600 960 540 C1100 480 1160 450 1300 420`;
 
 function ThreeDots({frame, opacity}: {frame: number; opacity: number}) {
-  const again = 1;
   const line = easeInOutSine(frameProgress(frame, 626, 74));
-  const field = fadeIn(frame, 700, 756);
   const dissolve = easeInOutSine(frameProgress(frame, 738, 64));
   const lineColor = mixColor(IVORY, EMBER, dissolve);
   const lineOpacity = 1 - dissolve;
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
-      <DotField box={{x: 470, y: 250, width: 980, height: 540}} points={FIELD_POINTS}
-        opacity={field * 0.34} reveal={1} radius={3}/>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
         style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none'}} aria-hidden>
         <HandDrawnLine d={TREND} color={lineColor} width={9} progress={line} opacity={lineOpacity}/>
-        {THREE_POINTS.map(([x, y], index) => (
-          <g key={index} opacity={again}>
-            <circle cx={x} cy={y} r={20} fill="none" stroke={GOLD} strokeWidth={1.5} opacity={0.32}/>
-            <circle cx={x} cy={y} r={11} fill={GOLD}/>
-          </g>
-        ))}
       </svg>
     </div>
   );
@@ -363,14 +372,23 @@ function Regression({frame, opacity}: {frame: number; opacity: number}) {
 }
 
 function Elephant({frame, opacity}: {frame: number; opacity: number}) {
-  const outline = easeInOutSine(frameProgress(frame, 1028, 100));
-  const windows = windowOpacity(frame, 1138, 1176, 1200, 1246);
+  const part = (delay: number) => easeInOutSine(frameProgress(frame, 1028 + delay, 72));
+  const eye = fadeIn(frame, 1104, 1150);
+  const windows = windowOpacity(frame, 1104, 1140, 1200, 1246);
   const whole = fadeIn(frame, 1194, 1252);
-  const windowsSpec = [
-    {label: '局部一', x: EX(120), y: EY(540)},
-    {label: '局部二', x: EX(370), y: EY(335)},
-    {label: '局部三', x: EX(600), y: EY(585)},
-  ];
+  const figure = (keyPrefix: string) => (
+    <g transform={`translate(${ELE_X} ${ELE_Y}) scale(${ELE_S})`}>
+      {ELE_PATHS.map((path, index) => (
+        <HandDrawnLine key={`${keyPrefix}-${index}`} d={path.d} color={IVORY}
+          width={path.width} progress={part(path.delay)} ghostOffset={0.02}/>
+      ))}
+      {ELE_TUSKS.map((d, index) => (
+        <HandDrawnLine key={`${keyPrefix}-tusk-${index}`} d={d} color={IVORY} width={0.3}
+          progress={part(54 + index * 6)} ghostOffset={0} freehand={false}/>
+      ))}
+      <circle cx={ELE_EYE.x} cy={ELE_EYE.y} r={ELE_EYE.r} fill={IVORY} opacity={eye}/>
+    </g>
+  );
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
       <BilingualTitle zh="盲人摸象" en="the blind men and the elephant" x={180} y={196} size={60}
@@ -378,51 +396,50 @@ function Elephant({frame, opacity}: {frame: number; opacity: number}) {
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
         style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none'}} aria-hidden>
         <defs>
-          <clipPath id="sample-elephant-clip"><path d={ELEPHANT} transform="translate(520 170) scale(0.82)"/></clipPath>
-          {windowsSpec.map((window, index) => (
+          <radialGradient id="sample-elephant-halo">
+            <stop offset="0" stopColor={IVORY} stopOpacity={0.16}/>
+            <stop offset="1" stopColor={IVORY} stopOpacity={0}/>
+          </radialGradient>
+          <g id="sample-elephant-figure">{figure('figure')}</g>
+          {ELE_CROPS.map((crop, index) => (
             <clipPath id={`sample-window-${index}`} key={index}>
-              <circle cx={window.x} cy={window.y} r={72}/>
+              <circle cx={crop.center.x} cy={crop.center.y} r={82}/>
             </clipPath>
           ))}
         </defs>
-        <path d={ELEPHANT} transform="translate(520 170) scale(0.82)" fill={IVORY} opacity={0.045 * whole}/>
-        <path d={ELEPHANT} transform="translate(520 170) scale(0.82)" fill="none" stroke={IVORY}
-          strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" opacity={0.18 * outline}/>
-        <g transform="translate(520 170) scale(0.82)">
-          <HandDrawnLine d={ELEPHANT} color={IVORY} width={11} progress={outline}/>
-          <HandDrawnLine d={EAR} color={IVORY} width={9} progress={outline} ghostOffset={0.8}/>
+        {/* 整体揭示：同一组图标路径的剪影，不是另画一只象。 */}
+        <g opacity={whole}>
+          <ellipse cx={960} cy={600} rx={400} ry={320} fill="url(#sample-elephant-halo)"/>
+          <g transform={`translate(${ELE_X} ${ELE_Y}) scale(${ELE_S})`} fill={IVORY} opacity={0.14}>
+            {ELE_PATHS.map((path, index) => <path key={index} d={path.d}/>)}
+          </g>
         </g>
-        <g clipPath="url(#sample-elephant-clip)" opacity={whole}>
-          <path d="M760 420 C850 380 930 420 990 500" fill="none" stroke={IVORY} strokeWidth={3} opacity={0.2}/>
-          <path d="M780 470 C860 430 940 470 1000 550" fill="none" stroke={IVORY} strokeWidth={3} opacity={0.16}/>
+        {/* 引线画在象身之下：只在象与取样窗之间的空场露出，不切断轮廓。 */}
+        <g opacity={windows}>
+          {ELE_CROPS.map(crop => {
+            const {source, center} = crop;
+            const distance = Math.hypot(center.x - source.x, center.y - source.y);
+            const dx = (center.x - source.x) / distance;
+            const dy = (center.y - source.y) / distance;
+            return (
+              <line key={`lead-${crop.label}`} x1={source.x} y1={source.y}
+                x2={center.x - dx * 90} y2={center.y - dy * 90}
+                stroke={IVORY} strokeWidth={1.4} opacity={0.28}/>
+            );
+          })}
         </g>
-        {windowsSpec.map((window, index) => (
-          <g key={index} opacity={windows}>
-            <circle cx={window.x} cy={window.y} r={72} fill="none" stroke={GOLD} strokeWidth={2} opacity={0.85}/>
+        <use href="#sample-elephant-figure"/>
+        {ELE_CROPS.map((crop, index) => (
+          <g key={crop.label} opacity={windows}>
+            <circle cx={crop.source.x} cy={crop.source.y} r={5} fill={IVORY} opacity={0.65}/>
             <g clipPath={`url(#sample-window-${index})`}>
-              {index === 0 ? (
-                <g stroke={IVORY} strokeWidth={3} fill="none" opacity={0.62}>
-                  <path d={`M${window.x - 30} ${window.y - 70} C${window.x - 40} ${window.y - 20} ${window.x - 20} ${window.y + 20} ${window.x - 30} ${window.y + 70}`}/>
-                  <path d={`M${window.x} ${window.y - 72} C${window.x - 10} ${window.y - 20} ${window.x + 10} ${window.y + 20} ${window.x} ${window.y + 72}`}/>
-                  <path d={`M${window.x + 30} ${window.y - 70} C${window.x + 20} ${window.y - 20} ${window.x + 40} ${window.y + 20} ${window.x + 30} ${window.y + 70}`}/>
-                </g>
-              ) : index === 1 ? (
-                <g stroke={IVORY} strokeWidth={3} fill="none" opacity={0.55}>
-                  {[20, 40, 60].map(radius => (
-                    <circle key={radius} cx={window.x} cy={window.y} r={radius}/>
-                  ))}
-                </g>
-              ) : (
-                <g stroke={IVORY} strokeWidth={3} fill="none" opacity={0.52}>
-                  {[-36, -12, 12, 36].map(offset => (
-                    <line key={offset} x1={window.x - 74} y1={window.y + offset}
-                      x2={window.x + 74} y2={window.y + offset}/>
-                  ))}
-                </g>
-              )}
+              <use href="#sample-elephant-figure"
+                transform={`translate(${crop.center.x} ${crop.center.y}) scale(${crop.zoom}) translate(${-crop.source.x} ${-crop.source.y})`}/>
             </g>
-            <text x={window.x} y={window.y + 102} textAnchor="middle" fontFamily={SANS}
-              fontSize={22} fill={MUTED}>{window.label}</text>
+            <circle cx={crop.center.x} cy={crop.center.y} r={82} fill="none" stroke={IVORY}
+              strokeWidth={2} opacity={0.3}/>
+            <text x={crop.center.x} y={crop.center.y + 108} textAnchor="middle" fontFamily={SANS}
+              fontSize={26} fill={MUTED}>{crop.label}</text>
           </g>
         ))}
       </svg>
@@ -483,13 +500,10 @@ function StandardError({frame, opacity}: {frame: number; opacity: number}) {
 }
 
 function Return({frame, opacity}: {frame: number; opacity: number}) {
-  const field = fadeIn(frame, 1506, 1570);
   const title = fadeIn(frame, 1516, 1568);
   const number = fadeIn(frame, 1540, 1580);
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
-      <DotField box={RETURN_BOX} points={FIELD_POINTS} opacity={field * 0.62} reveal={1}
-        emphasis={GOLD_POINTS} emphasisOpacity={field}/>
       <BilingualTitle zh="样本" x={140} y={438} size={220}
         opacity={title} ruleWidth={96} ruleProgress={title}/>
       <div style={{
@@ -499,6 +513,216 @@ function Return({frame, opacity}: {frame: number; opacity: number}) {
     </div>
   );
 }
+
+type AnchorPoint = {x: number; y: number};
+type AnchorState = {
+  points: AnchorPoint[];
+  radius: number;
+  opacity: number;
+  trail?: {from: AnchorPoint[]; to: AnchorPoint[]; progress: number};
+};
+
+const FIELD_GOLD: AnchorPoint[] = GOLD_POINTS.map(point => ({
+  x: FIELD_BOX.x + point.x * FIELD_BOX.width,
+  y: FIELD_BOX.y + point.y * FIELD_BOX.height,
+}));
+const DISC_TOP: AnchorPoint[] = [
+  {x: 720, y: 628}, {x: 960, y: 628}, {x: 1200, y: 628},
+];
+const N3_POINTS: AnchorPoint[] = COLUMN_POINTS[0].points.slice(0, 3)
+  .map(point => ({x: point.x * W, y: point.y * H}));
+const TREND_POINTS: AnchorPoint[] = THREE_POINTS.map(([x, y]) => ({x, y}));
+const TREND_SAMPLED = samplePath(TREND, 80);
+const WINDOW_POINTS: AnchorPoint[] = ELE_CROPS.map(crop => ({x: crop.center.x, y: crop.center.y}));
+const seX = (n: number) => 440 + (log10(n) / 3) * 1000;
+const seY = (n: number) => 250 + (1 - 1 / Math.sqrt(n)) * 540;
+const SE_MARKERS: AnchorPoint[] = [
+  {x: seX(3), y: seY(3)},
+  {x: seX(1000), y: seY(1000)},
+  {x: 1520, y: (seY(3) + seY(1000)) / 2},
+];
+
+function lerpPoints(from: AnchorPoint[], to: AnchorPoint[], progress: number): AnchorPoint[] {
+  return from.map((point, index) => ({
+    x: lerp(point.x, to[index].x, progress),
+    y: lerp(point.y, to[index].y, progress),
+  }));
+}
+
+function anchorState(frame: number): AnchorState {
+  if (frame < 92) return {points: FIELD_GOLD, radius: 13, opacity: 0};
+  if (frame < 156) return {points: FIELD_GOLD, radius: 13, opacity: 1};
+  if (frame < 180) {
+    const progress = easeInOutSine(frameProgress(frame, 156, 24));
+    return {
+      points: lerpPoints(FIELD_GOLD, DISC_TOP, progress), radius: lerp(13, 7, progress),
+      opacity: 1, trail: {from: FIELD_GOLD, to: DISC_TOP, progress},
+    };
+  }
+  if (frame < 366) return {points: DISC_TOP, radius: 7, opacity: 1};
+  if (frame < 390) {
+    const progress = easeInOutSine(frameProgress(frame, 366, 24));
+    return {
+      points: lerpPoints(DISC_TOP, N3_POINTS, progress), radius: lerp(7, 7, progress),
+      opacity: 1, trail: {from: DISC_TOP, to: N3_POINTS, progress},
+    };
+  }
+  if (frame < 600) return {points: N3_POINTS, radius: 7, opacity: 1};
+  // 唯一硬切：600 帧整帧从 n=3 样本点跳到趋势点，不给形变轨迹。
+  if (frame < 816) return {points: TREND_POINTS, radius: 11, opacity: 1};
+  if (frame < 840) return {points: TREND_POINTS, radius: 11, opacity: fadeOut(frame, 816, 840)};
+  if (frame < 1026) return {points: TREND_POINTS, radius: 11, opacity: 0};
+  if (frame < 1050) return {points: WINDOW_POINTS, radius: 72, opacity: fadeIn(frame, 1026, 1050)};
+  if (frame < 1266) return {points: WINDOW_POINTS, radius: 72, opacity: 1};
+  if (frame < 1290) {
+    const progress = easeInOutSine(frameProgress(frame, 1266, 24));
+    return {
+      points: lerpPoints(WINDOW_POINTS, SE_MARKERS, progress), radius: lerp(72, 7, progress),
+      opacity: 1, trail: {from: WINDOW_POINTS, to: SE_MARKERS, progress},
+    };
+  }
+  if (frame < 1506) return {points: SE_MARKERS, radius: 7, opacity: 1};
+  if (frame < 1530) {
+    const progress = easeInOutSine(frameProgress(frame, 1506, 24));
+    return {
+      points: lerpPoints(SE_MARKERS, FIELD_GOLD, progress), radius: lerp(7, 13, progress),
+      opacity: 1, trail: {from: SE_MARKERS, to: FIELD_GOLD, progress},
+    };
+  }
+  return {points: FIELD_GOLD, radius: 13, opacity: 1};
+}
+
+function FieldAnchor({frame}: {frame: number}) {
+  if (frame < 180) {
+    const fieldIn = fadeIn(frame, 78, 138);
+    const reveal = easeInOutSine(frameProgress(frame, 88, 76));
+    const toSwings = easeInOutSine(frameProgress(frame, 156, 24));
+    return (
+      <DotField box={FIELD_BOX} points={FIELD_POINTS}
+        opacity={lerp(fieldIn * 0.62, 0.06, toSwings)} reveal={reveal}/>
+    );
+  }
+  if (frame < 366) return <DotField box={FIELD_BOX} points={FIELD_POINTS} opacity={0.06} reveal={1}/>;
+  if (frame < 390) {
+    const out = easeInOutSine(frameProgress(frame, 366, 24));
+    return <DotField box={FIELD_BOX} points={FIELD_POINTS} opacity={lerp(0.06, 0, out)} reveal={1}/>;
+  }
+  if (frame < 700) return null;
+  if (frame < 840) {
+    const inField = fadeIn(frame, 700, 756);
+    const out = fadeOut(frame, 816, 840);
+    return (
+      <DotField box={{x: 470, y: 250, width: 980, height: 540}} points={FIELD_POINTS}
+        opacity={inField * out * 0.34} reveal={1} radius={3}/>
+    );
+  }
+  if (frame < 1506) return null;
+  const inReturn = fadeIn(frame, 1506, 1570);
+  return <DotField box={RETURN_BOX} points={FIELD_POINTS} opacity={inReturn * 0.62} reveal={1}/>;
+}
+
+function GoldAnchor({frame}: {frame: number}) {
+  const state = anchorState(frame);
+  if (state.opacity <= 0) return null;
+  const ring = state.radius > 20;
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+      style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none'}} aria-hidden>
+      <defs>
+        <radialGradient id="sample-gold-glow">
+          <stop offset="0" stopColor={T.light.core} stopOpacity={0.7}/>
+          <stop offset="0.45" stopColor={GOLD} stopOpacity={0.28}/>
+          <stop offset="1" stopColor={GOLD} stopOpacity={0}/>
+        </radialGradient>
+      </defs>
+      <g opacity={state.opacity} style={{mixBlendMode: 'screen'}}>
+        {state.points.map((point, index) => (
+          <g key={index}>
+            <circle cx={point.x} cy={point.y} r={Math.max(18, state.radius * 1.8)}
+              fill="url(#sample-gold-glow)" opacity={ring ? 0.2 : 0.45}/>
+            {ring ? (
+              <circle cx={point.x} cy={point.y} r={state.radius} fill="none"
+                stroke={GOLD} strokeWidth={2} opacity={0.82}/>
+            ) : null}
+            <circle cx={point.x} cy={point.y} r={ring ? 5 : state.radius} fill={GOLD}/>
+          </g>
+        ))}
+      </g>
+      {state.trail ? state.trail.from.map((from, index) => (
+        <LightTrail key={`anchor-trail-${index}`} points={[from, state.trail!.to[index]]}
+          progress={state.trail!.progress} length={0.55} samples={6} width={6}
+          dust={0} glow={2.8} opacity={0.85}/>
+      )) : null}
+    </svg>
+  );
+}
+
+function LightEvents({frame}: {frame: number}) {
+  const opening = easeInOutSine(frameProgress(frame, 62, 70));
+  const line = easeInOutSine(frameProgress(frame, 626, 74));
+  const arrows = easeInOutSine(frameProgress(frame, 926, 90));
+  const curve = easeInOutSine(frameProgress(frame, 1268, 96));
+  const openingOpacity = frame < 62 ? 0 : frame < 132 ? 0.7 : Math.max(0, 1 - (frame - 132) / 18) * 0.7;
+  const lineOpacity = frame < 626 ? 0 : frame < 700 ? 0.8 : Math.max(0, 1 - (frame - 700) / 24) * 0.8;
+  const arrowOpacity = frame < 926 ? 0 : frame < 1016 ? 0.7 : Math.max(0, 1 - (frame - 1016) / 18) * 0.7;
+  const curveOpacity = frame < 1268 ? 0 : frame < 1364 ? 0.8 : Math.max(0, 1 - (frame - 1364) / 24) * 0.8;
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+      style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none'}} aria-hidden>
+      <LightTrail points={[{x: 960, y: 520}, {x: 360, y: 500}]} progress={opening}
+        length={0.5} width={9} samples={8} dust={3} opacity={openingOpacity}/>
+      <LightTrail points={TREND_SAMPLED} progress={line} length={0.24} width={7}
+        samples={12} dust={3} opacity={lineOpacity}/>
+      <LightTrail points={[{x: 660, y: 360}, {x: 850, y: 410}, {x: 1040, y: 464}]}
+        progress={arrows} length={0.3} width={6} samples={8} dust={0} opacity={arrowOpacity}/>
+      <LightTrail points={[{x: 660, y: 608}, {x: 850, y: 580}, {x: 1040, y: 550}]}
+        progress={arrows} length={0.3} width={6} samples={8} dust={0} opacity={arrowOpacity}/>
+      <LightTrail points={SE_POINTS.map(([x, y]) => ({x, y}))} progress={curve}
+        length={0.17} width={7} samples={14} dust={3} opacity={curveOpacity}/>
+      <Burst origin={{x: 1200, y: 690}} progress={frameProgress(frame, 235, 22)}
+        count={10} distance={46} rings={1} ringTravel={52}/>
+      <Burst origin={{x: 960, y: 690}} progress={frameProgress(frame, 285, 22)}
+        count={10} distance={46} rings={1} ringTravel={52}/>
+      <Burst origin={{x: 1200, y: 690}} progress={frameProgress(frame, 335, 22)}
+        count={10} distance={46} rings={1} ringTravel={52}/>
+      <ShockRing origin={{x: 960, y: 540}} progress={frameProgress(frame, 600, 20)}
+        count={1} travel={220} thickness={2.5} dashes="0.03 0.02"/>
+      <Burst origin={{x: 960, y: 560}} progress={frameProgress(frame, 738, 64)}
+        count={18} distance={150} rings={2} ringTravel={180}/>
+      <Burst origin={{x: 960, y: 450}} progress={frameProgress(frame, 1194, 58)}
+        count={18} distance={180} rings={2} ringTravel={220}/>
+      {WINDOW_POINTS.map((point, index) => (
+        <g key={`window-ring-${index}`}>
+          <ShockRing origin={point} progress={frameProgress(frame, 1106, 70)}
+            count={1} travel={90} thickness={2}/>
+          <Burst origin={point} progress={frameProgress(frame, 1106, 70)}
+            count={8} distance={42} rings={0}/>
+        </g>
+      ))}
+      <Burst origin={{x: 1440, y: 773}} progress={frameProgress(frame, 1350, 45)}
+        count={18} distance={130} rings={2} ringTravel={160}/>
+      <Burst origin={{x: 1150, y: 530}} progress={frameProgress(frame, 1580, 60)}
+        count={14} distance={90} rings={1} ringTravel={120}/>
+    </svg>
+  );
+}
+
+const SUBTITLE_VARIANTS: Record<number, SubtitleVariant> = {
+  14: {enter: 'rise', exit: 'drift', englishDelayFrames: 14},
+  192: {enter: 'rise', exit: 'drift', englishDelayFrames: 10},
+  402: {enter: 'settle', exit: 'mask', englishDelayFrames: 8},
+  606: {enter: 'wipe', exit: 'drift', englishDelayFrames: 12},
+  726: {enter: 'rise', exit: 'dissolve', englishDelayFrames: 14},
+  852: {enter: 'settle', exit: 'drift', englishDelayFrames: 12},
+  936: {enter: 'rise', exit: 'drift', englishDelayFrames: 10},
+  1062: {enter: 'wipe', exit: 'mask', englishDelayFrames: 12},
+  1194: {enter: 'settle', exit: 'drift', englishDelayFrames: 10},
+  1302: {enter: 'rise', exit: 'drift', englishDelayFrames: 12},
+  1416: {enter: 'rise', exit: 'drift', englishDelayFrames: 12},
+  1542: {enter: 'settle', exit: 'drift', englishDelayFrames: 10},
+  1656: {enter: 'rise', exit: 'dissolve', englishDelayFrames: 12},
+};
+const SUBTITLE_EMPHASIS = /3|1000|33|18|0\.3%|四倍|局部|整体|回归|极端|平均|三个点|一条线|样本做大/;
 
 function MethodNote({frame}: {frame: number}) {
   return (
@@ -527,18 +751,23 @@ export default function SampleScene({props, width, height, subtitleSafeArea, fps
   const frame = Math.round(elapsedSeconds * fps);
   const subtitles = ((props as unknown as Props).screenSubtitles ?? []) as Subtitle[];
 
-  const opening = fadeOut(frame, 156, 180);
-  const swings = windowOpacity(frame, 156, 180, 366, 390);
+  // 转场不叠两张全亮画面：旧层 14 帧快速退场，新层晚 2 帧、用 14 帧进入。
+  // 旧层 8 帧内降到 0.15 以下，交叉淡化总长 16 帧，避免双重曝光也不留下重影。
+  const leave = (start: number) => 1 - easeOutCubic(frameProgress(frame, start, 14));
+  const enter = (start: number) => easeInOutSine(frameProgress(frame, start + 2, 14));
+  const opening = leave(156);
+  const swings = enter(156) * leave(366);
   // 全片唯一硬切：19.93 秒仍是样本量四列，20.00 秒整帧换成三点空场。
-  const sampleSize = frame < 600 ? fadeIn(frame, 366, 390) : 0;
-  const threeDots = frame >= 600 ? fadeOut(frame, 816, 840) : 0;
-  const regression = windowOpacity(frame, 816, 840, 1026, 1050);
-  const elephant = windowOpacity(frame, 1026, 1050, 1266, 1290);
-  const standardError = windowOpacity(frame, 1266, 1290, 1506, 1530);
-  const returned = fadeIn(frame, 1506, 1530);
+  const sampleSize = frame < 600 ? enter(366) : 0;
+  const threeDots = frame >= 600 ? leave(816) : 0;
+  const regression = enter(816) * leave(1026);
+  const elephant = enter(1026) * leave(1266);
+  const standardError = enter(1266) * leave(1506);
+  const returned = enter(1506);
 
   return (
     <Stage width={width} height={height}>
+      <FieldAnchor frame={frame}/>
       <Opening frame={frame} opacity={opening}/>
       <Swings frame={frame} opacity={swings}/>
       <SampleSize frame={frame} opacity={sampleSize}/>
@@ -547,8 +776,11 @@ export default function SampleScene({props, width, height, subtitleSafeArea, fps
       <Elephant frame={frame} opacity={elephant}/>
       <StandardError frame={frame} opacity={standardError}/>
       <Return frame={frame} opacity={returned}/>
+      <GoldAnchor frame={frame}/>
+      <LightEvents frame={frame}/>
       <MethodNote frame={frame}/>
-      <ScreenSubtitle items={subtitles} frame={frame} safeArea={subtitleSafeArea}/>
+      <ScreenSubtitle items={subtitles} frame={frame} safeArea={subtitleSafeArea}
+        variants={SUBTITLE_VARIANTS} emphasis={SUBTITLE_EMPHASIS}/>
     </Stage>
   );
 }

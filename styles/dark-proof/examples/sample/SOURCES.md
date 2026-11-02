@@ -12,6 +12,13 @@
 - 计算假设：观测随机、独立、同分布；均值回归与标准误只在该假设下解释。
 - 屏幕字幕与画面数字由本示例自行撰写；未复用参考片文案。
 
+## 视觉组件与几何
+
+- 大象轮廓：Lucide Lab `elephant` 图标（`@lucide/lab` 0.7.0，ISC License，Copyright (c) 2026 Lucide Icons and Contributors）。只取图标路径数据（头部、卷鼻、耳、前后腿与眼），象牙由本示例补充；未引入该包为运行时依赖，来源与许可见本文件。
+- 路径采样：`svg-path-properties` 2.2.0（MIT），用于手绘线与真实局部取样的等距采样。
+- 手绘笔触：`perfect-freehand` 1.2.3（MIT），用于锥形描边、光轨与大象轮廓。
+- 上述两个库只提供纯函数；逐帧求值、事件时刻、取样窗位置与题材仍由本示例和 `dark-proof` 包控制。
+
 ## 字体
 
 - 中文使用宿主字体 `M2V Sans`（Noto Sans SC，SIL OFL 1.1）。

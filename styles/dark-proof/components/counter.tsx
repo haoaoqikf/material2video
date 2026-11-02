@@ -1,11 +1,21 @@
 /**
- * 计数器：在 `from → to` 之间按显式进度滚动，进度由调用方用帧号求出。
+ * 计数器：在 `from → to` 之间按显式进度滚动，可选带 2–3 层残影。
  *
  * 数字本身不携带含义；是否用金色表示“被强调的结果”由调用方按语义决定。
- * 组件不读取挂钟，也不包办数字出现或消失的时刻。
+ * 残影只用于表现数字滚动的动态模糊，不读取挂钟，也不累积上一帧状态。
  */
 import HeroNumber from './hero-number';
 import {clamp01, easeInOutSine, T} from './kit';
+
+export type CounterGhosts = {
+  count?: number;
+  /** 每层相对主数字滞后的进度。 */
+  step?: number;
+  /** 每层相对主数字的纵向偏移。 */
+  offsetY?: number;
+  /** 最靠近主数字的残影不透明度。 */
+  opacity?: number;
+};
 
 export type CounterProps = {
   from: number;
@@ -21,24 +31,41 @@ export type CounterProps = {
   prefix?: string;
   suffix?: string;
   align?: 'center' | 'left' | 'right';
+  ghosts?: CounterGhosts;
 };
 
 export default function Counter({
   from, to, progress, decimals = 0, x, y, size = T.type.hero, color = T.colors.gold,
-  opacity = 1, prefix = '', suffix, align = 'center',
+  opacity = 1, prefix = '', suffix, align = 'center', ghosts,
 }: CounterProps) {
-  const eased = easeInOutSine(clamp01(progress));
-  const value = from + (to - from) * eased;
-  return (
+  const count = Math.max(0, Math.floor(ghosts?.count ?? 0));
+  const step = Math.max(0, ghosts?.step ?? 0.08);
+  const offsetY = ghosts?.offsetY ?? 10;
+  const ghostOpacity = ghosts?.opacity ?? 0.2;
+  const layer = (value: number, layerOpacity: number, dy: number, index: number) => (
     <HeroNumber
+      key={index}
       value={`${prefix}${value.toFixed(decimals)}`}
       suffix={suffix}
       x={x}
-      y={y}
+      y={y + dy}
       size={size}
       color={color}
-      opacity={opacity}
+      opacity={layerOpacity}
       align={align}
     />
+  );
+  const ghostLayers = Array.from({length: count}, (_, index) => {
+    const delayed = clamp01(progress - (index + 1) * step);
+    const value = from + (to - from) * easeInOutSine(delayed);
+    const fade = ghostOpacity * (1 - index / Math.max(1, count));
+    return layer(value, fade, (index + 1) * offsetY, index);
+  });
+  const value = from + (to - from) * easeInOutSine(clamp01(progress));
+  return (
+    <>
+      {ghostLayers}
+      {layer(value, opacity, 0, count + 1)}
+    </>
   );
 }

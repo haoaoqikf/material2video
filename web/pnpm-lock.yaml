@@ -53,6 +53,9 @@ importers:
       motion:
         specifier: 14.3.0
         version: 14.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      perfect-freehand:
+        specifier: 1.2.3
+        version: 1.2.3
       postprocessing:
         specifier: ^6.39.5
         version: 6.39.5(three@0.186.1)
@@ -65,6 +68,9 @@ importers:
       remotion:
         specifier: 4.0.526
         version: 4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      svg-path-properties:
+        specifier: 2.2.0
+        version: 2.2.0
       tailwindcss:
         specifier: 4.2.0
         version: 4.2.0
@@ -1996,6 +2002,9 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
+  perfect-freehand@1.2.3:
+    resolution: {integrity: sha512-bHZSfqDHGNlPpgH2yxXgPHlQSPpEbo+qg7li0M78J9vNAi2yjwLeA4x79BEQhX44lEWpCLSFCeRZwpw0niiXPA==}
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -2198,6 +2207,10 @@ packages:
   svg-parser@2.1.0:
     resolution: {integrity: sha512-bwLf38YmY+TDYHJw1Ex0Co8c4yeXuJAo8YnXGZrscxrvYoVVIvLeniEkV1Ks/54VteMnL4FtyN1+P+TZJdUPmQ==}
     engines: {node: '>=8'}
+
+  svg-path-properties@2.2.0:
+    resolution: {integrity: sha512-sHyCQCJXfPXbxG6Nj3eWZ6gUsRpkjRia+3hPwy8iWt0AIdnLRacY5SnGxLnjWtsPhE0ICS8fY7xOUNl+90yLSw==}
+    engines: {node: '>=22.0.0'}
 
   tailwindcss@4.2.0:
     resolution: {integrity: sha512-yYzTZ4++b7fNYxFfpnberEEKu43w44aqDMNM9MHMmcKuCH7lL8jJ4yJ7LGHv7rSwiqM0nkiobF9I6cLlpS2P7Q==}
@@ -4337,6 +4350,8 @@ snapshots:
 
   path-type@4.0.0: {}
 
+  perfect-freehand@1.2.3: {}
+
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
@@ -4530,6 +4545,8 @@ snapshots:
       react: 19.3.0
 
   svg-parser@2.1.0: {}
+
+  svg-path-properties@2.2.0: {}
 
   tailwindcss@4.2.0: {}
 
