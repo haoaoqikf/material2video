@@ -1,3 +1,8 @@
+## RENAMED Requirements
+
+- FROM: `### Requirement: 浏览器取详情`
+- TO: `### Requirement: 详情提取路径`
+
 ## MODIFIED Requirements
 
 ### Requirement: 详情提取路径
@@ -12,11 +17,11 @@
 - **WHEN** 平台要求签名、cookie 不足或 yt-dlp 提取器失效
 - **THEN** 系统输出明确日志并退回浏览器解析；用户显式禁用兜底时失败并提示提供 `--cookies`
 
-#### Scenario: 视频详情兜底
+#### Scenario: 视频详情
 - **WHEN** 页面请求 `/aweme/v1/web/aweme/detail/` 并返回 `aweme_detail`
 - **THEN** 系统使用该响应中的作品信息，不再额外请求签名接口
 
-#### Scenario: 图文详情兜底
+#### Scenario: 图文详情
 - **WHEN** 页面没有请求详情接口，但内嵌载荷含有该作品的 `images`
 - **THEN** 系统解析内嵌载荷并标记为图文作品
 

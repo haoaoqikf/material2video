@@ -44,4 +44,4 @@
 
 - [x] 8.1 运行 `uv run pytest` 与受影响的 `uv run pytest -m "not slow"`；运行 `pnpm -C web test` 与 `pnpm -C web build`。
 - [x] 8.2 抽查代表作品的验证/准备与几何输出，确认材料、报告与画面契约无回归。
-- [ ] 8.3 检查暂存内容，提交实施结果；同步 `openspec/specs/` 并归档变更。
+- [x] 8.3 检查暂存内容，提交实施结果；同步 `openspec/specs/` 并归档变更。
