@@ -255,8 +255,8 @@ pure 场景必须通过两道闸门：
 
 ### 共享动效组件
 
-`m2v/code-scene` 另提供一层可直接使用的 L1/L2 组件；它们只把 `progress` 和显式
-`easing` 映射成样式或几何，不读挂钟、不启动动画、不依赖 Remotion context。
+`m2v/code-scene` 另提供一层可直接使用的共享组件；它们只把 `progress` 和显式
+`easing` 映射成样式、几何或排版，不读挂钟、不启动动画、不依赖 Remotion context。
 
 | 层 | 组件 | 用途 |
 | --- | --- | --- |
@@ -268,18 +268,51 @@ pure 场景必须通过两道闸门：
 | L2 | `MarkerHighlight` | 手绘高亮，粗糙几何由 roughjs 生成 |
 | L2 | `BarGrowth` | 柱状生长，复用 `growSeries` |
 | L2 | `Callout` | 引线标注，引线按进度生长 |
+| 排版 | `AutoFitText` / `TextBlock` | 单行字号适配；CJK 感知换行与逐字显影 |
+| 图形 | `PathMorph` / `MaskReveal` | 路径形变；wipe/iris 遮罩揭示 |
+| 图形 | `ArcGauge` / `ProgressRing` | 圆弧仪表与环形进度 |
+| 图形 | `NoiseDrift` / `noiseAt` / `noiseDrift` | 种子噪声的有机漂移与抖动 |
+| 图表 | `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` | 纯时间安全的折线、面积、迷你趋势与坐标轴 |
+| 图表 | `Timeline` / `ChapterTrack` | 事件时间轴与等距章节轨 |
+| 图形 | `Pictogram` / `IconGrid` | 一格代表一个单位的象形图与图标阵列 |
+| 图形 | `Waveform` / `resamplePeaks` | 采样峰值波形，固定柱数 |
+
+```tsx
+const t = Math.min(1, elapsedSeconds / 3);
+<AutoFitText text={title} withinWidth={820} fontFamily="M2V Sans" maxFontSize={112}/>
+<TextBlock text={body} maxWidth={640} fontFamily="M2V Sans" fontSize={32} progress={t}/>
+<LinePlot series={[{values: revenue}]} progress={t} width={1200} height={600}>
+  <Axis orientation="x" domain={[0, revenue.length - 1]} range={[64, 1136]} at={540} ticks={5}/>
+</LinePlot>
+```
 
 使用边界：
 
-- `@remotion/paths` 只用于 SVG path；Canvas 点列、粒子、辉光与量测继续用 Painter。
-- `@remotion/animation-utils` 只用于 CSS 数值、颜色与 transform；SVG 数值属性、Three.js
-  数值继续用 `interpolate`/`growSeries`/`interpolateState`。
-- `roughjs` 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化作品
-  已有的艺术路径。
-- 作品与风格组件必须从 `m2v/code-scene` 使用这些能力，不得直接 import `@remotion/*`
-  或 `roughjs`。代码场景打包器的 approved 白名单不放宽。
-- `@remotion/shapes` 与 `@remotion/motion-blur` 当前不引入；后者只适用于 Remotion
-  composition，code scene 的运动模糊仍用既有子帧方案。
+- **文本测量**：`AutoFitText` / `TextBlock` 只在浏览器测量，并在字体就绪后重测；
+  Node 下回退到调用方给定的字号或原始分行，不猜近似值。`@remotion/layout-utils`
+  的 `fillTextBox` / `fitTextOnNLines` 按空格切词，中文不会换行——多行中文必须走
+  `TextBlock` 的 CJK 断行，不要直接调用这两个函数。
+- **路径**：`@remotion/paths` 只用于 SVG path；`PathMorph` 调用 `interpolatePath`，
+  只做逐点插值、不做拓扑匹配，复杂轮廓要自行保证对应点或先重采样。Canvas 点列、
+  粒子、辉光与量测继续用 Painter。
+- **样式**：`@remotion/animation-utils` 只用于 CSS 数值、颜色与 transform；SVG 数值
+  属性、Three.js 数值继续用 `interpolate`/`growSeries`/`interpolateState`。
+- **图表**：`LinePlot` / `AreaPlot` / `Sparkline` / `Axis` 是 `pure-time` 场景的图表
+  路径；`pure-time` 仍禁止 ECharts 与 `Chart`。图表只做数值映射与静态 SVG，不内含
+  坐标轴自动排版；坐标轴由调用方组合。`d3-scale`/`d3-shape` 只作为共享封装内部的
+  几何工具，作品不直接 import。
+- **噪声**：`@remotion/noise` 的 `noise2D` 以显式种子和坐标求值，相同输入结果相同；
+  页面卸载/重挂载不受影响。噪声只用于有机漂移与纹理，不替代编排。
+- **gauge/时间轴/象形图/波形**：只输出静态 SVG，不自动动画；标签密集时由调用方
+  自行错开或截断，组件不做自动避让。
+- **roughjs** 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化
+  作品已有的艺术路径。
+- 作品与风格组件必须从 `m2v/code-scene` 使用这些能力，不得直接 import
+  `@remotion/*`、`roughjs`、`d3-scale`、`d3-shape` 或 `@remotion/noise`。代码场景
+  打包器的 approved 白名单不放宽。
+- `@remotion/shapes`、`@remotion/lottie`、`@remotion/transitions`、`@remotion/motion-blur`
+  当前不引入：前两个许可或驱动方式不适合 code scene，transitions 只适用于 composition，
+  motion-blur 只适用于 composition，code scene 的运动模糊继续用既有子帧方案。
 - 共享组件属于实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
 
 ### 二维绘制层

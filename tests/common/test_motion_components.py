@@ -1,6 +1,7 @@
 """共享动效组件：实现指纹、确定性闸门与 SDK 导出。"""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from m2v.core import source_policy
@@ -16,10 +17,19 @@ def test_shared_components_are_part_of_the_implementation_fingerprint():
     inputs = {name.replace("\\", "/"): value for name, value in code_scenes.implementation_inputs().items()}
     for relative in (
         "web/src/code-scene/motion-components/index.ts",
+        "web/src/code-scene/motion-components/internal.ts",
         "web/src/code-scene/motion-components/paths.ts",
         "web/src/code-scene/motion-components/styles.ts",
         "web/src/code-scene/motion-components/l1.tsx",
         "web/src/code-scene/motion-components/l2.tsx",
+        "web/src/code-scene/motion-components/text.tsx",
+        "web/src/code-scene/motion-components/morph.tsx",
+        "web/src/code-scene/motion-components/gauge.tsx",
+        "web/src/code-scene/motion-components/noise.tsx",
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/timeline.tsx",
+        "web/src/code-scene/motion-components/pictogram.tsx",
+        "web/src/code-scene/motion-components/waveform.tsx",
     ):
         assert relative in inputs, relative
 
@@ -35,10 +45,37 @@ def test_sdk_exports_the_shared_motion_components():
     text = SDK.read_text(encoding="utf-8")
     assert "export * from './motion-components';" in text
     index = (COMPONENTS / "index.ts").read_text(encoding="utf-8")
-    assert "export * from './l1';" in index
-    assert "export * from './l2';" in index
-    assert "export * from './paths';" in index
-    assert "export * from './styles';" in index
+    for module in ("l1", "l2", "paths", "styles", "text", "morph", "gauge", "noise", "charts",
+                   "timeline", "pictogram", "waveform"):
+        assert f"export * from './{module}';" in index, module
+
+
+def test_extended_components_are_exported():
+    expected = {
+        "text.tsx": ("AutoFitText", "TextBlock", "wrapText", "fitFontSize"),
+        "morph.tsx": ("PathMorph", "MaskReveal"),
+        "gauge.tsx": ("ArcGauge", "ProgressRing", "arcPath"),
+        "noise.tsx": ("NoiseDrift", "noiseAt", "noiseDrift"),
+        "charts.tsx": ("LinePlot", "AreaPlot", "Sparkline", "Axis"),
+        "timeline.tsx": ("Timeline", "ChapterTrack"),
+        "pictogram.tsx": ("Pictogram", "IconGrid"),
+        "waveform.tsx": ("Waveform", "resamplePeaks"),
+    }
+    for filename, names in expected.items():
+        source = (COMPONENTS / filename).read_text(encoding="utf-8")
+        for name in names:
+            assert f"export function {name}" in source, f"{filename}: {name}"
+
+
+def test_new_dependencies_are_pinned_and_stay_out_of_the_approved_list():
+    package = json.loads((WEB / "package.json").read_text(encoding="utf-8"))
+    for name, version in (("@remotion/layout-utils", "4.0.526"), ("@remotion/noise", "4.0.526"),
+                          ("d3-scale", "4.0.2"), ("d3-shape", "3.2.0")):
+        assert package["dependencies"][name] == version, name
+    build = (WEB / "scripts/build-code-scene.mjs").read_text(encoding="utf-8")
+    approved_block = build.split("const approved = new Set([", 1)[1].split("]);", 1)[0]
+    for name in ("@remotion/layout-utils", "@remotion/noise", "d3-scale", "d3-shape"):
+        assert name not in approved_block, name
 
 
 def test_l1_and_l2_names_are_exported():
