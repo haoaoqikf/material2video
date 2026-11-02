@@ -8,7 +8,7 @@
       "durationSeconds": 58.0,
       "sampleRateHz": 24000,
       "channels": 1,
-      "expectedSha256": "86945184e97f3a34311b9e4cad3d44d6419ada264bd0e1abf06d42b8ca65beef",
+      "expectedSha256": "818118fa04e21b4a22f48d06d91caf2fa7120f5de6d7bc3124b3f565462c1884",
       "author": "material2video contributors",
       "license": "CC0-1.0",
       "source": "assets/synthesize.py"

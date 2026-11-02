@@ -18,6 +18,8 @@
 - 路径采样：`svg-path-properties` 2.2.0（MIT），用于手绘线与真实局部取样的等距采样。
 - 手绘笔触：`perfect-freehand` 1.2.3（MIT），用于锥形描边、光轨与大象轮廓。
 - 上述两个库只提供纯函数；逐帧求值、事件时刻、取样窗位置与题材仍由本示例和 `dark-proof` 包控制。
+- 整屏粒子层使用浏览器 Canvas 2D + 预渲染 sprite，不新增第三方依赖。选型前已检索：`three-nebula`（MIT）是状态式模拟，需要从 0 重放、不能任意帧 seek；`three.quarks` 无公开 seed/确定性重放 API；Remocn Confetti / remotion-ui Particle Field 的许可与全屏 bokeh 目标不匹配。three.js Points 作为性能回退方案保留，本轮未使用。
+- `impact` 的粒子数量、半径、环 travel 与闪光强度记录在 `styles/dark-proof/tokens.json`；作品只决定事件时刻与对象。
 
 ## 字体
 
@@ -27,7 +29,7 @@
 
 ## 声音
 
-- 环境床与事件音由本示例 `assets/synthesize.py` 原创合成，不含第三方采样，按 CC0-1.0 发布。
+- 112 BPM 程序化配乐与事件音由本示例 `assets/synthesize.py` 原创合成，不含第三方采样，按 CC0-1.0 发布。
 - 摘要、采样率、声道与时长登记在 `assets/recipe.json`；`assets/fetch.py` 只恢复并核验，不接受摘要漂移。
 - 参考片音轨未被复用、转码或进入本示例。
 

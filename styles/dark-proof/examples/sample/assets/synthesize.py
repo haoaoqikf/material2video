@@ -1,6 +1,6 @@
-"""《样本》原创环境床与事件音；24 kHz PCM16 单声道，CC0-1.0。
+"""《样本》原创程序化配乐与事件音；24 kHz PCM16 单声道，CC0-1.0。
 
-所有音色由确定性数学生成，不含第三方采样。环境床前 6 秒轻入，20 秒硬切处
+所有音色由确定性数学生成，不含第三方采样。112 BPM 配乐前 6 秒轻入，20 秒硬切处
 留出短促的低频撞击与半拍留白，43 秒公式段再抬一次，51–58 秒收束。事件音按
 角色命名，具体帧位由分镜事件决定，生成器不知道叙事时间。
 """
@@ -55,34 +55,164 @@ def _lowpass(values: list[float], coefficient: float) -> list[float]:
     return out
 
 
-def _bed(n: int) -> list[float]:
-    """低频持续纹理：无节拍、无旋律；动态弧线由包络与和声厚度承担。"""
-    raw = [0.0] * n
-    for index in range(n):
-        t = index / RATE
-        # 前 6 秒轻入，20 秒硬切处短暂收窄，43 秒再抬，51–58 秒收束。
-        intro = min(1.0, max(0.0, (t - 0.4) / 2.6))
-        tail = min(1.0, max(0.0, (58.0 - t) / 4.5))
-        dip = 0.35 + 0.65 * min(1.0, abs(t - 20.0) / 0.9)
-        lift = 1.0 + 0.22 * min(1.0, max(0.0, (t - 42.0) / 2.0)) * min(1.0, max(0.0, (52.0 - t) / 4.0))
-        lfo = 0.5 + 0.5 * math.sin(2 * math.pi * 0.031 * t + 0.4)
-        value = (
-            0.40 * math.sin(2 * math.pi * 48.0 * t + 0.4 * math.sin(2 * math.pi * 0.031 * t))
-            + 0.24 * math.sin(2 * math.pi * 63.7 * t + 0.3 * math.sin(2 * math.pi * 0.023 * t))
-            + 0.16 * math.sin(2 * math.pi * 82.1 * t)
-            + 0.10 * math.sin(2 * math.pi * 109.3 * t)
-            + 0.05 * math.sin(2 * math.pi * 196.0 * t) * lfo
-        )
-        raw[index] = value * intro * tail * dip * lift
-    # 极低通噪声作为空气层；只在 6 秒后加入，避免开场有“嘶”声。
-    noise = [0.0] * n
-    for index in range(n):
-        t = index / RATE
-        if t >= 6.0:
-            noise[index] = _noise(index) * 0.06 * min(1.0, (t - 6.0) / 2.0)
-    smooth = _lowpass(noise, 0.995)
-    return [value + smooth[index] for index, value in enumerate(raw)]
+BPM = 112
+BEAT = 60 / BPM
 
+
+def _add(buffer: list[float], start: float, values: list[float], gain: float = 1.0) -> None:
+    begin = max(0, round(start * RATE))
+    for offset, value in enumerate(values):
+        index = begin + offset
+        if index >= len(buffer):
+            break
+        buffer[index] += value * gain
+
+
+def _kick(seconds: float = 0.24) -> list[float]:
+    count = round(RATE * seconds)
+    out = []
+    for index in range(count):
+        t = index / RATE
+        envelope = math.exp(-t * 13)
+        frequency = 50 + 22 * math.exp(-t * 32)
+        out.append((0.82 * math.sin(2 * math.pi * frequency * t)
+                    + 0.12 * _noise(index + 101) * math.exp(-t * 70)) * envelope)
+    return out
+
+
+def _tick(seconds: float = 0.08) -> list[float]:
+    count = round(RATE * seconds)
+    out = []
+    for index in range(count):
+        t = index / RATE
+        envelope = math.exp(-t * 72)
+        out.append((0.5 * _noise(index + 211)
+                    + 0.24 * math.sin(2 * math.pi * 1760 * t) * math.exp(-t * 48)) * envelope)
+    return out
+
+
+def _hat(seconds: float = 0.06) -> list[float]:
+    count = round(RATE * seconds)
+    return [_noise(index + 307) * math.exp(-index / RATE * 110) * 0.24
+            for index in range(count)]
+
+
+def _riser(seconds: float = 1.6) -> list[float]:
+    count = round(RATE * seconds)
+    out = []
+    for index in range(count):
+        t = index / RATE
+        phase = min(1.0, t / seconds)
+        frequency = 180 + 1500 * phase * phase
+        envelope = phase ** 2
+        out.append((0.55 * _noise(index + 401) * envelope
+                    + 0.2 * math.sin(2 * math.pi * frequency * t) * envelope))
+    return out
+
+
+def _motif(seconds: float, freqs: tuple[float, ...]) -> list[float]:
+    count = round(RATE * seconds)
+    return [_bell(index / RATE, freqs, 2.6) for index in range(count)]
+
+
+def _score_impact(seconds: float = 0.7) -> list[float]:
+    count = round(RATE * seconds)
+    out = []
+    for index in range(count):
+        t = index / RATE
+        envelope = math.exp(-t * 9)
+        out.append((0.8 * math.sin(2 * math.pi * 48 * t)
+                    + 0.22 * math.sin(2 * math.pi * 72 * t)
+                    + 0.12 * _noise(index + 503) * math.exp(-t * 24)) * envelope)
+    return out
+
+
+def _section_energy(t: float) -> float:
+    if t < 6:
+        return 0.22 + 0.28 * min(1.0, t / 6)
+    if t < 13:
+        return 0.72
+    if t < 19.6:
+        return 0.88
+    if t < 20.6:
+        return 0.12
+    if t < 28:
+        return 0.58
+    if t < 35:
+        return 0.74
+    if t < 43:
+        return 0.82
+    if t < 51:
+        return 0.94
+    if t < 56:
+        return 1.0
+    return max(0.0, 1.0 - (t - 56) / 2.0)
+
+
+CHORDS = [
+    (0.0, 6.0, (110.0, 130.81, 164.81)),
+    (6.0, 13.0, (87.31, 110.0, 130.81)),
+    (13.0, 20.0, (130.81, 164.81, 196.0)),
+    (20.0, 28.0, (98.0, 123.47, 146.83)),
+    (28.0, 35.0, (110.0, 130.81, 164.81)),
+    (35.0, 43.0, (87.31, 110.0, 130.81)),
+    (43.0, 51.0, (130.81, 164.81, 196.0)),
+    (51.0, 58.0, (110.0, 130.81, 164.81)),
+]
+
+
+def _score(n: int) -> list[float]:
+    """58 秒、112 BPM 的原创程序化配乐；无采样、无第三方音乐。"""
+    buffer = [0.0] * n
+    # 低频和声垫：按段落换和弦，段落边缘 0.4 秒交叉淡化。
+    for begin, end, freqs in CHORDS:
+        first = max(0, round(begin * RATE))
+        last = min(n, round(end * RATE))
+        for index in range(first, last):
+            t = index / RATE
+            edge = min(1.0, (t - begin) / 0.4, (end - t) / 0.4)
+            tremolo = 0.82 + 0.18 * math.sin(2 * math.pi * 0.17 * t + begin)
+            value = (
+                0.052 * math.sin(2 * math.pi * freqs[0] * t)
+                + 0.032 * math.sin(2 * math.pi * freqs[1] * t)
+                + 0.02 * math.sin(2 * math.pi * freqs[2] * t)
+            )
+            buffer[index] += value * max(0.0, edge) * tremolo
+    # 节拍网格：底鼓、反拍 tick、build 段 8 分 hat。
+    step = 0
+    while step * BEAT < 58:
+        t = step * BEAT
+        energy = _section_energy(t)
+        if energy > 0.05:
+            if 20 <= t < 28:
+                kick = step % 2 == 0
+            else:
+                kick = True
+            if kick:
+                _add(buffer, t, _kick(), 0.58 * energy)
+            if 6 <= t < 56:
+                _add(buffer, t + BEAT * 0.5, _tick(), 0.2 * energy)
+        step += 1
+    for t in [43 + index * BEAT / 2 for index in range(30)]:
+        if t < 51:
+            _add(buffer, t, _hat(), 0.8 * _section_energy(t))
+    # 段落动机：三音钟声，只在段落起点出现。
+    for begin, _, freqs in CHORDS:
+        _add(buffer, begin + 0.02, _motif(1.6, (freqs[1] * 2, freqs[2] * 2, freqs[1] * 3)),
+             0.12 if begin else 0.08)
+    # riser 与 impact 对齐大事件与硬切。
+    for end, gain in ((20.0, 0.32), (24.5, 0.26), (39.8, 0.28), (48.0, 0.3),
+                      (52.7, 0.34), (55.5, 0.22)):
+        _add(buffer, max(0.0, end - 1.6), _riser(1.6), gain)
+        _add(buffer, end, _score_impact(), 0.42 if end != 20.0 else 0.6)
+    # 硬切留白：20.0–20.45 秒压低，让 impact 单独呼吸。
+    for index in range(n):
+        t = index / RATE
+        if 20.05 <= t < 20.45:
+            buffer[index] *= 0.18
+        if t > 57.2:
+            buffer[index] *= max(0.0, (58.0 - t) / 0.8)
+    return buffer
 
 def _event(identity: str, n: int) -> list[float]:
     seconds = DURATIONS[identity]
@@ -132,7 +262,7 @@ def _event(identity: str, n: int) -> list[float]:
 def generate(identity: str, target: Path) -> None:
     seconds = DURATIONS[identity]
     n = round(RATE * seconds)
-    values = _bed(n) if identity == 'bed' else _event(identity, n)
+    values = _score(n) if identity == 'bed' else _event(identity, n)
     peak = max(abs(value) for value in values) or 1
     scale = 10 ** (PEAK_DB[identity] / 20) / peak
     samples = b''.join(struct.pack('<h', round(value * scale * 32767)) for value in values)

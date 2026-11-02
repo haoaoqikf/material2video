@@ -34,7 +34,7 @@ export default function Burst({
   const clamped = Math.min(1, Math.max(0, progress));
   const coreOpacity = clamped <= 0 || clamped >= 1 ? 0 : Math.sin(Math.PI * clamped) * 0.55;
   const particles = burstField({
-    count, progress, seed, origin, speed: distance, speedJitter: 0.55, drag: 4,
+    count, progress, seed, origin, speed: distance, speedJitter: 0.55, drag: 1.2,
     lifetime: T.light.burstLifetime, size, opacity, easing: motionCurve('easeOutCubic'),
   });
   const ringSamples = rings > 0

@@ -15,9 +15,21 @@ export type DotEmphasis = {
 };
 export type DotBox = {x: number; y: number; width: number; height: number};
 
+export type DotWarp = {
+  /** 横向/纵向漂移的像素幅度。 */
+  amplitude?: number;
+  /** 沿归一化坐标的空间周期数。 */
+  cycles?: number;
+  /** 0–1 相位；由调用方按帧号计算。 */
+  phase?: number;
+  /** 点半径的相对波动幅度（0–1）。 */
+  radius?: number;
+};
+
 export type DotFieldProps = {
   box: DotBox;
   points: DotPoint[];
+  warp?: DotWarp;
   /** 整体不透明度；用于段落溶解，不改变点的语义色。 */
   opacity?: number;
   /** 基础点半径；点阵密集时可降到 tokens 的下限。 */
@@ -27,6 +39,8 @@ export type DotFieldProps = {
   emphasis?: DotEmphasis[];
   /** 强调点单独的不透明度；不跟随基础点阵的整体淡化。 */
   emphasisOpacity?: number;
+  /** 点阵内的低速波；用于持续微动，不改变点语义。 */
+
   style?: CSSProperties;
 };
 
@@ -50,16 +64,26 @@ function ring(cx: number, cy: number, radius: number): string {
 }
 
 export default function DotField({
-  box, points, opacity = 1, radius = T.dots.radius, reveal = 1, emphasis = [], emphasisOpacity = 1, style,
+  box, points, opacity = 1, radius = T.dots.radius, reveal = 1, emphasis = [],
+  emphasisOpacity = 1, warp, style,
 }: DotFieldProps) {
   const visible = Math.max(0, Math.min(points.length, Math.ceil(points.length * Math.max(0, Math.min(1, reveal)))));
   const groups = new Map<DotTone, string[]>();
   for (const point of points.slice(0, visible)) {
     const tone = point.tone ?? 'muted';
-    const x = box.x + point.x * box.width;
-    const y = box.y + point.y * box.height;
+    const waveX = warp?.amplitude
+      ? Math.sin(Math.PI * 2 * ((point.y * (warp.cycles ?? 2)) + (warp.phase ?? 0))) * warp.amplitude
+      : 0;
+    const waveY = warp?.amplitude
+      ? Math.cos(Math.PI * 2 * ((point.x * (warp.cycles ?? 2)) + (warp.phase ?? 0))) * warp.amplitude * 0.55
+      : 0;
+    const x = box.x + point.x * box.width + waveX;
+    const y = box.y + point.y * box.height + waveY;
     const list = groups.get(tone) ?? [];
-    list.push(ring(x, y, radius));
+    const radiusWave = warp?.radius
+      ? 1 + warp.radius * Math.sin(Math.PI * 2 * ((point.x * (warp.cycles ?? 2)) + (warp.phase ?? 0)))
+      : 1;
+    list.push(ring(x, y, radius * radiusWave));
     groups.set(tone, list);
   }
   return (

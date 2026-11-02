@@ -19,14 +19,14 @@ EXAMPLE = PACKAGE / "examples" / "sample"
 COMPONENTS = {
     "kit", "stage", "hero-number", "counter", "dot-field", "proof-chart",
     "bilingual-title", "screen-subtitle", "hand-drawn-line",
-    "light-trail", "burst", "shock-ring",
+    "light-trail", "burst", "shock-ring", "impact",
 }
 
 
 def test_manifest_tokens_and_no_assets():
     package = styles.load_style("dark-proof")
     manifest = package["manifest"]
-    assert manifest["version"] == "1.1.0"
+    assert manifest["version"] == "1.2.0"
     assert set(package["components"]) == COMPONENTS
     assert "assets" not in manifest, "本包不登记字体或外部素材资产"
     assert "requires" not in manifest, "旁白可选，不能把 narration 锁成 none"
@@ -41,8 +41,11 @@ def test_manifest_tokens_and_no_assets():
     assert tokens["layout"]["marginX"] == 96
     assert "safeArea" not in tokens["layout"], "字幕安全区只能来自场景上下文"
     assert tokens["light"]["ringOpacity"] == 0.5
-    assert tokens["light"]["burstCount"] == 22
+    assert tokens["light"]["burstCount"] == 26
     assert tokens["subtitleMotion"]["charStaggerFrames"] == 2
+    assert tokens["light"]["impact"]["finale"]["count"] == 3000
+    assert tokens["light"]["dust"]["count"] == 320
+    assert tokens["motion"]["bpm"] == 112
 
 
 def test_selection_rejects_wrong_type_and_frame():

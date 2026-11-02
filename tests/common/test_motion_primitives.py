@@ -12,6 +12,8 @@ WEB = ROOT / "web"
 PRIMITIVES = WEB / "src/code-scene/primitives.ts"
 DYNAMICS = WEB / "src/code-scene/dynamics.ts"
 SUBTITLES = WEB / "src/code-scene/subtitles.ts"
+RHYTHM = WEB / "src/code-scene/rhythm.ts"
+EFFECTS = WEB / "src/code-scene/effects/screen-burst.tsx"
 MOTION = WEB / "src/code-scene/motion.ts"
 SDK = WEB / "src/code-scene/sdk.tsx"
 
@@ -25,11 +27,15 @@ def test_primitives_are_part_of_the_implementation_fingerprint():
     assert inputs["web/src/code-scene/dynamics.ts"] == code_scenes.digest(DYNAMICS)
     assert "web/src/code-scene/subtitles.ts" in inputs
     assert inputs["web/src/code-scene/subtitles.ts"] == code_scenes.digest(SUBTITLES)
+    assert "web/src/code-scene/rhythm.ts" in inputs
+    assert inputs["web/src/code-scene/rhythm.ts"] == code_scenes.digest(RHYTHM)
+    assert "web/src/code-scene/effects/screen-burst.tsx" in inputs
+    assert inputs["web/src/code-scene/effects/screen-burst.tsx"] == code_scenes.digest(EFFECTS)
 
 
 def test_primitives_pass_the_determinism_source_gate():
     """原语不得引入挂钟、隐式随机源、计时器或未适配的 CSS 动画。"""
-    violations = source_policy.scan([PRIMITIVES, DYNAMICS, SUBTITLES])
+    violations = source_policy.scan([PRIMITIVES, DYNAMICS, SUBTITLES, RHYTHM, EFFECTS])
     assert not violations, [item.render(WEB) for item in violations]
 
 
@@ -38,6 +44,8 @@ def test_sdk_exports_the_shared_primitives():
     assert "export * from './primitives';" in text
     assert "export * from './dynamics';" in text
     assert "export * from './subtitles';" in text
+    assert "export * from './rhythm';" in text
+    assert "export * from './effects/screen-burst';" in text
     assert "svg-path-properties" in text
     assert "perfect-freehand" in text
 

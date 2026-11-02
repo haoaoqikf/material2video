@@ -14,16 +14,25 @@ export type DarkProofTokens = {
   semantics: Record<string, string>;
   layout: {width: number; height: number; marginX: number; subjectTop: number; subjectBottom: number};
   type: {
-    hero: number; title: number; lead: number; body: number; small: number; english: number;
-    micro: number; lineHeight: number; fontSans: string; fontLatin: string; tabular: boolean;
+    hero: number; heroLarge: number; title: number; lead: number; body: number;
+    small: number; english: number; micro: number; lineHeight: number;
+    fontSans: string; fontLatin: string; tabular: boolean;
   };
-  motion: {enter: string; inScene: string; dissolveSeconds: number; revealSeconds: number};
+  motion: {
+    enter: string; inScene: string; dissolveSeconds: number; revealSeconds: number;
+    bpm: number; pushScale: number;
+  };
   dots: {radius: number; fieldRadius: number; highlightRadius: number};
   light: {
     core: string; gold: string; ivory: string; ember: string;
     trailSamples: number; trailLengthRatio: number; trailWidth: number;
     burstCount: number; burstDistance: number; burstLifetime: number;
     ringCount: number; ringTravel: number; ringThickness: number; ringOpacity: number;
+    impact: Record<'shatter' | 'reveal' | 'formula' | 'finale', {
+      count: number; reach: number; frames: number; rings: number; ringTravel: number;
+      flash: number; bokeh: number;
+    }>;
+    dust: {count: number; opacity: number; drift: number; size: number};
   };
   subtitleMotion: {
     enterFrames: number; exitFrames: number; risePx: number; driftPx: number;

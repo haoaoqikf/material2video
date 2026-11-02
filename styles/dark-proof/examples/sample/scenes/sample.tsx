@@ -8,7 +8,9 @@
  * 文案或音轨。所有变化由帧号驱动，随机点使用固定种子。
  */
 import {useEffect, useRef} from 'react';
-import {hashSeed, samplePath, seededRandom, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {
+  beatPulse, hashSeed, samplePath, seededRandom, useSceneContext, type CodeSceneProps,
+} from 'm2v/code-scene';
 import Stage from 'm2v/style/components/stage';
 import HeroNumber from 'm2v/style/components/hero-number';
 import Counter from 'm2v/style/components/counter';
@@ -20,6 +22,7 @@ import HandDrawnLine from 'm2v/style/components/hand-drawn-line';
 import LightTrail from 'm2v/style/components/light-trail';
 import Burst from 'm2v/style/components/burst';
 import ShockRing from 'm2v/style/components/shock-ring';
+import Impact, {type ImpactEvent} from 'm2v/style/components/impact';
 import {
   LATIN, NUMERIC_STYLE, SANS, T, easeInOutSine, easeOutCubic,
   frameProgress, lerp, mixColor,
@@ -148,6 +151,17 @@ function windowOpacity(frame: number, inStart: number, inEnd: number, outStart: 
   return fadeIn(frame, inStart, inEnd) * fadeOut(frame, outStart, outEnd);
 }
 
+/** 整屏冲击期间压暗点阵，让粒子云成为唯一焦点。 */
+function impactFieldOpacity(frame: number): number {
+  const spans: Array<[number, number]> = [[738, 830], [1194, 1280], [1440, 1500], [1580, 1735]];
+  for (const [start, end] of spans) {
+    if (frame <= start || frame >= end) continue;
+    const progress = easeInOutSine((frame - start) / (end - start));
+    return 1 - 0.8 * Math.sin(Math.PI * progress);
+  }
+  return 1;
+}
+
 /** 三段评价的均值：100 → 67 → 33 → 67，每次翻转一条。 */
 const SWINGS = [
   {at: 235, values: [100, 100, 0]},
@@ -204,7 +218,7 @@ function Opening({frame, opacity}: {frame: number; opacity: number}) {
         value="3"
         x={lerp(960, 360, move)}
         y={lerp(520, 500, move)}
-        size={lerp(300, 240, move)}
+        size={lerp(330, 260, move)}
         color={GOLD}
         opacity={enter}
         scale={lerp(1.14, 1, enter)}
@@ -244,7 +258,7 @@ function Swings({frame, opacity}: {frame: number; opacity: number}) {
         progress={counter.progress}
         x={960}
         y={372}
-        size={270}
+        size={300}
         color={GOLD}
         opacity={fadeIn(frame, 166, 202)}
       />
@@ -504,7 +518,7 @@ function Return({frame, opacity}: {frame: number; opacity: number}) {
   const number = fadeIn(frame, 1540, 1580);
   return (
     <div style={{position: 'absolute', inset: 0, opacity}}>
-      <BilingualTitle zh="样本" x={140} y={438} size={220}
+      <BilingualTitle zh="样本" x={140} y={438} size={300}
         opacity={title} ruleWidth={96} ruleProgress={title}/>
       <div style={{
         position: 'absolute', left: 140, top: 690, fontFamily: LATIN, ...NUMERIC_STYLE,
@@ -593,38 +607,40 @@ function anchorState(frame: number): AnchorState {
 }
 
 function FieldAnchor({frame}: {frame: number}) {
+  const warp = {amplitude: 4.5, cycles: 2.2, phase: frame / 1739 * 2.5, radius: 0.38};
   if (frame < 180) {
     const fieldIn = fadeIn(frame, 78, 138);
     const reveal = easeInOutSine(frameProgress(frame, 88, 76));
     const toSwings = easeInOutSine(frameProgress(frame, 156, 24));
     return (
-      <DotField box={FIELD_BOX} points={FIELD_POINTS}
+      <DotField box={FIELD_BOX} points={FIELD_POINTS} warp={warp}
         opacity={lerp(fieldIn * 0.62, 0.06, toSwings)} reveal={reveal}/>
     );
   }
-  if (frame < 366) return <DotField box={FIELD_BOX} points={FIELD_POINTS} opacity={0.06} reveal={1}/>;
+  if (frame < 366) return <DotField box={FIELD_BOX} points={FIELD_POINTS} warp={warp} opacity={0.06} reveal={1}/>;
   if (frame < 390) {
     const out = easeInOutSine(frameProgress(frame, 366, 24));
-    return <DotField box={FIELD_BOX} points={FIELD_POINTS} opacity={lerp(0.06, 0, out)} reveal={1}/>;
+    return <DotField box={FIELD_BOX} points={FIELD_POINTS} warp={warp} opacity={lerp(0.06, 0, out)} reveal={1}/>;
   }
   if (frame < 700) return null;
   if (frame < 840) {
     const inField = fadeIn(frame, 700, 756);
     const out = fadeOut(frame, 816, 840);
     return (
-      <DotField box={{x: 470, y: 250, width: 980, height: 540}} points={FIELD_POINTS}
+      <DotField box={{x: 470, y: 250, width: 980, height: 540}} points={FIELD_POINTS} warp={warp}
         opacity={inField * out * 0.34} reveal={1} radius={3}/>
     );
   }
   if (frame < 1506) return null;
   const inReturn = fadeIn(frame, 1506, 1570);
-  return <DotField box={RETURN_BOX} points={FIELD_POINTS} opacity={inReturn * 0.62} reveal={1}/>;
+  return <DotField box={RETURN_BOX} points={FIELD_POINTS} warp={warp} opacity={inReturn * 0.62} reveal={1}/>;
 }
 
-function GoldAnchor({frame}: {frame: number}) {
+function GoldAnchor({frame, pulse = 0}: {frame: number; pulse?: number}) {
   const state = anchorState(frame);
   if (state.opacity <= 0) return null;
   const ring = state.radius > 20;
+  const radius = state.radius * (1 + pulse * 0.15);
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
       style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none'}} aria-hidden>
@@ -638,13 +654,13 @@ function GoldAnchor({frame}: {frame: number}) {
       <g opacity={state.opacity} style={{mixBlendMode: 'screen'}}>
         {state.points.map((point, index) => (
           <g key={index}>
-            <circle cx={point.x} cy={point.y} r={Math.max(18, state.radius * 1.8)}
+            <circle cx={point.x} cy={point.y} r={Math.max(18, radius * 1.8)}
               fill="url(#sample-gold-glow)" opacity={ring ? 0.2 : 0.45}/>
             {ring ? (
-              <circle cx={point.x} cy={point.y} r={state.radius} fill="none"
+              <circle cx={point.x} cy={point.y} r={radius} fill="none"
                 stroke={GOLD} strokeWidth={2} opacity={0.82}/>
             ) : null}
-            <circle cx={point.x} cy={point.y} r={ring ? 5 : state.radius} fill={GOLD}/>
+            <circle cx={point.x} cy={point.y} r={ring ? 5 : radius} fill={GOLD}/>
           </g>
         ))}
       </g>
@@ -658,6 +674,9 @@ function GoldAnchor({frame}: {frame: number}) {
 }
 
 function LightEvents({frame}: {frame: number}) {
+  const seScan = frame >= 1290 && frame < 1530 ? ((frame - 1290) % 120) / 120 : null;
+  const regScan = frame >= 840 && frame < 1050 ? ((frame - 840) % 110) / 110 : null;
+  const fieldScan = frame >= 1530 ? ((frame - 1530) % 150) / 150 : null;
   const opening = easeInOutSine(frameProgress(frame, 62, 70));
   const line = easeInOutSine(frameProgress(frame, 626, 74));
   const arrows = easeInOutSine(frameProgress(frame, 926, 90));
@@ -680,11 +699,11 @@ function LightEvents({frame}: {frame: number}) {
       <LightTrail points={SE_POINTS.map(([x, y]) => ({x, y}))} progress={curve}
         length={0.17} width={7} samples={14} dust={3} opacity={curveOpacity}/>
       <Burst origin={{x: 1200, y: 690}} progress={frameProgress(frame, 235, 22)}
-        count={10} distance={46} rings={1} ringTravel={52}/>
+        count={16} distance={62} rings={1} ringTravel={82}/>
       <Burst origin={{x: 960, y: 690}} progress={frameProgress(frame, 285, 22)}
-        count={10} distance={46} rings={1} ringTravel={52}/>
+        count={16} distance={62} rings={1} ringTravel={82}/>
       <Burst origin={{x: 1200, y: 690}} progress={frameProgress(frame, 335, 22)}
-        count={10} distance={46} rings={1} ringTravel={52}/>
+        count={16} distance={62} rings={1} ringTravel={82}/>
       <ShockRing origin={{x: 960, y: 540}} progress={frameProgress(frame, 600, 20)}
         count={1} travel={220} thickness={2.5} dashes="0.03 0.02"/>
       <Burst origin={{x: 960, y: 560}} progress={frameProgress(frame, 738, 64)}
@@ -696,13 +715,30 @@ function LightEvents({frame}: {frame: number}) {
           <ShockRing origin={point} progress={frameProgress(frame, 1106, 70)}
             count={1} travel={90} thickness={2}/>
           <Burst origin={point} progress={frameProgress(frame, 1106, 70)}
-            count={8} distance={42} rings={0}/>
+            count={12} distance={48} rings={0}/>
         </g>
       ))}
       <Burst origin={{x: 1440, y: 773}} progress={frameProgress(frame, 1350, 45)}
         count={18} distance={130} rings={2} ringTravel={160}/>
       <Burst origin={{x: 1150, y: 530}} progress={frameProgress(frame, 1580, 60)}
-        count={14} distance={90} rings={1} ringTravel={120}/>
+        count={16} distance={100} rings={1} ringTravel={140}/>
+      {seScan !== null ? (
+        <LightTrail points={SE_POINTS.map(([x, y]) => ({x, y}))} progress={seScan}
+          length={0.07} width={6} samples={6} dust={0} opacity={0.9}/>
+      ) : null}
+      {regScan !== null ? (
+        <LightTrail points={[{x: 560, y: 337}, {x: 1120, y: 475}, {x: 1120, y: 539}, {x: 560, y: 631}]}
+          progress={regScan} length={0.08} width={6} samples={5} dust={0} opacity={0.8}/>
+      ) : null}
+      {fieldScan !== null ? (
+        <LightTrail points={[{x: 640, y: 540}, {x: 1680, y: 540}]}
+          progress={fieldScan} length={0.05} width={6} samples={4} dust={0} opacity={0.6}/>
+      ) : null}
+      {MICRO_EVENTS.map(event => (
+        <Burst key={`micro-${event.frame}`} origin={{x: event.x, y: event.y}}
+          progress={frameProgress(frame, event.frame, 20)} count={12}
+          distance={event.distance ?? 38} rings={0} size={4.5}/>
+      ))}
     </svg>
   );
 }
@@ -723,6 +759,29 @@ const SUBTITLE_VARIANTS: Record<number, SubtitleVariant> = {
   1656: {enter: 'rise', exit: 'dissolve', englishDelayFrames: 12},
 };
 const SUBTITLE_EMPHASIS = /3|1000|33|18|0\.3%|四倍|局部|整体|回归|极端|平均|三个点|一条线|样本做大/;
+
+/** 四个整屏冲击：绑定论证转折，但硬切 600 帧保持安静。 */
+const IMPACT_EVENTS: ImpactEvent[] = [
+  {id: 'line-shatter', preset: 'shatter', origin: {x: 960, y: 560}, startFrame: 738},
+  {id: 'elephant-reveal', preset: 'reveal', origin: {x: 960, y: 560}, startFrame: 1194},
+  {id: 'formula-impact', preset: 'formula', origin: {x: 960, y: 540}, startFrame: 1440},
+  {id: 'finale-impact', preset: 'finale', origin: {x: 960, y: 540}, startFrame: 1580},
+];
+
+/** 拍内微事件：没有整屏冲击的段落也保持可见变化。 */
+const MICRO_EVENTS: Array<{frame: number; x: number; y: number; distance?: number}> = [
+  {frame: 410, x: 430, y: 550}, {frame: 440, x: 770, y: 550},
+  {frame: 470, x: 1110, y: 550}, {frame: 500, x: 1450, y: 550},
+  {frame: 565, x: 1450, y: 550, distance: 54},
+  {frame: 860, x: 560, y: 337}, {frame: 890, x: 1120, y: 475},
+  {frame: 960, x: 560, y: 631}, {frame: 990, x: 1120, y: 539},
+  {frame: 1110, x: 865, y: 480}, {frame: 1130, x: 1040, y: 695},
+  {frame: 1150, x: 855, y: 780},
+  {frame: 1350, x: 594, y: 750}, {frame: 1370, x: 1440, y: 975},
+  {frame: 1480, x: 1520, y: 690}, {frame: 1650, x: 1120, y: 640, distance: 42},
+  {frame: 1690, x: 960, y: 540, distance: 44},
+  {frame: 1720, x: 960, y: 540, distance: 52},
+];
 
 function MethodNote({frame}: {frame: number}) {
   return (
@@ -764,23 +823,40 @@ export default function SampleScene({props, width, height, subtitleSafeArea, fps
   const elephant = enter(1026) * leave(1266);
   const standardError = enter(1266) * leave(1506);
   const returned = enter(1506);
+  const pulse = beatPulse(frame / 1739, 58, T.motion.bpm, 0.2);
+  const push = 1 + T.motion.pushScale * easeInOutSine(frame / 1739);
+  const fieldShift = (frame / 1739 - 0.5) * 8;
 
   return (
     <Stage width={width} height={height}>
-      <FieldAnchor frame={frame}/>
-      <Opening frame={frame} opacity={opening}/>
-      <Swings frame={frame} opacity={swings}/>
-      <SampleSize frame={frame} opacity={sampleSize}/>
-      <ThreeDots frame={frame} opacity={threeDots}/>
-      <Regression frame={frame} opacity={regression}/>
-      <Elephant frame={frame} opacity={elephant}/>
-      <StandardError frame={frame} opacity={standardError}/>
-      <Return frame={frame} opacity={returned}/>
-      <GoldAnchor frame={frame}/>
-      <LightEvents frame={frame}/>
+      {/* 视觉层缓慢单向推近；字幕与方法说明保持画布坐标，不参与缩放。 */}
+      <div style={{
+        position: 'absolute', inset: 0, transform: `scale(${push})`,
+        transformOrigin: '50% 50%',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0, transform: `translateX(${fieldShift}px)`,
+          opacity: impactFieldOpacity(frame),
+        }}>
+          <FieldAnchor frame={frame}/>
+        </div>
+        <Impact frame={frame} width={width} height={height} events={IMPACT_EVENTS}
+          totalFrames={1740} overscan={push} maskBottom={subtitleSafeArea.y - 24}/>
+        <Opening frame={frame} opacity={opening}/>
+        <Swings frame={frame} opacity={swings}/>
+        <SampleSize frame={frame} opacity={sampleSize}/>
+        <ThreeDots frame={frame} opacity={threeDots}/>
+        <Regression frame={frame} opacity={regression}/>
+        <Elephant frame={frame} opacity={elephant}/>
+        <StandardError frame={frame} opacity={standardError}/>
+        <Return frame={frame} opacity={returned}/>
+        <GoldAnchor frame={frame} pulse={pulse}/>
+        <LightEvents frame={frame}/>
+      </div>
       <MethodNote frame={frame}/>
       <ScreenSubtitle items={subtitles} frame={frame} safeArea={subtitleSafeArea}
-        variants={SUBTITLE_VARIANTS} emphasis={SUBTITLE_EMPHASIS}/>
+        variants={SUBTITLE_VARIANTS} emphasis={SUBTITLE_EMPHASIS} pulse={pulse}
+        shimmer={frame / 1739}/>
     </Stage>
   );
 }

@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
-  burstField, dissolvePair, expandingRings, pointAlongPolyline, samplePath, sampleTrail, staggerReveal,
+  burstField, dissolvePair, expandingRings, explosionField, impactEnvelope, moteField,
+  pointAlongPolyline, samplePath, sampleTrail, staggerReveal,
 } from './dynamics';
 
 const linear = (t: number) => t;
@@ -56,6 +57,40 @@ describe('共享动态几何原语', () => {
     const end = expandingRings({count: 3, progress: 1, baseRadius: 10, travel: 100, easing: linear});
     expect(start.every(ring => ring.opacity === 0)).toBe(true);
     expect(end.every(ring => ring.opacity === 0)).toBe(true);
+  });
+
+  it('整屏爆炸分层、端点透明、同种子同形态', () => {
+    const start = explosionField({count: 100, progress: 0, seed: 'impact', easing: linear});
+    const end = explosionField({count: 100, progress: 1, seed: 'impact', easing: linear});
+    expect(start.every(particle => particle.opacity === 0)).toBe(true);
+    expect(end.every(particle => particle.opacity === 0)).toBe(true);
+    const once = explosionField({count: 100, progress: 0.45, seed: 'impact', reach: 900, easing: linear});
+    const twice = explosionField({count: 100, progress: 0.45, seed: 'impact', reach: 900, easing: linear});
+    expect(twice).toEqual(once);
+    expect(new Set(once.map(particle => particle.layer)).size).toBeGreaterThan(2);
+    const far = once.filter(particle => particle.layer === 'shell');
+    const near = once.filter(particle => particle.layer === 'dust');
+    const spread = (items: typeof once) => Math.max(...items.map(particle => Math.hypot(
+      particle.x - 0, particle.y - 0)));
+    expect(spread(far)).toBeGreaterThan(spread(near));
+    const other = explosionField({count: 100, progress: 0.45, seed: 'other', reach: 900, easing: linear});
+    expect(other.map(particle => particle.x)).not.toEqual(once.map(particle => particle.x));
+  });
+
+  it('环境微尘同种子同形态，位置在画布邻域内', () => {
+    const once = moteField({count: 40, progress: 0.3, seed: 'dust', width: 1920, height: 1080});
+    const twice = moteField({count: 40, progress: 0.3, seed: 'dust', width: 1920, height: 1080});
+    expect(twice).toEqual(once);
+    expect(once.every(mote => Number.isFinite(mote.x) && Number.isFinite(mote.y))).toBe(true);
+    expect(once.every(mote => mote.opacity >= 0 && mote.opacity <= 1)).toBe(true);
+  });
+
+  it('冲击包络端点归零，峰值在中间', () => {
+    expect(impactEnvelope(0)).toEqual({flash: 0, ring: 0});
+    expect(impactEnvelope(1)).toEqual({flash: 0, ring: 0});
+    const middle = impactEnvelope(0.5);
+    expect(middle.flash).toBeGreaterThan(0.9);
+    expect(middle.ring).toBeCloseTo(1);
   });
 
   it('互补溶解的和恒为 1', () => {

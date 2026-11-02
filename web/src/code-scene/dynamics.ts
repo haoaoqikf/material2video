@@ -242,3 +242,142 @@ export function staggerReveal({
     return eased(clampProgress((t - start) / Math.max(0.000001, 1 - spread)), easing);
   });
 }
+
+/**
+ * 整屏爆炸粒子：分层、带深度与虚化的闭式粒子场。
+ *
+ * 与 `burstField` 的区别是位移用 `reach`（最终最大位移）而不是 `speed`，并由
+ * 调用方控制 lifetime/drag，不会因为阻力把半径吃掉；粒子按 index 分为
+ * shell（高速细线）、ember（主壳）、bokeh（大而虚）与 dust（慢速微尘）四层。
+ * 端点透明，跳帧求值一致；位置只由 progress 与 seed 决定。
+ */
+export type ExplosionLayer = 'shell' | 'ember' | 'bokeh' | 'dust';
+export type ExplosionParticle = {
+  index: number; x: number; y: number; vx: number; vy: number;
+  age: number; life: number; size: number; opacity: number;
+  depth: number; blur: number; angle: number; streak: number;
+  layer: ExplosionLayer;
+};
+
+export function explosionField({
+  count, progress, seed = 'explosion', origin = {x: 0, y: 0}, reach = 800,
+  lifetime = 1, drag = 1, gravity = 0, depthRange = [0.15, 1] as const,
+  bokehRatio = 0.12, streakRatio = 0.08, dustRatio = 0.06, easing,
+}: {
+  count: number; progress: number; seed?: string | number; origin?: Vec2;
+  reach?: number; lifetime?: number; drag?: number; gravity?: number;
+  depthRange?: readonly [number, number]; bokehRatio?: number;
+  streakRatio?: number; dustRatio?: number; easing: Easing;
+}): ExplosionParticle[] {
+  integer(count, 'count');
+  finite(origin.x, 'origin.x');
+  finite(origin.y, 'origin.y');
+  nonNegative(reach, 'reach');
+  finite(gravity, 'gravity');
+  nonNegative(drag, 'drag');
+  if (!Number.isFinite(lifetime) || lifetime <= 0 || lifetime > 1) {
+    throw new RangeError('lifetime 必须在 (0, 1] 内');
+  }
+  const [depthMin, depthMax] = depthRange;
+  finite(depthMin, 'depthRange[0]');
+  finite(depthMax, 'depthRange[1]');
+  for (const [value, name] of [
+    [bokehRatio, 'bokehRatio'], [streakRatio, 'streakRatio'], [dustRatio, 'dustRatio'],
+  ] as const) {
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+      throw new RangeError(`${name} 必须在 0–1 内`);
+    }
+  }
+  const t = eased(progress, easing);
+  const hash = typeof seed === 'number' ? seed : hashSeed(seed);
+  const bokehEnd = count * bokehRatio;
+  const shellEnd = bokehEnd + count * streakRatio;
+  const dustStart = count * (1 - dustRatio);
+  return Array.from({length: count}, (_, index) => {
+    const layer: ExplosionLayer = index < bokehEnd ? 'bokeh'
+      : index < shellEnd ? 'shell'
+        : index >= dustStart ? 'dust' : 'ember';
+    const birth = random01(hash, index, 0) * (1 - lifetime);
+    const life = lifetime * (0.6 + 0.4 * random01(hash, index, 1));
+    const age = clampProgress((t - birth) / life);
+    const direction = random01(hash, index, 2) * Math.PI * 2;
+    const random = random01(hash, index, 3);
+    const depth = depthMin + (depthMax - depthMin) * random01(hash, index, 4);
+    // 面积均匀分布：sqrt 让粒子在圆面上均匀，而不是全挤在中心。
+    const radiusFactor = layer === 'shell' ? 0.85 + 0.2 * random01(hash, index, 5)
+      : layer === 'bokeh' ? 0.35 + 0.5 * random01(hash, index, 6)
+        : layer === 'dust' ? 0.08 + 0.5 * random01(hash, index, 6)
+          : 0.3 + 0.6 * Math.sqrt(random);
+    const target = reach * radiusFactor;
+    const travel = drag > 0
+      ? (1 - Math.exp(-drag * age)) / (1 - Math.exp(-drag))
+      : age;
+    const fade = age <= 0 || age >= 1 ? 0 : Math.sin(Math.PI * age) ** 0.7;
+    const sizeBase = layer === 'bokeh' ? 24 + 48 * random01(hash, index, 7)
+      : layer === 'shell' ? 2 + 3 * random01(hash, index, 7)
+        : layer === 'dust' ? 1 + 2 * random01(hash, index, 7)
+          : 4 + 7 * random01(hash, index, 7);
+    const size = sizeBase * (0.55 + 0.45 * depth);
+    const layerOpacity = layer === 'bokeh' ? 0.22
+      : layer === 'dust' ? 0.2
+        : layer === 'shell' ? 1 : 1;
+    return {
+      index,
+      x: origin.x + Math.cos(direction) * target * travel,
+      y: origin.y + Math.sin(direction) * target * travel + 0.5 * gravity * age * age,
+      vx: Math.cos(direction) * target,
+      vy: Math.sin(direction) * target,
+      age,
+      life,
+      size,
+      opacity: clampProgress(fade * layerOpacity * (0.55 + 0.45 * random)),
+      depth,
+      blur: layer === 'bokeh' ? 0.55 + 0.45 * random01(hash, index, 8) : 0.15 + 0.35 * random01(hash, index, 8),
+      angle: direction,
+      streak: layer === 'shell' ? size * (2 + 5 * random01(hash, index, 9)) : 0,
+      layer,
+    };
+  });
+}
+
+/** 冲击包的闪光与环强度；端点归零，供整屏事件统一取包络。 */
+export function impactEnvelope(progress: number): {flash: number; ring: number} {
+  const t = clampProgress(progress);
+  if (t <= 0 || t >= 1) return {flash: 0, ring: 0};
+  return {
+    flash: Math.sin(Math.PI * t) ** 3,
+    ring: Math.sin(Math.PI * t) ** 0.6,
+  };
+}
+
+/** 环境微尘：固定种子、低速漂移、持续存在；用于消除长静止，不承担事件。 */
+export type Mote = {index: number; x: number; y: number; size: number; opacity: number; phase: number};
+
+export function moteField({
+  count, progress, seed = 'mote', width = 1920, height = 1080, drift = 16,
+  size = 1.2, opacity = 0.12, cycles = 2,
+}: {
+  count: number; progress: number; seed?: string | number; width?: number; height?: number;
+  drift?: number; size?: number; opacity?: number; cycles?: number;
+}): Mote[] {
+  integer(count, 'count');
+  finite(width, 'width'); finite(height, 'height');
+  nonNegative(drift, 'drift'); nonNegative(size, 'size');
+  finite(opacity, 'opacity'); nonNegative(cycles, 'cycles');
+  const t = clampProgress(progress);
+  const hash = typeof seed === 'number' ? seed : hashSeed(seed);
+  return Array.from({length: count}, (_, index) => {
+    const phase = random01(hash, index, 0) * Math.PI * 2;
+    const x = random01(hash, index, 1) * width
+      + Math.sin(Math.PI * 2 * cycles * t + phase) * drift;
+    const y = random01(hash, index, 2) * height
+      + Math.cos(Math.PI * 2 * cycles * t + phase * 1.7) * drift * 0.6;
+    const pulse = 0.7 + 0.3 * Math.sin(Math.PI * 2 * (cycles * t + random01(hash, index, 3)));
+    return {
+      index, x, y,
+      size: size * (0.6 + 0.8 * random01(hash, index, 4)),
+      opacity: clampProgress(opacity * pulse),
+      phase,
+    };
+  });
+}

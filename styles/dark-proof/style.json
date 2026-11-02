@@ -1,10 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "dark-proof",
-  "version": "1.1.0",
-  "description": "暗场论证：近黑舞台、米白/金/朱红三色语义、巨型数字、可数点阵、论证图表、光轨/爆散/扩散环、双语动态字幕与手绘描线，适合用一个数字推完一条论证的 60 秒知识短片。",
-  "types": ["general"],
-  "frames": [{"width": 1920, "height": 1080}],
+  "version": "1.2.0",
+  "description": "暗场论证：近黑舞台、米白/金/朱红三色语义、巨型数字、可数点阵、论证图表、局部光轨与整屏粒子冲击、双语动态字幕与手绘描线，适合用一个数字推完一条论证的 60 秒知识短片。",
+  "types": [
+    "general"
+  ],
+  "frames": [
+    {
+      "width": 1920,
+      "height": 1080
+    }
+  ],
   "guide": "GUIDE.md",
   "tokens": "tokens.json",
   "components": {
@@ -19,6 +26,7 @@
     "hand-drawn-line": "components/hand-drawn-line.tsx",
     "light-trail": "components/light-trail.tsx",
     "burst": "components/burst.tsx",
-    "shock-ring": "components/shock-ring.tsx"
+    "shock-ring": "components/shock-ring.tsx",
+    "impact": "components/impact.tsx"
   }
 }

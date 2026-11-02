@@ -36,6 +36,10 @@ export type ScreenSubtitleProps = {
   risePx?: number;
   driftPx?: number;
   englishDelayFrames?: number;
+  /** 节拍脉冲（0–1），只加强关键词的辉光与轻微缩放，不改变字号与换行。 */
+  pulse?: number;
+  /** 0–1 相位；逐字轻微亮度呼吸，不改变布局。 */
+  shimmer?: number;
 };
 
 const MAX_ZH = 30;
@@ -59,6 +63,7 @@ export default function ScreenSubtitle({
   risePx: risePxProp = T.subtitleMotion.risePx,
   driftPx: driftPxProp = T.subtitleMotion.driftPx,
   englishDelayFrames: englishDelayProp = T.subtitleMotion.englishDelayFrames,
+  pulse = 0, shimmer = 0,
 }: ScreenSubtitleProps) {
   for (const item of items) {
     if (!item.text.trim()) throw new Error('屏幕字幕不能为空');
@@ -104,10 +109,12 @@ export default function ScreenSubtitle({
       index += 1;
       zhNodes.push(
         <span key={`${segmentIndex}-${characterIndex}`} style={{
-          display: 'inline-block', opacity: progress,
-          transform: `translateY(${(1 - progress) * risePx * (enterMode === 'settle' ? 0.5 : 1)}px)`,
+          display: 'inline-block',
+          opacity: progress * (0.92 + 0.08 * Math.sin(Math.PI * 2 * (shimmer + index * 0.055))),
+          transform: `translateY(${(1 - progress) * risePx * (enterMode === 'settle' ? 0.5 : 1)}px)`
+            + (segment.emphasis ? ` scale(${1 + pulse * 0.035})` : ''),
           color: emphasisColor(segment.emphasis, color),
-          textShadow: glowShadow(glow * progress),
+          textShadow: glowShadow(glow * progress * (1 + (segment.emphasis ? pulse : pulse * 0.2))),
         }}>{character}</span>,
       );
     });

@@ -98,16 +98,58 @@
         }
       },
       "events": [
-        {"id": "swing-1", "frame": 235},
-        {"id": "swing-2", "frame": 285},
-        {"id": "swing-3", "frame": 335},
-        {"id": "hard-cut", "frame": 600},
-        {"id": "line-start", "frame": 620},
-        {"id": "line-gone", "frame": 760},
-        {"id": "regress", "frame": 900},
-        {"id": "anchor", "frame": 1070},
-        {"id": "formula", "frame": 1300},
-        {"id": "finale", "frame": 1580}
+        {
+          "id": "swing-1",
+          "frame": 235
+        },
+        {
+          "id": "swing-2",
+          "frame": 285
+        },
+        {
+          "id": "swing-3",
+          "frame": 335
+        },
+        {
+          "id": "hard-cut",
+          "frame": 600
+        },
+        {
+          "id": "line-start",
+          "frame": 620
+        },
+        {
+          "id": "line-shatter",
+          "frame": 738
+        },
+        {
+          "id": "line-gone",
+          "frame": 760
+        },
+        {
+          "id": "regress",
+          "frame": 900
+        },
+        {
+          "id": "anchor",
+          "frame": 1070
+        },
+        {
+          "id": "elephant-reveal",
+          "frame": 1194
+        },
+        {
+          "id": "formula",
+          "frame": 1300
+        },
+        {
+          "id": "formula-impact",
+          "frame": 1440
+        },
+        {
+          "id": "finale",
+          "frame": 1580
+        }
       ]
     }
   ],
@@ -120,16 +162,90 @@
       "fadeOutMs": 0
     },
     "effects": [
-      {"sourceRef": "assets/media/swing.wav", "sceneId": "sample", "eventId": "swing-1", "gainDb": -24},
-      {"sourceRef": "assets/media/swing.wav", "sceneId": "sample", "eventId": "swing-2", "gainDb": -24},
-      {"sourceRef": "assets/media/swing.wav", "sceneId": "sample", "eventId": "swing-3", "gainDb": -24},
-      {"sourceRef": "assets/media/impact.wav", "sceneId": "sample", "eventId": "hard-cut", "gainDb": -10},
-      {"sourceRef": "assets/media/scratch.wav", "sceneId": "sample", "eventId": "line-start", "gainDb": -24},
-      {"sourceRef": "assets/media/dissolve.wav", "sceneId": "sample", "eventId": "line-gone", "gainDb": -26},
-      {"sourceRef": "assets/media/regress.wav", "sceneId": "sample", "eventId": "regress", "gainDb": -24},
-      {"sourceRef": "assets/media/anchor.wav", "sceneId": "sample", "eventId": "anchor", "gainDb": -24},
-      {"sourceRef": "assets/media/formula.wav", "sceneId": "sample", "eventId": "formula", "gainDb": -20},
-      {"sourceRef": "assets/media/finale.wav", "sceneId": "sample", "eventId": "finale", "gainDb": -18}
+      {
+        "sourceRef": "assets/media/swing.wav",
+        "sceneId": "sample",
+        "eventId": "swing-1",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/swing.wav",
+        "sceneId": "sample",
+        "eventId": "swing-2",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/swing.wav",
+        "sceneId": "sample",
+        "eventId": "swing-3",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/impact.wav",
+        "sceneId": "sample",
+        "eventId": "hard-cut",
+        "gainDb": -10
+      },
+      {
+        "sourceRef": "assets/media/scratch.wav",
+        "sceneId": "sample",
+        "eventId": "line-start",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/dissolve.wav",
+        "sceneId": "sample",
+        "eventId": "line-gone",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/regress.wav",
+        "sceneId": "sample",
+        "eventId": "regress",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/anchor.wav",
+        "sceneId": "sample",
+        "eventId": "anchor",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/formula.wav",
+        "sceneId": "sample",
+        "eventId": "formula",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/finale.wav",
+        "sceneId": "sample",
+        "eventId": "finale",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/impact.wav",
+        "sceneId": "sample",
+        "eventId": "line-shatter",
+        "gainDb": -16
+      },
+      {
+        "sourceRef": "assets/media/impact.wav",
+        "sceneId": "sample",
+        "eventId": "elephant-reveal",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/impact.wav",
+        "sceneId": "sample",
+        "eventId": "formula-impact",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/impact.wav",
+        "sceneId": "sample",
+        "eventId": "finale",
+        "gainDb": -15
+      }
     ]
   }
 }
