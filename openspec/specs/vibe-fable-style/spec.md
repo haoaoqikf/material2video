@@ -74,7 +74,7 @@
 #### Scenario: 示例可校验
 
 - **WHEN** 对 `styles/<style-id>/examples/<slug>/` 下的示例运行 `m2v validate`
-- **THEN** 校验通过；`vibe-night/fold`、`vibe-fable/pigeon` 与 `dark-proof/sample` 的屏幕字幕在字幕安全区内、无旁白且引用存在的场景入口，其余示例按其风格声明的旁白与文字模式通过校验
+- **THEN** 校验通过；`vibe-night/fold`、`vibe-fable/pigeon` 与 `dark-proof/compound-connect` 的屏幕字幕在字幕安全区内、无旁白且引用存在的场景入口，其余示例按其风格声明的旁白与文字模式通过校验
 
 ### Requirement: 风格示例还原度验收
 

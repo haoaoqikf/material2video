@@ -24,6 +24,6 @@
 
 - [x] 4.1 更新 `.agents/skills/material2video/references/building-construction-video.md` 的材料 v2、镜头/步骤/动作、剖切、标签与 60 秒首例说明；更新 `src/m2v/type_system/catalog.json` 的 summary/plan，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py` 同步 README/PROJECT_PLAN/SKILL。验证：`sync_docs.py --check` 通过。
 - [x] 4.2 扩充 Python 与前端测试：v1 拒绝、v2 字段、选择器覆盖、依赖环、镜头覆盖、取景隐藏不改建成状态、动作端点、同帧确定性；运行 `uv run pytest`、`uv run pytest -m "not slow"`、`pnpm -C web exec vitest run` 与 `tsc --noEmit`。验证：无失败。
-- [ ] 4.3 检查暂存范围只含类型实现、首例材料、测试与文档，排除 `videos/` 媒体、`outputs/`、缓存与生成帧；提交。验证：`git status --short` 干净且无生成媒体，commit 包含代码与材料。
+- [x] 4.3 检查暂存范围只含类型实现、首例材料、测试与文档，排除 `videos/` 媒体、`outputs/`、缓存与生成帧；提交。验证：`git status --short` 干净且无生成媒体，commit 包含代码与材料。
 - [x] 4.4 按现有审核策略完成适用独立评审与问题复查，关闭必改项后标记制作完成。验证：评审记录包含复述结论、代表帧、同帧确定性与画面缺陷检查。
-- [ ] 4.5 同步 `openspec/specs/building-construction-video/spec.md`，运行 `openspec archive remake-building-construction-video` 并提交归档结果。验证：`openspec validate --specs --strict` 通过。
+- [x] 4.5 同步 `openspec/specs/building-construction-video/spec.md`，运行 `openspec archive remake-building-construction-video` 并提交归档结果。验证：`openspec validate --specs --strict` 通过。

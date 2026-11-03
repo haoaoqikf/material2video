@@ -152,7 +152,7 @@ general 长篇讲解方案 MUST 为全片建立章节间的递进关系，使前
 
 ### Requirement: 随附风格示例集合
 
-仓库 SHALL 在目录 `styles/<style-id>/examples/<slug>/` 分发 6 个随附风格示例：`vibe-night/fold`、`vibe-fable/pigeon`、`doc-archive/american-science-milestones`、`count-ledger/compound-interest`、`deep-journey/solar-system-journey` 与 `dark-proof/sample`。全部示例 SHALL 为 general v8、1920×1080，并按各自 `project.json` / 分镜显式声明的帧率交付；有旁白示例 MUST 按实际旁白时间窗推进，无旁白示例 MUST 按帧预算推进。示例素材 MUST 经导入留证后按 ID 引用，生成媒体 MUST NOT 入库；观众可见文案 MUST NOT 出现仓库内部路径、`SOURCES.md` 或材料查阅提示；组件覆盖 MUST 按示例实际使用的集合检查，不为了覆盖清单引入无关效果。示例的题材内容契约由对应风格规格的「示例作品」Requirement 约束。
+仓库 SHALL 在目录 `styles/<style-id>/examples/<slug>/` 分发 6 个随附风格示例：`vibe-night/fold`、`vibe-fable/pigeon`、`doc-archive/american-science-milestones`、`count-ledger/compound-interest`、`deep-journey/solar-system-journey` 与 `dark-proof/compound-connect`。全部示例 SHALL 为 general v8、1920×1080，并按各自 `project.json` / 分镜显式声明的帧率交付；有旁白示例 MUST 按实际旁白时间窗推进，无旁白示例 MUST 按帧预算推进。示例素材 MUST 经导入留证后按 ID 引用，生成媒体 MUST NOT 入库；观众可见文案 MUST NOT 出现仓库内部路径、`SOURCES.md` 或材料查阅提示；组件覆盖 MUST 按示例实际使用的集合检查，不为了覆盖清单引入无关效果。示例的题材内容契约由对应风格规格的「示例作品」Requirement 约束。
 
 #### Scenario: 六个随附示例可校验
 
