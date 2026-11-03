@@ -36,7 +36,7 @@
 
 ### Requirement: 色板、场景配色与版式参数
 
-`tokens.json` SHALL 提供暖白文字 `#FFFAEB`、规则句金 `#EEC672`、「超常」红 `#FC593F`、卡片纸 `#D4CABA` 与深棕卡片字 `#3A2A22`；SHALL 提供五个场景配色（海滩、荒漠、书桌、芦苇荡、夜空），各含天空双色渐变、地面色与点缀色。颜色语义 SHALL 全片一致，红色只表达「超常」。版式 SHALL 提供本能读数仪表的 `45, 35, 345×205` 位置与尺寸、场景说明、顶部结论行与对照计数的纵向位置。字幕安全区 SHALL 只由场景上下文 `subtitleSafeArea` 提供，tokens SHALL NOT 复制一份几何。
+`tokens.json` SHALL 提供暖白文字、规则句金、「超常」红、卡片纸与深棕卡片字，以及五个场景配色；具体取值与用法见 `styles/vibe-fable/GUIDE.md` 与 `tokens.json`。颜色语义 SHALL 全片一致，红色只表达「超常」。版式参数 SHALL 由 GUIDE 与 `tokens.json` 提供。字幕安全区 SHALL 只由场景上下文 `subtitleSafeArea` 提供，tokens SHALL NOT 复制一份几何。
 
 #### Scenario: 场景读取配色
 
@@ -45,7 +45,7 @@
 
 ### Requirement: 可复用组件
 
-风格包 SHALL 提供舞台、三层视差、本能读数仪表、场景说明、顶部结论行、对照计数、引线标注、规则卡、片名卡与屏幕字幕组件。组件 SHALL 使用受控帧号与固定种子，SHALL NOT 使用挂钟、`Math.random`、CSS 动画或组件计时器。组件 SHALL NOT 自动修改作品画面，必须由作品显式导入。角色画法 SHALL 由作品自行实现，包内 SHALL NOT 提供通用角色组件。
+风格包 SHALL 提供 GUIDE 列出的舞台、三层视差、本能读数仪表、场景说明、顶部结论行、对照计数、引线标注、规则卡、片名卡与屏幕字幕组件；具体参数见 `styles/vibe-fable/GUIDE.md`。组件 SHALL 使用受控帧号与固定种子，SHALL NOT 使用挂钟、`Math.random`、CSS 动画或组件计时器。组件 SHALL NOT 自动修改作品画面，必须由作品显式导入。角色画法 SHALL 由作品自行实现，包内 SHALL NOT 提供通用角色组件。
 
 #### Scenario: 确定性绘制
 
