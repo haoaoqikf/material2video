@@ -1,5 +1,8 @@
 # 《复利》验证记录
 
+> 路径迁移说明：下文 2026-11-03 之前的历史章节形成于 `styles/examples/` 时期；当前规范位置为
+> `styles/count-ledger/examples/compound-interest/`，旧路径保留为历史值。
+
 ## 2026-11-03 共享动效组件接入
 
 - 文件：`styles/count-ledger/examples/compound-interest/outputs/video.mp4`
