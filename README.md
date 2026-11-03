@@ -16,7 +16,7 @@
 - `vehicle-showcase`：本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。
 <!-- generated:type-catalog:end -->
 
-风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[样本](styles/dark-proof/examples/sample/README.md)。复利示例为29秒数学讲解动画：开场以“复利的力量”点题；1枚圆片=1,000元，以米白/金色/暗金三种资金状态解释收益再投入；第30年以40枚/约174.5枚可数圆片直接比较两种处理方式的30年总资产，随后用独立 S6 让16枚金色收益归队变白，只剩175枚本金堆，再以结论与片名收束。无旁白、无旋律配乐，含8秒进入的环境床与25个同步事件音。样本示例为58秒暗场论证：3/1000、33 点摆动、20.0 秒唯一硬切、均值回归与标准误；金点与点阵跨拍延续，四个关键转折有整屏粒子冲击与扩散环，全片含缓慢单向推近与 112 BPM 原创程序化配乐，中英双语屏幕字幕逐字展开；无旁白。制作状态见示例验证记录。作品材料和输出位置见各示例说明及[协作约定](AGENTS.md)。
+风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[样本](styles/dark-proof/examples/sample/README.md)。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
@@ -32,7 +32,7 @@ Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt(
 
 代码场景可声明 `content.props.capture.mode: "pure-time"` 走纯时间采集：任意帧直接 seek，按块并行采集后无损拼接，预览与 lookdev 不再回放前缀；纯性由静态源码闸门与正序/倒序 PSNR 双重验证，失败明确拒绝。`render --jobs N` 可进一步按帧区间分进程渲染。默认仍为顺序采集、单进程；写法与限制见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
 
-代码场景另提供共享 L1/L2 动效组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine` 与 `RollingNumber`、`Typewriter`、`MarkerHighlight`、`BarGrowth`、`Callout`；并补齐文本排版（`AutoFitText`、`TextBlock`）、路径形变（`PathMorph`）、遮罩揭示（`MaskReveal`）、圆弧进度（`ArcGauge`、`ProgressRing`）、有机漂移（`NoiseDrift`）、纯时间安全图表（`LinePlot`、`AreaPlot`、`Sparkline`、`Axis`）、时间轴（`Timeline`、`ChapterTrack`）、象形图（`Pictogram`、`IconGrid`）与波形（`Waveform`）。组件只接收 `progress`/`easing`；SVG 路径生长与形变使用 `@remotion/paths`，CSS 数值与 transform 使用 `@remotion/animation-utils`，文本测量与适配使用 `@remotion/layout-utils`，噪声使用 `@remotion/noise`，图表几何使用 `d3-scale`/`d3-shape`，手绘高亮几何使用 `roughjs`。作品与风格组件通过 `m2v/code-scene` 使用，不直接依赖外部库。使用边界见[共享动效组件](.agents/skills/material2video/references/code-scene-runtime.md#共享动效组件)。
+代码场景另提供共享 L1/L2 动效组件，覆盖入场、数据、文本排版、路径形变、遮罩揭示、圆弧进度、有机漂移、纯时间安全图表、时间轴、象形图与波形。组件只接收 `progress`/`easing`，通过 `m2v/code-scene` 使用，不直接依赖外部库；外部几何库的选型与使用边界见[共享动效组件](.agents/skills/material2video/references/code-scene-runtime.md#共享动效组件)。
 
 general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；低风险作品只派一次当前候选独立终审，核心风险按计划在扩展前增加适用评审。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。选案按未决问题比较，不固定候选数量；检查工具按需调用，完整证据与制作完成条件仍须满足。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
@@ -84,11 +84,11 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 `init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融与自驾路线各自沿用专用材料契约。各类型的材料、编排与画面规则见[文档导航](#文档导航)。
 
-多日地图游记使用一份 `trip.json`，每日路线在 `routes/day-XX.json` 并由 `trip.json` 引用：填写起终点、天数、每日目的地与 via、旁白、卡片与事实来源后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v road-trip fetch --project videos/route-journey/road-trip/<slug>`；第 1 天从行程起点定位，第 N 天起点直接使用前一天终点，按 via 顺序分段规划并原子保存全部路线。授权落实后执行 `uv run m2v road-trip basemap --project videos/route-journey/road-trip/<slug>` 生成全局概览、每日概览与每日跟随瓦片走廊，`--style` 可临时覆盖逐日普通/卫星设置。之后 `prepare / preview / render` 全程离线：准备阶段合成旁白与字幕、混入音效与 30 秒程序化音床并归一化母版；渲染时通过本地静态服务注入底图路径，只挂载当前视口瓦片。画幅固定 1080×1920、30 fps、有声；材料形状、命令与画面契约见[多日地图游记](.agents/skills/material2video/references/road-trip-video.md)。
+多日地图游记使用一份 `trip.json`，每日路线在 `routes/day-XX.json` 并由 `trip.json` 引用；填写行程、旁白、卡片与事实来源后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v road-trip fetch --project videos/route-journey/road-trip/<slug>`，再按授权执行 `basemap` 生成概览与每日跟随瓦片。之后 `prepare / preview / render` 全程离线，准备阶段合成旁白、字幕、音效与 30 秒程序化音床。画幅固定 1080×1920、30 fps、有声；材料形状、命令与画面契约见[多日地图游记](.agents/skills/material2video/references/road-trip-video.md)。
 
-自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 并执行 `uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>` 取得真实高速优先路线；需要普通道路底图时，确认授权并置 `mapTiles=true` 后执行 `uv run m2v driving-route basemap --project videos/route-journey/driving-route/<slug>`，概览拼接图与 z12 跟随瓦片走廊会本地保存并绑定摘要；加 `--style satellite` 可生成卫星底图版本，路线、市/县标签与镜头保持不变。之后 `validate / prepare / preview / render` 全程离线，不需要 Key。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒，首例 60 秒；顶部两行居中标题“模拟行程 / 上海 → 郑州”，已行驶公里数显示在车辆旁，市名与县/县级市名以 40 px 加粗白描边显示（市辖区不单独标注），不显示底部数据面板。普通道路底图使用 `style=8&scl=2` 的 512×512 无文字/POI 注记瓦片，画面地名只由标签层绘制。城市间画面跳过起点接入大路前的小路，里程同步扣除，5 公里内找不到大路时准备失败。开场 2 秒从 8×快速推到 12×，行政区自绘标签在推近与拉远时淡出、镜头稳定后淡入；中段 12×匀速跟随，跟随段相机平移对齐整像素，底图与标签共享同一重采样相位以避免文字抖动，屏内标签保持全不透明并随地图连续滑出视口；结尾 2 秒拉远并保持全程，最终总览只显示市级标签。小车起步朝向采用路线首段方向。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
+自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>` 取得真实高速优先路线；确认授权并置 `mapTiles=true` 后可执行 `basemap` 生成普通道路或卫星底图。之后 `validate / prepare / preview / render` 全程离线。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒；顶部两行“模拟行程”标题，车辆旁显示里程，市/县行政区标签由渲染层绘制。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
 
-可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前已登记 `vibe-fable`（B 寓言）、`vibe-night`（C 夜曲）、`doc-archive`（档案纪录片）、`count-ledger`（可数物证）、`deep-journey`（深空旅程）与 `dark-proof`（暗场论证），每个风格配一个可校验的风格示例（`styles/<id>/examples/<slug>/`，示例子树不参与风格指纹）。示例各附 `DESIGN.md` 与 `VERIFICATION.md`；`vibe-night`、`vibe-fable` 与 `dark-proof` 的示例另附 `HOWTO.md`（可复现的调时、取景或几何布局练习，含修改位置、验证命令与恢复方式）；技术检查与理解观察分开记录，前者不替代后者。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)，示例与目录约定见[风格包目录](styles/README.md)。
+可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前六个正式风格包与各自的规范示例见[风格包目录](styles/README.md)，示例子树不参与风格指纹。示例各附 `DESIGN.md` 与 `VERIFICATION.md`，`vibe-night`、`vibe-fable` 与 `dark-proof` 另附 `HOWTO.md`；技术检查与理解观察分开记录。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)。
 
 ## 命令
 
@@ -139,12 +139,4 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 已有视频可通过制作助手的[修订入口](.agents/skills/material2video/references/video-revision.md)按修改意图继续制作：定位受影响场景与时间轴、保护旧版、复用有效方案和证据，实际查看局部修改效果并按[收敛判断](.agents/skills/material2video/references/production-workflow.md#再次全片生成前的收敛判断)汇总后生成下一全片候选，最后完整复核。入口串联现有命令，未新增修订 CLI 或自动影响分析器。
 
-general 提供 G0–G6 检查点门、指定帧采集、DOM 状态/布局量测、隔离评审包、缓存粗片播放器、追加式制作历史与显式基线清理。`m2v status --history --json` 在既有技术状态之外显示 production 制作状态；门不新增导出硬门禁。合同格式、覆盖局限与操作见[检查点制作门](.agents/skills/material2video/references/checkpoint-gates.md)。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
-
-看图改图用 `m2v lookdev` 的四种取点模式：`--sheet 3.5 9 21.5` 按秒拼一张接触表，`--motion 8.2 10.6` 看区间转场，`--det` 核对同帧一致性，`--event compound:drop-1 --before 6 --after 6` 按幕内事件取发生前/关键帧/发生后/结果停留。事件模式从当前准备记录解析，窗口由作者用帧声明；事件簇会警告，越界会失败，不会自动绑定检查点。它们是预览工具，不成为导出门禁，也不替代 `m2v gates check` 的正式检查点证据；以上即当前预览模式用法，正式检查点仍用 `m2v gates check`。
-
-v2 合同以 `reviewPlan.risks` 声明六类适用风险，审核人数和轮次由唯一策略派生：无核心未决风险的普通作品只需一次独立终审；有核心风险时，在扩展前增加适用核心评审。G5 内部检查记录范围、发现和未覆盖限制。独立评审覆盖表绑定适用门；状态查询分列自身结果、等待前置及真实过期。见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)。
-
-适用核心样片评审在扩展前、G5 内部粗片检查在阶段问题收敛前，分别作出通过、局部修复、补充试制或退回重设计的制作决策。设计机制、全片结构或技术路线存在有证据的根本失败时立即退回对应设计层，不必等两轮修复；保留原问题、限制受影响工作并经对应验证重新放行。决策复用现有失败与问题状态，不新增自动审美判定或导出门禁。触发条件与记录见[回退规则](.agents/skills/material2video/references/production-workflow.md#核心样片与全片粗片的回退决策)。
-
-核心盲审覆盖表分别验证理解、表现与样片代表性；有目标图的核心实际片段须先盲审、后同轮独立对照，缺少或失败不授权扩展。独立评审必改项须凭当前同范围独立复查报告关闭。`status` 保留技术 `stage/candidate`，另用 `summary`、`production.complete` 和 `production.expansion` 区分候选生成、制作完成与可扩展检查点；这些条件不新增渲染硬门禁或用户审批。旧核心报告缺少新凭据时仅作历史，不自动补造通过。
+general 提供 G0–G6 检查点门、指定帧采集、DOM/布局量测、隔离评审包、粗片播放器、追加式制作历史与基线清理；`m2v status --history --json` 显示 production 制作状态。合同、评审覆盖、回退决策、`lookdev` 取点方式与完成条件分别见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)、[独立评审](.agents/skills/material2video/references/subagent-review.md)、[制作流程](.agents/skills/material2video/references/production-workflow.md)和[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；这些工具不新增导出门禁。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。

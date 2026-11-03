@@ -4,7 +4,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 
 ## 当前落地范围
 
-已落地架构见 [模块化视频制作规格](../openspec/specs/modular-video-production/spec.md)。当前代码状态、可用命令和已验证能力以 README 为准；此处计划内容不代表未完成能力已交付。
+已落地架构见 [模块化视频制作规格](../openspec/specs/modular-video-production/spec.md)。当前代码状态、可用命令、制作工具、参考选型与已验证能力以 README 和 [架构说明](../ARCHITECTURE.md) 为准；此处计划内容不代表未完成能力已交付。
 
 当前类型范围（由 `catalog.json` 生成，与 README 和 Skill 的类型清单同源）：
 
@@ -22,17 +22,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 
 上列各类型的校验、准备、预演、渲染与验收链路均已实现；真实数据是否可用取决于来源授权（金融行情与自驾路线取数各有前置条件），不以合成材料替代真实验收。
 
-自驾路线把在线取数与离线成片分开：只有 `m2v driving-route fetch` 与可选的 `m2v driving-route basemap` 访问高德服务，取数或取道路瓦片前必须落实当前账号与用途的授权依据；其余流程只读本地材料。竖屏普通道路/卫星地图、市/县行政区标注（市辖区不单独标注）、车辆旁里程、30 fps、12× 平滑跟随与 z12 瓦片走廊作为当前能力实现；本地作品记录显示两套首例均已交付，独立视觉评审结论仍以作品记录为准。
-
-general 的检查点制作工具见[制作证据与状态](../README.md#制作证据与状态)，覆盖合同、状态查询、隔离包和引用保护清理；自动量测不替代独立观感判断。
-
-通用代码场景已支持 opt-in 的全局时间与事件化声音语义；pure-time 场景可直接 seek、按块并行采集，`render --jobs` 可按帧区间分进程渲染。默认仍是顺序采集与单进程，跨类型扩展待实际需求。
-
-基础设施层已把六项可替换的手写能力交给成熟组件：抖音参考素材默认走 yt-dlp（浏览器解析只作兜底），路线投影/瓦片/距离使用 mercantile、geographiclib、Turf 与 d3-geo，字体 cmap 与子集化使用 fontTools，冻结帧硬判定使用 ffmpeg freezedetect，进程树内存使用 psutil，材料结构校验使用 Pydantic。逐帧确定性、离线契约、制作证据链与专用画面仍由项目自己维护。
-
-通用代码场景的动效已按「外部方案优先」选型并分层沉淀：纯函数库 `svg-path-properties`（路径等距采样）与 `perfect-freehand`（锥形手绘笔触）以 MIT 许可引入，供手绘线、光轨与真实局部取样使用；`@remotion/motion-blur`、`tsparticles`、`reveal-text`、`flubber` 等候选因依赖 Remotion 上下文、rAF/真实时间、CSS 动画或停止维护而未引入，`roughjs` 因偏 sketchy 未用于本片手绘线。新增的 `web/src/code-scene/dynamics.ts` 与 `subtitles.ts` 提供纯数值的光轨、爆散、扩散环、互补溶解与字幕错峰，供任意代码场景复用；`dark-proof` 包在此之上提供 `light-trail`、`burst`、`shock-ring` 等风格组件，《样本》示例用它们实现锚点转场、光效、逐字字幕与 Lucide Lab 大象几何。选型依据与许可记录在示例 `SOURCES.md` 与本次变更规格中。
-
-《样本》进一步把动效与节奏拆成可复用层：`explosionField` 与 `moteField` 提供闭式多层粒子与环境微尘，`rhythm.ts` 把全片进度映射为 112 BPM 节拍相位/脉冲，透明 Canvas 效果层只画粒子与环；`dark-proof` 的 `impact` 用四个 preset 绑定关键转折，示例用 4 个整屏冲击、段内微拍、缓慢单向推近与原创 112 BPM 程序化配乐提升节奏。全屏粒子不进入共享字幕层，字幕仍只使用 `subtitleSafeArea`。
+外部参考项目的转译、六个正式风格包、Painter/lookdev 与共享动效选型已经落地，现状、许可和使用边界见 README、[风格包目录](../styles/README.md)与[外部参考项目登记](../.agents/skills/material2video/references/external-reference-projects.md)；这些不再作为待办。
 
 ## 扩展原则
 
@@ -47,10 +37,7 @@ general 的检查点制作工具见[制作证据与状态](../README.md#制作�
 3. 持续完善镜头表现、后期、素材许可与原生尺寸审计，以及交付后的替代复核方式。
 4. 根据新增专用类型的实际重复需求提取能力；保持每类业务门禁独立。
 5. 仅在有明确需求且单独评估后考虑横竖屏以外的尺寸帧率；不引入第二套渲染引擎，电影级画面以现有 Remotion/React/R3F 底座上的镜头、后期与共享套件实现。
-6. 外部参考项目 `vibe-knowledge-film` 的 C 夜曲与 B 寓言已分别转成正式风格包 `styles/vibe-night` 与 `styles/vibe-fable`；仓库原有三个固定示例已整理为 `doc-archive`、`count-ledger`、`deep-journey` 三个正式风格包，并迁入 `styles/<style-id>/examples/<slug>/` 作为规范示例（见[风格包目录](../styles/README.md)）。`styles/dark-proof`（暗场论证）由参考片《重复》的可迁移论证语法提取，规范示例为 `styles/dark-proof/examples/sample/`。当前共 6 个风格；未并入的外观不提供可安装风格。
-7. 已吸收该项目的两项方法：看图诊断的因果表与形象判据（`references/explainer-design.md#看图诊断与形象判据`），以及 `lookdev` 的任意时刻拼图、区间转场拼图、同帧一致性自检与幕内事件取证。可选二维 Canvas 绘制层（`web/src/code-scene/painter/`）已落地并附同源量测代理，使 Canvas 内容可被检查点量测。
-8. 已吸收 `vibe-knowledge-film` 的六项制作方法：Painter 动态能力货架、离屏分组合成、固定种子可回放模拟、数值关键帧、声音全片包络与留静、长片章节递进。已实现能力与使用边界见[README](../README.md)及制作 Skill；这些方法不自动保证成片表达效果，仍按现有画面与声音复核。两个风格示例已按镜头连接、时间预算和共同尺度补充 `DESIGN.md`，并提供 `HOWTO.md` 的可复现修改练习；练习在临时副本执行，未把变体或媒体纳入仓库。
-9. 后续按实际作品验证风格包边界和性能；已吸收的镜头连接、连续对象与时间预算按现行指导使用；外部分镜表格式及其余镜头语汇尚未整体引入，后续仅按实际需求评估，不建立平行材料或流程。
-10. 通用视觉与运动方法已收归两个项目级 skill：`frontend-design` 负责视觉方向、字体、构图与反模板判断，`motion-design` 负责运动人格、时长、缓动与编排；项目文档只保留五块式设计记录、逐场表、证据与验收。主规格已移除七段式模板，规范示例 `solar-system-journey` 补写了五块式记录与逐镜运动计划范本。下一步是在一部真实 general 作品上实填五块式与逐镜运动表，按填写卡点再改模板；本次未实跑，不声称模板已被验证。
+6. 在一部真实 general 作品上实填五块式设计记录与逐镜运动表，按填写卡点再改模板；未实跑前不声称模板已验证。
+7. 按实际作品验证风格包边界与性能；外部分镜表格式及其余镜头语汇仅按实际需求评估，不建立平行材料或流程。
 
 自动行情服务、云端队列、账号、自动发布、自动选曲和第三方插件系统不属于当前路线。配乐来自作品本地素材或确定性程序化音床，不接入第三方音乐服务。
