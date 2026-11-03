@@ -17,7 +17,7 @@ STYLE_EXAMPLES: dict[str, str] = {
     "doc-archive": "american-science-milestones",
     "count-ledger": "compound-interest",
     "deep-journey": "solar-system-journey",
-    "dark-proof": "sample",
+    "dark-proof": "compound-connect",
 }
 
 #: 示例作品 slug → 绝对路径。

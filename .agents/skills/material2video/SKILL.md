@@ -21,7 +21,7 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 | 路线旅程 | `road-trip` | [多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。 |
 | 未分类 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
 | 未分类 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
-| 未分类 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：从基础到完工的构件与阶段说明。 |
+| 未分类 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：核验 v2 材料、镜头与步骤，并通过完整候选的静读与独立复述验收。 |
 | 未分类 | `vehicle-showcase` | [汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。 |
 <!-- generated:type-catalog:end -->
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "dark-proof-sample",
+  "id": "compound-connect",
   "type": "general",
   "materials": {
     "storyboard": "storyboard.json"

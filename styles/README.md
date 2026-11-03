@@ -31,7 +31,7 @@
 | [american-science-milestones](doc-archive/examples/american-science-milestones/README.md) | `doc-archive` | 从电报到大模型：十项美国科学里程碑 | 30 秒 |
 | [compound-interest](count-ledger/examples/compound-interest/README.md) | `count-ledger` | 复利：同样一万、两种做法、三十年后差多少 | 29 秒 |
 | [solar-system-journey](deep-journey/examples/solar-system-journey/README.md) | `deep-journey` | 太阳系之旅：从太阳到奥尔特云的一镜到底 | 174.55 秒 |
-| [sample](dark-proof/examples/sample/README.md) | `dark-proof` | 样本：3 条评价能定义一个人吗？3/1000、33 点摆动、均值回归与标准误 | 58 秒 |
+| [compound-connect](dark-proof/examples/compound-connect/README.md) | `dark-proof` | 接：重复如何把 1 接成 99、把 42 折接成 439,804.65 公里、把 100 个概念接成 4,950 条连接 | 60 秒 |
 
 示例在目录上归属风格，在依赖上仍是独立作品。风格指纹跳过直属 `examples/` 整个子树，
 其余共享文件全部纳入；清单及共享实现不能引用示例。示例改动只影响自身准备，
@@ -48,5 +48,5 @@ uv run m2v validate --project styles/vibe-fable/examples/pigeon
 uv run m2v validate --project styles/doc-archive/examples/american-science-milestones
 uv run m2v validate --project styles/count-ledger/examples/compound-interest
 uv run m2v validate --project styles/deep-journey/examples/solar-system-journey
-uv run m2v validate --project styles/dark-proof/examples/sample
+uv run m2v validate --project styles/dark-proof/examples/compound-connect
 ```

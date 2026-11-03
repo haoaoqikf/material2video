@@ -12,11 +12,11 @@
 **未分类**
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、30 fps 暖近黑「持仓对账单」手机竖屏双层趋势曲线、主体优先标题、本金/期末市值收束区与可选 design 档案，完整候选自动验收。
 - `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。
-- `building-construction`：程序化两层框架住宅、基础到完工的分阶段确定性动画、1920×1080 横屏、30 fps、无声交付。
+- `building-construction`：以 v2 材料驱动、多镜头与构件级步骤的三维住宅建造示意；60 秒、1920×1080、30 fps、无音轨，默认机位可见入口与主要门窗。
 - `vehicle-showcase`：本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。
 <!-- generated:type-catalog:end -->
 
-风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[样本](styles/dark-proof/examples/sample/README.md)。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
+风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[接](styles/dark-proof/examples/compound-connect/README.md)。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 

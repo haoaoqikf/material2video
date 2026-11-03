@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "bed",
+      "path": "assets/media/bed.wav",
+      "transform": "generate",
+      "durationSeconds": 60.0,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "673065fd82b3abb84f6a26f3590733326adc3f072b2badb24cc2e53f2abeb1e0",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "origin",
+      "path": "assets/media/origin.wav",
+      "transform": "generate",
+      "durationSeconds": 0.5,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "dd4f9fcb54ab138b762fced9dac389a640fe3a2ba8fca4c18a9b358bc4d44f9a",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "spiral",
+      "path": "assets/media/spiral.wav",
+      "transform": "generate",
+      "durationSeconds": 0.35,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "d12b037d001769e8f274f545c4f199e1a39fa5b1f4511cc87dc645736ecde3b0",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "fold",
+      "path": "assets/media/fold.wav",
+      "transform": "generate",
+      "durationSeconds": 0.25,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "bd4776d94eefcdde369bd631d09855a8882f103d8782dde004bf11aee3672609",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "moon",
+      "path": "assets/media/moon.wav",
+      "transform": "generate",
+      "durationSeconds": 1.1,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "b569f30449f69d526e55bd4355658d347b1c36e07aa1f3abb41b8f13960f9aab",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "board",
+      "path": "assets/media/board.wav",
+      "transform": "generate",
+      "durationSeconds": 0.5,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "71e7a1a6123bf8e19b2cc4b62e2d7a57bff89612fb75ac7ef261c1285477058b",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "grain",
+      "path": "assets/media/grain.wav",
+      "transform": "generate",
+      "durationSeconds": 0.12,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "ab773612b02b1da7656414ce14494637884c8d006d8389ea9358d047974899e6",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "network",
+      "path": "assets/media/network.wav",
+      "transform": "generate",
+      "durationSeconds": 1.2,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "251b9fac16795989d0956a1bfe40d195a63ffde1b743dc45c206fa5d91185111",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "return",
+      "path": "assets/media/return.wav",
+      "transform": "generate",
+      "durationSeconds": 0.9,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "bff036fdc05b40b0a187f4bef6696971f7e9bea298e938c0b9f1475b39a3edc8",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "curve",
+      "path": "assets/media/curve.wav",
+      "transform": "generate",
+      "durationSeconds": 1.0,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "543936875f71e974f18c13341cc18dd01a914976a7c7ada66496e0322e62917f",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    },
+    {
+      "id": "finale",
+      "path": "assets/media/finale.wav",
+      "transform": "generate",
+      "durationSeconds": 1.6,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "00bf0242675049f678e94457507fd7e44620d0c3c1f2092c822384e6b4265894",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/synthesize.py"
+    }
+  ]
+}

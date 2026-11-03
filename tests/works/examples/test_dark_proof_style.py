@@ -1,4 +1,4 @@
-"""正式暗场论证风格包：清单、组件契约、指纹与《样本》示例。"""
+"""正式暗场论证风格包：清单、组件契约、指纹与《接》示例。"""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,7 @@ from m2v.types.general.code_scenes import build_scene
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = ROOT / "styles" / "dark-proof"
-EXAMPLE = PACKAGE / "examples" / "sample"
+EXAMPLE = PACKAGE / "examples" / "compound-connect"
 COMPONENTS = {
     "kit", "stage", "hero-number", "counter", "dot-field", "proof-chart",
     "bilingual-title", "screen-subtitle", "hand-drawn-line",
@@ -100,7 +100,7 @@ def test_example_changes_do_not_touch_package_fingerprint(tmp_path, monkeypatch)
     base = tmp_path / "styles"
     base.mkdir()
     shutil.copytree(PACKAGE, base / "dark-proof", ignore=shutil.ignore_patterns("examples"))
-    example = base / "dark-proof" / "examples" / "sample"
+    example = base / "dark-proof" / "examples" / "compound-connect"
     example.mkdir(parents=True)
     (example / "storyboard.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(styles, "STYLES_ROOT", base)
@@ -119,26 +119,26 @@ def test_shipped_example_is_a_silent_v8_work():
     board = explainer.load(EXAMPLE, project)
     explainer.validate(board, EXAMPLE, project)
     assert board["version"] == 8 and board["schemaVersion"] == 8
-    assert board["targetSeconds"] == 58
+    assert board["targetSeconds"] == 60
     assert len(board["scenes"]) == 1
     scene = board["scenes"][0]
-    assert scene["durationFrames"] == 1740
+    assert scene["durationFrames"] == 1800
     assert scene["narrationSegments"] == [], "示例无旁白"
     subtitles = scene["content"]["props"]["screenSubtitles"]
-    assert len(subtitles) >= 8
+    assert len(subtitles) == 11
     for item in subtitles:
         lines = item["text"].split("\n")
         assert len(lines) == 2, f"屏幕字幕须为中英双语：{item['text']}"
-        assert 0 <= item["startFrame"] < item["endFrame"] <= 1740
+        assert 0 <= item["startFrame"] < item["endFrame"] <= 1800
         assert lines[0].strip() and lines[1].strip()
 
 
 def test_example_scene_uses_safe_area_and_has_no_reference_material():
-    source = (EXAMPLE / "scenes" / "sample.tsx").read_text(encoding="utf-8")
+    source = (EXAMPLE / "scenes" / "compound-connect.tsx").read_text(encoding="utf-8")
     assert "subtitleSafeArea" in source
     assert "<ScreenSubtitle" in source and "safeArea={subtitleSafeArea}" in source
     assert "narrationSegments" not in source
-    for relative in ("scenes/sample.tsx", "storyboard.json", "project.json",
+    for relative in ("scenes/compound-connect.tsx", "storyboard.json", "project.json",
                      "assets/synthesize.py", "assets/fetch.py"):
         text = (EXAMPLE / relative).read_text(encoding="utf-8")
         for token in ("refs/", "douyin", "7692873023291963558", "《重复》"):
@@ -146,25 +146,14 @@ def test_example_scene_uses_safe_area_and_has_no_reference_material():
 
 
 def test_example_math_relations_are_present():
-    source = (EXAMPLE / "scenes" / "sample.tsx").read_text(encoding="utf-8")
-    assert "3 / 1000 = 0.3%" in source
-    assert "33 点摆动" in source
-    assert "≈18×" in source
-    assert "n × 4 → 误差 ÷ 2" in source
-    assert "Math.sqrt(3)" in source and "Math.sqrt(1000)" in source
-    assert "mean of three" in source
-
-
-def test_example_elephant_uses_icon_geometry_and_real_crops():
-    source = (EXAMPLE / "scenes" / "sample.tsx").read_text(encoding="utf-8")
-    # Lucide Lab `elephant` 的头部/耳外沿与卷鼻路径；腿、眼与取样窗必须共用同一几何。
-    assert "M14.5 12H14" in source and "M14 10a4 4 0 0 0 4 4" in source
-    assert "M10 16v5" in source and "M2 11v7" in source
-    assert "ELE_TUSKS" in source and "ELE_EYE" in source
-    assert 'id="sample-elephant-figure"' in source
-    assert 'href="#sample-elephant-figure"' in source
-    assert "ELE_CROPS" in source and "clipPath" in source
-    assert "局部一" not in source, "取样窗必须是真实局部放大，不是通用纹理"
+    source = (EXAMPLE / "scenes" / "compound-connect.tsx").read_text(encoding="utf-8")
+    assert "第 1 刀，切到 8 毫米" in source
+    assert "线性 4.2 mm" in source
+    assert "42 次翻倍" in source
+    assert "100 个概念 / 4,950 条连接" in source
+    assert "最后 10 个新增，连接数 21 倍" in source
+    assert "<Power base=\"2\" exponent=\"63\"" in source
+    assert "全盘 2⁶⁴−1 粒" in source
 
 
 def test_example_media_recipe_is_complete():
@@ -172,8 +161,8 @@ def test_example_media_recipe_is_complete():
     assert recipe["schemaVersion"] == 1
     identities = {item["id"] for item in recipe["assets"]}
     assert identities == {
-        "bed", "swing", "impact", "scratch", "dissolve",
-        "regress", "anchor", "formula", "finale",
+        "bed", "origin", "spiral", "fold", "moon", "board",
+        "grain", "network", "return", "curve", "finale",
     }
     for item in recipe["assets"]:
         assert item["transform"] == "generate"

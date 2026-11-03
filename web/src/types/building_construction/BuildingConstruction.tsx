@@ -1,19 +1,20 @@
 /**
- * 两层框架住宅建造示意：程序化构件 + 等轴测确定性逐帧动画。
+ * 两层框架住宅建造示意：构件级三维、多镜头与可读性覆盖层。
  *
- * 所有构件、阶段与镜头都由 materials 推导；同一帧不读取挂钟或上一帧状态。
+ * 场景只在挂载时构建一次；每帧只由 `frame` 更新构件变换、相机、可见性
+ * 与标签，不读取上一帧、挂钟或随机数。
  */
-import { useMemo } from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
-
-export type Opening = {
-  id: string;
-  floor: number;
-  side: 'front' | 'back' | 'left' | 'right';
-  offset: number;
-  width: number;
-  height: number;
-};
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame} from 'remotion';
+import * as THREE from 'three';
+import {
+  baseOpacity, contactShadowTexture, createComponentObject, createGhost, createMaterials,
+} from './geometry';
+import {
+  boxBounds, buildComponents, cameraAt, componentBox, currentStep, hiddenSet, ownerMap,
+  shotAt, smooth, stepIds, transformFor,
+  type Component, type House, type Shot, type Stage, type Step,
+} from './model';
 
 export type BuildingProps = {
   schemaVersion: number;
@@ -21,282 +22,342 @@ export type BuildingProps = {
   fps: number;
   width: number;
   height: number;
-  building: {
-    schemaVersion: number;
-    canvas: {width: number; height: number};
-    house: {
-      width: number;
-      depth: number;
-      floors: number;
-      floorHeight: number;
-      bayCount: number;
-      roofHeight: number;
-      wallThickness: number;
-      foundationDepth: number;
-      sitePadding: number;
-      openings: Opening[];
-    };
-  };
+  building: {schemaVersion: number; canvas: {width: number; height: number}; house: House};
   construction: {
     schemaVersion: number;
     durationSeconds: number;
     fps: number;
-    stages: {id: string; label: string; startSeconds: number; endSeconds: number}[];
-    camera: {startAzimuth: number; endAzimuth: number; elevation: number};
+    stages: Stage[];
+    shots: Shot[];
+    initial: string[];
+    steps: Step[];
   };
+  assets: {schemaVersion: number; assets: {path: string; sha256: string}[]};
+  components: Component[];
 };
 
-type Vec3 = [number, number, number];
-type Component = {
-  id: string;
-  stage: number;
-  box: {x: number; y: number; z: number; w: number; h: number; d: number};
-  color: string;
-  order: number;
+type SceneObject = {
+  component: Component;
+  group: THREE.Group;
+  material: THREE.Material;
+  edges: THREE.LineSegments;
+  baseOpacity: number;
 };
 
-const INK = '#2b2f33';
-const BACKGROUND = '#ece7dd';
-const GROUND = '#b9b09f';
-const FOUNDATION = '#9a948b';
-const CONCRETE = '#c9c3b8';
-const CONCRETE_DARK = '#aaa499';
-const WALL = '#f3eee5';
-const WALL_SIDE = '#e4ddd1';
-const WOOD = '#b7865b';
-const GLASS = '#8bb7c9';
-const ROOF = '#6f756f';
-const YARD = '#9caa87';
+type SceneState = {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  objects: SceneObject[];
+  owners: Map<string, Step>;
+  components: Component[];
+  house: House;
+  ghostMaterial: THREE.LineBasicMaterial;
+};
 
-function clamp01(value: number): number {
-  return Math.min(1, Math.max(0, value));
-}
+const STAGE_LABEL_SIZE = 15;
+const NOTE_SIZE = 17;
+const BG = 'linear-gradient(180deg, #eef1f2 0%, #e3e7e5 58%, #d7dcd8 100%)';
 
-function smooth(value: number): number {
-  const t = clamp01(value);
-  return t * t * (3 - 2 * t);
-}
-
-function box(id: string, stage: number, order: number, x: number, y: number, z: number,
-             w: number, h: number, d: number, color: string): Component {
-  return {id, stage, order, box: {x, y, z, w, h, d}, color};
-}
-
-function generate(house: BuildingProps['building']['house']): Component[] {
-  const components: Component[] = [];
-  const {width, depth, floors, floorHeight, bayCount, roofHeight, wallThickness,
-    foundationDepth, sitePadding, openings} = house;
-  const halfW = width / 2;
-  const halfD = depth / 2;
-  const t = wallThickness;
-
-  components.push(box('site', 0, 0, -halfW - sitePadding, -0.25, -halfD - sitePadding,
-    width + sitePadding * 2, 0.25, depth + sitePadding * 2, GROUND));
-  components.push(box('foundation-slab', 1, 0, -halfW - 0.6, -foundationDepth, -halfD - 0.6,
-    width + 1.2, foundationDepth, depth + 1.2, FOUNDATION));
-  components.push(box('foundation-ring', 1, 1, -halfW, -0.45, -halfD, width, 0.45, t, FOUNDATION));
-  components.push(box('foundation-ring-back', 1, 2, -halfW, -0.45, halfD - t, width, 0.45, t,
-    FOUNDATION));
-
-  for (let floor = 1; floor <= floors; floor += 1) {
-    const base = (floor - 1) * floorHeight;
-    components.push(box(`slab-${floor}`, floor === 1 ? 2 : 3, 0,
-      -halfW, base - 0.22, -halfD, width, 0.22, depth, CONCRETE));
-    for (let bay = 0; bay <= bayCount; bay += 1) {
-      const x = -halfW + (width * bay) / bayCount - 0.16;
-      for (const z of [-halfD, halfD - 0.32]) {
-        components.push(box(`column-${floor}-${bay}-${z < 0 ? 'front' : 'back'}`, floor === 1 ? 2 : 3,
-          bay * 2 + (z < 0 ? 0 : 1), x, base, z, 0.32, floorHeight, 0.32, CONCRETE_DARK));
-      }
-    }
-    const beamWidth = width / bayCount;
-    for (let bay = 0; bay < bayCount; bay += 1) {
-      const x = -halfW + beamWidth * bay;
-      components.push(box(`beam-front-${floor}-${bay}`, floor === 1 ? 2 : 3, 20 + bay,
-        x, base + floorHeight - 0.35, -halfD, beamWidth, 0.35, 0.28, CONCRETE_DARK));
-    }
-    components.push(box(`beam-back-${floor}`, floor === 1 ? 2 : 3, 30, -halfW,
-      base + floorHeight - 0.35, halfD - 0.28, width, 0.35, 0.28, CONCRETE_DARK));
-
-    if (floor < floors) {
-      const stairX = halfW - 2.1;
-      components.push(box(`stair-stringer-${floor}`, 3, 39, stairX - 0.08,
-        base, -halfD + 1.1, 0.08, floorHeight, 2.9, CONCRETE_DARK));
-      for (let step = 0; step < 6; step += 1) {
-        components.push(box(`stair-${floor}-${step}`, 3, 40 + step, stairX,
-          base + (step * floorHeight) / 6, -halfD + 1.2 + step * 0.36, 1.4,
-          floorHeight / 6, 0.36, WOOD));
-      }
-    }
-
-    const floorOpenings = openings.filter((opening) => opening.floor === floor);
-    for (const side of ['front', 'back', 'left', 'right'] as const) {
-      const wallLength = side === 'front' || side === 'back' ? width : depth;
-      const sideOpenings = floorOpenings.filter((opening) => opening.side === side);
-      const xBreaks = Array.from(new Set([0, wallLength,
-        ...sideOpenings.flatMap((opening) => [opening.offset, opening.offset + opening.width])]))
-        .filter((value) => value >= 0 && value <= wallLength).sort((a, b) => a - b);
-      const yBreaks = Array.from(new Set([0, floorHeight,
-        ...sideOpenings.flatMap((opening) => [opening.height])]))
-        .filter((value) => value >= 0 && value <= floorHeight).sort((a, b) => a - b);
-      for (let xi = 0; xi < xBreaks.length - 1; xi += 1) {
-        for (let yi = 0; yi < yBreaks.length - 1; yi += 1) {
-          const start = xBreaks[xi];
-          const end = xBreaks[xi + 1];
-          const low = yBreaks[yi];
-          const high = yBreaks[yi + 1];
-          if (end - start < 0.02 || high - low < 0.02) continue;
-          const cx = (start + end) / 2;
-          const cy = (low + high) / 2;
-          if (sideOpenings.some((opening) => cx > opening.offset && cx < opening.offset + opening.width
-            && cy < opening.height)) continue;
-          const id = `wall-${floor}-${side}-${xi}-${yi}`;
-          const order = 100 + xi * 10 + yi;
-          if (side === 'front' || side === 'back') {
-            const z = side === 'front' ? -halfD : halfD - t;
-            components.push(box(id, 4, order, -halfW + start, base + low, z, end - start, high - low,
-              t, WALL));
-          } else {
-            const x = side === 'left' ? -halfW : halfW - t;
-            components.push(box(id, 4, order, x, base + low, -halfD + start, t, high - low,
-              end - start, WALL_SIDE));
-          }
-        }
-      }
-    }
+function buildScene(canvas: HTMLCanvasElement, props: BuildingProps): SceneState {
+  const house = props.building.house;
+  const components = buildComponents(house);
+  const expected = props.components.map((item) => `${item.id}:${item.kind}:${item.floor}`).sort();
+  const actual = components.map((item) => `${item.id}:${item.kind}:${item.floor}`).sort();
+  if (expected.join('|') !== actual.join('|')) {
+    throw new Error('前端构件图与 Python 校验器不一致；请同步 components.py 与 model.ts');
   }
+  const owners = ownerMap(components, props.construction.steps);
+  const materials = createMaterials();
+  const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+  renderer.setPixelRatio(1);
+  renderer.setSize(props.width, props.height, false);
+  renderer.setClearAlpha(0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  // 屋面板与压顶
-  const top = floors * floorHeight;
-  components.push(box('roof-slab', 4, 200, -halfW - 0.7, top, -halfD - 0.7,
-    width + 1.4, 0.32, depth + 1.4, ROOF));
-  components.push(box('roof-ridge', 4, 201, -halfW - 0.7, top + 0.32, -0.25,
-    width + 1.4, roofHeight * 0.35, 0.5, ROOF));
-  components.push(box('parapet-front', 4, 202, -halfW - 0.7, top + 0.32, -halfD - 0.7,
-    width + 1.4, 0.35, 0.25, ROOF));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, props.width / props.height, 0.1, 240);
 
-  for (const opening of openings) {
-    const floorBase = (opening.floor - 1) * floorHeight;
-    const finish = opening.id.startsWith('door') ? WOOD : GLASS;
-    if (opening.side === 'front' || opening.side === 'back') {
-      const z = opening.side === 'front' ? -halfD - 0.14 : halfD - 0.02;
-      components.push(box(`finish-${opening.id}`, 5, 300, -halfW + opening.offset,
-        floorBase, z, opening.width, opening.height, 0.1, finish));
-    } else {
-      const x = opening.side === 'left' ? -halfW - 0.14 : halfW - 0.02;
-      components.push(box(`finish-${opening.id}`, 5, 300, x, floorBase,
-        -halfD + opening.offset, 0.1, opening.height, opening.width, finish));
-    }
+  scene.add(new THREE.HemisphereLight(0xe9eff3, 0x8c806d, 1.05));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.16));
+  const sun = new THREE.DirectionalLight(0xfff3dd, 2.35);
+  sun.position.set(14, 24, 12);
+  sun.target.position.set(0, 3, 0);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -20;
+  sun.shadow.camera.right = 20;
+  sun.shadow.camera.top = 22;
+  sun.shadow.camera.bottom = -12;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 70;
+  sun.shadow.bias = -0.0002;
+  sun.shadow.normalBias = 0.05;
+  sun.shadow.radius = 2;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0xdce8f0, 0.45);
+  fill.position.set(-16, 10, -12);
+  scene.add(fill);
+
+  const contact = new THREE.Mesh(
+    new THREE.PlaneGeometry(house.width + 12, house.depth + 12),
+    new THREE.MeshBasicMaterial({
+      map: contactShadowTexture(), transparent: true, opacity: 0.62,
+      depthWrite: false, color: 0x000000,
+    }),
+  );
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.y = 0.02;
+  scene.add(contact);
+
+  const objects: SceneObject[] = [];
+  for (const component of components) {
+    const step = owners.get(component.id);
+    const spec = componentBox(house, component);
+    const transparent = spec.material === 'glass' || step?.action === 'insert';
+    const object = createComponentObject(spec, materials, transparent);
+    object.group.userData.componentId = component.id;
+    scene.add(object.group);
+    objects.push({
+      component,
+      group: object.group,
+      material: object.material,
+      edges: object.edges,
+      baseOpacity: baseOpacity(spec.material),
+    });
   }
-
-  components.push(box('yard-path', 6, 400, -1.1, 0.02, halfD + 0.2, 2.2, 0.12,
-    Math.max(1, sitePadding - 0.6), YARD));
-  return components;
+  const ghost = createGhost(house);
+  scene.add(ghost.group);
+  return {renderer, scene, camera, objects, owners, components, house, ghostMaterial: ghost.material};
 }
 
-function project(point: Vec3, azimuth: number, elevation: number, scale: number,
-                 cx: number, cy: number): {x: number; y: number; depth: number} {
-  const [x, y, z] = point;
-  const cosA = Math.cos(azimuth);
-  const sinA = Math.sin(azimuth);
-  const xr = x * cosA - z * sinA;
-  const zr = x * sinA + z * cosA;
-  return {
-    x: cx + xr * scale,
-    y: cy - y * scale * Math.cos(elevation) + zr * scale * Math.sin(elevation),
-    depth: zr * Math.cos(elevation) + y * Math.sin(elevation),
-  };
-}
-
-function polygon(points: {x: number; y: number}[]): string {
-  return points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' ');
-}
-
-function shade(color: string, factor: number): string {
-  const value = color.replace('#', '');
-  const channels = [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16));
-  return `#${channels.map((channel) => Math.max(0, Math.min(255, Math.round(channel * factor)))
-    .toString(16).padStart(2, '0')).join('')}`;
-}
-
-function stageProgress(frame: number, stage: number, stages: BuildingProps['construction']['stages'],
-                       fps: number): number {
-  const stageSpec = stages[stage];
-  if (!stageSpec) return 1;
-  return smooth((frame / fps - stageSpec.startSeconds)
-    / Math.max(0.01, stageSpec.endSeconds - stageSpec.startSeconds));
+function drawFrame(state: SceneState, frame: number, props: BuildingProps): void {
+  const seconds = frame / props.fps;
+  const shot = shotAt(props.construction.shots, seconds);
+  const cameraSpec = cameraAt(shot, seconds);
+  const {camera, scene, renderer, house} = state;
+  camera.fov = cameraSpec.fov;
+  camera.position.set(...cameraSpec.position);
+  camera.lookAt(new THREE.Vector3(...cameraSpec.target));
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  const hidden = hiddenSet(state.components, shot);
+  for (const object of state.objects) {
+    const step = state.owners.get(object.component.id);
+    const transform = transformFor(house, object.component, step, seconds);
+    object.group.position.set(...transform.position);
+    object.group.rotation.set(...transform.rotation);
+    object.group.scale.set(...transform.scale);
+    object.group.visible = step ? seconds >= step.startSeconds && !hidden.has(object.component.id)
+      : !hidden.has(object.component.id);
+    const opacity = object.baseOpacity * (step?.action === 'insert' ? transform.opacity : 1);
+    object.material.opacity = opacity;
+    object.material.transparent = opacity < 1;
+    object.edges.visible = object.group.visible;
+    (object.edges.material as THREE.LineBasicMaterial).opacity = 0.24 * opacity;
+  }
+  const duration = props.construction.durationSeconds;
+  state.ghostMaterial.opacity = 0.14 * (1 - smooth((seconds - (duration - 7)) / 4));
+  renderer.render(scene, camera);
 }
 
 export function BuildingConstruction(props: BuildingProps) {
   const frame = useCurrentFrame();
-  const components = useMemo(() => generate(props.building.house), [props.building.house]);
-  const {width, height} = props;
-  const camera = props.construction.camera;
-  const t = props.durationInFrames <= 1 ? 0 : frame / (props.durationInFrames - 1);
-  const azimuth = (camera.startAzimuth + (camera.endAzimuth - camera.startAzimuth) * t) * Math.PI / 180;
-  const elevation = camera.elevation * Math.PI / 180;
-  const scale = Math.min(width / 30, height / 18);
-  const cx = width / 2;
-  const cy = height * 0.57;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef = useRef<SceneState | null>(null);
+  const [ready, setReady] = useState(false);
 
-  const stage = props.construction.stages.find((item) => {
-    const seconds = frame / props.fps;
-    return seconds >= item.startSeconds && seconds < item.endSeconds;
-  }) ?? props.construction.stages[props.construction.stages.length - 1];
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handle = delayRender('构建建筑三维场景');
+    let disposed = false;
+    try {
+      const state = buildScene(canvas, props);
+      stateRef.current = state;
+      setReady(true);
+      const finish = () => { if (!disposed) continueRender(handle); };
+      if (document.fonts?.ready) document.fonts.ready.then(finish).catch(finish);
+      else finish();
+    } catch (error) {
+      cancelRender(error instanceof Error ? error : new Error(String(error)));
+    }
+    return () => {
+      disposed = true;
+      const state = stateRef.current;
+      stateRef.current = null;
+      if (state) {
+        state.renderer.dispose();
+        state.scene.traverse((item) => {
+          if (item instanceof THREE.Mesh || item instanceof THREE.LineSegments) {
+            item.geometry.dispose();
+            const material = item.material;
+            if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
+            else material.dispose();
+          }
+        });
+      }
+    };
+  }, [props.width, props.height, props.building.house, props.construction.steps,
+    props.components]);
 
-  const faces = components.flatMap((component) => {
-    const progress = stageProgress(frame, component.stage, props.construction.stages, props.fps);
-    if (progress <= 0) return [];
-    const lift = (1 - progress) * -0.5;
-    const b = component.box;
-    const corners = ([
-      [b.x, b.y + lift, b.z], [b.x + b.w, b.y + lift, b.z],
-      [b.x + b.w, b.y + lift, b.z + b.d], [b.x, b.y + lift, b.z + b.d],
-      [b.x, b.y + lift + b.h, b.z], [b.x + b.w, b.y + lift + b.h, b.z],
-      [b.x + b.w, b.y + lift + b.h, b.z + b.d], [b.x, b.y + lift + b.h, b.z + b.d],
-    ] as Vec3[]).map((corner) => project(corner, azimuth, elevation, scale, cx, cy));
-    const definitions: {indices: number[]; factor: number}[] = [
-      {indices: [4, 5, 6, 7], factor: 1.06}, {indices: [0, 3, 2, 1], factor: 0.55},
-      {indices: [3, 2, 6, 7], factor: 0.88}, {indices: [0, 1, 5, 4], factor: 0.74},
-      {indices: [1, 2, 6, 5], factor: 0.96}, {indices: [0, 3, 7, 4], factor: 0.7},
-    ];
-    return definitions.map((definition) => {
-      const points = definition.indices.map((index) => corners[index]);
-      return {
-        part: component.id,
-        points,
-        fill: shade(component.color, definition.factor),
-        stroke: shade(component.color, 0.66),
-        depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length,
-        overlay: component.id.startsWith('finish'),
-      };
-    });
-  }).sort((a, b) => Number(a.overlay) - Number(b.overlay) || a.depth - b.depth);
+  useEffect(() => {
+    if (!ready || !stateRef.current) return;
+    const handle = delayRender('绘制建筑当前帧');
+    drawFrame(stateRef.current, frame, props);
+    continueRender(handle);
+  }, [frame, ready, props]);
 
-  return <AbsoluteFill style={{background: BACKGROUND}}>
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}
-      role="img" aria-label="两层框架住宅建造过程示意"
-      data-m2v-building-frame={frame}>
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f5f1e8" />
-          <stop offset="1" stopColor="#e7e0d3" />
-        </linearGradient>
-      </defs>
-      <rect width={width} height={height} fill="url(#sky)" />
-      <ellipse cx={width / 2} cy={height * 0.9} rx={width * 0.38} ry={height * 0.09}
-        fill="#d8d0c1" opacity={0.55} />
-      {faces.map((face, index) => <polygon key={`${face.part}-${index}`}
-        data-m2v-building-part={face.part} points={polygon(face.points)}
-        fill={face.fill} stroke={face.stroke} strokeWidth={0.7}
-        strokeLinejoin="round" />)}
-      <g data-m2v-building-stage={stage?.id ?? ''}>
-        <text x={42} y={height - 62} fill={INK} fontSize={20} fontWeight={600}
-          opacity={0.62}>{stage?.label ?? ''}</text>
-        <text x={width - 42} y={height - 42} textAnchor="end" fill="#6b6f6a" fontSize={16}>
-          建造过程示意
-        </text>
-      </g>
+  const overlay = useMemo(() => overlayFor(frame, props), [frame, props]);
+  return <AbsoluteFill style={{background: BG}}>
+    <canvas ref={canvasRef} width={props.width} height={props.height}
+      data-m2v-building-canvas="two-story-house"
+      style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}} />
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      background: 'radial-gradient(ellipse at 50% 46%, rgba(255,255,255,0) 46%, rgba(43,47,51,0.16) 100%)',
+    }} />
+    <svg width={props.width} height={props.height} viewBox={`0 0 ${props.width} ${props.height}`}
+      style={{position: 'absolute', inset: 0, pointerEvents: 'none'}} aria-hidden>
+      {overlay.anchor && overlay.label ? <>
+        <line x1={overlay.anchor.x} y1={overlay.anchor.y}
+          x2={overlay.label.x} y2={overlay.label.y}
+          stroke="#3a3f43" strokeWidth={1.1} opacity={0.55}/>
+        <circle cx={overlay.anchor.x} cy={overlay.anchor.y} r={4} fill="#c79a45" opacity={0.9}/>
+      </> : null}
+      {overlay.scaleBar > 0 ? <>
+        <line x1={140} y1={props.height - 92} x2={140 + overlay.scaleBar} y2={props.height - 92}
+          stroke="#3a3f43" strokeWidth={2} opacity={0.72}/>
+        <line x1={140} y1={props.height - 98} x2={140} y2={props.height - 86}
+          stroke="#3a3f43" strokeWidth={2} opacity={0.72}/>
+        <line x1={140 + overlay.scaleBar} y1={props.height - 98}
+          x2={140 + overlay.scaleBar} y2={props.height - 86}
+          stroke="#3a3f43" strokeWidth={2} opacity={0.72}/>
+      </> : null}
     </svg>
+    {overlay.label ? <div style={{
+      position: 'absolute', left: overlay.label.x, top: overlay.label.y,
+      transform: 'translate(-50%, -50%)', fontFamily: 'var(--m2v-sans, sans-serif)',
+      fontSize: 20, lineHeight: 1.25, color: '#2b2f33', whiteSpace: 'nowrap',
+      opacity: 0.92, textShadow: '0 0 6px rgba(255,255,255,0.95)',
+    }}>{overlay.label.text}</div> : null}
+    {overlay.scaleBar > 0 ? <div style={{
+      position: 'absolute', left: 140 + overlay.scaleBar + 10, top: props.height - 104,
+      fontFamily: 'var(--m2v-sans, sans-serif)', fontSize: NOTE_SIZE, color: '#4a4f52',
+      opacity: 0.72,
+    }}>3 m</div> : null}
+    <div style={{
+      position: 'absolute', right: 48, bottom: 72, fontFamily: 'var(--m2v-sans, sans-serif)',
+      fontSize: NOTE_SIZE, color: '#4a4f52', opacity: 0.66,
+    }}>{overlay.cutaway ? '剖切观察 · 建造过程示意' : '建造过程示意'}</div>
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0, height: 104,
+      pointerEvents: 'none',
+      background: 'linear-gradient(to top, rgba(246,247,246,0.94), rgba(246,247,246,0))',
+    }} />
+    <div style={{
+      position: 'absolute', left: 0, right: 0, bottom: 0, height: 58,
+      display: 'flex', gap: 2, padding: '0 48px', alignItems: 'flex-end',
+      fontFamily: 'var(--m2v-sans, sans-serif)',
+    }}>
+      {overlay.stages.map((stage) => <div key={stage.id} style={{
+        flex: stage.endSeconds - stage.startSeconds,
+        display: 'flex', flexDirection: 'column', gap: 5,
+      }}>
+        <div style={{
+          height: 3, background: stage.current ? '#c79a45' : '#6e7477',
+          opacity: stage.current ? 0.95 : stage.done ? 0.5 : 0.22,
+        }} />
+        <div style={{
+          fontSize: STAGE_LABEL_SIZE, color: stage.current ? '#1f2326' : '#3a3f43',
+          opacity: stage.current ? 1 : stage.done ? 0.82 : 0.68,
+          fontWeight: stage.current ? 600 : 400,
+          whiteSpace: 'nowrap', paddingBottom: 16,
+        }}>{stage.label}</div>
+      </div>)}
+    </div>
   </AbsoluteFill>;
+}
+
+type Overlay = {
+  stages: (Stage & {current: boolean; done: boolean})[];
+  anchor: {x: number; y: number} | null;
+  label: {x: number; y: number; text: string} | null;
+  scaleBar: number;
+  cutaway: boolean;
+};
+
+function project(point: [number, number, number], camera: THREE.PerspectiveCamera,
+                 width: number, height: number): {x: number; y: number} {
+  const vector = new THREE.Vector3(...point).project(camera);
+  return {x: (vector.x + 1) / 2 * width, y: (1 - vector.y) / 2 * height};
+}
+
+function overlayFor(frame: number, props: BuildingProps): Overlay {
+  const seconds = frame / props.fps;
+  const stages = props.construction.stages;
+  const current = stages.find((stage) => seconds >= stage.startSeconds && seconds < stage.endSeconds)
+    ?? stages[stages.length - 1];
+  const stageRows = stages.map((stage) => ({
+    ...stage,
+    current: stage.id === current.id,
+    done: stage.endSeconds <= seconds,
+  }));
+  const shot = shotAt(props.construction.shots, seconds);
+  const cameraSpec = cameraAt(shot, seconds);
+  const camera = new THREE.PerspectiveCamera(cameraSpec.fov, props.width / props.height, 0.1, 240);
+  camera.position.set(...cameraSpec.position);
+  camera.lookAt(new THREE.Vector3(...cameraSpec.target));
+  camera.updateMatrixWorld();
+  const components = buildComponents(props.building.house);
+  const active = props.construction.steps.filter((step) =>
+    seconds >= step.startSeconds && seconds < step.endSeconds);
+  let anchor: {x: number; y: number} | null = null;
+  let label: {x: number; y: number; text: string} | null = null;
+  if (active.length > 0) {
+    const step = currentStep(props.construction.steps, seconds);
+    if (seconds - step.startSeconds < 0.3) {
+      return {stages: stageRows, anchor: null, label: null,
+        scaleBar: scaleBarFor(camera, props), cutaway: shot.id === 'roof-cutaway'};
+    }
+    const primary = stepIds(step, components)[0];
+    const component = components.find((item) => item.id === primary);
+    if (component) {
+      const anchorComponent = component.kind === 'roof'
+        ? components.find((item) => item.id === 'roof-ridge') ?? component
+        : component;
+      const box = boxBounds(props.building.house, anchorComponent);
+      const anchorPoint: [number, number, number] = component.kind === 'wall'
+        ? [box.center[0], box.center[1] + box.size[1] * 0.35, box.center[2]]
+        : component.kind === 'yard'
+          ? [box.center[0], box.center[1], box.center[2]]
+          : box.center;
+      const projected = project(anchorPoint, camera, props.width, props.height);
+      anchor = {
+        x: Math.min(props.width - 80, Math.max(80, projected.x)),
+        y: Math.min(props.height - 150, Math.max(80, projected.y)),
+      };
+      const left = anchor.x < props.width / 2;
+      const yard = component.kind === 'yard';
+      label = {
+        x: left ? Math.min(props.width - 240, anchor.x + 120) : Math.max(240, anchor.x - 120),
+        y: yard ? Math.min(props.height - 150, anchor.y + 54)
+          : Math.min(props.height - 170, Math.max(110, anchor.y - 92)),
+        text: step.label ?? step.action,
+      };
+    }
+  }
+  return {stages: stageRows, anchor, label, scaleBar: scaleBarFor(camera, props),
+    cutaway: shot.id === 'roof-cutaway'};
+}
+
+function scaleBarFor(camera: THREE.PerspectiveCamera, props: BuildingProps): number {
+  const halfD = props.building.house.depth / 2;
+  const from = project([0, 0.02, halfD + 1], camera, props.width, props.height);
+  const to = project([3, 0.02, halfD + 1], camera, props.width, props.height);
+  return Math.max(24, Math.abs(to.x - from.x));
 }

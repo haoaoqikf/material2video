@@ -40,10 +40,18 @@ CJK_ONLY = {
 
 
 def problems(text: str) -> list[str]:
-    """返回这条文案踩到的规则名。"""
+    """返回这条文案踩到的规则名。
+
+    双语字幕是「中文行 + 英文行」：中文标点规则只作用于含汉字的行，
+    否则英文行的逗号、句号会被误判成中文标点混排。
+    """
     found = [name for name, pattern in ALWAYS.items() if pattern.search(text)]
-    if CJK.search(text):
-        found += [name for name, pattern in CJK_ONLY.items() if pattern.search(text)]
+    cjk_lines = [line for line in text.splitlines() if CJK.search(line)]
+    if cjk_lines:
+        # 数字千分位（439,804.65 / 4,950）是数值写法，不是中文标点混排。
+        normalized = [re.sub(r"(?<=\d),(?=\d)", "", line) for line in cjk_lines]
+        found += [name for name, pattern in CJK_ONLY.items()
+                  if any(pattern.search(line) for line in normalized)]
     return found
 
 
@@ -73,6 +81,8 @@ class TestCopyRules:
             ("多一个选项，并不是多一份自由", None),
             ("01 / 08", None),
             ("AI 时代的注意力", None),
+            ("同一滴水，同一块石头，第 100 天。\nSame drop, same stone, day one hundred.", None),
+            ("纸厚 0.1 mm × 2^42，是 439,804.65 公里。", None),
             ("选项越多，，决定越慢", "重复标点"),
             ("多一个选项 ", "首尾空白"),
             ("选  项", "连续空格"),

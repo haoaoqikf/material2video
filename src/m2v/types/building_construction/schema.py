@@ -1,7 +1,7 @@
-"""building-construction 材料的结构模型。
+"""building-construction 材料的结构模型（v2）。
 
-只描述文档形状；开口是否落在墙面内、阶段是否首尾相接等业务规则仍在
-`materials.py` 的语义校验里。
+只描述文档形状；洞口是否落在墙面内、阶段/镜头/步骤覆盖等业务规则在
+`materials.py`，构件 ID 规则在 `components.py`。
 """
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from pydantic import Field
 from m2v.core.schema import NonEmptyText, StrictModel
 
 WallSide = Literal["front", "back", "left", "right"]
+RoofType = Literal["gable", "flat"]
+Action = Literal["excavate", "pour", "grow", "slide", "lift", "rotate", "insert", "spread"]
 
 
 class Canvas(StrictModel):
@@ -26,6 +28,19 @@ class Opening(StrictModel):
     offset: float
     width: float
     height: float
+    sill: float
+
+
+class Roof(StrictModel):
+    type: RoofType
+    height: float
+    overhang: float
+
+
+class Stairs(StrictModel):
+    side: WallSide
+    offset: float
+    width: float
 
 
 class House(StrictModel):
@@ -34,10 +49,11 @@ class House(StrictModel):
     floors: int
     floorHeight: float
     bayCount: int
-    roofHeight: float
+    roof: Roof
     wallThickness: float
     foundationDepth: float
     sitePadding: float
+    stairs: Stairs
     openings: list[Opening] = Field(max_length=60)
 
 
@@ -54,10 +70,30 @@ class Stage(StrictModel):
     endSeconds: float
 
 
-class Camera(StrictModel):
-    startAzimuth: float
-    endAzimuth: float
-    elevation: float
+class CameraSpec(StrictModel):
+    position: list[float]
+    target: list[float]
+    fov: float
+
+
+class Shot(StrictModel):
+    id: NonEmptyText
+    startSeconds: float
+    endSeconds: float
+    camera: CameraSpec
+    to: CameraSpec | None = None
+    hide: list[str] = Field(default_factory=list, max_length=60)
+
+
+class Step(StrictModel):
+    id: NonEmptyText
+    stage: NonEmptyText
+    select: list[NonEmptyText] = Field(min_length=1, max_length=60)
+    action: Action
+    label: NonEmptyText | None = None
+    startSeconds: float
+    endSeconds: float
+    after: list[NonEmptyText] = Field(default_factory=list, max_length=30)
 
 
 class Construction(StrictModel):
@@ -65,7 +101,9 @@ class Construction(StrictModel):
     durationSeconds: int
     fps: int
     stages: list[Stage] = Field(min_length=1, max_length=20)
-    camera: Camera
+    shots: list[Shot] = Field(min_length=1, max_length=30)
+    initial: list[NonEmptyText] = Field(default_factory=list, max_length=60)
+    steps: list[Step] = Field(min_length=1, max_length=200)
 
 
 class Asset(StrictModel):

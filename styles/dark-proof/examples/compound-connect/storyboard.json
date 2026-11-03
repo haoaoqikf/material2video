@@ -1,0 +1,405 @@
+{
+  "version": 8,
+  "schemaVersion": 8,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "接",
+  "input": {
+    "kind": "topic",
+    "topic": "非金融复利：用第一刀、同一滴水的日计数、数字滚动、复利回环、离散螺旋、42 折、两种堆法、100 节点网络、棋盘与 99 条线，说明复利是把上一次的结果接回下一次的起点；唯一硬切在 41.0 秒的 21× 对比。"
+  },
+  "targetSeconds": 60,
+  "scenes": [
+    {
+      "id": "compound-connect",
+      "template": "code",
+      "keywords": [
+        "复利",
+        "凿子",
+        "折纸",
+        "棋盘",
+        "连接"
+      ],
+      "durationFrames": 1800,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "接",
+        "entry": "scenes/compound-connect.tsx",
+        "props": {
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 170,
+              "text": "第一刀，只有 8 毫米。\nOne cut. Eight millimeters."
+            },
+            {
+              "startFrame": 196,
+              "endFrame": 412,
+              "text": "同一滴水，同一块石头，第 100 天。\nSame drop, same stone, day one hundred."
+            },
+            {
+              "startFrame": 436,
+              "endFrame": 592,
+              "text": "100 刀，一把凿子；第 37 刀滑了。\nOne chisel, one hundred cuts. The 37th slipped."
+            },
+            {
+              "startFrame": 616,
+              "endFrame": 712,
+              "text": "复利：把产出接回投入；再投入、时间、反馈。\nCompound: output back to input. Reinvest, time, feedback."
+            },
+            {
+              "startFrame": 736,
+              "endFrame": 892,
+              "text": "每分一次，枝数翻倍：1 到 64。\nEach split doubles: one to sixty-four."
+            },
+            {
+              "startFrame": 916,
+              "endFrame": 1072,
+              "text": "42 折，厚度会超过地月距离。\n42 folds: past the moon."
+            },
+            {
+              "startFrame": 1096,
+              "endFrame": 1222,
+              "text": "42 步：4.2 毫米 对 439,804.65 公里。\nSame 42 steps: 4.2 mm vs 439,804.65 km."
+            },
+            {
+              "startFrame": 1292,
+              "endFrame": 1348,
+              "text": "前10内部45，最后10新增945。\n45 inside, 945 added."
+            },
+            {
+              "startFrame": 1350,
+              "endFrame": 1402,
+              "text": "21 倍，共 4,950。\n21 times. 4,950 total."
+            },
+            {
+              "startFrame": 1426,
+              "endFrame": 1552,
+              "text": "棋盘第 64 格，2 的 63 次方粒。\nSquare 64: two to the 63rd."
+            },
+            {
+              "startFrame": 1576,
+              "endFrame": 1798,
+              "text": "让下一次，接上一次。\nConnect the next to the last."
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "first-cut",
+          "frame": 20
+        },
+        {
+          "id": "depth-8",
+          "frame": 132
+        },
+        {
+          "id": "day-1",
+          "frame": 186
+        },
+        {
+          "id": "drop-100",
+          "frame": 396
+        },
+        {
+          "id": "counter-1",
+          "frame": 426
+        },
+        {
+          "id": "slip-37",
+          "frame": 500
+        },
+        {
+          "id": "cut-100",
+          "frame": 560
+        },
+        {
+          "id": "loop-1",
+          "frame": 612
+        },
+        {
+          "id": "rule-1",
+          "frame": 640
+        },
+        {
+          "id": "rule-2",
+          "frame": 665
+        },
+        {
+          "id": "rule-3",
+          "frame": 690
+        },
+        {
+          "id": "turn-2",
+          "frame": 760
+        },
+        {
+          "id": "turn-4",
+          "frame": 810
+        },
+        {
+          "id": "turn-6",
+          "frame": 870
+        },
+        {
+          "id": "fold-10",
+          "frame": 940
+        },
+        {
+          "id": "fold-20",
+          "frame": 980
+        },
+        {
+          "id": "fold-30",
+          "frame": 1020
+        },
+        {
+          "id": "fold-42",
+          "frame": 1050
+        },
+        {
+          "id": "linear-42",
+          "frame": 1130
+        },
+        {
+          "id": "double-42",
+          "frame": 1210
+        },
+        {
+          "id": "hard-cut",
+          "frame": 1230
+        },
+        {
+          "id": "first-45",
+          "frame": 1300
+        },
+        {
+          "id": "add-945",
+          "frame": 1370
+        },
+        {
+          "id": "ratio-21",
+          "frame": 1395
+        },
+        {
+          "id": "cell-1",
+          "frame": 1420
+        },
+        {
+          "id": "cell-32",
+          "frame": 1505
+        },
+        {
+          "id": "cell-64",
+          "frame": 1545
+        },
+        {
+          "id": "lines-99",
+          "frame": 1665
+        },
+        {
+          "id": "glyph",
+          "frame": 1740
+        },
+        {
+          "id": "title",
+          "frame": 1762
+        }
+      ]
+    }
+  ],
+  "soundtrack": {
+    "music": {
+      "sourceRef": "assets/media/bed.wav",
+      "gainDb": 0,
+      "loop": false,
+      "fadeInMs": 0,
+      "fadeOutMs": 0
+    },
+    "effects": [
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "first-cut",
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "depth-8",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "day-1",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/moon.wav",
+        "sceneId": "compound-connect",
+        "eventId": "drop-100",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/spiral.wav",
+        "sceneId": "compound-connect",
+        "eventId": "counter-1",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "slip-37",
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "cut-100",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/origin.wav",
+        "sceneId": "compound-connect",
+        "eventId": "loop-1",
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "rule-1",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "rule-2",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "rule-3",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/spiral.wav",
+        "sceneId": "compound-connect",
+        "eventId": "turn-2",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/spiral.wav",
+        "sceneId": "compound-connect",
+        "eventId": "turn-4",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/spiral.wav",
+        "sceneId": "compound-connect",
+        "eventId": "turn-6",
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "fold-10",
+        "gainDb": -26
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "fold-20",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "fold-30",
+        "gainDb": -22
+      },
+      {
+        "sourceRef": "assets/media/moon.wav",
+        "sceneId": "compound-connect",
+        "eventId": "fold-42",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "linear-42",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/fold.wav",
+        "sceneId": "compound-connect",
+        "eventId": "double-42",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/board.wav",
+        "sceneId": "compound-connect",
+        "eventId": "hard-cut",
+        "gainDb": -10
+      },
+      {
+        "sourceRef": "assets/media/network.wav",
+        "sceneId": "compound-connect",
+        "eventId": "first-45",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/network.wav",
+        "sceneId": "compound-connect",
+        "eventId": "add-945",
+        "gainDb": -16
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "ratio-21",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "cell-1",
+        "gainDb": -24
+      },
+      {
+        "sourceRef": "assets/media/grain.wav",
+        "sceneId": "compound-connect",
+        "eventId": "cell-32",
+        "gainDb": -20
+      },
+      {
+        "sourceRef": "assets/media/board.wav",
+        "sceneId": "compound-connect",
+        "eventId": "cell-64",
+        "gainDb": -16
+      },
+      {
+        "sourceRef": "assets/media/return.wav",
+        "sceneId": "compound-connect",
+        "eventId": "lines-99",
+        "gainDb": -18
+      },
+      {
+        "sourceRef": "assets/media/finale.wav",
+        "sceneId": "compound-connect",
+        "eventId": "glyph",
+        "gainDb": -16
+      },
+      {
+        "sourceRef": "assets/media/origin.wav",
+        "sceneId": "compound-connect",
+        "eventId": "title",
+        "gainDb": -16
+      }
+    ]
+  }
+}

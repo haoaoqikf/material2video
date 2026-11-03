@@ -16,7 +16,7 @@ Material2Video（材料成片）以统一制作底座承载独立视频类型。
 **未分类**
 - `financial-timeseries`：保留独立金融材料、投资价值计算、专用画面与确定性技术验收。
 - `general`：以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。
-- `building-construction`：以稳定构件 ID 和阶段时间轴表达建造过程；不提供 BIM/CAD 导入或工程计算。
+- `building-construction`：保留独立材料、构件级步骤、多镜头、取景隐藏与确定性技术验收；不含 BIM/CAD 导入、结构计算或 v1 迁移工具。
 - `vehicle-showcase`：以本地模型和节点/镜头轨道驱动展示，按参考影棚校正车漆、反射与车轮旋转；SU7 作为首例资产。
 <!-- generated:type-catalog:end -->
 

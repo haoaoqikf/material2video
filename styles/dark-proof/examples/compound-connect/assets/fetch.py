@@ -1,4 +1,4 @@
-"""按固定配方恢复《样本》的原创声音；摘要漂移拒绝，已有不同文件不覆盖。"""
+"""按固定配方恢复《接》的原创声音；摘要漂移拒绝，已有不同文件不覆盖。"""
 import hashlib
 import json
 import logging
@@ -39,7 +39,7 @@ def restore() -> None:
             log.info('缓存命中：%s', item['id'])
         else:
             pending.append((item, target))
-    with tempfile.TemporaryDirectory(prefix='dark-proof-sound-') as tmp:
+    with tempfile.TemporaryDirectory(prefix='compound-connect-sound-') as tmp:
         staged = []
         for item, target in pending:
             source = Path(tmp) / (item['id'] + '.wav')
