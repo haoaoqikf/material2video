@@ -1,7 +1,8 @@
 # shared-motion-components Specification
 
 ## Purpose
-TBD - created by archiving change 2026-11-02-add-shared-motion-components. Update Purpose after archive.
+
+为通用作品提供以 `progress` 为唯一时间输入的共享动效组件，覆盖入场、数据、文本排版、路径形变、遮罩、圆弧进度、纯时间图表、时间轴、象形图与波形；组件复用成熟的外部几何库，同时保持逐帧录制的确定性，并让风格包与作品通过 `m2v/code-scene` 使用同一套实现。
 
 ## Requirements
 
