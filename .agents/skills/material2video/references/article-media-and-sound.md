@@ -29,9 +29,7 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 
 导入后用 `m2v assets report` 交叉核对记录、场景引用与 `SOURCES.md` 素材表；候选片段或多张图片可用 `m2v assets contact-sheet` 抽帧拼表检查。两者只读、不联网，不替代本页的导入留证、prepare 检查与 `m2v assets audit`；操作步骤见[素材检索与台账](material-sourcing.md)。
 
-## 视觉素材选择与使用
-
-选什么、为什么选、怎样用于表达以及替换复核，统一见[视觉素材选择与使用](visual-material-selection.md)。本页保留素材导入、来源登记、一致性校验与声音契约。
+视觉素材的选择、使用与替换复核统一见[视觉素材选择与使用](visual-material-selection.md)；本页保留素材导入、来源登记、一致性校验与声音契约。
 
 ## 素材一致性
 

@@ -2,7 +2,8 @@
 
 > **适用范围：** 本文描述从候选到交付的收口规则：交付文件的访问权限、成片溯源、渲染性能
 > 报告，以及一次全片生成与候选保留。目录归属、默认输出与清理规则见
-> [目录约定与输出路径](paths.md)，准备记录字段见[准备记录与字幕](prepared-and-subtitles.md)。
+> [目录约定与输出路径](paths.md)，准备记录字段见[准备记录与字幕](prepared-and-subtitles.md)；
+> 制作门、适用条件、证据失效及基线清理见[检查点契约](checkpoint-gates.md)。
 
 ## 交付权限
 
@@ -36,23 +37,23 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 它回答的是「这支片子是哪一版资产渲的」，因为成片不入库、也没有别的东西会提醒你它
 已经落后于源码：实测发生过两支作品的成片比动效重写早了几个小时，仍然带着被修掉的
 旧曲线，看上去却仍然是「上次验收通过」的样子。只有正式导出写溯源，预演不写。
-`schemaVersion` 当前为 `1`。文章类型（`general`）的形状是：
+`schemaVersion` 当前为 `1`。通用类型（`general`）的形状是：
 
 ```json
 {
   "schemaVersion": 1,
   "type": "general",
-  "projectId": "american-science-milestones",
+  "projectId": "<作品 ID>",
   "preparedFingerprint": "…",
   "compositionId": "ArticleExplainer",
   "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",
               "file:article.md": "…", "renderer": "…" },
-  "durationInFrames": 590, "fps": 60, "width": 1080, "height": 1920
+  "durationInFrames": 1800, "fps": 60, "width": 1920, "height": 1080
 }
 ```
 
-`type` 为 `general` / `financial-timeseries`
-之一，`compositionId` 是它对应的 Remotion composition 标识。
+`type` 为作品的类型标识（当前六种正式类型都会写溯源），
+`compositionId` 是它对应的 Remotion composition 标识。
 `preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
 材料、资产或渲染代码已经变化，成片落后。
 `inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
@@ -62,8 +63,8 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 
 | 类型 | 与上表的差异 |
 | --- | --- |
-| `general` | 无差异；**不含**根级 `renderer` 与 `bundleKey`——通用类型的画面只可能是当前渲染路径，写不写都一样 |
-| `financial-timeseries` | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
+| `general` / `road-trip` | 使用 `projectId`、`preparedFingerprint`、`compositionId`、`inputs`、`durationInFrames`、`fps`、`width`、`height`；有声成片另写 `audio` 与 `delivery` |
+| 无声专用类型（`financial-timeseries`、`driving-route`、`building-construction`、`vehicle-showcase`） | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
 独立复核准备指纹与文件摘要完成。
@@ -99,7 +100,7 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
   "version": 1,
   "entry": "render",
   "generatedAt": "2026-09-20T12:00:00+00:00",
-  "output": "voiced.mp4",
+  "output": "video.mp4",
   "storyboard": "<分镜的绝对路径>",
   "frames": 1200, "fps": 60, "width": 1080, "height": 1920,
   "concurrency": 1,
@@ -134,11 +135,6 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 ## 一次全片生成与候选保留
 
-`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4。
+`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4，其他类型使用各自类型文件名。
 
 异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。
-
-
-## 检查点制作门
-
-制作门、适用条件、证据失效及基线清理统一见[检查点契约](checkpoint-gates.md)；本页只补充所属专题的操作方法。

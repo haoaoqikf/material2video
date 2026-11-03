@@ -1,5 +1,8 @@
 # 验证记录
 
+> 路径迁移说明：本文记录形成于 `styles/examples/` 时期；当前规范位置为
+> `styles/doc-archive/examples/american-science-milestones/`，文中旧路径保留为历史值。
+
 制作与复核：2026-10-20。本文记录本轮最终交付版本。完整素材出处、作者、许可、改动和摘要保存在 [SOURCES.md](SOURCES.md) 与 `assets/` 作品材料中。
 
 ## 成片与技术验收

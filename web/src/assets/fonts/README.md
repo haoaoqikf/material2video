@@ -1,7 +1,7 @@
 # 字体清单与许可
 
 字体二进制**不在这个目录、也不在 Git**。来源、版本、摘要与恢复目标见仓库根
-[`fonts/registry.json`](../../../fonts/registry.json)，恢复命令：
+[`fonts/registry.json`](../../../../fonts/registry.json)，恢复命令：
 
 ```powershell
 uv run python fonts/fetch.py
@@ -39,4 +39,4 @@ OFL 允许随产品分发与再分发字体文件，要求许可证随附、不�
 运行 `uv run python fonts/fetch.py`。若本机没有网络，先把字体文件放入
 `M2V_FONT_CACHE` 指向的目录或 `fonts/.cache/`，脚本会校验摘要后恢复。
 
-字体二进制不入库的完整说明见 [`fonts/README.md`](../../../fonts/README.md)。
+字体二进制不入库的完整说明见 [`fonts/README.md`](../../../../fonts/README.md)。

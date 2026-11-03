@@ -53,7 +53,7 @@ uv run m2v render --project videos/general/<slug>
 `m2v general input-review --storyboard
 <分镜>` 生成 `outputs/input-review.json`，填好后 status 为 `pass`、依据非空且 problemSpans
 为空；源文或正文计数变化会让审查过期，须重新审查。计数只用于记录，不设字数区间。见
-[讲解输入审查](stage-plan.md#源文审查命令与记录)。
+[讲解输入审查](stage-plan.md#源文审查)。
 
 渲染与预演都不会触发联网合成：没有跑过 `m2v prepare` 时它们直接报「缺少有效准备记录」
 并停下，不会静默导出一段无声成片。要无声成片就不写口播、也不声明音床，prepare 会写出

@@ -52,9 +52,9 @@
 │   ├── assets/media/                 # 已导入并留证的内容寻址素材，按需创建
 │   └── assets/                       # 本篇专用素材（音床、音效、代码场景资源），按需创建
 └── videos/<类型路径>/<slug>/outputs/     # 成片与中间产物（不入库）
-    ├── video.mp4                     # 正式成片（所有类型同名；文件名由渲染器决定，不随有无配音变化）
-    ├── video.provenance.json         # 与该成片同名的溯源记录
-    ├── video.performance.json        # 与该成片同名的渲染性能报告
+    ├── <成片名>.mp4                   # 正式成片；general 为 video.mp4，其他类型使用各自类型文件名
+    ├── <成片名>.provenance.json       # 与该成片同名的溯源记录
+    ├── <成片名>.performance.json      # 与该成片同名的渲染性能报告
     ├── prepared.json                 # 当前准备产物与派生时间轴
     ├── input-review.json             # 文章讲解的人工输入语义审查（general）
     ├── review.json                   # 可选人工画面评审，绑定当前准备指纹与候选文件摘要（general）
@@ -68,7 +68,8 @@
 ```
 
 当前没有 `.srt` 写出器：字幕烧录进画面，不导出外置字幕文件。旧版曾写出
-`silent.mp4` / `voiced.mp4` / `voiced.srt`，统一入口后只有 `video.mp4` 一个名字。
+`silent.mp4` / `voiced.mp4` / `voiced.srt`，统一入口后不再按有无配音分叉：通用类型为
+`video.mp4`，其他类型使用各自类型文件名。
 
 打包缓存不在作品目录里，而在共享工程下：`web/.cache/m2v-bundles/<键>/`。
 它只与「当前 `web/` 源码 + 当前作品输入 + 依赖版本」有关，跨作品共享，整目录可随时删除。
@@ -129,7 +130,9 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | `m2v render --project <目录>` | `<作品目录>/outputs/` 下类型默认的正式成片 |
 | `m2v preview --project <目录> --limit-frames N` | 调试用途；严格短于全片，不参与交付门禁 |
 
-general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融沿用专用类型文件名；
+general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融为
+`financial-line-no-events.mp4`，road-trip 为 `road-trip.mp4`，其他无声类型使用各自类型文件名
+（如 `building-construction.mp4`），片段名为正式名加 `-review`。
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。
 v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），所以不存在
@@ -139,7 +142,7 @@ v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 
 - 输出归属由 `--project` 唯一确定；类型内部临时文件在验收后原子替换默认输出；
 - 不设内容根时工作区根即仓库根，路径与产物位置与引入内容根之前一致；
-- 同类重复导出覆盖固定文件（同一篇文章的 `silent.mp4` 只有一份）；
+- 同类重复导出覆盖固定文件（同一篇文章的 `video.mp4` 只有一份）；
 - 产物先生成、验收后替换，失败不会破坏上一份可用成片；
 - `render` 只读取作品材料与准备记录，不修改原始材料；
 - 统一入口正式渲染成功后清理本作品 `outputs/` 中旧视频及其字幕/溯源/性能旁车、预演、检查图和已知调试目录；保留本次成片及旁车、`prepared.json`、评审 JSON 和 `media/` 准备媒体。渲染或验收失败不清理，仓库共享构建缓存不受影响；清理错误按遗留路径报告；
