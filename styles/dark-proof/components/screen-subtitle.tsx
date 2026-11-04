@@ -7,7 +7,7 @@
 import type {ReactNode} from 'react';
 import {
   activeScreenSubtitle, motionCurve, screenSubtitleEnvelope, splitEmphasis,
-  splitScreenSubtitle, staggerReveal,
+  splitScreenSubtitle, screenSubtitleCharacters,
 } from 'm2v/code-scene';
 import {clamp01, LATIN, SANS, T} from './kit';
 
@@ -91,21 +91,16 @@ export default function ScreenSubtitle({
     (frame - (active.endFrame - exitFrames)) / Math.max(1, exitFrames)));
   const enterMode = variant.enter ?? 'rise';
   const exitMode = variant.exit ?? 'drift';
-  // 逐字步长按「每字间隔帧数」换算成窗口内比例：字越多、间隔越长，展开越缓。
-  // 未展开的字保持全透明，观众看到文字从左到右长出来，而不是整句先灰后亮。
-  const charCount = [...zh].length;
-  const staggerSpan = Math.max(0, charCount - 1) * T.subtitleMotion.charStaggerFrames;
-  const staggerSpread = staggerSpan > 0
-    ? clamp01(staggerSpan / (enterFrames + staggerSpan))
-    : 0;
-  const reveal = staggerReveal({
-    count: charCount, progress: enter, stagger: staggerSpread, easing: motionCurve('easeOutCubic'),
+  const reveal = screenSubtitleCharacters({
+    text: zh, frame, startFrame: active.startFrame,
+    staggerFrames: T.subtitleMotion.charStaggerFrames,
+    revealFrames: T.subtitleMotion.charRevealFrames,
   });
   let index = 0;
   const zhNodes: ReactNode[] = [];
   splitEmphasis(zh, emphasis).forEach((segment, segmentIndex) => {
     [...segment.text].forEach((character, characterIndex) => {
-      const progress = enterMode === 'wipe' ? 1 : reveal[index] ?? 1;
+      const progress = enterMode === 'wipe' ? 1 : reveal[index]?.progress ?? 1;
       index += 1;
       zhNodes.push(
         <span key={`${segmentIndex}-${characterIndex}`} style={{
@@ -119,8 +114,9 @@ export default function ScreenSubtitle({
       );
     });
   });
-  const enStart = active.startFrame + Math.min(englishDelayFrames,
-    Math.max(0, (active.endFrame - active.startFrame) - enterFrames));
+  const zhReady = enterMode === 'wipe' ? active.startFrame + enterFrames
+    : (reveal.at(-1)?.startFrame ?? active.startFrame) + T.subtitleMotion.charRevealFrames;
+  const enStart = zhReady + englishDelayFrames;
   const enProgress = motionCurve('easeOutCubic')(clamp01((frame - enStart) / Math.max(1, enterFrames)));
   const enNodes = en ? splitEmphasis(en, emphasis).map((segment, segmentIndex) => (
     <span key={segmentIndex} style={{
@@ -139,12 +135,13 @@ export default function ScreenSubtitle({
         width: safeArea.width, height: safeArea.height,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         textAlign: 'center', opacity, whiteSpace: 'nowrap', pointerEvents: 'none',
-        transform: `translateY(${drift}px)`, clipPath: exitClip,
+        // 安全区容器固定；退出位移只作用于内部文字，避免整个量测边界下移。
+        overflow: 'hidden', clipPath: exitClip,
       }}
     >
       <div style={{
         fontFamily: SANS, fontSize: size, lineHeight: 1.3, letterSpacing: '0.04em',
-        color, whiteSpace: 'nowrap',
+        color, whiteSpace: 'nowrap', transform: `translateY(${drift}px)`,
       }}>
         <div style={{clipPath: zhClip}}>{zhNodes}</div>
       </div>
@@ -153,7 +150,7 @@ export default function ScreenSubtitle({
           fontFamily: LATIN, fontSize: enSize, lineHeight: 1.3, letterSpacing: '0.14em',
           textTransform: 'uppercase', color: enColor, marginTop: T.subtitles.lineGap,
           opacity: enProgress,
-          transform: `translateY(${(1 - enProgress) * risePx * 0.6}px)`,
+          transform: `translateY(${(1 - enProgress) * risePx * 0.6 + drift}px)`,
         }}>{enNodes}</div>
       ) : null}
     </div>

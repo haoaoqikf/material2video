@@ -1,9 +1,20 @@
 import {describe, expect, it} from 'vitest';
 import {
-  activeScreenSubtitle, screenSubtitleEnvelope, splitEmphasis, splitScreenSubtitle,
+  activeScreenSubtitle, screenSubtitleEnvelope, splitEmphasis, splitScreenSubtitle, screenSubtitleCharacters,
 } from './subtitles';
 
 describe('屏幕字幕时间与切分', () => {
+  it('字符使用绝对帧间隔，长句末字不会被整句包络提前拉出', () => {
+    const args = {text: '积累，继续生长', startFrame: 10, staggerFrames: 2, revealFrames: 8, punctuationFrames: 3};
+    const start = screenSubtitleCharacters({...args, frame: 10});
+    expect(start.map(x => x.startFrame)).toEqual([10, 12, 14, 19, 21, 23, 25]);
+    expect(screenSubtitleCharacters({...args, frame: 18})[3].progress).toBe(0);
+    expect(screenSubtitleCharacters({...args, frame: 32}).at(-1)?.progress).toBeLessThan(1);
+    expect(screenSubtitleCharacters({...args, frame: 33}).every(x => x.progress === 1)).toBe(true);
+    const later = screenSubtitleCharacters({...args, frame: 21});
+    screenSubtitleCharacters({...args, frame: 80});
+    expect(screenSubtitleCharacters({...args, frame: 21})).toEqual(later);
+  });
   const items = [
     {startFrame: 10, endFrame: 20, text: '第一行\nFirst line'},
     {startFrame: 30, endFrame: 40, text: '第二行\nSecond line'},

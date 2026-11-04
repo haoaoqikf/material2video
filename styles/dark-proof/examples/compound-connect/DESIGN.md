@@ -1,814 +1,475 @@
-# 《接》：让结果，成为下一次的起点
+# 《接：让积累生长》
 
-## 本轮来源与边界
+## 目标与事实边界
 
-用户先要求分析未达到参考效果的原因，随后采用2026-11-04重设计方案并指示执行。64秒、无旁白无配乐，仅必要音效、同一100单位资源与30轮取走／接回对照，取代旧版十案例。详细方案见[变更设计](../../../../openspec/changes/archive/2026-11-04-redesign-compound-connect-reference-quality/design.md)；这是一轮重新制作，旧版通过不授权新版。
+面向普通手机观众，以原创种子寓言解释非金融的复利效应：过去的成果继续参与创造，新增成果也成为新的增长来源。种子生长、繁衍是机制类比，不是现实生态预测；不提供增长率、年代、必然成功或学习倍数。保留1920×1080、30fps、无旁白无配乐，仅事件音。方案可调整，用户最终效果目标与明确限制优先。
 
-旧成片与源码基线：`outputs/baselines/c8254550d52149ba95635f2ee528907c/`；旧视频SHA256为`c2aa9d38b3ee2948c042734cfd099f42b5926a19073bf51ea16cbdf58676a70e`，材料保存在该目录source/。当前源码与旧视频存在历史差异，保留事实不伪造对应。
+旧64秒候选SHA256：91f0be29ebecf1b0e7f3443f8547060fc14461c5d537f0b158ef65ecb46d04ea；成片、记录和源码位于 outputs/baselines/102ba1dd0835424384829109ae458689/。本轮回到方案与试制阶段，不继承旧通过。周期为compound-effect-growth-20261104。
 
-## 全片原则
+## 视觉、运动与声音
 
-同样100单位、每轮产出为当轮投入的10%；取走组保存产出，总量100+10n；接回组把产出并入下一轮，总量100×1.1^n。30轮为400对1744.94，整数1,745为四舍五入。全部数字由scenes/model.ts求值，资源与读数同源。每完整圆片10单位，碎片按面积表示；移动中的产出包按面积表示总量。已取走的300不消失、不挪给另一组。
+近黑底#0A0B0D，米白#F3EDDC表示已形成的主体，暖金#E6BE55表示新成果及当前作用，灰色只作土层与次要标记。M2V Sans中文、M2V Inter数字。树是有分枝、宽叶、根与种壳的具体主体，不用圈点和账户界面。母株保持可认回，新增树有不同尺度；新植株生长时用金色，成熟结种时回到米白，让新种子成为金色焦点。概念图中的整株金色仅作初始方向，不要求长期保持。末段回场改变开场种子的含义。
 
-以近黑底、米白粗数字、暖金局部光、清楚资源轮廓形成视觉家族。抵达减速，回流转向两端平滑；定向路径的运动由当前帧求值。仅一次硬切，位于曲线终态转为同一两组结果对比；结尾回到同一接点，不新增案例。英文字仅是开场／片名短标签。屏幕短句使用现有ScreenSubtitle与宿主安全区，60px较重字重；模型方法只在建立窗口小字出现。
+运动以easeOutCubic抵达、easeInOutCubic场内移动；种子弧线下落、接触反应、根与枝叶分层生长。数字落定一次尺度强调。字幕绝对帧逐字错峰，末字落定后留完整阅读；主体与字幕轮流获得焦点。新增树结种是一次中释放，全貌是最强释放，光从具体对象发出。核心动作及事件见分镜beats，不另维护帧表。第二次飞行在释放余势结束后开始，避免小种子被遮挡。场景技术边界使用cut但对象按全局帧保持连续；实际硬切只计划在45秒进入学习应用处，其余承接由画面验证。无持续随机运动填空。
 
-参考《重复》只进入设计及隔离比较，不进入画面或音轨。关键采用项为唯一强主角、轮廓与层级、源点光轨、连续因果、先机制后公式、结果消化与首尾回场。题材、字面文案、具体秒数和音色允许不同。完整对照见[参考契约](outputs/style-reference.md)。
+复用已有共享手绘路径、dark-proof的ScreenSubtitle/Burst/Impact；外部候选GSAP SplitText、Remotion spring、Pixi filters已在本轮变更设计登记评估，已有能力足够，不新增引擎。种子与树的几何为原创题材绘制。现有原创24kHz事件音按配方恢复，绑定同一事件，不复制参考音轨。
 
-## 实际时间与制作来源
+开场与片尾的动态SVG组使用will-change: transform稳定浏览器合成层，避免渐变背景因脏矩形重绘出现1–2色阶的同帧差异；不引入计时器或跨帧状态。两处修复后均通过既有60dB正序／倒序与分块边界验证，没有降低阈值。种子交接为树是有意接触，在开场合同显式登记；全貌段以始终在场的母株作为观测角色。
 
-`assets/compose.py`是文案、事件与时间编排的编辑入口；按动作与阅读安排短句，生成分镜和以下唯一合同。64秒、1920帧；第二轮段落24秒，数据段31秒、结果41秒、原因48秒、片尾56秒。具体帧以storyboard的事件与props.phases为准；无TTS、narrationWindows或music输入。
+## 逐场设计
 
-| 段 | 观看任务 | 主要状态 |
+| 段落 | 主体及变化 | 新认识与风险 |
 |---|---|---|
-| question | 建立问题 | 30次；重复就会复利吗 |
-| setup | 建立投入与产出规则 | 100，首轮+10；每片10单位 |
-| take | 保存取走的结果 | 投入100、已取300、合计400 |
-| return | 认回同一产出包 | +10返回并入100，投入才变110 |
-| again | 新增部分也参与产出 | +11→121；+12.1→133.1 |
-| history | 同轴比较完整历史 | n=0共同100；n=10/20/30拉开 |
-| compare | 比较同轮总量 | 400／1744.94与约4.36倍 |
-| reason | 回场解释差别 | 同一分流点；公式晚到 |
-| close | 动作总结为片名 | 回路接通；接；结论留到末帧 |
+| 0–12秒 opening | 一颗种子触地，生根长成母株，1粒落定强调 | 开场提出为什么积累后来越来越快，先给一个具体起点 |
+| 12–38秒 core | 母株结种→同一颗种子落地成树→新树再次结种→第三株出现 | 新增部分成为新的创造来源；完整26秒试制，core/G2/G3/G4覆盖，不以数量增加代替机制 |
+| 38–45秒 grove | 保持原三株，拉远发现更多正在延续的生长 | 认识增长来源变多，强释放后留结果观察 |
+| 45–56秒 learning | 凑十法从8+5，复用于9+6，再拓展到19+6 | 学会的方法帮助后续理解；数字可复算，不能仅以书本图标增加代替 |
+| 56–68秒 closing | 回到种子及其后续生长，命名复利效应 | 回答开场：让积累推动新的积累；不承诺现实固定收益 |
 
-首个完整核心试制覆盖17–31秒，附10–17秒上下文。静帧不证明回流成立，当前媒体的独立观察按审核策略执行；唯一问题表在outputs/visual-notes.md。独立目标图由概念美术建立，源码截图不冒充目标图。
+## 终审后的局部设计调整
 
-## 制作状态
+首个完整候选因C1被独立终审打回：62秒的补充句“下一次，已经有了起点”亮显仅约0.4–0.5秒，随后转灰并与片名和正常字幕竞争。这是阅读预算与层级的设计问题。删除该重复补充句，让片名、正常字幕及种子再次生长共同收束，保持总时长68秒。G5原有帧证据已覆盖该段但漏判，当前回归明确核对片尾全部文字的阅读窗口与竞争，不用“符合原方案”关闭问题。
 
-核心试制已经独立盲看及目标对照复查。首次最长读数穿过圆形边界的问题保留原失败记录，修订后已由同一独立观察者复查；扩展实现后仍须绑定当前版本重验。全片已经实现；用户于2026-11-04要求立即停止审核并提交归档，以便下一轮修改。最后目标对照未正式导入，不声明全部制作门完成；真实观察与限制写入VERIFICATION及outputs/visual-notes.md。
+## 参考与试制判断
 
-数据曲线采用同一线性纵轴0–1800；整数轮端点来自账本，轮间显示插值动画时轮次标记为“n→n+1”，不将中间值标成已完成的整数轮。41秒结果为统一30轮总量。公式及片名各自保留独立字形空间，光轨不横穿公式；开场数字向左缩小交接，避免30与100叠字。
+参考本地《重复》仅用于动作与风格分析，不进入渲染。关键采用项：单一具体主角、动作准备/接触/反应/收势、逐字入镜、落定强调、源点扩环与粒子、早期主体最终回报。八项指标与差异见outputs/style-reference.md。概念目标由内置ImageGen独立生成，与源码隔离；只规范轮廓、主体层级及明确来源，不照搬生成图的全部纹理。
 
+试制须能在完整窗口中认回种子，并看见新增树再次产生种子。观察分理解、表现、代表性；先盲看落盘，再同轮目标对照。失败先归因为实现/设计/混合/待定位；核心设计失败直接退回重设计。普通局部失败不推倒全片。当前完整核心试制、G5内部检查及新代理终审与目标对照均已通过；C1片尾设计问题经局部重设计和当前独立复查关闭，原失败记录与候选保留。G0–G6当前完成。
 
 ```m2v-checkpoints
 {
   "version": 2,
-  "cycleId": "compound-connect-return-20261104",
+  "cycleId": "compound-effect-growth-20261104",
   "fps": 30,
   "width": 1920,
   "height": 1080,
   "reviewPlan": {
-    "basis": "用户采用的单一回流实验；强轮廓与局部光、返回因果与先后顺序须在扩展前独立观察。",
+    "basis": "试制完整覆盖母株结种、新株生长与新株再次结种；用户目标优先，方案可经证据调整。",
     "risks": [
       {
-        "id": "return-appearance",
+        "id": "growth-appearance",
         "kind": "static-expression",
         "scope": {
           "checkpointIds": [
-            "cp-return"
+            "cp-core"
           ]
         },
-        "reason": "关键采用项见outputs/style-reference.md：大数字、清楚轮廓、局部自发光及主体层级。",
+        "reason": "outputs/style-reference.md：具体主体、清楚轮廓与新增长来源须先以独立目标验证。",
         "requiredEvidence": [
-          "design/keyframes/return-establish.png",
-          "design/keyframes/return-result.png"
+          "design/keyframes/growth-establish.png",
+          "design/keyframes/growth-result.png"
         ]
       },
       {
-        "id": "return-sequence",
+        "id": "growth-sequence",
         "kind": "structure-timing",
         "scope": {
           "checkpointIds": [
-            "cp-return",
-            "cp-again"
+            "cp-core"
           ]
         },
-        "reason": "必须先有产出，再返回并入，下一轮才开始；组别交接须有前后文。",
+        "reason": "先看见种子来源及落地，再生长，再由新增植株结种；禁止字幕解释代替过程。",
         "requiredEvidence": [
-          "production/checkpoints/cp-return/window.mp4",
-          "production/checkpoints/cp-again/window.mp4"
+          "production/checkpoints/cp-core/window.mp4"
         ]
       },
       {
-        "id": "same-packet",
+        "id": "new-source",
         "kind": "core-event",
         "scope": {
           "checkpointIds": [
-            "cp-return",
-            "cp-again"
+            "cp-core"
           ]
         },
-        "reason": "认回产出包，110和121有可见资源来源，光效不能代替数量关系。",
+        "reason": "完整试制必须呈现新增部分参与后续创造，可因此退回设计。",
         "requiredEvidence": [
-          "production/checkpoints/cp-return/window.mp4",
-          "production/checkpoints/cp-again/window.mp4"
+          "production/checkpoints/cp-core/window.mp4"
         ]
       }
     ]
   },
   "scenes": [
     {
-      "id": "compound-connect",
-      "durationFrames": 1920,
+      "id": "opening",
+      "durationFrames": 360,
       "shots": [
         {
-          "id": "question",
-          "tier": "A",
+          "id": "opening-shot",
+          "tier": "B",
           "window": [
             0,
-            120
-          ]
-        },
-        {
-          "id": "setup",
-          "tier": "B",
-          "window": [
-            120,
-            300
-          ]
-        },
-        {
-          "id": "take",
-          "tier": "B",
-          "window": [
-            300,
-            510
-          ]
-        },
-        {
-          "id": "return",
-          "tier": "A",
-          "window": [
-            510,
-            720
+            360
           ],
-          "timeStructure": {
-            "establish": {
-              "window": [
-                510,
-                600
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "100与两组身份",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            },
-            "change": {
-              "window": [
-                600,
-                696
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "产出从出口返回",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            },
-            "result": {
-              "window": [
-                696,
-                720
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "110与新增圆片落定",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            }
-          }
-        },
-        {
-          "id": "again",
-          "tier": "A",
-          "window": [
-            720,
-            930
-          ],
-          "timeStructure": {
-            "establish": {
-              "window": [
-                720,
-                728
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "110成为下一轮起点",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            },
-            "change": {
-              "window": [
-                728,
-                884
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "产出11并入为121，再产出12.1",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            },
-            "result": {
-              "window": [
-                884,
-                930
-              ],
-              "audience": "观看对象变化，分辨其先后",
-              "visible": "133.1落定，新增部分已经参与产出",
-              "attention": "投入簇与返回资源",
-              "toleranceFrames": 3,
-              "failure": "先更新数字或资源包无法认回"
-            }
-          }
-        },
-        {
-          "id": "history",
-          "tier": "A",
-          "window": [
-            930,
-            1230
-          ]
-        },
-        {
-          "id": "compare",
-          "tier": "A",
-          "window": [
-            1230,
-            1440
-          ]
-        },
-        {
-          "id": "reason",
-          "tier": "B",
-          "window": [
-            1440,
-            1680
-          ]
-        },
-        {
-          "id": "close",
-          "tier": "A",
-          "window": [
-            1680,
-            1920
-          ]
+          "core": false
         }
       ],
       "checkpoints": [
         {
-          "id": "cp-question",
-          "shotId": "question",
-          "frame": 60,
+          "id": "cp-opening",
+          "shotId": "opening-shot",
+          "frame": 313,
           "window": [
             0,
-            120
+            360
           ],
           "expected": [],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "重复，就会复利吗？",
+              "text": "为什么有些积累，后来会越来越快？",
               "window": [
-                9,
-                117
-              ]
-            }
-          ],
-          "claims": [],
-          "forbidden": [
-            "投资建议",
-            "保证收益"
-          ],
-          "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
-            "subtitleRoles": [
-              "screen-subtitle"
-            ]
-          }
-        },
-        {
-          "id": "cp-setup",
-          "shotId": "setup",
-          "frame": 210,
-          "window": [
-            120,
-            300
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "每轮产出＝当轮投入的10%。",
-              "window": [
-                132,
-                294
-              ]
-            }
-          ],
-          "claims": [],
-          "forbidden": [
-            "投资建议",
-            "保证收益"
-          ],
-          "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
-            "subtitleRoles": [
-              "screen-subtitle"
-            ]
-          }
-        },
-        {
-          "id": "cp-take",
-          "shotId": "take",
-          "frame": 405,
-          "window": [
-            300,
-            510
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "产出取走，下一轮仍从100开始。",
-              "window": [
-                306,
-                429
+                6,
+                141
               ]
             },
             {
               "role": "screen-subtitle",
-              "text": "投入100＋已取300＝400。",
+              "text": "一颗种子，先长成一棵树。",
               "window": [
-                438,
-                510
+                156,
+                351
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资建议",
-            "保证收益"
+            "投资收益",
+            "年化收益",
+            "保证成功"
           ],
           "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
             "subtitleRoles": [
               "screen-subtitle"
+            ],
+            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛",
+            "allowedOverlaps": [
+              [
+                "opening-seed",
+                "mother-tree"
+              ]
             ]
           }
-        },
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "durationFrames": 780,
+      "shots": [
         {
-          "id": "cp-return",
-          "shotId": "return",
-          "frame": 699,
+          "id": "core-shot",
+          "tier": "A",
           "window": [
-            510,
-            720
+            0,
+            780
+          ],
+          "core": true,
+          "timeStructure": {
+            "establish": {
+              "window": [
+                0,
+                120
+              ],
+              "audience": "跟随主体及它带来的后续变化",
+              "visible": "母株及其种子",
+              "attention": "当前动作主体",
+              "toleranceFrames": 2,
+              "failure": "种子来源或新增部分作用无法认回"
+            },
+            "change": {
+              "window": [
+                120,
+                450
+              ],
+              "audience": "跟随主体及它带来的后续变化",
+              "visible": "种子脱离落地，新株生长",
+              "attention": "当前动作主体",
+              "toleranceFrames": 2,
+              "failure": "种子来源或新增部分作用无法认回"
+            },
+            "reveal": {
+              "window": [
+                450,
+                600
+              ],
+              "audience": "跟随主体及它带来的后续变化",
+              "visible": "新株再次结种并释放",
+              "attention": "当前动作主体",
+              "toleranceFrames": 2,
+              "failure": "种子来源或新增部分作用无法认回"
+            },
+            "result": {
+              "window": [
+                600,
+                780
+              ],
+              "audience": "跟随主体及它带来的后续变化",
+              "visible": "第三株生长，原株保留",
+              "attention": "当前动作主体",
+              "toleranceFrames": 2,
+              "failure": "种子来源或新增部分作用无法认回"
+            }
+          }
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-core",
+          "shotId": "core-shot",
+          "frame": 679,
+          "window": [
+            0,
+            780
           ],
           "expected": [
             {
-              "role": "active-resource",
-              "count": 11
+              "role": "mother-tree",
+              "count": 1
             }
           ],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "另一组，同样从100出发。",
+              "text": "树，结出了新的种子。",
               "window": [
-                516,
-                603
+                9,
+                120
               ]
             },
             {
               "role": "screen-subtitle",
-              "text": "把这10，接回下一轮。",
+              "text": "其中一颗，落地、生根。",
+              "window": [
+                129,
+                285
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "它长成了另一棵树。",
+              "window": [
+                300,
+                435
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "新长出的树，也结出了种子。",
+              "window": [
+                450,
+                600
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "新增的部分，也开始创造。",
               "window": [
                 609,
-                717
+                774
               ]
             }
           ],
-          "claims": [
-            {
-              "id": "active-first",
-              "value": 110,
-              "unit": "units",
-              "basis": "100+100×10%"
-            }
-          ],
+          "claims": [],
           "forbidden": [
-            "投资建议",
-            "保证收益"
+            "投资收益",
+            "年化收益",
+            "保证成功"
           ],
           "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
             "subtitleRoles": [
               "screen-subtitle"
+            ],
+            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛",
+            "allowedOverlaps": [
+              [
+                "mother-tree",
+                "first-seed"
+              ],
+              [
+                "child-tree",
+                "first-seed"
+              ],
+              [
+                "child-tree",
+                "second-seed"
+              ],
+              [
+                "third-tree",
+                "second-seed"
+              ]
             ]
           },
-          "minEventFrames": 12,
-          "statePlan": [
-            {
-              "window": [
-                510,
-                696
-              ],
-              "expected": [
-                {
-                  "role": "active-resource",
-                  "count": 10
-                }
-              ]
-            },
-            {
-              "window": [
-                696,
-                720
-              ],
-              "expected": [
-                {
-                  "role": "active-resource",
-                  "count": 11
-                }
-              ]
-            }
-          ]
-        },
+          "minEventFrames": 2
+        }
+      ]
+    },
+    {
+      "id": "grove",
+      "durationFrames": 210,
+      "shots": [
         {
-          "id": "cp-again",
-          "shotId": "again",
-          "frame": 887,
+          "id": "grove-shot",
+          "tier": "A",
           "window": [
-            720,
-            930
+            0,
+            210
+          ],
+          "core": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-grove",
+          "shotId": "grove-shot",
+          "frame": 183,
+          "window": [
+            0,
+            210
           ],
           "expected": [],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "110，再产生11，合计121。",
+              "text": "增长的来源，变多了。",
               "window": [
-                726,
-                819
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "新增的部分，也参与下一轮。",
-              "window": [
-                825,
-                927
-              ]
-            }
-          ],
-          "claims": [
-            {
-              "id": "active-second",
-              "value": 121,
-              "unit": "units",
-              "basis": "110+110×10%"
-            }
-          ],
-          "forbidden": [
-            "投资建议",
-            "保证收益"
-          ],
-          "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
-            "subtitleRoles": [
-              "screen-subtitle"
-            ]
-          },
-          "minEventFrames": 8
-        },
-        {
-          "id": "cp-history",
-          "shotId": "history",
-          "frame": 1080,
-          "window": [
-            930,
-            1230
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "刚开始，差得不多。",
-              "window": [
-                936,
-                1050
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "第10轮、第20轮、第30轮……",
-              "window": [
-                1056,
-                1224
+                9,
+                201
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资建议",
-            "保证收益"
+            "投资收益",
+            "年化收益",
+            "保证成功"
           ],
           "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
             "subtitleRoles": [
               "screen-subtitle"
-            ]
+            ],
+            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
           }
-        },
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "durationFrames": 330,
+      "shots": [
         {
-          "id": "cp-compare",
-          "shotId": "compare",
-          "frame": 1335,
+          "id": "learning-shot",
+          "tier": "B",
           "window": [
-            1230,
-            1440
+            0,
+            330
+          ],
+          "core": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-learning",
+          "shotId": "learning-shot",
+          "frame": 287,
+          "window": [
+            0,
+            330
           ],
           "expected": [],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "同样30轮，400 对 1,745。",
+              "text": "学会一个方法。",
               "window": [
-                1239,
-                1350
+                6,
+                111
               ]
             },
             {
               "role": "screen-subtitle",
-              "text": "接回总量，约为取走的4.36倍。",
+              "text": "下一题，用上它。",
               "window": [
-                1356,
-                1437
-              ]
-            }
-          ],
-          "claims": [
-            {
-              "id": "withdraw-total",
-              "value": 400,
-              "unit": "units",
-              "basis": "100+30×10"
-            },
-            {
-              "id": "reinvest-total",
-              "value": 1744.94,
-              "unit": "units",
-              "basis": "100×1.1^30；两位小数"
-            }
-          ],
-          "forbidden": [
-            "投资建议",
-            "保证收益"
-          ],
-          "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
-            "subtitleRoles": [
-              "screen-subtitle"
-            ]
-          }
-        },
-        {
-          "id": "cp-reason",
-          "shotId": "reason",
-          "frame": 1560,
-          "window": [
-            1440,
-            1680
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "取走，每次都从原点出发。",
-              "window": [
-                1446,
-                1554
+                123,
+                216
               ]
             },
             {
               "role": "screen-subtitle",
-              "text": "接回，每次都带着上一次。",
+              "text": "它又帮你，理解新的问题。",
               "window": [
-                1560,
-                1674
+                228,
+                324
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资建议",
-            "保证收益"
+            "投资收益",
+            "年化收益",
+            "保证成功"
           ],
           "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
             "subtitleRoles": [
               "screen-subtitle"
-            ]
+            ],
+            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
           }
-        },
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "durationFrames": 360,
+      "shots": [
         {
-          "id": "cp-close",
-          "shotId": "close",
-          "frame": 1800,
+          "id": "closing-shot",
+          "tier": "A",
           "window": [
-            1680,
-            1920
+            0,
+            360
+          ],
+          "core": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-closing",
+          "shotId": "closing-shot",
+          "frame": 313,
+          "window": [
+            0,
+            360
           ],
           "expected": [],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "让结果，成为下一次的起点。",
+              "text": "让积累，推动新的积累。",
               "window": [
-                1695,
-                1920
+                9,
+                171
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "这，就是复利效应。",
+              "window": [
+                186,
+                360
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资建议",
-            "保证收益"
+            "投资收益",
+            "年化收益",
+            "保证成功"
           ],
           "measurement": {
-            "allowedOverlaps": [
-              [
-                "return-packet",
-                "active-resource"
-              ],
-              [
-                "return-packet",
-                "active-value"
-              ],
-              [
-                "output-resource",
-                "saved-resource"
-              ]
-            ],
-            "thresholdSource": "DESIGN：主读数12px手机等效；正文短句≤30字由组件约束，两个主读数合计≤30字符。",
-            "bodyRoles": [
-              "active-value",
-              "output-value"
-            ],
-            "minFont393": 12,
-            "maxTextCharacters": 30,
             "subtitleRoles": [
               "screen-subtitle"
-            ]
+            ],
+            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
           }
         }
       ]

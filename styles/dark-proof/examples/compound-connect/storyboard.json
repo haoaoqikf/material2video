@@ -1,232 +1,417 @@
 {
   "version": 8,
   "schemaVersion": 8,
+  "title": "接：让积累生长",
   "fps": 30,
   "width": 1920,
   "height": 1080,
-  "title": "接",
-  "targetSeconds": 64,
+  "targetSeconds": 68,
   "input": {
     "kind": "topic",
-    "topic": "理想数学模型：同样100单位，30轮，每轮产出为当轮投入10%；产出取走保存与接回下一轮的总量对照。无旁白无配乐，仅事件音效。"
+    "topic": "非金融复利效应：过去的成果参与后续创造，新增成果也成为新的增长来源。原创种子机制寓言与凑十法复用，不承诺现实固定增速。"
   },
   "scenes": [
     {
-      "id": "compound-connect",
+      "id": "opening",
       "template": "code",
       "keywords": [
-        "复利",
-        "回流",
-        "总量对照"
+        "复利效应",
+        "成果复用",
+        "种子生长"
       ],
-      "durationFrames": 1920,
+      "durationFrames": 360,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
-        "title": "接",
-        "entry": "scenes/compound-connect.tsx",
+        "title": "让积累生长",
+        "entry": "scenes/opening.tsx",
         "props": {
-          "model": {
-            "initial": 100,
-            "rate": 0.1,
-            "rounds": 30,
-            "unit": 10
-          },
-          "phases": {
-            "question": 0,
-            "setup": 120,
-            "take": 300,
-            "return": 510,
-            "again": 720,
-            "history": 930,
-            "compare": 1230,
-            "reason": 1440,
-            "close": 1680,
-            "end": 1920
+          "beats": {
+            "seed-drop": 15,
+            "seed-land": 60,
+            "mother-grow": 150,
+            "mother-ready": 360,
+            "mother-fruit": 420,
+            "first-release": 480,
+            "first-land": 570,
+            "child-grow": 594,
+            "child-ready": 774,
+            "child-fruit": 810,
+            "second-release": 915,
+            "second-land": 1005,
+            "third-grow": 1029,
+            "third-ready": 1125,
+            "third-fruit": 1170,
+            "grove-reveal": 1230,
+            "learning-first": 1365,
+            "learning-reuse": 1470,
+            "learning-extend": 1575,
+            "closing-return": 1680,
+            "title-arrive": 1860,
+            "finish": 2040
           },
           "screenSubtitles": [
             {
-              "startFrame": 9,
-              "endFrame": 117,
-              "text": "重复，就会复利吗？"
+              "startFrame": 6,
+              "endFrame": 141,
+              "text": "为什么有些积累，后来会越来越快？"
             },
             {
-              "startFrame": 132,
-              "endFrame": 294,
-              "text": "每轮产出＝当轮投入的10%。"
-            },
-            {
-              "startFrame": 306,
-              "endFrame": 429,
-              "text": "产出取走，下一轮仍从100开始。"
-            },
-            {
-              "startFrame": 438,
-              "endFrame": 510,
-              "text": "投入100＋已取300＝400。"
-            },
-            {
-              "startFrame": 516,
-              "endFrame": 603,
-              "text": "另一组，同样从100出发。"
-            },
-            {
-              "startFrame": 609,
-              "endFrame": 717,
-              "text": "把这10，接回下一轮。"
-            },
-            {
-              "startFrame": 726,
-              "endFrame": 819,
-              "text": "110，再产生11，合计121。"
-            },
-            {
-              "startFrame": 825,
-              "endFrame": 927,
-              "text": "新增的部分，也参与下一轮。"
-            },
-            {
-              "startFrame": 936,
-              "endFrame": 1050,
-              "text": "刚开始，差得不多。"
-            },
-            {
-              "startFrame": 1056,
-              "endFrame": 1224,
-              "text": "第10轮、第20轮、第30轮……"
-            },
-            {
-              "startFrame": 1239,
-              "endFrame": 1350,
-              "text": "同样30轮，400 对 1,745。"
-            },
-            {
-              "startFrame": 1356,
-              "endFrame": 1437,
-              "text": "接回总量，约为取走的4.36倍。"
-            },
-            {
-              "startFrame": 1446,
-              "endFrame": 1554,
-              "text": "取走，每次都从原点出发。"
-            },
-            {
-              "startFrame": 1560,
-              "endFrame": 1674,
-              "text": "接回，每次都带着上一次。"
-            },
-            {
-              "startFrame": 1695,
-              "endFrame": 1920,
-              "text": "让结果，成为下一次的起点。"
+              "startFrame": 156,
+              "endFrame": 351,
+              "text": "一颗种子，先长成一棵树。"
             }
           ],
           "capture": {
             "mode": "pure-time",
+            "timebase": "global",
             "jobs": 2
           }
         }
       },
       "events": [
         {
-          "id": "question",
+          "id": "seed-drop",
+          "frame": 15
+        },
+        {
+          "id": "seed-land",
+          "frame": 60
+        },
+        {
+          "id": "mother-grow",
+          "frame": 150
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "成果复用",
+        "种子生长"
+      ],
+      "durationFrames": 780,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累生长",
+        "entry": "scenes/core.tsx",
+        "props": {
+          "beats": {
+            "seed-drop": 15,
+            "seed-land": 60,
+            "mother-grow": 150,
+            "mother-ready": 360,
+            "mother-fruit": 420,
+            "first-release": 480,
+            "first-land": 570,
+            "child-grow": 594,
+            "child-ready": 774,
+            "child-fruit": 810,
+            "second-release": 915,
+            "second-land": 1005,
+            "third-grow": 1029,
+            "third-ready": 1125,
+            "third-fruit": 1170,
+            "grove-reveal": 1230,
+            "learning-first": 1365,
+            "learning-reuse": 1470,
+            "learning-extend": 1575,
+            "closing-return": 1680,
+            "title-arrive": 1860,
+            "finish": 2040
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 9,
+              "endFrame": 120,
+              "text": "树，结出了新的种子。"
+            },
+            {
+              "startFrame": 129,
+              "endFrame": 285,
+              "text": "其中一颗，落地、生根。"
+            },
+            {
+              "startFrame": 300,
+              "endFrame": 435,
+              "text": "它长成了另一棵树。"
+            },
+            {
+              "startFrame": 450,
+              "endFrame": 600,
+              "text": "新长出的树，也结出了种子。"
+            },
+            {
+              "startFrame": 609,
+              "endFrame": 774,
+              "text": "新增的部分，也开始创造。"
+            }
+          ],
+          "capture": {
+            "mode": "pure-time",
+            "timebase": "global",
+            "jobs": 2
+          }
+        }
+      },
+      "events": [
+        {
+          "id": "mother-ready",
           "frame": 0
         },
         {
-          "id": "setup",
+          "id": "mother-fruit",
+          "frame": 60
+        },
+        {
+          "id": "first-release",
           "frame": 120
         },
         {
-          "id": "take",
-          "frame": 300
-        },
-        {
-          "id": "return",
-          "frame": 510
-        },
-        {
-          "id": "again",
-          "frame": 720
-        },
-        {
-          "id": "history",
-          "frame": 930
-        },
-        {
-          "id": "compare",
-          "frame": 1230
-        },
-        {
-          "id": "reason",
-          "frame": 1440
-        },
-        {
-          "id": "close",
-          "frame": 1680
-        },
-        {
-          "id": "first-output",
+          "id": "first-land",
           "frame": 210
         },
         {
-          "id": "take-finish",
-          "frame": 432
+          "id": "child-grow",
+          "frame": 234
         },
         {
-          "id": "return-output",
-          "frame": 600
+          "id": "child-ready",
+          "frame": 414
         },
         {
-          "id": "return-travel",
+          "id": "child-fruit",
+          "frame": 450
+        },
+        {
+          "id": "second-release",
+          "frame": 555
+        },
+        {
+          "id": "second-land",
           "frame": 645
         },
         {
-          "id": "return-merge",
-          "frame": 696
+          "id": "third-grow",
+          "frame": 669
         },
         {
-          "id": "second-output",
-          "frame": 728
+          "id": "third-ready",
+          "frame": 765
+        }
+      ]
+    },
+    {
+      "id": "grove",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "成果复用",
+        "种子生长"
+      ],
+      "durationFrames": 210,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累生长",
+        "entry": "scenes/grove.tsx",
+        "props": {
+          "beats": {
+            "seed-drop": 15,
+            "seed-land": 60,
+            "mother-grow": 150,
+            "mother-ready": 360,
+            "mother-fruit": 420,
+            "first-release": 480,
+            "first-land": 570,
+            "child-grow": 594,
+            "child-ready": 774,
+            "child-fruit": 810,
+            "second-release": 915,
+            "second-land": 1005,
+            "third-grow": 1029,
+            "third-ready": 1125,
+            "third-fruit": 1170,
+            "grove-reveal": 1230,
+            "learning-first": 1365,
+            "learning-reuse": 1470,
+            "learning-extend": 1575,
+            "closing-return": 1680,
+            "title-arrive": 1860,
+            "finish": 2040
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 9,
+              "endFrame": 201,
+              "text": "增长的来源，变多了。"
+            }
+          ],
+          "capture": {
+            "mode": "pure-time",
+            "timebase": "global",
+            "jobs": 2
+          }
+        }
+      },
+      "events": [
+        {
+          "id": "third-fruit",
+          "frame": 30
         },
         {
-          "id": "second-travel",
-          "frame": 740
+          "id": "grove-reveal",
+          "frame": 90
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "成果复用",
+        "种子生长"
+      ],
+      "durationFrames": 330,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累生长",
+        "entry": "scenes/learning.tsx",
+        "props": {
+          "beats": {
+            "seed-drop": 15,
+            "seed-land": 60,
+            "mother-grow": 150,
+            "mother-ready": 360,
+            "mother-fruit": 420,
+            "first-release": 480,
+            "first-land": 570,
+            "child-grow": 594,
+            "child-ready": 774,
+            "child-fruit": 810,
+            "second-release": 915,
+            "second-land": 1005,
+            "third-grow": 1029,
+            "third-ready": 1125,
+            "third-fruit": 1170,
+            "grove-reveal": 1230,
+            "learning-first": 1365,
+            "learning-reuse": 1470,
+            "learning-extend": 1575,
+            "closing-return": 1680,
+            "title-arrive": 1860,
+            "finish": 2040
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 6,
+              "endFrame": 111,
+              "text": "学会一个方法。"
+            },
+            {
+              "startFrame": 123,
+              "endFrame": 216,
+              "text": "下一题，用上它。"
+            },
+            {
+              "startFrame": 228,
+              "endFrame": 324,
+              "text": "它又帮你，理解新的问题。"
+            }
+          ],
+          "capture": {
+            "mode": "pure-time",
+            "timebase": "global",
+            "jobs": 2
+          }
+        }
+      },
+      "events": [
+        {
+          "id": "learning-first",
+          "frame": 15
         },
         {
-          "id": "second-merge",
-          "frame": 784
+          "id": "learning-reuse",
+          "frame": 120
         },
         {
-          "id": "third-output",
-          "frame": 825
-        },
+          "id": "learning-extend",
+          "frame": 225
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "成果复用",
+        "种子生长"
+      ],
+      "durationFrames": 360,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累生长",
+        "entry": "scenes/closing.tsx",
+        "props": {
+          "beats": {
+            "seed-drop": 15,
+            "seed-land": 60,
+            "mother-grow": 150,
+            "mother-ready": 360,
+            "mother-fruit": 420,
+            "first-release": 480,
+            "first-land": 570,
+            "child-grow": 594,
+            "child-ready": 774,
+            "child-fruit": 810,
+            "second-release": 915,
+            "second-land": 1005,
+            "third-grow": 1029,
+            "third-ready": 1125,
+            "third-fruit": 1170,
+            "grove-reveal": 1230,
+            "learning-first": 1365,
+            "learning-reuse": 1470,
+            "learning-extend": 1575,
+            "closing-return": 1680,
+            "title-arrive": 1860,
+            "finish": 2040
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 9,
+              "endFrame": 171,
+              "text": "让积累，推动新的积累。"
+            },
+            {
+              "startFrame": 186,
+              "endFrame": 360,
+              "text": "这，就是复利效应。"
+            }
+          ],
+          "capture": {
+            "mode": "pure-time",
+            "timebase": "global",
+            "jobs": 2
+          }
+        }
+      },
+      "events": [
         {
-          "id": "third-travel",
-          "frame": 840
-        },
-        {
-          "id": "third-merge",
-          "frame": 884
-        },
-        {
-          "id": "curve-arrive",
-          "frame": 1218
+          "id": "closing-return",
+          "frame": 0
         },
         {
           "id": "title-arrive",
-          "frame": 1770
-        },
-        {
-          "id": "take-round-5",
-          "frame": 319
-        },
-        {
-          "id": "take-round-10",
-          "frame": 341
-        },
-        {
-          "id": "take-round-20",
-          "frame": 387
+          "frame": 180
         }
       ]
     }
@@ -234,100 +419,82 @@
   "soundtrack": {
     "effects": [
       {
+        "sourceRef": "assets/media/land-v2.wav",
+        "sceneId": "opening",
+        "eventId": "seed-land",
+        "gainDb": -7
+      },
+      {
         "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "first-output",
-        "gainDb": -5
+        "sceneId": "core",
+        "eventId": "mother-fruit",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/travel-v2.wav",
+        "sceneId": "core",
+        "eventId": "first-release",
+        "gainDb": -7
       },
       {
         "sourceRef": "assets/media/land-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "take-finish",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "return-output",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/travel-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "return-travel",
-        "gainDb": -5
+        "sceneId": "core",
+        "eventId": "first-land",
+        "gainDb": -7
       },
       {
         "sourceRef": "assets/media/merge-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "return-merge",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "second-output",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/travel-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "second-travel",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/merge-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "second-merge",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "third-output",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/travel-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "third-travel",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/merge-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "third-merge",
-        "gainDb": -5
+        "sceneId": "core",
+        "eventId": "child-ready",
+        "gainDb": -7
       },
       {
         "sourceRef": "assets/media/reveal-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "curve-arrive",
-        "gainDb": -5
+        "sceneId": "core",
+        "eventId": "child-fruit",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/travel-v2.wav",
+        "sceneId": "core",
+        "eventId": "second-release",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/land-v2.wav",
+        "sceneId": "core",
+        "eventId": "second-land",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/emit-v2.wav",
+        "sceneId": "grove",
+        "eventId": "third-fruit",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/reveal-v2.wav",
+        "sceneId": "grove",
+        "eventId": "grove-reveal",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/emit-v2.wav",
+        "sceneId": "learning",
+        "eventId": "learning-reuse",
+        "gainDb": -7
+      },
+      {
+        "sourceRef": "assets/media/merge-v2.wav",
+        "sceneId": "learning",
+        "eventId": "learning-extend",
+        "gainDb": -7
       },
       {
         "sourceRef": "assets/media/close-v2.wav",
-        "sceneId": "compound-connect",
+        "sceneId": "closing",
         "eventId": "title-arrive",
-        "gainDb": -5
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "take-round-5",
-        "gainDb": -12
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "take-round-10",
-        "gainDb": -12
-      },
-      {
-        "sourceRef": "assets/media/emit-v2.wav",
-        "sceneId": "compound-connect",
-        "eventId": "take-round-20",
-        "gainDb": -12
+        "gainDb": -7
       }
     ]
   }

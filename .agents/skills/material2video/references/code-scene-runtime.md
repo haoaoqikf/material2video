@@ -248,7 +248,9 @@ pure 场景必须通过两道闸门：
 
 `dynamics.ts` 与 `subtitles.ts` 提供同一约束下的动效与字幕原语：`samplePath`、`sampleTrail`、
 `burstField`、`expandingRings`、`dissolvePair`、`staggerReveal`，以及字幕激活、两行切分、
-窗口包络与关键词切分。它们只接收显式进度、种子与缓动，不读帧号或上一帧状态；路径采样与
+窗口包络与关键词切分。`screenSubtitleCharacters` 按传入帧号、开始帧、逐字间隔与单字时长
+返回独立字符进度，标点可增加停顿，不把长句压入固定包络。安全区容器保持固定，文字入退场在内部进行。
+这些原语只依赖显式进度或传入帧号、窗口、种子与缓动，不读取挂钟或上一帧状态；路径采样与
 锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由 `m2v/code-scene`
 统一导出，作品不直接导入第三方包。新增动效或可视化组件前先按 `AGENTS.md` 的「动效与组件先
 调研外部方案」检索并记录选型，既有原语能满足时优先复用。

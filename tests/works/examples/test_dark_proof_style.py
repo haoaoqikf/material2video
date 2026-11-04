@@ -40,40 +40,39 @@ def test_shipped_example_is_an_effects_only_v8_work():
     assert board['soundtrack']['effects']
 
 
-def test_reinvestment_preserves_resources_across_merge_boundaries():
-    """保护两组核算和在途包→投入的边界；不启动浏览器或生成媒体。"""
+def test_seed_sources_and_growth_follow_visible_event_order():
+    """保护来源、接触和后续生产边界；不启动浏览器或生成媒体。"""
     if shutil.which('node') is None:
         pytest.skip('需要Node.js')
     script = r"""
       const assert = require('node:assert/strict');
       const fs = require('node:fs');
       const code = require('esbuild').buildSync({entryPoints:[process.argv[1]],bundle:true,
-        platform:'node',format:'cjs',write:false}).outputFiles[0].text;
+        alias:{'m2v/code-scene':process.argv[3]},platform:'node',format:'cjs',write:false}).outputFiles[0].text;
       const mod={exports:{}}; new Function('module','exports',code)(mod,mod.exports);
-      const {ledger,returnState,tokenPosition}=mod.exports;
+      const {groveState,flight,podAt,MOTHER,CHILD,THIRD}=mod.exports;
       const board=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-      const scene=board.scenes[0], model=scene.content.props.model;
-      const events=Object.fromEntries(scene.events.map(x=>[x.id,x.frame]));
-      const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8, `${a} != ${b}`);
-      near(ledger(model,0,true).total,100);
-      near(ledger(model,30,false).active,100);
-      near(ledger(model,30,false).saved,300);
-      near(ledger(model,30,false).total,400);
-      near(ledger(model,30,true).total,1744.9402268886407);
-      near(ledger(model,-2,true).total,100);
-      near(ledger(model,40,true).total,ledger(model,30,true).total);
-      for (const id of ['return','second','third']) {
-        const end=events[`${id}-merge`];
-        const before=returnState(end-1,events,model),after=returnState(end,events,model);
-        assert.ok(before.packet); assert.equal(after.packet,null);
-        near(before.active+before.packet.value,after.active);
-        assert.equal(after.round,before.round+1);
-        const destination=tokenPosition(Math.floor(before.active/model.unit));
-        assert.deepEqual(before.packet.path.at(-1),destination);
+      const b=board.scenes[0].content.props.beats;
+      const near=(a,z)=>assert.ok(Math.abs(a-z)<1e-8, `${a} != ${z}`);
+      for (const [prefix,from,to,grow,ready] of [
+        ['first',MOTHER,CHILD,'child-grow','child-ready'],
+        ['second',CHILD,THIRD,'third-grow','third-ready']]) {
+        assert.ok(b[`${prefix}-release`]<b[`${prefix}-land`]);
+        assert.ok(b[`${prefix}-land`]<b[grow] && b[grow]<b[ready]);
+        const a=flight(b[`${prefix}-release`],b[`${prefix}-release`],b[`${prefix}-land`],podAt(from),to);
+        const z=flight(b[`${prefix}-land`],b[`${prefix}-release`],b[`${prefix}-land`],podAt(from),to);
+        near(a.x,podAt(from).x);near(a.y,podAt(from).y);near(z.x,to.x);near(z.y,to.y);
       }
-      console.log('ledger, saved resources, fractional output and merge boundaries: passed');
+      assert.ok(b['child-ready']<b['child-fruit'] && b['child-fruit']<b['second-release']);
+      assert.equal(groveState(b['child-grow'],b).child,0);
+      assert.equal(groveState(b['child-ready'],b).child,1);
+      assert.equal(groveState(b['child-fruit']-1,b).childProductive,false);
+      assert.equal(groveState(b['child-fruit'],b).childProductive,true);
+      const state=groveState(900,b);groveState(1600,b);
+      assert.deepEqual(groveState(900,b),state);
     """
-    result=subprocess.run(['node','-e',script,str(EXAMPLE/'scenes/model.ts'),str(EXAMPLE/'storyboard.json')],
+    result=subprocess.run(['node','-e',script,str(EXAMPLE/'scenes/model.ts'),str(EXAMPLE/'storyboard.json'),
+                           str(ROOT/'web/src/code-scene/motion.ts')],
                           cwd=ROOT/'web',capture_output=True,text=True,encoding='utf-8',check=False)
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -99,11 +98,12 @@ def test_composer_creates_a_fresh_work_and_keeps_event_contract_in_sync(tmp_path
     board=json.loads((tmp_path/'storyboard.json').read_text(encoding='utf-8'))
     contract=json.loads(design.read_text(encoding='utf-8').split('```m2v-checkpoints\n')[1].split('```')[0])
     scene=board['scenes'][0]
-    events={e['id']:e['frame'] for e in scene['events']}
+    events={(s['id'],e['id']) for s in board['scenes'] for e in s['events']}
     assert (tmp_path/'outputs/screen-timing.json').is_file()
     assert contract['scenes'][0]['durationFrames']==scene['durationFrames']
-    assert all(e['eventId'] in events for e in board['soundtrack']['effects'])
-    assert events['return-merge']<events['second-output']<events['second-merge']
+    assert all((e['sceneId'],e['eventId']) in events for e in board['soundtrack']['effects'])
+    assert all(e['frame'] < s['durationFrames'] for s in board['scenes'] for e in s['events'])
+    assert {s['id']:s['durationFrames'] for s in board['scenes']} == {s['id']:s['durationFrames'] for s in contract['scenes']}
     before={p.name:p.read_bytes() for p in tmp_path.glob('*.json')}
     contract_before=design.read_bytes()
     composer.compose()

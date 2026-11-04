@@ -119,6 +119,8 @@ outputs/review-pack/<review-id>/
   verdict.md      空白判定表
 ```
 
+对照打包器会生成默认 `conditions.json` 并登记摘要。投喂前自定义条件时须更新该路径的原条目，不能另加一条而留下旧摘要；核对文件路径唯一且全部摘要匹配。已投喂的包不得修改，发现问题重建新 ID，保留原观察。
+
 `manifest.json` 示例由实际打包器的字段构建逻辑生成，数值仅用于说明，实际时间码按帧记录：
 
 <!-- generated:review-manifest:start -->

@@ -10,6 +10,21 @@ import {easeMotion} from './motion';
 export type ScreenSubtitleItem = {startFrame: number; endFrame: number; text: string};
 export type TextSegment = {text: string; emphasis: boolean};
 
+/** 字符独立计时；总展开时长随字数增加，不能被整句包络压缩。 */
+export function screenSubtitleCharacters({text, frame, startFrame, staggerFrames = 2,
+  revealFrames = 8, punctuationFrames = 3}: {
+  text: string; frame: number; startFrame: number; staggerFrames?: number;
+  revealFrames?: number; punctuationFrames?: number;
+}): {character: string; startFrame: number; progress: number}[] {
+  let offset = 0;
+  return [...text].map(character => {
+    const start = startFrame + offset;
+    offset += Math.max(0, staggerFrames) + (/[，。！？；、：]/u.test(character) ? Math.max(0, punctuationFrames) : 0);
+    return {character, startFrame: start,
+      progress: easeMotion('easeOutCubic', clampProgress((frame - start) / Math.max(1, revealFrames)))};
+  });
+}
+
 /** 当前窗口内的字幕；窗口左闭右开，重叠时取第一条，调用方应避免重叠。 */
 export function activeScreenSubtitle(
   items: readonly ScreenSubtitleItem[], frame: number,
