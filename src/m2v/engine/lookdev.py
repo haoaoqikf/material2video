@@ -312,7 +312,11 @@ def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, 
             code_scenes.build_scene(root, scene, directory)
             config = code_scenes.scene_config(scene, frame_config, media, fps=prepared["fps"])
             config["captureScale"] = scale
-            code_scenes._capture(pw, root, directory, config, selected_frames=selected, verify_frames=0)
+            try:
+                code_scenes._capture(pw, root, directory, config, selected_frames=selected, verify_frames=0)
+            except M2VError as exc:
+                # 多场景采样共用一个命令；保留原始原因，同时指出需要修改的场景入口。
+                raise M2VError(f"lookdev 场景 {scene['id']}（{scene['content']['entry']}）：{exc}") from exc
             for frame in selected:
                 captured[(scene["id"], frame + scene["startFrame"])] = directory / f"frame-{frame:06d}.png"
     for frame in frames:

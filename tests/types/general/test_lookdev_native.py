@@ -81,6 +81,31 @@ def test_selected_capture_validates_indices_before_browser(tmp_path):
         code_scenes._capture(None, tmp_path, tmp_path, config, selected_frames=[10])
 
 
+def test_native_stills_failure_identifies_scene_and_preserves_cause(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+    import playwright.sync_api
+    from m2v.types.general import media_assets
+
+    prepared = {'width': 1920, 'height': 1080, 'fps': 30, 'props': {
+        'subtitle': {}, 'compiledScenes': [
+            {'id': 'knowledge', 'startFrame': 300, 'endFrame': 330,
+             'content': {'entry': 'scenes/knowledge.tsx'}}]}}
+    monkeypatch.setattr(playwright.sync_api, 'sync_playwright', lambda: nullcontext(object()))
+    monkeypatch.setattr(media_assets, 'resolve', lambda root: {'media': {}})
+    monkeypatch.setattr(code_scenes, 'build_scene', lambda *args: None)
+    monkeypatch.setattr(code_scenes, 'scene_config', lambda *args, **kwargs: {})
+    cause = M2VError('origin.x 必须是有限数值')
+
+    def fail(*args, **kwargs):
+        raise cause
+
+    monkeypatch.setattr(code_scenes, '_capture', fail)
+    with pytest.raises(M2VError, match='knowledge.*scenes/knowledge.tsx.*origin.x') as caught:
+        lookdev.native_stills(tmp_path, prepared, [310], tmp_path)
+    assert caught.value.__cause__ is cause
+    assert not list(tmp_path.rglob('frame-*.png'))
+
+
 @pytest.mark.slow
 @requires_node
 def test_native_crossfade_and_subtitle_composite(tmp_path):

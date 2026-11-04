@@ -481,6 +481,8 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 
 ## lookdev 原生关键帧
 
+静帧采集就绪或运行失败时，`lookdev` 错误会包含场景 ID、入口路径及原始原因，用于直接定位多场景作品中的失败入口。
+
 `m2v lookdev` 重新构建当前代码场景，从第 0 帧连续推进到选定帧，仅保存关键帧，
 不录制完整成片。逻辑画幅不变，采集配置的 `captureScale: 2` 使 SDK `Canvas`
 及 `Chart` 原生绘制 2 倍像素；普通录制未声明时继续使用作品原有设置。
