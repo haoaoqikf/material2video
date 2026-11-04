@@ -120,7 +120,7 @@
 - `structure-timing`：组别交接与返回的先后、110落定之后下一轮才启动、结果有消化时间；检查整个17–31秒。
 - `core-event`：同一产出包返回、并入、再产出；不能用一条孤立光轨替代资源转移。
 
-沿用[审核策略](../../../.agents/skills/material2video/references/checkpoint-gates.md#审核计划与风险触发)与[隔离方法](../../../.agents/skills/material2video/references/subagent-review.md)，本方案不新增审核人数、门或打分。概念静帧不计正式通过；实施后的当前核心与全片观察、失败修订和限制见[实施验证](verification.md)及示例VERIFICATION。正式终审由未参与前期评审的新代理看当前全片；相关直接测试、技术QA、完整过程证据和适用独立观察齐备才报告完成。
+沿用[审核策略](../../../../.agents/skills/material2video/references/checkpoint-gates.md#审核计划与风险触发)与[隔离方法](../../../../.agents/skills/material2video/references/subagent-review.md)，本方案不新增审核人数、门或打分。概念静帧不计正式通过；实施后的当前核心与全片观察、失败修订和限制见[实施验证](verification.md)及示例VERIFICATION。正式终审由未参与前期评审的新代理看当前全片；相关直接测试、技术QA、完整过程证据和适用独立观察齐备才报告完成。
 
 ## Risks / Trade-offs
 
