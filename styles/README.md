@@ -31,7 +31,7 @@
 | [american-science-milestones](doc-archive/examples/american-science-milestones/README.md) | `doc-archive` | 从电报到大模型：十项美国科学里程碑 | 30 秒 |
 | [compound-interest](count-ledger/examples/compound-interest/README.md) | `count-ledger` | 复利：同样一万、两种做法、三十年后差多少 | 29 秒 |
 | [solar-system-journey](deep-journey/examples/solar-system-journey/README.md) | `deep-journey` | 太阳系之旅：从太阳到奥尔特云的一镜到底 | 174.55 秒 |
-| [compound-connect](dark-proof/examples/compound-connect/README.md) | `dark-proof` | 接：重复如何把 1 接成 99、把 42 折接成 439,804.65 公里、把 100 个概念接成 4,950 条连接 | 60 秒 |
+| [compound-connect](dark-proof/examples/compound-connect/README.md) | `dark-proof` | 接：同样100单位，追踪产出返回并参与下一轮，比较30轮取走／接回总量；无旁白、无配乐，仅事件音效 | 64 秒 |
 
 示例在目录上归属风格，在依赖上仍是独立作品。风格指纹跳过直属 `examples/` 整个子树，
 其余共享文件全部纳入；清单及共享实现不能引用示例。示例改动只影响自身准备，

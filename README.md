@@ -16,7 +16,7 @@
 - `vehicle-showcase`：本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。
 <!-- generated:type-catalog:end -->
 
-风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[接](styles/dark-proof/examples/compound-connect/README.md)。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
+风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[接](styles/dark-proof/examples/compound-connect/README.md)（64秒单一回流实验，无旁白、无配乐，仅事件音效）。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
@@ -77,6 +77,8 @@ uv run m2v relocate --project videos/<old-slug> # 迁移旧作品源文件与全
 ```
 
 general 作品未配置旁白、音乐和音效时，预览与正式成片均不含音轨；有任一声音声明则保留原混音与验收流程。
+
+只有事件音效的作品也按同一母版响度与真峰值目标校验；稀疏音效在实测峰值余量内校正增益，保留事件之间的数字静音。
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频、连续收听声音或试听音色，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
 

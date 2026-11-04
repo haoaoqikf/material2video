@@ -5,400 +5,329 @@
   "width": 1920,
   "height": 1080,
   "title": "接",
+  "targetSeconds": 64,
   "input": {
     "kind": "topic",
-    "topic": "非金融复利：用第一刀、同一滴水的日计数、数字滚动、复利回环、离散螺旋、42 折、两种堆法、100 节点网络、棋盘与 99 条线，说明复利是把上一次的结果接回下一次的起点；唯一硬切在 41.0 秒的 21× 对比。"
+    "topic": "理想数学模型：同样100单位，30轮，每轮产出为当轮投入10%；产出取走保存与接回下一轮的总量对照。无旁白无配乐，仅事件音效。"
   },
-  "targetSeconds": 60,
   "scenes": [
     {
       "id": "compound-connect",
       "template": "code",
       "keywords": [
         "复利",
-        "凿子",
-        "折纸",
-        "棋盘",
-        "连接"
+        "回流",
+        "总量对照"
       ],
-      "durationFrames": 1800,
+      "durationFrames": 1920,
       "transition": "cut",
       "narrationSegments": [],
       "content": {
         "title": "接",
         "entry": "scenes/compound-connect.tsx",
         "props": {
+          "model": {
+            "initial": 100,
+            "rate": 0.1,
+            "rounds": 30,
+            "unit": 10
+          },
+          "phases": {
+            "question": 0,
+            "setup": 120,
+            "take": 300,
+            "return": 510,
+            "again": 720,
+            "history": 930,
+            "compare": 1230,
+            "reason": 1440,
+            "close": 1680,
+            "end": 1920
+          },
           "screenSubtitles": [
             {
-              "startFrame": 10,
-              "endFrame": 170,
-              "text": "第一刀，只有 8 毫米。\nOne cut. Eight millimeters."
+              "startFrame": 9,
+              "endFrame": 117,
+              "text": "重复，就会复利吗？"
             },
             {
-              "startFrame": 196,
-              "endFrame": 412,
-              "text": "同一滴水，同一块石头，第 100 天。\nSame drop, same stone, day one hundred."
+              "startFrame": 132,
+              "endFrame": 294,
+              "text": "每轮产出＝当轮投入的10%。"
             },
             {
-              "startFrame": 436,
-              "endFrame": 592,
-              "text": "100 刀，一把凿子；第 37 刀滑了。\nOne chisel, one hundred cuts. The 37th slipped."
+              "startFrame": 306,
+              "endFrame": 429,
+              "text": "产出取走，下一轮仍从100开始。"
             },
             {
-              "startFrame": 616,
-              "endFrame": 712,
-              "text": "复利：把产出接回投入；再投入、时间、反馈。\nCompound: output back to input. Reinvest, time, feedback."
+              "startFrame": 438,
+              "endFrame": 510,
+              "text": "投入100＋已取300＝400。"
             },
             {
-              "startFrame": 736,
-              "endFrame": 892,
-              "text": "每分一次，枝数翻倍：1 到 64。\nEach split doubles: one to sixty-four."
+              "startFrame": 516,
+              "endFrame": 603,
+              "text": "另一组，同样从100出发。"
             },
             {
-              "startFrame": 916,
-              "endFrame": 1072,
-              "text": "42 折，厚度会超过地月距离。\n42 folds: past the moon."
+              "startFrame": 609,
+              "endFrame": 717,
+              "text": "把这10，接回下一轮。"
             },
             {
-              "startFrame": 1096,
-              "endFrame": 1222,
-              "text": "42 步：4.2 毫米 对 439,804.65 公里。\nSame 42 steps: 4.2 mm vs 439,804.65 km."
+              "startFrame": 726,
+              "endFrame": 819,
+              "text": "110，再产生11，合计121。"
             },
             {
-              "startFrame": 1292,
-              "endFrame": 1348,
-              "text": "前10内部45，最后10新增945。\n45 inside, 945 added."
+              "startFrame": 825,
+              "endFrame": 927,
+              "text": "新增的部分，也参与下一轮。"
             },
             {
-              "startFrame": 1350,
-              "endFrame": 1402,
-              "text": "21 倍，共 4,950。\n21 times. 4,950 total."
+              "startFrame": 936,
+              "endFrame": 1050,
+              "text": "刚开始，差得不多。"
             },
             {
-              "startFrame": 1426,
-              "endFrame": 1552,
-              "text": "棋盘第 64 格，2 的 63 次方粒。\nSquare 64: two to the 63rd."
+              "startFrame": 1056,
+              "endFrame": 1224,
+              "text": "第10轮、第20轮、第30轮……"
             },
             {
-              "startFrame": 1576,
-              "endFrame": 1798,
-              "text": "让下一次，接上一次。\nConnect the next to the last."
+              "startFrame": 1239,
+              "endFrame": 1350,
+              "text": "同样30轮，400 对 1,745。"
+            },
+            {
+              "startFrame": 1356,
+              "endFrame": 1437,
+              "text": "接回总量，约为取走的4.36倍。"
+            },
+            {
+              "startFrame": 1446,
+              "endFrame": 1554,
+              "text": "取走，每次都从原点出发。"
+            },
+            {
+              "startFrame": 1560,
+              "endFrame": 1674,
+              "text": "接回，每次都带着上一次。"
+            },
+            {
+              "startFrame": 1695,
+              "endFrame": 1920,
+              "text": "让结果，成为下一次的起点。"
             }
-          ]
+          ],
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 2
+          }
         }
       },
       "events": [
         {
-          "id": "first-cut",
-          "frame": 20
+          "id": "question",
+          "frame": 0
         },
         {
-          "id": "depth-8",
-          "frame": 132
+          "id": "setup",
+          "frame": 120
         },
         {
-          "id": "day-1",
-          "frame": 186
+          "id": "take",
+          "frame": 300
         },
         {
-          "id": "drop-100",
-          "frame": 396
+          "id": "return",
+          "frame": 510
         },
         {
-          "id": "counter-1",
-          "frame": 426
+          "id": "again",
+          "frame": 720
         },
         {
-          "id": "slip-37",
-          "frame": 500
+          "id": "history",
+          "frame": 930
         },
         {
-          "id": "cut-100",
-          "frame": 560
-        },
-        {
-          "id": "loop-1",
-          "frame": 612
-        },
-        {
-          "id": "rule-1",
-          "frame": 640
-        },
-        {
-          "id": "rule-2",
-          "frame": 665
-        },
-        {
-          "id": "rule-3",
-          "frame": 690
-        },
-        {
-          "id": "turn-2",
-          "frame": 760
-        },
-        {
-          "id": "turn-4",
-          "frame": 810
-        },
-        {
-          "id": "turn-6",
-          "frame": 870
-        },
-        {
-          "id": "fold-10",
-          "frame": 940
-        },
-        {
-          "id": "fold-20",
-          "frame": 980
-        },
-        {
-          "id": "fold-30",
-          "frame": 1020
-        },
-        {
-          "id": "fold-42",
-          "frame": 1050
-        },
-        {
-          "id": "linear-42",
-          "frame": 1130
-        },
-        {
-          "id": "double-42",
-          "frame": 1210
-        },
-        {
-          "id": "hard-cut",
+          "id": "compare",
           "frame": 1230
         },
         {
-          "id": "first-45",
-          "frame": 1300
+          "id": "reason",
+          "frame": 1440
         },
         {
-          "id": "add-945",
-          "frame": 1370
+          "id": "close",
+          "frame": 1680
         },
         {
-          "id": "ratio-21",
-          "frame": 1395
+          "id": "first-output",
+          "frame": 210
         },
         {
-          "id": "cell-1",
-          "frame": 1420
+          "id": "take-finish",
+          "frame": 432
         },
         {
-          "id": "cell-32",
-          "frame": 1505
+          "id": "return-output",
+          "frame": 600
         },
         {
-          "id": "cell-64",
-          "frame": 1545
+          "id": "return-travel",
+          "frame": 645
         },
         {
-          "id": "lines-99",
-          "frame": 1665
+          "id": "return-merge",
+          "frame": 696
         },
         {
-          "id": "glyph",
-          "frame": 1740
+          "id": "second-output",
+          "frame": 728
         },
         {
-          "id": "title",
-          "frame": 1762
+          "id": "second-travel",
+          "frame": 740
+        },
+        {
+          "id": "second-merge",
+          "frame": 784
+        },
+        {
+          "id": "third-output",
+          "frame": 825
+        },
+        {
+          "id": "third-travel",
+          "frame": 840
+        },
+        {
+          "id": "third-merge",
+          "frame": 884
+        },
+        {
+          "id": "curve-arrive",
+          "frame": 1218
+        },
+        {
+          "id": "title-arrive",
+          "frame": 1770
+        },
+        {
+          "id": "take-round-5",
+          "frame": 319
+        },
+        {
+          "id": "take-round-10",
+          "frame": 341
+        },
+        {
+          "id": "take-round-20",
+          "frame": 387
         }
       ]
     }
   ],
   "soundtrack": {
-    "music": {
-      "sourceRef": "assets/media/bed.wav",
-      "gainDb": 0,
-      "loop": false,
-      "fadeInMs": 0,
-      "fadeOutMs": 0
-    },
     "effects": [
       {
-        "sourceRef": "assets/media/fold.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "first-cut",
-        "gainDb": -22
+        "eventId": "first-output",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/grain.wav",
+        "sourceRef": "assets/media/land-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "depth-8",
-        "gainDb": -24
+        "eventId": "take-finish",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/grain.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "day-1",
-        "gainDb": -24
+        "eventId": "return-output",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/moon.wav",
+        "sourceRef": "assets/media/travel-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "drop-100",
-        "gainDb": -20
+        "eventId": "return-travel",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/spiral.wav",
+        "sourceRef": "assets/media/merge-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "counter-1",
-        "gainDb": -26
+        "eventId": "return-merge",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/fold.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "slip-37",
-        "gainDb": -22
+        "eventId": "second-output",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/fold.wav",
+        "sourceRef": "assets/media/travel-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "cut-100",
-        "gainDb": -20
+        "eventId": "second-travel",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/origin.wav",
+        "sourceRef": "assets/media/merge-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "loop-1",
-        "gainDb": -22
+        "eventId": "second-merge",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/grain.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "rule-1",
-        "gainDb": -26
+        "eventId": "third-output",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/grain.wav",
+        "sourceRef": "assets/media/travel-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "rule-2",
-        "gainDb": -26
+        "eventId": "third-travel",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/grain.wav",
+        "sourceRef": "assets/media/merge-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "rule-3",
-        "gainDb": -26
+        "eventId": "third-merge",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/spiral.wav",
+        "sourceRef": "assets/media/reveal-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "turn-2",
-        "gainDb": -26
+        "eventId": "curve-arrive",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/spiral.wav",
+        "sourceRef": "assets/media/close-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "turn-4",
-        "gainDb": -24
+        "eventId": "title-arrive",
+        "gainDb": -5
       },
       {
-        "sourceRef": "assets/media/spiral.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "turn-6",
-        "gainDb": -22
+        "eventId": "take-round-5",
+        "gainDb": -12
       },
       {
-        "sourceRef": "assets/media/fold.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "fold-10",
-        "gainDb": -26
+        "eventId": "take-round-10",
+        "gainDb": -12
       },
       {
-        "sourceRef": "assets/media/fold.wav",
+        "sourceRef": "assets/media/emit-v2.wav",
         "sceneId": "compound-connect",
-        "eventId": "fold-20",
-        "gainDb": -24
-      },
-      {
-        "sourceRef": "assets/media/fold.wav",
-        "sceneId": "compound-connect",
-        "eventId": "fold-30",
-        "gainDb": -22
-      },
-      {
-        "sourceRef": "assets/media/moon.wav",
-        "sceneId": "compound-connect",
-        "eventId": "fold-42",
-        "gainDb": -18
-      },
-      {
-        "sourceRef": "assets/media/grain.wav",
-        "sceneId": "compound-connect",
-        "eventId": "linear-42",
-        "gainDb": -20
-      },
-      {
-        "sourceRef": "assets/media/fold.wav",
-        "sceneId": "compound-connect",
-        "eventId": "double-42",
-        "gainDb": -18
-      },
-      {
-        "sourceRef": "assets/media/board.wav",
-        "sceneId": "compound-connect",
-        "eventId": "hard-cut",
-        "gainDb": -10
-      },
-      {
-        "sourceRef": "assets/media/network.wav",
-        "sceneId": "compound-connect",
-        "eventId": "first-45",
-        "gainDb": -20
-      },
-      {
-        "sourceRef": "assets/media/network.wav",
-        "sceneId": "compound-connect",
-        "eventId": "add-945",
-        "gainDb": -16
-      },
-      {
-        "sourceRef": "assets/media/grain.wav",
-        "sceneId": "compound-connect",
-        "eventId": "ratio-21",
-        "gainDb": -18
-      },
-      {
-        "sourceRef": "assets/media/grain.wav",
-        "sceneId": "compound-connect",
-        "eventId": "cell-1",
-        "gainDb": -24
-      },
-      {
-        "sourceRef": "assets/media/grain.wav",
-        "sceneId": "compound-connect",
-        "eventId": "cell-32",
-        "gainDb": -20
-      },
-      {
-        "sourceRef": "assets/media/board.wav",
-        "sceneId": "compound-connect",
-        "eventId": "cell-64",
-        "gainDb": -16
-      },
-      {
-        "sourceRef": "assets/media/return.wav",
-        "sceneId": "compound-connect",
-        "eventId": "lines-99",
-        "gainDb": -18
-      },
-      {
-        "sourceRef": "assets/media/finale.wav",
-        "sceneId": "compound-connect",
-        "eventId": "glyph",
-        "gainDb": -16
-      },
-      {
-        "sourceRef": "assets/media/origin.wav",
-        "sceneId": "compound-connect",
-        "eventId": "title",
-        "gainDb": -16
+        "eventId": "take-round-20",
+        "gainDb": -12
       }
     ]
   }

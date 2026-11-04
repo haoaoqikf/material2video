@@ -7,6 +7,8 @@ import math
 import shutil
 import struct
 import wave
+import logging
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +17,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 
 SAMPLE_RATE = 24000
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -62,11 +65,31 @@ def master(source: Path, target: Path, integrated: float = -14.0, true_peak: flo
     只做线性增益时，峰值余量不足会把目标响度顶住（实测 −15.2 而不是 −14）；
     动态模式用同一组参数做温和压缩，才能同时满足响度与真峰值上限。
     """
+    # 全静音的门限响度为 -inf，动态 loudnorm 会产生无效满幅 PCM。
+    # 保留静音并统一交付格式；不能把非有限响度送进动态归一。
+    if not math.isfinite(float(loudness(source)['input_i'])):
+        ffmpeg(['-i', str(source), '-ar', str(SAMPLE_RATE), '-ac', '2',
+                '-c:a', 'pcm_s16le', str(target)])
+        return
     # 温和压缩先收峰值，再让 loudnorm 有增益余量；只靠 loudnorm 实测停在 −15.3。
     ffmpeg(["-i", str(source), "-af",
             f"acompressor=threshold=-20dB:ratio=2:attack=5:release=150,"
             f"loudnorm=I={integrated}:TP={true_peak}:LRA=9",
             "-ar", str(SAMPLE_RATE), "-ac", "2", "-c:a", "pcm_s16le", str(target)])
+    # 大段静音夹短音效时，动态 loudnorm 的局部增益可能使最终门限响度偏低。
+    # 用实际母带量测补偿，并为后续 AAC 编码保留 0.5 dB 真峰值余量；
+    # 只作统一线性增益，保留事件相对强弱、声像与数字静音，不以音床填补空白。
+    stats = loudness(target)
+    actual, peak = float(stats['input_i']), float(stats['input_tp'])
+    if math.isfinite(actual) and math.isfinite(peak) and actual < integrated - .5:
+        gain = max(0., min(integrated - actual, true_peak - .5 - peak))
+        if gain > .05:
+            logger.info('母带响度校正：%.2f LUFS，真峰值 %.2f dBTP，增益 %.2f dB', actual, peak, gain)
+            with tempfile.TemporaryDirectory(prefix='m2v-master-gain-', dir=target.parent) as directory:
+                corrected = Path(directory) / 'corrected.wav'
+                ffmpeg(['-i', str(target), '-af', f'volume={gain:.6f}dB', '-ar', str(SAMPLE_RATE),
+                        '-ac', '2', '-c:a', 'pcm_s16le', str(corrected)])
+                corrected.replace(target)
 
 
 def duck_envelope(cues: list[dict], duration: float, target: Path) -> None:

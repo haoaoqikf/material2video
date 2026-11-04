@@ -125,6 +125,8 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 
 没有 `soundtrack` 时母版轨只做响度归一化；有音床或音效时按字幕讲话区间做闪避、混音并限幅。
 
+稀疏事件音也遵守同一母版目标。源音轨门限响度为非有限值时保留静音并统一格式，避免将纯静音送入动态归一。动态归一后重新量测实际响度；偏低时只在实测真峰值余量内作有限线性增益，并为后续AAC保留0.5dB余量。这样保留事件间强弱、声像和数字静音，不添加持续音床补足响度；峰值余量不足时不强行追平目标，仍由当前成片QA指出差距。滤波器依据见[FFmpeg loudnorm](https://ffmpeg.org/ffmpeg-filters.html#loudnorm)。
+
 ### 声音语义与事件化
 
 先约定“什么事件用什么声音”，再补素材。推荐在同一作品内固定一组角色，例如计时、到达、接合、揭示；每个角色选稳定 `assetId`，并在作品 `SOUND.md` 或 README 登记“角色→assetId→参数→听觉作用”。画面与音效共用幕内事件：场景查询 `eventFrames` 做强调，音效声明 `eventId`，prepare 输出的 `outputs/events.json` 是两者同源的证据。

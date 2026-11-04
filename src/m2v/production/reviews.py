@@ -69,8 +69,13 @@ def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files
     questions = target / 'questions.md'
     questions.write_text('只读取本目录。按时间顺序先记录实际看到的内容、变化与理解，再判断表现、可读性和证据不足。\n'
                          '不能确认帧间运动或听感时如实限定覆盖，不用作者意图补全画面。\n'
+                         '完整时间标注帧序列用于核对位置、先后、持续、停留与阅读窗口；未实时播放或听取本身不自动构成缺陷。'
+                         '真实听感与实时体验单列未覆盖；具体必要关系仍不能确认时保留 insufficient，不将未知写成通过。\n'
                          '核心风险覆盖项须分别判断 understanding、presentation、representativeness，'
                          '每项写 status 与 observations；占位证据不能授权正式视觉实现。\n', encoding='utf-8')
+    with questions.open('a', encoding='utf-8') as stream:
+        stream.write('representativeness 指实际主体、字体、光效与合成是否具代表性、是否仍为占位；'
+                     '目标兑现另在盲看落盘后的 consistency 核对，不因目标尚未揭示自动判盲看代表性不足。\n')
     entries.append(receipt(target, questions))
     write(target / 'manifest.json', manifest)
     return target

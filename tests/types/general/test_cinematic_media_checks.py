@@ -247,6 +247,63 @@ def test_master_hits_cinematic_loudness_and_peak(tmp_path):
 
 
 @pytest.mark.media
+@pytest.mark.parametrize('transient', [False, True])
+def test_master_corrects_under_loud_output_with_peak_headroom(tmp_path, monkeypatch, transient):
+    """固定动态阶段偏低的边界；真实执行后续量测/增益，不绑定FFmpeg门限波动。"""
+    import math
+    import wave
+    from array import array
+    from m2v.engine import audio
+
+    rate=24000
+    samples=array('h')
+    for i in range(5*rate):
+        left=round(650*math.sin(2*math.pi*440*i/rate)) if rate//2<=i<7*rate//2 else 0
+        if transient and i==2*rate:
+            left=16384
+        samples.extend((left,0))
+    source=tmp_path/'quiet-stereo.wav'
+    with wave.open(str(source),'wb') as stream:
+        stream.setparams((2,2,rate,0,'NONE','not compressed'))
+        stream.writeframes(samples.tobytes())
+    real_ffmpeg=audio.ffmpeg
+    def under_loud_stage(args):
+        if '-af' in args and args[args.index('-af')+1].startswith('acompressor='):
+            shutil.copyfile(source,args[-1])
+        else:
+            real_ffmpeg(args)
+    monkeypatch.setattr(audio,'ffmpeg',under_loud_stage)
+    before=qa.loudness(source)
+    target=tmp_path/'master.wav'
+    audio.master(source,target)
+    after=qa.loudness(target)
+    assert after['integratedLufs']>before['integratedLufs']
+    assert after['truePeakDbfs']<=-1.2
+    if not transient:
+        assert abs(after['integratedLufs']+14)<.5
+    # 峰值优先：孤立瞬态不能为追求总响度被强行放大到超限。
+    with wave.open(str(target),'rb') as stream:
+        assert (stream.getnchannels(),stream.getframerate(),stream.getnframes())==(2,rate,5*rate)
+        result=array('h',stream.readframes(stream.getnframes()))
+    assert not any(result[1::2])
+    assert not any(result[:rate//2])
+    assert not any(result[-rate:])
+
+
+@pytest.mark.media
+def test_master_preserves_digital_silence_with_non_finite_loudness(tmp_path):
+    import wave
+    from m2v.engine import audio
+    source,target=tmp_path/'silence.wav',tmp_path/'master.wav'
+    audio.ffmpeg(['-f','lavfi','-i','anullsrc=r=24000:cl=stereo','-t','1',
+                  '-c:a','pcm_s16le',str(source)])
+    audio.master(source,target)
+    with wave.open(str(target),'rb') as stream:
+        assert (stream.getnchannels(),stream.getframerate(),stream.getnframes())==(2,24000,24000)
+        assert not any(stream.readframes(stream.getnframes()))
+
+
+@pytest.mark.media
 def test_assets_audit_json_round_trip(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
