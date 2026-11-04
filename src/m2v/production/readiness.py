@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 
-def expansion(gates: list[dict], scenes: list[dict], diagnostics: list[str]) -> list[dict]:
+def expansion(gates: list[dict], scenes: list[dict], diagnostics: list[str], *, trial_ids=frozenset()) -> list[dict]:
     preparation = [g['gate'] for g in gates if g['gate'] in ('G0', 'G1', 'G2', 'G3')
                    and not g['ready']]
     result = []
+    pending = sorted(row['checkpointId'] for row in scenes
+                     if row['checkpointId'] in trial_ids and row['evidenceStatus'] != '通过')
     for scene in scenes:
         reasons = [f'全局准备门未完成：{", ".join(preparation)}'] if preparation else []
+        if pending:
+            reasons.append(f'试制独立验证未完成：{", ".join(pending)}')
         if scene['evidenceStatus'] != '通过':
             reasons.append(f'G4 {scene["evidenceStatus"]}')
         reasons.extend(scene['missingAcceptance'])

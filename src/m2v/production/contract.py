@@ -106,6 +106,8 @@ def validate(c: dict) -> None:
                 raise M2VError(f'重复镜头 ID 或非法 tier：{qid}')
             shot_ids.add(qid)
             interval(shot['window'], duration)
+            if 'core' in shot and type(shot['core']) is not bool:
+                raise M2VError('镜头 core 必须为布尔值')
             if 'timeStructure' in shot:
                 fields(shot['timeStructure'], set(), set(TIME_PARTS), name='风险窗时间结构')
                 cursor = shot['window'][0]

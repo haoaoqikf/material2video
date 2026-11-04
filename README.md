@@ -34,7 +34,7 @@ Painter 另提供离屏 `layer()` 整体合成与纯数值关键帧 `keyframeAt(
 
 代码场景另提供共享 L1/L2 动效组件，覆盖入场、数据、文本排版、路径形变、遮罩揭示、圆弧进度、有机漂移、纯时间安全图表、时间轴、象形图与波形。组件只接收 `progress`/`easing`，通过 `m2v/code-scene` 使用，不直接依赖外部库；外部几何库的选型与使用边界见[共享动效组件](.agents/skills/material2video/references/code-scene-runtime.md#共享动效组件)。
 
-general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；低风险作品只派一次当前候选独立终审，核心风险按计划在扩展前增加适用评审。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。选案按未决问题比较，不固定候选数量；检查工具按需调用，完整证据与制作完成条件仍须满足。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
+general 制作采用「方案确定 → 制作与迭代 → 最终验收」三阶段；核心表达明确后可先做低成本画面原型，再补齐正式扩展所需设计。G5 全片粗片由制作助手内部检查；固定先做完整试制独立盲审，通过后再扩展；最终由未参与前期评审的新代理检查当前全片。终审区分实现与设计问题，设计失败退回对应设计层并重新验证；用户目标优先，具体方案可调整。入口见[制作与迭代](.agents/skills/material2video/references/stage-iterate.md)。同一材料可由连续构图完善到动态实现，通过后保留并逐段扩展。选案按未决问题比较，不固定候选数量；检查工具按需调用，完整证据与制作完成条件仍须满足。具体见[完整段落试制与逐段扩展](.agents/skills/material2video/references/production-workflow.md#完整段落试制与逐段扩展)。
 
 ## 快速开始
 

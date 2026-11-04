@@ -67,7 +67,14 @@ def checkpoint_ids(c: dict, kind: str) -> set[str]:
 
 
 def core_checkpoint_ids(c: dict) -> set[str]:
-    return {cid for r in risks(c) if r['kind'] in CORE_GATES for cid in r['scope']['checkpointIds']}
+    """每周期至少一个试制窗；显式核心镜头与风险范围取并集。"""
+    ids = {cid for r in risks(c) if r['kind'] in CORE_GATES for cid in r['scope']['checkpointIds']}
+    points = list(contract.checkpoints(c))
+    ids.update(cp['id'] for _, shot, cp in points if shot.get('core') is True)
+    # 静态低风险作品也需一次实际试制观察；复杂作品应显式标记最难关系。
+    if not ids and points:
+        ids.add(points[0][2]['id'])
+    return ids
 
 
 def consistency_ids(c: dict, gate: str, checkpoint_id=None) -> set[str]:
@@ -85,9 +92,11 @@ def requirement(c: dict, gate: str, checkpoint_id=None) -> dict:
                 or (gate == 'G4' and r['kind'] == 'static-expression'))
                 and (checkpoint_id is None or checkpoint_id in r['scope']['checkpointIds'])]
     ids = {cid for r in relevant for cid in r['scope']['checkpointIds']}
+    if gate == 'G4':
+        ids |= core_checkpoint_ids(c)
     if checkpoint_id:
         ids &= {checkpoint_id}
-    focuses = list(DEFAULT_FOCUSES) if workflow.gate(gate).review_round == 'final' or relevant else []
+    focuses = list(DEFAULT_FOCUSES) if workflow.gate(gate).review_round == 'final' or relevant or ids else []
     for risk in RISK_CATALOG:
         if risk.gate == gate and risk.final_focuses and risks(c, risk.kind):
             focuses = list(risk.final_focuses)
@@ -101,6 +110,6 @@ def round_for(gate: str) -> str:
 
 
 def rounds(c: dict) -> dict:
-    core = any(r['kind'] in CORE_GATES for r in risks(c))
+    core = True  # 试制与终审是固定职责，风险只扩展覆盖或触发专项。
     final = requirement(c, 'G6')['count']
     return {'core': int(core), 'rough': 0, 'final': final, 'defaultCalls': int(core) + final}

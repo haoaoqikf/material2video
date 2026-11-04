@@ -21,7 +21,7 @@ GATES = (
     Gate('G1', '方案确定', 'project', 'declaration', 'v2 合同、审核计划与设计声明一致性', 'core'),
     Gate('G2', '方案确定', 'project', 'design', '适用风险的独立目标关键帧及观察', 'core'),
     Gate('G3', '方案确定', 'project', 'mapping', '分镜映射自动检查；适用风险的 animatic 观察', 'core'),
-    Gate('G4', '制作与迭代', 'checkpoint', 'capture', '每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察', 'core'),
+    Gate('G4', '制作与迭代', 'checkpoint', 'capture', '每场检查点断言、量测与状态边界；完整试制窗固定独立盲审后再扩展', 'core'),
     Gate('G5', '制作与迭代', 'project', 'internal', '制作助手的全片内部粗片检查，覆盖结构、衔接、节奏与已知风险', 'internal'),
     Gate('G6', '最终验收', 'project', None, '当前候选技术 QA、完整全片证据与计划要求的终审', 'final'),
 )

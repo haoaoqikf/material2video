@@ -15,7 +15,7 @@
 | G1 | 方案确定 | 全片 | 自动检查 | v2 合同、审核计划与设计声明一致性 |
 | G2 | 方案确定 | 全片 | 自动检查 | 适用风险的独立目标关键帧及观察 |
 | G3 | 方案确定 | 全片 | 自动检查 | 分镜映射自动检查；适用风险的 animatic 观察 |
-| G4 | 制作与迭代 | 检查点 | 自动检查 | 每场默认检查点断言、量测、状态边界；计划选中的核心窗须独立观察 |
+| G4 | 制作与迭代 | 检查点 | 自动检查 | 每场检查点断言、量测与状态边界；完整试制窗固定独立盲审后再扩展 |
 | G5 | 制作与迭代 | 全片 | 制作助手内部检查登记 | 制作助手的全片内部粗片检查，覆盖结构、衔接、节奏与已知风险 |
 | G6 | 最终验收 | 全片 | 外部报告登记 | 当前候选技术 QA、完整全片证据与计划要求的终审 |
 <!-- generated:production-gates:end -->
@@ -24,11 +24,11 @@
 
 | 轮 | 时点 | 执行者 | 必须覆盖 |
 |---|---|---|---|
-| 核心样片 | 扩展高投入实现前 | 独立代理 | 计划中每项未验证的核心风险；动态须完整事件窗 |
+| 核心样片 | 每周期完整试制后、扩展高投入实现前 | 独立代理 | 计划中每项未验证的核心风险；动态须完整事件窗 |
 | 全片粗片 | 阶段问题收敛前 | 制作助手内部检查 | 全片结构、信息推进、衔接、节奏及已知问题 |
 | 最终成片 | 当前候选技术 QA 后 | 未参与前期评审的新代理 | 当前文件全片、理解、结构、节奏、视觉、文案与必要文字的手机可读性（示意／实拍边界标注除外） |
 
-核心轮触发条件与人数见下方[审核计划与风险触发](#审核计划与风险触发)的生成策略。不同风险可以同轮分批投喂，但报告须逐项覆盖，不能用一个代表事件授权所有未验证风险。G5 内部检查不派独立代理；G6 独立终审覆盖当前全片。最终默认一人，不表示所有轮共用同一人。
+试制独立 core 轮固定必需；风险只扩展覆盖，人数见下方[审核计划与风险触发](#审核计划与风险触发)的生成策略。不同风险可以同轮分批投喂，但报告须逐项覆盖，不能用一个代表事件授权所有未验证风险。G5 内部检查不派独立代理；G6 独立终审覆盖当前全片。最终默认一人，不表示所有轮共用同一人。
 
 门与轮不是一一对应：核心轮报告可以绑定 G2/G3/G4 的多个检查事件；普通镜头 G4 检查通过即可关闭，不再等待 G5 批量回绑；G5 或 G6 发现实际缺陷时均可重开任意场景问题。
 
@@ -40,7 +40,7 @@
 
 顶层字段：`version`、`cycleId`、`fps`、`width`、`height`、`reviewPlan`、`scenes`，可选 `constraints`、`retrospective`。`cycleId` 标识当前制作周期；旧周期事件不得授权新周期。`structureRisk`、`acceptanceChecks` 和 v1 其余字段一律拒绝。
 
-每场包含 `id`、`durationFrames`、`shots`、`checkpoints`。镜头包含全片唯一 `id`、`tier`、`window`，可选 `core` 与 `timeStructure`。检查点含全片唯一 `id`、`shotId`、`frame`、`window`、`expected`、`textPlan`、`claims`、`forbidden`，可选 `measurement`、`sampleStep`、`minEventFrames`、`manualEvidence`、`statePlan`。ID 使用字母数字、下划线和连字符，最长 96 位。
+每场包含 `id`、`durationFrames`、`shots`、`checkpoints`。镜头包含全片唯一 `id`、`tier`、`window`，可选布尔 `core` 与 `timeStructure`。检查点含全片唯一 `id`、`shotId`、`frame`、`window`、`expected`、`textPlan`、`claims`、`forbidden`，可选 `measurement`、`sampleStep`、`minEventFrames`、`manualEvidence`、`statePlan`。ID 使用字母数字、下划线和连字符，最长 96 位。
 
 每场至少一个默认检查点；内部镜头按真实状态变化和风险补充，不要求每个内部镜头各有一套。普通镜头可以只声明用途与必要断言。`expected` 可以是空列表，但不能因此跳过实际内容核查。
 
@@ -56,7 +56,7 @@
 
 ## 审核计划与风险触发
 
-`reviewPlan` 必需 `basis` 和 `risks`。`basis` 写明适用性依据；`risks` 允许为空，但空列表意味着作品没有未决的核心表达、结构时序或动态风险，不能用来掩盖已知问题。每项风险含唯一 `id`、`kind`、`scope.checkpointIds`、`reason`、`requiredEvidence`，不得手填人数。
+`reviewPlan` 必需 `basis` 和 `risks`。`basis` 写明试制范围与风险依据；`risks` 允许为空，但空列表意味着作品没有未决的核心表达、结构时序或动态风险，不能用来掩盖已知问题。每项风险含唯一 `id`、`kind`、`scope.checkpointIds`、`reason`、`requiredEvidence`，不得手填人数。
 
 <!-- generated:review-risks:start -->
 | kind | 门 | 额外要求 | 不触发的情况 |
@@ -80,11 +80,13 @@
 
 | 审核计划 | 核心轮 | 粗片 | 终审 | 独立调用合计 |
 |---|---|---|---|---|
-| 无核心风险，常规终审 | 0 | 0 | 1 | 1 |
-| 无核心风险，split-final | 0 | 0 | 2 | 2 |
+| 无核心风险，常规终审 | 1 | 0 | 1 | 2 |
+| 无核心风险，split-final | 1 | 0 | 2 | 3 |
 | 有核心风险，常规终审 | 1 | 0 | 1 | 2 |
 | 有核心风险，split-final | 1 | 0 | 2 | 3 |
 <!-- generated:review-rounds:end -->
+
+试制范围取 `shot.core=true` 的全部检查点与核心风险范围并集；没有显式范围时首个完整检查点仍须独立盲审，不能靠空风险跳过。实际制作须把最难关系的完整段落标为 core，首镜最低默认不授权未覆盖机制。试制覆盖未通过时，状态标明依赖扩展未获放行；无关素材整理仍可继续。
 
 ## 讲解机制与关键采用项的关闭
 
@@ -138,7 +140,7 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 通过需当前文件存在且摘要匹配、上游有效、计划要求的独立评审齐全、无本范围未关闭必改。降级自审只显示旗标，不关闭独立项。自身结果优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。门的 `evidenceStatus` 保留自身检查与评审结果，`prerequisites` 列出未满足的前置门，`ready` 表示自身通过／不适用且前置齐全；自身通过但前置未完成时汇总 `status=等待前置`，不得冒充过期。G4 明细同样列出自身结果和前置条件，并保留 `checkStatus` 单列自动检查。普通镜头检查通过即关闭，不再显示待批量回绑。
 
-唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
+唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason、cause。cause 为 implementation/design/mixed/undetermined，当前不渲染；新独立失败默认待定位，关闭前须定位且不可删除已登记归因。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
 
 ## 隔离包与每轮覆盖
 

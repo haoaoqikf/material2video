@@ -329,7 +329,7 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             'issues': sorted({issue for x in checkpoints for issue in x['issues']})})
     return dict(applicability='后验回归' if c.get('retrospective') else '检查点流程', phase=phase,
                 complete=not diagnostics and all(row['ready'] for row in rows),
-                expansion=readiness.expansion(rows, scenes, diagnostics),
+                expansion=readiness.expansion(rows, scenes, diagnostics, trial_ids=policy.core_checkpoint_ids(c)),
                 cycleId=c['cycleId'], reviewRounds=policy.rounds(c), currentGate=current, gates=rows, scenes=scenes, sceneSummary=scene_summary, next=next_action, diagnostics=diagnostics,
                 renders={'requests': sum(e['type'] == 'render-request' for e in events),
                          'generationAttempts': sum(e['type'] == 'generation-attempt' for e in events),

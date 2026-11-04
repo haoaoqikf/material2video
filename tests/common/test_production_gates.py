@@ -70,6 +70,27 @@ def test_invalid_contract_rejected(mutation):
         contract.validate(c)
 
 
+def test_core_marker_rejects_truthy_non_boolean():
+    c = sample()
+    c['scenes'][0]['shots'][0]['core'] = 'true'
+    with pytest.raises(M2VError, match='布尔'):
+        contract.validate(c)
+
+
+@pytest.mark.parametrize('cause', ['implementation', 'design', 'mixed', 'undetermined', [], 'unknown'])
+def test_issue_cause_validation(project, cause):
+    root, _, _ = project
+    item = {'id': 'cause-test', 'status': 'open', 'required': True, 'gate': 'G4', 'sceneId': 'one',
+            'checkpointId': 'one-cp', 'caughtAt': 'G4', 'catchableAt': 'G4', 'evidence': [],
+            'versionRefs': [], 'cause': cause}
+    if isinstance(cause, str) and cause in issues.CAUSES:
+        issues.update(root, item)
+        assert issues.load(root)[0]['cause'] == cause
+    else:
+        with pytest.raises(M2VError, match='cause'):
+            issues.update(root, item)
+
+
 def test_readonly_status_and_stale_contract(project):
     root, manifest, c = project
     with locked(root):
@@ -372,10 +393,16 @@ def test_waiting_prerequisite_does_not_invalidate_own_evidence(project):
     assert row['evidenceStatus']=='过期' and row['status']=='过期'
 
 
-def test_policy_derives_rounds_from_risks_only():
+def test_policy_always_requires_trial_and_risks_expand_coverage():
     from m2v.production import policy
     plain = sample()
-    assert policy.rounds(plain) == {'core': 0, 'rough': 0, 'final': 1, 'defaultCalls': 1}
+    assert policy.rounds(plain) == {'core': 1, 'rough': 0, 'final': 1, 'defaultCalls': 2}
+    assert policy.core_checkpoint_ids(plain) == {'one-cp'}
+    assert policy.requirement(plain, 'G4', 'one-cp')['count'] == 1
+    plain['scenes'][1]['shots'][0]['core'] = True
+    assert policy.core_checkpoint_ids(plain) == {'two-cp'}
+    plain['reviewPlan']['risks'] = [{'id': 'extra', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']}}]
+    assert policy.core_checkpoint_ids(plain) == {'one-cp', 'two-cp'}
     core = sample()
     core['reviewPlan']['risks'] = [{'id': 'event', 'kind': 'core-event', 'scope': {'checkpointIds': ['one-cp']},
         'reason': '因果尚未验证', 'requiredEvidence': ['完整窗口']}]
@@ -386,7 +413,7 @@ def test_policy_derives_rounds_from_risks_only():
     split['reviewPlan']['risks'] = [{'id': 'split', 'kind': 'split-final', 'scope': {'checkpointIds': ['one-cp']},
         'reason': '用户要求双人', 'requiredEvidence': ['两份隔离报告']}]
     assert policy.requirement(split, 'G6')['focuses'] == ['structure', 'visual-copy']
-    assert policy.rounds(split) == {'core': 0, 'rough': 0, 'final': 2, 'defaultCalls': 2}
+    assert policy.rounds(split) == {'core': 1, 'rough': 0, 'final': 2, 'defaultCalls': 3}
     # 镜头等级本身不是风险，不派生审核。
     graded = sample()
     graded['scenes'][0]['shots'][0]['tier'] = 'A'
@@ -427,7 +454,7 @@ def test_coverage_must_match_scope_and_sequence():
     with pytest.raises(M2VError, match='覆盖'):
         acceptance.validate([{**item, 'window': [0, 29]}], c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='失败或证据不足'):
-        acceptance.validate([{k: v for k, v in {**item, 'status': 'insufficient'}.items() if k != 'assessment'}],
+        acceptance.validate([{**item, 'status': 'insufficient', 'assessment': assessment(presentation='insufficient')}],
                             c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='缺少必要覆盖'):
         acceptance.validate([item], c, {**report, 'round': 'final'}, Path('.'), valid)
@@ -645,6 +672,12 @@ def test_review_issue_needs_current_independent_recheck_and_keeps_scope(project)
         reviews.import_report(root, manifest, failed)
         item = issues.load(root)[0]
         assert item['checkpointId'] == 'one-cp'
+        assert item['cause'] == 'undetermined'
+        with pytest.raises(M2VError, match='定位'):
+            issues.update(root, {**item, 'status': 'closed'})
+        with pytest.raises(M2VError, match='不能删除'):
+            issues.update(root, {k: v for k, v in item.items() if k != 'cause'})
+        item['cause'] = 'design'
         with pytest.raises(M2VError, match='原范围'):
             issues.update(root, {**item, 'required': False})
         fake = {**receipt(outputs(root), failed), 'gate': 'G4'}
@@ -667,9 +700,9 @@ def test_review_issue_needs_current_independent_recheck_and_keeps_scope(project)
         assert issues.load(root)[0]['status'] == 'open'
 
 
-def test_expansion_keeps_unrelated_scope_available_and_status_readonly(project):
+def test_expansion_waits_for_trial_and_status_stays_readonly(project):
     root, manifest, c = project
-    # 普通准备门已完成；仅第一个检查点有失败，第二个仍允许继续。
+    # 普通准备门已完成；默认试制窗未通过，其他已采集窗也不授权依赖扩展。
     with locked(root):
         for gate in ('G0', 'G1', 'G2', 'G3'):
             passing_check(root, manifest, c, gate)
@@ -682,7 +715,8 @@ def test_expansion_keeps_unrelated_scope_available_and_status_readonly(project):
     before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
     result = ledger.status(root, manifest)
     assert not result['complete']
-    assert [row['allowed'] for row in result['expansion']] == [False, True]
+    assert [row['allowed'] for row in result['expansion']] == [False, False]
+    assert all(any('试制独立验证未完成' in reason for reason in row['reasons']) for row in result['expansion'])
     assert before == {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
 
 

@@ -12,6 +12,7 @@ from .workflow import GATE_IDS
 from .storage import atomic_text, local
 
 BLOCK = re.compile(r'^```m2v-issues\s*\n(.*?)^```\s*$', re.M | re.S)
+CAUSES = frozenset({'implementation', 'design', 'mixed', 'undetermined'})
 
 
 def load(root: Path, *, required=False, _reopening_id=None, _review_context=None) -> list[dict]:
@@ -40,7 +41,11 @@ def validate(root: Path, items, *, _reopening_id=None, _review_context=None) -> 
     seen = set()
     for item in items:
         fields(item, {'id', 'status', 'required', 'gate', 'sceneId', 'checkpointId', 'caughtAt', 'catchableAt',
-                      'evidence', 'versionRefs'}, {'uncatchableReason'})
+                      'evidence', 'versionRefs'}, {'uncatchableReason', 'cause'})
+        if 'cause' in item and (not isinstance(item['cause'], str) or item['cause'] not in CAUSES):
+            raise M2VError('问题 cause 必须为 implementation/design/mixed/undetermined')
+        if item['status'] == 'closed' and item.get('cause') == 'undetermined':
+            raise M2VError('问题关闭前必须定位设计或实现原因')
         if text(item['id']) in seen or item['status'] not in ('open', 'closed') or type(item['required']) is not bool:
             raise M2VError('问题 ID 重复、状态或必改标识无效')
         seen.add(item['id'])
@@ -120,6 +125,8 @@ def update(root: Path, item: dict) -> None:
     source = path.read_text(encoding='utf-8') if path.exists() else '# 制作问题与复查\n'
     items = load(root, _reopening_id=item['id'] if item.get('status') == 'open' else None)
     previous = next((x for x in items if x['id'] == item['id']), None)
+    if previous and 'cause' in previous and 'cause' not in item:
+        raise M2VError('已登记的问题归因不能删除，关闭前须完成定位')
     if previous and item['id'].startswith('REVIEW-') and any(
             item.get(key) != previous[key] for key in ('required', 'gate', 'sceneId', 'checkpointId', 'caughtAt', 'catchableAt')):
         raise M2VError('独立评审问题不能改变原范围或必改性质')
