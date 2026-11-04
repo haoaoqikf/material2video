@@ -58,6 +58,50 @@ def test_reuse_binds_actual_sources_and_expires_after_source_edit(project, monke
 
 
 @pytest.mark.media
+@pytest.mark.parametrize('mutation', ['font-edit', 'font-missing', 'registry-edit', 'style-font-edit'])
+def test_math_font_change_expires_capture_and_reused_timing(project, tmp_path, monkeypatch, mutation):
+    root, manifest, c = project
+    web = tmp_path / 'runtime/web'
+    module = web / 'src/code-scene'
+    module.mkdir(parents=True)
+    write(module / 'entries.json', {'m2v/code-scene/math': 'math.tsx'})
+    (module / 'math.tsx').write_text("import font from '../assets/math/a.woff2'; export {font};", encoding='utf-8')
+    font = web / 'src/assets/math/a.woff2'
+    font.parent.mkdir(parents=True); font.write_bytes(b'font-v1')
+    registry = web.parent / 'fonts/registry.json'
+    write(registry, {'fonts': [{'id': 'math'}]})
+    monkeypatch.setattr('m2v.engine.contract_page.web_dir', lambda: web)
+    (root / 'scenes/one.tsx').write_text("import {font} from 'm2v/code-scene/math'; export default font;", encoding='utf-8')
+    if mutation == 'style-font-edit':
+        package = web.parent / 'styles/math-style'
+        package.mkdir(parents=True)
+        (package / 'guide.md').write_text('图示', encoding='utf-8')
+        (package / 'math.jsx').write_text("export {font} from './forward';", encoding='utf-8')
+        (package / 'forward.js').write_text("export {font} from 'm2v/code-scene/math';", encoding='utf-8')
+        write(package / 'style.json', dict(schemaVersion=1,id='math-style',version='1.0.0',description='公式',
+            types=['general'],frames=[dict(width=1920,height=1080)],guide='guide.md',
+            components={'math-block':'math.jsx'}))
+        write(root / 'project.json', dict(type='general',style={'id':'math-style'}))
+        monkeypatch.setattr('m2v.core.styles.STYLES_ROOT', package.parent)
+        (root / 'scenes/one.tsx').write_text("import {font} from 'm2v/style/components/math-block'; export default font;", encoding='utf-8')
+    source = capture_report(root, c)
+    ledger.register(root, manifest, source)
+    timing_report = checks.run(root, manifest, 'G3', timing_reports=[source.relative_to(outputs(root)).as_posix()])[0]
+    ledger.register(root, manifest, timing_report)
+    if mutation in ('font-edit', 'style-font-edit'):
+        font.write_bytes(b'font-v2')
+    elif mutation == 'font-missing':
+        font.unlink()
+    else:
+        write(registry, {'fonts': [{'id': 'changed'}]})
+    status = ledger.status(root, manifest)
+    assert status['gates'][3]['evidenceStatus'] == '过期'
+    assert status['scenes'][0]['checkStatus'] == '过期'
+    with pytest.raises(M2VError, match='过期'):
+        ledger.register(root, manifest, timing_report)
+
+
+@pytest.mark.media
 @pytest.mark.parametrize('mutation', ['short', 'window', 'hash', 'coverage', 'malformed'])
 def test_reuse_rejects_insufficient_or_stale_capture(project, mutation):
     root, manifest, c = project

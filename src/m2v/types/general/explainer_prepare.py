@@ -135,7 +135,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         leading = scene.get("leadInFrames", 0)
         speech_start = cursor + leading
         scene.update(startFrame=start, endFrame=start+duration, durationInFrames=duration,
-                     transitionFrames=overlap, segmentWindows={})
+                     transitionFrames=overlap, transition=scene.get("transition", "cut"), segmentWindows={})
         # 前导留白必须真的写进音轨：字幕与镜头按 speech_start 排版，旁白若从 0 帧开始
         # 就会整片提前，出现“字幕在说、声音已走”的错位。
         if leading:

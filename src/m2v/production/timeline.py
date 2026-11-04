@@ -39,7 +39,7 @@ def build(root: Path, manifest: dict) -> Path:
         scene['mediaPath'] = target.name
         # 不向盲审导出源码路径、作者 props 或实现说明。
         for key in list(scene):
-            if key not in ('id', 'startFrame', 'endFrame', 'durationInFrames', 'transitionFrames',
+            if key not in ('id', 'startFrame', 'endFrame', 'durationInFrames', 'transitionFrames', 'transition',
                            'mediaPath', 'mediaStartFrame', 'mediaDurationFrames'):
                 del scene[key]
         scene['id'] = f'scene-{index:04d}'

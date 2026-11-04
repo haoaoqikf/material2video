@@ -44,6 +44,9 @@ importers:
       '@remotion/tailwind-v4':
         specifier: 4.0.526
         version: 4.0.526(@remotion/bundler@4.0.526(lightningcss@1.33.0)(postcss@8.5.28)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@rspack/core@1.7.11)(webpack@5.105.0(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28))
+      '@remotion/transitions':
+        specifier: 4.0.526
+        version: 4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tailwindcss/vite':
         specifier: 4.2.0
         version: 4.2.0(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2))
@@ -65,9 +68,18 @@ importers:
       echarts:
         specifier: 6.1.0
         version: 6.1.0
+      elkjs:
+        specifier: 0.12.1
+        version: 0.12.1
       gsap:
         specifier: 3.15.0
         version: 3.15.0
+      katex:
+        specifier: 0.19.1
+        version: 0.19.1
+      lucide-react:
+        specifier: 1.68.0
+        version: 1.68.0(@types/react@19.3.0)(react@19.3.0)
       motion:
         specifier: 14.3.0
         version: 14.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -777,6 +789,12 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
+  '@remotion/shapes@4.0.526':
+    resolution: {integrity: sha512-JrHASXAKAB05rewe22m7YGfVwHax6vzVSU4raqzSZPQWQHWALA8+RatHfHvXYVAr0h9ohTIwlIPi7iPOcNP4jg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   '@remotion/streaming@4.0.526':
     resolution: {integrity: sha512-qfCZ/JKPI7QNSmGTjMgcojxe5G1AzydkcB3JbgssG8QvwZaG+3OTZtw8lLwBOBfOQgvfY25Up89iM/GUBAQSsA==}
 
@@ -812,6 +830,12 @@ packages:
 
   '@remotion/timeline-utils@4.0.526':
     resolution: {integrity: sha512-7IlRqCjWjKHF60732cwMuDgCEE8JxzX8BBm20gQ13gnOFox27s7CWwg1rMHJ3AFrFqjsEhS5ocQOruC/m/YiQA==}
+
+  '@remotion/transitions@4.0.526':
+    resolution: {integrity: sha512-e4dIbtPP94tEF3P/c8MK2oiNwHhXHbP3KdDK2fgf4ajZ4Ysoy2t4l0FzTvoczyzTvL//YaMzf+nkumb7RanvsA==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/web-renderer@4.0.526':
     resolution: {integrity: sha512-7bpE6S0TOcbGph1NO0xDEbS266f06/PBuX53o9OPqS8VBAaKPy6H9pTzO6t23MSBTP2+qzHURYdvn1pRkgAJOQ==}
@@ -1463,6 +1487,10 @@ packages:
     resolution: {integrity: sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==}
     engines: {node: '>=6.0'}
 
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
+
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -1582,6 +1610,9 @@ packages:
 
   electron-to-chromium@1.5.433:
     resolution: {integrity: sha512-5lCAbyZBjtmUt/RAGHRqrL2q0oEFRThDAsZHHDn9XHa89Qw7gMYOeSicBTy+AHfvo0r6vwsZvqNJTQIQy1BLzA==}
+
+  elkjs@0.12.1:
+    resolution: {integrity: sha512-IhMYKHE4S2vtx0QrhBP3lYOIKDeIiJXBrdq9MGYkuB8ZHqhrBnHNfSUndjXFewrX1CPK8chwq+2NA0K0hliYuw==}
 
   enhanced-resolve@5.25.1:
     resolution: {integrity: sha512-nGXts5znJzmWPu+mIE9izCOzdg63oJca2mDzGWWTth7sr4aCToKcoyFVBQwN75Ij5Pf6p510EwkTqViTRzDV+w==}
@@ -1805,6 +1836,10 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
+  katex@0.19.1:
+    resolution: {integrity: sha512-jG8uKntjSEcm2EpQOh0XturpPuuC9r3Sq5HLHdsFdWZT27E672SF19QEi+of0/YeOy15lDgRhKvr5614uRrEfA==}
+    hasBin: true
+
   kiwi-schema@0.5.0:
     resolution: {integrity: sha512-X+FpfU0yTEtc6aTHS7VwbOpvQwRt70+pXXWRI5fd6CvWhe7pSVC854TVo4Zo0x5/wwcWj+/9KUlXpdcP0dY9AA==}
     hasBin: true
@@ -1972,6 +2007,15 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
+
+  lucide-react@1.68.0:
+    resolution: {integrity: sha512-9i7NKWm2QlOprMhcwkhBOlIt9zB7cp2GIyFY+oMue0EsprolUFxva5rkdBbyfs4k1eejpa0JRnRgVOGiart+Xg==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   maath@0.10.8:
     resolution: {integrity: sha512-tRvbDF0Pgqz+9XUa4jjfgAQ8/aPKmQdWXilFu2tMy4GWj4NOsx99HlULO4IeREfbO3a0sA145DZYyvXPkybm0g==}
@@ -3237,6 +3281,13 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@remotion/shapes@4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@remotion/paths': 4.0.526
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      remotion: 4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+
   '@remotion/streaming@4.0.526': {}
 
   '@remotion/studio-codemods@4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
@@ -3351,6 +3402,14 @@ snapshots:
     transitivePeerDependencies:
       - react
       - react-dom
+
+  '@remotion/transitions@4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@remotion/paths': 4.0.526
+      '@remotion/shapes': 4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      remotion: 4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   '@remotion/web-renderer@4.0.526(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -3965,6 +4024,8 @@ snapshots:
 
   chrome-trace-event@1.0.4: {}
 
+  commander@15.0.0: {}
+
   commander@2.20.3: {}
 
   convert-source-map@2.0.0: {}
@@ -4071,6 +4132,8 @@ snapshots:
       zrender: 6.1.0
 
   electron-to-chromium@1.5.433: {}
+
+  elkjs@0.12.1: {}
 
   enhanced-resolve@5.25.1:
     dependencies:
@@ -4290,6 +4353,10 @@ snapshots:
 
   json5@2.2.3: {}
 
+  katex@0.19.1:
+    dependencies:
+      commander: 15.0.0
+
   kiwi-schema@0.5.0: {}
 
   kleur@3.0.3: {}
@@ -4412,6 +4479,12 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+
+  lucide-react@1.68.0(@types/react@19.3.0)(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   maath@0.10.8(@types/three@0.186.0)(three@0.186.1):
     dependencies:

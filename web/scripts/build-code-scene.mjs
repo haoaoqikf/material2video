@@ -1,5 +1,6 @@
 /** 独立 esbuild 入口：作品代码只能访问本作品与明确批准的包。 */
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
@@ -11,6 +12,22 @@ const project = fs.realpathSync(projectArg);
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(path.join(web, 'package.json'));
 const sdk = path.join(web, 'src/code-scene/sdk.tsx');
+const sdkEntries = new Map([
+  ['m2v/code-scene', sdk],
+  ...Object.entries(JSON.parse(fs.readFileSync(path.join(web, 'src/code-scene/entries.json'), 'utf8')))
+    .map(([name, file]) => [name, path.join(web, 'src/code-scene', file)]),
+]);
+function checkMathFonts() {
+  const repo = path.dirname(web);
+  const registry = JSON.parse(fs.readFileSync(path.join(repo, 'fonts/registry.json'), 'utf8'));
+  for (const font of registry.fonts.filter(entry => entry.id.startsWith('katex-'))) {
+    const file = path.join(repo, font.targets.find(target => target.startsWith('web/src/assets/math/')));
+    const data = fs.existsSync(file) && fs.readFileSync(file);
+    if (!data || data.length !== font.bytes || createHash('sha256').update(data).digest('hex') !== font.sha256) {
+      throw new Error(`公式字体缺失或摘要失配：${font.file}；先运行 uv run python fonts/fetch.py`);
+    }
+  }
+}
 const approved = new Set(['react', 'react-dom', 'motion', 'three', '@react-three/fiber', '@react-three/drei', 'gsap', 'echarts',
   'postprocessing', '@react-three/postprocessing']);
 const within = (base, file) => {const rel = path.relative(base, file); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));};
@@ -26,6 +43,14 @@ const result = await build({
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
   loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl', '.otf': 'dataurl'},
   plugins: [{name: 'project-boundary', setup(builder) {
+    // 与 Vite 的 ?raw 保持一致；KaTeX 只读取排版 CSS，字体走受控恢复目标。
+    builder.onResolve({filter: /^katex\/dist\/katex.min.css\?raw$/}, args => {
+      if (args.importer !== path.join(web, 'src/code-scene/math.tsx')) return;
+      return {path: require.resolve('katex/dist/katex.min.css'), namespace: 'raw-css'};
+    });
+    builder.onLoad({filter: /.*/, namespace: 'raw-css'}, args => ({
+      contents: `export default ${JSON.stringify(fs.readFileSync(args.path, 'utf8'))}`, loader: 'js',
+    }));
     builder.onResolve({filter: /^m2v\/style$/}, () => ({path: 'style', namespace: 'm2v-style'}));
     builder.onLoad({filter: /.*/, namespace: 'm2v-style'}, () => ({contents:
       `const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
@@ -35,7 +60,10 @@ const result = await build({
       const fromProject = args.importer && within(project, args.importer);
       const fromStyle = args.importer && !fromProject && sharedStyleFile(args.importer);
       if (!fromProject && !fromStyle) return;
-      if (args.path === 'm2v/code-scene') return {path: sdk};
+      if (sdkEntries.has(args.path)) {
+        if (args.path === 'm2v/code-scene/math') checkMathFonts();
+        return {path: sdkEntries.get(args.path)};
+      }
       if (args.path.startsWith('m2v/style/')) {
         const match = /^m2v\/style\/(components|assets)\/([a-z0-9][a-z0-9-]{0,62})$/.exec(args.path);
         const file = match && style?.[match[1]]?.[match[2]];
@@ -60,5 +88,6 @@ const result = await build({
   }}],
 });
 const inputs = Object.keys(result.metafile.inputs).filter(file => file !== '<stdin>' && !file.startsWith('m2v-style:'))
+  .map(file => file.replace(/^raw-css:/, ''))
   .map(file => fs.realpathSync(path.resolve(process.cwd(), file)));
 fs.writeFileSync(path.join(output, 'inputs.json'), JSON.stringify([...new Set(inputs)]));

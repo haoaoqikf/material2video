@@ -30,7 +30,6 @@ export default defineConfig({
       react: `${here}node_modules/react`,
       'react-dom': `${here}node_modules/react-dom`,
       remotion: `${here}node_modules/remotion`,
-      '@remotion/': `${here}node_modules/@remotion/`,
     },
   },
   build: {

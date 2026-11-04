@@ -1,5 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Img, OffthreadVideo, Sequence, useCurrentFrame} from 'remotion';
+import {TransitionSeries} from '@remotion/transitions';
+import {transitionPresentation, transitionTiming, type SceneTransition} from '../../transitions';
 import type {SubtitleStyle} from '../../frames';
 import {FONT_STACK} from '../../fonts';
 
@@ -15,7 +17,7 @@ export type ExplainerScene = {
   mediaDurationFrames?: number;
   /** 仅 lookdev 静帧合成注入；正式视频继续回放 mediaPath。 */
   stillPath?: string;
-};
+} & Record<'transition', SceneTransition>;
 export type ArticleExplainerProps = {
   version: 8; schemaVersion: 8; fps: number; width: number; height: number; title: string; mediaBase?: string;
   subtitle: SubtitleStyle; durationInFrames: number; compiledScenes: ExplainerScene[];
@@ -33,18 +35,26 @@ export const ArticleExplainer: React.FC<ArticleExplainerProps> = props => {
   return (
     // 片段铺满整张画布，因此这一层底色只在转场期间透出；首幕固定 cut，实际不会看到。
     <AbsoluteFill style={{background: '#000'}}>
-      {props.compiledScenes.map(scene => (
-        <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationInFrames} layout="none">
-          <AbsoluteFill style={{opacity: scene.transitionFrames
-            ? Math.max(0, Math.min(1, (frame - scene.startFrame) / (scene.transitionFrames - 1))) : 1}}>
+      <Sequence from={props.compiledScenes[0]?.startFrame ?? 0} layout="none">
+      <TransitionSeries>
+      {props.compiledScenes.flatMap((scene, index) => {
+        const transition = scene.transition;
+        return [index > 0 && transition !== 'cut' && scene.transitionFrames > 0
+          ? <TransitionSeries.Transition key={`${scene.id}-transition`}
+              presentation={transitionPresentation(transition, props.width, props.height)}
+              timing={transitionTiming(scene.transitionFrames)}/> : null,
+        <TransitionSeries.Sequence key={scene.id} durationInFrames={scene.durationInFrames}>
+          <AbsoluteFill>
             {scene.stillPath ? <Img src={scene.stillPath} style={{width: '100%', height: '100%'}}/> :
             <Sequence from={scene.mediaStartFrame ?? 0} durationInFrames={scene.mediaDurationFrames ?? scene.durationInFrames} layout="none">
             <OffthreadVideo src={(props.mediaBase ?? '') + scene.mediaPath.split('/').map(encodeURIComponent).join('/')}
               muted trimBefore={0} trimAfter={scene.mediaDurationFrames ?? scene.durationInFrames}
               style={{width: '100%', height: '100%'}}/></Sequence>}
           </AbsoluteFill>
-        </Sequence>
-      ))}
+        </TransitionSeries.Sequence>];
+      })}
+      </TransitionSeries>
+      </Sequence>
       {/* 字幕层压在所有片段之上；容器就是安全区矩形，换行宽度与 Python 量测判据同源。 */}
       <div data-m2v-subtitle="" style={{position: 'absolute', zIndex: 2,
         left: safeArea.x, top: safeArea.y, width: safeArea.width, height: safeArea.height,

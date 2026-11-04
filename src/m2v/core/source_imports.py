@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import json
 from pathlib import Path
 
 #: 引用写法。只认「会真的把另一个文件拉进构建」的那几种。
@@ -14,7 +15,8 @@ _IMPORT_PATTERNS = (
 )
 
 #: 解析引用时依次尝试的后缀（含目录入口）
-_RESOLVE_SUFFIXES = ("", ".ts", ".tsx", ".css", ".json", ".mjs", "/index.ts", "/index.tsx")
+_RESOLVE_SUFFIXES = ("", ".tsx", ".ts", ".jsx", ".js", ".css", ".json", ".mjs",
+                     "/index.tsx", "/index.ts", "/index.jsx", "/index.js")
 
 
 def import_specifiers(source: str) -> list[str]:
@@ -24,7 +26,13 @@ def import_specifiers(source: str) -> list[str]:
 
 def resolve_import(specifier: str, importer: Path, web: Path) -> Path | None:
     """引用 → 仓库里的文件；裸模块与取不到的引用返回 None。"""
-    if Path(specifier).is_absolute():
+    if specifier.startswith('m2v/code-scene/'):
+        registry = web / 'src/code-scene/entries.json'
+        entries = json.loads(registry.read_text(encoding='utf-8')) if registry.is_file() else {}
+        if specifier not in entries:
+            return None
+        base = registry.parent / entries[specifier]
+    elif Path(specifier).is_absolute():
         base = Path(specifier)
     elif specifier.startswith(("@/", "~/")):
         base = web / "src" / specifier[2:]

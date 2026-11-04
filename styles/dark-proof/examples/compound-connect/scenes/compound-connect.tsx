@@ -8,6 +8,7 @@
  */
 import {useEffect, useRef, type CSSProperties, type ReactNode} from 'react';
 import {beatPulse, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {MathFormula, ensureMathReady} from 'm2v/code-scene/math';
 import Stage from 'm2v/style/components/stage';
 import BilingualTitle from 'm2v/style/components/bilingual-title';
 import ScreenSubtitle, {type SubtitleVariant} from 'm2v/style/components/screen-subtitle';
@@ -91,8 +92,7 @@ function Power({
       fontFamily: LATIN, ...NUMERIC_STYLE, fontSize: size, lineHeight: 0.9,
       color, opacity, whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline',
     }}>
-      <span style={{fontWeight: 300}}>{base}</span>
-      <sup style={{fontSize: Math.round(size * 0.52), lineHeight: 0.8, marginLeft: 2}}>{exponent}</sup>
+      <MathFormula tex={`${base}^{${exponent}}`} fontSize={size / 1.21} color={color}/>
       {suffix ? <span style={{fontSize: Math.round(size * 0.34), marginLeft: 8}}>{suffix}</span> : null}
     </div>
   );
@@ -799,7 +799,7 @@ export default function CompoundConnect({props, width, height, subtitleSafeArea,
   useEffect(() => {
     if (announced.current) return;
     announced.current = true;
-    ready();
+    void ensureMathReady().then(ready);
   }, [ready]);
   const frame = Math.round(elapsedSeconds * fps);
   const subtitles = ((props as unknown as Props).screenSubtitles ?? []) as Subtitle[];

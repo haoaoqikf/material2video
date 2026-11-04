@@ -79,6 +79,13 @@ def append(root: Path, manifest: dict, kind: str, *, gate=None, scene_id=None, c
 
 def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None, *, timing_reports=None) -> dict:
     result = {'cycle': c['cycleId'], 'contract': contract.scope_digest(c, scene_id, checkpoint_id)}
+    if gate in ('G3', 'G5', 'G6'):
+        from m2v.engine.contract_page import web_dir
+        web = web_dir()
+        # 合成层改变影响结构/全片，独立代码场景的 G4 不因转场实现变化而误伤。
+        result['composition'] = fingerprint({name: digest(web / name) for name in
+            ('src/transitions.json', 'src/transitions.tsx', 'src/types/general/ArticleExplainer.tsx')
+            if (web / name).is_file()})
     if gate == 'G0':
         project_path = root / 'project.json'
         if project_path.exists():

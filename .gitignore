@@ -73,6 +73,7 @@ fonts/files/
 fonts/.cache/
 web/src/assets/fonts/*.ttf
 web/src/assets/fonts/*.otf
+web/src/assets/math/
 styles/*/assets/*.ttf
 styles/*/assets/*.otf
 

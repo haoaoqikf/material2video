@@ -252,7 +252,7 @@ def test_rough_player_uses_composition_without_full_encode(project, monkeypatch,
     checks.ffmpeg(['-f','lavfi','-i','color=c=blue:s=1920x1080:r=30:d=1', '-c:v','libx264','-pix_fmt','yuv420p',str(clip)])
     props={'version':8,'schemaVersion':8,'fps':30,'width':1920,'height':1080,'title':'',
         'durationInFrames':30,'subtitle':frames.spec(1920,1080)['subtitle'],'subtitleCues':[],
-        'compiledScenes':[{'id':'one','startFrame':0,'endFrame':30,'durationInFrames':30,'transitionFrames':0,'mediaPath':'clip.mp4'}]}
+        'compiledScenes':[{'id':'one','startFrame':0,'endFrame':30,'durationInFrames':30,'transitionFrames':0,'transition':'cut','mediaPath':'clip.mp4'}]}
     prepared={'props':props,'durationInFrames':30,'fps':30,'width':1920,'height':1080}
     monkeypatch.setattr('m2v.commands._prepared',lambda *_:prepared)
     monkeypatch.setattr('m2v.types.general.code_scenes.materialize',lambda *_:prepared)

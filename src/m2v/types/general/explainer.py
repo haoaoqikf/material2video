@@ -18,7 +18,8 @@ from m2v.core.video_config import general_fps
 VERSION = 8
 TEMPLATE = "code"
 MAX_SCENES, MAX_SEGMENTS = 300, 30
-TRANSITIONS = ("cut", "fade", "crossfade")
+from m2v.core.assets import REPOSITORY_ROOT
+TRANSITIONS = tuple(json.loads((REPOSITORY_ROOT / "web/src/transitions.json").read_text(encoding="utf-8")))
 
 
 def topic_input(data: dict) -> bool:
@@ -76,7 +77,7 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
         if scene.get("template") != TEMPLATE:
             fail(path, f"template 必须是 {TEMPLATE}：通用画面由作品代码决定，不再有受控模板")
         if scene.get("transition", "cut") not in TRANSITIONS or (index == 0 and scene.get("transition", "cut") != "cut"):
-            fail(path, "转场仅支持 cut/fade/crossfade，首幕必须 cut")
+            fail(path, "转场仅支持 " + "/".join(TRANSITIONS) + "，首幕必须 cut")
         for name, high in (("leadInFrames", max_pad), ("tailFrames", max_pad),
                            ("readingHoldFrames", max_hold)):
             if name not in scene:

@@ -4,6 +4,16 @@ import { frameOf } from '../../frames';
 import { ArticleExplainer, type ArticleExplainerProps } from './ArticleExplainer';
 
 const currentFrame = vi.hoisted(() => ({ value: 0 }));
+vi.mock('@remotion/transitions', async importOriginal => {
+  const actual = await importOriginal<typeof import('@remotion/transitions')>();
+  const Series = ({children}: {children: React.ReactNode}) => <div>{children}</div>;
+  return {...actual, TransitionSeries: Object.assign(Series, {
+    Sequence: ({children, durationInFrames}: {children: React.ReactNode; durationInFrames: number}) =>
+      <div data-duration={durationInFrames}>{children}</div>,
+    Transition: ({timing}: {timing: {getDurationInFrames: (args: {fps: number}) => number}}) =>
+      <span data-overlap={timing.getDurationInFrames({fps: 30})}/>,
+  })};
+});
 vi.mock('remotion', async (importOriginal) => {
   const actual = await importOriginal<typeof import('remotion')>();
   return {
@@ -25,8 +35,8 @@ function props(overrides: Partial<ArticleExplainerProps> = {}): ArticleExplainer
   return {
     version: 8, schemaVersion: 8, fps: 30, width: frame.width, height: frame.height, title: '测试',
     subtitle: frame.subtitle, durationInFrames: 90,
-    compiledScenes: [{ id: 'a', startFrame: 0, endFrame: 48, durationInFrames: 48, transitionFrames: 0, mediaPath: 'outputs/code-cache/a.mp4' },
-      { id: 'b', startFrame: 60, endFrame: 90, durationInFrames: 30, transitionFrames: 12, mediaPath: 'outputs/code-cache/b.mp4' }],
+    compiledScenes: [{ id: 'a', startFrame: 0, endFrame: 72, durationInFrames: 72, transitionFrames: 0, transition: 'cut', mediaPath: 'outputs/code-cache/a.mp4' },
+      { id: 'b', startFrame: 60, endFrame: 90, durationInFrames: 30, transitionFrames: 12, transition: 'crossfade', mediaPath: 'outputs/code-cache/b.mp4' }],
     subtitleCues: [{ startFrame: 0, endFrame: 30, text: '第一句字幕' }, { startFrame: 60, endFrame: 90, text: '第二句字幕' }],
     ...overrides,
   };
@@ -68,14 +78,13 @@ describe('通用作品合成层', () => {
     expect(landscape.subtitle.textColor).toBe('#ffffff');
   });
 
-  it('片段按幕时长回放，转场按帧数渐入，首幕不淡入', () => {
+  it('片段时长和重叠窗口交给统一转场，首幕没有转场', () => {
     const first = render(0);
     expect(first).toContain('outputs/code-cache/a.mp4');
-    expect(first).toContain('opacity:1');
-    // 第 60 帧是第二幕起点：12 帧转场从 0 开始。
-    expect(render(60)).toContain('opacity:0');
-    expect(render(65)).toContain('opacity:0.4545');
-    expect(render(71)).toContain('opacity:1');
+    expect(first).toContain('data-duration="72"');
+    expect(first).toContain('data-duration="30"');
+    expect(first.match(/data-overlap=/g)).toHaveLength(1);
+    expect(first).toContain('data-overlap="12"');
   });
 
   it('画幅不同也走同一条合成路径：片段铺满画布', () => {

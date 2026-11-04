@@ -1,3 +1,4 @@
+import {chartLinePath} from 'm2v/code-scene';
 /**
  * 论证图表原语：坐标框、曲线、柱列、箭头与标记。
  *
@@ -88,29 +89,13 @@ export type ChartLineProps = {
 
 /** 把点列转成平滑路径；端点重复以保证首尾切线可控。 */
 export function smoothPath(points: Point[]): string {
-  if (points.length < 2) return '';
-  const at = (index: number) => points[Math.max(0, Math.min(points.length - 1, index))];
-  let d = `M${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const p0 = at(index - 1);
-    const p1 = at(index);
-    const p2 = at(index + 1);
-    const p3 = at(index + 2);
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    d += ` C${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} `
-      + `${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
-  }
-  return d;
+  return points.length < 2 ? '' : chartLinePath(points, 'catmull-rom');
 }
 
 export function ChartLine({
   points, color = T.colors.ivory, width = 4, progress = 1, opacity = 1, smooth = false, dashed = false,
 }: ChartLineProps) {
-  const path = smooth ? smoothPath(points) : points
-    .map(([px, py], index) => `${index === 0 ? 'M' : 'L'}${px.toFixed(2)} ${py.toFixed(2)}`).join(' ');
+  const path = smooth ? smoothPath(points) : chartLinePath(points);
   const value = clamp01(progress);
   if (!path || value <= 0) return null;
   const draw = dashed

@@ -28,6 +28,7 @@ uv run m2v qa --project styles/dark-proof/examples/compound-connect
 
 - `storyboard.json`：v8 单幕分镜、1800 帧、11 条中英双语屏幕字幕、30 个事件与声音绑定。
 - `scenes/compound-connect.tsx`：全部画面、几何与数学；不读取外部参考素材。
+- 指数公式通过 `m2v/code-scene/math` 使用 KaTeX，并在 `ready()` 前等待公式字体；依赖安装后运行 `uv run python fonts/fetch.py` 恢复登记字体。图表曲线复用共享 D3 几何，接口见[表达组件](../../../../.agents/skills/material2video/references/visual-components.md)。
 - `scenes/geometry.ts`、`motion.tsx`、`handoff.tsx`：本片共用的几何、逐帧运动与页面交接物。
 - `DESIGN.md`：10 场时间表、数学口径、唯一硬切、参考拆解与机器合同。
 - `SOURCES.md`：参考片、字体与声音来源边界。

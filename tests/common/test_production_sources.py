@@ -11,6 +11,22 @@ from m2v.production import contract, policy, workflow
 from helpers.production import sample
 
 
+def test_transition_sources_expire_structure_and_final_but_not_raw_scene(tmp_path, monkeypatch):
+    from helpers.production import project
+    from m2v.production import ledger
+    root, _, c = project(tmp_path)
+    web = tmp_path / 'web'
+    (web / 'src').mkdir(parents=True)
+    source = web / 'src/transitions.json'
+    source.write_text('{"fade":1}', encoding='utf-8')
+    monkeypatch.setattr('m2v.engine.contract_page.web_dir', lambda: web)
+    before = {gate: ledger.upstream(root, c, gate) for gate in ('G3', 'G4', 'G5', 'G6')}
+    source.write_text('{"fade":2}', encoding='utf-8')
+    after = {gate: ledger.upstream(root, c, gate) for gate in before}
+    assert before['G4'] == after['G4']
+    assert all(before[gate] != after[gate] for gate in ('G3', 'G5', 'G6'))
+
+
 def test_contract_and_project_follow_shared_fps(monkeypatch):
     monkeypatch.setattr(video_config, 'GENERAL_ALLOWED_FPS', (24,))
     c = sample()

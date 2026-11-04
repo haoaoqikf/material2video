@@ -255,6 +255,8 @@ pure 场景必须通过两道闸门：
 
 ### 共享动效组件
 
+图表几何已统一到 D3；自动图示、公式和图标通过按需 SDK 子入口使用，不混入 Remotion 合成时钟。接口、就绪规则、许可与可执行示例见[外部表达组件与转场](visual-components.md)。
+
 `m2v/code-scene` 另提供一层可直接使用的共享组件；它们只把 `progress` 和显式
 `easing` 映射成样式、几何或排版，不读挂钟、不启动动画、不依赖 Remotion context。
 

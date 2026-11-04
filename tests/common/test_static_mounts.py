@@ -19,6 +19,18 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.engine.http_server import LocalServer
 
+
+@pytest.mark.parametrize('cors', [False, True])
+def test_media_range_does_not_require_cors(tmp_path, cors):
+    from urllib.request import Request, urlopen
+    (tmp_path / 'clip.mp4').write_bytes(bytes(range(100)))
+    with LocalServer(tmp_path, cors=cors) as server:
+        request = Request(server.base_url + '/clip.mp4', headers={'Range': 'bytes=10-19'})
+        with urlopen(request) as response:
+            assert response.status == 206 and response.read() == bytes(range(10, 20))
+            assert response.headers['Content-Range'] == 'bytes 10-19/100'
+            assert (response.headers.get('Access-Control-Allow-Origin') == '*') is cors
+
 MOUNT = "/__m2v__"
 
 

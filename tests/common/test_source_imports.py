@@ -20,6 +20,8 @@ def test_alias_directory_assets_and_bare_module(tmp_path):
     (web / 'src/pkg').mkdir(parents=True)
     target = web / 'src/pkg/index.tsx'
     target.write_text('export default 1;', encoding='utf-8')
+    # 与作品 esbuild 边界解析一致：同名 .tsx/.ts 并存时绑定真正执行的入口。
+    (target.parent / 'index.ts').write_text('export default 2;', encoding='utf-8')
     importer = web / 'src/main.ts'
     assert resolve_import('@/pkg', importer, web) == target
     assert resolve_import('~/pkg', importer, web) == target

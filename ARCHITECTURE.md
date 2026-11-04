@@ -28,6 +28,9 @@ Material2Video 通过 Python 命令行准备和校验作品，使用 Remotion �
 
 ## 契约与文档
 
+- `web/src/code-scene/chart-geometry.ts` 统一 D3 点列曲线，共享图表、金融图表和风格包复用；业务轴、节奏和风格参数仍由调用方维护。SDK 的 `diagram`、`math`、`icons` 子入口分别提供 ELK 一次性布局与静态绘制、KaTeX 本地排版与就绪、Lucide 静态命名图标，按引用打包；不经通用入口加载整套外部表达库。公式 WOFF2 由 `fonts/registry.json` 登记，依赖安装后通过既有恢复机制进入忽略目录，代码场景打包时核验。
+- `web/src/transitions.json` 是 general 场景转场名称、呈现与方向的跨语言真源；Python 校验与准备、Web 官方 TransitionSeries 合成及 G5 中性投影共同消费。转场重叠与字幕仍由准备阶段的全局时间窗决定。LocalServer 在默认同源与显式 CORS 模式下均支持已有单段 Range 处理，跨域头只在后者发出。
+
 - `src/m2v/type_system/catalog.json` 是类型清单、类别归属与初始化模板信息的来源；README 和 Skill 中标记的类型清单由同步脚本按类别生成。类别只组织类型，不作可执行类型；类型目录或制作门/审核策略修改后运行 `python .agents/skills/material2video/scripts/sync_docs.py` 重新生成，`--check` 只验证、不写入。作品规范位置由类别派生：分类类型为 `videos/<category>/<type>/<slug>/`，未分类类型为 `videos/<type>/<slug>/`。
 - 新增视频类型只在两处落地：先在 `src/m2v/type_system/catalog.json` 登记类型（含可选类别归属）、材料入口、初始化模板与文案，再实现该类型的适配器。共享入口不按类型名硬编码分发，类型清单由目录生成。
 - `web/src/frames.json` 与 `web/src/video-config.json` 分别是画幅/字幕几何和帧率的跨语言来源；Python 经 `core/frames.py`、`core/video_config.py` 读取，制作合同与类型校验复用同一入口。

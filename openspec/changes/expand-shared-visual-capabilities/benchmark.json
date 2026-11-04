@@ -1,0 +1,10 @@
+{
+  "sample": "50 nodes, 49 edges; one static Atom import; unminified scene bundles",
+  "versions": {"elkjs": "0.12.1", "katex": "0.19.1", "lucide-react": "1.68.0", "remotion-transitions": "4.0.526"},
+  "elk50ColdMs": 255,
+  "elk50WarmMs": 50,
+  "bundleBytes": {"base": 5397198, "oneIcon": 5408174},
+  "oneIconDeltaBytes": 10976,
+  "mathFonts": {"count": 20, "bytes": 259792},
+  "limits": "Representative local measurements, not CI total time or full-video throughput. Existing base SDK cost is unchanged."
+}

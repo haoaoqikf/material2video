@@ -28,7 +28,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 每幕声明 `id`、`template`（只能是 `code`）、`content`、`narrationSegments`，可选 `keywords`、
 `durationFrames`、`transition`、`transitionFrames`、`speech`、`events`。转场支持 `cut`、`fade`、
-`crossfade`，首幕只能 cut；`transitionFrames` 为1～`60 × fps`的整数，默认 `round(8 / 30 × fps)`（30/60 fps下为8/16帧）。`durationFrames` 为
+`crossfade`、`slide-left`、`slide-right`、`wipe-left`、`wipe-right`、`iris`、`clock-wipe`，首幕只能 cut；名称/方向以 `web/src/transitions.json` 为准，说明见[通用转场](visual-components.md#通用转场)。`transitionFrames` 为1～`60 × fps`的整数，默认 `round(8 / 30 × fps)`（30/60 fps下为8/16帧）。`durationFrames` 为
 1～`600 × fps`的整数，声明后必须容得下旁白、默认0.4秒阅读停留与转场，不得截断口播，它同时是录制片段
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
@@ -200,7 +200,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 
 每段使用共享 TTS 独立合成，以实际音频推导帧数、字幕与画面时间窗。每幕声音结束后默认保留0.4秒（按作品fps换算为帧数）
 稳定阅读，默认硬切。`fade`/`crossfade` 在前一幕完整阅读尾段之后按 `transitionFrames` 交叉淡化，
-下一幕配音在淡化结束后开始，前后口播不重叠。音轨不截断、不重叠，母版轨严格裁到全片时长。
+其他非 cut 转场同样使用这一重叠窗口；下一幕配音在转场结束后开始，前后口播不重叠。音轨不截断、不重叠，母版轨严格裁到全片时长。
 完整成片含停留及淡化最多 `600 × fps` 帧（600秒）。
 
 默认根据旁白原文自动生成画面字幕，预演和正式导出共用同一字幕层，无需配置开关；字幕烧录进

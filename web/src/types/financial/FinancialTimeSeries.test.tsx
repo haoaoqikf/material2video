@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { FinancialTimeSeries, financialView, framePosition, valueTickDecimals, revealedValueRange, canvasCenterOffset, assertFinancialPlotUnclipped, type FinancialTimeSeriesProps } from './FinancialTimeSeries';
 import { monotoneCurvePath, trendPoints } from './chart';
+import {svgPathProperties} from 'svg-path-properties';
 
 const epochDayForTest = (value: string) => Date.parse(`${value}T00:00:00Z`) / 86400000;
 
@@ -229,12 +230,16 @@ describe('financial time-series composition', () => {
     const curve = monotoneCurvePath([
       { x: 0, y: 100 }, { x: 100, y: 40 }, { x: 200, y: 40 }, { x: 300, y: 120 },
     ]);
-    expect(curve.startsWith('M 0,100')).toBe(true);
-    expect(curve).toContain('C ');
-    // 控制点由单调插值生成，y 不会越过相邻采样点的上下界。
-    const values = [...curve.matchAll(/,(-?\d+(?:\.\d+)?)/gu)].map((match) => Number(match[1]));
-    expect(Math.min(...values)).toBeGreaterThanOrEqual(40);
-    expect(Math.max(...values)).toBeLessThanOrEqual(120);
+    expect(curve).toMatch(/^M\s*0,100/);
+    expect(curve).toContain('C');
+    // 读取真实曲线几何，不依赖 SVG 命令的空格/逗号格式。
+    const path = new svgPathProperties(curve);
+    for (let i = 0; i <= 100; i++) {
+      const point = path.getPointAtLength(path.getTotalLength() * i / 100);
+      const [low, high] = point.x <= 100 ? [40, 100] : point.x <= 200 ? [40, 40] : [40, 120];
+      expect(point.y).toBeGreaterThanOrEqual(low - 1e-6);
+      expect(point.y).toBeLessThanOrEqual(high + 1e-6);
+    }
   });
 
   it('uses the enlarged plot, readable axis labels, dual curves and small methodology notes', () => {

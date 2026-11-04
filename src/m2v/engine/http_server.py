@@ -118,6 +118,10 @@ class _QuietHandler(SimpleHTTPRequestHandler):
 
 
 class _MediaHandler(_QuietHandler):
+    def __init__(self, *args, cors: bool = False, **kwargs):
+        self.cors = cors
+        super().__init__(*args, **kwargs)
+
     def send_head(self):
         # Chromium 依赖 Range 请求进行音频跳转；仅返回完整文件会使 currentTime 回到 0。
         self._remaining = None
@@ -167,7 +171,8 @@ class _MediaHandler(_QuietHandler):
 
     def end_headers(self) -> None:
         # 媒体目录可位于仓库外；单独绑定回环端口，不扩大网页静态根目录。
-        self.send_header("Access-Control-Allow-Origin", "*")
+        if self.cors:
+            self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Accept-Ranges", "bytes")
         super().end_headers()
 
@@ -237,7 +242,8 @@ class LocalServer:
         页面加载会直接失败成 `ERR_UNSAFE_PORT`。这类端口一律重摇，最多试十次。
         """
         handler = partial(
-            _MediaHandler if self.cors else _QuietHandler,
+            _MediaHandler,
+            cors=self.cors,
             directory=str(self.root),
             mounts=self.mounts,
             files=self.files,

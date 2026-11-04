@@ -6,6 +6,7 @@
  * 帧相关状态，因此同一帧在任何一次渲染里都得到同一结果。
  */
 import {easeMotion} from '../../code-scene/motion';
+import {chartLinePath} from '../../code-scene/chart-geometry';
 import type {FinancialDesign} from './design';
 
 type ISODate = string;
@@ -514,52 +515,9 @@ export function trendPoints(points: PricePoint[]): PricePoint[] {
   return sampled.length >= 2 ? sampled : points;
 }
 
-/** Fritsch–Carlson 单调三次插值：经过全部采样点，不在相邻点之间产生过冲。 */
+/** D3 单调曲线：不在相邻采样点之间过冲，业务取样与坐标口径仍由本类型负责。 */
 export function monotoneCurvePath(points: ChartPoint[]): string {
-  if (points.length === 0) return '';
-  if (points.length === 1) return `M ${points[0]!.x},${points[0]!.y}`;
-  const count = points.length;
-  const widths = new Array<number>(count - 1);
-  const slopes = new Array<number>(count - 1);
-  for (let index = 0; index < count - 1; index++) {
-    const width = points[index + 1]!.x - points[index]!.x;
-    widths[index] = width > 0 ? width : 1e-6;
-    slopes[index] = (points[index + 1]!.y - points[index]!.y) / widths[index]!;
-  }
-  const tangents = new Array<number>(count).fill(0);
-  tangents[0] = slopes[0]!;
-  tangents[count - 1] = slopes[count - 2]!;
-  for (let index = 1; index < count - 1; index++) {
-    const previous = slopes[index - 1]!;
-    const next = slopes[index]!;
-    if (previous * next <= 0) { tangents[index] = 0; continue; }
-    const left = 2 * widths[index]! + widths[index - 1]!;
-    const right = widths[index]! + 2 * widths[index - 1]!;
-    tangents[index] = (left + right) / (left / previous + right / next);
-  }
-  for (let index = 0; index < count - 1; index++) {
-    if (slopes[index] === 0) {
-      tangents[index] = 0;
-      tangents[index + 1] = 0;
-      continue;
-    }
-    const alpha = tangents[index]! / slopes[index]!;
-    const beta = tangents[index + 1]! / slopes[index]!;
-    const magnitude = alpha * alpha + beta * beta;
-    if (magnitude > 9) {
-      const scale = 3 / Math.sqrt(magnitude);
-      tangents[index] = scale * alpha * slopes[index]!;
-      tangents[index + 1] = scale * beta * slopes[index]!;
-    }
-  }
-  let path = `M ${points[0]!.x},${points[0]!.y}`;
-  for (let index = 0; index < count - 1; index++) {
-    const width = widths[index]!;
-    path += ` C ${points[index]!.x + width / 3},${points[index]!.y + tangents[index]! * width / 3}`
-      + ` ${points[index + 1]!.x - width / 3},${points[index + 1]!.y - tangents[index + 1]! * width / 3}`
-      + ` ${points[index + 1]!.x},${points[index + 1]!.y}`;
-  }
-  return path;
+  return chartLinePath(points.map(point => [point.x, point.y]), 'monotone');
 }
 
 export type ChartGeometry = {

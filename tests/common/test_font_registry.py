@@ -23,7 +23,8 @@ def test_registry_entries_are_complete():
     data = registry()
     assert data["schemaVersion"] == 1
     entries = data["fonts"]
-    assert {entry["id"] for entry in entries} == {"lat-inter", "sans-cn", "serif-cn-subset"}
+    assert {"lat-inter", "sans-cn", "serif-cn-subset"} <= {entry["id"] for entry in entries}
+    assert len({entry['id'] for entry in entries}) == len(entries)
     for entry in entries:
         assert entry["bytes"] > 0
         assert len(entry["sha256"]) == 64

@@ -6,21 +6,14 @@
  */
 import {useId, type CSSProperties, type ReactNode} from 'react';
 import {scaleLinear} from 'd3-scale';
-import {
-  area as areaShape, curveLinear, curveMonotoneX, curveStep, line as lineShape,
-  type CurveFactory,
-} from 'd3-shape';
+import {chartLinePath, chartAreaPath, type ChartCurve} from '../chart-geometry';
+export type {ChartCurve} from '../chart-geometry';
 import {motionCurve} from '../motion';
 import {clampProgress, type Easing} from '../primitives';
 import {dataAttrs} from './internal';
 import {pathDrawProps} from './paths';
 
 const LINEAR = motionCurve('linear');
-
-export type ChartCurve = 'linear' | 'monotone' | 'step';
-const CURVES: Record<ChartCurve, CurveFactory> = {
-  linear: curveLinear, monotone: curveMonotoneX, step: curveStep,
-};
 
 export type ChartSeries = {
   values: readonly number[];
@@ -107,11 +100,6 @@ export function LinePlot({
   const autoDomain = autoYDomain(series.flatMap(item => [...item.values]), area);
   const y = scaleLinear().domain(yDomain ? [...yDomain] : autoDomain).range([bottom, top]);
   if (!yDomain) y.nice();
-  const resolvedCurve = CURVES[curve];
-  const lineGen = lineShape<[number, number]>().x(point => point[0]).y(point => point[1])
-    .curve(resolvedCurve);
-  const areaGen = areaShape<[number, number]>().x(point => point[0]).y0(bottom)
-    .y1(point => point[1]).curve(resolvedCurve);
   const eased = easing(clampProgress(progress));
   return (
     <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
@@ -128,8 +116,8 @@ export function LinePlot({
         const points = pointsOf(item.values, x, y);
         if (points.length < 2) return null;
         const stroke = item.color ?? color;
-        const d = lineGen(points) ?? '';
-        const seriesArea = areaGen(points);
+        const d = chartLinePath(points, curve);
+        const seriesArea = chartAreaPath(points, bottom, curve);
         const draw = item.dashed
           ? {strokeDasharray: '8 8'}
           : pathDrawProps(d, eased);

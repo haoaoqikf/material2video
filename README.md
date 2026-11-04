@@ -42,8 +42,8 @@ general 可声明幕内事件，由动画、计数、视觉强调和音效共同
 
 ```powershell
 uv sync
-uv run python fonts/fetch.py
 pnpm -C web install
+uv run python fonts/fetch.py
 pnpm -C web build
 uv run playwright install chromium
 uv run m2v types
@@ -101,6 +101,8 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 架构边界与模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 通用视频支持键盘、火花、电流、掠过、碰撞和提示等常见音效：代码合成与第三方直链／本地文件导入统一登记，通过音效 ID 按帧定位，支持裁切、循环、淡化与左右声像。第三方素材须提供来源、作者及明确许可，准备与渲染离线执行。命令为 `m2v general sounds catalog|import|audit`；配方、分镜字段和制作检查见[媒体与音效](.agents/skills/material2video/references/article-media-and-sound.md#统一音效库)，[键盘与火花演练](styles/doc-archive/examples/american-science-milestones/assets/SOUND_EXERCISE.md)提供可复现配方。
+
+代码场景可按需使用 ELK 自动图示布局、KaTeX 离线公式与 Lucide 静态图标；共享图表、金融折线和暗场风格复用 D3 点列几何。general 合成支持方向化滑动、擦除、中心圆形与时钟式转场，复用现有重叠帧窗口和字幕时间轴。接口、字体恢复、许可与例子见[外部表达组件与转场](.agents/skills/material2video/references/visual-components.md)。
 
 外部素材的制作期检查另有两个只读入口：`uv run m2v assets report --project <目录>` 交叉核对登记、场景引用与 `SOURCES.md`，写 `outputs/assets-report.json`；`uv run m2v assets contact-sheet --input <候选>` 把视频按时刻抽帧或多张图片拼成带序号的接触表。两者不联网、不导入素材、不替代 `prepare` 与 `assets audit`，用法与读法见[素材检索与台账](.agents/skills/material2video/references/material-sourcing.md#6-导入与台账)。
 

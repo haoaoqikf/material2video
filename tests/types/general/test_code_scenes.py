@@ -104,6 +104,7 @@ def test_build_allows_approved_packages_and_records_sources(tmp_path):
     ("import 'lodash';\nexport default () => null;\n", "未批准的作品依赖"),
     ("import x from '../../outside';\nexport default () => x;\n", "作品导入越界"),
     ("import x from 'https://example.com/x.js';\nexport default () => x;\n", "未批准的作品依赖"),
+    ("import css from 'katex/dist/katex.min.css?raw';\nexport default () => css;\n", "未批准的作品依赖"),
 ])
 @pytest.mark.slow
 @requires_node

@@ -40,9 +40,6 @@
       ],
       "remotion": [
         "./node_modules/remotion"
-      ],
-      "@remotion/*": [
-        "./node_modules/@remotion/*"
       ]
     },
     "types": [

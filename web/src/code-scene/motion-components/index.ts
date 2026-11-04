@@ -10,3 +10,4 @@ export * from './charts';
 export * from './timeline';
 export * from './pictogram';
 export * from './waveform';
+export {chartLinePath, chartAreaPath} from '../chart-geometry';
