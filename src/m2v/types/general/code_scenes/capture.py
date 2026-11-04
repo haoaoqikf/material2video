@@ -177,11 +177,12 @@ def _valid_clip(video: Path, receipt: Path, *, contract: str | None = None) -> b
 
 
 def _clip_receipt(video: Path, first: int, last: int, *, extra: dict | None = None) -> None:
-    from m2v.core.project import _write_json
+    from m2v.core.delivery import _save
     payload = {"sha256": digest(video), "first": first, "last": last}
     if extra:
         payload.update(extra)
-    _write_json(video.with_suffix(".json"), payload)
+    # Windows 索引器可能短暂占用前一份收据；复用交付层已有的有界重试。
+    _save(video.with_suffix(".json"), payload)
 
 
 def _cached_ranges(cache: Path, key: str, first: int, last: int, *, contract: str | None = None) -> list:

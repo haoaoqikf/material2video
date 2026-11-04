@@ -7,7 +7,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
-from . import baselines, checks, issues, ledger, reviews, workflow
+from . import baselines, checks, dependencies, issues, ledger, media_evidence, reviews, workflow
 from .storage import locked, read, receipt
 
 
@@ -18,6 +18,7 @@ def add_parsers(sub) -> None:
     gates.add_argument('--gate', choices=workflow.GATE_IDS)
     gates.add_argument('--checkpoint')
     gates.add_argument('--file')
+    gates.add_argument('--timing-reports', nargs='+', help='G3 复用输出根内当前 G4 采集报告，不重复生成 animatic')
     issues_parser = sub.add_parser('issues', help='更新唯一问题表机器块')
     issues_parser.add_argument('action', choices=('update',))
     issues_parser.add_argument('--project', required=True)
@@ -34,7 +35,9 @@ def dispatch(args) -> int:
     root, manifest = load_project(args.project)
     if manifest['type'] != 'general':
         raise M2VError('制作门仅适用于 general；专用类型维持原契约')
-    with locked(root):
+    if getattr(args, 'timing_reports', None) is not None and (args.command != 'gates' or args.action != 'check' or args.gate != 'G3'):
+        raise M2VError('--timing-reports 只适用于 gates check --gate G3')
+    with locked(root), dependencies.snapshot(), media_evidence.snapshot():
         if args.command == 'issues':
             issues.update(root, read(Path(args.file)))
             result = ledger.append(root, manifest, 'issues-updated', evidence=[receipt(outputs(root), outputs(root) / 'visual-notes.md')])
@@ -62,7 +65,8 @@ def dispatch(args) -> int:
         else:
             if not args.gate:
                 raise M2VError('check 需要 --gate')
-            paths = checks.run(root, manifest, args.gate, checkpoint_id=args.checkpoint)
+            paths = checks.run(root, manifest, args.gate, checkpoint_id=args.checkpoint,
+                               timing_reports=args.timing_reports)
             result = {'reports': [str(p) for p in paths], 'events': [ledger.register(root, manifest, p)['id'] for p in paths]}
         if args.command != 'gates' or args.action not in ('repair', 'rebuild'):
             ledger.rebuild(root, manifest)

@@ -281,7 +281,7 @@ export default function Demo() {
 @requires_node
 def test_camera_path_and_background_checks(tmp_path):
     """穿球与背景裁切检查是纯函数，结果直接可断言。"""
-    from test_capture_clock import scene_page
+    from helpers.general import scene_page
 
     with scene_page(tmp_path, RISK_SOURCE) as (page, _):
         risk = page.evaluate("window.__risk")

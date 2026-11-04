@@ -10,31 +10,12 @@ from m2v.production import baselines, checks, contract, issues, ledger, measure
 from m2v.production.storage import locked, read, receipt, write
 
 
-def sample():
-    return {'version': 2, 'cycleId': 'test-cycle', 'fps': 30, 'width': 1920, 'height': 1080,
-            'reviewPlan': {'basis': '基础布局无核心未决风险', 'risks': []},
-            'scenes': [{'id': sid, 'durationFrames': 30,
-                'shots': [{'id': sid + '-shot', 'tier': 'B', 'window': [0, 30]}],
-                'checkpoints': [{'id': sid + '-cp', 'shotId': sid + '-shot', 'frame': 15, 'window': [0, 30],
-                    'expected': [{'role': 'disc', 'count': 2}], 'textPlan': [], 'claims': [], 'forbidden': []}]} for sid in ('one', 'two')]}
+from helpers.production import sample, project as production_project
 
 
 @pytest.fixture
 def project(tmp_path):
-    root = tmp_path / 'work'
-    root.mkdir()
-    c = sample()
-    (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
-    (root / 'scenes').mkdir()
-    for s in c['scenes']:
-        (root / 'scenes' / (s['id'] + '.tsx')).write_text('export default 1;', encoding='utf-8')
-    write(root / 'storyboard.json', {'width': 1920, 'height': 1080, 'fps': 30,
-        'scenes': [{'id': s['id'], 'durationFrames': 30, 'content': {'entry': f'scenes/{s["id"]}.tsx'}} for s in c['scenes']]})
-    out = outputs(root)
-    out.mkdir()
-    (out / 'visual-notes.md').write_text('```m2v-issues\n[]\n```\n', encoding='utf-8')
-    write(out / 'production/comparisons.json', [])
-    return root, {'id': 'work', 'type': 'general'}, c
+    return production_project(tmp_path)
 
 
 @pytest.mark.parametrize('mutation', ['unknown', 'duplicate', 'frame', 'empty', 'claim'])
@@ -213,6 +194,8 @@ def test_contract_path_id_is_rejected():
 
 def test_animatic_real_encode_and_duration(project):
     root, _, c = project
+    c['reviewPlan']['risks'] = [{'id': 'timing', 'kind': 'structure-timing',
+        'scope': {'checkpointIds': ['one-cp']}, 'reason': '窗口时点', 'requiredEvidence': ['时序片段']}]
     for cp in c['scenes'][0]['checkpoints']:
         cp['window'] = [0,30]
     directory = outputs(root) / 'design'
@@ -699,5 +682,3 @@ def test_technical_delivery_summary_does_not_claim_production_complete(project, 
     assert result['stage'] == 'delivered'
     assert result['summary'] == '候选已生成，制作未完成'
     assert not result['production']['complete']
-
-

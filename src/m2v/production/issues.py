@@ -97,7 +97,12 @@ def _require_independent_recheck(root: Path, item: dict, context: tuple) -> None
         if data.get('round') == 'core' and data.get('reviewType') == 'blind' and not acceptance.core_coverage_passed(
                 coverage, scope & policy.core_checkpoint_ids(c)):
             continue
-        if event['upstream'] != ledger.upstream(root, c, event['gate'], event['sceneId'], event['checkpointId']):
+        try:
+            current = ledger.event_upstream(root, c, event)
+        except (M2VError, OSError, ValueError, TypeError, KeyError):
+            # 历史复查可能引用已删除或过期的采集；继续查找较新的有效复查。
+            continue
+        if event['upstream'] != current:
             continue
         if not ledger.evidence_valid(root, event['evidence']):
             continue

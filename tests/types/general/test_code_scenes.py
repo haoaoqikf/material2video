@@ -10,38 +10,13 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types.general import adapter, code_scenes, explainer
-from helpers.general import board, fake_tts, prepare_build, project, requires_node, scene, scene_root
-
-SOURCE = """import {motion, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
-import {useEffect} from 'react';
-
-export default function Demo({props}: CodeSceneProps) {
-  const {ready, running} = useSceneContext();
-  useEffect(() => {ready();}, []);
-  return <motion.div animate={running ? {opacity: 1} : {opacity: 0}}>{String(props.label ?? '演示')}</motion.div>;
-}
-"""
-
-
-def code_scene(entry: str = "scenes/demo.tsx", props: object = None, **extra) -> dict:
-    scene = {"id": "code-demo", "template": "code", "keywords": ["演示"],
-             "content": {"title": "代码演示", "entry": entry, "props": {} if props is None else props},
-             "narrationSegments": []}
-    scene.update(extra)
-    return scene
-
+from helpers.general import SOURCE, code_scene, write_source, board, fake_tts, prepare_build, project, requires_node, scene, scene_root
 
 def storyboard(scene: dict) -> dict:
     """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
     data = board()
     data["scenes"] = [scene]
     return data
-
-
-def write_source(root: Path, entry: str, source: str = SOURCE) -> None:
-    file = root / entry
-    file.parent.mkdir(parents=True, exist_ok=True)
-    file.write_text(source, encoding="utf-8")
 
 
 def test_code_scene_without_narration_is_accepted(tmp_path):

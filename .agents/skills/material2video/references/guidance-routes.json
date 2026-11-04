@@ -143,7 +143,7 @@
     },
     {
       "id": "design-template",
-      "when": "填写或重写 DESIGN.md 的五块式设计记录",
+      "when": "填写或重写 DESIGN.md 全片原则与逐场设计表",
       "guide": "references/visual-creative-direction.md#12-designmd-模板"
     },
     {

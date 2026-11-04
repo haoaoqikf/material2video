@@ -301,7 +301,7 @@ def test_style_runtime_and_clip_cache(package, tmp_path, chromium_ready):
     from helpers.general import board, project as general_project
     from m2v.core import frames
     from m2v.types.general.code_scenes import record
-    from test_code_scenes import code_scene, write_source
+    from helpers.general import code_scene, write_source
     style_root, _ = package
     root, manifest = general_project(tmp_path / 'content', board())
     manifest['style'] = {'id': style_root.name}

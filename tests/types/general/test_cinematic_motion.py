@@ -192,7 +192,7 @@ def test_motion_blur_changes_the_recorded_frame(tmp_path):
 @requires_node
 def test_subframe_advance_moves_time_within_a_frame(tmp_path):
     """子帧必须真的推进 React 时间与画面，否则运动模糊只是重复同一张图。"""
-    from test_capture_clock import scene_page
+    from helpers.general import scene_page
 
     with scene_page(tmp_path, SUBFAME_SOURCE) as (page, _):
         page.evaluate("window.__M2V_CODE__.advanceToSubframe(0, 0, 3)")
@@ -212,7 +212,7 @@ def test_subframe_advance_moves_time_within_a_frame(tmp_path):
 @pytest.mark.slow
 @requires_node
 def test_subframe_protocol_rejects_disorder(tmp_path):
-    from test_capture_clock import scene_page
+    from helpers.general import scene_page
 
     with scene_page(tmp_path, SUBFAME_SOURCE) as (page, _):
         page.evaluate("window.__M2V_CODE__.advanceToSubframe(0, 0, 3)")

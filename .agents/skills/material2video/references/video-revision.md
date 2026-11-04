@@ -28,7 +28,7 @@ general 在现有 `DESIGN.md` 的重制启动记录中写本轮目标、保留�
 
 1. **保护旧版**：在改材料与覆盖输出前核验旧片，记录 SHA-256 和来源。general 局部修复用候选基线，整体重置才创建重置基线。基线不包含完整可编辑源码；需要恢复编辑状态时，同时保留受影响材料的修改前副本到作品内容目录，记录位置，不把作品内容强行加入 Git。基线规则见[基线保留与清理](checkpoint-gates.md#基线保留与清理)。
 2. **修改可编辑材料**：回写分镜、场景、旁白与声音时间窗。未变的表达目标和用户约束继续沿用，旁白未变时沿用音色选择；旁白变化按[配音契约](voice-and-rhythm.md#配音音色与语速)重新判断并更新记录。不要只修改最终 MP4。
-3. **准备与局部检查**：执行 validate、prepare；按问题采集并实际查看修改后的帧或完整动作短窗口，覆盖事件起止和相邻衔接。按[检查与返工循环](production-workflow.md#检查与返工循环)在原问题正文区分待复查与效果已确认；多个不连续风险分别检查，不能用接近全片的 preview 替代 render。
+3. **准备与局部检查**：直接执行 prepare（已包含校验；validate仅作独立排错）；按问题采集并实际查看修改后的帧或完整动作短窗口，覆盖事件起止和相邻衔接。按[检查与返工循环](production-workflow.md#检查与返工循环)在原问题正文区分待复查与效果已确认；多个不连续风险分别检查，不能用接近全片的 preview 替代 render。
 4. **处理证据**：查看当前状态，保留仍有效的证据，重做实际过期、受影响或覆盖不足的项。工具若因更广依赖将证据判过期，按实际绑定重新取证，不能手改指纹、复制旧通过或承诺所有未改场景均可复用。等待前置不等于自身过期。适用的独立审核轮按[隔离流程](subagent-review.md)执行，降级自审不得关闭独立项；实际依赖未变的场景证据继续有效。
 5. **生成与收口**：按[收敛判断](production-workflow.md#再次全片生成前的收敛判断)先汇总本批修改、效果证据与仍需全片判断的事项，再 render 生成完整候选；不每修一处就生成全片。全局变化或局部无法验证的问题按影响扩大检查。自动技术验收并交付同一文件；已有摘要有效候选的验收/交付重试复用该候选，不重复编码。最终完整复核和独立终审按[导演审查](visual-review-rubric.md)及当前合同执行，保留重开权。失败时保留旧有效交付，报告原因。
 
@@ -39,7 +39,6 @@ uv run m2v status --project videos/general/<slug> --history --json
 # 修改材料之前保护旧交付；整体重置时去掉 --candidate
 uv run m2v baseline create --project videos/general/<slug> --candidate --reason "结尾局部修订" --files video.mp4
 # 此处修改作品材料，并记录影响范围
-uv run m2v validate --project videos/general/<slug>
 uv run m2v prepare --project videos/general/<slug>
 uv run m2v preview --project videos/general/<slug> --start-seconds 20 --end-seconds 25
 uv run m2v status --project videos/general/<slug> --history --json

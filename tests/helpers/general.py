@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import contextmanager
 import json
 import shutil
 import subprocess
@@ -124,3 +125,61 @@ def prepare_build(tmp_path: Path, source: str) -> tuple[Path, Path, subprocess.C
     output.mkdir()
     (project_dir / "scenes/demo.tsx").write_text(source, encoding="utf-8")
     return project_dir, output, build(project_dir, "scenes/demo.tsx", output)
+
+
+SOURCE = """import {motion, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {useEffect} from 'react';
+
+export default function Demo({props}: CodeSceneProps) {
+  const {ready, running} = useSceneContext();
+  useEffect(() => {ready();}, []);
+  return <motion.div animate={running ? {opacity: 1} : {opacity: 0}}>{String(props.label ?? '演示')}</motion.div>;
+}
+"""
+
+
+def code_scene(entry: str = "scenes/demo.tsx", props: object = None, **extra) -> dict:
+    scene = {"id": "code-demo", "template": "code", "keywords": ["演示"],
+             "content": {"title": "代码演示", "entry": entry, "props": {} if props is None else props},
+             "narrationSegments": []}
+    scene.update(extra)
+    return scene
+
+
+def write_source(root: Path, entry: str, source: str = SOURCE) -> None:
+    file = root / entry
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file.write_text(source, encoding="utf-8")
+
+
+@contextmanager
+def scene_page(tmp_path, source, *, frames=62, extra=None):
+    import time
+    from m2v.engine.http_server import LocalServer
+    from playwright.sync_api import sync_playwright
+
+    root, work, result = prepare_build(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    config = dict(props={}, fps=60, durationInFrames=frames, width=320, height=240,
+                  segmentWindows={}, subtitleSafeArea=dict(x=0, y=200, width=320, height=40))
+    config.update(extra or {})
+    (work / 'index.html').write_text('<div id="root"></div><script>window.__M2V_CODE_CONFIG__='
+                                    + json.dumps(config) + '</script><script src="scene.js"></script>', encoding='utf-8')
+    with LocalServer(work, mounts={'/fonts': WEB / 'public/fonts'}, cors=True) as server, sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        try:
+            page = browser.new_page(viewport={'width': 320, 'height': 240})
+            page.add_init_script(path=str(WEB / 'src/code-scene/capture-clock.js'))
+            errors = []
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.goto(server.base_url)
+            deadline = time.monotonic() + 30
+            while not page.evaluate('Boolean(window.__M2V_CODE__?.ready)'):
+                assert not errors, errors
+                assert time.monotonic() < deadline, '场景未就绪'
+                page.evaluate('window.__M2V_CAPTURE_CLOCK__.bootstrap()')
+            page.evaluate('window.__M2V_CODE__.start()')
+            yield page, work
+            assert not errors, errors
+        finally:
+            browser.close()

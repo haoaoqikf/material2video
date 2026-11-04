@@ -16,6 +16,7 @@ README、Skill 与项目规划曾各自维护一份类型清单，与代码里�
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -115,6 +116,15 @@ def _inject(relative: str, text: str, lines: list[str], *, section="type-catalog
 
 
 CHECKPOINTS = ".agents/skills/material2video/references/checkpoint-gates.md"
+REVIEWS = ".agents/skills/material2video/references/subagent-review.md"
+
+
+def review_manifest_lines() -> list[str]:
+    from m2v.production.reviews import build_manifest
+    value = build_manifest(review_id='R01', cycle_id='example-cycle', created_at='2026-11-04T00:00:00+00:00',
+        gate='G4', scene_id='scene-1', checkpoint_ids=['core-window'], kind='scene-window', display_sizes=[1920, 393],
+        timecodes=[[0, 90]], files=[{'path': 'evidence-0000.mp4', 'sha256': '0' * 64}])
+    return ['```json', *json.dumps(value, ensure_ascii=False, indent=2).splitlines(), '```']
 
 
 def production_sections() -> dict[str, list[str]]:
@@ -155,6 +165,8 @@ def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
         for section, lines in production_sections().items():
             text = _inject(CHECKPOINTS, text, lines, section=section)
         outputs[CHECKPOINTS] = text
+        text, _ = read_text(REVIEWS)
+        outputs[REVIEWS] = _inject(REVIEWS, text, review_manifest_lines(), section='review-manifest')
     return outputs
 
 

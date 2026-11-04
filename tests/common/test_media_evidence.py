@@ -122,7 +122,7 @@ def test_status_rejects_invalid_process_evidence_without_rewriting_history(tmp_p
     from m2v.core.delivery import outputs
     from m2v.production import ledger, contract, checks
     from m2v.production.storage import locked, receipt
-    from test_production_gates import sample
+    from helpers.production import sample
 
     root = tmp_path / 'work'
     root.mkdir()
@@ -222,7 +222,7 @@ def test_valid_pass_is_not_reported_as_invalid_alongside_it(tmp_path: Path):
     from m2v.core.delivery import outputs
     from m2v.production import ledger, checks
     from m2v.production.storage import locked, receipt
-    from test_production_gates import sample
+    from helpers.production import sample
 
     root = tmp_path / 'work'
     root.mkdir()

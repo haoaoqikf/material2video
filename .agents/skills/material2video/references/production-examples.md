@@ -14,7 +14,7 @@
 
 ## 12. DESIGN.md 模板
 
-五块式模板见[视觉创意导演方法](visual-creative-direction.md#12-designmd-模板)。本页不再维护第二份重复模板或十项自检；视觉与运动方法分别见 [Frontend Design](../../frontend-design/SKILL.md) 与[运动设计](../../motion-design/SKILL.md)。
+全片原则与逐场表模板见[视觉创意导演方法](visual-creative-direction.md#12-designmd-模板)。本页不再维护第二份重复模板或十项自检；视觉与运动方法分别见 [Frontend Design](../../frontend-design/SKILL.md) 与[运动设计](../../motion-design/SKILL.md)。
 
 ## 13. 判断演练
 
@@ -120,4 +120,3 @@
 | 抽象表达 | 可观察目标成立，允许不同感受，不要求唯一复述 | 缺证或目标未成立，不能用“审美偏好”改名为通过 |
 
 文档维护时按本表核对规则推导；作品制作时仍须提供真实版本与证据，不能把演练结论复制为作品通过记录。
-

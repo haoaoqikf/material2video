@@ -275,7 +275,7 @@ def test_fable_frame_records_identically(tmp_path, chromium_ready):
     from helpers.general import board, project as general_project
     from m2v.core import frames
     from m2v.types.general.code_scenes import record
-    from test_code_scenes import code_scene, write_source
+    from helpers.general import code_scene, write_source
 
     root, manifest = general_project(tmp_path / "content", board())
     manifest["style"] = {"id": "vibe-fable"}

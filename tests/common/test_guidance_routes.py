@@ -38,6 +38,12 @@ def test_anchors_ignore_template_fences():
     assert '判断演练' in found and '视觉创意方案七段式' not in found
 
 
+def test_unclosed_template_cannot_hide_navigation():
+    with pytest.raises(M2VError, match='未闭合代码围栏'):
+        guidance_docs.validate_fences('```markdown\n## 模板\n\n## 实际导航\n', 'workflow.md')
+    guidance_docs.validate_fences('```markdown\n## 模板\n```\n## 实际导航\n', 'workflow.md')
+
+
 @pytest.mark.parametrize('mutation,match', [
     (lambda r: r['stages'][1].update(id='rough'), '三阶段'),
     (lambda r: r['stages'][1].update(id='refine'), '三阶段'),

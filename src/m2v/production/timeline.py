@@ -67,8 +67,8 @@ def build(root: Path, manifest: dict) -> Path:
     (directory / 'questions.md').write_text('只读取本目录。按完整顺序观察理解、结构、节奏和声画承接。\n'
         '本目录是本地网页，使用本地 HTTP 服务打开 index.html；不能播放时以分场和跨场窗口补证，不推断通过。\n', encoding='utf-8')
     files = [receipt(directory, p) for p in sorted(directory.rglob('*')) if p.is_file()]
-    write(directory / 'manifest.json', dict(reviewId=directory.name, cycleId=c['cycleId'], createdAt=ledger.now(), blindId=None, gate='G5', sceneId=None,
-        checkpointIds=[cp['id'] for _, _, cp in contract.checkpoints(c)], scope='whole-film', evidenceType='rough-timeline',
-        reviewType='blind', displaySizes=[c['width'], 852, 393], timecodes=[[0, props['durationInFrames']]], files=files,
-        excluded=['DESIGN.md', 'storyboard.json', 'scenes/', 'visual-notes.md', 'old-verdicts', 'anonymous-key']))
+    from .reviews import build_manifest
+    write(directory / 'manifest.json', build_manifest(review_id=directory.name, cycle_id=c['cycleId'], created_at=ledger.now(),
+        gate='G5', scene_id=None, checkpoint_ids=[cp['id'] for _, _, cp in contract.checkpoints(c)], kind='rough-timeline',
+        display_sizes=[c['width'], 852, 393], timecodes=[[0, props['durationInFrames']]], files=files))
     return directory

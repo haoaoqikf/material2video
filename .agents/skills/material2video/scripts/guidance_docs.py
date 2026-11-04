@@ -31,6 +31,22 @@ def body(text: str) -> str:
     return re.sub(r'<!-- generated:([\w-]+):start -->.*?<!-- generated:\1:end -->', '', text, flags=re.S).strip()
 
 
+def validate_fences(text: str, name: str) -> None:
+    """未闭合模板会吞掉后续链接和锚点，不能只检查正则匹配到的完整围栏。"""
+    opened = None
+    for line in text.splitlines():
+        match = re.match(r'^\s{0,3}(`{3,}|~{3,})(.*)$', line)
+        if not match:
+            continue
+        marker, suffix = match.groups()
+        if opened is None:
+            opened = marker
+        elif marker[0] == opened[0] and len(marker) >= len(opened) and not suffix.strip():
+            opened = None
+    if opened is not None:
+        raise M2VError(f'{name} 存在未闭合代码围栏')
+
+
 def anchors(text: str) -> set[str]:
     # 模板围栏里的伪标题不会成为 Markdown 标题锚点。
     plain = re.sub(r'^```[^\n]*\n.*?^```\s*$', '', text, flags=re.S | re.M)
@@ -121,6 +137,7 @@ def validate(root: Path, routes: dict | None = None) -> dict[str, int]:
             if path.suffix != '.md':
                 continue
             text = path.read_text(encoding='utf-8')
+            validate_fences(text, path.name)
             # 模板围栏里的占位链接是填写示例，不是活动文档引用。
             plain = re.sub(r'^```[^\n]*\n.*?^```\s*$', '', text, flags=re.S | re.M)
             for reference in re.findall(r'\]\(([^)\n]+)\)', plain):

@@ -3,43 +3,13 @@ from __future__ import annotations
 
 import json
 import time
-from contextlib import contextmanager
 
 import pytest
 from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
 from m2v.types.general import code_scenes
-from helpers.general import WEB, prepare_build, requires_node
-
-
-@contextmanager
-def scene_page(tmp_path, source, *, frames=62, extra=None):
-    root, work, result = prepare_build(tmp_path, source)
-    assert result.returncode == 0, result.stderr
-    config = dict(props={}, fps=60, durationInFrames=frames, width=320, height=240,
-                  segmentWindows={}, subtitleSafeArea=dict(x=0, y=200, width=320, height=40))
-    config.update(extra or {})
-    (work / 'index.html').write_text('<div id="root"></div><script>window.__M2V_CODE_CONFIG__='
-                                    + json.dumps(config) + '</script><script src="scene.js"></script>', encoding='utf-8')
-    with LocalServer(work, mounts={'/fonts': WEB / 'public/fonts'}, cors=True) as server, sync_playwright() as pw:
-        browser = pw.chromium.launch()
-        try:
-            page = browser.new_page(viewport={'width': 320, 'height': 240})
-            page.add_init_script(path=str(WEB / 'src/code-scene/capture-clock.js'))
-            errors = []
-            page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(server.base_url)
-            deadline = time.monotonic() + 30
-            while not page.evaluate('Boolean(window.__M2V_CODE__?.ready)'):
-                assert not errors, errors
-                assert time.monotonic() < deadline, '场景未就绪'
-                page.evaluate('window.__M2V_CAPTURE_CLOCK__.bootstrap()')
-            page.evaluate('window.__M2V_CODE__.start()')
-            yield page, work
-            assert not errors, errors
-        finally:
-            browser.close()
+from helpers.general import scene_page, WEB, prepare_build, requires_node
 
 
 MOTION_SCENE = """
@@ -214,7 +184,7 @@ export default function Demo() {
                         str(work / 'clip.mp4')], check=True, capture_output=True)
         return root, work, result
 
-    with patch('test_capture_clock.prepare_build', with_video), scene_page(tmp_path, source, frames=65) as (page, _):
+    with patch('helpers.general.prepare_build', with_video), scene_page(tmp_path, source, frames=65) as (page, _):
         for frame in range(61):
             page.evaluate('n => window.__M2V_CODE__.advanceToFrame(n)', frame)
             if frame == 0:

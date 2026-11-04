@@ -62,7 +62,7 @@
 | kind | 门 | 额外要求 | 不触发的情况 |
 |---|---|---|---|
 | `static-expression` | G2 | 独立目标关键帧与盲看；实际 G4 核心窗须同轮目标对照 | 只是 A 级标签、普通标题或已验证布局 |
-| `structure-timing` | G3 | animatic 观察；关键运动窗口须有加密帧或过程片段，可与核心样片同轮 | 仅因片中有动画或 A 级镜头 |
+| `structure-timing` | G3 | 风险 animatic 或当前实际片段的时序观察；关键运动窗口须加密证据，可与核心样片同轮 | 仅因片中有动画或 A 级镜头 |
 | `core-event` | G4 | 完整动态窗口；静帧不能替代 | 无实质动态风险的静态作品 |
 | `split-final` | G6 | 两名新且互相隔离的终审代理，分别负责结构与视觉文案 | 时长、镜头等级或主观追求更高级本身 |
 | `substantive-dispute` | G4 | 新代理先盲看，再核对中性原条件，单独保留争议结论 | 纯审美偏好差异 |
@@ -109,7 +109,7 @@ DOM 使用 data-m2v-role/data-m2v-state；可选 `window.__M2V_REVIEW_STATE__` �
 
 `measurement` 可声明 bodyRoles、thresholdSource、minFont393、allowedOverlaps、maxTextCharacters、subtitleTop。原生字号乘 393/原生宽度得手机等效字号；阈值与文字预算必须有来源。父子包含与 allowedOverlaps 中有意重叠不误判，其他可见元素相交报告复核。裁切检查画布和裁剪祖先；DOM 不证明全部像素遮挡。未标记元素不在自动覆盖范围，需人工补证。
 
-采集输出原生尺寸、852 宽及 393 宽等比例图，竖屏保持 1080×1920 原生画幅。sampleStep 不得大于待判断的 minEventFrames；完整窗口包括状态边界，连续运动无法确认时补片段或逐帧证据。G4 采集还会把检查窗内的事件帧、实际采样帧、漏采帧与真实最小间隔写入 `measurements.json` 的 `eventCoverage`；它只作诊断，不改变 `checks` 或门结果，作者据此调整 `sampleStep` 或补事件边界帧。B/C 没有设计图时只验合同，不宣称完成设计图对照。
+采集保留完整过程视频，默认输出原生尺寸与393宽等比例图；适用目标对照需要852宽时才派生。竖屏保持1080×1920原生画幅。同帧多尺寸使用已有Pillow一次解码批量生成，不逐图启动ffmpeg。无显式sampleStep时，普通窗按半秒采样；core-event/structure-timing风险未声明minEventFrames时逐帧，声明后步长不超过该节拍。显式sampleStep超过适用最短节拍保持unverified。指定帧、窗首尾、textPlan/statePlan/timeStructure边界及幕内事件前后帧强制加入。连续运动无法确认时补证。G4 采集还会把检查窗内的事件帧、实际采样帧、漏采帧与真实最小间隔写入 `measurements.json` 的 `eventCoverage`；它只作诊断，不改变 `checks` 或门结果；事件前后帧已自动纳入，作者据此核对漏采或未登记节拍。B/C 没有设计图时只验合同，不宣称完成设计图对照。
 
 独立目标图清单在 outputs/production/design-frames.json。仅 `static-expression` 风险涉及的检查点需要建立/结果/揭示图，852 与 393 宽由工具从原图派生。来源标签不能单独证明独立制作；PNG 实际尺寸和源记录摘要均须有效。
 
@@ -196,4 +196,35 @@ G5 timeline 复用正式 ArticleExplainer composition 和准备音轨，将必�
 
 prune 在作品写锁内先验证记录与引用，再原子登记降级和待删清单，最后幂等删除本基线目录内媒体，全部完成才写 prunedAt。普通交付清理保留制作门、评审包和基线目录；不能越权删除共享素材或缓存。
 
-人工补证 manualEvidence 为输出根内 path/sha256 列表；JSON 报告包含 checkpointId、当前 upstream、verifiedBy、observations、checks。只补同名未验证项，不覆盖已观察的缺陷。B/C 没有设计图时 animatic 显示明确占位，仅供时序观察，不推断最终美术通过。
+人工补证 manualEvidence 为输出根内 path/sha256 列表；JSON 报告包含 checkpointId、当前 upstream、verifiedBy、observations、checks。只补同名未验证项，不覆盖已观察的缺陷。没有目标图的上下文在 animatic 显示明确占位，仅供时序观察，不推断最终美术通过。
+
+## 独立目标关键帧
+
+仅 static-expression 风险范围制作独立目标图；A 级标签不触发。图像不能来自TSX/代码场景、动画或lookdev截帧；实际原型可以探索设计和技术，但不冒充独立目标图。原图放 outputs/design/keyframes/，在design-frames.json绑定检查点、阶段、原生尺寸、来源工具、创建时间、核验者、依据、源记录与摘要；DESIGN只链接手机验收点、参考来源和授权边界。建立/结果图必需，适用揭示时再提供揭示图，缩放图由工具派生。
+
+先盲看目标图落盘，再按需看正式文案检查层级；失败回到目标设计。目标改变记录原因、收益和损失并重验受影响范围；无该风险不补造目标图。实际G4与G6对照要求仍见[审核策略](#审核计划与风险触发)。
+
+## 时序证据的生成与复用
+
+G3始终检查分镜映射。有structure-timing风险时，只为风险镜头及前后各一镜生成animatic；manifest.coverage记录原sceneId/shotId/window、输出outputWindow与contextOnly。无关镜头不编码。独立观察需同时参考映射和必要上下文，不能误认为输出时间码就是全片时间码。
+
+已有当前G4过程片段时，可直接复用，路径相对作品输出根：
+
+```powershell
+uv run m2v gates check --project <作品> --gate G3 --timing-reports production/reports/<G4报告>.json
+```
+
+支持多个报告，必须完整覆盖所有时序风险；检查报告与媒体摘要、当前G4上游、实际采集标记、完整窗口和视频容量，缺证/过期/过短明确失败。G3上游自动绑定timingReports和timingSources，查询、登记、独立报告导入与问题关闭重验来源；源码或证据变化使G3过期。只复用过程，不继承G4通过、关闭其问题或替代独立时序观察。为取证可先生成G4自身检查，再完成G3；正式扩展仍满足既有前置条件。无时序风险时不接受复用参数，也不生成animatic。
+
+## 问题状态与记录
+
+唯一问题表仍为visual-notes.md，正文与机器块共用ID，不另建状态表：
+
+| 正文用语 | 机器状态 | 约束 |
+|---|---|---|
+| 未解决 | open | 问题仍存在 |
+| 待复查 | open | 已修改但缺当前有效复查 |
+| 已关闭 | closed | 满足原条件及适用独立复查要求 |
+| 接受保留 | open，required=false | 仅非必改差距，正文记录取舍与影响；不计为解决 |
+
+原必改或REVIEW-问题不得通过改required、范围或用语降级关闭。工具已绑定的指纹、摘要、窗口和覆盖只引用报告；人工补充实际现象、判断及取舍。正常通过链接报告；修复、补证、回退按[记录模板](production-workflow.md#推进与回退记录模板)说明。

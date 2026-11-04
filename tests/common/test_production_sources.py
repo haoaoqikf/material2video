@@ -8,7 +8,7 @@ import sync_docs
 from m2v.core import frames, video_config
 from m2v.core.errors import M2VError
 from m2v.production import contract, policy, workflow
-from test_production_gates import sample
+from helpers.production import sample
 
 
 def test_contract_and_project_follow_shared_fps(monkeypatch):
@@ -92,3 +92,14 @@ def test_document_generator_reads_gate_source(monkeypatch):
     changed = replace(workflow.GATES[0], evidence='独有来源证据')
     monkeypatch.setattr(workflow, 'GATES', (changed, *workflow.GATES[1:]))
     assert any('独有来源证据' in row for row in sync_docs.production_sections()['production-gates'])
+
+
+def test_manifest_documentation_uses_actual_builder_and_detects_drift(monkeypatch):
+    from m2v.production import reviews
+    original = reviews.build_manifest
+    def changed(**kwargs):
+        return {**original(**kwargs), 'newField': '唯一字段来源'}
+    monkeypatch.setattr(reviews, 'build_manifest', changed)
+    generated = sync_docs.build_outputs()[sync_docs.REVIEWS]
+    current, _ = sync_docs.read_text(sync_docs.REVIEWS)
+    assert '唯一字段来源' in generated and generated != current

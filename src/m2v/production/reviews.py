@@ -1,7 +1,6 @@
 """隔离包与每轮报告；先完整校验，再绑定多个门的证据。"""
 from __future__ import annotations
 
-import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +13,16 @@ from .storage import local, read, receipt, write
 
 KINDS = {'design-keyframe', 'animatic', 'scene-window', 'rough-timeline', 'final-video'}
 EXCLUDED = ['DESIGN.md', 'storyboard.json', 'scenes/', 'visual-notes.md', 'style-reference.md', 'old-verdicts', 'anonymous-key']
+
+
+def build_manifest(*, review_id: str, cycle_id: str, created_at: str, gate: str, scene_id,
+                   checkpoint_ids: list[str], kind: str, display_sizes: list, files: list,
+                   review_type='blind', timecodes=None, blind_id=None) -> dict:
+    """打包、播放器与文档投影共用字段来源；调用方提供真实值。"""
+    return dict(reviewId=review_id, cycleId=cycle_id, createdAt=created_at, gate=gate, sceneId=scene_id,
+                checkpointIds=checkpoint_ids, scope='scene' if scene_id else 'whole-film', evidenceType=kind,
+                reviewType=review_type, displaySizes=display_sizes, timecodes=timecodes or [],
+                files=files, excluded=list(EXCLUDED), blindId=blind_id)
 
 
 def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files: list[str],
@@ -49,10 +58,9 @@ def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files
         else:
             ffmpeg(['-i', str(source), '-map_metadata', '-1', '-map_chapters', '-1', '-c', 'copy', str(path)])
         entries.append(receipt(target, path))
-    manifest = dict(reviewId=identifier, cycleId=c['cycleId'], createdAt=ledger.now(), gate=gate, sceneId=scene_id,
-                    checkpointIds=checkpoint_ids, scope='scene' if scene_id else 'whole-film', evidenceType=kind,
-                    reviewType=review_type, displaySizes=display_sizes, timecodes=timecodes or [],
-                    files=entries, excluded=EXCLUDED, blindId=blind_id)
+    manifest = build_manifest(review_id=identifier, cycle_id=c['cycleId'], created_at=ledger.now(), gate=gate,
+                              scene_id=scene_id, checkpoint_ids=checkpoint_ids, kind=kind, display_sizes=display_sizes,
+                              review_type=review_type, timecodes=timecodes, files=entries, blind_id=blind_id)
     if review_type == 'consistency':
         projection = target / 'conditions.json'
         write(projection, [{'checkpointId': cp['id'], 'window': cp['window'], 'expected': cp['expected'],
@@ -177,7 +185,7 @@ def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
             required = [check['checkpointId']]
         if not set(required) <= set(report['checkpointIds']):
             raise M2VError('报告未覆盖被绑定门的必要检查点')
-        current = ledger.upstream(root, c, check['gate'], check['sceneId'], check['checkpointId'])
+        current = ledger.event_upstream(root, c, check)
         if current != check['upstream'] or not ledger.evidence_valid(root, check['evidence']):
             raise M2VError('评审绑定检查已过期')
         bound.append(check)

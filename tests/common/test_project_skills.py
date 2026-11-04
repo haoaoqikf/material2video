@@ -67,18 +67,13 @@ def test_type_guides_link_both_project_skills(type_id: str) -> None:
         assert target in text, f"{type_id} 缺少 {target}"
 
 
-def test_guidance_uses_five_blocks_not_the_retired_seven_part_form() -> None:
-    """七段式模板已删除，指导文档不得再要求填写七段或按七段取证。"""
+def test_guidance_uses_one_design_table_and_optional_attachments() -> None:
     references = SKILLS / "material2video" / "references"
-    retired = ("七段是必答问题", "| 七段 |", "七段是否齐全", "七段式定稿")
-    for path in references.glob("*.md"):
-        text = path.read_text(encoding="utf-8")
-        for marker in retired:
-            assert marker not in text, f"{path.name} 仍在维护 {marker}"
     direction = (references / "visual-creative-direction.md").read_text(encoding="utf-8")
-    assert "### 4. 运动计划" in direction
-    for block in ("### 1. 题材", "### 2. 视觉计划", "### 3. 叙事计划", "### 5. 风险与证据"):
-        assert block in direction
+    assert "## 全片原则" in direction and "## 逐场设计表" in direction
+    assert "## 必要附件" in direction
+    assert "按镜头逐条运动表" not in direction
+    assert "8–12 项" not in direction and "4–6 个" not in direction
 
 
 def test_guidance_does_not_copy_upstream_motion_recipes() -> None:

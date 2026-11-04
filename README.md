@@ -66,7 +66,6 @@ uv run pytest --full           # 全部用例
 
 ```powershell
 uv run m2v init --type general --project <slug> # 创建 videos/general/<slug>/，项目与分镜均默认横屏
-uv run m2v validate --project videos/general/<slug>
 # 有自身旁白时，先按下文选音并保存；手动制作可在 prepare 指定 --voice。
 uv run m2v prepare --project videos/general/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
@@ -121,11 +120,11 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 ## 文档导航
 
-- [material2video Skill](.agents/skills/material2video/SKILL.md)：按类型与任务/阶段调度，指向四份阶段指南和按触发条件展开的专项参考。
+- [material2video Skill](.agents/skills/material2video/SKILL.md)：按类型与任务/阶段调度，指向三份阶段指南与修订入口和按触发条件展开的专项参考。
 - [Frontend Design](.agents/skills/frontend-design/SKILL.md)：项目级视觉设计与反模板知识；视觉方向、字体、构图、层级与自我批评，视频语境见[适配说明](.agents/skills/frontend-design/ADAPTATION.md)。
 - [运动设计](.agents/skills/motion-design/SKILL.md)：项目级运动设计知识；情绪意图、运动人格、时长、缓动、编排与质量检查，帧驱动边界见[适配说明](.agents/skills/motion-design/ADAPTATION.md)。
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
-- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计与五块式 `DESIGN.md` 模板；反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
+- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计与全片原则、逐场表与必要附件式 `DESIGN.md` 模板；反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [素材检索与台账](.agents/skills/material2video/references/material-sourcing.md)：来源层级、检索词、候选评估卡、许可决策与 `assets report`/`contact-sheet` 操作。
 - [看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)：症状→成因→改法、形象判据与主体尺度起点。
@@ -140,3 +139,5 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 已有视频可通过制作助手的[修订入口](.agents/skills/material2video/references/video-revision.md)按修改意图继续制作：定位受影响场景与时间轴、保护旧版、复用有效方案和证据，实际查看局部修改效果并按[收敛判断](.agents/skills/material2video/references/production-workflow.md#再次全片生成前的收敛判断)汇总后生成下一全片候选，最后完整复核。入口串联现有命令，未新增修订 CLI 或自动影响分析器。
 
 general 提供 G0–G6 检查点门、指定帧采集、DOM/布局量测、隔离评审包、粗片播放器、追加式制作历史与基线清理；`m2v status --history --json` 显示 production 制作状态。合同、评审覆盖、回退决策、`lookdev` 取点方式与完成条件分别见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)、[独立评审](.agents/skills/material2video/references/subagent-review.md)、[制作流程](.agents/skills/material2video/references/production-workflow.md)和[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；这些工具不新增导出门禁。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
+
+通用制作以三阶段指南为操作入口，设计记录采用全片原则、逐场表与必要附件。G4普通窗默认半秒采样，已声明动态风险按节拍加密并强制覆盖事件/状态边界；完整过程视频保留，多尺寸图批量派生。G3可用 `gates check --gate G3 --timing-reports <输出根内G4报告> ...` 复用当前实际过程；未复用时只为时序风险镜头及相邻上下文生成animatic。来源过期或缺少独立观察仍保持未完成。详见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md#时序证据的生成与复用)。

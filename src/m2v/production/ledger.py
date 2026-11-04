@@ -77,7 +77,7 @@ def append(root: Path, manifest: dict, kind: str, *, gate=None, scene_id=None, c
     return event
 
 
-def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None) -> dict:
+def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None, *, timing_reports=None) -> dict:
     result = {'cycle': c['cycleId'], 'contract': contract.scope_digest(c, scene_id, checkpoint_id)}
     if gate == 'G0':
         project_path = root / 'project.json'
@@ -124,7 +124,21 @@ def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None) 
             value = read(delivery)
             path = Path(value.get('path', ''))
             result['video'] = digest(path) if path.is_file() else 'missing'
+    if timing_reports is not None:
+        if gate != 'G3':
+            raise M2VError('时序复用只能绑定 G3')
+        from .timing import reuse
+        result['timingReports'] = timing_reports
+        result['timingSources'] = fingerprint(reuse(root, c, timing_reports))
     return result
+
+
+def event_upstream(root: Path, c: dict, event: dict) -> dict:
+    """重算事件实际依赖；G3 的复用来源也须在查询、导入、关闭时重验。"""
+    if not isinstance(event.get('upstream'), dict):
+        raise M2VError('制作报告上游必须为对象')
+    return upstream(root, c, event['gate'], event['sceneId'], event['checkpointId'],
+                    timing_reports=event['upstream'].get('timingReports'))
 
 
 def evidence_valid(root: Path, entries: list) -> bool:
@@ -146,7 +160,7 @@ def register(root: Path, manifest: dict, report_path: Path) -> dict:
     if gate not in workflow.GATE_IDS or report['status'] not in ('pass', 'fail', 'unverified', 'not-applicable'):
         raise M2VError('未知门或报告状态')
     c = contract.load(root)
-    current = upstream(root, c, gate, report['sceneId'], report['checkpointId'])
+    current = event_upstream(root, c, report)
     if report['upstream'] != current or not evidence_valid(root, report['evidence']):
         raise M2VError('报告上游或证据摘要已过期')
     if report['status'] == 'pass' and (not report['checks'] or any(x.get('status') != 'pass' for x in report['checks'])):
@@ -205,7 +219,7 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             missing_acceptance = []
             if last:
                 try:
-                    current = upstream(root, c, gate, sid, cid)
+                    current = event_upstream(root, c, last)
                 except (M2VError, OSError, ValueError, TypeError, KeyError) as exc:
                     current = None
                     diagnostics.append(f'{gate}/{cid or "all"} 上游不可读：{exc}')
