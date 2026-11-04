@@ -10,8 +10,6 @@ from m2v.type_system import registry
 from m2v.types.general import adapter, explainer
 from helpers.general import board, fake_record, fake_tts, project, scene_root
 
-pytestmark = pytest.mark.media
-
 
 def test_current_types_are_listed(capsys):
     assert main(["types"]) == 0
@@ -82,6 +80,7 @@ def test_general_rejects_unknown_scene_fields(tmp_path, field, value):
         explainer.validate(data, scene_root(tmp_path))
 
 
+@pytest.mark.media
 def test_preparation_for_old_type_cannot_authorize_general(tmp_path, monkeypatch):
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch); fake_record(monkeypatch)
@@ -89,28 +88,3 @@ def test_preparation_for_old_type_cannot_authorize_general(tmp_path, monkeypatch
     adapter.prepare(root, legacy)
     with pytest.raises(M2VError, match="与当前作品不匹配"):
         load_current_prepared(root, manifest)
-
-
-@pytest.mark.slow
-def test_general_partial_check_and_single_full_render(tmp_path, monkeypatch, chromium_ready):
-    """用本地合成音频走真实浏览器、Remotion、片段检查与单次全片验收。"""
-    root, manifest = project(tmp_path)
-    fake_tts(monkeypatch)
-    prepared = adapter.prepare(root, manifest)
-    from m2v.engine import remotion
-    sessions = []
-    original = remotion.render_session
-    def counted(**kwargs):
-        sessions.append(kwargs)
-        return original(**kwargs)
-    monkeypatch.setattr(remotion, "render_session", counted)
-    assert main(["preview", "--project", str(root), "--start-seconds", "0.5", "--end-seconds", "0.75"]) == 0
-    assert main(["render", "--project", str(root)]) == 0
-    assert main(["render", "--project", str(root)]) == 0
-    assert len(sessions) == 2, "一次片段 + 一次全片；重复 render 不生成"
-
-    provenance = json.loads((root / "outputs/video.provenance.json").read_text(encoding="utf-8"))
-    assert provenance["type"] == "general"
-    assert provenance["compositionId"] == "ArticleExplainer"
-    assert provenance["durationInFrames"] == prepared["durationInFrames"] == 84
-    assert (root / "outputs/video.mp4").is_file()

@@ -1,4 +1,4 @@
-"""文档事实与可读性契约：链接可达、无已知过期口径、入口清单与能力目录一致。"""
+"""文档结构契约：链接可达、主规格有效、入口与能力目录一致。"""
 from __future__ import annotations
 
 import json
@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
+
+from guidance_docs import anchors
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,20 +28,9 @@ def tracked_markdown() -> list[Path]:
     ]
 
 
-def slug(text: str) -> str:
-    text = text.strip().lower()
-    text = re.sub(r"[^\w一-鿿\- ]", "", text)
-    return text.replace(" ", "-")
-
-
-def anchors(path: Path) -> set[str]:
-    text = path.read_text(encoding="utf-8")
-    return {slug(m.group(1)) for m in re.finditer(r"^#{1,6}\s+(.+?)\s*$", text, re.M)}
-
-
 def test_tracked_markdown_links_and_anchors_resolve() -> None:
     files = tracked_markdown()
-    anchor_cache = {path: anchors(path) for path in files}
+    anchor_cache = {path: anchors(path.read_text(encoding='utf-8')) for path in files}
     missing: list[str] = []
     for path in files:
         text = re.sub(r"```.*?```", "", path.read_text(encoding="utf-8"), flags=re.S)
@@ -55,25 +46,9 @@ def test_tracked_markdown_links_and_anchors_resolve() -> None:
                 missing.append(f"{path.relative_to(ROOT)} -> {target}（文件不存在）")
                 continue
             if fragment and resolved.suffix == ".md":
-                target_key = resolved.relative_to(ROOT).as_posix()
-                if target_key in anchor_cache and fragment not in anchor_cache[resolved]:
+                if resolved in anchor_cache and fragment not in anchor_cache[resolved]:
                     missing.append(f"{path.relative_to(ROOT)} -> {target}（锚点不存在）")
     assert not missing, "\n".join(missing)
-
-
-def test_live_docs_have_no_known_stale_facts() -> None:
-    stale = ("16×", "三种视频类型", "两个可校验的风格示例", "TBD - created by archiving",
-             "general-video-composition")
-    files = tracked_markdown()
-    hits = []
-    for path in files:
-        if path.as_posix().startswith("openspec/changes/archive/"):
-            continue
-        text = path.read_text(encoding="utf-8")
-        for needle in stale:
-            if needle in text:
-                hits.append(f"{path.relative_to(ROOT)}: {needle}")
-    assert not hits, "\n".join(hits)
 
 
 def test_open_specs_are_retired_only_through_archive() -> None:

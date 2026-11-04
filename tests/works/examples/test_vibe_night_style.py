@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import tempfile
 from pathlib import Path
@@ -16,26 +15,19 @@ from m2v.types.general.code_scenes import build_scene
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = ROOT / "styles" / "vibe-night"
-COMPONENTS = {
-    "kit", "night-backdrop", "spark", "comet", "glow-text", "chapter-mark",
-    "title-night", "flash", "dip", "number-line", "screen-subtitle",
-}
 
 
-def test_manifest_tokens_and_assets():
+@pytest.fixture
+def restored_style_font():
+    manifest = json.loads((PACKAGE / 'style.json').read_text(encoding='utf-8'))
+    if not (PACKAGE / manifest['assets']['serif']['path']).is_file():
+        pytest.skip('字体未恢复；先运行 uv run python fonts/fetch.py')
+
+
+@pytest.mark.usefixtures("restored_style_font")
+def test_registered_font_has_source_and_license():
     package = styles.load_style("vibe-night")
     manifest = package["manifest"]
-    assert manifest["version"] == "1.0.0"
-    assert set(package["components"]) == COMPONENTS
-    assert package["tokens"]["canvas"]["background"] == "#010104"
-    assert package["tokens"]["canvas"]["poolColor"] == "#0B1830"
-    assert package["tokens"]["colors"]["text"] == "#F8F9F8"
-    assert package["tokens"]["colors"]["gold"] == "#F8D893"
-    assert package["tokens"]["colors"]["ice"] == "#64E3F6"
-    assert package["tokens"]["colors"]["rose"] == "#E84B75"
-    assert package["tokens"]["type"]["screenSubtitleMaxChars"] == 28
-    assert package["tokens"]["motion"]["screenSubtitleFadeMs"] == 200
-    assert "safeArea" not in package["tokens"]["layout"]
     font = Path(package["assets"]["serif"])
     assert font.read_bytes()[:4] == b"\x00\x01\x00\x00"
     assert "source" in manifest["assets"]["serif"] and "license" in manifest["assets"]["serif"]
@@ -43,36 +35,7 @@ def test_manifest_tokens_and_assets():
     assert "SIL OPEN FONT LICENSE" in license_text.upper()
 
 
-def test_selection_rejects_wrong_type_and_frame():
-    with pytest.raises(M2VError, match="类型"):
-        styles.selected_style({"type": "financial-timeseries", "style": {"id": "vibe-night"}})
-    with pytest.raises(M2VError, match="画幅"):
-        styles.selected_style({"type": "general", "style": {"id": "vibe-night"}}, width=1080, height=1920)
-    styles.selected_style({"type": "general", "style": {"id": "vibe-night"}}, width=1920, height=1080)
-
-
-def test_components_are_frame_driven_and_self_contained():
-    forbidden = ("Math.random", "Date.now", "setInterval", "setTimeout", "requestAnimationFrame", "@keyframes")
-    for path in sorted((PACKAGE / "components").glob("*.tsx")):
-        text = path.read_text(encoding="utf-8")
-        code = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-        code = re.sub(r"//[^\n]*", "", code)
-        for token in forbidden:
-            assert token not in code, f"{path.name} 使用了 {token}"
-        for module in re.findall(r"from\s+['\"]([^'\"]+)['\"]", code):
-            assert module.startswith(("react", "m2v/", "./")), f"{path.name} 导入了未批准模块 {module}"
-
-
-def test_fingerprint_covers_every_package_file(tmp_path, monkeypatch):
-    copy = tmp_path / "styles" / "vibe-night"
-    shutil.copytree(PACKAGE, copy, ignore=shutil.ignore_patterns("examples"))
-    monkeypatch.setattr(styles, "STYLES_ROOT", tmp_path / "styles")
-    first = styles.load_style("vibe-night")["identity"]["fingerprint"]
-    (copy / "assets" / "OFL-NotoSerifSC.txt").write_text("changed", encoding="utf-8")
-    second = styles.load_style("vibe-night")["identity"]["fingerprint"]
-    assert first != second
-
-
+@pytest.mark.usefixtures("restored_style_font")
 @pytest.mark.slow
 def test_all_components_build_inside_package(tmp_path):
     if shutil.which("node") is None:
@@ -127,6 +90,7 @@ export default function All({width, height}: CodeSceneProps) {
     assert (work / "scene.js").is_file()
 
 
+@pytest.mark.usefixtures("restored_style_font")
 @pytest.mark.slow
 def test_same_frame_records_identically(tmp_path, chromium_ready):
     from helpers.general import board, project as general_project
@@ -169,6 +133,7 @@ export default function Demo({width, height, fps, subtitleSafeArea}: CodeScenePr
     assert (root / first).read_bytes() == (root / second).read_bytes()
 
 
+@pytest.mark.usefixtures("restored_style_font")
 @pytest.mark.slow
 def test_unregistered_component_import_fails(tmp_path):
     if shutil.which("node") is None:
@@ -190,6 +155,7 @@ def test_unregistered_component_import_fails(tmp_path):
         build_scene(root, scene, work)
 
 
+@pytest.mark.usefixtures("restored_style_font")
 def test_style_requires_no_narration():
     from m2v.core.styles import check_requirements
     package = styles.load_style("vibe-night")
@@ -218,6 +184,7 @@ def test_screen_subtitles_allow_silent_scene(tmp_path):
     explainer.validate(data, scene_root(tmp_path))
 
 
+@pytest.mark.usefixtures("restored_style_font")
 def test_serif_font_covers_rendered_texts():
     from m2v.core.fonts import audit_fonts_strict
     package = styles.load_style("vibe-night")

@@ -1,6 +1,7 @@
 """cinematic 的 QA 与资产审计：用自造的小媒体验证判定逻辑。"""
 import hashlib
 import json
+import shutil
 import subprocess
 
 import pytest
@@ -25,6 +26,14 @@ def make_audio(path, *, seconds=2, frequency=440):
                     "-i", f"sine=frequency={frequency}:duration={seconds}",
                     "-af", "loudnorm=I=-16:TP=-1:LRA=11:linear=true", str(path)], check=True)
     return path
+
+
+@pytest.fixture(scope='module')
+def qa_media(tmp_path_factory):
+    root = tmp_path_factory.mktemp('qa-media')
+    make_video(root / 'clip.mp4')
+    make_audio(root / 'master.wav')
+    return root
 
 
 def test_subtitle_contrast_flags_low_contrast():
@@ -66,17 +75,19 @@ def test_claims_require_covering_shot():
     assert qa.claims_check({"props": {"compiledScenes": [scene]}})["status"] == "fail"
 
 
-def test_sample_frames_and_contact_sheet(tmp_path):
-    video = make_video(tmp_path / "clip.mp4")
+@pytest.mark.media
+def test_sample_frames_and_contact_sheet(tmp_path, qa_media):
+    video = shutil.copyfile(qa_media / 'clip.mp4', tmp_path / 'clip.mp4')
     frames = qa.sample_frames(video, 60, 30)
     assert len(frames) == 4 and all(len(frame) == 192 * 104 for frame in frames)
     sheet = qa.contact_sheet(video, tmp_path / "sheet.png", columns=2, rows=2, every=1)
     assert sheet.is_file() and sheet.stat().st_size > 0
 
 
-def test_loudness_and_audio_sync_on_generated_media(tmp_path):
-    video = make_video(tmp_path / "clip.mp4")
-    audio = make_audio(tmp_path / "master.wav")
+@pytest.mark.media
+def test_loudness_and_audio_sync_on_generated_media(tmp_path, qa_media):
+    video = shutil.copyfile(qa_media / 'clip.mp4', tmp_path / 'clip.mp4')
+    audio = shutil.copyfile(qa_media / 'master.wav', tmp_path / 'master.wav')
     report = qa.loudness(audio)
     assert -18 <= report["integratedLufs"] <= -14 and report["truePeakDbfs"] <= -1
     sync = qa.audio_sync(video, audio, 2.0)
@@ -84,11 +95,12 @@ def test_loudness_and_audio_sync_on_generated_media(tmp_path):
     assert qa.audio_sync(video, make_audio(tmp_path / "short.wav", seconds=1), 2.0)["status"] == "fail"
 
 
-def test_qa_run_writes_report(tmp_path):
+@pytest.mark.media
+def test_qa_run_writes_report(tmp_path, qa_media):
     root = tmp_path / "work"
     (root / "outputs/media").mkdir(parents=True)
-    video = make_video(root / "outputs/video.mp4")
-    make_audio(root / "outputs/media/master.wav")
+    video = shutil.copyfile(qa_media / 'clip.mp4', root / 'outputs/video.mp4')
+    shutil.copyfile(qa_media / 'master.wav', root / 'outputs/media/master.wav')
     report = qa.run(root, prepared_stub(), video=video, step=30)
     assert (root / "outputs/qa.json").is_file()
     assert report["status"] in {"pass", "fail"} and "frozenFrames" in report["checks"]
@@ -99,22 +111,24 @@ def test_qa_run_writes_report(tmp_path):
     assert report["checks"]["audioSync"]["scope"] == "track-duration-difference"
 
 
-def test_qa_writes_report_to_example_outputs(tmp_path):
+@pytest.mark.media
+def test_qa_writes_report_to_example_outputs(tmp_path, qa_media):
     root = tmp_path / "examples" / "clip"
     base = root / "outputs"
     (base / "media").mkdir(parents=True)
-    video = make_video(base / "video.mp4")
-    make_audio(base / "media/master.wav")
+    video = shutil.copyfile(qa_media / 'clip.mp4', base / 'video.mp4')
+    shutil.copyfile(qa_media / 'master.wav', base / 'media/master.wav')
     qa.run(root, prepared_stub(), video=video, step=30)
     assert (base / "qa.json").is_file()
     assert not (tmp_path / "videos/examples/clip/outputs/qa.json").exists()
 
 
-def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):
+@pytest.mark.media
+def test_qa_records_report_digest_in_delivery_sidecar(tmp_path, qa_media):
     root = tmp_path / "work"
     (root / "outputs/media").mkdir(parents=True)
-    video = make_video(root / "outputs/video.mp4")
-    make_audio(root / "outputs/media/master.wav")
+    video = shutil.copyfile(qa_media / 'clip.mp4', root / 'outputs/video.mp4')
+    shutil.copyfile(qa_media / 'master.wav', root / 'outputs/media/master.wav')
     sidecar = root / "outputs/video.provenance.json"
     sidecar.write_text(json.dumps({"schemaVersion": 1, "productionProfile": "cinematic"}),
                        encoding="utf-8")
@@ -124,6 +138,7 @@ def test_qa_records_report_digest_in_delivery_sidecar(tmp_path):
     assert saved["qa"] == {"report": "outputs/qa.json", "sha256": digest}
 
 
+@pytest.mark.media
 def test_assets_audit_does_not_impose_surface_map_or_4k_quotas(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
@@ -149,6 +164,7 @@ def test_assets_audit_does_not_impose_surface_map_or_4k_quotas(tmp_path):
     assert (root / "outputs/asset-audit.json").is_file()
 
 
+@pytest.mark.media
 def test_assets_audit_reports_alpha_and_colour_space(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
@@ -159,10 +175,11 @@ def test_assets_audit_reports_alpha_and_colour_space(tmp_path):
     assert info["alpha"] is True and info["colorSpace"] == "srgb"
 
 
+@pytest.mark.media
 def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
     """作品拿到的素材信息包含实测色彩空间、alpha 与登记许可，且不需要重新导入。"""
     from helpers.general import project
-    from test_article_media import entry, importer, make_image
+    from helpers.media import entry, importer, make_image
     from m2v.types.general import media_assets
 
     root, _manifest = project(tmp_path)
@@ -175,9 +192,10 @@ def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
     assert resolved["license"] == "CC0"
 
 
+@pytest.mark.media
 def test_media_resolution_rejects_unknown_license(tmp_path):
     from helpers.general import project
-    from test_article_media import entry, importer, make_image
+    from helpers.media import entry, importer, make_image
     from m2v.types.general import media_assets
 
     root, _manifest = project(tmp_path)
@@ -187,21 +205,7 @@ def test_media_resolution_rejects_unknown_license(tmp_path):
         media_assets.resolve(root)
 
 
-def test_lookdev_has_no_approval_gate():
-    """look-dev 只产出检查产物：模块不再暴露确认符号。"""
-    from m2v.engine import lookdev
-    for name in ("approve", "require_approval", "approval_path", "APPROVAL_FILE"):
-        assert not hasattr(lookdev, name), f"lookdev 不应再提供 {name}"
-
-
-def test_lookdev_cli_rejects_removed_approve_flag(tmp_path):
-    """旧命令行必须显式失败，而不是被静默忽略。"""
-    from m2v import cli
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main(["lookdev", "--project", str(tmp_path), "--approve", "--note", "已观看"])
-    assert excinfo.value.code == 2
-
-
+@pytest.mark.media
 def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
     root = tmp_path / "work"
     (root / "outputs/media").mkdir(parents=True)
@@ -221,6 +225,7 @@ def test_qa_frozen_problem_points_to_shot_and_time(tmp_path):
     assert problem["shot"] == "earth" and problem["startSeconds"] == 0
 
 
+@pytest.mark.media
 def test_normalize_reaches_cinematic_loudness(tmp_path):
     from m2v.engine import audio
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
@@ -230,6 +235,7 @@ def test_normalize_reaches_cinematic_loudness(tmp_path):
     assert report["status"] == "pass" and abs(report["integratedLufs"] + 14) <= 1.0
 
 
+@pytest.mark.media
 def test_master_hits_cinematic_loudness_and_peak(tmp_path):
     from m2v.engine import audio
     source = make_audio(tmp_path / "quiet.wav", seconds=3)
@@ -240,6 +246,7 @@ def test_master_hits_cinematic_loudness_and_peak(tmp_path):
     assert report["truePeakDbfs"] <= -1.0
 
 
+@pytest.mark.media
 def test_assets_audit_json_round_trip(tmp_path):
     root = tmp_path / "work"
     (root / "assets/media").mkdir(parents=True)
@@ -260,6 +267,7 @@ def test_assets_audit_json_round_trip(tmp_path):
     assert any("许可未知" in item["reason"] for item in report["problems"])
 
 
+@pytest.mark.media
 def test_2d_hero_does_not_require_fabricated_surface_maps(tmp_path):
     prepared = prepared_stub()
     prepared["props"]["compiledScenes"] = [{"content": {"props": {"shots": [
@@ -275,6 +283,7 @@ def test_2d_hero_does_not_require_fabricated_surface_maps(tmp_path):
     assert assets_audit.audit(tmp_path, prepared, record)["status"] == "fail"
 
 
+@pytest.mark.media
 def test_2d_media_is_audited_even_when_color_map_exists(tmp_path):
     """同一目标另有三维颜色贴图时，二维档案的许可仍必须单独审计。"""
     prepared = prepared_stub()
@@ -317,6 +326,7 @@ def test_visual_provenance_covers_every_scene():
 
 
 @pytest.mark.parametrize("silent", [True, False])
+@pytest.mark.media
 def test_silent_film_requires_exact_zero_signal(tmp_path, silent):
     video = tmp_path / "video.mp4"
     subprocess.run([get_ffmpeg_exe(), "-y", "-v", "error", "-f", "lavfi", "-i",

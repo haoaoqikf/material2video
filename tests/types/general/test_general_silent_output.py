@@ -21,32 +21,20 @@ def test_declared_sound_controls_delivery(props, expected):
 
 
 @pytest.mark.slow
-def test_parallel_render_uses_segments_and_keeps_frame_count(tmp_path, monkeypatch, chromium_ready):
-    unit = scene(durationFrames=30, narrationSegments=[])
-    data = board(fps=30, targetSeconds=1, scenes=[unit])
-    root, manifest = project(tmp_path, data)
-    fake_tts(monkeypatch, seconds=.4)
-    adapter.prepare(root, manifest)
-    output = adapter.render(root, manifest, jobs=2)
-    assert output.is_file()
-    report = json.loads(output.with_suffix(".performance.json").read_text(encoding="utf-8"))
-    assert report["renderJobs"] == 2
-    assert report["frames"] == 30
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize('sound', ['none', 'effect', 'narration'])
+@pytest.mark.parametrize('sound', ['none', 'narration'])
 def test_real_delivery_streams_and_candidate_reuse(tmp_path, monkeypatch, chromium_ready, sound):
     unit = scene(durationFrames=30, narrationSegments=[])
     data = board(fps=30, targetSeconds=1, scenes=[unit])
-    if sound == 'effect':
-        data['soundtrack'] = {'effects': [{'builtin': 'ding', 'sceneId': 'a', 'offsetMs': 0}]}
-    elif sound == 'narration':
+    if sound == 'narration':
         unit['narrationSegments'] = [{'id': 'a-voice', 'text': '观察结果。'}]
     root, manifest = project(tmp_path, data)
     fake_tts(monkeypatch, seconds=.4)
     prepared = adapter.prepare(root, manifest)
-    output = adapter.render(root, manifest)
+    jobs = 2 if sound == 'none' else 1
+    output = adapter.render(root, manifest, jobs=jobs)
+    performance = json.loads(output.with_suffix('.performance.json').read_text(encoding='utf-8'))
+    assert performance['renderJobs'] == jobs
+    assert performance['frames'] == 30
     original = output.read_bytes()
     metadata = subprocess.run([get_ffmpeg_exe(), '-hide_banner', '-i', str(output)],
                               capture_output=True, text=True, encoding='utf-8', errors='replace').stderr

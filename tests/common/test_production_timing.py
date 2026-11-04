@@ -100,7 +100,9 @@ def test_animatic_limits_scope_and_maps_original_windows(project):
     assert coverage[0]['window'] == [0, 30] and coverage[0]['outputWindow'] == [0, 30]
     assert coverage[1]['outputWindow'] == [30, 60] and coverage[1]['contextOnly']
     from imageio_ffmpeg import count_frames_and_secs
-    assert count_frames_and_secs(str(clip))[0] == 60
+    frames, seconds = count_frames_and_secs(str(clip))
+    assert frames == 60 and abs(seconds - 2.0) < .05
+    assert read(clip.with_name('manifest.json'))['nonDelivery']
 
 
 def test_expired_historical_recheck_does_not_hide_new_valid_recheck(project, monkeypatch):

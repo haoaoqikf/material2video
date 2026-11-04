@@ -10,7 +10,6 @@ from m2v.types.general import adapter, explainer, explainer_prepare as prepare, 
 
 from helpers.general import ENTRY, STARTER, board, fake_record, fake_tts, project, scene, scene_root
 
-pytestmark = pytest.mark.media
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -116,6 +115,7 @@ def test_topic_input_must_declare_topic_text(tmp_path):
         explainer.validate(data, scene_root(tmp_path))
 
 
+@pytest.mark.media
 @pytest.mark.parametrize("seconds,samples,passes", [
     (599.6, .1, True), (599.6 + 1/60, .1, False),
 ])
@@ -131,6 +131,7 @@ def test_exact_six_hundred_second_limit(tmp_path, monkeypatch, seconds, samples,
         assert not (root / "outputs/prepared.json").exists()
 
 
+@pytest.mark.media
 def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     data = board(); second = scene("b", transition="fade")
     data["scenes"].append(second)
@@ -156,6 +157,7 @@ def test_real_audio_axis_fade_and_cache(tmp_path, monkeypatch):
     assert next_result["audio"]["cacheHits"] == 2
 
 
+@pytest.mark.media
 def test_segment_holds_are_read_from_each_scene(tmp_path, monkeypatch):
     """每幕段间留白必须用本幕声明，不能沿用第一遍循环最后一幕的列表。"""
     first = scene("a", narrationSegments=[
@@ -171,6 +173,7 @@ def test_segment_holds_are_read_from_each_scene(tmp_path, monkeypatch):
     assert b["segmentWindows"]["b2"] == {"startFrame": 240, "endFrame": 300}
 
 
+@pytest.mark.media
 def test_narration_overlap_is_rejected(tmp_path, monkeypatch):
     """旁白不得重叠：淡化帧数不小于前一幕时长时准备失败。"""
     data = board()
@@ -180,6 +183,7 @@ def test_narration_overlap_is_rejected(tmp_path, monkeypatch):
         adapter.prepare(root, manifest)
 
 
+@pytest.mark.media
 def test_silent_scene_takes_target_remainder(tmp_path, monkeypatch):
     """无旁白镜头按固定帧数或目标剩余时长分配，不靠截断口播凑时长——也不要求关键词。"""
     data = board()
@@ -192,6 +196,7 @@ def test_silent_scene_takes_target_remainder(tmp_path, monkeypatch):
     assert shot["segmentWindows"] == {}
 
 
+@pytest.mark.media
 def test_prepare_binds_frame_subtitle_and_media(tmp_path, monkeypatch):
     """画幅、字幕几何与媒体映射都进准备产物与录制配置。"""
     data = board(width=1080, height=1920)
@@ -203,6 +208,7 @@ def test_prepare_binds_frame_subtitle_and_media(tmp_path, monkeypatch):
     assert result["inputs"]["frame"] == "1080x1920"
 
 
+@pytest.mark.media
 def test_narration_audio_starts_after_lead_in_frames(tmp_path, monkeypatch):
     """前导留白必须写进音轨；否则整片旁白会比字幕和画面提前。"""
     import wave
@@ -219,6 +225,7 @@ def test_narration_audio_starts_after_lead_in_frames(tmp_path, monkeypatch):
     assert first is not None and abs(first / bytes_per_frame / rate - expected_start) < 0.05
 
 
+@pytest.mark.media
 def test_record_receives_the_declared_frame(tmp_path, monkeypatch):
     data = board()
     root, manifest = project(tmp_path, data)
@@ -232,6 +239,7 @@ def test_record_receives_the_declared_frame(tmp_path, monkeypatch):
     assert calls[0]["media"] == {}
 
 
+@pytest.mark.media
 @pytest.mark.parametrize("reference", ["article.md", "outputs/input-review.json"])
 def test_referenced_files_invalidate_preparation(tmp_path, monkeypatch, reference):
     root, manifest, _ = prepared(tmp_path, monkeypatch)
@@ -247,6 +255,7 @@ def test_unreviewed_input_blocks_prepare(tmp_path, monkeypatch):
     assert calls == []
 
 
+@pytest.mark.media
 def test_code_change_invalidates_preparation(tmp_path, monkeypatch):
     root, manifest, _ = prepared(tmp_path, monkeypatch)
     (root / ENTRY).write_text("export default () => null;\n", encoding="utf-8")

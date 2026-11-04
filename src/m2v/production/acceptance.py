@@ -68,7 +68,7 @@ def validate(items, c: dict, report: dict, base: Path, evidence_valid) -> list[d
         evidence.extend(item['evidence'])
     if seen != set(report['checkpointIds']):
         raise M2VError('覆盖表与报告范围不一致')
-    if report['round'] in ('rough', 'final'):
+    if report['round'] == 'final':
         required = set(points) if report['reviewType'] == 'blind' else policy.checkpoint_ids(c, 'static-expression')
         if not required <= seen:
             raise M2VError('全片或目标图对照报告缺少必要覆盖')

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -66,6 +67,19 @@ def test_selection_and_compatibility(package):
         styles.selected_style({**selected, 'type': 'unsupported'})
     with pytest.raises(M2VError, match='画幅'):
         styles.selected_style(selected, width=1080, height=1920)
+
+
+def test_shipped_components_are_frame_driven_and_self_contained():
+    """正式包共享同一确定性边界，避免为每个风格复制检查器。"""
+    forbidden = ("Math.random", "Date.now", "setInterval", "setTimeout", "requestAnimationFrame", "@keyframes")
+    for manifest in styles.STYLES_ROOT.glob('*/style.json'):
+        package = json.loads(manifest.read_text(encoding='utf-8'))
+        for relative in package['components'].values():
+            path = manifest.parent / relative
+            code = re.sub(r'/\*.*?\*/|//[^\n]*', '', Path(path).read_text(encoding='utf-8'), flags=re.S)
+            assert not any(token in code for token in forbidden), path
+            for module in re.findall(r"from\s+['\"]([^'\"]+)['\"]", code):
+                assert module.startswith(('react', 'm2v/', './')), f'{path}: {module}'
 
 
 @pytest.mark.parametrize('field,value', [('schemaVersion', True), ('version', 'v1'), ('id', 'other'),
@@ -241,6 +255,7 @@ def test_example_tree_is_pruned_without_reading_or_hashing(package, monkeypatch)
     assert styles.load_style(root.name)['identity']['fingerprint'] != before
 
 
+@pytest.mark.slow
 def test_nested_example_build_preserves_project_and_style_boundaries(package, tmp_path):
     style_root, _ = package
     root = style_root / 'examples/demo'

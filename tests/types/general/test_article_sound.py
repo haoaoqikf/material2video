@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import math
+import shutil
 import struct
 import wave
 from pathlib import Path
@@ -16,7 +17,6 @@ from m2v.engine.sound import asset_digest
 from m2v.types.general import adapter, explainer, soundtrack
 from helpers.general import board, fake_record, fake_tts, project, scene, scene_root
 
-pytestmark = pytest.mark.media
 
 
 def write_tone(path: Path, seconds: float = 8, frequency: float = 220) -> Path:
@@ -34,6 +34,20 @@ def with_soundtrack(data: dict, track: dict) -> dict:
     return data
 
 
+@pytest.fixture(scope='module')
+def reference_tones(tmp_path_factory):
+    root = tmp_path_factory.mktemp('sound-validation')
+    return (write_tone(root / 'bed.wav', .05), write_tone(root / 'click.wav', .05))
+
+
+@pytest.fixture
+def sound_assets(tmp_path, reference_tones):
+    target = tmp_path / 'assets'
+    target.mkdir()
+    for source in reference_tones:
+        shutil.copyfile(source, target / source.name)
+
+
 def test_builtin_tones_are_deterministic_and_distinct(tmp_path):
     assert soundtrack.BUILTINS == ("ding", "ding-dong", "click", "transition")
     lengths = {}
@@ -49,9 +63,7 @@ def test_builtin_tones_are_deterministic_and_distinct(tmp_path):
     assert len(set(lengths.values())) == len(lengths)
 
 
-def test_validate_accepts_music_and_effects(tmp_path):
-    write_tone(tmp_path / "assets/bed.wav")
-    write_tone(tmp_path / "assets/click.wav", .2)
+def test_validate_accepts_music_and_effects(tmp_path, sound_assets):
     data = with_soundtrack(board(), {
         "music": {"sourceRef": "assets/bed.wav", "gainDb": -20, "loop": True, "fadeInMs": 500, "fadeOutMs": 1200},
         "effects": [
@@ -81,13 +93,12 @@ def test_validate_accepts_music_and_effects(tmp_path):
     ({"effects": [{"sourceRef": "missing.wav", "sceneId": "a"}]}, "本地文件"),
     ({"music": {"sourceRef": "assets/bed.wav"}, "extra": 1}, "未知字段"),
 ])
-def test_validate_rejects_invalid_soundtrack(tmp_path, track, match):
-    write_tone(tmp_path / "assets/bed.wav")
-    write_tone(tmp_path / "assets/click.wav", .2)
+def test_validate_rejects_invalid_soundtrack(tmp_path, sound_assets, track, match):
     with pytest.raises(M2VError, match=match):
         explainer.validate(with_soundtrack(board(), track), scene_root(tmp_path))
 
 
+@pytest.mark.media
 def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
     root, manifest = project(tmp_path)
     bed = write_tone(root / "assets/bed.wav", 8)
@@ -115,6 +126,7 @@ def test_prepare_mixes_builtin_and_local_effects(tmp_path, monkeypatch):
         load_current_prepared(root, manifest)
 
 
+@pytest.mark.media
 def test_effect_start_beyond_duration_is_rejected(tmp_path, monkeypatch):
     root, manifest = project(tmp_path)
     data = with_soundtrack(board(), {"effects": [
@@ -126,6 +138,7 @@ def test_effect_start_beyond_duration_is_rejected(tmp_path, monkeypatch):
         adapter.prepare(root, manifest)
 
 
+@pytest.mark.media
 def test_effect_offset_must_land_inside_the_clip(tmp_path, monkeypatch):
     """负偏移可以把音效提前到幕首之前，但不能越过全片起点。"""
     root, manifest = project(tmp_path)
@@ -140,6 +153,7 @@ def test_effect_offset_must_land_inside_the_clip(tmp_path, monkeypatch):
         adapter.prepare(root, manifest)
 
 
+@pytest.mark.media
 def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
     root, manifest = project(tmp_path)
     data = with_soundtrack(board(), {"effects": [{"builtin": "ding-dong", "sceneId": "a"}]})
@@ -150,14 +164,3 @@ def test_soundtrack_without_music_normalizes_narration(tmp_path, monkeypatch):
     master = root / result["audio"]["segments"][0]["path"]
     with wave.open(str(master), "rb") as stream:
         assert stream.getnframes() == result["durationInFrames"] * 400
-
-
-def test_local_soundtrack_fixture_is_declared_and_usable(tmp_path):
-    """独立夹具覆盖本地音床与内置音效，不绑定任何作品内容。"""
-    write_tone(tmp_path / "assets/bed.wav")
-    data = with_soundtrack(board(), {
-        "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": True},
-        "effects": [{"builtin": "ding-dong", "sceneId": "a"}],
-    })
-    explainer.validate(data, scene_root(tmp_path))
-    assert data["soundtrack"]["effects"][0]["builtin"] in soundtrack.BUILTINS

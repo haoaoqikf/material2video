@@ -33,6 +33,6 @@ where = ["src"]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
 markers = [
-    "slow: 需要浏览器、真实渲染或长时等待的用例；默认不运行，-m slow 单独运行",
-    "media: 需要 ffmpeg 真实编解码的用例；默认不运行，-m 'not slow' 连同默认层一起运行",
+    "slow: 需要浏览器、真实渲染或长时等待；默认排除，在相关范围内显式选择",
+    "media: 需要 ffmpeg 真实编解码；默认排除，在相关范围内显式选择",
 ]

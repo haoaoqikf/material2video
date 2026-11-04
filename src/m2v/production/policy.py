@@ -87,7 +87,7 @@ def requirement(c: dict, gate: str, checkpoint_id=None) -> dict:
     ids = {cid for r in relevant for cid in r['scope']['checkpointIds']}
     if checkpoint_id:
         ids &= {checkpoint_id}
-    focuses = list(DEFAULT_FOCUSES) if workflow.gate(gate).review_round in ('rough', 'final') or relevant else []
+    focuses = list(DEFAULT_FOCUSES) if workflow.gate(gate).review_round == 'final' or relevant else []
     for risk in RISK_CATALOG:
         if risk.gate == gate and risk.final_focuses and risks(c, risk.kind):
             focuses = list(risk.final_focuses)

@@ -21,7 +21,6 @@ from m2v.types.general import adapter, code_scenes, explainer, reading_pace, sou
 from helpers.general import board, fake_record, fake_tts, project, scene, scene_root
 from helpers.general import prepare_build, requires_node
 
-pytestmark = pytest.mark.media
 
 
 @pytest.mark.parametrize("output,story,expected", [
@@ -63,6 +62,7 @@ def test_init_type_defaults(tmp_path, kind, expected, bad):
             load_project(root)
 
 
+@pytest.mark.media
 @pytest.mark.parametrize("fps", [30, 60])
 def test_timeline_audio_cues_and_seconds(tmp_path, monkeypatch, fps):
     first = scene(leadInFrames=fps, tailFrames=fps // 2,

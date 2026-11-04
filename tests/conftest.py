@@ -31,28 +31,26 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
-    """未指定目标或 `-m` 时按层排除慢速用例；显式选择或显式路径完全交给调用方。"""
-    if config.getoption("--full") or config.getoption("markexpr") or _has_explicit_path(config):
+    """路径选择不放开成本层；只有明确点名的节点、标记或 --full 可以放开。"""
+    if config.getoption("--full") or config.getoption("markexpr"):
         return
+    nodes = [(Path(parts[0]).resolve(), parts[1:])
+             for argument in config.args if len(parts := argument.split("::")) > 1]
     selected, deselected = [], []
     for item in items:
-        if any(item.get_closest_marker(name) for name in DEFAULT_EXCLUDED_MARKERS):
+        explicit = any(
+            item.path.resolve() == path and len(selectors) <= len(actual := item.nodeid.split("::")[1:])
+            and all(wanted == found or wanted == found.split("[", 1)[0]
+                    for wanted, found in zip(selectors, actual))
+            for path, selectors in nodes
+        )
+        if not explicit and any(item.get_closest_marker(name) for name in DEFAULT_EXCLUDED_MARKERS):
             deselected.append(item)
         else:
             selected.append(item)
     if deselected:
         config.hook.pytest_deselected(items=deselected)
         items[:] = selected
-
-
-def _has_explicit_path(config) -> bool:
-    """命令行里点名了存在的测试路径（含 `file.py::test` 形式）时，不套用默认排除。"""
-    for argument in config.invocation_params.args:
-        if argument.startswith("-"):
-            continue
-        if Path(argument.split("::", 1)[0]).exists():
-            return True
-    return False
 
 
 @pytest.fixture(scope="session")

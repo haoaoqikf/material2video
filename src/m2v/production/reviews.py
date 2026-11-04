@@ -115,7 +115,7 @@ def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
     contract.fields(report, {'gate', 'round', 'roundId', 'sceneId', 'checkpointIds', 'packPath', 'packSha256', 'reviewerId',
                             'isolation', 'reviewType', 'verdict', 'observations', 'checkIds', 'focus', 'coverage', 'invocation'})
     if (report['gate'] not in workflow.GATE_IDS or report['verdict'] not in ('pass', 'fail', 'insufficient') or
-            report['round'] not in ('core', 'rough', 'final') or report['reviewType'] not in ('blind', 'consistency') or
+            report['round'] not in ('core', 'final') or report['reviewType'] not in ('blind', 'consistency') or
             report['isolation'] not in ('independent-subagent', 'external-review', 'self-review')):
         raise M2VError('评审轮次、结论或隔离方式无效')
     for key in ('roundId', 'reviewerId'):

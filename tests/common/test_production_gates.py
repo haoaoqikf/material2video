@@ -1,8 +1,10 @@
 """制作门的行为回归：防止陈旧证据放行、误删引用及状态查询写盘。"""
 import json
+import shutil
 from pathlib import Path
 
 import pytest
+from PIL import Image, PngImagePlugin
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
@@ -16,6 +18,38 @@ from helpers.production import sample, project as production_project
 @pytest.fixture
 def project(tmp_path):
     return production_project(tmp_path)
+
+
+@pytest.fixture
+def neutral_image_package(monkeypatch):
+    """审核绑定测试只需有效摘要；媒体去元数据由打包器媒体测试单独验证。"""
+    def copy_image(arguments):
+        assert arguments[:1] == ['-i'] and arguments[-2] == '1'
+        source, target = Path(arguments[1]), Path(arguments[-1])
+        assert source.suffix == target.suffix == '.png'
+        shutil.copyfile(source, target)
+    monkeypatch.setattr(checks, 'ffmpeg', copy_image)
+
+
+@pytest.mark.media
+def test_review_package_removes_image_metadata(project):
+    """真实打包只保留一处媒体净化回归；审核绑定测试复用中性图夹具。"""
+    from m2v.production import reviews
+    root, _, _ = project
+    base = outputs(root)
+    source = base / 'author-name.png'
+    metadata = PngImagePlugin.PngInfo()
+    metadata.add_text('Author', 'private-author')
+    Image.new('RGB', (64, 64), 'blue').save(source, pnginfo=metadata)
+    original = source.read_bytes()
+    pack = reviews.package(root, gate='G4', scene_id='one', checkpoint_ids=['one-cp'],
+                           files=[source.name], kind='scene-window', display_sizes=[1920])
+    manifest = read(pack / 'manifest.json')
+    media = next(entry for entry in manifest['files'] if entry['path'].endswith('.png'))
+    with Image.open(pack / media['path']) as image:
+        assert image.size == (64, 64) and 'Author' not in image.info
+    assert media == receipt(pack, pack / media['path'])
+    assert 'author-name' not in media['path'] and source.read_bytes() == original
 
 
 @pytest.mark.parametrize('mutation', ['unknown', 'duplicate', 'frame', 'empty', 'claim'])
@@ -190,30 +224,6 @@ def test_contract_path_id_is_rejected():
     c['scenes'][0]['checkpoints'][0]['id'] = '../escape'
     with pytest.raises(M2VError):
         contract.validate(c)
-
-
-def test_animatic_real_encode_and_duration(project):
-    root, _, c = project
-    c['reviewPlan']['risks'] = [{'id': 'timing', 'kind': 'structure-timing',
-        'scope': {'checkpointIds': ['one-cp']}, 'reason': '窗口时点', 'requiredEvidence': ['时序片段']}]
-    for cp in c['scenes'][0]['checkpoints']:
-        cp['window'] = [0,30]
-    directory = outputs(root) / 'design'
-    directory.mkdir()
-    image = directory / 'key.png'
-    checks.ffmpeg(['-f','lavfi','-i','color=c=blue:s=64x64','-frames:v','1',str(image)])
-    entries=[]
-    for scene in c['scenes']:
-        cp = scene['checkpoints'][0]
-        entries.append({'checkpointId':cp['id'],'width':c['width'],'path':image.relative_to(outputs(root)).as_posix()})
-    write(outputs(root) / 'production/design-frames.json', {'frames':entries})
-    video = checks.make_animatic(root,c)
-    assert video.is_file() and video.stat().st_size > 100
-    assert read(video.with_name('manifest.json'))['nonDelivery']
-    # 两幕各 30 帧 = 2 秒；编码不得按图片默认帧率漂移。
-    from imageio_ffmpeg import count_frames_and_secs
-    frames, seconds = count_frames_and_secs(str(video))
-    assert abs(seconds - 2.0) < 0.05, (frames, seconds)
 
 
 def test_missing_canvas_observation_is_unverified():
@@ -420,7 +430,7 @@ def test_coverage_must_match_scope_and_sequence():
         acceptance.validate([{k: v for k, v in {**item, 'status': 'insufficient'}.items() if k != 'assessment'}],
                             c, report, Path('.'), valid)
     with pytest.raises(M2VError, match='缺少必要覆盖'):
-        acceptance.validate([item], c, {**report, 'round': 'rough'}, Path('.'), valid)
+        acceptance.validate([item], c, {**report, 'round': 'final'}, Path('.'), valid)
     core = {**report, 'round': 'core', 'gate': 'G4'}
     with pytest.raises(M2VError, match='完整过程片段'):
         core_c = sample()
@@ -447,7 +457,7 @@ def _review_inputs(root, manifest, event, *, round_name='core', focus='comprehen
     out = outputs(root)
     (out / 'production/frames').mkdir(parents=True, exist_ok=True)
     image = out / 'production/frames/window.png'
-    checks.ffmpeg(['-f', 'lavfi', '-i', 'color=c=blue:s=64x64', '-frames:v', '1', str(image)])
+    Image.new('RGB', (64, 64), 'blue').save(image)
     pack = reviews.package(root, gate=event['gate'], scene_id=event['sceneId'],
                            checkpoint_ids=[event['checkpointId']], files=['production/frames/window.png'],
                            kind='scene-window', display_sizes=[1920], blind_id=blind_id,
@@ -477,6 +487,7 @@ def _review_inputs(root, manifest, event, *, round_name='core', focus='comprehen
     return report, pack_path
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_one_report_binds_multiple_checks_and_rejects_reuse(project):
     from m2v.production import reviews
     root, manifest, c = project
@@ -498,6 +509,7 @@ def test_one_report_binds_multiple_checks_and_rejects_reuse(project):
             reviews.import_report(root, manifest, second)
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_final_review_requires_unused_reviewer(project):
     from m2v.production import reviews
     root, manifest, c = project
@@ -510,6 +522,7 @@ def test_final_review_requires_unused_reviewer(project):
             reviews.import_report(root, manifest, final)
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_consistency_requires_prior_blind_round(project):
     from m2v.production import reviews
     root, manifest, c = project
@@ -561,6 +574,7 @@ def test_core_cannot_merge_understanding_pass_with_weak_presentation(dimension, 
         acceptance.validate([item], c, report, Path('.'), lambda *_: True)
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_core_target_requires_independent_same_round_consistency(project):
     from m2v.production import reviews
     root, manifest, c = project
@@ -588,6 +602,7 @@ def test_core_target_requires_independent_same_round_consistency(project):
         assert ledger.status(root, manifest)['scenes'][0]['status'] == '待评审'
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_consistency_cannot_bind_another_check(project):
     from m2v.production import reviews
     root, manifest, c = project
@@ -615,6 +630,7 @@ def test_historical_core_pass_without_assessment_cannot_authorize(project):
     assert row['missingAcceptance'] == ['核心理解、表现与代表性凭据']
 
 
+@pytest.mark.usefixtures("neutral_image_package")
 def test_review_issue_needs_current_independent_recheck_and_keeps_scope(project):
     from m2v.production import reviews
     root, manifest, c = project

@@ -47,20 +47,21 @@ pnpm -C web install
 pnpm -C web build
 uv run playwright install chromium
 uv run m2v types
-uv run pytest            # 默认：纯单元与契约用例
+uv run pytest tests/common/test_single_pass_delivery.py # 按改动选择相关快测文件
 pnpm -C web test
 ```
 
-测试按运行成本分层，默认只跑不依赖外部进程的纯单元与契约用例，约数分钟；需要真实媒体或渲染时显式选择：
+测试按影响范围选择，文件和目录默认排除 `media` 与 `slow`。需要真实媒体或渲染时明确选择相关节点或相关文件中的标记：
 
 ```powershell
-uv run pytest                  # 默认层：不含 media 与 slow
-uv run pytest -m "not slow"    # 交付前回归：默认层加真实媒体编解码
-uv run pytest -m slow          # 浏览器、真实渲染与长时等待
-uv run pytest --full           # 全部用例
+uv run pytest tests/common/test_single_pass_delivery.py # 相关快测
+uv run pytest tests/types/general/test_article_sound.py -m media # 相关媒体验证
+uv run pytest tests/types/general/test_general_silent_output.py::test_real_delivery_streams_and_candidate_reuse # 明确慢测节点
 ```
 
-`media` 用例需要 ffmpeg 真实编解码，`slow` 用例需要 Chromium 或完整渲染链路。CI 运行 `-m "not slow"`；本地缺少示例媒体时相关用例按既有约定跳过。显式指定测试文件、目录或节点时按指定范围运行，不套用默认排除。示例内容只由各自作品的制作与验收流程维护，不再作为通用测试重复断言固定帧数与时长。
+`media` 用例需要 ffmpeg 真实编解码，`slow` 用例需要 Chromium、完整渲染或长时等待。指定 `文件::测试名` 只放开该节点的成本层，`-m` 在选定范围内覆盖默认过滤；CI 日常运行默认快层。本地缺少示例媒体时相关用例按既有约定跳过。示例内容由作品制作与验收维护，通用测试保留共享契约与关键边界。
+
+全仓完整回归（`uv run pytest --full` 或分组覆盖全集）仅限用户明确要求，或人工在依赖与字体已准备好的环境中执行正式发布验证。重构、提交和 OpenSpec 归档不自动触发全量；详细约束见 [验证与交付](AGENTS.md#验证与交付)。
 
 统一入口以作品目录为唯一归属：
 

@@ -144,9 +144,9 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 打包请求字段 gate、scene_id、checkpoint_ids、files、kind、display_sizes；可选 review_type、timecodes、blind_id。`kind` 为 design-keyframe/animatic/scene-window/rough-timeline/final-video；评审包结构、匿名化与隔离见[独立评审](subagent-review.md#评审包)。
 
-独立报告含 gate、round（core/rough/final）、roundId、sceneId、checkpointIds、packPath、packSha256、reviewerId、isolation、reviewType、verdict、observations、checkIds、focus、coverage、invocation。`isolation=independent-subagent` 才计独立；一致性对照不计人数，也不替代盲审。manifest、报告、调用记录与来源文件均以 SHA-256 绑定。
+独立报告含 gate、round（core/final）、roundId、sceneId、checkpointIds、packPath、packSha256、reviewerId、isolation、reviewType、verdict、observations、checkIds、focus、coverage、invocation。rough 仅保留历史记录读取与公开轮数统计（固定为 0），不接受新报告导入。`isolation=independent-subagent` 才计独立；一致性对照不计人数，也不替代盲审。manifest、报告、调用记录与来源文件均以 SHA-256 绑定。
 
-每轮报告提供一份 `coverage` 覆盖表：每项 checkpointId、window、status、observations、evidence、issues。窗口必须等于检查点完整检查窗，evidence 必须来自投喂的评审包。rough 与 final 盲审必须覆盖全片检查点；final 的 consistency 对照覆盖适用目标图检查点。核心轮动态风险项必须附过程片段，端点静帧不足。所有来源证据摘要绑定事件，变化后相关报告失效。
+每轮报告提供一份 `coverage` 覆盖表：每项 checkpointId、window、status、observations、evidence、issues。窗口必须等于检查点完整检查窗，evidence 必须来自投喂的评审包。final 盲审必须覆盖全片检查点；final 的 consistency 对照覆盖适用目标图检查点。核心轮动态风险项必须附过程片段，端点静帧不足。所有来源证据摘要绑定事件，变化后相关报告失效。
 
 同一份报告可通过 `checkIds` 绑定多个门的检查事件，逐项校验后幂等登记；任一绑定无效则整份拒绝，不留部分成功事件。final 轮必须使用未参与该作品前期评审的 reviewerId，并绑定当前候选视频摘要。`split-final` 时两名评审者互不读取报告、各自独立导入。
 

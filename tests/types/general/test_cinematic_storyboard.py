@@ -11,7 +11,6 @@ from m2v.core.project import load_project
 from m2v.types.general import adapter, code_scenes, explainer, explainer_prepare
 from helpers.general import board, fake_record, fake_tts, project, scene, scene_root
 
-pytestmark = pytest.mark.media
 
 
 def prepare_with(tmp_path, monkeypatch, data, *, seconds=1, **options):
@@ -37,6 +36,7 @@ def cinematic_scene(shots, segments=None, identity="a", **extra):
 # ---------------------------------------------------------------- standard 回归
 
 
+@pytest.mark.media
 def test_standard_board_keeps_reading_hold_and_windows(tmp_path, monkeypatch):
     """未声明新字段时：1 秒旁白 + 24 帧阅读停留，时间窗从 0 开始。"""
     _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, board())
@@ -73,6 +73,7 @@ def test_cinematic_config_carries_profile_and_claims():
 # ---------------------------------------------------------------- 留白与阅读停留
 
 
+@pytest.mark.media
 def test_lead_in_tail_and_reading_hold_shift_the_timeline(tmp_path, monkeypatch):
     data = board(scenes=[scene(leadInFrames=120, tailFrames=60, readingHoldFrames=60)])
     _, _, prepared, _ = prepare_with(tmp_path, monkeypatch, data)
@@ -95,6 +96,7 @@ def test_out_of_range_padding_is_rejected(tmp_path, extra, match):
         explainer.validate(board(scenes=[scene(**extra)]), scene_root(tmp_path))
 
 
+@pytest.mark.media
 def test_fixed_duration_must_cover_padding(tmp_path, monkeypatch):
     data = board(scenes=[scene(leadInFrames=600, durationFrames=60)])
     with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
@@ -162,6 +164,7 @@ def test_duplicate_shot_ids_across_scenes_are_rejected(tmp_path):
         explainer.validate(data, scene_root(tmp_path))
 
 
+@pytest.mark.media
 def test_shot_must_cover_the_declared_segment_before_recording(tmp_path, monkeypatch):
     """镜头时间窗只有拿到真实分段时长才能判定，且必须在录制之前失败。"""
     shots = [shot("earth", "hero", 0, 480, segment="a-line"),
@@ -176,6 +179,7 @@ def test_shot_must_cover_the_declared_segment_before_recording(tmp_path, monkeyp
     assert calls == []
 
 
+@pytest.mark.media
 def test_cold_open_shot_without_segment_is_allowed(tmp_path, monkeypatch):
     """冷开场没有旁白可依：不声明 segment 时只要求落在幕时长内。"""
     shots = [shot("sun", "minor", 0, 200),
@@ -190,6 +194,7 @@ def test_cold_open_shot_without_segment_is_allowed(tmp_path, monkeypatch):
     assert windows["a-line"] == {"startFrame": 200, "endFrame": 680}
 
 
+@pytest.mark.media
 @pytest.mark.parametrize("speech_seconds", [1, 3])
 def test_longer_narration_preserves_each_subject_observation(tmp_path, monkeypatch, speech_seconds):
     """TTS 变长可增长整幕，但不得侵占逐主体声明的观察留白。"""
@@ -205,6 +210,7 @@ def test_longer_narration_preserves_each_subject_observation(tmp_path, monkeypat
     assert scenes[1]["startFrame"] == scenes[0]["endFrame"]
 
 
+@pytest.mark.media
 def test_subject_budget_rejects_longer_speech_instead_of_removing_observation(tmp_path, monkeypatch):
     data = board(scenes=[scene(durationFrames=240, leadInFrames=60, tailFrames=120, readingHoldFrames=0)])
     with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
@@ -214,6 +220,7 @@ def test_subject_budget_rejects_longer_speech_instead_of_removing_observation(tm
 # ---------------------------------------------------------------- 段间静默
 
 
+@pytest.mark.media
 @pytest.mark.parametrize("hold", [180, 540, 1800])
 def test_segment_hold_inserts_silence_between_narrations(tmp_path, monkeypatch, hold):
     """第一段之后的静默既进音轨，也把第二段的窗口与字幕整体后移。"""
@@ -229,6 +236,7 @@ def test_segment_hold_inserts_silence_between_narrations(tmp_path, monkeypatch, 
     assert [cue["startFrame"] for cue in prepared["props"]["subtitleCues"]] == [0, 60 + hold]
 
 
+@pytest.mark.media
 def test_segment_hold_counts_toward_the_minimum_duration(tmp_path, monkeypatch):
     """固定时长必须容纳段间静默；不足时在录制前失败。"""
     segments = [{"id": "a-line", "text": "观察结果，修正做法。", "holdFrames": 180},
