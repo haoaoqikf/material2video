@@ -162,6 +162,20 @@ def event_coverage(prepared: dict, scene: dict, cp: dict, sampled: list[int], *,
     }
 
 
+def _reopen_checkpoint_issue(root: Path, scene_id: str, checkpoint_id: str) -> None:
+    from . import issues
+    issue_id = 'G4-' + checkpoint_id
+    # 本项闭环证据可能已过期；显式重开仍须保留已登记归因及受保护版本。
+    existing = next((x for x in issues.load(root, _reopening_id=issue_id) if x['id'] == issue_id), None)
+    if existing and existing['status'] == 'open':
+        return
+    item = dict(existing or {})
+    item.update(id=issue_id, status='open', required=True, gate='G4', sceneId=scene_id,
+                checkpointId=checkpoint_id, caughtAt='G4', catchableAt='G4', evidence=[])
+    item.setdefault('versionRefs', [])
+    issues.update(root, item)
+
+
 def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
     from playwright.sync_api import sync_playwright
     from m2v.commands import _prepared
@@ -260,13 +274,8 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
                 path = save_report(root, c, 'G4', checks, scene_id=s['id'], checkpoint_id=cp['id'], evidence=evidence)
                 report = read(path)
                 if report['status'] == 'fail':
-                    from . import issues
                     issue_id = 'G4-' + cp['id']
-                    existing = next((x for x in issues.load(root) if x['id'] == issue_id), None)
-                    if not existing or existing['status'] != 'open':
-                        issues.update(root, {'id': issue_id, 'status': 'open', 'required': True, 'gate': 'G4',
-                            'sceneId': s['id'], 'checkpointId': cp['id'], 'caughtAt': 'G4', 'catchableAt': 'G4',
-                            'evidence': [], 'versionRefs': []})
+                    _reopen_checkpoint_issue(root, s['id'], cp['id'])
                     notes = base / 'visual-notes.md'
                     failures = sorted({x['name'].split(':')[0] for x in checks if x['status'] == 'fail'})
                     with notes.open('a', encoding='utf-8') as stream:

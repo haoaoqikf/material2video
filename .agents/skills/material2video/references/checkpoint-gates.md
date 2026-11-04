@@ -142,6 +142,8 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason、cause。cause 为 implementation/design/mixed/undetermined，当前不渲染；新独立失败默认待定位，关闭前须定位且不可删除已登记归因。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
 
+G4 自动量测再次失败会重开原检查点问题，保留已有归因和版本引用，清空本项过期闭环证据；其他问题仍按原规则核验。
+
 ## 隔离包与每轮覆盖
 
 打包请求字段 gate、scene_id、checkpoint_ids、files、kind、display_sizes；可选 review_type、timecodes、blind_id。`kind` 为 design-keyframe/animatic/scene-window/rough-timeline/final-video；评审包结构、匿名化与隔离见[独立评审](subagent-review.md#评审包)。

@@ -148,3 +148,5 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 general 提供 G0–G6 检查点门、指定帧采集、DOM/布局量测、隔离评审包、粗片播放器、追加式制作历史与基线清理；`m2v status --history --json` 显示 production 制作状态。合同、评审覆盖、回退决策、`lookdev` 取点方式与完成条件分别见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)、[独立评审](.agents/skills/material2video/references/subagent-review.md)、[制作流程](.agents/skills/material2video/references/production-workflow.md)和[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；这些工具不新增导出门禁。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
 
 通用制作以三阶段指南为操作入口，设计记录采用全片原则、逐场表与必要附件。G4普通窗默认半秒采样，已声明动态风险按节拍加密并强制覆盖事件/状态边界；完整过程视频保留，多尺寸图批量派生。G3可用 `gates check --gate G3 --timing-reports <输出根内G4报告> ...` 复用当前实际过程；未复用时只为时序风险镜头及相邻上下文生成animatic。来源过期或缺少独立观察仍保持未完成。详见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md#时序证据的生成与复用)。
+
+G4 再次失败会重开原检查点问题，保留已有归因和受保护版本引用，避免返工记录丢失。

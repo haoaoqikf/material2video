@@ -91,6 +91,27 @@ def test_issue_cause_validation(project, cause):
             issues.update(root, item)
 
 
+def test_checkpoint_failure_reopens_with_cause_and_versions_even_if_closure_expired(project):
+    root, _, _ = project
+    checks._reopen_checkpoint_issue(root, 'one', 'one-cp')
+    item = issues.load(root)[0]
+    assert item['status'] == 'open' and item['required']
+    proof = outputs(root) / 'prior-fix.json'
+    write(proof, {'status': 'pass'})
+    item.update(status='closed', cause='implementation', versionRefs=['current'],
+                evidence=[{**receipt(outputs(root), proof), 'gate': 'G4'}])
+    issues.update(root, item)
+    # 后续采集覆盖了旧闭环证据，但重开本项不能受旧证据过期阻断，也不能丢失归因。
+    write(proof, {'status': 'fail'})
+    checks._reopen_checkpoint_issue(root, 'one', 'one-cp')
+    reopened = issues.load(root)[0]
+    assert reopened['status'] == 'open' and reopened['required']
+    assert reopened['cause'] == 'implementation' and reopened['versionRefs'] == ['current']
+    assert reopened['evidence'] == []
+    checks._reopen_checkpoint_issue(root, 'one', 'one-cp')
+    assert issues.load(root) == [reopened]
+
+
 def test_readonly_status_and_stale_contract(project):
     root, manifest, c = project
     with locked(root):
