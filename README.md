@@ -112,6 +112,8 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 general 画面素材按对象检索：公司、产品和生产过程先查相关官网栏目及官方账号，再按缺口扩展来源；公开媒体直链或本地文件统一导入。Pixabay 是唯一启用的图库 API，横竖方向只作候选排序偏好。素材记录支持来源类型、发布主体、内容描述、可用片段和采用依据；默认按「检查后未发现明确禁止当前用途即可采用」执行，未知许可与未核实只提示，明确禁止或条件未满足阻断准备和审计，不把未发现禁止表述为已获授权。规则与字段见[采用政策](.agents/skills/material2video/references/material-sourcing.md#5-采用政策与署名)及[导入契约](.agents/skills/material2video/references/article-media-and-sound.md#来源与采用依据字段)。
 
+素材选择按用途排序：真实事件和具体产品优先可追溯原件，准确关系与过程优先代码；当前代理支持生图时，定制插画、海报等静态任务优先考虑 AI 图片，再找合适的开放库／图库。生成图片沿用本地素材导入，保存提示词、工具和输出记录，不作实拍证据；细则见[来源优先级](.agents/skills/material2video/references/visual-material-selection.md#按用途排序素材来源)与[生成记录](.agents/skills/material2video/references/material-sourcing.md#ai-图片生成与记录)。
+
 ## 从旧名称迁移
 
 本次为全面改名，不提供旧入口兼容别名。重新执行 `uv sync`、`pnpm -C web install` 和 `pnpm -C web build` 后，更新调用方：
