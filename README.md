@@ -88,6 +88,8 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 多场景作品的 `lookdev` 静帧采集失败时，错误会给出场景 ID、入口路径及原始原因，便于定位失败场景。
 
+纯时间并行采集仅在整组边界验证通过后发布分块缓存；失败重试不会复用未放行分块，边界失败帧会保存在作品诊断目录，见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
+
 多日地图游记使用一份 `trip.json`，每日路线在 `routes/day-XX.json` 并由 `trip.json` 引用；填写行程、旁白、卡片与事实来源后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v road-trip fetch --project videos/route-journey/road-trip/<slug>`，再按授权执行 `basemap` 生成概览与每日跟随瓦片。之后 `prepare / preview / render` 全程离线，准备阶段合成旁白、字幕、音效与 30 秒程序化音床。画幅固定 1080×1920、30 fps、有声；材料形状、命令与画面契约见[多日地图游记](.agents/skills/material2video/references/road-trip-video.md)。
 
 自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>` 取得真实高速优先路线；确认授权并置 `mapTiles=true` 后可执行 `basemap` 生成普通道路或卫星底图。之后 `validate / prepare / preview / render` 全程离线。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒；顶部两行“模拟行程”标题，车辆旁显示里程，市/县行政区标签由渲染层绘制。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。

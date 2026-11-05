@@ -27,7 +27,8 @@ from .config import (WEB, build_scene, capture_settings, digest, implementation_
 
 
 READY_TIMEOUT_MS = 30000
-PURE_CONTRACT = "pure-seek-png-444-v1"
+# v1 可能把尚未通过整组边界验证的分块发布到缓存；旧收据不能继续授权复用。
+PURE_CONTRACT = "pure-seek-png-444-v2"
 SEQUENTIAL_CONTRACT = "fixed-clock-png-444-v5"
 
 
@@ -226,12 +227,11 @@ def _parallel_chunks(root: Path, work: Path, config: dict, gaps: list[tuple[int,
     for first, last in gaps:
         for start in range(first, last, block):
             end = min(last, start + block)
-            chunks.append((start, end, cache / f"{key}-{start}-{end}.mp4"))
+            # worker 只写本次临时目录。整组边界通过前，任何分块都不可成为可复用缓存。
+            chunks.append((start, end, work / f"chunk-{start}-{end}" / "clip.mp4"))
     chunks.sort(key=lambda item: item[0])
     tasks = []
     for index, (start, end, target) in enumerate(chunks):
-        if _valid_clip(target, target.with_suffix(".json"), contract=PURE_CONTRACT):
-            continue
         witnesses = []
         if index + 1 < len(chunks):
             witnesses.append(chunks[index + 1][0])
@@ -271,11 +271,26 @@ def _parallel_chunks(root: Path, work: Path, config: dict, gaps: list[tuple[int,
         left_witness = work / f"chunk-{left_start}-{left_end}" / f"witness-{right_start:06d}.png"
         right_witness = work / f"chunk-{right_start}-{right_end}" / f"witness-{right_start:06d}.png"
         if not left_witness.is_file() or not right_witness.is_file():
-            continue
+            raise M2VError(f"pure-time 块边界 {right_start} 帧缺少跨进程见证帧")
         value = images.psnr(left_witness, right_witness)
         if value < 60:
-            raise M2VError(f"pure-time 块边界 {right_start} 帧跨进程 PSNR {value:.2f} dB < 60 dB")
-    return chunks
+            # 保存实际失败帧，避免临时目录清理后只能凭数字猜测原因；不把诊断当通过证据。
+            diagnostic = cache / "diagnostics" / f"{key}-{right_start}"
+            diagnostic.mkdir(parents=True, exist_ok=True)
+            for name, source in (("left.png", left_witness), ("right.png", right_witness)):
+                copied = work / ("diagnostic-" + name)
+                shutil.copyfile(source, copied)
+                security.deliver(copied, diagnostic / name)
+            logger.error("pure-time 边界检查失败 frame=%s psnr=%.2f evidence=%s",
+                         right_start, value, diagnostic)
+            raise M2VError(f"pure-time 块边界 {right_start} 帧跨进程 PSNR {value:.2f} dB < 60 dB；诊断：{diagnostic}")
+    published = []
+    for start, end, source in chunks:
+        target = cache / f"{key}-{start}-{end}.mp4"
+        security.deliver(source, target)
+        security.deliver(source.with_suffix(".json"), target.with_suffix(".json"))
+        published.append((start, end, target))
+    return published
 
 
 def _receipt_probes(pieces: list[tuple[int, int, Path]]) -> tuple[list, float | None]:
