@@ -17,7 +17,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
 from m2v.core.validate import obj
 from m2v.engine import audio
-from m2v.engine.assets_audit import UNKNOWN_LICENSES
+from m2v.core.media_policy import UNKNOWN_LICENSES
 from m2v.engine.gallery import HttpTransport, MAX_DOWNLOAD_BYTES
 from m2v.engine.sound import asset_digest
 from .media_assets import _http

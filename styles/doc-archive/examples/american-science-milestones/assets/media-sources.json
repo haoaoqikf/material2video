@@ -13,6 +13,10 @@
       "mediaUrl": "未知",
       "author": "未知",
       "license": "Public domain",
+      "sourceType": "open-library",
+      "publisher": "Wikimedia Commons",
+      "description": "电报历史装置图像",
+      "usage": {"status": "not-checked"},
       "role": "other"
     },
     {

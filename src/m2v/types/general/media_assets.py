@@ -1,7 +1,7 @@
 """助手搜索结果的导入边界：实测媒体、内容寻址及来源留证。
 
 通用 v8 作品的画面由代码绘制，图片与视频经 ``useMediaAsset`` 按 ID 取用；素材由
-助手全网检索或从 Pexels、Pixabay 这类可选图库获得。无论来源如何，进入作品的方式
+助手检索官网、官方账号等公开来源或从可选 Pixabay 图库获得。无论来源如何，进入作品的方式
 只有一条：先把候选写进导入清单，由 ``m2v general assets import`` 下载或复制、实测
 真实类型与尺寸、按内容摘要命名落盘，并把来源页、作者、许可与实测信息写进
 ``assets/media-sources.json``。准备阶段复核**全部**登记素材，运行期只读本地文件，
@@ -23,10 +23,10 @@ from urllib.parse import urlsplit
 from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
-from m2v.core import security
+from m2v.core import security, media_policy
 from m2v.core import frames
 from m2v.engine import media_probe
-from m2v.engine.assets_audit import ROLES, UNKNOWN_LICENSES
+from m2v.engine.assets_audit import ROLES
 from m2v.engine.gallery import (
     DEFAULT_TIMEOUT_SECONDS,
     MAX_DOWNLOAD_BYTES,
@@ -129,11 +129,13 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
                 if not 0 < file.stat().st_size <= MAX_DOWNLOAD_BYTES:
                     raise M2VError("下载素材为空或超过 256 MiB")
                 info = probe(file, kind)
+                source_metadata = media_policy.metadata({**entry, **info})
                 sha = asset_digest(file)
                 relative = f"assets/media/{sha}{suffix}"
                 adopted.append({"id": identity, "path": relative, "kind": kind, **info, "sha256": sha,
                                 "sourceUrl": origin, "mediaUrl": remote or "未知",
                                 "author": entry.get("author") or "未知", "license": entry.get("license") or "未知",
+                                **source_metadata,
                                 **({"role": role} if "role" in entry else {}),
                                 **({"target": target} if "target" in entry else {})})
                 staged.append((file, root / relative))
@@ -183,8 +185,14 @@ def resolve(root: Path) -> dict:
         kind = entry.get("kind")
         if kind not in SUFFIXES:
             raise M2VError(f"素材 {identity} 的类型必须是 image/video")
-        if str(entry.get("license", "")).strip().lower() in UNKNOWN_LICENSES:
-            raise M2VError(f"素材 {identity} 许可未知；请补齐来源与许可")
+        try:
+            source_metadata, problems, warnings = media_policy.assess(entry)
+        except M2VError as exc:
+            raise M2VError(f"素材 {identity} 采用元数据无效：{exc}") from exc
+        if problems:
+            raise M2VError(f"素材 {identity}：{problems[0]['message']}")
+        for warning in warnings:
+            logger.warning("素材 %s：%s", identity, warning["message"])
         role = entry.get("role", "color")
         if role not in ROLES:
             raise M2VError(f"素材 {identity} 的 role 必须是已知贴图角色或 other（二维媒体）")
@@ -210,7 +218,8 @@ def resolve(root: Path) -> dict:
         media[identity] = {"src": f"{MEDIA_URL_PREFIX}/{file.name}", "kind": kind, **info,
                            "colorSpace": pixel["colorSpace"], "alpha": pixel["alpha"],
                            "license": entry.get("license") or "未知"}
-        digests[identity] = {"path": relative, "sha256": sha, **info}
+        digests[identity] = {"path": relative, "sha256": sha, **info, **source_metadata,
+                             "license": entry.get("license") or "未知"}
     return {"media": media, "digest": fingerprint(digests)}
 
 
@@ -218,7 +227,7 @@ DEFAULT_GALLERY = "pixabay"
 
 
 def gallery_config(name: str, frame: tuple[int, int], **overrides) -> dict:
-    """图库检索的默认约束：方向跟随作品画幅，比例不设限。
+    """图库检索偏好：方向跟随作品画幅，只排序不排除，比例不设限。
 
     v8 的素材比例不再受画布约束（裁切与摆位由作品代码决定），因此这里显式声明
     `aspectRatio: "any"`，让适配器按目标高度挑变体，而不是按画布比例过滤候选。

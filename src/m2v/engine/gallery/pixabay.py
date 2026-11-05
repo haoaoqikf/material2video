@@ -53,9 +53,6 @@ class PixabayProvider:
         params = {"q": query, "per_page": max(3, per_page), "page": 1, "safesearch": "true"}
         if kind == "photo":
             params["image_type"] = "photo"
-            direction = {"portrait": "vertical", "landscape": "horizontal"}.get(self.config["orientation"])
-            if direction:
-                params["orientation"] = direction
         endpoint = self.base + ("/videos/" if kind == "video" else "/")
         key = self._key()
         public_url = endpoint + "?" + urllib.parse.urlencode(params)
@@ -73,6 +70,13 @@ class PixabayProvider:
                 raise M2VError("Pixabay 检索响应缺少有效 hits 数组")
             self._write_cache(cache_id, cached)
         result = [item for raw in cached["hits"] if (item := self._candidate(raw, kind))]
+        # 方向只决定优先级，不丢弃可通过裁切或局部布局使用的候选。
+        orientation = self.config["orientation"]
+        def preferred(item: Candidate) -> bool:
+            return ((orientation == "portrait" and item.height > item.width)
+                    or (orientation == "landscape" and item.width > item.height)
+                    or (orientation == "square" and item.width == item.height))
+        result.sort(key=lambda item: not preferred(item))
         return result[:per_page]
 
     def _read_cache(self, cache_id: str) -> dict | None:
@@ -143,11 +147,6 @@ class PixabayProvider:
                 width, height = round(width * scale), round(height * scale)
                 duration = None
             if not isinstance(link, str) or not link or width <= 0 or height <= 0:
-                return None
-            orientation = self.config["orientation"]
-            if ((orientation == "portrait" and height <= width)
-                    or (orientation == "landscape" and width <= height)
-                    or (orientation == "square" and width != height)):
                 return None
             if self._key() in link or self._key() in source:
                 raise M2VError("Pixabay 响应意外包含凭据，拒绝采用素材")

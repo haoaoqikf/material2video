@@ -193,15 +193,15 @@ def test_media_resolution_reports_colour_space_alpha_and_license(tmp_path):
 
 
 @pytest.mark.media
-def test_media_resolution_rejects_unknown_license(tmp_path):
+def test_media_resolution_rejects_explicit_prohibition(tmp_path):
     from helpers.general import project
     from helpers.media import entry, importer, make_image
     from m2v.types.general import media_assets
 
     root, _manifest = project(tmp_path)
     make_image(root / "assets/incoming.png")
-    importer(root, [entry("photo", "image", localPath="assets/incoming.png")])
-    with pytest.raises(M2VError, match="许可未知"):
+    importer(root, [entry("photo", "image", localPath="assets/incoming.png", usage={"status": "prohibited"})])
+    with pytest.raises(M2VError, match="明确禁止"):
         media_assets.resolve(root)
 
 
@@ -320,8 +320,8 @@ def test_assets_audit_json_round_trip(tmp_path):
                                                  "startFrame": 0, "endFrame": 480}]}}}]
     report = assets_audit.audit(root, prepared, record)
     saved = json.loads((root / "outputs/asset-audit.json").read_text(encoding="utf-8"))
-    assert saved["status"] == report["status"] == "fail"
-    assert any("许可未知" in item["reason"] for item in report["problems"])
+    assert saved["status"] == report["status"] == "pass"
+    assert any("许可未知" in item["reason"] for item in report["warnings"])
 
 
 @pytest.mark.media
@@ -337,12 +337,12 @@ def test_2d_hero_does_not_require_fabricated_surface_maps(tmp_path):
     assert report["status"] == "pass"
     assert any("不冒充4K" in warning["reason"] for warning in report["warnings"])
     record["assets"][0]["license"] = "未知"
-    assert assets_audit.audit(tmp_path, prepared, record)["status"] == "fail"
+    assert assets_audit.audit(tmp_path, prepared, record)["status"] == "pass"
 
 
 @pytest.mark.media
 def test_2d_media_is_audited_even_when_color_map_exists(tmp_path):
-    """同一目标另有三维颜色贴图时，二维档案的许可仍必须单独审计。"""
+    """同一目标另有三维颜色贴图时，二维档案的使用限制仍必须单独审计。"""
     prepared = prepared_stub()
     prepared["props"]["compiledScenes"] = [{"content": {"props": {"shots": [
         {"id": "flight", "target": "archive", "tier": "hero"}]}}}]
@@ -354,11 +354,11 @@ def test_2d_media_is_audited_even_when_color_map_exists(tmp_path):
         {"id": "color", "role": "color", "target": "archive", "path": "color.png",
          "width": 4200, "height": 4200, "license": "Public domain"},
         {"id": "photo", "role": "other", "target": "archive", "path": "archive.png",
-         "width": 1280, "height": 720, "license": "未知"},
+         "width": 1280, "height": 720, "license": "未知", "usage": {"status": "prohibited"}},
     ]}
     report = assets_audit.audit(tmp_path, prepared, record)
     assert report["status"] == "fail"
-    assert any(item.get("asset") == "photo" and "许可未知" in item["reason"]
+    assert any(item.get("asset") == "photo" and "明确禁止" in item["reason"]
                for item in report["problems"])
 
 

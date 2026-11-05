@@ -27,6 +27,26 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 
 未知署名与未知许可必须明确记录为「未知」；不要为了填满字段而编造来源。
 
+### 来源与采用依据字段
+
+以下可选字段在候选清单和导入项中共用，导入后保存在 `media-sources.json`；缺省值为 `other`、`未知`、空描述和 `not-checked`。这些是制作元数据，当前不作为画面内容渲染。
+
+| 字段 | 要求与作用 |
+|---|---|
+| `sourceType` | `official`（官网）、`official-account`、`archive`、`research`、`news`、`industry`、`open-library`、`stock`、`other` |
+| `publisher` | 非空发布主体；与原作者 `author` 分开，未知如实记录 |
+| `description` | 内容描述，帮助判断叙事相关性 |
+| `usableSegment` | 仅视频可填 `{startSeconds, endSeconds}`，0 ≤ start < end ≤ 实测时长；仅作候选检查窗口，**当前不渲染、不自动裁切**，实际入出点仍由场景代码决定 |
+| `usage.status` | `explicit-allowed`、`no-explicit-restriction`、`conditional`、`prohibited`、`not-checked` |
+| `usage.evidenceUrl` | 无用户名密码的 HTTP(S) 依据页；通常为素材页或适用条款页 |
+| `usage.checkedAt` | 实际检查日期，`YYYY-MM-DD` |
+| `usage.note` | 本次用途、检查范围和结论，适用条件及额外依据地址可一并记入 |
+| `usage.conditionsMet` | 仅 `conditional` 使用，必须是布尔值；声明本次用途下条件是否满足 |
+
+前三种已检查状态必须同时有 `evidenceUrl`、`checkedAt` 与非空 `note`。`prohibited` 可以先记录禁止，无需为了阻断补完全部字段。缺省或 `not-checked` 不会被程序推断为已检查或已授权。未知许可和未核实只提示；明确禁止当前用途或条件未满足在 prepare、report、audit 中阻断采用；非法元数据明确失败。导入本身允许保留被禁止的候选以供留证，不表示可入片。
+
+默认采用政策与实际来源检查步骤见[采用政策与署名](material-sourcing.md#5-采用政策与署名)。修改采用依据后重新 import 和 prepare；来源记录摘要和媒体摘要都参与准备失效判断。此规则针对画面图片／视频，不改变下文第三方音效、字体或地图专用要求。
+
 导入后用 `m2v assets report` 交叉核对记录、场景引用与 `SOURCES.md` 素材表；候选片段或多张图片可用 `m2v assets contact-sheet` 抽帧拼表检查。两者只读、不联网，不替代本页的导入留证、prepare 检查与 `m2v assets audit`；操作步骤见[素材检索与台账](material-sourcing.md)。
 
 视觉素材的选择、使用与替换复核统一见[视觉素材选择与使用](visual-material-selection.md)；本页保留素材导入、来源登记、一致性校验与声音契约。
@@ -43,8 +63,7 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 ## 素材比例
 
 素材比例**不受画幅限制**：横图、方图、竖视频都可以进同一个作品，裁切、缩放与播放入点由作品
-代码决定（`objectFit`、容器尺寸、播放头）。图库检索也不再按画布比例过滤候选，只按作品方向
-（横屏或竖屏）约束，比例维度显式声明为不设限。
+代码决定（`objectFit`、容器尺寸、播放头）。图库检索不按画布比例或横竖方向过滤，作品方向只作候选排序偏好，比例维度显式声明为不设限。
 
 代码幕的片段不是导入素材，而是在检查或正式生成时从作品 `scenes/` 的 TSX 入口逐帧录制：录制页只挂载
 **已登记媒体**与仓库字体，作品目录下的其他文件、导入记录与源文都不暴露；入口、依赖与运行
@@ -58,9 +77,9 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 uv run m2v general assets search --project <目录> [--provider pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
 ```
 
-按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可与说明），不下载、不写作品文件；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。默认且唯一启用的图库为 Pixabay，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取；Pexels 固定停用，显式指定会提示改用 Pixabay，即使配置其密钥也不会自动启用。缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
+按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可、`mediaUrl`、说明、`sourceType: "stock"`、发布主体及 `usage.status: "not-checked"`），不下载、不写作品材料；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。图库照片候选 `kind: "photo"` 在导入清单中写为 `image`，导入用合法作品素材 ID；去掉候选尺寸等非清单字段，实测值由导入生成。默认且唯一启用的图库为 Pixabay，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取；Pexels 固定停用，显式指定会提示改用 Pixabay，即使配置其密钥也不会自动启用。缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
 
-检索方向跟随作品画幅（`height >= width` 取竖屏，否则横屏），比例不设限；检索只用于挑候选，
+候选优先方向跟随作品画幅（`height >= width` 取竖屏，否则横屏），其他方向仍保留，比例不设限；检索只用于挑候选，
 不用于系统性批量下载。
 
 ## 声音

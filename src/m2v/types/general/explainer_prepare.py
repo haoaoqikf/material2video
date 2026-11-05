@@ -37,11 +37,12 @@ def implementation_digest() -> str:
     """
     from m2v.core.assets import REPOSITORY_ROOT
     from m2v.core.fingerprints import fingerprint, module_files
+    from m2v.core import media_policy
     from m2v.engine import render_pipeline
     from . import adapter, explainer_render
     from . import soundtrack, media_assets, code_scenes, scene_events
     modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
-               rhythm_engine, soundtrack, media_assets, code_scenes, scene_events, remotion)
+               rhythm_engine, soundtrack, media_assets, media_policy, code_scenes, scene_events, remotion)
     files = [file for module in modules for file in module_files(module)] + [Path(__file__)]
     keys = {file.relative_to(REPOSITORY_ROOT).as_posix(): digest(file) for file in files}
     return fingerprint({**keys, **code_scenes.implementation_inputs()})

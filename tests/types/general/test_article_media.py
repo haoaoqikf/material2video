@@ -249,12 +249,54 @@ def test_resolve_reports_missing_file_and_escaped_path(workspace):
         media_assets.resolve(workspace)
 
 
-def test_unknown_license_blocks_every_registered_media(workspace):
-    """统一契约：任何登记媒体的许可未知都阻断，而不只是 hero 资产。"""
+def test_unknown_license_warns_without_blocking(workspace, caplog):
+    """原始许可未知仍如实保留，不能冒写已授权。"""
     make_image(workspace / "assets/wide.png")
     importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="未知")])
-    with pytest.raises(M2VError, match="许可未知"):
-        media_assets.resolve(workspace)
+    assert media_assets.resolve(workspace)["media"]["wide"]["license"] == "未知"
+    assert "原始许可未知" in caplog.text and "采用依据未核实" in caplog.text
+
+
+def test_official_source_usage_roundtrip_and_prepare_invalidation(tmp_path, monkeypatch):
+    from m2v.core.project import load_current_prepared
+    from m2v.engine import assets_tools, assets_audit
+    root, manifest = project(tmp_path)
+    make_image(root / "assets/product.png")
+    usage = {"status": "no-explicit-restriction", "evidenceUrl": "https://example.com/terms",
+             "checkedAt": "2026-11-05", "note": "用于产品讲解；检查素材页和网站条款未发现明确禁止"}
+    imported = importer(root, [entry("product", "image", localPath="assets/product.png", license="未知",
+                                    sourceType="official", publisher="公司甲", description="官方产品图", usage=usage)])
+    adopted = imported["assets"][0]
+    assert adopted["publisher"] == "公司甲" and adopted["usage"] == usage and adopted["license"] == "未知"
+    assert assets_tools.build_report(root)["status"] == "pass"
+    fake_tts(monkeypatch); fake_record(monkeypatch)
+    adapter.prepare(root, manifest)
+    prepared = load_current_prepared(root, manifest)
+    assert assets_audit.audit(root, prepared, imported)["status"] == "pass"
+    adopted["usage"]["note"] += "；更新本次用途说明"
+    (root / media_assets.RECORD).write_text(json.dumps(imported, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(M2VError, match="已变化"):
+        load_current_prepared(root, manifest)
+    adopted["usage"] = {"status": "prohibited"}
+    (root / media_assets.RECORD).write_text(json.dumps(imported, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(M2VError, match="product.*明确禁止"):
+        media_assets.resolve(root)
+    assert assets_audit.audit(root, prepared, imported)["status"] == "fail"
+    assert assets_tools.build_report(root)["status"] == "fail"
+
+
+def test_invalid_usage_batch_preserves_previous_files_and_record(workspace):
+    make_image(workspace / "assets/first.png")
+    importer(workspace, [entry("first", "image", localPath="assets/first.png", license="CC0")])
+    record = (workspace / media_assets.RECORD).read_bytes()
+    before = {path.name for path in (workspace / "assets/media").iterdir()}
+    make_image(workspace / "assets/second.png", "128x96")
+    with pytest.raises(M2VError, match="已检查状态必须提供"):
+        importer(workspace, [entry("second", "image", localPath="assets/second.png"),
+                             entry("bad", "image", localPath="assets/first.png",
+                                   usage={"status": "no-explicit-restriction"})])
+    assert (workspace / media_assets.RECORD).read_bytes() == record
+    assert {path.name for path in (workspace / "assets/media").iterdir()} == before
 
 
 def test_media_ratio_is_not_constrained(workspace):

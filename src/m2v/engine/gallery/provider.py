@@ -65,7 +65,9 @@ class Candidate:
     def to_json(self) -> dict[str, Any]:
         return {"id": self.id, "kind": self.kind, "width": self.width, "height": self.height,
                 "durationSeconds": self.duration_seconds, "sourceUrl": self.source_url,
-                "author": self.author, "license": self.license, "description": self.description}
+                "author": self.author, "license": self.license, "description": self.description,
+                "mediaUrl": self.download_url, "sourceType": "stock", "publisher": self.author,
+                "usage": {"status": "not-checked"}}
 
 
 class Transport(Protocol):

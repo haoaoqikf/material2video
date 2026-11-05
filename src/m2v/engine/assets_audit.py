@@ -12,9 +12,9 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
+from m2v.core import media_policy
 
 ROLES = ("color", "normal", "roughness", "emissive", "ring", "alpha", "other")
-UNKNOWN_LICENSES = ("", "未知", "unknown", "n/a", "none", "null")
 
 
 def _pixel_format(path: Path) -> str:
@@ -47,8 +47,15 @@ def audit(root: Path, prepared: dict, record: dict) -> dict:
         assets.append(item)
         if not file.is_file():
             problems.append({"asset": entry["id"], "reason": "素材文件缺失"})
-        if str(item["license"]).strip().lower() in UNKNOWN_LICENSES:
-            problems.append({"asset": entry["id"], "reason": "素材许可未知"})
+        try:
+            metadata, errors, notes = media_policy.assess(entry)
+            item.update(metadata)
+            problems.extend({"asset": entry["id"], "code": error["code"], "reason": error["message"]}
+                            for error in errors)
+            warnings.extend({"asset": entry["id"], "code": note["code"], "reason": note["message"]}
+                            for note in notes)
+        except M2VError as exc:
+            problems.append({"asset": entry["id"], "code": "invalid-usage", "reason": str(exc)})
         if min(item["width"], item["height"]) <= 0:
             problems.append({"asset": entry["id"], "reason": "素材尺寸无效"})
         else:

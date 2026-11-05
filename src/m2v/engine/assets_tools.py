@@ -8,8 +8,8 @@
 - ``contact-sheet``：把候选视频按时刻抽帧、或把多张候选图片拼成一张带序号的
   接触表，让“建立—动作—结果”能在一次查看里被检查，而不是反复拖进度条。
 
-两者都只读输入，不导入素材、不改来源记录、不写准备指纹。``report`` 即使发现
-许可未知也只报告并以非零退出码结束，真正的阻断仍在 ``prepare`` 与 ``audit``。
+两者都只读输入，不导入素材、不改来源记录、不写准备指纹。许可未知仅提示，
+明确禁止当前用途与条件未满足按共享政策报告错误。
 """
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
+from m2v.core import media_policy
 
 RECORD = "assets/media-sources.json"
 MEDIA_DIR = "assets/media"
@@ -35,7 +36,7 @@ REPORT = "outputs/assets-report.json"
 #: 与 ``media_assets.SUFFIXES`` 保持同一组可用扩展名；这里只用于判断候选类型。
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".webm"}
-UNKNOWN = {"", "未知", "unknown", "n/a", "none", "null"}
+UNKNOWN = media_policy.UNKNOWN_LICENSES
 
 _LITERAL_CALL = re.compile(r"useMediaAsset\s*\(\s*[\"'`]([A-Za-z0-9_-]{1,80})[\"'`]\s*\)")
 _ANY_CALL = re.compile(r"useMediaAsset\s*\(")
@@ -135,7 +136,6 @@ def build_report(root: Path, *, sources: Path | None = None) -> dict:
         sha_ok = bool(exists and inside and isinstance(entry.get("sha256"), str)
                       and _sha256(file) == entry["sha256"])
         license_value = str(entry.get("license") or "未知").strip()
-        license_known = license_value.lower() not in UNKNOWN
         author_known = str(entry.get("author") or "未知").strip().lower() not in UNKNOWN
         source_known = str(entry.get("sourceUrl") or "未知").strip().lower() not in UNKNOWN
         width, height = entry.get("width"), entry.get("height")
@@ -176,11 +176,18 @@ def build_report(root: Path, *, sources: Path | None = None) -> dict:
             problem("sha-mismatch", f"素材 {identity} 与来源记录不符，请重新导入")
         if not dimensions_ok:
             problem("invalid-dimensions", f"素材 {identity} 的宽高无效")
-        if not license_known:
-            problem("license-unknown", f"素材 {identity} 许可未知；请补齐来源与许可")
-        if license_known and not author_known:
+        try:
+            metadata, errors, notes = media_policy.assess(entry)
+            item.update(metadata)
+            for error in errors:
+                problem(error["code"], f"素材 {identity}：{error['message']}")
+            for note in notes:
+                warning(note["code"], f"素材 {identity}：{note['message']}")
+        except M2VError as exc:
+            problem("invalid-usage", f"素材 {identity} 采用元数据无效：{exc}")
+        if not author_known:
             warning("author-unknown", f"素材 {identity} 作者未知")
-        if license_known and not source_known:
+        if not source_known:
             warning("source-unknown", f"素材 {identity} 来源页未知")
         if not item["referenced"]:
             warning("unused", f"登记素材 {identity} 未被场景引用；若为预留可忽略")
