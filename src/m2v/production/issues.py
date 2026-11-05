@@ -76,21 +76,30 @@ def validate(root: Path, items, *, _reopening_id=None, _review_context=None) -> 
                 _require_independent_recheck(root, item, _review_context)
 
 
-def _require_independent_recheck(root: Path, item: dict, context: tuple) -> None:
-    """仅接受实际已导入、同范围且未过期的独立复查，不相信说明文件。"""
-    from . import acceptance, ledger, policy
-    events, c, diagnostics = context
-    if diagnostics:
-        raise M2VError('制作历史损坏，不能关闭独立评审问题')
+def _review_failure(events: list[dict], item: dict) -> dict:
     failed = [e for e in events if e['type'] == 'review' and e['data'].get('verdict') == 'fail'
               and 'REVIEW-' + e['data'].get('roundId', '') + '-' + e['data'].get('reviewerId', '') == item['id']]
     if not failed:
         raise M2VError('找不到独立评审问题的原始失败记录')
-    original = failed[-1]
+    return failed[-1]
+
+
+def _require_independent_recheck(root: Path, item: dict, context: tuple) -> None:
+    """核验当前独立复查或原周期历史闭环，不相信说明文件。"""
+    from . import acceptance, ledger, policy
+    events, c, diagnostics = context
+    if diagnostics:
+        raise M2VError('制作历史损坏，不能关闭独立评审问题')
+    original = _review_failure(events, item)
+    original_cycle = original.get('upstream', {}).get('cycle')
+    if not isinstance(original_cycle, str) or not original_cycle:
+        raise M2VError('原始独立评审问题缺少制作周期')
+    historical = original_cycle != c['cycleId']
     scope = {x['checkpointId'] for x in original['data'].get('coverage', [])}
     for event in events:
         data = event['data']
         if (event['type'] != 'review' or data.get('verdict') != 'pass'
+                or event.get('upstream', {}).get('cycle') != original_cycle
                 or data.get('isolation') != 'independent-subagent'
                 or data.get('reviewType') != original['data'].get('reviewType')
                 or event['gate'] != item['gate'] or event['time'] <= original['time']
@@ -99,16 +108,20 @@ def _require_independent_recheck(root: Path, item: dict, context: tuple) -> None
         coverage = data.get('coverage', [])
         if not scope or not scope <= {x['checkpointId'] for x in coverage if x.get('status') == 'pass'}:
             continue
+        assessment_scope = ({x['checkpointId'] for x in original['data'].get('coverage', []) if 'assessment' in x}
+                            if historical else scope & policy.core_checkpoint_ids(c))
         if data.get('round') == 'core' and data.get('reviewType') == 'blind' and not acceptance.core_coverage_passed(
-                coverage, scope & policy.core_checkpoint_ids(c)):
+                coverage, assessment_scope):
             continue
-        try:
-            current = ledger.event_upstream(root, c, event)
-        except (M2VError, OSError, ValueError, TypeError, KeyError):
-            # 历史复查可能引用已删除或过期的采集；继续查找较新的有效复查。
-            continue
-        if event['upstream'] != current:
-            continue
+        if not historical:
+            try:
+                current = ledger.event_upstream(root, c, event)
+            except (M2VError, OSError, ValueError, TypeError, KeyError):
+                continue
+            if event['upstream'] != current:
+                continue
+        # 历史闭环只证明原周期曾完成复查。当前源码不是旧周期的依赖，
+        # 但旧报告、调用与过程媒体仍必须真实存在且摘要一致；它不授权新门。
         if not ledger.evidence_valid(root, event['evidence']):
             continue
         # 闭环材料必须直接引用导入的报告，不能仅引用评审包或量测文件。
@@ -130,6 +143,14 @@ def update(root: Path, item: dict) -> None:
     if previous and item['id'].startswith('REVIEW-') and any(
             item.get(key) != previous[key] for key in ('required', 'gate', 'sceneId', 'checkpointId', 'caughtAt', 'catchableAt')):
         raise M2VError('独立评审问题不能改变原范围或必改性质')
+    if previous and previous['status'] == 'open' and item['status'] == 'closed' and item['id'].startswith('REVIEW-'):
+        from . import contract, ledger
+        events, diagnostics = ledger.history(root)
+        if diagnostics:
+            raise M2VError('制作历史损坏，不能关闭独立评审问题')
+        original = _review_failure(events, item)
+        if original.get('upstream', {}).get('cycle') != contract.load(root)['cycleId']:
+            raise M2VError('历史未闭环问题不能借新周期关闭；须保留未完成记录')
     items = [x for x in items if x['id'] != item['id']] + [item]
     validate(root, items)
     block = '```m2v-issues\n' + json.dumps(items, ensure_ascii=False, indent=2) + '\n```'

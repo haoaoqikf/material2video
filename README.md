@@ -145,7 +145,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 已有视频可通过制作助手的[修订入口](.agents/skills/material2video/references/video-revision.md)按修改意图继续制作：定位受影响场景与时间轴、保护旧版、复用有效方案和证据，实际查看局部修改效果并按[收敛判断](.agents/skills/material2video/references/production-workflow.md#再次全片生成前的收敛判断)汇总后生成下一全片候选，最后完整复核。入口串联现有命令，未新增修订 CLI 或自动影响分析器。
 
-general 提供 G0–G6 检查点门、指定帧采集、DOM/布局量测、隔离评审包、粗片播放器、追加式制作历史与基线清理；`m2v status --history --json` 显示 production 制作状态。合同、评审覆盖、回退决策、`lookdev` 取点方式与完成条件分别见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)、[独立评审](.agents/skills/material2video/references/subagent-review.md)、[制作流程](.agents/skills/material2video/references/production-workflow.md)和[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；这些工具不新增导出门禁。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。
+general 提供 G0–G6 检查点门、指定帧采集、DOM/布局量测、隔离评审包、粗片播放器、追加式制作历史与基线清理；`m2v status --history --json` 显示 production 制作状态。合同、评审覆盖、回退决策、`lookdev` 取点方式与完成条件分别见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md)、[独立评审](.agents/skills/material2video/references/subagent-review.md)、[制作流程](.agents/skills/material2video/references/production-workflow.md)和[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；这些工具不新增导出门禁。新作品/后续重制适用制作合同 v2，v1 明确拒绝、不自动迁移；缺失独立证据不自动放行。重制保留原周期已验证的历史问题闭环，当前周期仍须独立取证；历史未闭环或损坏证据不会因切换周期而放行。
 
 通用制作以三阶段指南为操作入口，设计记录采用全片原则、逐场表与必要附件。G4普通窗默认半秒采样，已声明动态风险按节拍加密并强制覆盖事件/状态边界；完整过程视频保留，多尺寸图批量派生。G3可用 `gates check --gate G3 --timing-reports <输出根内G4报告> ...` 复用当前实际过程；未复用时只为时序风险镜头及相邻上下文生成animatic。来源过期或缺少独立观察仍保持未完成。详见[检查点契约](.agents/skills/material2video/references/checkpoint-gates.md#时序证据的生成与复用)。
 

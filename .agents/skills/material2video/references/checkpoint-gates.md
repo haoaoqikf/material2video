@@ -140,7 +140,7 @@ history.jsonl 位于 outputs/production，事件包含唯一 ID、作品/周期�
 
 通过需当前文件存在且摘要匹配、上游有效、计划要求的独立评审齐全、无本范围未关闭必改。降级自审只显示旗标，不关闭独立项。自身结果优先级为过期、阻断、待评审、进行中、未开始；合法不适用单列。门的 `evidenceStatus` 保留自身检查与评审结果，`prerequisites` 列出未满足的前置门，`ready` 表示自身通过／不适用且前置齐全；自身通过但前置未完成时汇总 `status=等待前置`，不得冒充过期。G4 明细同样列出自身结果和前置条件，并保留 `checkStatus` 单列自动检查。普通镜头检查通过即关闭，不再显示待批量回绑。
 
-唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason、cause。cause 为 implementation/design/mixed/undetermined，当前不渲染；新独立失败默认待定位，关闭前须定位且不可删除已登记归因。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
+唯一问题表仍为 outputs/visual-notes.md，机器块为 m2v-issues JSON 列表。每项 id、status=open/closed、required、gate、sceneId、checkpointId、caughtAt、catchableAt、evidence、versionRefs；可选 uncatchableReason、cause。cause 为 implementation/design/mixed/undetermined，当前不渲染；新独立失败默认待定位，关闭前须定位且不可删除已登记归因。关闭须有当前复查证据，迟到缺陷须有早期门回归或不可拦截原因。独立问题的闭环归属以原失败事件的制作周期为准：当前周期继续重验依赖；已闭环历史项保留同周期独立复查及摘要核验，不以当前源码重算旧依赖，也不授权新周期门。历史未闭环项不得借新周期关闭，跨周期通过与损坏历史证据仍拒绝。正文记录现象与处理历史，状态只引用 ID；解析失败不得推断无引用。
 
 G4 自动量测再次失败会重开原检查点问题，保留已有归因和版本引用，清空本项过期闭环证据；其他问题仍按原规则核验。
 

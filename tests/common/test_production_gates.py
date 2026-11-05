@@ -721,6 +721,79 @@ def test_review_issue_needs_current_independent_recheck_and_keeps_scope(project)
         assert issues.load(root)[0]['status'] == 'open'
 
 
+def _closed_review_issue(root, manifest, c):
+    from m2v.production import reviews
+    static_risk(root, c)
+    event = passing_check(root, manifest, c)
+    failed, _ = _review_inputs(root, manifest, event, reviewer='historical-failed')
+    value = read(failed)
+    value['verdict'] = 'fail'
+    value['coverage'][0].update(status='fail', assessment=assessment(presentation='fail'))
+    write(failed, value)
+    reviews.import_report(root, manifest, failed)
+    item = {**issues.load(root)[0], 'cause': 'design'}
+    passed, _ = _review_inputs(root, manifest, event, reviewer='historical-recheck')
+    reviews.import_report(root, manifest, passed)
+    item.update(status='closed', evidence=[{**receipt(outputs(root), passed), 'gate': 'G4'}])
+    issues.update(root, item)
+    return item, passed
+
+
+@pytest.mark.usefixtures('neutral_image_package')
+def test_historical_closed_review_survives_new_cycle_without_authorizing_it(project):
+    root, manifest, c = project
+    with locked(root):
+        item, _ = _closed_review_issue(root, manifest, c)
+        c['cycleId'] = 'new-cycle'
+        c['scenes'][0]['checkpoints'][0]['expected'][0]['count'] = 3
+        (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+        assert issues.load(root) == [item]
+        state = ledger.status(root, manifest)
+        assert not state['complete'] and not state['diagnostics']
+        assert all(not row['allowed'] for row in state['expansion'])
+
+
+@pytest.mark.usefixtures('neutral_image_package')
+def test_historical_review_cannot_borrow_another_cycles_pass(project):
+    from m2v.production import reviews
+    root, manifest, c = project
+    with locked(root):
+        item, _ = _closed_review_issue(root, manifest, c)
+        c['cycleId'] = 'new-cycle'
+        (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+        current = passing_check(root, manifest, c)
+        other, _ = _review_inputs(root, manifest, current, reviewer='new-cycle-recheck')
+        reviews.import_report(root, manifest, other)
+        with pytest.raises(M2VError, match='独立通过复查'):
+            issues.update(root, {**item, 'evidence': [{**receipt(outputs(root), other), 'gate': 'G4'}]})
+
+
+@pytest.mark.usefixtures('neutral_image_package')
+def test_historical_review_still_rejects_damaged_evidence(project):
+    root, manifest, c = project
+    with locked(root):
+        _, passed = _closed_review_issue(root, manifest, c)
+        c['cycleId'] = 'new-cycle'
+        (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+        assert issues.load(root)[0]['status'] == 'closed'
+        passed.write_text('changed', encoding='utf-8')
+        with pytest.raises(M2VError, match='摘要不匹配'):
+            issues.load(root)
+
+
+@pytest.mark.usefixtures('neutral_image_package')
+def test_historical_open_review_cannot_be_closed_after_reset(project):
+    root, manifest, c = project
+    with locked(root):
+        item, _ = _closed_review_issue(root, manifest, c)
+        issues.update(root, {**item, 'status': 'open'})
+        c['cycleId'] = 'new-cycle'
+        (root / 'DESIGN.md').write_text('```m2v-checkpoints\n' + json.dumps(c) + '\n```\n', encoding='utf-8')
+        with pytest.raises(M2VError, match='历史未闭环'):
+            issues.update(root, item)
+        assert issues.load(root)[0]['status'] == 'open'
+
+
 def test_expansion_waits_for_trial_and_status_stays_readonly(project):
     root, manifest, c = project
     # 普通准备门已完成；默认试制窗未通过，其他已采集窗也不授权依赖扩展。
