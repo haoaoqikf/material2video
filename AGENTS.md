@@ -51,10 +51,10 @@
 - **字体二进制不入库**：字体来源、版本、摘要、许可与恢复目标登记在 `fonts/registry.json`，
   由 `fonts/fetch.py` 恢复并校验；许可文本仍入库。字体缺失时构建、准备与渲染明确失败并提示
   恢复，不得静默回退到系统字体。
-- **风格示例集合固定**：仓库 `styles/<id>/examples/` 为每个正式风格保留一个规范示例：
+- **风格示例集合固定**：仓库 `styles/<id>/examples/` 保留以下随附示例：
   `vibe-night/examples/fold`、`vibe-fable/examples/pigeon`、`doc-archive/examples/american-science-milestones`、
   `count-ledger/examples/compound-interest`、`deep-journey/examples/solar-system-journey`、
-  `dark-proof/examples/compound-connect`；不再维护顶层 `examples/`。
+  `dark-proof/examples/compound-connect`、`dark-proof/examples/luck-on-stage`；不再维护顶层 `examples/`。
   新增或替换示例须同步名单、测试与文档，并保持风格包指纹不受示例改动影响。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。

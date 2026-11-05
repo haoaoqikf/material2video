@@ -9,7 +9,8 @@ export default function Hook(config:CodeSceneProps){
   const {f,e}=useClock(config),lock=e.frame('number-lock'),title=e.frame('title-start'),snow=e.frame('snow-start');
   const leaveNumber=smooth(progress(f,title-8,title)),enterTitle=arrive(progress(f,title,title+12));
   const leaveTitle=smooth(progress(f,snow-12,snow+2));
-  const round=8*progress(f,0,lock-6),numberProgress=(compounded(round)-100)/(compounded(8)-100);
+  // 轮次与总量共用离散步长，避免画面把插值数值写成某个已完成轮次。
+  const round=Math.min(8,Math.floor(8*progress(f,0,lock-6))),numberProgress=(compounded(round)-100)/(compounded(8)-100);
   const handoff=progress(f,title-12,title+16),bounce=progress(f,title+16,snow-14);
   const ballX=f<title+16?mix(1000,1380,smooth(handoff)):mix(1380,1050,smooth(bounce));
   const ballY=f<title+16?mix(535,690,smooth(handoff))-Math.sin(Math.PI*handoff)*230:690-Math.abs(Math.sin(bounce*Math.PI*2))*80;
@@ -38,7 +39,7 @@ export default function Hook(config:CodeSceneProps){
       <path d="M420 715Q950 620 1500 715" fill="none" stroke={GOLD} strokeWidth={2} opacity={.24}/>
       <Burst origin={{x:1380,y:690}} progress={progress(f,title+14,title+36)} count={20} rings={0} distance={90} size={3}/>
     </g>:null}
-    {f>=title-12&&f<snow+12?<g data-m2v-role="focus-ball"><Ball x={mix(ballX,1050,smooth(fall))} y={mix(ballY,768,smooth(fall))} r={mix(13,32,fall)}/></g>:null}
+    {f>=title-12&&f<snow+12?<g data-m2v-role="focus-ball"><Ball x={mix(ballX,1050,smooth(fall))} y={mix(ballY,768,smooth(fall))} r={mix(18,32,fall)}/></g>:null}
     {f>=snow?<g>
       <g opacity={ground}>
       <path d="M100 805 Q800 785 1820 802" stroke={WHITE} strokeWidth={3.2} fill="none" opacity={arrive(progress(f,snow,snow+10))}/>

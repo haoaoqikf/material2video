@@ -16,6 +16,7 @@ from m2v.types.general.code_scenes import build_scene
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = ROOT / "styles" / "dark-proof"
 EXAMPLE = PACKAGE / "examples" / "compound-connect"
+LUCK_EXAMPLE = PACKAGE / "examples" / "luck-on-stage"
 
 
 def test_narration_is_optional():
@@ -37,6 +38,19 @@ def test_shipped_example_is_an_effects_only_v8_work():
     assert 'music' not in board.get('soundtrack', {})
     assert 'tts' not in project
     assert board['soundtrack']['effects']
+
+
+def test_second_example_is_independent_effects_only_v8_work():
+    project = json.loads((LUCK_EXAMPLE / "project.json").read_text(encoding="utf-8"))
+    board = explainer.load(LUCK_EXAMPLE, project)
+    explainer.validate(board, LUCK_EXAMPLE, project)
+    assert project["style"] == {"id": "dark-proof"}
+    assert (project["output"]["width"], project["output"]["height"], project["output"]["fps"]) == (1920, 1080, 30)
+    assert board["version"] == board["schemaVersion"] == 8
+    assert sum(scene["durationFrames"] for scene in board["scenes"]) == 1350
+    assert not any(scene["narrationSegments"] for scene in board["scenes"])
+    assert "music" not in board.get("soundtrack", {})
+    assert board["soundtrack"]["effects"]
 
 
 def test_model_recurs_and_coordinates_are_monotonic():
@@ -78,17 +92,18 @@ def test_example_edits_do_not_change_fingerprint_but_guide_edits_do(tmp_path, mo
     assert styles.load_style('dark-proof')['identity']['fingerprint']!=before
 
 
-def load_fetch():
-    spec=importlib.util.spec_from_file_location('compound_fetch',EXAMPLE/'assets/fetch.py')
+def load_fetch(example: Path):
+    spec=importlib.util.spec_from_file_location(f'{example.name}_fetch',example/'assets/fetch.py')
     result=importlib.util.module_from_spec(spec);spec.loader.exec_module(result)
     return result
 
 
 @pytest.mark.media
-def test_sound_restore_matches_checks_and_refuses_drift(tmp_path):
-    fetch=load_fetch();assets=tmp_path/'assets';assets.mkdir()
+@pytest.mark.parametrize('example', [EXAMPLE, LUCK_EXAMPLE], ids=['compound', 'luck'])
+def test_sound_restore_matches_checks_and_refuses_drift(tmp_path, example):
+    fetch=load_fetch(example);assets=tmp_path/'assets';assets.mkdir()
     for name in ['sound-recipe.json','sound-checks.json']:
-        shutil.copy2(EXAMPLE/'assets'/name,assets/name)
+        shutil.copy2(example/'assets'/name,assets/name)
     fetch.restore(tmp_path)
     record=assets/'sound-sources.json';before=record.read_bytes()
     checks=json.loads((assets/'sound-checks.json').read_text(encoding='utf-8'))

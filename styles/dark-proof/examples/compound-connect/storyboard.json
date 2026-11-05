@@ -156,8 +156,13 @@
             },
             {
               "startFrame": 388,
-              "endFrame": 518,
-              "text": "差距，从0.46扩大到70.48。"
+              "endFrame": 474,
+              "text": "差距，正在放大。"
+            },
+            {
+              "startFrame": 482,
+              "endFrame": 530,
+              "text": "从0.46，扩大到70.48。"
             }
           ]
         }
@@ -190,10 +195,6 @@
         {
           "id": "curve-result",
           "frame": 320
-        },
-        {
-          "id": "curve-flash",
-          "frame": 332
         },
         {
           "id": "bars-start",
@@ -378,12 +379,6 @@
         "sceneId": "proof",
         "eventId": "curve-result",
         "gainDb": -12
-      },
-      {
-        "assetId": "release",
-        "sceneId": "proof",
-        "eventId": "curve-flash",
-        "gainDb": -7
       },
       {
         "assetId": "travel",

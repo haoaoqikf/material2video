@@ -3,7 +3,7 @@ import type {CodeSceneProps} from 'm2v/code-scene';
 import {MathFormula,ensureMathReady} from 'm2v/code-scene/math';
 import Counter from 'm2v/style/components/counter';
 import Burst from 'm2v/style/components/burst';
-import {Frame,Text,Ball,GOLD,MUTED,progress,arrive,smooth,mix,useClock} from './shared';
+import {Frame,Text,Ball,WHITE,GOLD,MUTED,progress,arrive,smooth,mix,useClock} from './shared';
 import {compounded} from './model';
 
 export default function Resolution(config:CodeSceneProps){
@@ -35,8 +35,8 @@ export default function Resolution(config:CodeSceneProps){
       textAnchor="middle" dominantBaseline="central" fontFamily="KaTeX_Main" fontWeight={400}
       fontSize={mix(72,93.17,transfer)} fill={GOLD} data-m2v-role="exponent-token">100</text>:null}
     {f>=answer&&f<release+18?<Text x={400} y={670} text="≈" size={110} numeric alpha={answerOpacity}/>:null}
-    {f>=base&&f<release+18?<Text x={960} y={835} text="理想固定增速模型" size={50} color={MUTED} alpha={formulaOpacity} role="model-note"/>:null}
-    <Burst origin={{x:1280,y:665}} progress={progress(f,lock,lock+36)} count={76} distance={360} size={4.5} rings={2} ringTravel={260} seed="equation-earned"/>
+    {f>=base&&f<release+18?<Text x={960} y={835} text="理想固定增速模型" size={64} color={WHITE} alpha={formulaOpacity} role="model-note"/>:null}
+    <Burst origin={{x:1280,y:665}} progress={progress(f,lock,lock+36)} count={28} distance={180} size={3.5} rings={0} seed="equation-earned"/>
     {f>=release?<g data-m2v-role={f>=release+18?'closing-ball':undefined}>
       <Ball x={mix(1000,1540,smooth(dot))} y={mix(730,730,dot)-Math.sin(Math.PI*dot)*155} r={mix(10,16,dot)}/>
     </g>:null}

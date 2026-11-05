@@ -16,7 +16,7 @@
 - `vehicle-showcase`：本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。
 <!-- generated:type-catalog:end -->
 
-风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[让积累，参与下一次](styles/dark-proof/examples/compound-connect/README.md)（40秒R5：数字、单个寓言、表格、折线、柱形与公式连续论证；[近期创作复盘](styles/dark-proof/examples/compound-connect/CASE_STUDY.md)，无旁白、无配乐，仅事件音效）。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
+七部风格示例与重建入口见[风格包目录](styles/README.md)；其中 `dark-proof` 同时提供[复利连续论证](styles/dark-proof/examples/compound-connect/README.md)与[运气的概率讲解](styles/dark-proof/examples/luck-on-stage/README.md)。各示例的设计、来源与验证见对应目录。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
@@ -96,7 +96,7 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>` 取得真实高速优先路线；确认授权并置 `mapTiles=true` 后可执行 `basemap` 生成普通道路或卫星底图。之后 `validate / prepare / preview / render` 全程离线。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒；顶部两行“模拟行程”标题，车辆旁显示里程，市/县行政区标签由渲染层绘制。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
 
-可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；当前六个正式风格包与各自的规范示例见[风格包目录](styles/README.md)，示例子树不参与风格指纹。示例各附 `DESIGN.md` 与 `VERIFICATION.md`，`vibe-night`、`vibe-fable` 与 `dark-proof` 另附 `HOWTO.md`；技术检查与理解观察分开记录。general 场景可显式使用参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法与六种画法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)。契约见[风格接入](.agents/skills/material2video/references/style-pack.md)。
+可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；六个正式风格包与七部随附示例见[风格包目录](styles/README.md)，示例子树不参与风格指纹。general 场景须显式使用风格参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)，契约见[风格接入](.agents/skills/material2video/references/style-pack.md)。
 
 ## 命令
 
@@ -139,7 +139,7 @@ general 画面素材按对象检索：公司、产品和生产过程先查相关
 - [Frontend Design](.agents/skills/frontend-design/SKILL.md)：项目级视觉设计与反模板知识；视觉方向、字体、构图、层级与自我批评，视频语境见[适配说明](.agents/skills/frontend-design/ADAPTATION.md)。
 - [运动设计](.agents/skills/motion-design/SKILL.md)：项目级运动设计知识；情绪意图、运动人格、时长、缓动、编排与质量检查，帧驱动边界见[适配说明](.agents/skills/motion-design/ADAPTATION.md)。
 - [阅读路由](.agents/skills/material2video/references/guidance-routes.json)：阶段、任务、条件参考与规则归属的结构化清单；`sync_docs.py --check` 一并校验目标、锚点与阅读预算。
-- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：集中维护视觉事件、导演顺序、视觉力量、逐场设计与全片原则、逐场表与必要附件式 `DESIGN.md` 模板；反例与演练在[按需参考](.agents/skills/material2video/references/production-examples.md)。
+- [视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)：视觉事件、观看顺序、逐场设计与简明 `DESIGN.md` 模板；演练按需读[制作示例](.agents/skills/material2video/references/production-examples.md)。
 - [视觉素材选择与使用](.agents/skills/material2video/references/visual-material-selection.md)：载体判断、素材检索、入片编排与替换复核。
 - [素材检索与台账](.agents/skills/material2video/references/material-sourcing.md)：来源层级、检索词、候选评估卡、许可决策与 `assets report`/`contact-sheet` 操作。
 - [看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)：症状→成因→改法、形象判据与主体尺度起点。

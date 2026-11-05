@@ -1,6 +1,6 @@
 # 风格包目录
 
-已登记六个正式风格包，各包的规范示例放在自己的 `examples/` 子目录。
+已登记六个正式风格包，七部随附示例放在各包的 `examples/` 子目录。
 
 | ID | 版本 | 适用 | 内容 |
 |---|---|---|---|
@@ -21,7 +21,7 @@
 
 ## 风格示例
 
-示例放在 `styles/<style-id>/examples/<slug>/`，每个风格包配一个规范示例。
+示例放在 `styles/<style-id>/examples/<slug>/`，其中 `dark-proof` 保留两部不同讲解组织的作品。
 它们演示风格包实际落到成片上的样子，也是回归用的可校验工件。
 
 | 示例 | 风格 | 选题 | 时长 |
@@ -32,6 +32,7 @@
 | [compound-interest](count-ledger/examples/compound-interest/README.md) | `count-ledger` | 复利：同样一万、两种做法、三十年后差多少 | 29 秒 |
 | [solar-system-journey](deep-journey/examples/solar-system-journey/README.md) | `deep-journey` | 太阳系之旅：从太阳到奥尔特云的一镜到底 | 174.55 秒 |
 | [compound-connect](dark-proof/examples/compound-connect/README.md) | `dark-proof` | 让积累，参与下一次：多载体连续论证；[创作复盘](dark-proof/examples/compound-connect/CASE_STUDY.md)；无旁白、无配乐，仅事件音效 | 40 秒 |
+| [luck-on-stage](dark-proof/examples/luck-on-stage/README.md) | `dark-proof` | 运气到底是什么：尝试者贯穿记录、概率、条件比较与面积乘法；无旁白、无配乐，仅事件音效 | 45 秒 |
 
 示例在目录上归属风格，在依赖上仍是独立作品。风格指纹跳过直属 `examples/` 整个子树，
 其余共享文件全部纳入；清单及共享实现不能引用示例。示例改动只影响自身准备，
@@ -49,4 +50,5 @@ uv run m2v validate --project styles/doc-archive/examples/american-science-miles
 uv run m2v validate --project styles/count-ledger/examples/compound-interest
 uv run m2v validate --project styles/deep-journey/examples/solar-system-journey
 uv run m2v validate --project styles/dark-proof/examples/compound-connect
+uv run m2v validate --project styles/dark-proof/examples/luck-on-stage
 ```

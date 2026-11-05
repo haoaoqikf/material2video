@@ -34,6 +34,6 @@ export function Frame({config,children,html,impacts=[]}:{config:CodeSceneProps;c
     </svg>
     {html}
     <Impact frame={elapsedSeconds*config.fps} width={1920} height={1080} totalFrames={config.durationInFrames} maskBottom={850} events={impacts}/>
-    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={64} risePx={12} driftPx={3} emphasis={/下一次|留下|差距|100轮|270.48/}/>
+    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={72} risePx={12} driftPx={3} emphasis={/下一次|留下|差距|100轮|270.48/}/>
   </Stage>;
 }
