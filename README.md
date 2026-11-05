@@ -20,7 +20,7 @@
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 
-general 每场在目标确定后、动态实现前完成[逐场细节设计](.agents/skills/material2video/references/scene-detail-design.md)：在同一 `DESIGN.md` 记录适用的起势、状态形变、速度、对象联动、结果落定、光声生命周期及转场接棒，沿现有试制与审核复核完整过程；方法集中在[运动适配](.agents/skills/motion-design/ADAPTATION.md#逐场细节设计)。
+general 每场在目标确定后、动态实现前完成[逐场细节设计](.agents/skills/material2video/references/scene-detail-design.md)：在同一 `DESIGN.md` 编排主体、文字、图标/配角、光影点缀、镜头剪辑与声音，沿现有试制与审核分看关系成立及声明的表现目标，参考/重制比较同用途片段与基线；方法集中在[运动适配](.agents/skills/motion-design/ADAPTATION.md#逐场细节设计)。 dark-proof按段落选择硬切、动作匹配或对象延续，光效强弱与密度逐拍编排，不设全片固定次数上限。
 
 制作载体选择见[素材选择规范](.agents/skills/material2video/references/visual-material-selection.md#视频优先与代码适用场景)；规则来源及文档维护边界见[架构说明](ARCHITECTURE.md#契约与文档)。类型清单、制作门及审核策略表由共享定义生成，运行 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 可检查漂移。
 
