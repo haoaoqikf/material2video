@@ -7,7 +7,7 @@
  */
 import type {CSSProperties} from 'react';
 import {makeTransform, scale as scaleTransform} from 'm2v/code-scene';
-import {LATIN, NUMERIC_STYLE, T} from './kit';
+import {NUMERIC_STYLE, T} from './kit';
 
 export type HeroNumberProps = {
   value: string;
@@ -37,7 +37,7 @@ export default function HeroNumber({
         position: 'absolute', left: x, top: y,
         transform: `translate(${translate}, -50%) ${makeTransform([scaleTransform(scale)])}`,
         transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'right center' : 'left center',
-        fontFamily: LATIN, ...NUMERIC_STYLE, fontSize: size, lineHeight: 0.9,
+        ...NUMERIC_STYLE, fontSize: size, lineHeight: 0.9,
         letterSpacing: '-0.035em', color, opacity, whiteSpace: 'nowrap',
         display: 'flex', alignItems: 'baseline', gap: Math.round(size * 0.06), ...style,
       }}
