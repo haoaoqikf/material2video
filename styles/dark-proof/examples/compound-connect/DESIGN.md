@@ -33,6 +33,21 @@
 
 第10秒修复换取数字认回与表格承接，代价是失去原满屏近景冲击及球内数字的直接关联。这是有针对性的取舍，不代表慢转场普遍更好。近期设计过程及复盘见[CASE_STUDY](CASE_STUDY.md)，参考采用范围见[记录](style-reference.md)。
 
+## 逐场细节说明
+
+以下为现有 R5 源码的细节记录补充，未新增效果、重渲媒体或重新作出验收结论。帧、曲线与参数以对应源码和事件为唯一执行源。
+
+| 场景 | 已有细节、用途与取舍 | 实现引用 |
+|---|---|---|
+| 数字开场 | 数字随轮次变化，滚动期两层残影在锁定前退出；数字退出与标题进入分开，球从数字位置出发接棒；无角色表情 | [hook.tsx](scenes/hook.tsx) 的 number-lock、title-start |
+| 大字与球 | 球沿弧线进入大字区域，再做高度受限的两次起落；局部 Burst 对应落点，最终落向雪面；采用位置变化，不额外声称有压扁形变 | [hook.tsx](scenes/hook.tsx) 的 handoff、bounce、fall |
+| 雪球 | 半径与位置来自同一进度，接触释放来自对应事件；结束时球壳收拢并退出，地面先让位，100.00 在表格首行位置出现并停留 | [hook.tsx](scenes/hook.tsx) 的 snow-impact、snow-wipe、handoffEnd；[snow.tsx](scenes/snow.tsx) |
+| 表格 | 当前行局部变亮、位置落定，曲线与小球把上一行关联到下一行；103.03 沿弧线移向折线起点；本例没有加速滚动，不把参考片效果写为已实现 | [proof.tsx](scenes/proof.tsx) 的 Ledger、flight |
+| 双线 | 轮次数匀速推进，路径与端点数字从同一模型求值；结果出现后才释放，线退场时端点球沿弧线落向第一柱 | [proof.tsx](scenes/proof.tsx) 的 Curve、curve-flash、drop |
+| 柱形 | 各组错峰生长，同组柱高与数字使用同一进度；完成后公开独立差值行，100轮的100抬向上标；本例柱高无回弹，也无球持续随柱顶上升 | [proof.tsx](scenes/proof.tsx) 的 Bars、bar-flash、exit |
+| 公式 | 占位保留排版宽度，指数接入按实际字形落点；答案先计数锁定再释放，局部 Burst 与整屏 Impact 有各自事件，不能遮掉结论 | [resolution.tsx](scenes/resolution.tsx) 的 tex、answer-lock、answer-release |
+| 回扣 | 小数点位置生成球并沿弧线移到句末，结论短促尺度强调后静止；保留阅读，不再引入新例子或环境运动 | [resolution.tsx](scenes/resolution.tsx) 的 dot、closing-land、titleScale |
+
 ## 当前制作合同
 
 ```m2v-checkpoints

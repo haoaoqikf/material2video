@@ -47,6 +47,11 @@
   },
   "conditional": [
     {
+      "id": "scene-detail",
+      "when": "general 每场目标确定后、动态实现前，以及过程细节复核",
+      "guide": "references/scene-detail-design.md"
+    },
+    {
       "id": "mechanisms",
       "when": "讲解片方案与核心试制；读取四种机制章节",
       "guide": "references/explainer-design.md#四种讲解机制的执行方法"
