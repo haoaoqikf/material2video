@@ -160,14 +160,20 @@ class _MediaHandler(_QuietHandler):
         return stream
 
     def copyfile(self, source, outputfile):
-        if self._remaining is None:
-            return super().copyfile(source, outputfile)
-        while self._remaining:
-            block = source.read(min(65536, self._remaining))
-            if not block:
-                break
-            outputfile.write(block)
-            self._remaining -= len(block)
+        try:
+            if self._remaining is None:
+                return super().copyfile(source, outputfile)
+            while self._remaining:
+                block = source.read(min(65536, self._remaining))
+                if not block:
+                    break
+                outputfile.write(block)
+                self._remaining -= len(block)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # 帧时钟 seek / 页面退出会取消旧媒体请求；只结束已断开的传输。
+            # 不吞掉一般 OSError，磁盘与权限错误仍需暴露。
+            self.close_connection = True
+            logger.debug("本地媒体请求已由客户端断开：%s", self.path)
 
     def end_headers(self) -> None:
         # 媒体目录可位于仓库外；单独绑定回环端口，不扩大网页静态根目录。

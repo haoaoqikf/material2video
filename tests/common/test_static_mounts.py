@@ -34,6 +34,34 @@ def test_media_range_does_not_require_cors(tmp_path, cors):
 MOUNT = "/__m2v__"
 
 
+@pytest.mark.parametrize('remaining', [None, 100])
+@pytest.mark.parametrize('error', [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
+def test_cancelled_media_transfer_ends_without_server_traceback(remaining, error):
+    from io import BytesIO
+    from m2v.engine.http_server import _MediaHandler
+    handler = object.__new__(_MediaHandler)
+    handler._remaining = remaining
+    handler.path = '/clip.mp4'
+    handler.close_connection = False
+    class Disconnected:
+        def write(self, block):
+            raise error('client cancelled seek')
+    handler.copyfile(BytesIO(b'media'), Disconnected())
+    assert handler.close_connection is True
+
+
+def test_media_transfer_does_not_hide_source_read_failure():
+    from io import BytesIO
+    from m2v.engine.http_server import _MediaHandler
+    handler = object.__new__(_MediaHandler)
+    handler._remaining = 100
+    class FailedSource:
+        def read(self, size):
+            raise PermissionError('source inaccessible')
+    with pytest.raises(PermissionError):
+        handler.copyfile(FailedSource(), BytesIO())
+
+
 def _fixture_dirs(tmp_path: Path) -> tuple[Path, Path]:
     """内容根（页面与分镜）与仓库侧资产目录，互不同树。"""
     content = tmp_path / "content"
