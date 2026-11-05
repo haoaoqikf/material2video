@@ -16,7 +16,7 @@
 - `vehicle-showcase`：本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。
 <!-- generated:type-catalog:end -->
 
-风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[接](styles/dark-proof/examples/compound-connect/README.md)（68秒非金融复利效应：种子延续与方法复用，无旁白、无配乐，仅事件音效）。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
+风格示例：[从电报到大模型](styles/doc-archive/examples/american-science-milestones/README.md)、[复利](styles/count-ledger/examples/compound-interest/README.md)、[太阳系之旅](styles/deep-journey/examples/solar-system-journey/README.md)、[折叠](styles/vibe-night/examples/fold/README.md)、[鸽子的迷信](styles/vibe-fable/examples/pigeon/README.md)与[让积累，参与下一次](styles/dark-proof/examples/compound-connect/README.md)（40秒R5：数字、单个寓言、表格、折线、柱形与公式连续论证；[近期创作复盘](styles/dark-proof/examples/compound-connect/CASE_STUDY.md)，无旁白、无配乐，仅事件音效）。各示例的设计、来源、制作状态与验证见示例目录及其 `DESIGN.md`、`SOURCES.md`、`VERIFICATION.md`；当前能力与目录约定见[风格包目录](styles/README.md)。
 
 通用视频的创作方法（视觉事件、导演设计、逐场设计与验收）集中见[视觉创意导演方法](.agents/skills/material2video/references/visual-creative-direction.md)；看图诊断见[看图诊断与形象判据](.agents/skills/material2video/references/explainer-design.md#看图诊断与形象判据)。
 

@@ -1,56 +1,44 @@
-"""按固定配方恢复《接》的原创声音；摘要漂移拒绝，已有不同文件不覆盖。"""
+"""用现有合成导入器离线恢复事件音，固定摘要不符时拒绝覆盖。"""
+from pathlib import Path
 import hashlib
 import json
 import logging
 import shutil
-import sys
 import tempfile
-import wave
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-from synthesize import generate  # noqa: E402
+from m2v.core.project import _write_json
+from m2v.types.general import sound_library
 
-log = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parents[1]
+logger = logging.getLogger(__name__)
 
 
-def validate(path: Path, item: dict) -> None:
-    if hashlib.sha256(path.read_bytes()).hexdigest() != item['expectedSha256']:
-        raise ValueError(f"音效摘要不符：{item['id']}")
-    with wave.open(str(path)) as wav:
-        if (wav.getframerate(), wav.getnchannels(), wav.getsampwidth()) != (24000, 1, 2):
-            raise ValueError(f"音频规格不符：{item['id']}")
-        if abs(wav.getnframes() / 24000 - item['durationSeconds']) > 1 / 24000:
-            raise ValueError(f"音效时长不符：{item['id']}")
-
-
-def restore() -> None:
-    recipe = json.loads((HERE / 'recipe.json').read_text(encoding='utf-8'))
-    if recipe.get('schemaVersion') != 1:
-        raise ValueError('配方版本不符')
-    pending = []
-    for item in recipe['assets']:
-        target = (HERE.parent / item['path']).resolve()
-        if not target.is_relative_to((HERE / 'media').resolve()):
-            raise ValueError('音效路径越界')
-        if target.exists():
-            validate(target, item)
-            log.info('缓存命中：%s', item['id'])
-        else:
-            pending.append((item, target))
-    with tempfile.TemporaryDirectory(prefix='compound-connect-sound-') as tmp:
-        staged = []
-        for item, target in pending:
-            source = Path(tmp) / (item['id'] + '.wav')
-            generate(item['id'], source)
-            validate(source, item)
-            staged.append((source, target))
-        for source, target in staged:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with target.open('xb') as out, source.open('rb') as inp:
-                shutil.copyfileobj(inp, out)
-            log.info('恢复完成：%s', target.name)
+def restore(root: Path = ROOT) -> None:
+    assets = root / 'assets'
+    manifest = json.loads((assets / 'sound-recipe.json').read_text(encoding='utf-8'))
+    expected = json.loads((assets / 'sound-checks.json').read_text(encoding='utf-8'))
+    expected_by_id = {item['id']: item for item in expected['assets']}
+    if len(expected_by_id) != len(expected['assets']) or set(expected_by_id) != {a['id'] for a in manifest['assets']}:
+        raise ValueError('声音配方与固定摘要清单不一致')
+    # 先在隔离临时目录生成并核对整个批次；失败不更改已有登记或文件。
+    with tempfile.TemporaryDirectory(prefix='compound-example-sound-') as name:
+        staging = Path(name)
+        record = sound_library.import_assets(staging, manifest, base=assets)
+        for entry in record['assets']:
+            check = expected_by_id[entry['id']]
+            if any(entry[k] != check[k] for k in ('sha256', 'sampleRate', 'channels', 'frames', 'license')):
+                raise ValueError(f"声音恢复摘要或规格不符：{entry['id']}")
+            target = root / entry['path']
+            if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != check['sha256']:
+                raise ValueError(f"已有声音摘要不符，拒绝覆盖：{entry['id']}")
+        for entry in record['assets']:
+            target = root / entry['path']
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open('xb') as output, (staging / entry['path']).open('rb') as source:
+                    shutil.copyfileobj(source, output)
+            logger.info('已核对声音 %s (%s)', entry['id'], entry['sha256'])
+        _write_json(root / sound_library.RECORD, record)
 
 
 if __name__ == '__main__':

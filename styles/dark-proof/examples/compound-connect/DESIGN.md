@@ -1,363 +1,346 @@
-# 《接：让积累生长》
+# 让积累，参与下一次：当前R5规范示例
 
-## 目标与事实边界
+## 命题、观看任务与边界
 
-面向普通手机观众，以原创种子寓言解释非金融的复利效应：过去的成果继续参与创造，新增成果也成为新的增长来源。种子生长、繁衍是机制类比，不是现实生态预测；不提供增长率、年代、必然成功或学习倍数。保留1920×1080、30fps、无旁白无配乐，仅事件音。方案可调整，用户最终效果目标与明确限制优先。
+让观众理解：留下的成果参与下一轮，使增长的基础随之变化。数字问题引出期待，单个雪球提供直觉，表格建立递推，折线与柱形分别揭示过程及节点差值，公式压缩已经看到的关系，结尾回到命题。采用现有R5成片，不重新选案。
 
-旧64秒候选SHA256：91f0be29ebecf1b0e7f3443f8547060fc14461c5d537f0b158ef65ecb46d04ea；成片、记录和源码位于 outputs/baselines/102ba1dd0835424384829109ae458689/。本轮回到方案与试制阶段，不继承旧通过。周期为compound-effect-growth-20261104。
+初始100，每轮按现有总量增加1%，对照每轮固定加1；均不追加外部投入。唯一模型在`scenes/model.ts`。雪球是寓言，不把体积映射成1%或把模型当现实预测。数字论证及公式处保留可读的模型口径。
 
-## 视觉、运动与声音
+## 视觉与运动
 
-近黑底#0A0B0D，米白#F3EDDC表示已形成的主体，暖金#E6BE55表示新成果及当前作用，灰色只作土层与次要标记。M2V Sans中文、M2V Inter数字。树是有分枝、宽叶、根与种壳的具体主体，不用圈点和账户界面。母株保持可认回，新增树有不同尺度；新植株生长时用金色，成熟结种时回到米白，让新种子成为金色焦点。概念图中的整株金色仅作初始方向，不要求长期保持。末段回场改变开场种子的含义。
+近黑舞台、米白与暖金，白色表示固定增量对照、金色表示按总量增长。中文M2V Sans，数字M2V Inter，公式使用登记KaTeX字体。大数、大字、横向动作、表格、开放坐标交替形成尺度与阅读方式变化，不做同构卡片。
 
-运动以easeOutCubic抵达、easeInOutCubic场内移动；种子弧线下落、接触反应、根与枝叶分层生长。数字落定一次尺度强调。字幕绝对帧逐字错峰，末字落定后留完整阅读；主体与字幕轮流获得焦点。新增树结种是一次中释放，全貌是最强释放，光从具体对象发出。核心动作及事件见分镜beats，不另维护帧表。第二次飞行在释放余势结束后开始，避免小种子被遮挡。场景技术边界使用cut但对象按全局帧保持连续；实际硬切只计划在45秒进入学习应用处，其余承接由画面验证。无持续随机运动填空。
+主入场easeOutExpo、场内及跨场easeInOutCubic；起势、移动、减速、落定与阅读分开。每拍一个主要焦点，动作和字幕允许有用途的重叠。所有状态按帧纯求值，随机使用固定种子；无挂钟、自走动画或前帧累积。
 
-复用已有共享手绘路径、dark-proof的ScreenSubtitle/Burst/Impact；外部候选GSAP SplitText、Remotion spring、Pixi filters已在本轮变更设计登记评估，已有能力足够，不新增引擎。种子与树的几何为原创题材绘制。现有原创24kHz事件音按配方恢复，绑定同一事件，不复制参考音轨。
+## 逐场表
 
-开场与片尾的动态SVG组使用will-change: transform稳定浏览器合成层，避免渐变背景因脏矩形重绘出现1–2色阶的同帧差异；不引入计时器或跨帧状态。两处修复后均通过既有60dB正序／倒序与分块边界验证，没有降低阈值。种子交接为树是有意接触，在开场合同显式登记；全貌段以始终在场的母株作为观测角色。
-
-## 逐场设计
-
-| 段落 | 主体及变化 | 新认识与风险 |
+| 时间 | 可见事件及新增认识 | 衔接与观察重点 |
 |---|---|---|
-| 0–12秒 opening | 一颗种子触地，生根长成母株，1粒落定强调 | 开场提出为什么积累后来越来越快，先给一个具体起点 |
-| 12–38秒 core | 母株结种→同一颗种子落地成树→新树再次结种→第三株出现 | 新增部分成为新的创造来源；完整26秒试制，core/G2/G3/G4覆盖，不以数量增加代替机制 |
-| 38–45秒 grove | 保持原三株，拉远发现更多正在延续的生长 | 认识增长来源变多，强释放后留结果观察 |
-| 45–56秒 learning | 凑十法从8+5，复用于9+6，再拓展到19+6 | 学会的方法帮助后续理解；数字可复算，不能仅以书本图标增加代替 |
-| 56–68秒 closing | 回到种子及其后续生长，命名复利效应 | 回答开场：让积累推动新的积累；不承诺现实固定收益 |
+| 0–3秒 | 初始100、每轮1%、数字滚动到第8轮，提出100轮后会怎样 | 先建立问题，不先泄露答案；数字锁定后焦点交给小球 |
+| 3–7秒 | 两行大字“让过去的成果 / 参与下一次”，球穿行并落定 | 字成为路径和落点；球最终落向雪面 |
+| 7–11秒 | 雪球卷雪增大，9.6秒完成并局部释放；10秒起收拢上移 | 10.467秒100.00显现，10.6秒完全显示；停至11秒，在同一位置接表格首行；不使用整屏白擦 |
+| 11–17秒 | 表格逐行出现101/+1、102.01/+1.01、103.03/+1.02 | 区分总量与新增，上一轮进入下一轮基础；103.03接向坐标 |
+| 17–23秒 | 同起点双线先接近后分离，终点270.48/200 | 轮次匀速推进，坐标比例真实；结果可读时再释放 |
+| 23–29秒 | 10/50/100轮三组柱形，差0.46/14.46/70.48 | 零基准、统一比例；差值有独立行；100轮的100抬向上标 |
+| 29–35秒 | 初始量、增长因子、指数依次公开，答案270.48锁定 | 固定公式占位宽度，实际KaTeX字形量测落点；强释放后结果仍可读 |
+| 35–40秒 | 数字小数点接球，结论与开场回认 | 粒子收势后文字留下，不再加新例子 |
 
-## 终审后的局部设计调整
+## 实现与取舍
 
-首个完整候选因C1被独立终审打回：62秒的补充句“下一次，已经有了起点”亮显仅约0.4–0.5秒，随后转灰并与片名和正常字幕竞争。这是阅读预算与层级的设计问题。删除该重复补充句，让片名、正常字幕及种子再次生长共同收束，保持总时长68秒。G5原有帧证据已覆盖该段但漏判，当前回归明确核对片尾全部文字的阅读窗口与竞争，不用“符合原方案”关闭问题。
+复用已有Counter、ChartLine/ChartMarker、Text、Snowball、Burst/Impact及MathFormula。ChartLine沿用已锁定d3-shape 3.2.0（ISC），公式沿用KaTeX 0.19.1（MIT），逐帧合成沿用Remotion 4.0.526及现有许可配置。既有纯时间组件已满足需求，无新增依赖、同类组件或自走时间线。柱形矩形仅做本片量到高度映射。R5源码迁移时不改变动作和图形。
 
-## 参考与试制判断
+保留四处整屏Impact事件起点：2.700、22.067、27.467、33.100秒，分别对应数字锁定、曲线结果、柱形结果和公式答案；9.6秒雪球只保留局部接触Burst。事件起点不是光效面积/亮度峰值。未实现提案中的窄带扫光，不声称每次释放均使用不同新技术。
 
-参考本地《重复》仅用于动作与风格分析，不进入渲染。关键采用项：单一具体主角、动作准备/接触/反应/收势、逐字入镜、落定强调、源点扩环与粒子、早期主体最终回报。八项指标与差异见outputs/style-reference.md。概念目标由内置ImageGen独立生成，与源码隔离；只规范轮廓、主体层级及明确来源，不照搬生成图的全部纹理。
+第10秒修复换取数字认回与表格承接，代价是失去原满屏近景冲击及球内数字的直接关联。这是有针对性的取舍，不代表慢转场普遍更好。近期设计过程及复盘见[CASE_STUDY](CASE_STUDY.md)，参考采用范围见[记录](style-reference.md)。
 
-试制须能在完整窗口中认回种子，并看见新增树再次产生种子。观察分理解、表现、代表性；先盲看落盘，再同轮目标对照。失败先归因为实现/设计/混合/待定位；核心设计失败直接退回重设计。普通局部失败不推倒全片。当前完整核心试制、G5内部检查及新代理终审与目标对照均已通过；C1片尾设计问题经局部重设计和当前独立复查关闭，原失败记录与候选保留。G0–G6当前完成。
+## 当前制作合同
 
 ```m2v-checkpoints
 {
   "version": 2,
-  "cycleId": "compound-effect-growth-20261104",
+  "cycleId": "compound-connect-r5-example-20261105",
   "fps": 30,
   "width": 1920,
   "height": 1080,
   "reviewPlan": {
-    "basis": "试制完整覆盖母株结种、新株生长与新株再次结种；用户目标优先，方案可经证据调整。",
+    "basis": "采用R5八节拍成片。完整试制含开场数字/大字/雪球，以及表格→折线→柱形；最后公式和结论独立终审覆盖。无新增静态目标图风险，提案图不作已通过目标图。",
     "risks": [
       {
-        "id": "growth-appearance",
-        "kind": "static-expression",
-        "scope": {
-          "checkpointIds": [
-            "cp-core"
-          ]
-        },
-        "reason": "outputs/style-reference.md：具体主体、清楚轮廓与新增长来源须先以独立目标验证。",
-        "requiredEvidence": [
-          "design/keyframes/growth-establish.png",
-          "design/keyframes/growth-result.png"
-        ]
-      },
-      {
-        "id": "growth-sequence",
+        "id": "multi-form-rhythm",
         "kind": "structure-timing",
         "scope": {
           "checkpointIds": [
-            "cp-core"
+            "cp-hook",
+            "cp-proof"
           ]
         },
-        "reason": "先看见种子来源及落地，再生长，再由新增植株结种；禁止字幕解释代替过程。",
+        "reason": "数字滚动、文字互动、跨形式焦点接棒和爆闪强弱须用完整过程确认，关键采用项见style-reference.md与DESIGN逐场表。",
         "requiredEvidence": [
-          "production/checkpoints/cp-core/window.mp4"
+          "production/checkpoints/cp-hook/window.mp4",
+          "production/checkpoints/cp-proof/window.mp4"
         ]
       },
       {
-        "id": "new-source",
+        "id": "retained-model",
         "kind": "core-event",
         "scope": {
           "checkpointIds": [
-            "cp-core"
+            "cp-proof"
           ]
         },
-        "reason": "完整试制必须呈现新增部分参与后续创造，可因此退回设计。",
+        "reason": "表格必须说明新增参与下一轮；折线与柱形分别揭示过程和轮次差距，不是同一数字换皮。",
         "requiredEvidence": [
-          "production/checkpoints/cp-core/window.mp4"
+          "production/checkpoints/cp-proof/window.mp4"
         ]
       }
     ]
   },
   "scenes": [
     {
-      "id": "opening",
-      "durationFrames": 360,
+      "id": "hook",
+      "durationFrames": 330,
       "shots": [
         {
-          "id": "opening-shot",
-          "tier": "B",
-          "window": [
-            0,
-            360
-          ],
-          "core": false
-        }
-      ],
-      "checkpoints": [
-        {
-          "id": "cp-opening",
-          "shotId": "opening-shot",
-          "frame": 313,
-          "window": [
-            0,
-            360
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "为什么有些积累，后来会越来越快？",
-              "window": [
-                6,
-                141
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "一颗种子，先长成一棵树。",
-              "window": [
-                156,
-                351
-              ]
-            }
-          ],
-          "claims": [],
-          "forbidden": [
-            "投资收益",
-            "年化收益",
-            "保证成功"
-          ],
-          "measurement": {
-            "subtitleRoles": [
-              "screen-subtitle"
-            ],
-            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛",
-            "allowedOverlaps": [
-              [
-                "opening-seed",
-                "mother-tree"
-              ]
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "core",
-      "durationFrames": 780,
-      "shots": [
-        {
-          "id": "core-shot",
+          "id": "hook-shot",
           "tier": "A",
           "window": [
             0,
-            780
+            330
           ],
           "core": true,
           "timeStructure": {
             "establish": {
               "window": [
                 0,
-                120
+                81
               ],
-              "audience": "跟随主体及它带来的后续变化",
-              "visible": "母株及其种子",
-              "attention": "当前动作主体",
-              "toleranceFrames": 2,
-              "failure": "种子来源或新增部分作用无法认回"
+              "audience": "先形成问题再跟随同一焦点",
+              "visible": "起点100、1%假设与滚动数值",
+              "attention": "中心数字",
+              "toleranceFrames": 3,
+              "failure": "焦点丢失或未看清对象变化"
             },
             "change": {
               "window": [
-                120,
-                450
+                81,
+                210
               ],
-              "audience": "跟随主体及它带来的后续变化",
-              "visible": "种子脱离落地，新株生长",
-              "attention": "当前动作主体",
-              "toleranceFrames": 2,
-              "failure": "种子来源或新增部分作用无法认回"
+              "audience": "先形成问题再跟随同一焦点",
+              "visible": "小数点离开数字，在大字间运动",
+              "attention": "小球与字间落点",
+              "toleranceFrames": 3,
+              "failure": "焦点丢失或未看清对象变化"
             },
             "reveal": {
               "window": [
-                450,
-                600
+                210,
+                288
               ],
-              "audience": "跟随主体及它带来的后续变化",
-              "visible": "新株再次结种并释放",
-              "attention": "当前动作主体",
-              "toleranceFrames": 2,
-              "failure": "种子来源或新增部分作用无法认回"
+              "audience": "先形成问题再跟随同一焦点",
+              "visible": "小球接触地面并卷雪增大",
+              "attention": "雪球与雪面",
+              "toleranceFrames": 3,
+              "failure": "焦点丢失或未看清对象变化"
             },
             "result": {
               "window": [
-                600,
-                780
+                288,
+                330
               ],
-              "audience": "跟随主体及它带来的后续变化",
-              "visible": "第三株生长，原株保留",
-              "attention": "当前动作主体",
-              "toleranceFrames": 2,
-              "failure": "种子来源或新增部分作用无法认回"
+              "audience": "先形成问题再跟随同一焦点",
+              "visible": "局部释放后收拢到表格起点，露出100.00并停留",
+              "attention": "雪球与100.00",
+              "toleranceFrames": 3,
+              "failure": "焦点丢失或未看清对象变化"
             }
           }
         }
       ],
       "checkpoints": [
         {
-          "id": "cp-core",
-          "shotId": "core-shot",
-          "frame": 679,
+          "id": "cp-hook",
+          "shotId": "hook-shot",
+          "frame": 288,
           "window": [
             0,
-            780
-          ],
-          "expected": [
-            {
-              "role": "mother-tree",
-              "count": 1
-            }
-          ],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "树，结出了新的种子。",
-              "window": [
-                9,
-                120
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "其中一颗，落地、生根。",
-              "window": [
-                129,
-                285
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "它长成了另一棵树。",
-              "window": [
-                300,
-                435
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "新长出的树，也结出了种子。",
-              "window": [
-                450,
-                600
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "新增的部分，也开始创造。",
-              "window": [
-                609,
-                774
-              ]
-            }
-          ],
-          "claims": [],
-          "forbidden": [
-            "投资收益",
-            "年化收益",
-            "保证成功"
-          ],
-          "measurement": {
-            "subtitleRoles": [
-              "screen-subtitle"
-            ],
-            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛",
-            "allowedOverlaps": [
-              [
-                "mother-tree",
-                "first-seed"
-              ],
-              [
-                "child-tree",
-                "first-seed"
-              ],
-              [
-                "child-tree",
-                "second-seed"
-              ],
-              [
-                "third-tree",
-                "second-seed"
-              ]
-            ]
-          },
-          "minEventFrames": 2
-        }
-      ]
-    },
-    {
-      "id": "grove",
-      "durationFrames": 210,
-      "shots": [
-        {
-          "id": "grove-shot",
-          "tier": "A",
-          "window": [
-            0,
-            210
-          ],
-          "core": false
-        }
-      ],
-      "checkpoints": [
-        {
-          "id": "cp-grove",
-          "shotId": "grove-shot",
-          "frame": 183,
-          "window": [
-            0,
-            210
+            330
           ],
           "expected": [],
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "增长的来源，变多了。",
+              "text": "从100开始，100轮后会怎样？",
               "window": [
-                9,
-                201
+                0,
+                78
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "雪球越大，下一次卷起的雪越多。",
+              "window": [
+                222,
+                300
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资收益",
             "年化收益",
-            "保证成功"
+            "保证成功",
+            "必然成功"
           ],
           "measurement": {
             "subtitleRoles": [
               "screen-subtitle"
             ],
-            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
-          }
+            "thresholdSource": "横屏字幕安全区与393宽显示",
+            "allowedOverlaps": [
+              [
+                "hero-number",
+                "hero-number"
+              ],
+              [
+                "focus-ball",
+                "hero-number"
+              ],
+              [
+                "focus-ball",
+                "title-first"
+              ],
+              [
+                "focus-ball",
+                "title-second"
+              ],
+              [
+                "focus-ball",
+                "snowball"
+              ]
+            ]
+          },
+          "sampleStep": 3,
+          "minEventFrames": 3
         }
       ]
     },
     {
-      "id": "learning",
+      "id": "proof",
+      "durationFrames": 540,
+      "shots": [
+        {
+          "id": "proof-shot",
+          "tier": "A",
+          "window": [
+            0,
+            540
+          ],
+          "core": true,
+          "timeStructure": {
+            "establish": {
+              "window": [
+                0,
+                64
+              ],
+              "audience": "观察前后状态并获得新信息",
+              "visible": "初始100与前两行增长",
+              "attention": "活动行",
+              "toleranceFrames": 3,
+              "failure": "前后关系丢失或信息形式只是在重复结论"
+            },
+            "change": {
+              "window": [
+                64,
+                180
+              ],
+              "audience": "观察前后状态并获得新信息",
+              "visible": "新增量参与后续增长，表格生成坐标",
+              "attention": "总量与下一行新增",
+              "toleranceFrames": 3,
+              "failure": "前后关系丢失或信息形式只是在重复结论"
+            },
+            "reveal": {
+              "window": [
+                180,
+                352
+              ],
+              "audience": "观察前后状态并获得新信息",
+              "visible": "两条线先接近后分开，终点数值可读",
+              "attention": "金色端点",
+              "toleranceFrames": 3,
+              "failure": "前后关系丢失或信息形式只是在重复结论"
+            },
+            "result": {
+              "window": [
+                352,
+                522
+              ],
+              "audience": "观察前后状态并获得新信息",
+              "visible": "10/50/100轮的差距逐次变大",
+              "attention": "当前柱组",
+              "toleranceFrames": 3,
+              "failure": "前后关系丢失或信息形式只是在重复结论"
+            },
+            "hold": {
+              "window": [
+                522,
+                540
+              ],
+              "audience": "观察前后状态并获得新信息",
+              "visible": "100抬向指数位置",
+              "attention": "100",
+              "toleranceFrames": 3,
+              "failure": "前后关系丢失或信息形式只是在重复结论"
+            }
+          }
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-proof",
+          "shotId": "proof-shot",
+          "frame": 498,
+          "window": [
+            0,
+            540
+          ],
+          "expected": [],
+          "textPlan": [
+            {
+              "role": "screen-subtitle",
+              "text": "多出来的，也留给下一轮。",
+              "window": [
+                8,
+                144
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "开始差不多，后来逐渐拉开。",
+              "window": [
+                190,
+                304
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "差距出现了。",
+              "window": [
+                310,
+                352
+              ]
+            },
+            {
+              "role": "screen-subtitle",
+              "text": "差距，从0.46扩大到70.48。",
+              "window": [
+                388,
+                518
+              ]
+            }
+          ],
+          "claims": [],
+          "forbidden": [
+            "年化收益",
+            "保证成功",
+            "必然成功"
+          ],
+          "measurement": {
+            "subtitleRoles": [
+              "screen-subtitle"
+            ],
+            "thresholdSource": "横屏字幕安全区与393宽显示"
+          },
+          "sampleStep": 3,
+          "minEventFrames": 3
+        }
+      ]
+    },
+    {
+      "id": "resolution",
       "durationFrames": 330,
       "shots": [
         {
-          "id": "learning-shot",
+          "id": "resolution-shot",
           "tier": "B",
           "window": [
             0,
@@ -368,9 +351,9 @@
       ],
       "checkpoints": [
         {
-          "id": "cp-learning",
-          "shotId": "learning-shot",
-          "frame": 287,
+          "id": "cp-resolution",
+          "shotId": "resolution-shot",
+          "frame": 288,
           "window": [
             0,
             330
@@ -379,98 +362,27 @@
           "textPlan": [
             {
               "role": "screen-subtitle",
-              "text": "学会一个方法。",
+              "text": "每一轮，都站在上一轮之上。",
               "window": [
-                6,
-                111
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "下一题，用上它。",
-              "window": [
-                123,
-                216
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "它又帮你，理解新的问题。",
-              "window": [
-                228,
-                324
+                8,
+                163
               ]
             }
           ],
           "claims": [],
           "forbidden": [
-            "投资收益",
             "年化收益",
-            "保证成功"
+            "保证成功",
+            "必然成功"
           ],
           "measurement": {
             "subtitleRoles": [
               "screen-subtitle"
             ],
-            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
-          }
-        }
-      ]
-    },
-    {
-      "id": "closing",
-      "durationFrames": 360,
-      "shots": [
-        {
-          "id": "closing-shot",
-          "tier": "A",
-          "window": [
-            0,
-            360
-          ],
-          "core": false
-        }
-      ],
-      "checkpoints": [
-        {
-          "id": "cp-closing",
-          "shotId": "closing-shot",
-          "frame": 313,
-          "window": [
-            0,
-            360
-          ],
-          "expected": [],
-          "textPlan": [
-            {
-              "role": "screen-subtitle",
-              "text": "让积累，推动新的积累。",
-              "window": [
-                9,
-                171
-              ]
-            },
-            {
-              "role": "screen-subtitle",
-              "text": "这，就是复利效应。",
-              "window": [
-                186,
-                360
-              ]
-            }
-          ],
-          "claims": [],
-          "forbidden": [
-            "投资收益",
-            "年化收益",
-            "保证成功"
-          ],
-          "measurement": {
-            "subtitleRoles": [
-              "screen-subtitle"
-            ],
-            "thresholdSource": "当前画幅安全区及手机阅读观察，不设注释手机门槛"
-          }
+            "thresholdSource": "横屏字幕安全区与393宽显示"
+          },
+          "sampleStep": 3,
+          "minEventFrames": 3
         }
       ]
     }

@@ -1,9 +1,8 @@
-"""正式暗场论证风格包：清单、组件契约、指纹与《接》示例。"""
+"""正式暗场论证风格包：清单、组件契约、指纹与R5规范示例。"""
 from __future__ import annotations
 
 import json
 import importlib.util
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -40,51 +39,72 @@ def test_shipped_example_is_an_effects_only_v8_work():
     assert board['soundtrack']['effects']
 
 
-def test_seed_sources_and_growth_follow_visible_event_order():
-    """保护来源、接触和后续生产边界；不启动浏览器或生成媒体。"""
+def test_model_recurs_and_coordinates_are_monotonic():
+    """核对递推、增量、同起点及乱序求值，不镜像具体分镜参数。"""
     if shutil.which('node') is None:
         pytest.skip('需要Node.js')
     script = r"""
-      const assert = require('node:assert/strict');
-      const fs = require('node:fs');
-      const code = require('esbuild').buildSync({entryPoints:[process.argv[1]],bundle:true,
-        alias:{'m2v/code-scene':process.argv[3]},platform:'node',format:'cjs',write:false}).outputFiles[0].text;
-      const mod={exports:{}}; new Function('module','exports',code)(mod,mod.exports);
-      const {groveState,flight,podAt,MOTHER,CHILD,THIRD}=mod.exports;
-      const board=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-      const b=board.scenes[0].content.props.beats;
-      const near=(a,z)=>assert.ok(Math.abs(a-z)<1e-8, `${a} != ${z}`);
-      for (const [prefix,from,to,grow,ready] of [
-        ['first',MOTHER,CHILD,'child-grow','child-ready'],
-        ['second',CHILD,THIRD,'third-grow','third-ready']]) {
-        assert.ok(b[`${prefix}-release`]<b[`${prefix}-land`]);
-        assert.ok(b[`${prefix}-land`]<b[grow] && b[grow]<b[ready]);
-        const a=flight(b[`${prefix}-release`],b[`${prefix}-release`],b[`${prefix}-land`],podAt(from),to);
-        const z=flight(b[`${prefix}-land`],b[`${prefix}-release`],b[`${prefix}-land`],podAt(from),to);
-        near(a.x,podAt(from).x);near(a.y,podAt(from).y);near(z.x,to.x);near(z.y,to.y);
+      const assert=require('node:assert/strict');
+      const code=require('esbuild').buildSync({entryPoints:[process.argv[1]],bundle:true,
+        platform:'node',format:'cjs',write:false}).outputFiles[0].text;
+      const mod={exports:{}};new Function('module','exports',code)(mod,mod.exports);
+      const {MODEL,compounded,constant,increment,chartPoint}=mod.exports;
+      const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
+      near(compounded(0),constant(0));near(compounded(1),constant(1));
+      const saved=compounded(7);compounded(MODEL.rounds);near(compounded(7),saved);
+      for(let n=1;n<=MODEL.rounds;n++){
+        near(compounded(n),compounded(n-1)+increment(n));
+        near(increment(n),compounded(n-1)*MODEL.rate);
+        near(constant(n)-constant(n-1),MODEL.initial*MODEL.rate);
+        assert.ok(compounded(n)>=constant(n)-1e-8);
+        const a=chartPoint(n-1,compounded(n-1)),b=chartPoint(n,compounded(n));
+        assert.ok(b[0]>a[0] && b[1]<a[1]);
       }
-      assert.ok(b['child-ready']<b['child-fruit'] && b['child-fruit']<b['second-release']);
-      assert.equal(groveState(b['child-grow'],b).child,0);
-      assert.equal(groveState(b['child-ready'],b).child,1);
-      assert.equal(groveState(b['child-fruit']-1,b).childProductive,false);
-      assert.equal(groveState(b['child-fruit'],b).childProductive,true);
-      const state=groveState(900,b);groveState(1600,b);
-      assert.deepEqual(groveState(900,b),state);
     """
-    result=subprocess.run(['node','-e',script,str(EXAMPLE/'scenes/model.ts'),str(EXAMPLE/'storyboard.json'),
-                           str(ROOT/'web/src/code-scene/motion.ts')],
-                          cwd=ROOT/'web',capture_output=True,text=True,encoding='utf-8',check=False)
-    assert result.returncode == 0, result.stdout + result.stderr
+    result=subprocess.run(['node','-e',script,str(EXAMPLE/'scenes/model.ts')],
+                          cwd=ROOT/'web',capture_output=True,text=True,encoding='utf-8')
+    assert result.returncode == 0, result.stdout+result.stderr
 
 
-def test_example_media_recipe_is_complete():
-    recipe = json.loads((EXAMPLE / "assets" / "recipe.json").read_text(encoding="utf-8"))
-    assert recipe["schemaVersion"] == 1
-    for item in recipe["assets"]:
-        assert item["transform"] == "generate"
-        assert item["sampleRateHz"] == 24000 and item["channels"] == 1
-        assert item["license"] == "CC0-1.0"
-        assert re.fullmatch(r"[0-9a-f]{64}", item["expectedSha256"])
+def test_example_edits_do_not_change_fingerprint_but_guide_edits_do(tmp_path, monkeypatch):
+    package=tmp_path/'dark-proof'
+    shutil.copytree(PACKAGE,package,ignore=shutil.ignore_patterns('examples'))
+    monkeypatch.setattr(styles,'STYLES_ROOT',tmp_path)
+    before=styles.load_style('dark-proof')['identity']['fingerprint']
+    example=package/'examples/compound-connect';example.mkdir(parents=True)
+    (example/'CASE_STUDY.md').write_text('复盘',encoding='utf-8')
+    assert styles.load_style('dark-proof')['identity']['fingerprint']==before
+    (package/'GUIDE.md').write_text('修改指南',encoding='utf-8')
+    assert styles.load_style('dark-proof')['identity']['fingerprint']!=before
+
+
+def load_fetch():
+    spec=importlib.util.spec_from_file_location('compound_fetch',EXAMPLE/'assets/fetch.py')
+    result=importlib.util.module_from_spec(spec);spec.loader.exec_module(result)
+    return result
+
+
+@pytest.mark.media
+def test_sound_restore_matches_checks_and_refuses_drift(tmp_path):
+    fetch=load_fetch();assets=tmp_path/'assets';assets.mkdir()
+    for name in ['sound-recipe.json','sound-checks.json']:
+        shutil.copy2(EXAMPLE/'assets'/name,assets/name)
+    fetch.restore(tmp_path)
+    record=assets/'sound-sources.json';before=record.read_bytes()
+    checks=json.loads((assets/'sound-checks.json').read_text(encoding='utf-8'))
+    registered=json.loads(before)
+    assert {a['id']:a['sha256'] for a in registered['assets']}=={a['id']:a['sha256'] for a in checks['assets']}
+    fetch.restore(tmp_path);assert record.read_bytes()==before
+    damaged=tmp_path/registered['assets'][0]['path'];damaged.write_bytes(b'damaged')
+    with pytest.raises(ValueError,match='拒绝覆盖'):
+        fetch.restore(tmp_path)
+    assert damaged.read_bytes()==b'damaged' and record.read_bytes()==before
+    recipe=json.loads((assets/'sound-recipe.json').read_text(encoding='utf-8'))
+    recipe['assets'][0]['synthesis']['seed']+=1
+    (assets/'sound-recipe.json').write_text(json.dumps(recipe),encoding='utf-8')
+    with pytest.raises(ValueError,match='恢复摘要或规格不符'):
+        fetch.restore(tmp_path)
+    assert record.read_bytes()==before
 
 
 def test_composer_creates_a_fresh_work_and_keeps_event_contract_in_sync(tmp_path, monkeypatch):
@@ -93,13 +113,12 @@ def test_composer_creates_a_fresh_work_and_keeps_event_contract_in_sync(tmp_path
     spec.loader.exec_module(composer)
     monkeypatch.setattr(composer,'ROOT',tmp_path)
     design=tmp_path/'DESIGN.md'
-    design.write_text('# 临时制作源\n',encoding='utf-8')
+    design.write_text('# 临时制作源\n\n```m2v-checkpoints\n{}\n```\n',encoding='utf-8')
     composer.compose()
     board=json.loads((tmp_path/'storyboard.json').read_text(encoding='utf-8'))
     contract=json.loads(design.read_text(encoding='utf-8').split('```m2v-checkpoints\n')[1].split('```')[0])
     scene=board['scenes'][0]
     events={(s['id'],e['id']) for s in board['scenes'] for e in s['events']}
-    assert (tmp_path/'outputs/screen-timing.json').is_file()
     assert contract['scenes'][0]['durationFrames']==scene['durationFrames']
     assert all((e['sceneId'],e['eventId']) in events for e in board['soundtrack']['effects'])
     assert all(e['frame'] < s['durationFrames'] for s in board['scenes'] for e in s['events'])
@@ -112,13 +131,14 @@ def test_composer_creates_a_fresh_work_and_keeps_event_contract_in_sync(tmp_path
 
 
 @pytest.mark.slow
-def test_example_scene_builds_with_the_package(tmp_path):
+@pytest.mark.parametrize('scene_index',[0,1,2])
+def test_example_scene_builds_with_the_package(tmp_path,scene_index):
     if shutil.which("node") is None:
         pytest.skip("需要 Node.js")
     project = json.loads((EXAMPLE / "project.json").read_text(encoding="utf-8"))
     board = explainer.load(EXAMPLE, project)
     work = tmp_path / "work"
     work.mkdir()
-    inputs = build_scene(EXAMPLE, board["scenes"][0], work)
+    inputs = build_scene(EXAMPLE, board["scenes"][scene_index], work)
     assert inputs["style"] == styles.load_style("dark-proof")["identity"]["fingerprint"]
     assert (work / "scene.js").is_file()

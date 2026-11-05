@@ -2,16 +2,7 @@
   "schemaVersion": 1,
   "id": "compound-connect",
   "type": "general",
-  "materials": {
-    "storyboard": "storyboard.json"
-  },
-  "output": {
-    "width": 1920,
-    "height": 1080,
-    "fps": 30,
-    "audio": "required"
-  },
-  "style": {
-    "id": "dark-proof"
-  }
+  "materials": {"storyboard": "storyboard.json"},
+  "output": {"width": 1920, "height": 1080, "fps": 30, "audio": "required"},
+  "style": {"id": "dark-proof"}
 }

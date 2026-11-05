@@ -1,101 +1,65 @@
-"""复利效应《接》：唯一时序源，生成分镜与合同；不改媒体、评审或人工设计记录。"""
-from __future__ import annotations
-import json
-import re
+"""规范示例编排（R5）：事件是画面、字幕和拟音的共同时间源。"""
 from pathlib import Path
-
+import json,re
 ROOT=Path(__file__).resolve().parents[1]
 FPS=30
-BEATS={
-    'seed-drop':.5,'seed-land':2,'mother-grow':5,'mother-ready':12,
-    'mother-fruit':14,'first-release':16,'first-land':19,'child-grow':19.8,'child-ready':25.8,
-    'child-fruit':27,'second-release':30.5,'second-land':33.5,'third-grow':34.3,'third-ready':37.5,
-    'third-fruit':39,'grove-reveal':41,'learning-first':45.5,'learning-reuse':49,
-    'learning-extend':52.5,'closing-return':56,'title-arrive':62,'finish':68,
-}
-SECTIONS=[('opening',0,12),('core',12,38),('grove',38,45),('learning',45,56),('closing',56,68)]
-CAPTIONS=[
-    (.2,4.7,'为什么有些积累，后来会越来越快？'),
-    (5.2,11.7,'一颗种子，先长成一棵树。'),
-    (12.3,16,'树，结出了新的种子。'),
-    (16.3,21.5,'其中一颗，落地、生根。'),
-    (22,26.5,'它长成了另一棵树。'),
-    (27,32,'新长出的树，也结出了种子。'),
-    (32.3,37.8,'新增的部分，也开始创造。'),
-    (38.3,44.7,'增长的来源，变多了。'),
-    (45.2,48.7,'学会一个方法。'),
-    (49.1,52.2,'下一题，用上它。'),
-    (52.6,55.8,'它又帮你，理解新的问题。'),
-    (56.3,61.7,'让积累，推动新的积累。'),
-    (62.2,68,'这，就是复利效应。'),
-]
-SOUNDS={'seed-land':'land','mother-fruit':'emit','first-release':'travel','first-land':'land',
-        'child-ready':'merge','child-fruit':'reveal','second-release':'travel','second-land':'land',
-        'third-fruit':'emit','grove-reveal':'reveal','learning-reuse':'emit','learning-extend':'merge','title-arrive':'close'}
+SECTIONS=[('hook',330),('proof',540),('resolution',330)]
+EVENTS={
+ 'hook':{'number-lock':81,'title-start':90,'title-land':110,'ball-hop':152,'snow-start':210,'snow-hit-1':238,'snow-hit-2':272,'snow-impact':288,'snow-wipe':300},
+ 'proof':{'row-1':20,'row-2':64,'row-3':108,'table-flight':150,'curve-start':180,'curve-run':194,'curve-result':320,'curve-flash':332,'bars-start':360,'bar-10':378,'bar-50':426,'bar-100':474,'bar-flash':494,'exponent-flight':522},
+ 'resolution':{'formula-base':12,'formula-rate':40,'exponent-land':67,'answer-count':78,'answer-lock':123,'answer-release':168,'closing-land':192,'closing-settle':218}}
+CAPTIONS={
+ 'hook':[(0,78,'从100开始，100轮后会怎样？'),(222,300,'雪球越大，下一次卷起的雪越多。')],
+ 'proof':[(8,144,'多出来的，也留给下一轮。'),(190,304,'开始差不多，后来逐渐拉开。'),(310,352,'差距出现了。'),(388,518,'差距，从0.46扩大到70.48。')],
+ 'resolution':[(8,163,'每一轮，都站在上一轮之上。')]}
+SOUND={
+ 'number-lock':('spark',-9),'title-start':('travel',-12),'title-land':('contact',-8),'ball-hop':('contact',-14),
+ 'snow-start':('contact',-12),'snow-hit-1':('contact',-11),'snow-hit-2':('contact',-9),'snow-impact':('release',-5),'snow-wipe':('travel',-9),
+ 'row-1':('tick',-16),'row-2':('tick',-14),'row-3':('tick',-12),'table-flight':('travel',-13),'curve-start':('spark',-15),
+ 'curve-result':('contact',-12),'curve-flash':('release',-7),'bars-start':('travel',-12),'bar-10':('contact',-12),'bar-50':('contact',-10),'bar-100':('contact',-8),'bar-flash':('release',-6),'exponent-flight':('travel',-12),
+ 'formula-base':('contact',-12),'formula-rate':('spark',-12),'exponent-land':('contact',-10),'answer-count':('rolling',-20),
+ 'answer-lock':('release',-3),'answer-release':('travel',-13),'closing-land':('spark',-8),'closing-settle':('contact',-12)}
 
-def compose()->dict:
-    beats={k:round(v*FPS) for k,v in BEATS.items()}
-    scenes=[];contract_scenes=[];effects=[]
-    for sid,a,b in SECTIONS:
-        start,end=round(a*FPS),round(b*FPS);duration=end-start
-        captions=[{'startFrame':round(x*FPS)-start,'endFrame':round(y*FPS)-start,'text':text}
-                  for x,y,text in CAPTIONS if a<=x<b]
-        events=[{'id':k,'frame':v-start} for k,v in beats.items() if start<=v<end]
-        scenes.append({'id':sid,'template':'code','keywords':['复利效应','成果复用','种子生长'],
-            'durationFrames':duration,'transition':'cut','narrationSegments':[],
-            'content':{'title':'让积累生长','entry':f'scenes/{sid}.tsx','props':{
-                'beats':beats,'screenSubtitles':captions,'capture':{'mode':'pure-time','timebase':'global','jobs':2}}},
-            'events':events})
-        shot={'id':sid+'-shot','tier':'A' if sid in ('core','grove','closing') else 'B',
-              'window':[0,duration],'core':sid=='core'}
-        if sid=='core':
-            shot['timeStructure']={
-              key:{'window':window,'audience':'跟随主体及它带来的后续变化','visible':visible,
-                   'attention':'当前动作主体','toleranceFrames':2,'failure':'种子来源或新增部分作用无法认回'}
-              for key,window,visible in [
-                ('establish',[0,120],'母株及其种子'),('change',[120,450],'种子脱离落地，新株生长'),
-                ('reveal',[450,600],'新株再次结种并释放'),('result',[600,780],'第三株生长，原株保留')]}
-        cp={'id':'cp-'+sid,'shotId':shot['id'],'frame':min(duration-1,round(duration*.87)),
-            'window':[0,duration],'expected':[{'role':'mother-tree','count':1}] if sid=='core' else [],
-            'textPlan':[{'role':'screen-subtitle','text':x['text'],'window':[x['startFrame'],x['endFrame']]} for x in captions],
-            'claims':[],'forbidden':['投资收益','年化收益','保证成功'],
-            'measurement':{'subtitleRoles':['screen-subtitle'],'thresholdSource':'当前画幅安全区及手机阅读观察，不设注释手机门槛'}}
-        if sid=='opening':
-            cp['measurement']['allowedOverlaps']=[['opening-seed','mother-tree']]
-        if sid=='core':cp['minEventFrames']=2
-        if sid=='core':
-            cp['measurement']['allowedOverlaps']=[['mother-tree','first-seed'],['child-tree','first-seed'],
-                                                   ['child-tree','second-seed'],['third-tree','second-seed']]
-        contract_scenes.append({'id':sid,'durationFrames':duration,'shots':[shot],'checkpoints':[cp]})
-        effects.extend({'sourceRef':f'assets/media/{SOUNDS[e["id"]]}-v2.wav','sceneId':sid,
-                        'eventId':e['id'],'gainDb':-7} for e in events if e['id'] in SOUNDS)
-    project={'schemaVersion':1,'id':'compound-connect','type':'general','materials':{'storyboard':'storyboard.json'},
-             'output':{'width':1920,'height':1080,'fps':FPS,'audio':'required'},'style':{'id':'dark-proof'}}
-    board={'version':8,'schemaVersion':8,'title':'接：让积累生长','fps':FPS,'width':1920,'height':1080,
-           'targetSeconds':68,'input':{'kind':'topic','topic':'非金融复利效应：过去的成果参与后续创造，新增成果也成为新的增长来源。原创种子机制寓言与凑十法复用，不承诺现实固定增速。'},
-           'scenes':scenes,'soundtrack':{'effects':effects}}
-    c={'version':2,'cycleId':'compound-effect-growth-20261104','fps':FPS,'width':1920,'height':1080,
-       'reviewPlan':{'basis':'试制完整覆盖母株结种、新株生长与新株再次结种；用户目标优先，方案可经证据调整。',
-       'risks':[
-        {'id':'growth-appearance','kind':'static-expression','scope':{'checkpointIds':['cp-core']},
-         'reason':'outputs/style-reference.md：具体主体、清楚轮廓与新增长来源须先以独立目标验证。',
-         'requiredEvidence':['design/keyframes/growth-establish.png','design/keyframes/growth-result.png']},
-        {'id':'growth-sequence','kind':'structure-timing','scope':{'checkpointIds':['cp-core']},
-         'reason':'先看见种子来源及落地，再生长，再由新增植株结种；禁止字幕解释代替过程。',
-         'requiredEvidence':['production/checkpoints/cp-core/window.mp4']},
-        {'id':'new-source','kind':'core-event','scope':{'checkpointIds':['cp-core']},
-         'reason':'完整试制必须呈现新增部分参与后续创造，可因此退回设计。',
-         'requiredEvidence':['production/checkpoints/cp-core/window.mp4']} ]},'scenes':contract_scenes}
-    for name,value in [('project.json',project),('storyboard.json',board)]:
-        (ROOT/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
-    design=ROOT/'DESIGN.md';text=design.read_text(encoding='utf8') if design.exists() else '# 制作设计\n'
-    block='```m2v-checkpoints\n'+json.dumps(c,ensure_ascii=False,indent=2)+'\n```'
-    text=re.sub(r'```m2v-checkpoints\s*\n.*?```',lambda _:block,text,flags=re.S) if '```m2v-checkpoints' in text else text+'\n'+block+'\n'
-    design.write_text(text,encoding='utf8')
-    out=ROOT/'outputs';out.mkdir(exist_ok=True)
-    report={'mode':'effects-only','durationFrames':68*FPS,'beats':beats,'captions':CAPTIONS}
-    (out/'screen-timing.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
-    return report
+def write(p,value):
+ p.parent.mkdir(exist_ok=True,parents=True);p.write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 
-if __name__=='__main__':
-    result=compose();print(f'已编排 {result["durationFrames"]} 帧；分镜与试制合同已同步')
+def main():
+ scenes=[];checks=[];effects=[]
+ for sid,duration in SECTIONS:
+  scenes.append({'id':sid,'template':'code','keywords':['复利效应','理想模型','多种信息形式'],'durationFrames':duration,'transition':'cut','narrationSegments':[],
+    'content':{'title':'让积累，参与下一次','entry':f'scenes/{sid}.tsx','props':{'capture':{'mode':'pure-time','jobs':2,'blockFrames':30,'verifyFrames':2},'screenSubtitles':[{'startFrame':a,'endFrame':b,'text':t} for a,b,t in CAPTIONS[sid]]}},
+    'events':[{'id':k,'frame':v} for k,v in EVENTS[sid].items()]})
+  cp={'id':f'cp-{sid}','shotId':f'{sid}-shot','frame':duration-42,'window':[0,duration],
+    'expected':[],'textPlan':[{'role':'screen-subtitle','text':t,'window':[a,b]} for a,b,t in CAPTIONS[sid]],
+    'claims':[],'forbidden':['年化收益','保证成功','必然成功'],
+    'measurement':{'subtitleRoles':['screen-subtitle'],'thresholdSource':'横屏字幕安全区与393宽显示'},'sampleStep':3,'minEventFrames':3}
+  if sid=='hook':cp['measurement']['allowedOverlaps']=[['hero-number','hero-number'],['focus-ball','hero-number'],['focus-ball','title-first'],['focus-ball','title-second'],['focus-ball','snowball']]
+  shot={'id':f'{sid}-shot','tier':'A' if sid in ('hook','proof') else 'B','window':[0,duration],'core':sid in ('hook','proof')}
+  if sid=='hook':
+   shot['timeStructure']={key:{'window':window,'audience':'先形成问题再跟随同一焦点','visible':visible,'attention':focus,'toleranceFrames':3,'failure':'焦点丢失或未看清对象变化'} for key,window,visible,focus in [
+    ('establish',[0,81],'起点100、1%假设与滚动数值','中心数字'),('change',[81,210],'小数点离开数字，在大字间运动','小球与字间落点'),
+    ('reveal',[210,288],'小球接触地面并卷雪增大','雪球与雪面'),('result',[288,330],'局部释放后收拢到表格起点，露出100.00并停留','雪球与100.00') ]}
+  if sid=='proof':
+   shot['timeStructure']={key:{'window':window,'audience':'观察前后状态并获得新信息','visible':visible,'attention':focus,'toleranceFrames':3,'failure':'前后关系丢失或信息形式只是在重复结论'} for key,window,visible,focus in [
+    ('establish',[0,64],'初始100与前两行增长','活动行'),('change',[64,180],'新增量参与后续增长，表格生成坐标','总量与下一行新增'),
+    ('reveal',[180,352],'两条线先接近后分开，终点数值可读','金色端点'),('result',[352,522],'10/50/100轮的差距逐次变大','当前柱组'),('hold',[522,540],'100抬向指数位置','100')]}
+  checks.append({'id':sid,'durationFrames':duration,'shots':[shot],'checkpoints':[cp]})
+  effects.extend({'assetId':SOUND[k][0],'sceneId':sid,'eventId':k,'gainDb':SOUND[k][1]} for k in EVENTS[sid] if k in SOUND)
+ # 加速数字的触点使用命名事件，不靠每帧叠加声源。
+ for i,fr in enumerate([5,16,28,40,50,59,67,73]):
+  event=f'roll-{i}';scenes[0]['events'].append({'id':event,'frame':fr});effects.append({'assetId':'tick','sceneId':'hook','eventId':event,'gainDb':-25+i})
+ write(ROOT/'storyboard.json',{'version':8,'schemaVersion':8,'title':'让积累，参与下一次','fps':30,'width':1920,'height':1080,'targetSeconds':40,
+  'input':{'kind':'topic','topic':'复利效应：成果参与下一轮。雪球是寓言；数字是初始100、每轮固定增长1%的理想模型，与每轮固定加1比较，不代表任何现实对象必然如此增长。'},
+  'scenes':scenes,'soundtrack':{'effects':effects,'silence':[{'startFrame':972,'endFrame':988,'fadeFrames':3}]}})
+ contract={'version':2,'cycleId':'compound-connect-r5-example-20261105','fps':30,'width':1920,'height':1080,
+  'reviewPlan':{'basis':'采用R5八节拍成片。完整试制含开场数字/大字/雪球，以及表格→折线→柱形；最后公式和结论独立终审覆盖。无新增静态目标图风险，提案图不作已通过目标图。',
+   'risks':[{'id':'multi-form-rhythm','kind':'structure-timing','scope':{'checkpointIds':['cp-hook','cp-proof']},'reason':'数字滚动、文字互动、跨形式焦点接棒和爆闪强弱须用完整过程确认，关键采用项见style-reference.md与DESIGN逐场表。','requiredEvidence':['production/checkpoints/cp-hook/window.mp4','production/checkpoints/cp-proof/window.mp4']},
+    {'id':'retained-model','kind':'core-event','scope':{'checkpointIds':['cp-proof']},'reason':'表格必须说明新增参与下一轮；折线与柱形分别揭示过程和轮次差距，不是同一数字换皮。','requiredEvidence':['production/checkpoints/cp-proof/window.mp4']}]},'scenes':checks}
+ p=ROOT/'DESIGN.md';s=p.read_text(encoding='utf-8');block='```m2v-checkpoints\n'+json.dumps(contract,ensure_ascii=False,indent=2)+'\n```'
+ s=re.sub(r'```m2v-checkpoints\s*\n.*?```',lambda _:block,s,flags=re.S)
+ p.write_text(s,encoding='utf-8')
+ print('R5 example: 3 scenes / 8 beats / 1200 frames. Contract, events and effects generated.')
+if __name__=='__main__':main()
+
+# 测试和工具可显式重定向ROOT，在空目录验证重建与幂等性。
+compose = main
