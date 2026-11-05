@@ -146,6 +146,7 @@ v8 分镜不接受字符串 `narration`（口播写在 `narrationSegments`），
 - 产物先生成、验收后替换，失败不会破坏上一份可用成片；
 - `render` 只读取作品材料与准备记录，不修改原始材料；
 - 统一入口正式渲染成功后清理本作品 `outputs/` 中旧视频及其字幕/溯源/性能旁车、预演、检查图和已知调试目录；保留本次成片及旁车、`prepared.json`、评审 JSON 和 `media/` 准备媒体。渲染或验收失败不清理，仓库共享构建缓存不受影响；清理错误按遗留路径报告；
+- general 的制作凭据优先放在 `outputs/production/`，隔离包放在 `outputs/review-pack/`。其他位置的辅助帧和片段若仍作为有效证据使用，在渲染前从 `outputs/visual-notes.md` 用相对 Markdown 文件链接逐一直接引用；目录链接、只链接 JSON 清单或仅在报告内引用媒体不会递归保护。此为现有清理行为，登记检查报告后也须核对其媒体位置与保留链接，避免交付清理使证据过期。
 - 限帧试渲染写入 `previews/`，不会覆盖正式成片。
 - 旧统一作品使用 `m2v relocate --project <非规范位置>` 逐个迁移；`videos/<slug>/` 与旧的平铺 `videos/<type>/<slug>/` 都可作为来源，目标由类型目录中的类别决定。命令先完整备份，同路径冲突不覆盖目标文件，可处理后重试。`m2v migrate --from financial` 只用于旧金融材料契约迁移。
 
