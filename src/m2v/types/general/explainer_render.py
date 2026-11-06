@@ -29,7 +29,7 @@ def _has_audio(prepared: dict) -> bool:
     """按声音声明判定交付轨道；内部静音母版不代表作品需要音轨。"""
     return declared_audio(prepared)
 
-# 字幕判据不写死在这里：安全区来自共享画幅配置，由 `measure_script` 注入为 `B`。
+# 字幕判据不写死在这里：完整样式来自准备记录，由 `measure_script` 注入。
 # 过去字幕盒写在设计令牌里、量测边界又各写一份常量，改一处不会让另一处报错，
 # 只会静默漂移。
 #
@@ -39,6 +39,9 @@ MEASURE_BODY = r"""  const problems = [];
   const box = document.querySelector('[data-m2v-subtitle]');
   if (!box) problems.push('画面缺少共享字幕层');
   else {
+    const actualFontSize = Number.parseFloat(getComputedStyle(box).fontSize);
+    if (actualFontSize !== S.fontSize)
+      problems.push('字幕字号不符：' + actualFontSize + '，准备字号：' + S.fontSize);
     const outer = box.getBoundingClientRect();
     if (Math.round(outer.left) !== B.x || Math.round(outer.top) !== B.y
         || Math.round(outer.width) !== B.width || Math.round(outer.height) !== B.height)
@@ -60,11 +63,14 @@ MEASURE_BODY = r"""  const problems = [];
 }"""
 
 
-def measure_script(repo_root: Path | None = None, size: tuple[int, int] | None = None) -> str:
-    """把画幅配置里的字幕安全区注入量测脚本。"""
-    width, height = size or frames.default(repo_root)
-    safe = frames.spec(width, height, repo_root)["subtitle"]["safeArea"]
-    return "() => {\n  const B = " + json.dumps(safe) + ";\n" + MEASURE_BODY
+def measure_script(repo_root: Path | None = None, size: tuple[int, int] | None = None, *,
+                   subtitle: dict | None = None) -> str:
+    """注入准备样式；未传入时供直接调用者量测画幅默认样式。"""
+    if subtitle is None:
+        width, height = size or frames.default(repo_root)
+        subtitle = frames.spec(width, height, repo_root)["subtitle"]
+    return ("() => {\n  const S = " + json.dumps(subtitle)
+            + ";\n  const B = S.safeArea;\n" + MEASURE_BODY)
 
 
 def _size(prepared: dict) -> tuple[int, int]:
@@ -126,7 +132,7 @@ def layout_check(root: Path, prepared: dict, *, snapshots: Path | None = None) -
                 page.goto(url + "&m2v-explainer=1")
                 page.wait_for_function("window.__M2V__?.version === 6", timeout=30000)
                 page.evaluate("async () => await window.__M2V__.ready()")
-                script = measure_script(size=(width, height))
+                script = measure_script(subtitle=prepared["props"]["subtitle"])
                 for frame_number in sorted(frames_to_check):
                     page.evaluate("async f => await window.__M2V__.seekToFrame(f)", frame_number)
                     errors = page.evaluate(script)

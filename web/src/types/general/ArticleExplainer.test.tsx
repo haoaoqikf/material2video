@@ -78,6 +78,13 @@ describe('通用作品合成层', () => {
     expect(landscape.subtitle.textColor).toBe('#ffffff');
   });
 
+  it('合成直接采用准备样式中的作品字号，且不修改画幅默认值', () => {
+    const markup = render(0, {subtitle: {...landscape.subtitle, fontSize: 52}});
+    expect(markup).toContain('font-size:52px');
+    expect(markup).toContain(`line-height:${landscape.subtitle.lineHeight}`);
+    expect(landscape.subtitle.fontSize).toBe(40);
+  });
+
   it('片段时长和重叠窗口交给统一转场，首幕没有转场', () => {
     const first = render(0);
     expect(first).toContain('outputs/code-cache/a.mp4');

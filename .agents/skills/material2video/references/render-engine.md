@@ -60,7 +60,7 @@
 报告的位置、完整字段与口径见[渲染性能报告](delivery-and-provenance.md#渲染性能报告)；
 它是附加信息，写失败只告警，不会让一次已经验收通过的渲染失败。
 
-### 字幕量测（两项硬判定）
+### 字幕量测
 
 量测不走渲染路径：preview / render 内部用 Playwright 驱动**契约页**，量测针对共享字幕层工作（不加载场景视频），作品画面由原生关键帧、样片和最终文件复核，
 而契约页挂的正是渲染会画出的同一份 composition。
@@ -70,12 +70,14 @@
 
 | 判定 | 判据 |
 | --- | --- |
+| 字幕字号不符 | `data-m2v-subtitle` 的实际计算字号与 `prepared.props.subtitle.fontSize` 不一致 |
 | 安全区不符 | `data-m2v-subtitle` 容器的实际矩形与画幅清单里的 `subtitle.safeArea` 不一致 |
 | 字幕溢出 | 字幕文字的每一段 client rect 越出安全区 1px 以上 |
 | 字幕遮挡 | 字幕文字中心点处的最上层元素不属于字幕层——文字在、但被盖住同样失败 |
 
-判据来自 `web/src/frames.json`（画幅与字幕几何的唯一真源），由 `measure_script` 注入为
-`B`；脚本里不写任何字面量。结果写 `outputs/layout-check.json`，失败会阻断预演与正式导出。
+判据来自 `prepared.props.subtitle`：prepare 读取 `web/src/frames.json` 默认样式并解析作品可选字号，
+由 `measure_script` 注入完整样式 `S` 与安全区 `B`；脚本里不另写字号或几何常量。结果写
+`outputs/layout-check.json`，失败会阻断预演与正式导出。
 
 **边界：系统不声称能自动识别录制片段内全部正文或主体遮挡。** 作品正文在栅格片段里，
 没有 DOM 可供量测；那部分由制作助手通过关键帧、全片高密度时间标注帧序列与屏幕投影量测复核，记录写进作品
@@ -84,7 +86,9 @@
 
 ### 手机观看字阶
 
-通用横竖屏的共享字幕均采用40px，安全区位置与尺寸不变；唯一配置为 `web/src/frames.json`。作品须复核手机尺寸下的正文与主体，不在作品中另画重复字幕。
+通用横竖屏的共享字幕默认均为40px，默认样式来自 `web/src/frames.json`；general 可用
+`project.json.output.subtitle.fontSize` 按作品覆盖为24至56的整数，安全区、行高和配色不变，见
+[作品级字幕字号](prepared-and-subtitles.md#作品级字幕字号)。作品须复核手机尺寸下的字幕、正文与主体，不在作品中另画重复字幕。
 
 ## 成片编码
 

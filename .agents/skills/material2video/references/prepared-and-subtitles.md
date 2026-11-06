@@ -80,6 +80,24 @@ uv run m2v render --project videos/general/<slug>
 通用 v8 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
 不再有「按原文顺序消费词边界、段末标点落到下一段」这类跨段约定。
 
+### 作品级字幕字号
+
+仅 general 可在 `project.json` 的 `output.subtitle` 声明共享旁白字幕字号，示例：
+
+```json
+{
+  "output": {
+    "subtitle": {"fontSize": 52}
+  }
+}
+```
+
+`subtitle` 必须且只能包含 `fontSize`，取24至56的整数；空对象、未知子字段、布尔、浮点、字符串、null 和范围外数值均拒绝。其他视频类型声明该字段（含 null）同样拒绝。该字段不属于分镜，不能设置字幕开关、安全区、颜色或行高。
+
+省略时完整沿用 `web/src/frames.json` 所选画幅的默认样式，当前横竖屏均为40px。prepare 仅覆盖字号，把解析后的同一完整样式写入 `props.subtitle` 与序列化的 `inputs.subtitle`；预演、正式合成、代码片段配置、布局量测和字幕 QA 使用该准备样式。修改、添加或移除字号配置会让旧准备及候选失效，须重新 prepare，不要手改 `outputs/prepared.json`。
+
+增大字号不扩大安全区，也不自动缩字；须按手机尺寸复核字幕，换行溢出时精简字幕文本。字号示例不是所有作品统一的视觉要求。
+
 ## 缓存与失败处理
 
 作品 `outputs/audio-cache/` 保存按文本、音色、语速、媒体契约版本、生成器版本与 edge-tts

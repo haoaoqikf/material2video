@@ -31,6 +31,27 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def subtitle_font_size(project: dict[str, Any]) -> int | None:
+    """校验作品级字幕覆盖；省略时由画幅清单提供完整默认样式。"""
+    output = project.get("output", {})
+    if not isinstance(output, dict):
+        raise M2VError("output 必须为对象")
+    if "subtitle" not in output:
+        return None
+    if project.get("type") != "general":
+        raise M2VError("output.subtitle 仅适用于 general 类型")
+    subtitle = output["subtitle"]
+    if not isinstance(subtitle, dict):
+        raise M2VError("output.subtitle 必须为仅含 fontSize 的对象")
+    unknown = sorted(set(subtitle) - {"fontSize"})
+    if unknown:
+        raise M2VError(f"output.subtitle 含未知字段：{'、'.join(unknown)}")
+    size = subtitle.get("fontSize")
+    if type(size) is not int or not 24 <= size <= 56:
+        raise M2VError("output.subtitle.fontSize 必须为 24 至 56 的整数")
+    return size
+
+
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     """读取作品描述。
 
@@ -62,6 +83,7 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     output = data.get("output", {})
     if not isinstance(output, dict):
         raise M2VError("output 必须为对象")
+    subtitle_font_size(data)
     for field in ("width", "height", "fps"):
         if field in output and (type(output[field]) is not int or output[field] < 1):
             raise M2VError(f"output.{field} 必须是正整数")

@@ -15,7 +15,7 @@ import math
 import tempfile
 from pathlib import Path
 from m2v.core.errors import M2VError
-from m2v.core.project import file_inputs, save_prepared
+from m2v.core.project import file_inputs, save_prepared, subtitle_font_size
 from m2v.core import security
 from m2v.core import frames as frame_engine
 from m2v.engine import audio, remotion, rhythm as rhythm_engine, tts
@@ -59,6 +59,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     style = selected_style(project, width=size[0], height=size[1])
     check_requirements(style, has_narration=any(scene.get("narrationSegments") for scene in source["scenes"]))
     frame = frame_engine.spec(*size)
+    font_size = subtitle_font_size(project)
+    if font_size is not None:
+        frame["subtitle"]["fontSize"] = font_size
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
     texts = [s["text"] for scene in source["scenes"] for s in scene.get("narrationSegments", [])]

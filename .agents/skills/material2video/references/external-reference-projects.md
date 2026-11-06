@@ -56,7 +56,7 @@
 
 这些数值是**转译后的指导值**。C 夜曲已转成可安装的正式风格包 `styles/vibe-night`，
 运行时以包内 `tokens.json`、组件与 `GUIDE.md` 为准；两套均已安装为正式风格包，本表数值只作来源对照。
-外部字幕外观与 material2video 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）
+外部字幕外观与 material2video 共享字幕层（`web/src/frames.json`，横屏默认40px、白字、深色底板；可按[作品级字幕字号](prepared-and-subtitles.md#作品级字幕字号)配置）
 不兼容；共享层优先，不得覆盖。无旁白作品可由场景自绘屏幕字幕，约定见
 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定)。
 
@@ -187,7 +187,7 @@ git -C "C:\D_Merged_From_D\project\third-party\vibe-knowledge-film" rev-parse HE
 |---|---|
 | 视频类型 | 仅 `general`；外部项目没有其他类型。 |
 | 画幅 | 外部只做 1920×1080、30fps；横屏作品可直接对应。竖屏作品必须按[参考风格契约](reference-style.md)的画幅转译规则重新安置主体与文字。 |
-| 字幕 | 共享字幕层（`web/src/frames.json`，横屏 40px、白字、深色底板）优先；外部字号、基线、逐字动效只作指导值，不覆盖共享层。无旁白作品可由场景在 `subtitleSafeArea` 内自绘屏幕字幕，按 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定) 执行。 |
+| 字幕 | 共享字幕层（`web/src/frames.json`，横屏默认40px、白字、深色底板）优先；外部字号、基线、逐字动效只作指导值，作品字号通过[作品级字幕字号](prepared-and-subtitles.md#作品级字幕字号)配置。无旁白作品可由场景在 `subtitleSafeArea` 内自绘屏幕字幕，按 [C 夜曲 GUIDE](../../../../styles/vibe-night/GUIDE.md#7-无旁白屏幕字幕约定) 执行。 |
 | 外观采纳 | C 夜曲选 `style.id: "vibe-night"`，B 寓言选 `style.id: "vibe-fable"`；仍须按 [参考风格契约](reference-style.md) 的 L1/L2/L3 与八项指标写入作品 `outputs/style-reference.md`，并在 `DESIGN.md` 记录来源项目、固定 commit、采用世界与不借清单。 |
 | 只借方法 | 不采用外观时，在 `DESIGN.md` 标注「仅方法，不采用外观」，不要只写「参考了 vibe 风格」。 |
 | 能力边界 | 不把外部 Canvas 引擎、字体或组件当作本项目组件；两套外观分别使用 `styles/vibe-night` 与 `styles/vibe-fable`，不得写指向外部登记的 `style.id`。 |

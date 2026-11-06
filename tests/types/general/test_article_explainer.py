@@ -197,15 +197,30 @@ def test_silent_scene_takes_target_remainder(tmp_path, monkeypatch):
 
 
 @pytest.mark.media
-def test_prepare_binds_frame_subtitle_and_media(tmp_path, monkeypatch):
+@pytest.mark.parametrize("size", [(1920, 1080), (1080, 1920)])
+@pytest.mark.parametrize("font_size", [None, 52])
+def test_prepare_binds_frame_subtitle_and_media(tmp_path, monkeypatch, size, font_size):
     """画幅、字幕几何与媒体映射都进准备产物与录制配置。"""
-    data = board(width=1080, height=1920)
-    root, manifest, result = prepared(tmp_path / "p", monkeypatch, data)
-    assert (result["width"], result["height"]) == (1080, 1920)
-    assert result["props"]["subtitle"] == frames.spec(1080, 1920)["subtitle"]
-    assert result["props"]["width"] == 1080 and result["props"]["height"] == 1920
+    data = board(width=size[0], height=size[1])
+    root, manifest = project(tmp_path, data)
+    if font_size is not None:
+        manifest["output"]["subtitle"] = {"fontSize": font_size}
+    fake_tts(monkeypatch)
+    calls = fake_record(monkeypatch)
+    result = adapter.prepare(root, manifest)
+    expected = frames.spec(*size)["subtitle"]
+    if font_size is not None:
+        expected["fontSize"] = font_size
+    assert (result["width"], result["height"]) == size
+    assert result["props"]["subtitle"] == expected
+    assert json.loads(result["inputs"]["subtitle"]) == expected
+    assert (result["props"]["width"], result["props"]["height"]) == size
     assert "visual" not in result["props"]
-    assert result["inputs"]["frame"] == "1080x1920"
+    assert result["inputs"]["frame"] == f"{size[0]}x{size[1]}"
+    prepare.code_scenes.materialize(root, result, 0, 30)
+    assert calls[0]["frame"]["subtitle"] == expected
+    # 作品覆盖不能污染共享画幅清单，其他作品仍取默认值。
+    assert frames.spec(*size)["subtitle"]["fontSize"] == 40
 
 
 @pytest.mark.media

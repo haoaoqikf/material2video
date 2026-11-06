@@ -43,9 +43,9 @@ def materialize(root: Path, prepared: dict, start: int, end: int, *, jobs: int |
     """
     import copy
     from .. import media_assets
-    from m2v.core import frames
     result = copy.deepcopy(prepared)
-    frame = frames.spec(prepared["width"], prepared["height"])
+    frame = {"width": result["width"], "height": result["height"],
+             "subtitle": result["props"]["subtitle"]}
     media = media_assets.resolve(root)
     selected = []
     for scene in result["props"]["compiledScenes"]:

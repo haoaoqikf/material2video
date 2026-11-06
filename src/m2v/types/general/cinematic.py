@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from m2v.core.validate import fail, integer as _integer, number as _number, obj as _obj, text as _text
 from m2v.core.video_config import GENERAL_DEFAULT_FPS
+from m2v.core.project import subtitle_font_size
 
 
 TIERS = ("hero", "major", "minor")
@@ -25,6 +26,7 @@ def validate_project(project: dict) -> None:
     """旧档位声明一律拒绝，包括显式 null，避免静默改变制作语义。"""
     if "productionProfile" in project:
         fail("productionProfile", "制作档位已移除；请删除 productionProfile 并重新 prepare")
+    subtitle_font_size(project)
 
 
 def validate_claims(part: dict, path: str) -> None:

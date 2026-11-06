@@ -118,6 +118,7 @@ def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch
 
 
 def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, monkeypatch):
+    from m2v.core import frames
     from m2v.types.general import code_scenes, media_assets
     monkeypatch.setattr(media_assets, "resolve", lambda _: {"media": {}, "digest": "m"})
     calls = []
@@ -127,7 +128,8 @@ def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, mon
     monkeypatch.setattr(code_scenes.capture, "record", record)
     scenes = [{"id": name, "startFrame": start, "endFrame": end} for name, start, end in
               [("a", 0, 100), ("b", 80, 200), ("c", 200, 300)]]
-    prepared = {"width": 1920, "height": 1080, "fps": 30, "props": {"compiledScenes": scenes}}
+    prepared = {"width": 1920, "height": 1080, "fps": 30,
+                "props": {"compiledScenes": scenes, "subtitle": frames.spec(1920, 1080)["subtitle"]}}
     result = code_scenes.materialize(tmp_path, prepared, 90, 120)
     assert calls == [("a", (90, 100)), ("b", (10, 40))]
     assert [s["mediaStartFrame"] for s in result["props"]["compiledScenes"]] == [90, 10]

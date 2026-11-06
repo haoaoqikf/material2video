@@ -38,6 +38,8 @@ general 制作采用「方案确定 → 制作与迭代 → 最终验收」三�
 
 general 可声明幕内事件，由动画、计数、视觉强调和音效共同引用同一帧；prepare 输出绑定准备指纹的 `outputs/events.json`，改事件后重新准备。声明见[幕内事件](.agents/skills/material2video/references/storyboard-schema.md#幕内事件)，SDK 用法见[事件查询](.agents/skills/material2video/references/code-scene-runtime.md#幕内事件查询)。
 
+general 可在 `project.json.output.subtitle` 设置作品共享字幕字号，如 `{"fontSize":52}`；只接受24至56的整数，省略时两画幅仍采用默认40px。字号进入准备指纹，预演、成片与布局量测共用准备样式；修改后重新 prepare。详见[作品级字幕字号](.agents/skills/material2video/references/prepared-and-subtitles.md#作品级字幕字号)。
+
 ```powershell
 uv sync
 pnpm -C web install

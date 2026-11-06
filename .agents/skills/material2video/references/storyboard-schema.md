@@ -10,6 +10,8 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 
 帧率规则：`project.json.output.fps` 与本文件 `fps` 均声明时必须一致，仅一处声明时使用该值，都省略则默认30；只接受整数30或60。所有显式帧数字段按实际fps解释，不自动缩放；切换帧率须由作者调整帧预算并重新 prepare。现有显式60帧示例保持原值。
 
+共享旁白字幕字号可在 `project.json.output.subtitle.fontSize` 设置24至56的整数；省略仍为画幅默认40px。它不属于分镜字段，配置与准备绑定见[作品级字幕字号](prepared-and-subtitles.md#作品级字幕字号)。
+
 ## 全片与场景
 
 全片可声明 `fps: 30` 或 `fps: 60`，并声明 `title`、`input`、可选 `width`/`height`、可选 `targetSeconds`、可选顶层
