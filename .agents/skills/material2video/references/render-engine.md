@@ -5,7 +5,7 @@
 > 契约页与 `window.__M2V__` 接口、`ready()` / `seekToFrame()` 语义、代码场景采集与
 > 电影级后期见[代码场景运行契约](code-scene-runtime.md)；交付权限、成片溯源与性能报告见
 > [交付与溯源](delivery-and-provenance.md)；缺字机检见[设计令牌](design-tokens.md#缺字机检)。
-> 分镜结构见 [通用分镜 v8](storyboard-schema.md)，制作顺序见 [制作流程](production-workflow.md)。
+> 分镜结构见 [统一分镜 v9](storyboard-schema.md)，制作顺序见 [制作流程](production-workflow.md)。
 
 ## 渲染引擎与打包
 
@@ -141,7 +141,7 @@
 [配音音色与节奏](voice-and-rhythm.md)，成片命名与默认输出位置见
 [目录约定与输出路径](paths.md)。
 
-通用类型（`general`）的配音同样由 prepare 逐段合成并写入准备记录的母版音轨，音床与音效字段见
+统一分镜的配音同样由 prepare 逐段合成并写入准备记录的母版音轨，音床与音效字段见
 [文章媒体与音效](article-media-and-sound.md#声音)。
 各类型的成片音轨使用同一组交付参数：**AAC-LC / 44.1kHz / 立体声**，通用片与文章同为 128k，
 不能沿用源音轨 24kHz 单声道的规格——24kHz 单声道 AAC 会被 Windows Media Foundation 拒绝打开。

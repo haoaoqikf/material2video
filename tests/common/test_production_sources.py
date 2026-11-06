@@ -28,16 +28,16 @@ def test_transition_sources_expire_structure_and_final_but_not_raw_scene(tmp_pat
 
 
 def test_contract_and_project_follow_shared_fps(monkeypatch):
-    monkeypatch.setattr(video_config, 'GENERAL_ALLOWED_FPS', (24,))
+    monkeypatch.setattr(video_config, 'ALLOWED_FPS', (24,))
     c = sample()
     c['fps'] = 24
     contract.validate(c)
-    assert video_config.general_fps({}, {'fps': 24}) == 24
+    assert video_config.storyboard_fps({}, {'fps': 24}) == 24
     c['fps'] = 30
     with pytest.raises(M2VError, match='24'):
         contract.validate(c)
     with pytest.raises(M2VError, match='24'):
-        video_config.general_fps({}, {'fps': 30})
+        video_config.storyboard_fps({}, {'fps': 30})
 
 
 def test_contract_and_material_follow_live_frame_manifest(tmp_path, monkeypatch):

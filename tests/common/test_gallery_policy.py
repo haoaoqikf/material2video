@@ -8,7 +8,7 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.engine.gallery import build
-from m2v.types.general.media_assets import gallery_config
+from m2v.types.scene_film.media_assets import gallery_config
 
 
 class Transport:

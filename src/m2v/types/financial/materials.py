@@ -224,7 +224,7 @@ def _validate_prices(prices: dict[str, Any], request: dict[str, Any], project_ro
             fail(where, "必须是对象")
         point_dates.append(_date(point.get("date"), f"{where}.date"))
         if set(point) != {"date", "close"}:
-            fail(where, "折线价格点只能包含 date 和 close；旧材料请使用 migrate-line")
+            fail(where, "折线价格点只能包含 date 和 close；旧材料已不支持")
         value = point.get("close")
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
             fail(f"{where}.close", "收盘价必须为有限正数")
@@ -415,20 +415,18 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
     if plan.get("fps") != FPS or plan.get("canvas") != {"width": WIDTH, "height": HEIGHT}:
         fail("animation-plan.json", "必须使用 1080×1920、30 fps")
     duration = plan.get("durationSeconds")
-    if isinstance(duration, bool) or not isinstance(duration, int) or duration < (4 if plan.get("schemaVersion") == 8 else 10):
-        fail("animation-plan.json.durationSeconds", "无事件 v8 计划至少为 4 秒；v7 计划至少为 10 秒")
+    if isinstance(duration, bool) or not isinstance(duration, int) or duration < 4:
+        fail("animation-plan.json.durationSeconds", "金融来源计划至少为 4 秒")
     total_frames = duration * FPS
-    ending_frames = 120 if plan.get("schemaVersion") == 7 else None
-    opening_frames = 90 if plan.get("schemaVersion") == 7 else None
     axis = plan.get("axis")
     if not isinstance(axis, dict) or axis.get("dateRange") != request["displayRange"]:
         fail("animation-plan.json.axis.dateRange", "必须与实际展示范围一致")
-    if plan.get("schemaVersion") not in {7, 8} or plan.get("chartType") != "line":
-        fail("animation-plan.json", "必须为 version 7/8、chartType=line；旧材料请使用 migrate-line")
+    if plan.get("schemaVersion") != 8 or plan.get("chartType") != "line":
+        fail("animation-plan.json", "金融来源计划只接受 v8 折线；旧材料已不支持")
     if any(key in plan for key in ("selectedPeriod", "selectionReport", "eventDisplays")) or "visibleWindowBars" in axis:
-        fail("animation-plan.json", "计划包含已移除的周期、柱数或事件字段；请使用 migrate-line")
+        fail("animation-plan.json", "计划包含已移除的周期、柱数或事件字段")
     if "visibleWindowMonths" in axis:
-        fail("animation-plan.json.axis.visibleWindowMonths", "滚动窗口已移除；请使用 migrate-line")
+        fail("animation-plan.json.axis.visibleWindowMonths", "滚动窗口已移除")
     if axis.get("dateScale") != "staged-expanding":
         fail("animation-plan.json.axis.dateScale", "必须使用 staged-expanding 分阶段扩展横轴")
     if axis.get("valueScale") != "revealed-linear":
@@ -468,7 +466,7 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
             fail(where, f"{kind} 段必须停留在同一日期")
         if index == 0 and (kind != "opening" or start_frame != 0 or date_start != display_start):
             fail(where, "首段必须从第 0 帧在展示起始日 opening")
-        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames or (ending_frames is not None and end_frame - start_frame != ending_frames)):
+        if index == len(segments) - 1 and (kind != "ending" or date_end != display_end or end_frame != total_frames):
             fail(where, "尾段必须在展示结束日停留规定帧数并覆盖终帧")
         if index not in {0, len(segments) - 1} and kind in {"opening", "ending"}:
             fail(where, "opening 与 ending 只能位于首尾")
@@ -480,8 +478,6 @@ def _validate_plan(plan: dict[str, Any], request: dict[str, Any], prices: dict[s
         fail("animation-plan.json.segments", "三段顺序必须为 opening、advance、ending")
     opening_end = segments[0]["frames"][1]
     advance_end = segments[2]["frames"][0]
-    if plan["schemaVersion"] == 7 and (opening_end != opening_frames or advance_end != total_frames - ending_frames):
-        fail("animation-plan.json.segments", "v7 opening 与 ending 帧数必须保持原值")
     if plan["schemaVersion"] == 8 and (opening_end, total_frames - advance_end) not in {(FPS, 2 * FPS), (3 * FPS, 6 * FPS)}:
         fail("animation-plan.json.segments", "v8 仅接受 60/120 帧或 180/360 帧开场/结尾")
     if segments[1]["frames"] != [opening_end, advance_end]:
@@ -516,22 +512,23 @@ def _validate_pacing(plan: dict[str, Any], start: date, end: date, opening_end: 
         fail("animation-plan.json.pacing.anchors", "uniform 模式仅接受首末两个锚点")
 
 
-def load_project(project_dir: str | Path) -> dict[str, Any]:
+def load_project(project_dir: str | Path, *, files: dict[str, str] | None = None) -> dict[str, Any]:
     """Load and cross-validate the three immutable, offline-render inputs."""
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    docs = {name: _load(root / name) for name in MATERIALS}
-    request, prices, plan = (docs[name] for name in MATERIALS)
+    names = files or {"request": "request.json", "prices": "prices.json", "plan": "animation-plan.json"}
+    docs = {role: _load(root / name) for role, name in names.items()}
+    request, prices, plan = (docs[name] for name in ("request", "prices", "plan"))
     if request["schemaVersion"] != 1:
         fail("request.json", "当前必须为 version 1")
     instrument = request.get("instrument")
     kind = instrument.get("kind") if isinstance(instrument, dict) else None
     expected_price_version = 4 if kind == "crypto" else 3
-    if prices["schemaVersion"] != expected_price_version or plan["schemaVersion"] not in {7, 8}:
-        fail("材料版本", f"需要 v{expected_price_version} 价格和 v7/v8 动画计划；请运行 financial_video.py migrate-line --project-dir <作品目录>")
+    if prices["schemaVersion"] != expected_price_version or plan["schemaVersion"] != 8:
+        fail("材料版本", f"金融来源需要 v{expected_price_version} 价格和 v8 动画计划；旧材料已不支持")
     if (root / "events.json").exists():
-        fail("events.json", "事件材料已移除；请运行 financial_video.py migrate-line --project-dir <作品目录> 清理旧材料")
+        fail("events.json", "旧金融事件材料已移除")
     validate_document(Request, request, "request.json")
     validate_document(Prices, prices, "prices.json")
     validate_document(Plan, plan, "animation-plan.json")
@@ -539,35 +536,6 @@ def load_project(project_dir: str | Path) -> dict[str, Any]:
     _validate_prices(prices, request, root)
     _validate_plan(plan, request, prices)
     return {"request": request, "prices": prices, "plan": plan}
-
-
-def render_inputs_digest(project_dir: str | Path) -> str:
-    """Bind a full preview to exact materials and shared rendering sources."""
-    root = Path(project_dir).resolve()
-    from m2v.core.assets import REPOSITORY_ROOT
-    web = REPOSITORY_ROOT / "web"
-    inputs = [(root, root / name) for name in MATERIALS]
-    import m2v.engine.remotion as remotion
-    from m2v.engine import render_pipeline
-    inputs.extend((web, path) for path in remotion.build_inputs() if path.is_relative_to(web))
-    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.build_inputs() if not path.is_relative_to(web))
-    scripts = Path(__file__).resolve().parents[2]
-    inputs.extend((scripts, path) for path in (
-        Path(__file__), Path(__file__).with_name("financial_render.py"),
-        Path(__file__).with_name("commands.py"), Path(__file__).with_name("pacing.py"),
-        Path(__file__).with_name("valuation.py"), *remotion.implementation_files(),
-        Path(render_pipeline.__file__),
-    ))
-    digest = hashlib.sha256()
-    for base, path in inputs:
-        try:
-            content = path.read_bytes()
-        except OSError as exc:
-            fail("渲染输入摘要", f"无法读取绑定文件 {path.name}：{exc}")
-        digest.update(path.relative_to(base).as_posix().encode())
-        digest.update(b"\0")
-        digest.update(hashlib.sha256(content).digest())
-    return digest.hexdigest()
 
 
 def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:

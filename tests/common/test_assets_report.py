@@ -8,7 +8,7 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.engine import assets_tools
-from helpers.general import project
+from helpers.scene_film import project
 
 
 def _sha(data: bytes) -> str:

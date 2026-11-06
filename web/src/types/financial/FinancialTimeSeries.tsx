@@ -6,7 +6,8 @@
  * 本文件保留 composition 与 props 契约，并逐一重导出拆分前的公开名字。
  */
 import { useLayoutEffect, useRef, useState } from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import {SceneFill as AbsoluteFill} from '../../code-scene/scene-fill';
+import {useSceneContext} from '../../code-scene/context';
 import { easeMotion, oscillate, waveMotion } from '../../code-scene/motion';
 import {
   BACKGROUND_COLOR, FONT_STACK, GRID_COLOR, HEIGHT, LAYOUT_BOUNDS, PLOT, TEXT_PRIMARY, TEXT_SECONDARY, VALUE_AXIS_FONT_SIZE, VALUE_AXIS_LABEL_X, WIDTH,
@@ -32,7 +33,7 @@ export function FinancialTimeSeries(props: FinancialTimeSeriesProps) {
   const centeredLayoutKeyRef = useRef<string | null>(null);
   const checkedLayoutKeyRef = useRef<string | null>(null);
   const [contentOffsetY, setContentOffsetY] = useState(0);
-  const frame = useCurrentFrame();
+  const frame = Math.floor(useSceneContext().elapsedSeconds * props.fps);
   const { request, prices, plan } = props;
   const investment = request.investment ?? { year: Number(request.displayRange[0].slice(0, 4)), principal: 1_000_000 };
   const view = financialView(frame, prices.points, plan, investment, prices.fx?.points);

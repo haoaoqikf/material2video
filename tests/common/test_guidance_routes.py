@@ -53,7 +53,7 @@ def test_unclosed_template_cannot_hide_navigation():
     (lambda r: r['stages'][0].update(guide='references/missing.md'), '阅读目标不存在'),
     (lambda r: r['tasks'][0].update(guide='references/stage-plan.md#不存在的锚点'), '标题锚点不存在'),
     (lambda r: r['conditional'][0].update(when='  '), '触发条件'),
-    (lambda r: r['types'].pop('financial-timeseries'), 'types'),
+    (lambda r: r['types'].pop('data-evolution'), 'types'),
     (lambda r: r['ruleOwners'].pop('实际表达'), 'ruleOwners'),
     (lambda r: r.update(schemaVersion=2), '结构或版本无效'),
     (lambda r: r.update(entry='references/stage-plan.md'), 'SKILL.md'),
@@ -97,8 +97,9 @@ def test_over_budget_is_rejected(entry, stage, budget, match, monkeypatch):
 def test_navigation_is_not_part_of_the_prepared_fingerprint():
     """阅读路由属于指导文档，不进入作品材料，因此不参与视频准备指纹。"""
     from m2v.type_system import catalog
-    materials = catalog.catalog().get('general').material_map()
-    assert not any('guidance' in value or 'stage-' in value for value in materials.values())
+    for entry in catalog.catalog().entries():
+        materials = entry.material_map()
+        assert not any('guidance' in value or 'stage-' in value for value in materials.values())
 
 
 def test_doc_check_integrates_navigation_validation(monkeypatch):

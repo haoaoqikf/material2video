@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from helpers.general import STARTER, requires_node
+from helpers.scene_film import STARTER, requires_node
 from helpers.production import project as production_project
 from m2v.core import frames
 from m2v.core.delivery import outputs
@@ -30,8 +30,8 @@ def test_real_capture_keeps_event_neighbors_and_native_phone_frames(tmp_path, mo
                           'resolvedEvents': [{'id': 'pulse', 'sceneId': 'one', 'frame': 7, 'globalFrame': 7}]}}
     monkeypatch.setattr('m2v.core.project.load_project', lambda *_: (root, manifest))
     monkeypatch.setattr('m2v.commands._prepared', lambda *_: prepared)
-    monkeypatch.setattr('m2v.types.general.media_assets.resolve', lambda *_: {'media': {}})
-    monkeypatch.setattr('m2v.types.general.code_scenes.materialize', lambda *_: prepared)
+    monkeypatch.setattr('m2v.types.scene_film.media_assets.resolve', lambda *_: {'media': {}})
+    monkeypatch.setattr('m2v.types.scene_film.code_scenes.materialize', lambda *_: prepared)
     monkeypatch.setattr(checks, 'ffmpeg', lambda *_: pytest.fail('图片派生不应启动 ffmpeg'))
     report = read(checks.capture(root, c, None)[0])
     assert all(item['status'] != 'fail' for item in report['checks'])

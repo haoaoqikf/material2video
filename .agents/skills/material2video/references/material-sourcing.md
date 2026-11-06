@@ -51,7 +51,7 @@
 图库候选：
 
 ```powershell
-uv run m2v general assets search --project videos/general/<slug> --kind both
+uv run m2v author assets search --project videos/<类型>/<slug> --kind both
 ```
 
 不传 `--query` 时按幕读 `keywords`；只出候选、不下载。候选为空不是失败，可改用公开媒体直链再统一导入。
@@ -123,8 +123,8 @@ CC BY 的署名、CC BY-SA 的同许可条件及仅编辑、非商业、禁止�
 ```
 
 ```powershell
-uv run m2v general assets import --project videos/general/<slug> --manifest videos/general/<slug>/assets/import-manifest.json
-uv run m2v assets report --project videos/general/<slug>
+uv run m2v author assets import --project videos/<类型>/<slug> --manifest videos/<类型>/<slug>/assets/import-manifest.json
+uv run m2v assets report --project videos/<类型>/<slug>
 ```
 
 `--manifest` 路径相对当前 shell 工作目录；清单内 `localPath` 默认相对作品目录，显式 `--base` 时相对该基准。上例在仓库根执行，避免把清单路径误当成作品内相对路径。
@@ -150,7 +150,7 @@ uv run m2v assets report --project videos/general/<slug>
 ```markdown
 ## 画面素材
 
-以下图片均通过 `m2v general assets import` 登记，原始来源、作者与许可保存在
+以下图片均通过 `m2v author assets import` 登记，原始来源、作者与许可保存在
 `assets/media-sources.json`。
 
 | 用途 | 素材 ID | 发布主体与文件页 | 作者 | 原始许可 | 采用依据与检查日期 | 画面处理 |

@@ -3,10 +3,10 @@ import {
   FRAME_BOUNDARIES, FULL_DIAMETER, MODEL, SEGMENTS, UNITS_PER_DISC, balance, comparison,
   discDiameter, discFractions, screenDiameter, secondYear, segmentAt,
   withdrawState, yearAt, yearState,
-} from '../../styles/count-ledger/examples/compound-interest/scenes/compoundMath';
+} from '../../examples/data-evolution/compound-interest/scenes/compoundMath';
 import {
   AXES, FIRST_DISC_INDEX, HILL_ROWS, hillCell, hillLandingDelay, hillPositions,
-} from '../../styles/count-ledger/examples/compound-interest/scenes/compoundLayout';
+} from '../../examples/data-evolution/compound-interest/scenes/compoundLayout';
 
 describe('复利作品的统一金额口径', () => {
   it('匹配独立年度终值，计算过程中不舍入', () => {

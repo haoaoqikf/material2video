@@ -4,14 +4,10 @@
 （注册表、作品契约的类型白名单与材料映射、命令行的初始化模板）和三份文档里，
 且没有任何一致性检查；现在统一入口、作品初始化与文档都从这里派生。
 
-目录同时支持两级的「类别 → 类型」登记：类别只提供组织信息（标识、标题、说明），
-类型可以声明唯一一个所属类别；类别本身不可初始化或渲染。规范作品位置由类别
-派生：分类类型为 ``videos/<category>/<type>/<slug>/``，未分类类型为
-``videos/<type>/<slug>/``。
+规范作品位置只有 ``videos/<type>/<slug>/``，目录只接受五个当前类型，
+不解析类别或旧类型。
 
-本模块只负责**读取与校验**目录，并回答「这个类型叫什么、说明是什么、属于哪个
-类别、材料有哪些、初始内容是什么」。行为（校验/准备/预演/渲染）仍由各类型的
-适配器实现，两者按名称对应：``registry`` 负责把它们对上。
+本模块负责读取与校验类型目录；五类行为由统一适配器提供。
 
 目录是数据而不是行为，因此允许不方便放进数据里的东西（正则、类）留在这里，
 但**任何一个类型的名称、说明、材料文件名或文档文案都不允许在本模块之外再写
@@ -33,7 +29,8 @@ from m2v.core.video_config import default_fps
 CATALOG_PATH = Path(__file__).with_name("catalog.json")
 
 #: 目录结构版本。字段含义变化时必须递增，并同步校验规则。
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+FIVE_TYPES = frozenset({"text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"})
 
 #: 类型名与作品 id 同规则：小写字母、数字与连字符。
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
@@ -60,15 +57,6 @@ class Material:
 
 
 @dataclass(frozen=True)
-class Category:
-    """一个类型类别。类别只组织类型，不提供行为、材料或初始化。"""
-
-    id: str
-    title: str
-    description: str
-
-
-@dataclass(frozen=True)
 class Entry:
     """一个视频类型在目录中的全部登记信息（不含行为）。"""
 
@@ -79,15 +67,14 @@ class Entry:
     skill_guide: str
     materials: tuple[Material, ...]
     starters: tuple[str, ...] = ()
-    category: str | None = None
 
     def material_map(self) -> dict[str, str]:
         """作品契约使用的「材料名 → 默认文件名」映射。"""
         return {material.name: material.file for material in self.materials}
 
     def workspace_parts(self) -> tuple[str, ...]:
-        """作品在 ``videos/`` 下的规范层级：分类类型含类别，未分类类型只含类型。"""
-        return (self.category, self.name) if self.category else (self.name,)
+        """作品在 ``videos/`` 下只按五类身份分层。"""
+        return (self.name,)
 
     def initial_dimensions(self) -> dict[str, int]:
         """从渲染材料的显式画幅派生项目默认值，避免创建器另存一套尺寸。"""
@@ -102,11 +89,9 @@ class Entry:
 class Catalog:
     """已校验的类型目录。构造一律通过 :func:`load`。"""
 
-    def __init__(self, entries: tuple[Entry, ...], categories: tuple[Category, ...] = ()) -> None:
+    def __init__(self, entries: tuple[Entry, ...]) -> None:
         self._entries = entries
         self._by_name = {entry.name: entry for entry in entries}
-        self._categories = categories
-        self._by_category = {category.id: category for category in categories}
 
     def entries(self) -> tuple[Entry, ...]:
         """按目录中的登记顺序返回全部登记项（文档生成依赖这一顺序）。"""
@@ -114,20 +99,6 @@ class Catalog:
 
     def names(self) -> tuple[str, ...]:
         return tuple(entry.name for entry in self._entries)
-
-    def categories(self) -> tuple[Category, ...]:
-        """按目录登记顺序返回全部类别。"""
-        return self._categories
-
-    def category(self, category_id: str) -> Category | None:
-        return self._by_category.get(category_id)
-
-    def types_in(self, category_id: str) -> tuple[Entry, ...]:
-        """某类别下的类型，保持类型的登记顺序。"""
-        return tuple(entry for entry in self._entries if entry.category == category_id)
-
-    def uncategorized(self) -> tuple[Entry, ...]:
-        return tuple(entry for entry in self._entries if entry.category is None)
 
     def has(self, name: str) -> bool:
         return name in self._by_name
@@ -168,7 +139,7 @@ def _parse_material(raw: Any, type_name: str, index: int) -> Material:
     return Material(name=name, file=file, template=template)
 
 
-def _parse_entry(raw: Any, index: int, seen: set[str], category_ids: set[str]) -> Entry:
+def _parse_entry(raw: Any, index: int, seen: set[str]) -> Entry:
     where = f"types[{index}]"
     if not isinstance(raw, dict):
         raise M2VError(f"类型目录 {where} 必须是对象")
@@ -178,11 +149,8 @@ def _parse_entry(raw: Any, index: int, seen: set[str], category_ids: set[str]) -
     if name in seen:
         raise M2VError(f"类型目录重复登记类型：{name}")
     seen.add(name)
-    category = raw.get("category")
-    if category is not None:
-        category = _require_text(category, f"types[{name}].category")
-        if category not in category_ids:
-            raise M2VError(f"类型目录 types[{name}].category 引用了未登记的类别：{category}")
+    if "category" in raw:
+        raise M2VError(f"类型目录 types[{name}] 不再支持类别字段")
     texts = {
         attribute: _require_text(raw.get(field), f"types[{name}].{field}")
         for field, attribute in _TEXT_FIELDS.items()
@@ -198,33 +166,7 @@ def _parse_entry(raw: Any, index: int, seen: set[str], category_ids: set[str]) -
     if len(set(files)) != len(files):
         raise M2VError(f"类型目录 types[{name}].materials 的文件名重复：{'、'.join(files)}")
     return Entry(name=name, materials=materials, starters=_parse_starters(raw.get("starters"), name),
-                 category=category, **texts)
-
-
-def _parse_categories(raw: Any) -> tuple[Category, ...]:
-    """类别只组织类型：标识、标题与说明都必须显式给出，不接受空分类。"""
-    if raw is None:
-        return ()
-    if not isinstance(raw, list) or not raw:
-        raise M2VError("类型目录 categories 必须是非空数组")
-    categories: list[Category] = []
-    seen: set[str] = set()
-    for index, item in enumerate(raw):
-        where = f"categories[{index}]"
-        if not isinstance(item, dict):
-            raise M2VError(f"类型目录 {where} 必须是对象")
-        category_id = _require_text(item.get("id"), f"{where}.id")
-        if not _NAME_RE.match(category_id):
-            raise M2VError(f"类型目录 {where}.id 必须是 1 至 63 位小写字母、数字或连字符：{category_id!r}")
-        if category_id in seen:
-            raise M2VError(f"类型目录重复登记类别：{category_id}")
-        seen.add(category_id)
-        categories.append(Category(
-            id=category_id,
-            title=_require_text(item.get("title"), f"{where}.title"),
-            description=_require_text(item.get("description"), f"{where}.description"),
-        ))
-    return tuple(categories)
+                 **texts)
 
 
 def _parse_starters(raw: Any, type_name: str) -> tuple[str, ...]:
@@ -253,7 +195,7 @@ TYPES_DIR = Path(__file__).resolve().parents[1] / "types"
 
 def starters_dir(type_name: str) -> Path:
     """某类型的起步文件目录：``types/<类型名>/starters/``。"""
-    return TYPES_DIR / type_name / "starters"
+    return TYPES_DIR / "scene_film" / "starters"
 
 
 def _parse(data: Any) -> Catalog:
@@ -264,18 +206,13 @@ def _parse(data: Any) -> Catalog:
     raw_types = data.get("types")
     if not isinstance(raw_types, list) or not raw_types:
         raise M2VError("类型目录 types 必须是非空数组")
-    categories = _parse_categories(data.get("categories"))
-    category_ids = {category.id for category in categories}
+    if set(data) != {"schemaVersion", "types"}:
+        raise M2VError("类型目录顶层只允许 schemaVersion 和 types")
     seen: set[str] = set()
-    entries = tuple(_parse_entry(raw, index, seen, category_ids) for index, raw in enumerate(raw_types))
-    overlap = category_ids & seen
-    if overlap:
-        raise M2VError(f"类型目录类别标识与类型名冲突：{'、'.join(sorted(overlap))}")
-    used = {entry.category for entry in entries if entry.category}
-    for category in categories:
-        if category.id not in used:
-            raise M2VError(f"类型目录类别没有任何类型成员：{category.id}")
-    return Catalog(entries, categories)
+    entries = tuple(_parse_entry(raw, index, seen) for index, raw in enumerate(raw_types))
+    if {entry.name for entry in entries} != FIVE_TYPES:
+        raise M2VError("类型目录必须恰好登记指定的五类视频")
+    return Catalog(entries)
 
 
 def load(path: str | Path | None = None) -> Catalog:

@@ -13,6 +13,7 @@ from m2v import commands
 from m2v.core.errors import M2VError
 from m2v.core.workspace import CONTENT_ROOT_ENV
 from m2v.type_system import registry
+from m2v.type_system import catalog
 
 
 def _force_utf8_output() -> None:
@@ -28,20 +29,15 @@ def _force_utf8_output() -> None:
 def _register_builtins() -> None:
     if registry.all_types():
         return
-    from m2v.types.building_construction.adapter import TYPE as building_construction
-    from m2v.types.financial.adapter import TYPE as financial
-    from m2v.types.general.adapter import TYPE as general
-    from m2v.types.vehicle_showcase.adapter import TYPE as vehicle_showcase
-    for item in (financial, general, building_construction, vehicle_showcase):
-        registry.register(item)
+    from m2v.types.scene_film.adapter import make_type
+    for name in catalog.catalog().names():
+        registry.register(make_type(name))
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="m2v", description="专用与通用视频制作工具")
+    parser = argparse.ArgumentParser(prog="m2v", description="五类视频统一制作工具")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("types", help="列出内置视频类型")
-    styles = sub.add_parser("styles", help="列出已注册风格（不内置风格）")
-    styles.add_argument("--json", action="store_true", help="输出 JSON")
     from m2v.production.cli import add_parsers
     add_parsers(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")
@@ -66,7 +62,7 @@ def _parser() -> argparse.ArgumentParser:
             item.add_argument("--end-seconds", type=float)
         if command in {"preview", "render"}:
             item.add_argument("--jobs", type=int, default=1,
-                              help="进程级并行数；默认 1，目前 general 支持大于 1")
+                              help="进程级并行数；默认 1，五类均支持大于 1")
         if command == "prepare":
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
@@ -124,20 +120,13 @@ def _parser() -> argparse.ArgumentParser:
     ref.add_argument("--user-authorized", dest="user_authorized",
                      help="ref audio 必填：用户明确要求复用该参考作品音频的说明原文")
 
-    migrate = sub.add_parser("migrate", help="显式迁移已有作品并先创建完整备份")
-    migrate.add_argument("--project", required=True)
-    migrate.add_argument("--from", dest="source_format", required=True, choices=("financial",))
-    relocate = sub.add_parser("relocate", help="将单个作品移动到按视频类型分层的标准目录")
-    relocate.add_argument("--project", required=True,
-                          help="非规范位置的统一契约作品目录（如 videos/<slug> 或 videos/<type>/<slug>）")
-    relocate.add_argument("--content-root", help=f"工作区根；省略时取 {CONTENT_ROOT_ENV} 或仓库根")
-    general = sub.add_parser("general", help="通用类型的语义审查、候选稿与媒体素材操作")
-    general.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
-    general.add_argument("options", nargs=argparse.REMAINDER)
-    financial = sub.add_parser("financial", help="金融类型离线材料编排工具")
-    financial.add_argument("workflow", choices=("plan", "migrate-line"))
-    financial.add_argument("--project", required=True)
-    financial.add_argument("--duration-seconds", type=int, help="未指定时所有展示跨度均默认 60 秒")
+    author = sub.add_parser("author", help="五类作品的语义审查、候选稿与素材操作")
+    author.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
+    author.add_argument("options", nargs=argparse.REMAINDER)
+    data = sub.add_parser("data", help="结构化数据来源编排")
+    data.add_argument("workflow", choices=("financial-plan",))
+    data.add_argument("--project", required=True)
+    data.add_argument("--duration-seconds", type=int)
     return parser
 
 
@@ -149,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         return commands.dispatch(args)
     except M2VError as exc:
         print(f"[error] {exc}", file=sys.stderr)
-        return 1 if args.command not in {"init", "migrate", "relocate"} else 2
+        return 1 if args.command != "init" else 2
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(f"[error] 参数或材料错误：{exc}", file=sys.stderr)
         return 2

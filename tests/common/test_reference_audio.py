@@ -14,7 +14,7 @@ from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project
 from m2v.reference import audio
-from m2v.types.general import explainer
+from m2v.types.scene_film import explainer
 
 pytestmark = pytest.mark.media
 
@@ -65,7 +65,7 @@ def make_reference(root: Path, *, with_audio: bool = True, kind: str = "video") 
     return directory
 
 
-def make_project(root: Path, video_type: str = "general") -> Path:
+def make_project(root: Path, video_type: str = "text-motion") -> Path:
     return create_project(root / "work", video_type, {"storyboard": "storyboard.json"}).parent
 
 
@@ -173,13 +173,6 @@ def test_note_reference_is_rejected(tmp_path):
     reference = make_reference(tmp_path, kind="note")
     project = make_project(tmp_path)
     with pytest.raises(M2VError, match="不是视频"):
-        audio.extract_audio(reference, project, statement="授权")
-
-
-def test_non_general_project_is_rejected(tmp_path):
-    reference = make_reference(tmp_path)
-    project = create_project(tmp_path / "financial", "financial-timeseries", {"request": "request.json"}).parent
-    with pytest.raises(M2VError, match="general"):
         audio.extract_audio(reference, project, statement="授权")
 
 

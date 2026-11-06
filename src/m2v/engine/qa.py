@@ -308,8 +308,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     qa_dir = output_root(root) / "qa"
     qa_dir.mkdir(parents=True, exist_ok=True)
     audio_required = bool(audio_segments)
-    if prepared.get("type") == "general":
-        audio_required = declared_audio(prepared)
+    audio_required = declared_audio(prepared)
     inspection = qa_inspection.inspect(target, prepared, qa_dir, audio_required=audio_required)
     has_audio = inspection["audioSignals"]["status"] != "not-applicable"
     no_audio = {"status": "not-applicable", "detail": "无音轨，契约允许"}
@@ -405,84 +404,6 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     return report
 
 
-def building_run(root: Path, prepared: dict, *, video: Path | None = None,
-                 step: int = DEFAULT_STEP) -> dict:
-    """建筑建造等技术类型的精简 QA：帧数、尺寸、帧率、时长、无音轨与冻结帧。"""
-    root = root.resolve()
-    fps = prepared["fps"]
-    expected_frames = prepared["durationInFrames"]
-    expected_seconds = expected_frames / fps
-    target = video or (output_root(root) / "building-construction.mp4")
-    if video is None and not target.is_file():
-        target = delivered_video(root)
-    target = target.resolve()
-    if not target.is_file():
-        raise M2VError(f"缺少待检查的成片：{target}；请先 preview 或 render")
-    qa_dir = output_root(root) / "qa"
-    qa_dir.mkdir(parents=True, exist_ok=True)
-    frame_bytes = sample_frames(target, fps, step)
-    if len(frame_bytes) < 2:
-        raise M2VError("成片太短，无法抽样检查")
-    probe = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(target)],
-                           capture_output=True, timeout=120)
-    info = probe.stderr.decode("utf-8", "replace")
-    match = re.search(r"Video:.*?(\d{2,5})x(\d{2,5})", info)
-    width, height = (int(match.group(1)), int(match.group(2))) if match else (0, 0)
-    fps_match = re.search(r"(\d+(?:\.\d+)?) fps", info)
-    stream_fps = float(fps_match.group(1)) if fps_match else 0.0
-    duration = _duration(target)
-    has_audio = "Audio:" in info
-    count_result = subprocess.run(
-        [get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-progress", "pipe:1",
-         "-i", str(target), "-map", "0:v:0", "-c", "copy", "-f", "null", "-"],
-        capture_output=True, timeout=900)
-    counted = re.findall(r"frame=(\d+)", count_result.stdout.decode("utf-8", "replace"))
-    actual_frames = int(counted[-1]) if counted else 0
-    frozen = frozen_frames(frame_bytes, fps, step, video=target)
-    sample = frozen["longestStillRange"]
-    still_seconds = (sample["endSample"] - sample["startSample"]) * step / fps
-    checks = {
-        "frameCount": {"kind": "decision", "scope": "encoded-frame-count",
-                       "expected": expected_frames, "actual": actual_frames,
-                       "status": "pass" if actual_frames == expected_frames else "fail"},
-        "resolution": {"kind": "decision", "scope": "encoded-size",
-                       "expected": [prepared["width"], prepared["height"]],
-                       "actual": [width, height],
-                       "status": "pass" if [width, height] == [prepared["width"],
-                                                              prepared["height"]] else "fail"},
-        "fps": {"kind": "decision", "scope": "encoded-frame-rate",
-                "expected": fps, "actual": stream_fps,
-                "status": "pass" if abs(stream_fps - fps) < 1e-3 else "fail"},
-        "duration": {"kind": "decision", "scope": "encoded-duration",
-                     "expectedSeconds": round(expected_seconds, 3),
-                     "actualSeconds": round(duration, 3),
-                     "status": "pass" if abs(duration - expected_seconds) <= .1 else "fail"},
-        "audioTrack": {"kind": "decision", "scope": "silent-delivery",
-                       "status": "pass" if not has_audio else "fail",
-                       "detail": "无声类型必须没有音轨"},
-        "frozenFrames": {**frozen, "kind": "measurement", "scope": "sampled-frame-repetition",
-                         "longestStillSeconds": round(still_seconds, 3),
-                         "status": "pass" if still_seconds <= FROZEN_SECONDS else "fail"},
-        "picture": {**picture_metrics(frame_bytes), "kind": "measurement",
-                    "scope": "dark-levels-and-spatial-variation"},
-    }
-    sheet = contact_sheet(target, qa_dir / "contact-sheet.png")
-    report = {
-        "schemaVersion": 1,
-        "preparedFingerprint": prepared["preparedFingerprint"],
-        "video": target.relative_to(root).as_posix() if target.is_relative_to(root) else str(target),
-        "durationInFrames": expected_frames, "fps": fps, "sampleStep": step,
-        "contactSheet": sheet.relative_to(output_root(root)).as_posix(),
-        "scope": "technical-only",
-        "observation": {"status": "not-evaluated", "requiredChecks": [
-            "composition", "material", "frame-sequence", "readability-restatement"]},
-        "checks": checks,
-        "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass",
-    }
-    _write_json(output_root(root) / "qa.json", report)
-    return report
-
-
 def main(argv: list[str] | None = None) -> int:
     """`m2v qa --project <目录>`。"""
     import argparse
@@ -492,19 +413,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--video", help="待检查的成片；省略时取作品 outputs/video.mp4")
     parser.add_argument("--step", type=int, default=DEFAULT_STEP)
     args = parser.parse_args(argv)
-    from m2v.core.project import load_current_prepared, load_project
-    from m2v.types.general.explainer_render import current
+    from m2v.core.project import load_project
+    from m2v.types.scene_film.explainer_render import current
     root, manifest = load_project(args.project)
-    if manifest["type"] == "building-construction":
-        prepared = load_current_prepared(root, manifest)
-        report = building_run(root, prepared,
-                              video=Path(args.video) if args.video else None, step=args.step)
-    elif manifest["type"] != "general":
-        raise M2VError("m2v qa 仅适用于 general 与 building-construction 作品")
-    else:
-        prepared = current(root, manifest)
-        report = run(root, prepared, video=Path(args.video) if args.video else None,
-                     step=args.step)
+    prepared = current(root, manifest)
+    report = run(root, prepared, video=Path(args.video) if args.video else None,
+                 step=args.step)
     print(json.dumps({"status": report["status"], "scope": report["scope"],
                      "observation": report["observation"], "checks": {name: item.get("status", "measured")
                                                              for name, item in report["checks"].items()}},

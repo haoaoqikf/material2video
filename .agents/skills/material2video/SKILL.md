@@ -1,6 +1,6 @@
 ---
 name: material2video
-description: 使用统一 m2v 制作入口创作或修订金融时间序列、通用讲解视频。用于准备类型材料、编排、局部修改、预演、评审、渲染与排查不一致问题。
+description: 使用统一 m2v 制作入口创作或修订五类视频。用于准备类型材料、编排、局部修改、预演、评审、渲染与排查不一致问题。
 ---
 
 # Material2Video 制作调度
@@ -15,15 +15,16 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 读取作品 `project.json` 确认类型；新作品先确定类型与内容根。先定位任务与阶段，再读取下一份主指南；不递归读完所有链接。
 
 <!-- generated:type-catalog:start -->
-| 类别 | 类型 | 创作指导 |
-|---|---|---|
-| 未分类 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
-| 未分类 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
-| 未分类 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：核验 v2 材料、镜头与步骤，并通过完整候选的静读与独立复述验收。 |
-| 未分类 | `vehicle-showcase` | [汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。 |
+| 类型 | 创作指导 |
+|---|---|
+| `text-motion` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
+| `data-evolution` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
+| `principle-metaphor` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
+| `spatial-3d` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
+| `documentary-edit` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
 <!-- generated:type-catalog:end -->
 
-- **新制作 general**：从[方案确定](references/stage-plan.md)开始。
+- **新制作**：从[方案确定](references/stage-plan.md)开始。
 - **修订**：先读[修订入口](references/video-revision.md)，定位影响阶段、保留基线，再进入对应阶段；不重开无关选案。
 - **评审**：完整试制固定在扩展前进入[制作与迭代](references/stage-iterate.md)评审；G5 全片粗片为内部检查，试制检查是否值得继续，终审检查整片是否兑现；当前候选独立终审进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
 - **排查**：先读[制作与迭代](references/stage-iterate.md)，只展开相关技术契约；不要用排错代替制作复核。

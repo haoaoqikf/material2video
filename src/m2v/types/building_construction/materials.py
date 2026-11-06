@@ -304,15 +304,16 @@ def _validate_assets(manifest: dict[str, Any]) -> None:
             fail(f"{where}.sha256", "必须是 64 位十六进制 SHA-256")
 
 
-def load_project(project_dir: str | Path) -> dict[str, Any]:
+def load_project(project_dir: str | Path, *, files: dict[str, str] | None = None) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
-    building = validate_document(Building, _load(root / MATERIALS["building"]), "building.json")
+    names = files or MATERIALS
+    building = validate_document(Building, _load(root / names["building"]), "building.json")
     construction = validate_document(
-        Construction, _load(root / MATERIALS["construction"]), "construction.json")
+        Construction, _load(root / names["construction"]), "construction.json")
     manifest = validate_document(
-        Manifest, _load(root / MATERIALS["assets"]), "assets/manifest.json")
+        Manifest, _load(root / names["assets"]), "assets/manifest.json")
     _validate_building(building)
     components = build_components(building["house"])
     _validate_construction(construction, components)
@@ -344,33 +345,3 @@ def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
         "assets": docs["assets"],
         "components": docs["components"],
     }
-
-
-def render_inputs_digest(project_dir: str | Path) -> str:
-    root = Path(project_dir).resolve()
-    from m2v.core.assets import REPOSITORY_ROOT
-    import m2v.engine.remotion as remotion
-    from m2v.engine import render_pipeline
-
-    web = REPOSITORY_ROOT / "web"
-    web_inputs = remotion.build_inputs()
-    inputs: list[tuple[Path, Path]] = [(root, root / name) for name in MATERIALS.values()]
-    inputs.extend((web, path) for path in web_inputs if path.is_relative_to(web))
-    inputs.extend((REPOSITORY_ROOT, path) for path in web_inputs if not path.is_relative_to(web))
-    package = Path(__file__).resolve().parent
-    inputs.extend((package, path) for path in sorted(package.glob("*.py")))
-    inputs.append((REPOSITORY_ROOT, Path(render_pipeline.__file__)))
-    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.implementation_files())
-    manifest = _load(root / MATERIALS["assets"])
-    for asset in manifest["assets"]:
-        inputs.append((root, root / asset["path"]))
-    digest = hashlib.sha256()
-    for base, path in inputs:
-        try:
-            content = path.read_bytes()
-        except OSError as exc:
-            fail("渲染输入摘要", f"无法读取绑定文件 {path.name}：{exc}")
-        digest.update(path.relative_to(base).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(hashlib.sha256(content).digest())
-    return digest.hexdigest()

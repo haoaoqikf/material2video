@@ -10,7 +10,7 @@ installOfflineGuard();
 /**
  * Remotion 的渲染入口。`remotion render src/index.ts M2V --props <分镜>` 从这里开始。
  *
- * 契约页走的是另一个入口（`contract.html` → `src/types/general/contract-main.tsx`），
+ * 契约页走的是另一个入口（`contract.html` → `src/scene-film/contract-main.tsx`），
  * 两者复用同一份 composition、同一份样式源码与同一份字体注册。
  *
  * 字体在这里用 `delayRender` 拦住：Remotion 不会在句柄未释放前取帧，

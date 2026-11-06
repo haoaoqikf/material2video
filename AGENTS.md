@@ -4,7 +4,7 @@
 
 - 始终用中文与用户交流，项目说明文档优先使用中文。
 - 仅修改当前任务所需内容；不要把未来规划描述为已经实现的能力。
-- **制作视频时同步优化流程**：制作视频（尤其是 `general` 通用视频）的过程中，凡是可优化的环节
+- **制作视频时同步优化流程**：制作视频的过程中，凡是可优化的环节
   都要一并优化，包括但不限于流程编排、命令与工具、校验与技术验证、审美判断与视觉规范、评审与
   记录方式、文档与示例；发现后就在本次制作中直接改进并验证，能优化的都优化，不要只记录下来
   留待以后。优化须与当前契约一致，并保证其他类型与示例不回归。确实超出本轮合理范围的部分，
@@ -43,19 +43,19 @@
 - **评审独立**：适用审核必须由独立子代理执行；轮次、风险触发、人数和终审资格统一按[审核策略](.agents/skills/material2video/references/checkpoint-gates.md#审核计划与风险触发)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/` 下的作品目录（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
-  中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `styles/<id>/examples/` 留在仓库内。
+  中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/<type>/<slug>/` 留在仓库内。
   文章放在仓库外的内容根（`--content-root` / `M2V_CONTENT_ROOT`）时同理，产物也不入库。
-- **示例媒体不入库**：`styles/*/examples/*/assets/media/` 按各自 `assets/recipe.json` 由
+- **示例媒体不入库**：`examples/*/*/assets/media/` 按各自 `assets/recipe.json` 由
   `assets/fetch.py` 恢复并校验摘要、尺寸与时长；恢复失败时不改写来源登记、不接受摘要漂移，
   也不覆盖已有素材。
 - **字体二进制不入库**：字体来源、版本、摘要、许可与恢复目标登记在 `fonts/registry.json`，
   由 `fonts/fetch.py` 恢复并校验；许可文本仍入库。字体缺失时构建、准备与渲染明确失败并提示
   恢复，不得静默回退到系统字体。
-- **风格示例集合固定**：仓库 `styles/<id>/examples/` 保留以下随附示例：
-  `vibe-night/examples/fold`、`vibe-fable/examples/pigeon`、`doc-archive/examples/american-science-milestones`、
-  `count-ledger/examples/compound-interest`、`deep-journey/examples/solar-system-journey`、
-  `dark-proof/examples/compound-connect`、`dark-proof/examples/luck-on-stage`；不再维护顶层 `examples/`。
-  新增或替换示例须同步名单、测试与文档，并保持风格包指纹不受示例改动影响。
+- **示例集合固定**：仓库 `examples/<type>/<slug>/` 保留七部示例：
+  `text-motion/fold`、`data-evolution/compound-interest`、`data-evolution/compound-connect`、
+  `principle-metaphor/pigeon`、`principle-metaphor/luck-on-stage`、
+  `spatial-3d/solar-system-journey`、`documentary-edit/american-science-milestones`。
+  新增或替换示例须同步名单、测试与文档。只有跨作品复用的能力进入共享 SDK；示例专属画面留在示例内。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。
 - **动效与组件先调研外部方案**：新增动效、可视化或交互组件前，先检索并评估成熟外部库/组件（维护状态、许可、体积、逐帧确定性、与代码场景/Remotion 的兼容性）。能在确定性约束内引入的优先引入，并登记来源、版本与许可；已有内部成熟实现能满足需求时优先复用，不为同一能力重复引入依赖。只有在没有可行外部方案，或外部方案无法满足逐帧确定性、许可、包体或风格边界时，才允许自研，并在设计记录中写明检索结论与理由。禁止未检索就直接手写。

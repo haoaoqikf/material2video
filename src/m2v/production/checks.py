@@ -180,7 +180,7 @@ def capture(root: Path, c: dict, checkpoint_id: str | None) -> list[Path]:
     from playwright.sync_api import sync_playwright
     from m2v.commands import _prepared
     from m2v.core.project import load_project
-    from m2v.types.general import code_scenes, media_assets
+    from m2v.types.scene_film import code_scenes, media_assets
     _, project = load_project(root)
     prepared = _prepared(root, project)
     media = media_assets.resolve(root)['media']

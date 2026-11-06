@@ -24,8 +24,8 @@ from uuid import uuid4
 import pytest
 
 from m2v.core import security
-from m2v.types.general import adapter, code_scenes, explainer_render, media_assets
-from helpers.general import fake_record, fake_tts, project
+from m2v.types.scene_film import adapter, code_scenes, explainer_render, media_assets
+from helpers.scene_film import fake_record, fake_tts, project
 from helpers.media import entry, importer, make_image
 
 pytestmark = pytest.mark.media
@@ -162,7 +162,7 @@ def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_r
     output = adapter.render(root, manifest)
     provenance = output.with_suffix(".provenance.json")
     assert output.is_file() and provenance.is_file()
-    assert json.loads(provenance.read_text(encoding="utf-8"))["type"] == "general"
+    assert json.loads(provenance.read_text(encoding="utf-8"))["type"] == "text-motion"
     assert security.has_usable_access(output)
     assert security.has_usable_access(provenance)
 

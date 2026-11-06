@@ -24,7 +24,7 @@
 
 ## 14. 紧凑示例：复利
 
-[《复利》](../../../../styles/count-ledger/examples/compound-interest/README.md)用可数圆片区分本金、新收益和取出收益；同起点比较两种做法，结尾让金片归队，画面动作直接解释“收益也成为本金”。具体金额、时序和证据只读该作品的 `DESIGN.md` 与 `VERIFICATION.md`，不在通用指南复制。
+[《复利》](../../../../examples/data-evolution/compound-interest/README.md)用可数圆片区分本金、新收益和取出收益；同起点比较两种做法，结尾让金片归队，画面动作直接解释“收益也成为本金”。具体金额、时序和证据只读该作品的 `DESIGN.md` 与 `VERIFICATION.md`，不在通用指南复制。
 
 ## 15. 视觉复核判断演练
 
@@ -43,4 +43,4 @@
 
 ## 暗场论证：多载体与转场认回
 
-[复利示例复盘](../../../../styles/dark-proof/examples/compound-connect/CASE_STUDY.md)说明数字、雪球、表格与图表如何分配不同认识任务；[《运气到底是什么》](../../../../styles/dark-proof/examples/luck-on-stage/README.md)示范角色贯穿、条件逐项改变与面积乘法。借鉴时先判断本片的对象、数值和注意力如何接棒，不复制固定时长、场数或释放次数。
+[复利示例复盘](../../../../examples/data-evolution/compound-connect/CASE_STUDY.md)说明数字、雪球、表格与图表如何分配不同认识任务；[《运气到底是什么》](../../../../examples/principle-metaphor/luck-on-stage/README.md)示范角色贯穿、条件逐项改变与面积乘法。借鉴时先判断本片的对象、数值和注意力如何接棒，不复制固定时长、场数或释放次数。

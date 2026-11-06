@@ -10,7 +10,7 @@ export {useFrame, useThree} from '@react-three/fiber';
 export {Float, Stars, PerspectiveCamera} from '@react-three/drei';
 export {echarts};
 export {SceneContextProvider, useSceneContext} from './context';
-export type {CodeSceneProps, MediaAsset, SceneContext, SubtitleSafeArea} from './context';
+export type {CodeSceneProps, MediaAsset, PreparedSceneSource, SceneContext, SubtitleSafeArea} from './context';
 export * from './cinematic';
 export * from './motion';
 export * from './primitives';
@@ -42,8 +42,15 @@ export function Canvas(props: CanvasProps) {
 export function useMediaAsset(id: string): MediaAsset {
   const media = window.__M2V_CODE_CONFIG__?.media;
   const asset = media?.[id];
-  if (!asset) throw new Error(`未登记的素材 ID：${id}；请先用 m2v general assets import 导入并留证`);
+  if (!asset) throw new Error(`未登记的素材 ID：${id}；请先用 m2v author assets import 导入并留证`);
   return asset;
+}
+
+/** 按 ID 获取当前幕显式声明的结构化来源；准备记录负责校验和绑定文件。 */
+export function useSceneSource(id: string) {
+  const source = window.__M2V_CODE_CONFIG__?.sources?.[id];
+  if (!source) throw new Error(`未声明或尚未准备的结构化来源：${id}`);
+  return source;
 }
 
 /**

@@ -74,19 +74,3 @@ def crypto_project(tmp_path: Path) -> Path:
     for name, data in (("request.json", request), ("prices.json", prices), ("animation-plan.json", plan)):
         (root / name).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     return root
-
-
-
-
-def preview_fixture(root, docs):
-    folder = root / "outputs" / "previews"
-    folder.mkdir(parents=True)
-    video = folder / "test.mp4"
-    video.write_bytes(b"synthetic preview fixture")
-    digest = hashlib.sha256(video.read_bytes()).hexdigest()
-    (folder / "preview-record.json").write_text(json.dumps({
-        "path": "outputs/previews/test.mp4", "sha256": digest,
-        "frames": docs["plan"]["durationSeconds"] * 30,
-        "materialsAndAssetsSha256": financial.render_inputs_digest(root),
-    }), encoding="utf-8")
-    return digest

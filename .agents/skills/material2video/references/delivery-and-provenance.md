@@ -37,34 +37,24 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 它回答的是「这支片子是哪一版资产渲的」，因为成片不入库、也没有别的东西会提醒你它
 已经落后于源码：实测发生过两支作品的成片比动效重写早了几个小时，仍然带着被修掉的
 旧曲线，看上去却仍然是「上次验收通过」的样子。只有正式导出写溯源，预演不写。
-`schemaVersion` 当前为 `1`。通用类型（`general`）的形状是：
+`schemaVersion` 当前为 1。五类共用同一形状，例如：
 
 ```json
 {
   "schemaVersion": 1,
-  "type": "general",
+  "type": "data-evolution",
   "projectId": "<作品 ID>",
   "preparedFingerprint": "…",
-  "compositionId": "ArticleExplainer",
-  "inputs": { "storyboard": "…", "tts": "{…}", "implementation": "…",
-              "file:article.md": "…", "renderer": "…" },
-  "durationInFrames": 1800, "fps": 60, "width": 1920, "height": 1080
+  "compositionId": "SceneFilm",
+  "inputs": {"storyboard": "…", "implementation": "…", "file:request.json": "…", "renderer": "…"},
+  "durationInFrames": 1800,
+  "fps": 30,
+  "width": 1080,
+  "height": 1920
 }
 ```
 
-`type` 为作品的类型标识（当前六种正式类型都会写溯源），
-`compositionId` 是它对应的 Remotion composition 标识。
-`preparedFingerprint` 是当前准备记录的指纹：与 `outputs/prepared.json` 不一致就说明
-材料、资产或渲染代码已经变化，成片落后。
-`inputs` 是准备时记下的逐输入摘要（分镜、`tts` 记录、实现摘要、`file:<作品内相对路径>`、
-`audio:<场景>`、composition 可达源码的 `renderer` 指纹），用它逐项指出是哪个输入变了。
-
-各类型的字段并不完全一致，差异有据可查：
-
-| 类型 | 与上表的差异 |
-| --- | --- |
-| `general` | 使用 `projectId`、`preparedFingerprint`、`compositionId`、`inputs`、`durationInFrames`、`fps`、`width`、`height`；有声成片另写 `audio` 与 `delivery` |
-| 无声专用类型（`financial-timeseries`、`building-construction`、`vehicle-showcase`） | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
+`type` 是五类之一；`preparedFingerprint` 对应 `outputs/prepared.json`。 `inputs` 记录分镜、实现、来源文件、声音与可达渲染代码的摘要；有声作品另写声音与交付字段。结构化来源经相同的准备记录与溯源机制绑定，不另写专项格式。
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
 独立复核准备指纹与文件摘要完成。

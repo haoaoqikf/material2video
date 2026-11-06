@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from m2v.core import source_policy
-from m2v.types.general import cinematic, code_scenes
+from m2v.types.scene_film import cinematic, code_scenes
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"

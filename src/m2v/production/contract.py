@@ -7,7 +7,7 @@ from pathlib import Path
 
 from m2v.core.errors import M2VError
 from m2v.core import frames
-from m2v.core.video_config import validate_general_fps
+from m2v.core.video_config import validate_fps
 from m2v.core.fingerprints import fingerprint
 
 FENCE = re.compile(r'^```m2v-checkpoints\s*\n(.*?)^```\s*$', re.M | re.S)
@@ -82,7 +82,7 @@ def validate(c: dict) -> None:
     identifier(c['cycleId'])
     if any(type(c[k]) is not int or c[k] <= 0 for k in ('fps', 'width', 'height')):
         raise M2VError('合同 fps/width/height 必须为正整数')
-    validate_general_fps(c['fps'], '合同 fps')
+    validate_fps(c['fps'], '合同 fps')
     frames.normalize(c['width'], c['height'])
     if 'retrospective' in c and type(c['retrospective']) is not bool:
         raise M2VError('retrospective 必须为布尔值')

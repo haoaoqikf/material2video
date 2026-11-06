@@ -27,8 +27,7 @@
 - 首次写分镜：读[分镜契约](storyboard-schema.md)与[逐场表](visual-creative-direction.md#逐场设计表)。
 - 搜集或入片素材/声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
 - 学习参考：读[参考拆解](reference-video-analysis.md)；明确要求像参考时再读[风格契约](reference-style.md)。
-- 首次实现场景/相机/字体：读[运行时契约](code-scene-runtime.md)；选择风格时读该包 GUIDE。
-- 作品选择 `style.id`：读[风格接入契约](style-pack.md)，按指导把参数、组件与资产显式落到 `DESIGN.md`；选风格不会自动换肤。
+- 首次实现场景/相机/字体：读[运行时契约](code-scene-runtime.md)。
 - 开始有旁白制作：读[配音契约](voice-and-rhythm.md#配音音色与语速)，按全文和服务信息选音；无旁白跳过。
 
 ## 源文审查
@@ -36,7 +35,7 @@
 先在作品内保存非空 `article.md`；采用稿存在时使用 `article.accepted.md`，也可由 `project.materials.article` 显式指定。
 
 ```powershell
-uv run m2v general input-review --storyboard videos/general/<slug>/storyboard.json
+uv run m2v author input-review --storyboard videos/<类型>/<slug>/storyboard.json
 ```
 
 命令生成 `outputs/input-review.json`，记录源文相对路径、SHA-256 和正文计数。阅读原文后填写 `status`、`claim`、`rationale`、`reviewer`、`problemSpans`；通过时 `status` 为 pass、依据非空且 `problemSpans` 为空。工具不会自动判定语义通过。源文或候选变化须重新生成；采用不等于审查通过。`input.kind` 为 `topic` 时跳过本审查。

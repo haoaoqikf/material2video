@@ -1,105 +1,28 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "types": [
     {
-      "name": "financial-timeseries",
-      "description": "金融时间序列与假设投资价值演变",
-      "summary": "股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、30 fps 暖近黑「持仓对账单」手机竖屏双层趋势曲线、主体优先标题、本金/期末市值收束区与可选 design 档案，完整候选自动验收。",
-      "plan": "保留独立金融材料、投资价值计算、专用画面与确定性技术验收。",
-      "skillGuide": "[金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。",
-      "materials": [
-        {
-          "name": "request",
-          "file": "request.json",
-          "template": {
-            "schemaVersion": 1,
-            "originalRequest": "填写研究请求",
-            "instrument": {
-              "kind": "stock",
-              "name": "填写标的",
-              "code": "填写代码",
-              "market": "填写市场",
-              "unit": "USD",
-              "listingDate": "YYYY-MM-DD"
-            },
-            "requestedRange": [
-              "YYYY-MM-DD",
-              "YYYY-MM-DD"
-            ],
-            "displayRange": [
-              "YYYY-MM-DD",
-              "YYYY-MM-DD"
-            ],
-            "investment": {
-              "year": 2020,
-              "principal": 100000
-            },
-            "confirmations": []
-          }
-        },
-        {
-          "name": "prices",
-          "file": "prices.json",
-          "template": {
-            "schemaVersion": 3,
-            "unit": "USD",
-            "priceBasis": "split-adjusted",
-            "adjustmentBaseDate": "YYYY-MM-DD",
-            "adjustmentDefinition": "仅拆合股调整，不计分红再投资",
-            "splitAdjustments": [],
-            "expectedTradingDates": [],
-            "expectedTradingDatesSource": [],
-            "points": [],
-            "sources": [],
-            "rawSnapshots": []
-          }
-        },
-        {
-          "name": "plan",
-          "file": "animation-plan.json",
-          "template": {
-            "schemaVersion": 8,
-            "chartType": "line",
-            "durationSeconds": 60,
-            "fps": 30,
-            "canvas": {
-              "width": 1080,
-              "height": 1920
-            },
-            "axis": {
-              "dateRange": [
-                "YYYY-MM-DD",
-                "YYYY-MM-DD"
-              ],
-              "dateScale": "staged-expanding",
-              "valueScale": "revealed-linear"
-            },
-            "segments": []
-          }
-        }
-      ]
-    },
-    {
-      "name": "general",
-      "description": "通用",
-      "summary": "v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。",
-      "plan": "以本地 React 代码场景制作 v8 全画布讲解视频，默认横屏并支持显式竖屏，保留真实配音、输入语义审查与完整候选自动验收。",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。",
+      "name": "text-motion",
+      "description": "图文动效",
+      "summary": "代码生成文字和图形，侧重排版与动效",
+      "plan": "代码生成文字和图形，侧重排版与动效",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
       "materials": [
         {
           "name": "storyboard",
           "file": "storyboard.json",
           "template": {
-            "version": 8,
-            "schemaVersion": 8,
+            "version": 9,
+            "schemaVersion": 9,
             "fps": 30,
             "width": 1920,
             "height": 1080,
             "title": "新作品",
             "input": {
-              "kind": "article"
+              "kind": "topic",
+              "topic": "新作品"
             },
-            "targetSeconds": 60,
+            "targetSeconds": 3,
             "scenes": [
               {
                 "id": "opening",
@@ -109,12 +32,11 @@
                   "entry": "scenes/opening.tsx",
                   "props": {}
                 },
-                "narrationSegments": [
-                  {
-                    "id": "opening-line",
-                    "text": "填写完整旁白。"
-                  }
-                ]
+                "narrationSegments": [],
+                "keywords": [
+                  "新作品"
+                ],
+                "durationFrames": 90
               }
             ]
           }
@@ -125,632 +47,183 @@
       ]
     },
     {
-      "name": "building-construction",
-      "description": "两层框架住宅的构件级三维建造示意",
-      "summary": "以 v2 材料驱动、多镜头与构件级步骤的三维住宅建造示意；60 秒、1920×1080、30 fps、无音轨，默认机位可见入口与主要门窗。",
-      "plan": "保留独立材料、构件级步骤、多镜头、取景隐藏与确定性技术验收；不含 BIM/CAD 导入、结构计算或 v1 迁移工具。",
-      "skillGuide": "[建筑建造视频](references/building-construction-video.md)：核验 v2 材料、镜头与步骤，并通过完整候选的静读与独立复述验收。",
+      "name": "data-evolution",
+      "description": "数据演化",
+      "summary": "结构化数据的可视化变化",
+      "plan": "结构化数据的可视化变化",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
       "materials": [
         {
-          "name": "building",
-          "file": "building.json",
+          "name": "storyboard",
+          "file": "storyboard.json",
           "template": {
-            "schemaVersion": 2,
-            "canvas": {
-              "width": 1920,
-              "height": 1080
-            },
-            "house": {
-              "width": 12,
-              "depth": 9,
-              "floors": 2,
-              "floorHeight": 3,
-              "bayCount": 3,
-              "roof": {
-                "type": "gable",
-                "height": 2.2,
-                "overhang": 0.6
-              },
-              "wallThickness": 0.25,
-              "foundationDepth": 1.2,
-              "sitePadding": 3,
-              "stairs": {
-                "side": "right",
-                "offset": 1.0,
-                "width": 1.4
-              },
-              "openings": [
-                {
-                  "id": "door-entry",
-                  "floor": 1,
-                  "side": "front",
-                  "offset": 5.1,
-                  "width": 1.4,
-                  "height": 2.3,
-                  "sill": 0
-                },
-                {
-                  "id": "window-front-1",
-                  "floor": 1,
-                  "side": "front",
-                  "offset": 2.2,
-                  "width": 1.6,
-                  "height": 1.4,
-                  "sill": 0.9
-                },
-                {
-                  "id": "window-front-2",
-                  "floor": 2,
-                  "side": "front",
-                  "offset": 5.1,
-                  "width": 1.8,
-                  "height": 1.4,
-                  "sill": 0.9
-                },
-                {
-                  "id": "window-left-1",
-                  "floor": 1,
-                  "side": "left",
-                  "offset": 3.0,
-                  "width": 1.4,
-                  "height": 1.2,
-                  "sill": 0.9
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "construction",
-          "file": "construction.json",
-          "template": {
-            "schemaVersion": 2,
-            "durationSeconds": 60,
+            "version": 9,
+            "schemaVersion": 9,
             "fps": 30,
-            "stages": [
+            "width": 1920,
+            "height": 1080,
+            "title": "新作品",
+            "input": {
+              "kind": "topic",
+              "topic": "新作品"
+            },
+            "targetSeconds": 3,
+            "scenes": [
               {
-                "id": "site",
-                "label": "场地与开挖",
-                "startSeconds": 0,
-                "endSeconds": 8
-              },
-              {
-                "id": "foundation",
-                "label": "基础",
-                "startSeconds": 8,
-                "endSeconds": 18
-              },
-              {
-                "id": "frame-1",
-                "label": "一层框架",
-                "startSeconds": 18,
-                "endSeconds": 29
-              },
-              {
-                "id": "frame-2",
-                "label": "二层框架",
-                "startSeconds": 29,
-                "endSeconds": 39
-              },
-              {
-                "id": "walls",
-                "label": "墙体",
-                "startSeconds": 39,
-                "endSeconds": 47
-              },
-              {
-                "id": "roof",
-                "label": "屋顶",
-                "startSeconds": 47,
-                "endSeconds": 53
-              },
-              {
-                "id": "finishes",
-                "label": "门窗与庭院",
-                "startSeconds": 53,
-                "endSeconds": 60
-              }
-            ],
-            "shots": [
-              {
-                "id": "establish",
-                "startSeconds": 0,
-                "endSeconds": 18,
-                "camera": {
-                  "position": [
-                    20,
-                    15,
-                    23
-                  ],
-                  "target": [
-                    0,
-                    3,
-                    0
-                  ],
-                  "fov": 38
+                "id": "opening",
+                "template": "code",
+                "content": {
+                  "title": "开场",
+                  "entry": "scenes/opening.tsx",
+                  "props": {}
                 },
-                "to": {
-                  "position": [
-                    10,
-                    5,
-                    12
-                  ],
-                  "target": [
-                    0,
-                    0.5,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "hide": []
-              },
-              {
-                "id": "frame-1-close",
-                "startSeconds": 18,
-                "endSeconds": 29,
-                "camera": {
-                  "position": [
-                    12,
-                    6,
-                    14
-                  ],
-                  "target": [
-                    0,
-                    2,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "to": {
-                  "position": [
-                    10,
-                    5,
-                    12
-                  ],
-                  "target": [
-                    0,
-                    2,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "hide": []
-              },
-              {
-                "id": "frame-2-wide",
-                "startSeconds": 29,
-                "endSeconds": 39,
-                "camera": {
-                  "position": [
-                    18,
-                    10,
-                    20
-                  ],
-                  "target": [
-                    0,
-                    4.5,
-                    0
-                  ],
-                  "fov": 40
-                },
-                "to": {
-                  "position": [
-                    16,
-                    9,
-                    18
-                  ],
-                  "target": [
-                    0,
-                    4.5,
-                    0
-                  ],
-                  "fov": 40
-                },
-                "hide": []
-              },
-              {
-                "id": "walls",
-                "startSeconds": 39,
-                "endSeconds": 47,
-                "camera": {
-                  "position": [
-                    16,
-                    8,
-                    18
-                  ],
-                  "target": [
-                    0,
-                    4.5,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "to": {
-                  "position": [
-                    15,
-                    7,
-                    17
-                  ],
-                  "target": [
-                    0,
-                    4.5,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "hide": []
-              },
-              {
-                "id": "roof-cutaway",
-                "startSeconds": 47,
-                "endSeconds": 53,
-                "camera": {
-                  "position": [
-                    16,
-                    8,
-                    18
-                  ],
-                  "target": [
-                    0,
-                    5.5,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "to": {
-                  "position": [
-                    14,
-                    7,
-                    16
-                  ],
-                  "target": [
-                    0,
-                    5.5,
-                    0
-                  ],
-                  "fov": 42
-                },
-                "hide": [
-                  "wall-1-front-0",
-                  "opening-door-entry",
-                  "opening-window-front-1"
-                ]
-              },
-              {
-                "id": "finished",
-                "startSeconds": 53,
-                "endSeconds": 60,
-                "camera": {
-                  "position": [
-                    20,
-                    13,
-                    23
-                  ],
-                  "target": [
-                    0,
-                    4,
-                    0
-                  ],
-                  "fov": 38
-                },
-                "to": {
-                  "position": [
-                    18,
-                    11,
-                    20
-                  ],
-                  "target": [
-                    0,
-                    4,
-                    0
-                  ],
-                  "fov": 38
-                },
-                "hide": []
-              }
-            ],
-            "initial": [
-              "site"
-            ],
-            "steps": [
-              {
-                "id": "excavate",
-                "stage": "site",
-                "select": [
-                  "excavation"
+                "narrationSegments": [],
+                "keywords": [
+                  "新作品"
                 ],
-                "action": "excavate",
-                "label": "开挖",
-                "startSeconds": 1,
-                "endSeconds": 6,
-                "after": []
-              },
-              {
-                "id": "foundation-slab",
-                "stage": "foundation",
-                "select": [
-                  "foundation-slab"
-                ],
-                "action": "pour",
-                "label": "基础垫层",
-                "startSeconds": 8,
-                "endSeconds": 12,
-                "after": [
-                  "excavate"
-                ]
-              },
-              {
-                "id": "foundation-ring",
-                "stage": "foundation",
-                "select": [
-                  "foundation-ring-*"
-                ],
-                "action": "pour",
-                "label": "基础圈梁",
-                "startSeconds": 12,
-                "endSeconds": 16.5,
-                "after": [
-                  "foundation-slab"
-                ]
-              },
-              {
-                "id": "slab-1",
-                "stage": "frame-1",
-                "select": [
-                  "slab-1"
-                ],
-                "action": "pour",
-                "label": "一层楼板",
-                "startSeconds": 18,
-                "endSeconds": 20,
-                "after": []
-              },
-              {
-                "id": "columns-1",
-                "stage": "frame-1",
-                "select": [
-                  "column-1-*"
-                ],
-                "action": "grow",
-                "label": "一层柱",
-                "startSeconds": 20,
-                "endSeconds": 24,
-                "after": [
-                  "slab-1"
-                ]
-              },
-              {
-                "id": "beams-1",
-                "stage": "frame-1",
-                "select": [
-                  "beam-1-*"
-                ],
-                "action": "slide",
-                "label": "一层梁",
-                "startSeconds": 24,
-                "endSeconds": 27.5,
-                "after": [
-                  "columns-1"
-                ]
-              },
-              {
-                "id": "stairs-1",
-                "stage": "frame-1",
-                "select": [
-                  "stairwell-1",
-                  "stair-1-*"
-                ],
-                "action": "lift",
-                "label": "楼梯与梯井",
-                "startSeconds": 27.5,
-                "endSeconds": 29,
-                "after": [
-                  "beams-1"
-                ]
-              },
-              {
-                "id": "slab-2",
-                "stage": "frame-2",
-                "select": [
-                  "slab-2"
-                ],
-                "action": "pour",
-                "label": "二层楼板",
-                "startSeconds": 29,
-                "endSeconds": 31.5,
-                "after": [
-                  "beams-1"
-                ]
-              },
-              {
-                "id": "columns-2",
-                "stage": "frame-2",
-                "select": [
-                  "column-2-*"
-                ],
-                "action": "grow",
-                "label": "二层柱",
-                "startSeconds": 31.5,
-                "endSeconds": 35,
-                "after": [
-                  "slab-2"
-                ]
-              },
-              {
-                "id": "beams-2",
-                "stage": "frame-2",
-                "select": [
-                  "beam-2-*"
-                ],
-                "action": "slide",
-                "label": "二层梁",
-                "startSeconds": 35,
-                "endSeconds": 38,
-                "after": [
-                  "columns-2"
-                ]
-              },
-              {
-                "id": "stairwell-2",
-                "stage": "roof",
-                "select": [
-                  "stairwell-2"
-                ],
-                "action": "lift",
-                "label": "屋顶检修口",
-                "startSeconds": 51,
-                "endSeconds": 52.5,
-                "after": [
-                  "roof"
-                ]
-              },
-              {
-                "id": "walls-1",
-                "stage": "walls",
-                "select": [
-                  "wall-1-*"
-                ],
-                "action": "lift",
-                "label": "一层墙体",
-                "startSeconds": 39,
-                "endSeconds": 42.5,
-                "after": [
-                  "beams-2"
-                ]
-              },
-              {
-                "id": "walls-2",
-                "stage": "walls",
-                "select": [
-                  "wall-2-*"
-                ],
-                "action": "lift",
-                "label": "二层墙体",
-                "startSeconds": 42.5,
-                "endSeconds": 46,
-                "after": [
-                  "walls-1"
-                ]
-              },
-              {
-                "id": "roof",
-                "stage": "roof",
-                "select": [
-                  "roof-*"
-                ],
-                "action": "rotate",
-                "label": "坡屋顶",
-                "startSeconds": 47,
-                "endSeconds": 51,
-                "after": [
-                  "walls-2"
-                ]
-              },
-              {
-                "id": "openings",
-                "stage": "roof",
-                "select": [
-                  "opening-*"
-                ],
-                "action": "insert",
-                "label": "门窗洞口",
-                "startSeconds": 50,
-                "endSeconds": 53,
-                "after": [
-                  "walls-2"
-                ]
-              },
-              {
-                "id": "finishes",
-                "stage": "finishes",
-                "select": [
-                  "finish-*"
-                ],
-                "action": "insert",
-                "label": "门窗",
-                "startSeconds": 53,
-                "endSeconds": 57,
-                "after": [
-                  "openings"
-                ]
-              },
-              {
-                "id": "yard",
-                "stage": "finishes",
-                "select": [
-                  "yard-*"
-                ],
-                "action": "spread",
-                "label": "庭院",
-                "startSeconds": 53.5,
-                "endSeconds": 58.5,
-                "after": [
-                  "roof"
-                ]
+                "durationFrames": 90
               }
             ]
           }
-        },
-        {
-          "name": "assets",
-          "file": "manifest.json",
-          "template": {
-            "schemaVersion": 2,
-            "assets": []
-          }
         }
+      ],
+      "starters": [
+        "scenes/opening.tsx"
       ]
     },
     {
-      "name": "vehicle-showcase",
-      "description": "本地三维汽车展示与视觉疾驰",
-      "summary": "本地汽车模型、自动环绕、影棚灯光与视觉疾驰；固定 1920×1080、30 fps、无声。",
-      "plan": "以本地模型和节点/镜头轨道驱动展示，按参考影棚校正车漆、反射与车轮旋转；SU7 作为首例资产。",
-      "skillGuide": "[汽车展示视频](references/vehicle-showcase-video.md)：模型、镜头与疾驰效果的制作契约。",
+      "name": "principle-metaphor",
+      "description": "原理隐喻",
+      "summary": "程序生成物体和场景，说明抽象原理",
+      "plan": "程序生成物体和场景，说明抽象原理",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
       "materials": [
         {
-          "name": "showcase",
-          "file": "showcase.json",
+          "name": "storyboard",
+          "file": "storyboard.json",
           "template": {
-            "schemaVersion": 2,
-            "canvas": {
-              "width": 1920,
-              "height": 1080
-            },
-            "durationSeconds": 30,
+            "version": 9,
+            "schemaVersion": 9,
             "fps": 30,
-            "model": "assets/sm_car.gltf",
-            "wheelNodes": [
-              "Wheel.001",
-              "Wheel.002"
-            ],
-            "camera": {
-              "distance": 7.05,
-              "height": 0.9,
-              "orbitStartDegrees": -24,
-              "orbitEndDegrees": 336
+            "width": 1920,
+            "height": 1080,
+            "title": "新作品",
+            "input": {
+              "kind": "topic",
+              "topic": "新作品"
             },
-            "effects": {
-              "speedStartSeconds": 19,
-              "speedEndSeconds": 26,
-              "fadeOutSeconds": 4
-            },
-            "studio": {
-              "environment": "assets/studio/env_light.hdr",
-              "bodyAo": "assets/studio/car_body_ao.jpg",
-              "floorNormal": "assets/studio/floor_normal.webp",
-              "floorRoughness": "assets/studio/floor_roughness.webp"
-            }
-          }
-        },
-        {
-          "name": "assets",
-          "file": "manifest.json",
-          "template": {
-            "schemaVersion": 1,
-            "assets": []
+            "targetSeconds": 3,
+            "scenes": [
+              {
+                "id": "opening",
+                "template": "code",
+                "content": {
+                  "title": "开场",
+                  "entry": "scenes/opening.tsx",
+                  "props": {}
+                },
+                "narrationSegments": [],
+                "keywords": [
+                  "新作品"
+                ],
+                "durationFrames": 90
+              }
+            ]
           }
         }
+      ],
+      "starters": [
+        "scenes/opening.tsx"
+      ]
+    },
+    {
+      "name": "spatial-3d",
+      "description": "三维空间",
+      "summary": "三维模型和场景的空间渲染",
+      "plan": "三维模型和场景的空间渲染",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "materials": [
+        {
+          "name": "storyboard",
+          "file": "storyboard.json",
+          "template": {
+            "version": 9,
+            "schemaVersion": 9,
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+            "title": "新作品",
+            "input": {
+              "kind": "topic",
+              "topic": "新作品"
+            },
+            "targetSeconds": 3,
+            "scenes": [
+              {
+                "id": "opening",
+                "template": "code",
+                "content": {
+                  "title": "开场",
+                  "entry": "scenes/opening.tsx",
+                  "props": {}
+                },
+                "narrationSegments": [],
+                "keywords": [
+                  "新作品"
+                ],
+                "durationFrames": 90
+              }
+            ]
+          }
+        }
+      ],
+      "starters": [
+        "scenes/opening.tsx"
+      ]
+    },
+    {
+      "name": "documentary-edit",
+      "description": "纪实素材剪辑",
+      "summary": "真实视频、照片与档案的叙事剪辑",
+      "plan": "真实视频、照片与档案的叙事剪辑",
+      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "materials": [
+        {
+          "name": "storyboard",
+          "file": "storyboard.json",
+          "template": {
+            "version": 9,
+            "schemaVersion": 9,
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+            "title": "新作品",
+            "input": {
+              "kind": "topic",
+              "topic": "新作品"
+            },
+            "targetSeconds": 3,
+            "scenes": [
+              {
+                "id": "opening",
+                "template": "code",
+                "content": {
+                  "title": "开场",
+                  "entry": "scenes/opening.tsx",
+                  "props": {}
+                },
+                "narrationSegments": [],
+                "keywords": [
+                  "新作品"
+                ],
+                "durationFrames": 90
+              }
+            ]
+          }
+        }
+      ],
+      "starters": [
+        "scenes/opening.tsx"
       ]
     }
   ]

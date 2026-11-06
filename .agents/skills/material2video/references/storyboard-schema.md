@@ -1,11 +1,11 @@
-# 通用分镜 v8
+# 五类统一分镜 v9
 
 本页配合[节奏、美术、声音与制作阶段](production-workflow.md)执行：先整片粗预演、风险优先，再按阶段完成条件精制与复查；不增加用户确认或 CLI 人工门禁。
 
-`general` 只接受 `version: 8`、`schemaVersion: 8`。v7 及更早分镜必须重新编排，不自动迁移；
+五类只接受 `version: 9`、`schemaVersion: 9`。v8 及更早分镜必须重新编排，不自动迁移；
 历史测试分镜不属于制作入口。
 
-v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里没有模板，没有主题，也没有屏幕摘要
+v9 的画幅、配色、构图与动效都由**作品代码**决定：分镜里没有模板，没有主题，也没有屏幕摘要
 字段。作品说明与创作依据见各示例的 `DESIGN.md`。
 
 帧率规则：`project.json.output.fps` 与本文件 `fps` 均声明时必须一致，仅一处声明时使用该值，都省略则默认30；只接受整数30或60。所有显式帧数字段按实际fps解释，不自动缩放；切换帧率须由作者调整帧预算并重新 prepare。现有显式60帧示例保持原值。
@@ -34,7 +34,7 @@ v8 的画幅、配色、构图与动效都由**作品代码**决定：分镜里�
 1～`600 × fps`的整数，声明后必须容得下旁白、默认0.4秒阅读停留与转场，不得截断口播，它同时是录制片段
 长度。场景及旁白 ID 全片唯一；未知字段、`visual`、`aspectRatio` 与旧的展示元素字段一律拒绝。
 
-`content` 只接受 `title`（可选，仅作元数据）、`entry`（必填）与 `props`（可选，默认空对象）。
+`content` 接受 `title`（可选，仅作元数据）、`entry`（必填）、`props`（可选，默认空对象）与 `sourceIds`（可选，当前幕引用的结构化来源 ID）。
 `content.props` 可声明保留键 `capture`：
 
 ```json
@@ -221,7 +221,13 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 {"version":8,"schemaVersion":8,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
-完整示例：[从电报到大模型](../../../../styles/doc-archive/examples/american-science-milestones/storyboard.json)、
-[复利](../../../../styles/count-ledger/examples/compound-interest/storyboard.json)、
-[太阳系之旅](../../../../styles/deep-journey/examples/solar-system-journey/storyboard.json)。当前规格见
+完整示例：[从电报到大模型](../../../../examples/documentary-edit/american-science-milestones/storyboard.json)、
+[复利](../../../../examples/data-evolution/compound-interest/storyboard.json)、
+[太阳系之旅](../../../../examples/spatial-3d/solar-system-journey/storyboard.json)。当前规格见
 [article-explainer](../../../../openspec/specs/article-explainer/spec.md)。
+
+## 结构化来源（v9）
+
+顶层可声明 `sources`：来源 ID 到 `{kind, files}` 的映射。`financial-series` 只可用于 `data-evolution`，文件角色为 `request`、`prices`、`plan`；`construction` 和 `vehicle-model` 只可用于 `spatial-3d`，角色分别为 `building`/`construction`/`assets` 和 `showcase`/`assets`。文件均须在作品内存在，不能越界。幕内 `content.sourceIds` 必须引用已声明的 ID，不能重复。准备验证来源材料与资产摘要，把数据与实现绑定到准备指纹，并要求来源画幅、帧率和时长与本幕一致。
+
+当前只渲染这三种来源的场景绘制入口：`m2v/code-scene/sources` 提供 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`；也可从 `m2v/code-scene` 的 `useSceneSource(id)` 取经验证数据自行绘制。普通分镜中的 `sources` 只是准备输入，不会自动在画面出现。

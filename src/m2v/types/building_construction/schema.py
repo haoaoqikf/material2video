@@ -1,4 +1,4 @@
-"""building-construction 材料的结构模型（v2）。
+"""construction 来源材料的结构模型（v2）。
 
 只描述文档形状；洞口是否落在墙面内、阶段/镜头/步骤覆盖等业务规则在
 `materials.py`，构件 ID 规则在 `components.py`。

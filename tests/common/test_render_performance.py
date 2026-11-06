@@ -3,29 +3,18 @@
 报告要**记录真实**阶段耗时、标明缓存命中，未执行的阶段标记为跳过，
 且总耗时不重复累计（渲染与编码在 Remotion 内部重叠，只记一段）。
 
-口径部分直接测 `m2v.engine.perf`；落盘部分用金融导出路径做集成验证——
-它是最短的「打包 → 会话 → 收口 → 报告」全链路，替身顶掉打包与渲染进程，
-保留真实的计时与报告逻辑。
+直接测 `m2v.engine.perf` 的阶段计时与报告口径。
 """
 
 from __future__ import annotations
 
-import json
 import os
 import time
-from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-import m2v.engine.output_validation as output_validation
 import m2v.engine.perf as perf
-import m2v.engine.remotion as remotion
-import m2v.engine.render_pipeline as render_pipeline
-import m2v.types.financial.financial as financial
-import m2v.types.financial.financial_render as financial_render
 
-from helpers.financial import project
 
 
 # ---------------------------------------------------------------- 口径
@@ -87,44 +76,3 @@ def test_tree_memory_reads_the_current_process():
 
 
 # ---------------------------------------------------------------- 落盘
-
-
-def test_financial_render_writes_the_performance_report(tmp_path, monkeypatch):
-    root = project(tmp_path)
-    docs = financial.load_project(root)
-    destination = root / "outputs" / "previews" / "perf.mp4"
-    bundle = tmp_path / "bundle"
-    bundle.mkdir()
-    total_frames = docs["plan"]["durationSeconds"] * financial.FPS
-
-    monkeypatch.setattr(remotion, "web_dir", lambda: tmp_path)
-    monkeypatch.setattr(remotion, "bundle", lambda **kwargs: SimpleNamespace(
-        path=bundle, build_seconds=0.02, cache_seconds=0.01,
-        cache_status="hit", cache_key="perf-test", cache_detail="测试替身"))
-    monkeypatch.setattr(output_validation, "verify_output", lambda *args, **kwargs: None)
-    monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda video: None)
-    monkeypatch.setattr(render_pipeline.security, "grant_inherited_access", lambda path: True)
-
-    def fake_session(**kwargs):
-        params = kwargs["on_metadata"](remotion.CompositionMetadata(
-            fps=financial.FPS, width=financial.WIDTH, height=financial.HEIGHT,
-            duration_in_frames=total_frames))
-        Path(params["out"]).write_bytes(b"fake video")
-        return {"readySeconds": 0.03, "browsersOpened": 1}
-
-    monkeypatch.setattr(remotion, "render_session", fake_session)
-
-    output = financial_render.render(root, docs, preview=True, limit_frames=2, output=destination)
-    assert output == destination
-    report = json.loads(perf.report_path_for(output).read_text(encoding="utf-8"))
-    assert report["entry"] == "preview"
-    assert (report["frames"], report["fps"], report["width"], report["height"]) == (
-        2, financial.FPS, financial.WIDTH, financial.HEIGHT)
-    assert report["cache"]["status"] == "hit"
-    assert report["stages"]["bundle"] == pytest.approx(0.02)
-    assert report["stages"]["cache"] == pytest.approx(0.01)
-    assert report["stages"]["metadata"] == pytest.approx(0.03)
-    # 无声合成：音轨阶段不存在，必须标为跳过而不是 0 秒
-    assert report["stages"]["mux"] is None and "mux" in report["skipped"]
-    # 浏览器只开一次，且会话信息留在报告里（`extra` 的键并入报告根）
-    assert report["session"]["browsersOpened"] == 1

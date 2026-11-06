@@ -8,7 +8,7 @@
   `prepared` 时间轴，输出字数、旁白窗口、平均字速、静音分布与归因限制。
 
 它不再次解码音轨、不调用 ffmpeg，也不参与审美通过与否：没有最低字速、最长静音
-或静音占比阈值。字幕阅读上限仍由 `types/general/reading_pace.py` 独立报告。
+或静音占比阈值。字幕阅读上限仍由 `types/scene_film/reading_pace.py` 独立报告。
 """
 from __future__ import annotations
 

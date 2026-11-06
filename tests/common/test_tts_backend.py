@@ -10,7 +10,7 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_project
 from m2v.engine import tts
-from m2v.types.general import adapter
+from m2v.types.scene_film import adapter
 from conftest import create_typed_project
 
 pytestmark = pytest.mark.media
@@ -24,7 +24,7 @@ def _tone(path: Path, seconds: float) -> None:
 
 
 def _project(tmp_path: Path, plan: dict, tts_config: dict | None = None) -> tuple[Path, dict]:
-    from helpers.general import project
+    from helpers.scene_film import project
     root, manifest = project(tmp_path, plan)
     manifest.pop("tts", None)
     if tts_config is not None:
@@ -65,12 +65,12 @@ def test_resolve_prefers_explicit_over_project_configuration() -> None:
 
 
 def _speaking_plan() -> dict:
-    from helpers.general import board
+    from helpers.scene_film import board
     return board()
 
 
 def _prepare_with_capture(root: Path, manifest: dict, monkeypatch) -> dict:
-    from helpers.general import fake_tts
+    from helpers.scene_film import fake_tts
     calls = fake_tts(monkeypatch)
     prepared = adapter.prepare(root, manifest)
     prepared["_seen"] = {"voice": calls[0][1], "rate": calls[0][2]}

@@ -74,11 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project", required=True)
 
     args = parser.parse_args(argv)
-    from m2v.types.general import media_assets
-    from m2v.types.general.explainer_render import current
+    from m2v.types.scene_film import media_assets
+    from m2v.types.scene_film.explainer_render import current
     root, manifest = load_project(args.project)
-    if manifest["type"] != "general":
-        raise M2VError("m2v assets audit 仅适用于 general 作品")
+
     prepared = current(root, manifest)
     report = audit(root, prepared, media_assets.load_record(root))
     print(json.dumps({"status": report["status"], "problems": report["problems"],

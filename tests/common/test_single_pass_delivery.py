@@ -80,14 +80,12 @@ def test_concurrent_export_rejected_and_input_change_discards(tmp_path):
     assert not list((tmp_path / "candidates").glob("*.mp4"))
 
 
-@pytest.mark.parametrize("kind", ["general", "financial"])
-def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch, kind):
+def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch):
     from m2v.core import project as project_module
     from m2v.engine import output_validation, render_pipeline
-    from m2v.types.general import explainer_render
-    from m2v.types.financial import financial, financial_render
-    module = {"general": explainer_render, "financial": financial_render}[kind]
-    project = {"id": "test", "type": kind}
+    from m2v.types.scene_film import explainer_render
+    module = explainer_render
+    project = {"id": "test", "type": "text-motion"}
     prepared = {"preparedFingerprint": "current", "durationInFrames": 1200, "width": 1920,
                 "height": 1080, "fps": 30}
     monkeypatch.setattr(project_module, "load_project", lambda _: (tmp_path, project))
@@ -100,17 +98,10 @@ def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch
         kwargs["output"].parent.mkdir(parents=True, exist_ok=True)
         kwargs["output"].write_bytes(b"full")
         return kwargs["output"]
-    if kind == "general":
-        monkeypatch.setattr(module, "_generate", generate)
-        monkeypatch.setattr(module, "current", lambda *_: prepared)
-        monkeypatch.setattr(module, "layout_check", lambda *_: {})
-        material = project
-    else:
-        # 无声类型共用 `render_pipeline`：替身必须打在管线上，而不是类型模块上。
-        monkeypatch.setattr(render_pipeline, "generate", generate)
-        monkeypatch.setattr(render_pipeline, "assert_no_audio", lambda _: None)
-        monkeypatch.setattr(financial, "render_inputs_digest", lambda _: "inputs")
-        material = {"plan": {"durationSeconds": 20}}
+    monkeypatch.setattr(module, "_generate", generate)
+    monkeypatch.setattr(module, "current", lambda *_: prepared)
+    monkeypatch.setattr(module, "layout_check", lambda *_: {})
+    material = project
     module.render(tmp_path, material)
     module.render(tmp_path, material)
     assert len(calls) == 1
@@ -119,7 +110,7 @@ def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch
 
 def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, monkeypatch):
     from m2v.core import frames
-    from m2v.types.general import code_scenes, media_assets
+    from m2v.types.scene_film import code_scenes, media_assets
     monkeypatch.setattr(media_assets, "resolve", lambda _: {"media": {}, "digest": "m"})
     calls = []
     def record(root, scene, inputs, **kwargs):

@@ -1,0 +1,494 @@
+{
+  "version": 9,
+  "schemaVersion": 9,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "折叠：一颗珠子改掉一个细胞",
+  "input": {
+    "kind": "topic",
+    "topic": "血红蛋白第 6 位氨基酸改变如何使红细胞变成镰刀形"
+  },
+  "targetSeconds": 33,
+  "scenes": [
+    {
+      "id": "chain",
+      "template": "code",
+      "keywords": [
+        "血红蛋白",
+        "珠子",
+        "氨基酸"
+      ],
+      "durationFrames": 132,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "chain",
+            "index": "01",
+            "character": "珠",
+            "title": "一串珠子",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 14,
+              "endFrame": 126,
+              "text": "你的血里，有一条血红蛋白链"
+            }
+          ],
+          "clock": {
+            "startSeconds": 0.0
+          }
+        }
+      }
+    },
+    {
+      "id": "mutation",
+      "template": "code",
+      "keywords": [
+        "镰状细胞",
+        "突变",
+        "谷氨酸"
+      ],
+      "durationFrames": 120,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "mutation",
+            "index": "02",
+            "character": "错",
+            "title": "第 6 颗",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 48,
+              "endFrame": 114,
+              "text": "第 6 颗，E 换成了 V"
+            }
+          ],
+          "clock": {
+            "startSeconds": 4.4
+          }
+        }
+      }
+    },
+    {
+      "id": "sickle",
+      "template": "code",
+      "keywords": [
+        "红细胞",
+        "镰刀形",
+        "细胞形状"
+      ],
+      "durationFrames": 126,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "sickle",
+            "index": "03",
+            "character": "形",
+            "title": "弯下去",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 16,
+              "endFrame": 118,
+              "text": "整颗细胞跟着弯了下去"
+            }
+          ],
+          "clock": {
+            "startSeconds": 8.4
+          }
+        }
+      }
+    },
+    {
+      "id": "question",
+      "template": "code",
+      "keywords": [
+        "血红蛋白",
+        "氧气",
+        "提问"
+      ],
+      "durationFrames": 72,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "question",
+            "index": "04",
+            "character": "问",
+            "title": "凭什么",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 66,
+              "text": "一颗珠子，怎么能做到？"
+            }
+          ],
+          "clock": {
+            "startSeconds": 12.6
+          }
+        }
+      }
+    },
+    {
+      "id": "fold",
+      "template": "code",
+      "keywords": [
+        "蛋白质折叠",
+        "氧气",
+        "结合位点"
+      ],
+      "durationFrames": 126,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "fold",
+            "index": "05",
+            "character": "折",
+            "title": "先折叠",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 0,
+              "endFrame": 118,
+              "text": "它先折起来，才抓得住氧气"
+            }
+          ],
+          "clock": {
+            "startSeconds": 15.0
+          }
+        }
+      }
+    },
+    {
+      "id": "sticky",
+      "template": "code",
+      "keywords": [
+        "黏点",
+        "血红蛋白",
+        "表面"
+      ],
+      "durationFrames": 108,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "sticky",
+            "index": "06",
+            "character": "黏",
+            "title": "露出来",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 14,
+              "endFrame": 100,
+              "text": "脱氧后，错的那颗露在外面，会粘住下一个"
+            }
+          ],
+          "clock": {
+            "startSeconds": 19.2
+          }
+        }
+      }
+    },
+    {
+      "id": "rod",
+      "template": "code",
+      "keywords": [
+        "多聚",
+        "长杆",
+        "脱氧"
+      ],
+      "durationFrames": 96,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "rod",
+            "index": "07",
+            "character": "连",
+            "title": "连成杆",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 88,
+              "text": "脱氧状态下，一个接一个连成长杆"
+            }
+          ],
+          "clock": {
+            "startSeconds": 22.8
+          }
+        }
+      }
+    },
+    {
+      "id": "push",
+      "template": "code",
+      "keywords": [
+        "镰状细胞",
+        "长杆",
+        "细胞膜"
+      ],
+      "durationFrames": 96,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "push",
+            "index": "08",
+            "character": "顶",
+            "title": "从里面撑",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 12,
+              "endFrame": 88,
+              "text": "2.7 亿个血红蛋白，把细胞撑弯"
+            }
+          ],
+          "clock": {
+            "startSeconds": 26.0
+          }
+        }
+      }
+    },
+    {
+      "id": "closing",
+      "template": "code",
+      "keywords": [
+        "镰状细胞病",
+        "Pauling",
+        "Ingram"
+      ],
+      "durationFrames": 114,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "entry": "scenes/fold.tsx",
+        "props": {
+          "chapter": {
+            "id": "closing",
+            "index": "09",
+            "character": "结",
+            "title": "一颗珠子",
+            "caption": ""
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 10,
+              "endFrame": 108,
+              "text": "一颗珠子，改掉了一个细胞的形状"
+            }
+          ],
+          "credit": "L. Pauling 等 1949 · V. Ingram 1957",
+          "clock": {
+            "startSeconds": 29.2
+          }
+        }
+      }
+    }
+  ],
+  "soundtrack": {
+    "effects": [
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 6,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 11,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 16,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 21,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 26,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 31,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 36,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 41,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 46,
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 51,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 56,
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "chain",
+        "offsetFrames": 61,
+        "gainDb": -24
+      },
+      {
+        "assetId": "flip",
+        "sceneId": "mutation",
+        "offsetFrames": 40,
+        "gainDb": -20
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "mutation",
+        "offsetFrames": 44,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "sickle",
+        "offsetFrames": 70,
+        "gainDb": -22
+      },
+      {
+        "assetId": "shimmer",
+        "sceneId": "fold",
+        "offsetFrames": 60,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "fold",
+        "offsetFrames": 100,
+        "gainDb": -26
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "sticky",
+        "offsetFrames": 30,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 28,
+        "gainDb": -28
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 34,
+        "gainDb": -26
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 40,
+        "gainDb": -24
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 46,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 52,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 58,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 64,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "rod",
+        "offsetFrames": 70,
+        "gainDb": -22
+      },
+      {
+        "assetId": "thud",
+        "sceneId": "push",
+        "offsetFrames": 60,
+        "gainDb": -22
+      },
+      {
+        "assetId": "chord",
+        "sceneId": "closing",
+        "offsetFrames": 10,
+        "gainDb": -18
+      }
+    ]
+  }
+}

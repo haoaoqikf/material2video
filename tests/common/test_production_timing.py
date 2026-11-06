@@ -58,7 +58,7 @@ def test_reuse_binds_actual_sources_and_expires_after_source_edit(project, monke
 
 
 @pytest.mark.media
-@pytest.mark.parametrize('mutation', ['font-edit', 'font-missing', 'registry-edit', 'style-font-edit'])
+@pytest.mark.parametrize('mutation', ['font-edit', 'font-missing', 'registry-edit'])
 def test_math_font_change_expires_capture_and_reused_timing(project, tmp_path, monkeypatch, mutation):
     root, manifest, c = project
     web = tmp_path / 'runtime/web'
@@ -72,23 +72,11 @@ def test_math_font_change_expires_capture_and_reused_timing(project, tmp_path, m
     write(registry, {'fonts': [{'id': 'math'}]})
     monkeypatch.setattr('m2v.engine.contract_page.web_dir', lambda: web)
     (root / 'scenes/one.tsx').write_text("import {font} from 'm2v/code-scene/math'; export default font;", encoding='utf-8')
-    if mutation == 'style-font-edit':
-        package = web.parent / 'styles/math-style'
-        package.mkdir(parents=True)
-        (package / 'guide.md').write_text('图示', encoding='utf-8')
-        (package / 'math.jsx').write_text("export {font} from './forward';", encoding='utf-8')
-        (package / 'forward.js').write_text("export {font} from 'm2v/code-scene/math';", encoding='utf-8')
-        write(package / 'style.json', dict(schemaVersion=1,id='math-style',version='1.0.0',description='公式',
-            types=['general'],frames=[dict(width=1920,height=1080)],guide='guide.md',
-            components={'math-block':'math.jsx'}))
-        write(root / 'project.json', dict(type='general',style={'id':'math-style'}))
-        monkeypatch.setattr('m2v.core.styles.STYLES_ROOT', package.parent)
-        (root / 'scenes/one.tsx').write_text("import {font} from 'm2v/style/components/math-block'; export default font;", encoding='utf-8')
     source = capture_report(root, c)
     ledger.register(root, manifest, source)
     timing_report = checks.run(root, manifest, 'G3', timing_reports=[source.relative_to(outputs(root)).as_posix()])[0]
     ledger.register(root, manifest, timing_report)
-    if mutation in ('font-edit', 'style-font-edit'):
+    if mutation == 'font-edit':
         font.write_bytes(b'font-v2')
     elif mutation == 'font-missing':
         font.unlink()
@@ -152,10 +140,11 @@ def test_animatic_limits_scope_and_maps_original_windows(project):
 def test_expired_historical_recheck_does_not_hide_new_valid_recheck(project, monkeypatch):
     root, _, c = project
     original = {'type': 'review', 'gate': 'G3', 'sceneId': None, 'checkpointId': None, 'time': '1',
+        'upstream': {'cycle': c['cycleId']},
         'data': {'verdict': 'fail', 'roundId': 'first', 'reviewerId': 'R1', 'reviewType': 'blind',
                  'coverage': [{'checkpointId': 'one-cp'}]}}
     good = {'type': 'review', 'gate': 'G3', 'sceneId': None, 'checkpointId': None, 'time': '3',
-        'upstream': {'current': True}, 'evidence': [{'path': 'good.json', 'sha256': 'pass'}],
+        'upstream': {'current': True, 'cycle': c['cycleId']}, 'evidence': [{'path': 'good.json', 'sha256': 'pass'}],
         'data': {'verdict': 'pass', 'round': 'core', 'isolation': 'independent-subagent', 'reviewType': 'blind',
                  'reportId': 'pass', 'coverage': [{'checkpointId': 'one-cp', 'status': 'pass', 'assessment': {
                      name: {'status': 'pass', 'observations': '当前观察'}
@@ -164,7 +153,7 @@ def test_expired_historical_recheck_does_not_hide_new_valid_recheck(project, mon
     def upstream(root, c, event):
         if event is stale:
             raise M2VError('历史时序来源已过期')
-        return {'current': True}
+        return {'current': True, 'cycle': c['cycleId']}
     monkeypatch.setattr(ledger, 'event_upstream', upstream)
     monkeypatch.setattr(ledger, 'evidence_valid', lambda *_: True)
     item = {'id': 'REVIEW-first-R1', 'gate': 'G3', 'sceneId': None,

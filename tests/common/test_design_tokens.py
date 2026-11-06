@@ -8,7 +8,7 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core import frames
 from m2v.engine import design_tokens
-from m2v.types.general import explainer_render
+from m2v.types.scene_film import explainer_render
 
 SAMPLE = """
 :root { color-scheme: dark; }

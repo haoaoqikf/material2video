@@ -1,6 +1,8 @@
 # 汽车展示视频专题
 
-本文定义 `vehicle-showcase` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/specs/vehicle-showcase/spec.md) 为准。
+本文定义三维空间作品可选的 `vehicle-model` 结构化来源及 `VehicleScene` 场景。作品仍使用 project v2、分镜 v9 和统一制作链路；当前行为以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。
+
+在分镜 `sources` 中声明 `{"showcase":"showcase.json","assets":"manifest.json"}` 两个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `m2v/code-scene/sources` 导入 `VehicleScene`。分镜幕时长须与来源一致。模型与贴图留在作品目录，准备时纳入指纹。
 
 ## 材料
 
@@ -13,11 +15,11 @@
 ## 命令
 
 ```powershell
-uv run m2v init --type vehicle-showcase --project <slug>
-uv run m2v validate --project videos/vehicle-showcase/<slug>
-uv run m2v prepare --project videos/vehicle-showcase/<slug>
-uv run m2v preview --project videos/vehicle-showcase/<slug> --start-seconds 0 --end-seconds 4
-uv run m2v render --project videos/vehicle-showcase/<slug>
+uv run m2v init --type spatial-3d --project <slug>
+uv run m2v validate --project videos/spatial-3d/<slug>
+uv run m2v prepare --project videos/spatial-3d/<slug>
+uv run m2v preview --project videos/spatial-3d/<slug> --start-seconds 0 --end-seconds 4
+uv run m2v render --project videos/spatial-3d/<slug>
 ```
 
 ## 画面与边界

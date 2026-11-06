@@ -17,6 +17,7 @@ export type MediaAsset = {
 };
 
 export type SubtitleSafeArea = {x: number; y: number; width: number; height: number};
+export type PreparedSceneSource = {kind: 'financial-series' | 'construction' | 'vehicle-model'; data: unknown};
 
 /** 作品声明 `capture.timebase: "global"` 时注入的全片时间轴。 */
 export type SceneTimeline = {
@@ -26,6 +27,8 @@ export type SceneTimeline = {
 };
 
 export type CodeSceneProps = {
+  /** 仅包含当前幕声明并通过准备校验的结构化来源。 */
+  sources?: Readonly<Record<string, PreparedSceneSource>>;
   /** 当前幕的事件 ID → 幕内整数帧；未声明事件时省略。 */
   eventFrames?: Readonly<Record<string, number>>;
   props: Record<string, unknown>; fps: number; durationInFrames: number;

@@ -218,10 +218,6 @@ def test_measure_screen_subtitle_safe_area_and_single_line():
     assert any(x['name'].startswith('屏幕字幕安全区') and x['status'] == 'pass' for x in nested)
 
 
-def test_non_general_needs_no_contract(tmp_path):
-    assert ledger.status(tmp_path, {'type': 'financial-timeseries'})['applicability'] == '专用类型契约'
-
-
 def test_local_source_change_does_not_expire_other_scene(project):
     root, _, c = project
     first = ledger.upstream(root, c, 'G4', 'one', 'one-cp')
@@ -297,7 +293,7 @@ def test_rough_player_uses_composition_without_full_encode(project, monkeypatch,
         'compiledScenes':[{'id':'one','startFrame':0,'endFrame':30,'durationInFrames':30,'transitionFrames':0,'transition':'cut','mediaPath':'clip.mp4'}]}
     prepared={'props':props,'durationInFrames':30,'fps':30,'width':1920,'height':1080}
     monkeypatch.setattr('m2v.commands._prepared',lambda *_:prepared)
-    monkeypatch.setattr('m2v.types.general.code_scenes.materialize',lambda *_:prepared)
+    monkeypatch.setattr('m2v.types.scene_film.code_scenes.materialize',lambda *_:prepared)
     monkeypatch.setattr('m2v.engine.lookdev.sample_audio',lambda *_:(False,None))
     monkeypatch.setattr(ledger,'status',lambda *_:{'scenes':[{'checkpointId':'one-cp','checkStatus':'通过','status':'通过'}],
         'gates':[{'gate':g,'evidenceStatus':'通过'} for g in ('G2','G3')]})

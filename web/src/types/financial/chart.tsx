@@ -14,7 +14,7 @@ type PricePoint = { date: ISODate; close: number };
 type FxPoint = { date: ISODate; close: number };
 type TimelineSegment = { frames: [number, number]; dates: [ISODate, ISODate]; kind: 'opening' | 'advance' | 'ending' };
 export type FinancialPlan = {
-  schemaVersion: 7 | 8; chartType: 'line';
+  schemaVersion: 8; chartType: 'line';
   durationSeconds: number; fps: number; canvas: { width: 1080; height: 1920 };
   axis: { dateRange: [ISODate, ISODate]; dateScale: 'staged-expanding'; valueScale: 'revealed-linear' };
   segments: TimelineSegment[];
@@ -68,20 +68,16 @@ export function framePosition(frame: number, plan: FinancialPlan): number {
   if (!segment) throw new Error(`帧 ${frame} 没有对应时间段`);
   const [startDate, endDate] = segment.dates;
   if (segment.kind !== 'advance') return epochDay(startDate);
-  if (plan.schemaVersion === 8 && frame === segment.frames[1] - 1) return epochDay(endDate);
-  if (plan.schemaVersion === 8) {
-    const anchors = plan.pacing!.anchors;
-    let low = 0; let high = anchors.length - 1;
-    while (low + 1 < high) {
-      const mid = (low + high) >>> 1;
-      if (anchors[mid]!.frame <= frame) low = mid;
-      else high = mid;
-    }
-    const left = anchors[low]!; const right = anchors[high]!;
-    return epochDay(left.date) + ((frame - left.frame) * (epochDay(right.date) - epochDay(left.date))) / (right.frame - left.frame);
+  if (frame === segment.frames[1] - 1) return epochDay(endDate);
+  const anchors = plan.pacing!.anchors;
+  let low = 0; let high = anchors.length - 1;
+  while (low + 1 < high) {
+    const mid = (low + high) >>> 1;
+    if (anchors[mid]!.frame <= frame) low = mid;
+    else high = mid;
   }
-  const [startFrame, endFrame] = segment.frames;
-  return epochDay(startDate) + ((frame - startFrame) * (epochDay(endDate) - epochDay(startDate))) / (endFrame - startFrame - 1);
+  const left = anchors[low]!; const right = anchors[high]!;
+  return epochDay(left.date) + ((frame - left.frame) * (epochDay(right.date) - epochDay(left.date))) / (right.frame - left.frame);
 }
 
 function lastPointIndex(points: PricePoint[], date: ISODate): number {

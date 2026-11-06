@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from m2v.core import source_policy
-from m2v.types.general import code_scenes
+from m2v.types.scene_film import code_scenes
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
@@ -48,8 +48,8 @@ def test_painter_passes_the_determinism_source_gate():
 @pytest.mark.parametrize("density", [1, 2])
 def test_offscreen_layer_composites_overlaps_once_at_capture_density(tmp_path, density):
     from playwright.sync_api import sync_playwright
-    from m2v.types.general import code_scenes
-    from helpers.general import prepare_build
+    from m2v.types.scene_film import code_scenes
+    from helpers.scene_film import prepare_build
 
     source = """
 import {useEffect} from 'react';
@@ -155,8 +155,8 @@ def test_painter_scene_builds_and_measures(monkeypatch, tmp_path):
     """
     from playwright.sync_api import sync_playwright
     from m2v.production import measure
-    from m2v.types.general import code_scenes
-    from helpers.general import prepare_build
+    from m2v.types.scene_film import code_scenes
+    from helpers.scene_film import prepare_build
 
     source = """
 import {useEffect} from 'react';
@@ -208,7 +208,7 @@ def test_painter_visibility_matches_pixels_and_measurement(tmp_path, density):
     """真实浏览器反例：不可见/部分显影不能靠透明代理把文字计划放行。"""
     from playwright.sync_api import sync_playwright
     from m2v.production import measure
-    from helpers.general import prepare_build
+    from helpers.scene_film import prepare_build
 
     source = """
 import {useEffect} from 'react';

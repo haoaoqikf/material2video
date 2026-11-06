@@ -212,8 +212,7 @@ def extract_audio(reference_dir: str | Path, project_dir: str | Path, *, stateme
         raise M2VError(f"参考视频缺失：{video['path']}")
 
     root, project = load_project(project_dir)
-    if project.get("type") != "general":
-        raise M2VError("ref audio 只适用于 general 作品")
+
     aweme_id = str(metadata.get("awemeId") or "")
     if not aweme_id:
         raise M2VError("参考元数据缺少作品 ID")

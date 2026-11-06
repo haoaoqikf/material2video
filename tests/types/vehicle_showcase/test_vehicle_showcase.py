@@ -1,4 +1,4 @@
-"""汽车展示类型：资产内嵌、节点校验与准备边界。"""
+"""三维空间汽车来源：资产内嵌、节点与镜头边界。"""
 from __future__ import annotations
 
 import hashlib
@@ -6,16 +6,13 @@ import json
 
 import pytest
 
-from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.types.vehicle_showcase import materials
 
 
 def write_project(tmp_path):
     root = tmp_path / "su7"
-    create_project(root, "vehicle-showcase", materials.MATERIALS,
-                   output={"width": 1920, "height": 1080})
+    root.mkdir()
     (root / "assets").mkdir()
     (root / "assets" / "data.bin").write_bytes(b"bin")
     (root / "assets" / "img.bin").write_bytes(b"img")
@@ -64,12 +61,6 @@ def test_assets_are_embedded_and_prepared(tmp_path):
     assert "data:image/webp;base64," not in docs["modelGltf"]
     assert "data:image/vnd.radiance;base64," in docs["studio"]["environment"]
     assert "data:image/jpeg;base64," in docs["studio"]["bodyAo"]
-    _, manifest = load_project(root)
-    assert main(["prepare", "--project", str(root)]) == 0
-    prepared = load_current_prepared(root, manifest)
-    assert prepared["durationInFrames"] == 900
-    assert prepared["props"]["modelGltf"] == docs["modelGltf"]
-    assert prepared["props"]["studio"]["floorNormal"] == docs["studio"]["floorNormal"]
 
 
 def test_showcase_v1_is_rejected(tmp_path):

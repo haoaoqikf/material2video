@@ -5,7 +5,8 @@
  * 反射目标每帧重渲染，不跨帧累积。模型与贴图解码完成前 delayRender 阻止截图。
  */
 import { useEffect, useRef, useState } from 'react';
-import { AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame } from 'remotion';
+import {SceneFill as AbsoluteFill} from '../../code-scene/scene-fill';
+import {useSceneContext} from '../../code-scene/context';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -214,7 +215,9 @@ void main() {
 `;
 
 export function VehicleShowcase(props: VehicleShowcaseProps) {
-  const frame = useCurrentFrame();
+  const {elapsedSeconds, ready: markReady} = useSceneContext();
+  const frame = Math.floor(elapsedSeconds * props.fps);
+  const announced = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<SceneState | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -224,7 +227,6 @@ export function VehicleShowcase(props: VehicleShowcaseProps) {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
     let disposed = false;
-    const handle = delayRender('加载 SU7 影棚场景', {timeoutInMilliseconds: 180_000});
     const cleanups: Array<() => void> = [];
 
     const build = async () => {
@@ -450,10 +452,8 @@ export function VehicleShowcase(props: VehicleShowcaseProps) {
       setReady(true);
     };
 
-    build().then(() => {
-      if (!disposed) continueRender(handle);
-    }).catch((error: unknown) => {
-      if (!disposed) cancelRender(error instanceof Error ? error : new Error(String(error)));
+    build().catch((error: unknown) => {
+      if (!disposed) throw error;
     });
 
     return () => {
@@ -469,10 +469,12 @@ export function VehicleShowcase(props: VehicleShowcaseProps) {
   useEffect(() => {
     const state = stateRef.current;
     if (!ready || !state) return;
-    const handle = delayRender('渲染 SU7 当前帧');
     drawFrame(state, frame, props);
-    continueRender(handle);
-  }, [frame, ready, props]);
+    if (!announced.current) {
+      announced.current = true;
+      markReady();
+    }
+  }, [frame, ready, props, markReady]);
 
   return <AbsoluteFill style={{background: '#000000'}}>
     <canvas ref={canvasRef} width={props.width} height={props.height}

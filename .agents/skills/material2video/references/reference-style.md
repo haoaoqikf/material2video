@@ -12,7 +12,7 @@
 
 用户点名 material2video 已登记的外部参考项目（当前为 `vibe-knowledge-film` 的夜曲/寓言）时，先读[外部参考项目登记](external-reference-projects.md)确认来源、固定 commit、许可与受限项，再读对应的[项目制作指引](external-reference-projects.md#vibe-knowledge-film-项目使用指引)。
 
-这些登记**不是风格包**：不通过 `project.json` 的 `style.id` 选择，`m2v styles` 不显示，渲染链路不读取；外观仍按本文的 L1/L2/L3、八项指标与画幅转译执行。参考画面、字幕、贴图不得进入成片，受限资产不得复制。
+这些登记**不是风格包**：不通过作品配置选择，`m2v types` 不显示，渲染链路不读取；外观仍按本文的 L1/L2/L3、八项指标与画幅转译执行。参考画面、字幕、贴图不得进入成片，受限资产不得复制。
 
 ## 两条边界不能混
 

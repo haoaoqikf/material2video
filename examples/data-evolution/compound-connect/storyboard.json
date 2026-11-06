@@ -1,0 +1,524 @@
+{
+  "version": 9,
+  "schemaVersion": 9,
+  "title": "让积累，参与下一次",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "targetSeconds": 40,
+  "input": {
+    "kind": "topic",
+    "topic": "复利效应：成果参与下一轮。雪球是寓言；数字是初始100、每轮固定增长1%的理想模型，与每轮固定加1比较，不代表任何现实对象必然如此增长。"
+  },
+  "scenes": [
+    {
+      "id": "hook",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "理想模型",
+        "多种信息形式"
+      ],
+      "durationFrames": 330,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累，参与下一次",
+        "entry": "scenes/hook.tsx",
+        "props": {
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 2,
+            "blockFrames": 30,
+            "verifyFrames": 2
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 0,
+              "endFrame": 78,
+              "text": "从100开始，100轮后会怎样？"
+            },
+            {
+              "startFrame": 222,
+              "endFrame": 300,
+              "text": "雪球越大，下一次卷起的雪越多。"
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "number-lock",
+          "frame": 81
+        },
+        {
+          "id": "title-start",
+          "frame": 90
+        },
+        {
+          "id": "title-land",
+          "frame": 110
+        },
+        {
+          "id": "ball-hop",
+          "frame": 152
+        },
+        {
+          "id": "snow-start",
+          "frame": 210
+        },
+        {
+          "id": "snow-hit-1",
+          "frame": 238
+        },
+        {
+          "id": "snow-hit-2",
+          "frame": 272
+        },
+        {
+          "id": "snow-impact",
+          "frame": 288
+        },
+        {
+          "id": "snow-wipe",
+          "frame": 300
+        },
+        {
+          "id": "roll-0",
+          "frame": 5
+        },
+        {
+          "id": "roll-1",
+          "frame": 16
+        },
+        {
+          "id": "roll-2",
+          "frame": 28
+        },
+        {
+          "id": "roll-3",
+          "frame": 40
+        },
+        {
+          "id": "roll-4",
+          "frame": 50
+        },
+        {
+          "id": "roll-5",
+          "frame": 59
+        },
+        {
+          "id": "roll-6",
+          "frame": 67
+        },
+        {
+          "id": "roll-7",
+          "frame": 73
+        }
+      ]
+    },
+    {
+      "id": "proof",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "理想模型",
+        "多种信息形式"
+      ],
+      "durationFrames": 540,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累，参与下一次",
+        "entry": "scenes/proof.tsx",
+        "props": {
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 2,
+            "blockFrames": 30,
+            "verifyFrames": 2
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 8,
+              "endFrame": 144,
+              "text": "多出来的，也留给下一轮。"
+            },
+            {
+              "startFrame": 190,
+              "endFrame": 304,
+              "text": "开始差不多，后来逐渐拉开。"
+            },
+            {
+              "startFrame": 310,
+              "endFrame": 352,
+              "text": "差距出现了。"
+            },
+            {
+              "startFrame": 388,
+              "endFrame": 474,
+              "text": "差距，正在放大。"
+            },
+            {
+              "startFrame": 482,
+              "endFrame": 530,
+              "text": "从0.46，扩大到70.48。"
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "row-1",
+          "frame": 20
+        },
+        {
+          "id": "row-2",
+          "frame": 64
+        },
+        {
+          "id": "row-3",
+          "frame": 108
+        },
+        {
+          "id": "table-flight",
+          "frame": 150
+        },
+        {
+          "id": "curve-start",
+          "frame": 180
+        },
+        {
+          "id": "curve-run",
+          "frame": 194
+        },
+        {
+          "id": "curve-result",
+          "frame": 320
+        },
+        {
+          "id": "bars-start",
+          "frame": 360
+        },
+        {
+          "id": "bar-10",
+          "frame": 378
+        },
+        {
+          "id": "bar-50",
+          "frame": 426
+        },
+        {
+          "id": "bar-100",
+          "frame": 474
+        },
+        {
+          "id": "bar-flash",
+          "frame": 494
+        },
+        {
+          "id": "exponent-flight",
+          "frame": 522
+        }
+      ]
+    },
+    {
+      "id": "resolution",
+      "template": "code",
+      "keywords": [
+        "复利效应",
+        "理想模型",
+        "多种信息形式"
+      ],
+      "durationFrames": 330,
+      "transition": "cut",
+      "narrationSegments": [],
+      "content": {
+        "title": "让积累，参与下一次",
+        "entry": "scenes/resolution.tsx",
+        "props": {
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 2,
+            "blockFrames": 30,
+            "verifyFrames": 2
+          },
+          "screenSubtitles": [
+            {
+              "startFrame": 8,
+              "endFrame": 163,
+              "text": "每一轮，都站在上一轮之上。"
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "formula-base",
+          "frame": 12
+        },
+        {
+          "id": "formula-rate",
+          "frame": 40
+        },
+        {
+          "id": "exponent-land",
+          "frame": 67
+        },
+        {
+          "id": "answer-count",
+          "frame": 78
+        },
+        {
+          "id": "answer-lock",
+          "frame": 123
+        },
+        {
+          "id": "answer-release",
+          "frame": 168
+        },
+        {
+          "id": "closing-land",
+          "frame": 192
+        },
+        {
+          "id": "closing-settle",
+          "frame": 218
+        }
+      ]
+    }
+  ],
+  "soundtrack": {
+    "effects": [
+      {
+        "assetId": "spark",
+        "sceneId": "hook",
+        "eventId": "number-lock",
+        "gainDb": -9
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "hook",
+        "eventId": "title-start",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "hook",
+        "eventId": "title-land",
+        "gainDb": -8
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "hook",
+        "eventId": "ball-hop",
+        "gainDb": -14
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "hook",
+        "eventId": "snow-start",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "hook",
+        "eventId": "snow-hit-1",
+        "gainDb": -11
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "hook",
+        "eventId": "snow-hit-2",
+        "gainDb": -9
+      },
+      {
+        "assetId": "release",
+        "sceneId": "hook",
+        "eventId": "snow-impact",
+        "gainDb": -5
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "hook",
+        "eventId": "snow-wipe",
+        "gainDb": -9
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "proof",
+        "eventId": "row-1",
+        "gainDb": -16
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "proof",
+        "eventId": "row-2",
+        "gainDb": -14
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "proof",
+        "eventId": "row-3",
+        "gainDb": -12
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "proof",
+        "eventId": "table-flight",
+        "gainDb": -13
+      },
+      {
+        "assetId": "spark",
+        "sceneId": "proof",
+        "eventId": "curve-start",
+        "gainDb": -15
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "proof",
+        "eventId": "curve-result",
+        "gainDb": -12
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "proof",
+        "eventId": "bars-start",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "proof",
+        "eventId": "bar-10",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "proof",
+        "eventId": "bar-50",
+        "gainDb": -10
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "proof",
+        "eventId": "bar-100",
+        "gainDb": -8
+      },
+      {
+        "assetId": "release",
+        "sceneId": "proof",
+        "eventId": "bar-flash",
+        "gainDb": -6
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "proof",
+        "eventId": "exponent-flight",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "resolution",
+        "eventId": "formula-base",
+        "gainDb": -12
+      },
+      {
+        "assetId": "spark",
+        "sceneId": "resolution",
+        "eventId": "formula-rate",
+        "gainDb": -12
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "resolution",
+        "eventId": "exponent-land",
+        "gainDb": -10
+      },
+      {
+        "assetId": "rolling",
+        "sceneId": "resolution",
+        "eventId": "answer-count",
+        "gainDb": -20
+      },
+      {
+        "assetId": "release",
+        "sceneId": "resolution",
+        "eventId": "answer-lock",
+        "gainDb": -3
+      },
+      {
+        "assetId": "travel",
+        "sceneId": "resolution",
+        "eventId": "answer-release",
+        "gainDb": -13
+      },
+      {
+        "assetId": "spark",
+        "sceneId": "resolution",
+        "eventId": "closing-land",
+        "gainDb": -8
+      },
+      {
+        "assetId": "contact",
+        "sceneId": "resolution",
+        "eventId": "closing-settle",
+        "gainDb": -12
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-0",
+        "gainDb": -25
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-1",
+        "gainDb": -24
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-2",
+        "gainDb": -23
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-3",
+        "gainDb": -22
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-4",
+        "gainDb": -21
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-5",
+        "gainDb": -20
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-6",
+        "gainDb": -19
+      },
+      {
+        "assetId": "tick",
+        "sceneId": "hook",
+        "eventId": "roll-7",
+        "gainDb": -18
+      }
+    ],
+    "silence": [
+      {
+        "startFrame": 972,
+        "endFrame": 988,
+        "fadeFrames": 3
+      }
+    ]
+  }
+}

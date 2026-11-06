@@ -21,48 +21,40 @@ from m2v.type_system import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
-    if args.command == "styles":
-        from m2v.core.styles import list_styles
-        items = list_styles()
-        if args.json:
-            print(json.dumps(items, ensure_ascii=False, indent=2))
-        else:
-            print("\n".join(f"{x['id']} {x['version']} — {x['description']}" for x in items) or "暂无已注册风格")
-        return 0
     if args.command in {"gates", "issues", "baseline"} or (args.command == "review" and getattr(args, "action", None) == "import"):
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
-        entries = catalog.catalog()
         listing = []
         for item in registry.all_types():
-            entry = entries.get(item.name) if entries.has(item.name) else None
-            category = entries.category(entry.category) if entry and entry.category else None
             listing.append({
                 "type": item.name,
                 "description": registry.describe(item.name),
-                "category": category.id if category else None,
-                "categoryTitle": category.title if category else None,
             })
         print(json.dumps(listing, ensure_ascii=False, indent=2))
         return 0
-    if args.command == "general":
-        from m2v.types.general import explainer_cli as workflow
+    if args.command == "author":
+        from m2v.types.scene_film import explainer_cli as workflow
         return workflow.main([args.workflow, *args.options])
     if args.command == "ref":
         from m2v.reference.cli import main as reference_main
         return reference_main(args)
-    if args.command == "financial":
+    if args.command == "data":
         root, manifest = load_project(args.project)
-        if manifest["type"] != "financial-timeseries":
-            raise M2VError("m2v financial 仅适用于 financial-timeseries 作品")
-        from m2v.types.financial.financial import prepare_line_plan, migrate_line
-        if args.workflow == "migrate-line":
-            backup = migrate_line(root, args.duration_seconds if args.duration_seconds is not None else 60)
-            print(f"已升级金融计划到 v8；备份：{backup}。请重新 prepare、preview 和 review。")
-            return 0
-        plan = prepare_line_plan(root, args.duration_seconds)
-        (root / manifest["materials"]["plan"]).write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if manifest["type"] != "data-evolution":
+            raise M2VError("m2v data financial-plan 仅适用于数据演化作品")
+        from m2v.types.scene_film.sources import validate as validate_sources
+        storyboard = json.loads((root / manifest["materials"]["storyboard"]).read_text(encoding="utf-8-sig"))
+        if storyboard.get("version") != 9 or storyboard.get("schemaVersion") != 9:
+            raise M2VError("financial-plan 只接受 v9 分镜")
+        sources = validate_sources(root, storyboard, manifest["type"], allow_missing_financial_plan=True)
+        financial = [item["files"] for item in sources.values() if item["kind"] == "financial-series"]
+        if len(financial) != 1:
+            raise M2VError("financial-plan 需要分镜中恰好一个 financial-series 来源")
+        from m2v.types.financial.financial import prepare_line_plan
+        files = financial[0]
+        plan = prepare_line_plan(root, args.duration_seconds, files=files)
+        (root / files["plan"]).write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"已生成 {plan['durationSeconds']} 秒金融折线计划")
         return 0
     if args.command in {"lookdev", "qa", "assets"}:
@@ -111,15 +103,6 @@ def dispatch(args) -> int:
             out=args.out, as_json=args.json)
     if args.command == "init":
         return _init(args)
-    if args.command == "migrate":
-        from m2v.types.financial.migration import migrate
-        migrate(Path(args.project), args.source_format)
-        return 0
-    if args.command == "relocate":
-        from m2v.type_system.relocation import relocate
-        result = relocate(Path(args.project), content_root=args.content_root)
-        print(result.message)
-        return 0
     if args.command == "voices":
         return _list_voices(args.locale, args.json)
     return _project_command(args)
@@ -163,9 +146,8 @@ def _init(args) -> int:
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-    if item.name == 'general':
-        from m2v.production.storage import write
-        write(root / 'outputs/production/workflow.json', {'version': 1, 'origin': 'new-project'})
+    from m2v.production.storage import write
+    write(root / 'outputs/production/workflow.json', {'version': 1, 'origin': 'new-project'})
     print(f"已创建 {item.name} 作品：{path}")
     return 0
 
@@ -215,7 +197,7 @@ def _project_command(args) -> int:
             expected_outputs = (root / "outputs").resolve()
             failures = cleanup_after_render(expected_outputs, output_path,
                 preserve_previews=False,
-                preserve_visual_evidence=manifest["type"] == "general")
+                preserve_visual_evidence=True)
             if failures:
                 for failure in failures:
                     print(f"[warning] 旧产物清理未完成：{failure}", file=sys.stderr)
@@ -279,7 +261,7 @@ def _rhythm_option(args) -> dict:
 
 def _production_render_event(root: Path, manifest: dict, kind: str, *, candidate_id=None) -> None:
     """制作记录失败只报告诊断，不改变现有导出成功/失败结果。"""
-    if manifest['type'] != 'general' or not (root / 'DESIGN.md').exists():
+    if not (root / 'DESIGN.md').exists():
         return
     try:
         from m2v.production import contract, ledger
@@ -358,27 +340,20 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     video_type = registry.get(manifest["type"])
     result = {"id": manifest["id"], "type": manifest["type"],
               "review": {"status": "optional" if video_type.manual_review_available else "not-required", "required": False}}
-    from m2v.core.styles import selected_style
-    style = selected_style(manifest)
-    if style:
-        result["style"] = {**style["identity"], "guide": style["guide"]}
     from m2v.production import baselines, ledger
     result['production'] = ledger.status(root, manifest, full_history=full_history)
-    if manifest['type'] == 'general':
-        try:
-            result['production']['baselines'] = baselines.summary(root)
-        except M2VError as exc:
-            result['production'].setdefault('diagnostics', []).append(str(exc))
-    if manifest["type"] == "general":
-        result["review"]["detail"] = "技术就绪不代表制作完成；助手须复核全片帧序列和自动音频候选并关闭必改项，无需用户确认。"
+    try:
+        result['production']['baselines'] = baselines.summary(root)
+    except M2VError as exc:
+        result['production'].setdefault('diagnostics', []).append(str(exc))
+    result["review"]["detail"] = "技术就绪不代表制作完成；助手须复核全片帧序列和自动音频候选并关闭必改项，无需用户确认。"
     try:
         prepared = _prepared(root, manifest)
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
         result.update(prepare={"status": "stale-or-missing", "detail": str(exc)}, stage="unprepared")
-        if manifest['type'] == 'general':
-            from m2v.production.readiness import summary
-            result['summary'] = summary(result)
+        from m2v.production.readiness import summary
+        result['summary'] = summary(result)
         return result
     result["stage"] = "prepared"
     record = read_record(delivery_outputs(root))
@@ -396,9 +371,8 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             result["review"]["status"] = "pass"
         except M2VError as exc:
             result["review"].update(status="pending-or-stale", detail=str(exc))
-    if manifest['type'] == 'general':
-        from m2v.production.readiness import summary
-        result['summary'] = summary(result)
+    from m2v.production.readiness import summary
+    result['summary'] = summary(result)
     return result
 
 
@@ -442,20 +416,16 @@ def _require_type_review(video_type, root: Path, manifest: dict) -> None:
 def _validate_project_location(root: Path, manifest: dict) -> None:
     """Reject a project whose path disagrees with its type's canonical workspace location.
 
-    Canonical location is derived from the type catalog: categorized types live at
-    ``videos/<category>/<type>/<slug>`` and uncategorized types at
-    ``videos/<type>/<slug>``. Style examples live under
-    ``styles/<style-id>/examples/<slug>/`` and are content, not type directories.
+    Canonical location is ``videos/<type>/<slug>``. Repository examples live at
+    ``examples/<type>/<slug>/`` and keep their own project manifests.
     """
     try:
         index = max(position for position, part in enumerate(root.parts) if part == "videos")
     except ValueError:
         return
     actual_parts = root.parts[index + 1:]
-    # 只校验可识别的规范深度（未分类 2 段、分类 3 段）。更浅的旧路径由
-    # relocate 处理；更深或只是祖先目录恰好名为 videos 时不做误判。
-    if len(actual_parts) not in (2, 3):
-        return
+    if len(actual_parts) != 2:
+        raise M2VError("作品位置必须为 videos/<type>/<slug>；旧目录不自动迁移")
     entry = catalog.catalog().get(manifest["type"])
     expected_parts = (*entry.workspace_parts(), root.name)
     if actual_parts == expected_parts:
@@ -463,6 +433,6 @@ def _validate_project_location(root: Path, manifest: dict) -> None:
     actual = Path("videos", *actual_parts).as_posix()
     standard = Path("videos", *entry.workspace_parts(), "<slug>").as_posix()
     raise M2VError(
-        f"作品位置与类型类别不匹配：project.json 声明 {manifest['type']}，"
-        f"实际位于 {actual}，标准位置为 {standard}；请执行 m2v relocate"
+        f"作品位置与类型不匹配：project.json 声明 {manifest['type']}，"
+        f"实际位于 {actual}，标准位置为 {standard}"
     )

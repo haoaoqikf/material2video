@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 
-SCRIPT = Path(__file__).resolve().parents[3] / "styles/vibe-night/examples/fold/tools/gen_layout.py"
+SCRIPT = Path(__file__).resolve().parents[3] / "examples/text-motion/fold/tools/gen_layout.py"
 SPEC = importlib.util.spec_from_file_location("fold_layout_generator", SCRIPT)
 assert SPEC and SPEC.loader
 layout_generator = importlib.util.module_from_spec(SPEC)

@@ -15,7 +15,7 @@ from .storage import local, receipt, write
 
 def build(root: Path, manifest: dict) -> Path:
     from m2v.commands import _prepared
-    from m2v.types.general import code_scenes
+    from m2v.types.scene_film import code_scenes
     from m2v.engine.contract_page import web_dir
     from m2v.engine.lookdev import sample_audio
     state = ledger.status(root, manifest)

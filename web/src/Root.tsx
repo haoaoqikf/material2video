@@ -1,80 +1,29 @@
-import { BUILDING_FPS, FPS, GENERAL_DEFAULT_FPS, VEHICLE_SHOWCASE_FPS } from './video-config';
+import { DEFAULT_FPS } from './video-config';
 import type { FC } from 'react';
 import { Composition } from 'remotion';
-import { ArticleExplainer, type ArticleExplainerProps } from './types/general/ArticleExplainer';
-import { BuildingConstruction, type BuildingProps } from './types/building_construction/BuildingConstruction';
-import { FinancialTimeSeries, type FinancialTimeSeriesProps } from './types/financial/FinancialTimeSeries';
-import { VehicleShowcase, type VehicleShowcaseProps } from './types/vehicle_showcase/VehicleShowcase';
+import { SceneFilm, type SceneFilmProps } from './scene-film/SceneFilm';
 import { DEFAULT_FRAME } from './frames';
 import './styles/index.css';
 
 /**
- * 注册全部 composition。
+ * 五类作品共用一个 composition。
  *
  * 时长、帧率与尺寸都从作品材料推导，**不在注册时写死**：材料是内容层的
- * 单一真源，画面参数必须由它推导，而不是两处维护。因此每个 composition
- * 都带 `calculateMetadata`，注册时的 `durationInFrames` 只是占位。
+ * 单一真源，画面参数必须由它推导，而不是两处维护。注册时的时长只是占位。
  */
 export const RemotionRoot: FC = () => {
   return (
-    <>
       <Composition
-        id="ArticleExplainer"
-        component={ArticleExplainer}
+        id="SceneFilm"
+        component={SceneFilm}
         durationInFrames={1}
-        fps={GENERAL_DEFAULT_FPS}
+        fps={DEFAULT_FPS}
         width={DEFAULT_FRAME.width}
         height={DEFAULT_FRAME.height}
-        defaultProps={{ version: 8, schemaVersion: 8, fps: GENERAL_DEFAULT_FPS, width: DEFAULT_FRAME.width,
+        defaultProps={{ version: 9, schemaVersion: 9, fps: DEFAULT_FPS, width: DEFAULT_FRAME.width,
           height: DEFAULT_FRAME.height, title: '', subtitle: DEFAULT_FRAME.subtitle,
-          durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as ArticleExplainerProps}
+          durationInFrames: 1, compiledScenes: [], subtitleCues: [] } as SceneFilmProps}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps, width: props.width, height: props.height })}
       />
-      <Composition
-        id="FinancialTimeSeries"
-        component={FinancialTimeSeries}
-        durationInFrames={180}
-        fps={FPS}
-        width={1080}
-        height={1920}
-        defaultProps={{} as FinancialTimeSeriesProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: props.durationInFrames,
-          fps: props.fps,
-          width: props.width,
-          height: props.height,
-        })}
-      />
-      <Composition
-        id="BuildingConstruction"
-        component={BuildingConstruction}
-        durationInFrames={1200}
-        fps={BUILDING_FPS}
-        width={1920}
-        height={1080}
-        defaultProps={{} as BuildingProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: props.durationInFrames,
-          fps: props.fps,
-          width: props.width,
-          height: props.height,
-        })}
-      />
-      <Composition
-        id="VehicleShowcase"
-        component={VehicleShowcase}
-        durationInFrames={900}
-        fps={VEHICLE_SHOWCASE_FPS}
-        width={1920}
-        height={1080}
-        defaultProps={{} as VehicleShowcaseProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: props.durationInFrames,
-          fps: props.fps,
-          width: props.width,
-          height: props.height,
-        })}
-      />
-    </>
   );
 };

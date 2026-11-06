@@ -150,14 +150,15 @@ def _embed_studio(root: Path, studio: dict[str, Any], manifest: dict[str, Any]) 
     return embedded
 
 
-def load_project(project_dir: str | Path) -> dict[str, Any]:
+def load_project(project_dir: str | Path, *, files: dict[str, str] | None = None) -> dict[str, Any]:
     root = Path(project_dir).resolve()
     if not root.is_dir():
         fail("作品目录", f"目录不存在：{root}")
+    names = files or MATERIALS
     show = validate_document(
-        Showcase, _load(root / MATERIALS["showcase"], SHOWCASE_VERSION), "showcase.json")
+        Showcase, _load(root / names["showcase"], SHOWCASE_VERSION), "showcase.json")
     manifest = validate_document(
-        Manifest, _load(root / MATERIALS["assets"], MANIFEST_VERSION), "manifest.json")
+        Manifest, _load(root / names["assets"], MANIFEST_VERSION), "manifest.json")
     _validate_showcase(show)
     _validate_manifest(manifest)
     for asset in manifest["assets"]:
@@ -183,33 +184,3 @@ def build_render_props(docs: dict[str, Any]) -> dict[str, Any]:
         "modelGltf": docs["modelGltf"],
         "studio": docs["studio"],
     }
-
-
-def render_inputs_digest(project_dir: str | Path) -> str:
-    root = Path(project_dir).resolve()
-    from m2v.core.assets import REPOSITORY_ROOT
-    import m2v.engine.remotion as remotion
-    from m2v.engine import render_pipeline
-
-    web = REPOSITORY_ROOT / "web"
-    web_inputs = remotion.build_inputs()
-    inputs: list[tuple[Path, Path]] = [(root, root / name) for name in MATERIALS.values()]
-    inputs.extend((web, path) for path in web_inputs if path.is_relative_to(web))
-    inputs.extend((REPOSITORY_ROOT, path) for path in web_inputs if not path.is_relative_to(web))
-    package = Path(__file__).resolve().parent
-    inputs.extend((package, path) for path in sorted(package.glob("*.py")))
-    inputs.append((REPOSITORY_ROOT, Path(render_pipeline.__file__)))
-    inputs.extend((REPOSITORY_ROOT, path) for path in remotion.implementation_files())
-    manifest = _load(root / MATERIALS["assets"], MANIFEST_VERSION)
-    for asset in manifest["assets"]:
-        inputs.append((root, root / asset["path"]))
-    digest = hashlib.sha256()
-    for base, path in inputs:
-        try:
-            content = path.read_bytes()
-        except OSError as exc:
-            fail("渲染输入摘要", f"无法读取绑定文件 {path.name}：{exc}")
-        digest.update(path.relative_to(base).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(hashlib.sha256(content).digest())
-    return digest.hexdigest()

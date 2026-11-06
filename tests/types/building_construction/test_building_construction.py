@@ -1,22 +1,24 @@
-"""建筑建造类型：初始化、v2 材料校验、选择器与镜头边界。"""
+"""三维空间建筑来源：v2 数据、构件、步骤与镜头边界。"""
 from __future__ import annotations
 
 import json
+import shutil
+from pathlib import Path
 
 import pytest
 
-from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.core.project import load_current_prepared, load_project
 from m2v.types.building_construction import materials
 from m2v.types.building_construction.components import build_components, expand_selector
 
 
+FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/sources/construction"
+
+
 def init_project(tmp_path):
-    assert main(["init", "--type", "building-construction", "--project", "demo",
-                 "--content-root", str(tmp_path)]) == 0
-    root, manifest = load_project(tmp_path / "videos/building-construction/demo")
-    return root, manifest
+    root = tmp_path / "construction"
+    shutil.copytree(FIXTURE, root)
+    return root, {"type": "spatial-3d"}
 
 
 def edit(path, mutate):
@@ -27,20 +29,6 @@ def edit(path, mutate):
 
 def step(data, step_id):
     return next(item for item in data["steps"] if item["id"] == step_id)
-
-
-def test_init_and_prepare_frames(tmp_path):
-    root, manifest = init_project(tmp_path)
-    assert manifest["type"] == "building-construction"
-    assert manifest["output"]["fps"] == 30
-    assert (manifest["output"]["width"], manifest["output"]["height"]) == (1920, 1080)
-    assert manifest["materials"] == materials.MATERIALS
-    assert main(["prepare", "--project", str(root)]) == 0
-    prepared = load_current_prepared(root, manifest)
-    assert prepared["durationInFrames"] == 1800
-    assert prepared["fps"] == 30
-    assert prepared["compositionId"] == "BuildingConstruction"
-    assert "components" in prepared["props"]
 
 
 def test_component_ids_are_stable_and_unique(tmp_path):

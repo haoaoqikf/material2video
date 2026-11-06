@@ -1,8 +1,6 @@
 import config from './video-config.json';
 
-/** 金融的固定帧率，来自跨语言配置。 */
+/** 五类共用的跨语言帧率配置。 */
 export const FPS = config.fps;
-export const BUILDING_FPS = config.buildingConstruction.defaultFps;
-export const VEHICLE_SHOWCASE_FPS = config.vehicleShowcase.defaultFps;
-export const GENERAL_DEFAULT_FPS = config.general.defaultFps;
-export const GENERAL_ALLOWED_FPS = config.general.allowedFps;
+export const DEFAULT_FPS = config.sceneFilm.defaultFps;
+export const ALLOWED_FPS = config.sceneFilm.allowedFps;

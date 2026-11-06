@@ -5,7 +5,8 @@
  * 与标签，不读取上一帧、挂钟或随机数。
  */
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame} from 'remotion';
+import {SceneFill as AbsoluteFill} from '../../code-scene/scene-fill';
+import {useSceneContext} from '../../code-scene/context';
 import * as THREE from 'three';
 import {
   baseOpacity, contactShadowTexture, createComponentObject, createGhost, createMaterials,
@@ -166,7 +167,9 @@ function drawFrame(state: SceneState, frame: number, props: BuildingProps): void
 }
 
 export function BuildingConstruction(props: BuildingProps) {
-  const frame = useCurrentFrame();
+  const {elapsedSeconds, ready: markReady} = useSceneContext();
+  const frame = Math.floor(elapsedSeconds * props.fps);
+  const announced = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<SceneState | null>(null);
   const [ready, setReady] = useState(false);
@@ -174,20 +177,15 @@ export function BuildingConstruction(props: BuildingProps) {
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const handle = delayRender('构建建筑三维场景');
-    let disposed = false;
     try {
       const state = buildScene(canvas, props);
       stateRef.current = state;
       setReady(true);
-      const finish = () => { if (!disposed) continueRender(handle); };
-      if (document.fonts?.ready) document.fonts.ready.then(finish).catch(finish);
-      else finish();
+      // 录制宿主会等待首帧绘制完成后由下方效果声明就绪。
     } catch (error) {
-      cancelRender(error instanceof Error ? error : new Error(String(error)));
+      throw error;
     }
     return () => {
-      disposed = true;
       const state = stateRef.current;
       stateRef.current = null;
       if (state) {
@@ -207,10 +205,12 @@ export function BuildingConstruction(props: BuildingProps) {
 
   useEffect(() => {
     if (!ready || !stateRef.current) return;
-    const handle = delayRender('绘制建筑当前帧');
     drawFrame(stateRef.current, frame, props);
-    continueRender(handle);
-  }, [frame, ready, props]);
+    if (!announced.current) {
+      announced.current = true;
+      markReady();
+    }
+  }, [frame, ready, props, markReady]);
 
   const overlay = useMemo(() => overlayFor(frame, props), [frame, props]);
   return <AbsoluteFill style={{background: BG}}>

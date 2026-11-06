@@ -2,12 +2,12 @@
 import {createRoot} from 'react-dom/client';
 import {Player} from '@remotion/player';
 import {Audio} from 'remotion';
-import {ArticleExplainer, type ArticleExplainerProps} from '../types/general/ArticleExplainer';
+import {SceneFilm, type SceneFilmProps} from '../scene-film/SceneFilm';
 import {ensureFonts} from '../fonts';
 
-type ReviewProps = ArticleExplainerProps & {reviewAudio?: string};
+type ReviewProps = SceneFilmProps & {reviewAudio?: string};
 const Review = (props: ReviewProps) => <>
-  <ArticleExplainer {...props}/>
+  <SceneFilm {...props}/>
   {props.reviewAudio ? <Audio src={props.reviewAudio}/> : null}
 </>;
 

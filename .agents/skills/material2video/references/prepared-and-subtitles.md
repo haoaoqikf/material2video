@@ -4,53 +4,53 @@
 > 准备/校验/预演/渲染工作流、语音缓存与失败处理、字幕断句与成片验收口径。
 > 音色、语速与停顿节奏见[配音音色与节奏](voice-and-rhythm.md)。
 > 文章叙事只记录正文计数，**不再限制 130～170 字，也不再限制 35～45 秒**；
-> 有旁白时长结合实际口播与声明的留白派生，无旁白代码幕按 `durationFrames` 或 `targetSeconds` 分配帧窗组织；通用 v8 全片上限为 600 秒（总帧数不超过 `600 × fps`）。分镜与时间轴契约以
-> [通用分镜 v8](storyboard-schema.md)、[文章媒体与音效](article-media-and-sound.md) 与
+> 有旁白时长结合实际口播与声明的留白派生，无旁白代码幕按 `durationFrames` 或 `targetSeconds` 分配帧窗组织；统一 v9 全片上限为 600 秒（总帧数不超过 `600 × fps`）。分镜与时间轴契约以
+> [五类统一分镜 v9](storyboard-schema.md)、[文章媒体与音效](article-media-and-sound.md) 与
 > [OpenSpec article-explainer](../../../../openspec/specs/article-explainer/spec.md) 为准。
 > v4 的媒体清单、`stages` 时间轴与语义节拍已随旧子系统删除，本文不再描述。
 
 ## 准备记录（`outputs/prepared.json`）
 
 配音与字幕不再有独立的媒体清单文件：`m2v prepare` 把配音、字幕与派生时间轴一起写进
-作品 `outputs/prepared.json`（`contractVersion: 1`），渲染、预览与评审都从它取。
+作品 `outputs/prepared.json`（`contractVersion: 2`），渲染、预览与评审都从它取。
 
 | 字段 | 含义 |
 | --- | --- |
 | `contractVersion` / `projectId` / `type` | 准备记录版本与归属 |
 | `compositionId` | 该作品渲染用的 composition |
-| `props` | 交给 composition 的完整材料（通用 v8 是 `compiledScenes` / `subtitleCues` / `durationInFrames` 等派生结果） |
+| `props` | 交给 composition 的完整材料（统一 v9 是 `compiledScenes` / `subtitleCues` / `durationInFrames` 等派生结果） |
 | `width` / `height` / `fps` / `durationInFrames` | 画面参数与派生总时长 |
 | `inputs` | 逐个输入的 sha256：作品材料、源文与图片、`tts` 记录、实现摘要、`renderer` 构建指纹、`audio:<场景>` 与声音配置；代码场景另记入口源码、可达依赖与录制片段摘要（`codeAssets`） |
 | `materialFingerprint` / `preparedFingerprint` | 作品描述与整份准备记录的指纹 |
-| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。通用 v8 始终输出整片一条母版轨（`sceneId` 为 `master`），包含旁白、音效、音床或对应静音。`audio.cacheHits` 记本次命中数 |
+| `audio.segments` | 音轨分段：`sceneId`、相对路径、`startFrame`、`durationInFrames`、`sha256`。统一 v9 始终输出整片一条母版轨（`sceneId` 为 `master`），包含旁白、音效、音床或对应静音。`audio.cacheHits` 记本次命中数 |
 | `subtitles` | 全片字幕 cue：`startFrame`、`endFrame`、`text` |
 
 入口：
 
 ```bash
-uv run m2v prepare --project videos/general/<slug>
-uv run m2v validate --project videos/general/<slug>
+uv run m2v prepare --project videos/<type>/<slug>
+uv run m2v validate --project videos/<type>/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
-uv run m2v preview --project videos/general/<slug>
-uv run m2v review-template --project videos/general/<slug>
-uv run m2v render --project videos/general/<slug>
+uv run m2v preview --project videos/<type>/<slug>
+uv run m2v review-template --project videos/<type>/<slug>
+uv run m2v render --project videos/<type>/<slug>
 ```
 
 ## 工作流
 
-1. 口播写在它所属的幕/场景里：通用 v8 用分段口播 `narrationSegments`（只接受分段形式，
+1. 口播写在它所属的幕/场景里：统一 v9 用分段口播 `narrationSegments`（只接受分段形式，
    不接受整段字符串；代码幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
-   通用 v8 有旁白段独立合成，按实际音频及声明的前后留白推导帧数与字幕；幕尾阅读停留由 `readingHoldFrames` 指定，默认 0.8 秒（30fps 为 24 帧），无旁白幕按 `durationFrames` 或剩余目标时长分配；
+   统一 v9 有旁白段独立合成，按实际音频及声明的前后留白推导帧数与字幕；幕尾阅读停留由 `readingHoldFrames` 指定，默认 0.8 秒（30fps 为 24 帧），无旁白幕按 `durationFrames` 或剩余目标时长分配；
    `code` 幕只构建源码并记录依赖，片段在检查或正式生成时按需录制并缓存（见
    [代码场景运行契约](code-scene-runtime.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
 4. `m2v preview --project <目录>` 生成局部检查片段（默认前十秒，支持显式短窗口），不得用接近全片的窗口代替正式生成；
-   `m2v general keyframes --storyboard <分镜>` 原生采集代表关键帧供静态检查。
+   `m2v author keyframes --storyboard <分镜>` 原生采集代表关键帧供静态检查。
 5. `m2v render --project <目录>` 在当前准备有效时只生成一次完整候选，自动验收后复制交付同一文件；人工画面评审为可选工具。
 
-通用 v8 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
-`m2v general input-review --storyboard
+统一 v9 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
+`m2v author input-review --storyboard
 <分镜>` 生成 `outputs/input-review.json`，填好后 status 为 `pass`、依据非空且 problemSpans
 为空；源文或正文计数变化会让审查过期，须重新审查。计数只用于记录，不设字数区间。见
 [讲解输入审查](stage-plan.md#源文审查)。
@@ -58,7 +58,7 @@ uv run m2v render --project videos/general/<slug>
 渲染与预演都不会触发联网合成：没有跑过 `m2v prepare` 时它们直接报「缺少有效准备记录」
 并停下，不会静默导出一段无声成片。要无声成片就不写口播、也不声明音床，prepare 会写出
 空音轨（`audio.segments` 为空），此时 `m2v render` 照常产出无声画面。
-成片与预演落在作品 `outputs/` 下（通用 v8 为 `outputs/video.mp4`，预演为
+成片与预演落在作品 `outputs/` 下（统一 v9 为 `outputs/video.mp4`，预演为
 `outputs/previews/video.mp4`）。路径推导规则见 [目录约定与输出路径](paths.md)。
 
 ## 语音与字幕
@@ -77,7 +77,7 @@ uv run m2v render --project videos/general/<slug>
 单声道、16bit PCM WAV，再按派生时间轴补静音并拼接；拼接位置按**累计帧数**换算采样位置，
 避免逐幕取整误差累积——逐幕各自取整会让音轨比画面短出若干帧，而校验只差一点就报错。
 
-通用 v8 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
+统一 v9 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
 不再有「按原文顺序消费词边界、段末标点落到下一段」这类跨段约定。
 
 ### 作品级字幕字号

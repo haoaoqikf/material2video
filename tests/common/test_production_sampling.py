@@ -55,7 +55,7 @@ def test_image_derivation_keeps_native_bytes_and_transparency(tmp_path, monkeypa
 def test_capture_receipt_reuses_bounded_windows_write_retry(tmp_path, monkeypatch):
     from m2v.core import delivery
     from m2v.production.storage import read
-    from m2v.types.general.code_scenes.capture import _clip_receipt
+    from m2v.types.scene_film.code_scenes.capture import _clip_receipt
     original = delivery._write_json
     calls, waits = [], []
     def busy_twice(path, value):

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from m2v.types.general import media_assets
+from m2v.types.scene_film import media_assets
 
 
 def make_image(path: Path, size: str = "864x700") -> Path:

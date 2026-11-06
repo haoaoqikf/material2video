@@ -57,18 +57,6 @@ def scene_sources(root: Path, scene: dict) -> dict:
     key = (root, fingerprint(scene))
     if cache is not None and key in cache['scenes']:
         return cache['scenes'][key]
-    style = None
-    style_root = None
-    project_file = root / 'project.json'
-    if project_file.is_file():
-        project = json.loads(text(project_file))
-        if project.get('style'):
-            from m2v.core import styles
-            packages = cache.setdefault('styles', {}) if cache is not None else {}
-            if root not in packages:
-                packages[root] = styles.selected_style(project)
-            style = packages[root]
-            style_root = Path(style['root']).resolve()
     paths, bodies, warnings = set(), [], []
     math_used = False
     queue = [local(root, scene['content']['entry'])]
@@ -76,11 +64,8 @@ def scene_sources(root: Path, scene: dict) -> dict:
         path = queue.pop().resolve()
         if path in paths:
             continue
-        if (not path.is_relative_to(root) and not path.is_relative_to(web)
-                and not (style_root and path.is_relative_to(style_root))):
+        if not path.is_relative_to(root) and not path.is_relative_to(web):
             raise M2VError('场景依赖越过作品和共享运行时根')
-        if style_root and path.is_relative_to(style_root / 'examples') and not path.is_relative_to(root):
-            raise M2VError('共享风格依赖不得进入示例目录')
         paths.add(path)
         if path.suffix.lower() not in ('.tsx', '.ts', '.jsx', '.js', '.css', '.mjs', '.json'):
             continue
@@ -88,19 +73,7 @@ def scene_sources(root: Path, scene: dict) -> dict:
         bodies.append(body)
         for specifier in import_specifiers(body):
             if specifier == 'm2v/style' or specifier.startswith('m2v/style/'):
-                if not style:
-                    raise M2VError('场景引用风格入口但作品未选择风格')
-                paths.add(style_root / 'style.json')
-                if style['manifest'].get('tokens'):
-                    paths.add(style_root / style['manifest']['tokens'])
-                if specifier == 'm2v/style':
-                    continue
-                match = re.fullmatch(r'm2v/style/(components|assets)/([a-z0-9-]+)', specifier)
-                target = match and style[match[1]].get(match[2])
-                if not target:
-                    raise M2VError(f'未登记的风格入口：{specifier}')
-                queue.append(Path(target))
-                continue
+                raise M2VError(f'风格包入口已移除：{specifier}')
             if specifier.startswith('m2v/code-scene/'):
                 registry = web / 'src/code-scene/entries.json'
                 if registry.is_file():
@@ -151,13 +124,9 @@ def scene_sources(root: Path, scene: dict) -> dict:
             return 'work/' + path.relative_to(root).as_posix()
         if path.is_relative_to(web):
             return 'web/' + path.relative_to(web).as_posix()
-        if style_root and path.is_relative_to(style_root):
-            return 'style/' + style['identity']['id'] + '/' + path.relative_to(style_root).as_posix()
         return 'repo/' + path.relative_to(web.parent).as_posix()
     result = {'files': {label(p): digest(p) for p in sorted(paths)},
               'assetRecords': selected_assets, 'conservativeReasons': sorted(set(warnings))}
-    if style:
-        result['style'] = style['identity']
     if cache is not None:
         cache['scenes'][key] = result
     return result

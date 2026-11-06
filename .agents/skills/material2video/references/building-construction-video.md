@@ -1,6 +1,8 @@
 # 建筑建造视频专题
 
-本文定义 `building-construction` 类型的材料与画面契约；行为以 [OpenSpec 规格](../../../../openspec/specs/building-construction-video/spec.md) 为准。
+本文定义三维空间作品可选的 `construction` 结构化来源及 `ConstructionScene` 场景。作品仍使用 project v2、分镜 v9 和统一制作链路；历史专题规格只保留为设计背景，当前行为以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。
+
+在分镜 `sources` 中声明 `{"building":"building.json","construction":"construction.json","assets":"manifest.json"}` 三个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `m2v/code-scene/sources` 导入 `ConstructionScene`。分镜幕时长须与来源中的建造时长一致。材料文件及资产均留在作品目录，准备时纳入指纹。
 
 ## 材料 v2
 
@@ -46,13 +48,13 @@
 ## 制作命令
 
 ```powershell
-uv run m2v init --type building-construction --project <slug>
-uv run m2v validate --project videos/building-construction/<slug>
-uv run m2v prepare --project videos/building-construction/<slug>
-uv run m2v lookdev --project videos/building-construction/<slug> --sheet 2 8 12 18 24 30 36 42 48 54 59
-uv run m2v preview --project videos/building-construction/<slug> --start-seconds 10 --end-seconds 16
-uv run m2v render --project videos/building-construction/<slug>
-uv run m2v qa --project videos/building-construction/<slug>
+uv run m2v init --type spatial-3d --project <slug>
+uv run m2v validate --project videos/spatial-3d/<slug>
+uv run m2v prepare --project videos/spatial-3d/<slug>
+uv run m2v lookdev --project videos/spatial-3d/<slug> --sheet 2 8 12 18 24 30 36 42 48 54 59
+uv run m2v preview --project videos/spatial-3d/<slug> --start-seconds 10 --end-seconds 16
+uv run m2v render --project videos/spatial-3d/<slug>
+uv run m2v qa --project videos/spatial-3d/<slug>
 ```
 
 `lookdev --sheet` 按秒数渲染原生静帧并拼接触表；`lookdev --det` 正序/倒序两遍采集，逐帧 PSNR 须不低于 60 dB。`qa` 检查帧数、尺寸、帧率、时长、无音轨与冻结帧；技术通过不等于理解通过。

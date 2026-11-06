@@ -1,7 +1,7 @@
 """Versioned project manifests and content-addressed preparation records."""
 from __future__ import annotations
 
-from m2v.core.video_config import default_fps, project_fps, validate_general_fps
+from m2v.core.video_config import default_fps, project_fps, validate_fps
 
 import hashlib
 import json
@@ -12,10 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from .errors import M2VError
-from .styles import selected_style
 
 PROJECT_FILE = "project.json"
-PROJECT_VERSION = 1
+PROJECT_VERSION = 2
 PREPARED_FILE = "outputs/prepared.json"
 
 
@@ -38,8 +37,6 @@ def subtitle_font_size(project: dict[str, Any]) -> int | None:
         raise M2VError("output 必须为对象")
     if "subtitle" not in output:
         return None
-    if project.get("type") != "general":
-        raise M2VError("output.subtitle 仅适用于 general 类型")
     subtitle = output["subtitle"]
     if not isinstance(subtitle, dict):
         raise M2VError("output.subtitle 必须为仅含 fontSize 的对象")
@@ -55,9 +52,7 @@ def subtitle_font_size(project: dict[str, Any]) -> int | None:
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     """读取作品描述。
 
-    这里**不判定类型是否可用**：类型清单的唯一来源是 ``m2v.type_system.catalog``，
-    而底层不能反向依赖业务类型层。类型名是否为已知类型、是否有行为实现，
-    由统一入口经 ``m2v.type_system.registry`` 判定，同样在渲染前失败。
+    类型身份取自唯一类型目录；行为实现仍由统一入口注册表校验。
     """
     root = Path(directory).expanduser().resolve()
     path = root / PROJECT_FILE
@@ -68,14 +63,21 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if isinstance(data, dict) and "productionProfile" in data:
         raise M2VError("productionProfile 制作档位已移除；请删除并重新 prepare")
     if not isinstance(data, dict) or data.get("schemaVersion") != PROJECT_VERSION:
-        raise M2VError("project.json schemaVersion 必须为 1")
+        raise M2VError("project.json schemaVersion 必须为 2；旧作品须重新编排")
+    if "style" in data:
+        raise M2VError("project.style 已移除；请用新版场景组件重新编排")
+    if "category" in data:
+        raise M2VError("project.category 类别层已移除；请只保留五类 type")
     if not isinstance(data.get("type"), str) or not data["type"].strip():
         raise M2VError("project.json 必须声明非空的视频类型 type")
+    from m2v.type_system.catalog import catalog
+    if not catalog().has(data["type"]):
+        raise M2VError(f"未知视频类型：{data['type']}；运行 m2v types 查看五类视频")
     if not isinstance(data.get("id"), str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", data["id"]):
         raise M2VError("作品 id 必须为 1 至 63 位小写字母、数字或连字符")
     materials = data.get("materials")
-    if not isinstance(materials, dict) or not materials or any(not isinstance(v, str) or not v for v in materials.values()):
-        raise M2VError("materials 必须是非空的命名相对路径对象")
+    if not isinstance(materials, dict) or set(materials) != {"storyboard"} or not isinstance(materials["storyboard"], str) or not materials["storyboard"]:
+        raise M2VError("materials 仅允许 storyboard 本地分镜入口")
     for name, reference in materials.items():
         candidate = (root / reference).resolve()
         if candidate != root and root not in candidate.parents:
@@ -87,15 +89,8 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     for field in ("width", "height", "fps"):
         if field in output and (type(output[field]) is not int or output[field] < 1):
             raise M2VError(f"output.{field} 必须是正整数")
-    if data["type"] == "general":
-        if "fps" in output:
-            validate_general_fps(output["fps"], "output.fps")
-    else:
-        expected_fps = default_fps(data["type"])
-        if output.get("fps", expected_fps) != expected_fps:
-            raise M2VError(f"output.fps 必须为 {expected_fps}；旧帧率材料请重新编排")
-    selected_style(data, width=output.get("width") if data["type"] != "general" else None,
-                   height=output.get("height") if data["type"] != "general" else None)
+    if "fps" in output:
+        validate_fps(output["fps"], "output.fps")
     return root, data
 
 
@@ -108,8 +103,13 @@ def create_project(directory: str | Path, video_type: str, materials: Mapping[st
     """
     if not isinstance(video_type, str) or not video_type.strip():
         raise M2VError("作品类型必须是非空字符串")
+    from m2v.type_system.catalog import catalog
+    if not catalog().has(video_type):
+        raise M2VError(f"未知视频类型：{video_type}；运行 m2v types 查看五类视频")
     if not isinstance(materials, Mapping) or not materials:
         raise M2VError("作品材料入口必须是非空映射")
+    if dict(materials) != catalog().get(video_type).material_map():
+        raise M2VError("作品材料入口必须使用当前类型的 storyboard")
     for name, reference in materials.items():
         if not isinstance(name, str) or not name or not isinstance(reference, str) or not reference:
             raise M2VError("作品材料入口必须是「材料名 → 非空相对路径」的映射")
@@ -131,16 +131,11 @@ def save_prepared(root: Path, *, project: dict[str, Any], composition_id: str,
                   duration_in_frames: int, inputs: dict[str, str], audio: dict[str, Any] | None = None,
                   subtitles: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     material_hash = _fingerprint({"project": project, "inputs": inputs})
-    prepared = {"contractVersion": 1, "projectId": project["id"], "type": project["type"],
+    prepared = {"contractVersion": 2, "projectId": project["id"], "type": project["type"],
                 "compositionId": composition_id, "props": props, "width": width, "height": height,
                 "fps": fps, "durationInFrames": duration_in_frames, "inputs": inputs,
                 "materialFingerprint": material_hash, "audio": audio or {},
                 "subtitles": subtitles or []}
-    style = selected_style(project, width=width, height=height)
-    if style:
-        if "style" in inputs and inputs["style"] != style["identity"]["fingerprint"]:
-            raise M2VError("风格在准备过程中变化；请重新 prepare")
-        prepared["style"] = style["identity"]
     prepared["preparedFingerprint"] = _fingerprint(prepared)
     _write_json(root / PREPARED_FILE, prepared)
     return prepared
@@ -156,9 +151,8 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     if not isinstance(expected, str) or _fingerprint(prepared) != expected:
         raise M2VError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
-    style = selected_style(project, width=prepared["width"], height=prepared["height"])
-    if prepared.get("style") != (style["identity"] if style else None):
-        raise M2VError("作品风格已变化；请重新 prepare 并评审")
+    if prepared.get("contractVersion") != 2 or "style" in prepared:
+        raise M2VError("旧准备记录不能用于五类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise M2VError("准备记录与当前作品不匹配；请重新 prepare")
     expected_fps = project_fps(root, project)
@@ -192,9 +186,6 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
 
 def file_inputs(root: Path, project: dict[str, Any]) -> dict[str, str]:
     inputs = {}
-    style = selected_style(project)
-    if style:
-        inputs["style"] = style["identity"]["fingerprint"]
     for name, reference in project["materials"].items():
         file = (root / reference).resolve()
         if not file.is_file():

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "house": {
+    "width": 12,
+    "depth": 9,
+    "floors": 2,
+    "floorHeight": 3,
+    "bayCount": 3,
+    "roof": {
+      "type": "gable",
+      "height": 2.2,
+      "overhang": 0.6
+    },
+    "wallThickness": 0.25,
+    "foundationDepth": 1.2,
+    "sitePadding": 3,
+    "stairs": {
+      "side": "right",
+      "offset": 1.0,
+      "width": 1.4
+    },
+    "openings": [
+      {
+        "id": "door-entry",
+        "floor": 1,
+        "side": "front",
+        "offset": 5.1,
+        "width": 1.4,
+        "height": 2.3,
+        "sill": 0
+      },
+      {
+        "id": "window-front-1",
+        "floor": 1,
+        "side": "front",
+        "offset": 2.2,
+        "width": 1.6,
+        "height": 1.4,
+        "sill": 0.9
+      },
+      {
+        "id": "window-front-2",
+        "floor": 2,
+        "side": "front",
+        "offset": 5.1,
+        "width": 1.8,
+        "height": 1.4,
+        "sill": 0.9
+      },
+      {
+        "id": "window-left-1",
+        "floor": 1,
+        "side": "left",
+        "offset": 3.0,
+        "width": 1.4,
+        "height": 1.2,
+        "sill": 0.9
+      }
+    ]
+  }
+}

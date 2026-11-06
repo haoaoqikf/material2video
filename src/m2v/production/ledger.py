@@ -84,7 +84,7 @@ def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None, 
         web = web_dir()
         # 合成层改变影响结构/全片，独立代码场景的 G4 不因转场实现变化而误伤。
         result['composition'] = fingerprint({name: digest(web / name) for name in
-            ('src/transitions.json', 'src/transitions.tsx', 'src/types/general/ArticleExplainer.tsx')
+            ('src/transitions.json', 'src/transitions.tsx', 'src/scene-film/SceneFilm.tsx')
             if (web / name).is_file()})
     if gate == 'G0':
         project_path = root / 'project.json'
@@ -187,8 +187,6 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
 
 
 def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    if manifest['type'] != 'general':
-        return {'applicability': '专用类型契约', 'gates': []}
     events, diagnostics = history(root)
     if any(e['projectId'] != manifest['id'] for e in events):
         diagnostics.append('历史含其他作品事件，不能据此判定通过')

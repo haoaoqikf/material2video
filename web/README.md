@@ -4,8 +4,8 @@
 
 ## 目录分层
 
-- **通用代码**：`src/code-scene/`、`src/runtime/`、`src/contract/`、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。
-- **类型专属代码**：`src/types/<type>/`，含该类型的 composition、纯函数、布局 JSON 与契约页入口。
+- **共享场景与成片**：`src/code-scene/`、`src/scene-film/`、`src/runtime/`、`src/contract/`、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。五类共用 `SceneFilm` composition。
+- **结构化来源画面**：`src/types/financial/`、`src/types/building_construction/`、`src/types/vehicle_showcase/` 提供可由分镜场景调用的组件与计算，不注册额外 composition。
 - **具体作品代码**：作品内容目录下的 `scenes/` 与 `assets/`，不放进 `src/`。
 
 ## 环境要求

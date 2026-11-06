@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 2,
+  "durationSeconds": 60,
+  "fps": 30,
+  "stages": [
+    {
+      "id": "site",
+      "label": "场地与开挖",
+      "startSeconds": 0,
+      "endSeconds": 8
+    },
+    {
+      "id": "foundation",
+      "label": "基础",
+      "startSeconds": 8,
+      "endSeconds": 18
+    },
+    {
+      "id": "frame-1",
+      "label": "一层框架",
+      "startSeconds": 18,
+      "endSeconds": 29
+    },
+    {
+      "id": "frame-2",
+      "label": "二层框架",
+      "startSeconds": 29,
+      "endSeconds": 39
+    },
+    {
+      "id": "walls",
+      "label": "墙体",
+      "startSeconds": 39,
+      "endSeconds": 47
+    },
+    {
+      "id": "roof",
+      "label": "屋顶",
+      "startSeconds": 47,
+      "endSeconds": 53
+    },
+    {
+      "id": "finishes",
+      "label": "门窗与庭院",
+      "startSeconds": 53,
+      "endSeconds": 60
+    }
+  ],
+  "shots": [
+    {
+      "id": "establish",
+      "startSeconds": 0,
+      "endSeconds": 18,
+      "camera": {
+        "position": [
+          20,
+          15,
+          23
+        ],
+        "target": [
+          0,
+          3,
+          0
+        ],
+        "fov": 38
+      },
+      "to": {
+        "position": [
+          10,
+          5,
+          12
+        ],
+        "target": [
+          0,
+          0.5,
+          0
+        ],
+        "fov": 42
+      },
+      "hide": []
+    },
+    {
+      "id": "frame-1-close",
+      "startSeconds": 18,
+      "endSeconds": 29,
+      "camera": {
+        "position": [
+          12,
+          6,
+          14
+        ],
+        "target": [
+          0,
+          2,
+          0
+        ],
+        "fov": 42
+      },
+      "to": {
+        "position": [
+          10,
+          5,
+          12
+        ],
+        "target": [
+          0,
+          2,
+          0
+        ],
+        "fov": 42
+      },
+      "hide": []
+    },
+    {
+      "id": "frame-2-wide",
+      "startSeconds": 29,
+      "endSeconds": 39,
+      "camera": {
+        "position": [
+          18,
+          10,
+          20
+        ],
+        "target": [
+          0,
+          4.5,
+          0
+        ],
+        "fov": 40
+      },
+      "to": {
+        "position": [
+          16,
+          9,
+          18
+        ],
+        "target": [
+          0,
+          4.5,
+          0
+        ],
+        "fov": 40
+      },
+      "hide": []
+    },
+    {
+      "id": "walls",
+      "startSeconds": 39,
+      "endSeconds": 47,
+      "camera": {
+        "position": [
+          16,
+          8,
+          18
+        ],
+        "target": [
+          0,
+          4.5,
+          0
+        ],
+        "fov": 42
+      },
+      "to": {
+        "position": [
+          15,
+          7,
+          17
+        ],
+        "target": [
+          0,
+          4.5,
+          0
+        ],
+        "fov": 42
+      },
+      "hide": []
+    },
+    {
+      "id": "roof-cutaway",
+      "startSeconds": 47,
+      "endSeconds": 53,
+      "camera": {
+        "position": [
+          16,
+          8,
+          18
+        ],
+        "target": [
+          0,
+          5.5,
+          0
+        ],
+        "fov": 42
+      },
+      "to": {
+        "position": [
+          14,
+          7,
+          16
+        ],
+        "target": [
+          0,
+          5.5,
+          0
+        ],
+        "fov": 42
+      },
+      "hide": [
+        "wall-1-front-0",
+        "opening-door-entry",
+        "opening-window-front-1"
+      ]
+    },
+    {
+      "id": "finished",
+      "startSeconds": 53,
+      "endSeconds": 60,
+      "camera": {
+        "position": [
+          20,
+          13,
+          23
+        ],
+        "target": [
+          0,
+          4,
+          0
+        ],
+        "fov": 38
+      },
+      "to": {
+        "position": [
+          18,
+          11,
+          20
+        ],
+        "target": [
+          0,
+          4,
+          0
+        ],
+        "fov": 38
+      },
+      "hide": []
+    }
+  ],
+  "initial": [
+    "site"
+  ],
+  "steps": [
+    {
+      "id": "excavate",
+      "stage": "site",
+      "select": [
+        "excavation"
+      ],
+      "action": "excavate",
+      "label": "开挖",
+      "startSeconds": 1,
+      "endSeconds": 6,
+      "after": []
+    },
+    {
+      "id": "foundation-slab",
+      "stage": "foundation",
+      "select": [
+        "foundation-slab"
+      ],
+      "action": "pour",
+      "label": "基础垫层",
+      "startSeconds": 8,
+      "endSeconds": 12,
+      "after": [
+        "excavate"
+      ]
+    },
+    {
+      "id": "foundation-ring",
+      "stage": "foundation",
+      "select": [
+        "foundation-ring-*"
+      ],
+      "action": "pour",
+      "label": "基础圈梁",
+      "startSeconds": 12,
+      "endSeconds": 16.5,
+      "after": [
+        "foundation-slab"
+      ]
+    },
+    {
+      "id": "slab-1",
+      "stage": "frame-1",
+      "select": [
+        "slab-1"
+      ],
+      "action": "pour",
+      "label": "一层楼板",
+      "startSeconds": 18,
+      "endSeconds": 20,
+      "after": []
+    },
+    {
+      "id": "columns-1",
+      "stage": "frame-1",
+      "select": [
+        "column-1-*"
+      ],
+      "action": "grow",
+      "label": "一层柱",
+      "startSeconds": 20,
+      "endSeconds": 24,
+      "after": [
+        "slab-1"
+      ]
+    },
+    {
+      "id": "beams-1",
+      "stage": "frame-1",
+      "select": [
+        "beam-1-*"
+      ],
+      "action": "slide",
+      "label": "一层梁",
+      "startSeconds": 24,
+      "endSeconds": 27.5,
+      "after": [
+        "columns-1"
+      ]
+    },
+    {
+      "id": "stairs-1",
+      "stage": "frame-1",
+      "select": [
+        "stairwell-1",
+        "stair-1-*"
+      ],
+      "action": "lift",
+      "label": "楼梯与梯井",
+      "startSeconds": 27.5,
+      "endSeconds": 29,
+      "after": [
+        "beams-1"
+      ]
+    },
+    {
+      "id": "slab-2",
+      "stage": "frame-2",
+      "select": [
+        "slab-2"
+      ],
+      "action": "pour",
+      "label": "二层楼板",
+      "startSeconds": 29,
+      "endSeconds": 31.5,
+      "after": [
+        "beams-1"
+      ]
+    },
+    {
+      "id": "columns-2",
+      "stage": "frame-2",
+      "select": [
+        "column-2-*"
+      ],
+      "action": "grow",
+      "label": "二层柱",
+      "startSeconds": 31.5,
+      "endSeconds": 35,
+      "after": [
+        "slab-2"
+      ]
+    },
+    {
+      "id": "beams-2",
+      "stage": "frame-2",
+      "select": [
+        "beam-2-*"
+      ],
+      "action": "slide",
+      "label": "二层梁",
+      "startSeconds": 35,
+      "endSeconds": 38,
+      "after": [
+        "columns-2"
+      ]
+    },
+    {
+      "id": "stairwell-2",
+      "stage": "roof",
+      "select": [
+        "stairwell-2"
+      ],
+      "action": "lift",
+      "label": "屋顶检修口",
+      "startSeconds": 51,
+      "endSeconds": 52.5,
+      "after": [
+        "roof"
+      ]
+    },
+    {
+      "id": "walls-1",
+      "stage": "walls",
+      "select": [
+        "wall-1-*"
+      ],
+      "action": "lift",
+      "label": "一层墙体",
+      "startSeconds": 39,
+      "endSeconds": 42.5,
+      "after": [
+        "beams-2"
+      ]
+    },
+    {
+      "id": "walls-2",
+      "stage": "walls",
+      "select": [
+        "wall-2-*"
+      ],
+      "action": "lift",
+      "label": "二层墙体",
+      "startSeconds": 42.5,
+      "endSeconds": 46,
+      "after": [
+        "walls-1"
+      ]
+    },
+    {
+      "id": "roof",
+      "stage": "roof",
+      "select": [
+        "roof-*"
+      ],
+      "action": "rotate",
+      "label": "坡屋顶",
+      "startSeconds": 47,
+      "endSeconds": 51,
+      "after": [
+        "walls-2"
+      ]
+    },
+    {
+      "id": "openings",
+      "stage": "roof",
+      "select": [
+        "opening-*"
+      ],
+      "action": "insert",
+      "label": "门窗洞口",
+      "startSeconds": 50,
+      "endSeconds": 53,
+      "after": [
+        "walls-2"
+      ]
+    },
+    {
+      "id": "finishes",
+      "stage": "finishes",
+      "select": [
+        "finish-*"
+      ],
+      "action": "insert",
+      "label": "门窗",
+      "startSeconds": 53,
+      "endSeconds": 57,
+      "after": [
+        "openings"
+      ]
+    },
+    {
+      "id": "yard",
+      "stage": "finishes",
+      "select": [
+        "yard-*"
+      ],
+      "action": "spread",
+      "label": "庭院",
+      "startSeconds": 53.5,
+      "endSeconds": 58.5,
+      "after": [
+        "roof"
+      ]
+    }
+  ]
+}

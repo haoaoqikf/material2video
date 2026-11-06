@@ -36,22 +36,8 @@ PLAN = "docs/PROJECT_PLAN.md"
 
 
 def _grouped_lines(catalog, render_entry, *, with_description: bool = False) -> list[str]:
-    """先按类别登记顺序输出成员，再输出未分类类型；空行只分隔有内容的组。"""
-    groups = [
-        (category.title, category.description, catalog.types_in(category.id))
-        for category in catalog.categories()
-    ]
-    uncategorized = catalog.uncategorized()
-    if uncategorized:
-        groups.append(("未分类", "", uncategorized))
-    lines: list[str] = []
-    for index, (title, description, entries) in enumerate(groups):
-        if index:
-            lines.append("")
-        suffix = f"：{description}" if with_description and description else ""
-        lines.append(f"**{title}**{suffix}")
-        lines.extend(render_entry(entry) for entry in entries)
-    return lines
+    """五类按目录顺序列出，不再生成类别层。"""
+    return [render_entry(entry) for entry in catalog.entries()]
 
 
 def _readme_lines(catalog) -> list[str]:
@@ -59,17 +45,9 @@ def _readme_lines(catalog) -> list[str]:
 
 
 def _skill_lines(catalog) -> list[str]:
-    lines = ["| 类别 | 类型 | 创作指导 |", "|---|---|---|"]
-    for category in catalog.categories():
-        lines.extend(
-            f"| {category.title} | `{entry.name}` | {entry.skill_guide} |"
-            for entry in catalog.types_in(category.id)
-        )
-    lines.extend(
-        f"| 未分类 | `{entry.name}` | {entry.skill_guide} |"
-        for entry in catalog.uncategorized()
-    )
-    return lines
+    return ["| 类型 | 创作指导 |", "|---|---|", *[
+        f"| `{entry.name}` | {entry.skill_guide} |" for entry in catalog.entries()
+    ]]
 
 
 def _plan_lines(catalog) -> list[str]:

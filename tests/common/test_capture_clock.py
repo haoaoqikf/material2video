@@ -8,8 +8,8 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 from m2v.engine.http_server import LocalServer
-from m2v.types.general import code_scenes
-from helpers.general import scene_page, WEB, prepare_build, requires_node
+from m2v.types.scene_film import code_scenes
+from helpers.scene_film import scene_page, WEB, prepare_build, requires_node
 
 
 MOTION_SCENE = """
@@ -184,7 +184,7 @@ export default function Demo() {
                         str(work / 'clip.mp4')], check=True, capture_output=True)
         return root, work, result
 
-    with patch('helpers.general.prepare_build', with_video), scene_page(tmp_path, source, frames=65) as (page, _):
+    with patch('helpers.scene_film.prepare_build', with_video), scene_page(tmp_path, source, frames=65) as (page, _):
         for frame in range(61):
             page.evaluate('n => window.__M2V_CODE__.advanceToFrame(n)', frame)
             if frame == 0:

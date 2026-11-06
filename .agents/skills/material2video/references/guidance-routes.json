@@ -38,15 +38,16 @@
     }
   ],
   "types": {
-    "general": "references/stage-plan.md",
-    "financial-timeseries": "references/financial-timeseries-video.md",
-    "building-construction": "references/building-construction-video.md",
-    "vehicle-showcase": "references/vehicle-showcase-video.md"
+    "text-motion": "references/stage-plan.md",
+    "data-evolution": "references/financial-timeseries-video.md",
+    "principle-metaphor": "references/stage-plan.md",
+    "spatial-3d": "references/building-construction-video.md",
+    "documentary-edit": "references/stage-plan.md"
   },
   "conditional": [
     {
       "id": "scene-detail",
-      "when": "general 每场目标确定后、动态实现前，以及过程细节复核",
+      "when": "五类作品每场目标确定后、动态实现前，以及过程细节复核",
       "guide": "references/scene-detail-design.md"
     },
     {
@@ -98,11 +99,6 @@
       "id": "style",
       "when": "明确要求外观相似或选择风格；另读所选 GUIDE",
       "guide": "references/reference-style.md"
-    },
-    {
-      "id": "style-pack",
-      "when": "作品选择 style.id，需把风格参数、组件与资产落到 DESIGN.md",
-      "guide": "references/style-pack.md"
     },
     {
       "id": "risk",

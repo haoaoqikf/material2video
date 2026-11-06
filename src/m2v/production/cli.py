@@ -33,8 +33,6 @@ def add_parsers(sub) -> None:
 
 def dispatch(args) -> int:
     root, manifest = load_project(args.project)
-    if manifest['type'] != 'general':
-        raise M2VError('制作门仅适用于 general；专用类型维持原契约')
     if getattr(args, 'timing_reports', None) is not None and (args.command != 'gates' or args.action != 'check' or args.gate != 'G3'):
         raise M2VError('--timing-reports 只适用于 gates check --gate G3')
     with locked(root), dependencies.snapshot(), media_evidence.snapshot():

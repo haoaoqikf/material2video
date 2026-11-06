@@ -240,8 +240,7 @@ def build_report(root: Path, *, sources: Path | None = None) -> dict:
 
 def report_main(*, project: str, sources: str | None = None, as_json: bool = False) -> int:
     root, manifest = load_project(project)
-    if manifest["type"] != "general":
-        raise M2VError("m2v assets report 仅适用于 general 作品")
+
     source_path = None
     if sources:
         candidate = Path(sources).expanduser()

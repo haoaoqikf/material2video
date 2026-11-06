@@ -1,6 +1,6 @@
 # 视觉创意导演方法
 
-适用于 `general` 的方案确定与逐场设计。先把主题变成可观察的关系，再选画面与运动。本文是创作方法，审核轮次、证据、完成条件以[检查点契约](checkpoint-gates.md)为准；构图和运动分别参考 [Frontend Design](../../frontend-design/SKILL.md) 与[运动设计](../../motion-design/SKILL.md)。
+适用于五类作品的方案确定与逐场设计。先把主题变成可观察的关系，再选画面与运动。本文是创作方法，审核轮次、证据、完成条件以[检查点契约](checkpoint-gates.md)为准；构图和运动分别参考 [Frontend Design](../../frontend-design/SKILL.md) 与[运动设计](../../motion-design/SKILL.md)。
 
 ## 1. 适用范围与边界
 

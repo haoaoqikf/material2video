@@ -3,7 +3,7 @@
 > **适用范围：** 本文描述画面实现与渲染/量测脚本之间唯一的接口：契约页（`version: 6`）、
 > `window.__M2V__` 的必需接口与 `ready()` / `seekToFrame()` 语义、画面源码的确定性、
 > 代码场景的顺序逐帧采集、电影级后期与镜头，以及 lookdev 原生关键帧。渲染引擎、打包、
-> 字幕量测与成片编码见 [渲染引擎](render-engine.md)；分镜结构见 [通用分镜 v8](storyboard-schema.md)，
+> 字幕量测与成片编码见 [渲染引擎](render-engine.md)；分镜结构见 [统一分镜 v9](storyboard-schema.md)，
 > 设计令牌见 [设计令牌](design-tokens.md)，制作顺序见 [制作流程](production-workflow.md)。
 > v3/v4 的共享动画、场景树、节拍运行时与 `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
 
@@ -13,7 +13,7 @@
 ## 契约的唯一提供者
 
 画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
-从 `web/src/contract/` 构建。它把共享 React composition（`ArticleExplainer`）挂进
+从 `web/src/contract/` 构建。它把共享 React composition（`SceneFilm`）挂进
 `@remotion/player`，暴露 `window.__M2V__`（**version 6**）。作品参数（准备产物）由查询参数
 `m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
 字幕量测（preview / render 内部）用 Playwright 驱动它；
@@ -35,7 +35,7 @@
 | `fps` | `number` | 帧率，必须与准备记录一致 |
 | `width` | `number` | 画面宽度，必须与准备记录一致 |
 | `height` | `number` | 画面高度，必须与准备记录一致 |
-| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（通用 v8 由逐段实际配音编译，上限600秒，即30 fps为18000帧、60 fps为36000帧） |
+| `durationInFrames` | `number` | 总帧数，必须等于准备产物派生的全片时长（统一 v9 由逐段实际配音编译，上限600秒，即30 fps为18000帧、60 fps为36000帧） |
 | `ready()` | `() => Promise<void>` | 资源就绪后 resolve |
 | `seekToFrame(frame)` | `(frame: number) => Promise<void>` | 把画面切换到第 frame 帧，绘制完成后 resolve |
 | `currentFrame()` | `() => number` | 只读诊断：Player 当前实际帧号，不参与求帧判定 |
@@ -213,7 +213,7 @@ pure 模式允许绝对定位：录制页从块首帧挂载，`seekToFrame` 可�
 
 pure 场景必须通过两道闸门：
 
-- **静态**：扫描作品根与所选风格包源码，拒绝计时器、随机源、CSS 动效、`useFrame`、
+- **静态**：扫描作品根与场景依赖源码，拒绝计时器、随机源、CSS 动效、`useFrame`、
   ECharts 动画、`new Date`、`element.animate` 与自走媒体播放；
 - **动态**：每段选 2–4 个探针帧，正序与倒序截图 PSNR ≥ 60 dB；相邻块边界见证帧跨进程比对。
 
@@ -225,7 +225,7 @@ pure 场景必须通过两道闸门：
 ### 分进程最终渲染
 
 `m2v render --jobs N` 在渲染层按帧区间启动 N 个独立进程，每段解码核对帧数、尺寸与帧率，
-拼接后复核总帧数，最后统一混音。默认 1，走原有单会话；目前仅 `general` 支持大于 1。
+拼接后复核总帧数，最后统一混音。默认 1，走原有单会话；五类均可使用大于 1。
 `--jobs` 不进入候选绑定，改变 jobs 仍可复用同一内容候选。
 
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
@@ -234,9 +234,9 @@ pure 场景必须通过两道闸门：
 明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。
 
-### 可选风格
+### 结构化来源
 
-场景可从 `m2v/style` 读取只读身份与参数，从 `m2v/style/components/<name>` 和 `m2v/style/assets/<name>` 导入所选包的登记入口；未选择风格时身份为 null、参数为空对象，资源导入失败。加载边界、就绪要求和缓存规则见[风格接入契约](style-pack.md)。风格不自动换肤。
+分镜 `sources` 与幕内 `content.sourceIds` 在准备阶段校验。画面从 `m2v/code-scene/sources` 引入 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`，或用共享 SDK 的 `useSceneSource(id)` 读取本幕已准备的数据。来源文件和计算实现进入准备指纹。未声明的 ID 与旧 `m2v/style` 导入明确拒绝。
 
 ### 共享动效原语
 
@@ -345,7 +345,7 @@ const t = Math.min(1, elapsedSeconds / 3);
 
 | 载体 | 什么时候用 |
 |---|---|
-| DOM / SVG | 需要可选中文本、就地排版、风格包组件 |
+| DOM / SVG | 需要可选中文本、就地排版、作品组件 |
 | `painter` | 辉光质感、高密度粒子、线条生长、逐字显影 |
 | `three` + `PostFX` | 真实三维、景深与画面后期 |
 
@@ -372,7 +372,7 @@ const {PainterCanvas} = painter;
 
 层的边界不是「画得先后」，而是**这东西该不该发光**。实心、有体积、需要看清轮廓的
 物体进 `under`——辉光会把它们糊成一片；只有「本身就在发光」的东西才留在 `paint`。
-`styles/vibe-night/examples/fold/` 是这个分工的实例：
+`examples/text-motion/fold/` 是这个分工的实例：
 
 | 层 | 画什么 | 为什么 |
 |---|---|---|
@@ -390,7 +390,7 @@ const {PainterCanvas} = painter;
 />
 ```
 
-反例：把大面积浅色实心块画进 `paint`，辉光会把它顶到接近纯白（`styles/vibe-fable/examples/`
+反例：把大面积浅色实心块画进 `paint`，辉光会把它顶到接近纯白（`examples/principle-metaphor/pigeon/`
 的鸽子示例早期版本就踩过，米墙实测被推到 253）。此时要么改到 `under`，要么把
 `bloom` 压到 0.1 量级。
 

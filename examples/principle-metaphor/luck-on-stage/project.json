@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "id": "luck-on-stage-448942eb",
+  "type": "principle-metaphor",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "audio": "required"
+  }
+}

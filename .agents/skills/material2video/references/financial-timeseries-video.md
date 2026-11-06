@@ -1,6 +1,6 @@
 # 金融时间序列视频专题
 
-本文定义金融视频的离线制作规范。专题入口独立于文章字数、口播和有声评审流程，行为以 [OpenSpec 专题规格](../../../../openspec/specs/financial-timeseries-video/spec.md) 为准。
+本文定义数据演化作品可选的 `financial-series` 结构化来源及 `FinancialSeriesScene` 场景。作品使用 project v2、分镜 v9 与统一制作链路；当前入口以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。在分镜 `sources` 中声明 `request`、`prices`、`plan` 三个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `m2v/code-scene/sources` 导入 `FinancialSeriesScene`。以下行情与投资计算约束仍适用于这种来源。
 
 ## 制作与数据
 
@@ -10,9 +10,9 @@
 
 ## 材料与编排
 
-作品使用三份材料：`request.json` schema v1、股票/指数 `prices.json` schema v3、crypto `prices.json` schema v4、`animation-plan.json` schema v8（兼容 v7）。`request.json` MAY 提供可选 `design` 块：`profile`（`ledger`/`signal`/`archive`，默认 `signal`）、`titleMode`（`subject`/`premise`，默认 `subject`）、`personality`（`premium`/`corporate`/`calm`，默认 `corporate`）与可选 `accent`（`#RRGGBB`）。缺省不迁移旧材料；非法枚举、非法颜色或与红 `#FF5A4E`/绿 `#4BD39A` 相同的 accent 阻断准备与渲染。crypto v4 另含 `fx`（`pair: "USD/CNY"`、`unit: "CNY per USD"`、汇率日期、点、来源和原始快照）。BTC 行情与 FX 来源覆盖、快照 SHA-256 和逐日日期完整性在离线校验时验证。请求标的可选 `instrument.displayName` 作为画面短名称；缺省时显示正式名称，正式名称和代码仍用于标的识别。材料目录不使用 `storyboard.json`，也不进入文章校验入口。
+作品使用三份材料：`request.json` schema v1、股票/指数 `prices.json` schema v3、crypto `prices.json` schema v4、`animation-plan.json` schema v8（拒绝 v7 及更早版本）。`request.json` MAY 提供可选 `design` 块：`profile`（`ledger`/`signal`/`archive`，默认 `signal`）、`titleMode`（`subject`/`premise`，默认 `subject`）、`personality`（`premium`/`corporate`/`calm`，默认 `corporate`）与可选 `accent`（`#RRGGBB`）。缺省不迁移旧材料；非法枚举、非法颜色或与红 `#FF5A4E`/绿 `#4BD39A` 相同的 accent 阻断准备与渲染。crypto v4 另含 `fx`（`pair: "USD/CNY"`、`unit: "CNY per USD"`、汇率日期、点、来源和原始快照）。BTC 行情与 FX 来源覆盖、快照 SHA-256 和逐日日期完整性在离线校验时验证。请求标的可选 `instrument.displayName` 作为画面短名称；缺省时显示正式名称，正式名称和代码仍用于标的识别。这三份材料须由分镜来源声明；文件和原始快照都在准备时校验并进入指纹。
 
-计划明确 `chartType: "line"`、`axis.dateScale: "staged-expanding"` 和 `axis.valueScale: "revealed-linear"`，不接受滚动窗口或固定纵轴范围。新计划默认 1080×1920、30 fps、无音轨，开场 1 秒、推进 57 秒、终幕静止 2 秒，总长固定为 60 秒，不随展示跨度变化；`--duration-seconds` 可显式指定其他时长，至少 4 秒。此默认只用于新生成计划，既有 v8 计划保留已保存的分段与日期映射；v7 保留原有 90 帧开场、120 帧结尾和匀速映射（30 fps 下分别为 3 秒与 4 秒）。横轴按覆盖自然年份数取 ceil(N / 6) 年步长生成不超过六个阶段，开场显示第一阶段；播放日期将在 15 帧内越过阶段边界时，以 smoothstep 扩展到下一边界。起始日期固定在左侧，曲线、网格和刻度使用同一映射，历史点持续保留。横轴标签按完整日期范围确定不超过四个、不重叠的固定锚点，随着可视范围扩展逐个显现并保持至片尾；后半段保留较晚年份，终幕显示结束年份，避免逐帧重算造成标签闪烁。单年范围直接显示完整日期范围，终幕保持完整横轴和曲线。休市日市值沿用最近真实收盘价推导的组合值，不插值也不提前显示未来价格。
+计划明确 `chartType: "line"`、`axis.dateScale: "staged-expanding"` 和 `axis.valueScale: "revealed-linear"`，不接受滚动窗口或固定纵轴范围。新计划默认 1080×1920、30 fps、无音轨，开场 1 秒、推进 57 秒、终幕静止 2 秒，总长固定为 60 秒，不随展示跨度变化；`--duration-seconds` 可显式指定其他时长，至少 4 秒。此默认只用于新生成计划，既有 v8 计划保留已保存的分段与日期映射。横轴按覆盖自然年份数取 ceil(N / 6) 年步长生成不超过六个阶段，开场显示第一阶段；播放日期将在 15 帧内越过阶段边界时，以 smoothstep 扩展到下一边界。起始日期固定在左侧，曲线、网格和刻度使用同一映射，历史点持续保留。横轴标签按完整日期范围确定不超过四个、不重叠的固定锚点，随着可视范围扩展逐个显现并保持至片尾；后半段保留较晚年份，终幕显示结束年份，避免逐帧重算造成标签闪烁。单年范围直接显示完整日期范围，终幕保持完整横轴和曲线。休市日市值沿用最近真实收盘价推导的组合值，不插值也不提前显示未来价格。
 
 纵轴根据投资起点至当前日期已展示的全部组合价值极值线性自适应，上下各留白 8%。采用六帧因果加权范围并以当前范围包络，保证新极值不裁切；终幕冻结最后推进帧的坐标。历史曲线始终完整，随机寻帧与顺序播放一致。
 
@@ -24,7 +24,7 @@
 
 曲线是 primary，完全由日期/投资价值数据驱动，不套装饰性缓动；收束区市值、坐标扩展、年份标签和端点是 secondary；背景光晕与噪点是 ambient。开场 1 秒做一次编排：标题上方分隔线先画出，主体名以 10 px 上移入场，条件句随后，图表框/网格淡入，收束区分隔线画出，本金账目与市值在可见时最后入场，金额另带 0.985→1 缩放；重要入场必须同时改变透明度与位置，不得只改透明度，图表框只改透明度以保持坐标对齐。坐标扩展 15 帧使用共享 `easeInOutCubic`；年份标签淡入并伴随最多 4 px 上移；端点呼吸为低频 ambient 并在结尾前 15 帧收回。结尾 2 秒曲线、坐标、收束区金额、日期、底部说明和背景光晕全部冻结，不退场、不淡出、不移动。市值数值只显示真实收盘值，不插值、不滚动；动画只作用于出现/退场。不得使用整屏淡入、扫光、粒子或电影化运镜。
 
-正式导出前必须通过完整静音预演自动验收。预演记录绑定当前准备指纹、全部材料和构建资产摘要、完整帧数及视频 SHA-256。`labelsReadable` 必须实际检查 360×640 缩放画面、安全区以及顶部市值日期和图表端点圆点，并确认图内没有遮盖历史线的重复金额标签或底板；纵轴刻度在该缩放下不得低于约 7 px 实际高度（1080 px 宽画布上 24 px 字号），只看原尺寸不能通过。预演和正式渲染逐帧检查画布布局边界、仅圆点端点标记和完整历史裁剪；历史峰谷或连接线越界、旧版或短预演、摘要不匹配均阻断正式导出。
+预演与正式导出按五类共用的制作检查和准备指纹执行。金融场景仍需在代表帧核对 360×640 缩放下的金额、坐标和端点可读性，以及完整历史折线的裁剪边界；具体画面判断写入作品检查记录。短预演只用于局部检查，不替代全片成片验收。
 
 ## 波动节奏与计划锚点
 
@@ -32,27 +32,23 @@ v8 的 `pacing` 必须声明 `mode: "volatility" | "uniform"` 和 `anchors: [{fr
 
 新计划默认 volatility：按自然月统计绝对对数收益累计量及组合市值绝对变化累计量，分别除以全区间月最大值，以 40%/60% 组合；权重为 1+2×组合分数，限制为 1～3，按覆盖日数加权分配推进帧。涨跌均可放慢，投资起点前权重为 1，平盘退化为匀速。月边界分配为整数帧，重复帧合并，准确保留首末锚点。节奏可使用全区间行情作为剪辑依据，画面报价及纵轴仍不提前显示未来值。渲染只读取已保存锚点；Python、前端和横轴扩展使用同一映射。不保证每个交易日均有单独画面。
 
-## 显式迁移
+## 版本边界
 
-v7 仍可读取及渲染，保持旧日期映射和 120 帧结尾；不能用 plan 静默覆盖。已有统一作品使用 `uv run m2v financial migrate-line --project <目录> --duration-seconds 60` 备份后升级 v8；尚无 project.json 的历史作品先使用 `m2v migrate --from financial` 进入统一作品契约，旧 v1～v6 会同时升级 v8，v7/v8 保留原计划。v8 重复升级被拒绝。
-
-迁移前备份请求、价格、计划、旧事件及评审/预演记录；保留 date/close、来源、快照、交易日与截止日，清理过期金融评审。失败恢复活动材料，已有成片不变。升级后必须重新 prepare，再 render 一次生成并验收候选。
+只接受 v8 金融计划与统一分镜 v9；旧类型材料和旧准备记录明确拒绝。重新编排作品并重新准备，不提供迁移命令。
 
 ## 命令
 
 ```powershell
-uv run m2v init --type financial-timeseries --project <slug>
-uv run m2v validate --project videos/financial-timeseries/<slug>
-uv run m2v financial plan --project videos/financial-timeseries/<slug> --duration-seconds 60
-uv run m2v prepare --project videos/financial-timeseries/<slug>
-# 可选片段检查，默认前十秒且严格短于全片
-uv run m2v preview --project videos/financial-timeseries/<slug>
-uv run m2v render --project videos/financial-timeseries/<slug>
-# 旧金融材料的迁移使用显式、备份优先的操作；先按当前材料契约核对迁移来源版本
-uv run m2v migrate --project videos/financial-timeseries/<slug> --from financial
+uv run m2v init --type data-evolution --project <slug>
+# 在 videos/data-evolution/<slug>/storyboard.json 中声明 financial-series 来源及引用场景
+uv run m2v data financial-plan --project videos/data-evolution/<slug> --duration-seconds 60
+uv run m2v validate --project videos/data-evolution/<slug>
+uv run m2v prepare --project videos/data-evolution/<slug>
+uv run m2v preview --project videos/data-evolution/<slug>
+uv run m2v render --project videos/data-evolution/<slug>
 ```
 
-`init` 仅创建待填模板。价格来源、真实行情、来源快照和日期清单核验完成后再生成计划并运行 `validate`。`--period` 和 `--window-months` 已移除，旧 v1–v6 计划或旧材料必须先运行 `migrate-line` 显式备份迁移。`preview` 默认只生成前十秒，支持起止时间与限帧，拒绝全片，不登记旧预演门禁。`render` 要求有效统一作品与准备记录，完整候选只生成一次，验收后复制交付；重复执行复用候选，失败不覆盖旧成片。金融视频材料和生成媒体均位于忽略的作品目录或外部内容根中；共享制作方法和规范纳入版本控制。成片与预演经临时目录中转，Windows 上会带上临时目录那份「关闭继承」的 ACL，因此落盘后统一用 `icacls /reset` 重新继承所在目录的权限（必须搬运之后执行，在临时目录里修复只会再套一遍那份收紧的 ACL）；否则以标准权限运行的打包播放器打开交付视频时报 `0x80070005`。预演同样是给人打开的文件，也一并修复。
+计划生成前须准备并核验真实行情、原始快照及日期清单；生成计划只写入分镜声明的 plan 文件。预演和正式成片遵循五类共用的准备、证据与渲染流程；片内金融数据的画幅与时长须同引用幕一致。
 
 ## 材料形状示例
 
@@ -120,4 +116,4 @@ uv run m2v migrate --project videos/financial-timeseries/<slug> --from financial
 
 ## 专用图表审美复核
 
-金融作品沿用金融专用画幅、曲线、标题、数值和声音契约。设计记录补充核心感受、视觉主体、情绪或节奏变化、审美禁区及可观察目标。用代表帧对照同一数据段的两个视觉方向，并覆盖开场、整体趋势、关键转折和终幕；在原始画布、声明的手机尺寸及缩略图尺寸检查趋势辨识、转折强调、文字层级与留白。粗预演标注信息、曲线推进和视觉强度的变化理由，先删冗余信息或调整叙事节奏，再改速度。精修按 [Frontend Design](../../frontend-design/SKILL.md) 的观察—对照—批评方法与[运动设计](../../motion-design/SKILL.md)的质量清单执行（语境见[视觉适配](../../frontend-design/ADAPTATION.md)与[运动适配](../../motion-design/ADAPTATION.md)）；金融图表惯例与数值事实优先，不能套用 general 代码场景或电影化运镜。把差距、修改与同一帧前后对照写入作品 DESIGN.md 和 visual-notes.md，不新增材料字段或导出门禁。
+金融来源场景沿用上述曲线、标题与数值布局；作品声音与制作门按统一分镜契约执行。设计记录补充核心感受、视觉主体、情绪或节奏变化、审美禁区及可观察目标。用代表帧对照同一数据段的两个视觉方向，并覆盖开场、整体趋势、关键转折和终幕；在原始画布、声明的手机尺寸及缩略图尺寸检查趋势辨识、转折强调、文字层级与留白。粗预演标注信息、曲线推进和视觉强度的变化理由，先删冗余信息或调整叙事节奏，再改速度。精修按 [Frontend Design](../../frontend-design/SKILL.md) 的观察—对照—批评方法与[运动设计](../../motion-design/SKILL.md)的质量清单执行（语境见[视觉适配](../../frontend-design/ADAPTATION.md)与[运动适配](../../motion-design/ADAPTATION.md)）；金融图表惯例与数值事实优先，不能用电影化运镜掩盖数值关系。把差距、修改与同一帧前后对照写入作品 DESIGN.md 和 visual-notes.md，不新增材料字段或导出门禁。

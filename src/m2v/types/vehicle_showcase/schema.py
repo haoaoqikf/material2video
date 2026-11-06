@@ -1,4 +1,4 @@
-"""vehicle-showcase 材料的结构模型。"""
+"""vehicle-model 来源材料的结构模型。"""
 from __future__ import annotations
 
 from pydantic import Field

@@ -296,7 +296,7 @@ def sample_audio(prepared: dict, root: Path) -> tuple[bool, Path | None]:
 def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, scale: int = STILL_SCALE) -> dict[tuple[str, int], Path]:
     """只保存选定帧，但从零连续推进每幕时钟；不触碰准备阶段的视频缓存。"""
     from playwright.sync_api import sync_playwright
-    from m2v.types.general import code_scenes, media_assets
+    from m2v.types.scene_film import code_scenes, media_assets
     props = prepared["props"]
     frame_config = {"width": prepared["width"], "height": prepared["height"], "subtitle": props["subtitle"]}
     media = media_assets.resolve(root)["media"]
@@ -420,102 +420,9 @@ def _render_stills(root: Path, project: dict, prepared: dict, frames: list[int],
             target = outputs / f"still-{frame:06d}.png"
             remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path,
                                   props=props_file, out=target, frame=frame, scale=scale,
-                                  composition_id="ArticleExplainer")
+                                  composition_id="SceneFilm")
             produced[frame] = target
     return [produced[frame] for frame in frames]
-
-
-def _building_frames(args, prepared: dict) -> list[int]:
-    """建筑类型的代表帧：秒数与帧号都按准备记录换算。"""
-    fps = prepared["fps"]
-    duration = prepared["durationInFrames"]
-    if args.sheet:
-        seconds: list[float] = []
-        for item in args.sheet:
-            try:
-                seconds.append(float(item))
-            except (TypeError, ValueError):
-                raise M2VError(f"--sheet 需要秒数或单个张数，收到：{item}") from None
-        if len(args.sheet) == 1 and float(args.sheet[0]).is_integer() and float(args.sheet[0]) <= 24:
-            count = int(float(args.sheet[0]))
-            return [round(index * (duration - 1) / max(1, count - 1)) for index in range(count)]
-        return [seconds_to_frame(value, fps, duration) for value in seconds]
-    if args.det:
-        return [round(index * (duration - 1) / 7) for index in range(8)]
-    return [round(duration * ratio) for ratio in (0.25, 0.5, 0.75, 0.99)]
-
-
-def _building_preview(root: Path, prepared: dict, *, mode: str, frames: list[int],
-                      still_scale: int, labels: list[str] | None = None) -> dict:
-    """建筑类型没有 code scene 采集链：直接按准备 props 渲染原生静帧。"""
-    outputs = root / "outputs/lookdev"
-    outputs.mkdir(parents=True, exist_ok=True)
-    props = prepared["props"]
-    composition = prepared["compositionId"]
-    web = remotion.web_dir()
-    fps = prepared["fps"]
-    if labels is None:
-        labels = [f"{index + 1}-{frame / fps:.2f}s-f{frame}" for index, frame in enumerate(frames)]
-    first_dir = outputs / "determinism-first"
-    second_dir = outputs / "determinism-second"
-
-    def capture(order: list[int], target: Path) -> dict[int, Path]:
-        target.mkdir(parents=True, exist_ok=True)
-        produced: dict[int, Path] = {}
-        with tempfile.TemporaryDirectory(prefix="building-lookdev-", dir=outputs) as temporary:
-            work = Path(temporary)
-            props_file = work / "props.json"
-            props_file.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")
-            bundle = remotion.bundle(
-                web_dir=web, out_dir=work / "bundle",
-                storyboard_path=root / "construction.json",
-                content_root=root.parent, workspace_root=root.parent, cache=True)
-            for frame in order:
-                out = target / f"still-{frame:06d}.png"
-                remotion.render_still(web_dir=web, bundle_dir=bundle.path, props=props_file,
-                                      out=out, frame=frame, scale=still_scale,
-                                      composition_id=composition)
-                produced[frame] = out
-        return produced
-
-    if mode == "det":
-        first_dir.mkdir(parents=True, exist_ok=True)
-        second_dir.mkdir(parents=True, exist_ok=True)
-        first = capture(frames, first_dir)
-        second = capture(list(reversed(frames)), second_dir)
-        rows, failed = [], []
-        for frame in frames:
-            path, twin = first[frame], second[frame]
-            if _image_size(path) != _image_size(twin):
-                raise M2VError(f"帧 {frame} 两次采集尺寸不一致；无法比较")
-            value = psnr(path, twin)
-            ok = value >= DETERMINISM_PSNR
-            rows.append({"frame": frame, "time": round(frame / fps, 3),
-                         "psnr": None if math.isinf(value) else round(value, 2), "pass": ok})
-            if not ok:
-                failed.append({"frame": frame, "time": round(frame / fps, 3),
-                               "psnr": round(value, 2)})
-        manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
-                    "mode": "det", "stillScale": still_scale, "threshold": DETERMINISM_PSNR,
-                    "frames": frames, "results": rows, "failed": failed,
-                    "first": first_dir.relative_to(root).as_posix(),
-                    "second": second_dir.relative_to(root).as_posix(),
-                    "secondOrder": "reverse", "stillCapture": "native-code-png-v1"}
-        _write_json(root / "outputs/lookdev.json", manifest)
-        return manifest
-
-    produced = capture(frames, outputs)
-    stills = [produced[frame] for frame in frames]
-    columns = sheet_columns(len(stills))
-    sheet = contact_sheet(stills, outputs / f"{mode}.png", columns=columns, labels=labels)
-    manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
-                "mode": mode, "stillScale": still_scale, "frames": frames,
-                "times": [round(frame / fps, 3) for frame in frames], "labels": labels,
-                "stills": [path.relative_to(root).as_posix() for path in stills],
-                "sheet": sheet.relative_to(root).as_posix(), "columns": columns,
-                "stillCapture": "native-code-png-v1"}
-    _write_json(root / "outputs/lookdev.json", manifest)
-    return manifest
 
 
 def preview(root: Path, project: dict, prepared: dict, *, mode: str, frames: list[int],
@@ -616,7 +523,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
     has_audio, master = sample_audio(prepared, root)
     frames = still_frames(prepared, stills)
     start, end = sample_window(prepared, sample_seconds)
-    from m2v.types.general.code_scenes import materialize
+    from m2v.types.scene_film.code_scenes import materialize
     sample_prepared = materialize(root, prepared, start, end + 1)
     timings = perf.StageTimings()
     # 画面里的代码片段按相对路径引用，必须像正式渲染那样由本地服务器提供作品根：
@@ -640,7 +547,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
                                             ensure_ascii=False), encoding="utf-8")
             target = outputs / f"still-{frame:06d}.png"
             remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=still_file,
-                                  out=target, frame=frame, scale=still_scale, composition_id="ArticleExplainer")
+                                  out=target, frame=frame, scale=still_scale, composition_id="SceneFilm")
             rendered.append(target)
         sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
         silent = work / "sample-silent.mp4"
@@ -654,7 +561,7 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
             return {"out": str(silent), "crf": 16, "preset": "medium", "frames": frames_spec["value"],
                     "scale": 1, "concurrency": 1, "progressTotal": end - start + 1}
         remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
-                                composition_id="ArticleExplainer", on_metadata=confirm, timeout_s=3600,
+                                composition_id="SceneFilm", on_metadata=confirm, timeout_s=3600,
                                 on_line=remotion.progress_handler(end - start + 1))
         if master:
             audio.mux(silent, master, sample, (end - start + 1) / fps, start=start / fps)
@@ -727,23 +634,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="结果停留结束帧相对事件后段的额外帧数")
     args = parser.parse_args(argv)
     _reject_conflicting_modes(args)
-    from m2v.types.general.explainer_render import current
+    from m2v.types.scene_film.explainer_render import current
     root, manifest = load_project(args.project)
-    if manifest["type"] == "building-construction":
-        from m2v.core.project import load_current_prepared
-        if args.event or args.motion:
-            raise M2VError("建筑类型暂不支持 --event/--motion；请用 --sheet 秒数取代表帧")
-        prepared = load_current_prepared(root, manifest)
-        frames = _building_frames(args, prepared)
-        mode = "det" if args.det else "sheet"
-        result = _building_preview(root, prepared, mode=mode, frames=frames,
-                                   still_scale=args.still_scale)
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        if args.det and result["failed"]:
-            return 1
-        return 0
-    if manifest["type"] != "general":
-        raise M2VError("m2v lookdev 仅适用于 general 与 building-construction 作品")
     prepared = current(root, manifest)
     if args.event:
         resolved = resolve_event_selectors(prepared, args.event, before=args.before,
@@ -790,7 +682,7 @@ def keyframes(root: Path, project: dict, prepared: dict) -> dict:
             props.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"), ensure_ascii=False), encoding="utf-8")
             target = outputs / f"still-{frame:06d}.png"
             remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props,
-                out=target, frame=frame, scale=STILL_SCALE, composition_id="ArticleExplainer")
+                out=target, frame=frame, scale=STILL_SCALE, composition_id="SceneFilm")
             files.append(target)
         contact_sheet(files, outputs / "contact-sheet.png")
     result = {"preparedFingerprint": prepared["preparedFingerprint"], "frames": frames,

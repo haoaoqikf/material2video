@@ -8,7 +8,7 @@ from m2v.core import delivery
 from m2v.type_system import registry
 
 
-@pytest.mark.parametrize("kind", ["general", "financial-timeseries"])
+@pytest.mark.parametrize("kind", ["text-motion", "data-evolution", "principle-metaphor", "spatial-3d", "documentary-edit"])
 @pytest.mark.parametrize("review_state", [None, "pending", "fail", "stale"])
 def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, kind, review_state):
     _register_builtins()
@@ -35,7 +35,7 @@ def test_status_reports_candidate_failure_and_review_independently(tmp_path, mon
     _register_builtins()
     prepared = {"preparedFingerprint": "current"}
     monkeypatch.setattr("m2v.commands._prepared", lambda *_: prepared)
-    manifest = {"id": "demo", "type": "general"}
+    manifest = {"id": "demo", "type": "text-motion"}
     assert _status(tmp_path, manifest)["stage"] == "prepared"
     video = tmp_path / "outputs/candidates/test.mp4"
     video.parent.mkdir(parents=True)

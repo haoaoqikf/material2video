@@ -9,7 +9,7 @@
 准备与渲染只读本地文件，不联网取素材。无论素材来自助手检索、公开媒体直链还是图库，进入作品的方式只有一条：
 
 ```powershell
-uv run m2v general assets import --project videos/general/<slug> --manifest <清单.json> [--base <清单里 localPath 的基准目录>]
+uv run m2v author assets import --project videos/<类型>/<slug> --manifest <清单.json> [--base <清单里 localPath 的基准目录>]
 ```
 
 清单为 `{"schemaVersion":1,"assets":[...]}`，1～300 项，每项：
@@ -74,7 +74,7 @@ uv run m2v general assets import --project videos/general/<slug> --manifest <清
 ## 可选图库检索
 
 ```powershell
-uv run m2v general assets search --project <目录> [--provider pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
+uv run m2v author assets search --project <目录> [--provider pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
 ```
 
 按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可、`mediaUrl`、说明、`sourceType: "stock"`、发布主体及 `usage.status: "not-checked"`），不下载、不写作品材料；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。图库照片候选 `kind: "photo"` 在导入清单中写为 `image`，导入用合法作品素材 ID；去掉候选尺寸等非清单字段，实测值由导入生成。默认且唯一启用的图库为 Pixabay，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取；Pexels 固定停用，显式指定会提示改用 Pixabay，即使配置其密钥也不会自动启用。缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
@@ -159,16 +159,16 @@ uv run m2v general assets search --project <目录> [--provider pixabay] [--kind
 | 收束 | `fadeInMs`/`fadeOutMs` 控制尾音，不用突然截断 |
 | 质感 | 用不同合成 `seed`/`intensity` 预生成不同 `assetId`；`intensity` 是配方参数，不能逐事件改 |
 
-现有音效能力没有 effect 级音高参数。不要为了单次动作在混音链里临时加 pitch；确有需要时按合成配方的可选半音参数单独评估。示例见 `styles/vibe-fable/examples/pigeon/SOUND.md`。
+现有音效能力没有 effect 级音高参数。不要为了单次动作在混音链里临时加 pitch；确有需要时按合成配方的可选半音参数单独评估。示例见 `examples/principle-metaphor/pigeon/SOUND.md`。
 
 ## 统一音效库
 
 来源只有两类：**代码合成**与**第三方音频**。均先落盘到作品的 `assets/sound/<sha256>.wav`，来源登记在 `assets/sound-sources.json`，分镜用 ID 编排；渲染不联网、不随机挑音。音效目录不在画面服务器白名单内。
 
 ```powershell
-uv run m2v general sounds catalog
-uv run m2v general sounds import --project <目录> --manifest <音效清单.json> [--base <本地文件基准目录>]
-uv run m2v general sounds audit --project <目录>
+uv run m2v author sounds catalog
+uv run m2v author sounds import --project <目录> --manifest <音效清单.json> [--base <本地文件基准目录>]
+uv run m2v author sounds audit --project <目录>
 ```
 
 `catalog` 输出名称、类别、描述、默认时长、循环能力及变体方式。当前有 `keyboard-key`、`keyboard-typing`、`mouse-click`、`switch`、`spark`、`electric-crackle`、`electric-hum`、`whoosh`、`impact-soft`、`impact-metal`、`success`、`warning`。这些是风格化合成拟音，不能标作真实录音；对真实材质要求高时选择第三方实录。
@@ -217,14 +217,14 @@ uv run m2v general sounds audit --project <目录>
 
 只有目录标作 `loopable` 的合成嗡鸣保证周期接缝；其他音效或第三方素材的循环接缝须另行检查，`loop: true` 不自动修补断点。准备离线复核**全部登记音效**的许可、参数、完整WAV及摘要，将来源文件和所有音频摘要纳入准备指纹；改素材、配方或事件后重新导入（需要时）并 `prepare`。旁白仍按单声道准备，混音及最终响度处理保留立体声，母版严格裁到全片长度；讲话时压低音床，音效音量由事件控制，不自动压低。
 
-制作接入：分镜时标明需发声的动作及声音作用；核心动态验证同时核对动作帧与音效起点；精修检查重复疲劳、物体质感和旁白遮挡；最终检查波形起点、峰值、声道、尾部和循环接缝。自动信号验证只能证明技术行为，不能替代自然度与听感判断；无需用户逐条试听确认。可复现配方见[键盘与火花演练](../../../../styles/doc-archive/examples/american-science-milestones/assets/SOUND_EXERCISE.md)。
+制作接入：分镜时标明需发声的动作及声音作用；核心动态验证同时核对动作帧与音效起点；精修检查重复疲劳、物体质感和旁白遮挡；最终检查波形起点、峰值、声道、尾部和循环接缝。自动信号验证只能证明技术行为，不能替代自然度与听感判断；无需用户逐条试听确认。可复现配方见[键盘与火花演练](../../../../examples/documentary-edit/american-science-milestones/assets/SOUND_EXERCISE.md)。
 
 ### 复用参考音轨（受控例外）
 
 参考素材默认不进入成片。用户明确要求复用单条参考作品音频时，先执行：
 
 ```powershell
-uv run m2v ref audio <参考目录> --project videos/general/<slug> --user-authorized "<用户授权原文>"
+uv run m2v ref audio <参考目录> --project videos/<类型>/<slug> --user-authorized "<用户授权原文>"
 ```
 
 命令按 `recipe.json` 复核参考目录，提取 PCM16 / 48 kHz / 源声道 WAV 到作品 `assets/audio/<名称>.wav`，并写同名 `.provenance.json`。`--json` 或人类输出给出作品实际 fps 的总帧数（`(samples × fps + sampleRate - 1) // sampleRate`）和可直接粘贴的 `soundtrack` 片段；留证中的 `framesAt60fps` 仍是60帧分析信息，不可直接当作30帧作品的编排帧数。目标已存在时默认拒绝，来源与摘要一致才复用，`--force` 才替换。

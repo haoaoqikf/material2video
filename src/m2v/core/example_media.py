@@ -51,7 +51,7 @@ def encode(source: Path, target: Path, transform: str) -> None:
 def validate(path: Path, entry: dict) -> None:
     if digest(path) != entry["sha256"]:
         raise RuntimeError(f"素材 {entry['id']} SHA-256 不符；不更换来源或更新预期摘要")
-    from m2v.types.general.media_assets import probe
+    from m2v.types.scene_film.media_assets import probe
     info = probe(path, entry["kind"])
     if (info["width"], info["height"]) != (entry["width"], entry["height"]):
         raise RuntimeError(f"素材 {entry['id']} 尺寸与登记不符")
