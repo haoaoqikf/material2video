@@ -297,7 +297,11 @@
         },
         {
           "id": "three-start",
-          "frame": 66
+          "frame": 64
+        },
+        {
+          "id": "three-land",
+          "frame": 90
         },
         {
           "id": "three-lock",
@@ -308,8 +312,12 @@
           "frame": 124
         },
         {
+          "id": "nine-land",
+          "frame": 150
+        },
+        {
           "id": "nine-lock",
-          "frame": 162
+          "frame": 164
         },
         {
           "id": "read",
@@ -564,7 +572,7 @@
       },
       {
         "sceneId": "bars",
-        "eventId": "three-lock",
+        "eventId": "three-land",
         "assetId": "contact",
         "gainDb": -12
       },
@@ -576,7 +584,7 @@
       },
       {
         "sceneId": "bars",
-        "eventId": "nine-lock",
+        "eventId": "nine-land",
         "assetId": "release",
         "gainDb": -10
       },

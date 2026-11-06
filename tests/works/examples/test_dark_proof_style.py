@@ -55,6 +55,20 @@ def test_second_example_is_independent_effects_only_v8_work():
     assert board["soundtrack"]["effects"]
 
 
+def test_luck_bar_contacts_follow_grounded_flights():
+    """柱图接触声必须落在飞行终点，柱体锁定不能冒充落地。"""
+    board = json.loads((LUCK_EXAMPLE / "storyboard.json").read_text(encoding="utf-8"))
+    bars = next(scene for scene in board["scenes"] if scene["id"] == "bars")
+    events = {event["id"]: event["frame"] for event in bars["events"]}
+    assert events["one-lock"] < events["three-start"] < events["three-land"] < events["three-lock"]
+    assert events["three-lock"] < events["nine-start"] < events["nine-land"] < events["nine-lock"]
+    effects = {effect["eventId"]: effect["assetId"] for effect in board["soundtrack"]["effects"]
+               if effect["sceneId"] == "bars"}
+    assert effects["three-land"] == "contact"
+    assert effects["nine-land"] == "release"
+    assert "three-lock" not in effects and "nine-lock" not in effects
+
+
 def test_model_recurs_and_coordinates_are_monotonic():
     """核对递推、增量、同起点及乱序求值，不镜像具体分镜参数。"""
     if shutil.which('node') is None:
