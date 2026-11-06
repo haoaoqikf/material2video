@@ -173,7 +173,7 @@
 系统 SHALL NOT 引入 `@remotion/shapes`、`@remotion/lottie`、`@remotion/transitions` 与 `@remotion/motion-blur`：`lottie` 的许可与 `useCurrentFrame` 驱动方式不适用于 code scene；`transitions` 与 `motion-blur` 只适用于 Remotion composition，code scene 的运动模糊继续使用既有子帧方案；标准形状暂用现有 SVG。
 
 #### Scenario: SVG 路径生长
-- **WHEN** 组件或风格包需要按进度画出一条 SVG 路径
+- **WHEN** 组件或作品需要按进度画出一条 SVG 路径
 - **THEN** 使用共享 paths 封装的 `evolvePath` 结果，不手写 `pathLength` + `strokeDashoffset`
 
 #### Scenario: 文本测量

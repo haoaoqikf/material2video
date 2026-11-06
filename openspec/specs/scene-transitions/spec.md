@@ -8,7 +8,7 @@
 
 ### Requirement: 统一场景转场
 
-general MUST 支持 cut、fade、crossfade、slide-left、slide-right、wipe-left、wipe-right、iris、clock-wipe。名称与方向 MUST 由跨 Python/Web 单一登记来源定义，首幕 MUST cut，未知名称 MUST 拒绝。非 cut 转场使用现有 transitionFrames 重叠窗口，不得新增帧或挪动旁白/字幕；正式回放、静帧和局部预演 MUST 使用一致的进度与偏移语义。
+五类作品 MUST 支持 cut、fade、crossfade、slide-left、slide-right、wipe-left、wipe-right、iris、clock-wipe。名称与方向 MUST 由跨 Python/Web 单一登记来源定义，首幕 MUST cut，未知名称 MUST 拒绝。非 cut 转场使用现有 transitionFrames 重叠窗口，不得新增帧或挪动旁白/字幕；正式回放、静帧和局部预演 MUST 使用一致的进度与偏移语义。
 
 本地播放器的媒体服务 MUST 支持单段字节 Range，不得要求为正确定位视频而开启 CORS；默认跨域策略保持关闭。
 

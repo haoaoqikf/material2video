@@ -35,17 +35,17 @@
 
 ### Requirement: 缺字提示可操作
 
-字体缺失导致缺字检查、风格包加载或 web 构建失败时，错误信息 SHALL 指出运行 `uv run python fonts/fetch.py`，SHALL NOT 静默回退到系统字体或跳过检查。
+字体缺失导致缺字检查、准备或 web 构建失败时，错误信息 SHALL 指出运行 `uv run python fonts/fetch.py`，SHALL NOT 静默回退到系统字体或跳过检查。
 
 #### Scenario: 构建前字体缺失
 
 - **WHEN** `web/public/fonts` 的源字体不存在
 - **THEN** `pnpm -C web build` 失败并提示恢复命令
 
-#### Scenario: 风格包字体缺失
+#### Scenario: 场景字体缺失
 
-- **WHEN** 已选风格的包内字体尚未恢复
-- **THEN** `validate`、`prepare` 或 `m2v styles` 明确失败并提示恢复
+- **WHEN** 注册字体尚未恢复
+- **THEN** `validate`、`prepare` 或构建明确失败并提示恢复
 
 ### Requirement: 渲染用字必须在字体里有字形
 
@@ -81,18 +81,6 @@ SHALL NOT 一言不发地通过：一声不吭的检查与通过的检查在报�
 #### Scenario: 未注册字体
 - **WHEN** 画面没有注册任何字体资产
 - **THEN** 报告写明字体覆盖检查不适用并给出原因，SHALL NOT 静默返回通过
-
-### Requirement: 风格包字体按实际画笔检查
-
-作品选择带字体资产的风格包时，系统 SHALL 用该字体自身的 cmap 对**实际会被渲染的文字**做严格缺字检查，范围包括分镜中会渲染的文本（含屏幕字幕）与作品场景源码里的可见字面量。检查 SHALL NOT 与全局字体或其他风格字体取并集：全局字体有字形不能证明实际画笔有字形。字体资产格式无法由 fontTools 解析时 SHALL 明确失败或报告检查不适用，SHALL NOT 静默通过。
-
-#### Scenario: 包内字体缺字
-- **WHEN** 屏幕字幕或场景字面量中的字符不在所选风格包字体的 cmap 中
-- **THEN** `prepare` 失败并列出缺字、位置与所用字体
-
-#### Scenario: 未选风格
-- **WHEN** 作品没有选择风格或所选风格没有字体资产
-- **THEN** 保持现有全局字体检查行为，不新增失败条件
 
 ### Requirement: 字体来源可恢复
 

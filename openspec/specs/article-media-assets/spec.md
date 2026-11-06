@@ -7,7 +7,7 @@
 
 ### Requirement: 公开媒体导入
 
-系统 MUST 提供 `m2v general assets import`，接受媒体直链或已下载文件，不要求指定图库。MUST 临时下载、限制大小和超时、探测真实类型尺寸及时长后采用；未知署名和许可 MUST 明确记录为未知，来源页面及实际媒体地址 MUST 保留。清单和记录 MUST 支持 sourceType、publisher、description、usableSegment 与 usage；usage MUST 区分 explicit-allowed、no-explicit-restriction、conditional、prohibited、not-checked，保留依据页、检查日期与说明，conditional MUST 声明条件是否满足。无 usage 时 MUST 显示未核实提示，不推断已授权。可用片段 MUST 在实际视频时长内，且仅作制作参考、当前不渲染。采用后的素材 MUST 在落盘后交回所在目录的继承权限，与成片一样可以直接打开。
+系统 MUST 提供 `m2v author assets import`，接受媒体直链或已下载文件，不要求指定图库。MUST 临时下载、限制大小和超时、探测真实类型尺寸及时长后采用；未知署名和许可 MUST 明确记录为未知，来源页面及实际媒体地址 MUST 保留。清单和记录 MUST 支持 sourceType、publisher、description、usableSegment 与 usage；usage MUST 区分 explicit-allowed、no-explicit-restriction、conditional、prohibited、not-checked，保留依据页、检查日期与说明，conditional MUST 声明条件是否满足。无 usage 时 MUST 显示未核实提示，不推断已授权。可用片段 MUST 在实际视频时长内，且仅作制作参考、当前不渲染。采用后的素材 MUST 在落盘后交回所在目录的继承权限，与成片一样可以直接打开。
 
 #### Scenario: 导入图片和视频
 - **WHEN** 输入媒体直链或本地文件
@@ -39,11 +39,11 @@
 
 ### Requirement: 文章统一素材入口
 
-素材作品 MUST 使用 v8 general 代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为唯一启用且默认的图库来源；Pexels MUST 固定停用，显式指定时 MUST 提示已停用并引导使用 Pixabay，配置 Pexels 密钥 MUST NOT 自动重新启用，没有候选不算制作失败；其他公开媒体直链 MUST 可经相同导入留证入口采用。
+素材作品 MUST 使用 v9 五类代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为唯一启用且默认的图库来源；Pexels MUST 固定停用，显式指定时 MUST 提示已停用并引导使用 Pixabay，配置 Pexels 密钥 MUST NOT 自动重新启用，没有候选不算制作失败；其他公开媒体直链 MUST 可经相同导入留证入口采用。
 
 #### Scenario: 旧类型请求
 - **WHEN** 请求 stock-montage 或 v7 素材作品
-- **THEN** 拒绝并要求 v8 general 重新制作
+- **THEN** 拒绝并要求 v9 分镜重新制作
 
 #### Scenario: 图库作为可选来源
 - **WHEN** 图库没有候选但存在可用公开直链
@@ -78,7 +78,7 @@
 - **THEN** 不因贴图配额拒绝，按实际表现需要决定是否补充
 
 #### Scenario: 标准档不增加门禁
-- **WHEN** general 未显式运行素材审计命令
+- **WHEN** 五类作品未显式运行素材审计命令
 - **THEN** prepare 仍检查全部登记媒体的采用状态和技术一致性；人工审美记录不增加CLI门禁
 
 #### Scenario: 台账工具不替代审计

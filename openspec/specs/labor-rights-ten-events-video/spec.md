@@ -47,7 +47,7 @@
 - **THEN** 关键数字与表述一致，2013无伤亡人体或人体特写，片尾署名唯一且可读
 
 ### Requirement: 媒体来源与许可
-每幕使用的外部图片 MUST 经 `m2v general assets import` 登记，MUST 在作品材料中记录来源、作者与许可，并 MUST 通过 `m2v assets audit`；成片 MUST 在片尾保留一份简短的图片作者与许可署名。
+每幕使用的外部图片 MUST 经 `m2v author assets import` 登记，MUST 在作品材料中记录来源、作者与许可，并 MUST 通过 `m2v assets audit`；成片 MUST 在片尾保留一份简短的图片作者与许可署名。
 
 #### Scenario: 素材审计
 - **WHEN** 检查 `assets/media-sources.json` 与片尾

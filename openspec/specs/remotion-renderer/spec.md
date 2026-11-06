@@ -13,7 +13,7 @@ Remotion 的官方规则与本项目既有渲染契约是同一条要求（所�
 
 ### Requirement: 画面由 React composition 渲染
 
-系统 SHALL 以共享 React composition 为唯一合成执行者，由 Remotion 逐帧渲染编码。general SHALL 使用 v8 全画布本地代码场景在 prepare 录制的无声片段；作品 MUST NOT 自行注册 Remotion 根、composition、契约页或共享时间轴。
+系统 SHALL 以共享 React composition 为唯一合成执行者，由 Remotion 逐帧渲染编码。五类作品 SHALL 使用 v9 全画布本地代码场景按需录制的无声片段；作品 MUST NOT 自行注册 Remotion 根、composition、契约页或共享时间轴。
 
 共享 composition 可达画面 SHALL 由帧号或共享场景参数驱动，不依赖挂钟、系统随机数、CSS 动画或组件自带计时器。渲染前 SHALL 对共享源码和 CSS 静态检查，命中禁用写法时报出文件位置并拒绝。作品 scenes 代码 SHALL 仅运行于独立录制页，不进入 composition；其自由动画不承诺逐像素复现，正式导出只回放已验收片段。
 
@@ -211,7 +211,7 @@ SHALL NOT 因为本次口径调整而放宽。
 ### Requirement: 渲染契约
 系统 SHALL 提供一个可被浏览器自动化驱动的契约页，把共享 composition 挂载为可寻址的帧序列，并在 `window.__M2V__` 上暴露 `version`、`fps`、`width`、`height`、`durationInFrames`、`ready()` 与 `seekToFrame(frame)`。契约页 SHALL 只服务当前仍受支持的 composition 契约。
 
-`version` SHALL 与所选 composition 的契约版本一致；`general` 的讲解 composition 契约 SHALL 为 `6`，与分镜版本相互独立。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
+`version` SHALL 与所选 composition 的契约版本一致；五类共用的 SceneFilm composition 契约 SHALL 为 `6`，与分镜版本相互独立。`ready()` SHALL 在字体、本地资源就绪且第 0 帧已绘制后 resolve。`seekToFrame(frame)` SHALL 把画面切换到第 frame 帧、暂停播放，并在画面更新完成后 resolve；`frame` 从 `0` 开始，最大值为 `durationInFrames - 1`。
 
 契约 SHALL 由 Remotion 的 Player 实现，SHALL NOT 由每个作品自行实现。`seekToFrame` 返回后，所有场景组件观察到的当前帧 SHALL 等于 `frame`。
 
@@ -238,7 +238,7 @@ SHALL NOT 因为本次口径调整而放宽。
 后期、运动模糊与SSAA MUST 为按内容选择的帧驱动能力，不依赖生产档位、挂钟、随机数或未受控异步状态。hero分级只控制资源分配，可按look选择1–2倍采集与1–4子帧；未声明时使用1倍、1子帧。系统 MUST 校验look、shots及依赖，缺失依赖或参数越界时失败。采集配置、实现与依赖 MUST 进入缓存指纹，旧准备契约失效；溯源 MUST 记录实际镜头、look、后期及耗时，不记录productionProfile。同帧重复渲染 MUST 满足PSNR≥60dB。
 
 #### Scenario: 后期确定性
-- **WHEN** 同一 general 帧连续渲染两次
+- **WHEN** 同一作品帧连续渲染两次
 - **THEN** 两次画面等价，PSNR ≥ 60dB；后期不因真实时间或随机源产生漂移
 
 #### Scenario: 缺少后期依赖
@@ -253,11 +253,11 @@ SHALL NOT 因为本次口径调整而放宽。
 
 渲染入口 SHALL 提供可选正整数 `--jobs`，默认 1。`--jobs: 1` SHALL 保持现有单会话渲染路径。`--jobs > 1` 时，系统 SHALL 先读取并交叉校验 composition 元数据，再按帧区间启动多个独立渲染进程；每段 SHALL 独立解码核对帧数、尺寸与帧率，拼接后 SHALL 复核总帧数，最后统一混入音轨。
 
-`--jobs` SHALL 与 Remotion 页签级 `--concurrency` 区分；分段内部并发 SHALL 固定为 1。`--jobs` SHALL NOT 进入候选交付绑定：改变 jobs 仍可复用同一内容候选。任一段失败 SHALL 清理进程并明确失败，MUST NOT 留下可被误认为成功的成片。当前该能力 SHALL 仅对 `general` 开放，其他类型收到 `jobs > 1` SHALL 明确拒绝。
+`--jobs` SHALL 与 Remotion 页签级 `--concurrency` 区分；分段内部并发 SHALL 固定为 1。`--jobs` SHALL NOT 进入候选交付绑定：改变 jobs 仍可复用同一内容候选。任一段失败 SHALL 清理进程并明确失败，MUST NOT 留下可被误认为成功的成片。该能力 SHALL 对五类作品开放。
 
 #### Scenario: 分段渲染
 
-- **WHEN** general 作品以 `--jobs 4` 渲染全片
+- **WHEN** 五类作品以 `--jobs 4` 渲染全片
 - **THEN** 四个帧区间独立渲染、逐段验收后无损拼接，成片帧数、尺寸、帧率与单进程一致
 
 #### Scenario: 默认单进程
@@ -274,8 +274,3 @@ SHALL NOT 因为本次口径调整而放宽。
 
 - **WHEN** 任一分段渲染或解码验收失败
 - **THEN** 终止其余进程并报错，不拼接、不发布候选
-
-#### Scenario: 其他类型
-
-- **WHEN** 非 general 作品请求 `--jobs > 1`
-- **THEN** 渲染前明确拒绝，不改变该类型的既有路径

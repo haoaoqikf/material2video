@@ -224,7 +224,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 完整示例：[从电报到大模型](../../../../examples/documentary-edit/american-science-milestones/storyboard.json)、
 [复利](../../../../examples/data-evolution/compound-interest/storyboard.json)、
 [太阳系之旅](../../../../examples/spatial-3d/solar-system-journey/storyboard.json)。当前规格见
-[article-explainer](../../../../openspec/specs/article-explainer/spec.md)。
+[five-video-types](../../../../openspec/specs/five-video-types/spec.md)。
 
 ## 结构化来源（v9）
 

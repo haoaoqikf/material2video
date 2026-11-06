@@ -21,7 +21,7 @@
 - **THEN** 只运行默认快层，不启动真实媒体编解码、浏览器或真实渲染
 
 #### Scenario: 显式指定文件
-- **WHEN** 开发者运行 `uv run pytest tests/types/general/test_article_media.py`
+- **WHEN** 开发者运行 `uv run pytest tests/types/scene_film/test_article_media.py`
 - **THEN** 该文件内的 `media` 和 `slow` 用例仍被排除
 
 #### Scenario: 明确节点与目录混用
@@ -29,7 +29,7 @@
 - **THEN** 只对该节点解除默认排除，目录内其他慢测仍被排除
 
 #### Scenario: 显式选择层级
-- **WHEN** 运行 `uv run pytest tests/types/general/test_article_media.py -m media`
+- **WHEN** 运行 `uv run pytest tests/types/scene_film/test_article_media.py -m media`
 - **THEN** 只运行该文件中匹配表达式的媒体测试
 
 #### Scenario: 全量运行
@@ -69,7 +69,7 @@
 
 ### Requirement: 示例内容测试边界
 
-仓库风格示例的内容 MUST 由各自作品的制作与验收流程维护；通用测试 MUST NOT 重复断言示例的固定帧数、时长、音效数量或逐镜内容。通用测试 MAY 保留示例媒体恢复、版本控制卫生、字体与风格包契约等跨示例的产品行为。
+仓库随附示例的内容 MUST 由各自作品的制作与验收流程维护；通用测试 MUST NOT 重复断言示例的固定帧数、时长、音效数量或逐镜内容。通用测试 MAY 保留示例媒体恢复、版本控制卫生、字体与场景打包契约等跨示例的产品行为。
 
 #### Scenario: 修改示例内容
 - **WHEN** 调整某个风格示例的分镜节奏或画面内容
