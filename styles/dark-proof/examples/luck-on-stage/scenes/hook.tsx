@@ -1,7 +1,6 @@
 import {sampleTrail,type CodeSceneProps} from 'm2v/code-scene';
-import LightTrail from 'm2v/style/components/light-trail';
 import {Attempt} from './attempt';
-import {Contact,flight} from './cues';
+import {Contact,FlightMotes,flight} from './cues';
 import {Backdrop} from './details';
 import {Frame,Text,WHITE,GOLD,RED,MUTED,progress,smooth,enter,useClock} from './shared';
 
@@ -10,6 +9,11 @@ export default function Hook(config:CodeSceneProps){
   const {f,e}=useClock(config),starts=[e.frame('launch'),e.frame('retry'),e.frame('last-try')],ends=[e.frame('miss-one'),e.frame('miss-two'),e.frame('hit')];
   const current=f<starts[1]?0:f<starts[2]?1:2,at=ends[current],landed=f>=at;
   const p=progress(f,starts[current],at),pos=sampleTrail({points:paths[current],progress:p,length:.2,count:16,easing:smooth})[0];
+  const age=Math.max(0,f-at),fall=Math.min(10,age),success=current===2;
+  // 触碰后保留横向惯性并加速下落；失败消隐，命中在下落末端释放。
+  const x=pos.x+(success?24:-18)*enter(progress(age,0,10)),y=pos.y+.52*fall*fall;
+  const alpha=landed&&!success?1-smooth(progress(age,4,12)):1;
+  const light=landed?1-smooth(progress(age,0,6)):Math.sin(Math.PI*p);
   const color=landed?(current===2?GOLD:RED):WHITE;
   const wobble=(time:number)=>f<time?0:Math.sin((f-time)*.6)*Math.exp(-(f-time)/6)*14;
   const shake=wobble(ends[0])+wobble(ends[1]);
@@ -23,13 +27,13 @@ export default function Hook(config:CodeSceneProps){
       <path d="M1465 390H1515 M1465 610H1515" stroke={WHITE} strokeWidth={4}/>
     </g>
     {f>=starts[current]?<>
-      <LightTrail points={paths[current]} progress={p} width={13} length={.2} samples={16} glow={3} dust={3} color={WHITE} opacity={1-smooth(progress(f,at,at+7))} seed={`hook-${current}`}/>
-      <Attempt x={pos.x} y={pos.y} size={82} color={color} frame={f} landAt={at} groundY={pos.y} stretch={landed?1:1+.12*Math.sin(p*Math.PI)} tilt={landed?0:12*Math.sin(p*Math.PI)}/>
+      <FlightMotes points={paths[current]} p={p} energy={light}/>
+      <Attempt x={x} y={y} size={82} color={color} alpha={alpha} glow={.22+.3*light} frame={f} landAt={success?e.frame('hit-land'):undefined} stretch={landed?1:1+.07*Math.sin(p*Math.PI)} tilt={landed?0:8*Math.sin(p*Math.PI)}/>
     </>:null}
     {landed?<Text x={current===2?1660:1170} y={current===2?710:550} text={current===2?'命中':'未中'} color={color} size={88} role="hook-result"/>:null}
-    <Contact f={f} at={ends[0]} x={1490} y={710} strength={.4} seed="hook-miss-one"/>
-    <Contact f={f} at={ends[1]} x={1490} y={340} strength={.4} seed="hook-miss-two"/>
-    <Contact f={f} at={ends[2]} x={1660} y={530} strength={.7} seed="hook-hit"/>
+    <Contact f={f} at={ends[0]} x={1490} y={680} strength={.6} kind="touch" color={RED} seed="hook-miss-one"/>
+    <Contact f={f} at={ends[1]} x={1490} y={310} strength={.6} kind="touch" color={RED} seed="hook-miss-two"/>
+    <Contact f={f} at={e.frame('hit-land')} x={1684} y={541} strength={.78} seed="hook-hit"/>
     <Text x={1780} y={810} text="示意" size={23} color={MUTED}/>
     </g>
   </Frame>;

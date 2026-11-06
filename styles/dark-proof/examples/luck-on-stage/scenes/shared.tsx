@@ -30,7 +30,7 @@ export function Dot({x,y,r=14,color=WHITE,alpha=1,sx=1,sy=1,glow=false,role}:{x:
     <circle r={r} fill={color} data-m2v-role={role}/>
   </g>;
 }
-export function Frame({config,children,overlay}:{config:CodeSceneProps;children:ReactNode;overlay?:ReactNode}){
+export function Frame({config,children,overlay,foreground}:{config:CodeSceneProps;children:ReactNode;overlay?:ReactNode;foreground?:ReactNode}){
   const {ready,elapsedSeconds}=useSceneContext();
   useEffect(()=>{ready();},[ready]);
   const captions=(config.props as {screenSubtitles?:ScreenSubtitleItem[]}).screenSubtitles??[];
@@ -40,6 +40,7 @@ export function Frame({config,children,overlay}:{config:CodeSceneProps;children:
       {children}
     </svg>
     {overlay}
+    {foreground?<svg width={config.width} height={config.height} viewBox="0 0 1920 1080" style={{position:'absolute',inset:0}}>{foreground}</svg>:null}
     <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={96} glow={.04} risePx={7} driftPx={0} emphasis={/上场次数|每一次|预期|3倍|单次概率/}/>
   </Stage>;
 }

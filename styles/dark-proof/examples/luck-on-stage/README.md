@@ -1,6 +1,8 @@
 # 运气到底是什么
 
-`dark-proof` 的第二部随附示例：45 秒、1920×1080、30 fps，无旁白和配乐，仅使用可恢复的原创事件音。水滴状尝试者把记录、次数、概率、柱图和面积乘法接成同一条论证：预期成功次数 = 上场次数 × 单次成功概率。开场第三次命中直接成为记录起点；命中记录只作示意，不代表必然结果。
+`dark-proof` 的第二部随附示例：45 秒、1920×1080、30 fps，无旁白和配乐，仅使用可恢复的原创事件音。圆形上场标记把记录、次数、概率、柱图和面积乘法接成同一条论证：预期成功次数 = 上场次数 × 单次成功概率。开场第三次命中直接成为记录起点；命中记录只作示意，不代表必然结果。
+
+圆球以近身微光、自然下落和分级接触光效贯穿全片；14.4–15.2 秒短穿环接成概率盘，最强释放留给约37秒的公式结果。开场不使用白色长拖尾或漂浮地影，公式与字幕位于主光层前方。
 
 与[复利示例](../compound-connect/README.md)并列：本片侧重一个角色持续引导和条件逐项改变；复利片侧重数值从比喻进入表格、图表和公式。
 
@@ -11,7 +13,6 @@
 ```powershell
 uv run python fonts/fetch.py
 uv run python styles/dark-proof/examples/luck-on-stage/assets/fetch.py
-uv run m2v validate --project styles/dark-proof/examples/luck-on-stage
 uv run m2v prepare --project styles/dark-proof/examples/luck-on-stage
 uv run m2v render --project styles/dark-proof/examples/luck-on-stage --jobs 2
 uv run m2v qa --project styles/dark-proof/examples/luck-on-stage

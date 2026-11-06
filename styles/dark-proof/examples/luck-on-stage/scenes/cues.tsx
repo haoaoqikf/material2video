@@ -1,41 +1,45 @@
 import {samplePath,sampleTrail,ScreenBurstLayer,type Vec2} from 'm2v/code-scene';
-import LightTrail from 'm2v/style/components/light-trail';
 import Burst from 'm2v/style/components/burst';
-import {Dot,GOLD,WHITE,progress,smooth,track} from './shared';
+import {GOLD,WHITE,progress,smooth,enter,track} from './shared';
 import {Afterglow} from './details';
 
-/** 作品专属路径在模块加载时采样；球与风格光轨共用弧长及缓动，避免头尾脱节。 */
 export const flight=(d:string)=>samplePath(d,48);
-export function CueBall({f,start,end,points,fadeAt=end+5,r=24,seed}:{f:number;start:number;end:number;points:readonly Vec2[];fadeAt?:number;r?:number;seed:string}){
-  if(f<start||f>=fadeAt+8)return null;
-  const p=progress(f,start,end),head=sampleTrail({points,progress:p,length:.24,count:16,easing:smooth})[0];
-  const alpha=1-smooth(progress(f,fadeAt,fadeAt+8));
-  const sx=track(f,[[end,1],[end+2,1.32],[end+5,.93],[end+9,1]]);
-  return <g opacity={alpha}>
-    <LightTrail points={points} progress={p} width={18} length={.24} samples={16} glow={5} dust={5} opacity={f<end?1:1-smooth(progress(f,end,end+7))} seed={seed}/>
-    <Dot x={head.x} y={head.y} r={r} color={WHITE} role="cue-ball" glow sx={sx} sy={2-sx}/>
+
+/** 离散短寿命光点随速度收回，不生成连续白色笔触。 */
+export function FlightMotes({points,p,energy=1}:{points:readonly Vec2[];p:number;energy?:number}){
+  if(energy<=0)return null;
+  const trail=sampleTrail({points,progress:p,length:.045,count:7,easing:smooth});
+  return <g opacity={energy} data-m2v-effect="flight-motes">{trail.slice(1).map((v,i)=><circle key={i} cx={v.x} cy={v.y+(i%2?1:-1)*(3+i)} r={2.8-i*.28} fill={GOLD} opacity={(1-i/7)*.6}/>)}</g>;
+}
+
+/** 普通接触只轻点，关键结果才释放亮核、扩环和独立下坠余光。 */
+export function Contact({f,at,x,y,strength=1,seed,kind='local',color=GOLD}:{f:number;at:number;x:number;y:number;strength?:number;seed:string;kind?:'touch'|'local';color?:string}){
+  const touch=kind==='touch',span=touch?15:25;
+  if(f<at||f>=at+span+14)return null;
+  const p=progress(f,at,at+span),attack=track(f,[[at,0],[at+1,1],[at+3,.35],[at+5,0]]);
+  return <g data-m2v-effect={touch?'contact-touch':'contact-local'}>
+    {f<at+span?<Burst origin={{x,y}} progress={enter(p)} count={Math.round((touch?10:65)*strength)} distance={(touch?55:230)*strength} size={touch?2.8:4.2} rings={touch?0:1} ringTravel={200*strength} ringThickness={2} seed={seed} color={color} secondaryColor={color===GOLD?WHITE:color} opacity={touch?.55:.85}/>:null}
+    <circle cx={x} cy={y} r={(touch?30:85)*strength} fill={color===GOLD?'url(#luck-glow)':color} opacity={attack*(touch?.28:.95)}/>
+    {!touch?<circle cx={x} cy={y} r={8*strength} fill={WHITE} opacity={attack}/>:null}
+    <Afterglow f={f} at={at+2} x={x} y={y} seed={`${seed}-fall`} color={color} count={Math.round((touch?8:48)*strength)} span={touch?18:34}/>
   </g>;
 }
 
-/** 短促接触亮核和下坠余韵分别计时，文字稳定后不留整片发光遮罩。 */
-export function Contact({f,at,x,y,strength=1,seed}:{f:number;at:number;x:number;y:number;strength?:number;seed:string}){
-  return <>
-    {f>at&&f<at+20?<Burst origin={{x,y}} progress={progress(f,at,at+20)} count={Math.round(30*strength)} distance={170*strength} size={5.5} rings={2} ringTravel={92*strength} ringThickness={3} seed={seed}/>:null}
-    {f>=at&&f<at+5?<circle cx={x} cy={y} r={110*strength} fill="url(#luck-glow)" opacity={track(f,[[at,0],[at+1,.95],[at+4,0]])}/>:null}
-    <Afterglow f={f} at={at+3} x={x} y={y} seed={`${seed}-fall`} count={Math.round(34*strength)} span={34}/>
-  </>;
-}
-
-/** 复用SDK整屏粒子，仅在强重音挂载十帧；下落余光由Contact继续，不留常亮微尘。 */
+/** 主爆快起后衰减，公式及字幕由前景层保护；只在当前事件窗口挂载Canvas。 */
 export function StrongRelease({f,at,x,y,id}:{f:number;at:number;x:number;y:number;id:string}){
-  if(f<at||f>=at+10)return null;
+  if(f<at||f>=at+36)return null;
+  const age=f-at,warped=at+32*enter(progress(f,at,at+32));
   return <div className="luck-strong-release">
     <style>{'.luck-strong-release canvas{mix-blend-mode:normal!important}'}</style>
-    <ScreenBurstLayer frame={f} width={1920} height={1080} maskBottom={790} bursts={[{
-      id,origin:{x,y},startFrame:at,durationFrames:10,count:560,reach:900,
-      seed:id,opacity:.72,color:{core:WHITE,primary:GOLD,secondary:WHITE},
-      bokehRatio:.07,streakRatio:.12,dustRatio:.04,lifetime:.85,drag:1.2,gravity:220,
-      flash:.9,rings:{count:1,travel:600,thickness:2,opacity:.4},
+    <ScreenBurstLayer frame={warped} width={1920} height={1080} maskBottom={850} bursts={[{
+      id,origin:{x,y},startFrame:at,durationFrames:32,count:900,reach:820,
+      seed:id,opacity:.95,color:{core:WHITE,primary:GOLD,secondary:WHITE},
+      bokehRatio:.015,streakRatio:.2,dustRatio:.06,lifetime:.95,drag:1.8,gravity:300,
+      flash:.35,rings:{count:2,travel:1050,thickness:2,opacity:.7},
     }]}/>
+    <svg width="1920" height="1080" viewBox="0 0 1920 1080" style={{position:'absolute',inset:0}}>
+      <circle cx={x} cy={y} r={100} fill="url(#luck-glow)" opacity={track(age,[[0,0],[1,1],[3,.65],[6,0]])}/>
+      <circle cx={x} cy={y} r={12} fill={WHITE} opacity={track(age,[[0,0],[1,1],[3,0]])}/>
+    </svg>
   </div>;
 }

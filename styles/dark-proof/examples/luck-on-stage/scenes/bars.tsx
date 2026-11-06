@@ -22,9 +22,8 @@ export default function Bars(config:CodeSceneProps){
  const screenX=(x:number)=>960+(x-center)*zoom;
  const screenY=(height:number)=>base-height*zoom;
  const x=screenX(mix(previous.x,active.x,flight)),surface=mix(screenY(previous.height),screenY(active.height),flight);
- const hop=current===0?0:150*Math.sin(Math.PI*flight);
- const lift=18*Math.sin(Math.PI*progress(f,active.lock,active.lock+16));
- const impact=f>=active.lock?active.lock+16:current===0?active.lock:active.start+18;
+ const hop=current===0?0:600*flight*(1-flight);
+ const impact=f>=active.lock?active.lock:current===0?active.lock:active.start+18;
  const labels=enter(progress(f,e.frame('nine-start')+4,e.frame('nine-start')+18));
  return <Frame config={config}>
   <Backdrop id="bars-stage"/>
@@ -44,7 +43,7 @@ export default function Bars(config:CodeSceneProps){
      </>:null}
     </g>;
    })}
-   {f>=stages[0].start?<Attempt x={x} y={surface-hop-lift-4} size={76} color={current===2?GOLD:WHITE} stretch={1+.18*Math.sin(Math.PI*flight)} groundY={surface-4} frame={f} landAt={impact}/>:null}
+   {f>=stages[0].start?<Attempt x={x} y={surface-hop-4} size={76} color={current===2?GOLD:WHITE} stretch={1+.1*Math.sin(Math.PI*flight)} groundY={surface-4} frame={f} landAt={impact} glow={.2+.3*Math.sin(Math.PI*flight)}/>:null}
    <Contact f={f} at={e.frame('nine-lock')} x={screenX(stages[2].x)} y={screenY(maxH)} strength={1.05} seed="bar-nine-arrival"/>
    {f>=e.frame('three-start')&&f<e.frame('nine-start')+4?<Text x={960} y={815} text={`${active.n}次 · 每次${active.p}%`} size={92} role="current-conditions"/>:null}
   </g>

@@ -3,15 +3,17 @@ import {Frame,Text,WHITE,GOLD,RED,MUTED,progress,enter,smooth,mix,pop,useClock} 
 import {Backdrop} from './details';
 import {Contact} from './cues';
 import {Attempt} from './attempt';
+import {Portal,PORTAL_FRAMES} from './portal';
 
 export default function Probability(config:CodeSceneProps){
  const {f,e}=useClock(config),rise=e.frame('rise'),lock=e.frame('lock');
  const p=.1+.2*smooth(progress(f,rise,lock));
  const cx=610,cy=530,r=246,theta=p*Math.PI*2;
  const tip={x:cx+Math.sin(theta)*302,y:cy-Math.cos(theta)*302};
- const drop={x:tip.x,y:tip.y+44};
+ const marker={x:tip.x,y:tip.y+44};
  return <Frame config={config}>
   <Backdrop id="probability-stage"/>
+  <g opacity={enter(progress(f,0,e.frame('portal-exit')))}>
   <Text x={960} y={130} text="单次成功概率" size={116} role="probability-title"/>
   {Array.from({length:10},(_,i)=>{
    const a=i*36+1.5,b=(i+1)*36-1.5,fill=Math.min(b,p*360);
@@ -26,8 +28,10 @@ export default function Probability(config:CodeSceneProps){
   <Text x={1375} y={340} text="从 10%" size={84} color={MUTED}/>
   <Text x={1375} y={525} text={`${Math.round(p*100)}%`} size={248} numeric weight={500} color={f>=lock?GOLD:WHITE} scale={pop(f,lock,.035)} role="probability-value"/>
   <Text x={1375} y={750} text={`未中 ${100-Math.round(p*100)}%`} size={76} color={RED} role="failure-value"/>
-  <Attempt x={drop.x} y={drop.y} size={80} color={f>=lock?GOLD:WHITE} tilt={f<lock?-10:0} stretch={1+.08*Math.sin(Math.PI*progress(f,rise,lock))}/>
+  <Attempt x={marker.x} y={marker.y} size={80} color={f>=lock?GOLD:WHITE} tilt={f<lock?-10:0} stretch={1+.08*Math.sin(Math.PI*progress(f,rise,lock))}/>
   <Contact f={f} at={lock} x={tip.x} y={tip.y} strength={.45} seed="probability-thirty"/>
   <Text x={1735} y={825} text="示意模型" size={23} color={MUTED} align="end"/>
+  </g>
+  <Portal frame={f-e.frame('portal-exit')+PORTAL_FRAMES}/>
  </Frame>;
 }

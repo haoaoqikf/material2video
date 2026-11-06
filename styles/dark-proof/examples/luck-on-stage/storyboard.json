@@ -71,6 +71,10 @@
         {
           "id": "hit",
           "frame": 116
+        },
+        {
+          "id": "hit-land",
+          "frame": 126
         }
       ]
     },
@@ -180,6 +184,14 @@
         {
           "id": "join",
           "frame": 63
+        },
+        {
+          "id": "portal-enter",
+          "frame": 72
+        },
+        {
+          "id": "portal-peak",
+          "frame": 84
         }
       ]
     },
@@ -218,6 +230,10 @@
         {
           "id": "establish",
           "frame": 0
+        },
+        {
+          "id": "portal-exit",
+          "frame": 6
         },
         {
           "id": "rise",
@@ -476,7 +492,7 @@
       },
       {
         "sceneId": "hook",
-        "eventId": "hit",
+        "eventId": "hit-land",
         "assetId": "spark",
         "gainDb": -8
       },
@@ -621,14 +637,14 @@
       {
         "sceneId": "area",
         "eventId": "nine-lock",
-        "assetId": "release",
-        "gainDb": -7
+        "assetId": "contact",
+        "gainDb": -17
       },
       {
         "sceneId": "area",
         "eventId": "formula-lock",
-        "assetId": "spark",
-        "gainDb": -12
+        "assetId": "release",
+        "gainDb": -7
       },
       {
         "sceneId": "closing",
@@ -647,6 +663,12 @@
         "eventId": "land",
         "assetId": "contact",
         "gainDb": -15
+      },
+      {
+        "sceneId": "bridge",
+        "eventId": "portal-enter",
+        "assetId": "travel",
+        "gainDb": -14
       }
     ],
     "silence": [
