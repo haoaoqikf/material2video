@@ -17,8 +17,6 @@ description: 使用统一 m2v 制作入口创作或修订金融时间序列、�
 <!-- generated:type-catalog:start -->
 | 类别 | 类型 | 创作指导 |
 |---|---|---|
-| 路线旅程 | `driving-route` | [自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。 |
-| 路线旅程 | `road-trip` | [多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。 |
 | 未分类 | `financial-timeseries` | [金融时间序列视频](references/financial-timeseries-video.md)：核验行情口径、投资计算并通过完整候选自动验收。 |
 | 未分类 | `general` | [制作流程](references/production-workflow.md#阶段阅读入口)：三阶段流程与[视觉导演指南](references/visual-creative-direction.md)。 |
 | 未分类 | `building-construction` | [建筑建造视频](references/building-construction-video.md)：核验 v2 材料、镜头与步骤，并通过完整候选的静读与独立复述验收。 |

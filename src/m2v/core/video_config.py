@@ -7,10 +7,8 @@ from m2v.core.errors import M2VError
 
 _CONFIG = json.loads((REPOSITORY_ROOT / "web/src/video-config.json").read_text(encoding="utf-8"))
 FPS: int = _CONFIG["fps"]
-DRIVING_ROUTE_FPS: int = _CONFIG["drivingRoute"]["defaultFps"]
 BUILDING_FPS: int = _CONFIG["buildingConstruction"]["defaultFps"]
 VEHICLE_SHOWCASE_FPS: int = _CONFIG["vehicleShowcase"]["defaultFps"]
-ROAD_TRIP_FPS: int = _CONFIG["roadTrip"]["defaultFps"]
 GENERAL_DEFAULT_FPS: int = _CONFIG["general"]["defaultFps"]
 GENERAL_ALLOWED_FPS: tuple[int, ...] = tuple(_CONFIG["general"]["allowedFps"])
 
@@ -38,14 +36,10 @@ def general_fps(project: dict, storyboard: dict) -> int:
 def default_fps(video_type: str) -> int:
     if video_type == "general":
         return GENERAL_DEFAULT_FPS
-    if video_type == "driving-route":
-        return DRIVING_ROUTE_FPS
     if video_type == "building-construction":
         return BUILDING_FPS
     if video_type == "vehicle-showcase":
         return VEHICLE_SHOWCASE_FPS
-    if video_type == "road-trip":
-        return ROAD_TRIP_FPS
     return FPS
 
 

@@ -10,8 +10,6 @@ dependencies = [
     "pillow>=13.0.0",
     "psutil>=7.2.2",
     "fonttools>=4.50,<5",
-    "mercantile>=1.2.1",
-    "geographiclib>=2.1",
     "yt-dlp>=2026.10.26",
     "pydantic>=2,<3",
 ]

@@ -1,12 +1,5 @@
 {
   "schemaVersion": 2,
-  "categories": [
-    {
-      "id": "route-journey",
-      "title": "路线旅程",
-      "description": "以真实道路为骨架的路线与旅程影像：单段自驾行程与多日地图游记。"
-    }
-  ],
   "types": [
     {
       "name": "financial-timeseries",
@@ -129,67 +122,6 @@
       ],
       "starters": [
         "scenes/opening.tsx"
-      ]
-    },
-    {
-      "name": "driving-route",
-      "category": "route-journey",
-      "description": "自驾路线动画",
-      "summary": "真实高速优先驾车路线、竖屏普通道路地图、无注记路网与市/县行政区标注、小车沿路行驶与 12× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、30 fps、无声交付。",
-      "plan": "保留独立的请求与路线材料、高速优先取数、授权内普通道路底图、竖屏确定性贴路动画与无声验收；无底部数据面板。",
-      "skillGuide": "[自驾路线视频](references/driving-route-video.md)：核验使用依据与真实路线，离线制作竖屏道路地图小车动画。",
-      "materials": [
-        {
-          "name": "request",
-          "file": "request.json",
-          "template": {
-            "schemaVersion": 2,
-            "origin": {
-              "city": "填写城市",
-              "address": "填写具体地点地址",
-              "label": "填写画面名称"
-            },
-            "destination": {
-              "city": "填写城市",
-              "address": "填写具体地点地址",
-              "label": "填写画面名称"
-            },
-            "strategy": "highway-first",
-            "durationSeconds": 30,
-            "canvas": {
-              "width": 1080,
-              "height": 1920
-            },
-            "sourceUsage": {
-              "verifiedOn": "YYYY-MM-DD",
-              "documents": [],
-              "account": "填写适用账号与用途范围（不写登录凭据）",
-              "purpose": "填写离线保存、二维衍生画面与视频发布用途",
-              "offlineStorage": false,
-              "derivativeFrames": false,
-              "videoPublication": false,
-              "attribution": "填写来源要求署名的文本",
-              "mapTiles": false
-            }
-          }
-        },
-        {
-          "name": "route",
-          "file": "route.json",
-          "template": {
-            "schemaVersion": 3,
-            "requestDigest": "",
-            "coordinateSystem": "GCJ-02",
-            "origin": null,
-            "destination": null,
-            "route": null,
-            "cost": null,
-            "cities": [],
-            "administrativePlaces": [],
-            "acquisition": null,
-            "sourceUsage": null
-          }
-        }
       ]
     },
     {
@@ -765,72 +697,6 @@
           "template": {
             "schemaVersion": 2,
             "assets": []
-          }
-        }
-      ]
-    },
-    {
-      "name": "road-trip",
-      "category": "route-journey",
-      "description": "多日地图游记",
-      "summary": "真实国道走廊、多日行程、每日章节卡与数据卡、旁白字幕音效与程序化音床；1080×1920 竖屏、30 fps、有声交付。",
-      "plan": "保留独立的 trip.json 编排材料、链式取数、每日底图走廊与离线有声渲染；以 318 川藏南线七天为首例。",
-      "skillGuide": "[多日地图游记](references/road-trip-video.md)：核验来源与授权、链式取数与每日底图，制作有声竖屏游记。",
-      "materials": [
-        {
-          "name": "trip",
-          "file": "trip.json",
-          "template": {
-            "schemaVersion": 1,
-            "title": "填写行程标题",
-            "start": {
-              "city": "填写城市",
-              "address": "填写具体地点地址",
-              "label": "填写画面名称"
-            },
-            "end": {
-              "city": "填写城市",
-              "address": "填写具体地点地址",
-              "label": "填写画面名称"
-            },
-            "routePreference": "g318",
-            "targetSeconds": 180,
-            "sourceUsage": {
-              "verifiedOn": "YYYY-MM-DD",
-              "documents": [],
-              "account": "填写适用账号与用途范围（不写登录凭据）",
-              "purpose": "填写离线保存、二维衍生画面与视频发布用途",
-              "offlineStorage": false,
-              "derivativeFrames": false,
-              "videoPublication": false,
-              "attribution": "填写来源要求署名的文本",
-              "mapTiles": false
-            },
-            "sources": [],
-            "days": [
-              {
-                "id": "day-01",
-                "title": "填写当天标题",
-                "subtitle": "",
-                "destination": {
-                  "city": "填写城市",
-                  "address": "填写具体地点地址",
-                  "label": "填写画面名称"
-                },
-                "via": [],
-                "route": "routes/day-01.json",
-                "basemapStyle": "road",
-                "narration": [
-                  {
-                    "id": "day-01-opening",
-                    "text": "填写完整旁白。"
-                  }
-                ],
-                "cards": [],
-                "landmarks": []
-              }
-            ],
-            "effects": []
           }
         }
       ]

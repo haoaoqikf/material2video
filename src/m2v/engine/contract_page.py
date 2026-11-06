@@ -33,8 +33,6 @@ WEB_MOUNT = "/__m2v_web__"
 
 #: 契约页相对 `web/` 的位置：Vite 的构建产物
 CONTRACT_PAGE_RELATIVE = Path("dist/contract/contract.html")
-#: 多日地图游记的独立入口；同一个 Vite 构建产出，参数仍走 `m2v-storyboard`。
-ROADTRIP_PAGE_RELATIVE = Path("dist/contract/roadtrip.html")
 
 #: 构建命令：报错信息里要给出可照抄的一条命令
 BUILD_HINT = "cd web && pnpm install && pnpm build"
@@ -56,11 +54,6 @@ def web_dir(repo_root: Path | None = None) -> Path:
 def contract_page_path(repo_root: Path | None = None) -> Path:
     """契约页的构建产物路径。"""
     return web_dir(repo_root) / CONTRACT_PAGE_RELATIVE
-
-
-def roadtrip_page_path(repo_root: Path | None = None) -> Path:
-    """多日地图游记契约页的构建产物路径。"""
-    return web_dir(repo_root) / ROADTRIP_PAGE_RELATIVE
 
 
 def require_contract_page(repo_root: Path | None = None) -> Path:
@@ -185,19 +178,5 @@ def serve_contract_page(
     因此内容根外置时同样成立。
     """
     page = require_contract_page(repo_root)
-    with serve_page(page, storyboard, workspace_root, repo_root) as url:
-        yield url
-
-
-@contextlib.contextmanager
-def serve_roadtrip_page(
-    storyboard: str | Path,
-    workspace_root: str | Path,
-    repo_root: Path | None = None,
-) -> Iterator[str]:
-    """多日地图游记的契约页；页面不存在时给出同一条构建命令。"""
-    page = roadtrip_page_path(repo_root)
-    if not page.is_file():
-        raise M2VError(f"多日地图游记契约页不存在: {page}\n请先构建前端：{BUILD_HINT}")
     with serve_page(page, storyboard, workspace_root, repo_root) as url:
         yield url

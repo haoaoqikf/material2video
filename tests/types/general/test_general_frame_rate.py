@@ -47,7 +47,7 @@ def test_conflict():
 
 
 @pytest.mark.parametrize("kind,expected,bad", [
-    ("general", 30, None), ("financial-timeseries", 30, 60), ("driving-route", 30, 60)])
+    ("general", 30, None), ("financial-timeseries", 30, 60)])
 def test_init_type_defaults(tmp_path, kind, expected, bad):
     root = tmp_path / kind
     assert main(["init", "--type", kind, "--project", str(root)]) == 0

@@ -24,8 +24,7 @@
 | **工作区根**（workspace root） | 存放 `videos/<类型路径>/<slug>/`、`styles/<style-id>/examples/<slug>/` 及作品产物的目录 | 默认就是仓库根；设置了内容根时是内容根 |
 
 `<类型路径>` 由类型目录决定：未分类类型为 `<type>`，属于类别的类型为 `<category>/<type>`。
-例如 `driving-route` 与 `road-trip` 同属 `route-journey`，规范位置分别是
-`videos/route-journey/driving-route/<slug>/` 与 `videos/route-journey/road-trip/<slug>/`。
+例如某类别 `<category>` 下的类型 `<type>`，规范位置为 `videos/<category>/<type>/<slug>/`。
 类别只组织与发现类型，本身不是可初始化或可渲染的类型。
 
 内容根按下面的优先级确定，**不自动探测、不猜**：
@@ -131,7 +130,7 @@ composition 里经相对 URL 引用；仓库 `web/` 自身的源码与字体则�
 | `m2v preview --project <目录> --limit-frames N` | 调试用途；严格短于全片，不参与交付门禁 |
 
 general 正式成片为 `outputs/video.mp4`，片段为 `outputs/previews/video.mp4`；金融为
-`financial-line-no-events.mp4`，road-trip 为 `road-trip.mp4`，其他无声类型使用各自类型文件名
+`financial-line-no-events.mp4`，其他无声类型使用各自类型文件名
 （如 `building-construction.mp4`），片段名为正式名加 `-review`。
 文件名不随有无配音变化（没有音轨时渲染的是无声画面，名字不变）。由 `project.json`
 解析材料与输出位置，不通过旧式 `--media` 或输出路径参数切换制作归属。

@@ -75,20 +75,13 @@ def test_types_command_reads_descriptions_from_the_catalog(capsys) -> None:
             for item in listed} == expected
 
 
-def test_categories_group_types_and_derive_workspace_parts() -> None:
+def test_unconfigured_catalog_has_no_categories() -> None:
     documented = catalog_module.catalog()
-    assert [category.id for category in documented.categories()] == ["route-journey"]
-    assert [entry.name for entry in documented.types_in("route-journey")] == ["driving-route", "road-trip"]
-    assert documented.get("driving-route").workspace_parts() == ("route-journey", "driving-route")
+    assert documented.categories() == ()
     assert documented.get("general").workspace_parts() == ("general",)
     assert {entry.name for entry in documented.uncategorized()} == {
         "financial-timeseries", "general", "building-construction", "vehicle-showcase",
     }
-
-
-def test_category_name_is_not_a_video_type() -> None:
-    with pytest.raises(M2VError, match="类型类别「路线旅程」"):
-        registry.get("route-journey")
 
 
 def test_docs_type_lists_match_the_catalog() -> None:
@@ -164,27 +157,6 @@ def test_catalog_groups_types_by_category(tmp_path: Path) -> None:
     loaded = catalog_module.load(_write_catalog(tmp_path, mutate))
     assert loaded.get("demo").workspace_parts() == ("group", "demo")
     assert loaded.types_in("group")[0].name == "demo"
-
-
-def test_init_places_categorized_type_under_its_category(tmp_path: Path, capsys) -> None:
-    root = tmp_path / "content"
-    assert main(["init", "--type", "driving-route", "--project", "demo", "--content-root", str(root)]) == 0
-    capsys.readouterr()
-    assert (root / "videos/route-journey/driving-route/demo/project.json").is_file()
-    assert not (root / "videos/driving-route/demo").exists()
-    assert main(["init", "--type", "road-trip", "--project", "videos/route-journey/road-trip/trip",
-                 "--content-root", str(root)]) == 0
-    capsys.readouterr()
-    assert (root / "videos/route-journey/road-trip/trip/project.json").is_file()
-
-
-def test_init_rejects_flat_path_for_categorized_type(tmp_path: Path, capsys) -> None:
-    root = tmp_path / "content"
-    assert main(["init", "--type", "driving-route", "--project", "videos/driving-route/demo",
-                 "--content-root", str(root)]) == 2
-    message = capsys.readouterr().err
-    assert "videos/route-journey/driving-route/<slug>" in message
-    assert not (root / "videos/driving-route/demo").exists()
 
 
 def test_init_writes_exactly_the_materials_declared_by_the_catalog(tmp_path: Path, capsys) -> None:

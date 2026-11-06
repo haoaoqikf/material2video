@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   项目：material2video，使用共享制作底座、独立视频类型和统一制作入口，优先发展金融时间序列等专用视频，持续完善通用混合媒体讲解。
-  当前类型包括 financial-timeseries、general、driving-route、building-construction、road-trip 与 vehicle-showcase；driving-route 与 road-trip 属于 route-journey（路线旅程），作品规范位置为 videos/route-journey/<type>/<slug>，未分类类型为 videos/<type>/<slug>。各类型的最新说明、画幅、帧率与材料入口以 src/m2v/type_system/catalog.json 和 README 的类型目录为准，本文件不再复制。类别只组织类型，不可初始化或渲染。旧 article-narrative 身份、m2v article 命令、general-plan 编排与完整片段嵌入已删除；作品画面以 v8 的本地 TSX 全画布逐帧录制链路提供。
+  当前类型包括 financial-timeseries、general、building-construction 与 vehicle-showcase，全部未分类，作品规范位置为 videos/<type>/<slug>；类型目录支持可选的类别归属，当前未登记类别。各类型的最新说明、画幅、帧率与材料入口以 src/m2v/type_system/catalog.json 和 README 的类型目录为准，本文件不再复制。类别只组织类型，不可初始化或渲染。旧 article-narrative 身份、m2v article 命令、general-plan 编排与完整片段嵌入已删除；作品画面以 v8 的本地 TSX 全画布逐帧录制链路提供。
   通用 v8 使用 scenes 多幕讲解，每一幕都是作品 `scenes/` 下的本地 React 代码场景，画幅默认为 1920×1080 横屏并支持显式 1080×1920 竖屏，完整成片最多 600 秒；代码片段在检查或正式生成时按所需窗口逐帧录制并缓存，检查和正式生成按区间复用录制缓存。图片与视频经已导入素材 ID 解析，比例不受画幅限制。原文输入需非空源文，主题输入按逐幕关键词检索，均不限制标准字数。旧 v7 及更早分镜需重新编排，不自动迁移。
   Python 生产实现位于 src/m2v/：core（作品契约与指纹）、engine（构建、缓存、渲染、合成与验收）、type_system（类型目录、注册表、迁移与无声装配）、types（各类型专属实现）、production（制作合同）、reference（外部参考）、cli（统一入口）；前端共享运行时在 web/src/，类型专属 composition 在 web/src/types/<type>/；作品专属代码在内容目录的 scenes/ 下。Skill 只保留创作指导和参考契约。
   技术栈：Python（类型校验与渲染编排）、React 19 + TypeScript + Remotion（画面 composition），

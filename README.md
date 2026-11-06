@@ -5,10 +5,6 @@
 ## 当前视频类型
 
 <!-- generated:type-catalog:start -->
-**路线旅程**：以真实道路为骨架的路线与旅程影像：单段自驾行程与多日地图游记。
-- `driving-route`：真实高速优先驾车路线、竖屏普通道路地图、无注记路网与市/县行政区标注、小车沿路行驶与 12× 平滑镜头跟随；顶部两行“模拟行程”标题，已行驶里程随车显示，在线取数与离线成片分离，1080×1920、30 fps、无声交付。
-- `road-trip`：真实国道走廊、多日行程、每日章节卡与数据卡、旁白字幕音效与程序化音床；1080×1920 竖屏、30 fps、有声交付。
-
 **未分类**
 - `financial-timeseries`：股票、指数及 crypto 日线材料（含 USD/CNY 历史汇率折算）、假设投资计算、30 fps 暖近黑「持仓对账单」手机竖屏双层趋势曲线、主体优先标题、本金/期末市值收束区与可选 design 档案，完整候选自动验收。
 - `general`：v8 全画布代码场景讲解：作品自行设计横屏或竖屏画面的配色、构图与动效，支持原文或主题输入、带来源留证的媒体导入、双来源音效库与本地音床，成片最长 600 秒。
@@ -84,17 +80,13 @@ general 作品未配置旁白、音乐和音效时，预览与正式成片均不
 
 有旁白的制作流程为：材料审查 → 编排旁白 → **制作助手自动选择音色并保存** → 校验与时间轴准备 → 按需检查生成与修改 → 全片生成一次 → 验收与复核 → 交付同一文件。助手读取当前音色列表并按内容选择，用户明确音色优先；全流程不要求播放视频、连续收听声音或试听音色，按类型使用静帧/时间标注帧序列、路径与画面量测、字幕及时间戳核对和自动音频信号分析。用户无需试听确认；有自身旁白但缺少 `tts.voice` 时 `prepare` 会阻断，也可用 `--voice` 手动指定。无旁白作品无需选音。字段、溯源与迁移见[配音音色与节奏](.agents/skills/material2video/references/voice-and-rhythm.md#配音音色与语速)。
 
-作品及其全部 `outputs/` 产物按类型与类别分层存放：未分类类型为 `videos/<type>/<slug>/`，属于类别的类型为 `videos/<category>/<type>/<slug>/`（例如 `videos/route-journey/driving-route/<slug>/`）。仓库自带风格示例（`styles/<style-id>/examples/<slug>/`）的全部产物写在示例目录下的 `outputs/`，同样不入库。`init` 的相对参数填写 `<slug>`，也可传入完整的规范相对路径；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向位于 `videos/` 下非规范位置的统一契约作品（如 `videos/<slug>/` 或旧的 `videos/<type>/<slug>/`），按类型目录中的类别迁移到规范位置，逐个备份后移动源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。目录归属、内容根与默认输出见[目录约定与输出路径](.agents/skills/material2video/references/paths.md)。
+作品及其全部 `outputs/` 产物按类型与类别分层存放：未分类类型为 `videos/<type>/<slug>/`，属于类别的类型为 `videos/<category>/<type>/<slug>/`。仓库自带风格示例（`styles/<style-id>/examples/<slug>/`）的全部产物写在示例目录下的 `outputs/`，同样不入库。`init` 的相对参数填写 `<slug>`，也可传入完整的规范相对路径；使用仓库外内容根时，传入 `--content-root` 或设置 `M2V_CONTENT_ROOT`。`relocate` 面向位于 `videos/` 下非规范位置的统一契约作品（如 `videos/<slug>/` 或旧的 `videos/<type>/<slug>/`），按类型目录中的类别迁移到规范位置，逐个备份后移动源文件和产物；同名冲突文件不覆盖目标，解决后可重试。无 `project.json` 的旧文章内容不属于此迁移命令。目录归属、内容根与默认输出见[目录约定与输出路径](.agents/skills/material2video/references/paths.md)。
 
-`init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融与自驾路线各自沿用专用材料契约。各类型的材料、编排与画面规则见[文档导航](#文档导航)。
+`init` 会生成材料模板，通用类型还会按类型目录写入起步场景 `scenes/opening.tsx`。通用作品先确定画幅与视觉设计（作品 `DESIGN.md`）、写 `scenes/` 下的本地场景，再完成源文审查与分镜；金融等专用类型各自沿用专用材料契约。各类型的材料、编排与画面规则见[文档导航](#文档导航)。
 
 多场景作品的 `lookdev` 静帧采集失败时，错误会给出场景 ID、入口路径及原始原因，便于定位失败场景。
 
 纯时间并行采集仅在整组边界验证通过后发布分块缓存；失败重试不会复用未放行分块，边界失败帧会保存在作品诊断目录，见[纯时间采集](.agents/skills/material2video/references/code-scene-runtime.md#纯时间采集opt-in)。
-
-多日地图游记使用一份 `trip.json`，每日路线在 `routes/day-XX.json` 并由 `trip.json` 引用；填写行程、旁白、卡片与事实来源后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v road-trip fetch --project videos/route-journey/road-trip/<slug>`，再按授权执行 `basemap` 生成概览与每日跟随瓦片。之后 `prepare / preview / render` 全程离线，准备阶段合成旁白、字幕、音效与 30 秒程序化音床。画幅固定 1080×1920、30 fps、有声；材料形状、命令与画面契约见[多日地图游记](.agents/skills/material2video/references/road-trip-video.md)。
-
-自驾路线使用独立的 `request.json` 与 `route.json`：填写起终点与来源使用依据后，设置 `M2V_AMAP_KEY` 执行 `uv run m2v driving-route fetch --project videos/route-journey/driving-route/<slug>` 取得真实高速优先路线；确认授权并置 `mapTiles=true` 后可执行 `basemap` 生成普通道路或卫星底图。之后 `validate / prepare / preview / render` 全程离线。画幅固定 1080×1920 竖屏、30 fps、无音轨，默认 30 秒；顶部两行“模拟行程”标题，车辆旁显示里程，市/县行政区标签由渲染层绘制。取数授权、材料形状与画面契约见[自驾路线视频](.agents/skills/material2video/references/driving-route-video.md)。
 
 可选风格机制独立于视频类型：`uv run m2v styles` 查询注册包，作品通过 `project.json` 的 `style.id` 选择；六个正式风格包与七部随附示例见[风格包目录](styles/README.md)，示例子树不参与风格指纹。general 场景须显式使用风格参数、组件和资产，选择风格不会自动换肤。无旁白作品可在字幕安全区内自绘屏幕字幕；讲解方法见[讲解设计](.agents/skills/material2video/references/explainer-design.md)，契约见[风格接入](.agents/skills/material2video/references/style-pack.md)。
 

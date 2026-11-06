@@ -63,8 +63,8 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 
 | 类型 | 与上表的差异 |
 | --- | --- |
-| `general` / `road-trip` | 使用 `projectId`、`preparedFingerprint`、`compositionId`、`inputs`、`durationInFrames`、`fps`、`width`、`height`；有声成片另写 `audio` 与 `delivery` |
-| 无声专用类型（`financial-timeseries`、`driving-route`、`building-construction`、`vehicle-showcase`） | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
+| `general` | 使用 `projectId`、`preparedFingerprint`、`compositionId`、`inputs`、`durationInFrames`、`fps`、`width`、`height`；有声成片另写 `audio` 与 `delivery` |
+| 无声专用类型（`financial-timeseries`、`building-construction`、`vehicle-showcase`） | 多 `renderer`（画面来源，写 `remotion`）与 `bundleKey`（打包缓存键，用于确认这份成片用的是哪一份 bundle），并用 `frames` + `materialsAndAssetsSha256`（材料与资产的整体摘要）代替 `durationInFrames` + `preparedFingerprint`/`inputs` |
 
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
 独立复核准备指纹与文件摘要完成。
