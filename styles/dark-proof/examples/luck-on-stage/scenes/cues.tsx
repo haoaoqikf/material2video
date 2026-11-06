@@ -1,18 +1,33 @@
-import {samplePath,sampleTrail,ScreenBurstLayer,type Vec2} from 'm2v/code-scene';
+import {samplePath,ScreenBurstLayer,type Vec2} from 'm2v/code-scene';
 import Burst from 'm2v/style/components/burst';
-import LightTrail from 'm2v/style/components/light-trail';
-import {GOLD,WHITE,progress,smooth,enter,track} from './shared';
+import {GOLD,WHITE,mixHex,progress,smooth,enter,track} from './shared';
 import {Afterglow} from './details';
 
 export const flight=(d:string)=>samplePath(d,48);
 
-/** 复用风格包的锥形笔触；离散尾光越旧越向下落，收速后同步熄灭。 */
-export function FlightMotes({points,p,energy=1}:{points:readonly Vec2[];p:number;energy?:number}){
-  if(energy<=0)return null;
-  const trail=sampleTrail({points,progress:p,length:.19,count:11,easing:smooth});
-  return <g data-m2v-effect="flight-trail">
-    <LightTrail points={points} progress={p} color={GOLD} width={18} length={.19} samples={20} opacity={energy*.85} glow={1.2} dust={0}/>
-    {trail.slice(1).map((v,i)=><circle key={i} cx={v.x} cy={v.y+1.1*(i+1)*(i+1)} r={Math.max(.8,4.2-i*.32)} fill={GOLD} opacity={energy*(1-i/10)*.85}/>) }
+export type LightSample=Vec2&{color:string};
+
+/** 头部直接取球心；旧光滴保留发出时色相，随后因年龄下坠并逐粒衰减。 */
+export function FlightMotes({samples,energy=1}:{samples:readonly LightSample[];energy?:number}){
+  if(energy<=0||samples.length===0)return null;
+  const head=samples[0];
+  return <g data-m2v-effect="flight-motes" style={{mixBlendMode:'screen'}}>
+    <circle cx={head.x} cy={head.y} r={35} fill="url(#luck-glow)" opacity={energy*.8}/>
+    <circle cx={head.x} cy={head.y} r={6} fill={WHITE} opacity={energy*.72}/>
+    {samples.slice(1).flatMap((v,i)=>{
+      const age=i+1,life=Math.max(0,1-age/13),gravity=.42*age*age;
+      const before=samples[i],dx=before.x-v.x,dy=before.y-v.y,length=Math.hypot(dx,dy)||1;
+      return [0,1].map(k=>{
+        const spread=(k===0?-1:1)*(2+(age%4)*1.5),jitter=((age*17+k*11)%7-3)*1.1;
+        const x=v.x-dy/length*spread+jitter,y=v.y+dx/length*spread+gravity;
+        const size=(k===0?(age%4===0?6:4.2):(age%3===0?3.5:1.9))*life;
+        const opacity=energy*life*(k===0?(age%5===0?.38:1):.7);
+        return <g key={`${age}-${k}`}>
+          <circle cx={x} cy={y} r={size*2.4} fill={v.color} opacity={opacity*.12}/>
+          <circle cx={x} cy={y} r={Math.max(.55,size)} fill={k===0?mixHex(v.color,WHITE,.55):v.color} opacity={opacity}/>
+        </g>;
+      });
+    })}
   </g>;
 }
 

@@ -47,7 +47,9 @@ def test_second_example_is_independent_effects_only_v8_work():
     assert project["style"] == {"id": "dark-proof"}
     assert (project["output"]["width"], project["output"]["height"], project["output"]["fps"]) == (1920, 1080, 30)
     assert board["version"] == board["schemaVersion"] == 8
-    assert sum(scene["durationFrames"] for scene in board["scenes"]) == 1350
+    total_frames = sum(scene["durationFrames"] for scene in board["scenes"])
+    assert board["soundtrack"]["silence"][-1]["endFrame"] == total_frames
+    assert next(scene for scene in board["scenes"] if scene["id"] == "bridge")["durationFrames"] < project["output"]["fps"] * 2
     assert not any(scene["narrationSegments"] for scene in board["scenes"])
     assert "music" not in board.get("soundtrack", {})
     assert board["soundtrack"]["effects"]

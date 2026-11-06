@@ -1,10 +1,24 @@
-# 运气到底是什么：45 秒示例设计
+# 运气到底是什么：41 秒示例设计
 
 ## 命题与事实边界
 
 圆形上场标记只在尝试、记录和三柱比较中承担对象追踪；文字、概率盘与九格面积由自身变化讲解。观众最终应理解“预期成功次数 = 上场次数 × 单次成功概率”。`E(S)=Np` 是线性期望；单次概率不会因重复上场自动变大，预期值不保证实际命中。红色仅表示示意未中，金色表示示意命中、成功区域或主要结果。
 
-## 2026-11-06 形象修订
+## 2026-11-06 球心光滴与结论去重（当前制作）
+
+本轮受影响窗口为旧版 0–5 秒开场、22–29 秒柱图、12–15 秒桥段与39–45 秒结尾。旧候选 SHA-256 为 `0DBD7A63BABF6A5879C9D78A235CA648F5E6288733C90F86042AB7D1817FBB1E`，候选基线为 `outputs/baselines/42b951a5aa244cc2afe8f23f3c4ae96c/`，修改前材料在同 ID 的 `outputs/revision-sources/` 下。旧评审只说明旧片状态，不能证明本轮效果。
+
+新版维持七场和原数学口径；桥段从 90 帧缩至 30 帧，结尾从 180 帧缩至 120 帧，全长 1230 帧。记录段结束的 30 次和末行横线在桥段延伸并卷成概率盘入口，桥段不再重复完整口号。公式 `30 × 30% = 9` 的两个因素分别触发“多上场”和“把每一次做好”，仅在结尾说一次，最后留出完整静读。
+
+开场与柱图的球体中心就是光滴的头部坐标；离散光点记录球体过去的实际位置，越旧越下坠、变暗，去掉连续锥形尾。柱图历史位置与当前球体共用世界轨迹及当前镜头投影，1/3/9 阶段从米白、香槟金递进到琥珀金，飞行中连续过色，已发出的光滴保留原色。球在接触后仍可有短暂余光，但亮核不能从球心漂开。参考借鉴与外部依赖取舍沿用上一轮已登记研究，不引入新的 WebGL 合成。
+
+柱图纯时间采集改为 210 帧单块、单 worker。双 worker、30 帧块的首次样片在 90 帧边界出现一侧 SVG 文字整组未显的跨进程差异（PSNR 59.31 dB），与球体位置计算无关；单块采集仍保留纯时间正反探针，完整场景重采开销增加，但避免把不完整文字帧写进复用缓存。该采集限制只作用于本示例的柱图，其他场景与风格包契约不变。
+
+首轮独立盲审发现两个具体缺陷并已修复：隔离包误从旧检查点目录收进超出新版桥段时长的静帧，后续仅从**当前 G4 报告登记的帧**取证并限制帧号；面积段标签取整而结果使用内部小数，现以画面显示的次数和概率计算预期值，230 个可见采样帧逐项核对通过。原失败观察保留在输出记录中，新包由另一名独立代理重新盲审。
+
+先预演开场、短接棒、柱图两次跳跃、公式到结尾及手机尺寸；然后做 G5 全片和 G6 独立终审。动态复核必须覆盖球心同步、光滴下坠、三次色阶、只出现一次的结论及至少两秒稳定留读。
+
+## 历史：2026-11-06 形象修订
 
 用户明确要求全片不再使用旧版尖顶角色。保持 45 秒、七场、原有文案、数学口径、红金结果语义及事件声音；形象本身是可调整的历史设计选择。旧版 0–45 秒七场均使用同一个形象，因此从制作与迭代阶段重入，统一改成实心圆形上场标记，仍沿路径进入、随结果变色并在落点短暂压扁。圆的无方向轮廓与次数、概率盘及柱形的简洁几何语言一致；不新增装饰或解释文字。
 
@@ -14,7 +28,7 @@
 
 近黑底、米白主体、金色结果、红色未中。用大字、球的尝试动作及图形自身变化保持注意力。一次只改变一个比较条件；图形和数字来自相同数据，切换后留稳定阅读。球的动作以弧线、接触、压扁和减速落定组织；无球场景用字线、盘弧和面积边缘组织。声音跟随命名事件；光效不盖过必要文字。
 
-## 2026-11-06 去球与光效重制设计
+## 历史：2026-11-06 去球与光效重制设计
 
 本轮保留七场、45 秒、原数学口径与主要文案。从制作与迭代阶段重入；旧版四处的球误把文字、概率盘和九格面积都变成角色表演，削弱各自的信息任务。12–15 秒桥段、15–22 秒概率盘、29–39 秒面积九格、39–45 秒收束均去掉球；0–12 秒尝试与记录、22–29 秒柱图继续用球追踪“上场”动作。旧成片保存在 `outputs/baselines/5524663f13ed490abcbed5cc20d30d9e/`，修改前材料保存在 `outputs/revision-sources/5524663f13ed490abcbed5cc20d30d9e/`；旧版审核不作本轮通过依据。
 
@@ -47,7 +61,7 @@
 
 外部方案已检索：现有 `@react-three/postprocessing 3.2.0`（MIT）、`postprocessing 6.39.5`（Zlib）支持Bloom，但只处理WebGL，不能直接给当前SVG图表加光。新增3D合成会扩大依赖和验证范围，本片复用成熟的 `sampleTrail`、`particleField`、`Burst`、`burstField` 与 `ScreenBurstLayer`；作品层仅编排事件、强弱及跨场连续状态，不新增共享组件或渲染契约。
 
-## 逐场设计
+## 历史：45 秒旧版逐场设计
 
 | 时间 | 观看任务 | 画面与衔接 | 失败现象 |
 |---|---|---|---|
@@ -66,12 +80,12 @@
 ```m2v-checkpoints
 {
   "version": 2,
-  "cycleId": "luck-example-20261106-trail-flash",
+  "cycleId": "luck-example-20261106-liquid-type",
   "fps": 30,
   "width": 1920,
   "height": 1080,
   "reviewPlan": {
-    "basis": "本轮去掉桥段、概率、面积及结尾四处球；复核文字/圆盘/九格自身动效、保留球场景的下坠光轨和分级爆闪。G5内部全片检查，G6由独立新代理终审。",
+    "basis": "本轮41秒重制：开场与柱图球心光滴同源，柱图1/3/9逐级变色；桥段只做短接棒，公式生成唯一结论。G5全片检查，G6独立终审。",
     "risks": [
       {
         "id": "light-landing",
@@ -84,7 +98,7 @@
             "cp-redesign-area"
           ]
         },
-        "reason": "开场与柱图的球、下坠光轨、接触与闪释同源；面积只由九格边缘和公式触发光效。",
+        "reason": "开场与柱图光迹头部锁定球心，历史光滴下坠；柱图颜色随1/3/9逐级变化。",
         "requiredEvidence": [
           "production/checkpoints/cp-redesign-hook/window.mp4",
           "production/checkpoints/cp-redesign-ledger/window.mp4",
@@ -101,7 +115,7 @@
             "cp-redesign-probability"
           ]
         },
-        "reason": "桥段文字底线生成短穿环，出口须可认回为无球概率盘；跨场中心和时间保持连续。",
+        "reason": "记录30次的末行短接概率盘，24帧穿环跨幕同源，不重复完整结论。",
         "requiredEvidence": [
           "production/checkpoints/cp-redesign-bridge/window.mp4",
           "production/checkpoints/cp-redesign-probability/window.mp4"
@@ -119,9 +133,9 @@
             "cp-redesign-closing"
           ]
         },
-        "reason": "亮核、环与下坠余光须有明确触发；无球画面保持文字与图数可读，结尾安静留读。",
+        "reason": "结尾由30与30%的公式因素引出唯一结论，停留可读；所有闪释有可见触发。",
         "requiredEvidence": [
-          "g5-contact-light.png",
+          "g5-contact-liquid.png",
           "production/checkpoints/cp-redesign-area/window.mp4"
         ]
       }
@@ -354,7 +368,7 @@
     },
     {
       "id": "bridge",
-      "durationFrames": 90,
+      "durationFrames": 30,
       "shots": [
         {
           "id": "bridge-shot",
@@ -362,63 +376,63 @@
           "core": true,
           "window": [
             0,
-            90
+            30
           ],
           "timeStructure": {
             "establish": {
               "window": [
                 0,
-                40
+                6
               ],
-              "audience": "多上场建立，白色底线随字出现",
-              "visible": "多上场建立，白色底线随字出现",
-              "attention": "两句文字、底线与接续圆环",
+              "audience": "记录30次末行留在场内",
+              "visible": "记录30次末行留在场内",
+              "attention": "记录线、30次与概率盘圆环",
               "toleranceFrames": 1,
-              "failure": "出现小球、文字被光遮挡、线条无因果或跨场环中心跳动"
+              "failure": "重复完整口号、出现小球、线环位置突跳或无法辨认接棒"
             },
             "change": {
               "window": [
-                40,
-                63
+                6,
+                12
               ],
-              "audience": "第二句显现，金线从字下生长",
-              "visible": "第二句显现，金线从字下生长",
-              "attention": "两句文字、底线与接续圆环",
+              "audience": "末行延伸并卷向概率盘入口",
+              "visible": "末行延伸并卷向概率盘入口",
+              "attention": "记录线、30次与概率盘圆环",
               "toleranceFrames": 1,
-              "failure": "出现小球、文字被光遮挡、线条无因果或跨场环中心跳动"
+              "failure": "重复完整口号、出现小球、线环位置突跳或无法辨认接棒"
             },
             "reveal": {
               "window": [
-                63,
-                72
+                12,
+                20
               ],
-              "audience": "金线末端接入细环，无球",
-              "visible": "金线末端接入细环，无球",
-              "attention": "两句文字、底线与接续圆环",
+              "audience": "同中心短穿环启动",
+              "visible": "同中心短穿环启动",
+              "attention": "记录线、30次与概率盘圆环",
               "toleranceFrames": 1,
-              "failure": "出现小球、文字被光遮挡、线条无因果或跨场环中心跳动"
+              "failure": "重复完整口号、出现小球、线环位置突跳或无法辨认接棒"
             },
             "result": {
               "window": [
-                72,
-                84
+                20,
+                24
               ],
-              "audience": "细环扩张产生纵深",
-              "visible": "细环扩张产生纵深",
-              "attention": "两句文字、底线与接续圆环",
+              "audience": "圆环扩展并迁移焦点",
+              "visible": "圆环扩展并迁移焦点",
+              "attention": "记录线、30次与概率盘圆环",
               "toleranceFrames": 1,
-              "failure": "出现小球、文字被光遮挡、线条无因果或跨场环中心跳动"
+              "failure": "重复完整口号、出现小球、线环位置突跳或无法辨认接棒"
             },
             "hold": {
               "window": [
-                84,
-                90
+                24,
+                30
               ],
-              "audience": "同一穿环中心接入下一场",
-              "visible": "同一穿环中心接入下一场",
-              "attention": "两句文字、底线与接续圆环",
+              "audience": "跨切点接入十等分概率盘",
+              "visible": "跨切点接入十等分概率盘",
+              "attention": "记录线、30次与概率盘圆环",
               "toleranceFrames": 1,
-              "failure": "出现小球、文字被光遮挡、线条无因果或跨场环中心跳动"
+              "failure": "重复完整口号、出现小球、线环位置突跳或无法辨认接棒"
             }
           }
         }
@@ -427,10 +441,10 @@
         {
           "id": "cp-redesign-bridge",
           "shotId": "bridge-shot",
-          "frame": 70,
+          "frame": 20,
           "window": [
             0,
-            90
+            30
           ],
           "expected": [],
           "textPlan": [],
@@ -446,7 +460,8 @@
             "subtitleRoles": [
               "screen-subtitle"
             ],
-            "thresholdSource": "1920横屏与393宽实际观察；讲解96px起，不作为跨作品阈值"
+            "thresholdSource": "1920横屏与393宽实际观察；讲解96px起，不作为跨作品阈值",
+            "allowedOverlaps": [["bridge-record-line", "bridge-ring-seed"]]
           }
         }
       ]
@@ -678,7 +693,8 @@
             "subtitleRoles": [
               "screen-subtitle"
             ],
-            "thresholdSource": "1920横屏与393宽实际观察；讲解96px起，不作为跨作品阈值"
+            "thresholdSource": "1920横屏与393宽实际观察；讲解96px起，不作为跨作品阈值",
+            "allowedOverlaps": [["attempt-character", "bar-result-0"], ["attempt-character", "bar-result-1"]]
           }
         }
       ]
@@ -823,7 +839,7 @@
     },
     {
       "id": "closing",
-      "durationFrames": 180,
+      "durationFrames": 120,
       "shots": [
         {
           "id": "closing-shot",
@@ -831,63 +847,63 @@
           "core": false,
           "window": [
             0,
-            180
+            120
           ],
           "timeStructure": {
             "establish": {
               "window": [
                 0,
-                10
+                12
               ],
-              "audience": "黑场换气，准备首句",
-              "visible": "黑场换气，准备首句",
-              "attention": "两句主文字与底线",
+              "audience": "接住公式30×30%=9",
+              "visible": "接住公式30×30%=9",
+              "attention": "公式因素与唯一结论",
               "toleranceFrames": 2,
-              "failure": "出现小球、底线抢字或稳定阅读不足"
+              "failure": "文字凭空淡入、重复口号、出现小球或稳定阅读不足"
             },
             "change": {
               "window": [
-                10,
-                52
+                12,
+                24
               ],
-              "audience": "多上场显现，首句底线收势",
-              "visible": "多上场显现，首句底线收势",
-              "attention": "两句主文字与底线",
+              "audience": "30的尝试刻痕引出多上场",
+              "visible": "30的尝试刻痕引出多上场",
+              "attention": "公式因素与唯一结论",
               "toleranceFrames": 2,
-              "failure": "出现小球、底线抢字或稳定阅读不足"
+              "failure": "文字凭空淡入、重复口号、出现小球或稳定阅读不足"
             },
             "reveal": {
               "window": [
-                52,
-                84
+                24,
+                44
               ],
-              "audience": "把每一次做好显现，金线随文字生长",
-              "visible": "把每一次做好显现，金线随文字生长",
-              "attention": "两句主文字与底线",
+              "audience": "30%的弧段引出把每一次做好",
+              "visible": "30%的弧段引出把每一次做好",
+              "attention": "公式因素与唯一结论",
               "toleranceFrames": 2,
-              "failure": "出现小球、底线抢字或稳定阅读不足"
+              "failure": "文字凭空淡入、重复口号、出现小球或稳定阅读不足"
             },
             "result": {
               "window": [
-                84,
-                108
+                44,
+                52
               ],
-              "audience": "金线末端短闪后停住",
-              "visible": "金线末端短闪后停住",
-              "attention": "两句主文字与底线",
+              "audience": "数字退去，唯一结论锁定",
+              "visible": "数字退去，唯一结论锁定",
+              "attention": "公式因素与唯一结论",
               "toleranceFrames": 2,
-              "failure": "出现小球、底线抢字或稳定阅读不足"
+              "failure": "文字凭空淡入、重复口号、出现小球或稳定阅读不足"
             },
             "hold": {
               "window": [
-                108,
-                180
+                52,
+                120
               ],
               "audience": "两句完整结论稳定留读",
               "visible": "两句完整结论稳定留读",
-              "attention": "两句主文字与底线",
+              "attention": "公式因素与唯一结论",
               "toleranceFrames": 2,
-              "failure": "出现小球、底线抢字或稳定阅读不足"
+              "failure": "文字凭空淡入、重复口号、出现小球或稳定阅读不足"
             }
           }
         }
@@ -896,10 +912,10 @@
         {
           "id": "cp-redesign-closing",
           "shotId": "closing-shot",
-          "frame": 160,
+          "frame": 100,
           "window": [
             0,
-            180
+            120
           ],
           "expected": [],
           "textPlan": [],

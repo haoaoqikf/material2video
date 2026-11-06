@@ -8,6 +8,10 @@ export const WHITE='#F3EDDC', GOLD='#F1C64C', RED='#DE3B4B';
 export const INK=T.colors.ink, MUTED=T.colors.muted, LINE=T.colors.line;
 export const clamp=(v:number)=>Math.min(1,Math.max(0,v));
 export const mix=(a:number,b:number,p:number)=>a+(b-a)*p;
+export const mixHex=(a:string,b:string,p:number)=>{
+  const t=clamp(p),channel=(v:string,i:number)=>parseInt(v.slice(i,i+2),16);
+  return `#${[1,3,5].map(i=>Math.round(mix(channel(a,i),channel(b,i),t)).toString(16).padStart(2,'0')).join('')}`;
+};
 export const progress=(f:number,a:number,b:number)=>clamp((f-a)/Math.max(1,b-a));
 export const enter=motionCurve('easeOutCubic');
 export const smooth=motionCurve('easeInOutSine');

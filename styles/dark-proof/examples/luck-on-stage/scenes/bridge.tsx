@@ -1,20 +1,20 @@
 import type {CodeSceneProps} from 'm2v/code-scene';
-import {Frame,Text,WHITE,GOLD,progress,enter,smooth,useClock} from './shared';
+import {Frame,Text,WHITE,GOLD,progress,enter,mix,useClock} from './shared';
 import {Backdrop} from './details';
 import {Portal} from './portal';
 export default function Bridge(config:CodeSceneProps){
- const {f,e}=useClock(config),more=e.frame('more'),better=e.frame('better'),join=e.frame('join');
- const passage=f-e.frame('portal-enter'),contentAlpha=1-smooth(progress(passage,0,12));
+ const {f,e}=useClock(config),enterAt=e.frame('portal-enter'),q=enter(progress(f,0,enterAt));
+ const lineEnd=mix(965,1490,q),bend=enter(progress(f,enterAt-6,enterAt));
  return <Frame config={config}>
   <Backdrop id="bridge-stage"/>
-  <g opacity={contentAlpha}>
-  <Text x={960} y={350} text="多上场" size={160} alpha={enter(progress(f,more,more+10))} role="bridge-first"/>
-  <Text x={960} y={665} text="把每次做好" size={146} alpha={enter(progress(f,better,better+12))} color={GOLD} role="bridge-second"/>
-  <path d="M720 465H1200" stroke={WHITE} strokeWidth={3} opacity={.4} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1-enter(progress(f,more,more+16))} data-m2v-role="bridge-first-rule"/>
-  <path d="M595 780H1325" stroke={GOLD} strokeWidth={5} opacity={.8} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1-enter(progress(f,better,join))} data-m2v-role="bridge-second-rule"/>
-  <path d="M1325 780 Q1450 780 1490 610" fill="none" stroke={GOLD} strokeWidth={3} opacity={.75} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1-enter(progress(f,join,join+9))}/>
-  <circle cx={1490} cy={610} r={24+16*enter(progress(f,join+6,e.frame('portal-enter')))} fill="none" stroke={GOLD} strokeWidth={2.5} opacity={enter(progress(f,join+6,e.frame('portal-enter')))} />
+  <g opacity={1-enter(progress(f,0,6))}>
+   <Text x={1440} y={560} text="30" size={300} numeric weight={550} role="bridge-count"/>
+   <Text x={1440} y={830} text="上场次数" size={80} role="bridge-count-label"/>
   </g>
-  <Portal frame={passage}/>
+  <path d={`M240 464 H${lineEnd} Q${lineEnd+28*bend} ${464+90*bend} ${lineEnd} ${464+146*bend}`}
+    stroke={q>.5?GOLD:WHITE} strokeWidth={3} fill="none" opacity={1-q*.75} data-m2v-role="bridge-record-line"/>
+  <circle cx={1490} cy={610} r={36} stroke={GOLD} strokeWidth={3} fill="none"
+    pathLength={1} strokeDasharray="1 1" strokeDashoffset={1-bend} opacity={bend*(1-q*.4)} data-m2v-role="bridge-ring-seed"/>
+  <Portal frame={f-enterAt}/>
  </Frame>;
 }

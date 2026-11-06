@@ -5,7 +5,7 @@
   "fps": 30,
   "width": 1920,
   "height": 1080,
-  "targetSeconds": 45,
+  "targetSeconds": 41,
   "input": {
     "kind": "topic",
     "topic": "以预期成功次数衡量可增加的机会：E(S)=N×p，各次成功概率均为p；不将期望等同实际次数或至少成功一次概率。记录结果为示意，次数增加不自动提高单次概率。"
@@ -151,7 +151,7 @@
     {
       "id": "bridge",
       "template": "code",
-      "durationFrames": 90,
+      "durationFrames": 30,
       "transition": "cut",
       "keywords": [
         "运气",
@@ -174,24 +174,12 @@
       },
       "events": [
         {
-          "id": "more",
-          "frame": 8
-        },
-        {
-          "id": "better",
-          "frame": 40
-        },
-        {
-          "id": "join",
-          "frame": 63
-        },
-        {
           "id": "portal-enter",
-          "frame": 72
+          "frame": 12
         },
         {
           "id": "portal-peak",
-          "frame": 84
+          "frame": 24
         }
       ]
     },
@@ -275,8 +263,8 @@
         "props": {
           "capture": {
             "mode": "pure-time",
-            "jobs": 2,
-            "blockFrames": 30,
+            "jobs": 1,
+            "blockFrames": 210,
             "verifyFrames": 2
           },
           "screenSubtitles": [
@@ -413,7 +401,7 @@
     {
       "id": "closing",
       "template": "code",
-      "durationFrames": 180,
+      "durationFrames": 120,
       "transition": "cut",
       "keywords": [
         "运气",
@@ -436,24 +424,24 @@
       },
       "events": [
         {
-          "id": "first",
-          "frame": 10
+          "id": "factor-one",
+          "frame": 12
         },
         {
-          "id": "second",
-          "frame": 52
+          "id": "factor-two",
+          "frame": 24
         },
         {
-          "id": "land",
-          "frame": 84
+          "id": "lock",
+          "frame": 44
         },
         {
           "id": "read",
-          "frame": 108
+          "frame": 52
         },
         {
           "id": "end-sound",
-          "frame": 132
+          "frame": 90
         }
       ]
     }
@@ -537,24 +525,6 @@
         "eventId": "count-lock",
         "assetId": "contact",
         "gainDb": -9
-      },
-      {
-        "sceneId": "bridge",
-        "eventId": "more",
-        "assetId": "contact",
-        "gainDb": -14
-      },
-      {
-        "sceneId": "bridge",
-        "eventId": "better",
-        "assetId": "contact",
-        "gainDb": -12
-      },
-      {
-        "sceneId": "bridge",
-        "eventId": "join",
-        "assetId": "spark",
-        "gainDb": -17
       },
       {
         "sceneId": "probability",
@@ -648,21 +618,15 @@
       },
       {
         "sceneId": "closing",
-        "eventId": "first",
-        "assetId": "contact",
-        "gainDb": -15
+        "eventId": "factor-one",
+        "assetId": "tick",
+        "gainDb": -18
       },
       {
         "sceneId": "closing",
-        "eventId": "second",
-        "assetId": "contact",
-        "gainDb": -12
-      },
-      {
-        "sceneId": "closing",
-        "eventId": "land",
-        "assetId": "contact",
-        "gainDb": -15
+        "eventId": "factor-two",
+        "assetId": "spark",
+        "gainDb": -18
       },
       {
         "sceneId": "bridge",
@@ -673,8 +637,8 @@
     ],
     "silence": [
       {
-        "startFrame": 1305,
-        "endFrame": 1350,
+        "startFrame": 1185,
+        "endFrame": 1230,
         "fadeFrames": 3
       }
     ]

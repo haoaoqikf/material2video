@@ -32,7 +32,7 @@
 | [compound-interest](count-ledger/examples/compound-interest/README.md) | `count-ledger` | 复利：同样一万、两种做法、三十年后差多少 | 29 秒 |
 | [solar-system-journey](deep-journey/examples/solar-system-journey/README.md) | `deep-journey` | 太阳系之旅：从太阳到奥尔特云的一镜到底 | 174.55 秒 |
 | [compound-connect](dark-proof/examples/compound-connect/README.md) | `dark-proof` | 让积累，参与下一次：多载体连续论证；[创作复盘](dark-proof/examples/compound-connect/CASE_STUDY.md)；无旁白、无配乐，仅事件音效 | 40 秒 |
-| [luck-on-stage](dark-proof/examples/luck-on-stage/README.md) | `dark-proof` | 运气到底是什么：尝试者贯穿记录、概率、条件比较与面积乘法；无旁白、无配乐，仅事件音效 | 45 秒 |
+| [luck-on-stage](dark-proof/examples/luck-on-stage/README.md) | `dark-proof` | 运气到底是什么：尝试者贯穿尝试、记录与柱图，概率和面积由图形讲解；无旁白、无配乐，仅事件音效 | 41 秒 |
 
 示例在目录上归属风格，在依赖上仍是独立作品。风格指纹跳过直属 `examples/` 整个子树，
 其余共享文件全部纳入；清单及共享实现不能引用示例。示例改动只影响自身准备，

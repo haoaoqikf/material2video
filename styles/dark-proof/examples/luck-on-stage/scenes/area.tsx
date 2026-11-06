@@ -7,7 +7,8 @@ export default function Area(config:CodeSceneProps){
  const {f,e}=useClock(config);
  const n=10+20*smooth(progress(f,e.frame('width-start'),e.frame('width-lock')));
  const percent=10+20*smooth(progress(f,e.frame('height-start'),e.frame('height-lock')));
- const expected=n*percent/100,w=280*n/10,h=120*percent/10;
+ const shownN=Math.round(n),shownPercent=Math.round(percent);
+ const expected=shownN*shownPercent/100,w=280*n/10,h=120*percent/10;
  const result=Math.abs(expected-Math.round(expected))<.04?String(Math.round(expected)):expected.toFixed(1);
  const formula=e.frame('formula-start'),collapse=enter(progress(f,formula,formula+10));
  const formulaIn=enter(progress(f,formula+12,e.frame('formula-lock')));
@@ -31,9 +32,9 @@ export default function Area(config:CodeSceneProps){
   <Backdrop id="area-stage"/>
   <Text x={960} y={130} text="预期成功次数" size={116} role="area-title"/>
   {f<formula+10?<g opacity={1-collapse}>
-   <Text x={480+w/2} y={280} text={`${Math.round(n)}次上场`} size={80} role="area-count"/>
+   <Text x={480+w/2} y={280} text={`${shownN}次上场`} size={80} role="area-count"/>
    <Text x={250} y={420} text="单次概率" size={72} role="area-rate-label"/>
-   <Text x={250} y={570} text={`${Math.round(percent)}%`} size={100} numeric color={f>=e.frame('height-start')?GOLD:WHITE} role="area-rate"/>
+   <Text x={250} y={570} text={`${shownPercent}%`} size={100} numeric color={f>=e.frame('height-start')?GOLD:WHITE} role="area-rate"/>
    <g transform={`translate(${900+680*collapse} ${520-10*collapse}) scale(${1-.94*collapse}) translate(-900 -520)`}>
     {/* 量测只绑定定量矩形；扫光是边缘反馈，不改变面积比例。 */}
     <rect x={480} y={700-h} width={w} height={h} fill={GOLD} opacity={.88} data-m2v-role="area-model"/>
