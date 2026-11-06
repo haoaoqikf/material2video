@@ -282,7 +282,7 @@
           "screenSubtitles": [
             {
               "startFrame": 10,
-              "endFrame": 62,
+              "endFrame": 68,
               "text": "先看：10次，每次10%"
             },
             {
@@ -353,12 +353,12 @@
           },
           "screenSubtitles": [
             {
-              "startFrame": 12,
-              "endFrame": 44,
+              "startFrame": 0,
+              "endFrame": 60,
               "text": "次数 × 单次成功概率"
             },
             {
-              "startFrame": 50,
+              "startFrame": 60,
               "endFrame": 124,
               "text": "次数变3倍"
             },

@@ -19,6 +19,5 @@ export function Portal({frame}:{frame:number}){
     })}
     {[.25,.5,.75].map((k,i)=><circle key={k} cx={x} cy={y} r={Math.max(1,radius*k)} fill="none" stroke={i%2?WHITE:GOLD} strokeWidth={1.5} opacity={space*.25}/>)}
     <circle cx={x} cy={y} r={radius} fill="none" stroke={GOLD} strokeWidth={3} opacity={.9}/>
-    <circle cx={x} cy={y} r={95} fill="url(#luck-glow)" opacity={space*.8}/>
   </g>;
 }

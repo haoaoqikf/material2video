@@ -1,7 +1,7 @@
 import {useEffect, useMemo, type ReactNode} from 'react';
 import {createSceneEvents, motionCurve, painter, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 import Stage from 'm2v/style/components/stage';
-import ScreenSubtitle, {type ScreenSubtitleItem} from 'm2v/style/components/screen-subtitle';
+import ScreenSubtitle, {type ScreenSubtitleItem,type SubtitleVariant} from 'm2v/style/components/screen-subtitle';
 import {T, SANS, LATIN} from 'm2v/style/components/kit';
 
 export const WHITE='#F3EDDC', GOLD='#F1C64C', RED='#DE3B4B';
@@ -30,7 +30,7 @@ export function Dot({x,y,r=14,color=WHITE,alpha=1,sx=1,sy=1,glow=false,role}:{x:
     <circle r={r} fill={color} data-m2v-role={role}/>
   </g>;
 }
-export function Frame({config,children,overlay,foreground}:{config:CodeSceneProps;children:ReactNode;overlay?:ReactNode;foreground?:ReactNode}){
+export function Frame({config,children,overlay,foreground,subtitleVariants}:{config:CodeSceneProps;children:ReactNode;overlay?:ReactNode;foreground?:ReactNode;subtitleVariants?:Record<number,SubtitleVariant>}){
   const {ready,elapsedSeconds}=useSceneContext();
   useEffect(()=>{ready();},[ready]);
   const captions=(config.props as {screenSubtitles?:ScreenSubtitleItem[]}).screenSubtitles??[];
@@ -41,6 +41,6 @@ export function Frame({config,children,overlay,foreground}:{config:CodeSceneProp
     </svg>
     {overlay}
     {foreground?<svg width={config.width} height={config.height} viewBox="0 0 1920 1080" style={{position:'absolute',inset:0}}>{foreground}</svg>:null}
-    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={96} glow={.04} risePx={7} driftPx={0} emphasis={/上场次数|每一次|预期|3倍|单次概率/}/>
+    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={96} glow={.04} risePx={7} driftPx={0} emphasis={/上场次数|每一次|预期|3倍|单次概率/} variants={subtitleVariants}/>
   </Stage>;
 }

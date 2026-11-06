@@ -1,7 +1,7 @@
 import type {CodeSceneProps} from 'm2v/code-scene';
 import {Frame,Text,WHITE,GOLD,MUTED,LINE,progress,enter,smooth,mix,track,pop,useClock} from './shared';
 import {Backdrop} from './details';
-import {Contact} from './cues';
+import {AccentRelease,Contact,FlightMotes,flight as sampleFlight} from './cues';
 import {Attempt} from './attempt';
 
 const CASES=[{n:10,p:10,result:1},{n:30,p:10,result:3},{n:30,p:30,result:9}];
@@ -23,9 +23,14 @@ export default function Bars(config:CodeSceneProps){
  const screenY=(height:number)=>base-height*zoom;
  const x=screenX(mix(previous.x,active.x,flight)),surface=mix(screenY(previous.height),screenY(active.height),flight);
  const hop=current===0?0:600*flight*(1-flight);
+ const fromX=screenX(previous.x),toX=screenX(active.x),fromY=screenY(previous.height)-4,toY=screenY(active.height)-4;
+ const flightPoints=sampleFlight(`M${fromX} ${fromY} C${fromX+(toX-fromX)/3} ${fromY-200} ${toX-(toX-fromX)/3} ${toY-200} ${toX} ${toY}`);
  const impact=f>=active.lock?active.lock:current===0?active.lock:active.start+18;
  const labels=enter(progress(f,e.frame('nine-start')+4,e.frame('nine-start')+18));
- return <Frame config={config}>
+ return <Frame config={config} subtitleVariants={{10:{enter:'wipe',enterFrames:8,exitFrames:6}}} overlay={<>
+  <AccentRelease f={f} at={e.frame('three-lock')} x={screenX(stages[1].x)} y={screenY(stages[1].height)} id="bar-three-flash" scale={.65}/>
+  <AccentRelease f={f} at={e.frame('nine-lock')} x={screenX(stages[2].x)} y={screenY(stages[2].height)} id="bar-nine-flash" scale={.9}/>
+ </>}>
   <Backdrop id="bars-stage"/>
   <Text x={960} y={130} text="预期成功次数" size={116} role="bars-title"/>
   <g>
@@ -43,7 +48,9 @@ export default function Bars(config:CodeSceneProps){
      </>:null}
     </g>;
    })}
+   {current>0&&flight>0&&flight<1?<FlightMotes points={flightPoints} p={flight} energy={Math.sin(Math.PI*flight)}/>:null}
    {f>=stages[0].start?<Attempt x={x} y={surface-hop-4} size={76} color={current===2?GOLD:WHITE} stretch={1+.1*Math.sin(Math.PI*flight)} groundY={surface-4} frame={f} landAt={impact} glow={.2+.3*Math.sin(Math.PI*flight)}/>:null}
+   <Contact f={f} at={e.frame('three-lock')} x={screenX(stages[1].x)} y={screenY(stages[1].height)} strength={.65} seed="bar-three-arrival"/>
    <Contact f={f} at={e.frame('nine-lock')} x={screenX(stages[2].x)} y={screenY(maxH)} strength={1.05} seed="bar-nine-arrival"/>
    {f>=e.frame('three-start')&&f<e.frame('nine-start')+4?<Text x={960} y={815} text={`${active.n}次 · 每次${active.p}%`} size={92} role="current-conditions"/>:null}
   </g>
