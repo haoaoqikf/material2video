@@ -1,6 +1,21 @@
 # 当前验证
 
-[当前 41 秒成片](outputs/video.mp4) SHA-256：`44535545c819c050586c799bce141454cc3b29f983587afd11fc821edfb2b327`。1920×1080、30 fps、1230 帧；H.264 画面与 AAC 音轨可解码。当前周期 `luck-example-20261106-grounded-bars` 的 `production.complete=true`：G0、G1、G3、G4、G5、G6 通过，G2 合法不适用，诊断错误为 0。
+[当前 41 秒成片](outputs/video.mp4) SHA-256：`4bd9c6c18f898b61d120aed89e61dcf41876dd4de856b713b1d8e2225745e702`。1920×1080、30 fps、1230 帧；H.264 画面与 AAC 音轨可解码。当前周期为 `luck-example-20261106-copy-refresh`，成片已生成，`production.complete=false`。
+
+## 本轮文案修改与复核
+
+- 修改前成片保存在 `outputs/baselines/6db421dbf6674493b6e4ff1a8b3e9df0/`，SHA-256 为 `44535545c819c050586c799bce141454cc3b29f983587afd11fc821edfb2b327`；修改前源码另存于 `outputs/revision-sources/6db421dbf6674493b6e4ff1a8b3e9df0/`。画面和字幕中的“上场”统一改为“尝试”。结尾仍按原字号、位置和两段揭示，唯一结语为“多尝试，提高成功概率”，没有新增说明或标签。
+- `m2v prepare`、完整渲染、`m2v qa` 通过。技术 QA 的冻结帧、画面、字幕对比度、响度、音画同步和声明检查通过。TypeScript `tsc --noEmit` 与直接相关的两个 pytest 节点通过；分镜与场景源码搜索未见旧用词，Git 空白检查通过。未运行全仓回归。
+- 七个 G4 检查点的自动检查均通过；G3 自动时序检查通过。G5 全片逐秒接触表和原生帧检查已登记。新成片的[独立终审观察及最终差异复核](outputs/production/copy-final-blind-observations.md)确认 1→3→9 与两因素关系可见、改字场景在手机宽度有稳定读窗、“再提高单次概率”的强调和遮挡检查通过、片尾约 38.97–41 秒完整留读。其评审基于解码帧，未实时播放或听音；37.43–38.2 秒的短暂残字在连续播放中的观感仍待核。
+- 本轮首次[核心独立盲审](outputs/production/copy-core-blind-observations.md)指出结尾因素接力不清，失败报告已导入制作记录并留下未关闭的必改项。后续尝试及[最终盲审](outputs/production/copy-final-blind-observations.md)认为全片的因素分离可见，但孤立阅读结尾仍可能把“多尝试”误解为提高单次概率的原因。用户明确要求片尾只保留指定原句且不加说明，因此当前保留该语义风险，不把独立核心问题标记为通过。G4 制作门及 G5 受其阻断；G6 技术报告通过，但不等于制作完成。
+
+## 本轮代码复核
+
+当前结尾代码沿用原有两段揭示，只替换文字；其他场景为术语替换，没有新增依赖、逐帧随机源或额外计算路径。未发现代码层面的阻断问题。剩余风险是片尾孤立阅读的语义歧义，以及独立终审未覆盖实时播放和听音。代码质量评分：**88/100**。
+
+## 历史：三柱同地面跳跃周期
+
+[当时的 41 秒成片](outputs/baselines/6db421dbf6674493b6e4ff1a8b3e9df0/media/0000.mp4) SHA-256：`44535545c819c050586c799bce141454cc3b29f983587afd11fc821edfb2b327`。1920×1080、30 fps、1230 帧；H.264 画面与 AAC 音轨可解码。上一周期 `luck-example-20261106-grounded-bars` 的 `production.complete=true`：G0、G1、G3、G4、G5、G6 通过，G2 合法不适用，诊断错误为 0。
 
 ## 本轮修改与实际复核
 

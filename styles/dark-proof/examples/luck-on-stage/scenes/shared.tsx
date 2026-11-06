@@ -45,6 +45,6 @@ export function Frame({config,children,overlay,foreground,subtitleVariants}:{con
     </svg>
     {overlay}
     {foreground?<svg width={config.width} height={config.height} viewBox="0 0 1920 1080" style={{position:'absolute',inset:0}}>{foreground}</svg>:null}
-    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={96} glow={.04} risePx={7} driftPx={0} emphasis={/上场次数|每一次|预期|3倍|单次概率/} variants={subtitleVariants}/>
+    <ScreenSubtitle items={captions} frame={Math.floor(elapsedSeconds*config.fps+1e-5)} safeArea={config.subtitleSafeArea} size={96} glow={.04} risePx={7} driftPx={0} emphasis={/尝试次数|单次概率|成功概率|预期|3倍/} variants={subtitleVariants}/>
   </Stage>;
 }

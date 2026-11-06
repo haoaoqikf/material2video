@@ -21,7 +21,7 @@ export default function Area(config:CodeSceneProps){
    <Text x={1000} y={450} text="30%" size={220} numeric weight={500} role="formula-p"/>
    <Text x={1320} y={450} text="=" size={100} numeric role="formula-equals"/>
    <Text x={1580} y={450} text="9" size={250} numeric weight={550} color={GOLD} scale={pop(f,e.frame('formula-lock'),.04)} role="formula-result"/>
-   <Text x={420} y={730} text="上场次数" size={74} role="formula-n-label"/>
+   <Text x={420} y={730} text="尝试次数" size={74} role="formula-n-label"/>
    <Text x={1000} y={730} text="单次成功概率" size={74} role="formula-p-label"/>
    <Text x={1580} y={730} text="预期次数" size={74} color={GOLD} role="formula-result-label"/>
   </g>:null;
@@ -32,7 +32,7 @@ export default function Area(config:CodeSceneProps){
   <Backdrop id="area-stage"/>
   <Text x={960} y={130} text="预期成功次数" size={116} role="area-title"/>
   {f<formula+10?<g opacity={1-collapse}>
-   <Text x={480+w/2} y={280} text={`${shownN}次上场`} size={80} role="area-count"/>
+   <Text x={480+w/2} y={280} text={`${shownN}次尝试`} size={80} role="area-count"/>
    <Text x={250} y={420} text="单次概率" size={72} role="area-rate-label"/>
    <Text x={250} y={570} text={`${shownPercent}%`} size={100} numeric color={f>=e.frame('height-start')?GOLD:WHITE} role="area-rate"/>
    <g transform={`translate(${900+680*collapse} ${520-10*collapse}) scale(${1-.94*collapse}) translate(-900 -520)`}>

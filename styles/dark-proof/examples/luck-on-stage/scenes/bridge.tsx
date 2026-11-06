@@ -9,7 +9,7 @@ export default function Bridge(config:CodeSceneProps){
   <Backdrop id="bridge-stage"/>
   <g opacity={1-enter(progress(f,0,6))}>
    <Text x={1440} y={560} text="30" size={300} numeric weight={550} role="bridge-count"/>
-   <Text x={1440} y={830} text="上场次数" size={80} role="bridge-count-label"/>
+   <Text x={1440} y={830} text="尝试次数" size={80} role="bridge-count-label"/>
   </g>
   <path d={`M240 464 H${lineEnd} Q${lineEnd+28*bend} ${464+90*bend} ${lineEnd} ${464+146*bend}`}
     stroke={q>.5?GOLD:WHITE} strokeWidth={3} fill="none" opacity={1-q*.75} data-m2v-role="bridge-record-line"/>

@@ -1,7 +1,7 @@
 import {useId} from 'react';
 import {WHITE, INK, mixHex, track} from './shared';
 
-/** 圆形上场标记的底点为局部 y=0；落地形变不改变接触点，且不依赖前帧状态。 */
+/** 圆形尝试标记的底点为局部 y=0；落地形变不改变接触点，且不依赖前帧状态。 */
 export function Attempt({x,y,size=92,color=WHITE,alpha=1,stretch=1,tilt=0,groundY,frame=0,landAt,glow=.18,role='attempt-character'}:{
   x:number;y:number;size?:number;color?:string;alpha?:number;stretch?:number;tilt?:number;
   groundY?:number;frame?:number;landAt?:number;glow?:number;role?:string;
