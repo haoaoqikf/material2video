@@ -35,8 +35,8 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 - **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/general/demo/outputs/`，且命令与工作目录无关
 
 #### Scenario: 分类类型的规范位置
-- **WHEN** 作品类型属于类别 `route-journey`
-- **THEN** 其规范源目录为 `videos/route-journey/<type>/<slug>/`，产物写入该目录下的 `outputs/`
+- **WHEN** 作品类型属于某个类别
+- **THEN** 其规范源目录为 `videos/<category>/<type>/<slug>/`，产物写入该目录下的 `outputs/`
 
 #### Scenario: 仓库内优先
 - **WHEN** 已设置内容根，而输入文件位于仓库根的 `styles/doc-archive/examples/american-science-milestones/`
@@ -65,8 +65,8 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 
 #### Scenario: 分类类型作品的默认输出
 
-- **WHEN** 文章位于 `videos/route-journey/driving-route/demo/`
-- **THEN** 默认媒体、预览、检查报告、字幕、溯源和成片写入 `videos/route-journey/driving-route/demo/outputs/`
+- **WHEN** 文章位于 `videos/<category>/<type>/<slug>/`
+- **THEN** 默认媒体、预览、检查报告、字幕、溯源和成片写入该目录下的 `outputs/`
 
 #### Scenario: 示例作品默认输出
 
@@ -102,8 +102,8 @@ SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与
 - **THEN** 完整备份旧作品后，将作品源文件和全部 `outputs/` 内容移动到类别决定的规范位置
 
 #### Scenario: 迁移旧平铺分类路径
-- **WHEN** 迁移 `videos/road-trip/<slug>/`，而 `road-trip` 属于 `route-journey`
-- **THEN** 作品移动到 `videos/route-journey/road-trip/<slug>/`
+- **WHEN** 迁移 `videos/<type>/<slug>/`，而 `<type>` 属于某个类别
+- **THEN** 作品移动到 `videos/<category>/<type>/<slug>/`
 
 #### Scenario: 合并及冲突
 - **WHEN** 目标目录已存在部分文件

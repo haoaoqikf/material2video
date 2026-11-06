@@ -17,8 +17,8 @@
 - **THEN** 作品和初始化材料创建在 `videos/general/<slug>/`
 
 #### Scenario: 按类别初始化作品
-- **WHEN** 在工作区根对已归入 `route-journey` 的 `driving-route` 执行 `m2v init --type driving-route --project <slug>`
-- **THEN** 作品和初始化材料创建在 `videos/route-journey/driving-route/<slug>/`
+- **WHEN** 在工作区根对已归入某类别的已登记类型执行 `m2v init --type <type> --project <slug>`
+- **THEN** 作品和初始化材料创建在 `videos/<category>/<type>/<slug>/`
 
 #### Scenario: 仓库自带示例走统一入口
 - **WHEN** 用统一入口对仓库 `styles/<style-id>/examples/<slug>/` 下的风格示例作品执行 prepare、preview 或 render
@@ -85,7 +85,7 @@
 - **THEN** `m2v types` 列出该类型及其目录说明与类别，`m2v init --type <新类型>` 按目录声明生成材料文件并落到类别决定的规范位置，且统一入口的类型分发与作品契约白名单无需改动
 
 #### Scenario: 类别不是可执行类型
-- **WHEN** 用户以类别标识 `route-journey` 调用 `m2v init` 或要求处理该「类型」
+- **WHEN** 用户以某个类别标识调用 `m2v init` 或要求处理该「类型」
 - **THEN** 系统报错说明它是类型类别，并列出可选的子类型，不创建作品、不渲染
 
 #### Scenario: 未登记的类型被拒绝
@@ -121,8 +121,8 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **THEN** 一致性校验失败，并指出需要重新生成的文档
 
 #### Scenario: 按类别分组
-- **WHEN** `driving-route` 与 `road-trip` 归入「路线旅程」
-- **THEN** 三份文档的类型清单都在「路线旅程」下显示这两个类型，其余类型在「未分类」下显示
+- **WHEN** 类型目录把两个或更多类型归入同一类别
+- **THEN** 三份文档的类型清单都在该类别标题下显示这些类型，其余类型在「未分类」下显示
 
 #### Scenario: 幂等重新生成
 - **WHEN** 类型目录与文档当前一致时重新运行生成
@@ -130,11 +130,11 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 
 ### Requirement: 当前类型统一制作入口
 
-系统 MUST 在既有正式类型基础上增加 `road-trip`，并通过统一 init、validate、prepare、preview、render 入口处理该类型；通用类型中文名为“通用”，以 storyboard 材料制作 v8 讲解；通用类型辅助操作 MUST 使用 `m2v general`，自驾路线采集 MUST 使用 `m2v driving-route fetch`，普通道路底图采集 MUST 使用 `m2v driving-route basemap`；地图游记采集 MUST 使用 `m2v road-trip fetch`，游记底图采集 MUST 使用 `m2v road-trip basemap`。旧 `article-narrative` 类型与 `m2v article` 命令 MUST 被拒绝。通用作品标准位置 MUST 为 `videos/general/<slug>`；自驾路线与地图游记属于 `route-journey` 类别，其标准位置 MUST 分别为 `videos/route-journey/driving-route/<slug>` 与 `videos/route-journey/road-trip/<slug>`。
+系统 MUST 以金融时间序列、通用、建筑建造与车辆展示等现有正式类型提供统一 init、validate、prepare、preview、render 入口；通用类型中文名为“通用”，以 storyboard 材料制作 v8 讲解；通用类型辅助操作 MUST 使用 `m2v general`。旧 `article-narrative` 类型与 `m2v article` 命令 MUST 被拒绝。通用作品标准位置 MUST 为 `videos/general/<slug>`。
 
 #### Scenario: 查询与初始化类型
 - **WHEN** 用户查询类型或初始化通用作品
-- **THEN** 类型列表包含金融、通用、自驾路线、地图游记及既有正式类型，并按类别显示归属，通用模板与目录采用 general 身份
+- **THEN** 类型列表包含金融、通用、建筑建造、车辆展示等已登记类型，并显示各自类别归属，通用模板与目录采用 general 身份
 
 #### Scenario: 旧入口被拒绝
 - **WHEN** 用户指定 article-narrative 类型或执行 m2v article
@@ -143,14 +143,6 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 #### Scenario: 已移除住宅类型不可使用
 - **WHEN** 请求初始化 housing-timeseries，或对标记为该类型的旧作品执行校验、准备、预演、渲染或评审
 - **THEN** 系统明确报未知视频类型，不创建新作品、不生成候选、不执行兼容或迁移
-
-#### Scenario: 独立自驾路线入口
-- **WHEN** 初始化 driving-route 或对其执行统一生命周期、m2v driving-route fetch 或 m2v driving-route basemap
-- **THEN** 使用独立请求及路线材料，标准作品位置为 videos/route-journey/driving-route/<slug>，不要求 general storyboard；底图命令只在授权与 mapTiles 落实时取图
-
-#### Scenario: 独立地图游记入口
-- **WHEN** 初始化 road-trip，或对其执行统一生命周期、m2v road-trip fetch 或 m2v road-trip basemap
-- **THEN** 使用 trip.json 与每日 routes/day-XX.json，标准作品位置为 videos/route-journey/road-trip/<slug>，不要求 general storyboard；取数与底图命令只在授权与 mapTiles 落实时执行
 
 ### Requirement: 交付产物的访问权限
 
@@ -290,9 +282,9 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 
 类型目录 MUST 支持两级的「类别 → 类型」登记。每个类别 MUST 声明唯一标识、非空标题与说明；每个类型 MUST 可选择性地声明唯一一个所属类别。类别标识 MUST 遵循与类型名相同的命名规则，MUST NOT 与任何类型名相同。类别 MUST 至少包含一个类型成员。类别和类型 MUST 共同构成单一来源，供 `m2v types`、初始化路径、作品位置校验、迁移与文档生成消费。
 
-#### Scenario: 登记路线旅程类别
-- **WHEN** 类型目录声明类别 `route-journey`（标题「路线旅程」），且 `driving-route` 与 `road-trip` 声明该类别
-- **THEN** `m2v types` 显示两个类型同属「路线旅程」，两者的规范作品位置都包含 `route-journey` 层级
+#### Scenario: 登记类别
+- **WHEN** 类型目录声明一个类别，且若干类型声明该类别
+- **THEN** `m2v types` 显示这些类型同属该类别，其规范作品位置都包含类别层级
 
 #### Scenario: 引用未登记类别
 - **WHEN** 某个类型声明了类型目录中不存在的类别标识
