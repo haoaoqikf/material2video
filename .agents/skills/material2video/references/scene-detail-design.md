@@ -1,6 +1,6 @@
 # 逐场细节设计与落实
 
-general 每场在对象、变化与目标认识确定后、动态实现前完成细节设计；这是方案阶段内部工作，不新增制作阶段。运动方法只维护在[运动设计适配：逐场细节](../../motion-design/ADAPTATION.md#逐场细节设计)，构图与焦点判断读[Frontend Design](../../frontend-design/SKILL.md)。
+五类作品每场在对象、变化与目标认识确定后、动态实现前完成细节设计；这是方案阶段内部工作，不新增制作阶段。运动方法只维护在[运动设计适配：逐场细节](../../motion-design/ADAPTATION.md#逐场细节设计)，构图与焦点判断读[Frontend Design](../../frontend-design/SKILL.md)。
 
 ## 记录在同一份设计中
 

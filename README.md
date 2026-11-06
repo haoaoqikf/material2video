@@ -47,6 +47,8 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 数据演化可以引用 `financial-series` 来源；三维空间可以引用 `construction` 或 `vehicle-model` 来源。分镜顶层 `sources` 把来源 ID 绑定到作品内的请求、行情、构件、模型与资产文件；幕内 `content.sourceIds` 显式选择本幕使用的来源。准备阶段验证材料、素材摘要、画幅、帧率、时长，并把来源及计算实现纳入准备指纹。画面代码从 `m2v/code-scene/sources` 引入 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`，也可用 SDK 的 `useSceneSource(id)` 自行绘制。金融计划通过 `m2v data financial-plan --project <作品目录> [--duration-seconds N]` 生成，要求分镜恰好声明一个金融来源。
 
+五类创作都从统一阶段指南进入；金融行情、构件与车辆专项指南按实际绑定的来源展开。固定数学模型的数据演化无需金融行情计划。旧类型作品重制时按当前契约编排到新的类型目录，原目录及历史证据保留，见[修订入口](.agents/skills/material2video/references/video-revision.md)。
+
 创作辅助命令改为 `m2v author`：源文审查、候选稿、素材导入和音效操作分别见 `m2v author --help` 与[媒体和声音契约](.agents/skills/material2video/references/article-media-and-sound.md)。外部画面素材使用 `assets/media-sources.json` 留证；`m2v assets report`、`contact-sheet`、`audit` 用于台账和技术检查。字体二进制按 [`fonts/registry.json`](fonts/registry.json) 恢复并校验，不纳入 Git。
 
 旧类型名、`project.style`、project v1、分镜 v8 及旧准备记录明确拒绝。升级后的材料需重新编排并重新准备；没有兼容入口或迁移命令。

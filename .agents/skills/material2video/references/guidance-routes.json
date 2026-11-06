@@ -19,7 +19,7 @@
     {
       "id": "new",
       "guide": "references/stage-plan.md",
-      "when": "新制作 general，从方案确定开始"
+      "when": "新制作五类作品，从方案确定开始"
     },
     {
       "id": "revision",
@@ -39,12 +39,27 @@
   ],
   "types": {
     "text-motion": "references/stage-plan.md",
-    "data-evolution": "references/financial-timeseries-video.md",
+    "data-evolution": "references/stage-plan.md",
     "principle-metaphor": "references/stage-plan.md",
-    "spatial-3d": "references/building-construction-video.md",
+    "spatial-3d": "references/stage-plan.md",
     "documentary-edit": "references/stage-plan.md"
   },
   "conditional": [
+    {
+      "id": "financial-source",
+      "when": "分镜实际声明financial-series来源；固定数学模型不触发",
+      "guide": "references/financial-timeseries-video.md"
+    },
+    {
+      "id": "construction-source",
+      "when": "分镜实际声明construction来源",
+      "guide": "references/building-construction-video.md"
+    },
+    {
+      "id": "vehicle-source",
+      "when": "分镜实际声明vehicle-model来源",
+      "guide": "references/vehicle-showcase-video.md"
+    },
     {
       "id": "scene-detail",
       "when": "五类作品每场目标确定后、动态实现前，以及过程细节复核",

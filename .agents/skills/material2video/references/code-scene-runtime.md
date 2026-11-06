@@ -59,7 +59,7 @@ G4 会报告观测不足；仅给其他阶段加标记不能覆盖它。数字�
 
 ## 幕内事件查询
 
-general 场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用 SDK `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
+五类作品的场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用 SDK `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
 
 ```tsx
 const events = useMemo(() => createSceneEvents(config.eventFrames), [config.eventFrames]);
