@@ -16,7 +16,7 @@
 
 报告 version=2，round 为 trial/final，reviewType 为 blind/consistency。每个 coverage 项与包内 id/window 完全一致，分别保存理解、表现、代表性的状态与观察，limitations 说明声音、连续性或平台遮挡等覆盖限制。pass 必须全部覆盖通过，fail 必须有具体失败项。评审包与报告字段详见[媒体格式](review-contract.md#媒体与报告格式)。
 
-调用记录包含 id、reviewerId、freshContext、startedAt、completedAt、inputPaths、readReportIds；时间有时区且晚于包创建，输入只来自包内已登记文件。盲看 readReportIds=[]，对照仅包含自身同轮盲看报告 ID。
+调用记录严格只含 id、reviewerId、freshContext、startedAt、completedAt、inputPaths、readReportIds；不添加 version 或 observationMethod 等扩展字段，观察方法写入报告。时间有时区且晚于包创建，输入只来自包内已登记文件。盲看 readReportIds=[]，对照仅包含自身同轮盲看报告 ID。
 
 `freshContext` 记录评审代理最初创建时与作者上下文的隔离；同一隔离代理继续同轮对照时保持 `true`，不要求更换评审者。`inputPaths` 只列本次包内登记文件，自身盲看报告通过 `readReportIds` 单独追溯，不把包外报告路径再次放入 `inputPaths`。这两个字段的归类不改变实际读取范围、观察与结论；更正元数据须保留原件和原因，不补造调用。
 
