@@ -509,6 +509,8 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 越靠后的时刻代价越高。四种模式的指定帧在启动浏览器前先校验范围与所属幕；事件模式还
 先校验事件存在、选择器无歧义与 before/at/after/hold 四阶段都在所属幕内。
 
+秒数越界提示同时给出末帧号及可直接输入的定位秒数；提示秒数向下保留到毫秒，避免四舍五入后再次越界。实际输入范围与取帧规则不变。
+
 关键帧以 PNG 进入共享 composition，按全片时间叠加字幕及转场，横屏输出
 3840×2160（竖屏为 2160×3840）；有声作品的样片复用准备片段与母版音轨，无声作品输出无音轨样片。
 `outputs/lookdev.json` 的 `stillCapture: native-code-png-v1` 表示原生采集路径，

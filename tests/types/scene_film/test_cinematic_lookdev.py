@@ -163,6 +163,24 @@ def test_motion_frames_rejects_bad_windows():
         lookdev.motion_frames(0, 100, 5, prepared)
 
 
+@pytest.mark.parametrize("fps,duration", [(30, 2040), (60, 2040), (30, 1), (60, 1)])
+def test_out_of_range_hint_can_locate_last_frame(fps, duration):
+    """越界提示里的秒数必须能原样定位末帧，不能把用户引回同一个错误。"""
+    import re
+
+    prepared = {"fps": fps, "durationInFrames": duration}
+    for invalid in (
+        lambda: lookdev.sheet_frames([str(duration / fps)], prepared),
+        lambda: lookdev.motion_frames(0, duration / fps, 2, prepared),
+    ):
+        with pytest.raises(M2VError) as error:
+            invalid()
+        # 读取提示里最后一个秒数，不耦合整句错误文案。
+        hint = re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*秒", str(error.value))[-1]
+        assert lookdev.sheet_frames([hint], prepared) == [duration - 1]
+        assert lookdev.motion_frames(0, float(hint), 2, prepared)[-1] == duration - 1
+
+
 # ---------------------------------------------------------------- 事件取点
 
 def event_prepared():

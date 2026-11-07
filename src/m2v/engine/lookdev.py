@@ -142,6 +142,14 @@ def uniform_frames(start: int, end: int, count: int) -> list[int]:
     return sorted({start + round(span * index / (count - 1)) for index in range(count)})
 
 
+def _last_frame_hint(duration: int, fps: int) -> str:
+    """提示可直接输入的末帧秒数；四舍五入会让30/60fps的非整毫秒末帧再次越界。"""
+    last = duration - 1
+    milliseconds = last * 1000 // fps
+    seconds = f"{milliseconds // 1000}.{milliseconds % 1000:03d}"
+    return f"末帧为 {last}，可用 {seconds} 秒定位（{fps} fps）"
+
+
 def sheet_frames(spec: list[str], prepared: dict) -> list[int]:
     """`--sheet` 参数解析：单个整数按全片均匀取帧，否则按秒逐个换算。"""
     if not spec:
@@ -162,7 +170,7 @@ def sheet_frames(spec: list[str], prepared: dict) -> list[int]:
             raise M2VError(f"时刻必须是秒数：{item}") from exc
         # 负时刻静默夹到 0 会让作者以为自己看到的是别的时刻；宁可报错。
         if not math.isfinite(value) or value < 0 or value * fps > duration - 1:
-            raise M2VError(f"时刻 {item} 超出成片时长 0～{(duration - 1) / fps:.3f} 秒")
+            raise M2VError(f"时刻 {item} 超出成片时长；{_last_frame_hint(duration, fps)}")
         frames.append(seconds_to_frame(value, fps, duration))
     # 重复时刻只采一次，但保留顺序无关的去重结果。
     return sorted(set(frames))
@@ -180,7 +188,7 @@ def motion_frames(start_seconds: float, end_seconds: float, count: int, prepared
     if raw_end < raw_start:
         raise M2VError(f"区间终点 {end_seconds} 秒早于起点 {start_seconds} 秒")
     if not 0 <= raw_start <= duration - 1 or not 0 <= raw_end <= duration - 1:
-        raise M2VError(f"区间 {start_seconds}～{end_seconds} 秒超出成片时长 0～{(duration - 1) / fps:.3f} 秒")
+        raise M2VError(f"区间 {start_seconds}～{end_seconds} 秒超出成片时长；{_last_frame_hint(duration, fps)}")
     return uniform_frames(round(raw_start), round(raw_end), count)
 
 
