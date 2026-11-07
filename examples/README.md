@@ -35,3 +35,8 @@ uv run m2v preview --project examples/text-motion/fold --limit-frames 30
 | 为 `documentary-edit/american-science-milestones` 重组剪辑 | 分开研究整体视觉、专项转场和信息组织；查看适用原片、核对事实/许可，参考画面不直接入片，实际入片素材继续按台账登记 |
 
 上述选定视觉目标的适用评审，先盲看当前媒体，再在同轮对照提供实际参考及中性采用特征。缺参考时保留目标未验证，技术/可读性通过不代替目标兑现。目标与当前效果有差距时，按研究不足、实现偏差或参考不适合分别补查、修复或重选。
+
+
+## 异步绘制最小示例
+
+七部作品集合不变。原生异步Canvas示例见 [async-bitmap.tsx](../tests/fixtures/code-scenes/async-bitmap.tsx)，通过同一构建与采集入口验证 `waitForFrame` 的完成边界；调用与限制见[运行契约](../.agents/skills/material2video/references/code-scene-runtime.md#异步绘制完成边界)。它是接口演示与测试夹具，不是新增视频作品，也不代表复杂GPU动态已经通过。

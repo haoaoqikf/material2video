@@ -59,6 +59,8 @@ export type SceneContext = {
   /** 本幕在全片时间轴上的起点；未 opt-in 时为 0。 */
   sceneStartFrame: number;
   ready: () => void;
+  /** 登记本次受控状态更新的异步绘制；宿主在截图前等待其完成，拒绝会使采集失败。 */
+  waitForFrame: (task: PromiseLike<unknown>) => void;
 };
 export const SceneContextProvider = createContext<SceneContext | null>(null);
 

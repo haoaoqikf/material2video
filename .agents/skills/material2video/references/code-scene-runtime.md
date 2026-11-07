@@ -202,6 +202,30 @@ Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext
 回目标画幅。子帧时间仍然只前进不后退，因此同一帧在任意一次录制里都可复现；未声明 `motion`
 时配置与缓存键与既有一致。
 
+### 异步绘制完成边界
+
+`useSceneContext().waitForFrame(task)` 登记 `PromiseLike` 绘制任务，适用于异步 Bitmap、
+GPU 积分、去噪或显式异步组件更新。宿主等待登记工作及其链式新增工作，再等待浏览器合成后
+完成本帧或子帧；等待不推进作品时间，也不另行触发用户 RAF。同步场景不额外增加绘制屏障。
+初始 `ready()` 会等待已登记工作和字体，多次调用只共用一份就绪任务；`start()` 触发的工作由
+首帧提交等待。资源恢复和模型初始化仍应在 `ready()` 前完成。
+
+```tsx
+const {elapsedSeconds, waitForFrame} = useSceneContext();
+useLayoutEffect(() => {
+  waitForFrame(renderAt(elapsedSeconds)); // renderAt返回真实绘制完成的Promise
+}, [elapsedSeconds]);
+```
+
+完整可运行示例见 [async-bitmap.tsx](../../../../tests/fixtures/code-scenes/async-bitmap.tsx)，
+它通过 `OffscreenCanvas.convertToBlob()` 与 `createImageBitmap()` 完成原生异步绘制，并由
+真实浏览器及原生编码测试覆盖。示例不新增视频类型或第八部作品。
+
+非法任务、任务拒绝、同一宿主重叠提交会明确失败，未完成工作仍由既有就绪及逐帧超时终止。
+不得在绘制实际结束前提前 resolve；未登记工作不会自动等待。状态必须仍由受控时间推导，
+异步接口不豁免计时器、随机、外网或 pure-time 正反序检查，也不自动证明动态品质。
+队列、宿主及受控时钟进入实现摘要，改动后旧准备、缓存及原生样品需按既有规则重新采集。
+
 ### 纯时间采集（opt-in）
 
 只有画面完全由 `elapsedSeconds`、`globalSeconds`、`props` 与 `eventFrames` 推导的场景，

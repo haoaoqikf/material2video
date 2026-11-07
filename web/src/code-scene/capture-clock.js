@@ -172,6 +172,8 @@
       await syncMedia();
       await paint();
     },
+    // 异步GPU/Bitmap完成后的合成屏障；不推进时钟，也不重新触发用户RAF。
+    paint,
     async bootstrap() {
       if (started) throw new Error('录制开始后禁止执行就绪泵');
       // 纯场景的块首采集必须在挂载前就处于块首时间；否则从 0 跳到块首时，

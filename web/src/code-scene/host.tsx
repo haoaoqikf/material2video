@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
 import {SceneContextProvider, type CodeSceneProps} from './sdk';
 import {ensureFonts, FONT_STACK} from '../fonts';
+import {FrameTasks} from './frame-tasks';
 
 declare global {
   interface Window {
@@ -18,6 +19,7 @@ declare global {
       setTime: (milliseconds: number) => void;
       seek: (milliseconds: number) => void;
       flush: () => Promise<void>;
+      paint: () => Promise<void>;
       bootstrap: () => Promise<void>;
     };
   }
@@ -40,6 +42,8 @@ export function mount(Component: React.ComponentType<CodeSceneProps>) {
     const initialFrame = pure ? (config.captureStartFrame ?? 0) : 0;
     const [running, setRunning] = useState(false);
     const [elapsedSeconds, setElapsed] = useState(initialFrame / config.fps);
+    const [frameTasks] = useState(() => new FrameTasks());
+    const readiness = useRef<Promise<void> | null>(null);
     useEffect(() => {
       let last = {frame: -1, subframe: -1, subframes: 1};
       let started = false;
@@ -58,12 +62,19 @@ export function mount(Component: React.ComponentType<CodeSceneProps>) {
         if (!bounds(frame, subframe, subframes)) {
           throw new Error(`录制帧号越界，收到 ${frame}+${subframe}/${subframes}`);
         }
-        const position = frame + subframe / subframes;
-        if (kind === 'seek') window.__M2V_CAPTURE_CLOCK__.seek(position * 1000 / config.fps);
-        else window.__M2V_CAPTURE_CLOCK__.setTime(position * 1000 / config.fps);
-        flushSync(() => setElapsed(position / config.fps));
-        await window.__M2V_CAPTURE_CLOCK__.flush();
-        last = {frame, subframe, subframes};
+        frameTasks.begin();
+        try {
+          // start触发的effect可能还在绘制块首帧；先完成它，再改变时间，
+          // 避免首个pure seek与旧帧并行，旧任务晚结束时覆盖新Canvas。
+          await frameTasks.finish(window.__M2V_CAPTURE_CLOCK__.paint);
+          const position = frame + subframe / subframes;
+          if (kind === 'seek') window.__M2V_CAPTURE_CLOCK__.seek(position * 1000 / config.fps);
+          else window.__M2V_CAPTURE_CLOCK__.setTime(position * 1000 / config.fps);
+          flushSync(() => setElapsed(position / config.fps));
+          await window.__M2V_CAPTURE_CLOCK__.flush();
+          await frameTasks.finish(window.__M2V_CAPTURE_CLOCK__.paint);
+          last = {frame, subframe, subframes};
+        } finally {frameTasks.end();}
       };
       // 顺序模式只接受连续推进：同一帧内子帧递增，或进入下一帧的第 0 个子帧。
       // 子帧时间是 (frame + subframe / subframes) / fps，因此 React 状态、三维绘制、
@@ -92,7 +103,7 @@ export function mount(Component: React.ComponentType<CodeSceneProps>) {
         if (!started) window.__M2V_CODE__.start();
         await seek(frame, 0, 1);
       };
-    }, [pure, initialFrame, config.fps, config.durationInFrames]);
+    }, [pure, initialFrame, config.fps, config.durationInFrames, frameTasks]);
     // 全局时间是 opt-in：未声明 capture.timebase=global 时两者退化为幕内时间，
     // 既有作品看到的数值与行为不变。
     const sceneStartFrame = config.timeline?.sceneStartFrame ?? 0;
@@ -101,7 +112,12 @@ export function mount(Component: React.ComponentType<CodeSceneProps>) {
     return <SceneContextProvider.Provider value={{running, elapsedSeconds, globalFrame, globalSeconds,
       sceneStartFrame,
       progress: Math.min(1, elapsedSeconds * config.fps / config.durationInFrames),
-      ready: () => {void ensureFonts().then(() => document.fonts.ready).then(() => {window.__M2V_CODE__.ready = true;});}}}>
+      waitForFrame: task => frameTasks.track(task),
+      ready: () => {
+        readiness.current ??= ensureFonts().then(() => document.fonts.ready)
+          .then(() => frameTasks.finish(window.__M2V_CAPTURE_CLOCK__.paint))
+          .then(() => {window.__M2V_CODE__.ready = true;});
+      }}}>
       <Component {...config}/>
     </SceneContextProvider.Provider>;
   }

@@ -47,7 +47,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 设计试制不限主动时长和重试次数，未通过持续打磨；AI 图只能辅助内部构思/参考，不能直接交付或贴入网页冒充核心实现。允许调研并引入外部库、模型、Shader、建模与预计算等手段，作品直接依赖改为可扩展登记，校验来源、固定版本、许可与实际安装。具体流程、适配边界及评审请求见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。采集凭据不自动判断审美或鉴别所有 AI 整图包装。
 
-采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。版本与采用依据见[依赖登记](web/code-scene-dependencies.json)，许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
+采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。代码场景可通过 `waitForFrame(PromiseLike)` 登记异步绘制，初始就绪和每帧/子帧在工作及合成完成后才放行；拒绝或超时仍失败，纯时间仍须实际验证。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。版本与采用依据见[依赖登记](web/code-scene-dependencies.json)，许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
 
 
 ## 材料与画面
