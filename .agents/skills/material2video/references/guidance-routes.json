@@ -122,13 +122,8 @@
     },
     {
       "id": "motion",
-      "when": "设计或复核镜头运动、转场、入场退场与缓动",
-      "guide": "../motion-design/SKILL.md"
-    },
-    {
-      "id": "motion-timing",
-      "when": "查视频节拍、帧数、缓动与错峰预算",
-      "guide": "../motion-design/reference/timing-easing-tables.md"
+      "when": "首次实现运动、时间换算、显式缓动、数据联动或查询采集模式边界",
+      "guide": "references/code-scene-runtime.md#运动实现约定"
     },
     {
       "id": "diagnosis",
@@ -164,7 +159,7 @@
     "失败回退": "references/production-workflow.md",
     "讲解机制": "references/explainer-design.md",
     "实际表达": "references/visual-review-rubric.md",
-    "运动设计": "../motion-design/SKILL.md",
-    "过程证据容量": "references/subagent-review.md"
+    "过程证据容量": "references/subagent-review.md",
+    "运动实现": "references/code-scene-runtime.md#运动实现约定"
   }
 }

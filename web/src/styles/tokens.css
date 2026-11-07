@@ -178,7 +178,7 @@
   --fig-arrow-half: 16px; /* 箭镞半高 */
 
   /* 动效时长不作为 CSS 令牌：画面只由帧号驱动，时长由作品按实际帧率换算。
-   * 命名缓动与视频节拍见 .agents/skills/motion-design/ADAPTATION.md。 */
+   * 命名缓动与视频节拍见 .agents/skills/material2video/references/code-scene-runtime.md 的运动实现约定。 */
 
   /* ---------- 表面：三级背景 + 两级抬升表面 ---------- */
   --m2v-bg-0: #08090c; /* 画布最底层 */

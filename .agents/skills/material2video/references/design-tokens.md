@@ -196,7 +196,7 @@ CSS 字体栈虽列有系统字体作为浏览器最后回退项，但这不代�
 
 令牌层不再保存动效时长。画面只由帧号驱动：CSS `animation` / `transition` 会被源码闸门拒绝，见[代码场景运行契约](code-scene-runtime.md)。
 
-视频节拍、毫秒到帧的换算、命名缓动、风格人格与采集模式边界统一见[运动设计](../../motion-design/SKILL.md)及其[视频适配](../../motion-design/ADAPTATION.md)。缓动曲线从 `web/src/code-scene/motion.ts` 导入，相机与原语共用同一套命名。
+时间换算、显式缓动、数据联动与采集模式边界统一见[运动实现约定](code-scene-runtime.md#运动实现约定)。缓动曲线从 `web/src/code-scene/motion.ts` 复用，相机与原语共用同一套命名；曲线由表达目标决定，不设置风格人格或通用缓动方向要求。
 
 ## 怎么用
 

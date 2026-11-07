@@ -21,7 +21,7 @@
 3. 在 `DESIGN.md` 声明 v2 制作合同及适用风险，映射场景／镜头与检查窗。时点、人数、轮次和完成条件只读[审核策略](checkpoint-gates.md#审核计划与风险触发)。
 4. 选择未决核心问题的最小完整试制窗口，按风险选择静态目标、时序试验或实际动态原型，执行见[完整段落试制](production-workflow.md#完整段落试制与逐段扩展)。
 
-复杂对象联动的实现约定见[运动适配](../../motion-design/ADAPTATION.md#依赖与接触)及[运行时](code-scene-runtime.md)。执行帧、曲线与参数引用分镜或代码事件，设计记录不重复维护。
+复杂对象联动、时间换算与缓动边界见[运动实现约定](code-scene-runtime.md#运动实现约定)。执行帧、曲线与参数引用分镜或代码事件，设计记录不重复维护。
 
 ## 触发时展开
 
@@ -29,7 +29,7 @@
 - 搜集或入片素材／声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
 - 用户要求或自主搜索并采用外部参考：读[参考分析与借鉴](reference-video-analysis.md)。
 - 首次实现场景／相机／字体：读[运行时契约](code-scene-runtime.md)。
-- 设计运动：读[运动设计](../../motion-design/SKILL.md)及[视频适配](../../motion-design/ADAPTATION.md)，保留帧驱动与采集模式边界；其中创作方法按需选用。
+- 首次实现运动、转场或缓动：读[运动实现约定](code-scene-runtime.md#运动实现约定)，曲线按表达目标选择，不要求统一入场／离场方向或例外说明。
 - 开始有旁白制作：读[配音契约](voice-and-rhythm.md#配音音色与语速)，按全文和服务信息选音；无旁白跳过。
 
 ## 源文审查

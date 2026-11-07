@@ -20,7 +20,7 @@
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
 - `.agents/skills/material2video/references/visual-expression-inspiration.md`：视频创作或视觉表达修订前必读，同一任务已完整阅读则不重复；风格采用自选，可自创或搜索其他参考，不作为审美规则或风格验收条件。
-- `.agents/skills/motion-design/SKILL.md`：项目级运动设计知识，提供情绪意图、运动人格、时长、缓动、编排与质量检查；帧驱动适配见同目录 `ADAPTATION.md`。
+- `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口；动态风格并入必读灵感文档，采用自选。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
 
 ## OpenSpec 工作流
