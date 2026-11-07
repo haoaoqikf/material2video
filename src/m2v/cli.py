@@ -74,7 +74,7 @@ def _parser() -> argparse.ArgumentParser:
     lookdev.add_argument("--sample-seconds", type=int, default=24, help="样片长度，1～600 秒，实际窗口短于全片")
     lookdev.add_argument("--still-scale", type=int, choices=(1, 2), default=1)
     lookdev.add_argument("--sheet", nargs="+", metavar="TIME",
-                         help="按时刻（秒）拼一张接触表；给单个整数时全片均匀取这么多帧")
+                         help="按时刻（秒）拼一张接触表；给单个整数时全片均匀取帧，数量为 1～24")
     lookdev.add_argument("--motion", nargs="+", type=float, metavar="TIME",
                          help="区间起止秒（可加帧数），均匀取帧拼一张看转场")
     lookdev.add_argument("--det", action="store_true", help="同帧一致性自检：两次独立采集比 PSNR")
