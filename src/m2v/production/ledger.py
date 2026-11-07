@@ -116,11 +116,12 @@ def history(root: Path) -> tuple[list[dict], list[str]]:
 
 
 def _history(root: Path) -> tuple[list[dict], list[str]]:
-    path = directory(root) / "history.jsonl"
-    if not path.exists():
-        return [], []
+    current = cycle(root)
+    signature = fingerprint(current)
+    path = outputs(root) / "production" / current["cycleId"] / "history.jsonl"
     events, errors, seen = [], [], set()
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    for number, line in enumerate(lines, 1):
         try:
             event = json.loads(line)
             fields(
@@ -128,8 +129,8 @@ def _history(root: Path) -> tuple[list[dict], list[str]]:
             )
             if (
                 event["version"] != VERSION
-                or event["cycleId"] != cycle(root)["cycleId"]
-                or event["projectId"] != cycle(root)["projectId"]
+                or event["cycleId"] != current["cycleId"]
+                or event["projectId"] != current["projectId"]
                 or event["id"] in seen
                 or not isinstance(event["data"], dict)
             ):
@@ -140,6 +141,13 @@ def _history(root: Path) -> tuple[list[dict], list[str]]:
         except (ValueError, KeyError, TypeError, M2VError) as exc:
             errors.append(f"历史第 {number} 行损坏：{exc}")
             break
+    # 周期在单次扫描内不变，避免每行重复读盘；结束仍绕过查询缓存重新核验完整身份。
+    # 只读查询也可能遇到外部编辑，不能以已缓存的周期替代这个边界检查。
+    try:
+        if fingerprint(_cycle(root)) != signature:
+            errors.append("制作历史校验期间周期已变化，请重新核验")
+    except M2VError as exc:
+        errors.append(f"制作历史周期复查失败：{exc}")
     return events, errors
 
 

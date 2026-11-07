@@ -1,6 +1,7 @@
 """新评审契约的关键边界；普通绑定测试使用静态媒体，动态另做一次真实取证。"""
 
 import copy
+import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -47,6 +48,54 @@ def request():
         sceneIds=[],
         displaySizes=[640, 393],
     )
+
+
+def test_history_cycle_reads_do_not_grow_with_events_and_all_rows_remain_checked(work, monkeypatch):
+    root, _ = work
+    event = ledger.history(root)[0][0]
+    rows = [dict(event, id=uuid.uuid4().hex, type="observation") for _ in range(128)]
+    path = ledger.directory(root) / "history.jsonl"
+    path.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    original, calls = ledger._cycle, []
+
+    def counted(directory):
+        calls.append(directory)
+        return original(directory)
+
+    monkeypatch.setattr(ledger, "_cycle", counted)
+    actual, errors = ledger.history(root)
+    assert actual == rows and not errors
+    assert len(calls) <= 3
+
+    # 最后一行损坏仍必须发现，不能以减少周期读取为由省略任何历史行。
+    rows[-1]["projectId"] = "different-project"
+    path.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+    actual, errors = ledger.history(root)
+    assert errors and len(actual) == len(rows) - 1
+
+
+@pytest.mark.parametrize("cached_query", [False, True])
+def test_history_rejects_cycle_switch_during_scan_even_in_read_query(work, monkeypatch, cached_query):
+    from contextlib import nullcontext
+
+    root, _ = work
+    current = copy.deepcopy(ledger.cycle(root))
+    path = ledger.directory(root) / "history.jsonl"
+    original, switched = Path.read_text, []
+
+    def reading(candidate, *args, **kwargs):
+        content = original(candidate, *args, **kwargs)
+        if candidate == path and not switched:
+            changed = dict(current, cycleId=uuid.uuid4().hex)
+            write(outputs(root) / f"production/{changed['cycleId']}/cycle.json", changed)
+            write(outputs(root) / "production/workflow.json", changed)
+            switched.append(changed)
+        return content
+
+    monkeypatch.setattr(Path, "read_text", reading)
+    with ledger.query() if cached_query else nullcontext():
+        _, errors = ledger.history(root)
+    assert switched and errors
 
 
 def test_render_cleanup_preserves_bound_trial_and_reference_media(work):
