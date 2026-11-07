@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  oidn-webgpu@0.6.0:
+    hash: 50271b9d1a0b3cb973bf7b0eb9f0d6281a6db3d4bd640a03c39884a33fa74dfb
+    path: patches/oidn-webgpu@0.6.0.patch
+
 importers:
 
   .:
@@ -76,7 +81,7 @@ importers:
         version: 14.3.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       oidn-webgpu:
         specifier: 0.6.0
-        version: 0.6.0
+        version: 0.6.0(patch_hash=50271b9d1a0b3cb973bf7b0eb9f0d6281a6db3d4bd640a03c39884a33fa74dfb)
       perfect-freehand:
         specifier: 1.2.3
         version: 1.2.3
@@ -4548,7 +4553,7 @@ snapshots:
 
   obug@2.2.1: {}
 
-  oidn-webgpu@0.6.0:
+  oidn-webgpu@0.6.0(patch_hash=50271b9d1a0b3cb973bf7b0eb9f0d6281a6db3d4bd640a03c39884a33fa74dfb):
     dependencies:
       '@petamoriken/float16': 3.9.3
 

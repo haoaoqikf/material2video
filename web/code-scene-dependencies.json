@@ -83,7 +83,7 @@
       "version": "0.6.0",
       "source": "https://github.com/pissang/oidn-webgpu",
       "license": "MIT",
-      "integration": "固定本地OIDN权重、固定512像素分块、禁用自适应调度；只去噪真实曲纸的路径追踪结果，模型/GPU就绪后ready；逐帧确定性由实际采集验证。"
+      "integration": "固定本地OIDN权重、固定512像素分块、禁用自适应调度；仓库patches/oidn-webgpu@0.6.0.patch为受控异步帧提供显式microtask瓦片调度，默认event-loop不变；随pnpm锁文件恢复。模型/GPU就绪后ready，逐帧确定性与动态品质由实际采集验证。"
     }
   },
   "loaders": {

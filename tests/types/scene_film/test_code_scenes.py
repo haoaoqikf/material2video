@@ -64,6 +64,21 @@ def test_pure_time_implies_global_timeline_and_hides_runtime_fields_from_cache()
     assert "verifyFrames" not in config["props"]["capture"]
 
 
+@pytest.mark.parametrize('relative', ['patches/oidn.patch', 'pnpm-workspace.yaml'])
+def test_dependency_patch_configuration_changes_implementation_fingerprint(tmp_path, monkeypatch, relative):
+    from m2v.types.scene_film.code_scenes import config
+    web = tmp_path / 'web'
+    monkeypatch.setattr(config, 'WEB', web)
+    monkeypatch.setattr(config, 'REPOSITORY_ROOT', tmp_path)
+    monkeypatch.setattr(config, '__file__', str(tmp_path / 'src/config.py'))
+    target = web / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('first revision', encoding='utf-8')
+    before = config.implementation_inputs()
+    target.write_text('changed behavior', encoding='utf-8')
+    assert config.implementation_inputs() != before
+
+
 @pytest.mark.parametrize("entry", ["C:/outside.tsx", "scenes\\demo.tsx", "assets/demo.tsx",
                                    "scenes/../outside.tsx", "scenes/demo.txt", "scenes/missing.tsx"])
 def test_entry_outside_the_scenes_directory_is_rejected(tmp_path, entry):

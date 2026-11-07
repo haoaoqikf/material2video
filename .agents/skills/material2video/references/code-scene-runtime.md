@@ -226,6 +226,12 @@ useLayoutEffect(() => {
 异步接口不豁免计时器、随机、外网或 pure-time 正反序检查，也不自动证明动态品质。
 队列、宿主及受控时钟进入实现摘要，改动后旧准备、缓存及原生样品需按既有规则重新采集。
 
+已登记的 `oidn-webgpu@0.6.0` 由仓库固定补丁提供可选 `scheduling: "microtask"`，
+用于受控帧内等待整张去噪结果；它在每块GPU工作完成后续跑，不依赖定时器或用户RAF。
+默认 `event-loop` 保持原样，其0毫秒定时器在帧内等待期间也不会自动被泵送；不可直接据此
+宣称异步完成。补丁、锁文件与工作区配置进入实现指纹，按 `pnpm -C web install --frozen-lockfile`
+恢复；固定模型、块大小、样本及逐帧确定性仍须实际验证。
+
 ### 纯时间采集（opt-in）
 
 只有画面完全由 `elapsedSeconds`、`globalSeconds`、`props` 与 `eventFrames` 推导的场景，
