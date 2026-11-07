@@ -375,6 +375,27 @@ def test_baseline_references_protect_and_invalid_records_block_prune(work):
         baselines.prune(root, manifest)
 
 
+def test_baseline_preserves_and_prunes_deep_report_paths(work):
+    root, manifest = work
+    base = outputs(root)
+    (base / "video.mp4").write_bytes(b"baseline")
+    report_path = ledger.directory(root) / "reports" / ("a" * 64 + ".json")
+    # 让源路径仍可用普通 Win32 IO，嵌入基线 records 后才跨过 260；
+    # Linux 的临时目录通常更短，因此按实际路径长度补一个目录层。
+    if len(str(report_path.resolve())) < 230:
+        report_path = report_path.parent / ("x" * max(1, 229 - len(str(report_path.resolve())))) / report_path.name
+    write(report_path, {"evidence": "deep report"})
+    versions = [baselines.create(root, manifest, reason="compare", files=["video.mp4"])
+                for _ in range(3)]
+    directory = baselines._baseline_directory(root) / versions[1]["id"]
+    saved = directory / "records" / report_path.relative_to(base)
+    assert len(str(saved)) > 260
+    assert digest(saved) == digest(report_path)
+    # 降级会重验每条记录；覆盖创建之外的长路径读取和恢复清理。
+    assert versions[1]["id"] in baselines.prune(root, manifest)["pruned"]
+    assert saved.is_file()
+
+
 def test_path_safety_and_writer_lock(work):
     root, manifest = work
     with pytest.raises(M2VError):

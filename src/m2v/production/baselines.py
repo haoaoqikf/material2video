@@ -1,6 +1,7 @@
 """重置版本快照与可恢复清理；引用保护优先于数量目标。"""
 from __future__ import annotations
 
+import os
 import shutil
 import uuid
 from pathlib import Path
@@ -13,8 +14,22 @@ from .storage import local, read, receipt, write
 MEDIA = {'.mp4', '.webm', '.mov', '.wav', '.mp3', '.flac', '.png', '.jpg', '.jpeg', '.webp'}
 
 
-def manifests(root: Path) -> list[dict]:
+def _baseline_directory(root: Path) -> Path:
     directory = outputs(root) / 'baselines'
+    if any(path.is_symlink() or (hasattr(path, 'is_junction') and path.is_junction())
+           for path in (outputs(root), directory)):
+        raise M2VError('基线目录不允许符号链接或目录联接')
+    directory = directory.resolve()
+    # 报告摘要文件名加 records 前缀会超出 Win32 MAX_PATH；仅 IO 使用扩展路径，
+    # manifest 仍登记原有相对路径，不改变系统长路径策略或基线材料格式。
+    value = str(directory)
+    if os.name == 'nt' and not value.startswith('\\\\?\\'):
+        value = '\\\\?\\UNC\\' + value[2:] if value.startswith('\\\\') else '\\\\?\\' + value
+    return Path(value)
+
+
+def manifests(root: Path) -> list[dict]:
+    directory = _baseline_directory(root)
     result = []
     for path in sorted(directory.glob('*/manifest.json')):
         if path.is_symlink() or path.parent.is_symlink():
@@ -54,7 +69,7 @@ def create(root: Path, manifest: dict, *, reason: str, files: list[str], reset=T
     if any(p.suffix.lower() not in MEDIA or p.is_relative_to(base / 'baselines') for p in source):
         raise M2VError('基线媒体必须是当前输出媒体，不可复制其他基线')
     identifier = uuid.uuid4().hex
-    directory = base / 'baselines' / identifier
+    directory = _baseline_directory(root) / identifier
     directory.mkdir(parents=True)
     media = []
     for index, path in enumerate(source):
@@ -91,7 +106,7 @@ def create(root: Path, manifest: dict, *, reason: str, files: list[str], reset=T
 
 
 def prune(root: Path, manifest: dict) -> dict:
-    base = outputs(root) / 'baselines'
+    base = _baseline_directory(root)
     versions = manifests(root)
     protected = references(root)
     known = {v['id'] for v in versions}
