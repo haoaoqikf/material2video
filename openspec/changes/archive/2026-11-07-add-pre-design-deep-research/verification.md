@@ -6,6 +6,8 @@
 - `uv run python .agents/skills/material2video/scripts/sync_docs.py --check`：文档投影、阅读路由、目标链接、标题锚点及 JSON 示例通过；入口 1964 字符、plan 2314、iterate 2683、final 2155，均在原预算内。
 - `openspec validate add-pre-design-deep-research --strict`：四项规格增量通过。
 - `git diff --check`：通过。
+- 主规格同步后，video-production-workflow、stage-guidance-routing、visual-expression-inspiration、reference-style-transfer 分别执行 `openspec validate <名称> --type spec --strict`：全部通过；四份增量的 6 条要求与主规格逐块一致，保留原有场景。
+- 额外的 `openspec validate --specs --strict`：37 项通过，1 项既有警告导致严格检查失败。未改动的 modular-video-production 的 Purpose 少于 50 字符；已单独定位，其文件与 Git 基线一致。本轮不扩大范围修复该既有文档问题，不将全规格严格检查报告为通过。
 
 ## 文档判断演练
 
