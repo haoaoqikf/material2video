@@ -29,7 +29,7 @@ uv run m2v prepare --project videos/text-motion/demo
 uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 ```
 
-`init` 生成可准备的三秒主题示例；正式创作时改写分镜和 `scenes/opening.tsx`。五类使用同一命令：`validate`、`prepare`、`preview`、`lookdev`、`render`、`qa`、`status`、`review` 与制作门命令。`preview` 只检查片段；最终成片与审核按[制作检查点](.agents/skills/material2video/references/checkpoint-gates.md)执行。`render --jobs N` 可按帧区间并行。作品可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 放在仓库外。
+`init` 生成可准备的三秒主题示例；正式创作时改写分镜和 `scenes/opening.tsx`。五类使用同一命令：`validate`、`prepare`、`preview`、`lookdev`、`render`、`qa`、`status`、`review` 、`issues` 与 `baseline`。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可按帧区间并行。作品可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 放在仓库外。
 
 ## 命令
 
@@ -59,10 +59,14 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [设计前深度研究](.agents/skills/material2video/references/stage-research.md)：方案确定内部依次任务澄清、深度研究、正式设计；RESEARCH.md 保存依据与发现，DESIGN.md 引用研究形成设计，三大阶段与审核策略保持。
+- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收；原创高难度作品优先投入探索和实际试制。后两阶段合并为完整设计与预演、制作迭代和验收交付。
 - [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格和 12 种音效风格，创作或视听表达修订前必读；风格采用自选，新方案及展示型 HTML 草稿前须完成[设计前深度研究](.agents/skills/material2video/references/stage-research.md)。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
 - [OpenSpec 规格](openspec/specs/)：已实现行为。
 - [项目协作约定](AGENTS.md)：验证、提交与资产管理。
 
 日常验证只跑受影响的测试与真实媒体节点；正式全量回归仅在用户明确要求或人工发布验证时执行。文档投影可用 `uv run python .agents/skills/material2video/scripts/sync_docs.py --check` 检查。
+
+### 媒体评审
+
+`m2v review start|pack|import|timeline` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。

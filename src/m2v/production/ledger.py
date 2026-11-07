@@ -1,368 +1,352 @@
-"""追加式事件与当前证据派生；查询不修改快照或历史。"""
+"""显式周期与媒体评审的只读状态投影；不推断创作阶段。"""
+
 from __future__ import annotations
 
 import json
 import logging
+import shutil
 import uuid
-from datetime import datetime, timezone
+from contextvars import ContextVar
+from contextlib import contextmanager
 from pathlib import Path
 
-from m2v.core.delivery import outputs
+from m2v.core.delivery import outputs, candidate
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
-from . import acceptance, contract, issues, policy, dependencies, readiness, workflow
-from .dependencies import digest
+from . import dependencies
+from .model import VERSION, fields, identifier, now
 from .storage import local, read, receipt, write
 
 logger = logging.getLogger(__name__)
+_query = ContextVar("media_review_query", default=None)
 
 
-def now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+@contextmanager
+def query():
+    """仅在一次只读查询内复用历史、包与报告验证，下一次查询立即重验。"""
+    token = _query.set({})
+    try:
+        yield
+    finally:
+        _query.reset(token)
+
+
+def query_value(key, compute):
+    cache = _query.get()
+    if cache is None:
+        return compute()
+    if key not in cache:
+        try:
+            cache[key] = compute()
+        except M2VError as exc:
+            cache[key] = exc
+    if isinstance(cache[key], M2VError):
+        raise M2VError(str(cache[key]))
+    return cache[key]
+
+
+def cycle(root: Path) -> dict:
+    return query_value(("cycle", root), lambda: _cycle(root))
+
+
+def _cycle(root: Path) -> dict:
+    value = read(outputs(root) / "production/workflow.json")
+    fields(
+        value, {"version", "cycleId", "projectId", "createdAt", "finalFocuses", "basis"}
+    )
+    if value["version"] != VERSION:
+        raise M2VError(
+            "旧制作记录不兼容；请显式执行 m2v review start，新周期不继承旧通过"
+        )
+    identifier(value["cycleId"])
+    original = read(local(outputs(root), f"production/{value['cycleId']}/cycle.json"))
+    if original != value:
+        raise M2VError("周期身份或终审要求已被改写；须显式开启新周期")
+    if value["finalFocuses"] not in (["comprehensive"], ["structure", "visual-copy"]):
+        raise M2VError("终审职责无效")
+    return value
+
+
+def directory(root: Path) -> Path:
+    return outputs(root) / "production" / cycle(root)["cycleId"]
+
+
+def start(
+    root: Path, manifest: dict, *, split_final=False, basis="常规综合终审"
+) -> dict:
+    from .model import text
+
+    text(basis)
+    identifier(manifest["id"])
+    value = dict(
+        version=VERSION,
+        cycleId=uuid.uuid4().hex,
+        projectId=manifest["id"],
+        createdAt=now(),
+        finalFocuses=["structure", "visual-copy"] if split_final else ["comprehensive"],
+        basis=basis,
+    )
+    previous = outputs(root) / "visual-notes.md"
+    if previous.exists():
+        archive = (
+            outputs(root) / "production" / "history-notes" / (uuid.uuid4().hex + ".md")
+        )
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(local(outputs(root), "visual-notes.md"), archive)
+    write(outputs(root) / "production" / value["cycleId"] / "cycle.json", value)
+    write(outputs(root) / "production/workflow.json", value)
+    from . import issues
+
+    issues.save(root, [])
+    append(root, manifest, "started")
+    logger.info("开启媒体评审周期 %s；旧记录不继承通过", value["cycleId"])
+    return value
 
 
 def history(root: Path) -> tuple[list[dict], list[str]]:
-    path = outputs(root) / 'production/history.jsonl'
+    return query_value(("history", root), lambda: _history(root))
+
+
+def _history(root: Path) -> tuple[list[dict], list[str]]:
+    path = directory(root) / "history.jsonl"
     if not path.exists():
         return [], []
-    events, diagnostics, seen = [], [], set()
-    for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+    events, errors, seen = [], [], set()
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         try:
             event = json.loads(line)
-            contract.fields(event, {'id', 'projectId', 'versionId', 'type', 'time', 'gate', 'sceneId', 'checkpointId',
-                                    'evidence', 'upstream', 'data'})
-            if event['id'] in seen or event['gate'] not in [None, *workflow.GATE_IDS]:
-                raise ValueError('重复事件 ID 或未知门')
-            if (any(not isinstance(event[k], str) or not event[k] for k in ('id', 'projectId', 'versionId', 'type', 'time'))
-                    or not isinstance(event['data'], dict) or not isinstance(event['upstream'], dict)
-                    or not isinstance(event['evidence'], list)
-                    or any(event[k] is not None and not isinstance(event[k], str) for k in ('sceneId', 'checkpointId'))):
-                raise ValueError('事件字段类型无效')
-            seen.add(event['id'])
+            fields(
+                event, {"version", "id", "cycleId", "projectId", "type", "time", "data"}
+            )
+            if (
+                event["version"] != VERSION
+                or event["cycleId"] != cycle(root)["cycleId"]
+                or event["projectId"] != cycle(root)["projectId"]
+                or event["id"] in seen
+                or not isinstance(event["data"], dict)
+            ):
+                raise M2VError("事件版本、周期、身份或 ID 无效")
+            identifier(event["id"])
             events.append(event)
-        except (ValueError, TypeError, M2VError) as exc:
-            diagnostics.append(f'历史第 {number} 行损坏：{exc}')
-            break  # 不完整历史只能展示有效前缀，不支持通过。
-    return events, diagnostics
+            seen.add(event["id"])
+        except (ValueError, KeyError, TypeError, M2VError) as exc:
+            errors.append(f"历史第 {number} 行损坏：{exc}")
+            break
+    return events, errors
 
 
-def append(root: Path, manifest: dict, kind: str, *, gate=None, scene_id=None, checkpoint_id=None,
-           evidence=None, upstream=None, data=None, event_id=None) -> dict:
-    events, diagnostics = history(root)
-    if any(e['projectId'] != manifest['id'] for e in events):
-        diagnostics.append('历史含其他作品事件，不能据此判定通过')
-    if diagnostics:
-        raise M2VError('; '.join(diagnostics) + '；请显式 repair')
-    eid = event_id or uuid.uuid4().hex
-    prior = next((e for e in events if e['id'] == eid), None)
-    if prior:
-        return prior
-    event = dict(id=eid, projectId=manifest['id'], versionId=(upstream or {}).get('cycle', 'legacy'),
-                 type=kind, time=now(), gate=gate, sceneId=scene_id, checkpointId=checkpoint_id,
-                 evidence=evidence or [], upstream=upstream or {}, data=data or {})
-    directory = outputs(root) / 'production'
-    directory.mkdir(parents=True, exist_ok=True)
-    path = directory / 'history.jsonl'
-    prefix = ''
+def append(root: Path, manifest: dict, kind: str, *, data=None) -> dict:
+    c = cycle(root)
+    _, errors = history(root)
+    if errors or manifest["id"] != c["projectId"]:
+        raise M2VError("; ".join(errors) or "周期不属于当前作品")
+    event = dict(
+        version=VERSION,
+        id=uuid.uuid4().hex,
+        cycleId=c["cycleId"],
+        projectId=manifest["id"],
+        type=kind,
+        time=now(),
+        data=data or {},
+    )
+    path = directory(root) / "history.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    prefix = ""
     if path.exists() and path.stat().st_size:
-        with path.open('rb') as existing:
+        with path.open("rb") as existing:
             existing.seek(-1, 2)
-            prefix = '' if existing.read(1) == b'\n' else '\n'
-    with path.open('a', encoding='utf-8', newline='\n') as stream:
+            prefix = "" if existing.read(1) == b"\n" else "\n"
+    with path.open("a", encoding="utf-8", newline="\n") as stream:
         import os
-        stream.write(prefix + json.dumps(event, ensure_ascii=False, allow_nan=False) + '\n')
+
+        stream.write(
+            prefix + json.dumps(event, ensure_ascii=False, allow_nan=False) + "\n"
+        )
         stream.flush()
         os.fsync(stream.fileno())
-    logger.info('制作事件 %s gate=%s scene=%s id=%s', kind, gate, scene_id, eid)
     return event
 
 
-def upstream(root: Path, c: dict, gate: str, scene_id=None, checkpoint_id=None, *, timing_reports=None) -> dict:
-    result = {'cycle': c['cycleId'], 'contract': contract.scope_digest(c, scene_id, checkpoint_id)}
-    if gate in ('G3', 'G5', 'G6'):
-        from m2v.engine.contract_page import web_dir
-        web = web_dir()
-        # 合成层改变影响结构/全片，独立代码场景的 G4 不因转场实现变化而误伤。
-        result['composition'] = fingerprint({name: digest(web / name) for name in
-            ('src/transitions.json', 'src/transitions.tsx', 'src/scene-film/SceneFilm.tsx')
-            if (web / name).is_file()})
-    if gate == 'G0':
-        project_path = root / 'project.json'
-        if project_path.exists():
-            project = read(project_path)
-            result['input'] = fingerprint({name: digest(local(root, name)) for name in project.get('materials', {}).values()})
-    design = outputs(root) / 'production/design-frames.json'
-    if gate in ('G2', 'G3', 'G4', 'G5', 'G6') and design.exists():
-        selected_ids = {cp['id'] for s, _, cp in contract.checkpoints(c)
-                        if (not scene_id or s['id'] == scene_id) and (not checkpoint_id or cp['id'] == checkpoint_id)}
-        selected = [x for x in read(design).get('frames', []) if x.get('checkpointId') in selected_ids]
-        source_digests = {}
-        for item in selected:
-            for reference in (item.get('path'), (item.get('sourceRecord') or {}).get('path')):
-                if reference:
-                    try:
-                        source_digests[reference] = digest(local(outputs(root), reference))
-                    except M2VError:
-                        source_digests[reference] = 'missing'
-        result['keyframes'] = fingerprint({'records': selected, 'files': source_digests})
-    board_path = root / 'storyboard.json'
-    if gate in ('G3', 'G4', 'G5', 'G6') and board_path.exists():
-        board = read(board_path)
-        if scene_id:
-            board = {**{k: v for k, v in board.items() if k != 'scenes'},
-                     'scenes': [s for s in board['scenes'] if s['id'] == scene_id]}
-        result['storyboard'] = fingerprint(board)
-    if gate in ('G4', 'G5', 'G6'):
-        board = read(board_path)
-        selected_scenes = [s for s in board['scenes'] if not scene_id or s['id'] == scene_id]
-        bound = {s['id']: dependencies.scene_sources(root, s) for s in selected_scenes}
-        result['sources'] = fingerprint(bound)
-        result['conservativeReasons'] = sorted({reason for item in bound.values() for reason in item['conservativeReasons']})
-        prepared = outputs(root) / 'prepared.json'
-        if prepared.exists():
-            value = read(prepared)
-            # 场景选择后的输入不包括全局 preparedFingerprint，避免误伤无关场景。
-            selected = [s for s in value.get('props', {}).get('compiledScenes', []) if not scene_id or s['id'] == scene_id]
-            result['preparedInputs'] = fingerprint({'scenes': selected, 'fps': value.get('fps'),
-                                                   'width': value.get('width'), 'height': value.get('height')})
-    if gate == 'G6':
-        delivery = outputs(root) / 'delivery.json'
-        if delivery.exists():
-            value = read(delivery)
-            path = Path(value.get('path', ''))
-            result['video'] = digest(path) if path.is_file() else 'missing'
-    if timing_reports is not None:
-        if gate != 'G3':
-            raise M2VError('时序复用只能绑定 G3')
-        from .timing import reuse
-        result['timingReports'] = timing_reports
-        result['timingSources'] = fingerprint(reuse(root, c, timing_reports))
-    return result
-
-
-def event_upstream(root: Path, c: dict, event: dict) -> dict:
-    """重算事件实际依赖；G3 的复用来源也须在查询、导入、关闭时重验。"""
-    if not isinstance(event.get('upstream'), dict):
-        raise M2VError('制作报告上游必须为对象')
-    return upstream(root, c, event['gate'], event['sceneId'], event['checkpointId'],
-                    timing_reports=event['upstream'].get('timingReports'))
+def evidence_valid_at(base: Path, entries: list) -> bool:
+    try:
+        return bool(entries) and all(
+            dependencies.digest(local(base, e["path"])) == e["sha256"] for e in entries
+        )
+    except (M2VError, OSError, KeyError, TypeError):
+        return False
 
 
 def evidence_valid(root: Path, entries: list) -> bool:
     return evidence_valid_at(outputs(root), entries)
 
 
-def evidence_valid_at(base: Path, entries: list) -> bool:
-    try:
-        return bool(entries) and all(digest(local(base, e['path'])) == e['sha256'] for e in entries)
-    except (M2VError, OSError, KeyError, TypeError):
-        return False
+def sources(root: Path, request: dict) -> dict:
+    """只绑定请求涉及的场景与文件；不把未制作场景作为试制前置。"""
+    paths, scene_ids = request.get("sources", []), request.get("sceneIds", [])
+    if (
+        not isinstance(paths, list)
+        or not isinstance(scene_ids, list)
+        or any(not isinstance(x, str) for x in paths + scene_ids)
+    ):
+        raise M2VError("sources/sceneIds 必须为字符串列表")
+    selected = {}
+    if scene_ids:
+        board = read(root / "storyboard.json")
+        scenes = {s["id"]: s for s in board["scenes"]}
+        if not set(scene_ids) <= scenes.keys():
+            raise M2VError("评审引用未知场景")
+        selected = {
+            sid: {
+                "scene": scenes[sid],
+                "dependencies": dependencies.scene_sources(root, scenes[sid]),
+            }
+            for sid in scene_ids
+        }
+    global_inputs = {}
+    if (root / "project.json").exists():
+        project = read(root / "project.json")
+        global_inputs = {key: project.get(key) for key in ("type", "output", "tts")}
+    return {
+        "globals": global_inputs,
+        "files": {p: dependencies.digest(local(root, p)) for p in paths},
+        "scenes": selected,
+    }
 
 
-def register(root: Path, manifest: dict, report_path: Path) -> dict:
-    report = read(report_path)
-    contract.fields(report, {'gate', 'sceneId', 'checkpointId', 'status', 'checks', 'evidence', 'upstream'},
-                    {'notApplicableReason', 'reviewRequired', 'coverage', 'retrospective'})
-    gate = report['gate']
-    if gate not in workflow.GATE_IDS or report['status'] not in ('pass', 'fail', 'unverified', 'not-applicable'):
-        raise M2VError('未知门或报告状态')
-    c = contract.load(root)
-    current = event_upstream(root, c, report)
-    if report['upstream'] != current or not evidence_valid(root, report['evidence']):
-        raise M2VError('报告上游或证据摘要已过期')
-    if report['status'] == 'pass' and (not report['checks'] or any(x.get('status') != 'pass' for x in report['checks'])):
-        raise M2VError('通过报告必须有全部通过的检查')
-    if report['status'] == 'not-applicable' and (gate not in ('G2',) or not report.get('notApplicableReason') or
-            bool(policy.risks(c, 'static-expression'))):
-        raise M2VError('此门不满足不适用条件')
-    return append(root, manifest, 'check', gate=gate, scene_id=report['sceneId'], checkpoint_id=report['checkpointId'],
-                  evidence=[receipt(outputs(root), report_path), *report['evidence']], upstream=current,
-                  data={k: report[k] for k in ('status', 'reviewRequired') if k in report})
+def final_binding(root: Path, manifest: dict) -> dict:
+    return query_value(("final-binding", root), lambda: _final_binding(root, manifest))
+
+
+def _final_binding(root: Path, manifest: dict) -> dict:
+    from m2v.commands import _prepared
+
+    prepared = _prepared(root, manifest)
+    record = candidate(root, prepared)
+    if record.get("status") not in ("ready", "delivered"):
+        raise M2VError("当前完整候选技术验收尚未通过")
+    qa_path = outputs(root) / "qa.json"
+    qa = read(qa_path)
+    if (
+        qa.get("status") != "pass"
+        or qa.get("preparedFingerprint") != prepared["preparedFingerprint"]
+        or qa.get("videoSha256") != record["sha256"]
+    ):
+        raise M2VError("终审需要绑定当前完整候选的有效技术 QA")
+    board = read(
+        root / manifest.get("materials", {}).get("storyboard", "storyboard.json")
+    )
+    return {
+        "candidateSha256": record["sha256"],
+        "preparedFingerprint": prepared["preparedFingerprint"],
+        "durationFrames": prepared["durationInFrames"],
+        "fps": prepared["fps"],
+        "qa": receipt(outputs(root), qa_path),
+        "storyboard": fingerprint(board),
+        "sources": sources(root, {"sceneIds": [s["id"] for s in board["scenes"]]}),
+    }
+
+
+def binding(root: Path, manifest: dict, request: dict) -> dict:
+    value = {
+        "conditions": request.get("conditions", []),
+        "sources": sources(root, request),
+        "media": [
+            receipt(outputs(root), local(outputs(root), item["path"]))
+            for item in request["items"]
+        ],
+        "references": [
+            receipt(outputs(root), local(outputs(root), p))
+            for p in request.get("references", [])
+        ],
+    }
+    if request["round"] == "final":
+        value["final"] = final_binding(root, manifest)
+    return value
 
 
 def status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    from . import media_evidence
-    with dependencies.snapshot(), media_evidence.snapshot():
-        return _status(root, manifest, full_history=full_history)
+    from . import reviews, issues, media_evidence
 
-
-def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    events, diagnostics = history(root)
-    if any(e['projectId'] != manifest['id'] for e in events):
-        diagnostics.append('历史含其他作品事件，不能据此判定通过')
-    displayed_history = events if full_history else [{k: e[k] for k in
-        ('id', 'type', 'time', 'gate', 'sceneId', 'checkpointId', 'evidence')} for e in events[-5:]]
-    try:
-        c = contract.load(root)
-    except M2VError as exc:
-        return {'applicability': '缺少制作合同或旧流程', 'diagnostics': [str(exc), *diagnostics], 'gates': [],
-                'complete': False, 'expansion': [],
-                'next': '补齐当前 v2 制作合同；旧记录仅作历史，不自动迁移或继承通过', 'history': displayed_history}
-    try:
-        problem_list = issues.load(root, required=True, _review_context=(events, c, diagnostics))
-    except (M2VError, OSError) as exc:
-        problem_list = []
-        diagnostics.append(str(exc))
-    rows, scenes = [], []
-    indexed = {}
-    current_events = [e for e in events if e['upstream'].get('cycle') == c['cycleId']]
-    for event in current_events:
-        indexed.setdefault((event['gate'], event['sceneId'], event['checkpointId']), []).append(event)
-    for gate in workflow.GATE_IDS:
-        scopes = ([(s['id'], cp['id']) for s, _, cp in contract.checkpoints(c)]
-                  if workflow.gate(gate).scope == 'checkpoint' else [(None, None)])
-        results = []
-        for sid, cid in scopes:
-            scoped = indexed.get((gate, sid, cid), [])
-            checks = [e for e in scoped if e['type'] == 'check']
-            last = checks[-1] if checks else None
-            opened = [p['id'] for p in problem_list if p['required'] and p['status'] != 'closed' and
-                      (p['gate'] == gate or (gate == 'G4' and p['catchableAt'] == 'G4')) and
-                      (not sid or not p['sceneId'] or p['sceneId'] == sid) and
-                      (not cid or not p['checkpointId'] or p['checkpointId'] == cid)]
-            state, degraded, check_state = '未开始', False, '未开始'
-            missing_acceptance = []
-            if last:
+    result = {
+        "version": VERSION,
+        "complete": False,
+        "trial": [],
+        "final": [],
+        "diagnostics": [],
+        "issues": [],
+    }
+    with query(), dependencies.snapshot(), media_evidence.snapshot():
+        try:
+            c = cycle(root)
+            if c["projectId"] != manifest["id"]:
+                raise M2VError("周期不属于当前作品")
+            events, errors = history(root)
+            result.update(
+                cycleId=c["cycleId"],
+                diagnostics=errors,
+                history=events if full_history else events[-5:],
+            )
+            result["issues"] = [
+                p for p in issues.load(root, required=True) if p["status"] != "closed"
+            ]
+            for event in events:
+                if event["type"] != "review":
+                    continue
+                data = event["data"]
+                row = {
+                    "id": data["reportId"],
+                    "round": data["round"],
+                    "focus": data["focus"],
+                    "reviewerId": data["reviewerId"],
+                    "status": "stale",
+                    "detail": "",
+                }
                 try:
-                    current = event_upstream(root, c, last)
-                except (M2VError, OSError, ValueError, TypeError, KeyError) as exc:
-                    current = None
-                    diagnostics.append(f'{gate}/{cid or "all"} 上游不可读：{exc}')
-                valid = evidence_valid(root, last['evidence']) and last['upstream'] == current
-                if not valid:
-                    state = check_state = '过期'
-                else:
-                    raw = last['data']['status']
-                    check_state = {'pass': '通过', 'fail': '阻断', 'unverified': '进行中', 'not-applicable': '不适用'}[raw]
-                    state = check_state
-                    if raw == 'pass':
-                        requirement = policy.requirement(c, gate, cid)
-                        reviews = [e for e in scoped if e['type'] == 'review' and e['upstream'] == last['upstream'] and
-                                   e['data'].get('checkId') == last['id'] and evidence_valid(root, e['evidence'])]
-                        degraded = any(e['data'].get('isolation') != 'independent-subagent' for e in reviews)
-                        latest = {(e['data'].get('reviewerId'), e['data'].get('reviewType')): e for e in reviews}
-                        blind = [e for (who, kind), e in latest.items() if kind == 'blind']
-                        independent_passes = [e for e in blind if e['data'].get('isolation') == 'independent-subagent'
-                                              and e['data'].get('verdict') == 'pass']
-                        passed = [e for e in independent_passes if policy.round_for(gate) != 'core'
-                                  or acceptance.core_coverage_passed(e['data'].get('coverage', []),
-                                                                     set(requirement['checkpointIds']))]
-                        if independent_passes and not passed:
-                            missing_acceptance.append('核心理解、表现与代表性凭据')
-                        if policy.round_for(gate) == 'core' and gate == 'G4':
-                            # 只要有一条有效通过即足够；坏证据不追加到已有有效通过的检查点，
-                            # 避免同一状态同时声明「完成」与「证据无效」。
-                            from . import media_evidence
-                            valid_passes, reasons = [], set()
-                            for event in passed:
-                                try:
-                                    media_evidence.validate(event['data'].get('coverage', []), c, outputs(root),
-                                        policy.checkpoint_ids(c, 'core-event') & set(requirement['checkpointIds']))
-                                    valid_passes.append(event)
-                                except M2VError as exc:
-                                    reasons.add(f'动态过程证据无效：{exc}')
-                            passed = valid_passes
-                            if not valid_passes:
-                                missing_acceptance.extend(sorted(reasons))
-                        focuses = {e['data'].get('focus') for e in passed}
-                        if not set(requirement['focuses']) <= focuses:
-                            state = '待评审'
-                        closed = {p['id'] for p in problem_list if p['status'] == 'closed'}
-                        if any(e['data'].get('verdict') == 'fail'
-                               and 'REVIEW-' + e['data'].get('roundId', '') + '-' + e['data'].get('reviewerId', '') not in closed
-                               for e in latest.values()):
-                            state = '阻断'
-                        # 对照必须与同一独立观察绑定，不新增人数要求。
-                        target_ids = policy.consistency_ids(c, gate, cid)
-                        if target_ids:
-                            if not any(_paired_review(b, list(latest.values()), target_ids) for b in passed):
-                                missing_acceptance.append('同轮设计对照')
-                                if state != '阻断':
-                                    state = '待评审'
-            if state != '过期' and opened:
-                state = '阻断'
-            if diagnostics and state in ('通过', '不适用'):
-                state = '阻断'
-            row = dict(gate=gate, sceneId=sid, checkpointId=cid, status=state, checkStatus=check_state,
-                       issues=opened, degraded=degraded, missingAcceptance=missing_acceptance,
-                       lastEvidence=last['evidence'] if last else [],
-                       reviewRequirement=policy.requirement(c, gate, cid))
-            results.append(row)
-            if sid:
-                scenes.append(row)
-        order = ['过期', '阻断', '待评审', '进行中', '未开始']
-        aggregate = next((x for x in order if any(r['status'] == x for r in results)), '通过')
-        if all(x['status'] == '不适用' for x in results):
-            aggregate = '不适用'
-        rows.append({'gate': gate, 'status': aggregate,
-                     'missingAcceptance': sorted({item for r in results for item in r['missingAcceptance']})})
-    # 前置未完成不意味着本门证据损坏；保留自身结果，单列可继续工作的条件。
-    for row in rows:
-        required = workflow.prerequisites(row['gate'])
-        earlier = [r for r in rows if r['gate'] in required
-                   and r['status'] not in ('通过', '不适用')]
-        row.update(evidenceStatus=row['status'], prerequisites=[r['gate'] for r in earlier],
-                   ready=not earlier and row['status'] in ('通过', '不适用'))
-        if row['status'] == '通过' and earlier:
-            row['status'] = '等待前置'
-        for scene in scenes if row['gate'] == 'G4' else []:
-            scene.update(evidenceStatus=scene['status'], prerequisites=row['prerequisites'],
-                         ready=not earlier and scene['status'] == '通过')
-    current = next((r['gate'] for r in rows if r['status'] not in ('通过', '不适用')), None)
-    next_action = f'm2v gates check --project {root} --gate {current}' if current else '全部门证据有效，可报告制作复核完成'
-    if current:
-        current_row = next(r for r in rows if r['gate'] == current)
-        if current_row['evidenceStatus'] == '待评审':
-            next_action = f'完成 {policy.round_for(current)} 轮缺失覆盖并导入报告（{current}）'
-        elif current == 'G5':
-            next_action = '完成 G5 全片内部粗片检查并登记检查证据'
-        elif current in ('G0', 'G6'):
-            next_action = f'登记 {current} 当前检查证据，再导入适用独立报告'
-    phase = workflow.phase(current)
-    scene_summary = []
-    for scene in c['scenes']:
-        checkpoints = [row for row in scenes if row['sceneId'] == scene['id']]
-        scene_summary.append({'sceneId': scene['id'], 'passedCheckpoints': sum(x['status'] == '通过' for x in checkpoints),
-            'totalCheckpoints': len(checkpoints), 'blockedCheckpoints': [x['checkpointId'] for x in checkpoints if x['status'] == '阻断'],
-            'issues': sorted({issue for x in checkpoints for issue in x['issues']})})
-    return dict(applicability='后验回归' if c.get('retrospective') else '检查点流程', phase=phase,
-                complete=not diagnostics and all(row['ready'] for row in rows),
-                expansion=readiness.expansion(rows, scenes, diagnostics, trial_ids=policy.core_checkpoint_ids(c)),
-                cycleId=c['cycleId'], reviewRounds=policy.rounds(c), currentGate=current, gates=rows, scenes=scenes, sceneSummary=scene_summary, next=next_action, diagnostics=diagnostics,
-                renders={'requests': sum(e['type'] == 'render-request' for e in events),
-                         'generationAttempts': sum(e['type'] == 'generation-attempt' for e in events),
-                         'generationSuccesses': sum(e['type'] == 'generation-succeeded' for e in events)},
-                history=displayed_history)
-
-
-def _paired_review(blind: dict, reviews: list[dict], target_ids: set[str]) -> bool:
-    """同一检查/轮次/观察者配对，且覆盖全部适用目标，不能用自审补齐。"""
-    b = blind['data']
-    for review in reviews:
-        data = review['data']
-        if (data.get('reviewType') == 'consistency' and data.get('verdict') == 'pass'
-                and data.get('isolation') == 'independent-subagent'
-                and data.get('blindId') == b.get('reportId')
-                and all(data.get(key) == b.get(key) for key in ('reviewerId', 'round', 'roundId', 'checkId'))
-                and target_ids <= {item['checkpointId'] for item in data.get('coverage', [])
-                                   if item.get('status') == 'pass'}):
-            return True
-    return False
-
-
-def rebuild(root: Path, manifest: dict) -> dict:
-    result = status(root, manifest)
-    write(outputs(root) / 'production/gates.json', result)
+                    report = reviews.current_report(root, manifest, data["reportId"])
+                    row.update(
+                        status=report["verdict"]
+                        if report["isolation"] == "independent-subagent"
+                        else "degraded",
+                        reviewType=report["reviewType"],
+                        blindId=report.get("blindId"),
+                    )
+                except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
+                    row["detail"] = str(exc)
+                result[data["round"]].append(row)
+            for name in ("trial", "final"):
+                for row in result[name]:
+                    if row["status"] == "pass" and row.get("reviewType") == "blind":
+                        report = reviews.current_report(root, manifest, row["id"])
+                        if report["requiresComparison"] and not any(
+                            r["status"] == "pass" and r.get("blindId") == row["id"]
+                            for r in result[name]
+                        ):
+                            row.update(
+                                status="insufficient", detail="缺少当前同轮目标对照"
+                            )
+            try:
+                result["technicalQA"] = {
+                    "status": "pass",
+                    **final_binding(root, manifest),
+                }
+            except (M2VError, OSError, KeyError, TypeError) as exc:
+                result["technicalQA"] = {"status": "unverified", "detail": str(exc)}
+            trial = any(
+                r["status"] == "pass" and r.get("reviewType") == "blind"
+                for r in result["trial"]
+            )
+            focuses = {
+                r["focus"]
+                for r in result["final"]
+                if r["status"] == "pass" and r.get("reviewType") == "blind"
+            }
+            result["complete"] = (
+                trial
+                and set(c["finalFocuses"]) <= focuses
+                and not errors
+                and not result["issues"]
+                and result["technicalQA"]["status"] == "pass"
+            )
+        except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
+            result["diagnostics"].append(str(exc))
     return result
-
-
-def repair(root: Path) -> dict:
-    events, diagnostics = history(root)
-    if not diagnostics:
-        return {'repaired': False}
-    path = outputs(root) / 'production/history.jsonl'
-    backup = path.with_name(f'history-damaged-{uuid.uuid4().hex}.jsonl')
-    backup.write_bytes(path.read_bytes())
-    from .storage import atomic_text
-    atomic_text(path, ''.join(json.dumps(e, ensure_ascii=False) + '\n' for e in events))
-    return {'repaired': True, 'backup': str(backup), 'diagnostics': diagnostics}

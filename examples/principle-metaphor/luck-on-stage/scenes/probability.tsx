@@ -13,7 +13,7 @@ export default function Probability(config:CodeSceneProps){
  return <Frame config={config} overlay={<AccentRelease f={f} at={lock} x={1375} y={525} id="probability-thirty-flash" scale={.7}/> }>
   <Backdrop id="probability-stage"/>
   <g opacity={enter(progress(f,0,e.frame('portal-exit')))}>
-  <Text x={960} y={130} text="单次成功概率" size={116} role="probability-title"/>
+  <Text x={960} y={130} text="单次成功概率" size={116}/>
   {Array.from({length:10},(_,i)=>{
    const a=i*36+1.5,b=(i+1)*36-1.5,fill=Math.min(b,p*360);
    return <g key={i}>
@@ -25,8 +25,8 @@ export default function Probability(config:CodeSceneProps){
   <Text x={cx} y={505} text="成功区域" size={76} color={GOLD}/>
   <path d={`M${cx+Math.sin(Math.PI*.2)*181} ${cy-Math.cos(Math.PI*.2)*181}L${cx+Math.sin(Math.PI*.2)*310} ${cy-Math.cos(Math.PI*.2)*310}`} stroke={WHITE} strokeWidth={2} strokeDasharray="5 8" opacity={.5*enter(progress(f,rise,rise+12))}/>
   <Text x={1375} y={340} text="从 10%" size={84} color={MUTED}/>
-  <Text x={1375} y={525} text={`${Math.round(p*100)}%`} size={248} numeric weight={500} color={f>=lock?GOLD:WHITE} scale={pop(f,lock,.035)} role="probability-value"/>
-  <Text x={1375} y={750} text={`未中 ${100-Math.round(p*100)}%`} size={76} color={RED} role="failure-value"/>
+  <Text x={1375} y={525} text={`${Math.round(p*100)}%`} size={248} numeric weight={500} color={f>=lock?GOLD:WHITE} scale={pop(f,lock,.035)}/>
+  <Text x={1375} y={750} text={`未中 ${100-Math.round(p*100)}%`} size={76} color={RED}/>
   <path d={arcPath(cx,cy,r+56,Math.max(1,p*360-7),p*360+7)} fill="none" stroke={GOLD} strokeWidth={7} opacity={.45+.4*smooth(progress(f,rise,lock))}/>
   <circle cx={cx} cy={cy} r={r+55+45*enter(progress(f,lock,lock+16))} fill="none" stroke={GOLD} strokeWidth={3} opacity={lockGlow*.7}/>
   <path d={`M${tip.x-28} ${tip.y}L${tip.x+28} ${tip.y}`} stroke={WHITE} strokeWidth={3} opacity={lockGlow*.7}/>

@@ -28,9 +28,13 @@ def manifests(root: Path) -> list[dict]:
 
 def references(root: Path) -> set[str]:
     protected = {v for p in issues.load(root, required=True) if p['status'] != 'closed' for v in p['versionRefs']}
+    for archived in (outputs(root) / 'production/history-notes').glob('*.md'):
+        # 历史问题仍保护引用；旧格式不能确认引用时拒绝清理，不猜测安全。
+        value = issues.parse(archived.read_text(encoding='utf-8'))
+        protected.update(v for p in value['items'] if p['status'] != 'closed' for v in p['versionRefs'])
     comparison = outputs(root) / 'production/comparisons.json'
     if not comparison.exists():
-        raise M2VError('缺少 comparisons.json，无法确认活动比较引用')
+        return protected
     value = read(comparison)
     if not isinstance(value, list):
         raise M2VError('比较引用表必须为列表')
@@ -59,7 +63,7 @@ def create(root: Path, manifest: dict, *, reason: str, files: list[str], reset=T
         shutil.copy2(path, target)
         media.append(receipt(directory, target))
     records = []
-    for relative in ('prepared.json', 'delivery.json', 'visual-notes.md', 'production/history.jsonl', 'production/comparisons.json'):
+    for relative in ('prepared.json', 'delivery.json', 'visual-notes.md', 'production/workflow.json', 'production/comparisons.json'):
         path = root / 'outputs' / relative if relative == 'prepared.json' else base / relative
         if path.is_file():
             target = directory / 'records' / relative
@@ -67,7 +71,7 @@ def create(root: Path, manifest: dict, *, reason: str, files: list[str], reset=T
             shutil.copy2(local(path.parent, path.name), target)
             records.append(receipt(directory, target))
     # 评审报告、manifest、台账与缩略图属于长期记录，不随媒体清理消失。
-    for folder in ('review-pack', 'production/reports', 'production/reviews'):
+    for folder in ('review-pack', 'production'):
         for path in sorted((base / folder).rglob('*')):
             if path.is_file() and path.suffix.lower() in {'.json', '.md', '.jsonl'}:
                 relative = path.relative_to(base).as_posix()
@@ -75,26 +79,14 @@ def create(root: Path, manifest: dict, *, reason: str, files: list[str], reset=T
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(local(base, relative), target)
                 records.append(receipt(directory, target))
-    from . import contract
-    try:
-        c = contract.load(root)
-        for _, _, cp in contract.checkpoints(c):
-            path = base / 'production/checkpoints' / cp['id'] / f'{cp["frame"]:06d}-393.png'
-            if path.exists():
-                target = directory / 'records/keyframes' / (cp['id'] + '.png')
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(local(base, path.relative_to(base).as_posix()), target)
-                records.append(receipt(directory, target))
-    except M2VError:
-        # 存量作品没有合同：记录如实缺失，不伪造关键帧。
-        c = None
     delivery = read(base / 'delivery.json') if (base / 'delivery.json').exists() else {}
     bound_prepared = delivery.get('preparedFingerprint') if any(digest(p) == delivery.get('sha256') for p in source) else None
     value = dict(id=identifier, createdAt=ledger.now(), reason=reason, reset=reset, retention='full',
                  prunedAt=None, pruneReason=None, media=media, records=records,
                  preparedFingerprint=bound_prepared)
     write(directory / 'manifest.json', value)
-    ledger.append(root, manifest, 'baseline-created', data={'id': identifier, 'reset': reset})
+    if (base / 'production/workflow.json').exists():
+        ledger.append(root, manifest, 'baseline-created', data={'id': identifier, 'reset': reset})
     return value
 
 

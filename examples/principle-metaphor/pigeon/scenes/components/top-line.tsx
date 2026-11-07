@@ -13,17 +13,15 @@ export type TopLineProps = {
   color?: string;
   y?: number;
   size?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function TopLine({
   text, frame, startFrame = 0, fadeFrames = 12, opacity = 1, color: textColor = color('ink'),
-  y = T.layout.topLine.y, size, role, state,
+  y = T.layout.topLine.y, size, state,
 }: TopLineProps) {
   const reveal = frame === undefined ? 1 : Math.min(1, Math.max(0, (frame - startFrame) / Math.max(1, fadeFrames)));
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', left: 0, right: 0, top: y, transform: 'translateY(-50%)',
       textAlign: 'center', opacity: opacity * reveal, pointerEvents: 'none',
       fontFamily: T.type.fontStack, fontSize: size ?? T.type.topLine, letterSpacing: `${T.type.topLineTrack}em`,

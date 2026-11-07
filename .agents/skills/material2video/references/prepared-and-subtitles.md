@@ -32,7 +32,7 @@ uv run m2v prepare --project videos/<type>/<slug>
 uv run m2v validate --project videos/<type>/<slug>
 # 可选局部片段检查：默认前十秒或显式短窗口，不能替代全片生成
 uv run m2v preview --project videos/<type>/<slug>
-uv run m2v review-template --project videos/<type>/<slug>
+uv run m2v review timeline --project videos/<type>/<slug>
 uv run m2v render --project videos/<type>/<slug>
 ```
 
@@ -53,7 +53,7 @@ uv run m2v render --project videos/<type>/<slug>
 `m2v author input-review --storyboard
 <分镜>` 生成 `outputs/input-review.json`，填好后 status 为 `pass`、依据非空且 problemSpans
 为空；源文或正文计数变化会让审查过期，须重新审查。计数只用于记录，不设字数区间。见
-[讲解输入审查](stage-plan.md#源文审查)。
+[讲解输入审查](stage-design.md)。
 
 渲染与预演都不会触发联网合成：没有跑过 `m2v prepare` 时它们直接报「缺少有效准备记录」
 并停下，不会静默导出一段无声成片。要无声成片就不写口播、也不声明音床，prepare 会写出

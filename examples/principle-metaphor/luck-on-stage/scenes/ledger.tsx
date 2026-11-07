@@ -22,7 +22,7 @@ export default function Ledger(config:CodeSceneProps){
  const markerX=1440+dx*lastReturn,markerY=350-92*jump*lastReturn;
  return <Frame config={config}>
   <Backdrop id="ledger-stage"/>
-  <Text x={220} y={155} text="每一次，都算数" size={124} align="start" role="ledger-title"/>
+  <Text x={220} y={155} text="每一次，都算数" size={124} align="start"/>
   <Text x={285} y={300} text="尝试" size={52} color={MUTED} align="start"/>
   <Text x={920} y={300} text="结果" size={52} color={MUTED} align="end"/>
   <path d="M230 345H970" stroke={LINE} strokeWidth={2}/>
@@ -43,8 +43,8 @@ export default function Ledger(config:CodeSceneProps){
     </g>;
    })}
   </g>
-  <Text x={1440} y={560} text={String(count)} size={300} numeric weight={550} scale={pop(f,lock,.045)} role="trial-count"/>
-  <Text x={1440} y={830} text="尝试次数" size={80} role="count-label"/>
+  <Text x={1440} y={560} text={String(count)} size={300} numeric weight={550} scale={pop(f,lock,.045)}/>
+  <Text x={1440} y={830} text="尝试次数" size={80}/>
   <Attempt x={markerX} y={markerY} size={94} color={WHITE} stretch={1+.16*jump} tilt={f>=lock?0:-8*Math.sin(Math.PI*beat)} groundY={350} frame={f} landAt={lock}/>
   <Contact f={f} at={lock} x={1440} y={350} strength={.6} kind="touch" seed="ledger-thirty"/>
   <Text x={970} y={825} text="示意" size={23} color={MUTED} align="end"/>

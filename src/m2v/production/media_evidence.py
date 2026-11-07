@@ -12,7 +12,6 @@ from pathlib import Path
 from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
-from .storage import local
 
 logger = logging.getLogger(__name__)
 _cache = ContextVar('production_media_probe', default=None)
@@ -95,49 +94,3 @@ def duration(path: Path) -> float:
     if isinstance(value, str):
         raise M2VError(value)
     return value
-
-
-def _window(item: dict) -> tuple[int, int]:
-    window = item.get('window')
-    if (not isinstance(window, (list, tuple)) or len(window) != 2
-            or any(isinstance(x, bool) or not isinstance(x, (int, float)) for x in window)
-            or not all(math.isfinite(x) for x in window) or window[1] <= window[0]):
-        raise M2VError(f'过程证据记录无效：window 必须为两个递增数值，实际 {window!r}')
-    return window[0], window[1]
-
-
-def validate(items: list, c: dict, base: Path, checkpoint_ids: set[str]) -> None:
-    """每项至少一段够长；禁止将多个短片段求和。"""
-    try:
-        fps = c['fps']
-    except (KeyError, TypeError) as exc:
-        raise M2VError(f'过程证据记录无效：{exc}') from exc
-    if not isinstance(items, list):
-        raise M2VError('过程证据记录无效：coverage 必须为列表')
-    with snapshot():
-        for item in items:
-            if not isinstance(item, dict):
-                raise M2VError('过程证据记录无效：覆盖项必须为对象')
-            cid = item.get('checkpointId')
-            if cid not in checkpoint_ids:
-                continue
-            start, end = _window(item)
-            evidence = item.get('evidence')
-            if not isinstance(evidence, list):
-                raise M2VError(f'{cid}：过程证据记录无效：evidence 必须为列表')
-            videos = [e['path'] for e in evidence
-                      if isinstance(e, dict) and isinstance(e.get('path'), str)
-                      and Path(e['path']).suffix.lower() in ('.mp4', '.webm')]
-            if not videos:
-                raise M2VError(f'{cid}：动态核心需要完整过程片段，端点静帧不足')
-            required = (end - start) / fps
-            lengths = []
-            for reference in videos:
-                try:
-                    lengths.append(duration(local(base, reference)))
-                except M2VError as exc:
-                    raise M2VError(f'{cid}：{reference}：{exc}') from exc
-            longest = max(lengths)
-            if longest + 1 / fps + EPSILON < required:
-                raise M2VError(f'{cid}：{", ".join(videos)}：过程片段最长 {longest:.6f}s，'
-                               f'检查窗需要 {required:.6f}s（容差一帧）')

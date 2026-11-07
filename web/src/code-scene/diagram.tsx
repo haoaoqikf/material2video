@@ -2,7 +2,6 @@
 import {useId, type CSSProperties} from 'react';
 import type {ElkNode} from 'elkjs/lib/elk-api';
 import {chartLinePath} from './chart-geometry';
-import {dataAttrs} from './motion-components/internal';
 
 export type DiagramNode = {id: string; label: string; width?: number; height?: number};
 export type DiagramEdge = {id: string; source: string; target: string};
@@ -55,14 +54,14 @@ export async function layoutDiagram(nodes: readonly DiagramNode[], edges: readon
 
 /** 节点尺寸由作者先确定；长标签可通过 renderNode 自定义，默认不截断。 */
 export function Diagram({layout, progress = 1, color = '#F3EDDC', background = '#18202B',
-  fontSize = 28, style, role, state, renderNode}: {
+  fontSize = 28, style, renderNode}: {
   layout: DiagramLayout; progress?: number; color?: string; background?: string; fontSize?: number;
-  style?: CSSProperties; role?: string; state?: string;
+  style?: CSSProperties;
   renderNode?: (node: DiagramLayout['nodes'][number]) => React.ReactNode;
 }) {
   const p = Math.max(0, Math.min(1, progress));
   const arrow = `diagram-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  return <svg {...dataAttrs(role, state)} viewBox={`0 0 ${layout.width} ${layout.height}`}
+  return <svg viewBox={`0 0 ${layout.width} ${layout.height}`}
     width={layout.width} height={layout.height} style={{overflow: 'visible', ...style}}>
     <defs><marker id={arrow} viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 Z" fill={color}/></marker></defs>

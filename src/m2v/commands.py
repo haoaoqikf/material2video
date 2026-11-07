@@ -21,7 +21,7 @@ from m2v.type_system import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
-    if args.command in {"gates", "issues", "baseline"} or (args.command == "review" and getattr(args, "action", None) == "import"):
+    if args.command in {"review", "issues", "baseline"}:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
@@ -146,8 +146,6 @@ def _init(args) -> int:
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-    from m2v.production.storage import write
-    write(root / 'outputs/production/workflow.json', {'version': 1, 'origin': 'new-project'})
     print(f"已创建 {item.name} 作品：{path}")
     return 0
 
@@ -172,7 +170,7 @@ def _project_command(args) -> int:
         print(json.dumps(_status(root, manifest, full_history=args.history), ensure_ascii=False, indent=2))
         return 0
     if args.command in {"preview", "render"}:
-        prepared = _prepared(root, manifest)
+        _prepared(root, manifest)
         jobs = getattr(args, "jobs", 1)
         if type(jobs) is not int or not 1 <= jobs <= 4:
             raise M2VError("--jobs 必须为 1～4 的整数")
@@ -180,7 +178,7 @@ def _project_command(args) -> int:
             raise M2VError(f"当前类型 {manifest['type']} 不支持 --jobs > 1")
         render_options = {"jobs": jobs} if jobs > 1 and video_type.supports_render_jobs else {}
         if args.command == "render":
-            _require_type_review(video_type, root, manifest)
+            _require_render_input(video_type, root, manifest)
             _production_render_event(root, manifest, 'render-request')
             try:
                 output = video_type.render(root, manifest, **render_options)
@@ -211,38 +209,6 @@ def _project_command(args) -> int:
             print("片段检查完成，不作为全片生成的前置条件")
         print(f"视频输出：{output}")
         return 0
-    if args.command == "review-template":
-        if not video_type.manual_review_available:
-            print("当前类型使用候选自动验收，不提供人工评审模板")
-            return 0
-        video_type.validate(root, manifest)
-        prepared = _prepared(root, manifest)
-        preview = candidate(root, prepared)
-        (root / "outputs").mkdir(exist_ok=True)
-        criteria = _review_criteria(root, manifest, prepared)
-        template = {"schemaVersion": 1, "status": "pending", "criteria": criteria,
-                    "evidence": {name: "" for name in criteria},
-                    "projectId": manifest["id"], "preparedFingerprint": prepared["preparedFingerprint"],
-                    "candidate": {key: preview[key] for key in ("key", "sha256", "preparedFingerprint")}}
-        if video_type.review_template is not None:
-            video_type.review_template(root, manifest)
-        (root / "outputs" / "review.json").write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(f"待填写评审模板：{root / 'outputs' / 'review.json'}")
-        return 0
-    if args.command == "review":
-        prepared = _prepared(root, manifest)
-        if not video_type.manual_review_available:
-            record = candidate(root, prepared)
-            if record.get("status") not in {"ready", "delivered"}:
-                raise M2VError("当前候选尚未通过自动验收；请执行 m2v render 重试检查")
-            _require_type_review(video_type, root, manifest)
-            print("当前类型的完整候选自动检查通过；人工评审不适用")
-            return 0
-        candidate(root, prepared)
-        _require_review(root, manifest, prepared)
-        _require_type_review(video_type, root, manifest)
-        print("当前准备版本与完整候选评审通过")
-        return 0
     return 0
 
 
@@ -260,16 +226,14 @@ def _rhythm_option(args) -> dict:
 
 
 def _production_render_event(root: Path, manifest: dict, kind: str, *, candidate_id=None) -> None:
-    """制作记录失败只报告诊断，不改变现有导出成功/失败结果。"""
-    if not (root / 'DESIGN.md').exists():
+    """记录不阻断候选生成；未显式启动周期时不创建制作状态。"""
+    if not (delivery_outputs(root) / 'production/workflow.json').exists():
         return
     try:
-        from m2v.production import contract, ledger
+        from m2v.production import ledger
         from m2v.production.storage import locked
-        c = contract.load(root)
         with locked(root):
-            ledger.append(root, manifest, kind, upstream={'contract': contract.scope_digest(c)},
-                          data={'candidateId': candidate_id, 'reason': '当前渲染绑定缺少可复用候选，需要生成或失败后重试'} if candidate_id else {})
+            ledger.append(root, manifest, kind, data={'candidateId': candidate_id})
     except (M2VError, OSError, ValueError) as exc:
         print(f'[warning] 制作渲染记录失败：{exc}', file=sys.stderr)
 
@@ -337,16 +301,14 @@ def _prepared(root: Path, manifest: dict) -> dict:
 
 
 def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    video_type = registry.get(manifest["type"])
-    result = {"id": manifest["id"], "type": manifest["type"],
-              "review": {"status": "optional" if video_type.manual_review_available else "not-required", "required": False}}
+    registry.get(manifest["type"])
+    result = {"id": manifest["id"], "type": manifest["type"]}
     from m2v.production import baselines, ledger
     result['production'] = ledger.status(root, manifest, full_history=full_history)
     try:
         result['production']['baselines'] = baselines.summary(root)
     except M2VError as exc:
         result['production'].setdefault('diagnostics', []).append(str(exc))
-    result["review"]["detail"] = "技术就绪不代表制作完成；助手须复核全片帧序列和自动音频候选并关闭必改项，无需用户确认。"
     try:
         prepared = _prepared(root, manifest)
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
@@ -364,53 +326,14 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
             result["stage"] = record["status"]
         except M2VError as exc:
             result["candidate"] = {"status": "stale", "detail": str(exc)}
-    review_path = root / "outputs/review.json"
-    if video_type.manual_review_available and review_path.exists():
-        try:
-            _require_review(root, manifest, prepared)
-            result["review"]["status"] = "pass"
-        except M2VError as exc:
-            result["review"].update(status="pending-or-stale", detail=str(exc))
     from m2v.production.readiness import summary
     result['summary'] = summary(result)
     return result
 
 
-def _review_criteria(root: Path, manifest: dict, prepared: dict) -> dict[str, str]:
-    video_type = registry.get(manifest["type"])
-    if video_type.review_criteria is not None:
-        return video_type.review_criteria(root, manifest, prepared)
-    return {"visualQuality": "整片画面质量", "continuity": "内容连续性与节奏", "audio": "音轨和字幕同步"}
-
-
-def _require_review(root: Path, manifest: dict, prepared: dict) -> None:
-    if not registry.get(manifest["type"]).manual_review_available:
-        return
-    path = root / "outputs" / "review.json"
-    try:
-        review = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise M2VError(f"缺少可选评审记录：{path}；请执行 m2v review-template 并完成评审") from exc
-    if (not isinstance(review, dict) or review.get("schemaVersion") != 1 or review.get("status") != "pass"
-            or review.get("projectId") != manifest["id"]
-            or review.get("preparedFingerprint") != prepared["preparedFingerprint"]):
-        raise M2VError("可选评审未通过或已过期；请重新评审当前准备版本")
-    criteria = _review_criteria(root, manifest, prepared)
-    if review.get("criteria") != criteria:
-        raise M2VError("评审项与当前视频类型要求不匹配；请重新生成 review-template")
-    evidence = review.get("evidence")
-    if (not isinstance(evidence, dict) or set(evidence) != set(criteria)
-            or any(not isinstance(value, str) or not value.strip() for value in evidence.values())):
-        raise M2VError("评审通过必须为当前类型的每项结论填写非空证据")
-    preview = review.get("candidate")
-    current_preview = candidate(root, prepared)
-    if not isinstance(preview, dict) or any(preview.get(key) != current_preview.get(key) for key in ("key", "sha256", "preparedFingerprint")):
-        raise M2VError("评审没有绑定当前完整候选")
-
-
-def _require_type_review(video_type, root: Path, manifest: dict) -> None:
-    if video_type.review_gate is not None:
-        video_type.review_gate(root, manifest)
+def _require_render_input(video_type, root: Path, manifest: dict) -> None:
+    if video_type.pre_render_check is not None:
+        video_type.pre_render_check(root, manifest)
 
 
 def _validate_project_location(root: Path, manifest: dict) -> None:

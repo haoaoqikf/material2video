@@ -21,7 +21,7 @@ def routes() -> dict:
 def test_current_routes_and_budgets_pass():
     counts = guidance_docs.validate(ROOT)
     assert counts['entry'] <= 2000
-    for stage in ('plan', 'iterate', 'final'):
+    for stage in ('research', 'design', 'production'):
         assert counts[stage] <= 3000
         assert counts['entry'] + counts[stage] <= 5000
 
@@ -48,15 +48,15 @@ def test_unclosed_template_cannot_hide_navigation():
     (lambda r: r['stages'][1].update(id='rough'), '三阶段'),
     (lambda r: r['stages'][1].update(id='refine'), '三阶段'),
     (lambda r: r['stages'].pop(), '三阶段'),
-    (lambda r: r['stages'].append({'id': 'extra', 'guide': 'references/stage-final.md'}), '三阶段'),
-    (lambda r: r['stages'][0].update(guide='references/stage-final.md'), '三阶段'),
+    (lambda r: r['stages'].append({'id': 'extra', 'guide': 'references/stage-production.md'}), '三阶段'),
+    (lambda r: r['stages'][0].update(guide='references/stage-production.md'), '三阶段'),
     (lambda r: r['stages'][0].update(guide='references/missing.md'), '阅读目标不存在'),
-    (lambda r: r['tasks'][0].update(guide='references/stage-plan.md#不存在的锚点'), '标题锚点不存在'),
+    (lambda r: r['tasks'][0].update(guide='references/stage-research.md#不存在的锚点'), '标题锚点不存在'),
     (lambda r: r['conditional'][0].update(when='  '), '触发条件'),
     (lambda r: r['types'].pop('data-evolution'), 'types'),
     (lambda r: r['ruleOwners'].pop('实际表达'), 'ruleOwners'),
     (lambda r: r.update(schemaVersion=2), '结构或版本无效'),
-    (lambda r: r.update(entry='references/stage-plan.md'), 'SKILL.md'),
+    (lambda r: r.update(entry='references/stage-research.md'), 'SKILL.md'),
 ])
 def test_invalid_routes_are_rejected(mutation, match):
     value = json.loads(json.dumps(routes()))

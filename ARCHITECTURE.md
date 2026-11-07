@@ -18,7 +18,7 @@ Material2Video 以 Python 负责材料校验、准备、音频、证据与命令
 
 作品场景只可从自身目录、`m2v/code-scene` 和批准的依赖导入。`web/scripts/build-code-scene.mjs` 执行边界检查；`src/m2v/production/dependencies.py` 为证据绑定相同的本地依赖。跨作品复用的数值滚动、图表与轨道在 `web/src/code-scene/motion-components/`；各示例只保留自身需要的组件与视觉参数。基础 CSS 在 `web/src/styles/`；字体来源、摘要、许可和恢复目标在 `fonts/registry.json`，字体二进制不入库。
 
-`engine/` 负责通用媒体、渲染、音频与 QA；`production/` 负责制作合同、状态、检查点和评审证据；`reference/` 负责参考素材。类型来源只提供经验证的数据，不反向改变共享制作流程。纯时间采集与多进程分段渲染沿统一代码场景实现。
+`engine/` 负责通用媒体、渲染、音频与 QA；`production/` 负责媒体绑定评审、状态、问题与基线；`reference/` 负责参考素材。类型来源只提供经验证的数据，不反向改变共享制作流程。纯时间采集与多进程分段渲染沿统一代码场景实现。
 
 ## 契约与文档
 
@@ -28,4 +28,4 @@ Material2Video 以 Python 负责材料校验、准备、音频、证据与命令
 - [OpenSpec 规格](openspec/specs/)：可验证的已实现行为。
 - [AGENTS.md](AGENTS.md)：Git、测试与协作约定。
 
-类型清单与检查点表由 `.agents/skills/material2video/scripts/sync_docs.py` 生成；`--check` 检测漂移。代码开发只跑受影响的 Python/Web 测试与必要的真实媒体节点，全量回归遵守 AGENTS.md 的触发规则。
+类型清单与评审包示例由 `.agents/skills/material2video/scripts/sync_docs.py` 生成；`--check` 检测漂移。代码开发只跑受影响的 Python/Web 测试与必要的真实媒体节点，全量回归遵守 AGENTS.md 的触发规则。

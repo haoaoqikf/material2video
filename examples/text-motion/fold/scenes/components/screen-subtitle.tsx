@@ -14,15 +14,12 @@ export type ScreenSubtitleProps = {
   color?: string;
   fps?: number;
   fadeFrames?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function ScreenSubtitle({
   items, frame, safeArea, size = T.type.screenSubtitle, color: textColor = color('text'),
   fps = (typeof window === 'undefined' ? undefined : window.__M2V_CODE_CONFIG__?.fps) ?? 30,
   fadeFrames = Math.round(T.motion.screenSubtitleFadeMs / 1000 * fps),
-  role = 'subtitle', state = 'visible',
 }: ScreenSubtitleProps) {
   useNightSerif();
   const limit = T.type.screenSubtitleMaxChars;
@@ -38,7 +35,7 @@ export default function ScreenSubtitle({
   if (!active) return null;
   const opacity = envelope(frame, active.startFrame, active.endFrame, fadeFrames);
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', left: safeArea.x + safeArea.width / 2, top: safeArea.y + safeArea.height / 2,
       transform: 'translate(-50%, -50%)', width: safeArea.width, textAlign: 'center',
       fontFamily: '"Vibe Night Serif", "Noto Serif SC", serif',

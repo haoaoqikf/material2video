@@ -2,7 +2,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {noise2D} from '@remotion/noise';
 import {clampProgress} from '../primitives';
-import {dataAttrs} from './internal';
 import {makeTransform, rotate, scale, translateX, translateY} from './styles';
 
 export type NoiseSeed = string | number;
@@ -45,21 +44,19 @@ export type NoiseDriftProps = NoiseDriftOptions & {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 手持感/呼吸感包装；只施加静态 transform，不做 CSS 动画。 */
 export function NoiseDrift({
   seed = 'default', progress, amount = 6, frequency = 1, rotateAmount = 0.4,
-  scaleAmount = 0, children, className, style, role, state,
+  scaleAmount = 0, children, className, style,
 }: NoiseDriftProps) {
   const drift = noiseDrift({seed, progress, amount, frequency, rotateAmount, scaleAmount});
   const transform = makeTransform([
     translateX(drift.x), translateY(drift.y), rotate(drift.rotate), scale(drift.scale),
   ]);
   return (
-    <div {...dataAttrs(role, state)} className={className} style={{transform, ...style}}>
+    <div className={className} style={{transform, ...style}}>
       {children}
     </div>
   );

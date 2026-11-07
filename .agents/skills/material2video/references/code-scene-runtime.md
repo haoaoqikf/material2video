@@ -44,8 +44,7 @@
 
 ## DOM/SVG 观测标记
 
-`data-m2v-role` 应标记实际要核对的主体、文字或可见窗口。一个阶段没有任何可见标记时，
-G4 会报告观测不足；仅给其他阶段加标记不能覆盖它。数字残影等有意重叠，须在对应检查点的
+适用评审 会报告观测不足；仅给其他阶段加标记不能覆盖它。数字残影等有意重叠，须在对应检查点的
 `measurement.allowedOverlaps` 声明具体角色对，不用宽泛豁免掩盖文字相互遮挡。
 
 本地 Chromium 量测中，SVG 分组或嵌套 SVG 的包围盒可能包含透明粒子、完整字形度量或超出
@@ -54,7 +53,7 @@ G4 会报告观测不足；仅给其他阶段加标记不能覆盖它。数字�
 图形不再同时标为需要完整呈现的主体。单纯给 SVG 设置宽高不等于得到裁剪后的 DOM 外框。
 窗口标记只描述可见范围，不能证明转场内容、遮挡或表达正确，仍须看完整过程。
 
-修复这类问题时，先检查原失败帧及相邻边界，再采集完整检查窗；局部探针和静帧不替代 G4
+修复这类问题时，先检查原失败帧及相邻边界，再采集完整检查窗；局部探针和静帧不替代 适用评审
 及适用独立评审。本节不增加制作门或改变既有量测判据。
 
 ## 幕内事件查询
@@ -73,7 +72,7 @@ const emphasis = frame >= events.frame('contact') ? 1 - events.progress('contact
 
 事件表是初始化快照，建议每份配置只创建一次。事件只规定时刻，不触发回调、不自动模拟碰撞、不重排字幕与旁白。录制页仍顺序逐帧推进；纯事件函数可乱序求值不表示录制页新增随机 seek 能力。声明与音效定位见[幕内事件](storyboard-schema.md#幕内事件)。
 
-事件发生前后的画面取证用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`：窗口由作者显式声明，工具从当前准备记录解析事件并取 before/at/after/hold 四类帧。它是看图预览，不自动绑定检查点，也不替代 G4 证据；事件越靠后，顺序采集仍从所属幕第 0 帧推进，pure 场景则直接 seek。
+事件发生前后的画面取证用 `m2v lookdev --event <sceneId:eventId> --before <帧> --after <帧> [--hold <帧>]`：窗口由作者显式声明，工具从当前准备记录解析事件并取 before/at/after/hold 四类帧。它是看图预览，不自动绑定检查点，也不替代 适用评审 证据；事件越靠后，顺序采集仍从所属幕第 0 帧推进，pure 场景则直接 seek。
 
 ## 全局时间与连续行为
 
@@ -367,7 +366,7 @@ const {PainterCanvas} = painter;
 
 <PainterCanvas width={width} height={height} bloom={0.85} grain={0.035} seed={11}
   paint={(frame, {elapsedSeconds}) => { frame.spark(960, 420, 6, '#F8D893', .9); }}
-  overlay={frame => { frame.text('主体大字', 960, 838, {size: 76, role: 'subject'}); }}
+  overlay={frame => { frame.text('主体大字', 960, 838, {size: 76}); }}
 />
 ```
 
@@ -398,7 +397,7 @@ const {PainterCanvas} = painter;
   background={P => { P.clear('#010104'); /* 光池与暗角 */ }}
   under={P => redCell(P, bend, 0, 0, alpha)}
   paint={P => beads.forEach(([x, y]) => bead(P, x, y, 14, ICE))}
-  overlay={P => P.text('第 6 颗', x, y, {size: 30, role: 'annotation'})}
+  overlay={P => P.text('第 6 颗', x, y, {size: 30})}
 />
 ```
 
@@ -448,34 +447,15 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 });
 ```
 
-子绘制的量测项会加入同一帧清单，并套用离屏层的变换和裁剪；其边界仍是各标记矩形经变换后的外框，不含模糊与辉光的最终像素外沿。复杂变形后的实际边界、遮挡与可读性仍须复核最终画面。逻辑尺寸和采集密度自动匹配，包括 2 倍采集。
+离屏层保持实际变换、裁剪与合成；边界、遮挡与可读性通过当前媒体复核。逻辑尺寸和采集密度自动匹配，包括 2 倍采集。
 
 `painter.keyframeAt([{at, value}, ...], time, mode?)` 为任意有限数值提供纯求值；`mode` 支持 `linear`、`hold` 和非均匀时间 Catmull-Rom `smooth`。关键帧至少一项且时间严格递增，非法值明确失败；首尾之外保持端点。平滑曲线不夹断过冲，有限量值由调用方显式约束。相机仍使用专用 `cameraAt`，不要把相机尺度换成线性数值曲线。
 
 开发用能力货架在仓库根目录的 `web/gallery.html`：运行 `pnpm -C web dev` 后打开 `http://localhost:5178/gallery.html`。它展示真实 painter API、相机、轨道与固定种子模拟，提供播放/暂停、进度拖动、复位和最小调用代码；Vite 正式构建只含 `contract.html`，货架不会进入生产包。
 
-#### 量测代理与状态探针
-
-绘制层每帧都会输出两类可量测信息，**两者都来自同一次绘制记录**：
-
-- **代理 DOM**：`div[data-m2v-role][data-m2v-state]`，位置尺寸对应实际绘制包围盒、字号与绘制一致、
-  `textContent` 反映实际显影文字，完全显示后须与活动文字计划相等。它是让 Canvas 内容脱离「观测范围：未验证」的**必需项**。
-- **状态探针**：`window.__M2V_REVIEW_STATE__`，形如 `[{role, count, state}]`，供合同断言交叉校验。
-
-三个已知陷阱：
-
-1. **只写探针不够**。探针只产出独立的「可选状态探针」检查，不消除「观测范围：未验证」；
-   该帧若有活动文字计划而页面没有 DOM 标记，文字状态会直接判失败，人工证据也翻不回来。
-2. **代理文字必须用 `-webkit-text-fill-color: transparent` 隐藏**。这里的透明填充只隐藏代理本身；实际绘制不可见时，代理另以 `opacity: 0` 如实报告不可见。
-   不用 `color: transparent` 隐藏代理，避免丢失用于颜色断言的实际颜色。
-3. **`text()` / `chars()` 传 `role` 才进代理**。没传 `role` 的绘制不产生代理元素，也不计入文字预算。
-
-写合同断言时，`expected` 的 `role` 用绘制层给的角色（如 `lead`、`axis-label`）；
-需要固定状态时同时声明 `state`。
-
 ### 讲解机制与已有能力的映射
 
-可选表达方向见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)，实际取证按[检查点契约](checkpoint-gates.md)。以下是已有能力的
+可选表达方向见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)，实际取证按[评审契约](review-contract.md)。以下是已有能力的
 使用方法，不是新 API，也不提供自动对象识别、任意形状变形或自动因果判断。
 
 | 需求 | 可复用能力与作品职责 |

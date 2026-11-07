@@ -1,72 +1,72 @@
-"""制作层命令适配；输出记录不参与 render 的技术门禁。"""
-from __future__ import annotations
+"""媒体评审、问题及基线的统一入口。"""
 
-import json
 from pathlib import Path
+import json
 
-from m2v.core.delivery import outputs
-from m2v.core.errors import M2VError
 from m2v.core.project import load_project
-from . import baselines, checks, dependencies, issues, ledger, media_evidence, reviews, workflow
-from .storage import locked, read, receipt
+from m2v.core.errors import M2VError
+from . import ledger, reviews, issues, baselines, dependencies, media_evidence
+from .storage import read, locked
 
 
-def add_parsers(sub) -> None:
-    gates = sub.add_parser('gates', help='制作门检查、证据登记及隔离评审包')
-    gates.add_argument('action', choices=('check', 'register', 'rebuild', 'repair', 'pack', 'timeline'))
-    gates.add_argument('--project', required=True)
-    gates.add_argument('--gate', choices=workflow.GATE_IDS)
-    gates.add_argument('--checkpoint')
-    gates.add_argument('--file')
-    gates.add_argument('--timing-reports', nargs='+', help='G3 复用输出根内当前 G4 采集报告，不重复生成 animatic')
-    issues_parser = sub.add_parser('issues', help='更新唯一问题表机器块')
-    issues_parser.add_argument('action', choices=('update',))
-    issues_parser.add_argument('--project', required=True)
-    issues_parser.add_argument('--file', required=True)
-    baseline = sub.add_parser('baseline', help='创建重置/候选基线，或安全清理媒体')
-    baseline.add_argument('action', choices=('create', 'prune'))
-    baseline.add_argument('--project', required=True)
-    baseline.add_argument('--reason', default='')
-    baseline.add_argument('--files', nargs='+', default=[])
-    baseline.add_argument('--candidate', action='store_true', help='局部候选保护，不计为重置')
+def add_parsers(sub):
+    review = sub.add_parser("review", help="独立媒体评审与全片预演")
+    review.add_argument("action", choices=("start", "pack", "import", "timeline"))
+    review.add_argument("--project", required=True)
+    review.add_argument("--file", help="version=2 评审请求或报告 JSON")
+    review.add_argument(
+        "--split-final", action="store_true", help="终审按结构和视觉文案分工"
+    )
+    review.add_argument(
+        "--basis", default="常规综合终审", help="终审分工的具体风险依据"
+    )
+    problem = sub.add_parser("issues", help="更新唯一问题记录")
+    problem.add_argument("action", choices=("update",))
+    problem.add_argument("--project", required=True)
+    problem.add_argument("--file", required=True)
+    baseline = sub.add_parser("baseline", help="保护基线与安全清理")
+    baseline.add_argument("action", choices=("create", "prune"))
+    baseline.add_argument("--project", required=True)
+    baseline.add_argument("--reason", default="")
+    baseline.add_argument("--files", nargs="+", default=[])
+    baseline.add_argument("--candidate", action="store_true")
 
 
-def dispatch(args) -> int:
+def dispatch(args):
     root, manifest = load_project(args.project)
-    if getattr(args, 'timing_reports', None) is not None and (args.command != 'gates' or args.action != 'check' or args.gate != 'G3'):
-        raise M2VError('--timing-reports 只适用于 gates check --gate G3')
     with locked(root), dependencies.snapshot(), media_evidence.snapshot():
-        if args.command == 'issues':
+        if args.command == "baseline":
+            result = (
+                baselines.create(
+                    root,
+                    manifest,
+                    reason=args.reason,
+                    files=args.files,
+                    reset=not args.candidate,
+                )
+                if args.action == "create"
+                else baselines.prune(root, manifest)
+            )
+        elif args.command == "issues":
             issues.update(root, read(Path(args.file)))
-            result = ledger.append(root, manifest, 'issues-updated', evidence=[receipt(outputs(root), outputs(root) / 'visual-notes.md')])
-        elif args.command == 'baseline':
-            result = baselines.create(root, manifest, reason=args.reason, files=args.files, reset=not args.candidate) if args.action == 'create' else baselines.prune(root, manifest)
-        elif args.command == 'review':
-            if not args.file:
-                raise M2VError('review import 需要 --file 独立评审报告')
-            result = reviews.import_report(root, manifest, Path(args.file).resolve())
-        elif args.action == 'repair':
-            result = ledger.repair(root)
-        elif args.action == 'rebuild':
-            result = ledger.rebuild(root, manifest)
-        elif args.action == 'pack':
-            if not args.file:
-                raise M2VError('pack 需要 --file 评审包请求 JSON')
-            result = {'path': str(reviews.package(root, **read(Path(args.file))))}
-        elif args.action == 'timeline':
+            result = ledger.append(root, manifest, "issues-updated")
+        elif args.action == "start":
+            if args.split_final and args.basis == "常规综合终审":
+                raise M2VError("分工终审须提供 --basis 具体风险依据")
+            result = ledger.start(
+                root, manifest, split_final=args.split_final, basis=args.basis
+            )
+        elif args.action == "timeline":
             from .timeline import build
-            result = {'path': str(build(root, manifest))}
-        elif args.action == 'register':
-            if not args.file:
-                raise M2VError('register 需要 --file 检查报告')
-            result = ledger.register(root, manifest, Path(args.file).resolve())
+
+            result = {"path": str(build(root, manifest))}
         else:
-            if not args.gate:
-                raise M2VError('check 需要 --gate')
-            paths = checks.run(root, manifest, args.gate, checkpoint_id=args.checkpoint,
-                               timing_reports=args.timing_reports)
-            result = {'reports': [str(p) for p in paths], 'events': [ledger.register(root, manifest, p)['id'] for p in paths]}
-        if args.command != 'gates' or args.action not in ('repair', 'rebuild'):
-            ledger.rebuild(root, manifest)
+            if not args.file:
+                raise M2VError("pack/import 需要 --file")
+            result = (
+                {"path": str(reviews.package(root, manifest, read(Path(args.file))))}
+                if args.action == "pack"
+                else reviews.import_report(root, manifest, Path(args.file))
+            )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

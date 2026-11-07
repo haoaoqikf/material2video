@@ -1,5 +1,5 @@
 /**
- * 绘制层的 React 绑定：一块按采集像素密度分配后备缓冲的画布，外加同源的量测代理。
+ * 绘制层的 React 绑定：一块按采集像素密度分配后备缓冲的画布。
  *
  * 与既有 `Canvas`（R3F/WebGL）区分：这是 2D，用于辉光质感、高密度粒子、
  * 线条生长与逐字显影这类镜头；需要可选中文本、就地排版与作品组件时仍用
@@ -8,11 +8,10 @@
  * 像素密度取自录制配置：`lookdev` 的 2 倍原生采集要求后备缓冲达到逻辑尺寸的
  * 两倍，否则采集会以「画布像素不足」失败。未声明时按 1 倍。
  */
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import React, {useLayoutEffect, useRef} from 'react';
 import {useSceneContext} from '../context';
-import {Painter, type Mark} from './frame';
+import {Painter} from './frame';
 import {compose} from './bloom';
-import {MeasureProxy, reviewState} from './measure-proxy';
 
 export type PainterFrame = {
   frameIndex: number;
@@ -40,8 +39,6 @@ export type PainterCanvasProps = {
   grain?: number;
   /** 颗粒种子；同一镜头内保持不变。 */
   seed?: number;
-  /** 是否把绘制清单写成量测代理；默认开。关掉即回到「观测范围未验证」。 */
-  measurable?: boolean;
   style?: React.CSSProperties;
 };
 
@@ -59,16 +56,14 @@ function sceneFps(): number {
 
 export function PainterCanvas({
   width, height, paint, overlay, background, under, post,
-  bloom = 1, grain = .04, seed, measurable = true, style,
+  bloom = 1, grain = .04, seed, style,
 }: PainterCanvasProps): React.ReactElement {
   const {elapsedSeconds} = useSceneContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scale = pixelScale();
   const frameIndex = Math.round(elapsedSeconds * sceneFps());
-  const [marks, setMarks] = useState<Mark[]>([]);
 
-  // 绘制、合成与代理必须在同一个布局 effect 里完成：分两次提交会让截图窗口
-  // 落在画面已更新、代理还没挂上的状态上，量测拿到的是上一帧的几何。
+  // 同一次布局提交完成绘制与合成，避免采集读到中间画面。
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -79,7 +74,7 @@ export function PainterCanvas({
       canvas.height = bufferHeight;
     }
     const state: PainterFrame = {frameIndex, elapsedSeconds, width, height};
-    const drawn: Record<string, {canvas: HTMLCanvasElement; marks: Mark[]}> = {};
+    const drawn: Record<string, {canvas: HTMLCanvasElement}> = {};
     for (const [name, draw] of Object.entries({
       background, under, content: paint, overlay, post,
     })) {
@@ -89,7 +84,7 @@ export function PainterCanvas({
       layer.height = bufferHeight;
       const painter = new Painter(layer.getContext('2d')!, width, height, scale);
       draw(painter, state);
-      drawn[name] = {canvas: layer, marks: painter.marks};
+      drawn[name] = {canvas: layer};
     }
     compose(canvas, {
       width, height, scale, bloom, grain, seed, frame: frameIndex,
@@ -99,19 +94,7 @@ export function PainterCanvas({
       overlay: drawn.overlay?.canvas ?? null,
       post: drawn.post?.canvas ?? null,
     });
-    // 清单顺序 = 底、底层内容、内容层、锐利层；代理按同一顺序排列，便于逐项对照。
-    const all = [...(drawn.background?.marks ?? []), ...(drawn.under?.marks ?? []),
-                 ...drawn.content.marks, ...(drawn.overlay?.marks ?? [])];
-    setMarks(all);
-    const global = window as unknown as {__M2V_REVIEW_STATE__?: unknown};
-    if (measurable) global.__M2V_REVIEW_STATE__ = reviewState(all);
-    else delete global.__M2V_REVIEW_STATE__;
-  }, [width, height, scale, frameIndex, measurable, bloom, grain, seed]);
-
-  useEffect(() => () => {
-    // 卸载时清掉探针，避免下一幕读到上一幕的状态。
-    delete (window as unknown as {__M2V_REVIEW_STATE__?: unknown}).__M2V_REVIEW_STATE__;
-  }, []);
+  }, [width, height, scale, frameIndex, bloom, grain, seed]);
 
   return (
     <>
@@ -119,7 +102,6 @@ export function PainterCanvas({
         ref={canvasRef}
         style={{position: 'absolute', left: 0, top: 0, width, height, ...style}}
       />
-      {measurable ? <MeasureProxy marks={marks}/> : null}
     </>
   );
 }

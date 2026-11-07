@@ -31,7 +31,7 @@ export default function Hook(config:CodeSceneProps){
     <style>{'.luck-hook-composite g{mix-blend-mode:normal!important}'}</style>
     <g className="luck-hook-composite">
     <Backdrop id="hook-stage"/>
-    <Text x={350} y={190} text="运气" size={220} align="start" alpha={1-smooth(progress(f,40,51))} role="hook-title"/>
+    <Text x={350} y={190} text="运气" size={220} align="start" alpha={1-smooth(progress(f,40,51))}/>
     <g opacity={enter(progress(f,8,20))}>
       <path d={`M1490 240 Q${1490+shake} 320 1490 390 M1490 610 Q${1490-shake} 700 1490 790`} fill="none" stroke={WHITE} strokeWidth={9} strokeLinecap="round"/>
       <path d="M1465 390H1515 M1465 610H1515" stroke={WHITE} strokeWidth={4}/>
@@ -40,7 +40,7 @@ export default function Hook(config:CodeSceneProps){
       <FlightMotes samples={samples} energy={light}/>
       <Attempt x={x} y={y} size={82} color={color} alpha={alpha} glow={.22+.3*light} frame={f} landAt={success?e.frame('hit-land'):undefined} stretch={body.stretch} tilt={landed?0:8*Math.sin(p*Math.PI)}/>
     </>:null}
-    {landed?<Text x={current===2?1660:1170} y={current===2?710:550} text={current===2?'命中':'未中'} color={color} size={88} role="hook-result"/>:null}
+    {landed?<Text x={current===2?1660:1170} y={current===2?710:550} text={current===2?'命中':'未中'} color={color} size={88}/>:null}
     <Contact f={f} at={ends[0]} x={1490} y={680} strength={.6} kind="touch" color={RED} seed="hook-miss-one"/>
     <Contact f={f} at={ends[1]} x={1490} y={310} strength={.6} kind="touch" color={RED} seed="hook-miss-two"/>
     <Contact f={f} at={e.frame('hit-land')} x={1684} y={541} strength={1.25} seed="hook-hit"/>

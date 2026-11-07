@@ -2,7 +2,6 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {motionCurve} from '../motion';
 import {clampProgress, type Easing} from '../primitives';
-import {dataAttrs} from './internal';
 import {pathMorphAt} from './paths';
 
 const LINEAR = motionCurve('linear');
@@ -21,8 +20,6 @@ export type PathMorphProps = {
   viewBox?: string;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /**
@@ -32,13 +29,11 @@ export type PathMorphProps = {
 export function PathMorph({
   from, to, progress, easing = LINEAR, color = '#F3EDDC', fill = 'none',
   strokeWidth = 6, opacity = 1, width = '100%', height = '100%', viewBox, className, style,
-  role, state,
 }: PathMorphProps) {
   const d = pathMorphAt(easing(clampProgress(progress)), from, to);
   if (!d) return null;
   return (
     <svg
-      {...dataAttrs(role, state)}
       className={className}
       width={width}
       height={height}
@@ -71,15 +66,12 @@ export type MaskRevealProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 用静态 `clip-path` 揭示内容；不写 CSS transition，逐帧值由调用方计算。 */
 export function MaskReveal({
   progress, easing = motionCurve('easeOutCubic'), mode = 'wipe', direction = 'right',
   at = {x: 0, y: 0}, radius, width = 1920, height = 1080, clip, children, className, style,
-  role, state,
 }: MaskRevealProps) {
   const eased = easing(clampProgress(progress));
   let clipPath: string;
@@ -98,7 +90,7 @@ export function MaskReveal({
           : `inset(0 0 ${hidden}% 0)`;
   }
   return (
-    <div {...dataAttrs(role, state)} className={className}
+    <div className={className}
       style={{clipPath, WebkitClipPath: clipPath, ...style}}>
       {children}
     </div>

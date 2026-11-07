@@ -2,8 +2,7 @@
 
 README、Skill 与项目规划曾各自维护一份类型清单，与代码里的清单互相独立、没有
 任何一致性检查。现在它们由 `src/m2v/type_system/catalog.json` 生成，生成区域用成对
-标记圈出，标记之外的内容保持手工维护。检查点文档的门表、风险表与审核人数表
-分别由 production/workflow.py 和 production/policy.py 派生。
+标记圈出，标记之外的内容保持手工维护。评审包字段由实际媒体打包器派生。
 
 用法：
 
@@ -93,38 +92,17 @@ def _inject(relative: str, text: str, lines: list[str], *, section="type-catalog
     return "\n".join(parts[: starts[0] + 1] + lines + parts[ends[0] :])
 
 
-CHECKPOINTS = ".agents/skills/material2video/references/checkpoint-gates.md"
 REVIEWS = ".agents/skills/material2video/references/subagent-review.md"
 
 
 def review_manifest_lines() -> list[str]:
     from m2v.production.reviews import build_manifest
-    value = build_manifest(review_id='R01', cycle_id='example-cycle', created_at='2026-11-04T00:00:00+00:00',
-        gate='G4', scene_id='scene-1', checkpoint_ids=['core-window'], kind='scene-window', display_sizes=[1920, 393],
-        timecodes=[[0, 90]], files=[{'path': 'evidence-0000.mp4', 'sha256': '0' * 64}])
+    value = build_manifest(review_id='R01', cycle_id='example-cycle', round='trial', fps=30,
+        items=[{'id': 'window-1', 'path': 'evidence-0000.mp4', 'window': [0, 90],
+                'dynamic': True, 'sequence': []}],
+        files=[{'path': 'evidence-0000.mp4', 'sha256': '0' * 64}], display_sizes=[1920, 393])
+    value['createdAt'] = '2026-11-07T00:00:00+00:00'
     return ['```json', *json.dumps(value, ensure_ascii=False, indent=2).splitlines(), '```']
-
-
-def production_sections() -> dict[str, list[str]]:
-    """可执行目录的文档视图；条件和人数不在文档脚本中重写。"""
-    from m2v.production import policy, workflow
-
-    gates = ["| 门 | 阶段 | 范围 | 检查方式 | 证据 |", "|---|---|---|---|---|"]
-    gates.extend(f"| {g.id} | {g.phase} | {'检查点' if g.scope == 'checkpoint' else '全片'} | "
-                 f"{'自动检查' if g.checker in ('declaration', 'design', 'mapping', 'capture') else '制作助手内部检查登记' if g.checker == 'internal' else '外部报告登记'} | {g.evidence} |" for g in workflow.GATES)
-    risks = ["| kind | 门 | 额外要求 | 不触发的情况 |", "|---|---|---|---|"]
-    risks.extend(f"| `{r.kind}` | {r.gate} | {r.evidence} | {r.excluded} |" for r in policy.RISK_CATALOG)
-    core = '、'.join(f'`{r.kind}`' for r in policy.RISK_CATALOG if r.kind in policy.CORE_GATES)
-    rounds = [f"核心审核风险：{core}。镜头等级不决定审核人数。", "",
-              "| 审核计划 | 核心轮 | 粗片 | 终审 | 独立调用合计 |", "|---|---|---|---|---|"]
-    # 从实际策略枚举核心风险与终审拆分的组合，避免手工计算调用次数。
-    for has_core in (False, True):
-        for split in (False, True):
-            kinds = ([next(iter(policy.CORE_GATES))] if has_core else []) + (['split-final'] if split else [])
-            value = policy.rounds({'reviewPlan': {'risks': [{'id': k, 'kind': k, 'reason': '策略示例', 'scope': {'checkpointIds': []}} for k in kinds]}})
-            label = ('有核心风险' if has_core else '无核心风险') + ('，split-final' if split else '，常规终审')
-            rounds.append(f"| {label} | {value['core']} | {value['rough']} | {value['final']} | {value['defaultCalls']} |")
-    return {'production-gates': gates, 'review-risks': risks, 'review-rounds': rounds}
 
 
 def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
@@ -139,10 +117,6 @@ def build_outputs(catalog=None, *, include_production=True) -> dict[str, str]:
         text, _ = read_text(relative)
         outputs[relative] = _inject(relative, text, render(entries))
     if include_production:
-        text, _ = read_text(CHECKPOINTS)
-        for section, lines in production_sections().items():
-            text = _inject(CHECKPOINTS, text, lines, section=section)
-        outputs[CHECKPOINTS] = text
         text, _ = read_text(REVIEWS)
         outputs[REVIEWS] = _inject(REVIEWS, text, review_manifest_lines(), section='review-manifest')
     return outputs

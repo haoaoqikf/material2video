@@ -9,7 +9,7 @@ const BAR_VIEW={bottom:BAR.bottom-70,scale:BAR.scale*.85};
 function Ledger({f,exit,rowFrames}:{f:number;exit:number;rowFrames:number[]}){
   return <g opacity={1-exit} transform={`translate(${-100*exit} 0)`}>
     <Text x={960} y={145} text="新增长，留在下一轮" size={90}/>
-    <Text x={960} y={245} text="理想模型：初始100，每轮按现有总量增长1%" size={64} color={WHITE} role="method"/>
+    <Text x={960} y={245} text="理想模型：初始100，每轮按现有总量增长1%" size={64} color={WHITE}/>
     {[['轮次',340],['现有总量',920],['本轮新增',1480]].map(([s,x])=><Text key={s} x={Number(x)} y={335} text={String(s)} size={56} color={MUTED}/>)}
     <path d="M220 375H1700" stroke={MUTED} strokeWidth={2}/>
     {[0,1,2,3].map((n)=>{
@@ -49,7 +49,7 @@ function Curve({f,start,run,complete,leave}:{f:number;start:number;run:number;co
     <Text x={1740} y={842} text="轮" size={46} color={MUTED}/>
     <ChartLine points={points(constant)} color={WHITE} width={5}/><ChartLine points={points(compounded)} color={GOLD} width={6}/>
     <ChartMarker x={wx} y={wy} color={WHITE} radius={7}/><Ball x={gx} y={gy} r={12}/>
-    <Text x={Math.max(gx-28,520)} y={gy-35} text={fixed(compounded(n))} size={70} numeric color={GOLD} align="end" role="compound-value"/>
+    <Text x={Math.max(gx-28,520)} y={gy-35} text={fixed(compounded(n))} size={70} numeric color={GOLD} align="end"/>
     {n>=32?<Text x={wx-28} y={wy+43} text={fixed(constant(n))} size={62} numeric align="end"/>:null}
   </g>;
 }
@@ -75,7 +75,7 @@ function Bars({f,start,hits,end}:{f:number;start:number;hits:number[];end:number
         {f>=hits[i]+18?<Text x={cx} y={847} text={`差 ${fixed(compounded(n)-constant(n))}`} size={52} color={GOLD} role={`bar-gap-${i}`} alpha={opacity(f,hits[i]+18,end-18)}/>:null}
       </g>;
     })}
-    {active>=0?<Text x={420} y={390} text={`${BAR.rounds[active]}轮差 ${fixed(compounded(BAR.rounds[active])-constant(BAR.rounds[active]))}`} size={84} color={GOLD} alpha={activeAlpha} role="active-gap"/>:null}
+    {active>=0?<Text x={420} y={390} text={`${BAR.rounds[active]}轮差 ${fixed(compounded(BAR.rounds[active])-constant(BAR.rounds[active]))}`} size={84} color={GOLD} alpha={activeAlpha}/>:null}
   </g>;
 }
 

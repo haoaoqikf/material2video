@@ -106,7 +106,7 @@ def test_real_transition_composition_windows(tmp_path, chromium_ready):
     from PIL import Image
     from playwright.sync_api import sync_playwright
     from m2v.engine.contract_page import serve_contract_page
-    from m2v.production.checks import ffmpeg
+    from m2v.production.model import ffmpeg
 
     Image.new('RGB', (320, 240), 'red').save(tmp_path / 'a.png')
     Image.new('RGB', (320, 240), 'blue').save(tmp_path / 'b.png')

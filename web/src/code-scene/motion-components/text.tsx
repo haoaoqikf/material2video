@@ -9,7 +9,6 @@ import {useEffect, useMemo, useState, type CSSProperties} from 'react';
 import {fitText, measureText} from '@remotion/layout-utils';
 import {ensureFonts} from '../../fonts';
 import {clampProgress, type Easing} from '../primitives';
-import {dataAttrs} from './internal';
 
 export type TextFace = {
   fontFamily: string;
@@ -195,14 +194,12 @@ export type AutoFitTextProps = {
   validateFont?: boolean;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 单行标题按可用宽度求字号；无法测量时使用 maxFontSize，不静默缩成 0。 */
 export function AutoFitText({
   text, withinWidth, fontFamily, fontWeight, letterSpacing, maxFontSize = 200,
-  minFontSize = 1, lineHeight = 1.1, validateFont = true, className, style, role, state,
+  minFontSize = 1, lineHeight = 1.1, validateFont = true, className, style,
 }: AutoFitTextProps) {
   const fontsReady = useFontsReady();
   const fontSize = useMemo(() => {
@@ -213,7 +210,6 @@ export function AutoFitText({
   }, [fontsReady, text, withinWidth, fontFamily, fontWeight, letterSpacing, maxFontSize, minFontSize, validateFont]);
   return (
     <span
-      {...dataAttrs(role, state)}
       className={className}
       style={{fontFamily, fontWeight, fontSize, letterSpacing, lineHeight,
         whiteSpace: 'nowrap', display: 'inline-block', ...style}}
@@ -241,15 +237,13 @@ export type TextBlockProps = {
   validateFont?: boolean;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 多行文本块：CJK 感知换行，可选逐字显影；不读取任何时间源。 */
 export function TextBlock({
   text, maxWidth, fontFamily, fontSize, fontWeight, letterSpacing, lineHeight = 1.4,
   maxLines, ellipsis = '…', align = 'left', progress, easing = (value: number) => value,
-  baseOpacity = 0.12, validateFont = true, className, style, role, state,
+  baseOpacity = 0.12, validateFont = true, className, style,
 }: TextBlockProps) {
   const fontsReady = useFontsReady();
   const measure = useMemo(() => {
@@ -275,7 +269,6 @@ export function TextBlock({
   }
   return (
     <div
-      {...dataAttrs(role, state)}
       className={className}
       style={{fontFamily, fontSize, fontWeight, letterSpacing, lineHeight, textAlign: align,
         ...style}}

@@ -55,7 +55,7 @@ useEffect(() => {void ensureMathReady().then(ready);}, [ready]);
 <MathFormula tex={String.raw`\frac{P(1+r)^n}{P}`} fontSize={96} color="#f4e9d8"/>
 ```
 
-`MathFormula` 支持 tex、display、fontSize、color、style、role/state。采用 HTML+MathML 排版，关闭 trust，非法命令/公式明确抛错，不开放任意 HTML/外部链接扩展。排版 CSS 随固定依赖读取，font-face 从包中剥离，20 个登记 WOFF2 由就绪函数加载；每页只初始化一次。规范示例 dark-proof 的指数排版已使用该入口。
+`MathFormula` 支持 tex、display、fontSize、color、style。采用 HTML+MathML 排版，关闭 trust，非法命令/公式明确抛错，不开放任意 HTML/外部链接扩展。排版 CSS 随固定依赖读取，font-face 从包中剥离，20 个登记 WOFF2 由就绪函数加载；每页只初始化一次。规范示例 dark-proof 的指数排版已使用该入口。
 
 ## 按需图标
 
@@ -76,4 +76,4 @@ import {Atom, Factory, ArrowRight} from 'm2v/code-scene/icons';
 
 这是一段幕字段示意，完整幕仍须提供 code 入口、内容与旁白数组。`slide-left/right` 表示新画面从右/左进入并推出旧画面；`wipe-left/right` 表示向左/右揭开新画面；`iris` 为中心圆形揭示，`clock-wipe` 为时钟式揭示。cut、fade、crossfade 继续有效。名称、展示类型和方向由 `web/src/transitions.json` 统一登记，Python 与 Web 同读。
 
-非 cut 使用两幕重叠窗口，总长减去 transitionFrames；默认值、范围与首幕规则见[分镜契约](storyboard-schema.md)。1 帧直接完成，N>1 时 0 帧为起始态、N−1 为完成态。字幕保持全局时间和最上层；局部预演、lookdev 静帧、G5 播放器与正式成片共用合成组件。转场只在已有无声片段之间处理，不给作品代码引入 Remotion hooks，不自动添加转场音效。
+非 cut 使用两幕重叠窗口，总长减去 transitionFrames；默认值、范围与首幕规则见[分镜契约](storyboard-schema.md)。1 帧直接完成，N>1 时 0 帧为起始态、N−1 为完成态。字幕保持全局时间和最上层；局部预演、lookdev 静帧、适用评审 播放器与正式成片共用合成组件。转场只在已有无声片段之间处理，不给作品代码引入 Remotion hooks，不自动添加转场音效。

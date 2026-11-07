@@ -1,12 +1,11 @@
 /**
- * 二维绘制层：原语确定性、量测代理同源、探针形状。
+ * 二维绘制层：确定性调用、合成层序与离屏缓冲复用。
  *
  * 绘制原语本身不碰 DOM；这里用最小的 2D 上下文替身验证「同一帧两次求值相同」
- * 与「清单几何与实际绘制调用一致」。
+ * 与实际绘制结果的合成顺序。
  */
 import {describe, expect, it} from 'vitest';
-import {Painter, type Mark} from './frame';
-import {reviewState} from './measure-proxy';
+import {Painter} from './frame';
 
 /** 最小 2D 上下文替身：记录调用，不产生像素。 */
 function stubContext() {
@@ -66,42 +65,18 @@ function drawOnce() {
   frame.clear('#010104');
   frame.spark(600, 400, 6, '#F8D893', .9);
   frame.poly([[100, 100], [400, 300], [800, 200]], {color: '#64E3F6', width: 3, k: .5});
-  frame.text('夜空为什么是黑的', 960, 838, {role: 'subject', state: 'revealed', size: 76});
+  frame.text('夜空为什么是黑的', 960, 838, {size: 76});
   frame.group({alpha: .5, at: [10, 20]}, () => frame.circle(200, 200, 40, {color: '#FFF'}));
   return {frame, calls};
 }
 
 describe('二维绘制原语', () => {
-  it('同一帧两次求值产生相同的清单与调用序列', () => {
-    const first = drawOnce();
-    const second = drawOnce();
-    expect(first.frame.marks).toEqual(second.frame.marks);
-    expect(first.calls.map(call => call.name)).toEqual(second.calls.map(call => call.name));
-    expect(first.calls.length).toBeGreaterThan(10);
-  });
-
-  it('文字记入清单时带与绘制一致的字号与文本', () => {
-    const {frame} = drawOnce();
-    const subject = frame.marks.find(mark => mark.role === 'subject')!;
-    expect(subject.text).toBe('夜空为什么是黑的');
-    expect(subject.fontSize).toBe(76);
-    expect(subject.state).toBe('revealed');
-    expect(subject.width).toBe(80);
-  });
-
-  it('没有角色的绘制不进量测清单', () => {
+  it('同一帧绘制调用确定且文字返回排版宽度', () => {
+    expect(drawOnce().calls).toEqual(drawOnce().calls);
     const {ctx} = stubContext();
-    const frame = new Painter(ctx, 1920, 1080, 1);
-    frame.circle(100, 100, 10, {color: '#FFF'});
-    frame.text('装饰', 500, 500, {});
-    expect(frame.marks).toEqual([]);
-  });
-
-  it('measurable 为 false 的文字不进清单', () => {
-    const {ctx} = stubContext();
-    const frame = new Painter(ctx, 1920, 1080, 1);
-    frame.text('不量测', 100, 100, {role: 'noise', measurable: false});
-    expect(frame.marks).toEqual([]);
+    const painter = new Painter(ctx, 640, 360);
+    expect(painter.text('TEST', 100, 100)).toBe(40);
+    expect(painter.chars('TEST', 100, 100)).toBe(40);
   });
 
   it('折线生长进度只画前一段', () => {
@@ -124,29 +99,6 @@ describe('二维绘制原语', () => {
     const {ctx} = stubContext();
     expect(() => new Painter(ctx, 100, 100, 0)).toThrow(/像素密度/);
     expect(() => new Painter(ctx, 100, 100, -1)).toThrow(/像素密度/);
-  });
-});
-
-describe('量测代理状态', () => {
-  const mark = (role: string, state = ''): Mark => ({
-    role, state, x: 0, y: 0, width: 10, height: 10,
-  });
-
-  it('按角色聚合成角色与数量', () => {
-    const state = reviewState([mark('subject'), mark('subject'), mark('label', 'visible')]);
-    expect(state).toEqual([
-      {role: 'subject', count: 2},
-      {role: 'label', count: 1, state: 'visible'},
-    ]);
-  });
-
-  it('同一角色状态冲突时不猜一个', () => {
-    const state = reviewState([mark('subject', 'a'), mark('subject', 'b')]);
-    expect(state).toEqual([{role: 'subject', count: 2, state: ''}]);
-  });
-
-  it('空清单得到空列表', () => {
-    expect(reviewState([])).toEqual([]);
   });
 });
 
@@ -221,61 +173,8 @@ describe('出帧层序', () => {
   });
 });
 
+describe('离屏复用', () => {
 
-describe('绘制量测反例', () => {
-  it('透明文字与全部未显影文字不计为可见对象', () => {
-    const {ctx} = stubContext();
-    const p = new Painter(ctx, 640, 360);
-    p.text('TEST', 100, 100, {role: 'subject', alpha: 0});
-    p.chars('TEST', 100, 100, {role: 'subject'}, () => ({alpha: 0}));
-    expect(p.marks.every(m => m.visible === false)).toBe(true);
-    expect(reviewState(p.marks)).toEqual([]);
-  });
-  it('部分显影只报告已画文字', () => {
-    const {ctx} = stubContext();
-    const p = new Painter(ctx, 640, 360);
-    p.chars('TEST', 100, 100, {role: 'subject'}, i => ({alpha: i < 2 ? 1 : 0}));
-    expect(p.marks).toHaveLength(1);
-    expect(p.marks[0].text).toBe('TE');
-    expect(p.marks[0].width).toBe(20);
-  });
-  it('嵌套变换按当前矩阵换算，采集倍数不改变逻辑几何', () => {
-    for (const density of [1, 2]) {
-      const {ctx} = stubContext();
-      const p = new Painter(ctx, 640, 360, density);
-      p.group({at: [100, 50], scale: 2}, () => p.group({at: [10, 10]}, () =>
-        p.text('TEST', 0, 40, {role: 'subject', align: 'left', size: 20})));
-      expect(p.marks[0]).toMatchObject({x: 120, y: 90, width: 80, height: 80, fontSize: 40});
-    }
-  });
-  it('离屏、零透明度与完全裁剪分组不可见，裁剪退出后恢复', () => {
-    const {ctx} = stubContext();
-    const p = new Painter(ctx, 640, 360);
-    const draw = () => p.text('TEST', 100, 100, {role: 'subject'});
-    p.group({at: [1000, 0]}, draw);
-    p.group({alpha: 0}, draw);
-    p.group({clip: [0, 0, 1, 1]}, draw);
-    draw();
-    expect(p.marks.map(m => m.visible)).toEqual([false, false, false, true]);
-  });
-  it('旋转裁剪使用真实多边形，不用其外框放行', () => {
-    const {ctx} = stubContext();
-    const p = new Painter(ctx, 640, 360);
-    p.group({at: [100,100], rotate: Math.PI/4, clip: [0,0,100,100]}, () => {
-      // 返回世界坐标后，左上角处于裁剪外框内、真实菱形之外。
-      p.group({rotate: -Math.PI/4}, () => p.text('T', -60, 35, {role:'subject', align:'left'}));
-    });
-    expect(p.marks[0].visible).toBe(false);
-  });
-  it('部分裁剪保留裁切标记，分组抛错仍恢复 context', () => {
-    const {ctx} = stubContext();
-    const p = new Painter(ctx, 640, 360);
-    p.group({clip:[90,0,10,200]}, () => p.text('TEST',100,100,{role:'subject'}));
-    expect(p.marks[0]).toMatchObject({visible:true,clipped:true});
-    expect(() => p.group({alpha:0,at:[1000,0]}, () => {throw Error('stop');})).toThrow();
-    p.text('TEST',100,100,{role:'subject'});
-    expect(p.marks[1]).toMatchObject({visible:true,x:80});
-  });
   it('离屏层把重叠对象合成后整体绘制，并在异常后可继续使用', () => {
     const {ctx, calls} = stubContext();
     const restore = (globalThis as {document?: unknown}).document;
@@ -302,14 +201,10 @@ describe('绘制量测反例', () => {
         layer.circle(100, 100, 20, {fill: '#FFF'});
         layer.circle(110, 100, 20, {fill: '#FFF'});
       });
-      expect(p.marks).toHaveLength(0);
       expect(() => p.layer({}, () => { throw Error('stop'); })).toThrow('stop');
-      p.layer({alpha: 0}, layer => layer.text('hidden', 30, 30, {role: 'subject'}));
-      expect(p.marks[0]?.visible).toBe(false);
-      p.layer({scale: 2}, layer => layer.text('scaled', 30, 30, {role: 'scaled', size: 20}));
-      expect(p.marks[1]?.fontSize).toBe(40);
-      p.text('ok', 50, 50, {role: 'subject'});
-      expect(p.marks[2]?.visible).toBe(true);
+      p.layer({alpha: 0}, layer => layer.text('hidden', 30, 30, {}));
+      p.layer({scale: 2}, layer => layer.text('scaled', 30, 30, {size: 20}));
+      p.text('ok', 50, 50, {});
       expect(calls.some(call => call.name === 'drawImage')).toBe(true);
       expect(allocations).toBe(1);
     } finally { (globalThis as {document?: unknown}).document = restore; }

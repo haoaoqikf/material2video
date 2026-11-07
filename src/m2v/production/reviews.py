@@ -1,226 +1,629 @@
-"""隔离包与每轮报告；先完整校验，再绑定多个门的证据。"""
+"""媒体隔离包和两类独立评审；无需设计合同或画面断言。"""
+
 from __future__ import annotations
 
 import uuid
+import logging
 from datetime import datetime
 from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
-from . import workflow, acceptance, contract, ledger, policy, dependencies, media_evidence
-from .dependencies import digest
+from . import ledger, dependencies, media_evidence
+from .model import (
+    VERSION,
+    ROUNDS,
+    fields,
+    identifier,
+    text,
+    window,
+    number,
+    ffmpeg,
+    now,
+)
 from .storage import local, read, receipt, write
+from .evidence_images import derive_images
 
-KINDS = {'design-keyframe', 'animatic', 'scene-window', 'rough-timeline', 'final-video'}
-EXCLUDED = ['DESIGN.md', 'storyboard.json', 'scenes/', 'visual-notes.md', 'style-reference.md', 'old-verdicts', 'anonymous-key']
-
-
-def build_manifest(*, review_id: str, cycle_id: str, created_at: str, gate: str, scene_id,
-                   checkpoint_ids: list[str], kind: str, display_sizes: list, files: list,
-                   review_type='blind', timecodes=None, blind_id=None) -> dict:
-    """打包、播放器与文档投影共用字段来源；调用方提供真实值。"""
-    return dict(reviewId=review_id, cycleId=cycle_id, createdAt=created_at, gate=gate, sceneId=scene_id,
-                checkpointIds=checkpoint_ids, scope='scene' if scene_id else 'whole-film', evidenceType=kind,
-                reviewType=review_type, displaySizes=display_sizes, timecodes=timecodes or [],
-                files=files, excluded=list(EXCLUDED), blindId=blind_id)
+MEDIA = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".wav", ".mp3"}
+VIDEO = {".mp4", ".webm"}
+logger = logging.getLogger(__name__)
 
 
-def package(root: Path, *, gate: str, scene_id, checkpoint_ids: list[str], files: list[str],
-            kind: str, display_sizes: list, review_type='blind', timecodes=None, blind_id=None) -> Path:
-    if gate not in workflow.GATE_IDS or kind not in KINDS or review_type not in ('blind', 'consistency'):
-        raise M2VError('评审门、证据类型或评审类型无效')
-    c = contract.load(root)
-    known = {cp['id'] for _, _, cp in contract.checkpoints(c)}
-    if not files or not checkpoint_ids or not set(checkpoint_ids) <= known:
-        raise M2VError('评审包缺证据或检查点绑定无效')
+def build_manifest(
+    *,
+    review_id,
+    cycle_id,
+    round,
+    fps,
+    items,
+    files,
+    display_sizes,
+    review_type="blind",
+    blind_id=None,
+    requires_comparison=False,
+):
+    return dict(
+        version=VERSION,
+        reviewId=review_id,
+        cycleId=cycle_id,
+        createdAt=now(),
+        round=round,
+        fps=fps,
+        items=items,
+        files=files,
+        displaySizes=display_sizes,
+        reviewType=review_type,
+        blindId=blind_id,
+        requiresComparison=requires_comparison,
+    )
+
+
+def validate_request(request):
+    fields(
+        request,
+        {"version", "round", "fps", "items", "sources", "sceneIds", "displaySizes"},
+        {"reviewType", "blindId", "references", "conditions", "sampleStep"},
+    )
+    if (
+        request["version"] != VERSION
+        or request["round"] not in ROUNDS
+        or not number(request["fps"])
+    ):
+        raise M2VError("仅接受 version=2 的 trial/final 媒体评审请求")
+    if request.get("reviewType", "blind") not in ("blind", "consistency"):
+        raise M2VError("评审类型无效")
+    if not isinstance(request["items"], list) or not request["items"]:
+        raise M2VError("评审必须包含实际媒体")
+    if (
+        not isinstance(request["displaySizes"], list)
+        or not request["displaySizes"]
+        or any(type(w) is not int or w < 1 for w in request["displaySizes"])
+        or 393 not in request["displaySizes"]
+    ):
+        raise M2VError("显示尺寸必须包含 393 宽手机图")
+    if (
+        type(request.get("sampleStep", 1)) is not int
+        or request.get("sampleStep", 1) < 1
+    ):
+        raise M2VError("sampleStep 必须为正整数")
+    if not isinstance(request.get("references", []), list):
+        raise M2VError("references 必须为路径列表")
+    if not isinstance(request.get("conditions", []), list):
+        raise M2VError("conditions 必须为中性条件列表")
+    for condition in request.get("conditions", []):
+        text(condition)
+    seen = set()
+    for item in request["items"]:
+        fields(item, {"id", "path", "window", "dynamic"})
+        identifier(item["id"])
+        window(item["window"])
+        if (
+            item["id"] in seen
+            or type(item["dynamic"]) is not bool
+            or not isinstance(item["path"], str)
+        ):
+            raise M2VError("媒体 ID 重复、路径或 dynamic 类型无效")
+        seen.add(item["id"])
+        if item["dynamic"] and Path(item["path"]).suffix.lower() not in VIDEO:
+            raise M2VError("动态观察需要视频，静帧不能代替")
+
+
+def package(root: Path, manifest: dict, request: dict) -> Path:
+    validate_request(request)
+    c = ledger.cycle(root)
+    if c["projectId"] != manifest["id"]:
+        raise M2VError("制作周期不属于当前作品")
+    _, errors = ledger.history(root)
+    if errors:
+        raise M2VError("; ".join(errors))
+    binding = ledger.binding(root, manifest, request)
+    review_type = request.get("reviewType", "blind")
+    blind_id = request.get("blindId")
+    if review_type == "consistency":
+        prior = current_report(root, manifest, identifier(blind_id))
+        prior_pack, prior_binding = load_package(
+            root, manifest, prior["packPath"], prior["packSha256"]
+        )
+        if (
+            prior["reviewType"] != "blind"
+            or prior["round"] != request["round"]
+            or prior_binding["binding"] != binding
+            or prior_binding["request"]["items"] != request["items"]
+        ):
+            raise M2VError("对照必须复用同轮盲看的相同媒体、来源和观察范围")
+        if not request.get("references") and not request.get("conditions"):
+            raise M2VError("对照包缺少目标媒体或中性原条件")
+    elif blind_id is not None:
+        raise M2VError("盲看不能引用旧报告")
+    if request["round"] == "final":
+        final = binding["final"]
+        if (
+            len(request["items"]) != 1
+            or request["items"][0]["window"] != [0, final["durationFrames"]]
+            or request["fps"] != final["fps"]
+            or binding["media"][0]["sha256"] != final["candidateSha256"]
+            or not request["items"][0]["dynamic"]
+        ):
+            raise M2VError("终审必须覆盖当前完整候选的全片窗口与实际帧率")
     base = outputs(root)
-    if review_type == 'consistency':
-        events, diagnostics = ledger.history(root)
-        prior = [e for e in events if e['type'] == 'review' and e['upstream'].get('cycle') == c['cycleId']
-                 and e['data'].get('reportId') == blind_id and e['data'].get('reviewType') == 'blind'
-                 and ledger.evidence_valid(root, e['evidence'])]
-        if diagnostics or not prior:
-            raise M2VError('对照包必须在本轮独立盲审落盘导入之后创建，需 blind_id')
-    sources = [local(base, f) for f in files]
-    # 对照只接收目标媒体；中性条件投影由工具生成，不复制任意设计说明。
-    allowed = {'.png', '.jpg', '.jpeg', '.webp', '.mp4', '.webm', '.wav', '.mp3'}
-    if any(p.suffix.lower() not in allowed for p in sources):
-        raise M2VError('评审只接受中性媒体证据；不复制任意 HTML、设计文档或源码')
-    identifier = uuid.uuid4().hex
-    target = base / 'review-pack' / identifier
+    rid = uuid.uuid4().hex
+    target = base / "review-pack" / rid
     target.mkdir(parents=True)
-    entries = []
-    for index, source in enumerate(sources):
-        path = target / f'evidence-{index:04d}{source.suffix.lower()}'
-        from .checks import ffmpeg
-        if source.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp'}:
-            ffmpeg(['-i', str(source), '-map_metadata', '-1', '-frames:v', '1', str(path)])
+    items, files = [], []
+    for index, item in enumerate(request["items"]):
+        source = local(base, item["path"])
+        if source.suffix.lower() not in MEDIA:
+            raise M2VError("评审包只接受媒体，不接受源码或设计文档")
+        name = f"evidence-{index:04d}"
+        path = target / (name + source.suffix.lower())
+        start, end = item["window"]
+        if source.suffix.lower() in VIDEO:
+            source_duration = media_evidence.duration(source)
+            if (
+                source_duration <= 0
+                or source_duration + 1 / request["fps"] < end / request["fps"]
+            ):
+                raise M2VError("视频不能覆盖完整观察窗口")
+            if request["round"] == "final":
+                # 当前完整候选只净化封装元数据，不再次编码全片。
+                ffmpeg(
+                    [
+                        "-i",
+                        str(source),
+                        "-map_metadata",
+                        "-1",
+                        "-map_chapters",
+                        "-1",
+                        "-c",
+                        "copy",
+                        str(path),
+                    ]
+                )
+            else:
+                ffmpeg(
+                    [
+                        "-i",
+                        str(source),
+                        "-ss",
+                        str(start / request["fps"]),
+                        "-t",
+                        str((end - start) / request["fps"]),
+                        "-map_metadata",
+                        "-1",
+                        "-map_chapters",
+                        "-1",
+                        "-r",
+                        str(request["fps"]),
+                        "-c:v",
+                        "libx264",
+                        "-c:a",
+                        "aac",
+                        str(path),
+                    ]
+                )
+            clip_duration = media_evidence.duration(path)
+            if (
+                clip_duration <= 0
+                or clip_duration + 1 / request["fps"] < (end - start) / request["fps"]
+            ):
+                raise M2VError("生成的过程片段覆盖不足")
+            step = request.get(
+                "sampleStep",
+                max(1, round(request["fps"] / 2)) if request["round"] == "final" else 1,
+            )
+            frames = sorted(set(range(0, end - start, step)) | {end - start - 1})
+            frame_dir = target / name
+            frame_dir.mkdir()
+            # 单次解码提取有序帧；不逐帧启动媒体子进程。
+            selection = f"not(mod(n,{step}))+eq(n,{end - start - 1})"
+            ffmpeg(
+                [
+                    "-i",
+                    str(path),
+                    "-vf",
+                    f"select='{selection}'",
+                    "-vsync",
+                    "0",
+                    str(frame_dir / "%06d.png"),
+                ]
+            )
+            extracted = sorted(frame_dir.glob("*.png"))
+            if len(extracted) != len(frames):
+                raise M2VError("有序帧未完整提取，请核对实际帧率与窗口")
+            sequence = []
+            for frame, image in zip(frames, extracted):
+                derived = {
+                    w: image.with_name(f"{image.stem}-{w}.png")
+                    for w in request["displaySizes"]
+                }
+                derive_images(image, derived)
+                sequence.append(
+                    {
+                        "frame": start + frame,
+                        "path": image.relative_to(target).as_posix(),
+                        "displayPaths": [
+                            p.relative_to(target).as_posix() for p in derived.values()
+                        ],
+                    }
+                )
         else:
-            ffmpeg(['-i', str(source), '-map_metadata', '-1', '-map_chapters', '-1', '-c', 'copy', str(path)])
-        entries.append(receipt(target, path))
-    manifest = build_manifest(review_id=identifier, cycle_id=c['cycleId'], created_at=ledger.now(), gate=gate,
-                              scene_id=scene_id, checkpoint_ids=checkpoint_ids, kind=kind, display_sizes=display_sizes,
-                              review_type=review_type, timecodes=timecodes, files=entries, blind_id=blind_id)
-    if review_type == 'consistency':
-        projection = target / 'conditions.json'
-        write(projection, [{'checkpointId': cp['id'], 'window': cp['window'], 'expected': cp['expected'],
-                            'textPlan': cp['textPlan']} for _, _, cp in contract.checkpoints(c) if cp['id'] in checkpoint_ids])
-        entries.append(receipt(target, projection))
-    questions = target / 'questions.md'
-    questions.write_text('只读取本目录。按时间顺序先记录实际看到的内容、变化与理解，再判断表现、可读性和证据不足。\n'
-                         '不能确认帧间运动或听感时如实限定覆盖，不用作者意图补全画面。\n'
-                         '完整时间标注帧序列用于核对位置、先后、持续、停留与阅读窗口；未实时播放或听取本身不自动构成缺陷。'
-                         '真实听感与实时体验单列未覆盖；具体必要关系仍不能确认时保留 insufficient，不将未知写成通过。\n'
-                         '完整试制覆盖项须分别判断 understanding、presentation、representativeness，'
-                         '每项写 status 与 observations；占位证据不能授权正式视觉实现。\n', encoding='utf-8')
-    with questions.open('a', encoding='utf-8') as stream:
-        stream.write('representativeness 指实际主体、字体、光效与合成是否具代表性、是否仍为占位；'
-                     '目标兑现另在盲看落盘后的 consistency 核对，不因目标尚未揭示自动判盲看代表性不足。\n')
-    entries.append(receipt(target, questions))
-    write(target / 'manifest.json', manifest)
+            ffmpeg(
+                [
+                    "-i",
+                    str(source),
+                    "-map_metadata",
+                    "-1",
+                    *(
+                        ["-frames:v", "1"]
+                        if source.suffix.lower() not in {".wav", ".mp3"}
+                        else []
+                    ),
+                    str(path),
+                ]
+            )
+            sequence = []
+            if source.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+                derived = {
+                    w: target / f"{name}-{w}.png" for w in request["displaySizes"]
+                }
+                derive_images(path, derived)
+                sequence = [
+                    {
+                        "frame": start,
+                        "path": path.name,
+                        "displayPaths": [p.name for p in derived.values()],
+                    }
+                ]
+        items.append(
+            {
+                "id": item["id"],
+                "path": path.name,
+                "window": item["window"],
+                "dynamic": item["dynamic"],
+                "sequence": sequence,
+            }
+        )
+    if review_type == "consistency":
+        write(target / "conditions.json", request.get("conditions", []))
+        for index, reference in enumerate(request.get("references", [])):
+            source = local(base, reference)
+            if source.suffix.lower() not in MEDIA:
+                raise M2VError("目标只能为媒体")
+            ffmpeg(
+                [
+                    "-i",
+                    str(source),
+                    "-map_metadata",
+                    "-1",
+                    str(target / f"target-{index:04d}{source.suffix.lower()}"),
+                ]
+            )
+    (target / "questions.md").write_text(
+        "只读取本包。先保存实际看见的对象、变化、理解、视觉表现和疑问；"
+        "记录查看窗口、显示尺寸、播放/帧序列/声音覆盖与限制。不能确认则 insufficient。"
+        "分别观察 understanding、presentation、representativeness；作者解释和技术通过不能补足实际效果。\n",
+        encoding="utf-8",
+    )
+    files = [receipt(target, p) for p in sorted(target.rglob("*")) if p.is_file()]
+    pack = build_manifest(
+        review_id=rid,
+        cycle_id=c["cycleId"],
+        round=request["round"],
+        fps=request["fps"],
+        items=items,
+        files=files,
+        display_sizes=request["displaySizes"],
+        review_type=review_type,
+        blind_id=blind_id,
+        requires_comparison=bool(
+            request.get("references") or request.get("conditions")
+        ),
+    )
+    write(target / "manifest.json", pack)
+    private_path = ledger.directory(root) / "packages" / f"{rid}.json"
+    write(
+        private_path,
+        {
+            "version": VERSION,
+            "request": request,
+            "binding": binding,
+            "manifest": receipt(base, target / "manifest.json"),
+        },
+    )
+    ledger.append(
+        root,
+        manifest,
+        "package",
+        data={"reviewId": rid, "receipt": receipt(base, private_path)},
+    )
+    logger.info(
+        "生成 %s 隔离评审包 %s，覆盖 %d 个窗口", request["round"], rid, len(items)
+    )
     return target
 
 
-def _invocation(base: Path, report: dict, pack_path: Path, pack: dict) -> dict:
-    entry = report['invocation']
-    if not ledger.evidence_valid_at(base, [entry]):
-        raise M2VError('缺少有效独立调用记录')
-    invocation = read(local(base, entry['path']))
-    contract.fields(invocation, {'id', 'reviewerId', 'freshContext', 'startedAt', 'completedAt', 'inputPaths', 'readReportIds'})
-    for name in ('id', 'reviewerId'):
-        contract.text(invocation[name], name)
-    if invocation['reviewerId'] != report['reviewerId']:
-        raise M2VError('调用身份与评审者不一致')
-    if report['isolation'] == 'independent-subagent' and invocation['freshContext'] is not True:
-        raise M2VError('独立代理必须使用新建上下文')
+def load_package(root, manifest, pack_path, pack_sha256):
+    return ledger.query_value(
+        ("package", root, pack_path, pack_sha256),
+        lambda: _load_package(root, manifest, pack_path, pack_sha256),
+    )
+
+
+def _load_package(root, manifest, pack_path, pack_sha256):
+    path = local(outputs(root), pack_path)
+    if (
+        path.name != "manifest.json"
+        or path.parent.parent != outputs(root) / "review-pack"
+    ):
+        raise M2VError("评审包路径无效")
+    if dependencies.digest(path) != pack_sha256:
+        raise M2VError("评审包摘要变化")
+    pack = read(path)
+    if (
+        pack.get("version") != VERSION
+        or pack.get("cycleId") != ledger.cycle(root)["cycleId"]
+    ):
+        raise M2VError("旧评审包或旧周期不能授权当前作品")
+    events, errors = ledger.history(root)
+    sealed = next(
+        (
+            e["data"]["receipt"]
+            for e in events
+            if e["type"] == "package" and e["data"]["reviewId"] == pack["reviewId"]
+        ),
+        None,
+    )
+    if errors or not sealed or not ledger.evidence_valid(root, [sealed]):
+        raise M2VError("私有来源绑定记录损坏")
+    private = read(local(outputs(root), sealed["path"]))
+    if private["manifest"] != receipt(
+        outputs(root), path
+    ) or not ledger.evidence_valid_at(path.parent, pack["files"]):
+        raise M2VError("包内证据摘要失配")
+    if private["binding"] != ledger.binding(root, manifest, private["request"]):
+        raise M2VError("来源、媒体或当前候选已变化，评审包过期")
+    return pack, private
+
+
+def current_report(root, manifest, report_id):
+    return ledger.query_value(
+        ("report", root, report_id), lambda: _current_report(root, manifest, report_id)
+    )
+
+
+def _current_report(root, manifest, report_id):
+    identifier(report_id)
+    events, errors = ledger.history(root)
+    event = next(
+        (
+            e
+            for e in events
+            if e["type"] == "review" and e["data"]["reportId"] == report_id
+        ),
+        None,
+    )
+    if (
+        errors
+        or event is None
+        or not ledger.evidence_valid(root, event["data"]["receipts"])
+    ):
+        raise M2VError("评审记录损坏、缺失或摘要失配")
+    report = read(local(outputs(root), event["data"]["reportPath"]))
+    load_package(root, manifest, report["packPath"], report["packSha256"])
+    if not ledger.evidence_valid(root, [report["invocation"]]):
+        raise M2VError("独立调用记录已变化")
+    return report
+
+
+def import_report(root, manifest, path):
+    from . import issues
+
+    report_digest = dependencies.digest(path)
+    report = read(path)
+    fields(
+        report,
+        {
+            "version",
+            "round",
+            "reviewType",
+            "packPath",
+            "packSha256",
+            "reviewerId",
+            "isolation",
+            "focus",
+            "verdict",
+            "observations",
+            "coverage",
+            "invocation",
+        },
+        {"blindId"},
+    )
+    if (
+        report["version"] != VERSION
+        or report["round"] not in ROUNDS
+        or report["verdict"] not in ("pass", "fail", "insufficient")
+        or report["isolation"]
+        not in ("independent-subagent", "self-review", "external-review")
+    ):
+        raise M2VError("旧报告、结论或隔离类型无效")
+    identifier(report["reviewerId"])
+    text(report["observations"])
+    pack, private = load_package(
+        root, manifest, report["packPath"], report["packSha256"]
+    )
+    events, _ = ledger.history(root)
+    if any(
+        e["type"] == "review" and e["data"]["reportId"] == report_digest for e in events
+    ):
+        current = current_report(root, manifest, report_digest)
+        if current["verdict"] == "fail":
+            issues.from_review(root, current)
+        return {
+            "id": report_digest,
+            "round": current["round"],
+            "verdict": current["verdict"],
+        }
+    issues.load(root, required=True)
+    if any(report[k] != pack[k] for k in ("round", "reviewType")):
+        raise M2VError("报告轮次或类型与包不一致")
+    if not ledger.evidence_valid(root, [report["invocation"]]):
+        raise M2VError("独立调用记录无效")
+    invocation = read(local(outputs(root), report["invocation"]["path"]))
+    fields(
+        invocation,
+        {
+            "id",
+            "reviewerId",
+            "freshContext",
+            "startedAt",
+            "completedAt",
+            "inputPaths",
+            "readReportIds",
+        },
+    )
+    if invocation["reviewerId"] != report["reviewerId"] or (
+        report["isolation"] == "independent-subagent"
+        and invocation["freshContext"] is not True
+    ):
+        raise M2VError("独立调用身份或新上下文无效")
     try:
-        start, end = [datetime.fromisoformat(invocation[k].replace('Z', '+00:00')) for k in ('startedAt', 'completedAt')]
-        created = datetime.fromisoformat(pack['createdAt'].replace('Z', '+00:00'))
-        if not start.tzinfo or not end.tzinfo or not created.tzinfo or not created <= start <= end:
-            raise ValueError('调用时间早于包或顺序错误')
+        created, start, end = [
+            datetime.fromisoformat(t.replace("Z", "+00:00"))
+            for t in (
+                pack["createdAt"],
+                invocation["startedAt"],
+                invocation["completedAt"],
+            )
+        ]
+        if (
+            not all(t.tzinfo for t in (created, start, end))
+            or not created <= start <= end
+        ):
+            raise ValueError("时间顺序无效")
     except (ValueError, TypeError, AttributeError) as exc:
-        raise M2VError('调用时间必须为有时区的有效时间，且包先于调用') from exc
-    inputs = invocation['inputPaths']
-    if (not isinstance(inputs, list) or not inputs or
-            any(not isinstance(p, str) or not local(base, p).is_relative_to(pack_path.parent) for p in inputs)):
-        raise M2VError('独立调用输入必须来自当前隔离包')
-    read_ids = invocation['readReportIds']
-    if not isinstance(read_ids, list) or read_ids != ([] if report['reviewType'] == 'blind' else [pack['blindId']]):
-        raise M2VError('盲审不得读旧报告；对照只能读同一轮自身盲看记录')
-    return invocation
-
-
-def import_report(root: Path, manifest: dict, report_path: Path) -> dict:
-    with dependencies.snapshot(), media_evidence.snapshot():
-        return _import_report(root, manifest, report_path)
-
-
-def _import_report(root: Path, manifest: dict, report_path: Path) -> dict:
-    report = read(report_path)
-    contract.fields(report, {'gate', 'round', 'roundId', 'sceneId', 'checkpointIds', 'packPath', 'packSha256', 'reviewerId',
-                            'isolation', 'reviewType', 'verdict', 'observations', 'checkIds', 'focus', 'coverage', 'invocation'})
-    if (report['gate'] not in workflow.GATE_IDS or report['verdict'] not in ('pass', 'fail', 'insufficient') or
-            report['round'] not in ('core', 'final') or report['reviewType'] not in ('blind', 'consistency') or
-            report['isolation'] not in ('independent-subagent', 'external-review', 'self-review')):
-        raise M2VError('评审轮次、结论或隔离方式无效')
-    for key in ('roundId', 'reviewerId'):
-        contract.identifier(report[key])
-    if not isinstance(report['observations'], list) or not report['observations']:
-        raise M2VError('评审必须有具体观察')
-    for observation in report['observations']:
-        contract.text(observation, '观察')
-    for key in ('checkpointIds', 'checkIds'):
-        values = report[key]
-        if (not isinstance(values, list) or not values or any(not isinstance(x, str) for x in values)
-                or len(set(values)) != len(values)):
-            raise M2VError('评审覆盖与检查 ID 必须为非空不重复列表')
-    base = outputs(root)
-    report_id = digest(report_path)
-    pack_path = local(base, report['packPath'])
-    if digest(pack_path) != report['packSha256']:
-        raise M2VError('评审包摘要不匹配')
-    pack = read(pack_path)
-    for key in ('gate', 'sceneId', 'checkpointIds', 'reviewType'):
-        if pack[key] != report[key]:
-            raise M2VError(f'评审包绑定不一致：{key}')
-    if not ledger.evidence_valid_at(pack_path.parent, pack['files']):
-        raise M2VError('评审包媒体已变化')
-    c = contract.load(root)
-    if pack['cycleId'] != c['cycleId']:
-        raise M2VError('旧制作周期不能授权当前候选')
-    invocation = _invocation(base, report, pack_path, pack)
-    events, diagnostics = ledger.history(root)
-    if diagnostics:
-        raise M2VError('; '.join(diagnostics))
-    events = [e for e in events if e['upstream'].get('cycle') == c['cycleId']]
-    earlier = [e for e in events if e['type'] == 'review' and e['data'].get('reportId') != report_id]
-    if report['round'] == 'final':
-        if any(e['data'].get('reviewerId') == report['reviewerId'] and e['data'].get('round') != 'final' for e in earlier):
-            raise M2VError('终审须使用未参与该作品前期评审的新代理')
-        if report['focus'] not in policy.requirement(c, 'G6')['focuses']:
-            raise M2VError('最终职责与当前审核计划不一致')
-    elif report['focus'] != 'comprehensive':
-        raise M2VError('核心与粗片轮使用综合职责')
-    if report['reviewType'] == 'consistency':
-        prior = [e for e in earlier if e['data'].get('reportId') == pack.get('blindId')
-                 and e['data'].get('reviewType') == 'blind' and e['data'].get('reviewerId') == report['reviewerId']
-                 and e['data'].get('roundId') == report['roundId'] and e['data'].get('round') == report['round']
-                 and e['data'].get('isolation') == report['isolation']
-                 and e['data'].get('checkId') in report['checkIds']
-                 and ledger.evidence_valid(root, e['evidence'])]
-        if not prior or any(e['time'] >= pack['createdAt'] for e in prior):
-            raise M2VError('对照须在同一代理本轮独立盲看落盘后创建并绑定')
-        if {e['data']['checkId'] for e in prior} != set(report['checkIds']):
-            raise M2VError('对照必须绑定同轮盲审的相同检查事件')
-    coverage_evidence = acceptance.validate(report['coverage'], c, report, base, ledger.evidence_valid_at)
-    allowed_evidence = {receipt(base, local(pack_path.parent, e['path']))['path'] for e in pack['files']}
-    if any(e['path'] not in allowed_evidence for e in coverage_evidence):
-        raise M2VError('覆盖引用必须来自投喂评审包，不能引用未观看证据')
-    bound = []
-    for check_id in report['checkIds']:
-        check = next((e for e in events if e['id'] == check_id and e['type'] == 'check'), None)
-        if not check or policy.round_for(check['gate']) != report['round']:
-            raise M2VError('评审引用未知检查或跨轮绑定')
-        if check['gate'] in ('G0', 'G1'):
-            raise M2VError('事实与合同自动检查不登记审美通过')
-        if report['sceneId'] is not None and check['sceneId'] is not None and report['sceneId'] != check['sceneId']:
-            raise M2VError('评审场景范围不匹配')
-        required = policy.requirement(c, check['gate'], check['checkpointId'])['checkpointIds']
-        if check['checkpointId']:
-            required = [check['checkpointId']]
-        if not set(required) <= set(report['checkpointIds']):
-            raise M2VError('报告未覆盖被绑定门的必要检查点')
-        current = ledger.event_upstream(root, c, check)
-        if current != check['upstream'] or not ledger.evidence_valid(root, check['evidence']):
-            raise M2VError('评审绑定检查已过期')
-        bound.append(check)
-    # 同一调用只能代表同一观察者，不能复制ID伪装第二名终审。
-    if any(e['data'].get('invocationId') == invocation['id'] and e['data'].get('reviewerId') != report['reviewerId'] for e in earlier):
-        raise M2VError('同一独立调用不能作为多个评审者')
-    if report['round'] == 'final' and 'video' not in bound[0]['upstream']:
-        raise M2VError('最终审查必须绑定实际当前候选')
-    evidence = [receipt(base, report_path), receipt(base, pack_path), report['invocation'],
-                *[receipt(base, local(pack_path.parent, e['path'])) for e in pack['files']], *coverage_evidence]
-    results = []
-    for check in bound:
-        data = {k: report[k] for k in ('reviewerId', 'isolation', 'reviewType', 'verdict', 'focus', 'round', 'roundId')}
-        data.update(checkId=check['id'], reportId=report_id, invocationId=invocation['id'],
-                    blindId=pack.get('blindId'), coverage=report['coverage'])
-        results.append(ledger.append(root, manifest, 'review', gate=check['gate'], scene_id=check['sceneId'],
-            checkpoint_id=check['checkpointId'], upstream=check['upstream'], evidence=evidence,
-            data=data, event_id=report_id + '-' + check['id']))
-    if report['verdict'] == 'fail':
-        from . import issues
-        # 每轮只登记一次问题，细项覆盖表保留代理自己的问题ID。
-        identifier = 'REVIEW-' + report['roundId'] + '-' + report['reviewerId']
-        check = bound[0]
-        issues.update(root, {'id': identifier, 'status': 'open', 'required': True, 'gate': check['gate'],
-            'sceneId': report['sceneId'], 'checkpointId': report['checkpointIds'][0] if len(report['checkpointIds']) == 1 else None,
-            'caughtAt': report['gate'],
-            'catchableAt': check['gate'], 'evidence': [], 'versionRefs': [], 'cause': 'undetermined'})
-        notes = base / 'visual-notes.md'
-        marker = '\n### ' + identifier + '\n'
-        if marker not in notes.read_text(encoding='utf-8'):
-            with notes.open('a', encoding='utf-8') as stream:
-                stream.write(marker + '\n' + '\n'.join(report['observations']) + '\n')
-    return {'events': [e['id'] for e in results]}
+        raise M2VError("调用时间必须有时区且晚于包创建") from exc
+    pack_dir = local(outputs(root), report["packPath"]).parent
+    allowed = {entry["path"] for entry in pack["files"]} | {"manifest.json"}
+    if (
+        not isinstance(invocation["inputPaths"], list)
+        or not invocation["inputPaths"]
+        or any(
+            not local(outputs(root), p).is_relative_to(pack_dir)
+            or local(outputs(root), p).relative_to(pack_dir).as_posix() not in allowed
+            for p in invocation["inputPaths"]
+        )
+    ):
+        raise M2VError("独立调用只能读取包内登记文件")
+    if invocation["readReportIds"] != (
+        [] if report["reviewType"] == "blind" else [report.get("blindId")]
+    ):
+        raise M2VError("盲看不能读取旧报告；对照只能读取自身同轮盲看")
+    if report["reviewType"] == "consistency":
+        prior = current_report(root, manifest, identifier(report.get("blindId")))
+        if (
+            pack["blindId"] != report["blindId"]
+            or prior["reviewerId"] != report["reviewerId"]
+            or prior["round"] != report["round"]
+            or prior["focus"] != report["focus"]
+            or prior["isolation"] != report["isolation"]
+        ):
+            raise M2VError("对照须来自同一评审者的同轮盲看")
+    expected_focus = (
+        ledger.cycle(root)["finalFocuses"]
+        if report["round"] == "final"
+        else ["comprehensive"]
+    )
+    if report["focus"] not in expected_focus:
+        raise M2VError("评审职责与周期要求不一致")
+    if report["round"] == "final":
+        events, _ = ledger.history(root)
+        if any(
+            e["type"] == "review"
+            and e["data"]["round"] == "final"
+            and e["data"]["reviewerId"] == report["reviewerId"]
+            and e["data"]["focus"] != report["focus"]
+            for e in events
+        ):
+            raise M2VError("分工终审必须由互相隔离的不同评审者执行")
+        # 跨当前作品各个新周期检查，重置周期不会让旧试制者重新获得终审资格。
+        for prior_path in (outputs(root) / "production").glob("*/reports/*.json"):
+            prior = read(
+                local(outputs(root), prior_path.relative_to(outputs(root)).as_posix())
+            )
+            if (
+                prior.get("round") == "trial"
+                and prior.get("reviewerId") == report["reviewerId"]
+            ):
+                raise M2VError("终审必须使用未参与前期试制的新评审者")
+    if not isinstance(report["coverage"], list):
+        raise M2VError("coverage 必须为列表")
+    by_id = {item["id"]: item for item in pack["items"]}
+    seen = set()
+    for item in report["coverage"]:
+        fields(
+            item,
+            {"id", "window", "status", "observations", "limitations", "assessment"},
+        )
+        if (
+            item["id"] in seen
+            or item["id"] not in by_id
+            or item["window"] != by_id[item["id"]]["window"]
+        ):
+            raise M2VError("报告必须覆盖包内完整窗口，且不得重复")
+        seen.add(item["id"])
+        text(item["observations"])
+        if not isinstance(item["limitations"], list) or any(
+            not isinstance(x, str) for x in item["limitations"]
+        ):
+            raise M2VError("必须如实记录覆盖限制")
+        fields(
+            item["assessment"], {"understanding", "presentation", "representativeness"}
+        )
+        states = []
+        for value in item["assessment"].values():
+            fields(value, {"status", "observations"})
+            if value["status"] not in ("pass", "fail", "insufficient"):
+                raise M2VError("观察判断状态无效")
+            text(value["observations"])
+            states.append(value["status"])
+        expected = (
+            "fail"
+            if "fail" in states
+            else "insufficient"
+            if "insufficient" in states
+            else "pass"
+        )
+        if item["status"] != expected or (
+            report["verdict"] == "pass" and item["status"] != "pass"
+        ):
+            raise M2VError("不能把理解、表现或代表性不足合并成通过")
+    if seen != set(by_id) or (
+        report["verdict"] == "fail"
+        and not any(x["status"] == "fail" for x in report["coverage"])
+    ):
+        raise M2VError("报告覆盖不足或失败结论无对应观察")
+    rid = report_digest
+    report.update(
+        id=rid,
+        cycleId=ledger.cycle(root)["cycleId"],
+        requiresComparison=pack["requiresComparison"],
+    )
+    target = ledger.directory(root) / "reports" / f"{rid}.json"
+    write(target, report)
+    data = {k: report[k] for k in ("round", "focus", "reviewerId")}
+    data.update(
+        reportId=rid,
+        reportPath=target.relative_to(outputs(root)).as_posix(),
+        receipts=[receipt(outputs(root), target), report["invocation"]],
+    )
+    ledger.append(root, manifest, "review", data=data)
+    if report["verdict"] == "fail":
+        issues.from_review(root, report)
+    logger.info(
+        "导入 %s 评审 %s：%s（%s）",
+        report["round"],
+        rid,
+        report["verdict"],
+        report["isolation"],
+    )
+    return {"id": rid, "round": report["round"], "verdict": report["verdict"]}

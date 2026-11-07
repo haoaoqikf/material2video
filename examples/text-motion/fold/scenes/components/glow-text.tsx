@@ -18,8 +18,6 @@ export type GlowTextProps = {
   weight?: number;
   align?: 'left' | 'center' | 'right';
   nowrap?: boolean;
-  role?: string;
-  state?: string;
 };
 
 function alpha(hex: string, value: number): string {
@@ -32,7 +30,7 @@ function alpha(hex: string, value: number): string {
 export default function GlowText({
   text, x, y, size = T.type.hero, color: textColor = color('text'),
   glowColor = T.glow.color, glow = 1, opacity = 1,
-  letterSpacing = T.type.letterSpacing, weight = 400, align = 'center', nowrap = true, role, state,
+  letterSpacing = T.type.letterSpacing, weight = 400, align = 'center', nowrap = true, state,
 }: GlowTextProps) {
   useNightSerif();
   const transform = align === 'left' ? 'translate(0, -50%)' : align === 'right' ? 'translate(-100%, -50%)' : 'translate(-50%, -50%)';
@@ -48,5 +46,5 @@ export default function GlowText({
       `0 0 ${Math.round(size * 0.62)}px ${alpha(glowColor, 0.16 * glow * opacity)}`,
     ].join(', ') : 'none',
   };
-  return <div data-m2v-role={role} data-m2v-state={state} style={style}>{text}</div>;
+  return <div style={style}>{text}</div>;
 }

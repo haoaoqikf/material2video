@@ -1,7 +1,6 @@
 /** 波形：把采样峰值重采样成固定数量的柱，显隐只由进度决定。 */
 import type {CSSProperties} from 'react';
 import {clampProgress, type Easing} from '../primitives';
-import {dataAttrs} from './internal';
 
 const IDENTITY: Easing = value => value;
 
@@ -36,14 +35,12 @@ export type WaveformProps = {
   mode?: WaveformMode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 音频波形；对称模式从中线向上下生长，底对齐模式从底部向上。 */
 export function Waveform({
   samples, progress = 1, easing = IDENTITY, width = 640, height = 120, bars = 64, gap = 2,
-  color = '#F3EDDC', mode = 'mirror', className, style, role, state,
+  color = '#F3EDDC', mode = 'mirror', className, style,
 }: WaveformProps) {
   const peaks = resamplePeaks(samples, bars);
   let largest = 1e-6;
@@ -53,7 +50,7 @@ export function Waveform({
     : 0;
   const revealed = easing(clampProgress(progress)) * peaks.length;
   return (
-    <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
+    <svg className={className} width={width} height={height}
       viewBox={`0 0 ${width} ${height}`} style={{overflow: 'visible', ...style}}>
       {peaks.map((peak, index) => {
         const amount = Math.max(0, Math.min(1, revealed - index));

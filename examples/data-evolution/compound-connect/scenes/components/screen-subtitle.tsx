@@ -27,7 +27,6 @@ export type ScreenSubtitleProps = {
   enSize?: number;
   color?: string;
   enColor?: string;
-  role?: string;
   emphasis?: RegExp;
   glow?: number;
   variants?: Record<number, SubtitleVariant>;
@@ -56,8 +55,7 @@ function glowShadow(amount: number): string {
 
 export default function ScreenSubtitle({
   items, frame, safeArea, size = T.subtitles.zh, enSize = T.subtitles.en,
-  color = T.colors.ivory, enColor = T.colors.muted, role = 'screen-subtitle',
-  emphasis, glow = T.subtitleMotion.glow, variants,
+  color = T.colors.ivory, enColor = T.colors.muted, emphasis, glow = T.subtitleMotion.glow, variants,
   enterFrames: enterFramesProp = T.subtitleMotion.enterFrames,
   exitFrames: exitFramesProp = T.subtitleMotion.exitFrames,
   risePx: risePxProp = T.subtitleMotion.risePx,
@@ -129,7 +127,6 @@ export default function ScreenSubtitle({
   const drift = exitMode === 'drift' ? driftPx * exit : 0;
   return (
     <div
-      data-m2v-role={role}
       style={{
         position: 'absolute', left: safeArea.x, top: safeArea.y,
         width: safeArea.width, height: safeArea.height,

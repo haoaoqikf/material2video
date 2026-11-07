@@ -5,13 +5,11 @@ import {T} from './kit';
 export type CreditBlockProps = {
   lines: string[];
   style?: CSSProperties;
-  role?: string;
 };
 
 export default function CreditBlock({lines, style, role = 'credits'}: CreditBlockProps) {
   return (
     <div
-      data-m2v-role={role}
       style={{
         position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: `0 ${T.layout.creditPaddingX}px`,

@@ -37,11 +37,3 @@ def create_input(root: Path, project: dict) -> Path:
     target = root / "outputs/input-review.json"
     _write_json(target, template(root, project))
     return target
-
-
-def criteria(_root: Path, _project: dict, _prepared: dict) -> dict[str, str]:
-    return {"informationClarity": "观点与旁白清晰，忠实于当前源文",
-            "visualDesign": "作品画幅下的构图、配色与字阶在目标设备上可读，重要文字与主体避开字幕安全区",
-            "graphicRelation": "关键画面与动画确实帮助说明观点，示意数据有明确标注",
-            "narrationSync": "画面推进与当前旁白同步，字幕和音频完整",
-            "readingRhythm": "镜头节奏与转场连贯，全片不超过 600 秒"}

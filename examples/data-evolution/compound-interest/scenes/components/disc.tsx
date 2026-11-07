@@ -11,21 +11,8 @@ export type DiscProps = {
   rim?: string;
 };
 
-const STATE_NAMES: Record<string, DiscState> = {
-  [T.colors.offWhite.toLowerCase()]: 'white',
-  [T.colors.gold.toLowerCase()]: 'gold',
-  [T.colors.darkGold.toLowerCase()]: 'dark',
-};
-
-function stateOf(fill: string, declared?: DiscState): DiscState | 'changing' {
-  if (declared) return declared;
-  const normalized = fill.replace(/\s/g, '').toLowerCase();
-  return STATE_NAMES[normalized] ?? 'changing';
-}
-
 export default function Disc({x, y, r = T.disc.radius, state, opacity = 1, color, rim}: DiscProps) {
   const fill = color ?? discFill(state ?? 'white');
-  const visibleState = stateOf(fill, state);
   const highlight = `M${x - r * 0.64} ${y - r * 0.44}a${r * 0.74} ${r * 0.74} 0 0 1 ${r * 0.92} ${-r * 0.16}`;
   return (
     <g opacity={opacity}>
@@ -37,7 +24,7 @@ export default function Disc({x, y, r = T.disc.radius, state, opacity = 1, color
         fill={T.canvas.shadow}
         opacity={T.disc.shadowOpacity}
       />
-      <circle data-m2v-role="disc" data-m2v-state={visibleState} cx={x} cy={y} r={r} fill={fill}/>
+      <circle cx={x} cy={y} r={r} fill={fill}/>
       <path
         d={highlight}
         fill="none"

@@ -17,8 +17,8 @@ export function useClock(config:CodeSceneProps){
   const events=useMemo(()=>createSceneEvents(config.eventFrames),[config.eventFrames]);
   return {f:elapsedSeconds*config.fps,e:events};
 }
-export function Text({x,y,text,size=72,color=WHITE,alpha=1,role,numeric=false,align='middle',weight=650}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;role?:string;numeric?:boolean;align?:'start'|'middle'|'end';weight?:number}){
-  return <text x={x} y={y} dominantBaseline="central" textAnchor={align} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} fill={color} opacity={alpha} style={{fontVariantNumeric:'tabular-nums'}} data-m2v-role={role}>{text}</text>;
+export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,align='middle',weight=650}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;align?:'start'|'middle'|'end';weight?:number}){
+  return <text x={x} y={y} dominantBaseline="central" textAnchor={align} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} fill={color} opacity={alpha} style={{fontVariantNumeric:'tabular-nums'}}>{text}</text>;
 }
 export function Ball({x,y,r=12,alpha=1}:{x:number;y:number;r?:number;alpha?:number}){
   return <g opacity={alpha}><circle cx={x} cy={y} r={r*4.6} fill="url(#gold-glow)"/><circle cx={x} cy={y} r={r} fill={GOLD}/><circle cx={x-r*.23} cy={y-r*.24} r={r*.26} fill="#FFF4D6"/></g>;

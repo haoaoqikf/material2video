@@ -19,8 +19,8 @@
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
-- `.agents/skills/material2video/references/stage-research.md`：方案确定内部深度研究子阶段的唯一操作权威，研究先于正式设计；作品 RESEARCH.md 保存研究，DESIGN.md 引用结论。
-- `.agents/skills/material2video/references/visual-expression-inspiration.md`：创作或视听表达修订前必读，同一任务已读则不重复；风格采用自选，但新方案及展示型 HTML 草稿前必须按[设计前深度研究](.agents/skills/material2video/references/stage-research.md)执行，不因自创或不采用参考而跳过研究；风格列表不作为审美验收条件。
+- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的唯一操作权威，研究达到支撑当前试验的深度即可试制，未知触发补查；作品 RESEARCH.md 保存研究，DESIGN.md 引用结论。
+- `.agents/skills/material2video/references/visual-expression-inspiration.md`：创作或视听表达修订前必读，同一任务已读则不重复；风格采用自选，但新方案及展示型 HTML 草稿须按[研究与创意试制](.agents/skills/material2video/references/stage-research.md)执行，不因自创或不采用参考而跳过研究；风格列表不作为审美验收条件。
 - `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口；动态风格并入必读灵感文档，采用自选。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
 
@@ -41,7 +41,7 @@
 - **版本升级默认不兼容**：每次版本升级按彻底重构处理，只维护升级后的当前契约；不保留旧版本兼容分支、适配层或迁移工具，除非用户明确要求。同步更新校验器、示例和文档，旧材料明确拒绝。
 - **画面注释从紧**：除外部素材署名、口径/方法解释与用户明确要求外，画面不添加注释、小字说明或片尾制作说明；文字只承担主题、对象名称与结论。
 - **必要注释使用小字**：确有必要的画面注释一律使用小字，字号明显小于主体文字，置于次要位置；不得遮挡主体、关键数据、字幕或关键动作，不得争夺视觉焦点。示意／实拍等边界标注是次要标记，设计目标为大屏原尺寸可辨、手机横屏不可辨，不要求手机尺寸可读；承载必要信息的口径与其他注释仍须在其出现窗口中可读。素材署名默认按手机可读设计；用户明确要求随边界标注缩小时不受此限，但完整署名、来源与许可须保留在作品材料与发布说明中。空间不足时优先精简或调整位置。主题、对象名称、结论和正常字幕按主体信息设计，不归为注释；不设置所有画幅通用的固定像素字号。
-- **评审独立**：适用审核必须由独立子代理执行；轮次、风险触发、人数和终审资格统一按[审核策略](.agents/skills/material2video/references/checkpoint-gates.md#审核计划与风险触发)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
+- **评审独立**：适用审核必须由独立子代理执行；轮次、风险触发、人数和终审资格统一按[审核策略](.agents/skills/material2video/references/review-contract.md)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/` 下的作品目录（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
   中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/<type>/<slug>/` 留在仓库内。

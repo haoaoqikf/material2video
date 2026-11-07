@@ -21,15 +21,13 @@ export type BurstProps = {
   rings?: number;
   ringTravel?: number;
   ringThickness?: number;
-  role?: string;
 };
 
 export default function Burst({
   origin, progress, count = T.light.burstCount, color = T.light.gold,
   secondaryColor = T.light.ivory, seed = 'burst', distance = T.light.burstDistance,
   size = 6, opacity = 1, rings = T.light.ringCount, ringTravel = T.light.ringTravel,
-  ringThickness = T.light.ringThickness, role,
-}: BurstProps) {
+  ringThickness = T.light.ringThickness, }: BurstProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const clamped = Math.min(1, Math.max(0, progress));
   const coreOpacity = clamped <= 0 || clamped >= 1 ? 0 : Math.sin(Math.PI * clamped) * 0.55;
@@ -44,7 +42,7 @@ export default function Burst({
     })
     : [];
   return (
-    <g data-m2v-role={role} opacity={opacity} style={{mixBlendMode: 'screen'}}>
+    <g opacity={opacity} style={{mixBlendMode: 'screen'}}>
       <defs>
         <radialGradient id={`${uid}-core`}>
           <stop offset="0" stopColor={T.light.core} stopOpacity={0.95}/>

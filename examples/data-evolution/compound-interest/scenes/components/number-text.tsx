@@ -11,16 +11,13 @@ export type NumberTextProps = {
   anchor?: 'start' | 'middle' | 'end';
   weight?: number;
   children: ReactNode;
-  role?: string;
 };
 
 export default function NumberText({
   x, y, size = T.type.body, color = T.colors.offWhite, opacity = 1,
-  anchor = 'start', weight = 500, children, role = 'number',
-}: NumberTextProps) {
+  anchor = 'start', weight = 500, children, }: NumberTextProps) {
   return (
     <text
-      data-m2v-role={role}
       x={x}
       y={y}
       fontSize={size}

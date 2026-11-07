@@ -13,18 +13,16 @@ export type FableStageProps = {
   horizon?: number;
   /** 暗角强度；0 关闭。场景本身已有暖暗角，默认取 tokens。 */
   vignette?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function FableStage({
-  scene, width, height, horizon = 0.68, vignette = T.canvas.vignette, role, state,
+  scene, width, height, horizon = 0.68, vignette = T.canvas.vignette, state,
 }: FableStageProps) {
   const p = palette(scene);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const skyY = Math.round(height * horizon);
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', inset: 0, width, height, overflow: 'hidden',
       background: T.canvas.background,
     }}>

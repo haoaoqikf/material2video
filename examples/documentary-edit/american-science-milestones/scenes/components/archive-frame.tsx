@@ -10,13 +10,11 @@ export type ArchiveFrameProps = {
   style?: CSSProperties;
   startOffsetSeconds?: number;
   objectFit?: CSSProperties['objectFit'];
-  role?: string;
-  state?: string;
 };
 
 export default function ArchiveFrame({
   src, kind, progress = 0, ready, style, startOffsetSeconds = 0,
-  objectFit = 'cover', role = 'media', state,
+  objectFit = 'cover', state,
 }: ArchiveFrameProps) {
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -44,8 +42,6 @@ export default function ArchiveFrame({
     return (
       <video
         ref={video}
-        data-m2v-role={role}
-        data-m2v-state={state}
         src={src}
         muted
         playsInline
@@ -57,8 +53,6 @@ export default function ArchiveFrame({
   }
   return (
     <img
-      data-m2v-role={role}
-      data-m2v-state={state}
       src={src}
       onLoad={ready}
       style={base}

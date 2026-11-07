@@ -18,15 +18,12 @@ export type ScreenSubtitleProps = {
   /** 每字亮起时长与字间错开时长，单位秒。 */
   riseSeconds?: number;
   staggerSeconds?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function ScreenSubtitle({
   items, frame, safeArea, size = T.type.subtitle, color: textColor = color('ink'),
   fps = (typeof window === 'undefined' ? undefined : window.__M2V_CODE_CONFIG__?.fps) ?? 30,
   riseSeconds = T.motion.subtitleRiseSeconds, staggerSeconds = T.motion.subtitleStaggerSeconds,
-  role = 'subtitle', state = 'visible',
 }: ScreenSubtitleProps) {
   const contextFrame = useFableFrame();
   const activeFrame = frame ?? contextFrame;
@@ -46,7 +43,7 @@ export default function ScreenSubtitle({
   const step = characters.length > 1 ? Math.min(stagger, Math.floor(room / (characters.length - 1))) : 0;
   const opacity = envelope(activeFrame, active.startFrame, active.endFrame, Math.round(0.16 * fps));
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', left: safeArea.x, top: safeArea.y, width: safeArea.width, height: safeArea.height,
       display: 'flex', alignItems: 'center', justifyContent: 'center', opacity, pointerEvents: 'none',
       fontFamily: T.type.fontStack, fontSize: size, fontWeight: 700,

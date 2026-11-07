@@ -34,12 +34,12 @@ export default function Hook(config:CodeSceneProps){
       <Text x={960} y={695} text={`第 ${Math.floor(round)} 轮`} size={54} color={MUTED}/>
     </g>:null}
     {f>=title&&f<snow+2?<g opacity={titleOpacity} transform={`translate(0 ${30*(1-enterTitle)})`}>
-      <Text x={960} y={330} text="让过去的成果" size={150} role="title-first"/>
-      <Text x={960} y={580} text="参与下一次" size={174} role="title-second"/>
+      <Text x={960} y={330} text="让过去的成果" size={150}/>
+      <Text x={960} y={580} text="参与下一次" size={174}/>
       <path d="M420 715Q950 620 1500 715" fill="none" stroke={GOLD} strokeWidth={2} opacity={.24}/>
       <Burst origin={{x:1380,y:690}} progress={progress(f,title+14,title+36)} count={20} rings={0} distance={90} size={3}/>
     </g>:null}
-    {f>=title-12&&f<snow+12?<g data-m2v-role="focus-ball"><Ball x={mix(ballX,1050,smooth(fall))} y={mix(ballY,768,smooth(fall))} r={mix(18,32,fall)}/></g>:null}
+    {f>=title-12&&f<snow+12?<g><Ball x={mix(ballX,1050,smooth(fall))} y={mix(ballY,768,smooth(fall))} r={mix(18,32,fall)}/></g>:null}
     {f>=snow?<g>
       <g opacity={ground}>
       <path d="M100 805 Q800 785 1820 802" stroke={WHITE} strokeWidth={3.2} fill="none" opacity={arrive(progress(f,snow,snow+10))}/>
@@ -49,8 +49,8 @@ export default function Hook(config:CodeSceneProps){
       })}
       {[e.frame('snow-hit-1'),e.frame('snow-hit-2'),e.frame('snow-impact')].map((at,i)=><Burst key={at} origin={{x:mix(1050,1240,smooth(progress(at,snow+12,e.frame('snow-impact')))),y:798}} progress={progress(f,at,at+22)} count={20+i*10} distance={100+i*35} size={3} rings={0} seed={`snow-${i}`}/>)}
       </g>
-      {shell>0?<g opacity={shell}><Snowball f={Math.min(f,handoffStart)-snow} x={mix(x,920,transfer)} y={mix(y,425,transfer)} r={mix(radius,24,transfer)} role="snowball"/></g>:null}
-      {f>=handoffEnd-4?<Text x={920} y={425} text="100.00" size={70} numeric color={GOLD} alpha={.25+.75*arrive(progress(f,handoffEnd-4,handoffEnd))} role="table-start-number"/>:null}
+      {shell>0?<g opacity={shell}><Snowball f={Math.min(f,handoffStart)-snow} x={mix(x,920,transfer)} y={mix(y,425,transfer)} r={mix(radius,24,transfer)}/></g>:null}
+      {f>=handoffEnd-4?<Text x={920} y={425} text="100.00" size={70} numeric color={GOLD} alpha={.25+.75*arrive(progress(f,handoffEnd-4,handoffEnd))}/>:null}
     </g>:null}
   </Frame>;
 }

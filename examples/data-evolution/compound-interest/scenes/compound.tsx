@@ -101,7 +101,7 @@ const CONCLUSION = '让收益，也成为本金。';
 
 function Formula({t}: {t: number}) {
   return (
-    <div data-m2v-role="body" style={{
+    <div style={{
       position: 'absolute', left: 120, top: 280 - TYPE.body * .8,
       fontFamily: FONT, fontSize: TYPE.body, fontWeight: 500, color: MUTED,
       lineHeight: 1, whiteSpace: 'nowrap',
@@ -121,8 +121,7 @@ function ResultFigures({t}: {t: number}) {
       transform: 'translateX(-50%)', width: 'max-content'}}>
       <SlideIn progress={clamp((t - 21.0 - delay) / .45)} from="bottom" distance={18} fade
         style={{fontFamily: FONT, fontSize: TYPE.hero, fontWeight: 600, color: OFF_WHITE,
-          lineHeight: 1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums'}}
-        role="body">{text}</SlideIn>
+          lineHeight: 1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums'}}>{text}</SlideIn>
     </div>
   );
   return <>
@@ -137,7 +136,7 @@ function Conclusion({t}: {t: number}) {
       width: 1000, opacity: arrive(t, 26.9, .05)}}>
       <TextBlock text={CONCLUSION} maxWidth={1000} fontFamily={FONT} fontSize={TYPE.hero}
         fontWeight={600} lineHeight={1} align="center" baseOpacity={0}
-        progress={clamp((t - 26.9) / .55)} easing={easeOut} role="body"
+        progress={clamp((t - 26.9) / .55)} easing={easeOut}
         style={{color: OFF_WHITE}}/>
     </div>
   );

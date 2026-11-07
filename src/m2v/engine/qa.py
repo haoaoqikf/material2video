@@ -293,6 +293,11 @@ def delivered_video(root: Path) -> Path:
     return root / "outputs/video.mp4"
 
 
+def _video_digest(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
 def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DEFAULT_STEP) -> dict:
     """执行全部检查并写入 `outputs/qa.json`；返回报告。"""
     root = root.resolve()
@@ -377,6 +382,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     observation_record = target.parent / "visual-notes.md"
     observation_path = relative(observation_record)
     report = {"schemaVersion": 1,
+              "videoSha256": _video_digest(target),
               "preparedFingerprint": prepared["preparedFingerprint"],
               "video": str(target.relative_to(root).as_posix()) if target.is_relative_to(root) else str(target),
               "durationInFrames": prepared["durationInFrames"], "fps": fps,

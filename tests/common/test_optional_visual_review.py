@@ -25,7 +25,7 @@ def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, ki
         return final
     original = registry.get(kind)
     monkeypatch.setattr(registry, "_registry", {kind: replace(original, render=render,
-        review_gate=None, prepared_check=lambda *_: prepared)})
+        pre_render_check=None, prepared_check=lambda *_: prepared)})
     monkeypatch.setattr("m2v.commands.load_project", lambda *_: (root, manifest))
     assert main(["render", "--project", str(root)]) == 0
     assert final.read_bytes() == b"final"
@@ -46,6 +46,6 @@ def test_status_reports_candidate_failure_and_review_independently(tmp_path, mon
     result = _status(tmp_path, manifest)
     assert result["stage"] == "validation-failed"
     assert result["candidate"]["error"] == "probe failed"
-    assert result["review"]["required"] is False
+    assert result["production"]["complete"] is False
     video.write_bytes(b"damaged")
     assert _status(tmp_path, manifest)["candidate"]["status"] == "stale"

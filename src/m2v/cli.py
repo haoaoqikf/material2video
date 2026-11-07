@@ -11,7 +11,6 @@ import sys
 
 from m2v import commands
 from m2v.core.errors import M2VError
-from m2v.core.workspace import CONTENT_ROOT_ENV
 from m2v.type_system import registry
 from m2v.type_system import catalog
 
@@ -47,15 +46,12 @@ def _parser() -> argparse.ArgumentParser:
     init.add_argument("--type", required=True)
     init.add_argument("--project", required=True)
     init.add_argument("--content-root")
-    for command in ("validate", "prepare", "preview", "review-template", "review", "status", "render"):
+    for command in ("validate", "prepare", "preview", "status", "render"):
         item = sub.add_parser(command)
         item.add_argument("--project", required=True)
         if command == "status":
             item.add_argument("--history", action="store_true", help="显示完整制作事件历史")
             item.add_argument("--json", action="store_true", help="机器可读状态（原有 JSON 输出保持默认）")
-        if command == "review":
-            item.add_argument("action", nargs="?", choices=("import",))
-            item.add_argument("--file", help="独立评审报告 JSON")
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
             item.add_argument("--start-seconds", type=float, default=0)
@@ -121,7 +117,7 @@ def _parser() -> argparse.ArgumentParser:
                      help="ref audio 必填：用户明确要求复用该参考作品音频的说明原文")
 
     author = sub.add_parser("author", help="五类作品的语义审查、候选稿与素材操作")
-    author.add_argument("workflow", choices=("status", "template", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
+    author.add_argument("workflow", choices=("status", "input-review", "candidate", "adopt-candidate", "keyframes", "assets", "sounds"))
     author.add_argument("options", nargs=argparse.REMAINDER)
     data = sub.add_parser("data", help="结构化数据来源编排")
     data.add_argument("workflow", choices=("financial-plan",))

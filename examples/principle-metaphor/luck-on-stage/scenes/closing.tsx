@@ -29,7 +29,7 @@ export default function Closing(config:CodeSceneProps){
    <clipPath id="closing-more-reveal"><rect x={280} y={240} width={780*first} height={260}/></clipPath>
    <clipPath id="closing-better-reveal"><rect x={1680-1120*second} y={500} width={1120*second} height={260}/></clipPath>
   </defs>
-  <g clipPath="url(#closing-more-reveal)"><Text x={300} y={370} text="多尝试，" size={164} align="start" role="closing-first"/></g>
-  <g clipPath="url(#closing-better-reveal)"><Text x={1660} y={630} text="提高成功概率" size={146} align="end" color={GOLD} role="closing-second"/></g>
+  <g clipPath="url(#closing-more-reveal)"><Text x={300} y={370} text="多尝试，" size={164} align="start"/></g>
+  <g clipPath="url(#closing-better-reveal)"><Text x={1660} y={630} text="提高成功概率" size={146} align="end" color={GOLD}/></g>
  </Frame>;
 }

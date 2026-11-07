@@ -24,7 +24,7 @@ export default function Resolution(config:CodeSceneProps){
   const tex=f<rate?String.raw`100\phantom{\times(1.01)^{100}}`:f<land?String.raw`100\times(1.01)^{\phantom{100}}`:String.raw`100\times(1.01)^{100}`;
   return <Frame config={config} impacts={[{id:'answer-lock',preset:'finale',origin:{x:960,y:650},startFrame:lock}]} html={<>
     {f<release+18?<div style={{position:'absolute',left:450,top:335,lineHeight:1,whiteSpace:'nowrap',opacity:formulaOpacity}}>
-      <MathFormula tex={tex} fontSize={110} color="#F3EDDC" role={f>=land?'formula':undefined}/>
+      <MathFormula tex={tex} fontSize={110} color="#F3EDDC"/>
     </div>:null}
     {f>=answer&&f<release+18?<div style={{position:'absolute',inset:0,opacity:answerOpacity}}>
       <Counter from={100} to={compounded(100)} progress={progress(f,answer,lock)} easing={arrive} decimals={2} x={960} y={670} size={250} color={GOLD}/>
@@ -33,14 +33,14 @@ export default function Resolution(config:CodeSceneProps){
     {/* 落点来自当前离线KaTeX字形的实际量测，避免接入上标时跳位。 */}
     {f<land?<text x={mix(1500,1222,transfer)} y={mix(350,378,transfer)-Math.sin(Math.PI*transfer)*80}
       textAnchor="middle" dominantBaseline="central" fontFamily="KaTeX_Main" fontWeight={400}
-      fontSize={mix(72,93.17,transfer)} fill={GOLD} data-m2v-role="exponent-token">100</text>:null}
+      fontSize={mix(72,93.17,transfer)} fill={GOLD}>100</text>:null}
     {f>=answer&&f<release+18?<Text x={400} y={670} text="≈" size={110} numeric alpha={answerOpacity}/>:null}
-    {f>=base&&f<release+18?<Text x={960} y={835} text="理想固定增速模型" size={64} color={WHITE} alpha={formulaOpacity} role="model-note"/>:null}
+    {f>=base&&f<release+18?<Text x={960} y={835} text="理想固定增速模型" size={64} color={WHITE} alpha={formulaOpacity}/>:null}
     <Burst origin={{x:1280,y:665}} progress={progress(f,lock,lock+36)} count={28} distance={180} size={3.5} rings={0} seed="equation-earned"/>
-    {f>=release?<g data-m2v-role={f>=release+18?'closing-ball':undefined}>
+    {f>=release?<g>
       <Ball x={mix(1000,1540,smooth(dot))} y={mix(730,730,dot)-Math.sin(Math.PI*dot)*155} r={mix(10,16,dot)}/>
     </g>:null}
-    {f>=closing?<g data-m2v-role="closing-title" opacity={entry} transform={`translate(960 500) scale(${titleScale}) translate(-960 -500)`}>
+    {f>=closing?<g opacity={entry} transform={`translate(960 500) scale(${titleScale}) translate(-960 -500)`}>
       <Text x={960} y={250} text="复利效应" size={70} color={GOLD}/>
       <Text x={960} y={420} text="让积累，" size={146}/>
       <Text x={960} y={660} text="参与下一次。" size={146}/>

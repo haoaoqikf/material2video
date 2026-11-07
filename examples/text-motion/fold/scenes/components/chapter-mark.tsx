@@ -13,19 +13,17 @@ export type ChapterMarkProps = {
   opacity?: number;
   frame?: number;
   startFrame?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function ChapterMark({
-  index, character, latin, x = 72, y = 64, opacity = 0.42, frame, startFrame = 0, role, state,
+  index, character, latin, x = 72, y = 64, opacity = 0.42, frame, startFrame = 0, state,
 }: ChapterMarkProps) {
   const contextFrame = useNightFrame();
   const activeFrame = frame ?? contextFrame;
   const reveal = frameProgress(activeFrame, startFrame, T.motion.chapterFadeFrames);
   const number = typeof index === 'number' ? String(index).padStart(2, '0') : index;
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', left: x, top: y, opacity: opacity * reveal,
       display: 'flex', alignItems: 'baseline', gap: 12, pointerEvents: 'none',
       color: color('muted'), whiteSpace: 'nowrap',

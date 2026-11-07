@@ -52,7 +52,7 @@ export default function Bars(config:CodeSceneProps){
   <AccentRelease f={f} at={e.frame('nine-land')-1} x={screenX(stages[2].x)} y={GROUND-38} id="bar-nine-flash" scale={.78}/>
  </>}>
   <Backdrop id="bars-stage"/>
-  <Text x={960} y={130} text="预期成功次数" size={116} role="bars-title"/>
+  <Text x={960} y={130} text="预期成功次数" size={116}/>
   <g>
    <path d={`M220 ${BAR_BASE}H1690`} stroke={LINE} strokeWidth={3}/>
    <path d={`M220 ${GROUND}H1690`} stroke={LINE} strokeWidth={2} opacity={.45}/>
@@ -74,7 +74,7 @@ export default function Bars(config:CodeSceneProps){
    {f>=stages[0].start?<Attempt x={ball.x} y={ball.y} size={76} color={ballColor} stretch={ball.stretch} groundY={GROUND} frame={f} landAt={current===0?undefined:active.land-1} glow={.2+.3*trailEnergy}/>:null}
    <Contact f={f} at={e.frame('three-land')-1} x={screenX(stages[1].x)} y={GROUND-38} strength={.48} seed="bar-three-arrival"/>
    <Contact f={f} at={e.frame('nine-land')-1} x={screenX(stages[2].x)} y={GROUND-38} strength={.65} seed="bar-nine-arrival"/>
-   {f>=e.frame('three-land')&&f<e.frame('nine-land')+4?<Text x={960} y={810} text={`${settled.n}次 · 每次${settled.p}%`} size={70} role="current-conditions"/>:null}
+   {f>=e.frame('three-land')&&f<e.frame('nine-land')+4?<Text x={960} y={810} text={`${settled.n}次 · 每次${settled.p}%`} size={70}/>:null}
   </g>
  </Frame>;
 }

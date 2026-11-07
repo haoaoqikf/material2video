@@ -3,46 +3,46 @@
   "entry": "SKILL.md",
   "stages": [
     {
-      "id": "plan",
-      "guide": "references/stage-plan.md"
+      "id": "research",
+      "guide": "references/stage-research.md"
     },
     {
-      "id": "iterate",
-      "guide": "references/stage-iterate.md"
+      "id": "design",
+      "guide": "references/stage-design.md"
     },
     {
-      "id": "final",
-      "guide": "references/stage-final.md"
+      "id": "production",
+      "guide": "references/stage-production.md"
     }
   ],
   "tasks": [
     {
       "id": "new",
-      "guide": "references/stage-plan.md",
-      "when": "新制作五类作品，从方案确定开始"
+      "guide": "references/stage-research.md",
+      "when": "新制作从研究与创意试制开始"
     },
     {
       "id": "revision",
       "guide": "references/video-revision.md",
-      "when": "修改已有作品，定位受影响阶段后只读该阶段指南"
+      "when": "修改已有作品，保留基线并定位影响"
     },
     {
       "id": "review",
-      "guide": "references/stage-iterate.md",
-      "when": "核心或粗片评审；目标关键帧盲审按方案确定阶段，最终轮改读 final 主指南"
+      "guide": "references/stage-production.md",
+      "when": "试制或终审；读取独立媒体评审契约"
     },
     {
       "id": "diagnose",
-      "guide": "references/stage-iterate.md",
-      "when": "排查材料、场景、媒体或证据问题"
+      "guide": "references/stage-production.md",
+      "when": "排查材料、场景、媒体或证据"
     }
   ],
   "types": {
-    "text-motion": "references/stage-plan.md",
-    "data-evolution": "references/stage-plan.md",
-    "principle-metaphor": "references/stage-plan.md",
-    "spatial-3d": "references/stage-plan.md",
-    "documentary-edit": "references/stage-plan.md"
+    "text-motion": "references/stage-design.md",
+    "data-evolution": "references/stage-design.md",
+    "principle-metaphor": "references/stage-design.md",
+    "spatial-3d": "references/stage-design.md",
+    "documentary-edit": "references/stage-design.md"
   },
   "conditional": [
     {
@@ -107,13 +107,13 @@
     },
     {
       "id": "design-research",
-      "when": "方案确定内部：新制作或实质性视听重设计正式设计前，含展示型HTML草稿；执行深度研究、记录、覆盖复用与缺口补查",
+      "when": "研究与创意试制中按当前关键未知开展研究、试验和补查",
       "guide": "references/stage-research.md"
     },
     {
       "id": "risk",
       "when": "首次声明或修改风险、证据、评审计划或完成状态",
-      "guide": "references/checkpoint-gates.md"
+      "guide": "references/review-contract.md"
     },
     {
       "id": "isolation",
@@ -138,21 +138,21 @@
     {
       "id": "design-template",
       "when": "编写 DESIGN.md 最简设计记录",
-      "guide": "references/stage-plan.md#设计记录"
+      "guide": "references/stage-design.md"
     },
     {
-      "id": "review-template",
+      "id": "review-report",
       "when": "填写独立观察报告",
-      "guide": "references/subagent-review.md#评审输出模板"
+      "guide": "references/subagent-review.md"
     },
     {
       "id": "production-template",
       "when": "填写推进回退记录",
-      "guide": "references/production-workflow.md#推进与回退记录模板"
+      "guide": "references/production-workflow.md"
     },
     {
       "id": "inspiration",
-      "when": "必读：创作或视听表达修订前完整阅读，同一任务已读则不重复；风格自选不豁免设计前深度研究",
+      "when": "创作或实质性视听修订前必读；风格与表达方法自选",
       "guide": "references/visual-expression-inspiration.md"
     }
   ],
@@ -160,7 +160,7 @@
     "事实许可": "references/article-media-and-sound.md",
     "字体确定性": "references/code-scene-runtime.md",
     "独立隔离": "references/subagent-review.md",
-    "证据完成": "references/checkpoint-gates.md",
+    "证据完成": "references/review-contract.md",
     "失败回退": "references/production-workflow.md",
     "讲解机制": "references/explainer-design.md",
     "实际表达": "references/visual-review-rubric.md",

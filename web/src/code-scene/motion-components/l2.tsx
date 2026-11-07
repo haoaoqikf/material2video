@@ -4,7 +4,6 @@ import rough from 'roughjs';
 import {motionCurve} from '../motion';
 import {clampProgress, growSeries, rollNumber, type Easing} from '../primitives';
 import {pathDrawProps} from './paths';
-import {dataAttrs} from './internal';
 
 const LINEAR = motionCurve('linear');
 
@@ -19,18 +18,16 @@ export type RollingNumberProps = {
   suffix?: string;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 数字滚动：复用 primitives.rollNumber，不引入时间驱动库。 */
 export function RollingNumber({
   from, to, progress, decimals = 0, group = false, easing = LINEAR, prefix = '', suffix = '',
-  className, style, role, state,
+  className, style,
 }: RollingNumberProps) {
   const {text} = rollNumber({from, to, progress, decimals, easing, group});
   return (
-    <span {...dataAttrs(role, state)} className={className}
+    <span className={className}
       style={{fontVariantNumeric: 'tabular-nums', ...style}}>
       {prefix}{text}{suffix}
     </span>
@@ -48,21 +45,19 @@ export type TypewriterProps = {
   cursorOpacity?: number;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 逐字显影；光标不能闪烁，使用静态或进度驱动透明度。 */
 export function Typewriter({
   text, progress, easing = LINEAR, baseOpacity = 0.14, stagger = 0,
-  cursor = false, cursorCharacter = '▌', cursorOpacity, className, style, role, state,
+  cursor = false, cursorCharacter = '▌', cursorOpacity, className, style,
 }: TypewriterProps) {
   const characters = Array.from(text);
   const eased = easing(clampProgress(progress));
   const delay = Math.min(0.999, Math.max(0, stagger));
   const complete = eased >= 1;
   return (
-    <span {...dataAttrs(role, state)} className={className} style={style}>
+    <span className={className} style={style}>
       {characters.map((character, index) => {
         const start = characters.length > 1 ? (index / (characters.length - 1)) * delay : 0;
         const local = clampProgress((eased - start) / (1 - delay));
@@ -92,15 +87,13 @@ export type BarGrowthProps = {
   colors?: readonly string[];
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 柱状生长：复用 primitives.growSeries，直接渲染 SVG rect。 */
 export function BarGrowth({
   values, progress, easing = LINEAR, stagger = 0, floor = 0,
   width = 640, height = 360, gap = 8, color = '#F1EBDF', colors,
-  className, style, role, state,
+  className, style,
 }: BarGrowthProps) {
   const grown = growSeries({values, progress, floor, easing, stagger}).values;
   const low = Math.min(floor, 0, ...values);
@@ -110,7 +103,7 @@ export function BarGrowth({
   const barWidth = Math.max(0, (width - gap * Math.max(0, count - 1)) / Math.max(1, count));
   const zeroY = height - ((0 - low) / span) * height;
   return (
-    <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
+    <svg className={className} width={width} height={height}
       viewBox={`0 0 ${width} ${height}`} style={{overflow: 'visible', ...style}}>
       {grown.map((value, index) => {
         const y = height - ((value - low) / span) * height;
@@ -136,8 +129,6 @@ export type MarkerHighlightProps = {
   height?: number;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /**
@@ -147,7 +138,7 @@ export type MarkerHighlightProps = {
 export function MarkerHighlight({
   progress, box, path, color = '#F8D893', strokeWidth = 6, seed = 20261102,
   roughness = 1.4, opacity = 1, width = 1920, height = 1080,
-  className, style, role, state,
+  className, style,
 }: MarkerHighlightProps) {
   const paths = useMemo(() => {
     if (!box && !path) return [];
@@ -160,7 +151,7 @@ export function MarkerHighlight({
   }, [box?.x, box?.y, box?.width, box?.height, path, seed, roughness, color, strokeWidth]);
   if (!paths.length) return null;
   return (
-    <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
+    <svg className={className} width={width} height={height}
       viewBox={`0 0 ${width} ${height}`}
       style={{position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none', ...style}}>
       <g opacity={opacity}>
@@ -188,8 +179,6 @@ export type CalloutProps = {
   textShadow?: string;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 引线标注：引线按进度生长，文字布局由组件负责。 */
@@ -197,12 +186,12 @@ export function Callout({
   text, at, label, progress = 1, easing = LINEAR,
   align = label.x >= at.x ? 'left' : 'right', color = '#FFFFFF', textColor = '#FFFFFF',
   opacity = 1, fontSize = 24, fontFamily = 'system-ui, sans-serif', textShadow,
-  className, style, role, state,
+  className, style,
 }: CalloutProps) {
   const path = `M${at.x} ${at.y} L${label.x} ${label.y}`;
   const eased = easing(clampProgress(progress));
   return (
-    <div {...dataAttrs(role, state)} className={className}
+    <div className={className}
       style={{position: 'absolute', inset: 0, opacity, pointerEvents: 'none', ...style}}>
       <svg width="100%" height="100%" style={{position: 'absolute', inset: 0, overflow: 'visible'}}>
         <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round"

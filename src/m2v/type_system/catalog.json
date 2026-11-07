@@ -6,7 +6,7 @@
       "description": "图文动效",
       "summary": "代码生成文字和图形，侧重排版与动效",
       "plan": "代码生成文字和图形，侧重排版与动效",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {
           "name": "storyboard",
@@ -51,7 +51,7 @@
       "description": "数据演化",
       "summary": "结构化数据的可视化变化",
       "plan": "结构化数据的可视化变化",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {
           "name": "storyboard",
@@ -96,7 +96,7 @@
       "description": "原理隐喻",
       "summary": "程序生成物体和场景，说明抽象原理",
       "plan": "程序生成物体和场景，说明抽象原理",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {
           "name": "storyboard",
@@ -141,7 +141,7 @@
       "description": "三维空间",
       "summary": "三维模型和场景的空间渲染",
       "plan": "三维模型和场景的空间渲染",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {
           "name": "storyboard",
@@ -186,7 +186,7 @@
       "description": "纪实素材剪辑",
       "summary": "真实视频、照片与档案的叙事剪辑",
       "plan": "真实视频、照片与档案的叙事剪辑",
-      "skillGuide": "[制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。",
+      "skillGuide": "[制作流程](references/production-workflow.md)：研究、设计、制作与验收。",
       "materials": [
         {
           "name": "storyboard",

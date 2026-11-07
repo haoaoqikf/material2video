@@ -3,7 +3,6 @@ import {useMemo, type CSSProperties} from 'react';
 import katex from 'katex';
 import css from 'katex/dist/katex.min.css?raw';
 import {mathFonts} from './math-fonts';
-import {dataAttrs} from './motion-components/internal';
 
 let pending: Promise<void> | undefined;
 
@@ -26,13 +25,13 @@ export function ensureMathReady(): Promise<void> {
   return pending;
 }
 
-export function MathFormula({tex, display = false, fontSize = 64, color = 'inherit', style, role, state}: {
-  tex: string; display?: boolean; fontSize?: number; color?: string; style?: CSSProperties; role?: string; state?: string;
+export function MathFormula({tex, display = false, fontSize = 64, color = 'inherit', style}: {
+  tex: string; display?: boolean; fontSize?: number; color?: string; style?: CSSProperties;
 }) {
   const html = useMemo(() => katex.renderToString(tex, {
     displayMode: display, throwOnError: true, trust: false, strict: 'error', output: 'htmlAndMathml',
     maxExpand: 1000, maxSize: 20,
   }), [tex, display]);
-  return <span {...dataAttrs(role, state)} style={{fontSize, color, ...style}}
+  return <span style={{fontSize, color, ...style}}
     dangerouslySetInnerHTML={{__html: html}}/>;
 }

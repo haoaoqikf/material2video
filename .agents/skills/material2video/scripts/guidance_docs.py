@@ -9,7 +9,7 @@ from urllib.parse import unquote
 from m2v.core.errors import M2VError
 
 SKILL = Path('.agents/skills/material2video')
-STAGES = {'plan', 'iterate', 'final'}
+STAGES = {'research', 'design', 'production'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达',
           '运动实现', '过程证据容量'}

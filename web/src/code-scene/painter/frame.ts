@@ -1,37 +1,16 @@
 /**
- * 二维绘制原语：把作品给的数值画到 Canvas 2D 上，并同时记下量测所需的几何。
+ * 二维绘制原语：把作品给的数值画到 Canvas 2D 上，保持帧驱动与实际绘制结果一致。
  *
  * 三条硬约束（与 `primitives.ts` 一致）：
  *
  * 1. 不读挂钟、随机源、上一帧状态或组件计时器。画面只由调用方给出的帧号或
  *    受控时间决定，因此逐帧录制、跳帧采样与重录结果一致。
  * 2. 不内置颜色、字体或主题。默认值是中性白与无衬线，由调用方覆盖。
- * 3. 所有绘制都记入一份清单（`marks`）。量测代理读的就是这份清单——视觉与
- *    量测共用同一次布局计算，不靠另写一套估算。
- *
  * 坐标一律是逻辑坐标；画布后备缓冲的像素密度由 `Painter` 统一换算。
  */
 
-import {area, intersect, type Vertex} from './geometry';
 
 export type Point = [number, number];
-
-/** 一次绘制的记录，供量测代理转成 `data-m2v-role` 元素。 */
-export type Mark = {
-  role: string;
-  state: string;
-  /** 逻辑坐标下的包围盒。 */
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  visible?: boolean;
-  clipped?: boolean;
-  fontFamily?: string;
-  text?: string;
-  fontSize?: number;
-  color?: string;
-};
 
 export type TextOptions = {
   font?: string;
@@ -43,11 +22,6 @@ export type TextOptions = {
   track?: number;
   glow?: number;
   glowColor?: string;
-  /** 记入量测清单时的角色；不填则不记。 */
-  role?: string;
-  state?: string;
-  /** 量测用的可见性开关：传 false 时不进清单。 */
-  measurable?: boolean;
 };
 
 /** 填充色：十六进制/任意 CSS 颜色，或由 `linearGradient`/`radialGradient` 返回的渐变。 */
@@ -94,7 +68,7 @@ function rgba(color: string, alpha: number): string {
 /**
  * 一帧的绘制上下文。
  *
- * 每个场景每帧新建一个实例：清单是新的，不跨帧累积。
+ * 每个场景每帧新建一个实例，不跨帧累积状态。
  */
 export class Painter {
   readonly ctx: CanvasRenderingContext2D;
@@ -102,10 +76,6 @@ export class Painter {
   readonly width: number;
   readonly height: number;
   readonly scale: number;
-  /** 本帧绘制清单，按绘制顺序排列。 */
-  readonly marks: Mark[] = [];
-
-  private clips: Vertex[][] = [];
 
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number, scale = 1) {
     if (!Number.isFinite(scale) || scale <= 0) throw new RangeError('采集像素密度必须是正数');
@@ -128,23 +98,6 @@ export class Painter {
     ctx.restore();
   }
 
-  /** 记录一个可量测对象；`measurable: false` 时跳过。 */
-  mark(mark: Mark, measurable = true): void {
-    if (!measurable) return;
-    const polygon = this.rectangle(mark.x, mark.y, mark.width, mark.height);
-    let remaining = polygon;
-    for (const clip of this.clips) remaining = intersect(remaining, clip);
-    remaining = intersect(remaining, [{x: 0, y: 0}, {x: this.width, y: 0},
-      {x: this.width, y: this.height}, {x: 0, y: this.height}]);
-    const xs = polygon.map(p => p.x), ys = polygon.map(p => p.y);
-    const matrix = this.ctx.getTransform();
-    this.marks.push({...mark, x: Math.min(...xs), y: Math.min(...ys),
-      width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
-      fontSize: mark.fontSize == null ? undefined : mark.fontSize * Math.hypot(matrix.c, matrix.d) / this.scale,
-      visible: mark.visible !== false && this.ctx.globalAlpha > 0 && area(remaining) > 1e-9,
-      clipped: mark.clipped === true || area(remaining) + 1e-7 < area(polygon)});
-  }
-
   /** 在一组变换、透明度、混合或裁剪里画。 */
   group(options: GroupOptions, draw: () => void): void {
     const {ctx} = this;
@@ -158,23 +111,19 @@ export class Painter {
       ctx.scale(value[0], value[1]);
     }
     if (options.blur) ctx.filter = `blur(${options.blur}px)`;
-    const clipCount = this.clips.length;
     if (options.clip) {
-      this.clips.push(this.rectangle(...options.clip));
       ctx.beginPath();
       ctx.rect(options.clip[0], options.clip[1], options.clip[2], options.clip[3]);
       ctx.clip();
     }
     try { draw(); } finally {
-      this.clips.length = clipCount;
       ctx.restore();
     }
   }
 
   /**
    * 把复杂对象先画入可复用离屏层，再以整体透明度、变换和混合方式合成。
-   * 子对象的量测项会并入当前帧清单；它们的位置仍按子绘制坐标报告，整体变换后的
-   * 可见边界需结合最终像素复核。每个目标画布按采集尺寸复用一块缓冲。
+   * 每个目标画布按采集尺寸复用缓冲，嵌套绘制租用独立画布。
    */
   layer(options: GroupOptions, draw: (layer: Painter) => void): void {
     const target = this.ctx.canvas;
@@ -201,31 +150,8 @@ export class Painter {
       const {ctx} = this;
       ctx.save();
       try {
-        const baseTransform = ctx.getTransform();
         this.applyGroupOptions(options);
         ctx.drawImage(canvas, 0, 0, this.width, this.height);
-        const matrix = ctx.getTransform();
-        const baseFontScale = Math.hypot(baseTransform.c, baseTransform.d);
-        const fontScale = baseFontScale > 0 ? Math.hypot(matrix.c, matrix.d) / baseFontScale : 0;
-        const layerClips = [...this.clips];
-        if (options.clip) layerClips.push(this.rectangle(...options.clip));
-        const viewport: Vertex[] = [{x: 0, y: 0}, {x: this.width, y: 0},
-          {x: this.width, y: this.height}, {x: 0, y: this.height}];
-        for (const mark of child.marks) {
-          const corners = [[mark.x, mark.y], [mark.x + mark.width, mark.y],
-            [mark.x + mark.width, mark.y + mark.height], [mark.x, mark.y + mark.height]]
-            .map(([x, y]) => [(matrix.a * x! + matrix.c * y! + matrix.e) / this.scale,
-              (matrix.b * x! + matrix.d * y! + matrix.f) / this.scale]);
-          const xs = corners.map(([x]) => x!), ys = corners.map(([, y]) => y!);
-          const polygon = corners.map(([x, y]) => ({x: x!, y: y!}));
-          let remaining = polygon;
-          for (const clip of [...layerClips, viewport]) remaining = intersect(remaining, clip);
-          this.marks.push({...mark, x: Math.min(...xs), y: Math.min(...ys),
-            width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
-            fontSize: mark.fontSize == null ? undefined : mark.fontSize * fontScale,
-            visible: mark.visible !== false && ctx.globalAlpha > 0 && area(remaining) > 1e-9,
-            clipped: mark.clipped === true || area(remaining) + 1e-7 < area(polygon)});
-        }
       } finally { ctx.restore(); }
     } finally {
       // 清空即使绘制回调抛错也会发生，避免下一帧复用时残留半成品。
@@ -432,25 +358,7 @@ export class Painter {
     return width;
   }
 
-  /** 从正在绘制的 context 读取变换，换回逻辑像素，避免再维护一套变换栈。 */
-  private rectangle(x: number, y: number, width: number, height: number): Vertex[] {
-    const m = this.ctx.getTransform();
-    return [[x, y], [x + width, y], [x + width, y + height], [x, y + height]]
-      .map(([px, py]) => ({x: (m.a * px + m.c * py + m.e) / this.scale,
-                          y: (m.b * px + m.d * py + m.f) / this.scale}));
-  }
-
-  /** 使用本次 fillText 的实际字形度量；baseline、字体与字距都已在 context 上生效。 */
-  private textMark(content: string, x: number, y: number, settings: TextOptions,
-                   metrics: TextMetrics): Mark {
-    return {role: settings.role!, state: settings.state ?? '', text: content,
-      x: x - metrics.actualBoundingBoxLeft, y: y - metrics.actualBoundingBoxAscent,
-      width: metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight,
-      height: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent,
-      fontSize: settings.size, fontFamily: settings.font, color: settings.color};
-  }
-
-  /** 画一行字，返回排版宽度；透明文字保留不可见记录，不冒充活动文字。 */
+  /** 画一行字，返回排版宽度；实际透明度由 Canvas 绘制处理。 */
   text(content: string, x: number, y: number, options: TextOptions = {}): number {
     const {ctx} = this;
     const settings = {...DEFAULT_TEXT, ...options};
@@ -468,15 +376,11 @@ export class Painter {
       }
       ctx.fillStyle = rgba(settings.color, 1);
       ctx.fillText(content, left, y);
-      if (options.role) {
-        this.mark({...this.textMark(content, left, y, settings, metrics),
-          visible: this.fillVisible()}, options.measurable !== false);
-      }
       return width;
     } finally { ctx.restore(); }
   }
 
-  /** 逐字显影只登记实际可见字，仍合并为一条对象，不能提前声明整句已显示。 */
+  /** 按字符回调绘制逐字显影，返回整句排版宽度。 */
   chars(content: string, x: number, y: number, options: TextOptions = {},
         per?: (index: number, char: string) => Partial<TextOptions> | undefined): number {
     const {ctx} = this;
@@ -490,8 +394,6 @@ export class Painter {
         + settings.track * Math.max(0, characters.length - 1);
       let cursor = settings.align === 'center' ? x - total / 2
         : settings.align === 'right' ? x - total : x;
-      const start = this.marks.length;
-      const painted: boolean[] = [];
       characters.forEach((char, index) => {
         const override = per?.(index, char) || {};
         const alpha = (override.alpha ?? 1) * settings.alpha;
@@ -507,37 +409,11 @@ export class Painter {
           ctx.fillStyle = rgba(color, 1);
           const drawn = alpha > .003;
           if (drawn) ctx.fillText(char, cursor, y);
-          painted.push(drawn && this.fillVisible());
-          if (options.role) this.mark({...this.textMark(char, cursor, y, {...settings, color}, metrics[index]),
-            visible: drawn && this.fillVisible()}, options.measurable !== false);
         } finally { ctx.restore(); }
         cursor += metrics[index].width + settings.track;
       });
-      const pieces = this.marks.splice(start);
-      const visible = pieces.filter(mark => mark.visible);
-      const bounds = visible.length ? visible : pieces;
-      if (bounds.length) {
-        const left = Math.min(...bounds.map(mark => mark.x)), top = Math.min(...bounds.map(mark => mark.y));
-        this.marks.push({...bounds[0], x: left, y: top,
-          width: Math.max(...bounds.map(mark => mark.x + mark.width)) - left,
-          height: Math.max(...bounds.map(mark => mark.y + mark.height)) - top,
-          text: pieces.filter((mark, index) => mark.visible ||
-            (visible.length > 0 && painted[index] && /^\s+$/.test(mark.text ?? ''))).map(mark => mark.text).join(''),
-          visible: visible.length > 0,
-          clipped: pieces.some(mark => mark.clipped)});
-      }
       return total;
     } finally { ctx.restore(); }
-  }
-
-  /** Canvas 规范化后的填充色包含颜色自身 alpha；globalAlpha 另外相乘。 */
-  private fillVisible(): boolean {
-    const fill = this.ctx.fillStyle;
-    if (typeof fill !== 'string') return this.ctx.globalAlpha > 0;
-    const match = fill.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/);
-    const modern = fill.match(/\/\s*([+\-\deE.]+)(%)?\s*\)$/);
-    const hexAlpha = /^#[\da-f]{8}$/i.test(fill) ? parseInt(fill.slice(7), 16) / 255 : 1;
-    return this.ctx.globalAlpha * (modern ? Number(modern[1]) / (modern[2] ? 100 : 1) : match ? Number(match[1]) : hexAlpha) > 0;
   }
 
   private applyFont(options: TextOptions, track = options.track ?? 0): void {

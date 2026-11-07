@@ -9,15 +9,13 @@ export type SceneNoteProps = {
   opacity?: number;
   x?: number;
   y?: number;
-  role?: string;
-  state?: string;
 };
 
 export default function SceneNote({
-  year, place, opacity = 1, x = T.layout.sceneNote.x, y = T.layout.sceneNote.y, role, state,
+  year, place, opacity = 1, x = T.layout.sceneNote.x, y = T.layout.sceneNote.y, state,
 }: SceneNoteProps) {
   return (
-    <div data-m2v-role={role} data-m2v-state={state} style={{
+    <div style={{
       position: 'absolute', left: x, top: y, opacity, pointerEvents: 'none',
       fontFamily: T.type.fontStack, whiteSpace: 'nowrap',
     }}>

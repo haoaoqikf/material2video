@@ -24,14 +24,14 @@ export function useClock(config:CodeSceneProps){
   const events=useMemo(()=>createSceneEvents(config.eventFrames),[config.eventFrames]);
   return {f:clock.elapsedSeconds*config.fps,e:events};
 }
-export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,weight=650,align='middle',role,scale=1}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;weight?:number;align?:'start'|'middle'|'end';role?:string;scale?:number}){
+export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,weight=650,align='middle',scale=1}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;weight?:number;align?:'start'|'middle'|'end';scale?:number}){
   if(alpha<=0)return null;
-  return <text x={x} y={y} textAnchor={align} dominantBaseline="central" fill={color} opacity={alpha} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`} style={{fontVariantNumeric:'tabular-nums'}} data-m2v-role={role}>{text}</text>;
+  return <text x={x} y={y} textAnchor={align} dominantBaseline="central" fill={color} opacity={alpha} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`} style={{fontVariantNumeric:'tabular-nums'}}>{text}</text>;
 }
-export function Dot({x,y,r=14,color=WHITE,alpha=1,sx=1,sy=1,glow=false,role}:{x:number;y:number;r?:number;color?:string;alpha?:number;sx?:number;sy?:number;glow?:boolean;role?:string}){
+export function Dot({x,y,r=14,color=WHITE,alpha=1,sx=1,sy=1,glow=false}:{x:number;y:number;r?:number;color?:string;alpha?:number;sx?:number;sy?:number;glow?:boolean;role?:string}){
   return <g opacity={alpha} transform={`translate(${x} ${y}) scale(${sx} ${sy})`}>
     {glow?<circle r={r*4} fill="url(#luck-glow)"/>:null}
-    <circle r={r} fill={color} data-m2v-role={role}/>
+    <circle r={r} fill={color}/>
   </g>;
 }
 export function Frame({config,children,overlay,foreground,subtitleVariants}:{config:CodeSceneProps;children:ReactNode;overlay?:ReactNode;foreground?:ReactNode;subtitleVariants?:Record<number,SubtitleVariant>}){

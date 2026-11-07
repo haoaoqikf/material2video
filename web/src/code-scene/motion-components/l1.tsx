@@ -4,7 +4,6 @@ import {motionCurve} from '../motion';
 import {clampProgress, type Easing} from '../primitives';
 import {makeTransform, scale, styleAt, translateX, translateY} from './styles';
 import {pathDrawProps} from './paths';
-import {dataAttrs} from './internal';
 
 const ENTRY_EASING = motionCurve('easeOutCubic');
 
@@ -16,17 +15,15 @@ export type FadeInProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 透明度入场；固定从 0 到 1，可通过 from/to 覆盖。 */
 export function FadeIn({
-  progress, from = 0, to = 1, easing = ENTRY_EASING, children, className, style, role, state,
+  progress, from = 0, to = 1, easing = ENTRY_EASING, children, className, style,
 }: FadeInProps) {
   const fade = styleAt(progress, {opacity: from}, {opacity: to}, easing);
   return (
-    <div {...dataAttrs(role, state)} className={className} style={{...fade, ...style}}>
+    <div className={className} style={{...fade, ...style}}>
       {children}
     </div>
   );
@@ -43,14 +40,12 @@ export type SlideInProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 位移入场；fade 为 true 时同时淡入。 */
 export function SlideIn({
   progress, from = 'bottom', distance = 24, easing = ENTRY_EASING, fade = false,
-  children, className, style, role, state,
+  children, className, style,
 }: SlideInProps) {
   const eased = easing(clampProgress(progress));
   const offset = (1 - eased) * distance;
@@ -59,7 +54,7 @@ export function SlideIn({
       : from === 'top' ? makeTransform([translateY(-offset)])
         : makeTransform([translateY(offset)]);
   return (
-    <div {...dataAttrs(role, state)} className={className}
+    <div className={className}
       style={{transform, ...(fade ? {opacity: eased} : {}), ...style}}>
       {children}
     </div>
@@ -75,19 +70,17 @@ export type ZoomInProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 缩放入场；transformOrigin 默认中心，可由 style 覆盖。 */
 export function ZoomIn({
   progress, fromScale = 0.92, toScale = 1, easing = ENTRY_EASING, fade = false,
-  children, className, style, role, state,
+  children, className, style,
 }: ZoomInProps) {
   const eased = easing(clampProgress(progress));
   const value = fromScale + (toScale - fromScale) * eased;
   return (
-    <div {...dataAttrs(role, state)} className={className}
+    <div className={className}
       style={{transform: makeTransform([scale(value)]), transformOrigin: 'center',
         ...(fade ? {opacity: eased} : {}), ...style}}>
       {children}
@@ -103,18 +96,16 @@ export type BlurProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** CSS 模糊；用于 DOM 元素，不用于 Canvas。 */
 export function Blur({
-  progress, from = 12, to = 0, easing = ENTRY_EASING, children, className, style, role, state,
+  progress, from = 12, to = 0, easing = ENTRY_EASING, children, className, style,
 }: BlurProps) {
   const eased = easing(clampProgress(progress));
   const radius = from + (to - from) * eased;
   return (
-    <div {...dataAttrs(role, state)} className={className}
+    <div className={className}
       style={{filter: `blur(${radius}px)`, ...style}}>
       {children}
     </div>
@@ -132,14 +123,12 @@ export type GlowProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** CSS 辉光；filter 模式用 drop-shadow，textShadow 模式适合文字。 */
 export function Glow({
   progress, from = 0, to = 1, radius = 18, color = '#FFFFFF', easing = ENTRY_EASING,
-  mode = 'filter', children, className, style, role, state,
+  mode = 'filter', children, className, style,
 }: GlowProps) {
   const eased = easing(clampProgress(progress));
   const amount = from + (to - from) * eased;
@@ -147,7 +136,7 @@ export function Glow({
     ? {textShadow: `0 0 ${radius * amount}px ${color}`}
     : {filter: `drop-shadow(0 0 ${radius * amount}px ${color})`};
   return (
-    <div {...dataAttrs(role, state)} className={className} style={{...value, ...style}}>
+    <div className={className} style={{...value, ...style}}>
       {children}
     </div>
   );
@@ -166,8 +155,6 @@ export type DrawLineProps = {
   linecap?: 'butt' | 'round' | 'square';
   linejoin?: 'miter' | 'round' | 'bevel';
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /**
@@ -177,7 +164,7 @@ export type DrawLineProps = {
 export function DrawLine({
   d, progress, color = '#F3EDDC', strokeWidth = 9, dashed = false, opacity = 1,
   ghostOffset = 0, ghostOpacity = 0.32, ghostWidth, linecap = 'round', linejoin = 'round',
-  style, role, state,
+  style,
 }: DrawLineProps) {
   if (!d) return null;
   const draw = dashed
@@ -188,7 +175,7 @@ export function DrawLine({
     strokeLinecap: linecap, strokeLinejoin: linejoin,
   };
   return (
-    <svg {...dataAttrs(role, state)} width="100%" height="100%"
+    <svg width="100%" height="100%"
       style={{position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible',
         pointerEvents: 'none', ...style}}>
       {ghostOffset !== 0 ? (

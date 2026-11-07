@@ -22,7 +22,8 @@ def local(base: Path, reference: str, *, exists: bool = True) -> Path:
     if relative.is_absolute() or not relative.parts or '..' in relative.parts:
         raise M2VError(f"非法制作证据路径：{reference}")
     candidate = base / relative
-    if any((base.joinpath(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1)):
+    ancestors = [base.joinpath(*relative.parts[:i]) for i in range(1, len(relative.parts) + 1)]
+    if any(p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) for p in ancestors):
         raise M2VError(f"制作证据不允许符号链接：{reference}")
     if not candidate.resolve().is_relative_to(base.resolve()):
         raise M2VError(f"制作证据越界：{reference}")
@@ -59,10 +60,10 @@ def atomic_text(path: Path, value: str) -> None:
 def locked(root: Path):
     """锁文件保留，OS 字节锁随进程退出释放；避免崩溃遗留独占标记。"""
     directory = outputs(root) / 'production'
-    if outputs(root).is_symlink() or directory.is_symlink():
+    if any(p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) for p in (outputs(root), directory)):
         raise M2VError('制作输出与锁目录不允许符号链接')
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / '.lock'
+    path = local(directory, '.lock', exists=False)
     with path.open('a+b') as stream:
         stream.seek(0, 2)
         if stream.tell() == 0:

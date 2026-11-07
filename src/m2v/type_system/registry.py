@@ -34,11 +34,7 @@ class VideoType:
     prepare: Callable
     preview: Callable
     render: Callable
-    review_gate: Callable | None = None
-    review_criteria: Callable | None = None
-    review_template: Callable | None = None
-    # 可选人工评审工具；不参与导出授权。review_gate 仅执行自动检查。
-    manual_review_available: bool = True
+    pre_render_check: Callable | None = None
     prepared_check: Callable | None = None
     #: 是否接受 `--jobs > 1` 的进程级分段渲染；默认只支持单进程。
     supports_render_jobs: bool = False

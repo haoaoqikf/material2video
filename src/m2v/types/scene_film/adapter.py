@@ -25,13 +25,13 @@ def render(root: Path, project: dict, *, jobs: int = 1) -> Path:
     return explainer_render.render(root, project, jobs=jobs)
 
 
-def review_gate(root: Path, project: dict) -> None:
+def pre_render_check(root: Path, project: dict) -> None:
     validate(root, project)
     explainer_review.require_input(root, project)
-    prepared = explainer_render.current(root, project)
+    explainer_render.current(root, project)
 
 
 def make_type(name: str) -> VideoType:
     return VideoType(name, validate, prepare, preview, render,
-                     review_gate=review_gate, review_criteria=explainer_review.criteria,
+                     pre_render_check=pre_render_check,
                      prepared_check=explainer_render.current, supports_render_jobs=True)

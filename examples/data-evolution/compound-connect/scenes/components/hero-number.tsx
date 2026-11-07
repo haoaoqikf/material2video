@@ -32,7 +32,6 @@ export default function HeroNumber({
   const translate = align === 'center' ? '-50%' : align === 'right' ? '-100%' : '0';
   return (
     <div
-      data-m2v-role="hero-number"
       style={{
         position: 'absolute', left: x, top: y,
         transform: `translate(${translate}, -50%) ${makeTransform([scaleTransform(scale)])}`,

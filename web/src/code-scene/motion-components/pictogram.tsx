@@ -1,7 +1,6 @@
 /** 象形图与图标阵列：一格代表一个单位，填充量只由数值与进度决定。 */
 import type {CSSProperties} from 'react';
 import {clampProgress, type Easing} from '../primitives';
-import {dataAttrs} from './internal';
 
 const IDENTITY: Easing = value => value;
 
@@ -23,15 +22,13 @@ export type PictogramProps = {
   iconViewBox?: number;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 象形图；部分填充的格子用透明度表示，不裁切图标。 */
 export function Pictogram({
   count, value, progress = 1, easing = IDENTITY, columns = 10, cellSize = 28, gap = 8,
   color = '#F8D893', dimColor = 'rgba(255, 255, 255, 0.12)', shape = 'square', icon,
-  iconViewBox = 24, className, style, role, state,
+  iconViewBox = 24, className, style,
 }: PictogramProps) {
   const safeColumns = Math.max(1, Math.floor(columns));
   const total = Math.max(0, Math.floor(count));
@@ -41,7 +38,7 @@ export function Pictogram({
   const filled = Math.max(0, Math.min(total, value * easing(clampProgress(progress))));
   const scale = (cellSize - cellSize * 0.18 * 2) / iconViewBox;
   return (
-    <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
+    <svg className={className} width={width} height={height}
       viewBox={`0 0 ${width} ${height}`} style={{overflow: 'visible', ...style}}>
       {Array.from({length: total}, (_, index) => {
         const x = (index % safeColumns) * (cellSize + gap);

@@ -12,17 +12,14 @@ export type ChapterTextProps = {
   position?: ChapterPosition;
   seconds: number;
   style?: CSSProperties;
-  role?: string;
 };
 
 export default function ChapterText({
   year, title, caption, alias, accent = T.colors.copper,
-  position = 'lower', seconds, style, role = 'body',
-}: ChapterTextProps) {
+  position = 'lower', seconds, style, }: ChapterTextProps) {
   const reveal = chapterReveal(seconds);
   return (
     <div
-      data-m2v-role={role}
       style={{
         position: 'absolute',
         ...T.layout.chapter[position],

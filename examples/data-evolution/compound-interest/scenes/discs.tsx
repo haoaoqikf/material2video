@@ -19,7 +19,7 @@ export type {Point} from './compoundLayout';
 
 export {Disc, mixColor};
 /** 本片文字统一标记为 body，供检查点合同与字号量测识别；作品组件保持默认 number。 */
-export const Text = (props: NumberTextProps) => <NumberText role="body" {...props}/>;
+export const Text = (props: NumberTextProps) => <NumberText {...props}/>;
 export const columnPositions = column;
 export const rowPositions = row;
 export const shelfPositions = shelf;

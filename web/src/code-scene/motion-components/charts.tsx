@@ -10,7 +10,6 @@ import {chartLinePath, chartAreaPath, type ChartCurve} from '../chart-geometry';
 export type {ChartCurve} from '../chart-geometry';
 import {motionCurve} from '../motion';
 import {clampProgress, type Easing} from '../primitives';
-import {dataAttrs} from './internal';
 import {pathDrawProps} from './paths';
 
 const LINEAR = motionCurve('linear');
@@ -76,15 +75,13 @@ export type LinePlotProps = {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 折线/面积图；坐标轴与标注由调用方用 `Axis` 组合到同一个 SVG。 */
 export function LinePlot({
   series, progress, easing = LINEAR, width = 960, height = 540, padding = {},
   xDomain, yDomain, curve = 'monotone', area = false, areaOpacity = 0.18,
-  color = '#F3EDDC', strokeWidth = 3, children, className, style, role, state,
+  color = '#F3EDDC', strokeWidth = 3, children, className, style,
 }: LinePlotProps) {
   const rawId = useId();
   const clipId = `m2v-clip-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -102,7 +99,7 @@ export function LinePlot({
   if (!yDomain) y.nice();
   const eased = easing(clampProgress(progress));
   return (
-    <svg {...dataAttrs(role, state)} className={className} width={width} height={height}
+    <svg className={className} width={width} height={height}
       viewBox={`0 0 ${width} ${height}`}
       style={{overflow: 'visible', ...style}}>
       {area ? (
@@ -157,21 +154,18 @@ export type SparklineProps = {
   curve?: ChartCurve;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 迷你趋势线：无坐标轴，按容器尺寸直接铺满。 */
 export function Sparkline({
   values, progress = 1, easing = LINEAR, width = 320, height = 72, color = '#F3EDDC',
-  strokeWidth = 2, fill, curve = 'monotone', className, style, role, state,
+  strokeWidth = 2, fill, curve = 'monotone', className, style,
 }: SparklineProps) {
   return (
     <LinePlot series={[{values, color, fill, width: strokeWidth}]} progress={progress}
       easing={easing} width={width} height={height}
       padding={{top: 2, right: 2, bottom: 2, left: 2}} curve={curve}
-      area={Boolean(fill)} areaOpacity={1} className={className} style={style} role={role}
-      state={state}/>
+      area={Boolean(fill)} areaOpacity={1} className={className} style={style}/>
   );
 }
 
@@ -194,16 +188,13 @@ export type AxisProps = {
   progress?: number;
   className?: string;
   style?: CSSProperties;
-  role?: string;
-  state?: string;
 };
 
 /** 坐标轴以 `<g>` 返回，放进 `LinePlot` 的 children 或其他 SVG 中。 */
 export function Axis({
   orientation, domain, range, at = 0, ticks = 5, tickFormat = String, tickSize = 6,
   lineWidth = 1, color = 'rgba(255, 255, 255, 0.45)', labelColor = '#F3EDDC',
-  fontSize = 18, fontFamily = 'M2V Sans, sans-serif', progress = 1, className, style, role,
-  state,
+  fontSize = 18, fontFamily = 'M2V Sans, sans-serif', progress = 1, className, style,
 }: AxisProps) {
   const scale = scaleLinear().domain([...domain]).range([...range]);
   const eased = clampProgress(progress);
@@ -212,7 +203,7 @@ export function Axis({
   const values = scale.ticks(ticks);
   const span = range[1] - range[0] || 1;
   return (
-    <g {...dataAttrs(role, state)} className={className} style={style}>
+    <g className={className} style={style}>
       {orientation === 'x' ? (
         <line x1={start} x2={end} y1={at} y2={at} stroke={color} strokeWidth={lineWidth}/>
       ) : (

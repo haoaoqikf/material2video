@@ -1,5 +1,6 @@
 # 太阳系之旅 · 一镜到底设计
 
+旧检查编号与报告仅保留为历史记录，不构成当前媒体评审体系的通过；本次未补造独立评审。
 本轮合并设计记录和执行引用，未重新渲染或补造独立评审；历史观察只作原版本依据。来源与许可继续按 [SOURCES.md](SOURCES.md) 及既有登记执行。
 
 ## 全片原则
@@ -123,58 +124,4 @@
 | oort-hero（A） | 9322–9894 | oort：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](storyboard.json) / scene=solar-journey / content.props.shots[id=oort-hero]；[journey.tsx](scenes/journey.tsx)；按[体验条件](#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
 | oort-tail（A） | 9894–10473 | oort：收尾：继续向外，太阳成为亮点。 | [storyboard.json](storyboard.json) / scene=solar-journey / content.props.shots[id=oort-tail]；[journey.tsx](scenes/journey.tsx)；按[体验条件](#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
 
-历史默认检查点 solar-journey-cp 仅覆盖场景帧 [5221,5251)，不代表上述31镜头完整验收。全片与内部镜头仍须由当前 G5/G6 检查覆盖；本轮未补造这类观察。相机采用 linear 的全片匀速跟踪规则，具体路径与时点以各 shots.camera 为准，画面内对象使用自身代码曲线。
-
-## 必要附件：制作合同
-
-保留原周期合同和已记录的风险范围，不把文档整理当作重新制作或验收。
-
-### 检查点合同（v2）
-
-本块是当前 v2 设计合同，用于后续修订、场景检查与状态查询。历史评审不授权新版本；普通镜头以默认检查点覆盖，不补造逐镜头细表。
-
-```m2v-checkpoints
-{
-  "version": 2,
-  "cycleId": "solar-system-journey-2026-10-27",
-  "fps": 60,
-  "width": 1920,
-  "height": 1080,
-  "reviewPlan": {
-    "basis": "历史示例的当前 v2 记录：一镜到底空间表达已交付，历史评审与已知限制保留在作品记录中，不通过本合同补造或授权新版本。",
-    "risks": []
-  },
-  "retrospective": true,
-  "scenes": [
-    {
-      "id": "solar-journey",
-      "durationFrames": 10473,
-      "shots": [
-        {
-          "id": "solar-journey-shot",
-          "tier": "B",
-          "window": [
-            0,
-            10473
-          ]
-        }
-      ],
-      "checkpoints": [
-        {
-          "id": "solar-journey-cp",
-          "shotId": "solar-journey-shot",
-          "frame": 5236,
-          "window": [
-            5221,
-            5251
-          ],
-          "expected": [],
-          "textPlan": [],
-          "claims": [],
-          "forbidden": []
-        }
-      ]
-    }
-  ]
-}
-```
+历史默认检查点 solar-journey-cp 仅覆盖场景帧 [5221,5251)，不代表上述31镜头完整验收。全片与内部镜头须由当前媒体独立终审覆盖；本轮未补造这类观察。相机采用 linear 的全片匀速跟踪规则，具体路径与时点以各 shots.camera 为准，画面内对象使用自身代码曲线。
