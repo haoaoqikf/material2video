@@ -1,25 +1,8 @@
 ## Purpose
 
-建立五类视频共用的作品与制作契约，使用户通过统一入口准备、预演、评审和导出，并复核内容与渲染依据。
+建立五类视频共用的作品准备、场景制作、媒体评审与可靠输出契约，统一类型登记、输入版本、缓存、技术验收及当前候选绑定，保持渲染生成与视觉制作完成的职责边界。
 
 ## Requirements
-
-### Requirement: 准备及评审版本绑定
-系统 MUST 在准备后记录输入、资产、源码与准备指纹。render MUST 只读当前准备产物，缺少或过期时要求重新 prepare。正式导出 MUST 不依赖预演，生成一次并验证当前完整候选的准备指纹、文件摘要、完整帧数及媒体技术参数，并执行类型自动门禁；MUST NOT 要求人工画面评审。人工评审工具 SHALL 保留为可选工具，status MUST 标识 required=false，未填写时标识 optional；主动 review 时 MUST 验证当前结论、完整非空依据及候选摘要绑定。
-
-具有专用评审要求的视频类型 MUST 可通过注册接口生成类型评审模板；统一 `review-template` MUST 同时创建通用评审记录和类型专用评审材料，主动执行统一 `review` MUST 验证两者；正式 `render` MUST 只验证自动门禁。
-
-#### Scenario: 材料变化
-- **WHEN** 准备或评审后修改数据、源码、字体、声音或候选
-- **THEN** 对应记录失效，正式导出阻断
-
-#### Scenario: 类型专用评审
-- **WHEN** 金融或文章作品使用统一评审入口
-- **THEN** 有人工评审工具的类型可按需生成模板，主动评审在依据缺失或过期时失败，正式导出不受人工记录影响；五类均保留可选人工评审和自动验收
-
-#### Scenario: 自动预演门禁
-- **WHEN** 当前准备有效且没有预演
-- **THEN** 旧完整预演门禁不再生效，允许生成候选，验收后交付同一文件，不重复编码
 
 ### Requirement: 共用渲染及可靠输出
 系统 MUST 使用完整缓存键且命中不跳门禁，元数据核验与渲染使用同一浏览器会话；候选生成后 MUST 持久化并绑定摘要，验收失败保留并禁止重试时重渲染；候选通过帧数、尺寸、帧率、音轨验收及输入复核后才替换目标。所有类型 MUST 输出溯源与性能记录。正式成片成功替换并生成旁车后，统一入口 MUST 清理当前作品 `outputs/` 中旧成片及其旁车、预演与已知检查和调试产物；MUST 保留本次成片、其字幕/溯源/性能旁车、准备和评审 JSON、可供重渲使用的准备媒体及当前候选与交付记录。清理不得越出当前作品 `outputs/`，不得清理共享构建缓存。五类作品当前 visual-notes、其引用的当前检查证据及返工前后对照 MUST 保留在作品忽略的输出目录中，作为已知检查产物清理的例外；历史无引用大体积检查产物仍按原规则清理。渲染或验收失败 MUST NOT 触发清理；清理遇到文件错误时 MUST 保留有效新成片、报告失败和遗留路径，且不得声称全部清理完成。
@@ -110,7 +93,25 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **WHEN** 代码录制片段或导入素材从临时目录落地
 - **THEN** 与成片同等修复，无需人工处理即可打开
 
-### Requirement: 制作与质检入口
+### Requirement: 新版创作辅助命令
+系统 MUST 提供 `m2v author` 的输入审查、候选稿、媒体及声音操作，以及 `m2v data financial-plan` 的金融计划编排；MUST 拒绝 `m2v general`、`m2v financial`、`m2v styles`、`m2v migrate` 和 `m2v relocate`。
+
+#### Scenario: 旧命令
+- **WHEN** 运行任一已移除命令
+- **THEN** 参数解析失败，且不修改作品
+
+### Requirement: 准备及评审版本绑定（当前媒体流程）
+系统 MUST 在准备后记录输入、资产、源码与准备指纹。render MUST 只读取当前准备材料；缺少或过期须重新 prepare。正式导出只验证材料与技术要求，不要求预演或独立评审。视觉评审 MUST 使用 version=2 媒体包绑定周期、当前媒体、来源与观察范围，不使用可选模板或检查点合同。
+
+#### Scenario: 材料变化
+- **WHEN** 源码、数据、字体、声音或候选变化
+- **THEN** 受影响准备与评审证据失效，无关局部评审按实际依赖保留。
+
+#### Scenario: 技术导出与独立完成
+- **WHEN** 没有独立评审但当前材料有效
+- **THEN** 允许生成并技术交付候选，不得报告制作完成。
+
+### Requirement: 制作与质检入口（当前媒体流程）
 
 系统 MUST 在统一入口提供制作与质检命令：`m2v lookdev --project <目录>`、`m2v qa --project <目录>`、`m2v assets audit --project <目录>`。正式导出沿用现有 `m2v render`，不新增母版命令。命令 MUST 沿用现有作品路径、内容根、退出码与产物归属规则。
 
@@ -120,8 +121,8 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - 事件取证 MUST 围绕每个事件取 `before`、`at`、`after`、`hold` 四类帧；四类帧 MUST 位于事件所属幕内，越界时 MUST 明确指出事件、阶段、局部帧与合法范围并失败，MUST NOT 静默裁剪。同一帧被多个阶段命中时 MUST 只采一次并合并来源标签；相邻选中事件间隔小于 `before+after` 时 MUST 给出事件簇警告，MUST NOT 静默隐藏。
 - 指定时刻与区间的帧号 MUST 在启动浏览器前完成校验：越出全片范围或不落在任何已准备场面窗口内的时刻 MUST 立即失败并指出该时刻，不先执行采集再报错。
 - 同帧一致性自检 MUST 对同一批时刻执行两次独立采集，逐帧比较并报告不一致的时刻与实测值；判定阈值 MUST 沿用既有的 PSNR 60 dB，MUST NOT 引入第二套阈值。比较前 MUST 确认两次输出尺寸一致，尺寸不同 MUST 明确失败而不是给出误判结论。
-- 四种新增模式的产物 MUST 落在既有 `outputs/lookdev/` 下并由 `outputs/lookdev.json` 记录路径；MUST NOT 写入 `outputs/production/` 下的检查点目录，避免与正式制作证据混淆。产物 MUST NOT 进入准备指纹或缓存键。
-- 事件取证是看图预览，MUST NOT 自动关闭或替代 G4 检查点、审核轮次或导出门禁；MUST NOT 把事件窗口自动绑定到检查点合同。新增模式 MUST NOT 改变默认代表静帧、样片长度、采集尺度与既有清单字段的语义；`--stills`、`--sample-seconds`、`--still-scale` 的现有行为 MUST 保持不变。
+- 四种新增模式的产物 MUST 落在既有 `outputs/lookdev/` 下并由 `outputs/lookdev.json` 记录路径；MUST NOT 写入 `outputs/production/` 下的评审记录目录，避免与正式制作证据混淆。产物 MUST NOT 进入准备指纹或缓存键。
+- 事件取证是看图预览，MUST NOT 自动关闭或替代 局部评审 检查点、审核轮次或导出门禁；MUST NOT 把事件窗口自动绑定到旧声明式合同。新增模式 MUST NOT 改变默认代表静帧、样片长度、采集尺度与既有清单字段的语义；`--stills`、`--sample-seconds`、`--still-scale` 的现有行为 MUST 保持不变。
 - `qa` MUST 输出 `outputs/qa.json` 与接触表，覆盖冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音轨时长差与 claims 时间窗覆盖，并提供全片采样清单、交界/异常加密帧、黑帧/突变及交付音轨削波/静音候选，并明确区分技术判定、测量提示和需查看采样图像的项目与自动信号检查的覆盖限制；MUST NOT 将技术通过表述为视觉质量通过；技术失败 MUST 以退出码 1 结束，报告 MUST 可定位到镜头/时间戳。
 - `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；任何登记素材明确禁止当前用途、条件未满足、采用元数据无效、文件缺失或尺寸无效时 MUST 以退出码 1 结束。
 - 正式导出 MUST 沿用 `m2v render`，交付普通 H.264 MP4；系统 MUST NOT 提供 `m2v master` 或 ProRes/DNxHR 母版入口。成片旁注文件 MUST 记录交付摘要、音频参数与 QA 指纹，MUST NOT 记录 profile。
@@ -187,12 +188,12 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 #### Scenario: 产物归属
 
 - **WHEN** 四种新增模式产出图片与清单
-- **THEN** 图片位于 `outputs/lookdev/` 且由 `outputs/lookdev.json` 记录；不写入检查点目录，不进入准备指纹；成功交付后按既有清理规则处理
+- **THEN** 图片位于 `outputs/lookdev/` 且由 `outputs/lookdev.json` 记录；不写入评审记录目录，不进入准备指纹；成功交付后按既有清理规则处理
 
-#### Scenario: 事件预览不替代检查点
+#### Scenario: 事件预览不替代独立评审
 
 - **WHEN** 作者用事件模式看过画面后直接进入制作或导出
-- **THEN** 系统不把该预览视为 G4 检查点证据，也不自动关闭审核项；正式检查点仍按设计合同执行
+- **THEN** 系统不把该预览视为 局部评审 检查点证据，也不自动关闭审核项；实际评审按媒体窗口与来源绑定执行
 
 #### Scenario: QA 失败定位
 
@@ -228,16 +229,9 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - **WHEN** 素材原始许可未知但没有记录禁止或未满足条件
 - **THEN** 审计保留许可与采用依据并提示，不因未知许可单独返回失败
 
-### Requirement: 五类统一制作入口
-系统 MUST 仅以五类公开身份提供 `types/init/validate/prepare/preview/review-template/review/status/render`；作品、分镜、准备记录和成片 MUST 使用同一版本与制作链路。初始化 MUST 使用 `videos/<type>/<slug>/`，类型清单与文档 MUST 从一份目录生成。
+### Requirement: 五类统一制作入口（当前媒体流程）
+系统 MUST 仅以五类公开身份提供 `types/init/validate/prepare/preview/review/status/render`；作品、分镜、准备记录和成片 MUST 使用同一版本与制作链路。初始化 MUST 使用 `videos/<type>/<slug>/`，类型清单与文档 MUST 从一份目录生成。
 
 #### Scenario: 类型清单
 - **WHEN** 查询类型或初始化任一已登记类型
 - **THEN** 只出现五类，初始化文件可通过新版结构校验
-
-### Requirement: 新版创作辅助命令
-系统 MUST 提供 `m2v author` 的输入审查、候选稿、媒体及声音操作，以及 `m2v data financial-plan` 的金融计划编排；MUST 拒绝 `m2v general`、`m2v financial`、`m2v styles`、`m2v migrate` 和 `m2v relocate`。
-
-#### Scenario: 旧命令
-- **WHEN** 运行任一已移除命令
-- **THEN** 参数解析失败，且不修改作品
