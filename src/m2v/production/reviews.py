@@ -304,6 +304,8 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     questions = (
         "只读取本包。先保存实际看见的对象、变化、理解、视觉表现和疑问；"
         "记录查看窗口、显示尺寸、播放/帧序列/声音覆盖与限制。不能确认则 insufficient。"
+        "dynamic标识视频媒体，不自动承诺运动；静止编码只判断静态表现与一致性，"
+        "未提供的运动、停留时间、声音或全片保持未验证，不把局部静态通过扩成动态基线。"
         "分别观察 understanding、presentation、representativeness；表现须具体观察构图、主体、排版及适用材质光影，"
         "不能仅凭清楚可读或无技术错误判定视觉品质。作者解释不能补足实际效果。\n"
     )
