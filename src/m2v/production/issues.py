@@ -222,6 +222,11 @@ def validate_closure(root: Path, item: dict):
                         and event["data"]["reportId"] != report["id"]
                     ):
                         try:
+                            # 先按已封存报告的同轮身份筛选，避免为无关历史报告
+                            # 重算整个媒体/源码绑定；匹配项仍执行完整有效性验证。
+                            candidate = read(local(outputs(root), event["data"]["reportPath"]))
+                            if candidate.get("blindId") != report["id"]:
+                                continue
                             pairs.append(
                                 reviews.current_report(
                                     root,

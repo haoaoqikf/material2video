@@ -684,6 +684,35 @@ def test_removing_target_cannot_close_original_visual_failure(work):
         issues.update(root, problem)
 
 
+def test_closure_validates_only_its_own_comparison_and_rejects_damage(work, monkeypatch):
+    root, manifest = work
+    unrelated = submit(work, who="unrelated")
+    req = request()
+    req.update(references=["trial.png"], conditions=["主体轮廓与目标对应"])
+    failed_pack = reviews.package(root, manifest, req)
+    reviews.import_report(root, manifest, report(work, failed_pack, verdict="fail"))
+    problem = issues.load(root)[0]
+    blind_pack = reviews.package(root, manifest, req)
+    blind = reviews.import_report(root, manifest, report(work, blind_pack, who="fresh"))
+    req.update(reviewType="consistency", blindId=blind["id"])
+    comparison_pack = reviews.package(root, manifest, req)
+    comparison = reviews.import_report(root, manifest, report(work, comparison_pack, who="fresh"))
+    problem.update(status="closed", cause="design", closureReportId=blind["id"])
+    original, calls = reviews.current_report, []
+
+    def checked(root, manifest, identity):
+        calls.append(identity)
+        return original(root, manifest, identity)
+
+    monkeypatch.setattr(reviews, "current_report", checked)
+    issues.validate_closure(root, problem)
+    assert set(calls) == {blind["id"], comparison["id"]}
+    assert unrelated["id"] not in calls
+    (comparison_pack / "evidence-0000.png").write_bytes(b"damaged")
+    with pytest.raises(M2VError, match="缺少同轮目标对照"):
+        issues.validate_closure(root, problem)
+
+
 @pytest.mark.slow
 def test_full_timeline_uses_prepared_composition_without_review_or_encode(
     tmp_path, monkeypatch, chromium_ready
