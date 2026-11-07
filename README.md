@@ -49,7 +49,6 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。版本与采用依据见[依赖登记](web/code-scene-dependencies.json)，许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
 
-卷纸几何试制可调用已登记的 Paperlab 公开纯 CPU 顶点变形器，按固定参数构建同心卷绕，不挂载其自动播放、交互或物理组件。其 [Apache-2.0 许可](docs/licenses/paperlab.txt)与 [NOTICE](docs/licenses/paperlab-notice.txt)、新增传递依赖 [Zod](docs/licenses/zod.txt)及 [three-custom-shader-material](docs/licenses/three-custom-shader-material.txt) 的许可一并保留；实际艺术效果与动画范围仍按当前媒体验证。
 
 ## 材料与画面
 
@@ -85,9 +84,11 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 ### 媒体评审
 
-`m2v review start|pack|import|timeline` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
+`m2v review start|pack|import|timeline|retarget` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
 
 选定视觉目标时，先盲看作品自身，再用实际参考媒体和中性条件进行同轮对照；整体品质不能缩成局部特征齐全，候选最好或独立 pass 不自动授权展开。评审提供具体观察，作者承担选案与下一试验责任。非空 `references` 必须配套非空 `conditions`，并区分品质标杆、专项目标和备选/历史比较用途；缺失会在创建包前拒绝，旧请求补条件后重建，历史包不改写。工具校验材料与证据，不自动评判审美。
+
+用户明确要求更换已绑定失败的视觉目标时，可用 `review retarget --file <用户目标变更.json>` 保存用户原指令、旧失败ID和新盲包摘要；周期、旧失败及范围保留，登记不关闭问题。新目标必须在登记后重新独立盲看和同轮对照，仍须覆盖原职责、来源、窗口及显示尺寸。工具只验证授权声明与证据，实际用户授权由操作者依据对话核实。格式见[目标变更登记](.agents/skills/material2video/references/review-contract.md#用户明确变更目标)。
 
 导出后清理会保护当前周期评审包仍绑定的预览源媒体和目标媒体；源文件仍参与证据摘要校验，无引用的旧预览继续清理。无法确认引用时报告并跳过清理。
 

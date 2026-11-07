@@ -11,9 +11,9 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "import", "timeline"))
+    review.add_argument("action", choices=("start", "pack", "import", "timeline", "retarget"))
     review.add_argument("--project", required=True)
-    review.add_argument("--file", help="version=2 评审请求或报告 JSON")
+    review.add_argument("--file", help="评审请求、报告或用户目标变更 JSON")
     review.add_argument(
         "--split-final", action="store_true", help="终审按结构和视觉文案分工"
     )
@@ -60,6 +60,12 @@ def dispatch(args):
             from .timeline import build
 
             result = {"path": str(build(root, manifest))}
+        elif args.action == "retarget":
+            from . import targets
+
+            if not args.file:
+                raise M2VError("retarget需要 --file 用户目标变更记录")
+            result = targets.register(root, manifest, read(Path(args.file)))
         else:
             if not args.file:
                 raise M2VError("pack/import 需要 --file")

@@ -194,12 +194,14 @@ def covers(original, current, round):
 
 def validate_closure(root: Path, item: dict):
     from . import reviews
+    from . import targets
     from m2v.core.project import load_project
 
     if item.get("status") == "closed":
         if item.get("cause") == "undetermined":
             raise M2VError("原因未定位不能关闭")
         if item.get("reportId"):
+            expected_scope, target_position = targets.effective_scope(root, item)
             report = reviews.current_report(
                 root, load_project(root)[1], identifier(item.get("closureReportId"))
             )
@@ -208,7 +210,7 @@ def validate_closure(root: Path, item: dict):
                 or report["verdict"] != "pass"
                 or report["round"] != item["round"]
                 or report["reviewType"] != "blind"
-                or not covers(item["scope"], scope(root, report), item["round"])
+                or not covers(expected_scope, scope(root, report), item["round"])
             ):
                 raise M2VError("必须以当前对应范围的独立通过复查关闭")
             if report["requiresComparison"]:
@@ -242,8 +244,9 @@ def validate_closure(root: Path, item: dict):
                 for i, e in enumerate(events)
                 if e["type"] == "review"
             }
-            if positions[report["id"]] <= positions[item["reportId"]]:
-                raise M2VError("复查必须晚于原失败")
+            if positions[report["id"]] <= max(positions[item["reportId"]], target_position):
+                raise M2VError("复查必须晚于原失败及用户目标变更")
+            targets.validate_fresh_observation(root, report, target_position)
         elif not ledger.evidence_valid(root, item.get("evidence", [])):
             raise M2VError("内部问题关闭需要实际复查证据")
 
