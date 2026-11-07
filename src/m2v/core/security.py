@@ -22,9 +22,22 @@ import logging
 import os
 import re
 import subprocess
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+_private_stages: ContextVar[tuple[Path, ...]] = ContextVar('private_delivery_stages', default=())
+
+
+@contextmanager
+def private_staging(directory: str | Path):
+    """私有暂存根内延后访问自检；搬到最终目录后仍须正常修复和复核。"""
+    token = _private_stages.set((*_private_stages.get(), Path(directory).resolve()))
+    try:
+        yield
+    finally:
+        _private_stages.reset(token)
 
 # icacls 是 Windows 自带命令；单次调用不到 50ms，且只在交付文件上执行
 _TIMEOUT_SECONDS = 20
@@ -117,6 +130,9 @@ def _warn_if_still_unusable(target: Path) -> None:
     只复核目标本身、不递归：每次多花一次 ``icacls``，换来的是「交付文件真的能被
     标准权限应用打开」这个结论，而不是「修复命令返回了 0」。
     """
+    if any(target.resolve().is_relative_to(root) for root in _private_stages.get()):
+        logger.debug('私有暂存产物待最终发布后复核访问权限：%s', target)
+        return
     if has_usable_access(target):
         return
     logger.warning(

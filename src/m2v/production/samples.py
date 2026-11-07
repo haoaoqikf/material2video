@@ -34,7 +34,9 @@ def capture(root: Path, project: dict, **options) -> dict:
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.sample-', dir=target.parent) as temporary:
         stage = Path(temporary)
-        result = design_sample.render(root, project, stage, **options)
+        # 编码器在私有目录内完成中间发布；整包移到最终位置后统一递归修复与自检。
+        with security.private_staging(stage):
+            result = design_sample.render(root, project, stage, **options)
         artifacts = {path.relative_to(stage).as_posix(): dependencies.digest(path)
                      for path in stage.rglob('*') if path.is_file()}
         value = {'version': VERSION, 'id': identity, 'cycleId': cycle['cycleId'], 'createdAt': now(),

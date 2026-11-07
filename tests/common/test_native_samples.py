@@ -132,6 +132,30 @@ def test_failed_capture_does_not_publish_an_event(native, monkeypatch):
     assert not list((outputs(root) / 'samples').glob('.sample-*'))
 
 
+def test_capture_defers_private_warning_but_still_checks_publication(native, monkeypatch, caplog):
+    from m2v.core import security
+    root, project, _ = native
+    render = samples.design_sample.render
+
+    def encoded(root, project, stage, **options):
+        result = render(root, project, stage, **options)
+        security._warn_if_still_unusable(stage / 'sample.mp4')
+        return result
+
+    def publish(stage, target):
+        stage.replace(target)
+        security._warn_if_still_unusable(target)
+
+    monkeypatch.setattr(samples.design_sample, 'render', encoded)
+    monkeypatch.setattr(security, 'deliver_directory', publish)
+    monkeypatch.setattr(security, 'has_usable_access', lambda path: False)
+    captured = samples.capture(root, project)
+    warnings = [r.getMessage() for r in caplog.records if r.name == 'm2v.core.security']
+    assert len(warnings) == 1
+    assert str(outputs(root) / 'samples' / captured['id']) in warnings[0]
+    assert '.sample-' not in warnings[0]
+
+
 def test_failed_sample_can_be_closed_by_a_new_native_capture(native):
     root, project, identity = native
     pair(native, verdict='fail')

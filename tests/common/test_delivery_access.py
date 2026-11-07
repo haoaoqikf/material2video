@@ -82,6 +82,23 @@ def test_deliver_names_the_parent_when_access_is_still_missing(tmp_path, monkeyp
     assert "0x80070005" in caplog.text
 
 
+def test_private_staging_defers_only_its_roots_and_restores_after_failure(tmp_path, monkeypatch):
+    first, nested = tmp_path / 'stage', tmp_path / 'other-stage'
+    outside = tmp_path / 'stage-sibling' / 'video.mp4'
+    checked = []
+    monkeypatch.setattr(security, 'has_usable_access', lambda path: checked.append(path) or True)
+    with security.private_staging(first):
+        with pytest.raises(RuntimeError), security.private_staging(nested):
+            security._warn_if_still_unusable(first / 'video.mp4')
+            security._warn_if_still_unusable(nested / 'video.mp4')
+            security._warn_if_still_unusable(outside)
+            raise RuntimeError('interrupted encoding')
+        security._warn_if_still_unusable(first / 'video.mp4')
+        security._warn_if_still_unusable(nested / 'video.mp4')
+    security._warn_if_still_unusable(first / 'video.mp4')
+    assert checked == [outside, nested / 'video.mp4', first / 'video.mp4']
+
+
 @WINDOWS_ONLY
 def test_deliver_restores_access_for_standard_processes(normal_root):
     """真实复现：临时目录产物只 ``replace`` 落地时不是标准进程可读的，交付后必须是。"""
