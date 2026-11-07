@@ -37,7 +37,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 ## 网页原生设计样品
 
-`m2v sample capture` 从作品 TSX 入口和可选参数直接构建网页、静帧及完整局部视频，无需完整分镜或配音；`sample serve` 提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。
+`m2v sample capture` 从作品 TSX 入口和可选参数直接构建网页、静帧及完整局部视频，无需完整分镜或配音；`sample serve` 提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。Windows 上采集和交付目录发布后统一恢复继承权限，便于标准权限的图片与媒体应用读取。
 
 ```powershell
 uv run m2v sample capture --project <作品> --entry scenes/core.tsx --duration-seconds 3 --frame 30

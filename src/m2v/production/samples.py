@@ -9,6 +9,7 @@ from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
+from m2v.core import security
 from m2v.engine import design_sample
 from . import dependencies, issues, ledger, reviews
 from .model import fields, identifier, now, text
@@ -44,7 +45,7 @@ def capture(root: Path, project: dict, **options) -> dict:
                    'displaySizes': sorted({value['width'], 393}), 'references': [], 'conditions': []}
         write(stage / 'review-request.json', request)
         # 唯一ID不覆盖历史；事件收据是入口，手填capture.json不能成为有效采集。
-        stage.rename(target)
+        security.deliver_directory(stage, target)
     record = receipt(outputs(root), target / 'capture.json')
     ledger.append(root, project, 'sample-captured', data={'sampleId': identity, 'receipt': record})
     logger.info('原生样品 %s 已采集；尚未通过独立评审，不可交付', identity)
@@ -158,7 +159,7 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
             raise M2VError('交付期间样品来源发生变化，请重新采集')
         selection.update(files=[receipt(stage, path) for path in sorted(stage.iterdir())], createdAt=now())
         write(stage / 'delivery.json', selection)
-        stage.rename(target)
+        security.deliver_directory(stage, target)
     ledger.append(root, project, 'sample-delivered', data={'sampleId': identity, 'receipt': receipt(outputs(root), target / 'delivery.json')})
     logger.info('原生样品 %s 已按独立通过报告交付：%s', identity, target)
     return {'path': str(target), 'reused': False, **selection}

@@ -1,5 +1,6 @@
 """原生采集与交付分离；模拟编码只用于证据/门禁边界，真实采集另有媒体节点。"""
 from pathlib import Path
+import os
 
 import pytest
 from PIL import Image
@@ -217,3 +218,30 @@ def test_edit_during_delivery_does_not_publish_different_content(native, monkeyp
     with pytest.raises(M2VError, match='发生变化'):
         samples.deliver(root, project, identity, **args)
     assert not (outputs(root) / 'sample-deliveries' / identity).exists()
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows临时目录ACL回归')
+@pytest.mark.media
+def test_native_publish_restores_access_to_stills_video_and_web(native):
+    """真实受限临时目录经采集与已评交付发布后，标准权限应用可读取全部媒体。"""
+    import shutil
+    from uuid import uuid4
+    from m2v.core import security
+    original, project, _ = native
+    # pytest临时根本身受限；将同一模拟作品复制到正常继承ACL的工作区。
+    cache = (Path.cwd() / '.cache').resolve()
+    root = cache / f'native-access-{uuid4().hex}'
+    assert root.is_relative_to(cache)
+    try:
+        shutil.copytree(original, root)
+        fresh = samples.capture(root, project)['id']
+        captured = outputs(root) / 'samples' / fresh
+        for path in [captured, captured / 'still-000001.png', captured / 'sample.mp4', captured / 'web/index.html']:
+            assert security.has_usable_access(path), path
+        args = pair((root, project, fresh))
+        delivered = Path(samples.deliver(root, project, fresh, **args)['path'])
+        for path in [delivered, delivered / 'still-000001.png', delivered / 'sample.mp4']:
+            assert security.has_usable_access(path), path
+    finally:
+        if root.exists():
+            shutil.rmtree(root)

@@ -37,7 +37,7 @@ uv run m2v sample serve --project <作品> --id <采集ID>
 
 时长按当前 fps 转帧，至少两帧以验证可编码过程；取帧是幕内索引，可重复指定，省略取末帧。窗口由表达决定，无统一创作时长。serve 输出本地 URL，提供同一 bundle、受控时钟和媒体映射的网页，带播放、复位和帧定位；控制条在画面之外。停止服务用 Ctrl+C。重点镜头采用子帧时，网页按相同子帧轨迹推进，交互预览显示该帧末子帧；采集静帧/视频还包含时间积分模糊与 SSAA 降采样，最终质感以同次采集媒体判断，不能宣称所有实时预览都与合成结果逐像素相同。
 
-capture 复用正式构建、顺序/纯时间采集、视频编码及解码核验。成功后写入 `outputs/samples/<ID>/`：网页、静帧、完整局部无声视频、capture.json 和 review-request.json，并记录原生采集事件；失败不发布有效采集。源码、参数、依赖、字体、资产、画幅、帧率和产物摘要均绑定，变化后重新采集。不要改写 capture.json 或源媒体，后续尝试保留独立 ID。评审请求不纳入产物摘要，允许在建包前补充目标与条件。
+capture 复用正式构建、顺序/纯时间采集、视频编码及解码核验。成功后写入 `outputs/samples/<ID>/`：网页、静帧、完整局部无声视频、capture.json 和 review-request.json，并记录原生采集事件；失败不发布有效采集。采集及交付目录发布到最终位置后，在 Windows 上递归恢复继承权限，避免临时目录的受限 ACL 阻碍标准权限应用查看。源码、参数、依赖、字体、资产、画幅、帧率和产物摘要均绑定，变化后重新采集。不要改写 capture.json 或源媒体，后续尝试保留独立 ID。评审请求不纳入产物摘要，允许在建包前补充目标与条件。
 
 在生成的 review-request.json 中先补齐实际 references（相对 outputs 的参考媒体）和中性 conditions，保留自动生成的全部 items、sources、fps、displaySizes。不删静帧或完整 motion 项。按[隔离执行](subagent-review.md)实际建立新子代理，盲看导入后，以相同请求加 `reviewType: "consistency"`、`blindId` 建同轮目标对照，再导入报告。调用记录必须来自真实执行，不能手写一个 pass 代替审核。
 
