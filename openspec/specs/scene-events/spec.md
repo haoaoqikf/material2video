@@ -16,9 +16,9 @@
 
 ### Requirement: 声画共用事件
 
-同一幕内事件 SHALL 同时可供画面查询与音效 `eventId` 引用；事件帧、全片帧与音效起点 SHALL 全部来自 prepare 的同一次解析，不得由画面与声音各自换算。prepare 输出的 `outputs/events.json` SHALL 记录事件所属幕、幕内帧、全片帧与音效全局帧，供制作核对。
+需要声画同步时，同一幕内事件 SHALL 同时可供画面查询与音效 `eventId` 引用；事件帧、全片帧与音效起点 SHALL 全部来自 prepare 的同一次解析，不得由画面与声音各自换算。prepare 输出的 `outputs/events.json` SHALL 记录事件所属幕、幕内帧、全片帧与音效全局帧，供制作核对。
 
-事件未声明、事件帧越界、同一幕重复 ID、`eventId` 引用未知事件或与 `segmentId`/`offsetMs` 混用 SHALL 失败。事件帧变化 SHALL 使准备指纹与音效起点同时变化。
+事件未声明、事件帧越界、同一幕重复 ID、`eventId` 引用未知事件或与 `segmentId`/`offsetMs` 混用 SHALL 失败。事件帧变化 SHALL 使准备指纹与音效起点同时变化。声音预告与延迟反馈可以显式使用既有 offsetFrames，独立氛围或情绪声音可以使用既有显式时间定位；不强制所有声音引用事件或对应可见动作，不要求固定声音角色表。
 
 #### Scenario: 画面与音效引用同一事件
 
