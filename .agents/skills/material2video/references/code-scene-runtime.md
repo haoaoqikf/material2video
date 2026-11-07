@@ -463,7 +463,7 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 
 ### 讲解机制与已有能力的映射
 
-机制设计与取证要求见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)。以下是已有能力的
+可选表达方向见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)，实际取证按[检查点契约](checkpoint-gates.md)。以下是已有能力的
 使用方法，不是新 API，也不提供自动对象识别、任意形状变形或自动因果判断。
 
 | 需求 | 可复用能力与作品职责 |

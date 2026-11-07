@@ -12,7 +12,7 @@ SKILL = Path('.agents/skills/material2video')
 STAGES = {'plan', 'iterate', 'final'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达',
-          '视觉审美', '运动设计', '过程证据容量'}
+          '运动设计', '过程证据容量'}
 
 
 def catalog_types() -> set[str]:

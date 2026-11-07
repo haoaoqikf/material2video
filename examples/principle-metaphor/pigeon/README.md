@@ -102,7 +102,7 @@ uv run m2v render --project examples/principle-metaphor/pigeon [--jobs 2]
 纯性由静态源码闸门与正序/倒序 PSNR 双重验证。
 
 产物写在作品目录下的 `outputs/`，该目录已被 `.gitignore` 忽略，不入库。
-`outputs/style-reference.md` 是八项指标对照与并排基准的说明。
+`outputs/style-reference.md` 保留本例历史制作的指标对照与并排基准；后续参考借鉴见[参考分析](../../../.agents/skills/material2video/references/reference-video-analysis.md)，不要求重新填写该报告。
 
 ## 已知限制
 

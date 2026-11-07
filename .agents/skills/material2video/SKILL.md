@@ -37,11 +37,11 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 | 制作与迭代 | [制作与迭代](references/stage-iterate.md) | 核心关系成立了吗，问题是否复查关闭 |
 | 最终验收 | [验收](references/stage-final.md) | 当前候选证据齐全、问题关闭了吗 |
 
-讲解片优先考虑对象追踪、尺度变化、过程结果联动、回场，按需选用；纯文字与合理延迟揭示不机械否决。每场目标确定后、动态实现前完成[整场细节编排](references/scene-detail-design.md)，沿既有检查分看关系与表现。技术 QA 不替代实际表达判断。
+创作从主题与用户目标出发，自主选择文字、图形、素材、静止或运动。必要设计记录见[方案指南](references/stage-plan.md#设计记录)，技术 QA 不替代实际表达判断。
 
 ## 条件参考
 
-[阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或用户要求参考风格时，必须读取相应专项；优先级只控制阅读顺序，不降低强制规则效力。
+[阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或用户要求参考时，读取相应专项。标明“可选”的灵感与讲解方法按需使用，不是制作前置；强制技术和验收要求不因阅读顺序而降低。
 选择素材先读[按用途排序来源](references/visual-material-selection.md#按用途排序素材来源)；当前代理支持生图时，定制插画、海报等静态任务优先考虑 AI 图片，真实证据与准确机制分别优先原件和代码。检索、生成、评估或整理素材时读[素材检索与台账](references/material-sourcing.md)：生成记录、候选评估卡、许可判断与台账工具按该页执行；导入契约仍以既有参考页为准。
-判断构图、色彩、字体、留白、视觉重心或画面是否模板化时读[Frontend Design](../frontend-design/SKILL.md)，先按[项目适配](../frontend-design/ADAPTATION.md)确认视频语境。设计镜头运动、转场、入场退场或缓动时读[运动设计](../motion-design/SKILL.md)，先按[项目适配](../motion-design/ADAPTATION.md)确认帧驱动与采集模式边界。两者只提供方法与词汇，不新增门禁、评分或审核轮次。
+需要视觉或表达灵感时，可参考[视频视觉与表达参考](references/visual-expression-inspiration.md)；无需选择风格或说明不采用理由。运动方法见[运动设计](../motion-design/SKILL.md)及[视频适配](../motion-design/ADAPTATION.md)，创作建议按需选用，帧驱动与采集模式边界仍须遵守。实际表达与问题处理按既有复核契约，不以风格或方法符合性验收。
 修改材料后重新 prepare；按[返工循环](references/production-workflow.md#检查与返工循环)先实际查看局部修复效果，汇总后再生成下一全片候选。preview 只检查局部，不替代最终全片复核。命令与能力见[README](../../../README.md)，不凭旧提示猜参数。

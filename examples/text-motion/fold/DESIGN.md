@@ -4,7 +4,7 @@
 
 ## 全片原则
 
-相关方法：[视觉创意导演方法](../../../.agents/skills/material2video/references/visual-creative-direction.md)。
+相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-plan.md#设计记录)。
 
 珠串、第 6 颗与细胞是贯穿对象；尺度变化从局部进入整体，回场用于理解由黏点到长杆再到细胞变形的关系。
 

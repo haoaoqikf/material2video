@@ -61,13 +61,8 @@
       "guide": "references/vehicle-showcase-video.md"
     },
     {
-      "id": "scene-detail",
-      "when": "五类作品每场目标确定后、动态实现前，以及过程细节复核",
-      "guide": "references/scene-detail-design.md"
-    },
-    {
       "id": "mechanisms",
-      "when": "讲解片方案与核心试制；读取四种机制章节",
+      "when": "可选：需要讲解手法灵感或查询已有机制实现入口",
       "guide": "references/explainer-design.md#四种讲解机制的执行方法"
     },
     {
@@ -111,11 +106,6 @@
       "guide": "references/reference-video-analysis.md"
     },
     {
-      "id": "style",
-      "when": "明确要求外观相似或选择风格；另读所选 GUIDE",
-      "guide": "references/reference-style.md"
-    },
-    {
       "id": "risk",
       "when": "首次声明或修改风险、证据、评审计划或完成状态",
       "guide": "references/checkpoint-gates.md"
@@ -129,16 +119,6 @@
       "id": "visual",
       "when": "判定实际表达、文字、关系或视觉问题",
       "guide": "references/visual-review-rubric.md"
-    },
-    {
-      "id": "aesthetic",
-      "when": "判断构图、色彩、字体、留白、视觉重心或画面是否模板化",
-      "guide": "../frontend-design/SKILL.md"
-    },
-    {
-      "id": "aesthetic-protocol",
-      "when": "按观察—对照—批评方法复核实际画面",
-      "guide": "../frontend-design/SKILL.md#restraint-and-self-critique"
     },
     {
       "id": "motion",
@@ -157,23 +137,8 @@
     },
     {
       "id": "design-template",
-      "when": "填写或重写 DESIGN.md 全片原则与逐场设计表",
-      "guide": "references/visual-creative-direction.md#12-designmd-模板"
-    },
-    {
-      "id": "visual-examples",
-      "when": "需要视觉设计反例与演练",
-      "guide": "references/production-examples.md"
-    },
-    {
-      "id": "review-examples",
-      "when": "需要复核判断演练",
-      "guide": "references/production-examples.md"
-    },
-    {
-      "id": "reference-template",
-      "when": "填写参考拆解交付记录",
-      "guide": "references/reference-video-analysis.md#交付模板"
+      "when": "编写 DESIGN.md 最简设计记录",
+      "guide": "references/stage-plan.md#设计记录"
     },
     {
       "id": "review-template",
@@ -184,6 +149,11 @@
       "id": "production-template",
       "when": "填写推进回退记录",
       "guide": "references/production-workflow.md#推进与回退记录模板"
+    },
+    {
+      "id": "inspiration",
+      "when": "可选：需要视觉风格或视频表达灵感时",
+      "guide": "references/visual-expression-inspiration.md"
     }
   ],
   "ruleOwners": {
@@ -194,7 +164,6 @@
     "失败回退": "references/production-workflow.md",
     "讲解机制": "references/explainer-design.md",
     "实际表达": "references/visual-review-rubric.md",
-    "视觉审美": "../frontend-design/SKILL.md",
     "运动设计": "../motion-design/SKILL.md",
     "过程证据容量": "references/subagent-review.md"
   }

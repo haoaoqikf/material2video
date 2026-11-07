@@ -129,7 +129,7 @@ prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产�
 
 ### 导演设计映射
 
-导演卡保存在作品 `DESIGN.md`，不属于 v8 storyboard JSON，也不增加运行时字段。镜头等级（A/B/C）与 A 级时间结构同样只记录在 `DESIGN.md`，需要时用既有 `startFrame` / `endFrame` 落实节奏，不新增 JSON 字段。以 `scene.id` 和 `shots[].id` 将设计与镜头逐一对照；`shots[].target` 标明该镜头的观察对象，已有 `startFrame` / `endFrame` 及 `camera` 路径将导演卡中的建立、信息公开、观察和结果窗口落实为执行时序。导演卡记录相机动作的叙事目的与注意力安排；`camera` 只记录场景代码消费的相机参数。导演顺序未在 DESIGN 中确定时，不得由实现阶段自行补造核心表达或揭示机制。
+复杂未决风险需要导演说明或时间结构时，放在作品 `DESIGN.md` 的必要附件中，不属于 v9 storyboard JSON，也不增加运行时字段。已有镜头等级（A/B/C）仍只记录在设计中，不因等级补造导演卡。用 `scene.id`、`shots[].id` 引用镜头；`shots[].target` 标明观察对象，`startFrame` / `endFrame` 及 `camera` 路径落实实际时序与相机参数。普通场景只需最简设计记录，低成本原型可用于探索未决问题；执行帧与参数不在设计附件中重复维护。
 
 ## 全画布代码场景（code）
 

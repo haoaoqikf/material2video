@@ -4,7 +4,7 @@
 
 此前 C 夜曲与 B 寓言的转译成果分别保留为 [fold](../../../../examples/text-motion/fold/README.md) 和 [pigeon](../../../../examples/principle-metaphor/pigeon/README.md) 的本地场景代码。只有跨作品稳定复用的绘制能力进入共享 SDK；两部作品的视觉参数、专属画面与故事组织留在示例内。原来的风格注册、`style.id` 与风格指纹已移除。
 
-分析参考时先记录来源 URL、固定版本或抓取时间、许可与可用范围，再按 [参考风格方法](reference-style.md) 记录 L1/L2/L3 与画幅转译。重制示例可借鉴机制，不直接复制整套分镜、文案或外部媒体。字体恢复与许可证以 [`fonts/registry.json`](../../../../fonts/registry.json) 为准。
+分析参考时记录来源 URL、固定版本或抓取时间、许可与可用范围，再按[参考分析](reference-video-analysis.md)记录实际采用的特征和必要对照。可借鉴外观或机制，不直接复制外部媒体；字体恢复与许可证以 [`fonts/registry.json`](../../../../fonts/registry.json) 为准。
 
 ## vibe-knowledge-film 项目使用指引
 

@@ -1,4 +1,4 @@
-"""项目级视觉设计与运动 skill 的结构性契约。"""
+"""项目级运动 skill 的结构性契约。"""
 from pathlib import Path
 
 import pytest
@@ -8,7 +8,6 @@ SKILLS = ROOT / ".agents" / "skills"
 
 
 @pytest.mark.parametrize("name, commit, license_file, license_marker", [
-    ("frontend-design", "ca45fc496a3436251f191354091d557da31c15b5", "LICENSE.txt", "Apache License"),
     ("motion-design", "f9a8a041b85185ee4881b3471d3415e939aac772", "LICENSE", "MIT License"),
 ])
 def test_project_skill_is_pinned_and_licensed(

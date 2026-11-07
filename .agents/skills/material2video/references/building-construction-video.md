@@ -61,6 +61,6 @@ uv run m2v qa --project videos/spatial-3d/<slug>
 
 ## 视觉与运动
 
-- 构图、层级、色彩与字阶判断按 [Frontend Design](../../frontend-design/SKILL.md) 与[视频适配](../../frontend-design/ADAPTATION.md)：主体占比、阶段标签的小字层级、示意边界标注的次要位置都在其观察方法内判断。
+- 按[实际画面复核](visual-review-rubric.md)核对构件识别、主体尺度、必要文字和示意边界；构图与风格自主选择，不额外执行视觉方法清单。
 - 阶段推进、构件生长、镜头切换的时长、缓动与编排按[运动设计](../../motion-design/SKILL.md) 与[视频适配](../../motion-design/ADAPTATION.md)：构件出现用减速落定，镜头切换用两端平滑，匀速升降只在表达需要时显式声明。
 - 本页只保留建造特有的材料、动作与确定性要求，不复述通用视觉或运动理论。

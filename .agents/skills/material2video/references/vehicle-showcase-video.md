@@ -36,6 +36,6 @@ uv run m2v render --project videos/spatial-3d/<slug>
 
 ## 视觉与运动
 
-- 画面构图、车漆与反射的明暗层级、字阶与留白按 [Frontend Design](../../frontend-design/SKILL.md) 与[视频适配](../../frontend-design/ADAPTATION.md) 判断；影棚参数只决定材质，不代替视觉方向。
+- 按[实际画面复核](visual-review-rubric.md)核对车辆识别、车漆反射、必要文字与用户关键目标；影棚参数不能代替实际呈现，构图与风格自主选择。
 - 环绕镜头、车辆启动、车轮加速与疾驰的时长、缓动与编排按[运动设计](../../motion-design/SKILL.md) 与[视频适配](../../motion-design/ADAPTATION.md)：环绕是匀速跟踪的合法 `linear` 例外，启动与收束用减速落定，车轮加减速按帧换算而不是按毫秒照搬。
 - 本页只保留模型、影棚与确定性契约，不复述通用视觉或运动理论。
