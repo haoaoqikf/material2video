@@ -14,7 +14,7 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 
 读取作品 `project.json` 确认类型；新作品先确定类型与内容根。先定位任务与阶段，再读取下一份主指南；不递归读完所有链接。
 
-视频创作或视听表达修订前必须完整阅读[视频视觉与表达参考](references/visual-expression-inspiration.md)，同一任务已读则不重复。新制作或实质性重设计形成方案前（含展示型 HTML 草稿），无论是否采用其中风格，均须按[设计前搜索研究](references/stage-plan.md#设计前搜索研究)完成外部研究；之后可自选或自创，不要求不采用说明。
+视频创作或视听表达修订前必须完整阅读[视频视觉与表达参考](references/visual-expression-inspiration.md)，同一任务已读则不重复。新制作或实质性重设计形成方案前（含展示型 HTML 草稿），无论是否采用其中风格，均须按[设计前深度研究](references/stage-research.md)完成方案确定内部的研究子阶段；之后可自选或自创，不要求不采用说明。
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
@@ -26,7 +26,7 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 | `documentary-edit` | [制作流程](references/production-workflow.md#阶段阅读入口)：统一分镜制作与验收。 |
 <!-- generated:type-catalog:end -->
 
-- **新制作**：从[方案确定](references/stage-plan.md)开始。
+- **新制作**：从[方案确定](references/stage-plan.md)开始，依次任务澄清、深度研究、正式设计；研究记于 RESEARCH.md，最终设计记于 DESIGN.md。
 - **修订**：先读[修订入口](references/video-revision.md)，定位影响阶段、保留基线，再进入对应阶段；不重开无关选案。
 - **评审**：完整试制固定在扩展前进入[制作与迭代](references/stage-iterate.md)评审；G5 全片粗片为内部检查，试制检查是否值得继续，终审检查整片是否兑现；当前候选独立终审进入[最终验收](references/stage-final.md)。再读适用隔离要求；新上下文只收评审包。
 - **排查**：先读[制作与迭代](references/stage-iterate.md)，只展开相关技术契约；不要用排错代替制作复核。

@@ -102,13 +102,13 @@
     },
     {
       "id": "reference",
-      "when": "开展设计前搜索研究（无论是否采用参考），或用户要求学习、拆解、借鉴参考",
+      "when": "深度研究中实际拆解参考（无论是否采用），或用户要求学习、拆解、借鉴参考",
       "guide": "references/reference-video-analysis.md"
     },
     {
       "id": "design-research",
-      "when": "新制作或实质性视听重设计形成方案前，含展示型HTML草稿；核对研究、复用或新问题补查范围",
-      "guide": "references/stage-plan.md#设计前搜索研究"
+      "when": "方案确定内部：新制作或实质性视听重设计正式设计前，含展示型HTML草稿；执行深度研究、记录、覆盖复用与缺口补查",
+      "guide": "references/stage-research.md"
     },
     {
       "id": "risk",
@@ -152,7 +152,7 @@
     },
     {
       "id": "inspiration",
-      "when": "必读：创作或视听表达修订前完整阅读，同一任务已读则不重复；风格自选不豁免设计前搜索研究",
+      "when": "必读：创作或视听表达修订前完整阅读，同一任务已读则不重复；风格自选不豁免设计前深度研究",
       "guide": "references/visual-expression-inspiration.md"
     }
   ],
