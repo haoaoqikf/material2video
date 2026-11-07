@@ -102,8 +102,13 @@
     },
     {
       "id": "reference",
-      "when": "用户要求学习、拆解、借鉴参考，或自主搜索并采用外部风格时",
+      "when": "开展设计前搜索研究（无论是否采用参考），或用户要求学习、拆解、借鉴参考",
       "guide": "references/reference-video-analysis.md"
+    },
+    {
+      "id": "design-research",
+      "when": "新制作或实质性视听重设计形成方案前，含展示型HTML草稿；核对研究、复用或新问题补查范围",
+      "guide": "references/stage-plan.md#设计前搜索研究"
     },
     {
       "id": "risk",
@@ -147,7 +152,7 @@
     },
     {
       "id": "inspiration",
-      "when": "必读：视频创作或视听表达修订前完整阅读，同一任务已读则不重复；采用自选，可自创或搜索其他风格",
+      "when": "必读：创作或视听表达修订前完整阅读，同一任务已读则不重复；风格自选不豁免设计前搜索研究",
       "guide": "references/visual-expression-inspiration.md"
     }
   ],
