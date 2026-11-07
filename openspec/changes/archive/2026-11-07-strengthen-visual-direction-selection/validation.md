@@ -6,6 +6,7 @@
 - `quick_validate.py .agents/skills/material2video` 通过。首次因运行环境缺 PyYAML 未启动校验，随后用 `uv run --with pyyaml python -X utf8` 临时环境完成，未改变项目依赖。
 - `python -m py_compile src/m2v/production/reviews.py` 通过。
 - OpenSpec 本变更严格校验通过。
+- 实施提交 `c8fe1b31` 后，同步 3 份主规格、4 个既有 requirement，逐块核对增量且保留全部原场景；`openspec validate --specs`：38 份规格通过。这是规格结构检查，不是全仓测试。
 - 定向 pytest 首轮 9 个用例中 8 个通过，链接检查发现示例遗留的 10 处旧流程链接；修正相关 5 份文档后仅重跑失败节点，1 个通过。不同用例合计 9 个通过，未运行全仓回归。
 
 覆盖节点：
