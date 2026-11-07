@@ -218,7 +218,7 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 最小示例：
 
 ```json
-{"version":8,"schemaVersion":8,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
+{"version":9,"schemaVersion":9,"fps":30,"width":1920,"height":1080,"title":"反馈帮助改进","input":{"kind":"article"},"targetSeconds":60,"scenes":[{"id":"opening","template":"code","content":{"title":"开场","entry":"scenes/opening.tsx"},"narrationSegments":[{"id":"line","text":"观察结果，根据反馈修正下一次的做法。"}]}]}
 ```
 
 完整示例：[从电报到大模型](../../../../examples/documentary-edit/american-science-milestones/storyboard.json)、

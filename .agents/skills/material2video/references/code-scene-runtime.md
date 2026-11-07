@@ -102,9 +102,13 @@ export default function Scene(config: CodeSceneProps) {
   const {elapsedSeconds, globalSeconds} = useSceneContext();
   const state = act(globalSeconds);
   // 镜头只决定取景，不改变 state
-  return <Room state={state} shot={SHOT[config.chapter.id]} />;
+  // 分镜 content.props.shot 显式传入作品自己的镜头键；CodeSceneProps 没有 chapter。
+  const shot = config.props.shot as keyof typeof SHOT;
+  return <Room state={state} shot={SHOT[shot]} />;
 }
 ```
+
+上例须在分镜的 `content.props.shot` 声明作品自己的镜头键，并在 `SHOT` 中提供对应取景。
 
 同一时刻在全景、近景、特写里读到同一 `state`，换镜不会跳位置或动作。`capture.timebase`
 是 opt-in：未声明时录制配置逐字节不变，既有片段缓存继续复用；声明后
