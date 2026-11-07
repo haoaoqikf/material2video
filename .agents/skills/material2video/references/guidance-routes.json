@@ -102,7 +102,7 @@
     },
     {
       "id": "reference",
-      "when": "要求学习或拆解参考",
+      "when": "用户要求学习、拆解、借鉴参考，或自主搜索并采用外部风格时",
       "guide": "references/reference-video-analysis.md"
     },
     {
@@ -152,7 +152,7 @@
     },
     {
       "id": "inspiration",
-      "when": "可选：需要视觉风格或视频表达灵感时",
+      "when": "必读：视频创作或视觉表达修订前完整阅读，同一任务已读则不重复；采用自选，可自创或搜索其他风格",
       "guide": "references/visual-expression-inspiration.md"
     }
   ],

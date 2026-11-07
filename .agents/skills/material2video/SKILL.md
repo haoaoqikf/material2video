@@ -14,6 +14,8 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 
 读取作品 `project.json` 确认类型；新作品先确定类型与内容根。先定位任务与阶段，再读取下一份主指南；不递归读完所有链接。
 
+视频创作或视觉表达修订前必须完整阅读[视频视觉与表达参考](references/visual-expression-inspiration.md)，同一任务已完整阅读则不重复。阅读后采用自选，可以不用其中风格、自创或搜索其他风格；不要求选择理由或不采用说明。
+
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
 |---|---|
@@ -41,7 +43,7 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 
 ## 条件参考
 
-[阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或用户要求参考时，读取相应专项。标明“可选”的灵感与讲解方法按需使用，不是制作前置；强制技术和验收要求不因阅读顺序而降低。
+[阅读路由](references/guidance-routes.json)登记所有任务、阶段、条件参考与权威归属。首次采用技术、出现风险或使用外部参考时，读取相应专项。灵感文档按上方要求必读，其中风格与讲解方法采用自选；强制技术和验收要求不因阅读顺序而降低。
 选择素材先读[按用途排序来源](references/visual-material-selection.md#按用途排序素材来源)；当前代理支持生图时，定制插画、海报等静态任务优先考虑 AI 图片，真实证据与准确机制分别优先原件和代码。检索、生成、评估或整理素材时读[素材检索与台账](references/material-sourcing.md)：生成记录、候选评估卡、许可判断与台账工具按该页执行；导入契约仍以既有参考页为准。
-需要视觉或表达灵感时，可参考[视频视觉与表达参考](references/visual-expression-inspiration.md)；无需选择风格或说明不采用理由。运动方法见[运动设计](../motion-design/SKILL.md)及[视频适配](../motion-design/ADAPTATION.md)，创作建议按需选用，帧驱动与采集模式边界仍须遵守。实际表达与问题处理按既有复核契约，不以风格或方法符合性验收。
+运动方法见[运动设计](../motion-design/SKILL.md)及[视频适配](../motion-design/ADAPTATION.md)，创作建议按需选用，帧驱动与采集模式边界仍须遵守。实际表达与问题处理按既有复核契约，不以风格或方法符合性验收。
 修改材料后重新 prepare；按[返工循环](references/production-workflow.md#检查与返工循环)先实际查看局部修复效果，汇总后再生成下一全片候选。preview 只检查局部，不替代最终全片复核。命令与能力见[README](../../../README.md)，不凭旧提示猜参数。

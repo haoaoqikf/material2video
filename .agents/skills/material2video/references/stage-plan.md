@@ -12,7 +12,7 @@
 | 逐场对象与变化 | 场景用途、主要对象或信息、实际变化与必要阅读／观察窗口；素材来源与验收目标引用现有材料 |
 | 必要风险附件 | 仅为复杂未决风险补充说明，引用唯一制作合同、分镜或代码事件，不复制时间表 |
 
-不要求母题、高潮、六类元素、独立运动表、逐镜问答或不采用某种手法的解释。需要灵感时可参考[视频视觉与表达参考](visual-expression-inspiration.md)或[讲解手法](explainer-design.md)，也可跳出这些参考自主设计。
+不要求母题、高潮、六类元素、独立运动表、逐镜问答或不采用某种手法的解释。设计前必读[视频视觉与表达参考](visual-expression-inspiration.md)，已在本任务完整阅读则不重复；风格采用自选，也可自主创作或搜索其他风格。[讲解手法](explainer-design.md)仍按需选用。
 
 ## 必做
 
@@ -27,7 +27,7 @@
 
 - 首次写分镜：读[分镜契约](storyboard-schema.md)。
 - 搜集或入片素材／声音：读[素材声音契约](article-media-and-sound.md)和[载体选择](visual-material-selection.md)。
-- 用户要求学习或借鉴参考：读[参考分析与借鉴](reference-video-analysis.md)。
+- 用户要求或自主搜索并采用外部参考：读[参考分析与借鉴](reference-video-analysis.md)。
 - 首次实现场景／相机／字体：读[运行时契约](code-scene-runtime.md)。
 - 设计运动：读[运动设计](../../motion-design/SKILL.md)及[视频适配](../../motion-design/ADAPTATION.md)，保留帧驱动与采集模式边界；其中创作方法按需选用。
 - 开始有旁白制作：读[配音契约](voice-and-rhythm.md#配音音色与语速)，按全文和服务信息选音；无旁白跳过。

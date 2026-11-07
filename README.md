@@ -59,7 +59,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：可选灵感，可自由融合、改造或跳出参考，不规定设计流程。
+- [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：创作或视觉表达修订前必读；风格采用自选，可融合、改造、自创或搜索其他参考，不规定设计流程。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
 - [OpenSpec 规格](openspec/specs/)：已实现行为。
 - [项目协作约定](AGENTS.md)：验证、提交与资产管理。
