@@ -125,6 +125,6 @@ Python / Node / Remotion / ffmpeg 版本）——两次报告的数字只有在�
 
 ## 一次全片生成与候选保留
 
-`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。正式输出名称按类型保留，general 为 video.mp4，金融为 financial-line-no-events.mp4，其他类型使用各自类型文件名。
+`outputs/candidates/<指纹>.mp4` 与同名旁车保存完整候选，`outputs/delivery.json` 保存当前输入/实现/参数绑定、文件摘要、状态及失败原因。检查或交付重试必须复用摘要有效的候选，不能重新编码；旧 preview-record.json 不再参与门禁。五类作品的正式输出统一为 `outputs/video.mp4`。
 
 异常退出留下 `delivery.lock` 时，先确认没有制作进程再移除锁。
