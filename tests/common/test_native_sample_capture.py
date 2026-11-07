@@ -1,5 +1,6 @@
 """只采集三帧，验证无完整分镜时的真实网页、样式、资源和编码链路。"""
 import io
+import os
 
 import pytest
 from PIL import Image, ImageChops
@@ -83,3 +84,46 @@ export default function Scene(){
         image = Image.frombytes('RGB', (320, 240), next(reader))
         assert all(abs(a-b) < 10 for a, b in zip(image.getpixel((30, 30)), (90, 180, 210)))
         reader.close()
+
+
+@pytest.mark.media
+@pytest.mark.skipif(os.name != 'nt', reason='Windows DXC浏览器包回归')
+def test_webgpu_preparation_uses_a_browser_with_working_device(tmp_path, chromium_ready):
+    """完整包可创建设备时，正式采集不能退回缺DXC的shell。"""
+    from m2v.engine.http_server import LocalServer
+    probe = tmp_path / 'probe'
+    probe.mkdir()
+    (probe / 'index.html').write_text('<!doctype html><title>device probe</title>', encoding='utf-8')
+    with LocalServer(probe) as server, sync_playwright() as pw:
+        browser = pw.chromium.launch(channel='chromium', headless=True)
+        page = browser.new_page()
+        page.goto(server.base_url + '/index.html')
+        supported = page.evaluate('async () => {try {const adapter=await navigator.gpu?.requestAdapter();if(!adapter)return false;const device=await adapter.requestDevice();device.destroy();return true;}catch{return false;}}')
+        browser.close()
+    if not supported:
+        pytest.skip('当前完整Chromium也没有可用WebGPU设备')
+    root = tmp_path / 'gpu-work'
+    create_project(root, 'text-motion', {'storyboard': 'storyboard.json'})
+    project = load_project(root)[1]
+    (root / 'scenes').mkdir()
+    (root / 'scenes/main.tsx').write_text("""
+import React,{useEffect} from 'react';
+import * as THREE from 'three/webgpu';
+import {useSceneContext} from 'm2v/code-scene';
+export default function Scene(){
+ const {ready}=useSceneContext();
+ useEffect(()=>{let renderer;
+  async function init(){
+   renderer=new THREE.WebGPURenderer();await renderer.init();
+   if(!renderer.backend.isWebGPUBackend)throw Error('WebGPU device unavailable in capture browser');
+   renderer.dispose();ready();
+  }
+  void init();
+ },[]);
+ return <div style={{width:1920,height:1080,background:'#123456'}}/>;
+}
+""", encoding='utf-8')
+    result = samples.capture(root, project, entry='scenes/main.tsx', props={}, duration_seconds=.067, still_frames=[0])
+    value, directory = samples.load(root, project, result['id'])
+    assert value['durationInFrames'] == 2
+    assert Image.open(directory / 'still-000000.png').convert('RGB').getpixel((100, 100)) == (18, 52, 86)

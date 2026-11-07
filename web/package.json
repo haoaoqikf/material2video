@@ -41,6 +41,7 @@
     "katex": "0.19.1",
     "lucide-react": "1.68.0",
     "motion": "14.3.0",
+    "oidn-webgpu": "0.6.0",
     "perfect-freehand": "1.2.3",
     "postprocessing": "^6.39.5",
     "react": "19.3.0",
@@ -49,7 +50,10 @@
     "roughjs": "4.6.6",
     "svg-path-properties": "2.2.0",
     "tailwindcss": "4.2.0",
-    "three": "0.186.1"
+    "three": "0.186.1",
+    "three-gpu-pathtracer": "0.0.27",
+    "three-mesh-bvh": "0.9.16",
+    "xatlas-web": "0.1.0"
   },
   "devDependencies": {
     "@types/d3-scale": "4.0.9",
@@ -59,6 +63,7 @@
     "@types/react-dom": "19.3.0",
     "@types/three": "0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "@webgpu/types": "0.1.74",
     "esbuild": "0.28.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",

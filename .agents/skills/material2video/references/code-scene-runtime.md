@@ -239,7 +239,7 @@ pure 场景必须通过两道闸门：
 `--jobs` 不进入候选绑定，改变 jobs 仍可复用同一内容候选。
 
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
-系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，作品直接依赖由可扩展的 `web/code-scene-dependencies.json` 登记，固定版本、来源、许可和适配依据，打包时校验本地安装版本
+采集使用完整 Chromium 的无头模式（Playwright 的 `chromium` channel），以加载 Windows WebGPU 所需的 DXC；安装使用 `uv run playwright install chromium`，仅安装 headless shell 不足以运行 WebGPU 场景。系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，作品直接依赖由可扩展的 `web/code-scene-dependencies.json` 登记，固定版本、来源、许可和适配依据，打包时校验本地安装版本
 （含电影级后期所需的 `postprocessing` 与 `@react-three/postprocessing`；依赖缺失时在打包前
 明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。

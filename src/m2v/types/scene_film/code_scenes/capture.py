@@ -413,7 +413,8 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
         # 默认无头 Chromium 走 SwiftShader 软件光栅化，实测整片只有约 1 帧/秒；
         # 显式打开 ANGLE/D3D11 后走真实 GPU。没有可用 GPU 的环境会自动回退到软件
         # 光栅化，因此这是提速而不是新的硬依赖。
-        browser = pw.chromium.launch(headless=True, args=[
+        # 完整Chromium的无头模式包含Windows WebGPU所需的DXC；headless shell不包含它。
+        browser = pw.chromium.launch(channel="chromium", headless=True, args=[
             "--autoplay-policy=no-user-gesture-required",
             "--use-gl=angle", "--use-angle=d3d11", "--ignore-gpu-blocklist",
         ])
