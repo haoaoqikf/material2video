@@ -65,7 +65,7 @@
       "version": "0.0.27",
       "source": "https://github.com/gkjohnson/three-gpu-pathtracer",
       "license": "MIT",
-      "integration": "WebGPU静态曲纸试制，与Three 0.186.1及BVH 0.9.16匹配；0.0.27适配固定megakernel、Sobol像素序列和样本数，避免随机蓝噪声贴图及wavefront队列调度。GPU就绪后ready，逐场验证，不保留WebGL分支。"
+      "integration": "WebGPU静态曲纸试制，与Three 0.186.1及BVH 0.9.16匹配；0.0.27适配固定megakernel、Sobol像素序列和样本数，避免随机蓝噪声贴图及wavefront队列调度。场景内固定灯光、网格、几何及纹理/Source身份，避免库按随机UUID排序改变采样映射。GPU就绪后ready，独立重载验证，不保留WebGL分支。"
     },
     "three-mesh-bvh": {
       "version": "0.9.16",

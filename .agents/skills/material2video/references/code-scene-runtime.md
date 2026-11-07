@@ -244,6 +244,10 @@ pure 场景必须通过两道闸门：
 明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。
 
+已登记的 `three-gpu-pathtracer@0.0.27` 静态适配除固定样本、Sobol 与 megakernel 外，还要控制场景对象身份：该版本按 UUID 排序灯光、网格和纹理/Source，Three 的默认随机 UUID 会让同一随机数映射到不同灯光。可在作品内固定可写对象、几何和纹理身份，保留材质等只读接口，不覆盖全局随机数。既有确定性核验应观察独立加载及复位重建，而不能仅凭同页冻结 Canvas 的重复截图推断跨加载稳定。
+
+WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org/docs/pages/RectAreaLight.html) 初始化 `RectAreaLightTexturesLib` 并调用 `RectAreaLightNode.setLTC()`；路径追踪仍可能经过栅格预览或辅助缓冲，不能忽略这些路径的控制台错误。变形几何在送入 BVH 前检查有限坐标，浮点挤出端点先夹紧再做分数次幂；GPU 积分与最终输出完成后再 `ready()`。以上为现有确定性与资源就绪语义的适配注意事项，具体美术和平台范围仍逐场验证。
+
 ### 结构化来源
 
 分镜 `sources` 与幕内 `content.sourceIds` 在准备阶段校验。画面从 `m2v/code-scene/sources` 引入 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`，或用共享 SDK 的 `useSceneSource(id)` 读取本幕已准备的数据。来源文件和计算实现进入准备指纹。未声明的 ID 与旧 `m2v/style` 导入明确拒绝。
