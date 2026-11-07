@@ -5,7 +5,7 @@
 
 ## 全片原则
 
-相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-plan.md#设计记录)。
+相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-design.md#设计记录)。
 
 计时器、箱子和角色保持同一房间与全片时间。由计时器转向角色，再回到计时器；目标是看清食物周期和动作的先后，真实周期为 15 秒。
 

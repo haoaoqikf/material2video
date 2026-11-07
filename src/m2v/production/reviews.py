@@ -309,10 +309,19 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     )
     if review_type == "consistency":
         questions += (
-            "对照实际目标媒体与 conditions 中的采用特征，记录兑现情况、具体差距、收益/损失及证据限制；"
+            "按 conditions 区分整体品质标杆、专项目标与备选/历史比较媒体的用途；"
+            "对照实际目标的整体效果及采用特征，记录兑现情况、主要差距、收益/损失及证据限制。"
+            "局部特征齐全不等于整体品质成立，相对备选或旧版更好也不等于达到目标；"
             "不能用理解通过替代视觉表现或代表性。\n"
             if request.get("references") else
             "本包仅核对中性条件，没有目标媒体；不得据此验证未提供的风格目标。\n"
+        )
+    if request["round"] == "trial":
+        questions += (
+            "在 observations 中说明具体吸引力、普通之处及当前最大差距；"
+            "区分值得继续打磨与足以作为后续标准的依据，允许全部不值得继续，不强制选赢家。"
+            "候选排名或本范围 pass 不能自动授权展开全片；未覆盖的目标与制作链路保持未验证。"
+            "所有 items 仍须如实覆盖，淘汰不免除已导入失败的复查要求。\n"
         )
     (target / "questions.md").write_text(questions, encoding="utf-8")
     files = [receipt(target, p) for p in sorted(target.rglob("*")) if p.is_file()]
