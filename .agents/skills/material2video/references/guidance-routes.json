@@ -147,7 +147,7 @@
     },
     {
       "id": "inspiration",
-      "when": "必读：视频创作或视觉表达修订前完整阅读，同一任务已读则不重复；采用自选，可自创或搜索其他风格",
+      "when": "必读：视频创作或视听表达修订前完整阅读，同一任务已读则不重复；采用自选，可自创或搜索其他风格",
       "guide": "references/visual-expression-inspiration.md"
     }
   ],

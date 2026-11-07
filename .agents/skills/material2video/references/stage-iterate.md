@@ -46,4 +46,4 @@
 - 素材、声音、许可：[素材声音](article-media-and-sound.md)；旁白变化另读[配音](voice-and-rhythm.md)。
 - 证据、评审和问题关闭：[检查点](checkpoint-gates.md)与[独立评审](subagent-review.md)。命令查 README 和实际 `--help`。
 - 运动实现、时间换算、显式缓动与对象联动：[运行契约](code-scene-runtime.md#运动实现约定)；动态风格由主题与目标决定。
-- 视觉联想：[视频视觉与表达参考](visual-expression-inspiration.md)在创作或视觉表达修订前必读，同一任务不重复；风格采用自选。实际画面问题按[视觉复核](visual-review-rubric.md)。
+- 视觉联想：[视频视觉与表达参考](visual-expression-inspiration.md)在创作或视听表达修订前必读，同一任务不重复；风格采用自选。实际画面问题按[视觉复核](visual-review-rubric.md)。

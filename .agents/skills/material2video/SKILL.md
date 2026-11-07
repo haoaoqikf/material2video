@@ -14,7 +14,7 @@ description: 使用统一 m2v 制作入口创作或修订五类视频。用于�
 
 读取作品 `project.json` 确认类型；新作品先确定类型与内容根。先定位任务与阶段，再读取下一份主指南；不递归读完所有链接。
 
-视频创作或视觉表达修订前必须完整阅读[视频视觉与表达参考](references/visual-expression-inspiration.md)，同一任务已完整阅读则不重复。阅读后采用自选，可以不用其中风格、自创或搜索其他风格；不要求选择理由或不采用说明。
+视频创作或视听表达修订前必须完整阅读[视频视觉与表达参考](references/visual-expression-inspiration.md)，同一任务已完整阅读则不重复。阅读后采用自选，可以不用其中风格、自创或搜索其他风格；不要求选择理由或不采用说明。
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
