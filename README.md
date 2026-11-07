@@ -29,11 +29,23 @@ uv run m2v prepare --project videos/text-motion/demo
 uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 ```
 
-`init` 生成可准备的三秒主题示例；正式创作时改写分镜和 `scenes/opening.tsx`。五类使用同一命令：`validate`、`prepare`、`preview`、`lookdev`、`render`、`qa`、`status`、`review` 、`issues` 与 `baseline`。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可按帧区间并行。作品可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 放在仓库外。
+`init` 生成可准备的三秒主题示例；正式创作时改写分镜和 `scenes/opening.tsx`。五类使用同一命令：`validate`、`prepare`、`preview`、`lookdev`、`render`、`qa`、`status`、`review`、`sample`、`issues` 与 `baseline`。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可按帧区间并行。作品可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 放在仓库外。
 
 ## 命令
 
 运行 `uv run m2v --help` 查看入口与参数。类型目录通过 `m2v types` 查询；制作辅助操作使用 `m2v author`，金融来源计划使用 `m2v data financial-plan`。旧命令不保留别名。
+
+## 网页原生设计样品
+
+`m2v sample capture` 从作品 TSX 入口和可选参数直接构建网页、静帧及完整局部视频，无需完整分镜或配音；`sample serve` 提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。
+
+```powershell
+uv run m2v sample capture --project <作品> --entry scenes/core.tsx --duration-seconds 3 --frame 30
+uv run m2v sample serve --project <作品> --id <采集ID>
+uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
+```
+
+设计试制不限主动时长和重试次数，未通过持续打磨；AI 图只能辅助内部构思/参考，不能直接交付或贴入网页冒充核心实现。允许调研并引入外部库、模型、Shader、建模与预计算等手段，作品直接依赖改为可扩展登记，校验来源、固定版本、许可与实际安装。具体流程、适配边界及评审请求见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。采集凭据不自动判断审美或鉴别所有 AI 整图包装。
 
 ## 材料与画面
 

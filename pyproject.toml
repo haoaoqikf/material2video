@@ -27,6 +27,9 @@ dev = ["pytest>=8,<9"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"m2v.engine" = ["design_sample_viewer.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"

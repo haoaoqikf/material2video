@@ -78,6 +78,14 @@ def start(
 
     text(basis)
     identifier(manifest["id"])
+    if (outputs(root) / 'production/workflow.json').exists():
+        events, errors = history(root)
+        if (any(event['type'] == 'sample-captured' for event in events)
+                or any((outputs(root) / 'samples').glob('*/capture.json'))):
+            from . import issues
+            if errors or any(item['required'] and item['status'] != 'closed'
+                             for item in issues.load(root, required=True)):
+                raise M2VError('原生样品周期仍有未关闭必改项或历史无法核验，不能重开周期绕过')
     value = dict(
         version=VERSION,
         cycleId=uuid.uuid4().hex,

@@ -1,5 +1,5 @@
 import { staticFile } from 'remotion';
-import fontManifest from '@/assets/fonts.json';
+import fontManifest from './assets/fonts.json';
 
 /**
  * 字体的注册。

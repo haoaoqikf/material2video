@@ -115,3 +115,16 @@ uv run m2v render --project examples/text-motion/fold
 - 屏幕字幕为单行 28 字以内的短句；长于画面标题的句子已拆成两幕。
 - **没有英文斜体字幕行**：参考片在中文下方有一行斜体英文，本项目「画面注释从紧」倾向不加。
   这是有意的偏离，不是遗漏。
+
+## 原生试制入口
+
+本例可用现有场景入口验证最小网页采集（教学检查不等于本例已经完成新独立评审）：
+
+先把现有 storyboard.json 第一幕的 content.props 保存为作品内 sample-props.json，再运行：
+
+```powershell
+uv run m2v sample capture --project examples/text-motion/fold --entry scenes/fold.tsx --props sample-props.json --duration-seconds 1 --frame 15
+uv run m2v sample serve --project examples/text-motion/fold --id <采集ID>
+```
+
+参数决定当前局部效果；正式选案仍须提供实际目标、独立盲看与同轮对照，再通过 `sample deliver`。完整操作见[网页原生样品](../../../.agents/skills/material2video/references/design-samples.md)。已有全片分镜、声音及正式渲染保持原有入口，生成媒体不入库。

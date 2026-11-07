@@ -184,7 +184,7 @@ def test_unapproved_package_is_still_rejected(tmp_path):
     """新增批准项不能放宽边界：未批准的包仍然拒绝。"""
     _, _, result = prepare_build(tmp_path, "import _ from 'lodash';\nexport default () => _;\n")
     assert result.returncode != 0
-    assert "未批准的作品依赖" in result.stderr
+    assert "未登记的作品依赖" in result.stderr
 
 
 def test_cinematic_sdk_has_no_wall_clock_random_or_css_animation():

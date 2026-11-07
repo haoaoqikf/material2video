@@ -39,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("types", help="列出内置视频类型")
     from m2v.production.cli import add_parsers
     add_parsers(sub)
+    from m2v.production.sample_cli import add_parser as add_sample_parser
+    add_sample_parser(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")
     voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
     voices.add_argument("--json", action="store_true", help="输出 JSON")

@@ -6,7 +6,6 @@ Chromium 采集该块，编码并写 receipt。失败以非零退出码返回，
 from __future__ import annotations
 
 import json
-import shutil
 import sys
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from playwright.sync_api import sync_playwright
 
 from m2v.core.errors import M2VError
 from .capture import PURE_CONTRACT, _capture, _clip_receipt, _encode
+from .config import copy_build_outputs
 
 
 def run_job(job: dict) -> None:
@@ -22,7 +22,7 @@ def run_job(job: dict) -> None:
     output = Path(job["output"]).resolve()
     first, last = int(job["first"]), int(job["last"])
     work.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(job["sceneJs"], work / "scene.js")
+    copy_build_outputs(Path(job['sceneJs']).parent, work)
     config = job["config"]
     with sync_playwright() as playwright:
         probe = _capture(playwright, root, work, config, selected_frames=list(range(first, last)),

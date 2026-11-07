@@ -107,7 +107,8 @@ def scene_sources(root: Path, scene: dict) -> dict:
     for folder in (web / 'public/fonts', root / 'fonts'):
         if folder.exists():
             paths.update(p for p in folder.rglob('*') if p.is_file())
-    for name in ('src/fonts.ts', 'src/frames.ts', 'src/video-config.json', 'package.json', 'pnpm-lock.yaml'):
+    for name in ('src/fonts.ts', 'src/frames.ts', 'src/video-config.json', 'package.json', 'pnpm-lock.yaml',
+                 'code-scene-dependencies.json', 'scripts/code-scene-dependencies.mjs'):
         path = web / name
         if path.is_file():
             paths.add(path)

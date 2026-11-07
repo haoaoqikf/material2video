@@ -23,7 +23,7 @@ from m2v.core import security, source_policy
 from m2v.engine import audio, images
 from m2v.engine.http_server import LocalServer
 from .config import (WEB, build_scene, capture_settings, digest, implementation_inputs, media_files,
-                     require_cinematic_dependencies, scene_config, validate_entry)
+                     require_cinematic_dependencies, scene_config, validate_entry, copy_build_outputs)
 
 
 READY_TIMEOUT_MS = 30000
@@ -127,7 +127,7 @@ def record(root: Path, scene: dict, inputs: dict[str, str], *, frame: dict, medi
                         if begin > cursor:
                             gap = work / f"gap-{cursor}"
                             gap.mkdir()
-                            shutil.copyfile(work / "scene.js", gap / "scene.js")
+                            copy_build_outputs(work, gap)
                             target = cache / f"{key}-{cursor}-{begin}.mp4"
                             logger.info("代码场景 %s 采集缺口 %d～%d", scene["id"], cursor, begin)
                             runtime = dict(config)
@@ -399,7 +399,8 @@ def _capture(pw, root: Path, work: Path, config: dict, *, selected_frames: list[
     # 使用 JSON.parse 保留 __proto__ 等合法字典键；对象字面量会将其当成原型设置。
     # 外层字符串继续转义 <，避免作品字符串中的 </script> 提前终止脚本。
     config_text = json.dumps(json.dumps(runtime, ensure_ascii=True)).replace("<", "\\u003c")
-    (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8"></head>'
+    stylesheet = '<link rel="stylesheet" href="scene.css">' if (work / "scene.css").is_file() else ''
+    (work / "index.html").write_text('<!doctype html><html><head><meta charset="utf-8">' + stylesheet + '</head>'
         # 页面底色是编码兜底而不是作品主题：作品必须在 ready 之前自己画满不透明背景。
         '<body style="margin:0;overflow:hidden;background:#000">'
         f'<div id="root" style="width:{width}px;height:{height}px;overflow:hidden"></div>'

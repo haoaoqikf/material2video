@@ -131,6 +131,7 @@ def load(root: Path, *, required=False, check_closures=True, pending_report=None
 
 
 def scope(root, report):
+    from .samples import scope_sources
     private = read(
         ledger.directory(root)
         / "packages"
@@ -146,7 +147,7 @@ def scope(root, report):
             {k: item[k] for k in ("id", "window", "dynamic")}
             for item in request["items"]
         ],
-        "sources": request["sources"],
+        "sources": scope_sources(root, request),
         "sceneIds": request["sceneIds"],
     }
 

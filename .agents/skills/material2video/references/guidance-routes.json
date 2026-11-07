@@ -154,6 +154,11 @@
       "id": "inspiration",
       "when": "创作或实质性视听修订前必读；风格与表达方法自选",
       "guide": "references/visual-expression-inspiration.md"
+    },
+    {
+      "id": "native-design-sample",
+      "when": "设计试制、先看图片、原生网页样品或扩展外部实现手段",
+      "guide": "references/design-samples.md"
     }
   ],
   "ruleOwners": {

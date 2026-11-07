@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "packages": {
+    "react": {
+      "version": "19.3.0",
+      "source": "https://react.dev/",
+      "license": "MIT",
+      "integration": "场景宿主与同步提交；现有正式代码场景构建验证"
+    },
+    "react-dom": {
+      "version": "19.3.0",
+      "source": "https://react.dev/",
+      "license": "MIT",
+      "integration": "场景宿主与同步提交；现有正式代码场景构建验证"
+    },
+    "motion": {
+      "version": "14.3.0",
+      "source": "https://github.com/motiondivision/motion",
+      "license": "MIT",
+      "integration": "接入顺序受控时钟；pure-time须关闭自走状态并另行验证"
+    },
+    "three": {
+      "version": "0.186.1",
+      "source": "https://threejs.org/",
+      "license": "MIT",
+      "integration": "现有场景依赖；等待资源就绪并服从采集时钟，pure-time资格逐场验证"
+    },
+    "@react-three/fiber": {
+      "version": "9.8.2",
+      "source": "https://github.com/pmndrs/react-three-fiber#readme",
+      "license": "MIT",
+      "integration": "现有场景依赖；等待资源就绪并服从采集时钟，pure-time资格逐场验证"
+    },
+    "@react-three/drei": {
+      "version": "10.7.9",
+      "source": "https://github.com/pmndrs/drei",
+      "license": "MIT",
+      "integration": "现有场景依赖；等待资源就绪并服从采集时钟，pure-time资格逐场验证"
+    },
+    "gsap": {
+      "version": "3.15.0",
+      "source": "https://gsap.com",
+      "license": "Standard 'no charge' license: https://gsap.com/standard-license.",
+      "integration": "接入顺序受控时钟；pure-time须关闭自走状态并另行验证"
+    },
+    "echarts": {
+      "version": "6.1.0",
+      "source": "https://echarts.apache.org",
+      "license": "Apache-2.0",
+      "integration": "接入顺序受控时钟；pure-time须关闭自走状态并另行验证"
+    },
+    "postprocessing": {
+      "version": "6.39.5",
+      "source": "https://github.com/pmndrs/postprocessing",
+      "license": "Zlib",
+      "integration": "现有场景依赖；等待资源就绪并服从采集时钟，pure-time资格逐场验证"
+    },
+    "@react-three/postprocessing": {
+      "version": "3.2.0",
+      "source": "https://github.com/pmndrs/react-postprocessing#readme",
+      "license": "MIT",
+      "integration": "现有场景依赖；等待资源就绪并服从采集时钟，pure-time资格逐场验证"
+    }
+  },
+  "loaders": {
+    ".png": "dataurl",
+    ".jpg": "dataurl",
+    ".jpeg": "dataurl",
+    ".webp": "dataurl",
+    ".svg": "dataurl",
+    ".woff2": "dataurl",
+    ".ttf": "dataurl",
+    ".otf": "dataurl",
+    ".glb": "file",
+    ".gltf": "file",
+    ".bin": "file",
+    ".wasm": "file",
+    ".hdr": "file",
+    ".exr": "file",
+    ".glsl": "text",
+    ".vert": "text",
+    ".frag": "text",
+    ".wgsl": "text"
+  }
+}

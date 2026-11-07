@@ -16,9 +16,15 @@ Material2Video 以 Python 负责材料校验、准备、音频、证据与命令
 
 `src/m2v/type_system/catalog.json` 是五类名称、说明和初始化模板的单一来源；没有类别或风格注册。`registry.py` 把五类接到同一适配器。`project.json` 只接受 v2、五类 `type` 和 `materials.storyboard`。`scene_film/explainer.py` 校验 v9 分镜；`sources.py` 校验来源种类、作品内文件、场景引用并调用既有金融、建筑与汽车计算。准备结果经 `code_scenes/config.py` 注入场景，来源文件及实现共同进入指纹。旧材料、准备记录及 `m2v/style` 导入明确拒绝。
 
-作品场景只可从自身目录、`m2v/code-scene` 和批准的依赖导入。`web/scripts/build-code-scene.mjs` 执行边界检查；`src/m2v/production/dependencies.py` 为证据绑定相同的本地依赖。跨作品复用的数值滚动、图表与轨道在 `web/src/code-scene/motion-components/`；各示例只保留自身需要的组件与视觉参数。基础 CSS 在 `web/src/styles/`；字体来源、摘要、许可和恢复目标在 `fonts/registry.json`，字体二进制不入库。
+作品场景只可从自身目录、`m2v/code-scene` 和登记的依赖导入。`web/scripts/build-code-scene.mjs` 读取 `web/code-scene-dependencies.json` 校验作品直接依赖的精确安装版本和导入边界；`src/m2v/production/dependencies.py` 为证据绑定相同的本地依赖。跨作品复用的数值滚动、图表与轨道在 `web/src/code-scene/motion-components/`；各示例只保留自身需要的组件与视觉参数。基础 CSS 在 `web/src/styles/`；字体来源、摘要、许可和恢复目标在 `fonts/registry.json`，字体二进制不入库。
 
 `engine/` 负责通用媒体、渲染、音频与 QA；`production/` 负责媒体绑定评审、状态、问题与基线；`reference/` 负责参考素材。类型来源只提供经验证的数据，不反向改变共享制作流程。纯时间采集与多进程分段渲染沿统一代码场景实现。
+
+## 原生设计样品
+
+`engine/design_sample.py` 复用正式场景构建、配置、受控采集与编码，输出同源网页、静帧、完整局部视频及实际输入摘要；HTML 模板作为包资源分发。`production/samples.py` 将成功采集与当前周期事件绑定，复核来源/产物摘要，基于既有 review 包和独立报告执行交付检查；不建立第二套评审格式或自动审美算法。`sample_cli.py` 只负责参数、作品写锁、操作内指纹缓存和本地服务生命周期。
+
+网页预览仅暴露该次 bundle、受控时钟、登记媒体和字体，控制条不进入采集；来源变化后样品失效。依赖登记与加载器进入准备、样品与评审指纹。失败试制可以保留，只有交付检查通过才复制已评静帧与视频，不重新渲染。完整工作流见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。
 
 ## 契约与文档
 

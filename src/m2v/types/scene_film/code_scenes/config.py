@@ -60,7 +60,8 @@ def implementation_inputs() -> dict[str, str]:
     files = [Path(__file__),
              *(path for name in ("capture.py", "pure_capture.py", "worker.py")
                if (path := Path(__file__).with_name(name)).is_file()),
-             WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
+             WEB / "scripts/build-code-scene.mjs", WEB / "scripts/code-scene-dependencies.mjs",
+             WEB / "code-scene-dependencies.json", WEB / "package.json", WEB / "pnpm-lock.yaml",
              WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
              REPOSITORY_ROOT / "fonts/registry.json",
              WEB / "src/code-scene/entries.json",
@@ -171,12 +172,28 @@ def build_scene(root: Path, scene: dict, work: Path) -> dict[str, str]:
         raise M2VError(f"代码场景 {scene['id']} 构建失败：{exc}") from exc
     if result.returncode:
         raise M2VError(f"代码场景 {scene['id']} 构建失败：{result.stderr[-4000:]}")
+    built_inputs = json.loads((work / 'input-digests.json').read_text(encoding='utf-8'))
     source_inputs = {}
     for name in json.loads((work / "inputs.json").read_text(encoding="utf-8")):
         file = Path(name)
+        if digest(file) != built_inputs.get(str(file)):
+            raise M2VError(f'构建期间场景输入已变化：{file}；请重试')
         if file.is_relative_to(root):
             source_inputs["file:" + file.relative_to(root).as_posix()] = digest(file)
     return source_inputs
+
+
+def copy_build_outputs(source: Path, destination: Path) -> None:
+    """缺口、并行块和网页预览复用同一产物清单，避免漏掉CSS或模型资源。"""
+    names = json.loads((source / 'outputs.json').read_text(encoding='utf-8'))
+    for name in names:
+        path = (source / name).resolve()
+        target = (destination / name).resolve()
+        if (not path.is_relative_to(source.resolve()) or not path.is_file()
+                or not target.is_relative_to(destination.resolve())):
+            raise M2VError('场景构建产物缺失或越界')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
 
 
 def source_texts(root: Path) -> dict[str, str]:

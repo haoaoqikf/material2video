@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
+import {readSceneDependencies, requireRegisteredDependency} from './code-scene-dependencies.mjs';
 
 const [projectArg, entry, output] = process.argv.slice(2);
 const project = fs.realpathSync(projectArg);
@@ -27,27 +28,43 @@ function checkMathFonts() {
     }
   }
 }
-const approved = new Set(['react', 'react-dom', 'motion', 'three', '@react-three/fiber', '@react-three/drei', 'gsap', 'echarts',
-  'postprocessing', '@react-three/postprocessing']);
+const registered = readSceneDependencies(web);
+const checkedPackages = new Map();
+const inputDigests = new Map();
+const hash = contents => createHash('sha256').update(contents).digest('hex');
+const builtinLoaders = {'.js':'js','.jsx':'jsx','.mjs':'js','.cjs':'js','.ts':'ts','.tsx':'tsx','.css':'css','.json':'json','.txt':'text'};
 const within = (base, file) => {const rel = path.relative(base, file); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));};
 const result = await build({
   stdin: {contents: `import Scene from ${JSON.stringify(path.resolve(project, entry))}; import {mount} from ${JSON.stringify(path.join(web, 'src/code-scene/host.tsx'))}; mount(Scene);`, resolveDir: web, loader: 'tsx'},
   bundle: true, format: 'iife', platform: 'browser', jsx: 'automatic', metafile: true,
+  // 禁止隐式发现作品/父目录tsconfig；实际编译配置留在已绑定的构建脚本内。
+  tsconfigRaw: {compilerOptions: {target: 'ES2022', jsx: 'react-jsx', verbatimModuleSyntax: true,
+    useDefineForClassFields: true}},
   // 依赖里仍有 process.env.NODE_ENV 分支；浏览器没有 process，构建期直接折成 production。
   define: {'process.env.NODE_ENV': '"production"'},
   // 少数依赖在运行时读 process.emit / nextTick；给一个最小浏览器 shim，避免整幕静默失败。
   banner: {js: 'var process={env:{NODE_ENV:"production"},emit:function(){},emitWarning:function(){},nextTick:function(fn){Promise.resolve().then(fn);},browser:true,version:"",platform:"browser",cwd:function(){return "/";}};'},
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
-  loader: {'.png': 'dataurl', '.jpg': 'dataurl', '.jpeg': 'dataurl', '.webp': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl', '.otf': 'dataurl'},
+  loader: registered.loaders,
   plugins: [{name: 'project-boundary', setup(builder) {
     // 与 Vite 的 ?raw 保持一致；KaTeX 只读取排版 CSS，字体走受控恢复目标。
     builder.onResolve({filter: /^katex\/dist\/katex.min.css\?raw$/}, args => {
       if (args.importer !== path.join(web, 'src/code-scene/math.tsx')) return;
       return {path: require.resolve('katex/dist/katex.min.css'), namespace: 'raw-css'};
     });
-    builder.onLoad({filter: /.*/, namespace: 'raw-css'}, args => ({
-      contents: `export default ${JSON.stringify(fs.readFileSync(args.path, 'utf8'))}`, loader: 'js',
-    }));
+    builder.onLoad({filter: /.*/, namespace: 'raw-css'}, args => {
+      const contents = fs.readFileSync(args.path);
+      inputDigests.set(fs.realpathSync(args.path), hash(contents));
+      return {contents: `export default ${JSON.stringify(contents.toString('utf8'))}`, loader: 'js'};
+    });
+    builder.onLoad({filter: /.*/, namespace: 'file'}, args => {
+      const extension = path.extname(args.path);
+      const loader = registered.loaders[extension] ?? builtinLoaders[extension];
+      if (!loader) throw new Error(`未登记的场景资源加载方式：${extension}`);
+      const contents = fs.readFileSync(args.path);
+      inputDigests.set(fs.realpathSync(args.path), hash(contents));
+      return {contents, loader, resolveDir: path.dirname(args.path)};
+    });
     builder.onResolve({filter: /^m2v\/style(?:\/|$)/}, args => {
       throw new Error(`风格包入口已移除：${args.path}；请使用共享场景组件`);
     });
@@ -66,8 +83,10 @@ const result = await build({
         return {path: fs.realpathSync(file)};
       }
       const name = args.path.startsWith('@') ? args.path.split('/').slice(0, 2).join('/') : args.path.split('/')[0];
-      if (!approved.has(name)) throw new Error(`未批准的作品依赖：${args.path}`);
-      return {path: require.resolve(args.path)};
+      if (!checkedPackages.has(name)) checkedPackages.set(name, requireRegisteredDependency(web, registered, name));
+      const resolved = fs.realpathSync(require.resolve(args.path));
+      if (!within(checkedPackages.get(name), resolved)) throw new Error(`作品依赖导出越界：${args.path}`);
+      return {path: resolved};
     });
   }}],
 });
@@ -75,3 +94,6 @@ const inputs = Object.keys(result.metafile.inputs).filter(file => file !== '<std
   .map(file => file.replace(/^raw-css:/, ''))
   .map(file => fs.realpathSync(path.resolve(process.cwd(), file)));
 fs.writeFileSync(path.join(output, 'inputs.json'), JSON.stringify([...new Set(inputs)]));
+fs.writeFileSync(path.join(output, 'input-digests.json'), JSON.stringify(Object.fromEntries(inputDigests)));
+fs.writeFileSync(path.join(output, 'outputs.json'), JSON.stringify(Object.keys(result.metafile.outputs)
+  .map(file => path.relative(output, path.resolve(process.cwd(), file)))));

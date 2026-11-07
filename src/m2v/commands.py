@@ -20,6 +20,9 @@ from m2v.type_system import catalog, registry
 
 def dispatch(args) -> int:
     """按已解析的命令执行；错误交给 `m2v.cli.main` 统一映射为退出码。"""
+    if args.command == "sample":
+        from m2v.production.sample_cli import dispatch as sample_dispatch
+        return sample_dispatch(args)
     if args.command in {"review", "issues", "baseline"}:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)

@@ -99,12 +99,21 @@ def test_build_allows_approved_packages_and_records_sources(tmp_path):
     assert (project_dir / "scenes/demo.tsx").resolve() in reachable
 
 
+@pytest.mark.slow
+@requires_node
+def test_build_ignores_unbound_ambient_tsconfig(tmp_path):
+    (tmp_path / 'tsconfig.json').write_text('{ invalid ambient configuration', encoding='utf-8')
+    _, output, result = prepare_build(tmp_path, SOURCE)
+    assert result.returncode == 0, result.stderr
+    assert (output / 'input-digests.json').is_file()
+
+
 @pytest.mark.parametrize("source,match", [
-    ("import _ from 'lodash';\nexport default () => _.chunk([1, 2], 1);\n", "未批准的作品依赖"),
-    ("import 'lodash';\nexport default () => null;\n", "未批准的作品依赖"),
+    ("import _ from 'lodash';\nexport default () => _.chunk([1, 2], 1);\n", "未登记的作品依赖"),
+    ("import 'lodash';\nexport default () => null;\n", "未登记的作品依赖"),
     ("import x from '../../outside';\nexport default () => x;\n", "作品导入越界"),
-    ("import x from 'https://example.com/x.js';\nexport default () => x;\n", "未批准的作品依赖"),
-    ("import css from 'katex/dist/katex.min.css?raw';\nexport default () => css;\n", "未批准的作品依赖"),
+    ("import x from 'https://example.com/x.js';\nexport default () => x;\n", "未登记的作品依赖"),
+    ("import css from 'katex/dist/katex.min.css?raw';\nexport default () => css;\n", "未登记的作品依赖"),
 ])
 @pytest.mark.slow
 @requires_node
