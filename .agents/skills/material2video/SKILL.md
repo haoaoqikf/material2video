@@ -9,7 +9,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 先定位任务
 
-读取 project.json 确认类型与内容根。创作或实质性视听修订前完整阅读[创作总纲与灵感](references/visual-expression-inspiration.md)，本任务已读则不重复。风格与方法自由选择，不以符合某种风格验收。
+读取 project.json 确认类型与内容根。创作或实质性视听修订前完整阅读[创作总纲与灵感](references/visual-expression-inspiration.md)，本任务已读则不重复。风格与方法自由选择，不以符合风格列表验收；已选视觉目标须通过实际研究、试制与参考对照兑现。
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
@@ -25,7 +25,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 | 阶段 | 主指南 | 重点 |
 |---|---|---|
-| 研究与创意试制 | [研究与试制](references/stage-research.md) | 通过实际画面找到值得投入的方向 |
+| 研究与创意试制 | [研究与试制](references/stage-research.md) | 深入研究具体标杆，转化、试制并对照目标 |
 | 正式设计 | [完整设计与预演](references/stage-design.md) | 将有效创意组织成完整作品 |
 | 制作与验收 | [制作迭代与验收交付](references/stage-production.md) | 实现品质，验证整片并交付 |
 
@@ -33,9 +33,13 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 新作从研究与试制开始；修订先读[修订入口](references/video-revision.md)，沿有效基线进入受影响活动。有效试制继续完善，不重复制作同用途样片。完整设计前即可评审局部媒体，无需全片机器合同。
 
+第一阶段按[具体标杆与深入拆解](references/reference-video-analysis.md)连接观察、效果解释、本片采用和实际验证。整体美术、专项表现与信息表达参考各有用途；研究足以指导当前试验即可推进，代表性品质未成立前不铺满全片。先看方案图片的请求交付参考与当前画面的对应展示及未覆盖范围，局部修改复用有效研究。
+
 ## 评审与完成
 
 仅保留技术 QA 与[独立视觉评审](references/review-contract.md)。试制与终审使用独立子代理；全片预演和粗片查看是内部制作活动。技术通过、渲染成功或自审不能替代独立通过。实际观察与失败闭环见[视觉复核](references/visual-review-rubric.md)和[隔离执行](references/subagent-review.md)。
+
+有选定视觉目标时，同轮对照提供实际参考媒体与中性采用特征；清楚可读不等于目标美术效果成立，缺目标或过程时保持对应项未验证。工具只检查已声明输入与证据，不自动判断研究深度或审美。
 
 研究记于 RESEARCH.md，设计与制作依据记于 DESIGN.md，唯一问题和复查记录放在 outputs/visual-notes.md；只链接原始报告，不复制全文。状态工具只展示证据，阶段由助手依据指南判断。
 

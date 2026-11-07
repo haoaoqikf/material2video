@@ -102,12 +102,12 @@
     },
     {
       "id": "reference",
-      "when": "深度研究中实际拆解参考（无论是否采用），或用户要求学习、拆解、借鉴参考",
+      "when": "创作或实质性视听修订建立具体视觉标杆并深入拆解（无论是否采用），或用户要求学习、借鉴参考",
       "guide": "references/reference-video-analysis.md"
     },
     {
       "id": "design-research",
-      "when": "研究与创意试制中按当前关键未知开展研究、试验和补查",
+      "when": "研究与创意试制中连接具体标杆、深入研究、本片转化与代表性试制；局部修订按缺口复用或补查",
       "guide": "references/stage-research.md"
     },
     {

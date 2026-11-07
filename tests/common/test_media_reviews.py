@@ -66,6 +66,7 @@ def test_render_cleanup_preserves_bound_trial_and_reference_media(work):
     req = request()
     req["items"][0]["path"] = "previews/trial.png"
     req["references"] = ["previews/target.png"]
+    req["conditions"] = ["主体保持可辨轮廓，目标用于比较形体"]
     # 未导入的评审包也必须保留源媒体；包内副本并不解除来源摘要绑定。
     pack = reviews.package(root, manifest, req)
     assert cleanup_render_outputs(root, current) == []
@@ -302,17 +303,36 @@ def test_changed_scope_cannot_close_independent_problem(work):
         issues.update(root, problem)
 
 
+@pytest.mark.parametrize("conditions", [None, []])
+def test_reference_without_observable_conditions_is_rejected_before_pack(work, conditions):
+    root, manifest = work
+    req = request()
+    req["references"] = ["trial.png"]
+    if conditions is not None:
+        req["conditions"] = conditions
+    with pytest.raises(M2VError, match="conditions"):
+        reviews.package(root, manifest, req)
+    assert not (outputs(root) / "review-pack").exists()
+
+
 def test_target_comparison_follows_own_blind_observation(work):
     root, manifest = work
+    Image.new("RGB", (640, 360), "red").save(outputs(root) / "target.png")
     r = request()
-    r["references"] = ["trial.png"]
+    r["references"] = ["target.png"]
+    r["conditions"] = ["主体色彩与目标对应，边缘保持清晰"]
     pack = reviews.package(root, manifest, r)
     assert not list(pack.glob("target-*"))
+    assert not (pack / "conditions.json").exists()
     blind = reviews.import_report(root, manifest, report(work, pack))
     assert ledger.status(root, manifest)["trial"][0]["status"] == "insufficient"
     r.update(reviewType="consistency", blindId=blind["id"])
     compare = reviews.package(root, manifest, r)
-    assert list(compare.glob("target-*"))
+    target = next(compare.glob("target-*"))
+    assert target.name in {f["path"] for f in read(compare / "manifest.json")["files"]}
+    with Image.open(target) as image:
+        assert image.getpixel((0, 0)) == (255, 0, 0)
+    assert read(compare / "conditions.json") == r["conditions"]
     with pytest.raises(M2VError, match="同一评审者"):
         reviews.import_report(root, manifest, report(work, compare, who="another"))
     reviews.import_report(root, manifest, report(work, compare))
@@ -331,6 +351,10 @@ def test_neutral_conditions_are_withheld_until_blind_import(work):
     changed["conditions"] = ["改变原条件"]
     with pytest.raises(M2VError, match="相同媒体"):
         reviews.package(root, manifest, changed)
+    added_target = copy.deepcopy(r)
+    added_target["references"] = ["trial.png"]
+    with pytest.raises(M2VError, match="相同媒体"):
+        reviews.package(root, manifest, added_target)
     compare = reviews.package(root, manifest, r)
     assert read(compare / "conditions.json") == r["conditions"]
     reviews.import_report(root, manifest, report(work, compare))
@@ -482,11 +506,22 @@ def test_real_image_metadata_removed(tmp_path):
     metadata = PngImagePlugin.PngInfo()
     metadata.add_text("Author", "private-author")
     Image.new("RGB", (160, 90), "blue").save(out / "trial.png", pnginfo=metadata)
+    Image.new("RGB", (160, 90), "red").save(out / "target.png", pnginfo=metadata)
     r = request()
     r["sources"] = []
+    r["references"] = ["target.png"]
+    r["conditions"] = ["主体轮廓及色彩与目标对应"]
     pack = reviews.package(root, manifest, r)
     with Image.open(pack / "evidence-0000.png") as image:
         assert "Author" not in image.info
+    assert not list(pack.glob("target-*")) and not (pack / "conditions.json").exists()
+    blind = reviews.import_report(root, manifest, report((root, manifest), pack))
+    r.update(reviewType="consistency", blindId=blind["id"])
+    compare = reviews.package(root, manifest, r)
+    with Image.open(next(compare.glob("target-*"))) as image:
+        assert "Author" not in image.info
+        assert image.convert("RGB").getpixel((0, 0)) == (255, 0, 0)
+    assert read(compare / "conditions.json") == r["conditions"]
 
 
 @pytest.mark.media
@@ -639,6 +674,7 @@ def test_removing_target_cannot_close_original_visual_failure(work):
     root, manifest = work
     r = request()
     r["references"] = ["trial.png"]
+    r["conditions"] = ["主体轮廓与目标对应"]
     pack = reviews.package(root, manifest, r)
     reviews.import_report(root, manifest, report(work, pack, verdict="fail"))
     problem = issues.load(root)[0]

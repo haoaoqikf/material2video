@@ -13,6 +13,10 @@ STAGES = {'research', 'design', 'production'}
 TASKS = {'new', 'revision', 'review', 'diagnose'}
 OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '失败回退', '讲解机制', '实际表达',
           '运动实现', '过程证据容量'}
+RESEARCH_ROUTES = {
+    'design-research': 'references/stage-research.md',
+    'reference': 'references/reference-video-analysis.md',
+}
 
 
 def catalog_types() -> set[str]:
@@ -111,6 +115,9 @@ def validate(root: Path, routes: dict | None = None) -> dict[str, int]:
             raise M2VError('三阶段必须各有唯一主指南')
         if {r['id'] for r in tasks} != TASKS:
             raise M2VError('任务路由必须覆盖 new/revision/review/diagnose')
+        actual = {row['id']: row['guide'] for row in conditional}
+        if any(actual.get(key) != guide for key, guide in RESEARCH_ROUTES.items()):
+            raise M2VError('研究与参考拆解路由必须保留并指向各自权威指南')
         for name, keys in (('types', catalog_types()), ('ruleOwners', OWNERS)):
             if not isinstance(routes[name], dict) or set(routes[name]) != keys:
                 raise M2VError(f'{name} 缺少类型或规则归属')

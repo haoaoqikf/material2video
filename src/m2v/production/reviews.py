@@ -92,6 +92,9 @@ def validate_request(request):
         raise M2VError("conditions 必须为中性条件列表")
     for condition in request.get("conditions", []):
         text(condition)
+    # 只验证已声明目标的配套输入；研究深度与效果兑现仍须实际观察。
+    if request.get("references") and not request.get("conditions"):
+        raise M2VError("references 目标媒体必须配套非空 conditions，说明中性可观察采用特征")
     seen = set()
     for item in request["items"]:
         fields(item, {"id", "path", "window", "dynamic"})
@@ -298,12 +301,20 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                     str(target / f"target-{index:04d}{source.suffix.lower()}"),
                 ]
             )
-    (target / "questions.md").write_text(
+    questions = (
         "只读取本包。先保存实际看见的对象、变化、理解、视觉表现和疑问；"
         "记录查看窗口、显示尺寸、播放/帧序列/声音覆盖与限制。不能确认则 insufficient。"
-        "分别观察 understanding、presentation、representativeness；作者解释和技术通过不能补足实际效果。\n",
-        encoding="utf-8",
+        "分别观察 understanding、presentation、representativeness；表现须具体观察构图、主体、排版及适用材质光影，"
+        "不能仅凭清楚可读或无技术错误判定视觉品质。作者解释不能补足实际效果。\n"
     )
+    if review_type == "consistency":
+        questions += (
+            "对照实际目标媒体与 conditions 中的采用特征，记录兑现情况、具体差距、收益/损失及证据限制；"
+            "不能用理解通过替代视觉表现或代表性。\n"
+            if request.get("references") else
+            "本包仅核对中性条件，没有目标媒体；不得据此验证未提供的风格目标。\n"
+        )
+    (target / "questions.md").write_text(questions, encoding="utf-8")
     files = [receipt(target, p) for p in sorted(target.rglob("*")) if p.is_file()]
     pack = build_manifest(
         review_id=rid,

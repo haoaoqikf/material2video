@@ -59,8 +59,8 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收；原创高难度作品优先投入探索和实际试制。后两阶段合并为完整设计与预演、制作迭代和验收交付。
-- [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格和 12 种音效风格，创作或视听表达修订前必读；风格采用自选，新方案及展示型 HTML 草稿前须完成[设计前深度研究](.agents/skills/material2video/references/stage-research.md)。
+- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。第一阶段连接具体视觉标杆、深入拆解、本片转化、代表性实际试制及目标对照；品质方向成立后展开完整设计与预演，再制作迭代和验收交付。
+- [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格和 12 种音效风格，创作或视听表达修订前必读；名称用于拓展探索，采用自选。[深入风格研究](.agents/skills/material2video/references/reference-video-analysis.md)区分整体品质、专项表现和信息表达参考，记录实际观察、效果解释及本片应用；可随研究试制，未知触发补查，不以搜索数量或全部研究结束为前提。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
 - [OpenSpec 规格](openspec/specs/)：已实现行为。
 - [项目协作约定](AGENTS.md)：验证、提交与资产管理。
@@ -70,6 +70,8 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 ### 媒体评审
 
 `m2v review start|pack|import|timeline` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
+
+选定视觉目标时，先盲看作品自身，再用实际参考媒体和中性采用特征进行同轮对照；理解和可读性通过不能代替目标效果兑现。请求提供非空 `references` 时必须同时提供非空 `conditions`，缺失会在创建包前拒绝；原仅参考请求需补条件后重建，已有历史包不改写。工具校验已声明材料与证据，研究深度及视觉判断由实际观察负责。
 
 导出后清理会保护当前周期评审包仍绑定的预览源媒体和目标媒体；源文件仍参与证据摘要校验，无引用的旧预览继续清理。无法确认引用时报告并跳过清理。
 

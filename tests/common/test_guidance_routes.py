@@ -65,6 +65,18 @@ def test_invalid_routes_are_rejected(mutation, match):
         guidance_docs.validate(ROOT, value)
 
 
+@pytest.mark.parametrize('route_id', ['reference', 'design-research'])
+@pytest.mark.parametrize('mutation', ['remove', 'retarget'])
+def test_required_research_routes_cannot_disappear_or_point_elsewhere(route_id, mutation):
+    value = routes()
+    if mutation == 'remove':
+        value['conditional'] = [row for row in value['conditional'] if row['id'] != route_id]
+    else:
+        next(row for row in value['conditional'] if row['id'] == route_id)['guide'] = 'references/stage-production.md'
+    with pytest.raises(M2VError, match='研究与参考拆解路由'):
+        guidance_docs.validate(ROOT, value)
+
+
 def _pad(monkeypatch, entry: int, stage: int) -> None:
     original = guidance_docs.body
     entry_path = SKILL / 'SKILL.md'

@@ -11,7 +11,7 @@
 
 参考片为 `refs/douyin/7692873023291963558/video.mp4`（约62秒《重复》）。只查看过逐秒接触表与关键窗口静帧；不据此断言精确运动曲线、转场或音乐。参考文件与音轨不进入本片素材或声音链路。
 
-相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-plan.md#设计记录)、[独立子代理评审](../../../.agents/skills/material2video/references/subagent-review.md)。
+相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-design.md#设计记录)、[独立子代理评审](../../../.agents/skills/material2video/references/subagent-review.md)。当前深入研究与试制的适用演练见[示例指南](../../README.md#深入研究与试制演练)，不将历史静帧观察升级为当前风格或动态通过。
 
 ### Goals / Non-Goals
 
