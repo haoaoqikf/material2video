@@ -79,6 +79,12 @@
       "license": "MIT",
       "integration": "路径追踪包要求的同伴依赖；当前作品已有UV，不调用展开器，不加载其WASM。"
     },
+    "paperlab": {
+      "version": "0.8.1",
+      "source": "https://github.com/NourMtir0722/Paperlab",
+      "license": "Apache-2.0",
+      "integration": "通过公开getDeformer('roll')调用纯CPU顶点映射，固定半径、厚度和弧长；t=0，不挂载组件、交互、物理或自主时钟。与Three 0.186.1及React 19.3兼容；几何、网页及受控采集逐场实际验证。"
+    },
     "oidn-webgpu": {
       "version": "0.6.0",
       "source": "https://github.com/pissang/oidn-webgpu",

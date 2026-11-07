@@ -49,6 +49,8 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。版本与采用依据见[依赖登记](web/code-scene-dependencies.json)，许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
 
+卷纸几何试制可调用已登记的 Paperlab 公开纯 CPU 顶点变形器，按固定参数构建同心卷绕，不挂载其自动播放、交互或物理组件。其 [Apache-2.0 许可](docs/licenses/paperlab.txt)与 [NOTICE](docs/licenses/paperlab-notice.txt)、新增传递依赖 [Zod](docs/licenses/zod.txt)及 [three-custom-shader-material](docs/licenses/three-custom-shader-material.txt) 的许可一并保留；实际艺术效果与动画范围仍按当前媒体验证。
+
 ## 材料与画面
 
 `project.json` 只接受以下结构；`output` 可声明宽高、30/60 fps、声音和字幕配置：
