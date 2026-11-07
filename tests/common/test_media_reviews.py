@@ -49,6 +49,48 @@ def request():
     )
 
 
+def test_render_cleanup_preserves_bound_trial_and_reference_media(work):
+    from m2v.production.cleanup import cleanup_render_outputs
+
+    root, manifest = work
+    base = outputs(root)
+    trial = base / "previews/trial.png"
+    trial.parent.mkdir()
+    (base / "trial.png").rename(trial)
+    reference = base / "previews/target.png"
+    Image.new("RGB", (640, 360), "red").save(reference)
+    unused = base / "previews/unused.mp4"
+    unused.write_bytes(b"unused")
+    current = base / "video.mp4"
+    current.write_bytes(b"current")
+    req = request()
+    req["items"][0]["path"] = "previews/trial.png"
+    req["references"] = ["previews/target.png"]
+    # 未导入的评审包也必须保留源媒体；包内副本并不解除来源摘要绑定。
+    pack = reviews.package(root, manifest, req)
+    assert cleanup_render_outputs(root, current) == []
+    assert trial.is_file() and reference.is_file() and not unused.exists()
+    reviews.load_package(root, manifest, (pack / "manifest.json").relative_to(base).as_posix(),
+                         digest(pack / "manifest.json"))
+
+
+def test_render_cleanup_stops_when_review_binding_cannot_be_trusted(work):
+    from m2v.production.cleanup import cleanup_render_outputs
+
+    root, manifest = work
+    reviews.package(root, manifest, request())
+    record = next((ledger.directory(root) / "packages").glob("*.json"))
+    record.write_text("{}", encoding="utf-8")
+    base = outputs(root)
+    current = base / "video.mp4"
+    current.write_bytes(b"current")
+    old = base / "old.mp4"
+    old.write_bytes(b"old")
+    failures = cleanup_render_outputs(root, current)
+    assert failures and "未执行清理" in failures[0]
+    assert old.is_file() and current.is_file()
+
+
 def report(
     work,
     pack,

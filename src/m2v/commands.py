@@ -13,7 +13,6 @@ from pathlib import Path
 
 from m2v.core.delivery import candidate, outputs as delivery_outputs, read_record
 from m2v.core.errors import M2VError
-from m2v.core.output_cleanup import cleanup_after_render
 from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.core.workspace import CONTENT_ROOT_ENV
 from m2v.type_system import catalog, registry
@@ -192,10 +191,8 @@ def _project_command(args) -> int:
                 raise M2VError(f"无法解析正式成片路径：{output}: {exc}") from exc
             if not output_path.is_file():
                 raise M2VError(f"正式渲染没有生成成片：{output_path}")
-            expected_outputs = (root / "outputs").resolve()
-            failures = cleanup_after_render(expected_outputs, output_path,
-                preserve_previews=False,
-                preserve_visual_evidence=True)
+            from m2v.production.cleanup import cleanup_render_outputs
+            failures = cleanup_render_outputs(root, output_path)
             if failures:
                 for failure in failures:
                     print(f"[warning] 旧产物清理未完成：{failure}", file=sys.stderr)

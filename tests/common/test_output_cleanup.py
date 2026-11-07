@@ -66,6 +66,19 @@ def test_cleanup_refuses_to_run_when_current_video_is_outside_outputs(tmp_path: 
     assert external.read_bytes() == b"new"
 
 
+def test_cleanup_rejects_external_protection_before_deleting_files(tmp_path: Path) -> None:
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    current = outputs / "video.mp4"
+    current.write_bytes(b"current")
+    old = outputs / "old.mp4"
+    old.write_bytes(b"old")
+    failures = output_cleanup.cleanup_after_render(
+        outputs, current, protected_files=[tmp_path / "external.mp4"],
+    )
+    assert failures and old.is_file() and current.is_file()
+
+
 def test_financial_cleanup_can_preserve_bound_preview(tmp_path: Path) -> None:
     outputs = tmp_path / "outputs"
     outputs.mkdir()

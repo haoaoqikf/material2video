@@ -18,6 +18,8 @@
 
 调用记录包含 id、reviewerId、freshContext、startedAt、completedAt、inputPaths、readReportIds；时间有时区且晚于包创建，输入只来自包内已登记文件。盲看 readReportIds=[]，对照仅包含自身同轮盲看报告 ID。
 
+`freshContext` 记录评审代理最初创建时与作者上下文的隔离；同一隔离代理继续同轮对照时保持 `true`，不要求更换评审者。`inputPaths` 只列本次包内登记文件，自身盲看报告通过 `readReportIds` 单独追溯，不把包外报告路径再次放入 `inputPaths`。这两个字段的归类不改变实际读取范围、观察与结论；更正元数据须保留原件和原因，不补造调用。
+
 ## 评审包
 
 只读包位于 outputs/review-pack/<id>/，manifest.json 维护净化媒体、原生与手机帧、时间码与摘要；实际源路径、源码依赖和采用目标留在包外私有绑定。盲看不包含目标媒体；有采用目标时对照在盲看导入之后建立。已投喂包不得修改，问题应重建新包。

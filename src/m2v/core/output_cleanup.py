@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterable
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -15,7 +16,8 @@ _KNOWN_REGENERABLE_DIRS = {"previews", "qa", "bench", "review-contact-sheets"}
 
 
 def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, preserve_previews: bool = False,
-                         preserve_visual_evidence: bool = False) -> list[str]:
+                         preserve_visual_evidence: bool = False,
+                         protected_files: Iterable[Path] = ()) -> list[str]:
     """Clean old video/review artifacts without risking files outside outputs.
 
     Returns human-readable failures. A failure never removes the current render or
@@ -36,6 +38,21 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
 
     keep = {current}
     keep.update(current.with_suffix(suffix) for suffix in SIDECAR_SUFFIXES)
+    # 评审层解析自己的绑定；通用清理只接受本 outputs 内的具体文件，不认识评审格式。
+    try:
+        for path in protected_files:
+            resolved = path.resolve()
+            relative = path.absolute().relative_to(outputs)
+            if not relative.parts or not resolved.is_relative_to(outputs) or any(
+                outputs.joinpath(*relative.parts[:i]).is_symlink()
+                or (hasattr(outputs.joinpath(*relative.parts[:i]), 'is_junction')
+                    and outputs.joinpath(*relative.parts[:i]).is_junction())
+                for i in range(1, len(relative.parts) + 1)
+            ):
+                raise ValueError(f"受保护文件路径不安全：{path}")
+            keep.add(resolved)
+    except (OSError, RuntimeError, ValueError) as exc:
+        return [f"无法确认受保护文件，未执行清理：{exc}"]
     # 只保护当前候选，旧版本候选仍随成功交付清理；失败时调用方不进入清理。
     from .delivery import read_record
     record = read_record(outputs)
