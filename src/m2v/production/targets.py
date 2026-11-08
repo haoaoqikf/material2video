@@ -63,7 +63,7 @@ def validate_fresh_observation(root: Path, report: dict, position: int):
     events, _ = ledger.history(root)
     invocation = read(local(outputs(root), report['invocation']['path']))
     if datetime.fromisoformat(invocation['startedAt']) <= datetime.fromisoformat(events[position]['time']):
-        raise M2VError('独立观察必须在用户目标变更登记后重新开始')
+        raise M2VError('独立观察必须在失败或用户目标变更登记后重新开始')
 
 
 def register(root: Path, project: dict, request: dict) -> dict:

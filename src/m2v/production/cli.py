@@ -11,7 +11,7 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "import", "timeline", "retarget"))
+    review.add_argument("action", choices=("start", "pack", "import", "timeline", "retarget", "reuse"))
     review.add_argument("--project", required=True)
     review.add_argument("--file", help="评审请求、报告或用户目标变更 JSON")
     review.add_argument(
@@ -60,6 +60,11 @@ def dispatch(args):
             from .timeline import build
 
             result = {"path": str(build(root, manifest))}
+        elif args.action == "reuse":
+            from . import reuse
+            if not args.file:
+                raise M2VError('reuse 需要 --file 完整媒体视觉复用请求')
+            result = reuse.register(root, manifest, read(Path(args.file)))
         elif args.action == "retarget":
             from . import targets
 

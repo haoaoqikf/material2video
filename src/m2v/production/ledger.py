@@ -326,6 +326,9 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                         reviewType=report["reviewType"],
                         blindId=report.get("blindId"),
                     )
+                    from . import reuse
+                    if reuse.has_record(root, report['id']):
+                        row['visualReuse'] = reuse.resolve(root, manifest, report['id'])[3]
                 except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
                     row["detail"] = str(exc)
                 result[data["round"]].append(row)

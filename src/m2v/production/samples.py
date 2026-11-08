@@ -11,7 +11,7 @@ from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core import security
 from m2v.engine import design_sample
-from . import dependencies, issues, ledger, reviews
+from . import dependencies, issues, ledger, reviews, reuse
 from .model import fields, identifier, now, text
 from .storage import local, read, receipt, write
 
@@ -120,17 +120,18 @@ def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:
 def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparison_id: str, basis: str) -> dict:
     text(basis)
     value, directory = load(root, project, identity)
-    blind = reviews.current_report(root, project, identifier(blind_id))
-    comparison = reviews.current_report(root, project, identifier(comparison_id))
+    blind, _, blind_private, blind_reuse = reuse.evidence(root, project, identifier(blind_id))
+    comparison, _, comparison_private, comparison_reuse = reuse.evidence(root, project, identifier(comparison_id))
     if (blind['round'] != 'trial' or blind['reviewType'] != 'blind'
             or comparison['round'] != 'trial' or comparison['reviewType'] != 'consistency'
             or comparison.get('blindId') != blind_id
             or comparison['reviewerId'] != blind['reviewerId']):
         raise M2VError('样品交付需要同一评审者的当前trial盲看和同轮目标对照')
-    for report in (blind, comparison):
+    if blind_reuse != comparison_reuse:
+        raise M2VError('样品视觉复用须来自同一双报告收据')
+    for report, private in ((blind, blind_private), (comparison, comparison_private)):
         if report['verdict'] != 'pass' or report['isolation'] != 'independent-subagent':
             raise M2VError('样品独立评审尚未通过；继续迭代，不得交付')
-        _, private = reviews.load_package(root, project, report['packPath'], report['packSha256'])
         request = private['request']
         if (request['fps'] != value['fps'] or request['items'] != review_items(value)
                 or f'outputs/samples/{identity}/capture.json' not in request['sources']
@@ -143,6 +144,8 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
     target = local(outputs(root), f'sample-deliveries/{identity}/delivery.json', exists=False).parent
     selection = {'version': VERSION, 'sampleId': identity, 'capture': receipt(outputs(root), directory / 'capture.json'),
                  'blindId': blind_id, 'comparisonId': comparison_id, 'basis': basis}
+    if blind_reuse:
+        selection['visualReuse'] = blind_reuse
     if target.exists():
         saved = read(local(target, 'delivery.json'))
         if any(saved.get(key) != val for key, val in selection.items()) or not ledger.evidence_valid_at(target, saved.get('files', [])):

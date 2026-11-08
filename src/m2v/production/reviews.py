@@ -371,7 +371,15 @@ def load_package(root, manifest, pack_path, pack_sha256):
     )
 
 
-def _load_package(root, manifest, pack_path, pack_sha256):
+def historical_package(root, manifest, pack_path, pack_sha256):
+    """只读观察身份，不能直接授权当前作品；与当前技术验证分开缓存。"""
+    return ledger.query_value(
+        ('historical-package', root, pack_path, pack_sha256),
+        lambda: _load_package(root, manifest, pack_path, pack_sha256, historical=True),
+    )
+
+
+def _load_package(root, manifest, pack_path, pack_sha256, *, historical=False):
     path = local(outputs(root), pack_path)
     if (
         path.name != "manifest.json"
@@ -402,7 +410,13 @@ def _load_package(root, manifest, pack_path, pack_sha256):
         outputs(root), path
     ) or not ledger.evidence_valid_at(path.parent, pack["files"]):
         raise M2VError("包内证据摘要失配")
-    if private["binding"] != ledger.binding(root, manifest, private["request"]):
+    if historical:
+        # 仅显式视觉复用可忽略旧源码与当前源码的差异。封存请求、原摘要、
+        # 包内媒体以及完整源媒体/参考仍须完整，不能跳过整个旧绑定。
+        if not all(ledger.evidence_valid(root, private['binding'][key])
+                   for key in ('media', 'references') if private['binding'][key]):
+            raise M2VError('历史源媒体或参考摘要失配')
+    elif private["binding"] != ledger.binding(root, manifest, private["request"]):
         raise M2VError("来源、媒体或当前候选已变化，评审包过期")
     return pack, private
 
@@ -414,6 +428,14 @@ def current_report(root, manifest, report_id):
 
 
 def _current_report(root, manifest, report_id):
+    from . import reuse
+    if reuse.has_record(root, report_id):
+        return reuse.resolve(root, manifest, report_id)[0]
+    return sealed_report(root, manifest, report_id)
+
+
+def sealed_report(root, manifest, report_id, *, historical=False):
+    """核验真实封存身份；historical 不授权当前技术，只用于显式 trial 复用。"""
     identifier(report_id)
     events, errors = ledger.history(root)
     event = next(
@@ -431,7 +453,10 @@ def _current_report(root, manifest, report_id):
     ):
         raise M2VError("评审记录损坏、缺失或摘要失配")
     report = read(local(outputs(root), event["data"]["reportPath"]))
-    load_package(root, manifest, report["packPath"], report["packSha256"])
+    if historical:
+        historical_package(root, manifest, report['packPath'], report['packSha256'])
+    else:
+        load_package(root, manifest, report["packPath"], report["packSha256"])
     if not ledger.evidence_valid(root, [report["invocation"]]):
         raise M2VError("独立调用记录已变化")
     return report

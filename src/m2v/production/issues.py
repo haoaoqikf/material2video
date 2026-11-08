@@ -251,6 +251,7 @@ def validate_closure(root: Path, item: dict):
             }
             if positions[report["id"]] <= max(positions[item["reportId"]], target_position):
                 raise M2VError("复查必须晚于原失败及用户目标变更")
+            targets.validate_fresh_observation(root, report, positions[item['reportId']])
             targets.validate_fresh_observation(root, report, target_position)
         elif not ledger.evidence_valid(root, item.get("evidence", [])):
             raise M2VError("内部问题关闭需要实际复查证据")
