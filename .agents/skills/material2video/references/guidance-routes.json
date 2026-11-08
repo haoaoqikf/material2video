@@ -138,7 +138,7 @@
     {
       "id": "design-template",
       "when": "编写 DESIGN.md 最简设计记录",
-      "guide": "references/stage-design.md"
+      "guide": "references/scene-design.md#总设计模板"
     },
     {
       "id": "review-report",
@@ -159,6 +159,11 @@
       "id": "native-design-sample",
       "when": "设计试制、先看图片、原生网页样品或扩展外部实现手段",
       "guide": "references/design-samples.md"
+    },
+    {
+      "id": "scene-design",
+      "when": "设计、开发或实质修订场景；查询全片/场景模板、详细编排和对应检查",
+      "guide": "references/scene-design.md"
     }
   ],
   "ruleOwners": {

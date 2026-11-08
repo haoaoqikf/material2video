@@ -20,6 +20,7 @@
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
 - `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的唯一操作权威，连接具体标杆、深入拆解、本片转化、代表性试制与目标对照；研究足以支持当前试验即可推进，未知触发补查，品质方向成立后展开全片。作品 RESEARCH.md 保存研究，DESIGN.md 引用结论及实际视觉基线。
+- `.agents/skills/material2video/references/scene-design.md`：全片/场景设计分工、十二方面、节拍编排、渐进开发与对应检查的唯一权威；总设计维护共同语言和索引，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
 - `.agents/skills/material2video/references/reference-video-analysis.md`：具体视觉标杆、深入风格拆解与采用转化的方法权威；自创或融合风格同样适用，参考用途与实际查看范围须清楚，不能以风格标签或信息图规范替代美术研究。
 - `.agents/skills/material2video/references/visual-expression-inspiration.md`：创作或视听表达修订前必读，同一任务已读则不重复；风格采用自选，但新方案及展示型 HTML 草稿须按[研究与创意试制](.agents/skills/material2video/references/stage-research.md)执行，不因自创或不采用参考而跳过研究；风格列表不作为审美验收条件。
 - `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口；动态风格并入必读灵感文档，采用自选。

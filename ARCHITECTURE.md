@@ -26,6 +26,10 @@ Material2Video 以 Python 负责材料校验、准备、音频、证据与命令
 
 网页预览仅暴露该次 bundle、受控时钟、登记媒体和字体，控制条不进入采集；来源变化后样品失效。依赖登记与加载器进入准备、样品与评审指纹。失败试制可以保留，只有交付检查通过才复制已评静帧与视频，不重新渲染。完整工作流见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。
 
+## 分层设计材料
+
+`RESEARCH.md` 保存研究；`DESIGN.md` 保存全片目标、原始要求、采用范围、五维共同语言及索引；`design/scenes/<scene-id>.md` 保存详细编排与实际依据。分镜关联代码入口并维护正式执行参数，设计文档当前不渲染，不进入准备指纹。离线技能脚本只检查 ID、索引和链接，不判断审美或制作完成；流程与模板见[场景设计](.agents/skills/material2video/references/scene-design.md)。
+
 ## 契约与文档
 
 - [README](README.md)：当前能力、命令和示例入口。

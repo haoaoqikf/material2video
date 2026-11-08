@@ -1,32 +1,31 @@
-# 本轮示例设计
+# 全片设计：fold
 
-旧检查编号与报告仅保留为历史记录，不构成当前媒体评审体系的通过；本次未补造独立评审。
-本轮合并设计记录和执行引用，未重新渲染或补造独立评审；历史观察只作原版本依据。来源与许可继续沿用既有登记。
+## 目标、约束与选案依据
 
-## 全片原则
+以珠链突变、黏连和细胞形变解释因果。具体原始要求、选案和历史限制保留在[分层前原记录](design/previous-design.md)，不能将作者转化扩大或缩小为新授权。当前类型、画幅、帧率和精确时间以[project](project.json)及[分镜](storyboard.json)为准。
 
-相关方法：[设计记录](../../../.agents/skills/material2video/references/stage-design.md#设计记录)。
+## 当前硬约束与共同规则
 
-珠串、第 6 颗与细胞是贯穿对象；尺度变化从局部进入整体，回场用于理解由黏点到长杆再到细胞变形的关系。
+字幕为场景自绘 screenSubtitles，沿当前代码与分镜的行长/换行处理；珠链第6颗、黏点、团块和细胞承担不同阶段的同一因果。结论只在机制后出现，不用字幕替代接触过程。
 
-切镜理由：`mutation` 局部建立第 6 颗的玫红身份，`sickle` 拉远展示细胞结果，`fold` 回到珠链解释内部过程；`sticky` 与 `rod` 保持同一黏点／团块关系，`push` 回到细胞让结果获得因果含义。颜色和细胞轮廓是跨镜锚点，是否足够可辨仍须实际观察。
+## 五维共同语言与贯穿对象
 
-核心时间预算（秒，允许重叠）：4.4–8.4 建立并阅读突变，8.4–12.6 观察拉远与结果，15–19.2 阅读和观察折叠，19.2–22.8 留意黏点，22.8–26 观察团块接合，26–29.2 观察细胞变化与回场，29.2–33 消化结论。关键接触能否看清尚待完整窗口评审。
+珠链、第6颗玫红身份、黏点和细胞轮廓贯穿；视角变化保持对象可认回。文字与对象配合揭示，动作和接触承担机制；无旁白，声音以实际分镜为准。
 
-下表是计划与检查范围，不代表独立观察已通过。每个窗口同时核对阅读、动作与结果消化；必要时按实际画面细分，不能用时间表代替观察。
+## 结构、节奏与有效范围
 
-## 逐场设计表
+场序和执行时间由分镜维护；各场详细编排如下。当前依据整理自既有设计及实现，本轮没有补造研究、重新制作或授予独立通过。历史材料只支持其原范围；新修订按[场景设计指南](../../../.agents/skills/material2video/references/scene-design.md)补足实际目标与证据。
 
-以下是唯一逐场执行与验收索引。共享规则全片声明，具体窗口与行为以本行及其可编辑来源为准；修订后须实际复查，表格不代表当前已通过。
+## 场景索引
 
-| 幕 | 全片帧 [起,止) | 秒 | 认回锚点 | 时间预算与注意力（秒） | 实现与检查 |
-|---|---|---|---|---|---|
-| chain | 0–132 | 0.0–4.4 | 珠链整体与第 6 颗 | 0–0.5 建立；0.5–4.2 阅读并观察珠子逐颗出现 0.2–2.0；4.2–4.4 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=chain，事件以 storyboard.events 为准；check-chain，核对本行对象认回和动作先后 |
-| mutation | 132–252 | 4.4–8.4 | 第 6 颗的玫红身份 | 4.4–4.9 建立；4.9–6.0 观察翻面 5.73；6.0–8.2 阅读并观察突变结果；8.2–8.4 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=mutation，事件以 storyboard.events 为准；check-mutation，核对本行对象认回和动作先后 |
-| sickle | 252–378 | 8.4–12.6 | 细胞轮廓 | 8.4–8.9 建立；8.9–10.7 阅读并观察拉远；10.7–12.3 观察细胞弯曲 10.73；12.3–12.6 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=sickle，事件以 storyboard.events 为准；check-sickle，核对本行对象认回和动作先后 |
-| question | 378–450 | 12.6–15.0 | 同一细胞轮廓 | 12.6–12.9 建立；12.9–14.8 阅读并观察细胞全貌；14.8–15.0 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=question，事件以 storyboard.events 为准；check-question，核对本行对象认回和动作先后 |
-| fold | 450–576 | 15.0–19.2 | 第 6 颗与黏点 | 15.0–15.5 建立；15.0–17.0 阅读并观察折叠 17.00；17.0–18.9 观察氧分子落点 18.33；18.9–19.2 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=fold，事件以 storyboard.events 为准；check-fold，核对本行对象认回和动作先后 |
-| sticky | 576–684 | 19.2–22.8 | 同一黏点与鼓出的玫红珠子 | 19.2–19.7 建立；19.7–20.2 阅读；20.2–22.5 观察鼓出与脉冲 20.20；22.5–22.8 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=sticky，事件以 storyboard.events 为准；check-sticky，核对本行对象认回和动作先后 |
-| rod | 684–780 | 22.8–26.0 | 主团与接合部位 | 22.8–23.2 建立；23.2–23.7 阅读；23.7–25.1 观察八次接合 23.73–25.13；25.1–26.0 观察长杆成形 | [scenes/fold.tsx](scenes/fold.tsx) / scene=rod，事件以 storyboard.events 为准；check-rod，核对本行对象认回和动作先后 |
-| push | 780–876 | 26.0–29.2 | 同一细胞轮廓 | 26.0–26.4 建立；26.4–28.0 阅读并观察顶弯 28.00；28.0–28.9 观察细胞变形；28.9–29.2 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=push，事件以 storyboard.events 为准；check-push，核对本行对象认回和动作先后 |
-| closing | 876–990 | 29.2–33.0 | 同一细胞与长杆 | 29.2–29.5 建立；29.5–32.8 阅读并观察回到全貌 29.53；32.8–33.0 消化 | [scenes/fold.tsx](scenes/fold.tsx) / scene=closing，事件以 storyboard.events 为准；check-closing，核对本行对象认回和动作先后 |
+| scene.id | 叙事作用 | 场景设计 |
+|---|---|---|
+| chain | 血红蛋白、珠子、氨基酸 | [chain](design/scenes/chain.md) |
+| mutation | 镰状细胞、突变、谷氨酸 | [mutation](design/scenes/mutation.md) |
+| sickle | 红细胞、镰刀形、细胞形状 | [sickle](design/scenes/sickle.md) |
+| question | 血红蛋白、氧气、提问 | [question](design/scenes/question.md) |
+| fold | 蛋白质折叠、氧气、结合位点 | [fold](design/scenes/fold.md) |
+| sticky | 黏点、血红蛋白、表面 | [sticky](design/scenes/sticky.md) |
+| rod | 多聚、长杆、脱氧 | [rod](design/scenes/rod.md) |
+| push | 镰状细胞、长杆、细胞膜 | [push](design/scenes/push.md) |
+| closing | 镰状细胞病、Pauling、Ingram | [closing](design/scenes/closing.md) |

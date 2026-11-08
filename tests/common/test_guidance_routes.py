@@ -65,7 +65,7 @@ def test_invalid_routes_are_rejected(mutation, match):
         guidance_docs.validate(ROOT, value)
 
 
-@pytest.mark.parametrize('route_id', ['reference', 'design-research'])
+@pytest.mark.parametrize('route_id', ['reference', 'design-research', 'scene-design'])
 @pytest.mark.parametrize('mutation', ['remove', 'retarget'])
 def test_required_research_routes_cannot_disappear_or_point_elsewhere(route_id, mutation):
     value = routes()

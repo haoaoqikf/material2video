@@ -41,7 +41,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 有选定视觉目标时，同轮对照提供实际参考媒体与中性采用特征；清楚可读不等于目标美术效果成立，缺目标或过程时保持对应项未验证。工具只检查已声明输入与证据，不自动判断研究深度或审美。
 
-研究记于 RESEARCH.md，设计与制作依据记于 DESIGN.md，唯一问题和复查记录放在 outputs/visual-notes.md；只链接原始报告，不复制全文。状态工具只展示证据，阶段由助手依据指南判断。
+研究记于 RESEARCH.md，总设计和索引归 DESIGN.md，详细编排按[场景设计](references/scene-design.md)归 design/scenes/<scene-id>.md，唯一问题和复查记录放在 outputs/visual-notes.md；只链接原始报告，不复制全文。状态工具只展示证据，阶段由助手依据指南判断。
 
 ## 条件阅读
 

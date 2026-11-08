@@ -151,7 +151,7 @@ uv run m2v author assets search --project <目录> [--provider pixabay] [--kind 
 
 ### 声音语义与事件化
 
-声音角色、重复素材、密度与强弱变化都可按需使用，不要求预先固定角色、每个角色使用同一 `assetId` 或另建 `SOUND.md`。必要意图和时间关系复用 `DESIGN.md` 与既有分镜，素材来源、许可、参数和摘要仍登记在声音台账。
+声音角色、重复素材、密度与强弱变化都可按需使用，不要求预先固定角色、每个角色使用同一 `assetId` 或另建 `SOUND.md`。全片声音方向归 `DESIGN.md`，详细意图与配合归[场景设计](scene-design.md)，精确时间引用既有分镜，素材来源、许可、参数和摘要仍登记在声音台账。
 
 需要同步的动作可共用幕内事件：场景查询 `eventFrames`，音效引用 `eventId`，prepare 输出 `outputs/events.json` 供核对。声音预告或延迟反馈可用已有 `offsetFrames`；独立氛围与情绪声音可按现有显式时间定位，不要求每个声音都对应可见动作。事件或声音位置变化后仍须重新 prepare。
 

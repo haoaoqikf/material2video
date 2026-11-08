@@ -16,6 +16,7 @@ OWNERS = {'事实许可', '字体确定性', '独立隔离', '证据完成', '�
 RESEARCH_ROUTES = {
     'design-research': 'references/stage-research.md',
     'reference': 'references/reference-video-analysis.md',
+    'scene-design': 'references/scene-design.md',
 }
 
 
