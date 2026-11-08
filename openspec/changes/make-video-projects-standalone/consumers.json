@@ -1,0 +1,2108 @@
+{
+  "version": 1,
+  "basisCommit": "15cb8f74e4421c5764b29cdd85a34bfb7cca255c",
+  "scope": "按分镜实际entry递归解析本地引用；owner为TypeScript符号实际声明位置，不以SDK星导出整包冒充实际组件消费者。未入库历史作品不纳入新版改造。",
+  "examples": [
+    {
+      "path": "examples/data-evolution/compound-connect",
+      "sceneIds": [
+        "hook",
+        "proof",
+        "resolution"
+      ],
+      "entries": [
+        "scenes/hook.tsx",
+        "scenes/proof.tsx",
+        "scenes/resolution.tsx"
+      ],
+      "reachableFiles": [
+        "examples/data-evolution/compound-connect/scenes/components/burst.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/counter.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/hero-number.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/impact.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/kit.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+        "examples/data-evolution/compound-connect/scenes/components/stage.tsx",
+        "examples/data-evolution/compound-connect/scenes/hook.tsx",
+        "examples/data-evolution/compound-connect/scenes/model.ts",
+        "examples/data-evolution/compound-connect/scenes/proof.tsx",
+        "examples/data-evolution/compound-connect/scenes/resolution.tsx",
+        "examples/data-evolution/compound-connect/scenes/shared.tsx",
+        "examples/data-evolution/compound-connect/scenes/snow.tsx",
+        "examples/data-evolution/compound-connect/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/resolution.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/resolution.tsx",
+          "entry": "m2v/code-scene/math",
+          "symbol": "MathFormula",
+          "alias": "MathFormula",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/math.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/resolution.tsx",
+          "entry": "m2v/code-scene/math",
+          "symbol": "ensureMathReady",
+          "alias": "ensureMathReady",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/math.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "createSceneEvents",
+          "alias": "createSceneEvents",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/events.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "hashSeed",
+          "alias": "hashSeed",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "seededRandom",
+          "alias": "seededRandom",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/impact.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "ScreenBurstLayer",
+          "alias": "ScreenBurstLayer",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/effects/screen-burst.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/impact.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "BurstSpec",
+          "alias": "BurstSpec",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/effects/screen-burst.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/impact.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "DustSpec",
+          "alias": "DustSpec",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/effects/screen-burst.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "activeScreenSubtitle",
+          "alias": "activeScreenSubtitle",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "screenSubtitleEnvelope",
+          "alias": "screenSubtitleEnvelope",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "splitEmphasis",
+          "alias": "splitEmphasis",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "splitScreenSubtitle",
+          "alias": "splitScreenSubtitle",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "screenSubtitleCharacters",
+          "alias": "screenSubtitleCharacters",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "burstField",
+          "alias": "burstField",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "expandingRings",
+          "alias": "expandingRings",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/counter.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "rollNumber",
+          "alias": "rollNumber",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/primitives.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/counter.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Easing",
+          "alias": "Easing",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/primitives.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/hero-number.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "makeTransform",
+          "alias": "makeTransform",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/hero-number.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "scale",
+          "alias": "scaleTransform",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/transform-functions.d.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/proof.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "chartLinePath",
+          "alias": "chartLinePath",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/chart-geometry.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "pathDrawProps",
+          "alias": "pathDrawProps",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/paths.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "pathLength",
+          "alias": "pathLength",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/paths.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "pathTangentAtLength",
+          "alias": "pathTangentAtLength",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/paths.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-connect/scenes/hook.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/data-evolution/compound-interest",
+      "sceneIds": [
+        "compound"
+      ],
+      "entries": [
+        "scenes/compound.tsx"
+      ],
+      "reachableFiles": [
+        "examples/data-evolution/compound-interest/scenes/components/disc-layout.ts",
+        "examples/data-evolution/compound-interest/scenes/components/disc.tsx",
+        "examples/data-evolution/compound-interest/scenes/components/kit.tsx",
+        "examples/data-evolution/compound-interest/scenes/components/number-text.tsx",
+        "examples/data-evolution/compound-interest/scenes/compound.tsx",
+        "examples/data-evolution/compound-interest/scenes/compoundLayout.ts",
+        "examples/data-evolution/compound-interest/scenes/compoundMath.ts",
+        "examples/data-evolution/compound-interest/scenes/discs.tsx",
+        "examples/data-evolution/compound-interest/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "RollingNumber",
+          "alias": "RollingNumber",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/l2.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "SlideIn",
+          "alias": "SlideIn",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/l1.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "TextBlock",
+          "alias": "TextBlock",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/text.tsx"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "createSceneEvents",
+          "alias": "createSceneEvents",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/events.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "easeMotion",
+          "alias": "easeMotion",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/compound.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/data-evolution/compound-interest/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/documentary-edit/american-science-milestones",
+      "sceneIds": [
+        "opening",
+        "telegraph",
+        "telephone",
+        "flight",
+        "trinity",
+        "eniac",
+        "transistor",
+        "moon",
+        "arpanet",
+        "genome",
+        "llm",
+        "closing"
+      ],
+      "entries": [
+        "scenes/film.tsx"
+      ],
+      "reachableFiles": [
+        "examples/documentary-edit/american-science-milestones/scenes/components/archive-frame.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/components/chapter-text.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/components/credit-block.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/film.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/mechanisms.tsx",
+        "examples/documentary-edit/american-science-milestones/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/film.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Chart",
+          "alias": "Chart",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/sdk.tsx"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/film.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useMediaAsset",
+          "alias": "useMediaAsset",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/sdk.tsx"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/film.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/film.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "hashSeed",
+          "alias": "hashSeed",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "makeTransform",
+          "alias": "makeTransform",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "scale",
+          "alias": "scaleTransform",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/transform-functions.d.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "seededRandom",
+          "alias": "seededRandom",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "translate3d",
+          "alias": "translate3d",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/transform-functions.d.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/chapter-text.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "makeTransform",
+          "alias": "makeTransform",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/documentary-edit/american-science-milestones/scenes/components/chapter-text.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "translateY",
+          "alias": "translateY",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@remotion+animation-utils@4_bb8d0264db5bc992225cf3f7cc5b11bb/node_modules/@remotion/animation-utils/dist/transformation-helpers/make-transform/transform-functions.d.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/principle-metaphor/luck-on-stage",
+      "sceneIds": [
+        "hook",
+        "ledger",
+        "bridge",
+        "probability",
+        "bars",
+        "area",
+        "closing"
+      ],
+      "entries": [
+        "scenes/hook.tsx",
+        "scenes/ledger.tsx",
+        "scenes/bridge.tsx",
+        "scenes/probability.tsx",
+        "scenes/bars.tsx",
+        "scenes/area.tsx",
+        "scenes/closing.tsx"
+      ],
+      "reachableFiles": [
+        "examples/principle-metaphor/luck-on-stage/scenes/area.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/attempt.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/bars.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/bridge.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/closing.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/components/burst.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/components/kit.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/components/stage.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/cues.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/details.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/hook.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/ledger.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/portal.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/probability.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+        "examples/principle-metaphor/luck-on-stage/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/closing.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/details.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "burstField",
+          "alias": "burstField",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "createSceneEvents",
+          "alias": "createSceneEvents",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/events.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "painter",
+          "alias": "painter",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/painter/index.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/shared.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "hashSeed",
+          "alias": "hashSeed",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "seededRandom",
+          "alias": "seededRandom",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "activeScreenSubtitle",
+          "alias": "activeScreenSubtitle",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "screenSubtitleEnvelope",
+          "alias": "screenSubtitleEnvelope",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "splitEmphasis",
+          "alias": "splitEmphasis",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "splitScreenSubtitle",
+          "alias": "splitScreenSubtitle",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/screen-subtitle.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "screenSubtitleCharacters",
+          "alias": "screenSubtitleCharacters",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/subtitles.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/area.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/cues.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "samplePath",
+          "alias": "samplePath",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/cues.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "ScreenBurstLayer",
+          "alias": "ScreenBurstLayer",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/effects/screen-burst.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/cues.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Vec2",
+          "alias": "Vec2",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "burstField",
+          "alias": "burstField",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "expandingRings",
+          "alias": "expandingRings",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/components/burst.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "motionCurve",
+          "alias": "motionCurve",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/bars.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/probability.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "arcPath",
+          "alias": "arcPath",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/motion-components/gauge.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/probability.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/portal.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "particleField",
+          "alias": "particleField",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/primitives.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/bridge.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/ledger.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "painter",
+          "alias": "painter",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/painter/index.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/ledger.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/hook.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "sampleTrail",
+          "alias": "sampleTrail",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/dynamics.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/luck-on-stage/scenes/hook.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/principle-metaphor/pigeon",
+      "sceneIds": [
+        "box",
+        "feeder",
+        "wander",
+        "coincide",
+        "repeat",
+        "again"
+      ],
+      "entries": [
+        "scenes/pigeon.tsx"
+      ],
+      "reachableFiles": [
+        "examples/principle-metaphor/pigeon/scenes/components/fable-stage.tsx",
+        "examples/principle-metaphor/pigeon/scenes/components/kit.tsx",
+        "examples/principle-metaphor/pigeon/scenes/components/scene-note.tsx",
+        "examples/principle-metaphor/pigeon/scenes/components/screen-subtitle.tsx",
+        "examples/principle-metaphor/pigeon/scenes/components/top-line.tsx",
+        "examples/principle-metaphor/pigeon/scenes/pigeon.tsx",
+        "examples/principle-metaphor/pigeon/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/pigeon.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "createSceneEvents",
+          "alias": "createSceneEvents",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/events.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/pigeon.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/pigeon.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/pigeon.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "painter",
+          "alias": "painter",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/painter/index.ts"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "hashSeed",
+          "alias": "hashSeed",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "seededRandom",
+          "alias": "seededRandom",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/principle-metaphor/pigeon/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/spatial-3d/solar-system-journey",
+      "sceneIds": [
+        "solar-journey"
+      ],
+      "entries": [
+        "scenes/journey.tsx"
+      ],
+      "reachableFiles": [
+        "examples/spatial-3d/solar-system-journey/scenes/bodies.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/clock.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/components/kit.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/components/orbit-ring.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/flight.ts",
+        "examples/spatial-3d/solar-system-journey/scenes/journey.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/layout.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+        "examples/spatial-3d/solar-system-journey/scenes/tokens.json",
+        "examples/spatial-3d/solar-system-journey/scenes/world.tsx"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/journey.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/journey.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Look",
+          "alias": "Look",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/journey.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Shot",
+          "alias": "Shot",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Comet",
+          "alias": "Comet",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Corona",
+          "alias": "Corona",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "OortCloud",
+          "alias": "OortCloud",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "ParticleBelt",
+          "alias": "ParticleBelt",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Prominence",
+          "alias": "Prominence",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "THREE",
+          "alias": "THREE",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@types+three@0.186.0/node_modules/@types/three/build/three.module.d.ts",
+            "web/node_modules/.pnpm/three-mesh-bvh@0.8.3_three@0.186.1/node_modules/three-mesh-bvh/src/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useFrame",
+          "alias": "useFrame",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@react-three+fiber@9.8.2_@t_01a9e7affe0edb0927ca9e2a28a44985/node_modules/@react-three/fiber/dist/declarations/src/core/hooks.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useThree",
+          "alias": "useThree",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@react-three+fiber@9.8.2_@t_01a9e7affe0edb0927ca9e2a28a44985/node_modules/@react-three/fiber/dist/declarations/src/core/hooks.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Look",
+          "alias": "Look",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/solar-system.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Shot",
+          "alias": "Shot",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/flight.ts",
+          "entry": "m2v/code-scene",
+          "symbol": "THREE",
+          "alias": "THREE",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@types+three@0.186.0/node_modules/@types/three/build/three.module.d.ts",
+            "web/node_modules/.pnpm/three-mesh-bvh@0.8.3_three@0.186.1/node_modules/three-mesh-bvh/src/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/flight.ts",
+          "entry": "m2v/code-scene",
+          "symbol": "Shot",
+          "alias": "Shot",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/world.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "THREE",
+          "alias": "THREE",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@types+three@0.186.0/node_modules/@types/three/build/three.module.d.ts",
+            "web/node_modules/.pnpm/three-mesh-bvh@0.8.3_three@0.186.1/node_modules/three-mesh-bvh/src/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/world.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useFrame",
+          "alias": "useFrame",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@react-three+fiber@9.8.2_@t_01a9e7affe0edb0927ca9e2a28a44985/node_modules/@react-three/fiber/dist/declarations/src/core/hooks.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/world.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useMediaAsset",
+          "alias": "useMediaAsset",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/sdk.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/world.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useThree",
+          "alias": "useThree",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@react-three+fiber@9.8.2_@t_01a9e7affe0edb0927ca9e2a28a44985/node_modules/@react-three/fiber/dist/declarations/src/core/hooks.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/clock.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/clock.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/layout.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "THREE",
+          "alias": "THREE",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@types+three@0.186.0/node_modules/@types/three/build/three.module.d.ts",
+            "web/node_modules/.pnpm/three-mesh-bvh@0.8.3_three@0.186.1/node_modules/three-mesh-bvh/src/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/orbit-ring.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "THREE",
+          "alias": "THREE",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@types+three@0.186.0/node_modules/@types/three/build/three.module.d.ts",
+            "web/node_modules/.pnpm/three-mesh-bvh@0.8.3_three@0.186.1/node_modules/three-mesh-bvh/src/index.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Canvas",
+          "alias": "Canvas",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/sdk.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "LookProvider",
+          "alias": "LookProvider",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "PerspectiveCamera",
+          "alias": "PerspectiveCamera",
+          "typeOnly": false,
+          "owner": [
+            "web/node_modules/.pnpm/@react-three+drei@10.7.9_@r_5d644e05e1baa88bfcae216e17068586/node_modules/@react-three/drei/core/PerspectiveCamera.d.ts"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "PostFX",
+          "alias": "PostFX",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/postfx.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Starfield",
+          "alias": "Starfield",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/space.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Look",
+          "alias": "Look",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/space-stage.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "Shot",
+          "alias": "Shot",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/spatial-3d/solar-system-journey/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/text-motion/fold",
+      "sceneIds": [
+        "chain",
+        "mutation",
+        "sickle",
+        "question",
+        "fold",
+        "sticky",
+        "rod",
+        "push",
+        "closing"
+      ],
+      "entries": [
+        "scenes/fold.tsx"
+      ],
+      "reachableFiles": [
+        "examples/text-motion/fold/scenes/components/chapter-mark.tsx",
+        "examples/text-motion/fold/scenes/components/dip.tsx",
+        "examples/text-motion/fold/scenes/components/glow-text.tsx",
+        "examples/text-motion/fold/scenes/components/kit.tsx",
+        "examples/text-motion/fold/scenes/components/screen-subtitle.tsx",
+        "examples/text-motion/fold/scenes/fold.tsx",
+        "examples/text-motion/fold/scenes/layout.json",
+        "examples/text-motion/fold/scenes/tokens.json"
+      ],
+      "sharedImports": [
+        {
+          "file": "examples/text-motion/fold/scenes/fold.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/fold.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "CodeSceneProps",
+          "alias": "CodeSceneProps",
+          "typeOnly": true,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/fold.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "painter",
+          "alias": "painter",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/painter/index.ts"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "hashSeed",
+          "alias": "hashSeed",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "seededRandom",
+          "alias": "seededRandom",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/cinematic/camera.tsx"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene",
+          "symbol": "useSceneContext",
+          "alias": "useSceneContext",
+          "typeOnly": false,
+          "owner": [
+            "web/src/code-scene/context.ts"
+          ]
+        },
+        {
+          "file": "examples/text-motion/fold/scenes/components/kit.tsx",
+          "entry": "m2v/code-scene/serif",
+          "symbol": "default",
+          "alias": "serifUrl",
+          "owner": [
+            "web/src/code-scene/serif.ts"
+          ]
+        }
+      ]
+    }
+  ],
+  "sharedWebSourceGraph": {
+    "web/src/Root.tsx": {
+      "imports": [
+        "web/src/frames.ts",
+        "web/src/scene-film/SceneFilm.tsx",
+        "web/src/video-config.ts"
+      ],
+      "importedBy": [
+        "web/src/index.ts"
+      ]
+    },
+    "web/src/code-scene/chart-geometry.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/diagram.tsx",
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/index.ts",
+        "web/src/types/financial/chart.tsx"
+      ]
+    },
+    "web/src/code-scene/cinematic/camera.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/video-config.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/cinematic/index.tsx",
+        "web/src/code-scene/cinematic/postfx.tsx",
+        "web/src/code-scene/cinematic/space.tsx"
+      ]
+    },
+    "web/src/code-scene/cinematic/index.tsx": {
+      "imports": [
+        "web/src/code-scene/cinematic/camera.tsx",
+        "web/src/code-scene/cinematic/postfx.tsx",
+        "web/src/code-scene/cinematic/space.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/cinematic/postfx.tsx": {
+      "imports": [
+        "web/src/code-scene/cinematic/camera.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/cinematic/index.tsx"
+      ]
+    },
+    "web/src/code-scene/cinematic/space.tsx": {
+      "imports": [
+        "web/src/code-scene/cinematic/camera.tsx",
+        "web/src/code-scene/context.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/cinematic/index.tsx"
+      ]
+    },
+    "web/src/code-scene/context.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/cinematic/camera.tsx",
+        "web/src/code-scene/cinematic/space.tsx",
+        "web/src/code-scene/painter/usePainter.tsx",
+        "web/src/code-scene/sdk.tsx",
+        "web/src/code-scene/sources.tsx",
+        "web/src/types/building_construction/BuildingConstruction.tsx",
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/vehicle_showcase/VehicleShowcase.tsx"
+      ]
+    },
+    "web/src/code-scene/diagram.tsx": {
+      "imports": [
+        "web/src/code-scene/chart-geometry.ts"
+      ],
+      "importedBy": []
+    },
+    "web/src/code-scene/dynamics.ts": {
+      "imports": [
+        "web/src/code-scene/primitives.ts",
+        "web/src/code-scene/random.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/effects/screen-burst.tsx",
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/effects/screen-burst.tsx": {
+      "imports": [
+        "web/src/code-scene/dynamics.ts",
+        "web/src/code-scene/motion.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/events.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/frame-tasks.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/host.tsx"
+      ]
+    },
+    "web/src/code-scene/host.tsx": {
+      "imports": [
+        "web/src/code-scene/frame-tasks.ts",
+        "web/src/code-scene/sdk.tsx",
+        "web/src/fonts.ts"
+      ],
+      "importedBy": []
+    },
+    "web/src/code-scene/icons.ts": {
+      "imports": [],
+      "importedBy": []
+    },
+    "web/src/code-scene/math-fonts.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/math.tsx"
+      ]
+    },
+    "web/src/code-scene/math.tsx": {
+      "imports": [
+        "web/src/code-scene/math-fonts.ts"
+      ],
+      "importedBy": []
+    },
+    "web/src/code-scene/motion-components/charts.tsx": {
+      "imports": [
+        "web/src/code-scene/chart-geometry.ts",
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/gauge.tsx": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/index.ts": {
+      "imports": [
+        "web/src/code-scene/chart-geometry.ts",
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/gauge.tsx",
+        "web/src/code-scene/motion-components/l1.tsx",
+        "web/src/code-scene/motion-components/l2.tsx",
+        "web/src/code-scene/motion-components/morph.tsx",
+        "web/src/code-scene/motion-components/noise.tsx",
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion-components/pictogram.tsx",
+        "web/src/code-scene/motion-components/styles.ts",
+        "web/src/code-scene/motion-components/text.tsx",
+        "web/src/code-scene/motion-components/timeline.tsx",
+        "web/src/code-scene/motion-components/waveform.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/motion-components/l1.tsx": {
+      "imports": [
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion-components/styles.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/l2.tsx": {
+      "imports": [
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/morph.tsx": {
+      "imports": [
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/noise.tsx": {
+      "imports": [
+        "web/src/code-scene/motion-components/styles.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/paths.ts": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/index.ts",
+        "web/src/code-scene/motion-components/l1.tsx",
+        "web/src/code-scene/motion-components/l2.tsx",
+        "web/src/code-scene/motion-components/morph.tsx"
+      ]
+    },
+    "web/src/code-scene/motion-components/pictogram.tsx": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/styles.ts": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts",
+        "web/src/code-scene/motion-components/l1.tsx",
+        "web/src/code-scene/motion-components/noise.tsx"
+      ]
+    },
+    "web/src/code-scene/motion-components/text.tsx": {
+      "imports": [
+        "web/src/code-scene/primitives.ts",
+        "web/src/fonts.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/timeline.tsx": {
+      "imports": [
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion-components/waveform.tsx": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/motion-components/index.ts"
+      ]
+    },
+    "web/src/code-scene/motion.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/cinematic/camera.tsx",
+        "web/src/code-scene/effects/screen-burst.tsx",
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/l1.tsx",
+        "web/src/code-scene/motion-components/l2.tsx",
+        "web/src/code-scene/motion-components/morph.tsx",
+        "web/src/code-scene/motion-components/timeline.tsx",
+        "web/src/code-scene/sdk.tsx",
+        "web/src/code-scene/subtitles.ts",
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/financial/chart.tsx"
+      ]
+    },
+    "web/src/code-scene/painter/bloom.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/painter/index.ts",
+        "web/src/code-scene/painter/usePainter.tsx"
+      ]
+    },
+    "web/src/code-scene/painter/camera.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/painter/index.ts"
+      ]
+    },
+    "web/src/code-scene/painter/frame.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/painter/index.ts",
+        "web/src/code-scene/painter/usePainter.tsx"
+      ]
+    },
+    "web/src/code-scene/painter/index.ts": {
+      "imports": [
+        "web/src/code-scene/painter/bloom.ts",
+        "web/src/code-scene/painter/camera.ts",
+        "web/src/code-scene/painter/frame.ts",
+        "web/src/code-scene/painter/keyframes.ts",
+        "web/src/code-scene/painter/usePainter.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx",
+        "web/src/dev-gallery/main.tsx"
+      ]
+    },
+    "web/src/code-scene/painter/keyframes.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/painter/index.ts"
+      ]
+    },
+    "web/src/code-scene/painter/usePainter.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/painter/bloom.ts",
+        "web/src/code-scene/painter/frame.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/painter/index.ts"
+      ]
+    },
+    "web/src/code-scene/primitives.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/dynamics.ts",
+        "web/src/code-scene/motion-components/charts.tsx",
+        "web/src/code-scene/motion-components/gauge.tsx",
+        "web/src/code-scene/motion-components/l1.tsx",
+        "web/src/code-scene/motion-components/l2.tsx",
+        "web/src/code-scene/motion-components/morph.tsx",
+        "web/src/code-scene/motion-components/noise.tsx",
+        "web/src/code-scene/motion-components/paths.ts",
+        "web/src/code-scene/motion-components/pictogram.tsx",
+        "web/src/code-scene/motion-components/styles.ts",
+        "web/src/code-scene/motion-components/text.tsx",
+        "web/src/code-scene/motion-components/timeline.tsx",
+        "web/src/code-scene/motion-components/waveform.tsx",
+        "web/src/code-scene/rhythm.ts",
+        "web/src/code-scene/sdk.tsx",
+        "web/src/code-scene/subtitles.ts"
+      ]
+    },
+    "web/src/code-scene/random.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/dynamics.ts"
+      ]
+    },
+    "web/src/code-scene/rhythm.ts": {
+      "imports": [
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/code-scene/scene-fill.tsx": {
+      "imports": [],
+      "importedBy": [
+        "web/src/types/building_construction/BuildingConstruction.tsx",
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/vehicle_showcase/VehicleShowcase.tsx"
+      ]
+    },
+    "web/src/code-scene/sdk.tsx": {
+      "imports": [
+        "web/src/code-scene/cinematic/index.tsx",
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/dynamics.ts",
+        "web/src/code-scene/effects/screen-burst.tsx",
+        "web/src/code-scene/events.ts",
+        "web/src/code-scene/motion-components/index.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/painter/index.ts",
+        "web/src/code-scene/primitives.ts",
+        "web/src/code-scene/rhythm.ts",
+        "web/src/code-scene/subtitles.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/host.tsx",
+        "web/src/code-scene/sources.tsx"
+      ]
+    },
+    "web/src/code-scene/serif.ts": {
+      "imports": [],
+      "importedBy": []
+    },
+    "web/src/code-scene/sources.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/sdk.tsx",
+        "web/src/types/building_construction/BuildingConstruction.tsx",
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/vehicle_showcase/VehicleShowcase.tsx"
+      ],
+      "importedBy": []
+    },
+    "web/src/code-scene/subtitles.ts": {
+      "imports": [
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/primitives.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sdk.tsx"
+      ]
+    },
+    "web/src/contract/bridge.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/scene-film/contract.tsx"
+      ]
+    },
+    "web/src/dev-gallery/main.tsx": {
+      "imports": [
+        "web/src/code-scene/painter/index.ts",
+        "web/src/dev-gallery/simulation.ts"
+      ],
+      "importedBy": []
+    },
+    "web/src/dev-gallery/simulation.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/dev-gallery/main.tsx"
+      ]
+    },
+    "web/src/fonts.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/code-scene/host.tsx",
+        "web/src/code-scene/motion-components/text.tsx",
+        "web/src/index.ts",
+        "web/src/production/player.tsx",
+        "web/src/scene-film/SceneFilm.tsx"
+      ]
+    },
+    "web/src/frames.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/Root.tsx",
+        "web/src/scene-film/SceneFilm.tsx"
+      ]
+    },
+    "web/src/index.ts": {
+      "imports": [
+        "web/src/Root.tsx",
+        "web/src/fonts.ts",
+        "web/src/runtime/offline-guard.ts"
+      ],
+      "importedBy": []
+    },
+    "web/src/production/player.tsx": {
+      "imports": [
+        "web/src/fonts.ts",
+        "web/src/scene-film/SceneFilm.tsx"
+      ],
+      "importedBy": []
+    },
+    "web/src/runtime/offline-guard.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/index.ts"
+      ]
+    },
+    "web/src/scene-film/SceneFilm.tsx": {
+      "imports": [
+        "web/src/fonts.ts",
+        "web/src/frames.ts",
+        "web/src/transitions.tsx"
+      ],
+      "importedBy": [
+        "web/src/Root.tsx",
+        "web/src/production/player.tsx"
+      ]
+    },
+    "web/src/scene-film/contract-main.tsx": {
+      "imports": [
+        "web/src/scene-film/contract.tsx"
+      ],
+      "importedBy": []
+    },
+    "web/src/scene-film/contract.tsx": {
+      "imports": [
+        "web/src/contract/bridge.ts"
+      ],
+      "importedBy": [
+        "web/src/scene-film/contract-main.tsx"
+      ]
+    },
+    "web/src/transitions.tsx": {
+      "imports": [],
+      "importedBy": [
+        "web/src/scene-film/SceneFilm.tsx"
+      ]
+    },
+    "web/src/types/building_construction/BuildingConstruction.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/scene-fill.tsx",
+        "web/src/types/building_construction/geometry.ts",
+        "web/src/types/building_construction/model.ts"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sources.tsx"
+      ]
+    },
+    "web/src/types/building_construction/geometry.ts": {
+      "imports": [
+        "web/src/types/building_construction/model.ts"
+      ],
+      "importedBy": [
+        "web/src/types/building_construction/BuildingConstruction.tsx"
+      ]
+    },
+    "web/src/types/building_construction/model.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/types/building_construction/BuildingConstruction.tsx",
+        "web/src/types/building_construction/geometry.ts"
+      ]
+    },
+    "web/src/types/financial/FinancialTimeSeries.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/code-scene/scene-fill.tsx",
+        "web/src/types/financial/chart.tsx",
+        "web/src/types/financial/design.ts",
+        "web/src/types/financial/overlay.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sources.tsx"
+      ]
+    },
+    "web/src/types/financial/chart.tsx": {
+      "imports": [
+        "web/src/code-scene/chart-geometry.ts",
+        "web/src/code-scene/motion.ts",
+        "web/src/types/financial/design.ts"
+      ],
+      "importedBy": [
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/financial/overlay.tsx"
+      ]
+    },
+    "web/src/types/financial/design.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/types/financial/FinancialTimeSeries.tsx",
+        "web/src/types/financial/chart.tsx",
+        "web/src/types/financial/overlay.tsx"
+      ]
+    },
+    "web/src/types/financial/overlay.tsx": {
+      "imports": [
+        "web/src/types/financial/chart.tsx",
+        "web/src/types/financial/design.ts"
+      ],
+      "importedBy": [
+        "web/src/types/financial/FinancialTimeSeries.tsx"
+      ]
+    },
+    "web/src/types/vehicle_showcase/VehicleShowcase.tsx": {
+      "imports": [
+        "web/src/code-scene/context.ts",
+        "web/src/code-scene/scene-fill.tsx"
+      ],
+      "importedBy": [
+        "web/src/code-scene/sources.tsx"
+      ]
+    },
+    "web/src/video-config.ts": {
+      "imports": [],
+      "importedBy": [
+        "web/src/Root.tsx",
+        "web/src/code-scene/cinematic/camera.tsx"
+      ]
+    },
+    "web/src/vite-env.d.ts": {
+      "imports": [],
+      "importedBy": []
+    }
+  },
+  "sdkSubpaths": {
+    "m2v/code-scene/diagram": "diagram.tsx",
+    "m2v/code-scene/math": "math.tsx",
+    "m2v/code-scene/icons": "icons.ts",
+    "m2v/code-scene/sources": "sources.tsx",
+    "m2v/code-scene/serif": "serif.ts"
+  },
+  "sourceBaselineCommit": "262f26aad083447fcf0bca32ad67421d70b4bf96"
+}

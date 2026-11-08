@@ -1,0 +1,29 @@
+{
+  "version": 9,
+  "schemaVersion": 9,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "新作品",
+  "input": {
+    "kind": "topic",
+    "topic": "新作品"
+  },
+  "targetSeconds": 3,
+  "scenes": [
+    {
+      "id": "opening",
+      "template": "code",
+      "content": {
+        "title": "开场",
+        "entry": "scenes/opening.tsx",
+        "props": {}
+      },
+      "narrationSegments": [],
+      "keywords": [
+        "新作品"
+      ],
+      "durationFrames": 90
+    }
+  ]
+}
