@@ -41,6 +41,8 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 选案由作者依据实际媒体和独立观察作出，明确参考采用范围、保留项、必修项和打磨项；仍可改善的次要处理不自动否决已成立的整体方向。`m2v review reuse --project <作品> --file <复用请求.json>` 支持同周期 trial 完整媒体字节及观察条件完全相同的视觉结论复用，重新验证当前技术来源，保留原独立报告和观察时间；不能绕过失败、用户目标变更或当前完整候选终审。格式与限制见[视觉复用](.agents/skills/material2video/references/review-contract.md#完整媒体相同的-trial-视觉复用)。
 
+用户原始视觉要求、实际选中媒体与范围保留在设计和既有对照条件中，作者转化不得自行限缩；对照先检查目标转化忠实性，再检查画面兑现。整体风格向不同解释内容展开须有代表性迁移试制，不能仅用终态或同色同字体授权全片。用户指出偏离后保留旧报告并记录未完成，旧工具通过不替代真实要求，详见[采用边界](.agents/skills/material2video/references/review-contract.md#采用边界与选案责任)。
+
 ```powershell
 uv run m2v sample capture --project <作品> --entry scenes/core.tsx --duration-seconds 3 --frame 30
 uv run m2v sample serve --project <作品> --id <采集ID>
