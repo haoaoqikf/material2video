@@ -2,7 +2,7 @@
 
 > **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
 
-新建作品已使用独立工程 v3：逐帧接口在作品 `src/code-scene/`，依赖与构建器属于作品，禁止导入 `m2v/*`。运行与恢复见[独立工程说明](../../../../templates/standalone/README.md)。原生样品采集已委托本地实现，播放只用作品字体和登记媒体。本页后续共享SDK路径为存量实现参考；七例与lookdev／时间线正在按[变更任务](../../../../openspec/changes/make-video-projects-standalone/tasks.md)改造，不能用存量入口代替 v3 工程的本地运行。
+新建作品已使用独立工程 v3：逐帧接口在作品 `src/code-scene/`，依赖与构建器属于作品，禁止导入 `m2v/*`。运行与恢复见[独立工程说明](../../../../templates/standalone/README.md)。原生样品采集已委托本地实现，播放只用作品字体和登记媒体。本页后续共享SDK路径为存量实现参考；七例与lookdev／时间线的独立化结果见[归档记录](../../../../openspec/changes/archive/2026-11-08-make-video-projects-standalone/implementation-examples.md)，不能用存量入口代替 v3 工程的本地运行。
 
 完整分镜准备之前的代表性原生试制使用 `m2v sample capture/serve/deliver`，复用本页构建、受控采集与编码；依赖扩展、资源加载器、网页预览及完成条件见[网页原生样品](design-samples.md)。该入口不代替正式全片准备与验收。
 

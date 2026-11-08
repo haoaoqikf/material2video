@@ -6,49 +6,39 @@
 ## Requirements
 
 ### Requirement: 文章内容与仓库解耦
+系统 SHALL 保持文章内容及产物不入主项目Git，允许通过 --content-root 或 M2V_CONTENT_ROOT 创建作品。初始化默认归属仍为 videos/<type>/<slug>，七例仍为 examples/<type>/<slug>；已有独立作品 SHALL 能在任意目录直接执行或通过显式 --project 使用，SHALL NOT 为运行强制要求上级目录名称或主项目标记。作品 SHALL 拥有全部本地运行输入，SHALL NOT 生成主项目web/.gen入口、挂载主项目资源或读取共享依赖。
 
-系统 SHALL 把文章内容视为**仓库之外的内容**：仓库 SHALL NOT 跟踪文章目录下的源文件
-（`videos/<类型路径>/<slug>/`），文章源文件与产物 SHALL 可以位于仓库外的工作区目录。
-`<类型路径>` 固定为五类之一 `<type>`。
+#### Scenario: 任意位置运行
+- **WHEN** 独立作品被复制到含空格的新目录，未设置内容根且主项目不存在
+- **THEN** 按作品自身说明可恢复、构建、预览与导出，所有产物归作品。
 
-系统 SHALL 支持两层根：**仓库根**（前端工程与共享组件所在处）与**工作区根**
-（存放 `videos/<类型路径>/<slug>`、`examples/<type>/<slug>` 与作品目录下 `outputs/` 的目录）。工作区根 SHALL 按
-`--content-root` > `M2V_CONTENT_ROOT` > 仓库根 的优先级解析；未提供两个来源时
-工作区根 SHALL 等于仓库根。
-
-输入文件位于仓库根的规范目录（`videos/<类型路径>/<slug>` 或 `examples/<type>/<slug>`）时，归属 SHALL 按仓库根判定；
-位于其他位置时 SHALL 按工作区根判定。两者都不满足时系统 SHALL 报错，
-SHALL NOT 猜测归属，并 SHALL 在错误信息中给出 `--content-root` 与 `M2V_CONTENT_ROOT`
-两条设置方式。系统 SHALL NOT 再把顶层 `examples/<slug>/` 视为规范目录。
-
-作品的专属画面以工作区根下的 React 模块声明，系统 SHALL 据此生成前端工程的动态入口。
-该入口文件 SHALL 由工具生成、SHALL NOT 入库，SHALL 落在前端工程所在目录（仓库
-`web/.gen/` 下）；入口 SHALL 记录工作区根，使内容根位于仓库之外时作品模块仍能被解析
-与打包。
+#### Scenario: 初始化内容根
+- **WHEN** 使用显式内容根或环境变量初始化任一五类作品
+- **THEN** 仍按显式参数优先于环境变量、环境变量优先于仓库根的顺序选择创建位置，创建完整独立工程。
 
 #### Scenario: 未设置内容根
-- **WHEN** 既没有 `--content-root` 也没有 `M2V_CONTENT_ROOT`，输入文件位于仓库的 `videos/text-motion/demo/`
-- **THEN** 工作区根为仓库根，源目录为该文章目录，产物写入 `<仓库根>/videos/text-motion/demo/outputs/`
+- **WHEN** 初始化时没有内容根参数或环境变量
+- **THEN** 默认在主项目videos/<type>/<slug>创建完整工程，生成后执行不依赖该父目录。
 
 #### Scenario: 内容根指向仓库外
-- **WHEN** `--content-root` 或 `M2V_CONTENT_ROOT` 指向仓库外目录，输入文件位于 `<内容根>/videos/text-motion/demo/`
-- **THEN** 源目录为该文章目录，产物写入 `<内容根>/videos/text-motion/demo/outputs/`，且命令与工作目录无关
+- **WHEN** 初始化时内容根指向仓库外
+- **THEN** 在指定内容根创建完整工程，恢复和运行不需要主项目web目录。
 
 #### Scenario: 仓库内优先
-- **WHEN** 已设置内容根，而输入文件位于仓库根的 `examples/documentary-edit/american-science-milestones/`
-- **THEN** 归属仍按仓库根判定，产物写入 `<仓库根>/examples/documentary-edit/american-science-milestones/outputs/`
+- **WHEN** 已设置内容根而显式操作仓库内的独立示例
+- **THEN** 始终使用被显式选中的示例根，输出保留在该示例目录。
 
 #### Scenario: 无法推导归属
-- **WHEN** 输入文件既不在仓库根的 `videos/<类型路径>/<slug>` 或 `examples/<type>/<slug>` 内，也不在已解析的工作区根内
-- **THEN** 命令报错并列出实际路径，错误信息包含 `--content-root` 与 `M2V_CONTENT_ROOT`
+- **WHEN** 显式作品路径不是有效独立工程且无法读取其manifest
+- **THEN** 明确报告实际作品路径和缺失／无效材料，不猜测其他作品；独立有效工程不因位于任意目录而失败。
 
 #### Scenario: 内容根里的作品带专属画面
-- **WHEN** 作品与它的专属画面模块位于仓库外的内容根下
-- **THEN** 生成的动态入口记录该工作区根并引入该模块，渲染正常完成
+- **WHEN** 作品和场景位于仓库外
+- **THEN** 构建使用作品自身入口、配置及依赖，不向主项目写动态入口。
 
 #### Scenario: 生成入口不入库
-- **WHEN** 生成动态入口之后检查版本控制状态
-- **THEN** 入口目录被忽略，不产生待提交的改动
+- **WHEN** 作品构建生成临时入口
+- **THEN** 入口只位于作品忽略的缓存／输出目录，不向主项目写文件。
 
 ### Requirement: 产物归属作品目录
 

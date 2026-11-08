@@ -2,7 +2,7 @@
 
 Material2Video 是短视频制作指导与工具链。新建作品使用 `project.json` v3 和分镜 v9，拥有自己的运行源码、依赖锁、资源恢复与 `SceneFilm` 合成；主项目通过本地入口委托校验、准备、片段检查与完整导出。画面可由代码生成，也可使用登记过的真实媒体。架构边界见 [ARCHITECTURE.md](ARCHITECTURE.md)，操作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-独立工程改造主体已完成：七部存量示例已原地改为独立工程，运行源码、依赖锁、字体与资源恢复、预览、采集和导出都归作品；`lookdev`、时间线与 QA 读取本地产物。主项目只保留制作指导、初始化、可选组件参考和制作管理；旧 `web/` 源码仅作参考与测试夹具，不参与任何作品运行。独立审查与 OpenSpec 归档正在收尾。
+独立工程改造已完成：七部存量示例已原地改为独立工程，运行源码、依赖锁、字体与资源恢复、预览、采集和导出都归作品；`lookdev`、时间线与 QA 读取本地产物。主项目只保留制作指导、初始化、可选组件参考和制作管理；旧 `web/` 源码仅作参考与测试夹具，不参与任何作品运行。独立审查与 OpenSpec 归档已完成。
 
 ## 当前视频类型
 
@@ -80,7 +80,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 ## 示例与文档
 
-七部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出；主题、场景身份、数学／事实口径和音轨要求保持不变。素材与媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。逐例改造范围与实际验证见[示例独立化记录](openspec/changes/make-video-projects-standalone/implementation-examples.md)和 [examples/README.md](examples/README.md)。
+七部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出；主题、场景身份、数学／事实口径和音轨要求保持不变。素材与媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。逐例改造范围与实际验证见[示例独立化记录](openspec/changes/archive/2026-11-08-make-video-projects-standalone/implementation-examples.md)和 [examples/README.md](examples/README.md)。
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。

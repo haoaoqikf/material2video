@@ -8,6 +8,8 @@
 
 ### Requirement: 共享动效原语以进度为唯一时间输入
 
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
 系统 SHALL 提供以下共享原语，供作品 `scenes/` 导入：数字滚动、数据曲线与柱状生长、列表滚屏、主体状态插值、签名粒子。
 
 每个原语 MUST 只接受 `progress`（0–1）作为时间输入，MUST NOT 读取挂钟时间、帧号、上一帧状态或外部计时器。相同 `progress` 与相同参数 MUST 产生相同画面。
@@ -28,6 +30,8 @@
 
 ### Requirement: 原语必须支持确定性录制
 
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
 原语 MUST 在 60 fps 与任意采样帧率下按 `progress` 求值，MUST NOT 依赖逐帧累积状态。包含随机性的原语 MUST 由显式种子决定；未提供种子时 MUST 使用固定默认种子。
 
 原语 MUST NOT 要求播放视频、试听或读取外部资源；其输出 MUST 限于场景画布内的绘制。
@@ -42,15 +46,19 @@
 
 ### Requirement: 原语变更必须使引用作品缓存失效
 
-原语属于共享渲染资产。修改原语实现或默认参数 MUST 使引用它的作品片段缓存失效，并要求重新准备与复查受影响场景；MUST NOT 静默复用旧片段，也不得以"原语未变而场景未变"为由保留旧缓存。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+实际采用的原语属于作品本地渲染输入。修改作品本地采用的原语实现或默认参数 MUST 使引用它的作品片段缓存失效，并要求重新准备与复查受影响场景；MUST NOT 静默复用旧片段，也不得以"原语未变而场景未变"为由保留旧缓存。
 
 #### Scenario: 修改原语后复用旧片段
-- **WHEN** 原语实现变化而作品场景源码未变
+- **WHEN** 作品内实际采用的原语实现变化而场景源码未变
 - **THEN** 引用该原语的片段判定过期，重新录制后重新完成完整预演
 
 ### Requirement: 共享命名曲线库
 
-系统 SHALL 在 `web/src/code-scene/motion.ts` 提供一组只依赖 `progress` 的命名缓动曲线，并从 `m2v/code-scene` 导出。曲线 MUST 为纯函数，输入 0–1、输出可插值数值；MUST NOT 读取时间、随机源或外部状态。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+采用命名曲线的作品 SHALL 在本地动效模块提供一组只依赖 `progress` 的命名缓动曲线，并从 作品本地动效模块 导出。曲线 MUST 为纯函数，输入 0–1、输出可插值数值；MUST NOT 读取时间、随机源或外部状态。
 
 曲线库 SHALL 至少覆盖：线性、缓入、缓出、缓入缓出、指数缓出、回弹落定和五阶缓入缓出。命名 SHALL 表达方向与强度，不表达具体品牌或主题。相机与原语 SHALL 共用同一套命名，不得各自维护重复曲线。
 
@@ -64,7 +72,9 @@
 
 ### Requirement: 轨迹、爆散与字幕原语
 
-系统 SHALL 在 `web/src/code-scene/` 提供以下纯数值原语，并从 `m2v/code-scene` 导出：
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+采用相关能力的作品 SHALL 在本地提供对应纯数值原语：
 
 - `samplePath`：按弧长把单子路径 SVG path 采样为等距点；多子路径 MUST 明确失败，不把不连续段当作一条轨迹；
 - `sampleTrail`：沿点列按 `progress` 与尾迹长度采样位置、切线、年龄与透明度；
@@ -76,7 +86,7 @@
 
 所有原语 MUST 只接受显式 `progress`/0–1 进度、显式种子与显式缓动，MUST NOT 读取挂钟、帧号、上一帧状态、DOM、外部资源或计时器。相同参数与进度 MUST 产生相同输出。端点 MUST 透明或零值，不留下上一帧残影。原语 MUST NOT 内置颜色、字体、线宽、题材或事件时刻。
 
-路径采样与锥形笔触 MAY 复用 MIT 许可的 `svg-path-properties` 与 `perfect-freehand`；引入第三方纯函数 MUST 在 `m2v/code-scene` 内封装，风格组件与作品 MUST NOT 直接导入。新增动效或可视化组件前 MUST 先检索并评估外部成熟方案，只有在无法满足逐帧确定性、许可、包体或风格边界时才允许自研，并在设计记录中写明结论。
+路径采样与锥形笔触 MAY 复用 MIT 许可的 `svg-path-properties` 与 `perfect-freehand`；引入第三方纯函数 MUST 在作品内明确声明和锁定，可直接导入或在本地封装。新增动效或可视化组件前 MUST 先检索并评估外部成熟方案，只有在无法满足逐帧确定性、许可、包体或风格边界时才允许自研，并在设计记录中写明结论。
 
 #### Scenario: 同一进度重复求值
 
@@ -100,9 +110,11 @@
 
 ### Requirement: 共享动效组件复用现有原语
 
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
 共享 L2 组件 SHALL 复用 `primitives.ts` 与 `motion.ts`：`RollingNumber` 使用 `rollNumber`，`BarGrowth` 使用 `growSeries`，L1/L2 的缓动使用 `motion.ts` 的命名曲线或显式 `easing`。MUST NOT 复制一套近似的数字滚动、生长比例或缓动实现。
 
-`primitives.ts` 的五项原语 MUST 继续存在并从 `m2v/code-scene` 导出；本能力 MUST NOT 删除或替换它们。
+实际消费者仍使用的原语 MUST 在相应作品内存在；未采用原语不要求复制、安装或导出，删除参考前须核对消费者。
 
 #### Scenario: 数字滚动
 - **WHEN** `RollingNumber` 以 `from`、`to`、`progress` 求值
@@ -113,12 +125,14 @@
 - **THEN** 各柱比例来自 `growSeries`，不复制 stagger 计算
 
 #### Scenario: 缓动来源
-- **WHEN** 共享组件需要缓动
+- **WHEN** 动效参考实现需要缓动
 - **THEN** 使用调用方显式传入的 easing 或 `motion.ts` 命名曲线，不内置另一套近似曲线
 
 ### Requirement: 整屏粒子、环境微尘与节拍原语
 
-系统 SHALL 在 `web/src/code-scene/` 提供以下纯数值原语，并从 `m2v/code-scene` 导出：
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+采用相关能力的作品 SHALL 在本地提供对应纯数值原语：
 
 - `explosionField`：按 `progress`、显式 seed、原点、最终位移 `reach`、寿命、阻力、重力、深度范围、bokeh/streak/dust 比例求值分层粒子；返回位置、速度、年龄、尺寸、透明度、深度、模糊、角度、streak 与层名。
 - `moteField`：按 `progress`、seed、画布尺寸、漂移与周期求值持续环境微尘。
@@ -151,7 +165,9 @@
 
 ### Requirement: 共享动效组件以进度为唯一时间输入
 
-系统 SHALL 从 `m2v/code-scene` 提供共享 L1 组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine`；以及 L2 组件：`RollingNumber`、`Typewriter`、`MarkerHighlight`、`BarGrowth`、`Callout`。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+系统 SHALL 在采用时本地提供共享 L1 组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine`；以及 L2 组件：`RollingNumber`、`Typewriter`、`MarkerHighlight`、`BarGrowth`、`Callout`。
 
 每个组件 MUST 只接受 `progress`（0–1）、显式 `easing`、几何与样式参数作为动画输入，MUST NOT 读取挂钟时间、帧号、上一帧状态、计时器、rAF、CSS 动画或 Remotion context。相同 `progress` 与相同参数 MUST 产生相同输出。随机性 MUST 只来自显式 `seed`，未提供时 MUST 使用固定默认种子。
 
@@ -160,7 +176,7 @@
 - **THEN** 两次输出一致，不受调用时刻、调用顺序或录制模式影响
 
 #### Scenario: pure-time 场景使用
-- **WHEN** 一个声明 `capture.mode: "pure-time"` 的场景使用共享组件
+- **WHEN** 一个声明 `capture.mode: "pure-time"` 的场景使用动效参考实现
 - **THEN** 正序、倒序与并行块采集得到同一帧一致的结果，不因时间源失败
 
 #### Scenario: 显式种子
@@ -169,29 +185,33 @@
 
 ### Requirement: 共享动效组件提供明确的使用边界
 
-系统 SHALL 用 `@remotion/paths` 处理 SVG 路径生长、形变、沿线取点与几何变换，用 `@remotion/animation-utils` 处理 CSS 数值、颜色与 transform 插值，用 `@remotion/layout-utils` 做文本测量与单行适配，用 `@remotion/noise` 生成种子噪声，用 `d3-scale`/`d3-shape` 计算图表的比例尺与曲线，用 `roughjs` 生成手绘高亮几何。MUST NOT 把 `@remotion/paths` 用于 Canvas 点列、把 `@remotion/animation-utils` 用于 SVG 数值属性或 Three.js 数值、把 `@remotion/layout-utils` 的多行切词用于中文、或用 `roughjs` 草图化作品已有艺术路径。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
 
-系统 SHALL NOT 引入 `@remotion/shapes`、`@remotion/lottie`、`@remotion/transitions` 与 `@remotion/motion-blur`：`lottie` 的许可与 `useCurrentFrame` 驱动方式不适用于 code scene；`transitions` 与 `motion-blur` 只适用于 Remotion composition，code scene 的运动模糊继续使用既有子帧方案；标准形状暂用现有 SVG。
+选择沿用本套参考源码时，其内部 SHALL 用 `@remotion/paths` 处理 SVG 路径生长、形变、沿线取点与几何变换，用 `@remotion/animation-utils` 处理 CSS 数值、颜色与 transform 插值，用 `@remotion/layout-utils` 做文本测量与单行适配，用 `@remotion/noise` 生成种子噪声，用 `d3-scale`/`d3-shape` 计算图表的比例尺与曲线，用 `roughjs` 生成手绘高亮几何。MUST NOT 把 `@remotion/paths` 用于 Canvas 点列、把 `@remotion/animation-utils` 用于 SVG 数值属性或 Three.js 数值、把 `@remotion/layout-utils` 的多行切词用于中文、或用 `roughjs` 草图化作品已有艺术路径。
+
+第三方组件采用 MUST 核对许可、上下文和逐帧适配。依赖composition上下文的组件不得直接用于缺少该上下文的代码场景；场景运动模糊可采用已验证的本地子帧方案。不设置跨作品的固定库禁用清单。
 
 #### Scenario: SVG 路径生长
-- **WHEN** 组件或作品需要按进度画出一条 SVG 路径
-- **THEN** 使用共享 paths 封装的 `evolvePath` 结果，不手写 `pathLength` + `strokeDashoffset`
+- **WHEN** 作品选择沿用本套参考的路径绘制组件
+- **THEN** 参考组件复用本地paths实现；作品可直接采用已声明并锁定的第三方路径能力，不要求主项目封装
 
 #### Scenario: 文本测量
-- **WHEN** 需要按宽度自动定字号或换行
-- **THEN** 使用 `AutoFitText`/`TextBlock`；中文多行不得直接使用 `fillTextBox`/`fitTextOnNLines`
+- **WHEN** 作品选择沿用本套参考的文本测量组件
+- **THEN** 参考组件按已验证的中文换行边界处理，作品可自行采用其他经过验证的本地排版实现
 
 #### Scenario: 图表几何
-- **WHEN** 需要纯时间安全的折线或面积
-- **THEN** 使用共享图表组件，不直接 import `d3-scale`/`d3-shape`
+- **WHEN** 作品采用纯时间安全的折线或面积
+- **THEN** 可采用本地图表组件或直接导入已声明并锁定的d3-scale／d3-shape；须满足纯时间求值边界
 
 #### Scenario: Canvas 绘制
-- **WHEN** 需要 Canvas 点列、粒子、辉光或量测
-- **THEN** 继续使用 Painter/primitives，不引入 paths/animation-utils
+- **WHEN** 作品选择沿用本套参考的Canvas点列、粒子或辉光
+- **THEN** 参考组件复用本地Painter／primitives；作品可另选经过适配验证的实现，不设置全局库禁用
 
 ### Requirement: 现有风格组件复用共享动效组件
 
-现有风格组件 MUST 在保持公开名称与 props 兼容的前提下复用共享实现：描线与图表生长使用 paths；transform/filter/颜色使用 animation-utils；数字滚动使用 `rollNumber`；引线使用共享 `Callout`/`DrawLine`。作品与风格组件 MUST 通过 `m2v/code-scene` 使用这些能力，MUST NOT 直接 import `@remotion/*` 或 `roughjs`。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+选择沿用的参考组件 MUST 在不改变其实际消费者语义的前提下复用作品采用的本地实现：描线与图表生长使用 paths；transform/filter/颜色使用 animation-utils；数字滚动使用 `rollNumber`；引线使用共享 `Callout`/`DrawLine`。作品与风格组件 MUST 通过 作品本地动效模块 使用这些能力，MUST 将直接采用的第三方依赖声明并锁定在作品内。
 
 #### Scenario: 风格组件内部替换
 - **WHEN** `HandDrawnLine`、`ChartLine`、`ChartArrow`、`HeroNumber` 或 `Callout` 的内部实现被替换
@@ -199,23 +219,27 @@
 
 #### Scenario: 直接外部依赖
 - **WHEN** 作品或风格组件直接 import `@remotion/paths`、`@remotion/animation-utils` 或 `roughjs`
-- **THEN** 构建或契约测试拒绝该 import，要求改用 `m2v/code-scene`
+- **THEN** 按作品依赖和锁文件解析，不要求经过主项目包装
 
 ### Requirement: 共享动效组件必须可测试
 
-共享组件 SHALL 有纯函数/静态标记测试，覆盖进度端点、重复求值、显式缓动与固定种子；SHALL 进入代码场景实现指纹，并以契约测试检查确定性源码闸门与 SDK 导出。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+保留的动效参考实现 SHALL 有纯函数／静态标记测试，覆盖进度端点、重复求值、显式缓动与固定种子；作品实际采用的本地副本 SHALL 进入该作品对应代码场景输入指纹，并验证确定性源码闸门与本地导出。主项目参考源码本身不得成为作品运行输入。
 
 #### Scenario: 修改共享组件
-- **WHEN** 共享组件实现或默认参数变化
-- **THEN** 引用它的代码场景准备指纹失效，CLI 不再复用旧片段
+- **WHEN** 作品本地采用的动效实现或默认参数变化
+- **THEN** 引用该本地实现的代码场景准备指纹失效，CLI 不再复用旧片段
 
 #### Scenario: 源码闸门
-- **WHEN** 共享组件源码引入挂钟、随机源、计时器或 CSS 动画
+- **WHEN** 动效参考实现源码引入挂钟、随机源、计时器或 CSS 动画
 - **THEN** 契约测试失败并指出文件
 
 ### Requirement: 文本排版组件
 
-系统 SHALL 从 `m2v/code-scene` 提供 `AutoFitText` 与 `TextBlock`。两者 MUST 只按传入的文本、宽度、字号、字体与 `progress` 计算，MUST NOT 读取挂钟、帧号或上一帧状态。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+系统 SHALL 在采用时本地提供 `AutoFitText` 与 `TextBlock`。两者 MUST 只按传入的文本、宽度、字号、字体与 `progress` 计算，MUST NOT 读取挂钟、帧号或上一帧状态。
 
 文本测量 MUST 只在浏览器进行；字体未就绪时 MAY 回退到调用方字号或原始分行，但字体就绪后 MUST 重测一次。CJK 换行 MUST NOT 依赖按空格切词：中文按字形单元断行，收尾标点 MUST NOT 出现在行首，超长西文单词 MUST 被硬断。Node/SSR 环境下 MUST NOT 抛出测量错误。
 
@@ -233,7 +257,9 @@
 
 ### Requirement: 图形变换、遮罩与仪表
 
-系统 SHALL 从 `m2v/code-scene` 提供 `PathMorph`、`MaskReveal`、`ArcGauge`、`ProgressRing` 与 `NoiseDrift`（含 `noiseAt`、`noiseDrift`）。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+系统 SHALL 在采用时本地提供 `PathMorph`、`MaskReveal`、`ArcGauge`、`ProgressRing` 与 `NoiseDrift`（含 `noiseAt`、`noiseDrift`）。
 
 `PathMorph` MUST 通过 `interpolatePath` 做逐点插值，MUST NOT 承诺拓扑匹配。`MaskReveal` MUST 输出静态 `clip-path`，MUST NOT 使用 CSS transition 或动画。噪声 MUST 只由显式 seed 与坐标求值；未提供 seed 时 MUST 使用固定默认值。所有组件 MUST 只由 `progress` 与显式 `easing` 驱动。
 
@@ -251,7 +277,9 @@
 
 ### Requirement: 纯时间安全图表
 
-系统 SHALL 从 `m2v/code-scene` 提供 `LinePlot`、`AreaPlot`、`Sparkline` 与 `Axis`。它们 MUST 只做数值映射与静态 SVG，MUST NOT 使用 ECharts、`Chart`、`useFrame`、计时器或自走动画。折线 MUST 按进度生长，面积 MUST 按进度从左向右揭示。坐标轴与标注 MUST 由调用方组合，组件不自动排版。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+系统 SHALL 在采用时本地提供 `LinePlot`、`AreaPlot`、`Sparkline` 与 `Axis`。它们 MUST 只做数值映射与静态 SVG，MUST NOT 使用 ECharts、`Chart`、`useFrame`、计时器或自走动画。折线 MUST 按进度生长，面积 MUST 按进度从左向右揭示。坐标轴与标注 MUST 由调用方组合，组件不自动排版。
 
 #### Scenario: pure-time 场景使用图表
 - **WHEN** 声明 `capture.mode: "pure-time"` 的场景使用 `LinePlot` 与 `Axis`
@@ -263,7 +291,9 @@
 
 ### Requirement: 结构与波形组件
 
-系统 SHALL 从 `m2v/code-scene` 提供 `Timeline`、`ChapterTrack`、`Pictogram`、`IconGrid`、`Waveform` 与 `resamplePeaks`。事件与单位填充 MUST 只由数值、`progress` 与显式 seed（如适用）决定。标签密集时组件 MUST NOT 自动避让或截断，由调用方负责。
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
+系统 SHALL 在采用时本地提供 `Timeline`、`ChapterTrack`、`Pictogram`、`IconGrid`、`Waveform` 与 `resamplePeaks`。事件与单位填充 MUST 只由数值、`progress` 与显式 seed（如适用）决定。标签密集时组件 MUST NOT 自动避让或截断，由调用方负责。
 
 #### Scenario: 单位填充
 - **WHEN** `Pictogram` 接收总格数、填充值与进度
@@ -275,6 +305,8 @@
 
 ### Requirement: 图表几何统一来源
 
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
+
 共享图表与风格的点列曲线 MUST 复用成熟库支持的统一纯函数，支持直线、单调、阶梯及 Catmull-Rom 曲线；MUST 保留已有风格接口、曲线视觉语义与显式进度。金融类型的业务时间轴与刻度策略不属于该公共几何接口。
 
 #### Scenario: 风格平滑曲线
@@ -282,6 +314,8 @@
 - **THEN** 通过统一几何生成，保留端点与平滑语义，不再维护手写贝塞尔控制点算法
 
 ### Requirement: 运动实现约定必须保持时间与数据一致
+
+本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
 
 运行契约 SHALL 说明秒数乘实际 fps 得到帧位置，毫秒先除以 1000；非整数帧按既有字段和事件精度处理，不引入新的统一取整或时长阈值。共享缓动 SHALL 显式传入、保持数值有效并复用已有实现；帧驱动、受控顺序采集、纯时间与并行边界仍按现有运行契约执行，不因动态风格改变。
 
@@ -298,3 +332,10 @@
 #### Scenario: 显式线性或不同方向
 - **WHEN** 作品按机械、节奏或其他表达目标选择 linear、加速入场或减速离场
 - **THEN** 不要求例外理由；仍满足显式缓动、数值有效和当前采集模式的确定性要求
+
+### Requirement: 参考更新与本地副本分离
+主项目动效参考变化 MUST NOT 使已有作品副本、准备或媒体失效；只有作品内实际采用的实现、依赖或资源变化才影响对应绑定。
+
+#### Scenario: 只修改主项目参考
+- **WHEN** 主项目修改动效参考而作品本地副本不变
+- **THEN** 已有准备、片段和媒体继续保持原输入绑定。
