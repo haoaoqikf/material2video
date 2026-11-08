@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "beforeCommit": "262f26aad083447fcf0bca32ad67421d70b4bf96",
+  "examples": [
+    {
+      "path": "examples/data-evolution/compound-connect",
+      "sourceFiles": {
+        "assets/compose.py": "98097b936e7592eb3be02a2852d5c369ea63e1f31e77354e0256a5635d91bf1e",
+        "assets/fetch.py": "fce20edc9018f9267d06bd1545a384df4c392c99b91e53e3bfa1c9f34c1a89e3",
+        "assets/recipe.json": "a01a99aec6747e1ded40bd8078765193b64bb008bc7c6fe5c8338ca9dcd78995",
+        "assets/review_evidence.py": "a5c24bc4fd692c0e07fc4418daf0b3072e05344a1451e1d9159025c56f665802",
+        "assets/sound-checks.json": "a5e1c813d90abe4978fd382d872cf25171ac2b5d16ef98c550abd66856d44dd8",
+        "assets/sound-recipe.json": "8383d269f3c4b4bbea0d6ee6e3ce8437690d90ca3447ab15b39c7385393760df",
+        "assets/sound-sources.json": "7373d619da69ddf687aff21b1c6fcddbeecf05747d627cf6986a60b1082ee7d1",
+        "CASE_STUDY.md": "e39a22cdb2241bdb4e10817b9de316a67d95ef485119f8b17f31af4416cf3395",
+        "CODE_REVIEW.md": "888e5aee4e2b6d2eb94691d282195d938cd7917336d604f4e877906b8f548334",
+        "design/previous-design.md": "5eb63919486ce9b6e389f6920a6eaa6d1cb9601c6cfdf31cd1d76a808cbde6d9",
+        "design/scenes/hook.md": "e4072ee445a5a5dec0e7bc43dd79b1d7d98191520c95e050d28d49c0f407cee7",
+        "design/scenes/proof.md": "680ffe30c86a3795012b343df460d063d942dfcdcc0cfa2fbbda06de714684da",
+        "design/scenes/resolution.md": "f6996cfc6de0d015302e9dfb0723883750bc904040bb6e4ccd0d888de4abbeae",
+        "DESIGN.md": "24e247e996610ad76c5d93cf9c8df61d25b60aee202f5c3ea5b007555bf83ea4",
+        "HOWTO.md": "27dcdef54f531baa95f6928f60577fba775ed49e202c2e52263a79fee2ba2bc3",
+        "project.json": "653ca3f518bc761f1bd02028969eb641452f2aac2e0f2af6f330e67b35cf8e7f",
+        "README.md": "32705d63b46b12b28671af15b92a30dff7c907a21ac65fe4a2449768e348059d",
+        "scenes/components/burst.tsx": "477dbbd9659c2702f0f68f9801b71d65abc9ce1ca82fa54b7df83db81a4bffc2",
+        "scenes/components/counter.tsx": "a13d02ed58bb25e62bbfc965c72061fc460494c511b3fdcfe67798a6709a3a5d",
+        "scenes/components/hero-number.tsx": "ba78a4ed7e034d426fdb78058bc7800e26640fe560a97e3f2574d268ee020dbc",
+        "scenes/components/impact.tsx": "d33bf0dedb1f419b0bf2cd5fce702e1e63f104dcefe83d99d8d5b29ada30bc33",
+        "scenes/components/kit.tsx": "f1bf462a568a25a25ae1b5acf3055c359cfc85033ba6542baa92dd46a89fac40",
+        "scenes/components/proof-chart.tsx": "1107e1bf2f6dcdf9272c632d2cc3126038ea4ecea53426d0e6708be3f121787a",
+        "scenes/components/screen-subtitle.tsx": "c03b454ad2d02f3f1af0dd7d1db773f49c14d1a9361be084961131c8441d44b2",
+        "scenes/components/stage.tsx": "167449453658d9d3f5557e52b977726259e300b5ba66ed8b78e9d2cd73127d6e",
+        "scenes/hook.tsx": "e74633c4e45d5f02374b8c703f646fde8a82a02d1256f050a2e5f686ec51acb4",
+        "scenes/model.ts": "75ecff3f597605a21db9637d66bf3aadb58de53eda52d6ed44dffbe103167e49",
+        "scenes/proof.tsx": "b74041f57c167ec4e2e0cb67fabf5d12506c981cdf577f62d414a4f68d87b444",
+        "scenes/resolution.tsx": "8dd17102dd3b1867f81a2e8ec226a7c278b1c34bffb2ede24762f314f7edb041",
+        "scenes/shared.tsx": "98e706837ed7ed58022a876435c6acec2d24c1c54cb159253c94dbb4ee33438f",
+        "scenes/snow.tsx": "f485dbe15bfc3e5976247391e9f31cdfb417094eb028138bec73b358f6b9c638",
+        "scenes/tokens.json": "7685b19459f6d7509c85bc47672c1cbd61e96deab3372027cf76055dca0c220a",
+        "SOUND.md": "334892c7a1b06d3e8f0dd629ccc02178836843d8caac3b1ff0326e9e477b5a4d",
+        "SOURCES.md": "593251f78ecea502335d9e64350b1f06d53a92a5906090a322a0f6d99b657707",
+        "storyboard.json": "43ee41cb720acc83060fc46227f458b3a149ef8089a9ad054ac550a7c2113165",
+        "style-reference.md": "d91219de0b6f5e172c4bed7e3d2b6de760fa66aabe66c57b331e9b9eb9d9df63",
+        "VERIFICATION.md": "2ba4a5a570b877487ec394eadb0cfe1f8f2d16d0a79d3b326411dd07c49b8da6"
+      },
+      "existingArtifacts": {
+        "outputs/video.mp4": {
+          "sha256": "2c7be2df18aca749688e9fa1487421a247c1d54c2003c8da41fb3b1bff55590d",
+          "bytes": 8822910
+        },
+        "outputs/prepared.json": {
+          "sha256": "6294a154c30eb056a0aba9b91463b9a543afcc7dc978ba923688b884c32c3ff5",
+          "bytes": 24389
+        }
+      }
+    },
+    {
+      "path": "examples/data-evolution/compound-interest",
+      "sourceFiles": {
+        "assets/fetch.py": "70aaf78024377e746de6782ff1ef9003b63ca5d3acb4dd99b29c7c726fa083b3",
+        "assets/LICENSE.md": "71d7ed811bec5e237f8aec57c3b094b6b4f437c921ae05be2114e03035d706d6",
+        "assets/recipe.json": "94a72f378018aa7e5fefe39cb5bbcbd76860c8356f2e4ad381fbe0d91ed89915",
+        "assets/synthesize.py": "061c0c971b3989d6292b369cf85d49cac58aeccdf4d172970e5177d114f0d752",
+        "design/previous-design.md": "49c2d7d5d024cbf467767a11b5d688365e348efdf05c9a92c7a54db7e838da6e",
+        "design/scenes/compound.md": "4c40124b56d655f78921216617eaf31d6ad15067518ac4304661367ecb5eee6f",
+        "DESIGN.md": "93f1f5060a82791c96fb5a42428b69ebdd9089f21207ce9f731fedd675b4f58e",
+        "project.json": "368e275d3e30f7da011806b46c41a4eda466e8e9ad0b1d14476bda6e2f3e4c1d",
+        "README.md": "d0048030d134d3eb67b79144d5dc44692a661231903a59abaaad7a392b9b02bc",
+        "scenes/components/disc-layout.ts": "8b59bf0dc47ac6b862e1d561b878b615fa221d46e96c2e1d177f710a3ded5d20",
+        "scenes/components/disc.tsx": "facf2fb25ccab2ed10bf8605ff79d24679be3bcf3c5006860698d202451678b0",
+        "scenes/components/kit.tsx": "efdaf6c74d752a5c676c3651f33eac449b5e909c4a459ea03950d1e89a5c3143",
+        "scenes/components/number-text.tsx": "05fc14274df1bede4818d14a79bcbd198c5cc3b05fceb3460a338c079633cd93",
+        "scenes/compound.tsx": "090c180e2bca95a7b562c467eadb5f79a8ff300120566a416cc4b273de17661a",
+        "scenes/compoundLayout.ts": "766a6fe401af69a3b7c6d7fc4fb46210f567ecf21e32e60d8ddfd56c24a24714",
+        "scenes/compoundMath.ts": "fea01cefd2fbb0ae279a152ed5e86fdfed35bbd8741c7cd8667986897e8ebcc1",
+        "scenes/discs.tsx": "69bd3fa91e4704e9b3312d04ff9d87f441fe078654b7bedb2d7931688b281645",
+        "scenes/tokens.json": "99e74af5ecf43b839b78f4174403e93bc6573273902e0f6f0832da099e67c68b",
+        "scripts/create_review_pack.py": "4c3bbc434fb8ba38edcbd5ec3fc602500b4237d6650b166d5a8eae767f7d5b6d",
+        "scripts/render_design_keyframes.py": "22c1d19d7eb3f21f72b402baca8d0b0ccf71371bd6402d72ac0ed30dea849ec1",
+        "SOURCES.md": "565d00aff80d8f94fc6e571697150c240a6323433262c9792de79f65e3b48687",
+        "storyboard.json": "ac4cd0b5c4299a666a740ec6a5d3a527965a9c4871bb3f1e9113c1f307c3daac",
+        "VERIFICATION.md": "86ce11a7cbfae322a6e9f9b242a0c9049f7155daaa06c053338ba7743755d1e5"
+      },
+      "existingArtifacts": {
+        "outputs/video.mp4": {
+          "sha256": "a2037e1bf9e32f3215f79d8ea6fd35fa2aee65bcc0bd7efd0125c21ea4aa070a",
+          "bytes": 3926439
+        },
+        "outputs/prepared.json": {
+          "sha256": "e410679a22a00a58903ac8990498459a2f44dec8d142bb2c9ddaf18febd7528e",
+          "bytes": 12693
+        }
+      }
+    },
+    {
+      "path": "examples/documentary-edit/american-science-milestones",
+      "sourceFiles": {
+        "assets/fetch.py": "b320dfcc08f8331fbd83a9c36f59e4ec03d792dc1fa9581e85395a0596720c5b",
+        "assets/media-sources.json": "c5aba5fbba67e229e50762b4fe984f7b6e9e976b5d3eb93b3deec3ca79cc644a",
+        "assets/recipe.json": "836be705fb35f1506364e1c9243899bd1d777bfdd57623c4ac69d58e041670e1",
+        "assets/sound-exercise.json": "e7b05b9bdf4136a5d8681525a1be70eaa5dc67ddf27e3018ba550a686693db02",
+        "assets/SOUND_EXERCISE.md": "9b9b4d37fda3aaac3f6df078fc80ce1af067fef3a05178b7fe553bc06767ecfc",
+        "design/previous-design.md": "827a25c915b20df21f6d098c241718b3a007aeafa404659c216e9e8f74ee102e",
+        "design/scenes/arpanet.md": "9569c1758b7b20eba43fb842e02f4ac7a41dff39d5762bcfd4aab384065e683c",
+        "design/scenes/closing.md": "2a8df142ced00800876a1cc612ca93524ee38eacfbdc0cc6bf9a6b08527b4c7b",
+        "design/scenes/eniac.md": "e2e21585ebd73a0fac0aa2d1bab5a80a7bcc73196be0665823aed8dcd7f7d295",
+        "design/scenes/flight.md": "4727986d07f4bec75c5eb9374cdcbe5cdceefb2de302270ac19c4d1ac4ed44f5",
+        "design/scenes/genome.md": "cd84eb35686d387d64715427db8a66d693128991edcd571e1ef95a793abb7a45",
+        "design/scenes/llm.md": "b961e0d265ce8e9457da6778042389c73073123bffafa24b5517bb98cc877271",
+        "design/scenes/moon.md": "2e9dfcf84bae780d49a56048aaf0d7199202bfdb329a7f7e134c7905dcd572d0",
+        "design/scenes/opening.md": "82a051203dae470e1094db6a639b341c90c58b09d3ed05b4bf3cff65f31881c3",
+        "design/scenes/telegraph.md": "d62e1236e2cddcca66405621c95e9f140080a33555852cffbefcf2878f84a064",
+        "design/scenes/telephone.md": "17f0b1ba925b6e086f2fc1831f61612cf00b93bd52c10c51f3e7701847947a49",
+        "design/scenes/transistor.md": "26c20753db913b4624b07aa210446002519872e900bfda4b7b9830f5f6a34ab7",
+        "design/scenes/trinity.md": "94cdc151bfb1d708d6b1076ff49dd92f905b3b4cdbf9c28345664c0468b89137",
+        "DESIGN.md": "84bd09fba56792d00e54a7df61e3d42341fff35aa50d2cc0831969c02677d2c2",
+        "project.json": "b2fb66bdd8a51294417a755c5e56bb29ce81d301e3882ccac03d9c4ed57bdd7a",
+        "README.md": "b08ad3e69c7014ed3e1491ce7c53bcba54aaa3a87ae3a093f618e897b11003cd",
+        "scenes/components/archive-frame.tsx": "ad939cb001a7ba57aa49298c26e187c1c153c332446fe10c63ce257542b0fb14",
+        "scenes/components/chapter-text.tsx": "2e87ecf13933564fdad80e68263fb65199ebfed65680ac1bc5eff48264f65e9d",
+        "scenes/components/credit-block.tsx": "4b0f2d4175ba3916a6d20c14794e28c99e630300ed992dcb9de34b41936bcaf7",
+        "scenes/components/kit.tsx": "827becd2865c78bcb49cf1b84465392bb3da858bee76ad80008a49d30167f67f",
+        "scenes/film.tsx": "05cd3d3ae9bcae41b252945830f0095e1f3ea08fbd29bde049a4ec545c3ec70d",
+        "scenes/mechanisms.tsx": "94eb563ded957d9480d95a3a9daf565329aa121aa908a41ec629261d81ab45fb",
+        "scenes/tokens.json": "321c78f116f1d4893cdddb8284b3838bf4b2c05316c5680d7ac94015b806c504",
+        "scripts/capture-baselines.py": "1d37be57e49cef6d0ccf21e10719687b074fae39c3d1be658fcd017cb60bc59c",
+        "scripts/render-rough.py": "c2a98a348e6fda12530e7298db9d70aa9a049249f5d211ecd9dafe6abdbfc32e",
+        "SOURCES.md": "54899ee3cfd5f7874b977302dacb57dc74fa8aa0f23a023e699eb2e9a6385f27",
+        "storyboard.json": "6c396b7db2f7d4f9c28a831409ad1bc778df3cb64e3b3c285454a0d33399bba9",
+        "VERIFICATION.md": "242e77fa9cf36b50a5304c2a6e86e964ecca840040a76e3f78fda55a5b903193"
+      },
+      "existingArtifacts": {
+        "outputs/prepared.json": {
+          "sha256": "ef86ab5172230bba9c49627b28166e19c6e210a22ef7a4482ec9714b530adb3b",
+          "bytes": 15140
+        }
+      }
+    },
+    {
+      "path": "examples/principle-metaphor/luck-on-stage",
+      "sourceFiles": {
+        "assets/fetch.py": "39028ab831a7caf08e69f27003ec8991ca672b2cba76718723eb5ddce19bc2cb",
+        "assets/recipe.json": "031d11cdee0c5664bc3ac00cd060c2cb36e113423be22f19f7c6247625ac60e9",
+        "assets/sound-checks.json": "a5e1c813d90abe4978fd382d872cf25171ac2b5d16ef98c550abd66856d44dd8",
+        "assets/sound-recipe.json": "8383d269f3c4b4bbea0d6ee6e3ce8437690d90ca3447ab15b39c7385393760df",
+        "assets/sound-sources.json": "7373d619da69ddf687aff21b1c6fcddbeecf05747d627cf6986a60b1082ee7d1",
+        "design/previous-design.md": "511ff9cafe9a899dab01972486607b0f73551e440814ee8546b5256b04e0fd28",
+        "design/scenes/area.md": "73ac901aa2dbc31985c482229868a27bf0bf3d871f46d2e54d359f2e15594dec",
+        "design/scenes/bars.md": "e94ec024a151b6e07b3e490d6d8e0d6662e39db9a21fd73cc06ee105266cb097",
+        "design/scenes/bridge.md": "cdb91dabca077c5d2bade6dd6e7f0b2c4fb65010ff0c3542e1777fbea2b4b3f3",
+        "design/scenes/closing.md": "277b2f8d6470aa837636947f554c4fca0c353fb2855fd11e11cb3186b30c629b",
+        "design/scenes/hook.md": "4486aba49d608bb2e06563906a5615ea36927d100d744cd3a7ea508c0e4799a0",
+        "design/scenes/ledger.md": "21b9066948bd87485280bceaa7e8749ed8c28c5bc4a3ba95912b378fc2256d7d",
+        "design/scenes/probability.md": "46f358b4fa3272efeda9cf4662fb3ab408076ab6b70c3bcf3852f31bb9d68dea",
+        "DESIGN.md": "0b2a760d9e7b591d35919d73ea0b50d47d8f9585dde5c27c9b8ace3cba27f3ad",
+        "project.json": "c22f91c7f54f7bcb599d6c1ccd9c1e606596492315b7c5117329837e2e12e72c",
+        "README.md": "295a651a1c983bd0763ff11bba2029917dedc5cf9e273de5713c566a13874081",
+        "scenes/area.tsx": "93fdfe21978cb8d04bca9c3b402224d1fa169976970631c1e5713555df653544",
+        "scenes/attempt.tsx": "80f024eaf8c1ba468411af9ce47236afaa91fc0890a7f7d32a077595b2000ed9",
+        "scenes/bars.tsx": "05ffff1d238797f37b08caff1aae6464f7ac35396c1c01cc9810354a065baa91",
+        "scenes/bridge.tsx": "46935b5499454680158884003acd5e03bb12003578b2b4de644dd7e12df1bfc5",
+        "scenes/closing.tsx": "5bc83b3a5ad2ff841660ab5fcd1b8cc4b68374e52e756a831a924b2c6e646f94",
+        "scenes/components/burst.tsx": "477dbbd9659c2702f0f68f9801b71d65abc9ce1ca82fa54b7df83db81a4bffc2",
+        "scenes/components/kit.tsx": "f1bf462a568a25a25ae1b5acf3055c359cfc85033ba6542baa92dd46a89fac40",
+        "scenes/components/screen-subtitle.tsx": "c03b454ad2d02f3f1af0dd7d1db773f49c14d1a9361be084961131c8441d44b2",
+        "scenes/components/stage.tsx": "167449453658d9d3f5557e52b977726259e300b5ba66ed8b78e9d2cd73127d6e",
+        "scenes/cues.tsx": "f7a991b13e61d24c544a85aa2392764b19d1d173199b92a43bd60dec86915638",
+        "scenes/details.tsx": "325d45cff69545150fc78f8ff57002ed82e898d80fd99b065cf419e080b99c0c",
+        "scenes/hook.tsx": "333a72215e770643e598d08d665c8ce2d4d3be9c06e7a0f584c8a5def4c1434d",
+        "scenes/ledger.tsx": "7628ed44ed5440c80470accfca83f1f2bee068e567ae53c43e5d6b5b3c77b80a",
+        "scenes/portal.tsx": "dc04a1a9906f528038a148cf36c73687c3e9781461af17b47215553c9256cd20",
+        "scenes/probability.tsx": "e50b4fc63cfa4b3db89cdd057790ac6dcc27488754e65042caf0b0e42d44c9e3",
+        "scenes/shared.tsx": "411ec33cfd7615914fb77a6fac1257a073ff026703da25c4afdfbfb7f6199c89",
+        "scenes/tokens.json": "7685b19459f6d7509c85bc47672c1cbd61e96deab3372027cf76055dca0c220a",
+        "SOUND.md": "eb447202999fc9470ecb0a8eb9dd2fd6c4eaf77c9aa91a2065ac449ed1c2f893",
+        "SOURCES.md": "b160b36820dd81021b95f6f3e369c7613f6529dddf2257f98e190a3e7e7e996e",
+        "storyboard.json": "d9e213962db035bb96b62694edfb97ac809d6a425f33926b2b33368e1312ed87",
+        "VERIFICATION.md": "a61564ca454e9d32ed65161a7ecc9a1367c04b130cfdec9950b615ec08bc1d24"
+      },
+      "existingArtifacts": {
+        "outputs/video.mp4": {
+          "sha256": "4bd9c6c18f898b61d120aed89e61dcf41876dd4de856b713b1d8e2225745e702",
+          "bytes": 4861300
+        },
+        "outputs/prepared.json": {
+          "sha256": "711e907a4eaa90983349542e02f471f8fb0736c51cd4ead3431cd2cf85a37fc4",
+          "bytes": 29713
+        }
+      }
+    },
+    {
+      "path": "examples/principle-metaphor/pigeon",
+      "sourceFiles": {
+        "assets/sound-recipe.json": "7e7c702a4eb614f8d682cd5d052d84861a9471aabe09c8dad0f9259736c325f6",
+        "assets/sound-sources.json": "affad2755123ab86edd40e81c17717d6726c3827f90a206b5d10b34554ec0403",
+        "design/previous-design.md": "26c4f3c756ac3d0a63aee62c0c11c5dd900cb19c481238a77e3c75c995cc240a",
+        "design/scenes/again.md": "b802fce1ca6d2d8ef0de49066fc8fcf1396da437a99d87bd2fd212afce330eeb",
+        "design/scenes/box.md": "70b655a2b701381c7849035946cdded33949f506c54bf054b43e9ff0326084a1",
+        "design/scenes/coincide.md": "9fcf95901294340a017b2d0c47217902d91f2583305debb3437ae8928556c726",
+        "design/scenes/feeder.md": "27b4b4461363d26e1f6ec34cfb54aaeb83010b35ea96488568d76c1fa5dd35c0",
+        "design/scenes/repeat.md": "0d811e4a300bfb3cd20c0715c799dff878e55fd024bc338b890c63d33afdcc43",
+        "design/scenes/wander.md": "bc085bbe7423c1ff56fba9b38d991e7d1f4315ec97acb75c2bbf0234490fa977",
+        "DESIGN.md": "63427b11c025ecfa3662c5e656f9a90d79dbb579778d7f20177fe219a12127a4",
+        "HOWTO.md": "96c2eda3a2fcc5ffbd042f91bba125751bde6722bf2fda6bfcf00e720bb11960",
+        "project.json": "47dabadf36ffc67b5f3aafdb1fbb777aa08933327d038fb24a0f20ba290f0660",
+        "README.md": "410c7aa6ae429ed76e470c0324538f012f41787d62d139f866e56221f517eb71",
+        "scenes/components/fable-stage.tsx": "71359078a7da833d039c350ff5ed30b1ef74bbc3aed4915ec313ecc8fe7ba84a",
+        "scenes/components/kit.tsx": "5f396bc1be4a6bc4efaa4459836e9a780eb2d47367fad419e7e70b29e2dc9a70",
+        "scenes/components/scene-note.tsx": "54716f2d8dbc6e51aaa8637fe553efd95e00a1633c82beb94fe22173134d9d23",
+        "scenes/components/screen-subtitle.tsx": "38e98022af0709f641a225a60a91cd1e1967d2a517c12299c3694e47479003e2",
+        "scenes/components/top-line.tsx": "83449032bb2a1c3bda25dad08e9720f0b06f7a7787a687909a905c228a47f113",
+        "scenes/pigeon.tsx": "77e93a6e7326dc21204bf2ca4de7634f7add917254ddd554867d4e6957115cec",
+        "scenes/tokens.json": "7c44078a23b49249001b9ae8032be7b364d1f0f5eedfff53dabc82591f7d9b17",
+        "SOUND.md": "97616dead239939c19964c59243ac961b104daf60d0869fc6e6c8e63d112b7ce",
+        "storyboard.json": "6a0c18661ea30cdc6e917dc2a1a2e549d9833bb20ed83cfc70ddb66503829e03"
+      },
+      "existingArtifacts": {
+        "outputs/video.mp4": {
+          "sha256": "93c83b75c1738f4bbe301437880a44f1289bda75262804ac5ba5d1d70ab6750b",
+          "bytes": 13641875
+        },
+        "outputs/prepared.json": {
+          "sha256": "aca4727f6867e0c60d995e9f203706329753c6df35a5780571e2c0a78a89f5bf",
+          "bytes": 19227
+        }
+      }
+    },
+    {
+      "path": "examples/spatial-3d/solar-system-journey",
+      "sourceFiles": {
+        "article.md": "bd0e9402c8855c839eec7c0818e3d169456a2546561f999ff440926405f4bcd2",
+        "assets/fetch.py": "843bae7a91a4acbae47459730351b90c849230bf87b8a93cabf5bae5864fb6b2",
+        "assets/materials/generate.py": "b2dccc3a2c92844cb0a607442451afea317365bdb0580f31332b5624c445feee",
+        "assets/materials/LICENSE.md": "fcee2ba8a8153127bc6a90a3dc49df0dcf68916204d2e41f081afcfc94b91bc6",
+        "assets/media-sources.json": "289779ded2c745088d0480ef14f7acfb89c548b31966591f0688e06fe4988880",
+        "assets/recipe.json": "5116efdc11c37a0187b4fc326aadbad82cc23353229478d04ce15a9bd7b35890",
+        "assets/sound/generate.py": "2796e2221d1aac16af4bca6700d160665bc84e84cd104d97326069cbfba01157",
+        "assets/sound/LICENSE.md": "25a05ea0d9037d791fbcb79a38104363bfb0902ac2de3a251f1fe667bb0996cb",
+        "design/previous-design.md": "0d296c6421da29f45444292f61a35261dc7dab9b098952866f4b574bf00954d0",
+        "design/scenes/solar-journey.md": "fd60d5e449d7c378154223b0dead562571f6bc54838f1a573a8c1a29be91bced",
+        "DESIGN.md": "18cc5713d0d11dfa11cc3f2ed5c712934d479a8e0f470bb37fd47d56e4a61b0b",
+        "project.json": "11919757ebf962387e9d4d0f83e8b388ac2464fb9fa84890ad6dbd640874f1ce",
+        "README.md": "208965f3d27c663ee40d7a03ee85266b0cf77610791101bad5710f6129eca415",
+        "scenes/bodies.tsx": "07b65f015614a74d3b636112443dcf490cba8b5cd450b3145f9e75bcc5e81a90",
+        "scenes/clock.tsx": "5a3023829bbdb640e610a1bfca5458cf5c3c9b8097c2eb6f13b27d7c8bee4968",
+        "scenes/components/kit.tsx": "5ced151c47243d24695530a1637d4f62b5f708287b01507c6c77f5242308bb00",
+        "scenes/components/orbit-ring.tsx": "87b257ffc79b51977d4fe2f52eb98650aafe6737ce6a40255b859ed4102a1c63",
+        "scenes/components/space-stage.tsx": "c2d9f12f542d7b626e28ce029a398a6e321b38d66ce04c47a3c11352837b3835",
+        "scenes/flight.ts": "9286dbd75d0941cc6245b4599cdd37475fc1934c8528363cf0c661fa323ea629",
+        "scenes/inspection.tsx": "db67763589b0fad0816503e234fbf02e3f0c45263df7361bb4561411f3d68001",
+        "scenes/journey.tsx": "a475046ab846b9dc937f9c5fde41cb5a158be5b8906fcbe8a2e7541ef119ed41",
+        "scenes/layout.tsx": "63d9ec0a147c04ebab341669cec39ec03b11a9e4b4a3070900122e86dfadedc0",
+        "scenes/rough.tsx": "e98c33aeaf02a98dbc5c6936e799df76de36cabd668bace43b20de0f14f1f3bf",
+        "scenes/solar-system.tsx": "46ed98e3249a6e78eaa42ea710319965c740c0579c569666bfb1ca826c2f0d1d",
+        "scenes/tokens.json": "482262f8d1e36b1e216bc13874cf310f0cd1de7981dfb40c7c7a537d3aecc543",
+        "scenes/world.tsx": "7b3220a58d8be96af2f4e7c7fd29fd864f06f44103929bc03a94f721e61fb0c5",
+        "scripts/render-risk.py": "a3a3f4bb28831f626d394826dbee3aff6d26f4df11b46720b590ecf5e02fb718",
+        "scripts/render-rough.py": "8933ca2aab59a8ab7d73f5017b3c4aadcd31585d792e6d0c0d99c82604f6975e",
+        "SOURCES.md": "a66efd48e3f9d43c097ca39aa03bf6099e9cc126a7cc1604f487bb42b0dfb95f",
+        "storyboard.json": "21816a6a1bca6e44f880951e03d921629bb0a744e11d4b61df0bbea901f73498",
+        "VERIFICATION.md": "8b07eeef9c1e44e53e54e992fe67574a8a7af8c1e144fde0cc83cf8d6a39db97",
+        "WORKFLOW_CHECK_EXERCISE.md": "b886880e0cea49148a624f34e1b3a14c23b1811251d67fffa3f78835acd983f4"
+      },
+      "existingArtifacts": {
+        "outputs/prepared.json": {
+          "sha256": "e5a731994255e1d705137da08596923a3382b264b0c021461b379a7f56728af9",
+          "bytes": 276134
+        }
+      }
+    },
+    {
+      "path": "examples/text-motion/fold",
+      "sourceFiles": {
+        "assets/sound-recipe.json": "b16deed9e3452d1e8fbf495a09720f580320c1e9845a3e9e968a062910236117",
+        "assets/sound-sources.json": "76c6d98e80b5714a188115d2c6313cfef848c0a71c01c45789ea218b40ca2cfe",
+        "design/previous-design.md": "c6f453548ef4a61228ec77024f09f98391dc3660de39d279e7b988a84d9c8a46",
+        "design/scenes/chain.md": "7a0ef1415749c866d92665b629fd1d47000b7a0de7230f3c66b433a3e238efae",
+        "design/scenes/closing.md": "bde9fa98300212a107b612cff4dc9a7251279d71026da2592b9f13e03663d78a",
+        "design/scenes/fold.md": "c2440757ebaf7f4637a0a81cc460e26cf43ba89f297c8041547a7e3a6a897b4b",
+        "design/scenes/mutation.md": "ae7b5c4f297edf57668c960cddb10b0f2940f8dcc57f8eb1a3fb010f3aca9e8f",
+        "design/scenes/push.md": "c16a0c7263d00756b18904cd52687571edbf5c22f6fc0ee957d7725266f01938",
+        "design/scenes/question.md": "e2851644c5b1ef5aefe29a16dc5f85330f1c4e1d670e5eb750f17a43499c23a1",
+        "design/scenes/rod.md": "f6c5a27c8ef1598fce7ab188db696d90bbb6f4ced25bfff0c1075fc0d2b4689d",
+        "design/scenes/sickle.md": "60dcd8bc1c5f61ccc620493796984347b3c4d66a939c8960174f04f685c4a270",
+        "design/scenes/sticky.md": "75f2b0445f2adc19c7b3705d9e92e39fd70b0d73607af2d9c4b449e8af3765a0",
+        "DESIGN.md": "1d1dbecea604fe4ede27ddb78c08e0912afecb95070d0ecd123fe66a818c7516",
+        "HOWTO.md": "a55d5e3065867d14616db80be5d4e6b6d20890f94b8280c6d3ccc0d2b709a2e6",
+        "project.json": "d5d1717e156b0ac57f43736701ef0f16c6742e8bd8dae7b7d44aa07e94b391b1",
+        "README.md": "a8fa4f6605849b548b34863851d951f9d32601819b66c627c22c4c3142c93bd4",
+        "scenes/components/chapter-mark.tsx": "78450fc10b7d6cd57b04a8e4daf8bed8fc3399d2f1ab98a26d9987e22a370a1c",
+        "scenes/components/dip.tsx": "8486419eafe8f5ad5d5ca9ea7344d72bb84ad841072460041fade1bfcaa361c1",
+        "scenes/components/glow-text.tsx": "447e1633ac7808d5e319538c57959688d266cb8f79dda10af0be44e9b8c80747",
+        "scenes/components/kit.tsx": "9026d845cf3926318f1a7f5f771c268091ac76b8d3b84de7bea07ba24d705e76",
+        "scenes/components/screen-subtitle.tsx": "cce3f16555c226895e1e7255889259a8072c2f507c45576e98b0f92254d69a49",
+        "scenes/fold.tsx": "4cae5c1149bf671aa99f7f79bc0352eec66028dd97fbee0de06c611e45794709",
+        "scenes/layout.json": "ea6872681a56d5de99a98cc898a8517bdc44032b7a38850bf96a2f50f1aa05b1",
+        "scenes/tokens.json": "96bfdf2270fa09e7ba4fb875106ac99ebec84d3a916dd2e41c4b0b7bbed6bf21",
+        "storyboard.json": "5bde446a9f7f52238e48f9aad75ffce2c726a99c5edaad0b354ba3b16384772e",
+        "tools/gen_layout.py": "152fb2f47f9205bab9299a56cbd7593ad0edda0fb14b76165a53e347e1f11fed"
+      },
+      "existingArtifacts": {
+        "outputs/video.mp4": {
+          "sha256": "629343b5318d5c8997a987c24c867d482fed166c5292ef65079b6d38bc42ea24",
+          "bytes": 9565395
+        },
+        "outputs/prepared.json": {
+          "sha256": "6e8b9103daa80f3dbb6c16392880b016d1fff8c804ff983ca8c85c24832f25fd",
+          "bytes": 18290
+        }
+      }
+    }
+  ]
+}
