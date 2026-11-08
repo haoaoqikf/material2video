@@ -26,6 +26,8 @@
 
 报告 version=2，round 为 trial/final，reviewType 为 blind/consistency。每个 coverage 项与包内 id/window 完全一致，分别保存理解、表现、代表性的状态与观察，limitations 说明窗口、抽样、信号覆盖等限制。pass 必须全部覆盖通过，fail 必须有具体失败项。评审包与报告字段详见[媒体格式](review-contract.md#媒体与报告格式)。
 
+字段类型须与现行校验器一致：报告、coverage 及 assessment 内的 `observations` 均为非空字符串；每项 `coverage.limitations` 为字符串数组，例如 `"limitations": ["本次只覆盖静态版式，未验证连续运动。"]`，不能写成单个段落字符串。确无额外限制时可以使用空数组，但不得省略实际覆盖限制。仅因字段类型修正报告时，保留原稿和修正原因，不改写观察结论或补造新的调用时间。
+
 盲看代表性仅判断当前所给局部的实际主体、排版、材质光影和完整过程是否充分、是否占位；不因盲包隔离未见目标而自动 insufficient。目标风格兑现留在同轮对照，不把两阶段职责混成盲看前置条件。
 
 fail 须说明具体窗口、显示条件、违反的实际采用目标及阻断影响；整体目标成立后的次要改善写入 pass 的 limitations。该判断以实际观察为据，不把用户选案或作者期望送入盲包，也不新增字段、打分或审批。详见[采用边界与选案责任](review-contract.md#采用边界与选案责任)。
