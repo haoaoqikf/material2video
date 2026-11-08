@@ -48,6 +48,8 @@
 
 报告顶层仅包含 `version`、`round`、`reviewType`、`packPath`、`packSha256`、`reviewerId`、`isolation`、`focus`、`verdict`、`observations`、`coverage`、`invocation`，对照另加 `blindId`。报告 `id` 由导入工具生成，不预先填写；`limitations` 只放在各 coverage 项内，不新增同名顶层字段。
 
+`packPath` 必须指向 `review-pack/<包ID>/manifest.json` 文件，不能只填目录。manifest自身由该路径与摘要标识；`invocation.inputPaths` 仅列manifest的 `files` 中实际读取的登记文件，不把未登记的manifest再放入该数组。
+
 盲看代表性仅判断当前所给局部的实际主体、排版、材质光影和完整过程是否充分、是否占位；不因盲包隔离未见目标而自动 insufficient。目标风格兑现留在同轮对照，不把两阶段职责混成盲看前置条件。
 
 fail 须说明具体窗口、显示条件、违反的实际采用目标及阻断影响；整体目标成立后的次要改善写入 pass 的 limitations。该判断以实际观察为据，不把用户选案或作者期望送入盲包，也不新增字段、打分或审批。详见[采用边界与选案责任](review-contract.md#采用边界与选案责任)。
