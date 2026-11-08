@@ -20,7 +20,7 @@ def test_all_types_create_complete_independent_project(tmp_path, video_type):
     assert manifest['schemaVersion'] == 3
     board = json.loads((root / manifest['materials']['storyboard']).read_text(encoding='utf-8'))
     assert (root / board['scenes'][0]['content']['entry']).is_file()
-    for required in ['uv.lock', 'pnpm-lock.yaml', 'package.json', 'scripts/video.py',
+    for required in ['uv.lock', 'pnpm-lock.yaml', 'package.json', '.npmrc', 'scripts/video.py',
                      'runtime/python/film_runtime/cli.py', 'fonts/registry.json']:
         assert (root / required).is_file()
     node = json.loads((root / 'package.json').read_text(encoding='utf-8'))
