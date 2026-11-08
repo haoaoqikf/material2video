@@ -114,7 +114,7 @@ uv run m2v author assets search --project <目录> [--provider pixabay] [--kind 
     "music": {"sourceRef": "assets/bed.wav", "gainDb": -24, "loop": true},
     "effects": [{"builtin": "transition", "sceneId": "turn", "offsetFrames": 0}],
     "envelopes": [{"track": "music", "curve": "smooth", "keyframes": [
-      {"frame": 0, "gainDb": -24}, {"frame": 240, "gainDb": -34}, {"frame": 480, "gainDb": -24}
+      {"frame": 0, "gainDb": 0}, {"frame": 240, "gainDb": -10}, {"frame": 480, "gainDb": 0}
     ]}],
     "silence": [{"startFrame": 720, "endFrame": 780, "fadeFrames": 12}]
   }
@@ -145,6 +145,8 @@ uv run m2v author assets search --project <目录> [--provider pixabay] [--kind 
   叠入音效后母版轨仍须通过同一响度与真峰值复核（旁白 −16 LUFS、成片 ≤ −1 dBTP），
   修正只改增益、不改变时间轴；音效素材摘要进入准备指纹，换素材或改参数都要重新 prepare。
 
+包络增益在素材的 `gainDb` 之后叠加，随后还有旁白闪避。例如上例基础 −24 dB、包络 −10 dB 时，闪避前合计为 −34 dB；包络恢复为 0 dB 才回到基础层级，不能把基础 −24 dB 再写入包络当作恢复。
+
 没有 `soundtrack` 时母版轨只做响度归一化；有音床或音效时按字幕讲话区间做闪避、混音并限幅。
 
 稀疏事件音也遵守同一母版目标。源音轨门限响度为非有限值时保留静音并统一格式，避免将纯静音送入动态归一。动态归一后重新量测实际响度；偏低时只在实测真峰值余量内作有限线性增益，并为后续AAC保留0.5dB余量。这样保留事件间强弱、声像和数字静音，不添加持续音床补足响度；峰值余量不足时不强行追平目标，仍由当前成片QA指出差距。滤波器依据见[FFmpeg loudnorm](https://ffmpeg.org/ffmpeg-filters.html#loudnorm)。
@@ -162,6 +164,8 @@ uv run m2v author assets search --project <目录> [--provider pixabay] [--kind 
 ## 统一音效库
 
 来源只有两类：**代码合成**与**第三方音频**。均先落盘到作品的 `assets/sound/<sha256>.wav`，来源登记在 `assets/sound-sources.json`，分镜用 ID 编排；渲染不联网、不随机挑音。音效目录不在画面服务器白名单内。
+
+独立工程 v3 将恢复配方保存为作品的 `assets/sound-recipe.json`，在作品目录执行 `uv run python scripts/video.py setup`，由随作品携带的本地运行时生成并登记；`prepare` 继续校验本地来源。下列共享 `author sounds` 命令用于共享工程材料，不能将其生成器身份记录直接当作 v3 本地运行时记录，也不要手改生成器身份绕过核验。
 
 ```powershell
 uv run m2v author sounds catalog

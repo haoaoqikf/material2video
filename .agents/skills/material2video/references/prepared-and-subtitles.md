@@ -41,13 +41,13 @@ uv run m2v render --project videos/<type>/<slug>
 1. 口播写在它所属的幕/场景里：统一 v9 用分段口播 `narrationSegments`（只接受分段形式，
    不接受整段字符串；代码幕可以为空）；静音镜头省略旁白。
 2. `m2v prepare --project <目录>` 校验材料、合成配音、编译派生时间轴并写出准备记录。
-   统一 v9 有旁白段独立合成，按实际音频及声明的前后留白推导帧数与字幕；幕尾阅读停留由 `readingHoldFrames` 指定，默认 0.8 秒（30fps 为 24 帧），无旁白幕按 `durationFrames` 或剩余目标时长分配；
+   统一 v9 有旁白段独立合成，按实际音频及声明的前后留白推导帧数与字幕；幕尾阅读停留由 `readingHoldFrames` 指定，默认 0.4 秒（30fps 为 12 帧），无旁白幕按 `durationFrames` 或剩余目标时长分配；
    `code` 幕只构建源码并记录依赖，片段在检查或正式生成时按需录制并缓存（见
    [代码场景运行契约](code-scene-runtime.md)）。
 3. `m2v validate --project <目录>` 检查材料、准备记录、字幕和 WAV 时长。
 4. `m2v preview --project <目录>` 生成局部检查片段（默认前十秒，支持显式短窗口），不得用接近全片的窗口代替正式生成；
    `m2v author keyframes --storyboard <分镜>` 原生采集代表关键帧供静态检查。
-5. `m2v render --project <目录>` 在当前准备有效时只生成一次完整候选，自动验收后复制交付同一文件；人工画面评审为可选工具。
+5. `m2v render --project <目录>` 使用当前有效准备生成完整技术候选，交付保持同一候选文件；制作完成还须按[审核策略](review-contract.md)完成适用独立评审，导出成功不等于视觉或整片通过。
 
 统一 v9 在 `input.kind` 为 `article` 时，正式导出还要求源文已通过**讲解语义审查**：
 `m2v author input-review --storyboard
