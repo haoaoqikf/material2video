@@ -1,4 +1,5 @@
-import {sampleTrail,type CodeSceneProps} from 'm2v/code-scene';
+import {sampleTrail} from '../src/code-scene/dynamics';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {Attempt} from './attempt';
 import {AccentRelease,Contact,FlightMotes,flight,type LightSample} from './cues';
 import {Backdrop} from './details';
@@ -9,7 +10,7 @@ export default function Hook(config:CodeSceneProps){
   const {f,e}=useClock(config),starts=[e.frame('launch'),e.frame('retry'),e.frame('last-try')],ends=[e.frame('miss-one'),e.frame('miss-two'),e.frame('hit')];
   const current=f<starts[1]?0:f<starts[2]?1:2,at=ends[current],landed=f>=at;
   const p=progress(f,starts[current],at);
-  const age=Math.max(0,f-at),fall=Math.min(10,age),success=current===2;
+  const age=Math.max(0,f-at),success=current===2;
   // 球体与每颗光滴都查询同一个任意帧位置，触碰后保留惯性并自然下落。
   const atFrame=(time:number)=>{
     const phase=progress(time,starts[current],at),point=sampleTrail({points:paths[current],progress:phase,length:.2,count:2,easing:smooth})[0];

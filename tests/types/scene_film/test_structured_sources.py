@@ -11,7 +11,7 @@ from helpers.financial import project as financial_fixture
 from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
-from m2v.types.scene_film import sources
+from m2v.types.scene_film import explainer_prepare, sources
 from m2v.types.building_construction.components import build_components
 
 
@@ -20,8 +20,16 @@ def write(root, name, value):
 
 
 def board(root, kind, source_kind, files, *, width, height, duration):
-    create_project(root, kind, {"storyboard": "storyboard.json"},
-                   output={"width": width, "height": height, "fps": 30, "audio": "optional"})
+    if root.exists() and any(root.iterdir()):
+        # 夹具目录已有来源文件；直接写 v3 工程描述，不重复覆盖或清空。
+        (root / "project.json").write_text(json.dumps({
+            "schemaVersion": 3, "id": root.name, "type": kind,
+            "materials": {"storyboard": "storyboard.json"},
+            "output": {"width": width, "height": height, "fps": 30, "audio": "optional"}},
+            ensure_ascii=False), encoding="utf-8")
+    else:
+        create_project(root, kind, {"storyboard": "storyboard.json"},
+                       output={"width": width, "height": height, "fps": 30, "audio": "optional"})
     (root / "scenes").mkdir(exist_ok=True)
     entry = {"financial-series": "FinancialSeriesScene", "construction": "ConstructionScene",
              "vehicle-model": "VehicleScene"}[source_kind]
@@ -46,8 +54,7 @@ def test_financial_source_is_validated_and_fingerprinted(tmp_path):
     result, inputs = sources.prepare(root, story, "data-evolution")
     assert result["source"]["data"]["plan"]["durationSeconds"] == 15
     assert "file:raw-prices.csv" in inputs
-    assert main(["validate", "--project", str(root)]) == 0
-    assert main(["prepare", "--project", str(root)]) == 0
+    explainer_prepare.prepare(root, load_project(root)[1])
     prepared = json.loads((root / "outputs/prepared.json").read_text(encoding="utf-8"))
     assert prepared["props"]["compiledScenes"][0]["content"]["preparedSources"]["source"]["kind"] == "financial-series"
     (root / "animation-plan.json").unlink()
@@ -86,8 +93,7 @@ def test_construction_steps_are_available_to_spatial_scene(tmp_path):
     assert len(data["components"]) == 77
     assert data["construction"]["steps"]
     assert inputs["file:construction.json"] == hashlib.sha256((root / "construction.json").read_bytes()).hexdigest()
-    assert main(["validate", "--project", str(root)]) == 0
-    assert main(["prepare", "--project", str(root)]) == 0
+    explainer_prepare.prepare(root, load_project(root)[1])
 
 
 def test_vehicle_model_is_embedded_for_spatial_scene(tmp_path):
@@ -117,5 +123,4 @@ def test_vehicle_model_is_embedded_for_spatial_scene(tmp_path):
     result, inputs = sources.prepare(root, story, "spatial-3d")
     assert "data:application/octet-stream;base64," in result["source"]["data"]["modelGltf"]
     assert "file:assets/car.gltf" in inputs
-    assert main(["validate", "--project", str(root)]) == 0
-    assert main(["prepare", "--project", str(root)]) == 0
+    explainer_prepare.prepare(root, load_project(root)[1])

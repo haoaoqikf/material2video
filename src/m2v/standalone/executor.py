@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 PREFIX = '__VIDEO_RESULT__'
 STATES = {'validate': {'pass'}, 'prepare': {'prepared'}, 'inspect': {'current'},
           'preview': {'candidate'}, 'render': {'candidate'}, 'sample': {'captured'},
-          'qa': {'pass', 'fail'}, 'build': {'built'}, 'setup': {'ready'}}
+          'qa': {'pass', 'fail'}, 'build': {'built'}, 'setup': {'ready'},
+          'lookdev': {'captured'}, 'materialize': {'materialized'}}
 
 
 def local_artifact(root: Path, reference: str) -> Path:
@@ -79,7 +80,7 @@ def _execute(root: Path, project: dict, action: str, arguments: list[str] | None
         raise M2VError('作品执行结果缺少环境记录')
     if action == 'qa' and code != (1 if result['status'] == 'fail' else 0):
         raise M2VError('作品QA结果与退出码不符')
-    if action in {'prepare', 'inspect', 'preview', 'render', 'sample', 'qa'}:
+    if action in {'prepare', 'inspect', 'preview', 'render', 'sample', 'qa', 'lookdev', 'materialize'}:
         artifact = local_artifact(root, result.get('path'))
         expected = result.get('sha256')
         with artifact.open('rb') as stream:

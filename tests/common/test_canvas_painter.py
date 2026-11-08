@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
 PAINTER = WEB / "src/code-scene/painter"
 CODE_SCENE = WEB / "src/code-scene"
-SDK = CODE_SCENE / "sdk.tsx"
+SDK = Path(__file__).resolve().parents[1] / "support/code-scene-reference.tsx"
 
 
 def painter_sources() -> list[Path]:
@@ -132,4 +132,4 @@ def test_painter_has_no_embedded_audience_copy():
 
 def test_sdk_exports_the_painter_namespace():
     """`Canvas` 已是 R3F 包装，绘制层必须以命名空间导出，避免同名符号相撞。"""
-    assert "export * as painter from './painter';" in SDK.read_text(encoding="utf-8")
+    assert "export * as painter from '../../web/src/code-scene/painter';" in SDK.read_text(encoding="utf-8")

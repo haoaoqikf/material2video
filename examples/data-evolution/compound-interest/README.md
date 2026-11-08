@@ -32,3 +32,18 @@ uv run m2v qa --project examples/data-evolution/compound-interest
 环境床与事件音按 [固定配方](assets/recipe.json) 恢复，已有摘要不符文件拒绝覆盖。视频、声音和评审图片为派生产物，不入库。最终制作结论以VERIFICATION绑定的文件版本为准。
 
 本示例的画面组件与参数保存在本作品 `scenes/`，可独立重建。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

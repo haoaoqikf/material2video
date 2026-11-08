@@ -5,9 +5,10 @@ import {T} from './kit';
 export type CreditBlockProps = {
   lines: string[];
   style?: CSSProperties;
+  role?: string;
 };
 
-export default function CreditBlock({lines, style, role = 'credits'}: CreditBlockProps) {
+export default function CreditBlock({lines, style}: CreditBlockProps) {
   return (
     <div
       style={{

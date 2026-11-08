@@ -75,10 +75,10 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     from m2v.types.scene_film import media_assets
-    from m2v.types.scene_film.explainer_render import current
+    from m2v.standalone import executor
     root, manifest = load_project(args.project)
 
-    prepared = current(root, manifest)
+    prepared = executor.current(root, manifest)
     report = audit(root, prepared, media_assets.load_record(root))
     print(json.dumps({"status": report["status"], "problems": report["problems"],
                       "warnings": report["warnings"]}, ensure_ascii=False, indent=2))

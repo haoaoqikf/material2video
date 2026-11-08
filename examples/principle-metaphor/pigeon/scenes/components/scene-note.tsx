@@ -12,7 +12,7 @@ export type SceneNoteProps = {
 };
 
 export default function SceneNote({
-  year, place, opacity = 1, x = T.layout.sceneNote.x, y = T.layout.sceneNote.y, state,
+  year, place, opacity = 1, x = T.layout.sceneNote.x, y = T.layout.sceneNote.y,
 }: SceneNoteProps) {
   return (
     <div style={{

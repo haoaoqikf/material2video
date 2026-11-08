@@ -116,7 +116,7 @@ if __name__ == "__main__":
     print(write("bed.wav", LOOP_SECONDS, bed))
     raw = write("score-raw.wav", SCORE_SECONDS, score)
     # Normalize the independent music stem before authored gain and speech ducking.
-    from m2v.engine.audio import normalize
+    from film_runtime.engine.audio import normalize
     normalize(raw, HERE / "score.wav", integrated=-18.0, true_peak=-3.0)
     raw.unlink()
     print(HERE / "score.wav")

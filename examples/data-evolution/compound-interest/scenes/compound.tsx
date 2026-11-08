@@ -1,8 +1,11 @@
 import {useEffect, useMemo} from 'react';
-import {
-  RollingNumber, SlideIn, TextBlock, createSceneEvents, easeMotion, useSceneContext,
-  type CodeSceneProps,
-} from 'm2v/code-scene';
+import {RollingNumber} from '../src/code-scene/motion-components/l2';
+import {SlideIn} from '../src/code-scene/motion-components/l1';
+import {TextBlock} from '../src/code-scene/motion-components/text';
+import {createSceneEvents} from '../src/code-scene/events';
+import {easeMotion} from '../src/code-scene/motion';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {
   FIRST_DISC_INDEX, Disc, Text, BG, DARK_GOLD, FONT, GOLD, MUTED, OFF_WHITE,
   columnPositions, hillPositions, mixColor, shelfPositions, withdrawBlockPositions,

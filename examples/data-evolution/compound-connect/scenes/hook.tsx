@@ -1,4 +1,4 @@
-import type {CodeSceneProps} from 'm2v/code-scene';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import Counter from './components/counter';
 import Burst from './components/burst';
 import {Snowball} from './snow';

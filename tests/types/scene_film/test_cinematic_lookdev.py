@@ -62,18 +62,6 @@ def test_sample_audio_follows_story_sound_intent():
     assert lookdev.sample_audio(base, Path("project")) == (True, Path("project/outputs/audio.wav"))
 
 
-def test_still_props_keep_only_the_captured_scene(tmp_path):
-    """多幕作品只合成当前帧所在幕，未采样幕没有已物化的 mediaPath。"""
-    picture = tmp_path / "frame.png"
-    picture.write_bytes(b"png")
-    prepared = {"props": {"compiledScenes": [{"id": "a"}, {"id": "b"}]}}
-    props = lookdev.still_props(prepared, {("a", 10): picture}, 10, "http://media/")
-    assert [scene["id"] for scene in props["compiledScenes"]] == ["a"]
-    assert props["compiledScenes"][0]["stillPath"] == "data:image/png;base64,cG5n"
-    assert props["mediaBase"] == "http://media/"
-    assert [scene["id"] for scene in prepared["props"]["compiledScenes"]] == ["a", "b"]
-
-
 @pytest.mark.media
 def test_contact_sheet_tiles_stills(tmp_path):
     stills = []

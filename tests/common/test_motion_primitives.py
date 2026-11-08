@@ -15,7 +15,7 @@ SUBTITLES = WEB / "src/code-scene/subtitles.ts"
 RHYTHM = WEB / "src/code-scene/rhythm.ts"
 EFFECTS = WEB / "src/code-scene/effects/screen-burst.tsx"
 MOTION = WEB / "src/code-scene/motion.ts"
-SDK = WEB / "src/code-scene/sdk.tsx"
+SDK = Path(__file__).resolve().parents[1] / "support/code-scene-reference.tsx"
 
 
 def test_primitives_are_part_of_the_implementation_fingerprint():
@@ -41,11 +41,11 @@ def test_primitives_pass_the_determinism_source_gate():
 
 def test_sdk_exports_the_shared_primitives():
     text = SDK.read_text(encoding="utf-8")
-    assert "export * from './primitives';" in text
-    assert "export * from './dynamics';" in text
-    assert "export * from './subtitles';" in text
-    assert "export * from './rhythm';" in text
-    assert "export * from './effects/screen-burst';" in text
+    assert "export * from '../../web/src/code-scene/primitives';" in text
+    assert "export * from '../../web/src/code-scene/dynamics';" in text
+    assert "export * from '../../web/src/code-scene/subtitles';" in text
+    assert "export * from '../../web/src/code-scene/rhythm';" in text
+    assert "export * from '../../web/src/code-scene/effects/screen-burst';" in text
     assert "svg-path-properties" in text
     assert "perfect-freehand" in text
 

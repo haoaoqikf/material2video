@@ -6,7 +6,7 @@
 
 ```text
 videos/<type>/<slug>/
-├── project.json              # v2；materials 只声明 storyboard
+├── project.json              # v3；materials 只声明 storyboard
 ├── storyboard.json           # v9；五类共用
 ├── scenes/                   # 本作品 TSX 入口及专属画面组件
 ├── article.md                # input.kind=article 时的源文

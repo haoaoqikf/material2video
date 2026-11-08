@@ -1,9 +1,9 @@
 import {useEffect,useState} from 'react';
-import type {CodeSceneProps} from 'm2v/code-scene';
-import {MathFormula,ensureMathReady} from 'm2v/code-scene/math';
+import type {CodeSceneProps} from '../src/code-scene/context';
+import {MathFormula,ensureMathReady} from '../src/code-scene/math'
 import Counter from './components/counter';
 import Burst from './components/burst';
-import {Frame,Text,Ball,WHITE,GOLD,MUTED,progress,arrive,smooth,mix,useClock} from './shared';
+import {Frame,Text,Ball,WHITE,GOLD,progress,arrive,smooth,mix,useClock} from './shared';
 import {compounded} from './model';
 
 export default function Resolution(config:CodeSceneProps){

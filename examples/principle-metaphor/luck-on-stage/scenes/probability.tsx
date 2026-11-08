@@ -1,4 +1,5 @@
-import {arcPath,type CodeSceneProps} from 'm2v/code-scene';
+import {arcPath} from '../src/code-scene/motion-components/gauge';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {Frame,Text,WHITE,GOLD,RED,MUTED,progress,enter,smooth,pop,track,useClock} from './shared';
 import {Backdrop} from './details';
 import {AccentRelease} from './cues';

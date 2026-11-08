@@ -107,7 +107,8 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
                 logger.info("导入素材 %s (%s)", identity, kind)
                 if local:
                     source = (base / local).resolve()
-                    if not source.is_file() or not 0 < source.stat().st_size <= MAX_DOWNLOAD_BYTES:
+                    if (not source.is_relative_to(root.resolve()) or not source.is_file()
+                            or not 0 < source.stat().st_size <= MAX_DOWNLOAD_BYTES):
                         raise VideoError("本地素材缺失、为空或超过 256 MiB")
                     shutil.copyfile(source, file)
                 else:

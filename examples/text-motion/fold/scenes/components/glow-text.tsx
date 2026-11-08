@@ -30,7 +30,7 @@ function alpha(hex: string, value: number): string {
 export default function GlowText({
   text, x, y, size = T.type.hero, color: textColor = color('text'),
   glowColor = T.glow.color, glow = 1, opacity = 1,
-  letterSpacing = T.type.letterSpacing, weight = 400, align = 'center', nowrap = true, state,
+  letterSpacing = T.type.letterSpacing, weight = 400, align = 'center', nowrap = true,
 }: GlowTextProps) {
   useNightSerif();
   const transform = align === 'left' ? 'translate(0, -50%)' : align === 'right' ? 'translate(-100%, -50%)' : 'translate(-50%, -50%)';

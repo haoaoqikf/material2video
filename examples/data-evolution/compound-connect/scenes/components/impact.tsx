@@ -5,7 +5,8 @@
  * `m2v/code-scene` 的 `ScreenBurstLayer` 绘制，保持逐帧确定性。
  */
 import type {ReactElement} from 'react';
-import {ScreenBurstLayer, type BurstSpec, type DustSpec} from 'm2v/code-scene';
+import {ScreenBurstLayer} from '../../src/code-scene/effects/screen-burst';
+import type {BurstSpec, DustSpec} from '../../src/code-scene/effects/screen-burst';
 import {T} from './kit';
 
 export type ImpactPreset = 'shatter' | 'reveal' | 'formula' | 'finale';

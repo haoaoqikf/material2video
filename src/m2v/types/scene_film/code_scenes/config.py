@@ -60,12 +60,10 @@ def implementation_inputs() -> dict[str, str]:
     files = [Path(__file__),
              *(path for name in ("capture.py", "pure_capture.py", "worker.py")
                if (path := Path(__file__).with_name(name)).is_file()),
-             WEB / "scripts/build-code-scene.mjs", WEB / "scripts/code-scene-dependencies.mjs",
-             WEB / "code-scene-dependencies.json", WEB / "package.json", WEB / "pnpm-lock.yaml",
+             WEB / "scripts/build-code-scene.mjs", WEB / "package.json", WEB / "pnpm-lock.yaml",
              WEB / "pnpm-workspace.yaml", *sorted((WEB / "patches").rglob("*.patch")),
              WEB / "src/fonts.ts", WEB / "src/frames.json", WEB / "src/video-config.json", WEB / "src/frames.ts",
              REPOSITORY_ROOT / "fonts/registry.json",
-             WEB / "src/code-scene/entries.json",
              *sorted((WEB / "src/assets/math").glob("*.woff2")),
              *sorted((WEB / "src/code-scene").rglob("*.tsx")), *sorted((WEB / "src/code-scene").rglob("*.ts")),
              *sorted((WEB / "src/code-scene").rglob("*.js")),

@@ -156,7 +156,12 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None) -> 
             logger.info("准备音效 %s，来源 %s", identity, sources[0])
             file = Path(temporary) / f"{identity}.wav"
             if "synthesis" in entry:
-                generated = sound_synthesis.synthesize(entry["synthesis"], file)
+                value = entry["synthesis"]
+                if isinstance(value, dict) and set(value) == {"generator", "version", "parameters"}:
+                    if value["generator"] != "film_runtime.sound-synthesis" or value["version"] != sound_synthesis.VERSION:
+                        raise VideoError("音效生成配方或版本无效，请重新合成")
+                    value = value["parameters"]
+                generated = sound_synthesis.synthesize(value, file)
                 info = probe(file)
                 provenance = {"source": "synthesized", "synthesis": generated,
                               "author": "material2video", "license": "CC0-1.0"}
@@ -171,7 +176,8 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None) -> 
                     if not isinstance(local, str) or not local:
                         raise VideoError("音效 localPath 必须为非空路径")
                     source = (base / local).resolve()
-                    if not source.is_file() or not 0 < source.stat().st_size <= MAX_DOWNLOAD_BYTES:
+                    if (not source.is_relative_to(root.resolve()) or not source.is_file()
+                            or not 0 < source.stat().st_size <= MAX_DOWNLOAD_BYTES):
                         raise VideoError("本地音效缺失、为空或超过 256MiB")
                     shutil.copyfile(source, original)
                 else:

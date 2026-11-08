@@ -52,10 +52,9 @@ def main(argv=None) -> int:
             return 0
         from m2v.cli import main as unified
         if args.command == "keyframes":
-            from .explainer_render import current, layout_check
-            prepared = current(root, project)
+            from m2v.standalone import executor
             from m2v.engine.lookdev import keyframes
-            layout_check(root, prepared)
+            prepared = executor.current(root, project)
             print(json.dumps(keyframes(root, project, prepared), ensure_ascii=False))
             return 0
         command = args.command
@@ -72,7 +71,7 @@ def _candidate(args, root: Path, project: dict | None) -> None:
         raise M2VError("缺少非空原文，不得编造候选稿")
     record_file = root / "outputs/candidate.json"
     candidate = root / "article.candidate.md"
-    from .explainer_prepare import digest
+    from m2v.core.delivery import digest
     if args.command == "candidate":
         if not args.text_file:
             raise M2VError("candidate 需要 --text-file")

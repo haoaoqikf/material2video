@@ -11,5 +11,7 @@ fonts/.cache/
 public/fonts/
 src/assets/math/
 assets/media/
-assets/sound/
+assets/sound/*
+!assets/sound/*.py
+!assets/sound/LICENSE.md
 assets/sound-sources.json

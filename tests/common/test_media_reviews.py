@@ -20,6 +20,8 @@ from m2v.production.storage import read, write, receipt, local, locked
 def work(tmp_path, monkeypatch):
     root = tmp_path / "work"
     create_project(root, "text-motion", {"storyboard": "storyboard.json"})
+    (root / "storyboard.json").unlink(missing_ok=True)
+    (root / "DESIGN.md").unlink(missing_ok=True)
     manifest = load_project(root)[1]
     out = outputs(root)
     out.mkdir()
@@ -594,18 +596,18 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
             str(out / "final.mp4"),
         ]
     )
-    prepared = {"preparedFingerprint": "current", "durationInFrames": 12, "fps": 30}
+    prepared = {"preparedFingerprint": "current", "durationInFrames": 12, "fps": 30,
+                "width": 1920, "height": 1080, "type": "text-motion",
+                "inputs": {"implementation": "own", "renderer": "own"}}
     monkeypatch.setattr("m2v.commands._prepared", lambda *_: prepared)
     write(root / "storyboard.json", {"scenes": []})
-    write(
-        out / "delivery.json",
-        {
-            "preparedFingerprint": "current",
-            "status": "delivered",
-            "path": str(out / "final.mp4"),
-            "sha256": digest(out / "final.mp4"),
-        },
-    )
+    parameters = {"crf": 18}
+    from m2v.core.delivery import binding
+    from m2v.core.fingerprints import fingerprint
+    record = {**binding(root, prepared, parameters), "key": fingerprint(binding(root, prepared, parameters)),
+              "status": "delivered", "path": "outputs/final.mp4",
+              "sha256": digest(out / "final.mp4")}
+    write(out / "delivery.json", record)
     write(
         out / "qa.json",
         {"status": "pass", "preparedFingerprint": "current", "videoSha256": "wrong"},
@@ -641,7 +643,10 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
     ffmpeg(["-i", str(out / "final.mp4"), "-frames:v", "6", str(shortened)])
     prepared["durationInFrames"] = 6
     delivery = read(out / "delivery.json")
-    delivery.update(path=str(shortened), sha256=digest(shortened))
+    delivery.update(path="outputs/shortened.mp4", sha256=digest(shortened))
+    refreshed = binding(root, prepared, delivery["parameters"])
+    delivery.update(refreshed)
+    delivery["key"] = fingerprint(refreshed)
     write(out / "delivery.json", delivery)
     write(
         out / "qa.json",

@@ -17,7 +17,7 @@
 全部素材来自 `assets/sound-recipe.json` 的确定性合成，来源登记在 `assets/sound-sources.json`；生成的 wav 与登记文件不入库。需要新变体时先改配方，再执行：
 
 ```powershell
-uv run m2v author sounds import --project examples/principle-metaphor/pigeon --manifest assets/sound-recipe.json
+pnpm run setup
 ```
 
 ## 变化怎么表达

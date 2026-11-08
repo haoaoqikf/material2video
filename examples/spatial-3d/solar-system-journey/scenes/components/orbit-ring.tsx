@@ -1,6 +1,6 @@
 /** 轨道环：稳定空间参照；可高亮当前主体，不表示精确历算。 */
 import {useMemo} from 'react';
-import {THREE} from 'm2v/code-scene';
+import * as THREE from 'three';
 
 export type OrbitRingProps = {
   radius: number;

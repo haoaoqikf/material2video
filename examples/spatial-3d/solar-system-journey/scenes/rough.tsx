@@ -1,6 +1,12 @@
 /** 仅用于低成本全片动态粗预演；与正式片共用实际运动求值器，不用于正式交付。 */
 import {useEffect, useMemo} from 'react';
-import {Canvas, PerspectiveCamera, THREE, useFrame, useSceneContext, type CodeSceneProps, type Shot} from 'm2v/code-scene';
+import * as THREE from 'three';
+import {Canvas} from '../src/code-scene/canvas';
+import {PerspectiveCamera} from '@react-three/drei';
+import {useFrame} from '@react-three/fiber';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
+import type {Shot} from '../src/code-scene/cinematic/camera';
 import {LAYOUT, positionOf} from './layout';
 import {createFlight} from './flight';
 import {BODIES} from './bodies';

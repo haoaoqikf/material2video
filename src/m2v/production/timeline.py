@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import shutil
 import subprocess
 import uuid
@@ -15,15 +16,16 @@ from .storage import local, receipt, write
 
 def build(root: Path, manifest: dict) -> Path:
     from m2v.commands import _prepared
-    from m2v.types.scene_film import code_scenes
-    from m2v.engine.contract_page import web_dir
-    from m2v.engine.lookdev import sample_audio
+    from m2v.standalone import executor
     prepared = _prepared(root, manifest)
-    # materialize 只补录缺区间，已有区间按现有摘要校验后复用。
-    materialized = code_scenes.materialize(root, prepared, 0, prepared['durationInFrames'])
+    # 由作品本地入口物化片段并返回带本地媒体路径的 props。
+    result = executor.execute(root, project=manifest, action='materialize', arguments=[], timeout=3600)
+    value = executor.read_json(executor.local_artifact(root, result['path']))
+    if value.get('preparedFingerprint') != prepared['preparedFingerprint']:
+        raise M2VError('时间线物化结果与当前准备身份不符')
     directory = outputs(root) / 'review-pack' / uuid.uuid4().hex
     directory.mkdir(parents=True)
-    props = copy.deepcopy(materialized['props'])
+    props = copy.deepcopy(value['props'])
     for index, scene in enumerate(props['compiledScenes']):
         source = local(root, scene['mediaPath'])
         target = directory / f'evidence-{index:04d}.mp4'
@@ -35,10 +37,10 @@ def build(root: Path, manifest: dict) -> Path:
                            'mediaPath', 'mediaStartFrame', 'mediaDurationFrames'):
                 del scene[key]
         scene['id'] = f'scene-{index:04d}'
-    has_audio, audio = sample_audio(prepared, root)
-    if has_audio and audio:
+    audio_value = value.get('audio')
+    if audio_value:
         target = directory / 'sound.wav'
-        shutil.copyfile(audio, target)
+        shutil.copyfile(local(root, audio_value), target)
         props['reviewAudio'] = target.name
     props['mediaBase'] = './'
     allowed = {'version', 'schemaVersion', 'fps', 'width', 'height', 'subtitle', 'durationInFrames',
@@ -46,18 +48,32 @@ def build(root: Path, manifest: dict) -> Path:
     props = {k: v for k, v in props.items() if k in allowed}
     props['title'] = ''
     write(directory / 'timeline.json', props)
-    web = web_dir()
-    result = subprocess.run([shutil.which('node') or 'node', str(web / 'scripts/build-review-player.mjs'), str(directory)],
-                            cwd=web, capture_output=True, text=True, encoding='utf-8', timeout=120)
+    result = subprocess.run([shutil.which('node') or 'node', str(root / 'scripts/build-review-player.mjs'),
+                             str(directory)], cwd=root, capture_output=True, text=True,
+                            encoding='utf-8', timeout=120)
     if result.returncode:
         raise M2VError('粗片播放器构建失败：' + result.stderr[-2000:])
-    fonts = web / 'public/fonts'
-    if fonts.is_dir():
-        shutil.copytree(fonts, directory / 'fonts')
+    fonts = root / 'public/fonts'
+    if (not fonts.is_dir() or fonts.is_symlink()
+            or (hasattr(fonts, 'is_junction') and fonts.is_junction())
+            or not fonts.resolve().is_relative_to(root.resolve())):
+        raise M2VError('作品字体目录缺失或经链接指向作品外；请先修复并重新 build')
+    def _reject_links(base: Path) -> None:
+        for parent, children, names in os.walk(base, followlinks=False):
+            for name in [*children, *names]:
+                path = Path(parent) / name
+                if path.is_symlink() or (hasattr(path, 'is_junction') and path.is_junction()):
+                    raise M2VError(f'作品字体目录含链接：{path}')
+                if not path.resolve().is_relative_to(root.resolve()):
+                    raise M2VError(f'作品字体目录越过作品：{path}')
+    _reject_links(fonts)
+    shutil.copytree(fonts, directory / 'fonts')
     (directory / 'index.html').write_text('<!doctype html><meta charset="utf-8"><title>Review</title>'
         '<div id="root"></div><script src="player.js"></script>', encoding='utf-8')
-    (directory / 'questions.md').write_text('只读取本目录。按完整顺序观察理解、结构、节奏和声画承接。\n'
-        '本目录是本地网页，使用本地 HTTP 服务打开 index.html；不能播放时以分场和跨场窗口补证，不推断通过。\n', encoding='utf-8')
+    (directory / 'questions.md').write_text(
+        '只读取本目录。按完整顺序观察理解、结构、节奏和声画承接。\n'
+        '本目录是本地网页，使用本地 HTTP 服务打开 index.html；不能播放时以分场和跨场窗口补证，不推断通过。\n',
+        encoding='utf-8')
     files = [receipt(directory, p) for p in sorted(directory.rglob('*')) if p.is_file()]
     write(directory / 'manifest.json', {'version': VERSION, 'kind': 'internal-timeline',
         'fps': prepared['fps'], 'window': [0, prepared['durationInFrames']], 'files': files})

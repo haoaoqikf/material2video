@@ -23,7 +23,13 @@ def command(root: Path, project: dict, *, required: bool = False) -> list[str] |
     if (entry.anchor or ':' in argv[-1] or '\\' in argv[-1] or '..' in entry.parts
             or not target.is_relative_to(root.resolve()) or not target.is_file()):
         raise M2VError('runtime.command入口必须是作品内存在的相对路径，不能越界或借用主项目')
-    # 可执行工具可从PATH恢复；其他参数不接受绝对文件路径，避免目录搬移失效。
+    # 可执行工具可从PATH恢复；其他参数不接受绝对文件路径或父目录跳转，避免借用作品外文件。
     if any(Path(value).anchor or PureWindowsPath(value).anchor for value in argv):
         raise M2VError('runtime.command不能保存机器绝对路径')
+    for value in argv:
+        candidates = [value, value.split('=', 1)[1]] if '=' in value else [value]
+        if any('..' in Path(candidate).parts
+               or candidate.rstrip('/\\').endswith('..')
+               for candidate in candidates if candidate):
+            raise M2VError('runtime.command参数不能包含父目录跳转')
     return list(argv)

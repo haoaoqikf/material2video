@@ -1,4 +1,4 @@
-import type {CodeSceneProps} from 'm2v/code-scene';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {ChartLine,ChartMarker} from './components/proof-chart';
 import Burst from './components/burst';
 import {Frame,Text,Ball,WHITE,GOLD,MUTED,LINE,progress,arrive,smooth,mix,fixed,opacity,useClock} from './shared';

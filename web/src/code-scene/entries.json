@@ -1,7 +1,0 @@
-{
-  "m2v/code-scene/diagram": "diagram.tsx",
-  "m2v/code-scene/math": "math.tsx",
-  "m2v/code-scene/icons": "icons.ts",
-  "m2v/code-scene/sources": "sources.tsx",
-  "m2v/code-scene/serif": "serif.ts"
-}

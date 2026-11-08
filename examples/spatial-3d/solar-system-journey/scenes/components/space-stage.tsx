@@ -1,9 +1,11 @@
 /** 深空舞台：近黑背景、透视相机、look、灯光、星场与克制后期；作品把世界作为 children。 */
 import type {ReactNode} from 'react';
-import {
-  Canvas, LookProvider, PerspectiveCamera, PostFX, Starfield,
-  type Look, type Shot,
-} from 'm2v/code-scene';
+import {Canvas} from '../../src/code-scene/canvas';
+import {LookProvider} from '../../src/code-scene/cinematic/camera';
+import {PerspectiveCamera} from '@react-three/drei';
+import {PostFX} from '../../src/code-scene/cinematic/postfx';
+import {Starfield} from '../../src/code-scene/cinematic/space';
+import type {Look, Shot} from '../../src/code-scene/cinematic/camera';
 import {T} from './kit';
 
 export type SpaceStageProps = {

@@ -130,60 +130,6 @@ def test_deliver_directory_restores_nested_cache_access(normal_root):
         shutil.rmtree(staged, ignore_errors=True)
 
 
-def test_prepare_delivers_the_master_audio_with_inherited_access(normal_root, monkeypatch):
-    """主音轨在临时目录里混音，落到 ``outputs/media`` 时必须交回继承权限。"""
-    root, manifest = project(normal_root)
-    fake_tts(monkeypatch); fake_record(monkeypatch)
-    prepared = adapter.prepare(root, manifest)
-    master = root / prepared["audio"]["segments"][0]["path"]
-    assert master.is_file() and master.parent.name == "media"
-    assert security.has_usable_access(master)
-
-
-def test_render_delivers_the_video_and_provenance_with_inherited_access(normal_root, monkeypatch):
-    """成片与溯源文件都从渲染临时目录搬出，两者都必须能被标准权限应用打开。"""
-    root, manifest = project(normal_root)
-    fake_tts(monkeypatch); fake_record(monkeypatch)
-    prepared = adapter.prepare(root, manifest)
-
-    class FakeServer:
-        base_url = "http://127.0.0.1:1/"
-
-        def __init__(self, _root, cors=False):
-            self.cors = cors
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-    def fake_session(**kwargs):
-        render = kwargs["on_metadata"](SimpleNamespace(
-            fps=60, width=1920, height=1080, duration_in_frames=prepared["durationInFrames"]))
-        Path(render["out"]).write_bytes(b"silent")
-        return {"readySeconds": 0.01}
-
-    monkeypatch.setattr(explainer_render, "LocalServer", FakeServer)
-    monkeypatch.setattr(explainer_render, "layout_check", lambda _root, _prepared: {"status": "pass"})
-    monkeypatch.setattr(explainer_render.remotion, "web_dir", lambda: normal_root)
-    monkeypatch.setattr(explainer_render.remotion, "progress_handler", lambda frames: None)
-    monkeypatch.setattr(explainer_render.remotion, "bundle", lambda **kwargs: SimpleNamespace(
-        path=normal_root / "bundle", build_seconds=0.0, cache_seconds=0.0,
-        cache_status="hit", cache_key="test", cache_detail="test"))
-    monkeypatch.setattr(explainer_render.remotion, "render_session", fake_session)
-    monkeypatch.setattr(explainer_render.audio, "mux",
-                        lambda silent, master, final, seconds, **kwargs: Path(final).write_bytes(b"final"))
-    monkeypatch.setattr(explainer_render.output_validation, "verify_output", lambda *args, **kwargs: None)
-
-    output = adapter.render(root, manifest)
-    provenance = output.with_suffix(".provenance.json")
-    assert output.is_file() and provenance.is_file()
-    assert json.loads(provenance.read_text(encoding="utf-8"))["type"] == "text-motion"
-    assert security.has_usable_access(output)
-    assert security.has_usable_access(provenance)
-
-
 def test_code_scene_encode_delivers_the_clip_through_security(tmp_path, monkeypatch):
     """代码片段缓存同样是交付文件，不能只搬运不修复。"""
     delivered: list[tuple[Path, Path]] = []

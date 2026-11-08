@@ -54,6 +54,8 @@ def _setup(options) -> dict:
 
 
 def _validate(project: dict) -> dict:
+    # 登记字体尚未恢复时不得报告 pass：构建会因缺字失败，validate 必须提前暴露。
+    _run([sys.executable, 'fonts/fetch.py', '--check'])
     from .types.scene_film import cinematic, explainer
     cinematic.validate_project(project)
     board = explainer.load(ROOT, project)
@@ -138,7 +140,8 @@ def _serve(project: dict, options) -> dict:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='本作品独立准备、预览、采集与导出')
-    parser.add_argument('command', choices=['setup', 'validate', 'prepare', 'build', 'preview', 'render', 'qa', 'sample', 'inspect'])
+    parser.add_argument('command', choices=['setup', 'validate', 'prepare', 'build', 'preview', 'render', 'qa', 'sample',
+                              'inspect', 'lookdev', 'materialize'])
     parser.add_argument('--download', action='store_true')
     parser.add_argument('--install-browser', action='store_true')
     parser.add_argument('--voice')
@@ -157,6 +160,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--destination')
     parser.add_argument('--duration-seconds', type=float, default=3)
     parser.add_argument('--frame', type=int, action='append')
+    parser.add_argument('--scale', type=int, default=2)
     return parser
 
 
@@ -189,6 +193,20 @@ def main(argv: list[str] | None = None) -> int:
             prepared = current(ROOT, project)
             result = {'status': 'current', 'path': 'outputs/prepared.json',
                       'preparedFingerprint': prepared['preparedFingerprint']}
+        elif options.command == 'lookdev':
+            from .engine import lookdev
+            if not options.frame:
+                raise VideoError('lookdev需要至少一个--frame')
+            destination = options.destination or 'outputs/lookdev'
+            manifest = lookdev.render_stills(ROOT, project, options.frame, Path(destination),
+                                             scale=options.scale)
+            result = {'status': 'captured', 'path': destination + '/lookdev.json',
+                      'stills': manifest['stills'], 'preparedFingerprint': manifest['preparedFingerprint']}
+        elif options.command == 'materialize':
+            from .engine import lookdev
+            value = lookdev.materialize_all(ROOT, project)
+            result = {'status': 'materialized', 'path': 'outputs/materialized.json',
+                      'preparedFingerprint': value['preparedFingerprint']}
         elif options.command == 'qa':
             from .engine import qa
             report = qa.run(ROOT, _current(project, options), video=Path(options.video) if options.video else None, step=options.step)

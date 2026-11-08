@@ -420,9 +420,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--step", type=int, default=DEFAULT_STEP)
     args = parser.parse_args(argv)
     from m2v.core.project import load_project
-    from m2v.types.scene_film.explainer_render import current
+    from m2v.standalone import executor
     root, manifest = load_project(args.project)
-    prepared = current(root, manifest)
+    prepared = executor.current(root, manifest)
     report = run(root, prepared, video=Path(args.video) if args.video else None,
                  step=args.step)
     print(json.dumps({"status": report["status"], "scope": report["scope"],

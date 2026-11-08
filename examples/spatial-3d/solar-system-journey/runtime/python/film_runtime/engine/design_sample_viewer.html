@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>原生设计样品</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#202124;color:#eee;font:15px system-ui}header{height:58px;display:flex;align-items:center;gap:14px;padding:10px 20px}button,input{font:inherit}input{width:100px}#stage{position:relative;overflow:hidden;height:calc(100vh - 58px)}iframe{position:absolute;border:0;transform-origin:top left;background:#000}#status{opacity:.8}
+</style>
+<header><button id="play" disabled>播放</button><button id="reset" disabled>复位</button><label>帧 <input id="frame" type="number" min="0" value="0" disabled></label><span id="status">正在加载真实场景</span></header>
+<div id="stage"><iframe id="scene" title="原生场景"></iframe></div>
+<script>
+const config=__SAMPLE_CONFIG__;
+const scene=document.getElementById('scene'), stage=document.getElementById('stage');
+const play=document.getElementById('play'), reset=document.getElementById('reset');
+const input=document.getElementById('frame'), status=document.getElementById('status');
+input.max=config.durationInFrames-1;scene.width=config.width;scene.height=config.height;
+let current=-1, playing=false, busy=false;
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function fit(){const s=Math.min(stage.clientWidth/config.width,stage.clientHeight/config.height);scene.style.transform=`scale(${s})`;scene.style.left=`${(stage.clientWidth-config.width*s)/2}px`;}
+function controls(enabled){play.disabled=reset.disabled=input.disabled=!enabled;}
+function fail(error){playing=false;controls(false);status.textContent=String(error);}
+async function move(target){
+ const api=scene.contentWindow.__M2V_CODE__;
+ const shots=config.props?.shots||[], motion=config.motion||{};
+ const advance=async n=>{const hero=shots.some(s=>s.tier==='hero'&&(s.startFrame||0)<=n&&n<(s.endFrame||0));const count=hero?(motion.subframes||1):1;
+  for(let k=0;k<count;k++)await api[config.captureMode==='pure-time'?'seekToSubframe':'advanceToSubframe'](n,k,count);};
+ if(config.captureMode==='pure-time')await advance(target);
+ else for(let n=current+1;n<=target;n++)await advance(n);
+ current=target;input.value=current;status.textContent=`${current} / ${config.durationInFrames-1} · ${config.fps} fps`;
+}
+async function boot(){
+ controls(false);current=-1;await new Promise(resolve=>{scene.onload=resolve;scene.src='scene.html';});fit();
+ const start=Date.now(), win=scene.contentWindow;
+ while(!win.__M2V_CODE__?.ready){if(Date.now()-start>30000)throw Error('场景资源未就绪');await win.__M2V_CAPTURE_CLOCK__?.bootstrap();await sleep(5);}
+ win.__M2V_CODE__.start();await move(0);controls(true);
+}
+async function run(){
+ if(busy)return;busy=true;
+ try{while(playing&&current<config.durationInFrames-1){const start=performance.now();await move(current+1);await sleep(Math.max(0,1000/config.fps-(performance.now()-start)));}}
+ catch(error){fail(error);}finally{playing=false;busy=false;play.textContent='播放';}
+}
+play.onclick=()=>{playing=!playing;play.textContent=playing?'暂停':'播放';if(playing)void run();};
+reset.onclick=async()=>{if(busy)return;playing=false;try{await boot();}catch(error){fail(error);}};
+input.onchange=async()=>{
+ if(busy)return;playing=false;busy=true;controls(false);
+ try{const target=Math.max(0,Math.min(config.durationInFrames-1,Math.trunc(Number(input.value)||0)));if(target<current&&config.captureMode!=='pure-time')await boot();await move(target);}
+ catch(error){fail(error);return;}finally{busy=false;}
+ controls(true);
+};
+window.addEventListener('resize',fit);void boot().catch(fail);
+</script></html>

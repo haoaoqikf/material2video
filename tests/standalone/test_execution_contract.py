@@ -55,3 +55,42 @@ def test_material_reference_cannot_escape_project(tmp_path):
     write_project(root, materials={'storyboard': '../outside.json'})
     with pytest.raises(VideoError, match='越过'):
         load_project(root)
+
+
+def test_adopted_source_module_must_exist_in_the_project(tmp_path):
+    """基础模板不预装业务来源；声明来源但缺本地模块时明确失败。"""
+    import pytest
+    from film_runtime.core.errors import VideoError
+    from film_runtime.types.scene_film import sources
+
+    root = tmp_path / 'project'
+    root.mkdir()
+    for name in ('request.json', 'prices.json', 'plan.json'):
+        (root / name).write_text('{}', encoding='utf-8')
+    board = {'sources': {'finance': {'kind': 'financial-series', 'files': {
+        'request': 'request.json', 'prices': 'prices.json', 'plan': 'plan.json'}}},
+        'scenes': [{'id': 'a', 'content': {'sourceIds': ['finance']}}]}
+    with pytest.raises(VideoError, match='尚未采用financial-series'):
+        sources.prepare(root, board, 'data-evolution')
+
+
+@pytest.mark.parametrize('argv', [
+    ['uv', 'run', '--project', '../../other-project', '--frozen', 'python', 'scripts/video.py'],
+    ['node', '../main-project/run.js', 'scripts/video.py'],
+    ['uv', 'run', '--config=../outside.json', 'python', 'scripts/video.py'],
+    ['pnpm', '-C../../outside', 'run', 'scripts/video.py'],
+    ['npm', '-C../../outside', 'run', 'scripts/video.py'],
+    ['node', '-r../../outside.js', 'scripts/video.py'],
+    ['pnpm', '-C..', 'run', 'scripts/video.py'],
+    ['pnpm', '-C../', 'run', 'scripts/video.py'],
+    ['node', '-r..', 'scripts/video.py'],
+    ['pnpm', '-C../..', 'run', 'scripts/video.py'],
+])
+def test_management_protocol_rejects_parent_directory_arguments(tmp_path, argv):
+    from m2v.standalone.protocol import command
+    from m2v.core.errors import M2VError
+    (tmp_path / 'scripts').mkdir()
+    (tmp_path / 'scripts/video.py').write_text('', encoding='utf-8')
+    project = {'runtime': {'version': 1, 'command': argv}}
+    with pytest.raises(M2VError, match='父目录'):
+        command(tmp_path, project, required=True)

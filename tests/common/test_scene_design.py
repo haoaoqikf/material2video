@@ -10,7 +10,7 @@ from m2v.core.errors import M2VError
 
 @pytest.fixture
 def work(tmp_path):
-    (tmp_path / 'project.json').write_text(json.dumps(dict(schemaVersion=2, id='design-test',
+    (tmp_path / 'project.json').write_text(json.dumps(dict(schemaVersion=3, id='design-test',
         type='text-motion', materials={'storyboard': 'storyboard.json'})), encoding='utf-8')
     (tmp_path / 'storyboard.json').write_text(json.dumps({'scenes': [{'id': 'a'}, {'id': 'b'}]}), encoding='utf-8')
     (tmp_path / 'design/scenes').mkdir(parents=True)

@@ -1,4 +1,5 @@
-import {THREE, type Shot} from 'm2v/code-scene';
+import * as THREE from 'three';
+import type {Shot} from '../src/code-scene/cinematic/camera';
 
 type Window = {startFrame: number; endFrame: number};
 type Targets = Record<string, THREE.Vector3>;

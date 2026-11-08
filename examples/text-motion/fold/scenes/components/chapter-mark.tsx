@@ -16,7 +16,7 @@ export type ChapterMarkProps = {
 };
 
 export default function ChapterMark({
-  index, character, latin, x = 72, y = 64, opacity = 0.42, frame, startFrame = 0, state,
+  index, character, latin, x = 72, y = 64, opacity = 0.42, frame, startFrame = 0,
 }: ChapterMarkProps) {
   const contextFrame = useNightFrame();
   const activeFrame = frame ?? contextFrame;

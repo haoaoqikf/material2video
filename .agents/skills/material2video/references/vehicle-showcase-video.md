@@ -1,6 +1,8 @@
 # 汽车展示视频专题
 
-本文定义三维空间作品可选的 `vehicle-model` 结构化来源及 `VehicleScene` 场景。作品仍使用 project v2、分镜 v9 和统一制作链路；当前行为以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。
+> **独立工程口径**：作品不解析 `m2v/*`；下文 `m2v/code-scene/sources` 指主项目参考源码。采用时把 `web/src/code-scene/sources.tsx` 及相关源码复制到作品 `src/code-scene/`，以作品内相对路径导入，并在作品 `package.json` 声明实际依赖。
+
+本文定义三维空间作品可选的 `vehicle-model` 结构化来源及 `VehicleScene` 场景。作品仍使用 project v3、分镜 v9 和统一制作链路；当前行为以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。
 
 在分镜 `sources` 中声明 `{"showcase":"showcase.json","assets":"manifest.json"}` 两个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `m2v/code-scene/sources` 导入 `VehicleScene`。分镜幕时长须与来源一致。模型与贴图留在作品目录，准备时纳入指纹。
 

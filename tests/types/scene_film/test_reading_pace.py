@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from m2v.commands import _report_reading_pace
-from m2v.types.scene_film import adapter, reading_pace
+from m2v.types.scene_film import explainer_prepare, reading_pace
 
 from helpers.scene_film import fake_tts, project
 
@@ -54,7 +54,7 @@ def test_超限不阻断准备并写出报告(tmp_path, monkeypatch):
     """半秒的口播配 8 个字，必然超限；准备仍应成功。"""
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch, seconds=0.5)
-    prepared = adapter.prepare(root, manifest)
+    prepared = explainer_prepare.prepare(root, manifest)
     report = json.loads((root / reading_pace.REPORT).read_text(encoding="utf-8"))
     assert report["status"] == "over-limit"
     assert report["preparedFingerprint"] == prepared["preparedFingerprint"]
@@ -63,7 +63,7 @@ def test_超限不阻断准备并写出报告(tmp_path, monkeypatch):
 def test_cli_超限时打印提示且不抛错(tmp_path, monkeypatch, capsys):
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch, seconds=0.5)
-    adapter.prepare(root, manifest)
+    explainer_prepare.prepare(root, manifest)
     _report_reading_pace(root)
     printed = capsys.readouterr()
     assert "[warning]" in printed.err

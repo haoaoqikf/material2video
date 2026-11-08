@@ -4,7 +4,9 @@
  * 本包不随包携带字体，使用宿主已注册的 `M2V Sans`；所有时间输入来自受控帧号，
  * 不使用挂钟、`Math.random`、CSS 动画或组件计时器。
  */
-import {hashSeed, makeTransform, scale as scaleTransform, seededRandom, translate3d, useSceneContext} from 'm2v/code-scene';
+import {hashSeed, seededRandom} from '../../src/code-scene/random';
+import {makeTransform, scale as scaleTransform, translate3d} from '../../src/code-scene/motion-components/styles';
+import {useSceneContext} from '../../src/code-scene/context';
 import tokens from '../tokens.json';
 
 export type ChapterPosition = 'lower' | 'upper' | 'upperNarrow' | 'right' | 'vertical';

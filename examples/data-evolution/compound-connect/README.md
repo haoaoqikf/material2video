@@ -27,3 +27,18 @@ uv run m2v qa --project examples/data-evolution/compound-connect
 数学限定为初始100、每轮按现有总量增加1%，对照固定加1，无新增外部投入。雪球只作类比，不模拟这个精确增速，也不预测现实学习、自然或投资回报。
 
 源码与配方入库；outputs、音效二进制和历史记录不入库。共享GUIDE修订会改变风格指纹，既有dark-proof作品再次导出前须重新准备。制作完成状态只以当前VERIFICATION为准，重建命令本身不等于独立审核通过。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

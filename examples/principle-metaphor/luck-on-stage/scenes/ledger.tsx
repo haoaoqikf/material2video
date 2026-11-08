@@ -1,5 +1,6 @@
-import {painter,type CodeSceneProps} from 'm2v/code-scene';
-import {Frame,Text,WHITE,GOLD,RED,MUTED,LINE,progress,enter,track,pop,useClock} from './shared';
+import * as painter from '../src/code-scene/painter';
+import type {CodeSceneProps} from '../src/code-scene/context';
+import {Frame,Text,WHITE,GOLD,RED,MUTED,LINE,progress,enter,pop,useClock} from './shared';
 import {Backdrop} from './details';
 import {Contact} from './cues';
 import {Attempt} from './attempt';

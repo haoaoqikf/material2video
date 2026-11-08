@@ -16,7 +16,7 @@ export type FableStageProps = {
 };
 
 export default function FableStage({
-  scene, width, height, horizon = 0.68, vignette = T.canvas.vignette, state,
+  scene, width, height, horizon = 0.68, vignette = T.canvas.vignette,
 }: FableStageProps) {
   const p = palette(scene);
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');

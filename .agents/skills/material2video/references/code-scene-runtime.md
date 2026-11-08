@@ -1,5 +1,7 @@
 # 代码场景运行契约
 
+> **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
+
 新建作品已使用独立工程 v3：逐帧接口在作品 `src/code-scene/`，依赖与构建器属于作品，禁止导入 `m2v/*`。运行与恢复见[独立工程说明](../../../../templates/standalone/README.md)。原生样品采集已委托本地实现，播放只用作品字体和登记媒体。本页后续共享SDK路径为存量实现参考；七例与lookdev／时间线正在按[变更任务](../../../../openspec/changes/make-video-projects-standalone/tasks.md)改造，不能用存量入口代替 v3 工程的本地运行。
 
 完整分镜准备之前的代表性原生试制使用 `m2v sample capture/serve/deliver`，复用本页构建、受控采集与编码；依赖扩展、资源加载器、网页预览及完成条件见[网页原生样品](design-samples.md)。该入口不代替正式全片准备与验收。
@@ -271,9 +273,8 @@ pure 场景必须通过两道闸门：
 `--jobs` 不进入候选绑定，改变 jobs 仍可复用同一内容候选。
 
 作品绘制实际横竖画幅的完整不透明画布，重要内容避让 `subtitleSafeArea`；共享层只叠加字幕。
-采集使用完整 Chromium 的无头模式（Playwright 的 `chromium` channel），以加载 Windows WebGPU 所需的 DXC；安装使用 `uv run playwright install chromium`，仅安装 headless shell 不足以运行 WebGPU 场景。系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，作品直接依赖由可扩展的 `web/code-scene-dependencies.json` 登记，固定版本、来源、许可和适配依据，打包时校验本地安装版本
-（含电影级后期所需的 `postprocessing` 与 `@react-three/postprocessing`；依赖缺失时在打包前
-明确失败，不会静默渲染成没有后期的画面）。
+采集使用完整 Chromium 的无头模式（Playwright 的 `chromium` channel），以加载 Windows WebGPU 所需的 DXC；安装使用 `uv run playwright install chromium`，仅安装 headless shell 不足以运行 WebGPU 场景。系统只开放已登记媒体和仓库字体，阻断外网及 WebSocket，作品直接依赖在自身 `package.json` 与锁文件中固定精确版本，并在作品材料记录来源、许可和适配依据；构建器校验作品内实际安装版本
+（采用电影级后期时，作品自行声明 `postprocessing` 与 `@react-three/postprocessing`；依赖缺失时在打包前明确失败，不会静默渲染成没有后期的画面）。
 字体、组件与显式资源未就绪、运行异常或逐帧绘制超时均使 prepare 失败，不发布有效缓存。
 
 已登记的 `three-gpu-pathtracer@0.0.27` 静态适配除固定样本、Sobol 与 megakernel 外，还要控制场景对象身份：该版本按 UUID 排序灯光、网格和纹理/Source，Three 的默认随机 UUID 会让同一随机数映射到不同灯光。可在作品内固定可写对象、几何和纹理身份，保留材质等只读接口，不覆盖全局随机数。既有确定性核验应观察独立加载及复位重建，而不能仅凭同页冻结 Canvas 的重复截图推断跨加载稳定。

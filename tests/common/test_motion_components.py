@@ -1,7 +1,6 @@
 """共享动效组件：实现指纹、确定性闸门与 SDK 导出。"""
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from m2v.core import source_policy
@@ -10,7 +9,7 @@ from m2v.types.scene_film import code_scenes
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
 COMPONENTS = WEB / "src/code-scene/motion-components"
-SDK = WEB / "src/code-scene/sdk.tsx"
+SDK = Path(__file__).resolve().parents[1] / "support/code-scene-reference.tsx"
 
 
 def test_shared_components_are_part_of_the_implementation_fingerprint():
@@ -31,7 +30,7 @@ def test_shared_components_pass_the_determinism_source_gate():
 
 def test_sdk_exports_the_shared_motion_components():
     text = SDK.read_text(encoding="utf-8")
-    assert "export * from './motion-components';" in text
+    assert "export * from '../../web/src/code-scene/motion-components';" in text
     index = (COMPONENTS / "index.ts").read_text(encoding="utf-8")
     for module in ("l1", "l2", "paths", "styles", "text", "morph", "gauge", "noise", "charts",
                    "timeline", "pictogram", "waveform"):
@@ -53,13 +52,6 @@ def test_extended_components_are_exported():
         source = (COMPONENTS / filename).read_text(encoding="utf-8")
         for name in names:
             assert f"export function {name}" in source, f"{filename}: {name}"
-
-
-def test_registered_dependency_versions_match_the_workspace_declarations():
-    package = json.loads((WEB / "package.json").read_text(encoding="utf-8"))
-    registry = json.loads((WEB / "code-scene-dependencies.json").read_text(encoding="utf-8"))
-    for name, entry in registry['packages'].items():
-        assert package['dependencies'][name].lstrip('^~') == entry['version'], name
 
 
 def test_l1_and_l2_names_are_exported():

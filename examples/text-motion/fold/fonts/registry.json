@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "$comment": "字体二进制不入库。来源、摘要、许可与恢复目标以本表为准；恢复命令：uv run python fonts/fetch.py。",
+  "fonts": [
+    {
+      "id": "lat-inter",
+      "file": "Inter-Variable.ttf",
+      "family": "M2V Inter",
+      "weight": "100 900",
+      "usage": "拉丁与数字；图表数值列的对齐依赖它",
+      "source": "https://rsms.me/inter/",
+      "version": "4.x variable",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "license": "licenses/OFL-Inter.txt",
+      "targets": [],
+      "web": true
+    },
+    {
+      "id": "sans-cn",
+      "file": "NotoSansSC-Variable.ttf",
+      "family": "M2V Sans",
+      "weight": "100 900",
+      "usage": "中文",
+      "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+      "version": "variable",
+      "bytes": 17772300,
+      "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "license": "licenses/OFL-NotoSansSC.txt",
+      "targets": [],
+      "web": true
+    },
+    {
+      "id": "serif-cn-subset",
+      "file": "NotoSerifSC-subset.ttf",
+      "family": "M2V Serif",
+      "weight": "400",
+      "usage": "代码场景可引用的中文宋体",
+      "source": "https://fonts.google.com/noto/specimen/Noto+Serif+SC",
+      "version": "GB2312 subset",
+      "bytes": 3201152,
+      "sha256": "9a0144618744f0e9fa1bef4eea166f5bae9e412f2f7be626a7dd0352aba979f5",
+      "license": "licenses/OFL-NotoSerifSC.txt",
+      "targets": [
+        "src/assets/fonts/NotoSerifSC-subset.ttf"
+      ],
+      "web": true,
+      "subset": {
+        "charset": "GB2312",
+        "note": "由 Noto Serif SC 生成；自动重建登记为后续能力，本轮只恢复预生成子集。"
+      }
+    }
+  ]
+}

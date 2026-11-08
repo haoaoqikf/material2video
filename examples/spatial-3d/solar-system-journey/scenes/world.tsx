@@ -1,5 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {THREE, useFrame, useMediaAsset, useThree} from 'm2v/code-scene';
+import * as THREE from 'three';
+import {useFrame, useThree} from '@react-three/fiber';
+import {useMediaAsset} from '../src/code-scene/media';
 import {BODIES} from './bodies';
 import {smooth} from './clock';
 

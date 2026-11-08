@@ -1,5 +1,7 @@
 # 五类统一分镜 v9
 
+> **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
+
 本页配合[节奏、美术、声音与制作阶段](production-workflow.md)执行：先整片粗预演、风险优先，再按阶段完成条件精制与复查；不增加用户确认或 CLI 人工门禁。
 
 五类只接受 `version: 9`、`schemaVersion: 9`。v8 及更早分镜必须重新编排，不自动迁移；

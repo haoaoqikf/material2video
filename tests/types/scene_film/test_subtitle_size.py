@@ -7,7 +7,7 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, file_inputs, load_current_prepared, load_project, save_prepared
-from m2v.types.scene_film import adapter, explainer_render
+from m2v.types.scene_film import adapter, explainer_prepare, explainer_render
 from helpers.scene_film import fake_tts, project
 
 
@@ -47,6 +47,7 @@ def test_subtitle_configuration_change_invalidates_prepared(tmp_path, before, af
     root, manifest = project(tmp_path)
     if before is not None:
         manifest["output"]["subtitle"] = {"fontSize": before}
+    (root / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     save_prepared(root, project=manifest, composition_id="SceneFilm", props={},
                   width=1920, height=1080, fps=60, duration_in_frames=60, inputs=file_inputs(root, manifest))
     load_current_prepared(root, manifest)
@@ -63,7 +64,7 @@ def test_browser_uses_prepared_subtitle_size_and_rejects_drift(tmp_path, monkeyp
     root, manifest = project(tmp_path)
     manifest["output"]["subtitle"] = {"fontSize": 52}
     fake_tts(monkeypatch)
-    prepared = adapter.prepare(root, manifest)
+    prepared = explainer_prepare.prepare(root, manifest)
     # 量测对照准备字号而非画幅默认40；实际DOM必须为52才能通过。
     assert explainer_render.layout_check(root, prepared)["status"] == "pass"
     monkeypatch.setattr(explainer_render, "MEASURE_BODY", explainer_render.MEASURE_BODY.replace(

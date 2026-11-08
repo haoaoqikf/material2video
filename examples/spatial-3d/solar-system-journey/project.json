@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "solar-system-journey",
   "type": "spatial-3d",
   "materials": {
@@ -27,5 +27,15 @@
       "rationale": "当前服务返回晓晓 News/Novel、Warm；逐站导览改为简短亲切的介绍并留观察时间，选择温暖叙述风格，不再按60秒压缩。保留原语速与停顿，选择依据为完整旁白及服务标签，非试听结论。",
       "narrationSha256": "3fe02a799bc12517af891ce2c6d26875c1dff64f6c026729203d856567ee149d"
     }
+  },
+  "runtime": {
+    "version": 1,
+    "command": [
+      "uv",
+      "run",
+      "--frozen",
+      "python",
+      "scripts/video.py"
+    ]
   }
 }

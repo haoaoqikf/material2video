@@ -4,7 +4,7 @@
     {
       "id": "tick",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "keyboard-key",
@@ -18,7 +18,7 @@
     {
       "id": "flip",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "impact-metal",
@@ -32,7 +32,7 @@
     {
       "id": "thud",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "impact-soft",
@@ -46,7 +46,7 @@
     {
       "id": "shimmer",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "spark",
@@ -60,7 +60,7 @@
     {
       "id": "chord",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "success",

@@ -1,4 +1,4 @@
-import {burstField} from 'm2v/code-scene';
+import {burstField} from '../src/code-scene/dynamics';
 import {GOLD,INK,progress} from './shared';
 
 /** 复用确定性粒子场；寿命内先扩散再下坠，不给整层套统一淡出。 */

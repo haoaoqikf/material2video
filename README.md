@@ -2,7 +2,7 @@
 
 Material2Video 是短视频制作指导与工具链。新建作品使用 `project.json` v3 和分镜 v9，拥有自己的运行源码、依赖锁、资源恢复与 `SceneFilm` 合成；主项目通过本地入口委托校验、准备、片段检查与完整导出。画面可由代码生成，也可使用登记过的真实媒体。架构边界见 [ARCHITECTURE.md](ARCHITECTURE.md)，操作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-独立工程改造正在实施：基础模板、新建工程、基础命令和原生样品委托已落地；七部存量示例、lookdev／时间线委托及旧通用实现清理尚未完成。具体范围和验证见[进行中的变更](openspec/changes/make-video-projects-standalone/tasks.md)，下文涉及共享SDK的存量说明不适用于新工程。
+独立工程改造主体已完成：七部存量示例已原地改为独立工程，运行源码、依赖锁、字体与资源恢复、预览、采集和导出都归作品；`lookdev`、时间线与 QA 读取本地产物。主项目只保留制作指导、初始化、可选组件参考和制作管理；旧 `web/` 源码仅作参考与测试夹具，不参与任何作品运行。独立审查与 OpenSpec 归档正在收尾。
 
 ## 当前视频类型
 
@@ -57,7 +57,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 设计试制不限主动时长和重试次数，未通过持续打磨；AI 图只能辅助内部构思/参考，不能直接交付或贴入网页冒充核心实现。允许调研并引入外部库、模型、Shader、建模与预计算等手段，作品直接依赖改为可扩展登记，校验来源、固定版本、许可与实际安装。具体流程、适配边界及评审请求见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。采集凭据不自动判断审美或鉴别所有 AI 整图包装。
 
-采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。代码场景可通过 `waitForFrame(PromiseLike)` 登记异步绘制，初始就绪和每帧/子帧在工作及合成完成后才放行；拒绝或超时仍失败，纯时间仍须实际验证。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。OIDN 的[可选微任务调度补丁](web/patches/oidn-webgpu@0.6.0.patch)随锁文件恢复，使瓦片衔接不依赖冻结帧内的计时器；动态仍须当前实际验证。版本与采用依据见[依赖登记](web/code-scene-dependencies.json)，许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
+采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。代码场景可通过 `waitForFrame(PromiseLike)` 登记异步绘制，初始就绪和每帧/子帧在工作及合成完成后才放行；拒绝或超时仍失败，纯时间仍须实际验证。静态代码场景可使用已登记的本地路径追踪与 OIDN 去噪依赖；固定种子、样本和分块，在 GPU 及本地权重就绪后采集，逐场核验确定性，不据此宣称动态已验证。路径追踪与 OIDN 能力只保留在参考源码中，采用时由作品把实际依赖、补丁、权重来源和许可写进自己的工程与锁文件；动态仍须当前实际验证。参考依赖与许可见 [three-gpu-pathtracer](docs/licenses/three-gpu-pathtracer.txt)、[three-mesh-bvh](docs/licenses/three-mesh-bvh.txt)、[xatlas-web](docs/licenses/xatlas-web.txt)、[oidn-webgpu](docs/licenses/oidn-webgpu.txt)及 [WebGPU 类型](docs/licenses/webgpu-types.txt)；模型权重由作品登记来源、许可和恢复摘要，不入库。
 
 
 ## 材料与画面
@@ -80,7 +80,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 ## 示例与文档
 
-七部示例按五类分组，清单和存量恢复命令见 [examples/README.md](examples/README.md)。现有示例已列入逐例独立改造，尚未报告 v3 验证通过；原画面专属组件、来源与研究记录保留，旧报告不转换为新版通过。示例媒体继续按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。
+七部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出；主题、场景身份、数学／事实口径和音轨要求保持不变。素材与媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。逐例改造范围与实际验证见[示例独立化记录](openspec/changes/make-video-projects-standalone/implementation-examples.md)和 [examples/README.md](examples/README.md)。
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。

@@ -8,7 +8,7 @@
  * （react、motion、gsap、echarts、three 与 react-three-fiber/drei）。
  */
 import {useEffect, useRef} from 'react';
-import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {useSceneContext, type CodeSceneProps} from '../src/code-scene/context';
 
 export default function Opening({props, width, height, subtitleSafeArea}: CodeSceneProps) {
   const {ready} = useSceneContext();

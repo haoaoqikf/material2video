@@ -1,5 +1,9 @@
 import {useEffect, useMemo, type ReactNode} from 'react';
-import {createSceneEvents, motionCurve, painter, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import * as painter from '../src/code-scene/painter';
+import {createSceneEvents} from '../src/code-scene/events';
+import {motionCurve} from '../src/code-scene/motion';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import Stage from './components/stage';
 import ScreenSubtitle, {type ScreenSubtitleItem,type SubtitleVariant} from './components/screen-subtitle';
 import {T, SANS, LATIN} from './components/kit';
@@ -24,7 +28,7 @@ export function useClock(config:CodeSceneProps){
   const events=useMemo(()=>createSceneEvents(config.eventFrames),[config.eventFrames]);
   return {f:clock.elapsedSeconds*config.fps,e:events};
 }
-export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,weight=650,align='middle',scale=1}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;weight?:number;align?:'start'|'middle'|'end';scale?:number}){
+export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,weight=650,align='middle',scale=1}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;weight?:number;align?:'start'|'middle'|'end';scale?:number;role?:string}){
   if(alpha<=0)return null;
   return <text x={x} y={y} textAnchor={align} dominantBaseline="central" fill={color} opacity={alpha} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`} style={{fontVariantNumeric:'tabular-nums'}}>{text}</text>;
 }

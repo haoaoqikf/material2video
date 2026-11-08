@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,9 @@ from m2v.types.scene_film import explainer_review as review
 from m2v.types.scene_film import explainer_prepare as prepare
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'templates/standalone/runtime/python'))
+from film_runtime.engine import tts as local_tts  # noqa: E402
+from film_runtime.types.scene_film import explainer_prepare as local_prepare  # noqa: E402
 ENTRY = "scenes/opening.tsx"
 STARTER = ROOT / "src/m2v/types/scene_film/starters" / ENTRY
 WEB = ROOT / "web"
@@ -70,6 +74,9 @@ def project(tmp_path, data=None):
     record.update(status="pass", claim="反馈帮助改进", rationale="原文有清晰观点和操作方法", reviewer="测试夹具")
     (root / "outputs").mkdir()
     (root / "outputs/input-review.json").write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    (root / "fonts/files").mkdir(parents=True, exist_ok=True)
+    for name in ("Inter-Variable.ttf", "NotoSansSC-Variable.ttf"):
+        shutil.copy2(ROOT / "fonts/files" / name, root / "fonts/files" / name)
     return root, manifest
 
 
@@ -110,6 +117,7 @@ def fake_tts(monkeypatch, seconds=1, samples=None):
         return wav, [{"start": 0, "end": seconds, "text": text}], [], seconds, hit
 
     monkeypatch.setattr(prepare.tts, "scene_audio", speak)
+    monkeypatch.setattr(local_tts, "scene_audio", speak)
     return calls
 
 

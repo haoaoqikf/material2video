@@ -3,16 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 const root = path.resolve(import.meta.dirname, '..');
-const web = path.resolve(root, '../../../../web');
-const require = createRequire(path.join(web, 'package.json'));
+const require = createRequire(path.join(root, 'package.json'));
 const {build} = require('esbuild');
 const output = path.join(root, 'outputs/motion-runtime.cjs');
 await build({stdin: {contents: `
 import {createFlight} from ${JSON.stringify(path.join(root, 'scenes/flight.ts'))};
 import {LAYOUT, positionOf} from ${JSON.stringify(path.join(root, 'scenes/layout.tsx'))};
-module.exports = {createFlight, LAYOUT, positionOf};`, resolveDir: web}, bundle: true,
-  platform: 'node', format: 'cjs', outfile: output, nodePaths: [path.join(web, 'node_modules')],
-  alias: {'m2v/code-scene': path.join(web, 'src/code-scene/sdk.tsx')}});
+module.exports = {createFlight, LAYOUT, positionOf};`, resolveDir: root}, bundle: true,
+  platform: 'node', format: 'cjs', outfile: output, nodePaths: [path.join(root, 'node_modules')]});
 const {createFlight, LAYOUT, positionOf} = require(output);
 const board = JSON.parse(fs.readFileSync(path.join(root, 'storyboard.json'), 'utf8'));
 const scene = board.scenes[0], fps = board.fps;

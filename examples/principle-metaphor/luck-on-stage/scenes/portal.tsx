@@ -1,4 +1,4 @@
-import {particleField} from 'm2v/code-scene';
+import {particleField} from '../src/code-scene/primitives';
 import {GOLD,WHITE,INK,progress,smooth,mix,track} from './shared';
 
 export const PORTAL_FRAMES=24;

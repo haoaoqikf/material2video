@@ -1,4 +1,5 @@
-import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 
 export const clamp = (x: number) => Math.max(0, Math.min(1, x));
 export const smooth = (x: number) => {const t = clamp(x); return t * t * (3 - 2 * t);};

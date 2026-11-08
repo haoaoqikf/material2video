@@ -15,11 +15,9 @@ import {FPS, LEAD_IN, TAIL, SEGMENTS, createProposal} from './lib/paths.mjs';
 
 const HERE = import.meta.dirname;
 const EXAMPLE = path.resolve(HERE, '..');
-const REPO = path.resolve(EXAMPLE, '../../../..');
-const WEB = path.join(REPO, 'web');
-// esbuild 安装在前端工作区；以 web/package.json 为基准解析，避免依赖当前工作目录。
-const requireFromWeb = createRequire(path.join(WEB, 'package.json'));
-const {build} = requireFromWeb('esbuild');
+// esbuild 安装在本作品；以作品 package.json 为基准解析，不读取主项目。
+const requireFromExample = createRequire(path.join(EXAMPLE, 'package.json'));
+const {build} = requireFromExample('esbuild');
 
 // ---------------------------------------------------------------- 布局载入
 
@@ -33,9 +31,8 @@ const POSITIONS = {};
 for (const id of Object.keys(LAYOUT)) POSITIONS[id] = positionOf(id).toArray();
 module.exports = {THREE, LAYOUT, POSITIONS};
 `;
-await build({stdin: {contents: entry, resolveDir: WEB}, bundle: true, platform: 'node', format: 'cjs',
-  outfile: bundle, nodePaths: [path.join(WEB, 'node_modules')],
-  alias: {'m2v/code-scene': path.join(WEB, 'src/code-scene/sdk.tsx')}});
+await build({stdin: {contents: entry, resolveDir: EXAMPLE}, bundle: true, platform: 'node', format: 'cjs',
+  outfile: bundle, nodePaths: [path.join(EXAMPLE, 'node_modules')]});
 const requireFrom = createRequire(import.meta.url);
 const {THREE, LAYOUT, POSITIONS} = requireFrom(bundle);
 

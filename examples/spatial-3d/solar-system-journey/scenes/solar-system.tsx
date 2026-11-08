@@ -1,8 +1,8 @@
 import {memo, useMemo, useRef} from 'react';
-import {
-  Comet, Corona, OortCloud, ParticleBelt, Prominence, THREE, useFrame, useThree,
-  type Look, type Shot,
-} from 'm2v/code-scene';
+import * as THREE from 'three';
+import {Comet, Corona, OortCloud, ParticleBelt, Prominence} from '../src/code-scene/cinematic/space';
+import {useFrame, useThree} from '@react-three/fiber';
+import type {Look, Shot} from '../src/code-scene/cinematic/camera';
 import SpaceStage from './components/space-stage';
 import OrbitRing from './components/orbit-ring';
 import {BODIES} from './bodies';

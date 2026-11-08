@@ -17,7 +17,7 @@ def prepare_with(tmp_path, monkeypatch, data, *, seconds=1, **options):
     root, manifest = project(tmp_path, data)
     fake_tts(monkeypatch, seconds=seconds)
     calls = fake_record(monkeypatch)
-    prepared = adapter.prepare(root, manifest, **options)
+    prepared = explainer_prepare.prepare(root, manifest, **options)
     return root, manifest, prepared, calls
 
 
@@ -116,8 +116,9 @@ def test_prepare_rejects_removed_profile(tmp_path, monkeypatch):
 def test_invalid_project_profile_is_rejected(tmp_path):
     root, manifest = project(tmp_path, board())
     manifest["productionProfile"] = "epic"
+    (root / "project.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(M2VError, match="productionProfile"):
-        adapter.validate(root, manifest)
+        load_project(root)
 
 
 

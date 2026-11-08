@@ -5,18 +5,26 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {build} from 'esbuild';
-import {readSceneDependencies, requireRegisteredDependency} from './code-scene-dependencies.mjs';
 
 const [projectArg, entry, output] = process.argv.slice(2);
 const project = fs.realpathSync(projectArg);
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(path.join(web, 'package.json'));
-const sdk = path.join(web, 'src/code-scene/sdk.tsx');
+// 仅用于仓库内参考场景与测试夹具；作品构建器不接受这些说明符。
+const reference = path.join(path.dirname(web), 'tests/support/code-scene-reference.tsx');
 const sdkEntries = new Map([
-  ['m2v/code-scene', sdk],
-  ...Object.entries(JSON.parse(fs.readFileSync(path.join(web, 'src/code-scene/entries.json'), 'utf8')))
-    .map(([name, file]) => [name, path.join(web, 'src/code-scene', file)]),
+  ['m2v/code-scene', reference],
+  ['m2v/code-scene/diagram', path.join(web, 'src/code-scene/diagram.tsx')],
+  ['m2v/code-scene/math', path.join(web, 'src/code-scene/math.tsx')],
+  ['m2v/code-scene/icons', path.join(web, 'src/code-scene/icons.ts')],
+  ['m2v/code-scene/sources', path.join(web, 'src/code-scene/sources.tsx')],
+  ['m2v/code-scene/serif', path.join(web, 'src/code-scene/serif.ts')],
 ]);
+const loaders = {'.png':'dataurl','.jpg':'dataurl','.jpeg':'dataurl','.webp':'dataurl','.svg':'dataurl',
+  '.woff2':'dataurl','.woff':'dataurl','.ttf':'dataurl','.otf':'dataurl','.glb':'file','.gltf':'file','.bin':'file',
+  '.wasm':'file','.hdr':'file','.exr':'file','.glsl':'text','.vert':'text','.frag':'text',
+  '.wgsl':'text','.tza':'file'};
+const manifest = JSON.parse(fs.readFileSync(path.join(web, 'package.json'), 'utf8'));
 function checkMathFonts() {
   const repo = path.dirname(web);
   const registry = JSON.parse(fs.readFileSync(path.join(repo, 'fonts/registry.json'), 'utf8'));
@@ -28,7 +36,6 @@ function checkMathFonts() {
     }
   }
 }
-const registered = readSceneDependencies(web);
 const checkedPackages = new Map();
 const inputDigests = new Map();
 const hash = contents => createHash('sha256').update(contents).digest('hex');
@@ -45,11 +52,11 @@ const result = await build({
   // 少数依赖在运行时读 process.emit / nextTick；给一个最小浏览器 shim，避免整幕静默失败。
   banner: {js: 'var process={env:{NODE_ENV:"production"},emit:function(){},emitWarning:function(){},nextTick:function(fn){Promise.resolve().then(fn);},browser:true,version:"",platform:"browser",cwd:function(){return "/";}};'},
   outfile: path.join(output, 'scene.js'), nodePaths: [path.join(web, 'node_modules')],
-  loader: registered.loaders,
+  loader: loaders,
   plugins: [{name: 'project-boundary', setup(builder) {
     // 与 Vite 的 ?raw 保持一致；KaTeX 只读取排版 CSS，字体走受控恢复目标。
     builder.onResolve({filter: /^katex\/dist\/katex.min.css\?raw$/}, args => {
-      if (args.importer !== path.join(web, 'src/code-scene/math.tsx')) return;
+      if (!args.importer.endsWith('/math.tsx')) return;
       return {path: require.resolve('katex/dist/katex.min.css'), namespace: 'raw-css'};
     });
     builder.onLoad({filter: /.*/, namespace: 'raw-css'}, args => {
@@ -59,7 +66,7 @@ const result = await build({
     });
     builder.onLoad({filter: /.*/, namespace: 'file'}, args => {
       const extension = path.extname(args.path);
-      const loader = registered.loaders[extension] ?? builtinLoaders[extension];
+      const loader = loaders[extension] ?? builtinLoaders[extension];
       if (!loader) throw new Error(`未登记的场景资源加载方式：${extension}`);
       const contents = fs.readFileSync(args.path);
       inputDigests.set(fs.realpathSync(args.path), hash(contents));
@@ -83,7 +90,17 @@ const result = await build({
         return {path: fs.realpathSync(file)};
       }
       const name = args.path.startsWith('@') ? args.path.split('/').slice(0, 2).join('/') : args.path.split('/')[0];
-      if (!checkedPackages.has(name)) checkedPackages.set(name, requireRegisteredDependency(web, registered, name));
+      if (!checkedPackages.has(name)) {
+        if (typeof manifest.dependencies?.[name] !== 'string') throw new Error(`参考构建未登记依赖：${name}`);
+        const directory = path.join(web, 'node_modules', ...name.split('/'));
+        const actual = JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'));
+        const real = fs.realpathSync(directory);
+        const declared = manifest.dependencies[name].replace(/^[\^~]/, '');
+        if (!within(web, real) || actual.name !== name || actual.version !== declared) {
+          throw new Error(`依赖版本失配或越界：${name}，要求 ${declared}，实际 ${actual.version}`);
+        }
+        checkedPackages.set(name, real);
+      }
       const resolved = fs.realpathSync(require.resolve(args.path));
       if (!within(checkedPackages.get(name), resolved)) throw new Error(`作品依赖导出越界：${args.path}`);
       return {path: resolved};

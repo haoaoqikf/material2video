@@ -1,4 +1,4 @@
-import type {CodeSceneProps} from 'm2v/code-scene';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {Frame,Text,WHITE,GOLD,progress,enter,smooth,mix,useClock} from './shared';
 import {Backdrop} from './details';
 export default function Closing(config:CodeSceneProps){

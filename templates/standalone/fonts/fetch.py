@@ -26,10 +26,11 @@ CACHE = HERE / ".cache"
 
 
 def _utf8_stdout() -> None:
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except (AttributeError, ValueError):
-        pass
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 
 def digest(path: Path) -> str:
@@ -50,8 +51,13 @@ def load() -> list[dict]:
         seen.add(entry["id"])
         if len(entry["sha256"]) != 64 or any(c not in "0123456789abcdef" for c in entry["sha256"]):
             raise SystemExit(f"{entry['id']}：sha256 必须是 64 位小写十六进制")
-        if not (HERE / entry["license"]).is_file():
-            raise SystemExit(f"{entry['id']}：许可文件不存在 {entry['license']}")
+        name = entry["file"]
+        if (not isinstance(name, str) or not name or Path(name).name != name
+                or "/" in name or "\\" in name or ".." in Path(name).parts):
+            raise SystemExit(f"{entry['id']}：file 必须是字体目录内的纯文件名")
+        license = (HERE / entry["license"]).resolve()
+        if not license.is_relative_to(HERE.resolve()) or not license.is_file():
+            raise SystemExit(f"{entry['id']}：许可文件不存在或越界 {entry['license']}")
     return data["fonts"]
 
 
@@ -111,6 +117,17 @@ def source_for(entry: dict, *, download: bool) -> Path | None:
     return None
 
 
+def _safe_files_directory() -> None:
+    resolved_root = ROOT.resolve()
+    if FILES.is_symlink() or not FILES.resolve().is_relative_to(resolved_root):
+        raise SystemExit(f"字体目录经链接指向作品外：{FILES}")
+
+
+def _safe_font_file(path: Path) -> None:
+    if path.is_symlink() or not path.resolve().is_relative_to(ROOT.resolve()):
+        raise SystemExit(f"字体文件经链接指向作品外：{path}")
+
+
 def restore(entry: dict, *, download: bool) -> None:
     source = source_for(entry, download=download)
     if source is None:
@@ -118,10 +135,13 @@ def restore(entry: dict, *, download: bool) -> None:
             f"{entry['id']}：缺少 {entry['file']}。请把它放入 M2V_FONT_CACHE 或 {CACHE}，"
             "或确认有网络后使用 --download（仅登记了下载地址的字体）")
     FILES.mkdir(parents=True, exist_ok=True)
+    _safe_files_directory()
     placed = FILES / entry["file"]
+    _safe_font_file(placed)
     if not placed.is_file():
         shutil.copyfile(source, placed)
     for target in target_paths(entry):
+        _safe_font_file(target)
         if target.is_file():
             problem = verify(target, entry)
             if problem:
@@ -136,6 +156,7 @@ def check(entries: list[dict]) -> list[str]:
     problems = []
     for entry in entries:
         placed = FILES / entry["file"]
+        _safe_font_file(placed)
         problem = verify(placed, entry)
         if problem:
             problems.append(f"{entry['id']} fonts/files/{entry['file']}: {problem}")

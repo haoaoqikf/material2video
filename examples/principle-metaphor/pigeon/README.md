@@ -115,3 +115,18 @@ uv run m2v render --project examples/principle-metaphor/pigeon [--jobs 2]
 - **没有独立的「计时器特写」幕**：参考的第 2 镜是计时器大特写，本片的六幕结构里
   计时器始终与食槽同框。补这一幕需要改分镜（多一幕或少一幕），登记为后续项。
 - **不启用规则卡与对照计数**：参考的这 33 秒也没有；不为了用组件而加。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

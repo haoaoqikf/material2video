@@ -4,7 +4,8 @@
  * 数字本身不携带含义；是否用金色表示“被强调的结果”由调用方按语义决定。
  * 残影只用于表现数字滚动的动态模糊，不读取挂钟，也不累积上一帧状态。
  */
-import {rollNumber, type Easing} from 'm2v/code-scene';
+import {rollNumber} from '../../src/code-scene/primitives';
+import type {Easing} from '../../src/code-scene/primitives';
 import HeroNumber from './hero-number';
 import {clamp01, easeInOutSine, T} from './kit';
 

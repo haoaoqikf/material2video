@@ -4,7 +4,7 @@
     {
       "id": "tick",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "keyboard-key",
@@ -18,7 +18,7 @@
     {
       "id": "latch",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "switch",
@@ -32,7 +32,7 @@
     {
       "id": "grain",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "impact-soft",
@@ -46,7 +46,7 @@
     {
       "id": "swish",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "whoosh",
@@ -60,7 +60,7 @@
     {
       "id": "chord",
       "synthesis": {
-        "generator": "m2v.sound-synthesis",
+        "generator": "film_runtime.sound-synthesis",
         "version": 1,
         "parameters": {
           "name": "success",

@@ -1,4 +1,4 @@
-import {THREE} from 'm2v/code-scene';
+import * as THREE from 'three';
 
 export type Placement = {radius: number; orbit: number; angle: number; parent?: string;
   /** 可选轨道倾角高度；用于把前景卫星放进土星 hero 的画面。 */ height?: number};

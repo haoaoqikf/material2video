@@ -40,3 +40,18 @@ uv run m2v qa --project examples/spatial-3d/solar-system-journey
 场景`solar-journey`采用Three.js / React Three Fiber / Drei绘制同一三维世界。旁白依次为：`sun-line`太阳、`mercury-line`水星、`venus-line`金星、`earth-line`地球、`moon-line`月球、`mars-line`火星、`ceres-line`谷神星、`jupiter-line`木星、`saturn-line`土星、`uranus-line`天王星、`neptune-line`海王星、`pluto-line`冥王星、`kuiper-line`柯伊伯带、`heliopause-line`日球层顶、`oort-line`奥尔特云。正文与字幕按实际配音窗口，导航按当前镜头推进。
 
 本示例的画面组件与参数保存在本作品 `scenes/`，可独立重建。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

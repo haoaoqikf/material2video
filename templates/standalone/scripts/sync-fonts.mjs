@@ -33,6 +33,28 @@ if (!fs.existsSync(manifestPath)) {
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const sourceDir = path.resolve(webDir, manifest.sourceDirFromWeb);
 const licenseDir = path.resolve(webDir, manifest.licenseDirFromWeb || manifest.sourceDirFromWeb);
+const within = (base, file) => {
+  const relative = path.relative(base, file);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+};
+const realWeb = fs.realpathSync(webDir);
+function refuseLink(file) {
+  try {
+    const stat = fs.lstatSync(file);
+    if (stat.isSymbolicLink()) fail(`字体目标不能是符号链接：${file}`);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
+function requireInside(base, file, label) {
+  refuseLink(file);
+  if (!within(base, fs.realpathSync(file))) fail(`${label}经链接指向作品外：${file}`);
+}
+if (!within(webDir, sourceDir) || !within(webDir, licenseDir)
+    || !within(realWeb, fs.realpathSync(sourceDir))
+    || !within(realWeb, fs.realpathSync(licenseDir))) {
+  fail(`字体源或许可目录越过作品或经链接指向作品外：${manifest.sourceDirFromWeb} / ${manifest.licenseDirFromWeb}`);
+}
 const registryPath = path.join(webDir, 'fonts/registry.json');
 const restoreHint = '请先运行：uv run python fonts/fetch.py';
 
@@ -50,15 +72,25 @@ if (!fs.existsSync(sourceDir)) {
 }
 
 fs.mkdirSync(targetDir, { recursive: true });
+if (!within(realWeb, fs.realpathSync(targetDir))) {
+  fail(`字体输出目录经链接指向作品外：${targetDir}`);
+}
 
 const entries = [];
 
 for (const font of manifest.files) {
+  if (!font.file || path.basename(font.file) !== font.file || font.file.includes('\\')) {
+    fail(`字体文件名必须是纯文件名：${font.file}`);
+  }
+  if (!font.license || path.basename(font.license) !== font.license || font.license.includes('\\')) {
+    fail(`字体许可文件名必须是纯文件名：${font.license}`);
+  }
   const record = registered.get(font.file);
   if (!record) {
     fail(`字体 ${font.file} 未在 fonts/registry.json 登记（${restoreHint}）`);
   }
   const from = path.join(sourceDir, font.file);
+  refuseLink(from);
   if (!fs.existsSync(from)) {
     fail(`字体文件缺失：${from}（清单声明了 ${font.family} 需要它；${restoreHint}）`);
   }
@@ -76,6 +108,7 @@ for (const font of manifest.files) {
   }
 
   const to = path.join(targetDir, font.file);
+  refuseLink(to);
   const sameAsTarget = fs.existsSync(to) && fs.statSync(to).size === size;
   if (!sameAsTarget) {
     fs.copyFileSync(from, to);
@@ -99,15 +132,20 @@ for (const font of manifest.files) {
 
   // 许可证必须一并就位：OFL 要求分发字体时随附许可证原文
   const licenseFrom = path.join(licenseDir, font.license);
+  refuseLink(licenseFrom);
   if (!fs.existsSync(licenseFrom)) {
     fail(`许可证文件缺失：${licenseFrom}（${font.family} 采用 SIL OFL 1.1，必须随字体分发）`);
   }
-  fs.copyFileSync(licenseFrom, path.join(targetDir, font.license));
+  const licenseTo = path.join(targetDir, font.license);
+  refuseLink(licenseTo);
+  fs.copyFileSync(licenseFrom, licenseTo);
 }
 
 // 清单落盘：缺字机检与溯源都读它，而不是去解析样式表里的 @font-face 文本
+const manifestTarget = path.join(targetDir, 'manifest.json');
+refuseLink(manifestTarget);
 fs.writeFileSync(
-  path.join(targetDir, 'manifest.json'),
+  manifestTarget,
   `${JSON.stringify({ generatedBy: 'scripts/sync-fonts.mjs', fonts: entries }, null, 2)}\n`,
   'utf8',
 );

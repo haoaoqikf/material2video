@@ -5,7 +5,8 @@
  * `M2V Sans` / `M2V Inter`，因此不存在额外的字体恢复步骤。
  * 所有时间输入都来自受控帧号，不使用挂钟、`Math.random`、CSS 动画或组件计时器。
  */
-import {hashSeed, seededRandom, useSceneContext} from 'm2v/code-scene';
+import {hashSeed, seededRandom} from '../../src/code-scene/random';
+import {useSceneContext} from '../../src/code-scene/context';
 import tokens from '../tokens.json';
 
 export type ScenePalette = {sky: [string, string]; ground: string; accent: string};

@@ -6,7 +6,7 @@
  * 与 scale 驱动，组件不自行计时。
  */
 import type {CSSProperties} from 'react';
-import {makeTransform, scale as scaleTransform} from 'm2v/code-scene';
+import {makeTransform, scale as scaleTransform} from '../../src/code-scene/motion-components/styles';
 import {NUMERIC_STYLE, T} from './kit';
 
 export type HeroNumberProps = {

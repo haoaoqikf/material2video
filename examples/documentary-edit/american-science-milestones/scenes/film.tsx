@@ -1,6 +1,9 @@
 /** 十项科技里程碑的档案蒙太奇：画面变化来自题材本身，不使用逐页信息卡模板。 */
 import {useEffect, type CSSProperties} from 'react';
-import {Chart, useMediaAsset, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {Chart} from '../src/code-scene/chart';
+import {useMediaAsset} from '../src/code-scene/media';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import ArchiveFrame from './components/archive-frame';
 import StyleChapterText from './components/chapter-text';
 import CreditBlock from './components/credit-block';
@@ -8,7 +11,7 @@ import {Mechanism} from './mechanisms';
 
 type Chapter = {id: string; year: string; title: string; caption: string; alias?: string; creditDetails?: string; asset?: string; accent: string};
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
-const telephoneWave = {animation:false,grid:{left:30,right:20,top:20,bottom:20},xAxis:{show:false,type:'category',data:Array.from({length:80},(_,i)=>i)},yAxis:{show:false,type:'value',min:-1,max:1},series:[{type:'line',data:Array.from({length:80},(_,i)=>Math.sin(i*.37)*(.3+Math.sin(i*.11)**2*.55)),smooth:true,symbol:'none',lineStyle:{color:'#d9c29e',width:3},areaStyle:{color:'rgba(217,194,158,.12)'}}]};
+const telephoneWave = {animation:false,grid:{left:30,right:20,top:20,bottom:20},xAxis:{show:false,type:'category' as const,data:Array.from({length:80},(_,i)=>i)},yAxis:{show:false,type:'value' as const,min:-1,max:1},series:[{type:'line' as const,data:Array.from({length:80},(_,i)=>Math.sin(i*.37)*(.3+Math.sin(i*.11)**2*.55)),smooth:true,symbol:'none',lineStyle:{color:'#d9c29e',width:3},areaStyle:{color:'rgba(217,194,158,.12)'}}]};
 
 function useArchives() {
   return {

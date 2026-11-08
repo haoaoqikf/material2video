@@ -17,7 +17,7 @@ export type TopLineProps = {
 
 export default function TopLine({
   text, frame, startFrame = 0, fadeFrames = 12, opacity = 1, color: textColor = color('ink'),
-  y = T.layout.topLine.y, size, state,
+  y = T.layout.topLine.y, size,
 }: TopLineProps) {
   const reveal = frame === undefined ? 1 : Math.min(1, Math.max(0, (frame - startFrame) / Math.max(1, fadeFrames)));
   return (

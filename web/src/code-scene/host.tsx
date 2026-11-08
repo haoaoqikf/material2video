@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
-import {SceneContextProvider, type CodeSceneProps} from './sdk';
+import {SceneContextProvider, type CodeSceneProps} from './context';
 import {ensureFonts, FONT_STACK} from '../fonts';
 import {FrameTasks} from './frame-tasks';
 

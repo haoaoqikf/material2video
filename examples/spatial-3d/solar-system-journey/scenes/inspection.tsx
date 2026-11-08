@@ -1,5 +1,6 @@
 /** 本片全帧驱动场景的诊断取样入口；不作为正式录制或完整预演。 */
-import {SceneContextProvider, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {SceneContextProvider, useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import Journey from './journey';
 
 export default function Inspection(config: CodeSceneProps) {

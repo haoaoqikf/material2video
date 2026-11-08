@@ -15,7 +15,9 @@
  * 小点；推近时红细胞退场、珠子浮现。九幕不是九个机位，而是这台摄影机的九段行程。
  */
 import {useEffect} from 'react';
-import {useSceneContext, type CodeSceneProps, painter} from 'm2v/code-scene';
+import * as painter from '../src/code-scene/painter';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import GlowText from './components/glow-text';
 import ChapterMark from './components/chapter-mark';
 import Dip from './components/dip';
@@ -58,9 +60,6 @@ const RHO = 66;
 const CELL_R_PX = 250;
 /** 同一个半径换到珠层单位。 */
 const CELL_R = CELL_R_PX * RHO;
-/** 「整个细胞」的相机尺度：1 珠层单位画 1/66 像素。 */
-const CELL_SCALE = 1 / RHO;
-
 const ROW_Y = [-114, -38, 38, 114];
 const ROW_X = 527.5;
 const CORNER_R = 38;
@@ -199,7 +198,7 @@ function polyPath(points: Vec[]): string {
  * 红细胞：深的血红色圆盘，中间凹窝由多层更暗的同心轮廓叠出软边，左上有一段加宽的
  * 高光弧。它画在 `under` 层——参考片的实物不吃辉光，进了辉光会糊成粉色光团。
  */
-function redCell(P: P, bend: number, cx: number, cy: number, alpha = 1, tint = BLOOD) {
+function redCell(P: P, bend: number, cx: number, cy: number, alpha = 1, _tint = BLOOD) {
   if (alpha <= 0.004) return;
   P.group({at: [cx, cy], alpha}, () => {
     // 血色的五段渐变：中间偏亮、边缘压暗，才能读出「有厚度的盘」而不是一块平色。
@@ -689,8 +688,8 @@ function ClosingScene({camera, width, height}: SceneProps) {
 }
 
 export default function Fold(props: CodeSceneProps & Props) {
-  const {width, height, fps, subtitleSafeArea, props: values, durationInFrames} = props;
-  const {chapter, clock, screenSubtitles, credit} = values;
+  const {width, height, fps, subtitleSafeArea, props: rawValues, durationInFrames} = props;
+  const {chapter, clock, screenSubtitles, credit} = rawValues as Props;
   const {elapsedSeconds, ready} = useSceneContext();
   useEffect(() => { loadNightSerif().then(() => ready()); }, [ready]);
   const frame = Math.round(elapsedSeconds * fps);

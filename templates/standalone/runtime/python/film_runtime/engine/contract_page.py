@@ -119,11 +119,20 @@ def font_files(repo_root: Path | None = None) -> list[Path]:
 
     # 清单里的 sourceDirFromWeb 相对 **web/ 工程根**（与同步脚本的约定一致），
     # 不是相对清单自身的位置
-    base = (web_dir(repo_root) / str(manifest.get("sourceDirFromWeb") or "")).resolve()
+    root = web_dir(repo_root).resolve()
+    declared_base = str(manifest.get("sourceDirFromWeb") or "")
+    base = (root / declared_base).resolve()
+    if Path(declared_base).is_absolute() or ".." in Path(declared_base).parts or not base.is_relative_to(root):
+        raise VideoError(f"字体源目录越过作品：{declared_base}")
     missing: list[str] = []
     fonts: list[Path] = []
     for entry in manifest.get("files") or []:
-        candidate = (base / str(entry.get("file") or "")).resolve()
+        name = str(entry.get("file") or "")
+        if not name or Path(name).name != name or ".." in Path(name).parts:
+            raise VideoError(f"字体文件名必须是作品内纯文件名：{name}")
+        candidate = (base / name).resolve()
+        if not candidate.is_relative_to(base):
+            raise VideoError(f"字体文件越过作品：{name}")
         if candidate.is_file():
             fonts.append(candidate)
         else:

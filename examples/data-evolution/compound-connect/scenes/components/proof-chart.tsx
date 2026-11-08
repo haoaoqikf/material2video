@@ -1,4 +1,4 @@
-import {chartLinePath} from 'm2v/code-scene';
+import {chartLinePath} from '../../src/code-scene/chart-geometry';
 /**
  * 论证图表原语：坐标框、曲线、柱列、箭头与标记。
  *
@@ -6,7 +6,7 @@ import {chartLinePath} from 'm2v/code-scene';
  * 不依赖 CSS 动画；坐标与颜色均来自 props。
  */
 import type {CSSProperties} from 'react';
-import {pathDrawProps, pathLength, pathTangentAtLength} from 'm2v/code-scene';
+import {pathDrawProps, pathLength, pathTangentAtLength} from '../../src/code-scene/motion-components/paths';
 import {clamp01, LATIN, T} from './kit';
 
 export type Point = [number, number];

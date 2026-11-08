@@ -1,6 +1,6 @@
 /** 章节文字：年份、标题、别名与一句贡献；五种位置变体，进入由秒数换算。 */
 import type {CSSProperties} from 'react';
-import {makeTransform, translateY} from 'm2v/code-scene';
+import {makeTransform, translateY} from '../../src/code-scene/motion-components/styles';
 import {T, chapterReveal, type ChapterPosition} from './kit';
 
 export type ChapterTextProps = {

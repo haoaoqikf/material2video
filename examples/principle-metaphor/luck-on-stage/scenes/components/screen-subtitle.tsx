@@ -5,10 +5,8 @@
  * 直译。所有动画由帧号求值；逐字 span 不改变文本内容、换行、字号或安全区。
  */
 import type {ReactNode} from 'react';
-import {
-  activeScreenSubtitle, motionCurve, screenSubtitleEnvelope, splitEmphasis,
-  splitScreenSubtitle, screenSubtitleCharacters,
-} from 'm2v/code-scene';
+import {activeScreenSubtitle, screenSubtitleEnvelope, splitEmphasis, splitScreenSubtitle, screenSubtitleCharacters} from '../../src/code-scene/subtitles';
+import {motionCurve} from '../../src/code-scene/motion';
 import {clamp01, LATIN, SANS, T} from './kit';
 
 export type ScreenSubtitleItem = {startFrame: number; endFrame: number; text: string};

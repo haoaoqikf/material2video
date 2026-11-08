@@ -288,6 +288,11 @@ def _report_reading_pace(root: Path) -> None:
 
 
 def _prepared(root: Path, manifest: dict) -> dict:
+    if not (root / 'outputs/prepared.json').is_file():
+        raise M2VError('准备记录缺失；请先执行 prepare')
+    if not (root / '.venv').is_dir():
+        # 只读状态查询不得触发本地环境创建；环境缺失时如实报告未就绪。
+        raise M2VError('作品本地环境未安装；请先按作品说明执行 setup')
     check = registry.get(manifest["type"]).prepared_check
     return check(root, manifest) if check else load_current_prepared(root, manifest)
 

@@ -16,7 +16,10 @@
  * 第 15 秒与第 30 秒各掉一次食物——跨幕连续。
  */
 import {useEffect} from 'react';
-import {createSceneEvents, useSceneContext, type CodeSceneProps, painter} from 'm2v/code-scene';
+import * as painter from '../src/code-scene/painter';
+import {createSceneEvents} from '../src/code-scene/events';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import FableStage from './components/fable-stage';
 import SceneNote from './components/scene-note';
 import TopLine from './components/top-line';
@@ -380,8 +383,8 @@ function act(t: number, firstTurnAt = 13.5) {
 // ---------------------------------------------------------------- 场景
 
 export default function Pigeon(props: CodeSceneProps & Props) {
-  const {width, height, fps, subtitleSafeArea, props: values, durationInFrames} = props;
-  const {chapter, screenSubtitles, credit} = values;
+  const {width, height, fps, subtitleSafeArea, props: rawValues, durationInFrames} = props;
+  const {chapter, screenSubtitles, credit} = rawValues as Props;
   const {elapsedSeconds, globalSeconds, ready} = useSceneContext();
   const frame = Math.round(elapsedSeconds * fps);
   const {drop, stocked} = feedPhase(globalSeconds);

@@ -9,7 +9,7 @@ from helpers.examples import EXAMPLE_PATHS, TYPE_EXAMPLES
 from m2v.cli import main
 from m2v.core.project import load_project
 from m2v.production.dependencies import scene_sources
-from m2v.types.scene_film.code_scenes.config import build_scene
+import subprocess
 
 
 @pytest.mark.parametrize("slug", sorted(EXAMPLE_PATHS))
@@ -26,5 +26,13 @@ def test_example_materials_and_scene_imports(slug, tmp_path):
     for scene in board["scenes"]:
         deps = scene_sources(root, scene)
         assert "style" not in deps
-        assert not deps["conservativeReasons"]
-        build_scene(root, scene, tmp_path / scene["id"])
+        # 动态素材 ID（如从普通函数调用 useMediaAsset）保守绑定全部登记素材；
+        # 除此之外不应出现未解析本地引用或动态导入。
+        assert set(deps["conservativeReasons"]) <= {"动态素材 ID，保守绑定全部登记素材"}
+        work = tmp_path / scene["id"]
+        work.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(["node", str(root / "scripts/build-code-scene.mjs"), str(root),
+                                 scene["content"]["entry"], str(work)],
+                                cwd=root, capture_output=True, text=True, encoding="utf-8",
+                                errors="replace", timeout=120)
+        assert result.returncode == 0, result.stderr[-2000:]

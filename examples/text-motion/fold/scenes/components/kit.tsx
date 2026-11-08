@@ -5,9 +5,10 @@
  * 不使用挂钟、`Math.random`、CSS 动画或组件计时器。
  */
 import {useEffect, useState} from 'react';
-import {hashSeed, seededRandom, useSceneContext} from 'm2v/code-scene';
+import {hashSeed, seededRandom} from '../../src/code-scene/random';
+import {useSceneContext} from '../../src/code-scene/context';
 import tokens from '../tokens.json';
-import serifUrl from 'm2v/code-scene/serif';
+import serifUrl from '../../src/code-scene/serif'
 
 export const SERIF_FAMILY = 'Vibe Night Serif';
 

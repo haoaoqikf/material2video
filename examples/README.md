@@ -1,6 +1,6 @@
 # 随附示例
 
-七部作品按五类放在 `examples/<类型>/<作品名>/`，均使用 project v2 与分镜 v9。作品专属画面与参数在各自 `scenes/`，不作为共享风格包。生成媒体与 `outputs/` 不入库。
+七部作品按五类放在 `examples/<类型>/<作品名>/`，均为 project v3 独立工程与分镜 v9：各自拥有运行源码、依赖锁、字体登记与恢复入口。作品专属画面与参数在各自 `scenes/`，不作为共享风格包。生成媒体与 `outputs/` 不入库。
 
 | 类型 | 示例 |
 |---|---|
@@ -10,15 +10,20 @@
 | 三维空间 `spatial-3d` | [solar-system-journey](spatial-3d/solar-system-journey/README.md) |
 | 纪实素材剪辑 `documentary-edit` | [american-science-milestones](documentary-edit/american-science-milestones/README.md) |
 
-先按各示例 `assets/recipe.json` 和 README 恢复素材，再运行：
+先按各示例 README 安装依赖并恢复素材与字体，然后在作品目录直接运行：
 
 ```powershell
-uv run m2v validate --project examples/text-motion/fold
-uv run m2v prepare --project examples/text-motion/fold
-uv run m2v preview --project examples/text-motion/fold --limit-frames 30
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+$env:M2V_FONT_CACHE = "<字体缓存目录>"   # 或使用 fonts/.cache / --download
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run preview --limit-frames 30
+pnpm run render
 ```
 
-其他示例将路径替换成上表目录。字体统一由 `uv run python fonts/fetch.py` 恢复；已有文件摘要不一致时恢复命令会拒绝覆盖。
+其他示例只在对应目录执行同样步骤。字体由各作品的 `uv run python fonts/fetch.py` 恢复；已有文件摘要不一致时拒绝覆盖。主项目入口仍可委托同一本地实现，例如 `uv run m2v render --project examples/text-motion/fold`。
 
 ## 深入研究与试制演练
 

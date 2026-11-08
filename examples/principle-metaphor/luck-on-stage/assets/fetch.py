@@ -6,8 +6,8 @@ import logging
 import shutil
 import tempfile
 
-from m2v.core.project import _write_json
-from m2v.types.scene_film import sound_library
+from film_runtime.core.project import _write_json
+from film_runtime.types.scene_film import sound_library
 
 ROOT = Path(__file__).resolve().parents[1]
 logger = logging.getLogger(__name__)

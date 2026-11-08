@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import base64
-import copy
 import json
 import math
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,8 +15,6 @@ from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
 from m2v.core.project import _write_json, load_project
-from m2v.engine import audio, perf, remotion
-from m2v.engine.http_server import LocalServer
 
 #: 静帧张数与放大倍数：按片长与风险选择，默认原生像素。
 DEFAULT_STILLS = 4
@@ -116,7 +113,7 @@ def _all_pure(prepared: dict, frames: list[int]) -> bool:
 def check_frames(prepared: dict, frames: list[int]) -> None:
     """在启动浏览器前判定帧号合法且归属于某一幕。
 
-    `native_stills()` 的归属校验在全部采集完成之后才做，非法帧会先白跑一遍
+    `作品本地采集` 的归属校验在全部采集完成之后才做，非法帧会先白跑一遍
     浏览器；图省事复用那条校验等于把几分钟浪费在注定失败的采集上。
     """
     if not frames:
@@ -301,54 +298,24 @@ def sample_audio(prepared: dict, root: Path) -> tuple[bool, Path | None]:
     return True, root / segments[0]["path"]
 
 
-def native_stills(root: Path, prepared: dict, frames: list[int], work: Path, *, scale: int = STILL_SCALE) -> dict[tuple[str, int], Path]:
-    """只保存选定帧，但从零连续推进每幕时钟；不触碰准备阶段的视频缓存。"""
-    from playwright.sync_api import sync_playwright
-    from m2v.types.scene_film import code_scenes, media_assets
-    props = prepared["props"]
-    frame_config = {"width": prepared["width"], "height": prepared["height"], "subtitle": props["subtitle"]}
-    media = media_assets.resolve(root)["media"]
-    captured: dict[tuple[str, int], Path] = {}
-    with sync_playwright() as pw:
-        for index, scene in enumerate(props["compiledScenes"]):
-            selected = [frame - scene["startFrame"] for frame in frames
-                        if scene["startFrame"] <= frame < scene["endFrame"]]
-            if not selected:
-                continue
-            directory = work / f"native-{index}"
-            directory.mkdir()
-            code_scenes.build_scene(root, scene, directory)
-            config = code_scenes.scene_config(scene, frame_config, media, fps=prepared["fps"])
-            config["captureScale"] = scale
-            try:
-                code_scenes._capture(pw, root, directory, config, selected_frames=selected, verify_frames=0)
-            except M2VError as exc:
-                # 多场景采样共用一个命令；保留原始原因，同时指出需要修改的场景入口。
-                raise M2VError(f"lookdev 场景 {scene['id']}（{scene['content']['entry']}）：{exc}") from exc
-            for frame in selected:
-                captured[(scene["id"], frame + scene["startFrame"])] = directory / f"frame-{frame:06d}.png"
+def _render_stills(root: Path, project: dict, prepared: dict, frames: list[int],
+                   scale: int, *, into: Path | None = None) -> list[Path]:
+    """由作品本地入口采集并合成指定帧，读取本地产物与准备身份。"""
+    from m2v.standalone import executor
+    destination = into or (root / "outputs/lookdev")
+    relative = destination.relative_to(root).as_posix()
+    arguments = [f"--frame={frame}" for frame in frames]
+    arguments += ["--scale", str(scale), "--destination", relative]
+    result = executor.execute(root, project, "lookdev", arguments, timeout=1800)
+    if result.get("preparedFingerprint") != prepared["preparedFingerprint"]:
+        raise M2VError("lookdev 准备身份与当前准备不符")
+    produced: dict[int, Path] = {}
     for frame in frames:
-        if not any(key[1] == frame for key in captured):
-            raise M2VError(f"lookdev 第 {frame} 帧不属于任何已准备场景")
-    return captured
-
-
-def still_props(prepared: dict, captured: dict, frame: int, media_base: str) -> dict:
-    """仅为静帧保留当前活跃场景，避免未采样幕回放没有 mediaPath 的片段。
-
-    静帧是单帧画面，其他幕的内容不会出现在这一帧里；把它们留在合成时间线上只会
-    读取准备阶段尚未物化的 `mediaPath`。转场与字幕层仍由共享 composition 处理。
-    """
-    props = copy.deepcopy(prepared["props"])
-    active = []
-    for scene in props["compiledScenes"]:
-        picture = captured.get((scene["id"], frame))
-        if picture:
-            scene["stillPath"] = "data:image/png;base64," + base64.b64encode(picture.read_bytes()).decode("ascii")
-            active.append(scene)
-    props["compiledScenes"] = active
-    props["mediaBase"] = media_base
-    return props
+        value = (result.get("stills") or {}).get(str(frame))
+        if not isinstance(value, str):
+            raise M2VError(f"lookdev 未返回第 {frame} 帧的本地静帧")
+        produced[frame] = executor.local_artifact(root, value)
+    return [produced[frame] for frame in frames]
 
 
 def contact_sheet(stills: list[Path], target: Path, columns: int = 2,
@@ -399,38 +366,6 @@ def psnr(first: Path, second: Path) -> float:
     """两张同尺寸图的 PSNR；完全相同时为无穷大。"""
     from m2v.engine import images
     return images.psnr(first, second)
-
-
-def _render_stills(root: Path, project: dict, prepared: dict, frames: list[int],
-                   scale: int, *, into: Path | None = None) -> list[Path]:
-    """采集并合成指定帧的静帧，返回按帧顺序的 PNG 路径。
-
-    复用 `keyframes()` 的骨架：重建场景 → 只截选定帧 → 交给共享 composition
-    合成字幕与转场。不调 `materialize`，不录样片，因此比 `run()` 轻。
-    `into` 用于把两次独立采集分开落盘，避免后者覆盖前者。
-    """
-    outputs = into or (root / "outputs/lookdev")
-    outputs.mkdir(parents=True, exist_ok=True)
-    produced: dict[int, Path] = {}
-    with LocalServer(root, cors=True) as server, \
-            tempfile.TemporaryDirectory(prefix="m2v-sheet-", dir=root / "outputs/lookdev") as temporary:
-        work = Path(temporary)
-        native = work / "native"
-        native.mkdir()
-        captured = native_stills(root, prepared, frames, native, scale=scale)
-        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                 storyboard_path=root / project["materials"]["storyboard"],
-                                 content_root=root.parent, workspace_root=root.parent, cache=True)
-        for frame in frames:
-            props_file = work / f"props-{frame:06d}.json"
-            props_file.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"),
-                                             ensure_ascii=False), encoding="utf-8")
-            target = outputs / f"still-{frame:06d}.png"
-            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path,
-                                  props=props_file, out=target, frame=frame, scale=scale,
-                                  composition_id="SceneFilm")
-            produced[frame] = target
-    return [produced[frame] for frame in frames]
 
 
 def preview(root: Path, project: dict, prepared: dict, *, mode: str, frames: list[int],
@@ -527,54 +462,29 @@ def run(root: Path, project: dict, prepared: dict, *, stills: int = DEFAULT_STIL
     fps, width, height = prepared["fps"], prepared["width"], prepared["height"]
     outputs = root / "outputs/lookdev"
     outputs.mkdir(parents=True, exist_ok=True)
-    entry = root / project["materials"]["storyboard"]
-    has_audio, master = sample_audio(prepared, root)
+    has_audio, _master = sample_audio(prepared, root)
     frames = still_frames(prepared, stills)
+    rendered = _render_stills(root, project, prepared, frames, still_scale)
+    sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
     start, end = sample_window(prepared, sample_seconds)
-    from m2v.types.scene_film.code_scenes import materialize
-    sample_prepared = materialize(root, prepared, start, end + 1)
-    timings = perf.StageTimings()
-    # 画面里的代码片段按相对路径引用，必须像正式渲染那样由本地服务器提供作品根：
-    # 少了这一步，composition 会去 bundle 的静态目录找片段并报 404。
-    with LocalServer(root, cors=True) as server, \
-            tempfile.TemporaryDirectory(prefix="m2v-lookdev-", dir=outputs) as temporary:
-        work = Path(temporary)
-        props_file = work / "props.json"
-        props_file.write_text(json.dumps({**sample_prepared["props"], "mediaBase": server.base_url + "/"},
-                                         ensure_ascii=False), encoding="utf-8")
-        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-                                 storyboard_path=entry, content_root=root.parent,
-                                 workspace_root=root.parent, cache=True)
-        timings.record("bundle", bundle.build_seconds)
-        captured = native_stills(root, prepared, frames, work, scale=still_scale)
-        rendered: list[Path] = []
-        for frame in frames:
-            # 原生 PNG 内联到临时 props，避免暴露源码或扩大 HTTP 服务范围。
-            still_file = work / "still-props.json"
-            still_file.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"),
-                                            ensure_ascii=False), encoding="utf-8")
-            target = outputs / f"still-{frame:06d}.png"
-            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=still_file,
-                                  out=target, frame=frame, scale=still_scale, composition_id="SceneFilm")
-            rendered.append(target)
-        sheet = contact_sheet(rendered, outputs / "contact-sheet.png")
-        silent = work / "sample-silent.mp4"
-        sample = outputs / "sample.mp4"
-        frames_spec = {"value": f"{start}-{end}"}
-        def confirm(metadata):
-            expected = (fps, width, height, prepared["durationInFrames"])
-            actual = (metadata.fps, metadata.width, metadata.height, metadata.duration_in_frames)
-            if expected != actual:
-                raise M2VError(f"look-dev 元数据不匹配：{actual}，期望 {expected}")
-            return {"out": str(silent), "crf": 16, "preset": "medium", "frames": frames_spec["value"],
-                    "scale": 1, "concurrency": 1, "progressTotal": end - start + 1}
-        remotion.render_session(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
-                                composition_id="SceneFilm", on_metadata=confirm, timeout_s=3600,
-                                on_line=remotion.progress_handler(end - start + 1))
-        if master:
-            audio.mux(silent, master, sample, (end - start + 1) / fps, start=start / fps)
-        else:
-            silent.replace(sample)
+    from m2v.standalone import executor
+    window_args = ["--start-seconds", str(start / fps), "--end-seconds", str((end + 1) / fps)]
+    preview_result = executor.execute(root, project, "preview", window_args, timeout=3600)
+    if preview_result.get("preparedFingerprint") != prepared["preparedFingerprint"]:
+        raise M2VError("lookdev 样片准备身份与当前准备不符")
+    preview = executor.local_artifact(root, preview_result["path"])
+    provenance = executor.read_json(executor.local_artifact(
+        root, preview.relative_to(root).with_suffix(".provenance.json").as_posix()))
+    if (provenance.get("preparedFingerprint") != prepared["preparedFingerprint"]
+            or provenance.get("startFrame") != start
+            or provenance.get("durationInFrames") != end - start + 1
+            or provenance.get("fps") != fps
+            or provenance.get("width") != prepared["width"]
+            or provenance.get("height") != prepared["height"]
+            or (provenance.get("delivery") or {}).get("sha256") != preview_result.get("sha256")):
+        raise M2VError("lookdev 样片窗口或准备身份与当前请求不符")
+    sample = outputs / "sample.mp4"
+    shutil.copyfile(preview, sample)
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "stills": [path.relative_to(root).as_posix() for path in rendered],
                 "contactSheet": sheet.relative_to(root).as_posix(),
@@ -642,9 +552,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="结果停留结束帧相对事件后段的额外帧数")
     args = parser.parse_args(argv)
     _reject_conflicting_modes(args)
-    from m2v.types.scene_film.explainer_render import current
+    from m2v.standalone import executor
     root, manifest = load_project(args.project)
-    prepared = current(root, manifest)
+    prepared = executor.current(root, manifest)
     if args.event:
         resolved = resolve_event_selectors(prepared, args.event, before=args.before,
                                            after=args.after, hold=args.hold)
@@ -678,21 +588,8 @@ def keyframes(root: Path, project: dict, prepared: dict) -> dict:
     frames = still_frames(prepared, 3)
     outputs = root / "outputs/keyframes"
     outputs.mkdir(parents=True, exist_ok=True)
-    with LocalServer(root, cors=True) as server, tempfile.TemporaryDirectory(dir=outputs) as temporary:
-        work = Path(temporary)
-        captured = native_stills(root, prepared, frames, work)
-        bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
-            storyboard_path=root / project["materials"]["storyboard"], content_root=root.parent,
-            workspace_root=root.parent, cache=True)
-        files = []
-        for frame in frames:
-            props = work / "props.json"
-            props.write_text(json.dumps(still_props(prepared, captured, frame, server.base_url + "/"), ensure_ascii=False), encoding="utf-8")
-            target = outputs / f"still-{frame:06d}.png"
-            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props,
-                out=target, frame=frame, scale=STILL_SCALE, composition_id="SceneFilm")
-            files.append(target)
-        contact_sheet(files, outputs / "contact-sheet.png")
+    files = _render_stills(root, project, prepared, frames, STILL_SCALE, into=outputs)
+    contact_sheet(files, outputs / "contact-sheet.png")
     result = {"preparedFingerprint": prepared["preparedFingerprint"], "frames": frames,
               "files": [str(p.relative_to(root)) for p in files]}
     _write_json(root / "outputs/keyframes.json", result)

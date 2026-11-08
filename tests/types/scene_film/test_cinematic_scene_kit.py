@@ -184,7 +184,7 @@ def test_unapproved_package_is_still_rejected(tmp_path):
     """新增批准项不能放宽边界：未批准的包仍然拒绝。"""
     _, _, result = prepare_build(tmp_path, "import _ from 'lodash';\nexport default () => _;\n")
     assert result.returncode != 0
-    assert "未登记的作品依赖" in result.stderr
+    assert "参考构建未登记依赖" in result.stderr
 
 
 def test_cinematic_sdk_has_no_wall_clock_random_or_css_animation():
@@ -236,7 +236,7 @@ export default function Demo() {
 @requires_node
 def test_standard_picture_ignores_the_new_dependencies(tmp_path):
     """标准画面不因新依赖改变：把电影套件从 SDK 导出里摘掉后必须逐像素一致。"""
-    sdk = WEB / "src/code-scene/sdk.tsx"
+    sdk = WEB.parent / "tests/support/code-scene-reference.tsx"
     original = sdk.read_text(encoding="utf-8")
     assert "export * from './cinematic';" in original
     _, work, result = prepare_build(tmp_path / "with", STANDARD_SOURCE)

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import json
 from pathlib import Path
 
 #: 引用写法。只认「会真的把另一个文件拉进构建」的那几种。
@@ -26,13 +25,10 @@ def import_specifiers(source: str) -> list[str]:
 
 def resolve_import(specifier: str, importer: Path, web: Path) -> Path | None:
     """引用 → 仓库里的文件；裸模块与取不到的引用返回 None。"""
-    if specifier.startswith('m2v/code-scene/'):
-        registry = web / 'src/code-scene/entries.json'
-        entries = json.loads(registry.read_text(encoding='utf-8')) if registry.is_file() else {}
-        if specifier not in entries:
-            return None
-        base = registry.parent / entries[specifier]
-    elif Path(specifier).is_absolute():
+    if specifier.startswith('m2v/'):
+        # 作品只能采用本地实现或明确第三方依赖；主项目映射已移除。
+        return None
+    if Path(specifier).is_absolute():
         base = Path(specifier)
     elif specifier.startswith(("@/", "~/")):
         base = web / "src" / specifier[2:]

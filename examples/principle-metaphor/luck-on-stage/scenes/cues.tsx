@@ -1,4 +1,6 @@
-import {samplePath,ScreenBurstLayer,type Vec2} from 'm2v/code-scene';
+import {samplePath} from '../src/code-scene/dynamics';
+import {ScreenBurstLayer} from '../src/code-scene/effects/screen-burst';
+import type {Vec2} from '../src/code-scene/dynamics';
 import Burst from './components/burst';
 import {GOLD,WHITE,mixHex,progress,smooth,enter,track} from './shared';
 import {Afterglow} from './details';

@@ -4,7 +4,7 @@
  * 本包不随包携带字体，使用宿主已注册的 `M2V Sans`；时间输入来自受控帧号或
  * R3F 受控时钟，不使用挂钟、`Math.random`、CSS 动画或组件计时器。
  */
-import {useSceneContext} from 'm2v/code-scene';
+import {useSceneContext} from '../../src/code-scene/context';
 import tokens from '../tokens.json';
 
 export type JourneyTokens = {

@@ -2,7 +2,7 @@
 import logging
 from pathlib import Path
 from materials.generate import WIDTH, HEIGHT, material_rows, ring_rows, png
-from m2v.core.example_media import restore
+from film_runtime.core.example_media import restore
 
 
 def generate(item, output):

@@ -1,0 +1,21 @@
+{
+  "$comment": "本作品实际注册的字体及本地恢复目标；来源和摘要由fonts/registry.json登记。",
+  "sourceDirFromWeb": "fonts/files",
+  "licenseDirFromWeb": "fonts/licenses",
+  "files": [
+    {
+      "family": "M2V Inter",
+      "file": "Inter-Variable.ttf",
+      "weight": "100 900",
+      "usage": "拉丁与数字；图表数值列的对齐依赖它",
+      "license": "OFL-Inter.txt"
+    },
+    {
+      "family": "M2V Sans",
+      "file": "NotoSansSC-Variable.ttf",
+      "weight": "100 900",
+      "usage": "中文",
+      "license": "OFL-NotoSansSC.txt"
+    }
+  ]
+}

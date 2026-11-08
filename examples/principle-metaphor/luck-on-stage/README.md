@@ -19,3 +19,18 @@ uv run m2v qa --project examples/principle-metaphor/luck-on-stage
 ```
 
 源材料为 `project.json`、`storyboard.json`、`scenes/`、`assets/sound-recipe.json`、`assets/sound-checks.json`。音频按固定摘要恢复；生成媒体和 `outputs/` 不入库。设计与事实边界见 [DESIGN](DESIGN.md)、[SOURCES](SOURCES.md)、[SOUND](SOUND.md)，当前验证见 [VERIFICATION](VERIFICATION.md)。原 `videos/general/luck-on-stage` 的历史记录不作为本示例当前审核结论。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

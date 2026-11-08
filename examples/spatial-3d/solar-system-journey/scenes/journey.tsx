@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {type CodeSceneProps, type Look, type Shot} from 'm2v/code-scene';
+import type {CodeSceneProps} from '../src/code-scene/context';
+import type {Look, Shot} from '../src/code-scene/cinematic/camera';
 import {BODIES, CHAPTER_IDS, CHAPTER_OF, CHAPTERS} from './bodies';
 import {useNarration} from './clock';
 import {useTextures, useTextureSources} from './world';

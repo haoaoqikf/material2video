@@ -1,0 +1,11 @@
+{
+  "cut": {"presentation": "none"},
+  "fade": {"presentation": "fade"},
+  "crossfade": {"presentation": "fade"},
+  "slide-left": {"presentation": "slide", "direction": "from-right"},
+  "slide-right": {"presentation": "slide", "direction": "from-left"},
+  "wipe-left": {"presentation": "wipe", "direction": "from-right"},
+  "wipe-right": {"presentation": "wipe", "direction": "from-left"},
+  "iris": {"presentation": "iris"},
+  "clock-wipe": {"presentation": "clock-wipe"}
+}

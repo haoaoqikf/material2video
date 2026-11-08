@@ -5,7 +5,8 @@
  * `Math.random`、CSS 动画或组件计时器。组件只提供表现层，不携带题材数学、
  * 文案或事件时刻。
  */
-import {hashSeed, seededRandom, useSceneContext} from 'm2v/code-scene';
+import {hashSeed, seededRandom} from '../../src/code-scene/random';
+import {useSceneContext} from '../../src/code-scene/context';
 import tokens from '../tokens.json';
 
 export type DarkProofTokens = {

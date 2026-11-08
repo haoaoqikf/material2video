@@ -1,4 +1,4 @@
-import type {CodeSceneProps} from 'm2v/code-scene';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import {Frame,Text,WHITE,GOLD,MUTED,progress,enter,smooth,pop,track,useClock} from './shared';
 import {Backdrop} from './details';
 import {AccentRelease,StrongRelease} from './cues';

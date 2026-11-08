@@ -180,7 +180,7 @@ def test_cleanup_preserves_current_candidate_and_removes_old_video(tmp_path):
     candidate.with_suffix(".provenance.json").write_text("{}")
     old = cache / "old.mp4"
     old.write_bytes(b"old")
-    (outputs / "delivery.json").write_text(json.dumps({"path": str(candidate)}), encoding="utf-8")
+    (outputs / "delivery.json").write_text(json.dumps({"path": "outputs/candidates/current.mp4"}), encoding="utf-8")
     assert cleanup_after_render(outputs, final) == []
     assert candidate.is_file() and candidate.with_suffix(".provenance.json").is_file()
     assert not old.exists()

@@ -5,7 +5,8 @@
  * 组件不决定何时爆散，也不内置事件、文案或题材。
  */
 import {useId} from 'react';
-import {burstField, expandingRings, motionCurve} from 'm2v/code-scene';
+import {burstField, expandingRings} from '../../src/code-scene/dynamics';
+import {motionCurve} from '../../src/code-scene/motion';
 import {T} from './kit';
 
 export type BurstProps = {

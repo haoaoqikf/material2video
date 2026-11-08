@@ -128,3 +128,18 @@ uv run m2v sample serve --project examples/text-motion/fold --id <采集ID>
 ```
 
 参数决定当前局部效果；正式选案仍须提供实际目标、独立盲看与同轮对照，再通过 `sample deliver`。完整操作见[网页原生样品](../../../.agents/skills/material2video/references/design-samples.md)。已有全片分镜、声音及正式渲染保持原有入口，生成媒体不入库。
+
+## 本地运行
+
+本示例是独立工程，可以直接在作品目录运行，也可以由 `m2v` 委托同一入口：
+
+```powershell
+pnpm install --frozen-lockfile --ignore-workspace
+uv sync --frozen
+pnpm run setup --download --install-browser
+pnpm run validate
+pnpm run build
+pnpm run render
+```
+
+字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。

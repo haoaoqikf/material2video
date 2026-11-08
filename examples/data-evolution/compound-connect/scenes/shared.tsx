@@ -1,5 +1,8 @@
 import {useEffect, useMemo, type ReactNode} from 'react';
-import {createSceneEvents, motionCurve, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
+import {createSceneEvents} from '../src/code-scene/events';
+import {motionCurve} from '../src/code-scene/motion';
+import {useSceneContext} from '../src/code-scene/context';
+import type {CodeSceneProps} from '../src/code-scene/context';
 import Stage from './components/stage';
 import ScreenSubtitle, {type ScreenSubtitleItem} from './components/screen-subtitle';
 import Impact, {type ImpactEvent} from './components/impact';
@@ -17,7 +20,7 @@ export function useClock(config:CodeSceneProps){
   const events=useMemo(()=>createSceneEvents(config.eventFrames),[config.eventFrames]);
   return {f:elapsedSeconds*config.fps,e:events};
 }
-export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,align='middle',weight=650}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;align?:'start'|'middle'|'end';weight?:number}){
+export function Text({x,y,text,size=72,color=WHITE,alpha=1,numeric=false,align='middle',weight=650}:{x:number;y:number;text:string;size?:number;color?:string;alpha?:number;numeric?:boolean;align?:'start'|'middle'|'end';weight?:number;role?:string}){
   return <text x={x} y={y} dominantBaseline="central" textAnchor={align} fontFamily={numeric?LATIN:SANS} fontSize={size} fontWeight={weight} fill={color} opacity={alpha} style={{fontVariantNumeric:'tabular-nums'}}>{text}</text>;
 }
 export function Ball({x,y,r=12,alpha=1}:{x:number;y:number;r?:number;alpha?:number}){

@@ -9,18 +9,18 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 | 管理契约 | `src/m2v/core/`、`type_system/` | project v3、五类目录、实际输入／媒体复核与安全边界 |
 | 工程生成与委托 | `src/m2v/standalone/` | 创建时复制完整模板；以作品环境执行本地协议，收回取消或超时的进程树 |
 | 独立基础模板 | `templates/standalone/` | 本地运行源码、精确依赖及锁、字体恢复、逐帧宿主和成片合成；生成后不再读取模板 |
-| 统一制作 | `src/m2v/types/scene_film/`、`engine/`、`production/` | 分镜 v9、代码场景准备与采集、混音、预演、渲染、QA 和制作证据 |
+| 制作管理 | `src/m2v/types/scene_film/`、`engine/`、`production/` | 分镜 v9 校验、作品本地执行协议、lookdev／时间线委托、QA、评审、问题与制作证据 |
 | 结构化来源 | `src/m2v/types/financial/`、`building_construction/`、`vehicle_showcase/` | 金融行情与投资计算、建筑构件与步骤、汽车模型与镜头数据；只由统一分镜引用 |
-| Web 场景 | `web/src/code-scene/`、`web/src/scene-film/`、`web/src/types/` | 共享 SDK、来源绘制组件与单一 composition；专用 Web 组件不注册独立成片 |
+| Web 参考源码 | `web/src/code-scene/`、`web/src/scene-film/`、`web/src/types/` | 可选组件的采用参考与仓库测试夹具；不是作品运行时，也没有公开 SDK 入口 |
 | 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；只有七部示例源码入库 |
 
 ## 依赖与材料边界
 
 `src/m2v/type_system/catalog.json` 是五类名称、说明和初始化分镜的单一来源；没有类别或风格注册。`registry.py` 把五类接到本地委托适配器。`project.json` 只接受 v3、五类 `type` 和 `materials.storyboard`；`runtime` 是接入 m2v 的可选本地命令数组，作品直接运行无需该管理协议。准备记录绑定作品本地源码、依赖锁、字体、媒体和实际构建输入；主项目包或参考组件的更新不进入作品媒体身份。旧执行契约明确拒绝。
 
-新工程场景只从作品自身目录与本地声明的精确第三方依赖导入；本地构建器拒绝 `m2v/*`、越界链接、父工程依赖兜底和机器绝对路径。模板的本地字体登记与恢复随工程生成，字体二进制不入库。`src/m2v/production/dependencies.py` 只绑定作品可达源码、资源和本地控制实现；动态引用保守扩大作品内范围，目录联接不能扩大到作品外。存量 `web/` 组件仍保留其原源码，不能作为新工程的运行时依赖；现有示例和其余工具的改造范围见[实施任务](openspec/changes/make-video-projects-standalone/tasks.md)。
+新工程场景只从作品自身目录与本地声明的精确第三方依赖导入；本地构建器拒绝 `m2v/*`、越界链接、父工程依赖兜底和机器绝对路径。模板的本地字体登记与恢复随工程生成，字体二进制不入库。`src/m2v/production/dependencies.py` 只绑定作品可达源码、资源和本地控制实现；动态引用保守扩大作品内范围，目录联接不能扩大到作品外。存量 `web/` 组件保留为可复制采用的参考源码和测试夹具；其公开 SDK 总入口、全局依赖登记与仓库场景构建映射已移除，作品构建器拒绝 `m2v/*`。旧 Python 准备／渲染模块只作为模板提取依据和测试对象，不再被任何生产命令调用。
 
-`engine/` 负责通用媒体、渲染、音频与 QA；`production/` 负责媒体绑定评审、状态、问题与基线；`reference/` 负责参考素材。类型来源只提供经验证的数据，不反向改变共享制作流程。纯时间采集与多进程分段渲染沿统一代码场景实现。
+`engine/` 负责通用媒体、QA 和本地工具委托；`production/` 负责媒体绑定评审、状态、问题与基线；`reference/` 负责参考素材。类型来源只提供经验证的数据，不反向改变共享制作流程。纯时间采集与多进程分段渲染在作品本地运行时执行；主项目的 lookdev 与时间线通过本地协议读取本地产物。
 
 ## 原生设计样品
 

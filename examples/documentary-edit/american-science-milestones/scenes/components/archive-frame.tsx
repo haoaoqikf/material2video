@@ -14,7 +14,7 @@ export type ArchiveFrameProps = {
 
 export default function ArchiveFrame({
   src, kind, progress = 0, ready, style, startOffsetSeconds = 0,
-  objectFit = 'cover', state,
+  objectFit = 'cover',
 }: ArchiveFrameProps) {
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {

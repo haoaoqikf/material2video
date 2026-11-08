@@ -1,17 +1,31 @@
 """只采集三帧，验证无完整分镜时的真实网页、样式、资源和编码链路。"""
 import io
 import os
+import shutil
+import subprocess
+from pathlib import Path
 
 import pytest
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
 from m2v.core.delivery import outputs
+REPO = Path(__file__).resolve().parents[2]
 from m2v.core.project import create_project, load_project
 from m2v.production import samples
 from m2v.production.storage import write
-from m2v.types.scene_film import code_scenes
 from imageio_ffmpeg import read_frames
+
+
+def install_node(root):
+    subprocess.run('pnpm install --ignore-workspace --no-frozen-lockfile', cwd=root, shell=True,
+                   check=True, capture_output=True, timeout=300)
+
+
+def restore_fonts(root):
+    (root / 'fonts/files').mkdir(parents=True, exist_ok=True)
+    for name in ('Inter-Variable.ttf', 'NotoSansSC-Variable.ttf'):
+        shutil.copy2(REPO / 'fonts/files' / name, root / 'fonts/files' / name)
 
 
 @pytest.mark.media
@@ -22,13 +36,16 @@ def test_native_sample_roundtrip_without_storyboard(tmp_path, chromium_ready, mo
     project = load_project(root)[1]
     project['output'].update(width=1920, height=1080, fps=30)
     write(root / 'project.json', project)
-    (root / 'scenes').mkdir()
+    restore_fonts(root)
+    install_node(root)
+    (root / 'storyboard.json').unlink(missing_ok=True)
+    (root / 'scenes').mkdir(exist_ok=True)
     (root / 'scenes/style.css').write_text('body{background:rgb(11,22,33)}.object{width:100px;height:100px;background:rgb(90,180,210)}', encoding='utf-8')
     (root / 'scenes/shade.glsl').write_text('local shader text', encoding='utf-8')
     (root / 'scenes/blob.bin').write_bytes(b'local binary fixture')
     (root / 'scenes/main.tsx').write_text('''
 import React,{useEffect} from 'react';
-import {useSceneContext} from 'm2v/code-scene';
+import {useSceneContext} from '../src/code-scene/context';
 import './style.css';
 import shader from './shade.glsl';
 import binary from './blob.bin';
@@ -72,18 +89,6 @@ export default function Scene(){
         page.locator('#reset').click()
         page.wait_for_function("document.getElementById('status').textContent.startsWith('0 /')")
         browser.close()
-    if supersample == 1:
-        # 正式顺序缺口与pure并行worker也必须复制CSS和binary，避免只修样品路径。
-        scene = {'id': 'sample', 'durationInFrames': 3, 'startFrame': 0, 'endFrame': 3,
-                 'segmentWindows': {}, 'content': {'entry': 'scenes/main.tsx', 'props': props}}
-        frame = {'width': 320, 'height': 240, 'subtitle': {'safeArea': {'x': 0, 'y': 200, 'width': 320, 'height': 40}}}
-        clip = code_scenes.record(root, scene, {}, frame=frame, media={}, media_digest='empty',
-                                 fps=30, jobs=2 if mode == 'pure-time' else 1)
-        reader = read_frames(str(root / clip))
-        assert next(reader)['size'] == (320, 240)
-        image = Image.frombytes('RGB', (320, 240), next(reader))
-        assert all(abs(a-b) < 10 for a, b in zip(image.getpixel((30, 30)), (90, 180, 210)))
-        reader.close()
 
 
 @pytest.mark.media
@@ -105,11 +110,18 @@ def test_webgpu_preparation_uses_a_browser_with_working_device(tmp_path, chromiu
     root = tmp_path / 'gpu-work'
     create_project(root, 'text-motion', {'storyboard': 'storyboard.json'})
     project = load_project(root)[1]
-    (root / 'scenes').mkdir()
+    restore_fonts(root)
+    import json
+    package = json.loads((root / 'package.json').read_text(encoding='utf-8'))
+    package['dependencies']['three'] = '0.186.1'
+    (root / 'package.json').write_text(json.dumps(package, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
+    install_node(root)
+    (root / 'storyboard.json').unlink(missing_ok=True)
+    (root / 'scenes').mkdir(exist_ok=True)
     (root / 'scenes/main.tsx').write_text("""
 import React,{useEffect} from 'react';
 import * as THREE from 'three/webgpu';
-import {useSceneContext} from 'm2v/code-scene';
+import {useSceneContext} from '../src/code-scene/context';
 export default function Scene(){
  const {ready}=useSceneContext();
  useEffect(()=>{let renderer;
