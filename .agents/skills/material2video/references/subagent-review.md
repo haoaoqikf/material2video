@@ -28,6 +28,24 @@
 
 字段类型须与现行校验器一致：报告、coverage 及 assessment 内的 `observations` 均为非空字符串；每项 `coverage.limitations` 为字符串数组，例如 `"limitations": ["本次只覆盖静态版式，未验证连续运动。"]`，不能写成单个段落字符串。确无额外限制时可以使用空数组，但不得省略实际覆盖限制。仅因字段类型修正报告时，保留原稿和修正原因，不改写观察结论或补造新的调用时间。
 
+分派时附上下面的类型片段，避免只列字段名而被误写成数组；这不是完整报告，其他必填字段仍按下文提供。落盘前由评审者核对类型，不能把格式修正变成重写观察或另造一次评审。
+
+```json
+{
+  "observations": "实际观察的段落；多段可用换行连接，不能使用数组。",
+  "coverage": [{
+    "id": "window-1", "window": [0, 90], "status": "pass",
+    "observations": "此窗口的具体观察。",
+    "limitations": ["实际覆盖限制。"],
+    "assessment": {
+      "understanding": {"status": "pass", "observations": "具体理解依据。"},
+      "presentation": {"status": "pass", "observations": "具体表现依据。"},
+      "representativeness": {"status": "pass", "observations": "具体代表性依据。"}
+    }
+  }]
+}
+```
+
 报告顶层仅包含 `version`、`round`、`reviewType`、`packPath`、`packSha256`、`reviewerId`、`isolation`、`focus`、`verdict`、`observations`、`coverage`、`invocation`，对照另加 `blindId`。报告 `id` 由导入工具生成，不预先填写；`limitations` 只放在各 coverage 项内，不新增同名顶层字段。
 
 盲看代表性仅判断当前所给局部的实际主体、排版、材质光影和完整过程是否充分、是否占位；不因盲包隔离未见目标而自动 insufficient。目标风格兑现留在同轮对照，不把两阶段职责混成盲看前置条件。
