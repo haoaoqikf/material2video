@@ -117,6 +117,19 @@ def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:
     return value, path.parent
 
 
+def validate_current_sources(root: Path, project: dict, request: dict) -> None:
+    """capture 的摘要不变不代表其间接源码/资源仍当前；评审也须核验该绑定。"""
+    for source in request['sources']:
+        path = local(root, source).resolve()
+        # 使用平台路径语义：Windows大小写别名和冗余分隔符不能绕过检查，
+        # 也不把Linux上不同大小写的其他文件误判为原生采集。
+        if path.parent.parent == (outputs(root) / 'samples').resolve() and path == path.parent / 'capture.json':
+            identity = identifier(read(path).get('id'))
+            if path.parent != (outputs(root) / 'samples' / identity).resolve():
+                raise M2VError('原生采集路径与身份不符')
+            load(root, project, identity)
+
+
 def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparison_id: str, basis: str) -> dict:
     text(basis)
     value, directory = load(root, project, identity)

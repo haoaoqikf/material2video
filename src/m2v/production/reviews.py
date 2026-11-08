@@ -418,6 +418,9 @@ def _load_package(root, manifest, pack_path, pack_sha256, *, historical=False):
             raise M2VError('历史源媒体或参考摘要失配')
     elif private["binding"] != ledger.binding(root, manifest, private["request"]):
         raise M2VError("来源、媒体或当前候选已变化，评审包过期")
+    else:
+        from .samples import validate_current_sources
+        validate_current_sources(root, manifest, private['request'])
     return pack, private
 
 

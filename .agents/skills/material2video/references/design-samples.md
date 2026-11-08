@@ -43,6 +43,8 @@ capture 复用正式构建、顺序/纯时间采集、视频编码及解码核�
 
 在生成的 review-request.json 中先补齐实际 references（相对 outputs 的参考媒体）和中性 conditions，保留自动生成的全部 items、sources、fps、displaySizes。不删静帧或完整 motion 项。按[隔离执行](subagent-review.md)实际建立新子代理，盲看导入后，以相同请求加 `reviewType: "consistency"`、`blindId` 建同轮目标对照，再导入报告。调用记录必须来自真实执行，不能手写一个 pass 代替审核。
 
+当前评审包同时核验声明采集的全部 inputs/artifacts，不只比较 capture.json 本身；间接素材、分镜或源码改变也会使旧评审失效。路径按本机真实路径语义识别，Windows 大小写别名不能绕过该核验。历史视觉复用只保留旧封存身份，当前包仍须通过此项。
+
 ```powershell
 uv run m2v review pack --project <作品> --file <完整盲看请求.json>
 uv run m2v review import --project <作品> --file <真实盲看报告.json>

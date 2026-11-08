@@ -178,6 +178,33 @@ def test_repackaging_stale_native_capture_cannot_create_current_visual_evidence(
         reuse.register(root, project, reuse_request(root, project, req, args['blind_id'], args['comparison_id']))
 
 
+@pytest.mark.parametrize('alternate_case', [False, True])
+def test_indirect_capture_input_change_invalidates_normal_report_as_well_as_reuse(native, monkeypatch, alternate_case):
+    root, project, _ = native
+    dependency = root / 'indirect.ts'
+    dependency.write_text('original', encoding='utf-8')
+    render = samples.design_sample.render
+    def with_dependency(*args, **kwargs):
+        result = render(*args, **kwargs)
+        result['inputs']['work/indirect.ts'] = digest(dependency)
+        return result
+    monkeypatch.setattr(samples.design_sample, 'render', with_dependency)
+    identity = samples.capture(root, project)['id']
+    if alternate_case:
+        import os
+        if os.name != 'nt':
+            pytest.skip('Windows路径大小写等价边界')
+        req_path = outputs(root) / f'samples/{identity}/review-request.json'
+        req = read(req_path)
+        req['sources'][0] = req['sources'][0].replace('outputs/', 'Outputs/').replace('/capture.json', '/CAPTURE.JSON')
+        write(req_path, req)
+    accepted = pair((root, project, identity))
+    assert reviews.current_report(root, project, accepted['blind_id'])['verdict'] == 'pass'
+    dependency.write_text('changed but entry and capture json unchanged', encoding='utf-8')
+    with pytest.raises(M2VError, match='来源已变化'):
+        reviews.current_report(root, project, accepted['blind_id'])
+
+
 def test_independent_fail_cannot_be_downgraded_to_advice(work):
     root, _ = work
     generic_pair(work, verdict='fail')

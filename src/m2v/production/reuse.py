@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import uuid
 from contextvars import ContextVar
-from pathlib import Path
 
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
@@ -25,13 +24,6 @@ def signature(root, project, pack_path, pack_sha, *, historical=False):
     req, binding = private['request'], private['binding']
     if req['round'] != 'trial':
         raise M2VError('视觉复用仅限同周期 trial，不能替代实际 final')
-    if not historical:
-        # 重新封存旧 capture.json 与新源码各自的摘要，并不能使旧采集变为当前。
-        # 对声明原生采集的当前包另验 inputs/artifacts；历史包只保持原封存身份。
-        for source in req['sources']:
-            path = Path(source)
-            if path.as_posix().startswith('outputs/samples/') and path.name == 'capture.json':
-                samples.load(root, project, path.parent.name)
     return dict(round=req['round'], fps=req['fps'], displaySizes=sorted(req['displaySizes']),
                 sceneIds=req['sceneIds'], sources=samples.scope_sources(root, req),
                 conditions=req.get('conditions', []), references=binding['references'],
