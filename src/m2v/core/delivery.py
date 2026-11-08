@@ -52,15 +52,22 @@ def candidate(root: Path, prepared: dict) -> dict:
     if record.get("preparedFingerprint") != prepared["preparedFingerprint"]:
         raise M2VError("缺少当前完整候选；请执行 m2v render")
     try:
-        path = Path(record.get("path", ""))
+        from m2v.standalone.executor import local_artifact
+        path = local_artifact(root, record.get('path'))
         valid = path.is_file() and digest(path) == record.get("sha256")
     except (OSError, TypeError):
         valid = False
     if not valid:
         raise M2VError("候选文件缺失或摘要变化；请执行 m2v render")
-    if record.get("implementation") is not None and fingerprint(binding(root, prepared, record["parameters"])) != record.get("key"):
+    parameters = record.get('parameters')
+    if not isinstance(parameters, dict):
+        raise M2VError('候选渲染参数结构损坏；请重新render')
+    expected = binding(root, prepared, parameters)
+    if (any(record.get(k) != v for k, v in expected.items())
+            or fingerprint(expected) != record.get('key')):
         raise M2VError("候选实现或渲染参数已变化；请执行 m2v render")
-    return record
+    # 持久凭据保持相对路径；仅当前调用的返回值解析为实际作品位置。
+    return {**record, 'path': str(path)}
 
 
 @contextmanager
@@ -196,12 +203,11 @@ def export_once(destination: Path, binding: dict, generate, verify, current, *, 
 
 
 def binding(root: Path, prepared: dict, parameters: dict) -> dict:
-    """共享验收/编排实现也进入版本，避免只绑定作品材料。"""
-    from m2v.engine import remotion
-    package = Path(__file__).resolve().parents[1]
-    implementation = fingerprint({str(p.relative_to(package)): digest(p) for p in sorted(package.rglob("*.py"))})
+    """只绑定作品自己的实现；主项目检查器升级不改变媒体输入身份。"""
+    if any(not isinstance(prepared.get('inputs', {}).get(k), str) for k in ('implementation', 'renderer')):
+        raise M2VError('准备记录缺少本地实现绑定；请重新prepare')
     return {"preparedFingerprint": prepared["preparedFingerprint"], "parameters": parameters,
             "type": prepared.get("type"), "frames": prepared["durationInFrames"],
             "width": prepared["width"], "height": prepared["height"], "fps": prepared["fps"],
-            "implementation": implementation,
-            "renderer": remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]}
+            "implementation": prepared['inputs']['implementation'],
+            "renderer": prepared['inputs']['renderer']}

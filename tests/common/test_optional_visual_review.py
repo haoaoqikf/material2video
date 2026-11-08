@@ -33,14 +33,16 @@ def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, ki
 
 def test_status_reports_candidate_failure_and_review_independently(tmp_path, monkeypatch):
     _register_builtins()
-    prepared = {"preparedFingerprint": "current"}
+    from standalone.test_management_bindings import prepared_work
+    from m2v.core.fingerprints import fingerprint
+    manifest, prepared = prepared_work(tmp_path)
     monkeypatch.setattr("m2v.commands._prepared", lambda *_: prepared)
-    manifest = {"id": "demo", "type": "text-motion"}
     assert _status(tmp_path, manifest)["stage"] == "prepared"
     video = tmp_path / "outputs/candidates/test.mp4"
     video.parent.mkdir(parents=True)
     video.write_bytes(b"candidate")
-    record = {"preparedFingerprint": "current", "path": str(video),
+    binding = delivery.binding(tmp_path, prepared, {'crf': 18})
+    record = {**binding, 'key': fingerprint(binding), "path": 'outputs/candidates/test.mp4',
               "sha256": delivery.digest(video), "status": "validation-failed", "error": "probe failed"}
     (tmp_path / "outputs/delivery.json").write_text(json.dumps(record), encoding="utf-8")
     result = _status(tmp_path, manifest)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -48,41 +49,53 @@ def text(path: Path) -> str:
     return cache['text'][key]
 
 
+def owned_files(root: Path, folder: Path):
+    """遍历前检查目录联接，不能枚举作品外的依赖或字体。"""
+    if not folder.resolve().is_relative_to(root):
+        raise M2VError('场景资源或字体链接越过作品目录')
+    for directory, children, names in os.walk(folder, followlinks=False):
+        parent = Path(directory)
+        for path in [parent, *(parent / name for name in children)]:
+            if not path.resolve().is_relative_to(root):
+                raise M2VError('场景资源或字体链接越过作品目录')
+        for name in names:
+            path = (parent / name).resolve()
+            if not path.is_relative_to(root):
+                raise M2VError('场景资源或字体链接越过作品目录')
+            if path.is_file():
+                yield path
+
+
 def scene_sources(root: Path, scene: dict) -> dict:
     from m2v.core.source_imports import import_specifiers, resolve_import
-    from m2v.engine.contract_page import web_dir
     root = root.resolve()
-    web = web_dir().resolve()
     cache = _snapshot.get()
     key = (root, fingerprint(scene))
     if cache is not None and key in cache['scenes']:
         return cache['scenes'][key]
     paths, bodies, warnings = set(), [], []
-    math_used = False
     queue = [local(root, scene['content']['entry'])]
+    # 受控时钟、宿主和字体由作品自己的构建注入，也是真实的画面输入。
+    queue += [root / name for name in ('src/code-scene/host.tsx', 'src/code-scene/capture-clock.js',
+                                      'src/fonts.ts', 'src/frames.ts') if (root / name).is_file()]
     while queue:
         path = queue.pop().resolve()
         if path in paths:
             continue
-        if not path.is_relative_to(root) and not path.is_relative_to(web):
-            raise M2VError('场景依赖越过作品和共享运行时根')
+        if not path.is_relative_to(root):
+            raise M2VError('场景依赖越过作品目录')
         paths.add(path)
-        if path.suffix.lower() not in ('.tsx', '.ts', '.jsx', '.js', '.css', '.mjs', '.json'):
+        if path.suffix.lower() not in ('.tsx', '.ts', '.jsx', '.js', '.css', '.mjs', '.cjs', '.json'):
             continue
         body = text(path)
         bodies.append(body)
         for specifier in import_specifiers(body):
-            if specifier == 'm2v/style' or specifier.startswith('m2v/style/'):
-                raise M2VError(f'风格包入口已移除：{specifier}')
-            if specifier.startswith('m2v/code-scene/'):
-                registry = web / 'src/code-scene/entries.json'
-                if registry.is_file():
-                    paths.add(registry)
-                math_used |= specifier == 'm2v/code-scene/math'
-            target = resolve_import(specifier, path, web)
+            if specifier.startswith('m2v/'):
+                raise M2VError(f'主项目运行时引用已移除：{specifier}；请采用作品内组件')
+            target = resolve_import(specifier, path, root)
             if target:
                 queue.append(target)
-            elif specifier.startswith(('.', '/', '@/', 'm2v/code-scene/')):
+            elif specifier.startswith(('.', '/', '@/', '~/')):
                 warnings.append('未解析本地引用，保守绑定作品素材与字体')
         if re.search(r'\bimport\s*\(\s*[^\s\'"]', body):
             warnings.append('动态导入，保守绑定作品源码、素材与字体')
@@ -104,29 +117,22 @@ def scene_sources(root: Path, scene: dict) -> dict:
     elif literal_ids:
         raise M2VError('场景引用素材但缺少来源登记')
     # 字体及运行时由服务器注入，不一定以 import 出现，必须显式包含。
-    for folder in (web / 'public/fonts', root / 'fonts'):
+    for folder in (root / 'fonts/files',):
         if folder.exists():
-            paths.update(p for p in folder.rglob('*') if p.is_file())
-    for name in ('src/fonts.ts', 'src/frames.ts', 'src/video-config.json', 'package.json', 'pnpm-lock.yaml',
-                 'code-scene-dependencies.json', 'scripts/code-scene-dependencies.mjs'):
-        path = web / name
+            paths.update(owned_files(root, folder))
+    for name in ('src/video-config.json', 'fonts/registry.json', 'package.json', 'pnpm-lock.yaml',
+                 'pyproject.toml', 'uv.lock', 'asset-loaders.json', 'scripts/build-code-scene.mjs',
+                 'scripts/scene-inputs.mjs', 'scripts/sync-fonts.mjs'):
+        path = root / name
         if path.is_file():
             paths.add(path)
-    if math_used:
-        registry = web.parent / 'fonts/registry.json'
-        if not registry.is_file():
-            raise M2VError('公式字体登记缺失')
-        paths.add(registry)
     if warnings:
-        for name in ('scenes', 'assets', 'fonts'):
-            paths.update(p for p in (root / name).rglob('*') if p.is_file())
-    def label(path):
-        if path.is_relative_to(root):
-            return 'work/' + path.relative_to(root).as_posix()
-        if path.is_relative_to(web):
-            return 'web/' + path.relative_to(web).as_posix()
-        return 'repo/' + path.relative_to(web.parent).as_posix()
-    result = {'files': {label(p): digest(p) for p in sorted(paths)},
+        for name in ('scenes', 'components', 'src', 'assets', 'fonts/files'):
+            paths.update(owned_files(root, root / name))
+    paths = {p.resolve() for p in paths}
+    if any(not p.is_relative_to(root) for p in paths):
+        raise M2VError('场景资源或字体链接越过作品目录')
+    result = {'files': {'work/' + p.relative_to(root).as_posix(): digest(p) for p in sorted(paths)},
               'assetRecords': selected_assets, 'conservativeReasons': sorted(set(warnings))}
     if cache is not None:
         cache['scenes'][key] = result

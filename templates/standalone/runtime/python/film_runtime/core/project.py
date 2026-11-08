@@ -1,7 +1,7 @@
 """Versioned project manifests and content-addressed preparation records."""
 from __future__ import annotations
 
-from film_runtime.core.video_config import default_fps, project_fps, validate_fps
+from film_runtime.core.video_config import project_fps, validate_fps
 
 import hashlib
 import json
@@ -47,6 +47,17 @@ def subtitle_font_size(project: dict[str, Any]) -> int | None:
     return size
 
 
+def _local_reference(root: Path, reference: str) -> Path:
+    if (not isinstance(reference, str) or not reference or '\0' in reference
+            or Path(reference).anchor or ':' in reference or '\\' in reference
+            or '..' in Path(reference).parts):
+        raise VideoError('作品文件必须为目录内相对路径，不能越过作品目录')
+    path = (root / reference).resolve()
+    if not path.is_relative_to(root.resolve()):
+        raise VideoError('作品文件链接越过作品目录')
+    return path
+
+
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     """读取作品描述。
 
@@ -78,9 +89,7 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if not isinstance(materials, dict) or set(materials) != {"storyboard"} or not isinstance(materials["storyboard"], str) or not materials["storyboard"]:
         raise VideoError("materials 仅允许 storyboard 本地分镜入口")
     for name, reference in materials.items():
-        candidate = (root / reference).resolve()
-        if candidate != root and root not in candidate.parents:
-            raise VideoError(f"材料 {name} 越过作品目录：{reference}")
+        _local_reference(root, reference)
     output = data.get("output", {})
     if not isinstance(output, dict):
         raise VideoError("output 必须为对象")
@@ -116,11 +125,27 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         prepared = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise VideoError(f"缺少有效准备记录；请先执行 pnpm run video:prepare：{exc}") from exc
+    if not isinstance(prepared, dict) or not isinstance(prepared.get("inputs"), dict):
+        raise VideoError("准备记录结构损坏；请重新prepare")
+    if (any(not isinstance(k, str) or not k or not isinstance(v, str)
+            for k, v in prepared['inputs'].items())
+            or not isinstance(prepared.get('compositionId'), str)
+            or not prepared['compositionId']
+            or not isinstance(prepared.get('props'), dict)
+            or not isinstance(prepared.get('audio'), dict)
+            or not isinstance(prepared.get('subtitles'), list)
+            or any(type(prepared.get(k)) is not int or prepared[k] <= 0
+                   for k in ('width', 'height', 'fps', 'durationInFrames'))):
+        raise VideoError('准备记录字段类型或画幅／时长无效；请重新prepare')
     expected = prepared.pop("preparedFingerprint", None)
-    if not isinstance(expected, str) or _fingerprint(prepared) != expected:
+    try:
+        actual = _fingerprint(prepared)
+    except (ValueError, TypeError) as exc:
+        raise VideoError('准备记录包含无效JSON数值') from exc
+    if not isinstance(expected, str) or actual != expected:
         raise VideoError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
-    if prepared.get("contractVersion") != 3 or "style" in prepared:
+    if type(prepared.get("contractVersion")) is not int or prepared["contractVersion"] != 3 or "style" in prepared:
         raise VideoError("旧准备记录不能用于五类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise VideoError("准备记录与当前作品不匹配；请重新 prepare")
@@ -128,7 +153,7 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     if type(prepared.get("fps")) is not int or prepared["fps"] != expected_fps:
         raise VideoError(f"准备记录帧率与当前 {expected_fps} fps 不匹配；请重新 prepare")
     for name, reference in project["materials"].items():
-        file = (root / reference).resolve()
+        file = _local_reference(root, reference)
         if not file.is_file():
             raise VideoError(f"作品材料不存在：{name}={file}")
         if prepared.get("inputs", {}).get(name) != hashlib.sha256(file.read_bytes()).hexdigest():
@@ -137,26 +162,28 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     for name, digest in prepared.get("inputs", {}).items():
         # 可选登记表的「尚不存在」也是输入状态；首次导入不能复用旧的无登记准备。
         if name.startswith("absent-file:"):
-            file = (root / name[len("absent-file:"):]).resolve()
+            file = _local_reference(root, name[len('absent-file:'):])
             if not file.is_relative_to(root.resolve()) or file.exists():
                 raise VideoError(f"准备引用文件已变化：{name}；请重新 prepare")
             continue
         if not name.startswith("file:"):
             continue
-        file = (root / name[5:]).resolve()
+        file = _local_reference(root, name[5:])
         if (not file.is_relative_to(root.resolve()) or not file.is_file()
                 or hashlib.sha256(file.read_bytes()).hexdigest() != digest):
             raise VideoError(f"准备引用文件已变化或缺失：{name[5:]}；请重新 prepare 并评审")
     # project 包含音色等作品属性；仅检查材料文件无法发现这些配置变化。
     if prepared.get("materialFingerprint") != _fingerprint({"project": project, "inputs": prepared["inputs"]}):
         raise VideoError("作品描述已变化；请重新 prepare 并生成当前候选")
+    if load_project(root)[1] != project:
+        raise VideoError('执行期间磁盘作品描述已变化；请重新prepare')
     return prepared
 
 
 def file_inputs(root: Path, project: dict[str, Any]) -> dict[str, str]:
     inputs = {}
     for name, reference in project["materials"].items():
-        file = (root / reference).resolve()
+        file = _local_reference(root, reference)
         if not file.is_file():
             raise VideoError(f"作品材料不存在：{name}={file}")
         inputs[name] = hashlib.sha256(file.read_bytes()).hexdigest()

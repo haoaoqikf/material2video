@@ -61,7 +61,8 @@ def implementation_inputs() -> dict[str, str]:
              *sorted((WEB / "src/code-scene").rglob("*.tsx")), *sorted((WEB / "src/code-scene").rglob("*.ts")),
              *sorted((WEB / "src/code-scene").rglob("*.js")),
              *sorted((WEB / "public/fonts").glob("*"))]
-    return {str(file.relative_to(REPOSITORY_ROOT)): digest(file) for file in files if file.is_file()}
+    return {file.relative_to(REPOSITORY_ROOT).as_posix(): digest(file) for file in files
+            if file.is_file() and not file.name.endswith(('.test.ts', '.test.tsx'))}
 
 
 CAPTURE_FIELDS = {"mode", "timebase", "jobs", "blockFrames", "verifyFrames"}

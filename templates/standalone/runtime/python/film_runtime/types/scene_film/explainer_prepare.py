@@ -29,14 +29,21 @@ def digest(file: Path) -> str:
     return hashlib.sha256(file.read_bytes()).hexdigest()
 
 
-def implementation_digest() -> str:
-    """只绑定本作品实际拥有的执行源码，不扫描主项目或组件参考。"""
+def implementation_files() -> dict[str, str]:
+    """公开逐文件输入，外部工具可自行复核，不能只相信一个自报聚合摘要。"""
     from film_runtime.core.assets import REPOSITORY_ROOT
-    from film_runtime.core.fingerprints import fingerprint
     package = Path(__file__).resolve().parents[2]
     files = {p.relative_to(REPOSITORY_ROOT).as_posix(): digest(p)
              for p in sorted(package.rglob('*.py'))}
-    return fingerprint({**files, **code_scenes.implementation_inputs()})
+    files.update(code_scenes.implementation_inputs())
+    for file in [REPOSITORY_ROOT / 'scripts/video.py', *remotion.build_inputs()]:
+        files[file.relative_to(REPOSITORY_ROOT).as_posix()] = digest(file)
+    return files
+
+
+def implementation_digest() -> str:
+    from film_runtime.core.fingerprints import fingerprint
+    return fingerprint(implementation_files())
 
 
 def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
@@ -61,7 +68,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     prepared_sources, source_inputs = structured_sources.prepare(root, source, project["type"])
     inputs.update(source_inputs)
     inputs["tts"] = json.dumps(actual_tts, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    inputs["implementation"] = implementation_digest()
+    from film_runtime.core.fingerprints import fingerprint
+    implementation = implementation_files()
+    inputs["implementation"] = fingerprint(implementation)
+    inputs.update({'file:' + name: value for name, value in implementation.items()})
     inputs["productionContract"] = "standalone-v3"
     if not contract.topic_input(source):
         article = contract.source_file(root, project)

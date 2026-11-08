@@ -1,5 +1,7 @@
 # 代码场景运行契约
 
+新建作品已使用独立工程 v3：逐帧接口在作品 `src/code-scene/`，依赖与构建器属于作品，禁止导入 `m2v/*`。运行与恢复见[独立工程说明](../../../../templates/standalone/README.md)。本页后续共享SDK路径为存量实现参考；七例与样品／lookdev／时间线委托正在按[变更任务](../../../../openspec/changes/make-video-projects-standalone/tasks.md)改造，不能用存量入口代替 v3 工程的本地运行。
+
 完整分镜准备之前的代表性原生试制使用 `m2v sample capture/serve/deliver`，复用本页构建、受控采集与编码；依赖扩展、资源加载器、网页预览及完成条件见[网页原生样品](design-samples.md)。该入口不代替正式全片准备与验收。
 
 > **适用范围：** 本文描述画面实现与渲染/量测脚本之间唯一的接口：契约页（`version: 6`）、

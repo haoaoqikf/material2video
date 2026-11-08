@@ -36,7 +36,8 @@ def digest(path: Path) -> str:
 
 def _local_path(root: Path, reference: str) -> Path:
     """持久记录只存作品相对路径，搬移后不能继续读取旧工程。"""
-    if not isinstance(reference, str) or not reference or Path(reference).is_absolute():
+    if (not isinstance(reference, str) or not reference or Path(reference).anchor
+            or ':' in reference or '\\' in reference or '..' in Path(reference).parts):
         raise VideoError('候选记录路径必须为作品内相对路径；请重新生成候选')
     target = (root / reference).resolve()
     if not target.is_relative_to(root.resolve()):
@@ -68,7 +69,12 @@ def candidate(root: Path, prepared: dict) -> dict:
         valid = False
     if not valid:
         raise VideoError("候选文件缺失或摘要变化；请执行 pnpm run render")
-    if record.get("implementation") is not None and fingerprint(binding(root, prepared, record["parameters"])) != record.get("key"):
+    parameters = record.get('parameters')
+    if not isinstance(parameters, dict):
+        raise VideoError('候选渲染参数结构损坏；请重新render')
+    expected = binding(root, prepared, parameters)
+    if (any(record.get(k) != v for k, v in expected.items())
+            or fingerprint(expected) != record.get('key')):
         raise VideoError("候选实现或渲染参数已变化；请执行 pnpm run render")
     return record
 
@@ -208,12 +214,11 @@ def export_once(destination: Path, binding: dict, generate, verify, current, *, 
 
 
 def binding(root: Path, prepared: dict, parameters: dict) -> dict:
-    """共享验收/编排实现也进入版本，避免只绑定作品材料。"""
-    from film_runtime.engine import remotion
-    package = Path(__file__).resolve().parents[1]
-    implementation = fingerprint({str(p.relative_to(package)): digest(p) for p in sorted(package.rglob("*.py"))})
+    """绑定本工程已核对的源码和渲染输入，搬移不改变身份。"""
+    if any(not isinstance(prepared.get('inputs', {}).get(k), str) for k in ('implementation', 'renderer')):
+        raise VideoError('准备记录缺少本地实现绑定；请重新prepare')
     return {"preparedFingerprint": prepared["preparedFingerprint"], "parameters": parameters,
             "type": prepared.get("type"), "frames": prepared["durationInFrames"],
             "width": prepared["width"], "height": prepared["height"], "fps": prepared["fps"],
-            "implementation": implementation,
-            "renderer": remotion.build_input_fingerprint(workspace_root=root.parent)["digest"]}
+            "implementation": prepared['inputs']['implementation'],
+            "renderer": prepared['inputs']['renderer']}

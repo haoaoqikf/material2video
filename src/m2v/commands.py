@@ -61,7 +61,7 @@ def dispatch(args) -> int:
         return 0
     if args.command in {"lookdev", "qa", "assets"}:
         # 三个检查入口各自解析自己的参数；这里只做统一分发。
-        from m2v.engine import assets_audit, lookdev as lookdev_engine, qa as qa_engine
+        from m2v.engine import assets_audit, lookdev as lookdev_engine
         if args.command == "lookdev":
             options = ["--project", args.project, "--sample-seconds", str(args.sample_seconds),
                        "--still-scale", str(args.still_scale)]
@@ -85,10 +85,29 @@ def dispatch(args) -> int:
                     options += ["--hold", str(args.hold)]
             return lookdev_engine.main(options)
         if args.command == "qa":
-            options = ["--project", args.project, "--step", str(args.step)]
+            from m2v.standalone import executor
+            root, manifest = load_project(args.project)
+            options = ['--step', str(args.step)]
+            video = root / 'outputs/video.mp4'
             if args.video:
-                options += ["--video", args.video]
-            return qa_engine.main(options)
+                video = Path(args.video).expanduser().resolve()
+                if not video.is_relative_to(root):
+                    raise M2VError('QA待检视频必须位于作品内')
+                options += ['--video', video.relative_to(root).as_posix()]
+            result = executor.execute(root, manifest, 'qa', options)
+            if result['path'] != 'outputs/qa.json':
+                raise M2VError('QA报告必须位于outputs/qa.json')
+            report = executor.read_json(executor.local_artifact(root, result['path']))
+            prepared = load_current_prepared(root, manifest)
+            from m2v.core.delivery import digest
+            if (not isinstance(report, dict) or report.get('status') != result['status']
+                    or report.get('preparedFingerprint') != prepared['preparedFingerprint']
+                    or executor.local_artifact(root, report.get('video')) != video
+                    or report.get('videoSha256') != digest(video)
+                    or report.get('scope') != 'technical-only'):
+                raise M2VError('QA报告与当前准备、待检视频或执行状态不符')
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0 if result['status'] == 'pass' else 1
         from m2v.engine import assets_tools
         if args.workflow == "audit":
             if not args.project:
@@ -117,37 +136,12 @@ def _init(args) -> int:
     content_root = args.content_root or os.environ.get(CONTENT_ROOT_ENV)
     workspace = Path(content_root).expanduser().resolve() if content_root else Path(__file__).resolve().parents[2]
     standard = entry.workspace_parts()
-    standard_hint = "videos/" + "/".join((*standard, "<slug>"))
     if not project_dir.is_absolute():
         if len(project_dir.parts) == 1:
             project_dir = workspace / "videos" / Path(*standard) / project_dir
-        elif project_dir.parts[0] == "videos":
-            expected = ("videos", *standard, project_dir.parts[-1])
-            if project_dir.parts != expected:
-                raise M2VError(
-                    f"作品路径与类型类别不一致：{item.name} 的标准位置为 {standard_hint}，"
-                    f"实际为 {project_dir.as_posix()}"
-                )
-            project_dir = workspace / project_dir
         else:
             project_dir = workspace / project_dir
-    # 绝对路径同样按类别校验；在写盘前失败，避免留下位置错误的作品。
-    _validate_project_location(project_dir, {"type": item.name})
     path = create_project(project_dir, item.name, entry.material_map(), output=entry.initial_dimensions())
-    root = path.parent
-    # 材料文件名与初始内容都取自类型目录：这里是写盘，不是第二处事实。
-    for material in entry.materials:
-        (root / material.file).write_text(
-            json.dumps(material.template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-    # 起步文件（本地代码场景入口）同样按目录声明复制，之后由作者改写。
-    for relative in entry.starters:
-        source = catalog.starters_dir(item.name) / relative
-        if not source.is_file():
-            raise M2VError(f"类型目录声明的起步文件不存在：{source}")
-        target = root / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"已创建 {item.name} 作品：{path}")
     return 0
 
@@ -156,7 +150,6 @@ def _project_command(args) -> int:
     """作品级命令：validate / prepare / status / preview / render / review*。"""
     root, manifest = load_project(args.project)
     video_type = registry.get(manifest["type"])
-    _validate_project_location(root, manifest)
     if args.command == "validate":
         video_type.validate(root, manifest)
         print("材料校验通过")
@@ -172,7 +165,6 @@ def _project_command(args) -> int:
         print(json.dumps(_status(root, manifest, full_history=args.history), ensure_ascii=False, indent=2))
         return 0
     if args.command in {"preview", "render"}:
-        _prepared(root, manifest)
         jobs = getattr(args, "jobs", 1)
         if type(jobs) is not int or not 1 <= jobs <= 4:
             raise M2VError("--jobs 必须为 1～4 的整数")
@@ -334,28 +326,3 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
 def _require_render_input(video_type, root: Path, manifest: dict) -> None:
     if video_type.pre_render_check is not None:
         video_type.pre_render_check(root, manifest)
-
-
-def _validate_project_location(root: Path, manifest: dict) -> None:
-    """Reject a project whose path disagrees with its type's canonical workspace location.
-
-    Canonical location is ``videos/<type>/<slug>``. Repository examples live at
-    ``examples/<type>/<slug>/`` and keep their own project manifests.
-    """
-    try:
-        index = max(position for position, part in enumerate(root.parts) if part == "videos")
-    except ValueError:
-        return
-    actual_parts = root.parts[index + 1:]
-    if len(actual_parts) != 2:
-        raise M2VError("作品位置必须为 videos/<type>/<slug>；旧目录不自动迁移")
-    entry = catalog.catalog().get(manifest["type"])
-    expected_parts = (*entry.workspace_parts(), root.name)
-    if actual_parts == expected_parts:
-        return
-    actual = Path("videos", *actual_parts).as_posix()
-    standard = Path("videos", *entry.workspace_parts(), "<slug>").as_posix()
-    raise M2VError(
-        f"作品位置与类型不匹配：project.json 声明 {manifest['type']}，"
-        f"实际位于 {actual}，标准位置为 {standard}"
-    )

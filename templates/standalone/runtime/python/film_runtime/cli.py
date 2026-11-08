@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import platform
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,8 @@ def _validate(project: dict) -> dict:
 
 def _prepare(project: dict, options) -> dict:
     from .types.scene_film import explainer_prepare
-    return explainer_prepare.prepare(ROOT, project, voice=options.voice, rate=options.rate)
+    return explainer_prepare.prepare(ROOT, project, voice=options.voice, rate=options.rate,
+                                    rhythm=json.loads(options.rhythm))
 
 
 def _current(project: dict, options) -> dict:
@@ -133,6 +135,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--install-browser', action='store_true')
     parser.add_argument('--voice')
     parser.add_argument('--rate')
+    parser.add_argument('--rhythm', default='{}')
     parser.add_argument('--jobs', type=int, default=1)
     parser.add_argument('--limit-frames', type=int)
     parser.add_argument('--start-seconds', type=float, default=0)
@@ -178,7 +181,8 @@ def main(argv: list[str] | None = None) -> int:
                       'preparedFingerprint': prepared['preparedFingerprint']}
         elif options.command == 'qa':
             from .engine import qa
-            result = qa.run(ROOT, _current(project, options), video=Path(options.video) if options.video else None, step=options.step)
+            report = qa.run(ROOT, _current(project, options), video=Path(options.video) if options.video else None, step=options.step)
+            result = {'status': report['status'], 'path': 'outputs/qa.json'}
         elif options.command == 'preview' and options.serve:
             result = _serve(project, options)
         else:
@@ -190,7 +194,14 @@ def main(argv: list[str] | None = None) -> int:
             output = explainer_render.render(ROOT, project, preview=options.command == 'preview',
                 limit_frames=options.limit_frames, start_seconds=options.start_seconds,
                 end_seconds=options.end_seconds, jobs=options.jobs)
-            result = {'status': 'candidate', 'path': output.relative_to(ROOT).as_posix()}
+            prepared = explainer_render.current(ROOT, project)
+            result = {'status': 'candidate', 'path': output.relative_to(ROOT).as_posix(),
+                      'preparedFingerprint': prepared['preparedFingerprint']}
+        if 'path' in result:
+            from .core.delivery import digest
+            result['sha256'] = digest(ROOT / result['path'])
+        result['environment'] = {'python': platform.python_version(), 'platform': sys.platform,
+                                 'pythonEnvironment': 'local' if Path(sys.prefix).resolve().is_relative_to(ROOT) else 'system'}
         print('__VIDEO_RESULT__' + json.dumps({'version': 1, 'command': options.command, 'result': result}, ensure_ascii=False), flush=True)
         return 1 if options.command == 'qa' and result.get('status') == 'fail' else 0
     except KeyboardInterrupt:

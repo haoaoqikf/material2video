@@ -226,7 +226,8 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
             raise VideoError("渲染期间材料或准备记录变化；丢弃本次输出")
         provenance = {"schemaVersion": 1, "type": project["type"], "projectId": project["id"],
             "preparedFingerprint": prepared["preparedFingerprint"], "compositionId": "SceneFilm",
-            "inputs": prepared["inputs"], "durationInFrames": frames_to_render, "fps": fps, "width": width, "height": height}
+            "inputs": prepared["inputs"], "startFrame": start_frame,
+            "durationInFrames": frames_to_render, "fps": fps, "width": width, "height": height}
         provenance.update(visual_provenance(prepared))
         provenance.update({
             "audio": {"master": prepared["audio"]["segments"][0]["path"],
@@ -238,12 +239,10 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
                          "codec": "h264", "pixelFormat": "yuv420p(tv, bt709)",
                          "frames": frames_to_render, "fps": fps, "width": width, "height": height},
         })
-        if not preview:
-            _write_json(work / "final.provenance.json", provenance)
+        _write_json(work / "final.provenance.json", provenance)
         # 临时目录带收紧 ACL，交付必须走 security.deliver：搬运与权限修复不可分开。
         security.deliver(final, destination)
-        if not preview:
-            security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
+        security.deliver(work / "final.provenance.json", destination.with_suffix(".provenance.json"))
     render_pipeline.write_report(destination, entry="preview" if preview else "render", storyboard=entry,
         frames=frames_to_render, fps=fps, width=width, height=height, timings=timings,
         total_seconds=time.monotonic()-started, outcome=outcome,

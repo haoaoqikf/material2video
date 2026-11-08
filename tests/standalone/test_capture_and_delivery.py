@@ -35,7 +35,10 @@ def test_pure_time_checks_adopted_source_but_not_control_clock_or_vendor(tmp_pat
 def test_candidate_survives_move_and_never_reads_original_project(tmp_path):
     original = tmp_path / 'original'
     destination = original / 'outputs/video.mp4'
-    binding = {'preparedFingerprint': 'same-inputs', 'type': 'text-motion'}
+    prepared = {'preparedFingerprint': 'same-inputs', 'type': 'text-motion',
+                'durationInFrames': 90, 'width': 1920, 'height': 1080, 'fps': 30,
+                'inputs': {'implementation': 'own-runtime', 'renderer': 'own-renderer'}}
+    binding = delivery.binding(original, prepared, {'crf': 18})
     calls = []
     def generate(path):
         calls.append(path)
@@ -51,7 +54,7 @@ def test_candidate_survives_move_and_never_reads_original_project(tmp_path):
         raise AssertionError('moved candidate must be reused')
     delivery.export_once(moved / 'outputs/video.mp4', binding, unexpected, lambda path: None, lambda: binding)
     assert len(calls) == 1
-    assert delivery.candidate(moved, binding)['sha256'] == delivery.digest(moved / 'outputs/video.mp4')
+    assert delivery.candidate(moved, prepared)['sha256'] == delivery.digest(moved / 'outputs/video.mp4')
 
 
 @pytest.mark.parametrize('path', ['../outside.mp4', 'absolute', ''])

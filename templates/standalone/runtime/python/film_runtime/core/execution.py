@@ -1,7 +1,7 @@
 """可选制作工具协议的声明校验，不执行命令或加载外部代码。"""
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .errors import VideoError
 
@@ -20,10 +20,10 @@ def command(root: Path, project: dict, *, required: bool = False) -> list[str] |
         raise VideoError('runtime.command必须是非空字符串参数数组，末项为本地入口')
     entry = Path(argv[-1])
     target = (root / entry).resolve()
-    if (entry.is_absolute() or '\\' in argv[-1] or '..' in entry.parts
+    if (entry.anchor or ':' in argv[-1] or '\\' in argv[-1] or '..' in entry.parts
             or not target.is_relative_to(root.resolve()) or not target.is_file()):
         raise VideoError('runtime.command入口必须是作品内存在的相对路径，不能越界或借用主项目')
     # 可执行工具可从PATH恢复；其他参数不接受绝对文件路径，避免目录搬移失效。
-    if any(Path(value).is_absolute() for value in argv):
+    if any(Path(value).anchor or PureWindowsPath(value).anchor for value in argv):
         raise VideoError('runtime.command不能保存机器绝对路径')
     return list(argv)

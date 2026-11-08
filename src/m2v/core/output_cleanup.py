@@ -57,11 +57,15 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
     from .delivery import read_record
     record = read_record(outputs)
     try:
-        candidate = Path(record.get("path", "")).resolve()
+        reference = record.get('path')
+        if (not isinstance(reference, str) or not reference or Path(reference).anchor
+                or ':' in reference or '\\' in reference or '..' in Path(reference).parts):
+            raise ValueError('候选必须使用作品内相对路径')
+        candidate = (outputs.parent / reference).resolve()
         if candidate.parent == outputs / "candidates" and candidate.is_file():
             keep.add(candidate)
             keep.update(candidate.with_suffix(suffix) for suffix in (*SIDECAR_SUFFIXES, ".delivery.json"))
-    except (OSError, TypeError):
+    except (OSError, TypeError, ValueError):
         pass
     failures: list[str] = []
     if preserve_visual_evidence:

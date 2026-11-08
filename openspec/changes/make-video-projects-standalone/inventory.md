@@ -4,7 +4,7 @@
 
 改造前源码修订为 `262f26aad083447fcf0bca32ad67421d70b4bf96`；[baseline.json](baseline.json)记录七例源码、恢复配方和已有产物摘要。[consumers.json](consumers.json)按实际分镜入口记录74项逐例递归本地文件引用、129项SDK符号采用及其真实声明位置，并保存66个共享Web模块的直接／反向依赖和SDK子入口。它区分实际场景入口与未采用的备用源码，不以SDK星导出数量冒充实际组件消费。主项目Python准备／采集／证据调用方见本表；改造时继续核对对应直接引用，删除尚未执行。
 
-基础执行模板已提取到 `templates/standalone/`，具有自身Python命名空间、Node/Python锁文件、字体恢复和运行命令；主项目入口及七例尚未切换。阶段验证与独立代码审查见[基础阶段记录](implementation-base.md)。
+基础执行模板已提取到 `templates/standalone/`，具有自身Python命名空间、Node/Python锁文件、字体恢复和运行命令；主项目新建／validate／prepare／preview／render／QA已接入v3本地委托，七例及其他制作工具仍待切换。阶段验证与独立代码审查见[基础阶段记录](implementation-base.md)和[管理委托阶段记录](implementation-management.md)。
 
 | 当前实现 | 当前消费者／职责 | 目标处置 | 状态 |
 |---|---|---|---|
@@ -19,7 +19,7 @@
 | diagram、math、icons、serif子入口 | 公式／衬线有示例消费者；其余待查公开用途 | 公式／衬线本地化；无消费者包装删除，保留选型建议 | 待实施 |
 | financial/building/vehicle Web绘制包装 | 可选结构化来源，不被七例使用 | 查明真实引用；移除无用包装，保留数据快照及可选准备能力 | 待实施 |
 | 全局主题、样式令牌、安装依赖 | 旧来源场景与展示 | 逐项按消费者清理，保留本地实际必需配置 | 待实施 |
-| core.delivery、production.dependencies | 来源和媒体绑定 | 只复核作品实际输入，检查器版本单独记录 | 待实施 |
+| core.delivery、production.dependencies | 来源和媒体绑定 | 只复核作品实际输入，检查器版本单独记录 | 已解除候选／场景依赖的主项目渲染绑定；外部检查器规则及调用方尚待完成 |
 | design_sample及production.samples | 原生采集与独立交付 | 采集委托本地，保留现有评审门禁 | 待实施 |
 
 ## 七例验收矩阵

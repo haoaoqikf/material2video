@@ -1,12 +1,11 @@
 """Versioned project manifests and content-addressed preparation records."""
 from __future__ import annotations
 
-from m2v.core.video_config import default_fps, project_fps, validate_fps
+from m2v.core.video_config import project_fps, validate_fps
 
 import hashlib
 import json
 import re
-import uuid
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -14,7 +13,7 @@ from typing import Any
 from .errors import M2VError
 
 PROJECT_FILE = "project.json"
-PROJECT_VERSION = 2
+PROJECT_VERSION = 3
 PREPARED_FILE = "outputs/prepared.json"
 
 
@@ -49,10 +48,21 @@ def subtitle_font_size(project: dict[str, Any]) -> int | None:
     return size
 
 
+def _local_reference(root: Path, reference: str) -> Path:
+    if (not isinstance(reference, str) or not reference or '\0' in reference
+            or Path(reference).anchor or ':' in reference or '\\' in reference
+            or '..' in Path(reference).parts):
+        raise M2VError('作品文件必须为目录内相对路径，不能越过作品目录')
+    path = (root / reference).resolve()
+    if not path.is_relative_to(root.resolve()):
+        raise M2VError('作品文件链接越过作品目录')
+    return path
+
+
 def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     """读取作品描述。
 
-    类型身份取自唯一类型目录；行为实现仍由统一入口注册表校验。
+    类型身份取自唯一类型目录；可选制作工具委托作品自己的执行入口。
     """
     root = Path(directory).expanduser().resolve()
     path = root / PROJECT_FILE
@@ -62,8 +72,9 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
         raise M2VError(f"无法读取作品描述 {path}: {exc}") from exc
     if isinstance(data, dict) and "productionProfile" in data:
         raise M2VError("productionProfile 制作档位已移除；请删除并重新 prepare")
-    if not isinstance(data, dict) or data.get("schemaVersion") != PROJECT_VERSION:
-        raise M2VError("project.json schemaVersion 必须为 2；旧作品须重新编排")
+    if (not isinstance(data, dict) or type(data.get("schemaVersion")) is not int
+            or data["schemaVersion"] != PROJECT_VERSION):
+        raise M2VError("project.json schemaVersion 必须为 3；旧作品须重新编排")
     if "style" in data:
         raise M2VError("project.style 已移除；请用新版场景组件重新编排")
     if "category" in data:
@@ -79,9 +90,7 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
     if not isinstance(materials, dict) or set(materials) != {"storyboard"} or not isinstance(materials["storyboard"], str) or not materials["storyboard"]:
         raise M2VError("materials 仅允许 storyboard 本地分镜入口")
     for name, reference in materials.items():
-        candidate = (root / reference).resolve()
-        if candidate != root and root not in candidate.parents:
-            raise M2VError(f"材料 {name} 越过作品目录：{reference}")
+        _local_reference(root, reference)
     output = data.get("output", {})
     if not isinstance(output, dict):
         raise M2VError("output 必须为对象")
@@ -91,39 +100,19 @@ def load_project(directory: str | Path) -> tuple[Path, dict[str, Any]]:
             raise M2VError(f"output.{field} 必须是正整数")
     if "fps" in output:
         validate_fps(output["fps"], "output.fps")
+    from m2v.standalone.protocol import command
+    command(root, data)
     return root, data
 
 
 def create_project(directory: str | Path, video_type: str, materials: Mapping[str, str], *,
                    output: Mapping[str, Any] | None = None) -> Path:
-    """创建作品描述。
-
-    材料入口由调用方（统一入口，取自类型目录）传入。作品契约此前自带一份类型
-    白名单与材料映射，那是同一份事实的第二处副本；现在它只要求调用方把材料说清楚。
-    """
-    if not isinstance(video_type, str) or not video_type.strip():
-        raise M2VError("作品类型必须是非空字符串")
+    """生成完整独立工程；材料映射仍从类型目录核对，拒绝部分旧工程。"""
     from m2v.type_system.catalog import catalog
-    if not catalog().has(video_type):
-        raise M2VError(f"未知视频类型：{video_type}；运行 m2v types 查看五类视频")
-    if not isinstance(materials, Mapping) or not materials:
-        raise M2VError("作品材料入口必须是非空映射")
+    from m2v.standalone.scaffold import create
     if dict(materials) != catalog().get(video_type).material_map():
-        raise M2VError("作品材料入口必须使用当前类型的 storyboard")
-    for name, reference in materials.items():
-        if not isinstance(name, str) or not name or not isinstance(reference, str) or not reference:
-            raise M2VError("作品材料入口必须是「材料名 → 非空相对路径」的映射")
-    root = Path(directory).expanduser().resolve()
-    root.mkdir(parents=True, exist_ok=True)
-    path = root / PROJECT_FILE
-    if path.exists():
-        raise M2VError(f"作品描述已存在，未覆盖：{path}")
-    slug = re.sub(r"[^a-z0-9-]+", "-", root.name.lower()).strip("-") or "video"
-    # Keep a readable prefix while giving same-named works independent stable IDs.
-    project_id = f"{slug[:50].rstrip('-') or 'video'}-{uuid.uuid4().hex[:8]}"
-    _write_json(path, {"schemaVersion": PROJECT_VERSION, "id": project_id, "type": video_type,
-                       "materials": dict(materials), "output": {"width": 1080, "height": 1920, "fps": default_fps(video_type), "audio": "optional", **(output or {})}})
-    return path
+        raise M2VError('作品材料入口必须使用当前类型的storyboard')
+    return create(directory, video_type, output=dict(output or {}))
 
 
 def save_prepared(root: Path, *, project: dict[str, Any], composition_id: str,
@@ -131,7 +120,7 @@ def save_prepared(root: Path, *, project: dict[str, Any], composition_id: str,
                   duration_in_frames: int, inputs: dict[str, str], audio: dict[str, Any] | None = None,
                   subtitles: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     material_hash = _fingerprint({"project": project, "inputs": inputs})
-    prepared = {"contractVersion": 2, "projectId": project["id"], "type": project["type"],
+    prepared = {"contractVersion": 3, "projectId": project["id"], "type": project["type"],
                 "compositionId": composition_id, "props": props, "width": width, "height": height,
                 "fps": fps, "durationInFrames": duration_in_frames, "inputs": inputs,
                 "materialFingerprint": material_hash, "audio": audio or {},
@@ -147,11 +136,27 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
         prepared = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise M2VError(f"缺少有效准备记录；请先执行 m2v prepare：{exc}") from exc
+    if not isinstance(prepared, dict) or not isinstance(prepared.get("inputs"), dict):
+        raise M2VError("准备记录结构损坏；请重新prepare")
+    if (any(not isinstance(k, str) or not k or not isinstance(v, str)
+            for k, v in prepared['inputs'].items())
+            or not isinstance(prepared.get('compositionId'), str)
+            or not prepared['compositionId']
+            or not isinstance(prepared.get('props'), dict)
+            or not isinstance(prepared.get('audio'), dict)
+            or not isinstance(prepared.get('subtitles'), list)
+            or any(type(prepared.get(k)) is not int or prepared[k] <= 0
+                   for k in ('width', 'height', 'fps', 'durationInFrames'))):
+        raise M2VError('准备记录字段类型或画幅／时长无效；请重新prepare')
     expected = prepared.pop("preparedFingerprint", None)
-    if not isinstance(expected, str) or _fingerprint(prepared) != expected:
+    try:
+        actual = _fingerprint(prepared)
+    except (ValueError, TypeError) as exc:
+        raise M2VError('准备记录包含无效JSON数值') from exc
+    if not isinstance(expected, str) or actual != expected:
         raise M2VError("准备记录损坏或被修改；请重新 prepare")
     prepared["preparedFingerprint"] = expected
-    if prepared.get("contractVersion") != 2 or "style" in prepared:
+    if type(prepared.get("contractVersion")) is not int or prepared["contractVersion"] != 3 or "style" in prepared:
         raise M2VError("旧准备记录不能用于五类视频；请重新 prepare")
     if prepared.get("projectId") != project["id"] or prepared.get("type") != project["type"]:
         raise M2VError("准备记录与当前作品不匹配；请重新 prepare")
@@ -159,7 +164,7 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     if type(prepared.get("fps")) is not int or prepared["fps"] != expected_fps:
         raise M2VError(f"准备记录帧率与当前 {expected_fps} fps 不匹配；请重新 prepare")
     for name, reference in project["materials"].items():
-        file = (root / reference).resolve()
+        file = _local_reference(root, reference)
         if not file.is_file():
             raise M2VError(f"作品材料不存在：{name}={file}")
         if prepared.get("inputs", {}).get(name) != hashlib.sha256(file.read_bytes()).hexdigest():
@@ -168,26 +173,28 @@ def load_current_prepared(root: Path, project: dict[str, Any]) -> dict[str, Any]
     for name, digest in prepared.get("inputs", {}).items():
         # 可选登记表的「尚不存在」也是输入状态；首次导入不能复用旧的无登记准备。
         if name.startswith("absent-file:"):
-            file = (root / name[len("absent-file:"):]).resolve()
+            file = _local_reference(root, name[len('absent-file:'):])
             if not file.is_relative_to(root.resolve()) or file.exists():
                 raise M2VError(f"准备引用文件已变化：{name}；请重新 prepare")
             continue
         if not name.startswith("file:"):
             continue
-        file = (root / name[5:]).resolve()
+        file = _local_reference(root, name[5:])
         if (not file.is_relative_to(root.resolve()) or not file.is_file()
                 or hashlib.sha256(file.read_bytes()).hexdigest() != digest):
             raise M2VError(f"准备引用文件已变化或缺失：{name[5:]}；请重新 prepare 并评审")
     # project 包含音色等作品属性；仅检查材料文件无法发现这些配置变化。
     if prepared.get("materialFingerprint") != _fingerprint({"project": project, "inputs": prepared["inputs"]}):
         raise M2VError("作品描述已变化；请重新 prepare 并生成当前候选")
+    if load_project(root)[1] != project:
+        raise M2VError('执行期间磁盘作品描述已变化；请重新prepare')
     return prepared
 
 
 def file_inputs(root: Path, project: dict[str, Any]) -> dict[str, str]:
     inputs = {}
     for name, reference in project["materials"].items():
-        file = (root / reference).resolve()
+        file = _local_reference(root, reference)
         if not file.is_file():
             raise M2VError(f"作品材料不存在：{name}={file}")
         inputs[name] = hashlib.sha256(file.read_bytes()).hexdigest()
