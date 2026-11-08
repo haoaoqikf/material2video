@@ -17,7 +17,7 @@ def _decoded_frame_count(progress: str) -> int | None:
 
 
 def verify_output(output: Path, expected_frames: int, width: int, height: int, fps: int,
-                  expect_audio: bool = False) -> None:
+                  expect_audio: bool = False, *, require_delivery_format: bool = True) -> None:
     if not output.is_file() or not output.stat().st_size:
         raise M2VError("ffmpeg 没有生成有效输出文件")
     decoded = subprocess.run([get_ffmpeg_exe(), "-v", "error", "-i", str(output), "-map", "0:v:0",
@@ -41,7 +41,7 @@ def verify_output(output: Path, expected_frames: int, width: int, height: int, f
     info = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(output)], capture_output=True,
                           text=True, encoding="utf-8", errors="replace")
     line = next((item for item in info.stderr.splitlines() if "Video:" in item and "Stream #" in item), "")
-    if line and ("yuvj420p" in line or "(pc," in line or "yuv420p(" not in line):
+    if require_delivery_format and line and ("yuvj420p" in line or "(pc," in line or "yuv420p(" not in line):
         raise M2VError("成片像素格式不兼容常用播放器")
     if expect_audio:
         with tempfile.TemporaryFile() as pcm:

@@ -2,7 +2,7 @@
 
 Material2Video 是短视频制作指导与工具链。新建作品使用 `project.json` v3 和分镜 v9，拥有自己的运行源码、依赖锁、资源恢复与 `SceneFilm` 合成；主项目通过本地入口委托校验、准备、片段检查与完整导出。画面可由代码生成，也可使用登记过的真实媒体。架构边界见 [ARCHITECTURE.md](ARCHITECTURE.md)，操作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-独立工程改造正在实施：基础模板与新建工程入口已落地；七部存量示例、样品／lookdev／时间线委托及旧通用实现清理尚未完成。具体范围和验证见[进行中的变更](openspec/changes/make-video-projects-standalone/tasks.md)，下文涉及共享SDK的存量说明不适用于新工程。
+独立工程改造正在实施：基础模板、新建工程、基础命令和原生样品委托已落地；七部存量示例、lookdev／时间线委托及旧通用实现清理尚未完成。具体范围和验证见[进行中的变更](openspec/changes/make-video-projects-standalone/tasks.md)，下文涉及共享SDK的存量说明不适用于新工程。
 
 ## 当前视频类型
 
@@ -41,7 +41,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 ## 网页原生设计样品
 
-`m2v sample capture` 从作品 TSX 入口和可选参数直接构建网页、静帧及完整局部视频，无需完整分镜或配音；`sample serve` 提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。Windows 上采集和交付目录发布后统一恢复继承权限，便于标准权限的图片与媒体应用读取。
+`m2v sample capture` 委托作品自己的 TSX 构建与采集入口，核对实际可达来源、字体、登记媒体、参数及产物，不需要完整分镜或配音；`sample serve` 使用本作品的字体与登记媒体，提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。Windows 上采集和交付目录发布后统一恢复继承权限，便于标准权限应用读取。
 
 选案由作者依据实际媒体和独立观察作出，明确参考采用范围、保留项、必修项和打磨项；仍可改善的次要处理不自动否决已成立的整体方向。`m2v review reuse --project <作品> --file <复用请求.json>` 支持同周期 trial 完整媒体字节及观察条件完全相同的视觉结论复用，重新验证当前技术来源，保留原独立报告和观察时间；不能绕过失败、用户目标变更或当前完整候选终审。格式与限制见[视觉复用](.agents/skills/material2video/references/review-contract.md#完整媒体相同的-trial-视觉复用)。
 

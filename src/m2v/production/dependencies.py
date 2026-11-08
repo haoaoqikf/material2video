@@ -17,9 +17,9 @@ _snapshot = ContextVar('production_dependency_snapshot', default=None)
 
 
 @contextmanager
-def snapshot():
+def snapshot(*, fresh: bool = False):
     # 不能跨查询缓存：外部编辑必须在下一次只读查询立即可见。
-    if _snapshot.get() is not None:
+    if _snapshot.get() is not None and not fresh:
         yield
         return
     token = _snapshot.set({'digests': {}, 'text': {}, 'scenes': {}})
@@ -107,6 +107,7 @@ def scene_sources(root: Path, scene: dict) -> dict:
     record = root / 'assets/media-sources.json'
     selected_assets = []
     if record.exists():
+        record = local(root, 'assets/media-sources.json')
         assets = json.loads(text(record)).get('assets', [])
         selected_assets = [a for a in assets if a['id'] in literal_ids or warnings]
         for asset in selected_assets:

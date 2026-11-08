@@ -33,12 +33,13 @@ def capture(root: Path, project: dict, **options) -> dict:
     target = local(outputs(root), relative + '/capture.json', exists=False).parent
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.sample-', dir=target.parent) as temporary:
-        stage = Path(temporary)
+        stage = Path(temporary) / 'capture'
+        stage.mkdir()
         # 编码器在私有目录内完成中间发布；整包移到最终位置后统一递归修复与自检。
         with security.private_staging(stage):
             result = design_sample.render(root, project, stage, **options)
         artifacts = {path.relative_to(stage).as_posix(): dependencies.digest(path)
-                     for path in stage.rglob('*') if path.is_file()}
+                     for path in stage.rglob('*') if path.is_file() and path != stage / 'capture.json'}
         value = {'version': VERSION, 'id': identity, 'cycleId': cycle['cycleId'], 'createdAt': now(),
                  **result, 'artifacts': artifacts}
         write(stage / 'capture.json', value)
@@ -100,8 +101,7 @@ def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:
     if path.relative_to(outputs(root)).as_posix() != f'samples/{identity}/capture.json':
         raise M2VError('样品凭据位置不符')
     value = read(path)
-    fields(value, {'version', 'id', 'cycleId', 'createdAt', 'entry', 'props', 'fps', 'width', 'height',
-                   'durationInFrames', 'stills', 'video', 'inputs', 'config', 'project', 'artifacts', 'determinism'})
+    fields(value, {'version', 'id', 'cycleId', 'createdAt', 'artifacts'} | design_sample.RESULT_FIELDS)
     if (value['version'] != VERSION or value['id'] != identity
             or value['cycleId'] != ledger.cycle(root)['cycleId']
             or value['project'] != {k: project.get(k) for k in ('id', 'type', 'output')}):
@@ -114,6 +114,7 @@ def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:
     for name, digest in value['artifacts'].items():
         if dependencies.digest(local(path.parent, name)) != digest:
             raise M2VError(f'样品产物已变化：{name}')
+    design_sample.validate_source_binding(root, value)
     return value, path.parent
 
 
@@ -185,11 +186,9 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
 
 def server(root: Path, project: dict, identity: str, *, port: int = 0):
     from m2v.engine.http_server import LocalServer
-    from m2v.types.scene_film.code_scenes import media_files
-    from m2v.types.scene_film.code_scenes.config import WEB
 
     if type(port) is not int or not 0 <= port <= 65535:
         raise M2VError('预览端口必须为0到65535的整数')
     value, directory = load(root, project, identity)
-    return LocalServer(directory / 'web', port=port, mounts={'/fonts': WEB / 'public/fonts'},
-                       files=media_files(root, value['config']['media']), cors=True)
+    return LocalServer(directory / 'web', port=port, mounts={'/fonts': root / 'public/fonts'},
+                       files=design_sample.media_files(root, value['config']['media']), cors=True)

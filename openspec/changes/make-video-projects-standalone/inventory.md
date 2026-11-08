@@ -20,7 +20,8 @@
 | financial/building/vehicle Web绘制包装 | 可选结构化来源，不被七例使用 | 查明真实引用；移除无用包装，保留数据快照及可选准备能力 | 待实施 |
 | 全局主题、样式令牌、安装依赖 | 旧来源场景与展示 | 逐项按消费者清理，保留本地实际必需配置 | 待实施 |
 | core.delivery、production.dependencies | 来源和媒体绑定 | 只复核作品实际输入，检查器版本单独记录 | 已解除候选／场景依赖的主项目渲染绑定；外部检查器规则及调用方尚待完成 |
-| design_sample及production.samples | 原生采集与独立交付 | 采集委托本地，保留现有评审门禁 | 待实施 |
+| design_sample及production.samples | 原生采集与独立交付 | 采集委托本地，保留现有评审门禁 | 已完成本地委托、独立来源／媒体复核与相关门禁验证，见[样品阶段记录](implementation-samples.md) |
+| src/m2v/engine/design_sample_viewer.html及主包资源登记 | 原主项目样品播放器；委托后无消费者 | 删除主项目副本，仅保留作品本地模板播放器 | 已删除；源码／包登记引用扫描确认无当前消费者 |
 
 ## 七例验收矩阵
 

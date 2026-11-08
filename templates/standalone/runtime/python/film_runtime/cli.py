@@ -87,17 +87,25 @@ def _sample(project: dict, options) -> dict:
     if not options.entry:
         raise VideoError('sample需要--entry指定作品内场景')
     props = json.loads(options.props)
-    identity = uuid.uuid4().hex[:16]
-    parent = ROOT / 'outputs/samples'
+    from .core.project import _local_reference
+    destination = (_local_reference(ROOT, options.destination) if options.destination else
+                   ROOT / 'outputs/samples' / uuid.uuid4().hex[:16])
+    if (not destination.is_relative_to(ROOT / 'outputs/samples')
+            or destination.exists() and (not destination.is_dir() or any(destination.iterdir()))):
+        raise VideoError('sample目标须为outputs/samples内尚不存在或为空的目录')
+    parent = destination.parent
     parent.mkdir(parents=True, exist_ok=True)
-    destination = parent / identity
     with tempfile.TemporaryDirectory(prefix='.sample-', dir=parent) as temporary:
         stage = Path(temporary) / 'capture'
+        _run([_node(), 'scripts/sync-fonts.mjs'])
         result = design_sample.render(ROOT, project, stage, entry=options.entry, props=props,
-                                     duration_seconds=options.duration_seconds, still_frames=options.frame)
+                                     duration_seconds=options.duration_seconds, still_frames=options.frame,
+                                     props_source=options.props_source)
         result['artifacts'] = {p.relative_to(stage).as_posix(): digest(p)
                                for p in sorted(stage.rglob('*')) if p.is_file()}
         _write_json(stage / 'capture.json', result)
+        if destination.exists():
+            destination.rmdir()  # 只接受空目标；并发写入会使rmdir失败，不覆盖内容。
         security.deliver_directory(stage, destination)
     return {'status': 'captured', 'path': destination.relative_to(ROOT).as_posix(), **result}
 
@@ -145,6 +153,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--step', type=int, default=30)
     parser.add_argument('--entry')
     parser.add_argument('--props', default='{}')
+    parser.add_argument('--props-source')
+    parser.add_argument('--destination')
     parser.add_argument('--duration-seconds', type=float, default=3)
     parser.add_argument('--frame', type=int, action='append')
     return parser

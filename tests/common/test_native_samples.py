@@ -18,7 +18,7 @@ def native(tmp_path, monkeypatch):
     root = tmp_path / 'work'
     create_project(root, 'text-motion', {'storyboard': 'storyboard.json'})
     project = load_project(root)[1]
-    (root / 'scenes').mkdir()
+    (root / 'scenes').mkdir(exist_ok=True)
     (root / 'scenes/main.tsx').write_text('export default 1;', encoding='utf-8')
 
     def render(root, project, stage, **options):
@@ -28,8 +28,9 @@ def native(tmp_path, monkeypatch):
         (stage / 'web/index.html').write_text('native fixture', encoding='utf-8')
         return dict(entry='scenes/main.tsx', props={}, fps=30, width=640, height=360,
                     durationInFrames=3, stills=[dict(frame=1, path='still-000001.png')], video='sample.mp4',
-                    inputs={'work/scenes/main.tsx': dependencies.digest(root / 'scenes/main.tsx')},
-                    config={'media': {}}, determinism=[], project={k: project.get(k) for k in ('id', 'type', 'output')})
+                    inputs={**samples.design_sample.source_binding(root, 'scenes/main.tsx', {})['files'],
+                            'work/project.json': dependencies.digest(root / 'project.json')},
+                    config={'media': {}, 'props': {}}, determinism=[], project={k: project.get(k) for k in ('id', 'type', 'output')})
 
     def media_copy(args):
         target = Path(args[-1])

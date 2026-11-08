@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from imageio_ffmpeg import get_ffmpeg_exe
 from film_runtime.core.errors import VideoError
-from film_runtime.core.project import _write_json, load_project
+from film_runtime.core.project import _write_json, load_project, _local_reference
 from film_runtime.core import security, media_policy
 from film_runtime.core import frames
 from film_runtime.engine import media_probe
@@ -70,7 +70,7 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
     if not isinstance(entries, list) or not 1 <= len(entries) <= 300:
         raise VideoError("assets 必须包含 1～300 项")
     prior = load_record(root)
-    target_dir = root / "assets/media"
+    target_dir = _local_reference(root, MEDIA_DIR)
     target_dir.mkdir(parents=True, exist_ok=True)
     adopted = []
     transport = transport or HttpTransport()
@@ -132,12 +132,12 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
                 security.deliver(file, destination)
     # 保留未被本批替换的 ID；相同文件可被多个素材 ID 引用。
     record = {"schemaVersion": 1, "assets": [e for e in prior["assets"] if e["id"] not in ids] + adopted}
-    _write_json(root / RECORD, record)
+    _write_json(_local_reference(root, RECORD), record)
     return record
 
 
 def load_record(root: Path) -> dict:
-    file = root / RECORD
+    file = _local_reference(root, RECORD)
     if not file.exists(): return {"schemaVersion": 1, "assets": []}
     try:
         data = json.loads(file.read_text(encoding="utf-8"))
@@ -156,7 +156,7 @@ def resolve(root: Path) -> dict:
     作品代码决定。
     """
     from film_runtime.core.fingerprints import fingerprint
-    media_root = (root / MEDIA_DIR).resolve()
+    media_root = _local_reference(root, MEDIA_DIR)
     media: dict[str, dict] = {}
     digests: dict[str, dict] = {}
     for index, entry in enumerate(load_record(root)["assets"]):
@@ -188,7 +188,7 @@ def resolve(root: Path) -> dict:
         relative = entry.get("path")
         if not isinstance(relative, str):
             raise VideoError(f"素材 {identity} 缺少 path")
-        file = (root / relative).resolve()
+        file = _local_reference(root, relative)
         if not file.is_relative_to(media_root) or not file.is_file():
             raise VideoError(f"素材 {identity} 必须指向 {MEDIA_DIR}/ 下存在的已导入文件")
         sha = entry.get("sha256")

@@ -1,5 +1,7 @@
 # 网页原生设计样品
 
+独立工程 v3 的 `m2v sample capture` 使用作品自己的sample入口，主工具只做来源、实际配置、媒体／产物及独立交付门禁复核；本地也可直接运行 `pnpm run sample`。作品未采用完整分镜或配音不妨碍试制。依赖和资源由作品的package.json、锁文件、asset-loaders.json与来源台账维护，运行说明见[独立工程](../../../../templates/standalone/README.md)。下文共享SDK及全局依赖登记路径为尚待清理的存量参考，不能作为v3作品的运行依赖。
+
 本页维护设计试制的实现、采集与交付操作；审核职责、人数及独立性仍以[审核策略](review-contract.md)为唯一权威。研究与选案见[研究与创意试制](stage-research.md)。
 
 ## 完成条件与持续打磨

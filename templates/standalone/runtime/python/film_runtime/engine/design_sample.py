@@ -6,11 +6,14 @@ import math
 import shutil
 import tempfile
 from pathlib import Path
+import film_runtime
 
 from film_runtime.core import frames
 from film_runtime.core.assets import REPOSITORY_ROOT
 from film_runtime.core.errors import VideoError
 from film_runtime.core.video_config import project_fps
+from film_runtime.core.fingerprints import module_files
+from film_runtime.engine.contract_page import font_files
 from film_runtime.types.scene_film import code_scenes, media_assets
 from film_runtime.types.scene_film.code_scenes.config import WEB
 from film_runtime.types.scene_film.code_scenes.config import copy_build_outputs
@@ -21,8 +24,9 @@ VIEWER = Path(__file__).with_name('design_sample_viewer.html')
 
 def input_path(root: Path, label: str) -> Path:
     scope, _, relative = label.partition('/')
-    base = {'work': root, 'repo': REPOSITORY_ROOT}.get(scope)
-    if base is None or not relative or Path(relative).is_absolute() or '..' in Path(relative).parts:
+    base = root if scope == 'work' else None
+    if (base is None or not relative or Path(relative).anchor or ':' in relative
+            or '\\' in relative or '..' in Path(relative).parts):
         raise VideoError(f'样品输入路径无效：{label}')
     target = (base / relative).resolve()
     if not target.is_relative_to(base.resolve()) or not target.is_file():
@@ -36,8 +40,6 @@ def snapshot(root: Path, paths: list[Path]) -> dict[str, str]:
         path = path.resolve()
         if path.is_relative_to(root.resolve()):
             label = 'work/' + path.relative_to(root.resolve()).as_posix()
-        elif path.is_relative_to(REPOSITORY_ROOT):
-            label = 'repo/' + path.relative_to(REPOSITORY_ROOT).as_posix()
         else:
             raise VideoError(f'样品构建输入越界：{path}')
         result[label] = code_scenes.digest(path)
@@ -55,17 +57,20 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
     code_scenes.validate_entry(root, entry, props)
     code_scenes.validate_capture(props)
     extra = [root / 'project.json']
+    initial_extra = snapshot(root, extra)
     current_project = json.loads(extra[0].read_text(encoding='utf-8'))
-    if any(current_project.get(k) != project.get(k) for k in ('id', 'type', 'output')):
+    if current_project != project:
         raise VideoError('采集前作品配置已变化')
     if props_source:
         path = input_path(root, 'work/' + props_source)
+        initial_extra.update(snapshot(root, [path]))
         if json.loads(path.read_text(encoding='utf-8')) != props:
             raise VideoError('采集前样品参数文件已变化')
         extra.append(path)
     board = root / project['materials']['storyboard']
     if board.is_file():
         extra.append(board)
+        initial_extra.update(snapshot(root, [board]))
     fps = project_fps(root, project, allow_missing_storyboard=True)
     count = round(duration_seconds * fps)
     if count < 2:
@@ -88,13 +93,17 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
         if settings['mode'] == 'pure-time':
             _assert_pure_sources(root, work)
         reachable = [Path(name) for name in json.loads((work / 'inputs.json').read_text(encoding='utf-8'))]
-        files = [*extra, *reachable, Path(__file__), VIEWER,
+        files = [*extra, *reachable, Path(__file__), VIEWER, *font_files(),
+                 *module_files(film_runtime), REPOSITORY_ROOT / 'scripts/video.py',
+                 REPOSITORY_ROOT / 'scripts/sync-fonts.mjs',
                  *(REPOSITORY_ROOT / name for name in code_scenes.implementation_inputs())]
         record = root / 'assets/media-sources.json'
         if record.exists():
             files.append(record)
         files.extend(code_scenes.media_files(root, media['media']).values())
         before = snapshot(root, files)
+        if any(before.get(label) != sha for label, sha in initial_extra.items()):
+            raise VideoError('构建期间作品描述或样品参数发生变化，请重新采集')
         built = json.loads((work / 'input-digests.json').read_text(encoding='utf-8'))
         if (any(code_scenes.digest(Path(name)) != digest for name, digest in built.items())
                 or implementation != code_scenes.implementation_inputs()):

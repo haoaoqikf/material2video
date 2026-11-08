@@ -164,3 +164,38 @@ def test_success_cleanup_preserves_current_relative_candidate_and_receipt(tmp_pa
     assert not cleanup_after_render(base, current)
     assert candidate_file.exists() and receipt.exists()
     assert not old.exists()
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows素材目录联接边界')
+@pytest.mark.parametrize('module,error', [('m2v.types.scene_film.media_assets', M2VError),
+    ('film_runtime.types.scene_film.media_assets', importlib.import_module('film_runtime.core.errors').VideoError)])
+@pytest.mark.parametrize('kind', ['media', 'record', 'import'])
+def test_media_helpers_reject_external_junction_before_read_or_write(tmp_path, monkeypatch, module, error, kind):
+    helper = importlib.import_module(module)
+    root, outside = tmp_path / 'work', tmp_path / 'external'
+    root.mkdir()
+    outside.mkdir()
+    (outside / 'media-sources.json').write_text('{"schemaVersion":1,"assets":[]}', encoding='utf-8')
+    if kind == 'record':
+        link = root / 'assets'
+    else:
+        (root / 'assets').mkdir()
+        link = root / 'assets/media'
+    result = subprocess.run(['cmd', '/c', 'mklink', '/J', str(link), str(outside)], capture_output=True)
+    assert result.returncode == 0
+    original = Path.read_text
+    def no_external_read(path, *args, **kwargs):
+        if path.resolve().is_relative_to(outside):
+            pytest.fail('external registry was read')
+        return original(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'read_text', no_external_read)
+    try:
+        with pytest.raises(error, match='越过作品'):
+            if kind == 'record':
+                helper.load_record(root)
+            elif kind == 'import':
+                helper.import_assets(root, {'schemaVersion': 1, 'assets': [{}]}, base=root)
+            else:
+                helper.resolve(root)
+    finally:
+        link.rmdir()
