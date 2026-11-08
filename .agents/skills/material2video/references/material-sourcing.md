@@ -83,7 +83,7 @@ uv run m2v assets contact-sheet --input assets/downloads/clip.mp4 --times 0,2.5,
 uv run m2v assets contact-sheet --input a.jpg --input b.jpg --input c.jpg --columns 3
 ```
 
-输出一张带序号的 PNG 和同名 JSON 索引（第几格对应第几秒/哪个文件）。先看整张表判断动作是否完整，再回到原片核对可疑格。**静帧不能证明动作连续**；接触表只用来快速筛候选，采用前仍要看实际播放窗口。
+输出一张带序号的 PNG 和同名 JSON 索引（第几格对应第几秒/哪个文件）。先看整张表判断动作是否完整，再按有序帧与帧差/场景切分核对可疑格。**静帧不能证明动作连续**；接触表只用来快速筛候选，采用前须核对覆盖实际窗口的有序帧与切分。
 
 ## 5. 采用政策与署名
 

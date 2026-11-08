@@ -37,7 +37,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 评审与完成
 
-仅保留技术 QA 与[独立视觉评审](references/review-contract.md)。试制与终审使用独立子代理；全片预演和粗片查看是内部制作活动。技术通过、渲染成功或自审不能替代独立通过。实际观察与失败闭环见[视觉复核](references/visual-review-rubric.md)和[隔离执行](references/subagent-review.md)。
+仅保留技术 QA 与[独立视觉评审](references/review-contract.md)。试制与终审使用独立子代理；全片预演和粗片查看是内部制作活动。评审以有序帧、帧差/场景切分、主体区域量测和音频信号量测为证据，不要求播放或试听；技术通过、渲染成功或自审不能替代独立通过。观察与失败闭环见[视觉复核](references/visual-review-rubric.md)和[隔离执行](references/subagent-review.md)。
 
 有选定视觉目标时，同轮对照提供实际参考媒体与中性采用特征；清楚可读不等于目标美术效果成立，缺目标或过程时保持对应项未验证。工具只检查已声明输入与证据，不自动判断研究深度或审美。
 
@@ -45,4 +45,4 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 条件阅读
 
-[阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先查看实际局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。
+[阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先按帧/信号核对局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。

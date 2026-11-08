@@ -90,7 +90,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 ### 媒体评审
 
-`m2v review start|pack|import|timeline|retarget` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
+`m2v review start|pack|import|timeline|retarget` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。评审以有序帧、帧差/场景切分、主体区域量测和音频信号量测为证据，不要求播放或试听。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
 
 选定视觉目标时，先盲看作品自身，再用实际参考媒体和中性条件进行同轮对照；整体品质不能缩成局部特征齐全，候选最好或独立 pass 不自动授权展开。评审提供具体观察，作者承担选案与下一试验责任。非空 `references` 必须配套非空 `conditions`，并区分品质标杆、专项目标和备选/历史比较用途；缺失会在创建包前拒绝，旧请求补条件后重建，历史包不改写。工具校验材料与证据，不自动评判审美。
 
