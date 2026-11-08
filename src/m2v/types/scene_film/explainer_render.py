@@ -12,6 +12,7 @@ import json
 import logging
 import tempfile
 import time
+import wave
 from pathlib import Path
 from m2v.core.audio_policy import declared_audio
 from m2v.core.errors import M2VError
@@ -28,6 +29,12 @@ logger = logging.getLogger(__name__)
 def _has_audio(prepared: dict) -> bool:
     """按声音声明判定交付轨道；内部静音母版不代表作品需要音轨。"""
     return declared_audio(prepared)
+
+
+def _master_audio_metadata(path: Path) -> dict:
+    """记录实际母版头信息；音床混音可为双声道，不能沿用旁白的单声道常量。"""
+    with wave.open(str(path), "rb") as stream:
+        return {"masterSampleRate": stream.getframerate(), "masterChannels": stream.getnchannels()}
 
 # 字幕判据不写死在这里：完整样式来自准备记录，由 `measure_script` 注入。
 # 过去字幕盒写在设计令牌里、量测边界又各写一份常量，改一处不会让另一处报错，
@@ -231,7 +238,7 @@ def _generate(root: Path, project: dict, *, preview=False, start_frame=0, end_fr
         provenance.update({
             "audio": {"master": prepared["audio"]["segments"][0]["path"],
                       "masterSha256": prepared["audio"]["segments"][0].get("sha256"),
-                      "masterCodec": "pcm_s16le", "masterSampleRate": 24000, "masterChannels": 1,
+                      "masterCodec": "pcm_s16le", **_master_audio_metadata(master),
                       "delivery": {"codec": "aac", "sampleRate": 44100, "channels": 2,
                                    "bitrate": "128k"}} if has_audio else {"mode": "none"},
             "delivery": {"sha256": hashlib.sha256(final.read_bytes()).hexdigest(),

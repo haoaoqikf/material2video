@@ -56,6 +56,8 @@ ACL 只有 `SYSTEM` / `Administrators` / `OWNER RIGHTS` 且关闭继承；文件
 
 `type` 是五类之一；`preparedFingerprint` 对应 `outputs/prepared.json`。 `inputs` 记录分镜、实现、来源文件、声音与可达渲染代码的摘要；有声作品另写声音与交付字段。结构化来源经相同的准备记录与溯源机制绑定，不另写专项格式。
 
+有声作品的 `audio.masterSampleRate` 与 `audio.masterChannels` 读取实际母版WAV头；旁白为单声道不代表混音母版也是单声道。不要把这些来源字段与最终AAC的采样率、声道数混用。
+
 溯源**不参与交付判定**，它只是「这个成片是哪次准备渲的」的答案；判定由正式渲染
 独立复核准备指纹与文件摘要完成。
 
