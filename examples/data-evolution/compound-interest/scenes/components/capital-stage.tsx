@@ -9,7 +9,7 @@ import {CAPITAL_STYLE} from '../capital-style';
 const COLORS = {white: '#eee7d7', gold: '#dbad4e', dark: '#79633d'};
 type Coin = {group: THREE.Group; face: THREE.MeshPhysicalMaterial; side: THREE.MeshStandardMaterial};
 
-function createStage(canvas: HTMLCanvasElement, width: number, height: number, density: number) {
+function createStage(canvas: HTMLCanvasElement, width: number, height: number, density: number, bright: boolean) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: false, preserveDrawingBuffer: true});
   renderer.setPixelRatio(density);
   renderer.setSize(width, height, false);
@@ -21,11 +21,11 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#0c0e13');
   const camera = new THREE.OrthographicCamera(-960, 960, 540, -540, .1, 4000);
-  const environment = createStudioEnvironment(renderer);
+  const environment = createStudioEnvironment(renderer, bright);
   scene.environment = environment.texture;
   scene.environmentIntensity = .75;
 
-  const key = new THREE.DirectionalLight('#fff0d3', 1.3);
+  const key = new THREE.DirectionalLight('#fff0d3', bright ? 1 : 1.3);
   key.position.set(500, 2800, 500);
   key.target.position.set(960, 540, 0);
   key.castShadow = true;
@@ -35,10 +35,10 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
   key.shadow.bias = -.0001;
   key.shadow.radius = 3;
   scene.add(key, key.target);
-  const fill = new THREE.DirectionalLight('#b6c6e2', .3);
+  const fill = new THREE.DirectionalLight('#b6c6e2', bright ? .7 : .3);
   fill.position.set(1900, 500, 700);
   scene.add(fill);
-  scene.add(new THREE.HemisphereLight('#d1ddf1', '#292019', .15));
+  scene.add(new THREE.HemisphereLight('#d1ddf1', '#292019', bright ? .3 : .15));
 
   // 承载面距圆片背面只有数个单位，接触影保留物体归属，而非漂在黑场。
   const wallGeometry = new THREE.PlaneGeometry(8000, 5000);
@@ -60,7 +60,7 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
   scene.add(wall);
   const floorGeometry = new THREE.PlaneGeometry(8000, 6000);
   const floorMaterial = new THREE.MeshStandardMaterial({color: '#0c1017', roughness: .8,
-    metalness: .08, envMapIntensity: .15});
+    metalness: .08, envMapIntensity: bright ? .85 : .15});
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(960, CAPITAL_STYLE.floorY, 0);
@@ -110,8 +110,9 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
     coin.face.metalness = item.tone === 'dark' ? .55 : .12 + .75 * item.gold;
     coin.face.roughness = item.tone === 'dark' ? .44 : .4 - .15 * item.gold;
     coin.face.clearcoat = .2 + .15 * item.gold;
-    coin.side.color.copy(coin.face.color).multiplyScalar(.55);
-    coin.side.metalness = Math.max(.55, coin.face.metalness);
+    coin.side.color.copy(coin.face.color).multiplyScalar(bright ? .82 : .55);
+    coin.side.metalness = bright && item.tone === 'white' ? .18 : Math.max(.55, coin.face.metalness);
+    coin.side.roughness = bright ? .5 : .34;
     // 透明仅用于入退场；同一材质在opaque段关闭，避免遮挡排序改变实体接触。
     for (const material of [coin.face, coin.side]) {
       const transparent = item.opacity < .999;
@@ -122,6 +123,11 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
 
   return {
     draw(state: CapitalFrame) {
+      (scene.background as THREE.Color).set(state.palette?.background ?? '#0c0e13');
+      floorMaterial.color.set(state.palette?.floor ?? '#0c1017');
+      const map = state.palette ? null : backgroundMap;
+      if (wallMaterial.map !== map) {wallMaterial.map = map; wallMaterial.needsUpdate = true;}
+      wallMaterial.color.set(state.palette?.background ?? '#ffffff');
       for (const coin of coins.values()) coin.group.visible = false;
       state.tokens.forEach(updateCoin);
       const elevation = state.camera.elevation ?? 0;
@@ -149,10 +155,11 @@ export default function CapitalStage({state, width, height, density = 1, onReady
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const stage = useRef<ReturnType<typeof createStage> | null>(null);
+  const bright = Boolean(state.palette);
   useLayoutEffect(() => {
-    stage.current = createStage(canvas.current!, width, height, density);
+    stage.current = createStage(canvas.current!, width, height, density, bright);
     return () => {stage.current?.dispose(); stage.current = null;};
-  }, [width, height, density]);
+  }, [width, height, density, bright]);
   useLayoutEffect(() => {stage.current!.draw(state); onReady();}, [state, onReady]);
   return <canvas ref={canvas} style={{position: 'absolute', width, height, inset: 0}} aria-hidden="true"/>;
 }

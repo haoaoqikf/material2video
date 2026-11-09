@@ -16,6 +16,48 @@
       "weight": "100 900",
       "usage": "中文",
       "license": "OFL-NotoSansSC.txt"
+    },
+    {
+      "family": "M2V XiaoWei",
+      "file": "ZCOOLXiaoWei-Regular.ttf",
+      "weight": "400",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-zcoolxiaowei.txt"
+    },
+    {
+      "family": "M2V QingKe",
+      "file": "ZCOOLQingKeHuangYou-Regular.ttf",
+      "weight": "400",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-zcoolqingkehuangyou.txt"
+    },
+    {
+      "family": "M2V ShanZheng",
+      "file": "MaShanZheng-Regular.ttf",
+      "weight": "400",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-mashanzheng.txt"
+    },
+    {
+      "family": "M2V DM Serif",
+      "file": "DMSerifDisplay-Regular.ttf",
+      "weight": "400",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-dmserifdisplay.txt"
+    },
+    {
+      "family": "M2V Bebas",
+      "file": "BebasNeue-Regular.ttf",
+      "weight": "400",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-bebasneue.txt"
+    },
+    {
+      "family": "M2V Fraunces",
+      "file": "Fraunces[SOFT,WONK,opsz,wght].ttf",
+      "weight": "100 900",
+      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "license": "OFL-fraunces.txt"
     }
   ]
 }

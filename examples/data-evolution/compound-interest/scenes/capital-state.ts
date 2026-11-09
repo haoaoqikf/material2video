@@ -1,6 +1,6 @@
 /** 本轮静态选案的纯状态：真实单位、对象身份、三维堆叠与同尺度正交相机。 */
 import {discFractions, secondYear, yearState, UNITS_PER_DISC} from './compoundMath';
-import {CAPITAL_STYLE} from './capital-style';
+import {CAPITAL_STYLE, RESULT_LAYOUT} from './capital-style';
 
 export type Tone = 'white' | 'gold' | 'dark';
 export type Token = {
@@ -9,7 +9,8 @@ export type Token = {
   pitch?: number; thickness?: number;
 };
 export type Camera = {x: number; y: number; scale: number; elevation?: number};
-export type CapitalFrame = {tokens: Token[]; camera: Camera; phase: 'opening' | 'core' | 'result'; time: number};
+export type CapitalFrame = {tokens: Token[]; camera: Camera; phase: 'opening' | 'core' | 'result'; time: number;
+  palette?: {background: string; floor: string}};
 const token = (id: string, x: number, y: number, units = 1, tone: Tone = 'white'): Token =>
   ({id, x, y, units, tone, z: 0, opacity: 1, tilt: 0, gold: tone === 'gold' ? 1 : 0});
 
@@ -54,7 +55,7 @@ export function designFrame(panel: number): CapitalFrame {
   const tokens: Token[] = [];
   for (let i = 0; i < 4; i++) tokens.push(...stack(Array.from({length: 10}, (_, j) => ({
     id: `l-${i * 10 + j}`, units: 1, tone: (i === 0 ? 'white' : 'dark') as Tone,
-  })), xAt(480) + (i % 2 ? 24 : -24), Math.floor(i / 2) * 56));
+  })), xAt(RESULT_LAYOUT.left) + (i % 2 ? 24 : -24), Math.floor(i / 2) * RESULT_LAYOUT.rowDepth));
   const whites = discFractions(yearState(30).offWhiteUnits);
   const golds = discFractions(yearState(30).goldUnits);
   const heights = [8, 12, 16, 12, 8, 10, 16, 21, 16, 10, 8, 10, 10, 10, 8];
@@ -65,7 +66,8 @@ export function designFrame(panel: number): CapitalFrame {
       ...Array.from({length: height - topCount}, () => ({id: `r-${wi}`, units: whites[wi++], tone: 'white' as Tone})),
       ...Array.from({length: topCount}, () => ({id: `r-${whites.length + gi}`, units: golds[gi++], tone: 'gold' as Tone})),
     ];
-    tokens.push(...stack(items, xAt(1320) + (index % 5 - 2) * 44, (Math.floor(index / 5) - 1) * 56));
+    tokens.push(...stack(items, xAt(RESULT_LAYOUT.right) + (index % 5 - 2) * 44,
+      (Math.floor(index / 5) - 1) * RESULT_LAYOUT.rowDepth));
   });
   return {tokens, camera, phase: 'result', time: 23};
 }

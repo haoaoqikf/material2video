@@ -10,12 +10,12 @@
 
 ## 视觉升级样图（制作中）
 
-本轮先按用户要求重做三张静态样图：开场、第二年收益关系、30年结果。中文采用Noto Sans SC，数字采用Inter；圆片由本例独立安装的Three.js生成，使用真实厚边、受光圆面、物理堆叠与接触阴影。素材和字体二进制不入库，字体继续按现有登记恢复。
+本轮按用户再次反馈重做字体、背景及主构图：以同一30年结果制作暖纸宋体、浅紫几何、薄荷手写三种静态方向，供用户选案。三组中西文字体分别为站酷小薇／DM Serif Display、站酷庆科黄油／Bebas Neue、马善政／Fraunces。圆片由本例独立安装的Three.js生成，保留真实厚边、物理堆叠与接触阴影，浅色现场使用相应的明亮环境反射。字体按登记恢复，二进制不入库。
 
 当前正式29秒视频仍为下文绑定的旧版，样图不证明动作、节奏、声音或全片完成；用户看过样图并允许继续后，再展开完整过程与视频。实际研究、选案及验证范围见[研究](RESEARCH.md)、[总设计](DESIGN.md)与[验证](VERIFICATION.md)。
 
 ```powershell
-uv run m2v sample capture --project examples/data-evolution/compound-interest --entry scenes/capital-trial.tsx --props design/trial-props.json --duration-seconds 0.3 --frame 1 --frame 4 --frame 7
+uv run m2v sample capture --project examples/data-evolution/compound-interest --entry scenes/typography-directions.tsx --props design/trial-props.json --duration-seconds 0.3 --frame 1 --frame 4 --frame 7
 ```
 
 该0.3秒容器每3帧呈现一张静态设计，输出同源网页、三张原生图片与最小可编码媒体，不是动态预演。

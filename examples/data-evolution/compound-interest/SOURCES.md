@@ -20,3 +20,8 @@
 - 视觉研究原图仅用于研究与隔离对照，实际查看范围、摘要及采用见RESEARCH.md，不进入渲染或正式资产。
 - 继承同一数学模型和单位面积编码。比较两组共享正交相机、圆片朝向和地面零点；分数片半径按真实单位开方缩放。
 - 本阶段无新音轨，无旁白或声音完成声明；现有正式成片及原音效配方保持原版本。
+
+## 2026-11-10 字体与背景方向
+
+- 新增站酷小薇、站酷庆科黄油、马善政、DM Serif Display、Bebas Neue、Fraunces，均按SIL OFL 1.1使用。来源为[Google Fonts官方仓库固定版本](https://github.com/google/fonts/tree/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl)，具体下载路径、字节数、SHA-256与许可见[字体登记](fonts/registry.json)及fonts/licenses/，字体文件仍由fonts/fetch.py恢复，不入Git。
+- 三方向的文字为真实DOM与本地字体，背景为实际三维场景的地面和墙面材质；现场环境反射、侧面材质和补光与浅色背景一并调整。未采用整图贴面、AI图或新远程运行依赖，继续复用已登记Three.js。

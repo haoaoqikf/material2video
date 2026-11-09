@@ -8,3 +8,5 @@ export const CAPITAL_STYLE = {
   faceHeight: 7.4,
   thicknessScale: .42,
 } as const;
+
+export const RESULT_LAYOUT = {left: 480, right: 1320, rowDepth: 56} as const;
