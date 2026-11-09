@@ -25,3 +25,9 @@
 
 - 新增站酷小薇、站酷庆科黄油、马善政、DM Serif Display、Bebas Neue、Fraunces，均按SIL OFL 1.1使用。来源为[Google Fonts官方仓库固定版本](https://github.com/google/fonts/tree/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl)，具体下载路径、字节数、SHA-256与许可见[字体登记](fonts/registry.json)及fonts/licenses/，字体文件仍由fonts/fetch.py恢复，不入Git。
 - 三方向的文字为真实DOM与本地字体，背景为实际三维场景的地面和墙面材质；现场环境反射、侧面材质和补光与浅色背景一并调整。未采用整图贴面、AI图或新远程运行依赖，继续复用已登记Three.js。
+
+## 第二轮字体与背景样图的来源
+
+新增Noto Serif SC原始可变字体（SIL OFL 1.1），与既有Noto Sans SC/Inter组合为三种新静态方向。来源、固定版本、摘要和恢复路径统一见[字体登记](fonts/registry.json)，许可为fonts/licenses/OFL-NotoSerifSC.txt；字体二进制不入库。
+
+本轮RedesignPoster的背景为原创CSS渐变与SVG几何光影；RedesignStage复用现有Three.js真实圆片几何、材质及摄影棚环境，透明地面接触影原生渲染。没有导入AI图、整图贴面、参考照片、远程脚本或新运行依赖。此前“背景为三维墙面/地面”的描述属于旧样图阶段，不作为本轮背景实现声明。参考只在研究/独立对照使用，实际查看范围见RESEARCH.md。

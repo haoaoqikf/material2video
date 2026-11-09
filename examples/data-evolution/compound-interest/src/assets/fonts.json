@@ -58,6 +58,13 @@
       "weight": "100 900",
       "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
       "license": "OFL-fraunces.txt"
+    },
+    {
+      "family": "M2V Serif",
+      "file": "NotoSerifSC-Variable.ttf",
+      "weight": "200 900",
+      "usage": "本轮朱红编辑海报的中文与数字，同一宋体家族；仅静态样品",
+      "license": "OFL-NotoSerifSC.txt"
     }
   ]
 }

@@ -119,6 +119,21 @@
       "license": "licenses/OFL-fraunces.txt",
       "targets": [],
       "web": true
+    },
+    {
+      "id": "serif-cn",
+      "file": "NotoSerifSC-Variable.ttf",
+      "family": "M2V Serif",
+      "weight": "200 900",
+      "usage": "本轮朱红编辑海报的中文与数字，同一宋体家族；仅静态样品",
+      "source": "https://github.com/google/fonts/tree/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/notoserifsc",
+      "download": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf",
+      "version": "google/fonts@5bb28733cec313b63fbd415b574b5ae35c8aa8b8",
+      "bytes": 25125512,
+      "sha256": "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9",
+      "license": "licenses/OFL-NotoSerifSC.txt",
+      "targets": [],
+      "web": true
     }
   ]
 }
