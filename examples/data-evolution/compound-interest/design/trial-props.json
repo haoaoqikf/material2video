@@ -1,0 +1,7 @@
+{
+  "capture": {
+    "mode": "pure-time",
+    "jobs": 1,
+    "verifyFrames": 3
+  }
+}

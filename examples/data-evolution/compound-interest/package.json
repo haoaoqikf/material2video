@@ -17,23 +17,25 @@
     "video:prepare": "uv run --frozen python scripts/video.py prepare"
   },
   "dependencies": {
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "remotion": "4.0.526",
+    "@remotion/animation-utils": "4.0.526",
     "@remotion/bundler": "4.0.526",
     "@remotion/cli": "4.0.526",
+    "@remotion/layout-utils": "4.0.526",
+    "@remotion/paths": "4.0.526",
     "@remotion/player": "4.0.526",
     "@remotion/renderer": "4.0.526",
     "@remotion/transitions": "4.0.526",
-    "@remotion/animation-utils": "4.0.526",
-    "@remotion/layout-utils": "4.0.526",
-    "@remotion/paths": "4.0.526",
-    "roughjs": "4.6.6"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.526",
+    "roughjs": "4.6.6",
+    "three": "0.186.1"
   },
   "devDependencies": {
     "@types/node": "26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
     "@vitejs/plugin-react": "5.2.0",
     "esbuild": "0.28.2",
     "typescript": "5.9.3",
