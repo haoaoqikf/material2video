@@ -80,6 +80,8 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 ## 示例与文档
 
+《复利》示例采用方案C的薄荷绿现场、实体圆片与年度余额模型，核心跟踪去年收益归队后再生收益，六段动作和64个事件声共用分镜事件；可恢复声音与字体、源码和当前验证范围见[作品说明](examples/data-evolution/compound-interest/README.md)。
+
 七部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出；主题、场景身份、数学／事实口径和音轨要求保持不变。素材与媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。逐例改造范围与实际验证见[示例独立化记录](openspec/changes/archive/2026-11-08-make-video-projects-standalone/implementation-examples.md)和 [examples/README.md](examples/README.md)。
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。

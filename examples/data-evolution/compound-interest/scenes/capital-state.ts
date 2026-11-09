@@ -7,6 +7,8 @@ export type Token = {
   id: string; x: number; y: number; z: number; units: number;
   tone: Tone; opacity: number; tilt: number; gold: number;
   pitch?: number; thickness?: number;
+  /** 本片资本列的稳定身份，用于同列先归队后生息及上下接触，不是对外材料字段。 */
+  column?: number;
 };
 export type Camera = {x: number; y: number; scale: number; elevation?: number};
 export type CapitalFrame = {tokens: Token[]; camera: Camera; phase: 'opening' | 'core' | 'result'; time: number;

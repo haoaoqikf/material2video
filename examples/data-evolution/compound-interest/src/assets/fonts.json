@@ -21,7 +21,7 @@
       "family": "M2V XiaoWei",
       "file": "ZCOOLXiaoWei-Regular.ttf",
       "weight": "400",
-      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "usage": "方案C增长与结果的次要主题",
       "license": "OFL-zcoolxiaowei.txt"
     },
     {
@@ -35,7 +35,7 @@
       "family": "M2V ShanZheng",
       "file": "MaShanZheng-Regular.ttf",
       "weight": "400",
-      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "usage": "方案C全片中文主体及对象名称",
       "license": "OFL-mashanzheng.txt"
     },
     {
@@ -56,7 +56,7 @@
       "family": "M2V Fraunces",
       "file": "Fraunces[SOFT,WONK,opsz,wght].ttf",
       "weight": "100 900",
-      "usage": "字体与背景重设计的展示字或数字，当前仅静态方向试制",
+      "usage": "方案C全片数字、金额及算式",
       "license": "OFL-fraunces.txt"
     },
     {

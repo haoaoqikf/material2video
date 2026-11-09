@@ -141,6 +141,7 @@ function createStage(canvas: HTMLCanvasElement, width: number, height: number, d
       renderer.render(scene, camera);
     },
     dispose() {
+      key.shadow.dispose();
       coins.forEach(coin => {coin.face.dispose(); coin.side.dispose();});
       Object.values(geometry).forEach(value => value.dispose());
       backgroundMap.dispose(); wallGeometry.dispose(); wallMaterial.dispose();

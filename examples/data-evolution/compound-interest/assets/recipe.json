@@ -192,6 +192,78 @@
       "author": "material2video contributors",
       "license": "CC0-1.0",
       "source": "assets/synthesize.py"
+    },
+    {
+      "id": "mint-bed",
+      "path": "assets/media/mint-bed.wav",
+      "transform": "generate",
+      "durationSeconds": 29.0,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "b2ac233774190596c8e4c6219227c80dda4da9deb9983bd42d12151ac2719b36",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
+    },
+    {
+      "id": "mint-contact",
+      "path": "assets/media/mint-contact.wav",
+      "transform": "generate",
+      "durationSeconds": 0.16,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "555792cdb5c056a7ba7fd753a78fe4e8d1d2875af56a5b176b1f2bfc5821af3e",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
+    },
+    {
+      "id": "mint-grow",
+      "path": "assets/media/mint-grow.wav",
+      "transform": "generate",
+      "durationSeconds": 0.34,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "ce304d4ccce2792f9ecd4f53eb008496b4682f8f8545a29e4b21873c40099dbe",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
+    },
+    {
+      "id": "mint-return",
+      "path": "assets/media/mint-return.wav",
+      "transform": "generate",
+      "durationSeconds": 0.28,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "8bb4047fb63cb01bee94ba40592d1d04e2f1441094db7c0d0e66084890a5c643",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
+    },
+    {
+      "id": "mint-reveal",
+      "path": "assets/media/mint-reveal.wav",
+      "transform": "generate",
+      "durationSeconds": 0.6,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "da7ad8f5aa93386c7cc0183058cfdd635e55d6ff9305959c9ebc166bea0c50c3",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
+    },
+    {
+      "id": "mint-close",
+      "path": "assets/media/mint-close.wav",
+      "transform": "generate",
+      "durationSeconds": 0.38,
+      "sampleRateHz": 24000,
+      "channels": 1,
+      "expectedSha256": "731057050a74f3ef8adeb78ab325984dad1c01f3509ca7dc7e591c0665a353aa",
+      "author": "material2video contributors",
+      "license": "CC0-1.0",
+      "source": "assets/mint_synthesize.py"
     }
   ]
 }

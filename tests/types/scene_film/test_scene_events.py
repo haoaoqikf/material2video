@@ -88,42 +88,86 @@ def test_prepare_rejects_event_beyond_automatic_duration(tmp_path, monkeypatch):
         adapter.prepare(root, manifest)
 
 
-@requires_node
 @pytest.mark.slow
-def test_real_compound_event_shift_and_local_capture(tmp_path, chromium_ready):
-    """真实示例：落点和声音移动15帧；局部取帧与较长窗口同帧像素一致。"""
-    from playwright.sync_api import sync_playwright
+def test_real_compound_event_shift_and_local_capture(tmp_path):
+    """独立工程真实Canvas：事件声画一起移动，局部/窗口采集像素一致。"""
+    import os
+    import textwrap
+    from m2v.standalone.process import run
+
     root = Path(__file__).resolve().parents[3] / 'examples/data-evolution/compound-interest'
-    source = json.loads((root/'storyboard.json').read_text(encoding='utf-8'))
-    target = source['scenes'][0]
-    target.update(startFrame=0, durationInFrames=870, segmentWindows={})
-    target['content']['props']['hideText'] = True
-    scene_events.resolve([target])
-    work = tmp_path/'build'
-    work.mkdir()
-    code_scenes.build_scene(root, target, work)
-    geometry = {'width': 384, 'height': 216, 'subtitle': {'safeArea': {'x': 0, 'y': 180, 'width': 384, 'height': 36}}}
-    snapshots = []
-    with sync_playwright() as pw:
-        for name, selected, shift in [('window', [29, 30, 44, 45], 0), ('local', [30], 0), ('shift', [44, 45], 15)]:
-            folder = tmp_path/name
-            folder.mkdir()
-            (folder/'scene.js').write_bytes((work/'scene.js').read_bytes())
-            target['events'][0]['frame'] = 30 + shift
-            scene_events.resolve([target])
-            config = code_scenes.scene_config(target, geometry, {}, fps=30)
-            observed = {}
-            code_scenes._capture(pw, root, folder, config, selected_frames=selected,
-                observe=lambda page, frame: observed.update({frame: float(page.locator('circle').first.get_attribute('cy'))}))
-            starts = scene_events.effect_starts(source['soundtrack']['effects'], [target], 30, 870)
-            assert starts[0] == 30 + shift
-            snapshots.append(observed)
-    assert snapshots[0][29] < 900
-    assert snapshots[0][30] == pytest.approx(900)
-    assert snapshots[2][44] < 900
-    assert snapshots[2][45] == pytest.approx(900)
-    assert snapshots[0][30] == snapshots[1][30]
-    assert (tmp_path/'window/frame-000030.png').read_bytes() == (tmp_path/'local/frame-000030.png').read_bytes()
+    python = root / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    if not python.is_file() or not (root/'node_modules/esbuild').exists():
+        pytest.skip('需要先恢复compound-interest独立工程的本地Python/Node环境')
+    # 使用作品自己的host/React上下文及字体，不把v3入口塞进旧共享SDK构建器。
+    script = textwrap.dedent('''
+        import json, sys
+        from pathlib import Path
+        from PIL import Image, ImageChops
+        from playwright.sync_api import sync_playwright
+        from film_runtime.engine.browser import configure
+        from film_runtime.types.scene_film import code_scenes, scene_events
+        from film_runtime.types.scene_film.code_scenes.config import copy_build_outputs
+
+        configure()
+        root, temporary = Path.cwd(), Path(sys.argv[1])
+        source = json.loads((root/'storyboard.json').read_text(encoding='utf-8'))
+        target = source['scenes'][0]
+        duration, fps = target['durationFrames'], source['fps']
+        target.update(startFrame=0, endFrame=duration, durationInFrames=duration, segmentWindows={})
+        target['content']['props']['hideText'] = True
+        first = next(event for event in target['events'] if event['id'] == 'drop-1')
+        base, delay = first['frame'], 15
+        events = {event['id']: event['frame'] for event in target['events']}
+        scene_events.resolve([target])
+        build = temporary/'build'
+        build.mkdir()
+        code_scenes.build_scene(root, target, build)
+        geometry = {'width': 384, 'height': 216,
+            'subtitle': {'safeArea': {'x': 0, 'y': 180, 'width': 384, 'height': 36}}}
+        starts = {}
+        with sync_playwright() as pw:
+            for name, selected, shift in [('window', [base-1, base, base+delay], 0),
+                                          ('local', [base], 0),
+                                          ('shift', [base, base+delay-1, base+delay], delay)]:
+                folder = temporary/name
+                folder.mkdir()
+                copy_build_outputs(build, folder)
+                for event in target['events']:
+                    event['frame'] = events[event['id']] + (shift if event['id'].startswith('drop-') else 3*shift)
+                    if event['id'] == 'first-start':
+                        # 只控制测试副本的微推相机：30/90 == 45/135。
+                        # 比较落定相位时视角完全相同，不能让微推掩盖事件错帧。
+                        event['frame'] = 3*(base+shift)
+                target['events'].sort(key=lambda event: event['frame'])
+                scene_events.resolve([target])
+                config = code_scenes.scene_config(target, geometry, {}, fps=fps)
+                code_scenes._capture(pw, root, folder, config, selected_frames=selected, verify_frames=2)
+                starts[name] = scene_events.effect_starts(source['soundtrack']['effects'],
+                    [target], fps, duration)[0]
+        def pixels(name, frame=base):
+            with Image.open(temporary/name/f'frame-{frame:06d}.png') as picture:
+                return picture.convert('RGB')
+        original = pixels('window')
+        local_equal = ImageChops.difference(original, pixels('local')).getbbox() is None
+        changed = ImageChops.difference(original, pixels('shift')).convert('L').histogram()
+        landed_equal = ImageChops.difference(original, pixels('shift', base+delay)).getbbox() is None
+        before_differs = all(ImageChops.difference(pixels(name, at-1), pixels(name, at)).getbbox()
+            is not None for name, at in [('window', base), ('shift', base+delay)])
+        print(json.dumps({'base': base, 'delay': delay, 'starts': starts,
+            'localEqual': local_equal, 'landedEqual': landed_equal,
+            'beforeDiffers': before_differs, 'changedPixels': sum(changed[3:])}))
+    ''')
+    lines = []
+    result = run([str(python), '-c', script, str(tmp_path)], root, timeout=120, on_line=lines.append)
+    assert result == 0, '\n'.join(lines)
+    evidence = json.loads(lines[-1])
+    assert evidence['localEqual']
+    assert evidence['landedEqual']
+    assert evidence['beforeDiffers']
+    assert evidence['changedPixels'] > 20  # 排除少量GPU抗锯齿噪声，确认事件实际改变画面。
+    assert evidence['starts'] == {'window': evidence['base'], 'local': evidence['base'],
+                                  'shift': evidence['base'] + evidence['delay']}
 
 
 @requires_node

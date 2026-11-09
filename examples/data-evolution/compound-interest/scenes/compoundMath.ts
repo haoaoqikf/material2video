@@ -4,19 +4,7 @@ export const MODEL = {principal: 10000, rate: .1, years: 30} as const;
 export const UNITS_PER_DISC = 1000;
 /** 全貌镜头的单枚直径（1920 画布像素）；852 宽下约 18.7px。 */
 export const FULL_DIAMETER = 42;
-export const SEGMENTS = [
-  {id: 'S1', start: 0, end: 3.5},
-  {id: 'S2', start: 3.5, end: 8},
-  {id: 'S3', start: 8, end: 13},
-  {id: 'S4', start: 13, end: 19},
-  {id: 'S5', start: 19, end: 24.8},
-  {id: 'S6', start: 24.8, end: 29},
-] as const;
-export const FRAME_BOUNDARIES = [0, 105, 240, 390, 570, 744, 870] as const;
-export type SegmentId = (typeof SEGMENTS)[number]['id'];
-
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));
-export const ease = (v: number) => {const p = clamp(v); return p * p * (3 - 2 * p);};
 
 function checkYear(year: number, principal: number, rate: number) {
   if (!Number.isFinite(year) || year < 0 || !Number.isFinite(principal) || principal < 0
@@ -91,20 +79,5 @@ export const discDiameter = (units: number, full: number = FULL_DIAMETER) => ful
 export const screenDiameter = (units: number, cameraScale: number, viewportWidth = 852,
                                full: number = FULL_DIAMETER) =>
   discDiameter(units, full) * cameraScale * viewportWidth / 1920;
-
-export function segmentAt(t: number): SegmentId {
-  for (const segment of SEGMENTS) if (t < segment.end) return segment.id;
-  return SEGMENTS[SEGMENTS.length - 1].id;
-}
-
-/** 年份读数：S2=1、S3=2、S4=3，S5 从 3 推进到 30，之后保持 30。 */
-export function yearAt(t: number) {
-  if (t < 3.5) return 0;
-  if (t < 8) return 1;
-  if (t < 13) return 2;
-  if (t < 19) return 3;
-  if (t < 21.4) return 3 + Math.floor(27 * ease((t - 19) / 2.4));
-  return MODEL.years;
-}
 
 export const money = (n: number) => Math.round(n).toLocaleString('en-US');

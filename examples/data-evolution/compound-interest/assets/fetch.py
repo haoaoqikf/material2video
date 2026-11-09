@@ -7,6 +7,7 @@ import tempfile
 import wave
 from pathlib import Path
 from synthesize import generate
+from mint_synthesize import generate as generate_mint
 
 HERE = Path(__file__).resolve().parent
 log = logging.getLogger(__name__)
@@ -40,7 +41,12 @@ def restore() -> None:
         staged=[]
         for item,target in pending:
             source=Path(tmp)/(item['id']+'.wav')
-            generate(item['id'],source)
+            if item['source'] == 'assets/mint_synthesize.py':
+                generate_mint(item['id'],source)
+            elif item['source'] == 'assets/synthesize.py':
+                generate(item['id'],source)
+            else:
+                raise ValueError(f"未知本例音效生成源：{item['source']}")
             validate(source,item)
             staged.append((source,target))
         for source,target in staged:
