@@ -1,4 +1,4 @@
-/** 本轮图片试制独用的透明摄影棚；复用现有圆片几何与环境，正式入口不引用。 */
+/** 第三次字体背景重设计独用的透明摄影棚；复用现有圆片几何与环境，正式入口不引用。 */
 import {useLayoutEffect, useRef} from 'react';
 import * as THREE from 'three';
 import {createCapitalGeometry} from './capital-geometry';
@@ -6,14 +6,14 @@ import {createStudioEnvironment} from './capital-lighting';
 import {designFrame} from '../capital-state';
 import {CAPITAL_STYLE, RESULT_LAYOUT} from '../capital-style';
 
-export type RedesignVariant = 0 | 1 | 2;
+export type EditorialVariant = 0 | 1 | 2;
 const STAGES = [
-  {scale: 2.35, left: 880, right: 1490, base: 858, exposure: 1.02, dark: false},
-  {scale: 2.7, left: 520, right: 1370, base: 915, exposure: .91, dark: true},
-  {scale: 2.05, left: 1140, right: 1600, base: 858, exposure: 1.08, dark: false},
+  {scale: 2.45, left: 920, right: 1500, base: 866, exposure: 1.02, dark: false},
+  {scale: 2.5, left: 510, right: 1380, base: 922, exposure: 1.04, dark: false},
+  {scale: 2.4, left: 920, right: 1510, base: 893, exposure: 1.03, dark: false},
 ] as const;
 
-function build(canvas: HTMLCanvasElement, variant: RedesignVariant, density: number) {
+function build(canvas: HTMLCanvasElement, variant: EditorialVariant, density: number) {
   const style = STAGES[variant];
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
   renderer.setSize(1920, 1080, false);
@@ -91,21 +91,26 @@ function build(canvas: HTMLCanvasElement, variant: RedesignVariant, density: num
   renderer.render(scene, camera);
   return () => {
     key.shadow.dispose();
-    renderer.dispose(); environment.dispose();
+    environment.dispose();
     Object.values(geometry).forEach(value => value.dispose());
     materials.forEach(value => value.dispose());
     floorGeometry.dispose(); floorMaterial.dispose();
+    // renderer最后释放，保留target/texture销毁所需的WebGL句柄表。
+    renderer.dispose();
   };
 }
 
-export default function RedesignStage({variant, density, onReady}: {
-  variant: RedesignVariant; density: number; onReady: () => void;
+export default function EditorialStage({variant, density, onReady}: {
+  variant: EditorialVariant; density: number; onReady: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // 宿主逐帧更新回调身份；通知变化不能重建静态GPU场景。
+  const ready = useRef(onReady);
+  useLayoutEffect(() => {ready.current = onReady;}, [onReady]);
   useLayoutEffect(() => {
     const dispose = build(canvas.current!, variant, density);
-    onReady();
+    ready.current();
     return dispose;
-  }, [variant, density, onReady]);
+  }, [variant, density]);
   return <canvas ref={canvas} style={{position: 'absolute', inset: 0, width: 1920, height: 1080}}/>;
 }
