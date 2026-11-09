@@ -2,6 +2,10 @@
 
 当前按持续目标“按照方案c 以完成开发”验收完整薄荷绿C，实际采用样品7da3eccd17b94728a5427e1cb17988d8第7帧。后续暖纸/钴蓝/赤陶图保留未选候选，未用其第三张替换C。
 
+生产状态已核验：`complete: true`，当前周期01073b7d87b242ffaec231c8a4c56aa2，diagnostics=[]、issues=[]、technicalQA=pass。代码提交`11174e40`；媒体、字体二进制和生成报告不入库。
+
+主规格9项要求已按delta完整同步并通过严格校验；OpenSpec已归档至[当前归档任务](../../../openspec/changes/archive/2026-11-10-upgrade-compound-interest-capital-sculpture/tasks.md)，14/14项完成。归档提交只更新主规格、归档材料及本记录，不改变渲染输入。
+
 ## 当前文件与技术证据
 
 - 完整MP4：1920×1080、30fps、870帧、29秒；SHA256 `644e97a48af6c9247e00b0c9d306995fec495f7dcad3a30f2f337b85f6ae7e79`。
