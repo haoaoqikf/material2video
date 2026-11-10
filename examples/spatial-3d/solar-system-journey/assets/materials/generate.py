@@ -1,7 +1,7 @@
 """原生分辨率艺术材质；不是地形测量或低分辨率图片插值。按 CC0 1.0 分发。
 
 日间颜色仍使用登记的观测地图；本生成器提供气体流动/冰面微法线、粗糙度、
-不自发光天体的零发光图，以及不透视地表的土卫六雾霾和土星环。
+不自发光天体的零发光图，以及不透视地表的土卫六雾霾。
 尺寸由像素采样位置直接计算，不读取或放大旧图片。地球法线和海面遮罩另取原作者地图。
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import zlib
 from pathlib import Path
 
 WIDTH, HEIGHT = 4096, 2048
-TARGETS = ('sun', 'earth', 'saturn', 'jupiter', 'pluto', 'titan')
+TARGETS = ('sun', 'earth', 'jupiter', 'pluto', 'titan')
 
 
 def png(path: Path, width: int, height: int, rows) -> None:
@@ -47,7 +47,7 @@ def material_rows(target: str, role: str, width=WIDTH, height=HEIGHT):
         # 不自发光天体必须为零；太阳/地球的发光图由已登记的日面/夜景地图提供。
         yield from (bytes([0, 0, 0, 255]) * width for _ in range(height))
         return
-    frequency = {'sun': 53, 'earth': 23, 'saturn': 41, 'jupiter': 31, 'pluto': 17, 'titan': 7}[target]
+    frequency = {'sun': 53, 'earth': 23, 'jupiter': 31, 'pluto': 17, 'titan': 7}[target]
     longitudes = [(x + .5) / width * math.tau for x in range(width)]
     for y in range(height):
         latitude = ((y + .5) / height - .5) * math.pi
@@ -73,24 +73,6 @@ def material_rows(target: str, role: str, width=WIDTH, height=HEIGHT):
         yield row
 
 
-def ring_rows(width=WIDTH, height=512):
-    """C/B/A 环和卡西尼缝的艺术径向轮廓；非观测光深度数据。"""
-    profile = []
-    for x in range(width):
-        r = 1.24 + (x + .5) / width * 1.03
-        alpha = .18 if r < 1.52 else .88 if r < 1.95 else .035 if r < 2.02 else .65
-        alpha *= .85 + .1 * math.sin(x * .41) + .05 * math.sin(x * 1.73)
-        edge = min(1, x / 18, (width - 1 - x) / 18)
-        profile.append((alpha * edge, .9 + .08 * math.sin(x * .027)))
-    for y in range(height):
-        row = bytearray()
-        for x, (alpha, shade) in enumerate(profile):
-            sparkle = 1 + .025 * math.sin(y * math.tau / height * 13 + x * .17)
-            row.extend((round(222 * shade), round(204 * shade), round(171 * shade),
-                        min(255, round(255 * alpha * sparkle))))
-        yield row
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
@@ -104,7 +86,6 @@ def main():
             png(path, WIDTH, HEIGHT, material_rows(target, role))
             print(path.name, flush=True)
     png(args.out / 'titan-color.png', WIDTH, HEIGHT, material_rows('titan', 'color'))
-    png(args.out / 'rings.png', WIDTH, 512, ring_rows())
 
 
 if __name__ == '__main__':

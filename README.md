@@ -16,6 +16,8 @@ Material2Video 是短视频制作指导与工具链。新建作品使用 `projec
 
 地图轨迹与情境叙事是可选表现手法，不是独立类型。没有 `general`、专项类型、类别层或风格注册表。作品默认生成到 `videos/<类型>/<作品名>/`；随附示例放在 [`examples/`](examples/README.md)。
 
+三维示例[太阳系之旅](examples/spatial-3d/solar-system-journey/README.md)采用120秒、十五站的连续旅程，以实测旁白预算生成差异化镜头，突出地月关系、土星显环与外层尺度。示例的媒体和原创声音按固定配方恢复，当前制作与验收证据见其[验证记录](examples/spatial-3d/solar-system-journey/VERIFICATION.md)。
+
 ## 安装与快速开始
 
 ```powershell

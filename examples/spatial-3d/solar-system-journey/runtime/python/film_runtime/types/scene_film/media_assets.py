@@ -33,6 +33,21 @@ KINDS = ("video", "photo", "both")
 
 
 def probe(path: Path, kind: str) -> dict:
+    if kind == "image":
+        # 静态贴图直接校验文件结构并完整解码像素，避免每次校验为每张8K图
+        # 启动三个ffmpeg进程；损坏文件仍明确失败，不缓存或放宽来源检查。
+        from PIL import Image
+        try:
+            with Image.open(path) as picture:
+                if picture.format not in {"JPEG", "PNG", "WEBP"}:
+                    raise VideoError(f"媒体类型不符：{path.name}，声明 image")
+                picture.verify()
+            with Image.open(path) as picture:
+                picture.load()
+                width, height = picture.size
+        except (OSError, ValueError) as exc:
+            raise VideoError(f"媒体无法解码：{path.name}（{exc}）") from exc
+        return {"width": width, "height": height, "durationSeconds": None}
     width, height = media_probe.probe_dimensions(path)
     result = subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-i", str(path)], capture_output=True,
                             text=True, encoding="utf-8", errors="replace", timeout=30)

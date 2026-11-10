@@ -129,6 +129,57 @@ def test_legal_new_review_closes_conflict_but_stale_closure_blocks_again(work):
         reviews.current_report(root, project, blind)
 
 
+@pytest.mark.parametrize('cycle_length', [1, 2])
+def test_issue_query_rejects_cyclic_reuse_closures_and_recovers_after_repair(work, cycle_length):
+    """真实封存/复用链不能用自循环或双报告循环关闭失败；查询退出后可重新核验。"""
+    root, project = work
+    Image.new('RGB', (640, 360), 'red').save(outputs(root) / 'target.png')
+    requests = []
+    for index in range(cycle_length):
+        media = f'cycle-{index}.png'
+        Image.new('RGB', (640, 360), ('blue', 'green')[index]).save(outputs(root) / media)
+        req = request()
+        req['items'][0]['path'] = media
+        req.update(references=['target.png'], conditions=['主体轮廓与空间关系'])
+        requests.append(req)
+
+    def make_pair(req, who, verdict='pass'):
+        pack = reviews.package(root, project, req)
+        blind = reviews.import_report(root, project, report(work, pack, who=who, verdict=verdict))
+        comparison_request = dict(req, reviewType='consistency', blindId=blind['id'])
+        pack = reviews.package(root, project, comparison_request)
+        comparison = reviews.import_report(root, project, report(work, pack, who=who, verdict=verdict))
+        return blind['id'], comparison['id']
+
+    original = [make_pair(req, f'original-{index}') for index, req in enumerate(requests)]
+    failed = [make_pair(req, f'failure-{index}', 'fail') for index, req in enumerate(requests)]
+    fresh, _ = make_pair(requests[0], 'fresh-observation')
+    for problem in issues.load(root):
+        problem.update(status='closed', cause='design', closureReportId=fresh)
+        issues.update(root, problem)
+    repaired = issues.load(root)
+    for req, (blind, comparison) in zip(requests, original, strict=True):
+        reuse.register(root, project, reuse_request(root, project, req, blind, comparison))
+
+    # 模拟问题表被外部改写；原报告、包和复用收据仍须走真实校验，不能mock resolve。
+    cyclic = copy.deepcopy(repaired)
+    for problem in cyclic:
+        index = next(i for i, pair in enumerate(failed) if problem['reportId'] in pair)
+        problem['closureReportId'] = original[(index + 1) % cycle_length][0]
+    issues.save(root, cyclic)
+    with ledger.query():
+        with pytest.raises(M2VError, match='循环依赖'):
+            reviews.current_report(root, project, original[0][0])
+        assert {item['status'] for item in issues.load(root)} == {'open'}
+    assert not reuse._resolving.get()
+
+    # 失败缓存不能跨独立读取；恢复真实fresh闭环后应重新通过，而非永久缓存失败。
+    issues.save(root, repaired)
+    assert {item['status'] for item in issues.load(root)} == {'closed'}
+    assert reviews.current_report(root, project, original[0][0])['verdict'] == 'pass'
+    assert not ledger.query_active()
+
+
 @pytest.mark.parametrize('source_changed', [True, False])
 def test_current_native_capture_can_deliver_with_same_full_media(native, source_changed):
     root, project, old = native

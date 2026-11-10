@@ -9,46 +9,55 @@
  * 后把 THREE/LAYOUT/POSITIONS 交给 `createProposal`，再负责写出产物与 `--merge` 合并分镜。
  */
 
-const FPS = 60;
-const LEAD_IN = 360;
-const TAIL = 759;
-const ENTRY = 60;          // 旁白开始前的到站接近时间：1秒
-const POST_SPEECH = 45;    // 普通站旁白后的离站衔接：0.75秒
-const HERO_POST_SPEECH = 180; // hero旁白后保留3秒观察，维持8秒以上站点镜头
-const HERO_STATIONS = new Set(['earth', 'saturn', 'oort']);
-const MIN_TRANSIT = 210;   // 至少保留3.5秒连续空间移动；朝向插值覆盖到站前0.5秒
-const MAX_TRANSIT = 300;   // 长距离移动最多5秒，按路径长度单独计算
-const TRANSIT_SPEED = 12;  // 压缩世界单位/秒；只用于生成初始预算，须经动态粗预演复核
+import journey from '../../scenes/journey-plan.json' with {type: 'json'};
+import project from '../../project.json' with {type: 'json'};
+import {createHash} from 'node:crypto';
+
+const FPS = journey.fps;
+const LEAD_IN = journey.leadInFrames;
+const SEGMENTS = journey.stations.map(station => ({...station, id: `${station.body}-line`}));
+const canonical = value => value && typeof value === 'object'
+  ? Array.isArray(value) ? value.map(canonical)
+    : Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+const textHash = createHash('sha256').update(JSON.stringify(SEGMENTS.map(segment => segment.text))).digest('hex');
+const measured = journey.measurement;
+if (!measured || measured.narrationSha256 !== textHash || measured.voice !== project.tts.voice
+    || measured.rate !== project.tts.rate
+    || JSON.stringify(canonical(measured.speech)) !== JSON.stringify(canonical(project.tts.speech))) {
+  throw new Error('旁白量测已过期：请先重新判断音色并运行 scripts/measure-narration.py');
+}
+// 旁白帧数来自实际合成；遇到超预算先明确失败，不能截断或静默挤压观察。
+for (const segment of SEGMENTS) {
+  if (!Number.isInteger(segment.frames) || segment.frames <= 0) {
+    throw new Error(`请先量测 ${segment.id} 的旁白并登记 frames`);
+  }
+}
+const WINDOWS = {};
+let speechCursor = LEAD_IN;
+for (let index = 0; index < SEGMENTS.length; index++) {
+  const segment = SEGMENTS[index];
+  const startFrame = Math.max(speechCursor, Math.round(segment.startSeconds * FPS));
+  WINDOWS[segment.id] = {startFrame, endFrame: startFrame + segment.frames};
+  speechCursor = startFrame + segment.frames + segment.postFrames + segment.transitFrames
+    + (SEGMENTS[index + 1]?.entryFrames ?? 0);
+}
+const TAIL = journey.targetFrames - WINDOWS[SEGMENTS.at(-1).id].endFrame;
+if (TAIL < SEGMENTS.at(-1).postFrames + 180) {
+  throw new Error('实测旁白已挤占结尾观察，请重编行程，不得截断口播');
+}
 
 // ---------------------------------------------------------------- 输入数据
 
-/** 旁白段与实测 TTS 帧长（来自 outputs/prepared.json；文本与语速不变即命中缓存）。 */
-const SEGMENTS = [
-  {id: 'sun-line', text: '从太阳出发吧。这颗恒星，照亮了我们的整个旅程。', frames: 309},
-  {id: 'mercury-line', text: '第一站，水星。离太阳最近，满身古老的陨坑。', frames: 300},
-  {id: 'venus-line', text: '接着是金星。厚厚的云，把这个世界藏了起来。', frames: 285},
-  {id: 'earth-line', text: '这一颗，你一定认识。蓝色的地球，是我们的家。', frames: 297},
-  {id: 'moon-line', text: '月球，是地球的天然卫星。一路陪伴着我们。', frames: 289},
-  {id: 'mars-line', text: '再往外，是火星。红色尘土，给它披上了一件外衣。', frames: 313},
-  {id: 'ceres-line', text: '经过谷神星，我们来到稀疏的小行星带。', frames: 225},
-  {id: 'jupiter-line', text: '木星到了，太阳系最大的行星。看看它身上，一道道宽阔的云带。', frames: 373},
-  {id: 'saturn-line', text: '下一站，土星。先别急着走，看看它慢慢展开的光环。', frames: 339},
-  {id: 'uranus-line', text: '这是天王星。一颗几乎侧躺着自转的冰巨星。', frames: 294},
-  {id: 'neptune-line', text: '更远处，是海王星。八颗行星中，它离太阳最远。', frames: 316},
-  {id: 'pluto-line', text: '冥王星，是一颗矮行星。它身上，还藏着一颗心。', frames: 307},
-  {id: 'kuiper-line', text: '这里是柯伊伯带，冰质小天体的家园。', frames: 216},
-  {id: 'heliopause-line', text: '再向外，是日球层顶。太阳风，在这里与星际介质相遇。', frames: 359},
-  {id: 'oort-line', text: '更远处，是推测中的奥尔特云。太阳，已成一个亮点。', frames: 332},
-];
-
 /** 非 LAYOUT 天体的区域锚点：柯伊伯带、日球层顶、奥尔特云。 */
 const REGIONS = {
-  kuiper: {anchor: [Math.cos(4.78) * 162, 12, Math.sin(4.78) * 162], d: 18},
-  heliopause: {anchor: [Math.cos(5.05) * 228, 39, Math.sin(5.05) * 228], d: 21},
-  oort: {anchor: [Math.cos(5.30) * 262.5, 60, Math.sin(5.30) * 262.5], d: 24},
+  kuiper: {anchor: [Math.cos(6.9) * 162, 12, Math.sin(6.9) * 162], d: 18},
+  heliopause: {anchor: [Math.cos(7.4) * 228, 39, Math.sin(7.4) * 228], d: 21},
+  oort: {anchor: [Math.cos(7.9) * 262.5, 60, Math.sin(7.9) * 262.5], d: 24},
 };
 /** 外层结构的外缘半径；与场景里的 ParticleBelt/OortCloud 参数一致，诊断由此读取。 */
-const STRUCTURE_SIZE = {kuiper: 159, heliopause: 198, oort: 278};
+const STRUCTURE_SIZE = {kuiper: journey.structures.kuiper.outerRadius,
+  heliopause: journey.structures.heliopause.radius,
+  oort: journey.structures.oort.radius + journey.structures.oort.thickness / 2};
 
 const STATION_ORDER = ['sun', 'mercury', 'venus', 'earth', 'moon', 'mars', 'ceres', 'jupiter',
   'saturn', 'uranus', 'neptune', 'pluto', 'kuiper', 'heliopause', 'oort'];
@@ -108,7 +117,8 @@ function stationArc(anchor, d, backlit = false) {
   const at = (radial, tangent, height) => [anchor[0] + d * (radial * u[0] + tangent * t[0]),
     anchor[1] + height * d, anchor[2] + d * (radial * u[2] + tangent * t[2])];
   if (!backlit) {
-    return [at(-0.75, -0.45, 0.30), at(-0.85, 0.0, 0.30), at(-0.65, 0.55, 0.30)];
+    // 侧向观看保留明暗交界，并将外侧独立行星移出主视线，避免层层堆在主体背后。
+    return [at(-0.55, -0.75, 0.16), at(-0.40, -0.90, 0.20), at(-0.15, -0.95, 0.26)];
   }
   return [at(0.85, 0.20, 0.30), at(0.45, 0.65, 0.45), at(-0.15, 0.80, 0.30)];
 }
@@ -194,7 +204,7 @@ function bumpIntegral(frame, frames) {
     * (u / 2 - Math.sin(2 * Math.PI * u) / (4 * Math.PI));
 }
 
-function sampleShot(phases, stride = 8) {
+function sampleShot(phases, stride = 3) {
   const totalFrames = phases.reduce((sum, phase) => sum + phase.frames, 0);
   const lines = phases.map(phase => {
     const line = polyline(phase.shape);
@@ -255,6 +265,7 @@ function sampleShot(phases, stride = 8) {
     const distance = line.distances[low] + (line.distances[high] - line.distances[low]) * k;
     return line.distanceOffset + clamp(distance, 0, line.length);
   };
+  // 短接近段需要更密的时间控制点，避免曲线插值把端点速度摊进前几帧。
   const count = Math.min(64, Math.max(2, Math.ceil(totalFrames / stride) + 1));
   const path = [];
   for (let index = 0; index < count; index += 1) {
@@ -294,17 +305,12 @@ function sampleBySpeed(shape, duration, count, profile) {
 
 // ---------------------------------------------------------------- 镜头常量
 
-const post = {bloom: 0.35, dof: 0.08, grain: 0.012, vignette: 0.16,
+const post = {bloom: 0.22, dof: 0, grain: 0.012, vignette: 0.16,
   chromaticAberration: 0.04, lut: 'deep-space'};
 const focusOf = (id) => (REGIONS[id] ? 'sun' : id);
 const distanceOf = (id) => (REGIONS[id] ? REGIONS[id].d : STATION[id].d);
 const nameOf = (id) => (id === 'earth' ? 'earth-hero' : id === 'saturn' ? 'saturn-hero'
   : id === 'oort' ? 'oort-hero' : `${id}-station`);
-
-function transitFramesFor(length) {
-  const estimated = Math.round((length / TRANSIT_SPEED * FPS) / 30) * 30;
-  return clamp(estimated, MIN_TRANSIT, MAX_TRANSIT);
-}
 
 /**
  * 生成完整路径提案：几何 → 时间与阶段 → 镜头 → 检查 → 分镜与报告。
@@ -333,14 +339,23 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   for (const id of STATION_ORDER) {
     arcs[id] = stationArc(anchors[id], STATION[id].d, Boolean(STATION[id].backlit));
   }
-  // 土星环的展开依赖旧版验证过的 4 点弧：它跨越环平面并从低处抬升。
-  // 这些是相对土星的旧版世界偏移；环的朝向由世界坐标固定，与轨道方位角无关。
-  arcs.saturn = [[8.334, 0.396, -15.195], [11.420, 0.792, -10.745],
-    [15.670, 2.624, 0.474], [10.742, 4.455, 11.411]].reverse().map(offset => addv(anchors.saturn, offset));
+  // 固定环面由相机跨视角揭示，环和球体不随旁白旋转。
+  const sunward = normalize(scale(anchors.saturn, -1));
+  const side = normalize(cross(UP, sunward));
+  // 近环面起步后下降/侧移进入逆光观察位；以太阳方向为基准，布局变化仍保持逆光。
+  arcs.saturn = [[-11, 6.2, -1.4], [-13, 0.8, 1.6], [-15, 0.6, 1.4], [-15, 0.5, 1.4]]
+    .map(([radial, height, tangent]) => addv(anchors.saturn,
+      addv(addv(scale(sunward, radial), scale(side, tangent)), [0, height, 0])));
   // 太阳保持已核对的俯冲入口；月球抬高以避开近邻地球。
-  arcs.sun = [[3.15,1.8,7.65],[5.85,2.7,4.95],[6.75,3.15,2.25]];
+  arcs.sun = [[3.1, 7.2, 3.5], [5, 6.5, 3.5], [6.2, 5.8, 3]];
   arcs.moon = arcs.moon.map(point => [point[0], point[1] + 0.8, point[2]]);
-  const tailEnd = [Math.cos(5.55) * 495, 142.5, Math.sin(5.55) * 495];
+  const radialView = (radius, angle, height) => [Math.cos(angle) * radius, height, Math.sin(angle) * radius];
+  // 外层观察任务是连续拉开范围，不再绕一个无实体锚点停留后才猛拉远。
+  arcs.heliopause = [[235, 7.35, 42], [300, 7.40, 65], [370, 7.45, 100], [430, 7.50, 130]]
+    .map(([radius, angle, height]) => radialView(radius, angle, height));
+  arcs.oort = [[540, 7.65, 150], [610, 7.70, 165], [680, 7.75, 180], [720, 7.80, 180]]
+    .map(([radius, angle, height]) => radialView(radius, angle, height));
+  const tailEnd = radialView(865, 8.05, 180);
 
   const F_in = {};
   const F_out = {};
@@ -356,6 +371,10 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   const mercuryPos = POSITIONS.mercury;
   F_out.sun = scale(normalize([mercuryPos[0],
     0.9 * Math.hypot(mercuryPos[0], mercuryPos[2]), mercuryPos[2]]), 12.5);
+  F_in.heliopause = radialView(210, 7.32, 36);
+  F_out.heliopause = radialView(470, 7.55, 140);
+  F_in.oort = radialView(510, 7.60, 145);
+  F_out.oort = radialView(745, 7.85, 180);
 
   const transitShapes = [];
   for (let index = 0; index < STATION_ORDER.length - 1; index += 1) {
@@ -364,17 +383,12 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   }
   const tailShape = spaceArc(F_out.oort, tailEnd, {bowScale: 0.05});
 
-  // 每段过场时间由其几何路径长度得出；头尾衔接时间独立计算，不再用统一9秒预算。
-  const transitFrames = transitShapes.map(shape => transitFramesFor(polyline(shape).length));
-  const holdFrames = transitFrames.map((frames, index) =>
-    (HERO_STATIONS.has(STATION_ORDER[index]) ? HERO_POST_SPEECH : POST_SPEECH) + frames + ENTRY);
-  const windows = {};
-  let cursor = LEAD_IN;
-  SEGMENTS.forEach((segment, index) => {
-    windows[segment.id] = {startFrame: cursor, endFrame: cursor + segment.frames};
-    cursor += segment.frames + (index < SEGMENTS.length - 1 ? holdFrames[index] : 0);
-  });
-  const totalFrames = cursor + TAIL;
+  // 时间由实际旁白与逐站行程闭合；路径长度另入报告，不再用统一过场或全片倍速。
+  const transitFrames = SEGMENTS.slice(0, -1).map(segment => segment.transitFrames);
+  const windows = WINDOWS;
+  const holdFrames = SEGMENTS.slice(0, -1).map((segment, index) =>
+    windows[SEGMENTS[index + 1].id].startFrame - windows[segment.id].endFrame);
+  const totalFrames = journey.targetFrames;
   if (totalFrames > 600 * FPS) throw new Error(`成片超出600秒：${totalFrames / FPS}`);
 
   // M 点用实际过场首末切线反推，保证站点出口/入口与过场同向。
@@ -406,18 +420,21 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   const plans = STATION_ORDER.map((id, index) => {
     const window = windows[SEGMENTS[index].id];
     const speechFrames = window.endFrame - window.startFrame;
-    const exitFrames = 120;
-    const postSpeechFrames = HERO_STATIONS.has(id) ? HERO_POST_SPEECH : POST_SPEECH;
-    return {id, index, window, speechFrames, exitFrames, postSpeechFrames,
+    const authored = SEGMENTS[index];
+    const exitFrames = ['earth', 'saturn', 'oort'].includes(id) ? 90 : 45;
+    const postSpeechFrames = index < SEGMENTS.length - 1
+      ? holdFrames[index] - transitFrames[index] - SEGMENTS[index + 1].entryFrames
+      : authored.postFrames;
+    return {id, index, window, speechFrames, exitFrames, postSpeechFrames, entryFrames: authored.entryFrames,
       tier: STATION[id].tier, segment: SEGMENTS[index].id};
   });
 
   for (const plan of plans) {
     plan.start = plan.id === 'sun' ? plan.window.startFrame
-      : plan.window.startFrame - ENTRY;
+      : plan.window.startFrame - plan.entryFrames;
     plan.end = plan.window.endFrame + plan.postSpeechFrames;
     const stationFrames = plan.end - plan.start;
-    const entry = plan.id === 'sun' ? 0 : ENTRY;
+    const entry = plan.entryFrames;
     plan.orbitFrames = stationFrames - entry - plan.exitFrames;
     if (plan.orbitFrames < 20) throw new Error(`${plan.id} 绕行帧数不足：${plan.orbitFrames}`);
   }
@@ -439,17 +456,24 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
     const phases = [];
 
     if (id !== 'sun') phases.push({name: 'entry', shape: [F_in[id], M_in[id], A],
-      frames: ENTRY});
-    phases.push({name: 'orbit', shape: arcs[id], frames: plan.orbitFrames});
+      frames: plan.entryFrames});
+    if (id === 'saturn') {
+      // 先用完整两秒显环，再把时间留给逆光观察；不让最长的侧移吞掉全部hero窗口。
+      const revealFrames = Math.min(2 * FPS, Math.floor(plan.orbitFrames / 2));
+      phases.push({name: 'orbit-reveal', shape: arcs[id].slice(0, 2), frames: revealFrames});
+      phases.push({name: 'orbit-observe', shape: arcs[id].slice(1), frames: plan.orbitFrames - revealFrames});
+    } else phases.push({name: 'orbit', shape: arcs[id], frames: plan.orbitFrames});
     phases.push({name: 'exit', shape: [C, M_out[id], F_out[id]], frames: plan.exitFrames});
     plan.phases = phases;
-    const orbit = phases.find(phase => phase.name === 'orbit');
+    const orbits = phases.filter(phase => phase.name.startsWith('orbit'));
     const entry = phases.find(phase => phase.name === 'entry');
     const exit = phases.find(phase => phase.name === 'exit');
-    plan.orbitLength = polyline(orbit.shape).length;
+    const orbitLengths = orbits.map(phase => polyline(phase.shape).length);
+    plan.orbitLength = orbitLengths.reduce((sum, length) => sum + length, 0);
     plan.entryLength = entry ? polyline(entry.shape).length : 0;
     plan.exitLength = polyline(exit.shape).length;
-    plan.S = plan.orbitLength / plan.orbitFrames;
+    // 分阶段时以较慢观察段的平均速度接续，其余位移由既有确定性速度峰值承担。
+    plan.S = Math.min(...orbitLengths.map((length, index) => length / orbits[index].frames));
   }
 
   for (const gap of gaps) {
@@ -458,7 +482,7 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
     gap.V = gap.length / gap.frames;
   }
   const tailLength = polyline(tailShape).length;
-  const tailV = tailLength / (TAIL - 90);
+  const tailV = tailLength / (TAIL - plans.at(-1).postSpeechFrames);
 
   // 端点速度：过场两端 clamp 到平均速度的 0.35–0.80，再用入口/出口长度保证积分可行。
   for (let index = 0; index < plans.length; index += 1) {
@@ -466,7 +490,7 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
     if (index > 0) {
       const gap = gaps[index - 1];
       plan.vIn = Math.min(clamp(1.30 * plan.S, 0.35 * gap.V, 0.80 * gap.V),
-        2 * plan.entryLength / ENTRY - plan.S);
+        2 * plan.entryLength / plan.entryFrames - plan.S);
       if (!(plan.vIn > 0)) problems.push(`${plan.id} 入口速度不可行：${plan.vIn.toFixed(4)}`);
     }
     const gap = index < gaps.length ? gaps[index] : null;
@@ -482,7 +506,7 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
       if (phase.name === 'entry') {
         phase.v0 = plan.vIn;
         phase.v1 = plan.S;
-      } else if (phase.name === 'orbit') {
+      } else if (phase.name.startsWith('orbit')) {
         phase.v0 = plan.S;
         phase.v1 = plan.S;
       } else {
@@ -502,14 +526,13 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
 
   // 开场：从系统上方连续俯冲到太阳站 A 点。
   const openShape = [
-    [0, 380, 120], [0, 330, 118], [15, 260, 100], [35, 190, 65],
-    [30, 120, 35], [12, 60, 20], [5, 28, 14], arcs.sun[0],
+    [0, 40, 22], [4, 26, 18], [6, 14, 12], [4, 6, 9], arcs.sun[0],
   ];
   const openLine = polyline(openShape);
   const sunSpeed = plans[0].S;
-  const openHumpFrames = 270;
+  const openHumpFrames = LEAD_IN - 45;
   const openHump = humpProfile(openHumpFrames,
-    Math.max(1e-3, openLine.length - sunSpeed * 90), 0.4, sunSpeed);
+    Math.max(1e-3, openLine.length - sunSpeed * 45), 0.10, sunSpeed);
   push({
     id: 'aerial-dive', target: 'sun', tier: 'minor', startFrame: 0, endFrame: LEAD_IN,
     camera: {path: sampleBySpeed(openShape, LEAD_IN, 14,
@@ -527,7 +550,7 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
       camera: {path: sampled.path, fov: 44, easing: 'linear'},
       focus: {target: focusOf(plan.id), distance: distanceOf(plan.id)},
       post,
-      note: '站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。',
+      note: `站点：接近${plan.entryFrames / FPS}秒，旁白及观察后连续离场；预算来自journey-plan。`,
     };
     phaseStats[stationShot.id] = sampled.lines.map(line => ({name: line.name,
       frames: line.frames, length: line.length, v0: line.v0, v1: line.v1, peak: line.peak,
@@ -625,6 +648,19 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   const approachRatios = [];
   for (const shot of stationShots) {
     if (shot.target === 'sun') continue;
+    if (shot.target === 'heliopause' || shot.target === 'oort') {
+      const curve = curveOf(shot.camera.path);
+      const radii = Array.from({length: 241}, (_, i) => norm(curve.getPoint(i / 240).toArray()));
+      const expansion = radii.at(-1) / radii[0];
+      const minimumStep = Math.min(...radii.slice(1).map((radius, i) => radius - radii[i]));
+      approachRatios.push({shot: shot.id, mode: 'regional-pullback',
+        firstRadius: Number(radii[0].toFixed(2)), lastRadius: Number(radii.at(-1).toFixed(2)),
+        expansion: Number(expansion.toFixed(2)), minimumStep: Number(minimumStep.toFixed(4))});
+      if (expansion < 1.25 || minimumStep < -0.05) {
+        problems.push(`${shot.id} 外层持续拉远不足或回摆：${expansion.toFixed(2)}×，最小径向步进 ${minimumStep.toFixed(4)}`);
+      }
+      continue;
+    }
     const anchor = anchors[shot.target];
     const curve = curveOf(shot.camera.path);
     let nearest = Infinity;
@@ -672,8 +708,8 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
   // -------------------------------------------------------------- 分镜与报告
 
   const storyboard = {
-    version: 8,
-    schemaVersion: 8,
+    version: 9,
+    schemaVersion: 9,
     fps: FPS,
     width: 1920,
     height: 1080,
@@ -744,7 +780,7 @@ export function createProposal({THREE: three, LAYOUT, POSITIONS}) {
 }
 
 export {
-  FPS, LEAD_IN, TAIL, ENTRY, POST_SPEECH, SEGMENTS, REGIONS, STRUCTURE_SIZE,
+  FPS, LEAD_IN, TAIL, SEGMENTS, REGIONS, STRUCTURE_SIZE,
   STATION_ORDER, STATION, post, UP, clamp, addv, subv, scale, dot, cross, norm, normalize,
   lerp3, dist, V, curveOf, frameOf, stationArc, polyline, positionAtDistance, tangentStart,
   tangentEnd, spaceArc, FLAT, bumpShape, bumpIntegral, sampleShot, humpProfile, sampleBySpeed,

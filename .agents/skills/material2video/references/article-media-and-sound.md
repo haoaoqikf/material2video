@@ -25,7 +25,7 @@ uv run m2v author assets import --project videos/<类型>/<slug> --manifest <清
 | `role`、`target` | 可选；`role: "other"` 表示二维媒体，`target` 关联镜头目标；缺省仍为颜色贴图与素材ID。 |
 | `author`、`license` | 可选；未知时如实记为「未知」，不猜测 |
 
-导入过程下载或复制到临时目录，用 ffmpeg 实测真实类型、像素尺寸与视频时长并验证首帧可解码，再按内容摘要落盘为 `assets/media/<sha256><后缀>`，最后把来源页、作者、许可、实测尺寸、时长与文件摘要写进 `assets/media-sources.json`。一批素材全部通过后才发布记录：任何一项失败都不会修改已有记录或留下半成品文件。同一文件可被多个 `id` 引用。
+导入过程下载或复制到临时目录，JPEG／PNG／WEBP图片由Pillow验证结构并完整解码，视频用ffmpeg探测尺寸、时长并验证可解码；实测类型不符时失败。通过后按内容摘要落盘为 `assets/media/<sha256><后缀>`，最后把来源页、作者、许可、实测尺寸、时长与文件摘要写进 `assets/media-sources.json`。一批素材全部通过后才发布记录：任何一项失败都不会修改已有记录或留下半成品文件。同一文件可被多个 `id` 引用。
 
 未知署名与未知许可必须明确记录为「未知」；不要为了填满字段而编造来源。
 

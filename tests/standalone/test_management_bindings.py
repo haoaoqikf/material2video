@@ -124,6 +124,23 @@ def test_legacy_sdk_reference_is_rejected_instead_of_resolved_from_main(tmp_path
         dependencies.scene_sources(tmp_path, {'content': {'entry': 'main.tsx'}})
 
 
+@pytest.mark.parametrize('argument,conservative', [("'earth'", False), ('bodyId', True)])
+def test_media_hook_declaration_does_not_turn_static_calls_into_dynamic_bindings(tmp_path, argument, conservative):
+    """真实动态调用仍保守绑定；SDK函数声明不会把无关声音和缓存绑进样品。"""
+    (tmp_path / 'assets').mkdir()
+    for name in ('earth.png', 'unused.wav'):
+        (tmp_path / 'assets' / name).write_bytes(name.encode())
+    (tmp_path / 'assets/media-sources.json').write_text(json.dumps({'assets': [
+        {'id': 'earth', 'path': 'assets/earth.png'}]}), encoding='utf-8')
+    (tmp_path / 'main.tsx').write_text(
+        'export function\nuseMediaAsset(id: string) { return id; }\n'
+        f'export const asset = useMediaAsset({argument});', encoding='utf-8')
+    result = dependencies.scene_sources(tmp_path, {'content': {'entry': 'main.tsx'}})
+    assert bool(result['conservativeReasons']) is conservative
+    assert ('work/assets/unused.wav' in result['files']) is conservative
+    assert 'work/assets/earth.png' in result['files']
+
+
 @pytest.mark.skipif(os.name != 'nt', reason='Windows目录联接边界')
 def test_font_junction_is_rejected_before_external_directory_is_read(tmp_path, monkeypatch):
     root = tmp_path / 'work'

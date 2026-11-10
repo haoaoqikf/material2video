@@ -116,4 +116,6 @@ coverage 每项为 id、window、status、observations、limitations、assessmen
 
 唯一问题块 m2v-issues-v2 包含 version=2、cycleId、items。每项 id、cycleId、status（open/closed）、required、round（trial/final/internal）、scope、reportId（内部问题为 null）、versionRefs、cause、observations；可选 closureReportId、evidence。cause 为 implementation/design/mixed/undetermined，未定位不能关闭。
 
+带闭环校验的问题加载在单次只读查询内复用已完整核验的报告、包与账本；已有外层只读查询时沿用它，独立读取返回后不把缓存带入后续写入。循环复用仍须拒绝，来源或证据变化在下一次独立查询重新核验，样品发布前的来源直读保留；缓存不替代关闭条件或新增失败检查。
+
 独立失败自动登记必改。关闭须绑定晚于原失败、当前、同范围同类独立通过及适用同轮对照，保留原中性条件、目标媒体、职责、显示尺寸与历史（用户明确变更目标须按上节登记替代，原记录仍保留）；局部复查覆盖原窗口，全片问题由当前完整候选终审复查，剪短或重排无需保留旧全片时长；自审或跨周期报告不得关闭。内部问题关闭须有效实际复查证据。status 只读展示证据，不推断创作阶段；基线保护活动引用，损坏或未知引用拒绝清理。

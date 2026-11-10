@@ -26,20 +26,26 @@ uniform vec3 glowColor;
 uniform float intensity;
 uniform float power;
 uniform float bias;
+uniform float fadeRadius;
 varying vec3 vNormal;
 varying vec3 vView;
 void main() {
   float rim = pow(clamp(bias - dot(vNormal, vView), 0.0, 1.0), power);
-  gl_FragColor = vec4(glowColor * rim * intensity, rim * intensity);
+  // 穿越壳体时先在近表面归零，再连续显露轮廓，避免近裁剪把整屏染色。
+  float outside = fadeRadius > 0.0
+    ? smoothstep(fadeRadius * 1.03, fadeRadius * 1.20, length(cameraPosition)) : 1.0;
+  gl_FragColor = vec4(glowColor * rim * intensity, rim * intensity * outside);
 }`;
 
-function fresnelMaterial(color: string, intensity: number, power: number, bias: number, side: THREE.Side) {
+function fresnelMaterial(color: string, intensity: number, power: number, bias: number, side: THREE.Side,
+  fadeRadius = 0) {
   return new THREE.ShaderMaterial({
     uniforms: {
       glowColor: {value: new THREE.Color(color)},
       intensity: {value: intensity},
       power: {value: power},
       bias: {value: bias},
+      fadeRadius: {value: fadeRadius},
     },
     vertexShader: FRESNEL_VERTEX,
     fragmentShader: FRESNEL_FRAGMENT,
@@ -323,7 +329,7 @@ export function OortCloud({count = 2000, radius = 1800, thickness = 420, seed = 
       const phi = Math.acos(2 * random() - 1);
       const distance = radius + (random() - 0.5) * thickness;
       positions[index * 3] = distance * Math.sin(phi) * Math.cos(theta);
-      positions[index * 3 + 1] = distance * Math.cos(phi) * 0.6;
+      positions[index * 3 + 1] = distance * Math.cos(phi);
       positions[index * 3 + 2] = distance * Math.sin(phi) * Math.sin(theta);
     }
     const buffer = new THREE.BufferGeometry();
@@ -332,15 +338,32 @@ export function OortCloud({count = 2000, radius = 1800, thickness = 420, seed = 
   }, [count, radius, thickness, seed]);
   // 日球层顶是**边界**而不是一层均匀的雾：用菲涅尔壳让轮廓亮、内部近乎透明。
   // 只画正面：相机在气泡内部时整面背面会把画面染蓝，而边界本来就该在飞出后回望时可见。
-  const shell = useMemo(() => fresnelMaterial(bubbleColor, bubbleOpacity, 2.4, 0.92, THREE.FrontSide),
-    [bubbleColor, bubbleOpacity]);
+  const shell = useMemo(() => fresnelMaterial(bubbleColor, bubbleOpacity, 2.4, 0.92, THREE.FrontSide,
+    bubble ?? 0), [bubbleColor, bubbleOpacity, bubble]);
+  // 灰白密度边缘只辅助读出点群范围，不冒充实际可观测的发光云或实体膜。
+  const cloudShell = useMemo(() => fresnelMaterial(color, 0.16, 1.8, 0.98, THREE.FrontSide,
+    radius + thickness / 2), [color, radius, thickness]);
   return (
     <group>
       <points geometry={geometry}>
         <pointsMaterial map={softDot()} color={color} size={size} sizeAttenuation transparent
-          opacity={0.7} depthWrite={false} alphaTest={0.01}/>
+          opacity={0.7} depthWrite={false} alphaTest={0.01}
+          onBeforeCompile={shader => {
+            // 点群是密度示意，远离后才提升可视权重；内侧行星镜头不变成满屏亮星。
+            shader.uniforms.cloudRadius = {value: radius};
+            shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `
+              #include <common>
+              uniform float cloudRadius;`).replace('#include <opaque_fragment>', `
+              diffuseColor.a *= smoothstep(cloudRadius * 0.85, cloudRadius * 1.5, length(cameraPosition));
+              #include <opaque_fragment>`);
+            // 近距离穿过稀疏层时限制点精灵尺寸；与视口高度同倍率，SSAA不改最终视觉尺寸。
+            shader.vertexShader = shader.vertexShader.replace('#include <logdepthbuf_vertex>', `
+              gl_PointSize = min(gl_PointSize, 4.0 * scale / 540.0);
+              #include <logdepthbuf_vertex>`);
+          }} customProgramCacheKey={() => `oort-density-${radius}`}/>
       </points>
       {bubble ? <mesh material={shell}><sphereGeometry args={[bubble, 64, 48]}/></mesh> : null}
+      <mesh material={cloudShell}><sphereGeometry args={[radius + thickness / 2, 64, 48]}/></mesh>
     </group>
   );
 }

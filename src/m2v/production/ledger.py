@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 _query = ContextVar("media_review_query", default=None)
 
 
+def query_active() -> bool:
+    """让嵌套只读校验沿用同一查询，不把缓存延伸到后续写入。"""
+    return _query.get() is not None
+
+
 @contextmanager
 def query():
     """仅在一次只读查询内复用历史、包与报告验证，下一次查询立即重验。"""

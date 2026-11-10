@@ -713,6 +713,38 @@ def test_status_reuses_history_in_one_query_and_rechecks_next_time(work, monkeyp
     assert len(calls) == 2
 
 
+def test_issue_read_deduplicates_proof_but_rechecks_each_independent_read(work, monkeypatch):
+    root, _ = work
+    submit(work, verdict="fail", who="first-failure")
+    submit(work, verdict="fail", who="second-failure")
+    accepted = submit(work, who="fresh")
+    for problem in issues.load(root):
+        problem.update(status="closed", cause="implementation", closureReportId=accepted["id"])
+        issues.update(root, problem)
+    source = root / "core.tsx"
+    original_source = source.read_text(encoding="utf-8")
+    original, calls = reviews._current_report, []
+
+    def checked(root, manifest, identity):
+        calls.append(identity)
+        return original(root, manifest, identity)
+
+    monkeypatch.setattr(reviews, "_current_report", checked)
+    assert {item["status"] for item in issues.load(root)} == {"closed"}
+    assert calls == [accepted["id"]]
+    source.write_text("changed", encoding="utf-8")
+    assert {item["status"] for item in issues.load(root)} == {"open"}
+    assert calls == [accepted["id"]] * 2
+    # 失败缓存也只属于上次读取；恢复来源后能够重验通过，问题原记录不被投影改写。
+    source.write_text(original_source, encoding="utf-8")
+    with ledger.query():
+        assert {item["status"] for item in issues.load(root)} == {"closed"}
+        assert {item["status"] for item in issues.load(root)} == {"closed"}
+    assert calls == [accepted["id"]] * 3
+    saved = issues.parse((outputs(root) / "visual-notes.md").read_text(encoding="utf-8"))
+    assert {item["status"] for item in saved["items"]} == {"closed"}
+
+
 def test_report_import_is_idempotent_and_recovers_interrupted_problem_write(work):
     root, manifest = work
     pack = reviews.package(root, manifest, request())

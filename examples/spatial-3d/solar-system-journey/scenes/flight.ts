@@ -19,8 +19,11 @@ export function createFlight(shots: Shot[], windows: Record<string, Window>, tar
     false, 'catmullrom', 0.5));
   const stations = shots.filter(shot => shot.segment && windows[shot.segment]);
   const transitions = stations.slice(1).map((next, i) => ({
-    start: stations[i].endFrame - 60,
-    end: windows[next.segment!].startFrame - 30,
+    // 缩短跨站后把转向摊在上一段讲述尾部、完整移动与下一站接近中，
+    // 而不是只把原来三秒以上的方向变化塞进一秒过场。
+    start: Math.max(stations[i].startFrame + 60, stations[i].tier === 'hero'
+      ? stations[i].endFrame - 90 : windows[stations[i].segment!].endFrame - 72),
+    end: windows[next.segment!].startFrame + 30,
     from: stations[i].focus?.target ?? stations[i].target,
     to: next.focus?.target ?? next.target,
   }));

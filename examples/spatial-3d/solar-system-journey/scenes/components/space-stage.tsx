@@ -35,16 +35,16 @@ export default function SpaceStage({
       <color attach="background" args={[background]}/>
       <PerspectiveCamera makeDefault fov={fov} near={near} far={far} position={position}/>
       <LookProvider look={look} shots={shots}>
-        <ambientLight intensity={0.4}/>
+        <ambientLight intensity={0.14}/>
         {/* 光源来自世界中心；强度与衰减保持稳定，避免远处天体被照成白盘。 */}
-        <pointLight position={[0, 0, 0]} intensity={1.9} decay={0} color="#fff0d7"/>
+        <pointLight position={[0, 0, 0]} intensity={2.15} decay={0} color="#fff5e5"/>
         {starfield && (
           <Starfield
             count={starCount}
             radius={900}
             seed={starSeed}
-            size={0.9}
-            opacity={T.canvas.starOpacity}
+            size={0.55}
+            opacity={0.30}
           />
         )}
         {children}

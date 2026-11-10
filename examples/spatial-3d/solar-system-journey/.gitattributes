@@ -1,0 +1,2 @@
+# 固定提取器输出为LF，避免Windows检出改变已登记几何源数据的字节摘要。
+/scenes/data/saturn.json text eol=lf

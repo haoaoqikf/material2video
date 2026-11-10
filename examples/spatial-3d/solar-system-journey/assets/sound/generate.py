@@ -5,10 +5,13 @@
 最大相邻步进，循环点与信号内部同样平滑。
 """
 import argparse
+import hashlib
 import json
 import math
 import struct
 import wave
+import sys
+import tempfile
 from pathlib import Path
 
 RATE = 24000
@@ -17,9 +20,22 @@ LOOP_SECONDS = 16.0  # 16 拍，整数个周期
 HERE = Path(__file__).parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--storyboard', type=Path, default=HERE.parents[1] / 'storyboard.json')
+mode = parser.add_mutually_exclusive_group()
+mode.add_argument('--restore', action='store_true', help='按固定配方恢复缺失音轨，不覆盖摘要不符的已有文件')
+mode.add_argument('--check', action='store_true', help='只核验固定配方与现有音轨')
 args = parser.parse_args()
 BOARD = json.loads(args.storyboard.read_text(encoding='utf-8'))
 SCORE_SECONDS = BOARD['scenes'][0]['durationFrames'] / BOARD['fps']
+SHOTS = {shot['id']: shot for shot in BOARD['scenes'][0]['content']['props']['shots']}
+SCHEDULE = {key: [shot['startFrame'] / BOARD['fps'], shot['endFrame'] / BOARD['fps']]
+            for key, shot in SHOTS.items() if shot.get('segment') or key == 'oort-tail'}
+
+
+def source_inputs() -> dict:
+    # Git的autocrlf不改变生成逻辑；用无BOM、统一换行的源码摘要支持跨平台恢复。
+    source = Path(__file__).read_text(encoding='utf-8-sig').encode('utf-8')
+    return {'generatorSha256': hashlib.sha256(source).hexdigest(),
+            'durationSeconds': SCORE_SECONDS, 'schedule': SCHEDULE}
 
 
 def seeded(seed: int):
@@ -34,8 +50,8 @@ def seeded(seed: int):
     return value
 
 
-def write(name: str, seconds: float, signal) -> Path:
-    path = HERE / name
+def write(name: str, seconds: float, signal, directory: Path = HERE) -> Path:
+    path = directory / name
     total = int(round(seconds * RATE))
     with wave.open(str(path), "wb") as out:
         out.setparams((1, 2, RATE, 0, "NONE", "not compressed"))
@@ -107,19 +123,76 @@ def score(t: float) -> float:
     melody = envelope * (0.20 * math.sin(2 * math.pi * note * t)
                          + 0.055 * math.sin(2 * math.pi * note * 2 * t))
     chord = sum(math.sin(2 * math.pi * f * t) for f in (130.8128, 195.9977, 261.6256)) * 0.045
-    climax = math.exp(-((t / SCORE_SECONDS - 0.57) / 0.14) ** 2)
+    earth = sum(SCHEDULE['earth-hero']) / 2
+    saturn = sum(SCHEDULE['saturn-hero']) / 2
+    # 乐句力度跟随实际镜头，不再假定土星永远位于片长57%的位置。
+    warmth = math.exp(-((t - earth) / 4.5) ** 2)
+    climax = math.exp(-((t - saturn) / 5.5) ** 2)
+    outer_start = SCHEDULE['neptune-station'][0]
+    sparse = max(0.0, min(1.0, (t - outer_start) / 10))
     opening = min(1.0, t / 4)
     ending = min(1.0, max(0.0, (SCORE_SECONDS - t) / 8))
-    return (melody * (0.65 + climax * 0.5) + chord + bed(t) * 0.18) * opening * ending
+    return (melody * (0.65 + warmth * 0.18 + climax * 0.5) * (1 - sparse * 0.35)
+            + chord * (1 - sparse * 0.20) + bed(t) * (0.18 + climax * 0.06)) * opening * ending
 
-if __name__ == "__main__":
-    print(write("bed.wav", LOOP_SECONDS, bed))
-    raw = write("score-raw.wav", SCORE_SECONDS, score)
+def generate(directory: Path) -> None:
+    write("bed.wav", LOOP_SECONDS, bed, directory)
+    raw = write("score-raw.wav", SCORE_SECONDS, score, directory)
     # Normalize the independent music stem before authored gain and speech ducking.
     from film_runtime.engine.audio import normalize
-    normalize(raw, HERE / "score.wav", integrated=-18.0, true_peak=-3.0)
+    normalize(raw, directory / "score.wav", integrated=-18.0, true_peak=-3.0)
     raw.unlink()
-    print(HERE / "score.wav")
-    print(write("whoosh.wav", 1.4, whoosh))
-    print(write("shimmer.wav", 1.8, shimmer))
-    print(write("ice.wav", 0.9, ice))
+    write("whoosh.wav", 1.4, whoosh, directory)
+    write("shimmer.wav", 1.8, shimmer, directory)
+    write("ice.wav", 0.9, ice, directory)
+
+
+NAMES = ('bed.wav', 'score.wav', 'whoosh.wav', 'shimmer.wav', 'ice.wav')
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def main() -> None:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+    recipe = HERE / 'recipe.json'
+    if args.restore or args.check:
+        record = json.loads(recipe.read_text(encoding='utf-8'))
+        if record.get('version') != 1 or record.get('inputs') != source_inputs() or set(record.get('files', {})) != set(NAMES):
+            raise RuntimeError('声音配方与当前生成器/镜头预算不符；请由制作过程重新生成并登记，不得静默接受摘要漂移')
+        missing = []
+        for name in NAMES:
+            path = HERE / name
+            if not path.is_file():
+                missing.append(name)
+            elif digest(path) != record['files'][name]['sha256']:
+                raise RuntimeError(f'已有声音摘要不符，不覆盖：{path}')
+        if missing and args.check:
+            raise RuntimeError(f'缺少声音：{missing}；运行 assets/fetch.py 恢复')
+        if missing:
+            with tempfile.TemporaryDirectory(prefix='.restore-', dir=HERE) as temporary:
+                stage = Path(temporary)
+                generate(stage)
+                for name in NAMES:
+                    if digest(stage / name) != record['files'][name]['sha256']:
+                        raise RuntimeError(f'声音恢复摘要不符：{name}；保留已有文件，不改写配方')
+                for name in missing:
+                    with (HERE / name).open('xb') as target:
+                        target.write((stage / name).read_bytes())
+        print('声音配方与5项素材核验通过')
+        return
+    generate(HERE)
+    files = {}
+    for name in NAMES:
+        with wave.open(str(HERE / name)) as wav:
+            seconds = wav.getnframes() / wav.getframerate()
+        files[name] = {'sha256': digest(HERE / name), 'durationSeconds': seconds}
+    recipe.write_text(json.dumps({'version': 1, 'inputs': source_inputs(), 'files': files},
+                                 ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    print(f'已生成{SCORE_SECONDS:.3f}秒配乐及固定恢复配方')
+
+
+if __name__ == '__main__':
+    main()

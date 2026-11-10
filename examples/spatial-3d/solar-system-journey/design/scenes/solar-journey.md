@@ -2,65 +2,44 @@
 
 ## 目标、继承与依据
 
-本场：solar-journey。全片目标：通过空间旅程建立太阳系层次、尺度和遥远感。继承[总设计](../../DESIGN.md)的五维共同语言和采用范围。原指令及历史细节见[原记录](../previous-design.md)。本次只分层整理，不补造外部研究、动作或独立通过。
-
-## 过程判据
-
-离场、空间移动、抵达和停留分别有观察职责，避免短促加速替换天体。天顶附近朝向连续，独立行星分离、卫星从属；过场不能长时间无新信息。世界路径正确仍需核对屏幕尺度、相邻帧位移与实际方向。
+本场覆盖完整十五站旅程，继承[总设计](../../DESIGN.md)的已确认两分钟重构目标与原始指令。研究和参考采用唯一见[RESEARCH.md](../../RESEARCH.md)。正式时点、段落预算、结构尺寸以[行程](../../scenes/journey-plan.json)和[分镜](../../storyboard.json)为准，不在本文复制逐帧执行表。当前按NASA谷神星及土星材质、几何与新光影刷新完整试制和全片验收；历史第三轮通过的来源绑定已过期，不继承为当前通过。
 
 ## 对象、构图与视听机制
 
-单场内部按行程镜头展开；离场、移动、抵达和停留具有不同职责，防止独立行星挤靠或镜头突跳。本场执行入口与时点由分镜关联，以下说明具体编排。
+天体承担身份、材质和空间关系；轨道只作低亮度参照，星场作为背景。普通独立行星不构成近邻伴星，地球/月球、木星/木卫二、土星/土卫六保留从属。地月段从可辨海陆、云层与昼夜进入关系视点，随后关注月面；土星环面固定，从近环面位置下降/侧移到逆光方向显露纤薄与全貌；外层以带、内边界和外层稀疏球状天体分布形成差别，太阳成为最终回望焦点。
 
-## 节拍与执行对应
+普通主体保持右侧或中右构图，名称与一句核心结论位于左侧；有序过程允许主体过渡穿越画面，但必要文字和字幕不得被遮挡。取消重复类型、日距与大矩形信息板，章节只保留当前名称及弱进度。外层标题置于上部留空，结尾一句回望结论；必要示意与完整素材署名置于首尾次要位置，声明不争夺主体。
 
-| 事件/阶段引用 | 编排与观察任务 |
-|---|---|
-| 本场建立、关键变化、稳定 | 以当前场景代码求值；无命名事件不伪造事件表 |
+地球采用已有合法高分辨率日间图、独立云层与云影、低强度夜灯和薄大气，避免厚蓝描边或夜灯压过日面。土星采用原作者Solar System Scope径向颜色/透明度图、固定倾角和解析式环影/透光，球体采用NASA配对扁球与专属UV云带、几何法线及固定粗糙度；保持薄缘、反照、亮环及低亮外围层的共同主次，均非实际观测模拟。关闭使岩质表面和环纹变糊的景深，克制辉光。太阳保留真实来源日面贴图与日冕，移除看似粗管装饰的程序化日珥；不把增加组件数量当品质。
 
+## 节拍编排
 
-## 具体编排依据
-
-以下为本场保留的具体设计；准确帧窗及参数以分镜/代码为准，旧通过不升级。
-
-| 镜头 | 原场景帧窗 [起,止) | 对象、变化与目标 | 实现引用与验收 |
-|---|---|---|---|
-| aerial-dive（A） | 0–360 | sun：从太阳系上方连续俯冲到太阳，无切换。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=aerial-dive]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| sun-station（B） | 360–714 | sun：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=sun-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| sun-to-mercury（B） | 714–924 | mercury：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=sun-to-mercury]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| mercury-station（B） | 924–1329 | mercury：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=mercury-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| mercury-to-venus（B） | 1329–1539 | venus：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=mercury-to-venus]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| venus-station（B） | 1539–1929 | venus：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=venus-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| venus-to-earth（B） | 1929–2139 | earth：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=venus-to-earth]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| earth-hero（A） | 2139–2676 | earth：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=earth-hero]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| earth-to-moon（B） | 2676–2886 | moon：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=earth-to-moon]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| moon-station（B） | 2886–3280 | moon：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=moon-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| moon-to-mars（B） | 3280–3490 | mars：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=moon-to-mars]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| mars-station（B） | 3490–3908 | mars：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=mars-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| mars-to-ceres（B） | 3908–4118 | ceres：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=mars-to-ceres]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| ceres-station（B） | 4118–4448 | ceres：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=ceres-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| ceres-to-jupiter（B） | 4448–4658 | jupiter：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=ceres-to-jupiter]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| jupiter-station（B） | 4658–5136 | jupiter：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=jupiter-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| jupiter-to-saturn（B） | 5136–5346 | saturn：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=jupiter-to-saturn]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| saturn-hero（A） | 5346–5925 | saturn：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=saturn-hero]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| saturn-to-uranus（B） | 5925–6135 | uranus：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=saturn-to-uranus]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| uranus-station（B） | 6135–6534 | uranus：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=uranus-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| uranus-to-neptune（B） | 6534–6744 | neptune：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=uranus-to-neptune]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| neptune-station（B） | 6744–7165 | neptune：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=neptune-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| neptune-to-pluto（B） | 7165–7375 | pluto：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=neptune-to-pluto]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| pluto-station（B） | 7375–7787 | pluto：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=pluto-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| pluto-to-kuiper（B） | 7787–7997 | kuiper：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=pluto-to-kuiper]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| kuiper-station（B） | 7997–8318 | kuiper：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=kuiper-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| kuiper-to-heliopause（B） | 8318–8618 | heliopause：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=kuiper-to-heliopause]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| heliopause-station（B） | 8618–9082 | heliopause：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=heliopause-station]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| heliopause-to-oort（B） | 9082–9322 | oort：空间过场：抬升到黄道面上方，目标从远处持续接近。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=heliopause-to-oort]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| oort-hero（A） | 9322–9894 | oort：站点：2秒接近、旁白绕行、2秒缓离；前置空间过场独立预算。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=oort-hero]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
-| oort-tail（A） | 9894–10473 | oort：收尾：继续向外，太阳成为亮点。 | [storyboard.json](../../storyboard.json) / scene=solar-journey / content.props.shots[id=oort-tail]；[journey.tsx](../../scenes/journey.tsx)；按[体验条件](../previous-design.md#核心体验与时间预算)核对主体认回、方向连续与观察时间 |
+| 镜头/阶段 | 主体与辅助反应 | 镜头/焦点/光影 | 文字与声音 | 观察预期 |
+|---|---|---|---|---|
+| aerial-dive / sun-station | 太阳成为起点，远处天体退到次要 | 从较近上方进入太阳，避免低角度让巨行星叠在日面上 | 简短主题、起点旁白与音乐建立 | 开头快速认出对象，无粗环装饰 |
+| mercury-station / venus-station | 古老陨坑与厚云形成外观区别 | 侧向明暗、可辨接近后讲述，减少重复拉远 | 对象名及一个印象；字幕依实际TTS | 普通站可认回，过场不等待 |
+| earth-hero / earth-to-moon / moon-station | 地球与月球保持同一个局部世界 | 地球细节到母星/卫星关系，再接近月面；不改变世界比例跳切 | 地球温暖主题稍加强；名称随观察保留 | 同时看到关系，月面仍有识别时间 |
+| mars-station / ceres-station | 岩质世界进入稀疏主带 | 清楚区分尘土表面与空间粒子，不做碎石墙 | 简短事实，无新增数据表 | 看到不同世界，避免所有球体同一质感 |
+| jupiter-station / jupiter-to-saturn | 巨行星与卫星分离，下一目的地出现 | 云带/风暴后连续离场，到暗侧近环平面 | 主题渐强，下一段讲述在已可辨时开始 | 两颗独立行星不贴靠，转向可追踪 |
+| saturn-hero | 固定环与球体关系逐渐显露 | 暗侧起步，先显环再稳定逆光观察，保留环面及影带 | 配乐按实际镜头达到重点，少量冰粒艺术音效 | 视角揭示带来空间回报，环不生长或自行翻转 |
+| uranus-station / neptune-station | 倾角、浅青/深蓝构成区别 | 仍维持日光方向，背景天体不抢主体 | 配乐开始疏朗，文字与字幕清楚 | 有独特身份与观察窗口 |
+| pluto-station / kuiper-station | 矮行星放回冰质小天体带 | 心形地貌后逐步公开区域分布 | 保留矮行星及带的名称，不当作第九行星 | 单体到区域层次成立 |
+| heliopause-station / oort-hero / oort-tail | 带、边界、外层球状分布与太阳区别 | 连续向外，边界只是低亮度示意；结尾太阳缩小 | 明示奥尔特云为推测性结构，配乐收束，首尾署名 | 外层结构不混同，结束有尺度回报 |
 
 ## 衔接与实现
 
-首场建立对象和主题，不借前场解释。片尾留出结果消化窗口，保持主题和声音自然收束。正式转场取分镜值，cut允许承接观察对象，不强加非cut效果。复用既有运行时、资源和共享组件；本次未新增画面实现或依赖。
+执行入口[scenes/journey.tsx](../../scenes/journey.tsx)，世界[solar-system.tsx](../../scenes/solar-system.tsx)，几何[layout.tsx](../../scenes/layout.tsx)，路径生成[scripts/lib/paths.mjs](../../scripts/lib/paths.mjs)，正式/诊断共用[flight.ts](../../scenes/flight.ts)。镜头显露不依赖CSS动画或真实时间。侧向视点和螺旋方位共同减少背景独立行星，保留所有场景图对象，不靠隐藏切换。
 
-## 验证范围
+本例当前PostFX不含ToneMapping效果，`look.exposure`和镜头`exposure`的renderer接线当前不渲染为曝光变化；实际明暗调整在光源、材质及后期调色中实现。前文“日面曝光”指材质中的展示光量，不将EV接线当作已经生效的调亮/调暗。
 
-当前媒体、原报告和未完成边界沿[总设计](../../DESIGN.md)；本场按上列具体关系取证。结构整理不授予实际效果通过。
+旁白由实际合成帧长闭合；[measure-narration.py](../../scripts/measure-narration.py)只量测，不替作者重选音色；文本、音色、语速或停顿变化使路径预算明确失效。短段增加控制点密度但仍遵守现有64点契约。普通站转向覆盖上一段尾部、完整移动及下一站接近；hero保留观察直至离场阶段再转向，不让下一目标提前拖走重点构图。日球层顶与奥尔特云采用持续径向拉远，逐段检查实际径向增量与单调性，不再套用绕局部锚点的接近比。
+
+## 验证与有效方案
+
+第三轮历史曾采用总设计登记的同源原生基线：地月、木星到土星、外层结构三个完整窗口均经独立盲看和原目标对照，保持原生和393像素手机显示；完整片段不使用稀疏抽帧伪装运动。具体吸引力、采用理由和保留限制见总设计及研究。逐帧技术量测记录相机位置、转向、FOV、主体尺度和障碍余量，不替代审美观察；声音和全片节奏另验。
+
+声音由当前实际镜头窗口派生主题力度与稀疏/收束，检查音轨时长、旁白字幕窗口、响度、峰值和音效起止。未试听的自然度与感染力不作已验证结论。试制/终审报告和问题只放在outputs/visual-notes.md的唯一记录中，本文后续引用实际有效样品范围，未通过前保持进行中。
+
+前两轮失败与返工保留在原报告。地球云密度、局部曝光及柔化大气外缘按原整体参考核对；土星观察时保持主体朝向，以窄轮廓、相对密度透光及解析遮挡建立球环层次；透明参照线不写深度，避免遮断透明环与大气。外层点群与灰白密度边缘随视距连续调整可视权重，近表面轮廓渐入，避免将内部天体镜头变成亮点墙。点群固定种子与位置不变，环密度参数与点群可视化均为艺术近似。第三轮当时同范围独立通过；后续来源变化及新失败保持原件，当前须重新闭环。
+
+土星内部速度阶段现拆为显环和观察，观察使用揭示后余下预算，仍生成同一hero镜头和固定环几何，不新增跳切。短预算按现有帧数取不超过一半的显环窗口，避免负时长。端点速度按较慢阶段保持可行，帧数由生成器计算，不在设计文档另设执行参数。原生完整窗口另补谷神星，共四段；当前辉光前数值保护后正在刷新采集，通过范围以总设计索引及实际报告为准，不把旧绑定当作当前完整验收。

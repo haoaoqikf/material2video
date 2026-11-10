@@ -4,7 +4,7 @@
  * 后期只作用于 canvas，不影响共享字幕 DOM 层；grain 用「固定种子 + 帧号」的
  * 确定性哈希，跨机器、跨次运行一致。
  */
-import {useRef, type ReactNode} from 'react';
+import {useEffect, useMemo, useRef, type ReactNode} from 'react';
 import * as THREE from 'three';
 import {useFrame, useThree} from '@react-three/fiber';
 import {
@@ -12,6 +12,7 @@ import {
   HueSaturation, Vignette, wrapEffect,
 } from '@react-three/postprocessing';
 import {BlendFunction, Effect} from 'postprocessing';
+import {FiniteColorPass} from './finite-color';
 import {
   SHOT_BLEND_FRAMES, ease, focusDistanceAt, hashSeed, useLook,
   type Look, type LutName, type PostSettings, type Shot,
@@ -84,6 +85,8 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
   const settings = resolvePost(look, shot);
   const grade = GRADES[settings.lut] ?? GRADES.neutral;
   const grain = useRef<GrainEffect>(null);
+  const finiteColor = useMemo(() => new FiniteColorPass(), []);
+  useEffect(() => () => finiteColor.dispose(), [finiteColor]);
   // 焦点拉移：镜头内按进度插值，再按相机近远裁剪面归一化成 DOF 的 0–1 距离。
   const span = Math.max(1, (shot?.endFrame ?? 1) - (shot?.startFrame ?? 0));
   const progress = shot ? (frame - shot.startFrame) / span : 0;
@@ -109,7 +112,8 @@ export function PostFX({enabled = true, children}: {enabled?: boolean; children?
   });
   if (!enabled) return null;
   return (
-    <EffectComposer multisampling={0} enableNormalPass={false}>
+    <EffectComposer multisampling={0} enableNormalPass={false} frameBufferType={THREE.HalfFloatType}>
+      <primitive object={finiteColor} dispose={null}/>
       {settings.bloom > 0
         ? <Bloom intensity={settings.bloom} luminanceThreshold={0.82} luminanceSmoothing={0.12} mipmapBlur/>
         : <></>}

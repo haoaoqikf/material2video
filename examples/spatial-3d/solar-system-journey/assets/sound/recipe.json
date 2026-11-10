@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "inputs": {
+    "generatorSha256": "22547a81b546e948324c2b44b3ec79ee971b1819be32a9fb68d1e8fb449e52cc",
+    "durationSeconds": 120.0,
+    "schedule": {
+      "sun-station": [
+        3.0,
+        7.0
+      ],
+      "mercury-station": [
+        8.5,
+        13.0
+      ],
+      "venus-station": [
+        14.5,
+        18.966666666666665
+      ],
+      "earth-hero": [
+        20.566666666666666,
+        27.6
+      ],
+      "moon-station": [
+        28.6,
+        32.8
+      ],
+      "mars-station": [
+        34.6,
+        39.45
+      ],
+      "ceres-station": [
+        41.05,
+        44.983333333333334
+      ],
+      "jupiter-station": [
+        46.983333333333334,
+        53.516666666666666
+      ],
+      "saturn-hero": [
+        55.916666666666664,
+        67.3
+      ],
+      "uranus-station": [
+        69.5,
+        74.45
+      ],
+      "neptune-station": [
+        76.05,
+        81.05
+      ],
+      "pluto-station": [
+        82.85,
+        86.96666666666667
+      ],
+      "kuiper-station": [
+        88.56666666666666,
+        92.8
+      ],
+      "heliopause-station": [
+        95.3,
+        100.8
+      ],
+      "oort-hero": [
+        103.3,
+        112.0
+      ],
+      "oort-tail": [
+        112.0,
+        120.0
+      ]
+    }
+  },
+  "files": {
+    "bed.wav": {
+      "sha256": "945212863924d6d52cb2311642278d9da8563f21201edea3950639b40b85551d",
+      "durationSeconds": 16.0
+    },
+    "score.wav": {
+      "sha256": "193c940efc47c3679051c733c9d7328df902ac160a03ec0a48e46b6f969511d6",
+      "durationSeconds": 120.0
+    },
+    "whoosh.wav": {
+      "sha256": "2ca8a3413fe0897f199661823d4cfbf412fedf6c75982ff838749be5256b6395",
+      "durationSeconds": 1.4
+    },
+    "shimmer.wav": {
+      "sha256": "88c476dcae760b2334be7cded7add39bb77be9d3e582a7a4cdc221bd8940724b",
+      "durationSeconds": 1.8
+    },
+    "ice.wav": {
+      "sha256": "7e140b48fac24764c59c5406bfcce537bf60d27c15affb87f252c487fa745f9e",
+      "durationSeconds": 0.9
+    }
+  }
+}

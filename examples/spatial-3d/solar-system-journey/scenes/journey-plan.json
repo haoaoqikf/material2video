@@ -1,0 +1,175 @@
+{
+  "fps": 60,
+  "targetFrames": 7200,
+  "leadInFrames": 180,
+  "stations": [
+    {
+      "body": "sun",
+      "startSeconds": 3,
+      "text": "太阳，照亮旅程，牵引着行星。",
+      "entryFrames": 0,
+      "postFrames": 24,
+      "transitFrames": 90,
+      "frames": 200
+    },
+    {
+      "body": "mercury",
+      "startSeconds": 9,
+      "text": "水星离太阳最近，满身古老陨坑。",
+      "entryFrames": 30,
+      "postFrames": 18,
+      "transitFrames": 90,
+      "frames": 216
+    },
+    {
+      "body": "venus",
+      "startSeconds": 15,
+      "text": "金星厚厚的云层，藏着炽热的世界。",
+      "entryFrames": 30,
+      "postFrames": 18,
+      "transitFrames": 96,
+      "frames": 220
+    },
+    {
+      "body": "earth",
+      "startSeconds": 21,
+      "text": "地球，我们的家。蓝色海洋，流动的云。",
+      "entryFrames": 36,
+      "postFrames": 90,
+      "transitFrames": 60,
+      "frames": 261
+    },
+    {
+      "body": "moon",
+      "startSeconds": 29,
+      "text": "月球陪伴地球，保存古老的撞击。",
+      "entryFrames": 24,
+      "postFrames": 18,
+      "transitFrames": 108,
+      "frames": 210
+    },
+    {
+      "body": "mars",
+      "startSeconds": 35,
+      "text": "火星的红色尘土下，留着古老水流的痕迹。",
+      "entryFrames": 30,
+      "postFrames": 18,
+      "transitFrames": 96,
+      "frames": 243
+    },
+    {
+      "body": "ceres",
+      "startSeconds": 41,
+      "text": "谷神星，身处稀疏的小行星带。",
+      "entryFrames": 24,
+      "postFrames": 18,
+      "transitFrames": 120,
+      "frames": 194
+    },
+    {
+      "body": "jupiter",
+      "startSeconds": 47,
+      "text": "木星，最大的行星。宽阔云带间，风暴翻涌。",
+      "entryFrames": 42,
+      "postFrames": 54,
+      "transitFrames": 144,
+      "frames": 296
+    },
+    {
+      "body": "saturn",
+      "startSeconds": 56,
+      "text": "土星环，由无数冰粒组成。从侧面到全貌，看见纤薄与辽阔。",
+      "entryFrames": 60,
+      "postFrames": 180,
+      "transitFrames": 132,
+      "frames": 381
+    },
+    {
+      "body": "uranus",
+      "startSeconds": 70,
+      "text": "天王星，一颗几乎侧躺自转的冰巨星。",
+      "entryFrames": 30,
+      "postFrames": 18,
+      "transitFrames": 96,
+      "frames": 249
+    },
+    {
+      "body": "neptune",
+      "startSeconds": 76,
+      "text": "海王星，八颗行星中离太阳最远的一颗。",
+      "entryFrames": 30,
+      "postFrames": 24,
+      "transitFrames": 108,
+      "frames": 246
+    },
+    {
+      "body": "pluto",
+      "startSeconds": 83,
+      "text": "冥王星，藏着心形地貌的矮行星。",
+      "entryFrames": 24,
+      "postFrames": 18,
+      "transitFrames": 96,
+      "frames": 205
+    },
+    {
+      "body": "kuiper",
+      "startSeconds": 89,
+      "text": "柯伊伯带，冰质小天体的家园。",
+      "entryFrames": 30,
+      "postFrames": 24,
+      "transitFrames": 150,
+      "frames": 188
+    },
+    {
+      "body": "heliopause",
+      "startSeconds": 96,
+      "text": "日球层顶，太阳风与星际介质的边界。",
+      "entryFrames": 42,
+      "postFrames": 42,
+      "transitFrames": 150,
+      "frames": 233
+    },
+    {
+      "body": "oort",
+      "startSeconds": 104,
+      "text": "更远处，是推测中的奥尔特云。回望太阳，只剩一个亮点。",
+      "entryFrames": 42,
+      "postFrames": 120,
+      "transitFrames": 0,
+      "frames": 360
+    }
+  ],
+  "structures": {
+    "mainBelt": {
+      "innerRadius": 28,
+      "outerRadius": 36,
+      "thickness": 0.7
+    },
+    "kuiper": {
+      "innerRadius": 130,
+      "outerRadius": 164,
+      "thickness": 6
+    },
+    "heliopause": {
+      "radius": 205,
+      "opacity": 0.32
+    },
+    "oort": {
+      "radius": 290,
+      "thickness": 64
+    }
+  },
+  "measurement": {
+    "narrationSha256": "8dd6a75d1987c6135a5a0154a53ddd0657e37a38ea42695457b2e224b958ea89",
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": "-2%",
+    "speech": {
+      "headPad": 0.08,
+      "pause": {
+        "comma": 0.15,
+        "period": 0.55,
+        "paragraph": 0.8
+      }
+    }
+  }
+}

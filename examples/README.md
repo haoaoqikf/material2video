@@ -7,7 +7,7 @@
 | 图文动效 `text-motion` | [fold](text-motion/fold/README.md) |
 | 数据演化 `data-evolution` | [compound-interest](data-evolution/compound-interest/README.md)、[compound-connect](data-evolution/compound-connect/README.md) |
 | 原理隐喻 `principle-metaphor` | [pigeon](principle-metaphor/pigeon/README.md)、[luck-on-stage](principle-metaphor/luck-on-stage/README.md) |
-| 三维空间 `spatial-3d` | [solar-system-journey](spatial-3d/solar-system-journey/README.md) |
+| 三维空间 `spatial-3d` | [solar-system-journey](spatial-3d/solar-system-journey/README.md)（120秒连续旅程编排） |
 | 纪实素材剪辑 `documentary-edit` | [american-science-milestones](documentary-edit/american-science-milestones/README.md) |
 
 先按各示例 README 安装依赖并恢复素材与字体，然后在作品目录直接运行：

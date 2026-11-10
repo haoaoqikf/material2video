@@ -100,9 +100,18 @@ def scene_sources(root: Path, scene: dict) -> dict:
         if re.search(r'\bimport\s*\(\s*[^\s\'"]', body):
             warnings.append('动态导入，保守绑定作品源码、素材与字体')
     combined = '\n'.join(bodies) + json.dumps(scene.get('content', {}).get('props', {}), ensure_ascii=False)
-    literal_ids = set(re.findall(r"\buseMediaAsset\(\s*['\"]([^'\"]+)['\"]\s*\)", combined))
-    if len(re.findall(r'\buseMediaAsset\s*\(', combined)) > len(re.findall(
-            r"\buseMediaAsset\(\s*['\"]([^'\"]+)['\"]\s*\)", combined)):
+    literal_ids, dynamic_media = set(), False
+    for match in re.finditer(r'\buseMediaAsset\s*\(', combined):
+        # 可达SDK中包含钩子声明；声明的id形参不是动态调用，不能因此把
+        # 无关音轨、脚本和缓存全部绑入画面，导致真实本地采集永远验证失败。
+        if re.search(r'\bfunction\s*$', combined[max(0, match.start() - 64):match.start()]):
+            continue
+        literal = re.match(r"\s*['\"]([^'\"]+)['\"]\s*\)", combined[match.end():])
+        if literal:
+            literal_ids.add(literal[1])
+        else:
+            dynamic_media = True
+    if dynamic_media:
         warnings.append('动态素材 ID，保守绑定全部登记素材')
     record = root / 'assets/media-sources.json'
     selected_assets = []

@@ -1,7 +1,8 @@
 /**
  * 太阳系一镜到底的相机路径提案生成器（入口）。
  *
- * 只读 `scenes/layout.tsx`，几何、速度与时间窗由 `lib/paths.mjs` 纯计算得出；
+ * 读取 `scenes/layout.tsx`；`lib/paths.mjs` 读取已量测行程和作品音色，
+ * 校验预算未过期后计算几何、速度与时间窗；
  * 本入口负责 CLI 参数、打包布局、写出 `outputs/path-proposal.json` 与
  * `outputs/storyboard.generated.json`，加 `--merge` 时合并 shots 与核定时间预算，
  * 保留旁白原文，最后打印报告。
@@ -97,9 +98,12 @@ const nearest = [...minDistances].sort((a, b) => a.nearest.distance - b.nearest.
 for (const item of nearest) {
   console.log(`  最近 ${item.shot} / ${item.nearest.id}: ${item.nearest.distance.toFixed(2)}`);
 }
-const lowestApproach = [...approachRatios].sort((a, b) =>
+const lowestApproach = approachRatios.filter(item => item.mode !== 'regional-pullback').sort((a, b) =>
   Math.min(a.first, a.last) - Math.min(b.first, b.last)).slice(0, 3);
 for (const item of lowestApproach) {
   console.log(`  接近比 ${item.shot}: 首 ${item.first}× / 末 ${item.last}×（最近 ${item.nearest}）`);
+}
+for (const item of approachRatios.filter(item => item.mode === 'regional-pullback')) {
+  console.log(`  区域拉远 ${item.shot}: 半径 ${item.firstRadius} → ${item.lastRadius}，扩展 ${item.expansion}×，最小径向步进 ${item.minimumStep}`);
 }
 if (problems.length) process.exitCode = 1;

@@ -17,7 +17,7 @@ export type OrbitRingProps = {
 export default function OrbitRing({
   radius, active = false, faint = false,
   color = '#496b82', activeColor = '#ddbd7c',
-  segments = 256, opacity = 0.055, activeOpacity = 0.24,
+  segments = 256, opacity = 0.025, activeOpacity = 0.075,
   rotation = [0, 0, 0],
 }: OrbitRingProps) {
   const geometry = useMemo(
@@ -33,6 +33,8 @@ export default function OrbitRing({
     () => new THREE.LineBasicMaterial({
       color: active ? activeColor : color,
       transparent: true,
+      // 半透明参照线不写深度，否则会在后绘制的透明环/大气上切出黑缝。
+      depthWrite: false,
       opacity: active ? activeOpacity : faint ? 0.015 : opacity,
     }),
     [active, activeColor, color, faint, opacity, activeOpacity],

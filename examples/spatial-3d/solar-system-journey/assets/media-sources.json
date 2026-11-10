@@ -12,7 +12,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_mercury.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "venus",
@@ -25,7 +34,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://media.githubusercontent.com/media/TanvirAhmedArnab/SolarSystem/main/SourceAssets/ThirdParty/Textures/SolarSystemScope/2k_venus_atmosphere.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "mars",
@@ -38,7 +56,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_mars.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "uranus",
@@ -51,7 +78,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_uranus.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "neptune",
@@ -64,7 +100,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_neptune.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "moon",
@@ -77,7 +122,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://raw.githubusercontent.com/pjcigan/skyplothelper/main/examples/data/planet_maps/2k_moon.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "clouds",
@@ -90,7 +144,16 @@
       "sourceUrl": "https://www.solarsystemscope.com/textures/",
       "mediaUrl": "https://media.githubusercontent.com/media/TanvirAhmedArnab/SolarSystem/main/SourceAssets/ThirdParty/Textures/SolarSystemScope/2k_earth_clouds.jpg",
       "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/"
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "europa",
@@ -103,7 +166,16 @@
       "sourceUrl": "https://maps.jpl.nasa.gov/tmaps/jupiter.html",
       "mediaUrl": "https://maps.jpl.nasa.gov/tmaps/pix/jup2vss2.jpg",
       "author": "NASA / JPL-Caltech / USGS",
-      "license": "JPL image use policy — https://www.jpl.nasa.gov/jpl-image-use-policy/"
+      "license": "JPL image use policy — https://www.jpl.nasa.gov/jpl-image-use-policy/",
+      "sourceType": "official",
+      "publisher": "NASA / JPL-Caltech / USGS",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.jpl.nasa.gov/jpl-image-use-policy/",
+        "checkedAt": "2026-11-10",
+        "note": "用于教育和信息性天体纹理展示；保留具体任务/机构署名，无人物、标志或背书暗示；未把一般图像政策扩大为第三方素材授权。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "pluto",
@@ -119,7 +191,16 @@
       "license": "NASA media usage guidelines — https://www.nasa.gov/nasa-brand-center/images-and-media/",
       "target": "pluto",
       "role": "color",
-      "colorSpace": "srgb"
+      "colorSpace": "srgb",
+      "sourceType": "official",
+      "publisher": "NASA / JHUAPL / SwRI",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "checkedAt": "2026-11-10",
+        "note": "用于教育和信息性天体纹理展示；保留具体任务/机构署名，无人物、标志或背书暗示；未把一般图像政策扩大为第三方素材授权。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "sun",
@@ -136,7 +217,16 @@
       "target": "sun",
       "role": "color",
       "colorSpace": "srgb",
-      "processing": ""
+      "processing": "",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "earth",
@@ -153,7 +243,16 @@
       "target": "earth",
       "role": "color",
       "colorSpace": "srgb",
-      "processing": ""
+      "processing": "",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "jupiter",
@@ -170,24 +269,16 @@
       "target": "jupiter",
       "role": "color",
       "colorSpace": "srgb",
-      "processing": ""
-    },
-    {
-      "id": "saturn",
-      "path": "assets/media/0d39a4a490c87c3edabe00a3881a29bb3418364178c79c534fe0986e97e09853.jpg",
-      "kind": "image",
-      "width": 4096,
-      "height": 2048,
-      "durationSeconds": null,
-      "sha256": "0d39a4a490c87c3edabe00a3881a29bb3418364178c79c534fe0986e97e09853",
-      "sourceUrl": "https://www.solarsystemscope.com/textures/",
-      "mediaUrl": "https://www.solarsystemscope.com/textures/download/8k_saturn.jpg",
-      "author": "Solar System Scope / INOVE",
-      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
-      "target": "saturn",
-      "role": "color",
-      "colorSpace": "srgb",
-      "processing": ""
+      "processing": "",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "titan",
@@ -204,24 +295,15 @@
       "target": "titan",
       "role": "color",
       "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py：原生 4096×2048 雾霾，不展示地表"
-    },
-    {
-      "id": "rings",
-      "path": "assets/media/83a196b4a877186d1072f5892f6c7added4e0f304f0b862eac26101f07968798.png",
-      "kind": "image",
-      "width": 4096,
-      "height": 512,
-      "durationSeconds": null,
-      "sha256": "83a196b4a877186d1072f5892f6c7added4e0f304f0b862eac26101f07968798",
-      "sourceUrl": "未知",
-      "mediaUrl": "未知",
-      "author": "material2video 原创程序化材质",
-      "license": "CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/",
-      "target": "saturn",
-      "role": "ring",
-      "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py：原生 4096×512 径向环纹理与卡西尼缝艺术示意，非旧图插值"
+      "processing": "assets/materials/generate.py：原生 4096×2048 雾霾，不展示地表",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "sun-normal",
@@ -238,7 +320,15 @@
       "target": "sun",
       "role": "normal",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "sun-roughness",
@@ -255,7 +345,15 @@
       "target": "sun",
       "role": "roughness",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "sun-emissive",
@@ -272,7 +370,16 @@
       "target": "sun",
       "role": "emissive",
       "colorSpace": "srgb",
-      "processing": "太阳自发光日面"
+      "processing": "太阳自发光日面",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "earth-normal",
@@ -289,7 +396,16 @@
       "target": "earth",
       "role": "normal",
       "colorSpace": "linear",
-      "processing": "TIFF 转无损 PNG；normal 不放大；roughness = 235 - specular × 0.8（8 bit）"
+      "processing": "TIFF 转无损 PNG；normal 不放大；roughness = 235 - specular × 0.8（8 bit）",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "earth-roughness",
@@ -306,7 +422,16 @@
       "target": "earth",
       "role": "roughness",
       "colorSpace": "linear",
-      "processing": "TIFF 转无损 PNG；normal 不放大；roughness = 235 - specular × 0.8（8 bit）"
+      "processing": "TIFF 转无损 PNG；normal 不放大；roughness = 235 - specular × 0.8（8 bit）",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "earth-emissive",
@@ -323,58 +448,16 @@
       "target": "earth",
       "role": "emissive",
       "colorSpace": "srgb",
-      "processing": ""
-    },
-    {
-      "id": "saturn-normal",
-      "path": "assets/media/e2326dbe2f2672f2a9709451f5b90de733a2f644bc6cfb455e967b092465d7ae.png",
-      "kind": "image",
-      "width": 4096,
-      "height": 2048,
-      "durationSeconds": null,
-      "sha256": "e2326dbe2f2672f2a9709451f5b90de733a2f644bc6cfb455e967b092465d7ae",
-      "sourceUrl": "未知",
-      "mediaUrl": "未知",
-      "author": "material2video 原创程序化材质",
-      "license": "CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/",
-      "target": "saturn",
-      "role": "normal",
-      "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
-    },
-    {
-      "id": "saturn-roughness",
-      "path": "assets/media/48fbcb5e3ff385631267aec00ccf56f5fa189c8755e3d2f1ce04dd95533c0c10.png",
-      "kind": "image",
-      "width": 4096,
-      "height": 2048,
-      "durationSeconds": null,
-      "sha256": "48fbcb5e3ff385631267aec00ccf56f5fa189c8755e3d2f1ce04dd95533c0c10",
-      "sourceUrl": "未知",
-      "mediaUrl": "未知",
-      "author": "material2video 原创程序化材质",
-      "license": "CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/",
-      "target": "saturn",
-      "role": "roughness",
-      "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
-    },
-    {
-      "id": "saturn-emissive",
-      "path": "assets/media/fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453.png",
-      "kind": "image",
-      "width": 4096,
-      "height": 2048,
-      "durationSeconds": null,
-      "sha256": "fb68aa9614c4e488178e1c453f3449d8728e016071b44754ba0eee25e3c91453",
-      "sourceUrl": "未知",
-      "mediaUrl": "未知",
-      "author": "material2video 原创程序化材质",
-      "license": "CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/",
-      "target": "saturn",
-      "role": "emissive",
-      "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科普三维球面展示；保留原作者、CC BY 4.0链接及纹理/光影调整说明；缺测区域为艺术填充，不用于地形测量。",
+        "conditionsMet": true
+      }
     },
     {
       "id": "jupiter-normal",
@@ -391,7 +474,15 @@
       "target": "jupiter",
       "role": "normal",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "jupiter-roughness",
@@ -408,7 +499,15 @@
       "target": "jupiter",
       "role": "roughness",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "jupiter-emissive",
@@ -425,7 +524,15 @@
       "target": "jupiter",
       "role": "emissive",
       "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "pluto-normal",
@@ -442,7 +549,15 @@
       "target": "pluto",
       "role": "normal",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "pluto-roughness",
@@ -459,7 +574,15 @@
       "target": "pluto",
       "role": "roughness",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "pluto-emissive",
@@ -476,7 +599,15 @@
       "target": "pluto",
       "role": "emissive",
       "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "titan-normal",
@@ -493,7 +624,15 @@
       "target": "titan",
       "role": "normal",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "titan-roughness",
@@ -510,7 +649,15 @@
       "target": "titan",
       "role": "roughness",
       "colorSpace": "linear",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
     },
     {
       "id": "titan-emissive",
@@ -527,7 +674,112 @@
       "target": "titan",
       "role": "emissive",
       "colorSpace": "srgb",
-      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光"
+      "processing": "assets/materials/generate.py；法线/粗糙度为艺术微表面，非高程；emissive 为不自发光天体的零发光",
+      "sourceType": "other",
+      "publisher": "material2video",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "checkedAt": "2026-11-10",
+        "note": "本工程原创生成器与同目录CC0声明；用于程序化材质艺术示意，不作为观测数据。"
+      }
+    },
+    {
+      "id": "rings",
+      "path": "assets/media/4b0644b2f3ef259fd0bfaedd9dc52f9e7d9738f65f50363e8c4dd19f650d7334.png",
+      "kind": "image",
+      "width": 2048,
+      "height": 125,
+      "durationSeconds": null,
+      "sha256": "4b0644b2f3ef259fd0bfaedd9dc52f9e7d9738f65f50363e8c4dd19f650d7334",
+      "sourceUrl": "https://www.solarsystemscope.com/textures/",
+      "mediaUrl": "https://media.githubusercontent.com/media/TanvirAhmedArnab/SolarSystem/main/SourceAssets/ThirdParty/Textures/SolarSystemScope/2k_saturn_ring_alpha.png",
+      "author": "Solar System Scope / INOVE",
+      "license": "CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/",
+      "sourceType": "open-library",
+      "publisher": "Solar System Scope / INOVE",
+      "description": "原作者2048×125径向环带颜色与透明度图；原文件不修改，网页按半径映射并做艺术光照。通过公开镜像下载，已与Git LFS原件摘要核对。",
+      "usage": {
+        "status": "conditional",
+        "evidenceUrl": "https://www.solarsystemscope.com/textures/",
+        "checkedAt": "2026-11-10",
+        "note": "用于科学传播三维环带展示；已核原作者CC BY 4.0，保留作者、许可及来源，说明径向映射和光影为艺术处理，不把镜像视为原创授权主体。",
+        "conditionsMet": true
+      },
+      "role": "ring",
+      "target": "saturn"
+    },
+    {
+      "id": "ceres",
+      "path": "assets/media/0eccee05b9c3744c89c53735b9757f4d13c9b696523350778e907d847880d637.jpg",
+      "kind": "image",
+      "width": 4096,
+      "height": 2048,
+      "durationSeconds": null,
+      "sha256": "0eccee05b9c3744c89c53735b9757f4d13c9b696523350778e907d847880d637",
+      "sourceUrl": "https://science.nasa.gov/resource/ceres-3d-model/",
+      "mediaUrl": "未知",
+      "author": "NASA Visualization Technology Applications and Development (VTAD)",
+      "license": "NASA Media Usage Guidelines — educational/informational use; https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "sourceType": "official",
+      "publisher": "NASA Science / VTAD",
+      "description": "NASA Ceres 3D USDZ原包中的4096×2048灰度表面图；仅解包，不改写图片字节。",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "checkedAt": "2026-11-10",
+        "note": "NASA准则明确涵盖三维模型纹理和多边形数据，允许教育/信息用途；用于科普球面展示，署名NASA VTAD，不暗示背书。来源页未标注第三方版权。原包https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/c/Ceres_1_1000.usdz；展示光影和压缩布局为艺术处理，不声称实测高程、真实比例或实时位置。"
+      },
+      "role": "color",
+      "target": "ceres"
+    },
+    {
+      "id": "ceres-normal",
+      "path": "assets/media/7727b4e4ce9ba601da48f8e6373ac8156a7272e4522ace741526fc03ad27fe64.jpg",
+      "kind": "image",
+      "width": 2048,
+      "height": 1024,
+      "durationSeconds": null,
+      "sha256": "7727b4e4ce9ba601da48f8e6373ac8156a7272e4522ace741526fc03ad27fe64",
+      "sourceUrl": "https://science.nasa.gov/resource/ceres-3d-model/",
+      "mediaUrl": "未知",
+      "author": "NASA Visualization Technology Applications and Development (VTAD)",
+      "license": "NASA Media Usage Guidelines — educational/informational use; https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "sourceType": "official",
+      "publisher": "NASA Science / VTAD",
+      "description": "NASA Ceres 3D USDZ原包中的2048×1024法线图；仅解包，不改写图片字节。",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "checkedAt": "2026-11-10",
+        "note": "NASA准则明确涵盖三维模型纹理和多边形数据，允许教育/信息用途；用于科普球面展示，署名NASA VTAD，不暗示背书。来源页未标注第三方版权。原包https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/c/Ceres_1_1000.usdz；展示光影和压缩布局为艺术处理，不声称实测高程、真实比例或实时位置。"
+      },
+      "role": "normal",
+      "target": "ceres"
+    },
+    {
+      "id": "saturn",
+      "path": "assets/media/2b4628833c2610ac6677f729376c00440a6bc4df4f85b4928519179e37536f4b.png",
+      "kind": "image",
+      "width": 4096,
+      "height": 3072,
+      "durationSeconds": null,
+      "sha256": "2b4628833c2610ac6677f729376c00440a6bc4df4f85b4928519179e37536f4b",
+      "sourceUrl": "https://science.nasa.gov/resource/saturn-3d-model/",
+      "mediaUrl": "未知",
+      "author": "NASA Visualization Technology Applications and Development (VTAD)",
+      "license": "NASA Media Usage Guidelines — educational/informational use; https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "sourceType": "official",
+      "publisher": "NASA Science / VTAD",
+      "description": "NASA Saturn GLB embedded 4096x3072 cloud atlas, original PNG bytes; used with its matched oblate geometry and UV.",
+      "usage": {
+        "status": "explicit-allowed",
+        "evidenceUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+        "checkedAt": "2026-11-10",
+        "note": "NASA media guidelines explicitly cover 3D model textures and polygon data. Educational visualization, credited NASA VTAD, no endorsement. Source page has no third-party copyright mark. Original archive: https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/s/Saturn_1_120536.glb . Lighting, ring scattering, distances and scale remain artistic approximations."
+      },
+      "role": "color",
+      "target": "saturn"
     }
   ]
 }

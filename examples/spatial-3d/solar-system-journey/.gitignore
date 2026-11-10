@@ -14,5 +14,6 @@ assets/media/
 assets/sound/*
 !assets/sound/*.py
 !assets/sound/LICENSE.md
+!assets/sound/recipe.json
 assets/sound-sources.json
 src/assets/fonts/*.ttf

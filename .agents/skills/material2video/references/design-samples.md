@@ -34,6 +34,8 @@ AI 图片可以辅助构思、风格讨论和参考研究，须明确标识来�
 
 只需有效 project.json、作品 scenes/ 下的 TSX、可选 props JSON，以及验证窗口；不要求完整分镜、配音或全片准备。场景接口、字体就绪与时间实现见[运行时](code-scene-runtime.md)。
 
+已有正式分镜的作品，可由试制入口直接导入同一分镜和行程，props只传窗口偏移等少量参数，避免把大量路径控制点复制进命令行而超过Windows参数长度。实际可达文件仍纳入采集绑定；完整动作窗口按绝对帧映射，不能因缩短试制而重算成不同运动。
+
 ```powershell
 uv run m2v sample capture --project <作品> --entry scenes/core.tsx --props sample-props.json --duration-seconds 3 --frame 30 --frame 75
 uv run m2v sample serve --project <作品> --id <采集ID>
@@ -55,7 +57,7 @@ uv run m2v review import --project <作品> --file <真实对照报告.json>
 uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <达到目标的具体选案依据>
 ```
 
-deliver 校验同一次原生采集、当前周期/来源、同评审者的 trial 独立双通过、原生及手机显示尺寸、完整静帧与过程范围、实际参考，以及当前周期必改项关闭。修复重采集用稳定的入口、帧率和画幅身份比较复查范围，每个报告仍绑定各自采集的实际摘要；完整静帧与过程、原条件、目标和显示范围不能降低。原生样品周期存在未关闭必改或历史损坏时，review start 拒绝重开。用户明确换目标时使用review retarget在原周期保留替代记录，仍须登记后重新独立双通过，不用新周期或手改问题块代替。通过后复制已评静帧与视频到 `outputs/sample-deliveries/<ID>/`，保留 delivery.json，不重复渲染或编码；相同依据可重用，不能覆盖旧交付。该目录及作品内容均不入库。
+deliver 校验同一次原生采集、当前周期/来源、同评审者的 trial 独立双通过、原生及手机显示尺寸、完整静帧与过程范围、实际参考，以及当前周期必改项关闭。修复重采前从原`capture.json`读取`durationInFrames`、`fps`与`stills[].frame`派生时长及取帧参数，核对原帧位，不凭记忆手填。重采集用稳定的入口、帧率和画幅身份比较复查范围，每个报告仍绑定各自采集的实际摘要；完整静帧与过程、原条件、目标和显示范围不能降低。原生样品周期存在未关闭必改或历史损坏时，review start 拒绝重开。用户明确换目标时使用review retarget在原周期保留替代记录，仍须登记后重新独立双通过，不用新周期或手改问题块代替。通过后复制已评静帧与视频到 `outputs/sample-deliveries/<ID>/`，保留 delivery.json，不重复渲染或编码；相同依据可重用，不能覆盖旧交付。该目录及作品内容均不入库。
 
 通用 review 仍可用于内部探索图片；其 pass 不替代原生凭据或样品交付检查。sample serve/capture 也是内部检查入口，成功不代表样品通过。最终由作者核对原目标、确认选案并展示通过的样品，不能以工具 pass 免责。
 

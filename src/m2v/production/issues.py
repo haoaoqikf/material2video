@@ -89,6 +89,18 @@ def parse(source):
 
 
 def load(root: Path, *, required=False, check_closures=True, pending_report=None):
+    # 多个问题常由同一双评关闭，复用关系还会反复访问同一依赖图。
+    # 只在本次只读加载内共享完整校验结果；返回后再更新/发布，不跨写入缓存。
+    # 复用冲突核验的原始读取不新建查询，循环依赖仍由resolve的栈拒绝。
+    if check_closures and not ledger.query_active():
+        with ledger.query():
+            return _load(root, required=required, check_closures=True,
+                         pending_report=pending_report)
+    return _load(root, required=required, check_closures=check_closures,
+                 pending_report=pending_report)
+
+
+def _load(root: Path, *, required=False, check_closures=True, pending_report=None):
     path = outputs(root) / "visual-notes.md"
     if not path.exists() and not required:
         return []
