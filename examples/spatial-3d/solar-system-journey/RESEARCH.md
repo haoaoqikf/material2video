@@ -195,3 +195,5 @@ NASA Ceres贴图版的独立试制四段盲看均通过，地月、谷神星和�
 十四项原必改已通过当前证据闭合。四个当前原生样品均已实际sample deliver，索引`outputs/trials/deliveries-finite-current.json`；旧批次已发布的Ceres/外层以相同依据验证复用，新代码继续地月/土星发布，原关闭历史和媒体不改写。当前视觉复用均`newObservation=false`，与这次新代理全片真实观察分开记录。旧重建基线与f178/042a原失败片在本次管理清理后SHA再次核验一致，见`outputs/trials/baselines-after-finite-render.json`。最终制作状态、Git实现提交及OpenSpec归档随后核验，不把本段媒体验收等同于尚未执行的Git动作。
 
 最终制作状态已实际查询：`production.complete=true`，`issues=[]`、`diagnostics=[]`，当前候选delivered且QA、准备与终审双评绑定一致。完整历史状态见`outputs/trials/finite-production-status.json`，摘要`finite-release-summary.json`。至此媒体制作、四样品及原必改闭环完成；Git实现提交和OpenSpec归档按项目约定继续收口。
+
+实现提交`fb6dcb99`已实际通过；16项任务完成，五项要求已同步主规格并经42项规格文档校验和本能力严格校验通过。变更归档于`openspec/changes/archive/2026-11-11-shorten-and-upgrade-solar-journey/`，归档资料与最终验证记录一并提交。OpenSpec语境中旧project v2/共享运行时的表述按既有独立工程v3主规格作事实更正，没有更改作品材料格式或渲染输入。

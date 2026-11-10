@@ -1,6 +1,6 @@
 # 两分钟重构：当前验证状态（2026-11-11）
 
-本轮制作验收已完成：当前完整候选通过技术QA、额外全帧扫描、新上下文独立综合终审和原目标对照，四个原生样品已交付，十四项必改均通过当前证据闭合。最终工具状态`production.complete=true`，`issues=[]`、`diagnostics=[]`，候选`status=delivered`，QA与当前独立双评绑定一致；实现提交及OpenSpec归档正在收口。完整状态为`outputs/trials/finite-production-status.json`，周期`ecf88252d257421fa814dc31b83b255f`。下方2026-10-19原文全部为历史记录，其中“当前”“新版”只指当时轮次，不继承为本轮通过。
+本轮制作验收已完成：当前完整候选通过技术QA、额外全帧扫描、新上下文独立综合终审和原目标对照，四个原生样品已交付，十四项必改均通过当前证据闭合。最终工具状态`production.complete=true`，`issues=[]`、`diagnostics=[]`，候选`status=delivered`，QA与当前独立双评绑定一致；实现已提交`fb6dcb99`，主规格五项要求已同步并校验通过，变更已归档至`openspec/changes/archive/2026-11-11-shorten-and-upgrade-solar-journey/`；归档与本文更新一并提交。完整状态为`outputs/trials/finite-production-status.json`，周期`ecf88252d257421fa814dc31b83b255f`。下方2026-10-19原文全部为历史记录，其中“当前”“新版”只指当时轮次，不继承为本轮通过。
 
 ## 当前材料与原生证据
 
@@ -39,7 +39,7 @@
 - 本例`pnpm run build`通过字体恢复、TypeScript及Vite；合同页609.70KB、gzip191.49KB，保留既有超过500KB提示。相关相机Vitest两项通过，保护乱序seek与镜头边界连续性。
 - 管理绑定、固定声音恢复、图片完整解码三个专项文件31项通过；直接调用方脚手架/本地资产等17项通过；WAV头溯源专项9项通过；固定示例素材配方节点1项通过。仅运行直接影响范围，未运行全仓回归，未对未变代码无理由重复相同集合。
 - NASA土星真实原包恢复及几何文本逐字节再现通过，14项受控解析边界均拒绝，80080组尘环数值有限且alpha在0–.25；32项配方与登记一致，保留原素材摘要符合预期。几何JSON为有来源的可读数值数据，不是图片或原模型二进制。
-- 正式FiniteColorPass的两个代表帧完整链46/48个WebGL program均LINK通过，GL、页面与控制台错误为空；RGBA16F合法极值保留、原生最终画面开关逐字节相同。独立增量代码审查98/100，剩余限制为原白闪触发源未唯一定位及跨GPU/完整新候选未由代码审查验证。[代码审查](../../../openspec/changes/shorten-and-upgrade-solar-journey/code-review.md)归档后随变更移动。
+- 正式FiniteColorPass的两个代表帧完整链46/48个WebGL program均LINK通过，GL、页面与控制台错误为空；RGBA16F合法极值保留、原生最终画面开关逐字节相同。独立增量代码审查98/100，剩余限制为原白闪触发源未唯一定位及跨GPU/完整新候选未由代码审查验证。[代码审查](../../../openspec/changes/archive/2026-11-11-shorten-and-upgrade-solar-journey/code-review.md)完整独立审查历史随变更保留。
 - 五项固定声音在干净LF源码副本、零WAV目录实际恢复且摘要一致（15.24秒），现环境`--check`通过；不宣称不同FFmpeg版本跨平台逐字节相同。母版及最终编码后的QA均为−14.2LUFS／真峰−1.6dBFS。未播放、未试听，主观自然度、音色、音乐感染力和逐词同步保持未验证。
 - OpenSpec严格校验、新增相对链接、7个新增/修改JSON文件及差异空白检查通过；代码和文档纳入本轮Git收口，生成媒体、字体、依赖及缓存不入库。
 
