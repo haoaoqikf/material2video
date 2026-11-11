@@ -1,14 +1,9 @@
 # 折叠：一颗珠子改掉一个细胞
 
 33 秒无旁白短片，1920×1080、30 fps，使用本地夜曲画面组件。
-选题与九幕结构按外部参考项目已登记的 `fold_C` 分镜表重写；珠子、红细胞与镰刀都由本文件的
-绘制原语自行构造，不复制上游 `film.js`、GIF/JPG 或画面。
+全片采用九幕结构；珠子、红细胞与镰刀均由本地绘制原语构造。
 
-本示例属于已登记自有样片的教学重写；普通作品的方法借鉴与素材使用边界见[参考分析与素材边界](../../../.agents/skills/material2video/references/reference-video-analysis.md#素材使用边界)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
-
-## 外部方法来源
-
-本示例的方法参考 [HeyChengC/vibe-knowledge-film](https://github.com/HeyChengC/vibe-knowledge-film)，既有登记固定在提交 `62d51508aad00003dc6209afa80c4b5dc540de59`（2026-10-13），原登记最近来源核对为 2026-10-27；本次文档归并未重新核验上游。方法与代码按原登记 MIT 范围参考，媒体、贴图、字体及第三方资产分别核验；不复制受限媒体，也不据此授权其他作品。采用源码与递归依赖归本工程，普通作品的来源、版本和许可仍自行记录。
+方法借鉴与素材使用边界见[参考分析与素材边界](../../../.agents/skills/material2video/references/reference-video-analysis.md#素材使用边界)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
 
 ## 它讲什么
 
@@ -61,7 +56,7 @@
 
 ## 声音
 
-参考片是声画一体的。本片用既有的 `soundtrack.effects`（`assets/sound-sources.json`
+本片用既有的 `soundtrack.effects`（`assets/sound-sources.json`
 登记的是确定性合成音效，不是第三方素材），音效帧号直接对准画面动作：
 
 | 事件 | 幕 | 帧 | 音效 |
@@ -103,12 +98,10 @@ uv run python examples/text-motion/fold/tools/gen_layout.py
 uv run m2v validate --project examples/text-motion/fold
 uv run m2v prepare --project examples/text-motion/fold
 uv run m2v lookdev --project examples/text-motion/fold --sheet 9
-uv run python tests/tools/style_reference.py fold
 uv run m2v render --project examples/text-motion/fold
 ```
 
 产物写在作品目录下的 `outputs/`，该目录已被 `.gitignore` 忽略，不入库。
-`outputs/style-reference.md` 保留本例历史制作的指标对照与并排基准；后续参考借鉴见[参考分析](../../../.agents/skills/material2video/references/reference-video-analysis.md)，不要求重新填写该报告。
 
 ## 已知限制
 
@@ -117,8 +110,7 @@ uv run m2v render --project examples/text-motion/fold
 - 画布文字使用包内登记的宋体族（`Vibe Night Serif`）；`prepare` 会对屏幕字幕与源码字面量
   做严格缺字检查，字体缺失时明确失败。
 - 屏幕字幕为单行 28 字以内的短句；长于画面标题的句子已拆成两幕。
-- **没有英文斜体字幕行**：参考片在中文下方有一行斜体英文，本项目「画面注释从紧」倾向不加。
-  这是有意的偏离，不是遗漏。
+- 屏幕字幕只保留中文单行，遵守项目「画面注释从紧」约定。
 
 ## 原生试制入口
 

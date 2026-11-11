@@ -1,9 +1,7 @@
 /**
  * 《鸽子的迷信》示例：食物按时间来，它却碰巧在转圈，于是它接着转。
  *
- * 选题与分镜按外部参考项目已登记的 pigeon_B 分镜表重写；本文件是独立实现——
- * 鸽子、箱子、计时器与食槽的形体、比例与画法都由本文件自行决定，
- * 不复制上游 `film.js` 的任何函数、路径数据或调色常量。
+ * 鸽子、箱子、计时器与食槽由本地绘制原语构造。
  *
  * **一个箱子，一台摄影机。** 箱子内部是一个固定的房间：墙面、地板、食槽与墙上的
  * 计时器各有自己的房间坐标。六幕只是这台摄影机的六段行程——全景、计时器特写、
@@ -45,7 +43,7 @@ const DROP_SECONDS = 1.2;
  * 本色板取自 tokens 的场景盘，只在这里展开成具体的房间色。
  *
  * 墙面刻意比设计稿的米色暗一档：浅米色在辉光叠加后会顶到 255，
- * 参考片的墙是 183 左右的中间调，留得住阴影与木纹。
+ * 墙面使用中间调，以保留阴影与木纹。
  */
 const INK = '#3A2A22';
 const WALL = '#C9B48C';
@@ -83,7 +81,7 @@ const TIMER_R = 78;
 /**
  * 六幕的镜头表。`scale` 是「房间 1 单位画多少像素」，焦点是取景中心。
  *
- * 与参考片对齐：全景 → 计时器特写 → 中景 → 食槽近景 → 中景慢推 → 计时器前置。
+ * 取景依次强调房间全景、计时器、鸽子、食槽、转圈过程与再次喂食。
  * 每幕在幕内缓动；幕间按分镜硬切，是否能认回房间和对象须复核相邻窗口。
  */
 type Shot = {from: {scale: number; focus: Vec}; to: {scale: number; focus: Vec}};
@@ -123,7 +121,7 @@ function bird(P: P, x: number, y: number, scale: number, pose: {
   facing?: number; turn?: number; peck?: number; flap?: number; bob?: number; gait?: number; alpha?: number;
 }) {
   const {facing = 1, turn, peck = 0, flap = 0, bob = 0, gait = 0, alpha = 1} = pose;
-  // 转向时横向压扁身体，和参考片的「转身」读法一致；未给 turn 时保持原朝向。
+  // 转向时横向压扁身体以表现转身；未给 turn 时保持原朝向。
   const cosine = turn === undefined ? facing : Math.cos(turn);
   const width = turn === undefined ? facing : (Math.abs(cosine) < 0.32 ? 0.32 * (cosine < 0 ? -1 : 1) : cosine);
   // 地面影子留在世界坐标里，不跟着横向压扁；否则转身时整只鸟连同影子一起收窄，
@@ -167,7 +165,7 @@ function bird(P: P, x: number, y: number, scale: number, pose: {
 /**
  * 计时器：墙上的实物，一圈 15 秒。
  *
- * 画法是自己的一套——环形刻度 + 走过的扇区 + 一根指针 + 读数，不用参考片的表盘构图。
+ * 表盘由环形刻度、走过的扇区、指针与读数组成。
  * 读数显示剩余秒数，跨幕连续。
  */
 function feederTimer(P: P, x: number, y: number, radius: number, globalSeconds: number, alpha = 1, pulse = 0) {

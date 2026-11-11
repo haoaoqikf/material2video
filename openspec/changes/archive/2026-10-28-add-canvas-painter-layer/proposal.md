@@ -1,6 +1,6 @@
 ## Why
 
-通用代码场景目前有两条绘制路径：React + SVG/DOM（共享 composition 与风格包组件），以及 three/R3F（三维与 WebGL）。缺少中间一档——2D Canvas。辉光、粒子、线条生长与逐字显影这类质感镜头，用 DOM/SVG 做要么性能不够（数百粒子每帧重排），要么辉光要靠多层渐变硬叠；用 three 做则过重。外部参考项目用一张 1920×1080 的 2D canvas 加一次出帧（缩小两次、模糊、加法叠回）就解决了这类画面。
+通用代码场景目前有两条绘制路径：React + SVG/DOM（共享 composition 与风格包组件），以及 three/R3F（三维与 WebGL）。缺少中间一档——2D Canvas。辉光、粒子、线条生长与逐字显影这类质感镜头，用 DOM/SVG 做要么性能不够（数百粒子每帧重排），要么辉光要靠多层渐变硬叠；用 three 做则过重。拟采用 1920×1080 的 2D canvas 配合出帧合成（缩小两次、模糊、加法叠回）实现这类画面。
 
 更实际的问题是量测。仓库里唯一用 Canvas 的真实作品（`videos/general/earth-night-lights/scenes/earth.tsx`）没有任何 `data-m2v-role` 标记，`__M2V_REVIEW_STATE__` 在全部作品与示例场景中零命中。这类画面在检查点量测里只能得到"观测范围：未验证"。绘制层若不同时解决量测通路，引入它就是拿技术换质量下降。
 

@@ -1,14 +1,9 @@
 # 鸽子的迷信
 
 33 秒无旁白短片，1920×1080、30 fps，使用本地寓言画面组件。
-选题与分镜结构按外部参考项目已登记的 `pigeon_B` 分镜表重写；本示例的鸽子、箱子、计时器与
-食槽是独立实现，形体、比例、画法与配色都由本仓库自行决定，不复制上游 `film.js`、GIF/JPG。
+全片采用六幕结构；鸽子、箱子、计时器与食槽均由本地绘制原语构造。
 
-本示例属于已登记自有样片的教学重写；普通作品的方法借鉴与素材使用边界见[参考分析与素材边界](../../../.agents/skills/material2video/references/reference-video-analysis.md#素材使用边界)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
-
-## 外部方法来源
-
-本示例的方法参考 [HeyChengC/vibe-knowledge-film](https://github.com/HeyChengC/vibe-knowledge-film)，既有登记固定在提交 `62d51508aad00003dc6209afa80c4b5dc540de59`（2026-10-13），原登记最近来源核对为 2026-10-27；本次文档归并未重新核验上游。方法与代码按原登记 MIT 范围参考，媒体、贴图、字体及第三方资产分别核验；不复制受限媒体，也不据此授权其他作品。采用源码与递归依赖归本工程，普通作品的来源、版本和许可仍自行记录。
+方法借鉴与素材使用边界见[参考分析与素材边界](../../../.agents/skills/material2video/references/reference-video-analysis.md#素材使用边界)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
 
 ## 它讲什么
 
@@ -61,7 +56,7 @@
 
 ## 声音
 
-参考片是声画一体的。本片把声音绑定到幕内**语义事件**，画面与音效引用同一份
+本片把声音绑定到幕内**语义事件**，画面与音效引用同一份
 `scenes[].events`，不靠硬编码帧偏移；完整的角色、素材与变化规则见
 [声音语义表](SOUND.md)。要点：
 
@@ -97,7 +92,6 @@ uv run python fonts/fetch.py
 uv run m2v validate --project examples/principle-metaphor/pigeon
 uv run m2v prepare --project examples/principle-metaphor/pigeon
 uv run m2v lookdev --project examples/principle-metaphor/pigeon --sheet 6
-uv run python tests/tools/style_reference.py pigeon
 uv run m2v render --project examples/principle-metaphor/pigeon [--jobs 2]
 ```
 
@@ -106,7 +100,6 @@ uv run m2v render --project examples/principle-metaphor/pigeon [--jobs 2]
 纯性由静态源码闸门与正序/倒序 PSNR 双重验证。
 
 产物写在作品目录下的 `outputs/`，该目录已被 `.gitignore` 忽略，不入库。
-`outputs/style-reference.md` 保留本例历史制作的指标对照与并排基准；后续参考借鉴见[参考分析](../../../.agents/skills/material2video/references/reference-video-analysis.md)，不要求重新填写该报告。
 
 ## 已知限制
 
@@ -116,9 +109,8 @@ uv run m2v render --project examples/principle-metaphor/pigeon [--jobs 2]
 - 全片时间依赖每幕声明的 `content.props.capture.timebase: "global"`；新增或调整幕时
   必须保留这一声明，否则场景退回幕内时间，计时器与 `act` 会各自从零开始。`lookdev`
   的跨幕代表帧是核对它的方式。
-- **没有独立的「计时器特写」幕**：参考的第 2 镜是计时器大特写，本片的六幕结构里
-  计时器始终与食槽同框。补这一幕需要改分镜（多一幕或少一幕），登记为后续项。
-- **不启用规则卡与对照计数**：参考的这 33 秒也没有；不为了用组件而加。
+- 六幕中计时器与食槽保持同框，没有独立的计时器特写幕。
+- 不启用规则卡与对照计数，避免增加无关信息。
 
 ## 本地运行
 

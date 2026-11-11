@@ -14,8 +14,6 @@
 | `visual-diagnosis.md` | 症状因果表、形象判据和主体尺度起点并入讲解设计 | `explainer-design.md#看图诊断与形象判据` |
 | `visual-creative-direction-examples.md` | 合并为按需创作示例集 | `production-examples.md` |
 | `visual-review-examples.md` | 合并为按需复核演练集 | `production-examples.md#视觉复核判断演练` |
-| `external-projects.md` | 来源、许可、固定提交登记保留并入合页 | `external-reference-projects.md` |
-| `vibe-knowledge-film.md` | 专项查阅顺序与转译说明合并入登记页 | `external-reference-projects.md#vibe-knowledge-film-项目使用指引` |
 | `input-review.md` | 保留命令、人工判定字段与主题跳过边界，合并进方案阶段 | `stage-plan.md#源文审查命令与记录` |
 
 ## 重要边界

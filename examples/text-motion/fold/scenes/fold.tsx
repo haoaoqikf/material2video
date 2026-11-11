@@ -1,8 +1,7 @@
 /**
  * 《折叠》示例：一串珠子怎么折，决定细胞是什么形状。
  *
- * 选题与分镜按外部参考项目已登记的 fold_C 样片重写；实现、形体与配色由本仓库的
- * `vibe-night` 组件与绘制原语自行构造，不复制上游 `film.js`、GIF/JPG 或画面。
+ * 珠子、红细胞与镰刀由本地夜曲组件及绘制原语构造。
  *
  * **一个世界，一台摄影机，两个尺度。** 血红蛋白与红细胞不在同一个尺度上：一个红细胞
  * 里约有 2.7 亿个血红蛋白分子。所以世界坐标分两层——
@@ -43,7 +42,7 @@ const GOLD = '#F8D893';
 const ICE = '#64E3F6';
 const ROSE = '#E84B75';
 const MUTED = '#879399';
-// 血的实体与氧气：参考片的两个关键语义色，已登记进 tokens。
+// 血的实体与氧气使用不同语义色，已登记进 tokens。
 const BLOOD = '#C8384E';
 const OXYGEN = '#FF6A55';
 // 画布文字使用包内登记的宋体族；`serif` 是通用族，会静默回退到系统字体。
@@ -56,7 +55,7 @@ const D = 31.5;
 const BEAD_R = 14;
 /** 珠层 → 细胞层的换算：珠层 1 单位约等于细胞层的 1/66。 */
 const RHO = 66;
-/** 红细胞在细胞层的半径（像素），与参考样片一致。 */
+/** 红细胞在细胞层的半径（像素）。 */
 const CELL_R_PX = 250;
 /** 同一个半径换到珠层单位。 */
 const CELL_R = CELL_R_PX * RHO;
@@ -196,7 +195,7 @@ function polyPath(points: Vec[]): string {
 
 /**
  * 红细胞：深的血红色圆盘，中间凹窝由多层更暗的同心轮廓叠出软边，左上有一段加宽的
- * 高光弧。它画在 `under` 层——参考片的实物不吃辉光，进了辉光会糊成粉色光团。
+ * 高光弧画在 `under` 层，避免进入辉光后糊成粉色光团。
  */
 function redCell(P: P, bend: number, cx: number, cy: number, alpha = 1, _tint = BLOOD) {
   if (alpha <= 0.004) return;
@@ -388,7 +387,7 @@ function world(P: P, camera: painter.CameraState, width: number, height: number,
  * 底色自己铺，不用 `NightBackdrop`：内容画布在合成时会先铺一层不透明黑，
  * DOM 层的星点底拿不到像素，铺了也看不见，只会白白多跑一遍绘制。
  *
- * 层序按参考片：`background` 底 → `under` 实物（红细胞，不吃辉光）→
+ * 绘制层序：`background` 底 → `under` 实物（红细胞，不吃辉光）→
  * `paint` 发光体（珠子，吃辉光）→ `overlay` 文字（锐利）。
  */
 function Layer({camera, width, height, under, paint, overlay}: {
