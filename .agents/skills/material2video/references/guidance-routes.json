@@ -63,7 +63,7 @@
     {
       "id": "mechanisms",
       "when": "可选：需要讲解手法灵感或查询已有机制实现入口",
-      "guide": "references/explainer-design.md#四种讲解机制的执行方法"
+      "guide": "references/scene-design.md#可选讲解机制"
     },
     {
       "id": "storyboard",
@@ -133,11 +133,11 @@
     {
       "id": "diagnosis",
       "when": "看图发现画面问题、判断形象是否成立、确定主体尺度",
-      "guide": "references/explainer-design.md#看图诊断与形象判据"
+      "guide": "references/visual-review-rubric.md#看图诊断与形象判据"
     },
     {
       "id": "design-template",
-      "when": "编写 DESIGN.md 最简设计记录",
+      "when": "编写总设计、关键关系与当前结果记录",
       "guide": "references/scene-design.md#总设计模板"
     },
     {
@@ -172,7 +172,7 @@
     "独立隔离": "references/subagent-review.md",
     "证据完成": "references/review-contract.md",
     "失败回退": "references/production-workflow.md",
-    "讲解机制": "references/explainer-design.md",
+    "讲解机制": "references/scene-design.md",
     "实际表达": "references/visual-review-rubric.md",
     "过程证据容量": "references/subagent-review.md",
     "运动实现": "references/code-scene-runtime.md#运动实现约定"

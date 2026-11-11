@@ -1,6 +1,6 @@
 # 图表、图示、公式、图标与转场
 
-> **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
+> **独立工程**：下面的相对导入以作品 `scenes/*.tsx` 为起点。先把所需 `web/src/code-scene/` 参考源码及递归依赖、样式和资源复制到作品对应目录，再在作品 `package.json` 与锁文件声明实际依赖。模板不预装所有组件；不能只改 import，也不解析 `m2v/*` 或读取主项目依赖。
 
 代码场景在普通 React 页面录制，合成转场在 Remotion 层执行。按需选择下面入口，保留画幅、字体就绪、逐帧与来源边界；现有实现满足目标时优先复用；需要更合适的组件时允许扩展、组合或改造，按[实现手段开放](design-samples.md#实现手段开放)调研、登记并实际验证。此处列出的组件不是许可上限。
 
@@ -18,16 +18,16 @@
 
 ## 统一曲线
 
-从 `m2v/code-scene` 导入 `chartLinePath(points, curve)`、`chartAreaPath(points, baseline, curve)`；点是 `[x,y]`，支持 `linear`、`monotone`、`step`、`catmull-rom`。无效数值切断路径。`catmull-rom` 使用均匀参数与端点重复，保留暗场风格的切线语义；金融使用 D3 单调曲线，维持不过冲语义，精确控制点不承诺与旧算法相同。
+从作品 `../src/code-scene/chart-geometry` 导入 `chartLinePath(points, curve)`、`chartAreaPath(points, baseline, curve)`；点是 `[x,y]`，支持 `linear`、`monotone`、`step`、`catmull-rom`。无效数值切断路径。`catmull-rom` 使用均匀参数与端点重复，保留暗场风格的切线语义；金融使用 D3 单调曲线，维持不过冲语义，精确控制点不承诺与旧算法相同。
 
 ## ELK 图示
 
-从 `m2v/code-scene/diagram` 导入 `layoutDiagram`、`Diagram` 与 `DiagramLayout`。异步布局只在资源准备期执行一次，得到结果后再 `ready()`；帧内只改变 `progress`。结果可保存为作品的 JSON，再作为普通本地数据导入，避免重复布局。
+从 `../src/code-scene/diagram` 导入 `layoutDiagram`、`Diagram` 与 `DiagramLayout`。异步布局只在资源准备期执行一次，得到结果后再 `ready()`；帧内只改变 `progress`。结果可保存为作品的 JSON，再作为普通本地数据导入，避免重复布局。
 
 ```tsx
 import {useEffect, useState} from 'react';
-import {useSceneContext} from 'm2v/code-scene';
-import {layoutDiagram, Diagram, type DiagramLayout} from 'm2v/code-scene/diagram';
+import {useSceneContext} from '../src/code-scene/context';
+import {layoutDiagram, Diagram, type DiagramLayout} from '../src/code-scene/diagram';
 
 export default function Scene() {
   const {ready, elapsedSeconds} = useSceneContext();
@@ -47,26 +47,26 @@ export default function Scene() {
 
 ## 公式与字体
 
-先在仓库 `web/` 执行 `pnpm install`，再从仓库根执行 `uv run python fonts/fetch.py`。公式字体的源包文件和恢复目标都登记在 `fonts/registry.json`；恢复时核对版本、字节数与摘要，二进制不入库。独立场景打包器在引用公式入口时验证目标，缺失或漂移明确失败。
+采用 `math.tsx` 时同时携带 `math-fonts.ts`、字体资源导入声明和本地 KaTeX 依赖；20 个字体的登记、许可与恢复配方落到作品 `fonts/registry.json`、许可目录和恢复脚本，目标保持 `src/assets/math/` 与源码引用一致。按作品 README 安装依赖并执行字体恢复；缺失、漂移或未声明的依赖须失败，字体二进制不入库，不能借主项目安装目录或 CDN。
 
 ```tsx
-import {MathFormula, ensureMathReady} from 'm2v/code-scene/math';
+import {MathFormula, ensureMathReady} from '../src/code-scene/math';
 // 在组件 effect 中等待；字体与排版样式全部就绪后才调用场景的 ready()。
 useEffect(() => {void ensureMathReady().then(ready);}, [ready]);
 // 公式进度由作者控制，不使用 KaTeX 自走动画。
 <MathFormula tex={String.raw`\frac{P(1+r)^n}{P}`} fontSize={96} color="#f4e9d8"/>
 ```
 
-`MathFormula` 支持 tex、display、fontSize、color、style。采用 HTML+MathML 排版，关闭 trust，非法命令/公式明确抛错，不开放任意 HTML/外部链接扩展。排版 CSS 随固定依赖读取，font-face 从包中剥离，20 个登记 WOFF2 由就绪函数加载；每页只初始化一次。规范示例 dark-proof 的指数排版已使用该入口。
+`MathFormula` 支持 tex、display、fontSize、color、style。采用 HTML+MathML 排版，关闭 trust，非法命令/公式明确抛错，不开放任意 HTML/外部链接扩展。排版 CSS 随固定依赖读取，font-face 从包中剥离，20 个登记 WOFF2 由就绪函数加载；每页只初始化一次；资源就绪后才调用场景 ready，不把示例片名当作可用性证据。
 
 ## 按需图标
 
 ```tsx
-import {Atom, Factory, ArrowRight} from 'm2v/code-scene/icons';
+import {Atom, Factory, ArrowRight} from '../src/code-scene/icons';
 <Atom size={96} color="#f4cf67" strokeWidth={1.5}/>
 ```
 
-该入口静态导出常用对象、方向、设备、人物、科学与财经图标以及 LucideProps/LucideIcon 类型。支持清单见 `web/src/code-scene/icons.ts`；未列名称编译报错，新增时只补静态导出。不提供 `icons[name]`、整库命名空间或联网图标检索，作品/风格不能直接 import lucide-react。图标内的颜色与尺寸可按帧计算；图标本身不是受控素材署名替代品。
+该入口静态导出常用对象、方向、设备、人物、科学与财经图标以及 LucideProps/LucideIcon 类型。支持清单见 `web/src/code-scene/icons.ts`；未列名称编译报错，新增时只补静态导出。不提供 `icons[name]`、整库命名空间或联网图标检索，采用该封装时使用静态导出；如直接采用 lucide-react，须在作品声明固定版本、来源和许可并验证。图标内的颜色与尺寸可按帧计算；图标本身不是受控素材署名替代品。
 
 ## 通用转场
 
@@ -76,6 +76,6 @@ import {Atom, Factory, ArrowRight} from 'm2v/code-scene/icons';
 {"id":"result","transition":"wipe-left","transitionFrames":16}
 ```
 
-这是一段幕字段示意，完整幕仍须提供 code 入口、内容与旁白数组。`slide-left/right` 表示新画面从右/左进入并推出旧画面；`wipe-left/right` 表示向左/右揭开新画面；`iris` 为中心圆形揭示，`clock-wipe` 为时钟式揭示。cut、fade、crossfade 继续有效。名称、展示类型和方向由 `web/src/transitions.json` 统一登记，Python 与 Web 同读。
+这是一段幕字段示意，完整幕仍须提供 code 入口、内容与旁白数组。`slide-left/right` 表示新画面从右/左进入并推出旧画面；`wipe-left/right` 表示向左/右揭开新画面；`iris` 为中心圆形揭示，`clock-wipe` 为时钟式揭示。cut、fade、crossfade 继续有效。名称、展示类型和方向由 `web/src/transitions.json` 统一登记，独立工程的 Python 与 Web 同读本地副本。
 
 非 cut 使用两幕重叠窗口，总长减去 transitionFrames；默认值、范围与首幕规则见[分镜契约](storyboard-schema.md)。1 帧直接完成，N>1 时 0 帧为起始态、N−1 为完成态。字幕保持全局时间和最上层；局部预演、lookdev 静帧、适用评审 播放器与正式成片共用合成组件。转场只在已有无声片段之间处理，不给作品代码引入 Remotion hooks，不自动添加转场音效。

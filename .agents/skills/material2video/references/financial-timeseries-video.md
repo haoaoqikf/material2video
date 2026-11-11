@@ -1,8 +1,8 @@
 # 金融时间序列视频专题
 
-> **独立工程口径**：作品不解析 `m2v/*`；下文 `m2v/code-scene/sources` 指主项目参考源码。采用时把 `web/src/code-scene/sources.tsx` 及相关源码复制到作品 `src/code-scene/`，以作品内相对路径导入，并在作品 `package.json` 声明实际依赖。
+> **独立工程**：采用 `web/src/code-scene/sources.tsx` 时递归携带相关类型源码、资源及依赖到作品，按作品内相对路径导入，并在作品 `package.json` 声明实际依赖。只在分镜实际声明对应来源时阅读本专题；创作编排沿[场景设计](scene-design.md)。
 
-本文定义数据演化作品可选的 `financial-series` 结构化来源及 `FinancialSeriesScene` 场景。作品使用 project v3、分镜 v9 与统一制作链路；当前入口以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。在分镜 `sources` 中声明 `request`、`prices`、`plan` 三个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `m2v/code-scene/sources` 导入 `FinancialSeriesScene`。以下行情与投资计算约束仍适用于这种来源。
+本文定义数据演化作品可选的 `financial-series` 结构化来源及 `FinancialSeriesScene` 场景。作品使用 project v3、分镜 v9 与统一制作链路；当前入口以[统一分镜的结构化来源](storyboard-schema.md#结构化来源v9)为准。在分镜 `sources` 中声明 `request`、`prices`、`plan` 三个文件角色，幕的 `content.sourceIds` 引用来源 ID；场景从 `../src/code-scene/sources` 导入 `FinancialSeriesScene`。以下行情与投资计算约束仍适用于这种来源。
 
 ## 制作与数据
 

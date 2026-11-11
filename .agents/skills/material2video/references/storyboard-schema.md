@@ -1,8 +1,8 @@
 # 五类统一分镜 v9
 
-> **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
+> **独立工程**：作品从本地 `src/code-scene/` 导入接口；按需采用的参考组件连同递归依赖、资源和许可落到作品，不解析 `m2v/*`。
 
-本页配合[节奏、美术、声音与制作阶段](production-workflow.md)执行：先整片粗预演、风险优先，再按阶段完成条件精制与复查；不增加用户确认或 CLI 人工门禁。
+本页提供制作技术契约；创作从[研究与试制](stage-research.md)进入，先解决影响方向判断的关键未知，再按[正式设计](stage-design.md)组织全片预演。
 
 五类只接受 `version: 9`、`schemaVersion: 9`。v8 及更早分镜必须重新编排，不自动迁移；
 历史测试分镜不属于制作入口。
@@ -136,12 +136,18 @@ prepare 将事件解析为场景 `eventFrames`（ID→幕内帧）和准备产�
 ## 全画布代码场景（code）
 
 `content.entry` 必须是作品 `scenes/` 下存在的相对 TSX 路径。路径越界、缺少文件、非 TSX 后缀、
-未批准的依赖或远程模块都会在构建时拒绝；工具不会安装作品自己的依赖。
-组件从 `m2v/code-scene` 取得上下文与 SDK：
+未声明/未安装的依赖或远程模块都会在构建时拒绝；工具不会安装作品自己的依赖。
+组件从本地模块取得上下文，第三方包由作品直接声明与导入：
 
 ```tsx
-import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Float, echarts,
-  type CodeSceneProps} from 'm2v/code-scene';
+import {useSceneContext, type CodeSceneProps} from '../src/code-scene/context';
+
+// 作品本地包装；当前模板不提供共享 useMediaAsset 导出。
+function useMediaAsset(id: string) {
+  const asset = window.__M2V_CODE_CONFIG__?.media?.[id];
+  if (!asset) throw new Error(`未声明或尚未准备的媒体：${id}`);
+  return asset;
+}
 ```
 
 - `useSceneContext()` 给出 `running`、`elapsedSeconds`、`progress` 与 `ready()`；
@@ -152,22 +158,15 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
   前背景，页面底色只是编码兜底——没有铺满的作品会在成片里留出这块底色。
 - **`subtitleSafeArea` 是硬约束**：共享字幕层会盖在这个矩形里，重要文字与主体必须避让，
   背景可以延伸进去。矩形取值来自画幅清单，两种画幅各有取值。
-- `useMediaAsset(id)` 按素材 ID 返回已导入素材的 `{src, kind, width, height, durationSeconds,
-  colorSpace, alpha, license}`；未知 ID 明确抛错。映射由准备阶段复核 `assets/media-sources.json`
-  后注入，本地服务器只暴露登记过的文件。`colorSpace`/`alpha` 由实测像素格式推导、`license` 取
-  登记原文，因此不需要为了拿到它们重新导入素材。
-- 可用的共享依赖为 React、`motion`、`three`、`@react-three/fiber`、`@react-three/drei`、
-  `gsap`、`echarts`（`Chart` 是 ECharts 封装，宽高默认取当前画布）以及电影级后期所需的
-  `postprocessing` 与 `@react-three/postprocessing`。依赖缺失时在打包前明确失败，不会静默
-  渲染成没有后期的画面。
+- 准备阶段复核 `assets/media-sources.json` 后，将素材 ID 到 `{src, kind, width, height, durationSeconds, colorSpace, alpha, license}` 的映射注入 `window.__M2V_CODE_CONFIG__.media`；作品按 ID 读取并对缺失项明确报错。本地服务器只暴露登记过的文件，`colorSpace`/`alpha` 来自实测，`license` 来自登记原文。当前模板不导出 `useMediaAsset`，使用上面的作品本地包装，不从 context 导入不存在的 hook。在组件内用 `useMediaAsset('photo-1')` 这类字面量 ID 调用，便于既有依赖扫描和素材报告识别；动态拼接或直接任意读取不在该扫描覆盖内，须显式核对完整素材来源绑定，不能凭报告宣称无依赖。
+- 作品自行选择并在 `package.json` 与锁文件声明精确版本的依赖，记录来源和许可；需要参考封装时递归采用源码。模板没有预装图表或三维组件，不能把参考导出当作工程已有能力。依赖缺失在构建时失败。
 - `painter` 命名空间提供可选的二维 Canvas 绘制层，用于辉光质感、高密度粒子、线条生长与逐字
   显影；文字须画在 `overlay` 层，实际画面由媒体证据独立复核。
   用法、层顺序与绘制边界见[运行时契约](code-scene-runtime.md#二维绘制层)。
 
 ### 电影级共享套件
 
-`m2v/code-scene` 另外导出电影级元件；作品不引用它们时画面与既有一致（已验证：
-把套件从 SDK 导出里摘掉后，标准画面逐像素相同）。
+主项目 `web/src/code-scene/cinematic/` 提供可采用的电影级参考元件；采用源码、资源及递归依赖后从作品本地模块导入。不采用时不要求安装这些组件，实际表现和确定性须按本片验证。
 
 | 元件 | 作用 |
 |---|---|
@@ -232,4 +231,4 @@ import {useSceneContext, useMediaAsset, Chart, motion, gsap, THREE, Canvas, Floa
 
 顶层可声明 `sources`：来源 ID 到 `{kind, files}` 的映射。`financial-series` 只可用于 `data-evolution`，文件角色为 `request`、`prices`、`plan`；`construction` 和 `vehicle-model` 只可用于 `spatial-3d`，角色分别为 `building`/`construction`/`assets` 和 `showcase`/`assets`。文件均须在作品内存在，不能越界。幕内 `content.sourceIds` 必须引用已声明的 ID，不能重复。准备验证来源材料与资产摘要，把数据与实现绑定到准备指纹，并要求来源画幅、帧率和时长与本幕一致。
 
-当前只渲染这三种来源的场景绘制入口：`m2v/code-scene/sources` 提供 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`；也可从 `m2v/code-scene` 的 `useSceneSource(id)` 取经验证数据自行绘制。普通分镜中的 `sources` 只是准备输入，不会自动在画面出现。
+当前只渲染这三种来源的场景绘制入口：采用后的本地 `../src/code-scene/sources` 提供 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`；也可从同一本地模块的 `useSceneSource(id)` 取经验证数据自行绘制。普通分镜中的 `sources` 只是准备输入，不会自动在画面出现。

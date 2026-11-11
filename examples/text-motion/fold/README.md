@@ -4,7 +4,11 @@
 选题与九幕结构按外部参考项目已登记的 `fold_C` 分镜表重写；珠子、红细胞与镰刀都由本文件的
 绘制原语自行构造，不复制上游 `film.js`、GIF/JPG 或画面。
 
-本示例属于已登记自有样片的教学重写；普通作品的方法借鉴与素材使用边界见[外部参考项目指南](../../../.agents/skills/material2video/references/external-reference-projects.md)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
+本示例属于已登记自有样片的教学重写；普通作品的方法借鉴与素材使用边界见[参考分析与素材边界](../../../.agents/skills/material2video/references/reference-video-analysis.md#素材使用边界)。示例实现和练习可复用，不据此声称新作品的实际表达已通过独立评审。
+
+## 外部方法来源
+
+本示例的方法参考 [HeyChengC/vibe-knowledge-film](https://github.com/HeyChengC/vibe-knowledge-film)，既有登记固定在提交 `62d51508aad00003dc6209afa80c4b5dc540de59`（2026-10-13），原登记最近来源核对为 2026-10-27；本次文档归并未重新核验上游。方法与代码按原登记 MIT 范围参考，媒体、贴图、字体及第三方资产分别核验；不复制受限媒体，也不据此授权其他作品。采用源码与递归依赖归本工程，普通作品的来源、版本和许可仍自行记录。
 
 ## 它讲什么
 

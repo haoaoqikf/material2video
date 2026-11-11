@@ -1,5 +1,5 @@
 /*
- * 设计令牌真源。
+ * 主项目参考组件的设计令牌真源；独立作品只采用所需部分，不是统一美术规范。
  *
  * 这里的名字就是运行时的 CSS 变量名：画面引用 `var(--m2v-space-3)`、
  * `var(--fig-line)`，需要时用 Tailwind 的任意值语法，不额外造一层 `--color-*`
@@ -18,8 +18,8 @@
  * 却没有任何报错。
  *
  * 令牌数值不许在这里「顺手调一下」：它们被对比度预算、字阶模数与取档引擎守着，
- * 改一个值要连带复核那些判据（见 `tests/test_figure_contrast.py` 与
- * `.agents/skills/material2video/references/design-tokens.md`）。
+ * 改一个值要连带复核那些判据（见 `tests/common/test_figure_contrast.py` 与
+ * `.agents/skills/material2video/references/code-scene-runtime.md` 的参考令牌章节）。
  */
 
 @theme static {
@@ -28,7 +28,7 @@
   --m2v-height: 1920px;
 
   /* 中文优先字体栈。两个 webfont 随仓库分发（清单见 `assets/fonts.json`），
-   * 系统字体只作为兜底：系统字体不随仓库分发，换机器可能轻微影响字宽。 */
+   * CSS 系统栈只作浏览器最后回退；制作须恢复登记字体，不能静默采用系统字体。 */
   --m2v-font: "M2V Inter", "M2V Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   /* 只给拉丁与数字用，图表里的数值列对齐依赖它 */
   --m2v-font-latin: "M2V Inter", system-ui, sans-serif;
@@ -237,8 +237,8 @@
      每条线、每一块填充都取这几个令牌，因此它们**必须存在**：一旦缺失，
      图形不会报错，只会安静地变成透明，页面上只剩文字。
 
-     分类与对比度预算见 `.agents/skills/material2video/references/design-tokens.md`，
-     由 `tests/test_figure_contrast.py` 按表守住。取值不是凭感觉调的：
+     分类与对比度预算见 `.agents/skills/material2video/references/code-scene-runtime.md` 的参考令牌章节，
+     由 `tests/common/test_figure_contrast.py` 按表守住。取值不是凭感觉调的：
      这里每一个都在预算内，改动前先跑那个测试。 */
   --fig-line: rgba(255, 255, 255, 0.52); /* 数据描边 5.69:1 */
   --fig-line-data: rgba(255, 255, 255, 0.62); /* 数据描边 7.75:1 */

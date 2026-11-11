@@ -80,9 +80,11 @@ uv run m2v render --project videos/<type>/<slug>
 统一 v9 的每段口播独立合成、独立推导时间，因此段与段之间不存在共享的词边界；
 不再有「按原文顺序消费词边界、段末标点落到下一段」这类跨段约定。
 
+字幕使用准备记录中的同一几何与样式；量测、代码场景与合成都读取它，不在配色令牌另存一套边界。横竖屏按实际画幅与手机显示复核字号、换行和停留，参考实现的固定值不等于所有作品的美术目标，也不宣称已符合任一外部字幕规范。
+
 ### 作品级字幕字号
 
-仅 general 可在 `project.json` 的 `output.subtitle` 声明共享旁白字幕字号，示例：
+五类独立作品均可在 `project.json` 的 `output.subtitle` 声明共享旁白字幕字号，示例：
 
 ```json
 {
@@ -92,9 +94,9 @@ uv run m2v render --project videos/<type>/<slug>
 }
 ```
 
-`subtitle` 必须且只能包含 `fontSize`，取24至56的整数；空对象、未知子字段、布尔、浮点、字符串、null 和范围外数值均拒绝。其他视频类型声明该字段（含 null）同样拒绝。该字段不属于分镜，不能设置字幕开关、安全区、颜色或行高。
+`subtitle` 必须且只能包含 `fontSize`，取24至56的整数；空对象、未知子字段、布尔、浮点、字符串、null 和范围外数值均拒绝。该字段为 null 同样拒绝。该字段不属于分镜，不能设置字幕开关、安全区、颜色或行高。
 
-省略时完整沿用 `web/src/frames.json` 所选画幅的默认样式，当前横竖屏均为40px。prepare 仅覆盖字号，把解析后的同一完整样式写入 `props.subtitle` 与序列化的 `inputs.subtitle`；预演、正式合成、代码片段配置、布局量测和字幕 QA 使用该准备样式。修改、添加或移除字号配置会让旧准备及候选失效，须重新 prepare，不要手改 `outputs/prepared.json`。
+省略时完整沿用作品 `src/frames.json` 所选画幅的默认样式（主项目参考为 `web/src/frames.json`），当前横竖屏均为40px。prepare 仅覆盖字号，把解析后的同一完整样式写入 `props.subtitle` 与序列化的 `inputs.subtitle`；预演、正式合成、代码片段配置、布局量测和字幕 QA 使用该准备样式。修改、添加或移除字号配置会让旧准备及候选失效，须重新 prepare，不要手改 `outputs/prepared.json`。
 
 增大字号不扩大安全区，也不自动缩字；须按手机尺寸复核字幕，换行溢出时精简字幕文本。字号示例不是所有作品统一的视觉要求。
 
@@ -114,7 +116,7 @@ uv run m2v render --project videos/<type>/<slug>
 
 ## 渲染与验收
 
-字幕由共享层绘制并烧录在成片里，安全区取自画幅配置（`web/src/frames.json`），与 SDK 交给
+字幕由共享层绘制并烧录在成片里，安全区取自作品画幅配置（`src/frames.json`），与本地场景接收的
 作品的是同一份；见 [渲染引擎](render-engine.md) 的字幕量测硬判定。不依赖外置字幕文件。
 准备记录的 `props` 携带 `subtitleCues`，共享 composition 按当前帧绘制字幕并预留安全区；
 **分镜不能手写该字段**——它由 prepare 从真实词边界派生，手写会和音轨各说各话。

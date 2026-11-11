@@ -1,8 +1,6 @@
 # 代码场景运行契约
 
-> **独立工程口径**：新作品不解析 `m2v/*`。下文出现的 `m2v/code-scene...` 表示主项目参考源码中的模块；采用时把所需源码复制到作品 `src/code-scene/`，并改为作品内相对导入（例如 `../src/code-scene/context`、`../src/code-scene/painter`）。作品在自己的 `package.json` 与锁文件中声明第三方依赖，不读取主项目依赖登记。
-
-新建作品已使用独立工程 v3：逐帧接口在作品 `src/code-scene/`，依赖与构建器属于作品，禁止导入 `m2v/*`。运行与恢复见[独立工程说明](../../../../templates/standalone/README.md)。原生样品采集已委托本地实现，播放只用作品字体和登记媒体。本页后续共享SDK路径为存量实现参考；七例与lookdev／时间线的独立化结果见[归档记录](../../../../openspec/changes/archive/2026-11-08-make-video-projects-standalone/implementation-examples.md)，不能用存量入口代替 v3 工程的本地运行。
+> **独立工程 v3**：作品在自己的 `src/code-scene/` 使用逐帧接口，以本地源码、锁文件、字体和资源运行，不解析 `m2v/*`。本页列出的 `web/src/` 能力是可采用的参考源码；使用时递归携带依赖、样式和资源到作品，再按相对路径导入。恢复与构建见[独立工程说明](../../../../templates/standalone/README.md)。
 
 完整分镜准备之前的代表性原生试制使用 `m2v sample capture/serve/deliver`，复用本页构建、受控采集与编码；依赖扩展、资源加载器、网页预览及完成条件见[网页原生样品](design-samples.md)。该入口不代替正式全片准备与验收。
 
@@ -10,7 +8,7 @@
 > `window.__M2V__` 的必需接口与 `ready()` / `seekToFrame()` 语义、画面源码的确定性、
 > 代码场景的顺序逐帧采集、电影级后期与镜头，以及 lookdev 原生关键帧。渲染引擎、打包、
 > 字幕量测与成片编码见 [渲染引擎](render-engine.md)；分镜结构见 [统一分镜 v9](storyboard-schema.md)，
-> 设计令牌见 [设计令牌](design-tokens.md)，制作顺序见 [制作流程](production-workflow.md)。
+> 字体和参考令牌边界见下方专节，创作顺序见[研究与试制](stage-research.md)。
 > v3/v4 的共享动画、场景树、节拍运行时与 `version: 3/4` 契约页已随旧子系统删除，本文不再描述。
 
 画面实现与渲染/量测脚本之间只有这一个接口。只要画面实现满足本契约，渲染脚本就能把它
@@ -18,18 +16,29 @@
 
 ## 契约的唯一提供者
 
-画面契约由**契约页**提供：`web/dist/contract/contract.html`，由 `pnpm -C web build`
-从 `web/src/contract/` 构建。它把共享 React composition（`SceneFilm`）挂进
-`@remotion/player`，暴露 `window.__M2V__`（**version 6**）。作品参数（准备产物）由查询参数
-`m2v-storyboard` 给出（本地静态服务提供），因此这一个页面能服务任意作品——作品不需要自己的 HTML。
-字幕量测（preview / render 内部）用 Playwright 驱动它；
-渲染不走它，而是直接从 composition 源码打包渲染（见 [渲染引擎](render-engine.md) 的「渲染引擎与打包」）。
+画面契约由作品自己的 `contract.html` 与 `src/contract/` 提供，构建和准备由作品本地入口执行。它挂载本地 `SceneFilm`，暴露 `window.__M2V__`（**version 6**）；参数由本地服务提供。录制页面与合成实现、字体和媒体都属于作品，不借用主项目构建产物。正式渲染入口见[渲染引擎](render-engine.md)。
+
+## 字体与缺字检查
+
+作品的 `src/assets/fonts.json` 声明实际注册字体，来源、版本、摘要、许可及恢复目标在作品 `fonts/registry.json`；按作品 `fonts/fetch.py` 恢复。构建前由本地同步脚本校验源文件、摘要和路径，缺失或漂移明确失败，不静默回退系统字体。字体二进制不入库，许可文本保留。
+
+准备/场景配置按实际登记字体检查会渲染的文本，并提取作品 `scenes/**/*.tsx` 的源码字面量作为静态覆盖补充，定位到字段或相对路径。口播文本本身不等于画面文本。静态提取不是对动态拼字、任意依赖或所有字体选用的完备证明；本片使用的具体字族、字重、字宽和排版仍须用实际画面复核。不能借另一支字体有字形就宣称所用字体正确。所有字体与异步排版在 `ready()` 前就绪。
+
+字幕几何与默认样式以作品 `src/frames.json` 为准；主项目参考是 `web/src/frames.json`，不要抄进令牌和量测常量。字幕参数见[字幕契约](prepared-and-subtitles.md#作品级字幕字号)。
+
+## 参考源码的设计令牌
+
+`web/src/styles/tokens.css` 服务于主项目参考组件，值和用途在源码维护；不是所有独立作品的调色板、字号、画幅或单强调色规范。只有实际采用的组件才连同所需样式落入作品。作品自己的构图与美术由设计决定，字幕另遵守上一节契约。
+
+参考令牌采用一个 `@theme static` 块，直接引用真实变量名，不增加同义别名或未被挂载的属性作用域。`static` 保证组件直接引用的变量也被输出；使用 Tailwind 任意值时保持完整类名。令牌层不保存运动时长，动画遵守[运动实现](#运动实现约定)。
+
+已有数值、字阶关系和图形颜色分类分别由 `tests/common/test_design_tokens.py`、`tests/common/test_figure_contrast.py` 守护；分类和阈值以测试及 CSS 为准，不在指南复制数值表。参考图形颜色新增/调整须同步分类，半透明先合成再量对比度；实心、次级面与空壳保持区别。数据/必要边界与装饰的对比职责不同，面填充也不套用线条阈值。这些约束只适用于该参考实现，不强制其他风格照搬。
 
 ## 必需接口
 
 ### 评审输出的全局帧范围与缩放
 
-片段检查与量测使用 `m2v preview --project <目录>`，默认前十秒，支持起止时间且拒绝全片。旧 `general samples` / `general rehearsal` 已移除。正式 render 不依赖预览，候选只生成一次，验收后交付同一文件。
+片段检查与量测使用 `m2v preview --project <目录>`，默认前十秒，支持起止时间且拒绝全片。正式 render 不依赖预览，候选只生成一次，验收后交付同一文件。
 帧范围、媒体时轴与缩放由类型内部渲染器统一处理，正式导出仍须经
 `m2v render --project <目录>` 渲染完整时间轴并保持原分辨率。
 
@@ -64,7 +73,7 @@ DOM/SVG 标记用于定位对象与排查几何，不能证明最终像素的可
 
 ## 幕内事件查询
 
-五类作品的场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用 SDK `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
+五类作品的场景从 `CodeSceneProps.eventFrames` 取得 prepare 解析的本幕事件帧表；无事件时省略。用本地 `createSceneEvents` 查询，不在动画和声音中重复写同一时刻：
 
 ```tsx
 const events = useMemo(() => createSceneEvents(config.eventFrames), [config.eventFrames]);
@@ -74,7 +83,7 @@ const count = frame >= events.frame('contact') ? 1 : 0;
 const emphasis = frame >= events.frame('contact') ? 1 - events.progress('contact', frame, 6) : 0;
 ```
 
-从 `react` 导入 `useMemo`，从 `m2v/code-scene` 导入 `createSceneEvents`。`frame(id)` 对未声明事件明确抛错；`progress(id,currentFrame,durationFrames,offsetFrames=0)` 将结果夹到0–1，当前帧、持续帧和偏移须有限，持续帧须大于0。允许分数帧，纯求值不依赖上次调用，适合子帧采集。零时长状态直接比较事件帧。
+从 `react` 导入 `useMemo`，从作品 `../src/code-scene/events` 导入 `createSceneEvents`。`frame(id)` 对未声明事件明确抛错；`progress(id,currentFrame,durationFrames,offsetFrames=0)` 将结果夹到0–1，当前帧、持续帧和偏移须有限，持续帧须大于0。允许分数帧，纯求值不依赖上次调用，适合子帧采集。零时长状态直接比较事件帧。
 
 事件表是初始化快照，建议每份配置只创建一次。事件只规定时刻，不触发回调、不自动模拟碰撞、不重排字幕与旁白。录制页仍顺序逐帧推进；纯事件函数可乱序求值不表示录制页新增随机 seek 能力。声明与音效定位见[幕内事件](storyboard-schema.md#幕内事件)。
 
@@ -131,8 +140,8 @@ version 6 的 `ready()` 必须保证：
 - 第 0 帧已经绘制过至少一次；
 - 画面里出现的本地图片已经解码完成，否则后截的帧才会拿到图片。
 
-契约页的实现（`web/src/contract/bridge.ts` 与 `explainer.tsx`）：等字体 Promise（与渲染入口
-`web/src/index.ts` 里 `delayRender` 等的是同一个）、把 Player 定位到第 0 帧并等画面落定，
+契约页的本地实现（作品 `src/contract/bridge.ts` 与 `src/scene-film/`）：等字体 Promise（与渲染入口
+`src/index.ts` 里 `delayRender` 等的是同一个）、把 Player 定位到第 0 帧并等画面落定，
 再等全部 `document.images` 解码完成。这样预览、量测与导出用的是同一份字体和同一批已就绪资源。
 
 本地媒体服务支持 Range 跳转。浏览器 seek 或退出页面取消旧请求时，服务结束该传输而不打印断连堆栈；一般读取、权限与资源错误仍然报出。取消传输不代表素材就绪，逐帧采集仍须等待目标时刻的视频解码完成。
@@ -174,7 +183,7 @@ version 6 的 `ready()` 必须保证：
 
 作品 TypeScript 检查应核实实际覆盖范围，可用 `tsc --listFilesOnly` 查看入口和依赖。
 专属配置宜用 `files` 显式列出分镜入口，缺失入口会明确报错；Windows 路径使用 `/`，
-避免过度转义的反斜线通配符空匹配后仍退出成功。覆盖 `paths` 时保留 SDK 所需的资源别名和
+避免过度转义的反斜线通配符空匹配后仍退出成功。覆盖 `paths` 时核实本地模块所需的资源别名和
 已登记图表类型声明映射，再记录真实类型检查结果。
 
 React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composition 源码决定，
@@ -183,14 +192,14 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 
 - 组件源码里**不出现**时间源与随机源（`Date.now` / `performance.now` /
   `Math.random` / 计时器 / 未关闭的 CSS `animation`）：打包前由静态源码闸门
-  （`src/m2v/core/source_policy.py`）扫描 composition 的全部可达源码，命中即失败
+  （作品 `runtime/python/film_runtime/core/source_policy.py`）扫描 composition 的全部可达源码，命中即失败
   并报出文件与行号；动效一律从 `useCurrentFrame()` 推导；
 - 布局量测与成片验收照常运行（见 [渲染引擎](render-engine.md)），成片仍要过上面的确定性验收。
 
 ### 代码场景的顺序逐帧采集
 
 作品 `scenes/` 下的 TSX 不进入 composition，其动画在检查或正式生成时由独立录制页
-（`web/src/code-scene/`）采集。**未声明 pure-time 时**，内部接口 `start()` 后只接受连续的
+（作品 `src/code-scene/`）采集。**未声明 pure-time 时**，内部接口 `start()` 后只接受连续的
 `advanceToFrame(n)`，从第 0 帧到 `durationInFrames - 1`；不支持倒序或跳帧。
 
 录制页在作品加载前安装受控 Date/performance、定时器和 RAF 时钟。每帧上下文时间为
@@ -283,7 +292,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ### 结构化来源
 
-分镜 `sources` 与幕内 `content.sourceIds` 在准备阶段校验。画面从 `m2v/code-scene/sources` 引入 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`，或用共享 SDK 的 `useSceneSource(id)` 读取本幕已准备的数据。来源文件和计算实现进入准备指纹。未声明的 ID 与旧 `m2v/style` 导入明确拒绝。
+分镜 `sources` 与幕内 `content.sourceIds` 在准备阶段校验。画面从 `../src/code-scene/sources` 引入 `FinancialSeriesScene`、`ConstructionScene`、`VehicleScene`，或用同一模块的 `useSceneSource(id)` 读取本幕已准备的数据。来源文件和计算实现进入准备指纹。未声明的 ID 与旧 `m2v/style` 导入明确拒绝。
 
 ## 运动实现约定
 
@@ -299,7 +308,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ### 共享动效原语
 
-`web/src/code-scene/primitives.ts` 提供五类只做数值映射的共享原语，作品从 `m2v/code-scene`
+`web/src/code-scene/primitives.ts` 提供五类只做数值映射的共享原语，作品从采用后的本地 `../src/code-scene/primitives`
 导入：
 
 | 原语 | 输入 | 输出 |
@@ -319,8 +328,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
   缓入缓出、指数、五阶和回弹落定。曲线只依赖输入 0–1，不读时间或随机源；不得在作品内
   复制近似曲线。时间换算、数据与联动边界见[运动实现约定](#运动实现约定)。
 - 原语不能用于关闭信息推进、母题可信度或版式重复问题，也不提供绕过复核的默认表现。
-- 原语属于共享渲染资产：`implementation_inputs()` 递归收集 `web/src/code-scene/` 下的
-  `.tsx`、`.ts` 与 `.js`，修改原语会使引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
+- 采用后的本地原语进入作品来源绑定；修改作品内被引用的实现后重新准备并复查，主项目参考源码的后续变化不会自动改变独立作品。
 - 单元测试在 `web/src/code-scene/primitives.test.ts`，覆盖重复求值、跳帧一致性、种子、
   0 与 1 边界；`tests/common/test_motion_primitives.py` 另检查实现指纹与确定性源码闸门。
 
@@ -329,15 +337,14 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 窗口包络与关键词切分。`screenSubtitleCharacters` 按传入帧号、开始帧、逐字间隔与单字时长
 返回独立字符进度，标点可增加停顿，不把长句压入固定包络。安全区容器保持固定，文字入退场在内部进行。
 这些原语只依赖显式进度或传入帧号、窗口、种子与缓动，不读取挂钟或上一帧状态；路径采样与
-锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由 `m2v/code-scene`
-统一导出；这些已有能力优先通过 SDK 使用，需要其他能力时可按[原生样品规范](design-samples.md)扩展登记依赖。新增动效或可视化组件前先按 `AGENTS.md` 的「动效与组件先
+锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由采用后的本地模块导出；这些已有能力按需复用，需要其他能力时可按[原生样品规范](design-samples.md)扩展登记依赖。新增动效或可视化组件前先按 `AGENTS.md` 的「动效与组件先
 调研外部方案」检索并记录选型，既有原语能满足时优先复用。
 
 ### 共享动效组件
 
-图表几何已统一到 D3；自动图示、公式和图标通过按需 SDK 子入口使用，不混入 Remotion 合成时钟。接口、就绪规则、许可与可执行示例见[外部表达组件与转场](visual-components.md)。
+图表几何已统一到 D3；自动图示、公式和图标通过按需采用的本地模块使用，不混入 Remotion 合成时钟。接口、就绪规则、许可与可执行示例见[外部表达组件与转场](visual-components.md)。
 
-`m2v/code-scene` 另提供一层可直接使用的共享组件；它们只把 `progress` 和显式
+`web/src/code-scene/motion-components/` 提供可按需采用的组件；它们只把 `progress` 和显式
 `easing` 映射成样式、几何或排版，不读挂钟、不启动动画、不依赖 Remotion context。
 
 | 层 | 组件 | 用途 |
@@ -361,11 +368,13 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ```tsx
 const t = Math.min(1, elapsedSeconds / 3);
-<AutoFitText text={title} withinWidth={820} fontFamily="M2V Sans" maxFontSize={112}/>
-<TextBlock text={body} maxWidth={640} fontFamily="M2V Sans" fontSize={32} progress={t}/>
-<LinePlot series={[{values: revenue}]} progress={t} width={1200} height={600}>
-  <Axis orientation="x" domain={[0, revenue.length - 1]} range={[64, 1136]} at={540} ticks={5}/>
-</LinePlot>
+const content = <>
+  <AutoFitText text={title} withinWidth={820} fontFamily="M2V Sans" maxFontSize={112}/>
+  <TextBlock text={body} maxWidth={640} fontFamily="M2V Sans" fontSize={32} progress={t}/>
+  <LinePlot series={[{values: revenue}]} progress={t} width={1200} height={600}>
+    <Axis orientation="x" domain={[0, revenue.length - 1]} range={[64, 1136]} at={540} ticks={5}/>
+  </LinePlot>
+</>;
 ```
 
 使用边界：
@@ -379,27 +388,20 @@ const t = Math.min(1, elapsedSeconds / 3);
   粒子、辉光与量测继续用 Painter。
 - **样式**：`@remotion/animation-utils` 只用于 CSS 数值、颜色与 transform；SVG 数值
   属性、Three.js 数值继续用 `interpolate`/`growSeries`/`interpolateState`。
-- **图表**：`LinePlot` / `AreaPlot` / `Sparkline` / `Axis` 是 `pure-time` 场景的图表
-  路径；`pure-time` 仍禁止 ECharts 与 `Chart`。图表只做数值映射与静态 SVG，不内含
-  坐标轴自动排版；坐标轴由调用方组合。`d3-scale`/`d3-shape` 只作为共享封装内部的
-  几何工具，作品不直接 import。
+- **图表**：参考 `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` 只做数值映射和静态 SVG，坐标轴由调用方组合。使用其他库时按实际逐帧证据选择采集模式，不凭库名宣称 pure-time；几何与依赖进入作品。
 - **噪声**：`@remotion/noise` 的 `noise2D` 以显式种子和坐标求值，相同输入结果相同；
   页面卸载/重挂载不受影响。噪声只用于有机漂移与纹理，不替代编排。
 - **gauge/时间轴/象形图/波形**：只输出静态 SVG，不自动动画；标签密集时由调用方
   自行错开或截断，组件不做自动避让。
 - **roughjs** 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化
   作品已有的艺术路径。
-- 作品与风格组件必须从 `m2v/code-scene` 使用这些能力，不得直接 import
-  `@remotion/*`、`roughjs`、`d3-scale`、`d3-shape` 或 `@remotion/noise`。代码场景
-  打包器的 approved 白名单不放宽。
-- `@remotion/shapes`、`@remotion/lottie`、`@remotion/transitions`、`@remotion/motion-blur`
-  当前不引入：前两个许可或驱动方式不适合 code scene，transitions 只适用于 composition，
-  motion-blur 只适用于 composition，code scene 的运动模糊继续用既有子帧方案。
+- 作品从实际采用的本地模块导入；直接采用第三方包时在作品声明精确版本、来源和许可，按[实现手段开放](design-samples.md#实现手段开放)验证，不沿用共享别名或旧包白名单。
+- 新包按实际许可、资源和时钟边界评估；依赖 Remotion composition 上下文的实现不能直接当普通代码场景组件。代码场景运动模糊可用既有子帧方案，不因候选名单预先限制表达。
 - 共享组件属于实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
 
 ### 二维绘制层
 
-`m2v/code-scene` 以 `painter` 命名空间提供可选的二维 Canvas 绘制层（与 R3F 的 `Canvas`
+`web/src/code-scene/painter/` 提供可选的二维 Canvas 绘制层（与 R3F 的 `Canvas`
 区分）。不导入时画面与没有这一层时相同。它补的是中间一档：
 
 | 载体 | 什么时候用 |
@@ -409,7 +411,7 @@ const t = Math.min(1, elapsedSeconds / 3);
 | `three` + `PostFX` | 真实三维、景深与画面后期 |
 
 ```tsx
-import {painter} from 'm2v/code-scene';
+import * as painter from '../src/code-scene/painter';
 const {PainterCanvas} = painter;
 
 <PainterCanvas width={width} height={height} bloom={0.85} grain={0.035} seed={11}
@@ -425,7 +427,7 @@ const {PainterCanvas} = painter;
 | 像素密度 | 按录制配置的 `captureScale` 自动分配后备缓冲；2 倍原生采集时后备缓冲同步放大，不触发像素不足 |
 | 时间 | 只读 `elapsedSeconds` 或帧号；不得使用挂钟、随机源、计时器或 CSS 动画 |
 | 文案 | 必须由作品参数传入，不得内嵌在绘制层；否则字体缺字检查看不到它 |
-| 指纹 | 目录内任何改动都会使引用作品的准备与片段缓存失效 |
+| 指纹 | 实际采用的本地实现纳入来源绑定，修改后重新准备与复核 |
 
 #### 四层怎么分工
 
@@ -460,7 +462,7 @@ const {PainterCanvas} = painter;
 如何施加。连续推拉应据此在**固定世界坐标**下绘制，而不是每幕各算一套屏幕几何。
 
 ```tsx
-import {painter} from 'm2v/code-scene';
+import * as painter from '../src/code-scene/painter';
 
 const CAM = [
   {at: 0,  scale: 0.4, focusX: 0,   focusY: 0},   // 全景
@@ -503,7 +505,7 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 
 ### 讲解机制与已有能力的映射
 
-可选表达方向见[四种讲解机制](explainer-design.md#四种讲解机制的执行方法)，实际取证按[评审契约](review-contract.md)。以下是已有能力的
+可选表达方向见[可选讲解机制](scene-design.md#可选讲解机制)，实际取证按[评审契约](review-contract.md)。以下是已有能力的
 使用方法，不是新 API，也不提供自动对象识别、任意形状变形或自动因果判断。
 
 | 需求 | 可复用能力与作品职责 |
@@ -525,8 +527,7 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 `CameraRig` 的位置、朝向、FOV、滚转与曝光同样只由帧号算出；`pathIntersectsSphere`、
 `cameraPathRisk` 与 `backgroundRisk` 在作品侧提供穿球与背景裁切的纯函数检查。
 
-作品不引用这些元件时画面与既有一致：真实浏览器验证「把套件从 SDK 导出里摘掉后，
-标准画面逐像素相同」，且 look、shots 与 `claims` 只在非默认时进入片段缓存键。
+电影级参考元件按需采用；每部作品的实际依赖、画面和缓存绑定以本地实现与当前证据核对，不把原参考实现的历史实验当成本工程已验证。
 
 连续编号 PNG 直接按作品实际30或60 fps 编码为实际画幅的无声视频，输入与解码帧数必须精确一致；
 不使用 fps 重采样或尾帧复制掩盖缺失状态。缓存绑定源码、参数、时间窗、实际帧率、画幅、字幕几何、
@@ -543,8 +544,7 @@ frame.layer({alpha: progress, at: [x, y], rotate: angle, scale: 1.2}, layer => {
 静帧采集就绪或运行失败时，`lookdev` 错误会包含场景 ID、入口路径及原始原因，用于直接定位多场景作品中的失败入口。
 
 `m2v lookdev` 重新构建当前代码场景，从第 0 帧连续推进到选定帧，仅保存关键帧，
-不录制完整成片。逻辑画幅不变，采集配置的 `captureScale: 2` 使 SDK `Canvas`
-及 `Chart` 原生绘制 2 倍像素；普通录制未声明时继续使用作品原有设置。
+不录制完整成片。逻辑画幅不变，采集配置的 `captureScale: 2` 可供已采用的 `PainterCanvas` 等支持像素密度的实现分配 2 倍后备缓冲；不能假定所有第三方组件自动适配。普通录制未声明时继续使用作品原有设置。
 自定义 canvas 必须按该像素密度分配后备缓冲，像素不足会明确失败，不以放大代替。
 
 `--sheet` 给单个整数时，均匀取帧数为 1～24；多个数值表示具体秒数。
