@@ -37,7 +37,7 @@ uv run m2v prepare --project videos/text-motion/demo
 uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 ```
 
-`init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可按帧区间并行。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
+`init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可并行；内存紧张时按 4→2→1 降低并行数，并行只影响耗时，不改变帧序与成片契约。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
 
 ## 命令
 
