@@ -90,7 +90,7 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。
+- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。成片目标时长不超过 60 秒的作品完成研究与拆解后直接制作全片，不单独出试制样片，技术 QA 与独立终审照常执行。
 - [全片与场景设计](.agents/skills/material2video/references/scene-design.md)：总设计统一五维与结构，每场以既有 scene.id 将五维意图落实到关键状态、动作因果、注意力和衔接；按机制深化，配有隐喻因果、数据关系和静态文字教学演练，验证计划与当前结果分开回写。文档当前不渲染，分镜/代码维护执行参数，技能脚本支持全片或局部对应检查。
 - [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格、12 种音效风格和 12 种转场风格，创作或视听表达修订前必读；名称用于拓展探索，采用自选。[深入风格研究](.agents/skills/material2video/references/reference-video-analysis.md)区分整体品质、专项表现和信息表达参考，记录实际观察、效果解释及本片应用；可随研究试制，未知触发补查，不以搜索数量或全部研究结束为前提。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
