@@ -6,7 +6,7 @@
 ## Requirements
 
 ### Requirement: 文章内容与仓库解耦
-系统 SHALL 保持文章内容及产物不入主项目Git，允许通过 --content-root 或 M2V_CONTENT_ROOT 创建作品。初始化默认归属仍为 videos/<type>/<slug>，七例仍为 examples/<type>/<slug>；已有独立作品 SHALL 能在任意目录直接执行或通过显式 --project 使用，SHALL NOT 为运行强制要求上级目录名称或主项目标记。作品 SHALL 拥有全部本地运行输入，SHALL NOT 生成主项目web/.gen入口、挂载主项目资源或读取共享依赖。
+系统 SHALL 保持文章内容及产物不入主项目Git，允许通过 --content-root 或 M2V_CONTENT_ROOT 创建作品。初始化默认归属仍为 videos/<type>/<slug>，随附示例仍为 examples/<type>/<slug>；已有独立作品 SHALL 能在任意目录直接执行或通过显式 --project 使用，SHALL NOT 为运行强制要求上级目录名称或主项目标记。作品 SHALL 拥有全部本地运行输入，SHALL NOT 生成主项目web/.gen入口、挂载主项目资源或读取共享依赖。
 
 #### Scenario: 任意位置运行
 - **WHEN** 独立作品被复制到含空格的新目录，未设置内容根且主项目不存在
