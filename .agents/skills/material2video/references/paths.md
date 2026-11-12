@@ -12,7 +12,7 @@ videos/<type>/<slug>/
 ├── article.md                # input.kind=article 时的源文
 ├── assets/                   # 登记媒体、声音和结构化来源文件
 └── outputs/
-    ├── prepared.json         # contractVersion 2 的当前准备记录
+    ├── prepared.json         # contractVersion 3 的当前准备记录
     ├── previews/video.mp4    # 可选短预演
     ├── video.mp4             # 正式成片
     └── ...                   # 技术检查、证据与缓存

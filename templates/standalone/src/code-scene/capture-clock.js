@@ -84,8 +84,11 @@
     }
     return state;
   }
+  // 目标时间落在帧中心而不是帧边界：30fps 素材在 30fps 采集时，
+  // 恰好等于边界的浮点误差会让相邻帧被判为同一帧，产生周期性重复帧。
   function position(element, state) {
-    return state.base + (state.playing ? (now - state.start) / 1000 * element.playbackRate : 0);
+    const fps = Number(window.__M2V_CODE_CONFIG__?.fps) || 30;
+    return state.base + (state.playing ? (now - state.start) / 1000 * element.playbackRate + 0.5 / fps : 0);
   }
   proto.play = async function () {
     const s = stateOf(this);

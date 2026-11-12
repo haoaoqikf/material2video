@@ -12,7 +12,7 @@
 ## 准备记录（`outputs/prepared.json`）
 
 配音与字幕不再有独立的媒体清单文件：`m2v prepare` 把配音、字幕与派生时间轴一起写进
-作品 `outputs/prepared.json`（`contractVersion: 2`），渲染、预览与评审都从它取。
+作品 `outputs/prepared.json`（`contractVersion: 3`），渲染、预览与评审都从它取。
 
 | 字段 | 含义 |
 | --- | --- |
