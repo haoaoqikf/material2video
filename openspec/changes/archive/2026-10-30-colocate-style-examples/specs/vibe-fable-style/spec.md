@@ -2,7 +2,7 @@
 
 ### Requirement: 风格示例必须可校验并与包分离
 
-仓库 SHALL 在目录 `styles/<style-id>/examples/<slug>/` 为每个正式风格提供规范示例：`vibe-night/fold`、`vibe-fable/pigeon`、`doc-archive/american-science-milestones`、`count-ledger/compound-interest` 与 `deep-journey/solar-system-journey`。示例 SHALL 声明其演示的 `style.id` 并通过 v8 契约校验；其旁白与文字模式 SHALL 与所属风格契约一致：`vibe-night` / `vibe-fable` 无旁白并使用屏幕字幕，`doc-archive` / `count-ledger` 无旁白且文字画在场景内，`deep-journey` 保留旁白与共享字幕。风格发现 SHALL 只读取 styles 的直接子目录，SHALL NOT 把示例目录当作风格包。示例 SHALL NOT 改变其他风格的示例集合，也 SHALL NOT 改变任何风格包的指纹。
+仓库 SHALL 在目录 `styles/<style-id>/examples/<slug>/` 为每个正式风格提供规范示例：`doc-archive/american-science-milestones`、`count-ledger/compound-interest` 与 `deep-journey/solar-system-journey`。示例 SHALL 声明其演示的 `style.id` 并通过 v8 契约校验；其旁白与文字模式 SHALL 与所属风格契约一致：`vibe-night` / `vibe-fable` 无旁白并使用屏幕字幕，`doc-archive` / `count-ledger` 无旁白且文字画在场景内，`deep-journey` 保留旁白与共享字幕。风格发现 SHALL 只读取 styles 的直接子目录，SHALL NOT 把示例目录当作风格包。示例 SHALL NOT 改变其他风格的示例集合，也 SHALL NOT 改变任何风格包的指纹。
 
 #### Scenario: 示例不被当作风格包
 
@@ -17,7 +17,7 @@
 #### Scenario: 示例可校验
 
 - **WHEN** 对 `styles/<style-id>/examples/<slug>/` 下的五个示例运行 `m2v validate`
-- **THEN** 校验通过；`vibe-night/fold` 与 `vibe-fable/pigeon` 的屏幕字幕在字幕安全区内、无旁白且引用存在的场景入口，其余示例按其风格声明的旁白与文字模式通过校验
+- **THEN** 校验通过；示例按其风格声明的旁白与文字模式通过校验
 ### Requirement: 风格示例还原度验收
 
 `styles/vibe-fable/examples/<slug>/` 下的每个风格示例 SHALL 按[参考风格契约](../../../../../.agents/skills/material2video/references/reference-style.md)记录八项指标，作为**证据格式**而非通过阈值：
@@ -48,23 +48,5 @@
 
 - **WHEN** 示例通过还原度验收
 - **THEN** 它仍只是风格示例，不因此获得核心样片、粗片或终审记录，也不改变其非交付作品的状态
-### Requirement: pigeon 示例使用全局行为轨迹与声音语义表
 
-`styles/vibe-fable/examples/pigeon/` SHALL 用一条不依赖幕 ID 的全局时间状态轨迹驱动鸽子的位置、朝向、啄食、步态与转圈；每一幕 SHALL 只决定镜头取景与字幕，MUST NOT 用幕 ID 分支改变同一时刻的行为。示例 SHALL 通过 `content.props.capture.timebase: "global"` 获取全片时间，MUST NOT 在每幕重复手写 `clock.startSeconds`。
-
-示例 SHALL 在作品内提供可核对的 `SOUND.md`，登记计时、食槽打开/接合、食物到达、转圈与揭示各自的 `assetId`、参数与听觉作用；`storyboard.json` 的音效 SHALL 引用语义 `eventId`，MUST NOT 用与画面脱钩的硬编码 `offsetFrames` 作为主要定位。
-
-#### Scenario: 幕界连续
-
-- **WHEN** 在相邻两幕的边界前后取帧
-- **THEN** 鸽子位置、朝向与啄食姿态来自同一 `act(globalSeconds)`，不因换幕跳到另一套动作
-
-#### Scenario: 声音语义可核对
-
-- **WHEN** 检查 `SOUND.md`、`storyboard.json` 的 `events`/`effects` 与 `outputs/events.json`
-- **THEN** 每个声音角色都有登记的 `assetId` 与对应 `eventId`，事件帧与音效起点一致
-
-#### Scenario: 未声明全局时间
-
-- **WHEN** 示例幕缺少 `capture.timebase: "global"`
-- **THEN** 校验或准备明确失败，不允许回退到手写起点而静默产生跳变
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

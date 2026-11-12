@@ -19,10 +19,11 @@
 
 - `tests/standalone/test_management_bindings.py` 覆盖旧 SDK 引用拒绝、目录联接越界、实现输入变化与候选搬移；`test_management_adapter.py` 覆盖委托结果与独立技术复核；`test_management_samples.py` 覆盖本地样品与来源绑定。
 - `tests/standalone/test_local_lookdev.py` 覆盖本地静帧合成范围与越界拒绝。
-- 在 `text-motion/fold` 上实际运行 `m2v lookdev --sheet 1 2 --still-scale 1`，通过本地 `lookdev` 生成静帧与接触表；准备身份与当前记录一致。
 - 在隔离模板工程实际运行 `m2v review timeline`，本地 `materialize` 生成全片片段，作品脚本构建 `player.js`、`timeline.json`、字体与音频；主项目未使用 `web/` 渲染根。
 
 ## 保留范围
 
 - 主项目旧 `types/scene_film` 准备／采集模块保留为模板提取依据和仓库测试对象，不再被生产命令调用；公开 SDK 入口、全局依赖登记与仓库场景映射已删除。
 - 未迁移的外部检查器规则与主观评审不在本记录范围；技术检查通过不表示制作完成或关闭独立评审问题。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

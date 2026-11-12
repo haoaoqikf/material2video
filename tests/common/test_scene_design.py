@@ -123,7 +123,7 @@ def test_image_and_html_references_do_not_silently_pass(work, link):
         design.validate(work)
 
 
-def test_all_seven_examples_have_current_scene_correspondence():
+def test_all_examples_have_current_scene_correspondence():
     from helpers.examples import EXAMPLE_PATHS
     for root in EXAMPLE_PATHS.values():
         assert design.validate(root)['scope'] == 'complete'

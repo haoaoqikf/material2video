@@ -27,10 +27,8 @@
 
 | 示例 | 特有范围 | 独立资源恢复 | 脱库构建／预演 | 全片技术导出 | 受影响媒体复核 |
 |---|---|---|---|---|---|
-| text-motion/fold | Painter、衬线字体、事件声 | 已完成（3 项字体、5 个事件声） | 已完成 | 990 帧／33 秒，QA pass | 珠串、宋体字幕代表帧通过 |
 | data-evolution/compound-interest | 精确数学、音床、事件声 | 已完成（2 项字体） | 已完成 | 870 帧／29 秒，QA pass | 双列收益与结论代表帧通过 |
 | data-evolution/compound-connect | 公式字体、路径、事件声 | 已完成（22 项字体、6 个事件声） | 已完成 | 1200 帧／40 秒，QA pass | 差值图表与粒子代表帧通过 |
-| principle-metaphor/pigeon | Painter、事件声 | 已完成（2 项字体、5 个事件声） | 已完成 | 990 帧／33 秒，QA pass | 实验室舞台代表帧通过 |
 | principle-metaphor/luck-on-stage | 路径、Painter、事件声 | 已完成（2 项字体、6 个事件声） | 已完成 | 1230 帧／41 秒，QA pass | 概率盘与期望网格代表帧通过 |
 | spatial-3d/solar-system-journey | R3F、镜头后期、15 段旁白、音乐／事件声 | 已完成（2 项字体、15 段旁白缓存） | 已完成 | 10473 帧／174.55 秒，QA pass | 水星、木星／土星、奥尔特云代表帧通过 |
 | documentary-edit/american-science-milestones | 真实媒体、图表、12 幕 | 已完成（2 项字体、真实媒体复用） | 已完成 | 1800 帧／30 秒，QA pass | 电报、晶体管、大语言模型代表帧通过 |
@@ -49,3 +47,5 @@
 - 仓库内参考入口测试改用 `tests/support/code-scene-reference.tsx`，继续覆盖 Painter、动效原语、组件出口与确定性源码闸门；该文件不是作品运行时。
 - 保留 `test_canvas_painter`、`test_motion_components`、`test_motion_primitives`、`test_cinematic_scene_kit` 等针对参考源码的独特行为测试；保留交付失败、缓存、异步、计时与资源边界测试。
 - 新增缺业务来源模块的明确失败测试；金融、建筑、车辆准备能力的既有直接测试继续运行。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

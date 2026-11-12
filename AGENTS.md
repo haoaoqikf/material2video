@@ -56,9 +56,9 @@
 - **字体二进制不入库**：字体来源、版本、摘要、许可与恢复目标登记在 `fonts/registry.json`，
   由 `fonts/fetch.py` 恢复并校验；许可文本仍入库。字体缺失时构建、准备与渲染明确失败并提示
   恢复，不得静默回退到系统字体。
-- **示例集合固定**：仓库 `examples/<type>/<slug>/` 保留七部示例：
-  `text-motion/fold`、`data-evolution/compound-interest`、`data-evolution/compound-connect`、
-  `principle-metaphor/pigeon`、`principle-metaphor/luck-on-stage`、
+- **示例集合固定**：仓库 `examples/<type>/<slug>/` 保留五部示例：
+  `data-evolution/compound-interest`、`data-evolution/compound-connect`、
+  `principle-metaphor/luck-on-stage`、
   `spatial-3d/solar-system-journey`、`documentary-edit/american-science-milestones`。
   新增或替换示例须同步名单、测试与文档。只有跨作品复用的能力进入共享 SDK；示例专属画面留在示例内。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。

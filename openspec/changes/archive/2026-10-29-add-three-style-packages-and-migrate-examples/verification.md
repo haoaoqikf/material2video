@@ -15,8 +15,6 @@
 | `styles/examples/doc-archive/american-science-milestones` | 通过 | 通过 |
 | `styles/examples/count-ledger/compound-interest` | 通过 | 通过 |
 | `styles/examples/deep-journey/solar-system-journey` | 通过 | 通过 |
-| `styles/examples/vibe-night/fold` | 通过 | 既有示例 |
-| `styles/examples/vibe-fable/pigeon` | 通过 | 既有示例 |
 
 代表性预览：
 
@@ -58,3 +56,5 @@
 - `openspec archive add-three-style-packages-and-migrate-examples -y`：主规格 11 处更新（+17 / ~11 / -5），变更移入 `openspec/changes/archive/2026-10-29-add-three-style-packages-and-migrate-examples/`。
 - `openspec validate --specs`：44 个主规格通过，0 失败。
 - 最终五个风格：`vibe-night`、`vibe-fable`、`doc-archive`、`count-ledger`、`deep-journey`；五个规范示例位于 `styles/examples/<style-id>/<slug>/`。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

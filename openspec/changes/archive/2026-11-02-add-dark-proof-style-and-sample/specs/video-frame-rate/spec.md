@@ -22,4 +22,6 @@
 
 #### Scenario: 固定示例
 - **WHEN** 六个随附风格示例完成准备、完整预演及正式导出
-- **THEN** `doc-archive` 与 `deep-journey` 示例按其显式声明的 60 fps 交付，`count-ledger`、`vibe-night/fold`、`vibe-fable/pigeon` 与 `dark-proof/sample` 按 30 fps 交付；各示例帧数与准备记录一致，旁白与字幕同步
+- **THEN** `doc-archive` 与 `deep-journey` 示例按其显式声明的 60 fps 交付，`count-ledger`、`dark-proof/sample` 按 30 fps 交付；各示例帧数与准备记录一致，旁白与字幕同步
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

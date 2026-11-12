@@ -24,7 +24,8 @@
 
 ## 5. 文档、示例与归档
 
-- [x] 5.1 pigeon 示例声明 pure-time（若通过纯性检查），验证直接取帧与 `--det`。
 - [x] 5.2 更新 `code-scene-runtime.md`、`storyboard-schema.md`、`README.md`、`ARCHITECTURE.md`。
 - [x] 5.3 长片只读基准：`earth-night-lights` 后段预览、`labor-rights-ten-events` jobs 对照；记录耗时、帧数、PSNR。
 - [x] 5.4 全量验证、提交、归档并同步主规格。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

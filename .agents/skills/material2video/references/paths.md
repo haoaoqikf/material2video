@@ -2,7 +2,7 @@
 
 每部作品有稳定的 slug。仓库内作品位于 `videos/<type>/<slug>/`，也可用 `--content-root` 或 `M2V_CONTENT_ROOT` 指定仓库外内容根；两种位置使用同一命令。五类 `type` 来自 `src/m2v/type_system/catalog.json`，没有类别层。`videos/` 下的内容和所有 `outputs/` 均不入库。
 
-仓库自带示例位于 `examples/<type>/<slug>/`，源码、分镜、素材配方与说明入库；媒体和生成产物不入库。七部清单见 [examples/README.md](../../../../examples/README.md)。
+仓库自带示例位于 `examples/<type>/<slug>/`，源码、分镜、素材配方与说明入库；媒体和生成产物不入库。五部清单见 [examples/README.md](../../../../examples/README.md)。
 
 ```text
 videos/<type>/<slug>/

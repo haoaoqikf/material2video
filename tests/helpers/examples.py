@@ -5,9 +5,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 TYPE_EXAMPLES: dict[str, tuple[str, ...]] = {
-    "text-motion": ("fold",),
+    "text-motion": (),
     "data-evolution": ("compound-interest", "compound-connect"),
-    "principle-metaphor": ("pigeon", "luck-on-stage"),
+    "principle-metaphor": ("luck-on-stage",),
     "spatial-3d": ("solar-system-journey",),
     "documentary-edit": ("american-science-milestones",),
 }

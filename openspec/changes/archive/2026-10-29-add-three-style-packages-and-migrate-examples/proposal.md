@@ -11,7 +11,6 @@
   - `styles/count-ledger/`（可数物证/状态机，源自 `compound-interest`）
   - `styles/deep-journey/`（深空连续旅程，源自 `solar-system-journey`）
 - 三个作品从顶层 `examples/<slug>/` 迁入 `styles/examples/<style-id>/<slug>/`，并在 `project.json` 声明对应 `style.id`；题材内容、分镜、素材、数学、旁白与声音全部留在示例作品，不进入风格包。
-- **BREAKING** 删除顶层 `examples/` 及其“最多三个固定示例”的集合规则；仓库不再分发该三例的旧路径。风格示例统一位于 `styles/examples/<style-id>/<slug>/`，共 5 个（新增 3 个 + 现有 `vibe-night/fold`、`vibe-fable/pigeon`）。
 - 更新风格注册与工作区契约：`m2v styles` 返回 5 个包；`styles/examples/` 继续作为保留目录，不参与风格发现；仓库根识别 `styles/examples/<style-id>/<slug>/`，不再识别 `examples/<slug>/`。
 - 三个新包不登记 `assets`：使用宿主已注册字体，程序化材质与图形；不新增字体恢复步骤，也不携带题材素材。
 - 同步更新测试、`.gitignore`、README、AGENTS、ARCHITECTURE、`styles/README.md`、skill 参考与 OpenSpec 主规格。
@@ -44,3 +43,5 @@
 - 修改 README、AGENTS、ARCHITECTURE、`styles/README.md`、`.agents/skills/material2video/references/` 中受影响的路径与说明。
 - 三个旧示例的 `outputs/` 合计约 17.4G 且存在权限受限目录；只迁移 tracked 文件，不整目录移动，旧产物本地清理。
 - 不新增视频类型、命令或材料字段；不改变共享字幕层、制作门、审核职责与导出门禁。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

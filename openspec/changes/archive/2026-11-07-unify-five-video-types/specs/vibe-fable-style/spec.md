@@ -30,12 +30,9 @@
 **Reason**: 风格注册层已经删除；示例代码仅保留作品实际使用部分。
 **Migration**: 使用 examples/<type>/<slug> 的作品局部组件，跨作品复用能力使用 m2v/code-scene。
 
-### Requirement: pigeon 示例使用全局行为轨迹与声音语义表
-
-**Reason**: 风格注册层已经删除；示例代码仅保留作品实际使用部分。
-**Migration**: 使用 examples/<type>/<slug> 的作品局部组件，跨作品复用能力使用 m2v/code-scene。
-
 ### Requirement: 寓言示例使用有依据的尺度并可练习修改
 
 **Reason**: 风格注册层已经删除；示例代码仅保留作品实际使用部分。
 **Migration**: 使用 examples/<type>/<slug> 的作品局部组件，跨作品复用能力使用 m2v/code-scene。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

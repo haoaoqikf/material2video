@@ -55,21 +55,4 @@
 - **WHEN** 作品声明了风格但场景没有导入任何组件
 - **THEN** 画面与未选择风格时相同，不发生自动换肤
 
-### Requirement: 风格示例必须可校验并与包分离
-
-仓库 SHALL 在保留目录 `styles/examples/<style-id>/<slug>/` 提供两个风格示例：`vibe-night/fold` 与 `vibe-fable/pigeon`。示例 SHALL 声明其演示的 `style.id`、使用无旁白屏幕字幕并通过 v8 契约校验；SHALL NOT 占用 `examples/` 的固定名额或改变其集合。风格发现 SHALL 跳过保留目录，SHALL NOT 把示例目录当作风格包。
-
-#### Scenario: 示例不被当作风格包
-
-- **WHEN** 运行 `m2v styles` 或 `m2v styles --json`
-- **THEN** 只返回 `vibe-fable` 与 `vibe-night`，`styles/examples/` 及其子目录不出现在清单中
-
-#### Scenario: 示例改动不使作品准备失效
-
-- **WHEN** 修改某个风格示例的文件
-- **THEN** 使用该风格的作品准备指纹不变，只有该示例自身的准备需要重做
-
-#### Scenario: 示例可校验
-
-- **WHEN** 对 `styles/examples/vibe-night/fold` 或 `styles/examples/vibe-fable/pigeon` 运行 `m2v validate`
-- **THEN** 校验通过；示例的屏幕字幕都在字幕安全区内、无旁白且引用存在的场景入口
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

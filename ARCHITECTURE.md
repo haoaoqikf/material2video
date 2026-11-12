@@ -12,7 +12,7 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 | 制作管理 | `src/m2v/types/scene_film/`、`engine/`、`production/` | 分镜 v9 校验、作品本地执行协议、lookdev／时间线委托、QA、评审、问题与制作证据 |
 | 结构化来源 | `src/m2v/types/financial/`、`building_construction/`、`vehicle_showcase/` | 金融行情与投资计算、建筑构件与步骤、汽车模型与镜头数据；只由统一分镜引用 |
 | Web 参考源码 | `web/src/code-scene/`、`web/src/scene-film/`、`web/src/types/` | 可选组件的采用参考与仓库测试夹具；不是作品运行时，也没有公开 SDK 入口 |
-| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；只有七部示例源码入库 |
+| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；只有五部示例源码入库 |
 
 ## 依赖与材料边界
 

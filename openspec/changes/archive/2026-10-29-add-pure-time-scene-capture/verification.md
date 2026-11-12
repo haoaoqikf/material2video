@@ -8,7 +8,6 @@
 - `tests/test_render_segments.py`：区间切分无缺口/重叠，非法 jobs 与空片被拒绝。
 - `tests/test_lookdev_native.py`、`tests/test_source_policy.py`、`tests/test_scene_events.py`、`tests/test_vibe_fable_style.py` 通过。
 - `PYTHONUTF8=1 uv run pytest -m "not slow"`、`pnpm -C web test`、`pnpm -C web typecheck`、`sync_docs.py --check` 通过。
-- pigeon 示例：`validate`、`prepare`、`lookdev --sheet`、`lookdev --det`（第二遍倒序，PSNR 79.14–88.49 dB）、`lookdev --event`、`render --jobs 2` 通过；成片 990 帧、33 秒、含音轨。
 
 ## 基准（只读副本，位于 `work/bench/`，不进入版本控制）
 
@@ -26,3 +25,5 @@
 - `--jobs` 目前仅 `general` 支持；其他类型收到大于 1 的值会在渲染前拒绝。
 - 分段拼接依赖各段编码参数一致；`concat -c copy` 失败时明确报错，不静默重编码。
 - 基准作品的缓存状态会影响绝对耗时；需要严格对照时应使用全新副本并清理 `outputs/code-cache`。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

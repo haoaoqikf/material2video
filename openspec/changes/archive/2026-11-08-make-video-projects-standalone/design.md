@@ -2,7 +2,7 @@
 
 动机和范围见 [proposal.md](proposal.md)。当前构建器将 `m2v/code-scene` 映射至仓库源码，裸依赖从 `web/node_modules` 解析；Python 准备、采集、字体检查和 Remotion composition 均以仓库 `web/` 为运行根。`implementation_inputs()` 绑定整个 SDK 和全局锁文件，`delivery.binding()` 还绑定主项目 Python 实现。内容根分离没有解决这些执行依赖。
 
-七例实际采用范围已核对：fold 使用 Painter 和衬线字体；compound-interest 使用本地数学模型及音床／事件声；compound-connect 使用公式与事件声；pigeon 使用 Painter 与事件声；luck-on-stage 使用路径／Painter 与事件声；solar-system-journey 使用 R3F 镜头后期、15段旁白、音乐和事件声；american-science-milestones 使用真实登记媒体及图表。七例均未绑定金融／建筑／汽车结构化来源，不能据此删除仍有公开用途的数据准备能力。
+保留记录的示例实际采用范围已核对：compound-interest 使用本地数学模型及音床／事件声；compound-connect 使用公式与事件声；luck-on-stage 使用路径／Painter 与事件声；solar-system-journey 使用 R3F 镜头后期、15段旁白、音乐和事件声；american-science-milestones 使用真实登记媒体及图表。保留记录的示例均未绑定金融／建筑／汽车结构化来源，不能据此删除仍有公开用途的数据准备能力。
 
 ## Goals / Non-Goals
 
@@ -106,3 +106,5 @@ v3 manifest声明协议版本、本地入口及参数数组；默认入口为作
 6. 任务全部完成且验证／提交通过后自动同步主规格、归档并提交。未完成项保持勾选未完成，不把阶段完成报作整体完成。
 
 回退以Git提交为单位，恢复旧代码与已跟踪示例源码；不自动修改被忽略的历史作品或伪造恢复旧媒体。旧运行环境的可追溯依据是改造前提交，非新版兼容分支。
+
+> 2026-11-12 内容清理：已删除用户指定作品的专属内容；本档案仅保留其余历史范围，不代表本轮重新验证。

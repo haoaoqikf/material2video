@@ -1,4 +1,4 @@
-"""七部示例的归属、材料、依赖与打包边界。"""
+"""随附示例的归属、材料、依赖与打包边界。"""
 from __future__ import annotations
 
 import json

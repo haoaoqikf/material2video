@@ -159,7 +159,7 @@ uv run m2v author assets search --project <目录> [--provider pixabay] [--kind 
 
 时间偏移、`gainDb`、淡入淡出与不同素材是现有编排手段，不是固定创作顺序。允许稀疏、密集和重复，不以数量或复杂度判断质量；只核对实际目标、必要旁白可懂度与相应技术边界。
 
-现有音效能力没有 effect 级音高参数。不要为了单次动作在混音链里临时加 pitch；确有需要时按合成配方的可选半音参数单独评估。示例见 `examples/principle-metaphor/pigeon/SOUND.md`。
+现有音效能力没有 effect 级音高参数。不要为了单次动作在混音链里临时加 pitch；确有需要时按合成配方的可选半音参数单独评估。
 
 ## 统一音效库
 

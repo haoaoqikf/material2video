@@ -189,43 +189,6 @@
       }
     },
     {
-      "path": "examples/principle-metaphor/pigeon",
-      "sourceFiles": {
-        "assets/sound-recipe.json": "7e7c702a4eb614f8d682cd5d052d84861a9471aabe09c8dad0f9259736c325f6",
-        "assets/sound-sources.json": "affad2755123ab86edd40e81c17717d6726c3827f90a206b5d10b34554ec0403",
-        "design/previous-design.md": "26c4f3c756ac3d0a63aee62c0c11c5dd900cb19c481238a77e3c75c995cc240a",
-        "design/scenes/again.md": "b802fce1ca6d2d8ef0de49066fc8fcf1396da437a99d87bd2fd212afce330eeb",
-        "design/scenes/box.md": "70b655a2b701381c7849035946cdded33949f506c54bf054b43e9ff0326084a1",
-        "design/scenes/coincide.md": "9fcf95901294340a017b2d0c47217902d91f2583305debb3437ae8928556c726",
-        "design/scenes/feeder.md": "27b4b4461363d26e1f6ec34cfb54aaeb83010b35ea96488568d76c1fa5dd35c0",
-        "design/scenes/repeat.md": "0d811e4a300bfb3cd20c0715c799dff878e55fd024bc338b890c63d33afdcc43",
-        "design/scenes/wander.md": "bc085bbe7423c1ff56fba9b38d991e7d1f4315ec97acb75c2bbf0234490fa977",
-        "DESIGN.md": "63427b11c025ecfa3662c5e656f9a90d79dbb579778d7f20177fe219a12127a4",
-        "HOWTO.md": "96c2eda3a2fcc5ffbd042f91bba125751bde6722bf2fda6bfcf00e720bb11960",
-        "project.json": "47dabadf36ffc67b5f3aafdb1fbb777aa08933327d038fb24a0f20ba290f0660",
-        "README.md": "410c7aa6ae429ed76e470c0324538f012f41787d62d139f866e56221f517eb71",
-        "scenes/components/fable-stage.tsx": "71359078a7da833d039c350ff5ed30b1ef74bbc3aed4915ec313ecc8fe7ba84a",
-        "scenes/components/kit.tsx": "5f396bc1be4a6bc4efaa4459836e9a780eb2d47367fad419e7e70b29e2dc9a70",
-        "scenes/components/scene-note.tsx": "54716f2d8dbc6e51aaa8637fe553efd95e00a1633c82beb94fe22173134d9d23",
-        "scenes/components/screen-subtitle.tsx": "38e98022af0709f641a225a60a91cd1e1967d2a517c12299c3694e47479003e2",
-        "scenes/components/top-line.tsx": "83449032bb2a1c3bda25dad08e9720f0b06f7a7787a687909a905c228a47f113",
-        "scenes/pigeon.tsx": "77e93a6e7326dc21204bf2ca4de7634f7add917254ddd554867d4e6957115cec",
-        "scenes/tokens.json": "7c44078a23b49249001b9ae8032be7b364d1f0f5eedfff53dabc82591f7d9b17",
-        "SOUND.md": "97616dead239939c19964c59243ac961b104daf60d0869fc6e6c8e63d112b7ce",
-        "storyboard.json": "6a0c18661ea30cdc6e917dc2a1a2e549d9833bb20ed83cfc70ddb66503829e03"
-      },
-      "existingArtifacts": {
-        "outputs/video.mp4": {
-          "sha256": "93c83b75c1738f4bbe301437880a44f1289bda75262804ac5ba5d1d70ab6750b",
-          "bytes": 13641875
-        },
-        "outputs/prepared.json": {
-          "sha256": "aca4727f6867e0c60d995e9f203706329753c6df35a5780571e2c0a78a89f5bf",
-          "bytes": 19227
-        }
-      }
-    },
-    {
       "path": "examples/spatial-3d/solar-system-journey",
       "sourceFiles": {
         "article.md": "bd0e9402c8855c839eec7c0818e3d169456a2546561f999ff440926405f4bcd2",
@@ -267,47 +230,7 @@
           "bytes": 276134
         }
       }
-    },
-    {
-      "path": "examples/text-motion/fold",
-      "sourceFiles": {
-        "assets/sound-recipe.json": "b16deed9e3452d1e8fbf495a09720f580320c1e9845a3e9e968a062910236117",
-        "assets/sound-sources.json": "76c6d98e80b5714a188115d2c6313cfef848c0a71c01c45789ea218b40ca2cfe",
-        "design/previous-design.md": "c6f453548ef4a61228ec77024f09f98391dc3660de39d279e7b988a84d9c8a46",
-        "design/scenes/chain.md": "7a0ef1415749c866d92665b629fd1d47000b7a0de7230f3c66b433a3e238efae",
-        "design/scenes/closing.md": "bde9fa98300212a107b612cff4dc9a7251279d71026da2592b9f13e03663d78a",
-        "design/scenes/fold.md": "c2440757ebaf7f4637a0a81cc460e26cf43ba89f297c8041547a7e3a6a897b4b",
-        "design/scenes/mutation.md": "ae7b5c4f297edf57668c960cddb10b0f2940f8dcc57f8eb1a3fb010f3aca9e8f",
-        "design/scenes/push.md": "c16a0c7263d00756b18904cd52687571edbf5c22f6fc0ee957d7725266f01938",
-        "design/scenes/question.md": "e2851644c5b1ef5aefe29a16dc5f85330f1c4e1d670e5eb750f17a43499c23a1",
-        "design/scenes/rod.md": "f6c5a27c8ef1598fce7ab188db696d90bbb6f4ced25bfff0c1075fc0d2b4689d",
-        "design/scenes/sickle.md": "60dcd8bc1c5f61ccc620493796984347b3c4d66a939c8960174f04f685c4a270",
-        "design/scenes/sticky.md": "75f2b0445f2adc19c7b3705d9e92e39fd70b0d73607af2d9c4b449e8af3765a0",
-        "DESIGN.md": "1d1dbecea604fe4ede27ddb78c08e0912afecb95070d0ecd123fe66a818c7516",
-        "HOWTO.md": "a55d5e3065867d14616db80be5d4e6b6d20890f94b8280c6d3ccc0d2b709a2e6",
-        "project.json": "d5d1717e156b0ac57f43736701ef0f16c6742e8bd8dae7b7d44aa07e94b391b1",
-        "README.md": "a8fa4f6605849b548b34863851d951f9d32601819b66c627c22c4c3142c93bd4",
-        "scenes/components/chapter-mark.tsx": "78450fc10b7d6cd57b04a8e4daf8bed8fc3399d2f1ab98a26d9987e22a370a1c",
-        "scenes/components/dip.tsx": "8486419eafe8f5ad5d5ca9ea7344d72bb84ad841072460041fade1bfcaa361c1",
-        "scenes/components/glow-text.tsx": "447e1633ac7808d5e319538c57959688d266cb8f79dda10af0be44e9b8c80747",
-        "scenes/components/kit.tsx": "9026d845cf3926318f1a7f5f771c268091ac76b8d3b84de7bea07ba24d705e76",
-        "scenes/components/screen-subtitle.tsx": "cce3f16555c226895e1e7255889259a8072c2f507c45576e98b0f92254d69a49",
-        "scenes/fold.tsx": "4cae5c1149bf671aa99f7f79bc0352eec66028dd97fbee0de06c611e45794709",
-        "scenes/layout.json": "ea6872681a56d5de99a98cc898a8517bdc44032b7a38850bf96a2f50f1aa05b1",
-        "scenes/tokens.json": "96bfdf2270fa09e7ba4fb875106ac99ebec84d3a916dd2e41c4b0b7bbed6bf21",
-        "storyboard.json": "5bde446a9f7f52238e48f9aad75ffce2c726a99c5edaad0b354ba3b16384772e",
-        "tools/gen_layout.py": "152fb2f47f9205bab9299a56cbd7593ad0edda0fb14b76165a53e347e1f11fed"
-      },
-      "existingArtifacts": {
-        "outputs/video.mp4": {
-          "sha256": "629343b5318d5c8997a987c24c867d482fed166c5292ef65079b6d38bc42ea24",
-          "bytes": 9565395
-        },
-        "outputs/prepared.json": {
-          "sha256": "6e8b9103daa80f3dbb6c16392880b016d1fff8c804ff983ca8c85c24832f25fd",
-          "bytes": 18290
-        }
-      }
     }
-  ]
+  ],
+  "contentCleanup": "2026-11-12 按用户要求删除两部作品的专属条目；保留条目的历史摘要与结论不变。"
 }
