@@ -15,12 +15,14 @@ def validate(root: Path, project: dict) -> None:
         raise M2VError('作品本地材料校验未通过')
 
 
-def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
+def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, backend=None) -> dict:
     arguments = []
     if voice is not None:
         arguments.append('--voice=' + voice)
     if rate is not None:
         arguments.append('--rate=' + rate)
+    if backend is not None:
+        arguments.append('--backend=' + backend)
     if rhythm:
         arguments.append('--rhythm=' + json.dumps(rhythm, ensure_ascii=False))
     return executor.prepare(root, project, arguments)

@@ -125,7 +125,7 @@ def dispatch(args) -> int:
     if args.command == "init":
         return _init(args)
     if args.command == "voices":
-        return _list_voices(args.locale, args.json)
+        return _list_voices(args.locale, args.json, getattr(args, "backend", "edge-tts"))
     return _project_command(args)
 
 
@@ -157,7 +157,7 @@ def _project_command(args) -> int:
     if args.command == "prepare":
         video_type.validate(root, manifest)
         video_type.prepare(root, manifest, voice=args.voice, rate=args.rate,
-                           rhythm=_rhythm_option(args))
+                           rhythm=_rhythm_option(args), backend=getattr(args, "backend", None))
         print(f"已生成准备产物：{root / 'outputs' / 'prepared.json'}")
         _report_reading_pace(root)
         return 0
@@ -230,13 +230,28 @@ def _production_render_event(root: Path, manifest: dict, kind: str, *, candidate
         print(f'[warning] 制作渲染记录失败：{exc}', file=sys.stderr)
 
 
-def _list_voices(locale: str, as_json: bool) -> int:
+def _list_voices(locale: str, as_json: bool, backend: str = "edge-tts") -> int:
     """列出合成可用音色，避免把音色名写错才发现。
 
     只读诊断：结果不参与渲染，也不写文件。
     """
     import asyncio
     from m2v.engine import tts
+
+    if backend == "kokoro":
+        from m2v.engine import kokoro_tts
+        voices = kokoro_tts.voice_names()
+        if as_json:
+            print(json.dumps({"zh-CN": [{"voice": v["voice"], "gender": v.get("gender"),
+                                         "categories": ["local"], "personalities": []}
+                                        for v in voices]}, ensure_ascii=False, indent=2))
+            return 0
+        print(f"zh-CN（{len(voices)} 个，Kokoro 本地音色）")
+        for voice in sorted(voices, key=lambda item: item["voice"]):
+            print(f"  {voice['voice']:<12} {voice.get('gender', ''):<7} local")
+        return 0
+    if backend != "edge-tts":
+        raise M2VError(f"不支持的 TTS 后端：{backend!r}；当前可用：edge-tts、kokoro")
 
     try:
         grouped = asyncio.run(tts.list_voices())

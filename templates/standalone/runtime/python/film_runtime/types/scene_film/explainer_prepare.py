@@ -46,7 +46,7 @@ def implementation_digest() -> str:
     return fingerprint(implementation_files())
 
 
-def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) -> dict:
+def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, backend=None) -> dict:
     from . import soundtrack, media_assets, cinematic
     cinematic.validate_project(project)
     source = contract.load(root, project)
@@ -60,7 +60,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
     declared = tts.settings(project).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
     texts = [s["text"] for scene in source["scenes"] for s in scene.get("narrationSegments", [])]
-    actual_tts = tts.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm)
+    actual_tts = tts.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm, backend=backend)
+    tts.ensure_backend(actual_tts, root)
     cache = root / "outputs/audio-cache"
     cache.mkdir(parents=True, exist_ok=True)
     inputs = file_inputs(root, project)
@@ -106,7 +107,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
             speech = scene.get("speech")
             scene_rhythm = rhythm_engine.configure({**(rhythm or {}), **(speech or {})}) if speech else rhythm
             wav, cues, _words, seconds, hit = tts.scene_audio(segment["text"], actual_tts["voice"],
-                actual_tts["rate"], cache, contract_version=9, rhythm=scene_rhythm)
+                actual_tts["rate"], cache, contract_version=9, rhythm=scene_rhythm,
+                backend=actual_tts["backend"], models_dir=root / "models")
             if not math.isfinite(seconds) or seconds <= 0: raise VideoError(f"旁白 {segment['id']} 音频时长无效")
             segments.append((segment["id"], wav, cues, math.ceil(seconds * fps)))
             holds.append(segment.get("holdFrames", 0))

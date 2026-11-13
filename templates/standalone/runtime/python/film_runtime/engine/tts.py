@@ -23,14 +23,31 @@ from film_runtime.engine.subtitles import cues_from_words
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
 
-#: 当前唯一的合成后端。后端抽象首先用来让作品能声明音色与语速，
-#: 而不是让每个调用点各写一份默认值。
+#: 合成后端是作品属性；默认仍是联网的 edge-tts。
 DEFAULT_BACKEND = "edge-tts"
 DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_RATE = "+0%"
-BACKENDS = (DEFAULT_BACKEND,)
-_VOICE = re.compile(r"^[A-Za-z]{2,3}-[A-Za-z]{2,4}-[A-Za-z0-9]{2,40}Neural$")
+BACKENDS = (DEFAULT_BACKEND, "kokoro")
+_VOICE = {
+    "edge-tts": re.compile(r"^[A-Za-z]{2,3}-[A-Za-z]{2,4}-[A-Za-z0-9]{2,40}Neural$"),
+    #: Kokoro v1.1-zh 的中国音色；zf 女声、zm 男声。
+    "kokoro": re.compile(r"^z[fm]_\d{3}$"),
+}
 _RATE = re.compile(r"^[+-]\d{1,2}%$")
+
+
+def voice_pattern(backend: str) -> re.Pattern:
+    try:
+        return _VOICE[backend]
+    except KeyError as exc:
+        raise VideoError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}") from exc
+
+
+def _check_voice(voice: str, backend: str) -> None:
+    """音色格式由后端决定；两种格式不能互相冒充。"""
+    if not isinstance(voice, str) or not voice_pattern(backend).fullmatch(voice):
+        example = "zh-CN-XiaoxiaoNeural" if backend == "edge-tts" else "zf_027"
+        raise VideoError(f"{backend} 的音色名必须形如 {example}，实际为 {voice!r}")
 
 
 def settings(project: dict) -> dict:
@@ -53,8 +70,7 @@ def settings(project: dict) -> dict:
     result["backend"] = backend
     if "voice" in declared:
         voice = declared["voice"]
-        if not isinstance(voice, str) or not _VOICE.fullmatch(voice):
-            raise VideoError(f"tts.voice 必须是形如 zh-CN-XiaoxiaoNeural 的音色名，实际为 {voice!r}")
+        _check_voice(voice, backend)
         result["voice"] = voice
     if "rate" in declared:
         rate = declared["rate"]
@@ -89,15 +105,17 @@ async def list_voices() -> dict[str, list[dict]]:
     return grouped
 
 
-def resolve(project: dict, *, voice: str | None = None, rate: str | None = None) -> tuple[str, str]:
+def resolve(project: dict, *, voice: str | None = None, rate: str | None = None,
+            backend: str | None = None) -> tuple[str, str]:
     """音色必须显式选择；语速独立按命令行、作品、默认值解析。"""
     configured = settings(project)
+    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
     actual_voice = voice if voice is not None else configured.get("voice")
     actual_rate = rate if rate is not None else configured.get("rate", DEFAULT_RATE)
     if actual_voice is None:
-        raise VideoError("尚未选择音色：请由制作助手运行 本作品的film_runtime.engine.tts.list_voices() 后写入 project.json 的 tts.voice，或 prepare --voice <音色名>")
+        raise VideoError("尚未选择音色：请由制作助手运行 m2v voices --json 后写入 project.json 的 tts.voice，或 prepare --voice <音色名>")
     # 命令行也使用相同格式校验，不能绕过作品字段契约。
-    settings({"tts": {"voice": actual_voice, "rate": actual_rate}})
+    settings({"tts": {"backend": actual_backend, "voice": actual_voice, "rate": actual_rate}})
     return actual_voice, actual_rate
 
 
@@ -109,24 +127,34 @@ def narration_digest(texts: list[str]) -> str:
 
 
 def preparation(project: dict, texts: list[str], *, voice: str | None = None,
-                rate: str | None = None, rhythm: dict | None = None) -> dict:
+                rate: str | None = None, rhythm: dict | None = None,
+                backend: str | None = None) -> dict:
     """生成实际 TTS 记录；无旁白时不要求选音。"""
     configured = settings(project)
     if not any(text.strip() for text in texts):
         return {}
-    actual_voice, actual_rate = resolve(project, voice=voice, rate=rate)
+    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
+    actual_voice, actual_rate = resolve(project, voice=voice, rate=rate, backend=actual_backend)
     selection = configured.get("selection") if voice is None else None
     if selection and selection["narrationSha256"] != narration_digest(texts):
         raise VideoError("音色选择已过期：完整旁白已改变，请制作助手重新判断并更新 tts.selection，或用 --voice 手动指定")
-    record = {"backend": configured.get("backend", DEFAULT_BACKEND),
-              "voice": actual_voice, "rate": actual_rate,
-              "source": "command-line" if voice is not None else "assistant" if selection else "project"}
+    record = {"backend": actual_backend, "voice": actual_voice, "rate": actual_rate,
+              "source": "command-line" if (voice is not None or backend is not None)
+              else "assistant" if selection else "project"}
     if selection:
         record["selection"] = selection
     if rhythm:
         record["speech"] = rhythm
-    logger.info("配音选择：%s，语速 %s，来源 %s", actual_voice, actual_rate, record["source"])
+    logger.info("配音选择：%s（%s），语速 %s，来源 %s", actual_voice, actual_backend, actual_rate, record["source"])
     return record
+
+
+def ensure_backend(record: dict, root: Path) -> None:
+    """有本地模型的后端在合成前一次性校验，缺失时不逐段重试。"""
+    backend = record.get("backend", DEFAULT_BACKEND)
+    if backend == "kokoro":
+        from film_runtime.engine import kokoro_tts
+        kokoro_tts.ensure_assets(root / "models", record["voice"])
 
 
 async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dict]:
@@ -144,21 +172,32 @@ async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dic
     return words
 
 
-def scene_cache_key(text: str, voice: str, rate: str, contract_version: int) -> str:
-    return fingerprint({"text": text, "voice": voice, "rate": rate,
-                       "contractVersion": contract_version, "generator": GENERATOR_VERSION,
-                       "edgeTts": version("edge-tts")})
+def scene_cache_key(text: str, voice: str, rate: str, contract_version: int,
+                    backend: str = DEFAULT_BACKEND) -> str:
+    payload = {"text": text, "voice": voice, "rate": rate,
+               "contractVersion": contract_version, "generator": GENERATOR_VERSION}
+    if backend == DEFAULT_BACKEND:
+        # 保持既有 edge 缓存键不变；新增后端不借机让旧作品重新合成。
+        payload["edgeTts"] = version("edge-tts")
+    elif backend == "kokoro":
+        from film_runtime.engine import kokoro_tts
+        payload["backend"] = backend
+        payload.update(kokoro_tts.versions())
+    else:
+        raise VideoError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}")
+    return fingerprint(payload)
 
 
 def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = False,
                 contract_version: int = 3, rhythm: dict | None = None,
-                synthesizer: Callable = synthesize) -> tuple[Path, list[dict], list[dict], float, bool]:
+                synthesizer: Callable = synthesize, backend: str = DEFAULT_BACKEND,
+                models_dir: Path | None = None) -> tuple[Path, list[dict], list[dict], float, bool]:
     """Return cached WAV, subtitle cues, word boundaries, duration, and cache hit.
 
     `rhythm` 为真时对停顿做整形。缓存里始终保存**未整形**的原始合成，
     所以整形开关与参数不改变缓存键，也不会让已有缓存失效。
     """
-    key = scene_cache_key(text, voice, rate, contract_version)
+    key = scene_cache_key(text, voice, rate, contract_version, backend)
     wav, metadata = cache / f"{key}.wav", cache / f"{key}.json"
     if not force and wav.is_file() and metadata.is_file():
         try:
@@ -173,23 +212,34 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
         except (VideoError, ValueError, KeyError, TypeError):
             logger.warning("配音缓存损坏，重新生成 %s", key[:12])
     cache.mkdir(parents=True, exist_ok=True)
+    if backend == "kokoro" and models_dir is None:
+        raise VideoError("Kokoro 后端需要作品模型目录，准备流程未提供 models/")
     with tempfile.TemporaryDirectory(dir=cache) as temporary:
         work = Path(temporary)
-        for attempt in range(3):
+        attempts = 3 if backend == DEFAULT_BACKEND else 1
+        for attempt in range(attempts):
             try:
-                words = asyncio.run(synthesizer(text, voice, rate, work / "speech.mp3"))
+                if backend == "kokoro":
+                    from film_runtime.engine import kokoro_tts
+                    words = kokoro_tts.synthesize(text, voice, rate, work / "speech.wav",
+                                                  models_dir=models_dir)
+                    duration = audio.wav_duration(work / "speech.wav")
+                    speech = work / "speech.wav"
+                else:
+                    words = asyncio.run(synthesizer(text, voice, rate, work / "speech.mp3"))
+                    duration = audio.decode(work / "speech.mp3", work / "speech.wav")
+                    speech = work / "speech.wav"
                 break
             except (ValueError, TypeError) as exc:
                 raise VideoError(f"配音参数错误: {exc}") from exc
             except Exception as exc:
-                if attempt == 2:
-                    raise VideoError(f"配音请求失败（共 3 次）: {exc}") from exc
-                logger.warning("配音请求失败，重试 %d/2: %s", attempt + 1, exc)
+                if attempt == attempts - 1:
+                    raise VideoError(f"配音请求失败: {exc}") from exc
+                logger.warning("配音请求失败，重试 %d/%d: %s", attempt + 1, attempts - 1, exc)
                 time.sleep(attempt + 1)
-        duration = audio.decode(work / "speech.mp3", work / "speech.wav")
-        digest = hashlib.sha256((work / "speech.wav").read_bytes()).hexdigest()
+        digest = hashlib.sha256(speech.read_bytes()).hexdigest()
         (work / "words.json").write_text(json.dumps({"words": words, "sha256": digest}, ensure_ascii=False), encoding="utf-8")
-        security.deliver(work / "speech.wav", wav)
+        security.deliver(speech, wav)
         security.deliver(work / "words.json", metadata)
     shaped, words, duration = _shape(text, wav, words, duration, rhythm, cache, key)
     cues = cues_from_words(text, words, duration)

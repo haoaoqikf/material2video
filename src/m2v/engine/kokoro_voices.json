@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 1,
+  "source": "hexgrad/Kokoro-82M-v1.1-zh",
+  "voices": [
+    {
+      "voice": "zf_001",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_002",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_003",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_004",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_005",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_006",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_007",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_008",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_017",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_018",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_019",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_021",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_022",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_023",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_024",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_026",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_027",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_028",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_032",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_036",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_038",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_039",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_040",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_042",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_043",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_044",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_046",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_047",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_048",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_049",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_051",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_059",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_060",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_067",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_070",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_071",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_072",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_073",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_074",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_075",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_076",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_077",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_078",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_079",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_083",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_084",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_085",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_086",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_087",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_088",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_090",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_092",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_093",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_094",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zf_099",
+      "gender": "Female",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_009",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_010",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_011",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_012",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_013",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_014",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_015",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_016",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_020",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_025",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_029",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_030",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_031",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_033",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_034",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_035",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_037",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_041",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_045",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_050",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_052",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_053",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_054",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_055",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_056",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_057",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_058",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_061",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_062",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_063",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_064",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_065",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_066",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_068",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_069",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_080",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_081",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_082",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_089",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_091",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_095",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_096",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_097",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_098",
+      "gender": "Male",
+      "locale": "zh-CN"
+    },
+    {
+      "voice": "zm_100",
+      "gender": "Male",
+      "locale": "zh-CN"
+    }
+  ]
+}

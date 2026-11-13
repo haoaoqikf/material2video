@@ -38,8 +38,31 @@ def _build() -> None:
     _run([_node(), 'node_modules/vite/bin/vite.js', 'build'])
 
 
-def _setup(options) -> dict:
+def _tts_backend(project: dict, options=None) -> str:
+    override = getattr(options, 'backend', None) if options is not None else None
+    return override or (project.get('tts') or {}).get('backend', 'edge-tts')
+
+
+def _tts_voice(project: dict) -> str | None:
+    voice = (project.get('tts') or {}).get('voice')
+    return voice if isinstance(voice, str) and voice else None
+
+
+def _models(project: dict, *, check: bool, download: bool = False) -> None:
+    """Kokoro 作品按本地登记恢复/校验模型；其他后端不触碰模型目录。"""
+    if _tts_backend(project) != 'kokoro':
+        return
+    flag = '--check' if check else '--download' if download else '--restore'
+    arguments = [sys.executable, 'models/fetch.py', flag]
+    voice = _tts_voice(project)
+    if voice:
+        arguments += ['--voice', voice]
+    _run(arguments)
+
+
+def _setup(project: dict, options) -> dict:
     _run([sys.executable, 'fonts/fetch.py', *(['--download'] if options.download else [])])
+    _models(project, check=False, download=options.download)
     _run([_node(), 'scripts/sync-fonts.mjs'])
     media = ROOT / 'assets/fetch.py'
     if media.is_file():
@@ -56,6 +79,7 @@ def _setup(options) -> dict:
 def _validate(project: dict) -> dict:
     # 登记字体尚未恢复时不得报告 pass：构建会因缺字失败，validate 必须提前暴露。
     _run([sys.executable, 'fonts/fetch.py', '--check'])
+    _models(project, check=True)
     from .types.scene_film import cinematic, explainer
     cinematic.validate_project(project)
     board = explainer.load(ROOT, project)
@@ -67,7 +91,7 @@ def _validate(project: dict) -> dict:
 def _prepare(project: dict, options) -> dict:
     from .types.scene_film import explainer_prepare
     return explainer_prepare.prepare(ROOT, project, voice=options.voice, rate=options.rate,
-                                    rhythm=json.loads(options.rhythm))
+                                    rhythm=json.loads(options.rhythm), backend=options.backend)
 
 
 def _current(project: dict, options) -> dict:
@@ -146,6 +170,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--install-browser', action='store_true')
     parser.add_argument('--voice')
     parser.add_argument('--rate')
+    parser.add_argument('--backend', choices=('edge-tts', 'kokoro'))
     parser.add_argument('--rhythm', default='{}')
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--limit-frames', type=int)
@@ -175,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
         if not 1 <= options.jobs <= 4:
             raise VideoError('--jobs必须为1至4的整数')
         if options.command == 'setup':
-            result = _setup(options)
+            result = _setup(project, options)
         elif options.command == 'validate':
             result = _validate(project)
         elif options.command == 'prepare':

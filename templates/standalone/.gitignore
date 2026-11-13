@@ -8,6 +8,8 @@ __pycache__/
 *.tsbuildinfo
 fonts/files/
 fonts/.cache/
+models/files/
+models/.cache/
 public/fonts/
 src/assets/math/
 assets/media/

@@ -20,6 +20,15 @@ pnpm run preview --serve
 
 `setup --download` 允许按 `fonts/registry.json` 的登记恢复缺失字体；有完整本地缓存时可省略。已有文件摘要不符会失败，不覆盖、不接受内容漂移。`--install-browser` 恢复当前Playwright版本对应的完整Chromium；合成与场景采集使用这一浏览器，导出时不隐式下载另一浏览器。
 
+使用本地 Kokoro 配音（`project.json` 的 `tts.backend` 为 `kokoro`）时，还需要安装可选依赖并在作品内恢复模型：
+
+```powershell
+uv sync --frozen --extra kokoro
+python models/fetch.py --download --voice zf_027
+```
+
+`models/registry.json` 固定模型 revision、文件摘要与许可，`models/` 下的二进制由 `.gitignore` 排除；`setup --download`、`validate` 与准备前检查会按登记恢复或校验。数字与拉丁字母旁白当前不支持，需改写为中文或改用 `edge-tts`。
+
 正式渲染会检查当前准备记录，必要时先准备，然后逐帧采集、合成字幕和转场、混音并验证媒体，输出 `outputs/video.mp4` 及旁车。它生成技术候选，不自动代表研究、视听品质或独立审核完成。预览服务使用同一本地场景与合成实现，第一次需要准备场景片段；随后可以播放、暂停和定位。
 
 只准备材料可运行 `pnpm run video:prepare`。该脚本显式命名，避免包管理器的安装生命周期自动触发视频制作。也可以直接执行 `uv run --frozen python scripts/video.py prepare`。检查片段可使用 `pnpm run preview --limit-frames 30`；此命令写片段视频，网页交互预览使用 `--serve`。
@@ -28,7 +37,7 @@ pnpm run preview --serve
 
 场景入口在 `scenes/`；本地时间与资源就绪接口在 `src/code-scene/`；最终合成在 `src/scene-film/`。修改 `project.json`、`storyboard.json` 和场景即可创作。按作品需要自行采用本地组件或在 `package.json` 声明精确版本的第三方库，并更新本作品锁文件、来源与许可记录。没有主项目SDK或跨目录源码别名。
 
-`src/assets/fonts.json` 声明实际注册字体，来源与摘要在 `fonts/registry.json`，许可在 `fonts/licenses/`。媒体使用作品内 `assets/media-sources.json` 登记；存在 `assets/fetch.py` 或 `assets/sound-recipe.json` 时，setup调用本地恢复入口。渲染使用已经恢复的本地快照；更新数据或重新合成旁白属于显式准备操作。
+`src/assets/fonts.json` 声明实际注册字体，来源与摘要在 `fonts/registry.json`，许可在 `fonts/licenses/`。使用 Kokoro 配音时，来源、revision、摘要与许可以 `models/registry.json` 为准，许可文本在 `models/licenses/`。媒体使用作品内 `assets/media-sources.json` 登记；存在 `assets/fetch.py` 或 `assets/sound-recipe.json` 时，setup调用本地恢复入口。渲染使用已经恢复的本地快照；更新数据或重新合成旁白属于显式准备操作。
 
 当前基础模板没有预装三维、图表、公式或金融／建筑／汽车准备模块；需要时将所采用的实现、依赖及资源完整落到作品内。缺失采用模块时必须先补齐，不通过主项目回退。
 

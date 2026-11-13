@@ -41,8 +41,10 @@ def _parser() -> argparse.ArgumentParser:
     add_parsers(sub)
     from m2v.production.sample_cli import add_parser as add_sample_parser
     add_sample_parser(sub)
-    voices = sub.add_parser("voices", help="列出合成可用音色（需要联网）")
+    voices = sub.add_parser("voices", help="列出合成可用音色（edge-tts 需要联网）")
     voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
+    voices.add_argument("--backend", choices=("edge-tts", "kokoro"), default="edge-tts",
+                        help="合成后端；kokoro 为本地音色")
     voices.add_argument("--json", action="store_true", help="输出 JSON")
     init = sub.add_parser("init", help="初始化作品目录")
     init.add_argument("--type", required=True)
@@ -63,8 +65,10 @@ def _parser() -> argparse.ArgumentParser:
                               help="进程级并行数；默认 2；内存紧张时改为 1")
         if command == "prepare":
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
-            item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")
+            item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural 或 zf_027")
             item.add_argument("--rate", help="语速，例如 --rate=-6%%")
+            item.add_argument("--backend", choices=("edge-tts", "kokoro"),
+                              help="临时覆盖作品的 TTS 后端；省略时跟随 project.json")
 
             item.add_argument("--pause-comma", type=float, metavar="SECONDS", help="逗号、顿号处的停顿秒数")
             item.add_argument("--pause-period", type=float, metavar="SECONDS", help="句号、问号处的停顿秒数")
