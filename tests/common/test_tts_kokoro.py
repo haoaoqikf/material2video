@@ -37,6 +37,19 @@ def test_preparation_records_actual_backend() -> None:
                         backend="kokoro")
 
 
+def test_documentary_narration_defaults_to_kokoro() -> None:
+    project = {"type": "documentary-edit", "tts": {"voice": "zf_027"}}
+    assert tts.preparation(project, ["你好。"])["backend"] == "kokoro"
+    assert tts.preparation(project, ["你好。"], backend="edge-tts",
+                           voice="zh-CN-XiaoxiaoNeural")["backend"] == "edge-tts"
+    explicit = {"type": "documentary-edit",
+                "tts": {"backend": "edge-tts", "voice": "zh-CN-XiaoxiaoNeural"}}
+    assert tts.preparation(explicit, ["你好。"])["backend"] == "edge-tts"
+    assert tts.preparation({"type": "documentary-edit"}, []) == {}
+    with pytest.raises(M2VError, match="voices --backend kokoro"):
+        tts.preparation({"type": "documentary-edit"}, ["你好。"])
+
+
 def test_cache_key_separates_backends() -> None:
     edge = tts.scene_cache_key("旁白", "zh-CN-XiaoxiaoNeural", "+0%", 9)
     kokoro = tts.scene_cache_key("旁白", "zf_027", "+20%", 9, backend="kokoro")

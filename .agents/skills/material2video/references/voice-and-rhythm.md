@@ -15,13 +15,13 @@
 }
 ```
 
-省略 `backend` 时使用 `edge-tts`。音色按「命令行 > 作品配置」解析，不再回落默认晓晓；语速独立按「命令行 > 作品配置 > +0%」解析，只在共享 `engine/tts.py` 实现一次：
+省略 `backend` 时，纪实口播 `documentary-edit` 默认使用 `kokoro`，其他类型使用 `edge-tts`。音色按「命令行 > 作品配置」解析；语速独立按「命令行 > 作品配置 > +0%」解析。
 
 | 层 | 写法 | 说明 |
 | --- | --- | --- |
 | 命令行 | `m2v prepare --project <目录> --backend ... --voice ... --rate=...` | 临时合成候选以验证参数响应，不属于常规验收步骤 |
 | 作品 | `project.json` 的 `tts.backend` / `tts.voice` / `tts.rate` | 作品的正式选择 |
-| 缺失 | 后端 `edge-tts`、音色阻断、语速 `+0%` | 有旁白但未选音时提示由助手选择或 `--voice` 指定 |
+| 缺失 | 纪实口播 `kokoro`，其他类型 `edge-tts`；语速 `+0%` | 有旁白但未选音时提示由助手选择或 `--voice` 指定 |
 
 - `voice` 格式由后端决定：`edge-tts` 形如 `zh-CN-XiaoxiaoNeural`，`kokoro` 形如 `zf_027`（zf 女声、zm 男声），`qwen3-tts` 形如 `clone_tuixiu`（作品内克隆音色档案）；组合不匹配时在合成前失败。`rate` 为 −50% 至 +50% 的有符号百分比，Kokoro 映射为 `speed`（+20% → 1.2），Qwen3-TTS 映射为不变调变速（+20% → 1.2）。
 - 用 `m2v voices` 看当前可用音色（可用 `--locale all`、`--json`）。edge-tts 需要联网；`m2v voices --backend kokoro` 读取本地登记的中文音色清单；`m2v voices --backend qwen3-tts --project <作品>` 读取该作品的克隆音色档案。只读，不写文件。

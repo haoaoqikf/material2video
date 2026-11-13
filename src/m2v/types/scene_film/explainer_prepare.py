@@ -64,7 +64,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
     font_size = subtitle_font_size(project)
     if font_size is not None:
         frame["subtitle"]["fontSize"] = font_size
-    declared = tts.settings(project).get("speech")
+    declared = tts.settings(project, backend=backend).get("speech")
     rhythm = rhythm_engine.configure({**(declared or {}), **(rhythm or {})}) if declared or rhythm else None
     texts = [s["text"] for scene in source["scenes"] for s in scene.get("narrationSegments", [])]
     actual_tts = tts.preparation(project, texts, voice=voice, rate=rate, rhythm=rhythm, backend=backend)

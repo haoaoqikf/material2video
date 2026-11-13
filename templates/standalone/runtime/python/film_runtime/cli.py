@@ -38,26 +38,27 @@ def _build() -> None:
     _run([_node(), 'node_modules/vite/bin/vite.js', 'build'])
 
 
-def _tts_backend(project: dict, options=None) -> str:
-    override = getattr(options, 'backend', None) if options is not None else None
-    return override or (project.get('tts') or {}).get('backend', 'edge-tts')
-
-
-def _tts_voice(project: dict) -> str | None:
-    voice = (project.get('tts') or {}).get('voice')
-    return voice if isinstance(voice, str) and voice else None
-
-
 def _models(project: dict, *, check: bool, download: bool = False) -> None:
     """本地 TTS 作品按自身登记恢复/校验模型；其他后端不触碰模型目录。"""
-    backend = _tts_backend(project)
+    from .engine import tts
+    from .types.scene_film import explainer
+
+    if tts.default_backend(project) == 'kokoro' and 'backend' not in (project.get('tts') or {}):
+        # 预校验时后端还可能被 prepare --backend 覆盖；实际合成前会校验所选模型。
+        if check:
+            return
+        board = explainer.load(ROOT, project)
+        if not any(scene['narrationSegments'] for scene in board['scenes']):
+            return
+    settings = tts.settings(project)
+    backend = settings.get('backend', tts.default_backend(project))
     script = {'kokoro': 'models/fetch.py',
               'qwen3-tts': 'models/qwen3-tts/fetch.py'}.get(backend)
     if script is None:
         return
     flag = '--check' if check else '--download' if download else '--restore'
     arguments = [sys.executable, script, flag]
-    voice = _tts_voice(project)
+    voice = settings.get('voice')
     if voice:
         arguments += ['--voice', voice]
     _run(arguments)
@@ -93,6 +94,8 @@ def _validate(project: dict) -> dict:
 
 def _prepare(project: dict, options) -> dict:
     from .types.scene_film import explainer_prepare
+    # 采集实现指纹包含公开字体副本。首次直接 prepare 时须先同步，避免 render 建立副本后立即失效。
+    _run([_node(), 'scripts/sync-fonts.mjs'])
     return explainer_prepare.prepare(ROOT, project, voice=options.voice, rate=options.rate,
                                     rhythm=json.loads(options.rhythm), backend=options.backend)
 

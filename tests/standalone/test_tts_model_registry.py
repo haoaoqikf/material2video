@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "templates/standalone"
@@ -37,3 +38,31 @@ def test_runtime_tts_mirrors_stay_identical() -> None:
                     .replace("M2VError", "VideoError"))
         actual = (TEMPLATE / "runtime/python/film_runtime/engine" / name).read_text(encoding="utf-8")
         assert actual == expected, f"{name} 与主项目镜像不一致，请重新生成模板"
+
+
+def test_setup_checks_models_for_default_documentary_narration(monkeypatch) -> None:
+    from film_runtime import cli
+    from film_runtime.types.scene_film import explainer
+
+    commands = []
+    segments = []
+    monkeypatch.setattr(cli, "_run", commands.append)
+    monkeypatch.setattr(explainer, "load", lambda *args: {"scenes": [{"narrationSegments": segments}]})
+    project = {"type": "documentary-edit", "tts": {"voice": "zf_027"}}
+    cli._models(project, check=False, download=True)
+    assert commands == []
+    segments.append({"id": "line", "text": "试制。"})
+    cli._models(project, check=False, download=True)
+    assert commands[0][1:] == ["models/fetch.py", "--download", "--voice", "zf_027"]
+
+
+def test_prepare_stages_fonts_before_computing_inputs(monkeypatch) -> None:
+    from film_runtime import cli
+    from film_runtime.types.scene_film import explainer_prepare
+
+    calls = []
+    monkeypatch.setattr(cli, "_node", lambda: "node")
+    monkeypatch.setattr(cli, "_run", calls.append)
+    monkeypatch.setattr(explainer_prepare, "prepare", lambda *args, **kwargs: calls.append("prepare"))
+    cli._prepare({}, SimpleNamespace(voice=None, rate=None, rhythm="null", backend=None))
+    assert calls == [["node", "scripts/sync-fonts.mjs"], "prepare"]

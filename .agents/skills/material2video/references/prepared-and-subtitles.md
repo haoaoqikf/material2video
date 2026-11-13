@@ -65,11 +65,11 @@ uv run m2v render --project videos/<type>/<slug>
 
 ### 合成后端
 
-`project.json` 的 `tts.backend` 选择后端，省略时为 `edge-tts`；`m2v prepare --backend` 可临时覆盖作品声明。
+`project.json` 的 `tts.backend` 选择后端。省略时纪实口播使用 `kokoro`，其他类型使用 `edge-tts`。`m2v prepare --backend` 可临时覆盖作品声明。
 
 | 后端 | 音色格式 | 语速 | 网络 |
 | --- | --- | --- | --- |
-| `edge-tts`（默认） | `zh-CN-XiaoxiaoNeural` | `tts.rate` 有符号百分比 | 首次合成需要联网 |
+| `edge-tts` | `zh-CN-XiaoxiaoNeural` | `tts.rate` 有符号百分比 | 首次合成需要联网 |
 | `kokoro`（本地） | `zf_027`（zf 女声、zm 男声） | `tts.rate` 映射为模型 `speed`，+20% → 1.2 | 恢复模型后离线 |
 | `qwen3-tts`（本地克隆） | `clone_<slug>`（作品内音色档案） | `tts.rate` 映射为不变调变速，+20% → 1.2 | 恢复主模型、对齐模型与参考音色后离线 |
 

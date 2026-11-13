@@ -23,7 +23,7 @@ from film_runtime.engine.subtitles import cues_from_words
 logger = logging.getLogger(__name__)
 GENERATOR_VERSION = 1
 
-#: 合成后端是作品属性；默认仍是联网的 edge-tts。
+#: 通用后端及底层调用的缺省值；纪实口播在作品级另选默认后端。
 DEFAULT_BACKEND = "edge-tts"
 DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_RATE = "+0%"
@@ -53,7 +53,11 @@ def _check_voice(voice: str, backend: str) -> None:
         raise VideoError(f"{backend} 的音色名必须形如 {example}，实际为 {voice!r}")
 
 
-def settings(project: dict) -> dict:
+def default_backend(project: dict) -> str:
+    return "kokoro" if project.get("type") == "documentary-edit" else DEFAULT_BACKEND
+
+
+def settings(project: dict, *, backend: str | None = None) -> dict:
     """读取并校验作品级 TTS 配置。
 
     配置可以尚未选音；只有准备实际旁白时才要求明确音色。
@@ -67,13 +71,14 @@ def settings(project: dict) -> dict:
     if unknown:
         raise VideoError(f"tts 存在未知字段：{'、'.join(sorted(unknown))}")
     result = {}
-    backend = declared.get("backend", DEFAULT_BACKEND)
-    if backend not in BACKENDS:
-        raise VideoError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}")
-    result["backend"] = backend
+    declared_backend = declared.get("backend", default_backend(project))
+    if declared_backend not in BACKENDS:
+        raise VideoError(f"不支持的 TTS 后端：{declared_backend!r}；当前可用：{'、'.join(BACKENDS)}")
+    result["backend"] = declared_backend
     if "voice" in declared:
         voice = declared["voice"]
-        _check_voice(voice, backend)
+        if backend is None:
+            _check_voice(voice, declared_backend)
         result["voice"] = voice
     if "rate" in declared:
         rate = declared["rate"]
@@ -111,12 +116,13 @@ async def list_voices() -> dict[str, list[dict]]:
 def resolve(project: dict, *, voice: str | None = None, rate: str | None = None,
             backend: str | None = None) -> tuple[str, str]:
     """音色必须显式选择；语速独立按命令行、作品、默认值解析。"""
-    configured = settings(project)
-    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
+    configured = settings(project, backend=backend)
+    actual_backend = backend or configured.get("backend", default_backend(project))
     actual_voice = voice if voice is not None else configured.get("voice")
     actual_rate = rate if rate is not None else configured.get("rate", DEFAULT_RATE)
     if actual_voice is None:
-        raise VideoError("尚未选择音色：请由制作助手运行 m2v voices --json 后写入 project.json 的 tts.voice，或 prepare --voice <音色名>")
+        raise VideoError(f"尚未选择音色：请运行 m2v voices --backend {actual_backend} --json 后写入 "
+                       "project.json 的 tts.voice，或 prepare --voice <音色名>")
     # 命令行也使用相同格式校验，不能绕过作品字段契约。
     settings({"tts": {"backend": actual_backend, "voice": actual_voice, "rate": actual_rate}})
     return actual_voice, actual_rate
@@ -133,10 +139,10 @@ def preparation(project: dict, texts: list[str], *, voice: str | None = None,
                 rate: str | None = None, rhythm: dict | None = None,
                 backend: str | None = None) -> dict:
     """生成实际 TTS 记录；无旁白时不要求选音。"""
-    configured = settings(project)
     if not any(text.strip() for text in texts):
         return {}
-    actual_backend = backend or configured.get("backend", DEFAULT_BACKEND)
+    configured = settings(project, backend=backend)
+    actual_backend = backend or configured.get("backend", default_backend(project))
     actual_voice, actual_rate = resolve(project, voice=voice, rate=rate, backend=actual_backend)
     selection = configured.get("selection") if voice is None else None
     if selection and selection["narrationSha256"] != narration_digest(texts):
