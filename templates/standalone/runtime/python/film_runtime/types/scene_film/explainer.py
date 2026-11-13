@@ -101,9 +101,13 @@ def validate(data: dict, root: Path, project: dict | None = None) -> dict:
         if not isinstance(parts, list) or len(parts) > MAX_SEGMENTS:
             fail(path + ".narrationSegments", f"必须包含 0～{MAX_SEGMENTS} 项")
         for part_index, part in enumerate(parts):
-            obj(part, path + ".narrationSegments", {"id", "text", "claims", "holdFrames"})
+            obj(part, path + ".narrationSegments", {"id", "text", "translation", "claims", "holdFrames"})
             pid = text(part.get("id"), path + ".narrationSegments.id")
             text(part.get("text"), path + ".narrationSegments.text")
+            if "translation" in part:
+                value = part["translation"]
+                if not isinstance(value, str) or not value.strip():
+                    fail(f"{path}.narrationSegments[{part_index}].translation", "必须是非空字符串")
             if not count_characters(part["text"]):
                 fail(path, "旁白不能仅包含标点或空白")
             cinematic.validate_claims(part, path + ".narrationSegments")

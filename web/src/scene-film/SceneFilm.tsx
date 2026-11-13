@@ -21,7 +21,13 @@ export type ExplainerScene = {
 export type SceneFilmProps = {
   version: 9; schemaVersion: 9; fps: number; width: number; height: number; title: string; mediaBase?: string;
   subtitle: SubtitleStyle; durationInFrames: number; compiledScenes: ExplainerScene[];
-  subtitleCues: Array<{startFrame: number; endFrame: number; text: string}>;
+  subtitleCues: Array<{
+    startFrame: number;
+    endFrame: number;
+    text: string;
+    secondary?: string;
+    backing?: {color: string; opacity: number; background?: string};
+  }>;
 };
 
 /** 底板内边距随字号缩放：字幕几何只有一处真源（`frames.json`），比例留在这里。 */
@@ -56,13 +62,35 @@ export const SceneFilm: React.FC<SceneFilmProps> = props => {
       </TransitionSeries>
       </Sequence>
       {/* 字幕层压在所有片段之上；容器就是安全区矩形，换行宽度与 Python 量测判据同源。 */}
+      {cue?.backing && subtitle.backing?.mode === 'adaptiveHalo' &&
+        <div aria-hidden style={{position: 'absolute', zIndex: 1,
+          left: safeArea.x - 180, top: safeArea.y - 110,
+          width: safeArea.width + 360, height: safeArea.height + 190,
+          pointerEvents: 'none',
+          background: `radial-gradient(ellipse ${subtitle.backing.feather}px ${Math.round(subtitle.backing.feather * 0.8)}px at 50% 60%, ${cue.backing.color} 0%, transparent 74%)`,
+          opacity: cue.backing.opacity}}/>}
       <div data-m2v-subtitle="" style={{position: 'absolute', zIndex: 2,
         left: safeArea.x, top: safeArea.y, width: safeArea.width, height: safeArea.height,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: FONT_STACK, fontSize: subtitle.fontSize, lineHeight: subtitle.lineHeight,
-        color: subtitle.textColor, textAlign: 'center'}}>
-        {cue && <span data-m2v-copy="" style={{maxWidth: '100%', overflowWrap: 'anywhere',
-          background: subtitle.plateColor, padding: platePadding(subtitle.fontSize)}}>{cue.text}</span>}
+        fontFamily: subtitle.fontFamily ?? FONT_STACK, fontSize: subtitle.fontSize,
+        lineHeight: subtitle.lineHeight, color: subtitle.textColor, textAlign: 'center'}}>
+        {cue && <div data-m2v-copy="" style={{display: 'flex', flexDirection: 'column',
+          alignItems: 'center', maxWidth: '100%', overflowWrap: 'anywhere',
+          ...(subtitle.backing?.mode === 'adaptiveHalo' ? {} : {
+            background: subtitle.plateColor, padding: platePadding(subtitle.fontSize)})}}>
+          <div style={{fontFamily: subtitle.fontFamily ?? FONT_STACK, fontSize: subtitle.fontSize,
+            lineHeight: subtitle.lineHeight, color: subtitle.textColor, overflowWrap: 'anywhere',
+            textShadow: subtitle.backing?.mode === 'adaptiveHalo'
+              ? '0 2px 18px rgba(0,0,0,.62), 0 1px 4px rgba(0,0,0,.50)' : undefined}}>{cue.text}</div>
+          {cue.secondary && <div style={{fontFamily: subtitle.secondary?.fontFamily ?? FONT_STACK,
+            fontSize: subtitle.secondary?.fontSize ?? Math.round(subtitle.fontSize * 0.6),
+            lineHeight: subtitle.secondary?.lineHeight ?? 1.38,
+            color: subtitle.secondary?.textColor ?? subtitle.textColor,
+            opacity: subtitle.secondary?.opacity ?? 0.8,
+            marginTop: 12, textAlign: 'center', overflowWrap: 'anywhere',
+            textShadow: subtitle.backing?.mode === 'adaptiveHalo'
+              ? '0 2px 14px rgba(0,0,0,.66)' : undefined}}>{cue.secondary}</div>}
+        </div>}
       </div>
     </AbsoluteFill>
   );

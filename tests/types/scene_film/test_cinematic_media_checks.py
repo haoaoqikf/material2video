@@ -45,6 +45,14 @@ def test_subtitle_contrast_flags_low_contrast():
 def test_subtitle_contrast_rejects_bad_color():
     with pytest.raises(M2VError):
         qa.subtitle_contrast({"textColor": "white", "plateColor": "#000000"})
+def test_subtitle_contrast_uses_adaptive_cue_backing():
+    style = {"textColor": "#ffffff", "plateColor": "#0b0d12", "backing": {"mode": "adaptiveHalo"}}
+    dark = qa.subtitle_contrast(style, [
+        {"backing": {"color": "#070a0e", "background": "#333333", "opacity": 0.2}}])
+    assert dark["backingMode"] == "adaptiveHalo" and dark["status"] == "pass"
+    bright = qa.subtitle_contrast(style, [
+        {"backing": {"color": "#070a0e", "background": "#ffffff", "opacity": 0.05}}])
+    assert bright["backingMode"] == "adaptiveHalo" and bright["status"] == "fail"
 
 
 def test_frozen_frames_detects_still_run():

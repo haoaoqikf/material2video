@@ -207,7 +207,33 @@ def _contrast_ratio(foreground: str, background: str) -> float:
     return (high + .05) / (low + .05)
 
 
-def subtitle_contrast(subtitle: dict) -> dict:
+def _mix(foreground: str, background: str, alpha: float) -> str:
+    """把柔光色按透明度叠在采样背景上，返回合成后的 #rrggbb。"""
+    def rgb(color: str) -> tuple[int, int, int]:
+        value = color.lstrip("#")
+        if len(value) != 6:
+            raise M2VError(f"颜色必须是 #rrggbb：{color}")
+        return tuple(int(value[index:index + 2], 16) for index in (0, 2, 4))
+    fg, bg = rgb(foreground), rgb(background)
+    return "#" + "".join(f"{round(f * alpha + b * (1 - alpha)):02x}" for f, b in zip(fg, bg))
+
+
+def subtitle_contrast(subtitle: dict, cues: list[dict] | None = None) -> dict:
+    backing = subtitle.get("backing") or {}
+    ratios = []
+    if backing.get("mode") == "adaptiveHalo" and cues:
+        for cue in cues:
+            item = cue.get("backing") or {}
+            try:
+                blended = _mix(item["color"], item["background"], float(item["opacity"]))
+            except (KeyError, TypeError, ValueError, M2VError):
+                continue
+            ratios.append(_contrast_ratio(subtitle["textColor"], blended))
+    if ratios:
+        ratio = min(ratios)
+        return {"textColor": subtitle["textColor"], "backingMode": "adaptiveHalo",
+                "cues": len(ratios), "ratio": round(ratio, 2), "minimum": 4.5,
+                "status": "pass" if ratio >= 4.5 else "fail"}
     ratio = _contrast_ratio(subtitle["textColor"], subtitle["plateColor"])
     return {"textColor": subtitle["textColor"], "plateColor": subtitle["plateColor"],
             "ratio": round(ratio, 2), "minimum": 4.5, "status": "pass" if ratio >= 4.5 else "fail"}
@@ -352,7 +378,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     checks = {
         "frozenFrames": frozen,
         "picture": picture_metrics(frames),
-        "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
+        "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"], prepared["props"].get("subtitleCues")),
         "loudness": audio_level,
         "audioSync": sync,
         "claims": claims_check(prepared),
@@ -361,7 +387,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     scopes = {
         "frozenFrames": ("decision", "sampled-frame-repetition"),
         "picture": ("measurement", "dark-levels-and-spatial-variation"),
-        "subtitleContrast": ("decision", "configured-color-contrast"),
+        "subtitleContrast": ("decision", "adaptive-backing-contrast" if (prepared["props"].get("subtitle", {}).get("backing") or {}).get("mode") == "adaptiveHalo" else "configured-color-contrast"),
         "loudness": ("decision", "delivery-audio-loudness-and-peak"),
         "audioSync": ("decision", "track-duration-difference"),
         "claims": ("decision", "shot-window-coverage"),

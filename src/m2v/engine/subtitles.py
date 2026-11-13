@@ -19,6 +19,25 @@ _SENTENCE_END = re.compile(r"[，。！？；：,.!?;:]")
 #: 词边界与原文之间的标点恢复：只跳过非文字字符。
 _WORD_CHAR = re.compile(r"[\w\u4e00-\u9fff]")
 
+#: 英文翻译的切分点；必须与中文 cue 的标点数量一致。
+_TRANSLATION_BREAK = re.compile(r"(?<=[,.!?;:—])\s+")
+
+
+def split_translation(text: str, count: int, where: str) -> list[str]:
+    """把英文翻译按标点拆成与中文 cue 相同数量的片段。
+
+    英文不在渲染时机器翻译，也不按字符比例估算；数量不符直接失败，让作者
+    调整翻译标点或中文断句，而不是猜一个对齐。
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise M2VError(f"{where} 的英文翻译为空")
+    pieces = [piece.strip() for piece in _TRANSLATION_BREAK.split(text.strip()) if piece.strip()]
+    if len(pieces) != count:
+        raise M2VError(
+            f"{where} 的英文翻译有 {len(pieces)} 段，中文有 {count} 条字幕；"
+            "请用相同数量的逗号/分号/句末标点对齐，或去掉不需要的翻译")
+    return pieces
+
 
 def _walk_words(text: str, words: list[dict], duration: float):
     """按原文顺序核对时间戳并还原标点，逐词产出词块。"""

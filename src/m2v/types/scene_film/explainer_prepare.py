@@ -18,7 +18,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import file_inputs, save_prepared, subtitle_font_size
 from m2v.core import security
 from m2v.core import frames as frame_engine
-from m2v.engine import audio, kokoro_tts, remotion, rhythm as rhythm_engine, tts
+from m2v.engine import audio, kokoro_tts, remotion, rhythm as rhythm_engine, subtitle_backing, subtitles, tts
 from . import code_scenes, explainer as contract, explainer_review, reading_pace
 
 
@@ -45,7 +45,7 @@ def implementation_digest() -> str:
     from m2v.types.building_construction import materials as building_materials, components as building_components
     from m2v.types.vehicle_showcase import materials as vehicle_materials
     modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
-               kokoro_tts, rhythm_engine, soundtrack, media_assets, media_policy, code_scenes, scene_events, sources, remotion,
+               kokoro_tts, subtitle_backing, subtitles, rhythm_engine, soundtrack, media_assets, media_policy, code_scenes, scene_events, sources, remotion,
                financial_materials, financial_plan, financial_valuation, building_materials, building_components,
                vehicle_materials)
     files = [file for module in modules for file in module_files(module)] + [Path(__file__)]
@@ -102,6 +102,9 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
     measured, durations, overlaps, automatic = [], [], [], []
     hold_lists: list[list[int]] = []
     hits = 0
+    media_map = {entry["id"]: root / entry["path"]
+                 for entry in media_assets.load_record(root)["assets"]}
+    backing_style = frame["subtitle"].get("backing")
     for index, scene in enumerate(scenes):
         overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", round(8 / 30 * fps))
         overlaps.append(overlap)
@@ -114,7 +117,10 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
                 actual_tts["rate"], cache, contract_version=9, rhythm=scene_rhythm,
                 backend=actual_tts["backend"], models_dir=root / "models")
             if not math.isfinite(seconds) or seconds <= 0: raise M2VError(f"旁白 {segment['id']} 音频时长无效")
-            segments.append((segment["id"], wav, cues, math.ceil(seconds * fps)))
+            translation = segment.get("translation")
+            english = (subtitles.split_translation(translation, len(cues), f"{scene['id']}/{segment['id']}")
+                       if translation else None)
+            segments.append((segment["id"], wav, cues, math.ceil(seconds * fps), english))
             holds.append(segment.get("holdFrames", 0))
             hits += int(hit)
         measured.append(segments)
@@ -160,12 +166,29 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
         # 就会整片提前，出现“字幕在说、声音已走”的错位。
         if leading:
             parts.append((None, leading))
-        for segment_index, (identity, wav, local_cues, frames) in enumerate(segments):
+        scene_props = scene.get("content", {}).get("props") or {}
+        for segment_index, (identity, wav, local_cues, frames, english) in enumerate(segments):
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
-            for cue in local_cues:
+            for cue_index, cue in enumerate(local_cues):
                 a = max(0, min(frames-1, round(cue["start"]* fps)))
                 b = max(a+1, min(frames, round(cue["end"]* fps)))
-                cues.append({"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]})
+                item = {"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]}
+                if english:
+                    item["secondary"] = english[cue_index]
+                if backing_style and backing_style.get("mode") == "adaptiveHalo":
+                    asset_id = scene_props.get("asset")
+                    asset_path = media_map.get(asset_id) if isinstance(asset_id, str) else None
+                    if asset_id and asset_path is None:
+                        raise M2VError(f"幕 {scene['id']} 的素材 {asset_id} 未登记，无法采样字幕背景")
+                    if asset_path:
+                        start_seconds = scene_props.get("startSeconds", 0)
+                        seconds_in_scene = (speech_start + a - scene["startFrame"]) / fps
+                        midpoint = seconds_in_scene + (b - a) / (2 * fps)
+                        item["backing"] = subtitle_backing.sample(
+                            asset_path, float(start_seconds) + midpoint, backing_style["maxOpacity"])
+                    else:
+                        item["backing"] = subtitle_backing.fallback(backing_style["maxOpacity"])
+                cues.append(item)
             parts.append((wav, frames))
             speech_start += frames
             # 段间静默写在发声段之后，下一段的窗口与字幕因此整体后移；末段不插入。

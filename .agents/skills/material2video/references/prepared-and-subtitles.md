@@ -78,6 +78,14 @@ Kokoro 使用 `Kokoro-82M-v1.1-zh` 本地模型。模型、config 与所选音�
 
 Kokoro 每次合成按文本、音色、语速派生固定随机种子，同版本环境下重复合成的音频逐位一致。时间戳来自模型时长预测与中文前端 token；数字会被改写、拉丁文本没有词 token，当前会明确失败，请把旁白写成纯中文口语或改用 `edge-tts`。完整参数选择见[配音音色与节奏](voice-and-rhythm.md)。
 
+### 双语字幕与自适应柔光
+
+分镜旁白可选带 `translation`。prepare 按与中文相同的标点规则把英文翻译拆成与中文 cue 相同数量的片段，写入 `props.subtitleCues[].secondary`；缺少翻译时不显示英文，存在翻译但条数不符时失败并指出段 ID。英文只作次行，阅读速度仍按中文计算。
+
+`frames.json` 的 subtitle 可声明 `fontFamily`、`secondary`（字体、字号、行高、颜色、透明度）与 `backing`（`adaptiveHalo`、颜色、最大透明度、羽化半径）。启用 `adaptiveHalo` 时，prepare 按每条字幕中点从该幕登记素材采样字幕区域的平均色与亮度，写入 `backing.color/opacity/background`；渲染只画无硬边的径向柔光，不画矩形底板。采样值参与准备指纹；同一素材与时间点结果一致。旧作品没有这些字段时继续使用底板路径。
+
+使用外部字体时，字体必须在作品 `fonts/registry.json` 登记来源、版本、摘要与许可，并由 `fonts/fetch.py` 恢复；字体缺失或摘要不符时构建/准备失败。片尾只显示画面来源平台（如“画面素材来自 Pixabay”），作者、许可与作品说明保留在 `assets/media-sources.json`、`SOURCES.md` 与发布说明，不进入画面。
+
 ### 时间戳、字幕与缓存
 
 每个口播单元必须由合成结果提供真实词边界：edge-tts 使用 WordBoundary 事件（100ns 时间单位），Kokoro 使用 `pred_dur` 与实际 token；两者都从原文恢复标点后按句断开，不按字符比例估算。长句仅在真实词边界拆分，每条最多 28 字符。不支持逐字高亮、导入录音或段级语速与停顿。音频损坏、时间戳缺失/倒退/越界、时间戳文字未覆盖原文时失败，不猜测字幕时长。
