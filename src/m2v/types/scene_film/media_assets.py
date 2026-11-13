@@ -1,7 +1,7 @@
 """助手搜索结果的导入边界：实测媒体、内容寻址及来源留证。
 
 五类统一 v9 作品的画面由代码绘制，图片与视频经 ``useMediaAsset`` 按 ID 取用；素材由
-助手检索官网、官方账号等公开来源或从可选 Pixabay 图库获得。无论来源如何，进入作品的方式
+助手检索官网、官方账号、Pexels 等公开来源，或通过 Pixabay API 检索。无论来源如何，进入作品的方式
 只有一条：先把候选写进导入清单，由 ``m2v author assets import`` 下载或复制、实测
 真实类型与尺寸、按内容摘要命名落盘，并把来源页、作者、许可与实测信息写进
 ``assets/media-sources.json``。准备阶段复核**全部**登记素材，运行期只读本地文件，
@@ -140,7 +140,7 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None, tim
                         raise M2VError("本地素材缺失、为空或超过 256 MiB")
                     shutil.copyfile(source, file)
                 else:
-                    transport.download(remote, file, {}, timeout_s)
+                    transport.download(remote, file, {"User-Agent": "material2video/0.1"}, timeout_s)
                 if not 0 < file.stat().st_size <= MAX_DOWNLOAD_BYTES:
                     raise M2VError("下载素材为空或超过 256 MiB")
                 info = probe(file, kind)
@@ -248,7 +248,8 @@ def gallery_config(name: str, frame: tuple[int, int], **overrides) -> dict:
     `aspectRatio: "any"`，让适配器按目标高度挑变体，而不是按画布比例过滤候选。
     """
     if name == "pexels":
-        raise M2VError("Pexels 已停用；请使用 Pixabay（--provider pixabay）")
+        raise M2VError("Pexels API 检索已停用；检索请使用 Pixabay（--provider pixabay）；"
+                       "已有 Pexels 公开媒体直链可通过 import 清单的 mediaUrl 下载，无需 API Key")
     defaults = PROVIDER_DEFAULTS.get(name) if name == DEFAULT_GALLERY else None
     if defaults is None:
         raise M2VError(f"未知图库：{name}；当前可用：{DEFAULT_GALLERY}")
@@ -302,11 +303,11 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="m2v author assets", description="文章混合媒体素材的检索与导入")
     parser.add_argument("workflow", choices=("search", "import"))
     parser.add_argument("--project", required=True)
-    parser.add_argument("--provider", default=DEFAULT_GALLERY, help="图库：pixabay（默认且唯一启用）；Pexels 已停用")
+    parser.add_argument("--provider", default=DEFAULT_GALLERY, help="API 检索来源：pixabay（默认）")
     parser.add_argument("--kind", default="both", choices=KINDS)
     parser.add_argument("--query", action="append", dest="queries", help="按幕顺序提供关键词，可重复")
     parser.add_argument("--per-page", type=int, default=15)
-    parser.add_argument("--manifest", help="导入清单路径")
+    parser.add_argument("--manifest", help="导入清单路径；mediaUrl 支持 Pexels 等公开媒体直链，无需 API Key")
     parser.add_argument("--base", help="清单里 localPath 的基准目录，默认作品目录")
     parser.add_argument("--timeout-seconds", type=float, default=None)
     return parser

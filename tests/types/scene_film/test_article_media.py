@@ -13,7 +13,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 from m2v.engine.gallery import HttpTransport, build
 from m2v.types.scene_film import adapter, media_assets
-from helpers.scene_film import board, fake_record, fake_tts, project, scene_root
+from helpers.scene_film import board, fake_record, fake_tts, project
 from helpers.media import entry, importer, make_image
 
 pytestmark = pytest.mark.media
@@ -166,6 +166,9 @@ class _Handler(BaseHTTPRequestHandler):
     status = 200
 
     def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler 的接口名
+        if self.headers.get("Authorization") or not self.headers.get("User-Agent", "").startswith("material2video/"):
+            self.send_error(400)
+            return
         if self.status != 200:
             self.send_error(self.status)
             return
@@ -195,10 +198,16 @@ def test_import_downloads_over_http(workspace, local_server):
     clip = make_video(workspace / "assets/clip.mp4")
     _Handler.blob = clip.read_bytes()
     url = f"http://127.0.0.1:{local_server.server_port}/clip.mp4"
-    record = importer(workspace, [entry("clip", "video", mediaUrl=url, author="作者乙", license="Pexels License")],
-                      transport=HttpTransport())
+    source_url = "https://www.pexels.com/video/854171/"
+    record = importer(workspace, [
+        entry("clip", "video", mediaUrl=url, sourceUrl=source_url, author="作者乙",
+              license="Pexels License", sourceType="stock", publisher="Pexels"),
+    ], transport=HttpTransport())
     item = record["assets"][0]
     assert item["mediaUrl"] == url and item["kind"] == "video"
+    assert item["sourceUrl"] == source_url and item["publisher"] == "Pexels"
+    assert item["sourceType"] == "stock" and item["license"] == "Pexels License"
+    assert item["author"] == "作者乙"
     assert (workspace / item["path"]).read_bytes() == clip.read_bytes()
 
 
@@ -398,15 +407,8 @@ def test_gallery_config_follows_the_frame_orientation():
 
 
 def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
-    root = tmp_path / "video"
-    (root / "assets").mkdir(parents=True)
+    root, _ = project(tmp_path, board_with_keywords())
     make_image(root / "assets/wide.png")
-    (root / "project.json").write_text(json.dumps(
-        {"schemaVersion": 2, "id": "demo", "type": "text-motion",
-         "materials": {"storyboard": "storyboard.json"},
-         "output": {"width": 1920, "height": 1080, "fps": 60, "audio": "optional"}}), encoding="utf-8")
-    (root / "storyboard.json").write_text(json.dumps(board_with_keywords(), ensure_ascii=False), encoding="utf-8")
-    scene_root(root)
     manifest = tmp_path / "import.json"
     manifest.write_text(json.dumps({"schemaVersion": 1, "assets": [
         entry("wide", "image", localPath="assets/wide.png", author="作者", license="CC0")]}), encoding="utf-8")
@@ -419,7 +421,9 @@ def test_cli_import_and_search(tmp_path, capsys, monkeypatch):
     printed = json.loads(capsys.readouterr().out)
     assert printed["kind"] == "video" and printed["provider"] == "pixabay"
     assert media_assets.main(["search", "--project", str(root), "--provider", "pexels"]) == 1
-    assert "Pexels 已停用" in capsys.readouterr().err
+    error = capsys.readouterr().err
+    assert "Pexels API 检索已停用" in error
+    assert "mediaUrl" in error
     assert printed["queries"][0]["candidates"][0]["description"] == "竖屏空镜"
     assert media_assets.main(["search", "--project", str(root), "--provider", "unsplash"]) == 1
     assert "未知图库" in capsys.readouterr().err
@@ -435,7 +439,7 @@ def test_pexels_stays_disabled(tmp_path, monkeypatch, has_key):
     else:
         monkeypatch.delenv("M2V_PEXELS_API_KEY", raising=False)
     gallery = FakeGallery()
-    with pytest.raises(M2VError, match="Pexels 已停用.*Pixabay"):
+    with pytest.raises(M2VError, match="Pexels API 检索已停用.*Pixabay.*mediaUrl"):
         media_assets.search(root, manifest, provider_name="pexels", transport=gallery)
     assert gallery.urls == []
     assert not (root / "outputs/gallery-cache").exists()

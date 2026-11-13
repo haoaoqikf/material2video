@@ -39,7 +39,7 @@
 
 ### Requirement: 文章统一素材入口
 
-素材作品 MUST 使用 v9 五类代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为唯一启用且默认的图库来源；Pexels MUST 固定停用，显式指定时 MUST 提示已停用并引导使用 Pixabay，配置 Pexels 密钥 MUST NOT 自动重新启用，没有候选不算制作失败；其他公开媒体直链 MUST 可经相同导入留证入口采用。
+素材作品 MUST 使用 v9 五类代码场景；系统 MUST 拒绝 stock-montage 和旧分镜，不提供迁移工具。Pixabay MUST 作为 `search` 唯一启用且默认的图库 API 来源；Pexels API 检索 MUST 固定停用，配置 Pexels 密钥 MUST NOT 自动重新启用。没有候选不算制作失败；Pexels 等来源的公开媒体直链 MUST 可通过 `import` 无凭据下载并留证。
 
 #### Scenario: 旧类型请求
 - **WHEN** 请求 stock-montage 或 v7 素材作品
@@ -53,9 +53,13 @@
 - **WHEN** 未指定图库或显式指定 pixabay
 - **THEN** 使用 Pixabay，缺少凭据时提示 M2V_PIXABAY_API_KEY，不回退其他图库
 
-#### Scenario: Pexels 固定停用
+#### Scenario: Pexels API 检索停用
 - **WHEN** 显式指定 pexels，无论是否设置其密钥
-- **THEN** 不发出图库请求，提示已停用并引导使用 Pixabay
+- **THEN** 不发出图库请求，提示 API 检索已停用，并说明可用 Pixabay 检索或通过 `import` 导入 Pexels 公开媒体直链
+
+#### Scenario: 直接导入 Pexels 公开素材
+- **WHEN** 导入清单以 `mediaUrl` 指向 Pexels 公开图片或视频文件，并提供来源页、作者、许可及来源分类
+- **THEN** 无需 Pexels API Key 即可下载并校验，来源字段与实测信息写入作品素材台账
 
 #### Scenario: 图库方向为偏好
 - **WHEN** 图库返回不同横竖方向的有效候选

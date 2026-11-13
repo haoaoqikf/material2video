@@ -29,6 +29,8 @@ uv run m2v author assets import --project videos/<类型>/<slug> --manifest <清
 
 未知署名与未知许可必须明确记录为「未知」；不要为了填满字段而编造来源。
 
+Pexels 图片和视频可通过公开媒体直链 `mediaUrl` 导入，无需 API Key。字段和用法见 [Pexels 公开媒体直链](material-sourcing.md#pexels-公开媒体直链)。
+
 ### 来源与采用依据字段
 
 以下可选字段在候选清单和导入项中共用，导入后保存在 `media-sources.json`；缺省值为 `other`、`未知`、空描述和 `not-checked`。这些是制作元数据，当前不作为画面内容渲染。
@@ -79,7 +81,9 @@ uv run m2v author assets import --project videos/<类型>/<slug> --manifest <清
 uv run m2v author assets search --project <目录> [--provider pixabay] [--kind video|photo|both] [--query <关键词> ...] [--per-page 15]
 ```
 
-按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可、`mediaUrl`、说明、`sourceType: "stock"`、发布主体及 `usage.status: "not-checked"`），不下载、不写作品材料；候选为空不是失败，助手可以改用其他公开媒体直链，再由 `import` 统一留证。图库照片候选 `kind: "photo"` 在导入清单中写为 `image`，导入用合法作品素材 ID；去掉候选尺寸等非清单字段，实测值由导入生成。默认且唯一启用的图库为 Pixabay，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取；Pexels 固定停用，显式指定会提示改用 Pixabay，即使配置其密钥也不会自动启用。缺少凭据时直接失败并指出变量名，不会静默匿名请求。Pixabay 检索响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。
+按幕顺序检索：不传 `--query` 时读取每幕的 `keywords`（`input.kind` 为 `topic` 时必填），传了就按顺序覆盖。检索只输出候选清单（含尺寸、时长、来源页、作者、许可、`mediaUrl`、说明、`sourceType: "stock"`、发布主体及 `usage.status: "not-checked"`），不下载、不写作品材料；候选为空不是失败，助手可以改用公开媒体直链，再由 `import` 统一留证。图库照片候选 `kind: "photo"` 在导入清单中写为 `image`，导入用合法作品素材 ID；去掉候选尺寸等非清单字段，实测值由导入生成。
+
+Pixabay 是 `search` 唯一启用的 API 检索来源，凭据只从环境变量 `M2V_PIXABAY_API_KEY` 读取。缺少凭据时直接失败并指出变量名。响应在作品 `outputs/gallery-cache/` 缓存 24 小时，缓存不含 Key。指定 `--provider pexels` 会提示其 API 检索已停用，并给出公开直链导入入口。
 
 候选优先方向跟随作品画幅（`height >= width` 取竖屏，否则横屏），其他方向仍保留，比例不设限；检索只用于挑候选，
 不用于系统性批量下载。

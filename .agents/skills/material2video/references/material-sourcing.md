@@ -27,7 +27,7 @@
 | 工厂、生产过程 | 企业工厂视频、参观资料、官方账号 | 行业协会、设备供应商案例 | 真实企业与工序，动作窗口是否完整 |
 | 人物、事件 | 当事人及所属机构、活动主办方、原始采访 | 新闻机构、法院/议会、历史档案 | 人物、地点、年代、事件身份 |
 | 科学、历史、自然 | 大学、研究机构、博物馆、图书馆、档案馆 | 专业组织、Wikimedia Commons 等开放库 | 馆藏编号、原始出处、文件级使用限制 |
-| 背景、情绪、示意 | 开放媒体库、图库、其他公开发布素材 | 按缺口补充公开来源 | 是否仅作示意、构图与使用限制 |
+| 背景、情绪、示意 | 开放媒体库、Pexels 等图库、其他公开发布素材 | 按缺口补充公开来源 | 是否仅作示意、构图与使用限制 |
 
 能拿到原件就不拿转载。官方账号是正式来源，社交平台只是载体；须确认账号身份和原始发布。公司宣传片能提供对象画面，不能自动证明所有宣传结论。参考作品用于分析，其中独立素材应追溯原始发布者后再评估；不得默认把整条参考作品当可复用素材。
 
@@ -50,13 +50,13 @@
 - **从窄到宽**：先精确事件；无结果再退到同类过程，但退到“同类”时必须记录它只是示意。
 - 检索词与来源页写进工作记录或 `SOURCES.md`，方便复核“当时到底搜了什么”。
 
-图库候选：
+用 Pixabay API 按关键词检索候选：
 
 ```powershell
 uv run m2v author assets search --project videos/<类型>/<slug> --kind both
 ```
 
-不传 `--query` 时按幕读 `keywords`；只出候选、不下载。候选为空不是失败，可改用公开媒体直链再统一导入。
+不传 `--query` 时按幕读 `keywords`；只出候选、不下载。也可在 [Pexels 官网](https://www.pexels.com/) 搜索照片或视频，选定后按 [Pexels 公开媒体直链](#pexels-公开媒体直链) 导入。
 
 ## 4. 候选评估卡
 
@@ -153,6 +153,31 @@ uv run m2v assets report --project videos/<类型>/<slug>
 `report` 是制作期台账，**不替代** `prepare` 和 `assets audit`：三者共用采用政策；prepare 仍阻断技术不一致、明确禁止和未满足条件，`assets audit` 仍绑定准备指纹。
 
 原生采集的来源扫描区分`useMediaAsset`函数声明与实际调用：声明本身不触发动态资源的保守绑定，变量参数的真实调用仍保守绑定。JPEG／PNG／WEBP贴图使用Pillow验证结构并完整解码，损坏或不支持的格式明确失败；视频仍走视频探测与解码路径，不以图片尺寸读取代替完整有效性校验。
+
+### Pexels 公开媒体直链
+
+从 Pexels 素材页选定图片或视频，分别把文件下载地址填入 `mediaUrl`，把素材详情页地址填入 `sourceUrl`。在详情页核对作者和许可，按本次用途检查 [Pexels 许可](https://www.pexels.com/license/) 和[服务条款](https://www.pexels.com/terms-of-service/)。清单中 `sourceType` 填 `stock`，`publisher` 填 `Pexels`。下面是图片导入示例，实际使用时按详情页填写作者及许可核查结果。
+
+```json
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "pexels-landscape",
+      "kind": "image",
+      "mediaUrl": "https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?w=640",
+      "sourceUrl": "https://www.pexels.com/photo/417074/",
+      "sourceType": "stock",
+      "publisher": "Pexels",
+      "author": "未知",
+      "license": "Pexels License (https://www.pexels.com/license/)",
+      "usage": {"status": "not-checked"}
+    }
+  ]
+}
+```
+
+保存为导入清单后执行上面的 `m2v author assets import`，命令会直接下载文件，无需 API Key。视频使用 `kind: "video"` 和对应的公开 MP4 直链。若直链失效，可在官网重新取得公开下载地址，或下载文件后通过 `localPath` 导入。逐项选材并保留来源记录，遵守 Pexels 对批量或系统性复制的限制。
 
 ## 7. `SOURCES.md` 素材表模板
 

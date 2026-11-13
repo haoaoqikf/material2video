@@ -84,6 +84,8 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 创作辅助命令改为 `m2v author`：源文审查、候选稿、素材导入和音效操作分别见 `m2v author --help` 与[媒体和声音契约](.agents/skills/material2video/references/article-media-and-sound.md)。外部画面素材使用 `assets/media-sources.json` 留证；`m2v assets report`、`contact-sheet`、`audit` 用于台账和技术检查。字体二进制按 [`fonts/registry.json`](fonts/registry.json) 恢复并校验，不纳入 Git。
 
+Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒体直链填入 `mediaUrl`，由 `m2v author assets import` 下载并留证，无需 API Key。操作见 [Pexels 导入示例](.agents/skills/material2video/references/material-sourcing.md#pexels-公开媒体直链)。
+
 旧类型名、`project.style`、project v1/v2、分镜 v8 及旧准备记录明确拒绝。升级后的材料需重新编排并重新准备；没有兼容入口或迁移命令，旧实现从 Git 历史追溯。
 
 ## 示例与文档
