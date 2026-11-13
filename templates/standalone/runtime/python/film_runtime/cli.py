@@ -49,11 +49,14 @@ def _tts_voice(project: dict) -> str | None:
 
 
 def _models(project: dict, *, check: bool, download: bool = False) -> None:
-    """Kokoro 作品按本地登记恢复/校验模型；其他后端不触碰模型目录。"""
-    if _tts_backend(project) != 'kokoro':
+    """本地 TTS 作品按自身登记恢复/校验模型；其他后端不触碰模型目录。"""
+    backend = _tts_backend(project)
+    script = {'kokoro': 'models/fetch.py',
+              'qwen3-tts': 'models/qwen3-tts/fetch.py'}.get(backend)
+    if script is None:
         return
     flag = '--check' if check else '--download' if download else '--restore'
-    arguments = [sys.executable, 'models/fetch.py', flag]
+    arguments = [sys.executable, script, flag]
     voice = _tts_voice(project)
     if voice:
         arguments += ['--voice', voice]
@@ -170,7 +173,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--install-browser', action='store_true')
     parser.add_argument('--voice')
     parser.add_argument('--rate')
-    parser.add_argument('--backend', choices=('edge-tts', 'kokoro'))
+    parser.add_argument('--backend', choices=('edge-tts', 'kokoro', 'qwen3-tts'))
     parser.add_argument('--rhythm', default='{}')
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--limit-frames', type=int)

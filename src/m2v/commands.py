@@ -125,7 +125,8 @@ def dispatch(args) -> int:
     if args.command == "init":
         return _init(args)
     if args.command == "voices":
-        return _list_voices(args.locale, args.json, getattr(args, "backend", "edge-tts"))
+        return _list_voices(args.locale, args.json, getattr(args, "backend", "edge-tts"),
+                            getattr(args, "project", None))
     return _project_command(args)
 
 
@@ -230,14 +231,31 @@ def _production_render_event(root: Path, manifest: dict, kind: str, *, candidate
         print(f'[warning] 制作渲染记录失败：{exc}', file=sys.stderr)
 
 
-def _list_voices(locale: str, as_json: bool, backend: str = "edge-tts") -> int:
+def _list_voices(locale: str, as_json: bool, backend: str = "edge-tts",
+                 project: str | None = None) -> int:
     """列出合成可用音色，避免把音色名写错才发现。
 
-    只读诊断：结果不参与渲染，也不写文件。
+    只读诊断：结果不参与渲染，也不写文件。克隆音色属于作品内档案，必须给 --project。
     """
     import asyncio
     from m2v.engine import tts
 
+    if backend == "qwen3-tts":
+        if not project:
+            raise M2VError("qwen3-tts 的克隆音色在作品内登记；请用 --project <作品目录> 指定作品")
+        from m2v.engine import qwen3_tts
+        root, _ = load_project(Path(project))
+        voices = qwen3_tts.voice_names(root / "models")
+        if as_json:
+            print(json.dumps({"zh-CN": [{"voice": v["voice"], "gender": v.get("gender"),
+                                         "categories": v.get("categories", []),
+                                         "personalities": []}
+                                        for v in voices]}, ensure_ascii=False, indent=2))
+            return 0
+        print(f"zh-CN（{len(voices)} 个，Qwen3-TTS 克隆音色）")
+        for voice in sorted(voices, key=lambda item: item["voice"]):
+            print(f"  {voice['voice']:<20} {voice.get('source', ''):<8} local")
+        return 0
     if backend == "kokoro":
         from m2v.engine import kokoro_tts
         voices = kokoro_tts.voice_names()
@@ -251,7 +269,7 @@ def _list_voices(locale: str, as_json: bool, backend: str = "edge-tts") -> int:
             print(f"  {voice['voice']:<12} {voice.get('gender', ''):<7} local")
         return 0
     if backend != "edge-tts":
-        raise M2VError(f"不支持的 TTS 后端：{backend!r}；当前可用：edge-tts、kokoro")
+        raise M2VError(f"不支持的 TTS 后端：{backend!r}；当前可用：edge-tts、kokoro、qwen3-tts")
 
     try:
         grouped = asyncio.run(tts.list_voices())

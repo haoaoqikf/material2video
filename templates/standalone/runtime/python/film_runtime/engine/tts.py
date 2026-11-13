@@ -27,11 +27,13 @@ GENERATOR_VERSION = 1
 DEFAULT_BACKEND = "edge-tts"
 DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_RATE = "+0%"
-BACKENDS = (DEFAULT_BACKEND, "kokoro")
+BACKENDS = (DEFAULT_BACKEND, "kokoro", "qwen3-tts")
 _VOICE = {
     "edge-tts": re.compile(r"^[A-Za-z]{2,3}-[A-Za-z]{2,4}-[A-Za-z0-9]{2,40}Neural$"),
     #: Kokoro v1.1-zh 的中国音色；zf 女声、zm 男声。
     "kokoro": re.compile(r"^z[fm]_\d{3}$"),
+    #: Qwen3-TTS 的作品内克隆音色档案；参考音频与文本登记在 models/qwen3-tts。
+    "qwen3-tts": re.compile(r"^clone_[a-z0-9][a-z0-9-]*$"),
 }
 _RATE = re.compile(r"^[+-]\d{1,2}%$")
 
@@ -46,7 +48,8 @@ def voice_pattern(backend: str) -> re.Pattern:
 def _check_voice(voice: str, backend: str) -> None:
     """音色格式由后端决定；两种格式不能互相冒充。"""
     if not isinstance(voice, str) or not voice_pattern(backend).fullmatch(voice):
-        example = "zh-CN-XiaoxiaoNeural" if backend == "edge-tts" else "zf_027"
+        example = {"edge-tts": "zh-CN-XiaoxiaoNeural", "kokoro": "zf_027",
+                   "qwen3-tts": "clone_tuixiu"}[backend]
         raise VideoError(f"{backend} 的音色名必须形如 {example}，实际为 {voice!r}")
 
 
@@ -155,6 +158,9 @@ def ensure_backend(record: dict, root: Path) -> None:
     if backend == "kokoro":
         from film_runtime.engine import kokoro_tts
         kokoro_tts.ensure_assets(root / "models", record["voice"])
+    elif backend == "qwen3-tts":
+        from film_runtime.engine import qwen3_tts
+        qwen3_tts.ensure_assets(root / "models", record["voice"])
 
 
 async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dict]:
@@ -173,7 +179,7 @@ async def synthesize(text: str, voice: str, rate: str, output: Path) -> list[dic
 
 
 def scene_cache_key(text: str, voice: str, rate: str, contract_version: int,
-                    backend: str = DEFAULT_BACKEND) -> str:
+                    backend: str = DEFAULT_BACKEND, models_dir: Path | None = None) -> str:
     payload = {"text": text, "voice": voice, "rate": rate,
                "contractVersion": contract_version, "generator": GENERATOR_VERSION}
     if backend == DEFAULT_BACKEND:
@@ -183,6 +189,13 @@ def scene_cache_key(text: str, voice: str, rate: str, contract_version: int,
         from film_runtime.engine import kokoro_tts
         payload["backend"] = backend
         payload.update(kokoro_tts.versions())
+    elif backend == "qwen3-tts":
+        from film_runtime.engine import qwen3_tts
+        if models_dir is None:
+            raise VideoError("Qwen3-TTS 缓存键需要作品模型目录")
+        payload["backend"] = backend
+        payload.update(qwen3_tts.versions())
+        payload["voiceProfile"] = qwen3_tts.voice_digest(models_dir, voice)
     else:
         raise VideoError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}")
     return fingerprint(payload)
@@ -197,7 +210,7 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
     `rhythm` 为真时对停顿做整形。缓存里始终保存**未整形**的原始合成，
     所以整形开关与参数不改变缓存键，也不会让已有缓存失效。
     """
-    key = scene_cache_key(text, voice, rate, contract_version, backend)
+    key = scene_cache_key(text, voice, rate, contract_version, backend, models_dir)
     wav, metadata = cache / f"{key}.wav", cache / f"{key}.json"
     if not force and wav.is_file() and metadata.is_file():
         try:
@@ -212,8 +225,8 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
         except (VideoError, ValueError, KeyError, TypeError):
             logger.warning("配音缓存损坏，重新生成 %s", key[:12])
     cache.mkdir(parents=True, exist_ok=True)
-    if backend == "kokoro" and models_dir is None:
-        raise VideoError("Kokoro 后端需要作品模型目录，准备流程未提供 models/")
+    if backend in {"kokoro", "qwen3-tts"} and models_dir is None:
+        raise VideoError(f"{backend} 后端需要作品模型目录，准备流程未提供 models/")
     with tempfile.TemporaryDirectory(dir=cache) as temporary:
         work = Path(temporary)
         attempts = 3 if backend == DEFAULT_BACKEND else 1
@@ -223,6 +236,12 @@ def scene_audio(text: str, voice: str, rate: str, cache: Path, *, force: bool = 
                     from film_runtime.engine import kokoro_tts
                     words = kokoro_tts.synthesize(text, voice, rate, work / "speech.wav",
                                                   models_dir=models_dir)
+                    duration = audio.wav_duration(work / "speech.wav")
+                    speech = work / "speech.wav"
+                elif backend == "qwen3-tts":
+                    from film_runtime.engine import qwen3_tts
+                    words = qwen3_tts.synthesize(text, voice, rate, work / "speech.wav",
+                                                 models_dir=models_dir)
                     duration = audio.wav_duration(work / "speech.wav")
                     speech = work / "speech.wav"
                 else:

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "$comment": "Qwen3-TTS 主模型、speech tokenizer 与 stable-ts 对齐模型二进制不入库。恢复命令：python models/qwen3-tts/fetch.py --download --voice <音色>。参考音色属于作品资产，不能从模型仓库恢复。",
+  "backend": "qwen3-tts",
+  "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+  "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece",
+  "alignerRepo": "Systran/faster-whisper-small",
+  "alignerRevision": "536b0662742c02347bc0e980a01041f333bce120",
+  "license": "licenses/Apache-2.0.txt",
+  "alignerLicense": "licenses/MIT.txt",
+  "modelDir": "qwen3-tts/model",
+  "alignerDir": "qwen3-tts/aligner",
+  "files": [
+    {
+      "role": "model",
+      "file": "qwen3-tts/model/model.safetensors",
+      "bytes": 1829344272,
+      "sha256": "180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "config",
+      "file": "qwen3-tts/model/config.json",
+      "bytes": 4494,
+      "sha256": "2e714c787c8edb98b05432685cddb634add2de4d4e645f653d68251ef72ba011",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "config",
+      "file": "qwen3-tts/model/generation_config.json",
+      "bytes": 245,
+      "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "tokenizer",
+      "file": "qwen3-tts/model/tokenizer_config.json",
+      "bytes": 7344,
+      "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "tokenizer",
+      "file": "qwen3-tts/model/vocab.json",
+      "bytes": 2776833,
+      "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "tokenizer",
+      "file": "qwen3-tts/model/merges.txt",
+      "bytes": 1671839,
+      "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "config",
+      "file": "qwen3-tts/model/preprocessor_config.json",
+      "bytes": 127,
+      "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "config",
+      "file": "qwen3-tts/model/configuration.json",
+      "bytes": 47,
+      "sha256": "c502b6328c67638b401df8dd05de89e9e8d1cff9cd0ada10dfbdbe13556c20de",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "e2f1affb11a7ca09c5f296f820cd2d092b54457c"
+    },
+    {
+      "role": "speech-tokenizer",
+      "file": "qwen3-tts/model/speech_tokenizer/config.json",
+      "bytes": 2336,
+      "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "speech-tokenizer",
+      "file": "qwen3-tts/model/speech_tokenizer/configuration.json",
+      "bytes": 76,
+      "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "speech-tokenizer",
+      "file": "qwen3-tts/model/speech_tokenizer/model.safetensors",
+      "bytes": 682293092,
+      "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "speech-tokenizer",
+      "file": "qwen3-tts/model/speech_tokenizer/preprocessor_config.json",
+      "bytes": 234,
+      "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb",
+      "provider": "modelscope",
+      "repo": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "revision": "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
+    },
+    {
+      "role": "aligner",
+      "file": "qwen3-tts/aligner/model.bin",
+      "bytes": 483546902,
+      "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+      "provider": "huggingface",
+      "repo": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120"
+    },
+    {
+      "role": "aligner",
+      "file": "qwen3-tts/aligner/config.json",
+      "bytes": 2370,
+      "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+      "provider": "huggingface",
+      "repo": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120"
+    },
+    {
+      "role": "aligner",
+      "file": "qwen3-tts/aligner/tokenizer.json",
+      "bytes": 2203239,
+      "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+      "provider": "huggingface",
+      "repo": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120"
+    },
+    {
+      "role": "aligner",
+      "file": "qwen3-tts/aligner/vocabulary.txt",
+      "bytes": 459861,
+      "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+      "provider": "huggingface",
+      "repo": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120"
+    }
+  ],
+  "voices": []
+}

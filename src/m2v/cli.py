@@ -43,8 +43,9 @@ def _parser() -> argparse.ArgumentParser:
     add_sample_parser(sub)
     voices = sub.add_parser("voices", help="列出合成可用音色（edge-tts 需要联网）")
     voices.add_argument("--locale", default="zh-CN", help="区域，例如 zh-CN；--locale all 列出全部")
-    voices.add_argument("--backend", choices=("edge-tts", "kokoro"), default="edge-tts",
-                        help="合成后端；kokoro 为本地音色")
+    voices.add_argument("--backend", choices=("edge-tts", "kokoro", "qwen3-tts"), default="edge-tts",
+                        help="合成后端；kokoro/qwen3-tts 为本地音色")
+    voices.add_argument("--project", help="作品目录；qwen3-tts 的克隆音色档案在作品内")
     voices.add_argument("--json", action="store_true", help="输出 JSON")
     init = sub.add_parser("init", help="初始化作品目录")
     init.add_argument("--type", required=True)
@@ -67,7 +68,7 @@ def _parser() -> argparse.ArgumentParser:
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural 或 zf_027")
             item.add_argument("--rate", help="语速，例如 --rate=-6%%")
-            item.add_argument("--backend", choices=("edge-tts", "kokoro"),
+            item.add_argument("--backend", choices=("edge-tts", "kokoro", "qwen3-tts"),
                               help="临时覆盖作品的 TTS 后端；省略时跟随 project.json")
 
             item.add_argument("--pause-comma", type=float, metavar="SECONDS", help="逗号、顿号处的停顿秒数")

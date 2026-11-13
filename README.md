@@ -18,7 +18,7 @@ Material2Video 是短视频制作指导与工具链。新建作品使用 `projec
 
 “观点旁白＋意境素材”使用 `documentary-edit`：TTS 旁白组织主线，相关素材辅助理解，也可用真实风景承接情绪；此类风景采用可辨的真实相机运动，排除固定机位仅景物运动的素材，选材与编排见[制作指导](.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。
 
-配音默认使用联网的 `edge-tts`。需要本地、可复现的中文声音时，作品可在 `tts.backend` 声明 `kokoro`，使用 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型；两种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败。
+配音默认使用联网的 `edge-tts`。需要本地、可复现的中文声音时，作品可在 `tts.backend` 声明 `kokoro`，使用 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型。需要克隆参考音色时，作品可声明 `qwen3-tts`，用 `clone_<slug>` 指作品内参考音频与参考文本，按 `models/qwen3-tts/registry.json` 恢复 Qwen3-TTS 主模型与 stable-ts 对齐模型；三种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 与 Qwen3-TTS 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败；Qwen3-TTS 参考音色的来源与用户授权必须留证，不能从模型仓库恢复参考音频。
 
 字幕支持中文主行 + 英文次行上下排列；作品可在 `frames.json` 声明字体、字号与自适应柔光，取消不透明底板并按每条字幕所在画面采样亮度与色调。片尾只保留画面来源平台，作者与许可留在素材台账和发布说明。默认选材避免可辨认人像，优先自然风景、城市空镜、太空或抽象空间。
 
@@ -41,7 +41,7 @@ uv run m2v prepare --project videos/text-motion/demo
 uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 ```
 
-`init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。使用 Kokoro 的作品需在自身依赖中安装 `kokoro` 与 `misaki[zh]`（模板提供 `kokoro` extra），并用 `python models/fetch.py --download --voice <音色>` 恢复模型。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可并行，默认 2；内存紧张时改为 1，并行只影响耗时，不改变帧序与成片契约。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
+`init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。使用 Kokoro 的作品需在自身依赖中安装 `kokoro` 与 `misaki[zh]`（模板提供 `kokoro` extra），并用 `python models/fetch.py --download --voice <音色>` 恢复模型。使用 Qwen3-TTS 的作品需安装 `qwen-tts` 与 `stable-ts`（模板提供 `qwen3-tts` extra），并用 `python models/qwen3-tts/fetch.py --download --voice <音色>` 恢复主模型与对齐模型；参考音色必须随作品保存并登记摘要。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可并行，默认 2；内存紧张时改为 1，并行只影响耗时，不改变帧序与成片契约。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
 
 ## 命令
 

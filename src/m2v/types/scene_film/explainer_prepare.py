@@ -18,7 +18,7 @@ from m2v.core.errors import M2VError
 from m2v.core.project import file_inputs, save_prepared, subtitle_font_size
 from m2v.core import security
 from m2v.core import frames as frame_engine
-from m2v.engine import audio, kokoro_tts, remotion, rhythm as rhythm_engine, subtitle_backing, subtitles, tts
+from m2v.engine import audio, kokoro_tts, qwen3_tts, remotion, rhythm as rhythm_engine, subtitle_backing, subtitles, tts
 from . import code_scenes, explainer as contract, explainer_review, reading_pace
 
 
@@ -45,7 +45,7 @@ def implementation_digest() -> str:
     from m2v.types.building_construction import materials as building_materials, components as building_components
     from m2v.types.vehicle_showcase import materials as vehicle_materials
     modules = (contract, explainer_review, explainer_render, render_pipeline, frame_engine, adapter, audio, tts,
-               kokoro_tts, subtitle_backing, subtitles, rhythm_engine, soundtrack, media_assets, media_policy, code_scenes, scene_events, sources, remotion,
+               kokoro_tts, qwen3_tts, subtitle_backing, subtitles, rhythm_engine, soundtrack, media_assets, media_policy, code_scenes, scene_events, sources, remotion,
                financial_materials, financial_plan, financial_valuation, building_materials, building_components,
                vehicle_materials)
     files = [file for module in modules for file in module_files(module)] + [Path(__file__)]

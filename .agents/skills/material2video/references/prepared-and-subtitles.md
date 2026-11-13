@@ -71,12 +71,15 @@ uv run m2v render --project videos/<type>/<slug>
 | --- | --- | --- | --- |
 | `edge-tts`（默认） | `zh-CN-XiaoxiaoNeural` | `tts.rate` 有符号百分比 | 首次合成需要联网 |
 | `kokoro`（本地） | `zf_027`（zf 女声、zm 男声） | `tts.rate` 映射为模型 `speed`，+20% → 1.2 | 恢复模型后离线 |
+| `qwen3-tts`（本地克隆） | `clone_<slug>`（作品内音色档案） | `tts.rate` 映射为不变调变速，+20% → 1.2 | 恢复主模型、对齐模型与参考音色后离线 |
 
 音色必须明确选择，语速默认 `+0%`；`--voice` / `--rate` 可临时生成参数候选而不改作品文件，不要求播放或收听候选。后端与音色格式不匹配时在合成前失败。
 
 Kokoro 使用 `Kokoro-82M-v1.1-zh` 本地模型。模型、config 与所选音色按作品 `models/registry.json` 登记的大小和 SHA256 校验，通过 `python models/fetch.py --download --voice <音色>` 恢复；`models/files/` 不入库，`setup --download` 会按作品当前音色恢复，`validate` 与准备前检查缺失。模型缺失或摘要不符时失败并给出恢复命令，不自动联网。
 
 Kokoro 每次合成按文本、音色、语速派生固定随机种子，同版本环境下重复合成的音频逐位一致。时间戳来自模型时长预测与中文前端 token；数字会被改写、拉丁文本没有词 token，当前会明确失败，请把旁白写成纯中文口语或改用 `edge-tts`。完整参数选择见[配音音色与节奏](voice-and-rhythm.md)。
+
+Qwen3-TTS 使用 `Qwen3-TTS-12Hz-0.6B-Base` 做零样本克隆，参考音频、参考文本、语言、来源与用户授权登记在作品 `models/qwen3-tts/registry.json` 的 `voices` 数组；主模型、speech tokenizer 与 stable-ts 使用的 `Systran/faster-whisper-small` 对齐模型同样按大小与 SHA256 校验，通过 `python models/qwen3-tts/fetch.py --download --voice <音色>` 恢复。参考音色是作品资产，不能从模型仓库恢复；更换参考音频或参考文本会改变语音缓存键。Qwen3-TTS 不返回词级时间戳，合成后在变速后的最终音频上用 stable-ts 按旁白原文强制对齐；零时长 token 只做文本保序合并，不按字符比例估算。数字与拉丁字母当前同样明确失败。
 
 ### 双语字幕与自适应柔光
 
@@ -88,9 +91,9 @@ Kokoro 每次合成按文本、音色、语速派生固定随机种子，同版�
 
 ### 时间戳、字幕与缓存
 
-每个口播单元必须由合成结果提供真实词边界：edge-tts 使用 WordBoundary 事件（100ns 时间单位），Kokoro 使用 `pred_dur` 与实际 token；两者都从原文恢复标点后按句断开，不按字符比例估算。长句仅在真实词边界拆分，每条最多 28 字符。不支持逐字高亮、导入录音或段级语速与停顿。音频损坏、时间戳缺失/倒退/越界、时间戳文字未覆盖原文时失败，不猜测字幕时长。
+每个口播单元必须由合成结果提供真实词边界：edge-tts 使用 WordBoundary 事件（100ns 时间单位），Kokoro 使用 `pred_dur` 与实际 token，Qwen3-TTS 使用 stable-ts 对最终音频与旁白原文的强制对齐；三者在从原文恢复标点后按句断开，不按字符比例估算。长句仅在真实词边界拆分，每条最多 28 字符。不支持逐字高亮、导入录音或段级语速与停顿。音频损坏、时间戳缺失/倒退/越界、时间戳文字未覆盖原文时失败，不猜测字幕时长。
 
-语音缓存键包含实际后端。edge-tts 键保持原有字段，不因新增后端重新合成；Kokoro 键加入模型 revision、Kokoro/misaki/torch 版本与种子策略。切换后端不会命中另一后端的缓存。缓存保存未整形的原始合成，整形参数变化不重新合成。
+语音缓存键包含实际后端。edge-tts 键保持原有字段，不因新增后端重新合成；Kokoro 键加入模型 revision、Kokoro/misaki/torch 版本与种子策略；Qwen3-TTS 键加入模型 revision、对齐模型 revision、qwen-tts/transformers/torch/stable-ts 版本、参考音色档案摘要与种子策略。切换后端、参考音频或参考文本不会命中旧缓存。缓存保存未整形的原始合成，整形参数变化不重新合成。
 
 字幕时间以视频开头为零点，采用开始包含、结束不包含的区间。音频统一解码为 24000Hz、
 单声道、16bit PCM WAV，再按派生时间轴补静音并拼接；拼接位置按**累计帧数**换算采样位置，

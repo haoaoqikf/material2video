@@ -23,8 +23,8 @@
 | 作品 | `project.json` 的 `tts.backend` / `tts.voice` / `tts.rate` | 作品的正式选择 |
 | 缺失 | 后端 `edge-tts`、音色阻断、语速 `+0%` | 有旁白但未选音时提示由助手选择或 `--voice` 指定 |
 
-- `voice` 格式由后端决定：`edge-tts` 形如 `zh-CN-XiaoxiaoNeural`，`kokoro` 形如 `zf_027`（zf 女声、zm 男声）；组合不匹配时在合成前失败。`rate` 为 −50% 至 +50% 的有符号百分比，Kokoro 映射为 `speed`（+20% → 1.2）。
-- 用 `m2v voices` 看当前可用音色（可用 `--locale all`、`--json`）。edge-tts 需要联网；`m2v voices --backend kokoro` 读取本地登记的中文音色清单。只读，不写文件。
+- `voice` 格式由后端决定：`edge-tts` 形如 `zh-CN-XiaoxiaoNeural`，`kokoro` 形如 `zf_027`（zf 女声、zm 男声），`qwen3-tts` 形如 `clone_tuixiu`（作品内克隆音色档案）；组合不匹配时在合成前失败。`rate` 为 −50% 至 +50% 的有符号百分比，Kokoro 映射为 `speed`（+20% → 1.2），Qwen3-TTS 映射为不变调变速（+20% → 1.2）。
+- 用 `m2v voices` 看当前可用音色（可用 `--locale all`、`--json`）。edge-tts 需要联网；`m2v voices --backend kokoro` 读取本地登记的中文音色清单；`m2v voices --backend qwen3-tts --project <作品>` 读取该作品的克隆音色档案。只读，不写文件。
   音色**是否真实存在**只在合成时才能确定：准备前不联网是既有约束，所以配置校验只查格式；Kokoro 额外检查模型与音色文件是否已恢复。
 - 旧有声作品缺少 `tts.voice` 时需先选音；无旁白及仅音床作品不要求选音。
 - 改后端、音色或语速会让已有语音缓存失效并重新合成，这正是"换声音"应有的代价。edge-tts 的既有缓存键保持不变。
@@ -138,6 +138,8 @@
 媒体契约版本区分，音乐不进入语音请求缓存键。
 
 Kokoro 后端使用模型自身的时长预测与中文 token 产生词边界，并按文本、音色、语速派生固定随机种子；同版本环境下重复合成逐位一致，词边界与音频同源，可直接进入上面的字幕与停顿整形。模型权重按作品 `models/registry.json` 恢复并校验，缺失时准备失败；数字与拉丁字母旁白没有可映射的 token，当前明确失败，不改写文本或估算时间。
+
+Qwen3-TTS 后端使用作品内参考音频与参考文本做零样本克隆，按文本、音色、参考音频摘要与语速派生固定种子；同版本环境下重复合成逐位一致。Qwen3-TTS 本身不返回词级时间戳，合成后在变速后的最终音频上用 stable-ts 按旁白原文强制对齐；零时长 token 只做文本保序合并，不按字符比例估算。参考音频、参考文本、来源与用户授权登记在 `models/qwen3-tts/registry.json`，主模型、speech tokenizer 与对齐模型按大小与 SHA256 校验；参考音色是作品资产，不能从模型仓库恢复。数字与拉丁字母旁白当前同样明确失败。参考音色只用于本作品，用户要求不等于原作者许可。
 
 统一 v9 拒绝 `narrationSegments[].speech`（分镜的旁白段接受 `id`、`text` 及可选 `holdFrames`，逐幕节奏写在
 幕的 `speech` 上）：整片的停顿节奏改用
