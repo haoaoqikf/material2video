@@ -76,6 +76,33 @@ def test_history_cycle_reads_do_not_grow_with_events_and_all_rows_remain_checked
     assert errors and len(actual) == len(rows) - 1
 
 
+@pytest.mark.parametrize(("frames", "final_pass", "complete"), [
+    (1800, True, True),
+    (1801, True, False),
+    (1800, False, False),
+])
+def test_status_uses_qa_duration_for_trial_exemption(work, monkeypatch, frames, final_pass, complete):
+    root, manifest = work
+    final_report = {
+        "id": "final-report", "verdict": "pass", "isolation": "independent-subagent",
+        "reviewType": "blind", "requiresComparison": False,
+    }
+    if final_pass:
+        report_path = outputs(root) / "final-report.json"
+        write(report_path, final_report)
+        ledger.append(root, manifest, "review", data={
+            "round": "final", "focus": "comprehensive", "reviewerId": "fresh-final",
+            "reportId": "final-report", "reportPath": report_path.name,
+            "receipts": [receipt(outputs(root), report_path)],
+        })
+    monkeypatch.setattr(reviews, "current_report", lambda *_: final_report)
+    monkeypatch.setattr(ledger, "final_binding", lambda *_: {"durationFrames": frames, "fps": 30})
+    result = ledger.status(root, manifest)
+    assert result.get("technicalQA", {}).get("status") == "pass", result["diagnostics"]
+    assert result["trial"] == []
+    assert result["complete"] is complete
+
+
 @pytest.mark.parametrize("cached_query", [False, True])
 def test_history_rejects_cycle_switch_during_scan_even_in_read_query(work, monkeypatch, cached_query):
     from contextlib import nullcontext

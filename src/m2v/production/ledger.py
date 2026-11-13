@@ -359,17 +359,24 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                 r["status"] == "pass" and r.get("reviewType") == "blind"
                 for r in result["trial"]
             )
+            technical_qa = result["technicalQA"]
+            technical_pass = technical_qa["status"] == "pass"
+            # Use the QA-bound duration. targetSeconds only budgets the storyboard.
+            short_film = (
+                technical_pass
+                and technical_qa["durationFrames"] <= 60 * technical_qa["fps"]
+            )
             focuses = {
                 r["focus"]
                 for r in result["final"]
                 if r["status"] == "pass" and r.get("reviewType") == "blind"
             }
             result["complete"] = (
-                trial
+                (short_film or trial)
                 and set(c["finalFocuses"]) <= focuses
                 and not errors
                 and not result["issues"]
-                and result["technicalQA"]["status"] == "pass"
+                and technical_pass
             )
         except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
             result["diagnostics"].append(str(exc))
