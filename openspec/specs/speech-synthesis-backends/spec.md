@@ -7,7 +7,11 @@
 
 ### Requirement: 作品可声明合成后端
 
-作品 MAY 在 `project.json` 的 `tts.backend` 声明 `edge-tts`、`kokoro` 或 `qwen3-tts`；省略 MUST 使用 `edge-tts`。音色 MUST 符合所选后端的格式：edge-tts 为 `zh-CN-XxxNeural`，Kokoro 为 `z[fm]_NNN`，Qwen3-TTS 为 `clone_<slug>`。命令行 `--backend` MUST 覆盖作品声明，优先级为「命令行 > 作品配置 > 默认」。后端与音色不匹配、未知后端 MUST 在合成前失败并列出可用后端；无自身旁白的作品 MUST 不因后端或音色缺失失败。
+作品 MAY 在 `project.json` 的 `tts.backend` 声明 `edge-tts`、`kokoro` 或 `qwen3-tts`。有自身旁白的 `documentary-edit` 作品省略后端时 MUST 使用 `kokoro`，其他类型省略时 MUST 使用 `edge-tts`。音色 MUST 符合所选后端的格式：edge-tts 为 `zh-CN-XxxNeural`，Kokoro 为 `z[fm]_NNN`，Qwen3-TTS 为 `clone_<slug>`。命令行 `--backend` MUST 覆盖作品声明，优先级为「命令行 > 作品配置 > 默认」。后端与音色不匹配、未知后端 MUST 在合成前失败并列出可用后端；无自身旁白的作品 MUST 不因后端或音色缺失失败。
+
+#### Scenario: 纪实口播默认使用 Kokoro
+- **WHEN** `documentary-edit` 作品有自身旁白，配置了合适的 Kokoro 音色且省略后端
+- **THEN** 准备记录使用 Kokoro 与所选音色，合成前校验本地模型
 
 #### Scenario: 后端与音色匹配
 - **WHEN** 作品声明 `backend=qwen3-tts`、`voice=clone_tuixiu` 并执行准备
@@ -62,8 +66,6 @@ Kokoro 当前时间戳路径 MUST NOT 接受数字或拉丁字母。Qwen3-TTS �
 #### Scenario: 旁白含数字
 - **WHEN** Qwen3-TTS 作品的旁白含阿拉伯数字或拉丁字母
 - **THEN** 准备失败并指出具体段落与替代办法
-
-## ADDED Requirements
 
 ### Requirement: Qwen3-TTS 声音克隆绑定参考音频与固定模型
 
