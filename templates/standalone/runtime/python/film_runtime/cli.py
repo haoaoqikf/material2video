@@ -147,7 +147,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--voice')
     parser.add_argument('--rate')
     parser.add_argument('--rhythm', default='{}')
-    parser.add_argument('--jobs', type=int, default=1)
+    parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--limit-frames', type=int)
     parser.add_argument('--start-seconds', type=float, default=0)
     parser.add_argument('--end-seconds', type=float)

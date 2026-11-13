@@ -59,8 +59,8 @@ def _parser() -> argparse.ArgumentParser:
             item.add_argument("--start-seconds", type=float, default=0)
             item.add_argument("--end-seconds", type=float)
         if command in {"preview", "render"}:
-            item.add_argument("--jobs", type=int, default=1,
-                              help="进程级并行数；默认 1，五类均支持大于 1")
+            item.add_argument("--jobs", type=int, default=2,
+                              help="进程级并行数；默认 2；内存紧张时改为 1")
         if command == "prepare":
             # 临时试听用：不改作品文件也能换音色或改节奏，省略时跟随 project.json 的 tts。
             item.add_argument("--voice", help="合成音色，例如 zh-CN-YunxiNeural")

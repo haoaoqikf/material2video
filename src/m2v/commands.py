@@ -165,7 +165,7 @@ def _project_command(args) -> int:
         print(json.dumps(_status(root, manifest, full_history=args.history), ensure_ascii=False, indent=2))
         return 0
     if args.command in {"preview", "render"}:
-        jobs = getattr(args, "jobs", 1)
+        jobs = getattr(args, "jobs", 2)
         if type(jobs) is not int or not 1 <= jobs <= 4:
             raise M2VError("--jobs 必须为 1～4 的整数")
         if jobs > 1 and not video_type.supports_render_jobs:

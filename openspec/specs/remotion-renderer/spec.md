@@ -260,7 +260,7 @@ SHALL NOT 因为本次口径调整而放宽。
 
 ### Requirement: 可选进程级分段渲染
 
-渲染入口 SHALL 提供可选正整数 `--jobs`，默认 1。`--jobs: 1` SHALL 保持现有单会话渲染路径。`--jobs > 1` 时，系统 SHALL 先读取并交叉校验 composition 元数据，再按帧区间启动多个独立渲染进程；每段 SHALL 独立解码核对帧数、尺寸与帧率，拼接后 SHALL 复核总帧数，最后统一混入音轨。
+渲染入口 SHALL 提供可选正整数 `--jobs`，默认 2。`--jobs: 1` SHALL 使用单会话渲染路径。`--jobs > 1` 时，系统 SHALL 先读取并交叉校验 composition 元数据，再按帧区间启动多个独立渲染进程；每段 SHALL 独立解码核对帧数、尺寸与帧率，拼接后 SHALL 复核总帧数，最后统一混入音轨。
 
 `--jobs` SHALL 与 Remotion 页签级 `--concurrency` 区分；分段内部并发 SHALL 固定为 1。`--jobs` SHALL NOT 进入候选交付绑定：改变 jobs 仍可复用同一内容候选。任一段失败 SHALL 清理进程并明确失败，MUST NOT 留下可被误认为成功的成片。该能力 SHALL 对五类作品开放。
 
@@ -269,10 +269,15 @@ SHALL NOT 因为本次口径调整而放宽。
 - **WHEN** 五类作品以 `--jobs 4` 渲染全片
 - **THEN** 四个帧区间独立渲染、逐段验收后无损拼接，成片帧数、尺寸、帧率与单进程一致
 
-#### Scenario: 默认单进程
+#### Scenario: 默认双进程
 
-- **WHEN** 未声明 `--jobs` 或声明 1
-- **THEN** 走现有单会话渲染，行为与产物不变
+- **WHEN** 未声明 `--jobs`
+- **THEN** 使用 2 路分段渲染，行为与产物和显式 `--jobs 2` 一致
+
+#### Scenario: 显式单进程
+
+- **WHEN** 声明 `--jobs 1`
+- **THEN** 走单会话渲染，行为与产物不变
 
 #### Scenario: 元数据不一致
 
