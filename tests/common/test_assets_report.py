@@ -48,7 +48,7 @@ def test_complete_ledger_passes_without_claiming_audit(tmp_path):
     report = assets_tools.build_report(tmp_path)
     assert report["status"] == "pass"
     assert report["summary"] == {"registered": 1, "referenced": 1, "errors": 0, "warnings": 1}
-    assert report["assets"][0]["usage"]["status"] == "not-checked"
+    assert report["assets"][0]["usage"]["status"] == "no-explicit-restriction"
     assert report["assets"][0]["sha256Matches"] is True
     assert report["assets"][0]["sourcesMentioned"] is True
 
@@ -76,16 +76,22 @@ def test_report_flags_unknown_license_and_tampered_file(tmp_path):
 
 @pytest.mark.parametrize("usage,code", [
     ({"status": "prohibited"}, "usage-prohibited"),
-    ({"status": "conditional", "conditionsMet": False, "evidenceUrl": "https://example.com/terms",
-      "checkedAt": "2026-11-05", "note": "需要署名但尚未加入"}, "usage-conditions-unmet"),
-    ({"status": "no-explicit-restriction"}, "invalid-usage"),
+    ({"status": "typo"}, "invalid-usage"),
 ])
-def test_report_blocks_restrictions_and_invalid_evidence(tmp_path, usage, code):
+def test_report_blocks_explicit_prohibition_and_invalid_metadata(tmp_path, usage, code):
     _record(tmp_path, [{**_asset(tmp_path), "usage": usage}])
     _scene(tmp_path)
     report = assets_tools.build_report(tmp_path)
     assert report["status"] == "fail"
     assert code in {item["code"] for item in report["problems"]}
+
+
+def test_report_keeps_unmet_conditions_as_warning(tmp_path):
+    _record(tmp_path, [{**_asset(tmp_path), "usage": {"status": "conditional", "conditionsMet": False}}])
+    _scene(tmp_path)
+    report = assets_tools.build_report(tmp_path)
+    assert report["status"] == "pass"
+    assert "usage-conditions-unmet" in {item["code"] for item in report["warnings"]}
 
 
 def test_report_marks_dynamic_usage_and_unused_assets(tmp_path):

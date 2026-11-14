@@ -15,15 +15,15 @@ def reviewed(status="no-explicit-restriction", **extra):
 def test_unknown_and_unchecked_remain_distinct_from_permission():
     entry = {"license": "未知"}
     source, errors, warnings = media_policy.assess(entry)
-    assert source["usage"] == {"status": "not-checked"}
+    assert source["usage"] == {"status": "no-explicit-restriction"}
     assert not errors
-    assert {item["code"] for item in warnings} == {"usage-not-checked", "license-unknown"}
+    assert {item["code"] for item in warnings} == {"usage-no-explicit-restriction", "license-unknown"}
     assert "usage" not in entry
 
 
 @pytest.mark.parametrize("status,conditions,blocked", [
     ("no-explicit-restriction", {}, False), ("explicit-allowed", {}, False),
-    ("prohibited", {}, True), ("conditional", {"conditionsMet": False}, True),
+    ("prohibited", {}, True), ("conditional", {"conditionsMet": False}, False),
     ("conditional", {"conditionsMet": True}, False),
 ])
 def test_explicit_restrictions_override_license_labels(status, conditions, blocked):
@@ -32,8 +32,35 @@ def test_explicit_restrictions_override_license_labels(status, conditions, block
     assert source["usage"]["status"] == status
 
 
+def test_unchecked_adoption_does_not_require_evidence():
+    source, errors, warnings = media_policy.assess({"usage": {"status": "no-explicit-restriction"}})
+    assert not errors
+    assert source["usage"] == {"status": "no-explicit-restriction"}
+    assert "usage-no-explicit-restriction" in {item["code"] for item in warnings}
+
+
+def test_social_screenshot_and_quoted_media_metadata():
+    source = media_policy.metadata({
+        "sourceType": "social-screenshot", "platform": "X",
+        "postUrl": "https://x.com/example/status/1", "postedAt": "2026-03-01",
+        "capturedAt": "2026-11-14", "risk": "high", "riskNotes": "含人物与音乐",
+        "quotedWork": {"title": "片段", "author": "作者", "platform": "YouTube",
+                       "url": "https://youtube.com/watch?v=1", "durationSeconds": 95},
+    })
+    assert source["sourceType"] == "social-screenshot"
+    assert source["quotedWork"]["durationSeconds"] == 95
+    assert media_policy.metadata({"sourceType": "quoted-media"})["sourceType"] == "quoted-media"
+
+
+def test_invalid_dates_rejected():
+    with pytest.raises(M2VError):
+        media_policy.metadata({"postedAt": "2026-02-30"})
+    with pytest.raises(M2VError):
+        media_policy.metadata({"capturedAt": "20261114"})
+
+
 @pytest.mark.parametrize("usage", [
-    None, {"status": "typo"}, {"status": "no-explicit-restriction"},
+    None, {"status": "typo"},
     reviewed(checkedAt="2026-02-30"), reviewed(checkedAt="20261105"),
     reviewed(evidenceUrl="file:///tmp/terms"), reviewed(evidenceUrl="https://user:secret@example.com/"),
     reviewed(evidenceUrl="https://[broken"), reviewed(note="  "),

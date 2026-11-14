@@ -31,27 +31,48 @@ class Segment(StrictModel):
     endSeconds: float = Field(gt=0, allow_inf_nan=False)
 
 
+class QuotedWork(StrictModel):
+    title: NonEmptyText | None = None
+    author: NonEmptyText | None = None
+    platform: NonEmptyText | None = None
+    url: AnyHttpUrl | None = None
+    durationSeconds: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+
+
 class SourceMetadata(StrictModel):
     sourceType: Literal["official", "official-account", "archive", "research", "news", "industry",
-                        "open-library", "stock", "other"] = "other"
+                        "open-library", "stock", "social-screenshot", "quoted-media", "other"] = "other"
     publisher: NonEmptyText = "未知"
     description: str = ""
     usableSegment: Segment | None = None
-    usage: Usage = Field(default_factory=lambda: Usage(status="not-checked"))
+    usage: Usage = Field(default_factory=lambda: Usage(status="no-explicit-restriction"))
+    platform: NonEmptyText | None = None
+    postUrl: AnyHttpUrl | None = None
+    postedAt: NonEmptyText | None = None
+    capturedAt: NonEmptyText | None = None
+    risk: Literal["low", "medium", "high"] | None = None
+    riskNotes: NonEmptyText | None = None
+    quotedWork: QuotedWork | None = None
 
 
 FIELDS = frozenset(SourceMetadata.model_fields)
 
 
+def _check_date(value: str, label: str) -> None:
+    try:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            raise ValueError("日期格式")
+        date.fromisoformat(value)
+    except ValueError as exc:
+        raise M2VError(f"{label} 必须是 YYYY-MM-DD 有效日期") from exc
+
+
 def metadata(entry: dict) -> dict:
-    """校验清单或登记项的可选元数据；缺省不意味着检查已经完成。"""
+    """校验清单或登记项的可选元数据；缺省按从宽政策采用。"""
     values = {key: entry[key] for key in FIELDS if key in entry}
     validate_document(SourceMetadata, values, "素材来源")
     result = SourceMetadata.model_validate(values).model_dump(mode="json", exclude_none=True)
     usage = result["usage"]
-    checked = usage["status"] in {"explicit-allowed", "no-explicit-restriction", "conditional"}
-    if checked and any(not usage.get(key) for key in ("evidenceUrl", "checkedAt", "note")):
-        raise M2VError("usage 已检查状态必须提供 evidenceUrl、checkedAt 和 note（用途与检查结论）")
     if "evidenceUrl" in usage:
         try:
             url = urlsplit(usage["evidenceUrl"])
@@ -60,12 +81,10 @@ def metadata(entry: dict) -> dict:
         if url.scheme not in {"http", "https"} or not url.netloc or url.username or url.password:
             raise M2VError("usage.evidenceUrl 必须是无凭据的 HTTP(S) 依据页")
     if "checkedAt" in usage:
-        try:
-            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", usage["checkedAt"]):
-                raise ValueError("日期格式")
-            date.fromisoformat(usage["checkedAt"])
-        except ValueError as exc:
-            raise M2VError("usage.checkedAt 必须是 YYYY-MM-DD 有效日期") from exc
+        _check_date(usage["checkedAt"], "usage.checkedAt")
+    for key in ("postedAt", "capturedAt"):
+        if key in result:
+            _check_date(result[key], f"素材 {key}")
     if usage["status"] == "conditional" and "conditionsMet" not in usage:
         raise M2VError("usage 条件使用必须提供布尔 conditionsMet")
     if "conditionsMet" in usage and usage["status"] != "conditional":
@@ -85,13 +104,15 @@ def assess(entry: dict) -> tuple[dict, list[dict], list[dict]]:
     usage = source["usage"]
     problems, warnings = [], []
     if usage["status"] == "prohibited":
-        problems.append({"code": "usage-prohibited", "message": "明确禁止当前用途，请更换素材"})
+        problems.append({"code": "usage-prohibited", "message": "权利人明确禁止当前用途，请更换素材"})
     elif usage["status"] == "conditional" and not usage["conditionsMet"]:
-        problems.append({"code": "usage-conditions-unmet", "message": "使用条件未满足，请满足条件或更换素材"})
+        warnings.append({"code": "usage-conditions-unmet",
+                         "message": "使用条件未满足，按从宽政策记录风险后继续采用"})
     elif usage["status"] == "not-checked":
-        warnings.append({"code": "usage-not-checked", "message": "采用依据未核实；继续检查来源页和适用条款，不代表已获授权"})
+        warnings.append({"code": "usage-not-checked", "message": "采用依据未核实，按从宽政策继续采用"})
     elif usage["status"] == "no-explicit-restriction":
-        warnings.append({"code": "usage-no-explicit-restriction", "message": "按未发现明确禁止的制作政策采用，不代表已获授权"})
+        warnings.append({"code": "usage-no-explicit-restriction",
+                         "message": "按未发现明确禁止的从宽政策采用，不代表已获授权"})
     if str(entry.get("license") or "未知").strip().lower() in UNKNOWN_LICENSES:
         warnings.append({"code": "license-unknown", "message": "原始许可未知，保留原值并记录本次采用依据"})
     return source, problems, warnings

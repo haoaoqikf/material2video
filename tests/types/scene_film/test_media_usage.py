@@ -14,7 +14,7 @@ from m2v.types.scene_film import media_assets
 
 @pytest.mark.parametrize("status,met,passed", [
     ("not-checked", None, True), ("no-explicit-restriction", None, True),
-    ("conditional", True, True), ("conditional", False, False), ("prohibited", None, False),
+    ("conditional", True, True), ("conditional", False, True), ("prohibited", None, False),
     ("invalid-status", None, False),
 ])
 def test_three_consumers_share_usage_decision(tmp_path, monkeypatch, status, met, passed):

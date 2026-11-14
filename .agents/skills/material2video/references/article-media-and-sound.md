@@ -37,17 +37,20 @@ Pexels 图片和视频可通过公开媒体直链 `mediaUrl` 导入，无需 API
 
 | 字段 | 要求与作用 |
 |---|---|
-| `sourceType` | `official`（官网）、`official-account`、`archive`、`research`、`news`、`industry`、`open-library`、`stock`、`other` |
+| `sourceType` | `official`（官网）、`official-account`、`archive`、`research`、`news`、`industry`、`open-library`、`stock`、`social-screenshot`（社媒截图）、`quoted-media`（引用媒体）、`other` |
 | `publisher` | 非空发布主体；与原作者 `author` 分开，未知如实记录 |
 | `description` | 内容描述，帮助判断叙事相关性 |
 | `usableSegment` | 仅视频可填 `{startSeconds, endSeconds}`，0 ≤ start < end ≤ 实测时长；仅作候选检查窗口，**当前不渲染、不自动裁切**，实际入出点仍由场景代码决定 |
-| `usage.status` | `explicit-allowed`、`no-explicit-restriction`、`conditional`、`prohibited`、`not-checked` |
-| `usage.evidenceUrl` | 无用户名密码的 HTTP(S) 依据页；通常为素材页或适用条款页 |
-| `usage.checkedAt` | 实际检查日期，`YYYY-MM-DD` |
-| `usage.note` | 本次用途、检查范围和结论，适用条件及额外依据地址可一并记入 |
+| `usage.status` | `explicit-allowed`、`no-explicit-restriction`、`conditional`、`prohibited`、`not-checked`；缺省为 `no-explicit-restriction` |
+| `usage.evidenceUrl` | 可选，无用户名密码的 HTTP(S) 依据页；通常为素材页或适用条款页 |
+| `usage.checkedAt` | 可选，实际检查日期，`YYYY-MM-DD` |
+| `usage.note` | 可选，本次用途、检查范围和结论，适用条件及额外依据地址可一并记入 |
 | `usage.conditionsMet` | 仅 `conditional` 使用，必须是布尔值；声明本次用途下条件是否满足 |
+| `platform`、`postUrl`、`postedAt`、`capturedAt` | 可选，社媒截图或引用媒体的平台、原帖地址、发布时间与截图时间 |
+| `risk`、`riskNotes` | 可选，`low`/`medium`/`high` 及风险说明；平台条款、音乐、隐私等风险只记录，不阻断 |
+| `quotedWork` | 可选，引用媒体信息：`title`、`author`、`platform`、`url`、`durationSeconds` |
 
-前三种已检查状态必须同时有 `evidenceUrl`、`checkedAt` 与非空 `note`。`prohibited` 可以先记录禁止，无需为了阻断补完全部字段。缺省或 `not-checked` 不会被程序推断为已检查或已授权。未知许可和未核实只提示；明确禁止当前用途或条件未满足在 prepare、report、audit 中阻断采用；非法元数据明确失败。导入本身允许保留被禁止的候选以供留证，不表示可入片。
+`usage` 缺省或未提供时按 `no-explicit-restriction` 处理，不再要求 `evidenceUrl`、`checkedAt` 或 `note`。只有权利人明确禁止当前用途（`prohibited`）在 prepare、report、audit 中阻断采用；`conditional` 条件未满足只提示，不阻断；非法元数据明确失败。导入本身允许保留被禁止的候选以供留证，不表示可入片。平台服务条款、登录墙、付费墙与反爬限制不算禁止，只记风险。
 
 默认采用政策与实际来源检查步骤见[采用政策与署名](material-sourcing.md#5-采用政策与署名)。修改采用依据后重新 import 和 prepare；来源记录摘要和媒体摘要都参与准备失效判断。此规则针对画面图片／视频，不改变下文第三方音效、字体或地图专用要求。
 

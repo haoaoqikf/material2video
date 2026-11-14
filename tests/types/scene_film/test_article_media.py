@@ -263,7 +263,7 @@ def test_unknown_license_warns_without_blocking(workspace, caplog):
     make_image(workspace / "assets/wide.png")
     importer(workspace, [entry("wide", "image", localPath="assets/wide.png", license="未知")])
     assert media_assets.resolve(workspace)["media"]["wide"]["license"] == "未知"
-    assert "原始许可未知" in caplog.text and "采用依据未核实" in caplog.text
+    assert "原始许可未知" in caplog.text and "从宽政策采用" in caplog.text
 
 
 def test_official_source_usage_roundtrip_and_prepare_invalidation(tmp_path, monkeypatch):
@@ -294,16 +294,34 @@ def test_official_source_usage_roundtrip_and_prepare_invalidation(tmp_path, monk
     assert assets_tools.build_report(root)["status"] == "fail"
 
 
+def test_social_screenshot_and_quoted_media_roundtrip(tmp_path):
+    """社媒截图与引用媒体按从宽政策直接采用，可选字段原样留证。"""
+    make_image(tmp_path / "post.png")
+    result = importer(tmp_path, [entry(
+        "post", "image", localPath="post.png", sourceType="social-screenshot",
+        publisher="X", author="@someone", license="未知", platform="X",
+        postUrl="https://x.com/someone/status/1", postedAt="2026-03-01",
+        capturedAt="2026-11-14", risk="high", riskNotes="含人物与音乐")])
+    adopted = result["assets"][0]
+    assert adopted["sourceType"] == "social-screenshot" and adopted["platform"] == "X"
+    assert adopted["usage"]["status"] == "no-explicit-restriction"
+    result = importer(tmp_path, [entry(
+        "quoted", "image", localPath="post.png", sourceType="quoted-media",
+        quotedWork={"title": "片段", "platform": "YouTube",
+                    "url": "https://youtube.com/watch?v=1", "durationSeconds": 95})])
+    assert result["assets"][0]["quotedWork"]["durationSeconds"] == 95
+
+
 def test_invalid_usage_batch_preserves_previous_files_and_record(workspace):
     make_image(workspace / "assets/first.png")
     importer(workspace, [entry("first", "image", localPath="assets/first.png", license="CC0")])
     record = (workspace / media_assets.RECORD).read_bytes()
     before = {path.name for path in (workspace / "assets/media").iterdir()}
     make_image(workspace / "assets/second.png", "128x96")
-    with pytest.raises(M2VError, match="已检查状态必须提供"):
+    with pytest.raises(M2VError, match="conditionsMet"):
         importer(workspace, [entry("second", "image", localPath="assets/second.png"),
                              entry("bad", "image", localPath="assets/first.png",
-                                   usage={"status": "no-explicit-restriction"})])
+                                   usage={"status": "conditional"})])
     assert (workspace / media_assets.RECORD).read_bytes() == record
     assert {path.name for path in (workspace / "assets/media").iterdir()} == before
 
