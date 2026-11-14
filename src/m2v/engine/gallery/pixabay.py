@@ -20,6 +20,9 @@ CACHE_SECONDS = 24 * 60 * 60
 PIXABAY_LICENSE = "Pixabay Content License (https://pixabay.com/service/license-summary/)"
 
 
+PIXABAY_MIN_PAGE_SIZE = 3
+
+
 class PixabayProvider:
     """保持图库差异在适配器内；CDN 下载无需 API 凭据。"""
 
@@ -45,14 +48,19 @@ class PixabayProvider:
         self._key()  # 统一检索入口在写盘前调用，缺凭据时提前失败。
         return {"User-Agent": "material2video/0.1", "Accept": "application/json"}
 
-    def search(self, query: str, kind: str, per_page: int, timeout_s: float) -> list[Candidate]:
+    def search(self, query: str, kind: str, per_page: int, timeout_s: float, *, page: int = 1,
+               image_type: str = 'photo') -> list[Candidate]:
         if kind not in {"video", "photo"}:
             raise M2VError(f"图库不支持媒体类型：{kind}")
         if len(query) > 100:
             raise M2VError("Pixabay 关键词拼接后不能超过 100 个字符；请缩短逐幕关键词")
-        params = {"q": query, "per_page": max(3, per_page), "page": 1, "safesearch": "true"}
+        if type(page) is not int or page < 1:
+            raise M2VError('Pixabay 页码必须为正整数')
+        params = {"q": query, "per_page": max(PIXABAY_MIN_PAGE_SIZE, per_page), "page": page, "safesearch": "true"}
         if kind == "photo":
-            params["image_type"] = "photo"
+            if image_type not in {'all', 'photo', 'illustration', 'vector'}:
+                raise M2VError('Pixabay 图片类型无效')
+            params["image_type"] = image_type
         endpoint = self.base + ("/videos/" if kind == "video" else "/")
         key = self._key()
         public_url = endpoint + "?" + urllib.parse.urlencode(params)
@@ -69,7 +77,7 @@ class PixabayProvider:
             if not isinstance(cached.get("hits"), list):
                 raise M2VError("Pixabay 检索响应缺少有效 hits 数组")
             self._write_cache(cache_id, cached)
-        result = [item for raw in cached["hits"] if (item := self._candidate(raw, kind))]
+        result = [item for raw in cached["hits"] if (item := self.parse_candidate(raw, kind))]
         # 方向只决定优先级，不丢弃可通过裁切或局部布局使用的候选。
         orientation = self.config["orientation"]
         def preferred(item: Candidate) -> bool:
@@ -114,7 +122,8 @@ class PixabayProvider:
         finally:
             staged.unlink(missing_ok=True)
 
-    def _candidate(self, raw: Any, kind: str) -> Candidate | None:
+    def parse_candidate(self, raw: Any, kind: str) -> Candidate | None:
+        """共享规范化入口；新来源层可复用，不借用旧的非绑定网络传输。"""
         from m2v.engine.gallery.provider import (Candidate, PHOTO_SUFFIXES, VIDEO_SUFFIXES, _suffix_of,
                                                  pick_variant)
 

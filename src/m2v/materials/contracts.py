@@ -223,6 +223,12 @@ class SourceData(MaterialModel):
     limitations: list[NonEmptyText] = Field(default_factory=list)
     _url = field_validator('sourceUrl')(public_url)
 
+    @model_validator(mode='after')
+    def unique_variants(self):
+        if len({item.id for item in self.variants}) != len(self.variants):
+            raise ValueError('同一来源的规格 ID 不能重复')
+        return self
+
 
 class CaptionTrack(MaterialModel):
     artifact: Artifact

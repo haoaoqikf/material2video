@@ -64,14 +64,14 @@ def public_url(url: str) -> str:
         return "[redacted-url]"
 
 
-def redact_text(text: str, *, secrets: tuple[str, ...] = ()) -> str:
+def redact_text(text: str, *, secrets: tuple[str, ...] = (), limit: int = 2000) -> str:
     value = str(text)
     for secret in secrets:
         if secret:
             value = value.replace(secret, "[redacted]")
     value = re.sub(r"https?://[^\s<>\"']+", lambda m: public_url(m.group()), value)
     value = re.sub(r"(?i)\b(cookie|authorization|api[_-]?key|token|password)\s*[:=]\s*[^\s,;]+", r"\1=[redacted]", value)
-    return value[:2000]
+    return value[:limit]
 
 
 def public_ip(value: str) -> str:
