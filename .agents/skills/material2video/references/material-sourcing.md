@@ -94,7 +94,7 @@ uv run m2v assets contact-sheet --input a.jpg --input b.jpg --input c.jpg --colu
 
 ## 5. 采用政策与署名
 
-默认制作政策为**检查后未发现明确禁止当前用途即可采用**，不逐件要求用户确认。原始许可和采用依据分开保存，不能把「未发现禁止」写成「已获授权」。版权通常自动产生，网上公开不等于自由授权，见 [WIPO 版权说明](https://www.wipo.int/en/web/copyright/faq-copyright)。
+核查素材来源页及适用条款后，**没有明确禁止当前用途即可直接采用**，无需逐件征求确认，也无需以取得明确授权为前提。已列明的署名、改编等使用条件仍须满足。原始许可和采用依据分开保存，不能把「未发现禁止」写成「已获授权」。版权通常自动产生，网上公开不等于自由授权，见 [WIPO 版权说明](https://www.wipo.int/en/web/copyright/faq-copyright)。
 
 | 检查结果 | `usage.status` | 制作处理 | 程序处理 |
 |---|---|---|---|
