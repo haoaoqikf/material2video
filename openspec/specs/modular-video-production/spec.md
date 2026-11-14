@@ -132,7 +132,7 @@ README、Skill 与项目规划中描述视频类型的清单 MUST 由类型目�
 - 四种新增模式的产物 MUST 落在既有 `outputs/lookdev/` 下并由 `outputs/lookdev.json` 记录路径；MUST NOT 写入 `outputs/production/` 下的评审记录目录，避免与正式制作证据混淆。产物 MUST NOT 进入准备指纹或缓存键。
 - 事件取证是看图预览，MUST NOT 自动关闭或替代 局部评审 检查点、审核轮次或导出门禁；MUST NOT 把事件窗口自动绑定到旧声明式合同。新增模式 MUST NOT 改变默认代表静帧、样片长度、采集尺度与既有清单字段的语义；`--stills`、`--sample-seconds`、`--still-scale` 的现有行为 MUST 保持不变。
 - `qa` MUST 输出 `outputs/qa.json` 与接触表，覆盖冻结/重复帧、banding、aliasing、字幕对比度、响度/真峰值、音轨时长差与 claims 时间窗覆盖，并提供全片采样清单、交界/异常加密帧、黑帧/突变及交付音轨削波/静音候选，并明确区分技术判定、测量提示和需查看采样图像的项目与自动信号检查的覆盖限制；MUST NOT 将技术通过表述为视觉质量通过；技术失败 MUST 以退出码 1 结束，报告 MUST 可定位到镜头/时间戳。
-- `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；任何登记素材明确禁止当前用途、条件未满足、采用元数据无效、文件缺失或尺寸无效时 MUST 以退出码 1 结束。
+- `assets audit` MUST 只读素材与导入记录，输出 `outputs/asset-audit.json`；任何登记素材明确禁止当前用途、采用元数据无效、文件缺失或尺寸无效时 MUST 以退出码 1 结束；conditional 条件未满足 MUST 只作提示，不阻断。
 - 正式导出 MUST 沿用 `m2v render`，交付普通 H.264 MP4；系统 MUST NOT 提供 `m2v master` 或 ProRes/DNxHR 母版入口。成片旁注文件 MUST 记录交付摘要、音频参数与 QA 指纹，MUST NOT 记录 profile。
 - 所有制作阶段均取消用户确认：`m2v render` MUST NOT 因缺少帧序列/量测复核记录、确认文件或 look-dev 产物而阻断。
 
