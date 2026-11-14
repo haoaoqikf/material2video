@@ -46,6 +46,11 @@
   },
   "conditional": [
     {
+      "id": "documentary-social-video",
+      "when": "制作营销号式口播、知识解说、观点短视频、人物故事或热点解读；以旁白和真实素材组织主线",
+      "guide": "references/documentary-social-video.md"
+    },
+    {
       "id": "financial-source",
       "when": "分镜实际声明financial-series来源；固定数学模型不触发",
       "guide": "references/financial-timeseries-video.md"

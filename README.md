@@ -16,7 +16,7 @@ Material2Video 是短视频制作指导与工具链。新建作品使用 `projec
 
 地图轨迹与情境叙事是可选表现手法，不是独立类型。没有 `general`、专项类型、类别层或风格注册表。作品默认生成到 `videos/<类型>/<作品名>/`；随附示例放在 [`examples/`](examples/README.md)。
 
-口播配实拍或外部素材使用 `documentary-edit`。逐段匹配文案里的对象、动作、过程与情绪，通用画面优先查 Pexels 和 Pixabay，按缺口扩展到其他公开来源。具体事实优先核对原件，选材见[制作指导](.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。
+口播配实拍或外部素材使用 `documentary-edit`。逐段匹配文案里的对象、动作、过程与情绪，通用画面优先查 Pexels 和 Pixabay，按缺口扩展到其他公开来源。具体事实优先核对原件，选材见[制作指导](.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。[营销号口播剪辑指南](.agents/skills/material2video/references/documentary-social-video.md)提供选题、四类文案结构、文案转镜头、剪辑节奏与标题封面的完整演练，不新增类型或制作阶段。
 
 纪实口播默认使用本地 `kokoro`，其他类型默认使用联网的 `edge-tts`。纪实口播可按文案选择合适的 Kokoro 中文音色，例如 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型。需要克隆参考音色时，作品可声明 `qwen3-tts`，用 `clone_<slug>` 指作品内参考音频与参考文本，按 `models/qwen3-tts/registry.json` 恢复 Qwen3-TTS 主模型与 stable-ts 对齐模型；三种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 与 Qwen3-TTS 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败；Qwen3-TTS 参考音色的来源与用户授权必须留证，不能从模型仓库恢复参考音频。
 
