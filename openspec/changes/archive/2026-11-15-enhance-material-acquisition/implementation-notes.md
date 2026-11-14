@@ -101,10 +101,10 @@
 
 ### 实现与复用
 
-- [来源接口与规范化](../../../src/m2v/materials/source_types.py)定义搜索/元数据/获取/字幕/分页/凭据能力，分开公开来源快照和仅在内存使用的临时 locator；使用标准库 HTMLParser 提取文本，复用统一脱敏而非另写一套敏感字段规则。
-- [原生适配](../../../src/m2v/materials/public_sources.py)调用 Commons、Archive、NASA 官方公开 HTTP API，不自建搜索服务、不增加第三方 SDK 的联网后端。搜索、元数据、分页、资产列表和可选 NASA 字幕均通过已有 SafeHTTP；Archive 的多文件解析有列表/变体上限，不镜像档案。
-- [Pixabay 桥接](../../../src/m2v/materials/gallery_source.py)复用[既有规格解析](../../../src/m2v/engine/gallery/pixabay.py)，只替换传输。旧 search 仍默认第一页及 photo；新增服务显式允许全部图片类别，不把插图/矢量预览无故排除。新层不保存带临时地址的原始 API 响应，持久化规范化 Source；小于 API 最小页容量的请求披露实际页容量及仅保留的前若干项。
-- [发现服务](../../../src/m2v/materials/discovery.py)在副作用前完整验证需求/查询；支持无作品、无分镜的重复查询及多语言标注，保留身份/动作/连续窗口需求。查询按来源、种类、游标、页容量复用，跨需求仍分别记覆盖和数据库引用；画幅只排序，不排除候选。
+- [来源接口与规范化](../../../../src/m2v/materials/source_types.py)定义搜索/元数据/获取/字幕/分页/凭据能力，分开公开来源快照和仅在内存使用的临时 locator；使用标准库 HTMLParser 提取文本，复用统一脱敏而非另写一套敏感字段规则。
+- [原生适配](../../../../src/m2v/materials/public_sources.py)调用 Commons、Archive、NASA 官方公开 HTTP API，不自建搜索服务、不增加第三方 SDK 的联网后端。搜索、元数据、分页、资产列表和可选 NASA 字幕均通过已有 SafeHTTP；Archive 的多文件解析有列表/变体上限，不镜像档案。
+- [Pixabay 桥接](../../../../src/m2v/materials/gallery_source.py)复用[既有规格解析](../../../../src/m2v/engine/gallery/pixabay.py)，只替换传输。旧 search 仍默认第一页及 photo；新增服务显式允许全部图片类别，不把插图/矢量预览无故排除。新层不保存带临时地址的原始 API 响应，持久化规范化 Source；小于 API 最小页容量的请求披露实际页容量及仅保留的前若干项。
+- [发现服务](../../../../src/m2v/materials/discovery.py)在副作用前完整验证需求/查询；支持无作品、无分镜的重复查询及多语言标注，保留身份/动作/连续窗口需求。查询按来源、种类、游标、页容量复用，跨需求仍分别记覆盖和数据库引用；画幅只排序，不排除候选。
 - 整页先规范化再提交，后续失败/取消不丢掉成功页；来源记录不可变，多查询或新需求关联产生新快照版本，不覆盖旧内容。明确区分零候选、失败、未执行、分页截断、部分完成与取消；服务退出语义为 0/1/2/130。
 - `metadataSnapshotSha256` 摘要针对 Source 中实际保存的规范化元数据（不含查询和摘要字段本身），不是原始 API 响应摘要。临时签名 URL 不进入变体快照；作者/许可/尺寸未知保持未知；NASA 托管不自动等于公共领域；使用状态统一为 not-checked，不冒充观察、采用判断或授权结论。
 
@@ -134,11 +134,11 @@
 
 ### 实现、复用与边界
 
-- [显式登记](../../../src/m2v/materials/registration.py)支持本地普通文件及 page/file/auto URL 候选，不读取文件内容来伪造探测结果，不复制或自动正式采用；只处理调用方指定文件，不扫描私人目录或既有 ref。可附作者/许可文字，默认使用状态仍为 not-checked，不新增采用授权门槛。
+- [显式登记](../../../../src/m2v/materials/registration.py)支持本地普通文件及 page/file/auto URL 候选，不读取文件内容来伪造探测结果，不复制或自动正式采用；只处理调用方指定文件，不扫描私人目录或既有 ref。可附作者/许可文字，默认使用状态仍为 not-checked，不新增采用授权门槛。
 - 本地路径在任何 lstat 前拒绝 Windows UNC、设备命名空间及 ADS，随后复用祖先链接检查；拒绝目录、空文件及不可访问文件，错误不打印绝对原路径。文件 stamp 是名称/大小/修改时间/文件系统标识的元数据摘要，**不是媒体内容摘要或整片摘要**；真正获取必须另行复制、计算实际字节 SHA、探测及解码验证。
 - locator 只存在本次调用的运行时对象，repr 不回显。签名/未知参数不持久化；长不透明路径不伪造 redacted 可重放地址。无法公开确认稳定身份的候选保留限制与独立登记 ID，不将同路径的未知 query 资源误合并；跨调用需显式重提供地址/文件，不反查浏览器或私人目录。
-- [不可变来源发布](../../../src/m2v/materials/source_catalog.py)统一登记与发现的文档/引用/重入行为，保留已有来源 ID 算法与首次创建时间。[缺口建议](../../../src/m2v/materials/discovery.py)已接入发现报告，针对当前无候选的需求/查询提示原始发布者、指定身份、连续窗口、显式本地替代及已有文案/场景调整；只建议，不自动改稿、不把零候选改成失败，也不把非零候选当成已观察符合。
-- [静态解析](../../../src/m2v/materials/webpage.py)收集 video/audio/source/track/img、OpenGraph 及 JSON-LD 媒体对象，支持相对链接和第一个 base、嵌套 JSON-LD、声明规格、来源标题/作者/许可/日期；均是页面声明而非实测或事实观察。保留人工元数据及原有限制，不把网页自称官方当成身份验证。
+- [不可变来源发布](../../../../src/m2v/materials/source_catalog.py)统一登记与发现的文档/引用/重入行为，保留已有来源 ID 算法与首次创建时间。[缺口建议](../../../../src/m2v/materials/discovery.py)已接入发现报告，针对当前无候选的需求/查询提示原始发布者、指定身份、连续窗口、显式本地替代及已有文案/场景调整；只建议，不自动改稿、不把零候选改成失败，也不把非零候选当成已观察符合。
+- [静态解析](../../../../src/m2v/materials/webpage.py)收集 video/audio/source/track/img、OpenGraph 及 JSON-LD 媒体对象，支持相对链接和第一个 base、嵌套 JSON-LD、声明规格、来源标题/作者/许可/日期；均是页面声明而非实测或事实观察。保留人工元数据及原有限制，不把网页自称官方当成身份验证。
 - 网页只通过 SafeHTTP 读取；默认至多 2 MiB、64 个媒体声明，另有标签、媒体嵌套、JSON-LD 块大小/数量/深度/节点预算。没有执行脚本、CSS、iframe、浏览器或读取个人会话；没有静态媒体也保留 limited 页面候选和可操作提示。未知/不符编码有尽力解析与限制提示，不声称完整浏览器级编码嗅探。
 - 页面不能被调用方悄悄换成另一个公开地址；实际 HTTP 重定向仍由 SafeHTTP 审查，解析后再检查操作预算。媒体 URL 仍只在内存 locator 中，快照规格地址用原有安全规则处理；页面取得不等于媒体取得。
 
@@ -146,13 +146,13 @@
 
 - 比对了已锁定 [yt-dlp GenericIE](https://github.com/yt-dlp/yt-dlp/blob/2026.10.26/yt_dlp/extractor/generic.py) 的本机源码：它会委派嵌入 extractor、解析清单及追加网络，不应直接当成“只读静态元数据”调用；复杂媒体获取继续在任务 2.4/3.3 中接入现有受控 worker，不自研 HLS/DASH 协议。
 - 初版使用标准库 [HTMLParser](https://docs.python.org/3/library/html.parser.html)；自审发现深嵌套反复复制栈、碎片标题重算长度会放大 CPU 成本，已改为有界栈/累计计数，并改用成熟 [lxml target 解析](https://lxml.de/parsing.html)处理完整 HTML 词法与结构，**不建立整页 DOM、不自写 HTML 词法器**。标准库仅继续用于既有短字段文本规范化。
-- [lxml 6.1.3](https://pypi.org/project/lxml/)为活跃维护的成熟实现，许可 BSD-3-Clause；本次精确锁定并安装 Windows CPython 3.12 wheel（4,005,999 字节），其 SHA 保存在 [uv.lock](../../../uv.lock)，运行库实测 libxml 2.11.9。仅进入制作管理 Python 环境，不复制到作品独立 JS 运行时；恢复使用 `uv sync --locked`。关闭网络/huge-tree，显式拒绝外部 DTD、实体和本地解析资源，不依赖库的隐含默认行为。
+- [lxml 6.1.3](https://pypi.org/project/lxml/)为活跃维护的成熟实现，许可 BSD-3-Clause；本次精确锁定并安装 Windows CPython 3.12 wheel（4,005,999 字节），其 SHA 保存在 [uv.lock](../../../../uv.lock)，运行库实测 libxml 2.11.9。仅进入制作管理 Python 环境，不复制到作品独立 JS 运行时；恢复使用 `uv sync --locked`。关闭网络/huge-tree，显式拒绝外部 DTD、实体和本地解析资源，不依赖库的隐含默认行为。
 - 自审补上空值/无等号 query flag 的识别：不能因 parse_qsl 默认丢弃空值而把未知资源标成可重放稳定来源，或将其留在媒体快照中。对应参数与普通签名地址采用同一内存隔离策略。
 - 修正了解析完成后仍沿用“页面尚未取得”的过时提示；保留“媒体尚未取得/探测”。临时地址 DTO 默认 repr 同样隐藏 locator，降低未来日志误回显风险。
 
 ### 验证与实际范围
 
-- [登记/网页测试](../../../tests/common/test_material_registration.py)18 项、发现测试 17 项、原生来源测试 17 项，以及旧 ref 抖音禁浏览器回退/参考音频 CLI 各 1 项，共 **54 个不同代码测试通过**；同项必要重跑不累加。覆盖离线登记、无隐式子进程/浏览器、UNC/设备/ADS 在文件访问前拒绝、敏感路径/地址不入快照与 repr、未知身份不合并、DTD 不展开、本地元数据未探测、静态脚本不执行、JSON-LD/数量/编码/嵌套预算、来源身份及缺口建议。只执行直接相关节点，不跑全仓或整片渲染。
+- [登记/网页测试](../../../../tests/common/test_material_registration.py)18 项、发现测试 17 项、原生来源测试 17 项，以及旧 ref 抖音禁浏览器回退/参考音频 CLI 各 1 项，共 **54 个不同代码测试通过**；同项必要重跑不累加。覆盖离线登记、无隐式子进程/浏览器、UNC/设备/ADS 在文件访问前拒绝、敏感路径/地址不入快照与 repr、未知身份不合并、DTD 不展开、本地元数据未探测、静态脚本不执行、JSON-LD/数量/编码/嵌套预算、来源身份及缺口建议。只执行直接相关节点，不跑全仓或整片渲染。
 - UV 已实际构建更新 editable 管理包、安装 lxml，`uv lock --check --offline` 与 compileall 通过。
 - 新解析器真实访问 W3Schools 视频示例页成功：**1 次受控请求、242,274 字节、0.750 秒**，解析 18 个 image/video 声明。此前标准库初版同页也成功；最终结果以 lxml 版本的实际复测为准。没有下载视频、字幕、解码或断言其许可/画面可用，不将此记为任务 9.2 的下载通过。
 - 流式合成压力样本：600,000 字节、30,000 个重复图片标签，去重后 1 个声明；三次 0.4558/0.4599/0.4740 秒，中位 **0.4599 秒**。另测 Python 分配峰值 1,204,465 字节，**不包括 lxml C 内存，不能冒充全进程内存峰值**；这不是最终 10k 检索或节省 30% 的验收。
@@ -162,16 +162,16 @@
 
 ## 2026-11-15：获取编排、索引检索、选择导入与命令接入
 
-任务 2.4、3.3、4.1～4.3、5.1～5.6、6.1～6.4、7.1～7.5、8.1～8.4 与 9.1～9.5 已实现并完成直接相关验证。真实评测、来源逐站结果、模型与性能数据见 [素材工作层实测记录](../../../docs/material-acquisition-evaluation.md)。
+任务 2.4、3.3、4.1～4.3、5.1～5.6、6.1～6.4、7.1～7.5、8.1～8.4 与 9.1～9.5 已实现并完成直接相关验证。真实评测、来源逐站结果、模型与性能数据见 [素材工作层实测记录](../../../../docs/material-acquisition-evaluation.md)。
 
 ### 实现与复用
 
-- [获取编排](../../../src/m2v/materials/fetch.py)统一本地、公开文件、网页声明与平台 worker；区间请求先完整取得再本地精裁，多资产来源按预算选择可用项，分轨由父层 FFmpeg 合并；失败不发布媒体。
-- [平台适配](../../../src/m2v/materials/platform.py)接入 B站/YouTube 搜索与抖音/小红书/微博/西瓜已知链接登记；会话仅显式 cookie 文件，未验证下载写成 limited/not-tested。
-- [模型登记](../../../src/m2v/materials/model_registry.json)固定四个模型 revision、逐文件 SHA256、许可与预处理；`models prepare/verify` 与只读 `doctor` 分开，prepare 才联网。
-- [索引](../../../src/m2v/materials/indexing.py)覆盖字幕/章节、faster-whisper、FFmpeg+可选 PySceneDetect、RapidOCR、E5/SigLIP 2，绑定媒体/映射/输入/模型/参数身份并复用；黑场/纯色帧不进入视觉证据。
-- [检索](../../../src/m2v/materials/retrieval.py)使用中文 n-gram、语义阈值、按媒体独立召回与 RRF 融合；同源相邻窗口合并，观察默认 unknown，元数据过滤支持来源/画幅/时长。
-- [预览/选择/导入/库](../../../src/m2v/materials/)提供接触表、短预览、安全静态 HTML、帧精确精裁、作品内 receipt 与幂等恢复、显式目录登记及先计划后执行清理。
+- [获取编排](../../../../src/m2v/materials/fetch.py)统一本地、公开文件、网页声明与平台 worker；区间请求先完整取得再本地精裁，多资产来源按预算选择可用项，分轨由父层 FFmpeg 合并；失败不发布媒体。
+- [平台适配](../../../../src/m2v/materials/platform.py)接入 B站/YouTube 搜索与抖音/小红书/微博/西瓜已知链接登记；会话仅显式 cookie 文件，未验证下载写成 limited/not-tested。
+- [模型登记](../../../../src/m2v/materials/model_registry.json)固定四个模型 revision、逐文件 SHA256、许可与预处理；`models prepare/verify` 与只读 `doctor` 分开，prepare 才联网。
+- [索引](../../../../src/m2v/materials/indexing.py)覆盖字幕/章节、faster-whisper、FFmpeg+可选 PySceneDetect、RapidOCR、E5/SigLIP 2，绑定媒体/映射/输入/模型/参数身份并复用；黑场/纯色帧不进入视觉证据。
+- [检索](../../../../src/m2v/materials/retrieval.py)使用中文 n-gram、语义阈值、按媒体独立召回与 RRF 融合；同源相邻窗口合并，观察默认 unknown，元数据过滤支持来源/画幅/时长。
+- [预览/选择/导入/库](../../../../src/m2v/materials/)提供接触表、短预览、安全静态 HTML、帧精确精裁、作品内 receipt 与幂等恢复、显式目录登记及先计划后执行清理。
 - 九个工作流接入 `m2v author assets`；旧 `search/import` 仍走原解析路径，Pexels API 保持停用。
 
 ### 本轮自审修正（真实运行暴露）
@@ -201,3 +201,15 @@
 范围覆盖本轮新增获取、索引、检索、预览、选择、导入、库与 CLI。逻辑与影响：新增能力不改变 project v3、分镜 v9、正式媒体 schema、旧命令和 Pexels 停用状态；外部失败按 limited 报告。安全：网络仍只经 SafeHTTP/固定 worker，模型与媒体路径复用统一链接防护，模型准备不读个人 token，HTML 不执行脚本。性能：10k 查询满足 2 秒目标，模型按需加载，索引按身份复用。
 
 扣分与剩余风险：跨语言短文本阈值只在小语料校准；手工效率对照未取得可靠计时；清理在“文件已删、数据库回滚”极端交错时可能留下需 verify 修复的记录；平台真实下载能力受限；并发进程写入仅依赖既有锁与 SQLite busy timeout，未做多进程对抗压力；本轮复核由主代理完成，**不独立，不能写成独立审查通过**。
+
+### 实施与归档交接清单
+
+- 实施任务：tasks.md 中 1.1～9.8 全部勾选；未有意识留空的功能项。
+- 真实证据：`docs/material-acquisition-evaluation.md` 记录本地全链路、Commons/NASA 下载、平台/Archive 受限、四个模型推理、24 查询与性能；媒体、权重和评测输出仅在忽略目录。
+- 验证集合：素材相关 220 passed（默认标记）、media 20 passed、旧素材回归 31 passed；未运行全仓回归。
+- 代码复核：由主代理自审 89/100，**不独立，未取得独立复查结论**；不把本自审写作独立审查通过。
+- 主规格同步：新增 `material-acquisition`、`material-index-retrieval`、`material-selection-library` 主规格，合并 `material-sourcing` 的 ADDED 要求；变更移入 `openspec/changes/archive/2026-11-15-enhance-material-acquisition/`。
+- 归档后提交只包含规格同步与目录移动，不改写验证结论。
+
+
+- 实现提交：`71c9f078`（素材获取/索引/检索/选择/导入/库与文档）；本归档提交只同步主规格、移动变更并修正归档后的相对链接。
