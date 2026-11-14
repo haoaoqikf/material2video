@@ -11,7 +11,6 @@ import logging
 import os
 import shutil
 import sqlite3
-import stat
 import tempfile
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -23,22 +22,10 @@ from m2v.core.security import deliver
 from m2v.production.storage import atomic_text, local, locked
 from .contracts import Artifact, Document, IndexRecord, canonical, fingerprint, parse_document, relative_path, utc_now
 from .errors import MaterialError
+from .paths import no_links
 
 logger = logging.getLogger(__name__)
 _DB_VERSION = 1
-
-
-def no_links(path: Path) -> Path:
-    """先核验词法祖先再 resolve，不能让 resolve 抹掉 junction 的存在。"""
-    absolute = Path(os.path.abspath(path))
-    for part in (absolute, *absolute.parents):
-        try:
-            info = part.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-            raise MaterialError('security-blocked', '素材路径不能经过链接或目录联接', stage='storage')
-    return absolute
 
 
 def workspace_root(*, project: Path | None = None, workspace: Path | None = None) -> Path:

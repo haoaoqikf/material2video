@@ -251,6 +251,12 @@ def test_symlink_in_any_root_or_child_ancestor_is_rejected(tmp_path):
             store.path('linked/outside')
 
 
+@pytest.mark.parametrize('bad', ['\x00', '\n', '\r'])
+def test_shared_local_path_guard_rejects_control_characters_before_filesystem(tmp_path, bad):
+    with pytest.raises(MaterialError, match='控制字符'):
+        no_links(tmp_path / f'bad{bad}path')
+
+
 @pytest.mark.skipif(os.name != 'nt', reason='Windows junction 边界')
 def test_windows_junction_root_is_not_resolved_away(tmp_path):
     real = tmp_path / 'target'
@@ -262,8 +268,13 @@ def test_windows_junction_root_is_not_resolved_away(tmp_path):
     try:
         with pytest.raises(MaterialError, match='目录联接'):
             no_links(junction / 'new')
+        assert real.parent == tmp_path and real.is_dir() and not real.is_symlink()
+        real.rmdir()  # 已核对的本次空目录；故意制造 dangling junction，再验证 lstat 防护。
+        assert not junction.exists()
+        with pytest.raises(MaterialError, match='目录联接'):
+            no_links(junction / 'new')
     finally:
         # rmdir 只移除已核对路径的 junction 本身，不删除其指向目录。
         assert junction.parent == tmp_path and junction.is_junction()
         junction.rmdir()
-        assert real.is_dir()
+        assert not real.exists()
