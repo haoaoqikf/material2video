@@ -13,6 +13,7 @@ dependencies = [
     # 素材 worker 使用经专项测试的 handler/downloader API，升级必须重新核验安全边界。
     "yt-dlp==2026.10.26",
     "pydantic>=2,<3",
+    "lxml==6.1.3",
 ]
 
 [project.optional-dependencies]

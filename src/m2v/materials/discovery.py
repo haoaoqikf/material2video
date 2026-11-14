@@ -7,13 +7,16 @@ import time
 
 from pydantic import ValidationError
 
-from .contracts import Query, Requirement, Source, SourceData, identity, parse_document
+from .contracts import Query, Requirement, Source, SourceData, parse_document
 from .errors import MaterialError
 from .gallery_source import PixabayProvider
 from .network import SafeHTTP
 from .public_sources import ArchiveProvider, CommonsProvider, NasaProvider
+from .registration import source_gap
+from .source_catalog import put_source
 from .source_types import Capability, SearchPage, SourceProvider, attach_query, check_search
 from .store import MaterialStore
+from .webpage import WebpageProvider
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,7 @@ class _DisabledPexels:
 
 def providers(http: SafeHTTP) -> dict[str, SourceProvider]:
     return {item.name: item for item in (CommonsProvider(http), ArchiveProvider(http), NasaProvider(http),
-                                       PixabayProvider(http), _DisabledPexels())}
+                                       PixabayProvider(http), WebpageProvider(http), _DisabledPexels())}
 
 
 @dataclass
@@ -42,6 +45,7 @@ class DiscoveryResult:
     failures: list[dict] = field(default_factory=list)
     skipped: list[dict] = field(default_factory=list)
     capabilities: dict = field(default_factory=dict)
+    suggestions: list[dict] = field(default_factory=list)
     stats: dict | None = None
 
     @property
@@ -59,7 +63,7 @@ class DiscoveryResult:
     def to_dict(self) -> dict:
         return {'schemaVersion': 1, 'sources': [item.model_dump(mode='json') for item in self.sources],
                 'coverage': self.coverage, 'failures': self.failures, 'skipped': self.skipped,
-                'capabilities': self.capabilities, 'stats': self.stats, 'partial': self.partial, 'exitCode': self.exit_code}
+                'capabilities': self.capabilities, 'suggestions': self.suggestions, 'stats': self.stats, 'partial': self.partial, 'exitCode': self.exit_code}
 
 
 def _validate(requirements, queries, selected, kind, page_size, max_pages, max_results, max_queries):
@@ -97,22 +101,6 @@ def _validate(requirements, queries, selected, kind, page_size, max_pages, max_r
 def _failure(provider, request, exc):
     return {**request, 'provider': provider, 'error': exc.to_dict(),
             'nextStep': '可稍后有限重试、缩短查询、换独立来源，或显式提供页面/本地文件；不自动使用个人浏览器'}
-
-
-def _publish(store: MaterialStore | None, data: SourceData, references: set[str]) -> Source:
-    document_id = identity('source', {'data': data.model_dump(mode='json'), 'requirements': sorted(references)})
-    if store is not None:
-        try:
-            previous = store.get(document_id, kind='material.source')
-        except MaterialError as exc:
-            if exc.code != 'not-found':
-                raise
-        else:
-            if previous.data != data:
-                raise MaterialError('conflict', '来源内容与不可变身份不一致', stage='discover')
-            return store.put(previous, references=references)
-    result = Source(id=document_id, data=data)
-    return store.put(result, references=references) if store is not None else result
 
 
 def _page(provider, query, kind, limit, cursor, cache) -> tuple[SearchPage | MaterialError, bool]:
@@ -198,7 +186,7 @@ def discover(*, selected: list[SourceProvider], requirements=(), queries=(), sto
                         changed[key] = None
                     # 每个完整成功页即提交；后面的源失败/取消不丢掉已经取得的元数据。
                     for key in changed:
-                        published[key] = _publish(store, accumulated[key], references[key])
+                        published[key] = put_source(store, accumulated[key], references[key])
                     result.coverage.append({**request, 'provider': provider.name, 'page': page_index+1,
                         'status': 'succeeded', 'returned': len(validated), 'total': page.total, 'cacheHit': cache_hit,
                         'truncated': bool(discarded or (page.cursor and page_index+1 == max_pages)),
@@ -214,6 +202,17 @@ def discover(*, selected: list[SourceProvider], requirements=(), queries=(), sto
                     visited.add(page.cursor)
                     cursor = page.cursor
     result.sources = list(published.values())
+    covered_requirements = {ref for refs in references.values() for ref in refs}
+    covered_queries = {(query.text, query.language) for data in accumulated.values() for query in data.queries}
+    for requirement in checked:
+        if requirement.id not in covered_requirements:
+            result.suggestions.append({'requirementId': requirement.id, 'reason': 'no-candidates-yet',
+                                       'advice': source_gap(requirement)})
+    for requirement_id, query in plans:
+        if requirement_id is None and (query.text, query.language) not in covered_queries:
+            result.suggestions.append({'query': query.model_dump(mode='json'), 'reason': 'no-candidates-yet',
+                                       'advice': source_gap()})
+    # 建议只指当前来源候选缺口，不声明已穷尽，也不把非零候选当作内容/身份已观察满足。
     # 方向只排序，来源身份/动作/年代等约束仍在需求内，永不在发现阶段自动满足。
     orientations = {item.id: item.data.preferredOrientation for item in checked}
     def preference(document):

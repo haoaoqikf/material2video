@@ -40,7 +40,7 @@ class SearchPage:
 class ResolvedSource:
     """locators 只在内存传递；不能序列化进来源、receipt 或日志。"""
     source: SourceData
-    locators: dict[str, str]
+    locators: dict[str, str] = field(repr=False)
 
 
 class SourceProvider(Protocol):
@@ -87,7 +87,7 @@ _MEDIA_KEYS = frozenset({'w', 'h', 'width', 'height', 'format', 'fm', 'auto', 'f
 def page_url(value: str) -> str:
     target = validate_url(value)
     parts = urlsplit(target.url)
-    query = urlencode([(key, item) for key, item in parse_qsl(parts.query) if key.lower() in _PAGE_KEYS])
+    query = urlencode([(key, item) for key, item in parse_qsl(parts.query, keep_blank_values=True) if key.lower() in _PAGE_KEYS])
     return urlunsplit((parts.scheme, parts.netloc, parts.path, query, ''))
 
 
@@ -98,7 +98,7 @@ def media_url(value) -> str | None:
     try:
         target = validate_url(value)
         if ('[redacted]' in log_url(target.url)
-                or any(key.lower() not in _MEDIA_KEYS for key, _ in parse_qsl(urlsplit(target.url).query))):
+                or any(key.lower() not in _MEDIA_KEYS for key, _ in parse_qsl(urlsplit(target.url).query, keep_blank_values=True))):
             return None
         return target.url
     except MaterialError:

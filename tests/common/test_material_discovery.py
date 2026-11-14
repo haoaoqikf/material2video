@@ -66,6 +66,21 @@ def test_empty_success_and_failure_remain_distinct_and_independent():
     assert discover(selected=[failed], queries=[Query(text='robot')]).exit_code == 2
 
 
+def test_empty_candidate_gap_is_actionable_without_changing_zero_success_or_the_script():
+    empty = Provider('test', lambda *args, **kwargs: SearchPage([]))
+    requirement_doc = requirement('r1', 'robot')
+    before = requirement_doc.model_dump(mode='json')
+    result = discover(selected=[empty], requirements=[requirement_doc], queries=[Query(text='another')])
+    assert result.exit_code == 0 and not result.failures
+    assert result.suggestions[0]['requirementId'] == 'r1'
+    assert any('Specific Corp' in item for item in result.suggestions[0]['advice'])
+    assert result.suggestions[1]['query']['text'] == 'another'
+    assert result.to_dict()['suggestions'] == result.suggestions
+    assert requirement_doc.model_dump(mode='json') == before
+    good = Provider('test', lambda *args, **kwargs: SearchPage([item()]))
+    assert not discover(selected=[good], requirements=[requirement_doc]).suggestions
+
+
 def test_pagination_is_bounded_and_repeated_cursors_stop():
     provider = Provider('test', lambda *args, **kwargs: SearchPage([item()], cursor='20'))
     result = discover(selected=[provider], queries=[Query(text='robot')], max_pages=10)
