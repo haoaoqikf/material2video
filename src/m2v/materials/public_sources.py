@@ -90,7 +90,8 @@ class CommonsProvider:
     def search(self, query, *, kind='any', limit=20, cursor=None):
         check_search(query, kind, limit)
         offset = page_number(cursor) if cursor else 0
-        prefix = {'video': 'filetype:video ', 'image': '(filetype:bitmap OR filetype:drawing) ', 'audio': 'filetype:audio '}.get(kind, '')
+        # Commons 的 CirrusSearch 不接受括号 OR 组合；位图与绘制合并为单个 filetype 查询。
+        prefix = {'video': 'filetype:video ', 'image': 'filetype:bitmap|drawing ', 'audio': 'filetype:audio '}.get(kind, '')
         payload = _json(self.http, self.endpoint, {'action': 'query', 'format': 'json', 'formatversion': 2,
             'generator': 'search', 'gsrsearch': prefix + query, 'gsrnamespace': 6, 'gsrlimit': limit,
             'gsroffset': offset, 'prop': 'imageinfo', 'iiprop': 'url|size|mime|extmetadata'})

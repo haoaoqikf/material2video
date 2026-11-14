@@ -22,6 +22,26 @@ kokoro = [
     "kokoro==0.9.4",
     "misaki[zh]==0.9.4",
 ]
+# 素材工作层的可选索引能力；只进入制作管理环境，不加入作品运行时。
+asr = ["faster-whisper==1.2.1", "av==18.1.0"]
+ocr = ["onnxruntime==1.32.0", "rapidocr==3.10.0"]
+semantic = ["transformers==5.23.0", "torch==2.15.0", "sentencepiece==0.2.3", "safetensors==0.8.0"]
+vision = ["transformers==5.23.0", "torch==2.15.0", "safetensors==0.8.0"]
+scenes = ["scenedetect==0.7.3"]
+models = ["huggingface-hub==2.4.0"]
+# 组合安装：uv sync --extra index
+index = [
+    "faster-whisper==1.2.1",
+    "av==18.1.0",
+    "onnxruntime==1.32.0",
+    "rapidocr==3.10.0",
+    "transformers==5.23.0",
+    "torch==2.15.0",
+    "sentencepiece==0.2.3",
+    "safetensors==0.8.0",
+    "scenedetect==0.7.3",
+    "huggingface-hub==2.4.0",
+]
 
 [project.scripts]
 m2v = "m2v.cli:main"
@@ -38,6 +58,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "m2v.engine" = ["design_sample_viewer.html", "kokoro_voices.json"]
+"m2v.materials" = ["model_registry.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

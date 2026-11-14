@@ -86,6 +86,8 @@ uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报�
 
 Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒体直链填入 `mediaUrl`，由 `m2v author assets import` 下载并留证，无需 API Key。操作见 [Pexels 导入示例](.agents/skills/material2video/references/material-sourcing.md#pexels-公开媒体直链)。
 
+`m2v author assets` 另有 discover / fetch / index / find / preview / select / library / models / doctor 九个工作流，覆盖无分镜发现、受控公开/平台/本地获取、字幕/转录/OCR/镜头/文本/视觉索引、中文检索与候选预览、精裁选择和作品内凭据。索引/查找离线运行，模型必须显式 `models prepare`；完整教程与能力边界见[素材工作层](.agents/skills/material2video/references/material-sourcing.md#完整工作层发现获取索引检索预览选择)。`search`/`import` 行为保持不变，Pexels API 仍停用。
+
 旧类型名、`project.style`、project v1/v2、分镜 v8 及旧准备记录明确拒绝。升级后的材料需重新编排并重新准备；没有兼容入口或迁移命令，旧实现从 Git 历史追溯。
 
 ## 示例与文档

@@ -314,6 +314,11 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    # 新素材工作层有自己的参数集；search/import 仍走本模块的既有解析与行为。
+    if argv and argv[0] in {'discover', 'fetch', 'index', 'find', 'preview', 'select',
+                            'library', 'models', 'doctor'}:
+        from m2v.materials.cli import main as materials_main
+        return materials_main(list(argv))
     args = _parser().parse_args(argv)
     try:
         root, project = load_project(args.project)

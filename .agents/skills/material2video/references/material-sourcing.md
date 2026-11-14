@@ -203,6 +203,39 @@ uv run m2v assets report --project videos/<类型>/<slug>
 
 保存为导入清单后执行上面的 `m2v author assets import`，命令会直接下载文件，无需 API Key。视频使用 `kind: "video"` 和对应的公开 MP4 直链。若直链失效，可在官网重新取得公开下载地址，或下载文件后通过 `localPath` 导入。逐项选材并保留来源记录，遵守 Pexels 对批量或系统性复制的限制。
 
+### 完整工作层：发现、获取、索引、检索、预览、选择
+
+`import` 仍是进入作品的唯一正式路径；下面九个工作流用于在导入前把来源、媒体字节、时间窗口和观察依据分开追溯。工作根默认 `<project>/outputs/materials/`，无作品时显式 `--workspace`；命令统一挂在 `m2v author assets` 下并支持 `--json`。
+
+| 工作流 | 最小用法 | 作用与边界 |
+|---|---|---|
+| `discover` | `--request 需求.json` 或重复 `--query`，`--provider commons/nasa/archive/pixabay/youtube/bilibili` | 只取来源候选；零命中不等于网络失败，失败逐源报告；不下载视频 |
+| `fetch` | `--source ID`、`--url`、`--local FILE`，可选 `--range 0-8` | 受控下载、实测解码并发布；区间请求先完整取得再本地精裁，不伪造源原点 |
+| `index` | `--media ID --channel captions/asr/ocr/shots/frames/text/visual` | 只读本地媒体与本地模型；缺字幕/章节可 `--tolerate-missing` 记为 skipped |
+| `find` | `--query "中文对象动作"` 或 `--requirement`，`--channel lexical/text/visual/metadata` | 只查询现有有效索引，自动获取或建索引一律不做；分数只用于排序 |
+| `preview` | `--candidates find.json --out NAME` | 逐候选接触表、短预览与静态 HTML；HTML 不执行脚本、只引用本地相对文件 |
+| `select` | `--candidates find.json --index 1 --rationale/--purpose/--operator` | 解码精裁，显式 fps/音频/CRF；显式 `--import 作品 --asset-id` 才改作品 |
+| `library` | `scan --dir`、`verify`、`stats`、`cleanup-plan`、`cleanup-apply --digest` | 只处理显式目录；同字节共享内容对象但来源独立；清理先计划后执行 |
+| `models` | `list`、`prepare --name whisper-small`、`verify` | prepare 才联网；固定 revision/摘要/许可，缺模型明确失败 |
+| `doctor` | `--models DIR` | 只读报告工具、设备、运行库、模型与凭据存在性，不安装、不下载、不泄露 Key |
+
+模型能力按需安装，不进入作品运行时：
+
+```powershell
+uv sync --extra index        # 或分别 --extra asr / ocr / semantic / vision / scenes
+uv run m2v author assets models prepare --models outputs/materials/models
+uv run m2v author assets models verify --models outputs/materials/models
+```
+
+操作要点：
+
+- 先 `discover`/`fetch` 建立来源与媒体，再 `index`；`find` 不会补建索引。语义通道需要显式 `--models`，缺失时报告 `model-missing` 并给出 prepare 入口。
+- 中文词面用字符 n-gram；文本语义用 E5 的 `query:`/`passage:` 前缀；视觉用 SigLIP 2 固定长度 padding。语义命中低于校准阈值不参与融合；RRF 融合只改变排序，不把分数解释为概率、身份或动作已完成。
+- 字幕、转录、OCR 分别标记 `manual/automatic/local/asr` 与对齐状态；黑场/纯色低对比度采样帧不进入视觉证据；切镜是候选边界，不是动作起止。
+- 选择输出与导入凭据：作品内 `assets/materials/receipts/`、正式登记仍在 `assets/media-sources.json`。作品移走后 `verify_project_media` 只依赖作品内文件，不读取共享库。
+- 曲库/素材库清理只删除未被工作文档绑定的对象与暂存残留；不删除作品正式文件、选择输出、索引帧、凭据或唯一源证据。
+- 平台能力按实测披露：B站/YouTube 搜索依赖固定版本 yt-dlp，会话/风控可能失败；抖音/小红书/微博/西瓜只接受已知链接；失败时改用网页候选、公开直链或本地文件，不自动启用个人浏览器。
+
 ## 7. `SOURCES.md` 素材表模板
 
 ```markdown

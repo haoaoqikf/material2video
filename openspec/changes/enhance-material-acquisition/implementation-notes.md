@@ -159,3 +159,45 @@
 - 有限真实元数据结果、压力脚本只保留在忽略的开发输出根；无原始页面、媒体、凭据、依赖二进制或模型权重进入提交。
 
 **主代理自审：89/100，不独立，仅针对本轮内部服务。**逻辑/影响：只登记与解析候选，保留未知和限制，不触碰正式材料版本、作品内容、旧 ref 采用用途或 Pexels API。性能：成熟流式 target、有限输入/节点、线性计数与集合去重；缺口覆盖按已有关系集计算，不引入按需求逐一全库扫描。剩余风险：静态解析不是完整网页/浏览器兼容实现，未覆盖全部编码/复杂播放器与真实会话；libxml 是应用级解析防护而非 OS 沙箱；跨进程文件竞态及 stamp 不能替代后续实际字节验证。完整文件获取、区间映射、分轨合并、模型/索引/检索/精裁及端到端仍未完成，不能用本节自审关闭独立审查或整体验收项。
+
+## 2026-11-15：获取编排、索引检索、选择导入与命令接入
+
+任务 2.4、3.3、4.1～4.3、5.1～5.6、6.1～6.4、7.1～7.5、8.1～8.4 与 9.1～9.5 已实现并完成直接相关验证。真实评测、来源逐站结果、模型与性能数据见 [素材工作层实测记录](../../../docs/material-acquisition-evaluation.md)。
+
+### 实现与复用
+
+- [获取编排](../../../src/m2v/materials/fetch.py)统一本地、公开文件、网页声明与平台 worker；区间请求先完整取得再本地精裁，多资产来源按预算选择可用项，分轨由父层 FFmpeg 合并；失败不发布媒体。
+- [平台适配](../../../src/m2v/materials/platform.py)接入 B站/YouTube 搜索与抖音/小红书/微博/西瓜已知链接登记；会话仅显式 cookie 文件，未验证下载写成 limited/not-tested。
+- [模型登记](../../../src/m2v/materials/model_registry.json)固定四个模型 revision、逐文件 SHA256、许可与预处理；`models prepare/verify` 与只读 `doctor` 分开，prepare 才联网。
+- [索引](../../../src/m2v/materials/indexing.py)覆盖字幕/章节、faster-whisper、FFmpeg+可选 PySceneDetect、RapidOCR、E5/SigLIP 2，绑定媒体/映射/输入/模型/参数身份并复用；黑场/纯色帧不进入视觉证据。
+- [检索](../../../src/m2v/materials/retrieval.py)使用中文 n-gram、语义阈值、按媒体独立召回与 RRF 融合；同源相邻窗口合并，观察默认 unknown，元数据过滤支持来源/画幅/时长。
+- [预览/选择/导入/库](../../../src/m2v/materials/)提供接触表、短预览、安全静态 HTML、帧精确精裁、作品内 receipt 与幂等恢复、显式目录登记及先计划后执行清理。
+- 九个工作流接入 `m2v author assets`；旧 `search/import` 仍走原解析路径，Pexels API 保持停用。
+
+### 本轮自审修正（真实运行暴露）
+
+1. faster-whisper 1.2.1 调用 PyAV `metadata_errors`，而 av 19.0.2 已移除该参数导致 ASR 直接失败；将 `av==18.1.0` 固定进 extras 并更新锁文件，真实中文转录通过。
+2. transformers 5.23 的 SigLIP `get_image_features/get_text_features` 返回 ModelOutput 而非张量；改为统一读取 pooled 输出，真实图像/文本编码通过。
+3. SigLIP 文本若以 `padding=True` 或额外 attention mask 编码，图文对齐显著变差（正确项从第 1 掉到随机）；改为固定长度 padding 且不加掩码，并只用于查询编码。
+4. 视觉通道原以全局记录排名，长视频的 12 个帧可挤满 Top-15，单图媒体被排除；改为按媒体独立召回，候选再按 RRF 融合。
+5. 同一媒体存在多份参数不同的索引时，`_find_index` 返回最早一份，导致视觉复用了旧帧集合；改为选择最近建立且与当前媒体/映射一致的一份。
+6. 图片媒体原先不能建 OCR/视觉索引；补单图分支（无时间窗口、frame 为媒体本身），真实 15 张图片索引通过。
+7. 采样帧中的黑场/纯色/低对比度帧会进入视觉候选并占据 Top-5；增加 luma 对比度质量过滤并记录数量。
+8. 本地获取复制前未检查字节预算与磁盘余量；补前置检查。递归库扫描改用不跟随链接的 `os.walk` 并跳过重解析目录。
+9. 公共网页/图库 `resolve` 误把 Source 文档当 SourceData；改为传 `source.data`，真实 Commons/NASA 获取通过。
+10. Commons 图片搜索的 `(filetype:bitmap OR filetype:drawing)` 在线上返回零结果；改为 `filetype:bitmap|drawing`，真实图片发现恢复。
+
+### 验证
+
+- 新增/相关素材测试：非媒体 **220 passed**；media 标记 **20 passed**；旧素材 search/import/ref/gallery/contact-sheet 直接相关节点 **31 passed**。
+- 真实本地链路：获取→7 通道索引→四通道查找→预览→25 fps 精裁→导入真实 text-motion 作品；receipt committed，作品 `validate` 通过，`verify_project_media` 不依赖工作库。
+- 真实来源：Commons/NASA 搜索与下载通过；Archive/YouTube/B站受限、Pixabay 无 Key、抖音等无真实链接，均按 limited/not-tested 记录，不写成通过。
+- 真实模型：四个模型 prepare/verify 通过；ASR、OCR、E5、SigLIP 均完成真实推理；重复索引 7 通道全部复用、0.74 s，无重复推理。
+- 性能：10k 条热词面查询中位 253.1 ms、最大 283.9 ms、RSS 102.6 MB；E5 常驻约 1.08 GB、再加 SigLIP 约 2.77 GB RSS。手工流程对照未取得可靠独立计时，已在评测报告披露，不报告“降低 30%”。
+- 24 查询评测：融合与视觉 Top-5 均 10/13 = 76.9%；文本 0/13、词面 N/A（无字幕语料）、元数据 0/13；动作子指标 3/5，身份无点名查询 N/A。P3/S1 在后补语料中可满足，但按事前分母不计入。
+
+### 主代理自审：89/100，不独立
+
+范围覆盖本轮新增获取、索引、检索、预览、选择、导入、库与 CLI。逻辑与影响：新增能力不改变 project v3、分镜 v9、正式媒体 schema、旧命令和 Pexels 停用状态；外部失败按 limited 报告。安全：网络仍只经 SafeHTTP/固定 worker，模型与媒体路径复用统一链接防护，模型准备不读个人 token，HTML 不执行脚本。性能：10k 查询满足 2 秒目标，模型按需加载，索引按身份复用。
+
+扣分与剩余风险：跨语言短文本阈值只在小语料校准；手工效率对照未取得可靠计时；清理在“文件已删、数据库回滚”极端交错时可能留下需 verify 修复的记录；平台真实下载能力受限；并发进程写入仅依赖既有锁与 SQLite busy timeout，未做多进程对抗压力；本轮复核由主代理完成，**不独立，不能写成独立审查通过**。

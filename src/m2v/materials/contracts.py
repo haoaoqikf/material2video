@@ -313,6 +313,12 @@ class TextBox(MaterialModel):
     confidence: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 
 
+class WordTiming(MaterialModel):
+    text: NonEmptyText
+    localRange: TimeRange
+    confidence: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)] | None = None
+
+
 class IndexRecord(MaterialModel):
     id: Identifier
     channel: Channel
@@ -322,9 +328,20 @@ class IndexRecord(MaterialModel):
     language: NonEmptyText | None = None
     confidence: Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)] | None = None
     boxes: list[TextBox] = Field(default_factory=list)
+    words: list[WordTiming] = Field(default_factory=list)
     vectorRow: Annotated[int, Field(ge=0)] | None = None
     alignment: Literal['verified', 'unverified', 'not-applicable'] = 'unverified'
     origin: NonEmptyText
+
+    @model_validator(mode='after')
+    def word_windows(self):
+        if self.words and self.localRange is None:
+            raise ValueError('词时间码必须有所属记录的时间窗口')
+        if self.localRange is not None and any(
+                word.localRange.startUs < self.localRange.startUs or word.localRange.endUs > self.localRange.endUs
+                for word in self.words):
+            raise ValueError('词时间码不能越过所属记录窗口')
+        return self
 
 
 class Observation(MaterialModel):
