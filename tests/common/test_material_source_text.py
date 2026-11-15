@@ -60,8 +60,8 @@ def test_background_contrast_rejects_high_scoring_distractor(tmp_path, monkeypat
             fetchIdentity='a' * 64, probe=Probe(kind='image', container='png', width=32, height=24)))
         store.put(media)
         artifact, records = indexing._publish_records(store, [
-            {'id':'good', 'channel':channel, 'text':'相关内容', 'origin':'test', 'vectorRow':0, 'alignment':'not-applicable'},
-            {'id':'distractor', 'channel':channel, 'text':'无关内容', 'origin':'test', 'vectorRow':1, 'alignment':'not-applicable'}])
+            {'id':'distractor', 'channel':channel, 'text':'无关内容', 'origin':'test', 'vectorRow':1, 'alignment':'not-applicable'},
+            {'id':'good', 'channel':channel, 'text':'相关内容', 'origin':'test', 'vectorRow':0, 'alignment':'not-applicable'}])
         matrix = np.zeros((2, dimensions), dtype='float32')
         matrix[0, 0] = 1
         matrix[1, :2] = [.8, .6]

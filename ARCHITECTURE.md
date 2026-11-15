@@ -25,6 +25,8 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 
 素材工作层的网络、平台 worker、媒体探测、模型与索引各自成模块：网络只经 `SafeHTTP`，平台只经固定版本 yt-dlp 隔离 worker，模型只在显式 `models prepare` 时联网；索引/检索默认 CPU 与本地文件。可选依赖按 `asr/ocr/semantic/vision/scenes/index` extras 安装，权重由 `model_registry.json` 固定 revision、摘要与许可，不进入作品依赖或渲染输入。
 
+`materials/sampling.py` 统一全时间轴预算分配；`scanning.py` 以独立 SQLite 检查点维护增量收集，`organization.py` 独立保存标签、收藏和集合，不修改不可变媒体身份。`similarity.py` 按有效向量空间给出有界、代表约束的分组建议；`library_view.py` 通过只读工作库生成显式多库本地浏览与缩略图，不引入作品运行时依赖。`retrieval_policy.py` 维护校准策略的唯一来源，查询向量缓存仅存在于单次查找中；来源文字证据不伪造画面时间位置。
+
 ## 原生设计样品
 
 `engine/design_sample.py` 委托作品本地sample并独立复核包的位置、来源、实际参数、媒体及技术信号；源码可达性、project／props初始摘要、字体与登记媒体由工具在执行前后重新核对。实际构建、受控采集、编码和HTML播放器属于作品的本地运行时，主项目不再分发另一份样品播放器。`production/samples.py` 将成功采集与当前周期事件绑定，基于既有 review 包和独立报告执行交付检查；不建立第二套评审格式或自动审美算法。`sample_cli.py` 只负责参数、作品写锁、操作内指纹缓存和本地服务生命周期。

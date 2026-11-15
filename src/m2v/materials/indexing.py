@@ -280,6 +280,15 @@ def _frame_record(store: MaterialStore, spot: int, target: Path, frame_us: int, 
             'alignment': 'not-applicable', 'origin': 'ffmpeg-keyframe'}
 
 
+def _coverage_warning(records) -> str:
+    windows = sorted((record.localRange for record in records if record.localRange), key=lambda item: item.startUs)
+    if not windows:
+        return '没有有效采样帧，画面覆盖未验证'
+    gap = max((right.startUs - left.endUs for left, right in zip(windows, windows[1:])), default=0)
+    return (f'有效帧覆盖 {windows[0].startUs}–{windows[-1].endUs} us；{len(windows)} 帧；'
+            f'最大未观察间隔 {max(0, gap)} us；稀疏采样不代表连续观察')
+
+
 def index_shots(store: MaterialStore, media, *, threshold: float = 0.3, adaptive: bool = False,
                 long_shot_s: float = 10.0, max_frames: int = 48) -> list[IndexResult]:
     if media.data.probe.kind != 'video':
@@ -320,7 +329,8 @@ def index_shots(store: MaterialStore, media, *, threshold: float = 0.3, adaptive
     frame_cache = _cache_key(media, 'frames', frame_config, inputs=[shots_digest])
     frame_cached = store.cached(frame_cache)
     if frame_cached is not None:
-        return [result, IndexResult(frame_cached, 'frames', reused=True, records=frame_cached.data.recordCount)]
+        return [result, IndexResult(frame_cached, 'frames', reused=True, records=frame_cached.data.recordCount,
+                                   warnings=[_coverage_warning(store.records(frame_cached.id))])]
     staging = Path(tempfile.mkdtemp(prefix='frames-', dir=store.path('staging', exists=True, directory=True)))
     try:
         frame_records, frame_warnings = _extract_frames(
@@ -333,7 +343,7 @@ def index_shots(store: MaterialStore, media, *, threshold: float = 0.3, adaptive
     frame_result = _store_index(store, media=media, channel='frames', config=frame_config,
                                 records=frame_checked, artifacts=[frame_artifact],
                                 inputs=[media.data.artifact.sha256, shots_digest],
-                                cache_key=frame_cache, warnings=[*warnings, *frame_warnings])
+                                cache_key=frame_cache, warnings=[*warnings, *frame_warnings, _coverage_warning(frame_checked)])
     return [result, frame_result]
 
 

@@ -19,10 +19,15 @@ MAX_SCAN_FILES = 500
 
 class _Details(list):
     """错误目录也不能令诊断列表随整棵目录树无限增长。"""
-    total = 0
+    def __init__(self):
+        super().__init__()
+        self.total = 0
+        self.counts = {}
 
     def append(self, item):
         self.total += 1
+        code = item.get('reason', item.get('code', 'unknown'))
+        self.counts[code] = self.counts.get(code, 0) + 1
         if len(self) < 1000:
             super().append(item)
 
@@ -156,6 +161,10 @@ def scan_directory(store, directory: Path, *, recursive=False, budget=None, max_
                            'input_sha=excluded.input_sha,code=excluded.code',
                            (key, original_sha, getattr(exc, 'code', 'unreadable')))
             logger.warning('素材入库单件失败 file=%s type=%s', path.name, type(exc).__name__)
+    for reason in ('unreadable', 'unreadable-directory', 'depth-budget'):
+        if skipped.counts.get(reason):
+            failures.append({'stage': 'library', 'code': reason, 'count': skipped.counts[reason],
+                             'retryable': True, 'note': '部分目录或条目未能遍历，不代表这些位置没有素材'})
     rows = acquired or reused_rows
     return {'directory': str(root), 'files': len(rows), 'bytes': total, 'inspected': inspected,
             'attempted': attempted, 'acquired': len(acquired), 'reused': reused,

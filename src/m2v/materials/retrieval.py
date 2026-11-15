@@ -103,10 +103,18 @@ def _requirement(store: MaterialStore, requirement: Requirement | None, query: s
     return store.get(document.id, kind='material.requirement')
 
 
-def _index_map(store: MaterialStore) -> dict[tuple[str, str], object]:
+def _index_map(store: MaterialStore, media_map, excluded) -> dict[tuple[str, str], object]:
     """一次查询内只解码一次索引目录，避免每个媒体/通道重复扫描。"""
     result: dict[tuple[str, str], object] = {}
     for document in store.documents('material.index'):
+        media = media_map.get(document.data.mediaId)
+        if media is None:
+            continue
+        if (document.data.status != 'complete' or document.data.mediaSha256 != media.data.artifact.sha256
+                or document.data.timelineMappingSha256 != fingerprint(media.data.probe.timeline)):
+            excluded.append({'mediaId': media.id, 'indexId': document.id, 'reason': 'stale-index',
+                             'note': '索引未完成或媒体/时间映射绑定失效'})
+            continue
         key = (document.data.mediaId, document.data.channel)
         current = result.get(key)
         if current is None or (document.createdAt, document.id) > (current.createdAt, current.id):
@@ -139,7 +147,7 @@ def _lexical(store: MaterialStore, media, query_tokens: set[str], limit: int,
 
 
 def _semantic(store: MaterialStore, media, manager: ModelManager, channel: str, query: str,
-              limit: int, indexes=None) -> tuple[list[Hit], list[str]]:
+              limit: int, indexes=None, query_cache=None, encoding_batches=None) -> tuple[list[Hit], list[str]]:
     index = ((indexes or {}).get((media.id, 'text' if channel == 'text' else 'visual'))
              if indexes is not None
              else _find_index(store, media, 'text' if channel == 'text' else 'visual'))
@@ -149,19 +157,33 @@ def _semantic(store: MaterialStore, media, manager: ModelManager, channel: str, 
     model_name = 'e5-small' if channel == 'text' else 'siglip2-base'
     identity = manager.identity(model_name)
     expected = next(item['sha256'] for item in identity['files'] if item['path'] == 'model.safetensors')
-    if spec is None or spec.revision != identity['revision'] or spec.weightsSha256 != expected:
-        return [], [f'{channel}: 索引模型身份与当前模型不一致，已排除']
-    matrix = load_vectors(store, index)
     from . import embedding
+    if (spec is None or spec.model != model_name or spec.revision != identity['revision']
+            or spec.weightsSha256 != expected or spec.preprocessing != identity['preprocessing']
+            or spec.dimensions != embedding.dimensions(manager, model_name) or not spec.normalized
+            or spec.dtype != 'float32' or spec.precision != 'float32'):
+        return [], [f'{channel}: 索引模型身份或预处理与当前模型不一致，已排除']
+    matrix = load_vectors(store, index)
+    records = store.records(index.id)
+    by_vector = {record.vectorRow: record for record in records}
+    if set(by_vector) != set(range(len(matrix))):
+        return [], [f'{channel}: 向量行与证据记录不一致，已排除']
     queries = [query, *BACKGROUNDS[channel]]
-    vectors = (embedding.embed_texts(manager, queries, prefix='query') if channel == 'text'
-               else embedding.embed_visual_text(manager, queries))
+    cache_key = fingerprint({'model': identity, 'queries': queries, 'channel': channel, 'policy': POLICY_VERSION})
+    if query_cache is not None and cache_key in query_cache:
+        vectors = query_cache[cache_key]
+    else:
+        vectors = (embedding.embed_texts(manager, queries, prefix='query') if channel == 'text'
+                   else embedding.embed_visual_text(manager, queries))
+        if query_cache is not None:
+            query_cache[cache_key] = vectors
+        if encoding_batches is not None:
+            encoding_batches[channel] = encoding_batches.get(channel, 0) + 1
     vector = vectors[0]
     if vector.shape[0] != matrix.shape[1]:
         return [], [f'{channel}: 查询向量维数与索引不一致，已排除']
     scores = matrix @ vector.astype('float32')
     background = (matrix @ vectors[1:].astype('float32').T).max(axis=1)
-    records = store.records(index.id)
     order = np.argsort(-scores)[:limit]
     hits = []
     for row in order:
@@ -169,7 +191,7 @@ def _semantic(store: MaterialStore, media, manager: ModelManager, channel: str, 
         margin = score - float(background[int(row)])
         if score < SEMANTIC_MIN[channel] or margin + 1e-7 < MIN_MARGIN[channel]:
             continue
-        record = records[int(row)]
+        record = by_vector[int(row)]
         if record.vectorRow is None:
             continue
         evidence_channel = 'metadata' if channel == 'text' and record.origin == 'e5-small:metadata' else channel
@@ -220,10 +242,11 @@ def _merge(hits: list[Hit], *, tolerance_us: int) -> list[list[Hit]]:
     for media_hits in by_media.values():
         media_hits.sort(key=lambda item: (item.local_range.startUs if item.local_range else 0, -item.score))
         current: list[Hit] = []
+        untimed: list[Hit] = []
         end = None
         for hit in media_hits:
             if hit.local_range is None:
-                groups.append([hit])
+                untimed.append(hit)
                 continue
             if end is not None and hit.local_range.startUs <= end + tolerance_us:
                 current.append(hit)
@@ -234,6 +257,8 @@ def _merge(hits: list[Hit], *, tolerance_us: int) -> list[list[Hit]]:
             current, end = [hit], hit.local_range.endUs
         if current:
             groups.append(current)
+        if untimed:
+            groups.append(untimed)
     return groups
 
 
@@ -326,8 +351,10 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
     result = FindResult(requirement=document)
     per_channel = {name: 0 for name in channels}
     hits: list[Hit] = []
-    indexes = _index_map(store)
-    for media in _scopes(store, media_ids):
+    media_map = {item.id: item for item in _scopes(store, media_ids)}
+    indexes = _index_map(store, media_map, result.excluded)
+    query_cache, encoding_batches = {}, {}
+    for media in media_map.values():
         try:
             # 内容对象不可变；查询只核对存在与大小，完整摘要校验留给 index/verify/preview。
             path = store.path(media.data.artifact.path, exists=True)
@@ -355,13 +382,15 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
             per_channel['lexical'] += len(found)
             hits.extend(found)
         if 'text' in channels:
-            found, notes = _semantic(store, media, manager, 'text', text, top_k * 3, indexes)
+            found, notes = _semantic(store, media, manager, 'text', text, top_k * 3, indexes,
+                                     query_cache, encoding_batches)
             per_channel['text'] += len(found)
             hits.extend(found)
             result.excluded.extend({'mediaId': media.id, 'reason': 'incompatible-index', 'note': note}
                                    for note in notes)
         if 'visual' in channels:
-            found, notes = _semantic(store, media, manager, 'visual', text, top_k * 3, indexes)
+            found, notes = _semantic(store, media, manager, 'visual', text, top_k * 3, indexes,
+                                     query_cache, encoding_batches)
             per_channel['visual'] += len(found)
             hits.extend(found)
             result.excluded.extend({'mediaId': media.id, 'reason': 'incompatible-index', 'note': note}
@@ -393,7 +422,6 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
         for hit in items:
             hit.evidence = (hit.score - mean) / deviation if deviation > 0 else 0.0
     groups = _merge(list(ranked.values()), tolerance_us=merge_gap_us)
-    media_map = {item.id: item for item in _scopes(store, media_ids)}
     built = []
     for group in groups:
         media = media_map.get(group[0].media_id)
@@ -408,5 +436,5 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
     result.channels = per_channel
     result.stats = {'mediaScanned': len(media_map), 'hits': len(ranked),
                     'requirementText': text[:64], 'queryDigest': hashlib.sha256(text.encode()).hexdigest()[:16],
-                    'retrievalPolicy': POLICY_VERSION}
+                    'retrievalPolicy': POLICY_VERSION, 'queryEncodingBatches': encoding_batches}
     return result

@@ -29,6 +29,21 @@ def test_scan_diagnostic_details_are_bounded():
     assert scanning._Details().total == 0
 
 
+@pytest.mark.media
+def test_unreadable_directory_is_reported_as_partial_coverage(tmp_path, monkeypatch):
+    folder = tmp_path/'inputs'
+    folder.mkdir()
+    good = folder/'good.png'
+    _image(good)
+    def walk(directory, recursive, issues):
+        issues.append({'name':'blocked', 'reason':'unreadable-directory'})
+        yield good, good.stat()
+    monkeypatch.setattr(scanning,'_walk',walk)
+    with MaterialStore(tmp_path/'work') as store:
+        result = scanning.scan_directory(store,folder,recursive=True)
+        assert result['acquired'] == 1 and result['failures'][0]['code']=='unreadable-directory'
+
+
 def _image(path: Path, color='navy'):
     Image.new('RGB', (8, 8), color).save(path, format='PNG', compress_level=0)
 
@@ -94,6 +109,9 @@ def test_long_shot_budget_keeps_tail_and_sampling_identity(tmp_path):
         assert len(times) == 3 and times[0] < 1_000_000 and times[-1] > 10_000_000
         assert result[1].document.data.config['sampling'] == STRATEGY
         assert any('全时间轴' in message for message in result[1].warnings)
+        assert any('有效帧覆盖' in message for message in result[1].warnings)
+        cached = indexing.index_shots(store, media, long_shot_s=1, max_frames=3)[1]
+        assert cached.reused and any('有效帧覆盖' in message for message in cached.warnings)
 
 
 @pytest.mark.media
