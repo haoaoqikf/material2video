@@ -81,6 +81,35 @@ def still_props(root: Path, prepared: dict, captured: dict[tuple[str, int], Path
     return props
 
 
+def background_stills(root: Path, storyboard: Path, prepared: dict, frames: list[int], work: Path) -> dict[int, Path]:
+    """直接使用幕静帧；只有转场重叠的帧需要再走一次合成。"""
+    captured = native_stills(root, prepared, frames, work, scale=1)
+    samples: dict[int, list[Path]] = {}
+    for (_, frame), path in captured.items():
+        samples.setdefault(frame, []).append(path)
+    result = {frame: paths[0] for frame, paths in samples.items() if len(paths) == 1}
+    overlaps = [frame for frame in frames if frame not in result]
+    if overlaps:
+        with LocalServer(root, cors=True) as server:
+            bundle = remotion.bundle(web_dir=remotion.web_dir(), out_dir=work / "bundle",
+                                     storyboard_path=storyboard,
+                                     content_root=root.parent, workspace_root=root.parent, cache=True)
+            for frame in overlaps:
+                props = still_props(root, prepared, captured, frame, server.base_url + "/")
+                props["subtitleCues"] = []
+                target = work / f"background-{frame:06d}.png"
+                _compose_still(work, bundle.path, props, target, frame, 1)
+                result[frame] = target
+    return result
+
+
+def _compose_still(work: Path, bundle: Path, props: dict, target: Path, frame: int, scale: int) -> None:
+    props_file = work / f"props-{frame:06d}.json"
+    props_file.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")
+    remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle, props=props_file,
+                          out=target, frame=frame, scale=scale, composition_id="SceneFilm")
+
+
 def render_stills(root: Path, project: dict, frames: list[int], destination: Path, *,
                   scale: int = STILL_SCALE) -> dict:
     from film_runtime.types.scene_film import explainer_render
@@ -107,12 +136,9 @@ def render_stills(root: Path, project: dict, frames: list[int], destination: Pat
                                  storyboard_path=entry, content_root=root.parent,
                                  workspace_root=root.parent, cache=True)
         for frame in frames:
-            props_file = work / f"props-{frame:06d}.json"
-            props_file.write_text(json.dumps(still_props(root, prepared, captured, frame, server.base_url + "/"),
-                                             ensure_ascii=False), encoding="utf-8")
             target = destination / f"still-{frame:06d}.png"
-            remotion.render_still(web_dir=remotion.web_dir(), bundle_dir=bundle.path, props=props_file,
-                                  out=target, frame=frame, scale=scale, composition_id="SceneFilm")
+            props = still_props(root, prepared, captured, frame, server.base_url + "/")
+            _compose_still(work, bundle.path, props, target, frame, scale)
             produced.append(target)
     manifest = {"schemaVersion": 1, "preparedFingerprint": prepared["preparedFingerprint"],
                 "frames": frames, "stillScale": scale,

@@ -1,7 +1,7 @@
 """按实际分段音频编译 v9 时间轴；所有可见时序只在准备阶段解析。
 
-画面由作品的本地代码绘制，准备阶段只编译时间轴和源码输入，并把画幅、
-字幕几何与媒体映射一起绑进准备指纹。检查和正式生成按需录制片段后合成。
+画面由作品的本地代码绘制。准备阶段把时间轴、画幅和字幕采样写进准备指纹，
+检查和正式生成按需录制片段后合成。
 """
 from __future__ import annotations
 
@@ -98,9 +98,6 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
     measured, durations, overlaps, automatic = [], [], [], []
     hold_lists: list[list[int]] = []
     hits = 0
-    media_map = {entry["id"]: root / entry["path"]
-                 for entry in media_assets.load_record(root)["assets"]}
-    backing_style = frame["subtitle"].get("backing")
     for index, scene in enumerate(scenes):
         overlap = 0 if scene.get("transition", "cut") == "cut" else scene.get("transitionFrames", round(8 / 30 * fps))
         overlaps.append(overlap)
@@ -162,7 +159,6 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
         # 就会整片提前，出现“字幕在说、声音已走”的错位。
         if leading:
             parts.append((None, leading))
-        scene_props = scene.get("content", {}).get("props") or {}
         for segment_index, (identity, wav, local_cues, frames, english) in enumerate(segments):
             scene["segmentWindows"][identity] = {"startFrame": speech_start, "endFrame": speech_start+frames}
             for cue_index, cue in enumerate(local_cues):
@@ -171,19 +167,6 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
                 item = {"startFrame": speech_start+a, "endFrame": speech_start+b, "text": cue["text"]}
                 if english:
                     item["secondary"] = english[cue_index]
-                if backing_style and backing_style.get("mode") == "adaptiveHalo":
-                    asset_id = scene_props.get("asset")
-                    asset_path = media_map.get(asset_id) if isinstance(asset_id, str) else None
-                    if asset_id and asset_path is None:
-                        raise VideoError(f"幕 {scene['id']} 的素材 {asset_id} 未登记，无法采样字幕背景")
-                    if asset_path:
-                        start_seconds = scene_props.get("startSeconds", 0)
-                        seconds_in_scene = (speech_start + a - scene["startFrame"]) / fps
-                        midpoint = seconds_in_scene + (b - a) / (2 * fps)
-                        item["backing"] = subtitle_backing.sample(
-                            asset_path, float(start_seconds) + midpoint, backing_style["maxOpacity"])
-                    else:
-                        item["backing"] = subtitle_backing.fallback(backing_style["maxOpacity"])
                 cues.append(item)
             parts.append((wav, frames))
             speech_start += frames
@@ -202,7 +185,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
         cinematic.validate_shot_windows(scene["id"], shots,
             {key: {"startFrame": window["startFrame"] - start, "endFrame": window["endFrame"] - start}
              for key, window in scene["segmentWindows"].items()}, duration)
-        # 准备只验证/构建源码以收集可达依赖；录制推迟到检查窗口或正式生成。
+        # 收集可达依赖；正式画面片段由后续检查或生成按窗口录制。
         with tempfile.TemporaryDirectory(prefix="scene-inputs-") as temporary:
             scene_inputs = code_scenes.build_scene(root, scene, Path(temporary))
             inputs.update(scene_inputs)
@@ -215,6 +198,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None, ba
                  resolvedEvents=resolved_events, effectStartFrames=effect_start_frames)
     del props["scenes"]
     props.pop("sources", None)
+    subtitle_backing.apply(root, root / project["materials"]["storyboard"],
+                           {"width": size[0], "height": size[1], "fps": fps, "props": props})
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=media_dir) as temporary:

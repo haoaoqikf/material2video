@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+from PIL import Image
 
 from m2v.core.errors import M2VError
 from film_runtime.engine import subtitle_backing
@@ -27,22 +28,23 @@ def test_translation_count_mismatch_fails() -> None:
         split_translation("   ", 1, "hook")
 
 
-def test_fallback_backing_is_neutral_and_bounded() -> None:
-    value = subtitle_backing.fallback(0.3)
-    assert value["color"] == "#070a0e"
-    assert value["background"] == "#070a0e"
-    assert 0 <= value["opacity"] <= 0.3
+@pytest.mark.parametrize("width,height", [(1080, 1920), (1920, 1080)])
+def test_sample_uses_actual_subtitle_region_and_switches_ink(tmp_path, width, height):
+    from m2v.core import frames
+
+    subtitle = frames.spec(width, height)["subtitle"]
+    area = subtitle["safeArea"]
+    path = tmp_path / "background.png"
+    # 同一幕的主体处于深色背景，字幕正下方是浅色文书。
+    with Image.new("RGB", (width, height), "#090e18") as canvas:
+        background = subtitle_backing.region_color(_save(canvas, path), area, width, height)
+        assert subtitle_backing.appearance(background, subtitle)["textColor"] == "#ffffff"
+        canvas.paste("#f4efe3", (area["x"], area["y"], area["x"] + area["width"], area["y"] + area["height"]))
+        background = subtitle_backing.region_color(_save(canvas, path), area, width, height)
+        assert background == "#f4efe3"
+        assert subtitle_backing.appearance(background, subtitle)["textColor"] == "#101219"
 
 
-@pytest.mark.media
-def test_sample_reads_a_real_frame(tmp_path) -> None:
-    import subprocess
-    from imageio_ffmpeg import get_ffmpeg_exe
-    clip = tmp_path / "white.mp4"
-    subprocess.run([get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error",
-                    "-f", "lavfi", "-i", "color=c=white:s=108x192:d=1",
-                    "-pix_fmt", "yuv420p", "-y", str(clip)], check=True)
-    value = subtitle_backing.sample(clip, 0.3, 0.3)
-    assert value["background"] == "#ffffff"
-    assert 0.10 <= value["opacity"] <= 0.30
-    assert value["color"].startswith("#")
+def _save(canvas, path):
+    canvas.save(path)
+    return path

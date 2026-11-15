@@ -14,7 +14,13 @@
         "fontSize": 40,
         "lineHeight": 1.5,
         "textColor": "#ffffff",
-        "plateColor": "#0b0d12"
+        "plateColor": "#0b0d12",
+        "backing": {
+          "mode": "adaptiveHalo",
+          "color": "#070a0e",
+          "maxOpacity": 0.32,
+          "feather": 518
+        }
       }
     },
     {
@@ -28,7 +34,13 @@
         "fontSize": 40,
         "lineHeight": 1.5,
         "textColor": "#ffffff",
-        "plateColor": "#0b0d12"
+        "plateColor": "#0b0d12",
+        "backing": {
+          "mode": "adaptiveHalo",
+          "color": "#070a0e",
+          "maxOpacity": 0.32,
+          "feather": 922
+        }
       }
     }
   ]

@@ -1,7 +1,7 @@
 """按实际分段音频编译 v9 时间轴；所有可见时序只在准备阶段解析。
 
-画面由作品的本地代码绘制，准备阶段只编译时间轴和源码输入，并把画幅、
-字幕几何与媒体映射一起绑进准备指纹。检查和正式生成按需录制片段后合成。
+画面由作品的本地代码绘制。准备阶段把时间轴、画幅和字幕采样写进准备指纹，
+检查和正式生成按需录制片段后合成。
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from film_runtime.core.errors import VideoError
 from film_runtime.core.project import file_inputs, save_prepared, subtitle_font_size
 from film_runtime.core import security
 from film_runtime.core import frames as frame_engine
-from film_runtime.engine import audio, remotion, rhythm as rhythm_engine, tts
+from film_runtime.engine import audio, remotion, rhythm as rhythm_engine, subtitle_backing, tts
 from . import code_scenes, explainer as contract, explainer_review, reading_pace
 
 
@@ -177,7 +177,7 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
         cinematic.validate_shot_windows(scene["id"], shots,
             {key: {"startFrame": window["startFrame"] - start, "endFrame": window["endFrame"] - start}
              for key, window in scene["segmentWindows"].items()}, duration)
-        # 准备只验证/构建源码以收集可达依赖；录制推迟到检查窗口或正式生成。
+        # 收集可达依赖；正式画面片段由后续检查或生成按窗口录制。
         with tempfile.TemporaryDirectory(prefix="scene-inputs-") as temporary:
             scene_inputs = code_scenes.build_scene(root, scene, Path(temporary))
             inputs.update(scene_inputs)
@@ -190,6 +190,8 @@ def prepare(root: Path, project: dict, *, voice=None, rate=None, rhythm=None) ->
                  resolvedEvents=resolved_events, effectStartFrames=effect_start_frames)
     del props["scenes"]
     props.pop("sources", None)
+    subtitle_backing.apply(root, root / project["materials"]["storyboard"],
+                           {"width": size[0], "height": size[1], "fps": fps, "props": props})
     media_dir = root / "outputs/media"
     media_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=media_dir) as temporary:

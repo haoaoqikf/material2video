@@ -47,14 +47,23 @@ def test_subtitle_contrast_flags_low_contrast():
 def test_subtitle_contrast_rejects_bad_color():
     with pytest.raises(VideoError):
         qa.subtitle_contrast({"textColor": "white", "plateColor": "#000000"})
+
+
 def test_subtitle_contrast_uses_adaptive_cue_backing():
     style = {"textColor": "#ffffff", "plateColor": "#0b0d12", "backing": {"mode": "adaptiveHalo"}}
     dark = qa.subtitle_contrast(style, [
-        {"backing": {"color": "#070a0e", "background": "#333333", "opacity": 0.2}}])
+        {"backing": {"color": "#070a0e", "background": "#333333", "opacity": 0.2,
+                     "textColor": "#ffffff"}}])
     assert dark["backingMode"] == "adaptiveHalo" and dark["status"] == "pass"
     bright = qa.subtitle_contrast(style, [
-        {"backing": {"color": "#070a0e", "background": "#ffffff", "opacity": 0.05}}])
+        {"backing": {"color": "#070a0e", "background": "#ffffff", "opacity": 0.05,
+                     "textColor": "#ffffff"}}])
     assert bright["backingMode"] == "adaptiveHalo" and bright["status"] == "fail"
+    dark_ink = {"backing": {"color": "#ffffff", "background": "#eeeeee", "opacity": 0.14,
+                            "textColor": "#101219"}}
+    assert qa.subtitle_contrast(style, [dark_ink])["status"] == "pass"
+    assert qa.subtitle_contrast(style, [dark_ink, {}])["missingCues"] == [1]
+    assert qa.subtitle_contrast(style, [])["status"] == "skipped"
 
 
 def test_frozen_frames_detects_still_run():

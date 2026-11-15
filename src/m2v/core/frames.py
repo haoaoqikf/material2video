@@ -181,6 +181,8 @@ def spec(width: int, height: int, repo_root: Path | None = None) -> dict:
             subtitle = dict(frame["subtitle"])
             style = {key: value for key, value in subtitle.items()
                      if key not in ("x", "y", "width", "height")}
+            style.setdefault("backing", {"mode": "adaptiveHalo", "color": "#070a0e",
+                                         "maxOpacity": .32, "feather": round(.6 * subtitle["width"])})
             return {"width": width, "height": height,
                     "subtitle": {"safeArea": {key: subtitle[key] for key in ("x", "y", "width", "height")},
                                  **style}}

@@ -37,6 +37,11 @@ def test_spec_preserves_secondary_and_backing(tmp_path: Path) -> None:
     assert spec["backing"]["mode"] == "adaptiveHalo"
 
 
+def test_existing_manifest_defaults_to_adaptive_backing(tmp_path: Path) -> None:
+    style = frames.spec(1080, 1920, _root(tmp_path, _base()))["subtitle"]
+    assert style["backing"]["mode"] == "adaptiveHalo"
+
+
 @pytest.mark.parametrize("change, message", [
     ({"secondary": {"fontSize": 30}}, "fontFamily"),
     ({"backing": {"mode": "plain", "color": "#070a0e", "maxOpacity": 0.3, "feather": 240}}, "mode"),

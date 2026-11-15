@@ -85,7 +85,7 @@ Qwen3-TTS 使用 `Qwen3-TTS-12Hz-0.6B-Base` 做零样本克隆，参考音频、
 
 分镜旁白可选带 `translation`。prepare 按与中文相同的标点规则把英文翻译拆成与中文 cue 相同数量的片段，写入 `props.subtitleCues[].secondary`；缺少翻译时不显示英文，存在翻译但条数不符时失败并指出段 ID。英文只作次行，阅读速度仍按中文计算。
 
-`frames.json` 的 subtitle 可声明 `fontFamily`、`secondary`（字体、字号、行高、颜色、透明度）与 `backing`（`adaptiveHalo`、颜色、最大透明度、羽化半径）。启用 `adaptiveHalo` 时，prepare 按每条字幕中点从该幕登记素材采样字幕区域的平均色与亮度，写入 `backing.color/opacity/background`；渲染只画无硬边的径向柔光，不画矩形底板。采样值参与准备指纹；同一素材与时间点结果一致。旧作品没有这些字段时继续使用底板路径。
+`frames.json` 的 subtitle 可声明 `fontFamily`、`secondary`（字体、字号、行高、颜色、透明度）与 `backing`（`adaptiveHalo`、颜色、最大透明度、羽化半径）。所有带字幕的作品默认使用 `adaptiveHalo`。prepare 合批采集每条字幕中点的实际绘制画面，转场中点使用实际合成，按字幕安全区中央参考色选择深浅字色和羽化柔光，写入 `backing.textColor/color/opacity/background`。渲染使用记录的字色和柔光，采样值参与准备指纹。没有字幕时跳过采样；既有独立工程更新本地运行时后重新准备和渲染即可应用。
 
 使用外部字体时，字体必须在作品 `fonts/registry.json` 登记来源、版本、摘要与许可，并由 `fonts/fetch.py` 恢复；字体缺失或摘要不符时构建/准备失败。档案标注和片尾来源按[素材采用与署名](material-sourcing.md#5-采用政策与署名)处理。
 

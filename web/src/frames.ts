@@ -17,14 +17,14 @@ export type SubtitleSecondary = {
   textColor: string;
   opacity?: number;
 };
-/** 自适应柔光；当前只实现 adaptiveHalo，旧作品没有该字段时继续用底板。 */
+/** 自适应柔光；每条字幕的实际字色由准备阶段确定。 */
 export type SubtitleBacking = {
   mode: 'adaptiveHalo';
   color: string;
   maxOpacity: number;
   feather: number;
 };
-/** 字幕样式独立于作品配色：旧路径为白字配深色底板；新路径用柔光与双行。 */
+/** 字幕样式独立于作品配色，支持柔光与双行。 */
 export type SubtitleStyle = {
   safeArea: SubtitleSafeArea;
   fontSize: number;

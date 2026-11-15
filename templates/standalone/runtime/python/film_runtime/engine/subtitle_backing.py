@@ -1,68 +1,93 @@
-"""按字幕所在画面采样自适应柔光参数。
-
-只从登记的原始视频素材取一帧计算平均色与亮度；不读最终成片，也不在浏览器
-逐帧取色。结果写入准备记录，参与准备指纹，渲染只消费确定的数值。
-"""
+"""从实际幕画面取样，生成与旁白时间轴一起冻结的字幕色彩。"""
 from __future__ import annotations
 
-import subprocess
+import logging
 import tempfile
 from pathlib import Path
 
 from PIL import Image
-from imageio_ffmpeg import get_ffmpeg_exe
 
 from film_runtime.core.errors import VideoError
 
-#: 字幕安全区大致落在画面的这个纵向区间；采样只取文字背后的条带。
-_BAND_TOP = 0.74
-_BAND_BOTTOM = 0.93
-_BAND_X = (0.08, 0.92)
-_SAMPLE_SIZE = (108, 192)
-_DEFAULT = (7, 10, 14)
+logger = logging.getLogger(__name__)
+
+DARK_INK = "#101219"
+LIGHT_INK = "#ffffff"
+MIN_CONTRAST = 4.5
+# 柔光在字行外侧已开始羽化，量测使用比中心更保守的混合强度。
+HALO_WEIGHT = 0.55
 
 
-def _hex(rgb: tuple[int, int, int]) -> str:
-    return "#" + "".join(f"{channel:02x}" for channel in rgb)
+def rgb(color: str) -> tuple[int, int, int]:
+    if len(color) != 7 or not color.startswith("#"):
+        raise VideoError(f"颜色必须是 #rrggbb：{color}")
+    return tuple(int(color[index:index + 2], 16) for index in (1, 3, 5))
 
 
-def _sample(path: Path, seconds: float) -> tuple[int, int, int]:
-    if seconds < 0:
-        raise VideoError("字幕背景采样时间不能为负")
-    with tempfile.TemporaryDirectory(prefix="subtitle-backing-") as temporary:
-        target = Path(temporary) / "frame.png"
-        try:
-            subprocess.run(
-                [get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error",
-                 "-ss", f"{seconds:.3f}", "-i", str(path), "-frames:v", "1",
-                 "-vf", f"scale={_SAMPLE_SIZE[0]}:{_SAMPLE_SIZE[1]}", "-y", str(target)],
-                check=True, capture_output=True, timeout=30)
-        except (OSError, subprocess.SubprocessError) as exc:
-            raise VideoError(f"字幕背景采样失败：{path} @ {seconds:.3f}s：{exc}") from exc
-        if not target.is_file():
-            raise VideoError(f"字幕背景采样没有生成帧：{path} @ {seconds:.3f}s")
-        image = Image.open(target).convert("RGB")
-        width, height = image.size
-        box = (int(width * _BAND_X[0]), int(height * _BAND_TOP),
-               int(width * _BAND_X[1]), int(height * _BAND_BOTTOM))
-        crop = image.crop(box).resize((54, 18))
-        pixels = list(crop.getdata())
-    count = len(pixels)
-    return tuple(sum(pixel[index] for pixel in pixels) // count for index in range(3))
+def hex_color(channels) -> str:
+    return "#" + "".join(f"{channel:02x}" for channel in channels)
 
 
-def sample(path: Path, seconds: float, max_opacity: float) -> dict:
-    """返回一条字幕的柔光颜色、透明度与背景参考色。"""
-    r, g, b = _sample(path, seconds)
-    luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
-    opacity = min(max_opacity, 0.10 + 0.55 * max(0.0, luminance - 0.28))
-    # 柔光色相来自画面，但压暗并混入中性深色，避免在亮画面上出现彩色块。
-    tint = tuple(round(channel * 0.30 + base * 0.70) for channel, base in zip((r, g, b), _DEFAULT))
-    return {"color": _hex(tint), "opacity": round(opacity, 3),
-            "background": _hex((r, g, b))}
+def luminance(color: str) -> float:
+    channels = [value / 255 for value in rgb(color)]
+    linear = [value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4
+              for value in channels]
+    return sum(value * weight for value, weight in zip(linear, (.2126, .7152, .0722)))
 
 
-def fallback(max_opacity: float) -> dict:
-    """非视频场景没有可采样画面时使用中性柔光。"""
-    return {"color": _hex(_DEFAULT), "opacity": round(min(max_opacity, 0.18), 3),
-            "background": _hex(_DEFAULT)}
+def contrast(foreground: str, background: str) -> float:
+    low, high = sorted((luminance(foreground), luminance(background)))
+    return (high + .05) / (low + .05)
+
+
+def blend(foreground: str, background: str, alpha: float) -> str:
+    return hex_color(round(f * alpha + b * (1 - alpha))
+                     for f, b in zip(rgb(foreground), rgb(background)))
+
+
+def appearance(background: str, subtitle: dict) -> dict:
+    backing = subtitle["backing"]
+    configured = subtitle["textColor"]
+    light_ink, dark_ink = ((configured, DARK_INK) if luminance(configured) >= .5
+                           else (LIGHT_INK, configured))
+    light_ratio = contrast(light_ink, background)
+    dark_ratio = contrast(dark_ink, background)
+    light_text = light_ratio >= dark_ratio
+    ink = light_ink if light_text else dark_ink
+    halo = backing["color"] if light_text else "#fff9f0"
+    if (luminance(halo) > luminance(background)) == light_text:
+        halo = "#000000" if light_text else LIGHT_INK
+    ratio = max(light_ratio, dark_ratio)
+    opacity = round(min(backing["maxOpacity"], .14 + .10 * max(0, 6 - ratio)), 3)
+    return {"background": background, "textColor": ink, "color": halo, "opacity": opacity}
+
+
+def region_color(path: Path, safe_area: dict, width: int, height: int) -> str:
+    """取安全区中央的代表色，覆盖实际字行而非整幅画面。"""
+    x, y = safe_area["x"], safe_area["y"]
+    w, h = safe_area["width"], safe_area["height"]
+    with Image.open(path) as image:
+        sx, sy = image.width / width, image.height / height
+        box = (round((x + .12 * w) * sx), round((y + .28 * h) * sy),
+               round((x + .88 * w) * sx), round((y + .72 * h) * sy))
+        pixel = image.convert("RGB").resize((1, 1), Image.Resampling.BOX, box).getpixel((0, 0))
+    return hex_color(pixel)
+
+
+def apply(root: Path, storyboard: Path, prepared: dict) -> None:
+    props = prepared["props"]
+    cues = props["subtitleCues"]
+    if not cues:
+        return
+    from film_runtime.engine import browser, lookdev
+
+    subtitle = props["subtitle"]
+    browser.configure()
+    midpoints = [(cue["startFrame"] + cue["endFrame"]) // 2 for cue in cues]
+    logger.info("字幕背景采样：%d 条字幕", len(cues))
+    with tempfile.TemporaryDirectory(prefix="subtitle-backing-", dir=root / "outputs") as temporary:
+        work = Path(temporary)
+        samples = lookdev.background_stills(root, storyboard, prepared, sorted(set(midpoints)), work)
+        for frame, cue in zip(midpoints, cues):
+            background = region_color(samples[frame], subtitle["safeArea"], prepared["width"], prepared["height"])
+            cue["backing"] = appearance(background, subtitle)

@@ -9,32 +9,61 @@
 import spec from './frames.json';
 
 export type SubtitleSafeArea = {x: number; y: number; width: number; height: number};
-/** 字幕样式独立于作品配色：白字配不透明深色底板，保证任何作品背景上都可读。 */
+/** 英文字幕次行；省略时只显示中文主行。 */
+export type SubtitleSecondary = {
+  fontFamily: string;
+  fontSize: number;
+  lineHeight: number;
+  textColor: string;
+  opacity?: number;
+};
+/** 自适应柔光；每条字幕的实际字色由准备阶段确定。 */
+export type SubtitleBacking = {
+  mode: 'adaptiveHalo';
+  color: string;
+  maxOpacity: number;
+  feather: number;
+};
+/** 字幕样式独立于作品配色，支持柔光与双行。 */
 export type SubtitleStyle = {
   safeArea: SubtitleSafeArea;
   fontSize: number;
   lineHeight: number;
   textColor: string;
   plateColor: string;
+  fontFamily?: string;
+  secondary?: SubtitleSecondary;
+  backing?: SubtitleBacking;
 };
 export type Frame = {width: number; height: number; subtitle: SubtitleStyle};
 
-const FRAMES: Frame[] = spec.frames.map(frame => ({
-  width: frame.width,
-  height: frame.height,
-  subtitle: {
-    safeArea: {
-      x: frame.subtitle.x,
-      y: frame.subtitle.y,
-      width: frame.subtitle.width,
-      height: frame.subtitle.height,
+const FRAMES: Frame[] = spec.frames.map(frame => {
+  // JSON 的字段随作品清单变化；旧清单没有双行/柔光字段，按可选处理。
+  const raw = frame.subtitle as typeof frame.subtitle & {
+    fontFamily?: string;
+    secondary?: SubtitleSecondary;
+    backing?: SubtitleBacking;
+  };
+  return {
+    width: frame.width,
+    height: frame.height,
+    subtitle: {
+      safeArea: {
+        x: frame.subtitle.x,
+        y: frame.subtitle.y,
+        width: frame.subtitle.width,
+        height: frame.subtitle.height,
+      },
+      fontSize: frame.subtitle.fontSize,
+      lineHeight: frame.subtitle.lineHeight,
+      textColor: frame.subtitle.textColor,
+      plateColor: frame.subtitle.plateColor,
+      ...(raw.fontFamily ? {fontFamily: raw.fontFamily} : {}),
+      ...(raw.secondary ? {secondary: raw.secondary} : {}),
+      ...(raw.backing ? {backing: raw.backing} : {}),
     },
-    fontSize: frame.subtitle.fontSize,
-    lineHeight: frame.subtitle.lineHeight,
-    textColor: frame.subtitle.textColor,
-    plateColor: frame.subtitle.plateColor,
-  },
-}));
+  };
+});
 
 /** 某个画幅的取值；未支持的组合直接失败，不静默落回某一档。 */
 export function frameOf(width: number, height: number): Frame {

@@ -25,7 +25,7 @@ from film_runtime.core.audio_policy import declared_audio
 from film_runtime.core.delivery import outputs as output_root
 from film_runtime.core.errors import VideoError
 from film_runtime.core.project import _write_json
-from film_runtime.engine import qa_inspection
+from film_runtime.engine import qa_inspection, subtitle_backing
 
 #: 抽样画面的尺寸：够看出构图与 banding，又不会让抽样本身成为瓶颈。
 SAMPLE_SIZE = (192, 104)
@@ -193,24 +193,38 @@ def contact_sheet(video: Path, target: Path, *, columns: int = 4, rows: int = 6,
     return target
 
 
-def _contrast_ratio(foreground: str, background: str) -> float:
-    def luminance(color: str) -> float:
-        value = color.lstrip("#")
-        if len(value) != 6:
-            raise VideoError(f"颜色必须是 #rrggbb：{color}")
-        channels = []
-        for index in (0, 2, 4):
-            channel = int(value[index:index + 2], 16) / 255
-            channels.append(channel / 12.92 if channel <= .04045 else ((channel + .055) / 1.055) ** 2.4)
-        return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
-    high, low = sorted((luminance(foreground), luminance(background)), reverse=True)
-    return (high + .05) / (low + .05)
-
-
-def subtitle_contrast(subtitle: dict) -> dict:
-    ratio = _contrast_ratio(subtitle["textColor"], subtitle["plateColor"])
-    return {"textColor": subtitle["textColor"], "plateColor": subtitle["plateColor"],
-            "ratio": round(ratio, 2), "minimum": 4.5, "status": "pass" if ratio >= 4.5 else "fail"}
+def subtitle_contrast(subtitle: dict, cues: list[dict] | None = None) -> dict:
+    minimum = subtitle_backing.MIN_CONTRAST
+    if cues is None:
+        ratio = subtitle_backing.contrast(subtitle["textColor"], subtitle["plateColor"])
+        return {"ratio": round(ratio, 2), "minimum": minimum,
+                "status": "pass" if ratio >= minimum else "fail"}
+    if not cues:
+        return {"cues": 0, "status": "skipped"}
+    ratios = []
+    missing = []
+    for index, cue in enumerate(cues):
+        try:
+            item = cue["backing"]
+            opacity = float(item["opacity"])
+            if not 0 <= opacity <= 1:
+                raise ValueError("柔光透明度越界")
+            background = subtitle_backing.blend(item["color"], item["background"],
+                                                opacity * subtitle_backing.HALO_WEIGHT)
+            foreground = item["textColor"]
+            ratio = subtitle_backing.contrast(foreground, background)
+            if cue.get("secondary"):
+                secondary = subtitle.get("secondary") or {}
+                text = subtitle_backing.blend(foreground, background, secondary.get("opacity", 1))
+                ratio = min(ratio, subtitle_backing.contrast(text, background))
+            ratios.append((ratio, index))
+        except (KeyError, TypeError, ValueError, VideoError):
+            missing.append(index)
+    ratio, index = min(ratios, default=(None, None))
+    return {"backingMode": "adaptiveHalo", "cues": len(cues), "minimum": minimum,
+            "worstCue": index, "ratio": round(ratio, 2) if ratio is not None else None,
+            "missingCues": missing,
+            "status": "pass" if not missing and ratio is not None and ratio >= minimum else "fail"}
 
 
 def loudness(audio: Path) -> dict:
@@ -352,7 +366,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     checks = {
         "frozenFrames": frozen,
         "picture": picture_metrics(frames),
-        "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"]),
+        "subtitleContrast": subtitle_contrast(prepared["props"]["subtitle"], prepared["props"].get("subtitleCues", [])),
         "loudness": audio_level,
         "audioSync": sync,
         "claims": claims_check(prepared),
@@ -361,7 +375,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
     scopes = {
         "frozenFrames": ("decision", "sampled-frame-repetition"),
         "picture": ("measurement", "dark-levels-and-spatial-variation"),
-        "subtitleContrast": ("decision", "configured-color-contrast"),
+        "subtitleContrast": ("decision", "adaptive-backing-contrast"),
         "loudness": ("decision", "delivery-audio-loudness-and-peak"),
         "audioSync": ("decision", "track-duration-difference"),
         "claims": ("decision", "shot-window-coverage"),

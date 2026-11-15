@@ -72,7 +72,8 @@ def _entry(frame: object, where: str) -> None:
     subtitle = frame.get("subtitle")
     if not isinstance(subtitle, dict):
         raise VideoError(f"{where} 缺少 subtitle 对象")
-    unknown = sorted(set(subtitle) - set(_SUBTITLE_INTEGERS) - set(_SUBTITLE_COLORS) - {"lineHeight"})
+    unknown = sorted(set(subtitle) - set(_SUBTITLE_INTEGERS) - set(_SUBTITLE_COLORS)
+                     - {"lineHeight", "fontFamily", "secondary", "backing"})
     if unknown:
         raise VideoError(f"{where} 的 subtitle 含未知字段：{'、'.join(unknown)}")
     for field in _SUBTITLE_INTEGERS:
@@ -83,11 +84,61 @@ def _entry(frame: object, where: str) -> None:
     if isinstance(leading, bool) or not isinstance(leading, (int, float)) or leading <= 0:
         raise VideoError(f"{where} 的 subtitle.lineHeight 必须是正数")
     for field in _SUBTITLE_COLORS:
-        value = subtitle.get(field)
-        if not isinstance(value, str) or not value.startswith("#") or len(value) != 7:
-            raise VideoError(f"{where} 的 subtitle.{field} 必须是 #RRGGBB 颜色")
+        _color(subtitle.get(field), f"{where} 的 subtitle.{field}")
+    if "fontFamily" in subtitle and (not isinstance(subtitle["fontFamily"], str)
+                                     or not subtitle["fontFamily"].strip()):
+        raise VideoError(f"{where} 的 subtitle.fontFamily 必须是非空字符串")
+    if "secondary" in subtitle:
+        _secondary(subtitle["secondary"], f"{where} 的 subtitle.secondary")
+    if "backing" in subtitle:
+        _backing(subtitle["backing"], f"{where} 的 subtitle.backing")
     if subtitle["x"] + subtitle["width"] > frame["width"] or subtitle["y"] + subtitle["height"] > frame["height"]:
         raise VideoError(f"{where} 的字幕安全区超出画布")
+
+
+def _color(value: object, where: str) -> None:
+    if not isinstance(value, str) or not value.startswith("#") or len(value) != 7:
+        raise VideoError(f"{where} 必须是 #RRGGBB 颜色")
+
+
+def _positive(value: object, where: str, *, integer: bool = False) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise VideoError(f"{where} 必须是正数")
+    if integer and type(value) is not int:
+        raise VideoError(f"{where} 必须是正整数")
+
+
+def _secondary(value: object, where: str) -> None:
+    if not isinstance(value, dict):
+        raise VideoError(f"{where} 必须是对象")
+    unknown = set(value) - {"fontFamily", "fontSize", "lineHeight", "textColor", "opacity"}
+    if unknown:
+        raise VideoError(f"{where} 含未知字段：{'、'.join(sorted(unknown))}")
+    if not isinstance(value.get("fontFamily"), str) or not value["fontFamily"].strip():
+        raise VideoError(f"{where}.fontFamily 必须是非空字符串")
+    _positive(value.get("fontSize"), f"{where}.fontSize", integer=True)
+    _positive(value.get("lineHeight"), f"{where}.lineHeight")
+    _color(value.get("textColor"), f"{where}.textColor")
+    if "opacity" in value:
+        opacity = value["opacity"]
+        if isinstance(opacity, bool) or not isinstance(opacity, (int, float)) or not 0 <= opacity <= 1:
+            raise VideoError(f"{where}.opacity 必须在 0 到 1 之间")
+
+
+def _backing(value: object, where: str) -> None:
+    if not isinstance(value, dict):
+        raise VideoError(f"{where} 必须是对象")
+    unknown = set(value) - {"mode", "color", "maxOpacity", "feather"}
+    if unknown:
+        raise VideoError(f"{where} 含未知字段：{'、'.join(sorted(unknown))}")
+    if value.get("mode") != "adaptiveHalo":
+        raise VideoError(f"{where}.mode 必须是 adaptiveHalo")
+    _color(value.get("color"), f"{where}.color")
+    max_opacity = value.get("maxOpacity")
+    if (isinstance(max_opacity, bool) or not isinstance(max_opacity, (int, float))
+            or not 0 <= max_opacity <= 1):
+        raise VideoError(f"{where}.maxOpacity 必须在 0 到 1 之间")
+    _positive(value.get("feather"), f"{where}.feather")
 
 
 def sizes(repo_root: Path | None = None) -> tuple[tuple[int, int], ...]:
@@ -128,8 +179,11 @@ def spec(width: int, height: int, repo_root: Path | None = None) -> dict:
     for frame in manifest(repo_root)["frames"]:
         if _size(frame) == (width, height):
             subtitle = dict(frame["subtitle"])
+            style = {key: value for key, value in subtitle.items()
+                     if key not in ("x", "y", "width", "height")}
+            style.setdefault("backing", {"mode": "adaptiveHalo", "color": "#070a0e",
+                                         "maxOpacity": .32, "feather": round(.6 * subtitle["width"])})
             return {"width": width, "height": height,
                     "subtitle": {"safeArea": {key: subtitle[key] for key in ("x", "y", "width", "height")},
-                                 "fontSize": subtitle["fontSize"], "lineHeight": subtitle["lineHeight"],
-                                 "textColor": subtitle["textColor"], "plateColor": subtitle["plateColor"]}}
+                                 **style}}
     raise VideoError(f"画幅清单里没有 {_key((width, height))}")

@@ -101,6 +101,13 @@ def fake_record(monkeypatch):
     monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", digest_entry)
     # 准备阶段直接调用包级 rebuild 入口收集可达依赖；它和录制内构建是两条路径。
     monkeypatch.setattr(prepare.code_scenes, "build_scene", digest_entry)
+    # 帧账本用例保留已登记的字幕样式，实绘采样由浏览器和字幕专项覆盖。
+    def sample_backing(root, storyboard, prepared):
+        props = prepared["props"]
+        for cue in props["subtitleCues"]:
+            cue["backing"] = prepare.subtitle_backing.appearance("#141721", props["subtitle"])
+
+    monkeypatch.setattr(prepare.subtitle_backing, "apply", sample_backing)
     return calls
 
 

@@ -8,8 +8,9 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, file_inputs, load_current_prepared, load_project, save_prepared
 from m2v.types.scene_film import adapter
+from film_runtime.core.errors import VideoError
 from film_runtime.types.scene_film import explainer_prepare, explainer_render
-from helpers.scene_film import fake_tts, project
+from helpers.scene_film import fake_record, fake_tts, project
 
 
 @pytest.mark.parametrize("subtitle", [
@@ -65,11 +66,12 @@ def test_browser_uses_prepared_subtitle_size_and_rejects_drift(tmp_path, monkeyp
     root, manifest = project(tmp_path)
     manifest["output"]["subtitle"] = {"fontSize": 52}
     fake_tts(monkeypatch)
+    fake_record(monkeypatch)
     prepared = explainer_prepare.prepare(root, manifest)
     # 量测对照准备字号而非画幅默认40；实际DOM必须为52才能通过。
     assert explainer_render.layout_check(root, prepared)["status"] == "pass"
     monkeypatch.setattr(explainer_render, "MEASURE_BODY", explainer_render.MEASURE_BODY.replace(
         "const problems = [];",
         "const problems = []; document.querySelector('[data-m2v-subtitle]').style.fontSize = '40px';"))
-    with pytest.raises(M2VError, match="字幕字号不符"):
+    with pytest.raises(VideoError, match="字幕字号不符"):
         explainer_render.layout_check(root, prepared)
