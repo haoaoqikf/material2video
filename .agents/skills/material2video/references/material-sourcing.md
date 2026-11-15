@@ -230,12 +230,15 @@ uv run m2v author assets models prepare --models outputs/materials/models
 uv run m2v author assets models verify --models outputs/materials/models
 ```
 
+模型文件存在不等于可读取或可推理；先用 `doctor` 检查依赖，再用 `models verify` 校验内容，最后实际执行索引。本机恢复与短样本实测见[推理环境验证记录](../../../../docs/material-runtime-readiness.md)；恢复依赖使用 `uv sync --locked --extra index`。
+
 操作要点：
 
 - 先 `discover`/`fetch` 建立来源与媒体，再 `index`；`find` 不会补建索引。语义通道需要显式 `--models`，缺失时报告 `model-missing` 并给出 prepare 入口。
 - 中文词面用字符 n-gram；文本语义用 E5 的 `query:`/`passage:` 前缀；视觉用 SigLIP 2 固定长度 padding。语义命中低于校准阈值不参与融合；RRF 融合只改变排序，不把分数解释为概率、身份或动作已完成。
 - 字幕、转录、OCR 分别标记 `manual/automatic/local/asr` 与对齐状态；黑场/纯色低对比度采样帧不进入视觉证据；切镜是候选边界，不是动作起止。
 - 选择输出与导入凭据：作品内 `assets/materials/receipts/`、正式登记仍在 `assets/media-sources.json`。作品移走后 `verify_project_media` 只依赖作品内文件，不读取共享库。
+- 精裁起点按真实源 PTS 测量并换算为媒体本地时间；长关键帧间隔不能只探测固定包数，非零视频原点也必须计入。测量失败仍明确拒绝，不手改候选窗口或放宽误差绕过。
 - 曲库/素材库清理只删除未被工作文档绑定的对象与暂存残留；不删除作品正式文件、选择输出、索引帧、凭据或唯一源证据。
 - 平台能力按实测披露：B站/YouTube 搜索依赖固定版本 yt-dlp，会话/风控可能失败；抖音/小红书/微博/西瓜只接受已知链接；失败时改用网页候选、公开直链或本地文件，不自动启用个人浏览器。
 

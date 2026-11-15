@@ -95,6 +95,25 @@ def test_select_measures_frame_accurate_window_and_refuses_rejected_output(tmp_p
 
 
 @pytest.mark.media
+@pytest.mark.parametrize('source_origin_us', [0, 5_000_000])
+def test_actual_start_crosses_long_gop_and_keeps_local_time(tmp_path, source_origin_us):
+    # 默认 x264 GOP 长于请求位置；从前一个关键帧只读 60 包无法到达 2.86 秒。
+    source = _clip(tmp_path / 'long-gop.mp4', seconds=6, audio=False)
+    if source_origin_us:
+        shifted = tmp_path / 'shifted.mp4'
+        result = subprocess.run([get_ffmpeg_exe(), '-v', 'error', '-nostdin',
+            '-itsoffset', str(source_origin_us / 1_000_000), '-i', str(source),
+            '-map', '0:v:0', '-c', 'copy', str(shifted)], capture_output=True, timeout=60)
+        assert result.returncode == 0, result.stderr.decode('utf-8', 'replace')
+        source = shifted
+    actual = selection._actual_start(source, 2_860_000, video_start_us=source_origin_us)
+    assert actual == 2_880_000
+    with pytest.raises(MaterialError) as missing:
+        selection._actual_start(source, 7_000_000, video_start_us=source_origin_us)
+    assert missing.value.code == 'timeline-unverified'
+
+
+@pytest.mark.media
 def test_import_registers_media_receipt_and_is_idempotent(tmp_path):
     store, media, candidate = _setup(tmp_path)
     project = create_typed_project(tmp_path / 'project', 'text-motion').parent

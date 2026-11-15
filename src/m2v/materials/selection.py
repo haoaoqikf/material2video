@@ -48,8 +48,13 @@ def persist_candidate(store: MaterialStore, candidate: CandidateData,
 
 def _actual_start(source: Path, requested_us: int, *, video_start_us: int | None) -> int:
     """读取真实帧 PTS，返回请求起点之后第一帧的媒体本地时间。"""
-    command = [ffprobe_exe(), '-v', 'error', '-select_streams', 'v:0',
-               '-read_intervals', f'{requested_us / 1_000_000:.6f}%+#60',
+    origin = video_start_us or 0
+    seek_us = origin + requested_us
+    # seek 可能回退到前一个关键帧。固定包数或相对时长会在长 GOP 中提前
+    # 停止；使用源 PTS 的绝对终点，确保探测覆盖请求位置，而非回退位置。
+    interval = f'{seek_us / 1_000_000:.6f}%{(seek_us + 1_000_000) / 1_000_000:.6f}'
+    command = [ffprobe_exe(), '-v', 'error', *LOCAL_INPUT_OPTIONS, '-select_streams', 'v:0',
+               '-read_intervals', interval,
                '-show_frames', '-show_entries', 'frame=best_effort_timestamp,pts_time',
                '-of', 'json', str(source)]
     try:
@@ -71,7 +76,6 @@ def _actual_start(source: Path, requested_us: int, *, video_start_us: int | None
             values.append(seconds_us(value))
         except MaterialError:
             continue
-    origin = video_start_us or 0
     candidates = sorted(value - origin for value in values if value - origin >= requested_us - 1)
     if not candidates:
         raise MaterialError('timeline-unverified', '请求窗口内没有可测量的真实帧', stage='selection')
