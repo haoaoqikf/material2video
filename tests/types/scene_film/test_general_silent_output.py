@@ -5,7 +5,8 @@ import subprocess
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from m2v.types.scene_film import adapter, explainer_render
+from m2v.types.scene_film import adapter
+from film_runtime.types.scene_film import explainer_render
 from helpers.scene_film import board, fake_tts, project, scene
 
 

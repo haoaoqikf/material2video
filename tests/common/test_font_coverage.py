@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-import m2v.core.fonts as fonts
+import film_runtime.core.fonts as fonts
 from helpers.examples import STORYBOARD_PATHS
 
 ASSETS = Path(__file__).resolve().parents[2] / "fonts/files"

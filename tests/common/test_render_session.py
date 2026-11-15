@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-import m2v.engine.remotion as remotion
+import film_runtime.engine.remotion as remotion
 
 requires_node = pytest.mark.skipif(
     shutil.which("node") is None, reason="需要 Node 才能验证会话协议"

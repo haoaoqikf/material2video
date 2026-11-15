@@ -18,11 +18,11 @@ import pytest
 
 from m2v.core.project import create_project, load_project
 from m2v.types.scene_film import explainer_review as review
-from m2v.types.scene_film import explainer_prepare as prepare
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'templates/standalone/runtime/python'))
 from film_runtime.engine import tts as local_tts  # noqa: E402
+from film_runtime.types.scene_film import explainer_prepare as prepare  # noqa: E402
 ENTRY = "scenes/opening.tsx"
 STARTER = ROOT / "templates/standalone" / ENTRY
 WEB = ROOT / "web"
@@ -95,9 +95,12 @@ def fake_record(monkeypatch):
         calls.append({"scene": target["id"], "frame": frame, "media": media, "fps": fps})
         return relative
 
+    digest_entry = lambda root, target, work: {
+        "file:" + target["content"]["entry"]: hashlib.sha256((root / target["content"]["entry"]).read_bytes()).hexdigest()}
     monkeypatch.setattr(prepare.code_scenes.capture, "record", record)
-    monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", lambda root, target, work: {
-        "file:" + target["content"]["entry"]: hashlib.sha256((root / target["content"]["entry"]).read_bytes()).hexdigest()})
+    monkeypatch.setattr(prepare.code_scenes.capture, "build_scene", digest_entry)
+    # 准备阶段直接调用包级 rebuild 入口收集可达依赖；它和录制内构建是两条路径。
+    monkeypatch.setattr(prepare.code_scenes, "build_scene", digest_entry)
     return calls
 
 

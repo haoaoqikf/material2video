@@ -13,6 +13,9 @@ TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS_DIR))
 SCRIPT_TOOLS_DIR = Path(__file__).resolve().parents[1] / ".agents" / "skills" / "material2video" / "scripts"
 sys.path.insert(0, str(SCRIPT_TOOLS_DIR))
+# 作品运行时以模板为唯一实现；相关测试直接导入模板副本，不依赖主项目保留同名模块。
+TEMPLATE_RUNTIME = Path(__file__).resolve().parents[1] / "templates" / "standalone" / "runtime" / "python"
+sys.path.insert(0, str(TEMPLATE_RUNTIME))
 
 from m2v.core.workspace import PROJECT_MARKER
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from m2v.core import source_policy
+from film_runtime.core import source_policy
 from m2v.types.scene_film import code_scenes
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,13 +12,6 @@ COMPONENTS = WEB / "src/code-scene/motion-components"
 SDK = Path(__file__).resolve().parents[1] / "support/code-scene-reference.tsx"
 
 
-def test_shared_components_are_part_of_the_implementation_fingerprint():
-    inputs = {name.replace("\\", "/"): value for name, value in code_scenes.implementation_inputs().items()}
-    for path in COMPONENTS.rglob('*'):
-        if path.suffix not in ('.ts', '.tsx') or '.test.' in path.name:
-            continue
-        relative = path.relative_to(ROOT).as_posix()
-        assert relative in inputs, relative
 
 
 def test_shared_components_pass_the_determinism_source_gate():

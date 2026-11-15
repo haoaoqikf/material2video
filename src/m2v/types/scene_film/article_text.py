@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from m2v.core.text import count_characters
+from m2v.core.text import count_characters  # noqa: F401 - 本模块的公开入口，调用方按 article_text.count_characters 使用
 
 
 def extract_body(text: str) -> str:

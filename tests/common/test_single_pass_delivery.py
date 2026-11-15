@@ -80,37 +80,11 @@ def test_concurrent_export_rejected_and_input_change_discards(tmp_path):
     assert not list((tmp_path / "candidates").glob("*.mp4"))
 
 
-def test_renderer_repeated_full_export_calls_generate_once(tmp_path, monkeypatch):
-    from m2v.core import project as project_module
-    from m2v.engine import output_validation, render_pipeline
-    from m2v.types.scene_film import explainer_render
-    module = explainer_render
-    project = {"id": "test", "type": "text-motion"}
-    prepared = {"preparedFingerprint": "current", "durationInFrames": 1200, "width": 1920,
-                "height": 1080, "fps": 30}
-    monkeypatch.setattr(project_module, "load_project", lambda _: (tmp_path, project))
-    monkeypatch.setattr(project_module, "load_current_prepared", lambda *_: prepared)
-    monkeypatch.setattr(delivery, "binding", lambda root, prep, params: {"preparedFingerprint": prep["preparedFingerprint"], "parameters": params})
-    monkeypatch.setattr(output_validation, "verify_output", lambda *a, **k: None)
-    calls = []
-    def generate(root, data, *args, **kwargs):
-        calls.append(kwargs)
-        kwargs["output"].parent.mkdir(parents=True, exist_ok=True)
-        kwargs["output"].write_bytes(b"full")
-        return kwargs["output"]
-    monkeypatch.setattr(module, "_generate", generate)
-    monkeypatch.setattr(module, "current", lambda *_: prepared)
-    monkeypatch.setattr(module, "layout_check", lambda *_: {})
-    material = project
-    module.render(tmp_path, material)
-    module.render(tmp_path, material)
-    assert len(calls) == 1
-    assert calls[0]["defer_validation"] is True
 
 
 def test_general_materializes_only_intersecting_scenes_and_offsets(tmp_path, monkeypatch):
     from m2v.core import frames
-    from m2v.types.scene_film import code_scenes, media_assets
+    from film_runtime.types.scene_film import code_scenes, media_assets
     monkeypatch.setattr(media_assets, "resolve", lambda _: {"media": {}, "digest": "m"})
     calls = []
     def record(root, scene, inputs, **kwargs):

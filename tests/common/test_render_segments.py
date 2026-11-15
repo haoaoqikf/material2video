@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from m2v.engine.remotion.process import RemotionError
-from m2v.engine.remotion.segments import frame_ranges
+from film_runtime.engine.remotion.process import RemotionError
+from film_runtime.engine.remotion.segments import frame_ranges
 
 
 def test_frame_ranges_split_without_gaps_or_overlap():

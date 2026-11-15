@@ -6,9 +6,9 @@ import subprocess
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from m2v.core.errors import M2VError
+from film_runtime.core.errors import VideoError
 from m2v.engine import media_probe
-from m2v.types.scene_film import code_scenes
+from film_runtime.types.scene_film import code_scenes
 from helpers.scene_film import requires_node
 
 HERO = [{"id": "earth", "tier": "hero", "startFrame": 10, "endFrame": 20},
@@ -56,7 +56,7 @@ def test_average_of_one_subframe_copies(tmp_path):
 
 
 def test_average_rejects_empty_input(tmp_path):
-    with pytest.raises(M2VError, match="没有可平均的子帧"):
+    with pytest.raises(VideoError, match="没有可平均的子帧"):
         code_scenes._average([], tmp_path / "frame-000000.png")
 
 

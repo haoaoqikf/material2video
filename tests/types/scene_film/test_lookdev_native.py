@@ -8,8 +8,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from playwright.sync_api import sync_playwright
 
 from m2v.engine import lookdev
-from m2v.core.errors import M2VError
-from m2v.types.scene_film import code_scenes
+from film_runtime.core.errors import VideoError
+from film_runtime.types.scene_film import code_scenes
 from helpers.scene_film import requires_node
 
 
@@ -52,7 +52,7 @@ export default function Scene() {
               'subtitleSafeArea': {'x': 0, 'y': 900, 'width': 1920, 'height': 100}}
     with sync_playwright() as pw:
         if not sdk_canvas:
-            with pytest.raises(M2VError, match='画布像素不足'):
+            with pytest.raises(VideoError, match='画布像素不足'):
                 code_scenes._capture(pw, root, work, config, selected_frames=[2])
             assert not list(work.glob('frame-*.png'))
             return
@@ -77,7 +77,7 @@ def test_global_hero_selection_adds_scene_offset():
 
 def test_selected_capture_validates_indices_before_browser(tmp_path):
     config = {'width': 1920, 'height': 1080, 'durationInFrames': 10}
-    with pytest.raises(M2VError, match='关键帧索引'):
+    with pytest.raises(VideoError, match='关键帧索引'):
         code_scenes._capture(None, tmp_path, tmp_path, config, selected_frames=[10])
 
 

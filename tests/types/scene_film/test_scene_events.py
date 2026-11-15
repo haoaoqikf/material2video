@@ -7,7 +7,8 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core import frames
 from m2v.core.project import load_current_prepared
-from m2v.types.scene_film import adapter, code_scenes, explainer, scene_events, soundtrack
+from m2v.types.scene_film import adapter, explainer, scene_events, soundtrack
+from film_runtime.types.scene_film import code_scenes
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root, requires_node, prepare_build
 
 pytestmark = pytest.mark.media

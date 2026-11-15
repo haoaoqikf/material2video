@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from m2v.core import source_policy
+from film_runtime.core import source_policy
 from m2v.types.scene_film import cinematic, code_scenes
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,19 +18,6 @@ MOTION = WEB / "src/code-scene/motion.ts"
 SDK = Path(__file__).resolve().parents[1] / "support/code-scene-reference.tsx"
 
 
-def test_primitives_are_part_of_the_implementation_fingerprint():
-    """改原语必须让引用作品重新准备，不能静默复用旧片段。"""
-    inputs = {name.replace("\\", "/"): value for name, value in code_scenes.implementation_inputs().items()}
-    assert "web/src/code-scene/primitives.ts" in inputs
-    assert inputs["web/src/code-scene/primitives.ts"] == code_scenes.digest(PRIMITIVES)
-    assert "web/src/code-scene/dynamics.ts" in inputs
-    assert inputs["web/src/code-scene/dynamics.ts"] == code_scenes.digest(DYNAMICS)
-    assert "web/src/code-scene/subtitles.ts" in inputs
-    assert inputs["web/src/code-scene/subtitles.ts"] == code_scenes.digest(SUBTITLES)
-    assert "web/src/code-scene/rhythm.ts" in inputs
-    assert inputs["web/src/code-scene/rhythm.ts"] == code_scenes.digest(RHYTHM)
-    assert "web/src/code-scene/effects/screen-burst.tsx" in inputs
-    assert inputs["web/src/code-scene/effects/screen-burst.tsx"] == code_scenes.digest(EFFECTS)
 
 
 def test_primitives_pass_the_determinism_source_gate():

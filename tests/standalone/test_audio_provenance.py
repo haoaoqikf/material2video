@@ -10,7 +10,6 @@ import pytest
 
 
 @pytest.mark.parametrize('module_name', [
-    'm2v.types.scene_film.explainer_render',
     'film_runtime.types.scene_film.explainer_render',
 ])
 @pytest.mark.parametrize('channels,rate', [(1, 24000), (2, 24000), (2, 48000)])

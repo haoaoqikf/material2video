@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from m2v.core import source_policy
-from m2v.types.scene_film import code_scenes
+from film_runtime.core import source_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
@@ -30,12 +29,6 @@ def test_painter_sources_exist():
     assert {"frame.ts", "bloom.ts", "usePainter.tsx", "index.ts"} <= names
 
 
-def test_painter_is_part_of_the_implementation_fingerprint():
-    """改绘制层必须让引用作品重新准备，不能静默复用旧片段。"""
-    inputs = {name.replace("\\", "/") for name in code_scenes.implementation_inputs()}
-    for path in painter_sources():
-        relative = path.relative_to(ROOT).as_posix()
-        assert relative in inputs, f"{relative} 未进入实现指纹"
 
 
 def test_painter_passes_the_determinism_source_gate():

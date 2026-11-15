@@ -1,5 +1,4 @@
 """通用适配器只接入 v8 全画布代码场景，不再桥接旧动画 CLI。"""
-import json
 import pytest
 from m2v.core.errors import M2VError
 from m2v.types.scene_film import adapter

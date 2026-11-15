@@ -6,9 +6,10 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core.project import load_current_prepared
 from m2v.core import frames
-from m2v.types.scene_film import adapter, explainer, explainer_prepare as prepare, explainer_review as review
+from m2v.types.scene_film import adapter, explainer, explainer_review as review
+from film_runtime.types.scene_film import explainer_prepare as prepare
 
-from helpers.scene_film import ENTRY, board, fake_record, fake_tts, project, scene, scene_root
+from helpers.scene_film import ENTRY, WEB, board, fake_record, fake_tts, project, scene, scene_root
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -281,8 +282,8 @@ def test_code_change_invalidates_preparation(tmp_path, monkeypatch):
 @pytest.mark.parametrize("size", [(1920, 1080), (1080, 1920)], ids=["横屏", "竖屏"])
 def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium_ready, size):
     """两种画幅各跑一遍：安全区、静音隐藏、可见性与随机访问确定性都要成立。"""
-    from m2v.types.scene_film.explainer_render import layout_check
-    from m2v.engine.contract_page import serve_contract_page
+    from film_runtime.types.scene_film.explainer_render import layout_check
+    from film_runtime.engine.contract_page import serve_contract_page
     from playwright.sync_api import sync_playwright
     data = board(width=size[0], height=size[1])
     root, manifest = project(tmp_path, data)
@@ -291,10 +292,10 @@ def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium
     prepared_record = adapter.prepare(root, manifest)
     assert layout_check(root, prepared_record)["status"] == "pass"
     props = root / "outputs/browser-props.json"
-    from m2v.types.scene_film.code_scenes import materialize
+    from film_runtime.types.scene_film.code_scenes import materialize
     prepared_record = materialize(root, prepared_record, 0, prepared_record["durationInFrames"])
     props.write_text(json.dumps(prepared_record["props"], ensure_ascii=False), encoding="utf-8")
-    with serve_contract_page(props, root) as url, sync_playwright() as pw:
+    with serve_contract_page(props, root, WEB) as url, sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         try:
             page = browser.new_page(viewport={"width": size[0], "height": size[1]})
@@ -334,7 +335,7 @@ def test_browser_subtitle_layout_and_random_seek(tmp_path, monkeypatch, chromium
 @pytest.mark.slow
 def test_browser_blocks_subtitle_overflow(tmp_path, monkeypatch, chromium_ready):
     """字幕换行宽度就是安全区宽度：文字放不下时量测必须失败。"""
-    from m2v.types.scene_film.explainer_render import layout_check
+    from film_runtime.types.scene_film.explainer_render import layout_check
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch, 1)
     prepared_record = adapter.prepare(root, manifest)
@@ -344,7 +345,8 @@ def test_browser_blocks_subtitle_overflow(tmp_path, monkeypatch, chromium_ready)
 
 @pytest.mark.slow
 def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready):
-    from m2v.types.scene_film import explainer_render
+    from film_runtime.core.errors import VideoError
+    from film_runtime.types.scene_film import explainer_render
     root, manifest = project(tmp_path)
     fake_tts(monkeypatch, 1)
     prepared_record = adapter.prepare(root, manifest)
@@ -354,5 +356,5 @@ def test_browser_detects_covered_subtitle(tmp_path, monkeypatch, chromium_ready)
         "const problems = []; const cover = document.createElement('div');"
         " cover.style.cssText = 'position:absolute;inset:0;z-index:9;background:#000';"
         " document.querySelector('[data-m2v-subtitle]').parentElement.appendChild(cover);"))
-    with pytest.raises(M2VError, match="字幕被遮挡"):
+    with pytest.raises(VideoError, match="字幕被遮挡"):
         explainer_render.layout_check(root, prepared_record)

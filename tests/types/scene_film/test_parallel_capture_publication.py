@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from m2v.core.errors import M2VError
-from m2v.types.scene_film.code_scenes import capture
+from film_runtime.core.errors import VideoError
+from film_runtime.types.scene_film.code_scenes import capture
 
 
 def setup_capture(tmp_path, monkeypatch, *, missing_witness=False, worker_failure=False):
@@ -41,7 +41,7 @@ def test_failed_group_never_publishes_reusable_blocks(tmp_path, monkeypatch, fai
                                 worker_failure=failure=='worker')
     monkeypatch.setattr(capture.images, 'psnr', lambda *_: 45 if failure=='boundary' else 100)
     for _ in range(2):
-        with pytest.raises(M2VError):
+        with pytest.raises(VideoError):
             capture._parallel_chunks(tmp_path, work, {'durationInFrames':6}, [(0,6)], cache,
                                      'key', fps=30, jobs=2, verify_frames=2, block=2)
         assert capture._cached_ranges(cache, 'key', 0, 6, contract=capture.PURE_CONTRACT) == []

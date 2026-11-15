@@ -3,7 +3,7 @@
 报告要**记录真实**阶段耗时、标明缓存命中，未执行的阶段标记为跳过，
 且总耗时不重复累计（渲染与编码在 Remotion 内部重叠，只记一段）。
 
-直接测 `m2v.engine.perf` 的阶段计时与报告口径。
+直接测 `film_runtime.engine.perf` 的阶段计时与报告口径。
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-import m2v.engine.perf as perf
+import film_runtime.engine.perf as perf
 
 
 

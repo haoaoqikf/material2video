@@ -11,7 +11,6 @@
 """
 from __future__ import annotations
 
-import json
 import logging
 import os
 import shutil
@@ -24,8 +23,9 @@ from uuid import uuid4
 import pytest
 
 from m2v.core import security
-from m2v.types.scene_film import adapter, code_scenes, explainer_render, media_assets
-from helpers.scene_film import fake_record, fake_tts, project
+from m2v.types.scene_film import media_assets
+from film_runtime.types.scene_film import code_scenes
+from helpers.scene_film import project
 from helpers.media import entry, importer, make_image
 
 pytestmark = pytest.mark.media

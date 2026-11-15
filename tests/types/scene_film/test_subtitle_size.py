@@ -7,7 +7,8 @@ import pytest
 
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, file_inputs, load_current_prepared, load_project, save_prepared
-from m2v.types.scene_film import adapter, explainer_prepare, explainer_render
+from m2v.types.scene_film import adapter
+from film_runtime.types.scene_film import explainer_prepare, explainer_render
 from helpers.scene_film import fake_tts, project
 
 

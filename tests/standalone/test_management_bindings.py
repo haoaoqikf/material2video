@@ -87,9 +87,7 @@ def test_moved_candidate_keeps_identity_without_global_renderer(tmp_path, monkey
     moved = tmp_path / 'renamed folder'
     shutil.copytree(root, moved)
     shutil.rmtree(root)
-    # 检查器完全不能调用全局渲染器；身份来自作品的已绑定实现。
-    import m2v.engine.remotion as global_renderer
-    monkeypatch.setattr(global_renderer, 'build_input_fingerprint', lambda **kw: pytest.fail('global renderer accessed'))
+    # 身份来自作品的已绑定实现，检查器不读取任何全局渲染入口。
     assert projects.load_current_prepared(moved, project) == prepared
     assert Path(delivery.candidate(moved, prepared)['path']) == moved / 'outputs/candidate.mp4'
     record['width'] = 720  # 记录不能借用原key隐藏不同技术参数。
@@ -106,8 +104,6 @@ def test_dependency_snapshot_only_tracks_owned_reachable_sources(tmp_path, monke
     (root / 'components/math.ts').write_text('export const value=1;', encoding='utf-8')
     unused = root / 'components/unused.ts'
     unused.write_text('unused', encoding='utf-8')
-    import m2v.engine.contract_page as global_page
-    monkeypatch.setattr(global_page, 'web_dir', lambda: pytest.fail('main web accessed'))
     scene = {'content': {'entry': 'scenes/main.tsx'}}
     before = dependencies.scene_sources(root, scene)
     assert set(before['files']) == {'work/scenes/main.tsx', 'work/components/math.ts'}

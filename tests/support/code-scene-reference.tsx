@@ -10,7 +10,6 @@ export {useFrame, useThree} from '@react-three/fiber';
 export {Float, Stars, PerspectiveCamera} from '@react-three/drei';
 export {echarts};
 export {SceneContextProvider, useSceneContext} from '../../web/src/code-scene/context';
-export {useSceneSource} from '../../web/src/code-scene/sources';
 export type {CodeSceneProps, MediaAsset, PreparedSceneSource, SceneContext, SubtitleSafeArea} from '../../web/src/code-scene/context';
 export * from '../../web/src/code-scene/cinematic';
 export * from '../../web/src/code-scene/motion';

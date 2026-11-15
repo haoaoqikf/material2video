@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
 from m2v.core.errors import M2VError
+from film_runtime.core.errors import VideoError
 from m2v.core.project import load_project
-from m2v.types.scene_film import adapter, code_scenes, explainer, explainer_prepare
+from m2v.types.scene_film import adapter, explainer
+from film_runtime.types.scene_film import code_scenes, explainer_prepare
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root
 
 
@@ -99,7 +100,7 @@ def test_out_of_range_padding_is_rejected(tmp_path, extra, match):
 @pytest.mark.media
 def test_fixed_duration_must_cover_padding(tmp_path, monkeypatch):
     data = board(scenes=[scene(leadInFrames=600, durationFrames=60)])
-    with pytest.raises(M2VError, match="不足以容纳旁白、留白"):
+    with pytest.raises(VideoError, match="不足以容纳旁白、留白"):
         prepare_with(tmp_path, monkeypatch, data)
 
 
@@ -109,7 +110,7 @@ def test_fixed_duration_must_cover_padding(tmp_path, monkeypatch):
 def test_prepare_rejects_removed_profile(tmp_path, monkeypatch):
     _, manifest = project(tmp_path, board())
     manifest["productionProfile"] = "cinematic"
-    with pytest.raises(M2VError, match="productionProfile"):
+    with pytest.raises(VideoError, match="productionProfile"):
         explainer_prepare.prepare(tmp_path, manifest)
 
 

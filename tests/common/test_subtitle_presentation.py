@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from m2v.core.errors import M2VError
-from m2v.engine import subtitle_backing
+from film_runtime.engine import subtitle_backing
 from m2v.engine.subtitles import split_translation
 
 

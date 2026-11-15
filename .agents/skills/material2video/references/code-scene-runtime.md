@@ -326,7 +326,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 - 原语不能用于关闭信息推进、母题可信度或版式重复问题，也不提供绕过复核的默认表现。
 - 采用后的本地原语进入作品来源绑定；修改作品内被引用的实现后重新准备并复查，主项目参考源码的后续变化不会自动改变独立作品。
 - 单元测试在 `web/src/code-scene/primitives.test.ts`，覆盖重复求值、跳帧一致性、种子、
-  0 与 1 边界；`tests/common/test_motion_primitives.py` 另检查实现指纹与确定性源码闸门。
+  0 与 1 边界；`tests/common/test_motion_primitives.py` 另检查确定性源码闸门。
 
 `dynamics.ts` 与 `subtitles.ts` 提供同一约束下的动效与字幕原语：`samplePath`、`sampleTrail`、
 `burstField`、`expandingRings`、`dissolvePair`、`staggerReveal`，以及字幕激活、两行切分、
@@ -393,7 +393,7 @@ const content = <>
   作品已有的艺术路径。
 - 作品从实际采用的本地模块导入；直接采用第三方包时在作品声明精确版本、来源和许可，按[实现手段开放](design-samples.md#实现手段开放)验证，不沿用共享别名或旧包白名单。
 - 新包按实际许可、资源和时钟边界评估；依赖 Remotion composition 上下文的实现不能直接当普通代码场景组件。代码场景运动模糊可用既有子帧方案，不因候选名单预先限制表达。
-- 共享组件属于实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。
+- 作品采用的本地组件进入该作品的实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。主项目参考源码不计入任何作品指纹。
 
 ### 二维绘制层
 

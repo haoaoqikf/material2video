@@ -1,6 +1,5 @@
 """本地样品须绑定真实来源、窗口、网页与产物，伪造的成功不能写采集事件。"""
 import json
-from pathlib import Path
 
 from PIL import Image
 import pytest
@@ -40,8 +39,6 @@ def packet(tmp_path, monkeypatch):
         return {'status': 'captured', 'path': 'outputs/samples/private/capture.json'}
     monkeypatch.setattr(executor, 'execute', execute)
     monkeypatch.setattr(design_sample, 'verify_output', lambda *a, **kw: None)
-    import m2v.engine.contract_page as global_page
-    monkeypatch.setattr(global_page, 'web_dir', lambda: pytest.fail('main render root accessed'))
     return tmp_path, project, target, value, calls
 
 

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
-from m2v.core.errors import M2VError
-from m2v.engine import qa_inspection as inspect
-from m2v.engine import qa
+from film_runtime.core.errors import VideoError
+from film_runtime.engine import qa_inspection as inspect
+from film_runtime.engine import qa
 from helpers.prepared import prepared_stub
 
 
@@ -132,7 +132,7 @@ def test_design_pause_is_a_candidate_without_new_export_gate(tmp_path):
 def test_missing_optional_audio_is_not_applicable_but_required_audio_fails(tmp_path):
     video = clip(tmp_path / 'mute.mp4', audio=False)
     assert inspect.audio_signals(video, prepared_stub(), required=False)['status'] == 'not-applicable'
-    with pytest.raises(M2VError, match='缺少音轨'):
+    with pytest.raises(VideoError, match='缺少音轨'):
         inspect.audio_signals(video, prepared_stub(), required=True)
 
 
@@ -159,7 +159,7 @@ def test_narration_outside_track_is_a_located_candidate(tmp_path):
 def test_failed_detection_never_returns_empty_success(tmp_path):
     broken = tmp_path / 'broken.mp4'
     broken.write_bytes(b'broken')
-    with pytest.raises(M2VError, match='检测失败'):
+    with pytest.raises(VideoError, match='检测失败'):
         inspect.video_candidates(broken, 2)
 
 

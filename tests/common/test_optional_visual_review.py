@@ -20,7 +20,7 @@ def test_types_export_without_preview_or_manual_review(tmp_path, monkeypatch, ki
     if review_state:
         (outputs / "review.json").write_text(json.dumps({"status": review_state}), encoding="utf-8")
     final = outputs / "final.mp4"
-    def render(*_):
+    def render(*_, **__):
         final.write_bytes(b"final")
         return final
     original = registry.get(kind)

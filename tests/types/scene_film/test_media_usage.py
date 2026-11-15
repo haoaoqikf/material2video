@@ -48,8 +48,8 @@ def test_three_consumers_share_usage_decision(tmp_path, monkeypatch, status, met
 
 
 def test_policy_implementation_change_invalidates_preparation(monkeypatch):
-    from m2v.core import media_policy
-    from m2v.types.scene_film import code_scenes, explainer_prepare
+    from film_runtime.core import media_policy
+    from film_runtime.types.scene_film import code_scenes, explainer_prepare
     version = ["before"]
     policy_file = Path(media_policy.__file__).resolve()
     monkeypatch.setattr(explainer_prepare, "digest", lambda path: version[0] if Path(path) == policy_file else "fixed")

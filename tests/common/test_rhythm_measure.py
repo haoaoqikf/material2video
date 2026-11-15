@@ -4,9 +4,9 @@ from __future__ import annotations
 import subprocess
 
 import pytest
-from m2v.core.errors import M2VError
-from m2v.engine import qa_inspection as inspect
-from m2v.engine import rhythm_measure
+from film_runtime.core.errors import VideoError
+from film_runtime.engine import qa_inspection as inspect
+from film_runtime.engine import rhythm_measure
 
 
 def scene(scene_id, start, end, *, segments=(), lead_in=0, reading=0, tail=0, transition=0):
@@ -178,7 +178,7 @@ def test_measurement_is_pure_and_never_decodes_audio_again(monkeypatch):
 def test_audio_detection_failure_is_not_reported_as_zero_silence(tmp_path):
     broken = tmp_path / "broken.mp4"
     broken.write_bytes(b"broken")
-    with pytest.raises(M2VError, match="缺少音轨"):
+    with pytest.raises(VideoError, match="缺少音轨"):
         inspect.audio_signals(broken, prepared(), required=True)
 
 

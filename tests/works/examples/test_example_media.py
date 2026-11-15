@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
-from m2v.core.example_media import restore
+from film_runtime.core.example_media import restore
 from helpers.examples import EXAMPLE_PATHS
 
 pytestmark = pytest.mark.media

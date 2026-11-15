@@ -8,8 +8,10 @@ import pytest
 from imageio_ffmpeg import get_ffmpeg_exe
 
 from m2v.core.errors import M2VError
-from m2v.engine import assets_audit, qa
-from m2v.types.scene_film.explainer_render import visual_provenance
+from film_runtime.core.errors import VideoError
+from m2v.engine import assets_audit
+from film_runtime.engine import qa
+from film_runtime.types.scene_film.explainer_render import visual_provenance
 from helpers.prepared import prepared_stub
 
 
@@ -43,7 +45,7 @@ def test_subtitle_contrast_flags_low_contrast():
 
 
 def test_subtitle_contrast_rejects_bad_color():
-    with pytest.raises(M2VError):
+    with pytest.raises(VideoError):
         qa.subtitle_contrast({"textColor": "white", "plateColor": "#000000"})
 def test_subtitle_contrast_uses_adaptive_cue_backing():
     style = {"textColor": "#ffffff", "plateColor": "#0b0d12", "backing": {"mode": "adaptiveHalo"}}

@@ -71,14 +71,14 @@ def test_check_fails_when_files_missing(tmp_path):
 
 
 def test_font_files_reports_restore_hint(tmp_path):
-    from m2v.core.errors import M2VError
-    from m2v.engine import contract_page
+    from film_runtime.core.errors import VideoError
+    from film_runtime.engine import contract_page
 
-    (tmp_path / "web/src/assets").mkdir(parents=True)
-    (tmp_path / "web/src/assets/fonts.json").write_text(json.dumps({
-        "sourceDirFromWeb": "../fonts/files",
+    (tmp_path / "src/assets").mkdir(parents=True)
+    (tmp_path / "src/assets/fonts.json").write_text(json.dumps({
+        "sourceDirFromWeb": "fonts/files",
         "files": [{"family": "X", "file": "missing.ttf", "weight": "400",
                    "usage": "test", "license": "L.txt"}],
     }), encoding="utf-8")
-    with pytest.raises(M2VError, match="fonts/fetch.py"):
+    with pytest.raises(VideoError, match="fonts/fetch.py"):
         contract_page.font_files(tmp_path)

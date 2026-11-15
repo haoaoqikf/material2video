@@ -105,7 +105,7 @@ def test_real_transition_composition_windows(tmp_path, chromium_ready):
     """一个浏览器检查所有转场端点、单帧与局部媒体偏移，不重复编码完整成片。"""
     from PIL import Image
     from playwright.sync_api import sync_playwright
-    from m2v.engine.contract_page import serve_contract_page
+    from film_runtime.engine.contract_page import serve_contract_page
     from m2v.production.model import ffmpeg
 
     Image.new('RGB', (320, 240), 'red').save(tmp_path / 'a.png')
@@ -131,7 +131,7 @@ def test_real_transition_composition_windows(tmp_path, chromium_ready):
     cases.append(partial)
     for index, case in enumerate(cases):
         (tmp_path/f'props-{index}.json').write_text(json.dumps(case), encoding='utf-8')
-    with serve_contract_page(tmp_path/'props-0.json', tmp_path) as url, sync_playwright() as pw:
+    with serve_contract_page(tmp_path/'props-0.json', tmp_path, WEB) as url, sync_playwright() as pw:
         browser = pw.chromium.launch()
         try:
             page = browser.new_page(viewport={'width':320,'height':240})

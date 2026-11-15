@@ -8,9 +8,11 @@ from pathlib import Path
 import pytest
 
 from m2v.core.errors import M2VError
+from film_runtime.core.errors import VideoError
 from m2v.core.project import load_current_prepared, load_project
-from m2v.types.scene_film import adapter, code_scenes, explainer
-from helpers.scene_film import SOURCE, code_scene, write_source, board, fake_tts, prepare_build, project, requires_node, scene, scene_root
+from m2v.types.scene_film import adapter, explainer
+from film_runtime.types.scene_film import code_scenes
+from helpers.scene_film import SOURCE, code_scene, write_source, board, fake_tts, prepare_build, project, requires_node, scene_root
 
 def storyboard(scene: dict) -> dict:
     """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
@@ -38,15 +40,15 @@ def test_global_timebase_injects_timeline_only_when_declared():
 
 
 def test_capture_timebase_rejects_unknown_values_and_fields():
-    with pytest.raises(M2VError, match="timebase"):
+    with pytest.raises(VideoError, match="timebase"):
         code_scenes.capture_settings({"capture": {"timebase": "wall"}})
-    with pytest.raises(M2VError, match="未知字段"):
+    with pytest.raises(VideoError, match="未知字段"):
         code_scenes.capture_settings({"capture": {"timebase": "global", "foo": 1}})
-    with pytest.raises(M2VError, match="pure-time 场景必须使用全局时间"):
+    with pytest.raises(VideoError, match="pure-time 场景必须使用全局时间"):
         code_scenes.capture_settings({"capture": {"mode": "pure-time", "timebase": "local"}})
-    with pytest.raises(M2VError, match="jobs"):
+    with pytest.raises(VideoError, match="jobs"):
         code_scenes.capture_settings({"capture": {"mode": "pure-time", "jobs": 5}})
-    with pytest.raises(M2VError, match="verifyFrames"):
+    with pytest.raises(VideoError, match="verifyFrames"):
         code_scenes.capture_settings({"capture": {"mode": "pure-time", "verifyFrames": 1}})
 
 
@@ -62,21 +64,6 @@ def test_pure_time_implies_global_timeline_and_hides_runtime_fields_from_cache()
     assert "jobs" not in config["props"]["capture"]
     assert "blockFrames" not in config["props"]["capture"]
     assert "verifyFrames" not in config["props"]["capture"]
-
-
-@pytest.mark.parametrize('relative', ['patches/example.patch', 'pnpm-workspace.yaml'])
-def test_dependency_patch_configuration_changes_implementation_fingerprint(tmp_path, monkeypatch, relative):
-    from m2v.types.scene_film.code_scenes import config
-    web = tmp_path / 'web'
-    monkeypatch.setattr(config, 'WEB', web)
-    monkeypatch.setattr(config, 'REPOSITORY_ROOT', tmp_path)
-    monkeypatch.setattr(config, '__file__', str(tmp_path / 'src/config.py'))
-    target = web / relative
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text('first revision', encoding='utf-8')
-    before = config.implementation_inputs()
-    target.write_text('changed behavior', encoding='utf-8')
-    assert config.implementation_inputs() != before
 
 
 @pytest.mark.parametrize("entry", ["C:/outside.tsx", "scenes\\demo.tsx", "assets/demo.tsx",
@@ -156,7 +143,7 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
     assert recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] == relative
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 1
     write_source(root, "scenes/demo.tsx", SOURCE + "// 变化\n")
-    with pytest.raises(M2VError, match="文件已变化"):
+    with pytest.raises(VideoError, match="文件已变化"):
         load_current_prepared(root, manifest)
     assert recorded(root, manifest)["props"]["compiledScenes"][-1]["mediaPath"] != relative
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
@@ -343,7 +330,7 @@ def test_pure_time_rejects_self_driven_scene(tmp_path, chromium_ready):
                  "export default function Bad() { useFrame(() => {}); return null; }\n")
     frame = {"width": 320, "height": 240,
              "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
-    with pytest.raises(M2VError, match="pure-time 场景含自走动画"):
+    with pytest.raises(VideoError, match="pure-time 场景含自走动画"):
         code_scenes.record(root, pure_scene(), {}, frame=frame, media={},
                            media_digest="empty", capture_range=(0, 3), fps=30)
 
@@ -362,7 +349,7 @@ def test_scene_failure_keeps_no_prepared_record(tmp_path, monkeypatch, chromium_
                  "  return null;\n"
                  "}\n")
     fake_tts(monkeypatch)
-    with pytest.raises(M2VError, match="代码场景"):
+    with pytest.raises(VideoError, match="代码场景"):
         recorded(root, manifest)
     assert (root / "outputs/prepared.json").exists()
 
@@ -393,7 +380,7 @@ def test_scene_that_never_readies_fails_without_a_record(tmp_path, monkeypatch, 
     write_source(root, "scenes/demo.tsx",
                  "export default function Never() { return <div style={{width: '100%', height: '100%'}}/>; }\n")
     fake_tts(monkeypatch)
-    with pytest.raises(M2VError, match="就绪失败"):
+    with pytest.raises(VideoError, match="就绪失败"):
         recorded(root, manifest)
     assert (root / "outputs/prepared.json").exists()
     assert not list((root / "outputs/code-cache").glob("*.mp4"))

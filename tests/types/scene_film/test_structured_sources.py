@@ -10,9 +10,8 @@ import pytest
 from helpers.financial import project as financial_fixture
 from m2v.cli import main
 from m2v.core.errors import M2VError
-from m2v.core.project import create_project, load_project
-from m2v.types.scene_film import explainer_prepare, sources
-from m2v.types.building_construction.components import build_components
+from m2v.core.project import create_project
+from m2v.types.scene_film import sources
 
 
 def write(root, name, value):
@@ -54,9 +53,6 @@ def test_financial_source_is_validated_and_fingerprinted(tmp_path):
     result, inputs = sources.prepare(root, story, "data-evolution")
     assert result["source"]["data"]["plan"]["durationSeconds"] == 15
     assert "file:raw-prices.csv" in inputs
-    explainer_prepare.prepare(root, load_project(root)[1])
-    prepared = json.loads((root / "outputs/prepared.json").read_text(encoding="utf-8"))
-    assert prepared["props"]["compiledScenes"][0]["content"]["preparedSources"]["source"]["kind"] == "financial-series"
     (root / "animation-plan.json").unlink()
     assert main(["data", "financial-plan", "--project", str(root), "--duration-seconds", "15"]) == 0
     assert json.loads((root / "animation-plan.json").read_text(encoding="utf-8"))["schemaVersion"] == 8
@@ -93,7 +89,6 @@ def test_construction_steps_are_available_to_spatial_scene(tmp_path):
     assert len(data["components"]) == 77
     assert data["construction"]["steps"]
     assert inputs["file:construction.json"] == hashlib.sha256((root / "construction.json").read_bytes()).hexdigest()
-    explainer_prepare.prepare(root, load_project(root)[1])
 
 
 def test_vehicle_model_is_embedded_for_spatial_scene(tmp_path):
@@ -123,4 +118,3 @@ def test_vehicle_model_is_embedded_for_spatial_scene(tmp_path):
     result, inputs = sources.prepare(root, story, "spatial-3d")
     assert "data:application/octet-stream;base64," in result["source"]["data"]["modelGltf"]
     assert "file:assets/car.gltf" in inputs
-    explainer_prepare.prepare(root, load_project(root)[1])

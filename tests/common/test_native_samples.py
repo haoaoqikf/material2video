@@ -212,7 +212,8 @@ def test_request_write_failure_does_not_publish_capture(native, monkeypatch):
 
 def test_source_changed_after_compiler_read_is_rejected(native, monkeypatch, tmp_path):
     from types import SimpleNamespace
-    from m2v.types.scene_film.code_scenes import config
+    from film_runtime.core.errors import VideoError
+    from film_runtime.types.scene_film.code_scenes import config
     root, project, _ = native
     source = root / 'scenes/main.tsx'
     build = tmp_path / 'build'
@@ -224,7 +225,7 @@ def test_source_changed_after_compiler_read_is_rejected(native, monkeypatch, tmp
         return SimpleNamespace(returncode=0)
     monkeypatch.setattr(config.subprocess, 'run', compiler)
     scene = {'id': 'test', 'content': {'entry': 'scenes/main.tsx', 'props': {}}}
-    with pytest.raises(M2VError, match='构建期间'):
+    with pytest.raises(VideoError, match='构建期间'):
         config.build_scene(root, scene, build)
 
 

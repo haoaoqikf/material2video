@@ -1,15 +1,11 @@
 """真实浏览器验证采集时间、动画库及三维绘制，不以帧率元数据代替运动验收。"""
 from __future__ import annotations
 
-import json
-import time
 
 import pytest
-from playwright.sync_api import sync_playwright
 
-from m2v.engine.http_server import LocalServer
-from m2v.types.scene_film import code_scenes
-from helpers.scene_film import scene_page, WEB, prepare_build, requires_node
+from film_runtime.types.scene_film import code_scenes
+from helpers.scene_film import scene_page, prepare_build, requires_node
 
 
 MOTION_SCENE = """

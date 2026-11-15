@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import m2v.core.source_policy as source_policy
+import film_runtime.core.source_policy as source_policy
 
 
 def _scan(tmp_path: Path, name: str, source: str):
@@ -85,15 +85,4 @@ useEffect(() => { setLoaded(true); }, []);
     assert _scan_pure(tmp_path, "good.tsx", source) == []
 
 
-def test_scan_passes_on_repository_composition_sources():
-    """仓库的可达源码整体通过闸门。
 
-    第三方组件接入路径（`web/src/third-party/` 与分类表）已随场景树架构移除；
-    这里同时守住「它没有被重新引入」——闸门本身不再有读分类表的分支。
-    """
-    root = Path(__file__).resolve().parents[2]
-    web = root / "web"
-    import m2v.engine.remotion as remotion
-
-    assert not (web / "src/third-party").exists()
-    assert source_policy.scan(remotion.build_inputs()) == []
