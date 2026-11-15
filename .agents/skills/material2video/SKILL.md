@@ -45,6 +45,6 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 条件阅读
 
-制作营销号式口播、知识解说、观点短视频、人物故事或热点解读时，按[营销号口播剪辑指南](references/documentary-social-video.md)组织文案、镜头与包装；口播配实拍或外部素材归 `documentary-edit`，不新增类型或制作阶段。
+制作营销号式口播、知识解说、观点短视频、人物故事或热点解读时，按[营销号口播剪辑指南](references/documentary-social-video.md)组织文案、镜头与包装；口播配实拍或外部素材归 `documentary-edit`，不新增类型或制作阶段。开工先核对该指南的[默认音色](references/documentary-social-video.md#7-配音字幕与声音)和[资料画面标注](references/documentary-social-video.md#真实来源与采用边界)，然后登记音色、编写分镜和画面文字。
 
 [阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先按帧/信号核对局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。

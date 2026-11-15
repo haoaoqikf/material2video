@@ -15,7 +15,7 @@
 }
 ```
 
-省略 `backend` 时，纪实口播 `documentary-edit` 默认使用 `kokoro`，其他类型使用 `edge-tts`。音色按「命令行 > 作品配置」解析；语速独立按「命令行 > 作品配置 > +0%」解析。
+制作营销号式口播时，先按[专用默认音色](documentary-social-video.md#7-配音字幕与声音)明确填写作品的 `tts.backend` 和 `tts.voice`。实际运行时若省略 `backend`，`documentary-edit` 回落到 `kokoro`，其他类型回落到 `edge-tts`。音色按「命令行 > 作品配置」解析；语速独立按「命令行 > 作品配置 > +0%」解析。
 
 | 层 | 写法 | 说明 |
 | --- | --- | --- |
