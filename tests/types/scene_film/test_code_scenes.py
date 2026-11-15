@@ -64,7 +64,7 @@ def test_pure_time_implies_global_timeline_and_hides_runtime_fields_from_cache()
     assert "verifyFrames" not in config["props"]["capture"]
 
 
-@pytest.mark.parametrize('relative', ['patches/oidn.patch', 'pnpm-workspace.yaml'])
+@pytest.mark.parametrize('relative', ['patches/example.patch', 'pnpm-workspace.yaml'])
 def test_dependency_patch_configuration_changes_implementation_fingerprint(tmp_path, monkeypatch, relative):
     from m2v.types.scene_film.code_scenes import config
     web = tmp_path / 'web'
