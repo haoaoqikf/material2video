@@ -56,7 +56,7 @@ fail 须说明具体窗口、显示条件、违反的实际采用目标及阻断
 
 调用记录严格只含 id、reviewerId、freshContext、startedAt、completedAt、inputPaths、readReportIds；不添加 version 或 observationMethod 等扩展字段，观察方法写入报告。时间有时区且晚于包创建，输入只来自包内已登记文件。盲看 readReportIds=[]，对照仅包含自身同轮盲看报告 ID。
 
-`freshContext` 记录评审代理最初创建时与作者上下文的隔离；同一隔离代理继续同轮对照时保持 `true`，不要求更换评审者。`inputPaths` 只列本次包内登记文件，自身盲看报告通过 `readReportIds` 单独追溯，不把包外报告路径再次放入 `inputPaths`。这两个字段的归类不改变实际读取范围、观察与结论；更正元数据须保留原件和原因，不补造调用。
+`freshContext` 记录评审代理最初创建时与作者上下文的隔离；同一隔离代理继续同轮对照时保持 `true`，不要求更换评审者。`inputPaths` 使用相对作品 `outputs/` 的路径，例如 `review-pack/<包ID>/evidence-0000.mp4`，只列本次包内已登记且实际读取的文件。自身盲看报告通过 `readReportIds` 单独追溯。更正路径元数据时保留原件和原因，沿用实际读取范围、调用时间及评审结论。
 
 ## 评审包
 
