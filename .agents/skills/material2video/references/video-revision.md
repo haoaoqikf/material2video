@@ -45,17 +45,17 @@
 以下是五类作品局部修订的命令示意，由助手替换作品路径、实际旧片名称和新版检查窗口；不是要求用户逐条操作。基线的 `--files` 相对输出根，先确认文件存在。这里的 20–25 秒仅示意一个局部窗口。
 
 ```powershell
-uv run m2v status --project videos/<类型>/<slug> --history --json
+uv run m2v status --project videos/<类型>/<slug> --history
 # 修改材料之前保护旧交付；整体重置时去掉 --candidate
 uv run m2v baseline create --project videos/<类型>/<slug> --candidate --reason "结尾局部修订" --files video.mp4
 # 此处修改作品材料，并记录影响范围
 uv run m2v prepare --project videos/<类型>/<slug>
 uv run m2v preview --project videos/<类型>/<slug> --start-seconds 20 --end-seconds 25
-uv run m2v status --project videos/<类型>/<slug> --history --json
+uv run m2v status --project videos/<类型>/<slug> --history
 # 按影响补做检查、评审与问题复查后生成完整候选
 uv run m2v render --project videos/<类型>/<slug>
 # 对当前候选执行最终复核、登记证据后核对完成状态
-uv run m2v status --project videos/<类型>/<slug> --history --json
+uv run m2v status --project videos/<类型>/<slug> --history
 ```
 
 录制区间、配音和其他缓存按实际依赖与命中结果复用，不保证仅重新渲染某个场景。命令与交付细则见[命令](../../../../README.md#命令)和[交付与溯源](delivery-and-provenance.md)。

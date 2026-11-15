@@ -53,7 +53,7 @@ uv run m2v review import --project <作品> --file <报告.json>
 uv run m2v review timeline --project <作品>
 uv run m2v review retarget --project <作品> --file <用户目标变更.json>
 uv run m2v qa --project <作品> --video <当前候选>
-uv run m2v status --project <作品> --history --json
+uv run m2v status --project <作品> --history
 uv run m2v issues update --project <作品> --file <问题.json>
 ```
 
