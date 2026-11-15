@@ -243,6 +243,9 @@ uv run m2v author assets models verify --models outputs/materials/models
 - 精裁起点按真实源 PTS 测量并换算为媒体本地时间；长关键帧间隔不能只探测固定包数，非零视频原点也必须计入。测量失败仍明确拒绝，不手改候选窗口或放宽误差绕过。
 - 曲库/素材库清理只删除未被工作文档绑定的对象与暂存残留；不删除作品正式文件、选择输出、索引帧、凭据或唯一源证据。
 - `library scan --dir DIR --recursive --max-files 500` 逐项遍历并保存增量状态；复用项不占新的获取预算，`hasMore` 为真时重复同一命令继续。源字节变化或对象失效会重采，坏件独立报告；内容未变化的失败记录默认跳过实际重试，需重试时显式 `--retry-failed`。返回码 1 为部分成功、2 为全部失败。诊断明细最多保留 1000 项，总数另列；扫描仍需读取源摘要，不承诺零 I/O。
+- `library annotate --media ID --tag 厨房 --collection 口播实拍 --favorite yes` 持久化组织信息；`--remove-tag`、`--remove-collection`、`--favorite no` 可移除。组织信息不修改媒体、来源或许可；`library list --tag 厨房 --favorites --limit 100 --offset 0` 可筛选和翻页，使用相同 `--workspace`。
+- `library similar --similarity 0.96 --max-items 1000` 只比较已有有效视觉向量，按完整模型空间隔离；每个成员直接满足与代表的相似度，不依靠传递关系合并。结果保留媒体/窗口/关键帧，只是建议，缺索引与预算截断如实披露。
+- `library browse --workspace WORK --library OTHER_WORK --out outputs/material-library-view` 为显式多库生成本地 `index.html` 与缩略图，可搜索标题/标签/备注、按标签/集合/收藏筛选。每库默认最多 200 件，可用 `--limit`（最多 2000）和命令筛选调整；来源库只读，无自动下载或建索引。页面筛选覆盖本轮显示内容，`find` 的语义查询仍限定所选工作库；旧 `preview` 页面仍不执行脚本。
 - 平台能力按实测披露：B站/YouTube 搜索依赖固定版本 yt-dlp，会话/风控可能失败；抖音/小红书/微博/西瓜只接受已知链接；失败时改用网页候选、公开直链或本地文件，不自动启用个人浏览器。
 
 ## 7. `SOURCES.md` 素材表模板

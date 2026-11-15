@@ -310,7 +310,15 @@ def _select(args) -> int:
 def _library(args) -> int:
     from . import library
     root = _root(args)
-    with MaterialStore(root) as store:
+    if args.action == 'browse':
+        from .library_view import browse
+        result = browse([root, *(Path(item).expanduser() for item in args.library or [])],
+                        Path(args.out).expanduser() if args.out else root / 'views' / 'library',
+                        tags=args.tag or [], collection=args.collection, favorites=args.favorites,
+                        query=args.query, limit=args.limit)
+        _emit(args, result, f"素材库页面：{result['html']}；{len(result['items'])} 件")
+        return 0
+    with MaterialStore(root, readonly=args.action in {'list', 'similar'}) as store:
         if args.action == 'scan':
             if not args.dir:
                 raise MaterialError('invalid-request', 'library scan 需要 --dir', stage='library')
@@ -324,6 +332,23 @@ def _library(args) -> int:
             result = library.stats(store)
         elif args.action == 'cleanup-plan':
             result = library.cleanup_plan(store)
+        elif args.action == 'annotate':
+            from .organization import annotate
+            if not args.media:
+                raise MaterialError('invalid-request', 'annotate 需要 --media', stage='library')
+            result = annotate(store, args.media, tags=args.tag or [], remove_tags=args.remove_tag or [],
+                              collections=[args.collection] if args.collection else [],
+                              remove_collections=args.remove_collection or [],
+                              favorite=None if args.favorite is None else args.favorite == 'yes', note=args.note)
+        elif args.action == 'list':
+            from .organization import list_media
+            result = list_media(store, tags=args.tag or [], collection=args.collection,
+                                favorites=args.favorites, query=args.query, limit=args.limit, offset=args.offset)
+        elif args.action == 'similar':
+            from .similarity import similar
+            result = similar(store, threshold=args.similarity, max_items=args.max_items)
+            if args.out:
+                Path(args.out).write_text(_json(result) + '\n', encoding='utf-8')
         else:
             if not args.digest:
                 raise MaterialError('invalid-request', 'cleanup-apply 需要 --digest', stage='library')
@@ -476,13 +501,29 @@ def _parser() -> argparse.ArgumentParser:
 
     item = sub.add_parser('library', help='显式目录登记、核验、统计与安全清理')
     _common(item)
-    item.add_argument('action', choices=('scan', 'verify', 'stats', 'cleanup-plan', 'cleanup-apply'))
+    item.add_argument('action', choices=('scan', 'verify', 'stats', 'cleanup-plan', 'cleanup-apply',
+                                      'annotate', 'list', 'similar', 'browse'))
     item.add_argument('--dir', help='scan 的显式目录')
     item.add_argument('--recursive', action='store_true')
     item.add_argument('--max-files', type=int, default=500, help='每轮新的获取尝试预算；重复扫描复用已完成项')
     item.add_argument('--retry-failed', action='store_true', help='重试内容未变化的已失败项')
     item.add_argument('--max-mb', dest='max_bytes', type=int, default=1024)
     item.add_argument('--digest', help='cleanup-apply 的计划摘要')
+    item.add_argument('--media', help='annotate 的媒体 ID')
+    item.add_argument('--tag', action='append', help='添加或筛选标签，可重复')
+    item.add_argument('--remove-tag', action='append', help='移除标签，可重复')
+    item.add_argument('--collection', help='添加或筛选主题集合')
+    item.add_argument('--remove-collection', action='append', help='移除主题集合，可重复')
+    item.add_argument('--favorite', choices=('yes', 'no'), help='设置或取消收藏')
+    item.add_argument('--favorites', action='store_true', help='仅列出收藏')
+    item.add_argument('--note', help='设置备注；空字符串可清除')
+    item.add_argument('--query', help='按标题、标签、集合和备注筛选')
+    item.add_argument('--limit', type=int, default=200, help='每库列表/浏览显示预算，最多 2000')
+    item.add_argument('--offset', type=int, default=0, help='列表偏移')
+    item.add_argument('--similarity', type=float, default=.96, help='相似分组最低余弦')
+    item.add_argument('--max-items', type=int, default=1000, help='相似条目预算，最多 5000')
+    item.add_argument('--library', action='append', help='browse 额外显式工作库，可重复')
+    item.add_argument('--out', help='browse 输出目录或 similar 结果 JSON')
     item.set_defaults(handler=_library)
 
     item = sub.add_parser('models', help='显式模型准备与校验')

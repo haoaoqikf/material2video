@@ -37,8 +37,17 @@ def workspace_root(*, project: Path | None = None, workspace: Path | None = None
 
 
 class MaterialStore:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *, readonly: bool = False):
         self.root = no_links(root)
+        self.readonly = readonly
+        if readonly:
+            database = self.path('catalog.sqlite3', exists=True)
+            self.connection = sqlite3.connect(database.as_uri() + '?mode=ro', uri=True, timeout=10)
+            self.connection.row_factory = sqlite3.Row
+            if self.connection.execute('PRAGMA user_version').fetchone()[0] != _DB_VERSION:
+                self.connection.close()
+                raise MaterialError('invalid-request', '只读素材库版本无效', stage='storage')
+            return
         self.root.mkdir(parents=True, exist_ok=True)
         self.path('objects', directory=True).mkdir(exist_ok=True)
         self.path('snapshots', directory=True).mkdir(exist_ok=True)
@@ -106,8 +115,13 @@ class MaterialStore:
         except (M2VError, ValueError) as exc:
             raise MaterialError('security-blocked', '素材库路径无效、越界或包含链接', stage='storage') from exc
 
+    def _writable(self):
+        if self.readonly:
+            raise MaterialError('read-only', '只读素材库不允许写入', stage='storage')
+
     @contextmanager
     def transaction(self):
+        self._writable()
         try:
             self.connection.execute('BEGIN IMMEDIATE')
             yield self.connection
@@ -124,6 +138,7 @@ class MaterialStore:
 
     def publish_file(self, source: Path, *, max_bytes: int | None = None,
                      min_free_bytes: int = 64 * 1024 * 1024) -> Artifact:
+        self._writable()
         source = no_links(source)
         if not source.is_file():
             raise MaterialError('not-found', '输入素材文件不存在', stage='storage')
@@ -170,6 +185,7 @@ class MaterialStore:
             temporary.unlink(missing_ok=True)
 
     def publish_bytes(self, value: bytes, **kwargs) -> Artifact:
+        self._writable()
         fd, name = tempfile.mkstemp(prefix='bytes-', dir=self.path('staging', exists=True, directory=True))
         temporary = Path(name)
         try:
@@ -320,6 +336,7 @@ class MaterialStore:
         return [self._decode(row) for row in self.connection.execute(sql, parameters).fetchall()]
 
     def export(self, document_id: str) -> Path:
+        self._writable()
         document = self.get(document_id)
         path = self.path(f'snapshots/{document.id}.json')
         atomic_text(path, json.dumps(document.model_dump(mode='json'), ensure_ascii=False, indent=2, allow_nan=False) + '\n')
