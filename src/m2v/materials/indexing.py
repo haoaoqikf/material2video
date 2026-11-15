@@ -524,19 +524,28 @@ def _source_records(store: MaterialStore, media, channel: str) -> Index | None:
 
 
 def index_text(store: MaterialStore, media, manager: ModelManager, *,
-               sources=('captions', 'asr', 'ocr', 'chapters'), batch_size: int = 16) -> IndexResult:
-    allowed = {'captions', 'asr', 'ocr', 'chapters'}
+               sources=('captions', 'asr', 'ocr', 'chapters', 'metadata'), batch_size: int = 16) -> IndexResult:
+    allowed = {'captions', 'asr', 'ocr', 'chapters', 'metadata'}
     if not sources or set(sources) - allowed:
-        raise MaterialError('invalid-request', '文本索引来源必须来自 captions/asr/ocr/chapters', stage='index')
+        raise MaterialError('invalid-request', '文本索引来源必须来自 captions/asr/ocr/chapters/metadata', stage='index')
     inputs, pools = [], []
     for channel in sources:
+        if channel == 'metadata':
+            source = store.get(media.data.sourceId, kind='material.source')
+            original = '\n'.join(value for value in (source.data.title, source.data.policy.description) if value)
+            if original.strip():
+                inputs.append(fingerprint({'sourceId': source.id, 'title': source.data.title,
+                                           'description': source.data.policy.description}))
+                pools.append(('metadata', [IndexRecord(id='source-text', channel='text', text=original,
+                    alignment='not-applicable', origin='source-title-description')]))
+            continue
         index = _source_records(store, media, channel)
         if index is None:
             continue
         inputs.append(index.data.artifacts[0].sha256)
         pools.append((channel, store.records(index.id)))
     if not pools:
-        raise MaterialError('not-found', '没有可用于文本语义索引的字幕/转录/OCR 记录', stage='index')
+        raise MaterialError('not-found', '没有可用于文本语义索引的文字或来源元数据', stage='index')
     items = []
     for channel, records in pools:
         for record in records:
@@ -550,7 +559,7 @@ def index_text(store: MaterialStore, media, manager: ModelManager, *,
         items = items[:MAX_RECORDS]
     identity = embedding.model_identity(manager, 'e5-small')
     config = {'sources': list(sources), 'batchSize': batch_size, 'prefix': 'passage',
-              'maxChars': embedding.MAX_TEXT_CHARS}
+              'maxChars': embedding.MAX_TEXT_CHARS, 'sourceText': 'original-fields-v1'}
     cache = _cache_key(media, 'text', config, inputs=inputs, model=identity)
     cached = store.cached(cache)
     if cached is not None:

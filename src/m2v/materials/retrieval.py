@@ -18,6 +18,7 @@ from .contracts import (CandidateData, Observation, Observations, Requirement, R
 from .errors import MaterialError
 from .indexing import _find_index, load_vectors, tokens
 from .model_manager import ModelManager
+from .retrieval_policy import BACKGROUNDS, MIN_MARGIN, MIN_SCORE, VERSION as POLICY_VERSION
 from .store import MaterialStore
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ CHANNELS = ('lexical', 'text', 'visual', 'metadata')
 RRF_K = 60
 MAX_QUERY_CHARS = 1000
 # 校准后的最低语义证据：低于该值的命中不参与融合，避免弱匹配靠 RRF 名次放大。
-SEMANTIC_MIN = {'text': 0.85, 'visual': 0.035}
+SEMANTIC_MIN = MIN_SCORE
 
 
 @dataclass
@@ -152,23 +153,30 @@ def _semantic(store: MaterialStore, media, manager: ModelManager, channel: str, 
         return [], [f'{channel}: 索引模型身份与当前模型不一致，已排除']
     matrix = load_vectors(store, index)
     from . import embedding
-    vector = (embedding.embed_texts(manager, [query], prefix='query')[0] if channel == 'text'
-              else embedding.embed_visual_text(manager, [query])[0])
+    queries = [query, *BACKGROUNDS[channel]]
+    vectors = (embedding.embed_texts(manager, queries, prefix='query') if channel == 'text'
+               else embedding.embed_visual_text(manager, queries))
+    vector = vectors[0]
     if vector.shape[0] != matrix.shape[1]:
         return [], [f'{channel}: 查询向量维数与索引不一致，已排除']
     scores = matrix @ vector.astype('float32')
+    background = (matrix @ vectors[1:].astype('float32').T).max(axis=1)
     records = store.records(index.id)
     order = np.argsort(-scores)[:limit]
     hits = []
     for row in order:
         score = float(scores[int(row)])
-        if score < SEMANTIC_MIN[channel]:
+        margin = score - float(background[int(row)])
+        if score < SEMANTIC_MIN[channel] or margin + 1e-7 < MIN_MARGIN[channel]:
             continue
         record = records[int(row)]
         if record.vectorRow is None:
             continue
-        hits.append(Hit(media.id, index.id, record.id, channel, score,
-                        excerpt=record.text[:400], local_range=record.localRange,
+        evidence_channel = 'metadata' if channel == 'text' and record.origin == 'e5-small:metadata' else channel
+        hits.append(Hit(media.id, index.id, record.id, evidence_channel, score,
+                        excerpt=record.text[:400] if channel == 'text' else
+                            f'视觉余弦 {score:.5f}；背景差值 {margin:.5f}；{POLICY_VERSION}',
+                        local_range=record.localRange,
                         frame=record.frame, model_identity=f'{model_name}@{identity["revision"][:12]}',
                         retriever=f'{channel}:{media.id}'))
     return hits, []
@@ -399,5 +407,6 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
     result.candidates = [item[0] for item in built[:top_k]]
     result.channels = per_channel
     result.stats = {'mediaScanned': len(media_map), 'hits': len(ranked),
-                    'requirementText': text[:64], 'queryDigest': hashlib.sha256(text.encode()).hexdigest()[:16]}
+                    'requirementText': text[:64], 'queryDigest': hashlib.sha256(text.encode()).hexdigest()[:16],
+                    'retrievalPolicy': POLICY_VERSION}
     return result

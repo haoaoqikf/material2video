@@ -236,6 +236,7 @@ uv run m2v author assets models verify --models outputs/materials/models
 
 - 先 `discover`/`fetch` 建立来源与媒体，再 `index`；`find` 不会补建索引。语义通道需要显式 `--models`，缺失时报告 `model-missing` 并给出 prepare 入口。
 - 中文词面用字符 n-gram；文本语义用 E5 的 `query:`/`passage:` 前缀；视觉用 SigLIP 2 固定长度 padding。语义命中低于校准阈值不参与融合；RRF 融合只改变排序，不把分数解释为概率、身份或动作已完成。
+- 文本索引默认也纳入来源标题与描述，保留原文并标为 metadata，无字幕图片同样可建；该依据没有逐帧位置，不把它当成字幕或可直接精裁的时间窗口。语义检索同时比较通用描述/测试画面背景，按版本化校准策略排除弱证据；结果可以为空，不能为凑 Top-K 降低门槛。
 - 字幕、转录、OCR 分别标记 `manual/automatic/local/asr` 与对齐状态；黑场/纯色低对比度采样帧不进入视觉证据；切镜是候选边界，不是动作起止。
 - 帧预算按完整时间轴分布分配，OCR/视觉采用更小预算时也分布选择；索引参数及警告记录策略和实际范围。覆盖前中后段不代表所有短动作都被采到；单帧只选中部代表点。
 - 选择输出与导入凭据：作品内 `assets/materials/receipts/`、正式登记仍在 `assets/media-sources.json`。作品移走后 `verify_project_media` 只依赖作品内文件，不读取共享库。
