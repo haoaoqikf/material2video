@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 import shutil
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -187,17 +186,6 @@ def import_selection(store: MaterialStore, *, project_root: Path, selection_id: 
         if staging_path.exists():
             shutil.rmtree(staging_path, ignore_errors=True)
     return ImportResult(receipt, entry)
-
-
-def resume_import(store: MaterialStore, *, project_root: Path, operation_id: str) -> ImportResult:
-    operation = store.operation(operation_id)
-    if operation is None:
-        raise MaterialError('not-found', '导入操作不存在', stage='import')
-    selection_id = operation['payload'].get('selectionId')
-    asset_id = operation['payload'].get('assetId')
-    if not selection_id or not asset_id:
-        raise MaterialError('invalid-request', '导入操作缺少选择或目标素材身份', stage='import')
-    return import_selection(store, project_root=project_root, selection_id=selection_id, asset_id=asset_id)
 
 
 def verify_project_media(project_root: Path) -> dict:

@@ -154,7 +154,7 @@ def parse_captions(path: Path, *, duration_us: int | None) -> CaptionParse:
     if len(raw) > MAX_CUES:
         limitations.append(f'字幕条目超过 {MAX_CUES} 条，只保留前 {MAX_CUES} 条')
         raw = raw[:MAX_CUES]
-    cues, clamped, invalid, empty = [], 0, 0, 0
+    cues, clamped, invalid = [], 0, 0
     for start, end, body in raw:
         if end <= start:
             invalid += 1
@@ -171,7 +171,6 @@ def parse_captions(path: Path, *, duration_us: int | None) -> CaptionParse:
                     continue
         cues.append(Cue(TimeRange(startUs=start, endUs=end), body))
     if not cues:
-        empty = 1
         limitations.append('未解析到有效字幕条目；空语音或格式不受支持时不冒充已对齐字幕')
     if clamped:
         limitations.append(f'{clamped} 条字幕越过实测媒体末尾，已按媒体时长截断')

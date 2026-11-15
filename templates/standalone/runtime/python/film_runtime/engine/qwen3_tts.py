@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 REPO_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 REVISION = "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
-ALIGNER_REPO = "Systran/faster-whisper-small"
 ALIGNER_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
 SAMPLE_RATE = 24000
 SEED_VERSION = 1

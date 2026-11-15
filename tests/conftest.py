@@ -75,26 +75,3 @@ def create_typed_project(directory: str | Path, video_type: str) -> Path:
     from m2v.type_system import catalog
 
     return create_project(directory, video_type, catalog.catalog().get(video_type).material_map())
-
-
-def register_synthetic_type(monkeypatch, name: str, description: str = "合成类型") -> None:
-    """为测试用的合成类型补一份类型目录登记项。
-
-    类型身份只在类型目录里维护，因此走统一入口的合成类型同样需要登记；这里只替换
-    进程内缓存，不写仓库文件。
-    """
-    from m2v.type_system import catalog
-
-    entry = catalog.Entry(
-        name=name,
-        description=description,
-        summary=description,
-        plan=description,
-        skill_guide=description,
-        materials=(
-            catalog.Material(name="material", file="material.json", template={"schemaVersion": 1}),
-        ),
-    )
-    current = catalog.catalog()
-    monkeypatch.setattr(catalog, "_cached",
-                        catalog.Catalog(current.entries() + (entry,), current.categories()))

@@ -21,7 +21,6 @@ MODES = (MODE_CANVAS, MODE_ANY)
 
 #: 默认容差：覆盖图库缩放取整带来的 ±1 像素级误差，同时让裁切落在不可见范围。
 DEFAULT_TOLERANCE = 0.02
-MAX_TOLERANCE = 0.25
 
 
 def canvas_ratio() -> float:

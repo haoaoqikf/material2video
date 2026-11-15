@@ -8,7 +8,7 @@ import pytest
 
 from m2v.types.financial import financial, materials
 from m2v.core.errors import M2VError
-from m2v.types.financial.valuation import crypto_investment_values, fx_rate_on_or_before
+from m2v.types.financial.valuation import crypto_investment_values
 from helpers.financial import crypto_project, edit, project
 
 
@@ -30,7 +30,6 @@ def test_crypto_cny_valuation_uses_buy_day_fx_and_carries_weekend_rate():
     assert values[0]["close"] == 100_000
     assert values[1]["close"] == 200_000
     assert values[2]["close"] == pytest.approx(205_714.285714)
-    assert fx_rate_on_or_before(prices["fx"]["points"], "2020-01-05") == 7.0
 
 
 

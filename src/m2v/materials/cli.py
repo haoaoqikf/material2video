@@ -15,8 +15,6 @@ from .contracts import CandidateData, Requirement, parse_collection, parse_docum
 from .errors import MaterialError
 from .store import MaterialStore, workspace_root
 
-WORKFLOWS = ('discover', 'fetch', 'index', 'find', 'preview', 'select', 'library', 'models', 'doctor')
-
 
 def _json(value) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)
@@ -150,7 +148,7 @@ def _fetch(args) -> int:
                                           requested_range=interval)
                 else:
                     try:
-                        platform = provider_for(value)
+                        provider_for(value)
                     except MaterialError:
                         mode = args.url_mode
                         if mode == 'auto':

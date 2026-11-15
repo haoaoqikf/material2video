@@ -34,14 +34,6 @@ def make_audio_only(path: Path, seconds: float) -> Path:
     return path
 
 
-def make_frames(path: Path, frames: int, fps: int = 30) -> Path:
-    """按帧数而非秒数生成，用于验证「不足不超过一帧」的边界。"""
-    subprocess.run([get_ffmpeg_exe(), '-y', '-v', 'error', '-f', 'lavfi',
-                    '-i', f'testsrc=size=320x180:rate={fps}', '-frames:v', str(frames),
-                    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', str(path)], check=True, timeout=300)
-    return path
-
-
 def test_probe_reads_only_the_video_stream(tmp_path: Path):
     # 音轨比视频长：容器时长不能冒充视频长度。
     path = make_video(tmp_path / 'long-audio.mp4', 1, audio=4)

@@ -25,7 +25,6 @@ GENERATOR_VERSION = 1
 
 #: 通用后端及底层调用的缺省值；纪实口播在作品级另选默认后端。
 DEFAULT_BACKEND = "edge-tts"
-DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_RATE = "+0%"
 BACKENDS = (DEFAULT_BACKEND, "kokoro", "qwen3-tts")
 _VOICE = {

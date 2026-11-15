@@ -134,9 +134,6 @@ def test_ocr_and_visual_use_frames_and_reject_incompatible_index(tmp_path, monke
     store, _, media = _setup(tmp_path)
     calls = []
 
-    class Boxes(list):
-        pass
-
     class Output:
         txts = ('烧录字幕', 'EXIT')
         scores = (0.95, 0.6)

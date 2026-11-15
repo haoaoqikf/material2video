@@ -23,9 +23,8 @@ from m2v.types.scene_film import explainer_prepare as prepare
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'templates/standalone/runtime/python'))
 from film_runtime.engine import tts as local_tts  # noqa: E402
-from film_runtime.types.scene_film import explainer_prepare as local_prepare  # noqa: E402
 ENTRY = "scenes/opening.tsx"
-STARTER = ROOT / "src/m2v/types/scene_film/starters" / ENTRY
+STARTER = ROOT / "templates/standalone" / ENTRY
 WEB = ROOT / "web"
 
 requires_node = pytest.mark.skipif(

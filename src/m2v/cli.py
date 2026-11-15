@@ -56,7 +56,6 @@ def _parser() -> argparse.ArgumentParser:
         item.add_argument("--project", required=True)
         if command == "status":
             item.add_argument("--history", action="store_true", help="显示完整制作事件历史")
-            item.add_argument("--json", action="store_true", help="机器可读状态（原有 JSON 输出保持默认）")
         if command == "preview":
             item.add_argument("--limit-frames", type=int)
             item.add_argument("--start-seconds", type=float, default=0)

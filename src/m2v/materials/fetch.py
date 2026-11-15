@@ -19,10 +19,8 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from .contracts import (Artifact, CaptionTrack, Chapter, Media, MediaData, Probe, SourceMapping,
                         TimeRange, Timeline, fingerprint)
 from .errors import MaterialError
-from .media import LOCAL_FORMATS, LOCAL_INPUT_OPTIONS, probe, seconds_us, toolchain
+from .media import LOCAL_INPUT_OPTIONS, probe, seconds_us, toolchain
 from .network import NetworkBudget, SafeHTTP, public_url, validate_url
-from .paths import no_links
-from .registration import register_local
 from .store import MaterialStore
 from .webpage import WebpageProvider
 

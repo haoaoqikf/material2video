@@ -30,8 +30,6 @@ from .store import MaterialStore
 logger = logging.getLogger(__name__)
 
 CHANNELS = ('captions', 'chapters', 'shots', 'frames', 'asr', 'ocr', 'text', 'visual')
-DEFAULT_OPS = {'asr': (), 'ocr': ('frames',), 'text': ('captions', 'asr', 'ocr', 'chapters'),
-               'visual': ('frames',), 'shots': (), 'frames': ()}
 MAX_RECORDS = 50_000
 MAX_FRAMES = 240
 
@@ -479,7 +477,7 @@ def index_ocr(store: MaterialStore, media, manager: ModelManager, *, max_frames:
         path = store.verify_artifact(item.frame)
         try:
             output = engine(str(path))
-        except Exception as exc:  # noqa: BLE001 - 识别器内部异常不能泄露绝对路径
+        except Exception:  # noqa: BLE001 - 识别器内部异常不能泄露绝对路径
             raise MaterialError('decode-failed', '画面文字识别失败，未发布 OCR 索引', stage='index') from None
         texts = [str(value).strip() for value in (output.txts or ()) if str(value).strip()]
         if not texts:

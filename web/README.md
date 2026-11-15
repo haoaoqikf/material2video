@@ -1,12 +1,12 @@
-# web/ —— 画面实现与渲染契约页
+# web/ —— 参考源码、契约页与仓库测试夹具
 
-这里是 Material2Video 的**表现层与渲染层**：React composition 画画面，Remotion 逐帧渲染成 MP4。内容层（材料与分镜 JSON）与配音层（Python 的 `m2v prepare`）不在这里。代码分层、模块边界与依赖方向见 [ARCHITECTURE.md](../ARCHITECTURE.md)；渲染、量测与契约页细节见[渲染引擎](../.agents/skills/material2video/references/render-engine.md)与[代码场景运行契约](../.agents/skills/material2video/references/code-scene-runtime.md)。
+这里是 Material2Video 的**可选组件参考源码与仓库测试夹具**：React composition、逐帧宿主、结构化来源画面与渲染契约页都在这里，供作品递归复制采用和在仓库内验证，不是作品运行时，也没有公开 SDK 入口。作品使用自己目录内的源码、依赖锁与脚本运行；内容层（材料与分镜 JSON）与配音层（Python 的 `m2v prepare`）不在这里。代码分层、模块边界与依赖方向见 [ARCHITECTURE.md](../ARCHITECTURE.md)；渲染、量测与契约页细节见[渲染引擎](../.agents/skills/material2video/references/render-engine.md)与[代码场景运行契约](../.agents/skills/material2video/references/code-scene-runtime.md)。
 
 ## 目录分层
 
-- **共享场景与成片**：`src/code-scene/`、`src/scene-film/`、`src/runtime/`、`src/contract/`、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。五类共用 `SceneFilm` composition。
-- **结构化来源画面**：`src/types/financial/`、`src/types/building_construction/`、`src/types/vehicle_showcase/` 提供可由分镜场景调用的组件与计算，不注册额外 composition。
-- **具体作品代码**：作品内容目录下的 `scenes/` 与 `assets/`，不放进 `src/`。
+- **共享场景与成片参考**：`src/code-scene/`、`src/scene-film/`、`src/runtime/`、`src/contract/`、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。五类共用 `SceneFilm` composition。
+- **结构化来源画面参考**：`src/types/financial/`、`src/types/building_construction/`、`src/types/vehicle_showcase/` 提供可由分镜场景调用的组件与计算，不注册额外 composition。
+- **具体作品代码**：作品内容目录下的 `scenes/` 与 `assets/`，不放进 `src/`；采用参考源码时随作品递归携带实际依赖与资源。
 
 ## 环境要求
 
@@ -37,13 +37,13 @@ pnpm typecheck      # 只做类型检查
 pnpm test           # 单元测试
 ```
 
-真实渲染不走这里的手写命令，用仓库根入口：
+真实渲染不在 `web/` 里执行：每部作品在自身目录内运行 `uv run python scripts/video.py render`，或由仓库根入口委托：
 
 ```bash
 uv run m2v render --project <作品目录>
 ```
 
-它负责路径归属、契约校验、配音与字幕合成、成片验收与交付权限，再调用 `scripts/remotion-render.mjs` 逐帧渲染。两边分工是硬边界：**Python 判定，Node 只执行**；中间靠 `__M2V_COMPOSITION__` / `__M2V_PROGRESS__` 前缀行通信，不解析 Remotion 日志。
+`m2v` 负责路径归属、契约校验与交付结果复核，实际渲染由作品自己的 `scripts/remotion-render.mjs` 逐帧执行。`web/scripts/` 下同名脚本是参考实现与仓库测试使用的副本。两边分工是硬边界：**Python 判定，Node 只执行**；中间靠 `__M2V_COMPOSITION__` / `__M2V_PROGRESS__` 前缀行通信，不解析 Remotion 日志。
 
 ## 渲染脚本
 

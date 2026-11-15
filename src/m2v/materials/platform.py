@@ -7,15 +7,13 @@
 from __future__ import annotations
 
 import logging
-import re
-from dataclasses import dataclass, field
-from urllib.parse import urlsplit
+from dataclasses import dataclass
 
 from m2v.core.media_policy import SourceMetadata, Usage
 
 from .contracts import Query, Source, SourceData, Variant
 from .errors import MaterialError
-from .network import public_url, validate_url
+from .network import validate_url
 from .source_catalog import put_source
 from .source_types import Capability, SearchPage, ResolvedSource, check_search, page_url, snapshot, text
 from .store import MaterialStore

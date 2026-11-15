@@ -159,7 +159,7 @@ def import_assets(root: Path, manifest: dict, *, base: Path, transport=None) -> 
                 value = entry["synthesis"]
                 if isinstance(value, dict) and set(value) == {"generator", "version", "parameters"}:
                     if value["generator"] != "m2v.sound-synthesis" or value["version"] != sound_synthesis.VERSION:
-                        raise VideoError("音效生成配方或版本无效，请重新合成")
+                        raise M2VError("音效生成配方或版本无效，请重新合成")
                     value = value["parameters"]
                 generated = sound_synthesis.synthesize(value, file)
                 info = probe(file)

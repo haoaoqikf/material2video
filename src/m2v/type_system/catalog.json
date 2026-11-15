@@ -41,9 +41,6 @@
             ]
           }
         }
-      ],
-      "starters": [
-        "scenes/opening.tsx"
       ]
     },
     {
@@ -86,9 +83,6 @@
             ]
           }
         }
-      ],
-      "starters": [
-        "scenes/opening.tsx"
       ]
     },
     {
@@ -131,9 +125,6 @@
             ]
           }
         }
-      ],
-      "starters": [
-        "scenes/opening.tsx"
       ]
     },
     {
@@ -176,9 +167,6 @@
             ]
           }
         }
-      ],
-      "starters": [
-        "scenes/opening.tsx"
       ]
     },
     {
@@ -221,9 +209,6 @@
             ]
           }
         }
-      ],
-      "starters": [
-        "scenes/opening.tsx"
       ]
     }
   ]

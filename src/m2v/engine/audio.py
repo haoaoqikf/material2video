@@ -92,32 +92,6 @@ def master(source: Path, target: Path, integrated: float = -14.0, true_peak: flo
                 corrected.replace(target)
 
 
-def duck_envelope(cues: list[dict], duration: float, target: Path) -> None:
-    """包络由字幕讲话区间生成。重叠攻击/释放合并，整片 PCM 不驻内存。"""
-    spans = []
-    for cue in cues:
-        start, end = max(0., cue["start"] - .08), cue["end"] + .25
-        if spans and start <= spans[-1][1]: spans[-1] = (spans[-1][0], max(end, spans[-1][1]))
-        else: spans.append((start, end))
-    index = 0; low = 10 ** (-10 / 20)
-    with wave.open(str(target), "wb") as dest:
-        dest.setparams((1, 2, SAMPLE_RATE, 0, "NONE", "not compressed"))
-        count = round(duration * SAMPLE_RATE)
-        for offset in range(0, count, SAMPLE_RATE):
-            block = bytearray()
-            for sample in range(offset, min(count, offset + SAMPLE_RATE)):
-                t = sample / SAMPLE_RATE
-                while index < len(spans) and t >= spans[index][1]: index += 1
-                gain = 1.
-                if index < len(spans):
-                    a, b = spans[index]
-                    if a <= t < b:
-                        attack = min(1., (t - a) / .08); release = min(1., (b - t) / .25)
-                        gain = 1 - (1 - low) * min(attack, release)
-                block.extend(struct.pack("<h", round(gain * 32767)))
-            dest.writeframesraw(block)
-
-
 def _automation_gain(frame: float, envelope: dict | None, index: int) -> tuple[float, int]:
     if envelope is None: return 1., index
     points = envelope["keyframes"]

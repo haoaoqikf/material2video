@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import asdict
-import io
 import itertools
 import json
 import math

@@ -20,7 +20,6 @@ from PIL import Image, ImageDraw
 from .contracts import CandidateData, TimeRange, fingerprint
 from .errors import MaterialError
 from .media import LOCAL_INPUT_OPTIONS
-from .network import public_url
 from .paths import no_links
 from .store import MaterialStore
 
@@ -182,9 +181,9 @@ def preview_candidates(store: MaterialStore, candidates: list[CandidateData], *,
             shutil.copyfile(source_path, display_path)
             times = _frame_times(candidate.localRange, media.data.probe.durationUs)
             sheet_path = root / f'candidate-{index:02d}.png'
-            result = contact_sheet([display_path], times=None if image else times or None,
-                                   samples=max(1, min(6, len(times) or 1)), columns=min(columns, max(1, len(times) or 1)),
-                                   tile_width=tile_width, out=sheet_path)
+            contact_sheet([display_path], times=None if image else times or None,
+                          samples=max(1, min(6, len(times) or 1)), columns=min(columns, max(1, len(times) or 1)),
+                          tile_width=tile_width, out=sheet_path)
             preview = None
             if not image:
                 preview_path = root / f'candidate-{index:02d}-preview.mp4'

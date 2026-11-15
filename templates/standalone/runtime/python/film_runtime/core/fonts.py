@@ -77,21 +77,6 @@ def rendered_strings(storyboard: dict) -> list[tuple[str, str]]:
     return found
 
 
-def audit_fonts_strict(font: str | Path, entries: list[tuple[str, str]]) -> list[dict]:
-    """用**单一字体**的 cmap 检查，不做跨字体并集。
-
-    全局字体并集会掩盖「宋体缺字、黑体有字」：浏览器实际用前者，缺字仍会静默回退。
-    作品选用的注册字体必须有自己的严格检查。
-    """
-    coverage = codepoint_coverage(font)
-    findings: list[dict] = []
-    for where, text in entries:
-        missing = missing_glyphs(font, text, coverage)
-        if missing:
-            findings.append({"where": where, "missing": missing, "font": str(font)})
-    return findings
-
-
 def audit(
     storyboard: dict,
     font: str | Path,

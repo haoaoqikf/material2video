@@ -8,6 +8,7 @@ import pytest
 from m2v.cli import main
 from m2v.core.errors import M2VError
 from m2v.reference import douyin
+from m2v.reference.douyin_media import _digest
 
 
 API_DETAIL = {
@@ -143,7 +144,7 @@ def _install_fake_fetch(monkeypatch, detail: dict) -> None:
     def fake_download(urls, destination: Path, kind: str) -> dict:
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(b"fake-media-bytes")
-        return {"sha256": douyin._digest(destination), "bytes": destination.stat().st_size}
+        return {"sha256": _digest(destination), "bytes": destination.stat().st_size}
 
     monkeypatch.setattr(douyin, "_download_first", fake_download)
 
@@ -174,7 +175,7 @@ def test_fetch_uses_ytdlp_before_browser(monkeypatch, tmp_path: Path) -> None:
     def fake_download(urls, destination: Path, kind: str) -> dict:
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(b"fake-media-bytes")
-        return {"sha256": douyin._digest(destination), "bytes": destination.stat().st_size}
+        return {"sha256": _digest(destination), "bytes": destination.stat().st_size}
 
     monkeypatch.setattr(douyin, "_download_first", fake_download)
     result = douyin.fetch("https://v.douyin.com/RoCzhrDGM5g/", output=tmp_path)
@@ -207,7 +208,7 @@ def test_fetch_writes_recipe_and_reuses_verified_copy(monkeypatch, tmp_path: Pat
     recipe = json.loads((directory / "recipe.json").read_text(encoding="utf-8"))
     assert recipe["schemaVersion"] == 1
     assert [entry["path"] for entry in recipe["files"]] == ["video.mp4"]
-    assert recipe["files"][0]["sha256"] == douyin._digest(directory / "video.mp4")
+    assert recipe["files"][0]["sha256"] == _digest(directory / "video.mp4")
 
     again = douyin.fetch("https://v.douyin.com/RoCzhrDGM5g/", output=tmp_path)
     assert again.reused

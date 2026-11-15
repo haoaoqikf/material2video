@@ -16,7 +16,6 @@ def test_catalog_matches_registry_and_has_no_category():
     assert {entry.name for entry in entries} == {item.name for item in registry.all_types()}
     assert all(entry.workspace_parts() == (entry.name,) for entry in entries)
     assert all(entry.material_map() == {"storyboard": "storyboard.json"} for entry in entries)
-    assert all(entry.starters == ("scenes/opening.tsx",) for entry in entries)
 
 
 def test_catalog_rejects_category_old_schema_and_wrong_count(tmp_path):

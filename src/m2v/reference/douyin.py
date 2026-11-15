@@ -23,17 +23,13 @@ from m2v.core.workspace import bundle_repo_root, content_root
 from .douyin_detail import (
     DETAIL_PATH,
     DESKTOP_UA,
-    REFERER,
     _detail_from_bodies,
     aweme_id_from_url,
     detail_from_html,
     extract_share_url,
-    image_entries,
     normalize_detail,
-    pace_texts,
-    video_urls,
 )
-from .douyin_media import _digest, _download_first, _guess_ext, _measure, verify_directory
+from .douyin_media import _download_first, _guess_ext, _measure, verify_directory
 from .ytdlp_adapter import YtDlpUnavailable, probe as ytdlp_probe
 
 logger = logging.getLogger(__name__)

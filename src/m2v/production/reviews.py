@@ -124,7 +124,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     blind_id = request.get("blindId")
     if review_type == "consistency":
         prior = current_report(root, manifest, identifier(blind_id))
-        prior_pack, prior_binding = load_package(
+        _, prior_binding = load_package(
             root, manifest, prior["packPath"], prior["packSha256"]
         )
         if (

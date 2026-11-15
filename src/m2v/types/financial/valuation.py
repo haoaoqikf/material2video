@@ -8,15 +8,6 @@ from typing import Any
 from m2v.core.errors import M2VError
 
 
-def fx_rate_on_or_before(fx_points: list[dict[str, Any]], day: str) -> float:
-    """Return the latest USD/CNY observation available on a UTC calendar date."""
-    dates = [point["date"] for point in fx_points]
-    index = bisect_right(dates, day) - 1
-    if index < 0:
-        raise M2VError(f"缺少 {day} 当日或此前的 USD/CNY 汇率")
-    return float(fx_points[index]["close"])
-
-
 def crypto_investment_values(request: dict[str, Any], prices: dict[str, Any]) -> list[dict[str, Any]]:
     """Derive CNY holdings from USD closes and the nearest prior CNY/USD rate."""
     investment = request["investment"]

@@ -393,7 +393,7 @@ def _validate_snapshots(snapshots: Any, source_urls: set[str], project_root: Pat
 def _validate_source(source: Any, where: str, start: date, end: date, *, require_full_coverage: bool = True) -> tuple[date, date]:
     if not isinstance(source, dict):
         fail(where, "必须是对象")
-    url = _https_url(source.get("url"), f"{where}.url")
+    _https_url(source.get("url"), f"{where}.url")
     fetched = _required_text(source.get("fetchedAt"), f"{where}.fetchedAt")
     try:
         parsed = datetime.fromisoformat(fetched.replace("Z", "+00:00"))

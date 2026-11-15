@@ -18,7 +18,6 @@ from film_runtime.core.text import count_characters
 from film_runtime.core.video_config import READING_TAIL_SECONDS
 
 Interval = tuple[float, float]
-HoldKind = str
 HOLD_KINDS = ("leadIn", "segmentHold", "readingHold", "tail")
 #: 区间比较的浮点容差；只用于避免相邻区间因为舍入被判成重叠或缝隙。
 EPSILON = 1e-9

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import array
 import json
-import re
 import wave
 from dataclasses import dataclass
 from pathlib import Path

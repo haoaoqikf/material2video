@@ -8,7 +8,7 @@ from m2v.core.project import load_current_prepared
 from m2v.core import frames
 from m2v.types.scene_film import adapter, explainer, explainer_prepare as prepare, explainer_review as review
 
-from helpers.scene_film import ENTRY, STARTER, board, fake_record, fake_tts, project, scene, scene_root
+from helpers.scene_film import ENTRY, board, fake_record, fake_tts, project, scene, scene_root
 
 
 ROOT = Path(__file__).resolve().parents[3]

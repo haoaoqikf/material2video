@@ -47,7 +47,7 @@ def _write_project(article_dir: Path) -> None:
     (article_dir / "storyboard.json").write_text(json.dumps(board, ensure_ascii=False), encoding="utf-8")
     entry = article_dir / "scenes/opening.tsx"
     entry.parent.mkdir(parents=True, exist_ok=True)
-    entry.write_text((ROOT / "src/m2v/types/scene_film/starters/scenes/opening.tsx").read_text(encoding="utf-8"),
+    entry.write_text((ROOT / "templates/standalone/scenes/opening.tsx").read_text(encoding="utf-8"),
                      encoding="utf-8")
 
 

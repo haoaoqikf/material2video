@@ -230,7 +230,7 @@ def _merge(hits: list[Hit], *, tolerance_us: int) -> list[list[Hit]]:
 
 
 def _candidate(store: MaterialStore, requirement: Requirement, group: list[Hit],
-               media, index_models: dict[str, str], *, context_us: int = 0) -> CandidateData:
+               media, *, context_us: int = 0) -> CandidateData:
     intervals = [hit.local_range for hit in group if hit.local_range]
     window = None
     if intervals:
@@ -266,9 +266,6 @@ def _candidate(store: MaterialStore, requirement: Requirement, group: list[Hit],
         subjectMatch=Observation(), actionVisible=Observation(), actionComplete=Observation(),
         cropUsable=Observation(), factualIdentityMatch=Observation())
     index_ids = sorted({hit.index_id for hit in group if hit.index_id})
-    model_id = next((index_models[hit.index_id] for hit in group if hit.index_id in index_models), None)
-    digest = fingerprint({'requirement': requirement.id, 'media': media.data.artifact.sha256,
-                          'window': window.model_dump(mode='json') if window else None})
     return CandidateData(requirementId=requirement.id,
                          requirementDigest=fingerprint(requirement),
                          sourceId=media.data.sourceId, mediaId=media.id,
@@ -321,7 +318,6 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
     result = FindResult(requirement=document)
     per_channel = {name: 0 for name in channels}
     hits: list[Hit] = []
-    index_models: dict[str, str] = {}
     indexes = _index_map(store)
     for media in _scopes(store, media_ids):
         try:
@@ -346,10 +342,6 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
             result.excluded.append({'mediaId': media.id, 'reason': 'metadata-filter',
                                     'note': '未满足来源/画幅/时长过滤'})
             continue
-        for channel in ('captions', 'asr', 'ocr', 'chapters', 'text', 'visual'):
-            index = indexes.get((media.id, channel))
-            if index is not None and index.data.embeddingSpec is not None:
-                index_models[index.id] = f'{index.data.embeddingSpec.model}@{index.data.embeddingSpec.revision[:12]}'
         if 'lexical' in channels:
             found = _lexical(store, media, query_tokens, top_k * 3, indexes)
             per_channel['lexical'] += len(found)
@@ -399,7 +391,7 @@ def find(store: MaterialStore, *, query: str | None = None, requirement: Require
         media = media_map.get(group[0].media_id)
         if media is None:
             continue
-        candidate = _candidate(store, document, group, media, index_models, context_us=context_us)
+        candidate = _candidate(store, document, group, media, context_us=context_us)
         built.append((candidate, max((hit.evidence for hit in group), default=0.0),
                       min((hit.rank for hit in group if hit.rank), default=999)))
     # RRF 名次相同时，用通道顶部差距和最好名次排序；不把不同量纲分数直接相加。
