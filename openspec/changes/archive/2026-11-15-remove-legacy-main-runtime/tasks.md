@@ -25,4 +25,4 @@
 
 - [x] 5.1 运行受影响测试（common/types/standalone/works 默认标记集）与 `m2v types` 冒烟，全部通过；浏览器慢测中 `test_visual_tools` 通过，`test_capture_clock` 的 video seek 断言受本机 Chromium 取整影响
 - [x] 5.2 检查暂存内容无二进制与缓存，提交实现与文档
-- [ ] 5.3 规格校验与归档：`openspec validate` 通过后归档变更，提交归档结果
+- [x] 5.3 规格校验与归档：`openspec validate` 通过后归档变更，提交归档结果
