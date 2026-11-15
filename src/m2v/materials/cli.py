@@ -316,7 +316,8 @@ def _library(args) -> int:
                 raise MaterialError('invalid-request', 'library scan 需要 --dir', stage='library')
             from .fetch import FetchBudget
             result = library.scan_directory(store, Path(args.dir), recursive=args.recursive,
-                                            budget=FetchBudget(max_bytes=args.max_bytes))
+                                            budget=FetchBudget(max_bytes=args.max_bytes), max_files=args.max_files,
+                                            retry_failed=args.retry_failed)
         elif args.action == 'verify':
             result = library.verify_library(store)
         elif args.action == 'stats':
@@ -328,6 +329,8 @@ def _library(args) -> int:
                 raise MaterialError('invalid-request', 'cleanup-apply 需要 --digest', stage='library')
             result = library.apply_cleanup(store, args.digest)
     _emit(args, result, _json(result))
+    if isinstance(result, dict) and result.get('failures'):
+        return 1 if result.get('files') else 2
     return 0 if not (isinstance(result, dict) and result.get('issues')) else 1
 
 
@@ -476,6 +479,8 @@ def _parser() -> argparse.ArgumentParser:
     item.add_argument('action', choices=('scan', 'verify', 'stats', 'cleanup-plan', 'cleanup-apply'))
     item.add_argument('--dir', help='scan 的显式目录')
     item.add_argument('--recursive', action='store_true')
+    item.add_argument('--max-files', type=int, default=500, help='每轮新的获取尝试预算；重复扫描复用已完成项')
+    item.add_argument('--retry-failed', action='store_true', help='重试内容未变化的已失败项')
     item.add_argument('--max-mb', dest='max_bytes', type=int, default=1024)
     item.add_argument('--digest', help='cleanup-apply 的计划摘要')
     item.set_defaults(handler=_library)

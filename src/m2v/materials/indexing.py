@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from .sampling import STRATEGY, frame_time, spread
+
 import hashlib
 import json
 import logging
@@ -234,8 +236,10 @@ def _extract_frames(store: MaterialStore, media, staging: Path, shots: list[tupl
     unique = sorted({int(value) for value in times})
     warnings = []
     if len(unique) > max_frames:
-        warnings.append(f'采样帧 {len(unique)} 超过本次 {max_frames} 帧预算，按时间顺序截断')
-        unique = unique[:max_frames]
+        warnings.append(f'采样帧 {len(unique)} 超过本次 {max_frames} 帧预算，按全时间轴分布选择；未采样动作仍未知')
+        unique = spread(unique, max_frames)
+    if unique:
+        warnings.append(f'采样策略 {STRATEGY}；实际计划范围 {unique[0]}–{unique[-1]} us；{len(unique)} 帧')
     source = store.verify_artifact(media.data.artifact)
     extracted: list[tuple[int, Path]] = []
     for spot in unique:
@@ -283,7 +287,7 @@ def index_shots(store: MaterialStore, media, *, threshold: float = 0.3, adaptive
     if not 0 < threshold < 1 or not 0 < long_shot_s <= 600 or type(max_frames) is not int or not 1 <= max_frames <= MAX_FRAMES:
         raise MaterialError('invalid-request', '切镜阈值、长镜头间隔或帧预算无效', stage='index')
     config = {'threshold': threshold, 'adaptive': bool(adaptive), 'longShotUs': int(long_shot_s * 1_000_000),
-              'maxFrames': max_frames, 'frameQuality': 'luma-contrast-v1'}
+              'maxFrames': max_frames, 'frameQuality': 'luma-contrast-v1', 'sampling': STRATEGY}
     cache = _cache_key(media, 'shots', config)
     cached = store.cached(cache)
     if cached is not None:
@@ -345,7 +349,8 @@ def _find_index(store: MaterialStore, media, channel: str) -> Index | None:
 
 def _require_frames(store: MaterialStore, media, options: dict) -> Index:
     existing = _find_index(store, media, 'frames')
-    if existing is not None and not options.get('rebuild_frames'):
+    if (existing is not None and existing.data.config.get('sampling') == STRATEGY
+            and not options.get('rebuild_frames')):
         return existing
     return index_shots(store, media, **(options.get('shots') or {}))[1].document
 
@@ -458,7 +463,7 @@ def index_ocr(store: MaterialStore, media, manager: ModelManager, *, max_frames:
     image = media.data.probe.kind == 'image'
     frames = None if image else _require_frames(store, media, options)
     identity = embedding.model_identity(manager, 'rapidocr')
-    config = {'maxFrames': max_frames if not image else 1, 'detector': 'PP-OCRv4-mobile',
+    config = {'maxFrames': max_frames if not image else 1, 'detector': 'PP-OCRv4-mobile', 'sampling': STRATEGY,
               'image': image,
               'framesIndex': frames.id if frames else None,
               'framesDigest': frames.data.artifacts[0].sha256 if frames else None}
@@ -471,7 +476,8 @@ def index_ocr(store: MaterialStore, media, manager: ModelManager, *, max_frames:
     if image:
         frame_records = [types.SimpleNamespace(frame=media.data.artifact, localRange=None)]
     else:
-        frame_records = [item for item in store.records(frames.id) if item.frame and item.localRange][:max_frames]
+        frame_records = spread([item for item in store.records(frames.id) if item.frame and item.localRange],
+                               max_frames, time=frame_time)
     records, warnings = [], []
     for item in frame_records:
         path = store.verify_artifact(item.frame)
@@ -578,7 +584,7 @@ def index_visual(store: MaterialStore, media, manager: ModelManager, *, max_fram
     image = media.data.probe.kind == 'image'
     frames = None if image else _require_frames(store, media, options)
     identity = embedding.model_identity(manager, 'siglip2-base')
-    config = {'maxFrames': max_frames if not image else 1, 'image': image,
+    config = {'maxFrames': max_frames if not image else 1, 'image': image, 'sampling': STRATEGY,
               'framesIndex': frames.id if frames else None,
               'framesDigest': frames.data.artifacts[0].sha256 if frames else None}
     inputs = [frames.data.artifacts[0].sha256] if frames else [media.data.artifact.sha256]
@@ -589,7 +595,8 @@ def index_visual(store: MaterialStore, media, manager: ModelManager, *, max_fram
     if image:
         frame_records = [types.SimpleNamespace(frame=media.data.artifact, localRange=None)]
     else:
-        frame_records = [item for item in store.records(frames.id) if item.frame and item.localRange][:max_frames]
+        frame_records = spread([item for item in store.records(frames.id) if item.frame and item.localRange],
+                               max_frames, time=frame_time)
     if not frame_records:
         raise MaterialError('not-found', '没有可用关键帧，无法建立视觉索引', stage='index')
     paths = [store.verify_artifact(item.frame) for item in frame_records]

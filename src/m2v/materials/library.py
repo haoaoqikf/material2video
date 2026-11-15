@@ -5,106 +5,12 @@
 """
 from __future__ import annotations
 
-import logging
-import stat
 from pathlib import Path
 
 from .contracts import Artifact, fingerprint, utc_now
 from .errors import MaterialError
-from .fetch import MEDIA_SUFFIXES, FetchBudget, fetch_local
-from .paths import no_links
-from .registration import register_local
 from .store import MaterialStore
-
-logger = logging.getLogger(__name__)
-
-MAX_SCAN_FILES = 500
-
-
-def _guard_directory(directory: Path, *, recursive: bool) -> Path:
-    path = no_links(Path(directory).expanduser())
-    if not path.is_dir():
-        raise MaterialError('not-found', '库目录不存在或不是目录', stage='library')
-    home = Path.home().resolve()
-    if path == home or path == Path(path.anchor) or path == home.parent:
-        raise MaterialError('security-blocked', '拒绝扫描用户主目录或磁盘根；请显式指定具体素材目录', stage='library')
-    if recursive:
-        depth = len(path.parts)
-        if depth <= 2:
-            raise MaterialError('security-blocked', '递归登记至少需要两级以上的明确目录', stage='library')
-    return path
-
-
-def _files(directory: Path, *, recursive: bool, budget: FetchBudget) -> tuple[list[Path], list[dict]]:
-    skipped, found = [], []
-    if recursive:
-        import os
-        entries: list[Path] = []
-        for root, directories, names in os.walk(directory, followlinks=False):
-            kept = []
-            for name in directories:
-                path = Path(root) / name
-                try:
-                    info = path.lstat()
-                except OSError:
-                    skipped.append({'name': name, 'reason': 'unreadable'})
-                    continue
-                if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-                    skipped.append({'name': name, 'reason': 'link'})
-                    continue
-                kept.append(name)
-            directories[:] = kept
-            entries.extend(Path(root) / name for name in names)
-        iterator = entries
-    else:
-        iterator = directory.iterdir()
-    for item in iterator:
-        try:
-            info = item.lstat()
-        except OSError:
-            skipped.append({'name': item.name, 'reason': 'unreadable'})
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-            skipped.append({'name': item.name, 'reason': 'link'})
-            continue
-        if not stat.S_ISREG(info.st_mode):
-            continue
-        if item.suffix.lower() not in MEDIA_SUFFIXES:
-            continue
-        if info.st_size <= 0 or info.st_size > budget.max_bytes:
-            skipped.append({'name': item.name, 'reason': 'size'})
-            continue
-        found.append(item)
-        if len(found) >= MAX_SCAN_FILES:
-            skipped.append({'name': '*', 'reason': 'file-budget'})
-            break
-    return sorted(found), skipped
-
-
-def scan_directory(store: MaterialStore, directory: Path, *, recursive: bool = False,
-                   budget: FetchBudget | None = None) -> dict:
-    """显式目录登记；只处理该目录内的受支持媒体，不追溯其他引用。"""
-    budget = budget or FetchBudget()
-    root = _guard_directory(Path(directory), recursive=recursive)
-    files, skipped = _files(root, recursive=recursive, budget=budget)
-    media_ids, source_ids, seen, duplicates = [], [], {}, []
-    total = 0
-    for path in files:
-        registered = register_local(path, store=store)
-        fetched = fetch_local(store, source=registered.document, path=path, budget=budget)
-        sha = fetched.media.data.artifact.sha256
-        total += fetched.media.data.artifact.bytes
-        media_ids.append(fetched.media.id)
-        source_ids.append(registered.document.id)
-        if sha in seen:
-            duplicates.append({'sha256': sha, 'mediaIds': [seen[sha], fetched.media.id]})
-        else:
-            seen[sha] = fetched.media.id
-    return {'directory': str(root), 'files': len(files), 'bytes': total,
-            'mediaIds': media_ids, 'sourceIds': source_ids,
-            'duplicateContents': duplicates, 'skipped': skipped,
-            'note': '同字节共享内容对象；各来源分别保留用途/许可状态，不自动继承'}
-
+from .scanning import MAX_SCAN_FILES, scan_directory
 
 def stats(store: MaterialStore) -> dict:
     counts = {kind: store.connection.execute('SELECT count(*) FROM documents WHERE kind=?', (kind,)).fetchone()[0]
