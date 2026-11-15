@@ -87,7 +87,7 @@ Qwen3-TTS 使用 `Qwen3-TTS-12Hz-0.6B-Base` 做零样本克隆，参考音频、
 
 `frames.json` 的 subtitle 可声明 `fontFamily`、`secondary`（字体、字号、行高、颜色、透明度）与 `backing`（`adaptiveHalo`、颜色、最大透明度、羽化半径）。启用 `adaptiveHalo` 时，prepare 按每条字幕中点从该幕登记素材采样字幕区域的平均色与亮度，写入 `backing.color/opacity/background`；渲染只画无硬边的径向柔光，不画矩形底板。采样值参与准备指纹；同一素材与时间点结果一致。旧作品没有这些字段时继续使用底板路径。
 
-使用外部字体时，字体必须在作品 `fonts/registry.json` 登记来源、版本、摘要与许可，并由 `fonts/fetch.py` 恢复；字体缺失或摘要不符时构建/准备失败。片尾只显示画面来源平台（如“画面素材来自 Pixabay”），作者、许可与作品说明保留在 `assets/media-sources.json`、`SOURCES.md` 与发布说明，不进入画面。
+使用外部字体时，字体必须在作品 `fonts/registry.json` 登记来源、版本、摘要与许可，并由 `fonts/fetch.py` 恢复；字体缺失或摘要不符时构建/准备失败。档案标注和片尾来源按[素材采用与署名](material-sourcing.md#5-采用政策与署名)处理。
 
 ### 时间戳、字幕与缓存
 

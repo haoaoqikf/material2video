@@ -240,6 +240,6 @@ uv run m2v ref audio <参考目录> --project videos/<类型>/<slug> --user-auth
 
 无旁白作品只有音床时，音床就是全片唯一音源：必须显式写 `gainDb: 0`、`loop: false`、`fadeInMs: 0`、`fadeOutMs: 0`。全部幕使用 `cut` 时 `sum(durationFrames) = totalFrames`；使用 `fade`/`crossfade` 时另加 `transitionFrames` 之和。母版仍会重采样为 24 kHz、保留混音声道，经限幅/压缩/响度归一后交付 AAC 44.1 kHz，交付说明写「整条音频作为唯一音源，经母版响度规范」，不写「比特级原样」。
 
-`--user-authorized` 必须带用户原文；provenance 记录来源、参考视频与提取音频摘要、许可状态与第三方音乐风险，不把用户授权表述为许可。参考视频画面仍不得进入成片；成片只保留一处片尾署名。
+`--user-authorized` 必须带用户原文；provenance 记录来源、参考视频与提取音频摘要、许可状态与第三方音乐风险，不把用户授权表述为许可。参考视频画面仍不得进入成片。采用记录和成片署名遵循[素材采用与署名](material-sourcing.md#5-采用政策与署名)。
 
 音轨复用与风格借鉴是两件事：`ref audio` 的授权只覆盖这一条音轨，不扩大为参考画面资产的使用授权。用户要求借鉴外观或表达时，按[参考分析与借鉴](reference-video-analysis.md)记录实际采用范围；参考画面仍不得直接进入成片。
