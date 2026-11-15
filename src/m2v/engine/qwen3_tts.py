@@ -14,11 +14,13 @@ import json
 import logging
 import os
 import re
+import tempfile
 import wave
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from m2v.core.errors import M2VError
+from m2v.engine import audio as audio_engine
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ REVISION = "7ee3cf0b7e7be29c5d8de06cd552b78263f01ece"
 ALIGNER_REVISION = "536b0662742c02347bc0e980a01041f333bce120"
 SAMPLE_RATE = 24000
 SEED_VERSION = 1
+TEMPO_FILTER = "atempo"
 VOICE_PATTERN = re.compile(r"^clone_[a-z0-9][a-z0-9-]*$")
 _UNSUPPORTED = re.compile(r"[0-9０-９A-Za-z]")
 _WORD_CHAR = re.compile(r"[\w一-鿿]")
@@ -241,7 +244,6 @@ def _seed(text: str, voice: str, ref_digest: str, speed: float) -> int:
 def _import_backend():
     try:
         import faster_whisper  # noqa: F401 - 对齐后端可用性探测，缺失时提前给出可修复错误
-        import librosa
         import stable_whisper
         import torch
         from qwen_tts import Qwen3TTSModel
@@ -250,21 +252,21 @@ def _import_backend():
             "Qwen3-TTS 后端依赖未安装：请在作品内执行 uv sync --extra qwen3-tts "
             f"（或安装 qwen-tts、stable-ts）；原始错误：{exc}"
         ) from exc
-    return torch, Qwen3TTSModel, stable_whisper, librosa
+    return torch, Qwen3TTSModel, stable_whisper
 
 
 def _loaded(paths: dict) -> tuple:
     key = str(paths["model_dir"].resolve())
     if key in _LOADED:
         return _LOADED[key]
-    torch, Qwen3TTSModel, stable_whisper, librosa = _import_backend()
+    torch, Qwen3TTSModel, stable_whisper = _import_backend()
     torch.set_num_threads(max(1, min(14, os.cpu_count() or 2)))
     logger.info("加载 Qwen3-TTS 模型：%s", paths["model_dir"])
     model = Qwen3TTSModel.from_pretrained(
         str(paths["model_dir"]), dtype=torch.float32, attn_implementation="eager")
     aligner = stable_whisper.load_faster_whisper(
         str(paths["aligner_dir"]), device="cpu", compute_type="int8")
-    value = (torch, model, aligner, librosa, {})
+    value = (torch, model, aligner, {})
     _LOADED[key] = value
     return value
 
@@ -367,7 +369,7 @@ def synthesize(text: str, voice: str, rate: str, output: Path, *, models_dir: Pa
 
     speed = speed_for_rate(rate)
     paths = assets(models_dir, voice)
-    torch, model, aligner, librosa, prompts = _loaded(paths)
+    torch, model, aligner, prompts = _loaded(paths)
     prompt = _prompt(torch, model, paths, prompts)
     ref_digest = voice_digest(models_dir, voice)
 
@@ -379,16 +381,16 @@ def synthesize(text: str, voice: str, rate: str, output: Path, *, models_dir: Pa
     audio = np.asarray(wavs[0], dtype=np.float32).reshape(-1)
     if audio.size == 0 or not np.isfinite(audio).all():
         raise ValueError("Qwen3-TTS 没有生成有效音频")
-    if abs(speed - 1.0) > 1e-9:
-        audio = librosa.effects.time_stretch(audio, rate=speed).astype(np.float32)
-    duration = float(audio.size) / int(sample_rate)
-
     output.parent.mkdir(parents=True, exist_ok=True)
-    import tempfile
     with tempfile.TemporaryDirectory(dir=output.parent) as temporary:
-        aligned = Path(temporary) / "speech.wav"
-        _write_pcm16(aligned, audio, int(sample_rate))
-        words = _align(aligner, aligned, text, duration)
-
-    _write_pcm16(output, audio, int(sample_rate))
+        raw = Path(temporary) / "speech.wav"
+        _write_pcm16(raw, audio, int(sample_rate))
+        aligned = raw
+        if speed != 1.0:
+            # 按时域波形对齐短片段，避免简单相位声码器模糊人声起音。
+            aligned = Path(temporary) / "tempo.wav"
+            audio_engine.ffmpeg(["-i", str(raw), "-af", f"{TEMPO_FILTER}={speed:.4f}",
+                                 "-c:a", "pcm_s16le", str(aligned)])
+        words = _align(aligner, aligned, text, audio_engine.wav_duration(aligned))
+        aligned.replace(output)
     return words

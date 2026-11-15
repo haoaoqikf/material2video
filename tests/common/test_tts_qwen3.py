@@ -97,6 +97,20 @@ def test_cache_key_separates_backends_and_voice_profiles(tmp_path: Path) -> None
                                        backend="qwen3-tts", models_dir=models)
 
 
+def test_tempo_filter_only_invalidates_non_native_speed(tmp_path: Path, monkeypatch) -> None:
+    models = _registry(tmp_path)
+
+    def key(rate):
+        return tts.scene_cache_key("旁白", "clone_test", rate, 9,
+                                   backend="qwen3-tts", models_dir=models)
+
+    native = key("+0%")
+    accelerated = key("+12%")
+    monkeypatch.setattr(qwen3_tts, "TEMPO_FILTER", "other-filter")
+    assert key("+0%") == native
+    assert key("+12%") != accelerated
+
+
 def test_zero_duration_words_merge_without_changing_time() -> None:
     raw = [
         {"text": "为什么", "start": 0.26, "end": 0.34},

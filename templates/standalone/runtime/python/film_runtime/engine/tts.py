@@ -201,6 +201,8 @@ def scene_cache_key(text: str, voice: str, rate: str, contract_version: int,
         payload["backend"] = backend
         payload.update(qwen3_tts.versions())
         payload["voiceProfile"] = qwen3_tts.voice_digest(models_dir, voice)
+        if qwen3_tts.speed_for_rate(rate) != 1.0:
+            payload["tempoFilter"] = qwen3_tts.TEMPO_FILTER
     else:
         raise VideoError(f"不支持的 TTS 后端：{backend!r}；当前可用：{'、'.join(BACKENDS)}")
     return fingerprint(payload)
