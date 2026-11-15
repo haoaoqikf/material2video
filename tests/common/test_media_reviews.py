@@ -153,6 +153,28 @@ def test_render_cleanup_preserves_bound_trial_and_reference_media(work):
                          digest(pack / "manifest.json"))
 
 
+def test_render_cleanup_preserves_internal_issue_evidence(work):
+    from m2v.production.cleanup import cleanup_render_outputs
+
+    root, _ = work
+    base = outputs(root)
+    current = base / "video.mp4"
+    current.write_bytes(b"current")
+    proof = base / "previews/fixed.png"
+    proof.parent.mkdir()
+    proof.write_bytes(b"verified frame")
+    issues.update(root, dict(
+        id="cropping", cycleId=ledger.cycle(root)["cycleId"], status="closed",
+        required=True, round="internal", scope={"window": [0, 1]}, reportId=None,
+        versionRefs=["current"], cause="implementation", observations="已复查裁切",
+        evidence=[receipt(base, proof)],
+    ))
+
+    assert cleanup_render_outputs(root, current) == []
+    assert not (base / "trial.png").exists()
+    assert issues.load(root)[0]["status"] == "closed"
+
+
 def test_render_cleanup_stops_when_review_binding_cannot_be_trusted(work):
     from m2v.production.cleanup import cleanup_render_outputs
 

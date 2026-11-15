@@ -1,4 +1,4 @@
-"""在作品写锁内保留当前周期隔离包的源媒体，再调用通用输出清理。"""
+"""在作品写锁内保留当前周期的评审媒体和问题证据，再调用通用输出清理。"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.output_cleanup import cleanup_after_render
-from . import ledger
+from . import issues, ledger
 from .model import VERSION, fields
 from .storage import local, locked, read
 
@@ -20,6 +20,13 @@ def retained_media(root: Path) -> set[Path]:
     if errors:
         raise M2VError("; ".join(errors))
     protected: set[Path] = set()
+    for issue in issues.load(root, check_closures=False):
+        evidence = issue.get("evidence", [])
+        if not isinstance(evidence, list):
+            raise M2VError("问题证据引用无效")
+        for entry in evidence:
+            fields(entry, {"path", "sha256"})
+            protected.add(local(base, entry["path"], exists=False))
     for event in events:
         if event["type"] != "package":
             continue
@@ -45,11 +52,11 @@ def retained_media(root: Path) -> set[Path]:
 def cleanup_render_outputs(root: Path, current_video: Path) -> list[str]:
     """清理失败只报告，不影响已生成候选；与 pack/import 共用锁避免引用竞态。"""
     try:
-        with locked(root):
+        with locked(root), ledger.query():
             protected = retained_media(root)
             return cleanup_after_render(
                 outputs(root), current_video,
                 preserve_visual_evidence=True, protected_files=protected,
             )
     except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
-        return [f"无法确认评审源媒体引用，未执行清理：{exc}"]
+        return [f"无法确认评审媒体或问题证据引用，未执行清理：{exc}"]
