@@ -48,7 +48,7 @@ def snapshot(root: Path, paths: list[Path]) -> dict[str, str]:
 
 def render(root: Path, project: dict, destination: Path, *, entry: str, props: dict,
            duration_seconds: float, still_frames: list[int] | None = None,
-           props_source: str | None = None) -> dict:
+           props_source: str | None = None, kind: str = 'motion') -> dict:
     """destination是调用方创建的临时目录，成功前不发布有效凭据。"""
     from playwright.sync_api import sync_playwright
 
@@ -73,8 +73,8 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
         initial_extra.update(snapshot(root, [board]))
     fps = project_fps(root, project, allow_missing_storyboard=True)
     count = round(duration_seconds * fps)
-    if count < 2:
-        raise VideoError('样品时长至少覆盖两帧，才能验证视频过程')
+    if kind not in ('static', 'motion') or count < (2 if kind == 'motion' else 1):
+        raise VideoError('静态样品至少一帧，动态样品至少两帧，kind须为static/motion')
     selected = sorted(set([count - 1] if still_frames is None else still_frames))
     if not selected or any(type(n) is not int or not 0 <= n < count for n in selected):
         raise VideoError('样品静帧位置必须位于局部时长内')
@@ -109,10 +109,11 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
                 or implementation != code_scenes.implementation_inputs()):
             raise VideoError('构建至采集间来源已变化，请重新采集')
         with sync_playwright() as pw:
-            probes = code_scenes._capture(pw, root, work, config, verify_frames=settings['verifyFrames'])
-        video = destination / 'sample.mp4'
-        code_scenes._encode(work, video, count, *size, fps=fps,
-                            supersample=int((config.get('motion') or {}).get('supersample', 1)))
+            probes = code_scenes._capture(pw, root, work, config, verify_frames=settings['verifyFrames'],
+                                         selected_frames=selected if kind == 'static' else None)
+        if kind == 'motion':
+            code_scenes._encode(work, destination / 'sample.mp4', count, *size, fps=fps,
+                                supersample=int((config.get('motion') or {}).get('supersample', 1)))
         web = destination / 'web'
         web.mkdir()
         copy_build_outputs(work, web)
@@ -135,7 +136,7 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
             stills.append({'frame': index, 'path': name})
         if before != snapshot(root, files):
             raise VideoError('采集期间源码或资源发生变化，请重新采集')
-    return {'entry': entry, 'props': props, 'fps': fps, 'width': size[0], 'height': size[1],
-            'durationInFrames': count, 'stills': stills, 'video': 'sample.mp4',
+    return {'kind': kind, 'entry': entry, 'props': props, 'fps': fps, 'width': size[0], 'height': size[1],
+            'durationInFrames': count, 'stills': stills, 'video': 'sample.mp4' if kind == 'motion' else None,
             'inputs': before, 'config': config, 'determinism': probes,
             'project': {k: project.get(k) for k in ('id', 'type', 'output')}}

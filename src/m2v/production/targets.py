@@ -83,8 +83,8 @@ def register(root: Path, project: dict, request: dict) -> dict:
     for report_id in ids:
         identifier(report_id)
     pack, private = reviews.load_package(root, project, request['packPath'], request['packSha256'])
-    if pack['reviewType'] != 'blind' or not private['binding']['references'] or not private['request'].get('conditions'):
-        raise M2VError('目标变更须绑定有实际参考和中性条件的当前盲包')
+    if pack['reviewType'] not in ('blind', 'process') or not private['binding']['references'] or not private['request'].get('conditions'):
+        raise M2VError('目标变更须绑定有实际参考和中性条件的当前盲包或过程对照包')
     selected = {item['reportId']: item for item in issues.load(root, required=True) if item['reportId'] in ids}
     if len(selected) != len(ids):
         raise M2VError('目标变更只能指定当前周期的实际独立失败问题')

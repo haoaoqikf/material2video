@@ -112,7 +112,7 @@
     },
     {
       "id": "design-research",
-      "when": "研究与创意试制中连接具体标杆、深入研究与本片转化；60 秒及以下作品不做试制样片、直接进入全片制作；局部修订按缺口复用或补查",
+      "when": "具体研究、本片转化与关键帧独立双评；短片不另制试制片段，过程在全片验证",
       "guide": "references/stage-research.md"
     },
     {
@@ -148,7 +148,7 @@
     {
       "id": "review-report",
       "when": "填写独立观察报告",
-      "guide": "references/subagent-review.md"
+      "guide": "references/review-protocol.md"
     },
     {
       "id": "production-template",
@@ -169,6 +169,11 @@
       "id": "scene-design",
       "when": "设计、开发或实质修订场景；查询全片/场景模板、详细编排和对应检查",
       "guide": "references/scene-design.md"
+    },
+    {
+      "id": "review-protocol",
+      "when": "需要机器字段、报告模板、自动建包、对照派生、摘要或失效排查时按需读取",
+      "guide": "references/review-protocol.md"
     }
   ],
   "ruleOwners": {

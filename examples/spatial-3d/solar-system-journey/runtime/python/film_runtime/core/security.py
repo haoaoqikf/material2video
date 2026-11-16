@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import subprocess
+import time
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
@@ -163,7 +164,19 @@ def deliver_directory(temporary: str | Path, destination: str | Path) -> Path:
     里面每个文件也会继承它，因此这里递归重置。非 Windows 平台无行为差异。
     """
     target = Path(destination)
-    os.replace(temporary, target)
+    # Windows 扫描器可能短暂持有新建工程／采集目录的句柄。仅对尚不存在的
+    # 发布目标重试已知占用错误；不删目标、不改变 ACL 来绕过永久权限问题。
+    delays = (0.05, 0.15, 0.3)
+    for attempt in range(len(delays) + 1):
+        try:
+            os.replace(temporary, target)
+            break
+        except PermissionError as exc:
+            if (os.name != "nt" or getattr(exc, "winerror", None) not in (5, 32, 33)
+                    or target.exists() or attempt == len(delays)):
+                raise
+            logger.debug("目录发布暂被占用，重试 %s：%s", attempt + 1, target)
+            time.sleep(delays[attempt])
     if os.name != "nt" or not target.exists():
         return target
     completed = _icacls(str(target), "/reset", "/t")

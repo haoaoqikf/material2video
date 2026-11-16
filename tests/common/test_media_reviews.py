@@ -42,8 +42,9 @@ def work(tmp_path, monkeypatch):
 
 def request():
     return dict(
-        version=2,
+        version=3,
         round="trial",
+        purpose="keyframe",
         fps=30,
         items=[dict(id="window-1", path="trial.png", window=[0, 1], dynamic=False)],
         sources=["core.tsx"],
@@ -77,15 +78,16 @@ def test_history_cycle_reads_do_not_grow_with_events_and_all_rows_remain_checked
 
 
 @pytest.mark.parametrize(("frames", "final_pass", "complete"), [
-    (1800, True, True),
+    (1800, True, False),
     (1801, True, False),
     (1800, False, False),
 ])
-def test_status_uses_qa_duration_for_trial_exemption(work, monkeypatch, frames, final_pass, complete):
+def test_short_film_still_requires_keyframe_evidence(work, monkeypatch, frames, final_pass, complete):
     root, manifest = work
     final_report = {
         "id": "final-report", "verdict": "pass", "isolation": "independent-subagent",
-        "reviewType": "blind", "requiresComparison": False,
+        "reviewType": "blind", "requiresComparison": False, "purpose": "final",
+        "adoption": "adopt", "hasVisualTarget": True,
     }
     if final_pass:
         report_path = outputs(root) / "final-report.json"
@@ -215,11 +217,11 @@ def report(
             startedAt=now.isoformat(),
             completedAt=(now + timedelta(seconds=1)).isoformat(),
             inputPaths=[(pack / "manifest.json").relative_to(outputs(root)).as_posix()],
-            readReportIds=[] if data["reviewType"] == "blind" else [data["blindId"]],
+            readReportIds=[data["blindId"]] if data["reviewType"] == "consistency" else [],
         ),
     )
     result = dict(
-        version=2,
+        version=3,
         round=data["round"],
         reviewType=data["reviewType"],
         packPath=(pack / "manifest.json").relative_to(outputs(root)).as_posix(),
@@ -228,6 +230,7 @@ def report(
         isolation=isolation,
         focus=focus,
         verdict=verdict,
+        adoption="adopt" if verdict == "pass" else "reject",
         observations="实际观察到主体与变化",
         invocation=receipt(outputs(root), invocation),
         coverage=[],
@@ -238,6 +241,7 @@ def report(
                 id=item["id"],
                 window=item["window"],
                 status=verdict,
+                adoption="adopt" if verdict == "pass" else "reject",
                 observations="窗口已完整查看",
                 limitations=[],
                 assessment={
@@ -257,6 +261,15 @@ def submit(work, **kwargs):
     root, manifest = work
     pack = reviews.package(root, manifest, request())
     return reviews.import_report(root, manifest, report(work, pack, **kwargs))
+
+
+def submit_visual(work, *, who):
+    root, manifest = work
+    req = request()
+    req.update(references=['trial.png'], conditions=['实际主体与空间品质'])
+    blind = reviews.import_report(root, manifest, report(work, reviews.package(root, manifest, req), who=who))
+    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, blind['id']), who=who))
+    return blind
 
 
 def test_local_trial_without_design_or_board_and_readonly_state(work):
@@ -384,6 +397,10 @@ def test_failed_review_close_reopen_and_cycle_isolation(work):
     problem["status"] = "open"
     issues.update(root, problem)
     assert issues.load(root)[0]["reportId"] == problem["reportId"]
+    with pytest.raises(M2VError, match="不能重开周期"):
+        ledger.start(root, manifest)
+    problem["status"] = "closed"
+    issues.update(root, problem)
     ledger.start(root, manifest)
     with pytest.raises(M2VError, match="跨周期"):
         issues.update(root, problem)
@@ -461,7 +478,7 @@ def test_neutral_conditions_are_withheld_until_blind_import(work):
     assert ledger.status(root, manifest)["trial"][0]["status"] == "pass"
 
 
-def test_history_corruption_and_new_cycle_keep_old_files(work):
+def test_history_corruption_blocks_new_cycle_without_rewriting_old_files(work):
     root, manifest = work
     submit(work)
     path = ledger.directory(root) / "history.jsonl"
@@ -472,7 +489,8 @@ def test_history_corruption_and_new_cycle_keep_old_files(work):
     assert ledger.status(root, manifest)["diagnostics"]
     with pytest.raises(M2VError, match="损坏"):
         reviews.package(root, manifest, request())
-    ledger.start(root, manifest)
+    with pytest.raises(M2VError, match="不能重开周期"):
+        ledger.start(root, manifest)
     assert path.read_bytes() == original + b"{broken"
 
 
@@ -583,6 +601,7 @@ def test_real_video_window_frames_and_metadata(tmp_path):
     )
     r = request()
     r["sources"] = []
+    r.update(purpose="process", blindReason="核对完整状态变化与身份连续")
     r["items"] = [dict(id="window-1", path="clip.mp4", window=[3, 9], dynamic=True)]
     pack = reviews.package(root, manifest, r)
     data = read(pack / "manifest.json")
@@ -632,7 +651,7 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
 
     root, manifest = work
     out = outputs(root)
-    submit(work, who="trial-author")
+    submit_visual(work, who="trial-author")
     monkeypatch.setattr(reviews, "ffmpeg", ffmpeg)
     ffmpeg(
         [
@@ -662,7 +681,7 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
         {"status": "pass", "preparedFingerprint": "current", "videoSha256": "wrong"},
     )
     r = request()
-    r.update(round="final", sources=[])
+    r.update(round="final", purpose="final", sources=[], references=["trial.png"], conditions=["核对当前完整作品与已选品质目标"])
     r["items"] = [dict(id="whole-film", path="final.mp4", window=[0, 12], dynamic=True)]
     with pytest.raises(M2VError, match="技术 QA"):
         reviews.package(root, manifest, r)
@@ -681,7 +700,8 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
     pack = reviews.package(root, manifest, r)
     with pytest.raises(M2VError, match="新评审者"):
         reviews.import_report(root, manifest, report(work, pack, who="trial-author"))
-    reviews.import_report(root, manifest, report(work, pack, who="final-fresh"))
+    final = reviews.import_report(root, manifest, report(work, pack, who="final-fresh"))
+    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, final["id"]), who="final-fresh"))
     assert ledger.status(root, manifest)["complete"]
     reviews.import_report(
         root, manifest, report(work, pack, who="final-failure", verdict="fail")
@@ -710,23 +730,26 @@ def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
     accepted = reviews.import_report(
         root, manifest, report(work, repaired, who="final-recheck")
     )
+    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, accepted["id"]), who="final-recheck"))
     problem.update(status="closed", cause="design", closureReportId=accepted["id"])
     issues.update(root, problem)
     assert ledger.status(root, manifest)["complete"]
     ledger.start(root, manifest, split_final=True, basis="结构与文案需要分工覆盖")
-    submit(work, who="new-trial")
+    submit_visual(work, who="new-trial")
     pack = reviews.package(root, manifest, r)
-    reviews.import_report(
+    first = reviews.import_report(
         root, manifest, report(work, pack, who="final-a", focus="structure")
     )
+    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, first["id"]), who="final-a", focus="structure"))
     assert not ledger.status(root, manifest)["complete"]
     with pytest.raises(M2VError, match="不同评审者"):
         reviews.import_report(
             root, manifest, report(work, pack, who="final-a", focus="visual-copy")
         )
-    reviews.import_report(
+    second = reviews.import_report(
         root, manifest, report(work, pack, who="final-b", focus="visual-copy")
     )
+    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, second["id"]), who="final-b", focus="visual-copy"))
     assert ledger.status(root, manifest)["complete"]
     shortened.write_bytes(b"changed")
     assert not ledger.status(root, manifest)["complete"]

@@ -24,7 +24,8 @@ def signature(root, project, pack_path, pack_sha, *, historical=False):
     req, binding = private['request'], private['binding']
     if req['round'] != 'trial':
         raise M2VError('视觉复用仅限同周期 trial，不能替代实际 final')
-    return dict(round=req['round'], fps=req['fps'], displaySizes=sorted(req['displaySizes']),
+    return dict(round=req['round'], purpose=req['purpose'], blindReason=req.get('blindReason'),
+                fps=req['fps'], displaySizes=sorted(req['displaySizes']),
                 sceneIds=req['sceneIds'], sources=samples.scope_sources(root, req),
                 conditions=req.get('conditions', []), references=binding['references'],
                 items=[{**{k: item[k] for k in ('id', 'window', 'dynamic')},

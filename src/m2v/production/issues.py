@@ -12,7 +12,7 @@ from . import ledger
 from .model import VERSION, fields, identifier, text
 from .storage import atomic_text, read, local
 
-FENCE = re.compile(r"^```m2v-issues-v2\s*\n(.*?)^```\s*$", re.M | re.S)
+FENCE = re.compile(r"^```m2v-issues-v3\s*\n(.*?)^```\s*$", re.M | re.S)
 CAUSES = {"implementation", "design", "mixed", "undetermined"}
 
 
@@ -22,7 +22,7 @@ def save(root: Path, items: list):
         path.read_text(encoding="utf-8") if path.exists() else "# 制作观察与问题\n\n"
     )
     block = (
-        "```m2v-issues-v2\n"
+        "```m2v-issues-v3\n"
         + json.dumps(
             {
                 "version": VERSION,
@@ -45,7 +45,7 @@ def save(root: Path, items: list):
 def parse(source):
     matches = FENCE.findall(source)
     if len(matches) != 1:
-        raise M2VError("问题记录须使用唯一 m2v-issues-v2 块；旧格式不兼容")
+        raise M2VError("问题记录须使用唯一 m2v-issues-v3 块；旧格式不兼容")
     try:
         value = json.loads(matches[0])
         fields(value, {"version", "cycleId", "items"})
@@ -156,6 +156,9 @@ def scope(root, report):
     request = private["request"]
     return {
         "focus": report["focus"],
+        "fps": request["fps"],
+        "purpose": request["purpose"],
+        "reviewMode": "process" if request.get("reviewType") == "process" else "blind",
         "displaySizes": sorted(request["displaySizes"]),
         "references": private["binding"]["references"],
         "conditions": request.get("conditions", []),
@@ -191,7 +194,7 @@ def from_review(root, report):
 
 def covers(original, current, round):
     """终审覆盖当前全片；局部复查须覆盖原窗口，目标与显示条件均不得降低。"""
-    conditions = ("focus", "displaySizes", "references", "conditions")
+    conditions = ("focus", "purpose", "reviewMode", "fps", "displaySizes", "references", "conditions")
     if any(original[key] != current[key] for key in conditions):
         return False
     if round == "final":
@@ -242,7 +245,7 @@ def validate_closure(root: Path, item: dict):
                 report["isolation"] != "independent-subagent"
                 or report["verdict"] != "pass"
                 or report["round"] != item["round"]
-                or report["reviewType"] != "blind"
+                or report["reviewType"] not in ("blind", "process")
                 or not _covers_closure(root, project, item, expected_scope, target_position, report)
             ):
                 raise M2VError("必须以当前对应范围的独立通过复查关闭")
@@ -305,7 +308,7 @@ def update(root: Path, item: dict):
     updated = [p for p in items if p["id"] != item["id"]] + [item]
     # 共用解析器核验写入内容，防止损坏记录破坏后续状态与清理。
     parse(
-        "```m2v-issues-v2\n"
+        "```m2v-issues-v3\n"
         + json.dumps(
             {
                 "version": VERSION,

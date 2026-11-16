@@ -49,21 +49,23 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 ## 网页原生设计样品
 
-`m2v sample capture` 委托作品自己的 TSX 构建与采集入口，核对实际可达来源、字体、登记媒体、参数及产物，不需要完整分镜或配音；`sample serve` 使用本作品的字体与登记媒体，提供同源播放、复位与帧定位。`sample deliver` 仅在当前原生采集、独立盲看和同轮目标对照通过、必改项关闭后交付已评媒体，不重复编码。Windows 上采集和交付目录发布后统一恢复继承权限，便于标准权限应用读取。
+`m2v sample capture` 委托作品本地构建与采集，不需要完整分镜或配音。原生样品 v2 默认 static，只采集可复现网页和关键帧，不编码视频；motion 另生成完整过程。源码、实际依赖、字体、登记媒体、参数及产物均绑定，变化后重新采集。
 
-选案由作者依据实际媒体和独立观察作出，明确参考采用范围、保留项、必修项和打磨项；仍可改善的次要处理不自动否决已成立的整体方向。`m2v review reuse --project <作品> --file <复用请求.json>` 支持同周期 trial 完整媒体字节及观察条件完全相同的视觉结论复用，重新验证当前技术来源，保留原独立报告和观察时间；不能绕过失败、用户目标变更或当前完整候选终审。格式与限制见[视觉复用](.agents/skills/material2video/references/review-contract.md#完整媒体相同的-trial-视觉复用)。
-
-用户原始视觉要求、实际选中媒体与范围保留在设计和既有对照条件中，作者转化不得自行限缩；对照先检查目标转化忠实性，再检查画面兑现。整体风格向不同解释内容展开须有代表性迁移试制，不能仅用终态或同色同字体授权全片。用户指出偏离后保留旧报告并记录未完成，旧工具通过不替代真实要求，详见[采用边界](.agents/skills/material2video/references/review-contract.md#采用边界与选案责任)。
-
-抽象表达按实际信息职责评审：意象、空间与动作可由清晰文字/读数配合承载精确事实，不默认要求每层字形或每个抽象局部都能辨认。整体表达成立时局部辨认代价作为打磨建议；关键误导、必要读数不可读、核心形象失效或风格偏离仍阻断，详见[抽象表达与信息职责](.agents/skills/material2video/references/review-contract.md#抽象表达与信息职责)。既有失败沿原规则保留，真实用户放宽须登记并重新复查。
+关键帧以所选风格的世界级完成度独立盲审及同轮实际目标对照，风格自由，苹果只说明品质高度。关键片段默认独立过程对照，取消例行盲审；核心时间机制需要时可登记依据例外盲审。每项及整体明确采用或不采用，证据不足不放行。总代理实际查看、初筛、核对报告充分性并负责最终选案，详见[审核政策](.agents/skills/material2video/references/review-contract.md)。
 
 ```powershell
-uv run m2v sample capture --project <作品> --entry scenes/core.tsx --duration-seconds 3 --frame 30
+uv run m2v sample capture --project <作品> --entry scenes/core.tsx --kind static --duration-seconds 3 --frame 30
 uv run m2v sample serve --project <作品> --id <采集ID>
+uv run m2v sample review --project <作品> --id <采集ID> --purpose keyframe --targets <目标.json>
+uv run m2v review import --project <作品> --file <真实盲报告.json>
+uv run m2v review compare --project <作品> --blind-id <盲报告ID>
+uv run m2v review import --project <作品> --file <真实对照报告.json>
 uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
 ```
 
-设计试制不限主动时长和重试次数，未通过持续打磨；AI 图只能辅助内部构思/参考，不能直接交付或贴入网页冒充核心实现。允许调研并引入外部库、模型、Shader、建模与预计算等手段，作品直接依赖改为可扩展登记，校验来源、固定版本、许可与实际安装。具体流程、适配边界及评审请求见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。采集凭据不自动判断审美或鉴别所有 AI 整图包装。
+sample review 自动派生当前来源、窗口、显示尺寸和隔离包，包外生成任务与默认不可采用的报告模板；compare 自动复用封存目标生成同轮对照。真实评审及调用由独立代理完成，工具不自动认证审美。动态样品还需 `--purpose process` 审核完整过程，并以 `--process-id` 交付；媒体直接复制，不重新编码。Windows 发布后恢复继承权限。
+
+固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档，默认四问、复杂机制按需深化。成熟外部组件、模型、材质、Shader 和开源方案优先采用与改造，只自研必要缺口。预演、粗片和精制合并到问题驱动制作循环，相关规则见[研究与试制](.agents/skills/material2video/references/stage-research.md)与[原生样品](.agents/skills/material2video/references/design-samples.md)。设计未通过持续打磨，不设主动时长或重试总上限；AI 图只作内部构思或参考。
 
 采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。代码场景可通过 `waitForFrame(PromiseLike)` 登记异步绘制，初始就绪和每帧/子帧在工作及合成完成后才放行；拒绝或超时仍失败，纯时间仍须实际验证。静态代码场景可在作品内采用路径追踪、OIDN 去噪等可选能力；共享层不登记这类依赖，采用时由作品把实际依赖、补丁、权重来源与许可写进自己的工程和锁文件，固定种子、样本与分块，在 GPU 与本地权重就绪后采集，并逐场核验确定性，不据此宣称动态已验证；模型权重由作品登记来源、许可和恢复摘要，不入库。
 
@@ -100,7 +102,7 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。成片目标时长不超过 60 秒的作品完成研究与拆解后直接制作全片，不单独出试制样片，技术 QA 与独立终审照常执行。
+- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。成片目标时长不超过 60 秒的作品完成研究与拆解后直接制作全片，不单独出试制样片，关键帧独立双评、技术 QA 与独立终审照常执行。
 - [全片与场景设计](.agents/skills/material2video/references/scene-design.md)：总设计统一五维与结构，每场以既有 scene.id 将五维意图落实到关键状态、动作因果、注意力和衔接；按机制深化，配有隐喻因果、数据关系和静态文字教学演练，验证计划与当前结果分开回写。文档当前不渲染，分镜/代码维护执行参数，技能脚本支持全片或局部对应检查。
 - [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格、12 种音效风格和 12 种转场风格，创作或视听表达修订前必读；名称用于拓展探索，采用自选。[深入风格研究](.agents/skills/material2video/references/reference-video-analysis.md)区分整体品质、专项表现和信息表达参考，记录实际观察、效果解释及本片应用；可随研究试制，未知触发补查，不以搜索数量或全部研究结束为前提。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
@@ -111,11 +113,11 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 ### 媒体评审
 
-`m2v review start|pack|import|timeline|retarget` 统一周期、隔离包、独立报告和全片预演。试制可从局部媒体开始，不要求完整分镜或机器设计合同。评审以有序帧、帧差/场景切分、主体区域量测和音频信号量测为证据，不要求播放或试听。`status` 分别展示试制、当前候选技术 QA、终审与未关闭问题；渲染可以生成待评审候选，技术通过不代表制作完成。旧检查点门、声明式画面量测和可选直接评审已移除，新旧报告不兼容且不转换旧通过。格式见[评审契约](.agents/skills/material2video/references/review-contract.md)。
+`m2v review start|pack|compare|import|timeline|retarget|reuse` 统一周期、隔离包、报告和证据复用。评审 v3 必须声明 keyframe/process/final 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧周期、请求、报告和样品格式不兼容，不迁移旧通过，历史保留。
 
-选定视觉目标时，先盲看作品自身，再用实际参考媒体和中性条件进行同轮对照；整体品质不能缩成局部特征齐全，候选最好或独立 pass 不自动授权展开。评审提供具体观察，作者承担选案与下一试验责任。非空 `references` 必须配套非空 `conditions`，并区分品质标杆、专项目标和备选/历史比较用途；缺失会在创建包前拒绝，旧请求补条件后重建，历史包不改写。工具校验材料与证据，不自动评判审美。
+status 只读展示关键帧双评、过程对照、当前完整候选 QA、终审和问题；所有作品均须关键帧独立双通过及当前新代理终审。60 秒及以下免单独试制片段，关键帧和完整成片验收仍须完成。候选生成不受评审阻断，技术成功不代表制作完成。
 
-用户明确要求更换已绑定失败的视觉目标时，可用 `review retarget --file <用户目标变更.json>` 保存用户原指令、旧失败ID和新盲包摘要；周期、旧失败及范围保留，登记不关闭问题。新目标必须在登记后重新独立盲看和同轮对照，仍须覆盖原职责、来源、窗口及显示尺寸。工具只验证授权声明与证据，实际用户授权由操作者依据对话核实。格式见[目标变更登记](.agents/skills/material2video/references/review-contract.md#用户明确变更目标)。
+目标参考与中性条件绑定，盲看后不能暗换；真实用户改变已失败目标时使用 retarget 保留原指令及旧失败，再完成对应独立复查。完整字节及观察条件相同的 trial 双评可显式 reuse，当前技术来源仍核验。具体格式、调用与失效处理按需读[工具协议](.agents/skills/material2video/references/review-protocol.md)，隔离执行见[独立子代理](.agents/skills/material2video/references/subagent-review.md)。
 
 导出后清理会保护当前周期评审包仍绑定的预览源媒体和目标媒体；源文件仍参与证据摘要校验，无引用的旧预览继续清理。无法确认引用时报告并跳过清理。
 

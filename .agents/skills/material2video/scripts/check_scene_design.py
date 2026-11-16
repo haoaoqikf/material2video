@@ -94,6 +94,8 @@ def validate(root: Path, scene_ids: list[str] | None = None) -> dict:
     if not selected or not selected <= set(ids):
         raise M2VError(f'未知或空场景选择：{sorted(selected - set(ids))}')
     design = _local(root, root / 'DESIGN.md')
+    research = _local(root, root / 'RESEARCH.md')
+    _links(root, research, _document(research))
     content = _document(design)
     indexed: dict[str, int] = {}
     for label, ref in LINK.findall(content):

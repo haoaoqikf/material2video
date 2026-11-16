@@ -132,7 +132,7 @@ def _sample(project: dict, options) -> dict:
         _run([_node(), 'scripts/sync-fonts.mjs'])
         result = design_sample.render(ROOT, project, stage, entry=options.entry, props=props,
                                      duration_seconds=options.duration_seconds, still_frames=options.frame,
-                                     props_source=options.props_source)
+                                     props_source=options.props_source, kind=options.kind)
         result['artifacts'] = {p.relative_to(stage).as_posix(): digest(p)
                                for p in sorted(stage.rglob('*')) if p.is_file()}
         _write_json(stage / 'capture.json', result)
@@ -190,6 +190,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--props-source')
     parser.add_argument('--destination')
     parser.add_argument('--duration-seconds', type=float, default=3)
+    parser.add_argument('--kind', choices=('static', 'motion'), default='motion')
     parser.add_argument('--frame', type=int, action='append')
     parser.add_argument('--scale', type=int, default=2)
     return parser

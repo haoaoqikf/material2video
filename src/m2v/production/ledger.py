@@ -83,14 +83,22 @@ def start(
 
     text(basis)
     identifier(manifest["id"])
-    if (outputs(root) / 'production/workflow.json').exists():
-        events, errors = history(root)
-        if (any(event['type'] == 'sample-captured' for event in events)
-                or any((outputs(root) / 'samples').glob('*/capture.json'))):
-            from . import issues
-            if errors or any(item['required'] and item['status'] != 'closed'
-                             for item in issues.load(root, required=True)):
-                raise M2VError('原生样品周期仍有未关闭必改项或历史无法核验，不能重开周期绕过')
+    workflow = outputs(root) / 'production/workflow.json'
+    previous_cycle = None
+    if workflow.exists():
+        previous_cycle = read(workflow)
+        fields(previous_cycle, {'version', 'cycleId', 'projectId', 'createdAt', 'finalFocuses', 'basis'})
+        previous_id = identifier(previous_cycle['cycleId'])
+        original = read(local(outputs(root), f'production/{previous_id}/cycle.json'))
+        if (previous_cycle != original or previous_cycle['projectId'] != manifest['id']
+                or type(previous_cycle['version']) is not int or previous_cycle['version'] not in (2, VERSION)):
+            raise M2VError('旧周期身份、版本或原始记录损坏，不能借版本升级重开周期')
+    if previous_cycle is not None and previous_cycle['version'] == VERSION:
+        _, errors = history(root)
+        from . import issues
+        if errors or any(item['required'] and item['status'] != 'closed'
+                         for item in issues.load(root, required=True)):
+            raise M2VError('当前制作周期仍有未关闭必改项或历史无法核验，不能重开周期绕过')
     value = dict(
         version=VERSION,
         cycleId=uuid.uuid4().hex,
@@ -320,6 +328,7 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                     "focus": data["focus"],
                     "reviewerId": data["reviewerId"],
                     "status": "stale",
+                    "adoption": "reject",
                     "detail": "",
                 }
                 try:
@@ -330,6 +339,9 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                         else "degraded",
                         reviewType=report["reviewType"],
                         blindId=report.get("blindId"),
+                        purpose=report["purpose"],
+                        adoption=report["adoption"] if report["isolation"] == "independent-subagent" else "reject",
+                        hasVisualTarget=report["hasVisualTarget"],
                     )
                     from . import reuse
                     if reuse.has_record(root, report['id']):
@@ -346,7 +358,7 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                             for r in result[name]
                         ):
                             row.update(
-                                status="insufficient", detail="缺少当前同轮目标对照"
+                                status="insufficient", adoption="reject", detail="缺少当前同轮目标对照"
                             )
             try:
                 result["technicalQA"] = {
@@ -355,24 +367,22 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
                 }
             except (M2VError, OSError, KeyError, TypeError) as exc:
                 result["technicalQA"] = {"status": "unverified", "detail": str(exc)}
-            trial = any(
+            keyframe = any(
                 r["status"] == "pass" and r.get("reviewType") == "blind"
+                and r.get("purpose") == "keyframe" and r.get("hasVisualTarget")
                 for r in result["trial"]
             )
             technical_qa = result["technicalQA"]
             technical_pass = technical_qa["status"] == "pass"
-            # Use the QA-bound duration. targetSeconds only budgets the storyboard.
-            short_film = (
-                technical_pass
-                and technical_qa["durationFrames"] <= 60 * technical_qa["fps"]
-            )
+            # 短片只免单独过程样片，关键帧品质证据仍须实际存在。
             focuses = {
                 r["focus"]
                 for r in result["final"]
                 if r["status"] == "pass" and r.get("reviewType") == "blind"
+                and r.get("hasVisualTarget")
             }
             result["complete"] = (
-                (short_film or trial)
+                keyframe
                 and set(c["finalFocuses"]) <= focuses
                 and not errors
                 and not result["issues"]

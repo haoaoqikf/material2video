@@ -10,6 +10,7 @@ from m2v.core.errors import M2VError
 
 @pytest.fixture
 def work(tmp_path):
+    (tmp_path / 'RESEARCH.md').write_text('# 研究\n当前研究假设，尚未完成外部观察。', encoding='utf-8')
     (tmp_path / 'project.json').write_text(json.dumps(dict(schemaVersion=3, id='design-test',
         type='text-motion', materials={'storyboard': 'storyboard.json'})), encoding='utf-8')
     (tmp_path / 'storyboard.json').write_text(json.dumps({'scenes': [{'id': 'a'}, {'id': 'b'}]}), encoding='utf-8')
@@ -24,6 +25,12 @@ def test_complete_checks_identity_without_claiming_quality(work):
     result = design.validate(work)
     assert result['scenes'] == ['a', 'b'] and result['scope'] == 'complete'
     assert '仅结构' in result['meaning']
+
+
+def test_fixed_research_cannot_be_omitted_even_for_a_partial_scene(work):
+    (work / 'RESEARCH.md').unlink()
+    with pytest.raises(M2VError, match='RESEARCH.md'):
+        design.validate(work, ['a'])
 
 
 def test_partial_allows_unwritten_other_scene_but_full_rejects(work):

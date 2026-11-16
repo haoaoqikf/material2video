@@ -14,7 +14,7 @@ from m2v.engine.output_validation import verify_output
 from m2v.production.storage import local
 from m2v.standalone import executor
 
-RESULT_FIELDS = {'entry', 'props', 'fps', 'width', 'height', 'durationInFrames',
+RESULT_FIELDS = {'kind', 'entry', 'props', 'fps', 'width', 'height', 'durationInFrames',
                  'stills', 'video', 'inputs', 'config', 'project', 'determinism'}
 
 
@@ -106,7 +106,7 @@ def validate_source_binding(root: Path, value: dict, binding: dict | None = None
 
 def render(root: Path, project: dict, destination: Path, *, entry: str, props: dict,
            duration_seconds: float, still_frames: list[int] | None = None,
-           props_source: str | None = None) -> dict:
+           props_source: str | None = None, kind: str = 'motion') -> dict:
     """本地执行先完成私有包；验证失败不会写入采集事件或发布正式样品。"""
     if (type(duration_seconds) not in (int, float) or not math.isfinite(duration_seconds)
             or duration_seconds <= 0):
@@ -119,12 +119,12 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
     local(root, relative, exists=False)
     fps = project_fps(root, project, allow_missing_storyboard=True)
     count = round(duration_seconds * fps)
-    if count < 2 or (still_frames is not None and (not still_frames or any(
+    if kind not in ('static', 'motion') or count < (2 if kind == 'motion' else 1) or (still_frames is not None and (not still_frames or any(
             type(frame) is not int or not 0 <= frame < count for frame in still_frames))):
-        raise M2VError('样品必须至少两帧，静帧位置必须在实际窗口内')
+        raise M2VError('静态至少一帧、动态至少两帧，kind和静帧位置必须有效')
     before = source_binding(root, entry, props, project=project, props_source=props_source)
     options = ['--entry', entry, '--props', json.dumps(props, ensure_ascii=False, allow_nan=False),
-               '--duration-seconds', str(duration_seconds), '--destination', relative]
+               '--duration-seconds', str(duration_seconds), '--destination', relative, '--kind', kind]
     if props_source:
         options += ['--props-source', props_source]
     for frame in still_frames or []:
@@ -136,7 +136,7 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
     value = executor.read_json(capture)
     if set(value) != RESULT_FIELDS | {'artifacts'}:
         raise M2VError('样品结果字段缺失或未知')
-    expected = {'entry': entry, 'props': props, 'fps': fps,
+    expected = {'kind': kind, 'entry': entry, 'props': props, 'fps': fps,
                 'project': {key: project.get(key) for key in ('id', 'type', 'output')}}
     if any(value.get(key) != item for key, item in expected.items()):
         raise M2VError('样品来源、参数、帧率或作品身份不符')
@@ -149,7 +149,8 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
             or not isinstance(value.get('artifacts'), dict) or not value['artifacts']
             or not isinstance(value.get('stills'), list) or not value['stills']):
         raise M2VError('样品时长、配置、输入或产物结构无效')
-    if (not isinstance(value['video'], str)
+    if ((kind == 'motion' and not isinstance(value['video'], str))
+            or (kind == 'static' and value['video'] is not None)
             or any(project.get('output', {}).get(k, value[k]) != value[k] for k in ('width', 'height'))):
         raise M2VError('样品视频入口或画幅与作品不符')
     if any(not isinstance(row, dict) or set(row) != {'frame', 'path'}
@@ -180,7 +181,9 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
     wanted = sorted(set(still_frames if still_frames is not None else [value['durationInFrames'] - 1]))
     if [row.get('frame') for row in value['stills']] != wanted:
         raise M2VError('样品静帧与实际请求位置不符')
-    required = [value.get('video'), 'web/index.html', 'web/scene.html', 'web/capture-clock.js']
+    required = ['web/index.html', 'web/scene.html', 'web/capture-clock.js']
+    if kind == 'motion':
+        required.append(value['video'])
     for row in value['stills']:
         file = executor.local_artifact(destination, row['path'])
         required.append(row['path'])
@@ -189,9 +192,10 @@ def render(root: Path, project: dict, destination: Path, *, entry: str, props: d
                 raise M2VError('样品静帧尺寸与当前画幅不符')
     if any(name not in value['artifacts'] for name in required):
         raise M2VError('样品缺少绑定的同源网页、静帧或视频')
-    verify_output(local(destination, value['video']), value['durationInFrames'],
-                  value['width'], value['height'], value['fps'], expect_audio=False,
-                  require_delivery_format=False)
+    if kind == 'motion':
+        verify_output(local(destination, value['video']), value['durationInFrames'],
+                      value['width'], value['height'], value['fps'], expect_audio=False,
+                      require_delivery_format=False)
     # 独立解码期间也可能发生编辑；发布前重新读取，不复用查询级摘要缓存。
     if snapshot(root, [input_path(root, label) for label in value['inputs']]) != value['inputs']:
         raise M2VError('样品验证期间来源发生变化')

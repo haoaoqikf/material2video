@@ -23,11 +23,13 @@ def native(tmp_path, monkeypatch):
 
     def render(root, project, stage, **options):
         Image.new('RGB', (640, 360), 'blue').save(stage / 'still-000001.png')
-        (stage / 'sample.mp4').write_bytes(b'test-encoded-video')
+        kind = options.get('kind', 'motion')
+        if kind == 'motion':
+            (stage / 'sample.mp4').write_bytes(b'test-encoded-video')
         (stage / 'web').mkdir()
         (stage / 'web/index.html').write_text('native fixture', encoding='utf-8')
-        return dict(entry='scenes/main.tsx', props={}, fps=30, width=640, height=360,
-                    durationInFrames=3, stills=[dict(frame=1, path='still-000001.png')], video='sample.mp4',
+        return dict(kind=kind, entry='scenes/main.tsx', props={}, fps=30, width=640, height=360,
+                    durationInFrames=3, stills=[dict(frame=1, path='still-000001.png')], video='sample.mp4' if kind == 'motion' else None,
                     inputs={**samples.design_sample.source_binding(root, 'scenes/main.tsx', {})['files'],
                             'work/project.json': dependencies.digest(root / 'project.json')},
                     config={'media': {}, 'props': {}}, determinism=[], project={k: project.get(k) for k in ('id', 'type', 'output')})
@@ -56,14 +58,21 @@ def pair(native, *, verdict='pass', isolation='independent-subagent', refs=True,
     if refs:
         Image.new('RGB', (640, 360), 'red').save(outputs(root) / 'target.png')
         request.update(references=['target.png'], conditions=['整体品质参考：主体轮廓与空间关系'])
-    if still_only:
-        request['items'] = request['items'][:-1]
     pack = reviews.package(root, project, request)
     blind = reviews.import_report(root, project, report((root, project), pack, verdict=verdict, isolation=isolation))
     request.update(reviewType='consistency', blindId=blind['id'])
     pack = reviews.package(root, project, request)
     comparison = reviews.import_report(root, project, report((root, project), pack, verdict=verdict, isolation=isolation))
-    return dict(blind_id=blind['id'], comparison_id=comparison['id'], basis='主体与目标品质已通过实际对照')
+    return dict(blind_id=blind['id'], comparison_id=comparison['id'],
+                process_id=process_pass(native) if refs and not still_only and read(directory / 'capture.json')['kind'] == 'motion' else None,
+                basis='主体与目标品质已通过实际对照')
+
+
+def process_pass(native):
+    root, project, identity = native
+    pack = samples.review(root, project, identity, purpose='process',
+                          targets={'references': ['target.png'], 'conditions': ['过程完整且状态连续']})
+    return reviews.import_report(root, project, report((root, project), pack))['id']
 
 
 def test_delivery_reuses_the_reviewed_media_without_encoding(native, monkeypatch):
@@ -175,8 +184,13 @@ def test_generic_or_truncated_review_cannot_close_native_failure(native):
     root, project, identity = native
     pair(native, verdict='fail')
     fresh = samples.capture(root, project)['id']
-    args = pair((root, project, fresh), still_only=True)
+    args = pair((root, project, fresh))
     item = issues.load(root)[0]
+    # 静帧范围相同但通用请求不包含原生采集锚点，不能关闭原生失败。
+    request = read(outputs(root) / f'samples/{fresh}/review-request.json')
+    request.update(sources=['scenes/main.tsx'], references=['target.png'], conditions=['整体品质参考：主体轮廓与空间关系'])
+    pack = reviews.package(root, project, request)
+    args['blind_id'] = reviews.import_report(root, project, report((root, project), pack))['id']
     item.update(status='closed', cause='design', closureReportId=args['blind_id'])
     with pytest.raises(M2VError, match='对应范围'):
         issues.update(root, item)
@@ -188,9 +202,10 @@ def test_recaptured_native_group_closes_only_the_same_complete_scope(native, cha
 
     def request_for(captures):
         request = read(outputs(root) / 'samples' / captures[0] / 'review-request.json')
+        request.update(purpose='process', blindReason='组合过程需检查身份连续')
         request['sources'] = [f'outputs/samples/{identity}/capture.json' for identity in captures]
         request['items'] = [
-            {**samples.review_items(read(outputs(root) / 'samples' / identity / 'capture.json'))[-1], 'id': scene}
+            {**samples.review_items(read(outputs(root) / 'samples' / identity / 'capture.json'), 'process')[-1], 'id': scene}
             for scene, identity in zip(('opening', 'ranking'), captures, strict=True)
         ]
         return request

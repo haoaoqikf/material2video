@@ -29,8 +29,8 @@ def restore_fonts(root):
 
 
 @pytest.mark.media
-@pytest.mark.parametrize('mode,supersample', [('sequential', 1), ('pure-time', 1), ('sequential', 2)])
-def test_native_sample_roundtrip_without_storyboard(tmp_path, chromium_ready, mode, supersample):
+@pytest.mark.parametrize('mode,supersample,kind', [('sequential', 1, 'motion'), ('pure-time', 1, 'motion'), ('sequential', 2, 'motion'), ('sequential', 1, 'static'), ('pure-time', 1, 'static')])
+def test_native_sample_roundtrip_without_storyboard(tmp_path, chromium_ready, mode, supersample, kind):
     root = tmp_path / 'work'
     create_project(root, 'text-motion', {'storyboard': 'storyboard.json'})
     project = load_project(root)[1]
@@ -60,15 +60,20 @@ export default function Scene(){
         props.update(look={'motion': {'supersample': supersample, 'subframes': 2}},
                      shots=[{'tier': 'hero', 'startFrame': 0, 'endFrame': 2}])
     captured = samples.capture(root, project, entry='scenes/main.tsx', props=props,
-                               duration_seconds=.1, still_frames=[1])
+                               duration_seconds=.1, still_frames=[1], kind=kind)
     assert not (root / 'storyboard.json').exists()
     value, directory = samples.load(root, project, captured['id'])
-    if mode == 'pure-time':
+    if mode == 'pure-time' and kind == 'motion':
         assert value['determinism']['probes']
-    assert value['durationInFrames'] == 3 and (directory / 'sample.mp4').stat().st_size > 100
-    reader = read_frames(str(directory / 'sample.mp4'))
-    assert next(reader)['size'] == (1920, 1080)
-    reader.close()
+    assert value['durationInFrames'] == 3
+    if kind == 'motion':
+        assert (directory / 'sample.mp4').stat().st_size > 100
+        reader = read_frames(str(directory / 'sample.mp4'))
+        assert next(reader)['size'] == (1920, 1080)
+        reader.close()
+    else:
+        assert value['video'] is None and not list(directory.glob('*.mp4'))
+        assert not (directory / 'process-request.json').exists()
     assert (directory / 'web/scene.css').is_file()
     assert any(path.suffix == '.bin' for path in (directory / 'web').iterdir())
     with samples.server(root, project, captured['id']) as server, sync_playwright() as pw:

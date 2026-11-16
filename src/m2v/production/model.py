@@ -10,8 +10,14 @@ from datetime import datetime, timezone
 from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 
-VERSION = 2
+VERSION = 3
 ROUNDS = ("trial", "final")
+PURPOSES = ("keyframe", "process", "final")
+
+
+def adoption(verdict):
+    """证据不足明确不可采用；不以文字禁词代替审美判断。"""
+    return "adopt" if verdict == "pass" else "reject"
 
 
 def now() -> str:

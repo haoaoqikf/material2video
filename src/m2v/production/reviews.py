@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import uuid
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 
-from m2v.core.delivery import outputs
+from m2v.core.delivery import digest, outputs
 from m2v.core.errors import M2VError
 from . import ledger, dependencies, media_evidence
 from .model import (
     VERSION,
     ROUNDS,
+    PURPOSES,
+    adoption,
     fields,
     identifier,
     text,
@@ -26,7 +29,13 @@ from .evidence_images import derive_images
 
 MEDIA = {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".wav", ".mp3"}
 VIDEO = {".mp4", ".webm"}
+IMAGES = {".png", ".jpg", ".jpeg", ".webp"}
 logger = logging.getLogger(__name__)
+
+
+def has_visual_target(request: dict) -> bool:
+    return any(isinstance(path, str) and Path(path).suffix.lower() in IMAGES | VIDEO
+               for path in request.get('references', []))
 
 
 def build_manifest(
@@ -41,6 +50,7 @@ def build_manifest(
     review_type="blind",
     blind_id=None,
     requires_comparison=False,
+    purpose="keyframe",
 ):
     return dict(
         version=VERSION,
@@ -48,6 +58,7 @@ def build_manifest(
         cycleId=cycle_id,
         createdAt=now(),
         round=round,
+        purpose=purpose,
         fps=fps,
         items=items,
         files=files,
@@ -61,17 +72,32 @@ def build_manifest(
 def validate_request(request):
     fields(
         request,
-        {"version", "round", "fps", "items", "sources", "sceneIds", "displaySizes"},
-        {"reviewType", "blindId", "references", "conditions", "sampleStep"},
+        {"version", "round", "purpose", "fps", "items", "sources", "sceneIds", "displaySizes"},
+        {"reviewType", "blindId", "references", "conditions", "sampleStep", "blindReason"},
     )
     if (
         request["version"] != VERSION
         or request["round"] not in ROUNDS
         or not number(request["fps"])
     ):
-        raise M2VError("仅接受 version=2 的 trial/final 媒体评审请求")
-    if request.get("reviewType", "blind") not in ("blind", "consistency"):
+        raise M2VError("仅接受 version=3 的 trial/final 媒体评审请求")
+    purpose = request["purpose"]
+    review_type = request.get("reviewType", "blind")
+    if purpose not in PURPOSES or (request["round"] == "final") != (purpose == "final"):
+        raise M2VError("purpose 必须匹配 keyframe/process 试制或 final 终审")
+    if purpose == "final" and (not has_visual_target(request) or not request.get("conditions")):
+        raise M2VError("完整成片终审必须登记实际参考及中性 conditions，盲审后同轮对照")
+    if review_type not in ("blind", "consistency", "process"):
         raise M2VError("评审类型无效")
+    if review_type == "process":
+        if purpose != "process" or request.get("blindId") is not None or request.get("blindReason"):
+            raise M2VError("过程直接对照不得伪造盲看身份或混用其他用途")
+        if not request.get("references") or not request.get("conditions"):
+            raise M2VError("过程对照必须提供实际参考和中性 conditions")
+    elif purpose == "process":
+        text(request.get("blindReason"))
+    elif "blindReason" in request:
+        raise M2VError("仅过程例外盲审可登记 blindReason")
     if not isinstance(request["items"], list) or not request["items"]:
         raise M2VError("评审必须包含实际媒体")
     if (
@@ -109,6 +135,10 @@ def validate_request(request):
         seen.add(item["id"])
         if item["dynamic"] and Path(item["path"]).suffix.lower() not in VIDEO:
             raise M2VError("动态观察需要视频，静帧不能代替")
+        if purpose == "keyframe" and (item["dynamic"] or Path(item["path"]).suffix.lower() not in IMAGES):
+            raise M2VError("关键帧审核只接受实际图片，不得混入过程视频")
+        if purpose in ("process", "final") and not item["dynamic"]:
+            raise M2VError("过程与终审必须覆盖视频，静帧不能替代")
 
 
 def package(root: Path, manifest: dict, request: dict) -> Path:
@@ -124,12 +154,16 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
     blind_id = request.get("blindId")
     if review_type == "consistency":
         prior = current_report(root, manifest, identifier(blind_id))
-        _, prior_binding = load_package(
+        prior_pack, prior_binding = load_package(
             root, manifest, prior["packPath"], prior["packSha256"]
         )
         if (
             prior["reviewType"] != "blind"
             or prior["round"] != request["round"]
+            or prior_binding["request"]["purpose"] != request["purpose"]
+            or prior_binding["request"].get("blindReason") != request.get("blindReason")
+            or any(prior_binding["request"].get(key) != request.get(key)
+                   for key in ("fps", "displaySizes", "sampleStep"))
             or prior_binding["binding"] != binding
             or prior_binding["request"]["items"] != request["items"]
         ):
@@ -150,10 +184,23 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             raise M2VError("终审必须覆盖当前完整候选的全片窗口与实际帧率")
     base = outputs(root)
     rid = uuid.uuid4().hex
-    target = base / "review-pack" / rid
+    target = local(base, f"review-pack/{rid}/manifest.json", exists=False).parent
     target.mkdir(parents=True)
     items, files = [], []
-    for index, item in enumerate(request["items"]):
+    if review_type == 'consistency':
+        prior_directory = local(base, prior['packPath']).parent
+        items = prior_pack['items']
+        # 同轮输入完全相同，复用已核验净化媒体；独立复制防止一包修改污染另一包。
+        for record in prior_pack['files']:
+            if record['path'] == 'questions.md':
+                continue
+            source = local(prior_directory, record['path'])
+            destination = local(target, record['path'], exists=False)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+            if digest(destination) != record['sha256']:
+                raise M2VError('同轮观察媒体复制期间摘要发生变化')
+    for index, item in enumerate([] if review_type == 'consistency' else request["items"]):
         source = local(base, item["path"])
         if source.suffix.lower() not in MEDIA:
             raise M2VError("评审包只接受媒体，不接受源码或设计文档")
@@ -256,16 +303,12 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                     str(source),
                     "-map_metadata",
                     "-1",
-                    *(
-                        ["-frames:v", "1"]
-                        if source.suffix.lower() not in {".wav", ".mp3"}
-                        else []
-                    ),
+                    "-frames:v", "1",
                     str(path),
                 ]
             )
             sequence = []
-            if source.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+            if source.suffix.lower() in IMAGES:
                 derived = {
                     w: target / f"{name}-{w}.png" for w in request["displaySizes"]
                 }
@@ -286,7 +329,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                 "sequence": sequence,
             }
         )
-    if review_type == "consistency":
+    if review_type in ("consistency", "process"):
         write(target / "conditions.json", request.get("conditions", []))
         for index, reference in enumerate(request.get("references", [])):
             source = local(base, reference)
@@ -303,19 +346,20 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             )
     questions = (
         "只读取本包。先保存实际看见的对象、变化、理解、视觉表现和疑问；"
-        "记录查看窗口、显示尺寸、播放/帧序列/声音覆盖与限制。不能确认则 insufficient。"
+        "记录查看窗口、显示尺寸、帧序列/声音信号覆盖与限制。不能确认则 insufficient。"
         "dynamic标识视频媒体，不自动承诺运动；静止编码只判断静态表现与一致性，"
         "未提供的运动、停留时间、声音或全片保持未验证，不把局部静态通过扩成动态基线。"
         "分别观察 understanding、presentation、representativeness；表现须具体观察构图、主体、排版及适用材质光影，"
-        "盲看代表性判断当前所给局部的实际形象与完整过程是否充分、是否占位，"
-        "不能仅因盲包隔离未见目标而自动insufficient；目标兑现由同轮对照另验。"
+        "代表性判断当前所给局部的实际形象与完整过程是否充分、是否占位。"
         "不能仅凭清楚可读或无技术错误判定视觉品质。作者解释不能补足实际效果。\n"
         "按完整画面区分抽象意象与精确信息职责：形体、空间或动作可与清晰文字/读数协作，"
         "抽象主体不默认承担逐层字形读取或逐物具象辨认。整体形象与表达成立、必要信息清楚时，"
         "局部辨认代价作为打磨限制，不仅因此fail；关键误导、唯一读数不可读、核心形象失效仍须阻断。"
         "未知意图记录疑问供对照核原条件，不臆定更高要求，也不因抽象标签自动通过。\n"
     )
-    if review_type == "consistency":
+    if review_type == 'blind':
+        questions += "盲看不能仅因隔离未见目标而自动insufficient；目标兑现由同轮对照另验。\n"
+    if review_type in ("consistency", "process"):
         questions += (
             "先核对 conditions 中相关原始要求、媒体对应关系及适用范围，与作者转化是否一致；"
             "作者自写例外不能授权缩小原要求。原始依据缺失则对应目标未验证，"
@@ -338,7 +382,8 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             "候选排名或本范围 pass 不能自动授权展开全片；未覆盖的目标与制作链路保持未验证。"
             "所有 items 仍须如实覆盖，淘汰不免除已导入失败的复查要求。\n"
         )
-    (target / "questions.md").write_text(questions, encoding="utf-8")
+    from .review_tasks import guidance
+    (target / "questions.md").write_text(guidance(request["purpose"]) + questions, encoding="utf-8")
     files = [receipt(target, p) for p in sorted(target.rglob("*")) if p.is_file()]
     pack = build_manifest(
         review_id=rid,
@@ -349,8 +394,9 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
         files=files,
         display_sizes=request["displaySizes"],
         review_type=review_type,
+        purpose=request["purpose"],
         blind_id=blind_id,
-        requires_comparison=bool(
+        requires_comparison=review_type != "process" and bool(
             request.get("references") or request.get("conditions")
         ),
     )
@@ -371,6 +417,8 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
         "package",
         data={"reviewId": rid, "receipt": receipt(base, private_path)},
     )
+    from .review_tasks import create_task
+    create_task(root, target)
     logger.info(
         "生成 %s 隔离评审包 %s，覆盖 %d 个窗口", request["round"], rid, len(items)
     )
@@ -495,6 +543,7 @@ def import_report(root, manifest, path):
             "isolation",
             "focus",
             "verdict",
+            "adoption",
             "observations",
             "coverage",
             "invocation",
@@ -511,6 +560,10 @@ def import_report(root, manifest, path):
         raise M2VError("旧报告、结论或隔离类型无效")
     identifier(report["reviewerId"])
     text(report["observations"])
+    if report["reviewType"] != "consistency" and "blindId" in report:
+        raise M2VError("仅同轮 consistency 对照可以引用 blindId")
+    if report["adoption"] != adoption(report["verdict"]):
+        raise M2VError("采用结论必须明确：仅 pass 可 adopt，fail/insufficient 必须 reject")
     pack, private = load_package(
         root, manifest, report["packPath"], report["packSha256"]
     )
@@ -525,6 +578,8 @@ def import_report(root, manifest, path):
             "id": report_digest,
             "round": current["round"],
             "verdict": current["verdict"],
+            "purpose": current["purpose"],
+            "adoption": current["adoption"],
         }
     issues.load(root, required=True)
     if any(report[k] != pack[k] for k in ("round", "reviewType")):
@@ -578,7 +633,7 @@ def import_report(root, manifest, path):
     ):
         raise M2VError("独立调用只能读取包内登记文件")
     if invocation["readReportIds"] != (
-        [] if report["reviewType"] == "blind" else [report.get("blindId")]
+        [report.get("blindId")] if report["reviewType"] == "consistency" else []
     ):
         raise M2VError("盲看不能读取旧报告；对照只能读取自身同轮盲看")
     if report["reviewType"] == "consistency":
@@ -625,7 +680,7 @@ def import_report(root, manifest, path):
     for item in report["coverage"]:
         fields(
             item,
-            {"id", "window", "status", "observations", "limitations", "assessment"},
+            {"id", "window", "status", "adoption", "observations", "limitations", "assessment"},
         )
         if (
             item["id"] in seen
@@ -660,16 +715,19 @@ def import_report(root, manifest, path):
             report["verdict"] == "pass" and item["status"] != "pass"
         ):
             raise M2VError("不能把理解、表现或代表性不足合并成通过")
-    if seen != set(by_id) or (
-        report["verdict"] == "fail"
-        and not any(x["status"] == "fail" for x in report["coverage"])
-    ):
+        if item["adoption"] != adoption(item["status"]):
+            raise M2VError("每个观察项必须给出与状态一致的明确采用结论")
+    states = [x["status"] for x in report["coverage"]]
+    expected = "fail" if "fail" in states else "insufficient" if "insufficient" in states else "pass"
+    if seen != set(by_id) or report["verdict"] != expected:
         raise M2VError("报告覆盖不足或失败结论无对应观察")
     rid = report_digest
     report.update(
         id=rid,
         cycleId=ledger.cycle(root)["cycleId"],
         requiresComparison=pack["requiresComparison"],
+        purpose=pack["purpose"],
+        hasVisualTarget=has_visual_target(private["request"]),
     )
     target = ledger.directory(root) / "reports" / f"{rid}.json"
     write(target, report)
@@ -689,4 +747,22 @@ def import_report(root, manifest, path):
         report["verdict"],
         report["isolation"],
     )
-    return {"id": rid, "round": report["round"], "verdict": report["verdict"]}
+    return {"id": rid, "round": report["round"], "purpose": pack["purpose"],
+            "verdict": report["verdict"], "adoption": report["adoption"]}
+
+
+def compare(root: Path, project: dict, blind_id: str) -> Path:
+    """只派生封存请求，不接受作者在盲看后更换目标。"""
+    report = current_report(root, project, identifier(blind_id))
+    if report["reviewType"] != "blind":
+        raise M2VError("compare 需要当前盲报告 ID")
+    _, private = load_package(root, project, report["packPath"], report["packSha256"])
+    return package(root, project, {**private["request"], "reviewType": "consistency", "blindId": blind_id})
+
+
+def package_result(root: Path, package: Path) -> dict:
+    """将实际包与已生成任务一起返回，调用方无需拼接内部路径。"""
+    task = ledger.directory(root) / 'review-tasks' / package.name
+    return {'path': str(package), 'task': str(task / 'task.md'),
+            'reportTemplate': str(task / 'report-template.json'),
+            'invocationTemplate': str(task / 'invocation-template.json')}

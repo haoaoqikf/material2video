@@ -9,7 +9,7 @@ from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.production import dependencies, issues, ledger, reviews, samples, targets
 from m2v.production.storage import read
-from common.test_native_samples import native, pair  # noqa: F401
+from common.test_native_samples import native, pair, process_pass  # noqa: F401
 from common.test_media_reviews import report
 
 
@@ -36,7 +36,7 @@ def new_pair(native, request, pack):
     blind = reviews.import_report(root, project, report((root, project), pack))
     request = {**request, 'reviewType': 'consistency', 'blindId': blind['id']}
     comparison = reviews.import_report(root, project, report((root, project), reviews.package(root, project, request)))
-    return dict(blind_id=blind['id'], comparison_id=comparison['id'], basis='新目标下的独立双通过')
+    return dict(blind_id=blind['id'], comparison_id=comparison['id'], process_id=process_pass((root, project, request['sources'][0].split('/')[2])), basis='新目标下的独立双通过')
 
 
 def close(root, blind_id):
@@ -91,7 +91,7 @@ def test_invalid_retarget_declaration_is_rejected_without_mutation(native, chang
 
 @pytest.mark.parametrize('change', [
     lambda req: req.update(displaySizes=[393]),
-    lambda req: req['items'].pop(),
+    lambda req: req['items'][0].update(id='other-state'),
     lambda req: req.update(sources=['scenes/other.tsx']),
 ])
 def test_user_retarget_cannot_change_structural_scope(native, change):
@@ -204,7 +204,7 @@ def test_observation_before_registration_cannot_be_imported_later_as_fresh(nativ
     lambda scope: scope['items'][0].update(window=[0, 8]),
 ])
 def test_final_target_registration_also_preserves_structure(change):
-    original = dict(focus='comprehensive', displaySizes=[393, 1920], references=['old'], conditions=['old'],
+    original = dict(focus='comprehensive', fps=30, purpose='final', reviewMode='blind', displaySizes=[393, 1920], references=['old'], conditions=['old'],
                     sources=['video.mp4'], sceneIds=['opening'], items=[dict(id='full', window=[0, 10], dynamic=True)])
     current = deepcopy(original)
     current.update(references=['new'], conditions=['new'])

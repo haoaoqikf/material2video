@@ -1,22 +1,20 @@
 # 网页原生设计样品
 
-独立工程 v3 的 `m2v sample capture` 使用作品自己的sample入口，主工具只做来源、实际配置、媒体／产物及独立交付门禁复核；本地也可直接运行 `pnpm run sample`。作品未采用完整分镜或配音不妨碍试制。依赖和资源由作品的package.json、锁文件、asset-loaders.json与来源台账维护，运行说明见[独立工程](../../../../templates/standalone/README.md)。采用参考源码时递归携带实际依赖与资源，不把主项目当运行依赖。
-
-本页维护设计试制的实现、采集与交付操作；审核职责、人数及独立性仍以[审核策略](review-contract.md)为唯一权威。研究与选案见[研究与创意试制](stage-research.md)。
+本页维护实现、采集和交付操作。研究见[研究与试制](stage-research.md)，品质和审核职责分别见[视觉复核](visual-review-rubric.md)与[审核政策](review-contract.md)，机器字段见[工具协议](review-protocol.md)。
 
 ## 完成条件与持续打磨
 
-样品必须同时满足当前采用的视觉目标（用户明确变更须按[目标变更登记](review-contract.md#用户明确变更目标)保留替代记录）、网页可复现、局部视频可编码，以及当前版本适用独立盲看和同轮目标对照通过。fail、insufficient、缺失、失效或降级自审均不能交付。候选相对最好、技术通过、完成截图或投入很多时间都不能替代这些条件。
+原生样品 v2 使用作品自身的构建、字体资源、宿主和受控时钟，不需要完整分镜、旁白或全片准备。主工具只复核来源、实际配置和媒体绑定，不分发第二套采集实现；本地也可运行 pnpm run sample。
 
-不设主动工作时长、尝试次数或总轮次上限；持续研究、实现、查看、对照、修复，直至有足够好的样品。两轮没有改善时换实质方案、工具或表达机制，继续循环，不把“两轮”当作结束条件。不得通过改目标、缩小原失败范围、另开周期或反复换评审者挑通过规避问题。外部阻塞、用户暂停或执行环境中断时保留未完成记录和原失败；如实报告阻塞，不提交失败稿充当样品。
+static 只生成网页和选定关键帧，不编码视频；motion 另生成完整局部视频。关键帧必须独立盲审及同轮实际目标对照通过，动态用途还须完整过程独立对照通过，适用必改关闭后才能交付。静态通过只授权静态范围；技术成功、候选最好、截图完成和投入时间不替代实际品质。
 
-已选定方向的两轮无改善优先比较不同局部修复机制，不默认推翻整体风格。作者须记录保留项、必修项和打磨项；“仍可提升”不自动否决整体已成立的样品，具体阻断依据与历史失败闭环见[采用边界与选案责任](review-contract.md#采用边界与选案责任)。
+fail、insufficient、缺失、失效或降级自审均不可交付。持续研究、实现、查看、比较与修复，不设主动工作时长、候选数或总轮次上限；两轮无改善换实质方案或修复机制，保留原失败，按[唯一循环](production-workflow.md)继续。阻塞或中断保留未完成，不能以探索稿结束。
 
-先看图片的请求同样遵守这一条件：给用户的图片来自通过评审的原生采集；内部补足证明该设计可运行、可成片的最小完整局部视频，不擅自制作整片。静止设计可以编码为静止局部视频，不强加无关动画；静态通过只证明实际静态范围，不授权未验证的连续变形、镜头、遮挡、空间关系或声音。
+用户只要求先看图片时，交付通过的原生静帧及参考与覆盖范围；纯静态无需视频，不擅自制作整片。AI 图片边界见下节。
 
 ## 实现手段开放
 
-以所选视觉目标决定实现，可以检索、采用、组合或改造外部组件、开源项目、代码示例、模型、材质、Shader、WebGL/WebGPU、Canvas/SVG、建模工具、离线计算及自研方案。已有 SDK、当前依赖名单、熟悉程度和手写方便程度不能成为品质上限。先评估成熟外部方案，已有内部实现满足目标时优先复用；需要扩展就扩展，不因预设技术栈降低目标。
+以所选视觉目标决定实现，优先检索并采用、组合或改造成熟的外部组件、开源项目、代码示例、模型、材质、Shader、WebGL/WebGPU、Canvas/SVG、建模工具、离线计算及自研方案。已有 SDK、当前依赖名单、熟悉程度和手写方便程度不能成为品质上限。只自研成熟方案无法满足的必要缺口，记录具体原因；不要求穷举候选。先评估成熟外部方案，已有内部实现满足目标时优先复用；需要扩展就扩展，不因预设技术栈降低目标。
 
 研究记录说明实际来源、版本、许可、维护情况、安装及最终包体、适配成本、资源加载、时间控制、网页与正式采集兼容性。自主时钟、随机状态、物理模拟和异步布局可在适配后受控推进，或预计算为本地数据；不能未经验证宣称逐帧确定。可以用顺序采集，不强迫所有组件达到 pure-time。仅本片使用的组件和视觉参数留在作品内，跨作品能力才考虑进入主项目参考源码；不为“允许一切手段”盲目安装全部候选。
 
@@ -32,33 +30,43 @@ AI 图片可以辅助构思、风格讨论和参考研究，须明确标识来�
 
 ## 最小采集到交付
 
-只需有效 project.json、作品 scenes/ 下的 TSX、可选 props JSON，以及验证窗口；不要求完整分镜、配音或全片准备。场景接口、字体就绪与时间实现见[运行时](code-scene-runtime.md)。
-
-已有正式分镜的作品，可由试制入口直接导入同一分镜和行程，props只传窗口偏移等少量参数，避免把大量路径控制点复制进命令行而超过Windows参数长度。实际可达文件仍纳入采集绑定；完整动作窗口按绝对帧映射，不能因缩短试制而重算成不同运动。
+只需有效 project.json、作品 scenes/ 下的实际入口、可选参数和验证窗口。运行环境、资源及字体须就绪，详见[独立工程](../../../../templates/standalone/README.md)。
 
 ```powershell
-uv run m2v sample capture --project <作品> --entry scenes/core.tsx --props sample-props.json --duration-seconds 3 --frame 30 --frame 75
+uv run m2v sample capture --project <作品> --entry scenes/core.tsx --kind static --duration-seconds 3 --frame 30 --frame 75
 uv run m2v sample serve --project <作品> --id <采集ID>
+uv run m2v sample review --project <作品> --id <采集ID> --purpose keyframe --targets <目标.json>
 ```
 
-时长按当前 fps 转帧，至少两帧以验证可编码过程；取帧是幕内索引，可重复指定，省略取末帧。窗口由表达决定，无统一创作时长。serve 输出本地 URL，提供同一 bundle、受控时钟和媒体映射的网页，带播放、复位和帧定位；控制条在画面之外。停止服务用 Ctrl+C。重点镜头采用子帧时，网页按相同子帧轨迹推进，交互预览显示该帧末子帧；采集静帧/视频还包含时间积分模糊与 SSAA 降采样，最终质感以同次采集媒体判断，不能宣称所有实时预览都与合成结果逐像素相同。
+目标文件只维护实际参考和中性条件；reference 路径相对 outputs：
 
-capture 复用正式构建、顺序/纯时间采集、视频编码及解码核验。成功后写入 `outputs/samples/<ID>/`：网页、静帧、完整局部无声视频、capture.json 和 review-request.json，并记录原生采集事件；失败不发布有效采集。采集及交付目录发布到最终位置后，在 Windows 上递归恢复继承权限，避免临时目录的受限 ACL 阻碍标准权限应用查看。私有暂存根内延后访问自检，不对预期的受限目录误报；最终发布仍执行权限修复及自检。源码、参数、依赖、字体、资产、画幅、帧率和产物摘要均绑定，变化后重新采集。不要改写 capture.json 或源媒体，后续尝试保留独立 ID。评审请求不纳入产物摘要，允许在建包前补充目标与条件。
+```json
+{"references":["refs/quality.png"],"conditions":["原始要求：整体采用选中画面的空间与形体语言。","整体品质参考：主体尺度、空间层次与表面完成度；不采用品牌字形。"]}
+```
 
-在生成的 review-request.json 中先补齐实际 references（相对 outputs 的参考媒体）和中性 conditions，保留自动生成的全部 items、sources、fps、displaySizes。不删静帧或完整 motion 项。按[隔离执行](subagent-review.md)实际建立新子代理，盲看导入后，以相同请求加 `reviewType: "consistency"`、`blindId` 建同轮目标对照，再导入报告。调用记录必须来自真实执行，不能手写一个 pass 代替审核。
+capture 默认 static，至少一帧；motion 至少两帧。选帧为幕内索引，省略取末帧。时长只限定验证窗口，无统一创作时长；顺序模式推进必要前序状态，只保存指定静帧，不为静态编码。serve 提供同一 bundle 的受控预览，控制条在画面外；子帧积分及 SSAA 的最终质感以同次采集媒体判断，不宣称实时预览逐像素相同。
 
-当前评审包同时核验声明采集的全部 inputs/artifacts，不只比较 capture.json 本身；间接素材、分镜或源码改变也会使旧评审失效。路径按本机真实路径语义识别，Windows 大小写别名不能绕过该核验。历史视觉复用只保留旧封存身份，当前包仍须通过此项。
+capture 成功写 outputs/samples/<ID>/，包含网页、静帧、适用视频、capture.json、关键帧请求及适用过程请求。源码、参数、实际可达依赖、字体、资源、配置和产物均绑定，变动后重采；不得手改凭据。采集及交付在 Windows 发布后恢复继承权限并自检。
+
+sample review 自动派生全部媒体窗口、来源和显示尺寸，生成只读隔离包及包外空白报告模板／任务。按[隔离执行](subagent-review.md)实际创建独立代理，导入真实盲报告后自动建同轮目标包：
 
 ```powershell
-uv run m2v review pack --project <作品> --file <完整盲看请求.json>
-uv run m2v review import --project <作品> --file <真实盲看报告.json>
-uv run m2v review pack --project <作品> --file <同轮对照请求.json>
+uv run m2v review import --project <作品> --file <真实盲报告.json>
+uv run m2v review compare --project <作品> --blind-id <当前盲报告ID>
 uv run m2v review import --project <作品> --file <真实对照报告.json>
-uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <达到目标的具体选案依据>
+uv run m2v sample deliver --project <作品> --id <静态采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
 ```
 
-deliver 校验同一次原生采集、当前周期/来源、同评审者的 trial 独立双通过、原生及手机显示尺寸、完整静帧与过程范围、实际参考，以及当前周期必改项关闭。修复重采前从原`capture.json`读取`durationInFrames`、`fps`与`stills[].frame`派生时长及取帧参数，核对原帧位，不凭记忆手填。重采集用稳定的入口、帧率和画幅身份比较复查范围，每个报告仍绑定各自采集的实际摘要；完整静帧与过程、原条件、目标和显示范围不能降低。原生样品周期存在未关闭必改或历史损坏时，review start 拒绝重开。用户明确换目标时使用review retarget在原周期保留替代记录，仍须登记后重新独立双通过，不用新周期或手改问题块代替。通过后复制已评静帧与视频到 `outputs/sample-deliveries/<ID>/`，保留 delivery.json，不重复渲染或编码；相同依据可重用，不能覆盖旧交付。该目录及作品内容均不入库。
+需要动态时使用 --kind motion 采集，关键帧双评仍只包含同源图片，再审核完整过程：
 
-通用 review 仍可用于内部探索图片；其 pass 不替代原生凭据或样品交付检查。sample serve/capture 也是内部检查入口，成功不代表样品通过。最终由作者核对原目标、确认选案并展示通过的样品，不能以工具 pass 免责。
+```powershell
+uv run m2v sample review --project <作品> --id <动态采集ID> --purpose process --targets <过程目标.json>
+uv run m2v review import --project <作品> --file <真实过程对照报告.json>
+uv run m2v sample deliver --project <作品> --id <动态采集ID> --blind-id <关键帧盲报告ID> --comparison-id <关键帧对照报告ID> --process-id <过程报告ID> --basis <具体选案依据>
+```
 
-来源变动后重采集的完整媒体字节及观察条件完全相同时，可先建当前盲包，再按[完整媒体视觉复用](review-contract.md#完整媒体相同的-trial-视觉复用)登记原独立双通过；deliver 仍用原报告 ID，另记录 visualReuse 收据和当前 capture。当前采集仍须通过全部来源及产物绑定检查，原报告的包与时间不变。未解决失败、收据损坏、任一媒体或目标改变均拒绝，不以静态复用授权动态或全片。
+过程默认直接独立对照；例外盲审按审核政策提供 --blind-reason，随后按同轮对照执行，deliver 使用过程对照报告ID。缺完整过程、目标、来源、显示范围或存在必改时拒绝交付。静态不得填写未采集的过程资格。
+
+修复重采从原 capture.json 读取帧率、时长和选帧，保持需复查的原用途及范围；每次使用独立ID，不覆盖旧证据。独立失败按原目标关闭；用户明确换目标按 retarget 登记。完整字节与观察条件相同的关键帧可沿[视觉复用](review-contract.md#完整媒体相同的-trial-视觉复用)，当前来源仍复核，过程改变须另审。
+
+deliver 只复制已评静帧与适用视频到 outputs/sample-deliveries/<ID>/，保存依据和报告，不重新渲染。总代理核对实际目标和选案后展示。作品内容、采集及媒体不入库；探索图片通用 pass 不能代替原生采集凭据。

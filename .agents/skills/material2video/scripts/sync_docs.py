@@ -92,15 +92,15 @@ def _inject(relative: str, text: str, lines: list[str], *, section="type-catalog
     return "\n".join(parts[: starts[0] + 1] + lines + parts[ends[0] :])
 
 
-REVIEWS = ".agents/skills/material2video/references/subagent-review.md"
+REVIEWS = ".agents/skills/material2video/references/review-protocol.md"
 
 
 def review_manifest_lines() -> list[str]:
     from m2v.production.reviews import build_manifest
     value = build_manifest(review_id='R01', cycle_id='example-cycle', round='trial', fps=30,
-        items=[{'id': 'window-1', 'path': 'evidence-0000.mp4', 'window': [0, 90],
-                'dynamic': True, 'sequence': []}],
-        files=[{'path': 'evidence-0000.mp4', 'sha256': '0' * 64}], display_sizes=[1920, 393])
+        items=[{'id': 'window-1', 'path': 'evidence-0000.png', 'window': [0, 1],
+                'dynamic': False, 'sequence': []}],
+        files=[{'path': 'evidence-0000.png', 'sha256': '0' * 64}], display_sizes=[1920, 393])
     value['createdAt'] = '2026-11-07T00:00:00+00:00'
     return ['```json', *json.dumps(value, ensure_ascii=False, indent=2).splitlines(), '```']
 

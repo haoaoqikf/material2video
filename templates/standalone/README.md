@@ -45,6 +45,8 @@ python models/qwen3-tts/fetch.py --check --voice clone_<slug>
 
 ## 创作与资源
 
+固定保留 RESEARCH.md、DESIGN.md 和每个 design/scenes/<scene-id>.md，默认记录目标、画面与注意力、实现、验证与未知四问；起步材料不代表正式美术通过。
+
 场景入口在 `scenes/`；本地时间与资源就绪接口在 `src/code-scene/`；最终合成在 `src/scene-film/`。修改 `project.json`、`storyboard.json` 和场景即可创作。按作品需要自行采用本地组件或在 `package.json` 声明精确版本的第三方库，并更新本作品锁文件、来源与许可记录。没有主项目SDK或跨目录源码别名。
 
 `src/assets/fonts.json` 声明实际注册字体，来源与摘要在 `fonts/registry.json`，许可在 `fonts/licenses/`。使用 Kokoro 配音时，来源、revision、摘要与许可以 `models/registry.json` 为准，许可文本在 `models/licenses/`；使用 Qwen3-TTS 时以 `models/qwen3-tts/registry.json` 为准，许可文本在 `models/qwen3-tts/licenses/`。媒体使用作品内 `assets/media-sources.json` 登记；存在 `assets/fetch.py` 或 `assets/sound-recipe.json` 时，setup调用本地恢复入口。渲染使用已经恢复的本地快照；更新数据或重新合成旁白属于显式准备操作。
@@ -54,12 +56,12 @@ python models/qwen3-tts/fetch.py --check --voice clone_<slug>
 ## 原生场景试制与技术检查
 
 ```powershell
-pnpm run sample --entry scenes/opening.tsx --duration-seconds 3 --frame 30
+pnpm run sample --entry scenes/opening.tsx --kind static --duration-seconds 3 --frame 30
 pnpm run qa
 pnpm test
 ```
 
-sample输出同源网页、指定帧和局部视频及输入记录，不要求全片配音。`pnpm run qa`检查候选的技术信号；画面判断和制作完成仍需实际复核。资源、依赖、源码或配置改变后，旧准备和对应样品需要重新验证。
+sample 使用 kind=static 时输出同源网页、指定关键帧和输入记录，不调用视频编码；kind=motion 另生成完整局部视频，不要求全片配音。`pnpm run qa`检查候选的技术信号；画面判断和制作完成仍需实际复核。资源、依赖、源码或配置改变后，旧准备和对应样品需要重新验证。
 
 `runtime` 字段是可选的制作工具执行协议：默认工程提供本地命令数组，便于外部工具调用同一实现。直接运行本工程不需要安装主项目，也不需要外部制作管理服务。
 

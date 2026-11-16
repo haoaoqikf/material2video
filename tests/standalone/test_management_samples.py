@@ -26,7 +26,7 @@ def packet(tmp_path, monkeypatch):
     for name in ['index.html', 'scene.html', 'capture-clock.js']:
         (target / 'web').mkdir(exist_ok=True)
         (target / 'web' / name).write_text('native viewer', encoding='utf-8')
-    value = {'entry': 'scenes/main.tsx', 'props': {}, 'fps': 30, 'width': 640, 'height': 360,
+    value = {'kind': 'motion', 'entry': 'scenes/main.tsx', 'props': {}, 'fps': 30, 'width': 640, 'height': 360,
              'durationInFrames': 3, 'stills': [{'frame': 1, 'path': 'still-000001.png'}],
              'video': 'sample.mp4', 'inputs': design_sample.snapshot(tmp_path, [scene, tmp_path / 'project.json']),
              'config': {'media': {}, 'props': {}, 'width': 640, 'height': 360, 'fps': 30, 'durationInFrames': 3},
@@ -55,6 +55,19 @@ def test_sample_delegates_local_destination_and_accepts_verified_packet(packet):
     action, options = packet[-1][0]
     assert action == 'sample'
     assert options[options.index('--destination') + 1] == 'outputs/samples/private'
+
+
+def test_static_sample_validates_native_web_and_images_without_video_decode(packet, monkeypatch):
+    root, project, target, value, calls = packet
+    value.update(kind='static', video=None)
+    del value['artifacts']['sample.mp4']
+    (target / 'sample.mp4').unlink()
+    monkeypatch.setattr(design_sample, 'verify_output', lambda *a, **kw: pytest.fail('静态不应视频解码'))
+    result = design_sample.render(root, project, target, entry='scenes/main.tsx', props={},
+                                  duration_seconds=.1, still_frames=[1], kind='static')
+    assert result['video'] is None and result['kind'] == 'static'
+    options = calls[0][1]
+    assert options[options.index('--kind') + 1] == 'static'
 
 
 @pytest.mark.parametrize('damage', ['entry', 'dimension', 'source', 'artifact', 'frame',

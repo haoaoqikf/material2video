@@ -11,9 +11,10 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "import", "timeline", "retarget", "reuse"))
+    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse"))
     review.add_argument("--project", required=True)
     review.add_argument("--file", help="评审请求、报告或用户目标变更 JSON")
+    review.add_argument("--blind-id", help="自动派生同轮对照的当前盲报告 ID")
     review.add_argument(
         "--split-final", action="store_true", help="终审按结构和视觉文案分工"
     )
@@ -60,6 +61,10 @@ def dispatch(args):
             from .timeline import build
 
             result = {"path": str(build(root, manifest))}
+        elif args.action == "compare":
+            if not args.blind_id:
+                raise M2VError('compare 需要 --blind-id')
+            result = reviews.package_result(root, reviews.compare(root, manifest, args.blind_id))
         elif args.action == "reuse":
             from . import reuse
             if not args.file:
@@ -75,7 +80,7 @@ def dispatch(args):
             if not args.file:
                 raise M2VError("pack/import 需要 --file")
             result = (
-                {"path": str(reviews.package(root, manifest, read(Path(args.file))))}
+                reviews.package_result(root, reviews.package(root, manifest, read(Path(args.file))))
                 if args.action == "pack"
                 else reviews.import_report(root, manifest, Path(args.file))
             )
