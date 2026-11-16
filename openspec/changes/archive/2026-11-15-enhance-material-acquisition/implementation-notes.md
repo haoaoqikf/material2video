@@ -162,7 +162,7 @@
 
 ## 2026-11-15：获取编排、索引检索、选择导入与命令接入
 
-任务 2.4、3.3、4.1～4.3、5.1～5.6、6.1～6.4、7.1～7.5、8.1～8.4 与 9.1～9.5 已实现并完成直接相关验证。真实评测、来源逐站结果、模型与性能数据见 [素材工作层实测记录](../../../../docs/material-acquisition-evaluation.md)。
+任务 2.4、3.3、4.1～4.3、5.1～5.6、6.1～6.4、7.1～7.5、8.1～8.4 与 9.1～9.5 已实现并完成直接相关验证。真实评测、来源逐站结果、模型与性能数据见 Git 历史中的素材工作层实测记录（`git show 98cdd256db90:docs/material-acquisition-evaluation.md`）。
 
 ### 实现与复用
 
@@ -205,7 +205,7 @@
 ### 实施与归档交接清单
 
 - 实施任务：tasks.md 中 1.1～9.8 全部勾选；未有意识留空的功能项。
-- 真实证据：`docs/material-acquisition-evaluation.md` 记录本地全链路、Commons/NASA 下载、平台/Archive 受限、四个模型推理、24 查询与性能；媒体、权重和评测输出仅在忽略目录。
+- 上述实测记录包含本地全链路、Commons/NASA 下载、平台/Archive 受限、四个模型推理、24 查询与性能。媒体、权重和评测输出仅在忽略目录。
 - 验证集合：素材相关 220 passed（默认标记）、media 20 passed、旧素材回归 31 passed；未运行全仓回归。
 - 代码复核：由主代理自审 89/100，**不独立，未取得独立复查结论**；不把本自审写作独立审查通过。
 - 主规格同步：新增 `material-acquisition`、`material-index-retrieval`、`material-selection-library` 主规格，合并 `material-sourcing` 的 ADDED 要求；变更移入 `openspec/changes/archive/2026-11-15-enhance-material-acquisition/`。

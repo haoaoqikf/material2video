@@ -90,7 +90,7 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 `m2v author assets` 另有 discover / fetch / index / find / preview / select / library / models / doctor 九个工作流，覆盖无分镜发现、受控公开/平台/本地获取、字幕/转录/OCR/镜头/文本/视觉索引、中文检索与候选预览、精裁选择和作品内凭据。索引/查找离线运行，模型必须显式 `models prepare`；完整教程与能力边界见[素材工作层](.agents/skills/material2video/references/material-sourcing.md#完整工作层发现获取索引检索预览选择)。`search`/`import` 行为保持不变，Pexels API 仍停用。
 
-素材库支持全时间轴预算采样、可继续的流式增量扫描、来源标题/描述的跨语言语义检索及背景负例筛选；同次请求复用查询编码。`library annotate/list/similar/browse` 提供标签、收藏、主题集合、已有视觉索引的相似镜头建议和显式多库本地浏览。相似建议不合并来源或删除文件，动作与身份仍需观察；操作参数见素材手册，实际覆盖与性能见[素材收集整理改进记录](docs/material-library-improvements.md)。
+素材库支持全时间轴预算采样、可继续的流式增量扫描、来源标题/描述的跨语言语义检索及背景负例筛选；同次请求复用查询编码。`library annotate/list/similar/browse` 提供标签、收藏、主题集合、已有视觉索引的相似镜头建议和显式多库本地浏览。相似建议不合并来源或删除文件，动作与身份仍需观察。
 
 旧类型名、`project.style`、project v1/v2、分镜 v8 及旧准备记录明确拒绝。升级后的材料需重新编排并重新准备；没有兼容入口或迁移命令，旧实现从 Git 历史追溯。
 
