@@ -23,7 +23,7 @@ def signature(root, project, pack_path, pack_sha, *, historical=False):
                      if historical else reviews.load_package(root, project, pack_path, pack_sha))
     req, binding = private['request'], private['binding']
     if req['round'] != 'trial':
-        raise M2VError('视觉复用仅限同周期 trial，不能替代实际 final')
+        raise M2VError('视觉复用仅限同周期独立评审')
     return dict(round=req['round'], purpose=req['purpose'], blindReason=req.get('blindReason'),
                 fps=req['fps'], displaySizes=sorted(req['displaySizes']),
                 sceneIds=req['sceneIds'], sources=samples.scope_sources(root, req),

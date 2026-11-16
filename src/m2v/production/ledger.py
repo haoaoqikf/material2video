@@ -10,7 +10,7 @@ from contextvars import ContextVar
 from contextlib import contextmanager
 from pathlib import Path
 
-from m2v.core.delivery import outputs, candidate
+from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.fingerprints import fingerprint
 from . import dependencies
@@ -29,6 +29,9 @@ def query_active() -> bool:
 @contextmanager
 def query():
     """仅在一次只读查询内复用历史、包与报告验证，下一次查询立即重验。"""
+    if query_active():
+        yield
+        return
     token = _query.set({})
     try:
         yield
@@ -56,19 +59,13 @@ def cycle(root: Path) -> dict:
 
 def _cycle(root: Path) -> dict:
     value = read(outputs(root) / "production/workflow.json")
-    fields(
-        value, {"version", "cycleId", "projectId", "createdAt", "finalFocuses", "basis"}
-    )
-    if value["version"] != VERSION:
-        raise M2VError(
-            "旧制作记录不兼容；请显式执行 m2v review start，新周期不继承旧通过"
-        )
+    if value.get("version") != VERSION:
+        raise M2VError("旧制作记录不兼容；请显式执行 m2v review start，新周期不继承旧通过")
+    fields(value, {"version", "cycleId", "projectId", "createdAt"})
     identifier(value["cycleId"])
     original = read(local(outputs(root), f"production/{value['cycleId']}/cycle.json"))
     if original != value:
-        raise M2VError("周期身份或终审要求已被改写；须显式开启新周期")
-    if value["finalFocuses"] not in (["comprehensive"], ["structure", "visual-copy"]):
-        raise M2VError("终审职责无效")
+        raise M2VError("周期身份已被改写")
     return value
 
 
@@ -76,51 +73,40 @@ def directory(root: Path) -> Path:
     return outputs(root) / "production" / cycle(root)["cycleId"]
 
 
-def start(
-    root: Path, manifest: dict, *, split_final=False, basis="常规综合终审"
-) -> dict:
-    from .model import text
+def start(root: Path, manifest: dict) -> dict:
+    from . import issues, legacy
 
-    text(basis)
     identifier(manifest["id"])
-    workflow = outputs(root) / 'production/workflow.json'
-    previous_cycle = None
+    base = outputs(root)
+    workflow = local(base, "production/workflow.json", exists=False)
+    previous = local(base, "visual-notes.md", exists=False)
+    identity = uuid.uuid4().hex
+    value = dict(version=VERSION, cycleId=identity, projectId=manifest["id"], createdAt=now())
+    carried = []
+    if not workflow.exists() and any((base / "production").glob("*/cycle.json")):
+        raise M2VError("制作账本存在但当前周期指针缺失，不能通过开始新周期绕过")
     if workflow.exists():
-        previous_cycle = read(workflow)
-        fields(previous_cycle, {'version', 'cycleId', 'projectId', 'createdAt', 'finalFocuses', 'basis'})
-        previous_id = identifier(previous_cycle['cycleId'])
-        original = read(local(outputs(root), f'production/{previous_id}/cycle.json'))
-        if (previous_cycle != original or previous_cycle['projectId'] != manifest['id']
-                or type(previous_cycle['version']) is not int or previous_cycle['version'] not in (2, VERSION)):
-            raise M2VError('旧周期身份、版本或原始记录损坏，不能借版本升级重开周期')
-    if previous_cycle is not None and previous_cycle['version'] == VERSION:
-        _, errors = history(root)
-        from . import issues
-        if errors or any(item['required'] and item['status'] != 'closed'
-                         for item in issues.load(root, required=True)):
-            raise M2VError('当前制作周期仍有未关闭必改项或历史无法核验，不能重开周期绕过')
-    value = dict(
-        version=VERSION,
-        cycleId=uuid.uuid4().hex,
-        projectId=manifest["id"],
-        createdAt=now(),
-        finalFocuses=["structure", "visual-copy"] if split_final else ["comprehensive"],
-        basis=basis,
-    )
-    previous = outputs(root) / "visual-notes.md"
-    if previous.exists():
-        archive = (
-            outputs(root) / "production" / "history-notes" / (uuid.uuid4().hex + ".md")
-        )
+        old = read(workflow)
+        old_id = identifier(old.get("cycleId"))
+        if old.get("projectId") != manifest["id"] or old != read(local(base, f"production/{old_id}/cycle.json")):
+            raise M2VError("旧周期身份或原始记录损坏，不能借版本升级重开周期")
+        if old.get("version") == VERSION:
+            _, errors = history(root)
+            if errors or any(item["required"] and item["status"] != "closed"
+                             for item in issues.load(root, required=True)):
+                raise M2VError("当前制作周期仍有未关闭必改项或历史无法核验，不能重开周期绕过")
+        else:
+            carried = legacy.unresolved(root, old, previous)
+        archive = local(base, f"production/history-notes/{old_id}-{identity}.md", exists=False)
         archive.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(local(outputs(root), "visual-notes.md"), archive)
-    write(outputs(root) / "production" / value["cycleId"] / "cycle.json", value)
-    write(outputs(root) / "production/workflow.json", value)
-    from . import issues
-
-    issues.save(root, [])
-    append(root, manifest, "started")
-    logger.info("开启媒体评审周期 %s；旧记录不继承通过", value["cycleId"])
+        shutil.copyfile(previous, archive)
+        if carried:
+            carried = legacy.carry(carried, identity, receipt(base, archive))
+    write(local(base, f"production/{identity}/cycle.json", exists=False), value)
+    write(workflow, value)
+    issues.save(root, carried, replace=True)
+    append(root, manifest, "started", data={"carriedIssues": carried} if carried else None)
+    logger.info("开启媒体评审周期 %s；承接 %d 条历史必改", identity, len(carried))
     return value
 
 
@@ -232,7 +218,8 @@ def sources(root: Path, request: dict) -> dict:
             for sid in scene_ids
         }
     global_inputs = {}
-    if (root / "project.json").exists():
+    # 正式窗口已绑定实际画幅、字幕及音频，按局部输入核验。试制还需要显式绑定工程设置。
+    if not request.get("film") and (root / "project.json").exists():
         project = read(root / "project.json")
         global_inputs = {key: project.get(key) for key in ("type", "output", "tts")}
     return {
@@ -242,151 +229,143 @@ def sources(root: Path, request: dict) -> dict:
     }
 
 
-def final_binding(root: Path, manifest: dict) -> dict:
-    return query_value(("final-binding", root), lambda: _final_binding(root, manifest))
+def binding(root: Path, manifest: dict, request: dict, *, sealed=None) -> dict:
+    base = outputs(root)
 
+    def media_receipt(name):
+        path = local(base, name)
+        return {"path": path.relative_to(base).as_posix(), "sha256": dependencies.digest(path)}
 
-def _final_binding(root: Path, manifest: dict) -> dict:
-    from m2v.commands import _prepared
-
-    prepared = _prepared(root, manifest)
-    record = candidate(root, prepared)
-    if record.get("status") not in ("ready", "delivered"):
-        raise M2VError("当前完整候选技术验收尚未通过")
-    qa_path = outputs(root) / "qa.json"
-    qa = read(qa_path)
-    if (
-        qa.get("status") != "pass"
-        or qa.get("preparedFingerprint") != prepared["preparedFingerprint"]
-        or qa.get("videoSha256") != record["sha256"]
-    ):
-        raise M2VError("终审需要绑定当前完整候选的有效技术 QA")
-    board = read(
-        root / manifest.get("materials", {}).get("storyboard", "storyboard.json")
-    )
-    return {
-        "candidateSha256": record["sha256"],
-        "preparedFingerprint": prepared["preparedFingerprint"],
-        "durationFrames": prepared["durationInFrames"],
-        "fps": prepared["fps"],
-        "qa": receipt(outputs(root), qa_path),
-        "storyboard": fingerprint(board),
-        "sources": sources(root, {"sceneIds": [s["id"] for s in board["scenes"]]}),
-    }
-
-
-def binding(root: Path, manifest: dict, request: dict) -> dict:
     value = {
         "conditions": request.get("conditions", []),
         "sources": sources(root, request),
-        "media": [
-            receipt(outputs(root), local(outputs(root), item["path"]))
-            for item in request["items"]
-        ],
-        "references": [
-            receipt(outputs(root), local(outputs(root), p))
-            for p in request.get("references", [])
-        ],
+        "media": [media_receipt(item["path"]) for item in request["items"]],
+        "references": [media_receipt(p) for p in request.get("references", [])],
     }
-    if request["round"] == "final":
-        value["final"] = final_binding(root, manifest)
+    if request.get("film"):
+        from .film_review import composition_binding
+        value["film"] = composition_binding(root, manifest, request, value["media"], sealed=sealed)
     return value
 
 
 def status(root: Path, manifest: dict, *, full_history=False) -> dict:
-    from . import reviews, issues, media_evidence
+    from . import film_review, issues, media_evidence, reuse, reviews
 
     result = {
         "version": VERSION,
         "complete": False,
         "trial": [],
-        "final": [],
+        "keyframes": {"status": "missing"},
+        "keySamples": {"status": "undetermined"},
+        "technicalQA": {"status": "unverified"},
+        "playback": {"status": "missing"},
         "diagnostics": [],
         "issues": [],
     }
     with query(), dependencies.snapshot(), media_evidence.snapshot():
         try:
+            data = film_review.prepared(root, manifest)
+        except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
+            data = None
+            result["keySamples"]["detail"] = str(exc)
+        try:
+            result["technicalQA"] = {"status": "pass", **film_review.qa_binding(root, manifest)}
+        except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
+            result["technicalQA"]["detail"] = str(exc)
+        if data is not None:
+            result["keySamples"] = film_review.sample_state(data, [], [])
+        try:
             c = cycle(root)
             if c["projectId"] != manifest["id"]:
                 raise M2VError("周期不属于当前作品")
             events, errors = history(root)
-            result.update(
-                cycleId=c["cycleId"],
-                diagnostics=errors,
-                history=events if full_history else events[-5:],
-            )
-            result["issues"] = [
-                p for p in issues.load(root, required=True) if p["status"] != "closed"
-            ]
+            result.update(cycleId=c["cycleId"], diagnostics=errors,
+                          history=events if full_history else events[-5:])
+            result["issues"] = [p for p in issues.load(root, required=True) if p["status"] != "closed"]
+            verified = {}
+            partial = {}
             for event in events:
                 if event["type"] != "review":
                     continue
-                data = event["data"]
-                row = {
-                    "id": data["reportId"],
-                    "round": data["round"],
-                    "focus": data["focus"],
-                    "reviewerId": data["reviewerId"],
-                    "status": "stale",
-                    "adoption": "reject",
-                    "detail": "",
-                }
+                record = event["data"]
+                row = {"id": record["reportId"], "round": record["round"],
+                       "focus": record["focus"], "reviewerId": record["reviewerId"],
+                       "status": "stale", "adoption": "reject", "detail": ""}
                 try:
-                    report = reviews.current_report(root, manifest, data["reportId"])
-                    row.update(
-                        status=report["verdict"]
-                        if report["isolation"] == "independent-subagent"
-                        else "degraded",
-                        reviewType=report["reviewType"],
-                        blindId=report.get("blindId"),
-                        purpose=report["purpose"],
-                        adoption=report["adoption"] if report["isolation"] == "independent-subagent" else "reject",
-                        hasVisualTarget=report["hasVisualTarget"],
-                    )
-                    from . import reuse
-                    if reuse.has_record(root, report['id']):
-                        row['visualReuse'] = reuse.resolve(root, manifest, report['id'])[3]
+                    report = reviews.current_report(root, manifest, row["id"])
+                    independent = report["isolation"] == "independent-subagent"
+                    row.update(status=report["verdict"] if independent else "degraded",
+                               reviewType=report["reviewType"], blindId=report.get("blindId"),
+                               purpose=report["purpose"], hasVisualTarget=report["hasVisualTarget"],
+                               adoption=report["adoption"] if independent else "reject")
+                    if reuse.has_record(root, report["id"]):
+                        row["visualReuse"] = reuse.resolve(root, manifest, report["id"])[3]
+                    verified[row["id"]] = report
                 except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
-                    row["detail"] = str(exc)
-                result[data["round"]].append(row)
-            for name in ("trial", "final"):
-                for row in result[name]:
-                    if row["status"] == "pass" and row.get("reviewType") == "blind":
-                        report = reviews.current_report(root, manifest, row["id"])
-                        if report["requiresComparison"] and not any(
-                            r["status"] == "pass" and r.get("blindId") == row["id"]
-                            for r in result[name]
-                        ):
-                            row.update(
-                                status="insufficient", adoption="reject", detail="缺少当前同轮目标对照"
-                            )
-            try:
-                result["technicalQA"] = {
-                    "status": "pass",
-                    **final_binding(root, manifest),
-                }
-            except (M2VError, OSError, KeyError, TypeError) as exc:
-                result["technicalQA"] = {"status": "unverified", "detail": str(exc)}
-            keyframe = any(
-                r["status"] == "pass" and r.get("reviewType") == "blind"
-                and r.get("purpose") == "keyframe" and r.get("hasVisualTarget")
-                for r in result["trial"]
+                    row.update(status="stale", adoption="reject", detail=str(exc))
+                    if data is not None:
+                        try:
+                            retained = reviews.still_current_film_items(root, manifest, row["id"])
+                            if retained:
+                                partial[row["id"]] = retained
+                                row["currentWindowIds"] = list(retained[1])
+                        except (M2VError, OSError, ValueError, KeyError, TypeError):
+                            # 原诊断继续说明整包失效原因，封存材料无法核对时不保留局部。
+                            pass
+                result["trial"].append(row)
+
+            contrasts = {row["blindId"] for row in result["trial"]
+                         if row["status"] == "pass" and row["reviewType"] == "consistency"}
+            film_contrasts = {}
+            film_passes = list(partial.values())
+            for row in result["trial"]:
+                if row["status"] != "pass" or not row["hasVisualTarget"]:
+                    continue
+                _, _, private, _ = reuse.evidence(root, manifest, row["id"])
+                binding = private["binding"]
+                if binding.get("film"):
+                    film_passes.append((verified[row["id"]], binding["film"], binding["conditions"]))
+            for report, film, _ in film_passes:
+                if report["reviewType"] == "consistency":
+                    film_contrasts.setdefault(report["blindId"], set()).update(film)
+
+            formal_stills, approved = [], []
+            subtitles_covered = False
+            for row in result["trial"]:
+                if row["status"] != "pass" or row["reviewType"] == "consistency":
+                    continue
+                if verified[row["id"]]["requiresComparison"] and row["id"] not in contrasts:
+                    row.update(status="insufficient", adoption="reject", detail="缺少当前同轮目标对照")
+            for report, film, conditions in film_passes:
+                if report["reviewType"] == "consistency":
+                    continue
+                if report["requiresComparison"]:
+                    paired = film_contrasts.get(report["id"], set())
+                    film = {identity: item for identity, item in film.items() if identity in paired}
+                    if not film:
+                        continue
+                if report["purpose"] == "keyframe":
+                    formal_stills.append(report["id"])
+                    subtitles_covered |= any(item["hasSubtitles"] for item in film.values())
+                else:
+                    approved.append((film, conditions))
+
+            static_pass = bool(formal_stills) and (
+                subtitles_covered or not data["props"]["subtitleCues"]
             )
-            technical_qa = result["technicalQA"]
-            technical_pass = technical_qa["status"] == "pass"
-            # 短片只免单独过程样片，关键帧品质证据仍须实际存在。
-            focuses = {
-                r["focus"]
-                for r in result["final"]
-                if r["status"] == "pass" and r.get("reviewType") == "blind"
-                and r.get("hasVisualTarget")
-            }
+            result["keyframes"] = {"status": "pass" if static_pass else "missing",
+                                   "reportIds": formal_stills}
+            if formal_stills and not static_pass:
+                result["keyframes"]["detail"] = "缺少包含真实字幕的合成关键帧"
+            result["keySamples"] = film_review.sample_state(data, events, approved)
+            result["playback"] = film_review.playback_state(events, result["technicalQA"])
             result["complete"] = (
-                keyframe
-                and set(c["finalFocuses"]) <= focuses
+                static_pass
+                and result["keySamples"]["status"] in ("exempt", "pass")
+                and result["technicalQA"]["status"] == "pass"
+                and result["playback"]["status"] == "pass"
                 and not errors
-                and not result["issues"]
-                and technical_pass
+                and not any(item["required"] for item in result["issues"])
             )
         except (M2VError, OSError, ValueError, KeyError, TypeError) as exc:
             result["diagnostics"].append(str(exc))

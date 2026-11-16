@@ -11,16 +11,10 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse"))
+    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse", "scope", "confirm-playback"))
     review.add_argument("--project", required=True)
-    review.add_argument("--file", help="评审请求、报告或用户目标变更 JSON")
+    review.add_argument("--file", help="评审、复核或必审窗口 JSON")
     review.add_argument("--blind-id", help="自动派生同轮对照的当前盲报告 ID")
-    review.add_argument(
-        "--split-final", action="store_true", help="终审按结构和视觉文案分工"
-    )
-    review.add_argument(
-        "--basis", default="常规综合终审", help="终审分工的具体风险依据"
-    )
     problem = sub.add_parser("issues", help="更新唯一问题记录")
     problem.add_argument("action", choices=("update",))
     problem.add_argument("--project", required=True)
@@ -52,11 +46,15 @@ def dispatch(args):
             issues.update(root, read(Path(args.file)))
             result = ledger.append(root, manifest, "issues-updated")
         elif args.action == "start":
-            if args.split_final and args.basis == "常规综合终审":
-                raise M2VError("分工终审须提供 --basis 具体风险依据")
-            result = ledger.start(
-                root, manifest, split_final=args.split_final, basis=args.basis
-            )
+            result = ledger.start(root, manifest)
+        elif args.action in ("scope", "confirm-playback"):
+            from . import film_review
+
+            if not args.file:
+                raise M2VError(f"{args.action} 需要 --file")
+            action = (film_review.register_windows if args.action == "scope"
+                      else film_review.confirm_playback)
+            result = action(root, manifest, read(Path(args.file)))
         elif args.action == "timeline":
             from .timeline import build
 

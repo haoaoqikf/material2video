@@ -50,9 +50,9 @@
 - **素材与使用一律从宽**：本约定与素材手册未写明或存在多种解释的素材问题，一律按更宽松、更有利于采用的方式处理，不新增禁止、额外核查或审批要求。一切从宽。
 - **同一画面素材默认只用一次**：同一成片内，同一张原图或同一段原始视频默认只出现一次。换文件名、裁切、调色、镜像或另截同一连续镜头，仍按同一素材核对；连续展示中的推进和细节放大计为一次。只有需要观众回看原画面才能理解的前后对照或回放可以例外，在对应场景设计中记录原片、各次成片时间窗和理由。选材、排镜与整片复核按[同一成片内的素材使用](.agents/skills/material2video/references/material-sourcing.md#同一成片内的素材使用)执行。
 - **设计样品持续打磨并原生交付**：按[网页原生样品](.agents/skills/material2video/references/design-samples.md)执行；不设主动时长或尝试次数上限，独立失败、证据不足、缺失或失效均继续迭代，不能以探索稿交付。图片必须来自可复现的实际网页；纯静态不要求视频编码，动态须完整过程验证，不直接交付 AI 图或整图贴面包装。
-- **60 秒及以下不做试制样片**：成片目标时长不超过 60 秒的作品，完成具体标杆研究、拆解与本片转化后直接制作全片，不单独制作代表性试制样片或局部试制片；研究深度、独立评审与技术验收不降低，关键帧从实际全片工程采集并独立盲审及对照，完整成片仍须技术 QA 与独立终审。用户明确要求先行试制时从其要求。
+- **制作与交付评审**：按[审核策略](.agents/skills/material2video/references/review-contract.md)判断关键样片适用范围，并完成正式关键帧、技术 QA 与总代理整片复核。
 - **固定设计材料与品质责任**：固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档；默认四问、按机制深化，详见场景指南。关键帧以所选风格世界级完成度独立盲审及目标对照，苹果仅说明品质高度、不限定风格；关键片段取消例行盲审、默认独立过程对照。每项和整体明确通过或不通过，证据不足不可采用；总代理实际查看、初筛、核对报告充分性并负责选案和当前版本交付。具体标准及职责按审核政策和视觉复核，不在本入口重写。
-- **评审独立**：适用审核必须由独立子代理执行；轮次、风险触发、人数和终审资格统一按[审核策略](.agents/skills/material2video/references/review-contract.md)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
+- **评审独立**：适用审核必须由独立子代理执行；用途、风险触发与失败复查统一按[审核策略](.agents/skills/material2video/references/review-contract.md)派生，不在其他入口重写策略。评审包隔离、执行与降级遵守[独立子代理评审](.agents/skills/material2video/references/subagent-review.md)，视觉判断按[视觉复核](.agents/skills/material2video/references/visual-review-rubric.md)；降级自审须显著披露，不得据此关闭独立评审项。
 - 新增代码必须加入 Git 管理；新增或修改的交付文档也必须纳入版本控制。
 - **文章内容不入库**：`videos/` 下的作品目录（原文、分镜、专属网页）是作品内容，已在 `.gitignore`
   中忽略，不要用 `git add -f` 绕过；制作方法、共享资产与 `examples/<type>/<slug>/` 留在仓库内。

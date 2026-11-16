@@ -22,8 +22,7 @@ def _structural_cover(original, current):
 
     # 只有参考和中性条件可替换；其余闭环约束复用唯一范围比较。
     target = {**current, **{key: original[key] for key in ('references', 'conditions')}}
-    # 登记只换目标，连final也不能借登记改变结构；后续终审仍按当前全片验证。
-    return covers(original, target, 'trial')
+    return covers(original, target)
 
 
 def effective_scope(root: Path, item: dict) -> tuple[dict, int]:

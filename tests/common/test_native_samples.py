@@ -107,7 +107,7 @@ def test_old_or_modified_capture_is_invalid(native, change):
     elif change == 'receipt':
         write(directory / 'capture.json', {})
     elif change == 'cycle':
-        ledger.start(root, project, basis='test new cycle')
+        ledger.start(root, project)
     else:
         project = {**project, 'output': {**project['output'], 'fps': 24}}
     with pytest.raises(M2VError):
@@ -170,7 +170,7 @@ def test_failed_sample_can_be_closed_by_a_new_native_capture(native):
     root, project, identity = native
     pair(native, verdict='fail')
     with pytest.raises(M2VError, match='不能重开周期'):
-        ledger.start(root, project, basis='attempt to evade')
+        ledger.start(root, project)
     fresh = samples.capture(root, project)['id']
     args = pair((root, project, fresh))
     for item in issues.load(root):
@@ -202,7 +202,7 @@ def test_recaptured_native_group_closes_only_the_same_complete_scope(native, cha
 
     def request_for(captures):
         request = read(outputs(root) / 'samples' / captures[0] / 'review-request.json')
-        request.update(purpose='process', blindReason='组合过程需检查身份连续')
+        request.update(purpose='process', reviewType='blind', blindReason='组合过程需检查身份连续')
         request['sources'] = [f'outputs/samples/{identity}/capture.json' for identity in captures]
         request['items'] = [
             {**samples.review_items(read(outputs(root) / 'samples' / identity / 'capture.json'), 'process')[-1], 'id': scene}
@@ -242,7 +242,7 @@ def test_corruption_before_capture_event_does_not_allow_cycle_reset(native):
     path = ledger.directory(root) / 'history.jsonl'
     path.write_text('{broken\n' + path.read_text(encoding='utf-8'), encoding='utf-8')
     with pytest.raises(M2VError, match='不能重开周期'):
-        ledger.start(root, project, basis='attempt to evade broken history')
+        ledger.start(root, project)
 
 
 def test_missing_report_cannot_deliver(native):

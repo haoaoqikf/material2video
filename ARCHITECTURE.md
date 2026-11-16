@@ -29,7 +29,7 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 
 ## 原生设计样品
 
-`engine/design_sample.py` 委托作品本地sample并独立复核包的位置、来源、实际参数、媒体及技术信号；源码可达性、project／props初始摘要、字体与登记媒体由工具在执行前后重新核对。实际构建、受控采集、编码和HTML播放器属于作品的本地运行时，主项目不再分发另一份样品播放器。`production/samples.py` 将成功采集与当前周期事件绑定，按 sample v2 static/motion 与 review v3 keyframe/process/final 区分证据，基于既有隔离包和独立报告执行交付检查；不建立第二套评审格式或自动审美算法。`sample_cli.py` 只负责参数、作品写锁、操作内指纹缓存和本地服务生命周期。`production/review_tasks.py` 自动派生空白任务和报告结构；真实观察与调用由独立代理完成，不自动认证品质或伪造调用。
+`engine/design_sample.py` 委托作品本地sample并独立复核包的位置、来源、实际参数、媒体及技术信号；源码可达性、project／props初始摘要、字体与登记媒体由工具在执行前后重新核对。实际构建、受控采集、编码和HTML播放器属于作品的本地运行时，主项目不再分发另一份样品播放器。`production/samples.py` 将成功采集与当前周期事件绑定，按 sample v2 static/motion 与 review v4 keyframe/process 区分证据，基于既有隔离包和独立报告执行交付检查；不建立第二套评审格式或自动审美算法。`sample_cli.py` 只负责参数、作品写锁、操作内指纹缓存和本地服务生命周期。`production/review_tasks.py` 自动派生空白任务和报告结构；真实观察与调用由独立代理完成。正式合成窗口和候选 QA、整片复核绑定由 production/film_review.py 管理，ledger.py 负责状态投影。
 
 网页预览仅暴露该次bundle、受控时钟、本作品登记媒体和字体，控制条不进入采集；来源、可达集合或执行配置变化后样品失效。作品本地依赖锁与加载器进入样品输入。内部样品沿用高色度精度的yuv444p片段；正式成片仍执行yuv420p交付格式检查，二者都完整解码并核对帧数、画幅、帧率及时间。失败试制可以保留，纯静态只采集选定帧与网页、不编码视频；动态另验完整过程。只有交付检查通过才复制已评静帧与适用视频，不重新渲染。完整工作流见[网页原生样品](.agents/skills/material2video/references/design-samples.md)。
 

@@ -102,7 +102,7 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
-- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。成片目标时长不超过 60 秒的作品完成研究与拆解后直接制作全片，不单独出试制样片，关键帧独立双评、技术 QA 与独立终审照常执行。
+- [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。样片适用范围及整片复核见[审核策略](.agents/skills/material2video/references/review-contract.md)。
 - [全片与场景设计](.agents/skills/material2video/references/scene-design.md)：总设计统一五维与结构，每场以既有 scene.id 将五维意图落实到关键状态、动作因果、注意力和衔接；按机制深化，配有隐喻因果、数据关系和静态文字教学演练，验证计划与当前结果分开回写。文档当前不渲染，分镜/代码维护执行参数，技能脚本支持全片或局部对应检查。
 - [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格、12 种音效风格和 12 种转场风格，创作或视听表达修订前必读；名称用于拓展探索，采用自选。[深入风格研究](.agents/skills/material2video/references/reference-video-analysis.md)区分整体品质、专项表现和信息表达参考，记录实际观察、效果解释及本片应用；可随研究试制，未知触发补查，不以搜索数量或全部研究结束为前提。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
@@ -113,9 +113,9 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 ### 媒体评审
 
-`m2v review start|pack|compare|import|timeline|retarget|reuse` 统一周期、隔离包、报告和证据复用。评审 v3 必须声明 keyframe/process/final 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧周期、请求、报告和样品格式不兼容，不迁移旧通过，历史保留。
+`m2v review start|pack|compare|import|timeline|retarget|reuse|scope|confirm-playback` 统一周期、隔离包、报告和证据复用。评审 v4 声明 keyframe 或 process 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧评审通过不授权新版本，历史与未解决必改保留。
 
-status 只读展示关键帧双评、过程对照、当前完整候选 QA、终审和问题；所有作品均须关键帧独立双通过及当前新代理终审。60 秒及以下免单独试制片段，关键帧和完整成片验收仍须完成。候选生成不受评审阻断，技术成功不代表制作完成。
+status 只读展示正式关键帧、适用的关键样片窗口、当前技术 QA、整片复核和待解决问题。超过 30 秒的作品须登记并通过全部必审样片窗口。技术候选可以提前生成。
 
 目标参考与中性条件绑定，盲看后不能暗换；真实用户改变已失败目标时使用 retarget 保留原指令及旧失败，再完成对应独立复查。完整字节及观察条件相同的 trial 双评可显式 reuse，当前技术来源仍核验。具体格式、调用与失效处理按需读[工具协议](.agents/skills/material2video/references/review-protocol.md)，隔离执行见[独立子代理](.agents/skills/material2video/references/subagent-review.md)。
 

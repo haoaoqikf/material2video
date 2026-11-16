@@ -33,11 +33,11 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 评审与完成
 
-按[审核策略](references/review-contract.md)：关键帧独立盲审及同轮实际参考对照，关键片段默认独立过程对照、取消例行盲审，当前完整候选由新代理终审。观察按[世界级标准](references/visual-review-rubric.md#世界级品质与风格开放)，每项和整体明确通过或不通过，证据不足不可采用。总代理实际查看、初筛、检查报告充分性并负责选案和当前版本交付。技术通过或自审不替代独立通过。
+按[审核策略](references/review-contract.md)执行关键帧、适用关键样片的独立评审与总代理整片复核。观察按[世界级标准](references/visual-review-rubric.md#世界级品质与风格开放)，每项和整体明确通过或不通过。总代理实际查看、初筛、核对覆盖与选案。
 
 固定保留 RESEARCH.md、DESIGN.md 及每个 design/scenes/<scene-id>.md；[场景默认四问](references/scene-design.md#场景模板)，复杂机制按需深化。问题唯一归 outputs/visual-notes.md，参数留在分镜／代码，原报告只引用。阶段由助手判断，工具不自动认证审美。
 
-[原生样品](references/design-samples.md)支持纯静态不编码视频；适用动态另验完整过程。60 秒及以下不另出试制片段，关键帧来自全片工程且审核不免。预演、粗片、精制使用同一问题驱动循环；有效来源和证据按影响复用。机器字段按需读[工具协议](references/review-protocol.md)，执行读[隔离方法](references/subagent-review.md)。
+[原生样品](references/design-samples.md)支持静态和动态采集。预演、粗片、精制使用同一问题驱动循环，证据按影响复用。[工具协议](references/review-protocol.md)说明字段与命令，[隔离方法](references/subagent-review.md)说明独立执行。
 
 ## 条件阅读
 

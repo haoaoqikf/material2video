@@ -4,7 +4,7 @@
 
 研究固定见[RESEARCH.md](RESEARCH.md)，每个正式场景文档继续保留；日常记录可用目标、画面与注意力、实现、验证与未知四问，复杂机制沿原详细编排深化。成熟方案优先采用或改造。
 
-本轮仅同步样品 static/motion 接口及制作指导，没有改画面或重新审美验收。下文历史通过保留其原版本和范围，不能授权新的 review v3：关键帧须按所选风格世界级水准独立盲审及对照，过程默认独立对照，成片由新代理终审。纯静态无需编码视频。
+本文保留原制作版本的设计和评审记录。新版交付按[现行审核策略](../../../.agents/skills/material2video/references/review-contract.md)执行正式关键帧、适用关键样片、技术 QA 与总代理整片复核，旧结论仅覆盖原版。
 
 
 本轮制作验收已完成：当前完整候选通过技术QA、额外全帧扫描、新上下文独立综合终审和原目标对照，四个原生样品已交付，十四项必改均通过当前证据闭合。最终工具状态`production.complete=true`，`issues=[]`、`diagnostics=[]`，候选`status=delivered`，QA与当前独立双评绑定一致；实现已提交`fb6dcb99`，主规格五项要求已同步并校验通过，变更已归档至`openspec/changes/archive/2026-11-11-shorten-and-upgrade-solar-journey/`；归档与本文更新一并提交。完整状态为`outputs/trials/finite-production-status.json`，周期`ecf88252d257421fa814dc31b83b255f`。下方2026-10-19原文全部为历史记录，其中“当前”“新版”只指当时轮次，不继承为本轮通过。

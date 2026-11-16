@@ -73,20 +73,20 @@ def validate_request(request):
     fields(
         request,
         {"version", "round", "purpose", "fps", "items", "sources", "sceneIds", "displaySizes"},
-        {"reviewType", "blindId", "references", "conditions", "sampleStep", "blindReason"},
+        {"reviewType", "blindId", "references", "conditions", "sampleStep", "blindReason", "film"},
     )
     if (
         request["version"] != VERSION
         or request["round"] not in ROUNDS
         or not number(request["fps"])
     ):
-        raise M2VError("仅接受 version=3 的 trial/final 媒体评审请求")
+        raise M2VError("仅接受 version=4 的关键帧或关键样片请求")
     purpose = request["purpose"]
-    review_type = request.get("reviewType", "blind")
-    if purpose not in PURPOSES or (request["round"] == "final") != (purpose == "final"):
-        raise M2VError("purpose 必须匹配 keyframe/process 试制或 final 终审")
-    if purpose == "final" and (not has_visual_target(request) or not request.get("conditions")):
-        raise M2VError("完整成片终审必须登记实际参考及中性 conditions，盲审后同轮对照")
+    review_type = request.get("reviewType", "process" if purpose == "process" else "blind")
+    if purpose not in PURPOSES:
+        raise M2VError("purpose 必须是 keyframe 或 process")
+    if "film" in request and request["film"] is not True:
+        raise M2VError("film 如有声明须为 true，表示从实际合成视频取证")
     if review_type not in ("blind", "consistency", "process"):
         raise M2VError("评审类型无效")
     if review_type == "process":
@@ -121,6 +121,8 @@ def validate_request(request):
     # 只验证已声明目标的配套输入；研究深度与效果兑现仍须实际观察。
     if request.get("references") and not request.get("conditions"):
         raise M2VError("references 目标媒体必须配套非空 conditions，说明中性可观察采用特征")
+    if request.get("film") and not has_visual_target(request):
+        raise M2VError("正式评审须登记实际视觉参考")
     seen = set()
     for item in request["items"]:
         fields(item, {"id", "path", "window", "dynamic"})
@@ -135,21 +137,29 @@ def validate_request(request):
         seen.add(item["id"])
         if item["dynamic"] and Path(item["path"]).suffix.lower() not in VIDEO:
             raise M2VError("动态观察需要视频，静帧不能代替")
-        if purpose == "keyframe" and (item["dynamic"] or Path(item["path"]).suffix.lower() not in IMAGES):
-            raise M2VError("关键帧审核只接受实际图片，不得混入过程视频")
-        if purpose in ("process", "final") and not item["dynamic"]:
-            raise M2VError("过程与终审必须覆盖视频，静帧不能替代")
+        suffix = Path(item["path"]).suffix.lower()
+        if purpose == "keyframe":
+            if item["dynamic"] or (suffix not in (VIDEO if request.get("film") else IMAGES)):
+                raise M2VError("关键帧只观察图片，正式关键帧须从实际合成视频取帧")
+            if request.get("film") and item["window"][1] != item["window"][0] + 1:
+                raise M2VError("正式关键帧的观察窗口必须恰好一帧")
+        elif not item["dynamic"]:
+            raise M2VError("关键样片必须覆盖视频，静帧不能替代")
 
 
 def package(root: Path, manifest: dict, request: dict) -> Path:
     validate_request(request)
+    if request["purpose"] == "process" and "reviewType" not in request:
+        request = {**request, "reviewType": "process"}
     c = ledger.cycle(root)
     if c["projectId"] != manifest["id"]:
         raise M2VError("制作周期不属于当前作品")
     _, errors = ledger.history(root)
     if errors:
         raise M2VError("; ".join(errors))
-    binding = ledger.binding(root, manifest, request)
+    if request.get("film") and request.get("reviewType") != "consistency":
+        from .film_review import pin_sources
+        request = pin_sources(root, manifest, request)
     review_type = request.get("reviewType", "blind")
     blind_id = request.get("blindId")
     if review_type == "consistency":
@@ -157,6 +167,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
         prior_pack, prior_binding = load_package(
             root, manifest, prior["packPath"], prior["packSha256"]
         )
+        binding = ledger.binding(root, manifest, request, sealed=prior_binding["binding"])
         if (
             prior["reviewType"] != "blind"
             or prior["round"] != request["round"]
@@ -172,16 +183,8 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             raise M2VError("对照包缺少目标媒体或中性原条件")
     elif blind_id is not None:
         raise M2VError("盲看不能引用旧报告")
-    if request["round"] == "final":
-        final = binding["final"]
-        if (
-            len(request["items"]) != 1
-            or request["items"][0]["window"] != [0, final["durationFrames"]]
-            or request["fps"] != final["fps"]
-            or binding["media"][0]["sha256"] != final["candidateSha256"]
-            or not request["items"][0]["dynamic"]
-        ):
-            raise M2VError("终审必须覆盖当前完整候选的全片窗口与实际帧率")
+    else:
+        binding = ledger.binding(root, manifest, request)
     base = outputs(root)
     rid = uuid.uuid4().hex
     target = local(base, f"review-pack/{rid}/manifest.json", exists=False).parent
@@ -205,62 +208,32 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
         if source.suffix.lower() not in MEDIA:
             raise M2VError("评审包只接受媒体，不接受源码或设计文档")
         name = f"evidence-{index:04d}"
-        path = target / (name + source.suffix.lower())
+        path = target / (name + (source.suffix.lower() if item["dynamic"] else ".png"))
         start, end = item["window"]
-        if source.suffix.lower() in VIDEO:
-            source_duration = media_evidence.duration(source)
-            if (
-                source_duration <= 0
-                or source_duration + 1 / request["fps"] < end / request["fps"]
-            ):
-                raise M2VError("视频不能覆盖完整观察窗口")
-            if request["round"] == "final":
-                # 当前完整候选只净化封装元数据，不再次编码全片。
-                ffmpeg(
-                    [
-                        "-i",
-                        str(source),
-                        "-map_metadata",
-                        "-1",
-                        "-map_chapters",
-                        "-1",
-                        "-c",
-                        "copy",
-                        str(path),
-                    ]
-                )
-            else:
-                ffmpeg(
-                    [
-                        "-i",
-                        str(source),
-                        "-ss",
-                        str(start / request["fps"]),
-                        "-t",
-                        str((end - start) / request["fps"]),
-                        "-map_metadata",
-                        "-1",
-                        "-map_chapters",
-                        "-1",
-                        "-r",
-                        str(request["fps"]),
-                        "-c:v",
-                        "libx264",
-                        "-c:a",
-                        "aac",
-                        str(path),
-                    ]
-                )
+        if item["dynamic"]:
+            fps = request["fps"]
+            if not request.get("film"):
+                source_duration = media_evidence.duration(source)
+                if source_duration <= 0 or source_duration + 1 / fps < end / fps:
+                    raise M2VError("视频不能覆盖完整观察窗口")
+            ffmpeg(
+                [
+                    "-i", str(source),
+                    "-vf", f"trim=start_frame={start}:end_frame={end},setpts=PTS-STARTPTS",
+                    "-af", f"atrim=start={start / fps}:end={end / fps},asetpts=PTS-STARTPTS",
+                    "-t", str((end - start) / fps),
+                    "-map_metadata", "-1", "-map_chapters", "-1",
+                    "-r", str(fps), "-c:v", "libx264", "-c:a", "aac",
+                    str(path),
+                ]
+            )
             clip_duration = media_evidence.duration(path)
             if (
                 clip_duration <= 0
                 or clip_duration + 1 / request["fps"] < (end - start) / request["fps"]
             ):
                 raise M2VError("生成的过程片段覆盖不足")
-            step = request.get(
-                "sampleStep",
-                max(1, round(request["fps"] / 2)) if request["round"] == "final" else 1,
-            )
+            step = request.get("sampleStep", 1)
             frames = sorted(set(range(0, end - start, step)) | {end - start - 1})
             frame_dir = target / name
             frame_dir.mkdir()
@@ -297,29 +270,13 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                     }
                 )
         else:
-            ffmpeg(
-                [
-                    "-i",
-                    str(source),
-                    "-map_metadata",
-                    "-1",
-                    "-frames:v", "1",
-                    str(path),
-                ]
-            )
-            sequence = []
-            if source.suffix.lower() in IMAGES:
-                derived = {
-                    w: target / f"{name}-{w}.png" for w in request["displaySizes"]
-                }
-                derive_images(path, derived)
-                sequence = [
-                    {
-                        "frame": start,
-                        "path": path.name,
-                        "displayPaths": [p.name for p in derived.values()],
-                    }
-                ]
+            seek = ["-vf", f"select=eq(n\\,{start})"] if request.get("film") else []
+            ffmpeg(["-i", str(source), *seek, "-map_metadata", "-1",
+                    "-frames:v", "1", str(path)])
+            derived = {w: target / f"{name}-{w}.png" for w in request["displaySizes"]}
+            derive_images(path, derived)
+            sequence = [{"frame": start, "path": path.name,
+                         "displayPaths": [p.name for p in derived.values()]}]
         items.append(
             {
                 "id": item["id"],
@@ -327,6 +284,7 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
                 "window": item["window"],
                 "dynamic": item["dynamic"],
                 "sequence": sequence,
+                **({"filmWindow": binding["film"][item["id"]]["window"]} if request.get("film") else {}),
             }
         )
     if review_type in ("consistency", "process"):
@@ -477,7 +435,10 @@ def _load_package(root, manifest, pack_path, pack_sha256, *, historical=False):
         if not all(ledger.evidence_valid(root, private['binding'][key])
                    for key in ('media', 'references') if private['binding'][key]):
             raise M2VError('历史源媒体或参考摘要失配')
-    elif private["binding"] != ledger.binding(root, manifest, private["request"]):
+        film = private["binding"].get("film", {})
+        if film and not ledger.evidence_valid(root, [item["provenance"] for item in film.values()]):
+            raise M2VError("历史合成视频旁车摘要失配")
+    elif private["binding"] != ledger.binding(root, manifest, private["request"], sealed=private["binding"]):
         raise M2VError("来源、媒体或当前候选已变化，评审包过期")
     else:
         from .samples import validate_current_sources
@@ -524,6 +485,35 @@ def sealed_report(root, manifest, report_id, *, historical=False):
     if not ledger.evidence_valid(root, [report["invocation"]]):
         raise M2VError("独立调用记录已变化")
     return report
+
+
+def still_current_film_items(root, manifest, report_id):
+    """为状态保留同一批次里未受影响的窗口，闭环和报告采用仍校验完整包。"""
+    from . import film_review, reuse, samples
+
+    if reuse.has_record(root, report_id):
+        return None
+    report = sealed_report(root, manifest, report_id, historical=True)
+    if (report["verdict"] != "pass" or report["isolation"] != "independent-subagent"
+            or not report["hasVisualTarget"]):
+        return None
+    _, private = historical_package(root, manifest, report["packPath"], report["packSha256"])
+    binding = private["binding"]
+    request = private["request"]
+    film = binding.get("film")
+    if not film or ledger.sources(root, request) != binding["sources"]:
+        return None
+    samples.validate_current_sources(root, manifest, request)
+    retained = {}
+    for item, media in zip(request["items"], binding["media"], strict=True):
+        try:
+            current = film_review.composition_binding(
+                root, manifest, {**request, "items": [item]}, [media], sealed=binding)
+            if current[item["id"]] == film[item["id"]]:
+                retained.update(current)
+        except (M2VError, OSError, ValueError, KeyError, TypeError):
+            continue
+    return (report, retained, binding["conditions"]) if retained else None
 
 
 def import_report(root, manifest, path):
@@ -646,33 +636,8 @@ def import_report(root, manifest, path):
             or prior["isolation"] != report["isolation"]
         ):
             raise M2VError("对照须来自同一评审者的同轮盲看")
-    expected_focus = (
-        ledger.cycle(root)["finalFocuses"]
-        if report["round"] == "final"
-        else ["comprehensive"]
-    )
-    if report["focus"] not in expected_focus:
-        raise M2VError("评审职责与周期要求不一致")
-    if report["round"] == "final":
-        events, _ = ledger.history(root)
-        if any(
-            e["type"] == "review"
-            and e["data"]["round"] == "final"
-            and e["data"]["reviewerId"] == report["reviewerId"]
-            and e["data"]["focus"] != report["focus"]
-            for e in events
-        ):
-            raise M2VError("分工终审必须由互相隔离的不同评审者执行")
-        # 跨当前作品各个新周期检查，重置周期不会让旧试制者重新获得终审资格。
-        for prior_path in (outputs(root) / "production").glob("*/reports/*.json"):
-            prior = read(
-                local(outputs(root), prior_path.relative_to(outputs(root)).as_posix())
-            )
-            if (
-                prior.get("round") == "trial"
-                and prior.get("reviewerId") == report["reviewerId"]
-            ):
-                raise M2VError("终审必须使用未参与前期试制的新评审者")
+    if report["focus"] != "comprehensive":
+        raise M2VError("当前独立评审使用综合职责")
     if not isinstance(report["coverage"], list):
         raise M2VError("coverage 必须为列表")
     by_id = {item["id"]: item for item in pack["items"]}

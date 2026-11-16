@@ -25,7 +25,7 @@ def capture(root: Path, project: dict, **options) -> dict:
     if not workflow.exists():
         if list((outputs(root) / 'production').glob('*/cycle.json')):
             raise M2VError('已有周期记录但当前周期缺失；不能通过样品采集重置历史')
-        ledger.start(root, project, basis='网页原生设计试制')
+        ledger.start(root, project)
     cycle = ledger.cycle(root)
     if cycle['projectId'] != project['id']:
         raise M2VError('当前周期不属于本作品')

@@ -14,8 +14,8 @@ from common.test_native_samples import native, pair, process_pass  # noqa: F401
 def test_old_request_and_mixed_keyframe_process_are_rejected(work):
     root, project = work
     old = request()
-    old['version'] = 2
-    with pytest.raises(M2VError, match='version=3'):
+    old['version'] = 3
+    with pytest.raises(M2VError, match='version=4'):
         reviews.package(root, project, old)
     mixed = request()
     mixed['items'][0].update(path='clip.mp4', dynamic=True)
@@ -87,16 +87,16 @@ def test_paired_comparison_cannot_change_timing_or_display_evidence(work, change
         reviews.package(root, project, req)
 
 
-def test_final_requires_actual_target_and_process_scope_preserves_fps(work):
+def test_final_is_retired_and_process_recheck_preserves_fps(work):
     root, project = work
     req = request()
-    req.update(round='final', purpose='final')
-    with pytest.raises(M2VError, match='实际参考'):
+    req.update(purpose='final')
+    with pytest.raises(M2VError, match='keyframe 或 process'):
         reviews.package(root, project, req)
     scope = {'focus': 'comprehensive', 'purpose': 'process', 'reviewMode': 'process',
              'fps': 30, 'displaySizes': [393, 640], 'references': [], 'conditions': [],
              'sources': [], 'sceneIds': [], 'items': [{'id': 'motion', 'window': [0, 90], 'dynamic': True}]}
-    assert not issues.covers(scope, {**scope, 'fps': 60}, 'trial')
+    assert not issues.covers(scope, {**scope, 'fps': 60})
     assert not reviews.has_visual_target({'references': ['sound.wav', 'music.mp3']})
     assert reviews.has_visual_target({'references': ['sound.wav', 'actual-frame.png']})
 
@@ -169,7 +169,7 @@ def test_static_capture_delivers_images_without_a_video_or_process_claim(native)
         samples.deliver(root, project, identity, **{**args, 'process_id': args['blind_id']})
 
 
-@pytest.mark.parametrize('version', [2, 4])
+@pytest.mark.parametrize('version', [3, ledger.VERSION + 1])
 def test_version_downgrade_cannot_erase_current_native_failure(native, version):
     root, project, _ = native
     pair(native, verdict='fail')

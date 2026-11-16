@@ -42,7 +42,12 @@ def retained_media(root: Path) -> set[Path]:
         if private["version"] != VERSION:
             raise M2VError("评审源媒体引用版本未知，未执行清理")
         binding = private["binding"]
-        fields(binding, {"conditions", "sources", "media", "references"}, {"final"})
+        fields(binding, {"conditions", "sources", "media", "references"}, {"film"})
+        for observation in binding.get("film", {}).values():
+            sidecar = observation["provenance"]
+            if not ledger.evidence_valid(root, [sidecar]):
+                raise M2VError("正式评审旁车摘要失配，未执行清理")
+            protected.add(local(base, sidecar["path"]))
         for key in ("media", "references"):
             if not isinstance(binding[key], list):
                 raise M2VError("评审源媒体引用无效，未执行清理")

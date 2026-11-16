@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from imageio_ffmpeg import get_ffmpeg_exe
 from m2v.core.errors import M2VError
 
-VERSION = 3
-ROUNDS = ("trial", "final")
-PURPOSES = ("keyframe", "process", "final")
+VERSION = 4
+ROUNDS = ("trial",)
+PURPOSES = ("keyframe", "process")
 
 
 def adoption(verdict):

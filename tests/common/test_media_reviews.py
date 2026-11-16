@@ -42,7 +42,7 @@ def work(tmp_path, monkeypatch):
 
 def request():
     return dict(
-        version=3,
+        version=ledger.VERSION,
         round="trial",
         purpose="keyframe",
         fps=30,
@@ -75,34 +75,6 @@ def test_history_cycle_reads_do_not_grow_with_events_and_all_rows_remain_checked
     path.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
     actual, errors = ledger.history(root)
     assert errors and len(actual) == len(rows) - 1
-
-
-@pytest.mark.parametrize(("frames", "final_pass", "complete"), [
-    (1800, True, False),
-    (1801, True, False),
-    (1800, False, False),
-])
-def test_short_film_still_requires_keyframe_evidence(work, monkeypatch, frames, final_pass, complete):
-    root, manifest = work
-    final_report = {
-        "id": "final-report", "verdict": "pass", "isolation": "independent-subagent",
-        "reviewType": "blind", "requiresComparison": False, "purpose": "final",
-        "adoption": "adopt", "hasVisualTarget": True,
-    }
-    if final_pass:
-        report_path = outputs(root) / "final-report.json"
-        write(report_path, final_report)
-        ledger.append(root, manifest, "review", data={
-            "round": "final", "focus": "comprehensive", "reviewerId": "fresh-final",
-            "reportId": "final-report", "reportPath": report_path.name,
-            "receipts": [receipt(outputs(root), report_path)],
-        })
-    monkeypatch.setattr(reviews, "current_report", lambda *_: final_report)
-    monkeypatch.setattr(ledger, "final_binding", lambda *_: {"durationFrames": frames, "fps": 30})
-    result = ledger.status(root, manifest)
-    assert result.get("technicalQA", {}).get("status") == "pass", result["diagnostics"]
-    assert result["trial"] == []
-    assert result["complete"] is complete
 
 
 @pytest.mark.parametrize("cached_query", [False, True])
@@ -221,7 +193,7 @@ def report(
         ),
     )
     result = dict(
-        version=3,
+        version=ledger.VERSION,
         round=data["round"],
         reviewType=data["reviewType"],
         packPath=(pack / "manifest.json").relative_to(outputs(root)).as_posix(),
@@ -592,6 +564,10 @@ def test_real_video_window_frames_and_metadata(tmp_path):
             "lavfi",
             "-i",
             "testsrc=size=160x90:rate=30:duration=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=0.4",
             "-metadata",
             "author=private-author",
             "-pix_fmt",
@@ -601,7 +577,7 @@ def test_real_video_window_frames_and_metadata(tmp_path):
     )
     r = request()
     r["sources"] = []
-    r.update(purpose="process", blindReason="核对完整状态变化与身份连续")
+    r.update(purpose="process", reviewType="blind", blindReason="核对完整状态变化与身份连续")
     r["items"] = [dict(id="window-1", path="clip.mp4", window=[3, 9], dynamic=True)]
     pack = reviews.package(root, manifest, r)
     data = read(pack / "manifest.json")
@@ -609,6 +585,7 @@ def test_real_video_window_frames_and_metadata(tmp_path):
     assert [x["frame"] for x in item["sequence"]] == list(range(3, 9))
     assert len(list((pack / "evidence-0000").glob("*-393.png"))) == 6
     assert ledger.evidence_valid_at(pack, data["files"])
+    ffmpeg(["-i", str(pack / item["path"]), "-map", "0:a:0", "-f", "null", "-"])
     r["items"][0]["window"] = [0, 60]
     with pytest.raises(M2VError, match="完整观察"):
         reviews.package(root, manifest, r)
@@ -642,117 +619,6 @@ def test_real_image_metadata_removed(tmp_path):
         assert image.convert("RGB").getpixel((0, 0)) == (255, 0, 0)
     assert read(compare / "conditions.json") == r["conditions"]
 
-
-@pytest.mark.media
-def test_final_requires_current_qa_fresh_reviewer_and_complete_candidate(
-    work, monkeypatch
-):
-    from m2v.production.model import ffmpeg
-
-    root, manifest = work
-    out = outputs(root)
-    submit_visual(work, who="trial-author")
-    monkeypatch.setattr(reviews, "ffmpeg", ffmpeg)
-    ffmpeg(
-        [
-            "-f",
-            "lavfi",
-            "-i",
-            "testsrc=size=160x90:rate=30:duration=0.4",
-            "-pix_fmt",
-            "yuv420p",
-            str(out / "final.mp4"),
-        ]
-    )
-    prepared = {"preparedFingerprint": "current", "durationInFrames": 12, "fps": 30,
-                "width": 1920, "height": 1080, "type": "text-motion",
-                "inputs": {"implementation": "own", "renderer": "own"}}
-    monkeypatch.setattr("m2v.commands._prepared", lambda *_: prepared)
-    write(root / "storyboard.json", {"scenes": []})
-    parameters = {"crf": 18}
-    from m2v.core.delivery import binding
-    from m2v.core.fingerprints import fingerprint
-    record = {**binding(root, prepared, parameters), "key": fingerprint(binding(root, prepared, parameters)),
-              "status": "delivered", "path": "outputs/final.mp4",
-              "sha256": digest(out / "final.mp4")}
-    write(out / "delivery.json", record)
-    write(
-        out / "qa.json",
-        {"status": "pass", "preparedFingerprint": "current", "videoSha256": "wrong"},
-    )
-    r = request()
-    r.update(round="final", purpose="final", sources=[], references=["trial.png"], conditions=["核对当前完整作品与已选品质目标"])
-    r["items"] = [dict(id="whole-film", path="final.mp4", window=[0, 12], dynamic=True)]
-    with pytest.raises(M2VError, match="技术 QA"):
-        reviews.package(root, manifest, r)
-    write(
-        out / "qa.json",
-        {
-            "status": "pass",
-            "preparedFingerprint": "current",
-            "videoSha256": digest(out / "final.mp4"),
-        },
-    )
-    short = copy.deepcopy(r)
-    short["items"][0]["window"] = [0, 6]
-    with pytest.raises(M2VError, match="全片窗口"):
-        reviews.package(root, manifest, short)
-    pack = reviews.package(root, manifest, r)
-    with pytest.raises(M2VError, match="新评审者"):
-        reviews.import_report(root, manifest, report(work, pack, who="trial-author"))
-    final = reviews.import_report(root, manifest, report(work, pack, who="final-fresh"))
-    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, final["id"]), who="final-fresh"))
-    assert ledger.status(root, manifest)["complete"]
-    reviews.import_report(
-        root, manifest, report(work, pack, who="final-failure", verdict="fail")
-    )
-    problem = issues.load(root)[0]
-    # 修复可缩短全片；当前整片终审仍能关闭原整片问题，不要求保留旧时长。
-    shortened = out / "shortened.mp4"
-    ffmpeg(["-i", str(out / "final.mp4"), "-frames:v", "6", str(shortened)])
-    prepared["durationInFrames"] = 6
-    delivery = read(out / "delivery.json")
-    delivery.update(path="outputs/shortened.mp4", sha256=digest(shortened))
-    refreshed = binding(root, prepared, delivery["parameters"])
-    delivery.update(refreshed)
-    delivery["key"] = fingerprint(refreshed)
-    write(out / "delivery.json", delivery)
-    write(
-        out / "qa.json",
-        {
-            "status": "pass",
-            "preparedFingerprint": "current",
-            "videoSha256": digest(shortened),
-        },
-    )
-    r["items"][0].update(path="shortened.mp4", window=[0, 6])
-    repaired = reviews.package(root, manifest, r)
-    accepted = reviews.import_report(
-        root, manifest, report(work, repaired, who="final-recheck")
-    )
-    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, accepted["id"]), who="final-recheck"))
-    problem.update(status="closed", cause="design", closureReportId=accepted["id"])
-    issues.update(root, problem)
-    assert ledger.status(root, manifest)["complete"]
-    ledger.start(root, manifest, split_final=True, basis="结构与文案需要分工覆盖")
-    submit_visual(work, who="new-trial")
-    pack = reviews.package(root, manifest, r)
-    first = reviews.import_report(
-        root, manifest, report(work, pack, who="final-a", focus="structure")
-    )
-    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, first["id"]), who="final-a", focus="structure"))
-    assert not ledger.status(root, manifest)["complete"]
-    with pytest.raises(M2VError, match="不同评审者"):
-        reviews.import_report(
-            root, manifest, report(work, pack, who="final-a", focus="visual-copy")
-        )
-    second = reviews.import_report(
-        root, manifest, report(work, pack, who="final-b", focus="visual-copy")
-    )
-    reviews.import_report(root, manifest, report(work, reviews.compare(root, manifest, second["id"]), who="final-b", focus="visual-copy"))
-    assert ledger.status(root, manifest)["complete"]
-    shortened.write_bytes(b"changed")
-    assert not ledger.status(root, manifest)["complete"]
 
 
 def test_closed_problem_reopens_when_its_evidence_changes(work):

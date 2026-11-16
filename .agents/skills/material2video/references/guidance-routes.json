@@ -29,7 +29,7 @@
     {
       "id": "review",
       "guide": "references/stage-production.md",
-      "when": "试制或终审；读取独立媒体评审契约"
+      "when": "独立评审、正式窗口或整片复核；读取媒体证据契约"
     },
     {
       "id": "diagnose",

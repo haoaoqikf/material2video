@@ -81,6 +81,8 @@ Kokoro 每次合成按文本、音色、语速派生固定随机种子，同版�
 
 Qwen3-TTS 使用 `Qwen3-TTS-12Hz-0.6B-Base` 做零样本克隆，参考音频、参考文本、语言、来源与用户授权登记在作品 `models/qwen3-tts/registry.json` 的 `voices` 数组；主模型、speech tokenizer 与 stable-ts 使用的 `Systran/faster-whisper-small` 对齐模型同样按大小与 SHA256 校验，通过 `python models/qwen3-tts/fetch.py --download --voice <音色>` 恢复。参考音色是作品资产，不能从模型仓库恢复；更换参考音频或参考文本会改变语音缓存键。Qwen3-TTS 不返回词级时间戳，合成后在变速后的最终音频上用 stable-ts 按旁白原文强制对齐；零时长 token 只做文本保序合并，不按字符比例估算。数字与拉丁字母当前同样明确失败。
 
+总设计与场景对字幕的职责见[场景设计](scene-design.md#场景模板)，真实字幕的静态、动态与整片审查见[审核策略](review-contract.md#审核策略)。
+
 ### 双语字幕与自适应柔光
 
 分镜旁白可选带 `translation`。prepare 按与中文相同的标点规则把英文翻译拆成与中文 cue 相同数量的片段，写入 `props.subtitleCues[].secondary`；缺少翻译时不显示英文，存在翻译但条数不符时失败并指出段 ID。英文只作次行，阅读速度仍按中文计算。

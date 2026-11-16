@@ -11,7 +11,7 @@ import os
 import sys
 from pathlib import Path
 
-from m2v.core.delivery import candidate, outputs as delivery_outputs, read_record
+from m2v.core.delivery import outputs as delivery_outputs, read_record
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_current_prepared, load_project
 from m2v.core.workspace import CONTENT_ROOT_ENV
@@ -332,15 +332,22 @@ def _prepared(root: Path, manifest: dict) -> dict:
 
 def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     registry.get(manifest["type"])
+    from m2v.production import ledger
+    with ledger.query():
+        return _status_in_query(root, manifest, full_history=full_history)
+
+
+def _status_in_query(root: Path, manifest: dict, *, full_history: bool) -> dict:
+    from m2v.production import baselines, film_review, ledger
+
     result = {"id": manifest["id"], "type": manifest["type"]}
-    from m2v.production import baselines, ledger
     result['production'] = ledger.status(root, manifest, full_history=full_history)
     try:
         result['production']['baselines'] = baselines.summary(root)
     except M2VError as exc:
         result['production'].setdefault('diagnostics', []).append(str(exc))
     try:
-        prepared = _prepared(root, manifest)
+        prepared = film_review.prepared(root, manifest)
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}
     except M2VError as exc:
         result.update(prepare={"status": "stale-or-missing", "detail": str(exc)}, stage="unprepared")
@@ -351,7 +358,7 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
     record = read_record(delivery_outputs(root))
     if record:
         try:
-            record = candidate(root, prepared)
+            record = film_review.current_candidate(root, prepared)
             result["candidate"] = record
             result["stage"] = record["status"]
         except M2VError as exc:

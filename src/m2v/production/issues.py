@@ -12,17 +12,17 @@ from . import ledger
 from .model import VERSION, fields, identifier, text
 from .storage import atomic_text, read, local
 
-FENCE = re.compile(r"^```m2v-issues-v3\s*\n(.*?)^```\s*$", re.M | re.S)
+FENCE = re.compile(r"^```m2v-issues-v(\d+)\s*\n(.*?)^```\s*$", re.M | re.S)
 CAUSES = {"implementation", "design", "mixed", "undetermined"}
 
 
-def save(root: Path, items: list):
+def save(root: Path, items: list, *, replace=False):
     path = outputs(root) / "visual-notes.md"
     source = (
         path.read_text(encoding="utf-8") if path.exists() else "# 制作观察与问题\n\n"
     )
     block = (
-        "```m2v-issues-v3\n"
+        "```m2v-issues-v4\n"
         + json.dumps(
             {
                 "version": VERSION,
@@ -34,7 +34,7 @@ def save(root: Path, items: list):
         )
         + "\n```\n"
     )
-    if FENCE.search(source):
+    if not replace and FENCE.search(source):
         source = FENCE.sub(lambda _: block, source)
     else:
         # 新周期保留的原文件已由 start 归档，当前只保留新问题块。
@@ -42,17 +42,18 @@ def save(root: Path, items: list):
     atomic_text(path, source)
 
 
-def parse(source):
+def parse(source, *, version=VERSION):
     matches = FENCE.findall(source)
-    if len(matches) != 1:
-        raise M2VError("问题记录须使用唯一 m2v-issues-v3 块；旧格式不兼容")
+    if len(matches) != 1 or matches[0][0] != str(version):
+        raise M2VError("问题记录须使用唯一 m2v-issues-v4 块；旧格式不兼容")
     try:
-        value = json.loads(matches[0])
+        value = json.loads(matches[0][1])
         fields(value, {"version", "cycleId", "items"})
-        if value["version"] != VERSION or not isinstance(value["items"], list):
+        if value["version"] != version or not isinstance(value["items"], list):
             raise ValueError("问题格式无效")
     except (ValueError, TypeError) as exc:
         raise M2VError(f"问题记录损坏：{exc}") from exc
+    rounds = ("trial", "internal") if version == VERSION else ("trial", "final", "internal")
     seen = set()
     for item in value["items"]:
         fields(
@@ -77,7 +78,7 @@ def parse(source):
             or item["status"] not in ("open", "closed")
             or type(item["required"]) is not bool
             or item["cause"] not in CAUSES
-            or item["round"] not in ("trial", "final", "internal")
+            or item["round"] not in rounds
             or not isinstance(item["versionRefs"], list)
             or any(not isinstance(v, str) for v in item["versionRefs"])
             or item["cycleId"] != value["cycleId"]
@@ -115,6 +116,8 @@ def _load(root: Path, *, required=False, check_closures=True, pending_report=Non
     events, errors = ledger.history(root)
     if errors:
         raise M2VError("; ".join(errors))
+    from . import legacy
+    legacy.validate_carried(root, value["items"], events)
     by_report = {p["reportId"]: p for p in value["items"] if p["reportId"]}
     for event in events:
         if event["type"] != "review" or event["data"]["reportId"] == pending_report:
@@ -154,6 +157,11 @@ def scope(root, report):
     from .samples import scope_sources
     private = _scope_package(root, report)
     request = private["request"]
+    film = private["binding"].get("film", {})
+    selected = request["items"]
+    if film and report.get("verdict") == "fail":
+        failed = {item["id"] for item in report["coverage"] if item["status"] == "fail"}
+        selected = [item for item in selected if item["id"] in failed]
     return {
         "focus": report["focus"],
         "fps": request["fps"],
@@ -163,11 +171,13 @@ def scope(root, report):
         "references": private["binding"]["references"],
         "conditions": request.get("conditions", []),
         "items": [
-            {k: item[k] for k in ("id", "window", "dynamic")}
-            for item in request["items"]
+            {**{k: item[k] for k in ("id", "window", "dynamic")},
+             **({"window": film[item["id"]]["window"]} if film else {})}
+            for item in selected
         ],
         "sources": scope_sources(root, request),
         "sceneIds": request["sceneIds"],
+        **({"film": True} if film else {}),
     }
 
 
@@ -192,13 +202,13 @@ def from_review(root, report):
     save(root, items)
 
 
-def covers(original, current, round):
-    """终审覆盖当前全片；局部复查须覆盖原窗口，目标与显示条件均不得降低。"""
+def covers(original, current):
+    """局部复查须覆盖原窗口，目标、来源与显示条件均不得降低。"""
     conditions = ("focus", "purpose", "reviewMode", "fps", "displaySizes", "references", "conditions")
     if any(original[key] != current[key] for key in conditions):
         return False
-    if round == "final":
-        return True  # 打包器已经强制当前完整候选；剪短或重排不要求保留旧全片帧数。
+    if original.get("film") != current.get("film"):
+        return False
     if any(original[key] != current[key] for key in ("sources", "sceneIds")):
         return False
     selected = {item["id"]: item for item in current["items"]}
@@ -213,7 +223,7 @@ def covers(original, current, round):
 
 def _covers_closure(root, project, item, original_scope, target_position, report):
     current_scope = scope(root, report)
-    if covers(original_scope, current_scope, item['round']):
+    if covers(original_scope, current_scope):
         return True
     if item['round'] != 'trial' or target_position >= 0:
         return False
@@ -226,7 +236,7 @@ def _covers_closure(root, project, item, original_scope, target_position, report
     if original_sources != current_sources:
         return False
     # 只在比较时替换采集文件身份。必改项保存的原始范围和评审凭据保持原样。
-    return covers({**original_scope, 'sources': current_scope['sources']}, current_scope, 'trial')
+    return covers({**original_scope, 'sources': current_scope['sources']}, current_scope)
 
 
 def validate_closure(root: Path, item: dict):
@@ -289,6 +299,9 @@ def validate_closure(root: Path, item: dict):
                 raise M2VError("复查必须晚于原失败及用户目标变更")
             targets.validate_fresh_observation(root, report, positions[item['reportId']])
             targets.validate_fresh_observation(root, report, target_position)
+        elif isinstance(item["scope"], dict) and "legacy" in item["scope"]:
+            from . import legacy
+            legacy.validate_resolution(root, item)
         elif not ledger.evidence_valid(root, item.get("evidence", [])):
             raise M2VError("内部问题关闭需要实际复查证据")
 
@@ -308,7 +321,7 @@ def update(root: Path, item: dict):
     updated = [p for p in items if p["id"] != item["id"]] + [item]
     # 共用解析器核验写入内容，防止损坏记录破坏后续状态与清理。
     parse(
-        "```m2v-issues-v3\n"
+        "```m2v-issues-v4\n"
         + json.dumps(
             {
                 "version": VERSION,

@@ -45,7 +45,11 @@ def references(root: Path) -> set[str]:
     protected = {v for p in issues.load(root, required=True) if p['status'] != 'closed' for v in p['versionRefs']}
     for archived in (outputs(root) / 'production/history-notes').glob('*.md'):
         # 历史问题仍保护引用；旧格式不能确认引用时拒绝清理，不猜测安全。
-        value = issues.parse(archived.read_text(encoding='utf-8'))
+        source = archived.read_text(encoding='utf-8')
+        matches = issues.FENCE.findall(source)
+        if len(matches) != 1 or matches[0][0] not in ('2', '3', str(ledger.VERSION)):
+            raise M2VError('历史问题格式未知，停止清理')
+        value = issues.parse(source, version=int(matches[0][0]))
         protected.update(v for p in value['items'] if p['status'] != 'closed' for v in p['versionRefs'])
     comparison = outputs(root) / 'production/comparisons.json'
     if not comparison.exists():

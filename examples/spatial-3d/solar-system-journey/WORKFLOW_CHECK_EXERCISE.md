@@ -1,5 +1,7 @@
 # 视觉事件、设计对照与审核计划：规则演练
 
+本演练记录旧版流程。重新演练按[现行审核策略](../../../.agents/skills/material2video/references/review-contract.md)执行。
+
 这是沿用太阳系题材的**历史假设情景推演**，保留旧检查点流程及报告格式的演练记录，不是当前成片的新评审、独立观察或问题关闭证据，也不触发重制。下文旧门禁、合同和 JSON 仅作历史说明，不能用于当前导入或放行；当前规则以[讲解关系的观察](../../../.agents/skills/material2video/references/visual-review-rubric.md#讲解关系的观察)与[媒体评审契约](../../../.agents/skills/material2video/references/review-contract.md)为准。
 
 ## 粗片：这个镜头发生了什么值得看的变化？
