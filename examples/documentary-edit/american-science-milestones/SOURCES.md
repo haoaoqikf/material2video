@@ -1,8 +1,8 @@
 # 事实与素材来源
 
-核验日期：2026-10-19。选取美国主导的代表成果，包含在美工作的移民与国际协作；不主张计算机、互联网或人工智能为一国独创。1776为建国叙事起点，第一项技术里程碑始于1844。
+本次重制核对电报、登月和阿帕网的采用材料。十项展示美国主导或参与的节点，保留移民、国际协作和全球研究积累的贡献边界。
 
-本文件承载完整事实依据、来源页、作者、许可与改编记录。本例按所用 CC BY-SA 素材的记录在片尾保留简短署名与版权说明。
+本文件承载事实依据、来源页、作者、许可与改编记录。片尾保留晶体管照片的来源和图像处理。
 
 ## 十项事实
 
@@ -15,31 +15,30 @@
 | ENIAC1946 | [宾夕法尼亚大学](https://penntoday.upenn.edu/news/penns-eniac-worlds-first-electronic-computer-turns-80) | 早期通用电子数字计算里程碑；不使用无条件的世界第一台计算机 |
 | 晶体管1947 | [贝尔实验室](https://www.nokia.com/bell-labs/about/history/) | 点接触晶体管；博物馆实物照不声称摄于1947 |
 | 登月1969 | [NASA](https://www.nasa.gov/mission/apollo-11/) | 首次载人登月；月面档案片段 |
-| ARPANET1969 | [DARPA](https://www.darpa.mil/news/features/arpanet) | 初始四节点网络，互联网先驱；画面档案图为1970年的网络 |
+| ARPANET1969 | [DARPA](https://www.darpa.mil/news/features/arpanet) · [UCLA 当事人口述史](https://static.library.ucla.edu/oralhistory/text/masters/21198-zz002k431w-4-master.html) | 年末四节点拓扑中 UCLA、UCSB、SRI 为三角，犹他大学连 SRI。顺序用于讲解 |
 | 基因组2003 | [NHGRI](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project) | 国际合作参考序列，非当年已无缺口；照片为历史测序工作 |
-| 大模型2020—2022 | [GPT-3原始论文](https://arxiv.org/abs/2005.14165)、[ChatGPT于2022年发布](https://openai.com/index/chatgpt/) | ChatGPT 是具体产品实例；全球研究积累推动该领域发展，不声称 OpenAI 首次发明所有大模型 |
+| 大模型2020—2022 | [GPT-3 原始论文](https://arxiv.org/abs/2005.14165) · [ChatGPT 发布](https://openai.com/index/chatgpt/) | 这些是大模型走向公众的代表节点。片中问答由网页制作，用于演示语言生成，标明示意 |
 
 ## 搜索与取舍
 
-2026-11-05 仅补充首项素材的来源类型、发布主体、描述及 `usage: not-checked`，演示新的可选登记字段；未重新检查历史素材条款、未重制成片，也不改写上方历史核验日期。后续制作按[当前采用政策](../../../.agents/skills/material2video/references/material-sourcing.md#5-采用政策与署名)检查并记录本次用途。
+2026-11-16 检索「1844 telegraph message paper tape」和「Apollo 11 lunar mobility」，查看美国国会图书馆展览原件及 NASA 月面日志。电报目录页部分访问返回 403，实际取得展览的第 1 段原图。登月以 16 毫米月面活动代替舱梯近景，原片低清且帧间有扫描重影，按真实人物位置和连续动作取舍。贝尔话筒分辨率较高的参照图用于构图研究，正式采用原先可恢复的早期装置复制品照片。阿帕网使用代码绘出 1969 年末拓扑。旧版用的 1970 年地图、旧登月片段、电报装置照和品牌图标见 Git `3bd0d620` 对应台账。
 
-优先官方档案，其次许可明确公共媒体。国会图书馆API部分返回403，但官方事实页及公共领域档案可通过Commons原片获取；Commons原尺寸照片部分429，晶体管采用官方建议的1280像素缩略版本。NASA和NHGRI可取得可用素材。大模型已检索原始论文及发布资料，但未取得能真实呈现模型内部运算且许可明确的历史动态素材，因此采用原创代码动画并标注原理示意，不用机器人或数据中心代称模型本体。
-
-## 十项素材与许可
+## 采用素材与许可
 
 以下素材通过统一assets import进入内容寻址目录。对应原始URL和变换步骤见assets/recipe.json，可运行assets/fetch.py重新获取；媒体不入库，恢复时按登记摘要、尺寸和时长校验，已正确的文件直接复用。外站可能变更或限流，脚本失败会明确报错且不改写已有素材，不静默代换。
 
-- **telegraph**：[未知](https://commons.wikimedia.org/wiki/File:Morse_telegraph.jpg)；Public domain；实际1308×1988。
-- **telephone**：[Unknown authorUnknown author](https://commons.wikimedia.org/wiki/File:First_Bell_telephone_1875.png)；Public domain；实际453×348。
-- **flight**：[John T. Daniels](https://commons.wikimedia.org/wiki/File:First_flight2.jpg)；Public domain；实际6603×4280。
-- **trinity**：[Jack W. Aeby, July 16, 1945, Civilian worker at Los Alamos laboratory, working under the aegis of the Manhattan Project.](https://commons.wikimedia.org/wiki/File:Trinity_shot_color.jpg)；Public domain；实际2426×2790。
-- **eniac**：[Unidentified U.S. Army photographer](https://commons.wikimedia.org/wiki/File:Classic_shot_of_the_ENIAC_(full_resolution).jpg)；Public domain；实际2100×1518。
-- **transistor**：[Unitronic](https://commons.wikimedia.org/wiki/File:1st-Transistor.jpg)；CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0；实际1280×960。
-- **arpanet**：[UCLA and BBN](https://commons.wikimedia.org/wiki/File:ARPANET_1970_Map.png)；CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0；实际684×463。
-- **moon**：[NASA](https://images.nasa.gov/details/Apollo_11_Introduction_720p)；Public domain (NASA-produced footage); https://www.nasa.gov/nasa-brand-center/images-and-media/；实际1280×720。
-- **genome**：[National Human Genome Research Institute](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project)；Public domain; https://www.genome.gov/image-gallery；实际1280×1134。
-- **chatgpt-icon**：[OpenAI Help Center 官方 ChatGPT iOS 图标说明](https://help.openai.com/en/articles/7905742-what-does-the-official-chatgpt-ios-app-icon-look-like)；[原始图像文件](https://images.ctfassets.net/j22is2dtoxu1/intercom-img-d177d076c9a5453052925143/49d5d812b0a6fcc20a14faa8c629d9fb/icon-ios-1024_401x.png?fm=png&w=1024)；OpenAI 商标与品牌素材，受[官方品牌指南](https://openai.com/brand/)约束，不属于开放许可；实际1024×1024，SHA-256 `a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b`。图标原样、小尺寸用于与 OpenAI 服务直接相关的示意界面，不暗示背书。素材本身不改动；片中中文界面为原创绘制，显著标注示意且不是实际对话。
+- `morse-tape`：Samuel Finley Breese Morse，1844 年 5 月 24 日电报纸带第 1 段，1024×357。美国国会图书馆手稿部公共领域原件。画面保留馆名，开场接第一项是同一镜头中的连续展示。[馆藏展览](https://www.loc.gov/exhibits/treasures/tr22c.html#obj3)
+- 电报段沿原件左侧手写 W，在纸带下方按三次拟音揭示国际摩尔斯码的点、划、划。画面标注「现行国际摩尔斯码示意」，历史纸带按原扫描呈现。[ITU-R M.1677-1 附件一](https://www.itu.int/rec/R-REC-M.1677/en)
+- `telephone`：作者未知，早期装置复制品照片，公共领域，453×348。照片旁标明复制品，波形为代码示意。[原文件](https://commons.wikimedia.org/wiki/File:First_Bell_telephone_1875.png)
+- `flight`：[John T. Daniels](https://commons.wikimedia.org/wiki/File:First_flight2.jpg)；Public domain；实际6603×4280。
+- `trinity`：[Jack W. Aeby, July 16, 1945, Civilian worker at Los Alamos laboratory, working under the aegis of the Manhattan Project.](https://commons.wikimedia.org/wiki/File:Trinity_shot_color.jpg)；Public domain；实际2426×2790。
+- `eniac`：[Unidentified U.S. Army photographer](https://commons.wikimedia.org/wiki/File:Classic_shot_of_the_ENIAC_(full_resolution).jpg)；Public domain；实际2100×1518。
+- `transistor`：Nokia Bell Labs 百年媒体资料库的点接触晶体管照片，1920×1080。源页提供下载，单张开放许可未声明，未发现针对当前用途的明确禁止。成片保留出处和裁切、调色记录。[Nokia Bell Labs 媒体资料库](https://www.nokia.com/about-us/newsroom/media-resources/nokia-bell-labs-centennial/)
+- `moon-walk`：NASA 阿波罗 11 号 16 毫米胶卷 1092-K，旗帜旁的阿姆斯特朗和阿尔德林。原片按每秒一帧拍摄，索引发布版为 1920×1080、每秒 24 帧。采用发布版 169.416667 秒起连续窗口，保留 1440×1080 原档画面，裁去发布侧栏。以发布版一半的速度呈现和去除音轨，成片取前 3.5 秒。在使用窗口标 NASA。[Apollo Flight Journal 视频索引](https://www.apollojournals.org/afj/ap11fj/videoindex.html)
+- `genome`：[National Human Genome Research Institute](https://www.genome.gov/about-genomics/educational-resources/fact-sheets/human-genome-project)；Public domain; https://www.genome.gov/image-gallery；实际1280×1134。
 
-照片与地图在成片中裁切、调色及平移；首飞原图仅重新JPEG压缩，保留6603×4280原生尺寸。NASA片段截取原片84.25–91.75秒以0.75倍慢放至10秒并去音轨，成片使用前8秒，其余不改内容。晶体管图片作者Unitronic，许可[CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)；ARPANET图作者UCLA与BBN，许可[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。其改编内容与整支成片按[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)提供，保留署名与来源，不暗示背书。
+照片按画面需求裁切、调色或平移。首飞原件导入前重新 JPEG 压缩，保留 6603×4280。晶体管照片保留三角尖端和锗片接合的视觉上下文，片尾标记照片来源与改动。
+
+电键和网络连线的声音使用运行时自带 `click`，作为拟音与事件共用触发帧。核试验和月面窗口使用视觉档案，输出不含档案原声。
 
 NHGRI图片使用依据为[官方图库声明](https://www.genome.gov/image-gallery)，页面未另行标注版权；NASA依据[媒体使用政策](https://www.nasa.gov/nasa-brand-center/images-and-media/)，选用NASA制作的历史影像，不含商业配乐及第三方标识用途。其他图片的公共领域依据见逐件来源页。许可按项目逐件记录，不由“政府网站”域名推定。

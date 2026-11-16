@@ -2,17 +2,6 @@
   "schemaVersion": 1,
   "assets": [
     {
-      "id": "telegraph",
-      "kind": "image",
-      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Morse_telegraph.jpg",
-      "author": "未知",
-      "license": "Public domain",
-      "role": "other",
-      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Morse_telegraph.jpg",
-      "transform": "copy",
-      "expectedSha256": "5283088be2a233e6eaf07b1a5508a6c1fac3c6842a61c2c274cb709c8e6b9851"
-    },
-    {
       "id": "telephone",
       "kind": "image",
       "sourceUrl": "https://commons.wikimedia.org/wiki/File:First_Bell_telephone_1875.png",
@@ -59,35 +48,13 @@
     {
       "id": "transistor",
       "kind": "image",
-      "sourceUrl": "https://commons.wikimedia.org/wiki/File:1st-Transistor.jpg",
-      "author": "Unitronic",
-      "license": "CC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0",
+      "sourceUrl": "https://www.nokia.com/about-us/newsroom/media-resources/nokia-bell-labs-centennial/",
+      "author": "Nokia Bell Labs",
+      "license": "Nokia Bell Labs media library; individual open license not stated",
       "role": "other",
-      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/1st-Transistor.jpg/1280px-1st-Transistor.jpg",
+      "downloadUrl": "https://www.nokia.com/sites/default/files/2025-02/bell-labs-first-transistor.png?height=1080&width=1920",
       "transform": "copy",
-      "expectedSha256": "ebddc0c385006f8e9a20979303f54f513162b065612bdebb2bca1e7e94a0db7b"
-    },
-    {
-      "id": "arpanet",
-      "kind": "image",
-      "sourceUrl": "https://commons.wikimedia.org/wiki/File:ARPANET_1970_Map.png",
-      "author": "UCLA and BBN",
-      "license": "CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0",
-      "role": "other",
-      "downloadUrl": "https://upload.wikimedia.org/wikipedia/commons/8/85/ARPANET_1970_Map.png",
-      "transform": "copy",
-      "expectedSha256": "1edf99325e6e435091bdf18e148e9741fab73f9883a91b65ab4c6047a9fa33ae"
-    },
-    {
-      "id": "moon",
-      "kind": "video",
-      "sourceUrl": "https://images.nasa.gov/details/Apollo_11_Introduction_720p",
-      "author": "NASA",
-      "license": "Public domain (NASA-produced footage); https://www.nasa.gov/nasa-brand-center/images-and-media/",
-      "role": "other",
-      "downloadUrl": "https://images-assets.nasa.gov/video/Apollo_11_Introduction_720p/Apollo_11_Introduction_720p~medium.mp4",
-      "transform": "moon-continuous-silent",
-      "expectedSha256": "3da9179bd05d0cf0c1a1033f88a601efee4e7b7e5701022724645d4d833bac09"
+      "expectedSha256": "0ca4cd86ab9ca9cc2c19953a90dab7f7a55330748d8d11eab2722da52ddc4ce0"
     },
     {
       "id": "genome",
@@ -101,15 +68,31 @@
       "expectedSha256": "014d70a3dd3c8389a22a1d91afa92f2f9cc63f20760abf59deabf92b968976c4"
     },
     {
-      "id": "chatgpt-icon",
+      "id": "morse-tape",
       "kind": "image",
-      "sourceUrl": "https://help.openai.com/en/articles/7905742-what-does-the-official-chatgpt-ios-app-icon-look-like",
-      "author": "OpenAI",
-      "license": "OpenAI trademark and brand asset; use subject to https://openai.com/brand/; not an open license",
+      "sourceUrl": "https://www.loc.gov/exhibits/treasures/tr22c.html#obj3",
+      "author": "Samuel Finley Breese Morse",
+      "license": "Public domain (1844 historical document)",
       "role": "other",
-      "downloadUrl": "https://images.ctfassets.net/j22is2dtoxu1/intercom-img-d177d076c9a5453052925143/49d5d812b0a6fcc20a14faa8c629d9fb/icon-ios-1024_401x.png?fm=png&w=1024",
+      "downloadUrl": "https://www.loc.gov/exhibits/treasures/images/uc004059.jpg",
       "transform": "copy",
-      "expectedSha256": "a12dbf126445af12695ee334a565f99d2a1d4a5d1db9f52bb1e7a6b04059fc9b"
+      "expectedSha256": "83900ff3d5b7802b0217a417b7ae428e0e09ba21c59d05648c14b6dd48711151"
+    },
+    {
+      "id": "moon-walk",
+      "kind": "video",
+      "sourceUrl": "https://www.apollojournals.org/afj/ap11fj/videoindex.html",
+      "author": "NASA",
+      "license": "Public domain (NASA footage; Apollo Flight Journal video index)",
+      "role": "other",
+      "downloadUrl": null,
+      "transform": "generate",
+      "expectedSha256": "8f681235283ac220174d4ea0e52bbc4ddc31ff721445e3916e4dbe53aed7f482",
+      "sourceMediaUrl": "https://www.apollojournals.org/afj/ap11fj/video/a11-16mm-mag-k.mov",
+      "sourceSha256": "f6fcdfc6bc10be68073400edb00c3f249736a23892bff81a97d474ea65537de3",
+      "startSeconds": 169.416667,
+      "videoFilter": "crop=1440:1080:240:0,setpts=2*(PTS-STARTPTS),fps=24",
+      "durationSeconds": 4
     }
   ]
 }

@@ -1,6 +1,6 @@
 # 键盘与火花音效演练
 
-此配方演示新音效链路，独立于本示例的无声成片。将本示例复制到忽略的作品目录（例如 `videos/documentary-edit/sound-exercise`），仅在副本中导入和编辑分镜；不要修改示例成片的无声契约。
+此配方演示可复现的键盘和火花音效。将本示例复制到忽略的作品目录（例如 `videos/documentary-edit/sound-exercise`），在副本中导入并编辑分镜。正式示例的拟音与事件见正文分镜。
 
 ```powershell
 uv run m2v author sounds catalog

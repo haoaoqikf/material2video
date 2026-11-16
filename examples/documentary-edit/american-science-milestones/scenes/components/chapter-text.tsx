@@ -9,15 +9,16 @@ export type ChapterTextProps = {
   caption: string;
   alias?: string;
   accent?: string;
+  textColor?: string;
   position?: ChapterPosition;
-  seconds: number;
+  seconds?: number;
   style?: CSSProperties;
 };
 
 export default function ChapterText({
-  year, title, caption, alias, accent = T.colors.copper,
+  year, title, caption, alias, accent = T.colors.copper, textColor,
   position = 'lower', seconds, style, }: ChapterTextProps) {
-  const reveal = chapterReveal(seconds);
+  const reveal = seconds === undefined ? {opacity: 1, translateY: 0} : chapterReveal(seconds);
   return (
     <div
       style={{
@@ -29,18 +30,18 @@ export default function ChapterText({
         ...style,
       }}
     >
-      <div style={{fontSize: T.type.year, letterSpacing: 5, color: accent, marginBottom: 16}}>{year}</div>
+      <div style={{fontSize: 39, letterSpacing: 4, color: accent, marginBottom: 12}}>{year}</div>
       <h1 style={{
         fontSize: title.length > 9 ? 68 : T.type.hero,
-        lineHeight: 1.12, fontWeight: 500, letterSpacing: 1, margin: '0 0 18px',
-        color: T.colors.text,
+        lineHeight: 1.12, fontWeight: 620, letterSpacing: 1, margin: '0 0 12px',
+        color: textColor ?? T.colors.text,
       }}>{title}</h1>
       {alias && (
         <div style={{fontSize: T.type.alias, letterSpacing: 3, color: T.colors.muted, margin: '-8px 0 12px'}}>
           {alias}
         </div>
       )}
-      <p style={{fontSize: T.type.caption, lineHeight: 1.45, fontWeight: 400, color: T.colors.body, margin: 0}}>
+      <p style={{fontSize: T.type.caption, lineHeight: 1.45, fontWeight: 400, color: textColor ?? T.colors.body, margin: 0}}>
         {caption}
       </p>
     </div>

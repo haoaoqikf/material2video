@@ -1,104 +1,140 @@
-/** 十项科技里程碑的档案蒙太奇：画面变化来自题材本身，不使用逐页信息卡模板。 */
 import {useEffect, type CSSProperties} from 'react';
 import {Chart} from '../src/code-scene/chart';
 import {useMediaAsset} from '../src/code-scene/media';
-import {useSceneContext} from '../src/code-scene/context';
-import type {CodeSceneProps} from '../src/code-scene/context';
+import {useSceneContext, type CodeSceneProps} from '../src/code-scene/context';
 import ArchiveFrame from './components/archive-frame';
-import StyleChapterText from './components/chapter-text';
+import ChapterText from './components/chapter-text';
 import CreditBlock from './components/credit-block';
-import {Mechanism} from './mechanisms';
+import {clamp01, ease, type ChapterPosition} from './components/kit';
+import {BaseSequence, Network} from './mechanisms';
 
-type Chapter = {id: string; year: string; title: string; caption: string; alias?: string; creditDetails?: string; asset?: string; accent: string};
-const clamp = (v: number) => Math.max(0, Math.min(1, v));
-const telephoneWave = {animation:false,grid:{left:30,right:20,top:20,bottom:20},xAxis:{show:false,type:'category' as const,data:Array.from({length:80},(_,i)=>i)},yAxis:{show:false,type:'value' as const,min:-1,max:1},series:[{type:'line' as const,data:Array.from({length:80},(_,i)=>Math.sin(i*.37)*(.3+Math.sin(i*.11)**2*.55)),smooth:true,symbol:'none',lineStyle:{color:'#d9c29e',width:3},areaStyle:{color:'rgba(217,194,158,.12)'}}]};
+type Chapter = {id: string; year: string; title: string; caption: string; alias?: string; asset?: string; accent: string};
+const full: CSSProperties = {position:'absolute', inset:0};
+const archiveLayouts: Record<string, {
+  image?: CSSProperties;
+  media?: CSSProperties;
+  shade?: string;
+  background?: string;
+  textColor?: string;
+  position: ChapterPosition;
+  copy?: CSSProperties;
+}> = {
+  'telephone': {
+    image:{
+      position:'absolute', inset:'85px 690px 85px 42px', mixBlendMode:'multiply',
+      maskImage:'linear-gradient(90deg,transparent,#000 9%,#000 90%,transparent),linear-gradient(180deg,transparent,#000 3%,#000 96%,transparent)',
+      maskComposite:'intersect',
+    },
+    media:{objectFit:'contain', filter:'grayscale(1) contrast(1.09) brightness(1.10)', transform:'none'},
+    background:'radial-gradient(ellipse at 39% 44%,#f5ead8 0%,#e8d3b5 69%,#c3a179 100%)',
+    textColor:'#30221a',
+    position:'right', copy:{top:246, right:112, width:653, textShadow:'none'},
+  },
+  'flight': {
+    media:{objectPosition:'50% 58%', filter:'sepia(.12) contrast(1.05)'},
+    shade:'linear-gradient(0deg,#181611e3 0%,#1816119d 16%,transparent 51%)',
+    position:'lower', copy:{bottom:102},
+  },
+  'trinity': {
+    image:{position:'absolute', inset:'0 0 0 280px'},
+    media:{objectPosition:'56% 100%', filter:'saturate(.75) contrast(1.02)', transform:'none'},
+    shade:'linear-gradient(90deg,#201817 18%,#201817d9 30%,#20181755 46%,transparent 64%),linear-gradient(0deg,#201817,transparent 21%)',
+    position:'upper', copy:{top:386, maxWidth:900},
+  },
+  'eniac': {
+    media:{objectPosition:'50% 46%', filter:'sepia(.19) contrast(1.10)'},
+    shade:'radial-gradient(ellipse 38% 36% at 16% 20%,#121510f0 24%,#121510a9 64%,transparent),linear-gradient(310deg,#11120d70,transparent 36%),linear-gradient(180deg,#1516127d,transparent 45%)',
+    position:'upper', copy:{top:111},
+  },
+  'transistor': {
+    image:{position:'absolute', inset:'0 625px 0 0'},
+    media:{
+      objectPosition:'50% 50%', filter:'saturate(.78) contrast(1.03)',
+      transform:'scale(1.44)', transformOrigin:'43% 63%',
+    },
+    shade:'linear-gradient(90deg,transparent 48%,#211b1688 59%,#211b16 67%),radial-gradient(ellipse 32% 55% at 39% 60%,transparent 36%,#211b16ad 100%)',
+    position:'right', copy:{top:416, right:101, width:606},
+  },
+  'moon-walk': {
+    image:{position:'absolute', left:480, top:0, width:1440, height:1080},
+    media:{
+      objectFit:'contain', filter:'saturate(.88)', transform:'none',
+      maskImage:'linear-gradient(90deg,transparent,#000 17%)',
+    },
+    shade:'linear-gradient(90deg,#121713 25%,#12171395 36%,transparent 53%),linear-gradient(180deg,#1217139e,transparent 24%)',
+    position:'upper', copy:{top:134},
+  },
+  'genome': {
+    image:{position:'absolute', inset:'0 0 0 500px'},
+    media:{objectPosition:'57% 42%', filter:'saturate(.71) contrast(1.02)'},
+    shade:'radial-gradient(ellipse 57% 48% at 86% 0%,#111b1dc9 10%,#111b1da3 57%,transparent),radial-gradient(ellipse 52% 105% at 5% 24%,#191e1b 49%,#191e1bee 67%,#191e1b90 83%,transparent),linear-gradient(90deg,#191e1b 22%,#191e1be0 34%,#191e1b6b 48%,transparent 61%)',
+    position:'upper', copy:{top:208, maxWidth:760},
+  },
+};
+const telephoneWaveValues = Array.from({length:80},(_,i)=>Math.sin(i*.37)*(.26+Math.sin(i*.11)**2*.64)*ease((79-i)/13));
+const telephoneWave = {
+  animation:false,
+  grid:{left:0, right:0, top:10, bottom:10},
+  xAxis:{show:false, type:'category' as const, data:Array.from({length:80},(_,i)=>i)},
+  yAxis:{show:false, type:'value' as const, min:-1, max:1},
+  series:[{width:13, color:'#ead0a4'}, {width:7, color:'#6c3d24'}].map((lineStyle)=>({
+    type:'line' as const, smooth:true, symbol:'none',
+    data:telephoneWaveValues,
+    lineStyle,
+  })),
+};
 
-function useArchives() {
-  return {
-    telegraph: useMediaAsset('telegraph'), telephone: useMediaAsset('telephone'),
-    flight: useMediaAsset('flight'), trinity: useMediaAsset('trinity'),
-    eniac: useMediaAsset('eniac'), transistor: useMediaAsset('transistor'),
-    moon: useMediaAsset('moon'), arpanet: useMediaAsset('arpanet'), genome: useMediaAsset('genome'),
-    chatgptIcon: useMediaAsset('chatgpt-icon'),
-  };
+function PhotoOrVideo({id, progress, style}: {id:string; progress:number; style?:CSSProperties}) {
+  const {ready} = useSceneContext();
+  const media = useMediaAsset(id);
+  return <ArchiveFrame src={media.src} kind={media.kind} progress={progress} style={style} ready={ready}/>;
 }
 
-function Archive({asset,progress,ready,style,startOffsetSeconds=0}:{asset:ReturnType<typeof useMediaAsset>;progress:number;ready:()=>void;style?:CSSProperties;startOffsetSeconds?:number}) {
-  return <ArchiveFrame src={asset.src} kind={asset.kind} progress={progress} ready={ready}
-    style={style} startOffsetSeconds={startOffsetSeconds}/>;
-}
+export default function Film(config: CodeSceneProps) {
+  const {elapsedSeconds, ready} = useSceneContext();
+  const chapter = config.props.chapter as Chapter;
+  const hasMedia = chapter.asset !== undefined;
 
-function Credits() {
-  return <CreditBlock lines={[
-    '晶体管《1st Transistor》 Unitronic｜CC BY-SA 3.0｜裁切、调色',
-    '阿帕网地图 UCLA、BBN｜CC BY-SA 4.0｜裁切、调色｜本片 CC BY-SA 4.0',
-  ]}/>;
-}
+  useEffect(() => {
+    if (!hasMedia) ready();
+  }, [hasMedia, ready]);
 
-function ChatGPTDemo({asset,progress,t}:{asset:ReturnType<typeof useMediaAsset>;progress:number;t:number}) {
-  const answer='全球研究积累，推动语言生成走向大众。';
-  const visible=Math.min(answer.length,Math.max(0,Math.floor((progress-.28)/.52*answer.length)));
-  return <div style={{position:'absolute',right:106,top:160,width:800,height:760,borderRadius:34,background:'linear-gradient(145deg,#192923,#101815 72%)',border:'1px solid #ffffff24',boxShadow:'0 30px 100px #0009',overflow:'hidden',transform:`translateY(${Math.sin(t*1.2)*4}px)`}}>
-    <div style={{height:96,display:'flex',alignItems:'center',padding:'0 32px',borderBottom:'1px solid #ffffff20',gap:20}}>
-      <img src={asset.src} style={{width:54,height:54,objectFit:'contain'}}/>
-      <div><div style={{fontSize:31,fontWeight:600}}>ChatGPT <span style={{fontSize:25,color:'#c7d2cc'}}> / OpenAI</span></div><div style={{fontSize:19,color:'#b8c7be',marginTop:2}}>示意界面</div></div>
-      <div style={{marginLeft:'auto',fontSize:18,color:'#cbd7d0',border:'1px solid #ffffff35',borderRadius:18,padding:'7px 13px'}}>界面重绘 · 非真实对话</div>
+  const progress = clamp01(elapsedSeconds*config.fps/config.durationInFrames);
+  if (chapter.id === 'closing') {
+    return <CreditBlock lines={config.props.creditLines as string[]}/>;
+  }
+  if (chapter.id === 'arpanet') {
+    return <Network chapter={chapter} frame={elapsedSeconds*config.fps} events={config.eventFrames}/>;
+  }
+  if (!chapter.asset || !archiveLayouts[chapter.asset]) {
+    throw new Error(`档案场 ${chapter.id} 缺少素材或构图`);
+  }
+  const layout = archiveLayouts[chapter.asset];
+  const background = layout.background ?? (chapter.id === 'moon' ? '#121713' : chapter.id === 'genome' ? '#191e1b' : '#211b16');
+  return <main style={{...full, overflow:'hidden', background}}>
+    <div style={{...(layout.image ?? full), overflow:'hidden'}}>
+      <PhotoOrVideo id={chapter.asset} progress={progress} style={layout.media}/>
     </div>
-    <div style={{padding:'54px 42px',fontSize:31,lineHeight:1.55,color:'#f4f3eb'}}>
-      <div style={{marginLeft:130,marginBottom:44,padding:'18px 24px',borderRadius:24,background:'#ffffff14'}}>科学知识如何走向大众？</div>
-      <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
-        <img src={asset.src} style={{width:42,height:42,objectFit:'contain',flex:'0 0 auto'}}/>
-        <div>{answer.slice(0,visible)}<span style={{opacity:visible<answer.length&&Math.sin(t*8)>0?.9:.0,color:'#b9e4c3'}}>▍</span></div>
+    {layout.shade && <div style={{...full, background:layout.shade}}/>}
+    {chapter.id === 'telephone' && <>
+      <div style={{
+        position:'absolute', top:567, left:896, width:893, height:190,
+        clipPath:`inset(0 ${100*(1-ease((elapsedSeconds-.20)/.72))}% 0 0)`,
+      }}>
+        <Chart option={telephoneWave} width={893} height={190}/>
       </div>
-      <div style={{marginTop:42,display:'flex',alignItems:'center',gap:12,color:'#b8d8c0',fontSize:22}}><span style={{width:9,height:9,borderRadius:'50%',background:'#b8d8c0',boxShadow:'0 0 14px #b8d8c0'}}/>语言模型研究持续积累</div>
-    </div>
-  </div>;
-}
-
-function ChapterText({c,t,position='lower'}:{c:Chapter;t:number;position?:'lower'|'upper'|'upperNarrow'|'right'|'vertical'}) {
-  return <StyleChapterText year={c.year} title={c.title} caption={c.caption} alias={c.alias}
-    accent={c.accent} position={position} seconds={t}/>;
-}
-
-export default function Film(config:CodeSceneProps) {
-  const clock=useSceneContext(), archives=useArchives();
-  const c=config.props.chapter as Chapter, t=clock.elapsedSeconds;
-  const p=clamp(t/(config.durationInFrames/config.fps));
-  const isOpen=c.id==='opening', isClose=c.id==='closing';
-  const asset=archives[c.asset as keyof typeof archives];
-  const chatgptIcon=archives.chatgptIcon;
-  useEffect(()=>{if(!asset||isClose)clock.ready();},[asset,isClose]);
-  if(isClose)return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'#080e13',color:'#f5f1e8'}}><Credits/></div>;
-  const mode:Record<string,string>={telegraph:'wire',telephone:'apparatus',flight:'sky',trinity:'flash',eniac:'machine',transistor:'silicon',moon:'moon',arpanet:'map',genome:'sequence',llm:'language'};
-  const special=c.id==='telephone'||c.id==='arpanet';
-  const position:Record<string,'lower'|'upper'|'upperNarrow'|'right'|'vertical'>={telegraph:'upper',telephone:'right',flight:'lower',trinity:'right',eniac:'lower',transistor:'vertical',moon:'lower',arpanet:'upperNarrow',genome:'lower',llm:'upper'};
-  if(c.id==='llm')return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'radial-gradient(ellipse at 83% 46%,#244537 0%,#0a1210 48%,#070c10 100%)',color:'#f5f1e8'}}>
-    <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,#070c10 0%,#070c10db 34%,transparent 72%)'}}/>
-    <div style={{position:'absolute',left:126,top:215,width:730,textShadow:'0 3px 22px #000'}}>
-      <div style={{fontSize:30,letterSpacing:5,color:c.accent,marginBottom:20}}>2020—2022</div>
-      <h1 style={{fontSize:78,lineHeight:1.1,fontWeight:500,margin:'0 0 25px'}}>大语言模型</h1>
-      <p style={{fontSize:43,lineHeight:1.45,margin:0,color:'#f0eee7'}}>全球研究积累<br/>推动语言生成走向大众。</p>
-      <div style={{marginTop:38,fontSize:25,color:'#bdd4c8'}}>从基础研究到日常对话</div>
-    </div>
-    <ChatGPTDemo asset={chatgptIcon} progress={p} t={t}/>
-    <div style={{position:'absolute',left:126,bottom:68,fontSize:19,color:'#aebdb4'}}>全球研究与产业协作 · ChatGPT 为具体产品实例</div>
-  </div>;
-  return <div style={{position:'relative',width:config.width,height:config.height,overflow:'hidden',background:'#080d11',color:'#f5f1e8'}}>
-    {asset&&<div style={{position:'absolute',inset:0,overflow:'hidden'}}>
-      <Archive asset={asset} progress={p} ready={clock.ready} startOffsetSeconds={isOpen?4:0} style={special?{opacity:.27,filter:'blur(12px) saturate(.5)',transform:'scale(1.12)'}:undefined}/>
-    </div>}
-    {special&&asset&&<div style={{position:'absolute',left:c.id==='telephone'?120:850,top:145,width:c.id==='telephone'?660:900,height:650,overflow:'hidden',filter:'drop-shadow(0 24px 55px #000b)'}}>
-      <Archive asset={asset} progress={p} ready={clock.ready} style={{objectFit:'contain',filter:'saturate(.9) contrast(1.08)'}}/>
-    </div>}
-    {c.id==='telephone'&&<div style={{position:'absolute',left:735,top:320,width:1050,height:360,opacity:.9}}><Chart option={telephoneWave} width={1050} height={360}/></div>}
-    <div style={{position:'absolute',inset:0,background:isOpen?'linear-gradient(90deg,#071018c9,#07101820 78%),linear-gradient(0deg,#05090ee8,transparent 55%)':'linear-gradient(0deg,#05090ff0,transparent 70%),linear-gradient(90deg,#05090f80,transparent 72%)'}}/>
-    {isOpen?<>
-      <div style={{position:'absolute',left:135,top:160,fontSize:26,letterSpacing:5,color:'#dcc49c'}}>十项里程碑 · 一段知识接力</div>
-      <h1 style={{position:'absolute',left:126,top:270,fontSize:116,lineHeight:1.08,fontWeight:500,letterSpacing:3,margin:0,textShadow:'0 5px 36px #000'}}>美国科学<br/>高光时刻</h1>
-      <div style={{position:'absolute',left:138,top:590,fontSize:42,color:'#e1e1d8'}}>美国主导或参与的十项科技节点</div>
-    </>:<>
-      {c.id!=='telephone'&&<Mechanism kind={mode[c.id]??c.id} t={t} progress={p} accent={c.accent}/>}
-      <ChapterText c={c} t={t} position={position[c.id]}/>
+      <div style={{
+        position:'absolute', left:884, top:651, width:18, height:18, borderRadius:'50%',
+        background:'#deb683', border:'3px solid #654027', opacity:ease((elapsedSeconds-.13)/.18),
+      }}/>
+      <div style={{
+        position:'absolute', left:1155, top:872, fontSize:36, color:'#684837',
+      }}>早期装置复制品</div>
     </>}
-  </div>;
+    {chapter.id === 'moon' && <div style={{
+      position:'absolute', left:124, bottom:104, fontSize:40, letterSpacing:3, color:'#fae9cc', textShadow:'0 2px 16px #000',
+    }}>NASA</div>}
+    <ChapterText {...chapter} position={layout.position} style={layout.copy} textColor={layout.textColor}/>
+    {chapter.id === 'genome' && <BaseSequence progress={ease((elapsedSeconds-1.05)/.40)}/>}
+  </main>;
 }
