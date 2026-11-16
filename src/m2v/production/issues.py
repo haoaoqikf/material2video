@@ -142,13 +142,17 @@ def _load(root: Path, *, required=False, check_closures=True, pending_report=Non
     return value["items"]
 
 
-def scope(root, report):
-    from .samples import scope_sources
-    private = read(
+def _scope_package(root, report):
+    return read(
         ledger.directory(root)
         / "packages"
         / f"{read(local(outputs(root), report['packPath']))['reviewId']}.json"
     )
+
+
+def scope(root, report):
+    from .samples import scope_sources
+    private = _scope_package(root, report)
     request = private["request"]
     return {
         "focus": report["focus"],
@@ -204,6 +208,24 @@ def covers(original, current, round):
     )
 
 
+def _covers_closure(root, project, item, original_scope, target_position, report):
+    current_scope = scope(root, report)
+    if covers(original_scope, current_scope, item['round']):
+        return True
+    if item['round'] != 'trial' or target_position >= 0:
+        return False
+    from . import reviews, samples
+    current_sources = samples.combined_review_sources(root, _scope_package(root, report)['request'])
+    if current_sources is None:
+        return False
+    original_report = reviews.sealed_report(root, project, item['reportId'], historical=True)
+    original_sources = samples.combined_review_sources(root, _scope_package(root, original_report)['request'])
+    if original_sources != current_sources:
+        return False
+    # 只在比较时替换采集文件身份。必改项保存的原始范围和评审凭据保持原样。
+    return covers({**original_scope, 'sources': current_scope['sources']}, current_scope, 'trial')
+
+
 def validate_closure(root: Path, item: dict):
     from . import reviews
     from . import targets
@@ -214,15 +236,14 @@ def validate_closure(root: Path, item: dict):
             raise M2VError("原因未定位不能关闭")
         if item.get("reportId"):
             expected_scope, target_position = targets.effective_scope(root, item)
-            report = reviews.current_report(
-                root, load_project(root)[1], identifier(item.get("closureReportId"))
-            )
+            project = load_project(root)[1]
+            report = reviews.current_report(root, project, identifier(item.get("closureReportId")))
             if (
                 report["isolation"] != "independent-subagent"
                 or report["verdict"] != "pass"
                 or report["round"] != item["round"]
                 or report["reviewType"] != "blind"
-                or not covers(expected_scope, scope(root, report), item["round"])
+                or not _covers_closure(root, project, item, expected_scope, target_position, report)
             ):
                 raise M2VError("必须以当前对应范围的独立通过复查关闭")
             if report["requiresComparison"]:

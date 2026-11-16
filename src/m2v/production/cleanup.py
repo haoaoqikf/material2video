@@ -27,6 +27,10 @@ def retained_media(root: Path) -> set[Path]:
         for entry in evidence:
             fields(entry, {"path", "sha256"})
             protected.add(local(base, entry["path"], exists=False))
+    captures = {
+        'outputs/' + event['data']['receipt']['path']: event['data']['receipt']
+        for event in events if event['type'] == 'sample-captured'
+    }
     for event in events:
         if event["type"] != "package":
             continue
@@ -46,6 +50,16 @@ def retained_media(root: Path) -> set[Path]:
                 fields(entry, {"path", "sha256"})
                 # 已失效/未导入的包也保留其明确引用，不把内容过期误作可删除。
                 protected.add(local(base, entry["path"], exists=False))
+        for source in set(private['request']['sources']) & captures.keys():
+            capture = captures.pop(source)
+            if not ledger.evidence_valid(root, [capture]):
+                raise M2VError("评审引用的原生采集记录损坏，未执行清理")
+            capture_path = local(base, capture['path'])
+            # 当前来源校验逐个检查原生采集产物，未入评审窗口的静帧也参与有效性。
+            artifacts = read(capture_path)['artifacts']
+            if not isinstance(artifacts, dict):
+                raise M2VError("原生采集产物登记无效，未执行清理")
+            protected.update(local(capture_path.parent, name, exists=False) for name in artifacts)
     return protected
 
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core import security
+from m2v.core.fingerprints import fingerprint
 from m2v.engine import design_sample
 from . import dependencies, issues, ledger, reuse
 from .model import fields, identifier, now, text
@@ -86,6 +87,37 @@ def scope_sources(root: Path, request: dict) -> list[str]:
             identity = f"native-sample:{value['fps']}:{value['width']}x{value['height']}:{value['entry']}"
             return [identity if item == source else item for item in sources]
     return sources
+
+
+def combined_review_sources(root: Path, request: dict) -> list[str] | None:
+    """为包含多个完整原生片段的试制复查给出稳定的场景身份。"""
+    events, errors = ledger.history(root)
+    if errors:
+        raise M2VError('; '.join(errors))
+    records = {
+        'outputs/' + event['data']['receipt']['path']: event['data']['receipt']
+        for event in events if event['type'] == 'sample-captured'
+    }
+    sources = request['sources']
+    selected = [source for source in sources if source in records]
+    if len(selected) < 2 or len(set(selected)) != len(selected):
+        return None
+    identities = {}
+    for source in selected:
+        record = records[source]
+        if not ledger.evidence_valid(root, [record]):
+            return None
+        value = read(local(outputs(root), record['path']))
+        video = f"samples/{value['id']}/{value['video']}"
+        matching = [item for item in request['items'] if item['path'] == video]
+        if len(matching) != 1 or request['fps'] != value['fps']:
+            return None
+        item = matching[0]
+        if not item['dynamic'] or item['window'] != [0, value['durationInFrames']]:
+            return None
+        scope = {name: value[name] for name in ('entry', 'props', 'fps', 'width', 'height', 'durationInFrames')}
+        identities[source] = 'native-sample-group:' + fingerprint({**scope, 'item': item['id']})
+    return [identities.get(source, source) for source in sources]
 
 
 def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:

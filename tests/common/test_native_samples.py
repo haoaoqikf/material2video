@@ -8,7 +8,7 @@ from PIL import Image
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
-from m2v.production import dependencies, issues, ledger, media_evidence, reviews, samples
+from m2v.production import cleanup, dependencies, issues, ledger, media_evidence, reviews, samples
 from m2v.production.storage import read, write
 from common.test_media_reviews import report
 
@@ -180,6 +180,46 @@ def test_generic_or_truncated_review_cannot_close_native_failure(native):
     item.update(status='closed', cause='design', closureReportId=args['blind_id'])
     with pytest.raises(M2VError, match='对应范围'):
         issues.update(root, item)
+
+
+@pytest.mark.parametrize('change', [None, 'swap', 'truncate'])
+def test_recaptured_native_group_closes_only_the_same_complete_scope(native, change):
+    root, project, first = native
+
+    def request_for(captures):
+        request = read(outputs(root) / 'samples' / captures[0] / 'review-request.json')
+        request['sources'] = [f'outputs/samples/{identity}/capture.json' for identity in captures]
+        request['items'] = [
+            {**samples.review_items(read(outputs(root) / 'samples' / identity / 'capture.json'))[-1], 'id': scene}
+            for scene, identity in zip(('opening', 'ranking'), captures, strict=True)
+        ]
+        return request
+
+    original = request_for([first, samples.capture(root, project)['id']])
+    pack = reviews.package(root, project, original)
+    assert outputs(root) / 'samples' / first / 'still-000001.png' in cleanup.retained_media(root)
+    reviews.import_report(root, project, report((root, project), pack, verdict='fail'))
+    current = request_for([samples.capture(root, project)['id'] for _ in range(2)])
+    if change == 'swap':
+        first_item, second_item = current['items']
+        first_item['path'], second_item['path'] = second_item['path'], first_item['path']
+    elif change == 'truncate':
+        current['items'][0]['window'][1] -= 1
+        assert samples.combined_review_sources(root, current) is None
+        return
+    pack = reviews.package(root, project, current)
+    blind = reviews.import_report(root, project, report((root, project), pack))
+    item = issues.load(root)[0]
+    original_scope = item['scope']
+    item.update(status='closed', cause='implementation', closureReportId=blind['id'])
+    if change:
+        with pytest.raises(M2VError, match='对应范围'):
+            issues.update(root, item)
+    else:
+        issues.update(root, item)
+        persisted = issues.load(root)[0]
+        assert persisted['status'] == 'closed'
+        assert persisted['scope'] == original_scope
 
 
 def test_corruption_before_capture_event_does_not_allow_cycle_reset(native):
