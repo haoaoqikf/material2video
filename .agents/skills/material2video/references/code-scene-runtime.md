@@ -206,7 +206,7 @@ React 路径没有「渲染前扫描网页 HTML」这一步：画面由 composit
 `n / fps`，React 提交、动画库回调、Three.js 绘制、CSS 动画定位及本地视频解码完成后
 才截图。截图、PNG 落盘和机器负载不会推进作品时间。资源加载与宿主超时使用真实时间。
 Motion、GSAP、ECharts、R3F 使用该时钟；作品仍使用 `useSceneContext()`，不新增录制配置。
-视频按作品 play/pause、入点、播放速率和循环设置同步到受控时间，原声不进入片段。
+视频按作品 play/pause、入点、播放速率和循环设置同步到受控时间，原声不进入片段。换镜头时本帧新挂载的视频等待浏览器解码后再继续，等待沿用宿主真实时间超时，资源损坏明确报错。
 
 作品可以在 `look.motion` 声明**运动模糊与 SSAA**：hero 镜头内的每一帧按
 `(frame + k / subframes) / fps` 依次推进 `subframes`（1–4）个子帧，宿主把同一帧的 React 状态、

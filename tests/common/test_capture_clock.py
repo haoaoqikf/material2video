@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from film_runtime.types.scene_film import code_scenes
-from helpers.scene_film import scene_page, prepare_build, requires_node
+from helpers.scene_film import WEB, scene_page, prepare_build, requires_node
 
 
 MOTION_SCENE = """
@@ -78,6 +78,50 @@ def test_fixed_frames_sync_dom_three_and_animation_libraries(tmp_path, chromium_
 def test_encode_rejects_missing_frames(tmp_path):
     with pytest.raises(Exception, match='采集帧缺失'):
         code_scenes._encode(tmp_path, tmp_path / 'clip.mp4', 2, 320, 240)
+
+
+@pytest.mark.slow
+def test_capture_waits_for_video_inserted_at_a_cut(tmp_path, chromium_ready):
+    import base64
+    import subprocess
+
+    from imageio_ffmpeg import get_ffmpeg_exe
+    from playwright.sync_api import sync_playwright
+
+    clip = tmp_path / 'cut.mp4'
+    subprocess.run([get_ffmpeg_exe(), '-y', '-v', 'error', '-f', 'lavfi', '-i',
+                    'color=red:size=32x32:rate=30:duration=0.5', '-c:v', 'libx264', '-pix_fmt', 'yuv420p',
+                    str(clip)], check=True, capture_output=True)
+    source = 'data:video/mp4;base64,' + base64.b64encode(clip.read_bytes()).decode('ascii')
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.add_init_script(path=str(WEB / 'src/code-scene/capture-clock.js'))
+        page.goto('about:blank')
+        state = page.evaluate('''async src => {
+            const clock = window.__M2V_CAPTURE_CLOCK__;
+            clock.begin(0);
+            clock.setTime(100);
+            const video = document.createElement('video');
+            video.preload = 'auto';
+            video.src = src;
+            document.body.append(video);
+            const before = video.readyState;
+            await clock.deadline(clock.flush(), 5000);
+            return {before, after: video.readyState, time: performance.now()};
+        }''', source)
+        assert state['before'] < 2
+        assert state['after'] >= 2
+        assert state['time'] == 100
+        with pytest.raises(Exception, match='视频资源加载失败'):
+            page.evaluate('''async () => {
+                const video = document.createElement('video');
+                video.src = 'data:video/mp4;base64,AA==';
+                document.body.replaceChildren(video);
+                const clock = window.__M2V_CAPTURE_CLOCK__;
+                await clock.deadline(clock.flush(), 5000);
+            }''')
+        browser.close()
 
 
 @pytest.mark.slow

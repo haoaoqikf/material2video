@@ -90,21 +90,28 @@
     const fps = Number(window.__M2V_CODE_CONFIG__?.fps) || 30;
     return state.base + (state.playing ? (now - state.start) / 1000 * element.playbackRate + 0.5 / fps : 0);
   }
+  function waitForVideoData(element) {
+    const error = () => new Error('视频资源加载失败，不能逐帧采集');
+    if (element.error) return Promise.reject(error());
+    if (element.readyState >= 2) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        element.removeEventListener('loadeddata', done);
+        element.removeEventListener('error', failed);
+      };
+      const done = () => {cleanup(); resolve();};
+      const failed = () => {cleanup(); reject(error());};
+      element.addEventListener('loadeddata', done);
+      element.addEventListener('error', failed);
+    });
+  }
   proto.play = async function () {
     const s = stateOf(this);
     if (!s.playing) {
       s.start = now; s.playing = true;
       this.dispatchEvent(new Event('play'));
     }
-    if (this.readyState < 2) {
-      await new Promise((resolve, reject) => {
-        const done = () => {cleanup(); resolve();};
-        const failed = () => {cleanup(); reject(new Error('视频播放资源加载失败'));};
-        const cleanup = () => {this.removeEventListener('loadeddata', done); this.removeEventListener('error', failed);};
-        this.addEventListener('loadeddata', done);
-        this.addEventListener('error', failed);
-      });
-    }
+    if (this.readyState < 2 || this.error) await waitForVideoData(this);
     if (s.playing) this.dispatchEvent(new Event('playing'));
   };
   proto.pause = function () {
@@ -124,7 +131,9 @@
     await Promise.all([...document.querySelectorAll('video')].map(async element => {
       const s = stateOf(element);
       nativePause.call(element);
-      if (!Number.isFinite(element.duration) || element.readyState < 1) {
+      // 切镜时 React 可能刚挂载新视频。等待浏览器解码，不推进采集时钟。
+      if (element.readyState < 2 || element.error) await waitForVideoData(element);
+      if (!Number.isFinite(element.duration)) {
         throw new Error('视频元数据未就绪，不能逐帧采集');
       }
       let target = Math.max(0, position(element, s));
