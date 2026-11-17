@@ -41,6 +41,8 @@ purpose 为 keyframe 或 process，round 为 trial。原生关键帧接受图片
 
 报告必填 version、round、reviewType、packPath、packSha256、reviewerId、isolation、focus、verdict、adoption、observations、coverage、invocation；consistency 对照另含 blindId，blind/process 不得含 blindId。packPath 是相对 outputs 的 manifest.json；invocation 为真实调用记录的 path/sha256。focus 为 comprehensive；isolation 为 independent-subagent/self-review/external-review。
 
+调用记录的 `inputPaths` 同样以 `outputs/` 为基准，例如 `review-pack/<包ID>/evidence-0000-1920.png`（使用实际清单文件名）。`reviewerId` 使用真实身份的标签，只含英文字母、数字、下划线或连字符，最长 96 字符；例如将代理路径 `/root/reviewer` 记作 `root-reviewer`，同轮保持一致。修正路径或标签格式时保留原稿和修正原因，不改观察结论或调用时间。
+
 coverage 每项为 id、window、status、adoption、observations、limitations、assessment；assessment 含 understanding、presentation、representativeness，每项为 status 与 observations。状态 pass/fail/insufficient；代表性和表现须具体观察。工具只验证记录完整性，不自动评判审美。
 
 ## 正式窗口与整片复核
