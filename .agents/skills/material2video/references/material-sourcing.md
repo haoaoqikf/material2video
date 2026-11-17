@@ -164,7 +164,9 @@ uv run m2v assets report --project videos/<类型>/<slug>
 
 `--manifest` 路径相对当前 shell 工作目录；清单内 `localPath` 默认相对作品目录，显式 `--base` 时相对该基准。上例在仓库根执行，避免把清单路径误当成作品内相对路径。
 
-`report` 交叉核对三处：`assets/media-sources.json`、`scenes/` 里的 `useMediaAsset` 引用、`SOURCES.md` 的素材表。读法：
+准备继续使用的研究视频原件、离线变速底片等，放在作品的 `assets/downloads/` 或其他作品内资源目录。未被保护的 `outputs/` 视频可能由后续渲染清理；研究图页可放在输出目录，正式评审使用该包绑定的实际参考副本。
+
+`report` 交叉核对三处：`assets/media-sources.json`、`scenes/` 里的 `useMediaAsset` 引用、`SOURCES.md` 的素材表。素材表中的 ID 须用反引号标为行内代码，例如 `haymarket-1886`，报告据此查找，不识别未标记的 ID。读法：
 
 | 输出 | 含义 | 怎么修 |
 |---|---|---|
