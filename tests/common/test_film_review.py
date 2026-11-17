@@ -99,6 +99,26 @@ def test_boundary_and_binding_to_actual_candidate(work, film):
     assert ledger.status(root, project)["keySamples"]["status"] == "required"
 
 
+def test_pin_delivery_after_qa_without_ignoring_timeline_change(film):
+    root, project, prepared = film
+    candidate = _candidate(root, prepared, "first")
+    _preview(root, project, prepared, candidate, 0, prepared["durationInFrames"])
+    delivery = outputs(root) / "video.mp4"
+    delivery.write_bytes(candidate.read_bytes())
+    sidecar = delivery.with_suffix(".provenance.json")
+    value = read(candidate.with_suffix(".provenance.json"))
+    value["qa"] = {"status": "pass", "report": "outputs/qa.json"}
+    write(sidecar, value)
+    req = {"items": [{"path": "video.mp4", "window": [10, 11]}]}
+
+    pinned = film_review.pin_sources(root, project, req)
+    assert pinned["items"][0]["path"] == candidate.relative_to(outputs(root)).as_posix()
+
+    write(sidecar, {**value, "startFrame": 1})
+    with pytest.raises(M2VError, match="时间映射不一致"):
+        film_review.pin_sources(root, project, req)
+
+
 @pytest.mark.media
 def test_long_film_checks_each_composed_window_and_keeps_unaffected_evidence(work, film, monkeypatch):
     root, project, prepared = film

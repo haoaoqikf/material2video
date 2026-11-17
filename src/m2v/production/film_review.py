@@ -129,9 +129,13 @@ def pin_sources(root, project, request):
             if record["sha256"] != source_media["sha256"]:
                 raise M2VError("交付文件与当前候选摘要不符")
             source = local(base, Path(record["path"]).relative_to(base).as_posix())
-            _, candidate_proof = _source(root, project, data, receipt(base, source))
+            candidate_value, candidate_proof = _source(root, project, data, receipt(base, source))
             if candidate_proof["sha256"] != proof["sha256"]:
-                raise M2VError("交付文件与当前候选的时间映射不一致")
+                # 技术 QA 在候选封存后补写交付旁车；该注记不属于合成时间映射。
+                delivery_mapping = {key: field for key, field in value.items() if key != "qa"}
+                candidate_mapping = {key: field for key, field in candidate_value.items() if key != "qa"}
+                if ("qa" not in value and "qa" not in candidate_value) or delivery_mapping != candidate_mapping:
+                    raise M2VError("交付文件与当前候选的时间映射不一致")
         if source.parent != base / "candidates":
             name_key = fingerprint([source_media["sha256"], proof["sha256"]])
             pinned = local(base, f"review-sources/{name_key}{source.suffix}", exists=False)

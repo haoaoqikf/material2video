@@ -67,7 +67,7 @@ uv run m2v review confirm-playback --project <作品> --file <整片复核.json>
 {"version":4,"round":"trial","purpose":"process","reviewType":"process","film":true,"fps":30,"items":[{"id":"reveal","path":"previews/video.mp4","window":[0,120],"dynamic":true}],"references":["refs/quality.mp4"],"conditions":["变化呈现完整因果及真实字幕阅读窗口"],"sources":[],"sceneIds":[],"displaySizes":[1920,393]}
 ```
 
-固定路径的预演按摘要封存，完整候选复用已有持久路径。后续按实际窗口的场景依赖、合成字幕和适用母版音频重验。同批中的窗口按各自来源区分有效范围，正式独立失败只把实际失败的项登记为必改。原生试制与正式窗口可以在同一周期记录，完成状态只统计正式合成证据。有字幕时正式关键帧与适用关键样片均须覆盖实际字幕。
+固定路径的预演按摘要封存，完整候选复用已有持久路径。以 `video.mp4` 取证时校验其与候选的字节摘要及溯源映射，允许技术 QA 在交付旁车补写独立的 `qa` 注记。后续按实际窗口的场景依赖、合成字幕和适用母版音频重验。同批中的窗口按各自来源区分有效范围，正式独立失败只把实际失败的项登记为必改。原生试制与正式窗口可以在同一周期记录，完成状态只统计正式合成证据。有字幕时正式关键帧与适用关键样片均须覆盖实际字幕。
 
 总代理完成正常速度完整看听、重点风险回看和技术 QA 后，提交含 candidateSha256 与 observations 的 JSON。observations 写实际观察、回看的时间窗及结论，摘要取实际所看文件。确认写入现有账本。状态在候选、准备身份或 QA 变化后判旧确认过期，缺少实际看听继续保留未确认。
 
