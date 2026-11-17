@@ -34,46 +34,6 @@ export function RollingNumber({
   );
 }
 
-export type TypewriterProps = {
-  text: string;
-  progress: number;
-  easing?: Easing;
-  baseOpacity?: number;
-  stagger?: number;
-  cursor?: boolean;
-  cursorCharacter?: string;
-  cursorOpacity?: number;
-  className?: string;
-  style?: CSSProperties;
-};
-
-/** 逐字显影；光标不能闪烁，使用静态或进度驱动透明度。 */
-export function Typewriter({
-  text, progress, easing = LINEAR, baseOpacity = 0.14, stagger = 0,
-  cursor = false, cursorCharacter = '▌', cursorOpacity, className, style,
-}: TypewriterProps) {
-  const characters = Array.from(text);
-  const eased = easing(clampProgress(progress));
-  const delay = Math.min(0.999, Math.max(0, stagger));
-  const complete = eased >= 1;
-  return (
-    <span className={className} style={style}>
-      {characters.map((character, index) => {
-        const start = characters.length > 1 ? (index / (characters.length - 1)) * delay : 0;
-        const local = clampProgress((eased - start) / (1 - delay));
-        return (
-          <span key={`${index}-${character}`} style={{opacity: baseOpacity + (1 - baseOpacity) * local}}>
-            {character}
-          </span>
-        );
-      })}
-      {cursor ? (
-        <span style={{opacity: cursorOpacity ?? (complete ? 0 : 1)}}>{cursorCharacter}</span>
-      ) : null}
-    </span>
-  );
-}
-
 export type BarGrowthProps = {
   values: readonly number[];
   progress: number;

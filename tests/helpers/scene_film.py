@@ -180,7 +180,7 @@ def scene_page(tmp_path, source, *, frames=62, extra=None):
     config = dict(props={}, fps=60, durationInFrames=frames, width=320, height=240,
                   segmentWindows={}, subtitleSafeArea=dict(x=0, y=200, width=320, height=40))
     config.update(extra or {})
-    (work / 'index.html').write_text('<div id="root"></div><script>window.__M2V_CODE_CONFIG__='
+    (work / 'index.html').write_text('<meta charset="utf-8"><div id="root"></div><script>window.__M2V_CODE_CONFIG__='
                                     + json.dumps(config) + '</script><script src="scene.js"></script>', encoding='utf-8')
     with LocalServer(work, mounts={'/fonts': WEB / 'public/fonts'}, cors=True) as server, sync_playwright() as pw:
         browser = pw.chromium.launch()

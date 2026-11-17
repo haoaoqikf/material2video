@@ -1,8 +1,6 @@
 import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
-import {
-  ChapterTrack, MaskReveal, PathMorph, Pictogram, Timeline, Waveform, resamplePeaks,
-} from './index';
+import {ChapterTrack, MaskReveal, PathMorph, Timeline} from './index';
 
 describe('path morph component', () => {
   it('changes geometry with progress and is repeatable', () => {
@@ -50,26 +48,5 @@ describe('timeline and chapter track', () => {
     );
     expect(markup).toContain('二');
     expect(markup).toContain('#F8D893');
-  });
-});
-
-describe('pictogram and waveform', () => {
-  it('fills whole and partial cells from a value', () => {
-    const whole = renderToStaticMarkup(<Pictogram count={10} value={5} progress={1}/>);
-    const partial = renderToStaticMarkup(<Pictogram count={10} value={4.5} progress={1}/>);
-    expect(whole.match(/fill="#F8D893"/g)).toHaveLength(5);
-    expect(partial.match(/fill="#F8D893"/g)).toHaveLength(5);
-    expect(partial).toContain('opacity="0.5"');
-  });
-
-  it('resamples peaks and reveals bars by progress', () => {
-    expect(resamplePeaks([0, 1, -1, 0.5], 2)).toEqual([1, 1]);
-    const markup = renderToStaticMarkup(
-      <Waveform samples={[0, 1, -1, 0.5]} bars={2} progress={1}/>,
-    );
-    expect(markup.match(/<rect/g)).toHaveLength(2);
-    expect(markup).toEqual(renderToStaticMarkup(
-      <Waveform samples={[0, 1, -1, 0.5]} bars={2} progress={1}/>,
-    ));
   });
 });

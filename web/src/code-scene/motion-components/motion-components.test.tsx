@@ -3,7 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {describe, expect, it} from 'vitest';
 import {
   BarGrowth, Blur, Callout, DrawLine, FadeIn, Glow, MarkerHighlight, RollingNumber,
-  SlideIn, Typewriter, ZoomIn, pathDrawProps, styleAt,
+  SlideIn, ZoomIn, pathDrawProps, styleAt,
 } from './index';
 
 const markup = (node: ReactElement) => renderToStaticMarkup(node);
@@ -33,10 +33,9 @@ describe('shared motion components', () => {
     expect(markup(<DrawLine d={path} progress={1}/>)).toContain('stroke-dashoffset="0"');
   });
 
-  it('rolls and types with explicit progress', () => {
+  it('rolls numbers with explicit progress', () => {
     expect(markup(<RollingNumber from={0} to={100} progress={0.5}/>)).toContain('50');
     expect(markup(<RollingNumber from={0} to={100} progress={1}/>)).toContain('100');
-    expect(markup(<Typewriter text="abcd" progress={1}/>)).toContain('d');
   });
 
   it('grows bars from zero', () => {

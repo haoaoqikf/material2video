@@ -26,7 +26,7 @@ def test_sdk_exports_the_shared_motion_components():
     assert "export * from '../../web/src/code-scene/motion-components';" in text
     index = (COMPONENTS / "index.ts").read_text(encoding="utf-8")
     for module in ("l1", "l2", "paths", "styles", "text", "morph", "gauge", "noise", "charts",
-                   "timeline", "pictogram", "waveform"):
+                   "timeline"):
         assert f"export * from './{module}';" in index, module
 
 
@@ -38,8 +38,6 @@ def test_extended_components_are_exported():
         "noise.tsx": ("NoiseDrift", "noiseAt", "noiseDrift"),
         "charts.tsx": ("LinePlot", "AreaPlot", "Sparkline", "Axis"),
         "timeline.tsx": ("Timeline", "ChapterTrack"),
-        "pictogram.tsx": ("Pictogram", "IconGrid"),
-        "waveform.tsx": ("Waveform", "resamplePeaks"),
     }
     for filename, names in expected.items():
         source = (COMPONENTS / filename).read_text(encoding="utf-8")
@@ -52,5 +50,5 @@ def test_l1_and_l2_names_are_exported():
     l2 = (COMPONENTS / "l2.tsx").read_text(encoding="utf-8")
     for name in ("FadeIn", "SlideIn", "ZoomIn", "Blur", "Glow", "DrawLine"):
         assert f"export function {name}" in l1, name
-    for name in ("RollingNumber", "Typewriter", "MarkerHighlight", "BarGrowth", "Callout"):
+    for name in ("RollingNumber", "MarkerHighlight", "BarGrowth", "Callout"):
         assert f"export function {name}" in l2, name

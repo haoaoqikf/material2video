@@ -348,7 +348,6 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 | L1 | `Blur` / `Glow` | CSS 模糊与辉光 |
 | L1 | `DrawLine` | SVG 路径按进度生长（含双层错位） |
 | L2 | `RollingNumber` | 数字滚动，复用 `rollNumber` |
-| L2 | `Typewriter` | 逐字显影，光标不能闪烁 |
 | L2 | `MarkerHighlight` | 手绘高亮，粗糙几何由 roughjs 生成 |
 | L2 | `BarGrowth` | 柱状生长，复用 `growSeries` |
 | L2 | `Callout` | 引线标注，引线按进度生长 |
@@ -358,8 +357,6 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 | 图形 | `NoiseDrift` / `noiseAt` / `noiseDrift` | 种子噪声的有机漂移与抖动 |
 | 图表 | `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` | 纯时间安全的折线、面积、迷你趋势与坐标轴 |
 | 图表 | `Timeline` / `ChapterTrack` | 事件时间轴与等距章节轨 |
-| 图形 | `Pictogram` / `IconGrid` | 一格代表一个单位的象形图与图标阵列 |
-| 图形 | `Waveform` / `resamplePeaks` | 采样峰值波形，固定柱数 |
 
 ```tsx
 const t = Math.min(1, elapsedSeconds / 3);
@@ -386,7 +383,7 @@ const content = <>
 - **图表**：参考 `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` 只做数值映射和静态 SVG，坐标轴由调用方组合。使用其他库时按实际逐帧证据选择采集模式，不凭库名宣称 pure-time；几何与依赖进入作品。
 - **噪声**：`@remotion/noise` 的 `noise2D` 以显式种子和坐标求值，相同输入结果相同；
   页面卸载/重挂载不受影响。噪声只用于有机漂移与纹理，不替代编排。
-- **gauge/时间轴/象形图/波形**：只输出静态 SVG，不自动动画；标签密集时由调用方
+- **圆弧仪表与时间轴**只输出静态 SVG，由调用方控制动画。标签密集时由调用方
   自行错开或截断，组件不做自动避让。
 - **roughjs** 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化
   作品已有的艺术路径。

@@ -12,7 +12,10 @@ from film_runtime.core.errors import VideoError
 from m2v.core.project import load_current_prepared, load_project
 from m2v.types.scene_film import adapter, explainer
 from film_runtime.types.scene_film import code_scenes
-from helpers.scene_film import SOURCE, code_scene, write_source, board, fake_tts, prepare_build, project, requires_node, scene_root
+from helpers.scene_film import (
+    SOURCE, board, code_scene, fake_tts, prepare_build, project, requires_node,
+    scene_page, scene_root, write_source,
+)
 
 def storyboard(scene: dict) -> dict:
     """只保留这一幕，便于按片段数量断言录制与缓存复用。"""
@@ -184,7 +187,7 @@ export default function Demo({width, height}: CodeSceneProps) {
 
 PURE_SHARED_SOURCE = """import {useEffect} from 'react';
 import {
-  BarGrowth, DrawLine, FadeIn, MarkerHighlight, RollingNumber, Typewriter,
+  BarGrowth, DrawLine, FadeIn, MarkerHighlight, RollingNumber,
   motionCurve, useSceneContext, type CodeSceneProps,
 } from 'm2v/code-scene';
 export default function Demo({width, height}: CodeSceneProps) {
@@ -197,7 +200,6 @@ export default function Demo({width, height}: CodeSceneProps) {
     <MarkerHighlight width={320} height={240} box={{x: 20, y: 20, width: 160, height: 60}}
       progress={progress} seed={7}/>
     <RollingNumber from={0} to={100} progress={progress}/>
-    <Typewriter text="pure" progress={progress}/>
     <BarGrowth values={[10, 20]} progress={progress} width={320} height={240}/>
   </div>;
 }
@@ -206,8 +208,8 @@ export default function Demo({width, height}: CodeSceneProps) {
 
 PURE_EXTENDED_SOURCE = """import {useEffect} from 'react';
 import {
-  ArcGauge, AreaPlot, AutoFitText, Axis, ChapterTrack, IconGrid, LinePlot, MaskReveal,
-  NoiseDrift, PathMorph, Pictogram, ProgressRing, Sparkline, TextBlock, Waveform,
+  ArcGauge, AreaPlot, AutoFitText, Axis, ChapterTrack, LinePlot, MaskReveal,
+  NoiseDrift, PathMorph, ProgressRing, Sparkline, TextBlock,
   useSceneContext, type CodeSceneProps,
 } from 'm2v/code-scene';
 export default function Demo({width, height}: CodeSceneProps) {
@@ -230,10 +232,6 @@ export default function Demo({width, height}: CodeSceneProps) {
     <AreaPlot series={[{values: [2, 1, 3]}]} progress={progress} width={120} height={60}/>
     <Sparkline values={[1, 2, 1]} width={80} height={30} fill="rgba(255, 255, 255, 0.2)"/>
     <ChapterTrack chapters={['一', '二', '三']} progress={progress} width={200} height={60}/>
-    <Pictogram count={6} value={3} progress={progress} cellSize={10} gap={2}/>
-    <IconGrid icon="M0 0 L10 0 L10 10 Z" count={4} value={2} progress={progress}
-      cellSize={8} gap={2}/>
-    <Waveform samples={[0, 1, -1, 0.5]} bars={4} width={120} height={40} progress={progress}/>
   </div>;
 }
 """
@@ -272,36 +270,15 @@ def test_pure_time_capture_seeks_directly_and_reuses_blocks(tmp_path, chromium_r
 
 @pytest.mark.slow
 @requires_node
-def test_pure_time_accepts_shared_motion_components(tmp_path, chromium_ready):
-    root = tmp_path / "project"
-    write_source(root, "scenes/demo.tsx", PURE_SHARED_SOURCE)
-    frame = {"width": 320, "height": 240,
-             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
-    relative = code_scenes.record(root, pure_scene(duration=6), {}, frame=frame, media={},
-                                  media_digest="empty", capture_range=(0, 6), fps=30)
-    clip = root / relative
-    code_scenes._verify_clip(clip, 6)
-    receipt = json.loads(clip.with_suffix(".json").read_text(encoding="utf-8"))
-    assert receipt["contract"] == code_scenes.PURE_CONTRACT
-    assert receipt["verified"] is True
-    assert receipt["probes"] and receipt["minPsnr"] is None
-
-
-@pytest.mark.slow
-@requires_node
-def test_pure_time_accepts_extended_motion_components(tmp_path, chromium_ready):
-    root = tmp_path / "project"
-    write_source(root, "scenes/demo.tsx", PURE_EXTENDED_SOURCE)
-    frame = {"width": 320, "height": 240,
-             "subtitle": {"safeArea": {"x": 0, "y": 200, "width": 320, "height": 40}}}
-    relative = code_scenes.record(root, pure_scene(duration=6), {}, frame=frame, media={},
-                                  media_digest="empty", capture_range=(0, 6), fps=30)
-    clip = root / relative
-    code_scenes._verify_clip(clip, 6)
-    receipt = json.loads(clip.with_suffix(".json").read_text(encoding="utf-8"))
-    assert receipt["contract"] == code_scenes.PURE_CONTRACT
-    assert receipt["verified"] is True
-    assert receipt["probes"] and receipt["minPsnr"] is None
+@pytest.mark.parametrize("source", [PURE_SHARED_SOURCE, PURE_EXTENDED_SOURCE], ids=["shared", "extended"])
+def test_pure_time_accepts_motion_components(tmp_path, chromium_ready, source):
+    with scene_page(tmp_path, source, frames=6, extra={"captureMode": "pure-time"}) as (page, _):
+        frames = {}
+        for frame in (0, 2, 5, 2, 0, 5):
+            page.evaluate("(frame) => window.__M2V_CODE__.seekToSubframe(frame, 0, 1)", frame)
+            screenshot = page.screenshot()
+            assert frames.setdefault(frame, screenshot) == screenshot
+        assert frames[0] != frames[5]
 
 
 @pytest.mark.slow
