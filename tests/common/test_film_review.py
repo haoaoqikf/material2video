@@ -42,6 +42,11 @@ def _candidate(root, prepared, label):
     return path
 
 
+def _evidence_request(candidate, start, end, observations):
+    return {"candidateSha256": digest(candidate), "observations": "核对各场代表帧与准备时间轴",
+            "windows": [{"window": [start, end], "observations": observations}]}
+
+
 @pytest.fixture
 def film(work, monkeypatch):
     root, project = work
@@ -84,16 +89,28 @@ def test_boundary_and_binding_to_actual_candidate(work, film):
     assert before["keySamples"]["status"] == "exempt"
     assert before["technicalQA"]["status"] == "pass"
     assert not before["complete"]
+    binding = film_review.qa_binding(root, project)
+    ledger.append(root, project, "playback-confirmed", data={**binding, "observations": "历史复核"})
+    assert ledger.status(root, project)["wholeFilmReview"]["status"] == "missing"
+    ledger.append(root, project, "film-evidence-confirmed", data={**binding, "observations": "缺少帧窗"})
+    assert ledger.status(root, project)["wholeFilmReview"]["status"] == "invalid"
+    request = _evidence_request(candidate, 898, 900, "末两帧的结论读数一致")
     with pytest.raises(M2VError, match="摘要"):
-        film_review.confirm_playback(root, project, {"candidateSha256": "wrong", "observations": "复核"})
-    confirmation = outputs(root) / "playback-input.json"
-    write(confirmation, {"candidateSha256": digest(candidate), "observations": "完整复核及回看"})
-    assert main(["review", "confirm-playback", "--project", str(root), "--file", str(confirmation)]) == 0
-    assert ledger.status(root, project)["complete"]
+        film_review.confirm_evidence(root, project, {**request, "candidateSha256": "wrong"})
+    with pytest.raises(M2VError, match="已核查帧窗"):
+        film_review.confirm_evidence(root, project, {**request, "windows": []})
+    with pytest.raises(M2VError, match="超出当前候选"):
+        film_review.confirm_evidence(root, project, _evidence_request(candidate, 899, 901, "越界"))
+    assert not ledger.status(root, project)["complete"]
+    confirmation = outputs(root) / "review-input.json"
+    write(confirmation, request)
+    assert main(["review", "confirm-evidence", "--project", str(root), "--file", str(confirmation)]) == 0
+    confirmed = ledger.status(root, project)
+    assert confirmed["complete"] and confirmed["wholeFilmReview"]["windows"] == request["windows"]
 
     _candidate(root, prepared, "revised")
     changed = ledger.status(root, project)
-    assert changed["playback"]["status"] == "stale" and not changed["complete"]
+    assert changed["wholeFilmReview"]["status"] == "stale" and not changed["complete"]
     assert changed["keyframes"]["status"] == "pass"
     prepared.update(durationInFrames=901, preparedFingerprint="source-v2")
     assert ledger.status(root, project)["keySamples"]["status"] == "required"
@@ -138,7 +155,7 @@ def test_long_film_checks_each_composed_window_and_keeps_unaffected_evidence(wor
                {"id": "end", "window": [700, 708], "goal": "结尾完整停留"}]
     film_review.register_windows(root, project, {"windows": windows})
     candidate = _candidate(root, prepared, "long-film")
-    film_review.confirm_playback(root, project, {"candidateSha256": digest(candidate), "observations": "整片复核"})
+    film_review.confirm_evidence(root, project, _evidence_request(candidate, 700, 708, "末镜读数连续"))
 
     def approve(index):
         item = windows[index]
@@ -284,8 +301,8 @@ def test_open_legacy_final_issue_survives_protocol_upgrade(work, film):
         ledger.start(root, project)
     closure = {**item, "status": "closed", "evidence": [receipt(base, base / "trial.png")]}
     path = _candidate(root, prepared, "fixed")
-    with pytest.raises(M2VError, match="整片复核"):
+    with pytest.raises(M2VError, match="整片证据复核"):
         issues.update(root, closure)
-    film_review.confirm_playback(root, project, {"candidateSha256": digest(path), "observations": "已回看并确认转场白闪修复"})
+    film_review.confirm_evidence(root, project, _evidence_request(path, 469, 472, "切镜相邻帧未出现白闪"))
     issues.update(root, closure)
     assert not ledger.status(root, project)["issues"]

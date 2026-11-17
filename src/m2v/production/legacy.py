@@ -139,8 +139,8 @@ def validate_resolution(root, item):
         if errors:
             raise M2VError("制作账本损坏")
         qa = {"status": "pass", **film_review.qa_binding(root, project)}
-        if film_review.playback_state(events, qa)["status"] != "pass":
-            raise M2VError("历史整片问题须由当前整片复核确认修复")
+        if film_review.whole_film_state(events, qa)["status"] != "pass":
+            raise M2VError("历史整片问题须由当前整片证据复核确认修复")
     elif old["reportId"]:
         report = reviews.current_report(root, project, identifier(item.get("closureReportId")))
         if (report["verdict"] != "pass" or report["isolation"] != "independent-subagent"

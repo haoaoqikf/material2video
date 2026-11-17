@@ -275,24 +275,40 @@ def qa_binding(root, project):
     return ledger.query_value(("technical-qa", root), verify)
 
 
-def confirm_playback(root, project, request):
-    fields(request, {"candidateSha256", "observations"})
-    text(request["observations"])
+def _validate_evidence(record, total_frames):
+    text(record.get("observations"))
+    windows = record.get("windows")
+    if not isinstance(windows, list) or not windows:
+        raise M2VError("整片证据复核须登记至少一个已核查帧窗")
+    for item in windows:
+        fields(item, {"window", "observations"})
+        text(item["observations"])
+        if window(item["window"])[1] > total_frames:
+            raise M2VError("复核证据帧窗超出当前候选")
+
+
+def confirm_evidence(root, project, request):
+    fields(request, {"candidateSha256", "observations", "windows"})
     binding = qa_binding(root, project)
     if request["candidateSha256"] != binding["candidateSha256"]:
-        raise M2VError("实际看听的文件摘要与当前候选不符")
-    record = {**binding, "observations": request["observations"]}
-    ledger.append(root, project, "playback-confirmed", data=record)
-    logger.info("已登记当前完整候选的整片复核 %s", binding["candidateSha256"])
+        raise M2VError("复核证据的文件摘要与当前候选不符")
+    _validate_evidence(request, binding["durationFrames"])
+    record = {**binding, **request}
+    ledger.append(root, project, "film-evidence-confirmed", data=record)
+    logger.info("已登记当前完整候选的整片证据复核 %s", binding["candidateSha256"])
     return record
 
 
-def playback_state(events, qa):
-    record = _latest(events, "playback-confirmed")
+def whole_film_state(events, qa):
+    record = _latest(events, "film-evidence-confirmed")
     if record is None:
         return {"status": "missing"}
     if qa["status"] != "pass" or {key: value for key, value in qa.items() if key != "status"} != {
-        key: value for key, value in record.items() if key != "observations"
+        key: value for key, value in record.items() if key not in ("observations", "windows")
     }:
         return {"status": "stale", "detail": "当前候选或技术绑定已变化"}
+    try:
+        _validate_evidence(record, qa["durationFrames"])
+    except M2VError as exc:
+        return {"status": "invalid", "detail": str(exc)}
     return {"status": "pass", **record}

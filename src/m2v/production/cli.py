@@ -11,9 +11,9 @@ from .storage import read, locked
 
 def add_parsers(sub):
     review = sub.add_parser("review", help="独立媒体评审与全片预演")
-    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse", "scope", "confirm-playback"))
+    review.add_argument("action", choices=("start", "pack", "compare", "import", "timeline", "retarget", "reuse", "scope", "confirm-evidence"))
     review.add_argument("--project", required=True)
-    review.add_argument("--file", help="评审、复核或必审窗口 JSON")
+    review.add_argument("--file", help="评审、整片证据复核或必审窗口 JSON")
     review.add_argument("--blind-id", help="自动派生同轮对照的当前盲报告 ID")
     problem = sub.add_parser("issues", help="更新唯一问题记录")
     problem.add_argument("action", choices=("update",))
@@ -47,13 +47,13 @@ def dispatch(args):
             result = ledger.append(root, manifest, "issues-updated")
         elif args.action == "start":
             result = ledger.start(root, manifest)
-        elif args.action in ("scope", "confirm-playback"):
+        elif args.action in ("scope", "confirm-evidence"):
             from . import film_review
 
             if not args.file:
                 raise M2VError(f"{args.action} 需要 --file")
             action = (film_review.register_windows if args.action == "scope"
-                      else film_review.confirm_playback)
+                      else film_review.confirm_evidence)
             result = action(root, manifest, read(Path(args.file)))
         elif args.action == "timeline":
             from .timeline import build

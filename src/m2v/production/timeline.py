@@ -72,7 +72,7 @@ def build(root: Path, manifest: dict) -> Path:
         '<div id="root"></div><script src="player.js"></script>', encoding='utf-8')
     (directory / 'questions.md').write_text(
         '只读取本目录。按完整顺序观察理解、结构、节奏和声画承接。\n'
-        '本目录是本地网页，使用本地 HTTP 服务打开 index.html；不能播放时以分场和跨场窗口补证，不推断通过。\n',
+        '本目录是本地网页，使用本地 HTTP 服务打开 index.html；制作复核使用分场与跨场窗口的抽帧和适用信号，无需播放观看或试听。\n',
         encoding='utf-8')
     files = [receipt(directory, p) for p in sorted(directory.rglob('*')) if p.is_file()]
     write(directory / 'manifest.json', {'version': VERSION, 'kind': 'internal-timeline',

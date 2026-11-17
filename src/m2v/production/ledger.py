@@ -258,7 +258,7 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
         "keyframes": {"status": "missing"},
         "keySamples": {"status": "undetermined"},
         "technicalQA": {"status": "unverified"},
-        "playback": {"status": "missing"},
+        "wholeFilmReview": {"status": "missing"},
         "diagnostics": [],
         "issues": [],
     }
@@ -358,12 +358,12 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
             if formal_stills and not static_pass:
                 result["keyframes"]["detail"] = "缺少包含真实字幕的合成关键帧"
             result["keySamples"] = film_review.sample_state(data, events, approved)
-            result["playback"] = film_review.playback_state(events, result["technicalQA"])
+            result["wholeFilmReview"] = film_review.whole_film_state(events, result["technicalQA"])
             result["complete"] = (
                 static_pass
                 and result["keySamples"]["status"] in ("exempt", "pass")
                 and result["technicalQA"]["status"] == "pass"
-                and result["playback"]["status"] == "pass"
+                and result["wholeFilmReview"]["status"] == "pass"
                 and not errors
                 and not any(item["required"] for item in result["issues"])
             )

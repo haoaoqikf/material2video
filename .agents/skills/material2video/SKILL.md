@@ -33,7 +33,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 评审与完成
 
-按[审核策略](references/review-contract.md)执行关键帧、适用关键样片的独立评审与总代理整片复核。观察按[世界级标准](references/visual-review-rubric.md#世界级品质与风格开放)，每项和整体明确通过或不通过。总代理实际查看、初筛、核对覆盖与选案。
+按[审核策略](references/review-contract.md)执行关键帧、适用关键样片的独立评审与总代理整片证据复核。观察按[世界级标准](references/visual-review-rubric.md#世界级品质与风格开放)，每项和整体明确通过或不通过。总代理按实际抽帧、时间轴和适用信号初筛、核对覆盖与选案。研究到交付均不要求播放视频观看或实际试听。
 
 固定保留 RESEARCH.md、DESIGN.md 及每个 design/scenes/<scene-id>.md；[场景默认四问](references/scene-design.md#场景模板)，复杂机制按需深化。问题唯一归 outputs/visual-notes.md，参数留在分镜／代码，原报告只引用。阶段由助手判断，工具不自动认证审美。
 

@@ -52,7 +52,7 @@ coverage 每项为 id、window、status、adoption、observations、limitations�
 ```powershell
 uv run m2v review scope --project <作品> --file <必审窗口.json>
 uv run m2v review pack --project <作品> --file <正式评审请求.json>
-uv run m2v review confirm-playback --project <作品> --file <整片复核.json>
+uv run m2v review confirm-evidence --project <作品> --file <整片复核.json>
 ```
 
 必审窗口文件形如：
@@ -69,7 +69,13 @@ uv run m2v review confirm-playback --project <作品> --file <整片复核.json>
 
 固定路径的预演按摘要封存，完整候选复用已有持久路径。以 `video.mp4` 取证时校验其与候选的字节摘要及溯源映射，允许技术 QA 在交付旁车补写独立的 `qa` 注记。后续按实际窗口的场景依赖、合成字幕和适用母版音频重验。同批中的窗口按各自来源区分有效范围，正式独立失败只把实际失败的项登记为必改。原生试制与正式窗口可以在同一周期记录，完成状态只统计正式合成证据。有字幕时正式关键帧与适用关键样片均须覆盖实际字幕。
 
-总代理完成正常速度完整看听、重点风险回看和技术 QA 后，提交含 candidateSha256 与 observations 的 JSON。observations 写实际观察、回看的时间窗及结论，摘要取实际所看文件。确认写入现有账本。状态在候选、准备身份或 QA 变化后判旧确认过期，缺少实际看听继续保留未确认。
+总代理完成当前候选的抽帧、时间轴、适用信号核查及技术 QA 后，提交 `candidateSha256`、整片 `observations` 和 `windows`。至少登记一个实际核查过的帧窗，帧号为成片绝对半开区间；每窗填写具体帧、信号或时序证据及结论，整片结论说明覆盖和限制。以下数值与摘要仅作结构示意：
+
+```json
+{"candidateSha256":"<当前候选SHA-256>","observations":"核对全片各场代表帧、跨场边界及字幕时序；声音结论限于信号量测","windows":[{"window":[88,96],"observations":"核对切镜两侧及中段有序帧，字幕未跨入下一场"}]}
+```
+
+确认写入现有账本，由 `status` 的 `wholeFilmReview` 显示。候选、准备身份或 QA 变化后，确认失效。旧 `confirm-playback` 不再接受，历史记录保留；仍有效的旧候选可复用媒体和 QA 补登记，不必重渲染。
 
 ## 用户明确变更目标
 

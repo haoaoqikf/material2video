@@ -32,7 +32,7 @@ pnpm run render
 |---|---|
 | 为 `data-evolution/compound-interest` 先给方案与图片 | 核对既有参考实际只覆盖了哪些静帧，补研究缺口；对应展示具体参考、采用转化和代表性当前画面，只报告静态覆盖，不继续生成完整视频 |
 | 为 `data-evolution/compound-connect` 局部改数值 | 核对模型、布局及实际依赖，沿用仍有效的研究和视觉基线；数字变化影响对象尺度时扩大复查，不重开无关选案 |
-| 为 `principle-metaphor/luck-on-stage` 改运动机制 | 实际查看对应完整动作与衔接窗口；静帧外观研究不授权运动、节奏或听感通过，关键未知补片段试制 |
+| 为 `principle-metaphor/luck-on-stage` 改运动机制 | 用有序抽帧和适用信号核查对应完整动作与衔接窗口；静帧外观研究不授权运动、节奏或听感通过，关键未知补片段试制 |
 | 为 `spatial-3d/solar-system-journey` 改空间表现 | 拆解实际参考的尺度、光向、镜头和主体层次，在正式链路验证代表画面及相机过程；准确的模型数据不自动证明美术效果 |
 | 为 `documentary-edit/american-science-milestones` 重组剪辑 | 分开研究整体视觉、专项转场和信息组织；查看适用原片、核对事实/许可，参考画面不直接入片，实际入片素材继续按台账登记 |
 
