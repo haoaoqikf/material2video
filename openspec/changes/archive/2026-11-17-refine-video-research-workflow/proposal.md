@@ -18,7 +18,8 @@
 ### Modified Capabilities
 
 - `visual-expression-inspiration` 移除固定灵感目录及其要求。
-- `video-production-workflow` 规定两项调研、候选试制与口播音色默认值。
+- `video-production-workflow` 规定两项调研与候选试制。
+- `assistant-voice-selection` 规定固定口播默认音色的适用范围，通用自动选音覆盖其余需要选音的作品。
 - `stage-guidance-routing` 校验两项调研入口及对应指南。
 - `scene-design-documents` 按实际设计决策及验证需要记录。
 - `shared-motion` 组件调研优先查内部实现，外部调研范围由缺口决定。
