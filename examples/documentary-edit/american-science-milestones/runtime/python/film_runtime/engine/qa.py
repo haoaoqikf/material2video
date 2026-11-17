@@ -409,7 +409,7 @@ def run(root: Path, prepared: dict, *, video: Path | None = None, step: int = DE
                               "requiredChecks": ["composition", "material", "mobile-legibility",
                                                  "claim-visibility", "frame-sequence", "audio-candidate-review",
                                                  "rhythm-measurement"],
-                              "detail": "技术结论不代表视觉完成；助手须复核帧序列与音频候选，无需连续播放或实际试听。"},
+                              "detail": "技术 QA 仅检查媒体信号；整片看听与适用独立评审须按制作验收流程另行完成。"},
               "checks": checks,
               "status": "fail" if any(item.get("status") == "fail" for item in checks.values()) else "pass"}
     report_path = output_root(root) / "qa.json"
