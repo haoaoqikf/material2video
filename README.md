@@ -16,7 +16,7 @@ Material2Video 是短视频制作指导与工具链。新建作品使用 `projec
 
 地图轨迹与情境叙事是可选表现手法，不是独立类型。没有 `general`、专项类型、类别层或风格注册表。作品默认生成到 `videos/<类型>/<作品名>/`；随附示例放在 [`examples/`](examples/README.md)。
 
-口播配实拍或外部素材使用 `documentary-edit`。逐段匹配文案里的对象、动作、过程与情绪，通用画面优先查 Pexels 和 Pixabay，按缺口扩展到其他公开来源。具体事实优先核对原件，选材见[制作指导](.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。[营销号口播剪辑指南](.agents/skills/material2video/references/documentary-social-video.md)提供选题、四类文案结构、文案转镜头、剪辑节奏与标题封面的完整演练，不新增类型或制作阶段。
+口播配实拍或外部素材使用 `documentary-edit`。逐段匹配文案里的对象、动作、过程与情绪，通用画面优先查 Pexels 和 Pixabay，按缺口扩展到其他公开来源。具体事实优先核对原件，选材见[制作指导](.agents/skills/material2video/references/visual-material-selection.md#观点旁白与意境素材)。适用口播的固定「真人播客女」音色见[配音指南](.agents/skills/material2video/references/voice-and-rhythm.md#口播作品的固定默认音色)。
 
 纪实口播默认使用本地 `kokoro`，其他类型默认使用联网的 `edge-tts`。纪实口播可按文案选择合适的 Kokoro 中文音色，例如 `zf_027` 这类本地音色，并按作品内 `models/registry.json` 恢复固定 revision 的模型。需要克隆参考音色时，作品可声明 `qwen3-tts`，用 `clone_<slug>` 指作品内参考音频与参考文本，按 `models/qwen3-tts/registry.json` 恢复 Qwen3-TTS 主模型与 stable-ts 对齐模型。Qwen3-TTS 使用 FFmpeg `atempo` 做保音高变速，再对实际音频强制对齐。三种后端都输出真实词边界，进入同一字幕断句与停顿整形链路。Kokoro 与 Qwen3-TTS 目前只接受纯中文旁白，数字与拉丁字母会在合成前失败；Qwen3-TTS 参考音色的来源与用户授权必须留证，不能从模型仓库恢复参考音频。
 
@@ -103,8 +103,8 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。
 - [三阶段制作](.agents/skills/material2video/SKILL.md)：研究与创意试制 → 正式设计 → 制作与验收。先比较同一关键场景的不同设计，按判断需要补足精度，再集中打磨；分别判断候选优劣与能否作为后续标准，允许全部淘汰。整体品质成立且在拟用链路重现后展开全片，具体选案与收敛见[研究与试制](.agents/skills/material2video/references/stage-research.md)。样片适用范围及整片复核见[审核策略](.agents/skills/material2video/references/review-contract.md)。
-- [全片与场景设计](.agents/skills/material2video/references/scene-design.md)：总设计统一五维与结构，每场以既有 scene.id 将五维意图落实到关键状态、动作因果、注意力和衔接；按机制深化，配有隐喻因果、数据关系和静态文字教学演练，验证计划与当前结果分开回写。文档当前不渲染，分镜/代码维护执行参数，技能脚本支持全片或局部对应检查。
-- [视频视觉与表达参考](.agents/skills/material2video/references/visual-expression-inspiration.md)：含 14 种视觉风格、6 种表达模式、12 种动态风格、12 种音效风格和 12 种转场风格，创作或视听表达修订前必读；名称用于拓展探索，采用自选。[深入风格研究](.agents/skills/material2video/references/reference-video-analysis.md)区分整体品质、专项表现和信息表达参考，记录实际观察、效果解释及本片应用；可随研究试制，未知触发补查，不以搜索数量或全部研究结束为前提。
+- [全片与场景设计](.agents/skills/material2video/references/scene-design.md)：总设计统一适用的视听语言与结构，每场以既有 scene.id 将设计决策落实到关键状态、动作因果、注意力和衔接；按机制深化，配有隐喻因果、数据关系和静态文字教学演练，验证计划与当前结果分开回写。文档当前不渲染，分镜/代码维护执行参数，技能脚本支持全片或局部对应检查。
+- [优秀案例调研](.agents/skills/material2video/references/reference-video-analysis.md)从实际作品拆解构图、动效、节奏和视觉表达，并转成试制目标。[成熟组件调研](.agents/skills/material2video/references/visual-components.md#成熟组件调研)先查内部实现，按缺口查外部，并用本片内容验证。两项结论都记录在 RESEARCH.md。
 - [架构说明](ARCHITECTURE.md)：代码分层与依赖方向。
 - [OpenSpec 规格](openspec/specs/)：已实现行为。
 - [项目协作约定](AGENTS.md)：验证、提交与资产管理。

@@ -46,11 +46,6 @@
   },
   "conditional": [
     {
-      "id": "documentary-social-video",
-      "when": "制作营销号式口播、知识解说、观点短视频、人物故事或热点解读；以旁白和真实素材组织主线",
-      "guide": "references/documentary-social-video.md"
-    },
-    {
       "id": "financial-source",
       "when": "分镜实际声明financial-series来源；固定数学模型不触发",
       "guide": "references/financial-timeseries-video.md"
@@ -106,13 +101,18 @@
       "guide": "references/voice-and-rhythm.md"
     },
     {
-      "id": "reference",
-      "when": "创作或实质性视听修订建立具体视觉标杆并深入拆解（无论是否采用），或用户要求学习、借鉴参考",
+      "id": "case-research",
+      "when": "新作或实质性视听修订需要调研优秀案例，或用户要求学习、借鉴参考",
       "guide": "references/reference-video-analysis.md"
     },
     {
+      "id": "component-research",
+      "when": "按目标效果查内部组件或评估外部成熟实现",
+      "guide": "references/visual-components.md#成熟组件调研"
+    },
+    {
       "id": "design-research",
-      "when": "具体研究、本片转化与关键帧独立双评；短片不另制试制片段，过程在全片验证",
+      "when": "优秀案例和成熟组件调研、本片转化及代表场景试制",
       "guide": "references/stage-research.md"
     },
     {
@@ -154,11 +154,6 @@
       "id": "production-template",
       "when": "填写推进回退记录",
       "guide": "references/production-workflow.md"
-    },
-    {
-      "id": "inspiration",
-      "when": "创作或实质性视听修订前必读；风格与表达方法自选",
-      "guide": "references/visual-expression-inspiration.md"
     },
     {
       "id": "native-design-sample",

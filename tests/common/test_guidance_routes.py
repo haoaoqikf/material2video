@@ -65,7 +65,7 @@ def test_invalid_routes_are_rejected(mutation, match):
         guidance_docs.validate(ROOT, value)
 
 
-@pytest.mark.parametrize('route_id', ['reference', 'design-research', 'scene-design'])
+@pytest.mark.parametrize('route_id', ['case-research', 'component-research', 'design-research', 'scene-design'])
 @pytest.mark.parametrize('mutation', ['remove', 'retarget'])
 def test_required_research_routes_cannot_disappear_or_point_elsewhere(route_id, mutation):
     value = routes()
@@ -73,7 +73,7 @@ def test_required_research_routes_cannot_disappear_or_point_elsewhere(route_id, 
         value['conditional'] = [row for row in value['conditional'] if row['id'] != route_id]
     else:
         next(row for row in value['conditional'] if row['id'] == route_id)['guide'] = 'references/stage-production.md'
-    with pytest.raises(M2VError, match='研究与参考拆解路由'):
+    with pytest.raises(M2VError, match='研究与调研路由'):
         guidance_docs.validate(ROOT, value)
 
 

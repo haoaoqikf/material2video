@@ -128,7 +128,7 @@ def validate(root: Path, scene_ids: list[str] | None = None) -> dict:
         path = _local(root, folder / f'{scene_id}.md')
         _links(root, path, _document(path), partial, set(ids))
     return {'scenes': sorted(selected), 'scope': 'partial' if scene_ids is not None else 'complete',
-            'meaning': '仅结构对应通过，不代表五维设计、实际效果或独立评审通过'}
+            'meaning': '仅结构对应通过，不代表设计内容、实际效果或独立评审通过'}
 
 
 def main(argv: list[str] | None = None) -> int:

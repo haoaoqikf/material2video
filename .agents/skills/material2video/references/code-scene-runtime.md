@@ -292,7 +292,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ## 运动实现约定
 
-运动风格见创作前必读的[视觉与表达参考](visual-expression-inspiration.md#三动态风格12-种)，采用自选。技术实现与风格选择分开，不要求统一的运动人格、层次、时长或动作配方。
+从[优秀案例调研](reference-video-analysis.md)与本片表达目标确定运动。实现以实际场景的时间输入、对象状态和验证预期为依据。
 
 时间按作品实际帧率换算：`帧位置 = 秒数 × fps = 毫秒数 × fps / 1000`。非整数位置按调用字段、事件或采集接口的既有精度处理，不增加统一取整规则，不以 UI 毫秒表规定视频时长。
 
@@ -333,8 +333,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 窗口包络与关键词切分。`screenSubtitleCharacters` 按传入帧号、开始帧、逐字间隔与单字时长
 返回独立字符进度，标点可增加停顿，不把长句压入固定包络。安全区容器保持固定，文字入退场在内部进行。
 这些原语只依赖显式进度或传入帧号、窗口、种子与缓动，不读取挂钟或上一帧状态；路径采样与
-锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由采用后的本地模块导出；这些已有能力按需复用，需要其他能力时可按[原生样品规范](design-samples.md)扩展登记依赖。新增动效或可视化组件前先按 `AGENTS.md` 的「动效与组件先
-调研外部方案」检索并记录选型，既有原语能满足时优先复用。
+锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由采用后的本地模块导出；这些已有能力按需复用，需要其他能力时可按[原生样品规范](design-samples.md)扩展登记依赖。新增动效或可视化组件按[成熟组件调研](visual-components.md#成熟组件调研)查找并记录选型。
 
 ### 共享动效组件
 

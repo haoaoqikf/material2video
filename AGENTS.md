@@ -19,11 +19,11 @@
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
-- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的唯一操作权威，连接具体标杆、深入拆解、本片转化、代表性试制与目标对照；研究足以支持当前试验即可推进，未知触发补查，品质方向成立后展开全片。作品 RESEARCH.md 保存研究，DESIGN.md 引用结论及实际视觉基线。
+- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的主指南，衔接优秀案例调研、成熟组件调研、代表性试制与目标对照。作品 RESEARCH.md 保存研究，DESIGN.md 引用结论及实际视觉基线。
 - `.agents/skills/material2video/references/scene-design.md`：全片/场景设计分工、十二方面、节拍编排、渐进开发与对应检查的唯一权威；总设计维护共同语言和索引，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
-- `.agents/skills/material2video/references/reference-video-analysis.md`：具体视觉标杆、深入风格拆解与采用转化的方法权威；自创或融合风格同样适用，参考用途与实际查看范围须清楚，不能以风格标签或信息图规范替代美术研究。
-- `.agents/skills/material2video/references/visual-expression-inspiration.md`：创作或视听表达修订前必读，同一任务已读则不重复；风格采用自选，但新方案及展示型 HTML 草稿须按[研究与创意试制](.agents/skills/material2video/references/stage-research.md)执行，不因自创或不采用参考而跳过研究；风格列表不作为审美验收条件。
-- `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口；动态风格并入必读灵感文档，采用自选。
+- `.agents/skills/material2video/references/reference-video-analysis.md`：优秀案例调研，维护实际查看、构图、动效、节奏与视觉表达拆解、本片转化及证据边界。
+- `.agents/skills/material2video/references/visual-components.md`：成熟组件调研，维护内部查找入口、外部缺口调研、组件选型与小试。
+- `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口。
 - `openspec/config.yaml`：OpenSpec 的项目语境；`openspec/specs/` 保存已归档能力规格，`openspec/changes/` 保存进行中的变更。
 
 ## OpenSpec 工作流
@@ -71,7 +71,7 @@
   新增或替换示例须同步名单、测试与文档。只有跨作品复用的能力进入共享 SDK；示例专属画面留在示例内。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。
-- **动效与组件先调研外部方案**：新增动效、可视化或交互组件前，优先检索、采用、组合或改造成熟外部库/组件，并评估（维护状态、许可、体积、逐帧确定性、与代码场景/Remotion 的兼容性）。能在确定性约束内引入的优先引入，并登记来源、版本与许可；已有内部成熟实现能满足需求时优先复用，不为同一能力重复引入依赖。只有没有可行外部方案，或外部方案经过适配／预计算仍不能满足效果、受控采集、许可、包体或风格边界时，才自研必要缺口，并在设计记录中写明检索结论与理由。禁止未检索就直接手写。
+- **成熟组件调研**：新增动效、可视化或交互组件前，按[成熟组件调研](.agents/skills/material2video/references/visual-components.md#成熟组件调研)先查内部组件、原语与示例。内部方案可达到目标时直接复用，遇到缺口再调研外部成熟方案并试用，仅自研必要部分。查找、选型和验证结论写入 RESEARCH.md。
 - **实现手段向品质开放**：允许调研、组合、改造外部组件、开源项目、模型、材质、Shader、建模、预计算及自研方案；现有 SDK、依赖名单与熟悉程度不限制表达上限。复用满足目标的内部实现，新增直接依赖按[开放实现规范](.agents/skills/material2video/references/design-samples.md#实现手段开放)登记并实际验证，保持本地可恢复、许可、路径及受控时间边界；允许扩展不等于预装全部候选。
 - 改动渲染契约、分镜结构或视觉规范时，必须同步更新 skill 内的参考文档、校验器与示例；
   尚未参与渲染的字段要在文档中明确标注「当前不渲染」，不得含糊表述为已支持。

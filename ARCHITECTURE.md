@@ -35,7 +35,7 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 
 ## 分层设计材料
 
-研究、总设计与每个正式场景文档固定保留。`RESEARCH.md` 保存研究；`DESIGN.md` 保存全片目标、原始要求、采用范围、五维共同语言及索引；`design/scenes/<scene-id>.md` 保存详细编排与实际依据。分镜关联代码入口并维护正式执行参数，设计文档当前不渲染，不进入准备指纹。场景默认四问、复杂机制按需展开。离线技能脚本只检查固定材料、ID、索引和链接，不判断审美或制作完成；流程与模板见[场景设计](.agents/skills/material2video/references/scene-design.md)。
+研究、总设计与每个正式场景文档固定保留。`RESEARCH.md` 保存研究；`DESIGN.md` 保存全片目标、原始要求、采用范围、适用的视听共同语言及索引；`design/scenes/<scene-id>.md` 保存详细编排与实际依据。分镜关联代码入口并维护正式执行参数，设计文档当前不渲染，不进入准备指纹。场景默认四问、复杂机制按需展开。离线技能脚本只检查固定材料、ID、索引和链接，不判断审美或制作完成；流程与模板见[场景设计](.agents/skills/material2video/references/scene-design.md)。
 
 ## 契约与文档
 

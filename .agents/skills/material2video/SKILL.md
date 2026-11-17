@@ -9,7 +9,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 先定位任务
 
-读取 project.json 确认类型与内容根。创作或实质性视听修订前完整阅读[创作总纲与灵感](references/visual-expression-inspiration.md)，已读不重读。风格自由，以所选方向的世界级完成度为目标；优先复用、采用和改造成熟方案，只自研必要缺口。
+读取 project.json 确认类型与内容根。新作或实质性视听重设计进入[研究与创意试制](references/stage-research.md)，沿优秀案例调研、成熟组件调研及代表场景试制建立实际视觉方向。
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
@@ -25,7 +25,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 | 阶段 | 主指南 | 重点 |
 |---|---|---|
-| 研究与创意试制 | [研究与试制](references/stage-research.md) | 深入研究具体标杆，转化、试制并对照目标 |
+| 研究与创意试制 | [研究与试制](references/stage-research.md) | 案例拆解、组件选型、代表场景试制与对照 |
 | 正式设计 | [完整设计与预演](references/stage-design.md) | 将有效创意组织成完整作品 |
 | 制作与验收 | [制作迭代与验收交付](references/stage-production.md) | 实现品质，验证整片并交付 |
 
@@ -41,6 +41,6 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 条件阅读
 
-营销号口播、知识解说、人物故事等按[营销号口播剪辑指南](references/documentary-social-video.md)制作。口播配实拍或外部素材归 `documentary-edit`。开工先查[默认音色](references/documentary-social-video.md#7-配音字幕与声音)与[资料画面标注](references/documentary-social-video.md#真实来源与采用边界)，再登记音色、编写分镜及画面文字。
+口播配实拍或外部素材归 `documentary-edit`。按[视觉素材选择](references/visual-material-selection.md#观点旁白与意境素材)逐段排镜，按[配音指南](references/voice-and-rhythm.md#口播作品的固定默认音色)为适用口播登记固定音色。按[采用与署名](references/material-sourcing.md#5-采用政策与署名)处理「资料画面」和证据标识。
 
 [阅读路由](references/guidance-routes.json)维护触发条件与唯一权威。素材检索读[素材台账](references/material-sourcing.md)，运动实现读[运行契约](references/code-scene-runtime.md#运动实现约定)。改材料后重新 prepare，修复先按帧/信号核对局部效果再汇总全片。命令以[README](../../../README.md)和实际帮助为准。
