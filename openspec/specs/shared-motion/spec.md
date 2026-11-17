@@ -167,7 +167,7 @@
 
 本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
 
-系统 SHALL 在采用时本地提供共享 L1 组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine`；以及 L2 组件：`RollingNumber`、`Typewriter`、`MarkerHighlight`、`BarGrowth`、`Callout`。
+系统 SHALL 在采用时本地提供共享 L1 组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine`；以及 L2 组件：`RollingNumber`、`MarkerHighlight`、`BarGrowth`、`Callout`。
 
 每个组件 MUST 只接受 `progress`（0–1）、显式 `easing`、几何与样式参数作为动画输入，MUST NOT 读取挂钟时间、帧号、上一帧状态、计时器、rAF、CSS 动画或 Remotion context。相同 `progress` 与相同参数 MUST 产生相同输出。随机性 MUST 只来自显式 `seed`，未提供时 MUST 使用固定默认种子。
 
@@ -289,19 +289,15 @@
 - **WHEN** pure-time 场景改为使用 ECharts 或 `Chart`
 - **THEN** 静态闸门拒绝，提示改用共享图表组件
 
-### Requirement: 结构与波形组件
+### Requirement: 时间轴与章节轨
 
 本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
 
-系统 SHALL 在采用时本地提供 `Timeline`、`ChapterTrack`、`Pictogram`、`IconGrid`、`Waveform` 与 `resamplePeaks`。事件与单位填充 MUST 只由数值、`progress` 与显式 seed（如适用）决定。标签密集时组件 MUST NOT 自动避让或截断，由调用方负责。
+系统 SHALL 在采用时本地提供 `Timeline` 与 `ChapterTrack`。事件显隐和当前章节 MUST 只由数值与显式 `progress` 决定。标签密集时组件 MUST NOT 自动避让或截断，由调用方负责。
 
-#### Scenario: 单位填充
-- **WHEN** `Pictogram` 接收总格数、填充值与进度
-- **THEN** 整格与部分格按数值比例显示，部分格以透明度表示
-
-#### Scenario: 波形重采样
-- **WHEN** `Waveform` 接收任意长度的采样数组
-- **THEN** 固定柱数的峰值由 `resamplePeaks` 按桶取绝对值最大值得到
+#### Scenario: 时间轴与章节展示
+- **WHEN** 时间轴或章节轨以显式进度求值
+- **THEN** 时间轴只显示已到达的事件，章节轨按该进度高亮当前章节
 
 ### Requirement: 图表几何统一来源
 

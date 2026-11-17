@@ -235,7 +235,7 @@ pure 场景 MUST 通过静态源码闸门与动态探针：探针帧正序与倒
 
 本要求只约束作品实际采用的本地实现和默认工程模板。主项目 MUST NOT 提供强制运行时SDK；构建器 MUST 从作品自身安装和锁文件解析依赖，MUST NOT 读取主项目源码或全局依赖登记。参考未被采用时 MUST NOT 成为构建或指纹输入。
 
-代码场景 SHALL 通过 作品本地模块 使用已采用的本地组件，包括 L1/L2 动效、文本排版（`AutoFitText`、`TextBlock`）、路径形变与遮罩（`PathMorph`、`MaskReveal`）、圆弧进度（`ArcGauge`、`ProgressRing`）、种子噪声（`NoiseDrift`）、纯时间图表（`LinePlot`、`AreaPlot`、`Sparkline`、`Axis`）、时间轴与章节轨（`Timeline`、`ChapterTrack`）、象形图（`Pictogram`、`IconGrid`）与波形（`Waveform`）。
+代码场景 SHALL 通过 作品本地模块 使用已采用的本地组件，包括 L1/L2 动效、文本排版（`AutoFitText`、`TextBlock`）、路径形变与遮罩（`PathMorph`、`MaskReveal`）、圆弧进度（`ArcGauge`、`ProgressRing`）、种子噪声（`NoiseDrift`）、纯时间图表（`LinePlot`、`AreaPlot`、`Sparkline`、`Axis`）、时间轴与章节轨（`Timeline`、`ChapterTrack`）。
 
 已采用的本地组件 MUST 只依赖显式 `progress`/`easing`/`seed`，MUST NOT 依赖 Remotion composition context；`sequential` 与 `pure-time` MUST 使用同一套组件。文本测量 MUST 在字体就绪后完成，MUST NOT 引入挂钟或计时器。作品 MUST 将实际直接采用的第三方库声明并锁定在本地；允许直接导入或本地封装，MUST NOT 要求经过主项目导出。
 
