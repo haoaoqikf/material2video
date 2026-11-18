@@ -9,7 +9,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 ## 先定位任务
 
-读取 project.json 确认类型与内容根。新作或实质性视听重设计进入[研究与创意试制](references/stage-research.md)，沿优秀案例调研、成熟组件调研及代表场景试制建立实际视觉方向。
+读取 project.json 确认类型与内容根。新作或实质性视听重设计进入[研究与创意试制](references/stage-research.md)，沿全片案例与组件调研及代表场景试制建立实际视觉方向。
 
 <!-- generated:type-catalog:start -->
 | 类型 | 创作指导 |
@@ -26,7 +26,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 | 阶段 | 主指南 | 重点 |
 |---|---|---|
 | 研究与创意试制 | [研究与试制](references/stage-research.md) | 案例拆解、组件选型、代表场景试制与对照 |
-| 正式设计 | [完整设计与预演](references/stage-design.md) | 将有效创意组织成完整作品 |
+| 正式设计 | [完整设计与预演](references/stage-design.md) | 展开逐场设计与组件调研，组织成完整作品 |
 | 制作与验收 | [制作迭代与验收交付](references/stage-production.md) | 实现品质，验证整片并交付 |
 
 新作从[研究与试制](references/stage-research.md)开始；修订先读[修订入口](references/video-revision.md)，复用有效研究和基线。按[具体标杆与拆解](references/reference-video-analysis.md)转化当前内容，比较同场景设计后集中打磨。先看图片按[原生样品](references/design-samples.md)交付通过的同源静帧、参考和覆盖范围。

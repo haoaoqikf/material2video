@@ -102,17 +102,17 @@
     },
     {
       "id": "case-research",
-      "when": "新作或实质性视听修订需要调研优秀案例，或用户要求学习、借鉴参考",
+      "when": "新作或实质性视听修订需要在全片层调研或补查表达案例，或用户要求借鉴参考",
       "guide": "references/reference-video-analysis.md"
     },
     {
       "id": "component-research",
-      "when": "按目标效果查内部组件或评估外部成熟实现",
+      "when": "全片验证核心效果或共用实现，或者本场核对组件复用与实现缺口",
       "guide": "references/visual-components.md#成熟组件调研"
     },
     {
       "id": "design-research",
-      "when": "优秀案例和成熟组件调研、本片转化及代表场景试制",
+      "when": "全片案例与组件调研、本片转化及代表场景试制",
       "guide": "references/stage-research.md"
     },
     {

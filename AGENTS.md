@@ -19,7 +19,7 @@
 - `docs/PROJECT_PLAN.md`：未来功能、处理链路与阶段路线的权威来源。
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
-- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的主指南，衔接优秀案例调研、成熟组件调研、代表性试制与目标对照。作品 RESEARCH.md 保存研究，DESIGN.md 引用结论及实际视觉基线。
+- `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的主指南，衔接全片案例调研、全片组件调研、代表性试制与目标对照。
 - `.agents/skills/material2video/references/scene-design.md`：全片/场景设计分工、十二方面、节拍编排、渐进开发与对应检查的唯一权威；总设计维护共同语言和索引，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
 - `.agents/skills/material2video/references/reference-video-analysis.md`：优秀案例调研，维护实际查看、构图、动效、节奏与视觉表达拆解、本片转化及证据边界。
 - `.agents/skills/material2video/references/visual-components.md`：成熟组件调研，维护内部查找入口、外部缺口调研、组件选型与小试。
@@ -72,7 +72,7 @@
   新增或替换示例须同步名单、测试与文档。只有跨作品复用的能力进入共享 SDK；示例专属画面留在示例内。
 - 功能落地后同步更新 README 的当前能力，必要时更新项目规划，保持事实与规划一致。
 - 不因文档中列出候选技术或组件而擅自扩大当前开发范围。
-- **成熟组件调研**：新增动效、可视化或交互组件前，按[成熟组件调研](.agents/skills/material2video/references/visual-components.md#成熟组件调研)先查内部组件、原语与示例。内部方案可达到目标时直接复用，遇到缺口再调研外部成熟方案并试用，仅自研必要部分。查找、选型和验证结论写入 RESEARCH.md。
+- **成熟组件调研**：新增动效、可视化或交互组件前，按[成熟组件调研](.agents/skills/material2video/references/visual-components.md#成熟组件调研)先查内部实现，按缺口查外部，仅自研必要部分。全片与场景选型和验证遵循[文档分工](.agents/skills/material2video/references/scene-design.md#分工与对应)。
 - **实现手段向品质开放**：允许调研、组合、改造外部组件、开源项目、模型、材质、Shader、建模、预计算及自研方案；现有 SDK、依赖名单与熟悉程度不限制表达上限。复用满足目标的内部实现，新增直接依赖按[开放实现规范](.agents/skills/material2video/references/design-samples.md#实现手段开放)登记并实际验证，保持本地可恢复、许可、路径及受控时间边界；允许扩展不等于预装全部候选。
 - 改动渲染契约、分镜结构或视觉规范时，必须同步更新 skill 内的参考文档、校验器与示例；
   尚未参与渲染的字段要在文档中明确标注「当前不渲染」，不得含糊表述为已支持。
