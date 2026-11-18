@@ -87,6 +87,7 @@ def test_boundary_and_binding_to_actual_candidate(work, film):
     questions = (contrast / "questions.md").read_text(encoding="utf-8")
     assert "世界级成片完成度" in questions and "足以指导后续制作" not in questions
     assert "试制对照逐项" not in questions
+    assert "试制通过须在实际观看条件下" not in questions
     candidate = _candidate(root, prepared, "first")
     before = ledger.status(root, project)
     assert before["keySamples"]["status"] == "exempt"
