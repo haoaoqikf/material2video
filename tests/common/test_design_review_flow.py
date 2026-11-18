@@ -116,6 +116,22 @@ def test_process_comparison_is_independent_without_a_blind_report(native):
         reviews.package(root, project, request_value)
 
 
+def test_native_process_blind_reason_packages_a_blind_review_then_compares(native):
+    root, project, identity = native
+    value, _ = samples.load(root, project, identity)
+    targets = {'references': [f"samples/{identity}/{value['stills'][0]['path']}"],
+               'conditions': ['完整动作与对象的连续性']}
+    blind_pack = samples.review(root, project, identity, purpose='process', targets=targets,
+                                blind_reason='需要在提示前独立辨认发生连续变化的对象')
+    assert read(blind_pack / 'manifest.json')['reviewType'] == 'blind'
+    assert not (blind_pack / 'conditions.json').exists()
+    accepted = reviews.import_report(root, project, report((root, project), blind_pack))
+    comparison = reviews.compare(root, project, accepted['id'])
+    manifest = read(comparison / 'manifest.json')
+    assert manifest['reviewType'] == 'consistency' and manifest['purpose'] == 'process'
+    assert (comparison / 'conditions.json').is_file()
+
+
 def test_cli_builds_sample_task_and_derives_comparison_without_request_copy(native, capsys):
     import json
     from m2v import cli

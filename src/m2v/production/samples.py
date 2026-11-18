@@ -271,7 +271,7 @@ def review(root: Path, project: dict, identity: str, *, purpose: str, targets: d
     if purpose == 'keyframe' and not reviews.has_visual_target(request):
         raise M2VError('关键帧需要实际视觉参考，音频不能代替视觉品质标杆')
     if blind_reason is not None:
-        request['blindReason'] = blind_reason
+        request.update(reviewType='blind', blindReason=blind_reason)
     elif purpose == 'process':
         request['reviewType'] = 'process'
     return reviews.package(root, project, request)
