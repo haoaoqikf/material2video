@@ -104,6 +104,8 @@ def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native
     assert '试制对照逐项' in comparison_questions
     assert '本帧登记的可观察通过效果' in comparison_questions
     assert '以各尺寸的完整画面作证' in comparison_questions
+    assert '可直接观察的复查问题' in comparison_questions
+    assert '可直接观察的复查问题' not in questions
     assert '实际证据' in comparison_questions and '观看尺寸' in comparison_questions
 
 
