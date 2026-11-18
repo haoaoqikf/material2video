@@ -76,6 +76,8 @@ def create_task(root: Path, package: Path) -> Path:
         "同轮对照仅可读取本评审者自身绑定盲报告。\n\n"
         "复制 report-template.json 填写实际观察，不修改模板或包。"
         "调用记录必须填写真实独立调用的身份、时间、读取文件和报告；"
+        "inputPaths 以 outputs 为根，只列实际读取的包内登记文件和 manifest.json。"
+        "任务和模板属于记录辅助材料，自己的盲审报告 ID 单列在 readReportIds。"
         "空白模板不是真实调用。写出调用后计算摘要填入报告 invocation。\n",
         encoding="utf-8",
     )

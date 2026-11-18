@@ -88,11 +88,17 @@ def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native
     })
     questions = (blind_pack / 'questions.md').read_text(encoding='utf-8')
     assert '足以指导后续制作' in questions and '世界级成片完成度' not in questions
+    assert '试制对照逐项' not in questions
+    task = Path(reviews.package_result(root, blind_pack)['task']).read_text(encoding='utf-8')
+    assert 'inputPaths 以 outputs 为根，只列实际读取的包内登记文件' in task
     assert not (blind_pack / 'conditions.json').exists()
     blind = reviews.import_report(root, project, report((root, project), blind_pack))
     contrast = reviews.compare(root, project, blind['id'])
     assert read(contrast / 'conditions.json') == conditions
-    assert '画面职责' in (contrast / 'questions.md').read_text(encoding='utf-8')
+    comparison_questions = (contrast / 'questions.md').read_text(encoding='utf-8')
+    assert '画面职责' in comparison_questions
+    assert '试制对照逐项' in comparison_questions
+    assert '实际证据' in comparison_questions and '观看尺寸' in comparison_questions
 
 
 @pytest.mark.parametrize('options', [dict(verdict='fail'), dict(verdict='insufficient'),
