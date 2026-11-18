@@ -341,7 +341,12 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             if request.get("references") else
             "本包仅核对中性条件，没有目标媒体；不得据此验证未提供的风格目标。\n"
         )
-    if request["round"] == "trial":
+        if request["purpose"] == "keyframe":
+            questions += (
+                "按已登记的画面职责使用参考，兼顾全作共同的艺术目标和该帧承担的表达。"
+                "说明实际取得的效果，造型、光色和材质可用适合本片的方式实现。\n"
+            )
+    if not request.get("film"):
         questions += (
             "在 observations 中说明具体吸引力、普通之处及当前最大差距；"
             "区分值得继续打磨与足以作为后续标准的依据，允许全部不值得继续，不强制选赢家。"
@@ -349,7 +354,10 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             "所有 items 仍须如实覆盖，淘汰不免除已导入失败的复查要求。\n"
         )
     from .review_tasks import guidance
-    (target / "questions.md").write_text(guidance(request["purpose"]) + questions, encoding="utf-8")
+    (target / "questions.md").write_text(
+        guidance(request["purpose"], formal=request.get("film", False)) + questions,
+        encoding="utf-8",
+    )
     files = [receipt(target, p) for p in sorted(target.rglob("*")) if p.is_file()]
     pack = build_manifest(
         review_id=rid,

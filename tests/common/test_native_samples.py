@@ -79,6 +79,22 @@ def test_delivery_reuses_the_reviewed_media_without_encoding(native, monkeypatch
     assert samples.deliver(root, project, identity, **args)['reused']
 
 
+def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native):
+    root, project, identity = native
+    Image.new('RGB', (640, 360), 'red').save(outputs(root) / 'target.png')
+    conditions = ['局部逆光承担主体分离']
+    blind_pack = samples.review(root, project, identity, targets={
+        'references': ['target.png'], 'conditions': conditions,
+    })
+    questions = (blind_pack / 'questions.md').read_text(encoding='utf-8')
+    assert '足以指导后续制作' in questions and '世界级成片完成度' not in questions
+    assert not (blind_pack / 'conditions.json').exists()
+    blind = reviews.import_report(root, project, report((root, project), blind_pack))
+    contrast = reviews.compare(root, project, blind['id'])
+    assert read(contrast / 'conditions.json') == conditions
+    assert '画面职责' in (contrast / 'questions.md').read_text(encoding='utf-8')
+
+
 @pytest.mark.parametrize('options', [dict(verdict='fail'), dict(verdict='insufficient'),
                                      dict(isolation='self-review'), dict(refs=False)])
 def test_incomplete_or_nonindependent_review_cannot_deliver(native, options):

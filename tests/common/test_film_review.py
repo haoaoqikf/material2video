@@ -83,7 +83,9 @@ def test_boundary_and_binding_to_actual_candidate(work, film):
     source = outputs(root) / "preview.mp4"
     source.write_bytes((outputs(root) / "trial.png").read_bytes())
     _preview(root, project, prepared, source, 0, 20)
-    _formal_still(work, source, 8)
+    contrast = _formal_still(work, source, 8)
+    questions = (contrast / "questions.md").read_text(encoding="utf-8")
+    assert "世界级成片完成度" in questions and "足以指导后续制作" not in questions
     candidate = _candidate(root, prepared, "first")
     before = ledger.status(root, project)
     assert before["keySamples"]["status"] == "exempt"

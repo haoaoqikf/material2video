@@ -51,7 +51,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 `m2v sample capture` 委托作品本地构建与采集，不需要完整分镜或配音。原生样品 v2 默认 static，只采集可复现网页和关键帧，不编码视频；motion 另生成完整过程。源码、实际依赖、字体、登记媒体、参数及产物均绑定，变化后重新采集。
 
-试制及正式关键帧均独立盲审并做同轮目标对照。研究试制的完整动态样片由总代理用有序帧、完整解码及适用信号核验。正式关键片段按审核策略做独立过程对照，核心时间机制需要时可登记正式过程盲审。总代理实际查看、初筛、核对报告并负责最终选案。[审核政策](.agents/skills/material2video/references/review-contract.md)
+试制及正式关键帧均独立盲审并做同轮目标对照。试制验证已成立的艺术方向，正式验证所选风格的成片完成度。对照按已登记的画面职责使用实际参考。研究试制的完整动态样片由总代理用有序帧、完整解码及适用信号核验。正式关键片段按审核策略做独立过程对照，核心时间机制需要时可登记正式过程盲审。总代理实际查看、初筛、核对报告并负责最终选案。[审核政策](.agents/skills/material2video/references/review-contract.md)
 
 ```powershell
 uv run m2v sample capture --project <作品> --entry scenes/core.tsx --kind static --duration-seconds 3 --frame 30
