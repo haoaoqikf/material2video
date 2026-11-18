@@ -345,6 +345,8 @@ def package(root: Path, manifest: dict, request: dict) -> Path:
             questions += (
                 "按已登记的画面职责使用参考，兼顾全作共同的艺术目标和该帧承担的表达。"
                 "说明实际取得的效果，造型、光色和材质可用适合本片的方式实现。\n"
+                "对照各尺寸登记的职责并以各尺寸的完整画面作证。"
+                "明确哪些是小屏的次要细节损失，哪些使核心形象、关键关系或必要信息受损。\n"
             )
             if not request.get("film"):
                 questions += (

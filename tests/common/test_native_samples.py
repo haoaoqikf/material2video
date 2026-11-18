@@ -89,6 +89,8 @@ def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native
     questions = (blind_pack / 'questions.md').read_text(encoding='utf-8')
     assert '足以指导后续制作' in questions and '世界级成片完成度' not in questions
     assert '试制通过须在实际观看条件下' in questions
+    assert '小屏减弱的非必要抽象细节' in questions
+    assert '对照各尺寸登记的职责' not in questions
     assert '本帧登记的可观察通过效果' not in questions
     task = Path(reviews.package_result(root, blind_pack)['task']).read_text(encoding='utf-8')
     assert 'inputPaths 以 outputs 为根，只列实际读取的包内登记文件' in task
@@ -101,6 +103,7 @@ def test_trial_keyframes_use_art_direction_and_keep_targets_in_comparison(native
     assert '画面职责' in comparison_questions
     assert '试制对照逐项' in comparison_questions
     assert '本帧登记的可观察通过效果' in comparison_questions
+    assert '以各尺寸的完整画面作证' in comparison_questions
     assert '实际证据' in comparison_questions and '观看尺寸' in comparison_questions
 
 
