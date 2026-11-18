@@ -45,7 +45,7 @@ python models/qwen3-tts/fetch.py --check --voice clone_<slug>
 
 ## 创作与资源
 
-固定保留 RESEARCH.md、DESIGN.md 和每个 design/scenes/<scene-id>.md，默认记录目标、画面与注意力、实现、验证与未知四问；起步材料不代表正式美术通过。
+固定保留[全片研究](RESEARCH.md)、[总设计](DESIGN.md)和每个 `design/scenes/<scene-id>.md`。全片研究统一记录案例与全片组件选型。场景文档按目标、画面与注意力、实现、验证与未知四问记录本场决定和证据。起步材料有待正式美术验证。
 
 场景入口在 `scenes/`；本地时间与资源就绪接口在 `src/code-scene/`；最终合成在 `src/scene-film/`。修改 `project.json`、`storyboard.json` 和场景即可创作。按作品需要自行采用本地组件或在 `package.json` 声明精确版本的第三方库，并更新本作品锁文件、来源与许可记录。没有主项目SDK或跨目录源码别名。
 

@@ -107,7 +107,7 @@
     },
     {
       "id": "component-research",
-      "when": "全片验证核心效果或共用实现，或者本场核对组件复用与实现缺口",
+      "when": "需要为全片核心效果或共用实现选型，或者已有方案有本场实现缺口",
       "guide": "references/visual-components.md#成熟组件调研"
     },
     {

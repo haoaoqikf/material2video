@@ -333,7 +333,7 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 窗口包络与关键词切分。`screenSubtitleCharacters` 按传入帧号、开始帧、逐字间隔与单字时长
 返回独立字符进度，标点可增加停顿，不把长句压入固定包络。安全区容器保持固定，文字入退场在内部进行。
 这些原语只依赖显式进度或传入帧号、窗口、种子与缓动，不读取挂钟或上一帧状态；路径采样与
-锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由采用后的本地模块导出；这些已有能力按需复用，需要其他能力时可按[原生样品规范](design-samples.md)扩展登记依赖。新增动效或可视化组件按[成熟组件调研](visual-components.md#成熟组件调研)查找并记录选型。
+锥形笔触分别复用 MIT 许可的 `svg-path-properties`、`perfect-freehand`，由采用后的本地模块导出。需要登记额外依赖时见[原生样品规范](design-samples.md#实现手段开放)。
 
 ### 共享动效组件
 

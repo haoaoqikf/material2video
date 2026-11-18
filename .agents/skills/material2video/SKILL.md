@@ -25,8 +25,8 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 | 阶段 | 主指南 | 重点 |
 |---|---|---|
-| 研究与创意试制 | [研究与试制](references/stage-research.md) | 案例拆解、组件选型、代表场景试制与对照 |
-| 正式设计 | [完整设计与预演](references/stage-design.md) | 展开逐场设计与组件调研，组织成完整作品 |
+| 研究与创意试制 | [研究与试制](references/stage-research.md) | 全片案例调研、全片组件选型、代表场景试制与对照 |
+| 正式设计 | [完整设计与预演](references/stage-design.md) | 逐场落实已验证方案，按实现缺口补查组件 |
 | 制作与验收 | [制作迭代与验收交付](references/stage-production.md) | 实现品质，验证整片并交付 |
 
 新作从[研究与试制](references/stage-research.md)开始；修订先读[修订入口](references/video-revision.md)，复用有效研究和基线。按[具体标杆与拆解](references/reference-video-analysis.md)转化当前内容，比较同场景设计后集中打磨。先看图片按[原生样品](references/design-samples.md)交付通过的同源静帧、参考和覆盖范围。
