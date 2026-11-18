@@ -89,19 +89,19 @@ def parse(source, *, version=VERSION):
     return value
 
 
-def load(root: Path, *, required=False, check_closures=True, pending_report=None):
+def load(root: Path, *, required=False, check_closures=True, pending_report=None, active_only=False):
     # 多个问题常由同一双评关闭，复用关系还会反复访问同一依赖图。
     # 只在本次只读加载内共享完整校验结果；返回后再更新/发布，不跨写入缓存。
     # 复用冲突核验的原始读取不新建查询，循环依赖仍由resolve的栈拒绝。
     if check_closures and not ledger.query_active():
         with ledger.query():
             return _load(root, required=required, check_closures=True,
-                         pending_report=pending_report)
+                         pending_report=pending_report, active_only=active_only)
     return _load(root, required=required, check_closures=check_closures,
-                 pending_report=pending_report)
+                 pending_report=pending_report, active_only=active_only)
 
 
-def _load(root: Path, *, required=False, check_closures=True, pending_report=None):
+def _load(root: Path, *, required, check_closures, pending_report, active_only):
     path = outputs(root) / "visual-notes.md"
     if not path.exists() and not required:
         return []
@@ -117,8 +117,10 @@ def _load(root: Path, *, required=False, check_closures=True, pending_report=Non
     if errors:
         raise M2VError("; ".join(errors))
     from . import legacy
+    from .samples import is_trial_sample_process
     legacy.validate_carried(root, value["items"], events)
     by_report = {p["reportId"]: p for p in value["items"] if p["reportId"]}
+    retired = set()
     for event in events:
         if event["type"] != "review" or event["data"]["reportId"] == pending_report:
             continue
@@ -127,22 +129,25 @@ def _load(root: Path, *, required=False, check_closures=True, pending_report=Non
         report = read(local(outputs(root), event["data"]["reportPath"]))
         if report["verdict"] == "fail":
             item = by_report.get(report["id"])
+            private = _scope_package(root, report)
             if (
                 not item
                 or not item["required"]
                 or item["round"] != report["round"]
-                or item["scope"] != scope(root, report)
+                or item["scope"] != scope(root, report, private=private)
             ):
                 raise M2VError("独立失败问题缺失或原条件被改写")
+            if is_trial_sample_process(root, private["request"]):
+                retired.add(item["id"])
     if check_closures:
         for item in value["items"]:
-            if item["status"] == "closed":
+            if item["status"] == "closed" and item["id"] not in retired:
                 try:
                     validate_closure(root, item)
                 except M2VError:
                     # 只读投影为重开；原关闭历史留在文件中，不悄悄改写。
                     item["status"] = "open"
-    return value["items"]
+    return [item for item in value["items"] if item["id"] not in retired] if active_only else value["items"]
 
 
 def _scope_package(root, report):
@@ -153,9 +158,10 @@ def _scope_package(root, report):
     )
 
 
-def scope(root, report):
+def scope(root, report, *, private=None):
     from .samples import scope_sources
-    private = _scope_package(root, report)
+    if private is None:
+        private = _scope_package(root, report)
     request = private["request"]
     film = private["binding"].get("film", {})
     selected = request["items"]
@@ -221,24 +227,6 @@ def covers(original, current):
     )
 
 
-def _covers_closure(root, project, item, original_scope, target_position, report):
-    current_scope = scope(root, report)
-    if covers(original_scope, current_scope):
-        return True
-    if item['round'] != 'trial' or target_position >= 0:
-        return False
-    from . import reviews, samples
-    current_sources = samples.combined_review_sources(root, _scope_package(root, report)['request'])
-    if current_sources is None:
-        return False
-    original_report = reviews.sealed_report(root, project, item['reportId'], historical=True)
-    original_sources = samples.combined_review_sources(root, _scope_package(root, original_report)['request'])
-    if original_sources != current_sources:
-        return False
-    # 只在比较时替换采集文件身份。必改项保存的原始范围和评审凭据保持原样。
-    return covers({**original_scope, 'sources': current_scope['sources']}, current_scope)
-
-
 def validate_closure(root: Path, item: dict):
     from . import reviews
     from . import targets
@@ -256,7 +244,7 @@ def validate_closure(root: Path, item: dict):
                 or report["verdict"] != "pass"
                 or report["round"] != item["round"]
                 or report["reviewType"] not in ("blind", "process")
-                or not _covers_closure(root, project, item, expected_scope, target_position, report)
+                or not covers(expected_scope, scope(root, report))
             ):
                 raise M2VError("必须以当前对应范围的独立通过复查关闭")
             if report["requiresComparison"]:

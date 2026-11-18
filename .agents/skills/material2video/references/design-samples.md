@@ -6,7 +6,7 @@
 
 原生样品 v2 使用作品自身的构建、字体资源、宿主和受控时钟，不需要完整分镜、旁白或全片准备。主工具只复核来源、实际配置和媒体绑定，不分发第二套采集实现；本地也可运行 pnpm run sample。
 
-static 只生成网页和选定关键帧，不编码视频；motion 另生成完整局部视频。关键帧必须独立盲审及同轮实际目标对照通过，动态用途还须完整过程独立对照通过，适用必改关闭后才能交付。静态通过只授权静态范围；技术成功、候选最好、截图完成和投入时间不替代实际品质。
+static 生成网页和选定关键帧，motion 再生成完整局部视频。两种样品的关键帧均须独立盲审和同轮实际目标对照通过。动态用途的完整过程由总代理以有序帧、完整解码及适用信号核验。交付前关闭适用必改。
 
 fail、insufficient、缺失、失效或降级自审均不可交付。持续研究、实现、查看、比较与修复，不设主动工作时长、候选数或总轮次上限；两轮无改善换实质方案或修复机制，保留原失败，按[唯一循环](production-workflow.md)继续。阻塞或中断保留未完成，不能以探索稿结束。
 
@@ -50,7 +50,7 @@ capture 默认 static，至少一帧；motion 至少两帧。选帧为幕内索�
 
 比较同一作品的方案时，先写齐参数文件，再逐个运行采集。采集期间不要改动该作品已绑定的输入，包括存在的分镜，即使该静态样品不需要完整分镜就能取帧。工具会拒绝并行写入同一作品的制作记录，也会拒绝发布输入已变化的样品；遇到这两种提示，等当前写入结束或输入稳定后再采集。
 
-capture 成功写 outputs/samples/<ID>/，包含网页、静帧、适用视频、capture.json、关键帧请求及适用过程请求。源码、参数、实际可达依赖、字体、资源、配置和产物均绑定，变动后重采；不得手改凭据。采集及交付在 Windows 发布后恢复继承权限并自检。
+capture 成功写 outputs/samples/<ID>/，包含网页、静帧、适用视频、capture.json 和关键帧请求。源码、参数、实际可达依赖、字体、资源、配置和产物均绑定，变动后重采。采集及交付在 Windows 发布后恢复继承权限并自检。
 
 sample review 自动派生全部媒体窗口、来源和显示尺寸，生成只读隔离包及包外空白报告模板／任务。按[隔离执行](subagent-review.md)实际创建独立代理，导入真实盲报告后自动建同轮目标包：
 
@@ -58,18 +58,10 @@ sample review 自动派生全部媒体窗口、来源和显示尺寸，生成只
 uv run m2v review import --project <作品> --file <真实盲报告.json>
 uv run m2v review compare --project <作品> --blind-id <当前盲报告ID>
 uv run m2v review import --project <作品> --file <真实对照报告.json>
-uv run m2v sample deliver --project <作品> --id <静态采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
+uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
 ```
 
-需要动态时使用 --kind motion 采集，关键帧双评仍只包含同源图片，再审核完整过程：
-
-```powershell
-uv run m2v sample review --project <作品> --id <动态采集ID> --purpose process --targets <过程目标.json>
-uv run m2v review import --project <作品> --file <真实过程对照报告.json>
-uv run m2v sample deliver --project <作品> --id <动态采集ID> --blind-id <关键帧盲报告ID> --comparison-id <关键帧对照报告ID> --process-id <过程报告ID> --basis <具体选案依据>
-```
-
-过程默认直接独立对照；例外盲审按审核政策提供 --blind-reason，随后按同轮对照执行，deliver 使用过程对照报告ID。缺完整过程、目标、来源、显示范围或存在必改时拒绝交付。静态不得填写未采集的过程资格。
+动态样品使用 `--kind motion` 采集，并沿用上面的关键帧独立审核和交付命令。总代理在提交前用完整解码、有序抽帧和适用帧差或音频信号核对完整动作、因果、身份及阅读窗口，把结果和未覆盖范围写入研究及总设计。
 
 修复重采从原 capture.json 读取帧率、时长和选帧，保持需复查的原用途及范围；每次使用独立ID，不覆盖旧证据。独立失败按原目标关闭；用户明确换目标按 retarget 登记。完整字节与观察条件相同的关键帧可沿[视觉复用](review-contract.md#完整媒体相同的-trial-视觉复用)，当前来源仍复核，过程改变须另审。
 

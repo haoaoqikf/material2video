@@ -8,7 +8,7 @@ from PIL import Image
 from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.core.project import create_project, load_project
-from m2v.production import cleanup, dependencies, issues, ledger, media_evidence, reviews, samples
+from m2v.production import dependencies, issues, ledger, media_evidence, reviews, samples
 from m2v.production.storage import read, write
 from common.test_media_reviews import report
 
@@ -50,7 +50,7 @@ def native(tmp_path, monkeypatch):
     return root, project, captured['id']
 
 
-def pair(native, *, verdict='pass', isolation='independent-subagent', refs=True, still_only=False):
+def pair(native, *, verdict='pass', isolation='independent-subagent', refs=True):
     root, project, identity = native
     directory = outputs(root) / 'samples' / identity
     request = read(directory / 'review-request.json')
@@ -64,19 +64,12 @@ def pair(native, *, verdict='pass', isolation='independent-subagent', refs=True,
     pack = reviews.package(root, project, request)
     comparison = reviews.import_report(root, project, report((root, project), pack, verdict=verdict, isolation=isolation))
     return dict(blind_id=blind['id'], comparison_id=comparison['id'],
-                process_id=process_pass(native) if refs and not still_only and read(directory / 'capture.json')['kind'] == 'motion' else None,
                 basis='主体与目标品质已通过实际对照')
-
-
-def process_pass(native):
-    root, project, identity = native
-    pack = samples.review(root, project, identity, purpose='process',
-                          targets={'references': ['target.png'], 'conditions': ['过程完整且状态连续']})
-    return reviews.import_report(root, project, report((root, project), pack))['id']
 
 
 def test_delivery_reuses_the_reviewed_media_without_encoding(native, monkeypatch):
     root, project, identity = native
+    assert not (outputs(root) / 'samples' / identity / 'process-request.json').exists()
     args = pair(native)
     monkeypatch.setattr(samples.design_sample, 'render', lambda *a, **k: pytest.fail('交付不得重渲染'))
     delivered = samples.deliver(root, project, identity, **args)
@@ -87,7 +80,7 @@ def test_delivery_reuses_the_reviewed_media_without_encoding(native, monkeypatch
 
 
 @pytest.mark.parametrize('options', [dict(verdict='fail'), dict(verdict='insufficient'),
-                                     dict(isolation='self-review'), dict(refs=False), dict(still_only=True)])
+                                     dict(isolation='self-review'), dict(refs=False)])
 def test_incomplete_or_nonindependent_review_cannot_deliver(native, options):
     root, project, identity = native
     args = pair(native, **options)
@@ -196,45 +189,44 @@ def test_generic_or_truncated_review_cannot_close_native_failure(native):
         issues.update(root, item)
 
 
-@pytest.mark.parametrize('change', [None, 'swap', 'truncate'])
-def test_recaptured_native_group_closes_only_the_same_complete_scope(native, change):
-    root, project, first = native
+def historical_process_request(root, identity):
+    directory = outputs(root) / 'samples' / identity
+    request = read(directory / 'review-request.json')
+    value = read(directory / 'capture.json')
+    Image.new('RGB', (640, 360), 'red').save(outputs(root) / 'target.png')
+    return {**request, 'purpose': 'process', 'reviewType': 'process',
+            'references': ['target.png'], 'conditions': ['完整动作与构件身份'],
+            'items': samples.review_items(value, 'process')}
 
-    def request_for(captures):
-        request = read(outputs(root) / 'samples' / captures[0] / 'review-request.json')
-        request.update(purpose='process', reviewType='blind', blindReason='组合过程需检查身份连续')
-        request['sources'] = [f'outputs/samples/{identity}/capture.json' for identity in captures]
-        request['items'] = [
-            {**samples.review_items(read(outputs(root) / 'samples' / identity / 'capture.json'), 'process')[-1], 'id': scene}
-            for scene, identity in zip(('opening', 'ranking'), captures, strict=True)
-        ]
-        return request
 
-    original = request_for([first, samples.capture(root, project)['id']])
-    pack = reviews.package(root, project, original)
-    assert outputs(root) / 'samples' / first / 'still-000001.png' in cleanup.retained_media(root)
-    reviews.import_report(root, project, report((root, project), pack, verdict='fail'))
-    current = request_for([samples.capture(root, project)['id'] for _ in range(2)])
-    if change == 'swap':
-        first_item, second_item = current['items']
-        first_item['path'], second_item['path'] = second_item['path'], first_item['path']
-    elif change == 'truncate':
-        current['items'][0]['window'][1] -= 1
-        assert samples.combined_review_sources(root, current) is None
-        return
-    pack = reviews.package(root, project, current)
-    blind = reviews.import_report(root, project, report((root, project), pack))
-    item = issues.load(root)[0]
-    original_scope = item['scope']
-    item.update(status='closed', cause='implementation', closureReportId=blind['id'])
-    if change:
-        with pytest.raises(M2VError, match='对应范围'):
-            issues.update(root, item)
-    else:
-        issues.update(root, item)
-        persisted = issues.load(root)[0]
-        assert persisted['status'] == 'closed'
-        assert persisted['scope'] == original_scope
+@pytest.mark.parametrize('capture_source', [True, False])
+def test_trial_video_cannot_enter_generic_process_review(native, capture_source):
+    root, project, identity = native
+    request = historical_process_request(root, identity)
+    if not capture_source:
+        request['sources'] = ['scenes/main.tsx']
+    with pytest.raises(M2VError, match='只受理其关键帧'):
+        reviews.package(root, project, request)
+
+
+def test_historical_trial_process_failure_stays_in_audit_without_blocking_delivery(native, monkeypatch):
+    root, project, identity = native
+    request = historical_process_request(root, identity)
+    with monkeypatch.context() as historical:
+        historical.setattr(reviews, '_reject_trial_sample_process', lambda *_: None)
+        pack = reviews.package(root, project, request)
+        original = reviews.import_report(root, project, report((root, project), pack, verdict='fail'))
+        old_pass = report((root, project), pack, verdict='pass')
+    with pytest.raises(M2VError, match='只受理其关键帧'):
+        reviews.import_report(root, project, old_pass)
+    record = outputs(root) / 'visual-notes.md'
+    original_bytes = record.read_bytes()
+    assert issues.load(root)[0]['reportId'] == original['id']
+    assert issues.load(root, active_only=True) == []
+    result = samples.deliver(root, project, identity, **pair(native))
+    assert result['sampleId'] == identity
+    assert record.read_bytes() == original_bytes
+    assert 'processId' not in result
 
 
 def test_corruption_before_capture_event_does_not_allow_cycle_reset(native):

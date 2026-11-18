@@ -8,7 +8,7 @@ from m2v.core.errors import M2VError
 from m2v.production import issues, ledger, reviews, samples
 from m2v.production.storage import read, write
 from common.test_media_reviews import work, request, report  # noqa: F401
-from common.test_native_samples import native, pair, process_pass  # noqa: F401
+from common.test_native_samples import native, pair  # noqa: F401
 
 
 def test_old_request_and_mixed_keyframe_process_are_rejected(work):
@@ -101,37 +101,6 @@ def test_final_is_retired_and_process_recheck_preserves_fps(work):
     assert reviews.has_visual_target({'references': ['sound.wav', 'actual-frame.png']})
 
 
-def test_process_comparison_is_independent_without_a_blind_report(native):
-    root, project, identity = native
-    pair(native)
-    report_id = process_pass(native)
-    result = reviews.current_report(root, project, report_id)
-    assert result['reviewType'] == 'process' and result['purpose'] == 'process'
-    assert 'blindId' not in result and not result['requiresComparison']
-    request_value = read(outputs(root) / f'samples/{identity}/process-request.json')
-    with pytest.raises(M2VError, match='实际参考'):
-        reviews.package(root, project, request_value)
-    request_value.update(reviewType='blind')
-    with pytest.raises(M2VError):
-        reviews.package(root, project, request_value)
-
-
-def test_native_process_blind_reason_packages_a_blind_review_then_compares(native):
-    root, project, identity = native
-    value, _ = samples.load(root, project, identity)
-    targets = {'references': [f"samples/{identity}/{value['stills'][0]['path']}"],
-               'conditions': ['完整动作与对象的连续性']}
-    blind_pack = samples.review(root, project, identity, purpose='process', targets=targets,
-                                blind_reason='需要在提示前独立辨认发生连续变化的对象')
-    assert read(blind_pack / 'manifest.json')['reviewType'] == 'blind'
-    assert not (blind_pack / 'conditions.json').exists()
-    accepted = reviews.import_report(root, project, report((root, project), blind_pack))
-    comparison = reviews.compare(root, project, accepted['id'])
-    manifest = read(comparison / 'manifest.json')
-    assert manifest['reviewType'] == 'consistency' and manifest['purpose'] == 'process'
-    assert (comparison / 'conditions.json').is_file()
-
-
 def test_cli_builds_sample_task_and_derives_comparison_without_request_copy(native, capsys):
     import json
     from m2v import cli
@@ -155,34 +124,14 @@ def test_cli_builds_sample_task_and_derives_comparison_without_request_copy(nati
     assert Path(comparison['invocationTemplate']).is_file()
 
 
-def test_process_failure_closes_only_with_current_matching_process(native):
-    root, project, identity = native
-    pair(native)
-    targets = {'references': ['target.png'], 'conditions': ['完整状态与因果关系']}
-    pack = samples.review(root, project, identity, purpose='process', targets=targets)
-    reviews.import_report(root, project, report((root, project), pack, verdict='fail'))
-    fresh = samples.capture(root, project)['id']
-    accepted = reviews.import_report(root, project, report((root, project),
-        samples.review(root, project, fresh, purpose='process', targets=targets)))
-    problem = issues.load(root)[0]
-    problem.update(status='closed', cause='implementation', closureReportId=accepted['id'])
-    issues.update(root, problem)
-    assert issues.load(root)[0]['status'] == 'closed'
-
-
 def test_static_capture_delivers_images_without_a_video_or_process_claim(native):
     root, project, _ = native
     identity = samples.capture(root, project, kind='static')['id']
     args = pair((root, project, identity))
     value, directory = samples.load(root, project, identity)
     assert value['video'] is None and not list(directory.glob('*.mp4'))
-    with pytest.raises(M2VError, match='静态采集'):
-        samples.review(root, project, identity, purpose='process',
-                       targets={'references': ['target.png'], 'conditions': ['未采集的过程']})
     result = samples.deliver(root, project, identity, **args)
     assert list(Path(result['path']).glob('*.png')) and not list(Path(result['path']).glob('*.mp4'))
-    with pytest.raises(M2VError, match='静态样品'):
-        samples.deliver(root, project, identity, **{**args, 'process_id': args['blind_id']})
 
 
 @pytest.mark.parametrize('version', [3, ledger.VERSION + 1])

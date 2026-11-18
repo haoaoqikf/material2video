@@ -10,7 +10,7 @@ from m2v.core.errors import M2VError
 from m2v.production import cli, dependencies, issues, ledger, reviews, reuse, samples, storage
 from m2v.production.storage import read, write
 from common.test_media_reviews import work, report, request
-from common.test_native_samples import native, pair, process_pass
+from common.test_native_samples import native, pair
 
 
 def generic_pair(work, *, verdict='pass', who='first'):
@@ -191,7 +191,6 @@ def test_current_native_capture_can_deliver_with_same_full_media(native, source_
     req = read(outputs(root) / f'samples/{fresh}/review-request.json')
     req.update(references=['target.png'], conditions=['整体品质参考：主体轮廓与空间关系'])
     reuse.register(root, project, reuse_request(root, project, req, args['blind_id'], args['comparison_id']))
-    args['process_id'] = process_pass((root, project, fresh))
     delivered = samples.deliver(root, project, fresh, **args)
     assert delivered['sampleId'] == fresh and delivered['visualReuse']['path']
     assert reviews.current_report(root, project, args['blind_id']) == before

@@ -31,7 +31,7 @@ conditions 列出中性原条件，不填写设计理由、标准答案、推荐
 
 `dynamic`标识编码视频媒体，不自动承诺运动。静止编码仅验证静态表现与一致性，不据此宣称动态或全片基线；动态目标的代表性仍须完整过程的有序帧、帧差/场景切分与信号量测，未提供的运动、停留时间、声音与正文保持未验证。
 
-purpose 为 keyframe 或 process，round 为 trial。原生关键帧接受图片；正式取证与样片见下节。reviewType 为 blind/consistency/process，process 为直接过程对照，必须有实际 references 与 conditions，不填 blindId；过程例外 blind/consistency 须登记非空 blindReason。
+purpose 为 keyframe 或 process，round 为 trial。原生试制样品仅有关键帧评审。正式取证见下节。reviewType 为 blind/consistency/process，process 为直接过程对照，必须有实际 references 与 conditions，不填 blindId。正式过程例外 blind/consistency 须登记非空 blindReason。
 
 每份报告顶层和 coverage 项均须 adoption=adopt/reject，只有 pass 对应 adopt，fail/insufficient 对应 reject；整体 verdict 必须与覆盖项最严重状态一致。
 
@@ -114,7 +114,7 @@ uv run m2v review confirm-evidence --project <作品> --file <整片复核.json>
 
 带闭环校验的问题加载在单次只读查询内复用已完整核验的报告、包与账本；已有外层只读查询时沿用它，独立读取返回后不把缓存带入后续写入。循环复用仍须拒绝，来源或证据变化在下一次独立查询重新核验，样品发布前的来源直读保留；缓存不替代关闭条件或新增失败检查。
 
-独立失败自动登记必改。关闭须绑定晚于原失败、当前、同用途同范围同类独立通过及适用同轮对照，保留原中性条件、目标媒体、职责、显示尺寸与历史（用户明确变更目标须按上节登记替代，原记录仍保留）；关键帧采用盲审及同轮对照，直接过程失败由对应过程独立通过关闭；局部复查覆盖原窗口；自审或跨周期报告不得关闭。内部问题关闭须有效实际复查证据。status 只读展示证据，不推断创作阶段；基线保护活动引用，损坏或未知引用拒绝清理。
+独立失败自动登记必改。关闭须绑定晚于原失败、当前、同用途同范围的独立通过。关键帧另须同轮对照，正式过程按其适用评审复查。保留原中性条件、目标媒体、职责、显示尺寸与历史。用户明确变更目标时按上节登记替代。历史原生试制过程报告保留在原记录中，从当前适用问题投影排除。自审或跨周期报告不得关闭独立失败。内部问题关闭须有效实际复查证据。status 只读展示证据，基线保护活动引用，损坏或未知引用拒绝清理。
 
 同一试制请求包含多个原生片段时，可用新采集的视频复查。每段须与登记的原生采集一一对应并覆盖完整帧窗，前后保持观察项身份、场景入口、参数、画幅和帧率一致。独立报告仍绑定实际采集凭据与媒体摘要。
 
@@ -127,10 +127,9 @@ uv run m2v review confirm-evidence --project <作品> --file <整片复核.json>
 ```powershell
 uv run m2v review compare --project <作品> --blind-id <当前盲报告ID>
 uv run m2v sample review --project <作品> --id <采集ID> --purpose keyframe --targets <目标.json>
-uv run m2v sample review --project <作品> --id <采集ID> --purpose process --targets <过程目标.json>
 ```
 
-compare 只从有效当前盲报告的封存请求派生，不接受另填目标。sample review 从当前采集自动生成完整来源、窗口和显示尺寸；targets 只含 references 和 conditions。过程需要盲审时额外指定 --blind-reason <具体时间机制风险>。这些命令生成材料，不自动启动代理、填写调用或判断审美。
+compare 从有效当前盲报告的封存请求派生。sample review 从当前采集自动生成关键帧来源、窗口和显示尺寸，targets 只含 references 和 conditions。正式过程确需盲审时在请求中登记 blindReason。真实观察和调用由独立评审者完成。
 
 同轮对照严格保持帧率、显示尺寸和 sampleStep，独立复制已核验盲包的净化媒体并逐文件直读核对封存摘要，不重复编码或取帧。不得使用硬链接共享可写文件。正式独立评审须登记实际视觉参考及中性条件，只有音频不能充当视觉品质标杆。
 

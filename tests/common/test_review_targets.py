@@ -9,7 +9,7 @@ from m2v.core.delivery import outputs
 from m2v.core.errors import M2VError
 from m2v.production import dependencies, issues, ledger, reviews, samples, targets
 from m2v.production.storage import read
-from common.test_native_samples import native, pair, process_pass  # noqa: F401
+from common.test_native_samples import native, pair  # noqa: F401
 from common.test_media_reviews import report
 
 
@@ -36,7 +36,7 @@ def new_pair(native, request, pack):
     blind = reviews.import_report(root, project, report((root, project), pack))
     request = {**request, 'reviewType': 'consistency', 'blindId': blind['id']}
     comparison = reviews.import_report(root, project, report((root, project), reviews.package(root, project, request)))
-    return dict(blind_id=blind['id'], comparison_id=comparison['id'], process_id=process_pass((root, project, request['sources'][0].split('/')[2])), basis='新目标下的独立双通过')
+    return dict(blind_id=blind['id'], comparison_id=comparison['id'], basis='新目标下的独立双通过')
 
 
 def close(root, blind_id):

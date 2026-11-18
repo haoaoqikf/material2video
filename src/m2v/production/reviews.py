@@ -147,8 +147,16 @@ def validate_request(request):
             raise M2VError("关键样片必须覆盖视频，静帧不能替代")
 
 
+def _reject_trial_sample_process(root, request):
+    from .samples import is_trial_sample_process
+
+    if is_trial_sample_process(root, request):
+        raise M2VError("研究试制动态样片由总代理核验，独立评审只受理其关键帧")
+
+
 def package(root: Path, manifest: dict, request: dict) -> Path:
     validate_request(request)
+    _reject_trial_sample_process(root, request)
     if request["purpose"] == "process" and "reviewType" not in request:
         request = {**request, "reviewType": "process"}
     c = ledger.cycle(root)
@@ -571,6 +579,7 @@ def import_report(root, manifest, path):
             "purpose": current["purpose"],
             "adoption": current["adoption"],
         }
+    _reject_trial_sample_process(root, private["request"])
     issues.load(root, required=True)
     if any(report[k] != pack[k] for k in ("round", "reviewType")):
         raise M2VError("报告轮次或类型与包不一致")

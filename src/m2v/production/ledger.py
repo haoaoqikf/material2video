@@ -93,7 +93,7 @@ def start(root: Path, manifest: dict) -> dict:
         if old.get("version") == VERSION:
             _, errors = history(root)
             if errors or any(item["required"] and item["status"] != "closed"
-                             for item in issues.load(root, required=True)):
+                             for item in issues.load(root, required=True, active_only=True)):
                 raise M2VError("当前制作周期仍有未关闭必改项或历史无法核验，不能重开周期绕过")
         else:
             carried = legacy.unresolved(root, old, previous)
@@ -281,7 +281,7 @@ def status(root: Path, manifest: dict, *, full_history=False) -> dict:
             events, errors = history(root)
             result.update(cycleId=c["cycleId"], diagnostics=errors,
                           history=events if full_history else events[-5:])
-            result["issues"] = [p for p in issues.load(root, required=True) if p["status"] != "closed"]
+            result["issues"] = [p for p in issues.load(root, required=True, active_only=True) if p["status"] != "closed"]
             verified = {}
             partial = {}
             for event in events:

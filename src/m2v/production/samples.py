@@ -49,9 +49,6 @@ def capture(root: Path, project: dict, **options) -> dict:
                    'sources': [f'outputs/{relative}/capture.json', value['entry']], 'sceneIds': [],
                    'displaySizes': sorted({value['width'], 393}), 'references': [], 'conditions': []}
         write(stage / 'review-request.json', request)
-        if value['kind'] == 'motion':
-            write(stage / 'process-request.json', {**request, 'purpose': 'process', 'reviewType': 'process',
-                                                 'items': review_items(value, 'process')})
         # 唯一ID不覆盖历史；事件收据是入口，手填capture.json不能成为有效采集。
         security.deliver_directory(stage, target)
     record = receipt(outputs(root), target / 'capture.json')
@@ -62,6 +59,7 @@ def capture(root: Path, project: dict, **options) -> dict:
 
 
 def review_items(value: dict, purpose: str = 'keyframe') -> list[dict]:
+    """过程媒体身份仅用于读取已封存的旧试制评审范围。"""
     prefix = f"samples/{value['id']}/"
     if purpose == 'keyframe':
         return [{'id': f'still-{row["frame"]}', 'path': prefix + row['path'], 'window': [0, 1], 'dynamic': False}
@@ -97,41 +95,6 @@ def scope_sources(root: Path, request: dict) -> list[str]:
             identity = f"native-sample:{request['purpose']}:{value['fps']}:{value['width']}x{value['height']}:{value['entry']}"
             return [identity if item == source else item for item in sources]
     return sources
-
-
-def combined_review_sources(root: Path, request: dict) -> list[str] | None:
-    """为包含多个完整原生片段的试制复查给出稳定的场景身份。"""
-    events, errors = ledger.history(root)
-    if errors:
-        raise M2VError('; '.join(errors))
-    records = {
-        'outputs/' + event['data']['receipt']['path']: event['data']['receipt']
-        for event in events if event['type'] == 'sample-captured'
-    }
-    sources = request['sources']
-    if request['purpose'] != 'process':
-        return None
-    selected = [source for source in sources if source in records]
-    if len(selected) < 2 or len(set(selected)) != len(selected):
-        return None
-    identities = {}
-    for source in selected:
-        record = records[source]
-        if not ledger.evidence_valid(root, [record]):
-            return None
-        value = read(local(outputs(root), record['path']))
-        if value['kind'] != 'motion':
-            return None
-        video = f"samples/{value['id']}/{value['video']}"
-        matching = [item for item in request['items'] if item['path'] == video]
-        if len(matching) != 1 or request['fps'] != value['fps']:
-            return None
-        item = matching[0]
-        if not item['dynamic'] or item['window'] != [0, value['durationInFrames']]:
-            return None
-        scope = {name: value[name] for name in ('entry', 'props', 'fps', 'width', 'height', 'durationInFrames')}
-        identities[source] = 'native-sample-group:' + fingerprint({**scope, 'item': item['id']})
-    return [identities.get(source, source) for source in sources]
 
 
 def load(root: Path, project: dict, identity: str) -> tuple[dict, Path]:
@@ -179,8 +142,20 @@ def validate_current_sources(root: Path, project: dict, request: dict) -> None:
             load(root, project, identity)
 
 
-def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparison_id: str, basis: str,
-            process_id: str | None = None) -> dict:
+def is_trial_sample_process(root: Path, request: dict) -> bool:
+    """用原生采集命名空间识别试制过程，正式合成窗口另行核验。"""
+    if request['purpose'] != 'process' or request.get('film'):
+        return False
+    base = outputs(root)
+    directory = (base / 'samples').resolve()
+    sources = request['sources']
+    if not isinstance(sources, list) or any(not isinstance(path, str) for path in sources):
+        raise M2VError('sources 必须为字符串列表')
+    return (any(directory in (root / path).resolve().parents for path in sources)
+            or any(directory in (base / item['path']).resolve().parents for item in request['items']))
+
+
+def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparison_id: str, basis: str) -> dict:
     text(basis)
     value, directory = load(root, project, identity)
     blind, _, blind_private, blind_reuse = reuse.evidence(root, project, identifier(blind_id))
@@ -203,15 +178,12 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
                 or not {value['width'], 393}.issubset(request['displaySizes'])
                 or not request.get('references') or not request.get('conditions')):
             raise M2VError('评审未覆盖本次同源关键帧、来源或实际目标参考')
-    if value['kind'] == 'motion':
-        _validate_process(root, project, value, identifier(process_id))
-    elif process_id is not None:
-        raise M2VError('静态样品不得声明未采集的过程通过')
-    if any(item['required'] and item['status'] != 'closed' for item in issues.load(root, required=True)):
+    if any(item['required'] and item['status'] != 'closed'
+           for item in issues.load(root, required=True, active_only=True)):
         raise M2VError('当前周期仍有未关闭必改项；不得缩小范围或以新样品绕过')
     target = local(outputs(root), f'sample-deliveries/{identity}/delivery.json', exists=False).parent
     selection = {'version': VERSION, 'sampleId': identity, 'capture': receipt(outputs(root), directory / 'capture.json'),
-                 'blindId': blind_id, 'comparisonId': comparison_id, 'processId': process_id, 'basis': basis}
+                 'blindId': blind_id, 'comparisonId': comparison_id, 'basis': basis}
     if blind_reuse:
         selection['visualReuse'] = blind_reuse
     if target.exists():
@@ -238,42 +210,19 @@ def deliver(root: Path, project: dict, identity: str, *, blind_id: str, comparis
     return {'path': str(target), 'reused': False, **selection}
 
 
-def _validate_process(root: Path, project: dict, value: dict, report_id: str) -> None:
-    report, _, private, _ = reuse.evidence(root, project, report_id)
-    request = private['request']
-    if (report['round'] != 'trial' or report['purpose'] != 'process'
-            or report['verdict'] != 'pass' or report['isolation'] != 'independent-subagent'
-            or report['reviewType'] not in ('process', 'consistency')
-            or request['items'] != review_items(value, 'process') or request['fps'] != value['fps']
-            or f"outputs/samples/{value['id']}/capture.json" not in request['sources']
-            or value['entry'] not in request['sources']
-            or not {value['width'], 393}.issubset(request['displaySizes'])
-            or not request.get('references') or not request.get('conditions')):
-        raise M2VError('动态样品需要本次完整过程的有效独立目标对照通过')
-    if report['reviewType'] == 'consistency':
-        prior = reuse.evidence(root, project, report['blindId'])[0]
-        if prior['verdict'] != 'pass' or prior['isolation'] != 'independent-subagent':
-            raise M2VError('例外过程盲审未通过，不得借对照交付')
-
-
-def review(root: Path, project: dict, identity: str, *, purpose: str, targets: dict,
-           blind_reason: str | None = None) -> Path:
+def review(root: Path, project: dict, identity: str, *, targets: dict) -> Path:
     """从当前凭据派生完整请求，作者只提供实际目标与必要采用条件。"""
     from . import reviews
     fields(targets, {'references', 'conditions'})
     value, _ = load(root, project, identity)
-    request = {'version': REVIEW_VERSION, 'round': 'trial', 'purpose': purpose, 'fps': value['fps'],
-               'items': review_items(value, purpose), 'sceneIds': [],
+    request = {'version': REVIEW_VERSION, 'round': 'trial', 'purpose': 'keyframe', 'fps': value['fps'],
+               'items': review_items(value), 'sceneIds': [],
                'sources': [f'outputs/samples/{identity}/capture.json', value['entry']],
                'displaySizes': sorted({value['width'], 393}), **targets}
     if not targets['references'] or not targets['conditions']:
         raise M2VError('正式样品审核需要实际参考与中性条件')
-    if purpose == 'keyframe' and not reviews.has_visual_target(request):
+    if not reviews.has_visual_target(request):
         raise M2VError('关键帧需要实际视觉参考，音频不能代替视觉品质标杆')
-    if blind_reason is not None:
-        request.update(reviewType='blind', blindReason=blind_reason)
-    elif purpose == 'process':
-        request['reviewType'] = 'process'
     return reviews.package(root, project, request)
 
 

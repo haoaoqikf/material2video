@@ -24,13 +24,11 @@ def add_parser(sub):
         if name == 'serve':
             action.add_argument('--port', type=int, default=0)
         if name == 'review':
-            action.add_argument('--purpose', choices=('keyframe', 'process'), default='keyframe')
+            action.add_argument('--purpose', choices=('keyframe',), default='keyframe')
             action.add_argument('--targets', required=True, help='实际参考与中性条件JSON；工具自动派生来源和观察窗口')
-            action.add_argument('--blind-reason', help='核心创意依赖时间展开时，说明过程例外盲审依据')
         if name == 'deliver':
             action.add_argument('--blind-id', required=True)
             action.add_argument('--comparison-id', required=True)
-            action.add_argument('--process-id', help='动态样品完整过程独立对照通过的报告ID')
             action.add_argument('--basis', required=True, help='当前样品达到原定目标的具体选案依据')
 
 
@@ -50,11 +48,9 @@ def dispatch(args):
                                      duration_seconds=args.duration_seconds, still_frames=args.still_frames,
                                      props_source=args.props, kind=args.kind)
         elif args.action == 'review':
-            result = reviews.package_result(root, samples.review(root, project, args.id, purpose=args.purpose,
-                                                                 targets=read(Path(args.targets)),
-                                                                 blind_reason=args.blind_reason))
+            result = reviews.package_result(root, samples.review(root, project, args.id, targets=read(Path(args.targets))))
         else:
             result = samples.deliver(root, project, args.id, blind_id=args.blind_id,
-                                     comparison_id=args.comparison_id, basis=args.basis, process_id=args.process_id)
+                                     comparison_id=args.comparison_id, basis=args.basis)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

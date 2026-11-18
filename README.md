@@ -51,7 +51,7 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 `m2v sample capture` 委托作品本地构建与采集，不需要完整分镜或配音。原生样品 v2 默认 static，只采集可复现网页和关键帧，不编码视频；motion 另生成完整过程。源码、实际依赖、字体、登记媒体、参数及产物均绑定，变化后重新采集。
 
-关键帧以所选风格的世界级完成度独立盲审及同轮实际目标对照，风格自由，苹果只说明品质高度。关键片段默认独立过程对照，取消例行盲审；核心时间机制需要时可登记依据例外盲审。每项及整体明确采用或不采用，证据不足不放行。总代理实际查看、初筛、核对报告充分性并负责最终选案，详见[审核政策](.agents/skills/material2video/references/review-contract.md)。
+试制及正式关键帧均独立盲审并做同轮目标对照。研究试制的完整动态样片由总代理用有序帧、完整解码及适用信号核验。正式关键片段按审核策略做独立过程对照，核心时间机制需要时可登记正式过程盲审。总代理实际查看、初筛、核对报告并负责最终选案。[审核政策](.agents/skills/material2video/references/review-contract.md)
 
 ```powershell
 uv run m2v sample capture --project <作品> --entry scenes/core.tsx --kind static --duration-seconds 3 --frame 30
@@ -63,7 +63,7 @@ uv run m2v review import --project <作品> --file <真实对照报告.json>
 uv run m2v sample deliver --project <作品> --id <采集ID> --blind-id <盲报告ID> --comparison-id <对照报告ID> --basis <具体选案依据>
 ```
 
-sample review 自动派生当前来源、窗口、显示尺寸和隔离包，包外生成任务与默认不可采用的报告模板；compare 自动复用封存目标生成同轮对照。真实评审及调用由独立代理完成，工具不自动认证审美。动态样品还需 `--purpose process` 审核完整过程，并以 `--process-id` 交付；媒体直接复制，不重新编码。Windows 发布后恢复继承权限。
+sample review 为同源关键帧自动派生来源、窗口、显示尺寸和只读隔离包，compare 根据封存目标生成同轮对照。静态和动态样品使用同一套关键帧报告参数交付。交付直接复制已有媒体。Windows 发布后恢复继承权限。
 
 固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档，默认四问、复杂机制按需深化。成熟外部组件、模型、材质、Shader 和开源方案优先采用与改造，只自研必要缺口。预演、粗片和精制合并到问题驱动制作循环，相关规则见[研究与试制](.agents/skills/material2video/references/stage-research.md)与[原生样品](.agents/skills/material2video/references/design-samples.md)。设计未通过持续打磨，不设主动时长或重试总上限；AI 图只作内部构思或参考。
 
