@@ -69,7 +69,7 @@ sample review 为同源关键帧自动派生来源、窗口、显示尺寸和只
 
 同轮对照回传可直接观察的复查问题。主代理用原尺寸的前后实绘回答同一个问题，凭实际效果决定是否复送，见[返工交接](.agents/skills/material2video/references/production-workflow.md#返工交接)。
 
-固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档，默认四问、复杂机制按需深化。成熟外部组件、模型、材质、Shader 和开源方案优先采用与改造，只自研必要缺口。预演、粗片和精制合并到问题驱动制作循环，见[研究与试制](.agents/skills/material2video/references/stage-research.md)与[原生样品](.agents/skills/material2video/references/design-samples.md)。试制关键帧按[阶段标准](.agents/skills/material2video/references/visual-review-rubric.md#试制关键帧的通过标准)判断。同一个问题连续两次修改无明显改善时，按[暂停送审规则](.agents/skills/material2video/references/production-workflow.md#试制暂停送审与重新选案)先内部重选。AI 图只作内部构思或参考。
+固定保留 RESEARCH.md、DESIGN.md 和每个正式场景文档。制作片段按[逐场循环](.agents/skills/material2video/references/scene-design.md#渐进设计与开发循环)从粗排逐步细化到精修和衔接复查。成熟外部组件、模型、材质、Shader 和开源方案优先采用与改造，只自研必要缺口。试制关键帧按[阶段标准](.agents/skills/material2video/references/visual-review-rubric.md#试制关键帧的通过标准)判断。同一个问题连续两次修改无明显改善时，按[暂停送审规则](.agents/skills/material2video/references/production-workflow.md#试制暂停送审与重新选案)先内部重选。AI 图只作内部构思或参考。
 
 采集使用完整 Chromium 的无头模式；`uv run playwright install chromium` 会安装所需浏览器，仅安装 headless shell 不足以在 Windows 加载 WebGPU 的 DXC。代码场景可通过 `waitForFrame(PromiseLike)` 登记异步绘制，初始就绪和每帧/子帧在工作及合成完成后才放行；拒绝或超时仍失败，纯时间仍须实际验证。静态代码场景可在作品内采用路径追踪、OIDN 去噪等可选能力；共享层不登记这类依赖，采用时由作品把实际依赖、补丁、权重来源与许可写进自己的工程和锁文件，固定种子、样本与分块，在 GPU 与本地权重就绪后采集，并逐场核验确定性，不据此宣称动态已验证；模型权重由作品登记来源、许可和恢复摘要，不入库。
 

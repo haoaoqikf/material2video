@@ -37,7 +37,7 @@ description: 使用统一 m2v 研究、试制、设计、制作与验收五类�
 
 固定保留 RESEARCH.md、DESIGN.md 及每个 design/scenes/<scene-id>.md。总设计先定全片骨架，逐场按[四问模板](references/scene-design.md#场景模板)深化对象、节拍和光影。记录归属见[文档分工](references/scene-design.md#分工与对应)。
 
-[原生样品](references/design-samples.md)支持静态和动态采集。预演、粗片、精制使用同一问题驱动循环，证据按影响复用。[工具协议](references/review-protocol.md)说明字段与命令，[隔离方法](references/subagent-review.md)说明独立执行。
+[逐场制作循环](references/scene-design.md#渐进设计与开发循环)统一片段粗排、关键过程、精修与接续检查。[原生样品](references/design-samples.md)支持静态和动态采集。[工具协议](references/review-protocol.md)说明字段与命令，[隔离方法](references/subagent-review.md)说明独立执行。
 
 ## 条件阅读
 
