@@ -25,12 +25,12 @@
 
 ## 场景索引
 
-| scene.id | 叙事作用 | 场景设计 |
+| 场景设计 | 叙事作用与新增信息 | 关键事件或交接意图 |
 |---|---|---|
-| hook | 运气、期望值、尝试次数、成功概率 | [hook](design/scenes/hook.md) |
-| ledger | 运气、期望值、尝试次数、成功概率 | [ledger](design/scenes/ledger.md) |
-| bridge | 运气、期望值、尝试次数、成功概率 | [bridge](design/scenes/bridge.md) |
-| probability | 运气、期望值、尝试次数、成功概率 | [probability](design/scenes/probability.md) |
-| bars | 运气、期望值、尝试次数、成功概率 | [bars](design/scenes/bars.md) |
-| area | 运气、期望值、尝试次数、成功概率 | [area](design/scenes/area.md) |
-| closing | 运气、期望值、尝试次数、成功概率 | [closing](design/scenes/closing.md) |
+| [hook](design/scenes/hook.md) | 用两次未中和一次命中引出运气与尝试的关系 | 第三次命中接入尝试记录 |
+| [ledger](design/scenes/ledger.md) | 说明每一次都计入尝试次数 | 三十次落定，末行横线引出下一种尺度 |
+| [bridge](design/scenes/bridge.md) | 从次数转向单次成功概率 | 横线卷成概率盘入口 |
+| [probability](design/scenes/probability.md) | 用盘面比例说明单次概率的变化 | 留读百分比后进入条件比较 |
+| [bars](design/scenes/bars.md) | 对照两项因素变化后的期望值 | 用 1、3、9 三柱接到乘法关系 |
+| [area](design/scenes/area.md) | 用横纵扩张解释次数和概率如何共同决定期望值 | 公式落定后，把两项因素交给结语 |
+| [closing](design/scenes/closing.md) | 用用户指定句收束两个改进方向 | 两部分依次揭示，末尾留读 |

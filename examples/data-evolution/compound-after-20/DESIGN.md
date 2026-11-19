@@ -12,12 +12,14 @@
 
 双语字幕用合成语音的词时序断句，随实绘背景切换深浅与羽化柔光。音效点集中在 100 元小片升稳、末柱封顶、双塔落稳，均由[分镜](storyboard.json)的事件帧驱动。
 
-| 成片窗口 | 场景与动作 |
-| --- | --- |
-| 00.00–10.50 秒 | [opening](design/scenes/opening.md)让两段利息短时间内入场，按旁白逐一提亮，提出同为二十年的差距。 |
-| 10.50–19.30 秒 | [reinvestment](design/scenes/reinvestment.md)跟随首年收益片落下，再让一百元小片在说到「又赚」时升出。 |
-| 19.30–29.57 秒 | [annual-growth](design/scenes/annual-growth.md)先让前二十年从零线长起，第 21 年期初余额读清后继续长后组，末柱约在 28.37 秒封顶。 |
-| 29.57–38.70 秒 | [two-towers](design/scenes/two-towers.md)先拉开组距，再折合与落稳。倍率出现后留出结论阅读时间。 |
+## 场景索引
+
+| 场景设计 | 叙事作用与新增信息 | 关键事件或交接意图 |
+| --- | --- | --- |
+| [opening](design/scenes/opening.md) | 建立同一账户、等长时段的利息差距 | 由「怎么差这么多」转向首年留下的收益 |
+| [reinvestment](design/scenes/reinvestment.md) | 说明首年利息进入下一期计息余额 | 用新增的 100 元串起两年，再将机制展开到多年 |
+| [annual-growth](design/scenes/annual-growth.md) | 让观众看到利率作用在越来越大的余额上 | 先看年度增长，再带着前后两组的年份身份进入汇总 |
+| [two-towers](design/scenes/two-towers.md) | 汇总两段利息并回答开场的问题 | 倍率落定后保留结论阅读时间 |
 
 ## 验收证据
 

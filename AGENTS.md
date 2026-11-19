@@ -20,7 +20,7 @@
 - `.agents/skills/material2video/SKILL.md`：制作流程的操作手册，Codex 与 DSH 会自动识别该目录。
 - `.agents/skills/material2video/references/material-sourcing.md`：素材检索、候选评估、许可判断与台账整理的操作手册，含 `assets report`/`contact-sheet` 用法。
 - `.agents/skills/material2video/references/stage-research.md`：研究与创意试制的主指南，衔接全片案例调研、全片组件调研、代表性试制与目标对照。
-- `.agents/skills/material2video/references/scene-design.md`：全片/场景设计分工、十二方面、节拍编排、渐进开发与对应检查的唯一权威；总设计维护共同语言和索引，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
+- `.agents/skills/material2video/references/scene-design.md`：全片与场景设计分工、四问及深化模板、逐场开发与对应检查的唯一权威。总设计先组织全片骨架，详细编排按既有 scene.id 归场景文档，执行参数保留单一来源。
 - `.agents/skills/material2video/references/reference-video-analysis.md`：优秀案例调研，维护实际查看、构图、动效、节奏与视觉表达拆解、本片转化及证据边界。
 - `.agents/skills/material2video/references/visual-components.md`：成熟组件调研，维护内部查找入口、外部缺口调研、组件选型与小试。
 - `.agents/skills/material2video/references/code-scene-runtime.md#运动实现约定`：运动时间换算、共享曲线、显式缓动、确定性与数据联动的技术入口。
