@@ -108,26 +108,6 @@
 - **WHEN** 新增动效或可视化组件没有内部查找和选型依据，或内部不足时缺少对应外部调研依据
 - **THEN** 审查判定不符合协作约定，须补检索与记录后再实施
 
-### Requirement: 共享动效组件复用现有原语
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-共享 L2 组件 SHALL 复用 `primitives.ts` 与 `motion.ts`：`RollingNumber` 使用 `rollNumber`，`BarGrowth` 使用 `growSeries`，L1/L2 的缓动使用 `motion.ts` 的命名曲线或显式 `easing`。MUST NOT 复制一套近似的数字滚动、生长比例或缓动实现。
-
-实际消费者仍使用的原语 MUST 在相应作品内存在；未采用原语不要求复制、安装或导出，删除参考前须核对消费者。
-
-#### Scenario: 数字滚动
-- **WHEN** `RollingNumber` 以 `from`、`to`、`progress` 求值
-- **THEN** 其数值与文本来自 `rollNumber`，不再手写取整公式
-
-#### Scenario: 柱状生长
-- **WHEN** `BarGrowth` 以进度求值
-- **THEN** 各柱比例来自 `growSeries`，不复制 stagger 计算
-
-#### Scenario: 缓动来源
-- **WHEN** 动效参考实现需要缓动
-- **THEN** 使用调用方显式传入的 easing 或 `motion.ts` 命名曲线，不内置另一套近似曲线
-
 ### Requirement: 整屏粒子、环境微尘与节拍原语
 
 本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
@@ -163,63 +143,29 @@
 - **WHEN** 以需要从 0 重放的状态式粒子引擎实现整屏冲击
 - **THEN** 任意帧 seek 与纯时间采集无法满足，审查判定不符合本原语契约，须改为闭式求值
 
-### Requirement: 共享动效组件以进度为唯一时间输入
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-系统 SHALL 在采用时本地提供共享 L1 组件：`FadeIn`、`SlideIn`、`ZoomIn`、`Blur`、`Glow`、`DrawLine`；以及 L2 组件：`RollingNumber`、`MarkerHighlight`、`BarGrowth`、`Callout`。
-
-每个组件 MUST 只接受 `progress`（0–1）、显式 `easing`、几何与样式参数作为动画输入，MUST NOT 读取挂钟时间、帧号、上一帧状态、计时器、rAF、CSS 动画或 Remotion context。相同 `progress` 与相同参数 MUST 产生相同输出。随机性 MUST 只来自显式 `seed`，未提供时 MUST 使用固定默认种子。
-
-#### Scenario: 同一进度重复求值
-- **WHEN** 同一组件以相同参数和 `progress` 求值两次
-- **THEN** 两次输出一致，不受调用时刻、调用顺序或录制模式影响
-
-#### Scenario: pure-time 场景使用
-- **WHEN** 一个声明 `capture.mode: "pure-time"` 的场景使用动效参考实现
-- **THEN** 正序、倒序与并行块采集得到同一帧一致的结果，不因时间源失败
-
-#### Scenario: 显式种子
-- **WHEN** `MarkerHighlight` 以相同 `seed` 和 `progress` 重录
-- **THEN** 草图几何一致，不使用隐式随机源
-
 ### Requirement: 共享动效组件提供明确的使用边界
 
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-选择沿用本套参考源码时，其内部 SHALL 用 `@remotion/paths` 处理 SVG 路径生长、形变、沿线取点与几何变换，用 `@remotion/animation-utils` 处理 CSS 数值、颜色与 transform 插值，用 `@remotion/layout-utils` 做文本测量与单行适配，用 `@remotion/noise` 生成种子噪声，用 `d3-scale`/`d3-shape` 计算图表的比例尺与曲线，用 `roughjs` 生成手绘高亮几何。MUST NOT 把 `@remotion/paths` 用于 Canvas 点列、把 `@remotion/animation-utils` 用于 SVG 数值属性或 Three.js 数值、把 `@remotion/layout-utils` 的多行切词用于中文、或用 `roughjs` 草图化作品已有艺术路径。
-
-第三方组件采用 MUST 核对许可、上下文和逐帧适配。依赖composition上下文的组件不得直接用于缺少该上下文的代码场景；场景运动模糊可采用已验证的本地子帧方案。不设置跨作品的固定库禁用清单。
+主项目 SHALL 保留仍有消费者的圆弧路径、CSS 样式与 Canvas 绘制参考。CSS 插值与变换可复用 `@remotion/animation-utils`，Canvas 点列、粒子或辉光可复用本地 Painter 或确定性原语。作品直接采用外部实现时 MUST 核对许可、上下文和逐帧适配，并在作品本地声明依赖。
 
 #### Scenario: SVG 路径生长
-- **WHEN** 作品选择沿用本套参考的路径绘制组件
-- **THEN** 参考组件复用本地paths实现；作品可直接采用已声明并锁定的第三方路径能力，不要求主项目封装
+- **WHEN** 作品需要按进度描绘 SVG 路径
+- **THEN** 使用可按显式参数求值的作品本地实现或直接依赖。
 
 #### Scenario: 文本测量
-- **WHEN** 作品选择沿用本套参考的文本测量组件
-- **THEN** 参考组件按已验证的中文换行边界处理，作品可自行采用其他经过验证的本地排版实现
+- **WHEN** 作品本地组件根据字体度量排版
+- **THEN** 等待实际字体就绪，并按作品的语言与画幅核对结果。
 
 #### Scenario: 图表几何
-- **WHEN** 作品采用纯时间安全的折线或面积
-- **THEN** 可采用本地图表组件或直接导入已声明并锁定的d3-scale／d3-shape；须满足纯时间求值边界
+- **WHEN** 作品绘制纯时间折线或面积
+- **THEN** 使用作品本地可重复求值的几何与坐标映射。
+
+#### Scenario: 圆弧路径
+- **WHEN** 场景使用 `arcPath` 绘制仪表弧线
+- **THEN** 路径仅由几何参数决定，整圆由两段半圆组成。
 
 #### Scenario: Canvas 绘制
-- **WHEN** 作品选择沿用本套参考的Canvas点列、粒子或辉光
-- **THEN** 参考组件复用本地Painter／primitives；作品可另选经过适配验证的实现，不设置全局库禁用
-
-### Requirement: 现有风格组件复用共享动效组件
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-选择沿用的参考组件 MUST 在不改变其实际消费者语义的前提下复用作品采用的本地实现：描线与图表生长使用 paths；transform/filter/颜色使用 animation-utils；数字滚动使用 `rollNumber`；引线使用共享 `Callout`/`DrawLine`。作品与风格组件 MUST 通过 作品本地动效模块 使用这些能力，MUST 将直接采用的第三方依赖声明并锁定在作品内。
-
-#### Scenario: 风格组件内部替换
-- **WHEN** `HandDrawnLine`、`ChartLine`、`ChartArrow`、`HeroNumber` 或 `Callout` 的内部实现被替换
-- **THEN** 对作品暴露的 props 与视觉语义不变，现有示例继续编译和使用
-
-#### Scenario: 直接外部依赖
-- **WHEN** 作品或风格组件直接 import `@remotion/paths`、`@remotion/animation-utils` 或 `roughjs`
-- **THEN** 按作品依赖和锁文件解析，不要求经过主项目包装
+- **WHEN** 作品选择沿用参考的 Canvas 点列、粒子或辉光
+- **THEN** 使用作品本地的 Painter 或确定性原语，也可采用经验证的本地实现。
 
 ### Requirement: 共享动效组件必须可测试
 
@@ -235,79 +181,25 @@
 - **WHEN** 动效参考实现源码引入挂钟、随机源、计时器或 CSS 动画
 - **THEN** 契约测试失败并指出文件
 
-### Requirement: 文本排版组件
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-系统 SHALL 在采用时本地提供 `AutoFitText` 与 `TextBlock`。两者 MUST 只按传入的文本、宽度、字号、字体与 `progress` 计算，MUST NOT 读取挂钟、帧号或上一帧状态。
-
-文本测量 MUST 只在浏览器进行；字体未就绪时 MAY 回退到调用方字号或原始分行，但字体就绪后 MUST 重测一次。CJK 换行 MUST NOT 依赖按空格切词：中文按字形单元断行，收尾标点 MUST NOT 出现在行首，超长西文单词 MUST 被硬断。Node/SSR 环境下 MUST NOT 抛出测量错误。
-
-#### Scenario: 中文多行标题
-- **WHEN** `TextBlock` 以 `maxWidth` 和中文文本渲染
-- **THEN** 每一行不超过 `maxWidth`，句号、逗号等收尾标点不出现在行首
-
-#### Scenario: 字体延迟
-- **WHEN** 组件首次渲染时字体尚未加载
-- **THEN** 先使用回退字号，`document.fonts.ready` 后重新测量并更新字号/分行
-
-#### Scenario: Node 渲染
-- **WHEN** 在无 DOM 的环境执行静态标记测试
-- **THEN** 组件回退到调用方字号或按换行符分行，不抛错
-
-### Requirement: 图形变换、遮罩与仪表
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-系统 SHALL 在采用时本地提供 `PathMorph`、`MaskReveal`、`ArcGauge`、`ProgressRing` 与 `NoiseDrift`（含 `noiseAt`、`noiseDrift`）。
-
-`PathMorph` MUST 通过 `interpolatePath` 做逐点插值，MUST NOT 承诺拓扑匹配。`MaskReveal` MUST 输出静态 `clip-path`，MUST NOT 使用 CSS transition 或动画。噪声 MUST 只由显式 seed 与坐标求值；未提供 seed 时 MUST 使用固定默认值。所有组件 MUST 只由 `progress` 与显式 `easing` 驱动。
-
-#### Scenario: 路径形变
-- **WHEN** 同一组 `from`/`to` 与 `progress` 重复求值
-- **THEN** 得到相同路径；进度 0 与 1 分别接近两个端点
-
-#### Scenario: 遮罩揭示
-- **WHEN** `MaskReveal` 以 `wipe` 或 `iris` 模式接收进度
-- **THEN** 输出对应的静态 `clip-path`，不启动浏览器动画
-
-#### Scenario: 噪声可复现
-- **WHEN** `NoiseDrift` 或 `noiseDrift` 以相同 seed 和进度重录
-- **THEN** 位移、旋转与缩放完全一致
-
 ### Requirement: 纯时间安全图表
 
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-系统 SHALL 在采用时本地提供 `LinePlot`、`AreaPlot`、`Sparkline` 与 `Axis`。它们 MUST 只做数值映射与静态 SVG，MUST NOT 使用 ECharts、`Chart`、`useFrame`、计时器或自走动画。折线 MUST 按进度生长，面积 MUST 按进度从左向右揭示。坐标轴与标注 MUST 由调用方组合，组件不自动排版。
+作品采用纯时间图表时，绘制 MUST 由受控时间和显式数据求值，MUST NOT 使用自走的 ECharts 或 `Chart` 封装。图表的坐标、揭示与标注由作品本地实现。可采用本地共享曲线几何或在作品独立声明并锁定合适的外部依赖。
 
 #### Scenario: pure-time 场景使用图表
-- **WHEN** 声明 `capture.mode: "pure-time"` 的场景使用 `LinePlot` 与 `Axis`
-- **THEN** 通过纯时间静态闸门，正序与倒序采集同一帧 PSNR ≥ 60 dB
+- **WHEN** 纯时间场景采用本地确定性图表
+- **THEN** 场景通过静态闸门，正序与倒序的同一帧得到一致结果。
 
 #### Scenario: ECharts 仍被禁止
-- **WHEN** pure-time 场景改为使用 ECharts 或 `Chart`
-- **THEN** 静态闸门拒绝，提示改用共享图表组件
-
-### Requirement: 时间轴与章节轨
-
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-系统 SHALL 在采用时本地提供 `Timeline` 与 `ChapterTrack`。事件显隐和当前章节 MUST 只由数值与显式 `progress` 决定。标签密集时组件 MUST NOT 自动避让或截断，由调用方负责。
-
-#### Scenario: 时间轴与章节展示
-- **WHEN** 时间轴或章节轨以显式进度求值
-- **THEN** 时间轴只显示已到达的事件，章节轨按该进度高亮当前章节
+- **WHEN** pure-time 场景引入 ECharts 或 `Chart`
+- **THEN** 静态闸门拒绝自走动画。
 
 ### Requirement: 图表几何统一来源
 
-本能力作为可选动效参考和模板提供，MUST NOT 要求所有作品采用或安装主项目SDK。作品只对实际采用的组件承担下列行为约束；未采用的参考不得成为运行依赖，失去消费者的通用包装可删除。
-
-共享图表与风格的点列曲线 MUST 复用成熟库支持的统一纯函数，支持直线、单调、阶梯及 Catmull-Rom 曲线；MUST 保留已有风格接口、曲线视觉语义与显式进度。金融类型的业务时间轴与刻度策略不属于该公共几何接口。
+金融来源参考 SHALL 复用共享点列几何的单调曲线。几何原语支持直线、单调、阶梯与 Catmull-Rom 曲线。金融的业务时间轴与坐标映射由金融来源场景负责。
 
 #### Scenario: 风格平滑曲线
-- **WHEN** dark-proof 绘制既有平滑点列
-- **THEN** 通过统一几何生成，保留端点与平滑语义，不再维护手写贝塞尔控制点算法
+- **WHEN** 金融来源场景绘制按日期排序的价格点列
+- **THEN** 使用公共几何生成单调曲线，业务时间与读数沿用金融来源的实际数据口径。
 
 ### Requirement: 运动实现约定必须保持时间与数据一致
 
