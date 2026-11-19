@@ -1,6 +1,7 @@
 """示例与字体产物的版本控制卫生：生成媒体、缓存和字体二进制都不入库。"""
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -47,3 +48,17 @@ def test_no_generated_or_example_media_is_tracked() -> None:
     assert tracked_fonts == [], f"字体二进制应由 fonts/fetch.py 恢复而非入库：{tracked_fonts}"
     assert "fonts/registry.json" in listed, "字体登记表必须保留在版本控制中"
     assert any(name.startswith("fonts/licenses/") for name in listed), "字体许可必须保留在版本控制中"
+
+
+def test_compound_voice_inputs_stay_local() -> None:
+    model = EXAMPLE_PATHS['compound-after-20'] / 'models/qwen3-tts'
+    requirements = json.loads((model / 'voice-requirements.json').read_text(encoding='utf-8'))
+    registry = json.loads((model / 'registry.template.json').read_text(encoding='utf-8'))
+    assert registry['voices'] == []
+    private = [model / 'registry.json', model.parent / 'files' / requirements['refAudio']]
+    for path in private:
+        ignored = subprocess.run(['git', 'check-ignore', '--no-index', str(path)], cwd=ROOT, capture_output=True)
+        assert ignored.returncode == 0, path
+    tracked = subprocess.run(['git', 'ls-files', '--', *map(str, private)], cwd=ROOT,
+                             capture_output=True, check=True)
+    assert not tracked.stdout

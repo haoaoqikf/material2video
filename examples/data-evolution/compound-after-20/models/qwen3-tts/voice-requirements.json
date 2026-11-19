@@ -1,0 +1,7 @@
+{
+  "voice": "clone_screenrecorder-20261114-174828",
+  "refAudio": "qwen3-tts/voices/screenrecorder-20261114-174828.wav",
+  "bytes": 607086,
+  "sha256": "db746d0783dcb14f7223df9668465b8eb51161deca316a686a7453dcf7e906ab",
+  "profileSha256": "7cc8444e54f8c2a4daf8141674b103a64c98ef27c4b3fb585426ee8c7d39cf0c"
+}

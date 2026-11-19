@@ -1,5 +1,0 @@
-{
-  "section": "core",
-  "hideText": true,
-  "capture": {"mode": "pure-time", "jobs": 1, "verifyFrames": 3}
-}

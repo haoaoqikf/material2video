@@ -7,8 +7,9 @@ import pytest
 from m2v.core.errors import M2VError
 from m2v.core import frames
 from m2v.core.project import load_current_prepared
-from m2v.types.scene_film import adapter, explainer, scene_events, soundtrack
-from film_runtime.types.scene_film import code_scenes
+from m2v.types.scene_film import explainer, scene_events, soundtrack
+from film_runtime.core.errors import VideoError
+from film_runtime.types.scene_film import code_scenes, explainer_prepare
 from helpers.scene_film import board, fake_record, fake_tts, project, scene, scene_root, requires_node, prepare_build
 
 pytestmark = pytest.mark.media
@@ -61,14 +62,14 @@ def test_prepare_rebinds_report_audio_and_scene_cache(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, data)
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    first = adapter.prepare(root, manifest)
+    first = explainer_prepare.prepare(root, manifest)
     first_config = code_scenes.scene_config(first['props']['compiledScenes'][0], frames.spec(1920, 1080), {})
     assert first_config['eventFrames'] == {'hit': 15}
     data['scenes'][0]['events'][0]['frame'] += 15
     (root/'storyboard.json').write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(M2VError):
         load_current_prepared(root, manifest)
-    second = adapter.prepare(root, manifest)
+    second = explainer_prepare.prepare(root, manifest)
     assert second['preparedFingerprint'] != first['preparedFingerprint']
     assert second['audio']['segments'][0]['sha256'] != first['audio']['segments'][0]['sha256']
     assert second['props']['effectStartFrames'] == [30]
@@ -85,90 +86,54 @@ def test_prepare_rejects_event_beyond_automatic_duration(tmp_path, monkeypatch):
     root, manifest = project(tmp_path, board(scenes=[scene(events=[{'id': 'late', 'frame': 1000}])]))
     fake_tts(monkeypatch)
     fake_record(monkeypatch)
-    with pytest.raises(M2VError, match='超出本幕时长'):
-        adapter.prepare(root, manifest)
+    with pytest.raises(VideoError, match='超出本幕时长'):
+        explainer_prepare.prepare(root, manifest)
 
 
+@requires_node
 @pytest.mark.slow
-def test_real_compound_event_shift_and_local_capture(tmp_path):
-    """独立工程真实Canvas：事件声画一起移动，局部/窗口采集像素一致。"""
-    import os
-    import textwrap
-    from m2v.standalone.process import run
+def test_browser_event_shift_and_local_capture(tmp_path, chromium_ready):
+    """事件声画一起移动，单帧和窗口采集得到相同像素。"""
+    from PIL import Image, ImageChops
+    from playwright.sync_api import sync_playwright
+    from film_runtime.types.scene_film.code_scenes.config import copy_build_outputs
 
-    root = Path(__file__).resolve().parents[3] / 'examples/data-evolution/compound-interest'
-    python = root / '.venv' / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-    if not python.is_file() or not (root/'node_modules/esbuild').exists():
-        pytest.skip('需要先恢复compound-interest独立工程的本地Python/Node环境')
-    # 使用作品自己的host/React上下文及字体，不把v3入口塞进旧共享SDK构建器。
-    script = textwrap.dedent('''
-        import json, sys
-        from pathlib import Path
-        from PIL import Image, ImageChops
-        from playwright.sync_api import sync_playwright
-        from film_runtime.engine.browser import configure
-        from film_runtime.types.scene_film import code_scenes, scene_events
-        from film_runtime.types.scene_film.code_scenes.config import copy_build_outputs
+    fixture = Path(__file__).resolve().parents[2] / 'fixtures/code-scenes/event-capture.tsx'
+    root, build, result = prepare_build(tmp_path, fixture.read_text(encoding='utf-8'))
+    assert result.returncode == 0, result.stderr
+    base, delay, duration, fps = 9, 15, 30, 30
+    target = {'id': 'a', 'startFrame': 0, 'durationInFrames': duration, 'segmentWindows': {},
+              'content': {'props': {'capture': {'mode': 'pure-time'}}}}
+    geometry = {'width': 160, 'height': 90,
+                'subtitle': {'safeArea': {'x': 0, 'y': 70, 'width': 160, 'height': 20}}}
+    effects = [{'builtin': 'click', 'sceneId': 'a', 'eventId': 'hit'}]
+    starts = {}
+    cases = [('window', [base - 1, base, base + delay], 0),
+             ('local', [base], 0),
+             ('shift', [base, base + delay - 1, base + delay], delay)]
+    with sync_playwright() as pw:
+        for name, selected, shift in cases:
+            folder = tmp_path / name
+            folder.mkdir()
+            copy_build_outputs(build, folder)
+            target['events'] = [{'id': 'hit', 'frame': base + shift}]
+            scene_events.resolve([target])
+            config = code_scenes.scene_config(target, geometry, {}, fps=fps)
+            code_scenes._capture(pw, root, folder, config, selected_frames=selected, verify_frames=2)
+            starts[name] = scene_events.effect_starts(effects, [target], fps, duration)[0]
 
-        configure()
-        root, temporary = Path.cwd(), Path(sys.argv[1])
-        source = json.loads((root/'storyboard.json').read_text(encoding='utf-8'))
-        target = source['scenes'][0]
-        duration, fps = target['durationFrames'], source['fps']
-        target.update(startFrame=0, endFrame=duration, durationInFrames=duration, segmentWindows={})
-        target['content']['props']['hideText'] = True
-        first = next(event for event in target['events'] if event['id'] == 'drop-1')
-        base, delay = first['frame'], 15
-        events = {event['id']: event['frame'] for event in target['events']}
-        scene_events.resolve([target])
-        build = temporary/'build'
-        build.mkdir()
-        code_scenes.build_scene(root, target, build)
-        geometry = {'width': 384, 'height': 216,
-            'subtitle': {'safeArea': {'x': 0, 'y': 180, 'width': 384, 'height': 36}}}
-        starts = {}
-        with sync_playwright() as pw:
-            for name, selected, shift in [('window', [base-1, base, base+delay], 0),
-                                          ('local', [base], 0),
-                                          ('shift', [base, base+delay-1, base+delay], delay)]:
-                folder = temporary/name
-                folder.mkdir()
-                copy_build_outputs(build, folder)
-                for event in target['events']:
-                    event['frame'] = events[event['id']] + (shift if event['id'].startswith('drop-') else 3*shift)
-                    if event['id'] == 'first-start':
-                        # 只控制测试副本的微推相机：30/90 == 45/135。
-                        # 比较落定相位时视角完全相同，不能让微推掩盖事件错帧。
-                        event['frame'] = 3*(base+shift)
-                target['events'].sort(key=lambda event: event['frame'])
-                scene_events.resolve([target])
-                config = code_scenes.scene_config(target, geometry, {}, fps=fps)
-                code_scenes._capture(pw, root, folder, config, selected_frames=selected, verify_frames=2)
-                starts[name] = scene_events.effect_starts(source['soundtrack']['effects'],
-                    [target], fps, duration)[0]
-        def pixels(name, frame=base):
-            with Image.open(temporary/name/f'frame-{frame:06d}.png') as picture:
-                return picture.convert('RGB')
-        original = pixels('window')
-        local_equal = ImageChops.difference(original, pixels('local')).getbbox() is None
-        changed = ImageChops.difference(original, pixels('shift')).convert('L').histogram()
-        landed_equal = ImageChops.difference(original, pixels('shift', base+delay)).getbbox() is None
-        before_differs = all(ImageChops.difference(pixels(name, at-1), pixels(name, at)).getbbox()
-            is not None for name, at in [('window', base), ('shift', base+delay)])
-        print(json.dumps({'base': base, 'delay': delay, 'starts': starts,
-            'localEqual': local_equal, 'landedEqual': landed_equal,
-            'beforeDiffers': before_differs, 'changedPixels': sum(changed[3:])}))
-    ''')
-    lines = []
-    result = run([str(python), '-c', script, str(tmp_path)], root, timeout=120, on_line=lines.append)
-    assert result == 0, '\n'.join(lines)
-    evidence = json.loads(lines[-1])
-    assert evidence['localEqual']
-    assert evidence['landedEqual']
-    assert evidence['beforeDiffers']
-    assert evidence['changedPixels'] > 20  # 排除少量GPU抗锯齿噪声，确认事件实际改变画面。
-    assert evidence['starts'] == {'window': evidence['base'], 'local': evidence['base'],
-                                  'shift': evidence['base'] + evidence['delay']}
+    def pixels(name, frame):
+        with Image.open(tmp_path / name / f'frame-{frame:06d}.png') as picture:
+            return picture.convert('RGB')
+
+    landed = pixels('window', base)
+    assert ImageChops.difference(landed, pixels('local', base)).getbbox() is None
+    assert ImageChops.difference(landed, pixels('shift', base + delay)).getbbox() is None
+    assert ImageChops.difference(landed, pixels('window', base - 1)).getbbox()
+    assert ImageChops.difference(landed, pixels('shift', base + delay - 1)).getbbox()
+    changed = ImageChops.difference(landed, pixels('shift', base)).convert('L').histogram()
+    assert sum(changed[3:]) > 20
+    assert starts == {'window': base, 'local': base, 'shift': base + delay}
 
 
 @requires_node

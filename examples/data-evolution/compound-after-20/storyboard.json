@@ -1,0 +1,236 @@
+{
+  "version": 9,
+  "schemaVersion": 9,
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "title": "为什么复利在前 20 年几乎看不到威力？",
+  "input": {
+    "kind": "topic",
+    "topic": "一笔本金在固定年利率与利息回投下，前后两个二十年的新增收益为何悬殊"
+  },
+  "targetSeconds": 38.7,
+  "soundtrack": {
+    "effects": [
+      {
+        "builtin": "click",
+        "sceneId": "reinvestment",
+        "eventId": "extra-shines",
+        "offsetFrames": 0,
+        "gainDb": -17
+      },
+      {
+        "builtin": "click",
+        "sceneId": "annual-growth",
+        "eventId": "last-bar",
+        "offsetFrames": 0,
+        "gainDb": -29
+      },
+      {
+        "builtin": "click",
+        "sceneId": "two-towers",
+        "eventId": "towers-settled",
+        "offsetFrames": 0,
+        "gainDb": -24
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "opening",
+      "keywords": [
+        "同一笔钱",
+        "前后两个二十年"
+      ],
+      "template": "code",
+      "content": {
+        "title": "同一笔钱，两个二十年",
+        "entry": "scenes/compound-opening.tsx",
+        "props": {
+          "chapter": "opening",
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 1
+          }
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "deposit",
+          "text": "放进去一万块，后来一分钱也没加。",
+          "translation": "Put in ¥10,000, then never add another cent."
+        },
+        {
+          "id": "early",
+          "text": "前二十年，利息不到六万。",
+          "translation": "First 20 years, under ¥60,000 in interest."
+        },
+        {
+          "id": "late",
+          "text": "接下来的二十年，利息快四十万。",
+          "translation": "Next 20 years, nearly ¥400,000 in interest."
+        },
+        {
+          "id": "question",
+          "text": "都是二十年，怎么差这么多？",
+          "translation": "Both are 20 years. Why such a big gap?"
+        }
+      ],
+      "durationFrames": 315,
+      "leadInFrames": 4,
+      "tailFrames": 6,
+      "events": [
+        {
+          "id": "principal-lands",
+          "frame": 20
+        }
+      ]
+    },
+    {
+      "id": "reinvestment",
+      "keywords": [
+        "首年利息",
+        "利息回投",
+        "次年多出一百元"
+      ],
+      "template": "code",
+      "content": {
+        "title": "多出来的一百元",
+        "entry": "scenes/compound-reinvestment.tsx",
+        "props": {
+          "chapter": "reinvestment",
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 1
+          }
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "first-year",
+          "text": "第一年赚了一千块。",
+          "translation": "Year one earns ¥1,000."
+        },
+        {
+          "id": "extra-interest",
+          "text": "这一千没取出来，第二年它自己又赚了一百。",
+          "translation": "Leave that ¥1,000 in, and it earns ¥100 the next year."
+        },
+        {
+          "id": "year-two",
+          "text": "加上本金赚的，一共一千一。",
+          "translation": "With the interest on the original deposit, that's ¥1,100."
+        }
+      ],
+      "durationFrames": 264,
+      "leadInFrames": 4,
+      "tailFrames": 6,
+      "events": [
+        {
+          "id": "contact",
+          "frame": 48
+        },
+        {
+          "id": "extra-lifts",
+          "frame": 137
+        },
+        {
+          "id": "extra-shines",
+          "frame": 161
+        }
+      ]
+    },
+    {
+      "id": "annual-growth",
+      "keywords": [
+        "年度新增收益",
+        "共同基线",
+        "计息余额"
+      ],
+      "template": "code",
+      "content": {
+        "title": "同一把尺看四十年",
+        "entry": "scenes/compound-annual-growth.tsx",
+        "props": {
+          "chapter": "annual-growth",
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 1
+          }
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "one-bar",
+          "text": "一根柱，是一年新赚的利息。",
+          "translation": "One bar, one year's interest."
+        },
+        {
+          "id": "balance-21",
+          "text": "到了第二十一年，账上已经有六万七千多。",
+          "translation": "By year 21, the account starts with over ¥67,000."
+        },
+        {
+          "id": "same-rate",
+          "text": "利率没变，能赚钱的钱变多了。",
+          "translation": "Same rate, more money earning interest."
+        }
+      ],
+      "durationFrames": 308,
+      "leadInFrames": 5,
+      "tailFrames": 7,
+      "events": [
+        {
+          "id": "last-bar",
+          "frame": 272
+        }
+      ]
+    },
+    {
+      "id": "two-towers",
+      "keywords": [
+        "双塔合拢",
+        "两段收益",
+        "六点七三倍"
+      ],
+      "template": "code",
+      "content": {
+        "title": "两段二十年的答案",
+        "entry": "scenes/compound-film.tsx",
+        "props": {
+          "chapter": "two-towers",
+          "capture": {
+            "mode": "pure-time",
+            "jobs": 1
+          }
+        }
+      },
+      "narrationSegments": [
+        {
+          "id": "group",
+          "text": "把两段利息分别加起来。",
+          "translation": "Add up the interest in each period."
+        },
+        {
+          "id": "reason",
+          "text": "前面赚到的钱留下来，接着赚。",
+          "translation": "The earlier interest stays in, and keeps earning."
+        },
+        {
+          "id": "multiple",
+          "text": "后二十年的利息，是前面的六点七三倍。",
+          "translation": "In the next 20 years, the interest is 6.73 times as much."
+        }
+      ],
+      "durationFrames": 274,
+      "leadInFrames": 9,
+      "events": [
+        {
+          "id": "towers-settled",
+          "frame": 116
+        }
+      ],
+      "readingHoldFrames": 48
+    }
+  ]
+}

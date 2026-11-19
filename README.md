@@ -100,9 +100,9 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 ## 示例与文档
 
-《复利》示例采用方案C的薄荷绿现场、实体圆片与年度余额模型，核心跟踪去年收益归队后再生收益，六段动作和64个事件声共用分镜事件；可恢复声音与字体、源码和当前验证范围见[作品说明](examples/data-evolution/compound-interest/README.md)。
+《复利 40 年》用 38.7 秒回答同一笔钱前、后各二十年的利息为何相差 6.73 倍。四幕展示同一账户的起点、利息再投入、年度柱从零线生长及两组归塔。原克隆音色从本地参考 WAV 和音色档案恢复。详见[作品说明](examples/data-evolution/compound-after-20/README.md)。
 
-五部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出；主题、场景身份、数学／事实口径和音轨要求保持不变。素材与媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。逐例改造范围与实际验证见[示例独立化记录](openspec/changes/archive/2026-11-08-make-video-projects-standalone/implementation-examples.md)和 [examples/README.md](examples/README.md)。
+四部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出。需要下载的示例媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。当前示例和恢复入口见[随附示例](examples/README.md)。
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。

@@ -2,14 +2,19 @@
 from __future__ import annotations
 
 import json
+import subprocess
 
 import pytest
 
-from helpers.examples import EXAMPLE_PATHS, TYPE_EXAMPLES
+from film_runtime.types.scene_film import explainer
+from helpers.examples import EXAMPLES, EXAMPLE_PATHS, TYPE_EXAMPLES
 from m2v.cli import main
 from m2v.core.project import load_project
 from m2v.production.dependencies import scene_sources
-import subprocess
+
+
+def test_bundled_projects_match_example_index():
+    assert {path.parent for path in EXAMPLES.glob("*/*/project.json")} == set(EXAMPLE_PATHS.values())
 
 
 @pytest.mark.parametrize("slug", sorted(EXAMPLE_PATHS))
@@ -22,7 +27,7 @@ def test_example_materials_and_scene_imports(slug, tmp_path):
     board = json.loads((root / "storyboard.json").read_text(encoding="utf-8"))
     assert board["version"] == board["schemaVersion"] == 9
     assert "style" not in project
-    assert main(["validate", "--project", str(root)]) == 0
+    explainer.validate(board, root, project)
     for scene in board["scenes"]:
         deps = scene_sources(root, scene)
         assert "style" not in deps
@@ -36,3 +41,11 @@ def test_example_materials_and_scene_imports(slug, tmp_path):
                                 cwd=root, capture_output=True, text=True, encoding="utf-8",
                                 errors="replace", timeout=120)
         assert result.returncode == 0, result.stderr[-2000:]
+
+
+@pytest.mark.parametrize("slug", sorted(EXAMPLE_PATHS))
+def test_restored_example_validates(slug):
+    root = EXAMPLE_PATHS[slug]
+    if slug == "compound-after-20" and not (root / "models/qwen3-tts/registry.json").is_file():
+        pytest.skip("需先按示例 README 恢复使用者本地提供的原音色")
+    assert main(["validate", "--project", str(root)]) == 0

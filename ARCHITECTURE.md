@@ -13,7 +13,7 @@ Material2Video 提供制作指导、工程生成和可选制作管理。v3 作�
 | 结构化来源 | `src/m2v/types/financial/`、`building_construction/`、`vehicle_showcase/` | 金融行情与投资计算、建筑构件与步骤、汽车模型与镜头数据；只由统一分镜引用 |
 | 素材工作层 | `src/m2v/materials/` | 需求/来源/媒体/索引/候选/选择/凭据契约，SQLite 权威库与内容寻址对象，受控网络/平台/网页获取，字幕/转录/OCR/镜头/文本/视觉索引与检索，预览、精裁、作品导入和显式库清理；制作期工具，不是作品运行时依赖 |
 | Web 参考源码 | `web/src/code-scene/`、`web/src/scene-film/`、`web/src/types/` | 可选组件的采用参考与仓库测试夹具；不是作品运行时，也没有公开 SDK 入口 |
-| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；只有五部示例源码入库 |
+| 作品 | `videos/<type>/<slug>/`、`examples/<type>/<slug>/` | 分镜、源文、场景代码与素材；只有四部示例源码入库 |
 
 ## 依赖与材料边界
 

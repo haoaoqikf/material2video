@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 3,
+  "id": "compound-after-20",
+  "type": "data-evolution",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "audio": "required",
+    "subtitle": {
+      "fontSize": 52
+    }
+  },
+  "tts": {
+    "backend": "qwen3-tts",
+    "voice": "clone_screenrecorder-20261114-174828",
+    "speech": {
+      "headPad": 0.08,
+      "pause": {
+        "comma": 0.16,
+        "period": 0.3,
+        "paragraph": 0.18
+      }
+    }
+  },
+  "runtime": {
+    "version": 1,
+    "command": [
+      "uv",
+      "run",
+      "--frozen",
+      "python",
+      "scripts/video.py"
+    ]
+  }
+}

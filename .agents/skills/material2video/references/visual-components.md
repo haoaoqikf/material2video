@@ -26,7 +26,7 @@
 | 揭示分离 | 两条线沿实际年份一起展开，在选定的分离区间停留。轴、线、标签和读数使用同一份数据和同一坐标映射。 | 按实际数据和画面确定分离区间，检查区间前、中、后的年份、曲线末端和读数是否同步。 |
 | 展示规模 | 揭示完成后拉远到完整 30 年。每帧对曲线、坐标和关联标注使用同一映射。 | 拉远中两组身份可辨，终值和差额保持稳定，末帧刻度、终点和读数对应。 |
 
-**内部检查。** 先查共享的 [`LinePlot` 和 `Axis`](../../../../web/src/code-scene/motion-components/charts.tsx)、[`chartLinePath`](../../../../web/src/code-scene/chart-geometry.ts) 和[遮罩原语](../../../../web/src/code-scene/motion-components/morph.tsx)，再看 [`compound-connect` 的曲线和刻度用例](../../../../examples/data-evolution/compound-connect/scenes/components/proof-chart.tsx)。`LinePlot` 的普通实线通过 `pathDrawProps` 按各自的 SVG 路径长度揭示。两条线的路径长度分布不同，共用 `progress` 也可能露到不同年份。[Remotion 路径揭示](https://www.remotion.dev/docs/paths/evolve-path)
+**内部检查。** 先查共享的 [`LinePlot` 和 `Axis`](../../../../web/src/code-scene/motion-components/charts.tsx)、[`chartLinePath`](../../../../web/src/code-scene/chart-geometry.ts) 和[遮罩原语](../../../../web/src/code-scene/motion-components/morph.tsx)。`LinePlot` 的普通实线通过 `pathDrawProps` 按各自的 SVG 路径长度揭示。两条线的路径长度分布不同，共用 `progress` 也可能露到不同年份。[Remotion 路径揭示](https://www.remotion.dev/docs/paths/evolve-path)
 
 | 候选 | 比较与决定 |
 |---|---|
@@ -34,7 +34,7 @@
 | 复用内部曲线与坐标轴，组合共同裁剪 | 优先试制。用当前年份算出共享横坐标，让完整绘出的两条线在同一绘图区边界截止。坐标轴与标签单独绘制，读数按同一年份取值。拉远时检查裁剪边界、坐标、曲线和标注是否一起更新。 |
 | 按缺口引入外部实现 | 若内部组合只剩刻度跳变或标签碰撞，就按该问题查可显式控制的刻度或标签布局。用相同时间输入和画幅比较，确认改善且通过既有数据和采集检查后，再判断是否值得新增依赖。 |
 
-**本片数据与试制。** 沿用[复利示例的数据模型](../../../../examples/data-evolution/compound-interest/scenes/compoundMath.ts)，本金 10,000 元，年收益率 10%，对比收益再投入和取出后留存两组。在位置信息和差额计算里用原始精度，显示按本片口径舍入。下表保留两位小数供核对。
+**练习数据与试制。** 本金 10,000 元，年收益率 10%，对比收益再投入和取出后留存两组。第 `n` 年的累计总额分别是 `10000 × 1.1ⁿ` 和 `10000 × (1 + 0.1n)`。位置和差额按原始精度计算，读数保留两位小数。前、后各二十年按同一个账户分组的用例见[复利 40 年](../../../../examples/data-evolution/compound-after-20/design/scenes/annual-growth.md)。
 
 | 年份 | 再投入累计总额 | 取出后留存累计总额 | 差额 |
 |---|---:|---:|---:|

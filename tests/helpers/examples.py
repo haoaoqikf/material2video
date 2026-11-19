@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 TYPE_EXAMPLES: dict[str, tuple[str, ...]] = {
     "text-motion": (),
-    "data-evolution": ("compound-interest", "compound-connect"),
+    "data-evolution": ("compound-after-20",),
     "principle-metaphor": ("luck-on-stage",),
     "spatial-3d": ("solar-system-journey",),
     "documentary-edit": ("american-science-milestones",),
@@ -15,7 +15,6 @@ EXAMPLE_PATHS: dict[str, Path] = {
     slug: EXAMPLES / kind / slug
     for kind, slugs in TYPE_EXAMPLES.items() for slug in slugs
 }
-STORYBOARDS = sorted(EXAMPLES.glob("*/*/storyboard.json"))
 STORYBOARD_PATHS = [
     f"examples/{kind}/{slug}/storyboard.json"
     for kind, slugs in sorted(TYPE_EXAMPLES.items()) for slug in slugs

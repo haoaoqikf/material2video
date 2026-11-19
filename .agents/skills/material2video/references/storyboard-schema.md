@@ -223,7 +223,7 @@ function useMediaAsset(id: string) {
 ```
 
 完整示例：[从电报到大模型](../../../../examples/documentary-edit/american-science-milestones/storyboard.json)、
-[复利](../../../../examples/data-evolution/compound-interest/storyboard.json)、
+[复利 40 年](../../../../examples/data-evolution/compound-after-20/storyboard.json)、
 [太阳系之旅](../../../../examples/spatial-3d/solar-system-journey/storyboard.json)。当前规格见
 [five-video-types](../../../../openspec/specs/five-video-types/spec.md)。
 

@@ -56,7 +56,7 @@ class TestSubsetting:
         missing = fonts.audit(storyboard, target)
         assert missing == [], f"子集漏字会让浏览器静默回退：{missing}"
 
-    def test_all_three_works_can_be_subset_without_missing_glyphs(self, tmp_path):
+    def test_examples_can_be_subset_without_missing_glyphs(self, tmp_path):
         for index, relative in enumerate(STORYBOARDS):
             storyboard = _storyboard(relative)
             target = tmp_path / f"subset-{index}.ttf"

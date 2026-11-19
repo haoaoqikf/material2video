@@ -1,0 +1,22 @@
+node_modules/
+.venv/
+.cache/
+dist/
+outputs/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+fonts/files/
+fonts/.cache/
+models/files/
+models/.cache/
+public/fonts/
+src/assets/math/
+assets/media/
+assets/sound/*
+!assets/sound/*.py
+!assets/sound/LICENSE.md
+assets/sound-sources.json
+
+# 由 restore-voice.py 生成，包含本地音色档案。
+/models/qwen3-tts/registry.json
