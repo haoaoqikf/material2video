@@ -20,7 +20,7 @@ pnpm run preview --serve
 
 `setup --download` 允许按 `fonts/registry.json` 的登记恢复缺失字体；有完整本地缓存时可省略。已有文件摘要不符会失败，不覆盖、不接受内容漂移。`--install-browser` 恢复当前Playwright版本对应的完整Chromium；合成与场景采集使用这一浏览器，导出时不隐式下载另一浏览器。
 
-纪实口播默认使用本地 Kokoro，其他类型也可在 `project.json` 声明 `tts.backend: "kokoro"`。按旁白选择并记录音色后，安装可选依赖并在作品内恢复模型：
+直接运行时，省略合成后端的纪实作品解析为本地 Kokoro，其他类型也可在 `project.json` 声明 `tts.backend: "kokoro"`。需要 Kokoro 时，记录音色，安装可选依赖并在作品内恢复模型：
 
 ```powershell
 uv sync --frozen --extra kokoro
