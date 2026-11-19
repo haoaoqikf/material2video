@@ -26,12 +26,12 @@
 | 揭示分离 | 两条线沿实际年份一起展开，在选定的分离区间停留。轴、线、标签和读数使用同一份数据和同一坐标映射。 | 按实际数据和画面确定分离区间，检查区间前、中、后的年份、曲线末端和读数是否同步。 |
 | 展示规模 | 揭示完成后拉远到完整 30 年。每帧对曲线、坐标和关联标注使用同一映射。 | 拉远中两组身份可辨，终值和差额保持稳定，末帧刻度、终点和读数对应。 |
 
-**内部检查。** 先查共享的 [`LinePlot` 和 `Axis`](../../../../web/src/code-scene/motion-components/charts.tsx)、[`chartLinePath`](../../../../web/src/code-scene/chart-geometry.ts) 和[遮罩原语](../../../../web/src/code-scene/motion-components/morph.tsx)。`LinePlot` 的普通实线通过 `pathDrawProps` 按各自的 SVG 路径长度揭示。两条线的路径长度分布不同，共用 `progress` 也可能露到不同年份。[Remotion 路径揭示](https://www.remotion.dev/docs/paths/evolve-path)
+**内部检查。** 先查 [`chartLinePath`](../../../../web/src/code-scene/chart-geometry.ts) 和[金融曲线的用法](../../../../web/src/types/financial/chart.tsx)。按 SVG 路径长度揭示时，两条线的路径长度分布不同，共用 `progress` 也可能露到不同年份。[Remotion 路径揭示](https://www.remotion.dev/docs/paths/evolve-path)
 
 | 候选 | 比较与决定 |
 |---|---|
-| 直接用 `LinePlot` 的实线揭示 | 接入简单，保留作对照。若同一帧两条线露到不同年份，就淘汰这个揭示方式。 |
-| 复用内部曲线与坐标轴，组合共同裁剪 | 优先试制。用当前年份算出共享横坐标，让完整绘出的两条线在同一绘图区边界截止。坐标轴与标签单独绘制，读数按同一年份取值。拉远时检查裁剪边界、坐标、曲线和标注是否一起更新。 |
+| 按各自路径长度揭示 | 接入简单，可作为小试对照。核对同一帧两条线截止的年份。 |
+| 复用曲线几何，按共同坐标裁剪 | 用当前年份算出共享横坐标，让完整绘出的两条线在同一绘图区边界截止。坐标轴与标签单独绘制，读数按同一年份取值。拉远时检查裁剪边界、坐标、曲线和标注是否一起更新。 |
 | 按缺口引入外部实现 | 若内部组合只剩刻度跳变或标签碰撞，就按该问题查可显式控制的刻度或标签布局。用相同时间输入和画幅比较，确认改善且通过既有数据和采集检查后，再判断是否值得新增依赖。 |
 
 **练习数据与试制。** 本金 10,000 元，年收益率 10%，对比收益再投入和取出后留存两组。第 `n` 年的累计总额分别是 `10000 × 1.1ⁿ` 和 `10000 × (1 + 0.1n)`。位置和差额按原始精度计算，读数保留两位小数。前、后各二十年按同一个账户分组的用例见[复利 40 年](../../../../examples/data-evolution/compound-after-20/design/scenes/annual-growth.md)。
@@ -48,7 +48,7 @@
 
 | 能力 | 来源/固定版本 | 许可与取舍 |
 | --- | --- | --- |
-| 点列曲线 | 已有 [D3 shape](https://d3js.org/d3-shape) 3.2.0 | ISC；复用既有依赖，替代共享/风格/金融重复几何；金融取样、轴和时序继续由类型负责 |
+| 点列曲线 | 已有 [D3 shape](https://d3js.org/d3-shape) 3.2.0 | ISC；共享曲线几何供金融参考使用，取样、轴和时序由场景负责 |
 | 图示布局 | [ELK.js](https://github.com/kieler/elkjs) 0.12.1 | [EPL-2.0](../../../../docs/licenses/elkjs.txt)，npm 元数据亦列 GPL 备选；使用随包 EPL 文本。安装体积约 8.2 MB，不等于成片包体；只在图示入口需要布局时加载 |
 | 数学排版 | [KaTeX](https://katex.org/) 0.19.1 | [MIT](../../../../fonts/licenses/MIT-KaTeX.txt)；20 个 WOFF2 共 259792 字节，全部本地恢复，不使用 CDN |
 | 按需图标 | [Lucide React](https://lucide.dev/) 1.68.0 | [ISC](../../../../docs/licenses/lucide-react.txt)；安装目录约 38 MB，不等于场景产物，只使用静态命名导出 |

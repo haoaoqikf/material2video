@@ -5,6 +5,7 @@
 ## 目录分层
 
 - **共享场景与成片参考**：`src/code-scene/`、`src/scene-film/`、`src/runtime/`、`src/contract/`、`src/production/`、`src/styles/`、`src/assets/`，以及 `Root.tsx`、`frames.ts`、`fonts.ts`、`video-config.ts`。五类共用 `SceneFilm` composition。
+- **动效参考**：可采用确定性原语、圆弧路径、CSS 变换、曲线几何、Canvas 绘制与粒子效果。实际用法见[共享动效组件](../.agents/skills/material2video/references/code-scene-runtime.md#共享动效组件)。
 - **结构化来源画面参考**：`src/types/financial/`、`src/types/building_construction/`、`src/types/vehicle_showcase/` 提供可由分镜场景调用的组件与计算，不注册额外 composition。
 - **具体作品代码**：作品内容目录下的 `scenes/` 与 `assets/`，不放进 `src/`；采用参考源码时随作品递归携带实际依赖与资源。
 
@@ -67,10 +68,8 @@ node scripts/remotion-render.mjs --bundle <打包目录> --props <分镜> [--out
 | 依赖 | 许可 | 越界条件 |
 | --- | --- | --- |
 | Remotion | 个人与 ≤3 人公司**免费，可商用** | 4 人以上组织协作，或对外提供渲染服务（属「Remotion for Automators」，$0.01/render、$100/月下限）时须升级 |
-| `@remotion/paths` / `@remotion/animation-utils` | MIT | 随附许可证与版权声明 |
-| `@remotion/layout-utils` / `@remotion/noise` | MIT | 随附许可证与版权声明 |
-| `d3-scale` / `d3-shape` | ISC | 随附许可证与版权声明 |
-| `roughjs` | MIT | 随附许可证与版权声明 |
+| `@remotion/animation-utils` | MIT | 随附许可证与版权声明 |
+| `d3-shape` | ISC | 随附许可证与版权声明 |
 | `perfect-freehand` | MIT | 随附许可证与版权声明 |
 | `svg-path-properties` | ISC | 随附许可证与版权声明 |
 | React / Tailwind / Vite | MIT | 随附许可证与版权声明 |

@@ -152,26 +152,6 @@ def test_prepare_records_code_scene_and_reuses_the_accepted_clip(tmp_path, monke
     assert len(list((root / "outputs/code-cache").glob("*.mp4"))) == 2
 
 
-@pytest.mark.slow
-@requires_node
-def test_build_allows_shared_motion_components(tmp_path):
-    source = """import {useEffect} from 'react';
-import {DrawLine, FadeIn, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
-export default function Demo({width, height}: CodeSceneProps) {
-  const {ready, elapsedSeconds} = useSceneContext();
-  useEffect(() => {ready();}, [ready]);
-  const progress = Math.min(1, elapsedSeconds);
-  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
-    <FadeIn progress={progress}><div style={{color: '#fff'}}>shared</div></FadeIn>
-    <DrawLine d="M20 20 L200 200" progress={progress}/>
-  </div>;
-}
-"""
-    _project, output, result = prepare_build(tmp_path, source)
-    assert result.returncode == 0, result.stderr
-    assert (output / "scene.js").is_file()
-
-
 PURE_SOURCE = """import {useEffect} from 'react';
 import {useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 export default function Demo({width, height}: CodeSceneProps) {
@@ -185,54 +165,17 @@ export default function Demo({width, height}: CodeSceneProps) {
 """
 
 
-PURE_SHARED_SOURCE = """import {useEffect} from 'react';
-import {
-  BarGrowth, DrawLine, FadeIn, MarkerHighlight, RollingNumber,
-  motionCurve, useSceneContext, type CodeSceneProps,
-} from 'm2v/code-scene';
+PURE_MOTION_SOURCE = """import {useEffect} from 'react';
+import {growSeries, motionCurve, useSceneContext, type CodeSceneProps} from 'm2v/code-scene';
 export default function Demo({width, height}: CodeSceneProps) {
   const {ready, elapsedSeconds} = useSceneContext();
   useEffect(() => {ready();}, [ready]);
-  const progress = motionCurve('linear')(Math.min(1, elapsedSeconds));
-  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
-    <FadeIn progress={progress}><div style={{color: '#fff'}}>shared</div></FadeIn>
-    <DrawLine d="M20 20 L200 200" progress={progress}/>
-    <MarkerHighlight width={320} height={240} box={{x: 20, y: 20, width: 160, height: 60}}
-      progress={progress} seed={7}/>
-    <RollingNumber from={0} to={100} progress={progress}/>
-    <BarGrowth values={[10, 20]} progress={progress} width={320} height={240}/>
-  </div>;
-}
-"""
-
-
-PURE_EXTENDED_SOURCE = """import {useEffect} from 'react';
-import {
-  ArcGauge, AreaPlot, AutoFitText, Axis, ChapterTrack, LinePlot, MaskReveal,
-  NoiseDrift, PathMorph, ProgressRing, Sparkline, TextBlock,
-  useSceneContext, type CodeSceneProps,
-} from 'm2v/code-scene';
-export default function Demo({width, height}: CodeSceneProps) {
-  const {ready, elapsedSeconds} = useSceneContext();
-  useEffect(() => {ready();}, [ready]);
-  const progress = Math.min(1, elapsedSeconds);
-  return <div style={{position: 'absolute', inset: 0, width, height, background: '#000'}}>
-    <NoiseDrift seed="demo" progress={progress} amount={4}>
-      <AutoFitText text="共享组件" withinWidth={200} fontFamily="M2V Sans" maxFontSize={40}/>
-    </NoiseDrift>
-    <TextBlock text="中文排版测试，标点不落行首。" maxWidth={160} fontFamily="M2V Sans"
-      fontSize={16} progress={progress}/>
-    <MaskReveal progress={progress}><div style={{width: 80, height: 40, background: '#fff'}}/></MaskReveal>
-    <PathMorph from="M10 10 L100 10" to="M10 10 L10 100" progress={progress}/>
-    <ArcGauge progress={progress} size={80} thickness={6}/>
-    <ProgressRing progress={progress} size={60} thickness={5}/>
-    <LinePlot series={[{values: [1, 3, 2]}]} progress={progress} width={200} height={120}>
-      <Axis orientation="x" domain={[0, 2]} range={[16, 184]} at={104} ticks={2}/>
-    </LinePlot>
-    <AreaPlot series={[{values: [2, 1, 3]}]} progress={progress} width={120} height={60}/>
-    <Sparkline values={[1, 2, 1]} width={80} height={30} fill="rgba(255, 255, 255, 0.2)"/>
-    <ChapterTrack chapters={['一', '二', '三']} progress={progress} width={200} height={60}/>
-  </div>;
+  const bars = growSeries({values: [40, 70], progress: elapsedSeconds * 5,
+    easing: motionCurve('linear'), stagger: 0.25});
+  return <svg width={width} height={height} style={{background: '#000'}}>
+    {bars.values.map((bar, index) => <rect key={index} x={20 + index * 25}
+      y={100 - bar} width={18} height={bar} fill="#fff"/>)}
+  </svg>;
 }
 """
 
@@ -270,9 +213,8 @@ def test_pure_time_capture_seeks_directly_and_reuses_blocks(tmp_path, chromium_r
 
 @pytest.mark.slow
 @requires_node
-@pytest.mark.parametrize("source", [PURE_SHARED_SOURCE, PURE_EXTENDED_SOURCE], ids=["shared", "extended"])
-def test_pure_time_accepts_motion_components(tmp_path, chromium_ready, source):
-    with scene_page(tmp_path, source, frames=6, extra={"captureMode": "pure-time"}) as (page, _):
+def test_pure_time_evaluates_motion_primitives(tmp_path, chromium_ready):
+    with scene_page(tmp_path, PURE_MOTION_SOURCE, frames=6, extra={"captureMode": "pure-time"}) as (page, _):
         frames = {}
         for frame in (0, 2, 5, 2, 0, 5):
             page.evaluate("(frame) => window.__M2V_CODE__.seekToSubframe(frame, 0, 1)", frame)

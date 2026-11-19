@@ -56,7 +56,7 @@ const result = await build({
   plugins: [{name: 'project-boundary', setup(builder) {
     // 与 Vite 的 ?raw 保持一致；KaTeX 只读取排版 CSS，字体走受控恢复目标。
     builder.onResolve({filter: /^katex\/dist\/katex.min.css\?raw$/}, args => {
-      if (!args.importer.endsWith('/math.tsx')) return;
+      if (path.basename(args.importer) !== 'math.tsx') return;
       return {path: require.resolve('katex/dist/katex.min.css'), namespace: 'raw-css'};
     });
     builder.onLoad({filter: /.*/, namespace: 'raw-css'}, args => {

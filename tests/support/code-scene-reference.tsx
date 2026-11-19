@@ -20,7 +20,6 @@ export * from '../../web/src/code-scene/subtitles';
 export * from '../../web/src/code-scene/effects/screen-burst';
 export {svgPathProperties} from 'svg-path-properties';
 export {getStroke} from 'perfect-freehand';
-export * from '../../web/src/code-scene/motion-components';
 export {createSceneEvents} from '../../web/src/code-scene/events';
 // 二维绘制层用 `painter` 命名空间导出：`Canvas` 已经是 R3F 包装，直接铺开
 // 会让两个同名符号撞在一起。

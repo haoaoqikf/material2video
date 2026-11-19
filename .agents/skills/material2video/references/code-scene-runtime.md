@@ -337,59 +337,13 @@ WebGPU 使用 `RectAreaLight` 时，按 [Three 官方说明](https://threejs.org
 
 ### 共享动效组件
 
-图表几何已统一到 D3；自动图示、公式和图标通过按需采用的本地模块使用，不混入 Remotion 合成时钟。接口、就绪规则、许可与可执行示例见[外部表达组件与转场](visual-components.md)。
+从已采用的参考开始核对。原理隐喻示例用 [`arcPath`](../../../../web/src/code-scene/motion-components/gauge.tsx) 绘制仪表弧线，纪实示例用 [CSS 变换](../../../../web/src/code-scene/motion-components/styles.ts) 组织章节与字幕之外的画面。金融来源参考使用 [曲线几何](../../../../web/src/code-scene/chart-geometry.ts)。图示、公式、图标与合成转场见[表达组件与转场](visual-components.md)。
 
-`web/src/code-scene/motion-components/` 提供可按需采用的组件；它们只把 `progress` 和显式
-`easing` 映射成样式、几何或排版，不读挂钟、不启动动画、不依赖 Remotion context。
-
-| 层 | 组件 | 用途 |
-| --- | --- | --- |
-| L1 | `FadeIn` / `SlideIn` / `ZoomIn` | 透明度、位移、缩放入场 |
-| L1 | `Blur` / `Glow` | CSS 模糊与辉光 |
-| L1 | `DrawLine` | SVG 路径按进度生长（含双层错位） |
-| L2 | `RollingNumber` | 数字滚动，复用 `rollNumber` |
-| L2 | `MarkerHighlight` | 手绘高亮，粗糙几何由 roughjs 生成 |
-| L2 | `BarGrowth` | 柱状生长，复用 `growSeries` |
-| L2 | `Callout` | 引线标注，引线按进度生长 |
-| 排版 | `AutoFitText` / `TextBlock` | 单行字号适配；CJK 感知换行与逐字显影 |
-| 图形 | `PathMorph` / `MaskReveal` | 路径形变；wipe/iris 遮罩揭示 |
-| 图形 | `ArcGauge` / `ProgressRing` | 圆弧仪表与环形进度 |
-| 图形 | `NoiseDrift` / `noiseAt` / `noiseDrift` | 种子噪声的有机漂移与抖动 |
-| 图表 | `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` | 纯时间安全的折线、面积、迷你趋势与坐标轴 |
-| 图表 | `Timeline` / `ChapterTrack` | 事件时间轴与等距章节轨 |
-
-```tsx
-const t = Math.min(1, elapsedSeconds / 3);
-const content = <>
-  <AutoFitText text={title} withinWidth={820} fontFamily="M2V Sans" maxFontSize={112}/>
-  <TextBlock text={body} maxWidth={640} fontFamily="M2V Sans" fontSize={32} progress={t}/>
-  <LinePlot series={[{values: revenue}]} progress={t} width={1200} height={600}>
-    <Axis orientation="x" domain={[0, revenue.length - 1]} range={[64, 1136]} at={540} ticks={5}/>
-  </LinePlot>
-</>;
-```
-
-使用边界：
-
-- **文本测量**：`AutoFitText` / `TextBlock` 只在浏览器测量，并在字体就绪后重测；
-  Node 下回退到调用方给定的字号或原始分行，不猜近似值。`@remotion/layout-utils`
-  的 `fillTextBox` / `fitTextOnNLines` 按空格切词，中文不会换行——多行中文必须走
-  `TextBlock` 的 CJK 断行，不要直接调用这两个函数。
-- **路径**：`@remotion/paths` 只用于 SVG path；`PathMorph` 调用 `interpolatePath`，
-  只做逐点插值、不做拓扑匹配，复杂轮廓要自行保证对应点或先重采样。Canvas 点列、
-  粒子、辉光与量测继续用 Painter。
-- **样式**：`@remotion/animation-utils` 只用于 CSS 数值、颜色与 transform；SVG 数值
-  属性、Three.js 数值继续用 `interpolate`/`growSeries`/`interpolateState`。
-- **图表**：参考 `LinePlot` / `AreaPlot` / `Sparkline` / `Axis` 只做数值映射和静态 SVG，坐标轴由调用方组合。使用其他库时按实际逐帧证据选择采集模式，不凭库名宣称 pure-time；几何与依赖进入作品。
-- **噪声**：`@remotion/noise` 的 `noise2D` 以显式种子和坐标求值，相同输入结果相同；
-  页面卸载/重挂载不受影响。噪声只用于有机漂移与纹理，不替代编排。
-- **圆弧仪表与时间轴**只输出静态 SVG，由调用方控制动画。标签密集时由调用方
-  自行错开或截断，组件不做自动避让。
-- **roughjs** 只生成 MarkerHighlight 的草图几何，必须传显式 `seed`；不要用它草图化
-  作品已有的艺术路径。
-- 作品从实际采用的本地模块导入；直接采用第三方包时在作品声明精确版本、来源和许可，按[实现手段开放](design-samples.md#实现手段开放)验证，不沿用共享别名或旧包白名单。
-- 新包按实际许可、资源和时钟边界评估；依赖 Remotion composition 上下文的实现不能直接当普通代码场景组件。代码场景运动模糊可用既有子帧方案，不因候选名单预先限制表达。
-- 作品采用的本地组件进入该作品的实现指纹；修改后引用作品的片段缓存与准备指纹失效，必须重新准备并复查。主项目参考源码不计入任何作品指纹。
+- SVG 轴线、标注、路径显示范围和时间轴由作品按实际图形与数据组织。相互比较的元素应共用坐标与数据映射。
+- 排版在采用的字体就绪后核对，按作品实际文字验证中文断行、长标签和手机尺寸表现。
+- CSS 变换可复用本地 `styles.ts`。SVG 数值属性与 Three.js 数值可采用显式的 `interpolate`、`growSeries` 或 `interpolateState`。Canvas 点列、粒子、辉光与量测可采用 Painter。
+- 第三方包按作品声明精确版本、来源及许可，并验证资源、上下文与时钟边界。依赖 Remotion composition 上下文的实现用于对应的合成环境。代码场景运动模糊可用既有子帧方案。详见[实现手段开放](design-samples.md#实现手段开放)。
+- 作品采用的本地组件进入该作品的实现指纹，修改后重新准备并复查引用场景。
 
 ### 二维绘制层
 

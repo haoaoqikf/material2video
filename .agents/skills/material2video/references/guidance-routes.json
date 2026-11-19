@@ -77,7 +77,7 @@
     },
     {
       "id": "motion-components",
-      "when": "需要使用或修改共享动效组件、文本适配与中文换行、路径形变、遮罩、纯时间图表、时间轴、象形图或波形",
+      "when": "需要采用动效原语、圆弧路径、CSS 变换或纯时间图表",
       "guide": "references/code-scene-runtime.md#共享动效组件"
     },
     {
