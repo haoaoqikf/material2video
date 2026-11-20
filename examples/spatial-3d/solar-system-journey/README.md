@@ -60,3 +60,7 @@ uv run m2v status --project examples/spatial-3d/solar-system-journey --history -
 画面由本作品`scenes/`中的Three.js／React Three Fiber／Drei场景绘制。名称与核心结论保留，重复信息板及整排列站导航已精简；`BODIES`中的`kind`与`distance`保留对象资料，当前不渲染。配乐与少量音效为原创合成CC0，音乐重点窗口由当前分镜派生。
 
 本例启用的PostFX没有ToneMapping效果；`look.exposure`及镜头`exposure`虽连接renderer属性，当前不渲染为曝光变化。现用明暗由光照、材质和实际后期调色控制，不能只修改EV就宣称画面已改变。
+
+## 许可证
+
+本示例的原创代码、文档和文稿采用 [MIT 许可证](LICENSE)。第三方纹理、档案及另行许可的原创图像和声音见[第三方声明](THIRD_PARTY_NOTICES.md)。

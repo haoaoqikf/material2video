@@ -44,7 +44,7 @@ uv run m2v status --project examples/documentary-edit/american-science-milestone
 
 附属[键盘与火花音效演练](assets/SOUND_EXERCISE.md)可在作品副本验证统一音效库。
 
-本示例代码及原创文案按仓库许可分发。外部档案的出处、许可和实际采用范围记录在[素材台账](SOURCES.md)。
+本示例的原创代码、文档和文稿采用 [MIT 许可证](LICENSE)。依赖、字体和外部档案的许可见[第三方声明](THIRD_PARTY_NOTICES.md)，实际采用范围见[素材台账](SOURCES.md)。
 
 本示例的画面组件与参数保存在本作品 `scenes/`，可独立重建。
 

@@ -24,6 +24,10 @@ Material2Video 是短视频制作指导与工具链。新建作品使用 `projec
 
 三维示例[太阳系之旅](examples/spatial-3d/solar-system-journey/README.md)采用120秒、十五站的连续旅程，以实测旁白预算生成差异化镜头，突出地月关系、土星显环与外层尺度。示例的媒体和原创声音按固定配方恢复，当前制作与验收证据见其[验证记录](examples/spatial-3d/solar-system-journey/VERIFICATION.md)。
 
+## 许可证
+
+Material2Video 的原创代码、文档及示例源码和原创文案采用 [MIT 许可证](LICENSE)，另有许可标注的内容沿用其声明。默认渲染链路使用独立授权的 Remotion。依赖、字体、模型和示例素材的许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
+
 ## 安装与快速开始
 
 ```powershell

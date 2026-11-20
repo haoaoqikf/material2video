@@ -26,3 +26,7 @@ pnpm run qa
 已有匹配的公开缓存时，可设置 `M2V_TTS_CACHE`、`M2V_FONT_CACHE` 并去掉 `setup` 的 `--download`。字体版本与许可证见[字体登记](fonts/registry.json)。预演可用 `--limit-frames` 控制采集上限，正式渲染输出 `outputs/video.mp4`，技术报告在 `outputs/qa.json`。
 
 场景与声点修改后，用 `pnpm test` 验证同一零线、两组归塔的对象连续性与金额，再按[必审窗口](design/formal-review-windows.json)抽取有序帧和适用音频信号复核。
+
+## 许可证
+
+本示例的原创代码、文档和文稿采用 [MIT 许可证](LICENSE)。依赖、字体、配音模型和原音色的说明见[第三方声明](THIRD_PARTY_NOTICES.md)。

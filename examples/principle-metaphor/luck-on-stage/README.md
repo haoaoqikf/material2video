@@ -34,3 +34,7 @@ pnpm run render
 ```
 
 字体缺失时把文件放入 `M2V_FONT_CACHE` 或 `fonts/.cache/`，再执行 `uv run python fonts/fetch.py`；摘要不符会拒绝覆盖。媒体与音效按 `assets/` 配方恢复。环境与恢复细节见[独立基础模板说明](../../../templates/standalone/README.md)。
+
+## 许可证
+
+本示例的原创代码、文档和文稿采用 [MIT 许可证](LICENSE)。依赖、字体及原创事件音的许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
