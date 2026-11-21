@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import stat
 import subprocess
 import time
 from contextlib import contextmanager
@@ -29,6 +30,19 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 _private_stages: ContextVar[tuple[Path, ...]] = ContextVar('private_delivery_stages', default=())
+
+
+def local_directory_mtime_ns(path: Path) -> int | None:
+    """只识别实目录，排除指向其他位置的符号链接和 Windows 重解析点。"""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    if stat.S_ISDIR(info.st_mode) and not (
+        getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+    ):
+        return info.st_mtime_ns
+    return None
 
 
 @contextmanager

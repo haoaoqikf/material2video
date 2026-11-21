@@ -47,6 +47,8 @@ uv run m2v preview --project videos/text-motion/demo --limit-frames 30
 
 `init` 生成完整的三秒主题工程，五类默认都不预装三维、图表或业务来源模块；正式创作时改写分镜和 `scenes/opening.tsx`。使用 Kokoro 的作品需在自身依赖中安装 `kokoro` 与 `misaki[zh]`（模板提供 `kokoro` extra），并用 `python models/fetch.py --download --voice <音色>` 恢复模型。使用 Qwen3-TTS 的作品需安装 `qwen-tts` 与 `stable-ts`（模板提供 `qwen3-tts` extra），并用 `python models/qwen3-tts/fetch.py --download --voice <音色>` 恢复主模型与对齐模型；参考音色必须随作品保存并登记摘要。本地命令、环境和恢复前提见[独立工程说明](templates/standalone/README.md)。生成后可以直接在作品目录运行，也可由 m2v 委托；默认 `videos/<类型>/<作品名>/` 只是生成位置，显式路径和后续搬移不要求该目录层级。`preview` 只检查片段；最终成片与审核按[媒体评审契约](.agents/skills/material2video/references/review-contract.md)执行。`render --jobs N` 可并行，默认 2；内存紧张时改为 1，并行只影响耗时，不改变帧序与成片契约。默认内容位置可通过 `--content-root` 或 `M2V_CONTENT_ROOT` 设置。
 
+Remotion 构建缓存按使用时间保留最近 8 份，并保护正在渲染或取帧的构建。录制中断留下的逐帧临时目录在后续录制时按进程归属回收。文件位置和清理范围见[目录约定](.agents/skills/material2video/references/paths.md#构建与录制缓存)。
+
 ## 命令
 
 运行 `uv run m2v --help` 查看入口与参数。类型目录通过 `m2v types` 查询；制作辅助操作使用 `m2v author`，金融来源计划使用 `m2v data financial-plan`。旧命令不保留别名。

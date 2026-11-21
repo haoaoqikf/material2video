@@ -7,6 +7,8 @@ import os
 import shutil
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,6 +45,7 @@ class BundleOutcome:
     input_fingerprint: dict | None = None
 
 
+@contextmanager
 def bundle(
     *,
     web_dir: Path,
@@ -53,8 +56,8 @@ def bundle(
     timeout_s: float = _BUNDLE_TIMEOUT_S,
     cache: bool = True,
     cache_identity: str | Path | None = None,
-) -> BundleOutcome:
-    """把 composition 打包成静态产物，交给后续的取元数据与渲染复用。
+) -> Iterator[BundleOutcome]:
+    """在调用方读取静态构建期间登记使用状态，防止并发淘汰。
 
     走 CLI 而不是 `@remotion/bundler` 的 `bundle()`：CLI 会读 `remotion.config.ts`，
     因此 `@/` 本地别名与样式 只在一处配置。程序化打包不会读那个配置，
@@ -69,88 +72,70 @@ def bundle(
     缓存省掉的是打包，不是门禁。
     """
     web = Path(web_dir)
-    # 同一前端工作区的构建串行，避免共享工具缓存被并发改写。
-    with bundle_cache.generation_lock(web):
-        violations = source_policy.scan(build_inputs())
-        if violations:
-            detail = "\n".join(item.render(web) for item in violations)
-            raise RemotionError(f"composition 源码违反确定性约束：\n{detail}")
+    marker = None
+    try:
+        # 共享构建锁只覆盖打包和缓存登记，后续渲染可以并发。
+        with bundle_cache.generation_lock(web):
+            violations = source_policy.scan(build_inputs())
+            if violations:
+                detail = "\n".join(item.render(web) for item in violations)
+                raise RemotionError(f"composition 源码违反确定性约束：\n{detail}")
+            if cache:
+                outcome = _cached_bundle(web, out_dir, storyboard_path=cache_identity or storyboard_path,
+                                         workspace_root=workspace_root, timeout_s=timeout_s)
+                if outcome.path != out_dir:
+                    assert outcome.cache_key is not None
+                    marker = bundle_cache.retain(web, outcome.cache_key)
+            else:
+                seconds = _bundle_into(web, out_dir, timeout_s)
+                logger.info("打包 composition 用了 %.1f 秒（本次禁用缓存）", seconds)
+                outcome = BundleOutcome(out_dir, "disabled", None, "本次禁用缓存", 0.0, seconds)
+        yield outcome
+    finally:
+        if marker is not None:
+            bundle_cache.release(marker)
 
-        if not cache:
-            build_seconds = _bundle_into(web, out_dir, timeout_s)
-            logger.info("打包 composition 用了 %.1f 秒（本次禁用缓存）", build_seconds)
-            return BundleOutcome(
-                path=out_dir,
-                cache_status="disabled",
-                cache_key=None,
-                cache_detail="本次禁用缓存",
-                cache_seconds=0.0,
-                build_seconds=build_seconds,
-            )
 
-        prepare_started = time.monotonic()
-        # 这份指纹同时用于缓存键与成片溯源：同一批文件只哈希一次。
-        # 算两遍不只是浪费——冷路径会因此平白多出几百毫秒。
-        # 参数必须与写溯源时**逐字相同**，否则溯源里的键与复核时算出来的对不上，
-        # 每次渲染后都会被判成「旧资产」。
-        fingerprint = build_input_fingerprint(
-            workspace_root=workspace_root,
-        )
-        base = fingerprint["files"]
-        key, detail = bundle_cache.compute_key(
-            web_dir=web, base_files=base, storyboard_path=cache_identity or storyboard_path
-        )
-        entry = bundle_cache.entry_dir(web, key)
+def _cached_bundle(web: Path, out_dir: Path, *, storyboard_path: str | Path,
+                   workspace_root: str | Path | None, timeout_s: float) -> BundleOutcome:
+    started = time.monotonic()
+    # 同一份构建输入指纹也用于成片溯源。
+    fingerprint = build_input_fingerprint(workspace_root=workspace_root)
+    key, detail = bundle_cache.compute_key(web_dir=web, base_files=fingerprint["files"],
+                                           storyboard_path=storyboard_path)
+    entry = bundle_cache.entry_dir(web, key)
+    path = bundle_cache.bundle_path(entry)
+    local = bundle_cache.local_cache(web)
+    active = bundle_cache.active_keys(web) if local else set()
+    if local:
+        bundle_cache.cleanup_stale(web)
         ok, reason = bundle_cache.verify(entry, key)
         if ok:
-            cache_seconds = time.monotonic() - prepare_started
+            bundle_cache.prune(web, key=key, active=active)
             logger.info("打包缓存命中（%s）：%s", key[:12], reason)
-            return BundleOutcome(
-                path=bundle_cache.bundle_path(entry),
-                cache_status="hit",
-                cache_key=key,
-                cache_detail=reason,
-                cache_seconds=cache_seconds,
-                build_seconds=0.0,
-                input_fingerprint=fingerprint,
-            )
+            return BundleOutcome(path, "hit", key, reason, time.monotonic() - started, 0.0, fingerprint)
+    else:
+        reason = "构建缓存目录不可用"
 
+    if not local or key in active or not bundle_cache.prune(web, key=key, active=active):
+        # 另一个渲染仍在读此键，或缓存没有可回收的位置。
+        reason = f"{reason}。本次使用临时构建"
+        path = out_dir
+        seconds = _bundle_into(web, path, timeout_s)
+    else:
         with bundle_cache.key_lock(web, key):
-            # 等锁期间可能有别的进程把同一把键建好了，复查一次再动手
-            ok, reason = bundle_cache.verify(entry, key)
-            if ok:
-                cache_seconds = time.monotonic() - prepare_started
-                logger.info("打包缓存命中（%s）：%s", key[:12], reason)
-                return BundleOutcome(
-                    path=bundle_cache.bundle_path(entry),
-                    cache_status="hit",
-                    cache_key=key,
-                    cache_detail=reason,
-                    cache_seconds=cache_seconds,
-                    build_seconds=0.0,
-                    input_fingerprint=fingerprint,
-                )
-            bundle_cache.cleanup_stale(web)
-            temporary = bundle_cache.cache_root(web) / f".tmp-{key[:12]}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-            temporary.mkdir(parents=True, exist_ok=True)
+            temporary = entry.parent / f".tmp-{key[:12]}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+            temporary.mkdir()
             try:
-                build_seconds = _bundle_into(web, bundle_cache.bundle_path(temporary), timeout_s)
+                seconds = _bundle_into(web, bundle_cache.bundle_path(temporary), timeout_s)
                 bundle_cache.write_manifest(temporary, key=key, detail=detail)
                 bundle_cache.publish(temporary, entry, key=key)
             except BaseException:
                 shutil.rmtree(temporary, ignore_errors=True)
                 raise
-        cache_seconds = time.monotonic() - prepare_started - build_seconds
-        logger.info("打包完成并写入缓存（%s，%.1f 秒）", key[:12], build_seconds)
-        return BundleOutcome(
-            path=bundle_cache.bundle_path(entry),
-            cache_status="miss",
-            cache_key=key,
-            cache_detail=reason,
-            cache_seconds=max(cache_seconds, 0.0),
-            build_seconds=build_seconds,
-            input_fingerprint=fingerprint,
-        )
+        logger.info("打包完成并写入缓存（%s，%.1f 秒）", key[:12], seconds)
+    return BundleOutcome(path, "miss", key, reason, max(time.monotonic() - started - seconds, 0.0),
+                         seconds, fingerprint)
 
 
 def _bundle_into(web: Path, out_dir: Path, timeout_s: float) -> float:

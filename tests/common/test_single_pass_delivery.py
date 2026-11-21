@@ -158,3 +158,16 @@ def test_cleanup_preserves_current_candidate_and_removes_old_video(tmp_path):
     assert cleanup_after_render(outputs, final) == []
     assert candidate.is_file() and candidate.with_suffix(".provenance.json").is_file()
     assert not old.exists()
+
+
+def test_delivery_cleanup_keeps_an_empty_active_recording_workspace(tmp_path):
+    from m2v.core.output_cleanup import cleanup_after_render
+
+    outputs = tmp_path / "outputs"
+    recording = outputs / "code-cache" / ".recordings" / "code-123-abcdefgh"
+    recording.mkdir(parents=True)
+    final = outputs / "video.mp4"
+    final.write_bytes(b"current")
+
+    assert cleanup_after_render(outputs, final) == []
+    assert recording.is_dir()
