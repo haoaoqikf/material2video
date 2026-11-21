@@ -23,7 +23,7 @@ def dispatch(args) -> int:
     if args.command == "sample":
         from m2v.production.sample_cli import dispatch as sample_dispatch
         return sample_dispatch(args)
-    if args.command in {"review", "issues", "baseline"}:
+    if args.command in {"review", "issues"}:
         from m2v.production.cli import dispatch as production_dispatch
         return production_dispatch(args)
     if args.command == "types":
@@ -338,14 +338,10 @@ def _status(root: Path, manifest: dict, *, full_history=False) -> dict:
 
 
 def _status_in_query(root: Path, manifest: dict, *, full_history: bool) -> dict:
-    from m2v.production import baselines, film_review, ledger
+    from m2v.production import film_review, ledger
 
     result = {"id": manifest["id"], "type": manifest["type"]}
     result['production'] = ledger.status(root, manifest, full_history=full_history)
-    try:
-        result['production']['baselines'] = baselines.summary(root)
-    except M2VError as exc:
-        result['production'].setdefault('diagnostics', []).append(str(exc))
     try:
         prepared = film_review.prepared(root, manifest)
         result["prepare"] = {"status": "current", "fingerprint": prepared["preparedFingerprint"]}

@@ -74,7 +74,7 @@ def cleanup_after_render(outputs_dir: str | Path, current_video: str | Path, *, 
             keep.update(_visual_evidence(outputs))
             # 制作门、隔离评审、目标关键帧和基线有各自保留契约，普通交付清理不能抢先删除。
             # 目标关键帧是独立的静态美术证据，不是可由成片重放得到的普通静帧。
-            # 基线媒体仅由显式 baseline prune 在引用检查与写锁下删除。
+            # 存量基线由经核实的清单整组清理，普通导出避免提前删掉其中的独立评审原件。
             for name in ('production', 'review-pack', 'baselines', 'design'):
                 directory = outputs / name
                 if directory.is_symlink():
