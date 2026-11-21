@@ -538,14 +538,20 @@ def test_real_video_window_frames_and_metadata(tmp_path):
         ]
     )
     r = request()
-    r["sources"] = []
-    r.update(purpose="process", reviewType="blind", blindReason="核对完整状态变化与身份连续")
+    r.update(sources=[], displaySizes=[393, 160], purpose="process",
+             reviewType="blind", blindReason="核对完整状态变化与身份连续")
     r["items"] = [dict(id="window-1", path="clip.mp4", window=[3, 9], dynamic=True)]
     pack = reviews.package(root, manifest, r)
     data = read(pack / "manifest.json")
     item = data["items"][0]
     assert [x["frame"] for x in item["sequence"]] == list(range(3, 9))
+    sealed_paths = [record["path"] for record in data["files"]]
+    for frame in item["sequence"]:
+        phone = Path(frame["path"]).with_suffix("").as_posix() + "-393.png"
+        assert frame["displayPaths"] == [phone, frame["path"]]
+        assert sealed_paths.count(frame["path"]) == 1
     assert len(list((pack / "evidence-0000").glob("*-393.png"))) == 6
+    assert not list((pack / "evidence-0000").glob("*-160.png"))
     assert ledger.evidence_valid_at(pack, data["files"])
     ffmpeg(["-i", str(pack / item["path"]), "-map", "0:a:0", "-f", "null", "-"])
     r["items"][0]["window"] = [0, 60]
@@ -566,11 +572,14 @@ def test_real_image_metadata_removed(tmp_path):
     Image.new("RGB", (160, 90), "blue").save(out / "trial.png", pnginfo=metadata)
     Image.new("RGB", (160, 90), "red").save(out / "target.png", pnginfo=metadata)
     r = request()
-    r["sources"] = []
+    r.update(sources=[], displaySizes=[160, 393])
     r["references"] = ["target.png"]
     r["conditions"] = ["主体轮廓及色彩与目标对应"]
     pack = reviews.package(root, manifest, r)
-    with Image.open(pack / "evidence-0000.png") as image:
+    frame = read(pack / "manifest.json")["items"][0]["sequence"][0]
+    assert frame["displayPaths"] == [frame["path"], "evidence-0000-393.png"]
+    assert not (pack / "evidence-0000-160.png").exists()
+    with Image.open(pack / frame["path"]) as image:
         assert "Author" not in image.info
     assert not list(pack.glob("target-*")) and not (pack / "conditions.json").exists()
     blind = reviews.import_report(root, manifest, report((root, manifest), pack))

@@ -1,5 +1,6 @@
 """关键帧和过程独立职责、明确采用、机械派生及纯静态交付边界。"""
 from pathlib import Path
+from shutil import copyfile
 
 import pytest
 
@@ -49,18 +50,47 @@ def test_generated_task_has_no_fabricated_call_or_pass(work):
         reviews.import_report(root, project, task / 'report-template.json')
 
 
-def test_same_round_compare_copies_verified_frames_without_rederiving(work, monkeypatch):
+@pytest.mark.parametrize('legacy_blind', [False, True], ids=['native-path', 'legacy-copy'])
+def test_same_round_compare_copies_verified_frames_without_rederiving(work, monkeypatch, legacy_blind):
     root, project = work
     req = request()
     req.update(references=['trial.png'], conditions=['相同主体品质'])
-    blind_pack = reviews.package(root, project, req)
+    native = 'evidence-0000.png'
+    duplicate = 'evidence-0000-640.png'
+    phone = 'evidence-0000-393.png'
+    derive_images = reviews.derive_images
+
+    def legacy_derivation(source, widths):
+        paths = derive_images(source, widths)
+        legacy_path = source.with_name(duplicate)
+        copyfile(source, legacy_path)
+        return [legacy_path if path == source else path for path in paths]
+
+    with monkeypatch.context() as scope:
+        if legacy_blind:
+            scope.setattr(reviews, 'derive_images', legacy_derivation)
+        blind_pack = reviews.package(root, project, req)
+    blind_manifest = read(blind_pack / 'manifest.json')
+    blind_frame = blind_manifest['items'][0]['sequence'][0]
+    assert blind_frame['displayPaths'] == [duplicate if legacy_blind else native, phone]
+    assert (blind_pack / duplicate).is_file() == legacy_blind
     blind = reviews.import_report(root, project, report(work, blind_pack))
     monkeypatch.setattr(reviews, 'derive_images', lambda *a, **kw: pytest.fail('同轮媒体不应重新取帧派生'))
     comparison = reviews.compare(root, project, blind['id'])
-    original = (blind_pack / 'evidence-0000.png').read_bytes()
-    assert (comparison / 'evidence-0000.png').read_bytes() == original
-    (comparison / 'evidence-0000.png').write_bytes(b'changed copy')
-    assert (blind_pack / 'evidence-0000.png').read_bytes() == original
+    comparison_manifest = read(comparison / 'manifest.json')
+    frame = comparison_manifest['items'][0]['sequence'][0]
+    assert frame['path'] == native and frame['displayPaths'] == [native, phone]
+    sealed_paths = [record['path'] for record in comparison_manifest['files']]
+    assert sealed_paths.count(native) == 1 and duplicate not in sealed_paths
+    assert not (comparison / duplicate).exists()
+    assert (comparison / phone).read_bytes() == (blind_pack / phone).read_bytes()
+    original = (blind_pack / native).read_bytes()
+    assert (comparison / native).read_bytes() == original
+    assert ledger.evidence_valid_at(comparison, comparison_manifest['files'])
+    (comparison / native).write_bytes(b'changed copy')
+    assert not ledger.evidence_valid_at(comparison, comparison_manifest['files'])
+    assert read(blind_pack / 'manifest.json') == blind_manifest
+    assert ledger.evidence_valid_at(blind_pack, blind_manifest['files'])
 
 
 def test_automatic_compare_preserves_sealed_targets_and_rejects_source_drift(work):

@@ -27,6 +27,8 @@ start 显式建立 version=4 新周期，归档旧问题正文并保留旧报告
 
 每个 item 指定中性 id、媒体 path、源媒体局部半开帧窗 window、dynamic。动态须完整可解码过程；工具裁出实际窗口并提取有序原生与手机帧，评审据此与帧差/场景切分、主体区域量测和音频信号量测核对。sampleStep 可选，默认逐帧，并保留首尾；根据关键动作加密，稀疏序列不足时补证。静态图片派生多尺寸，声音按实际覆盖记录。
 
+按包内清单的 `sequence` 读取评审图片。`path` 指向净化后的原图，`displayPaths` 按请求顺序列出展示图。新包中，原生宽度的展示路径与原图路径相同，文件清单和收据只登记这一个 PNG；其他宽度仍按比例派生。
+
 conditions 列出中性原条件，不填写设计理由、标准答案、推荐、制作成本或完整设计。references 列出实际参考媒体路径，conditions 对应说明整体品质、专项表现、信息表达或备选/历史比较用途，不把整体目标缩成特征清单。提供非空 references 时必须同时提供非空 conditions，缺失则在创建包前拒绝；旧请求须补条件后重建，不改写历史。条件可以只核对事实，无目标媒体不代表验证了风格。文件相对 outputs，可为画面或完整片段；目标按对象、窗口和显示条件描述，不写“应当高级”等抽象评价。
 
 `dynamic`标识编码视频媒体，不自动承诺运动。静止编码仅验证静态表现与一致性，不据此宣称动态或全片基线；动态目标的代表性仍须完整过程的有序帧、帧差/场景切分与信号量测，未提供的运动、停留时间、声音与正文保持未验证。
@@ -41,7 +43,7 @@ purpose 为 keyframe 或 process，round 为 trial。原生试制样品仅有关
 
 报告必填 version、round、reviewType、packPath、packSha256、reviewerId、isolation、focus、verdict、adoption、observations、coverage、invocation；consistency 对照另含 blindId，blind/process 不得含 blindId。packPath 是相对 outputs 的 manifest.json；invocation 为真实调用记录的 path/sha256。focus 为 comprehensive；isolation 为 independent-subagent/self-review/external-review。
 
-调用记录的 `inputPaths` 同样以 `outputs/` 为基准，例如 `review-pack/<包ID>/evidence-0000-1920.png`（使用实际清单文件名）。`reviewerId` 使用真实身份的标签，只含英文字母、数字、下划线或连字符，最长 96 字符；例如将代理路径 `/root/reviewer` 记作 `root-reviewer`，同轮保持一致。修正路径或标签格式时保留原稿和修正原因，不改观察结论或调用时间。
+调用记录的 `inputPaths` 同样以 `outputs/` 为基准，例如 `review-pack/<包ID>/evidence-0000.png`（使用实际清单文件名）。`reviewerId` 使用真实身份的标签，只含英文字母、数字、下划线或连字符，最长 96 字符；例如将代理路径 `/root/reviewer` 记作 `root-reviewer`，同轮保持一致。修正路径或标签格式时保留原稿和修正原因，不改观察结论或调用时间。
 
 coverage 每项为 id、window、status、adoption、observations、limitations、assessment；assessment 含 understanding、presentation、representativeness，每项为 status 与 observations。状态 pass/fail/insufficient；代表性和表现须具体观察。工具只验证记录完整性，不自动评判审美。
 
@@ -132,6 +134,8 @@ uv run m2v sample review --project <作品> --id <采集ID> --purpose keyframe -
 compare 从有效当前盲报告的封存请求派生。sample review 从当前采集自动生成关键帧来源、窗口和显示尺寸，targets 只含 references 和 conditions。正式过程确需盲审时在请求中登记 blindReason。真实观察和调用由独立评审者完成。
 
 同轮对照严格保持帧率、显示尺寸和 sampleStep，独立复制已核验盲包的净化媒体并逐文件直读核对封存摘要，不重复编码或取帧。不得使用硬链接共享可写文件。正式独立评审须登记实际视觉参考及中性条件，只有音频不能充当视觉品质标杆。
+
+从已封存的旧盲包创建新对照时，与同帧原图摘要相同的展示项使用新包自己的净化原图路径。原盲包及其评审记录保持原样。
 
 调用记录仅含 id、reviewerId、freshContext、startedAt、completedAt、inputPaths、readReportIds。时间有时区，实际开始不得早于包创建；失败复查另遵守时序。inputPaths 只列实际读取的包内登记文件或 manifest.json；盲审及直接过程对照的 readReportIds=[]，consistency 只列自身同轮 blindId。freshContext 表示代理最初创建时隔离，同一代理继续该轮对照时仍为 true。报告的 invocation 绑定真实记录的相对 outputs 路径与实际摘要，空白模板不是真实执行。用途、视觉目标标记和报告 ID 由工具绑定／导入后派生，不手填到提交报告。
 

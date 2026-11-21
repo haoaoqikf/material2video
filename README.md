@@ -125,6 +125,8 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 `m2v review start|pack|compare|import|timeline|retarget|reuse|scope|confirm-evidence` 统一周期、隔离包、报告和证据复用。评审 v4 声明 keyframe 或 process 用途；报告顶层及每项明确 adoption=adopt/reject，仅 pass 可以采用。旧评审通过不授权新版本，历史与未解决必改保留。
 
+新评审包的原生尺寸展示图复用包内净化 PNG。其他尺寸按比例派生，各包独立封存和校验证据文件。
+
 status 只读展示正式关键帧、适用的关键样片窗口、当前技术 QA、整片证据复核（`wholeFilmReview`）和待解决问题。超过 30 秒的作品须登记并通过全部必审样片窗口。技术候选可以提前生成。研究、试制和验收均无需播放观看或试听；整片复核基于当前候选的抽帧、时间轴和适用音频信号登记。
 
 目标参考与中性条件绑定，盲看后不能暗换；真实用户改变已失败目标时使用 retarget 保留原指令及旧失败，再完成对应独立复查。完整字节及观察条件相同的 trial 双评可显式 reuse，当前技术来源仍核验。具体格式、调用与失效处理按需读[工具协议](.agents/skills/material2video/references/review-protocol.md)，隔离执行见[独立子代理](.agents/skills/material2video/references/subagent-review.md)。
