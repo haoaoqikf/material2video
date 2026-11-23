@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 TYPE_EXAMPLES: dict[str, tuple[str, ...]] = {
     "text-motion": (),
-    "data-evolution": ("compound-after-20",),
+    "data-evolution": ("compound-after-20", "global-market-cap-race-portrait"),
     "principle-metaphor": ("luck-on-stage",),
     "spatial-3d": ("solar-system-journey",),
     "documentary-edit": ("american-science-milestones",),

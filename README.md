@@ -2,7 +2,7 @@
 
 Material2Video 是短视频制作指导与工具链。新建作品使用 `project.json` v3 和分镜 v9，拥有自己的运行源码、依赖锁、资源恢复与 `SceneFilm` 合成；主项目通过本地入口委托校验、准备、片段检查与完整导出。画面可由代码生成，也可使用登记过的真实媒体。架构边界见 [ARCHITECTURE.md](ARCHITECTURE.md)，操作流程见 [material2video Skill](.agents/skills/material2video/SKILL.md)。
 
-四部随附示例均为独立工程，运行源码、依赖锁、字体与资源恢复、预览、采集和导出都归作品。`lookdev`、时间线与 QA 读取本地产物。主项目提供制作指导、初始化、可选组件参考和制作管理。[`web/`](web/README.md) 集中维护现行参考源码与测试夹具。
+五部随附示例均为独立工程，运行源码、依赖锁、字体与资源恢复、预览、采集和导出都归作品。`lookdev`、时间线与 QA 读取本地产物。主项目提供制作指导、初始化、可选组件参考和制作管理。[`web/`](web/README.md) 集中维护现行参考源码与测试夹具。
 
 ## 当前视频类型
 
@@ -108,7 +108,9 @@ Pexels 是可用的图片和视频素材来源。选定素材后，把公开媒�
 
 《复利 40 年》用 38.7 秒回答同一笔钱前、后各二十年的利息为何相差 6.73 倍。四幕展示同一账户的起点、利息再投入、年度柱从零线生长及两组归塔。原克隆音色从本地参考 WAV 和音色档案恢复。详见[作品说明](examples/data-evolution/compound-after-20/README.md)。
 
-四部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出。需要下载的示例媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。当前示例和恢复入口见[随附示例](examples/README.md)。
+《全球市值前十》用深色发布会舞台、榜首交接和竖屏平台留白呈现 2000 至 2026 年的市值排名。详见[作品说明](examples/data-evolution/global-market-cap-race-portrait/README.md)。
+
+五部示例均为独立工程，可复制到仓库外按各自 README 恢复、预览与完整导出。需要下载的示例媒体按各自 `assets/recipe.json` 恢复，生成媒体与 `outputs/` 不入库。当前示例和恢复入口见[随附示例](examples/README.md)。
 
 - [项目规划](docs/PROJECT_PLAN.md)：未来路线与未实现能力。
 - [制作 Skill](.agents/skills/material2video/SKILL.md)：阶段入口、材料、画面、声音与评审规则。

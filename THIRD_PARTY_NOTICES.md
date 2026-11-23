@@ -18,6 +18,6 @@ Material2Video 的原创代码、文档及示例源码和原创文案采用 MIT 
 
 - 字体的来源、版本、摘要和许可证见[字体登记](fonts/registry.json)及[字体许可](fonts/licenses/)。
 - 配音和对齐模型按[独立工程声明](templates/standalone/THIRD_PARTY_NOTICES.md)引用的登记及许可恢复。素材索引模型和可选依赖见[模型登记](src/m2v/materials/model_registry.json)。
-- 四部示例分别提供独立声明。 [复利 40 年](examples/data-evolution/compound-after-20/THIRD_PARTY_NOTICES.md) · [运气到底是什么](examples/principle-metaphor/luck-on-stage/THIRD_PARTY_NOTICES.md) · [太阳系之旅](examples/spatial-3d/solar-system-journey/THIRD_PARTY_NOTICES.md) · [美国科学里程碑](examples/documentary-edit/american-science-milestones/THIRD_PARTY_NOTICES.md)
+- 五部示例分别提供独立声明。 [复利 40 年](examples/data-evolution/compound-after-20/THIRD_PARTY_NOTICES.md) · [全球市值前十](examples/data-evolution/global-market-cap-race-portrait/THIRD_PARTY_NOTICES.md) · [运气到底是什么](examples/principle-metaphor/luck-on-stage/THIRD_PARTY_NOTICES.md) · [太阳系之旅](examples/spatial-3d/solar-system-journey/THIRD_PARTY_NOTICES.md) · [美国科学里程碑](examples/documentary-edit/american-science-milestones/THIRD_PARTY_NOTICES.md)
 
 用户添加的文稿、素材和音色沿用其各自许可或授权。再次分发素材或发布含有这些素材的成片时，按具体用途核对相应权利及署名要求。

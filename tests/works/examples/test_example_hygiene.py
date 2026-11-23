@@ -33,7 +33,7 @@ def test_no_generated_or_example_media_is_tracked() -> None:
     """成片、配音、预演与代码片段缓存都是派生产物；示例媒体按配方恢复，都不进版本控制。"""
     if shutil.which("git") is None:
         pytest.skip("环境里没有 git")
-    listed = subprocess.run(["git", "ls-files", "styles", "fonts"], cwd=ROOT,
+    listed = subprocess.run(["git", "ls-files", "examples", "styles", "fonts"], cwd=ROOT,
                             capture_output=True, text=True, encoding="utf-8", errors="replace",
                             check=True).stdout.splitlines()
     generated = [name for name in listed

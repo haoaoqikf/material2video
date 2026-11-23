@@ -1,0 +1,128 @@
+.release-stage {
+  position: relative;
+  width: 420px;
+  height: 746.6666667px;
+  overflow: hidden;
+  isolation: isolate;
+  transform-origin: top left;
+  font-family: "M2V Inter", "M2V Sans";
+  font-variant-numeric: tabular-nums;
+  color: #f4f6fc;
+}
+.release-stage * {box-sizing: border-box}
+.release-stage :is(h1, p) {margin: 0}
+.release-stage header {
+  position: absolute;
+  inset: 43px 57px auto 29px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.release-stage h1 {font-size: 13px; font-weight: 600; color: #e0e5f0; letter-spacing: .02em}
+.release-stage time {font-size: 14px; font-weight: 550; color: #c8d2e4; letter-spacing: .06em}
+.release-stage .stage-metric {position: absolute; top: 65px; left: 29px; color: #a4afc3; font-size: 9.5px; letter-spacing: .105em}
+.release-stage .rim-space {
+  position: absolute;
+  inset: 78px 51px 307px 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, #000 0 87%, transparent);
+}
+.release-stage .rim-wrap {position: absolute; left: 128px; top: 51px; width: 249px; height: 206px}
+.release-stage .rim-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 15px -11px -16px 7px;
+  border-radius: 50%;
+  background: #050711;
+  filter: blur(13px);
+  opacity: .9;
+}
+.release-stage .rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 57deg, #d6dce7 0%, #6e7c93 8%, #182032 20%, #646875 26%, #fff0db 35%, #a097a8 41%, #202731 52%, #222c42 66%, #667baf 73%, #d3dde8 78%, #454f69 85%, #ebe8e6 94%, #d6dce7 100%);
+  box-shadow: 0 3px 2px #0009, 0 11px 25px #0008, 0 0 22px #758baf35;
+}
+.release-stage .rim::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 72% 83%, #262c44 0%, #1c2234 29%, #141826 69%, #2b3143 94%);
+  box-shadow: inset 3px 5px 9px #080b14, 0 0 1px 1px #ced6df6b;
+}
+.release-stage .inner-track {
+  position: absolute;
+  left: 52px;
+  top: 96px;
+  width: 178px;
+  height: 107px;
+  border-radius: 50%;
+  border: 1px solid #bbcbe83c;
+  border-right-color: #828cac3a;
+  border-top-color: #e0e5f16d;
+}
+.release-stage .stage-cards {
+  position: absolute;
+  inset: 143px 57px auto 29px;
+  height: 144px;
+  display: grid;
+  gap: 11px;
+}
+.release-stage .stage-card {
+  position: relative;
+  border-radius: 8px;
+  background: linear-gradient(155deg, #222a3c, #131924f2);
+  border: 1px solid #73809b4d;
+  box-shadow: 0 8px 20px #05081040;
+  overflow: hidden;
+}
+.release-stage .stage-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #b9d2ff, transparent);
+  opacity: .17;
+}
+.release-stage .stage-card[data-lead="true"]::after {opacity: .96}
+.release-stage .stage-person {position: absolute; inset: 0; z-index: 3}
+.release-stage .stage-person > span {
+  position: absolute;
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+}
+.release-stage .person-rank {color: #b0bfd6; letter-spacing: .065em}
+.release-stage .person-name {letter-spacing: -.045em; text-shadow: 0 3px 8px #090d17b8}
+.release-stage .person-cap {color: #f0f4fd; letter-spacing: -.055em; text-shadow: 0 2px 8px #090d17a0}
+.release-stage [data-lead="true"] > .person-rank,
+.release-stage [data-lead="true"] > .person-cap {color: #f7faff}
+.release-stage .hero-unit {
+  position: absolute;
+  z-index: 2;
+  left: 32px;
+  top: 305px;
+  color: #d1d9ea;
+  font-size: 11.5px;
+  letter-spacing: .06em;
+}
+.release-stage .stage-board {
+  position: absolute;
+  inset: 358.6px 57px auto 29px;
+}
+.release-stage .stage-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 29.4px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 86px;
+  align-items: center;
+  border-bottom: 1px solid #c7d9f51d;
+}
+.release-stage .row-rank {font-size: 10px; color: #a7b4cb; letter-spacing: .075em}
+.release-stage .row-name {font-size: 13.8px; font-weight: 475; white-space: nowrap}
+.release-stage .row-cap {font-size: 15px; color: #e4eaf7; text-align: right; letter-spacing: -.035em; font-weight: 525}

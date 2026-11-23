@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "id": "global-market-cap-race-portrait",
+  "type": "data-evolution",
+  "materials": {
+    "storyboard": "storyboard.json"
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "audio": "optional"
+  },
+  "runtime": {
+    "version": 1,
+    "command": [
+      "uv",
+      "run",
+      "--frozen",
+      "python",
+      "scripts/video.py"
+    ]
+  }
+}

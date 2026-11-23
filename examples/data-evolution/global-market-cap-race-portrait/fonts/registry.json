@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "$comment": "字体二进制不入库。来源、摘要、许可与恢复目标以本表为准；恢复命令：uv run python fonts/fetch.py。",
+  "fonts": [
+    {
+      "id": "lat-inter",
+      "file": "Inter-Variable.ttf",
+      "family": "M2V Inter",
+      "weight": "100 900",
+      "usage": "拉丁与数字；图表数值列的对齐依赖它",
+      "source": "https://rsms.me/inter/",
+      "version": "4.001;git-66647c0bb",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "license": "licenses/OFL-Inter.txt",
+      "download": "https://raw.githubusercontent.com/google/fonts/e1d6480102fed30739fead0faee463101f892c8f/ofl/inter/Inter%5Bopsz,wght%5D.ttf",
+      "targets": [],
+      "web": true
+    },
+    {
+      "id": "sans-cn",
+      "file": "NotoSansSC-Variable.ttf",
+      "family": "M2V Sans",
+      "weight": "100 900",
+      "usage": "中文",
+      "source": "https://fonts.google.com/noto/specimen/Noto+Sans+SC",
+      "version": "2.004-H2",
+      "bytes": 17772300,
+      "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "license": "licenses/OFL-NotoSansSC.txt",
+      "download": "https://raw.githubusercontent.com/google/fonts/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
+      "targets": [],
+      "web": true
+    }
+  ]
+}
